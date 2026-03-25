@@ -112,7 +112,7 @@ if command == "clean" then
 	ctx.fs:remove("bin/linux64/lib7z.so")
 	ctx.fs:remove("bin/win64/video.dll")
 	ctx.fs:remove("bin/win64/7z.dll")
-	ctx.fs:remove("repo")
+	ctx.fs:remove("build/repo")
 	print("Cleaned.")
 	os.exit(0)
 end

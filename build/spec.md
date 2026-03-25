@@ -28,7 +28,7 @@ The goal of the Rizu build system is to provide a reliable, automated, and cross
     - `make.lua`: Main entry point and task orchestrator.
     - `Builder.lua`: High-level logic for C module compilation.
 - `bin/`: Final binary artifacts (e.g., `.so`, `.dll`, `.dylib`) organized by platform.
-- `repo/`: Distributable packages (ZIP archives) and update repository metadata.
+- `repo/`: Distributable packages (ZIP archives) and update repository metadata. Moved to `build/repo/`.
 
 ## Task Lifecycle & Dependencies
 The build process follows a strictly defined dependency graph:

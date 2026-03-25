@@ -1,9 +1,10 @@
 local class = require("class")
 local stbl = require("stbl")
-local crc32 = require("crc32")
+local zlib = require("zlib")
 local json = require("3rd-deps.lua.json")
-local util = require("build.package.util")
 local config = require("build.package.config")
+local fs_util = require("fs.util")
+local ZipFilesystem = require("fs.ZipFilesystem")
 
 local _name = config.repo.name
 
@@ -11,9 +12,13 @@ local _name = config.repo.name
 ---@operator call: repo.RepoBuilder
 local RepoBuilder = class()
 
----@param git_repo repo.GitRepo | repo.CurrentRepo
-function RepoBuilder:new(git_repo)
+---@param ctx build.Context
+---@param git_repo repo.CurrentRepo
+---@param src_fs? fs.IFilesystem
+function RepoBuilder:new(ctx, git_repo, src_fs)
+	self.ctx = ctx
 	self.git_repo = git_repo
+	self.src_fs = src_fs or ctx.fs
 end
 
 local function serialize(t)
@@ -21,29 +26,31 @@ local function serialize(t)
 end
 
 function RepoBuilder:writeConfigs(gamedir)
-	util.write(gamedir .. "/version.lua", serialize({
+	self.ctx.fs:write(gamedir .. "/version.lua", serialize({
 		date = self.git_repo:log_date(),
 		commit = self.git_repo:log_commit(),
 	}))
 
-	-- Note: Rizu uses different config structure than old sphere
-	-- If sphere/persistence/ConfigModel/urls.lua exists, update it
 	local urls_path = gamedir .. "/sphere/persistence/ConfigModel/urls.lua"
-	if util.popen_read("ls " .. urls_path):find("urls.lua") then
-		local urls = dofile(urls_path)
-		urls.host = config.game.api
-		urls.websocket = config.game.websocket
-		urls.update = config.game.repo .. "/files.json"
-		urls.osu = config.osu
-		urls.multiplayer = config.game.multiplayer
-		util.write(urls_path, serialize(urls))
+	-- URLs path should exist in the target directory (gamedir) which is in ctx.fs
+	local content = self.ctx.fs:read(urls_path)
+	if content then
+		local chunk = loadstring(content)
+		if chunk then
+			local urls = chunk()
+			urls.host = config.game.api
+			urls.websocket = config.game.websocket
+			urls.update = config.game.repo .. "/files.json"
+			urls.osu = config.osu
+			urls.multiplayer = config.game.multiplayer
+			self.ctx.fs:write(urls_path, serialize(urls))
+		end
 	end
 end
 
 local extract_list = {
 	"bin",
 	"resources",
-	"userdata",
 	"game-appimage",
 	"game-linux",
 	"game-macos",
@@ -64,145 +71,204 @@ local include_list = {
 }
 
 function RepoBuilder:buildGenericRepo()
-	util.md("repo")
+	self.ctx.fs:createDirectory("build/repo")
 
-	local gamerepo = "repo/" .. _name
+	local gamerepo = "build/repo/" .. _name
 	local gamedir = gamerepo .. "/gamedir.love"
 
-	util.rm(gamerepo)
-	util.md(gamerepo)
-	util.md(gamedir)
+	fs_util.remove(gamerepo, self.ctx.fs)
+	self.ctx.fs:createDirectory(gamerepo)
+	self.ctx.fs:createDirectory(gamedir)
 
 	local src_root = self.git_repo:getDirName()
+	if src_root == "." then src_root = "" end
+	local root_prefix = src_root == "" and "" or (src_root .. "/")
 
 	print("Copying core folders...")
 	for _, dir in ipairs(include_list) do
-		if util.popen_read("ls -d " .. src_root .. "/" .. dir):find(dir) then
-			util.cp(src_root .. "/" .. dir, gamedir)
+		if self.src_fs:getInfo(root_prefix .. dir) then
+			fs_util.copy(root_prefix .. dir, gamedir .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
 	end
 
 	print("Copying root lua files...")
-	os.execute(("cp %s/*.lua %s/"):format(src_root, gamedir))
-
-	print("Copying 3rd-deps/lua...")
-	util.md(gamedir .. "/3rd-deps")
-	util.cp(src_root .. "/3rd-deps/lua", gamedir .. "/3rd-deps/")
-
-	print("Extracting platform files...")
-	for _, dir in ipairs(extract_list) do
-		if util.popen_read("ls -d " .. src_root .. "/" .. dir):find(dir) then
-			if dir == "userdata" then
-				-- Exclude large local data folders when copying userdata
-				os.execute(("tar -cf - --exclude=charts --exclude=scores --exclude=db -C %q %q | tar -xf - -C %q"):format(src_root, dir, gamerepo))
-			else
-				util.cp(src_root .. "/" .. dir, gamerepo)
+	local root_items_path = src_root == "" and "." or src_root
+	if self.src_fs.tree then root_items_path = src_root end -- Handle FakeFilesystem
+	
+	local root_items = self.src_fs:getDirectoryItems(root_items_path)
+	for _, item in ipairs(root_items) do
+		if item:match("%.lua$") then
+			local info = self.src_fs:getInfo(root_prefix .. item)
+			if info and info.type == "file" then
+				fs_util.copy(root_prefix .. item, gamedir .. "/" .. item, self.src_fs, self.ctx.fs)
 			end
 		end
 	end
+
+	print("Copying 3rd-deps/lua...")
+	self.ctx.fs:createDirectory(gamedir .. "/3rd-deps")
+	if self.src_fs:getInfo(root_prefix .. "3rd-deps/lua") then
+		fs_util.copy(root_prefix .. "3rd-deps/lua", gamedir .. "/3rd-deps/lua", self.src_fs, self.ctx.fs)
+	end
+
+	print("Extracting platform files...")
+	for _, dir in ipairs(extract_list) do
+		if self.src_fs:getInfo(root_prefix .. dir) then
+			fs_util.copy(root_prefix .. dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
+		end
+	end
 	
-	-- Move 3rd-deps/lib to bin/ if it exists
-	if util.popen_read("ls -d " .. src_root .. "/3rd-deps/lib"):find("lib") then
-		util.md(gamerepo .. "/bin")
-		util.cp(src_root .. "/3rd-deps/lib/*", gamerepo .. "/bin/")
+	if self.src_fs:getInfo(root_prefix .. "3rd-deps/lib") then
+		local libs = self.src_fs:getDirectoryItems(root_prefix .. "3rd-deps/lib")
+		for _, lib in ipairs(libs) do
+			local ext = lib:match("%.([^.]+)$")
+			local subdir
+			if ext == "so" then
+				subdir = "linux64"
+			elseif ext == "dll" then
+				subdir = "win64"
+			elseif ext == "dylib" then
+				subdir = "mac64"
+			end
+
+			if subdir then
+				local dst_dir = gamerepo .. "/bin/" .. subdir
+				self.ctx.fs:createDirectory(dst_dir)
+				fs_util.copy(root_prefix .. "3rd-deps/lib/" .. lib, dst_dir .. "/" .. lib, self.src_fs, self.ctx.fs)
+			end
+		end
 	end
 
 	print("Cleaning up unnecessary files...")
-	util.findall(gamedir, '-regextype posix-egrep -not -regex ".*\\.(lua|c|sql)$" -type f -delete')
-	util.findall(gamerepo, '-name ".*" -delete')
-	util.findall(gamerepo, "-empty -type d -delete")
+	local to_delete = {}
+	fs_util.find(gamedir, self.ctx.fs, function(path)
+		if not path:match("%.lua$") and not path:match("%.c$") and not path:match("%.sql$") then
+			table.insert(to_delete, path)
+		end
+	end)
+	for _, path in ipairs(to_delete) do self.ctx.fs:remove(path) end
+
+	to_delete = {}
+	fs_util.find(gamerepo, self.ctx.fs, function(path)
+		local name = path:match("([^/]+)$")
+		if name and name:sub(1,1) == "." then
+			table.insert(to_delete, path)
+		end
+	end)
+	for _, path in ipairs(to_delete) do self.ctx.fs:remove(path) end
+
+	fs_util.removeEmptyDirs(gamerepo, self.ctx.fs)
 
 	self:writeConfigs(gamedir)
 
 	print("Zipping game.love...")
-	os.execute(("7z a -tzip %s/game.love ./%s/*"):format(gamerepo, gamedir))
-	util.rm(gamedir)
+	local zfs = ZipFilesystem()
+	fs_util.copy(gamedir, "", self.ctx.fs, zfs)
+	self.ctx.fs:write(gamerepo .. "/game.love", zfs:save())
+	fs_util.remove(gamedir, self.ctx.fs)
 
-	if util.popen_read("ls " .. src_root .. "/conf.lua"):find("conf.lua") then
-		util.cp(src_root .. "/conf.lua", gamerepo)
+	if self.src_fs:getInfo(root_prefix .. "conf.lua") then
+		fs_util.copy(root_prefix .. "conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
 	end
-	
-	-- Copy build/package/conf.lua as launcher config if it exists
-	if util.popen_read("ls build/package/conf.lua"):find("conf.lua") then
-		util.cp("build/package/conf.lua", gamerepo)
+	if self.src_fs:getInfo("build/package/conf.lua") then
+		fs_util.copy("build/package/conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
 	end
 end
 
 function RepoBuilder:build()
 	self:buildGenericRepo()
 
-	local gamerepo = "repo/" .. _name
+	local gamerepo = "build/repo/" .. _name
 	local files = {}
-	for line in util.find(gamerepo, "-type f") do
-		local content = util.read(line)
+	fs_util.find(gamerepo, self.ctx.fs, function(path)
+		local content = self.ctx.fs:read(path)
 		if content then
+			local rel_path = path:sub(#gamerepo + 2)
 			table.insert(files, {
-				path = line:gsub(("^%s/"):format(gamerepo), ""),
-				url = config.game.repo .. line:gsub("^repo", ""),
-				hash = crc32.hash(content),
+				path = rel_path,
+				url = config.game.repo .. "/" .. rel_path,
+				hash = zlib.crc32(0, content),
 			})
 		end
-	end
+	end)
 
-	util.write(gamerepo .. "/userdata/files.lua", serialize(files))
-	util.write("repo/files.json", json.encode(files))
+	self.ctx.fs:createDirectory(gamerepo .. "/userdata")
+	self.ctx.fs:write(gamerepo .. "/userdata/files.lua", serialize(files))
+	self.ctx.fs:write("build/repo/files.json", json.encode(files))
 end
 
 function RepoBuilder:build_zip()
-	os.execute(("7z a -tzip repo/%s_temp.zip ./repo/%s"):format(_name, _name))
-	util.rm(("repo/%s.zip"):format(_name))
-	util.mv(("repo/%s_temp.zip"):format(_name), ("repo/%s.zip"):format(_name))
+	local gamerepo = "build/repo/" .. _name
+	local zfs = ZipFilesystem()
+	fs_util.copy(gamerepo, _name, self.ctx.fs, zfs)
+	self.ctx.fs:write("build/repo/" .. _name .. ".zip", zfs:save())
 end
 
 function RepoBuilder:update_zip()
-	util.md("repo/tmp")
-	util.md(("repo/tmp/%s"):format(_name))
-	util.cp(("repo/%s/game.love"):format(_name), ("repo/tmp/%s/game.love"):format(_name))
-	os.execute(("7z u -tzip repo/%s.zip ./repo/tmp/%s"):format(_name, _name))
-	util.rm("repo/tmp")
+	local zip_path = "build/repo/" .. _name .. ".zip"
+	local zip_data = self.ctx.fs:read(zip_path)
+	if not zip_data then return end
+
+	local zfs = ZipFilesystem(zip_data)
+	local gamelove = self.ctx.fs:read("build/repo/" .. _name .. "/game.love")
+	if gamelove then
+		zfs:write(_name .. "/game.love", gamelove)
+		self.ctx.fs:write(zip_path, zfs:save())
+	end
 end
 
 function RepoBuilder:buildMacos()
-	local game_app = ("repo/macos/%s.app"):format(_name)
+	local game_app = "build/repo/macos/" .. _name .. ".app"
 	local Contents = game_app .. "/Contents"
 	local Frameworks = Contents .. "/Frameworks"
 	local Resources = Contents .. "/Resources"
 
-	util.rm("repo/macos")
-	util.md("repo/macos")
+	fs_util.remove("build/repo/macos", self.ctx.fs)
+	self.ctx.fs:createDirectory("build/repo/macos")
 	
-	local love_zip = "build/downloads/love-macos.zip"
-	if not util.popen_read("ls " .. love_zip):find("love-macos.zip") then
-		print("Warning: " .. love_zip .. " not found, skipping macOS app build")
+	local love_zip_path = "build/downloads/love-macos.zip"
+	local love_zip_data = self.src_fs:read(love_zip_path)
+	if not love_zip_data then
+		print("Warning: " .. love_zip_path .. " not found, skipping macOS app build")
 		return
 	end
 
-	os.execute("7z x -tzip " .. love_zip .. " -orepo/macos")
-	util.mv("repo/macos/love.app", game_app)
-	util.findall(game_app, "-type l -delete")
-	util.findall(Frameworks, '-type f -not -regex "^.*/A/[^/]*$" -delete')
+	local src_zfs = ZipFilesystem(love_zip_data)
+	fs_util.copy("love.app", game_app, src_zfs, self.ctx.fs)
+
+	local to_delete = {}
+	fs_util.find(Frameworks, self.ctx.fs, function(path)
+		if not path:match("/A/[^/]+$") then
+			table.insert(to_delete, path)
+		end
+	end)
+	for _, path in ipairs(to_delete) do self.ctx.fs:remove(path) end
 	
-	if util.popen_read("ls build/package/Info.plist"):find("Info.plist") then
-		util.cp("build/package/Info.plist", game_app .. "/Contents")
+	if self.src_fs:getInfo("build/package/Info.plist") then
+		fs_util.copy("build/package/Info.plist", Contents .. "/Info.plist", self.src_fs, self.ctx.fs)
 	end
 	
-	util.rm(Resources)
-	util.cp(("repo/%s"):format(_name), Resources)
+	fs_util.remove(Resources, self.ctx.fs)
+	fs_util.copy("build/repo/" .. _name, Resources, self.ctx.fs, self.ctx.fs)
 	
-	if util.popen_read("ls -d " .. Resources .. "/bin/mac64"):find("mac64") then
-		for path in util.find(Resources .. "/bin/mac64", "-type f") do
-			util.mv(path, Frameworks)
+	if self.ctx.fs:getInfo(Resources .. "/bin/mac64") then
+		local mac64_files = {}
+		fs_util.find(Resources .. "/bin/mac64", self.ctx.fs, function(p) table.insert(mac64_files, p) end)
+		for _, path in ipairs(mac64_files) do
+			local name = path:match("([^/]+)$")
+			fs_util.copy(path, Frameworks .. "/" .. name, self.ctx.fs, self.ctx.fs)
+			self.ctx.fs:remove(path)
 		end
 	end
 	
-	util.rm(Resources .. "/bin/win64")
-	util.rm(Resources .. "/bin/linux64")
+	fs_util.remove(Resources .. "/bin/win64", self.ctx.fs)
+	fs_util.remove(Resources .. "/bin/linux64", self.ctx.fs)
 
-	util.findall(game_app, "-empty -type d -delete")
+	fs_util.removeEmptyDirs(game_app, self.ctx.fs)
 
-	os.execute(("7z a -tzip repo/%s_macos_temp.zip ./"):format(_name) .. game_app)
-	util.rm(("repo/%s_macos.zip"):format(_name))
-	util.mv(("repo/%s_macos_temp.zip"):format(_name), ("repo/%s_macos.zip"):format(_name))
+	local dst_zfs = ZipFilesystem()
+	fs_util.copy(game_app, _name .. ".app", self.ctx.fs, dst_zfs)
+	self.ctx.fs:write("build/repo/" .. _name .. "_macos.zip", dst_zfs:save())
 end
 
 return RepoBuilder

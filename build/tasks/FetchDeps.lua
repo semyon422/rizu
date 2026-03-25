@@ -57,6 +57,15 @@ function FetchDeps:run(ctx)
 	end
 	ctx.fs:createDirectory(s7_extract)
 	ctx.shell:execute(string.format("7z x -y %q -o%q", s7_dest, s7_extract))
+
+	-- Handle love-macos
+	local love_macos = deps.love_macos
+	if love_macos then
+		local dest = "build/downloads/" .. love_macos.archive
+		if not ctx.fs:getInfo(dest) then
+			ctx.downloader:download(love_macos.url, dest)
+		end
+	end
 end
 
 function FetchDeps:upToDate(ctx)
@@ -67,6 +76,9 @@ function FetchDeps:upToDate(ctx)
 		return false
 	end
 	if not ctx.fs:getInfo("build/deps/" .. deps.sevenzip.dir) then
+		return false
+	end
+	if deps.love_macos and not ctx.fs:getInfo("build/downloads/" .. deps.love_macos.archive) then
 		return false
 	end
 	return true
@@ -87,6 +99,11 @@ function FetchDeps:getStatus(ctx)
 	local s7_dl = ctx.fs:getInfo("build/downloads/" .. s7.archive) and "OK" or "MISSING"
 	local s7_ex = ctx.fs:getInfo("build/deps/" .. s7.dir) and "OK" or "MISSING"
 	table.insert(res, { name = "7z SDK", value = string.format("DL: [%s] EX: [%s]", s7_dl, s7_ex) })
+
+	if deps.love_macos then
+		local dl = ctx.fs:getInfo("build/downloads/" .. deps.love_macos.archive) and "OK" or "MISSING"
+		table.insert(res, { name = "macOS Love Zip", value = dl })
+	end
 	
 	return res
 end
