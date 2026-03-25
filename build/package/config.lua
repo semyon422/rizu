@@ -18,5 +18,25 @@ return {
 	},
 	repo = {
 		name = "rizu",
+		extract = {
+			"bin",
+			"resources",
+			"game-appimage",
+			"game-linux",
+			"game-macos",
+			"game-win64.bat",
+		},
+		include = {
+			"rizu",
+			"sphere",
+			"sea",
+			"aqua",
+			"chartbase",
+			"libchart",
+			"native",
+			"preload",
+			"ui",
+			"yi",
+		},
 	},
 }

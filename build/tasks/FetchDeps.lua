@@ -38,12 +38,18 @@ function FetchDeps:run(ctx)
 		end
 		
 		-- Copy binaries to bin/
-		local platform_bin = "bin/" .. (target == "linux" and "linux64" or "win64")
+		local platform_bin_map = {
+			linux   = "bin/linux64",
+			windows = "bin/win64",
+			macos   = "bin/mac64",
+		}
+		local platform_bin = platform_bin_map[target] or platform_bin_map.linux
 		ctx.fs:createDirectory(platform_bin)
+		
 		if target == "linux" then
 			ctx.shell:execute(string.format("find %s/lib -maxdepth 1 -name \"*.so.[0-9]*\" ! -name \"*.so.[0-9]*.*[0-9]*\" -exec cp -L {} %s \\;", extract_to, platform_bin))
 			ctx.shell:execute(string.format("find %s/lib -maxdepth 1 -name \"*.so\" -exec cp -L {} %s \\;", extract_to, platform_bin))
-		else
+		elseif target == "windows" then
 			ctx.shell:execute(string.format("cp -r %s/bin/*.dll %s/", extract_to, platform_bin))
 		end
 	end

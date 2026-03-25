@@ -51,4 +51,10 @@ function SetupCrossMacOS:run(ctx)
 	print("---------------------------------------------------")
 end
 
+function SetupCrossMacOS:getStatus(ctx)
+	local osxcross_dir = "build/deps/osxcross"
+	local exists = ctx.fs:getInfo(osxcross_dir .. "/target/bin") and "READY" or "MISSING"
+	return {{ name = "macOS Toolchain", value = exists }}
+end
+
 return SetupCrossMacOS

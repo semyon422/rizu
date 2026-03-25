@@ -18,14 +18,28 @@ end
 function BuildModules:upToDate(ctx)
 	-- Incremental build logic
 	local target = self.target:lower()
-	local bin_dir = "bin/" .. (target == "linux" and "linux64" or "win64")
-	local ext = (target == "linux" and "so" or "dll")
+	local bin_dir_map = {
+		linux   = "bin/linux64",
+		windows = "bin/win64",
+		macos   = "bin/mac64",
+	}
+	local ext_map = {
+		linux   = "so",
+		windows = "dll",
+		macos   = "dylib",
+	}
+	
+	local bin_dir = bin_dir_map[target] or bin_dir_map.linux
+	local ext = ext_map[target] or ext_map.linux
 	
 	local modules = {"video", "lib7z"}
-	if target == "windows" or target == "win64" then modules = {"video", "7z"} end
+	if target == "windows" then modules = {"video", "7z"} end
 	
 	for _, mod in ipairs(modules) do
-		local bin_path = bin_dir .. "/" .. mod .. "." .. ext
+		local m_ext = ext
+		if target == "macos" and mod == "video" then m_ext = "so" end
+		
+		local bin_path = bin_dir .. "/" .. mod .. "." .. m_ext
 		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
 		
 		local bin_info = ctx.fs:getInfo(bin_path)
@@ -40,14 +54,29 @@ end
 
 function BuildModules:getStatus(ctx)
 	local target = self.target:lower()
-	local bin_dir = "bin/" .. (target == "linux" and "linux64" or "win64")
-	local ext = (target == "linux" and "so" or "dll")
+	local bin_dir_map = {
+		linux   = "bin/linux64",
+		windows = "bin/win64",
+		macos   = "bin/mac64",
+	}
+	local ext_map = {
+		linux   = "so",
+		windows = "dll",
+		macos   = "dylib",
+	}
+	
+	local bin_dir = bin_dir_map[target] or bin_dir_map.linux
+	local ext = ext_map[target] or ext_map.linux
+	
 	local modules = {"video", "lib7z"}
-	if target == "windows" or target == "win64" then modules = {"video", "7z"} end
+	if target == "windows" then modules = {"video", "7z"} end
 	
 	local res = {}
 	for _, mod in ipairs(modules) do
-		local bin_path = bin_dir .. "/" .. mod .. "." .. ext
+		local m_ext = ext
+		if target == "macos" and mod == "video" then m_ext = "so" end
+		
+		local bin_path = bin_dir .. "/" .. mod .. "." .. m_ext
 		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
 		
 		local bin_info = ctx.fs:getInfo(bin_path)

@@ -13,18 +13,22 @@ function Builder:getCompiler()
 	local t = self.ctx.target:lower()
 	
 	if host_os == "Linux" then
-		if t == "windows" or t == "win64" then
-			return "x86_64-w64-mingw32-gcc"
-		elseif t == "macos" then
-			return "x86_64-apple-darwin19-clang"
-		end
+		local compilers = {
+			windows = "x86_64-w64-mingw32-gcc",
+			macos   = "x86_64-apple-darwin19-clang",
+		}
+		return compilers[t] or "gcc"
 	end
 	return "gcc"
 end
 
 function Builder:getFFmpegPaths()
 	local t = self.ctx.target:lower()
-	local suffix = t:match("win") and "win" or "linux"
+	local suffix_map = {
+		windows = "win",
+		macos   = "macos", -- potentially
+	}
+	local suffix = suffix_map[t] or "linux"
 	local base = "build/deps/ffmpeg-" .. suffix
 	
 	local inc = base .. "/include"
@@ -50,18 +54,18 @@ function Builder:build7z()
 	local cc = self:getCompiler()
 	local inc = "-I" .. self:get7zInc()
 	local src = "aqua/7z.c"
-	local out, flags
 	
-	if t == "windows" or t == "win64" then
-		out = "bin/win64/7z.dll"
-		flags = "-shared -fPIC"
-	elseif t == "macos" then
-		out = "bin/macos/lib7z.dylib"
-		flags = "-shared -fPIC"
-	else
-		out = "bin/linux64/lib7z.so"
-		flags = "-D_GNU_SOURCE -shared -fPIC"
-	end
+	local out_map = {
+		windows = "bin/win64/7z.dll",
+		macos   = "bin/mac64/lib7z.dylib",
+		linux   = "bin/linux64/lib7z.so",
+	}
+	local flag_map = {
+		linux = "-D_GNU_SOURCE -shared -fPIC",
+	}
+	
+	local out = out_map[t] or out_map.linux
+	local flags = flag_map[t] or "-shared -fPIC"
 	
 	self.ctx.shell:execute(string.format("%s %s %s -o %s %s", cc, inc, flags, out, src))
 end
@@ -72,31 +76,37 @@ function Builder:buildVideo()
 	local ffmpeg_inc, ffmpeg_lib_dir = self:getFFmpegPaths()
 	local luajit_inc = "tree/include/luajit-2.1"
 	local src = "aqua/video.c"
-	local out, flags, libs
 	
-	local inc = string.format("-I%s -I%s", luajit_inc, ffmpeg_inc)
+	local out_map = {
+		windows = "bin/win64/video.dll",
+		macos   = "bin/mac64/video.so",
+		linux   = "bin/linux64/video.so",
+	}
+	local flag_map = {
+		macos = "-shared -fPIC -undefined dynamic_lookup",
+		linux = "-shared -fPIC -Wl,-rpath,'$ORIGIN'",
+	}
 	
-	if t == "windows" or t == "win64" then
-		out = "bin/win64/video.dll"
+	local out = out_map[t] or out_map.linux
+	local flags = flag_map[t] or "-shared -fPIC"
+	
+	local libs
+	if t == "windows" then
 		libs = string.format("-Ltree/lib -L%s -lavformat -lavcodec -lswresample -lswscale -lavutil -lm -l:libluajit-5.1.dll.a", ffmpeg_lib_dir)
-		flags = "-shared -fPIC"
 	elseif t == "macos" then
-		out = "bin/macos/video.so"
 		libs = "-lavformat -lavcodec -lswresample -lswscale -lavutil -lm"
-		flags = "-shared -fPIC -undefined dynamic_lookup"
 	else
-		out = "bin/linux64/video.so"
 		libs = string.format("-L%s -lavformat -lavcodec -lswresample -lswscale -lavutil -lm", ffmpeg_lib_dir)
-		flags = "-shared -fPIC -Wl,-rpath,'$ORIGIN'"
 	end
 	
+	local inc = string.format("-I%s -I%s", luajit_inc, ffmpeg_inc)
 	self.ctx.shell:execute(string.format("%s %s %s -o %s %s %s", cc, inc, flags, out, src, libs))
 end
 
 function Builder:run()
 	self.ctx.fs:createDirectory("bin/linux64")
 	self.ctx.fs:createDirectory("bin/win64")
-	self.ctx.fs:createDirectory("bin/macos")
+	self.ctx.fs:createDirectory("bin/mac64")
 	
 	self:build7z()
 	self:buildVideo()

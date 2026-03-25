@@ -39,6 +39,8 @@ moddedgame
 lua-dev-env
 build/downloads
 build/deps
+build/repo
+build/tmp
 
 reqprof
 typecheck
@@ -66,7 +68,6 @@ nginx_config.lua
 app_config.lua
 my.cnf
 backups
-repo
 
 *.db
 *.db-journal

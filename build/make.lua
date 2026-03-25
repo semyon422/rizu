@@ -16,6 +16,7 @@ local FetchDeps = require("build.tasks.FetchDeps")
 local BuildModules = require("build.tasks.BuildModules")
 local Package = require("build.tasks.Package")
 local BuildRepo = require("build.tasks.BuildRepo")
+local SetupCrossMacOS = require("build.tasks.SetupCrossMacOS")
 
 local args = {...}
 local command = args[1]
@@ -37,10 +38,13 @@ local runner = TaskRunner(ctx)
 runner:register(SetupHost())
 runner:register(SetupLuaJIT("linux"))
 runner:register(SetupLuaJIT("windows"))
+runner:register(SetupCrossMacOS())
 runner:register(FetchDeps("linux"))
 runner:register(FetchDeps("windows"))
+runner:register(FetchDeps("macos"))
 runner:register(BuildModules("linux"))
 runner:register(BuildModules("windows"))
+runner:register(BuildModules("macos"))
 runner:register(Package())
 runner:register(BuildRepo())
 
@@ -51,6 +55,7 @@ runner:register({ name = "all", deps = {"build_" .. target}, run = function() en
 local tasks_map = {
 	setup = "setup_host",
 	luajit = "setup_luajit_" .. target,
+	macos_toolchain = "setup_cross_macos",
 	deps = "deps_" .. target,
 	build = "build_" .. target,
 	package = "package",
@@ -66,6 +71,7 @@ Usage: ./build/make.lua <command> [target]
 Commands:
   setup             Install host dependencies (apt)
   luajit [target]   Build/Install luajit locally (target: linux, windows)
+  macos_toolchain   Setup osxcross for macOS compilation
   deps [target]     Fetch binary dependencies (ffmpeg, 7z)
   build [target]    Compile C modules (video, 7z)
   package           Bundle game into zip/app
@@ -84,10 +90,13 @@ if command == "status" then
 		"setup_host",
 		"setup_luajit_linux",
 		"setup_luajit_windows",
+		"setup_cross_macos",
 		"deps_linux",
 		"deps_windows",
+		"deps_macos",
 		"build_linux",
 		"build_windows",
+		"build_macos",
 		"package",
 		"repo"
 	}
@@ -108,10 +117,9 @@ end
 
 if command == "clean" then
 	ctx.fs:remove("build/deps")
-	ctx.fs:remove("bin/linux64/video.so")
-	ctx.fs:remove("bin/linux64/lib7z.so")
-	ctx.fs:remove("bin/win64/video.dll")
-	ctx.fs:remove("bin/win64/7z.dll")
+	ctx.fs:remove("bin/linux64")
+	ctx.fs:remove("bin/win64")
+	ctx.fs:remove("bin/mac64")
 	ctx.fs:remove("build/repo")
 	print("Cleaned.")
 	os.exit(0)

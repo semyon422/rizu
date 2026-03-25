@@ -48,28 +48,6 @@ function RepoBuilder:writeConfigs(gamedir)
 	end
 end
 
-local extract_list = {
-	"bin",
-	"resources",
-	"game-appimage",
-	"game-linux",
-	"game-macos",
-	"game-win64.bat",
-}
-
-local include_list = {
-	"rizu",
-	"sphere",
-	"sea",
-	"aqua",
-	"chartbase",
-	"libchart",
-	"native",
-	"preload",
-	"ui",
-	"yi",
-}
-
 function RepoBuilder:buildGenericRepo()
 	self.ctx.fs:createDirectory("build/repo")
 
@@ -85,7 +63,7 @@ function RepoBuilder:buildGenericRepo()
 	local root_prefix = src_root == "" and "" or (src_root .. "/")
 
 	print("Copying core folders...")
-	for _, dir in ipairs(include_list) do
+	for _, dir in ipairs(config.repo.include) do
 		if self.src_fs:getInfo(root_prefix .. dir) then
 			fs_util.copy(root_prefix .. dir, gamedir .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
@@ -112,7 +90,7 @@ function RepoBuilder:buildGenericRepo()
 	end
 
 	print("Extracting platform files...")
-	for _, dir in ipairs(extract_list) do
+	for _, dir in ipairs(config.repo.extract) do
 		if self.src_fs:getInfo(root_prefix .. dir) then
 			fs_util.copy(root_prefix .. dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
