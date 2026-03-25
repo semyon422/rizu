@@ -38,4 +38,32 @@ function BuildModules:upToDate(ctx)
 	return true
 end
 
+function BuildModules:getStatus(ctx)
+	local target = self.target:lower()
+	local bin_dir = "bin/" .. (target == "linux" and "linux64" or "win64")
+	local ext = (target == "linux" and "so" or "dll")
+	local modules = {"video", "lib7z"}
+	if target == "windows" or target == "win64" then modules = {"video", "7z"} end
+	
+	local res = {}
+	for _, mod in ipairs(modules) do
+		local bin_path = bin_dir .. "/" .. mod .. "." .. ext
+		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
+		
+		local bin_info = ctx.fs:getInfo(bin_path)
+		local src_info = ctx.fs:getInfo(src_path)
+		
+		local status = "MISSING"
+		if bin_info and src_info then
+			status = bin_info.modtime >= src_info.modtime and "OK" or "OUTDATED"
+		elseif bin_info then
+			status = "OK"
+		end
+		
+		table.insert(res, { name = mod .. " (" .. target .. ")", value = status })
+	end
+	
+	return res
+end
+
 return BuildModules

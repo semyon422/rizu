@@ -58,4 +58,12 @@ function SetupLuaJIT:run(ctx)
 	print("LuaJIT setup complete for " .. target)
 end
 
+function SetupLuaJIT:getStatus(ctx)
+	local target = self.target:lower()
+	local bin = target == "linux" and "tree/bin/luajit" or "tree/bin/lua51.dll"
+	local res = {}
+	table.insert(res, { name = "LuaJIT (" .. target .. ")", value = ctx.fs:getInfo(bin) and "OK" or "MISSING" })
+	return res
+end
+
 return SetupLuaJIT

@@ -72,4 +72,23 @@ function FetchDeps:upToDate(ctx)
 	return true
 end
 
+function FetchDeps:getStatus(ctx)
+	local target = self.target:lower()
+	local config = deps.ffmpeg[target]
+	local res = {}
+	
+	if config then
+		local dl = ctx.fs:getInfo("build/downloads/" .. config.archive) and "OK" or "MISSING"
+		local ex = ctx.fs:getInfo("build/deps/" .. config.dir) and "OK" or "MISSING"
+		table.insert(res, { name = "FFmpeg (" .. target .. ")", value = string.format("DL: [%s] EX: [%s]", dl, ex) })
+	end
+	
+	local s7 = deps.sevenzip
+	local s7_dl = ctx.fs:getInfo("build/downloads/" .. s7.archive) and "OK" or "MISSING"
+	local s7_ex = ctx.fs:getInfo("build/deps/" .. s7.dir) and "OK" or "MISSING"
+	table.insert(res, { name = "7z SDK", value = string.format("DL: [%s] EX: [%s]", s7_dl, s7_ex) })
+	
+	return res
+end
+
 return FetchDeps

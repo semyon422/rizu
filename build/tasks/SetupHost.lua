@@ -34,4 +34,8 @@ function SetupHost:run(ctx)
 	print("Host setup complete.")
 end
 
+function SetupHost:getStatus(ctx)
+	return {{ name = "Host Environment", value = "READY" }}
+end
+
 return SetupHost

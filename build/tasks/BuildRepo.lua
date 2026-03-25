@@ -15,4 +15,10 @@ function BuildRepo:run(ctx)
 	builder:build()
 end
 
+function BuildRepo:getStatus(ctx)
+	local res = {}
+	table.insert(res, { name = "Update Repo (files.json)", value = ctx.fs:getInfo("repo/files.json") and "OK" or "MISSING" })
+	return res
+end
+
 return BuildRepo

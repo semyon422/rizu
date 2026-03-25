@@ -17,4 +17,11 @@ function Package:run(ctx)
 	builder:buildMacos()
 end
 
+function Package:getStatus(ctx)
+	local res = {}
+	table.insert(res, { name = "Package (rizu.zip)", value = ctx.fs:getInfo("repo/rizu.zip") and "OK" or "MISSING" })
+	table.insert(res, { name = "Package (rizu_macos.zip)", value = ctx.fs:getInfo("repo/rizu_macos.zip") and "OK" or "MISSING" })
+	return res
+end
+
 return Package

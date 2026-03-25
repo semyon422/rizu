@@ -71,9 +71,39 @@ Commands:
   package           Bundle game into zip/app
   repo              Build update repository
   all [target]      Full cycle (deps + build)
+  status            Show current build state
   clean             Remove build artifacts
   help              Show this help
 ]])
+end
+
+if command == "status" then
+	print("=== Rizu Build Status ===")
+	
+	local task_order = {
+		"setup_host",
+		"setup_luajit_linux",
+		"setup_luajit_windows",
+		"deps_linux",
+		"deps_windows",
+		"build_linux",
+		"build_windows",
+		"package",
+		"repo"
+	}
+
+	for _, name in ipairs(task_order) do
+		local task = runner.tasks[name]
+		if task and task.getStatus then
+			local results = task:getStatus(ctx)
+			for _, res in ipairs(results) do
+				print(string.format("  %-30s [%s]", res.name, res.value))
+			end
+		end
+	end
+	
+	print("=========================")
+	os.exit(0)
 end
 
 if command == "clean" then
