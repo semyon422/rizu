@@ -1,91 +1,96 @@
 #!/usr/bin/env luajit
--- Rizu Unified Task Runner (Run from project root)
+-- Rizu Unified Task Runner (Modular Architecture)
 
--- Initialize package paths
 require("pkg_config")
+
+local Context = require("build.Context")
+local TaskRunner = require("build.TaskRunner")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
+local Shell = require("build.Shell")
+local Downloader = require("build.Downloader")
+
+-- Task Modules
+local SetupHost = require("build.tasks.SetupHost")
+local SetupLuaJIT = require("build.tasks.SetupLuaJIT")
+local FetchDeps = require("build.tasks.FetchDeps")
+local BuildModules = require("build.tasks.BuildModules")
+local Package = require("build.tasks.Package")
+local BuildRepo = require("build.tasks.BuildRepo")
 
 local args = {...}
 local command = args[1]
-local target = args[2]
+local target = args[2] or "linux" -- default target
 
-local function execute(cmd)
-	print(">> " .. cmd)
-	local ok = os.execute(cmd)
-	if not ok then
-		os.exit(1)
-	end
-end
+-- 1. Initialize Context
+local ctx = Context(
+	LinuxFilesystem(),
+	Shell(),
+	Downloader(),
+	target,
+	"." -- Root
+)
 
-local tasks = {}
+-- 2. Initialize Runner
+local runner = TaskRunner(ctx)
 
-function tasks.deps()
-	execute("luajit build/fetch_deps.lua " .. (target or ""))
-end
+-- 3. Register Tasks
+runner:register(SetupHost())
+runner:register(SetupLuaJIT("linux"))
+runner:register(SetupLuaJIT("windows"))
+runner:register(FetchDeps("linux"))
+runner:register(FetchDeps("windows"))
+runner:register(BuildModules("linux"))
+runner:register(BuildModules("windows"))
+runner:register(Package())
+runner:register(BuildRepo())
 
-function tasks.build()
-	execute("luajit build/build.lua " .. (target or ""))
-end
+-- Composite Tasks (Aliases)
+runner:register({ name = "all", deps = {"build_" .. target}, run = function() end })
 
-function tasks.setup()
-	if target == "macos" then
-		execute("./build/setup_cross_macos.sh")
-	elseif target == "luajit" then
-		execute("./build/setup_luajit.sh")
-	elseif target == "luajit_win" then
-		execute("./build/setup_luajit_win.sh")
-	else
-		execute("./build/setup_host.sh")
-	end
-end
+-- 4. Execute
+local tasks_map = {
+	setup = "setup_host",
+	luajit = "setup_luajit_" .. target,
+	deps = "deps_" .. target,
+	build = "build_" .. target,
+	package = "package",
+	repo = "repo",
+	all = "all"
+}
 
-local function get_repo_builder()
-	local CurrentRepo = require("build.package.CurrentRepo")
-	local RepoBuilder = require("build.package.RepoBuilder")
-	return RepoBuilder(CurrentRepo())
-end
-
-function tasks.package()
-	local builder = get_repo_builder()
-	builder:build_zip()
-	builder:buildMacos()
-end
-
-function tasks.repo()
-	local builder = get_repo_builder()
-	builder:build()
-end
-
-function tasks.all()
-	tasks.deps()
-	tasks.build()
-end
-
-function tasks.clean()
-	print("Cleaning build/deps and bin/...")
-	execute("rm -rf build/deps bin repo")
-	execute("mkdir -p build/deps bin")
-end
-
-function tasks.help()
+local function help()
 	print([[
-Rizu Build System (Execute from root)
+Rizu Build System (Modular)
 Usage: ./build/make.lua <command> [target]
 
 Commands:
-  setup [target]    Install dependencies (target: host, luajit, luajit_win, macos)
-  deps [target]     Fetch binary dependencies (target: linux, windows, macos)
-  build [target]    Compile C modules (target: linux, windows, macos)
+  setup             Install host dependencies (apt)
+  luajit [target]   Build/Install luajit locally (target: linux, windows)
+  deps [target]     Fetch binary dependencies (ffmpeg, 7z)
+  build [target]    Compile C modules (video, 7z)
   package           Bundle game into zip/app
   repo              Build update repository
-  all [target]      Run deps + build
+  all [target]      Full cycle (deps + build)
   clean             Remove build artifacts
   help              Show this help
 ]])
 end
 
-if not tasks[command] then
-	tasks.help()
+if command == "clean" then
+	ctx.fs:remove("build/deps")
+	ctx.fs:remove("bin/linux64/video.so")
+	ctx.fs:remove("bin/linux64/lib7z.so")
+	ctx.fs:remove("bin/win64/video.dll")
+	ctx.fs:remove("bin/win64/7z.dll")
+	ctx.fs:remove("repo")
+	print("Cleaned.")
+	os.exit(0)
+end
+
+local task_name = tasks_map[command]
+if not task_name then
+	help()
 	os.exit(1)
 end
 
-tasks[command]()
+runner:run(task_name)
