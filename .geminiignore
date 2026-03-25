@@ -12,9 +12,6 @@
 !userdata/filters.lua
 !userdata/play.lua
 
-!lua-dev-env
-!build/downloads
-!build/deps
 !reqprof
 !typecheck
 !tree
@@ -24,3 +21,9 @@
 !nginx_config.lua
 !app_config.lua
 !my.cnf
+
+!build/downloads
+!build/deps
+!build/repo
+!build/tmp
+!build/osxcross

@@ -10,8 +10,9 @@ end
 
 function SetupCrossMacOS:run(ctx)
 	local build_dir = "build"
+	local deps_dir = build_dir .. "/deps"
 	local downloads_dir = build_dir .. "/downloads"
-	local osxcross_dir = build_dir .. "/osxcross"
+	local osxcross_dir = deps_dir .. "/osxcross"
 	local sdk_xip = downloads_dir .. "/Xcode_14.2.xip"
 	local sdk_version = "13.1"
 
@@ -27,21 +28,59 @@ function SetupCrossMacOS:run(ctx)
 	-- 2. Clone osxcross
 	if not ctx.fs:getInfo(osxcross_dir) then
 		print("Cloning osxcross...")
+		ctx.fs:createDirectory(deps_dir)
 		ctx.shell:execute("git clone https://github.com/tpoechtrager/osxcross " .. osxcross_dir)
+	end
+
+	-- 2.1 Build a working xar (with bzip2 support) and pbzx
+	-- osxcross build scripts often fail if the system xar is buggy or lacks bzip2
+	local target_bin = osxcross_dir .. "/target/bin"
+	if not ctx.fs:getInfo(target_bin .. "/xar") then
+		print("Building osxcross helper tools (xar, pbzx)...")
+		local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
+		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
+		
+		-- xar
+		ctx.shell:execute(string.format("cd %s/build/xar/xar && ./configure --prefix=%s/target && make -j$(nproc) && make install", osxcross_dir, full_osxcross_dir))
+		-- pbzx
+		ctx.shell:execute(string.format("gcc %s/build/pbzx/pbzx.c -o %s/target/bin/pbzx -llzma -lxar -I%s/target/include -L%s/target/lib", osxcross_dir, osxcross_dir, full_osxcross_dir, full_osxcross_dir))
 	end
 
 	-- 3. Generate the SDK package
 	local sdk_tarball = osxcross_dir .. "/tarballs/MacOSX" .. sdk_version .. ".sdk.tar.xz"
 	if not ctx.fs:getInfo(sdk_tarball) then
-		print("Extracting MacOS SDK from .xip...")
-		-- Note: We assume tools/gen_sdk_package_pbzx.sh is available in cloned osxcross
-		ctx.shell:execute(string.format("cd %s && ./tools/gen_sdk_package_pbzx.sh ../downloads/Xcode_14.2.xip", osxcross_dir))
-		ctx.shell:execute(string.format("mv %s/MacOSX%s.sdk.tar.xz %s/tarballs/", osxcross_dir, sdk_version, osxcross_dir))
+		print("Extracting MacOS SDK from .xip (this might take a while)...")
+		local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
+		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
+		local xip_abs = root_abs .. "/build/downloads/Xcode_14.2.xip"
+		
+		-- Use our built tools
+		local env = string.format("PATH=%s/target/bin:$PATH", full_osxcross_dir)
+		local ok = ctx.shell:execute(string.format("%s cd %s && ./tools/gen_sdk_package_pbzx.sh %q", env, osxcross_dir, xip_abs))
+		if not ok then
+			error("Failed to generate SDK package.")
+		end
+		
+		-- The script might leave multiple versions if Xcode contains them (e.g. 13 and 13.1)
+		print("Ensuring SDK is in tarballs/...")
+		ctx.shell:execute(string.format("mv %s/MacOSX*.sdk.tar.xz %s/tarballs/ 2>/dev/null", osxcross_dir, osxcross_dir))
+		
+		-- If multiple SDKs found, build.sh fails. Keep only the requested version.
+		local items = ctx.fs:getDirectoryItems(osxcross_dir .. "/tarballs") or {}
+		for _, item in ipairs(items) do
+			if item:match("^MacOSX.*%.sdk%.tar%.xz$") and not item:match("MacOSX" .. sdk_version) then
+				print("Removing redundant SDK:", item)
+				ctx.fs:remove(osxcross_dir .. "/tarballs/" .. item)
+			end
+		end
 	end
 
 	-- 4. Build osxcross
 	print("Building osxcross (UNATTENDED=1)...")
-	ctx.shell:execute("cd " .. osxcross_dir .. " && UNATTENDED=1 ./build.sh")
+	local ok = ctx.shell:execute(string.format("cd %s && UNATTENDED=1 SDK_VERSION=%s ./build.sh", osxcross_dir, sdk_version))
+	if not ok then
+		error("osxcross build failed. Check logs in " .. osxcross_dir)
+	end
 
 	print("---------------------------------------------------")
 	print("MacOS Cross-Compilation Setup Complete!")
@@ -53,7 +92,21 @@ end
 
 function SetupCrossMacOS:getStatus(ctx)
 	local osxcross_dir = "build/deps/osxcross"
-	local exists = ctx.fs:getInfo(osxcross_dir .. "/target/bin") and "READY" or "MISSING"
+	-- Check for the presence of a compiler, not just the directory or xar
+	local compiler = osxcross_dir .. "/target/bin/x86_64-apple-darwin19-clang"
+	local exists = ctx.fs:getInfo(compiler) and "READY" or "MISSING"
+	
+	-- If the specific version is missing, check for any darwin compiler
+	if exists == "MISSING" then
+		local bins = ctx.fs:getDirectoryItems(osxcross_dir .. "/target/bin") or {}
+		for _, b in ipairs(bins) do
+			if b:match("apple%-darwin.*%-clang$") then
+				exists = "READY (" .. b:match("darwin(%d+)") .. ")"
+				break
+			end
+		end
+	end
+	
 	return {{ name = "macOS Toolchain", value = exists }}
 end
 

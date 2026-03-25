@@ -29,6 +29,13 @@ function SetupHost:run(ctx)
 		"p7zip-full",
 		"libasound2-dev",
 		"git",
+		"xz-utils",
+		"cpio",
+		"libxml2-dev",
+		"libssl-dev",
+		"zlib1g-dev",
+		"libbz2-dev",
+		"xar",
 	}
 	ctx.shell:execute("sudo apt-get install -y " .. table.concat(packages, " "))
 	print("Host setup complete.")

@@ -9,15 +9,23 @@ function Builder:new(ctx)
 end
 
 function Builder:getCompiler()
-	local host_os = jit.os
 	local t = self.ctx.target:lower()
 	
-	if host_os == "Linux" then
+	if jit.os == "Linux" then
 		local compilers = {
 			windows = "x86_64-w64-mingw32-gcc",
-			macos   = "x86_64-apple-darwin19-clang",
+			macos   = "x86_64-apple-darwin22.2-clang",
 		}
-		return compilers[t] or "gcc"
+		local cc = compilers[t] or "gcc"
+		
+		if t == "macos" then
+			local osxcross_bin = self.ctx.shell:popen("pwd"):gsub("%s+$", "") .. "/build/deps/osxcross/target/bin"
+			if self.ctx.fs:getInfo("build/deps/osxcross/target/bin/" .. cc) then
+				return string.format("PATH=%s:$PATH %s/%s", osxcross_bin, osxcross_bin, cc)
+			end
+		end
+		
+		return cc
 	end
 	return "gcc"
 end
@@ -35,7 +43,7 @@ function Builder:getFFmpegPaths()
 	local lib = base .. "/lib"
 	
 	if not self.ctx.fs:getInfo(inc .. "/libavcodec/avcodec.h") then
-		return "tree/include", "tree/lib"
+		return nil, nil
 	end
 	
 	return inc, lib
@@ -74,6 +82,11 @@ function Builder:buildVideo()
 	local t = self.ctx.target:lower()
 	local cc = self:getCompiler()
 	local ffmpeg_inc, ffmpeg_lib_dir = self:getFFmpegPaths()
+	if not ffmpeg_inc then
+		print("FFmpeg headers not found for " .. t .. ", skipping video module build.")
+		return
+	end
+	
 	local luajit_inc = "tree/include/luajit-2.1"
 	local src = "aqua/video.c"
 	

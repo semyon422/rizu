@@ -36,11 +36,11 @@ userdata/avatar.png
 userdata/lasterror.txt
 
 moddedgame
-lua-dev-env
 build/downloads
 build/deps
 build/repo
 build/tmp
+build/osxcross
 
 reqprof
 typecheck
