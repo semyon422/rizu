@@ -116,6 +116,64 @@ function Builder:buildVideo()
 	self.ctx.shell:execute(string.format("%s %s %s -o %s %s %s", cc, inc, flags, out, src, libs))
 end
 
+function Builder:buildMinacalc()
+	local t = self.ctx.target:lower()
+	local cc = self:getCompiler()
+	-- Minacalc needs C++ compiler
+	local cxx = cc:gsub("gcc", "g++"):gsub("clang", "clang++")
+	local src_dir = "build/deps/minacalc"
+	
+	if not self.ctx.fs:getInfo(src_dir) then return end
+
+	local out_map = {
+		windows = "bin/win64/minacalc.dll",
+		macos   = "bin/mac64/libminacalc.dylib",
+		linux   = "bin/linux64/libminacalc.so",
+	}
+	local out = out_map[t] or out_map.linux
+	local flags = "-DSTANDALONE_CALC -std=c++20 -shared -fPIC"
+	if t == "macos" then
+		flags = flags .. " -undefined dynamic_lookup"
+	end
+	
+	print("Building Minacalc for " .. t .. "...")
+	-- Use bash -c to ensure glob expansion works
+	local cmd = string.format("bash -c '%s %s %s/MinaCalc/*.cpp %s/API.cpp -o %s -lm'", cxx, flags, src_dir, src_dir, out)
+	self.ctx.shell:execute(cmd)
+end
+
+function Builder:buildLuamidi()
+	local t = self.ctx.target:lower()
+	local cc = self:getCompiler()
+	local src_dir = "build/deps/luamidi"
+	
+	if not self.ctx.fs:getInfo(src_dir) then return end
+
+	if t == "windows" then
+		print("Using precompiled luamidi.dll for Windows...")
+		self.ctx.shell:execute(string.format("cp %s/luamidi.dll_64 bin/win64/luamidi.dll", src_dir))
+		return
+	end
+
+	local out_map = {
+		macos   = "bin/mac64/luamidi.dylib",
+		linux   = "bin/linux64/luamidi.so",
+	}
+	local out = out_map[t] or out_map.linux
+	local flags = "-shared -fPIC"
+	if t == "macos" then
+		flags = flags .. " -undefined dynamic_lookup"
+	end
+
+	print("Building luamidi for " .. t .. "...")
+	local luajit_inc = "tree/include/luajit-2.1"
+	local rtmidi_inc = "/usr/include/rtmidi"
+	local l_flags = flags .. " -DluaL_reg=luaL_Reg"
+	-- Basic compilation, luamidi source is in src/ folder
+	local cmd = string.format("%s %s -I%s -I%s %s/src/*.cpp -o %s -lrtmidi", cc:gsub("gcc", "g++"), l_flags, luajit_inc, rtmidi_inc, src_dir, out)
+	self.ctx.shell:execute(cmd)
+end
+
 function Builder:run()
 	self.ctx.fs:createDirectory("bin/linux64")
 	self.ctx.fs:createDirectory("bin/win64")
@@ -123,6 +181,8 @@ function Builder:run()
 	
 	self:build7z()
 	self:buildVideo()
+	self:buildMinacalc()
+	self:buildLuamidi()
 end
 
 return Builder

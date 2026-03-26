@@ -32,15 +32,23 @@ function BuildModules:upToDate(ctx)
 	local bin_dir = bin_dir_map[target] or bin_dir_map.linux
 	local ext = ext_map[target] or ext_map.linux
 	
-	local modules = {"video", "lib7z"}
-	if target == "windows" then modules = {"video", "7z"} end
+	local modules = {"video", "lib7z", "minacalc", "luamidi"}
+	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
 	
 	for _, mod in ipairs(modules) do
 		local m_ext = ext
 		if target == "macos" and mod == "video" then m_ext = "so" end
+		if target == "macos" and mod == "minacalc" then m_ext = "dylib" end -- libminacalc.dylib
 		
-		local bin_path = bin_dir .. "/" .. mod .. "." .. m_ext
+		local name = mod
+		if mod == "minacalc" and target ~= "windows" then name = "libminacalc" end
+		if mod == "luamidi" and target == "macos" then name = "luamidi" end -- luamidi.dylib ? 
+		
+		local bin_path = bin_dir .. "/" .. name .. "." .. m_ext
 		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
+		if mod == "minacalc" or mod == "luamidi" then
+			src_path = "build/deps/" .. mod
+		end
 		
 		local bin_info = ctx.fs:getInfo(bin_path)
 		local src_info = ctx.fs:getInfo(src_path)
@@ -68,18 +76,27 @@ function BuildModules:getStatus(ctx)
 	local bin_dir = bin_dir_map[target] or bin_dir_map.linux
 	local ext = ext_map[target] or ext_map.linux
 	
-	local modules = {"video", "lib7z"}
-	if target == "windows" then modules = {"video", "7z"} end
+	local modules = {"video", "lib7z", "minacalc", "luamidi"}
+	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
 	
 	local res = {}
 	for _, mod in ipairs(modules) do
 		local m_ext = ext
 		if target == "macos" and mod == "video" then m_ext = "so" end
+		if target == "macos" and mod == "minacalc" then m_ext = "dylib" end
 		
-		local bin_path = bin_dir .. "/" .. mod .. "." .. m_ext
+		local name = mod
+		if mod == "minacalc" and target ~= "windows" then name = "libminacalc" end
+		if mod == "luamidi" and target == "macos" then name = "luamidi" end
+		
+		local bin_path = bin_dir .. "/" .. name .. "." .. m_ext
 		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
-		
+		if mod == "minacalc" or mod == "luamidi" then
+			src_path = "build/deps/" .. mod
+		end
+
 		local bin_info = ctx.fs:getInfo(bin_path)
+
 		local src_info = ctx.fs:getInfo(src_path)
 		
 		local status = "MISSING"
