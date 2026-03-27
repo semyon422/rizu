@@ -14,6 +14,12 @@ local function toCxx(cc)
 	return cc:gsub("gcc", "g++"):gsub("clang", "clang++")
 end
 
+local function compilerAvailable(shell, cmd)
+	local probe = string.format("bash -lc %q", cmd .. " --version >/dev/null 2>&1 && echo OK || echo MISSING")
+	local out = shell:popen(probe)
+	return out and out:match("OK")
+end
+
 function Builder:getCompiler()
 	local t = self.target
 	
@@ -38,6 +44,13 @@ end
 
 function Builder:getFFmpegPaths()
 	local t = self.target
+	if t == "macos" then
+		local inc = "build/deps/local/macos/ffmpeg/include"
+		local lib = "bin/mac64"
+		if self.ctx.fs:getInfo(inc .. "/libavcodec/avcodec.h") and self.ctx.fs:getInfo(lib .. "/libavcodec.dylib") then
+			return inc, lib
+		end
+	end
 	local suffix_map = {
 		windows = "win",
 		macos   = "macos", -- potentially
@@ -102,7 +115,7 @@ function Builder:buildVideo()
 		linux   = "bin/linux64/video.so",
 	}
 	local flag_map = {
-		macos = "-shared -fPIC -undefined dynamic_lookup",
+		macos = "-shared -fPIC -undefined dynamic_lookup -Wl,-rpath,@loader_path",
 		linux = "-shared -fPIC -Wl,-rpath,'$ORIGIN'",
 	}
 	
@@ -113,7 +126,7 @@ function Builder:buildVideo()
 	if t == "windows" then
 		libs = string.format("-Ltree/lib -L%s -lavformat -lavcodec -lswresample -lswscale -lavutil -lm -l:libluajit-5.1.dll.a", ffmpeg_lib_dir)
 	elseif t == "macos" then
-		libs = "-lavformat -lavcodec -lswresample -lswscale -lavutil -lm"
+		libs = string.format("-L%s -lavformat -lavcodec -lswresample -lswscale -lavutil -lm", ffmpeg_lib_dir)
 	else
 		libs = string.format("-L%s -lavformat -lavcodec -lswresample -lswscale -lavutil -lm", ffmpeg_lib_dir)
 	end
@@ -127,8 +140,7 @@ function Builder:buildMinacalc()
 	local cc = self:getCompiler()
 	-- Minacalc needs C++ compiler
 	local cxx = toCxx(cc)
-	local cxx_present = self.ctx.shell:popen("command -v " .. cxx .. " >/dev/null && echo OK || echo MISSING")
-	if not cxx_present or not cxx_present:match("OK") then
+	if not compilerAvailable(self.ctx.shell, cxx) then
 		error("Missing C++ compiler for target '" .. t .. "': " .. cxx .. ". Run ./build/make.lua setup")
 	end
 	local src_dir = "build/deps/minacalc"
@@ -156,8 +168,7 @@ function Builder:buildLuamidi()
 	local t = self.target
 	local cc = self:getCompiler()
 	local cxx = toCxx(cc)
-	local cxx_present = self.ctx.shell:popen("command -v " .. cxx .. " >/dev/null && echo OK || echo MISSING")
-	if not cxx_present or not cxx_present:match("OK") then
+	if not compilerAvailable(self.ctx.shell, cxx) then
 		error("Missing C++ compiler for target '" .. t .. "': " .. cxx .. ". Run ./build/make.lua setup")
 	end
 	local src_dir = "build/deps/luamidi"

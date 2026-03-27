@@ -11,7 +11,13 @@ return {
 			archive = "ffmpeg-win.zip",
 			dir = "ffmpeg-win",
 		},
-		-- MacOS SDK is handled by setup_cross_macos.sh due to its proprietary nature
+	},
+	ffmpeg_source = {
+		macos = {
+			url = "https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.1.tar.gz",
+			archive = "ffmpeg-7.1.1.tar.gz",
+			dir = "ffmpeg_macos",
+		},
 	},
 	sevenzip = {
 		url = "https://www.7-zip.org/a/7z2409-src.7z",

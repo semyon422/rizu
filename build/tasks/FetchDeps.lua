@@ -413,12 +413,78 @@ function FetchDeps:run(ctx)
 		local prefix = "build/deps/local/macos"
 		local prefix_abs = root_abs .. "/" .. prefix
 		ctx.fs:createDirectory("build/deps/local")
-		ctx.fs:createDirectory(prefix)
-		ctx.fs:createDirectory(prefix .. "/lib")
-		ctx.fs:createDirectory(prefix .. "/include")
+			ctx.fs:createDirectory(prefix)
+			ctx.fs:createDirectory(prefix .. "/lib")
+			ctx.fs:createDirectory(prefix .. "/include")
 
-		local zlib = deps.zlib_source and deps.zlib_source.macos
-		if zlib then
+			local ffmpeg_src = deps.ffmpeg_source and deps.ffmpeg_source.macos
+			if ffmpeg_src then
+				local extract_to = ensure_source_dep(ffmpeg_src)
+				if not ctx.fs:getInfo(extract_to .. "/configure") then
+					ctx.fs:remove(extract_to)
+					extract_to = ensure_source_dep(ffmpeg_src)
+				end
+				local ff_prefix = prefix_abs .. "/ffmpeg"
+				if not ctx.fs:getInfo(ff_prefix .. "/lib/libavcodec.dylib") then
+					ctx.fs:createDirectory(prefix .. "/ffmpeg")
+					ctx.shell:execute(string.format(
+						"bash -lc 'export PATH=%q:$PATH; cd %q && ./configure --prefix=%q --enable-cross-compile --target-os=darwin --arch=x86_64 --cc=%q --ar=%q --ranlib=%q --enable-shared --disable-static --disable-programs --disable-doc --disable-debug --disable-asm --disable-videotoolbox'",
+						tc_bin,
+						extract_to,
+						ff_prefix,
+						tc.cc,
+						tc.ar,
+						tc.ranlib
+					))
+					ctx.shell:execute(string.format("bash -lc 'export PATH=%q:$PATH; cd %q && make -j$(nproc)'", tc_bin, extract_to))
+					ctx.shell:execute(string.format("bash -lc 'export PATH=%q:$PATH; cd %q && make install STRIP=true'", tc_bin, extract_to))
+				end
+				local ff_libs = {
+					"libavcodec.dylib",
+					"libavformat.dylib",
+					"libavutil.dylib",
+					"libswscale.dylib",
+					"libswresample.dylib",
+					"libavfilter.dylib",
+					"libavdevice.dylib",
+				}
+				for _, lib in ipairs(ff_libs) do
+					if ctx.fs:getInfo(prefix .. "/ffmpeg/lib/" .. lib) then
+						ctx.shell:execute(string.format("cp -Lf %q %q", prefix .. "/ffmpeg/lib/" .. lib, platform_bin .. "/" .. lib))
+					end
+				end
+				local ff_lib_abs = ff_prefix .. "/lib"
+				local ff_tool = tc.install_name_tool
+				ctx.shell:execute(string.format("%q -id @loader_path/libavutil.dylib %q", ff_tool, platform_bin .. "/libavutil.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libswresample.dylib %q", ff_tool, platform_bin .. "/libswresample.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libswscale.dylib %q", ff_tool, platform_bin .. "/libswscale.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libavcodec.dylib %q", ff_tool, platform_bin .. "/libavcodec.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libavformat.dylib %q", ff_tool, platform_bin .. "/libavformat.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libavfilter.dylib %q", ff_tool, platform_bin .. "/libavfilter.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libavdevice.dylib %q", ff_tool, platform_bin .. "/libavdevice.dylib"))
+
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavutil.dylib %q", ff_tool, ff_lib_abs .. "/libavutil.59.dylib", platform_bin .. "/libswresample.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavutil.dylib %q", ff_tool, ff_lib_abs .. "/libavutil.59.dylib", platform_bin .. "/libswscale.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libswresample.dylib %q", ff_tool, ff_lib_abs .. "/libswresample.5.dylib", platform_bin .. "/libavcodec.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavutil.dylib %q", ff_tool, ff_lib_abs .. "/libavutil.59.dylib", platform_bin .. "/libavcodec.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavcodec.dylib %q", ff_tool, ff_lib_abs .. "/libavcodec.61.dylib", platform_bin .. "/libavformat.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libswresample.dylib %q", ff_tool, ff_lib_abs .. "/libswresample.5.dylib", platform_bin .. "/libavformat.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavutil.dylib %q", ff_tool, ff_lib_abs .. "/libavutil.59.dylib", platform_bin .. "/libavformat.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavformat.dylib %q", ff_tool, ff_lib_abs .. "/libavformat.61.dylib", platform_bin .. "/libavfilter.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavcodec.dylib %q", ff_tool, ff_lib_abs .. "/libavcodec.61.dylib", platform_bin .. "/libavfilter.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libswscale.dylib %q", ff_tool, ff_lib_abs .. "/libswscale.8.dylib", platform_bin .. "/libavfilter.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libswresample.dylib %q", ff_tool, ff_lib_abs .. "/libswresample.5.dylib", platform_bin .. "/libavfilter.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavutil.dylib %q", ff_tool, ff_lib_abs .. "/libavutil.59.dylib", platform_bin .. "/libavfilter.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavfilter.dylib %q", ff_tool, ff_lib_abs .. "/libavfilter.10.dylib", platform_bin .. "/libavdevice.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavformat.dylib %q", ff_tool, ff_lib_abs .. "/libavformat.61.dylib", platform_bin .. "/libavdevice.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavcodec.dylib %q", ff_tool, ff_lib_abs .. "/libavcodec.61.dylib", platform_bin .. "/libavdevice.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libavutil.dylib %q", ff_tool, ff_lib_abs .. "/libavutil.59.dylib", platform_bin .. "/libavdevice.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libswscale.dylib %q", ff_tool, ff_lib_abs .. "/libswscale.8.dylib", platform_bin .. "/libavdevice.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libswresample.dylib %q", ff_tool, ff_lib_abs .. "/libswresample.5.dylib", platform_bin .. "/libavdevice.dylib"))
+			end
+
+			local zlib = deps.zlib_source and deps.zlib_source.macos
+			if zlib then
 			local extract_to = ensure_source_dep(zlib)
 			if not ctx.fs:getInfo(prefix .. "/lib/libz.dylib") then
 				local zsrc = table.concat({
@@ -613,6 +679,14 @@ function FetchDeps:upToDate(ctx)
 		end
 	end
 	if target == "macos" then
+		if deps.ffmpeg_source and deps.ffmpeg_source.macos then
+			if not ctx.fs:getInfo("build/deps/" .. deps.ffmpeg_source.macos.dir) then return false end
+			if not ctx.fs:getInfo("bin/mac64/libavcodec.dylib") then return false end
+			if not ctx.fs:getInfo("bin/mac64/libavformat.dylib") then return false end
+			if not ctx.fs:getInfo("bin/mac64/libavutil.dylib") then return false end
+			if not ctx.fs:getInfo("bin/mac64/libswscale.dylib") then return false end
+			if not ctx.fs:getInfo("bin/mac64/libswresample.dylib") then return false end
+		end
 		if deps.zlib_source and deps.zlib_source.macos then
 			if not ctx.fs:getInfo("build/deps/" .. deps.zlib_source.macos.dir) then return false end
 			if not ctx.fs:getInfo("bin/mac64/libz.dylib") then return false end
@@ -736,6 +810,19 @@ function FetchDeps:getStatus(ctx)
 		end
 	end
 	if target == "macos" then
+		local ffmpeg_src = deps.ffmpeg_source and deps.ffmpeg_source.macos
+		if ffmpeg_src then
+			check_dep("FFMPEG (macos-src)", "build/downloads/" .. ffmpeg_src.archive, "build/deps/" .. ffmpeg_src.dir)
+			table.insert(res, {
+				name = "FFMPEG libs (macos)",
+				value = (ctx.fs:getInfo("bin/mac64/libavcodec.dylib")
+					and ctx.fs:getInfo("bin/mac64/libavformat.dylib")
+					and ctx.fs:getInfo("bin/mac64/libavutil.dylib")
+					and ctx.fs:getInfo("bin/mac64/libswscale.dylib")
+					and ctx.fs:getInfo("bin/mac64/libswresample.dylib"))
+					and "OK" or "MISSING",
+			})
+		end
 		local zlib = deps.zlib_source and deps.zlib_source.macos
 		if zlib then
 			check_dep("ZLIB (macos-src)", "build/downloads/" .. zlib.archive, "build/deps/" .. zlib.dir)
