@@ -104,8 +104,8 @@ function FetchDeps:run(ctx)
 			end
 		end
 		if target == "linux" then
-			ctx.shell:execute(string.format("find %s/lib -maxdepth 1 -name \"*.so.[0-9]*\" ! -name \"*.so.[0-9]*.*[0-9]*\" -exec cp -L {} %s \\;", extract_to, platform_bin))
-			ctx.shell:execute(string.format("find %s/lib -maxdepth 1 -name \"*.so\" -exec cp -L {} %s \\;", extract_to, platform_bin))
+			ctx.shell:execute(string.format("find %s/lib -maxdepth 1 -name \"*.so.[0-9]*\" ! -name \"*.so.[0-9]*.*[0-9]*\" -exec cp -Lf {} %s \\;", extract_to, platform_bin))
+			ctx.shell:execute(string.format("rm -f %q %q %q %q %q %q %q", platform_bin .. "/libavcodec.so", platform_bin .. "/libavdevice.so", platform_bin .. "/libavfilter.so", platform_bin .. "/libavformat.so", platform_bin .. "/libavutil.so", platform_bin .. "/libswresample.so", platform_bin .. "/libswscale.so"))
 		elseif target == "windows" then
 			ctx.shell:execute(string.format("cp -r %s/bin/*.dll %s/", extract_to, platform_bin))
 		end
@@ -221,10 +221,12 @@ function FetchDeps:run(ctx)
 				ctx.shell:execute(string.format("bash -lc 'cd %q && make -j$(nproc)'", extract_to))
 				ctx.shell:execute(string.format("bash -lc 'cd %q && make install'", extract_to))
 			end
-			ctx.shell:execute(string.format("cp -L %q %q", prefix .. "/lib/libz.so", platform_bin .. "/libz.so"))
 			if ctx.fs:getInfo(prefix .. "/lib/libz.so.1") then
-				ctx.shell:execute(string.format("cp -L %q %q", prefix .. "/lib/libz.so.1", platform_bin .. "/libz.so.1"))
+				ctx.shell:execute(string.format("cp -Lf %q %q", prefix .. "/lib/libz.so.1", platform_bin .. "/libz.so.1"))
+			else
+				ctx.shell:execute(string.format("cp -Lf %q %q", prefix .. "/lib/libz.so", platform_bin .. "/libz.so.1"))
 			end
+			ctx.shell:execute(string.format("rm -f %q", platform_bin .. "/libz.so"))
 		end
 
 		local iconv = deps.iconv_source and deps.iconv_source.linux
@@ -235,8 +237,8 @@ function FetchDeps:run(ctx)
 				ctx.shell:execute(string.format("bash -lc 'cd %q && make -j$(nproc)'", extract_to))
 				ctx.shell:execute(string.format("bash -lc 'cd %q && make install'", extract_to))
 			end
-			ctx.shell:execute(string.format("cp -L %q %q", prefix .. "/lib/libiconv.so", platform_bin .. "/libiconv.so"))
-			ctx.shell:execute(string.format("cp -L %q %q", prefix .. "/lib/libcharset.so", platform_bin .. "/libcharset.so"))
+			ctx.shell:execute(string.format("cp -Lf %q %q", prefix .. "/lib/libiconv.so", platform_bin .. "/libiconv.so"))
+			ctx.shell:execute(string.format("cp -Lf %q %q", prefix .. "/lib/libcharset.so", platform_bin .. "/libcharset.so"))
 		end
 
 		local openssl = deps.openssl_source and deps.openssl_source.linux
@@ -257,14 +259,17 @@ function FetchDeps:run(ctx)
 				ctx.shell:execute(string.format("bash -lc 'cd %q && make install_sw'", extract_to))
 			end
 			local openssl_lib_dir = ctx.fs:getInfo(prefix .. "/lib/libssl.so") and (prefix .. "/lib") or (prefix .. "/lib64")
-			ctx.shell:execute(string.format("cp -L %q %q", openssl_lib_dir .. "/libssl.so", platform_bin .. "/libssl.so"))
-			ctx.shell:execute(string.format("cp -L %q %q", openssl_lib_dir .. "/libcrypto.so", platform_bin .. "/libcrypto.so"))
 			if ctx.fs:getInfo(openssl_lib_dir .. "/libssl.so.3") then
-				ctx.shell:execute(string.format("cp -L %q %q", openssl_lib_dir .. "/libssl.so.3", platform_bin .. "/libssl.so.3"))
+				ctx.shell:execute(string.format("cp -Lf %q %q", openssl_lib_dir .. "/libssl.so.3", platform_bin .. "/libssl.so.3"))
+			else
+				ctx.shell:execute(string.format("cp -Lf %q %q", openssl_lib_dir .. "/libssl.so", platform_bin .. "/libssl.so.3"))
 			end
 			if ctx.fs:getInfo(openssl_lib_dir .. "/libcrypto.so.3") then
-				ctx.shell:execute(string.format("cp -L %q %q", openssl_lib_dir .. "/libcrypto.so.3", platform_bin .. "/libcrypto.so.3"))
+				ctx.shell:execute(string.format("cp -Lf %q %q", openssl_lib_dir .. "/libcrypto.so.3", platform_bin .. "/libcrypto.so.3"))
+			else
+				ctx.shell:execute(string.format("cp -Lf %q %q", openssl_lib_dir .. "/libcrypto.so", platform_bin .. "/libcrypto.so.3"))
 			end
+			ctx.shell:execute(string.format("rm -f %q %q", platform_bin .. "/libssl.so", platform_bin .. "/libcrypto.so"))
 		end
 
 		local luasec = deps.luasec_source and deps.luasec_source.linux
@@ -563,7 +568,7 @@ function FetchDeps:upToDate(ctx)
 	if target == "linux" then
 		if deps.zlib_source and deps.zlib_source.linux then
 			if not ctx.fs:getInfo("build/deps/" .. deps.zlib_source.linux.dir) then return false end
-			if not ctx.fs:getInfo("bin/linux64/libz.so") then return false end
+			if not ctx.fs:getInfo("bin/linux64/libz.so.1") then return false end
 		end
 		if deps.iconv_source and deps.iconv_source.linux then
 			if not ctx.fs:getInfo("build/deps/" .. deps.iconv_source.linux.dir) then return false end
@@ -572,8 +577,8 @@ function FetchDeps:upToDate(ctx)
 		end
 		if deps.openssl_source and deps.openssl_source.linux then
 			if not ctx.fs:getInfo("build/deps/" .. deps.openssl_source.linux.dir) then return false end
-			if not ctx.fs:getInfo("bin/linux64/libssl.so") then return false end
-			if not ctx.fs:getInfo("bin/linux64/libcrypto.so") then return false end
+			if not ctx.fs:getInfo("bin/linux64/libssl.so.3") then return false end
+			if not ctx.fs:getInfo("bin/linux64/libcrypto.so.3") then return false end
 		end
 		if deps.luasec_source and deps.luasec_source.linux then
 			if not ctx.fs:getInfo("build/deps/" .. deps.luasec_source.linux.dir) then return false end
@@ -680,7 +685,7 @@ function FetchDeps:getStatus(ctx)
 		local zlib = deps.zlib_source and deps.zlib_source.linux
 		if zlib then
 			check_dep("ZLIB (linux-src)", "build/downloads/" .. zlib.archive, "build/deps/" .. zlib.dir)
-			table.insert(res, { name = "ZLIB lib (linux)", value = ctx.fs:getInfo("bin/linux64/libz.so") and "OK" or "MISSING" })
+			table.insert(res, { name = "ZLIB lib (linux)", value = ctx.fs:getInfo("bin/linux64/libz.so.1") and "OK" or "MISSING" })
 		end
 		local iconv = deps.iconv_source and deps.iconv_source.linux
 		if iconv then
@@ -690,7 +695,7 @@ function FetchDeps:getStatus(ctx)
 		local openssl = deps.openssl_source and deps.openssl_source.linux
 		if openssl then
 			check_dep("OPENSSL (linux-src)", "build/downloads/" .. openssl.archive, "build/deps/" .. openssl.dir)
-			table.insert(res, { name = "OPENSSL libs (linux)", value = (ctx.fs:getInfo("bin/linux64/libssl.so") and ctx.fs:getInfo("bin/linux64/libcrypto.so")) and "OK" or "MISSING" })
+			table.insert(res, { name = "OPENSSL libs (linux)", value = (ctx.fs:getInfo("bin/linux64/libssl.so.3") and ctx.fs:getInfo("bin/linux64/libcrypto.so.3")) and "OK" or "MISSING" })
 		end
 		local luasec = deps.luasec_source and deps.luasec_source.linux
 		if luasec then
