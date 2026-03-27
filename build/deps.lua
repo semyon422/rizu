@@ -65,18 +65,22 @@ return {
 	zlib_source = {
 		linux = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_linux"},
 		windows = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_windows"},
+		macos = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_macos"},
 	},
 	iconv_source = {
 		linux = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_linux"},
 		windows = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_windows"},
+		macos = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_macos"},
 	},
 	openssl_source = {
 		linux = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_linux"},
 		windows = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_windows"},
+		macos = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_macos"},
 	},
 	luasec_source = {
 		linux = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_linux"},
 		windows = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_windows"},
+		macos = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_macos"},
 	},
 	sqlite = {
 		-- Optional: versioned sqlite.org links expire.
@@ -90,13 +94,6 @@ return {
 		windows = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-win.zip", archive = "discord-rpc-win.zip"},
 		linux = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-linux.zip", archive = "discord-rpc-linux.zip"},
 		macos = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-osx.zip", archive = "discord-rpc-macos.zip"},
-	},
-	prebuilt_bins = {
-		macos = {
-			{url = "https://dl.rizu.su/bin/mac64/libiconv.dylib", name = "libiconv.dylib"},
-			{url = "https://dl.rizu.su/bin/mac64/libz.dylib", name = "libz.dylib"},
-			{url = "https://dl.rizu.su/bin/mac64/ssl.dylib", name = "ssl.dylib", local_path = "3rd-deps/lib/ssl.dylib"},
-		},
 	},
 	minacalc = {
 		url = "https://github.com/semyon422/minacalc-standalone",

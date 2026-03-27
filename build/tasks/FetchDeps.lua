@@ -45,6 +45,43 @@ function FetchDeps:run(ctx)
 		return extract_to
 	end
 
+	local function ensure_dd_wrapper()
+		local dd_wrapper = "build/deps/dd32.sh"
+		if not ctx.fs:getInfo(dd_wrapper) then
+			ctx.shell:execute(string.format("bash -lc 'cat > %q <<\"EOF\"\n#!/bin/sh\ncat | head -c 32\nEOF'", dd_wrapper))
+			ctx.shell:execute(string.format("chmod +x %q", dd_wrapper))
+		end
+		return root_abs .. "/" .. dd_wrapper
+	end
+
+	local function resolve_macos_toolchain()
+		local bin_dir = "build/deps/osxcross/target/bin"
+		local direct = "x86_64-apple-darwin22.2"
+		if ctx.fs:getInfo(bin_dir .. "/" .. direct .. "-clang") then
+			return {
+				cc = root_abs .. "/" .. bin_dir .. "/" .. direct .. "-clang",
+				ar = root_abs .. "/" .. bin_dir .. "/" .. direct .. "-ar",
+				ranlib = root_abs .. "/" .. bin_dir .. "/" .. direct .. "-ranlib",
+				install_name_tool = root_abs .. "/" .. bin_dir .. "/" .. direct .. "-install_name_tool",
+				host = direct,
+			}
+		end
+		local bins = ctx.fs:getDirectoryItems(bin_dir) or {}
+		for _, b in ipairs(bins) do
+			if b:match("^x86_64%-apple%-darwin[%d%.]+%-clang$") then
+				local host = b:gsub("%-clang$", "")
+				return {
+					cc = root_abs .. "/" .. bin_dir .. "/" .. b,
+					ar = root_abs .. "/" .. bin_dir .. "/" .. host .. "-ar",
+					ranlib = root_abs .. "/" .. bin_dir .. "/" .. host .. "-ranlib",
+					install_name_tool = root_abs .. "/" .. bin_dir .. "/" .. host .. "-install_name_tool",
+					host = host,
+				}
+			end
+		end
+		return nil
+	end
+
 	-- 1. Process FFmpeg
 	local ffmpeg = deps.ffmpeg[target]
 	if ffmpeg then
@@ -275,11 +312,7 @@ function FetchDeps:run(ctx)
 		local prefix = "build/deps/local/windows"
 		local prefix_abs = root_abs .. "/" .. prefix
 		local cc = "x86_64-w64-mingw32-gcc"
-		local dd_wrapper = "build/deps/dd32.sh"
-		if not ctx.fs:getInfo(dd_wrapper) then
-			ctx.shell:execute(string.format("bash -lc 'cat > %q <<\"EOF\"\n#!/bin/sh\ncat | head -c 32\nEOF'", dd_wrapper))
-			ctx.shell:execute(string.format("chmod +x %q", dd_wrapper))
-		end
+		local dd_wrapper_abs = ensure_dd_wrapper()
 		ctx.fs:createDirectory("build/deps/local")
 		ctx.fs:createDirectory(prefix)
 
@@ -308,8 +341,8 @@ function FetchDeps:run(ctx)
 				ctx.shell:execute(string.format(
 					"bash -lc 'cd %q && ac_cv_path_lt_DD=%q DD=%q ./configure --host=x86_64-w64-mingw32 --prefix=%q --enable-shared --disable-static CFLAGS=\"-O2\" < /dev/null'",
 					extract_to,
-					root_abs .. "/" .. dd_wrapper,
-					root_abs .. "/" .. dd_wrapper,
+					dd_wrapper_abs,
+					dd_wrapper_abs,
 					prefix_abs
 				))
 				ctx.shell:execute(string.format("bash -lc 'cd %q && make -j$(nproc)'", extract_to))
@@ -361,6 +394,119 @@ function FetchDeps:run(ctx)
 			ctx.shell:execute(string.format("cp -f %q %q", extract_to .. "/src/ssl.dll", platform_bin .. "/ssl.dll"))
 		end
 	end
+		if target == "macos" then
+			local tc = resolve_macos_toolchain()
+			if not tc then
+				error("macOS osxcross compiler not found. Run ./build/make.lua macos_toolchain")
+			end
+			local install_name_tool_rel = tc.install_name_tool:gsub("^" .. root_abs .. "/", "")
+			if not ctx.fs:getInfo(install_name_tool_rel) then
+				error("macOS osxcross install_name_tool not found at " .. tc.install_name_tool)
+			end
+			local tc_bin = root_abs .. "/build/deps/osxcross/target/bin"
+			local dd_wrapper_abs = ensure_dd_wrapper()
+		local prefix = "build/deps/local/macos"
+		local prefix_abs = root_abs .. "/" .. prefix
+		ctx.fs:createDirectory("build/deps/local")
+		ctx.fs:createDirectory(prefix)
+		ctx.fs:createDirectory(prefix .. "/lib")
+		ctx.fs:createDirectory(prefix .. "/include")
+
+		local zlib = deps.zlib_source and deps.zlib_source.macos
+		if zlib then
+			local extract_to = ensure_source_dep(zlib)
+			if not ctx.fs:getInfo(prefix .. "/lib/libz.dylib") then
+				local zsrc = table.concat({
+					"adler32.c", "crc32.c", "deflate.c", "infback.c", "inffast.c", "inflate.c", "inftrees.c",
+					"trees.c", "zutil.c", "compress.c", "uncompr.c", "gzclose.c", "gzlib.c", "gzread.c", "gzwrite.c",
+				}, " ")
+				ctx.shell:execute(string.format(
+					"bash -lc 'export PATH=%q:$PATH; cd %q && %q -dynamiclib -fPIC -O2 -DHAVE_UNISTD_H -install_name @rpath/libz.dylib %s -o %q'",
+					tc_bin,
+					extract_to,
+					tc.cc,
+					zsrc,
+					prefix_abs .. "/lib/libz.dylib"
+				))
+				ctx.shell:execute(string.format("cp -f %q %q", extract_to .. "/zlib.h", prefix .. "/include/zlib.h"))
+				ctx.shell:execute(string.format("cp -f %q %q", extract_to .. "/zconf.h", prefix .. "/include/zconf.h"))
+			end
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/lib/libz.dylib", platform_bin .. "/libz.dylib"))
+		end
+
+		local iconv = deps.iconv_source and deps.iconv_source.macos
+		if iconv then
+			local extract_to = ensure_source_dep(iconv)
+			if not ctx.fs:getInfo(prefix .. "/lib/libiconv.dylib") or not ctx.fs:getInfo(prefix .. "/lib/libcharset.dylib") then
+				ctx.shell:execute(string.format(
+					"bash -lc 'export PATH=%q:$PATH; cd %q && ac_cv_path_lt_DD=%q DD=%q CC=%q AR=%q RANLIB=%q ./configure --host=%q --prefix=%q --enable-shared --disable-static CFLAGS=\"-O2 -fPIC\" < /dev/null'",
+					tc_bin,
+					extract_to,
+					dd_wrapper_abs,
+					dd_wrapper_abs,
+					tc.cc,
+					tc.ar,
+					tc.ranlib,
+					tc.host,
+					prefix_abs
+				))
+				ctx.shell:execute(string.format("bash -lc 'export PATH=%q:$PATH; cd %q && make -j$(nproc)'", tc_bin, extract_to))
+				ctx.shell:execute(string.format("bash -lc 'export PATH=%q:$PATH; cd %q && make install'", tc_bin, extract_to))
+			end
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/lib/libiconv.dylib", platform_bin .. "/libiconv.dylib"))
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/lib/libcharset.dylib", platform_bin .. "/libcharset.dylib"))
+		end
+
+		local openssl = deps.openssl_source and deps.openssl_source.macos
+		if openssl then
+			local extract_to = ensure_source_dep(openssl)
+			local have_ssl_lib = ctx.fs:getInfo(prefix .. "/lib/libssl.dylib") or ctx.fs:getInfo(prefix .. "/lib64/libssl.dylib")
+			local have_crypto_lib = ctx.fs:getInfo(prefix .. "/lib/libcrypto.dylib") or ctx.fs:getInfo(prefix .. "/lib64/libcrypto.dylib")
+			if not have_ssl_lib or not have_crypto_lib then
+				ctx.shell:execute(string.format(
+					"bash -lc 'export PATH=%q:$PATH; cd %q && CC=%q AR=%q RANLIB=%q ./Configure darwin64-x86_64-cc shared --prefix=%q --openssldir=%q'",
+					tc_bin,
+					extract_to,
+					tc.cc,
+					tc.ar,
+					tc.ranlib,
+					prefix_abs,
+					prefix_abs .. "/ssl"
+				))
+				ctx.shell:execute(string.format("bash -lc 'export PATH=%q:$PATH; cd %q && make -j$(nproc)'", tc_bin, extract_to))
+				ctx.shell:execute(string.format("bash -lc 'export PATH=%q:$PATH; cd %q && make install_sw'", tc_bin, extract_to))
+			end
+				local openssl_lib_dir = ctx.fs:getInfo(prefix .. "/lib/libssl.dylib") and (prefix .. "/lib") or (prefix .. "/lib64")
+				local openssl_lib_dir_abs = root_abs .. "/" .. openssl_lib_dir
+				ctx.shell:execute(string.format("cp -f %q %q", openssl_lib_dir .. "/libssl.dylib", platform_bin .. "/libssl.dylib"))
+				ctx.shell:execute(string.format("cp -f %q %q", openssl_lib_dir .. "/libcrypto.dylib", platform_bin .. "/libcrypto.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libcrypto.dylib %q", tc.install_name_tool, platform_bin .. "/libcrypto.dylib"))
+				ctx.shell:execute(string.format("%q -id @loader_path/libssl.dylib %q", tc.install_name_tool, platform_bin .. "/libssl.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libcrypto.dylib %q", tc.install_name_tool, openssl_lib_dir_abs .. "/libcrypto.3.dylib", platform_bin .. "/libssl.dylib"))
+			end
+
+		local luasec = deps.luasec_source and deps.luasec_source.macos
+		if luasec then
+			local extract_to = ensure_source_dep(luasec)
+			local luajit_inc = "tree/include/luajit-2.1"
+			if not ctx.fs:getInfo(luajit_inc .. "/lua.h") then
+				error("LuaJIT headers are missing at " .. luajit_inc .. ". Run ./build/make.lua luajit linux first.")
+			end
+			local openssl_lib_dir = ctx.fs:getInfo(prefix .. "/lib/libssl.dylib") and (prefix_abs .. "/lib") or (prefix_abs .. "/lib64")
+				ctx.shell:execute(string.format(
+					"bash -lc 'export PATH=%q:$PATH; cd %q && %q -O2 -dynamiclib -undefined dynamic_lookup -DWITH_LUASOCKET -I%q -I%q -Isrc -Isrc/luasocket src/options.c src/x509.c src/context.c src/ssl.c src/config.c src/ec.c src/luasocket/io.c src/luasocket/buffer.c src/luasocket/timeout.c src/luasocket/usocket.c -o src/ssl.dylib -L%q -Wl,-rpath,@loader_path -lssl -lcrypto'",
+				tc_bin,
+				extract_to,
+				tc.cc,
+				root_abs .. "/" .. luajit_inc,
+				prefix_abs .. "/include",
+				openssl_lib_dir
+				))
+				ctx.shell:execute(string.format("cp -f %q %q", extract_to .. "/src/ssl.dylib", platform_bin .. "/ssl.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libssl.dylib %q", tc.install_name_tool, openssl_lib_dir .. "/libssl.3.dylib", platform_bin .. "/ssl.dylib"))
+				ctx.shell:execute(string.format("%q -change %q @loader_path/libcrypto.dylib %q", tc.install_name_tool, openssl_lib_dir .. "/libcrypto.3.dylib", platform_bin .. "/ssl.dylib"))
+			end
+		end
 
 	-- 6. Handle 7z SDK
 	local s7 = deps.sevenzip
@@ -459,6 +605,26 @@ function FetchDeps:upToDate(ctx)
 		if deps.luasec_source and deps.luasec_source.windows then
 			if not ctx.fs:getInfo("build/deps/" .. deps.luasec_source.windows.dir) then return false end
 			if not ctx.fs:getInfo("bin/win64/ssl.dll") then return false end
+		end
+	end
+	if target == "macos" then
+		if deps.zlib_source and deps.zlib_source.macos then
+			if not ctx.fs:getInfo("build/deps/" .. deps.zlib_source.macos.dir) then return false end
+			if not ctx.fs:getInfo("bin/mac64/libz.dylib") then return false end
+		end
+		if deps.iconv_source and deps.iconv_source.macos then
+			if not ctx.fs:getInfo("build/deps/" .. deps.iconv_source.macos.dir) then return false end
+			if not ctx.fs:getInfo("bin/mac64/libiconv.dylib") then return false end
+			if not ctx.fs:getInfo("bin/mac64/libcharset.dylib") then return false end
+		end
+		if deps.openssl_source and deps.openssl_source.macos then
+			if not ctx.fs:getInfo("build/deps/" .. deps.openssl_source.macos.dir) then return false end
+			if not ctx.fs:getInfo("bin/mac64/libssl.dylib") then return false end
+			if not ctx.fs:getInfo("bin/mac64/libcrypto.dylib") then return false end
+		end
+		if deps.luasec_source and deps.luasec_source.macos then
+			if not ctx.fs:getInfo("build/deps/" .. deps.luasec_source.macos.dir) then return false end
+			if not ctx.fs:getInfo("bin/mac64/ssl.dylib") then return false end
 		end
 	end
 
@@ -562,6 +728,28 @@ function FetchDeps:getStatus(ctx)
 		if luasec then
 			check_dep("LUASEC (windows-src)", "build/downloads/" .. luasec.archive, "build/deps/" .. luasec.dir)
 			table.insert(res, { name = "LUASEC module (windows)", value = ctx.fs:getInfo("bin/win64/ssl.dll") and "OK" or "MISSING" })
+		end
+	end
+	if target == "macos" then
+		local zlib = deps.zlib_source and deps.zlib_source.macos
+		if zlib then
+			check_dep("ZLIB (macos-src)", "build/downloads/" .. zlib.archive, "build/deps/" .. zlib.dir)
+			table.insert(res, { name = "ZLIB lib (macos)", value = ctx.fs:getInfo("bin/mac64/libz.dylib") and "OK" or "MISSING" })
+		end
+		local iconv = deps.iconv_source and deps.iconv_source.macos
+		if iconv then
+			check_dep("ICONV (macos-src)", "build/downloads/" .. iconv.archive, "build/deps/" .. iconv.dir)
+			table.insert(res, { name = "ICONV libs (macos)", value = (ctx.fs:getInfo("bin/mac64/libiconv.dylib") and ctx.fs:getInfo("bin/mac64/libcharset.dylib")) and "OK" or "MISSING" })
+		end
+		local openssl = deps.openssl_source and deps.openssl_source.macos
+		if openssl then
+			check_dep("OPENSSL (macos-src)", "build/downloads/" .. openssl.archive, "build/deps/" .. openssl.dir)
+			table.insert(res, { name = "OPENSSL libs (macos)", value = (ctx.fs:getInfo("bin/mac64/libssl.dylib") and ctx.fs:getInfo("bin/mac64/libcrypto.dylib")) and "OK" or "MISSING" })
+		end
+		local luasec = deps.luasec_source and deps.luasec_source.macos
+		if luasec then
+			check_dep("LUASEC (macos-src)", "build/downloads/" .. luasec.archive, "build/deps/" .. luasec.dir)
+			table.insert(res, { name = "LUASEC module (macos)", value = ctx.fs:getInfo("bin/mac64/ssl.dylib") and "OK" or "MISSING" })
 		end
 	end
 
