@@ -64,15 +64,19 @@ return {
 	},
 	zlib_source = {
 		linux = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_linux"},
+		windows = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_windows"},
 	},
 	iconv_source = {
 		linux = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_linux"},
+		windows = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_windows"},
 	},
 	openssl_source = {
 		linux = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_linux"},
+		windows = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_windows"},
 	},
 	luasec_source = {
 		linux = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_linux"},
+		windows = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_windows"},
 	},
 	sqlite = {
 		-- Optional: versioned sqlite.org links expire.
@@ -88,13 +92,6 @@ return {
 		macos = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-osx.zip", archive = "discord-rpc-macos.zip"},
 	},
 	prebuilt_bins = {
-		windows = {
-			{url = "https://dl.rizu.su/bin/win64/libiconv-2.dll", name = "libiconv-2.dll"},
-			{url = "https://dl.rizu.su/bin/win64/z.dll", name = "z.dll"},
-			{url = "https://dl.rizu.su/bin/win64/libssl-3-x64.dll", name = "libssl-3-x64.dll"},
-			{url = "https://dl.rizu.su/bin/win64/libcrypto-3-x64.dll", name = "libcrypto-3-x64.dll"},
-			{url = "https://dl.rizu.su/bin/win64/ssl.dll", name = "ssl.dll", local_path = "3rd-deps/lib/ssl.dll"},
-		},
 		macos = {
 			{url = "https://dl.rizu.su/bin/mac64/libiconv.dylib", name = "libiconv.dylib"},
 			{url = "https://dl.rizu.su/bin/mac64/libz.dylib", name = "libz.dylib"},

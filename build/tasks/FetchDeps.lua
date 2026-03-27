@@ -169,7 +169,7 @@ function FetchDeps:run(ctx)
 		::continue_prebuilt::
 	end
 
-	-- 5. Build Linux source dependencies (zlib, iconv, openssl, luasec, sqlite, fftw)
+	-- 5. Build source dependencies
 	if target == "linux" then
 		local prefix = "build/deps/local/linux"
 		local prefix_abs = root_abs .. "/" .. prefix
@@ -271,6 +271,96 @@ function FetchDeps:run(ctx)
 			ctx.shell:execute(string.format("cp -L %q %q", built_so, lib_so))
 		end
 	end
+	if target == "windows" then
+		local prefix = "build/deps/local/windows"
+		local prefix_abs = root_abs .. "/" .. prefix
+		local cc = "x86_64-w64-mingw32-gcc"
+		local dd_wrapper = "build/deps/dd32.sh"
+		if not ctx.fs:getInfo(dd_wrapper) then
+			ctx.shell:execute(string.format("bash -lc 'cat > %q <<\"EOF\"\n#!/bin/sh\ncat | head -c 32\nEOF'", dd_wrapper))
+			ctx.shell:execute(string.format("chmod +x %q", dd_wrapper))
+		end
+		ctx.fs:createDirectory("build/deps/local")
+		ctx.fs:createDirectory(prefix)
+
+		local zlib = deps.zlib_source and deps.zlib_source.windows
+		if zlib then
+			local extract_to = ensure_source_dep(zlib)
+			if not ctx.fs:getInfo(prefix .. "/bin/zlib1.dll") then
+				ctx.shell:execute(string.format("bash -lc 'cd %q && make -f win32/Makefile.gcc clean'", extract_to))
+				ctx.shell:execute(string.format(
+					"bash -lc 'cd %q && make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 BINARY_PATH=%q INCLUDE_PATH=%q LIBRARY_PATH=%q -j$(nproc)'",
+					extract_to,
+					prefix_abs .. "/bin",
+					prefix_abs .. "/include",
+					prefix_abs .. "/lib"
+				))
+				ctx.fs:createDirectory(prefix .. "/bin")
+				ctx.shell:execute(string.format("cp -f %q %q", extract_to .. "/zlib1.dll", prefix .. "/bin/zlib1.dll"))
+			end
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/bin/zlib1.dll", platform_bin .. "/z.dll"))
+		end
+
+		local iconv = deps.iconv_source and deps.iconv_source.windows
+		if iconv then
+			local extract_to = ensure_source_dep(iconv)
+			if not ctx.fs:getInfo(prefix .. "/bin/libiconv-2.dll") then
+				ctx.shell:execute(string.format(
+					"bash -lc 'cd %q && ac_cv_path_lt_DD=%q DD=%q ./configure --host=x86_64-w64-mingw32 --prefix=%q --enable-shared --disable-static CFLAGS=\"-O2\" < /dev/null'",
+					extract_to,
+					root_abs .. "/" .. dd_wrapper,
+					root_abs .. "/" .. dd_wrapper,
+					prefix_abs
+				))
+				ctx.shell:execute(string.format("bash -lc 'cd %q && make -j$(nproc)'", extract_to))
+				ctx.shell:execute(string.format("bash -lc 'cd %q && make install'", extract_to))
+			end
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/bin/libiconv-2.dll", platform_bin .. "/libiconv-2.dll"))
+		end
+
+		local openssl = deps.openssl_source and deps.openssl_source.windows
+		if openssl then
+			local extract_to = ensure_source_dep(openssl)
+			local have_ssl_lib = ctx.fs:getInfo(prefix .. "/bin/libssl-3-x64.dll")
+			local have_crypto_lib = ctx.fs:getInfo(prefix .. "/bin/libcrypto-3-x64.dll")
+			if not have_ssl_lib or not have_crypto_lib then
+				ctx.shell:execute(string.format(
+					"bash -lc 'cd %q && ./Configure mingw64 shared --cross-compile-prefix=x86_64-w64-mingw32- --prefix=%q --openssldir=%q'",
+					extract_to,
+					prefix_abs,
+					prefix_abs .. "/ssl"
+				))
+				ctx.shell:execute(string.format("bash -lc 'cd %q && make -j$(nproc)'", extract_to))
+				ctx.shell:execute(string.format("bash -lc 'cd %q && make install_sw'", extract_to))
+			end
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/bin/libssl-3-x64.dll", platform_bin .. "/libssl-3-x64.dll"))
+			ctx.shell:execute(string.format("cp -f %q %q", prefix .. "/bin/libcrypto-3-x64.dll", platform_bin .. "/libcrypto-3-x64.dll"))
+		end
+
+		local luasec = deps.luasec_source and deps.luasec_source.windows
+		if luasec then
+			local extract_to = ensure_source_dep(luasec)
+			local luajit_inc = "tree/include/luajit-2.1"
+			local luajit_lib = "tree/lib/libluajit-5.1.dll.a"
+			if not ctx.fs:getInfo(luajit_inc .. "/lua.h") then
+				error("LuaJIT headers are missing at " .. luajit_inc .. ". Run ./build/make.lua luajit linux first.")
+			end
+			if not ctx.fs:getInfo(luajit_lib) then
+				error("LuaJIT import lib is missing at " .. luajit_lib .. ". Run ./build/make.lua luajit windows first.")
+			end
+			local openssl_imp_dir = ctx.fs:getInfo(prefix .. "/lib/libssl.dll.a") and (prefix_abs .. "/lib") or (prefix_abs .. "/lib64")
+			ctx.shell:execute(string.format(
+				"bash -lc 'cd %q && %s -O2 -shared -DWIN32 -DWITH_LUASOCKET -I%q -I%q -Isrc -Isrc/luasocket src/options.c src/x509.c src/context.c src/ssl.c src/config.c src/ec.c src/luasocket/io.c src/luasocket/buffer.c src/luasocket/timeout.c src/luasocket/wsocket.c -o src/ssl.dll -L%q -L%q -lssl -lcrypto -lws2_32 -lcrypt32 -lgdi32 -l:libluajit-5.1.dll.a'",
+				extract_to,
+				cc,
+				root_abs .. "/" .. luajit_inc,
+				prefix_abs .. "/include",
+				openssl_imp_dir,
+				root_abs .. "/tree/lib"
+			))
+			ctx.shell:execute(string.format("cp -f %q %q", extract_to .. "/src/ssl.dll", platform_bin .. "/ssl.dll"))
+		end
+	end
 
 	-- 6. Handle 7z SDK
 	local s7 = deps.sevenzip
@@ -352,6 +442,25 @@ function FetchDeps:upToDate(ctx)
 			if not ctx.fs:getInfo("bin/linux64/libfftw3.so") then return false end
 		end
 	end
+	if target == "windows" then
+		if deps.zlib_source and deps.zlib_source.windows then
+			if not ctx.fs:getInfo("build/deps/" .. deps.zlib_source.windows.dir) then return false end
+			if not ctx.fs:getInfo("bin/win64/z.dll") then return false end
+		end
+		if deps.iconv_source and deps.iconv_source.windows then
+			if not ctx.fs:getInfo("build/deps/" .. deps.iconv_source.windows.dir) then return false end
+			if not ctx.fs:getInfo("bin/win64/libiconv-2.dll") then return false end
+		end
+		if deps.openssl_source and deps.openssl_source.windows then
+			if not ctx.fs:getInfo("build/deps/" .. deps.openssl_source.windows.dir) then return false end
+			if not ctx.fs:getInfo("bin/win64/libssl-3-x64.dll") then return false end
+			if not ctx.fs:getInfo("bin/win64/libcrypto-3-x64.dll") then return false end
+		end
+		if deps.luasec_source and deps.luasec_source.windows then
+			if not ctx.fs:getInfo("build/deps/" .. deps.luasec_source.windows.dir) then return false end
+			if not ctx.fs:getInfo("bin/win64/ssl.dll") then return false end
+		end
+	end
 
 	local prebuilt = deps.prebuilt_bins and deps.prebuilt_bins[target] or {}
 	for _, item in ipairs(prebuilt) do
@@ -431,6 +540,28 @@ function FetchDeps:getStatus(ctx)
 		if fftw then
 			check_dep("FFTW (linux-src)", "build/downloads/" .. fftw.archive, "build/deps/" .. fftw.dir)
 			table.insert(res, { name = "FFTW lib (linux)", value = ctx.fs:getInfo("bin/linux64/libfftw3.so") and "OK" or "MISSING" })
+		end
+	end
+	if target == "windows" then
+		local zlib = deps.zlib_source and deps.zlib_source.windows
+		if zlib then
+			check_dep("ZLIB (windows-src)", "build/downloads/" .. zlib.archive, "build/deps/" .. zlib.dir)
+			table.insert(res, { name = "ZLIB lib (windows)", value = ctx.fs:getInfo("bin/win64/z.dll") and "OK" or "MISSING" })
+		end
+		local iconv = deps.iconv_source and deps.iconv_source.windows
+		if iconv then
+			check_dep("ICONV (windows-src)", "build/downloads/" .. iconv.archive, "build/deps/" .. iconv.dir)
+			table.insert(res, { name = "ICONV lib (windows)", value = ctx.fs:getInfo("bin/win64/libiconv-2.dll") and "OK" or "MISSING" })
+		end
+		local openssl = deps.openssl_source and deps.openssl_source.windows
+		if openssl then
+			check_dep("OPENSSL (windows-src)", "build/downloads/" .. openssl.archive, "build/deps/" .. openssl.dir)
+			table.insert(res, { name = "OPENSSL libs (windows)", value = (ctx.fs:getInfo("bin/win64/libssl-3-x64.dll") and ctx.fs:getInfo("bin/win64/libcrypto-3-x64.dll")) and "OK" or "MISSING" })
+		end
+		local luasec = deps.luasec_source and deps.luasec_source.windows
+		if luasec then
+			check_dep("LUASEC (windows-src)", "build/downloads/" .. luasec.archive, "build/deps/" .. luasec.dir)
+			table.insert(res, { name = "LUASEC module (windows)", value = ctx.fs:getInfo("bin/win64/ssl.dll") and "OK" or "MISSING" })
 		end
 	end
 
