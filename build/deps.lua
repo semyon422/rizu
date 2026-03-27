@@ -55,11 +55,20 @@ return {
 		macos = {url = "https://www.un4seen.com/files/bassopus24-osx.zip", archive = "bassopus-macos.zip"},
 	},
 	fftw = {
-		windows = {url = "http://www.fftw.org/fftw-3.3.5-dll64.zip", archive = "fftw-win.zip"},
-		-- linux/macos usually built or from system, but we can add sources if needed
+		-- Optional: old upstream URL is no longer reliable.
+		-- Keep runtime dlls from repo or add a maintained mirror when needed.
+		-- windows = {url = "...", archive = "fftw-win.zip"},
+	},
+	fftw_source = {
+		linux = {url = "https://www.fftw.org/fftw-3.3.10.tar.gz", archive = "fftw-3.3.10.tar.gz", dir = "fftw_linux"},
 	},
 	sqlite = {
-		windows = {url = "https://www.sqlite.org/2024/sqlite-dll-win-x64-3490100.zip", archive = "sqlite-win.zip"},
+		-- Optional: versioned sqlite.org links expire.
+		-- Keep runtime dlls from repo or pin to a current yearly URL.
+		-- windows = {url = "...", archive = "sqlite-win.zip"},
+	},
+	sqlite_source = {
+		linux = {url = "https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz", archive = "sqlite-autoconf-3490100.tar.gz", dir = "sqlite_linux"},
 	},
 	discord_rpc = {
 		windows = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-win.zip", archive = "discord-rpc-win.zip"},

@@ -4,6 +4,15 @@ local Builder = require("build.Builder")
 ---@class build.tasks.BuildModules
 local BuildModules = class()
 
+local function should_check_video(ctx, target)
+	if target ~= "macos" then
+		return true
+	end
+	local builder = Builder(ctx, target)
+	local ffmpeg_inc = builder:getFFmpegPaths()
+	return ffmpeg_inc ~= nil
+end
+
 function BuildModules:new(target)
 	self.name = "build_" .. target
 	self.target = target
@@ -11,7 +20,7 @@ function BuildModules:new(target)
 end
 
 function BuildModules:run(ctx)
-	local builder = Builder(ctx)
+	local builder = Builder(ctx, self.target)
 	builder:run()
 end
 
@@ -36,6 +45,10 @@ function BuildModules:upToDate(ctx)
 	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
 	
 	for _, mod in ipairs(modules) do
+		if mod == "video" and not should_check_video(ctx, target) then
+			goto continue
+		end
+
 		local m_ext = ext
 		if target == "macos" and mod == "video" then m_ext = "so" end
 		if target == "macos" and mod == "minacalc" then m_ext = "dylib" end -- libminacalc.dylib
@@ -55,6 +68,8 @@ function BuildModules:upToDate(ctx)
 		
 		if not bin_info or not src_info then return false end
 		if bin_info.modtime < src_info.modtime then return false end
+
+		::continue::
 	end
 	
 	return true
@@ -81,6 +96,11 @@ function BuildModules:getStatus(ctx)
 	
 	local res = {}
 	for _, mod in ipairs(modules) do
+		if mod == "video" and not should_check_video(ctx, target) then
+			table.insert(res, { name = mod .. " (" .. target .. ")", value = "SKIPPED (no ffmpeg)" })
+			goto continue
+		end
+
 		local m_ext = ext
 		if target == "macos" and mod == "video" then m_ext = "so" end
 		if target == "macos" and mod == "minacalc" then m_ext = "dylib" end
@@ -107,6 +127,8 @@ function BuildModules:getStatus(ctx)
 		end
 		
 		table.insert(res, { name = mod .. " (" .. target .. ")", value = status })
+
+		::continue::
 	end
 	
 	return res

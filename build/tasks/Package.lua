@@ -5,7 +5,7 @@ local Package = class()
 
 function Package:new()
 	self.name = "package"
-	self.deps = {"build_linux", "build_windows"} 
+	self.deps = {"build_linux", "build_windows", "build_macos"}
 end
 
 function Package:run(ctx)

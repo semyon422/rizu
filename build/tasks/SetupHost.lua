@@ -16,6 +16,7 @@ function SetupHost:run(ctx)
 	local packages = {
 		"build-essential",
 		"gcc-mingw-w64-x86-64",
+		"g++-mingw-w64-x86-64",
 		"clang",
 		"cmake",
 		"patch",
@@ -31,8 +32,6 @@ function SetupHost:run(ctx)
 		"git",
 		"xz-utils",
 		"cpio",
-		"libxml2-dev",
-		"libssl-dev",
 		"zlib1g-dev",
 		"libbz2-dev",
 		"xar",
@@ -43,6 +42,26 @@ function SetupHost:run(ctx)
 end
 
 function SetupHost:getStatus(ctx)
+	local required_bins = {
+		"gcc",
+		"g++",
+		"x86_64-w64-mingw32-gcc",
+		"x86_64-w64-mingw32-g++",
+		"clang",
+		"cmake",
+		"curl",
+		"unzip",
+		"7z",
+		"git",
+	}
+
+	for _, bin in ipairs(required_bins) do
+		local present = ctx.shell:popen("command -v " .. bin .. " >/dev/null && echo OK || echo MISSING")
+		if not present or not present:match("OK") then
+			return {{ name = "Host Environment", value = "MISSING (" .. bin .. ")" }}
+		end
+	end
+
 	return {{ name = "Host Environment", value = "READY" }}
 end
 

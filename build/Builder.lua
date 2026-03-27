@@ -2,14 +2,20 @@ local class = require("class")
 
 ---@class build.Builder
 ---@field ctx build.Context
+---@field target string
 local Builder = class()
 
-function Builder:new(ctx)
+function Builder:new(ctx, target)
 	self.ctx = ctx
+	self.target = (target or ctx.target):lower()
+end
+
+local function toCxx(cc)
+	return cc:gsub("gcc", "g++"):gsub("clang", "clang++")
 end
 
 function Builder:getCompiler()
-	local t = self.ctx.target:lower()
+	local t = self.target
 	
 	if jit.os == "Linux" then
 		local compilers = {
@@ -31,7 +37,7 @@ function Builder:getCompiler()
 end
 
 function Builder:getFFmpegPaths()
-	local t = self.ctx.target:lower()
+	local t = self.target
 	local suffix_map = {
 		windows = "win",
 		macos   = "macos", -- potentially
@@ -58,7 +64,7 @@ function Builder:get7zInc()
 end
 
 function Builder:build7z()
-	local t = self.ctx.target:lower()
+	local t = self.target
 	local cc = self:getCompiler()
 	local inc = "-I" .. self:get7zInc()
 	local src = "aqua/7z.c"
@@ -79,7 +85,7 @@ function Builder:build7z()
 end
 
 function Builder:buildVideo()
-	local t = self.ctx.target:lower()
+	local t = self.target
 	local cc = self:getCompiler()
 	local ffmpeg_inc, ffmpeg_lib_dir = self:getFFmpegPaths()
 	if not ffmpeg_inc then
@@ -117,10 +123,14 @@ function Builder:buildVideo()
 end
 
 function Builder:buildMinacalc()
-	local t = self.ctx.target:lower()
+	local t = self.target
 	local cc = self:getCompiler()
 	-- Minacalc needs C++ compiler
-	local cxx = cc:gsub("gcc", "g++"):gsub("clang", "clang++")
+	local cxx = toCxx(cc)
+	local cxx_present = self.ctx.shell:popen("command -v " .. cxx .. " >/dev/null && echo OK || echo MISSING")
+	if not cxx_present or not cxx_present:match("OK") then
+		error("Missing C++ compiler for target '" .. t .. "': " .. cxx .. ". Run ./build/make.lua setup")
+	end
 	local src_dir = "build/deps/minacalc"
 	
 	if not self.ctx.fs:getInfo(src_dir) then return end
@@ -143,34 +153,46 @@ function Builder:buildMinacalc()
 end
 
 function Builder:buildLuamidi()
-	local t = self.ctx.target:lower()
+	local t = self.target
 	local cc = self:getCompiler()
+	local cxx = toCxx(cc)
+	local cxx_present = self.ctx.shell:popen("command -v " .. cxx .. " >/dev/null && echo OK || echo MISSING")
+	if not cxx_present or not cxx_present:match("OK") then
+		error("Missing C++ compiler for target '" .. t .. "': " .. cxx .. ". Run ./build/make.lua setup")
+	end
 	local src_dir = "build/deps/luamidi"
 	
 	if not self.ctx.fs:getInfo(src_dir) then return end
-
-	if t == "windows" then
-		print("Using precompiled luamidi.dll for Windows...")
-		self.ctx.shell:execute(string.format("cp %s/luamidi.dll_64 bin/win64/luamidi.dll", src_dir))
-		return
+	if not self.ctx.fs:getInfo(src_dir .. "/rtmidi/RtMidi.h") or not self.ctx.fs:getInfo(src_dir .. "/rtmidi/RtMidi.cpp") then
+		error("luamidi RtMidi sources are missing. Run ./build/make.lua deps " .. t)
 	end
 
 	local out_map = {
+		windows = "bin/win64/luamidi.dll",
 		macos   = "bin/mac64/luamidi.dylib",
 		linux   = "bin/linux64/luamidi.so",
 	}
 	local out = out_map[t] or out_map.linux
-	local flags = "-shared -fPIC"
-	if t == "macos" then
-		flags = flags .. " -undefined dynamic_lookup"
-	end
 
 	print("Building luamidi for " .. t .. "...")
 	local luajit_inc = "tree/include/luajit-2.1"
-	local rtmidi_inc = "/usr/include/rtmidi"
-	local l_flags = flags .. " -DluaL_reg=luaL_Reg"
-	-- Basic compilation, luamidi source is in src/ folder
-	local cmd = string.format("%s %s -I%s -I%s %s/src/*.cpp -o %s -lrtmidi", cc:gsub("gcc", "g++"), l_flags, luajit_inc, rtmidi_inc, src_dir, out)
+	local rtmidi_inc = src_dir .. "/rtmidi"
+	local src = string.format("%s/src/luamidi.cpp %s/rtmidi/RtMidi.cpp", src_dir, src_dir)
+	local flags = "-shared -fPIC -std=c++17 -DluaL_reg=luaL_Reg"
+	local libs = ""
+
+	if t == "windows" then
+		flags = flags .. " -DWIN32 -D__WINDOWS_MM__"
+		libs = "-lwinmm -Ltree/lib -l:libluajit-5.1.dll.a"
+	elseif t == "macos" then
+		flags = flags .. " -D__MACOSX_CORE__ -undefined dynamic_lookup"
+		libs = "-framework CoreMIDI -framework CoreFoundation -framework CoreAudio -framework CoreServices"
+	else
+		flags = flags .. " -D__LINUX_ALSA__"
+		libs = "-lasound -lpthread"
+	end
+
+	local cmd = string.format("%s %s -I%s -I%s %s -o %s %s", cxx, flags, luajit_inc, rtmidi_inc, src, out, libs)
 	self.ctx.shell:execute(cmd)
 end
 

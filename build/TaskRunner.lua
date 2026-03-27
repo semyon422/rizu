@@ -42,7 +42,12 @@ function TaskRunner:run(name)
 		print("Task up to date: " .. name)
 	else
 		print("Running task: " .. name)
-		task:run(self.ctx)
+		local ok, err = xpcall(function()
+			task:run(self.ctx)
+		end, debug.traceback)
+		if not ok then
+			error("Task failed: " .. name .. "\n" .. tostring(err), 0)
+		end
 	end
 	
 	self.completed[name] = true

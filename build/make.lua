@@ -49,7 +49,7 @@ runner:register(Package())
 runner:register(BuildRepo())
 
 -- Composite Tasks (Aliases)
-runner:register({ name = "all", deps = {"build_" .. target}, run = function() end })
+runner:register({ name = "all_targets", deps = {"build_linux", "build_windows", "build_macos"}, run = function() end })
 
 -- 4. Execute
 local tasks_map = {
@@ -60,7 +60,7 @@ local tasks_map = {
 	build = "build_" .. target,
 	package = "package",
 	repo = "repo",
-	all = "all"
+	all = "all_targets"
 }
 
 local function help()
@@ -76,7 +76,7 @@ Commands:
   build [target]    Compile C modules (video, 7z)
   package           Bundle game into zip/app
   repo              Build update repository
-  all [target]      Full cycle (deps + build)
+  all               Build all targets (linux + windows + macos)
   status            Show current build state
   clean             Remove build artifacts
   help              Show this help

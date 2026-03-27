@@ -4,9 +4,26 @@ local IShell = require("build.IShell")
 ---@class build.Shell: build.IShell
 local Shell = class(IShell)
 
+local function normalize_status(ok, status, code)
+	if type(ok) == "number" then
+		return ok == 0, ok
+	end
+	if ok == true then
+		return true, 0
+	end
+	if ok == false then
+		return false, code or status or 1
+	end
+	return false, code or status or 1
+end
+
 function Shell:execute(cmd)
 	local ok, status, code = os.execute(cmd)
-	return ok, code
+	local success, exit_code = normalize_status(ok, status, code)
+	if not success then
+		error(string.format("Command failed (exit %s): %s", tostring(exit_code), cmd), 2)
+	end
+	return true, exit_code
 end
 
 function Shell:popen(cmd)
