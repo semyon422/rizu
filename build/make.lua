@@ -135,6 +135,11 @@ if command == "clean" then
 	os.exit(0)
 end
 
+if command == "help" then
+	help()
+	os.exit(0)
+end
+
 local task_name = tasks_map[command]
 if not task_name then
 	help()

@@ -1,5 +1,6 @@
 local class = require("class")
 local Builder = require("build.Builder")
+local BuildConfig = require("build.BuildConfig")
 
 ---@class build.tasks.BuildModules
 local BuildModules = class()
@@ -28,33 +29,15 @@ function BuildModules:upToDate(ctx)
 	-- Incremental build logic
 	local target = self.target:lower()
 	local builder = Builder(ctx, target)
-	local out = builder:getModuleOutputs()
-	
-	local modules = {"video", "lib7z", "minacalc", "luamidi"}
-	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
-	
-	for _, mod in ipairs(modules) do
-		if mod == "video" and not should_check_video(ctx, target) then
+	local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
+
+	for _, mod in ipairs(records) do
+		if mod.key == "video" and not should_check_video(ctx, target) then
 			goto continue
 		end
 
-		local bin_path
-		if mod == "video" then
-			bin_path = out.video
-		elseif mod == "minacalc" then
-			bin_path = out.minacalc
-		elseif mod == "luamidi" then
-			bin_path = out.luamidi
-		else
-			bin_path = out.z7
-		end
-		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
-		if mod == "minacalc" or mod == "luamidi" then
-			src_path = "build/deps/" .. mod
-		end
-		
-		local bin_info = ctx.fs:getInfo(bin_path)
-		local src_info = ctx.fs:getInfo(src_path)
+		local bin_info = ctx.fs:getInfo(mod.artifact)
+		local src_info = ctx.fs:getInfo(mod.source)
 		
 		if not bin_info or not src_info then return false end
 		if bin_info.modtime < src_info.modtime then return false end
@@ -68,36 +51,18 @@ end
 function BuildModules:getStatus(ctx)
 	local target = self.target:lower()
 	local builder = Builder(ctx, target)
-	local out = builder:getModuleOutputs()
-	
-	local modules = {"video", "lib7z", "minacalc", "luamidi"}
-	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
-	
+	local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
+
 	local res = {}
-	for _, mod in ipairs(modules) do
-		if mod == "video" and not should_check_video(ctx, target) then
-			table.insert(res, { name = mod .. " (" .. target .. ")", value = "SKIPPED (no ffmpeg)" })
+	for _, mod in ipairs(records) do
+		local name = BuildConfig.getModuleStatusName(target, mod.key)
+		if mod.key == "video" and not should_check_video(ctx, target) then
+			table.insert(res, { name = name .. " (" .. target .. ")", value = "SKIPPED (no ffmpeg)" })
 			goto continue
 		end
 
-		local bin_path
-		if mod == "video" then
-			bin_path = out.video
-		elseif mod == "minacalc" then
-			bin_path = out.minacalc
-		elseif mod == "luamidi" then
-			bin_path = out.luamidi
-		else
-			bin_path = out.z7
-		end
-		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
-		if mod == "minacalc" or mod == "luamidi" then
-			src_path = "build/deps/" .. mod
-		end
-
-		local bin_info = ctx.fs:getInfo(bin_path)
-
-		local src_info = ctx.fs:getInfo(src_path)
+		local bin_info = ctx.fs:getInfo(mod.artifact)
+		local src_info = ctx.fs:getInfo(mod.source)
 		
 		local status = "MISSING"
 		if bin_info and src_info then
@@ -106,7 +71,7 @@ function BuildModules:getStatus(ctx)
 			status = "OK"
 		end
 		
-		table.insert(res, { name = mod .. " (" .. target .. ")", value = status })
+		table.insert(res, { name = name .. " (" .. target .. ")", value = status })
 
 		::continue::
 	end

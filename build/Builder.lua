@@ -1,4 +1,5 @@
 local class = require("class")
+local BuildConfig = require("build.BuildConfig")
 
 ---@class build.Builder
 ---@field ctx build.Context
@@ -7,15 +8,7 @@ local Builder = class()
 
 function Builder:new(ctx, target)
 	self.ctx = ctx
-	self.target = (target or ctx.target):lower()
-end
-
-local function getTargetDirMap(base)
-	return {
-		windows = base .. "/windows",
-		macos   = base .. "/macos",
-		linux   = base .. "/linux",
-	}
+	self.target = BuildConfig.normalizeTarget(target or ctx.target)
 end
 
 local function toCxx(cc)
@@ -85,34 +78,22 @@ function Builder:get7zInc()
 end
 
 function Builder:getArtifactsDir()
-	local dir_map = getTargetDirMap("build/artifacts")
-	local dir = dir_map[self.target] or dir_map.linux
+	local dir = BuildConfig.getArtifactsDir(self.target)
 	self.ctx.fs:createDirectory("build/artifacts")
 	self.ctx.fs:createDirectory(dir)
 	return dir
 end
 
 function Builder:getBinDir()
-	local dir_map = {
-		windows = "bin/win64",
-		macos   = "bin/mac64",
-		linux   = "bin/linux64",
-	}
-	local dir = dir_map[self.target] or dir_map.linux
+	local dir = BuildConfig.getBinDir(self.target)
 	self.ctx.fs:createDirectory("bin")
 	self.ctx.fs:createDirectory(dir)
 	return dir
 end
 
 function Builder:getModuleOutputs()
-	local t = self.target
 	local out_dir = self:getArtifactsDir()
-	return {
-		z7 = (t == "windows") and (out_dir .. "/7z.dll") or (t == "macos" and (out_dir .. "/lib7z.dylib") or (out_dir .. "/lib7z.so")),
-		video = (t == "windows") and (out_dir .. "/video.dll") or (out_dir .. "/video.so"),
-		minacalc = (t == "windows") and (out_dir .. "/minacalc.dll") or (t == "macos" and (out_dir .. "/libminacalc.dylib") or (out_dir .. "/libminacalc.so")),
-		luamidi = (t == "windows") and (out_dir .. "/luamidi.dll") or (t == "macos" and (out_dir .. "/luamidi.dylib") or (out_dir .. "/luamidi.so")),
-	}
+	return BuildConfig.getModuleOutputs(self.target, out_dir)
 end
 
 function Builder:build7z()
@@ -257,16 +238,11 @@ function Builder:syncMissingToBin()
 	local t = self.target
 	local out = self:getModuleOutputs()
 	local bin_dir = self:getBinDir()
-	local pairs_map = {
-		{src = out.z7,       dst = (t == "windows") and (bin_dir .. "/7z.dll") or (t == "macos" and (bin_dir .. "/lib7z.dylib") or (bin_dir .. "/lib7z.so"))},
-		{src = out.video,    dst = (t == "windows") and (bin_dir .. "/video.dll") or (bin_dir .. "/video.so")},
-		{src = out.minacalc, dst = (t == "windows") and (bin_dir .. "/minacalc.dll") or (t == "macos" and (bin_dir .. "/libminacalc.dylib") or (bin_dir .. "/libminacalc.so"))},
-		{src = out.luamidi,  dst = (t == "windows") and (bin_dir .. "/luamidi.dll") or (t == "macos" and (bin_dir .. "/luamidi.dylib") or (bin_dir .. "/luamidi.so"))},
-	}
+	local pairs_map = BuildConfig.getModuleRecords(t, out, bin_dir)
 
 	for _, item in ipairs(pairs_map) do
-		if self.ctx.fs:getInfo(item.src) and not self.ctx.fs:getInfo(item.dst) then
-			self.ctx.shell:execute(string.format("cp -f %q %q", item.src, item.dst))
+		if self.ctx.fs:getInfo(item.artifact) and not self.ctx.fs:getInfo(item.bin) then
+			self.ctx.shell:execute(string.format("cp -f %q %q", item.artifact, item.bin))
 		end
 	end
 end

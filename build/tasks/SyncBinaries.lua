@@ -1,5 +1,6 @@
 local class = require("class")
 local Builder = require("build.Builder")
+local BuildConfig = require("build.BuildConfig")
 
 ---@class build.tasks.SyncBinaries
 local SyncBinaries = class()
@@ -19,22 +20,11 @@ function SyncBinaries:upToDate(ctx)
 	local builder = Builder(ctx, self.target)
 	local t = self.target:lower()
 	local out = builder:getModuleOutputs()
-	local bin_dir_map = {
-		linux = "bin/linux64",
-		windows = "bin/win64",
-		macos = "bin/mac64",
-	}
-	local bin_dir = bin_dir_map[t] or bin_dir_map.linux
-
-	local expected = {
-		{src = out.z7, dst = (t == "windows") and (bin_dir .. "/7z.dll") or (t == "macos" and (bin_dir .. "/lib7z.dylib") or (bin_dir .. "/lib7z.so"))},
-		{src = out.video, dst = (t == "windows") and (bin_dir .. "/video.dll") or (bin_dir .. "/video.so")},
-		{src = out.minacalc, dst = (t == "windows") and (bin_dir .. "/minacalc.dll") or (t == "macos" and (bin_dir .. "/libminacalc.dylib") or (bin_dir .. "/libminacalc.so"))},
-		{src = out.luamidi, dst = (t == "windows") and (bin_dir .. "/luamidi.dll") or (t == "macos" and (bin_dir .. "/luamidi.dylib") or (bin_dir .. "/luamidi.so"))},
-	}
+	local bin_dir = BuildConfig.getBinDir(t)
+	local expected = BuildConfig.getModuleRecords(t, out, bin_dir)
 
 	for _, item in ipairs(expected) do
-		if item.src and ctx.fs:getInfo(item.src) and not ctx.fs:getInfo(item.dst) then
+		if item.artifact and ctx.fs:getInfo(item.artifact) and not ctx.fs:getInfo(item.bin) then
 			return false
 		end
 	end
@@ -46,23 +36,12 @@ function SyncBinaries:getStatus(ctx)
 	local t = self.target:lower()
 	local builder = Builder(ctx, self.target)
 	local out = builder:getModuleOutputs()
-	local bin_dir_map = {
-		linux = "bin/linux64",
-		windows = "bin/win64",
-		macos = "bin/mac64",
-	}
-	local bin_dir = bin_dir_map[t] or bin_dir_map.linux
-
-	local expected = {
-		{src = out.z7, dst = (t == "windows") and (bin_dir .. "/7z.dll") or (t == "macos" and (bin_dir .. "/lib7z.dylib") or (bin_dir .. "/lib7z.so"))},
-		{src = out.video, dst = (t == "windows") and (bin_dir .. "/video.dll") or (bin_dir .. "/video.so")},
-		{src = out.minacalc, dst = (t == "windows") and (bin_dir .. "/minacalc.dll") or (t == "macos" and (bin_dir .. "/libminacalc.dylib") or (bin_dir .. "/libminacalc.so"))},
-		{src = out.luamidi, dst = (t == "windows") and (bin_dir .. "/luamidi.dll") or (t == "macos" and (bin_dir .. "/luamidi.dylib") or (bin_dir .. "/luamidi.so"))},
-	}
+	local bin_dir = BuildConfig.getBinDir(t)
+	local expected = BuildConfig.getModuleRecords(t, out, bin_dir)
 
 	local missing = 0
 	for _, item in ipairs(expected) do
-		if item.src and ctx.fs:getInfo(item.src) and not ctx.fs:getInfo(item.dst) then
+		if item.artifact and ctx.fs:getInfo(item.artifact) and not ctx.fs:getInfo(item.bin) then
 			missing = missing + 1
 		end
 	end
