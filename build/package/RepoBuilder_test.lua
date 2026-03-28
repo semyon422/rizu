@@ -8,6 +8,7 @@ local config = require("build.package.config")
 local _name = config.repo.name
 
 ---@class build.MockShell: build.IShell
+---@operator call: build.MockShell
 local MockShell = require("class")()
 function MockShell:execute(cmd) return true, 0 end
 function MockShell:popen(cmd)
@@ -29,10 +30,10 @@ function test.build_and_package(t)
 
 	local git_repo = CurrentRepo(ctx)
 	-- When using real FS, "." is the current project root which has all files
-	function git_repo:getDirName() return "." end 
+	function git_repo:getDirName() return "." end
 
 	local builder = RepoBuilder(ctx, git_repo, src_fs)
-	
+
 	-- Test build()
 	-- This will read from LinuxFilesystem and write to FakeFilesystem
 	builder:build()
@@ -41,7 +42,7 @@ function test.build_and_package(t)
 	t:assert(fs:getInfo("build/repo/" .. _name))
 	t:assert(fs:getInfo("build/repo/files.json"), "files.json should be generated")
 	t:assert(fs:getInfo("build/repo/" .. _name .. "/game.love"), "game.love should be generated")
-	
+
 	-- Check if some core files from the real project were copied into game.love
 	local zfs_game = ZipFilesystem(fs:read("build/repo/" .. _name .. "/game.love"))
 	t:assert(zfs_game:getInfo("rizu/game/GameInteractor.lua"), "rizu/game/GameInteractor.lua should be inside game.love")

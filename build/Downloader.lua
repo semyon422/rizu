@@ -2,6 +2,7 @@ local class = require("class")
 local IDownloader = require("build.IDownloader")
 
 ---@class build.Downloader: build.IDownloader
+---@operator call: build.Downloader
 local Downloader = class(IDownloader)
 
 local function normalize_status(ok, status, code)
@@ -17,6 +18,9 @@ local function normalize_status(ok, status, code)
 	return false, code or status or 1
 end
 
+---@param url string
+---@param dest string
+---@return boolean
 function Downloader:download(url, dest)
 	print("Downloading " .. url .. " to " .. dest)
 	local cmd = string.format("curl -fL --retry 3 --retry-all-errors %q -o %q", url, dest)

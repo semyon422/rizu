@@ -2,6 +2,7 @@ local class = require("class")
 local IShell = require("build.IShell")
 
 ---@class build.Shell: build.IShell
+---@operator call: build.Shell
 local Shell = class(IShell)
 
 local function normalize_status(ok, status, code)
@@ -17,6 +18,9 @@ local function normalize_status(ok, status, code)
 	return false, code or status or 1
 end
 
+---@param cmd string
+---@return boolean
+---@return number?
 function Shell:execute(cmd)
 	local ok, status, code = os.execute(cmd)
 	local success, exit_code = normalize_status(ok, status, code)
@@ -26,6 +30,8 @@ function Shell:execute(cmd)
 	return true, exit_code
 end
 
+---@param cmd string
+---@return string?
 function Shell:popen(cmd)
 	local p = io.popen(cmd .. " 2>/dev/null")
 	if not p then return nil end

@@ -1,4 +1,4 @@
-local Common = require("build.deps_dsl.spec.common")
+local Common = require("build.deps_dsl.spec.CommonSpec")
 
 local Windows = {}
 

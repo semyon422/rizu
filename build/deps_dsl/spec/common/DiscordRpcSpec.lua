@@ -1,6 +1,6 @@
-local M = {}
+local DiscordRpcSpec = {}
 
-function M.add(target, deps, spec)
+function DiscordRpcSpec.add(target, deps, spec)
 	local cfg = deps.discord_rpc and deps.discord_rpc[target]
 	if not cfg then
 		return
@@ -37,4 +37,4 @@ function M.add(target, deps, spec)
 	})
 end
 
-return M
+return DiscordRpcSpec

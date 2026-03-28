@@ -1,15 +1,19 @@
-local class = require("class")
+local ITask = require("build.ITask")
 
----@class build.tasks.SetupLuaJIT
-local SetupLuaJIT = class()
+---@class build.tasks.SetupLuaJITTask: build.ITask
+---@operator call: build.tasks.SetupLuaJITTask
+---@field deps string[]
+local SetupLuaJITTask = ITask + {}
 
-function SetupLuaJIT:new(target)
+---@param target "linux"|"windows"
+function SetupLuaJITTask:new(target)
 	self.target = target
 	self.name = "setup_luajit_" .. target
 	self.deps = {}
 end
 
-function SetupLuaJIT:run(ctx)
+---@param ctx build.Context
+function SetupLuaJITTask:run(ctx)
 	local target = self.target:lower()
 	local deps_dir = "build/deps"
 	local luajit_dir = deps_dir .. "/LuaJIT"
@@ -27,25 +31,25 @@ function SetupLuaJIT:run(ctx)
 	print("Building LuaJIT for " .. target .. "...")
 	if target == "linux" then
 		ctx.shell:execute("make -C " .. luajit_dir .. " -j$(nproc)")
-		
+
 		print("Installing LuaJIT to " .. tree_dir .. "...")
 		ctx.shell:execute(string.format("make -C %s install DESTDIR=%q PREFIX=", luajit_dir, ctx.root .. "/" .. tree_dir))
-		
+
 		print("Creating luajit symlink...")
 		ctx.shell:execute(string.format("ln -sf %s/bin/luajit-* %s/bin/luajit", tree_dir, tree_dir))
 
-	elseif target == "windows" or target == "win64" then
+	elseif target == "windows" then
 		ctx.shell:execute("make -C " .. luajit_dir .. " clean")
 		ctx.shell:execute(string.format("make -C %s -j$(nproc) HOST_CC='gcc -m64' CROSS=x86_64-w64-mingw32- TARGET_SYS=Windows", luajit_dir))
-		
+
 		print("Installing Windows LuaJIT files to " .. tree_dir .. "...")
 		ctx.fs:createDirectory(tree_dir .. "/lib")
 		ctx.fs:createDirectory(tree_dir .. "/bin")
-		
+
 		local src = luajit_dir .. "/src"
 		ctx.shell:execute(string.format("cp %s/lua51.dll %s/bin/", src, tree_dir))
 		ctx.shell:execute(string.format("cp %s/lua51.dll %s/lib/", src, tree_dir))
-		
+
 		if ctx.fs:getInfo(src .. "/libluajit-5.1.dll.a") then
 			ctx.shell:execute(string.format("cp %s/libluajit-5.1.dll.a %s/lib/", src, tree_dir))
 		elseif ctx.fs:getInfo(src .. "/libluajit.a") then
@@ -54,16 +58,18 @@ function SetupLuaJIT:run(ctx)
 	else
 		error("LuaJIT setup not supported for target: " .. target)
 	end
-	
+
 	print("LuaJIT setup complete for " .. target)
 end
 
-function SetupLuaJIT:getStatus(ctx)
+---@param ctx build.Context
+---@return build.StatusRow[]
+function SetupLuaJITTask:getStatus(ctx)
 	local target = self.target:lower()
 	local bin = target == "linux" and "tree/bin/luajit" or "tree/bin/lua51.dll"
 	local res = {}
-	table.insert(res, { name = "LuaJIT (" .. target .. ")", value = ctx.fs:getInfo(bin) and "OK" or "MISSING" })
+	table.insert(res, {name = "LuaJIT (" .. target .. ")", value = ctx.fs:getInfo(bin) and "OK" or "MISSING"})
 	return res
 end
 
-return SetupLuaJIT
+return SetupLuaJITTask

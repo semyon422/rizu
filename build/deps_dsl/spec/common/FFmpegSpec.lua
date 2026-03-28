@@ -1,4 +1,4 @@
-local M = {}
+local FFmpegSpec = {}
 
 local FFMPEG_ARTIFACTS = {
 	linux = {
@@ -21,7 +21,7 @@ local FFMPEG_ARTIFACTS = {
 	},
 }
 
-function M.add(target, deps, spec)
+function FFmpegSpec.add(target, deps, spec)
 	local ffmpeg = deps.ffmpeg[target]
 	if not ffmpeg then
 		return
@@ -50,4 +50,4 @@ function M.add(target, deps, spec)
 	})
 end
 
-return M
+return FFmpegSpec

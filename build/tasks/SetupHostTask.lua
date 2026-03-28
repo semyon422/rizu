@@ -1,14 +1,18 @@
-local class = require("class")
+local ITask = require("build.ITask")
 
----@class build.tasks.SetupHost
-local SetupHost = class()
+---@class build.tasks.SetupHostTask: build.ITask
+---@operator call: build.tasks.SetupHostTask
+---@field name string
+---@field deps string[]
+local SetupHostTask = ITask + {}
 
-function SetupHost:new()
+function SetupHostTask:new()
 	self.name = "setup_host"
 	self.deps = {}
 end
 
-function SetupHost:run(ctx)
+---@param ctx build.Context
+function SetupHostTask:run(ctx)
 	print("Updating package list...")
 	ctx.shell:execute("sudo apt-get update")
 
@@ -41,7 +45,9 @@ function SetupHost:run(ctx)
 	print("Host setup complete.")
 end
 
-function SetupHost:getStatus(ctx)
+---@param ctx build.Context
+---@return build.StatusRow[]
+function SetupHostTask:getStatus(ctx)
 	local required_bins = {
 		"gcc",
 		"g++",
@@ -58,11 +64,11 @@ function SetupHost:getStatus(ctx)
 	for _, bin in ipairs(required_bins) do
 		local present = ctx.shell:popen("command -v " .. bin .. " >/dev/null && echo OK || echo MISSING")
 		if not present or not present:match("OK") then
-			return {{ name = "Host Environment", value = "MISSING (" .. bin .. ")" }}
+			return {{name = "Host Environment", value = "MISSING (" .. bin .. ")"}}
 		end
 	end
 
-	return {{ name = "Host Environment", value = "READY" }}
+	return {{name = "Host Environment", value = "READY"}}
 end
 
-return SetupHost
+return SetupHostTask

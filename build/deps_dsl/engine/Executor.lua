@@ -1,8 +1,12 @@
 local Ctx = require("build.deps_dsl.engine.Context")
 local Builder = require("build.Builder")
 
+---@class build.deps_dsl.engine.Executor
 local Executor = {}
 
+---@param env build.deps_dsl.Env
+---@param value any
+---@return any
 local function resolve(env, value)
 	if type(value) == "table" then
 		local out = {}
@@ -14,6 +18,9 @@ local function resolve(env, value)
 	return Ctx.interpolate(env, value)
 end
 
+---@param step_id string
+---@param command? string
+---@return build.deps_dsl.RunResult
 local function resultOk(step_id, command)
 	return {ok = true, exit_code = 0, step_id = step_id, command = command or "<noop>", stderr_hint = nil}
 end
@@ -245,6 +252,9 @@ local function shouldSkip(env, step)
 	return false
 end
 
+---@param env build.deps_dsl.Env
+---@param step build.deps_dsl.Step
+---@return build.deps_dsl.RunResult
 function Executor.runStep(env, step)
 	if shouldSkip(env, step) then
 		return {ok = true, exit_code = 0, step_id = step.id, command = "<skipped>", stderr_hint = nil}
@@ -263,6 +273,9 @@ function Executor.runStep(env, step)
 	return last
 end
 
+---@param env build.deps_dsl.Env
+---@param spec build.deps_dsl.Spec
+---@return build.deps_dsl.RunResult[]
 function Executor.runSpec(env, spec)
 	local results = {}
 	for _, step in ipairs(spec.steps or {}) do

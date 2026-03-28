@@ -10,6 +10,9 @@ local _name = config.repo.name
 
 ---@class repo.RepoBuilder
 ---@operator call: repo.RepoBuilder
+---@field ctx build.Context
+---@field git_repo repo.CurrentRepo
+---@field src_fs fs.IFilesystem
 local RepoBuilder = class()
 
 ---@param ctx build.Context
@@ -25,6 +28,7 @@ local function serialize(t)
 	return ("return %s\n"):format(stbl.encode(t))
 end
 
+---@param gamedir string
 function RepoBuilder:writeConfigs(gamedir)
 	self.ctx.fs:write(gamedir .. "/version.lua", serialize({
 		date = self.git_repo:log_date(),
@@ -48,6 +52,7 @@ function RepoBuilder:writeConfigs(gamedir)
 	end
 end
 
+---@return nil
 function RepoBuilder:buildGenericRepo()
 	self.ctx.fs:createDirectory("build/repo")
 
@@ -72,7 +77,7 @@ function RepoBuilder:buildGenericRepo()
 	print("Copying root lua files...")
 	local root_items_path = src_root == "" and "." or src_root
 	if self.src_fs.tree then root_items_path = src_root end -- Handle FakeFilesystem
-	
+
 	local root_items = self.src_fs:getDirectoryItems(root_items_path)
 	for _, item in ipairs(root_items) do
 		if item:match("%.lua$") then
@@ -95,7 +100,7 @@ function RepoBuilder:buildGenericRepo()
 			fs_util.copy(root_prefix .. dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
 	end
-	
+
 	if self.src_fs:getInfo(root_prefix .. "3rd-deps/lib") then
 		local libs = self.src_fs:getDirectoryItems(root_prefix .. "3rd-deps/lib")
 		for _, lib in ipairs(libs) do
@@ -129,7 +134,7 @@ function RepoBuilder:buildGenericRepo()
 	to_delete = {}
 	fs_util.find(gamerepo, self.ctx.fs, function(path)
 		local name = path:match("([^/]+)$")
-		if name and name:sub(1,1) == "." then
+		if name and name:sub(1, 1) == "." then
 			table.insert(to_delete, path)
 		end
 	end)
@@ -153,6 +158,7 @@ function RepoBuilder:buildGenericRepo()
 	end
 end
 
+---@return nil
 function RepoBuilder:build()
 	self:buildGenericRepo()
 
@@ -175,6 +181,7 @@ function RepoBuilder:build()
 	self.ctx.fs:write("build/repo/files.json", json.encode(files))
 end
 
+---@return nil
 function RepoBuilder:build_zip()
 	local gamerepo = "build/repo/" .. _name
 	local zfs = ZipFilesystem()
@@ -182,6 +189,7 @@ function RepoBuilder:build_zip()
 	self.ctx.fs:write("build/repo/" .. _name .. ".zip", zfs:save())
 end
 
+---@return nil
 function RepoBuilder:update_zip()
 	local zip_path = "build/repo/" .. _name .. ".zip"
 	local zip_data = self.ctx.fs:read(zip_path)
@@ -195,6 +203,7 @@ function RepoBuilder:update_zip()
 	end
 end
 
+---@return nil
 function RepoBuilder:buildMacos()
 	local game_app = "build/repo/macos/" .. _name .. ".app"
 	local Contents = game_app .. "/Contents"
@@ -203,7 +212,7 @@ function RepoBuilder:buildMacos()
 
 	fs_util.remove("build/repo/macos", self.ctx.fs)
 	self.ctx.fs:createDirectory("build/repo/macos")
-	
+
 	local love_zip_path = "build/downloads/love-macos.zip"
 	local love_zip_data = self.src_fs:read(love_zip_path)
 	if not love_zip_data then
@@ -221,14 +230,14 @@ function RepoBuilder:buildMacos()
 		end
 	end)
 	for _, path in ipairs(to_delete) do self.ctx.fs:remove(path) end
-	
+
 	if self.src_fs:getInfo("build/package/Info.plist") then
 		fs_util.copy("build/package/Info.plist", Contents .. "/Info.plist", self.src_fs, self.ctx.fs)
 	end
-	
+
 	fs_util.remove(Resources, self.ctx.fs)
 	fs_util.copy("build/repo/" .. _name, Resources, self.ctx.fs, self.ctx.fs)
-	
+
 	if self.ctx.fs:getInfo(Resources .. "/bin/mac64") then
 		local mac64_files = {}
 		fs_util.find(Resources .. "/bin/mac64", self.ctx.fs, function(p) table.insert(mac64_files, p) end)
@@ -238,7 +247,7 @@ function RepoBuilder:buildMacos()
 			self.ctx.fs:remove(path)
 		end
 	end
-	
+
 	fs_util.remove(Resources .. "/bin/win64", self.ctx.fs)
 	fs_util.remove(Resources .. "/bin/linux64", self.ctx.fs)
 

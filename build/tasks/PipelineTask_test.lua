@@ -1,4 +1,4 @@
-local Pipeline = require("build.tasks.Pipeline")
+local Pipeline = require("build.tasks.PipelineTask")
 
 local test = {}
 

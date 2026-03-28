@@ -1,4 +1,4 @@
-local M = {}
+local BassDepsSpec = {}
 
 local BASS_DEPS = {"bass", "bassmix", "bass_fx", "bassopus"}
 local OUTPUT_NAME = {
@@ -22,7 +22,7 @@ local function getSourcePath(dep_name, target, extract)
 	return extract .. "/" .. name
 end
 
-function M.add(target, deps, spec)
+function BassDepsSpec.add(target, deps, spec)
 	for _, dep_name in ipairs(BASS_DEPS) do
 		local cfg = deps[dep_name] and deps[dep_name][target]
 		if cfg then
@@ -48,4 +48,4 @@ function M.add(target, deps, spec)
 	end
 end
 
-return M
+return BassDepsSpec

@@ -1,11 +1,12 @@
 local BuildConfig = require("build.BuildConfig")
 
+---@class build.deps_dsl.spec.Loader
 local Loader = {}
 
 local builders = {
-	linux = function(deps) return require("build.deps_dsl.spec.linux").build(deps) end,
-	windows = function(deps) return require("build.deps_dsl.spec.windows").build(deps) end,
-	macos = function(deps) return require("build.deps_dsl.spec.macos").build(deps) end,
+	linux = function(deps) return require("build.deps_dsl.spec.LinuxSpec").build(deps) end,
+	windows = function(deps) return require("build.deps_dsl.spec.WindowsSpec").build(deps) end,
+	macos = function(deps) return require("build.deps_dsl.spec.MacosSpec").build(deps) end,
 }
 
 local step_kinds = {
@@ -41,6 +42,8 @@ local action_requirements = {
 	noop = {},
 }
 
+---@param step build.deps_dsl.Step
+---@return string[]
 local function inferOutputsFromActions(step)
 	local outputs = {}
 	for _, action in ipairs(step.actions or {}) do
@@ -68,6 +71,8 @@ local function inferOutputsFromActions(step)
 	return outputs
 end
 
+---@param spec build.deps_dsl.Spec
+---@return build.deps_dsl.Spec
 local function normalizeSpec(spec)
 	spec.steps = spec.steps or {}
 	for _, step in ipairs(spec.steps) do
@@ -86,6 +91,8 @@ local function normalizeSpec(spec)
 	return spec
 end
 
+---@param action build.deps_dsl.Action
+---@param step build.deps_dsl.Step
 local function validateAction(action, step)
 	if type(action) ~= "table" then
 		error("Action must be a table")
@@ -120,6 +127,7 @@ local function validateAction(action, step)
 	end
 end
 
+---@param step build.deps_dsl.Step
 local function validateStep(step)
 	if type(step) ~= "table" then
 		error("Step must be a table")
@@ -147,6 +155,7 @@ local function validateStep(step)
 	end
 end
 
+---@param spec build.deps_dsl.Spec
 local function validateSpec(spec)
 	if type(spec) ~= "table" then
 		error("Spec must be a table")
@@ -167,6 +176,9 @@ local function validateSpec(spec)
 	end
 end
 
+---@param target build.Target
+---@param deps table
+---@return build.deps_dsl.Spec
 function Loader.load(target, deps)
 	local t = BuildConfig.normalizeTarget(target)
 	local builder = builders[t]
@@ -179,6 +191,8 @@ function Loader.load(target, deps)
 	return spec
 end
 
+---@param spec build.deps_dsl.Spec
+---@return boolean
 function Loader.validate(spec)
 	validateSpec(normalizeSpec(spec))
 	return true

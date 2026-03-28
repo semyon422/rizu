@@ -8,12 +8,12 @@ local LinuxFilesystem = require("fs.LinuxFilesystem")
 local Shell = require("build.Shell")
 local Downloader = require("build.Downloader")
 
-local SetupHost = require("build.tasks.SetupHost")
-local SetupLuaJIT = require("build.tasks.SetupLuaJIT")
-local SetupCrossMacOS = require("build.tasks.SetupCrossMacOS")
-local Pipeline = require("build.tasks.Pipeline")
-local Package = require("build.tasks.Package")
-local BuildRepo = require("build.tasks.BuildRepo")
+local SetupHost = require("build.tasks.SetupHostTask")
+local SetupLuaJIT = require("build.tasks.SetupLuaJITTask")
+local SetupCrossMacOS = require("build.tasks.SetupCrossMacOSTask")
+local Pipeline = require("build.tasks.PipelineTask")
+local Package = require("build.tasks.PackageTask")
+local BuildRepo = require("build.tasks.BuildRepoTask")
 
 local args = {...}
 local command = args[1]

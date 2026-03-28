@@ -1,6 +1,6 @@
-local M = {}
+local GitDepsSpec = {}
 
-function M.add(deps, spec)
+function GitDepsSpec.add(deps, spec)
 	for _, dep_name in ipairs({"minacalc", "luamidi"}) do
 		local cfg = deps[dep_name]
 		local dep_dir = "${deps_dir}/" .. dep_name
@@ -22,4 +22,4 @@ function M.add(deps, spec)
 	})
 end
 
-return M
+return GitDepsSpec

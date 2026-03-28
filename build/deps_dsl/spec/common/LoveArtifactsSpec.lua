@@ -1,6 +1,6 @@
-local M = {}
+local LoveArtifactsSpec = {}
 
-function M.add(deps, spec)
+function LoveArtifactsSpec.add(deps, spec)
 	if deps.love_win then
 		table.insert(spec.steps, {
 			id = "love_win",
@@ -51,4 +51,4 @@ function M.add(deps, spec)
 	end
 end
 
-return M
+return LoveArtifactsSpec

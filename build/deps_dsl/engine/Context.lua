@@ -1,7 +1,10 @@
 local BuildConfig = require("build.BuildConfig")
 
+---@class build.deps_dsl.engine.Context
 local Context = {}
 
+---@param ctx build.Context
+---@param target build.Target
 local function ensureBaseDirs(ctx, target)
 	ctx.fs:createDirectory(BuildConfig.getDownloadsDir())
 	ctx.fs:createDirectory(BuildConfig.getDepsDir())
@@ -10,6 +13,10 @@ local function ensureBaseDirs(ctx, target)
 	end
 end
 
+---@param ctx build.Context
+---@param target build.Target
+---@param opts? { initialize_dirs?: boolean }
+---@return build.deps_dsl.Env
 function Context.new(ctx, target, opts)
 	local normalized_target = BuildConfig.normalizeTarget(target)
 	local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
@@ -30,6 +37,9 @@ function Context.new(ctx, target, opts)
 	return env
 end
 
+---@param env build.deps_dsl.Env
+---@param value any
+---@return any
 function Context.interpolate(env, value)
 	if type(value) ~= "string" then
 		return value

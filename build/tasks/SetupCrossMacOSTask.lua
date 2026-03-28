@@ -1,14 +1,18 @@
-local class = require("class")
+local ITask = require("build.ITask")
 
----@class build.tasks.SetupCrossMacOS
-local SetupCrossMacOS = class()
+---@class build.tasks.SetupCrossMacOSTask: build.ITask
+---@operator call: build.tasks.SetupCrossMacOSTask
+---@field name string
+---@field deps string[]
+local SetupCrossMacOSTask = ITask + {}
 
-function SetupCrossMacOS:new()
+function SetupCrossMacOSTask:new()
 	self.name = "setup_cross_macos"
 	self.deps = {}
 end
 
-function SetupCrossMacOS:run(ctx)
+---@param ctx build.Context
+function SetupCrossMacOSTask:run(ctx)
 	local build_dir = "build"
 	local deps_dir = build_dir .. "/deps"
 	local downloads_dir = build_dir .. "/downloads"
@@ -39,11 +43,13 @@ function SetupCrossMacOS:run(ctx)
 		print("Building osxcross helper tools (xar, pbzx)...")
 		local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
 		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
-		
+
 		-- xar
-		ctx.shell:execute(string.format("cd %s/build/xar/xar && ./configure --prefix=%s/target && make -j$(nproc) && make install", osxcross_dir, full_osxcross_dir))
+		ctx.shell:execute(string.format("cd %s/build/xar/xar && ./configure --prefix=%s/target && make -j$(nproc) && make install", osxcross_dir,
+			full_osxcross_dir))
 		-- pbzx
-		ctx.shell:execute(string.format("gcc %s/build/pbzx/pbzx.c -o %s/target/bin/pbzx -llzma -lxar -I%s/target/include -L%s/target/lib", osxcross_dir, osxcross_dir, full_osxcross_dir, full_osxcross_dir))
+		ctx.shell:execute(string.format("gcc %s/build/pbzx/pbzx.c -o %s/target/bin/pbzx -llzma -lxar -I%s/target/include -L%s/target/lib", osxcross_dir,
+			osxcross_dir, full_osxcross_dir, full_osxcross_dir))
 	end
 
 	-- 3. Generate the SDK package
@@ -53,18 +59,18 @@ function SetupCrossMacOS:run(ctx)
 		local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
 		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
 		local xip_abs = root_abs .. "/build/downloads/Xcode_14.2.xip"
-		
+
 		-- Use our built tools
 		local env = string.format("PATH=%s/target/bin:$PATH", full_osxcross_dir)
 		local ok = ctx.shell:execute(string.format("%s cd %s && ./tools/gen_sdk_package_pbzx.sh %q", env, osxcross_dir, xip_abs))
 		if not ok then
 			error("Failed to generate SDK package.")
 		end
-		
+
 		-- The script might leave multiple versions if Xcode contains them (e.g. 13 and 13.1)
 		print("Ensuring SDK is in tarballs/...")
 		ctx.shell:execute(string.format("mv %s/MacOSX*.sdk.tar.xz %s/tarballs/ 2>/dev/null", osxcross_dir, osxcross_dir))
-		
+
 		-- If multiple SDKs found, build.sh fails. Keep only the requested version.
 		local items = ctx.fs:getDirectoryItems(osxcross_dir .. "/tarballs") or {}
 		for _, item in ipairs(items) do
@@ -90,12 +96,14 @@ function SetupCrossMacOS:run(ctx)
 	print("---------------------------------------------------")
 end
 
-function SetupCrossMacOS:getStatus(ctx)
+---@param ctx build.Context
+---@return build.StatusRow[]
+function SetupCrossMacOSTask:getStatus(ctx)
 	local osxcross_dir = "build/deps/osxcross"
 	-- Check for the presence of a compiler, not just the directory or xar
 	local compiler = osxcross_dir .. "/target/bin/x86_64-apple-darwin19-clang"
 	local exists = ctx.fs:getInfo(compiler) and "READY" or "MISSING"
-	
+
 	-- If the specific version is missing, check for any darwin compiler
 	if exists == "MISSING" then
 		local bins = ctx.fs:getDirectoryItems(osxcross_dir .. "/target/bin") or {}
@@ -106,8 +114,8 @@ function SetupCrossMacOS:getStatus(ctx)
 			end
 		end
 	end
-	
-	return {{ name = "macOS Toolchain", value = exists }}
+
+	return {{name = "macOS Toolchain", value = exists}}
 end
 
-return SetupCrossMacOS
+return SetupCrossMacOSTask

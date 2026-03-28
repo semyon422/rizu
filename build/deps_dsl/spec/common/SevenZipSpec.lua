@@ -1,6 +1,6 @@
-local M = {}
+local SevenZipSpec = {}
 
-function M.add(deps, spec)
+function SevenZipSpec.add(deps, spec)
 	local s7 = deps.sevenzip
 	local dest = "${downloads_dir}/" .. s7.archive
 	local extract = "${deps_dir}/" .. s7.dir
@@ -14,4 +14,4 @@ function M.add(deps, spec)
 	})
 end
 
-return M
+return SevenZipSpec
