@@ -41,6 +41,7 @@ build/deps
 build/repo
 build/tmp
 build/osxcross
+bin/
 
 reqprof
 typecheck
