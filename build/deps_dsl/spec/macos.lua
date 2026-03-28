@@ -1,5 +1,4 @@
 local Common = require("build.deps_dsl.spec.common")
-local Templates = require("build.deps_dsl.spec.Templates")
 
 local Macos = {}
 
@@ -30,7 +29,7 @@ local function add_ffmpeg(spec, deps, prefix, prefix_abs, tc_bin)
 		actions = {
 			{type = "download", url = ffmpeg_src.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "mkdir -p " .. prefix .. "/ffmpeg; TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; " .. Templates.bashInDir(extract, "export PATH=" .. tc_bin .. ":$PATH; ./configure --prefix=" .. prefix_abs .. "/ffmpeg --enable-cross-compile --target-os=darwin --arch=x86_64 --cc='$TC' --ar='$AR' --ranlib='$RANLIB' --enable-shared --disable-static --disable-programs --disable-doc --disable-debug --disable-asm --disable-videotoolbox && make -j$(nproc) && make install STRIP=true")},
+			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "mkdir -p " .. prefix .. "/ffmpeg; TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; export PATH=" .. tc_bin .. ":$PATH; ./configure --prefix=" .. prefix_abs .. "/ffmpeg --enable-cross-compile --target-os=darwin --arch=x86_64 --cc='$TC' --ar='$AR' --ranlib='$RANLIB' --enable-shared --disable-static --disable-programs --disable-doc --disable-debug --disable-asm --disable-videotoolbox && make -j$(nproc) && make install STRIP=true"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavcodec.dylib"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavformat.dylib"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavutil.dylib"},

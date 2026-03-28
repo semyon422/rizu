@@ -1,5 +1,4 @@
 local Common = require("build.deps_dsl.spec.common")
-local Templates = require("build.deps_dsl.spec.Templates")
 
 local Linux = {}
 
@@ -27,7 +26,7 @@ local function add_zlib(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install")},
+			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install"},
 			{type = "assert_file", path = prefix .. "/lib/libz.so.1", message = "Expected zlib at " .. prefix .. "/lib/libz.so.1"},
 			{type = "copy_exact", src = prefix .. "/lib/libz.so.1", dst = "${bin_dir}/libz.so.1", flags = "-Lf"},
 			{type = "remove", path = "${bin_dir}/libz.so"},
@@ -48,7 +47,7 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\\\"-fPIC\\\" && make -j$(nproc) && make install")},
+			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\\\"-fPIC\\\" && make -j$(nproc) && make install"},
 			{type = "assert_file", path = prefix .. "/lib/libiconv.so"},
 			{type = "assert_file", path = prefix .. "/lib/libcharset.so"},
 			{type = "copy_exact", src = prefix .. "/lib/libiconv.so", dst = "${bin_dir}/libiconv.so", flags = "-Lf"},
@@ -70,7 +69,7 @@ local function add_openssl(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = openssl.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "OpenSSL configure/build failed", command = Templates.bashInDir(extract, "./Configure linux-x86_64 --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl shared zlib --with-zlib-include=" .. prefix_abs .. "/include --with-zlib-lib=" .. prefix_abs .. "/lib && make -j$(nproc) && make install_sw")},
+			{type = "shell", dir = extract, stderr_hint = "OpenSSL configure/build failed", command = "./Configure linux-x86_64 --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl shared zlib --with-zlib-include=" .. prefix_abs .. "/include --with-zlib-lib=" .. prefix_abs .. "/lib && make -j$(nproc) && make install_sw"},
 			{type = "assert_file", path = prefix .. "/lib/libssl.so.3", message = "Expected OpenSSL at " .. prefix .. "/lib/libssl.so.3"},
 			{type = "assert_file", path = prefix .. "/lib/libcrypto.so.3", message = "Expected OpenSSL at " .. prefix .. "/lib/libcrypto.so.3"},
 			{type = "copy_exact", src = prefix .. "/lib/libssl.so.3", dst = "${bin_dir}/libssl.so.3", flags = "-Lf"},

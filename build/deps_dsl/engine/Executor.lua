@@ -145,7 +145,12 @@ local function install_name_tool_change(env, step, action)
 end
 
 local function shell_action(env, step, action)
-	return executeSafe(env, step.id, resolve(env, action.command), action.stderr_hint)
+	local cmd = resolve(env, action.command)
+	local dir = action.dir and resolve(env, action.dir)
+	if dir then
+		cmd = string.format("bash -lc 'cd %q && %s'", dir, cmd)
+	end
+	return executeSafe(env, step.id, cmd, action.stderr_hint)
 end
 
 local function ensure_dir(env, step, action)

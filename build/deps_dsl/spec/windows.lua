@@ -1,5 +1,4 @@
 local Common = require("build.deps_dsl.spec.common")
-local Templates = require("build.deps_dsl.spec.Templates")
 
 local Windows = {}
 
@@ -27,7 +26,7 @@ local function add_zlib(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.bashInDir(extract, "make -f win32/Makefile.gcc clean && make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 BINARY_PATH=" .. prefix_abs .. "/bin INCLUDE_PATH=" .. prefix_abs .. "/include LIBRARY_PATH=" .. prefix_abs .. "/lib -j$(nproc)") .. "; mkdir -p " .. prefix .. "/bin; cp -f " .. extract .. "/zlib1.dll " .. prefix .. "/bin/zlib1.dll"},
+			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "make -f win32/Makefile.gcc clean && make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 BINARY_PATH=" .. prefix_abs .. "/bin INCLUDE_PATH=" .. prefix_abs .. "/include LIBRARY_PATH=" .. prefix_abs .. "/lib -j$(nproc); mkdir -p " .. prefix .. "/bin; cp -f " .. extract .. "/zlib1.dll " .. prefix .. "/bin/zlib1.dll"},
 			{type = "copy", src = prefix .. "/bin/zlib1.dll", dst = "${bin_dir}/z.dll", flags = "-f"},
 		},
 	})

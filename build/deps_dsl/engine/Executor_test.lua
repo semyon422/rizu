@@ -103,6 +103,21 @@ function test.typed_actions_run_with_structured_result(t)
 	t:assert(#state.exec >= 3)
 end
 
+function test.shell_action_supports_dir(t)
+	local ctx, state = makeCtx()
+	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "shell_with_dir",
+		kind = "archive",
+		actions = {
+			{type = "shell", dir = "/tmp/work", command = "echo hi", stderr_hint = "shell failed"},
+		},
+	})
+	t:eq(result.ok, true)
+	t:assert(result.command:find("cd \"/tmp/work\" && echo hi", 1, true))
+	t:eq(#state.exec, 1)
+end
+
 function test.copy_exact_fails_when_source_missing(t)
 	local ctx = makeCtx()
 	local env = Context.new(ctx, "linux", {initialize_dirs = false})
