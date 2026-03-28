@@ -36,12 +36,7 @@ userdata/avatar.png
 userdata/lasterror.txt
 
 moddedgame
-build/downloads
-build/deps
-build/repo
-build/artifacts
-build/tmp
-build/osxcross
+/build/
 bin/
 
 reqprof

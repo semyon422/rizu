@@ -1,0 +1,71 @@
+---@alias rizu.build.Target
+---| "linux"
+---| "windows"
+---| "macos"
+
+---@alias rizu.build.deps.StepKind
+---| "archive"
+---| "git"
+---| "source-build"
+---| "modules"
+---| "sync"
+---| "package-hooks"
+
+---@class rizu.build.StatusRow
+---@field name string
+---@field value string
+
+---@class rizu.build.deps.Action
+---@field type string
+---@field command? string
+---@field dir? string
+---@field stderr_hint? string
+---@field url? string
+---@field dest? string
+---@field format? string
+---@field archive? string
+---@field src? string
+---@field dst? string
+---@field path? string
+---@field pattern? string
+---@field out_file? string
+---@field args? string
+---@field tool? string
+---@field target? string
+---@field from? string
+---@field to? string
+---@field mode? string
+
+---@class rizu.build.deps.Step
+---@field id string
+---@field kind rizu.build.deps.StepKind
+---@field actions rizu.build.deps.Action[]
+---@field outputs string[]
+---@field requires string[]
+---@field status_label? string
+---@field skip_if_exists_all? string[]
+
+---@class rizu.build.deps.Spec
+---@field target? rizu.build.Target
+---@field steps rizu.build.deps.Step[]
+---@field outputs string[]
+
+---@class rizu.build.deps.Env
+---@field ctx rizu.build.Context
+---@field target rizu.build.Target
+---@field root_abs string
+---@field bin_dir string
+---@field downloads_dir string
+---@field deps_dir string
+---@field bin_dirs table<string, string>
+
+---@class rizu.build.deps.RunResult
+---@field ok boolean
+---@field exit_code integer
+---@field step_id string
+---@field command string
+---@field stderr_hint string|nil
+
+local Types = {}
+
+return Types
