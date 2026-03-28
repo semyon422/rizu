@@ -1,5 +1,33 @@
 # AGENTS.md
 
+## Agent Preamble
+
+This is the **repository-wide source of truth** for AI coding assistants.
+
+Tool-specific files (for example `GEMINI.md`, `CLAUDE.md`, `.cursorrules`) should defer to this file. If another instruction file conflicts with this one, follow `AGENTS.md` unless explicitly told otherwise by the user in the current task.
+
+## Quick Checklist For Agents
+
+Before editing:
+1. Read this file and scan nearby module docs/specs (especially local `spec.md` files).
+2. Locate existing class names/usages before introducing new names.
+3. Prefer minimal, targeted edits that preserve architecture and conventions.
+
+While editing:
+1. Keep namespace/class naming consistent with rules below.
+2. Do not delete tests; update/move them with source changes.
+3. Add or update `spec.md` for major behavior changes.
+
+After editing:
+1. Run relevant tests (`./test [file_pattern] [method_pattern]`).
+2. Summarize behavior changes and list any follow-up risks or TODOs.
+
+## Change Safety Rules
+
+*   Do not perform destructive repo operations (history rewrites, mass deletions) unless explicitly requested.
+*   Do not silently change public interfaces, persistence formats, or remote method contracts without documenting it.
+*   For cross-worker / websocket / ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
+
 ## Project Overview
 
 This project is an open-source rhythm game called "Rizu". It is built using the [LÖVE](https://love2d.org/) framework and is written primarily in Lua. The game is designed to be cross-platform, with support for Windows and Linux.
@@ -87,9 +115,6 @@ To ensure long-term maintainability and alignment between design and implementat
     *   **Structure**: A `spec.md` should lead with the **Goal** and **User Experience**, providing high-level context before diving into implementation details.
     *   **Architecture Decisions (ADR)**: Significant architectural choices should be documented directly within the `spec.md` in an `## Architecture Decisions` or `## ADR` section to keep context together.
     *   **Precise Terminology**: Avoid ambiguous terms. For example, do not use "difficulty" when referring to a chart variation or file; reserve it strictly for complexity metrics (star ratings, MSD, etc.).
-*   **Traceability:**
-    *   Specifications and code are linked using inlined tags (e.g., `[SPEC-MOD-01]`) within the documentation and as comments in the source code or tests.
-    *   **Verification**: `scripts/check_spec_coverage.lua` is used to check coverage of specified requirements by searching for `[SPEC-*]` tags in both spec and code/test files.
 *   **Documentation Locality:**
     *   Keep documentation as close to the code as possible.
     *   Use EmmyLua for API-level documentation.
