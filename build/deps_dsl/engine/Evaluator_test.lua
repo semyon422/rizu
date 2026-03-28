@@ -61,4 +61,21 @@ function test.render_status_rows_includes_pipeline_row(t)
 	t:eq(rows[#rows].value, "OK")
 end
 
+function test.run_result_failure_sets_failed_state(t)
+	local ctx = makeCtx()
+	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local spec = {
+		target = "linux",
+		steps = {
+			{id = "a", kind = "archive", status_label = "A", outputs = {}, requires = {}, actions = {}},
+		},
+		outputs = {},
+	}
+	local eval = Evaluator.evaluate(env, spec, {
+		{step_id = "a", ok = false, exit_code = 1, command = "x", stderr_hint = "boom"},
+	})
+	t:eq(eval.steps[1].state, "FAILED")
+	t:eq(eval.aggregate, "FAILED")
+end
+
 return test

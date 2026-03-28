@@ -24,6 +24,7 @@ local action_requirements = {
 	run_in_dir = {"dir", "command"},
 	make = {"dir"},
 	copy = {"src", "dst"},
+	copy_exact = {"src", "dst"},
 	copy_glob = {"pattern", "dst"},
 	copy_if_exists = {"src", "dst"},
 	remove = {"path"},
@@ -33,9 +34,11 @@ local action_requirements = {
 	git_clone = {"url", "dest"},
 	git_submodule = {"dir"},
 	install_name_tool_change = {"tool", "target"},
-	shell = {"command"},
+	shell = {"command", "stderr_hint"},
 	ensure_dir = {"path"},
 	assert_exists = {"path"},
+	assert_file = {"path"},
+	assert_dir = {"path"},
 	build_modules = {},
 	sync_binaries = {},
 	noop = {},
@@ -49,6 +52,8 @@ local function inferOutputsFromActions(step)
 		elseif action.type == "extract" and action.dest then
 			table.insert(outputs, action.dest)
 		elseif action.type == "copy" and action.dst and not tostring(action.dst):match("/$") then
+			table.insert(outputs, action.dst)
+		elseif action.type == "copy_exact" and action.dst and not tostring(action.dst):match("/$") then
 			table.insert(outputs, action.dst)
 		elseif action.type == "git_clone" and action.dest then
 			table.insert(outputs, action.dest)
@@ -102,9 +107,20 @@ local function validateAction(action, step)
 			error(string.format("Action '%s' is missing required field '%s'", action.type, key))
 		end
 	end
-	if action.type == "shell" and not action.stderr_hint and not step.stderr_hint then
-		-- Transitional: allow legacy shell steps but keep a deterministic default hint.
-		action.stderr_hint = string.format("Shell action failed in step '%s'", tostring(step.id))
+	if action.type == "shell" then
+		local command = tostring(action.command or "")
+		local fallback_patterns = {
+			"OPENSSL_LIB=",
+			"OPENSSL_IMP=",
+			"lib64",
+			"%|%|%s*cp%s",
+			"if%s*%[.-%];%s*then%s*cp%s.-%s*else%s*cp%s",
+		}
+		for _, pattern in ipairs(fallback_patterns) do
+			if command:match(pattern) then
+				error(string.format("Shell action '%s' contains forbidden fallback pattern '%s'", tostring(step.id), pattern))
+			end
+		end
 	end
 end
 

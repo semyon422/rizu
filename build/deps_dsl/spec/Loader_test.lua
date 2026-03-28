@@ -30,7 +30,7 @@ function test.strict_validation_catches_bad_specs(t)
 	local bad = {
 		steps = {
 			{id = "a", kind = "archive", outputs = {}, requires = {}, actions = {{type = "download", dest = "x"}}},
-			{id = "a", kind = "archive", actions = {{type = "shell", command = "true"}}},
+			{id = "a", kind = "archive", actions = {{type = "shell", command = "true", stderr_hint = "x"}}},
 		},
 		outputs = {},
 	}
@@ -44,15 +44,42 @@ function test.strict_validation_catches_bad_specs(t)
 	)
 end
 
-function test.shell_action_gets_default_hint(t)
+function test.shell_action_requires_stderr_hint(t)
 	local spec = {
 		steps = {
 			{id = "s", kind = "archive", outputs = {}, requires = {}, actions = {{type = "shell", command = "echo hi"}}},
 		},
 		outputs = {},
 	}
-	Loader.validate(spec)
-	t:assert(spec.steps[1].actions[1].stderr_hint:find("Shell action failed"))
+	local ok, err = pcall(function()
+		Loader.validate(spec)
+	end)
+	t:eq(ok, false)
+	t:assert(tostring(err):find("missing required field 'stderr_hint'"))
+end
+
+function test.shell_action_rejects_fallback_patterns(t)
+	local spec = {
+		steps = {
+			{
+				id = "s",
+				kind = "archive",
+				outputs = {},
+				requires = {},
+				actions = {{
+					type = "shell",
+					command = "OPENSSL_LIB=/x/lib; [ -f /x/lib/libssl.so ] || OPENSSL_LIB=/x/lib64; cp $OPENSSL_LIB/libssl.so y",
+					stderr_hint = "should fail",
+				}},
+			},
+		},
+		outputs = {},
+	}
+	local ok, err = pcall(function()
+		Loader.validate(spec)
+	end)
+	t:eq(ok, false)
+	t:assert(tostring(err):find("forbidden fallback pattern"))
 end
 
 return test

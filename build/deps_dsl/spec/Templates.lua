@@ -16,8 +16,4 @@ function Templates.bashInDir(dir, command)
 	return "bash -lc 'cd " .. dir .. " && " .. command .. "'"
 end
 
-function Templates.pickLibDir(var_name, preferred, fallback)
-	return var_name .. "=\"" .. preferred .. "\"; [ -f " .. preferred .. "/" .. "libssl.so ] || [ -f " .. preferred .. "/" .. "libssl.dylib ] || " .. var_name .. "=\"" .. fallback .. "\""
-end
-
 return Templates

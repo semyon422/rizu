@@ -93,6 +93,14 @@ local function copy_action(env, step, action)
 	return executeSafe(env, step.id, string.format("cp %s %s %s", flags, src, dst), action.stderr_hint)
 end
 
+local function copy_exact(env, step, action)
+	local src = resolve(env, action.src)
+	if not env.ctx.fs:getInfo(src) then
+		error(resolve(env, action.message) or ("Missing source for copy_exact: " .. src))
+	end
+	return copy_action(env, step, action)
+end
+
 local function copy_glob(env, step, action)
 	local pattern = resolve(env, action.pattern)
 	local dst = resolve(env, action.dst)
@@ -175,6 +183,24 @@ local function assert_exists(env, step, action)
 	return resultOk(step.id, string.format("assert_exists %s", path))
 end
 
+local function assert_file(env, step, action)
+	local path = resolve(env, action.path)
+	local info = env.ctx.fs:getInfo(path)
+	if not info or info.type ~= "file" then
+		error(resolve(env, action.message) or ("Missing required file: " .. path))
+	end
+	return resultOk(step.id, string.format("assert_file %s", path))
+end
+
+local function assert_dir(env, step, action)
+	local path = resolve(env, action.path)
+	local info = env.ctx.fs:getInfo(path)
+	if not info or info.type ~= "directory" then
+		error(resolve(env, action.message) or ("Missing required directory: " .. path))
+	end
+	return resultOk(step.id, string.format("assert_dir %s", path))
+end
+
 local function build_modules(env, step)
 	local builder = Builder(env.ctx, env.target)
 	builder:run()
@@ -198,6 +224,7 @@ local handlers = {
 	configure = run_in_dir,
 	make = make_action,
 	copy = copy_action,
+	copy_exact = copy_exact,
 	copy_glob = copy_glob,
 	copy_if_exists = copy_if_exists,
 	set_executable = set_executable,
@@ -210,6 +237,8 @@ local handlers = {
 	shell = shell_action,
 	ensure_dir = ensure_dir,
 	assert_exists = assert_exists,
+	assert_file = assert_file,
+	assert_dir = assert_dir,
 	build_modules = build_modules,
 	sync_binaries = sync_binaries,
 	noop = noop,
