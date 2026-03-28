@@ -27,19 +27,8 @@ end
 function BuildModules:upToDate(ctx)
 	-- Incremental build logic
 	local target = self.target:lower()
-	local bin_dir_map = {
-		linux   = "bin/linux64",
-		windows = "bin/win64",
-		macos   = "bin/mac64",
-	}
-	local ext_map = {
-		linux   = "so",
-		windows = "dll",
-		macos   = "dylib",
-	}
-	
-	local bin_dir = bin_dir_map[target] or bin_dir_map.linux
-	local ext = ext_map[target] or ext_map.linux
+	local builder = Builder(ctx, target)
+	local out = builder:getModuleOutputs()
 	
 	local modules = {"video", "lib7z", "minacalc", "luamidi"}
 	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
@@ -49,15 +38,16 @@ function BuildModules:upToDate(ctx)
 			goto continue
 		end
 
-		local m_ext = ext
-		if target == "macos" and mod == "video" then m_ext = "so" end
-		if target == "macos" and mod == "minacalc" then m_ext = "dylib" end -- libminacalc.dylib
-		
-		local name = mod
-		if mod == "minacalc" and target ~= "windows" then name = "libminacalc" end
-		if mod == "luamidi" and target == "macos" then name = "luamidi" end -- luamidi.dylib ? 
-		
-		local bin_path = bin_dir .. "/" .. name .. "." .. m_ext
+		local bin_path
+		if mod == "video" then
+			bin_path = out.video
+		elseif mod == "minacalc" then
+			bin_path = out.minacalc
+		elseif mod == "luamidi" then
+			bin_path = out.luamidi
+		else
+			bin_path = out.z7
+		end
 		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
 		if mod == "minacalc" or mod == "luamidi" then
 			src_path = "build/deps/" .. mod
@@ -77,19 +67,8 @@ end
 
 function BuildModules:getStatus(ctx)
 	local target = self.target:lower()
-	local bin_dir_map = {
-		linux   = "bin/linux64",
-		windows = "bin/win64",
-		macos   = "bin/mac64",
-	}
-	local ext_map = {
-		linux   = "so",
-		windows = "dll",
-		macos   = "dylib",
-	}
-	
-	local bin_dir = bin_dir_map[target] or bin_dir_map.linux
-	local ext = ext_map[target] or ext_map.linux
+	local builder = Builder(ctx, target)
+	local out = builder:getModuleOutputs()
 	
 	local modules = {"video", "lib7z", "minacalc", "luamidi"}
 	if target == "windows" then modules = {"video", "7z", "minacalc", "luamidi"} end
@@ -101,15 +80,16 @@ function BuildModules:getStatus(ctx)
 			goto continue
 		end
 
-		local m_ext = ext
-		if target == "macos" and mod == "video" then m_ext = "so" end
-		if target == "macos" and mod == "minacalc" then m_ext = "dylib" end
-		
-		local name = mod
-		if mod == "minacalc" and target ~= "windows" then name = "libminacalc" end
-		if mod == "luamidi" and target == "macos" then name = "luamidi" end
-		
-		local bin_path = bin_dir .. "/" .. name .. "." .. m_ext
+		local bin_path
+		if mod == "video" then
+			bin_path = out.video
+		elseif mod == "minacalc" then
+			bin_path = out.minacalc
+		elseif mod == "luamidi" then
+			bin_path = out.luamidi
+		else
+			bin_path = out.z7
+		end
 		local src_path = "aqua/" .. mod:gsub("^lib", "") .. ".c"
 		if mod == "minacalc" or mod == "luamidi" then
 			src_path = "build/deps/" .. mod

@@ -10,6 +10,14 @@ function Builder:new(ctx, target)
 	self.target = (target or ctx.target):lower()
 end
 
+local function getTargetDirMap(base)
+	return {
+		windows = base .. "/windows",
+		macos   = base .. "/macos",
+		linux   = base .. "/linux",
+	}
+end
+
 local function toCxx(cc)
 	return cc:gsub("gcc", "g++"):gsub("clang", "clang++")
 end
@@ -76,6 +84,37 @@ function Builder:get7zInc()
 	return "aqua"
 end
 
+function Builder:getArtifactsDir()
+	local dir_map = getTargetDirMap("build/artifacts")
+	local dir = dir_map[self.target] or dir_map.linux
+	self.ctx.fs:createDirectory("build/artifacts")
+	self.ctx.fs:createDirectory(dir)
+	return dir
+end
+
+function Builder:getBinDir()
+	local dir_map = {
+		windows = "bin/win64",
+		macos   = "bin/mac64",
+		linux   = "bin/linux64",
+	}
+	local dir = dir_map[self.target] or dir_map.linux
+	self.ctx.fs:createDirectory("bin")
+	self.ctx.fs:createDirectory(dir)
+	return dir
+end
+
+function Builder:getModuleOutputs()
+	local t = self.target
+	local out_dir = self:getArtifactsDir()
+	return {
+		z7 = (t == "windows") and (out_dir .. "/7z.dll") or (t == "macos" and (out_dir .. "/lib7z.dylib") or (out_dir .. "/lib7z.so")),
+		video = (t == "windows") and (out_dir .. "/video.dll") or (out_dir .. "/video.so"),
+		minacalc = (t == "windows") and (out_dir .. "/minacalc.dll") or (t == "macos" and (out_dir .. "/libminacalc.dylib") or (out_dir .. "/libminacalc.so")),
+		luamidi = (t == "windows") and (out_dir .. "/luamidi.dll") or (t == "macos" and (out_dir .. "/luamidi.dylib") or (out_dir .. "/luamidi.so")),
+	}
+end
+
 function Builder:build7z()
 	local t = self.target
 	local cc = self:getCompiler()
@@ -83,9 +122,9 @@ function Builder:build7z()
 	local src = "aqua/7z.c"
 	
 	local out_map = {
-		windows = "bin/win64/7z.dll",
-		macos   = "bin/mac64/lib7z.dylib",
-		linux   = "bin/linux64/lib7z.so",
+		windows = self:getModuleOutputs().z7,
+		macos   = self:getModuleOutputs().z7,
+		linux   = self:getModuleOutputs().z7,
 	}
 	local flag_map = {
 		linux = "-D_GNU_SOURCE -shared -fPIC",
@@ -110,9 +149,9 @@ function Builder:buildVideo()
 	local src = "aqua/video.c"
 	
 	local out_map = {
-		windows = "bin/win64/video.dll",
-		macos   = "bin/mac64/video.so",
-		linux   = "bin/linux64/video.so",
+		windows = self:getModuleOutputs().video,
+		macos   = self:getModuleOutputs().video,
+		linux   = self:getModuleOutputs().video,
 	}
 	local flag_map = {
 		macos = "-shared -fPIC -undefined dynamic_lookup -Wl,-rpath,@loader_path",
@@ -148,9 +187,9 @@ function Builder:buildMinacalc()
 	if not self.ctx.fs:getInfo(src_dir) then return end
 
 	local out_map = {
-		windows = "bin/win64/minacalc.dll",
-		macos   = "bin/mac64/libminacalc.dylib",
-		linux   = "bin/linux64/libminacalc.so",
+		windows = self:getModuleOutputs().minacalc,
+		macos   = self:getModuleOutputs().minacalc,
+		linux   = self:getModuleOutputs().minacalc,
 	}
 	local out = out_map[t] or out_map.linux
 	local flags = "-DSTANDALONE_CALC -std=c++20 -shared -fPIC"
@@ -179,9 +218,9 @@ function Builder:buildLuamidi()
 	end
 
 	local out_map = {
-		windows = "bin/win64/luamidi.dll",
-		macos   = "bin/mac64/luamidi.dylib",
-		linux   = "bin/linux64/luamidi.so",
+		windows = self:getModuleOutputs().luamidi,
+		macos   = self:getModuleOutputs().luamidi,
+		linux   = self:getModuleOutputs().luamidi,
 	}
 	local out = out_map[t] or out_map.linux
 
@@ -208,14 +247,28 @@ function Builder:buildLuamidi()
 end
 
 function Builder:run()
-	self.ctx.fs:createDirectory("bin/linux64")
-	self.ctx.fs:createDirectory("bin/win64")
-	self.ctx.fs:createDirectory("bin/mac64")
-	
 	self:build7z()
 	self:buildVideo()
 	self:buildMinacalc()
 	self:buildLuamidi()
+end
+
+function Builder:syncMissingToBin()
+	local t = self.target
+	local out = self:getModuleOutputs()
+	local bin_dir = self:getBinDir()
+	local pairs_map = {
+		{src = out.z7,       dst = (t == "windows") and (bin_dir .. "/7z.dll") or (t == "macos" and (bin_dir .. "/lib7z.dylib") or (bin_dir .. "/lib7z.so"))},
+		{src = out.video,    dst = (t == "windows") and (bin_dir .. "/video.dll") or (bin_dir .. "/video.so")},
+		{src = out.minacalc, dst = (t == "windows") and (bin_dir .. "/minacalc.dll") or (t == "macos" and (bin_dir .. "/libminacalc.dylib") or (bin_dir .. "/libminacalc.so"))},
+		{src = out.luamidi,  dst = (t == "windows") and (bin_dir .. "/luamidi.dll") or (t == "macos" and (bin_dir .. "/luamidi.dylib") or (bin_dir .. "/luamidi.so"))},
+	}
+
+	for _, item in ipairs(pairs_map) do
+		if self.ctx.fs:getInfo(item.src) and not self.ctx.fs:getInfo(item.dst) then
+			self.ctx.shell:execute(string.format("cp -f %q %q", item.src, item.dst))
+		end
+	end
 end
 
 return Builder

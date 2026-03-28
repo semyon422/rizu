@@ -23,8 +23,10 @@ function FetchDeps:run(ctx)
 		windows = "bin/win64",
 		macos   = "bin/mac64",
 	}
+	for _, bin_dir in pairs(platform_bin_map) do
+		ctx.fs:createDirectory(bin_dir)
+	end
 	local platform_bin = platform_bin_map[target] or platform_bin_map.linux
-	ctx.fs:createDirectory(platform_bin)
 
 	local function ensure_source_dep(config)
 		local dest = "build/downloads/" .. config.archive

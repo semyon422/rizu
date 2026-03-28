@@ -5,7 +5,7 @@ local BuildRepo = class()
 
 function BuildRepo:new()
 	self.name = "repo"
-	self.deps = {"build_linux", "build_windows", "build_macos"}
+	self.deps = {"sync_linux", "sync_windows", "sync_macos"}
 end
 
 function BuildRepo:run(ctx)

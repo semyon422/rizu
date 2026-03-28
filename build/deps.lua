@@ -34,7 +34,7 @@ return {
 	},
 	love_linux = {
 		url = "https://github.com/love2d/love/releases/download/11.5/love-11.5-x86_64.AppImage",
-		archive = "love-linux.AppImage",
+		archive = "love-11.5-x86_64.AppImage",
 	},
 	rtmidi = {
 		linux = {url = "https://github.com/thestk/rtmidi/archive/refs/tags/v6.0.0.tar.gz", archive = "rtmidi-linux.tar.gz"},

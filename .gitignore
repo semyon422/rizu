@@ -39,6 +39,7 @@ moddedgame
 build/downloads
 build/deps
 build/repo
+build/artifacts
 build/tmp
 build/osxcross
 bin/

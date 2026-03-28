@@ -14,6 +14,7 @@ local SetupHost = require("build.tasks.SetupHost")
 local SetupLuaJIT = require("build.tasks.SetupLuaJIT")
 local FetchDeps = require("build.tasks.FetchDeps")
 local BuildModules = require("build.tasks.BuildModules")
+local SyncBinaries = require("build.tasks.SyncBinaries")
 local Package = require("build.tasks.Package")
 local BuildRepo = require("build.tasks.BuildRepo")
 local SetupCrossMacOS = require("build.tasks.SetupCrossMacOS")
@@ -45,11 +46,14 @@ runner:register(FetchDeps("macos"))
 runner:register(BuildModules("linux"))
 runner:register(BuildModules("windows"))
 runner:register(BuildModules("macos"))
+runner:register(SyncBinaries("linux"))
+runner:register(SyncBinaries("windows"))
+runner:register(SyncBinaries("macos"))
 runner:register(Package())
 runner:register(BuildRepo())
 
 -- Composite Tasks (Aliases)
-runner:register({ name = "all_targets", deps = {"build_linux", "build_windows", "build_macos"}, run = function() end })
+runner:register({ name = "all_targets", deps = {"sync_linux", "sync_windows", "sync_macos"}, run = function() end })
 
 -- 4. Execute
 local tasks_map = {
@@ -57,7 +61,8 @@ local tasks_map = {
 	luajit = "setup_luajit_" .. target,
 	macos_toolchain = "setup_cross_macos",
 	deps = "deps_" .. target,
-	build = "build_" .. target,
+	build = "sync_" .. target,
+	sync = "sync_" .. target,
 	package = "package",
 	repo = "repo",
 	all = "all_targets"
@@ -73,7 +78,8 @@ Commands:
   luajit [target]   Build/Install luajit locally (target: linux, windows)
   macos_toolchain   Setup osxcross for macOS compilation
   deps [target]     Fetch binary dependencies (ffmpeg, 7z)
-  build [target]    Compile C modules (video, 7z)
+  build [target]    Compile modules to build/artifacts and sync missing files to bin
+  sync [target]     Copy missing compiled modules from build/artifacts to bin
   package           Bundle game into zip/app
   repo              Build update repository
   all               Build all targets (linux + windows + macos)
@@ -97,6 +103,9 @@ if command == "status" then
 		"build_linux",
 		"build_windows",
 		"build_macos",
+		"sync_linux",
+		"sync_windows",
+		"sync_macos",
 		"package",
 		"repo"
 	}
@@ -117,6 +126,7 @@ end
 
 if command == "clean" then
 	ctx.fs:remove("build/deps")
+	ctx.fs:remove("build/artifacts")
 	ctx.fs:remove("bin/linux64")
 	ctx.fs:remove("bin/win64")
 	ctx.fs:remove("bin/mac64")
