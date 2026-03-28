@@ -28,25 +28,10 @@ local function status_exists_all(env, row)
 	return "OK"
 end
 
-local function status_prebuilt(env, row)
-	local dl_path = interp(env, row.download)
-	local bin_path = interp(env, row.bin)
-	local dl = env.ctx.fs:getInfo(dl_path) and "OK" or "MISSING"
-	if row.local_path and env.ctx.fs:getInfo(interp(env, row.local_path)) then
-		dl = "LOCAL"
-	end
-	local bn = env.ctx.fs:getInfo(bin_path) and "OK" or "MISSING"
-	if dl == "MISSING" and bn == "OK" then
-		dl = "CACHED"
-	end
-	return string.format("DL: [%s] BIN: [%s]", dl, bn)
-end
-
 local formatters = {
 	dl_ex = status_dl_ex,
 	exists = status_exists,
 	exists_all = status_exists_all,
-	prebuilt = status_prebuilt,
 }
 
 function StatusFormatter.render(env, spec)

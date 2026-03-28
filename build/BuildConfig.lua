@@ -15,7 +15,6 @@ BuildConfig.TARGET_ARTIFACT_DIRS = {
 BuildConfig.ROOT_DIRS = {
 	downloads = "build/downloads",
 	deps = "build/deps",
-	prebuilt = "build/downloads/prebuilt",
 }
 
 BuildConfig.MODULE_OUTPUT_NAMES = {
@@ -121,10 +120,6 @@ end
 
 function BuildConfig.getDepsDir()
 	return BuildConfig.ROOT_DIRS.deps
-end
-
-function BuildConfig.getPrebuiltDir(target)
-	return BuildConfig.ROOT_DIRS.prebuilt .. "/" .. BuildConfig.normalizeTarget(target)
 end
 
 return BuildConfig

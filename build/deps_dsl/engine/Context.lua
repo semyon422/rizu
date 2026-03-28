@@ -5,8 +5,6 @@ local Context = {}
 local function ensureBaseDirs(ctx, target)
 	ctx.fs:createDirectory(BuildConfig.getDownloadsDir())
 	ctx.fs:createDirectory(BuildConfig.getDepsDir())
-	ctx.fs:createDirectory(BuildConfig.ROOT_DIRS.prebuilt)
-	ctx.fs:createDirectory(BuildConfig.getPrebuiltDir(target))
 	for _, dir in pairs(BuildConfig.TARGET_BIN_DIRS) do
 		ctx.fs:createDirectory(dir)
 	end
@@ -22,7 +20,6 @@ function Context.new(ctx, target, opts)
 		bin_dir = BuildConfig.getBinDir(normalized_target),
 		downloads_dir = BuildConfig.getDownloadsDir(),
 		deps_dir = BuildConfig.getDepsDir(),
-		prebuilt_dir = BuildConfig.getPrebuiltDir(normalized_target),
 		bin_dirs = BuildConfig.TARGET_BIN_DIRS,
 	}
 
@@ -43,7 +40,6 @@ function Context.interpolate(env, value)
 		bin_dir = env.bin_dir,
 		downloads_dir = env.downloads_dir,
 		deps_dir = env.deps_dir,
-		prebuilt_dir = env.prebuilt_dir,
 		bin_linux = env.bin_dirs.linux,
 		bin_windows = env.bin_dirs.windows,
 		bin_macos = env.bin_dirs.macos,

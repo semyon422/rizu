@@ -1,4 +1,5 @@
 local Common = require("build.deps_dsl.spec.common")
+local Templates = require("build.deps_dsl.spec.Templates")
 
 local Linux = {}
 
@@ -27,7 +28,7 @@ function Linux.build(deps)
 			actions = {
 				{type = "download", url = zlib.url, dest = archive},
 				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-				{type = "shell", command = "if [ ! -f " .. prefix .. "/lib/libz.so ]; then bash -lc 'cd " .. extract .. " && ./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install'; fi"},
+				{type = "shell", command = Templates.ifMissing(prefix .. "/lib/libz.so", Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install"))},
 				{type = "shell", command = "if [ -f " .. prefix .. "/lib/libz.so.1 ]; then cp -Lf " .. prefix .. "/lib/libz.so.1 ${bin_dir}/libz.so.1; else cp -Lf " .. prefix .. "/lib/libz.so ${bin_dir}/libz.so.1; fi"},
 				{type = "remove", path = "${bin_dir}/libz.so"},
 			},
@@ -48,7 +49,7 @@ function Linux.build(deps)
 			actions = {
 				{type = "download", url = iconv.url, dest = archive},
 				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-				{type = "shell", command = "if [ ! -f " .. prefix .. "/lib/libiconv.so ] || [ ! -f " .. prefix .. "/lib/libcharset.so ]; then bash -lc 'cd " .. extract .. " && ./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-fPIC\" && make -j$(nproc) && make install'; fi"},
+				{type = "shell", command = Templates.ifAnyMissing({prefix .. "/lib/libiconv.so", prefix .. "/lib/libcharset.so"}, Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\\\"-fPIC\\\" && make -j$(nproc) && make install"))},
 				{type = "shell", command = "cp -Lf " .. prefix .. "/lib/libiconv.so ${bin_dir}/libiconv.so"},
 				{type = "shell", command = "cp -Lf " .. prefix .. "/lib/libcharset.so ${bin_dir}/libcharset.so"},
 			},
@@ -70,7 +71,7 @@ function Linux.build(deps)
 			actions = {
 				{type = "download", url = openssl.url, dest = archive},
 				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-				{type = "shell", command = "if [ ! -f " .. prefix .. "/lib/libssl.so ] && [ ! -f " .. prefix .. "/lib64/libssl.so ]; then bash -lc 'cd " .. extract .. " && ./Configure linux-x86_64 --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl shared zlib --with-zlib-include=" .. prefix_abs .. "/include --with-zlib-lib=" .. prefix_abs .. "/lib && make -j$(nproc) && make install_sw'; fi"},
+				{type = "shell", command = "if [ ! -f " .. prefix .. "/lib/libssl.so ] && [ ! -f " .. prefix .. "/lib64/libssl.so ]; then " .. Templates.bashInDir(extract, "./Configure linux-x86_64 --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl shared zlib --with-zlib-include=" .. prefix_abs .. "/include --with-zlib-lib=" .. prefix_abs .. "/lib && make -j$(nproc) && make install_sw") .. "; fi"},
 				{type = "shell", command = "OPENSSL_LIB=\"" .. prefix .. "/lib\"; [ -f " .. prefix .. "/lib/libssl.so ] || OPENSSL_LIB=\"" .. prefix .. "/lib64\"; if [ -f $OPENSSL_LIB/libssl.so.3 ]; then cp -Lf $OPENSSL_LIB/libssl.so.3 ${bin_dir}/libssl.so.3; else cp -Lf $OPENSSL_LIB/libssl.so ${bin_dir}/libssl.so.3; fi"},
 				{type = "shell", command = "OPENSSL_LIB=\"" .. prefix .. "/lib\"; [ -f " .. prefix .. "/lib/libcrypto.so ] || OPENSSL_LIB=\"" .. prefix .. "/lib64\"; if [ -f $OPENSSL_LIB/libcrypto.so.3 ]; then cp -Lf $OPENSSL_LIB/libcrypto.so.3 ${bin_dir}/libcrypto.so.3; else cp -Lf $OPENSSL_LIB/libcrypto.so ${bin_dir}/libcrypto.so.3; fi"},
 				{type = "remove", path = "${bin_dir}/libssl.so"},
@@ -134,7 +135,7 @@ function Linux.build(deps)
 			actions = {
 				{type = "download", url = fftw.url, dest = archive},
 				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-				{type = "shell", command = "if [ ! -f " .. extract .. "/build-cmake/libfftw3.so ]; then cmake -S " .. extract .. " -B " .. extract .. "/build-cmake -DBUILD_SHARED_LIBS=ON && cmake --build " .. extract .. "/build-cmake -j$(nproc); fi"},
+				{type = "shell", command = Templates.ifMissing(extract .. "/build-cmake/libfftw3.so", "cmake -S " .. extract .. " -B " .. extract .. "/build-cmake -DBUILD_SHARED_LIBS=ON && cmake --build " .. extract .. "/build-cmake -j$(nproc)")},
 				{type = "shell", command = "cp -L " .. extract .. "/build-cmake/libfftw3.so ${bin_dir}/libfftw3.so"},
 			},
 		})

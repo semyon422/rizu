@@ -109,59 +109,6 @@ local function addGitDeps(spec, deps)
 	table.insert(spec.required_paths, "${deps_dir}/luamidi/rtmidi/RtMidi.h")
 end
 
-local function addPrebuilt(target, deps, spec)
-	local prebuilt = deps.prebuilt_bins and deps.prebuilt_bins[target] or {}
-	for _, item in ipairs(prebuilt) do
-		local dl = "${prebuilt_dir}/" .. item.name
-		local bin = "${bin_dir}/" .. item.name
-		local cmd
-		if item.local_path then
-			cmd = "if [ -f "
-				.. string.format("%q", item.local_path)
-				.. " ]; then cp -f "
-				.. string.format("%q", item.local_path)
-				.. " "
-				.. bin
-				.. "; [ -f "
-				.. dl
-				.. " ] || cp -f "
-				.. string.format("%q", item.local_path)
-				.. " "
-				.. dl
-				.. "; elif [ -f "
-				.. dl
-				.. " ]; then cp -f "
-				.. dl
-				.. " "
-				.. bin
-				.. "; elif [ -f "
-				.. bin
-				.. " ]; then true; else "
-				.. (item.url and ("curl -fL --retry 3 --retry-all-errors " .. string.format("%q", item.url) .. " -o " .. dl .. " && cp -f " .. dl .. " " .. bin) or ("echo 'Prebuilt dependency is missing and has no download URL: " .. item.name .. "' && false"))
-				.. "; fi"
-		elseif item.url then
-			cmd = "if [ -f " .. dl .. " ]; then cp -f " .. dl .. " " .. bin .. "; elif [ -f " .. bin .. " ]; then true; else curl -fL --retry 3 --retry-all-errors " .. string.format("%q", item.url) .. " -o " .. dl .. " && cp -f " .. dl .. " " .. bin .. "; fi"
-		else
-			cmd = "test -f " .. bin .. " || (echo 'Prebuilt dependency is missing and has no download URL: " .. item.name .. "' && false)"
-		end
-		table.insert(spec.steps, {
-			id = "prebuilt_" .. item.name,
-			kind = "prebuilt",
-			actions = {
-				{type = "shell", command = cmd},
-			},
-		})
-		table.insert(spec.required_paths, bin)
-		table.insert(spec.status_rows, {
-			name = "PREBUILT " .. item.name .. " (" .. target .. ")",
-			format = "prebuilt",
-			download = dl,
-			bin = bin,
-			local_path = item.local_path,
-		})
-	end
-end
-
 local function addSevenZip(spec, deps)
 	local s7 = deps.sevenzip
 	local dest = "${downloads_dir}/" .. s7.archive
@@ -236,7 +183,6 @@ function Common.buildShared(target, deps)
 	addFFmpeg(target, deps, spec)
 	addGenericDeps(target, deps, spec)
 	addGitDeps(spec, deps)
-	addPrebuilt(target, deps, spec)
 	addSevenZip(spec, deps)
 	addLoveArtifacts(spec, deps)
 	return spec

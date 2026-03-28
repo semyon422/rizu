@@ -48,7 +48,6 @@ local function markRequired(state, spec)
 				bin_dir = env.bin_dir,
 				downloads_dir = env.downloads_dir,
 				deps_dir = env.deps_dir,
-				prebuilt_dir = env.prebuilt_dir,
 				bin_linux = env.bin_dirs.linux,
 				bin_windows = env.bin_dirs.windows,
 				bin_macos = env.bin_dirs.macos,
