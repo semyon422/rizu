@@ -30,7 +30,7 @@ local function add_ffmpeg(spec, deps, prefix, prefix_abs, tc_bin)
 		actions = {
 			{type = "download", url = ffmpeg_src.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.ifMissing(prefix .. "/ffmpeg/lib/libavcodec.dylib", "mkdir -p " .. prefix .. "/ffmpeg; TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; " .. Templates.bashInDir(extract, "export PATH=" .. tc_bin .. ":$PATH; ./configure --prefix=" .. prefix_abs .. "/ffmpeg --enable-cross-compile --target-os=darwin --arch=x86_64 --cc='$TC' --ar='$AR' --ranlib='$RANLIB' --enable-shared --disable-static --disable-programs --disable-doc --disable-debug --disable-asm --disable-videotoolbox && make -j$(nproc) && make install STRIP=true"))},
+			{type = "shell", stderr_hint = "Shell command failed", command = "mkdir -p " .. prefix .. "/ffmpeg; TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; " .. Templates.bashInDir(extract, "export PATH=" .. tc_bin .. ":$PATH; ./configure --prefix=" .. prefix_abs .. "/ffmpeg --enable-cross-compile --target-os=darwin --arch=x86_64 --cc='$TC' --ar='$AR' --ranlib='$RANLIB' --enable-shared --disable-static --disable-programs --disable-doc --disable-debug --disable-asm --disable-videotoolbox && make -j$(nproc) && make install STRIP=true")},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavcodec.dylib"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavformat.dylib"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavutil.dylib"},
@@ -43,14 +43,6 @@ local function add_ffmpeg(spec, deps, prefix, prefix_abs, tc_bin)
 			{type = "copy_exact", src = prefix .. "/ffmpeg/lib/libswresample.dylib", dst = "${bin_dir}/libswresample.dylib", flags = "-Lf"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libavcodec.dylib")
-	table.insert(spec.required_paths, "${bin_dir}/libavformat.dylib")
-	table.insert(spec.required_paths, "${bin_dir}/libavutil.dylib")
-	table.insert(spec.required_paths, "${bin_dir}/libswscale.dylib")
-	table.insert(spec.required_paths, "${bin_dir}/libswresample.dylib")
-	table.insert(spec.status_rows, {name = "FFMPEG (macos-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "FFMPEG libs (macos)", format = "exists_all", paths = {"${bin_dir}/libavcodec.dylib", "${bin_dir}/libavformat.dylib", "${bin_dir}/libavutil.dylib", "${bin_dir}/libswscale.dylib", "${bin_dir}/libswresample.dylib"}})
 end
 
 local function add_zlib(spec, deps, prefix, prefix_abs, tc_bin)
@@ -66,14 +58,10 @@ local function add_zlib(spec, deps, prefix, prefix_abs, tc_bin)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "if [ ! -f " .. prefix .. "/lib/libz.dylib ]; then TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); bash -lc 'cd " .. extract .. " && '$TC' -dynamiclib -fPIC -O2 -DHAVE_UNISTD_H -install_name @rpath/libz.dylib adler32.c crc32.c deflate.c infback.c inffast.c inflate.c inftrees.c trees.c zutil.c compress.c uncompr.c gzclose.c gzlib.c gzread.c gzwrite.c -o " .. prefix_abs .. "/lib/libz.dylib'; cp -f " .. extract .. "/zlib.h " .. prefix .. "/include/zlib.h; cp -f " .. extract .. "/zconf.h " .. prefix .. "/include/zconf.h; fi"},
+			{type = "shell", stderr_hint = "Shell command failed", command = "TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); bash -lc 'cd " .. extract .. " && '$TC' -dynamiclib -fPIC -O2 -DHAVE_UNISTD_H -install_name @rpath/libz.dylib adler32.c crc32.c deflate.c infback.c inffast.c inflate.c inftrees.c trees.c zutil.c compress.c uncompr.c gzclose.c gzlib.c gzread.c gzwrite.c -o " .. prefix_abs .. "/lib/libz.dylib'; cp -f " .. extract .. "/zlib.h " .. prefix .. "/include/zlib.h; cp -f " .. extract .. "/zconf.h " .. prefix .. "/include/zconf.h"},
 			{type = "copy", src = prefix .. "/lib/libz.dylib", dst = "${bin_dir}/libz.dylib", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libz.dylib")
-	table.insert(spec.status_rows, {name = "ZLIB (macos-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "ZLIB lib (macos)", format = "exists", path = "${bin_dir}/libz.dylib"})
 end
 
 local function add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
@@ -89,17 +77,12 @@ local function add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "if [ ! -f ${deps_dir}/dd32.sh ]; then cat > ${deps_dir}/dd32.sh <<'DD'\n#!/bin/sh\ncat | head -c 32\nDD\nchmod +x ${deps_dir}/dd32.sh; fi"},
-			{type = "shell", stderr_hint = "Shell command failed", command = "if [ ! -f " .. prefix .. "/lib/libiconv.dylib ] || [ ! -f " .. prefix .. "/lib/libcharset.dylib ]; then TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; bash -lc 'export PATH=" .. tc_bin .. ":$PATH; cd " .. extract .. " && ac_cv_path_lt_DD=${root_abs}/${deps_dir}/dd32.sh DD=${root_abs}/${deps_dir}/dd32.sh CC='$TC' AR='$AR' RANLIB='$RANLIB' ./configure --host=$HOST --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-O2 -fPIC\" < /dev/null && make -j$(nproc) && make install'; fi"},
+			{type = "shell", stderr_hint = "Shell command failed", command = "cat > ${deps_dir}/dd32.sh <<'DD'\n#!/bin/sh\ncat | head -c 32\nDD\nchmod +x ${deps_dir}/dd32.sh"},
+			{type = "shell", stderr_hint = "Shell command failed", command = "TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; bash -lc 'export PATH=" .. tc_bin .. ":$PATH; cd " .. extract .. " && ac_cv_path_lt_DD=${root_abs}/${deps_dir}/dd32.sh DD=${root_abs}/${deps_dir}/dd32.sh CC='$TC' AR='$AR' RANLIB='$RANLIB' ./configure --host=$HOST --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-O2 -fPIC\" < /dev/null && make -j$(nproc) && make install'"},
 			{type = "copy", src = prefix .. "/lib/libiconv.dylib", dst = "${bin_dir}/libiconv.dylib", flags = "-f"},
 			{type = "copy", src = prefix .. "/lib/libcharset.dylib", dst = "${bin_dir}/libcharset.dylib", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libiconv.dylib")
-	table.insert(spec.required_paths, "${bin_dir}/libcharset.dylib")
-	table.insert(spec.status_rows, {name = "ICONV (macos-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "ICONV libs (macos)", format = "exists_all", paths = {"${bin_dir}/libiconv.dylib", "${bin_dir}/libcharset.dylib"}})
 end
 
 local function add_openssl(spec, deps, prefix, prefix_abs, tc_bin)
@@ -115,18 +98,13 @@ local function add_openssl(spec, deps, prefix, prefix_abs, tc_bin)
 		actions = {
 			{type = "download", url = openssl.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "OpenSSL macOS build failed", command = "if [ ! -f " .. prefix .. "/lib/libssl.dylib ]; then TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; bash -lc 'export PATH=" .. tc_bin .. ":$PATH; cd " .. extract .. " && CC='$TC' AR='$AR' RANLIB='$RANLIB' ./Configure darwin64-x86_64-cc shared --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl && make -j$(nproc) && make install_sw'; fi"},
+			{type = "shell", stderr_hint = "OpenSSL macOS build failed", command = "TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; bash -lc 'export PATH=" .. tc_bin .. ":$PATH; cd " .. extract .. " && CC='$TC' AR='$AR' RANLIB='$RANLIB' ./Configure darwin64-x86_64-cc shared --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl && make -j$(nproc) && make install_sw'"},
 			{type = "assert_file", path = prefix .. "/lib/libssl.dylib", message = "Expected OpenSSL at " .. prefix .. "/lib/libssl.dylib"},
 			{type = "assert_file", path = prefix .. "/lib/libcrypto.dylib", message = "Expected OpenSSL at " .. prefix .. "/lib/libcrypto.dylib"},
 			{type = "copy_exact", src = prefix .. "/lib/libssl.dylib", dst = "${bin_dir}/libssl.dylib", flags = "-f"},
 			{type = "copy_exact", src = prefix .. "/lib/libcrypto.dylib", dst = "${bin_dir}/libcrypto.dylib", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libssl.dylib")
-	table.insert(spec.required_paths, "${bin_dir}/libcrypto.dylib")
-	table.insert(spec.status_rows, {name = "OPENSSL (macos-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "OPENSSL libs (macos)", format = "exists_all", paths = {"${bin_dir}/libssl.dylib", "${bin_dir}/libcrypto.dylib"}})
 end
 
 local function add_luasec(spec, deps, prefix, prefix_abs, tc_bin)
@@ -148,10 +126,6 @@ local function add_luasec(spec, deps, prefix, prefix_abs, tc_bin)
 			{type = "copy", src = extract .. "/src/ssl.dylib", dst = "${bin_dir}/ssl.dylib", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/ssl.dylib")
-	table.insert(spec.status_rows, {name = "LUASEC (macos-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "LUASEC module (macos)", format = "exists", path = "${bin_dir}/ssl.dylib"})
 end
 
 function Macos.build(deps)

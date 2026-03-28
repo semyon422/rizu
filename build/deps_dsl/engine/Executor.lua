@@ -101,31 +101,9 @@ local function copy_exact(env, step, action)
 	return copy_action(env, step, action)
 end
 
-local function copy_glob(env, step, action)
-	local pattern = resolve(env, action.pattern)
-	local dst = resolve(env, action.dst)
-	local flags = action.flags or "-f"
-	return executeSafe(env, step.id, string.format("cp %s %s %s", flags, pattern, dst), action.stderr_hint)
-end
-
-local function copy_if_exists(env, step, action)
-	local src = resolve(env, action.src)
-	local dst = resolve(env, action.dst)
-	local flags = action.flags or "-f"
-	local cmd = string.format("if [ -e %s ]; then cp %s %s %s; fi", src, flags, src, dst)
-	return executeSafe(env, step.id, cmd, action.stderr_hint)
-end
-
 local function set_executable(env, step, action)
 	local path = resolve(env, action.path)
 	return executeSafe(env, step.id, string.format("chmod +x %q", path), action.stderr_hint)
-end
-
-local function ensure_symlink_or_copy(env, step, action)
-	local src = resolve(env, action.src)
-	local link = resolve(env, action.link)
-	local cmd = string.format("ln -sf %q %q || cp -Lf %q %q", src, link, src, link)
-	return executeSafe(env, step.id, cmd, action.stderr_hint)
 end
 
 local function toolchain_select(env, step, action)
@@ -225,10 +203,7 @@ local handlers = {
 	make = make_action,
 	copy = copy_action,
 	copy_exact = copy_exact,
-	copy_glob = copy_glob,
-	copy_if_exists = copy_if_exists,
 	set_executable = set_executable,
-	ensure_symlink_or_copy = ensure_symlink_or_copy,
 	toolchain_select = toolchain_select,
 	remove = remove_action,
 	git_clone = git_clone,
@@ -245,17 +220,17 @@ local handlers = {
 }
 
 local function shouldSkip(env, step)
-	local checks = step.skip_if_exists_all
-	if checks and #checks > 0 then
-		for _, p in ipairs(checks) do
+	if step.outputs and #step.outputs > 0 then
+		for _, p in ipairs(step.outputs) do
 			if not env.ctx.fs:getInfo(resolve(env, p)) then
 				return false
 			end
 		end
 		return true
 	end
-	if step.outputs and #step.outputs > 0 then
-		for _, p in ipairs(step.outputs) do
+	local checks = step.skip_if_exists_all
+	if checks and #checks > 0 then
+		for _, p in ipairs(checks) do
 			if not env.ctx.fs:getInfo(resolve(env, p)) then
 				return false
 			end

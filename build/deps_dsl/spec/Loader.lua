@@ -25,11 +25,8 @@ local action_requirements = {
 	make = {"dir"},
 	copy = {"src", "dst"},
 	copy_exact = {"src", "dst"},
-	copy_glob = {"pattern", "dst"},
-	copy_if_exists = {"src", "dst"},
 	remove = {"path"},
 	set_executable = {"path"},
-	ensure_symlink_or_copy = {"src", "link"},
 	toolchain_select = {"pattern", "out_file"},
 	git_clone = {"url", "dest"},
 	git_submodule = {"dir"},
@@ -61,8 +58,6 @@ local function inferOutputsFromActions(step)
 			table.insert(outputs, action.marker)
 		elseif action.type == "set_executable" and action.path then
 			table.insert(outputs, action.path)
-		elseif action.type == "ensure_symlink_or_copy" and action.link then
-			table.insert(outputs, action.link)
 		end
 	end
 	if #outputs == 0 and step.skip_if_exists_all then
@@ -80,7 +75,7 @@ local function normalizeSpec(spec)
 		step.requires = step.requires or {}
 		step.status_label = step.status_label or step.id
 	end
-	spec.outputs = spec.outputs or spec.required_paths or {}
+	spec.outputs = spec.outputs or {}
 	if #spec.outputs == 0 then
 		for _, step in ipairs(spec.steps) do
 			for _, out in ipairs(step.outputs or {}) do
@@ -115,6 +110,7 @@ local function validateAction(action, step)
 			"lib64",
 			"%|%|%s*cp%s",
 			"if%s*%[.-%];%s*then%s*cp%s.-%s*else%s*cp%s",
+			"if%s*%[",
 		}
 		for _, pattern in ipairs(fallback_patterns) do
 			if command:match(pattern) then

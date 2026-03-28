@@ -27,16 +27,12 @@ local function add_zlib(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.ifMissing(prefix .. "/lib/libz.so", Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install"))},
+			{type = "shell", stderr_hint = "Shell command failed", command = Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install")},
 			{type = "assert_file", path = prefix .. "/lib/libz.so.1", message = "Expected zlib at " .. prefix .. "/lib/libz.so.1"},
 			{type = "copy_exact", src = prefix .. "/lib/libz.so.1", dst = "${bin_dir}/libz.so.1", flags = "-Lf"},
 			{type = "remove", path = "${bin_dir}/libz.so"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libz.so.1")
-	table.insert(spec.status_rows, {name = "ZLIB (linux-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "ZLIB lib (linux)", format = "exists", path = "${bin_dir}/libz.so.1"})
 end
 
 local function add_iconv(spec, deps, prefix, prefix_abs)
@@ -52,18 +48,13 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.ifAnyMissing({prefix .. "/lib/libiconv.so", prefix .. "/lib/libcharset.so"}, Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\\\"-fPIC\\\" && make -j$(nproc) && make install"))},
+			{type = "shell", stderr_hint = "Shell command failed", command = Templates.bashInDir(extract, "./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\\\"-fPIC\\\" && make -j$(nproc) && make install")},
 			{type = "assert_file", path = prefix .. "/lib/libiconv.so"},
 			{type = "assert_file", path = prefix .. "/lib/libcharset.so"},
 			{type = "copy_exact", src = prefix .. "/lib/libiconv.so", dst = "${bin_dir}/libiconv.so", flags = "-Lf"},
 			{type = "copy_exact", src = prefix .. "/lib/libcharset.so", dst = "${bin_dir}/libcharset.so", flags = "-Lf"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libiconv.so")
-	table.insert(spec.required_paths, "${bin_dir}/libcharset.so")
-	table.insert(spec.status_rows, {name = "ICONV (linux-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "ICONV libs (linux)", format = "exists_all", paths = {"${bin_dir}/libiconv.so", "${bin_dir}/libcharset.so"}})
 end
 
 local function add_openssl(spec, deps, prefix, prefix_abs)
@@ -88,11 +79,6 @@ local function add_openssl(spec, deps, prefix, prefix_abs)
 			{type = "remove", path = "${bin_dir}/libcrypto.so"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libssl.so.3")
-	table.insert(spec.required_paths, "${bin_dir}/libcrypto.so.3")
-	table.insert(spec.status_rows, {name = "OPENSSL (linux-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "OPENSSL libs (linux)", format = "exists_all", paths = {"${bin_dir}/libssl.so.3", "${bin_dir}/libcrypto.so.3"}})
 end
 
 local function add_luasec(spec, deps, prefix, prefix_abs)
@@ -114,10 +100,6 @@ local function add_luasec(spec, deps, prefix, prefix_abs)
 			{type = "copy", src = extract .. "/src/ssl.so", dst = "${bin_dir}/ssl.so", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/ssl.so")
-	table.insert(spec.status_rows, {name = "LUASEC (linux-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "LUASEC module (linux)", format = "exists", path = "${bin_dir}/ssl.so"})
 end
 
 local function add_sqlite(spec, deps)
@@ -136,10 +118,6 @@ local function add_sqlite(spec, deps)
 			{type = "shell", stderr_hint = "Shell command failed", command = "gcc -shared -fPIC -O2 " .. extract .. "/sqlite3.c -o ${bin_dir}/libsqlite3.so -lm -ldl -lpthread"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libsqlite3.so")
-	table.insert(spec.status_rows, {name = "SQLITE (linux-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "SQLITE lib (linux)", format = "exists", path = "${bin_dir}/libsqlite3.so"})
 end
 
 local function add_fftw(spec, deps)
@@ -155,15 +133,11 @@ local function add_fftw(spec, deps)
 		actions = {
 			{type = "download", url = fftw.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.ifMissing(extract .. "/build-cmake/libfftw3.so", "cmake -S " .. extract .. " -B " .. extract .. "/build-cmake -DBUILD_SHARED_LIBS=ON && cmake --build " .. extract .. "/build-cmake -j$(nproc)")},
+			{type = "shell", stderr_hint = "Shell command failed", command = "cmake -S " .. extract .. " -B " .. extract .. "/build-cmake -DBUILD_SHARED_LIBS=ON && cmake --build " .. extract .. "/build-cmake -j$(nproc)"},
 			{type = "assert_file", path = extract .. "/build-cmake/libfftw3.so"},
 			{type = "copy_exact", src = extract .. "/build-cmake/libfftw3.so", dst = "${bin_dir}/libfftw3.so", flags = "-L"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libfftw3.so")
-	table.insert(spec.status_rows, {name = "FFTW (linux-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "FFTW lib (linux)", format = "exists", path = "${bin_dir}/libfftw3.so"})
 end
 
 function Linux.build(deps)

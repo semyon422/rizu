@@ -27,14 +27,10 @@ local function add_zlib(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = Templates.ifMissing(prefix .. "/bin/zlib1.dll", Templates.bashInDir(extract, "make -f win32/Makefile.gcc clean && make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 BINARY_PATH=" .. prefix_abs .. "/bin INCLUDE_PATH=" .. prefix_abs .. "/include LIBRARY_PATH=" .. prefix_abs .. "/lib -j$(nproc)") .. "; mkdir -p " .. prefix .. "/bin; cp -f " .. extract .. "/zlib1.dll " .. prefix .. "/bin/zlib1.dll")},
+			{type = "shell", stderr_hint = "Shell command failed", command = Templates.bashInDir(extract, "make -f win32/Makefile.gcc clean && make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 BINARY_PATH=" .. prefix_abs .. "/bin INCLUDE_PATH=" .. prefix_abs .. "/include LIBRARY_PATH=" .. prefix_abs .. "/lib -j$(nproc)") .. "; mkdir -p " .. prefix .. "/bin; cp -f " .. extract .. "/zlib1.dll " .. prefix .. "/bin/zlib1.dll"},
 			{type = "copy", src = prefix .. "/bin/zlib1.dll", dst = "${bin_dir}/z.dll", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/z.dll")
-	table.insert(spec.status_rows, {name = "ZLIB (windows-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "ZLIB lib (windows)", format = "exists", path = "${bin_dir}/z.dll"})
 end
 
 local function add_iconv(spec, deps, prefix, prefix_abs)
@@ -50,16 +46,12 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "if [ ! -f ${deps_dir}/dd32.sh ]; then cat > ${deps_dir}/dd32.sh <<'DD'\n#!/bin/sh\ncat | head -c 32\nDD\nchmod +x ${deps_dir}/dd32.sh; fi"},
-			{type = "shell", stderr_hint = "Shell command failed", command = "if [ ! -f " .. prefix .. "/bin/libiconv-2.dll ]; then bash -lc 'cd " .. extract .. " && ac_cv_path_lt_DD=${root_abs}/${deps_dir}/dd32.sh DD=${root_abs}/${deps_dir}/dd32.sh ./configure --host=x86_64-w64-mingw32 --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-O2\" < /dev/null && make -j$(nproc) && make install'; fi"},
+			{type = "shell", stderr_hint = "Shell command failed", command = "cat > ${deps_dir}/dd32.sh <<'DD'\n#!/bin/sh\ncat | head -c 32\nDD\nchmod +x ${deps_dir}/dd32.sh"},
+			{type = "shell", stderr_hint = "Shell command failed", command = "bash -lc 'cd " .. extract .. " && ac_cv_path_lt_DD=${root_abs}/${deps_dir}/dd32.sh DD=${root_abs}/${deps_dir}/dd32.sh ./configure --host=x86_64-w64-mingw32 --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-O2\" < /dev/null && make -j$(nproc) && make install'"},
 			{type = "assert_file", path = prefix .. "/bin/libiconv-2.dll"},
 			{type = "copy_exact", src = prefix .. "/bin/libiconv-2.dll", dst = "${bin_dir}/libiconv-2.dll", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libiconv-2.dll")
-	table.insert(spec.status_rows, {name = "ICONV (windows-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "ICONV lib (windows)", format = "exists", path = "${bin_dir}/libiconv-2.dll"})
 end
 
 local function add_openssl(spec, deps, prefix, prefix_abs)
@@ -75,18 +67,13 @@ local function add_openssl(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = openssl.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "if [ ! -f " .. prefix .. "/bin/libssl-3-x64.dll ] || [ ! -f " .. prefix .. "/bin/libcrypto-3-x64.dll ]; then bash -lc 'cd " .. extract .. " && ./Configure mingw64 shared --cross-compile-prefix=x86_64-w64-mingw32- --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl && make -j$(nproc) && make install_sw'; fi"},
+			{type = "shell", stderr_hint = "Shell command failed", command = "bash -lc 'cd " .. extract .. " && ./Configure mingw64 shared --cross-compile-prefix=x86_64-w64-mingw32- --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl && make -j$(nproc) && make install_sw'"},
 			{type = "assert_file", path = prefix .. "/bin/libssl-3-x64.dll"},
 			{type = "assert_file", path = prefix .. "/bin/libcrypto-3-x64.dll"},
 			{type = "copy_exact", src = prefix .. "/bin/libssl-3-x64.dll", dst = "${bin_dir}/libssl-3-x64.dll", flags = "-f"},
 			{type = "copy_exact", src = prefix .. "/bin/libcrypto-3-x64.dll", dst = "${bin_dir}/libcrypto-3-x64.dll", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/libssl-3-x64.dll")
-	table.insert(spec.required_paths, "${bin_dir}/libcrypto-3-x64.dll")
-	table.insert(spec.status_rows, {name = "OPENSSL (windows-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "OPENSSL libs (windows)", format = "exists_all", paths = {"${bin_dir}/libssl-3-x64.dll", "${bin_dir}/libcrypto-3-x64.dll"}})
 end
 
 local function add_luasec(spec, deps, prefix, prefix_abs)
@@ -109,10 +96,6 @@ local function add_luasec(spec, deps, prefix, prefix_abs)
 			{type = "copy", src = extract .. "/src/ssl.dll", dst = "${bin_dir}/ssl.dll", flags = "-f"},
 		},
 	})
-	table.insert(spec.required_paths, extract)
-	table.insert(spec.required_paths, "${bin_dir}/ssl.dll")
-	table.insert(spec.status_rows, {name = "LUASEC (windows-src)", format = "dl_ex", download = archive, extract = extract})
-	table.insert(spec.status_rows, {name = "LUASEC module (windows)", format = "exists", path = "${bin_dir}/ssl.dll"})
 end
 
 function Windows.build(deps)

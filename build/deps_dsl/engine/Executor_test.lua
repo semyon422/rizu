@@ -48,7 +48,7 @@ function test.run_step_returns_structured_result(t)
 	t:assert(state.exec[1]:find("tar %-xzf"))
 end
 
-function test.skip_if_exists_all_skips_step(t)
+function test.skip_if_exists_all_skips_step_without_outputs(t)
 	local ctx, state = makeCtx()
 	state.info["build/deps/exists"] = {type = "directory"}
 	local env = Context.new(ctx, "linux", {initialize_dirs = false})
@@ -64,6 +64,23 @@ function test.skip_if_exists_all_skips_step(t)
 	t:eq(#state.exec, 0)
 end
 
+function test.outputs_take_precedence_over_skip_if_exists_all(t)
+	local ctx, state = makeCtx()
+	state.info["build/deps/exists"] = {type = "directory"}
+	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "do-not-skip",
+		kind = "archive",
+		skip_if_exists_all = {"build/deps/exists"},
+		outputs = {"build/deps/missing-output"},
+		actions = {
+			{type = "shell", command = "echo should-run", stderr_hint = "should run"},
+		},
+	})
+	t:eq(result.command, "echo should-run")
+	t:eq(#state.exec, 1)
+end
+
 function test.typed_actions_run_with_structured_result(t)
 	local ctx, state = makeCtx()
 	state.info["a"] = {type = "file", size = 1}
@@ -76,16 +93,14 @@ function test.typed_actions_run_with_structured_result(t)
 			{type = "assert_file", path = "a"},
 			{type = "assert_dir", path = "dir"},
 			{type = "copy_exact", src = "a", dst = "b", stderr_hint = "copy_exact failed"},
-			{type = "copy_if_exists", src = "a", dst = "b", stderr_hint = "copy_if_exists failed"},
 			{type = "set_executable", path = "b", stderr_hint = "chmod failed"},
-			{type = "ensure_symlink_or_copy", src = "b", link = "c", stderr_hint = "link failed"},
 			{type = "toolchain_select", pattern = "/tmp/*", out_file = "/tmp/tc.txt", stderr_hint = "toolchain failed"},
 			{type = "noop"},
 		},
 	})
 	t:eq(result.ok, true)
 	t:eq(result.step_id, "typed")
-	t:assert(#state.exec >= 4)
+	t:assert(#state.exec >= 3)
 end
 
 function test.copy_exact_fails_when_source_missing(t)
