@@ -1,12 +1,11 @@
 local class = require("class")
 local deps = require("build.deps")
 
-local Env = require("build.tasks.fetchdeps.env")
-local Common = require("build.tasks.fetchdeps.common")
-local Linux = require("build.tasks.fetchdeps.linux")
-local Windows = require("build.tasks.fetchdeps.windows")
-local Macos = require("build.tasks.fetchdeps.macos")
-local Status = require("build.tasks.fetchdeps.status")
+local Context = require("build.deps_dsl.engine.Context")
+local Executor = require("build.deps_dsl.engine.Executor")
+local Guards = require("build.deps_dsl.engine.Guards")
+local StatusFormatter = require("build.deps_dsl.engine.StatusFormatter")
+local Loader = require("build.deps_dsl.spec.Loader")
 
 ---@class build.tasks.FetchDeps
 local FetchDeps = class()
@@ -18,26 +17,21 @@ function FetchDeps:new(target)
 end
 
 function FetchDeps:run(ctx)
-	local env = Env.new(ctx, self.target, deps)
-	Common.processFFmpeg(env)
-	Common.processGenericZipDeps(env)
-	Common.processGitDeps(env)
-	Common.processPrebuiltBins(env)
-	Linux.run(env)
-	Windows.run(env)
-	Macos.run(env)
-	Common.processSevenZip(env)
-	Common.processLoveArtifacts(env)
+	local env = Context.new(ctx, self.target, {initialize_dirs = true})
+	local spec = Loader.load(self.target, deps)
+	Executor.runSpec(env, spec)
 end
 
 function FetchDeps:upToDate(ctx)
-	local env = Env.new(ctx, self.target, deps, {initialize_dirs = false})
-	return Status.upToDate(env)
+	local env = Context.new(ctx, self.target, {initialize_dirs = false})
+	local spec = Loader.load(self.target, deps)
+	return Guards.isUpToDate(env, spec)
 end
 
 function FetchDeps:getStatus(ctx)
-	local env = Env.new(ctx, self.target, deps, {initialize_dirs = false})
-	return Status.getStatus(env)
+	local env = Context.new(ctx, self.target, {initialize_dirs = false})
+	local spec = Loader.load(self.target, deps)
+	return StatusFormatter.render(env, spec)
 end
 
 return FetchDeps

@@ -12,6 +12,12 @@ BuildConfig.TARGET_ARTIFACT_DIRS = {
 	macos = "build/artifacts/macos",
 }
 
+BuildConfig.ROOT_DIRS = {
+	downloads = "build/downloads",
+	deps = "build/deps",
+	prebuilt = "build/downloads/prebuilt",
+}
+
 BuildConfig.MODULE_OUTPUT_NAMES = {
 	linux = {
 		z7 = "lib7z.so",
@@ -107,6 +113,18 @@ function BuildConfig.getModuleRecords(target, outputs, bin_dir)
 		})
 	end
 	return records
+end
+
+function BuildConfig.getDownloadsDir()
+	return BuildConfig.ROOT_DIRS.downloads
+end
+
+function BuildConfig.getDepsDir()
+	return BuildConfig.ROOT_DIRS.deps
+end
+
+function BuildConfig.getPrebuiltDir(target)
+	return BuildConfig.ROOT_DIRS.prebuilt .. "/" .. BuildConfig.normalizeTarget(target)
 end
 
 return BuildConfig
