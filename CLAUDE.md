@@ -1,4 +1,4 @@
-# GEMINI.md
+# CLAUDE.md
 
 This file intentionally points to the shared agent instructions.
 
