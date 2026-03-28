@@ -232,6 +232,10 @@ local handlers = {
 }
 
 local function shouldSkip(env, step)
+	-- Module builds must re-evaluate freshness; output presence alone is not enough.
+	if step.kind == "modules" then
+		return false
+	end
 	if step.outputs and #step.outputs > 0 then
 		for _, p in ipairs(step.outputs) do
 			if not env.ctx.fs:getInfo(resolve(env, p)) then

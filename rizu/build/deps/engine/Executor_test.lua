@@ -81,6 +81,22 @@ function test.outputs_take_precedence_over_skip_if_exists_all(t)
 	t:eq(#state.exec, 1)
 end
 
+function test.modules_kind_is_not_skipped_by_existing_outputs(t)
+	local ctx, state = makeCtx()
+	state.info["build/artifacts/linux/lib7z.so"] = {type = "file", size = 1}
+	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "modules_build",
+		kind = "modules",
+		outputs = {"build/artifacts/linux/lib7z.so"},
+		actions = {
+			{type = "noop"},
+		},
+	})
+	t:eq(result.command, "<noop>")
+	t:eq(#state.exec, 0)
+end
+
 function test.typed_actions_run_with_structured_result(t)
 	local ctx, state = makeCtx()
 	state.info["a"] = {type = "file", size = 1}
