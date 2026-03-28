@@ -64,4 +64,23 @@ function test.skip_if_exists_all_skips_step(t)
 	t:eq(#state.exec, 0)
 end
 
+function test.typed_actions_run_with_structured_result(t)
+	local ctx, state = makeCtx()
+	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "typed",
+		kind = "archive",
+		actions = {
+			{type = "copy_if_exists", src = "a", dst = "b", stderr_hint = "copy_if_exists failed"},
+			{type = "set_executable", path = "b", stderr_hint = "chmod failed"},
+			{type = "ensure_symlink_or_copy", src = "b", link = "c", stderr_hint = "link failed"},
+			{type = "toolchain_select", pattern = "/tmp/*", out_file = "/tmp/tc.txt", stderr_hint = "toolchain failed"},
+			{type = "noop"},
+		},
+	})
+	t:eq(result.ok, true)
+	t:eq(result.step_id, "typed")
+	t:assert(#state.exec >= 4)
+end
+
 return test

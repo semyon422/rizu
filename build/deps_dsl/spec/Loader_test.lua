@@ -7,8 +7,9 @@ function test.load_specs_for_all_targets(t)
 	local linux = Loader.load("linux", deps)
 	t:assert(type(linux) == "table")
 	t:assert(#linux.steps > 0)
-	t:assert(#linux.required_paths > 0)
-	t:assert(#linux.status_rows > 0)
+	t:assert(#linux.outputs > 0)
+	t:assert(type(linux.steps[1].outputs) == "table")
+	t:assert(type(linux.steps[1].requires) == "table")
 
 	local windows = Loader.load("windows", deps)
 	t:assert(#windows.steps > 0)
@@ -28,11 +29,10 @@ end
 function test.strict_validation_catches_bad_specs(t)
 	local bad = {
 		steps = {
-			{id = "a", kind = "archive", actions = {{type = "download", dest = "x"}}},
+			{id = "a", kind = "archive", outputs = {}, requires = {}, actions = {{type = "download", dest = "x"}}},
 			{id = "a", kind = "archive", actions = {{type = "shell", command = "true"}}},
 		},
-		required_paths = {},
-		status_rows = {{name = "x", format = "unknown"}},
+		outputs = {},
 	}
 	local ok, err = pcall(function()
 		Loader.validate(bad)
@@ -41,8 +41,18 @@ function test.strict_validation_catches_bad_specs(t)
 	t:assert(
 		tostring(err):find("missing required field 'url'")
 		or tostring(err):find("Duplicate step id")
-		or tostring(err):find("Unknown status format")
 	)
+end
+
+function test.shell_action_gets_default_hint(t)
+	local spec = {
+		steps = {
+			{id = "s", kind = "archive", outputs = {}, requires = {}, actions = {{type = "shell", command = "echo hi"}}},
+		},
+		outputs = {},
+	}
+	Loader.validate(spec)
+	t:assert(spec.steps[1].actions[1].stderr_hint:find("Shell action failed"))
 end
 
 return test

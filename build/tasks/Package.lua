@@ -5,7 +5,7 @@ local Package = class()
 
 function Package:new()
 	self.name = "package"
-	self.deps = {"sync_linux", "sync_windows", "sync_macos"}
+	self.deps = {"pipeline_linux", "pipeline_windows", "pipeline_macos"}
 end
 
 function Package:run(ctx)

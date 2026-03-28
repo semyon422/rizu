@@ -1,4 +1,5 @@
 local Ctx = require("build.deps_dsl.engine.Context")
+local Builder = require("build.Builder")
 
 local Executor = {}
 
@@ -13,7 +14,11 @@ local function resolve(env, value)
 	return Ctx.interpolate(env, value)
 end
 
-local function executeSafe(env, step_id, cmd)
+local function resultOk(step_id, command)
+	return {ok = true, exit_code = 0, step_id = step_id, command = command or "<noop>", stderr_hint = nil}
+end
+
+local function executeSafe(env, step_id, cmd, stderr_hint)
 	local ok, err = pcall(function()
 		env.ctx.shell:execute(cmd)
 	end)
@@ -22,7 +27,7 @@ local function executeSafe(env, step_id, cmd)
 		exit_code = ok and 0 or 1,
 		step_id = step_id,
 		command = cmd,
-		stderr_hint = ok and nil or tostring(err),
+		stderr_hint = ok and nil or (stderr_hint or tostring(err)),
 	}
 	if not ok then
 		error(string.format("Step '%s' failed: %s", step_id, result.stderr_hint), 0)
@@ -35,9 +40,10 @@ local function download(env, step, action)
 	local info = env.ctx.fs:getInfo(dest)
 	local min_size = action.min_size or 1
 	if info and info.size and info.size >= min_size then
-		return
+		return resultOk(step.id, "<download skipped>")
 	end
 	env.ctx.downloader:download(resolve(env, action.url), dest)
+	return resultOk(step.id, string.format("download %s -> %s", tostring(resolve(env, action.url)), dest))
 end
 
 local function extract(env, step, action)
@@ -45,100 +51,158 @@ local function extract(env, step, action)
 	local dest = resolve(env, action.dest)
 	local format = action.format
 	if action.skip_if_exists and env.ctx.fs:getInfo(dest) then
-		return
+		return resultOk(step.id, "<extract skipped>")
 	end
 	env.ctx.fs:createDirectory(dest)
 	if format == "tar.gz" then
-		executeSafe(env, step.id, string.format("tar -xzf %q -C %q --strip-components=1", archive, dest))
+		return executeSafe(env, step.id, string.format("tar -xzf %q -C %q --strip-components=1", archive, dest), action.stderr_hint)
 	elseif format == "tar.xz" then
-		executeSafe(env, step.id, string.format("tar -xf %q -C %q --strip-components=1", archive, dest))
+		return executeSafe(env, step.id, string.format("tar -xf %q -C %q --strip-components=1", archive, dest), action.stderr_hint)
 	elseif format == "zip" then
-		executeSafe(env, step.id, string.format("unzip -o %q -d %q", archive, dest))
+		return executeSafe(env, step.id, string.format("unzip -o %q -d %q", archive, dest), action.stderr_hint)
 	elseif format == "zip_nested" then
 		local tmp = resolve(env, action.tmp or (dest .. "-tmp"))
 		env.ctx.fs:createDirectory(tmp)
-		executeSafe(env, step.id, string.format("unzip -o %q -d %q", archive, tmp))
-		executeSafe(env, step.id, string.format("cp -r %s/*/* %s/", tmp, dest))
+		executeSafe(env, step.id, string.format("unzip -o %q -d %q", archive, tmp), action.stderr_hint)
+		local r = executeSafe(env, step.id, string.format("cp -r %s/*/* %s/", tmp, dest), action.stderr_hint)
 		env.ctx.fs:remove(tmp)
+		return r
 	elseif format == "7z" then
-		executeSafe(env, step.id, string.format("7z x -y %q -o%q", archive, dest))
+		return executeSafe(env, step.id, string.format("7z x -y %q -o%q", archive, dest), action.stderr_hint)
 	else
 		error("Unsupported extract format: " .. tostring(format))
 	end
 end
 
-local function configure(env, step, action)
+local function run_in_dir(env, step, action)
 	local dir = resolve(env, action.dir)
 	local cmd = resolve(env, action.command)
-	executeSafe(env, step.id, string.format("bash -lc 'cd %q && %s'", dir, cmd))
+	return executeSafe(env, step.id, string.format("bash -lc 'cd %q && %s'", dir, cmd), action.stderr_hint)
 end
 
 local function make_action(env, step, action)
 	local dir = resolve(env, action.dir)
 	local args = resolve(env, action.args or "")
-	executeSafe(env, step.id, string.format("bash -lc 'cd %q && make %s'", dir, args))
+	return executeSafe(env, step.id, string.format("bash -lc 'cd %q && make %s'", dir, args), action.stderr_hint)
 end
 
 local function copy_action(env, step, action)
 	local src = resolve(env, action.src)
 	local dst = resolve(env, action.dst)
 	local flags = action.flags or "-f"
-	executeSafe(env, step.id, string.format("cp %s %s %s", flags, src, dst))
+	return executeSafe(env, step.id, string.format("cp %s %s %s", flags, src, dst), action.stderr_hint)
+end
+
+local function copy_glob(env, step, action)
+	local pattern = resolve(env, action.pattern)
+	local dst = resolve(env, action.dst)
+	local flags = action.flags or "-f"
+	return executeSafe(env, step.id, string.format("cp %s %s %s", flags, pattern, dst), action.stderr_hint)
+end
+
+local function copy_if_exists(env, step, action)
+	local src = resolve(env, action.src)
+	local dst = resolve(env, action.dst)
+	local flags = action.flags or "-f"
+	local cmd = string.format("if [ -e %s ]; then cp %s %s %s; fi", src, flags, src, dst)
+	return executeSafe(env, step.id, cmd, action.stderr_hint)
+end
+
+local function set_executable(env, step, action)
+	local path = resolve(env, action.path)
+	return executeSafe(env, step.id, string.format("chmod +x %q", path), action.stderr_hint)
+end
+
+local function ensure_symlink_or_copy(env, step, action)
+	local src = resolve(env, action.src)
+	local link = resolve(env, action.link)
+	local cmd = string.format("ln -sf %q %q || cp -Lf %q %q", src, link, src, link)
+	return executeSafe(env, step.id, cmd, action.stderr_hint)
+end
+
+local function toolchain_select(env, step, action)
+	local pattern = resolve(env, action.pattern)
+	local out_file = resolve(env, action.out_file)
+	local cmd = string.format("bash -lc 'ls %s 2>/dev/null | head -n1 > %q'", pattern, out_file)
+	return executeSafe(env, step.id, cmd, action.stderr_hint)
 end
 
 local function remove_action(env, step, action)
 	local path = resolve(env, action.path)
-	executeSafe(env, step.id, string.format("rm -f %q", path))
+	return executeSafe(env, step.id, string.format("rm -f %q", path), action.stderr_hint)
 end
 
 local function git_clone(env, step, action)
 	local dest = resolve(env, action.dest)
 	if env.ctx.fs:getInfo(dest) then
-		return
+		return resultOk(step.id, "<git clone skipped>")
 	end
-	executeSafe(env, step.id, string.format("git clone %s %s", resolve(env, action.url), dest))
+	return executeSafe(env, step.id, string.format("git clone %s %s", resolve(env, action.url), dest), action.stderr_hint)
 end
 
 local function git_submodule(env, step, action)
 	local dir = resolve(env, action.dir)
 	local marker = action.marker and resolve(env, action.marker)
 	if marker and env.ctx.fs:getInfo(marker) then
-		return
+		return resultOk(step.id, "<git submodule skipped>")
 	end
-	executeSafe(env, step.id, string.format("git -C %s submodule update --init --recursive", dir))
+	return executeSafe(env, step.id, string.format("git -C %s submodule update --init --recursive", dir), action.stderr_hint)
 end
 
 local function install_name_tool_change(env, step, action)
 	local tool = resolve(env, action.tool)
 	local target = resolve(env, action.target)
 	if action.mode == "id" then
-		executeSafe(env, step.id, string.format("%q -id %q %q", tool, resolve(env, action.to), target))
-	else
-		executeSafe(env, step.id, string.format("%q -change %q %q %q", tool, resolve(env, action.from), resolve(env, action.to), target))
+		return executeSafe(env, step.id, string.format("%q -id %q %q", tool, resolve(env, action.to), target), action.stderr_hint)
 	end
+	return executeSafe(env, step.id, string.format("%q -change %q %q %q", tool, resolve(env, action.from), resolve(env, action.to), target), action.stderr_hint)
 end
 
 local function shell_action(env, step, action)
-	executeSafe(env, step.id, resolve(env, action.command))
+	return executeSafe(env, step.id, resolve(env, action.command), action.stderr_hint)
 end
 
-local function ensure_dir(env, _, action)
+local function ensure_dir(env, step, action)
 	env.ctx.fs:createDirectory(resolve(env, action.path))
+	return resultOk(step.id, string.format("mkdir %s", resolve(env, action.path)))
 end
 
-local function assert_exists(env, _, action)
+local function assert_exists(env, step, action)
 	local path = resolve(env, action.path)
 	if not env.ctx.fs:getInfo(path) then
 		error(resolve(env, action.message) or ("Missing required path: " .. path))
 	end
+	return resultOk(step.id, string.format("assert_exists %s", path))
+end
+
+local function build_modules(env, step)
+	local builder = Builder(env.ctx, env.target)
+	builder:run()
+	return resultOk(step.id, "builder:run")
+end
+
+local function sync_binaries(env, step)
+	local builder = Builder(env.ctx, env.target)
+	builder:syncMissingToBin()
+	return resultOk(step.id, "builder:syncMissingToBin")
+end
+
+local function noop(env, step)
+	return resultOk(step.id, "<noop>")
 end
 
 local handlers = {
 	download = download,
 	extract = extract,
-	configure = configure,
+	run_in_dir = run_in_dir,
+	configure = run_in_dir,
 	make = make_action,
 	copy = copy_action,
+	copy_glob = copy_glob,
+	copy_if_exists = copy_if_exists,
+	set_executable = set_executable,
+	ensure_symlink_or_copy = ensure_symlink_or_copy,
+	toolchain_select = toolchain_select,
 	remove = remove_action,
 	git_clone = git_clone,
 	git_submodule = git_submodule,
@@ -146,19 +210,30 @@ local handlers = {
 	shell = shell_action,
 	ensure_dir = ensure_dir,
 	assert_exists = assert_exists,
+	build_modules = build_modules,
+	sync_binaries = sync_binaries,
+	noop = noop,
 }
 
 local function shouldSkip(env, step)
 	local checks = step.skip_if_exists_all
-	if not checks or #checks == 0 then
-		return false
-	end
-	for _, p in ipairs(checks) do
-		if not env.ctx.fs:getInfo(resolve(env, p)) then
-			return false
+	if checks and #checks > 0 then
+		for _, p in ipairs(checks) do
+			if not env.ctx.fs:getInfo(resolve(env, p)) then
+				return false
+			end
 		end
+		return true
 	end
-	return true
+	if step.outputs and #step.outputs > 0 then
+		for _, p in ipairs(step.outputs) do
+			if not env.ctx.fs:getInfo(resolve(env, p)) then
+				return false
+			end
+		end
+		return true
+	end
+	return false
 end
 
 function Executor.runStep(env, step)
@@ -181,7 +256,7 @@ end
 
 function Executor.runSpec(env, spec)
 	local results = {}
-	for _, step in ipairs(spec.steps) do
+	for _, step in ipairs(spec.steps or {}) do
 		table.insert(results, Executor.runStep(env, step))
 	end
 	return results

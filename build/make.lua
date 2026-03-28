@@ -1,5 +1,4 @@
 #!/usr/bin/env luajit
--- Rizu Unified Task Runner (Modular Architecture)
 
 require("pkg_config")
 
@@ -9,141 +8,153 @@ local LinuxFilesystem = require("fs.LinuxFilesystem")
 local Shell = require("build.Shell")
 local Downloader = require("build.Downloader")
 
--- Task Modules
 local SetupHost = require("build.tasks.SetupHost")
 local SetupLuaJIT = require("build.tasks.SetupLuaJIT")
-local FetchDeps = require("build.tasks.FetchDeps")
-local BuildModules = require("build.tasks.BuildModules")
-local SyncBinaries = require("build.tasks.SyncBinaries")
+local SetupCrossMacOS = require("build.tasks.SetupCrossMacOS")
+local Pipeline = require("build.tasks.Pipeline")
 local Package = require("build.tasks.Package")
 local BuildRepo = require("build.tasks.BuildRepo")
-local SetupCrossMacOS = require("build.tasks.SetupCrossMacOS")
 
 local args = {...}
 local command = args[1]
-local target = args[2] or "linux" -- default target
+local target = args[2] or "linux"
+local scope = args[2] or "all"
 
--- 1. Initialize Context
 local ctx = Context(
 	LinuxFilesystem(),
 	Shell(),
 	Downloader(),
 	target,
-	"." -- Root
+	"."
 )
 
--- 2. Initialize Runner
 local runner = TaskRunner(ctx)
 
--- 3. Register Tasks
 runner:register(SetupHost())
 runner:register(SetupLuaJIT("linux"))
 runner:register(SetupLuaJIT("windows"))
 runner:register(SetupCrossMacOS())
-runner:register(FetchDeps("linux"))
-runner:register(FetchDeps("windows"))
-runner:register(FetchDeps("macos"))
-runner:register(BuildModules("linux"))
-runner:register(BuildModules("windows"))
-runner:register(BuildModules("macos"))
-runner:register(SyncBinaries("linux"))
-runner:register(SyncBinaries("windows"))
-runner:register(SyncBinaries("macos"))
+runner:register(Pipeline("linux"))
+runner:register(Pipeline("windows"))
+runner:register(Pipeline("macos"))
 runner:register(Package())
 runner:register(BuildRepo())
 
--- Composite Tasks (Aliases)
-runner:register({ name = "all_targets", deps = {"sync_linux", "sync_windows", "sync_macos"}, run = function() end })
+local removed_commands = {
+	deps = true,
+	build = true,
+	sync = true,
+	all = true,
+}
 
--- 4. Execute
-local tasks_map = {
-	setup = "setup_host",
-	luajit = "setup_luajit_" .. target,
-	macos_toolchain = "setup_cross_macos",
-	deps = "deps_" .. target,
-	build = "sync_" .. target,
-	sync = "sync_" .. target,
-	package = "package",
-	repo = "repo",
-	all = "all_targets"
+local commands = {
+	setup = {
+		help = "Install host dependencies (apt)",
+		run = function()
+			runner:run("setup_host")
+		end,
+	},
+	luajit = {
+		help = "Build/install luajit locally: luajit <linux|windows>",
+		run = function()
+			runner:run("setup_luajit_" .. target)
+		end,
+	},
+	macos_toolchain = {
+		help = "Setup osxcross for macOS compilation",
+		run = function()
+			runner:run("setup_cross_macos")
+		end,
+	},
+	pipeline = {
+		help = "Run full pipeline for target: pipeline <linux|windows|macos>",
+		run = function()
+			runner:run("pipeline_" .. target)
+		end,
+	},
+	package = {
+		help = "Bundle game packages",
+		run = function()
+			runner:run("package")
+		end,
+	},
+	repo = {
+		help = "Build update repository",
+		run = function()
+			runner:run("repo")
+		end,
+	},
+	status = {
+		help = "Show pipeline state: status <target|all>",
+		run = function()
+			print("=== Rizu Build Status ===")
+			local targets = target == "all" and {"linux", "windows", "macos"} or {target}
+			for _, t in ipairs(targets) do
+				local task = runner.tasks["pipeline_" .. t]
+				if task and task.getStatus then
+					for _, res in ipairs(task:getStatus(ctx)) do
+						print(string.format("  %-30s [%s]", res.name, res.value))
+					end
+				end
+			end
+			print("=========================")
+			os.exit(0)
+		end,
+	},
+	clean = {
+		help = "Clean outputs: clean <all|deps|artifacts|bin|repo>",
+		run = function()
+			if scope == "all" or scope == "deps" then
+				ctx.fs:remove("build/deps")
+				ctx.fs:remove("build/downloads")
+			end
+			if scope == "all" or scope == "artifacts" then
+				ctx.fs:remove("build/artifacts")
+			end
+			if scope == "all" or scope == "bin" then
+				ctx.fs:remove("bin/linux64")
+				ctx.fs:remove("bin/win64")
+				ctx.fs:remove("bin/mac64")
+			end
+			if scope == "all" or scope == "repo" then
+				ctx.fs:remove("build/repo")
+			end
+			print("Cleaned: " .. scope)
+			os.exit(0)
+		end,
+	},
 }
 
 local function help()
-	print([[
-Rizu Build System (Modular)
-Usage: ./build/make.lua <command> [target]
-
-Commands:
-  setup             Install host dependencies (apt)
-  luajit [target]   Build/Install luajit locally (target: linux, windows)
-  macos_toolchain   Setup osxcross for macOS compilation
-  deps [target]     Fetch binary dependencies (ffmpeg, 7z)
-  build [target]    Compile modules to build/artifacts and sync missing files to bin
-  sync [target]     Copy missing compiled modules from build/artifacts to bin
-  package           Bundle game into zip/app
-  repo              Build update repository
-  all               Build all targets (linux + windows + macos)
-  status            Show current build state
-  clean             Remove build artifacts
-  help              Show this help
-]])
-end
-
-if command == "status" then
-	print("=== Rizu Build Status ===")
-	
-	local task_order = {
-		"setup_host",
-		"setup_luajit_linux",
-		"setup_luajit_windows",
-		"setup_cross_macos",
-		"deps_linux",
-		"deps_windows",
-		"deps_macos",
-		"build_linux",
-		"build_windows",
-		"build_macos",
-		"sync_linux",
-		"sync_windows",
-		"sync_macos",
-		"package",
-		"repo"
-	}
-
-	for _, name in ipairs(task_order) do
-		local task = runner.tasks[name]
-		if task and task.getStatus then
-			local results = task:getStatus(ctx)
-			for _, res in ipairs(results) do
-				print(string.format("  %-30s [%s]", res.name, res.value))
-			end
+	print("Rizu Build System (Pipeline)")
+	print("Usage: ./build/make.lua <command> [arg]")
+	print("")
+	print("Commands:")
+	local order = {"setup", "luajit", "macos_toolchain", "pipeline", "package", "repo", "status", "clean", "help"}
+	for _, name in ipairs(order) do
+		if name == "help" then
+			print("  help              Show this help")
+		else
+			print(string.format("  %-17s %s", name, commands[name].help))
 		end
 	end
-	
-	print("=========================")
-	os.exit(0)
 end
 
-if command == "clean" then
-	ctx.fs:remove("build/deps")
-	ctx.fs:remove("build/artifacts")
-	ctx.fs:remove("bin/linux64")
-	ctx.fs:remove("bin/win64")
-	ctx.fs:remove("bin/mac64")
-	ctx.fs:remove("build/repo")
-	print("Cleaned.")
-	os.exit(0)
-end
-
-if command == "help" then
+if command == "help" or command == nil then
 	help()
 	os.exit(0)
 end
 
-local task_name = tasks_map[command]
-if not task_name then
+if removed_commands[command] then
+	print("Command removed: " .. command .. ". Use 'pipeline <target>' instead.")
 	help()
 	os.exit(1)
 end
 
-runner:run(task_name)
+local entry = commands[command]
+if not entry then
+	help()
+	os.exit(1)
+end
+
+entry.run()
