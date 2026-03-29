@@ -7,7 +7,7 @@ function M.git_clone(env, action)
 	if env.ctx.fs:getInfo(dest) then
 		return Util.resultOk("<git clone skipped>")
 	end
-	return Util.executeSafe(env, string.format("git clone %s %s", Util.resolve(env, action.url), dest), action.stderr_hint)
+	return Util.executeSafe(env, string.format("git clone %s %s", Util.resolve(env, action.url), dest))
 end
 
 function M.git_submodule(env, action)
@@ -16,7 +16,7 @@ function M.git_submodule(env, action)
 	if marker and env.ctx.fs:getInfo(marker) then
 		return Util.resultOk("<git submodule skipped>")
 	end
-	return Util.executeSafe(env, string.format("git -C %s submodule update --init --recursive", dir), action.stderr_hint)
+	return Util.executeSafe(env, string.format("git -C %s submodule update --init --recursive", dir))
 end
 
 return M

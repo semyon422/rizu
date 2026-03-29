@@ -24,9 +24,8 @@ end
 
 ---@param env rizu.build.deps.Env
 ---@param cmd string
----@param stderr_hint? string
 ---@return {ok: boolean, exit_code: integer, command: string, stderr_hint: string|nil}
-function Util.executeSafe(env, cmd, stderr_hint)
+function Util.executeSafe(env, cmd)
 	local ok, err = pcall(function()
 		env.ctx.shell:execute(cmd)
 	end)
@@ -34,7 +33,7 @@ function Util.executeSafe(env, cmd, stderr_hint)
 		ok = ok,
 		exit_code = ok and 0 or 1,
 		command = cmd,
-		stderr_hint = ok and nil or (stderr_hint or tostring(err)),
+		stderr_hint = ok and nil or tostring(err),
 	}
 	if not ok then
 		error(result.stderr_hint, 0)

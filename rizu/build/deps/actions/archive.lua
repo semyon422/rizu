@@ -22,20 +22,20 @@ function M.extract(env, action)
 	end
 	env.ctx.fs:createDirectory(dest)
 	if format == "tar.gz" then
-		return Util.executeSafe(env, string.format("tar -xzf %q -C %q --strip-components=1", archive, dest), action.stderr_hint)
+		return Util.executeSafe(env, string.format("tar -xzf %q -C %q --strip-components=1", archive, dest))
 	elseif format == "tar.xz" then
-		return Util.executeSafe(env, string.format("tar -xf %q -C %q --strip-components=1", archive, dest), action.stderr_hint)
+		return Util.executeSafe(env, string.format("tar -xf %q -C %q --strip-components=1", archive, dest))
 	elseif format == "zip" then
-		return Util.executeSafe(env, string.format("unzip -o %q -d %q", archive, dest), action.stderr_hint)
+		return Util.executeSafe(env, string.format("unzip -o %q -d %q", archive, dest))
 	elseif format == "zip_nested" then
 		local tmp = Util.resolve(env, action.tmp or (dest .. "-tmp"))
 		env.ctx.fs:createDirectory(tmp)
-		Util.executeSafe(env, string.format("unzip -o %q -d %q", archive, tmp), action.stderr_hint)
-		local result = Util.executeSafe(env, string.format("cp -r %s/*/* %s/", tmp, dest), action.stderr_hint)
+		Util.executeSafe(env, string.format("unzip -o %q -d %q", archive, tmp))
+		local result = Util.executeSafe(env, string.format("cp -r %s/*/* %s/", tmp, dest))
 		env.ctx.fs:remove(tmp)
 		return result
 	elseif format == "7z" then
-		return Util.executeSafe(env, string.format("7z x -y %q -o%q", archive, dest), action.stderr_hint)
+		return Util.executeSafe(env, string.format("7z x -y %q -o%q", archive, dest))
 	end
 	error("Unsupported extract format: " .. tostring(format))
 end

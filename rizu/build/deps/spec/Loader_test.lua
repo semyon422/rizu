@@ -30,7 +30,7 @@ function test.strict_validation_catches_bad_specs(t)
 	local bad = {
 		steps = {
 			{id = "a", kind = "archive", outputs = {}, requires = {}, actions = {{type = "download", dest = "x"}}},
-			{id = "a", kind = "archive", actions = {{type = "shell", command = "true", stderr_hint = "x"}}},
+			{id = "a", kind = "archive", actions = {{type = "shell", command = "true"}}},
 		},
 		outputs = {},
 	}
@@ -44,18 +44,17 @@ function test.strict_validation_catches_bad_specs(t)
 	)
 end
 
-function test.shell_action_requires_stderr_hint(t)
+function test.shell_action_without_stderr_hint_is_valid(t)
 	local spec = {
 		steps = {
 			{id = "s", kind = "archive", outputs = {}, requires = {}, actions = {{type = "shell", command = "echo hi"}}},
 		},
 		outputs = {},
 	}
-	local ok, err = pcall(function()
+	local ok = pcall(function()
 		Loader.validate(spec)
 	end)
-	t:eq(ok, false)
-	t:assert(tostring(err):find("missing required field 'stderr_hint'"))
+	t:eq(ok, true)
 end
 
 function test.shell_action_rejects_fallback_patterns(t)
@@ -69,7 +68,6 @@ function test.shell_action_rejects_fallback_patterns(t)
 				actions = {{
 					type = "shell",
 					command = "OPENSSL_LIB=/x/lib; [ -f /x/lib/libssl.so ] || OPENSSL_LIB=/x/lib64; cp $OPENSSL_LIB/libssl.so y",
-					stderr_hint = "should fail",
 				}},
 			},
 		},

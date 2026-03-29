@@ -24,6 +24,22 @@ local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.build")
 )
 
+local function summarizeAction(action)
+	local fields = {"type", "dir", "src_dir", "build_dir", "path", "src", "dst", "url", "archive", "command"}
+	local parts = {}
+	for _, key in ipairs(fields) do
+		local val = action[key]
+		if val ~= nil then
+			if type(val) == "string" then
+				table.insert(parts, key .. "=" .. val)
+			else
+				table.insert(parts, key .. "=" .. tostring(val))
+			end
+		end
+	end
+	return table.concat(parts, ", ")
+end
+
 local function hasAllRequired(env, step)
 	for _, req in ipairs(step.requires or {}) do
 		if not env.ctx.fs:getInfo(Util.resolve(env, req)) then
@@ -75,7 +91,7 @@ function Executor.runStep(env, step)
 			return handler(env, action)
 		end, debug.traceback)
 		if not ok then
-			error(string.format("Step '%s' failed: %s", step.id, tostring(result)), 0)
+			error(string.format("Step '%s' action failed (%s): %s", step.id, summarizeAction(action), tostring(result)), 0)
 		end
 		if result then
 			result.step_id = step.id

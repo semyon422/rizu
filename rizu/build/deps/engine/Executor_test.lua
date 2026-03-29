@@ -73,7 +73,7 @@ function test.outputs_take_precedence_over_skip_if_exists_all(t)
 		skip_if_exists_all = {"build/deps/exists"},
 		outputs = {"build/deps/missing-output"},
 		actions = {
-			{type = "shell", command = "echo should-run", stderr_hint = "should run"},
+			{type = "shell", command = "echo should-run"},
 		},
 	})
 	t:eq(result.command, "echo should-run")
@@ -108,9 +108,9 @@ function test.typed_actions_run_with_structured_result(t)
 		actions = {
 			{type = "assert_file", path = "a"},
 			{type = "assert_dir", path = "dir"},
-			{type = "copy_exact", src = "a", dst = "b", stderr_hint = "copy_exact failed"},
-			{type = "set_executable", path = "b", stderr_hint = "chmod failed"},
-			{type = "toolchain_select", pattern = "/tmp/*", out_file = "/tmp/tc.txt", stderr_hint = "toolchain failed"},
+			{type = "copy_exact", src = "a", dst = "b"},
+			{type = "set_executable", path = "b"},
+			{type = "toolchain_select", pattern = "/tmp/*", out_file = "/tmp/tc.txt"},
 			{type = "noop"},
 		},
 	})
@@ -126,7 +126,7 @@ function test.shell_action_supports_dir(t)
 		id = "shell_with_dir",
 		kind = "archive",
 		actions = {
-			{type = "shell", dir = "/tmp/work", command = "echo hi", stderr_hint = "shell failed"},
+			{type = "shell", dir = "/tmp/work", command = "echo hi"},
 		},
 	})
 	t:eq(result.ok, true)
@@ -142,7 +142,7 @@ function test.copy_exact_fails_when_source_missing(t)
 			id = "copy_fail",
 			kind = "archive",
 			actions = {
-				{type = "copy_exact", src = "missing.file", dst = "dst.file", stderr_hint = "copy failed"},
+				{type = "copy_exact", src = "missing.file", dst = "dst.file"},
 			},
 		})
 	end)
@@ -161,7 +161,7 @@ function test.run_spec_skips_step_when_requires_missing(t)
 				id = "first",
 				kind = "archive",
 				actions = {
-					{type = "shell", command = "echo first", stderr_hint = "first failed"},
+					{type = "shell", command = "echo first"},
 				},
 			},
 			{
@@ -169,7 +169,7 @@ function test.run_spec_skips_step_when_requires_missing(t)
 				kind = "archive",
 				requires = {"build/deps/required-file"},
 				actions = {
-					{type = "shell", command = "echo second", stderr_hint = "second failed"},
+					{type = "shell", command = "echo second"},
 				},
 			},
 		},

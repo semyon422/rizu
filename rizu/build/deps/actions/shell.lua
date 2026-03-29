@@ -33,7 +33,7 @@ function M.run_in_dir(env, action)
 	local cmd = Util.resolve(env, action.command)
 	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
 	cmd = env_prefix .. cmd
-	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd), action.stderr_hint)
+	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd))
 end
 
 function M.make(env, action)
@@ -41,7 +41,7 @@ function M.make(env, action)
 	local args = toArgString(Util.resolve(env, action.args))
 	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
 	local cmd = string.format("%smake%s%s", env_prefix, args ~= "" and " " or "", args)
-	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd), action.stderr_hint)
+	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd))
 end
 
 function M.configure(env, action)
@@ -50,7 +50,7 @@ function M.configure(env, action)
 	local args = toArgString(Util.resolve(env, action.args))
 	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
 	local cmd = string.format("%s%s%s%s", env_prefix, script, args ~= "" and " " or "", args)
-	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd), action.stderr_hint)
+	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd))
 end
 
 function M.cmake_configure(env, action)
@@ -59,7 +59,7 @@ function M.cmake_configure(env, action)
 	local args = toArgString(Util.resolve(env, action.args))
 	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
 	local cmd = string.format("%scmake -S %q -B %q%s%s", env_prefix, src_dir, build_dir, args ~= "" and " " or "", args)
-	return Util.executeSafe(env, cmd, action.stderr_hint)
+	return Util.executeSafe(env, cmd)
 end
 
 function M.cmake_build(env, action)
@@ -67,7 +67,7 @@ function M.cmake_build(env, action)
 	local args = toArgString(Util.resolve(env, action.args))
 	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
 	local cmd = string.format("%scmake --build %q%s%s", env_prefix, build_dir, args ~= "" and " " or "", args)
-	return Util.executeSafe(env, cmd, action.stderr_hint)
+	return Util.executeSafe(env, cmd)
 end
 
 function M.shell(env, action)
@@ -78,7 +78,7 @@ function M.shell(env, action)
 	if dir then
 		cmd = string.format("bash -lc 'cd %q && %s'", dir, cmd)
 	end
-	return Util.executeSafe(env, cmd, action.stderr_hint)
+	return Util.executeSafe(env, cmd)
 end
 
 return M

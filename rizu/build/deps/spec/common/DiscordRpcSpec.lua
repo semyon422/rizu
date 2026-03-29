@@ -31,7 +31,7 @@ function DiscordRpcSpec.add(target, deps, spec)
 		actions = {
 			{type = "download", url = cfg.url, dest = archive},
 			{type = "extract", format = "zip", archive = archive, dest = extract},
-			{type = "assert_file", path = source, message = "Expected discord-rpc artifact at " .. source},
+			{type = "assert_file", path = source .. source},
 			{type = "copy_exact", src = source, dst = output, flags = "-f"},
 		},
 	})

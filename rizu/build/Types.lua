@@ -23,7 +23,6 @@
 ---@field build_dir? string
 ---@field script? string
 ---@field env? {[string]: string}
----@field stderr_hint? string
 ---@field url? string
 ---@field dest? string
 ---@field format? string

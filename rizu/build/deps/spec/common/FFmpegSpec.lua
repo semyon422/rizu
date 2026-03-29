@@ -37,7 +37,7 @@ function FFmpegSpec.add(target, deps, spec)
 	for _, item in ipairs(artifacts) do
 		local src = extract .. "/" .. item.src
 		local dst = "${bin_dir}/" .. item.dst
-		table.insert(actions, {type = "assert_file", path = src, message = "Expected FFmpeg artifact at " .. src})
+		table.insert(actions, {type = "assert_file", path = src .. src})
 		table.insert(actions, {type = "copy_exact", src = src, dst = dst, flags = "-Lf"})
 		table.insert(outputs, dst)
 	end
