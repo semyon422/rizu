@@ -18,6 +18,7 @@ function TimeEngine:new()
 
 	self.timer = TimeManager()
 	self.timer.timeEngine = self
+	self.timer:setGlobalTime(0)
 
 	self.visualTimeInfo = VisualTimeInfo()
 end
@@ -31,7 +32,6 @@ TimeEngine.windUp = nil
 function TimeEngine:load()
 	self.timer:pause()
 	self.timer:setRate(self.timeRate)
-	self.timer.adjustRate = self.adjustRate
 
 	self.nearestTime:loadTimePoints(self.noteChart)
 
@@ -55,7 +55,7 @@ end
 function TimeEngine:sync(time)
 	local timer = self.timer
 
-	timer.eventTime = time
+	timer:setGlobalTime(time)
 
 	self.currentTime = timer:getTime()
 	self.visualTimeInfo.time = self.constant and self.currentTime or self.nearestTime:getVisualTime(self.currentTime)
@@ -84,7 +84,7 @@ end
 
 function TimeEngine:skipIntro()
 	local skipTime = self.minTime - self.timeToPrepare * self.timeRate
-	if self.currentTime < skipTime and self.timer.isPlaying then
+	if self.currentTime < skipTime and self.timer.is_playing then
 		self:setPosition(skipTime)
 	end
 end

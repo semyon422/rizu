@@ -4,6 +4,7 @@ local View = require("yi.views.View")
 local Inputs = require("ui.input.Inputs")
 local Resources = require("yi.Resources")
 local Engine = require("yi.Engine")
+local LoveTimer = require("time.LoveTimer")
 local Background = require("yi.views.Background")
 local Screens = require("yi.views.Screens")
 local Modals = require("yi.views.Modals")
@@ -23,7 +24,7 @@ function UserInterface:new(game)
 	self.resources = Resources()
 	self.inputs = Inputs()
 	self.ctx = Context(self.game, self.inputs, self.resources)
-	self.engine = Engine(self.inputs, self.ctx)
+	self.engine = Engine(self.inputs, self.ctx, LoveTimer())
 	self.engine.target_height = 1080
 	self.engine.check_dimensions_during_update = true
 end

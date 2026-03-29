@@ -109,8 +109,13 @@ end
 function Library:createAndLoadWorker(workingDirectory)
 	require("preload")
 	local Worker = require("rizu.library.Worker")
-	local LoveFilesystem = require("fs.LoveFilesystem")
-	local worker = Worker(self, LoveFilesystem(), workingDirectory)
+	local Filesystem
+	if love and love.filesystem then
+		Filesystem = require("fs.LoveFilesystem")
+	else
+		Filesystem = require("fs.LinuxFilesystem")
+	end
+	local worker = Worker(self, Filesystem(), workingDirectory)
 	worker:load()
 	return worker
 end

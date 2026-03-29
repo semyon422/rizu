@@ -1,10 +1,14 @@
 local ChartSelector = require("rizu.select.ChartSelector")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local TestLibraryFactory = require("rizu.select.TestLibraryFactory")
+local FunctionTimer = require("time.FunctionTimer")
 
 local test = {}
 
 local tlf = TestLibraryFactory()
+local timer = FunctionTimer(function()
+	return 0
+end)
 
 local function createMockConfigModel()
 	return {
@@ -55,7 +59,7 @@ function test.scrolling(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end})
+	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
 	model:load()
 
 	t:eq(model.state.levels[1].index, 1)
@@ -91,7 +95,7 @@ function test.chart_navigation(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end})
+	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
 	model:load()
 
 	t:eq(model.state.levels[2].index, 1)
@@ -126,7 +130,7 @@ function test.chartview_event(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end})
+	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
 	
 	local chartviewEvents = 0
 	model.onChanged:add({
@@ -168,7 +172,7 @@ function test.score_navigation(t)
 	local onlineModel = {authManager = {sea_client = {connected = false}}}
 	local replayBase = {}
 
-	local chartModel = ChartSelector(configModel, library, fs, {getSelectedItem = function() end})
+	local chartModel = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
 	local scoreSelector = ScoreSelector(configModel, library, onlineModel, replayBase, chartModel.state)
 	
 	-- Wire them up like SelectionCoordinator would

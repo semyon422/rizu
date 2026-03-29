@@ -1,12 +1,12 @@
 local Database = require("rizu.library.Database")
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 local ChartviewsRepo = require("rizu.library.repos.ChartviewsRepo")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 
 local test = {}
 
 local function setup()
-	local db = Database(LoveFilesystem())
+	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 
 	local factory = TestChartFactory()

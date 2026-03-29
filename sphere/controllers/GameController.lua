@@ -47,6 +47,7 @@ local ComputeContext = require("sea.compute.ComputeContext")
 local ReplayBase = require("sea.replays.ReplayBase")
 
 local LoveFilesystem = require("fs.LoveFilesystem")
+local LoveTimer = require("time.LoveTimer")
 
 local GameplayInteractor = require("rizu.gameplay.GameplayInteractor")
 local GameInteractor = require("rizu.game.GameInteractor")
@@ -118,7 +119,8 @@ function GameController:new()
 		self.persistence.configModel,
 		self.persistence.library,
 		self.fs,
-		self.collectionSelector
+		self.collectionSelector,
+		LoveTimer()
 	)
 	self.scoreSelector = ScoreSelector(
 		self.persistence.configModel,

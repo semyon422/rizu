@@ -31,7 +31,7 @@ end
 ---@operator call: sphere.EditorAudioManager
 local AudioManager = class()
 
----@param timer util.Timer
+---@param timer rizu.LocalTimer
 ---@param resourceModel sphere.ResourceModel
 function AudioManager:new(timer, resourceModel)
 	self.timer = timer
@@ -78,7 +78,7 @@ function AudioManager:update(force)
 	end
 	self.time = time
 
-	local isPlaying = self.timer.isPlaying
+	local isPlaying = self.timer.is_playing
 	local forcePosition = not isPlaying or force
 
 	local sources = self:getCurrentSources()

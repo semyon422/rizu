@@ -1,10 +1,14 @@
 local Processor = require("rizu.library.Processor")
 local Database = require("rizu.library.Database")
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local path_util = require("path_util")
+local FunctionTimer = require("time.FunctionTimer")
 
 local test = {}
+local timer = FunctionTimer(function()
+	return 0
+end)
 
 function test.computeLocation_sph(t)
 	local fs = FakeFilesystem()
@@ -24,10 +28,10 @@ input 4key
 ]]
 	fs:write("/userdata/charts/test_pack/chart.sph", sph_content)
 
-	local db = Database(LoveFilesystem())
+	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 
-	local processor = Processor(db, fs, "/fake/root")
+	local processor = Processor(db, fs, "/fake/root", timer)
 
 	-- Use location 1 which is created by Locations:load() internally
 	processor.locations:load()
@@ -57,10 +61,10 @@ end
 ---@param t testing.T
 function test.getChartsByHash(t)
 	local fs = FakeFilesystem()
-	local db = Database(LoveFilesystem())
+	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 
-	local processor = Processor(db, fs, "/fake/root")
+	local processor = Processor(db, fs, "/fake/root", timer)
 	processor.locations:load()
 
 	local loc = processor.locationsRepo:selectLocationById(1)

@@ -2,13 +2,17 @@ local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
 local FakeTaskContext = require("rizu.library.tasks.FakeTaskContext")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local Database = require("rizu.library.Database")
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 local TestChartFactory = require("sea.chart.TestChartFactory")
+local FunctionTimer = require("time.FunctionTimer")
 
 local test = {}
+local timer = FunctionTimer(function()
+	return 0
+end)
 
 local function setup_db()
-	local db = Database(LoveFilesystem())
+	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 	return db
 end
@@ -51,7 +55,7 @@ function test.computeMissing(t)
 	local context = FakeTaskContext()
 	context.charts[hash] = {res.chart}
 
-	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, function(hash)
+	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
 		return context:getChartsByHash(hash)
 	end)
 
@@ -105,7 +109,7 @@ function test.cancellation(t)
 		return {{index = 1, layers = {main = {toAbsolute = function() end}}, inputMode = "4key"}}
 	end
 
-	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, function(hash)
+	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
 		return context:getChartsByHash(hash)
 	end)
 	task:computeMissing()

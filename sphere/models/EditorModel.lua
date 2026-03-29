@@ -39,6 +39,7 @@ function EditorModel:new(configModel, resourceModel)
 	self.graphsGenerator = GraphsGenerator()
 	self.editorChanges = EditorChanges()
 	self.timer = TimeManager()
+	self.timer:setGlobalTime(0)
 	self.audioManager = AudioManager(self.timer, resourceModel)
 	self.noteManager = NoteManager()
 	self.graphicEngine = GraphicEngine()
@@ -58,7 +59,6 @@ function EditorModel:load()
 	self.loaded = true
 
 	local editor = self:getSettings()
-	local audioSettings = self:getAudioSettings()
 
 	self.layer, self.notes = self.noteChartLoader:load()
 	self.visual = self.layer.visuals.main or self.layer.visuals[""]
@@ -76,8 +76,8 @@ function EditorModel:load()
 	self:getDtpAbsolute(0):clone(self.point)
 
 	self.timer:pause()
+	self.timer:setGlobalTime(editor.time)
 	self.timer:setTime(editor.time)
-	self.timer.adjustRate = audioSettings.adjustRate
 
 	local volume = self.configModel.configs.settings.audio.volume
 	self.audioManager.volume = volume
@@ -323,7 +323,7 @@ end
 function EditorModel:receive(event)
 	if event.name == "framestarted" then
 		local timer = self.timer
-		timer.eventTime = event.time
+		timer:setGlobalTime(event.time)
 	end
 end
 

@@ -1,26 +1,7 @@
-local Timer = require("Timer")
+local LocalTimer = require("rizu.engine.time.LocalTimer")
 
----@class sphere.EditorTimeManager: util.Timer
+---@class sphere.EditorTimeManager: rizu.LocalTimer
 ---@operator call: sphere.EditorTimeManager
-local TimeManager = Timer + {}
-
----@return number
-function TimeManager:getAbsoluteTime()
-	return self.eventTime or 0
-end
-
----@return number?
-function TimeManager:getAdjustTime()
-	return self.editorModel.mainAudio:getPosition()
-end
-
----@return number?
-function TimeManager:getAudioOffsync()
-	local audioTime = self:getAdjustTime()
-	local time = self:getTime()
-	if audioTime then
-		return audioTime - time
-	end
-end
+local TimeManager = LocalTimer + {}
 
 return TimeManager

@@ -8,11 +8,12 @@ local ScoreTask = class()
 ---@param chartsRepo sea.ChartsRepo
 ---@param chartsComputer sea.ChartsComputer
 ---@param taskContext rizu.library.ITaskContext
-function ScoreTask:new(chartsRepo, chartsComputer, taskContext)
+---@param timer time.ITimer
+function ScoreTask:new(chartsRepo, chartsComputer, taskContext, timer)
 	self.chartsRepo = chartsRepo
 	self.chartsComputer = chartsComputer
 	self.taskContext = taskContext
-	self.batchProcessor = BatchProcessor(taskContext, 100)
+	self.batchProcessor = BatchProcessor(taskContext, timer, 100)
 end
 
 function ScoreTask:computeAll()

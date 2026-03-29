@@ -1,7 +1,7 @@
 local class = require("class")
 local table_util = require("table_util")
 local Library = require("rizu.library.Library")
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 
 ---@class rizu.library.LibraryTestContext
 ---@operator call: rizu.library.LibraryTestContext
@@ -10,7 +10,7 @@ local LibraryTestContext = class()
 function LibraryTestContext:new()
 	self.currentTime = 0
 
-	self.fs = LoveFilesystem()
+	self.fs = LinuxFilesystem()
 
 	self.lib = Library(self.fs, "/test", function() return self.currentTime end)
 	self.lib:setSync(true)

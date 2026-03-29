@@ -10,11 +10,11 @@ function TestLibraryFactory:new()
 	self.tcf = TestChartFactory()
 end
 
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 
 function TestLibraryFactory:create()
-	local fs = LoveFilesystem()
-	local lib = Library(fs, love.filesystem.getWorkingDirectory(), function() return 0 end)
+	local fs = LinuxFilesystem()
+	local lib = Library(fs, fs:getWorkingDirectory(), function() return 0 end)
 	lib.database:load(":memory:")
 	lib.chartviewsRepo:setSync(true)
 	

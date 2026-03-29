@@ -29,10 +29,10 @@ function PauseCounter:update()
 	if currentTime < self.minTime or currentTime > self.maxTime then
 		return
 	end
-	if not timer.isPlaying and not self.paused then
+	if not timer.is_playing and not self.paused then
 		self.paused = true
 		self.count = self.count + 1
-	elseif timer.isPlaying and self.paused then
+	elseif timer.is_playing and self.paused then
 		self.paused = false
 	end
 end

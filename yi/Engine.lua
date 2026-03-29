@@ -7,8 +7,17 @@ local CommandBuffer = require("yi.renderer.CommandBuffer")
 local Renderer = require("yi.renderer")
 local table_util = require("table_util")
 
+---@return number
+---@return number
+local function getDimensions()
+	if love and love.graphics and love.graphics.getDimensions then
+		return love.graphics.getDimensions()
+	end
+	return 1280, 720
+end
+
 ---@class yi.Engine
----@overload fun(inputs: ui.Inputs, ctx: yi.Context): yi.Engine
+---@overload fun(inputs: ui.Inputs, ctx: yi.Context, timer: time.ITimer): yi.Engine
 ---@field ctx yi.Context
 ---@field root yi.View
 ---@field layout_engine ui.LayoutEngine
@@ -21,9 +30,11 @@ local Engine = class()
 
 ---@param inputs ui.Inputs
 ---@param ctx yi.Context
-function Engine:new(inputs, ctx)
+---@param timer time.ITimer
+function Engine:new(inputs, ctx, timer)
 	self.inputs = inputs
 	self.ctx = ctx
+	self.timer = timer
 	self.layout_engine = LayoutEngine()
 	self.root = View()
 	self.root.id = "root"
@@ -155,11 +166,11 @@ function Engine:update(dt, mouse_x, mouse_y)
 		self:remove(self.removal_deferred[i], true)
 	end
 
-	local t1 = love.timer.getTime()
+	local t1 = self.timer:getTime()
 
 	local updated_roots = self.layout_engine:updateLayout(self.layout_update_requesters)
 
-	local t2 = love.timer.getTime()
+	local t2 = self.timer:getTime()
 
 	if updated_roots then
 		for node, _ in pairs(updated_roots) do
@@ -180,7 +191,7 @@ function Engine:update(dt, mouse_x, mouse_y)
 
 	local lt = (t2 - t1) * 1000
 	if lt > 1 then
-		print(("Layout recalc takes too long: %0.02f MS Time: %0.01f"):format(lt, love.timer.getTime()))
+		print(("Layout recalc takes too long: %0.02f MS Time: %0.01f"):format(lt, self.timer:getTime()))
 	end
 end
 
@@ -189,7 +200,7 @@ function Engine:draw()
 end
 
 function Engine:updateRootDimensions()
-	local ww, wh = love.graphics.getDimensions()
+	local ww, wh = getDimensions()
 	self.last_window_width = ww
 	self.last_window_height = wh
 	local w, h = 1, 1
@@ -209,7 +220,7 @@ function Engine:updateRootDimensions()
 end
 
 function Engine:checkRootDimensions()
-	local ww, wh = love.graphics.getDimensions()
+	local ww, wh = getDimensions()
 	if ww ~= self.last_window_width or wh ~= self.last_window_height then
 		self:updateRootDimensions()
 	end

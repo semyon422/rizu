@@ -1,5 +1,5 @@
 local Database = require("rizu.library.Database")
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local LocationsRepo = require("rizu.library.repos.LocationsRepo")
 local Collections = require("rizu.library.Collections")
@@ -7,7 +7,7 @@ local Collections = require("rizu.library.Collections")
 local test = {}
 
 local function setup()
-	local db = Database(LoveFilesystem())
+	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 
 	local chartfilesRepo = ChartfilesRepo(db.models)

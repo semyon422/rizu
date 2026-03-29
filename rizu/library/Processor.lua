@@ -26,7 +26,8 @@ local Processor = class()
 ---@param db rizu.library.Database
 ---@param fs fs.IFilesystem
 ---@param workingDirectory string
-function Processor:new(db, fs, workingDirectory)
+---@param timer time.ITimer
+function Processor:new(db, fs, workingDirectory, timer)
 	self.needStop = false
 	---@type rizu.library.TaskStage
 	self.stage = "idle"
@@ -53,7 +54,7 @@ function Processor:new(db, fs, workingDirectory)
 	self.chartmetaGenerator = ChartmetaGenerator(self.chartsRepo, self.chartfilesRepo, ChartFactory)
 
 	self.hashingTask = HashingTask(self.fs, self.chartmetaGenerator, self.chartdiffGenerator, self.taskContext)
-	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo, self.taskContext, function(hash)
+	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo, self.taskContext, timer, function(hash)
 		return self:getChartsByHash(hash)
 	end)
 
@@ -75,7 +76,8 @@ function Processor:new(db, fs, workingDirectory)
 	self.computeDataLoader = ComputeDataLoader(self.computeDataProvider)
 
 	self.chartsComputer = ChartsComputer(self.computeDataLoader, self.chartsRepo)
-	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, self.taskContext)
+	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, self.taskContext, timer)
+	self.timer = timer
 end
 
 function Processor:begin()
@@ -146,7 +148,7 @@ function Processor:computeLocation(path, location_id)
 	print("chartfilesRepo.selectUnhashedChartfiles", unhashed_path, location_id, set_id)
 	local chartfiles = self.chartfilesRepo:selectUnhashedChartfiles(unhashed_path, location_id, set_id)
 
-	local batchProcessor = BatchProcessor(self.taskContext, 100)
+	local batchProcessor = BatchProcessor(self.taskContext, self.timer, 100)
 	batchProcessor:process(chartfiles, "hashing", #chartfiles, function(chartfile)
 		self.hashingTask:processChartfile(chartfile, location_prefix)
 		return chartfile.name

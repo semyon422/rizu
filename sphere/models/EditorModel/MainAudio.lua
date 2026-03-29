@@ -82,7 +82,7 @@ function MainAudio:update(force)
 	end
 	self.time = time
 
-	local isPlaying = self.editorModel.timer.isPlaying
+	local isPlaying = self.editorModel.timer.is_playing
 	local forcePosition = not isPlaying or force
 
 	local offset = self:getAudioOffset()

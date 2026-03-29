@@ -96,7 +96,7 @@ function RhythmModel:receive(event)
 end
 
 function RhythmModel:update()
-	if self.timeEngine.timer.isPlaying then
+	if self.timeEngine.timer.is_playing then
 		self.logicEngine:update()
 	end
 	self.audioEngine:update()

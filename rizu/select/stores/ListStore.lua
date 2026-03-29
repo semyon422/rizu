@@ -8,7 +8,8 @@ local table_util = require("table_util")
 local ListStore = class()
 
 ---@param library rizu.library.Library
-function ListStore:new(library)
+---@param timer time.ITimer
+function ListStore:new(library, timer)
 	self.library = library
 	self.onChanged = Observable()
 
@@ -17,7 +18,7 @@ function ListStore:new(library)
 	self.itemsCount = 0
 	self.maps = {}
 
-	local cache = ExpireTable()
+	local cache = ExpireTable(timer)
 	self.cache = cache
 	self.cache.load = function(_, k)
 		return self:_loadObject(k)

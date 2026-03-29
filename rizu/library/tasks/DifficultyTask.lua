@@ -15,14 +15,15 @@ local DifficultyTask = class()
 ---@param chartdiffGenerator rizu.library.ChartdiffGenerator
 ---@param chartsRepo sea.ChartsRepo
 ---@param taskContext rizu.library.ITaskContext
+---@param timer time.ITimer
 ---@param chartProvider rizu.library.ChartProvider
-function DifficultyTask:new(difficultyModel, chartdiffGenerator, chartsRepo, taskContext, chartProvider)
+function DifficultyTask:new(difficultyModel, chartdiffGenerator, chartsRepo, taskContext, timer, chartProvider)
 	self.difficultyModel = difficultyModel
 	self.chartdiffGenerator = chartdiffGenerator
 	self.chartsRepo = chartsRepo
 	self.taskContext = taskContext
 	self.chartProvider = chartProvider
-	self.batchProcessor = BatchProcessor(taskContext, 100)
+	self.batchProcessor = BatchProcessor(taskContext, timer, 100)
 end
 
 function DifficultyTask:computeMissing()

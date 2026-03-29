@@ -5,9 +5,11 @@ local class = require("class")
 local BatchProcessor = class()
 
 ---@param taskContext rizu.library.ITaskContext
+---@param timer time.ITimer
 ---@param batchSize integer?
-function BatchProcessor:new(taskContext, batchSize)
+function BatchProcessor:new(taskContext, timer, batchSize)
 	self.taskContext = taskContext
+	self.timer = timer
 	self.batchSize = batchSize or 100
 	self.reportInterval = 0.1 -- 10 updates per second
 end
@@ -36,7 +38,7 @@ function BatchProcessor:process(items, stage, total, processorFunc)
 	
 	---@type rizu.library.TaskResult
 	local result = { processed = 0, errors = 0, failures = {} }
-	local lastReportAt = love.timer.getTime()
+	local lastReportAt = self.timer:getTime()
 	local current = 0
 	
 	local ok, err = xpcall(function()
@@ -60,7 +62,7 @@ function BatchProcessor:process(items, stage, total, processorFunc)
 
 			self.taskContext:advance(1)
 			
-			local now = love.timer.getTime()
+			local now = self.timer:getTime()
 			local needsReport = (now - lastReportAt > self.reportInterval)
 			local needsCommit = (current % self.batchSize == 0)
 

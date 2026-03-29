@@ -3,6 +3,9 @@ local View = require("yi.views.View")
 local Context = require("yi.Context")
 local Inputs = require("ui.input.Inputs")
 local LayoutBox = require("ui.layout.LayoutBox")
+local FunctionTimer = require("time.FunctionTimer")
+
+local timer = FunctionTimer(function() return 0 end)
 
 local test = {}
 
@@ -32,7 +35,7 @@ end
 function test.mounting_lifecycle(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 
 	local v1 = MockView()
 	engine.root:add(v1)
@@ -60,7 +63,7 @@ end
 function test.states_and_updates(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 	engine:load()
 
 	local v_active = engine.root:add(MockView())
@@ -99,7 +102,7 @@ end
 function test.layout_and_transforms(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 	engine:load()
 
 	-- Set root size
@@ -147,7 +150,7 @@ end
 function test.layout_update_on_removal(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 	engine:load()
 
 	-- Set root size
@@ -212,7 +215,7 @@ end
 function test.arranges(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 	engine:load()
 
 	engine.root.layout_box:setDimensions(1000, 1000)
@@ -236,7 +239,7 @@ end
 function test.enabled_toggling(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 	engine:load()
 
 	local container = engine.root:add(MockView())
@@ -281,7 +284,7 @@ end
 function test.remove_disabled_view(t)
 	local inputs = Inputs()
 	local ctx = Context({}, inputs)
-	local engine = Engine(inputs, ctx)
+	local engine = Engine(inputs, ctx, timer)
 	engine:load()
 
 	local container = engine.root:add(MockView())

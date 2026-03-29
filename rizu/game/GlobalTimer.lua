@@ -1,8 +1,8 @@
-local class = require("class")
+local ITimer = require("time.ITimer")
 
----@class rizu.GlobalTimer
+---@class rizu.GlobalTimer: time.ITimer
 ---@operator call: rizu.GlobalTimer
-local GlobalTimer = class()
+local GlobalTimer = ITimer + {}
 
 GlobalTimer.time = 0
 

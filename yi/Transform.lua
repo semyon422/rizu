@@ -1,4 +1,5 @@
 local class = require("class")
+local math_util = require("math_util")
 
 ---@class yi.Transform
 ---@field x number
@@ -28,10 +29,10 @@ function Transform:new()
 	self.anchor_x = 0
 	self.anchor_y = 0
 	self.dirty = true
-	self.love_transform = love.math.newTransform()
+	self.love_transform = math_util.newTransform()
 end
 
-local temp_tf = love.math.newTransform()
+local temp_tf = math_util.newTransform()
 
 ---@param layout_box ui.LayoutBox
 ---@param parent_transform love.Transform?

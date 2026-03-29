@@ -79,7 +79,7 @@ function InputManager:receive(event)
 	self:setState(virtualKey, state)
 
 	local timeEngine = self.timeEngine
-	local isPlaying = timeEngine.timer.isPlaying
+	local isPlaying = timeEngine.timer.is_playing
 	if not isPlaying then return end
 
 	self:apply(virtualKey, state, timeEngine.timer:transform(event.time))

@@ -12,7 +12,10 @@ pkg.add("chartbase")
 pkg.add("libchart")
 pkg.add("tree/share/lua/5.1")
 
-pkg.add(os.getenv("OR_ROOT") .. "/lualib")
+local or_root = os.getenv("OR_ROOT")
+if or_root then
+	pkg.add(or_root .. "/lualib")
+end
 
 pkg.export_lua()
 
@@ -39,6 +42,7 @@ tio.blacklist = {
 	"3rd-deps",
 	"tree",
 	"userdata",
+	"build/deps",
 }
 
 local testing = Testing(tio)

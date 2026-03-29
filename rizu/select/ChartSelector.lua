@@ -20,8 +20,9 @@ ChartSelector.debounceTime = 0.5
 ---@param library rizu.library.Library
 ---@param fs fs.IFilesystem
 ---@param collectionSelector rizu.select.CollectionSelector
+---@param timer time.ITimer
 ---@param state? rizu.select.SelectionState
-function ChartSelector:new(configModel, library, fs, collectionSelector, state)
+function ChartSelector:new(configModel, library, fs, collectionSelector, timer, state)
 	self.configModel = configModel
 	self.library = library
 	self.fs = fs
@@ -30,8 +31,8 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, state)
 
 	---@type rizu.select.stores.ListStore[]
 	self.stores = {
-		ListStore(library), -- Primary
-		ListStore(library), -- Secondary
+		ListStore(library, timer), -- Primary
+		ListStore(library, timer), -- Secondary
 	}
 
 	self.searchModel = SearchModel(configModel)

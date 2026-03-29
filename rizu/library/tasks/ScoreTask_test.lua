@@ -2,13 +2,17 @@ local ScoreTask = require("rizu.library.tasks.ScoreTask")
 local FakeTaskContext = require("rizu.library.tasks.FakeTaskContext")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local Database = require("rizu.library.Database")
-local LoveFilesystem = require("fs.LoveFilesystem")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 local TestChartFactory = require("sea.chart.TestChartFactory")
+local FunctionTimer = require("time.FunctionTimer")
 
 local test = {}
+local timer = FunctionTimer(function()
+	return 0
+end)
 
 local function setup_db()
-	local db = Database(LoveFilesystem())
+	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 	return db
 end
@@ -34,7 +38,7 @@ function test.computeAll(t)
 	}
 
 	local context = FakeTaskContext()
-	local task = ScoreTask(chartsRepo, chartsComputer, context)
+	local task = ScoreTask(chartsRepo, chartsComputer, context, timer)
 
 	task:computeAll()
 
