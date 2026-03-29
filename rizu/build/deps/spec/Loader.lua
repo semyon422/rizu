@@ -49,6 +49,19 @@ local action_requirements = {
 ---@param step rizu.build.deps.Step
 ---@return string[]
 local function inferOutputsFromActions(step)
+	local function normalizeOutput(action, path)
+		if type(path) ~= "string" then
+			return path
+		end
+		if not action or not action.dir then
+			return path
+		end
+		if path:match("^/") or path:match("^[A-Za-z]:[/\\]") or path:match("^%${") then
+			return path
+		end
+		return tostring(action.dir) .. "/" .. path
+	end
+
 	local outputs = {}
 	for _, action in ipairs(step.actions or {}) do
 		if action.type == "download" and action.dest then
@@ -68,7 +81,7 @@ local function inferOutputsFromActions(step)
 		elseif action.type == "write_file" and action.path then
 			table.insert(outputs, action.path)
 		elseif action.type == "compile_c" and action.output then
-			table.insert(outputs, action.output)
+			table.insert(outputs, normalizeOutput(action, action.output))
 		end
 	end
 	if #outputs == 0 and step.skip_if_exists_all then
