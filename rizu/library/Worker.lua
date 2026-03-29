@@ -11,10 +11,11 @@ local Worker = class()
 ---@param library rizu.library.Library
 ---@param fs fs.IFilesystem
 ---@param workingDirectory string
-function Worker:new(library, fs, workingDirectory)
+---@param timer time.ITimer
+function Worker:new(library, fs, workingDirectory, timer)
 	self.library = library
 	self.db = Database(fs)
-	self.processor = Processor(self.db, fs, workingDirectory)
+	self.processor = Processor(self.db, fs, workingDirectory, timer)
 	self.errors = {}
 end
 

@@ -25,8 +25,8 @@ local Library = class()
 
 ---@param fs fs.IFilesystem
 ---@param workingDirectory string
----@param getTime fun(): number
-function Library:new(fs, workingDirectory, getTime)
+---@param timer time.ITimer
+function Library:new(fs, workingDirectory, timer)
 	self.fs = fs
 	self.workingDirectory = workingDirectory
 
@@ -36,7 +36,7 @@ function Library:new(fs, workingDirectory, getTime)
 	---@type string[]
 	self.errors = {}
 
-	self.getTime = getTime
+	self.timer = assert(timer, "timer is required")
 
 	self.onStatusChanged = Observable()
 
@@ -47,7 +47,7 @@ function Library:new(fs, workingDirectory, getTime)
 		total = 0,
 		errorCount = 0
 	}
-	self.stageStartTime = self.getTime()
+	self.stageStartTime = self.timer:getTime()
 	self.is_sync = false
 
 	local migrations = {}
@@ -109,13 +109,22 @@ end
 function Library:createAndLoadWorker(workingDirectory)
 	require("preload")
 	local Worker = require("rizu.library.Worker")
+	local FunctionTimer = require("time.FunctionTimer")
 	local Filesystem
 	if love and love.filesystem then
 		Filesystem = require("fs.LoveFilesystem")
 	else
 		Filesystem = require("fs.LinuxFilesystem")
 	end
-	local worker = Worker(self, Filesystem(), workingDirectory)
+
+	local getTime
+	if love and love.timer and love.timer.getTime then
+		getTime = love.timer.getTime
+	else
+		getTime = os.clock
+	end
+
+	local worker = Worker(self, Filesystem(), workingDirectory, FunctionTimer(getTime))
 	worker:load()
 	return worker
 end
@@ -135,7 +144,7 @@ Library.unload = thread.coro(Library.unload)
 ---@param status rizu.library.TaskStatus
 ---@param errors string[]
 function Library:updateProgress(status, errors)
-	local now = self.getTime()
+	local now = self.timer:getTime()
 	if self.status.stage ~= status.stage then
 		self.stageStartTime = now
 	end

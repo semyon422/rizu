@@ -2,6 +2,7 @@ local class = require("class")
 local table_util = require("table_util")
 local Library = require("rizu.library.Library")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
+local FunctionTimer = require("time.FunctionTimer")
 
 ---@class rizu.library.LibraryTestContext
 ---@operator call: rizu.library.LibraryTestContext
@@ -11,8 +12,11 @@ function LibraryTestContext:new()
 	self.currentTime = 0
 
 	self.fs = LinuxFilesystem()
+	local timer = FunctionTimer(function()
+		return self.currentTime
+	end)
 
-	self.lib = Library(self.fs, "/test", function() return self.currentTime end)
+	self.lib = Library(self.fs, "/test", timer)
 	self.lib:setSync(true)
 
 	self.lib:load(":memory:")

@@ -4,6 +4,7 @@ local Library = require("rizu.library.Library")
 local ConfigModel = require("sphere.persistence.ConfigModel")
 local FileFinder = require("sphere.persistence.FileFinder")
 local DifficultyModel = require("sphere.models.DifficultyModel")
+local LoveTimer = require("time.LoveTimer")
 
 local dirs = require("sphere.persistence.dirs")
 
@@ -17,7 +18,7 @@ function Persistence:new()
 	self.library = Library(
 		LoveFilesystem(),
 		love.filesystem.getWorkingDirectory(),
-		love.timer.getTime
+		LoveTimer()
 	)
 	self.configModel = ConfigModel()
 	self.fileFinder = FileFinder()

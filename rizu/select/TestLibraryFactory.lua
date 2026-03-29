@@ -1,6 +1,7 @@
 local class = require("class")
 local Library = require("rizu.library.Library")
 local TestChartFactory = require("sea.chart.TestChartFactory")
+local FunctionTimer = require("time.FunctionTimer")
 
 ---@class rizu.select.TestLibraryFactory
 ---@operator call: rizu.select.TestLibraryFactory
@@ -14,7 +15,10 @@ local LinuxFilesystem = require("fs.LinuxFilesystem")
 
 function TestLibraryFactory:create()
 	local fs = LinuxFilesystem()
-	local lib = Library(fs, fs:getWorkingDirectory(), function() return 0 end)
+	local timer = FunctionTimer(function()
+		return 0
+	end)
+	local lib = Library(fs, fs:getWorkingDirectory(), timer)
 	lib.database:load(":memory:")
 	lib.chartviewsRepo:setSync(true)
 	
