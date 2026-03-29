@@ -1,4 +1,4 @@
-local Context = require("rizu.build.deps.engine.Context")
+local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
@@ -19,7 +19,7 @@ local function makeCtx(pwd)
 end
 
 function test.uses_filesystem_working_directory_for_root_abs(t)
-	local env = Context.new(makeCtx("/repo"), "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(makeCtx("/repo"), "linux", {initialize_dirs = false})
 	t:eq(env.root_abs, "/repo")
 end
 

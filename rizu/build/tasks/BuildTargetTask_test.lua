@@ -1,4 +1,4 @@
-local Pipeline = require("rizu.build.tasks.PipelineTask")
+local BuildTargetTask = require("rizu.build.tasks.BuildTargetTask")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
@@ -28,10 +28,10 @@ local function makeCtx()
 	return {fs = state.fs, shell = shell, downloader = downloader}, state
 end
 
-function test.pipeline_status_and_uptodate(t)
+function test.build_target_status_and_uptodate(t)
 	local ctx, state = makeCtx()
-	local p = Pipeline("linux")
-	t:eq(p:upToDate(ctx), false)
+	local task = BuildTargetTask("linux")
+	t:eq(task:upToDate(ctx), false)
 
 	state.fs:setTime(1)
 	state.fs:createDirectory("build/deps/ffmpeg-linux")
@@ -56,9 +56,9 @@ function test.pipeline_status_and_uptodate(t)
 	state.fs:write("bin/linux64/libminacalc.so", "x")
 	state.fs:write("bin/linux64/luamidi.so", "x")
 
-	local rows = p:getStatus(ctx)
+	local rows = task:getStatus(ctx)
 	t:assert(#rows > 0)
-	t:assert(rows[#rows].name:find("Pipeline"))
+	t:assert(rows[#rows].name:find("Build Target"))
 end
 
 return test

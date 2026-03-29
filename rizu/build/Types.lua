@@ -19,6 +19,10 @@
 ---@field type string
 ---@field command? string
 ---@field dir? string
+---@field src_dir? string
+---@field build_dir? string
+---@field script? string
+---@field env? {[string]: string}
 ---@field stderr_hint? string
 ---@field url? string
 ---@field dest? string
@@ -29,7 +33,8 @@
 ---@field path? string
 ---@field pattern? string
 ---@field out_file? string
----@field args? string
+---@field args? string|string[]
+---@field content? string
 ---@field tool? string
 ---@field target? string
 ---@field from? string

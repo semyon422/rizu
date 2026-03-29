@@ -21,13 +21,16 @@ local step_kinds = {
 local action_requirements = {
 	download = {"url", "dest"},
 	extract = {"format", "archive", "dest"},
-	configure = {"dir", "command"},
+	configure = {"dir"},
 	run_in_dir = {"dir", "command"},
 	make = {"dir"},
+	cmake_configure = {"src_dir", "build_dir"},
+	cmake_build = {"build_dir"},
 	copy = {"src", "dst"},
 	copy_exact = {"src", "dst"},
 	remove = {"path"},
 	set_executable = {"path"},
+	write_file = {"path", "content"},
 	toolchain_select = {"pattern", "out_file"},
 	git_clone = {"url", "dest"},
 	git_submodule = {"dir"},
@@ -60,6 +63,8 @@ local function inferOutputsFromActions(step)
 		elseif action.type == "git_submodule" and action.marker then
 			table.insert(outputs, action.marker)
 		elseif action.type == "set_executable" and action.path then
+			table.insert(outputs, action.path)
+		elseif action.type == "write_file" and action.path then
 			table.insert(outputs, action.path)
 		end
 	end

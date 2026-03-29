@@ -1,4 +1,4 @@
-local Context = require("rizu.build.deps.engine.Context")
+local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local Evaluator = require("rizu.build.deps.engine.Evaluator")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
@@ -27,7 +27,7 @@ end
 
 function test.evaluate_outputs_and_aggregate(t)
 	local ctx, state = makeCtx()
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local spec = {
 		target = "linux",
 		steps = {
@@ -49,7 +49,7 @@ function test.evaluate_outputs_and_aggregate(t)
 	t:eq(Evaluator.isUpToDate(env, spec), true)
 end
 
-function test.render_status_rows_includes_pipeline_row(t)
+function test.render_status_rows_includes_build_target_row(t)
 	local rows = Evaluator.renderStatusRows({
 		target = "linux",
 		steps = {
@@ -57,13 +57,13 @@ function test.render_status_rows_includes_pipeline_row(t)
 		},
 		aggregate = "OK",
 	})
-	t:eq(rows[#rows].name, "Pipeline (linux)")
+	t:eq(rows[#rows].name, "Build Target (linux)")
 	t:eq(rows[#rows].value, "OK")
 end
 
 function test.run_result_failure_sets_failed_state(t)
 	local ctx = makeCtx()
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local spec = {
 		target = "linux",
 		steps = {

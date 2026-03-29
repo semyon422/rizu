@@ -1,11 +1,10 @@
 local BuildConfig = require("rizu.build.BuildConfig")
 
----@class rizu.build.deps.engine.Context
-local Context = {}
+---@class rizu.build.deps.engine.BuildEnv
+local BuildEnv = {}
 
 ---@param ctx rizu.build.Context
----@param target rizu.build.Target
-local function ensureBaseDirs(ctx, target)
+local function ensureBaseDirs(ctx)
 	ctx.fs:createDirectory(BuildConfig.getDownloadsDir())
 	ctx.fs:createDirectory(BuildConfig.getDepsDir())
 	for _, dir in pairs(BuildConfig.TARGET_BIN_DIRS) do
@@ -17,7 +16,7 @@ end
 ---@param target rizu.build.Target
 ---@param opts? { initialize_dirs?: boolean }
 ---@return rizu.build.deps.Env
-function Context.new(ctx, target, opts)
+function BuildEnv.new(ctx, target, opts)
 	local normalized_target = BuildConfig.normalizeTarget(target)
 	local env = {
 		ctx = ctx,
@@ -30,7 +29,7 @@ function Context.new(ctx, target, opts)
 	}
 
 	if not opts or opts.initialize_dirs ~= false then
-		ensureBaseDirs(ctx, normalized_target)
+		ensureBaseDirs(ctx)
 	end
 
 	return env
@@ -39,7 +38,7 @@ end
 ---@param env rizu.build.deps.Env
 ---@param value any
 ---@return any
-function Context.interpolate(env, value)
+function BuildEnv.interpolate(env, value)
 	if type(value) ~= "string" then
 		return value
 	end
@@ -58,4 +57,4 @@ function Context.interpolate(env, value)
 	end))
 end
 
-return Context
+return BuildEnv

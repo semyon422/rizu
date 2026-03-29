@@ -26,7 +26,10 @@ local function add_zlib(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "make -f win32/Makefile.gcc clean && make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 BINARY_PATH=" .. prefix_abs .. "/bin INCLUDE_PATH=" .. prefix_abs .. "/include LIBRARY_PATH=" .. prefix_abs .. "/lib -j$(nproc); mkdir -p " .. prefix .. "/bin; cp -f " .. extract .. "/zlib1.dll " .. prefix .. "/bin/zlib1.dll"},
+			{type = "make", dir = extract, args = {"-f", "win32/Makefile.gcc", "clean"}, stderr_hint = "zlib clean failed"},
+			{type = "make", dir = extract, args = {"-f", "win32/Makefile.gcc", "PREFIX=x86_64-w64-mingw32-", "SHARED_MODE=1", "BINARY_PATH=" .. prefix_abs .. "/bin", "INCLUDE_PATH=" .. prefix_abs .. "/include", "LIBRARY_PATH=" .. prefix_abs .. "/lib", "-j$(nproc)"}, stderr_hint = "zlib build failed"},
+			{type = "ensure_dir", path = prefix .. "/bin"},
+			{type = "copy_exact", src = extract .. "/zlib1.dll", dst = prefix .. "/bin/zlib1.dll", flags = "-f"},
 			{type = "copy", src = prefix .. "/bin/zlib1.dll", dst = "${bin_dir}/z.dll", flags = "-f"},
 		},
 	})
@@ -45,8 +48,11 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "cat > ${deps_dir}/dd32.sh <<'DD'\n#!/bin/sh\ncat | head -c 32\nDD\nchmod +x ${deps_dir}/dd32.sh"},
-			{type = "shell", stderr_hint = "Shell command failed", command = "bash -lc 'cd " .. extract .. " && ac_cv_path_lt_DD=${root_abs}/${deps_dir}/dd32.sh DD=${root_abs}/${deps_dir}/dd32.sh ./configure --host=x86_64-w64-mingw32 --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-O2\" < /dev/null && make -j$(nproc) && make install'"},
+			{type = "write_file", path = "${deps_dir}/dd32.sh", content = "#!/bin/sh\ncat | head -c 32\n"},
+			{type = "set_executable", path = "${deps_dir}/dd32.sh"},
+			{type = "configure", dir = extract, env = {ac_cv_path_lt_DD = "${root_abs}/${deps_dir}/dd32.sh", DD = "${root_abs}/${deps_dir}/dd32.sh"}, args = {"--host=x86_64-w64-mingw32", "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2"}, stderr_hint = "iconv configure failed"},
+			{type = "make", dir = extract, args = {"-j$(nproc)"}, stderr_hint = "iconv build failed"},
+			{type = "make", dir = extract, args = {"install"}, stderr_hint = "iconv install failed"},
 			{type = "assert_file", path = prefix .. "/bin/libiconv-2.dll"},
 			{type = "copy_exact", src = prefix .. "/bin/libiconv-2.dll", dst = "${bin_dir}/libiconv-2.dll", flags = "-f"},
 		},
@@ -66,7 +72,9 @@ local function add_openssl(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = openssl.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "bash -lc 'cd " .. extract .. " && ./Configure mingw64 shared --cross-compile-prefix=x86_64-w64-mingw32- --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl && make -j$(nproc) && make install_sw'"},
+			{type = "configure", dir = extract, script = "./Configure", args = {"mingw64", "shared", "--cross-compile-prefix=x86_64-w64-mingw32-", "--prefix=" .. prefix_abs, "--openssldir=" .. prefix_abs .. "/ssl"}, stderr_hint = "OpenSSL configure failed"},
+			{type = "make", dir = extract, args = {"-j$(nproc)"}, stderr_hint = "OpenSSL build failed"},
+			{type = "make", dir = extract, args = {"install_sw"}, stderr_hint = "OpenSSL install failed"},
 			{type = "assert_file", path = prefix .. "/bin/libssl-3-x64.dll"},
 			{type = "assert_file", path = prefix .. "/bin/libcrypto-3-x64.dll"},
 			{type = "copy_exact", src = prefix .. "/bin/libssl-3-x64.dll", dst = "${bin_dir}/libssl-3-x64.dll", flags = "-f"},

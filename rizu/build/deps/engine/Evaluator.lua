@@ -1,11 +1,11 @@
-local Ctx = require("rizu.build.deps.engine.Context")
+local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local BuildConfig = require("rizu.build.BuildConfig")
-local Builder = require("rizu.build.Builder")
+local NativeModuleBuilder = require("rizu.build.NativeModuleBuilder")
 
 local Evaluator = {}
 
 local function interp(env, value)
-	return Ctx.interpolate(env, value)
+	return BuildEnv.interpolate(env, value)
 end
 
 local function resolveList(env, list)
@@ -38,7 +38,7 @@ end
 
 local function checkModulesStep(env)
 	local target = BuildConfig.normalizeTarget(env.target)
-	local builder = Builder(env.ctx, target)
+	local builder = NativeModuleBuilder(env.ctx, target)
 	local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
 	local has_ffmpeg = true
 	if target == "macos" then
@@ -66,7 +66,7 @@ end
 
 local function checkSyncStep(env)
 	local target = BuildConfig.normalizeTarget(env.target)
-	local builder = Builder(env.ctx, target)
+	local builder = NativeModuleBuilder(env.ctx, target)
 	local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
 	for _, item in ipairs(records) do
 		if item.artifact and env.ctx.fs:getInfo(item.artifact) and not env.ctx.fs:getInfo(item.bin) then
@@ -144,7 +144,7 @@ function Evaluator.renderStatusRows(eval)
 	for _, step in ipairs(eval.steps or {}) do
 		table.insert(rows, {name = step.label, value = step.state})
 	end
-	table.insert(rows, {name = "Pipeline (" .. tostring(eval.target) .. ")", value = eval.aggregate})
+	table.insert(rows, {name = "Build Target (" .. tostring(eval.target) .. ")", value = eval.aggregate})
 	return rows
 end
 

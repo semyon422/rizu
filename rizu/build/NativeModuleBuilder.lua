@@ -1,15 +1,15 @@
 local class = require("class")
 local BuildConfig = require("rizu.build.BuildConfig")
 
----@class rizu.build.Builder
----@operator call: rizu.build.Builder
+---@class rizu.build.NativeModuleBuilder
+---@operator call: rizu.build.NativeModuleBuilder
 ---@field ctx rizu.build.Context
 ---@field target rizu.build.Target
-local Builder = class()
+local NativeModuleBuilder = class()
 
 ---@param ctx rizu.build.Context
 ---@param target? rizu.build.Target
-function Builder:new(ctx, target)
+function NativeModuleBuilder:new(ctx, target)
 	self.ctx = ctx
 	self.target = BuildConfig.normalizeTarget(target or ctx.target)
 end
@@ -24,7 +24,7 @@ local function compilerAvailable(shell, cmd)
 	return out and out:match("OK")
 end
 
-function Builder:getCompiler()
+function NativeModuleBuilder:getCompiler()
 	local t = self.target
 	local compilers = {
 		windows = "x86_64-w64-mingw32-gcc",
@@ -42,7 +42,7 @@ function Builder:getCompiler()
 	return cc
 end
 
-function Builder:getFFmpegPaths()
+function NativeModuleBuilder:getFFmpegPaths()
 	local t = self.target
 	if t == "macos" then
 		local inc = "build/deps/local/macos/ffmpeg/include"
@@ -68,7 +68,7 @@ function Builder:getFFmpegPaths()
 	return inc, lib
 end
 
-function Builder:get7zInc()
+function NativeModuleBuilder:get7zInc()
 	local base = "build/deps/7zsdk/C"
 	if self.ctx.fs:getInfo(base .. "/Alloc.c") then
 		return base
@@ -76,26 +76,26 @@ function Builder:get7zInc()
 	return "aqua"
 end
 
-function Builder:getArtifactsDir()
+function NativeModuleBuilder:getArtifactsDir()
 	local dir = BuildConfig.getArtifactsDir(self.target)
 	self.ctx.fs:createDirectory("build/artifacts")
 	self.ctx.fs:createDirectory(dir)
 	return dir
 end
 
-function Builder:getBinDir()
+function NativeModuleBuilder:getBinDir()
 	local dir = BuildConfig.getBinDir(self.target)
 	self.ctx.fs:createDirectory("bin")
 	self.ctx.fs:createDirectory(dir)
 	return dir
 end
 
-function Builder:getModuleOutputs()
+function NativeModuleBuilder:getModuleOutputs()
 	local out_dir = self:getArtifactsDir()
 	return BuildConfig.getModuleOutputs(self.target, out_dir)
 end
 
-function Builder:build7z()
+function NativeModuleBuilder:build7z()
 	local t = self.target
 	local cc = self:getCompiler()
 	local inc = "-I" .. self:get7zInc()
@@ -116,7 +116,7 @@ function Builder:build7z()
 	self.ctx.shell:execute(string.format("%s %s %s -o %s %s", cc, inc, flags, out, src))
 end
 
-function Builder:buildVideo()
+function NativeModuleBuilder:buildVideo()
 	local t = self.target
 	local cc = self:getCompiler()
 	local ffmpeg_inc, ffmpeg_lib_dir = self:getFFmpegPaths()
@@ -154,7 +154,7 @@ function Builder:buildVideo()
 	self.ctx.shell:execute(string.format("%s %s %s -o %s %s %s", cc, inc, flags, out, src, libs))
 end
 
-function Builder:buildMinacalc()
+function NativeModuleBuilder:buildMinacalc()
 	local t = self.target
 	local cc = self:getCompiler()
 	-- Minacalc needs C++ compiler
@@ -183,7 +183,7 @@ function Builder:buildMinacalc()
 	self.ctx.shell:execute(cmd)
 end
 
-function Builder:buildLuamidi()
+function NativeModuleBuilder:buildLuamidi()
 	local t = self.target
 	local cc = self:getCompiler()
 	local cxx = toCxx(cc)
@@ -194,7 +194,7 @@ function Builder:buildLuamidi()
 
 	if not self.ctx.fs:getInfo(src_dir) then return end
 	if not self.ctx.fs:getInfo(src_dir .. "/rtmidi/RtMidi.h") or not self.ctx.fs:getInfo(src_dir .. "/rtmidi/RtMidi.cpp") then
-		error("luamidi RtMidi sources are missing. Run ./rizu/build/make.lua deps " .. t)
+		error("luamidi RtMidi sources are missing. Run ./rizu/build/make.lua build_target " .. t)
 	end
 
 	local out_map = {
@@ -226,14 +226,14 @@ function Builder:buildLuamidi()
 	self.ctx.shell:execute(cmd)
 end
 
-function Builder:run()
+function NativeModuleBuilder:run()
 	self:build7z()
 	self:buildVideo()
 	self:buildMinacalc()
 	self:buildLuamidi()
 end
 
-function Builder:syncMissingToBin()
+function NativeModuleBuilder:syncMissingToBin()
 	local t = self.target
 	local out = self:getModuleOutputs()
 	local bin_dir = self:getBinDir()
@@ -246,4 +246,4 @@ function Builder:syncMissingToBin()
 	end
 end
 
-return Builder
+return NativeModuleBuilder

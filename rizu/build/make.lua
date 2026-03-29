@@ -8,43 +8,46 @@ local LinuxFilesystem = require("fs.LinuxFilesystem")
 local Shell = require("rizu.build.Shell")
 local Downloader = require("rizu.build.Downloader")
 
-local SetupHost = require("rizu.build.tasks.SetupHostTask")
-local SetupLuaJIT = require("rizu.build.tasks.SetupLuaJITTask")
-local SetupCrossMacOS = require("rizu.build.tasks.SetupCrossMacOSTask")
-local Pipeline = require("rizu.build.tasks.PipelineTask")
-local Package = require("rizu.build.tasks.PackageTask")
-local BuildRepo = require("rizu.build.tasks.BuildRepoTask")
+local SetupHostTask = require("rizu.build.tasks.SetupHostTask")
+local SetupLuaJITTask = require("rizu.build.tasks.SetupLuaJITTask")
+local SetupMacOSToolchainTask = require("rizu.build.tasks.SetupMacOSToolchainTask")
+local BuildTargetTask = require("rizu.build.tasks.BuildTargetTask")
+local AssembleRepoTask = require("rizu.build.tasks.AssembleRepoTask")
+local ZipRepoTask = require("rizu.build.tasks.ZipRepoTask")
+local PackageMacOSTask = require("rizu.build.tasks.PackageMacOSTask")
 
 local args = {...}
 local command = args[1]
-local target = args[2] or "linux"
-local scope = args[2] or "all"
+local target_arg = args[2]
+local scope_arg = args[2]
 
 local ctx = Context(
 	LinuxFilesystem(),
 	Shell(),
 	Downloader(),
-	target
+	target_arg or "linux"
 )
 
 local runner = TaskRunner(ctx)
 
-runner:register(SetupHost())
-runner:register(SetupLuaJIT("linux"))
-runner:register(SetupLuaJIT("windows"))
-runner:register(SetupCrossMacOS())
-runner:register(Pipeline("linux"))
-runner:register(Pipeline("windows"))
-runner:register(Pipeline("macos"))
-runner:register(Package())
-runner:register(BuildRepo())
+runner:register(SetupHostTask())
+runner:register(SetupLuaJITTask("linux"))
+runner:register(SetupLuaJITTask("windows"))
+runner:register(SetupMacOSToolchainTask())
+runner:register(BuildTargetTask("linux"))
+runner:register(BuildTargetTask("windows"))
+runner:register(BuildTargetTask("macos"))
+runner:register(AssembleRepoTask())
+runner:register(ZipRepoTask())
+runner:register(PackageMacOSTask())
 
-local removed_commands = {
-	deps = true,
-	build = true,
-	sync = true,
-	all = true,
-}
+local function getTargetOrDefault()
+	return target_arg or "linux"
+end
+
+local function getScopeOrDefault()
+	return scope_arg or "all"
+end
 
 local commands = {
 	setup = {
@@ -56,54 +59,54 @@ local commands = {
 	luajit = {
 		help = "Build/install luajit locally: luajit <linux|windows>",
 		run = function()
-			runner:run("setup_luajit_" .. target)
+			runner:run("setup_luajit_" .. getTargetOrDefault())
 		end,
 	},
-	macos_toolchain = {
+	setup_macos_toolchain = {
 		help = "Setup osxcross for macOS compilation",
 		run = function()
-			runner:run("setup_cross_macos")
+			runner:run("setup_macos_toolchain")
 		end,
 	},
-	pipeline = {
-		help = "Run full pipeline for target: pipeline <linux|windows|macos>",
+	build_target = {
+		help = "Run full build pipeline for target: build_target <linux|windows|macos>",
 		run = function()
-			runner:run("pipeline_" .. target)
-		end,
-	},
-	package = {
-		help = "Bundle game packages",
-		run = function()
-			runner:run("package")
+			runner:run("build_target_" .. getTargetOrDefault())
 		end,
 	},
 	repo = {
-		help = "Build update repository",
+		help = "Assemble update repository files and index",
 		run = function()
-			runner:run("repo")
+			runner:run("assemble_repo")
+		end,
+	},
+	package = {
+		help = "Build distributable archives (zip + macos app zip)",
+		run = function()
+			runner:run("zip_repo")
+			runner:run("package_macos")
 		end,
 	},
 	status = {
-		help = "Show pipeline state: status <target|all>",
+		help = "Show build state: status <target|all>",
 		run = function()
 			print("=== Rizu Build Status ===")
+			local target = getTargetOrDefault()
 			local targets = target == "all" and {"linux", "windows", "macos"} or {target}
 			for _, t in ipairs(targets) do
-				local task = runner.tasks["pipeline_" .. t]
+				local task = runner.tasks["build_target_" .. t]
 				if task and task.getStatus then
 					for _, res in ipairs(task:getStatus(ctx)) do
 						print(string.format("  %-30s [%s]", res.name, res.value))
 					end
 				end
 			end
-			if target == "all" then
-				local global_tasks = {"package", "repo"}
-				for _, task_name in ipairs(global_tasks) do
-					local task = runner.tasks[task_name]
-					if task and task.getStatus then
-						for _, res in ipairs(task:getStatus(ctx)) do
-							print(string.format("  %-30s [%s]", res.name, res.value))
-						end
+			local global_tasks = {"assemble_repo", "zip_repo", "package_macos"}
+			for _, task_name in ipairs(global_tasks) do
+				local task = runner.tasks[task_name]
+				if task and task.getStatus then
+					for _, res in ipairs(task:getStatus(ctx)) do
+						print(string.format("  %-30s [%s]", res.name, res.value))
 					end
 				end
 			end
@@ -114,6 +117,7 @@ local commands = {
 	clean = {
 		help = "Clean outputs: clean <all|deps|artifacts|bin|repo>",
 		run = function()
+			local scope = getScopeOrDefault()
 			if scope == "all" or scope == "deps" then
 				ctx.fs:remove("build/deps")
 				ctx.fs:remove("build/downloads")
@@ -136,16 +140,16 @@ local commands = {
 }
 
 local function help()
-	print("Rizu Build System (Pipeline)")
+	print("Rizu Build System")
 	print("Usage: ./rizu/build/make.lua <command> [arg]")
 	print("")
 	print("Commands:")
-	local order = {"setup", "luajit", "macos_toolchain", "pipeline", "package", "repo", "status", "clean", "help"}
+	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "repo", "package", "status", "clean", "help"}
 	for _, name in ipairs(order) do
 		if name == "help" then
-			print("  help              Show this help")
+			print("  help                   Show this help")
 		else
-			print(string.format("  %-17s %s", name, commands[name].help))
+			print(string.format("  %-22s %s", name, commands[name].help))
 		end
 	end
 end
@@ -153,12 +157,6 @@ end
 if command == "help" or command == nil then
 	help()
 	os.exit(0)
-end
-
-if removed_commands[command] then
-	print("Command removed: " .. command .. ". Use 'pipeline <target>' instead.")
-	help()
-	os.exit(1)
 end
 
 local entry = commands[command]

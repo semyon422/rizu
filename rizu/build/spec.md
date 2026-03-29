@@ -1,51 +1,63 @@
 # Rizu Build System Specification
 
 ## Goal
-The goal of the Rizu build system is to provide a reliable, automated, and cross-platform environment for managing dependencies, compiling native modules, and packaging the game into distributable formats. It ensures a consistent build process for all developers and CI/CD pipelines.
+The build system provides a reproducible, target-aware pipeline for three independent concerns:
+- preparing target dependencies,
+- compiling native runtime modules,
+- assembling and packaging distributable repository artifacts.
+
+The system is optimized for local development and CI usage on Linux hosts while producing Linux, Windows, and macOS outputs.
 
 ## User Experience
-- **Simplicity**: A single entry point (`./rizu/build/make.lua`) handles the entire lifecycle.
-- **Portability**: The build system runs on Ubuntu (host) and targets Linux, Windows, and macOS.
-- **Efficiency**: Incremental builds skip already completed and up-to-date tasks.
-- **Modularity**: New build steps or dependencies can be added by creating a new task class.
+- One entry point: `./rizu/build/make.lua`.
+- One target command: `build_target <linux|windows|macos>`.
+- Clear packaging separation:
+  - `repo` assembles repository content and update metadata.
+  - `package` builds archives from the assembled repository.
+- Incremental behavior: already-satisfied steps are skipped through output checks.
 
-## Architecture Decisions (ADR)
-- **Task-Based Engine**: The system uses a dependency-aware `TaskRunner`. Each task is a class implementing `run(ctx)` and `upToDate(ctx)`.
-- **Context Abstraction**: A `Context` object abstracts the filesystem, shell, and downloader. This decouples the build logic from the host OS and enables isolated testing with mock contexts.
-- **LuaJIT-Powered**: The build system itself is written in Lua and runs on the system's LuaJIT, ensuring high performance and ease of maintenance.
-- **Cross-Compilation Strategy**:
-    - **Windows**: Uses `x86_64-w64-mingw32-gcc` on Linux.
-    - **macOS**: Uses `osxcross` toolchain. Due to proprietary SDK requirements, this requires a manual step of providing the Xcode `.xip` file.
-- **External Dependency Management**: Binary dependencies (FFmpeg, 7z SDK) are fetched from official sources and cached locally to ensure reproducible builds.
+## Architecture Decisions
+### ADR-1: Build Target As Single Task Boundary
+Each platform build uses `BuildTargetTask` and a validated declarative step spec. This keeps orchestration simple and target selection explicit.
+
+### ADR-2: Action Dispatcher with Isolated Handlers
+`Executor` dispatches actions to modules under `deps/actions/` instead of owning all action logic in one file. This reduces coupling and makes new action types straightforward to add.
+
+### ADR-3: Atomic Packaging Tasks
+Packaging is split into independent tasks:
+- `assemble_repo`: create repository tree and update metadata (`files.json`, `files.lua`),
+- `zip_repo`: build the cross-platform zip from assembled repo,
+- `package_macos`: build macOS app bundle zip from assembled repo.
+
+This avoids duplicated side effects and makes task dependencies explicit.
 
 ## Directory Structure
-- `build/`: Core build system directory.
-    - `tasks/`: Task implementations (e.g., `FetchDeps.lua`, `BuildModules.lua`).
-    - `package/`: Templates and logic for platform-specific packaging (e.g., `RepoBuilder.lua`, `Info.plist`).
-    - `downloads/`: Cache for downloaded archives and assets.
-    - `deps/`: Extracted and prepared third-party libraries.
-    - `spec.md`: This specification.
-    - `make.lua`: Main entry point and task orchestrator.
-    - `Builder.lua`: High-level logic for C module compilation.
-- `bin/`: Final binary artifacts (e.g., `.so`, `.dll`, `.dylib`) organized by platform.
-- `repo/`: Distributable packages (ZIP archives) and update repository metadata. Moved to `build/repo/`.
+- `rizu/build/make.lua`: CLI entrypoint and task registration.
+- `rizu/build/tasks/`: task-level orchestration.
+- `rizu/build/deps/spec/`: declarative build step definitions by target.
+- `rizu/build/deps/actions/`: executor action handlers.
+- `rizu/build/deps/engine/`: execution and evaluation engine.
+- `rizu/build/package/`: repository assembly and packaging internals.
 
-## Task Lifecycle & Dependencies
-The build process follows a strictly defined dependency graph:
+## Task Graph
+1. `setup_host`
+2. `setup_luajit_linux`, `setup_luajit_windows`
+3. `setup_macos_toolchain`
+4. `build_target_<target>`
+5. `assemble_repo` (depends on all `build_target_*`)
+6. `zip_repo`, `package_macos` (depend on `assemble_repo`)
 
-1.  **`setup_host`**: Installs essential system tools (e.g., `curl`, `7z`, `build-essential`).
-2.  **`setup_luajit_<target>`**: Compiles and installs the LuaJIT runtime for the target platform.
-3.  **`deps_<target>`**: Fetches and prepares binary dependencies (FFmpeg, 7z SDK).
-4.  **`build_<target>`**: Compiles native C modules (`video.c`, `7z.c`) using the target's cross-compiler. Depends on `deps_<target>`.
-5.  **`package`**: Bundles source code, binaries, and resources into platform-specific archives. Depends on successful builds.
-6.  **`repo`**: Generates `files.json` and `files.lua` for the built-in updater system.
+CLI mapping:
+- `repo` -> `assemble_repo`
+- `package` -> `zip_repo` + `package_macos`
 
-## Implementation Details
-- **`Builder:getCompiler()`**: Automatically selects the correct cross-compiler based on the target.
-- **`RepoBuilder`**: Handles the heavy lifting of gathering files, zipping `game.love`, and preparing the macOS `.app` bundle structure.
-- **Incremental Logic**: `BuildModules:upToDate` compares modification times of source files vs. binary artifacts to avoid redundant compilation.
+## Key Components
+- `NativeModuleBuilder`: compiles target-native modules (`7z`, `video`, `minacalc`, `luamidi`) and syncs artifacts to bin dirs.
+- `Loader` + target specs: validate and materialize dependency/source-build steps.
+- `Executor`: executes actions with skip checks and required-input checks.
+- `Evaluator`: reports per-step and aggregate target status.
+- `RepoBuilder`: assembles update repo contents and archives.
 
 ## Verification
-- **Dry-Run Tests**: Packaging logic should be verifiable using a mock filesystem to ensure correct file placement without writing to disk.
-- **Target Validation**: Each built binary should be verified by the build system (e.g., checking if the output file exists and has the correct architecture).
-- **Update Integrity**: `BuildRepo` generates CRC32 hashes for all files, which are used by the game client to verify updates.
+- Unit tests cover config mapping, task behavior, spec validation, executor/evaluator behavior, and packaging logic.
+- The expected workflow after changes is running focused tests with `./test rizu/build`.

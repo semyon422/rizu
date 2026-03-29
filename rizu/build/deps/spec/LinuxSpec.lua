@@ -26,7 +26,9 @@ local function add_zlib(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = zlib.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "./configure --prefix=" .. prefix_abs .. " && make -j$(nproc) && make install"},
+			{type = "configure", dir = extract, args = {"--prefix=" .. prefix_abs}, stderr_hint = "zlib configure failed"},
+			{type = "make", dir = extract, args = {"-j$(nproc)"}, stderr_hint = "zlib build failed"},
+			{type = "make", dir = extract, args = {"install"}, stderr_hint = "zlib install failed"},
 			{type = "assert_file", path = prefix .. "/lib/libz.so.1", message = "Expected zlib at " .. prefix .. "/lib/libz.so.1"},
 			{type = "copy_exact", src = prefix .. "/lib/libz.so.1", dst = "${bin_dir}/libz.so.1", flags = "-Lf"},
 			{type = "remove", path = "${bin_dir}/libz.so"},
@@ -47,7 +49,9 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", dir = extract, stderr_hint = "Shell command failed", command = "./configure --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\\\"-fPIC\\\" && make -j$(nproc) && make install"},
+			{type = "configure", dir = extract, args = {"--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-fPIC"}, stderr_hint = "iconv configure failed"},
+			{type = "make", dir = extract, args = {"-j$(nproc)"}, stderr_hint = "iconv build failed"},
+			{type = "make", dir = extract, args = {"install"}, stderr_hint = "iconv install failed"},
 			{type = "assert_file", path = prefix .. "/lib/libiconv.so"},
 			{type = "assert_file", path = prefix .. "/lib/libcharset.so"},
 			{type = "copy_exact", src = prefix .. "/lib/libiconv.so", dst = "${bin_dir}/libiconv.so", flags = "-Lf"},
@@ -69,7 +73,9 @@ local function add_openssl(spec, deps, prefix, prefix_abs)
 		actions = {
 			{type = "download", url = openssl.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", dir = extract, stderr_hint = "OpenSSL configure/build failed", command = "./Configure linux-x86_64 --prefix=" .. prefix_abs .. " --openssldir=" .. prefix_abs .. "/ssl shared zlib --with-zlib-include=" .. prefix_abs .. "/include --with-zlib-lib=" .. prefix_abs .. "/lib && make -j$(nproc) && make install_sw"},
+			{type = "configure", dir = extract, script = "./Configure", args = {"linux-x86_64", "--prefix=" .. prefix_abs, "--openssldir=" .. prefix_abs .. "/ssl", "shared", "zlib", "--with-zlib-include=" .. prefix_abs .. "/include", "--with-zlib-lib=" .. prefix_abs .. "/lib"}, stderr_hint = "OpenSSL configure failed"},
+			{type = "make", dir = extract, args = {"-j$(nproc)"}, stderr_hint = "OpenSSL build failed"},
+			{type = "make", dir = extract, args = {"install_sw"}, stderr_hint = "OpenSSL install failed"},
 			{type = "assert_file", path = prefix .. "/lib/libssl.so.3", message = "Expected OpenSSL at " .. prefix .. "/lib/libssl.so.3"},
 			{type = "assert_file", path = prefix .. "/lib/libcrypto.so.3", message = "Expected OpenSSL at " .. prefix .. "/lib/libcrypto.so.3"},
 			{type = "copy_exact", src = prefix .. "/lib/libssl.so.3", dst = "${bin_dir}/libssl.so.3", flags = "-Lf"},
@@ -132,7 +138,8 @@ local function add_fftw(spec, deps)
 		actions = {
 			{type = "download", url = fftw.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "cmake -S " .. extract .. " -B " .. extract .. "/build-cmake -DBUILD_SHARED_LIBS=ON && cmake --build " .. extract .. "/build-cmake -j$(nproc)"},
+			{type = "cmake_configure", src_dir = extract, build_dir = extract .. "/build-cmake", args = {"-DBUILD_SHARED_LIBS=ON"}, stderr_hint = "fftw cmake configure failed"},
+			{type = "cmake_build", build_dir = extract .. "/build-cmake", args = {"-j$(nproc)"}, stderr_hint = "fftw cmake build failed"},
 			{type = "assert_file", path = extract .. "/build-cmake/libfftw3.so"},
 			{type = "copy_exact", src = extract .. "/build-cmake/libfftw3.so", dst = "${bin_dir}/libfftw3.so", flags = "-L"},
 		},

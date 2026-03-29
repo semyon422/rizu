@@ -7,7 +7,7 @@ local function add_prepare_prefix(spec, prefix)
 		id = "macos_prepare_prefix",
 		kind = "source-build",
 		actions = {
-			{type = "assert_exists", path = "build/deps/osxcross/target/bin", message = "macOS osxcross compiler not found. Run ./rizu/build/make.lua macos_toolchain"},
+			{type = "assert_exists", path = "build/deps/osxcross/target/bin", message = "macOS osxcross compiler not found. Run ./rizu/build/make.lua setup_macos_toolchain"},
 			{type = "ensure_dir", path = "${deps_dir}/local"},
 			{type = "ensure_dir", path = prefix},
 			{type = "ensure_dir", path = prefix .. "/lib"},
@@ -76,7 +76,8 @@ local function add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
 		actions = {
 			{type = "download", url = iconv.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", stderr_hint = "Shell command failed", command = "cat > ${deps_dir}/dd32.sh <<'DD'\n#!/bin/sh\ncat | head -c 32\nDD\nchmod +x ${deps_dir}/dd32.sh"},
+			{type = "write_file", path = "${deps_dir}/dd32.sh", content = "#!/bin/sh\ncat | head -c 32\n"},
+			{type = "set_executable", path = "${deps_dir}/dd32.sh"},
 			{type = "shell", stderr_hint = "Shell command failed", command = "TC=$(ls " .. tc_bin .. "/x86_64-apple-darwin*-clang 2>/dev/null | head -n1); HOST=$(basename $TC | sed 's/-clang$//'); AR=" .. tc_bin .. "/$HOST-ar; RANLIB=" .. tc_bin .. "/$HOST-ranlib; bash -lc 'export PATH=" .. tc_bin .. ":$PATH; cd " .. extract .. " && ac_cv_path_lt_DD=${root_abs}/${deps_dir}/dd32.sh DD=${root_abs}/${deps_dir}/dd32.sh CC='$TC' AR='$AR' RANLIB='$RANLIB' ./configure --host=$HOST --prefix=" .. prefix_abs .. " --enable-shared --disable-static CFLAGS=\"-O2 -fPIC\" < /dev/null && make -j$(nproc) && make install'"},
 			{type = "copy", src = prefix .. "/lib/libiconv.dylib", dst = "${bin_dir}/libiconv.dylib", flags = "-f"},
 			{type = "copy", src = prefix .. "/lib/libcharset.dylib", dst = "${bin_dir}/libcharset.dylib", flags = "-f"},

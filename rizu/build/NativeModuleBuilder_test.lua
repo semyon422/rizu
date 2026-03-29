@@ -1,4 +1,4 @@
-local Builder = require("rizu.build.Builder")
+local NativeModuleBuilder = require("rizu.build.NativeModuleBuilder")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
@@ -28,14 +28,14 @@ function test.macos_compiler_uses_hardcoded_osxcross_clang(t)
 	state.fs:createDirectory("build/deps/osxcross/target/bin")
 	state.fs:write("build/deps/osxcross/target/bin/x86_64-apple-darwin22.2-clang", "x")
 
-	local cc = Builder(ctx, "macos"):getCompiler()
+	local cc = NativeModuleBuilder(ctx, "macos"):getCompiler()
 	t:assert(cc:find("PATH=/repo/build/deps/osxcross/target/bin:$PATH", 1, true))
 	t:assert(cc:find("x86_64-apple-darwin22.2-clang", 1, true))
 end
 
 function test.macos_compiler_falls_back_when_osxcross_missing(t)
 	local ctx = makeCtx()
-	local cc = Builder(ctx, "macos"):getCompiler()
+	local cc = NativeModuleBuilder(ctx, "macos"):getCompiler()
 	t:eq(cc, "x86_64-apple-darwin22.2-clang")
 end
 

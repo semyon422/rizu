@@ -1,4 +1,4 @@
-local Context = require("rizu.build.deps.engine.Context")
+local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local Executor = require("rizu.build.deps.engine.Executor")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
@@ -30,7 +30,7 @@ end
 
 function test.run_step_returns_structured_result(t)
 	local ctx, state = makeCtx()
-	local env = Context.new(ctx, "linux")
+	local env = BuildEnv.new(ctx, "linux")
 	local result = Executor.runStep(env, {
 		id = "demo",
 		kind = "archive",
@@ -50,7 +50,7 @@ end
 function test.skip_if_exists_all_skips_step_without_outputs(t)
 	local ctx, state = makeCtx()
 	state.fs:createDirectory("build/deps/exists")
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "skip",
 		kind = "archive",
@@ -66,7 +66,7 @@ end
 function test.outputs_take_precedence_over_skip_if_exists_all(t)
 	local ctx, state = makeCtx()
 	state.fs:createDirectory("build/deps/exists")
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "do-not-skip",
 		kind = "archive",
@@ -84,7 +84,7 @@ function test.modules_kind_is_not_skipped_by_existing_outputs(t)
 	local ctx, state = makeCtx()
 	state.fs:createDirectory("build/artifacts/linux")
 	state.fs:write("build/artifacts/linux/lib7z.so", "x")
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "modules_build",
 		kind = "modules",
@@ -101,7 +101,7 @@ function test.typed_actions_run_with_structured_result(t)
 	local ctx, state = makeCtx()
 	state.fs:write("a", "x")
 	state.fs:createDirectory("dir")
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "typed",
 		kind = "archive",
@@ -121,7 +121,7 @@ end
 
 function test.shell_action_supports_dir(t)
 	local ctx, state = makeCtx()
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "shell_with_dir",
 		kind = "archive",
@@ -136,7 +136,7 @@ end
 
 function test.copy_exact_fails_when_source_missing(t)
 	local ctx = makeCtx()
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local ok, err = pcall(function()
 		Executor.runStep(env, {
 			id = "copy_fail",
@@ -152,7 +152,7 @@ end
 
 function test.run_spec_skips_step_when_requires_missing(t)
 	local ctx, state = makeCtx()
-	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 
 	local results = Executor.runSpec(env, {
 		target = "linux",

@@ -1,18 +1,18 @@
 local ITask = require("rizu.build.ITask")
 
----@class rizu.build.tasks.SetupCrossMacOSTask: rizu.build.ITask
----@operator call: rizu.build.tasks.SetupCrossMacOSTask
+---@class rizu.build.tasks.SetupMacOSToolchainTask: rizu.build.ITask
+---@operator call: rizu.build.tasks.SetupMacOSToolchainTask
 ---@field name string
 ---@field deps string[]
-local SetupCrossMacOSTask = ITask + {}
+local SetupMacOSToolchainTask = ITask + {}
 
-function SetupCrossMacOSTask:new()
-	self.name = "setup_cross_macos"
+function SetupMacOSToolchainTask:new()
+	self.name = "setup_macos_toolchain"
 	self.deps = {}
 end
 
 ---@param ctx rizu.build.Context
-function SetupCrossMacOSTask:run(ctx)
+function SetupMacOSToolchainTask:run(ctx)
 	local build_dir = "build"
 	local deps_dir = build_dir .. "/deps"
 	local downloads_dir = build_dir .. "/downloads"
@@ -98,7 +98,7 @@ end
 
 ---@param ctx rizu.build.Context
 ---@return rizu.build.StatusRow[]
-function SetupCrossMacOSTask:getStatus(ctx)
+function SetupMacOSToolchainTask:getStatus(ctx)
 	local osxcross_dir = "build/deps/osxcross"
 	-- Check for the presence of a compiler, not just the directory or xar
 	local compiler = osxcross_dir .. "/target/bin/x86_64-apple-darwin19-clang"
@@ -118,4 +118,4 @@ function SetupCrossMacOSTask:getStatus(ctx)
 	return {{name = "macOS Toolchain", value = exists}}
 end
 
-return SetupCrossMacOSTask
+return SetupMacOSToolchainTask
