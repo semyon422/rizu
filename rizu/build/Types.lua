@@ -18,6 +18,7 @@
 ---@class rizu.build.deps.Action
 ---@field type string
 ---@field command? string
+---@field compiler? string
 ---@field dir? string
 ---@field src_dir? string
 ---@field build_dir? string
@@ -30,6 +31,13 @@
 ---@field src? string
 ---@field dst? string
 ---@field path? string
+---@field sources? string[]
+---@field output? string
+---@field cflags? string[]
+---@field includes? string[]
+---@field lib_dirs? string[]
+---@field libs? string[]
+---@field ldflags? string[]
 ---@field pattern? string
 ---@field out_file? string
 ---@field args? string|string[]

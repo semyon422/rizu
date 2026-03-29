@@ -23,6 +23,7 @@ local action_requirements = {
 	extract = {"format", "archive", "dest"},
 	configure = {"dir"},
 	run_in_dir = {"dir", "command"},
+	compile_c = {"compiler", "output", "sources"},
 	make = {"dir"},
 	cmake_configure = {"src_dir", "build_dir"},
 	cmake_build = {"build_dir"},
@@ -66,6 +67,8 @@ local function inferOutputsFromActions(step)
 			table.insert(outputs, action.path)
 		elseif action.type == "write_file" and action.path then
 			table.insert(outputs, action.path)
+		elseif action.type == "compile_c" and action.output then
+			table.insert(outputs, action.output)
 		end
 	end
 	if #outputs == 0 and step.skip_if_exists_all then

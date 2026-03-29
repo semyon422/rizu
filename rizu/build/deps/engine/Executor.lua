@@ -17,6 +17,7 @@ end
 local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.archive"),
 	require("rizu.build.deps.actions.shell"),
+	require("rizu.build.deps.actions.compile"),
 	require("rizu.build.deps.actions.filesystem"),
 	require("rizu.build.deps.actions.git"),
 	require("rizu.build.deps.actions.platform"),

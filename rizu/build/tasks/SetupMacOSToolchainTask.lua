@@ -100,20 +100,9 @@ end
 ---@return rizu.build.StatusRow[]
 function SetupMacOSToolchainTask:getStatus(ctx)
 	local osxcross_dir = "build/deps/osxcross"
-	-- Check for the presence of a compiler, not just the directory or xar
-	local compiler = osxcross_dir .. "/target/bin/x86_64-apple-darwin19-clang"
+	-- Check for the specific compiler version used by the build pipeline.
+	local compiler = osxcross_dir .. "/target/bin/x86_64-apple-darwin22.2-clang"
 	local exists = ctx.fs:getInfo(compiler) and "READY" or "MISSING"
-
-	-- If the specific version is missing, check for any darwin compiler
-	if exists == "MISSING" then
-		local bins = ctx.fs:getDirectoryItems(osxcross_dir .. "/target/bin") or {}
-		for _, b in ipairs(bins) do
-			if b:match("apple%-darwin.*%-clang$") then
-				exists = "READY (" .. b:match("darwin(%d+)") .. ")"
-				break
-			end
-		end
-	end
 
 	return {{name = "macOS Toolchain", value = exists}}
 end

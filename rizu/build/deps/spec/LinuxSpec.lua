@@ -101,7 +101,29 @@ local function add_luasec(spec, deps, prefix, prefix_abs)
 			{type = "download", url = luasec.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
 			{type = "assert_file", path = prefix .. "/lib/libssl.so.3"},
-			{type = "run_in_dir", dir = extract, command = "gcc -O2 -fPIC -shared -DWITH_LUASOCKET -I${root_abs}/tree/include/luajit-2.1 -I" .. prefix_abs .. "/include -Isrc -Isrc/luasocket src/options.c src/x509.c src/context.c src/ssl.c src/config.c src/ec.c src/luasocket/io.c src/luasocket/buffer.c src/luasocket/timeout.c src/luasocket/usocket.c -o src/ssl.so -L" .. prefix_abs .. "/lib -Wl,-rpath,\\$ORIGIN -lssl -lcrypto"},
+			{
+				type = "compile_c",
+				compiler = "gcc",
+				dir = extract,
+				cflags = {"-O2", "-fPIC", "-shared", "-DWITH_LUASOCKET"},
+				includes = {"${root_abs}/tree/include/luajit-2.1", prefix_abs .. "/include", "src", "src/luasocket"},
+				sources = {
+					"src/options.c",
+					"src/x509.c",
+					"src/context.c",
+					"src/ssl.c",
+					"src/config.c",
+					"src/ec.c",
+					"src/luasocket/io.c",
+					"src/luasocket/buffer.c",
+					"src/luasocket/timeout.c",
+					"src/luasocket/usocket.c",
+				},
+				output = "src/ssl.so",
+				lib_dirs = {prefix_abs .. "/lib"},
+				libs = {"ssl", "crypto"},
+				ldflags = {"-Wl,-rpath,\\$ORIGIN"},
+			},
 			{type = "copy", src = extract .. "/src/ssl.so", dst = "${bin_dir}/ssl.so", flags = "-f"},
 		},
 	})
@@ -120,7 +142,14 @@ local function add_sqlite(spec, deps)
 		actions = {
 			{type = "download", url = sqlite.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "shell", command = "gcc -shared -fPIC -O2 " .. extract .. "/sqlite3.c -o ${bin_dir}/libsqlite3.so -lm -ldl -lpthread"},
+			{
+				type = "compile_c",
+				compiler = "gcc",
+				cflags = {"-shared", "-fPIC", "-O2"},
+				sources = {extract .. "/sqlite3.c"},
+				output = "${bin_dir}/libsqlite3.so",
+				libs = {"m", "dl", "pthread"},
+			},
 		},
 	})
 end
