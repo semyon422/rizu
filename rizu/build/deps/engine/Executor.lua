@@ -231,6 +231,15 @@ local handlers = {
 	noop = noop,
 }
 
+local function hasAllRequired(env, step)
+	for _, req in ipairs(step.requires or {}) do
+		if not env.ctx.fs:getInfo(resolve(env, req)) then
+			return false
+		end
+	end
+	return true
+end
+
 local function shouldSkip(env, step)
 	-- Module builds must re-evaluate freshness; output presence alone is not enough.
 	if step.kind == "modules" then
@@ -283,7 +292,17 @@ end
 function Executor.runSpec(env, spec)
 	local results = {}
 	for _, step in ipairs(spec.steps or {}) do
-		table.insert(results, Executor.runStep(env, step))
+		if hasAllRequired(env, step) then
+			table.insert(results, Executor.runStep(env, step))
+		else
+			table.insert(results, {
+				ok = true,
+				exit_code = 0,
+				step_id = step.id,
+				command = "<skipped: requires missing>",
+				stderr_hint = nil,
+			})
+		end
 	end
 	return results
 end

@@ -24,8 +24,7 @@ local ctx = Context(
 	LinuxFilesystem(),
 	Shell(),
 	Downloader(),
-	target,
-	"."
+	target
 )
 
 local runner = TaskRunner(ctx)

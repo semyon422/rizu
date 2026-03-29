@@ -19,11 +19,10 @@ end
 ---@return rizu.build.deps.Env
 function Context.new(ctx, target, opts)
 	local normalized_target = BuildConfig.normalizeTarget(target)
-	local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
 	local env = {
 		ctx = ctx,
 		target = normalized_target,
-		root_abs = root_abs,
+		root_abs = ctx.fs:getWorkingDirectory(),
 		bin_dir = BuildConfig.getBinDir(normalized_target),
 		downloads_dir = BuildConfig.getDownloadsDir(),
 		deps_dir = BuildConfig.getDepsDir(),

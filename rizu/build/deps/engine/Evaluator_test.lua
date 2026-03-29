@@ -1,30 +1,28 @@
 local Context = require("rizu.build.deps.engine.Context")
 local Evaluator = require("rizu.build.deps.engine.Evaluator")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
 local function makeCtx()
-	local state = {info = {}}
-	local fs = {}
-	function fs:getInfo(path) return state.info[path] end
-	function fs:createDirectory(path)
-		state.info[path] = state.info[path] or {type = "directory", modtime = 1}
-	end
-	function fs:remove(path) state.info[path] = nil end
+	local state = {fs = FakeFilesystem()}
+	state.fs:setWorkingDirectory("/repo")
 
 	local shell = {}
 	function shell:execute() return true end
-	function shell:popen(cmd)
-		if cmd == "pwd" then return "/repo\n" end
-		return ""
-	end
+	function shell:popen() return "" end
 
 	local downloader = {}
 	function downloader:download(url, dest)
-		state.info[dest] = {type = "file", size = 100, modtime = 1}
+		state.fs:setTime(1)
+		local parent = dest:match("(.+)/[^/]+$")
+		if parent then
+			state.fs:createDirectory(parent)
+		end
+		state.fs:write(dest, string.rep("x", 100))
 	end
 
-	return {fs = fs, shell = shell, downloader = downloader}, state
+	return {fs = state.fs, shell = shell, downloader = downloader}, state
 end
 
 function test.evaluate_outputs_and_aggregate(t)
@@ -39,13 +37,15 @@ function test.evaluate_outputs_and_aggregate(t)
 		outputs = {"${deps_dir}/a", "${deps_dir}/b"},
 	}
 
-	state.info["build/deps/a"] = {type = "directory", modtime = 1}
+	state.fs:setTime(1)
+	state.fs:createDirectory("build/deps/a")
 	local eval = Evaluator.evaluate(env, spec)
 	t:eq(eval.aggregate, "MISSING")
 	t:eq(eval.steps[1].state, "OK")
 	t:eq(eval.steps[2].state, "MISSING")
 
-	state.info["build/deps/b"] = {type = "directory", modtime = 1}
+	state.fs:setTime(1)
+	state.fs:createDirectory("build/deps/b")
 	t:eq(Evaluator.isUpToDate(env, spec), true)
 end
 

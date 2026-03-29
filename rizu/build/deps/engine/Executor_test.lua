@@ -1,32 +1,31 @@
 local Context = require("rizu.build.deps.engine.Context")
 local Executor = require("rizu.build.deps.engine.Executor")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
 local function makeCtx()
-	local state = {info = {}, exec = {}, downloads = {}}
-	local fs = {}
-	function fs:getInfo(path) return state.info[path] end
-	function fs:createDirectory(path) state.info[path] = state.info[path] or {type = "directory"} end
-	function fs:remove(path) state.info[path] = nil end
+	local state = {fs = FakeFilesystem(), exec = {}, downloads = {}}
+	state.fs:setWorkingDirectory("/repo")
 
 	local shell = {}
 	function shell:execute(cmd)
 		table.insert(state.exec, cmd)
 		return true
 	end
-	function shell:popen(cmd)
-		if cmd == "pwd" then return "/repo\n" end
-		return ""
-	end
+	function shell:popen() return "" end
 
 	local downloader = {}
 	function downloader:download(url, dest)
 		table.insert(state.downloads, {url = url, dest = dest})
-		state.info[dest] = {type = "file", size = 100}
+		local parent = dest:match("(.+)/[^/]+$")
+		if parent then
+			state.fs:createDirectory(parent)
+		end
+		state.fs:write(dest, string.rep("x", 100))
 	end
 
-	return {fs = fs, shell = shell, downloader = downloader}, state
+	return {fs = state.fs, shell = shell, downloader = downloader}, state
 end
 
 function test.run_step_returns_structured_result(t)
@@ -50,7 +49,7 @@ end
 
 function test.skip_if_exists_all_skips_step_without_outputs(t)
 	local ctx, state = makeCtx()
-	state.info["build/deps/exists"] = {type = "directory"}
+	state.fs:createDirectory("build/deps/exists")
 	local env = Context.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "skip",
@@ -66,7 +65,7 @@ end
 
 function test.outputs_take_precedence_over_skip_if_exists_all(t)
 	local ctx, state = makeCtx()
-	state.info["build/deps/exists"] = {type = "directory"}
+	state.fs:createDirectory("build/deps/exists")
 	local env = Context.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "do-not-skip",
@@ -83,7 +82,8 @@ end
 
 function test.modules_kind_is_not_skipped_by_existing_outputs(t)
 	local ctx, state = makeCtx()
-	state.info["build/artifacts/linux/lib7z.so"] = {type = "file", size = 1}
+	state.fs:createDirectory("build/artifacts/linux")
+	state.fs:write("build/artifacts/linux/lib7z.so", "x")
 	local env = Context.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "modules_build",
@@ -99,8 +99,8 @@ end
 
 function test.typed_actions_run_with_structured_result(t)
 	local ctx, state = makeCtx()
-	state.info["a"] = {type = "file", size = 1}
-	state.info["dir"] = {type = "directory"}
+	state.fs:write("a", "x")
+	state.fs:createDirectory("dir")
 	local env = Context.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
 		id = "typed",
@@ -148,6 +148,37 @@ function test.copy_exact_fails_when_source_missing(t)
 	end)
 	t:eq(ok, false)
 	t:assert(tostring(err):find("Missing source for copy_exact"))
+end
+
+function test.run_spec_skips_step_when_requires_missing(t)
+	local ctx, state = makeCtx()
+	local env = Context.new(ctx, "linux", {initialize_dirs = false})
+
+	local results = Executor.runSpec(env, {
+		target = "linux",
+		steps = {
+			{
+				id = "first",
+				kind = "archive",
+				actions = {
+					{type = "shell", command = "echo first", stderr_hint = "first failed"},
+				},
+			},
+			{
+				id = "second",
+				kind = "archive",
+				requires = {"build/deps/required-file"},
+				actions = {
+					{type = "shell", command = "echo second", stderr_hint = "second failed"},
+				},
+			},
+		},
+	})
+
+	t:eq(#results, 2)
+	t:eq(results[1].command, "echo first")
+	t:eq(results[2].command, "<skipped: requires missing>")
+	t:eq(#state.exec, 1)
 end
 
 return test

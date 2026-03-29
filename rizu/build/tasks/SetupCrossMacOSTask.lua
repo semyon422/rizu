@@ -41,7 +41,7 @@ function SetupCrossMacOSTask:run(ctx)
 	local target_bin = osxcross_dir .. "/target/bin"
 	if not ctx.fs:getInfo(target_bin .. "/xar") then
 		print("Building osxcross helper tools (xar, pbzx)...")
-		local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
+		local root_abs = ctx.fs:getWorkingDirectory()
 		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
 
 		-- xar
@@ -56,7 +56,7 @@ function SetupCrossMacOSTask:run(ctx)
 	local sdk_tarball = osxcross_dir .. "/tarballs/MacOSX" .. sdk_version .. ".sdk.tar.xz"
 	if not ctx.fs:getInfo(sdk_tarball) then
 		print("Extracting MacOS SDK from .xip (this might take a while)...")
-		local root_abs = ctx.shell:popen("pwd"):gsub("%s+$", "")
+		local root_abs = ctx.fs:getWorkingDirectory()
 		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
 		local xip_abs = root_abs .. "/build/downloads/Xcode_14.2.xip"
 
@@ -92,7 +92,7 @@ function SetupCrossMacOSTask:run(ctx)
 	print("MacOS Cross-Compilation Setup Complete!")
 	print("---------------------------------------------------")
 	print("To use the toolchain, add the following to your PATH:")
-	print("export PATH=$PATH:" .. ctx.root .. "/" .. osxcross_dir .. "/target/bin")
+	print("export PATH=$PATH:" .. ctx.fs:getWorkingDirectory() .. "/" .. osxcross_dir .. "/target/bin")
 	print("---------------------------------------------------")
 end
 

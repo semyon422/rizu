@@ -26,7 +26,7 @@ function test.build_and_package(t)
 	local fs = FakeFilesystem()
 	local src_fs = LinuxFilesystem()
 	local shell = MockShell()
-	local ctx = Context(fs, shell, nil, "linux", ".")
+	local ctx = Context(fs, shell, nil, "linux")
 
 	local git_repo = CurrentRepo(ctx)
 	-- When using real FS, "." is the current project root which has all files

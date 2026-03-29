@@ -26,24 +26,20 @@ end
 
 function Builder:getCompiler()
 	local t = self.target
+	local compilers = {
+		windows = "x86_64-w64-mingw32-gcc",
+		macos = "x86_64-apple-darwin22.2-clang",
+	}
+	local cc = compilers[t] or "gcc"
 
-	if jit.os == "Linux" then
-		local compilers = {
-			windows = "x86_64-w64-mingw32-gcc",
-			macos = "x86_64-apple-darwin22.2-clang",
-		}
-		local cc = compilers[t] or "gcc"
-
-		if t == "macos" then
-			local osxcross_bin = self.ctx.shell:popen("pwd"):gsub("%s+$", "") .. "/build/deps/osxcross/target/bin"
-			if self.ctx.fs:getInfo("build/deps/osxcross/target/bin/" .. cc) then
-				return string.format("PATH=%s:$PATH %s/%s", osxcross_bin, osxcross_bin, cc)
-			end
+	if t == "macos" then
+		local osxcross_bin = self.ctx.fs:getWorkingDirectory() .. "/build/deps/osxcross/target/bin"
+		if self.ctx.fs:getInfo("build/deps/osxcross/target/bin/" .. cc) then
+			return string.format("PATH=%s:$PATH %s/%s", osxcross_bin, osxcross_bin, cc)
 		end
-
-		return cc
 	end
-	return "gcc"
+
+	return cc
 end
 
 function Builder:getFFmpegPaths()

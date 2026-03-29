@@ -1,34 +1,31 @@
 local Pipeline = require("rizu.build.tasks.PipelineTask")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
 local function makeCtx()
-	local state = {info = {}, dirs = {}, exec = {}, downloads = {}}
-	local fs = {}
-	function fs:getInfo(path) return state.info[path] end
-	function fs:createDirectory(path)
-		state.dirs[path] = true
-		state.info[path] = state.info[path] or {type = "directory", modtime = 1}
-	end
-	function fs:remove(path) state.info[path] = nil end
+	local state = {fs = FakeFilesystem(), exec = {}, downloads = {}}
+	state.fs:setWorkingDirectory("/repo")
 
 	local shell = {}
 	function shell:execute(cmd)
 		table.insert(state.exec, cmd)
 		return true
 	end
-	function shell:popen(cmd)
-		if cmd == "pwd" then return "/repo\n" end
-		return ""
-	end
+	function shell:popen() return "" end
 
 	local downloader = {}
 	function downloader:download(url, dest)
 		table.insert(state.downloads, {url = url, dest = dest})
-		state.info[dest] = {type = "file", size = 100, modtime = 1}
+		state.fs:setTime(1)
+		local parent = dest:match("(.+)/[^/]+$")
+		if parent then
+			state.fs:createDirectory(parent)
+		end
+		state.fs:write(dest, string.rep("x", 100))
 	end
 
-	return {fs = fs, shell = shell, downloader = downloader}, state
+	return {fs = state.fs, shell = shell, downloader = downloader}, state
 end
 
 function test.pipeline_status_and_uptodate(t)
@@ -36,21 +33,28 @@ function test.pipeline_status_and_uptodate(t)
 	local p = Pipeline("linux")
 	t:eq(p:upToDate(ctx), false)
 
-	state.info["build/deps/ffmpeg-linux"] = {type = "directory", modtime = 1}
-	state.info["build/deps/7zsdk"] = {type = "directory", modtime = 1}
-	state.info["build/deps/minacalc"] = {type = "directory", modtime = 1}
-	state.info["build/deps/luamidi"] = {type = "directory", modtime = 1}
-	state.info["build/deps/luamidi/rtmidi/RtMidi.h"] = {type = "file", modtime = 1}
-	state.info["build/artifacts/linux/lib7z.so"] = {type = "file", modtime = 2}
-	state.info["build/artifacts/linux/video.so"] = {type = "file", modtime = 2}
-	state.info["build/artifacts/linux/libminacalc.so"] = {type = "file", modtime = 2}
-	state.info["build/artifacts/linux/luamidi.so"] = {type = "file", modtime = 2}
-	state.info["bin/linux64/lib7z.so"] = {type = "file", modtime = 2}
-	state.info["bin/linux64/video.so"] = {type = "file", modtime = 2}
-	state.info["bin/linux64/libminacalc.so"] = {type = "file", modtime = 2}
-	state.info["bin/linux64/luamidi.so"] = {type = "file", modtime = 2}
-	state.info["aqua/video.c"] = {type = "file", modtime = 1}
-	state.info["aqua/7z.c"] = {type = "file", modtime = 1}
+	state.fs:setTime(1)
+	state.fs:createDirectory("build/deps/ffmpeg-linux")
+	state.fs:createDirectory("build/deps/7zsdk")
+	state.fs:createDirectory("build/deps/minacalc")
+	state.fs:createDirectory("build/deps/luamidi")
+	state.fs:createDirectory("build/deps/luamidi/rtmidi")
+	state.fs:write("build/deps/luamidi/rtmidi/RtMidi.h", "x")
+	state.fs:createDirectory("aqua")
+	state.fs:write("aqua/video.c", "x")
+	state.fs:write("aqua/7z.c", "x")
+
+	state.fs:setTime(2)
+	state.fs:createDirectory("build/artifacts/linux")
+	state.fs:write("build/artifacts/linux/lib7z.so", "x")
+	state.fs:write("build/artifacts/linux/video.so", "x")
+	state.fs:write("build/artifacts/linux/libminacalc.so", "x")
+	state.fs:write("build/artifacts/linux/luamidi.so", "x")
+	state.fs:createDirectory("bin/linux64")
+	state.fs:write("bin/linux64/lib7z.so", "x")
+	state.fs:write("bin/linux64/video.so", "x")
+	state.fs:write("bin/linux64/libminacalc.so", "x")
+	state.fs:write("bin/linux64/luamidi.so", "x")
 
 	local rows = p:getStatus(ctx)
 	t:assert(#rows > 0)

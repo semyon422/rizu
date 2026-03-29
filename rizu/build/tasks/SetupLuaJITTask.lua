@@ -33,7 +33,7 @@ function SetupLuaJITTask:run(ctx)
 		ctx.shell:execute("make -C " .. luajit_dir .. " -j$(nproc)")
 
 		print("Installing LuaJIT to " .. tree_dir .. "...")
-		ctx.shell:execute(string.format("make -C %s install DESTDIR=%q PREFIX=", luajit_dir, ctx.root .. "/" .. tree_dir))
+		ctx.shell:execute(string.format("make -C %s install DESTDIR=%q PREFIX=", luajit_dir, ctx.fs:getWorkingDirectory() .. "/" .. tree_dir))
 
 		print("Creating luajit symlink...")
 		ctx.shell:execute(string.format("ln -sf %s/bin/luajit-* %s/bin/luajit", tree_dir, tree_dir))

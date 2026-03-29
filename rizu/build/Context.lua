@@ -6,20 +6,17 @@ local class = require("class")
 ---@field shell rizu.build.IShell
 ---@field downloader rizu.build.IDownloader
 ---@field target rizu.build.Target
----@field root string
 local Context = class()
 
 ---@param fs fs.IFilesystem
 ---@param shell rizu.build.IShell
 ---@param downloader rizu.build.IDownloader
 ---@param target rizu.build.Target
----@param root string
-function Context:new(fs, shell, downloader, target, root)
+function Context:new(fs, shell, downloader, target)
 	self.fs = fs
 	self.shell = shell
 	self.downloader = downloader
 	self.target = target
-	self.root = root
 end
 
 return Context
