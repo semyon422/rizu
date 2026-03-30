@@ -35,7 +35,7 @@ function BassDepsSpec.add(target, deps, spec)
 				{type = "extract", format = "zip", archive = archive, dest = extract},
 			}
 
-			table.insert(actions, {type = "assert_file", path = src .. dep_name .. " artifact at " .. src})
+			table.insert(actions, {type = "assert_file", path = src})
 			table.insert(actions, {type = "copy_exact", src = src, dst = "${bin_dir}/" .. out_name, flags = "-f"})
 
 			table.insert(spec.steps, {

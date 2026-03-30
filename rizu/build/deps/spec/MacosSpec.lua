@@ -4,6 +4,15 @@ local Macos = {}
 local DARWIN_CC = "x86_64-apple-darwin22.2-clang"
 local DARWIN_TRIPLE = "x86_64-apple-darwin22.2"
 
+local function crossEnv(tc_bin)
+	return {
+		PATH = tc_bin .. ":$PATH",
+		CC = tc_bin .. "/" .. DARWIN_CC,
+		AR = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ar",
+		RANLIB = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ranlib",
+	}
+end
+
 local function add_prepare_prefix(spec, prefix)
 	table.insert(spec.steps, {
 		id = "macos_prepare_prefix",
@@ -35,6 +44,7 @@ local function add_ffmpeg(spec, deps, prefix, prefix_abs, tc_bin)
 			{
 				type = "configure",
 				dir = extract,
+				env = crossEnv(tc_bin),
 				args = {
 					"--prefix=" .. prefix_abs .. "/ffmpeg",
 					"--enable-cross-compile",
@@ -52,8 +62,8 @@ local function add_ffmpeg(spec, deps, prefix, prefix_abs, tc_bin)
 					"--disable-videotoolbox",
 				},
 			},
-			{type = "make", dir = extract, args = {"-j$(nproc)"}},
-			{type = "make", dir = extract, args = {"install", "STRIP=true"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install", "STRIP=true"}},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavcodec.dylib"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavformat.dylib"},
 			{type = "assert_file", path = prefix .. "/ffmpeg/lib/libavutil.dylib"},
@@ -85,6 +95,7 @@ local function add_zlib(spec, deps, prefix, prefix_abs, tc_bin)
 				type = "compile_c",
 				compiler = tc_bin .. "/" .. DARWIN_CC,
 				dir = extract,
+				env = crossEnv(tc_bin),
 				cflags = {"-dynamiclib", "-fPIC", "-O2", "-DHAVE_UNISTD_H", "-install_name", "@rpath/libz.dylib"},
 				sources = {
 					"adler32.c",
@@ -131,10 +142,10 @@ local function add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
 				type = "configure",
 				dir = extract,
 				env = {
-					PATH = tc_bin .. ":$PATH",
-					CC = tc_bin .. "/" .. DARWIN_CC,
-					AR = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ar",
-					RANLIB = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ranlib",
+					PATH = crossEnv(tc_bin).PATH,
+					CC = crossEnv(tc_bin).CC,
+					AR = crossEnv(tc_bin).AR,
+					RANLIB = crossEnv(tc_bin).RANLIB,
 					ac_cv_path_lt_DD = "${root_abs}/${deps_dir}/dd32.sh",
 					DD = "${root_abs}/${deps_dir}/dd32.sh",
 				},
@@ -146,8 +157,8 @@ local function add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
 					"CFLAGS=-O2 -fPIC",
 				},
 			},
-			{type = "make", dir = extract, args = {"-j$(nproc)"}},
-			{type = "make", dir = extract, args = {"install"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install"}},
 			{type = "copy", src = prefix .. "/lib/libiconv.dylib", dst = "${bin_dir}/libiconv.dylib", flags = "-f"},
 			{type = "copy", src = prefix .. "/lib/libcharset.dylib", dst = "${bin_dir}/libcharset.dylib", flags = "-f"},
 		},
@@ -171,12 +182,7 @@ local function add_openssl(spec, deps, prefix, prefix_abs, tc_bin)
 				type = "configure",
 				dir = extract,
 				script = "./Configure",
-				env = {
-					PATH = tc_bin .. ":$PATH",
-					CC = tc_bin .. "/" .. DARWIN_CC,
-					AR = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ar",
-					RANLIB = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ranlib",
-				},
+				env = crossEnv(tc_bin),
 				args = {
 					"darwin64-x86_64-cc",
 					"shared",
@@ -184,8 +190,8 @@ local function add_openssl(spec, deps, prefix, prefix_abs, tc_bin)
 					"--openssldir=" .. prefix_abs .. "/ssl",
 				},
 			},
-			{type = "make", dir = extract, args = {"-j$(nproc)"}},
-			{type = "make", dir = extract, args = {"install_sw"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install_sw"}},
 			{type = "assert_file", path = prefix .. "/lib/libssl.dylib"},
 			{type = "assert_file", path = prefix .. "/lib/libcrypto.dylib"},
 			{type = "copy_exact", src = prefix .. "/lib/libssl.dylib", dst = "${bin_dir}/libssl.dylib", flags = "-f"},
@@ -213,6 +219,7 @@ local function add_luasec(spec, deps, prefix, prefix_abs, tc_bin)
 				type = "compile_c",
 				compiler = tc_bin .. "/" .. DARWIN_CC,
 				dir = extract,
+				env = crossEnv(tc_bin),
 				cflags = {"-O2", "-dynamiclib", "-undefined", "dynamic_lookup", "-DWITH_LUASOCKET"},
 				includes = {"${root_abs}/tree/include/luajit-2.1", prefix_abs .. "/include", "src", "src/luasocket"},
 				sources = {

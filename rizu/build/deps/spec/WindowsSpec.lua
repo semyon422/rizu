@@ -98,7 +98,7 @@ local function add_luasec(spec, deps, prefix, prefix_abs)
 			{type = "assert_exists", path = "tree/lib/libluajit-5.1.dll.a"},
 			{type = "download", url = luasec.url, dest = archive},
 			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "assert_file", path = prefix .. "/lib/libssl.dll.a"},
+			{type = "assert_file", path = prefix .. "/lib64/libssl.dll.a"},
 			{
 				type = "compile_c",
 				compiler = "x86_64-w64-mingw32-gcc",
@@ -118,7 +118,7 @@ local function add_luasec(spec, deps, prefix, prefix_abs)
 					"src/luasocket/wsocket.c",
 				},
 				output = "src/ssl.dll",
-				lib_dirs = {prefix_abs .. "/lib", "${root_abs}/tree/lib"},
+				lib_dirs = {prefix_abs .. "/lib64", "${root_abs}/tree/lib"},
 				libs = {"ssl", "crypto", "ws2_32", "crypt32", "gdi32", ":libluajit-5.1.dll.a"},
 			},
 			{type = "copy", src = extract .. "/src/ssl.dll", dst = "${bin_dir}/ssl.dll", flags = "-f"},

@@ -133,9 +133,6 @@ local function validateAction(action, step)
 	if action.type == "shell" then
 		local command = tostring(action.command or "")
 		local fallback_patterns = {
-			"OPENSSL_LIB=",
-			"OPENSSL_IMP=",
-			"lib64",
 			"%|%|%s*cp%s",
 			"if%s*%[.-%];%s*then%s*cp%s.-%s*else%s*cp%s",
 			"if%s*%[",

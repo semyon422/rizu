@@ -21,6 +21,13 @@ end
 ---@param ctx rizu.build.Context
 ---@return rizu.build.deps.RunResult[]
 function BuildTargetTask:run(ctx)
+	if self.target == "macos" then
+		local compiler = "build/deps/osxcross/target/bin/x86_64-apple-darwin22.2-clang"
+		if not ctx.fs:getInfo(compiler) then
+			error("Missing macOS toolchain: " .. compiler .. ". Run './rizu/build/make.lua setup_macos_toolchain' first.", 0)
+		end
+	end
+
 	local env = BuildEnv.new(ctx, self.target, {initialize_dirs = true})
 	local spec = PipelineSpec.load(self.target, deps)
 	return Executor.runSpec(env, spec)

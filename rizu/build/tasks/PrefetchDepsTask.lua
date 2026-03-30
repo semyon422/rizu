@@ -20,6 +20,8 @@ local handlers = {
 	git_submodule = git_actions.git_submodule,
 }
 
+local MACOS_TOOLCHAIN_REPO = "https://github.com/tpoechtrager/osxcross"
+
 ---@param env rizu.build.deps.Env
 ---@param step rizu.build.deps.Step
 ---@return boolean
@@ -44,6 +46,16 @@ function PrefetchDepsTask:run(ctx)
 	local env = BuildEnv.new(ctx, self.target, {initialize_dirs = true})
 	local spec = Loader.load(self.target, deps)
 	local count = 0
+
+	if self.target == "macos" then
+		local ok, err = xpcall(function()
+			handlers.git_clone(env, {type = "git_clone", url = MACOS_TOOLCHAIN_REPO, dest = "${deps_dir}/osxcross"})
+		end, debug.traceback)
+		if not ok then
+			error(string.format("Prefetch failed for target '%s', osxcross clone: %s", self.target, tostring(err)), 0)
+		end
+		count = count + 1
+	end
 
 	for _, step in ipairs(spec.steps or {}) do
 		if hasAllRequired(env, step) then

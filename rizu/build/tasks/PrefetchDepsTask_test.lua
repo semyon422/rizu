@@ -46,4 +46,20 @@ function test.prefetch_only_downloads_and_git(t)
 	end
 end
 
+---@param t testing.T
+function test.prefetch_macos_includes_osxcross_clone(t)
+	local ctx, state = makeCtx()
+	local task = PrefetchDepsTask("macos")
+	task:run(ctx)
+
+	local found = false
+	for _, cmd in ipairs(state.exec) do
+		if cmd:find("git clone https://github.com/tpoechtrager/osxcross", 1, true) then
+			found = true
+			break
+		end
+	end
+	t:assert(found, "expected osxcross clone during macos prefetch")
+end
+
 return test
