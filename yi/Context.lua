@@ -14,13 +14,7 @@ function Context:new(game, inputs, resources)
 end
 
 ---@param background yi.Background
----@param screens yi.Screens
----@param modals yi.Modals
----@param top yi.View
-function Context:setLayers(background, screens, modals, top)
-	self.top = top
-	self.modals = modals
-	self.screens = screens
+function Context:setLayers(background)
 	self.background = background
 end
 

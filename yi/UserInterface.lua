@@ -1,21 +1,17 @@
 local IUserInterface = require("sphere.IUserInterface")
 local Context = require("yi.Context")
-local View = require("yi.views.View")
 local Inputs = require("ui.input.Inputs")
 local Resources = require("yi.Resources")
-local Engine = require("yi.Engine")
-local LoveTimer = require("time.LoveTimer")
-local Background = require("yi.views.Background")
-local Screens = require("yi.views.Screens")
-local Modals = require("yi.views.Modals")
+
+local Background = require("yi.layers.Background")
+local Config = require("yi.layers.Config")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
 local UserInterface = IUserInterface + {}
 
-UserInterface.gameView = {} -- For imgui modals
-
 local MAX_DT = 1 / 30
+local TARGET_HEIGHT = 1080
 
 ---@param game sphere.GameController
 function UserInterface:new(game)
@@ -23,44 +19,69 @@ function UserInterface:new(game)
 
 	self.resources = Resources()
 	self.inputs = Inputs()
+	---@type ui.ModifierKeys
+	self.modifiers = {control = false, alt = false, shift = false, super = false}
 	self.ctx = Context(self.game, self.inputs, self.resources)
-	self.engine = Engine(self.inputs, self.ctx, LoveTimer())
-	self.engine.target_height = 1080
-	self.engine.check_dimensions_during_update = true
 end
 
 function UserInterface:load()
 	self.resources:load()
 
-	local root = self.engine.root
+	self.background = Background(self.ctx)
+	self.config = Config(self.ctx)
 
-	local background = root:add(Background())
-	local screens = root:add(Screens())
-	local modals = root:add(Modals())
-	local top = root:add(View()) -- Cursor, Tooltip, Notifications, Dropdown items
+	self.layers = {
+		--self.background,
+		self.config,
+	}
 
-	self.ctx:setLayers(background, screens, modals, top)
-	self.engine:load()
-
-	screens:set("menu")
-
-	self.screens = screens
+	self.ctx:setLayers(self.background)
 end
 
 ---@param dt number
 function UserInterface:update(dt)
-	local capped_dt = math.min(dt, MAX_DT)
-	self.engine:update(capped_dt, love.mouse.getPosition())
+	dt = math.min(dt, MAX_DT)
+
+	if self:dimensionsChanged() then
+		local w, h = love.graphics.getDimensions()
+		local layout_scale = h / TARGET_HEIGHT
+		local ui_scale = layout_scale
+		for _, v in ipairs(self.layers) do
+			v:updateDimensions(w, h, layout_scale, ui_scale)
+		end
+	end
+
+	self.modifiers.control = love.keyboard.isDown("lctrl", "rctrl")
+	self.modifiers.alt = love.keyboard.isDown("lalt", "ralt")
+	self.modifiers.shift = love.keyboard.isDown("lshift", "rshift")
+
+	self.inputs:beginFrame(love.mouse.getPosition())
+
+	for _, v in ipairs(self.layers) do
+		v:update(dt)
+	end
+
+	for i = #self.layers, 1, -1 do
+		self.layers[i]:acceptInputs(self.inputs)
+	end
 end
 
 function UserInterface:draw()
-	self.engine:draw()
+	for _, v in ipairs(self.layers) do
+		v:draw()
+	end
+end
+
+function UserInterface:dimensionsChanged()
+	local ww, wh = love.graphics.getDimensions()
+	local pw, ph = self.prev_w, self.prev_h
+	self.prev_w, self.prev_h = ww, wh
+	return ww ~= pw or wh ~= ph
 end
 
 ---@param event table
 function UserInterface:receive(event)
-	self.screens:receive(event) -- :sob:
-	self.engine:receive(event)
+	self.inputs:receive(event, self.modifiers)
 end
 
 return UserInterface

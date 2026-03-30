@@ -4,13 +4,16 @@ local class = require("class")
 ---@operator call: yi.packer.ImageAtlasPacker
 local ImageAtlasPacker = class()
 
-ImageAtlasPacker.gap = 1
+ImageAtlasPacker.gap = 0
+ImageAtlasPacker.border = 1
 
 ---@class yi.packer.ImageAtlasPacker.Entry
 ---@field name string
 ---@field image_data love.ImageData
 ---@field width integer
 ---@field height integer
+---@field packed_width integer
+---@field packed_height integer
 ---@field x integer
 ---@field y integer
 
@@ -38,6 +41,8 @@ function ImageAtlasPacker:buildEntries(sprites)
 			image_data = image_data,
 			width = width,
 			height = height,
+			packed_width = width + self.border * 2,
+			packed_height = height + self.border * 2,
 			x = 0,
 			y = 0,
 		}
@@ -67,7 +72,7 @@ function ImageAtlasPacker:packShelves(entries, atlas_width)
 	local used_width = 0
 
 	for _, entry in ipairs(entries) do
-		if x > 0 and x + entry.width > atlas_width then
+		if x > 0 and x + entry.packed_width > atlas_width then
 			x = 0
 			y = y + row_height + self.gap
 			row_height = 0
@@ -76,8 +81,8 @@ function ImageAtlasPacker:packShelves(entries, atlas_width)
 		entry.x = x
 		entry.y = y
 
-		x = x + entry.width + self.gap
-		row_height = math.max(row_height, entry.height)
+		x = x + entry.packed_width + self.gap
+		row_height = math.max(row_height, entry.packed_height)
 		used_width = math.max(used_width, x - self.gap) ---@type number
 	end
 
@@ -99,9 +104,9 @@ function ImageAtlasPacker:selectLayout(entries)
 	local total_area = 0
 
 	for _, entry in ipairs(entries) do
-		max_width = math.max(max_width, entry.width)
-		total_width = total_width + entry.width + self.gap
-		total_area = total_area + (entry.width + self.gap) * (entry.height + self.gap)
+		max_width = math.max(max_width, entry.packed_width)
+		total_width = total_width + entry.packed_width + self.gap
+		total_area = total_area + (entry.packed_width + self.gap) * (entry.packed_height + self.gap)
 	end
 
 	total_width = math.max(total_width - self.gap, max_width)
@@ -150,6 +155,36 @@ function ImageAtlasPacker:selectLayout(entries)
 	return best_layout
 end
 
+---@private
+---@param atlas love.ImageData
+---@param entry yi.packer.ImageAtlasPacker.Entry
+function ImageAtlasPacker:pasteEntry(atlas, entry)
+	local border = self.border
+	local inner_x = entry.x + border
+	local inner_y = entry.y + border
+	local width = entry.width
+	local height = entry.height
+
+	atlas:paste(entry.image_data, inner_x, inner_y, 0, 0, width, height)
+
+	if border == 0 then
+		return
+	end
+
+	local right_x = inner_x + width
+	local bottom_y = inner_y + height
+
+	atlas:paste(entry.image_data, inner_x - border, inner_y, 0, 0, border, height)
+	atlas:paste(entry.image_data, right_x, inner_y, width - border, 0, border, height)
+	atlas:paste(entry.image_data, inner_x, inner_y - border, 0, 0, width, border)
+	atlas:paste(entry.image_data, inner_x, bottom_y, 0, height - border, width, border)
+
+	atlas:paste(entry.image_data, inner_x - border, inner_y - border, 0, 0, border, border)
+	atlas:paste(entry.image_data, right_x, inner_y - border, width - border, 0, border, border)
+	atlas:paste(entry.image_data, inner_x - border, bottom_y, 0, height - border, border, border)
+	atlas:paste(entry.image_data, right_x, bottom_y, width - border, height - border, border, border)
+end
+
 ---@param sprites {[string]: love.ImageData}
 ---@return love.ImageData
 ---@return {[string]: love.Quad}
@@ -173,8 +208,15 @@ function ImageAtlasPacker:pack(sprites)
 	local quads = {}
 
 	for _, entry in ipairs(entries) do
-		atlas:paste(entry.image_data, entry.x, entry.y, 0, 0, entry.width, entry.height)
-		quads[entry.name] = love.graphics.newQuad(entry.x, entry.y, entry.width, entry.height, layout.width, layout.height)
+		self:pasteEntry(atlas, entry)
+		quads[entry.name] = love.graphics.newQuad(
+			entry.x + self.border,
+			entry.y + self.border,
+			entry.width,
+			entry.height,
+			layout.width,
+			layout.height
+		)
 	end
 
 	return atlas, quads
