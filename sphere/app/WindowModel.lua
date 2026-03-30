@@ -50,6 +50,18 @@ function WindowModel:load(graphics)
 end
 
 function WindowModel:update()
+	self:updateWindowState()
+	local graphics = self.graphics
+
+	loop:setFpsLimit(graphics.fps)
+	loop:setUnlimitedFps(graphics.unlimited_fps)
+	loop:setAsynckey(graphics.asynckey)
+	loop:setDwmFlush(graphics.dwmflush)
+	loop:setBusyLoopRatio(graphics.busy_loop_ratio)
+	loop:setSleepFunction(graphics.sleep_function)
+end
+
+function WindowModel:updateWindowState()
 	local flags = self.mode.flags
 	local graphics = self.graphics
 	if self.vsync ~= flags.vsync then
@@ -65,13 +77,6 @@ function WindowModel:update()
 		self.cursor_name = graphics.cursor
 		self.cursor:setCursor(self.cursor_name)
 	end
-
-	loop:setFpsLimit(graphics.fps)
-	loop:setUnlimitedFps(graphics.unlimited_fps)
-	loop:setAsynckey(graphics.asynckey)
-	loop:setDwmFlush(graphics.dwmflush)
-	loop:setBusyLoopRatio(graphics.busy_loop_ratio)
-	loop:setSleepFunction(graphics.sleep_function)
 end
 
 ---@param event table
