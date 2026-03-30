@@ -32,6 +32,7 @@ return {
 			"sea",
 			"aqua",
 			"chartbase",
+			"ncdk",
 			"libchart",
 			"native",
 			"preload",
