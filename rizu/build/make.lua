@@ -115,11 +115,13 @@ local commands = {
 		end,
 	},
 	clean = {
-		help = "Clean outputs: clean <all|deps|artifacts|bin|repo>",
+		help = "Clean outputs: clean <all|deps|downloads|artifacts|bin|repo>",
 		run = function()
 			local scope = getScopeOrDefault()
 			if scope == "all" or scope == "deps" then
 				ctx.fs:remove("build/deps")
+			end
+			if scope == "all" or scope == "downloads" then
 				ctx.fs:remove("build/downloads")
 			end
 			if scope == "all" or scope == "artifacts" then
