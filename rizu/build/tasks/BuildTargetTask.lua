@@ -16,6 +16,9 @@ function BuildTargetTask:new(target)
 	self.name = "build_target_" .. target
 	self.target = target
 	self.deps = {}
+	if target == "macos" then
+		self.deps = {"setup_macos_toolchain"}
+	end
 end
 
 ---@param ctx rizu.build.Context
