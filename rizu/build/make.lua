@@ -12,6 +12,7 @@ local SetupHostTask = require("rizu.build.tasks.SetupHostTask")
 local SetupLuaJITTask = require("rizu.build.tasks.SetupLuaJITTask")
 local SetupMacOSToolchainTask = require("rizu.build.tasks.SetupMacOSToolchainTask")
 local BuildTargetTask = require("rizu.build.tasks.BuildTargetTask")
+local PrefetchDepsTask = require("rizu.build.tasks.PrefetchDepsTask")
 local AssembleRepoTask = require("rizu.build.tasks.AssembleRepoTask")
 local ZipRepoTask = require("rizu.build.tasks.ZipRepoTask")
 local PackageMacOSTask = require("rizu.build.tasks.PackageMacOSTask")
@@ -37,6 +38,9 @@ runner:register(SetupMacOSToolchainTask())
 runner:register(BuildTargetTask("linux"))
 runner:register(BuildTargetTask("windows"))
 runner:register(BuildTargetTask("macos"))
+runner:register(PrefetchDepsTask("linux"))
+runner:register(PrefetchDepsTask("windows"))
+runner:register(PrefetchDepsTask("macos"))
 runner:register(AssembleRepoTask())
 runner:register(ZipRepoTask())
 runner:register(PackageMacOSTask())
@@ -72,6 +76,19 @@ local commands = {
 		help = "Run full build pipeline for target: build_target <linux|windows|macos>",
 		run = function()
 			runner:run("build_target_" .. getTargetOrDefault())
+		end,
+	},
+	prefetch = {
+		help = "Download/clone deps only: prefetch <linux|windows|macos|all>",
+		run = function()
+			local target = target_arg or "all"
+			if target == "all" then
+				runner:run("prefetch_deps_linux")
+				runner:run("prefetch_deps_windows")
+				runner:run("prefetch_deps_macos")
+			else
+				runner:run("prefetch_deps_" .. target)
+			end
 		end,
 	},
 	repo = {
@@ -146,7 +163,7 @@ local function help()
 	print("Usage: ./rizu/build/make.lua <command> [arg]")
 	print("")
 	print("Commands:")
-	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "repo", "package", "status", "clean", "help"}
+	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "prefetch", "repo", "package", "status", "clean", "help"}
 	for _, name in ipairs(order) do
 		if name == "help" then
 			print("  help                   Show this help")
