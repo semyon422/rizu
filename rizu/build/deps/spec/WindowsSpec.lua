@@ -126,6 +126,56 @@ local function add_luasec(spec, deps, prefix, prefix_abs)
 	})
 end
 
+local function add_fftw(spec, deps, prefix, prefix_abs)
+	local fftw = deps.fftw_source and deps.fftw_source.windows
+	if not fftw then
+		return
+	end
+	local archive = "${downloads_dir}/" .. fftw.archive
+	local extract = "${deps_dir}/" .. fftw.dir
+	table.insert(spec.steps, {
+		id = "windows_fftw",
+		kind = "source-build",
+		actions = {
+			{type = "download", url = fftw.url, dest = archive},
+			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+			{
+				type = "configure",
+				dir = extract,
+				args = {"--host=x86_64-w64-mingw32", "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2"},
+			},
+			{type = "make", dir = extract, args = {"-j$(nproc)"}},
+			{type = "make", dir = extract, args = {"install"}},
+			{type = "assert_file", path = prefix .. "/bin/libfftw3-3.dll"},
+			{type = "copy_exact", src = prefix .. "/bin/libfftw3-3.dll", dst = "${bin_dir}/libfftw3-3.dll", flags = "-f"},
+		},
+	})
+end
+
+local function add_sqlite(spec, deps)
+	local sqlite = deps.sqlite_source and deps.sqlite_source.windows
+	if not sqlite then
+		return
+	end
+	local archive = "${downloads_dir}/" .. sqlite.archive
+	local extract = "${deps_dir}/" .. sqlite.dir
+	table.insert(spec.steps, {
+		id = "windows_sqlite",
+		kind = "source-build",
+		actions = {
+			{type = "download", url = sqlite.url, dest = archive},
+			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+			{
+				type = "compile_c",
+				compiler = "x86_64-w64-mingw32-gcc",
+				cflags = {"-shared", "-O2"},
+				sources = {extract .. "/sqlite3.c"},
+				output = "${bin_dir}/sqlite3.dll",
+			},
+		},
+	})
+end
+
 function Windows.build(deps)
 	local spec = Common.buildShared("windows", deps)
 	local prefix = "${deps_dir}/local/windows"
@@ -136,6 +186,8 @@ function Windows.build(deps)
 	add_iconv(spec, deps, prefix, prefix_abs)
 	add_openssl(spec, deps, prefix, prefix_abs)
 	add_luasec(spec, deps, prefix, prefix_abs)
+	add_fftw(spec, deps, prefix, prefix_abs)
+	add_sqlite(spec, deps)
 
 	return spec
 end

@@ -244,6 +244,58 @@ local function add_luasec(spec, deps, prefix, prefix_abs, tc_bin)
 	})
 end
 
+local function add_fftw(spec, deps, prefix, prefix_abs, tc_bin)
+	local fftw = deps.fftw_source and deps.fftw_source.macos
+	if not fftw then
+		return
+	end
+	local archive = "${downloads_dir}/" .. fftw.archive
+	local extract = "${deps_dir}/" .. fftw.dir
+	table.insert(spec.steps, {
+		id = "macos_fftw",
+		kind = "source-build",
+		actions = {
+			{type = "download", url = fftw.url, dest = archive},
+			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+			{
+				type = "configure",
+				dir = extract,
+				env = crossEnv(tc_bin),
+				args = {"--host=" .. DARWIN_TRIPLE, "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2 -fPIC"},
+			},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
+			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install"}},
+			{type = "assert_file", path = prefix .. "/lib/libfftw3.dylib"},
+			{type = "copy_exact", src = prefix .. "/lib/libfftw3.dylib", dst = "${bin_dir}/libfftw3.dylib", flags = "-Lf"},
+		},
+	})
+end
+
+local function add_sqlite(spec, deps, tc_bin)
+	local sqlite = deps.sqlite_source and deps.sqlite_source.macos
+	if not sqlite then
+		return
+	end
+	local archive = "${downloads_dir}/" .. sqlite.archive
+	local extract = "${deps_dir}/" .. sqlite.dir
+	table.insert(spec.steps, {
+		id = "macos_sqlite",
+		kind = "source-build",
+		actions = {
+			{type = "download", url = sqlite.url, dest = archive},
+			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+			{
+				type = "compile_c",
+				compiler = tc_bin .. "/" .. DARWIN_CC,
+				env = crossEnv(tc_bin),
+				cflags = {"-dynamiclib", "-fPIC", "-O2", "-install_name", "@rpath/libsqlite3.dylib"},
+				sources = {extract .. "/sqlite3.c"},
+				output = "${bin_dir}/libsqlite3.dylib",
+			},
+		},
+	})
+end
+
 function Macos.build(deps)
 	local spec = Common.buildShared("macos", deps)
 	local prefix = "${deps_dir}/local/macos"
@@ -256,6 +308,8 @@ function Macos.build(deps)
 	add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
 	add_openssl(spec, deps, prefix, prefix_abs, tc_bin)
 	add_luasec(spec, deps, prefix, prefix_abs, tc_bin)
+	add_fftw(spec, deps, prefix, prefix_abs, tc_bin)
+	add_sqlite(spec, deps, tc_bin)
 
 	return spec
 end
