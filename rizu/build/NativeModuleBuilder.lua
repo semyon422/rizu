@@ -173,6 +173,9 @@ function NativeModuleBuilder:buildMinacalc()
 	}
 	local out = out_map[t] or out_map.linux
 	local flags = "-DSTANDALONE_CALC -std=c++20 -shared -fPIC"
+	if t == "windows" then
+		flags = flags .. " -static-libstdc++ -static-libgcc"
+	end
 	if t == "macos" then
 		flags = flags .. " -undefined dynamic_lookup"
 	end
@@ -212,7 +215,7 @@ function NativeModuleBuilder:buildLuamidi()
 	local libs = ""
 
 	if t == "windows" then
-		flags = flags .. " -DWIN32 -D__WINDOWS_MM__"
+		flags = flags .. " -DWIN32 -D__WINDOWS_MM__ -static-libstdc++ -static-libgcc"
 		libs = "-lwinmm -Ltree/lib -l:libluajit-5.1.dll.a"
 	elseif t == "macos" then
 		flags = flags .. " -D__MACOSX_CORE__ -undefined dynamic_lookup"
