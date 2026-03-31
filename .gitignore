@@ -70,3 +70,5 @@ backups
 *.db-journal
 *.db-shm
 *.db-wal
+
+.codex
