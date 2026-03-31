@@ -1,4 +1,6 @@
 local Util = require("rizu.build.deps.actions._util")
+local BuildConfig = require("rizu.build.BuildConfig")
+local NativeModuleBuilder = require("rizu.build.NativeModuleBuilder")
 
 ---@class rizu.build.deps.engine.Executor
 local Executor = {}
@@ -52,7 +54,26 @@ end
 
 local function shouldSkip(env, step)
 	if step.kind == "modules" then
-		return false
+		local target = BuildConfig.normalizeTarget(env.target)
+		local builder = NativeModuleBuilder(env.ctx, target)
+		local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
+		local has_ffmpeg = true
+		if target == "macos" then
+			has_ffmpeg = builder:getFFmpegPaths() ~= nil
+		end
+		for _, mod in ipairs(records) do
+			if mod.key ~= "video" or has_ffmpeg then
+				local artifact_info = env.ctx.fs:getInfo(mod.artifact)
+				local source_info = env.ctx.fs:getInfo(mod.source)
+				if not artifact_info or not source_info then
+					return false
+				end
+				if artifact_info.modtime and source_info.modtime and artifact_info.modtime < source_info.modtime then
+					return false
+				end
+			end
+		end
+		return true
 	end
 	if step.outputs and #step.outputs > 0 then
 		for _, p in ipairs(step.outputs) do
