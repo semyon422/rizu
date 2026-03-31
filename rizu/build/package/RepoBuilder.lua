@@ -4,7 +4,6 @@ local zlib = require("zlib")
 local json = require("3rd-deps.lua.json")
 local config = require("rizu.build.package.config")
 local fs_util = require("fs.util")
-local ZipFilesystem = require("fs.ZipFilesystem")
 
 local _name = config.repo.name
 
@@ -26,6 +25,45 @@ end
 
 local function serialize(t)
 	return ("return %s\n"):format(stbl.encode(t))
+end
+
+---@param listing string?
+---@param path string
+---@return boolean
+local function hasArchiveEntry(listing, path)
+	return listing ~= nil and listing:find(path, 1, true) ~= nil
+end
+
+---@param zip_path string
+---@return string
+function RepoBuilder:getZipListing(zip_path)
+	local listing = self.ctx.shell:popen(string.format("unzip -l %q", zip_path))
+	assert(listing and #listing > 0, "failed to read archive listing: " .. zip_path)
+	return listing
+end
+
+---@param gamerepo string
+---@param root_prefix string
+function RepoBuilder:validateGenericRepo(gamerepo, root_prefix)
+	assert(self.ctx.fs:getInfo(gamerepo) ~= nil, "missing repo directory: " .. gamerepo)
+	local game_love = gamerepo .. "/game.love"
+	assert(self.ctx.fs:getInfo(game_love) ~= nil, "missing game.love: " .. game_love)
+
+	local game_zip_listing = self:getZipListing(game_love)
+	assert(hasArchiveEntry(game_zip_listing, "rizu/game/GameInteractor.lua"), "game.love is missing rizu/game/GameInteractor.lua")
+	assert(hasArchiveEntry(game_zip_listing, "conf.lua"), "game.love is missing conf.lua")
+	assert(hasArchiveEntry(game_zip_listing, "main.lua"), "game.love is missing main.lua")
+
+	local lib_src = root_prefix .. "3rd-deps/lib/"
+	if self.src_fs:getInfo(lib_src .. "gd.so") then
+		assert(self.ctx.fs:getInfo(gamerepo .. "/bin/linux64/gd.so") ~= nil, "missing linux64 gd.so")
+	end
+	if self.src_fs:getInfo(lib_src .. "ssl.dll") then
+		assert(self.ctx.fs:getInfo(gamerepo .. "/bin/win64/ssl.dll") ~= nil, "missing win64 ssl.dll")
+	end
+	if self.src_fs:getInfo(lib_src .. "ssl.dylib") then
+		assert(self.ctx.fs:getInfo(gamerepo .. "/bin/mac64/ssl.dylib") ~= nil, "missing mac64 ssl.dylib")
+	end
 end
 
 ---@param gamedir string
@@ -145,9 +183,7 @@ function RepoBuilder:buildGenericRepo()
 	self:writeConfigs(gamedir)
 
 	print("Zipping game.love...")
-	local zfs = ZipFilesystem()
-	fs_util.copy(gamedir, "", self.ctx.fs, zfs)
-	self.ctx.fs:write(gamerepo .. "/game.love", zfs:save())
+	self.ctx.shell:execute(string.format("bash -lc 'cd %q && zip -qry %q .'", gamedir, "../game.love"))
 	fs_util.remove(gamedir, self.ctx.fs)
 
 	if self.src_fs:getInfo(root_prefix .. "conf.lua") then
@@ -156,6 +192,8 @@ function RepoBuilder:buildGenericRepo()
 	if self.src_fs:getInfo("rizu/build/package/conf.lua") then
 		fs_util.copy("rizu/build/package/conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
 	end
+
+	self:validateGenericRepo(gamerepo, root_prefix)
 end
 
 ---@return nil
@@ -179,28 +217,23 @@ function RepoBuilder:build()
 	self.ctx.fs:createDirectory(gamerepo .. "/userdata")
 	self.ctx.fs:write(gamerepo .. "/userdata/files.lua", serialize(files))
 	self.ctx.fs:write("build/repo/files.json", json.encode(files))
+	assert(self.ctx.fs:getInfo("build/repo/files.json") ~= nil, "missing files.json")
 end
 
 ---@return nil
 function RepoBuilder:build_zip()
-	local gamerepo = "build/repo/" .. _name
-	local zfs = ZipFilesystem()
-	fs_util.copy(gamerepo, _name, self.ctx.fs, zfs)
-	self.ctx.fs:write("build/repo/" .. _name .. ".zip", zfs:save())
+	self.ctx.shell:execute(string.format("bash -lc 'cd %q && zip -qry %q %q'", "build/repo", _name .. ".zip", _name))
+	local zip_path = "build/repo/" .. _name .. ".zip"
+	assert(self.ctx.fs:getInfo(zip_path) ~= nil, "missing repo zip: " .. zip_path)
+	local repo_zip_listing = self:getZipListing(zip_path)
+	assert(hasArchiveEntry(repo_zip_listing, _name .. "/game.love"), "repo zip is missing " .. _name .. "/game.love")
 end
 
 ---@return nil
 function RepoBuilder:update_zip()
 	local zip_path = "build/repo/" .. _name .. ".zip"
-	local zip_data = self.ctx.fs:read(zip_path)
-	if not zip_data then return end
-
-	local zfs = ZipFilesystem(zip_data)
-	local gamelove = self.ctx.fs:read("build/repo/" .. _name .. "/game.love")
-	if gamelove then
-		zfs:write(_name .. "/game.love", gamelove)
-		self.ctx.fs:write(zip_path, zfs:save())
-	end
+	if not self.ctx.fs:getInfo(zip_path) then return end
+	self.ctx.shell:execute(string.format("bash -lc 'cd %q && zip -qur %q %q'", "build/repo", _name .. ".zip", _name .. "/game.love"))
 end
 
 ---@return nil
@@ -210,26 +243,21 @@ function RepoBuilder:buildMacos()
 	local Frameworks = Contents .. "/Frameworks"
 	local Resources = Contents .. "/Resources"
 
-	fs_util.remove("build/repo/macos", self.ctx.fs)
-	self.ctx.fs:createDirectory("build/repo/macos")
-
 	local love_zip_path = "build/downloads/love-macos.zip"
-	local love_zip_data = self.src_fs:read(love_zip_path)
-	if not love_zip_data then
+
+	self.ctx.shell:execute(string.format("rm -rf %q", "build/repo/macos"))
+	self.ctx.shell:execute(string.format("mkdir -p %q", "build/repo/macos"))
+
+	if not self.ctx.fs:getInfo(love_zip_path) then
 		print("Warning: " .. love_zip_path .. " not found, skipping macOS app build")
 		return
 	end
-
-	local src_zfs = ZipFilesystem(love_zip_data)
-	fs_util.copy("love.app", game_app, src_zfs, self.ctx.fs)
-
-	local to_delete = {}
-	fs_util.find(Frameworks, self.ctx.fs, function(path)
-		if not path:match("/A/[^/]+$") then
-			table.insert(to_delete, path)
-		end
-	end)
-	for _, path in ipairs(to_delete) do self.ctx.fs:remove(path) end
+	self.ctx.shell:execute(string.format("unzip -oq %q -d %q", love_zip_path, "build/repo/macos"))
+	self.ctx.shell:execute(string.format("mv %q %q", "build/repo/macos/love.app", game_app))
+	self.ctx.shell:execute(string.format("find %q -type l -delete", game_app))
+	if self.ctx.fs:getInfo(Frameworks) then
+		self.ctx.shell:execute(string.format("find %q -type f -not -regex %q -delete", Frameworks, "^.*/A/[^/]*$"))
+	end
 
 	if self.src_fs:getInfo("rizu/build/package/Info.plist") then
 		fs_util.copy("rizu/build/package/Info.plist", Contents .. "/Info.plist", self.src_fs, self.ctx.fs)
@@ -251,11 +279,15 @@ function RepoBuilder:buildMacos()
 	fs_util.remove(Resources .. "/bin/win64", self.ctx.fs)
 	fs_util.remove(Resources .. "/bin/linux64", self.ctx.fs)
 
-	fs_util.removeEmptyDirs(game_app, self.ctx.fs)
+	self.ctx.shell:execute(string.format("find %q -empty -type d -delete", game_app))
 
-	local dst_zfs = ZipFilesystem()
-	fs_util.copy(game_app, _name .. ".app", self.ctx.fs, dst_zfs)
-	self.ctx.fs:write("build/repo/" .. _name .. "_macos.zip", dst_zfs:save())
+	local macos_zip = "build/repo/" .. _name .. "_macos.zip"
+	self.ctx.shell:execute(string.format("rm -f %q", macos_zip))
+	self.ctx.shell:execute(string.format("bash -lc 'cd %q && zip -qry %q %q'", "build/repo/macos", "../" .. _name .. "_macos.zip", _name .. ".app"))
+	assert(self.ctx.fs:getInfo(macos_zip) ~= nil, "missing macOS zip: " .. macos_zip)
+	local mac_zip_listing = self:getZipListing(macos_zip)
+	assert(hasArchiveEntry(mac_zip_listing, _name .. ".app/Contents/MacOS/love"), "macOS zip is missing app binary")
+	assert(not hasArchiveEntry(mac_zip_listing, _name .. ".app/Contents/Frameworks/love.framework/Versions/A/Resources"), "framework resources were not pruned")
 end
 
 return RepoBuilder
