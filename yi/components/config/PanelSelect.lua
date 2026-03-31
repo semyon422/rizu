@@ -1,6 +1,7 @@
 local SettingView = require("yi.components.config.SettingView")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
+local Painter = require("yi.Painter")
 
 ---@class yi.config.PanelSelectItem
 ---@field text string
@@ -8,8 +9,11 @@ local Color = require("yi.Color")
 ---@class yi.config.PanelSelectParams
 ---@field atlas love.Image
 ---@field pixel love.Quad
----@field font love.Font
----@field item_font love.Font
+---@field resources yi.Resources
+---@field label_font_name yi.FontName
+---@field label_font_size integer
+---@field item_font_name yi.FontName
+---@field item_font_size integer
 ---@field text string
 ---@field items (string|yi.config.PanelSelectItem)[]
 ---@field format_item fun(item: string|yi.config.PanelSelectItem): string
@@ -44,6 +48,11 @@ local Color = require("yi.Color")
 ---@field pixel love.Quad
 ---@field font love.Font
 ---@field item_font love.Font
+---@field resources yi.Resources
+---@field label_font_name yi.FontName
+---@field label_font_size integer
+---@field item_font_name yi.FontName
+---@field item_font_size integer
 ---@field text string
 ---@field items (string|yi.config.PanelSelectItem)[]
 ---@field format_item fun(item: string|yi.config.PanelSelectItem): string
@@ -72,7 +81,6 @@ local Color = require("yi.Color")
 ---@field frame_width_current number
 ---@field target_frame_x number
 ---@field target_frame_width number
----@field background_batch love.SpriteBatch
 ---@field label_batch love.Text
 ---@field text_batch love.Text
 local PanelSelect = SettingView + {}
@@ -104,13 +112,40 @@ local function apply_intersected_scissor(x, y, width, height)
 	lg.setScissor(left, top, math.max(0, right - left), math.max(0, bottom - top))
 end
 
+---@private
+function PanelSelect:rebuildBatches()
+	self.font = self.resources:getScaledFont(self.label_font_name, self.label_font_size, self.ui_scale)
+	self.item_font = self.resources:getScaledFont(self.item_font_name, self.item_font_size, self.ui_scale)
+	self.label_batch = love.graphics.newText(self.font, self.text)
+	self.text_batch = love.graphics.newText(self.item_font)
+end
+
+---@private
+function PanelSelect:refreshSize()
+	local left, top, right, bottom = self:getSettingInsets()
+	local height = self:toLogicalSize(self.label_batch:getHeight()) + self.padding_y + self.panel_height + top + bottom
+	local width_percent = self.width_percent
+	local height_percent = self.height_percent
+	self.height = height
+	self.width_percent = width_percent
+	self.height_percent = height_percent
+end
+
+---@private
+function PanelSelect:requestRebuild()
+	self._rebuild_requested = true
+end
+
 ---@param params yi.config.PanelSelectParams
 function PanelSelect:new(params)
 	SettingView.new(self)
 	self.atlas = assert(params.atlas, "Atlas is required")
 	self.pixel = assert(params.pixel, "Pixel quad is required")
-	self.font = assert(params.font, "Font is required")
-	self.item_font = assert(params.item_font, "Item font is required")
+	self.resources = assert(params.resources, "PanelSelect resources are required")
+	self.label_font_name = assert(params.label_font_name, "PanelSelect label_font_name is required")
+	self.label_font_size = assert(params.label_font_size, "PanelSelect label_font_size is required")
+	self.item_font_name = assert(params.item_font_name, "PanelSelect item_font_name is required")
+	self.item_font_size = assert(params.item_font_size, "PanelSelect item_font_size is required")
 	self.text = assert(params.text, "Text is required")
 	self.items = assert(params.items, "Items are required")
 	assert(#self.items > 0, "Items list must be non-empty")
@@ -119,10 +154,10 @@ function PanelSelect:new(params)
 	self.label_color = params.label_color or self.color
 	self.selected_color = assert(params.selected_color, "Selected color is required")
 	self.frame_color = assert(params.frame_color, "Frame color is required")
-	self.frame_idle_alpha = clamp(params.frame_idle_alpha or 0.5, 0, 1)
-	self.frame_active_alpha = clamp(params.frame_active_alpha or 0.85, 0, 1)
-	self.label_idle_alpha_scale = clamp(params.label_idle_alpha_scale or 0.72, 0, 1)
-	self.label_active_alpha_scale = clamp(params.label_active_alpha_scale or 1, 0, 1)
+	self.frame_idle_alpha = clamp(assert(params.frame_idle_alpha, "PanelSelect frame_idle_alpha is required"), 0, 1)
+	self.frame_active_alpha = clamp(assert(params.frame_active_alpha, "PanelSelect frame_active_alpha is required"), 0, 1)
+	self.label_idle_alpha_scale = clamp(assert(params.label_idle_alpha_scale, "PanelSelect label_idle_alpha_scale is required"), 0, 1)
+	self.label_active_alpha_scale = clamp(assert(params.label_active_alpha_scale, "PanelSelect label_active_alpha_scale is required"), 0, 1)
 	self.padding_x = assert(params.padding_x, "Padding x is required")
 	self.padding_y = assert(params.padding_y, "Padding y is required")
 	self.gap = assert(params.gap, "Gap is required")
@@ -132,6 +167,7 @@ function PanelSelect:new(params)
 	assert(self.selected_index >= 1 and self.selected_index <= #self.items, "Selected index is out of range")
 	self.scroll_animation_speed = assert(params.scroll_animation_speed, "Scroll animation speed is required")
 	self.frame_animation_speed = assert(params.frame_animation_speed, "Frame animation speed is required")
+	self.width = assert(params.width, "Width is required")
 	self.on_change = params.on_change
 	self.scroll_position = 0
 	self.target_scroll_position = 0
@@ -144,18 +180,19 @@ function PanelSelect:new(params)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self.is_focusable = true
-
-	self.background_batch = love.graphics.newSpriteBatch(self.atlas, math.max(1, #self.items))
-	self.label_batch = love.graphics.newText(self.font, self.text)
-	self.text_batch = love.graphics.newText(self.item_font)
 	self._label_draw_color = {0, 0, 0, 1}
 	self._frame_draw_color = {0, 0, 0, 1}
-
-	local width = assert(params.width, "Width is required")
-	local height = assert(params.height, "Height is required")
-	self:setSize(width, height)
-	self:rebuild()
+	self._layout_width = nil
+	self._layout_height = nil
+	self:rebuildBatches()
+	self:refreshSize()
 	self:scrollToIndex(self.selected_index, true)
+end
+
+function PanelSelect:onResolutionChanged()
+	self:rebuildBatches()
+	self:refreshSize()
+	self:requestRebuild()
 end
 
 function PanelSelect:updateFrameTarget()
@@ -175,26 +212,6 @@ function PanelSelect:updateFrameTarget()
 	end
 end
 
-function PanelSelect:rebuildBackgroundBatch()
-	self.background_batch:clear()
-
-	if self.target_frame_width > 0 and self.frame_width > 0 then
-		local _, panel_y, _, panel_h = self:getPanelRect()
-		local x = self.frame_x
-		local width = self.frame_width_current
-		local frame = self.frame_width
-
-		self.background_batch:setColor(1, 1, 1, 1)
-		self.background_batch:add(self.pixel, x, panel_y, 0, width, frame)
-		self.background_batch:add(self.pixel, x, panel_y + panel_h - frame, 0, width, frame)
-		self.background_batch:add(self.pixel, x, panel_y, 0, frame, panel_h)
-		self.background_batch:add(self.pixel, x + width - frame, panel_y, 0, frame, panel_h)
-	end
-
-	self.background_batch:setColor(1, 1, 1, 1)
-	self.background_batch:flush()
-end
-
 ---@return ui.Color
 function PanelSelect:getFrameDrawColor()
 	local color = self.focused and self.frame_color or Colors.white
@@ -204,17 +221,23 @@ function PanelSelect:getFrameDrawColor()
 	return Color.set(self._frame_draw_color, color[1], color[2], color[3], alpha)
 end
 
-function PanelSelect:updateTransform()
-	SettingView.updateTransform(self)
-	local x, y = self.transform:transformPoint(0, 0)
-	self.transform:translate(math.floor(x) - x, math.floor(y) - y)
+function PanelSelect:onGeometryChanged()
+	self:refreshSize()
+	if self._rebuild_requested or self.width ~= self._layout_width or self.height ~= self._layout_height then
+		local immediate_scroll = self._layout_width == nil or self._layout_height == nil or self._rebuild_requested
+		self._layout_width = self.width
+		self._layout_height = self.height
+		self._rebuild_requested = false
+		self:rebuild(immediate_scroll)
+	end
 end
 
-function PanelSelect:rebuild()
+---@param immediate_scroll boolean?
+function PanelSelect:rebuild(immediate_scroll)
 	self.layout_items = {}
 	self.text_batch:clear()
 
-	local content_x, content_y = self:getSettingContentOrigin()
+	local content_x = self:getSettingContentOrigin()
 	local _, panel_y, _, panel_h = self:getPanelRect()
 	local x = content_x
 
@@ -222,11 +245,13 @@ function PanelSelect:rebuild()
 		local text = self.format_item(item)
 		local text_w = self.text_batch:getFont():getWidth(text)
 		local text_h = self.text_batch:getFont():getHeight()
-		local panel_w = math.ceil(text_w + self.padding_x * 2)
-		local text_x = x + (panel_w - text_w) / 2
-		local text_y = panel_y + (panel_h - text_h) / 2
+		local logical_text_w = self:toLogicalSize(text_w)
+		local logical_text_h = self:toLogicalSize(text_h)
+		local panel_w = math.ceil(logical_text_w + self.padding_x * 2)
+		local text_x = x + (panel_w - logical_text_w) / 2
+		local text_y = panel_y + (panel_h - logical_text_h) / 2
 		local text_color = (i == self.selected_index) and self.selected_color or self.color
-		self.text_batch:addf({text_color, text}, math.huge, "left", text_x, text_y)
+		self.text_batch:addf({text_color, text}, math.huge, "left", self:toScreenSize(text_x), self:toScreenSize(text_y))
 
 		self.layout_items[i] = {
 			text = text,
@@ -239,7 +264,7 @@ function PanelSelect:rebuild()
 
 	self.content_width = math.max(0, x - self.gap)
 	self:updateFrameTarget()
-	self:rebuildBackgroundBatch()
+	self:scrollToIndex(self.selected_index, immediate_scroll)
 end
 
 ---@return number
@@ -281,7 +306,7 @@ function PanelSelect:setSelectedIndex(index)
 	end
 
 	self.selected_index = index
-	self:rebuild()
+	self:rebuild(false)
 	self:scrollToIndex(index)
 
 	if self.on_change then
@@ -303,14 +328,12 @@ function PanelSelect:update(dt)
 	end
 
 	local frame_t = 1 - math.exp(-self.frame_animation_speed * dt)
-	local frame_changed = false
 
 	if math.abs(self.target_frame_x - self.frame_x) > 0.001 then
 		self.frame_x = self.frame_x + (self.target_frame_x - self.frame_x) * frame_t
 		if math.abs(self.target_frame_x - self.frame_x) < 0.5 then
 			self.frame_x = self.target_frame_x
 		end
-		frame_changed = true
 	end
 
 	if math.abs(self.target_frame_width - self.frame_width_current) > 0.001 then
@@ -318,11 +341,6 @@ function PanelSelect:update(dt)
 		if math.abs(self.target_frame_width - self.frame_width_current) < 0.5 then
 			self.frame_width_current = self.target_frame_width
 		end
-		frame_changed = true
-	end
-
-	if frame_changed then
-		self:rebuildBackgroundBatch()
 	end
 end
 
@@ -331,7 +349,7 @@ end
 ---@return integer?
 function PanelSelect:getIndexAt(screen_x, screen_y)
 	local local_x, local_y = self.transform:inverseTransformPoint(screen_x, screen_y)
-	local content_origin_x, content_origin_y = self:getSettingContentOrigin()
+	local content_origin_x = self:getSettingContentOrigin()
 	local viewport_width = self:getSettingContentSize()
 	local _, panel_y, _, panel_h = self:getPanelRect()
 	local content_x = local_x + self.scroll_position
@@ -381,24 +399,29 @@ function PanelSelect:draw()
 	local content_w = self:getSettingContentSize()
 	local _, panel_y, _, panel_h = self:getPanelRect()
 	local offset_x = -math.floor(self.scroll_position)
-	local screen_x, screen_y = self.transform:transformPoint(content_x, panel_y)
-	local scissor_x = math.floor(screen_x)
-	local scissor_y = math.floor(screen_y)
-	local scissor_width = math.ceil(content_w)
-	local scissor_height = math.ceil(panel_h)
+	local x1, y1 = self.transform:transformPoint(content_x, panel_y)
+	local x2, y2 = self.transform:transformPoint(content_x + content_w, panel_y + panel_h)
+	local scissor_left = math.floor(math.min(x1, x2))
+	local scissor_top = math.floor(math.min(y1, y2))
+	local scissor_right = math.ceil(math.max(x1, x2))
+	local scissor_bottom = math.ceil(math.max(y1, y2))
+	local scissor_x = scissor_left
+	local scissor_y = scissor_top
+	local scissor_width = math.max(0, scissor_right - scissor_left)
+	local scissor_height = math.max(0, scissor_bottom - scissor_top)
 
 	lg.push("all")
 	self:drawSettingBackground()
 	local label_active = self.focused or self.mouse_over
 	local label_alpha_scale = label_active and self.label_active_alpha_scale or self.label_idle_alpha_scale
 	lg.setColor(Color.scale_alpha_to(self._label_draw_color, self.label_color, label_alpha_scale))
-	lg.draw(self.label_batch, content_x, content_y + 0.5)
+	Painter.drawText(self.label_batch, content_x, content_y)
 	apply_intersected_scissor(scissor_x, scissor_y, scissor_width, scissor_height)
 	lg.translate(offset_x, 0)
 	lg.setColor(self:getFrameDrawColor())
-	lg.draw(self.background_batch)
+	Painter.drawPixelOutlineRect(self.frame_x, panel_y, self.frame_width_current, panel_h, self.frame_width)
 	lg.setColor(1, 1, 1, 1)
-	lg.draw(self.text_batch, 0, 0.5)
+	Painter.drawText(self.text_batch, 0, 0)
 	lg.pop()
 end
 
@@ -409,7 +432,7 @@ end
 function PanelSelect:getPanelRect()
 	local content_x, content_y = self:getSettingContentOrigin()
 	local content_w, content_h = self:getSettingContentSize()
-	local panel_y = content_y + self.label_batch:getHeight() + self.padding_y
+	local panel_y = content_y + self:toLogicalSize(self.label_batch:getHeight()) + self.padding_y
 	local panel_h = math.max(0, math.min(self.panel_height, content_y + content_h - panel_y))
 	return content_x, panel_y, content_w, panel_h
 end

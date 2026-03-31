@@ -1,36 +1,31 @@
 local BaseButton = require("ui.base.Button")
+local View = require("ui.View")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
+local Painter = require("yi.Painter")
 
 ---@class yi.TabButtonParams
----@field atlas love.Image
 ---@field pixel love.Quad
----@field tab love.Quad
----@field tab_outline love.Quad?
----@field font love.Font
----@field text string?
----@field text_color number[]?
----@field active_text_color number[]?
----@field inactive_text_color number[]?
----@field active_image_color number[]?
----@field inactive_image_color number[]?
----@field line_width number?
----@field text_padding_x number?
----@field active boolean?
+---@field resources yi.Resources
+---@field font_name yi.FontName
+---@field font_size integer
+---@field text string
+---@field line_width number
+---@field bevel_size number
+---@field text_padding_x number
+---@field active boolean
 ---@field on_click fun(button: yi.TabButton)?
 
 ---@class yi.TabButton : ui.Button
 ---@overload fun(params: yi.TabButtonParams): yi.TabButton
----@field atlas love.Image
 ---@field pixel love.Quad
----@field tab love.Quad
----@field tab_outline love.Quad?
 ---@field font love.Font
+---@field resources yi.Resources
+---@field font_name yi.FontName
+---@field font_size integer
 ---@field text string
----@field active_text_color number[]
----@field inactive_text_color number[]
----@field active_image_color number[]
----@field inactive_image_color number[]
+---@field line_width number
+---@field bevel_size number
 ---@field text_padding_x number
 ---@field active boolean
 ---@field on_click fun(button: yi.TabButton)?
@@ -39,34 +34,67 @@ local Color = require("yi.Color")
 ---@field hover_speed number
 local TabButton = BaseButton + {}
 
+local hover_bg_color = {0, 0, 0, 1}
+local bg_color = {0, 0, 0, 1}
+local hover_text_color = {0, 0, 0, 1}
+local text_color = {0, 0, 0, 1}
+local outline_color = {0, 0, 0, 1}
+local edge_color = {0, 0, 0, 1}
+
+---@private
+function TabButton:rebuildText()
+	self.font = self.resources:getScaledFont(self.font_name, self.font_size, self.ui_scale)
+	self.text_batch = love.graphics.newText(self.font, self.text)
+end
+
 ---@param params yi.TabButtonParams
 function TabButton:new(params)
 	BaseButton.new(self)
-	self.atlas = assert(params.atlas, "TabButton atlas is required")
 	self.pixel = assert(params.pixel, "TabButton pixel quad is required")
-	self.tab = assert(params.tab, "TabButton tab quad is required")
-	self.tab_outline = params.tab_outline
-	self.font = assert(params.font, "TabButton font is required")
-	self.text = params.text or ""
-	self.active_text_color = params.active_text_color or Colors.black
-	self.inactive_text_color = params.inactive_text_color or params.text_color or Colors.white
-	self.active_image_color = assert(params.active_image_color, "TabButton active image color is required")
-	self.inactive_image_color = assert(params.inactive_image_color, "TabButton inactive image color is required")
-	self.text_padding_x = params.text_padding_x or 24
-	self.active = params.active or false
+	self.resources = assert(params.resources, "TabButton resources are required")
+	self.font_name = assert(params.font_name, "TabButton font_name is required")
+	self.font_size = assert(params.font_size, "TabButton font_size is required")
+	self.text = assert(params.text, "TabButton text is required")
+	self.line_width = assert(params.line_width, "TabButton line_width is required")
+	self.bevel_size = assert(params.bevel_size, "TabButton bevel_size is required")
+	self.text_padding_x = assert(params.text_padding_x, "TabButton text_padding_x is required")
+	assert(params.active ~= nil, "TabButton active is required")
+	self.active = params.active
 	self.on_click = params.on_click
-	self.text_batch = love.graphics.newText(self.font, self.text)
 	self.hover_t = 0
 	self.hover_speed = 14
-	self._hover_bg_color = {0, 0, 0, 1}
-	self._bg_color = {0, 0, 0, 1}
-	self._hover_text_color = {0, 0, 0, 1}
-	self._text_color = {0, 0, 0, 1}
-	self._outline_color = {0, 0, 0, 1}
-	self._edge_color = {0, 0, 0, 1}
+	self.fill_polygon_points = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	self.border_line_points = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	self.draw_line_width = self.line_width
+	self:rebuildText()
+end
 
-	local _, _, tab_w, tab_h = self.tab:getViewport()
-	self:setSize(tab_w, tab_h)
+function TabButton:onResolutionChanged()
+	self:rebuildText()
+end
+
+function TabButton:onGeometryChanged()
+	local w = self.width
+	local h = self.height
+	local bevel = math.max(0, math.min(self.bevel_size, w, h))
+	local fill_points = self.fill_polygon_points
+	fill_points[1], fill_points[2] = 0, 0
+	fill_points[3], fill_points[4] = w - bevel, 0
+	fill_points[5], fill_points[6] = w, bevel
+	fill_points[7], fill_points[8] = w, h
+	fill_points[9], fill_points[10] = 0, h
+
+	local points = self.border_line_points
+	local border_width = self.line_width
+	local half = border_width / 2
+	local inner_bevel = math.max(0, math.min(bevel, w - half * 2, h - half * 2))
+	points[1], points[2] = half, half
+	points[3], points[4] = w - inner_bevel - half, half
+	points[5], points[6] = w - half, inner_bevel + half
+	points[7], points[8] = w - half, h - half
+	points[9], points[10] = half, h - half
+	points[11], points[12] = half, half
+	self.draw_line_width = border_width
 end
 
 ---@param active boolean
@@ -91,46 +119,48 @@ function TabButton:click()
 end
 
 function TabButton:draw()
-	local lg = love.graphics
 	local active = self.active
 	local hovered = (self.mouse_over or self.focused) and (not active)
 	local hover_t = self.hover_t
-	local color = active and self.active_image_color or self.inactive_image_color
-	local hover_bg_color = Color.scale_to(self._hover_bg_color, color, 1.1, 1.1)
-	local bg_color = Color.mix_to(self._bg_color, color, hover_bg_color, hover_t)
+	local base_bg_color = active and Colors.black_80 or Colors.slate_800_80
+	Color.scale_to(hover_bg_color, base_bg_color, 1.1, 1.1)
+	Color.mix_to(bg_color, base_bg_color, hover_bg_color, hover_t)
 
-	local text_color = active and self.active_text_color or self.inactive_text_color
-	local hover_text_color = Color.scale_to(self._hover_text_color, text_color, 1.05, 1.2)
-	text_color = Color.mix_to(self._text_color, text_color, hover_text_color, hover_t)
-	local text_batch = self.text_batch
-	local _, th = text_batch:getDimensions()
+	local base_text_color = active and Colors.white or Colors.white_70
+	Color.scale_to(hover_text_color, base_text_color, 1.05, 1.2)
+	Color.mix_to(text_color, base_text_color, hover_text_color, hover_t)
+	local _, th = self.text_batch:getDimensions()
+	th = self:toLogicalSize(th)
 	local text_x = self.text_padding_x
 	local text_y = (self.height - th) / 2
 
-	lg.setColor(bg_color)
-	lg.draw(self.atlas, self.tab)
-
-	if self.tab_outline then
-		local outline_color
-		if active then
-			outline_color = Colors.white_70
-		else
-			outline_color = Color.mix_to(self._outline_color, Colors.white_30, Colors.white_50, hover_t)
-		end
-		lg.setColor(outline_color)
-		lg.draw(self.atlas, self.tab_outline)
-	end
+	Painter.setColor(bg_color)
+	Painter.drawPolygon("fill", self.fill_polygon_points)
 
 	if active then
-		lg.setColor(Colors.cyan_400)
-		lg.draw(self.atlas, self.pixel, 0, 0, 0, 6, self.height)
+		outline_color[1], outline_color[2], outline_color[3], outline_color[4] =
+			Colors.white_70[1], Colors.white_70[2], Colors.white_70[3], Colors.white_70[4]
+	else
+		Color.mix_to(outline_color, Colors.white_30, Colors.white_50, hover_t)
+	end
+	Painter.setColor(outline_color)
+	love.graphics.setLineWidth(self.draw_line_width)
+	Painter.drawLine(self.border_line_points)
+
+	local edge_width = 0
+	if active then
+		edge_width = math.max(1, 6)
+		Painter.setColor(Colors.cyan_400)
+		Painter.drawSprite(self.pixel, 0, 0, edge_width, self.height)
 	elseif hovered or hover_t > 0.001 then
-		lg.setColor(Color.mix_to(self._edge_color, Colors.white_10, Colors.white_30, hover_t))
-		lg.draw(self.atlas, self.pixel, 0, 0, 0, 3 + hover_t * 2, self.height)
+		edge_width = math.max(1, 3 + hover_t * 2)
+		Color.mix_to(edge_color, Colors.white_10, Colors.white_30, hover_t)
+		Painter.setColor(edge_color)
+		Painter.drawSprite(self.pixel, 0, 0, edge_width, self.height)
 	end
 
-	lg.setColor(text_color)
-	lg.draw(text_batch, text_x, text_y)
+	Painter.setColor(text_color)
+	Painter.drawText(self.text_batch, text_x, text_y)
 end
 
 return TabButton

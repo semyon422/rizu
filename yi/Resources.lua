@@ -54,7 +54,7 @@ function Resources:setDpi(dpi)
 end
 
 ---@param name yi.FontName
----@param size yi.FontSize
+---@param size yi.FontSize|integer
 ---@return love.Font
 function Resources:getFont(name, size)
 	---@cast name string
@@ -68,6 +68,17 @@ function Resources:getFont(name, size)
 	end
 
 	return self.fonts[key]
+end
+
+---@param name yi.FontName
+---@param size yi.FontSize|integer
+---@param ui_scale number?
+---@return love.Font
+---@return integer
+function Resources:getScaledFont(name, size, ui_scale)
+	ui_scale = ui_scale or 1
+	local scaled_size = math.max(1, math.floor(size * ui_scale))
+	return self:getFont(name, scaled_size), scaled_size
 end
 
 return Resources

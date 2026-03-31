@@ -94,10 +94,7 @@ function UIFactory:Panel(params)
 	params = params or {}
 	return apply_view_params(Panel({
 		atlas = params.atlas or self.atlas,
-		rect_corner = params.rect_corner or self.quads.rect_corner,
-		rect_corner_border = params.rect_corner_border or self.quads.rect_corner_border,
 		pixel = params.pixel or self.quads.pixel,
-		corners = params.corners,
 		color = params.color or self.colors.slate_900_70,
 		border_color = params.border_color or self.colors.white_90,
 	}), params)
@@ -109,15 +106,20 @@ function UIFactory:Button(params)
 	params = params or {}
 	params.width = params.width or 240
 	params.height = params.height or 45
+	params.font = params.font or "bold"
+	params.font_size = params.font_size or 24
+	params.text = params.text or ""
 
 	return apply_view_params(Button({
 		atlas = params.atlas or self.atlas,
 		button_quad = self.quads.button_rounded,
 		pixel = params.pixel or self.quads.pixel,
-		font = params.font or self.resources:getFont("oribtron_bold", 24),
+		resources = self.resources,
+		font_name = params.font,
+		font_size = params.font_size,
 		button_color = params.button_color or self.colors.cyan_400_10,
 		text_color = params.text_color or self.colors.cyan_400,
-		text = params.text or "",
+		text = params.text,
 		on_click = params.on_click,
 	}), params)
 end
@@ -126,20 +128,24 @@ end
 ---@return yi.TabButton
 function UIFactory:TabButton(params)
 	params = params or {}
+	params.width_percent = 1
+	params.height = 70
+	params.text = params.text or ""
+	params.line_width = params.line_width or 1
+	params.bevel_size = params.bevel_size or 16
+	params.text_padding_x = params.text_padding_x or 24
+	if params.active == nil then
+		params.active = false
+	end
 
 	return apply_view_params(TabButton({
-		atlas = params.atlas or self.atlas,
 		pixel = params.pixel or self.quads.pixel,
-		tab = params.tab or self.quads.tab,
-		tab_outline = params.tab_outline or self.quads.tab_outline,
-		font = params.font or self.resources:getFont("bold", 32),
-		text = params.text or "",
-		text_color = params.text_color or self.colors.white,
-		active_text_color = params.active_text_color or self.colors.white,
-		inactive_text_color = params.inactive_text_color or self.colors.white_70,
-		active_image_color = params.active_image_color or self.colors.black_80,
-		inactive_image_color = params.inactive_image_color or self.colors.slate_800_80,
+		resources = self.resources,
+		font_name = "bold",
+		font_size = 32,
+		text = params.text,
 		line_width = params.line_width,
+		bevel_size = params.bevel_size,
 		text_padding_x = params.text_padding_x,
 		active = params.active,
 		on_click = params.on_click,
@@ -171,8 +177,11 @@ function UIFactory:Label(params)
 	params = params or {}
 	assert(params.font, "Font is required")
 	assert(params.font_size, "Font size is required")
+	params.text = params.text or ""
 	return apply_view_params(Label({
-		font = self.resources:getFont(params.font, params.font_size),
+		resources = self.resources,
+		font_name = params.font,
+		font_size = params.font_size,
 		text = params.text,
 		color = params.color or self.colors.white
 	}), params)

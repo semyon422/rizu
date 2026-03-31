@@ -1,4 +1,5 @@
 local View = require("ui.View")
+local Painter = require("yi.Painter")
 
 ---@class yi.config.Background : ui.View
 ---@operator call: yi.config.Background
@@ -32,6 +33,9 @@ local skipped_directories = {
 	test = true,
 	userdata = true,
 }
+
+Background.code_font_name = "regular"
+Background.code_font_size = 16
 
 ---@param t number
 ---@param length number
@@ -123,12 +127,29 @@ local function load_random_project_code(count)
 	return files
 end
 
+---@private
+function Background:rebuildCodeText()
+	local code_fragments = {}
+	for i, file in ipairs(self.code_files) do
+		code_fragments[#code_fragments + 1] = {0.65, 0.95, 1, 0.5}
+		code_fragments[#code_fragments + 1] = file.path .. "\n\n"
+		code_fragments[#code_fragments + 1] = {0.9, 0.98, 1, 1}
+		code_fragments[#code_fragments + 1] = file.content
+		if i < #self.code_files then
+			code_fragments[#code_fragments + 1] = {0.65, 0.95, 1, 0.35}
+			code_fragments[#code_fragments + 1] = "\n\n--------------------------------\n\n"
+		end
+	end
+
+	self.code_text = love.graphics.newText(self.code_font, code_fragments)
+end
+
 ---@param image love.Image
----@param font love.Font
-function Background:new(image, font)
+---@param resources yi.Resources
+function Background:new(image, resources)
 	View.new(self)
 	self.image = assert(image)
-	self.code_font = assert(font)
+	self.resources = assert(resources)
 	self.image:setFilter("linear", "linear")
 	self.scale_factor = 1.35
 	self.speed_x = 18
@@ -143,20 +164,12 @@ function Background:new(image, font)
 	self.width_percent = 1
 	self.height_percent = 1
 	self.code_files = load_random_project_code(self.code_file_count)
+	self:onResolutionChanged()
+end
 
-	local code_fragments = {}
-	for i, file in ipairs(self.code_files) do
-		code_fragments[#code_fragments + 1] = {0.65, 0.95, 1, 0.5}
-		code_fragments[#code_fragments + 1] = file.path .. "\n\n"
-		code_fragments[#code_fragments + 1] = {0.9, 0.98, 1, 1}
-		code_fragments[#code_fragments + 1] = file.content
-		if i < #self.code_files then
-			code_fragments[#code_fragments + 1] = {0.65, 0.95, 1, 0.35}
-			code_fragments[#code_fragments + 1] = "\n\n--------------------------------\n\n"
-		end
-	end
-
-	self.code_text = love.graphics.newText(self.code_font, code_fragments)
+function Background:onResolutionChanged()
+	self.code_font = self.resources:getScaledFont(self.code_font_name, self.code_font_size, self.ui_scale)
+	self:rebuildCodeText()
 end
 
 ---@param dt number
@@ -183,7 +196,7 @@ function Background:draw()
 	lg.draw(self.image, x, y, 0, cover_scale, cover_scale)
 	lg.pop()
 
-	local text_height = self.code_text:getHeight()
+	local text_height = self:toLogicalSize(self.code_text:getHeight())
 	local loop_height = text_height + self.code_loop_gap
 	local scroll_offset = (self.time * self.code_scroll_speed) % loop_height
 	local first_text_y = 32 - scroll_offset
@@ -191,8 +204,9 @@ function Background:draw()
 	lg.push("all")
 	lg.setBlendMode("add")
 	lg.setColor(1, 1, 1, self.code_alpha)
-	lg.draw(self.code_text, self.code_padding_x, first_text_y)
-	lg.draw(self.code_text, self.code_padding_x, first_text_y + loop_height)
+	-- Should be drawn unsnapped because it's always animated
+	Painter.draw(self.code_text, self.code_padding_x, first_text_y)
+	Painter.draw(self.code_text, self.code_padding_x, first_text_y + loop_height)
 	lg.pop()
 end
 

@@ -11,6 +11,16 @@ function Item:new(height)
 	self.width = 100
 	self.is_focusable = true
 	self.handles_keyboard_input = true
+	self.resolution_change_count = 0
+	self.geometry_change_count = 0
+end
+
+function Item:onResolutionChanged()
+	self.resolution_change_count = self.resolution_change_count + 1
+end
+
+function Item:onGeometryChanged()
+	self.geometry_change_count = self.geometry_change_count + 1
 end
 
 ---@param t testing.T
@@ -21,7 +31,7 @@ function test.wheel_updates_target_scroll_position(t)
 	})
 
 	list:setSize(100, 100)
-	list:updateLayout()
+	list:onGeometryChanged()
 
 	t:eq(list.target_scroll_position, 0)
 	t:eq(list:onScroll({direction_y = -1}), true)
@@ -37,7 +47,7 @@ function test.update_animates_scroll_position(t)
 	})
 
 	list:setSize(100, 100)
-	list:updateLayout()
+	list:onGeometryChanged()
 	list:setTargetScrollPosition(60)
 
 	list:update(0.05)
@@ -59,7 +69,7 @@ function test.padding_offsets_items_and_content_height(t)
 	})
 
 	list:setSize(100, 120)
-	list:updateLayout()
+	list:onGeometryChanged()
 
 	t:eq(list.views[1].x, 12)
 	t:eq(list.views[1].y, 10)
@@ -80,7 +90,7 @@ function test.focus_visibility_accounts_for_padding(t)
 	})
 
 	list:setSize(100, 100)
-	list:updateLayout()
+	list:onGeometryChanged()
 	list:focusChild(4)
 
 	t:eq(list.target_scroll_position, 90)
@@ -95,7 +105,7 @@ function test.table_padding_is_supported(t)
 	})
 
 	list:setSize(120, 130)
-	list:updateLayout()
+	list:onGeometryChanged()
 
 	t:eq(list.padding_left, 12)
 	t:eq(list.padding_top, 8)
@@ -117,10 +127,49 @@ function test.vertical_padding_does_not_hide_partially_visible_items_early(t)
 
 	list:setSize(100, 100)
 	list:setScrollPosition(30)
-	list:updateLayout()
+	list:onGeometryChanged()
 
 	t:eq(list.first_visible, 1)
 	t:eq(list.last_visible, 3)
+end
+
+---@param t testing.T
+function test.resolution_change_keeps_logical_spacing_values(t)
+	local list = List({
+		gap = 10,
+		padding = {12, 8, 20, 10},
+		wheel_step = 24,
+	})
+
+	list.ui_scale = 1.5
+	list:onResolutionChanged()
+
+	t:eq(list.gap, 10)
+	t:eq(list.padding_left, 12)
+	t:eq(list.padding_top, 8)
+	t:eq(list.padding_right, 20)
+	t:eq(list.padding_bottom, 10)
+	t:eq(list.wheel_step, 24)
+end
+
+---@param t testing.T
+function test.new_children_adopt_current_ui_scale_immediately(t)
+	local list = List({
+		padding = 10,
+	})
+
+	list.ui_scale = 1.5
+	list:setSize(120, 100)
+	list:onGeometryChanged()
+
+	local item = Item(40)
+	item:setWidthPercent(1)
+	list:setItems({item})
+
+	t:eq(item.ui_scale, 1.5)
+	t:eq(item.resolution_change_count, 1)
+	t:eq(item.geometry_change_count > 0, true)
+	t:eq(item.width, 100)
 end
 
 return test

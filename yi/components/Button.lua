@@ -1,13 +1,16 @@
 local BaseButton = require("ui.base.Button")
+local Painter = require("yi.Painter")
 
 ---@class yi.ButtonParams
 ---@field atlas love.Image
 ---@field button_quad love.Quad
 ---@field pixel love.Quad
----@field font love.Font
----@field button_color number[]?
----@field text_color number[]?
----@field text string?
+---@field resources yi.Resources
+---@field font_name yi.FontName
+---@field font_size integer
+---@field button_color number[]
+---@field text_color number[]
+---@field text string
 ---@field on_click fun(button: yi.Button)?
 
 ---@class yi.Button : ui.Button
@@ -16,12 +19,21 @@ local BaseButton = require("ui.base.Button")
 ---@field button_quad love.Quad
 ---@field pixel love.Quad
 ---@field font love.Font
----@field button_color number[]?
----@field text_color number[]?
+---@field resources yi.Resources
+---@field font_name yi.FontName
+---@field font_size integer
+---@field button_color number[]
+---@field text_color number[]
 ---@field text string
 ---@field on_click fun(button: yi.Button)?
 ---@field text_batch love.Text
 local Button = BaseButton + {}
+
+---@private
+function Button:rebuildText()
+	self.font = self.resources:getScaledFont(self.font_name, self.font_size, self.ui_scale)
+	self.text_batch = love.graphics.newText(self.font, self.text)
+end
 
 ---@param params yi.ButtonParams
 function Button:new(params)
@@ -29,12 +41,18 @@ function Button:new(params)
 	self.atlas = assert(params.atlas, "Button atlas is required")
 	self.button_quad = assert(params.button_quad, "Button quad is required")
 	self.pixel = assert(params.pixel, "Button pixel quad is required")
-	self.font = assert(params.font, "Button font is required")
+	self.resources = assert(params.resources, "Button resources are required")
+	self.font_name = assert(params.font_name, "Button font_name is required")
+	self.font_size = assert(params.font_size, "Button font_size is required")
 	self.button_color = assert(params.button_color, "Button color is requried")
 	self.text_color = assert(params.text_color, "Text color is required")
-	self.text = params.text or ""
+	self.text = assert(params.text, "Button text is required")
 	self.on_click = params.on_click
-	self.text_batch = love.graphics.newText(self.font, self.text)
+	self:rebuildText()
+end
+
+function Button:onResolutionChanged()
+	self:rebuildText()
 end
 
 function Button:draw()
@@ -50,6 +68,8 @@ function Button:draw()
 	local cap_sy = h / quad_h
 	local text_batch = self.text_batch
 	local tw, th = text_batch:getDimensions()
+	tw = self:toLogicalSize(tw)
+	th = self:toLogicalSize(th)
 	local lg = love.graphics
 
 	lg.setColor(self.button_color)
@@ -66,7 +86,7 @@ function Button:draw()
 	end
 
 	lg.setColor(self.text_color)
-	lg.draw(text_batch, w / 2 - tw / 2, h / 2 - th / 2)
+	Painter.drawText(text_batch, w / 2 - tw / 2, h / 2 - th / 2)
 end
 
 return Button

@@ -22,11 +22,13 @@ function Config:new(ctx)
 
 	self.layout = Layout({
 		target_height = 1080,
-		root = {children = {
+		root = {id = "root", children = {
 			{padding = {100, 60, 100, 60}, align = {0.5, 0.5}, arrange = "col", children = {
-				{id = "title", w = "100%", h = 150},
+				{id = "title", w = "100%", h = 120},
+				{h = 20},
 				{w = "100%", h = "*", arrange = "row", children = {
 					{id = "tabs", w = 400, h = "100%"},
+					{w = 20},
 					{id = "content_bg", w = "*", h = "100%", padding = 5, children = {
 						{id = "content"}
 					}},
@@ -39,7 +41,7 @@ function Config:new(ctx)
 
 	self.background = Background(
 		love.graphics.newImage("resources/yi/sky_background.jpg"),
-		res:getFont("regular", 16)
+		res
 	)
 
 	self.title = Title(self.atlas, self.quads)

@@ -1,7 +1,10 @@
 local View = require("ui.View")
+local Painter = require("yi.Painter")
 
 ---@class yi.config.SectionLabelParams
----@field font love.Font
+---@field resources yi.Resources
+---@field font_name yi.FontName
+---@field font_size integer
 ---@field text string
 ---@field color ui.Color
 ---@field accent_color ui.Color
@@ -12,6 +15,9 @@ local View = require("ui.View")
 ---@class yi.config.SectionLabel : ui.View
 ---@overload fun(params: yi.config.SectionLabelParams): yi.config.SectionLabel
 ---@field font love.Font
+---@field resources yi.Resources
+---@field font_name yi.FontName
+---@field font_size integer
 ---@field text string
 ---@field color ui.Color
 ---@field accent_color ui.Color
@@ -24,10 +30,25 @@ local View = require("ui.View")
 ---@field text_batch love.Text
 local SectionLabel = View + {}
 
+---@private
+function SectionLabel:rebuild()
+	self.font = self.resources:getScaledFont(self.font_name, self.font_size, self.ui_scale)
+	self.text_batch = love.graphics.newText(self.font, self.text)
+
+	local text_w, text_h = self.text_batch:getDimensions()
+	text_w = self:toLogicalSize(text_w)
+	text_h = self:toLogicalSize(text_h)
+	local width = self.accent_width + self.gap + text_w
+	local height = math.max(self.accent_height, text_h)
+	self:setSize(width, height)
+end
+
 ---@param params yi.config.SectionLabelParams
 function SectionLabel:new(params)
 	View.new(self)
-	self.font = assert(params.font, "Font is required")
+	self.resources = assert(params.resources, "SectionLabel resources are required")
+	self.font_name = assert(params.font_name, "SectionLabel font_name is required")
+	self.font_size = assert(params.font_size, "SectionLabel font_size is required")
 	self.text = assert(params.text, "Text is required")
 	self.color = assert(params.color, "Color is required")
 	self.accent_color = assert(params.accent_color, "Accent color is required")
@@ -37,23 +58,17 @@ function SectionLabel:new(params)
 	self.blink_period = 0.5
 	self.blink_min_alpha = 0.7
 	self.blink_offset = love.math.random() * self.blink_period
-
-	self.text_batch = love.graphics.newText(self.font, self.text)
-
-	local text_w, text_h = self.text_batch:getDimensions()
-	local width = self.accent_width + self.gap + text_w
-	local height = math.max(self.accent_height, text_h)
-	self:setSize(width, height)
+	self:rebuild()
 end
 
-function SectionLabel:updateTransform()
-	View.updateTransform(self)
-	local x, y = self.transform:transformPoint(0, 0)
-	self.transform:translate(math.floor(x) - x, math.floor(y) - y)
+function SectionLabel:onResolutionChanged()
+	self:rebuild()
 end
 
 function SectionLabel:draw()
 	local text_w, text_h = self.text_batch:getDimensions()
+	text_w = self:toLogicalSize(text_w)
+	text_h = self:toLogicalSize(text_h)
 	local accent_y = math.floor((self.height - self.accent_height) / 2)
 	local text_x = self.accent_width + self.gap
 	local text_y = math.floor((self.height - text_h) / 2)
@@ -67,7 +82,7 @@ function SectionLabel:draw()
 	love.graphics.rectangle("fill", 0, accent_y, self.accent_width, self.accent_height)
 
 	love.graphics.setColor(self.color)
-	love.graphics.draw(self.text_batch, text_x, text_y)
+	Painter.drawText(self.text_batch, text_x, text_y)
 end
 
 return SectionLabel

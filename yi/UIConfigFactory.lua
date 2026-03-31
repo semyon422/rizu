@@ -78,8 +78,11 @@ end
 ---@return yi.config.SectionLabel
 function UIConfigFactory:SectionLabel(params)
 	params = params or {}
+	params.text = params.text or ""
 	return apply_view_params(SectionLabel({
-		font = self.resources:getFont("bold", 36),
+		resources = self.resources,
+		font_name = "bold",
+		font_size = 36,
 		text = params.text,
 		color = self.colors.text_section,
 		accent_color = self.colors.cyan_400,
@@ -93,8 +96,11 @@ end
 ---@return yi.config.GroupLabel
 function UIConfigFactory:GroupLabel(params)
 	params = params or {}
+	params.text = params.text or ""
 	return apply_view_params(GroupLabel({
-		font = self.resources:getFont("medium", 22),
+		resources = self.resources,
+		font_name = "medium",
+		font_size = 22,
 		text = params.text,
 		color = self.colors.text_subsection,
 		marker_text = params.marker_text or "//",
@@ -108,10 +114,13 @@ end
 ---@return yi.config.Checkbox
 function UIConfigFactory:Checkbox(params)
 	params = params or {}
+	params.text = params.text or ""
 	return apply_view_params(Checkbox({
 		atlas = params.atlas or self.resources.atlas,
 		pixel = params.pixel or self.resources.quads.pixel,
-		font = self.resources:getFont("medium", 24),
+		resources = self.resources,
+		font_name = "medium",
+		font_size = 24,
 		text = params.text or "",
 		color = self.colors.text_label,
 		box_color = self.colors.white_70,
@@ -152,11 +161,15 @@ function UIConfigFactory:Slider(params)
 		return value_format:format(value)
 	end
 	params.width = params.width or 640
+	params.text = params.text or ""
 	return apply_view_params(Slider({
 		atlas = params.atlas or self.resources.atlas,
 		pixel = params.pixel or self.resources.quads.pixel,
-		label_font = self.resources:getFont("medium", 24),
-		value_font = self.resources:getFont("bold", 24),
+		resources = self.resources,
+		label_font_name = "medium",
+		label_font_size = 24,
+		value_font_name = "bold",
+		value_font_size = 24,
 		text = params.text or "",
 		color = self.colors.text_label,
 		value_color = self.colors.text_section,
@@ -199,12 +212,16 @@ function UIConfigFactory:PanelSelect(params)
 	end
 	params.width_percent = params.width_percent or 1
 	params.height = params.height or (font:getHeight() + padding_y + panel_height)
+	params.text = params.text or ""
 	return apply_view_params(PanelSelect({
-		text = params.text or "",
+		text = params.text,
 		atlas = params.atlas or self.resources.atlas,
 		pixel = params.pixel or self.resources.quads.pixel,
-		font = font,
-		item_font = item_font,
+		resources = self.resources,
+		label_font_name = "medium",
+		label_font_size = 24,
+		item_font_name = "regular",
+		item_font_size = 24,
 			items = items,
 			format_item = format_item,
 			color = self.colors.text_muted,

@@ -2,6 +2,7 @@ local IUserInterface = require("sphere.IUserInterface")
 local Context = require("yi.Context")
 local Inputs = require("ui.input.Inputs")
 local Resources = require("yi.Resources")
+local Painter = require("yi.Painter")
 
 local Background = require("yi.layers.Background")
 local Config = require("yi.layers.Config")
@@ -11,6 +12,7 @@ local Config = require("yi.layers.Config")
 local UserInterface = IUserInterface + {}
 
 local MAX_DT = 1 / 30
+local TARGET_WIDTH = 1920
 local TARGET_HEIGHT = 1080
 
 ---@param game sphere.GameController
@@ -26,6 +28,8 @@ end
 
 function UserInterface:load()
 	self.resources:load()
+	Painter.setAtlas(self.resources.atlas)
+	Painter.setScale(1)
 
 	self.background = Background(self.ctx)
 	self.config = Config(self.ctx)
@@ -44,8 +48,9 @@ function UserInterface:update(dt)
 
 	if self:dimensionsChanged() then
 		local w, h = love.graphics.getDimensions()
-		local layout_scale = h / TARGET_HEIGHT
+		local layout_scale = math.min(h / TARGET_HEIGHT, w / TARGET_WIDTH)
 		local ui_scale = layout_scale
+		Painter.setScale(ui_scale)
 		for _, v in ipairs(self.layers) do
 			v:updateDimensions(w, h, layout_scale, ui_scale)
 		end

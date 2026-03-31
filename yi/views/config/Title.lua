@@ -1,5 +1,6 @@
 local View = require("ui.View")
 local Colors = require("yi.Colors")
+local Painter = require("yi.Painter")
 
 ---@class yi.ConfigTitle : ui.View
 ---@operator call: yi.ConfigTitle
@@ -14,6 +15,10 @@ Title.thing_activation_span = 0.4
 Title.thing_active_hold = 0.1
 Title.thing_deactivation_span = 0.4
 Title.thing_inactive_hold = 0.1
+Title.title_offset_x = -3
+Title.right_margin = 10
+Title.thing_gap = 4
+Title.things_bottom_margin = 20
 
 ---@param atlas love.Image
 ---@param quads {[string]: love.Quad}
@@ -26,17 +31,25 @@ function Title:new(atlas, quads)
 	self.description = quads.configuration_description
 	self.thing = quads.config_thing
 
-	local _, _, _, title_h = self.title:getViewport()
-	local total_h = title_h
-	local _, _, _, desc_h = self.description:getViewport()
-	total_h = total_h + self.gap + desc_h + self.gap + self.line_height
-	self:setWidthPercent(1)
-	self:setHeight(total_h)
+	self:setSizePercent(1, 1)
+	self.gap = Title.gap
+	self.title_offset_x = Title.title_offset_x
+	self.right_margin = Title.right_margin
+	self.thing_gap = Title.thing_gap
+	self.things_bottom_margin = Title.things_bottom_margin
 
-	local _, _, thing_w, _ = self.thing:getViewport()
-	self.thing_w = thing_w
+	local _, _, title_w, title_h = self.title:getViewport()
+	self.title_width = title_w
+	self.title_height = title_h
 
-	self.description_tf = love.math.newTransform(0, title_h + self.gap)
+	local _, _, description_w, description_h = self.description:getViewport()
+	self.description_width = description_w
+	self.description_height = description_h
+
+	local _, _, thing_w, thing_h = self.thing:getViewport()
+	self.thing_width = thing_w
+	self.thing_height = thing_h
+	self.line_height = Title.line_height
 end
 
 function Title:draw()
@@ -49,19 +62,19 @@ function Title:draw()
 		title_alpha = 1 - (1 - self.title_dim_alpha) * pulse
 	end
 
-	love.graphics.setColor(1, 1, 1, title_alpha)
-	love.graphics.draw(self.atlas, self.title, -3)
-	love.graphics.setColor(Colors.white)
-	love.graphics.draw(self.atlas, self.description, self.description_tf)
-	love.graphics.setColor(1, 1, 1, 0.5)
-	love.graphics.setBlendMode("add")
-	love.graphics.draw(self.atlas, self.quads.pixel, 0, self.height - self.line_height, 0, self.width, self.line_height)
+	Painter.setColor(1, 1, 1, title_alpha)
+	Painter.column(true, self.gap, self.title_offset_x, 0)
+	Painter.drawSprite(self.title, nil, nil, self.title_width, self.title_height)
+	Painter.setColor(Colors.white)
+	Painter.drawSprite(self.description, -self.title_offset_x, nil, self.description_width, self.description_height)
+	Painter.column(false)
 
 	local count = 5
-	local gap = 4
-	local total_w = self.thing_w * count + gap
+	local total_w = self.thing_width * count + self.thing_gap * (count - 1)
+	local things_x = self.width - total_w - self.right_margin
+	local things_y = self.height - self.thing_height - self.things_bottom_margin
+	Painter.row(true, self.thing_gap, things_x, things_y)
 
-	love.graphics.translate(self.width - total_w - 15, 40)
 	local cycle_duration = self.thing_activation_span
 		+ self.thing_active_hold
 		+ self.thing_deactivation_span
@@ -70,6 +83,8 @@ function Title:draw()
 	local steps = math.max(1, count - 1)
 	local activation_step = self.thing_activation_span / steps
 	local deactivation_step = self.thing_deactivation_span / steps
+
+	Painter.setBlendMode("add")
 
 	for i = 1, count do
 		local is_active = false
@@ -80,17 +95,18 @@ function Title:draw()
 		elseif cycle_t < self.thing_activation_span + self.thing_active_hold + self.thing_deactivation_span then
 			local off_t = cycle_t - self.thing_activation_span - self.thing_active_hold
 			is_active = off_t < deactivation_step * (i - 1)
-		else
-			is_active = false
 		end
 		if is_active then
-			love.graphics.setColor(1, 1, 1, 0.4)
+			Painter.setColor(1, 1, 1, 0.4)
 		else
-			love.graphics.setColor(1, 1, 1, 0.2)
+			Painter.setColor(1, 1, 1, 0.2)
 		end
-		love.graphics.draw(self.atlas, self.thing)
-		love.graphics.translate(self.thing_w + gap, 0)
+		Painter.drawSprite(self.thing, nil, nil, self.thing_width, self.thing_height)
 	end
+	Painter.row(false)
+
+	Painter.setColor(1, 1, 1, 0.5)
+	Painter.drawSprite(self.quads.pixel, 0, self.height - self.line_height, self.width, self.line_height)
 end
 
 return Title

@@ -29,12 +29,29 @@ local math_util = require("math_util")
 ---@field padding_bottom number
 local List = BaseList + {}
 
+---@param view ui.View
+---@param box ui.Box
+---@param box_size_changed boolean
+local function refresh_child_view(view, box, ui_scale, box_size_changed, scale_changed)
+	local box_changed = view.box ~= box
+	local child_scale_changed = view.ui_scale ~= ui_scale
+	view.box = box
+	if scale_changed or child_scale_changed then
+		view.ui_scale = ui_scale
+		view:onResolutionChanged()
+	end
+	local geometry_changed = view:syncBoxSize() or box_changed or scale_changed or child_scale_changed or box_size_changed
+	if geometry_changed then
+		view:onGeometryChanged()
+	end
+	view:updateTransform()
+end
+
 ---@param params yi.ListParams?
 function List:new(params)
 	params = params or {}
 	BaseList.new(self)
 
-	self.gap = params.gap or 0
 	local padding = params.padding
 	local default_padding_x = 0
 	local default_padding_y = 0
@@ -60,6 +77,7 @@ function List:new(params)
 
 	local padding_x = params.padding_x or default_padding_x
 	local padding_y = params.padding_y or default_padding_y
+	self.gap = params.gap or 0
 	self.padding_left = params.padding_left or padding_x
 	self.padding_right = params.padding_right or padding_x
 	self.padding_top = params.padding_top or padding_y
@@ -85,15 +103,18 @@ function List:new(params)
 	local scroll_position = params.scroll_position or 0
 	self.scroll_position = scroll_position
 	self.target_scroll_position = scroll_position
-
 	self:setItems(params.items or {})
+end
+
+function List:onResolutionChanged()
+	self._children_resolution_changed = true
 end
 
 ---@param items ui.View[]
 function List:setItems(items)
 	self.views = items or {}
 	self.items = self.views
-	self:updateLayout()
+	self:onGeometryChanged()
 end
 
 ---@generic T: ui.View
@@ -114,7 +135,7 @@ end
 function List:setScrollPosition(scroll_position)
 	self:setTargetScrollPosition(scroll_position)
 	self.scroll_position = self.target_scroll_position
-	self:updateLayout()
+	self:onGeometryChanged()
 end
 
 ---@param delta number
@@ -154,9 +175,13 @@ function List:ensureFocusedChildVisible()
 	self:setTargetScrollPosition(center - (self.padding_top + viewport_height * 0.5))
 end
 
-function List:updateLayout()
+function List:onGeometryChanged()
+	local children_resolution_changed = self._children_resolution_changed
+	self._children_resolution_changed = false
 	local inner_width = math.max(0, self.width - self.padding_left - self.padding_right)
 	local inner_height = math.max(0, self.height - self.padding_top - self.padding_bottom)
+	local box_size_changed = self.content_box.width ~= inner_width
+		or self.content_box.height ~= inner_height
 	self.content_box.x = self.padding_left
 	self.content_box.y = self.padding_top
 	self.content_box.width = inner_width
@@ -174,8 +199,7 @@ function List:updateLayout()
 	for i, view in ipairs(self.views) do
 		view.x = self.padding_left
 		view.y = y
-		view.box = self.content_box
-		view:updateTransform(self.ui_scale)
+		refresh_child_view(view, self.content_box, self.ui_scale, box_size_changed, children_resolution_changed)
 
 		local is_visible = y + view.height > viewport_top and y < viewport_bottom
 		if is_visible then
@@ -204,7 +228,7 @@ function List:updateLayout()
 	local clamped_scroll_position = math.max(0, math.min(self.scroll_position, max_scroll))
 	if clamped_scroll_position ~= self.scroll_position then
 		self.scroll_position = clamped_scroll_position
-		self:updateLayout()
+		self:onGeometryChanged()
 	end
 end
 
@@ -219,7 +243,7 @@ function List:update(dt)
 		end
 	end
 
-	self:updateLayout()
+	self:onGeometryChanged()
 
 	for i = self.first_visible, self.last_visible do
 		local view = self.views[i]
