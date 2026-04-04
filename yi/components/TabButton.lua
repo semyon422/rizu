@@ -1,8 +1,8 @@
-local BaseButton = require("ui.base.Button")
 local View = require("ui.View")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 local Painter = require("yi.Painter")
+local TweenValue = require("ui.anim.TweenValue")
 
 ---@class yi.TabButtonParams
 ---@field pixel love.Quad
@@ -16,7 +16,7 @@ local Painter = require("yi.Painter")
 ---@field active boolean
 ---@field on_click fun(button: yi.TabButton)?
 
----@class yi.TabButton : ui.Button
+---@class yi.TabButton : ui.View
 ---@overload fun(params: yi.TabButtonParams): yi.TabButton
 ---@field pixel love.Quad
 ---@field font love.Font
@@ -30,9 +30,7 @@ local Painter = require("yi.Painter")
 ---@field active boolean
 ---@field on_click fun(button: yi.TabButton)?
 ---@field text_batch love.Text
----@field hover_t number
----@field hover_speed number
-local TabButton = BaseButton + {}
+local TabButton = View + {}
 
 local hover_bg_color = {0, 0, 0, 1}
 local bg_color = {0, 0, 0, 1}
@@ -49,7 +47,7 @@ end
 
 ---@param params yi.TabButtonParams
 function TabButton:new(params)
-	BaseButton.new(self)
+	View.new(self)
 	self.pixel = assert(params.pixel, "TabButton pixel quad is required")
 	self.resources = assert(params.resources, "TabButton resources are required")
 	self.font_name = assert(params.font_name, "TabButton font_name is required")
@@ -61,11 +59,16 @@ function TabButton:new(params)
 	assert(params.active ~= nil, "TabButton active is required")
 	self.active = params.active
 	self.on_click = params.on_click
-	self.hover_t = 0
-	self.hover_speed = 14
 	self.fill_polygon_points = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	self.border_line_points = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	self.draw_line_width = self.line_width
+	self.handles_mouse_input = true
+	self.handles_keyboard_input = true
+	self.is_focusable = true
+	self.hover = TweenValue({
+		easing = "outQuad",
+		duration = 0.12,
+	})
 	self:rebuildText()
 end
 
@@ -102,11 +105,17 @@ function TabButton:setActive(active)
 	self.active = active
 end
 
+function TabButton:onHover()
+	self.hover:set(1)
+end
+
+function TabButton:onHoverLost()
+	self.hover:set(0)
+end
+
 ---@param dt number
 function TabButton:update(dt)
-	local target = (self.mouse_over or self.focused) and (not self.active) and 1 or 0
-	local blend_t = 1 - math.exp(-self.hover_speed * dt)
-	self.hover_t = self.hover_t + (target - self.hover_t) * blend_t
+	self.hover:update(dt)
 end
 
 ---@return boolean
@@ -118,10 +127,24 @@ function TabButton:click()
 	return false
 end
 
+---@param e ui.KeyDownEvent
+function TabButton:onKeyDown(e)
+	if e.key == "return" then
+		return self:click()
+	end
+end
+
+---@param e ui.MouseClickEvent
+function TabButton:onMouseClick(e)
+	if e.button == 1 then
+		return self:click()
+	end
+end
+
 function TabButton:draw()
 	local active = self.active
 	local hovered = (self.mouse_over or self.focused) and (not active)
-	local hover_t = self.hover_t
+	local hover_t = self.hover:get()
 	local base_bg_color = active and Colors.black_80 or Colors.slate_800_80
 	Color.scale_to(hover_bg_color, base_bg_color, 1.1, 1.1)
 	Color.mix_to(bg_color, base_bg_color, hover_bg_color, hover_t)

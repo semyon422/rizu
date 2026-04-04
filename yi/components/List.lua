@@ -1,5 +1,5 @@
 local BaseList = require("ui.base.List")
-local math_util = require("math_util")
+local TweenValue = require("ui.anim.TweenValue")
 
 ---@class yi.ListParams
 ---@field gap number?
@@ -27,6 +27,7 @@ local math_util = require("math_util")
 ---@field padding_right number
 ---@field padding_top number
 ---@field padding_bottom number
+---@field scroll_value ui.anim.TweenValue
 local List = BaseList + {}
 
 ---@param view ui.View
@@ -103,6 +104,11 @@ function List:new(params)
 	local scroll_position = params.scroll_position or 0
 	self.scroll_position = scroll_position
 	self.target_scroll_position = scroll_position
+	self.scroll_value = TweenValue({
+		value = scroll_position,
+		duration = self.scroll_animation_speed > 0 and 3 / self.scroll_animation_speed or 0,
+		easing = "outQuad",
+	})
 	self:setItems(params.items or {})
 end
 
@@ -135,7 +141,18 @@ end
 function List:setScrollPosition(scroll_position)
 	self:setTargetScrollPosition(scroll_position)
 	self.scroll_position = self.target_scroll_position
+	self.scroll_value:snap(self.scroll_position)
 	self:onGeometryChanged()
+end
+
+---@param position number
+---@return boolean changed
+function List:setTargetScrollPosition(position)
+	local changed = BaseList.setTargetScrollPosition(self, position)
+	if changed then
+		self.scroll_value:set(self.target_scroll_position)
+	end
+	return changed
 end
 
 ---@param delta number
@@ -228,20 +245,14 @@ function List:onGeometryChanged()
 	local clamped_scroll_position = math.max(0, math.min(self.scroll_position, max_scroll))
 	if clamped_scroll_position ~= self.scroll_position then
 		self.scroll_position = clamped_scroll_position
+		self.scroll_value:snap(clamped_scroll_position)
 		self:onGeometryChanged()
 	end
 end
 
 ---@param dt number
 function List:update(dt)
-	local diff = self.target_scroll_position - self.scroll_position
-	if math.abs(diff) > 0.001 then
-		local t = 1 - math.exp(-self.scroll_animation_speed * dt)
-		self.scroll_position = math_util.lerp(t, self.scroll_position, self.target_scroll_position)
-		if math.abs(self.target_scroll_position - self.scroll_position) < 0.5 then
-			self.scroll_position = self.target_scroll_position
-		end
-	end
+	self.scroll_position = self.scroll_value:update(dt)
 
 	self:onGeometryChanged()
 

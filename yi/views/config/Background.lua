@@ -7,23 +7,6 @@ local Background = View + {}
 
 local Path = require("aqua.Path")
 
-local crt_shader_code = [[
-	extern float time;
-
-	vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-		vec4 tex = Texel(texture, texture_coords) * color;
-
-		float scanline = 0.992 + 0.008 * sin(screen_coords.y * 1.05);
-		float moving_pos = mod(time * 140.0, 1400.0) - 120.0;
-		float moving_line = exp(-pow((screen_coords.y - moving_pos) / 70.0, 2.0)) * 0.08;
-
-		tex.rgb *= scanline;
-		tex.rgb += moving_line;
-		tex.rgb *= 1.01;
-		return tex;
-	}
-]]
-
 local skipped_directories = {
 	[".git"] = true,
 	bin = true,
@@ -160,7 +143,6 @@ function Background:new(image, resources)
 	self.code_alpha = 0.22
 	self.code_file_count = 5
 	self.code_loop_gap = 160
-	self.shader = love.graphics.newShader(crt_shader_code)
 	self.width_percent = 1
 	self.height_percent = 1
 	self.code_files = load_random_project_code(self.code_file_count)
@@ -190,8 +172,6 @@ function Background:draw()
 	local y = -smooth_ping_pong(self.time * self.speed_y, overflow_y)
 
 	lg.push("all")
-	self.shader:send("time", self.time)
-	lg.setShader(self.shader)
 	lg.setColor(1, 1, 1, 1)
 	lg.draw(self.image, x, y, 0, cover_scale, cover_scale)
 	lg.pop()

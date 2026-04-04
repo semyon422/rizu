@@ -1,6 +1,8 @@
 local SettingView = require("yi.components.config.SettingView")
+local TweenValue = require("ui.anim.TweenValue")
 local Color = require("yi.Color")
 local Painter = require("yi.Painter")
+local math_util = require("math_util")
 
 ---@class yi.config.SliderParams
 ---@field atlas love.Image
@@ -63,10 +65,8 @@ local Painter = require("yi.Painter")
 ---@field format_value fun(value: number): string
 ---@field on_change fun(value: number)?
 ---@field dragging boolean
+---@field displayed_progress_value ui.anim.TweenValue
 ---@field displayed_progress number
----@field animation_from number
----@field target_progress number
----@field animation_t number
 ---@field label_idle_alpha_scale number
 ---@field label_active_alpha_scale number
 ---@field value_idle_alpha_scale number
@@ -74,14 +74,6 @@ local Painter = require("yi.Painter")
 ---@field label_batch love.Text
 ---@field value_batch love.Text
 local Slider = SettingView + {}
-
----@param value number
----@param min number
----@param max number
----@return number
-local function clamp(value, min, max)
-	return math.min(max, math.max(min, value))
-end
 
 ---@param value number
 ---@param step number
@@ -104,12 +96,6 @@ local function value_to_progress(value, min, max)
 		return 0
 	end
 	return (value - min) / span
-end
-
----@param t number
----@return number
-local function ease_out_cubic(t)
-	return 1 - (1 - t) ^ 3
 end
 
 ---@private
@@ -179,12 +165,14 @@ function Slider:new(params)
 	self.dragging = false
 
 	assert(self.max >= self.min, "Max must be greater than or equal to min")
-	local initial = clamp(params.value, self.min, self.max)
+	local initial = math_util.clamp(params.value, self.min, self.max)
 	self.value = snap(initial, self.step, self.min)
 	self.displayed_progress = value_to_progress(self.value, self.min, self.max)
-	self.animation_from = self.displayed_progress
-	self.target_progress = self.displayed_progress
-	self.animation_t = self.animation_duration
+	self.displayed_progress_value = TweenValue({
+		value = self.displayed_progress,
+		duration = self.animation_duration,
+		easing = "outCubic",
+	})
 	self._label_draw_color = {0, 0, 0, 1}
 	self._value_draw_color = {0, 0, 0, 1}
 	self:rebuild()
@@ -213,21 +201,19 @@ end
 ---@return boolean
 function Slider:setProgress(progress)
 	local span = self.max - self.min
-	local value = self.min + clamp(progress, 0, 1) * span
+	local value = self.min + math_util.clamp(progress, 0, 1) * span
 	return self:setValue(value)
 end
 
 ---@param value number
 ---@return boolean
 function Slider:setValue(value)
-	value = clamp(snap(value, self.step, self.min), self.min, self.max)
+	value = math_util.clamp(snap(value, self.step, self.min), self.min, self.max)
 	if self.value == value then
 		return false
 	end
 	self.value = value
-	self.animation_from = self.displayed_progress
-	self.target_progress = self:getProgress()
-	self.animation_t = 0
+	self.displayed_progress_value:set(self:getProgress())
 	self:updateValueText()
 	if self.on_change then
 		self.on_change(value)
@@ -237,14 +223,8 @@ end
 
 ---@param dt number
 function Slider:update(dt)
-	local duration = self.animation_duration
-	if self.animation_t < duration then
-		self.animation_t = math.min(duration, self.animation_t + dt)
-		local t = duration > 0 and ease_out_cubic(self.animation_t / duration) or 1
-		self.displayed_progress = self.animation_from + (self.target_progress - self.animation_from) * t
-	else
-		self.displayed_progress = self.target_progress
-	end
+	SettingView.update(self, dt)
+	self.displayed_progress = self.displayed_progress_value:update(dt)
 end
 
 ---@param screen_x number
@@ -252,7 +232,7 @@ end
 function Slider:getProgressFromScreenX(screen_x)
 	local local_x = self.transform:inverseTransformPoint(screen_x, 0)
 	local content_x = self:getSettingContentOrigin()
-	return clamp((local_x - content_x) / self.track_width, 0, 1)
+	return math_util.clamp((local_x - content_x) / self.track_width, 0, 1)
 end
 
 ---@param e ui.MouseDownEvent

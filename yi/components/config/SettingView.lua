@@ -1,4 +1,5 @@
 local View = require("ui.View")
+local TweenValue = require("ui.anim.TweenValue")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 
@@ -12,11 +13,12 @@ local Color = require("yi.Color")
 ---@field setting_padding_x number
 ---@field setting_padding_y number
 ---@field setting_active_t number
----@field setting_active_speed number
----@field setting_last_time number
+---@field setting_active_value ui.anim.TweenValue
 local SettingView = View + {}
 
-function SettingView:initSettingStyle()
+function SettingView:new()
+	View.new(self)
+	self.width_percent = 1
 	self.setting_background_color = Colors.black_60
 	self.setting_border_color = Colors.slate_600
 	self.setting_line_color = Colors.white_30
@@ -26,8 +28,10 @@ function SettingView:initSettingStyle()
 	self.setting_padding_x = 12
 	self.setting_padding_y = 10
 	self.setting_active_t = 0
-	self.setting_active_speed = 16
-	self.setting_last_time = love.timer.getTime()
+	self.setting_active_value = TweenValue({
+		duration = 0.1875,
+		easing = "outQuad",
+	})
 	self._setting_active_bg = {0, 0, 0, 1}
 	self._setting_active_border = {0, 0, 0, 1}
 	self._setting_bg = {0, 0, 0, 1}
@@ -35,10 +39,14 @@ function SettingView:initSettingStyle()
 	self._setting_line = {0, 0, 0, 1}
 end
 
-function SettingView:new()
-	View.new(self)
-	self.width_percent = 1
-	self:initSettingStyle()
+---@param dt number
+function SettingView:update(dt)
+	local target_t = (self.focused or self.mouse_over) and 1 or 0
+	local value = self.setting_active_value
+	if value.target ~= target_t then
+		value:set(target_t)
+	end
+	self.setting_active_t = value:update(dt)
 end
 
 ---@return number
@@ -71,14 +79,6 @@ function SettingView:drawSettingBackground()
 	local lg = love.graphics
 	local atlas = assert(self.atlas, "SettingView atlas is required")
 	local pixel = assert(self.pixel, "SettingView pixel quad is required")
-	local is_active = self.focused or self.mouse_over
-	local now = love.timer.getTime()
-	local dt = math.max(0, now - self.setting_last_time)
-	self.setting_last_time = now
-	local target_t = is_active and 1 or 0
-	local speed = self.setting_active_speed
-	local blend_t = 1 - math.exp(-speed * dt)
-	self.setting_active_t = self.setting_active_t + (target_t - self.setting_active_t) * blend_t
 
 	local inactive_bg = self.setting_background_color
 	local active_bg = Color.copy_to(self._setting_active_bg, Colors.black)

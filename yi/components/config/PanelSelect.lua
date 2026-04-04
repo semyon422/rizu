@@ -1,4 +1,5 @@
 local SettingView = require("yi.components.config.SettingView")
+local TweenValue = require("ui.anim.TweenValue")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 local Painter = require("yi.Painter")
@@ -73,11 +74,14 @@ local Painter = require("yi.Painter")
 ---@field scroll_animation_speed number
 ---@field frame_animation_speed number
 ---@field on_change fun(index: integer, item: string|yi.config.PanelSelectItem)?
+---@field scroll_value ui.anim.TweenValue
 ---@field scroll_position number
 ---@field target_scroll_position number
 ---@field content_width number
 ---@field layout_items yi.config.PanelSelectLayoutItem[]
+---@field frame_x_value ui.anim.TweenValue
 ---@field frame_x number
+---@field frame_width_value ui.anim.TweenValue
 ---@field frame_width_current number
 ---@field target_frame_x number
 ---@field target_frame_width number
@@ -171,12 +175,27 @@ function PanelSelect:new(params)
 	self.on_change = params.on_change
 	self.scroll_position = 0
 	self.target_scroll_position = 0
+	self.scroll_value = TweenValue({
+		value = 0,
+		duration = self.scroll_animation_speed > 0 and 3 / self.scroll_animation_speed or 0,
+		easing = "outQuad",
+	})
 	self.content_width = 0
 	self.layout_items = {}
 	self.frame_x = 0
 	self.frame_width_current = 0
 	self.target_frame_x = 0
 	self.target_frame_width = 0
+	self.frame_x_value = TweenValue({
+		value = 0,
+		duration = self.frame_animation_speed > 0 and 3 / self.frame_animation_speed or 0,
+		easing = "outQuad",
+	})
+	self.frame_width_value = TweenValue({
+		value = 0,
+		duration = self.frame_animation_speed > 0 and 3 / self.frame_animation_speed or 0,
+		easing = "outQuad",
+	})
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self.is_focusable = true
@@ -200,6 +219,8 @@ function PanelSelect:updateFrameTarget()
 	if not item then
 		self.target_frame_x = 0
 		self.target_frame_width = 0
+		self.frame_x_value:set(0)
+		self.frame_width_value:set(0)
 		return
 	end
 
@@ -209,7 +230,13 @@ function PanelSelect:updateFrameTarget()
 	if self.frame_width_current == 0 then
 		self.frame_x = self.target_frame_x
 		self.frame_width_current = self.target_frame_width
+		self.frame_x_value:snap(self.frame_x)
+		self.frame_width_value:snap(self.frame_width_current)
+		return
 	end
+
+	self.frame_x_value:set(self.target_frame_x)
+	self.frame_width_value:set(self.target_frame_width)
 end
 
 ---@return ui.Color
@@ -277,6 +304,7 @@ end
 ---@param scroll_position number
 function PanelSelect:setTargetScrollPosition(scroll_position)
 	self.target_scroll_position = clamp(scroll_position, 0, self:getMaxScroll())
+	self.scroll_value:set(self.target_scroll_position)
 end
 
 ---@param index integer
@@ -293,6 +321,7 @@ function PanelSelect:scrollToIndex(index, immediate)
 	self:setTargetScrollPosition(target)
 	if immediate then
 		self.scroll_position = self.target_scroll_position
+		self.scroll_value:snap(self.scroll_position)
 	end
 end
 
@@ -318,30 +347,10 @@ end
 
 ---@param dt number
 function PanelSelect:update(dt)
-	local diff = self.target_scroll_position - self.scroll_position
-	if math.abs(diff) > 0.001 then
-		local t = 1 - math.exp(-self.scroll_animation_speed * dt)
-		self.scroll_position = self.scroll_position + diff * t
-		if math.abs(self.target_scroll_position - self.scroll_position) < 0.5 then
-			self.scroll_position = self.target_scroll_position
-		end
-	end
-
-	local frame_t = 1 - math.exp(-self.frame_animation_speed * dt)
-
-	if math.abs(self.target_frame_x - self.frame_x) > 0.001 then
-		self.frame_x = self.frame_x + (self.target_frame_x - self.frame_x) * frame_t
-		if math.abs(self.target_frame_x - self.frame_x) < 0.5 then
-			self.frame_x = self.target_frame_x
-		end
-	end
-
-	if math.abs(self.target_frame_width - self.frame_width_current) > 0.001 then
-		self.frame_width_current = self.frame_width_current + (self.target_frame_width - self.frame_width_current) * frame_t
-		if math.abs(self.target_frame_width - self.frame_width_current) < 0.5 then
-			self.frame_width_current = self.target_frame_width
-		end
-	end
+	SettingView.update(self, dt)
+	self.scroll_position = self.scroll_value:update(dt)
+	self.frame_x = self.frame_x_value:update(dt)
+	self.frame_width_current = self.frame_width_value:update(dt)
 end
 
 ---@param screen_x number

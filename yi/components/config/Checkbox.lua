@@ -1,5 +1,5 @@
-local BaseCheckbox = require("ui.base.Checkbox")
 local SettingView = require("yi.components.config.SettingView")
+local TweenValue = require("ui.anim.TweenValue")
 local Color = require("yi.Color")
 local Painter = require("yi.Painter")
 
@@ -23,7 +23,7 @@ local Painter = require("yi.Painter")
 ---@field checked boolean
 ---@field on_change fun(checked: boolean)?
 
----@class yi.config.Checkbox : ui.Checkbox, yi.config.SettingView
+---@class yi.config.Checkbox : yi.config.SettingView
 ---@overload fun(params: yi.config.CheckboxParams): yi.config.Checkbox
 ---@field atlas love.Image
 ---@field pixel love.Quad
@@ -40,15 +40,14 @@ local Painter = require("yi.Painter")
 ---@field gap number
 ---@field animation_duration number
 ---@field pulse_decay number
----@field animation_from number
+---@field checked_progress_value ui.anim.TweenValue
 ---@field checked_progress number
----@field target_progress number
----@field animation_t number
+---@field click_pulse_value ui.anim.TweenValue
 ---@field click_pulse number
 ---@field text_idle_alpha_scale number
 ---@field text_active_alpha_scale number
 ---@field text_batch love.Text
-local Checkbox = BaseCheckbox + SettingView + {}
+local Checkbox = SettingView + {}
 
 ---@private
 function Checkbox:rebuild()
@@ -72,8 +71,7 @@ end
 
 ---@param params yi.config.CheckboxParams
 function Checkbox:new(params)
-	BaseCheckbox.new(self)
-	SettingView.initSettingStyle(self)
+	SettingView.new(self)
 	self.atlas = assert(params.atlas, "Atlas is required")
 	self.pixel = assert(params.pixel, "Pixel quad is required")
 	self.resources = assert(params.resources, "Checkbox resources are required")
@@ -93,11 +91,19 @@ function Checkbox:new(params)
 	self.on_change = params.on_change
 	assert(params.checked ~= nil, "Checked is required")
 	self.checked = params.checked
-	self.animation_from = self.checked and 1 or 0
+	self.handles_mouse_input = true
+	self.handles_keyboard_input = true
+	self.is_focusable = true
 	self.checked_progress = self.checked and 1 or 0
-	self.target_progress = self.checked_progress
-	self.animation_t = self.animation_duration
+	self.checked_progress_value = TweenValue({
+		value = self.checked_progress,
+		duration = self.animation_duration,
+	})
 	self.click_pulse = 0
+	self.click_pulse_value = TweenValue({
+		value = 0,
+		duration = self.pulse_decay > 0 and 1 / self.pulse_decay or 0,
+	})
 	self._frame_draw_color = {0, 0, 0, 1}
 	self._text_draw_color = {0, 0, 0, 1}
 	self:rebuild()
@@ -110,27 +116,51 @@ end
 ---@param checked boolean
 ---@return boolean
 function Checkbox:setChecked(checked)
-	local changed = BaseCheckbox.setChecked(self, checked)
+	checked = not not checked
+	if self.checked == checked then
+		return false
+	end
+
+	self.checked = checked
+	if self.on_change then
+		self.on_change(checked)
+	end
+
+	local changed = true
 	if changed then
-		self.animation_from = self.checked_progress
-		self.target_progress = checked and 1 or 0
-		self.animation_t = 0
-		self.click_pulse = 1
+		self.checked_progress_value:set(checked and 1 or 0)
+		self.click_pulse_value:snap(1)
+		if self.pulse_decay > 0 then
+			self.click_pulse_value:set(0)
+		end
 	end
 	return changed
 end
 
+---@return boolean
+function Checkbox:toggle()
+	return self:setChecked(not self.checked)
+end
+
+---@param e ui.KeyDownEvent
+function Checkbox:onKeyDown(e)
+	if e.key == "return" then
+		return self:toggle()
+	end
+end
+
+---@param e ui.MouseClickEvent
+function Checkbox:onMouseClick(e)
+	if e.button == 1 then
+		return self:toggle()
+	end
+end
+
 ---@param dt number
 function Checkbox:update(dt)
-	local duration = self.animation_duration
-	if self.animation_t < duration then
-		self.animation_t = math.min(duration, self.animation_t + dt)
-		local t = duration > 0 and (self.animation_t / duration) or 1
-		self.checked_progress = self.animation_from + (self.target_progress - self.animation_from) * t
-	else
-		self.checked_progress = self.target_progress
-	end
-	self.click_pulse = math.max(0, self.click_pulse - dt * self.pulse_decay)
+	SettingView.update(self, dt)
+	self.checked_progress = self.checked_progress_value:update(dt)
+	self.click_pulse = self.click_pulse_value:update(dt)
 end
 
 function Checkbox:draw()

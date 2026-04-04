@@ -1,4 +1,4 @@
-local BaseButton = require("ui.base.Button")
+local View = require("ui.View")
 local Painter = require("yi.Painter")
 
 ---@class yi.ButtonParams
@@ -13,7 +13,7 @@ local Painter = require("yi.Painter")
 ---@field text string
 ---@field on_click fun(button: yi.Button)?
 
----@class yi.Button : ui.Button
+---@class yi.Button : ui.View
 ---@overload fun(params: yi.ButtonParams): yi.Button
 ---@field atlas love.Image
 ---@field button_quad love.Quad
@@ -25,9 +25,9 @@ local Painter = require("yi.Painter")
 ---@field button_color number[]
 ---@field text_color number[]
 ---@field text string
----@field on_click fun(button: yi.Button)?
+---@field on_click? fun()
 ---@field text_batch love.Text
-local Button = BaseButton + {}
+local Button = View + {}
 
 ---@private
 function Button:rebuildText()
@@ -37,7 +37,7 @@ end
 
 ---@param params yi.ButtonParams
 function Button:new(params)
-	BaseButton.new(self)
+	View.new(self)
 	self.atlas = assert(params.atlas, "Button atlas is required")
 	self.button_quad = assert(params.button_quad, "Button quad is required")
 	self.pixel = assert(params.pixel, "Button pixel quad is required")
@@ -48,7 +48,33 @@ function Button:new(params)
 	self.text_color = assert(params.text_color, "Text color is required")
 	self.text = assert(params.text, "Button text is required")
 	self.on_click = params.on_click
+	self.handles_mouse_input = true
+	self.handles_keyboard_input = true
+	self.is_focusable = true
 	self:rebuildText()
+end
+
+---@return boolean
+function Button:click()
+	if self.on_click then
+		self.on_click()
+		return true
+	end
+	return false
+end
+
+---@param e ui.KeyDownEvent
+function Button:onKeyDown(e)
+	if e.key == "return" then
+		return self:click()
+	end
+end
+
+---@param e ui.MouseClickEvent
+function Button:onMouseClick(e)
+	if e.button == 1 then
+		return self:click()
+	end
 end
 
 function Button:onResolutionChanged()
