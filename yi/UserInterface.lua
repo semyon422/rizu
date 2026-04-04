@@ -1,10 +1,11 @@
 local IUserInterface = require("sphere.IUserInterface")
-local Context = require("yi.Context")
 local Inputs = require("ui.input.Inputs")
 local Resources = require("yi.Resources")
 local Painter = require("yi.Painter")
+local table_util = require("table_util")
 
-local Background = require("yi.layers.Background")
+local MenuBackground = require("yi.layers.MenuBackground")
+local MainMenu = require("yi.layers.MainMenu")
 local Config = require("yi.layers.Config")
 
 ---@class yi.UserInterface : sphere.IUserInterface
@@ -23,7 +24,6 @@ function UserInterface:new(game)
 	self.inputs = Inputs()
 	---@type ui.ModifierKeys
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
-	self.ctx = Context(self.game, self.inputs, self.resources)
 end
 
 function UserInterface:load()
@@ -31,15 +31,27 @@ function UserInterface:load()
 	Painter.setAtlas(self.resources.atlas)
 	Painter.setScale(1)
 
-	self.background = Background(self.ctx)
-	self.config = Config(self.ctx)
-
 	self.layers = {
-		--self.background,
-		self.config,
+		menu_background = MenuBackground(self),
+		config = Config(self),
+		main_menu = MainMenu(self)
 	}
 
-	self.ctx:setLayers(self.background)
+	self.visible = {}
+	self:transitTo("main_menu")
+end
+
+---@param layer "main_menu" | "config"
+function UserInterface:transitTo(layer)
+	table_util.clear(self.visible)
+
+	if layer == "main_menu" then
+		table.insert(self.visible, self.layers.menu_background)
+		table.insert(self.visible, self.layers.main_menu)
+	elseif layer == "config" then
+		table.insert(self.visible, self.layers.menu_background)
+		table.insert(self.visible, self.layers.config)
+	end
 end
 
 ---@param dt number
@@ -51,7 +63,7 @@ function UserInterface:update(dt)
 		local layout_scale = math.min(h / TARGET_HEIGHT, w / TARGET_WIDTH)
 		local ui_scale = layout_scale
 		Painter.setScale(ui_scale)
-		for _, v in ipairs(self.layers) do
+		for _, v in pairs(self.layers) do
 			v:updateDimensions(w, h, layout_scale, ui_scale)
 		end
 	end
@@ -62,17 +74,17 @@ function UserInterface:update(dt)
 
 	self.inputs:beginFrame(love.mouse.getPosition())
 
-	for _, v in ipairs(self.layers) do
+	for _, v in ipairs(self.visible) do
 		v:update(dt)
 	end
 
-	for i = #self.layers, 1, -1 do
-		self.layers[i]:acceptInputs(self.inputs)
+	for i = #self.visible, 1, -1 do
+		self.visible[i]:acceptInputs(self.inputs)
 	end
 end
 
 function UserInterface:draw()
-	for _, v in ipairs(self.layers) do
+	for _, v in ipairs(self.visible) do
 		v:draw()
 	end
 end
@@ -87,6 +99,7 @@ end
 ---@param event table
 function UserInterface:receive(event)
 	self.inputs:receive(event, self.modifiers)
+	self.visible[#self.visible]:receive(event)
 end
 
 return UserInterface

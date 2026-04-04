@@ -5,15 +5,14 @@ local ParallaxBackground = require("yi.views.ParallaxBackground")
 ---@operator call: yi.Background
 local Background = Layer + {}
 
----@param ctx yi.Context
-function Background:new(ctx)
+---@param yi yi.UserInterface
+function Background:new(yi)
 	Layer.new(self)
 
-	local bg = ParallaxBackground(ctx.game.backgroundModel)
-	bg.width_percent = 1
-	bg.height_percent = 1
-	bg.anchor = {0.5, 0.5}
-	bg.origin = {0.5, 0.5}
+	local bg = ParallaxBackground(yi.game.backgroundModel)
+	bg:setSizePercent(1, 1)
+	bg:setAnchor(0.5, 0.5)
+	bg:setOrigin(0.5, 0.5)
 	self:add(bg)
 end
 

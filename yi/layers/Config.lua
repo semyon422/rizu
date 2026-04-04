@@ -1,7 +1,6 @@
 local Layer = require("ui.Layer")
 local Layout = require("ui.layout.Layout")
-local Background = require("yi.views.config.Background")
-local Title = require("yi.views.config.Title")
+local Title = require("yi.views.Title")
 
 local Colors = require("yi.Colors")
 local UIFactory = require("yi.UIFactory")
@@ -11,14 +10,16 @@ local UIConfigFactory = require("yi.UIConfigFactory")
 ---@operator call: yi.Config
 local Config = Layer + {}
 
----@param ctx yi.Context
-function Config:new(ctx)
+---@param yi yi.UserInterface
+function Config:new(yi)
 	Layer.new(self)
+	self.yi = yi
 
-	local res = ctx.resources
-	local ui = UIFactory(ctx.resources)
-	local conf = UIConfigFactory(ctx.resources)
-	self.atlas, self.quads = ctx.resources.atlas, ctx.resources.quads
+	local res = yi.resources
+	local ui = UIFactory(yi.resources)
+	local conf = UIConfigFactory(yi.resources)
+	self.canvas = love.graphics.newCanvas(love.graphics.getDimensions())
+	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
 
 	self.layout = Layout({
 		target_height = 1080,
@@ -39,11 +40,6 @@ function Config:new(ctx)
 
 	self:createTabs(ui, conf)
 
-	self.background = Background(
-		love.graphics.newImage("resources/yi/sky_background.jpg"),
-		res
-	)
-
 	self.title = Title(self.atlas, self.quads)
 	self.title.box = self.layout:get("title")
 
@@ -56,7 +52,6 @@ function Config:new(ctx)
 	})
 
 	self:addArray({
-		self.background,
 		self.title,
 		ui:List({
 			box = self.layout:get("tabs"),
@@ -157,6 +152,18 @@ function Config:createTabs(ui, conf)
 		self.tabs.general.button,
 		self.tabs.display.button,
 	}
+end
+
+function Config:receive(event)
+	if event.name ~= "keypressed" then
+		return
+	end
+
+	local key = event[1] ---@type string
+
+	if key == "escape" then
+		self.yi:transitTo("main_menu")
+	end
 end
 
 return Config

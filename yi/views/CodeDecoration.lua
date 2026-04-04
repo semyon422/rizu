@@ -1,11 +1,10 @@
 local View = require("ui.View")
 local Painter = require("yi.Painter")
-
----@class yi.config.Background : ui.View
----@operator call: yi.config.Background
-local Background = View + {}
-
 local Path = require("aqua.Path")
+
+---@class yi.CodeDecoration : ui.View
+---@overload fun(resources: yi.Resources): yi.CodeDecoration
+local CodeDecoration = View + {}
 
 local skipped_directories = {
 	[".git"] = true,
@@ -17,34 +16,8 @@ local skipped_directories = {
 	userdata = true,
 }
 
-Background.code_font_name = "regular"
-Background.code_font_size = 16
-
----@param t number
----@param length number
----@return number
-local function ping_pong(t, length)
-	if length <= 0 then
-		return 0
-	end
-	local cycle = t % (length * 2)
-	if cycle > length then
-		return length * 2 - cycle
-	end
-	return cycle
-end
-
----@param t number
----@param length number
----@return number
-local function smooth_ping_pong(t, length)
-	if length <= 0 then
-		return 0
-	end
-	local p = ping_pong(t, length) / length
-	local eased = p * p * (3 - 2 * p)
-	return eased * length
-end
+CodeDecoration.code_font_name = "regular"
+CodeDecoration.code_font_size = 16
 
 ---@param path string
 ---@return boolean
@@ -110,8 +83,24 @@ local function load_random_project_code(count)
 	return files
 end
 
+---@param resources yi.Resources
+function CodeDecoration:new(resources)
+	View.new(self)
+	self.resources = assert(resources)
+	self.time = 0
+	self.code_scroll_speed = 18
+	self.code_padding_x = 48
+	self.code_alpha = 0.22
+	self.code_file_count = 5
+	self.code_loop_gap = 160
+	self.width_percent = 1
+	self.height_percent = 1
+	self.code_files = load_random_project_code(self.code_file_count)
+	self:onResolutionChanged()
+end
+
 ---@private
-function Background:rebuildCodeText()
+function CodeDecoration:rebuildCodeText()
 	local code_fragments = {}
 	for i, file in ipairs(self.code_files) do
 		code_fragments[#code_fragments + 1] = {0.65, 0.95, 1, 0.5}
@@ -127,55 +116,18 @@ function Background:rebuildCodeText()
 	self.code_text = love.graphics.newText(self.code_font, code_fragments)
 end
 
----@param image love.Image
----@param resources yi.Resources
-function Background:new(image, resources)
-	View.new(self)
-	self.image = assert(image)
-	self.resources = assert(resources)
-	self.image:setFilter("linear", "linear")
-	self.scale_factor = 1.35
-	self.speed_x = 18
-	self.speed_y = 12
-	self.time = 0
-	self.code_scroll_speed = 18
-	self.code_padding_x = 48
-	self.code_alpha = 0.22
-	self.code_file_count = 5
-	self.code_loop_gap = 160
-	self.width_percent = 1
-	self.height_percent = 1
-	self.code_files = load_random_project_code(self.code_file_count)
-	self:onResolutionChanged()
-end
-
-function Background:onResolutionChanged()
+function CodeDecoration:onResolutionChanged()
 	self.code_font = self.resources:getScaledFont(self.code_font_name, self.code_font_size, self.ui_scale)
 	self:rebuildCodeText()
 end
 
 ---@param dt number
-function Background:update(dt)
+function CodeDecoration:update(dt)
 	self.time = self.time + dt
 end
 
-function Background:draw()
+function CodeDecoration:draw()
 	local lg = love.graphics
-	local ww, wh = self.width, self.height
-	local iw, ih = self.image:getDimensions()
-	local cover_scale = math.max(ww / iw, wh / ih) * self.scale_factor
-	local scaled_w = iw * cover_scale
-	local scaled_h = ih * cover_scale
-	local overflow_x = math.max(0, scaled_w - ww)
-	local overflow_y = math.max(0, scaled_h - wh)
-	local x = -smooth_ping_pong(self.time * self.speed_x, overflow_x)
-	local y = -smooth_ping_pong(self.time * self.speed_y, overflow_y)
-
-	lg.push("all")
-	lg.setColor(1, 1, 1, 1)
-	lg.draw(self.image, x, y, 0, cover_scale, cover_scale)
-	lg.pop()
-
 	local text_height = self:toLogicalSize(self.code_text:getHeight())
 	local loop_height = text_height + self.code_loop_gap
 	local scroll_offset = (self.time * self.code_scroll_speed) % loop_height
@@ -190,4 +142,4 @@ function Background:draw()
 	lg.pop()
 end
 
-return Background
+return CodeDecoration
