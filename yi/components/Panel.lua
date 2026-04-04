@@ -4,20 +4,27 @@ local Painter = require("yi.Painter")
 local crt_shader_code = [[
 	extern float time;
 	extern float strength;
+	extern vec4 panel_rect;
 
 	vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
 		vec4 tex = color;
+		vec2 local = clamp((screen_coords - panel_rect.xy) / max(panel_rect.zw, vec2(1.0)), vec2(0.0), vec2(1.0));
+		float edge_distance = min(min(local.x, 1.0 - local.x), min(local.y, 1.0 - local.y));
+		float edge = 1.0 - smoothstep(0.0, 0.22, edge_distance);
+		float center = 1.0 - distance(local, vec2(0.5)) * 1.35;
+		float scanline_phase = screen_coords.y * 1.45 + time * 15.0;
+		float scanline = 1.0 - strength * 0.05 + sin(scanline_phase) * strength * 0.03;
+		float grille = 1.0 - strength * 0.02 + sin(screen_coords.x * 2.4) * strength * 0.015;
+		float flicker = 1.0 + sin(time * 43.0) * strength * 0.006;
+		float band = sin(local.y * 18.0 - time * 1.1) * 0.5 + 0.5;
+		float band_mask = smoothstep(0.45, 0.92, band) * 0.045 * strength;
+		float panel_ratio = panel_rect.z / max(panel_rect.w, 1.0);
 
-		float scanline_phase = screen_coords.y * 1.75 + time * 18.0;
-		float scanline = 1.0 - strength * 0.1 + sin(scanline_phase) * strength * 0.085;
-		float grille = 1.0 - strength * 0.06 + sin(screen_coords.x * 2.6) * strength * 0.035;
-		float moving_pos = mod(time * 240.0, love_ScreenSize.y + 220.0) - 110.0;
-		float beam = exp(-pow((screen_coords.y - moving_pos) / 48.0, 2.0)) * strength * 0.09;
-		float flicker = 1.0 + sin(time * 52.0) * strength * 0.015;
+		tex.rgb = mix(tex.rgb, tex.rgb + vec3(0.035, 0.095, 0.13), edge * 0.9 * strength);
+		tex.rgb += vec3(0.014, 0.04, 0.06) * band_mask * (0.7 + 0.3 * panel_ratio);
+		tex.rgb *= 0.985 + center * 0.015;
 
 		tex.rgb *= scanline * grille * flicker;
-		tex.rgb += beam;
-
 		return tex;
 	}
 ]]
@@ -58,7 +65,7 @@ function Panel:new(params)
 	self.border_color = params.border_color
 	self.border_width = 2
 	self.bevel_size = params.bevel_size or 18
-	self.crt_strength = params.crt_strength or 1.6
+	self.crt_strength = params.crt_strength or 2
 	self.fill_polygon_points = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	self.border_line_points = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	self.draw_border_width = 0
@@ -92,10 +99,17 @@ end
 function Panel:draw()
 	local lg = love.graphics
 	local shader = getCRTShader()
+	local x1, y1 = lg.transformPoint(0, 0)
+	local x2, y2 = lg.transformPoint(self.width, self.height)
+	local left = math.min(x1, x2)
+	local top = math.min(y1, y2)
+	local width = math.max(1, math.abs(x2 - x1))
+	local height = math.max(1, math.abs(y2 - y1))
 
 	lg.push("all")
 	shader:send("time", love.timer.getTime())
 	shader:send("strength", self.crt_strength)
+	shader:send("panel_rect", {left, top, width, height})
 	lg.setShader(shader)
 	lg.setColor(self.color)
 	Painter.drawPolygon("fill", self.fill_polygon_points)
