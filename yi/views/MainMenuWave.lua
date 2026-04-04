@@ -31,7 +31,6 @@ local wave_shader_code = [[
 	}
 ]]
 
-
 ---@param resources yi.Resources
 function MainMenuWave:new(resources)
 	View.new(self)

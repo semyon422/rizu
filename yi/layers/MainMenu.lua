@@ -36,14 +36,10 @@ function MainMenu:new(yi)
 			origin = {0.5, 1},
 			font_size = 24,
 			font = "regular",
-			text = "[Enter] Play [C] Config",
+			text = "[Enter] Play [M] Multiplayer [C] Config",
 		})
 	})
 
-end
-
-function MainMenu:draw()
-	Layer.draw(self)
 end
 
 function MainMenu:receive(event)
@@ -55,6 +51,8 @@ function MainMenu:receive(event)
 
 	if key == "enter" then
 		self.yi:transitTo("select")
+	elseif key == "m" then
+		self.yi:transitTo("multiplayer")
 	elseif key == "c" then
 		self.yi:transitTo("config")
 	end
