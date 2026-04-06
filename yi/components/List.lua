@@ -30,15 +30,6 @@ local TweenValue = require("ui.anim.TweenValue")
 ---@field scroll_value ui.anim.TweenValue
 local List = BaseList + {}
 
----@param view ui.View
----@param box ui.Box
----@param ui_scale number
-local function refresh_child_view(view, box, ui_scale)
-	view.box = box
-	view.ui_scale = ui_scale
-	view:refresh()
-end
-
 ---@param params yi.ListParams?
 function List:new(params)
 	params = params or {}
@@ -107,8 +98,9 @@ end
 function List:setItems(items)
 	self.views = items or {}
 	self.items = self.views
+	self:invalidateLayout()
 	if self.box then
-		self:refresh()
+		self:applyLayout()
 	end
 end
 
@@ -131,8 +123,9 @@ function List:setScrollPosition(scroll_position)
 	self:setTargetScrollPosition(scroll_position)
 	self.scroll_position = self.target_scroll_position
 	self.scroll_value:snap(self.scroll_position)
+	self:invalidateVisibleLayout()
 	if self.box then
-		self:refresh()
+		self:refreshVisibleLayout()
 	end
 end
 
@@ -146,9 +139,44 @@ function List:setTargetScrollPosition(position)
 	return changed
 end
 
+---@param position number
+function List:onTargetScrollPositionClamped(position)
+	self.scroll_value:set(position)
+end
+
+---@param position number
+function List:onScrollPositionClamped(position)
+	self.scroll_value:snap(position)
+end
+
 ---@param delta number
 function List:scrollBy(delta)
 	self:setTargetScrollPosition(self.target_scroll_position + delta)
+end
+
+---@return number
+function List:getChildBaseX()
+	return self.padding_left
+end
+
+---@return number
+function List:getChildBaseY()
+	return self.padding_top
+end
+
+---@return number
+function List:getTrailingInset()
+	return self.padding_bottom
+end
+
+---@return number
+function List:getContentBoxWidth()
+	return math.max(0, self.width - self.padding_left - self.padding_right)
+end
+
+---@return number
+function List:getContentBoxHeight()
+	return math.max(0, self.height - self.padding_top - self.padding_bottom)
 end
 
 ---@param e ui.ScrollEvent
@@ -161,17 +189,14 @@ end
 ---@param index integer
 ---@return number
 function List:getItemOffset(index)
-	local y = self.padding_top
-
-	for i = 1, index - 1 do
-		local view = self.views[i]
-		y = y + view.height + self.gap
-	end
-
-	return y
+	return BaseList.getItemOffset(self, index)
 end
 
 function List:ensureFocusedChildVisible()
+	if self.box then
+		self:ensureLayout()
+	end
+
 	local child = self.focused_index and self.views[self.focused_index]
 	if not child then
 		self:setTargetScrollPosition(0)
@@ -183,75 +208,16 @@ function List:ensureFocusedChildVisible()
 	self:setTargetScrollPosition(center - (self.padding_top + viewport_height * 0.5))
 end
 
-function List:refresh()
-	assert(self.box, "yi.List:refresh() requires self.box")
-	if self.width_percent ~= nil then
-		self.width = self.box.width * self.width_percent
-	end
-	if self.height_percent ~= nil then
-		self.height = self.box.height * self.height_percent
-	end
-
-	local inner_width = math.max(0, self.width - self.padding_left - self.padding_right)
-	local inner_height = math.max(0, self.height - self.padding_top - self.padding_bottom)
-	self.content_box.x = self.padding_left
-	self.content_box.y = self.padding_top
-	self.content_box.width = inner_width
-	self.content_box.height = inner_height
-
-	BaseList.updateTransform(self)
-
-	local viewport_top = 0
-	local viewport_bottom = self.height
-	local y = self.padding_top - self.scroll_position
-	local content_y = self.padding_top
-	local content_height = self.padding_top + self.padding_bottom
-
-	self.first_visible = #self.views + 1
-	self.last_visible = 0
-
-	for i, view in ipairs(self.views) do
-		view.x = self.padding_left
-		view.y = y
-		refresh_child_view(view, self.content_box, self.ui_scale)
-
-		local is_visible = y + view.height > viewport_top and y < viewport_bottom
-		if is_visible then
-			self.first_visible = math.min(self.first_visible, i)
-			self.last_visible = math.max(self.last_visible, i)
-		end
-
-		content_height = math.max(content_height, content_y + view:getHeight() + self.padding_bottom)
-
-		y = y + view.height
-		content_y = content_y + view.height
-		if i < #self.views then
-			y = y + self.gap
-			content_y = content_y + self.gap
-		end
-	end
-
-	if self.last_visible == 0 then
-		self.first_visible = 1
-	end
-
-	self.content_height = math.max(0, content_height)
-	self:setTargetScrollPosition(self.target_scroll_position)
-
-	local max_scroll = math.max(0, self.content_height - self.height)
-	local clamped_scroll_position = math.max(0, math.min(self.scroll_position, max_scroll))
-	if clamped_scroll_position ~= self.scroll_position then
-		self.scroll_position = clamped_scroll_position
-		self.scroll_value:snap(clamped_scroll_position)
-		self:refresh()
-	end
-end
-
 ---@param dt number
 function List:update(dt)
-	self.scroll_position = self.scroll_value:update(dt)
+	self:ensureVisibleLayout()
 
-	self:refresh()
+	local next_scroll_position = self.scroll_value:update(dt)
+	if next_scroll_position ~= self.scroll_position then
+		self.scroll_position = next_scroll_position
+		self:invalidateVisibleLayout()
+		self:refreshVisibleLayout()
+	end
 
 	for i = self.first_visible, self.last_visible do
 		local view = self.views[i]
@@ -262,6 +228,8 @@ function List:update(dt)
 end
 
 function List:draw()
+	self:ensureVisibleLayout()
+
 	love.graphics.push("all")
 
 	local x1, y1 = self.transform:transformPoint(0, 0)

@@ -36,9 +36,9 @@ function UserInterface:load()
 	self.layers = {
 		menu_background = MenuBackground(self),
 		config = Config(self),
-		--multiplayer = Multiplayer(self),
+		multiplayer = Multiplayer(self),
 		main_menu = MainMenu(self),
-		--select = Select(self)
+		select = Select(self)
 	}
 
 	self.visible = {}
@@ -70,10 +70,9 @@ function UserInterface:update(dt)
 	if self:dimensionsChanged() then
 		local w, h = love.graphics.getDimensions()
 		local layout_scale = math.min(h / TARGET_HEIGHT, w / TARGET_WIDTH)
-		local ui_scale = layout_scale
-		Painter.setScale(ui_scale)
+		Painter.setScale(layout_scale)
 		for _, v in pairs(self.layers) do
-			v:updateDimensions(w, h, layout_scale, ui_scale)
+			v:updateDimensions(w, h, layout_scale)
 		end
 	end
 

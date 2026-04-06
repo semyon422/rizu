@@ -1,3 +1,4 @@
+local Box = require("ui.Box")
 local List = require("yi.components.List")
 local View = require("ui.View")
 
@@ -26,9 +27,9 @@ function test.wheel_updates_target_scroll_position(t)
 	})
 
 	list:setSize(100, 100)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 100, 100, 1)
-	list:refresh()
+	list:applyLayout()
 
 	t:eq(list.target_scroll_position, 0)
 	t:eq(list:onScroll({direction_y = -1}), true)
@@ -44,9 +45,9 @@ function test.update_animates_scroll_position(t)
 	})
 
 	list:setSize(100, 100)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 100, 100, 1)
-	list:refresh()
+	list:applyLayout()
 	list:setTargetScrollPosition(60)
 
 	list:update(0.05)
@@ -68,9 +69,9 @@ function test.padding_offsets_items_and_content_height(t)
 	})
 
 	list:setSize(100, 120)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 100, 120, 1)
-	list:refresh()
+	list:applyLayout()
 
 	t:eq(list.views[1].x, 12)
 	t:eq(list.views[1].y, 10)
@@ -91,9 +92,9 @@ function test.focus_visibility_accounts_for_padding(t)
 	})
 
 	list:setSize(100, 100)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 100, 100, 1)
-	list:refresh()
+	list:applyLayout()
 	list:focusChild(4)
 
 	t:eq(list.target_scroll_position, 90)
@@ -108,9 +109,9 @@ function test.table_padding_is_supported(t)
 	})
 
 	list:setSize(120, 130)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 120, 130, 1)
-	list:refresh()
+	list:applyLayout()
 
 	t:eq(list.padding_left, 12)
 	t:eq(list.padding_top, 8)
@@ -131,11 +132,11 @@ function test.vertical_padding_does_not_hide_partially_visible_items_early(t)
 	})
 
 	list:setSize(100, 100)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 100, 100, 1)
-	list:refresh()
+	list:applyLayout()
 	list:setScrollPosition(30)
-	list:refresh()
+	list:applyLayout()
 
 	t:eq(list.first_visible, 1)
 	t:eq(list.last_visible, 3)
@@ -150,9 +151,9 @@ function test.resolution_change_keeps_logical_spacing_values(t)
 	})
 
 	list.ui_scale = 1.5
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 100, 100, 1.5)
-	list:refresh()
+	list:applyLayout()
 
 	t:eq(list.gap, 10)
 	t:eq(list.padding_left, 12)
@@ -170,9 +171,9 @@ function test.new_children_adopt_current_ui_scale_immediately(t)
 
 	list.ui_scale = 1.5
 	list:setSize(120, 100)
-	list.box = list.box or require("ui.Box")()
+	list.box = Box()
 	list.box:update(0, 0, 120, 100, 1.5)
-	list:refresh()
+	list:applyLayout()
 
 	local item = Item(40)
 	item:setWidthPercent(1)
@@ -181,6 +182,36 @@ function test.new_children_adopt_current_ui_scale_immediately(t)
 	t:eq(item.ui_scale, 1.5)
 	t:eq(item.layout_update_count > 0, true)
 	t:eq(item.width, 100)
+end
+
+---@param t testing.T
+function test.animated_scroll_does_not_relayout_children(t)
+	local list = List({
+		scroll_animation_speed = 20,
+	})
+	list.box = Box()
+	list.box:update(0, 0, 100, 60)
+	list:setSize(100, 60)
+
+	local first = list:addItem(Item(20))
+	local second = list:addItem(Item(20))
+	local third = list:addItem(Item(20))
+	local fourth = list:addItem(Item(20))
+
+	list:applyLayout()
+	local first_updates = first.layout_update_count
+	local second_updates = second.layout_update_count
+	local third_updates = third.layout_update_count
+	local fourth_updates = fourth.layout_update_count
+
+	list:scrollBy(30)
+	list:update(1 / 60)
+	list:update(1 / 60)
+
+	t:eq(first.layout_update_count, first_updates)
+	t:eq(second.layout_update_count, second_updates)
+	t:eq(third.layout_update_count, third_updates)
+	t:eq(fourth.layout_update_count, fourth_updates)
 end
 
 return test

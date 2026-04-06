@@ -26,7 +26,7 @@ end
 ---@param box ui.Box
 local function attach(view, box)
 	view.box = box
-	view:refresh()
+	view:applyLayout()
 end
 
 ---@param t testing.T

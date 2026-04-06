@@ -1,4 +1,5 @@
 local Layer = require("ui.Layer")
+local composition = require("ui.composition")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local WireframeGlobe = require("yi.views.WireframeGlobe")
@@ -11,11 +12,6 @@ local Multiplayer = Layer + {}
 function Multiplayer:new(yi)
 	Layer.new(self)
 	self.yi = yi
-
-	self.layout = Layout({
-		target_height = 1080,
-		root = {id = "root"}
-	})
 
 	local ui = UIFactory(yi.resources)
 	self.globe = WireframeGlobe({
@@ -31,7 +27,7 @@ function Multiplayer:new(yi)
 	self.globe:setPosition(0, -30)
 	self.globe:setPivot(0.5, 0.5)
 
-	self:addArray({
+	self.composition_root = composition.Stack({
 		self.globe,
 		ui:Label({
 			y = -250,

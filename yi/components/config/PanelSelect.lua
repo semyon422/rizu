@@ -83,8 +83,6 @@ local Painter = require("yi.Painter")
 ---@field frame_x number
 ---@field frame_width_value ui.anim.TweenValue
 ---@field frame_width_current number
----@field target_frame_x number
----@field target_frame_width number
 ---@field label_batch love.Text
 ---@field text_batch love.Text
 local PanelSelect = SettingView + {}
@@ -135,11 +133,6 @@ function PanelSelect:refreshSize()
 	self.height_percent = height_percent
 end
 
----@private
-function PanelSelect:requestRebuild()
-	self._rebuild_requested = true
-end
-
 ---@param params yi.config.PanelSelectParams
 function PanelSelect:new(params)
 	SettingView.new(self)
@@ -184,8 +177,6 @@ function PanelSelect:new(params)
 	self.layout_items = {}
 	self.frame_x = 0
 	self.frame_width_current = 0
-	self.target_frame_x = 0
-	self.target_frame_width = 0
 	self.frame_x_value = TweenValue({
 		value = 0,
 		duration = self.frame_animation_speed > 0 and 3 / self.frame_animation_speed or 0,
@@ -201,36 +192,31 @@ function PanelSelect:new(params)
 	self.is_focusable = true
 	self._label_draw_color = {0, 0, 0, 1}
 	self._frame_draw_color = {0, 0, 0, 1}
-	self._layout_width = nil
-	self._layout_height = nil
 	self:rebuildBatches()
 	self:refreshSize()
-	self:scrollToIndex(self.selected_index, true)
+	self:rebuildLayout(true)
+	self:rebuildTextBatch()
 end
 
+---@private
 function PanelSelect:updateFrameTarget()
 	local item = self.layout_items[self.selected_index]
 	if not item then
-		self.target_frame_x = 0
-		self.target_frame_width = 0
 		self.frame_x_value:set(0)
 		self.frame_width_value:set(0)
 		return
 	end
 
-	self.target_frame_x = item.x
-	self.target_frame_width = item.width
-
 	if self.frame_width_current == 0 then
-		self.frame_x = self.target_frame_x
-		self.frame_width_current = self.target_frame_width
+		self.frame_x = item.x
+		self.frame_width_current = item.width
 		self.frame_x_value:snap(self.frame_x)
 		self.frame_width_value:snap(self.frame_width_current)
 		return
 	end
 
-	self.frame_x_value:set(self.target_frame_x)
-	self.frame_width_value:set(self.target_frame_width)
+	self.frame_x_value:set(item.x)
+	self.frame_width_value:set(item.width)
 end
 
 ---@return ui.Color
@@ -245,36 +231,39 @@ end
 function PanelSelect:onLayoutUpdate()
 	self:rebuildBatches()
 	self:refreshSize()
-	self:requestRebuild()
-	if self._rebuild_requested or self.width ~= self._layout_width or self.height ~= self._layout_height then
-		local immediate_scroll = self._layout_width == nil or self._layout_height == nil or self._rebuild_requested
-		self._layout_width = self.width
-		self._layout_height = self.height
-		self._rebuild_requested = false
-		self:rebuild(immediate_scroll)
+	self:rebuildLayout(true)
+	self:rebuildTextBatch()
+end
+
+---@private
+function PanelSelect:rebuildTextBatch()
+	self.text_batch:clear()
+
+	local _, panel_y, _, panel_h = self:getPanelRect()
+
+	for i, item in ipairs(self.layout_items) do
+		local text_w = self.text_batch:getFont():getWidth(item.text)
+		local text_h = self.text_batch:getFont():getHeight()
+		local logical_text_w = self:toLogicalSize(text_w)
+		local logical_text_h = self:toLogicalSize(text_h)
+		local text_x = item.x + (item.width - logical_text_w) / 2
+		local text_y = panel_y + (panel_h - logical_text_h) / 2
+		local text_color = (i == self.selected_index) and self.selected_color or self.color
+		self.text_batch:addf({text_color, item.text}, math.huge, "left", self:toScreenSize(text_x), self:toScreenSize(text_y))
 	end
 end
 
+---@private
 ---@param immediate_scroll boolean?
-function PanelSelect:rebuild(immediate_scroll)
+function PanelSelect:rebuildLayout(immediate_scroll)
 	self.layout_items = {}
-	self.text_batch:clear()
-
-	local content_x = self:getSettingContentOrigin()
-	local _, panel_y, _, panel_h = self:getPanelRect()
-	local x = content_x
+	local x = 0
 
 	for i, item in ipairs(self.items) do
 		local text = self.format_item(item)
 		local text_w = self.text_batch:getFont():getWidth(text)
-		local text_h = self.text_batch:getFont():getHeight()
 		local logical_text_w = self:toLogicalSize(text_w)
-		local logical_text_h = self:toLogicalSize(text_h)
 		local panel_w = math.ceil(logical_text_w + self.padding_x * 2)
-		local text_x = x + (panel_w - logical_text_w) / 2
-		local text_y = panel_y + (panel_h - logical_text_h) / 2
-		local text_color = (i == self.selected_index) and self.selected_color or self.color
-		self.text_batch:addf({text_color, text}, math.huge, "left", self:toScreenSize(text_x), self:toScreenSize(text_y))
 
 		self.layout_items[i] = {
 			text = text,
@@ -292,9 +281,8 @@ end
 
 ---@return number
 function PanelSelect:getMaxScroll()
-	local content_x = self:getSettingContentOrigin()
 	local viewport_width = self:getSettingContentSize()
-	return math.max(0, self.content_width - content_x - viewport_width)
+	return math.max(0, self.content_width - viewport_width)
 end
 
 ---@param scroll_position number
@@ -311,9 +299,8 @@ function PanelSelect:scrollToIndex(index, immediate)
 		return
 	end
 
-	local content_x = self:getSettingContentOrigin()
 	local viewport_width = self:getSettingContentSize()
-	local target = item.x + item.width / 2 - (content_x + viewport_width / 2)
+	local target = item.x + item.width / 2 - viewport_width / 2
 	self:setTargetScrollPosition(target)
 	if immediate then
 		self.scroll_position = self.target_scroll_position
@@ -331,8 +318,9 @@ function PanelSelect:setSelectedIndex(index)
 	end
 
 	self.selected_index = index
-	self:rebuild(false)
+	self:updateFrameTarget()
 	self:scrollToIndex(index)
+	self:rebuildTextBatch()
 
 	if self.on_change then
 		self.on_change(index, self.items[index])
@@ -357,7 +345,7 @@ function PanelSelect:getIndexAt(screen_x, screen_y)
 	local content_origin_x = self:getSettingContentOrigin()
 	local viewport_width = self:getSettingContentSize()
 	local _, panel_y, _, panel_h = self:getPanelRect()
-	local content_x = local_x + self.scroll_position
+	local content_x = local_x - content_origin_x + self.scroll_position
 	if local_x < content_origin_x or local_x > content_origin_x + viewport_width then
 		return
 	end
@@ -422,7 +410,7 @@ function PanelSelect:draw()
 	lg.setColor(Color.scale_alpha_to(self._label_draw_color, self.label_color, label_alpha_scale))
 	Painter.drawText(self.label_batch, content_x, content_y)
 	apply_intersected_scissor(scissor_x, scissor_y, scissor_width, scissor_height)
-	lg.translate(offset_x, 0)
+	lg.translate(content_x + offset_x, 0)
 	lg.setColor(self:getFrameDrawColor())
 	Painter.drawPixelOutlineRect(self.frame_x, panel_y, self.frame_width_current, panel_h, self.frame_width)
 	lg.setColor(1, 1, 1, 1)
