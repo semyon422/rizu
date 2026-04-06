@@ -31,7 +31,7 @@ function Label:new(params)
 	self:rebuildText()
 end
 
-function Label:onResolutionChanged()
+function Label:onLayoutUpdate()
 	self:rebuildText()
 end
 

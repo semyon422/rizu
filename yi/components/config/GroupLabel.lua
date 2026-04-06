@@ -63,7 +63,7 @@ function GroupLabel:new(params)
 	self:rebuild()
 end
 
-function GroupLabel:onResolutionChanged()
+function GroupLabel:onLayoutUpdate()
 	self:rebuild()
 end
 

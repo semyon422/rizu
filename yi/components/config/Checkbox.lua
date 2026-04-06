@@ -109,7 +109,7 @@ function Checkbox:new(params)
 	self:rebuild()
 end
 
-function Checkbox:onResolutionChanged()
+function Checkbox:onLayoutUpdate()
 	self:rebuild()
 end
 

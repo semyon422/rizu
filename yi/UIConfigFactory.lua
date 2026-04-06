@@ -35,11 +35,8 @@ local function apply_view_params(view, params)
 	if params.height then
 		view.height = params.height
 	end
-	if params.anchor then
-		view.anchor = params.anchor
-	end
-	if params.origin then
-		view.origin = params.origin
+	if params.pivot then
+		view.pivot = params.pivot
 	end
 	if params.visible ~= nil then
 		view.visible = params.visible

@@ -61,7 +61,7 @@ function SectionLabel:new(params)
 	self:rebuild()
 end
 
-function SectionLabel:onResolutionChanged()
+function SectionLabel:onLayoutUpdate()
 	self:rebuild()
 end
 

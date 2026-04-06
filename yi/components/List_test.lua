@@ -11,16 +11,11 @@ function Item:new(height)
 	self.width = 100
 	self.is_focusable = true
 	self.handles_keyboard_input = true
-	self.resolution_change_count = 0
-	self.geometry_change_count = 0
+	self.layout_update_count = 0
 end
 
-function Item:onResolutionChanged()
-	self.resolution_change_count = self.resolution_change_count + 1
-end
-
-function Item:onGeometryChanged()
-	self.geometry_change_count = self.geometry_change_count + 1
+function Item:onLayoutUpdate()
+	self.layout_update_count = self.layout_update_count + 1
 end
 
 ---@param t testing.T
@@ -31,7 +26,9 @@ function test.wheel_updates_target_scroll_position(t)
 	})
 
 	list:setSize(100, 100)
-	list:onGeometryChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 100, 100, 1)
+	list:refresh()
 
 	t:eq(list.target_scroll_position, 0)
 	t:eq(list:onScroll({direction_y = -1}), true)
@@ -47,7 +44,9 @@ function test.update_animates_scroll_position(t)
 	})
 
 	list:setSize(100, 100)
-	list:onGeometryChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 100, 100, 1)
+	list:refresh()
 	list:setTargetScrollPosition(60)
 
 	list:update(0.05)
@@ -69,7 +68,9 @@ function test.padding_offsets_items_and_content_height(t)
 	})
 
 	list:setSize(100, 120)
-	list:onGeometryChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 100, 120, 1)
+	list:refresh()
 
 	t:eq(list.views[1].x, 12)
 	t:eq(list.views[1].y, 10)
@@ -90,7 +91,9 @@ function test.focus_visibility_accounts_for_padding(t)
 	})
 
 	list:setSize(100, 100)
-	list:onGeometryChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 100, 100, 1)
+	list:refresh()
 	list:focusChild(4)
 
 	t:eq(list.target_scroll_position, 90)
@@ -105,7 +108,9 @@ function test.table_padding_is_supported(t)
 	})
 
 	list:setSize(120, 130)
-	list:onGeometryChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 120, 130, 1)
+	list:refresh()
 
 	t:eq(list.padding_left, 12)
 	t:eq(list.padding_top, 8)
@@ -126,8 +131,11 @@ function test.vertical_padding_does_not_hide_partially_visible_items_early(t)
 	})
 
 	list:setSize(100, 100)
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 100, 100, 1)
+	list:refresh()
 	list:setScrollPosition(30)
-	list:onGeometryChanged()
+	list:refresh()
 
 	t:eq(list.first_visible, 1)
 	t:eq(list.last_visible, 3)
@@ -142,7 +150,9 @@ function test.resolution_change_keeps_logical_spacing_values(t)
 	})
 
 	list.ui_scale = 1.5
-	list:onResolutionChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 100, 100, 1.5)
+	list:refresh()
 
 	t:eq(list.gap, 10)
 	t:eq(list.padding_left, 12)
@@ -160,15 +170,16 @@ function test.new_children_adopt_current_ui_scale_immediately(t)
 
 	list.ui_scale = 1.5
 	list:setSize(120, 100)
-	list:onGeometryChanged()
+	list.box = list.box or require("ui.Box")()
+	list.box:update(0, 0, 120, 100, 1.5)
+	list:refresh()
 
 	local item = Item(40)
 	item:setWidthPercent(1)
 	list:setItems({item})
 
 	t:eq(item.ui_scale, 1.5)
-	t:eq(item.resolution_change_count, 1)
-	t:eq(item.geometry_change_count > 0, true)
+	t:eq(item.layout_update_count > 0, true)
 	t:eq(item.width, 100)
 end
 

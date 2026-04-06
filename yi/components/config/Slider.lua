@@ -184,12 +184,8 @@ function Slider:updateValueText()
 	self:refreshLayoutMetrics()
 end
 
-function Slider:onResolutionChanged()
+function Slider:onLayoutUpdate()
 	self:rebuild()
-end
-
-function Slider:onGeometryChanged()
-	self:refreshLayoutMetrics()
 end
 
 ---@return number

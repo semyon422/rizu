@@ -96,7 +96,7 @@ function CodeDecoration:new(resources)
 	self.width_percent = 1
 	self.height_percent = 1
 	self.code_files = load_random_project_code(self.code_file_count)
-	self:onResolutionChanged()
+	self:onLayoutUpdate()
 end
 
 ---@private
@@ -116,7 +116,7 @@ function CodeDecoration:rebuildCodeText()
 	self.code_text = love.graphics.newText(self.code_font, code_fragments)
 end
 
-function CodeDecoration:onResolutionChanged()
+function CodeDecoration:onLayoutUpdate()
 	self.code_font = self.resources:getScaledFont(self.code_font_name, self.code_font_size, self.ui_scale)
 	self:rebuildCodeText()
 end

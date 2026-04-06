@@ -77,7 +77,7 @@ function Button:onMouseClick(e)
 	end
 end
 
-function Button:onResolutionChanged()
+function Button:onLayoutUpdate()
 	self:rebuildText()
 end
 

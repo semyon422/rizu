@@ -1,5 +1,4 @@
 local Layer = require("ui.Layer")
-local Layout = require("ui.layout.Layout")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local WireframeGlobe = require("yi.views.WireframeGlobe")
@@ -30,30 +29,26 @@ function Multiplayer:new(yi)
 		rotation_speed_y = 0.22,
 	})
 	self.globe:setPosition(0, -30)
-	self.globe:setAnchor(0.5, 0.5)
-	self.globe:setOrigin(0.5, 0.5)
+	self.globe:setPivot(0.5, 0.5)
 
 	self:addArray({
 		self.globe,
 		ui:Label({
 			y = -250,
-			anchor = {0.5, 0.5},
-			origin = {0.5, 0.5},
+			pivot = {0.5, 0.5},
 			font_size = 46,
 			font = "regular",
 			text = "MULTIPLAYER",
 		}),
 		ui:Label({
-			anchor = {0.5, 0.5},
-			origin = {0.5, 0.5},
+			pivot = {0.5, 0.5},
 			font_size = 72,
 			font = "regular",
 			text = "NOT CONNECTED",
 		}),
 		ui:Label({
 			y = 238,
-			anchor = {0.5, 0.5},
-			origin = {0.5, 0.5},
+			pivot = {0.5, 0.5},
 			font_size = 24,
 			font = "regular",
 			text = "[Esc] Back",

@@ -71,7 +71,7 @@ function Panel:new(params)
 	self.draw_border_width = 0
 end
 
-function Panel:onGeometryChanged()
+function Panel:onLayoutUpdate()
 	local w, h = self.width, self.height
 	local bevel = math.max(0, math.min(self.bevel_size, w, h))
 	local fill_points = self.fill_polygon_points
@@ -94,6 +94,8 @@ function Panel:onGeometryChanged()
 	points[11], points[12] = half, inner_bevel + half
 	points[13], points[14] = inner_bevel + half, half
 	self.draw_border_width = border_width
+
+	print(self.box.width, self.box.height)
 end
 
 function Panel:draw()

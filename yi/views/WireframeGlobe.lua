@@ -42,7 +42,7 @@ function WireframeGlobe:new(opts)
 	self:rebuildSegments()
 end
 
-function WireframeGlobe:onGeometryChanged()
+function WireframeGlobe:onLayoutUpdate()
 	self:rebuildSegments()
 end
 

@@ -72,11 +72,8 @@ function TabButton:new(params)
 	self:rebuildText()
 end
 
-function TabButton:onResolutionChanged()
+function TabButton:onLayoutUpdate()
 	self:rebuildText()
-end
-
-function TabButton:onGeometryChanged()
 	local w = self.width
 	local h = self.height
 	local bevel = math.max(0, math.min(self.bevel_size, w, h))

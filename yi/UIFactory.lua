@@ -38,11 +38,8 @@ local function apply_view_params(view, params)
 	if params.height then
 		view.height = params.height
 	end
-	if params.anchor then
-		view.anchor = params.anchor
-	end
-	if params.origin then
-		view.origin = params.origin
+	if params.pivot then
+		view.pivot = params.pivot
 	end
 	if params.visible ~= nil then
 		view.visible = params.visible
@@ -167,7 +164,8 @@ function UIFactory:Image(params)
 	return apply_view_params(Image({
 		atlas = self.atlas,
 		quad = quad,
-		color = params.color or {1, 1, 1, 1}
+		color = params.color or {1, 1, 1, 1},
+		mode = params.mode,
 	}), params)
 end
 

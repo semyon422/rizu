@@ -11,8 +11,7 @@ function Background:new(yi)
 
 	local bg = ParallaxBackground(yi.game.backgroundModel)
 	bg:setSizePercent(1, 1)
-	bg:setAnchor(0.5, 0.5)
-	bg:setOrigin(0.5, 0.5)
+	bg:setPivot(0.5, 0.5)
 	self:add(bg)
 end
 

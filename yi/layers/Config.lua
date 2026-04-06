@@ -1,10 +1,12 @@
 local Layer = require("ui.Layer")
-local Layout = require("ui.layout.Layout")
 local Title = require("yi.views.Title")
 
 local Colors = require("yi.Colors")
 local UIFactory = require("yi.UIFactory")
 local UIConfigFactory = require("yi.UIConfigFactory")
+
+local composition = require("ui.composition")
+local Stack, Horizontal, Vertical = composition.Stack, composition.Horizontal, composition.Vertical
 
 ---@class yi.Config : ui.Layer
 ---@operator call: yi.Config
@@ -21,54 +23,64 @@ function Config:new(yi)
 	self.canvas = love.graphics.newCanvas(love.graphics.getDimensions())
 	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
 
-	self.layout = Layout({
-		target_height = 1080,
-		root = {id = "root", children = {
-			{padding = {100, 60, 100, 60}, align = {0.5, 0.5}, arrange = "col", children = {
-				{id = "title", w = "100%", h = 120},
-				{h = 20},
-				{w = "100%", h = "*", arrange = "row", children = {
-					{id = "tabs", w = 400, h = "100%"},
-					{w = 20},
-					{id = "content_bg", w = "*", h = "100%", padding = 5, children = {
-						{id = "content"}
-					}},
-				}}
-			}}
-		}}
-	})
-
 	self:createTabs(ui, conf)
 
 	self.title = Title(self.atlas, self.quads)
-	self.title.box = self.layout:get("title")
 
 	self.config_content = ui:List({
-		box = self.layout:get("content"),
 		width_percent = 1,
 		height_percent = 1,
 		gap = 32,
 		padding = {40, 40, 40, 40},
 	})
 
-	self:addArray({
-		self.title,
-		ui:List({
-			box = self.layout:get("tabs"),
-			width_percent = 1,
-			height_percent = 1,
-			gap = 8,
-			items = self.tab_buttons
+	self.tabs_list = ui:List({
+		width_percent = 1,
+		height_percent = 1,
+		gap = 8,
+		items = self.tab_buttons
+	})
+
+	self.content_bg = ui:Panel({
+		width_percent = 1,
+		height_percent = 1,
+		color = Colors.slate_900_80,
+		border_color = Colors.white_40,
+		corners = {true, false, true, false}
+	})
+
+	self.composition_root = Stack({
+		Vertical({
+			w = "100%",
+			h = "100%",
+			padding = {100, 60, 100, 60},
+			gap = 20,
+			Stack({
+				h = 120,
+				self.title,
+			}),
+			Horizontal({
+				w = "*",
+				h = "*",
+				gap = 20,
+				Stack({
+					w = 400,
+					h = "100%",
+					self.tabs_list,
+				}),
+				Stack({
+					w = "*",
+					h = "100%",
+					self.content_bg,
+					composition.Stack({
+						w = "100%",
+						h = "100%",
+						padding = 5,
+						self.config_content,
+					}),
+				}),
+			}),
 		}),
-		ui:Panel({
-			box = self.layout:get("content_bg"),
-			width_percent = 1,
-			height_percent = 1,
-			color = Colors.slate_900_80,
-			border_color = Colors.white_40,
-			corners = {true, false, true, false}
-		}),
-		self.config_content
 	})
 
 	self:setTab("general")

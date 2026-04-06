@@ -208,12 +208,6 @@ function PanelSelect:new(params)
 	self:scrollToIndex(self.selected_index, true)
 end
 
-function PanelSelect:onResolutionChanged()
-	self:rebuildBatches()
-	self:refreshSize()
-	self:requestRebuild()
-end
-
 function PanelSelect:updateFrameTarget()
 	local item = self.layout_items[self.selected_index]
 	if not item then
@@ -248,8 +242,10 @@ function PanelSelect:getFrameDrawColor()
 	return Color.set(self._frame_draw_color, color[1], color[2], color[3], alpha)
 end
 
-function PanelSelect:onGeometryChanged()
+function PanelSelect:onLayoutUpdate()
+	self:rebuildBatches()
 	self:refreshSize()
+	self:requestRebuild()
 	if self._rebuild_requested or self.width ~= self._layout_width or self.height ~= self._layout_height then
 		local immediate_scroll = self._layout_width == nil or self._layout_height == nil or self._rebuild_requested
 		self._layout_width = self.width

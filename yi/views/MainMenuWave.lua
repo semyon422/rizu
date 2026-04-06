@@ -37,8 +37,7 @@ function MainMenuWave:new(resources)
 	self.resources = assert(resources)
 	self.width_percent = 1
 	self.height = 600
-	self.anchor = {0.5, 0.5}
-	self.origin = {0.5, 0.5}
+	self.pivot = {0.5, 0.5}
 	self.wave_speed = 0.18
 	self.wave_amplitude = 0.025
 	self.wave_frequency = 2.1

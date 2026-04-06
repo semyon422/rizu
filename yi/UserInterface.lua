@@ -8,6 +8,7 @@ local MenuBackground = require("yi.layers.MenuBackground")
 local MainMenu = require("yi.layers.MainMenu")
 local Multiplayer = require("yi.layers.Multiplayer")
 local Config = require("yi.layers.Config")
+local Select = require("yi.layers.Select")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
@@ -35,15 +36,16 @@ function UserInterface:load()
 	self.layers = {
 		menu_background = MenuBackground(self),
 		config = Config(self),
-		multiplayer = Multiplayer(self),
-		main_menu = MainMenu(self)
+		--multiplayer = Multiplayer(self),
+		main_menu = MainMenu(self),
+		--select = Select(self)
 	}
 
 	self.visible = {}
 	self:transitTo("main_menu")
 end
 
----@param layer "main_menu" | "config" | "multiplayer" | "dlc"
+---@param layer "main_menu" | "config" | "select" | "multiplayer"
 function UserInterface:transitTo(layer)
 	table_util.clear(self.visible)
 
@@ -56,6 +58,8 @@ function UserInterface:transitTo(layer)
 	elseif layer == "config" then
 		table.insert(self.visible, self.layers.menu_background)
 		table.insert(self.visible, self.layers.config)
+	elseif layer == "select" then
+		table.insert(self.visible, self.layers.select)
 	end
 end
 
