@@ -157,10 +157,22 @@ The project uses a custom testing framework. Test files are first-class citizens
 1.  **File Naming:** Test files should be named with a `_test.lua` suffix and should reside in the same directory as the source file they test (e.g., `MyRepo.lua` -> `MyRepo_test.lua`).
 2.  **Preservation:** NEVER delete test files during refactoring. If a module is moved or renamed, its corresponding tests must be moved and updated to reflect the new structure.
 3.  **Verification:** ALWAYS run project-specific tests after making changes. Fulfill the user's request thoroughly by including automated tests; a change is incomplete without verification logic.
-4.  **Structure:** A test file should return a table containing test functions. Each test function receives a `t` object of type `testing.T`.
-5.  **Assertions:** Use the methods provided by the `t` object for assertions:
+4.  **Build System Tests:** For build-system changes, prefer tests that validate the build system's internal logic, task orchestration, spec loading, action dispatch, dependency handling, and validation behavior. Do not default to tests that only assert produced filenames, URLs, archives, or packaged outputs. The build pipeline itself should validate produced artifacts and packaging results when it runs.
+5.  **Test Quality:** Prefer tests that verify behavior, invariants, and failure modes over tests that merely restate implementation details. Good tests should fail when user-visible behavior or an important internal contract breaks.
+6.  **Avoid Low-Value Tests:** Do not add tests that only mirror constants, local variable choices, hardcoded strings, table layouts, or other implementation details unless those details are themselves the intended contract.
+7.  **Internal Contracts:** When code is infrastructural, test the module's internal contracts directly: validation rules, dependency ordering, skip behavior, error handling, state transitions, and interactions between components.
+8.  **Meaningful Scope:** If a change does not support a meaningful automated test, do not force a shallow one. Prefer documenting why automated coverage is limited and rely on existing runtime validation or explicit manual verification steps.
+9.  **Structure:** A test file should return a table containing test functions. Each test function receives a `t` object of type `testing.T`.
+10.  **Assertions:** Use the methods provided by the `t` object for assertions:
     *   `t:eq(got, expected, msg?)`: Equality check (`==`).
     *   `t:ne(got, expected, msg?)`: Inequality check (`!=`).
+    *   `t:raweq(got, expected, msg?)`: Raw equality check.
+    *   `t:rawne(got, expected, msg?)`: Raw inequality check.
+    *   `t:lt(got, expected, msg?)`: Less-than comparison.
+    *   `t:le(got, expected, msg?)`: Less-than-or-equal comparison.
+    *   `t:aeq(got, expected, eps, msg?)`: Approximate equality with epsilon for numbers; otherwise normal equality.
+    *   `t:typeof(got, expected_type)`: Type check against the expected Lua type name.
+    *   `t:teq(got, expected, msg?)`: Shallow table equality check.
     *   `t:tdeq(got, expected, msg?)`: Deep equality check for tables. Can be used to compare `icc.Message` objects directly.
     *   `t:has_error(func, ...)`: Asserts that calling `func(...)` raises an error.
     *   `t:has_not_error(func, ...)`: Asserts that calling `func(...)` does not raise an error.
