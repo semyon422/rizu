@@ -94,7 +94,7 @@ elseif jit.os == "OSX" then
 	ffi.C.chdir(root)
 end
 
-love.errhand = require("errhand")
+love.errorhandler = require("errhand")
 
 love.filesystem.unmountCommonPath("appsavedir")
 love.filesystem.unmountFullPath(root)
@@ -123,7 +123,7 @@ if arg[2] == "test" then
 	local utf8validate = require("utf8validate")
 	local typecheck = require("typecheck")
 
-	function love.errhand(msg)
+	function love.errorhandler(msg)
 		if type(msg) ~= "string" then
 			if type(msg) ~= "table" then
 				msg = tostring(msg)

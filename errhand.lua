@@ -4,7 +4,7 @@ local just = require("just")
 local imgui = require("imgui")
 local typecheck = require("typecheck")
 local version = require("version")
-local errhand = love.errhand
+local errorhandler = love.errorhandler
 
 local message = ""
 local trace = ""
@@ -131,7 +131,7 @@ return function(msg)
 	return function()
 		local status, err = pcall(run)
 		if not status then
-			run = errhand(err)
+			run = errorhandler(err)
 		else
 			return err
 		end
