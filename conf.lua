@@ -4,7 +4,7 @@ function love.conf(t)
 	t.appendidentity = true
 	t.console = true
 	t.accelerometerjoystick = true
-	t.gammacorrect = false
+	t.graphics.gammacorrect = false
 
 	t.window = nil
 

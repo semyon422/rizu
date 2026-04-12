@@ -12,6 +12,13 @@ local function stencil()
 	love.graphics.pop()
 end
 
+local function draw_stencil(stencil_fn, action, value)
+	love.graphics.setColorMask(false, false, false, false)
+	love.graphics.setStencilState(action, "always", value)
+	stencil_fn()
+	love.graphics.setColorMask(true, true, true, true)
+end
+
 ---@param buf yi.CommandBuffer
 return function(buf)
 	local l = #buf
@@ -58,11 +65,11 @@ return function(buf)
 			st_w, st_h = n:getCalculatedWidth(), n:getCalculatedHeight()
 			st_tf = n.transform.love_transform
 			st_corner_radius = n.corner_radius or 0
-			love.graphics.stencil(stencil, "replace", 1)
-			love.graphics.setStencilTest("greater", 0)
+			draw_stencil(stencil, "replace", 1)
+			love.graphics.setStencilState("keep", "greater", 0)
 			i = i + 2
 		elseif v == C.STENCIL_END then
-			love.graphics.setStencilTest()
+			love.graphics.setStencilState()
 			i = i + 1
 		end
 	end

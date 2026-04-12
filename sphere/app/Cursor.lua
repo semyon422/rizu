@@ -27,7 +27,7 @@ function Cursor:createCircle()
 	love.graphics.circle("line", 16, 16, 8, 64)
 	love.graphics.circle("fill", 16, 16, 8, 64)
 	love.graphics.setCanvas(oldCanvas)
-	self.circleCursor = love.mouse.newCursor(canvas:newImageData(), 16, 16)
+	self.circleCursor = love.mouse.newCursor(love.graphics.readbackTexture(canvas), 16, 16)
 end
 
 function Cursor:createArrow()
@@ -39,7 +39,7 @@ function Cursor:createArrow()
 	love.graphics.polygon("line", vertices)
 	love.graphics.polygon("fill", vertices)
 	love.graphics.setCanvas(oldCanvas)
-	self.arrowCursor = love.mouse.newCursor(canvas:newImageData(), 0, 0)
+	self.arrowCursor = love.mouse.newCursor(love.graphics.readbackTexture(canvas), 0, 0)
 end
 
 return Cursor
