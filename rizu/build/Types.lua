@@ -19,6 +19,7 @@
 ---@field type string
 ---@field command? string
 ---@field compiler? string
+---@field recursive? boolean
 ---@field dir? string
 ---@field src_dir? string
 ---@field build_dir? string

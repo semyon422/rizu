@@ -119,6 +119,39 @@ function test.typed_actions_run_with_structured_result(t)
 	t:assert(#state.exec >= 3)
 end
 
+function test.extract_first_match_and_recursive_remove_actions_run(t)
+	local ctx, state = makeCtx()
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "extract_match",
+		kind = "archive",
+		actions = {
+			{type = "extract_first_match", pattern = '"/tmp"/love-*.zip', format = "zip", dest = "/tmp/out"},
+			{type = "remove", path = "/tmp/out", recursive = true},
+		},
+	})
+	t:eq(result.ok, true)
+	t:assert(#state.exec >= 2)
+	t:assert(state.exec[1]:find("matches=", 1, true))
+	t:assert(state.exec[2]:find("rm %-rf", 1))
+end
+
+function test.move_first_match_action_runs(t)
+	local ctx, state = makeCtx()
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "move_match",
+		kind = "archive",
+		actions = {
+			{type = "move_first_match", pattern = '"/tmp"/love-*.AppImage', dst = "/tmp/love.AppImage"},
+		},
+	})
+	t:eq(result.ok, true)
+	t:eq(#state.exec, 1)
+	t:assert(state.exec[1]:find("mv %-f", 1))
+	t:assert(state.exec[1]:find("matches=", 1, true))
+end
+
 function test.shell_action_supports_dir(t)
 	local ctx, state = makeCtx()
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})

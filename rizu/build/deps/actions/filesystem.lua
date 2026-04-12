@@ -31,7 +31,19 @@ end
 
 function M.remove(env, action)
 	local path = Util.resolve(env, action.path)
-	return Util.executeSafe(env, string.format("rm -f %q", path))
+	local flags = action.recursive and "-rf" or "-f"
+	return Util.executeSafe(env, string.format("rm %s %q", flags, path))
+end
+
+function M.move_first_match(env, action)
+	local pattern = Util.resolve(env, action.pattern)
+	local dst = Util.resolve(env, action.dst)
+	local cmd = string.format(
+		"bash -lc 'shopt -s nullglob; matches=(%s); [ ${#matches[@]} -gt 0 ] || exit 1; mv -f \"${matches[0]}\" %q'",
+		pattern,
+		dst
+	)
+	return Util.executeSafe(env, cmd)
 end
 
 function M.ensure_dir(env, action)
