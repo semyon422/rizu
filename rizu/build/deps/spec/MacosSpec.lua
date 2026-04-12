@@ -1,4 +1,6 @@
 local Common = require("rizu.build.deps.spec.CommonSpec")
+local Dd32Spec = require("rizu.build.deps.spec.common.Dd32Spec")
+local table_util = require("aqua.table_util")
 
 local Macos = {}
 local DARWIN_CC = "x86_64-apple-darwin22.2-clang"
@@ -11,6 +13,10 @@ local function crossEnv(tc_bin)
 		AR = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ar",
 		RANLIB = tc_bin .. "/" .. DARWIN_TRIPLE .. "-ranlib",
 	}
+end
+
+local function crossEnvWithDd(tc_bin)
+	return Dd32Spec.extendEnv(crossEnv(tc_bin))
 end
 
 local function add_prepare_prefix(spec, prefix)
@@ -130,38 +136,33 @@ local function add_iconv(spec, deps, prefix, prefix_abs, tc_bin)
 	end
 	local archive = "${downloads_dir}/" .. iconv.archive
 	local extract = "${deps_dir}/" .. iconv.dir
+	local actions = {
+		{type = "download", url = iconv.url, dest = archive},
+		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+	}
+	Dd32Spec.addSetup(actions)
+	table_util.append(actions, {
+		{
+			type = "configure",
+			dir = extract,
+			env = crossEnvWithDd(tc_bin),
+			args = {
+				"--host=" .. DARWIN_TRIPLE,
+				"--prefix=" .. prefix_abs,
+				"--enable-shared",
+				"--disable-static",
+				"CFLAGS=-O2 -fPIC",
+			},
+		},
+		{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
+		{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install"}},
+		{type = "copy", src = prefix .. "/lib/libiconv.dylib", dst = "${bin_dir}/libiconv.dylib", flags = "-f"},
+		{type = "copy", src = prefix .. "/lib/libcharset.dylib", dst = "${bin_dir}/libcharset.dylib", flags = "-f"},
+	})
 	table.insert(spec.steps, {
 		id = "macos_iconv",
 		kind = "source-build",
-		actions = {
-			{type = "download", url = iconv.url, dest = archive},
-			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "write_file", path = "${deps_dir}/dd32.sh", content = "#!/bin/sh\ncat | head -c 32\n"},
-			{type = "set_executable", path = "${deps_dir}/dd32.sh"},
-			{
-				type = "configure",
-				dir = extract,
-				env = {
-					PATH = crossEnv(tc_bin).PATH,
-					CC = crossEnv(tc_bin).CC,
-					AR = crossEnv(tc_bin).AR,
-					RANLIB = crossEnv(tc_bin).RANLIB,
-					ac_cv_path_lt_DD = "${root_abs}/${deps_dir}/dd32.sh",
-					DD = "${root_abs}/${deps_dir}/dd32.sh",
-				},
-				args = {
-					"--host=" .. DARWIN_TRIPLE,
-					"--prefix=" .. prefix_abs,
-					"--enable-shared",
-					"--disable-static",
-					"CFLAGS=-O2 -fPIC",
-				},
-			},
-			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
-			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install"}},
-			{type = "copy", src = prefix .. "/lib/libiconv.dylib", dst = "${bin_dir}/libiconv.dylib", flags = "-f"},
-			{type = "copy", src = prefix .. "/lib/libcharset.dylib", dst = "${bin_dir}/libcharset.dylib", flags = "-f"},
-		},
+		actions = actions,
 	})
 end
 
@@ -251,23 +252,27 @@ local function add_fftw(spec, deps, prefix, prefix_abs, tc_bin)
 	end
 	local archive = "${downloads_dir}/" .. fftw.archive
 	local extract = "${deps_dir}/" .. fftw.dir
+	local actions = {
+		{type = "download", url = fftw.url, dest = archive},
+		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+	}
+	Dd32Spec.addSetup(actions)
+	table_util.append(actions, {
+		{
+			type = "configure",
+			dir = extract,
+			env = crossEnvWithDd(tc_bin),
+			args = {"--host=" .. DARWIN_TRIPLE, "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2 -fPIC"},
+		},
+		{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
+		{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install"}},
+		{type = "assert_file", path = prefix .. "/lib/libfftw3.dylib"},
+		{type = "copy_exact", src = prefix .. "/lib/libfftw3.dylib", dst = "${bin_dir}/libfftw3.dylib", flags = "-Lf"},
+	})
 	table.insert(spec.steps, {
 		id = "macos_fftw",
 		kind = "source-build",
-		actions = {
-			{type = "download", url = fftw.url, dest = archive},
-			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{
-				type = "configure",
-				dir = extract,
-				env = crossEnv(tc_bin),
-				args = {"--host=" .. DARWIN_TRIPLE, "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2 -fPIC"},
-			},
-			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"-j$(nproc)"}},
-			{type = "make", dir = extract, env = crossEnv(tc_bin), args = {"install"}},
-			{type = "assert_file", path = prefix .. "/lib/libfftw3.dylib"},
-			{type = "copy_exact", src = prefix .. "/lib/libfftw3.dylib", dst = "${bin_dir}/libfftw3.dylib", flags = "-Lf"},
-		},
+		actions = actions,
 	})
 end
 

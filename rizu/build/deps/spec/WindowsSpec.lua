@@ -1,20 +1,8 @@
 local Common = require("rizu.build.deps.spec.CommonSpec")
+local Dd32Spec = require("rizu.build.deps.spec.common.Dd32Spec")
+local table_util = require("aqua.table_util")
 
 local Windows = {}
-
-local DD32_PATH = "${root_abs}/${deps_dir}/dd32.sh"
-
-local function add_dd32(actions)
-	table.insert(actions, {type = "write_file", path = "${deps_dir}/dd32.sh", content = "#!/bin/sh\ncat | head -c 32\n"})
-	table.insert(actions, {type = "set_executable", path = "${deps_dir}/dd32.sh"})
-end
-
-local function get_dd32_env()
-	return {
-		ac_cv_path_lt_DD = DD32_PATH,
-		DD = DD32_PATH,
-	}
-end
 
 local function add_prepare_prefix(spec, prefix)
 	table.insert(spec.steps, {
@@ -60,12 +48,14 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 		{type = "download", url = iconv.url, dest = archive},
 		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
 	}
-	add_dd32(actions)
-	table.insert(actions, {type = "configure", dir = extract, env = get_dd32_env(), args = {"--host=x86_64-w64-mingw32", "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2"}})
-	table.insert(actions, {type = "make", dir = extract, args = {"-j$(nproc)"}})
-	table.insert(actions, {type = "make", dir = extract, args = {"install"}})
-	table.insert(actions, {type = "assert_file", path = prefix .. "/bin/libiconv-2.dll"})
-	table.insert(actions, {type = "copy_exact", src = prefix .. "/bin/libiconv-2.dll", dst = "${bin_dir}/libiconv-2.dll", flags = "-f"})
+	Dd32Spec.addSetup(actions)
+	table_util.append(actions, {
+		{type = "configure", dir = extract, env = Dd32Spec.env(), args = {"--host=x86_64-w64-mingw32", "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2"}},
+		{type = "make", dir = extract, args = {"-j$(nproc)"}},
+		{type = "make", dir = extract, args = {"install"}},
+		{type = "assert_file", path = prefix .. "/bin/libiconv-2.dll"},
+		{type = "copy_exact", src = prefix .. "/bin/libiconv-2.dll", dst = "${bin_dir}/libiconv-2.dll", flags = "-f"},
+	})
 	table.insert(spec.steps, {
 		id = "windows_iconv",
 		kind = "source-build",
@@ -151,17 +141,19 @@ local function add_fftw(spec, deps, prefix, prefix_abs)
 		{type = "download", url = fftw.url, dest = archive},
 		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
 	}
-	add_dd32(actions)
-	table.insert(actions, {
-		type = "configure",
-		dir = extract,
-		env = get_dd32_env(),
-		args = {"--host=x86_64-w64-mingw32", "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2"},
+	Dd32Spec.addSetup(actions)
+	table_util.append(actions, {
+		{
+			type = "configure",
+			dir = extract,
+			env = Dd32Spec.env(),
+			args = {"--host=x86_64-w64-mingw32", "--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-O2"},
+		},
+		{type = "make", dir = extract, args = {"-j$(nproc)"}},
+		{type = "make", dir = extract, args = {"install"}},
+		{type = "assert_file", path = prefix .. "/bin/libfftw3-3.dll"},
+		{type = "copy_exact", src = prefix .. "/bin/libfftw3-3.dll", dst = "${bin_dir}/libfftw3-3.dll", flags = "-f"},
 	})
-	table.insert(actions, {type = "make", dir = extract, args = {"-j$(nproc)"}})
-	table.insert(actions, {type = "make", dir = extract, args = {"install"}})
-	table.insert(actions, {type = "assert_file", path = prefix .. "/bin/libfftw3-3.dll"})
-	table.insert(actions, {type = "copy_exact", src = prefix .. "/bin/libfftw3-3.dll", dst = "${bin_dir}/libfftw3-3.dll", flags = "-f"})
 	table.insert(spec.steps, {
 		id = "windows_fftw",
 		kind = "source-build",

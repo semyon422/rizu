@@ -1,4 +1,6 @@
 local Common = require("rizu.build.deps.spec.CommonSpec")
+local Dd32Spec = require("rizu.build.deps.spec.common.Dd32Spec")
+local table_util = require("aqua.table_util")
 
 local Linux = {}
 
@@ -43,30 +45,29 @@ local function add_iconv(spec, deps, prefix, prefix_abs)
 	end
 	local archive = "${downloads_dir}/" .. iconv.archive
 	local extract = "${deps_dir}/" .. iconv.dir
+	local actions = {
+		{type = "download", url = iconv.url, dest = archive},
+		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+	}
+	Dd32Spec.addSetup(actions)
+	table_util.append(actions, {
+		{
+			type = "configure",
+			dir = extract,
+			env = Dd32Spec.env(),
+			args = {"--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-fPIC"},
+		},
+		{type = "make", dir = extract, args = {"-j$(nproc)"}},
+		{type = "make", dir = extract, args = {"install"}},
+		{type = "assert_file", path = prefix .. "/lib/libiconv.so"},
+		{type = "assert_file", path = prefix .. "/lib/libcharset.so"},
+		{type = "copy_exact", src = prefix .. "/lib/libiconv.so", dst = "${bin_dir}/libiconv.so", flags = "-Lf"},
+		{type = "copy_exact", src = prefix .. "/lib/libcharset.so", dst = "${bin_dir}/libcharset.so", flags = "-Lf"},
+	})
 	table.insert(spec.steps, {
 		id = "linux_iconv",
 		kind = "source-build",
-		actions = {
-			{type = "download", url = iconv.url, dest = archive},
-			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
-			{type = "write_file", path = "${deps_dir}/dd32.sh", content = "#!/bin/sh\ncat | head -c 32\n"},
-			{type = "set_executable", path = "${deps_dir}/dd32.sh"},
-			{
-				type = "configure",
-				dir = extract,
-				env = {
-					ac_cv_path_lt_DD = "${root_abs}/${deps_dir}/dd32.sh",
-					DD = "${root_abs}/${deps_dir}/dd32.sh",
-				},
-				args = {"--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-fPIC"},
-			},
-			{type = "make", dir = extract, args = {"-j$(nproc)"}},
-			{type = "make", dir = extract, args = {"install"}},
-			{type = "assert_file", path = prefix .. "/lib/libiconv.so"},
-			{type = "assert_file", path = prefix .. "/lib/libcharset.so"},
-			{type = "copy_exact", src = prefix .. "/lib/libiconv.so", dst = "${bin_dir}/libiconv.so", flags = "-Lf"},
-			{type = "copy_exact", src = prefix .. "/lib/libcharset.so", dst = "${bin_dir}/libcharset.so", flags = "-Lf"},
-		},
+		actions = actions,
 	})
 end
 
