@@ -1,4 +1,3 @@
-local physfs = require("physfs")
 local path_util = require("path_util")
 local class = require("class")
 
@@ -30,9 +29,9 @@ function PackageMounter:mount(pkgs_path)
 		if info.type == "directory" or info.type == "symlink" or
 			(info.type == "file" and item:match("%.zip$"))
 		then
-			local ok, err = physfs.mount(path, mount_path, false)
+			local ok = love.filesystem.mount(path, mount_path, false)
 			if not ok then
-				print(err)
+				print("failed to mount package path", path)
 			else
 				self.real_paths[mount_path] = path
 				table.insert(self.paths, mount_path)
@@ -43,9 +42,9 @@ end
 
 function PackageMounter:unmount()
 	for path in pairs(self.real_paths) do
-		local ok, err = physfs.unmount(path)
+		local ok = love.filesystem.unmount(path)
 		if not ok then
-			print(err)
+			print("failed to unmount package path", path)
 		else
 			self.real_paths[path] = nil
 		end

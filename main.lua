@@ -96,12 +96,9 @@ end
 
 love.errhand = require("errhand")
 
-local physfs = require("physfs")
-physfs.setWriteDir(root)
-
-if root == sourceBase then
-	assert(physfs.mount(root, "/", true))
-end
+love.filesystem.unmountCommonPath("appsavedir")
+love.filesystem.unmountFullPath(root)
+assert(love.filesystem.mountFullPath(root, "/", "readwrite", false))
 
 require("preload")
 
