@@ -25,16 +25,16 @@ return {
 		dir = "7zsdk",
 	},
 	love_macos = {
-		url = "https://github.com/love2d/love/releases/download/11.5/love-11.5-macos.zip",
+		url = "https://nightly.link/love2d/love/workflows/main/main/love-macos.zip",
 		archive = "love-macos.zip",
 	},
 	love_win = {
-		url = "https://github.com/love2d/love/releases/download/11.5/love-11.5-win64.zip",
-		archive = "love-win.zip",
+		url = "https://nightly.link/love2d/love/workflows/main/main/love-windows-x64.zip",
+		archive = "love-windows-x64.zip",
 	},
 	love_linux = {
-		url = "https://github.com/love2d/love/releases/download/11.5/love-11.5-x86_64.AppImage",
-		archive = "love-11.5-x86_64.AppImage",
+		url = "https://nightly.link/love2d/love/workflows/main/main/love-linux-X64.AppImage.zip",
+		archive = "love-linux-X64.AppImage.zip",
 	},
 	rtmidi = {
 		linux = {url = "https://github.com/thestk/rtmidi/archive/refs/tags/v6.0.0.tar.gz", archive = "rtmidi-linux.tar.gz"},
