@@ -15,7 +15,7 @@ function SelectButton:load()
 	self.handles_mouse_input = true
 
 	local res = self:getResources()
-	self.icon_batch = love.graphics.newText(res:getFont("icons", 24), self.icon)
+	self.icon_batch = love.graphics.newTextBatch(res:getFont("icons", 24), self.icon)
 	self.icon_x = 0
 	self.icon_y = 0
 end

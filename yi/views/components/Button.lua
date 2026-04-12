@@ -24,7 +24,7 @@ end
 
 function Button:load()
 	local font = self:getResources():getFont("bold", 16)
-	self.text_batch = love.graphics.newText(font, self.text)
+	self.text_batch = love.graphics.newTextBatch(font, self.text)
 end
 
 function Button:destroy()

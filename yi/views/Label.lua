@@ -9,7 +9,7 @@ local Label = View + {}
 ---@param text string
 function Label:new(font, text)
 	View.new(self)
-	self.text_batch = love.graphics.newText(font)
+	self.text_batch = love.graphics.newTextBatch(font)
 	self.text = text
 	self.align = "left"
 	self.text_changed = false
