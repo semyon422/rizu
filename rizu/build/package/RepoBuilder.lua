@@ -253,6 +253,20 @@ function RepoBuilder:buildMacos()
 		return
 	end
 	self.ctx.shell:execute(string.format("unzip -oq %q -d %q", love_zip_path, "build/repo/macos"))
+	if not self.ctx.fs:getInfo("build/repo/macos/love.app") then
+		local nested_zip
+		for _, item in ipairs(self.ctx.fs:getDirectoryItems("build/repo/macos")) do
+			if item:match("%.zip$") then
+				nested_zip = "build/repo/macos/" .. item
+				break
+			end
+		end
+		if nested_zip then
+			self.ctx.shell:execute(string.format("unzip -oq %q -d %q", nested_zip, "build/repo/macos"))
+			self.ctx.fs:remove(nested_zip)
+		end
+	end
+	assert(self.ctx.fs:getInfo("build/repo/macos/love.app") ~= nil, "missing love.app in macOS runtime archive")
 	self.ctx.shell:execute(string.format("mv %q %q", "build/repo/macos/love.app", game_app))
 	self.ctx.shell:execute(string.format("find %q -type l -delete", game_app))
 	if self.ctx.fs:getInfo(Frameworks) then
