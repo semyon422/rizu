@@ -1,15 +1,16 @@
-local Layer = require("ui.Layer")
+local Layer = require("yi.Layer")
 local composition = require("ui.composition")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
----@class yi.Select : ui.Layer
+---@class yi.Select : yi.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
 local Select = Layer + {}
 
 ---@param yi yi.UserInterface
 function Select:new(yi)
 	Layer.new(self)
+	self.yi = yi
 	local ui = UIFactory(yi.resources)
 
 	self.title = ui:Label({
@@ -39,6 +40,14 @@ function Select:new(yi)
 			}),
 		})
 	})
+end
+
+function Select:handleKeyDown(key)
+	if key == "escape" then
+		self.yi:transitTo(self.yi.main_menu)
+	elseif key == "c" then
+		self.yi:transitTo(self.yi.config)
+	end
 end
 
 return Select

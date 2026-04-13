@@ -40,6 +40,7 @@ function PingPongBackground:new(image)
 	self.time = 0
 	self.width_percent = 1
 	self.height_percent = 1
+	self.alpha = 1
 end
 
 ---@param dt number
@@ -60,7 +61,7 @@ function PingPongBackground:draw()
 	local y = -smooth_ping_pong(self.time * self.speed_y, overflow_y)
 
 	lg.push("all")
-	lg.setColor(1, 1, 1, 1)
+	lg.setColor(1, 1, 1, self.alpha)
 	lg.draw(self.image, x, y, 0, cover_scale, cover_scale)
 	lg.pop()
 end

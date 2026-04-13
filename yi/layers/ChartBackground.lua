@@ -1,8 +1,8 @@
-local Layer = require("ui.Layer")
+local Layer = require("yi.Layer")
 local composition = require("ui.composition")
 local ParallaxBackground = require("yi.views.ParallaxBackground")
 
----@class yi.Background : ui.Layer
+---@class yi.Background : yi.Layer
 ---@operator call: yi.Background
 local Background = Layer + {}
 

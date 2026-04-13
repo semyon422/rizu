@@ -1,4 +1,4 @@
-local Layer = require("ui.Layer")
+local Layer = require("yi.Layer")
 local Title = require("yi.views.Title")
 
 local Colors = require("yi.Colors")
@@ -8,7 +8,7 @@ local UIConfigFactory = require("yi.UIConfigFactory")
 local composition = require("ui.composition")
 local Stack, Horizontal, Vertical = composition.Stack, composition.Horizontal, composition.Vertical
 
----@class yi.Config : ui.Layer
+---@class yi.Config : yi.Layer
 ---@operator call: yi.Config
 local Config = Layer + {}
 
@@ -17,7 +17,6 @@ function Config:new(yi)
 	Layer.new(self)
 	self.yi = yi
 
-	local res = yi.resources
 	local ui = UIFactory(yi.resources)
 	local conf = UIConfigFactory(yi.resources)
 	self.canvas = love.graphics.newCanvas(love.graphics.getDimensions())
@@ -166,15 +165,24 @@ function Config:createTabs(ui, conf)
 	}
 end
 
-function Config:receive(event)
-	if event.name ~= "keypressed" then
-		return
-	end
+function Config:draw()
+	local a = self.transition:get()
 
-	local key = event[1] ---@type string
+	love.graphics.setCanvas(self.canvas)
+	love.graphics.clear()
+	love.graphics.setBlendMode("alpha", "alphamultiply")
+	Layer.draw(self)
+	love.graphics.setCanvas()
 
+	love.graphics.setColor(a, a, a, a)
+	love.graphics.setBlendMode("alpha", "premultiplied")
+	love.graphics.draw(self.canvas)
+	love.graphics.setBlendMode("alpha")
+end
+
+function Config:handleKeyDown(key)
 	if key == "escape" then
-		self.yi:transitTo("main_menu")
+		self.yi:transitTo(self.yi.previous_layer or self.yi.main_menu)
 	end
 end
 

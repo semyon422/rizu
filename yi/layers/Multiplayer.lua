@@ -1,10 +1,10 @@
-local Layer = require("ui.Layer")
+local Layer = require("yi.Layer")
 local composition = require("ui.composition")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local WireframeGlobe = require("yi.views.WireframeGlobe")
 
----@class yi.Multiplayer : ui.Layer
+---@class yi.Multiplayer : yi.Layer
 ---@operator call: yi.Multiplayer
 local Multiplayer = Layer + {}
 
@@ -52,15 +52,9 @@ function Multiplayer:new(yi)
 	})
 end
 
-function Multiplayer:receive(event)
-	if event.name ~= "keypressed" then
-		return
-	end
-
-	local key = event[1] ---@type string
-
+function Multiplayer:handleKeyDown(key)
 	if key == "escape" then
-		self.yi:transitTo("main_menu")
+		self.yi:transitTo(self.yi.main_menu)
 	end
 end
 
