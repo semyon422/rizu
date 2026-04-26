@@ -35,7 +35,9 @@ Packaging is split into independent tasks:
 This avoids duplicated side effects and makes task dependencies explicit.
 
 ## Directory Structure
-- `rizu/build/make.lua`: CLI entrypoint and task registration.
+- `rizu/build/make.lua`: executable entrypoint.
+- `rizu/build/Cli.lua`: CLI command dispatch, argument validation, status, and clean commands.
+- `rizu/build/TaskRegistry.lua`: context construction and task registration.
 - `rizu/build/tasks/`: task-level orchestration.
 - `rizu/build/deps/spec/`: declarative build step definitions by target.
 - `rizu/build/deps/actions/`: executor action handlers.
@@ -60,7 +62,7 @@ CLI mapping:
 - `StepState`: centralizes required-input checks, output freshness, and step status state.
 - `Executor`: executes actions using shared step-state skip checks.
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
-- `RepoBuilder`: assembles update repo contents and archives.
+- `RepoBuilder`: compatibility facade over repo assembly, update-index writing, zip packaging, and macOS app packaging.
 
 `video` requires FFmpeg inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
 
