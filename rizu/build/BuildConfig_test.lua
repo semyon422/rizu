@@ -12,17 +12,15 @@ function test.unknown_targets_fall_back_to_linux_defaults(t)
 end
 
 function test.module_records_and_status_names(t)
-	local out = BuildConfig.getModuleOutputs("windows", "build/artifacts/windows")
-	local records = BuildConfig.getModuleRecords("windows", out, "bin/win64")
-	t:eq(#records, 4)
-	t:eq(records[1].key, "video")
-	t:eq(records[1].source, "aqua/video.c")
-	t:eq(records[1].bin, "bin/win64/video.dll")
-	t:eq(records[2].key, "z7")
-	t:eq(records[2].source, "aqua/7z.c")
-	t:eq(records[2].bin, "bin/win64/7z.dll")
-	t:eq(BuildConfig.getModuleStatusName("linux", "z7"), "lib7z")
-	t:eq(BuildConfig.getModuleStatusName("windows", "z7"), "7z")
+	local names = BuildConfig.getModuleNames("windows")
+	t:eq(names.video, "video.dll")
+	t:eq(names.z7, "7z.dll")
+	t:eq(names.minacalc, "minacalc.dll")
+	t:eq(names.luamidi, "luamidi.dll")
+
+	local outputs = BuildConfig.getModuleOutputs("windows", "build/artifacts/windows")
+	t:eq(outputs.video, "build/artifacts/windows/video.dll")
+	t:eq(outputs.z7, "build/artifacts/windows/7z.dll")
 end
 
 return test

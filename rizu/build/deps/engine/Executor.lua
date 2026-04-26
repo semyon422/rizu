@@ -1,6 +1,4 @@
 local Util = require("rizu.build.deps.actions._util")
-local BuildConfig = require("rizu.build.BuildConfig")
-local NativeModuleBuilder = require("rizu.build.NativeModuleBuilder")
 
 ---@class rizu.build.deps.engine.Executor
 local Executor = {}
@@ -23,8 +21,7 @@ local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.filesystem"),
 	require("rizu.build.deps.actions.git"),
 	require("rizu.build.deps.actions.platform"),
-	require("rizu.build.deps.actions.assertions"),
-	require("rizu.build.deps.actions.build")
+	require("rizu.build.deps.actions.assertions")
 )
 
 local function summarizeAction(action)
@@ -52,36 +49,49 @@ local function hasAllRequired(env, step)
 	return true
 end
 
-local function shouldSkip(env, step)
-	if step.kind == "modules" then
-		local target = BuildConfig.normalizeTarget(env.target)
-		local builder = NativeModuleBuilder(env.ctx, target)
-		local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
-		local has_ffmpeg = true
-		if target == "macos" then
-			has_ffmpeg = builder:getFFmpegPaths() ~= nil
-		end
-		for _, mod in ipairs(records) do
-			if mod.key ~= "video" or has_ffmpeg then
-				local artifact_info = env.ctx.fs:getInfo(mod.artifact)
-				local source_info = env.ctx.fs:getInfo(mod.source)
-				if not artifact_info or not source_info then
-					return false
-				end
-				if artifact_info.modtime and source_info.modtime and artifact_info.modtime < source_info.modtime then
-					return false
-				end
-			end
-		end
-		return true
+local function resolveList(env, list)
+	local out = {}
+	for _, item in ipairs(list or {}) do
+		table.insert(out, Util.resolve(env, item))
 	end
-	if step.outputs and #step.outputs > 0 then
-		for _, p in ipairs(step.outputs) do
-			if not env.ctx.fs:getInfo(Util.resolve(env, p)) then
-				return false
-			end
+	return out
+end
+
+local function outputsUpToDate(env, step)
+	local outputs = resolveList(env, step.outputs)
+	if #outputs == 0 then
+		return false
+	end
+
+	local oldest_output_modtime
+	for _, path in ipairs(outputs) do
+		local info = env.ctx.fs:getInfo(path)
+		if not info then
+			return false
 		end
-		return true
+		if info.modtime then
+			oldest_output_modtime = oldest_output_modtime and math.min(oldest_output_modtime, info.modtime) or info.modtime
+		else
+			oldest_output_modtime = nil
+		end
+	end
+
+	for _, input in ipairs(resolveList(env, step.inputs)) do
+		local info = env.ctx.fs:getInfo(input)
+		if not info then
+			return false
+		end
+		if oldest_output_modtime and info.modtime and oldest_output_modtime < info.modtime then
+			return false
+		end
+	end
+
+	return true
+end
+
+local function shouldSkip(env, step)
+	if step.outputs and #step.outputs > 0 then
+		return outputsUpToDate(env, step)
 	end
 	local checks = step.skip_if_exists_all
 	if checks and #checks > 0 then

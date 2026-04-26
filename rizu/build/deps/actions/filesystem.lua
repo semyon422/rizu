@@ -62,4 +62,8 @@ function M.write_file(env, action)
 	return Util.resultOk(string.format("write_file %s", path))
 end
 
+function M.noop(_env, _action)
+	return Util.resultOk("<noop>")
+end
+
 return M

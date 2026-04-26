@@ -13,8 +13,6 @@ local step_kinds = {
 	archive = true,
 	git = true,
 	["source-build"] = true,
-	modules = true,
-	sync = true,
 	["package-hooks"] = true,
 }
 
@@ -25,6 +23,7 @@ local action_requirements = {
 	configure = {"dir"},
 	run_in_dir = {"dir", "command"},
 	compile_c = {"compiler", "output", "sources"},
+	compile_cpp = {"compiler", "output", "sources"},
 	make = {"dir"},
 	cmake_configure = {"src_dir", "build_dir"},
 	cmake_build = {"build_dir"},
@@ -43,8 +42,6 @@ local action_requirements = {
 	assert_exists = {"path"},
 	assert_file = {"path"},
 	assert_dir = {"path"},
-	build_modules = {},
-	sync_binaries = {},
 	noop = {},
 }
 
@@ -82,7 +79,7 @@ local function inferOutputsFromActions(step)
 			table.insert(outputs, action.path)
 		elseif action.type == "write_file" and action.path then
 			table.insert(outputs, action.path)
-		elseif action.type == "compile_c" and action.output then
+		elseif (action.type == "compile_c" or action.type == "compile_cpp") and action.output then
 			table.insert(outputs, normalizeOutput(action, action.output))
 		end
 	end
@@ -101,6 +98,7 @@ local function normalizeSpec(spec)
 	for _, step in ipairs(spec.steps) do
 		step.outputs = step.outputs or inferOutputsFromActions(step)
 		step.requires = step.requires or {}
+		step.inputs = step.inputs or {}
 		step.status_label = step.status_label or step.id
 	end
 	spec.outputs = spec.outputs or {}
@@ -172,6 +170,9 @@ local function validateStep(step)
 	end
 	if type(step.requires) ~= "table" then
 		error("Step '" .. tostring(step.id) .. "' must define requires table")
+	end
+	if type(step.inputs) ~= "table" then
+		error("Step '" .. tostring(step.id) .. "' must define inputs table")
 	end
 end
 

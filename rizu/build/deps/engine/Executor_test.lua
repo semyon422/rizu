@@ -80,21 +80,25 @@ function test.outputs_take_precedence_over_skip_if_exists_all(t)
 	t:eq(#state.exec, 1)
 end
 
-function test.modules_kind_is_not_skipped_by_existing_outputs(t)
+function test.outputs_with_newer_inputs_do_not_skip_step(t)
 	local ctx, state = makeCtx()
+	state.fs:setTime(1)
 	state.fs:createDirectory("build/artifacts/linux")
 	state.fs:write("build/artifacts/linux/lib7z.so", "x")
+	state.fs:setTime(2)
+	state.fs:write("aqua/7z.c", "x")
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
-		id = "modules_build",
-		kind = "modules",
+		id = "artifact",
+		kind = "source-build",
 		outputs = {"build/artifacts/linux/lib7z.so"},
+		inputs = {"aqua/7z.c"},
 		actions = {
-			{type = "noop"},
+			{type = "shell", command = "echo rebuild"},
 		},
 	})
-	t:eq(result.command, "<noop>")
-	t:eq(#state.exec, 0)
+	t:eq(result.command, "echo rebuild")
+	t:eq(#state.exec, 1)
 end
 
 function test.typed_actions_run_with_structured_result(t)

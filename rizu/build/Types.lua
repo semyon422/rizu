@@ -7,8 +7,6 @@
 ---| "archive"
 ---| "git"
 ---| "source-build"
----| "modules"
----| "sync"
 ---| "package-hooks"
 
 ---@class rizu.build.StatusRow
@@ -48,6 +46,7 @@
 ---@field from? string
 ---@field to? string
 ---@field mode? string
+---@field inputs? string[]
 
 ---@class rizu.build.deps.Step
 ---@field id string
@@ -55,6 +54,7 @@
 ---@field actions rizu.build.deps.Action[]
 ---@field outputs string[]
 ---@field requires string[]
+---@field inputs string[]
 ---@field status_label? string
 ---@field skip_if_exists_all? string[]
 

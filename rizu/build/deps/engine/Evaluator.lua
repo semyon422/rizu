@@ -1,6 +1,4 @@
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
-local BuildConfig = require("rizu.build.BuildConfig")
-local NativeModuleBuilder = require("rizu.build.NativeModuleBuilder")
 
 local Evaluator = {}
 
@@ -25,55 +23,48 @@ local function existsAll(ctx, list)
 	return true
 end
 
+local function oldestModtime(ctx, list)
+	local oldest
+	for _, path in ipairs(list or {}) do
+		local info = ctx.fs:getInfo(path)
+		if not info then
+			return nil
+		end
+		if info.modtime then
+			oldest = oldest and math.min(oldest, info.modtime) or info.modtime
+		else
+			return nil
+		end
+	end
+	return oldest
+end
+
 local function checkOutputs(env, step)
 	local outputs = resolveList(env, step.outputs)
 	if #outputs == 0 then
 		return "OK", outputs
 	end
-	if existsAll(env.ctx, outputs) then
-		return "OK", outputs
+	if not existsAll(env.ctx, outputs) then
+		return "MISSING", outputs
 	end
-	return "MISSING", outputs
-end
 
-local function checkModulesStep(env)
-	local target = BuildConfig.normalizeTarget(env.target)
-	local builder = NativeModuleBuilder(env.ctx, target)
-	local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
-	local has_ffmpeg = true
-	if target == "macos" then
-		has_ffmpeg = builder:getFFmpegPaths() ~= nil
-	end
-	local saw = false
-	for _, mod in ipairs(records) do
-		if mod.key ~= "video" or has_ffmpeg then
-			saw = true
-			local bin_info = env.ctx.fs:getInfo(mod.artifact)
-			local src_info = env.ctx.fs:getInfo(mod.source)
-			if not bin_info or not src_info then
-				return "MISSING"
-			end
-			if bin_info.modtime and src_info.modtime and bin_info.modtime < src_info.modtime then
-				return "OUTDATED"
+	local inputs = resolveList(env, step.inputs)
+	if #inputs > 0 then
+		if not existsAll(env.ctx, inputs) then
+			return "MISSING", outputs
+		end
+		local oldest_output = oldestModtime(env.ctx, outputs)
+		if oldest_output then
+			for _, input in ipairs(inputs) do
+				local info = env.ctx.fs:getInfo(input)
+				if info and info.modtime and oldest_output < info.modtime then
+					return "OUTDATED", outputs
+				end
 			end
 		end
 	end
-	if not saw then
-		return "SKIPPED"
-	end
-	return "OK"
-end
 
-local function checkSyncStep(env)
-	local target = BuildConfig.normalizeTarget(env.target)
-	local builder = NativeModuleBuilder(env.ctx, target)
-	local records = BuildConfig.getModuleRecords(target, builder:getModuleOutputs(), BuildConfig.getBinDir(target))
-	for _, item in ipairs(records) do
-		if item.artifact and env.ctx.fs:getInfo(item.artifact) and not env.ctx.fs:getInfo(item.bin) then
-			return "MISSING"
-		end
-	end
-	return "OK"
+	return "OK", outputs
 end
 
 function Evaluator.evaluateStep(env, step, run_result)
@@ -90,13 +81,7 @@ function Evaluator.evaluateStep(env, step, run_result)
 
 	local state
 	local outputs = resolveList(env, step.outputs)
-	if step.kind == "modules" then
-		state = checkModulesStep(env)
-	elseif step.kind == "sync" then
-		state = checkSyncStep(env)
-	else
-		state, outputs = checkOutputs(env, step)
-	end
+	state, outputs = checkOutputs(env, step)
 
 	if run_result and run_result.ok == false then
 		state = "FAILED"

@@ -78,4 +78,35 @@ function test.run_result_failure_sets_failed_state(t)
 	t:eq(eval.aggregate, "FAILED")
 end
 
+function test.inputs_newer_than_outputs_mark_step_outdated(t)
+	local ctx, state = makeCtx()
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+	local spec = {
+		target = "linux",
+		steps = {
+			{
+				id = "native",
+				kind = "source-build",
+				status_label = "Native",
+				outputs = {"build/artifacts/linux/lib7z.so"},
+				requires = {},
+				inputs = {"aqua/7z.c"},
+				actions = {},
+			},
+		},
+		outputs = {"build/artifacts/linux/lib7z.so"},
+	}
+
+	state.fs:setTime(1)
+	state.fs:createDirectory("build/artifacts/linux")
+	state.fs:write("build/artifacts/linux/lib7z.so", "x")
+	state.fs:setTime(2)
+	state.fs:createDirectory("aqua")
+	state.fs:write("aqua/7z.c", "x")
+
+	local eval = Evaluator.evaluate(env, spec)
+	t:eq(eval.steps[1].state, "OUTDATED")
+	t:eq(eval.aggregate, "OUTDATED")
+end
+
 return test

@@ -38,34 +38,6 @@ BuildConfig.MODULE_OUTPUT_NAMES = {
 	},
 }
 
-BuildConfig.MODULE_STATUS_NAMES = {
-	linux = {
-		z7 = "lib7z",
-		video = "video",
-		minacalc = "minacalc",
-		luamidi = "luamidi",
-	},
-	windows = {
-		z7 = "7z",
-		video = "video",
-		minacalc = "minacalc",
-		luamidi = "luamidi",
-	},
-	macos = {
-		z7 = "lib7z",
-		video = "video",
-		minacalc = "minacalc",
-		luamidi = "luamidi",
-	},
-}
-
-BuildConfig.MODULE_SPECS = {
-	{key = "video", source = "aqua/video.c"},
-	{key = "z7", source = "aqua/7z.c"},
-	{key = "minacalc", source = "build/deps/minacalc"},
-	{key = "luamidi", source = "build/deps/luamidi"},
-}
-
 function BuildConfig.normalizeTarget(target)
 	return (target or "linux"):lower()
 end
@@ -92,26 +64,6 @@ function BuildConfig.getModuleOutputs(target, out_dir)
 		outputs[key] = out_dir .. "/" .. name
 	end
 	return outputs
-end
-
-function BuildConfig.getModuleStatusName(target, key)
-	local t = BuildConfig.normalizeTarget(target)
-	local names = BuildConfig.MODULE_STATUS_NAMES[t] or BuildConfig.MODULE_STATUS_NAMES.linux
-	return names[key] or key
-end
-
-function BuildConfig.getModuleRecords(target, outputs, bin_dir)
-	local names = BuildConfig.getModuleNames(target)
-	local records = {}
-	for _, spec in ipairs(BuildConfig.MODULE_SPECS) do
-		table.insert(records, {
-			key = spec.key,
-			source = spec.source,
-			artifact = outputs[spec.key],
-			bin = bin_dir .. "/" .. names[spec.key],
-		})
-	end
-	return records
 end
 
 function BuildConfig.getDownloadsDir()

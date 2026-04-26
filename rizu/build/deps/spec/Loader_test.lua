@@ -67,7 +67,7 @@ function test.shell_action_rejects_fallback_patterns(t)
 				requires = {},
 				actions = {{
 					type = "shell",
-					command = "OPENSSL_LIB=/x/lib; [ -f /x/lib/libssl.so ] || OPENSSL_LIB=/x/lib64; cp $OPENSSL_LIB/libssl.so y",
+					command = "if [ -f /x/lib/libssl.so ]; then cp /x/lib/libssl.so y; else cp /x/lib64/libssl.so y; fi",
 				}},
 			},
 		},

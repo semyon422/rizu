@@ -23,7 +23,10 @@ Each platform build uses `BuildTargetTask` and a validated declarative step spec
 ### ADR-2: Action Dispatcher with Isolated Handlers
 `Executor` dispatches actions to modules under `deps/actions/` instead of owning all action logic in one file. This reduces coupling and makes new action types straightforward to add.
 
-### ADR-3: Atomic Packaging Tasks
+### ADR-3: Native Modules As Declarative Steps
+Native runtime modules are modeled as ordinary deps-engine steps with explicit inputs, outputs, and bin publication. This keeps the pipeline declarative end to end and avoids executor/evaluator special cases.
+
+### ADR-4: Atomic Packaging Tasks
 Packaging is split into independent tasks:
 - `assemble_repo`: create repository tree and update metadata (`files.json`, `files.lua`),
 - `zip_repo`: build the cross-platform zip from assembled repo,
@@ -52,11 +55,13 @@ CLI mapping:
 - `package` -> `zip_repo` + `package_macos`
 
 ## Key Components
-- `NativeModuleBuilder`: compiles target-native modules (`7z`, `video`, `minacalc`, `luamidi`) and syncs artifacts to bin dirs.
 - `Loader` + target specs: validate and materialize dependency/source-build steps.
+- `NativeModulesSpec`: appends declarative compile and publish steps for target-native modules (`7z`, `video`, `minacalc`, `luamidi`).
 - `Executor`: executes actions with skip checks and required-input checks.
 - `Evaluator`: reports per-step and aggregate target status.
 - `RepoBuilder`: assembles update repo contents and archives.
+
+`video` requires FFmpeg inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
 
 ## Verification
 - Unit tests cover config mapping, task behavior, spec validation, executor/evaluator behavior, and packaging logic.

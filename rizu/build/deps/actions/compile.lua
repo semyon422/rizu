@@ -24,10 +24,10 @@ local function quotePath(path)
 	return string.format("%q", tostring(path))
 end
 
-function M.compile_c(env, action)
+local function buildCompileCommand(env, action)
 	local compiler = Util.resolve(env, action.compiler)
 	local output = Util.resolve(env, action.output)
-	local sources = Util.resolve(env, action.sources)
+	local sources = Util.resolve(env, action.sources or {})
 	local cflags = Util.resolve(env, action.cflags or {})
 	local includes = Util.resolve(env, action.includes or {})
 	local lib_dirs = Util.resolve(env, action.lib_dirs or {})
@@ -62,7 +62,19 @@ function M.compile_c(env, action)
 		cmd = string.format("bash -lc 'cd %q && %s'", dir, cmd)
 	end
 
-	return Util.executeSafe(env, cmd)
+	return cmd
+end
+
+local function runCompile(env, action)
+	return Util.executeSafe(env, buildCompileCommand(env, action))
+end
+
+function M.compile_c(env, action)
+	return runCompile(env, action)
+end
+
+function M.compile_cpp(env, action)
+	return runCompile(env, action)
 end
 
 return M
