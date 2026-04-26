@@ -58,7 +58,7 @@ CLI mapping:
 - `package` -> `zip_repo` + `package_macos`
 
 ## Key Components
-- `DependencySpec`: public dependency-step spec entrypoint; loads, normalizes, and validates target specs.
+- `DependencySpec`: public dependency-step spec entrypoint; loads, composes native module steps, normalizes, and validates target specs. Prefetch uses the same spec but only runs download and git actions.
 - `SpecRegistry`: resolves target names to platform spec builders.
 - `LinuxSpec`, `WindowsSpec`, and `MacosSpec`: target orchestrators that select target paths/toolchains and compose source dependency recipes.
 - `deps/spec/source/*SourceSpec`: per-dependency recipes for zlib, iconv, OpenSSL, LuaSec, FFTW, SQLite, and macOS FFmpeg source builds.

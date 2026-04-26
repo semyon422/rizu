@@ -1,6 +1,7 @@
 local SpecNormalizer = require("rizu.build.deps.spec.SpecNormalizer")
 local SpecRegistry = require("rizu.build.deps.spec.SpecRegistry")
 local SpecValidator = require("rizu.build.deps.spec.SpecValidator")
+local NativeModulesSpec = require("rizu.build.deps.spec.common.NativeModulesSpec")
 
 ---@class rizu.build.deps.spec.DependencySpec
 local DependencySpec = {}
@@ -10,6 +11,8 @@ local DependencySpec = {}
 ---@return rizu.build.deps.Spec
 function DependencySpec.load(target, deps)
 	local spec = SpecNormalizer.normalize(SpecRegistry.build(target, deps))
+	NativeModulesSpec.add(target, spec)
+	spec = SpecNormalizer.normalize(spec)
 	spec.target = target
 	SpecValidator.validate(spec)
 	return spec
