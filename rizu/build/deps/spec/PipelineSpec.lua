@@ -1,4 +1,4 @@
-local Loader = require("rizu.build.deps.spec.Loader")
+local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
 local NativeModulesSpec = require("rizu.build.deps.spec.common.NativeModulesSpec")
 local PipelineSpec = {}
 
@@ -6,7 +6,7 @@ local PipelineSpec = {}
 ---@param deps table
 ---@return rizu.build.deps.Spec
 function PipelineSpec.load(target, deps)
-	local dep_spec = Loader.load(target, deps)
+	local dep_spec = DependencySpec.load(target, deps)
 
 	---@type rizu.build.deps.Spec
 	local spec = {
