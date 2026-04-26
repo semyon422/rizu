@@ -24,7 +24,7 @@ function FFmpegSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 		kind = "source-build",
 		actions = {
 			{type = "download", url = ffmpeg_src.url, dest = archive},
-			{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+			{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 			{type = "ensure_dir", path = prefix .. "/ffmpeg"},
 			{
 				type = "configure",

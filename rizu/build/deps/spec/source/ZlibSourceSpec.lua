@@ -40,7 +40,7 @@ function ZlibSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = zlib.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "configure", dir = extract, args = {"--prefix=" .. prefix_abs}},
 				{type = "make", dir = extract, args = {"-j$(nproc)"}},
 				{type = "make", dir = extract, args = {"install"}},
@@ -55,7 +55,7 @@ function ZlibSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = zlib.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "make", dir = extract, args = {"-f", "win32/Makefile.gcc", "clean"}},
 				{type = "make", dir = extract, args = {"-f", "win32/Makefile.gcc", "PREFIX=x86_64-w64-mingw32-", "SHARED_MODE=1", "BINARY_PATH=" .. prefix_abs .. "/bin", "INCLUDE_PATH=" .. prefix_abs .. "/include", "LIBRARY_PATH=" .. prefix_abs .. "/lib", "-j$(nproc)"}},
 				{type = "ensure_dir", path = prefix .. "/bin"},
@@ -70,7 +70,7 @@ function ZlibSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = zlib.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{
 					type = "compile_c",
 					compiler = MacOSCross.cc(tc_bin),

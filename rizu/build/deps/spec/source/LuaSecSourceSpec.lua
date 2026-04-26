@@ -49,7 +49,7 @@ function LuaSecSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			actions = {
 				{type = "assert_exists", path = "tree/include/luajit-2.1/lua.h"},
 				{type = "download", url = luasec.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "assert_file", path = prefix .. "/lib64/libssl.so.3"},
 				{
 					type = "compile_c",
@@ -74,7 +74,7 @@ function LuaSecSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 				{type = "assert_exists", path = "tree/include/luajit-2.1/lua.h"},
 				{type = "assert_exists", path = "tree/lib/libluajit-5.1.dll.a"},
 				{type = "download", url = luasec.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "assert_file", path = prefix .. "/lib64/libssl.dll.a"},
 				{
 					type = "compile_c",
@@ -98,7 +98,7 @@ function LuaSecSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			actions = {
 				{type = "assert_exists", path = "tree/include/luajit-2.1/lua.h"},
 				{type = "download", url = luasec.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "assert_file", path = prefix .. "/lib/libssl.dylib"},
 				{
 					type = "compile_c",

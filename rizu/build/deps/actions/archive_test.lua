@@ -69,4 +69,30 @@ function test.extract_tar_gz_defaults_to_strip_one(t)
 	t:assert(state.exec[1]:find("--strip-components=1", 1, true) ~= nil)
 end
 
+---@param t testing.T
+function test.extract_cleans_existing_destination(t)
+	local ctx, state = makeCtx()
+	state.fs:createDirectory("build/deps/source")
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+
+	Executor.runStep(env, {
+		id = "source",
+		kind = "archive",
+		outputs = {"build/deps/source/configure"},
+		inputs = {},
+		actions = {
+			{
+				type = "extract",
+				format = "tar.gz",
+				archive = "${downloads_dir}/source.tar.gz",
+				dest = "${deps_dir}/source",
+			},
+		},
+	})
+
+	t:eq(#state.exec, 2)
+	t:assert(state.exec[1]:find('rm -rf "build/deps/source"', 1, true) ~= nil)
+	t:assert(state.exec[2]:find("tar --touch", 1, true) ~= nil)
+end
+
 return test

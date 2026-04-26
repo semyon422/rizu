@@ -22,7 +22,7 @@ function SQLiteSourceSpec.add(target, spec, deps, _prefix, _prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = sqlite.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{
 					type = "compile_c",
 					compiler = "gcc",
@@ -39,7 +39,7 @@ function SQLiteSourceSpec.add(target, spec, deps, _prefix, _prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = sqlite.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{
 					type = "compile_c",
 					compiler = "x86_64-w64-mingw32-gcc",
@@ -56,7 +56,7 @@ function SQLiteSourceSpec.add(target, spec, deps, _prefix, _prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = sqlite.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{
 					type = "compile_c",
 					compiler = MacOSCross.cc(tc_bin),

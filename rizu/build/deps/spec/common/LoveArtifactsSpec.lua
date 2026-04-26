@@ -16,8 +16,6 @@ function LoveArtifactsSpec.add(deps, spec)
 				"${bin_windows}/OpenAL32.dll",
 			},
 			actions = {
-				{type = "remove", path = outer_tmp, recursive = true},
-				{type = "remove", path = inner_tmp, recursive = true},
 				{type = "download", url = deps.love_win.url, dest = "${downloads_dir}/" .. deps.love_win.archive},
 				{type = "extract", format = "zip", archive = "${downloads_dir}/" .. deps.love_win.archive, dest = outer_tmp},
 				{type = "extract_first_match", format = "zip", pattern = '"' .. outer_tmp .. '"/love-*.zip', dest = inner_tmp},

@@ -24,7 +24,7 @@ function FFTWSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = fftw.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "cmake_configure", src_dir = extract, build_dir = extract .. "/build-cmake", args = {"-DBUILD_SHARED_LIBS=ON"}},
 				{type = "cmake_build", build_dir = extract .. "/build-cmake", args = {"-j$(nproc)"}},
 				{type = "assert_file", path = extract .. "/build-cmake/libfftw3.so"},
@@ -36,7 +36,7 @@ function FFTWSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 
 	local actions = {
 		{type = "download", url = fftw.url, dest = archive},
-		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+		{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 	}
 	Dd32Spec.addSetup(actions)
 

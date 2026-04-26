@@ -35,6 +35,15 @@ function test.loads_normalized_valid_specs_for_all_targets(t)
 end
 
 ---@param t testing.T
+function test.rejects_unknown_target(t)
+	local ok, err = pcall(function()
+		DependencySpec.load("plan9", deps)
+	end)
+	t:eq(ok, false)
+	t:assert(tostring(err):find("No dependency spec builder for target: plan9", 1, true) ~= nil, tostring(err))
+end
+
+---@param t testing.T
 function test.includes_native_module_steps_for_all_targets(t)
 	for _, target in ipairs({"linux", "windows", "macos"}) do
 		local spec = DependencySpec.load(target, deps)
@@ -156,9 +165,8 @@ function test.love_windows_uses_deps_scratch_dirs(t)
 	t:assert(step)
 	---@cast step -?
 
-	local saw_prepare_cleanup = false
 	local saw_finish_cleanup = false
-	for index, action in ipairs(step.actions) do
+	for _, action in ipairs(step.actions) do
 		for _, key in ipairs({"dest", "path", "pattern", "src"}) do
 			local value = action[key]
 			if type(value) == "string" then
@@ -168,15 +176,10 @@ function test.love_windows_uses_deps_scratch_dirs(t)
 			end
 		end
 		if action.type == "remove" and action.path == "${deps_dir}/love-win-outer-tmp" then
-			if index == 1 then
-				saw_prepare_cleanup = true
-			else
-				saw_finish_cleanup = true
-			end
+			saw_finish_cleanup = true
 		end
 	end
 
-	t:eq(saw_prepare_cleanup, true)
 	t:eq(saw_finish_cleanup, true)
 end
 

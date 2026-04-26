@@ -22,7 +22,7 @@ function OpenSSLSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = openssl.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "configure", dir = extract, script = "./Configure", args = {"linux-x86_64", "--prefix=" .. prefix_abs, "--openssldir=" .. prefix_abs .. "/ssl", "shared", "zlib", "--with-zlib-include=" .. prefix_abs .. "/include", "--with-zlib-lib=" .. prefix_abs .. "/lib"}},
 				{type = "make", dir = extract, args = {"-j$(nproc)"}},
 				{type = "make", dir = extract, args = {"install_sw"}},
@@ -40,7 +40,7 @@ function OpenSSLSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = openssl.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{type = "configure", dir = extract, script = "./Configure", args = {"mingw64", "shared", "--cross-compile-prefix=x86_64-w64-mingw32-", "--prefix=" .. prefix_abs, "--openssldir=" .. prefix_abs .. "/ssl"}},
 				{type = "make", dir = extract, args = {"-j$(nproc)"}},
 				{type = "make", dir = extract, args = {"install_sw"}},
@@ -57,7 +57,7 @@ function OpenSSLSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 			kind = "source-build",
 			actions = {
 				{type = "download", url = openssl.url, dest = archive},
-				{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 				{
 					type = "configure",
 					dir = extract,

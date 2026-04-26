@@ -36,7 +36,7 @@ function test.run_step_returns_structured_result(t)
 		kind = "archive",
 		actions = {
 			{type = "download", url = "https://example.invalid/a.tar.gz", dest = "${downloads_dir}/a.tar.gz"},
-			{type = "extract", format = "tar.gz", archive = "${downloads_dir}/a.tar.gz", dest = "${deps_dir}/a", skip_if_exists = true},
+			{type = "extract", format = "tar.gz", archive = "${downloads_dir}/a.tar.gz", dest = "${deps_dir}/a"},
 		},
 	})
 	t:eq(type(result), "table")
@@ -44,7 +44,11 @@ function test.run_step_returns_structured_result(t)
 	t:eq(result.step_id, "demo")
 	t:assert(#state.downloads == 1)
 	t:assert(#state.exec >= 1)
-	t:assert(state.exec[1]:find("tar %-%-touch %-xzf"))
+	local extracted = false
+	for _, cmd in ipairs(state.exec) do
+		extracted = extracted or cmd:find("tar %-%-touch %-xzf") ~= nil
+	end
+	t:assert(extracted)
 end
 
 function test.steps_without_outputs_do_not_skip(t)

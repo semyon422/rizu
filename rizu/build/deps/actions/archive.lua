@@ -24,6 +24,15 @@ local function extractCommand(format, archive, dest, strip_components)
 	error("Unsupported extract format: " .. tostring(format))
 end
 
+local function resetDirectory(env, path)
+	if env.ctx.fs:getInfo(path) then
+		Util.executeSafe(env, string.format("rm -rf %q", path))
+	end
+	if not env.ctx.fs:createDirectory(path) then
+		error("Failed to create directory: " .. path)
+	end
+end
+
 function M.download(env, action)
 	local dest = Util.resolve(env, action.dest)
 	local info = env.ctx.fs:getInfo(dest)
@@ -38,10 +47,7 @@ function M.extract(env, action)
 	local archive = Util.resolve(env, action.archive)
 	local dest = Util.resolve(env, action.dest)
 	local format = action.format
-	if action.skip_if_exists and env.ctx.fs:getInfo(dest) then
-		return Util.resultOk("<extract skipped>")
-	end
-	env.ctx.fs:createDirectory(dest)
+	resetDirectory(env, dest)
 	if format == "tar.gz" then
 		return Util.executeSafe(env, extractCommand(format, archive, dest, stripComponents(action)))
 	elseif format == "tar.xz" then
@@ -50,10 +56,10 @@ function M.extract(env, action)
 		return Util.executeSafe(env, extractCommand(format, archive, dest))
 	elseif format == "zip_nested" then
 		local tmp = Util.resolve(env, action.tmp or (dest .. "-tmp"))
-		env.ctx.fs:createDirectory(tmp)
+		resetDirectory(env, tmp)
 		Util.executeSafe(env, extractCommand("zip", archive, tmp))
 		local result = Util.executeSafe(env, string.format("cp -r %s/*/* %s/", tmp, dest))
-		env.ctx.fs:remove(tmp)
+		Util.executeSafe(env, string.format("rm -rf %q", tmp))
 		return result
 	elseif format == "7z" then
 		return Util.executeSafe(env, extractCommand(format, archive, dest))
@@ -65,10 +71,7 @@ function M.extract_first_match(env, action)
 	local pattern = Util.resolve(env, action.pattern)
 	local dest = Util.resolve(env, action.dest)
 	local format = action.format
-	if action.skip_if_exists and env.ctx.fs:getInfo(dest) then
-		return Util.resultOk("<extract skipped>")
-	end
-	env.ctx.fs:createDirectory(dest)
+	resetDirectory(env, dest)
 	local cmd = string.format(
 		"bash -lc 'shopt -s nullglob; matches=(%s); [ ${#matches[@]} -gt 0 ] || exit 1; %s'",
 		pattern,

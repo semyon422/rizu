@@ -19,7 +19,7 @@ function IconvSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
 	local extract = "${deps_dir}/" .. iconv.dir
 	local actions = {
 		{type = "download", url = iconv.url, dest = archive},
-		{type = "extract", format = "tar.gz", archive = archive, dest = extract, skip_if_exists = true},
+		{type = "extract", format = "tar.gz", archive = archive, dest = extract},
 	}
 	Dd32Spec.addSetup(actions)
 

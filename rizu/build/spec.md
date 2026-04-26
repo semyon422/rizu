@@ -58,8 +58,7 @@ CLI mapping:
 - `package` -> `zip_repo` + `package_macos`
 
 ## Key Components
-- `DependencySpec`: public dependency-step spec entrypoint; loads, composes native module steps, normalizes, and validates target specs. Prefetch uses the same spec but only runs download and git actions.
-- `SpecRegistry`: resolves target names to platform spec builders.
+- `DependencySpec`: public dependency-step spec entrypoint; resolves target builders, composes native module steps, normalizes, and validates target specs. Prefetch uses the same spec but only runs download and git actions.
 - `LinuxSpec`, `WindowsSpec`, and `MacosSpec`: target orchestrators that select target paths/toolchains and compose source dependency recipes.
 - `deps/spec/source/*SourceSpec`: per-dependency recipes for zlib, iconv, OpenSSL, LuaSec, FFTW, SQLite, and macOS FFmpeg source builds.
 - `SpecNormalizer`: fills defaults and infers outputs from declarative actions.
@@ -70,7 +69,7 @@ CLI mapping:
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
 - `RepoAssembler`, `UpdateIndexWriter`, `ZipPackager`, and `MacOSPackager`: package-stage implementations called directly by package tasks.
 
-Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
+Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. When an extract action runs, it recreates the destination directory before unpacking. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
 
 Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
 
