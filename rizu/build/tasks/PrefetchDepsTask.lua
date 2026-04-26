@@ -36,6 +36,7 @@ end
 
 ---@param target rizu.build.Target
 function PrefetchDepsTask:new(target)
+	---@type string
 	self.name = "prefetch_deps_" .. target
 	self.target = target
 	self.deps = {}

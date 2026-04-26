@@ -38,6 +38,8 @@ BuildConfig.MODULE_OUTPUT_NAMES = {
 	},
 }
 
+---@param target string?
+---@return string
 function BuildConfig.normalizeTarget(target)
 	return (target or "linux"):lower()
 end
@@ -58,6 +60,7 @@ function BuildConfig.getModuleNames(target)
 end
 
 function BuildConfig.getModuleOutputs(target, out_dir)
+	---@type {[string]: string}
 	local outputs = {}
 	local names = BuildConfig.getModuleNames(target)
 	for key, name in pairs(names) do

@@ -25,6 +25,7 @@
 ---@field env? {[string]: string}
 ---@field url? string
 ---@field dest? string
+---@field marker? string
 ---@field format? string
 ---@field archive? string
 ---@field src? string

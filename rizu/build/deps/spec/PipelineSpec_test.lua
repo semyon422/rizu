@@ -3,6 +3,9 @@ local deps = require("rizu.build.deps.Manifest")
 
 local test = {}
 
+---@param spec rizu.build.deps.Spec
+---@param id string
+---@return rizu.build.deps.Step?
 local function findStep(spec, id)
 	for _, step in ipairs(spec.steps) do
 		if step.id == id then
@@ -12,6 +15,7 @@ local function findStep(spec, id)
 	return nil
 end
 
+---@param t testing.T
 function test.pipeline_spec_includes_native_module_steps_for_all_targets(t)
 	for _, target in ipairs({"linux", "windows", "macos"}) do
 		local spec = PipelineSpec.load(target, deps)
@@ -23,13 +27,18 @@ function test.pipeline_spec_includes_native_module_steps_for_all_targets(t)
 	end
 end
 
+---@param t testing.T
 function test.macos_native_steps_use_osxcross_and_require_ffmpeg(t)
 	local spec = PipelineSpec.load("macos", deps)
 	local video = findStep(spec, "module_video_artifact")
 	local luamidi = findStep(spec, "module_luamidi_artifact")
 
-	t:assert(video ~= nil)
-	t:assert(luamidi ~= nil)
+	t:assert(video)
+	t:assert(luamidi)
+	---@cast video -?
+	---@cast luamidi -?
+
+
 	t:tdeq(video.requires, {
 		"tree/include/luajit-2.1/lua.h",
 		"build/deps/local/macos/ffmpeg/include/libavcodec/avcodec.h",

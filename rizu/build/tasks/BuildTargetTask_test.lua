@@ -10,6 +10,7 @@ local function makeCtx()
 	local state = {fs = FakeFilesystem(), exec = {}, downloads = {}}
 	state.fs:setWorkingDirectory("/repo")
 
+	---@type rizu.build.IShell
 	local shell = {}
 	function shell:execute(cmd)
 		table.insert(state.exec, cmd)
@@ -17,6 +18,7 @@ local function makeCtx()
 	end
 	function shell:popen() return "" end
 
+	---@type rizu.build.IDownloader
 	local downloader = {}
 	function downloader:download(url, dest)
 		table.insert(state.downloads, {url = url, dest = dest})
@@ -31,6 +33,9 @@ local function makeCtx()
 	return {fs = state.fs, shell = shell, downloader = downloader}, state
 end
 
+---@param fs fs.FakeFilesystem
+---@param path string
+---@param time integer
 local function writePath(fs, path, time)
 	fs:setTime(time)
 	local parent = path:match("(.+)/[^/]+$")
@@ -40,6 +45,9 @@ local function writePath(fs, path, time)
 	fs:write(path, "x")
 end
 
+---@param fs fs.FakeFilesystem
+---@param path string
+---@param time integer
 local function createOutput(fs, path, time)
 	if path:match("%.[^/]+$") then
 		writePath(fs, path, time)
@@ -49,6 +57,7 @@ local function createOutput(fs, path, time)
 	end
 end
 
+---@param t testing.T
 function test.build_target_status_and_uptodate(t)
 	local ctx, state = makeCtx()
 	local task = BuildTargetTask("linux")

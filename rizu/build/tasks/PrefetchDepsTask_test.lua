@@ -4,9 +4,10 @@ local FakeFilesystem = require("fs.FakeFilesystem")
 local test = {}
 
 local function makeCtx()
-	local state = {fs = FakeFilesystem(), exec = {}, downloads = {}}
+	local state = {fs = FakeFilesystem(), exec = {} --[=[@as string[]]=], downloads = {}}
 	state.fs:setWorkingDirectory("/repo")
 
+	---@type rizu.build.IShell
 	local shell = {}
 	function shell:execute(cmd)
 		table.insert(state.exec, cmd)
@@ -19,6 +20,7 @@ local function makeCtx()
 	end
 	function shell:popen() return "" end
 
+	---@type rizu.build.IDownloader
 	local downloader = {}
 	function downloader:download(url, dest)
 		table.insert(state.downloads, {url = url, dest = dest})

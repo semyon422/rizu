@@ -3,8 +3,13 @@ local Loader = require("rizu.build.deps.spec.Loader")
 local NativeModulesSpec = require("rizu.build.deps.spec.common.NativeModulesSpec")
 local PipelineSpec = {}
 
+---@param target string
+---@param deps table
+---@return rizu.build.deps.Spec
 function PipelineSpec.load(target, deps)
 	local dep_spec = Loader.load(target, deps)
+
+	---@type rizu.build.deps.Spec
 	local spec = {
 		target = BuildConfig.normalizeTarget(target),
 		steps = {},

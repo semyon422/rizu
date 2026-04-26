@@ -17,6 +17,7 @@ local AssembleRepoTask = require("rizu.build.tasks.AssembleRepoTask")
 local ZipRepoTask = require("rizu.build.tasks.ZipRepoTask")
 local PackageMacOSTask = require("rizu.build.tasks.PackageMacOSTask")
 
+---@type (string?)[]
 local args = {...}
 local command = args[1]
 local target_arg = args[2]

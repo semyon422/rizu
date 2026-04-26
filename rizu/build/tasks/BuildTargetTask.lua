@@ -13,6 +13,7 @@ local BuildTargetTask = ITask + {}
 
 ---@param target rizu.build.Target
 function BuildTargetTask:new(target)
+	---@type string
 	self.name = "build_target_" .. target
 	self.target = target
 	self.deps = {}

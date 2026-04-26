@@ -187,6 +187,7 @@ local function validateSpec(spec)
 	if type(spec.outputs) ~= "table" then
 		error("Spec is missing outputs table")
 	end
+	---@type {[string]: true}
 	local ids = {}
 	for _, step in ipairs(spec.steps) do
 		validateStep(step)
