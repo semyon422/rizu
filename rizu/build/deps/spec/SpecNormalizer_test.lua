@@ -34,7 +34,6 @@ function test.fills_step_defaults_and_aggregates_outputs(t)
 	SpecNormalizer.normalize(spec)
 
 	t:tdeq(spec.steps[1].outputs, {"${downloads_dir}/a.tar.gz"})
-	t:tdeq(spec.steps[1].requires, {})
 	t:tdeq(spec.steps[1].inputs, {})
 	t:eq(spec.steps[1].status_label, "download")
 	t:tdeq(spec.steps[2].outputs, {"build/obj/libnative.so"})

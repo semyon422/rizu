@@ -74,7 +74,7 @@ Archive extraction defaults to stripping one leading path component for source r
 
 Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
 
-`video` requires FFmpeg inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
+`video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
 
 ## Verification
 - Unit tests cover config mapping, task behavior, spec validation, executor/evaluator behavior, and packaging logic.

@@ -35,20 +35,20 @@ function test.outputs_state_and_skip_share_freshness_rules(t)
 		id = "artifact",
 		kind = "source-build",
 		outputs = {"build/artifacts/linux/lib7z.so"},
-		requires = {"build/deps/7zsdk/C/7z.h"},
-		inputs = {"aqua/7z.c"},
+		inputs = {"build/deps/7zsdk/C/7z.h", "aqua/7z.c"},
 		actions = {},
 	}
 
-	t:eq(StepState.hasAllRequired(env, step), false)
+	t:eq(StepState.shouldSkip(env, step), false)
+	local state = StepState.outputState(env, step)
+	t:eq(state, "MISSING")
 
 	writePath(ctx.fs, "build/deps/7zsdk/C/7z.h", 1)
 	writePath(ctx.fs, "build/artifacts/linux/lib7z.so", 1)
 	writePath(ctx.fs, "aqua/7z.c", 2)
 
-	t:eq(StepState.hasAllRequired(env, step), true)
 	t:eq(StepState.shouldSkip(env, step), false)
-	local state = StepState.outputState(env, step)
+	state = StepState.outputState(env, step)
 	t:eq(state, "OUTDATED")
 
 	writePath(ctx.fs, "build/artifacts/linux/lib7z.so", 3)

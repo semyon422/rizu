@@ -48,7 +48,6 @@ function SpecNormalizer.normalize(spec)
 	spec.steps = spec.steps or {}
 	for _, step in ipairs(spec.steps) do
 		step.outputs = step.outputs or inferOutputsFromActions(step)
-		step.requires = step.requires or {}
 		step.inputs = step.inputs or {}
 		step.status_label = step.status_label or step.id
 	end

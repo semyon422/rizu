@@ -56,7 +56,6 @@ local function addPublishStep(spec, key, label, artifact, bin_file, inputs)
 		kind = "source-build",
 		status_label = label .. " Bin",
 		outputs = {bin_file},
-		requires = {artifact},
 		inputs = inputs or {artifact},
 		actions = {
 			{type = "copy_exact", src = artifact, dst = bin_file, flags = "-f"},
@@ -75,7 +74,6 @@ local function add7z(spec, target, artifact, bin_file)
 		kind = "source-build",
 		status_label = "7z Artifact",
 		outputs = {artifact},
-		requires = SEVENZIP_SDK_INPUTS,
 		inputs = {"aqua/7z.c", SEVENZIP_SDK_INPUTS[1], SEVENZIP_SDK_INPUTS[2]},
 		actions = {
 			{
@@ -154,9 +152,9 @@ end
 
 local function addVideo(spec, target, artifact, bin_file)
 	local compile_id = makeStepIds("video")
-	local requires = videoRequires(target)
+	local required_inputs = videoRequires(target)
 	local inputs = {"aqua/video.c"}
-	for _, req in ipairs(requires) do
+	for _, req in ipairs(required_inputs) do
 		table.insert(inputs, req)
 	end
 
@@ -165,7 +163,6 @@ local function addVideo(spec, target, artifact, bin_file)
 		kind = "source-build",
 		status_label = "Video Artifact",
 		outputs = {artifact},
-		requires = requires,
 		inputs = inputs,
 		actions = {videoCompileAction(target, artifact)},
 	})
@@ -194,7 +191,6 @@ local function addMinacalc(spec, target, artifact, bin_file)
 		kind = "source-build",
 		status_label = "Minacalc Artifact",
 		outputs = {artifact},
-		requires = {"build/deps/minacalc/API.cpp", "build/deps/minacalc/MinaCalc/MinaCalc.cpp"},
 		inputs = {"build/deps/minacalc/API.cpp", "build/deps/minacalc/MinaCalc/MinaCalc.cpp"},
 		actions = {
 			{
@@ -241,12 +237,6 @@ local function addLuamidi(spec, target, artifact, bin_file)
 		kind = "source-build",
 		status_label = "Luamidi Artifact",
 		outputs = {artifact},
-		requires = {
-			"build/deps/luamidi/src/luamidi.cpp",
-			"build/deps/luamidi/rtmidi/RtMidi.cpp",
-			"build/deps/luamidi/rtmidi/RtMidi.h",
-			"tree/include/luajit-2.1/lua.h",
-		},
 		inputs = {
 			"build/deps/luamidi/src/luamidi.cpp",
 			"build/deps/luamidi/rtmidi/RtMidi.cpp",
@@ -283,7 +273,6 @@ function NativeModulesSpec.add(target, spec)
 		kind = "source-build",
 		status_label = "Native Module Dirs",
 		outputs = {artifact_dir, bin_dir},
-		requires = {},
 		inputs = {},
 		actions = {
 			{type = "ensure_dir", path = "build/artifacts"},

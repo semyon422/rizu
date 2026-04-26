@@ -8,7 +8,6 @@ local function validStep(id)
 		kind = "archive",
 		actions = {{type = "noop"}},
 		outputs = {},
-		requires = {},
 		inputs = {},
 	}
 end
@@ -43,7 +42,7 @@ function test.rejects_unsupported_step_kind(t)
 end
 
 ---@param t testing.T
-function test.requires_normalized_step_tables(t)
+function test.validates_inputs_table(t)
 	expectErrorContains(t, function()
 		SpecValidator.validate({
 			steps = {
@@ -56,7 +55,7 @@ function test.requires_normalized_step_tables(t)
 			},
 			outputs = {},
 		})
-	end, "must define requires table")
+	end, "must define inputs table")
 end
 
 return test

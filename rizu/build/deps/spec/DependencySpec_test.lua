@@ -13,7 +13,6 @@ function test.loads_normalized_valid_specs_for_all_targets(t)
 
 		for _, step in ipairs(spec.steps) do
 			t:assert(type(step.outputs) == "table")
-			t:assert(type(step.requires) == "table")
 			t:assert(type(step.inputs) == "table")
 			t:assert(type(step.status_label) == "string")
 		end

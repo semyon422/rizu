@@ -32,9 +32,6 @@ local function validateStep(step)
 	if type(step.outputs) ~= "table" then
 		error("Step '" .. tostring(step.id) .. "' must define outputs table")
 	end
-	if type(step.requires) ~= "table" then
-		error("Step '" .. tostring(step.id) .. "' must define requires table")
-	end
 	if type(step.inputs) ~= "table" then
 		error("Step '" .. tostring(step.id) .. "' must define inputs table")
 	end

@@ -2,7 +2,6 @@ local ITask = require("rizu.build.ITask")
 local deps = require("rizu.build.deps.Manifest")
 
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
-local StepState = require("rizu.build.deps.engine.StepState")
 local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
 
 local archive_actions = require("rizu.build.deps.actions.archive")
@@ -47,18 +46,16 @@ function PrefetchDepsTask:run(ctx)
 	end
 
 	for _, step in ipairs(spec.steps or {}) do
-		if StepState.hasAllRequired(env, step) then
-			for _, action in ipairs(step.actions or {}) do
-				local handler = handlers[action.type]
-				if handler then
-					local ok, err = xpcall(function()
-						handler(env, action)
-					end, debug.traceback)
-					if not ok then
-						error(string.format("Prefetch failed for target '%s', step '%s': %s", self.target, tostring(step.id), tostring(err)), 0)
-					end
-					count = count + 1
+		for _, action in ipairs(step.actions or {}) do
+			local handler = handlers[action.type]
+			if handler then
+				local ok, err = xpcall(function()
+					handler(env, action)
+				end, debug.traceback)
+				if not ok then
+					error(string.format("Prefetch failed for target '%s', step '%s': %s", self.target, tostring(step.id), tostring(err)), 0)
 				end
+				count = count + 1
 			end
 		end
 	end

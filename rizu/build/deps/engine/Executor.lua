@@ -73,17 +73,7 @@ end
 function Executor.runSpec(env, spec)
 	local results = {}
 	for _, step in ipairs(spec.steps or {}) do
-		if StepState.hasAllRequired(env, step) then
-			table.insert(results, Executor.runStep(env, step))
-		else
-			table.insert(results, {
-				ok = true,
-				exit_code = 0,
-				step_id = step.id,
-				command = "<skipped: requires missing>",
-				stderr_hint = nil,
-			})
-		end
+		table.insert(results, Executor.runStep(env, step))
 	end
 	return results
 end

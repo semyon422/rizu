@@ -48,7 +48,6 @@
 ---@field kind rizu.build.deps.StepKind
 ---@field actions rizu.build.deps.Action[]
 ---@field outputs string[]
----@field requires string[]
 ---@field inputs string[]
 ---@field status_label? string
 

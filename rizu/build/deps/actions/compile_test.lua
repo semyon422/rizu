@@ -26,7 +26,6 @@ function test.compile_cpp_builds_expected_command(t)
 		id = "cpp",
 		kind = "source-build",
 		outputs = {"build/out/module.so"},
-		requires = {},
 		inputs = {},
 		actions = {
 			{

@@ -27,7 +27,6 @@ function test.extract_tar_xz_respects_custom_strip_components(t)
 		id = "sevenzip",
 		kind = "archive",
 		outputs = {"build/deps/7zsdk/C/Alloc.c"},
-		requires = {},
 		inputs = {},
 		actions = {
 			{
@@ -54,7 +53,6 @@ function test.extract_tar_gz_defaults_to_strip_one(t)
 		id = "source",
 		kind = "archive",
 		outputs = {"build/deps/source/configure"},
-		requires = {},
 		inputs = {},
 		actions = {
 			{

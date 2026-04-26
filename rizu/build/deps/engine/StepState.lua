@@ -40,13 +40,6 @@ function StepState.existsAll(env, list)
 end
 
 ---@param env rizu.build.deps.Env
----@param step rizu.build.deps.Step
----@return boolean
-function StepState.hasAllRequired(env, step)
-	return StepState.existsAll(env, step.requires)
-end
-
----@param env rizu.build.deps.Env
 ---@param list string[]?
 ---@return number?
 local function oldestModtime(env, list)

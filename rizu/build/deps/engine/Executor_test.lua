@@ -168,7 +168,7 @@ function test.copy_exact_fails_when_source_missing(t)
 	t:assert(tostring(err):find("Missing source for copy_exact"))
 end
 
-function test.run_spec_skips_step_when_requires_missing(t)
+function test.run_spec_runs_steps_with_missing_inputs(t)
 	local ctx, state = makeCtx()
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 
@@ -185,7 +185,7 @@ function test.run_spec_skips_step_when_requires_missing(t)
 			{
 				id = "second",
 				kind = "archive",
-				requires = {"build/deps/required-file"},
+				inputs = {"build/deps/required-file"},
 				actions = {
 					{type = "shell", command = "echo second"},
 				},
@@ -195,8 +195,8 @@ function test.run_spec_skips_step_when_requires_missing(t)
 
 	t:eq(#results, 2)
 	t:eq(results[1].command, "echo first")
-	t:eq(results[2].command, "<skipped: requires missing>")
-	t:eq(#state.exec, 1)
+	t:eq(results[2].command, "echo second")
+	t:eq(#state.exec, 2)
 end
 
 return test

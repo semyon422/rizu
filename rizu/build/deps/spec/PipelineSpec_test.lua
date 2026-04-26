@@ -42,7 +42,8 @@ function test.macos_native_steps_use_osxcross_and_require_ffmpeg(t)
 	---@cast luamidi -?
 
 
-	t:tdeq(video.requires, {
+	t:tdeq(video.inputs, {
+		"aqua/video.c",
 		"tree/include/luajit-2.1/lua.h",
 		"build/deps/local/macos/ffmpeg/include/libavcodec/avcodec.h",
 		"build/deps/local/macos/ffmpeg/lib/libavcodec.dylib",
@@ -120,13 +121,14 @@ function test.sevenzip_sdk_uses_host_tar_extractor(t)
 end
 
 ---@param t testing.T
-function test.sevenzip_native_module_requires_sdk_sources(t)
+function test.sevenzip_native_module_tracks_sdk_sources_as_inputs(t)
 	local spec = PipelineSpec.load("linux", deps)
 	local step = findStep(spec, "module_z7_artifact")
 	t:assert(step)
 	---@cast step -?
 
-	t:tdeq(step.requires, {
+	t:tdeq(step.inputs, {
+		"aqua/7z.c",
 		"build/deps/7zsdk/C/Alloc.c",
 		"build/deps/7zsdk/C/LzmaLib.c",
 	})

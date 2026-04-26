@@ -31,8 +31,8 @@ function test.evaluate_outputs_and_aggregate(t)
 	local spec = {
 		target = "linux",
 		steps = {
-			{id = "a", kind = "archive", status_label = "A", outputs = {"${deps_dir}/a"}, requires = {}, actions = {}},
-			{id = "b", kind = "archive", status_label = "B", outputs = {"${deps_dir}/b"}, requires = {}, actions = {}},
+			{id = "a", kind = "archive", status_label = "A", outputs = {"${deps_dir}/a"}, actions = {}},
+			{id = "b", kind = "archive", status_label = "B", outputs = {"${deps_dir}/b"}, actions = {}},
 		},
 		outputs = {"${deps_dir}/a", "${deps_dir}/b"},
 	}
@@ -67,7 +67,7 @@ function test.run_result_failure_sets_failed_state(t)
 	local spec = {
 		target = "linux",
 		steps = {
-			{id = "a", kind = "archive", status_label = "A", outputs = {}, requires = {}, actions = {}},
+			{id = "a", kind = "archive", status_label = "A", outputs = {}, actions = {}},
 		},
 		outputs = {},
 	}
@@ -89,7 +89,6 @@ function test.inputs_newer_than_outputs_mark_step_outdated(t)
 				kind = "source-build",
 				status_label = "Native",
 				outputs = {"build/artifacts/linux/lib7z.so"},
-				requires = {},
 				inputs = {"aqua/7z.c"},
 				actions = {},
 			},

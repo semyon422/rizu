@@ -66,9 +66,6 @@ function test.build_target_status_and_uptodate(t)
 	local spec = PipelineSpec.load("linux", deps)
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	for _, step in ipairs(spec.steps) do
-		for _, path in ipairs(step.requires or {}) do
-			createOutput(state.fs, BuildEnv.interpolate(env, path), 1)
-		end
 		for _, path in ipairs(step.inputs or {}) do
 			createOutput(state.fs, BuildEnv.interpolate(env, path), 1)
 		end

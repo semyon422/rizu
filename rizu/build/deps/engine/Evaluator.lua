@@ -3,16 +3,6 @@ local StepState = require("rizu.build.deps.engine.StepState")
 local Evaluator = {}
 
 function Evaluator.evaluateStep(env, step, run_result)
-	if not StepState.hasAllRequired(env, step) then
-		return {
-			id = step.id,
-			label = step.status_label or step.id,
-			kind = step.kind,
-			state = "SKIPPED",
-			outputs = StepState.resolveList(env, step.outputs),
-		}
-	end
-
 	local state, outputs = StepState.outputState(env, step)
 
 	if run_result and run_result.ok == false then
