@@ -230,13 +230,6 @@ function RepoBuilder:build_zip()
 end
 
 ---@return nil
-function RepoBuilder:update_zip()
-	local zip_path = "build/repo/" .. _name .. ".zip"
-	if not self.ctx.fs:getInfo(zip_path) then return end
-	self.ctx.shell:execute(string.format("bash -lc 'cd %q && zip -qur %q %q'", "build/repo", _name .. ".zip", _name .. "/game.love"))
-end
-
----@return nil
 function RepoBuilder:buildMacos()
 	local game_app = "build/repo/macos/" .. _name .. ".app"
 	local Contents = game_app .. "/Contents"

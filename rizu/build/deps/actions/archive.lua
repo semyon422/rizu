@@ -20,8 +20,7 @@ end
 function M.download(env, action)
 	local dest = Util.resolve(env, action.dest)
 	local info = env.ctx.fs:getInfo(dest)
-	local min_size = action.min_size or 1
-	if info and info.size and info.size >= min_size then
+	if info and info.size and info.size >= 1 then
 		return Util.resultOk("<download skipped>")
 	end
 	env.ctx.downloader:download(Util.resolve(env, action.url), dest)

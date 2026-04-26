@@ -1,9 +1,8 @@
-local BuildConfig = require("rizu.build.BuildConfig")
 local Loader = require("rizu.build.deps.spec.Loader")
 local NativeModulesSpec = require("rizu.build.deps.spec.common.NativeModulesSpec")
 local PipelineSpec = {}
 
----@param target string
+---@param target rizu.build.Target
 ---@param deps table
 ---@return rizu.build.deps.Spec
 function PipelineSpec.load(target, deps)
@@ -11,7 +10,7 @@ function PipelineSpec.load(target, deps)
 
 	---@type rizu.build.deps.Spec
 	local spec = {
-		target = BuildConfig.normalizeTarget(target),
+		target = target,
 		steps = {},
 		outputs = {},
 	}
@@ -24,18 +23,6 @@ function PipelineSpec.load(target, deps)
 	end
 
 	NativeModulesSpec.add(spec.target, spec)
-
-	table.insert(spec.steps, {
-		id = "package_hooks",
-		kind = "package-hooks",
-		status_label = "Package Hooks (" .. target .. ")",
-		outputs = {},
-		requires = spec.outputs,
-		inputs = {},
-		actions = {
-			{type = "noop"},
-		},
-	})
 
 	return spec
 end

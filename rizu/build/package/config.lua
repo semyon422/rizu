@@ -1,9 +1,4 @@
 return {
-	github = {
-		repo = "https://github.com/semyon422/soundsphere", -- keeping same for now or update if needed
-		client_branch = "refactor2025",
-		server_branch = "refactor2025",
-	},
 	game = {
 		repo = "https://dl.rizu.su",
 		api = "https://rizu.su",

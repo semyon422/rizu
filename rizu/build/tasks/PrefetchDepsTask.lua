@@ -2,8 +2,8 @@ local ITask = require("rizu.build.ITask")
 local deps = require("rizu.build.deps.Manifest")
 
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
+local StepState = require("rizu.build.deps.engine.StepState")
 local Loader = require("rizu.build.deps.spec.Loader")
-local Util = require("rizu.build.deps.actions._util")
 
 local archive_actions = require("rizu.build.deps.actions.archive")
 local git_actions = require("rizu.build.deps.actions.git")
@@ -21,18 +21,6 @@ local handlers = {
 }
 
 local MACOS_TOOLCHAIN_REPO = "https://github.com/tpoechtrager/osxcross"
-
----@param env rizu.build.deps.Env
----@param step rizu.build.deps.Step
----@return boolean
-local function hasAllRequired(env, step)
-	for _, req in ipairs(step.requires or {}) do
-		if not env.ctx.fs:getInfo(Util.resolve(env, req)) then
-			return false
-		end
-	end
-	return true
-end
 
 ---@param target rizu.build.Target
 function PrefetchDepsTask:new(target)
@@ -59,7 +47,7 @@ function PrefetchDepsTask:run(ctx)
 	end
 
 	for _, step in ipairs(spec.steps or {}) do
-		if hasAllRequired(env, step) then
+		if StepState.hasAllRequired(env, step) then
 			for _, action in ipairs(step.actions or {}) do
 				local handler = handlers[action.type]
 				if handler then

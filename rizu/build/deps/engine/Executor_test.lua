@@ -47,35 +47,17 @@ function test.run_step_returns_structured_result(t)
 	t:assert(state.exec[1]:find("tar %-xzf"))
 end
 
-function test.skip_if_exists_all_skips_step_without_outputs(t)
+function test.steps_without_outputs_do_not_skip(t)
 	local ctx, state = makeCtx()
-	state.fs:createDirectory("build/deps/exists")
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
-	local result = Executor.runStep(env, {
-		id = "skip",
+	local step = {
+		id = "no-output",
 		kind = "archive",
-		skip_if_exists_all = {"build/deps/exists"},
-		actions = {
-			{type = "shell", command = "echo should-not-run"},
-		},
-	})
-	t:eq(result.command, "<skipped>")
-	t:eq(#state.exec, 0)
-end
-
-function test.outputs_take_precedence_over_skip_if_exists_all(t)
-	local ctx, state = makeCtx()
-	state.fs:createDirectory("build/deps/exists")
-	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
-	local result = Executor.runStep(env, {
-		id = "do-not-skip",
-		kind = "archive",
-		skip_if_exists_all = {"build/deps/exists"},
-		outputs = {"build/deps/missing-output"},
 		actions = {
 			{type = "shell", command = "echo should-run"},
 		},
-	})
+	}
+	local result = Executor.runStep(env, step)
 	t:eq(result.command, "echo should-run")
 	t:eq(#state.exec, 1)
 end
@@ -114,13 +96,12 @@ function test.typed_actions_run_with_structured_result(t)
 			{type = "assert_dir", path = "dir"},
 			{type = "copy_exact", src = "a", dst = "b"},
 			{type = "set_executable", path = "b"},
-			{type = "toolchain_select", pattern = "/tmp/*", out_file = "/tmp/tc.txt"},
 			{type = "noop"},
 		},
 	})
 	t:eq(result.ok, true)
 	t:eq(result.step_id, "typed")
-	t:assert(#state.exec >= 3)
+	t:assert(#state.exec >= 2)
 end
 
 function test.extract_first_match_and_recursive_remove_actions_run(t)

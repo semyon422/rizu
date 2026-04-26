@@ -18,14 +18,6 @@ function test.load_specs_for_all_targets(t)
 	t:assert(#macos.steps > 0)
 end
 
-function test.rejects_unknown_target(t)
-	local ok, err = pcall(function()
-		Loader.load("plan9", deps)
-	end)
-	t:eq(ok, false)
-	t:assert(tostring(err):find("No DSL spec builder"))
-end
-
 function test.strict_validation_catches_bad_specs(t)
 	local bad = {
 		steps = {

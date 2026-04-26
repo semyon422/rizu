@@ -57,8 +57,9 @@ CLI mapping:
 ## Key Components
 - `Loader` + target specs: validate and materialize dependency/source-build steps.
 - `NativeModulesSpec`: appends declarative compile and publish steps for target-native modules (`7z`, `video`, `minacalc`, `luamidi`).
-- `Executor`: executes actions with skip checks and required-input checks.
-- `Evaluator`: reports per-step and aggregate target status.
+- `StepState`: centralizes required-input checks, output freshness, and step status state.
+- `Executor`: executes actions using shared step-state skip checks.
+- `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
 - `RepoBuilder`: assembles update repo contents and archives.
 
 `video` requires FFmpeg inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.

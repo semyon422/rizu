@@ -28,14 +28,6 @@ local function toEnvPrefix(env_map)
 	return table.concat(parts, " ") .. " "
 end
 
-function M.run_in_dir(env, action)
-	local dir = Util.resolve(env, action.dir)
-	local cmd = Util.resolve(env, action.command)
-	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
-	cmd = env_prefix .. cmd
-	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd))
-end
-
 function M.make(env, action)
 	local dir = Util.resolve(env, action.dir)
 	local args = toArgString(Util.resolve(env, action.args))

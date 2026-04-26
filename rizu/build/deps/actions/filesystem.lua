@@ -22,13 +22,6 @@ function M.set_executable(env, action)
 	return Util.executeSafe(env, string.format("chmod +x %q", path))
 end
 
-function M.toolchain_select(env, action)
-	local pattern = Util.resolve(env, action.pattern)
-	local out_file = Util.resolve(env, action.out_file)
-	local cmd = string.format("bash -lc 'ls %s 2>/dev/null | head -n1 > %q'", pattern, out_file)
-	return Util.executeSafe(env, cmd)
-end
-
 function M.remove(env, action)
 	local path = Util.resolve(env, action.path)
 	local flags = action.recursive and "-rf" or "-f"

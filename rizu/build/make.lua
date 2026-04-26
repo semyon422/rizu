@@ -4,6 +4,7 @@ require("pkg_config")
 
 local Context = require("rizu.build.Context")
 local TaskRunner = require("rizu.build.TaskRunner")
+local BuildConfig = require("rizu.build.BuildConfig")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local Shell = require("rizu.build.Shell")
 local Downloader = require("rizu.build.Downloader")
@@ -26,8 +27,7 @@ local scope_arg = args[2]
 local ctx = Context(
 	LinuxFilesystem(),
 	Shell(),
-	Downloader(),
-	target_arg or "linux"
+	Downloader()
 )
 
 local runner = TaskRunner(ctx)
@@ -46,12 +46,52 @@ runner:register(AssembleRepoTask())
 runner:register(ZipRepoTask())
 runner:register(PackageMacOSTask())
 
-local function getTargetOrDefault()
-	return target_arg or "linux"
-end
-
 local function getScopeOrDefault()
 	return scope_arg or "all"
+end
+
+---@type {[string]: true}
+local target_set = {}
+for _, target in ipairs(BuildConfig.TARGETS) do
+	target_set[target] = true
+end
+
+---@param message string
+local function exitWithError(message)
+	io.stderr:write(message .. "\n")
+	os.exit(1)
+end
+
+---@param target string?
+---@param command_name string
+---@return rizu.build.Target
+local function getTargetArg(target, command_name)
+	local t = target or "linux"
+	if not target_set[t] then
+		exitWithError(string.format("Unsupported target for %s: %s", command_name, tostring(t)))
+	end
+	return t
+end
+
+---@param target string?
+---@return "linux"|"windows"
+local function getLuaJITTargetArg(target)
+	local t = target or "linux"
+	if t ~= "linux" and t ~= "windows" then
+		exitWithError("Unsupported target for luajit: " .. tostring(t))
+	end
+	return t
+end
+
+---@param target string?
+---@param default string
+---@return string
+local function getTargetOrAllArg(target, default)
+	local t = target or default
+	if t ~= "all" and not target_set[t] then
+		exitWithError("Unsupported target: " .. tostring(t))
+	end
+	return t
 end
 
 local commands = {
@@ -64,7 +104,7 @@ local commands = {
 	luajit = {
 		help = "Build/install luajit locally: luajit <linux|windows>",
 		run = function()
-			runner:run("setup_luajit_" .. getTargetOrDefault())
+			runner:run("setup_luajit_" .. getLuaJITTargetArg(target_arg))
 		end,
 	},
 	setup_macos_toolchain = {
@@ -76,13 +116,13 @@ local commands = {
 	build_target = {
 		help = "Run full build pipeline for target: build_target <linux|windows|macos>",
 		run = function()
-			runner:run("build_target_" .. getTargetOrDefault())
+			runner:run("build_target_" .. getTargetArg(target_arg, "build_target"))
 		end,
 	},
 	prefetch = {
 		help = "Download/clone deps only: prefetch <linux|windows|macos|all>",
 		run = function()
-			local target = target_arg or "all"
+			local target = getTargetOrAllArg(target_arg, "all")
 			if target == "all" then
 				runner:run("prefetch_deps_linux")
 				runner:run("prefetch_deps_windows")
@@ -108,8 +148,8 @@ local commands = {
 	status = {
 		help = "Show build state: status <target|all>",
 		run = function()
+			local target = getTargetOrAllArg(target_arg, "linux")
 			print("=== Rizu Build Status ===")
-			local target = getTargetOrDefault()
 			local targets = target == "all" and {"linux", "windows", "macos"} or {target}
 			for _, t in ipairs(targets) do
 				local task = runner.tasks["build_target_" .. t]

@@ -1,5 +1,3 @@
-local BuildConfig = require("rizu.build.BuildConfig")
-
 ---@class rizu.build.deps.spec.Loader
 local Loader = {}
 
@@ -13,7 +11,6 @@ local step_kinds = {
 	archive = true,
 	git = true,
 	["source-build"] = true,
-	["package-hooks"] = true,
 }
 
 local action_requirements = {
@@ -21,7 +18,6 @@ local action_requirements = {
 	extract = {"format", "archive", "dest"},
 	extract_first_match = {"pattern", "format", "dest"},
 	configure = {"dir"},
-	run_in_dir = {"dir", "command"},
 	compile_c = {"compiler", "output", "sources"},
 	compile_cpp = {"compiler", "output", "sources"},
 	make = {"dir"},
@@ -33,10 +29,8 @@ local action_requirements = {
 	remove = {"path"},
 	set_executable = {"path"},
 	write_file = {"path", "content"},
-	toolchain_select = {"pattern", "out_file"},
 	git_clone = {"url", "dest"},
 	git_submodule = {"dir"},
-	install_name_tool_change = {"tool", "target"},
 	shell = {"command"},
 	ensure_dir = {"path"},
 	assert_exists = {"path"},
@@ -81,11 +75,6 @@ local function inferOutputsFromActions(step)
 			table.insert(outputs, action.path)
 		elseif (action.type == "compile_c" or action.type == "compile_cpp") and action.output then
 			table.insert(outputs, normalizeOutput(action, action.output))
-		end
-	end
-	if #outputs == 0 and step.skip_if_exists_all then
-		for _, p in ipairs(step.skip_if_exists_all) do
-			table.insert(outputs, p)
 		end
 	end
 	return outputs
@@ -202,13 +191,12 @@ end
 ---@param deps table
 ---@return rizu.build.deps.Spec
 function Loader.load(target, deps)
-	local t = BuildConfig.normalizeTarget(target)
-	local builder = builders[t]
+	local builder = builders[target]
 	if not builder then
-		error("No DSL spec builder for target: " .. t)
+		error("No DSL spec builder for target: " .. tostring(target))
 	end
 	local spec = normalizeSpec(builder(deps))
-	spec.target = t
+	spec.target = target
 	validateSpec(spec)
 	return spec
 end

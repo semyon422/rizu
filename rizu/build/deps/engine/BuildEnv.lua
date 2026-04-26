@@ -17,12 +17,11 @@ end
 ---@param opts? { initialize_dirs?: boolean }
 ---@return rizu.build.deps.Env
 function BuildEnv.new(ctx, target, opts)
-	local normalized_target = BuildConfig.normalizeTarget(target)
 	local env = {
 		ctx = ctx,
-		target = normalized_target,
+		target = target,
 		root_abs = ctx.fs:getWorkingDirectory(),
-		bin_dir = BuildConfig.getBinDir(normalized_target),
+		bin_dir = BuildConfig.getBinDir(target),
 		downloads_dir = BuildConfig.getDownloadsDir(),
 		deps_dir = BuildConfig.getDepsDir(),
 		bin_dirs = BuildConfig.TARGET_BIN_DIRS,

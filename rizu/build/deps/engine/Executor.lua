@@ -1,4 +1,4 @@
-local Util = require("rizu.build.deps.actions._util")
+local StepState = require("rizu.build.deps.engine.StepState")
 
 ---@class rizu.build.deps.engine.Executor
 local Executor = {}
@@ -20,7 +20,6 @@ local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.compile"),
 	require("rizu.build.deps.actions.filesystem"),
 	require("rizu.build.deps.actions.git"),
-	require("rizu.build.deps.actions.platform"),
 	require("rizu.build.deps.actions.assertions")
 )
 
@@ -40,76 +39,11 @@ local function summarizeAction(action)
 	return table.concat(parts, ", ")
 end
 
-local function hasAllRequired(env, step)
-	for _, req in ipairs(step.requires or {}) do
-		if not env.ctx.fs:getInfo(Util.resolve(env, req)) then
-			return false
-		end
-	end
-	return true
-end
-
-local function resolveList(env, list)
-	local out = {}
-	for _, item in ipairs(list or {}) do
-		table.insert(out, Util.resolve(env, item))
-	end
-	return out
-end
-
-local function outputsUpToDate(env, step)
-	local outputs = resolveList(env, step.outputs)
-	if #outputs == 0 then
-		return false
-	end
-
-	local oldest_output_modtime
-	for _, path in ipairs(outputs) do
-		local info = env.ctx.fs:getInfo(path)
-		if not info then
-			return false
-		end
-		if info.modtime then
-			oldest_output_modtime = oldest_output_modtime and math.min(oldest_output_modtime, info.modtime) or info.modtime
-		else
-			oldest_output_modtime = nil
-		end
-	end
-
-	for _, input in ipairs(resolveList(env, step.inputs)) do
-		local info = env.ctx.fs:getInfo(input)
-		if not info then
-			return false
-		end
-		if oldest_output_modtime and info.modtime and oldest_output_modtime < info.modtime then
-			return false
-		end
-	end
-
-	return true
-end
-
-local function shouldSkip(env, step)
-	if step.outputs and #step.outputs > 0 then
-		return outputsUpToDate(env, step)
-	end
-	local checks = step.skip_if_exists_all
-	if checks and #checks > 0 then
-		for _, p in ipairs(checks) do
-			if not env.ctx.fs:getInfo(Util.resolve(env, p)) then
-				return false
-			end
-		end
-		return true
-	end
-	return false
-end
-
 ---@param env rizu.build.deps.Env
 ---@param step rizu.build.deps.Step
 ---@return rizu.build.deps.RunResult
 function Executor.runStep(env, step)
-	if shouldSkip(env, step) then
+	if StepState.shouldSkip(env, step) then
 		return {ok = true, exit_code = 0, step_id = step.id, command = "<skipped>", stderr_hint = nil}
 	end
 
@@ -139,7 +73,7 @@ end
 function Executor.runSpec(env, spec)
 	local results = {}
 	for _, step in ipairs(spec.steps or {}) do
-		if hasAllRequired(env, step) then
+		if StepState.hasAllRequired(env, step) then
 			table.insert(results, Executor.runStep(env, step))
 		else
 			table.insert(results, {

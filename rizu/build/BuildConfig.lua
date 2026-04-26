@@ -1,5 +1,8 @@
 local BuildConfig = {}
 
+---@type rizu.build.Target[]
+BuildConfig.TARGETS = {"linux", "windows", "macos"}
+
 BuildConfig.TARGET_BIN_DIRS = {
 	linux = "bin/linux64",
 	windows = "bin/win64",
@@ -38,27 +41,27 @@ BuildConfig.MODULE_OUTPUT_NAMES = {
 	},
 }
 
----@param target string?
+---@param target rizu.build.Target
 ---@return string
-function BuildConfig.normalizeTarget(target)
-	return (target or "linux"):lower()
-end
-
 function BuildConfig.getBinDir(target)
-	local t = BuildConfig.normalizeTarget(target)
-	return BuildConfig.TARGET_BIN_DIRS[t] or BuildConfig.TARGET_BIN_DIRS.linux
+	return BuildConfig.TARGET_BIN_DIRS[target]
 end
 
+---@param target rizu.build.Target
+---@return string
 function BuildConfig.getArtifactsDir(target)
-	local t = BuildConfig.normalizeTarget(target)
-	return BuildConfig.TARGET_ARTIFACT_DIRS[t] or BuildConfig.TARGET_ARTIFACT_DIRS.linux
+	return BuildConfig.TARGET_ARTIFACT_DIRS[target]
 end
 
+---@param target rizu.build.Target
+---@return {[string]: string}
 function BuildConfig.getModuleNames(target)
-	local t = BuildConfig.normalizeTarget(target)
-	return BuildConfig.MODULE_OUTPUT_NAMES[t] or BuildConfig.MODULE_OUTPUT_NAMES.linux
+	return BuildConfig.MODULE_OUTPUT_NAMES[target]
 end
 
+---@param target rizu.build.Target
+---@param out_dir string
+---@return {[string]: string}
 function BuildConfig.getModuleOutputs(target, out_dir)
 	---@type {[string]: string}
 	local outputs = {}

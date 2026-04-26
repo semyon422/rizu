@@ -36,10 +36,6 @@ return {
 		url = "https://nightly.link/love2d/love/workflows/main/main/love-linux-X64.AppImage.zip",
 		archive = "love-linux-X64.AppImage.zip",
 	},
-	rtmidi = {
-		linux = {url = "https://github.com/thestk/rtmidi/archive/refs/tags/v6.0.0.tar.gz", archive = "rtmidi-linux.tar.gz"},
-		windows = {url = "https://github.com/thestk/rtmidi/archive/refs/tags/v6.0.0.tar.gz", archive = "rtmidi-win.tar.gz"},
-	},
 	bass = {
 		linux = {url = "https://www.un4seen.com/files/bass24-linux.zip", archive = "bass-linux.zip"},
 		windows = {url = "https://www.un4seen.com/files/bass24.zip", archive = "bass-win.zip"},
