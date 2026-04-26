@@ -1,4 +1,5 @@
 local ITask = require("rizu.build.ITask")
+local ZipPackager = require("rizu.build.package.ZipPackager")
 
 ---@class rizu.build.tasks.ZipRepoTask: rizu.build.ITask
 ---@operator call: rizu.build.tasks.ZipRepoTask
@@ -13,10 +14,7 @@ end
 
 ---@param ctx rizu.build.Context
 function ZipRepoTask:run(ctx)
-	local CurrentRepo = require("rizu.build.package.CurrentRepo")
-	local RepoBuilder = require("rizu.build.package.RepoBuilder")
-	local builder = RepoBuilder(ctx, CurrentRepo(ctx))
-	builder:build_zip()
+	ZipPackager(ctx):build()
 end
 
 ---@param ctx rizu.build.Context

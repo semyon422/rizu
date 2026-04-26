@@ -1,4 +1,5 @@
 local ITask = require("rizu.build.ITask")
+local MacOSPackager = require("rizu.build.package.MacOSPackager")
 
 ---@class rizu.build.tasks.PackageMacOSTask: rizu.build.ITask
 ---@operator call: rizu.build.tasks.PackageMacOSTask
@@ -13,10 +14,7 @@ end
 
 ---@param ctx rizu.build.Context
 function PackageMacOSTask:run(ctx)
-	local CurrentRepo = require("rizu.build.package.CurrentRepo")
-	local RepoBuilder = require("rizu.build.package.RepoBuilder")
-	local builder = RepoBuilder(ctx, CurrentRepo(ctx))
-	builder:buildMacos()
+	MacOSPackager(ctx):build()
 end
 
 ---@param ctx rizu.build.Context

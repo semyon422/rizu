@@ -65,7 +65,7 @@ CLI mapping:
 - `StepState`: centralizes required-input checks, output freshness, and step status state.
 - `Executor`: executes actions using shared step-state skip checks.
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
-- `RepoBuilder`: compatibility facade over repo assembly, update-index writing, zip packaging, and macOS app packaging.
+- `RepoAssembler`, `UpdateIndexWriter`, `ZipPackager`, and `MacOSPackager`: package-stage implementations called directly by package tasks.
 
 `video` requires FFmpeg inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
 
