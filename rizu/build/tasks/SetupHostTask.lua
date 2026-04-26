@@ -39,7 +39,6 @@ function SetupHostTask:run(ctx)
 		"zlib1g-dev",
 		"libbz2-dev",
 		"xar",
-		"librtmidi-dev",
 	}
 	ctx.shell:execute("sudo apt-get install -y " .. table.concat(packages, " "))
 	print("Host setup complete.")

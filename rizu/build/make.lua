@@ -24,24 +24,28 @@ local command = args[1]
 local target_arg = args[2]
 local scope_arg = args[2]
 
+local fs = LinuxFilesystem()
+local shell = Shell()
+local downloader = Downloader(shell)
+
 local ctx = Context(
-	LinuxFilesystem(),
-	Shell(),
-	Downloader()
+	fs,
+	shell,
+	downloader
 )
 
 local runner = TaskRunner(ctx)
 
 runner:register(SetupHostTask())
-runner:register(SetupLuaJITTask("linux"))
-runner:register(SetupLuaJITTask("windows"))
+local luajit_targets = {"linux", "windows"}
+for _, target in ipairs(luajit_targets) do
+	runner:register(SetupLuaJITTask(target))
+end
 runner:register(SetupMacOSToolchainTask())
-runner:register(BuildTargetTask("linux"))
-runner:register(BuildTargetTask("windows"))
-runner:register(BuildTargetTask("macos"))
-runner:register(PrefetchDepsTask("linux"))
-runner:register(PrefetchDepsTask("windows"))
-runner:register(PrefetchDepsTask("macos"))
+for _, target in ipairs(BuildConfig.TARGETS) do
+	runner:register(BuildTargetTask(target))
+	runner:register(PrefetchDepsTask(target))
+end
 runner:register(AssembleRepoTask())
 runner:register(ZipRepoTask())
 runner:register(PackageMacOSTask())
@@ -56,6 +60,14 @@ for _, target in ipairs(BuildConfig.TARGETS) do
 	target_set[target] = true
 end
 
+---@type {[string]: true}
+local luajit_target_set = {}
+for _, target in ipairs(luajit_targets) do
+	luajit_target_set[target] = true
+end
+local target_help = table.concat(BuildConfig.TARGETS, "|")
+local luajit_target_help = table.concat(luajit_targets, "|")
+
 ---@param message string
 local function exitWithError(message)
 	io.stderr:write(message .. "\n")
@@ -68,7 +80,7 @@ end
 local function getTargetArg(target, command_name)
 	local t = target or "linux"
 	if not target_set[t] then
-		exitWithError(string.format("Unsupported target for %s: %s", command_name, tostring(t)))
+		exitWithError(string.format("Unsupported target for %s: %s (expected %s)", command_name, tostring(t), target_help))
 	end
 	return t
 end
@@ -77,8 +89,8 @@ end
 ---@return "linux"|"windows"
 local function getLuaJITTargetArg(target)
 	local t = target or "linux"
-	if t ~= "linux" and t ~= "windows" then
-		exitWithError("Unsupported target for luajit: " .. tostring(t))
+	if not luajit_target_set[t] then
+		exitWithError(string.format("Unsupported target for luajit: %s (expected %s)", tostring(t), luajit_target_help))
 	end
 	return t
 end
@@ -89,7 +101,7 @@ end
 local function getTargetOrAllArg(target, default)
 	local t = target or default
 	if t ~= "all" and not target_set[t] then
-		exitWithError("Unsupported target: " .. tostring(t))
+		exitWithError(string.format("Unsupported target: %s (expected %s or all)", tostring(t), target_help))
 	end
 	return t
 end
@@ -102,7 +114,7 @@ local commands = {
 		end,
 	},
 	luajit = {
-		help = "Build/install luajit locally: luajit <linux|windows>",
+		help = "Build/install luajit locally: luajit <" .. luajit_target_help .. ">",
 		run = function()
 			runner:run("setup_luajit_" .. getLuaJITTargetArg(target_arg))
 		end,
@@ -114,19 +126,19 @@ local commands = {
 		end,
 	},
 	build_target = {
-		help = "Run full build pipeline for target: build_target <linux|windows|macos>",
+		help = "Run full build pipeline for target: build_target <" .. target_help .. ">",
 		run = function()
 			runner:run("build_target_" .. getTargetArg(target_arg, "build_target"))
 		end,
 	},
 	prefetch = {
-		help = "Download/clone deps only: prefetch <linux|windows|macos|all>",
+		help = "Download/clone deps only: prefetch <" .. target_help .. "|all>",
 		run = function()
 			local target = getTargetOrAllArg(target_arg, "all")
 			if target == "all" then
-				runner:run("prefetch_deps_linux")
-				runner:run("prefetch_deps_windows")
-				runner:run("prefetch_deps_macos")
+				for _, t in ipairs(BuildConfig.TARGETS) do
+					runner:run("prefetch_deps_" .. t)
+				end
 			else
 				runner:run("prefetch_deps_" .. target)
 			end
@@ -150,7 +162,7 @@ local commands = {
 		run = function()
 			local target = getTargetOrAllArg(target_arg, "linux")
 			print("=== Rizu Build Status ===")
-			local targets = target == "all" and {"linux", "windows", "macos"} or {target}
+			local targets = target == "all" and BuildConfig.TARGETS or {target}
 			for _, t in ipairs(targets) do
 				local task = runner.tasks["build_target_" .. t]
 				if task and task.getStatus then
@@ -186,9 +198,9 @@ local commands = {
 				ctx.fs:remove("build/artifacts")
 			end
 			if scope == "all" or scope == "bin" then
-				ctx.fs:remove("bin/linux64")
-				ctx.fs:remove("bin/win64")
-				ctx.fs:remove("bin/mac64")
+				for _, target in ipairs(BuildConfig.TARGETS) do
+					ctx.fs:remove(BuildConfig.getBinDir(target))
+				end
 			end
 			if scope == "all" or scope == "repo" then
 				ctx.fs:remove("build/repo")
