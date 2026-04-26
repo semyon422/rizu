@@ -7,9 +7,14 @@ function SevenZipSpec.add(deps, spec)
 	table.insert(spec.steps, {
 		id = "sevenzip_sdk",
 		kind = "archive",
+		outputs = {
+			extract .. "/C/Alloc.c",
+			extract .. "/C/LzmaLib.c",
+		},
+		inputs = {dest},
 		actions = {
 			{type = "download", url = s7.url, dest = dest},
-			{type = "extract", format = "7z", archive = dest, dest = extract},
+			{type = "extract", format = "tar.xz", archive = dest, dest = extract, strip_components = 0},
 		},
 	})
 end

@@ -2,6 +2,8 @@ local LoveArtifactsSpec = {}
 
 function LoveArtifactsSpec.add(deps, spec)
 	if deps.love_win then
+		local outer_tmp = "${deps_dir}/love-win-outer-tmp"
+		local inner_tmp = "${deps_dir}/love-win-inner-tmp"
 		table.insert(spec.steps, {
 			id = "love_win",
 			kind = "archive",
@@ -14,12 +16,14 @@ function LoveArtifactsSpec.add(deps, spec)
 				"${bin_windows}/OpenAL32.dll",
 			},
 			actions = {
+				{type = "remove", path = outer_tmp, recursive = true},
+				{type = "remove", path = inner_tmp, recursive = true},
 				{type = "download", url = deps.love_win.url, dest = "${downloads_dir}/" .. deps.love_win.archive},
-				{type = "extract", format = "zip", archive = "${downloads_dir}/" .. deps.love_win.archive, dest = "${bin_windows}-outer-tmp"},
-				{type = "extract_first_match", format = "zip", pattern = '"${bin_windows}-outer-tmp"/love-*.zip', dest = "${bin_windows}-inner-tmp"},
-				{type = "copy", src = "${bin_windows}-inner-tmp/*/*", dst = "${bin_windows}/", flags = "-rf"},
-				{type = "remove", path = "${bin_windows}-outer-tmp", recursive = true},
-				{type = "remove", path = "${bin_windows}-inner-tmp", recursive = true},
+				{type = "extract", format = "zip", archive = "${downloads_dir}/" .. deps.love_win.archive, dest = outer_tmp},
+				{type = "extract_first_match", format = "zip", pattern = '"' .. outer_tmp .. '"/love-*.zip', dest = inner_tmp},
+				{type = "copy", src = inner_tmp .. "/*/*", dst = "${bin_windows}/", flags = "-rf"},
+				{type = "remove", path = outer_tmp, recursive = true},
+				{type = "remove", path = inner_tmp, recursive = true},
 				{type = "assert_file", path = "${bin_windows}/love.exe"},
 				{type = "assert_file", path = "${bin_windows}/lovec.exe"},
 				{type = "assert_file", path = "${bin_windows}/love.dll"},

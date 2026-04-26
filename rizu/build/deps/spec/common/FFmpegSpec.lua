@@ -30,7 +30,7 @@ function FFmpegSpec.add(target, deps, spec)
 	local extract = "${deps_dir}/" .. ffmpeg.dir
 	local actions = {
 		{type = "download", url = ffmpeg.url, dest = archive},
-		{type = "extract", format = ffmpeg.archive:match("%.tar%.xz$") and "tar.xz" or "zip_nested", archive = archive, dest = extract, skip_if_exists = true},
+		{type = "extract", format = ffmpeg.archive:match("%.tar%.xz$") and "tar.xz" or "zip_nested", archive = archive, dest = extract},
 	}
 	local artifacts = FFMPEG_ARTIFACTS[target] or {}
 	local outputs = {}

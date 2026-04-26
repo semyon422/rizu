@@ -34,6 +34,17 @@ local shell_fallback_patterns = {
 }
 
 ---@param action rizu.build.deps.Action
+local function validateStripComponents(action)
+	if action.strip_components == nil then
+		return
+	end
+	local value = action.strip_components
+	if type(value) ~= "number" or value < 0 or value % 1 ~= 0 then
+		error("Action '" .. tostring(action.type) .. "' field 'strip_components' must be a non-negative integer")
+	end
+end
+
+---@param action rizu.build.deps.Action
 ---@param step rizu.build.deps.Step
 function ActionSchema.validate(action, step)
 	if type(action) ~= "table" then
@@ -58,6 +69,9 @@ function ActionSchema.validate(action, step)
 				error(string.format("Shell action '%s' contains forbidden fallback pattern '%s'", tostring(step.id), pattern))
 			end
 		end
+	end
+	if action.type == "extract" or action.type == "extract_first_match" then
+		validateStripComponents(action)
 	end
 end
 

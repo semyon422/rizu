@@ -20,8 +20,8 @@ return {
 		},
 	},
 	sevenzip = {
-		url = "https://www.7-zip.org/a/7z2409-src.7z",
-		archive = "7z-src.7z",
+		url = "https://www.7-zip.org/a/7z2501-src.tar.xz",
+		archive = "7z2501-src.tar.xz",
 		dir = "7zsdk",
 	},
 	love_macos = {

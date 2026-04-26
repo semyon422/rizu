@@ -44,7 +44,7 @@ function test.run_step_returns_structured_result(t)
 	t:eq(result.step_id, "demo")
 	t:assert(#state.downloads == 1)
 	t:assert(#state.exec >= 1)
-	t:assert(state.exec[1]:find("tar %-xzf"))
+	t:assert(state.exec[1]:find("tar %-%-touch %-xzf"))
 end
 
 function test.steps_without_outputs_do_not_skip(t)

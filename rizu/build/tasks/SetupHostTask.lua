@@ -31,7 +31,6 @@ function SetupHostTask:run(ctx)
 		"unzip",
 		"tar",
 		"wget",
-		"p7zip-full",
 		"libasound2-dev",
 		"git",
 		"xz-utils",
@@ -56,7 +55,6 @@ function SetupHostTask:getStatus(ctx)
 		"cmake",
 		"curl",
 		"unzip",
-		"7z",
 		"git",
 	}
 

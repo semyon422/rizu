@@ -1,5 +1,8 @@
 local PipelineSpec = require("rizu.build.deps.spec.PipelineSpec")
+local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
+local Executor = require("rizu.build.deps.engine.Executor")
 local deps = require("rizu.build.deps.Manifest")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
@@ -48,6 +51,116 @@ function test.macos_native_steps_use_osxcross_and_require_ffmpeg(t)
 	t:eq(video.actions[1].env.PATH, "${root_abs}/build/deps/osxcross/target/bin:$PATH")
 	t:eq(luamidi.actions[1].compiler, "${root_abs}/build/deps/osxcross/target/bin/x86_64-apple-darwin22.2-clang++")
 	t:tdeq(luamidi.actions[1].ldflags, {"-framework", "CoreMIDI", "-framework", "CoreFoundation", "-framework", "CoreAudio", "-framework", "CoreServices"})
+end
+
+---@param t testing.T
+function test.ffmpeg_binary_reruns_extract_when_output_missing(t)
+	local fs = FakeFilesystem()
+	fs:setWorkingDirectory("/repo")
+	fs:createDirectory("build/deps/ffmpeg-linux")
+
+	local exec = {}
+	local shell = {}
+	function shell:execute(cmd)
+		table.insert(exec, cmd)
+		if cmd:find("tar %-%-touch %-xf") then
+			fs:createDirectory("build/deps/ffmpeg-linux/lib")
+			for _, name in ipairs({
+				"libavcodec.so.62",
+				"libavdevice.so.62",
+				"libavfilter.so.11",
+				"libavformat.so.62",
+				"libavutil.so.60",
+				"libswresample.so.6",
+				"libswscale.so.9",
+			}) do
+				fs:write("build/deps/ffmpeg-linux/lib/" .. name, "x")
+			end
+		end
+		return true
+	end
+	function shell:popen() return "" end
+
+	local downloader = {}
+	function downloader:download(_url, dest)
+		fs:write(dest, "archive")
+	end
+
+	local spec = PipelineSpec.load("linux", deps)
+	local step = findStep(spec, "ffmpeg_binary")
+	t:assert(step)
+	---@cast step -?
+
+	Executor.runStep(BuildEnv.new({fs = fs, shell = shell, downloader = downloader}, "linux"), step)
+
+	local extracted = false
+	for _, cmd in ipairs(exec) do
+		if cmd:find("tar %-%-touch %-xf") then
+			extracted = true
+			break
+		end
+	end
+	t:assert(extracted, "ffmpeg extract should repair partial extract directories")
+end
+
+---@param t testing.T
+function test.sevenzip_sdk_uses_host_tar_extractor(t)
+	local spec = PipelineSpec.load("linux", deps)
+	local step = findStep(spec, "sevenzip_sdk")
+	t:assert(step)
+	---@cast step -?
+
+	t:eq(step.actions[1].dest, "${downloads_dir}/7z2501-src.tar.xz")
+	t:eq(step.actions[2].format, "tar.xz")
+	t:eq(step.actions[2].strip_components, 0)
+	t:tdeq(step.outputs, {
+		"${deps_dir}/7zsdk/C/Alloc.c",
+		"${deps_dir}/7zsdk/C/LzmaLib.c",
+	})
+end
+
+---@param t testing.T
+function test.sevenzip_native_module_requires_sdk_sources(t)
+	local spec = PipelineSpec.load("linux", deps)
+	local step = findStep(spec, "module_z7_artifact")
+	t:assert(step)
+	---@cast step -?
+
+	t:tdeq(step.requires, {
+		"build/deps/7zsdk/C/Alloc.c",
+		"build/deps/7zsdk/C/LzmaLib.c",
+	})
+end
+
+---@param t testing.T
+function test.love_windows_uses_deps_scratch_dirs(t)
+	local spec = PipelineSpec.load("linux", deps)
+	local step = findStep(spec, "love_win")
+	t:assert(step)
+	---@cast step -?
+
+	local saw_prepare_cleanup = false
+	local saw_finish_cleanup = false
+	for index, action in ipairs(step.actions) do
+		for _, key in ipairs({"dest", "path", "pattern", "src"}) do
+			local value = action[key]
+			if type(value) == "string" then
+				t:assert(value:find("bin/win64%-tmp") == nil, value)
+				t:assert(value:find("bin/win64%-outer%-tmp") == nil, value)
+				t:assert(value:find("bin/win64%-inner%-tmp") == nil, value)
+			end
+		end
+		if action.type == "remove" and action.path == "${deps_dir}/love-win-outer-tmp" then
+			if index == 1 then
+				saw_prepare_cleanup = true
+			else
+				saw_finish_cleanup = true
+			end
+		end
+	end
+
+	t:eq(saw_prepare_cleanup, true)
+	t:eq(saw_finish_cleanup, true)
 end
 
 return test

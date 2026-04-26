@@ -40,6 +40,7 @@ This avoids duplicated side effects and makes task dependencies explicit.
 - `rizu/build/TaskRegistry.lua`: context construction and task registration.
 - `rizu/build/tasks/`: task-level orchestration.
 - `rizu/build/deps/spec/`: declarative build step definitions by target.
+- `rizu/build/deps/spec/source/`: per-dependency source-build recipes shared by target specs.
 - `rizu/build/deps/actions/`: executor action handlers.
 - `rizu/build/deps/engine/`: execution and evaluation engine.
 - `rizu/build/package/`: repository assembly and packaging internals.
@@ -59,6 +60,8 @@ CLI mapping:
 ## Key Components
 - `DependencySpec`: public dependency-step spec entrypoint; loads, normalizes, and validates target specs.
 - `SpecRegistry`: resolves target names to platform spec builders.
+- `LinuxSpec`, `WindowsSpec`, and `MacosSpec`: target orchestrators that select target paths/toolchains and compose source dependency recipes.
+- `deps/spec/source/*SourceSpec`: per-dependency recipes for zlib, iconv, OpenSSL, LuaSec, FFTW, SQLite, and macOS FFmpeg source builds.
 - `SpecNormalizer`: fills defaults and infers outputs from declarative actions.
 - `SpecValidator` + `ActionSchema`: validate step shape, supported action types, required fields, and shell-action policy.
 - `NativeModulesSpec`: appends declarative compile and publish steps for target-native modules (`7z`, `video`, `minacalc`, `luamidi`).
@@ -66,6 +69,10 @@ CLI mapping:
 - `Executor`: executes actions using shared step-state skip checks.
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
 - `RepoAssembler`, `UpdateIndexWriter`, `ZipPackager`, and `MacOSPackager`: package-stage implementations called directly by package tasks.
+
+Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
+
+Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
 
 `video` requires FFmpeg inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
 

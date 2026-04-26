@@ -29,6 +29,10 @@ local FFMPEG_INCLUDE_BY_TARGET = {
 	windows = "build/deps/ffmpeg-win/include",
 	macos = "build/deps/local/macos/ffmpeg/include",
 }
+local SEVENZIP_SDK_INPUTS = {
+	"build/deps/7zsdk/C/Alloc.c",
+	"build/deps/7zsdk/C/LzmaLib.c",
+}
 
 local function appendOutputs(spec, outputs)
 	for _, path in ipairs(outputs or {}) do
@@ -71,8 +75,8 @@ local function add7z(spec, target, artifact, bin_file)
 		kind = "source-build",
 		status_label = "7z Artifact",
 		outputs = {artifact},
-		requires = {},
-		inputs = {"aqua/7z.c"},
+		requires = SEVENZIP_SDK_INPUTS,
+		inputs = {"aqua/7z.c", SEVENZIP_SDK_INPUTS[1], SEVENZIP_SDK_INPUTS[2]},
 		actions = {
 			{
 				type = "compile_c",

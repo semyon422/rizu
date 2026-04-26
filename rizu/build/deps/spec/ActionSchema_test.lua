@@ -33,4 +33,17 @@ function test.shell_action_rejects_fallback_patterns(t)
 	end, "forbidden fallback pattern")
 end
 
+---@param t testing.T
+function test.extract_action_requires_integer_strip_components(t)
+	expectErrorContains(t, function()
+		ActionSchema.validate({
+			type = "extract",
+			format = "tar.xz",
+			archive = "archive.tar.xz",
+			dest = "dst",
+			strip_components = -1,
+		}, {id = "extract"})
+	end, "strip_components")
+end
+
 return test

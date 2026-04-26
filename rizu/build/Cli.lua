@@ -57,24 +57,35 @@ local function getTargetOrAllArg(target, default)
 end
 
 ---@param ctx rizu.build.Context
+---@param path string
+local function removePath(ctx, path)
+	if not ctx.fs:getInfo(path) then
+		return
+	end
+	if not ctx.fs:remove(path) then
+		exitWithError("Failed to clean: " .. path)
+	end
+end
+
+---@param ctx rizu.build.Context
 ---@param scope string
 local function clean(ctx, scope)
 	if scope == "all" or scope == "deps" then
-		ctx.fs:remove("build/deps")
+		removePath(ctx, "build/deps")
 	end
 	if scope == "all" or scope == "downloads" then
-		ctx.fs:remove("build/downloads")
+		removePath(ctx, "build/downloads")
 	end
 	if scope == "all" or scope == "artifacts" then
-		ctx.fs:remove("build/artifacts")
+		removePath(ctx, "build/artifacts")
 	end
 	if scope == "all" or scope == "bin" then
 		for _, target in ipairs(BuildConfig.TARGETS) do
-			ctx.fs:remove(BuildConfig.getBinDir(target))
+			removePath(ctx, BuildConfig.getBinDir(target))
 		end
 	end
 	if scope == "all" or scope == "repo" then
-		ctx.fs:remove("build/repo")
+		removePath(ctx, "build/repo")
 	end
 	print("Cleaned: " .. scope)
 end

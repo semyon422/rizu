@@ -2,11 +2,18 @@ local Util = require("rizu.build.deps.actions._util")
 
 local M = {}
 
-local function extractCommand(format, archive, dest)
+local function stripComponents(action)
+	if action.strip_components ~= nil then
+		return action.strip_components
+	end
+	return 1
+end
+
+local function extractCommand(format, archive, dest, strip_components)
 	if format == "tar.gz" then
-		return string.format("tar -xzf %q -C %q --strip-components=1", archive, dest)
+		return string.format("tar --touch -xzf %q -C %q --strip-components=%d", archive, dest, strip_components)
 	elseif format == "tar.xz" then
-		return string.format("tar -xf %q -C %q --strip-components=1", archive, dest)
+		return string.format("tar --touch -xf %q -C %q --strip-components=%d", archive, dest, strip_components)
 	elseif format == "zip" then
 		return string.format("unzip -o %q -d %q", archive, dest)
 	elseif format == "zip_nested" then
@@ -36,9 +43,9 @@ function M.extract(env, action)
 	end
 	env.ctx.fs:createDirectory(dest)
 	if format == "tar.gz" then
-		return Util.executeSafe(env, extractCommand(format, archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, stripComponents(action)))
 	elseif format == "tar.xz" then
-		return Util.executeSafe(env, extractCommand(format, archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, stripComponents(action)))
 	elseif format == "zip" then
 		return Util.executeSafe(env, extractCommand(format, archive, dest))
 	elseif format == "zip_nested" then
@@ -65,7 +72,7 @@ function M.extract_first_match(env, action)
 	local cmd = string.format(
 		"bash -lc 'shopt -s nullglob; matches=(%s); [ ${#matches[@]} -gt 0 ] || exit 1; %s'",
 		pattern,
-		extractCommand(format, "${matches[0]}", dest)
+		extractCommand(format, "${matches[0]}", dest, stripComponents(action))
 	)
 	return Util.executeSafe(env, cmd)
 end

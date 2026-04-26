@@ -16,7 +16,8 @@ end
 ---@return boolean
 function Downloader:download(url, dest)
 	print("Downloading " .. url .. " to " .. dest)
-	local cmd = string.format("curl -fL --retry 3 --retry-all-errors %q -o %q", url, dest)
+	local tmp = dest .. ".tmp"
+	local cmd = string.format("rm -f %q && curl -fL --retry 3 --retry-all-errors %q -o %q && mv -f %q %q", tmp, url, tmp, tmp, dest)
 	self.shell:execute(cmd)
 	return true
 end

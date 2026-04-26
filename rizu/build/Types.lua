@@ -26,6 +26,7 @@
 ---@field dest? string
 ---@field marker? string
 ---@field format? string
+---@field strip_components? integer
 ---@field archive? string
 ---@field src? string
 ---@field dst? string
