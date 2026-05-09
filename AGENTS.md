@@ -96,6 +96,109 @@ Examples:
 - Keep class annotations aligned with the actual runtime class name and namespace.
 - For web resources, use the concrete class annotation pattern described in `sea/spec.md`.
 
+### Annotation Rules
+
+The repository uses LuaLS diagnostics with `no-unknown` enabled globally. Write annotations so the language server can prove types instead of silencing it after the fact.
+
+General policy:
+- Prefer inference when the type is already obvious from local code and LuaLS can resolve it.
+- Add annotations when they improve public API clarity, remove ambiguity, or prevent `no-unknown` diagnostics.
+- Do not add redundant annotations to every local just because a value has a type.
+- Treat `---@diagnostic disable ... no-unknown` as a last resort, not a normal tool.
+
+Annotate these by default:
+- Named classes and interfaces with `---@class`.
+- Public or shared object fields with `---@field` when LuaLS cannot already infer them from class initialization or typed assignment.
+- Public functions and methods whose parameter or return types are not fully obvious from usage.
+- Functions returning multiple values, optional values, or domain-specific aliases.
+- Aliases for important unions, callback signatures, and structured data shapes with `---@alias`.
+- Generic helpers with `---@generic` when the function preserves input-output type relationships.
+- Important locals whose shape is otherwise unknown to LuaLS, especially empty tables that later gain typed fields or entries.
+
+Usually do not annotate:
+- Private locals initialized from obvious constructors or literals when LuaLS already infers them correctly.
+- Simple one-line wrappers whose parameters and returns are fully inherited from a clearly typed callee, unless the wrapper is part of a public API surface.
+- Values only used once in a tiny local scope when the inferred type is already precise.
+
+Class rules:
+- Every class-like module should declare its runtime class name with `---@class`.
+- Add `---@operator call: TypeName` when the class is callable as a constructor.
+- Do not add `---@field` for a field when LuaLS already infers it from a default primitive assignment on the class or from typed assignment in methods.
+- Put structural fields on the class with `---@field` when instances are expected to carry them beyond a tiny local scope and LuaLS would not otherwise know they exist.
+- Class annotations must match the real namespace and class name used by the module, not a guessed name derived only from the file path.
+- Interface-like classes should use the `I` prefix and declare fields or methods that callers rely on.
+
+Field rules:
+- Use `---@field name Type` for stable instance fields, config fields, DTOs, and state containers.
+- Use `---@field FieldName FieldType?` for legitimately optional fields.
+- Prefer specific container types such as `string[]`, `integer[]`, or `{[string]: sea.User}`.
+- When a field has a constrained set of string values, prefer an alias or explicit string union instead of plain `string`.
+- If a field is first created in a method and LuaLS would not know its shape, prefer a local typed assignment at the write site, for example:
+
+```lua
+function FakeLogicNote:new()
+	---@type any[]
+	self.inputs = {}
+end
+```
+
+Function rules:
+- Define `---@param` and `---@return` annotations for functions and methods by default.
+- The main exceptions are:
+  - callbacks passed to a function that already defines the callback type,
+  - implementations of inherited or interface methods whose parameter and return types are already inferred from the parent contract.
+- Annotate returns with `---@return` for public functions, multi-return functions, and any function returning optional values or typed tables.
+- Use one `---@return` per returned position, matching the actual order of values.
+- Use `Type?` for optional values instead of vague `any` when absence is the real contract.
+- Prefer domain aliases and named classes over `table`, `function`, or `any` whenever the real type is known.
+
+Local type rules:
+- Use `---@type` for empty table initialization when later writes would otherwise produce unknown fields or unknown index types.
+- Use `---@type` to pin a union or container type when inference would widen too far.
+- Avoid `---@type any` unless the value is intentionally dynamic and no safer contract exists.
+- When creating typed dictionary or array accumulators, annotate them at initialization time rather than adding suppressions on later writes.
+
+Alias and generic rules:
+- Use `---@alias` for reusable unions, string enums, callback signatures, and complex structural concepts that appear in multiple places.
+- Keep aliases close to their owning module or type-definition file.
+- Use `---@generic` only when there is a real type relationship to preserve, such as input element type flowing to the return value.
+- When a generic helper depends on extra structural fields, pair the generic with a cast to a more specific helper shape only at the narrow point where that structure is required.
+
+Casting rules:
+- Prefer `---@cast` to refine a value after runtime checks that LuaLS does not already understand.
+- Do not add a cast after `type(v) == "string"` when LuaLS already narrows it correctly.
+- Cast to the narrowest true type.
+- Do not use `---@cast` to lie about a value just to satisfy diagnostics.
+- If repeated casts are needed, prefer reshaping the code or adding an earlier annotation so the type becomes naturally inferable.
+
+Diagnostic suppression rules:
+- Avoid file-wide or broad diagnostic disables for annotation issues.
+- A local `---@diagnostic disable-next-line: no-unknown` or `disable-line` is acceptable only when:
+  - the code is intentionally dynamic,
+  - the runtime contract is correct,
+  - a more precise annotation or refactor would be disproportionate or impossible.
+- When suppressing `no-unknown`, keep the suppression as narrow as possible and prefer adding a short comment if the reason is not obvious from the line.
+
+Preferred shapes:
+- Prefer `{[KeyType]: ValueType}` over `table<KeyType, ValueType>`.
+- Prefer `Type[]` for arrays.
+- Prefer explicit string unions like `"linux"|"windows"` for closed sets of string values.
+- Prefer concrete callback signatures in aliases, for example `---@alias util.ValidationFunc fun(v: any?): boolean?, string|valid.Errors?`.
+
+Avoid these weak annotations unless they are truly the contract:
+- `table`
+- `function`
+- `object`
+- `any`
+
+Use them only when the value is intentionally open-ended or the code is interfacing with genuinely untyped external data.
+
+Patterns to prefer:
+- Annotate test functions with `---@param t testing.T`.
+- Annotate resource classes, repos, DTO-like records, and config tables explicitly.
+- For validator-heavy code, refine after runtime checks with `---@cast` instead of defaulting entire flows to `any`.
+- For dynamic parse loops such as `gmatch`, prefer a narrow suppression only if LuaLS cannot model the iterator variables after a reasonable annotation pass.
+
 ## Testing Rules
 
 - Test files are first-class and must not be deleted.
