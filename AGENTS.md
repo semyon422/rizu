@@ -1,265 +1,135 @@
 # AGENTS.md
 
-## Agent Preamble
+## Purpose
 
-This is the **repository-wide source of truth** for AI coding assistants.
+This is the repository-wide source of truth for AI coding assistants.
 
-Tool-specific files (for example `GEMINI.md`, `CLAUDE.md`, `.cursorrules`) should defer to this file. If another instruction file conflicts with this one, follow `AGENTS.md` unless explicitly told otherwise by the user in the current task.
+Tool-specific instruction files (for example `GEMINI.md`, `CLAUDE.md`, `.cursorrules`) should defer to this file. If another instruction file conflicts with this one, follow `AGENTS.md` unless explicitly told otherwise by the user in the current task.
 
-## Quick Checklist For Agents
+## Quick Checklist
 
 Before editing:
-1. Read this file and scan nearby module docs/specs (especially local `spec.md` files).
-2. Locate existing class names/usages before introducing new names.
-3. Prefer minimal, targeted edits that preserve architecture and conventions.
+1. Read this file and then scan nearby module docs, especially local `spec.md` files.
+2. Locate existing class names and usages before introducing new names.
+3. Prefer minimal, targeted edits that preserve existing architecture and conventions.
 
 While editing:
-1. Keep namespace/class naming consistent with rules below.
-2. Do not delete tests; update/move them with source changes.
-3. Add or update `spec.md` for major behavior changes.
+1. Keep namespace, class, and file naming consistent with the rules below.
+2. Do not delete tests; move and update them with source changes.
+3. Add or update a nearby `spec.md` for major behavior or architecture changes.
 
 After editing:
-1. Run relevant tests (`./test [file_pattern] [method_pattern]`).
-2. Summarize behavior changes and list any follow-up risks or TODOs.
+1. Run relevant tests with `./test [file_pattern] [method_pattern]`.
+2. Summarize behavior changes and list follow-up risks or TODOs.
 
 ## Change Safety Rules
 
-*   Do not perform destructive repo operations (history rewrites, mass deletions) unless explicitly requested.
-*   Do not silently change public interfaces, persistence formats, or remote method contracts without documenting it.
-*   For cross-worker / websocket / ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
+- Do not perform destructive repository operations unless explicitly requested.
+- Do not silently change public interfaces, persistence formats, or remote method contracts without documenting the change.
+- For cross-worker, websocket, or ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
+- If the worktree is already dirty, do not revert unrelated user changes.
 
-## Project Overview
+## Project Map
 
-This project is an open-source rhythm game called "Rizu". It is built using the [LÖVE](https://love2d.org/) framework and is written primarily in Lua. The game is designed to be cross-platform, with support for Windows and Linux.
+- `rizu/`: modern game client and core systems. Start with `rizu/spec.md`.
+- `sea/`: website, server-side logic, shared web infrastructure. Start with `sea/spec.md`.
+- `aqua/`: general-purpose shared Lua infrastructure. Start with `aqua/spec.md`.
+- `chartbase/`: chart parsers and format-specific loaders. See format-local specs when present.
+- `sphere/`: legacy client code that is gradually being rewritten into `rizu/`. Start with `sphere/spec.md`.
 
-The project is structured into several key directories:
+Existing feature specs worth checking early:
+- `rizu/build/spec.md`
+- `rizu/library/spec.md`
+- `rizu/select/spec.md`
+- `rizu/preview/spec.md`
+- `rizu/dlc/spec.md`
+- `rizu/gameplay/spec.md`
+- `rizu/engine/spec.md`
+- `chartbase/sph/spec.md`
 
-*   **`rizu/`**: This directory contains the modern, recently rewritten game code. New development and features are primarily focused here.
-*   **`sphere/`**: This folder contains older code with an older structure. It is planned to be fully rewritten and integrated into the `rizu/` folder eventually.
-*   **`sea/`**: This directory contains code related to the website, server-side logic, and some shared code components.
-*   **`aqua/`**: A general-purpose Lua library with various utility modules.
-*   **`3rd-deps/`**: Third-party dependencies.
-*   **`chartbase/`**: Contains parsers for various rhythm game chart formats (e.g., bms, osu, stepmania).
+## Building And Running
 
-## Building and Running
+Run the game with the bundled LÖVE launchers:
+- `game-appimage`
+- `game-macos`
+- `game-win64.bat`
 
-The project can be run directly from the source using the LÖVE engine.
-
-**To run the game:**
-
-The game is distributed with LÖVE bundled. Use the provided `game-*` scripts to start it:
--   `game-linux` for Linux
--   `game-macos` for macOS
--   `game-win64.bat` for Windows
-
-**To run tests:**
-
-The project includes a testing framework. Tests can be run from the command line using the following command structure:
+Run tests with:
 
 ```bash
 ./test [file_pattern] [method_pattern]
 ```
 
-*   `file_pattern` (optional): A pattern to filter which test files to run (e.g., `rizu/gameplay/GameplayTimings_test.lua`).
-*   `method_pattern` (optional): A pattern to filter specific test methods within a file.
-
-For example, to run all tests in `rizu/gameplay/GameplayTimings_test.lua`:
+Examples:
 
 ```bash
 ./test rizu/gameplay/GameplayTimings_test.lua
+./test rizu/build
 ```
 
-## Development Conventions
+## Code Conventions
 
-The codebase is written in Lua and follows a modular structure. It uses a custom class implementation and a package loader.
+### Lua Style
 
-The project uses a custom decorator system (`aqua/deco.lua`) for features like profiling and type checking.
+- Follow `.editorconfig`: use tabs for indentation and do not indent empty lines.
+- Omit empty `:new()` constructors.
+- Avoid using Lua global names like `type`, `table`, `string`, or `pairs` as locals. If needed, prefix with `_`.
+- Prefer minimal comments and use EmmyLua for API documentation.
 
-The `.editorconfig` file in the root of the repository specifies the coding style for the project. It is recommended to use an editor with EditorConfig support to ensure consistent coding style.
+### Naming And Namespaces
 
-*   **Indentation:** Tabs should be used for indentation. Do not add indentation to empty lines.
-*   **Constructors:** Empty `:new()` methods in class definitions should be omitted.
-*	**Class Naming & Namespacing:**
-	*	**Legacy Style:** Use `prefix.ClassName` (e.g., `sea.UserConnectionsRepo`). Avoid deep nesting like `sea.app.repos.UserConnectionsRepo`.
-	*	**Mandate:** Class names (in `@class` annotations and code) CANNOT be derived solely from file paths. You MUST read the file's definition or rely on existing usage in the codebase to determine the correct namespace and class name.
-	*	**Modern Style (`rizu.*`):** Follows a hierarchical, directory-based namespacing convention.
-		*	**Namespaces:** Use concise lowercase names (e.g., `rizu.library`). Namespaces do not have to match the full directory path; a module-level prefix is preferred (e.g., all classes in `rizu/library/` and its subdirectories should use the `rizu.library` prefix).
-		*	**Classes:** Named after their PascalCase filename (e.g., `rizu.library.Library`, `rizu.library.LocationsRepo`).
-		*	**Suffixes:** Use semantic suffixes for component roles: `Repo` for database access, `Generator` for data transformation, `Task` for long-running operations, `Manager` for high-level coordination.
-		*	**File Alignment:** The filename MUST match the class name (e.g., `rizu.library.LocationsRepo` must be in `rizu/library/repos/LocationsRepo.lua`).
-		*	**Interfaces:** Prefixed with `I` (e.g., `rizu.library.ITaskContext`).
-		*	**Encapsulation:** Implementations are grouped by feature in subdirectories (e.g., `rizu/library/tasks/`, `rizu/library/generators/`).
+- Do not derive class names only from file paths. Read the file definition or existing usages first.
+- Legacy modules use `prefix.ClassName` naming such as `sea.UserConnectionsRepo`.
+- Modern `rizu.*` modules use concise lowercase namespaces with PascalCase class names.
+- Use semantic suffixes:
+  - `Repo` for database or storage access
+  - `Generator` for data transformation
+  - `Task` for long-running orchestration
+  - `Manager` for high-level coordination
+- Filenames must match the class name.
+- Interfaces are prefixed with `I`.
 
-*   **Shared Memory:** Use the `web.SharedMemory` class (`aqua/web/nginx/SharedMemory.lua`) to access OpenResty shared dictionaries. Dictionaries must be defined in `nginx_config.lua` under the `shared_dicts` table to be automatically included in the generated `nginx.conf`.
-    *   **Cross-Worker Communication:** For communication between different nginx workers/connections, use shared memory queues (e.g., `aqua/icc/SharedMemoryQueue.lua`). These queues should store messages encoded as strings (using `icc.StringBufferPeer`).
-*   **Repository Pattern for Shared Memory:** Follow the repository pattern for shared memory access. Create a dedicated repo class (e.g., `sea.UserConnectionsRepo`) that wraps the `ISharedDict` and provides semantic methods. These repos should be initialized in `sea.Repos` using the `SharedMemory` instance passed from `App`.
-*   **ICC / Remotes:** ICC stands for **Inter-Context Communication**. It is used for communication between different contexts, such as between the server and client (via websockets) or between different threads (using `ThreadRemote`). Classes ending in `Remote` (e.g., `ServerRemote`) are the primary interfaces for ICC. They typically have a corresponding `Validation` wrapper (e.g., `ServerRemoteValidation`) and require methods to be whitelisted in `sea/app/remotes/whitelist.lua`.
-    *   **Field Tooltips:** `IClientRemoteContext` and `IServerRemoteContext` are used as base classes to provide EmmyLua tooltips for common fields (like `user`, `session`, `ip`, `port`). These specific classes should only contain field definitions, not methods.
-    *   **Architecture (Proxies & Remotes):**
-        *   **`icc.Remote` (The Proxy):** On the caller's side, a `Remote` object acts as a proxy. Indexing it (`remote.path.to.method`) records the access path. Calling it sends an `icc.Message` containing the path and arguments to the peer.
-        *   **Validation Wrappers:** To provide type safety and IDE support, `Remote` objects are usually wrapped in classes like `ClientRemoteValidation`. These wrappers mirror the remote API and forward calls to the underlying `Remote` proxy.
-        *   **`icc.RemoteHandler` (The Dispatcher):** On the receiver's side, a `RemoteHandler` receives the message. It traverses its own "real" object (e.g., `ServerRemote`) using the path from the message to find the corresponding function.
-        *   **Context Injection:** Before calling the function, `RemoteHandler` injects context (like `ip`, `port`, `user`) into the `self` object of the handler. These fields correspond to those defined in `IServerRemoteContext` and `IClientRemoteContext`.
-    *   **Message Encoding:** ICC messages (`icc.Message`) must be encoded using `string.buffer` and compressed (via `icc.StringBufferPeer`) when stored in shared memory, as OpenResty shared dictionaries only support string or number values in lists.
-    *   **Asynchronous Delivery:** Use `ngx.thread.spawn` within websocket resources to create background loops that pop messages from shared memory queues and deliver them to clients.
-*   **Test Files:** Test files are important and should not be deleted.
-*   **EmmyLua Table Notation:** Prefer `{[KeyType]: ValueType}` notation for tables instead of `table<KeyType, ValueType>`.
-*   **Variable Naming (Conflicts with Globals):** Avoid using Lua global names (e.g., `type`, `table`, `string`, `pairs`) for local variables. If you must use such a name, prefix it with an underscore (e.g., `_type`).
+### Type Annotations
 
-## Standards & Traceability
+- Preserve and improve EmmyLua annotations when touching code.
+- Prefer precise table annotations such as `{[KeyType]: ValueType}` over `table<KeyType, ValueType>`.
+- Keep class annotations aligned with the actual runtime class name and namespace.
+- For web resources, use the concrete class annotation pattern described in `sea/spec.md`.
 
-To ensure long-term maintainability and alignment between design and implementation, the following standards are established:
+## Testing Rules
 
-*   **Living Specifications:**
-    *   New features or major changes MUST be documented in a `spec.md` file within the relevant module directory.
-    *   **Structure**: A `spec.md` should lead with the **Goal** and **User Experience**, providing high-level context before diving into implementation details.
-    *   **Architecture Decisions (ADR)**: Significant architectural choices should be documented directly within the `spec.md` in an `## Architecture Decisions` or `## ADR` section to keep context together.
-    *   **Precise Terminology**: Avoid ambiguous terms. For example, do not use "difficulty" when referring to a chart variation or file; reserve it strictly for complexity metrics (star ratings, MSD, etc.).
-*   **Documentation Locality:**
-    *   Keep documentation as close to the code as possible.
-    *   Use EmmyLua for API-level documentation.
-    *   Use `spec.md` for behavioral and architectural documentation.
+- Test files are first-class and must not be deleted.
+- Test files should use the `_test.lua` suffix and stay next to the source they cover.
+- Always run relevant tests after making changes.
+- Prefer tests that validate behavior, invariants, failure modes, and internal contracts over tests that restate implementation details.
+- If a module moves or is renamed, move and update its tests too.
 
-## Rizu Module Overview
+Test structure:
+- A test file returns a table of test functions.
+- Each test function receives `t` of type `testing.T`.
+- Use the assertion helpers on `t` such as `eq`, `ne`, `aeq`, `tdeq`, `has_error`, and `has_not_error`.
 
-The `rizu/` directory contains the modern, modular implementation of the game's core systems. It is organized into several key sub-modules:
+For ICC or shared-memory communication tests:
+- Use `FakeSharedDict`.
+- Prefer no-return remotes for one-way inter-connection messaging.
+- Assert queue payloads directly with `t:tdeq(...)`.
 
-*   **`rizu.engine`**: Low-level game logic and engine components.
-    *   `RhythmEngine`: The core logic for processing notes and timing.
-    *   `audio`: Modular audio system with backends (e.g., BASS).
-    *   `visual`: Visual components like sprites and playfield rendering logic.
-    *   `input`: Low-level input event handling (Physic and Virtual events).
-*   **`rizu.gameplay`**: High-level management of gameplay sessions.
-    *   `GameplaySession`: Coordinates the engine, players (manual/auto/replay), and recorders.
-    *   `GameplayInteractor`: Bridges the game session with the UI and external services.
-*   **`rizu.library`**: Manages the local chart database and collections.
-    *   `Library`: Main entry point for chart discovery and management.
-    *   `repos`: Database access layer (e.g., `ChartsRepo`, `CollectionsRepo`).
-*   **`rizu.select`**: Logic for song and score selection.
-    *   `ChartSelector`: Handles filtering, searching, and sorting of charts.
-    *   `SelectionState`: Maintains the current user selection and navigation state.
-*   **`rizu.preview`**: Handles audio, BGA, and note chart previews.
-    *   `PreviewModel`: Coordinated preview system with master clock synchronization.
-*   **`rizu.loop`**: The main game loop, update/draw cycles, and state management.
-*   **`rizu.files`**: Resource loading, discovery, and file system abstractions.
-*   **`rizu.game`**: Top-level game coordination and global timers.
+## Documentation Rules
 
-### Performance & Benchmarking
+- Keep documentation close to the code.
+- New features or major behavior changes must be documented in a nearby `spec.md`.
+- Each `spec.md` should begin with:
+  - `## Goal`
+  - `## User Experience`
+- Significant architectural choices should be recorded in an `## Architecture Decisions` or `## ADR` section.
+- Use precise terminology. For example, do not use "difficulty" when you mean chart variation or chart file.
 
-The project prioritizes high-performance Lua code, especially within the gameplay engine.
+## When To Create Or Update A Spec
 
-*   **Benchmarking:** When making core changes, use isolated benchmark scripts (running with `luajit`) to verify that optimizations are not elided by the JIT and that they provide measurable improvements.
+Update a nearby `spec.md` when you:
+- add a new subsystem or major workflow,
+- change behavior that affects users or other modules,
+- introduce new architectural constraints,
+- formalize conventions that future agents need in that folder.
 
-### Testing
-
-The project uses a custom testing framework. Test files are first-class citizens and must be maintained rigorously.
-
-1.  **File Naming:** Test files should be named with a `_test.lua` suffix and should reside in the same directory as the source file they test (e.g., `MyRepo.lua` -> `MyRepo_test.lua`).
-2.  **Preservation:** NEVER delete test files during refactoring. If a module is moved or renamed, its corresponding tests must be moved and updated to reflect the new structure.
-3.  **Verification:** ALWAYS run project-specific tests after making changes. Fulfill the user's request thoroughly by including automated tests; a change is incomplete without verification logic.
-4.  **Build System Tests:** For build-system changes, prefer tests that validate the build system's internal logic, task orchestration, spec loading, action dispatch, dependency handling, and validation behavior. Do not default to tests that only assert produced filenames, URLs, archives, or packaged outputs. The build pipeline itself should validate produced artifacts and packaging results when it runs.
-5.  **Test Quality:** Prefer tests that verify behavior, invariants, and failure modes over tests that merely restate implementation details. Good tests should fail when user-visible behavior or an important internal contract breaks.
-6.  **Avoid Low-Value Tests:** Do not add tests that only mirror constants, local variable choices, hardcoded strings, table layouts, or other implementation details unless those details are themselves the intended contract.
-7.  **Internal Contracts:** When code is infrastructural, test the module's internal contracts directly: validation rules, dependency ordering, skip behavior, error handling, state transitions, and interactions between components.
-8.  **Meaningful Scope:** If a change does not support a meaningful automated test, do not force a shallow one. Prefer documenting why automated coverage is limited and rely on existing runtime validation or explicit manual verification steps.
-9.  **Structure:** A test file should return a table containing test functions. Each test function receives a `t` object of type `testing.T`.
-10.  **Assertions:** Use the methods provided by the `t` object for assertions:
-    *   `t:eq(got, expected, msg?)`: Equality check (`==`).
-    *   `t:ne(got, expected, msg?)`: Inequality check (`!=`).
-    *   `t:raweq(got, expected, msg?)`: Raw equality check.
-    *   `t:rawne(got, expected, msg?)`: Raw inequality check.
-    *   `t:lt(got, expected, msg?)`: Less-than comparison.
-    *   `t:le(got, expected, msg?)`: Less-than-or-equal comparison.
-    *   `t:aeq(got, expected, eps, msg?)`: Approximate equality with epsilon for numbers; otherwise normal equality.
-    *   `t:typeof(got, expected_type)`: Type check against the expected Lua type name.
-    *   `t:teq(got, expected, msg?)`: Shallow table equality check.
-    *   `t:tdeq(got, expected, msg?)`: Deep equality check for tables. Can be used to compare `icc.Message` objects directly.
-    *   `t:has_error(func, ...)`: Asserts that calling `func(...)` raises an error.
-    *   `t:has_not_error(func, ...)`: Asserts that calling `func(...)` does not raise an error.
-    *   `t:assert(cond, err_msg?)`: Basic assertion.
-
-#### Testing Inter-Connection Communication
-
-When testing code that sends messages to other connections (using `getPeers()`):
-1. Use `FakeSharedDict` to simulate nginx shared memory.
-2. Remember that inter-connection calls via shared memory queues are one-way. Use "no-return" remotes (e.g., `-remote`) to avoid yielding in contexts that don't support it.
-3. Assert on the contents of the queue using `t:tdeq(popped, Message(...))`.
-
-Example:
-
-```lua
-local MyModule = require("MyModule")
-local test = {}
-
----@param t testing.T
-function test.my_feature(t)
-    t:eq(MyModule.add(1, 1), 2)
-end
-
-return test
-```
-
-### Web Development
-
-The website is built with a custom Lua-based framework.
-
-*   **Routing:** The `sea/` directory contains the web-related code. Routing is handled by "Resource" classes (e.g., `sea/shared/http/IndexResource.lua`). New routes can be added by creating a new resource and adding it to `sea/app/Resources.lua`.
-*   **Templating:** The frontend uses `etlua` for templating, allowing Lua code to be embedded in HTML files.
-*   **HTMX:** The frontend uses HTMX. For links that need to perform a full page navigation (like external links or redirects), you must add `hx-boost="false"` to the `<a>` tag to prevent HTMX from intercepting the click. For external links, using the full URL is sufficient.
-*   **Markdown:** Wiki pages (`sea/wiki/`) are written in a Markdown dialect that is processed by `etlua`. This allows embedding Lua code, for example, to get configuration from `brand.lua`: `[link](<%= brand.url %>/some/path)`.
-*   **Class Annotations:** EmmyLua annotations are used for classes. Web resources should have a class annotation following the pattern `---@class sea.MyResource: web.IResource`.
-
-### Gameplay Architecture
-
-The gameplay logic is centered around the single-play session attempt.
-
-*   **`rizu.GameplaySession`**: The core logic for a single gameplay attempt. It coordinates the `RhythmEngine` (logic), `AutoplayPlayer`/`ReplayPlayer` (automated input), and `ReplayRecorder` (output).
-    *   **Lifecycle**: A new instance of `GameplaySession` must be created for every play or retry. It is initialized with a `RhythmEngine` instance.
-    *   **Play Types**: Use `setPlayType(type)` where type is `"manual"`, `"auto"`, or `"replay"`. This determines the source of input events and ensures exclusive update logic.
-*   **`rizu.gameplay.GameplayInteractor`**: Acts as a bridge between the monolithic `GameController`/UI and the `GameplaySession`. It handles peripheral concerns like Discord Rich Presence, UI notifications, and starting/stopping the session.
-*   **Rhythm Engine States**:
-    *   `RhythmEngine:hasResult()`: Determines if the current play should produce a score. It requires a minimum hit count and valid accuracy.
-    *   `autoplay` and `promode` flags are managed at the session level, not inside the core engine logic (though older `sphere` code might still have legacy flags).
-
-### Audio Architecture
-
-The `rizu` audio system follows a modular, interface-based design using the Provider pattern to support multiple backends.
-
-*   **Core Interfaces**:
-    *   `rizu.audio.IProvider`: Factory for creating decoders and sources.
-    *   `rizu.audio.IDecoder`: Interface for decoding audio data into raw samples.
-    *   `rizu.audio.ISource`: Interface for audio playback (play, pause, setRate, getPosition).
-*   **Backends**:
-    *   **`bass`**: The primary backend using the BASS library. Located in `rizu/engine/audio/bass/`.
-    *   **`fake`**: A mock backend for testing or when audio is disabled. Located in `rizu/engine/audio/fake/`.
-*   **Key Components**:
-    *   `rizu.audio.Engine`: The main controller that coordinates background music (`source`) and foreground hitsounds (`foregroundSource`).
-    *   `rizu.audio.SoftwareMixer`: A custom software-level mixer used for combining multiple audio streams (e.g., for rendering waveforms or O2Jam previews).
-*   **Naming Convention**: Backend implementations are namespaced under their respective folders (e.g., `rizu.audio.bass.Decoder`, `rizu.audio.fake.Source`).
-
-### SPH Chart Format
-
-The `.sph` format is a text-based format for rhythm game charts.
-
-*   **Notes Section**: Lines in the `# notes` section follow the format `"XXXX =Y"`.
-    *   `XXXX`: A bitmask or representation of notes in columns.
-    *   `Y`: The absolute time of the line in seconds.
-*   **Timing**: The engine requires at least **two lines** in the `# notes` section to compute the timing and average beat duration (tempo). The SPH format **does not support explicit tempo declarations**; tempo is always computed based on the time difference between lines.
-
-### Gameplay Testing Patterns
-
-When writing tests for gameplay logic or the rhythm engine:
-
-*   **Time Advancement**: Use `GameplaySession:update(global_time)` to advance time.
-*   **Initialization Order**: Always set the global time (`re:setGlobalTime(t)`) before calling `re:play()` or `re:update()` to ensure internal timers are correctly initialized.
-*   **TestChartFactory**: Use `sea.chart.TestChartFactory` for programmatic chart creation in tests. It produces minimal `Chart`, `Chartmeta`, and `Chartdiff` without parsing files.
-    ```lua
-    local TestChartFactory = require("sea.chart.TestChartFactory")
-    local tcf = TestChartFactory()
-    local res = tcf:create("4key", {
-        {time = 1, column = 1}, -- Tap note
-        {time = 2, column = 2, end_time = 3}, -- Long note
-        {time = 4, velocity = {0.5}}, -- SV change (current=0.5, local=1, global=1)
-    })
-    -- Use res.chart, res.chartmeta, res.chartdiff
-    ```
+Keep root `AGENTS.md` focused on universal rules. Put feature-specific details in the closest relevant `spec.md`.
