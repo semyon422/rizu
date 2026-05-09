@@ -171,6 +171,18 @@ Casting rules:
 - Do not use `---@cast` to lie about a value just to satisfy diagnostics.
 - If repeated casts are needed, prefer reshaping the code or adding an earlier annotation so the type becomes naturally inferable.
 
+FFI binding rules:
+- FFI-heavy modules often produce many `unknown` types around `ffi.C`, `ffi.load(...)`, `ffi.new(...)`, `ffi.cast(...)`, pointer arithmetic, and cdata field access. Expect to add more explicit typing there than in ordinary Lua modules.
+- Use typed wrapper classes for important cdata shapes, following the pattern in `aqua/7z.lua`.
+- Add `---@class` declarations for meaningful pointer or struct views that LuaLS cannot infer well, for example typed pointers, stream structs, allocator structs, or exposed property structs.
+- Put callable function-pointer members and known struct fields on those wrapper classes with `---@field`.
+- When `ffi.new()` returns an array or out-parameter buffer, annotate the Lua view you actually rely on, such as `{[0]: c7z.ISzAlloc}` for single-element pointer arrays.
+- Prefer annotating the result immediately after allocation or cast rather than scattering `no-unknown` suppressions across later field reads and writes.
+- For raw byte buffers or pointer-indexed memory, introduce a narrow alias or wrapper class when indexed access is part of the contract.
+- Keep FFI declarations and their annotations aligned with the real native headers and ABI layout. If the header changes, update both the `ffi.cdef` block and the corresponding EmmyLua shape.
+- Add comments when struct layout must stay in sync with a vendored SDK or external binary, especially when a mismatch could cause silent memory corruption.
+- Use narrow suppressions only where LuaLS still cannot model valid dynamic FFI behavior after reasonable wrapper typing.
+
 Diagnostic suppression rules:
 - Avoid file-wide or broad diagnostic disables for annotation issues.
 - A local `---@diagnostic disable-next-line: no-unknown` or `disable-line` is acceptable only when:
@@ -198,6 +210,7 @@ Patterns to prefer:
 - Annotate resource classes, repos, DTO-like records, and config tables explicitly.
 - For validator-heavy code, refine after runtime checks with `---@cast` instead of defaulting entire flows to `any`.
 - For dynamic parse loops such as `gmatch`, prefer a narrow suppression only if LuaLS cannot model the iterator variables after a reasonable annotation pass.
+- For FFI bindings, use `aqua/7z.lua` as a model for pairing `ffi.cdef` declarations with EmmyLua wrapper classes for cdata pointers, function-pointer fields, and out-parameter arrays.
 
 ## Testing Rules
 
