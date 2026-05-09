@@ -22,10 +22,6 @@
 	"workspace.maxPreload": 10000,
 	"workspace.ignoreDir": [
 		".vscode",
-		"*/bench",
-		"*/spec",
-		"*/test",
-		"*/tests",
 		"userdata/skins/ignore"
 	],
 	"workspace.library": [
