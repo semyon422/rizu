@@ -149,8 +149,10 @@ Function rules:
   - implementations of inherited or interface methods whose parameter and return types are already inferred from the parent contract.
 - Annotate returns with `---@return` for public functions, multi-return functions, and any function returning optional values or typed tables.
 - Use one `---@return` per returned position, matching the actual order of values.
+- Do not add `---@return nil` for functions that return nothing.
 - Use `Type?` for optional values instead of vague `any` when absence is the real contract.
 - Prefer domain aliases and named classes over `table`, `function`, or `any` whenever the real type is known.
+- If a function returns nothing, use bare `return` or fall through naturally. Do not write `return nil` unless `nil` is an intentional value in a declared return position.
 
 Local type rules:
 - Use `---@type` for empty table initialization when later writes would otherwise produce unknown fields or unknown index types.
