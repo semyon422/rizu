@@ -78,7 +78,7 @@ function LessChord:apply(config, chart)
 				chords[time] = {
 					time = time,
 					notes = {time_notes[time], note},
-					columnSizes = {unpack(columnSizes)}
+					columnSizes = {unpack(columnSizes)},
 				}
 			end
 

@@ -49,7 +49,7 @@ function HitErrorView:load()
 	self.sequence = score_engine.sequence
 end
 
-local miss = { 1, 0, 0, 1 }
+local miss = {1, 0, 0, 1}
 
 ---@param value any
 ---@param unit any

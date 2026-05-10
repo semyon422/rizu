@@ -33,9 +33,9 @@ end
 
 function test.one_note(t)
 	local s = {
-		0b0, 0b0, 0b0,  -- header
-		0b01000000,  -- 0/1 new line
-		0b11000000,  -- 1000
+		0b0, 0b0, 0b0, -- header
+		0b01000000, -- 0/1 new line
+		0b11000000, -- 1000
 	}
 
 	local str = bytes_to_string(s)
@@ -47,21 +47,21 @@ end
 
 function test.visual_side(t)
 	local s = {
-		0b0, 0b0, 0b0,  -- header
+		0b0, 0b0, 0b0, -- header
 
-		0b01000000,  -- 0/1 new line
-		0b11000000,  -- 1000
+		0b01000000, -- 0/1 new line
+		0b11000000, -- 1000
 
-		0b01000000,  -- 0/1 new line
-		0b11000001,  -- 0100
+		0b01000000, -- 0/1 new line
+		0b11000001, -- 0100
 
 		-- - =1
-		0b01000000,  -- 0/1 new line
-		0b00000001,  -- add 1s
+		0b01000000, -- 0/1 new line
+		0b00000001, -- add 1s
 
 		-- - =2
-		0b01000000,  -- 0/1 new line
-		0b00000001,  -- add 1s
+		0b01000000, -- 0/1 new line
+		0b00000001, -- add 1s
 	}
 
 	local str = bytes_to_string(s)
@@ -87,49 +87,49 @@ end
 
 function test.complex_offsets(t)
 	local s = {
-		0b0, 0b0, 0b0,  -- header
+		0b0, 0b0, 0b0, -- header
 
 		-- - =0
-		0b01000000,  -- 0/1 new line
-		0b00000000,  -- add 0
+		0b01000000, -- 0/1 new line
+		0b00000000, -- add 0
 
 		-- - =1
-		0b01000000,  -- 0/1 new line
-		0b00000001,  -- add 1
+		0b01000000, -- 0/1 new line
+		0b00000001, -- add 1
 
 		-- - =35
-		0b01000000,  -- 0/1 new line
-		0b00000010,  -- add 2
-		0b00000001,  -- add 32
+		0b01000000, -- 0/1 new line
+		0b00000010, -- add 2
+		0b00000001, -- add 32
 
 		-- - =35.5
-		0b01000000,  -- 0/1 new line
-		0b00100010,  -- add 0 + 512/1024, int diff = 0
-		0b00000000,  -- add 0/1024
+		0b01000000, -- 0/1 new line
+		0b00100010, -- add 0 + 512/1024, int diff = 0
+		0b00000000, -- add 0/1024
 
 		-- - =36.5
-		0b01000000,  -- 0/1 new line
-		0b00100110,  -- add 1 + 512/1024, int diff <= 7
-		0b00000000,  -- add 0/1024
+		0b01000000, -- 0/1 new line
+		0b00100110, -- add 1 + 512/1024, int diff <= 7
+		0b00000000, -- add 0/1024
 
 		-- - =44.5
-		0b01000000,  -- 0/1 new line
-		0b00001000,  -- add 8
-		0b00100010,  -- add 0 + 512/1024, int diff <= 31
-		0b00000000,  -- add 0/1024
+		0b01000000, -- 0/1 new line
+		0b00001000, -- add 8
+		0b00100010, -- add 0 + 512/1024, int diff <= 31
+		0b00000000, -- add 0/1024
 
 		-- - =76.5
-		0b01000000,  -- 0/1 new line
-		0b00011111,  -- add 31
-		0b00100110,  -- add 1 + 512/1024, int diff <= 38
-		0b00000000,  -- add 0/1024
+		0b01000000, -- 0/1 new line
+		0b00011111, -- add 31
+		0b00100110, -- add 1 + 512/1024, int diff <= 38
+		0b00000000, -- add 0/1024
 
 		-- - =116.5
-		0b01000000,  -- 0/1 new line
-		0b00001000,  -- add 8
-		0b00000001,  -- add 32
-		0b00100010,  -- add 0 + 512/1024, else
-		0b00000000,  -- add 0/1024
+		0b01000000, -- 0/1 new line
+		0b00001000, -- add 8
+		0b00000001, -- add 32
+		0b00100010, -- add 0 + 512/1024, else
+		0b00000000, -- add 0/1024
 	}
 
 	local str = bytes_to_string(s)
@@ -152,7 +152,7 @@ end
 
 function test.complex_fractions(t)
 	local s = {
-		0b0, 0b0, 0b0,  -- header
+		0b0, 0b0, 0b0, -- header
 
 		-- -
 		0b01000000,
@@ -164,16 +164,16 @@ function test.complex_fractions(t)
 		0b01100010,
 
 		-- - +1/5
-		0b01010100,  -- 1/16, double, 5
-		0b00010000,  -- 16
+		0b01010100, -- 1/16, double, 5
+		0b00010000, -- 16
 
 		-- - +1/21
-		0b01110110,  -- 1/12, double, 7
-		0b00000100,  -- 4
+		0b01110110, -- 1/12, double, 7
+		0b00000100, -- 4
 
 		-- - +255/256
-		0b01011111,  -- 1/16, double, 16
-		0b11111111,  -- 255
+		0b01011111, -- 1/16, double, 16
+		0b11111111, -- 255
 	}
 
 	local str = bytes_to_string(s)
@@ -187,7 +187,7 @@ function test.complex_fractions(t)
 		{time = {255, 256}},
 	})
 
-	lines[#lines].time = Fraction(511, 512)  -- will be approximated to 255/256
+	lines[#lines].time = Fraction(511, 512) -- will be approximated to 255/256
 
 	local _str = SphPreview:encode(lines)
 	t:eq(_str, str)
@@ -196,33 +196,33 @@ end
 function test.complex_case(t)
 	local s = {
 		0b0,
-		0xFE, 0xFF,  -- -2s
+		0xFE, 0xFF, -- -2s
 
 		-- 1100 +1/2
-		0b01001000,  -- +1/2
-		0b11000000,  -- 1000
-		0b11000001,  -- 0100
+		0b01001000, -- +1/2
+		0b11000000, -- 1000
+		0b11000001, -- 0100
 
 		-- - =-1.49609375 // -2 + 516/1024
-		0b01000000,  -- 0/1 new line
-		0b00100010,  -- add 0 + 512/1024
-		0b00000100,  -- add 4/1024
+		0b01000000, -- 0/1 new line
+		0b00100010, -- add 0 + 512/1024
+		0b00000100, -- add 4/1024
 
 		-- 1000
-		0b01000000,  -- 0/1 new line
-		0b11000000,  -- 1000
+		0b01000000, -- 0/1 new line
+		0b11000000, -- 1000
 
 		-- 1000 +11/12
-		0b01101011,  -- 11/12
-		0b11000000,  -- 1000
+		0b01101011, -- 11/12
+		0b11000000, -- 1000
 
 		-- - =5 // -2 + 7
-		0b01000000,  -- 0/1 new line
-		0b00000111,  -- add 7s and set frac part to 0
+		0b01000000, -- 0/1 new line
+		0b00000111, -- add 7s and set frac part to 0
 
 		-- 1000 +1/2
-		0b01001000,  -- +1/2
-		0b11000000,  -- 1000
+		0b01001000, -- +1/2
+		0b11000000, -- 1000
 	}
 
 	local str = bytes_to_string(s)
@@ -271,29 +271,29 @@ end
 function test.complex_case_2(t)
 	local s = {
 		0b1,
-		0xFE, 0xFF,  -- -2s
+		0xFE, 0xFF, -- -2s
 
 		-- 1111111111
-		0b01000000,  -- 0/1 new line
-		0b11011111,  -- 1111100000
-		0b11111111,  -- 0000011111
+		0b01000000, -- 0/1 new line
+		0b11011111, -- 1111100000
+		0b11111111, -- 0000011111
 
 		-- 3000
-		0b01000000,  -- 0/1 new line
-		0b10000001,  -- 3000
+		0b01000000, -- 0/1 new line
+		0b10000001, -- 3000
 
 		-- 1300
-		0b01000000,  -- 0/1 new line
-		0b10000010,  -- 0300
-		0b11000001,  -- 1000
+		0b01000000, -- 0/1 new line
+		0b10000010, -- 0300
+		0b11000001, -- 1000
 
 		-- - =-2
-		0b01000000,  -- 0/1 new line
-		0b00000000,  -- add 0/1
+		0b01000000, -- 0/1 new line
+		0b00000000, -- add 0/1
 
 		-- - =5 // -2 + 7
-		0b01000000,  -- 0/1 new line
-		0b00000111,  -- add 7s and set frac part to 0
+		0b01000000, -- 0/1 new line
+		0b00000111, -- add 7s and set frac part to 0
 	}
 
 	local str = bytes_to_string(s)
@@ -341,145 +341,145 @@ end
 
 function test.visual_merge(t)
 	local _lines = {
-		{offset=0},
-		{notes={{column=1,type="1"}},same=true},
-		{notes={{column=2,type="1"}},same=true},
-		{notes={{column=3,type="1"}}},
+		{offset = 0},
+		{notes = {{column = 1, type = "1"}}, same = true},
+		{notes = {{column = 2, type = "1"}}, same = true},
+		{notes = {{column = 3, type = "1"}}},
 		{},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true,true},offset=0},
-		{notes={nil,nil,true}},
+		{notes = {true, true}, offset = 0},
+		{notes = {nil, nil, true}},
 		{},
 	})
 
 	local str = SphPreview:encodeLines(_lines, 1)
 	local lines = SphPreview:decodeLines(str)
 
-	t:tdeq(lines, {  -- no same lines after decode
-		{notes={{column=1,type="1"},{column=2,type="1"}},offset=0},
-		{notes={{column=3,type="1"}}},
+	t:tdeq(lines, { -- no same lines after decode
+		{notes = {{column = 1, type = "1"}, {column = 2, type = "1"}}, offset = 0},
+		{notes = {{column = 3, type = "1"}}},
 		{},
 	})
 end
 
 function test.collision_short_short(t)
 	local _lines = {
-		{notes={{column=1,type="1"}}},
-		{notes={{column=1,type="1"}},same=true},
+		{notes = {{column = 1, type = "1"}}},
+		{notes = {{column = 1, type = "1"}}, same = true},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
+		{notes = {true}},
 	})
 end
 
 function test.collision_short_long(t)
 	local _lines = {
-		{notes={{column=1,type="1"}}},
-		{notes={{column=1,type="2"}},same=true},
-		{notes={{column=1,type="3"}}},
+		{notes = {{column = 1, type = "1"}}},
+		{notes = {{column = 1, type = "2"}}, same = true},
+		{notes = {{column = 1, type = "3"}}},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {false}},
 	})
 
 	local _lines = {
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="1"}},same=true},
-		{notes={{column=1,type="3"}}},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "1"}}, same = true},
+		{notes = {{column = 1, type = "3"}}},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {false}},
 	})
 end
 
 function test.collision_long_short(t)
 	local _lines = {
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="3"}}},
-		{notes={{column=1,type="1"}},same=true},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "3"}}},
+		{notes = {{column = 1, type = "1"}}, same = true},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {false}},
 	})
 
 	local _lines = {
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="1"}}},
-		{notes={{column=1,type="3"}},same=true},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "1"}}},
+		{notes = {{column = 1, type = "3"}}, same = true},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {false}},
 	})
 end
 
 function test.collision_short_inside_long(t)
 	local _lines = {
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="1"}}},
-		{notes={{column=1,type="3"}}},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "1"}}},
+		{notes = {{column = 1, type = "3"}}},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {}},
+		{notes = {false}},
 	})
 end
 
 function test.collision_long_inside_long(t)
 	local _lines = {
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="3"}}},
-		{notes={{column=1,type="3"}}},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "3"}}},
+		{notes = {{column = 1, type = "3"}}},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={}},
-		{notes={}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {}},
+		{notes = {}},
+		{notes = {false}},
 	})
 end
 
 function test.collision_long_long_merge(t)
 	local _lines = {
-		{notes={{column=1,type="2"}}},
-		{notes={{column=1,type="3"}}},
-		{notes={{column=1,type="2"}},same=true},
-		{notes={{column=1,type="3"}}},
+		{notes = {{column = 1, type = "2"}}},
+		{notes = {{column = 1, type = "3"}}},
+		{notes = {{column = 1, type = "2"}}, same = true},
+		{notes = {{column = 1, type = "3"}}},
 	}
 
 	local plines = SphPreview:linesToPreviewLines(_lines)
 	t:tdeq(plines, {
-		{notes={true}},
-		{notes={}},
-		{notes={false}},
+		{notes = {true}},
+		{notes = {}},
+		{notes = {false}},
 	})
 end
 
 function test.continuation_bytes(t)
 	local s = {
-		0b0, 0b0, 0b0,  -- header
+		0b0, 0b0, 0b0, -- header
 
 		-- Test frac_part with high bit (n = 128)
 		0b01000000, -- new line

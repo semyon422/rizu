@@ -252,7 +252,7 @@ function HitObjects:encode()
 			object.soundType,
 			extra
 		))
-	    ::continue::
+		::continue::
 	end
 
 	return out

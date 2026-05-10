@@ -28,7 +28,7 @@ noteskin:setImages({
 })
 
 local exponential = function(timeState)
-    return 0.375 ^ (2 * timeState.scaledVisualDeltaTime + 1) * 1080
+	return 0.375 ^ (2 * timeState.scaledVisualDeltaTime + 1) * 1080
 end
 
 local colors = noteskin.colors
@@ -42,11 +42,11 @@ local Head = {
 	oy = 0.5,
 	r = 0,
 	color = {color, color, color, color, colors.clear},
-	image = {"left", "down", "up", "right", "line"}
+	image = {"left", "down", "up", "right", "line"},
 }
 
 local ShortNote = {
-	Head = Head
+	Head = Head,
 }
 
 local LongNote = {
@@ -64,11 +64,14 @@ local playfield = BasePlayfield(noteskin)
 local tf = {{1 / 2, 0}, {0, 1 / 2}, 0, {0, 1 / 1080}, {0, 1 / 1080}, 0, 0, 0, 0}
 
 playfield:addBga({
-	transform = {{1 / 2, -16 / 9 / 2}, {0, -7 / 9 / 2}, 0, {0, 16 / 9}, {0, 16 / 9}, 0, 0, 0, 0}
+	transform = {{1 / 2, -16 / 9 / 2}, {0, -7 / 9 / 2}, 0, {0, 16 / 9}, {0, 16 / 9}, 0, 0, 0, 0},
 })
 playfield:enableCamera()
 playfield:addImageView({
-	x = -405 / 2, y = -405 / 2, w = 405, h = 405,
+	x = -405 / 2,
+	y = -405 / 2,
+	w = 405,
+	h = 405,
 	transform = tf,
 	image = "key.png",
 })

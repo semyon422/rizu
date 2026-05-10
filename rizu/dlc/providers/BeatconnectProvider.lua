@@ -18,13 +18,13 @@ function BeatconnectProvider:search(query, filters)
 	filters = filters or {}
 	local page = filters.page or 1
 	local status = filters.status or "ranked"
-	
+
 	-- Beatconnect API: q=query, m=3 (mania), s=status, p=page
 	local queryParams = {
 		q = query,
 		m = 3,
 		s = status,
-		p = page - 1 -- Assuming 0-based pagination
+		p = page - 1, -- Assuming 0-based pagination
 	}
 
 	local url = self.apiUrl .. "?" .. http_util.encode_query_string(queryParams)

@@ -68,7 +68,7 @@ function GameplayView:draw()
 		state == "play" and
 		not self.game.gameplayInteractor.autoplay and
 		not isPlaying
-		-- self.game.rhythmModel.inputManager.mode ~= "internal"
+	-- self.game.rhythmModel.inputManager.mode ~= "internal"
 	then
 		self.game.gameplayInteractor:pause()
 	end
@@ -134,28 +134,40 @@ function GameplayView:keypressed()
 	local gameplayInteractor = self.game.gameplayInteractor
 
 	local kp = just.keypressed
-	if kp(input.skipIntro) then gameplayInteractor:skipIntro()
-	elseif kp(input.offset.decrease) then offsetController:increaseLocalOffset(-0.001)
-	elseif kp(input.offset.increase) then offsetController:increaseLocalOffset(0.001)
-	elseif kp(input.offset.reset) then offsetController:resetLocalOffset()
-	-- elseif kp(input.timeRate.decrease) then gameplayInteractor:increaseTimeRate(-0.05)
-	-- elseif kp(input.timeRate.increase) then gameplayInteractor:increaseTimeRate(0.05)
-	elseif kp(input.playSpeed.decrease) then gameplayInteractor:increasePlaySpeed(-1)
-	elseif kp(input.playSpeed.increase) then gameplayInteractor:increasePlaySpeed(1)
+	if kp(input.skipIntro) then
+		gameplayInteractor:skipIntro()
+	elseif kp(input.offset.decrease) then
+		offsetController:increaseLocalOffset(-0.001)
+	elseif kp(input.offset.increase) then
+		offsetController:increaseLocalOffset(0.001)
+	elseif kp(input.offset.reset) then
+		offsetController:resetLocalOffset()
+		-- elseif kp(input.timeRate.decrease) then gameplayInteractor:increaseTimeRate(-0.05)
+		-- elseif kp(input.timeRate.increase) then gameplayInteractor:increaseTimeRate(0.05)
+	elseif kp(input.playSpeed.decrease) then
+		gameplayInteractor:increasePlaySpeed(-1)
+	elseif kp(input.playSpeed.increase) then
+		gameplayInteractor:increasePlaySpeed(1)
 	end
 
 	local shift = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
 	local ctrl = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
 	local state = self.game.pauseModel.state
 	if state == "play" then
-		if kp(input.pause) and not shift then gameplayInteractor:changePlayState("pause")
-		elseif kp(input.pause) and ctrl then self:quit()
-		elseif kp(input.quickRestart) then gameplayInteractor:changePlayState("retry")
+		if kp(input.pause) and not shift then
+			gameplayInteractor:changePlayState("pause")
+		elseif kp(input.pause) and ctrl then
+			self:quit()
+		elseif kp(input.quickRestart) then
+			gameplayInteractor:changePlayState("retry")
 		end
 	elseif state == "pause" then
-		if kp(input.pause) and not shift then gameplayInteractor:changePlayState("play")
-		elseif kp(input.pause) and ctrl then self:quit()
-		elseif kp(input.quickRestart) then gameplayInteractor:changePlayState("retry")
+		if kp(input.pause) and not shift then
+			gameplayInteractor:changePlayState("play")
+		elseif kp(input.pause) and ctrl then
+			self:quit()
+		elseif kp(input.quickRestart) then
+			gameplayInteractor:changePlayState("retry")
 		end
 	elseif state == "pause-play" and kp(input.pause) then
 		gameplayInteractor:changePlayState("pause")

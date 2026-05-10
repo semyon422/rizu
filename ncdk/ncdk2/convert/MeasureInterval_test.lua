@@ -39,7 +39,7 @@ function test.stop(t)
 	local p_0 = layer:getPoint(Fraction(0))
 	p_0._tempo = Tempo(60)
 
-	local p_1 = layer:getPoint(Fraction(1, 8))  -- 1/2
+	local p_1 = layer:getPoint(Fraction(1, 8)) -- 1/2
 	local p_2 = layer:getPoint(Fraction(1, 8), true)
 	p_1._stop = Stop(Fraction(1, 4))
 

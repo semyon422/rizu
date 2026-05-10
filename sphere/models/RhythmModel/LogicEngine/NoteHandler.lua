@@ -59,7 +59,7 @@ function NoteHandler:updateRange()
 		end
 	end
 
-	if not self.isPlayable then  -- bga columns
+	if not self.isPlayable then -- bga columns
 		self.endNoteIndex = math.min(self.startNoteIndex, #notes)
 		return
 	end

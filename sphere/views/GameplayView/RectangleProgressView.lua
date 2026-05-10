@@ -9,7 +9,7 @@ function RectangleProgressView:draw()
 	local tf = transform(self.transform)
 	love.graphics.replaceTransform(tf)
 
-    local x, y, w, h = self:getRectangle()
+	local x, y, w, h = self:getRectangle()
 
 	love.graphics.setColor(self.color)
 	love.graphics.rectangle("fill", x, y, w, h)
@@ -31,7 +31,7 @@ function RectangleProgressView:getRectangle()
 		y, h = a, b
 	end
 
-    return x * self.w + self.x, y * self.h + self.y, w * self.w, h * self.h
+	return x * self.w + self.x, y * self.h + self.y, w * self.w, h * self.h
 end
 
 return RectangleProgressView

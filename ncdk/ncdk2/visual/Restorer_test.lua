@@ -34,7 +34,7 @@ end
 
 function test.velocity_single(t)
 	local vp0 = VisualPoint(Point(0))
-	vp0.visualTime = 0  -- <- x2
+	vp0.visualTime = 0 -- <- x2
 
 	local vp1 = VisualPoint(Point(1))
 	vp1.visualTime = 2
@@ -51,10 +51,10 @@ end
 
 function test.velocity_middle(t)
 	local vp0 = VisualPoint(Point(0))
-	vp0.visualTime = 0  -- <- x1
+	vp0.visualTime = 0 -- <- x1
 
 	local vp1 = VisualPoint(Point(1))
-	vp1.visualTime = 1  -- <- x2
+	vp1.visualTime = 1 -- <- x2
 
 	local vp2 = VisualPoint(Point(2))
 	vp2.visualTime = 3

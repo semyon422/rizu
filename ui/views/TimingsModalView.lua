@@ -5,7 +5,7 @@ local _transform = require("gfx_util").transform
 local spherefonts = require("sphere.assets.fonts")
 local table_util = require("table_util")
 
-local transform = { { 1 / 2, -16 / 9 / 2 }, 0, 0, { 0, 1 / 1080 }, { 0, 1 / 1080 }, 0, 0, 0, 0 }
+local transform = {{1 / 2, -16 / 9 / 2}, 0, 0, {0, 1 / 1080}, {0, 1 / 1080}, 0, 0, 0, 0}
 
 ---@param id any
 ---@param v number

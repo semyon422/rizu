@@ -164,7 +164,7 @@ if config:get("mines") then
 			return "note" .. getColor(chords.get_start_chord(noteView), column) .. chords.get_suffix(chords.get_start_chord(noteView), column)
 		end,
 		h = cs,
-		color = {1, 0.25, 0.25, 1}
+		color = {1, 0.25, 0.25, 1},
 	}, "SoundNote")
 end
 
@@ -194,7 +194,7 @@ if config:get("measureLine") then
 	noteskin:addMeasureLine({
 		h = cs,
 		color = {1, 1, 1, 0.12},
-		image = "line"
+		image = "line",
 	})
 end
 
@@ -203,7 +203,7 @@ noteskin:addBga({
 	y = 0,
 	w = 1,
 	h = 1,
-	color = {0.25, 0.25, 0.25, 1}
+	color = {0.25, 0.25, 0.25, 1},
 })
 
 local playfield = create_playfield(noteskin, {lanes = true})

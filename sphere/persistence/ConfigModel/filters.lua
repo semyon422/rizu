@@ -6,7 +6,7 @@ local function newInputModeScoreFilter(name, inputMode)
 		name = name,
 		check = function(score)
 			return score.inputmode == inputMode
-		end
+		end,
 	}
 end
 
@@ -70,9 +70,12 @@ local filters = {
 	},
 	score = {
 		{name = "No filter"},
-		{name = "FC", check = function(score)
-			return score.missCount == 0
-		end},
+		{
+			name = "FC",
+			check = function(score)
+				return score.missCount == 0
+			end
+		},
 		newInputModeScoreFilter("4K", "4key"),
 		newInputModeScoreFilter("5K", "5key"),
 		newInputModeScoreFilter("6K", "6key"),
@@ -80,7 +83,7 @@ local filters = {
 		newInputModeScoreFilter("8K", "8key"),
 		newInputModeScoreFilter("9K", "9key"),
 		newInputModeScoreFilter("10K", "10key"),
-	}
+	},
 }
 
 return filters

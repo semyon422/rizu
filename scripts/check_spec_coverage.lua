@@ -26,10 +26,10 @@ local function get_specs()
 		if file then
 			local content = file:read("*a")
 			file:close()
-			
+
 			local spec_file = {
 				path = clean_path,
-				items = {}
+				items = {},
 			}
 
 			-- Search for [SPEC-*] in the text
@@ -69,12 +69,12 @@ local function check_coverage(specs)
 						found_in_any = true
 					end
 				end
-				
+
 				if not found_in_any then
-					table.insert(unknown_refs, { file = file_path, ref = spec_id, reason = "SPEC ID not found in any spec.md" })
+					table.insert(unknown_refs, {file = file_path, ref = spec_id, reason = "SPEC ID not found in any spec.md"})
 				end
 			end
-			
+
 			-- Support for the legacy/explicit @spec tag if needed
 			for spec_ref in content:gmatch("@spec%s+([^\r\n%s]+)") do
 				local spec_path, spec_id = spec_ref:match("([^#]+)#(.*)")
@@ -86,10 +86,10 @@ local function check_coverage(specs)
 							item.covered = true
 							table.insert(item.locations, file_path)
 						else
-							table.insert(unknown_refs, { file = file_path, ref = spec_ref, reason = "SPEC ID not found in " .. spec_path })
+							table.insert(unknown_refs, {file = file_path, ref = spec_ref, reason = "SPEC ID not found in " .. spec_path})
 						end
 					else
-						table.insert(unknown_refs, { file = file_path, ref = spec_ref, reason = "Spec file not found: " .. spec_path })
+						table.insert(unknown_refs, {file = file_path, ref = spec_ref, reason = "Spec file not found: " .. spec_path})
 					end
 				end
 			end
@@ -113,7 +113,7 @@ local function report(specs, unknown_refs)
 	for _, path in ipairs(sorted_paths) do
 		local spec = specs[path]
 		print(string.format("\nFile: %s", path))
-		
+
 		local sorted_items = {}
 		for _, item in pairs(spec.items) do table.insert(sorted_items, item) end
 		table.sort(sorted_items, function(a, b) return a.id < b.id end)

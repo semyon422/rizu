@@ -57,7 +57,7 @@ end
 function ScrollCamera:tweenTo(target)
 	-- Clamp target to bounds
 	target = math.max(self.min_position, math.min(self.max_position, target))
-	
+
 	self.tween_start = self.position
 	self.target = target
 	self.tween_progress = 0
@@ -76,7 +76,7 @@ function ScrollCamera:tweenBy(delta)
 		-- Not tweening - start from current position
 		target = self.position + delta
 	end
-	
+
 	self:tweenTo(target)
 end
 
@@ -137,7 +137,7 @@ function ScrollCamera:update(dt)
 		if self.target then
 			local diff = self.target - self.position
 			self.position = self.position + diff * math.min(1, dt * physics.lerp_return_speed)
-			
+
 			-- Check if we've returned
 			if math.abs(diff) < 0.01 then
 				self.position = self.target
@@ -154,7 +154,7 @@ function ScrollCamera:update(dt)
 		if self.target and self.tween_start then
 			-- Advance progress (0.25 seconds total duration)
 			self.tween_progress = self.tween_progress + dt / physics.tween_duration
-			
+
 			if self.tween_progress >= 1 then
 				-- Tween complete
 				self.position = self.target

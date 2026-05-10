@@ -87,7 +87,7 @@ function ModifierIconView:drawSquareBorder(size, shape)
 		love.graphics.arc("line", "open", fx + fr3, fy + fs - fr3, fr3, math.pi, math.pi / 2, 8)
 	end
 	if shape[8] then
-		love.graphics.arc("line", "open", fx + fs - fr4, fy + fs - fr4, fr4 , math.pi / 2, 0, 8)
+		love.graphics.arc("line", "open", fx + fs - fr4, fy + fs - fr4, fr4, math.pi / 2, 0, 8)
 	end
 end
 
