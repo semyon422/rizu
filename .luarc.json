@@ -2,17 +2,7 @@
 	"runtime.version": "LuaJIT",
 	"runtime.path": [
 		"?.lua",
-		"?/init.lua",
-		"3rd-deps/lua/?.lua",
-		"aqua/?.lua",
-		"ncdk/?.lua",
-		"chartbase/?.lua",
-		"libchart/?.lua",
-		"3rd-deps/lua/?/init.lua",
-		"aqua/?/init.lua",
-		"ncdk/?/init.lua",
-		"chartbase/?/init.lua",
-		"libchart/?/init.lua"
+		"?/init.lua"
 	],
 	"runtime.pathStrict": true,
 	"runtime.builtin": {
@@ -27,7 +17,12 @@
 	"workspace.library": [
 		"${3rd}/love2d/library",
 		"${3rd}/OpenResty/library",
-		"~/.config/Code/User/globalStorage/sumneko.lua/addonManager/addons/luasocket/module/library"
+		"${3rd}/luasocket/module/library",
+		"3rd-deps/lua",
+		"aqua",
+		"ncdk",
+		"chartbase",
+		"libchart"
 	],
 	"workspace.checkThirdParty": false,
 	"completion.autoRequire": false,
