@@ -109,12 +109,10 @@ setmetatable(_G, {__newindex = function(a, b, c)
 	rawset(a, b, c)
 end})
 
-local love_run = require("love_run")
-love.load = function() end  -- for compatibility with old conf.lua
-local defaultLoop = love.loop or love_run()
+local current_loop = love.run()
 function love.run()
 	return function()
-		return defaultLoop()
+		return current_loop()
 	end
 end
 
@@ -212,6 +210,6 @@ thread.coro(function()
 
 	local loop = require("rizu.loop.Loop")
 	loop:init()
-	defaultLoop = loop:run()
+	current_loop = loop:run()
 	loop:add(game)
 end)()

@@ -1,5 +1,6 @@
-local loop
-love.loop = love.run()
+---@diagnostic disable
+
+local love_run = love.run
 
 function love.run()
 	local fileData = assert(love.filesystem.newFileData("game.love"))
@@ -8,7 +9,7 @@ function love.run()
 	package.loaded.main = nil
 	package.loaded.conf = nil
 
-	love.run = nil
+	love.run = love_run
 	love.conf = nil
 	love.handlers = nil
 	love.init()
@@ -16,7 +17,7 @@ function love.run()
 		love.load(love.arg.parseGameArguments(arg), arg)
 	end
 	assert(love.run, "love.run is not defined")
-	loop = love.run()
+	local loop = love.run()
 
 	return function() return loop() end
 end
