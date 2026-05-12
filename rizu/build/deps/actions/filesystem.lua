@@ -1,5 +1,6 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
 function M.copy(env, action)

@@ -3,7 +3,10 @@ local StepState = require("rizu.build.deps.engine.StepState")
 ---@class rizu.build.deps.engine.Executor
 local Executor = {}
 
+---@param ... rizu.build.deps.Actions
+---@return rizu.build.deps.Actions
 local function mergeHandlers(...)
+	---@type rizu.build.deps.Actions
 	local out = {}
 	for i = 1, select("#", ...) do
 		local src = select(i, ...)
@@ -14,6 +17,7 @@ local function mergeHandlers(...)
 	return out
 end
 
+---@type rizu.build.deps.Actions
 local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.archive"),
 	require("rizu.build.deps.actions.shell"),

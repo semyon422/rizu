@@ -1,25 +1,30 @@
+---@class rizu.build.BuildConfig
 local BuildConfig = {}
 
 ---@type rizu.build.Target[]
 BuildConfig.TARGETS = {"linux", "windows", "macos"}
 
+---@type {[rizu.build.Target]: string}
 BuildConfig.TARGET_BIN_DIRS = {
 	linux = "bin/linux64",
 	windows = "bin/win64",
 	macos = "bin/mac64",
 }
 
+---@type {[rizu.build.Target]: string}
 BuildConfig.TARGET_ARTIFACT_DIRS = {
 	linux = "build/artifacts/linux",
 	windows = "build/artifacts/windows",
 	macos = "build/artifacts/macos",
 }
 
+---@type {downloads: string, deps: string}
 BuildConfig.ROOT_DIRS = {
 	downloads = "build/downloads",
 	deps = "build/deps",
 }
 
+---@type {[rizu.build.Target]: {[string]: string}}
 BuildConfig.MODULE_OUTPUT_NAMES = {
 	linux = {
 		z7 = "lib7z.so",
@@ -72,10 +77,12 @@ function BuildConfig.getModuleOutputs(target, out_dir)
 	return outputs
 end
 
+---@return string
 function BuildConfig.getDownloadsDir()
 	return BuildConfig.ROOT_DIRS.downloads
 end
 
+---@return string
 function BuildConfig.getDepsDir()
 	return BuildConfig.ROOT_DIRS.deps
 end

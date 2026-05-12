@@ -1,5 +1,6 @@
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 
+---@class rizu.build.deps.engine.StepState
 local StepState = {}
 
 ---@param env rizu.build.deps.Env
@@ -60,8 +61,8 @@ end
 
 ---@param env rizu.build.deps.Env
 ---@param step rizu.build.deps.Step
----@return boolean
----@return string[]
+---@return boolean fresh
+---@return string[] outputs
 function StepState.outputsFresh(env, step)
 	local outputs = StepState.resolveList(env, step.outputs)
 	if #outputs == 0 then
@@ -93,8 +94,8 @@ end
 
 ---@param env rizu.build.deps.Env
 ---@param step rizu.build.deps.Step
----@return string
----@return string[]
+---@return "OK"|"MISSING"|"OUTDATED" state
+---@return string[] outputs
 function StepState.outputState(env, step)
 	local outputs = StepState.resolveList(env, step.outputs)
 	if #outputs == 0 then

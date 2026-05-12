@@ -1,7 +1,7 @@
 local class = require("class")
 
----@class repo.CurrentRepo
----@operator call: repo.CurrentRepo
+---@class rizu.build.package.CurrentRepo
+---@operator call: rizu.build.package.CurrentRepo
 ---@field ctx rizu.build.Context
 local CurrentRepo = class()
 

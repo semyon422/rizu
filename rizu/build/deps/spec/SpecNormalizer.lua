@@ -4,6 +4,9 @@ local SpecNormalizer = {}
 ---@param step rizu.build.deps.Step
 ---@return string[]
 local function inferOutputsFromActions(step)
+	---@param action rizu.build.deps.Action
+	---@param path any
+	---@return any
 	local function normalizeOutput(action, path)
 		if type(path) ~= "string" then
 			return path

@@ -49,7 +49,6 @@ function RepoAssembler:validate(gamerepo, root_prefix)
 	end
 end
 
----@return nil
 function RepoAssembler:build()
 	self.ctx.fs:createDirectory("build/repo")
 

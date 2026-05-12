@@ -1,7 +1,12 @@
 local StepState = require("rizu.build.deps.engine.StepState")
 
+---@class rizu.build.deps.engine.Evaluator
 local Evaluator = {}
 
+---@param env rizu.build.deps.Env
+---@param step rizu.build.deps.Step
+---@param run_result? rizu.build.deps.RunResult
+---@return table
 function Evaluator.evaluateStep(env, step, run_result)
 	local state, outputs = StepState.outputState(env, step)
 
@@ -19,6 +24,10 @@ function Evaluator.evaluateStep(env, step, run_result)
 	}
 end
 
+---@param env rizu.build.deps.Env
+---@param spec rizu.build.deps.Spec
+---@param run_results? rizu.build.deps.RunResult[]
+---@return table
 function Evaluator.evaluate(env, spec, run_results)
 	local results_by_id = {}
 	for _, rr in ipairs(run_results or {}) do
@@ -46,6 +55,8 @@ function Evaluator.evaluate(env, spec, run_results)
 	}
 end
 
+---@param eval table
+---@return rizu.build.StatusRow[]
 function Evaluator.renderStatusRows(eval)
 	local rows = {}
 	for _, step in ipairs(eval.steps or {}) do
@@ -55,6 +66,9 @@ function Evaluator.renderStatusRows(eval)
 	return rows
 end
 
+---@param env rizu.build.deps.Env
+---@param spec rizu.build.deps.Spec
+---@return boolean
 function Evaluator.isUpToDate(env, spec)
 	local eval = Evaluator.evaluate(env, spec)
 	return eval.aggregate == "OK"

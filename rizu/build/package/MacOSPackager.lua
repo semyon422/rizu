@@ -19,7 +19,6 @@ function MacOSPackager:new(ctx, src_fs)
 	self.src_fs = src_fs or ctx.fs
 end
 
----@return nil
 function MacOSPackager:build()
 	local game_app = "build/repo/macos/" .. _name .. ".app"
 	local Contents = game_app .. "/Contents"

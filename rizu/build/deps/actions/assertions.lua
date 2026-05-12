@@ -1,5 +1,6 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
 function M.assert_exists(env, action)

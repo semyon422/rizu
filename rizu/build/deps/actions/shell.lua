@@ -1,7 +1,10 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
+---@param args string|string[]|nil
+---@return string
 local function toArgString(args)
 	if not args then
 		return ""
@@ -16,6 +19,8 @@ local function toArgString(args)
 	return table.concat(out, " ")
 end
 
+---@param env_map {[string]: string}?
+---@return string
 local function toEnvPrefix(env_map)
 	if not env_map then
 		return ""

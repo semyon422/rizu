@@ -63,7 +63,7 @@
 ---@field bin_dir string
 ---@field downloads_dir string
 ---@field deps_dir string
----@field bin_dirs table<string, string>
+---@field bin_dirs {[string]: string}
 
 ---@class rizu.build.deps.RunResult
 ---@field ok boolean
@@ -72,6 +72,11 @@
 ---@field command string
 ---@field stderr_hint string|nil
 
+---@alias rizu.build.deps.ActionFunc fun(env: rizu.build.deps.Env, action: rizu.build.deps.Action): rizu.build.deps.RunResult
+
+---@class rizu.build.deps.Actions: {[string]: rizu.build.deps.ActionFunc}
+
+---@class rizu.build.Types
 local Types = {}
 
 return Types

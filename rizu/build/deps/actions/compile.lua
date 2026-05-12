@@ -1,13 +1,18 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
+---@param dst string[]
+---@param src string[]?
 local function appendAll(dst, src)
 	for _, item in ipairs(src or {}) do
 		table.insert(dst, item)
 	end
 end
 
+---@param env_map {[string]: string}?
+---@return string
 local function toEnvPrefix(env_map)
 	if not env_map then
 		return ""
@@ -20,10 +25,15 @@ local function toEnvPrefix(env_map)
 	return table.concat(parts, " ") .. " "
 end
 
+---@param path any
+---@return string
 local function quotePath(path)
 	return string.format("%q", tostring(path))
 end
 
+---@param env rizu.build.deps.Env
+---@param action rizu.build.deps.Action
+---@return string
 local function buildCompileCommand(env, action)
 	local compiler = Util.resolve(env, action.compiler)
 	local output = Util.resolve(env, action.output)
@@ -65,6 +75,9 @@ local function buildCompileCommand(env, action)
 	return cmd
 end
 
+---@param env rizu.build.deps.Env
+---@param action rizu.build.deps.Action
+---@return rizu.build.deps.RunResult
 local function runCompile(env, action)
 	return Util.executeSafe(env, buildCompileCommand(env, action))
 end

@@ -1,7 +1,10 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
+---@param action rizu.build.deps.Action
+---@return integer
 local function stripComponents(action)
 	if action.strip_components ~= nil then
 		return action.strip_components
@@ -9,6 +12,11 @@ local function stripComponents(action)
 	return 1
 end
 
+---@param format string
+---@param archive string
+---@param dest string
+---@param strip_components integer
+---@return string
 local function extractCommand(format, archive, dest, strip_components)
 	if format == "tar.gz" then
 		return string.format("tar --touch -xzf %q -C %q --strip-components=%d", archive, dest, strip_components)
@@ -24,6 +32,8 @@ local function extractCommand(format, archive, dest, strip_components)
 	error("Unsupported extract format: " .. tostring(format))
 end
 
+---@param env rizu.build.deps.Env
+---@param path string
 local function resetDirectory(env, path)
 	if env.ctx.fs:getInfo(path) then
 		Util.executeSafe(env, string.format("rm -rf %q", path))
@@ -53,16 +63,16 @@ function M.extract(env, action)
 	elseif format == "tar.xz" then
 		return Util.executeSafe(env, extractCommand(format, archive, dest, stripComponents(action)))
 	elseif format == "zip" then
-		return Util.executeSafe(env, extractCommand(format, archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, 0))
 	elseif format == "zip_nested" then
 		local tmp = Util.resolve(env, action.tmp or (dest .. "-tmp"))
 		resetDirectory(env, tmp)
-		Util.executeSafe(env, extractCommand("zip", archive, tmp))
+		Util.executeSafe(env, extractCommand("zip", archive, tmp, 0))
 		local result = Util.executeSafe(env, string.format("cp -r %s/*/* %s/", tmp, dest))
 		Util.executeSafe(env, string.format("rm -rf %q", tmp))
 		return result
 	elseif format == "7z" then
-		return Util.executeSafe(env, extractCommand(format, archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, 0))
 	end
 	error("Unsupported extract format: " .. tostring(format))
 end

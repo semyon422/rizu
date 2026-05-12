@@ -5,11 +5,11 @@ local config = require("rizu.build.package.config")
 ---@class rizu.build.package.RepoConfigWriter
 ---@operator call: rizu.build.package.RepoConfigWriter
 ---@field ctx rizu.build.Context
----@field git_repo repo.CurrentRepo
+---@field git_repo rizu.build.package.CurrentRepo
 local RepoConfigWriter = class()
 
 ---@param ctx rizu.build.Context
----@param git_repo repo.CurrentRepo
+---@param git_repo rizu.build.package.CurrentRepo
 function RepoConfigWriter:new(ctx, git_repo)
 	self.ctx = ctx
 	self.git_repo = git_repo

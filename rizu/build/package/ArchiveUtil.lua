@@ -1,3 +1,4 @@
+---@class rizu.build.package.ArchiveUtil
 local ArchiveUtil = {}
 
 ---@param listing string?

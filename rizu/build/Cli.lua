@@ -1,7 +1,10 @@
 local BuildConfig = require("rizu.build.BuildConfig")
 local TaskRegistry = require("rizu.build.TaskRegistry")
 
+---@class rizu.build.Cli
 local Cli = {}
+
+---@alias rizu.build.CliCommand {help: string, run: fun()}
 
 ---@type {[string]: true}
 local target_set = {}
@@ -137,7 +140,7 @@ end
 ---@param runner rizu.build.TaskRunner
 ---@param target_arg string?
 ---@param scope_arg string?
----@return table
+---@return {[string]: rizu.build.CliCommand}
 local function createCommands(ctx, runner, target_arg, scope_arg)
 	return {
 		setup = {

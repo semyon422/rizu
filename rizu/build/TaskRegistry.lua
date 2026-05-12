@@ -14,8 +14,10 @@ local AssembleRepoTask = require("rizu.build.tasks.AssembleRepoTask")
 local ZipRepoTask = require("rizu.build.tasks.ZipRepoTask")
 local PackageMacOSTask = require("rizu.build.tasks.PackageMacOSTask")
 
+---@class rizu.build.TaskRegistry
 local TaskRegistry = {}
 
+---@type rizu.build.Target[]
 TaskRegistry.LUAJIT_TARGETS = {"linux", "windows"}
 
 ---@return rizu.build.Context
