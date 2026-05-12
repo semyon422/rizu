@@ -10,24 +10,20 @@ local _name = config.repo.name
 ---@class rizu.build.package.RepoAssembler
 ---@operator call: rizu.build.package.RepoAssembler
 ---@field ctx rizu.build.Context
----@field git_repo rizu.build.package.CurrentRepo
 ---@field src_fs fs.IFilesystem
 ---@field config_writer rizu.build.package.RepoConfigWriter
 local RepoAssembler = class()
 
 ---@param ctx rizu.build.Context
----@param git_repo rizu.build.package.CurrentRepo
 ---@param src_fs? fs.IFilesystem
-function RepoAssembler:new(ctx, git_repo, src_fs)
+function RepoAssembler:new(ctx, src_fs)
 	self.ctx = ctx
-	self.git_repo = git_repo
 	self.src_fs = src_fs or ctx.fs
-	self.config_writer = RepoConfigWriter(ctx, git_repo)
+	self.config_writer = RepoConfigWriter(ctx)
 end
 
 ---@param gamerepo string
----@param root_prefix string
-function RepoAssembler:validate(gamerepo, root_prefix)
+function RepoAssembler:validate(gamerepo)
 	assert(self.ctx.fs:getInfo(gamerepo) ~= nil, "missing repo directory: " .. gamerepo)
 	local game_love = gamerepo .. "/game.love"
 	assert(self.ctx.fs:getInfo(game_love) ~= nil, "missing game.love: " .. game_love)
@@ -37,7 +33,7 @@ function RepoAssembler:validate(gamerepo, root_prefix)
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "conf.lua"), "game.love is missing conf.lua")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "main.lua"), "game.love is missing main.lua")
 
-	local lib_src = root_prefix .. "3rd-deps/lib/"
+	local lib_src = "3rd-deps/lib/"
 	if self.src_fs:getInfo(lib_src .. "gd.so") then
 		assert(self.ctx.fs:getInfo(gamerepo .. "/bin/linux64/gd.so") ~= nil, "missing linux64 gd.so")
 	end
@@ -59,46 +55,39 @@ function RepoAssembler:build()
 	self.ctx.fs:createDirectory(gamerepo)
 	self.ctx.fs:createDirectory(gamedir)
 
-	local src_root = self.git_repo:getDirName()
-	if src_root == "." then src_root = "" end
-	local root_prefix = src_root == "" and "" or (src_root .. "/")
-
 	print("Copying core folders...")
 	for _, dir in ipairs(config.repo.include) do
-		if self.src_fs:getInfo(root_prefix .. dir) then
-			fs_util.copy(root_prefix .. dir, gamedir .. "/" .. dir, self.src_fs, self.ctx.fs)
+		if self.src_fs:getInfo(dir) then
+			fs_util.copy(dir, gamedir .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
 	end
 
 	print("Copying root lua files...")
-	local root_items_path = src_root == "" and "." or src_root
-	if self.src_fs.tree then root_items_path = src_root end
-
-	local root_items = self.src_fs:getDirectoryItems(root_items_path)
+	local root_items = self.src_fs:getDirectoryItems(".")
 	for _, item in ipairs(root_items) do
 		if item:match("%.lua$") then
-			local info = self.src_fs:getInfo(root_prefix .. item)
+			local info = self.src_fs:getInfo(item)
 			if info and info.type == "file" then
-				fs_util.copy(root_prefix .. item, gamedir .. "/" .. item, self.src_fs, self.ctx.fs)
+				fs_util.copy(item, gamedir .. "/" .. item, self.src_fs, self.ctx.fs)
 			end
 		end
 	end
 
 	print("Copying 3rd-deps/lua...")
 	self.ctx.fs:createDirectory(gamedir .. "/3rd-deps")
-	if self.src_fs:getInfo(root_prefix .. "3rd-deps/lua") then
-		fs_util.copy(root_prefix .. "3rd-deps/lua", gamedir .. "/3rd-deps/lua", self.src_fs, self.ctx.fs)
+	if self.src_fs:getInfo("3rd-deps/lua") then
+		fs_util.copy("3rd-deps/lua", gamedir .. "/3rd-deps/lua", self.src_fs, self.ctx.fs)
 	end
 
 	print("Extracting platform files...")
 	for _, dir in ipairs(config.repo.extract) do
-		if self.src_fs:getInfo(root_prefix .. dir) then
-			fs_util.copy(root_prefix .. dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
+		if self.src_fs:getInfo(dir) then
+			fs_util.copy(dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
 	end
 
-	if self.src_fs:getInfo(root_prefix .. "3rd-deps/lib") then
-		local libs = self.src_fs:getDirectoryItems(root_prefix .. "3rd-deps/lib")
+	if self.src_fs:getInfo("3rd-deps/lib") then
+		local libs = self.src_fs:getDirectoryItems("3rd-deps/lib")
 		for _, lib in ipairs(libs) do
 			local ext = lib:match("%.([^.]+)$")
 			local subdir
@@ -113,7 +102,7 @@ function RepoAssembler:build()
 			if subdir then
 				local dst_dir = gamerepo .. "/bin/" .. subdir
 				self.ctx.fs:createDirectory(dst_dir)
-				fs_util.copy(root_prefix .. "3rd-deps/lib/" .. lib, dst_dir .. "/" .. lib, self.src_fs, self.ctx.fs)
+				fs_util.copy("3rd-deps/lib/" .. lib, dst_dir .. "/" .. lib, self.src_fs, self.ctx.fs)
 			end
 		end
 	end
@@ -144,14 +133,14 @@ function RepoAssembler:build()
 	self.ctx.shell:execute(string.format("bash -lc 'cd %q && zip -qry %q .'", gamedir, "../game.love"))
 	fs_util.remove(gamedir, self.ctx.fs)
 
-	if self.src_fs:getInfo(root_prefix .. "conf.lua") then
-		fs_util.copy(root_prefix .. "conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
+	if self.src_fs:getInfo("conf.lua") then
+		fs_util.copy("conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
 	end
 	if self.src_fs:getInfo("rizu/build/package/conf.lua") then
 		fs_util.copy("rizu/build/package/conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
 	end
 
-	self:validate(gamerepo, root_prefix)
+	self:validate(gamerepo)
 end
 
 return RepoAssembler
