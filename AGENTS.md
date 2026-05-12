@@ -73,6 +73,7 @@ Examples:
 
 - Follow `.editorconfig`: use tabs for indentation and do not indent empty lines.
 - Omit empty `:new()` constructors.
+- **Require Paths**: Use absolute paths starting from the nearest root defined in `pkg_config.lua` (e.g., `aqua/`, `3rd-deps/lua/`, or the project root). For example, use `require("json")` instead of `require("3rd-deps.lua.json")`. Exceptions are `require("aqua.pkg")` and anything in the `preload/` folder (e.g., `require("preload.iconv")`).
 - Avoid using Lua global names like `type`, `table`, `string`, or `pairs` as locals. If needed, prefix with `_`.
 - Prefer minimal comments and use EmmyLua for API documentation.
 
