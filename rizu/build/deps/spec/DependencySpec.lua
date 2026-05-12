@@ -3,7 +3,6 @@ local MacosSpec = require("rizu.build.deps.spec.MacosSpec")
 local SpecNormalizer = require("rizu.build.deps.spec.SpecNormalizer")
 local SpecValidator = require("rizu.build.deps.spec.SpecValidator")
 local WindowsSpec = require("rizu.build.deps.spec.WindowsSpec")
-local NativeModulesSpec = require("rizu.build.deps.spec.common.NativeModulesSpec")
 
 ---@class rizu.build.deps.spec.DependencySpec
 local DependencySpec = {}
@@ -28,8 +27,6 @@ end
 ---@return rizu.build.deps.Spec
 function DependencySpec.load(target)
 	local spec = SpecNormalizer.normalize(buildBaseSpec(target))
-	NativeModulesSpec.add(target, spec)
-	spec = SpecNormalizer.normalize(spec)
 	spec.target = target
 	SpecValidator.validate(spec)
 	return spec

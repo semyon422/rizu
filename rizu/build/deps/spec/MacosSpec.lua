@@ -8,6 +8,11 @@ local OpenSSLSourceSpec = require("rizu.build.deps.spec.source.OpenSSLSourceSpec
 local PrefixSpec = require("rizu.build.deps.spec.source.PrefixSpec")
 local SQLiteSourceSpec = require("rizu.build.deps.spec.source.SQLiteSourceSpec")
 local ZlibSourceSpec = require("rizu.build.deps.spec.source.ZlibSourceSpec")
+local ModuleDirsSpec = require("rizu.build.deps.spec.module.ModuleDirsSpec")
+local SevenZipModuleSpec = require("rizu.build.deps.spec.module.SevenZipModuleSpec")
+local VideoModuleSpec = require("rizu.build.deps.spec.module.VideoModuleSpec")
+local MinacalcModuleSpec = require("rizu.build.deps.spec.module.MinacalcModuleSpec")
+local LuamidiModuleSpec = require("rizu.build.deps.spec.module.LuamidiModuleSpec")
 
 ---@class rizu.build.deps.spec.MacosSpec
 local Macos = {}
@@ -28,6 +33,12 @@ function Macos.build()
 	LuaSecSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 	FFTWSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 	SQLiteSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
+
+	ModuleDirsSpec.add(target, spec)
+	SevenZipModuleSpec.add(target, spec)
+	VideoModuleSpec.add(target, spec)
+	MinacalcModuleSpec.add(target, spec)
+	LuamidiModuleSpec.add(target, spec)
 
 	return spec
 end
