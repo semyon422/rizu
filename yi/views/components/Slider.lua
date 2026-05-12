@@ -1,6 +1,6 @@
 local View = require("yi.views.View")
 local Colors = require("yi.Colors")
-local math_util = require("aqua.math_util")
+local math_util = require("math_util")
 
 ---@class yi.Slider : yi.View
 ---@overload fun(value: number, min: number, max: number, step: number?, on_change: fun(value: number)): yi.Slider

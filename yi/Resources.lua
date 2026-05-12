@@ -1,6 +1,6 @@
 local class = require("class")
 local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
-local Path = require("aqua.Path")
+local Path = require("Path")
 
 ---@class yi.Resources
 ---@overload fun(): yi.Resources

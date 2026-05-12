@@ -1,6 +1,6 @@
 local Dd32Spec = require("rizu.build.deps.spec.common.Dd32Spec")
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
-local table_util = require("aqua.table_util")
+local table_util = require("table_util")
 local Manifest = require("rizu.build.deps.Manifest")
 
 local IconvSourceSpec = {}

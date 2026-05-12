@@ -1,7 +1,7 @@
 local class = require("class")
 local stbl = require("stbl")
 local zlib = require("zlib")
-local json = require("3rd-deps.lua.json")
+local json = require("json")
 local config = require("rizu.build.package.config")
 local fs_util = require("fs.util")
 
