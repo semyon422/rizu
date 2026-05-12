@@ -7,8 +7,11 @@ local PrefixSpec = require("rizu.build.deps.spec.source.PrefixSpec")
 local SQLiteSourceSpec = require("rizu.build.deps.spec.source.SQLiteSourceSpec")
 local ZlibSourceSpec = require("rizu.build.deps.spec.source.ZlibSourceSpec")
 
+---@class rizu.build.deps.spec.WindowsSpec
 local Windows = {}
 
+---@param deps rizu.build.deps.Manifest
+---@return rizu.build.deps.Spec
 function Windows.build(deps)
 	local target = "windows"
 	local spec = Common.buildShared(target, deps)

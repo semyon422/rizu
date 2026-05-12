@@ -1,5 +1,7 @@
 -- Rizu Dependency Manifest
-return {
+
+---@type rizu.build.deps.Manifest
+local Manifest = {
 	ffmpeg = {
 		linux = {
 			url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz",
@@ -56,11 +58,6 @@ return {
 		windows = {url = "https://www.un4seen.com/files/bassopus24.zip", archive = "bassopus-win.zip"},
 		macos = {url = "https://www.un4seen.com/files/bassopus24-osx.zip", archive = "bassopus-macos.zip"},
 	},
-	fftw = {
-		-- Optional: old upstream URL is no longer reliable.
-		-- Keep runtime dlls from repo or add a maintained mirror when needed.
-		-- windows = {url = "...", archive = "fftw-win.zip"},
-	},
 	fftw_source = {
 		linux = {url = "https://www.fftw.org/fftw-3.3.10.tar.gz", archive = "fftw-3.3.10.tar.gz", dir = "fftw_linux"},
 		windows = {url = "https://www.fftw.org/fftw-3.3.10.tar.gz", archive = "fftw-3.3.10.tar.gz", dir = "fftw_windows"},
@@ -86,11 +83,6 @@ return {
 		windows = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_windows"},
 		macos = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_macos"},
 	},
-	sqlite = {
-		-- Optional: versioned sqlite.org links expire.
-		-- Keep runtime dlls from repo or pin to a current yearly URL.
-		-- windows = {url = "...", archive = "sqlite-win.zip"},
-	},
 	sqlite_source = {
 		linux = {url = "https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz", archive = "sqlite-autoconf-3490100.tar.gz", dir = "sqlite_linux"},
 		windows = {url = "https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz", archive = "sqlite-autoconf-3490100.tar.gz", dir = "sqlite_windows"},
@@ -110,3 +102,5 @@ return {
 		type = "git",
 	},
 }
+
+return Manifest

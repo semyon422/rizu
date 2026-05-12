@@ -120,7 +120,7 @@ local function printStatus(ctx, runner, target_arg)
 	print("=========================")
 end
 
----@param commands table
+---@param commands {[string]: rizu.build.CliCommand}
 local function help(commands)
 	print("Rizu Build System")
 	print("Usage: ./rizu/build/make.lua <command> [arg]")

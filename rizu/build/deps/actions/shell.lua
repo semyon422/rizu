@@ -3,14 +3,11 @@ local Util = require("rizu.build.deps.actions._util")
 ---@type rizu.build.deps.Actions
 local M = {}
 
----@param args string|string[]|nil
+---@param args string[]?
 ---@return string
 local function toArgString(args)
 	if not args then
 		return ""
-	end
-	if type(args) == "string" then
-		return args
 	end
 	local out = {}
 	for _, arg in ipairs(args) do

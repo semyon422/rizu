@@ -1,5 +1,8 @@
+---@class rizu.build.deps.spec.common.LoveArtifactsSpec
 local LoveArtifactsSpec = {}
 
+---@param deps rizu.build.deps.Manifest
+---@param spec rizu.build.deps.Spec
 function LoveArtifactsSpec.add(deps, spec)
 	if deps.love_win then
 		local outer_tmp = "${deps_dir}/love-win-outer-tmp"

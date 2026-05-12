@@ -9,8 +9,11 @@ local PrefixSpec = require("rizu.build.deps.spec.source.PrefixSpec")
 local SQLiteSourceSpec = require("rizu.build.deps.spec.source.SQLiteSourceSpec")
 local ZlibSourceSpec = require("rizu.build.deps.spec.source.ZlibSourceSpec")
 
+---@class rizu.build.deps.spec.MacosSpec
 local Macos = {}
 
+---@param deps rizu.build.deps.Manifest
+---@return rizu.build.deps.Spec
 function Macos.build(deps)
 	local target = "macos"
 	local spec = Common.buildShared(target, deps)

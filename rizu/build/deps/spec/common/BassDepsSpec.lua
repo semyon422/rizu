@@ -1,3 +1,4 @@
+---@class rizu.build.deps.spec.common.BassDepsSpec
 local BassDepsSpec = {}
 
 local BASS_DEPS = {"bass", "bassmix", "bass_fx", "bassopus"}
@@ -22,6 +23,9 @@ local function getSourcePath(dep_name, target, extract)
 	return extract .. "/" .. name
 end
 
+---@param target rizu.build.Target
+---@param deps rizu.build.deps.Manifest
+---@param spec rizu.build.deps.Spec
 function BassDepsSpec.add(target, deps, spec)
 	for _, dep_name in ipairs(BASS_DEPS) do
 		local cfg = deps[dep_name] and deps[dep_name][target]

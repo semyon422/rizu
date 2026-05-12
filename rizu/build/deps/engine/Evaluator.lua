@@ -6,7 +6,7 @@ local Evaluator = {}
 ---@param env rizu.build.deps.Env
 ---@param step rizu.build.deps.Step
 ---@param run_result? rizu.build.deps.RunResult
----@return table
+---@return rizu.build.deps.engine.EvalStep
 function Evaluator.evaluateStep(env, step, run_result)
 	local state, outputs = StepState.outputState(env, step)
 
@@ -27,7 +27,7 @@ end
 ---@param env rizu.build.deps.Env
 ---@param spec rizu.build.deps.Spec
 ---@param run_results? rizu.build.deps.RunResult[]
----@return table
+---@return rizu.build.deps.engine.EvalResult
 function Evaluator.evaluate(env, spec, run_results)
 	local results_by_id = {}
 	for _, rr in ipairs(run_results or {}) do
@@ -55,7 +55,7 @@ function Evaluator.evaluate(env, spec, run_results)
 	}
 end
 
----@param eval table
+---@param eval rizu.build.deps.engine.EvalResult
 ---@return rizu.build.StatusRow[]
 function Evaluator.renderStatusRows(eval)
 	local rows = {}

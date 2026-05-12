@@ -1,5 +1,8 @@
+---@class rizu.build.deps.spec.common.GitDepsSpec
 local GitDepsSpec = {}
 
+---@param deps rizu.build.deps.Manifest
+---@param spec rizu.build.deps.Spec
 function GitDepsSpec.add(deps, spec)
 	for _, dep_name in ipairs({"minacalc", "luamidi"}) do
 		local cfg = deps[dep_name]

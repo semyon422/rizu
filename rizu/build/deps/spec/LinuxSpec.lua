@@ -7,8 +7,11 @@ local PrefixSpec = require("rizu.build.deps.spec.source.PrefixSpec")
 local SQLiteSourceSpec = require("rizu.build.deps.spec.source.SQLiteSourceSpec")
 local ZlibSourceSpec = require("rizu.build.deps.spec.source.ZlibSourceSpec")
 
+---@class rizu.build.deps.spec.LinuxSpec
 local Linux = {}
 
+---@param deps rizu.build.deps.Manifest
+---@return rizu.build.deps.Spec
 function Linux.build(deps)
 	local target = "linux"
 	local spec = Common.buildShared(target, deps)

@@ -15,7 +15,7 @@ local builders = {
 }
 
 ---@param target rizu.build.Target
----@param deps table
+---@param deps rizu.build.deps.Manifest
 ---@return rizu.build.deps.Spec
 local function buildBaseSpec(target, deps)
 	local builder = builders[target]
@@ -26,7 +26,7 @@ local function buildBaseSpec(target, deps)
 end
 
 ---@param target rizu.build.Target
----@param deps table
+---@param deps rizu.build.deps.Manifest
 ---@return rizu.build.deps.Spec
 function DependencySpec.load(target, deps)
 	local spec = SpecNormalizer.normalize(buildBaseSpec(target, deps))

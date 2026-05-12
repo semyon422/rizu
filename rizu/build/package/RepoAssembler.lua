@@ -10,13 +10,13 @@ local _name = config.repo.name
 ---@class rizu.build.package.RepoAssembler
 ---@operator call: rizu.build.package.RepoAssembler
 ---@field ctx rizu.build.Context
----@field git_repo repo.CurrentRepo
+---@field git_repo rizu.build.package.CurrentRepo
 ---@field src_fs fs.IFilesystem
 ---@field config_writer rizu.build.package.RepoConfigWriter
 local RepoAssembler = class()
 
 ---@param ctx rizu.build.Context
----@param git_repo repo.CurrentRepo
+---@param git_repo rizu.build.package.CurrentRepo
 ---@param src_fs? fs.IFilesystem
 function RepoAssembler:new(ctx, git_repo, src_fs)
 	self.ctx = ctx

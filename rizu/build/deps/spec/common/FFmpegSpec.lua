@@ -1,3 +1,4 @@
+---@class rizu.build.deps.spec.common.FFmpegSpec
 local FFmpegSpec = {}
 
 local FFMPEG_ARTIFACTS = {
@@ -21,6 +22,9 @@ local FFMPEG_ARTIFACTS = {
 	},
 }
 
+---@param target rizu.build.Target
+---@param deps rizu.build.deps.Manifest
+---@param spec rizu.build.deps.Spec
 function FFmpegSpec.add(target, deps, spec)
 	local ffmpeg = deps.ffmpeg[target]
 	if not ffmpeg then

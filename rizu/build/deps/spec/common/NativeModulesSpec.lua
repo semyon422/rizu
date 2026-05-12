@@ -1,5 +1,6 @@
 local BuildConfig = require("rizu.build.BuildConfig")
 
+---@class rizu.build.deps.spec.common.NativeModulesSpec
 local NativeModulesSpec = {}
 
 local MACOS_CC = "${root_abs}/build/deps/osxcross/target/bin/x86_64-apple-darwin22.2-clang"
@@ -34,12 +35,16 @@ local SEVENZIP_SDK_INPUTS = {
 	"build/deps/7zsdk/C/LzmaLib.c",
 }
 
+---@param spec rizu.build.deps.Spec
+---@param outputs string[]?
 local function appendOutputs(spec, outputs)
 	for _, path in ipairs(outputs or {}) do
 		table.insert(spec.outputs, path)
 	end
 end
 
+---@param spec rizu.build.deps.Spec
+---@param step rizu.build.deps.Step
 local function addStep(spec, step)
 	table.insert(spec.steps, step)
 	appendOutputs(spec, step.outputs)
@@ -49,6 +54,12 @@ local function makeStepIds(key)
 	return "module_" .. key .. "_artifact", "module_" .. key .. "_bin"
 end
 
+---@param spec rizu.build.deps.Spec
+---@param key string
+---@param label string
+---@param artifact string
+---@param bin_file string
+---@param inputs string[]?
 local function addPublishStep(spec, key, label, artifact, bin_file, inputs)
 	local _, publish_id = makeStepIds(key)
 	addStep(spec, {
@@ -63,6 +74,10 @@ local function addPublishStep(spec, key, label, artifact, bin_file, inputs)
 	})
 end
 
+---@param spec rizu.build.deps.Spec
+---@param target rizu.build.Target
+---@param artifact string
+---@param bin_file string
 local function add7z(spec, target, artifact, bin_file)
 	local compile_id = makeStepIds("z7")
 	local compiler = CC_BY_TARGET[target]
@@ -91,6 +106,9 @@ local function add7z(spec, target, artifact, bin_file)
 	addPublishStep(spec, "z7", "7z", artifact, bin_file)
 end
 
+---@param target rizu.build.Target
+---@param artifact string
+---@return rizu.build.deps.Action
 local function videoCompileAction(target, artifact)
 	local compiler = "gcc"
 	local cflags = {"-shared", "-fPIC", "-Wl,-rpath,'$ORIGIN'"}
@@ -128,6 +146,8 @@ local function videoCompileAction(target, artifact)
 	}
 end
 
+---@param target rizu.build.Target
+---@return string[]
 local function videoRequires(target)
 	if target == "windows" then
 		return {
@@ -150,6 +170,10 @@ local function videoRequires(target)
 	}
 end
 
+---@param spec rizu.build.deps.Spec
+---@param target rizu.build.Target
+---@param artifact string
+---@param bin_file string
 local function addVideo(spec, target, artifact, bin_file)
 	local compile_id = makeStepIds("video")
 	local required_inputs = videoRequires(target)
@@ -170,10 +194,16 @@ local function addVideo(spec, target, artifact, bin_file)
 	addPublishStep(spec, "video", "Video", artifact, bin_file)
 end
 
+---@param target rizu.build.Target
+---@return string, {[string]: string}?
 local function minacalcCompiler(target)
 	return CXX_BY_TARGET[target], ENV_BY_TARGET[target]
 end
 
+---@param spec rizu.build.deps.Spec
+---@param target rizu.build.Target
+---@param artifact string
+---@param bin_file string
 local function addMinacalc(spec, target, artifact, bin_file)
 	local compile_id = makeStepIds("minacalc")
 	local compiler, env = minacalcCompiler(target)
@@ -208,6 +238,10 @@ local function addMinacalc(spec, target, artifact, bin_file)
 	addPublishStep(spec, "minacalc", "Minacalc", artifact, bin_file)
 end
 
+---@param spec rizu.build.deps.Spec
+---@param target rizu.build.Target
+---@param artifact string
+---@param bin_file string
 local function addLuamidi(spec, target, artifact, bin_file)
 	local compile_id = makeStepIds("luamidi")
 	local compiler, env = minacalcCompiler(target)
@@ -262,6 +296,8 @@ local function addLuamidi(spec, target, artifact, bin_file)
 	addPublishStep(spec, "luamidi", "Luamidi", artifact, bin_file)
 end
 
+---@param target rizu.build.Target
+---@param spec rizu.build.deps.Spec
 function NativeModulesSpec.add(target, spec)
 	local artifact_dir = BuildConfig.getArtifactsDir(target)
 	local bin_dir = BuildConfig.getBinDir(target)
