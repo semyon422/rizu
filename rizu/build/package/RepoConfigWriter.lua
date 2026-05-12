@@ -32,11 +32,8 @@ function RepoConfigWriter:write(gamedir)
 		local chunk = loadstring(content)
 		if chunk then
 			local urls = chunk()
-			urls.host = config.game.api
 			urls.websocket = config.game.websocket
 			urls.update = config.game.repo .. "/files.json"
-			urls.osu = config.osu
-			urls.multiplayer = config.game.multiplayer
 			self.ctx.fs:write(urls_path, serialize(urls))
 		end
 	end
