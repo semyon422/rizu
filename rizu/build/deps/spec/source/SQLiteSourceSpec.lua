@@ -1,15 +1,15 @@
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local SQLiteSourceSpec = {}
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param _prefix string
 ---@param _prefix_abs string
 ---@param tc_bin string?
-function SQLiteSourceSpec.add(target, spec, deps, _prefix, _prefix_abs, tc_bin)
-	local sqlite = deps.sqlite_source and deps.sqlite_source[target]
+function SQLiteSourceSpec.add(target, spec, _prefix, _prefix_abs, tc_bin)
+	local sqlite = Manifest.sqlite_source and Manifest.sqlite_source[target]
 	if not sqlite then
 		return
 	end

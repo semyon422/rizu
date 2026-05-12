@@ -1,4 +1,5 @@
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local LuaSecSourceSpec = {}
 
@@ -30,12 +31,11 @@ local windows_sources = {
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param prefix string
 ---@param prefix_abs string
 ---@param tc_bin string?
-function LuaSecSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
-	local luasec = deps.luasec_source and deps.luasec_source[target]
+function LuaSecSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
+	local luasec = Manifest.luasec_source and Manifest.luasec_source[target]
 	if not luasec then
 		return
 	end

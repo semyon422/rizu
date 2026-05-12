@@ -1,5 +1,4 @@
 local ITask = require("rizu.build.ITask")
-local deps = require("rizu.build.deps.Manifest")
 
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
@@ -33,7 +32,7 @@ function BuildTargetTask:run(ctx)
 	end
 
 	local env = BuildEnv.new(ctx, self.target, {initialize_dirs = true})
-	local spec = DependencySpec.load(self.target, deps)
+	local spec = DependencySpec.load(self.target)
 	return Executor.runSpec(env, spec)
 end
 
@@ -41,7 +40,7 @@ end
 ---@return boolean
 function BuildTargetTask:upToDate(ctx)
 	local env = BuildEnv.new(ctx, self.target, {initialize_dirs = false})
-	local spec = DependencySpec.load(self.target, deps)
+	local spec = DependencySpec.load(self.target)
 	return Evaluator.isUpToDate(env, spec)
 end
 
@@ -49,7 +48,7 @@ end
 ---@return rizu.build.StatusRow[]
 function BuildTargetTask:getStatus(ctx)
 	local env = BuildEnv.new(ctx, self.target, {initialize_dirs = false})
-	local spec = DependencySpec.load(self.target, deps)
+	local spec = DependencySpec.load(self.target)
 	local eval = Evaluator.evaluate(env, spec)
 	return Evaluator.renderStatusRows(eval)
 end

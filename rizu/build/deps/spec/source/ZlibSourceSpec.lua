@@ -1,4 +1,5 @@
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local ZlibSourceSpec = {}
 
@@ -22,12 +23,11 @@ local macos_sources = {
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param prefix string
 ---@param prefix_abs string
 ---@param tc_bin string?
-function ZlibSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
-	local zlib = deps.zlib_source and deps.zlib_source[target]
+function ZlibSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
+	local zlib = Manifest.zlib_source and Manifest.zlib_source[target]
 	if not zlib then
 		return
 	end

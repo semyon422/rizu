@@ -1,19 +1,19 @@
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local FFmpegSourceSpec = {}
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param prefix string
 ---@param prefix_abs string
 ---@param tc_bin string?
-function FFmpegSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
+function FFmpegSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 	if target ~= "macos" then
 		return
 	end
 	---@cast tc_bin string
-	local ffmpeg_src = deps.ffmpeg_source and deps.ffmpeg_source.macos
+	local ffmpeg_src = Manifest.ffmpeg_source and Manifest.ffmpeg_source.macos
 	if not ffmpeg_src then
 		return
 	end

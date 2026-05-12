@@ -1,15 +1,15 @@
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local OpenSSLSourceSpec = {}
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param prefix string
 ---@param prefix_abs string
 ---@param tc_bin string?
-function OpenSSLSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
-	local openssl = deps.openssl_source and deps.openssl_source[target]
+function OpenSSLSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
+	local openssl = Manifest.openssl_source and Manifest.openssl_source[target]
 	if not openssl then
 		return
 	end

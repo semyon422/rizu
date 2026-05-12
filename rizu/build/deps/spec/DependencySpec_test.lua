@@ -1,7 +1,6 @@
 local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local Executor = require("rizu.build.deps.engine.Executor")
-local deps = require("rizu.build.deps.Manifest")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
@@ -21,7 +20,7 @@ end
 ---@param t testing.T
 function test.loads_normalized_valid_specs_for_all_targets(t)
 	for _, target in ipairs({"linux", "windows", "macos"}) do
-		local spec = DependencySpec.load(target, deps)
+		local spec = DependencySpec.load(target)
 		t:eq(spec.target, target)
 		t:assert(#spec.steps > 0)
 		t:assert(#spec.outputs > 0)
@@ -37,7 +36,7 @@ end
 ---@param t testing.T
 function test.rejects_unknown_target(t)
 	local ok, err = pcall(function()
-		DependencySpec.load("plan9", deps)
+		DependencySpec.load("plan9")
 	end)
 	t:eq(ok, false)
 	t:assert(tostring(err):find("No dependency spec builder for target: plan9", 1, true) ~= nil, tostring(err))
@@ -46,7 +45,7 @@ end
 ---@param t testing.T
 function test.includes_native_module_steps_for_all_targets(t)
 	for _, target in ipairs({"linux", "windows", "macos"}) do
-		local spec = DependencySpec.load(target, deps)
+		local spec = DependencySpec.load(target)
 		t:assert(findStep(spec, "module_z7_artifact") ~= nil)
 		t:assert(findStep(spec, "module_video_artifact") ~= nil)
 		t:assert(findStep(spec, "module_minacalc_artifact") ~= nil)
@@ -57,7 +56,7 @@ end
 
 ---@param t testing.T
 function test.macos_native_steps_use_osxcross_and_track_ffmpeg_inputs(t)
-	local spec = DependencySpec.load("macos", deps)
+	local spec = DependencySpec.load("macos")
 	local video = findStep(spec, "module_video_artifact")
 	local luamidi = findStep(spec, "module_luamidi_artifact")
 
@@ -111,7 +110,7 @@ function test.ffmpeg_binary_reruns_extract_when_output_missing(t)
 		fs:write(dest, "archive")
 	end
 
-	local spec = DependencySpec.load("linux", deps)
+	local spec = DependencySpec.load("linux")
 	local step = findStep(spec, "ffmpeg_binary")
 	t:assert(step)
 	---@cast step -?
@@ -130,7 +129,7 @@ end
 
 ---@param t testing.T
 function test.sevenzip_sdk_uses_host_tar_extractor(t)
-	local spec = DependencySpec.load("linux", deps)
+	local spec = DependencySpec.load("linux")
 	local step = findStep(spec, "sevenzip_sdk")
 	t:assert(step)
 	---@cast step -?
@@ -146,7 +145,7 @@ end
 
 ---@param t testing.T
 function test.sevenzip_native_module_tracks_sdk_sources_as_inputs(t)
-	local spec = DependencySpec.load("linux", deps)
+	local spec = DependencySpec.load("linux")
 	local step = findStep(spec, "module_z7_artifact")
 	t:assert(step)
 	---@cast step -?
@@ -160,7 +159,7 @@ end
 
 ---@param t testing.T
 function test.love_windows_uses_deps_scratch_dirs(t)
-	local spec = DependencySpec.load("linux", deps)
+	local spec = DependencySpec.load("linux")
 	local step = findStep(spec, "love_win")
 	t:assert(step)
 	---@cast step -?

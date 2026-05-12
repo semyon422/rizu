@@ -1,17 +1,17 @@
 local Dd32Spec = require("rizu.build.deps.spec.common.Dd32Spec")
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
 local table_util = require("aqua.table_util")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local IconvSourceSpec = {}
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param prefix string
 ---@param prefix_abs string
 ---@param tc_bin string?
-function IconvSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
-	local iconv = deps.iconv_source and deps.iconv_source[target]
+function IconvSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
+	local iconv = Manifest.iconv_source and Manifest.iconv_source[target]
 	if not iconv then
 		return
 	end

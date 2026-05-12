@@ -1,10 +1,11 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
 ---@class rizu.build.deps.spec.common.SevenZipSpec
 local SevenZipSpec = {}
 
----@param deps rizu.build.deps.Manifest
 ---@param spec rizu.build.deps.Spec
-function SevenZipSpec.add(deps, spec)
-	local s7 = deps.sevenzip
+function SevenZipSpec.add(spec)
+	local s7 = Manifest.sevenzip
 	local dest = "${downloads_dir}/" .. s7.archive
 	local extract = "${deps_dir}/" .. s7.dir
 	table.insert(spec.steps, {

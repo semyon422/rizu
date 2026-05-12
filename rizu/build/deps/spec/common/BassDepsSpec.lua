@@ -1,3 +1,5 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
 ---@class rizu.build.deps.spec.common.BassDepsSpec
 local BassDepsSpec = {}
 
@@ -24,11 +26,10 @@ local function getSourcePath(dep_name, target, extract)
 end
 
 ---@param target rizu.build.Target
----@param deps rizu.build.deps.Manifest
 ---@param spec rizu.build.deps.Spec
-function BassDepsSpec.add(target, deps, spec)
+function BassDepsSpec.add(target, spec)
 	for _, dep_name in ipairs(BASS_DEPS) do
-		local cfg = deps[dep_name] and deps[dep_name][target]
+		local cfg = Manifest[dep_name] and Manifest[dep_name][target]
 		if cfg then
 			local archive = "${downloads_dir}/" .. cfg.archive
 			local extract = "${deps_dir}/" .. dep_name .. "_" .. target

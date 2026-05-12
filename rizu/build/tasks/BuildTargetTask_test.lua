@@ -1,7 +1,6 @@
 local BuildTargetTask = require("rizu.build.tasks.BuildTargetTask")
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
-local deps = require("rizu.build.deps.Manifest")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
@@ -63,7 +62,7 @@ function test.build_target_status_and_uptodate(t)
 	local task = BuildTargetTask("linux")
 	t:eq(task:upToDate(ctx), false)
 
-	local spec = DependencySpec.load("linux", deps)
+	local spec = DependencySpec.load("linux")
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	for _, step in ipairs(spec.steps) do
 		for _, path in ipairs(step.inputs or {}) do

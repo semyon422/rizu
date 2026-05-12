@@ -15,21 +15,19 @@ local builders = {
 }
 
 ---@param target rizu.build.Target
----@param deps rizu.build.deps.Manifest
 ---@return rizu.build.deps.Spec
-local function buildBaseSpec(target, deps)
+local function buildBaseSpec(target)
 	local builder = builders[target]
 	if not builder then
 		error("No dependency spec builder for target: " .. tostring(target))
 	end
-	return builder(deps)
+	return builder()
 end
 
 ---@param target rizu.build.Target
----@param deps rizu.build.deps.Manifest
 ---@return rizu.build.deps.Spec
-function DependencySpec.load(target, deps)
-	local spec = SpecNormalizer.normalize(buildBaseSpec(target, deps))
+function DependencySpec.load(target)
+	local spec = SpecNormalizer.normalize(buildBaseSpec(target))
 	NativeModulesSpec.add(target, spec)
 	spec = SpecNormalizer.normalize(spec)
 	spec.target = target

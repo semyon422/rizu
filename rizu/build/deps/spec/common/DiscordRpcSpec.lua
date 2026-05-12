@@ -1,11 +1,12 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
 ---@class rizu.build.deps.spec.common.DiscordRpcSpec
 local DiscordRpcSpec = {}
 
 ---@param target rizu.build.Target
----@param deps rizu.build.deps.Manifest
 ---@param spec rizu.build.deps.Spec
-function DiscordRpcSpec.add(target, deps, spec)
-	local cfg = deps.discord_rpc and deps.discord_rpc[target]
+function DiscordRpcSpec.add(target, spec)
+	local cfg = Manifest.discord_rpc and Manifest.discord_rpc[target]
 	if not cfg then
 		return
 	end

@@ -10,21 +10,20 @@ local ZlibSourceSpec = require("rizu.build.deps.spec.source.ZlibSourceSpec")
 ---@class rizu.build.deps.spec.LinuxSpec
 local Linux = {}
 
----@param deps rizu.build.deps.Manifest
 ---@return rizu.build.deps.Spec
-function Linux.build(deps)
+function Linux.build()
 	local target = "linux"
-	local spec = Common.buildShared(target, deps)
+	local spec = Common.buildShared(target)
 	local prefix = "${deps_dir}/local/linux"
 	local prefix_abs = "${root_abs}/build/deps/local/linux"
 
 	PrefixSpec.add(target, spec, prefix)
-	ZlibSourceSpec.add(target, spec, deps, prefix, prefix_abs)
-	IconvSourceSpec.add(target, spec, deps, prefix, prefix_abs)
-	OpenSSLSourceSpec.add(target, spec, deps, prefix, prefix_abs)
-	LuaSecSourceSpec.add(target, spec, deps, prefix, prefix_abs)
-	SQLiteSourceSpec.add(target, spec, deps, prefix, prefix_abs)
-	FFTWSourceSpec.add(target, spec, deps, prefix, prefix_abs)
+	ZlibSourceSpec.add(target, spec, prefix, prefix_abs)
+	IconvSourceSpec.add(target, spec, prefix, prefix_abs)
+	OpenSSLSourceSpec.add(target, spec, prefix, prefix_abs)
+	LuaSecSourceSpec.add(target, spec, prefix, prefix_abs)
+	SQLiteSourceSpec.add(target, spec, prefix, prefix_abs)
+	FFTWSourceSpec.add(target, spec, prefix, prefix_abs)
 
 	return spec
 end

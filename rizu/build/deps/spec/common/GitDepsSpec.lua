@@ -1,11 +1,12 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
 ---@class rizu.build.deps.spec.common.GitDepsSpec
 local GitDepsSpec = {}
 
----@param deps rizu.build.deps.Manifest
 ---@param spec rizu.build.deps.Spec
-function GitDepsSpec.add(deps, spec)
+function GitDepsSpec.add(spec)
 	for _, dep_name in ipairs({"minacalc", "luamidi"}) do
-		local cfg = deps[dep_name]
+		local cfg = Manifest[dep_name]
 		local dep_dir = "${deps_dir}/" .. dep_name
 		table.insert(spec.steps, {
 			id = "git_" .. dep_name,

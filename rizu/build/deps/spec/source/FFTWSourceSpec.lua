@@ -1,17 +1,17 @@
 local Dd32Spec = require("rizu.build.deps.spec.common.Dd32Spec")
 local MacOSCross = require("rizu.build.deps.spec.source.MacOSCross")
 local table_util = require("aqua.table_util")
+local Manifest = require("rizu.build.deps.Manifest")
 
 local FFTWSourceSpec = {}
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
----@param deps rizu.build.deps.Manifest
 ---@param prefix string
 ---@param prefix_abs string
 ---@param tc_bin string?
-function FFTWSourceSpec.add(target, spec, deps, prefix, prefix_abs, tc_bin)
-	local fftw = deps.fftw_source and deps.fftw_source[target]
+function FFTWSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
+	local fftw = Manifest.fftw_source and Manifest.fftw_source[target]
 	if not fftw then
 		return
 	end

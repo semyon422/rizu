@@ -1,5 +1,4 @@
 local ITask = require("rizu.build.ITask")
-local deps = require("rizu.build.deps.Manifest")
 
 local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
@@ -32,7 +31,7 @@ end
 ---@param ctx rizu.build.Context
 function PrefetchDepsTask:run(ctx)
 	local env = BuildEnv.new(ctx, self.target, {initialize_dirs = true})
-	local spec = DependencySpec.load(self.target, deps)
+	local spec = DependencySpec.load(self.target)
 	local count = 0
 
 	if self.target == "macos" then
