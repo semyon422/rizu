@@ -1,8 +1,8 @@
 local class = require("class")
 local Converter = require("chartedit.Converter")
 
----@class sphere.EditorNoteChartLoader
----@operator call: sphere.EditorNoteChartLoader
+---@class rizu.editor.EditorNoteChartLoader
+---@operator call: rizu.editor.EditorNoteChartLoader
 local NoteChartLoader = class()
 
 ---@return chartedit.Layer

@@ -16,7 +16,7 @@ end
 
 ---@param self table
 function tabs.info(self)
-	---@type sphere.EditorModel
+	---@type rizu.editor.EditorModel
 	local editorModel = self.game.editorModel
 
 	imgui.setSize(400, 1080, 400, 55)

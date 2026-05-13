@@ -1,8 +1,8 @@
 local class = require("class")
 local audio = require("audio")
 
----@class sphere.Metronome
----@operator call: sphere.Metronome
+---@class rizu.editor.Metronome
+---@operator call: rizu.editor.Metronome
 local Metronome = class()
 
 local samplePath = "resources/metronome.ogg"

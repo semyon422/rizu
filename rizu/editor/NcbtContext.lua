@@ -3,8 +3,8 @@ local ncbt = require("ncbt")
 local class = require("class")
 local Visual = require("chartedit.Visual")
 
----@class sphere.NcbtContext
----@operator call: sphere.NcbtContext
+---@class rizu.editor.NcbtContext
+---@operator call: rizu.editor.NcbtContext
 local NcbtContext = class()
 
 function NcbtContext:load()

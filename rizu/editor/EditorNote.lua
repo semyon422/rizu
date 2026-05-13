@@ -1,13 +1,13 @@
 local class = require("class")
 local table_util = require("table_util")
 
----@class sphere.EditorNote
----@operator call: sphere.EditorNote
+---@class rizu.editor.EditorNote
+---@operator call: rizu.editor.EditorNote
 local EditorNote = class()
 
 ---@param absoluteTime number
 ---@param column ncdk2.Column
----@return sphere.EditorNote?
+---@return rizu.editor.EditorNote?
 function EditorNote:create(absoluteTime, column) end
 
 ---@param t number

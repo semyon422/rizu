@@ -1,12 +1,12 @@
 local class = require("class")
 local Fraction = require("ncdk.Fraction")
-local EditorNoteFactory = require("sphere.models.EditorModel.EditorNoteFactory")
-local ShortEditorNote = require("sphere.models.EditorModel.ShortEditorNote")
-local LongEditorNote = require("sphere.models.EditorModel.LongEditorNote")
+local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
+local ShortEditorNote = require("rizu.editor.ShortEditorNote")
+local LongEditorNote = require("rizu.editor.LongEditorNote")
 local Note = require("ncdk2.notes.Note")
 
----@class sphere.EditorNoteManager
----@operator call: sphere.EditorNoteManager
+---@class rizu.editor.EditorNoteManager
+---@operator call: rizu.editor.EditorNoteManager
 local NoteManager = class()
 
 function NoteManager:new()
@@ -79,7 +79,7 @@ function NoteManager:deleteNotes()
 end
 
 function NoteManager:changeType()
-	---@type sphere.EditorModel
+	---@type rizu.editor.EditorModel
 	local editorModel = self.editorModel
 	local layer = editorModel.layer
 	local visual = editorModel.visual
@@ -176,7 +176,7 @@ function NoteManager:dropNotes(mouseTime)
 	self.editorModel.editorChanges:next()
 end
 
----@param note sphere.EditorNote
+---@param note rizu.editor.EditorNote
 function NoteManager:_removeNote(note)
 	self.editorModel.graphicEngine.selectedNotes[note.startNote] = nil
 	local lnotes = self.editorModel.notes
@@ -190,7 +190,7 @@ function NoteManager:_removeNote(note)
 	end
 end
 
----@param note sphere.EditorNote
+---@param note rizu.editor.EditorNote
 function NoteManager:removeNote(note)
 	self.editorModel.editorChanges:reset()
 	self:_removeNote(note)
@@ -220,7 +220,7 @@ end
 ---@param noteType string
 ---@param absoluteTime number
 ---@param column string
----@return sphere.EditorNote?
+---@return rizu.editor.EditorNote?
 function NoteManager:newNote(noteType, absoluteTime, column)
 	local note = EditorNoteFactory:newNote_t(noteType)
 	note.editorModel = self.editorModel

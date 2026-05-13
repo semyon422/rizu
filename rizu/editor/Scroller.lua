@@ -1,8 +1,8 @@
 local class = require("class")
 local Fraction = require("ncdk.Fraction")
 
----@class sphere.Scroller
----@operator call: sphere.Scroller
+---@class rizu.editor.Scroller
+---@operator call: rizu.editor.Scroller
 local Scroller = class()
 
 ---@param point ncdk2.Point

@@ -1,9 +1,9 @@
 local class = require("class")
-local ShortEditorNote = require("sphere.models.EditorModel.ShortEditorNote")
-local LongEditorNote = require("sphere.models.EditorModel.LongEditorNote")
+local ShortEditorNote = require("rizu.editor.ShortEditorNote")
+local LongEditorNote = require("rizu.editor.LongEditorNote")
 
----@class sphere.EditorNoteFactory
----@operator call: sphere.EditorNoteFactory
+---@class rizu.editor.EditorNoteFactory
+---@operator call: rizu.editor.EditorNoteFactory
 local EditorNoteFactory = class()
 
 local notes = {
@@ -19,7 +19,7 @@ local notes = {
 }
 
 ---@param note ncdk2.LinkedNote
----@return sphere.EditorNote?
+---@return rizu.editor.EditorNote?
 function EditorNoteFactory:newNote(note)
 	local classAndType = notes[note:getType()]
 	if not classAndType then
@@ -29,7 +29,7 @@ function EditorNoteFactory:newNote(note)
 end
 
 ---@param note_type ncdk2.NoteType
----@return sphere.EditorNote?
+---@return rizu.editor.EditorNote?
 function EditorNoteFactory:newNote_t(note_type)
 	local classAndType = notes[note_type]
 	if not classAndType then

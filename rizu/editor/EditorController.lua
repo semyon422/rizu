@@ -17,12 +17,12 @@ local base36 = require("bms.base36")
 local decibel = require("decibel")
 local md5 = require("md5")
 
----@class sphere.EditorController
----@operator call: sphere.EditorController
+---@class rizu.editor.EditorController
+---@operator call: rizu.editor.EditorController
 local EditorController = class()
 
 ---@param chartSelector rizu.select.ChartSelector
----@param editorModel sphere.EditorModel
+---@param editorModel rizu.editor.EditorModel
 ---@param noteSkinModel sphere.NoteSkinModel
 ---@param configModel sphere.ConfigModel
 ---@param resourceModel sphere.ResourceModel
@@ -108,7 +108,7 @@ end
 function EditorController:sliceKeysounds()
 	local chartSelector = self.chartSelector
 
-	---@type sphere.EditorModel
+	---@type rizu.editor.EditorModel
 	local editorModel = self.editorModel
 
 	---@type audio.SoundData

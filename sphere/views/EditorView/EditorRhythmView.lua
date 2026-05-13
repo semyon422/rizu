@@ -2,8 +2,8 @@ local RhythmView = require("sphere.views.RhythmView")
 local just = require("just")
 local gfx_util = require("gfx_util")
 
----@class sphere.EditorRhythmView: sphere.RhythmView
----@operator call: sphere.EditorRhythmView
+---@class rizu.editor.EditorRhythmView: sphere.RhythmView
+---@operator call: rizu.editor.EditorRhythmView
 local EditorRhythmView = RhythmView + {}
 
 ---@param note sphere.GraphicalNote

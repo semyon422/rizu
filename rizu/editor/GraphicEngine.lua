@@ -1,9 +1,9 @@
 local class = require("class")
-local EditorNoteFactory = require("sphere.models.EditorModel.EditorNoteFactory")
+local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
 
----@class sphere.EditorGraphicEngine
----@operator call: sphere.EditorGraphicEngine
----@field selectedNotes {[ncdk2.Note]: sphere.EditorNote}
+---@class rizu.editor.EditorGraphicEngine
+---@operator call: rizu.editor.EditorGraphicEngine
+---@field selectedNotes {[ncdk2.Note]: rizu.editor.EditorNote}
 local GraphicEngine = class()
 
 function GraphicEngine:new()
@@ -59,7 +59,7 @@ function GraphicEngine:selectEnd()
 	self.selecting = false
 end
 
----@param note sphere.EditorNote?
+---@param note rizu.editor.EditorNote?
 ---@param keepOthers boolean?
 function GraphicEngine:selectNote(note, keepOthers)
 	if not note then
@@ -89,7 +89,7 @@ end
 
 ---@param _note ncdk2.LinkedNote
 ---@param column ncdk2.Column
----@return sphere.EditorNote?
+---@return rizu.editor.EditorNote?
 function GraphicEngine:newNote(_note, column)
 	local note = EditorNoteFactory:newNote(_note)
 	if not note then

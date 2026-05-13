@@ -1,7 +1,7 @@
 local class = require("class")
 
----@class sphere.IntervalManager
----@operator call: sphere.IntervalManager
+---@class rizu.editor.IntervalManager
+---@operator call: rizu.editor.IntervalManager
 local IntervalManager = class()
 
 ---@param interval chartedit.Interval

@@ -1,8 +1,8 @@
 local audio = require("audio")
 local class = require("class")
 
----@class sphere.EditorMainAudio
----@operator call: sphere.EditorMainAudio
+---@class rizu.editor.EditorMainAudio
+---@operator call: rizu.editor.EditorMainAudio
 local MainAudio = class()
 
 function MainAudio:load()

@@ -1,15 +1,15 @@
-local EditorNote = require("sphere.models.EditorModel.EditorNote")
+local EditorNote = require("rizu.editor.EditorNote")
 local ShortGraphicalNote = require("sphere.models.RhythmModel.GraphicEngine.ShortGraphicalNote")
 local VisualPoint = require("chartedit.VisualPoint")
 local Note = require("ncdk2.notes.Note")
 
----@class sphere.ShortEditorNote: sphere.EditorNote, sphere.ShortGraphicalNote
----@operator call: sphere.ShortEditorNote
+---@class rizu.editor.ShortEditorNote: rizu.editor.EditorNote, sphere.ShortGraphicalNote
+---@operator call: rizu.editor.ShortEditorNote
 local ShortEditorNote = EditorNote + ShortGraphicalNote
 
 ---@param absoluteTime number
 ---@param column ncdk2.Column
----@return sphere.ShortEditorNote?
+---@return rizu.editor.ShortEditorNote?
 function ShortEditorNote:create(absoluteTime, column)
 	local editorModel = self.editorModel
 	local layer = editorModel.layer

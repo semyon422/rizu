@@ -1,24 +1,24 @@
 local class = require("class")
-local AudioManager = require("sphere.models.EditorModel.AudioManager")
-local TimeManager = require("sphere.models.EditorModel.TimeManager")
-local GraphicEngine = require("sphere.models.EditorModel.GraphicEngine")
+local AudioManager = require("rizu.editor.AudioManager")
+local TimeManager = require("rizu.editor.TimeManager")
+local GraphicEngine = require("rizu.editor.GraphicEngine")
 local just = require("just")
 local Changes = require("Changes")
-local NoteChartLoader = require("sphere.models.EditorModel.NoteChartLoader")
-local MainAudio = require("sphere.models.EditorModel.MainAudio")
-local NcbtContext = require("sphere.models.EditorModel.NcbtContext")
-local IntervalManager = require("sphere.models.EditorModel.IntervalManager")
-local GraphsGenerator = require("sphere.models.EditorModel.GraphsGenerator")
-local EditorChanges = require("sphere.models.EditorModel.EditorChanges")
-local NoteManager = require("sphere.models.EditorModel.NoteManager")
-local Scroller = require("sphere.models.EditorModel.Scroller")
-local Metronome = require("sphere.models.EditorModel.Metronome")
+local NoteChartLoader = require("rizu.editor.NoteChartLoader")
+local MainAudio = require("rizu.editor.MainAudio")
+local NcbtContext = require("rizu.editor.NcbtContext")
+local IntervalManager = require("rizu.editor.IntervalManager")
+local GraphsGenerator = require("rizu.editor.GraphsGenerator")
+local EditorChanges = require("rizu.editor.EditorChanges")
+local NoteManager = require("rizu.editor.NoteManager")
+local Scroller = require("rizu.editor.Scroller")
+local Metronome = require("rizu.editor.Metronome")
 local pattern_analyzer = require("libchart.pattern_analyzer")
 local Point = require("chartedit.Point")
 local Metadata = require("sph.Metadata")
 
----@class sphere.EditorModel
----@operator call: sphere.EditorModel
+---@class rizu.editor.EditorModel
+---@operator call: rizu.editor.EditorModel
 ---@field layer chartedit.Layer
 local EditorModel = class()
 
@@ -270,7 +270,7 @@ function EditorModel:getMouseTime(dy)
 	return self.point.absoluteTime - noteSkin:getInverseTimePosition(my + dy) / editor.speed
 end
 
----@param note sphere.EditorNote
+---@param note rizu.editor.EditorNote
 function EditorModel:selectNote(note)
 	self.graphicEngine:selectNote(note, love.keyboard.isDown("lctrl"))
 end

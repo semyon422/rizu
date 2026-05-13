@@ -1,8 +1,8 @@
 local class = require("class")
 local math_util = require("math_util")
 
----@class sphere.GraphsGenerator
----@operator call: sphere.GraphsGenerator
+---@class rizu.editor.GraphsGenerator
+---@operator call: rizu.editor.GraphsGenerator
 local GraphsGenerator = class()
 
 function GraphsGenerator:load()

@@ -27,8 +27,8 @@ local function newKeyFrame(time)
 	}, Keyframe_mt)
 end
 
----@class sphere.EditorAudioManager
----@operator call: sphere.EditorAudioManager
+---@class rizu.editor.EditorAudioManager
+---@operator call: rizu.editor.EditorAudioManager
 local AudioManager = class()
 
 ---@param timer rizu.LocalTimer
