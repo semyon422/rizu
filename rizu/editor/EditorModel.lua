@@ -1,7 +1,7 @@
 local class = require("class")
 local AudioManager = require("rizu.editor.AudioManager")
 local TimeManager = require("rizu.editor.TimeManager")
-local GraphicEngine = require("rizu.editor.GraphicEngine")
+local VisualEngine = require("rizu.editor.VisualEngine")
 local just = require("just")
 local Changes = require("Changes")
 local NoteChartLoader = require("rizu.editor.NoteChartLoader")
@@ -42,7 +42,7 @@ function EditorModel:new(configModel, resourceModel)
 	self.timer:setGlobalTime(0)
 	self.audioManager = AudioManager(self.timer, resourceModel)
 	self.noteManager = NoteManager()
-	self.graphicEngine = GraphicEngine()
+	self.visualEngine = VisualEngine()
 	self.scroller = Scroller()
 	self.metronome = Metronome()
 	self.metadata = Metadata()
@@ -272,11 +272,11 @@ end
 
 ---@param note rizu.editor.EditorNote
 function EditorModel:selectNote(note)
-	self.graphicEngine:selectNote(note, love.keyboard.isDown("lctrl"))
+	self.visualEngine:selectNote(note, love.keyboard.isDown("lctrl"))
 end
 
 function EditorModel:selectStart()
-	self.graphicEngine:selectStart()
+	self.visualEngine:selectStart()
 	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
 	self.selectRect = {mx, my, mx, my}
 	self.selectStartTime = self:getMouseTime()
@@ -284,7 +284,7 @@ function EditorModel:selectStart()
 end
 
 function EditorModel:selectEnd()
-	self.graphicEngine:selectEnd()
+	self.visualEngine:selectEnd()
 	self.selectRect = nil
 	just.unselect()
 end
@@ -316,7 +316,7 @@ function EditorModel:update()
 
 	dtp:clone(self.point)
 
-	self.graphicEngine:update()
+	self.visualEngine:update()
 end
 
 ---@param event table

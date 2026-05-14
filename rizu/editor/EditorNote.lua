@@ -5,6 +5,19 @@ local table_util = require("table_util")
 ---@operator call: rizu.editor.EditorNote
 local EditorNote = class()
 
+---@param noteType string
+---@param note ncdk2.LinkedNote
+---@param visual_info rizu.VisualInfo
+function EditorNote:new(noteType, note, visual_info)
+	self.noteType = noteType
+	self.linked_note = note
+	self.visual_info = visual_info
+	if note then
+		self.startNote = note.startNote
+		self.endNote = note.endNote
+	end
+end
+
 ---@param absoluteTime number
 ---@param column ncdk2.Column
 ---@return rizu.editor.EditorNote?

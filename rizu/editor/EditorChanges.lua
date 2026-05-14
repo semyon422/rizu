@@ -16,7 +16,7 @@ function EditorChanges:undo()
 		cmd[1][cmd[2]](unpack(cmd, 3))
 		print("undo i", i - 1)
 	end
-	self.editorModel.graphicEngine:reset()
+	self.editorModel.visualEngine:reset()
 	print("undo", self.changes)
 end
 
@@ -26,7 +26,7 @@ function EditorChanges:redo()
 		cmd[1][cmd[2]](unpack(cmd, 3))
 		print("redo i", i)
 	end
-	self.editorModel.graphicEngine:reset()
+	self.editorModel.visualEngine:reset()
 	print("redo", self.changes)
 end
 

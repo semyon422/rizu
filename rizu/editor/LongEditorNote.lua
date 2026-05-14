@@ -1,11 +1,18 @@
 local EditorNote = require("rizu.editor.EditorNote")
-local LongGraphicalNote = require("sphere.models.RhythmModel.GraphicEngine.LongGraphicalNote")
+local LongVisualNote = require("rizu.engine.visual.LongVisualNote")
 local VisualPoint = require("chartedit.VisualPoint")
 local Note = require("ncdk2.notes.Note")
+local LinkedNote = require("ncdk2.notes.LinkedNote")
 
----@class rizu.editor.LongEditorNote: rizu.editor.EditorNote, sphere.LongGraphicalNote
+---@class rizu.editor.LongEditorNote: rizu.editor.EditorNote, rizu.LongVisualNote
 ---@operator call: rizu.editor.LongEditorNote
-local LongEditorNote = EditorNote + LongGraphicalNote
+local LongEditorNote = EditorNote + LongVisualNote
+
+function LongEditorNote:update()
+	local visual_info = self.visual_info
+	self.start_dt = visual_info:sub(self:getVisualTime(self.startNote.visualPoint))
+	self.end_dt = visual_info:sub(self:getVisualTime(self.endNote.visualPoint))
+end
 
 ---@param absoluteTime number
 ---@param column ncdk2.Column
@@ -26,6 +33,11 @@ function LongEditorNote:create(absoluteTime, column)
 	local endNote = Note(vp, column, "hold", -1)
 	self.endNote = endNote
 
+	self.linked_note = LinkedNote(startNote, endNote)
+
+	startNote.endNote = endNote
+	endNote.startNote = startNote
+
 	self:update()
 
 	return self
@@ -45,6 +57,10 @@ function LongEditorNote:grab(t, part, deltaColumn, lockSnap)
 
 	self.startNote = self.startNote:clone()
 	self.endNote = self.endNote:clone()
+	self.linked_note.startNote = self.startNote
+	self.linked_note.endNote = self.endNote
+	self.startNote.endNote = self.endNote
+	self.endNote.startNote = self.startNote
 
 	local startTime = self.startNote:getTime()
 	local endTime = self.endNote:getTime()

@@ -19,23 +19,25 @@ local notes = {
 }
 
 ---@param note ncdk2.LinkedNote
+---@param visual_info rizu.VisualInfo
 ---@return rizu.editor.EditorNote?
-function EditorNoteFactory:newNote(note)
+function EditorNoteFactory:newNote(note, visual_info)
 	local classAndType = notes[note:getType()]
 	if not classAndType then
 		return
 	end
-	return classAndType[1](classAndType[2], note)
+	return classAndType[1](classAndType[2], note, visual_info)
 end
 
 ---@param note_type ncdk2.NoteType
+---@param visual_info rizu.VisualInfo
 ---@return rizu.editor.EditorNote?
-function EditorNoteFactory:newNote_t(note_type)
+function EditorNoteFactory:newNote_t(note_type, visual_info)
 	local classAndType = notes[note_type]
 	if not classAndType then
 		return
 	end
-	return classAndType[1](classAndType[2])
+	return classAndType[1](classAndType[2], nil, visual_info)
 end
 
 return EditorNoteFactory

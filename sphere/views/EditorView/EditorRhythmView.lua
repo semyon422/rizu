@@ -10,14 +10,14 @@ local EditorRhythmView = RhythmView + {}
 function EditorRhythmView:processNote(note)
 	local editorModel = self.game.editorModel
 	local noteManager = editorModel.noteManager
-	local graphicEngine = editorModel.graphicEngine
+	local visualEngine = editorModel.visualEngine
 
 	local mouseTime = editorModel:getMouseTime()
 	if note.noteType == "ShortNote" then
 		local over = just.mouse_over(note, note.over, "mouse")
 		if over then
 			if just.mousepressed(1) then
-				graphicEngine:selectNote(note)
+				visualEngine:selectNote(note)
 				noteManager:grabNotes("body", mouseTime)
 			elseif just.mousepressed(2) then
 				noteManager:removeNote(note)
@@ -29,13 +29,13 @@ function EditorRhythmView:processNote(note)
 		local tailOver = just.mouse_over(tostring(note) .. "tail", note.tailOver, "mouse")
 		if just.mousepressed(1) then
 			if bodyOver then
-				graphicEngine:selectNote(note)
+				visualEngine:selectNote(note)
 				noteManager:grabNotes("body", mouseTime)
 			elseif headOver then
-				graphicEngine:selectNote(note)
+				visualEngine:selectNote(note)
 				noteManager:grabNotes("head", mouseTime)
 			elseif tailOver then
-				graphicEngine:selectNote(note)
+				visualEngine:selectNote(note)
 				noteManager:grabNotes("tail", mouseTime)
 			end
 		end
@@ -96,7 +96,7 @@ function EditorRhythmView:draw()
 		return
 	end
 
-	for _, note in ipairs(editorModel.graphicEngine.notes) do
+	for _, note in ipairs(editorModel.visualEngine.notes) do
 		self:processNote(note)
 	end
 	if just.mousereleased(1) then
@@ -113,7 +113,7 @@ end
 ---@param f function
 function EditorRhythmView:processNotes(f)
 	local editorModel = self.game.editorModel
-	for _, note in ipairs(editorModel.graphicEngine.notes) do
+	for _, note in ipairs(editorModel.visualEngine.notes) do
 		f(self, note)
 	end
 	for _, note in ipairs(editorModel.noteManager.grabbedNotes) do

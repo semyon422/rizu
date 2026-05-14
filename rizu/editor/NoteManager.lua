@@ -47,7 +47,7 @@ function NoteManager:copyNotes(cut)
 	self.copiedNotes = {}
 	local copyPoint
 
-	for _, note in pairs(self.editorModel.graphicEngine.selectedNotes) do
+	for _, note in pairs(self.editorModel.visualEngine.selectedNotes) do
 		if not copyPoint or note.startNote.visualPoint.point < copyPoint then
 			copyPoint = note.startNote.visualPoint.point
 		end
@@ -70,7 +70,7 @@ function NoteManager:deleteNotes()
 	self.editorModel.editorChanges:reset()
 	local c = 0
 
-	for n, note in pairs(self.editorModel.graphicEngine.selectedNotes) do
+	for n, note in pairs(self.editorModel.visualEngine.selectedNotes) do
 		self:_removeNote(note)
 		c = c + 1
 	end
@@ -87,7 +87,7 @@ function NoteManager:changeType()
 
 	-- self.editorModel.editorChanges:reset()
 
-	for _, note in pairs(editorModel.graphicEngine.selectedNotes) do
+	for _, note in pairs(editorModel.visualEngine.selectedNotes) do
 		note:remove()
 		if not note.endNote then
 			local startNote = note.startNote
@@ -121,7 +121,7 @@ function NoteManager:changeType()
 		note:add()
 	end
 
-	self.editorModel.graphicEngine:reset()
+	self.editorModel.visualEngine:reset()
 
 	-- self.editorModel.editorChanges:next()
 end
@@ -149,7 +149,7 @@ function NoteManager:grabNotes(part, mouseTime)
 	self.grabbedNotes = {}
 	self.editorModel.editorChanges:reset()
 	local column = self:getColumnOver()
-	for _, note in pairs(self.editorModel.graphicEngine.selectedNotes) do
+	for _, note in pairs(self.editorModel.visualEngine.selectedNotes) do
 		local _column = noteSkin:getInputColumn(note.column)
 		if _column then
 			table.insert(self.grabbedNotes, note)
@@ -171,14 +171,14 @@ function NoteManager:dropNotes(mouseTime)
 			note:drop(t)
 		end
 		self:_addNotes(note:getNotes())
-		self.editorModel.graphicEngine.selectedNotes[note.startNote] = note
+		self.editorModel.visualEngine.selectedNotes[note.startNote] = note
 	end
 	self.editorModel.editorChanges:next()
 end
 
 ---@param note rizu.editor.EditorNote
 function NoteManager:_removeNote(note)
-	self.editorModel.graphicEngine.selectedNotes[note.startNote] = nil
+	self.editorModel.visualEngine.selectedNotes[note.startNote] = nil
 	local lnotes = self.editorModel.notes
 	local notes = note:getNotes()
 	for _, _note in ipairs(notes) do
@@ -222,9 +222,9 @@ end
 ---@param column string
 ---@return rizu.editor.EditorNote?
 function NoteManager:newNote(noteType, absoluteTime, column)
-	local note = EditorNoteFactory:newNote_t(noteType)
+	local note = EditorNoteFactory:newNote_t(noteType, self.editorModel.visualEngine.visual_info)
 	note.editorModel = self.editorModel
-	note.graphicEngine = self.editorModel.graphicEngine
+	note.visualEngine = self.editorModel.visualEngine
 	note.column = column
 	return note:create(absoluteTime, column)
 end
@@ -235,7 +235,7 @@ function NoteManager:addNote(absoluteTime, column)
 	local editorModel = self.editorModel
 	editorModel.editorChanges:reset()
 	local editor = editorModel:getSettings()
-	editorModel.graphicEngine:selectNote()
+	editorModel.visualEngine:selectNote()
 
 	local note
 	if editor.tool == "ShortNote" then
@@ -251,7 +251,7 @@ function NoteManager:addNote(absoluteTime, column)
 
 	editorModel.editorChanges:next()
 
-	editorModel.graphicEngine:selectNote(note)
+	editorModel.visualEngine:selectNote(note)
 	if editor.tool == "ShortNote" then
 		self:grabNotes("head", editorModel:getMouseTime())
 	elseif editor.tool == "LongNote" then
@@ -272,7 +272,7 @@ function NoteManager:flipNotes()
 
 	local notes = {}
 
-	for _, note in pairs(editorModel.graphicEngine.selectedNotes) do
+	for _, note in pairs(editorModel.visualEngine.selectedNotes) do
 		table.insert(notes, note)
 		self:_removeNote(note)
 	end

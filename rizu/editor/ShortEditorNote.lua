@@ -1,11 +1,12 @@
 local EditorNote = require("rizu.editor.EditorNote")
-local ShortGraphicalNote = require("sphere.models.RhythmModel.GraphicEngine.ShortGraphicalNote")
+local ShortVisualNote = require("rizu.engine.visual.ShortVisualNote")
 local VisualPoint = require("chartedit.VisualPoint")
 local Note = require("ncdk2.notes.Note")
+local LinkedNote = require("ncdk2.notes.LinkedNote")
 
----@class rizu.editor.ShortEditorNote: rizu.editor.EditorNote, sphere.ShortGraphicalNote
+---@class rizu.editor.ShortEditorNote: rizu.editor.EditorNote, rizu.ShortVisualNote
 ---@operator call: rizu.editor.ShortEditorNote
-local ShortEditorNote = EditorNote + ShortGraphicalNote
+local ShortEditorNote = EditorNote + ShortVisualNote
 
 ---@param absoluteTime number
 ---@param column ncdk2.Column
@@ -20,6 +21,7 @@ function ShortEditorNote:create(absoluteTime, column)
 	local vp = visual:getPoint(p)
 	local note = Note(vp, column, "tap")
 	self.startNote = note
+	self.linked_note = LinkedNote(note)
 	self:update()
 
 	return self
@@ -38,6 +40,7 @@ function ShortEditorNote:grab(t, part, deltaColumn, lockSnap)
 	end
 
 	self.startNote = self.startNote:clone()
+	self.linked_note.startNote = self.startNote
 
 	self.grabbedDeltaTime = t - self.startNote:getTime()
 	self.startNote.visualPoint = VisualPoint({})
