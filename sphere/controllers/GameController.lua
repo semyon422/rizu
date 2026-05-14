@@ -197,18 +197,6 @@ function GameController:new()
 		self.chartSelector,
 		self.replayBase
 	)
-	self.editorController = EditorController(
-		self.chartSelector,
-		self.editorModel,
-		self.noteSkinModel,
-		self.configModel,
-		self.resourceModel,
-		self.windowModel,
-		self.library,
-		self.fileFinder,
-		self.previewModel,
-		self.replayBase
-	)
 	self.offsetController = OffsetController(
 		self.library,
 		self.computeContext,
@@ -219,6 +207,21 @@ function GameController:new()
 
 	self.resource_finder = ResourceFinder(self.fs)
 	self.resource_loader = ResourceLoader(self.fs, self.resource_finder)
+
+	self.editorController = EditorController(
+		self.chartSelector,
+		self.editorModel,
+		self.noteSkinModel,
+		self.configModel,
+		self.resourceModel,
+		self.windowModel,
+		self.library,
+		self.fileFinder,
+		self.previewModel,
+		self.replayBase,
+		self.resource_finder,
+		self.resource_loader
+	)
 
 	self.gameplayInteractor = GameplayInteractor(self)
 	self.gameInteractor = GameInteractor(self)

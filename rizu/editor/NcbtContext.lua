@@ -17,9 +17,9 @@ function NcbtContext:load()
 	self.binsSize = nil
 end
 
----@param soundData audio.SoundData
+---@param soundData audio.SoundData|audio.Wave
 function NcbtContext:detect(soundData)
-	self.duration = soundData:getDuration()
+	self.duration = soundData.getDuration and soundData:getDuration() or (soundData.samples_count / soundData.sample_rate)
 
 	local onsets = ncbt.onsets(soundData)
 

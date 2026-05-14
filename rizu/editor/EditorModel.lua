@@ -1,11 +1,10 @@
 local class = require("class")
-local AudioManager = require("rizu.editor.AudioManager")
+local AudioEngine = require("rizu.engine.audio.Engine")
 local TimeManager = require("rizu.editor.TimeManager")
 local VisualEngine = require("rizu.editor.VisualEngine")
 local just = require("just")
 local Changes = require("Changes")
 local NoteChartLoader = require("rizu.editor.NoteChartLoader")
-local MainAudio = require("rizu.editor.MainAudio")
 local NcbtContext = require("rizu.editor.NcbtContext")
 local IntervalManager = require("rizu.editor.IntervalManager")
 local GraphsGenerator = require("rizu.editor.GraphsGenerator")
@@ -33,14 +32,13 @@ function EditorModel:new(configModel, resourceModel)
 	self.resourceModel = resourceModel
 
 	self.noteChartLoader = NoteChartLoader()
-	self.mainAudio = MainAudio()
+	self.audio_engine = AudioEngine()
 	self.ncbtContext = NcbtContext()
 	self.intervalManager = IntervalManager()
 	self.graphsGenerator = GraphsGenerator()
 	self.editorChanges = EditorChanges()
 	self.timer = TimeManager()
 	self.timer:setGlobalTime(0)
-	self.audioManager = AudioManager(self.timer, resourceModel)
 	self.noteManager = NoteManager()
 	self.visualEngine = VisualEngine()
 	self.scroller = Scroller()
@@ -76,16 +74,11 @@ function EditorModel:load()
 	self:getDtpAbsolute(0):clone(self.point)
 
 	self.timer:pause()
-	self.timer:setGlobalTime(editor.time)
 	self.timer:setTime(editor.time)
 
 	local volume = self.configModel.configs.settings.audio.volume
-	self.audioManager.volume = volume
-	self.audioManager.format = self.chartmeta.format
-	self.audioManager:load()
-
-	self.mainAudio.volume = volume
-	self.mainAudio:load()
+	self.audio_engine:setVolume(volume.master * volume.music, volume.master * volume.keysounds)
+	self.audio_engine:setAudioMode(self.configModel.configs.settings.audio.mode)
 
 	self.metronome.volume = volume
 	self.metronome:load()
@@ -103,9 +96,7 @@ function EditorModel:load()
 end
 
 function EditorModel:detectTempoOffset()
-	if self.mainAudio.soundData then
-		self.ncbtContext:detect(self.mainAudio.soundData)
-	end
+	self.ncbtContext:detect(self.audio_engine:renderWave())
 end
 
 function EditorModel:applyNcbt()
@@ -155,8 +146,7 @@ end
 ---@param time number
 function EditorModel:setTime(time)
 	self.timer:setTime(time)
-	self.audioManager:update(true)
-	self.mainAudio:update(true)
+	self.audio_engine:setPosition(time)
 end
 
 ---@return number
@@ -168,18 +158,17 @@ function EditorModel:getIterRange()
 	return absoluteTime - delta, absoluteTime + delta
 end
 
-function EditorModel:loadResources()
+---@param resources {[string]: string}
+function EditorModel:loadResources(resources)
 	if not self.loaded then
 		return
 	end
 
-	local chart = self.chart
+	self.audio_engine:setEnabled(true)
+	self.audio_engine:load(self.chart, resources)
+	self.audio_engine:setPosition(self.timer:getTime())
 
-	self.mainAudio:loadResources(chart)
-	self.audioManager:loadResources(chart, self:getAudioSettings())
-
-	self.audioManager:update(true)
-	self.mainAudio:update(true)
+	self.wave = self.audio_engine:renderWave()
 
 	self:genGraphs()
 
@@ -189,20 +178,16 @@ end
 ---@return number
 ---@return number
 function EditorModel:getFirstLastTime()
-	local audioManager = self.audioManager
-	local mainAudio = self.mainAudio
 	local layer = self.layer
 
 	local firstTime = math.min(
-		audioManager.firstTime,
-		mainAudio.offset,
+		self.audio_engine:getStartTime(),
 		layer.points:getFirstPoint():tonumber()
 	)
 	local lastTime = math.max(
-		audioManager.lastTime,
-		mainAudio.offset + mainAudio.duration,
 		layer.points:getLastPoint():tonumber()
 	)
+
 	return firstTime, lastTime
 end
 
@@ -223,8 +208,7 @@ end
 
 function EditorModel:unload()
 	self.loaded = false
-	self.audioManager:unload()
-	self.mainAudio:unload()
+	self.audio_engine:unload()
 	self.metronome:unload()
 end
 
@@ -238,14 +222,12 @@ function EditorModel:play()
 		return
 	end
 	self.timer:play()
-	self.audioManager:play()
-	self.mainAudio:play()
+	self.audio_engine:play()
 end
 
 function EditorModel:pause()
 	self.timer:pause()
-	self.audioManager:pause()
-	self.mainAudio:pause()
+	self.audio_engine:pause()
 end
 
 ---@return number
@@ -311,8 +293,7 @@ function EditorModel:update()
 	if self.intervalManager.grabbedInterval then
 		self.intervalManager:moveGrabbed(time)
 	end
-	self.audioManager:update()
-	self.mainAudio:update()
+	self.audio_engine:update()
 
 	dtp:clone(self.point)
 

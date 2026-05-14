@@ -31,6 +31,8 @@ local EditorController = class()
 ---@param fileFinder sphere.FileFinder
 ---@param previewModel rizu.preview.PreviewModel
 ---@param replayBase sea.ReplayBase
+---@param resource_finder rizu.ResourceFinder
+---@param resource_loader rizu.ResourceLoader
 function EditorController:new(
 	chartSelector,
 	editorModel,
@@ -41,7 +43,9 @@ function EditorController:new(
 	library,
 	fileFinder,
 	previewModel,
-	replayBase
+	replayBase,
+	resource_finder,
+	resource_loader
 )
 	self.chartSelector = chartSelector
 	self.editorModel = editorModel
@@ -53,6 +57,8 @@ function EditorController:new(
 	self.fileFinder = fileFinder
 	self.previewModel = previewModel
 	self.replayBase = replayBase
+	self.resource_finder = resource_finder
+	self.resource_loader = resource_loader
 end
 
 function EditorController:load()
@@ -81,19 +87,28 @@ function EditorController:load()
 
 	self.previewModel:stop()
 
-	fileFinder:reset()
+	local paths = {}
 	if configModel.configs.settings.gameplay.skin_resources_top_priority then
-		fileFinder:addPath(noteSkin.directoryPath)
-		fileFinder:addPath(chartview.location_dir)
+		table.insert(paths, noteSkin.directoryPath)
+		table.insert(paths, chartview.location_dir)
 	else
-		fileFinder:addPath(chartview.location_dir)
-		fileFinder:addPath(noteSkin.directoryPath)
+		table.insert(paths, chartview.location_dir)
+		table.insert(paths, noteSkin.directoryPath)
 	end
-	fileFinder:addPath("userdata/hitsounds")
-	fileFinder:addPath("userdata/hitsounds/midi")
+	table.insert(paths, "userdata/hitsounds")
+	table.insert(paths, "userdata/hitsounds/midi")
+
+	fileFinder:reset()
+	self.resource_finder:reset()
+	for _, path in ipairs(paths) do
+		fileFinder:addPath(path)
+		self.resource_finder:addPath(path)
+	end
+
+	self.resource_loader:load(chart.resources)
 
 	self.resourceModel:load(chart, function()
-		editorModel:loadResources()
+		editorModel:loadResources(self.resource_loader.resources)
 	end)
 
 	self.windowModel:setVsyncOnSelect(false)
@@ -111,9 +126,9 @@ function EditorController:sliceKeysounds()
 	---@type rizu.editor.EditorModel
 	local editorModel = self.editorModel
 
-	---@type audio.SoundData
-	local soundData = editorModel.mainAudio.soundData
-	if not soundData then
+	---@type audio.Wave
+	local wave_full = editorModel.audio_engine:renderWave()
+	if not wave_full then
 		return
 	end
 
@@ -139,8 +154,8 @@ function EditorController:sliceKeysounds()
 
 	local linkedNotes = notes:getLinkedNotes()
 
-	local sample_rate = soundData:getSampleRate()
-	local channels_count = soundData:getChannelCount()
+	local sample_rate = wave_full.sample_rate
+	local channels_count = wave_full.channels_count
 
 	print("sample rate", sample_rate)
 
@@ -188,7 +203,7 @@ function EditorController:sliceKeysounds()
 
 			for j = 0, sample_count - 1 do
 				for c = 1, channels_count do
-					local sample = soundData:getSample(math.min(sample_offset + j, soundData:getSampleCount() - 1), c)
+					local sample = wave_full:getSampleFloat(math.min(sample_offset + j, wave_full.samples_count - 1), c)
 					wave:setSampleFloat(j, c, sample * volume)
 				end
 			end
