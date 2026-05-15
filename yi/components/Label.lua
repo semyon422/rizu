@@ -31,6 +31,12 @@ function Label:new(params)
 	self:rebuildText()
 end
 
+---@param text string
+function Label:setText(text)
+	self.text = text
+	self:rebuildText()
+end
+
 function Label:onLayoutUpdate()
 	self:rebuildText()
 end

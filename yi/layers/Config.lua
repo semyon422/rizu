@@ -1,4 +1,4 @@
-local Layer = require("yi.Layer")
+local Screen = require("yi.Screen")
 local Title = require("yi.views.Title")
 
 local Colors = require("yi.Colors")
@@ -8,18 +8,17 @@ local UIConfigFactory = require("yi.UIConfigFactory")
 local composition = require("ui.composition")
 local Stack, Horizontal, Vertical = composition.Stack, composition.Horizontal, composition.Vertical
 
----@class yi.Config : yi.Layer
+---@class yi.Config : yi.Screen
 ---@operator call: yi.Config
-local Config = Layer + {}
+local Config = Screen + {}
 
 ---@param yi yi.UserInterface
 function Config:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
 
 	local ui = UIFactory(yi.resources)
 	local conf = UIConfigFactory(yi.resources)
-	self.canvas = love.graphics.newCanvas(love.graphics.getDimensions())
 	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
 
 	self:createTabs(ui, conf)
@@ -168,21 +167,24 @@ end
 function Config:draw()
 	local a = self.transition:get()
 
-	love.graphics.setCanvas(self.canvas)
+	love.graphics.push("all")
+	love.graphics.setCanvas(self.yi.composition.shared_layer_canvas)
 	love.graphics.clear()
-	love.graphics.setBlendMode("alpha", "alphamultiply")
-	Layer.draw(self)
-	love.graphics.setCanvas()
+	Screen.draw(self)
+	love.graphics.pop()
 
+	love.graphics.push("all")
 	love.graphics.setColor(a, a, a, a)
 	love.graphics.setBlendMode("alpha", "premultiplied")
-	love.graphics.draw(self.canvas)
-	love.graphics.setBlendMode("alpha")
+	love.graphics.draw(self.yi.composition.shared_layer_canvas)
+	love.graphics.pop()
 end
 
 function Config:handleKeyDown(key)
 	if key == "escape" then
-		self.yi:transitTo(self.yi.previous_layer or self.yi.main_menu)
+		self.yi.composition:setScreen(
+			self.yi.composition.previous_screen or self.yi.composition.main_menu
+		)
 	end
 end
 

@@ -1,17 +1,16 @@
-local Layer = require("yi.Layer")
+local Screen = require("yi.Screen")
 local composition = require("ui.composition")
 local UIFactory = require("yi.UIFactory")
 local MainMenuWave = require("yi.views.MainMenuWave")
 
----@class yi.MainMenu : yi.Layer
+---@class yi.MainMenu : yi.Screen
 ---@operator call: yi.MainMenu
-local MainMenu = Layer + {}
+local MainMenu = Screen + {}
 
 ---@param yi yi.UserInterface
 function MainMenu:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
-	self.canvas = love.graphics.newCanvas(love.graphics.getDimensions())
 
 	local ui = UIFactory(yi.resources)
 	self.composition_root = composition.Stack({
@@ -37,27 +36,28 @@ function MainMenu:new(yi)
 end
 
 function MainMenu:draw()
+	love.graphics.push("all")
+	love.graphics.setCanvas(self.yi.composition.shared_layer_canvas)
+	love.graphics.clear()
+	Screen.draw(self)
+	love.graphics.pop()
+
 	local a = self.transition:get()
 
-	love.graphics.setCanvas(self.canvas)
-	love.graphics.clear()
-	love.graphics.setBlendMode("alpha", "alphamultiply")
-	Layer.draw(self)
-	love.graphics.setCanvas()
-
+	love.graphics.push("all")
 	love.graphics.setColor(a, a, a, a)
 	love.graphics.setBlendMode("alpha", "premultiplied")
-	love.graphics.draw(self.canvas)
-	love.graphics.setBlendMode("alpha")
+	love.graphics.draw(self.yi.composition.shared_layer_canvas)
+	love.graphics.pop()
 end
 
 function MainMenu:handleKeyDown(key)
 	if key == "return" then
-		self.yi:transitTo(self.yi.select)
+		self.yi.composition:setScreen(self.yi.composition.select)
 	elseif key == "m" then
-		self.yi:transitTo(self.yi.multiplayer)
+		self.yi.composition:setScreen(self.yi.composition.multiplayer)
 	elseif key == "c" then
-		self.yi:transitTo(self.yi.config)
+		self.yi.composition:setScreen(self.yi.composition.config)
 	end
 end
 

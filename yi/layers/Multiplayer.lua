@@ -1,34 +1,19 @@
-local Layer = require("yi.Layer")
+local Screen = require("yi.Screen")
 local composition = require("ui.composition")
 local UIFactory = require("yi.UIFactory")
-local Colors = require("yi.Colors")
-local WireframeGlobe = require("yi.views.WireframeGlobe")
 
----@class yi.Multiplayer : yi.Layer
+---@class yi.Multiplayer : yi.Screen
 ---@operator call: yi.Multiplayer
-local Multiplayer = Layer + {}
+local Multiplayer = Screen + {}
 
 ---@param yi yi.UserInterface
 function Multiplayer:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
 
 	local ui = UIFactory(yi.resources)
-	self.globe = WireframeGlobe({
-		width = 820,
-		height = 820,
-		color = Colors.cyan_200,
-		alpha = 0.35,
-		back_alpha = 0.04,
-		line_width = 4,
-		rotation_speed_x = 0.04,
-		rotation_speed_y = 0.22,
-	})
-	self.globe:setPosition(0, -30)
-	self.globe:setPivot(0.5, 0.5)
 
 	self.composition_root = composition.Stack({
-		self.globe,
 		ui:Label({
 			y = -250,
 			pivot = {0.5, 0.5},
