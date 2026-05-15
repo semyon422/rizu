@@ -26,7 +26,7 @@ function Reductor:exportLines(lines)
 			notes[#notes + 1] = {
 				startTime = line.time,
 				endTime = line.time,
-				columnIndex = j
+				columnIndex = j,
 			}
 		end
 	end
@@ -42,7 +42,7 @@ function Reductor:exportLineCombination(lines)
 			notes[#notes + 1] = {
 				startTime = line.time,
 				endTime = line.time,
-				columnIndex = line.bestLineCombination[i]
+				columnIndex = line.bestLineCombination[i],
 			}
 		end
 	end

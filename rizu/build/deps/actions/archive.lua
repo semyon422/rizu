@@ -1,12 +1,52 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
+
+---@param action rizu.build.deps.Action
+---@return integer
+local function stripComponents(action)
+	if action.strip_components ~= nil then
+		return action.strip_components
+	end
+	return 1
+end
+
+---@param format string
+---@param archive string
+---@param dest string
+---@param strip_components integer
+---@return string
+local function extractCommand(format, archive, dest, strip_components)
+	if format == "tar.gz" then
+		return string.format("tar --touch -xzf %q -C %q --strip-components=%d", archive, dest, strip_components)
+	elseif format == "tar.xz" then
+		return string.format("tar --touch -xf %q -C %q --strip-components=%d", archive, dest, strip_components)
+	elseif format == "zip" then
+		return string.format("unzip -o %q -d %q", archive, dest)
+	elseif format == "zip_nested" then
+		error("zip_nested should be handled by extract()")
+	elseif format == "7z" then
+		return string.format("7z x -y %q -o%q", archive, dest)
+	end
+	error("Unsupported extract format: " .. tostring(format))
+end
+
+---@param env rizu.build.deps.Env
+---@param path string
+local function resetDirectory(env, path)
+	if env.ctx.fs:getInfo(path) then
+		Util.executeSafe(env, string.format("rm -rf %q", path))
+	end
+	if not env.ctx.fs:createDirectory(path) then
+		error("Failed to create directory: " .. path)
+	end
+end
 
 function M.download(env, action)
 	local dest = Util.resolve(env, action.dest)
 	local info = env.ctx.fs:getInfo(dest)
-	local min_size = action.min_size or 1
-	if info and info.size and info.size >= min_size then
+	if info and info.size and info.size >= 1 then
 		return Util.resultOk("<download skipped>")
 	end
 	env.ctx.downloader:download(Util.resolve(env, action.url), dest)
@@ -17,27 +57,37 @@ function M.extract(env, action)
 	local archive = Util.resolve(env, action.archive)
 	local dest = Util.resolve(env, action.dest)
 	local format = action.format
-	if action.skip_if_exists and env.ctx.fs:getInfo(dest) then
-		return Util.resultOk("<extract skipped>")
-	end
-	env.ctx.fs:createDirectory(dest)
+	resetDirectory(env, dest)
 	if format == "tar.gz" then
-		return Util.executeSafe(env, string.format("tar -xzf %q -C %q --strip-components=1", archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, stripComponents(action)))
 	elseif format == "tar.xz" then
-		return Util.executeSafe(env, string.format("tar -xf %q -C %q --strip-components=1", archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, stripComponents(action)))
 	elseif format == "zip" then
-		return Util.executeSafe(env, string.format("unzip -o %q -d %q", archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, 0))
 	elseif format == "zip_nested" then
 		local tmp = Util.resolve(env, action.tmp or (dest .. "-tmp"))
-		env.ctx.fs:createDirectory(tmp)
-		Util.executeSafe(env, string.format("unzip -o %q -d %q", archive, tmp))
+		resetDirectory(env, tmp)
+		Util.executeSafe(env, extractCommand("zip", archive, tmp, 0))
 		local result = Util.executeSafe(env, string.format("cp -r %s/*/* %s/", tmp, dest))
-		env.ctx.fs:remove(tmp)
+		Util.executeSafe(env, string.format("rm -rf %q", tmp))
 		return result
 	elseif format == "7z" then
-		return Util.executeSafe(env, string.format("7z x -y %q -o%q", archive, dest))
+		return Util.executeSafe(env, extractCommand(format, archive, dest, 0))
 	end
 	error("Unsupported extract format: " .. tostring(format))
+end
+
+function M.extract_first_match(env, action)
+	local pattern = Util.resolve(env, action.pattern)
+	local dest = Util.resolve(env, action.dest)
+	local format = action.format
+	resetDirectory(env, dest)
+	local cmd = string.format(
+		"bash -lc 'shopt -s nullglob; matches=(%s); [ ${#matches[@]} -gt 0 ] || exit 1; %s'",
+		pattern,
+		extractCommand(format, "${matches[0]}", dest, stripComponents(action))
+	)
+	return Util.executeSafe(env, cmd)
 end
 
 return M

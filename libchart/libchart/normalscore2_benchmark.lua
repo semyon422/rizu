@@ -9,13 +9,13 @@ end
 
 do
 	local time = os.time()
-	for i = 1, 3 do  -- 0 seconds
+	for i = 1, 3 do -- 0 seconds
 		ns:press(r(), {r(), r()})
 	end
 	print(os.time() - time)
 
 	time = os.time()
-	for i = 1, 1e9 do  -- 1 seconds
+	for i = 1, 1e9 do -- 1 seconds
 		ns:update()
 	end
 	print(os.time() - time)
@@ -23,13 +23,13 @@ end
 
 do
 	local time = os.time()
-	for i = 1, 1e4 do  -- 0 seconds
+	for i = 1, 1e4 do -- 0 seconds
 		ns:press(r(), {r(), r()})
 	end
 	print(os.time() - time)
 
 	time = os.time()
-	for i = 1, 1e2 do  -- 1 seconds
+	for i = 1, 1e2 do -- 1 seconds
 		ns:update()
 	end
 	print(os.time() - time)

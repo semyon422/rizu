@@ -95,7 +95,7 @@ local image_ext = {
 	jpg = true,
 	jpeg = true,
 	tga = true,
-	bmp = true
+	bmp = true,
 }
 
 ---@return string?

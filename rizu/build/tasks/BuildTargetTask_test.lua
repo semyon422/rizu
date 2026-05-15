@@ -1,4 +1,6 @@
 local BuildTargetTask = require("rizu.build.tasks.BuildTargetTask")
+local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
+local DependencySpec = require("rizu.build.deps.spec.DependencySpec")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
@@ -7,6 +9,7 @@ local function makeCtx()
 	local state = {fs = FakeFilesystem(), exec = {}, downloads = {}}
 	state.fs:setWorkingDirectory("/repo")
 
+	---@type rizu.build.IShell
 	local shell = {}
 	function shell:execute(cmd)
 		table.insert(state.exec, cmd)
@@ -14,6 +17,7 @@ local function makeCtx()
 	end
 	function shell:popen() return "" end
 
+	---@type rizu.build.IDownloader
 	local downloader = {}
 	function downloader:download(url, dest)
 		table.insert(state.downloads, {url = url, dest = dest})
@@ -28,36 +32,59 @@ local function makeCtx()
 	return {fs = state.fs, shell = shell, downloader = downloader}, state
 end
 
+---@param fs fs.FakeFilesystem
+---@param path string
+---@param time integer
+local function writePath(fs, path, time)
+	fs:setTime(time)
+	local parent = path:match("(.+)/[^/]+$")
+	if parent then
+		fs:createDirectory(parent)
+	end
+	fs:write(path, "x")
+end
+
+---@param fs fs.FakeFilesystem
+---@param path string
+---@param time integer
+local function createOutput(fs, path, time)
+	if path:match("%.[^/]+$") then
+		writePath(fs, path, time)
+	else
+		fs:setTime(time)
+		fs:createDirectory(path)
+	end
+end
+
+---@param t testing.T
 function test.build_target_status_and_uptodate(t)
 	local ctx, state = makeCtx()
 	local task = BuildTargetTask("linux")
 	t:eq(task:upToDate(ctx), false)
 
-	state.fs:setTime(1)
-	state.fs:createDirectory("build/deps/ffmpeg-linux")
-	state.fs:createDirectory("build/deps/7zsdk")
-	state.fs:createDirectory("build/deps/minacalc")
-	state.fs:createDirectory("build/deps/luamidi")
-	state.fs:createDirectory("build/deps/luamidi/rtmidi")
-	state.fs:write("build/deps/luamidi/rtmidi/RtMidi.h", "x")
-	state.fs:createDirectory("aqua")
-	state.fs:write("aqua/video.c", "x")
-	state.fs:write("aqua/7z.c", "x")
+	local spec = DependencySpec.load("linux")
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+	for _, step in ipairs(spec.steps) do
+		for _, path in ipairs(step.inputs or {}) do
+			createOutput(state.fs, BuildEnv.interpolate(env, path), 1)
+		end
+	end
 
-	state.fs:setTime(2)
-	state.fs:createDirectory("build/artifacts/linux")
-	state.fs:write("build/artifacts/linux/lib7z.so", "x")
-	state.fs:write("build/artifacts/linux/video.so", "x")
-	state.fs:write("build/artifacts/linux/libminacalc.so", "x")
-	state.fs:write("build/artifacts/linux/luamidi.so", "x")
-	state.fs:createDirectory("bin/linux64")
-	state.fs:write("bin/linux64/lib7z.so", "x")
-	state.fs:write("bin/linux64/video.so", "x")
-	state.fs:write("bin/linux64/libminacalc.so", "x")
-	state.fs:write("bin/linux64/luamidi.so", "x")
+	for _, output in ipairs(spec.outputs) do
+		createOutput(state.fs, BuildEnv.interpolate(env, output), 2)
+	end
+
+	t:eq(task:upToDate(ctx), true)
 
 	local rows = task:getStatus(ctx)
 	t:assert(#rows > 0)
+	local saw_video = false
+	for _, row in ipairs(rows) do
+		if row.name == "Video Artifact" and row.value == "OK" then
+			saw_video = true
+		end
+	end
+	t:eq(saw_video, true)
 	t:assert(rows[#rows].name:find("Build Target"))
 end
 

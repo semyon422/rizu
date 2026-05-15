@@ -1,7 +1,12 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
+---@class rizu.build.deps.spec.common.DiscordRpcSpec
 local DiscordRpcSpec = {}
 
-function DiscordRpcSpec.add(target, deps, spec)
-	local cfg = deps.discord_rpc and deps.discord_rpc[target]
+---@param target rizu.build.Target
+---@param spec rizu.build.deps.Spec
+function DiscordRpcSpec.add(target, spec)
+	local cfg = Manifest.discord_rpc and Manifest.discord_rpc[target]
 	if not cfg then
 		return
 	end
@@ -31,7 +36,7 @@ function DiscordRpcSpec.add(target, deps, spec)
 		actions = {
 			{type = "download", url = cfg.url, dest = archive},
 			{type = "extract", format = "zip", archive = archive, dest = extract},
-			{type = "assert_file", path = source .. source},
+			{type = "assert_file", path = source},
 			{type = "copy_exact", src = source, dst = output, flags = "-f"},
 		},
 	})

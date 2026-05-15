@@ -41,7 +41,7 @@ function UpdateController:updateAsync()
 	function love.update(dt)
 		thread.update()
 		delay.update()
-		self.windowModel:update()
+		self.windowModel:updateWindowState()
 	end
 
 	function love.draw()

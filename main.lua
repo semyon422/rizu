@@ -94,14 +94,11 @@ elseif jit.os == "OSX" then
 	ffi.C.chdir(root)
 end
 
-love.errhand = require("errhand")
+love.errorhandler = require("errhand")
 
-local physfs = require("physfs")
-physfs.setWriteDir(root)
-
-if root == sourceBase then
-	assert(physfs.mount(root, "/", true))
-end
+love.filesystem.unmountCommonPath("appsavedir")
+love.filesystem.unmountFullPath(root)
+assert(love.filesystem.mountFullPath(root, "/", "readwrite", false))
 
 require("preload")
 
@@ -112,12 +109,10 @@ setmetatable(_G, {__newindex = function(a, b, c)
 	rawset(a, b, c)
 end})
 
-local love_run = require("love_run")
-love.load = function() end  -- for compatibility with old conf.lua
-local defaultLoop = love.loop or love_run()
+local current_loop = love.run()
 function love.run()
 	return function()
-		return defaultLoop()
+		return current_loop()
 	end
 end
 
@@ -126,7 +121,7 @@ if arg[2] == "test" then
 	local utf8validate = require("utf8validate")
 	local typecheck = require("typecheck")
 
-	function love.errhand(msg)
+	function love.errorhandler(msg)
 		if type(msg) ~= "string" then
 			if type(msg) ~= "table" then
 				msg = tostring(msg)
@@ -215,6 +210,6 @@ thread.coro(function()
 
 	local loop = require("rizu.loop.Loop")
 	loop:init()
-	defaultLoop = loop:run()
+	current_loop = loop:run()
 	loop:add(game)
 end)()

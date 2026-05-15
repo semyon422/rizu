@@ -1,4 +1,7 @@
 local ITask = require("rizu.build.ITask")
+local config = require("rizu.build.package.config")
+local RepoAssembler = require("rizu.build.package.RepoAssembler")
+local UpdateIndexWriter = require("rizu.build.package.UpdateIndexWriter")
 
 ---@class rizu.build.tasks.AssembleRepoTask: rizu.build.ITask
 ---@operator call: rizu.build.tasks.AssembleRepoTask
@@ -13,10 +16,8 @@ end
 
 ---@param ctx rizu.build.Context
 function AssembleRepoTask:run(ctx)
-	local CurrentRepo = require("rizu.build.package.CurrentRepo")
-	local RepoBuilder = require("rizu.build.package.RepoBuilder")
-	local builder = RepoBuilder(ctx, CurrentRepo(ctx))
-	builder:build()
+	RepoAssembler(ctx):build()
+	UpdateIndexWriter(ctx):write("build/repo/" .. config.repo.name)
 end
 
 ---@param ctx rizu.build.Context

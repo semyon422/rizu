@@ -1,3 +1,6 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
+---@class rizu.build.deps.spec.common.BassDepsSpec
 local BassDepsSpec = {}
 
 local BASS_DEPS = {"bass", "bassmix", "bass_fx", "bassopus"}
@@ -22,9 +25,11 @@ local function getSourcePath(dep_name, target, extract)
 	return extract .. "/" .. name
 end
 
-function BassDepsSpec.add(target, deps, spec)
+---@param target rizu.build.Target
+---@param spec rizu.build.deps.Spec
+function BassDepsSpec.add(target, spec)
 	for _, dep_name in ipairs(BASS_DEPS) do
-		local cfg = deps[dep_name] and deps[dep_name][target]
+		local cfg = Manifest[dep_name] and Manifest[dep_name][target]
 		if cfg then
 			local archive = "${downloads_dir}/" .. cfg.archive
 			local extract = "${deps_dir}/" .. dep_name .. "_" .. target
@@ -35,7 +40,7 @@ function BassDepsSpec.add(target, deps, spec)
 				{type = "extract", format = "zip", archive = archive, dest = extract},
 			}
 
-			table.insert(actions, {type = "assert_file", path = src .. dep_name .. " artifact at " .. src})
+			table.insert(actions, {type = "assert_file", path = src})
 			table.insert(actions, {type = "copy_exact", src = src, dst = "${bin_dir}/" .. out_name, flags = "-f"})
 
 			table.insert(spec.steps, {

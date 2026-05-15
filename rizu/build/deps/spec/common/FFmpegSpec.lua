@@ -1,3 +1,6 @@
+local Manifest = require("rizu.build.deps.Manifest")
+
+---@class rizu.build.deps.spec.common.FFmpegSpec
 local FFmpegSpec = {}
 
 local FFMPEG_ARTIFACTS = {
@@ -21,8 +24,10 @@ local FFMPEG_ARTIFACTS = {
 	},
 }
 
-function FFmpegSpec.add(target, deps, spec)
-	local ffmpeg = deps.ffmpeg[target]
+---@param target rizu.build.Target
+---@param spec rizu.build.deps.Spec
+function FFmpegSpec.add(target, spec)
+	local ffmpeg = Manifest.ffmpeg[target]
 	if not ffmpeg then
 		return
 	end
@@ -30,14 +35,14 @@ function FFmpegSpec.add(target, deps, spec)
 	local extract = "${deps_dir}/" .. ffmpeg.dir
 	local actions = {
 		{type = "download", url = ffmpeg.url, dest = archive},
-		{type = "extract", format = ffmpeg.archive:match("%.tar%.xz$") and "tar.xz" or "zip_nested", archive = archive, dest = extract, skip_if_exists = true},
+		{type = "extract", format = ffmpeg.archive:match("%.tar%.xz$") and "tar.xz" or "zip_nested", archive = archive, dest = extract},
 	}
 	local artifacts = FFMPEG_ARTIFACTS[target] or {}
 	local outputs = {}
 	for _, item in ipairs(artifacts) do
 		local src = extract .. "/" .. item.src
 		local dst = "${bin_dir}/" .. item.dst
-		table.insert(actions, {type = "assert_file", path = src .. src})
+		table.insert(actions, {type = "assert_file", path = src})
 		table.insert(actions, {type = "copy_exact", src = src, dst = dst, flags = "-Lf"})
 		table.insert(outputs, dst)
 	end

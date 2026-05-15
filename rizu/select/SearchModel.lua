@@ -50,7 +50,7 @@ local number_fields = {
 			end
 			v = tonumber(v)
 			return v / 100
-		end
+		end,
 	},
 	{
 		keys = {"miss", "m"},
@@ -65,7 +65,7 @@ local number_fields = {
 			end
 			v = tonumber(v)
 			return v / 1000
-		end
+		end,
 	},
 	{
 		keys = {"score", "s"},

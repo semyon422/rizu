@@ -12,7 +12,7 @@ BracketSwap.description = "Brackets to connected chords"
 
 local hardcodedMaps = {
 	[4] = {1, 3, 2, 4},
-	[5] = {2, 1, 3, 5, 4}
+	[5] = {2, 1, 3, 5, 4},
 }
 
 for _, t in pairs(hardcodedMaps) do

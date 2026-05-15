@@ -6,6 +6,10 @@ local ITask = require("rizu.build.ITask")
 ---@field deps string[]
 local SetupMacOSToolchainTask = ITask + {}
 
+local function getCompilerPath()
+	return "build/deps/osxcross/target/bin/x86_64-apple-darwin22.2-clang"
+end
+
 function SetupMacOSToolchainTask:new()
 	self.name = "setup_macos_toolchain"
 	self.deps = {}
@@ -13,6 +17,12 @@ end
 
 ---@param ctx rizu.build.Context
 function SetupMacOSToolchainTask:run(ctx)
+	local compiler = getCompilerPath()
+	if ctx.fs:getInfo(compiler) then
+		print("macOS toolchain already present: " .. compiler)
+		return
+	end
+
 	local build_dir = "build"
 	local deps_dir = build_dir .. "/deps"
 	local downloads_dir = build_dir .. "/downloads"
@@ -35,22 +45,10 @@ function SetupMacOSToolchainTask:run(ctx)
 		ctx.fs:createDirectory(deps_dir)
 		ctx.shell:execute("git clone https://github.com/tpoechtrager/osxcross " .. osxcross_dir)
 	end
+	-- Ensure osxcross submodules are present (needed for build/xar/xar and pbzx sources).
+	ctx.shell:execute(string.format("git -C %s submodule update --init --recursive", osxcross_dir))
 
-	-- 2.1 Build a working xar (with bzip2 support) and pbzx
-	-- osxcross build scripts often fail if the system xar is buggy or lacks bzip2
-	local target_bin = osxcross_dir .. "/target/bin"
-	if not ctx.fs:getInfo(target_bin .. "/xar") then
-		print("Building osxcross helper tools (xar, pbzx)...")
-		local root_abs = ctx.fs:getWorkingDirectory()
-		local full_osxcross_dir = root_abs .. "/" .. osxcross_dir
-
-		-- xar
-		ctx.shell:execute(string.format("cd %s/build/xar/xar && ./configure --prefix=%s/target && make -j$(nproc) && make install", osxcross_dir,
-			full_osxcross_dir))
-		-- pbzx
-		ctx.shell:execute(string.format("gcc %s/build/pbzx/pbzx.c -o %s/target/bin/pbzx -llzma -lxar -I%s/target/include -L%s/target/lib", osxcross_dir,
-			osxcross_dir, full_osxcross_dir, full_osxcross_dir))
-	end
+	-- 2.1 osxcross manages helper tool builds internally (xar/pbzx) via tools/gen_sdk_package_pbzx.sh.
 
 	-- 3. Generate the SDK package
 	local sdk_tarball = osxcross_dir .. "/tarballs/MacOSX" .. sdk_version .. ".sdk.tar.xz"
@@ -101,10 +99,16 @@ end
 function SetupMacOSToolchainTask:getStatus(ctx)
 	local osxcross_dir = "build/deps/osxcross"
 	-- Check for the specific compiler version used by the build pipeline.
-	local compiler = osxcross_dir .. "/target/bin/x86_64-apple-darwin22.2-clang"
+	local compiler = getCompilerPath()
 	local exists = ctx.fs:getInfo(compiler) and "READY" or "MISSING"
 
 	return {{name = "macOS Toolchain", value = exists}}
+end
+
+---@param ctx rizu.build.Context
+---@return boolean
+function SetupMacOSToolchainTask:upToDate(ctx)
+	return ctx.fs:getInfo(getCompilerPath()) ~= nil
 end
 
 return SetupMacOSToolchainTask

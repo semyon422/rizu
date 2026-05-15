@@ -141,7 +141,7 @@ function Point:fromnumber(ivl, t, limit, measure)
 		a = b
 	end
 	local m_offset = measure and measure.offset or 0
-	time = Fraction(time + m_offset, limit, true) - m_offset  -- TODO: better code
+	time = Fraction(time + m_offset, limit, true) - m_offset -- TODO: better code
 	if not offset and time == a:_end() then
 		time = b:start()
 		a = b

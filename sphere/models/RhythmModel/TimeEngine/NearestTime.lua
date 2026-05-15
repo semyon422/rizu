@@ -29,7 +29,7 @@ function NearestTime:loadTimePoints(chart)
 		-- 	table.insert(timeList, p.absoluteTime)
 		-- end
 		-- if p.currentSpeed > th and next_p.currentSpeed <= th then
-			table.insert(timeList, p.absoluteTime)
+		table.insert(timeList, p.absoluteTime)
 		-- end
 	end
 	for i = 1, #timeList - 1 do

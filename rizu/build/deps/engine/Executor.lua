@@ -1,9 +1,12 @@
-local Util = require("rizu.build.deps.actions._util")
+local StepState = require("rizu.build.deps.engine.StepState")
 
 ---@class rizu.build.deps.engine.Executor
 local Executor = {}
 
+---@param ... rizu.build.deps.Actions
+---@return rizu.build.deps.Actions
 local function mergeHandlers(...)
+	---@type rizu.build.deps.Actions
 	local out = {}
 	for i = 1, select("#", ...) do
 		local src = select(i, ...)
@@ -14,15 +17,14 @@ local function mergeHandlers(...)
 	return out
 end
 
+---@type rizu.build.deps.Actions
 local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.archive"),
 	require("rizu.build.deps.actions.shell"),
 	require("rizu.build.deps.actions.compile"),
 	require("rizu.build.deps.actions.filesystem"),
 	require("rizu.build.deps.actions.git"),
-	require("rizu.build.deps.actions.platform"),
-	require("rizu.build.deps.actions.assertions"),
-	require("rizu.build.deps.actions.build")
+	require("rizu.build.deps.actions.assertions")
 )
 
 local function summarizeAction(action)
@@ -41,44 +43,11 @@ local function summarizeAction(action)
 	return table.concat(parts, ", ")
 end
 
-local function hasAllRequired(env, step)
-	for _, req in ipairs(step.requires or {}) do
-		if not env.ctx.fs:getInfo(Util.resolve(env, req)) then
-			return false
-		end
-	end
-	return true
-end
-
-local function shouldSkip(env, step)
-	if step.kind == "modules" then
-		return false
-	end
-	if step.outputs and #step.outputs > 0 then
-		for _, p in ipairs(step.outputs) do
-			if not env.ctx.fs:getInfo(Util.resolve(env, p)) then
-				return false
-			end
-		end
-		return true
-	end
-	local checks = step.skip_if_exists_all
-	if checks and #checks > 0 then
-		for _, p in ipairs(checks) do
-			if not env.ctx.fs:getInfo(Util.resolve(env, p)) then
-				return false
-			end
-		end
-		return true
-	end
-	return false
-end
-
 ---@param env rizu.build.deps.Env
 ---@param step rizu.build.deps.Step
 ---@return rizu.build.deps.RunResult
 function Executor.runStep(env, step)
-	if shouldSkip(env, step) then
+	if StepState.shouldSkip(env, step) then
 		return {ok = true, exit_code = 0, step_id = step.id, command = "<skipped>", stderr_hint = nil}
 	end
 
@@ -108,17 +77,7 @@ end
 function Executor.runSpec(env, spec)
 	local results = {}
 	for _, step in ipairs(spec.steps or {}) do
-		if hasAllRequired(env, step) then
-			table.insert(results, Executor.runStep(env, step))
-		else
-			table.insert(results, {
-				ok = true,
-				exit_code = 0,
-				step_id = step.id,
-				command = "<skipped: requires missing>",
-				stderr_hint = nil,
-			})
-		end
+		table.insert(results, Executor.runStep(env, step))
 	end
 	return results
 end

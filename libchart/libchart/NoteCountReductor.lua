@@ -135,7 +135,7 @@ function NoteCountReductor:preprocessLinePair(linePairIndex)
 				[1] = 0,
 				[2] = k,
 				ratio = 1,
-				sum = k
+				sum = k,
 			}
 		end
 	end

@@ -25,20 +25,20 @@ function stutter.fsr(startTime, endTime, average, firstMultiplier, secondMultipl
 		{
 			time = startTime,
 			values = {
-				firstMultiplier
-			}
+				firstMultiplier,
+			},
 		},
 		{
 			time = startTime + ratio * deltaTime,
 			values = {
-				secondMultiplier
-			}
+				secondMultiplier,
+			},
 		},
 		{
 			time = endTime,
 			values = {
-				1
-			}
+				1,
+			},
 		},
 	}
 end
@@ -52,14 +52,14 @@ function stutter.eq(startTime, endTime, firstMultiplier)
 		{
 			time = startTime,
 			values = {
-				firstMultiplier
-			}
+				firstMultiplier,
+			},
 		},
 		{
 			time = endTime,
 			values = {
-				1
-			}
+				1,
+			},
 		},
 	}
 end
@@ -73,7 +73,7 @@ end
 function stutter.fs(startTime, endTime, average, firstMultiplier, secondMultiplier)
 	local ratio = (average - secondMultiplier) / (firstMultiplier - secondMultiplier)
 	if firstMultiplier - secondMultiplier == 0 then
-		ratio = 1/2
+		ratio = 1 / 2
 	end
 	return stutter.fsr(startTime, endTime, average, firstMultiplier, secondMultiplier, ratio)
 end

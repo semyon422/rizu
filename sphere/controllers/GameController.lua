@@ -8,7 +8,7 @@ local ChartSelector = require("rizu.select.ChartSelector")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local CollectionSelector = require("rizu.select.CollectionSelector")
 local MultiplayerModel = require("sphere.models.MultiplayerModel")
-local EditorModel = require("sphere.models.EditorModel")
+local EditorModel = require("rizu.editor.EditorModel")
 local SpeedModel = require("sphere.models.SpeedModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local ResourceModel = require("sphere.models.ResourceModel")
@@ -23,7 +23,7 @@ local ChartExporter = require("rizu.library.ChartExporter")
 local SelectionActions = require("rizu.select.SelectionActions")
 local ResultController = require("sphere.controllers.ResultController")
 local MultiplayerController = require("sphere.controllers.MultiplayerController")
-local EditorController = require("sphere.controllers.EditorController")
+local EditorController = require("rizu.editor.EditorController")
 
 local OffsetController = require("sphere.controllers.gameplay.OffsetController")
 
@@ -197,18 +197,6 @@ function GameController:new()
 		self.chartSelector,
 		self.replayBase
 	)
-	self.editorController = EditorController(
-		self.chartSelector,
-		self.editorModel,
-		self.noteSkinModel,
-		self.configModel,
-		self.resourceModel,
-		self.windowModel,
-		self.library,
-		self.fileFinder,
-		self.previewModel,
-		self.replayBase
-	)
 	self.offsetController = OffsetController(
 		self.library,
 		self.computeContext,
@@ -219,6 +207,21 @@ function GameController:new()
 
 	self.resource_finder = ResourceFinder(self.fs)
 	self.resource_loader = ResourceLoader(self.fs, self.resource_finder)
+
+	self.editorController = EditorController(
+		self.chartSelector,
+		self.editorModel,
+		self.noteSkinModel,
+		self.configModel,
+		self.resourceModel,
+		self.windowModel,
+		self.library,
+		self.fileFinder,
+		self.previewModel,
+		self.replayBase,
+		self.resource_finder,
+		self.resource_loader
+	)
 
 	self.gameplayInteractor = GameplayInteractor(self)
 	self.gameInteractor = GameInteractor(self)

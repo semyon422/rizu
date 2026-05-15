@@ -71,10 +71,10 @@ end
 ---@param inputs table
 function NoteSkinVsrg:setInput(inputs)
 	local input_to_columns = {
-		key1 = {3, 4}
+		key1 = {3, 4},
 	}
 	for i, input in ipairs(inputs) do
-		input_to_columns[input] = {i}  -- table of values here because of split stages
+		input_to_columns[input] = {i} -- table of values here because of split stages
 	end
 	self.input_to_columns = input_to_columns
 	self.autoColumnsCount = #inputs
@@ -123,7 +123,7 @@ local colors = {
 	startPassedPressed = {1, 1, 1, 1},
 	endPassed = {1, 1, 1, 1},
 	endMissed = {0.5, 0.5, 0.5, 1},
-	endMissedPassed = {0.5, 0.5, 0.5, 1}
+	endMissedPassed = {0.5, 0.5, 0.5, 1},
 }
 NoteSkinVsrg.colors = colors
 
@@ -258,19 +258,21 @@ function NoteSkinVsrg:setShortNote(params, noteType)
 	end
 
 	noteType = noteType or "ShortNote"
-	self.notes[noteType] = {Head = {
-		x = self.columns,
-		y = function(...) return self:getPosition(...) end,
-		w = self.width,
-		h = height,
-		sx = {},
-		sy = {},
-		ox = {},
-		oy = oy,
-		r = {},
-		color = color,
-		image = image
-	}}
+	self.notes[noteType] = {
+		Head = {
+			x = self.columns,
+			y = function(...) return self:getPosition(...) end,
+			w = self.width,
+			h = height,
+			sx = {},
+			sy = {},
+			ox = {},
+			oy = oy,
+			r = {},
+			color = color,
+			image = image,
+		}
+	}
 end
 
 ---@param params table
@@ -339,7 +341,7 @@ function NoteSkinVsrg:setLongNote(params)
 		oy = headOy,
 		r = {},
 		color = color,
-		image = head
+		image = head,
 	}
 
 	local Tail = {
@@ -353,7 +355,7 @@ function NoteSkinVsrg:setLongNote(params)
 		oy = tailOy,
 		r = {},
 		color = color,
-		image = tail
+		image = tail,
 	}
 
 	local Body = {
@@ -396,14 +398,14 @@ function NoteSkinVsrg:addBga(params)
 		y = {},
 		w = {},
 		h = {},
-		color = {}
+		color = {},
 	}
 	local videoHead = {
 		x = {},
 		y = {},
 		w = {},
 		h = {},
-		color = {}
+		color = {},
 	}
 	self.notes.ImageNote = {Head = imageHead}
 	self.notes.VideoNote = {Head = videoHead}
@@ -473,27 +475,29 @@ function NoteSkinVsrg:setLighting(params)
 	else
 		params.frames = 1
 	end
-	local note = {Head = {
-		x = function(_, _, column) return self.columns[column] + self.width[column] / 2 end,
-		y = self.hitposition + params.offset,
-		sx = params.scale,
-		sy = params.scale,
-		ox = 0.5,
-		oy = 0.5,
-		r = 0,
-		color = function() return colors.clear end,
-		image = function(timeState, noteView)
-			local pressedTime = noteView.graphicalNote:getPressedTime()
-			if not pressedTime then
-				return
-			end
-			local deltaTime = timeState.currentTime - pressedTime
-			if not params.long and deltaTime >= params.frames / params.rate then
-				return
-			end
-			return params.image, getFrame(params, deltaTime)
-		end,
-	}}
+	local note = {
+		Head = {
+			x = function(_, _, column) return self.columns[column] + self.width[column] / 2 end,
+			y = self.hitposition + params.offset,
+			sx = params.scale,
+			sy = params.scale,
+			ox = 0.5,
+			oy = 0.5,
+			r = 0,
+			color = function() return colors.clear end,
+			image = function(timeState, noteView)
+				local pressedTime = noteView.graphicalNote:getPressedTime()
+				if not pressedTime then
+					return
+				end
+				local deltaTime = timeState.currentTime - pressedTime
+				if not params.long and deltaTime >= params.frames / params.rate then
+					return
+				end
+				return params.image, getFrame(params, deltaTime)
+			end,
+		}
+	}
 	if not params.long then
 		self.notes.ShortNoteLighting = note
 	else
@@ -589,19 +593,21 @@ end
 ---@param params table
 function NoteSkinVsrg:setAnimation(params)
 	params.frames = math.abs(params.range[2] - params.range[1]) + 1
-	local note = {Head = {
-		x = function(timeState, _, column) return self.columns[column] + getAnimation(params.animations, timeState).x end,
-		y = function(timeState) return self.hitposition + getAnimation(timeState).y end,
-		w = function(timeState) return getAnimation(timeState).w end,
-		h = function(timeState) return getAnimation(timeState).h end,
-		ox = 0,
-		oy = 0,
-		r = 0,
-		color = function() return colors.clear end,
-		image = function(timeState)
-			return getAnimationImage(params.animations, timeState)
-		end,
-	}}
+	local note = {
+		Head = {
+			x = function(timeState, _, column) return self.columns[column] + getAnimation(params.animations, timeState).x end,
+			y = function(timeState) return self.hitposition + getAnimation(timeState).y end,
+			w = function(timeState) return getAnimation(timeState).w end,
+			h = function(timeState) return getAnimation(timeState).h end,
+			ox = 0,
+			oy = 0,
+			r = 0,
+			color = function() return colors.clear end,
+			image = function(timeState)
+				return getAnimationImage(params.animations, timeState)
+			end,
+		}
+	}
 	if not params.long then
 		self.notes.ShortNoteAnimation = note
 	else

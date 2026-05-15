@@ -32,7 +32,7 @@ function DataSequenceProcessor:process(dataSequences)
 
 		local outData = {
 			time = time,
-			values = {}
+			values = {},
 		}
 
 		for _, data in pairs(datas) do

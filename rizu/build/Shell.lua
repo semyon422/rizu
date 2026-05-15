@@ -7,7 +7,13 @@ local Shell = class(IShell)
 
 local function normalize_status(ok, status, code)
 	if type(ok) == "number" then
-		return ok == 0, ok
+		if ok == 0 then
+			return true, 0
+		end
+		if ok > 255 then
+			return false, math.floor(ok / 256)
+		end
+		return false, ok
 	end
 	if ok == true then
 		return true, 0

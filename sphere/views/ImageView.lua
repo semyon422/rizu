@@ -37,13 +37,13 @@ function ImageView:draw()
 	else
 		love.graphics.setColor(1, 1, 1, 1)
 	end
-    love.graphics.draw(
-        self.imageObject,
+	love.graphics.draw(
+		self.imageObject,
 		self.x,
 		self.y,
-        self.r or 0,
+		self.r or 0,
 		sx, sy, ox, oy
-    )
+	)
 end
 
 return ImageView

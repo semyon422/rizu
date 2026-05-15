@@ -5,21 +5,24 @@ local GitDepsSpec = require("rizu.build.deps.spec.common.GitDepsSpec")
 local SevenZipSpec = require("rizu.build.deps.spec.common.SevenZipSpec")
 local LoveArtifactsSpec = require("rizu.build.deps.spec.common.LoveArtifactsSpec")
 
+---@class rizu.build.deps.spec.CommonSpec
 local CommonSpec = {}
 
-function CommonSpec.buildShared(target, deps)
+---@param target rizu.build.Target
+---@return rizu.build.deps.Spec
+function CommonSpec.buildShared(target)
 	local spec = {
 		target = target,
 		steps = {},
 		outputs = {},
 	}
 
-	FFmpegSpec.add(target, deps, spec)
-	BassDepsSpec.add(target, deps, spec)
-	DiscordRpcSpec.add(target, deps, spec)
-	GitDepsSpec.add(deps, spec)
-	SevenZipSpec.add(deps, spec)
-	LoveArtifactsSpec.add(deps, spec)
+	FFmpegSpec.add(target, spec)
+	BassDepsSpec.add(target, spec)
+	DiscordRpcSpec.add(target, spec)
+	GitDepsSpec.add(spec)
+	SevenZipSpec.add(spec)
+	LoveArtifactsSpec.add(spec)
 
 	return spec
 end

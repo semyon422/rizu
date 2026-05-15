@@ -69,14 +69,14 @@ function test.expand(t)
 	t:eq(#events, 8)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=-100,time=-101},
-		{action=-1,point_at=-100,point_vt=-100,time=-99},
-		{action=1,point_at=0,point_vt=0,time=-1},
-		{action=-1,point_at=0,point_vt=0,time=0},
-		{action=1,point_at=0,point_vt=50,time=0},
-		{action=-1,point_at=0,point_vt=50,time=1},
-		{action=1,point_at=100,point_vt=150,time=99},
-		{action=-1,point_at=100,point_vt=150,time=101}
+		{action = 1, point_at = -100, point_vt = -100, time = -101},
+		{action = -1, point_at = -100, point_vt = -100, time = -99},
+		{action = 1, point_at = 0, point_vt = 0, time = -1},
+		{action = -1, point_at = 0, point_vt = 0, time = 0},
+		{action = 1, point_at = 0, point_vt = 50, time = 0},
+		{action = -1, point_at = 0, point_vt = 50, time = 1},
+		{action = 1, point_at = 100, point_vt = 150, time = 99},
+		{action = -1, point_at = 100, point_vt = 150, time = 101},
 	})
 
 	----
@@ -111,14 +111,14 @@ function test.zero(t)
 	t:eq(#events, 8)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=-100,time=-101},
-		{action=-1,point_at=-100,point_vt=-100,time=-99},
-		{action=1,point_at=0,point_vt=0,time=-1},
-		{action=1,point_at=100,point_vt=0,time=-1},
-		{action=-1,point_at=0,point_vt=0,time=101},
-		{action=-1,point_at=100,point_vt=0,time=101},
-		{action=1,point_at=200,point_vt=100,time=199},
-		{action=-1,point_at=200,point_vt=100,time=201}
+		{action = 1, point_at = -100, point_vt = -100, time = -101},
+		{action = -1, point_at = -100, point_vt = -100, time = -99},
+		{action = 1, point_at = 0, point_vt = 0, time = -1},
+		{action = 1, point_at = 100, point_vt = 0, time = -1},
+		{action = -1, point_at = 0, point_vt = 0, time = 101},
+		{action = -1, point_at = 100, point_vt = 0, time = 101},
+		{action = 1, point_at = 200, point_vt = 100, time = 199},
+		{action = -1, point_at = 200, point_vt = 100, time = 201},
 	})
 
 	----
@@ -155,26 +155,26 @@ function test.negative(t)
 	t:eq(#events, 20)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=-100,time=-101},
-		{action=-1,point_at=-100,point_vt=-100,time=-99},
-		{action=1,point_at=0,point_vt=0,time=-1},
-		{action=1,point_at=200,point_vt=0,time=-1},
-		{action=-1,point_at=0,point_vt=0,time=1},
-		{action=-1,point_at=200,point_vt=0,time=1},
-		{action=1,point_at=100,point_vt=100,time=99},
-		{action=1,point_at=300,point_vt=100,time=99},
-		{action=-1,point_at=100,point_vt=100,time=101},
-		{action=-1,point_at=300,point_vt=100,time=101},
-		{action=1,point_at=0,point_vt=0,time=199},
-		{action=1,point_at=200,point_vt=0,time=199},
-		{action=-1,point_at=0,point_vt=0,time=201},
-		{action=-1,point_at=200,point_vt=0,time=201},
-		{action=1,point_at=100,point_vt=100,time=299},
-		{action=1,point_at=300,point_vt=100,time=299},
-		{action=-1,point_at=100,point_vt=100,time=301},
-		{action=-1,point_at=300,point_vt=100,time=301},
-		{action=1,point_at=400,point_vt=200,time=399},
-		{action=-1,point_at=400,point_vt=200,time=401}
+		{action = 1, point_at = -100, point_vt = -100, time = -101},
+		{action = -1, point_at = -100, point_vt = -100, time = -99},
+		{action = 1, point_at = 0, point_vt = 0, time = -1},
+		{action = 1, point_at = 200, point_vt = 0, time = -1},
+		{action = -1, point_at = 0, point_vt = 0, time = 1},
+		{action = -1, point_at = 200, point_vt = 0, time = 1},
+		{action = 1, point_at = 100, point_vt = 100, time = 99},
+		{action = 1, point_at = 300, point_vt = 100, time = 99},
+		{action = -1, point_at = 100, point_vt = 100, time = 101},
+		{action = -1, point_at = 300, point_vt = 100, time = 101},
+		{action = 1, point_at = 0, point_vt = 0, time = 199},
+		{action = 1, point_at = 200, point_vt = 0, time = 199},
+		{action = -1, point_at = 0, point_vt = 0, time = 201},
+		{action = -1, point_at = 200, point_vt = 0, time = 201},
+		{action = 1, point_at = 100, point_vt = 100, time = 299},
+		{action = 1, point_at = 300, point_vt = 100, time = 299},
+		{action = -1, point_at = 100, point_vt = 100, time = 301},
+		{action = -1, point_at = 300, point_vt = 100, time = 301},
+		{action = 1, point_at = 400, point_vt = 200, time = 399},
+		{action = -1, point_at = 400, point_vt = 200, time = 401},
 	})
 
 	----
@@ -207,12 +207,12 @@ function test.zero_start(t)
 	t:eq(#events, 6)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=0,time=-1/0},
-		{action=1,point_at=0,point_vt=0,time=-1/0},
-		{action=-1,point_at=-100,point_vt=0,time=1},
-		{action=-1,point_at=0,point_vt=0,time=1},
-		{action=1,point_at=100,point_vt=-100,time=99},
-		{action=-1,point_at=100,point_vt=-100,time=101}
+		{action = 1, point_at = -100, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 0, point_vt = 0, time = -1 / 0},
+		{action = -1, point_at = -100, point_vt = 0, time = 1},
+		{action = -1, point_at = 0, point_vt = 0, time = 1},
+		{action = 1, point_at = 100, point_vt = -100, time = 99},
+		{action = -1, point_at = 100, point_vt = -100, time = 101},
 	})
 
 	----
@@ -245,12 +245,12 @@ function test.zero_end(t)
 	t:eq(#events, 6)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=100,time=-101},
-		{action=-1,point_at=-100,point_vt=100,time=-99},
-		{action=1,point_at=0,point_vt=0,time=-1},
-		{action=1,point_at=100,point_vt=0,time=-1},
-		{action=-1,point_at=0,point_vt=0,time=1/0},
-		{action=-1,point_at=100,point_vt=0,time=1/0}
+		{action = 1, point_at = -100, point_vt = 100, time = -101},
+		{action = -1, point_at = -100, point_vt = 100, time = -99},
+		{action = 1, point_at = 0, point_vt = 0, time = -1},
+		{action = 1, point_at = 100, point_vt = 0, time = -1},
+		{action = -1, point_at = 0, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 100, point_vt = 0, time = 1 / 0},
 	})
 
 	----
@@ -290,40 +290,40 @@ function test.zero_both(t)
 	t:eq(#events, 28)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=0,time=-1/0},
-		{action=1,point_at=0,point_vt=0,time=-1/0},
-		{action=1,point_at=300,point_vt=0,time=-1/0},
-		{action=1,point_at=400,point_vt=0,time=-1/0},
+		{action = 1, point_at = -100, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 0, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 300, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 400, point_vt = 0, time = -1 / 0},
 
-		{action=-1,point_at=-100,point_vt=0,time=1},
-		{action=-1,point_at=0,point_vt=0,time=1},
-		{action=-1,point_at=300,point_vt=0,time=1},
-		{action=-1,point_at=400,point_vt=0,time=1},
+		{action = -1, point_at = -100, point_vt = 0, time = 1},
+		{action = -1, point_at = 0, point_vt = 0, time = 1},
+		{action = -1, point_at = 300, point_vt = 0, time = 1},
+		{action = -1, point_at = 400, point_vt = 0, time = 1},
 
-		{action=1,point_at=100,point_vt=-100,time=99},
-		{action=-1,point_at=100,point_vt=-100,time=100.5},
+		{action = 1, point_at = 100, point_vt = -100, time = 99},
+		{action = -1, point_at = 100, point_vt = -100, time = 100.5},
 
-		{action=1,point_at=-100,point_vt=0,time=149.5},
-		{action=1,point_at=0,point_vt=0,time=149.5},
-		{action=1,point_at=300,point_vt=0,time=149.5},
-		{action=1,point_at=400,point_vt=0,time=149.5},
-		{action=-1,point_at=-100,point_vt=0,time=150.5},
-		{action=-1,point_at=0,point_vt=0,time=150.5},
-		{action=-1,point_at=300,point_vt=0,time=150.5},
-		{action=-1,point_at=400,point_vt=0,time=150.5},
+		{action = 1, point_at = -100, point_vt = 0, time = 149.5},
+		{action = 1, point_at = 0, point_vt = 0, time = 149.5},
+		{action = 1, point_at = 300, point_vt = 0, time = 149.5},
+		{action = 1, point_at = 400, point_vt = 0, time = 149.5},
+		{action = -1, point_at = -100, point_vt = 0, time = 150.5},
+		{action = -1, point_at = 0, point_vt = 0, time = 150.5},
+		{action = -1, point_at = 300, point_vt = 0, time = 150.5},
+		{action = -1, point_at = 400, point_vt = 0, time = 150.5},
 
-		{action=1,point_at=200,point_vt=100,time=199.5},
-		{action=-1,point_at=200,point_vt=100,time=201},
+		{action = 1, point_at = 200, point_vt = 100, time = 199.5},
+		{action = -1, point_at = 200, point_vt = 100, time = 201},
 
-		{action=1,point_at=-100,point_vt=0,time=299},
-		{action=1,point_at=0,point_vt=0,time=299},
-		{action=1,point_at=300,point_vt=0,time=299},
-		{action=1,point_at=400,point_vt=0,time=299},
+		{action = 1, point_at = -100, point_vt = 0, time = 299},
+		{action = 1, point_at = 0, point_vt = 0, time = 299},
+		{action = 1, point_at = 300, point_vt = 0, time = 299},
+		{action = 1, point_at = 400, point_vt = 0, time = 299},
 
-		{action=-1,point_at=-100,point_vt=0,time=1/0},
-		{action=-1,point_at=0,point_vt=0,time=1/0},
-		{action=-1,point_at=300,point_vt=0,time=1/0},
-		{action=-1,point_at=400,point_vt=0,time=1/0}
+		{action = -1, point_at = -100, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 0, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 300, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 400, point_vt = 0, time = 1 / 0},
 	})
 
 	----
@@ -338,18 +338,18 @@ function test.zero_both(t)
 	t:eq(#events, #vps * 2)
 	clear_events(events)
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=0,time=-1/0},
-		{action=1,point_at=0,point_vt=0,time=-1/0},
-		{action=1,point_at=100,point_vt=-100,time=-1/0},
-		{action=1,point_at=200,point_vt=100,time=-1/0},
-		{action=1,point_at=300,point_vt=0,time=-1/0},
-		{action=1,point_at=400,point_vt=0,time=-1/0},
-		{action=-1,point_at=-100,point_vt=0,time=1/0},
-		{action=-1,point_at=0,point_vt=0,time=1/0},
-		{action=-1,point_at=100,point_vt=-100,time=1/0},
-		{action=-1,point_at=200,point_vt=100,time=1/0},
-		{action=-1,point_at=300,point_vt=0,time=1/0},
-		{action=-1,point_at=400,point_vt=0,time=1/0}
+		{action = 1, point_at = -100, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 0, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 100, point_vt = -100, time = -1 / 0},
+		{action = 1, point_at = 200, point_vt = 100, time = -1 / 0},
+		{action = 1, point_at = 300, point_vt = 0, time = -1 / 0},
+		{action = 1, point_at = 400, point_vt = 0, time = -1 / 0},
+		{action = -1, point_at = -100, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 0, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 100, point_vt = -100, time = 1 / 0},
+		{action = -1, point_at = 200, point_vt = 100, time = 1 / 0},
+		{action = -1, point_at = 300, point_vt = 0, time = 1 / 0},
+		{action = -1, point_at = 400, point_vt = 0, time = 1 / 0},
 	})
 end
 
@@ -373,14 +373,14 @@ function test._local(t)
 	t:eq(#events, 8)
 
 	t:tdeq(events, {
-		{action=1,point_at=-100,point_vt=-100,time=-101},
-		{action=-1,point_at=-100,point_vt=-100,time=-99},
-		{action=1,point_at=0,point_vt=0,time=-1},
-		{action=-1,point_at=0,point_vt=0,time=1},
-		{action=1,point_at=100,point_vt=100,time=99.5},
-		{action=-1,point_at=100,point_vt=100,time=100.5},
-		{action=1,point_at=200,point_vt=200,time=199.5},
-		{action=-1,point_at=200,point_vt=200,time=200.5}
+		{action = 1, point_at = -100, point_vt = -100, time = -101},
+		{action = -1, point_at = -100, point_vt = -100, time = -99},
+		{action = 1, point_at = 0, point_vt = 0, time = -1},
+		{action = -1, point_at = 0, point_vt = 0, time = 1},
+		{action = 1, point_at = 100, point_vt = 100, time = 99.5},
+		{action = -1, point_at = 100, point_vt = 100, time = 100.5},
+		{action = 1, point_at = 200, point_vt = 200, time = 199.5},
+		{action = -1, point_at = 200, point_vt = 200, time = 200.5},
 	})
 
 	----

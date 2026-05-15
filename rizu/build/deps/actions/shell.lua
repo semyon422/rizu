@@ -1,13 +1,13 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
+---@param args string[]?
+---@return string
 local function toArgString(args)
 	if not args then
 		return ""
-	end
-	if type(args) == "string" then
-		return args
 	end
 	local out = {}
 	for _, arg in ipairs(args) do
@@ -16,6 +16,8 @@ local function toArgString(args)
 	return table.concat(out, " ")
 end
 
+---@param env_map {[string]: string}?
+---@return string
 local function toEnvPrefix(env_map)
 	if not env_map then
 		return ""
@@ -26,14 +28,6 @@ local function toEnvPrefix(env_map)
 	end
 	table.sort(parts)
 	return table.concat(parts, " ") .. " "
-end
-
-function M.run_in_dir(env, action)
-	local dir = Util.resolve(env, action.dir)
-	local cmd = Util.resolve(env, action.command)
-	local env_prefix = toEnvPrefix(Util.resolve(env, action.env))
-	cmd = env_prefix .. cmd
-	return Util.executeSafe(env, string.format("bash -lc 'cd %q && %s'", dir, cmd))
 end
 
 function M.make(env, action)

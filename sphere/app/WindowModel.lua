@@ -13,6 +13,19 @@ end
 
 WindowModel.baseVsync = 1
 
+---@param flags table
+---@return table
+local function normalizeWindowFlags(flags)
+	if flags.display ~= nil and flags.displayindex == nil then
+		flags.displayindex = flags.display
+	end
+
+	flags.display = nil
+	flags.highdpi = nil
+
+	return flags
+end
+
 ---@param mode table
 ---@return number
 ---@return number
@@ -31,10 +44,11 @@ function WindowModel:load(graphics)
 	self.mode = self.graphics.mode
 	local mode = self.mode
 	local flags = mode.flags
+	local normalizedFlags = normalizeWindowFlags(flags)
 
 	local width, height = getDimensions(mode)
 	if not love.window.isOpen() then
-		love.window.setMode(width, height, mode.flags)
+		love.window.setMode(width, height, normalizedFlags)
 	end
 
 	self:setIcon()
@@ -50,6 +64,18 @@ function WindowModel:load(graphics)
 end
 
 function WindowModel:update()
+	self:updateWindowState()
+	local graphics = self.graphics
+
+	loop:setFpsLimit(graphics.fps)
+	loop:setUnlimitedFps(graphics.unlimited_fps)
+	loop:setAsynckey(graphics.asynckey)
+	loop:setDwmFlush(graphics.dwmflush)
+	loop:setBusyLoopRatio(graphics.busy_loop_ratio)
+	loop:setSleepFunction(graphics.sleep_function)
+end
+
+function WindowModel:updateWindowState()
 	local flags = self.mode.flags
 	local graphics = self.graphics
 	if self.vsync ~= flags.vsync then
@@ -65,20 +91,13 @@ function WindowModel:update()
 		self.cursor_name = graphics.cursor
 		self.cursor:setCursor(self.cursor_name)
 	end
-
-	loop:setFpsLimit(graphics.fps)
-	loop:setUnlimitedFps(graphics.unlimited_fps)
-	loop:setAsynckey(graphics.asynckey)
-	loop:setDwmFlush(graphics.dwmflush)
-	loop:setBusyLoopRatio(graphics.busy_loop_ratio)
-	loop:setSleepFunction(graphics.sleep_function)
 end
 
 ---@param event table
 function WindowModel:receive(event)
 	if event.name == "keypressed" and event[1] == "f10" then
 		local mode = self.mode
-		local flags = mode.flags
+		local flags = normalizeWindowFlags(mode.flags)
 		local width, height = getDimensions(mode)
 		love.window.updateMode(width, height, flags)
 	elseif event.name == "keypressed" and event[1] == "f11" then

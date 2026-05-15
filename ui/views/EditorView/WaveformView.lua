@@ -9,12 +9,12 @@ local gfx_util = require("gfx_util")
 ---@return table
 local function getPointList(self, points, pointOffset, samplesPerPoint, channel)
 	local editorModel = self.game.editorModel
-	local soundData = editorModel.mainAudio.soundData
+	local wave = editorModel.wave
 
-	local sampleCount = soundData:getSampleCount()
-	local channelCount = soundData:getChannelCount()
+	local sampleCount = wave.samples_count
+	local channelCount = wave.channels_count
 
-	local j = channel
+	local j = channel + 1
 
 	local list = {}
 
@@ -24,16 +24,14 @@ local function getPointList(self, points, pointOffset, samplesPerPoint, channel)
 
 		local max, min
 		for i = sampleStart, sampleEnd do
-			local sampleTime = i * channelCount + j
-			if sampleTime >= 0 and sampleTime < sampleCount * channelCount then
-				local sample = soundData:getSample(sampleTime)
+			if i >= 0 and i < sampleCount then
+				local sample = wave:getSampleFloat(i, j)
 				if sample >= 0 then
 					max = math.max(max or 0, sample)
 				else
 					min = math.min(min or 0, sample)
 				end
 			end
-			i = i + 1
 		end
 
 		local x1, x2 = min or 0, max or 0
@@ -94,18 +92,18 @@ end
 ---@param h number
 local function loadWaveform(self, w, h)
 	local editorModel = self.game.editorModel
-	local soundData = editorModel.mainAudio.soundData
+	local wave = editorModel.wave
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
-	local sampleRate = soundData:getSampleRate()
-	local channelCount = soundData:getChannelCount()
+	local sampleRate = wave.sample_rate
+	local channelCount = wave.channels_count
 
 	local points = math.floor(h)
 
 	local samplesPerPoint = sampleRate / math.abs(noteSkin.unit * editor.speed)
 
-	local offset = editorModel.mainAudio:getWaveformOffset()
+	local offset = editorModel.audio_engine:getStartTime() + editor.waveformOffset
 	local sampleOffset = math.floor((editorModel.point.absoluteTime - offset) * sampleRate)
 	local pointOffset = math.floor(sampleOffset / samplesPerPoint)
 	pointDrawDelta = sampleOffset / samplesPerPoint - pointOffset
@@ -164,8 +162,8 @@ end
 
 return function(self)
 	local editorModel = self.game.editorModel
-	local soundData = editorModel.mainAudio.soundData
-	if not soundData then
+	local wave = editorModel.wave
+	if not wave then
 		return
 	end
 
@@ -174,7 +172,7 @@ return function(self)
 		return
 	end
 
-	local channelCount = soundData:getChannelCount()
+	local channelCount = wave.channels_count
 
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	loadWaveform(self, noteSkin.fullWidth, noteSkin.unit)

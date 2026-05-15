@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Exclude directories
-EXCLUDE_DIRS="bin,3rd-deps,tree,share,storages,userdata,db_dump,db_restore,temp"
+EXCLUDE_DIRS="bin,build,3rd-deps,tree,share,storages,userdata,db_dump,db_restore,temp"
 # Include languages
 INCLUDE_LANGS="Lua,Markdown,C,CSS,JavaScript,HTML,Shell"
 

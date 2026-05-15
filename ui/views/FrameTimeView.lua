@@ -174,7 +174,7 @@ function FrameTimeView:draw()
 		love.graphics.setFont(self.smallFont)
 		for i, g in ipairs(activeGraphs) do
 			local base_y = self.height - (i - 1) * graphHeight
-			
+
 			-- Check for mouse wheel over this specific graph area
 			local wy = just.wheel_over(g.id, just.is_over(self.width, graphHeight, 0, base_y - graphHeight))
 			if type(wy) == "number" then
@@ -243,8 +243,7 @@ function FrameTimeView:drawFPS()
 	just.text("drawcalls: " .. loop.stats.drawcalls)
 	just.text("canvasswitches: " .. loop.stats.canvasswitches)
 	just.text("texturememory: " .. math.floor(loop.stats.texturememory / 1e6) .. "MB")
-	just.text("images: " .. loop.stats.images)
-	just.text("canvases: " .. loop.stats.canvases)
+	just.text("textures: " .. loop.stats.textures)
 	just.text("fonts: " .. loop.stats.fonts)
 	just.emptyline(4)
 	just.text(("avg: %3.2fms"):format(loop.ema_dt * 1000))
@@ -252,7 +251,7 @@ function FrameTimeView:drawFPS()
 	just.text(("gc: %3.3fms"):format(loop.timings.gc * 1000))
 	just.text(("mem alloc: %d KB"):format(loop.mem_delta))
 	just.emptyline(4)
-	
+
 	for _, g in ipairs(self.graphs) do
 		g.enabled = imgui.checkbox(g.id, g.enabled, g.label)
 	end

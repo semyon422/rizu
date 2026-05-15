@@ -162,6 +162,45 @@ int sqlite3_create_function(
 );
 ]]
 
+---@class ffi.namespace*
+---@field sqlite3_errmsg fun(db: ffi.cdata*): ffi.cdata*
+---@field sqlite3_open_v2 fun(filename: string, ppDb: ffi.cdata*, flags: integer, zVfs: string?): integer
+---@field sqlite3_close fun(db: ffi.cdata*): integer
+---@field sqlite3_busy_timeout fun(db: ffi.cdata*, ms: integer): integer
+---@field sqlite3_prepare_v2 fun(conn: ffi.cdata*, zSql: string, nByte: integer, ppStmt: ffi.cdata*, pzTail: ffi.cdata**?): integer
+---@field sqlite3_step fun(stmt: ffi.cdata*): integer
+---@field sqlite3_reset fun(stmt: ffi.cdata*): integer
+---@field sqlite3_finalize fun(stmt: ffi.cdata*): integer
+---@field sqlite3_column_count fun(stmt: ffi.cdata*): integer
+---@field sqlite3_column_name fun(stmt: ffi.cdata*, N: integer): ffi.cdata*
+---@field sqlite3_column_type fun(stmt: ffi.cdata*, iCol: integer): integer
+---@field sqlite3_column_int64 fun(stmt: ffi.cdata*, iCol: integer): integer
+---@field sqlite3_column_double fun(stmt: ffi.cdata*, iCol: integer): number
+---@field sqlite3_column_bytes fun(stmt: ffi.cdata*, iCol: integer): integer
+---@field sqlite3_column_text fun(stmt: ffi.cdata*, iCol: integer): ffi.cdata*
+---@field sqlite3_column_blob fun(stmt: ffi.cdata*, iCol: integer): ffi.cdata*
+---@field sqlite3_bind_int64 fun(stmt: ffi.cdata*, i: integer, val: integer): integer
+---@field sqlite3_bind_double fun(stmt: ffi.cdata*, i: integer, val: number): integer
+---@field sqlite3_bind_null fun(stmt: ffi.cdata*, i: integer): integer
+---@field sqlite3_bind_text fun(stmt: ffi.cdata*, i: integer, s: string, n: integer, destructor: ffi.cdata?): integer
+---@field sqlite3_bind_blob fun(stmt: ffi.cdata*, i: integer, blob: ffi.cdata*, n: integer, destructor: ffi.cdata?): integer
+---@field sqlite3_bind_parameter_index fun(stmt: ffi.cdata*, name: string): integer
+---@field sqlite3_clear_bindings fun(stmt: ffi.cdata*): integer
+---@field sqlite3_value_type fun(val: ffi.cdata*): integer
+---@field sqlite3_value_int64 fun(val: ffi.cdata*): integer
+---@field sqlite3_value_double fun(val: ffi.cdata*): number
+---@field sqlite3_value_bytes fun(val: ffi.cdata*): integer
+---@field sqlite3_value_text fun(val: ffi.cdata*): ffi.cdata*
+---@field sqlite3_value_blob fun(val: ffi.cdata*): ffi.cdata*
+---@field sqlite3_result_error fun(ctx: ffi.cdata*, msg: string, n: integer)
+---@field sqlite3_result_int64 fun(ctx: ffi.cdata*, val: integer)
+---@field sqlite3_result_double fun(ctx: ffi.cdata*, val: number)
+---@field sqlite3_result_null fun(ctx: ffi.cdata*)
+---@field sqlite3_result_text fun(ctx: ffi.cdata*, s: string, n: integer, destructor: ffi.cdata?)
+---@field sqlite3_result_blob fun(ctx: ffi.cdata*, blob: ffi.cdata*, n: integer, destructor: ffi.cdata?)
+---@field sqlite3_aggregate_context fun(ctx: ffi.cdata*, nBytes: integer): ffi.cdata*
+---@field sqlite3_create_function fun(conn: ffi.cdata*, zFunctionName: string, nArg: integer, eTextRep: integer, pApp: ffi.cdata?, xFunc: ffi.cdata?, xStep: ffi.cdata?, xFinal: ffi.cdata?): integer
+
 --------------------------------------------------------------------------------
 local sql = ffi.load("sqlite3")
 

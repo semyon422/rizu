@@ -7,9 +7,6 @@
 ---| "archive"
 ---| "git"
 ---| "source-build"
----| "modules"
----| "sync"
----| "package-hooks"
 
 ---@class rizu.build.StatusRow
 ---@field name string
@@ -17,48 +14,45 @@
 
 ---@class rizu.build.deps.Action
 ---@field type string
----@field command? string
----@field compiler? string
----@field dir? string
----@field src_dir? string
----@field build_dir? string
----@field script? string
----@field env? {[string]: string}
----@field url? string
----@field dest? string
----@field format? string
----@field archive? string
----@field src? string
----@field dst? string
----@field path? string
----@field sources? string[]
----@field output? string
----@field cflags? string[]
----@field includes? string[]
----@field lib_dirs? string[]
----@field libs? string[]
----@field ldflags? string[]
----@field pattern? string
----@field out_file? string
----@field args? string|string[]
----@field content? string
----@field tool? string
----@field target? string
----@field from? string
----@field to? string
----@field mode? string
+---@field command string?
+---@field compiler string?
+---@field recursive boolean?
+---@field dir string?
+---@field src_dir string?
+---@field build_dir string?
+---@field script string?
+---@field env {[string]: string}?
+---@field url string?
+---@field dest string?
+---@field marker string?
+---@field format string?
+---@field strip_components integer?
+---@field archive string?
+---@field src string?
+---@field dst string?
+---@field path string?
+---@field sources string[]?
+---@field output string?
+---@field cflags string[]?
+---@field includes string[]?
+---@field lib_dirs string[]?
+---@field libs string[]?
+---@field ldflags string[]?
+---@field pattern string?
+---@field args string[]?
+---@field content string?
+---@field inputs string[]?
 
 ---@class rizu.build.deps.Step
 ---@field id string
 ---@field kind rizu.build.deps.StepKind
 ---@field actions rizu.build.deps.Action[]
 ---@field outputs string[]
----@field requires string[]
----@field status_label? string
----@field skip_if_exists_all? string[]
+---@field inputs string[]
+---@field status_label string?
 
 ---@class rizu.build.deps.Spec
----@field target? rizu.build.Target
+---@field target rizu.build.Target?
 ---@field steps rizu.build.deps.Step[]
 ---@field outputs string[]
 
@@ -69,15 +63,40 @@
 ---@field bin_dir string
 ---@field downloads_dir string
 ---@field deps_dir string
----@field bin_dirs table<string, string>
+---@field bin_dirs {[string]: string}
 
 ---@class rizu.build.deps.RunResult
 ---@field ok boolean
 ---@field exit_code integer
 ---@field step_id string
 ---@field command string
----@field stderr_hint string|nil
+---@field stderr_hint string?
 
+---@alias rizu.build.deps.ActionFunc fun(env: rizu.build.deps.Env, action: rizu.build.deps.Action): rizu.build.deps.RunResult
+
+---@class rizu.build.deps.Actions: {[string]: rizu.build.deps.ActionFunc}
+
+---@class rizu.build.deps.ManifestEntry
+---@field url string
+---@field archive string
+---@field dir string?
+
+---@alias rizu.build.deps.Manifest {[string]: rizu.build.deps.ManifestEntry | {[rizu.build.Target]: rizu.build.deps.ManifestEntry}}
+
+---@class rizu.build.deps.engine.EvalStep
+---@field id string
+---@field label string
+---@field kind rizu.build.deps.StepKind
+---@field state "OK"|"MISSING"|"OUTDATED"|"FAILED"
+---@field outputs string[]
+---@field result rizu.build.deps.RunResult?
+
+---@class rizu.build.deps.engine.EvalResult
+---@field target rizu.build.Target?
+---@field steps rizu.build.deps.engine.EvalStep[]
+---@field aggregate "OK"|"MISSING"|"OUTDATED"|"FAILED"
+
+---@class rizu.build.Types
 local Types = {}
 
 return Types

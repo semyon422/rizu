@@ -23,7 +23,10 @@ Each platform build uses `BuildTargetTask` and a validated declarative step spec
 ### ADR-2: Action Dispatcher with Isolated Handlers
 `Executor` dispatches actions to modules under `deps/actions/` instead of owning all action logic in one file. This reduces coupling and makes new action types straightforward to add.
 
-### ADR-3: Atomic Packaging Tasks
+### ADR-3: Native Modules As Declarative Steps
+Native runtime modules are modeled as ordinary deps-engine steps with explicit inputs, outputs, and bin publication. This keeps the pipeline declarative end to end and avoids executor/evaluator special cases.
+
+### ADR-4: Atomic Packaging Tasks
 Packaging is split into independent tasks:
 - `assemble_repo`: create repository tree and update metadata (`files.json`, `files.lua`),
 - `zip_repo`: build the cross-platform zip from assembled repo,
@@ -32,9 +35,12 @@ Packaging is split into independent tasks:
 This avoids duplicated side effects and makes task dependencies explicit.
 
 ## Directory Structure
-- `rizu/build/make.lua`: CLI entrypoint and task registration.
+- `rizu/build/make.lua`: executable entrypoint.
+- `rizu/build/Cli.lua`: CLI command dispatch, argument validation, status, and clean commands.
+- `rizu/build/TaskRegistry.lua`: context construction and task registration.
 - `rizu/build/tasks/`: task-level orchestration.
 - `rizu/build/deps/spec/`: declarative build step definitions by target.
+- `rizu/build/deps/spec/source/`: per-dependency source-build recipes shared by target specs.
 - `rizu/build/deps/actions/`: executor action handlers.
 - `rizu/build/deps/engine/`: execution and evaluation engine.
 - `rizu/build/package/`: repository assembly and packaging internals.
@@ -52,11 +58,22 @@ CLI mapping:
 - `package` -> `zip_repo` + `package_macos`
 
 ## Key Components
-- `NativeModuleBuilder`: compiles target-native modules (`7z`, `video`, `minacalc`, `luamidi`) and syncs artifacts to bin dirs.
-- `Loader` + target specs: validate and materialize dependency/source-build steps.
-- `Executor`: executes actions with skip checks and required-input checks.
-- `Evaluator`: reports per-step and aggregate target status.
-- `RepoBuilder`: assembles update repo contents and archives.
+- `DependencySpec`: public dependency-step spec entrypoint; resolves target builders, composes native module steps, normalizes, and validates target specs. Prefetch uses the same spec but only runs download and git actions.
+- `LinuxSpec`, `WindowsSpec`, and `MacosSpec`: target orchestrators that select target paths/toolchains and compose source dependency recipes.
+- `deps/spec/source/*SourceSpec`: per-dependency recipes for zlib, iconv, OpenSSL, LuaSec, FFTW, SQLite, and macOS FFmpeg source builds.
+- `SpecNormalizer`: fills defaults and infers outputs from declarative actions.
+- `SpecValidator` + `ActionSchema`: validate step shape, supported action types, required fields, and shell-action policy.
+- `NativeModulesSpec`: appends declarative compile and publish steps for target-native modules (`7z`, `video`, `minacalc`, `luamidi`).
+- `StepState`: centralizes required-input checks, output freshness, and step status state.
+- `Executor`: executes actions using shared step-state skip checks.
+- `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
+- `RepoAssembler`, `UpdateIndexWriter`, `ZipPackager`, and `MacOSPackager`: package-stage implementations called directly by package tasks.
+
+Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. When an extract action runs, it recreates the destination directory before unpacking. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
+
+Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
+
+`video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
 
 ## Verification
 - Unit tests cover config mapping, task behavior, spec validation, executor/evaluator behavior, and packaging logic.

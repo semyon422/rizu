@@ -40,7 +40,7 @@ function normalscore:eq1i(sigma, name)
 
 	local range = self.ranges[name]
 	local t_L, t_R = range[1], range[2]
-	if t_L == t_R then  -- both nil or equal
+	if t_L == t_R then -- both nil or equal
 		t_L, t_R = self:get_max_range()
 		mean_i = self.mean
 	end
@@ -181,7 +181,7 @@ function normalscore:update()
 		x = sigma_m
 		sigma_m = sigma_m - self:eq1(sigma_m)
 		k = k + 1
-		if sigma_m ~= sigma_m or math.abs(sigma_m) == math.huge then  -- quick hack, fix this later
+		if sigma_m ~= sigma_m or math.abs(sigma_m) == math.huge then -- quick hack, fix this later
 			sigma_m = sigma_m_init
 			break
 		end

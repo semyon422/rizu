@@ -74,94 +74,124 @@ local function parse_mod_from_name(s)
 	elseif s:match("^(.+)X$") then
 		return {rate = tonumber(s:match("^(.+)X$"))}
 	elseif s:match("^Alt(.)$") then
-		return {modifier = {
-			id = ids.Alternate,
-			version = 0,
-			value = s:match("^Alt(.)$") == "K" and "key" or "scratch",
-		}}
+		return {
+			modifier = {
+				id = ids.Alternate,
+				version = 0,
+				value = s:match("^Alt(.)$") == "K" and "key" or "scratch",
+			}
+		}
 	elseif s:match("^Alt2(.)$") then
-		return {modifier = {
-			id = ids.Alternate2,
-			version = 0,
-			value = s:match("^Alt2(.)$") == "K" and "key" or "scratch",
-		}}
+		return {
+			modifier = {
+				id = ids.Alternate2,
+				version = 0,
+				value = s:match("^Alt2(.)$") == "K" and "key" or "scratch",
+			}
+		}
 	elseif s:match("^AM(.+)$") then
-		return {modifier = {
-			id = ids.Automap,
-			version = 0,
-			value = tonumber(s:match("^AM(.+)$")),
-		}}
+		return {
+			modifier = {
+				id = ids.Automap,
+				version = 0,
+				value = tonumber(s:match("^AM(.+)$")),
+			}
+		}
 	elseif s == "DP" then
-		return {modifier = {
-			id = ids.MultiplePlay,
-			version = 0,
-			value = 2,
-		}}
+		return {
+			modifier = {
+				id = ids.MultiplePlay,
+				version = 0,
+				value = 2,
+			}
+		}
 	elseif s == "TP" then
-		return {modifier = {
-			id = ids.MultiplePlay,
-			version = 0,
-			value = 3,
-		}}
+		return {
+			modifier = {
+				id = ids.MultiplePlay,
+				version = 0,
+				value = 3,
+			}
+		}
 	elseif s == "QP" then
-		return {modifier = {
-			id = ids.MultiplePlay,
-			version = 0,
-			value = 4,
-		}}
+		return {
+			modifier = {
+				id = ids.MultiplePlay,
+				version = 0,
+				value = 4,
+			}
+		}
 	elseif s == "DO" then
-		return {modifier = {
-			id = ids.MultiOverPlay,
-			version = 0,
-			value = 2,
-		}}
+		return {
+			modifier = {
+				id = ids.MultiOverPlay,
+				version = 0,
+				value = 2,
+			}
+		}
 	elseif s == "TO" then
-		return {modifier = {
-			id = ids.MultiOverPlay,
-			version = 0,
-			value = 3,
-		}}
+		return {
+			modifier = {
+				id = ids.MultiOverPlay,
+				version = 0,
+				value = 3,
+			}
+		}
 	elseif s == "QO" then
-		return {modifier = {
-			id = ids.MultiOverPlay,
-			version = 0,
-			value = 4,
-		}}
+		return {
+			modifier = {
+				id = ids.MultiOverPlay,
+				version = 0,
+				value = 4,
+			}
+		}
 	elseif s == "NLN" then
-		return {modifier = {
-			id = ids.NoLongNote,
-			version = 0,
-		}}
+		return {
+			modifier = {
+				id = ids.NoLongNote,
+				version = 0,
+			}
+		}
 	elseif s == "BS" then
-		return {modifier = {
-			id = ids.BracketSwap,
-			version = 0,
-		}}
+		return {
+			modifier = {
+				id = ids.BracketSwap,
+				version = 0,
+			}
+		}
 	elseif s == "NoScratch" then
-		return {modifier = {
-			id = ids.NoScratch,
-			version = 0,
-		}}
+		return {
+			modifier = {
+				id = ids.NoScratch,
+				version = 0,
+			}
+		}
 	elseif s:match("^RD(.)$") then
 		local v = s:match("^RD(.)$")
-		return {modifier = {
-			id = ids.Random,
-			version = 0,
-			value = v == "A" and "all" or v == "L" and "left" or v == "R" and "right",
-		}}
+		return {
+			modifier = {
+				id = ids.Random,
+				version = 0,
+				value = v == "A" and "all" or v == "L" and "left" or v == "R" and "right",
+			}
+		}
 	elseif s:match("^Mirror(.)$") then
 		local v = s:match("^Mirror(.)$")
-		return {modifier = {
-			id = ids.Mirror,
-			version = 0,
-			value = v == "A" and "all" or v == "L" and "left" or v == "R" and "right",
-		}}
+		return {
+			modifier = {
+				id = ids.Mirror,
+				version = 0,
+				value = v == "A" and "all" or v == "L" and "left" or v == "R" and "right",
+			}
+		}
 	elseif s:match("^FLN(.)$") then
-		return {modifier = {
-			id = ids.FullLongNote,
-			version = 0,
-			value = tonumber(s:match("^FLN(.)$")),
-		}}
+		return {
+			modifier = {
+				id = ids.FullLongNote,
+				version = 0,
+				value = tonumber(s:match("^FLN(.)$")),
+			}
+		}
 	end
 	error(s)
 end

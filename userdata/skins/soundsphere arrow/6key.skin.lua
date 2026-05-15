@@ -16,7 +16,7 @@ noteskin:setColumns({
 	offset = 0,
 	align = "center",
 	width = {64, 64, 64, 64, 64, 64},
-	space = {32, 0, 0, 0, 0, 0, 32}
+	space = {32, 0, 0, 0, 0, 0, 32},
 })
 
 noteskin:setTextures({
@@ -54,7 +54,7 @@ noteskin:setLongNote({
 noteskin:addMeasureLine({
 	h = 4,
 	color = {0.5, 0.5, 0.5, 1},
-	image = "pixel"
+	image = "pixel",
 })
 
 noteskin:addBga({
@@ -62,13 +62,13 @@ noteskin:addBga({
 	y = 0,
 	w = 1,
 	h = 1,
-	color = {0.25, 0.25, 0.25, 1}
+	color = {0.25, 0.25, 0.25, 1},
 })
 
 local playfield = BasePlayfield(noteskin)
 
 playfield:addBga({
-	transform = {{1 / 2, -16 / 9 / 2}, {0, -7 / 9 / 2}, 0, {0, 16 / 9}, {0, 16 / 9}, 0, 0, 0, 0}
+	transform = {{1 / 2, -16 / 9 / 2}, {0, -7 / 9 / 2}, 0, {0, 16 / 9}, {0, 16 / 9}, 0, 0, 0, 0},
 })
 playfield:enableCamera()
 playfield:addNotes()
@@ -83,7 +83,10 @@ playfield:disableCamera()
 playfield:addBaseElements()
 
 playfield:addDeltaTimeJudgement({
-	x = 0, y = 540, ox = 0.5, oy = 0.5,
+	x = 0,
+	y = 540,
+	ox = 0.5,
+	oy = 0.5,
 	rate = 2,
 	transform = playfield:newLaneCenterTransform(1080),
 	judgements = {
@@ -102,7 +105,7 @@ playfield:addDeltaTimeJudgement({
 		0.080,
 		"judgements/3.png",
 		0.12,
-	}
+	},
 })
 
 return noteskin

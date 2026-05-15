@@ -62,6 +62,15 @@ void Discord_Respond(const char* userid, int reply);
 void Discord_UpdateHandlers(DiscordEventHandlers* handlers);
 ]]
 
+---@class ffi.namespace*
+---@field Discord_Initialize fun(applicationId: string, handlers: ffi.cdata*, autoRegister: integer, optionalSteamId: string?)
+---@field Discord_Shutdown fun()
+---@field Discord_RunCallbacks fun()
+---@field Discord_UpdatePresence fun(presence: ffi.cdata*)
+---@field Discord_ClearPresence fun()
+---@field Discord_Respond fun(userid: string, reply: integer)
+---@field Discord_UpdateHandlers fun(handlers: ffi.cdata*)
+
 local discordRPC = {} -- module table
 
 -- proxy to detect garbage collection of the module

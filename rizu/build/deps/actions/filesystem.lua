@@ -1,5 +1,6 @@
 local Util = require("rizu.build.deps.actions._util")
 
+---@type rizu.build.deps.Actions
 local M = {}
 
 function M.copy(env, action)
@@ -22,16 +23,21 @@ function M.set_executable(env, action)
 	return Util.executeSafe(env, string.format("chmod +x %q", path))
 end
 
-function M.toolchain_select(env, action)
-	local pattern = Util.resolve(env, action.pattern)
-	local out_file = Util.resolve(env, action.out_file)
-	local cmd = string.format("bash -lc 'ls %s 2>/dev/null | head -n1 > %q'", pattern, out_file)
-	return Util.executeSafe(env, cmd)
-end
-
 function M.remove(env, action)
 	local path = Util.resolve(env, action.path)
-	return Util.executeSafe(env, string.format("rm -f %q", path))
+	local flags = action.recursive and "-rf" or "-f"
+	return Util.executeSafe(env, string.format("rm %s %q", flags, path))
+end
+
+function M.move_first_match(env, action)
+	local pattern = Util.resolve(env, action.pattern)
+	local dst = Util.resolve(env, action.dst)
+	local cmd = string.format(
+		"bash -lc 'shopt -s nullglob; matches=(%s); [ ${#matches[@]} -gt 0 ] || exit 1; mv -f \"${matches[0]}\" %q'",
+		pattern,
+		dst
+	)
+	return Util.executeSafe(env, cmd)
 end
 
 function M.ensure_dir(env, action)
@@ -48,6 +54,10 @@ function M.write_file(env, action)
 	end
 	env.ctx.fs:write(path, content)
 	return Util.resultOk(string.format("write_file %s", path))
+end
+
+function M.noop(_env, _action)
+	return Util.resultOk("<noop>")
 end
 
 return M

@@ -22,6 +22,7 @@ if jit then
 		pkg.addc("bin/linux64")
 	elseif jit.os == "OSX" then
 		pkg.addc("bin/mac64")
+		pkg.addc("../Frameworks")
 	end
 end
 

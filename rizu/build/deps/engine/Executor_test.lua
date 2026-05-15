@@ -36,7 +36,7 @@ function test.run_step_returns_structured_result(t)
 		kind = "archive",
 		actions = {
 			{type = "download", url = "https://example.invalid/a.tar.gz", dest = "${downloads_dir}/a.tar.gz"},
-			{type = "extract", format = "tar.gz", archive = "${downloads_dir}/a.tar.gz", dest = "${deps_dir}/a", skip_if_exists = true},
+			{type = "extract", format = "tar.gz", archive = "${downloads_dir}/a.tar.gz", dest = "${deps_dir}/a"},
 		},
 	})
 	t:eq(type(result), "table")
@@ -44,57 +44,47 @@ function test.run_step_returns_structured_result(t)
 	t:eq(result.step_id, "demo")
 	t:assert(#state.downloads == 1)
 	t:assert(#state.exec >= 1)
-	t:assert(state.exec[1]:find("tar %-xzf"))
+	local extracted = false
+	for _, cmd in ipairs(state.exec) do
+		extracted = extracted or cmd:find("tar %-%-touch %-xzf") ~= nil
+	end
+	t:assert(extracted)
 end
 
-function test.skip_if_exists_all_skips_step_without_outputs(t)
+function test.steps_without_outputs_do_not_skip(t)
 	local ctx, state = makeCtx()
-	state.fs:createDirectory("build/deps/exists")
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
-	local result = Executor.runStep(env, {
-		id = "skip",
+	local step = {
+		id = "no-output",
 		kind = "archive",
-		skip_if_exists_all = {"build/deps/exists"},
-		actions = {
-			{type = "shell", command = "echo should-not-run"},
-		},
-	})
-	t:eq(result.command, "<skipped>")
-	t:eq(#state.exec, 0)
-end
-
-function test.outputs_take_precedence_over_skip_if_exists_all(t)
-	local ctx, state = makeCtx()
-	state.fs:createDirectory("build/deps/exists")
-	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
-	local result = Executor.runStep(env, {
-		id = "do-not-skip",
-		kind = "archive",
-		skip_if_exists_all = {"build/deps/exists"},
-		outputs = {"build/deps/missing-output"},
 		actions = {
 			{type = "shell", command = "echo should-run"},
 		},
-	})
+	}
+	local result = Executor.runStep(env, step)
 	t:eq(result.command, "echo should-run")
 	t:eq(#state.exec, 1)
 end
 
-function test.modules_kind_is_not_skipped_by_existing_outputs(t)
+function test.outputs_with_newer_inputs_do_not_skip_step(t)
 	local ctx, state = makeCtx()
+	state.fs:setTime(1)
 	state.fs:createDirectory("build/artifacts/linux")
 	state.fs:write("build/artifacts/linux/lib7z.so", "x")
+	state.fs:setTime(2)
+	state.fs:write("aqua/7z.c", "x")
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 	local result = Executor.runStep(env, {
-		id = "modules_build",
-		kind = "modules",
+		id = "artifact",
+		kind = "source-build",
 		outputs = {"build/artifacts/linux/lib7z.so"},
+		inputs = {"aqua/7z.c"},
 		actions = {
-			{type = "noop"},
+			{type = "shell", command = "echo rebuild"},
 		},
 	})
-	t:eq(result.command, "<noop>")
-	t:eq(#state.exec, 0)
+	t:eq(result.command, "echo rebuild")
+	t:eq(#state.exec, 1)
 end
 
 function test.typed_actions_run_with_structured_result(t)
@@ -110,13 +100,45 @@ function test.typed_actions_run_with_structured_result(t)
 			{type = "assert_dir", path = "dir"},
 			{type = "copy_exact", src = "a", dst = "b"},
 			{type = "set_executable", path = "b"},
-			{type = "toolchain_select", pattern = "/tmp/*", out_file = "/tmp/tc.txt"},
 			{type = "noop"},
 		},
 	})
 	t:eq(result.ok, true)
 	t:eq(result.step_id, "typed")
-	t:assert(#state.exec >= 3)
+	t:assert(#state.exec >= 2)
+end
+
+function test.extract_first_match_and_recursive_remove_actions_run(t)
+	local ctx, state = makeCtx()
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "extract_match",
+		kind = "archive",
+		actions = {
+			{type = "extract_first_match", pattern = '"/tmp"/love-*.zip', format = "zip", dest = "/tmp/out"},
+			{type = "remove", path = "/tmp/out", recursive = true},
+		},
+	})
+	t:eq(result.ok, true)
+	t:assert(#state.exec >= 2)
+	t:assert(state.exec[1]:find("matches=", 1, true))
+	t:assert(state.exec[2]:find("rm %-rf", 1))
+end
+
+function test.move_first_match_action_runs(t)
+	local ctx, state = makeCtx()
+	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
+	local result = Executor.runStep(env, {
+		id = "move_match",
+		kind = "archive",
+		actions = {
+			{type = "move_first_match", pattern = '"/tmp"/love-*.AppImage', dst = "/tmp/love.AppImage"},
+		},
+	})
+	t:eq(result.ok, true)
+	t:eq(#state.exec, 1)
+	t:assert(state.exec[1]:find("mv %-f", 1))
+	t:assert(state.exec[1]:find("matches=", 1, true))
 end
 
 function test.shell_action_supports_dir(t)
@@ -150,7 +172,7 @@ function test.copy_exact_fails_when_source_missing(t)
 	t:assert(tostring(err):find("Missing source for copy_exact"))
 end
 
-function test.run_spec_skips_step_when_requires_missing(t)
+function test.run_spec_runs_steps_with_missing_inputs(t)
 	local ctx, state = makeCtx()
 	local env = BuildEnv.new(ctx, "linux", {initialize_dirs = false})
 
@@ -167,7 +189,7 @@ function test.run_spec_skips_step_when_requires_missing(t)
 			{
 				id = "second",
 				kind = "archive",
-				requires = {"build/deps/required-file"},
+				inputs = {"build/deps/required-file"},
 				actions = {
 					{type = "shell", command = "echo second"},
 				},
@@ -177,8 +199,8 @@ function test.run_spec_skips_step_when_requires_missing(t)
 
 	t:eq(#results, 2)
 	t:eq(results[1].command, "echo first")
-	t:eq(results[2].command, "<skipped: requires missing>")
-	t:eq(#state.exec, 1)
+	t:eq(results[2].command, "echo second")
+	t:eq(#state.exec, 2)
 end
 
 return test

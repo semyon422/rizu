@@ -8,6 +8,7 @@ local SetupLuaJITTask = ITask + {}
 ---@param target "linux"|"windows"
 function SetupLuaJITTask:new(target)
 	self.target = target
+	---@type string
 	self.name = "setup_luajit_" .. target
 	self.deps = {}
 end
