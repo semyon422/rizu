@@ -3,7 +3,7 @@ local table_util = require("table_util")
 
 local Layer = require("chartedit.Layer")
 local Point = require("chartedit.Point")
-local eInterval = require("chartedit.Interval")
+local eVertex = require("chartedit.Interval")
 local eVisualPoint = require("chartedit.VisualPoint")
 local eNotes = require("chartedit.Notes")
 local eVisual = require("chartedit.Visual")
@@ -62,20 +62,20 @@ function Converter:loadLayer(_layer, vp_map)
 	---@type ncdk2.IntervalPoint[]
 	local _ps = _layer:getPointList()
 
-	---@type {[ncdk2.Interval]: chartedit.Interval}
-	local ivl_map = {}
-	---@type chartedit.Interval[]
-	local ivls = {}
+	---@type {[ncdk2.Vertex]: chartedit.Vertex}
+	local vertex_map = {}
+	---@type chartedit.Vertex[]
+	local vertices = {}
 	for _, p in ipairs(_ps) do
-		local _ivl = p._interval
-		if _ivl then
-			local beats = _ivl.next and _ivl.next.point.time:floor() - p.time:floor() or 1
-			local ivl = eInterval(_ivl.offset, beats)
-			ivl_map[_ivl] = ivl
-			table.insert(ivls, ivl)
+		local _vertex = p._vertex
+		if _vertex then
+			local beats = _vertex.next and _vertex.next.point.time:floor() - p.time:floor() or 1
+			local vertex = eVertex(_vertex.offset, beats)
+			vertex_map[_vertex] = vertex
+			table.insert(vertices, vertex)
 		end
 	end
-	table_util.to_linked(ivls)
+	table_util.to_linked(vertices)
 
 	---@type {[ncdk2.IntervalPoint]: chartedit.Point}
 	local p_map = {}
@@ -83,11 +83,11 @@ function Converter:loadLayer(_layer, vp_map)
 	local ps = {}
 	local tree = layer.points.points_tree
 	for i, _p in ipairs(_ps) do
-		local ivl = ivl_map[_p.interval]
-		local p = Point(ivl, _p.time - _p.interval.point.time:floor())
-		if _p._interval then
-			p._interval = ivl_map[_p._interval]
-			p._interval.point = p
+		local vertex = vertex_map[_p.vertex]
+		local p = Point(vertex, _p.time - _p.vertex.point.time:floor())
+		if _p._vertex then
+			p._vertex = vertex_map[_p._vertex]
+			p._vertex.point = p
 		end
 		p._measure = _p._measure
 		p.measure = _p.measure
@@ -157,25 +157,25 @@ function Converter:saveLayer(_layer, vp_map)
 		return layer
 	end
 
-	---@type {[chartedit.Interval]: ncdk2.Interval}
-	local ivl_map = {}
-	---@type {[chartedit.Interval]: number}
-	local ivl_beats = {}
-	local ivl_total_beats = 0
-	local ivls = table_util.to_array(first_point.interval)
-	for _, _ivl in ipairs(ivls) do
-		ivl_map[_ivl] = nInterval(_ivl.offset)
-		ivl_beats[_ivl] = ivl_total_beats
-		ivl_total_beats = ivl_total_beats + _ivl.beats
+	---@type {[chartedit.Vertex]: ncdk2.Vertex}
+	local vertex_map = {}
+	---@type {[chartedit.Vertex]: number}
+	local vertex_beats = {}
+	local vertex_total_beats = 0
+	local vertices = table_util.to_array(first_point.vertex)
+	for _, _vertex in ipairs(vertices) do
+		vertex_map[_vertex] = nInterval(_vertex.offset)
+		vertex_beats[_vertex] = vertex_total_beats
+		vertex_total_beats = vertex_total_beats + _vertex.beats
 	end
 
 	---@type {[chartedit.Point]: ncdk2.IntervalPoint}
 	local p_map = {}
 	local _ps = table_util.to_array(first_point)
 	for _, _p in ipairs(_ps) do
-		local p = IntervalPoint(_p.time + ivl_beats[_p.interval])
-		if _p._interval then
-			p._interval = ivl_map[_p._interval]
+		local p = IntervalPoint(_p.time + vertex_beats[_p.vertex])
+		if _p._vertex then
+			p._vertex = vertex_map[_p._vertex]
 		end
 		p._measure = _p._measure
 		p.measure = _p.measure

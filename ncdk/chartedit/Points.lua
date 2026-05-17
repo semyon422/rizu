@@ -3,7 +3,7 @@ local table_util = require("table_util")
 local rbtree = require("rbtree")
 local Fraction = require("ncdk.Fraction")
 local Point = require("chartedit.Point")
-local Interval = require("chartedit.Interval")
+local Vertex = require("chartedit.Interval")
 
 local fraction_0 = Fraction(0)
 
@@ -19,13 +19,13 @@ function Points:new(on_remove)
 end
 
 function Points:initDefault()
-	local ivl_1 = Interval(0, 1)
-	local ivl_2 = Interval(1, 1)
-	ivl_1.next, ivl_2.prev = ivl_2, ivl_1
-	ivl_1.point = self:getPoint(ivl_1, Fraction(0))
-	ivl_2.point = self:getPoint(ivl_2, Fraction(0))
-	ivl_1.point._interval = ivl_1
-	ivl_2.point._interval = ivl_2
+	local v_1 = Vertex(0, 1)
+	local v_2 = Vertex(1, 1)
+	v_1.next, v_2.prev = v_2, v_1
+	v_1.point = self:getPoint(v_1, Fraction(0))
+	v_2.point = self:getPoint(v_2, Fraction(0))
+	v_1.point._vertex = v_1
+	v_2.point._vertex = v_2
 end
 
 ---@return chartedit.Point?
@@ -40,18 +40,18 @@ function Points:getLastPoint()
 	return node and node.key
 end
 
----@param interval chartedit.Interval
+---@param vertex chartedit.Vertex
 ---@param time ncdk.Fraction
 ---@return chartedit.Point
-function Points:getPoint(interval, time)
-	self.search_point:new(interval, time)
+function Points:getPoint(vertex, time)
+	self.search_point:new(vertex, time)
 
 	local node = self.points_tree:find(self.search_point)
 	if node then
 		return node.key
 	end
 
-	local point = Point(interval, time)
+	local point = Point(vertex, time)
 	node = assert(self.points_tree:insert(point))
 	local prev_node = node:prev()
 	local next_node = node:next()
@@ -103,13 +103,13 @@ function Points:getInterp(object)
 	end
 end
 
----@param interval chartedit.Interval
+---@param vertex chartedit.Vertex
 ---@param time ncdk.Fraction
 ---@return chartedit.Point?
-function Points:interpolateFraction(interval, time)
+function Points:interpolateFraction(vertex, time)
 	local search_point = self.search_point
 
-	search_point:new(interval, time)
+	search_point:new(vertex, time)
 
 	local a, b = self:getInterp(search_point)
 	if not a and not b then
@@ -170,7 +170,7 @@ function Points:interpolateAbsolute(limit, time)
 
 	a = a or b
 
-	search_point:fromnumber(a.interval, time, limit, a.measure)
+	search_point:fromnumber(a.vertex, time, limit, a.measure)
 	search_point.measure = a.measure
 
 	return search_point

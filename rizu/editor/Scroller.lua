@@ -47,7 +47,7 @@ end
 
 ---@param point chartedit.Point
 ---@param delta number
----@return chartedit.Interval
+---@return chartedit.Vertex
 ---@return ncdk.Fraction
 function Scroller:getNextSnapIntervalTime(point, delta)
 	local editor = self.editorModel:getSettings()
@@ -62,29 +62,29 @@ function Scroller:getNextSnapIntervalTime(point, delta)
 		targetSnapTime = snapTime:floor() + 1
 	end
 
-	local interval = point.interval
-	-- if intervalData.next and targetSnapTime >= snap * intervalData:_end() then
-	-- 	intervalData = intervalData.next
-	-- 	targetSnapTime = intervalData:start() * snap
-	-- elseif intervalData.prev and dtp.time > intervalData:start() and targetSnapTime < snap * intervalData:start() then
-	-- 	targetSnapTime = intervalData:start() * snap
-	-- elseif intervalData.prev and dtp.time == intervalData:start() and targetSnapTime < snap * intervalData:start() then
-	-- 	intervalData = intervalData.prev
-	-- 	targetSnapTime = (intervalData:_end() * snap):ceil() - 1
+	local vertex = point.vertex
+	-- if vertexData.next and targetSnapTime >= snap * vertexData:_end() then
+	-- 	vertexData = vertexData.next
+	-- 	targetSnapTime = vertexData:start() * snap
+	-- elseif vertexData.prev and dtp.time > vertexData:start() and targetSnapTime < snap * vertexData:start() then
+	-- 	targetSnapTime = vertexData:start() * snap
+	-- elseif vertexData.prev and dtp.time == vertexData:start() and targetSnapTime < snap * vertexData:start() then
+	-- 	vertexData = vertexData.prev
+	-- 	targetSnapTime = (vertexData:_end() * snap):ceil() - 1
 	-- end
 
-	if interval.next and targetSnapTime == snap * interval:_end() then
-		interval = interval.next
-		targetSnapTime = interval:start() * snap
-	elseif interval.next and targetSnapTime > snap * interval:_end() then
-		interval = interval.next
-		targetSnapTime = (interval:start() * snap):floor() + 1
-	elseif interval.prev and targetSnapTime < snap * interval:start() then
-		interval = interval.prev
-		targetSnapTime = (interval:_end() * snap):ceil() - 1
+	if vertex.next and targetSnapTime == snap * vertex:_end() then
+		vertex = vertex.next
+		targetSnapTime = vertex:start() * snap
+	elseif vertex.next and targetSnapTime > snap * vertex:_end() then
+		vertex = vertex.next
+		targetSnapTime = (vertex:start() * snap):floor() + 1
+	elseif vertex.prev and targetSnapTime < snap * vertex:start() then
+		vertex = vertex.prev
+		targetSnapTime = (vertex:_end() * snap):ceil() - 1
 	end
 
-	return interval, Fraction(targetSnapTime, snap)
+	return vertex, Fraction(targetSnapTime, snap)
 end
 
 return Scroller

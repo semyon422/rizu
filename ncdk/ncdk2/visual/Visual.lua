@@ -97,7 +97,7 @@ function Visual:compute()
 
 		local _currentSpeed = self:multiply(velocity, _tempo)
 
-		local interval = point.interval
+		local vertex = point.vertex
 		local tempo = point.tempo
 		if tempo then
 			_tempo = tempo.tempo
@@ -129,8 +129,8 @@ function Visual:compute()
 			local duration = expand.duration
 			if tempo then
 				duration = duration * tempo:getBeatDuration()
-			elseif interval then
-				duration = duration * interval:getBeatDuration()
+			elseif vertex then
+				duration = duration * vertex:getBeatDuration()
 			end
 			if math.abs(duration) == math.huge then
 				section_time[section] = visualTime

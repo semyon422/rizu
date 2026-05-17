@@ -86,8 +86,8 @@ function EditorModel:load()
 	self.scroller:scrollSeconds(self.timer:getTime())
 
 	self.bms_tools = {
-		offset = self.layer.points:getFirstPoint().interval.offset,
-		tempo = self.layer.points:getFirstPoint().interval:getTempo(),
+		offset = self.layer.points:getFirstPoint().vertex.offset,
+		tempo = self.layer.points:getFirstPoint().vertex:getTempo(),
 		beat_offset = 0,
 	}
 
@@ -116,8 +116,8 @@ function EditorModel:resetOffsetTempo()
 		return
 	end
 
-	p1.interval.offset = offset
-	p2.interval.offset = offset + p2:sub(p1):tonumber() * 60 / tempo
+	p1.vertex.offset = offset
+	p2.vertex.offset = offset + p2:sub(p1):tonumber() * 60 / tempo
 end
 
 ---@return table
@@ -194,7 +194,7 @@ end
 function EditorModel:genGraphs()
 	local a, b = self:getFirstLastTime()
 	self.graphsGenerator:genDensityGraph(self.chart, a, b)
-	self.graphsGenerator:genIntervalsGraph(self.layer, a, b)
+	self.graphsGenerator:genVerticesGraph(self.layer, a, b)
 end
 
 ---@param time number
@@ -290,7 +290,7 @@ function EditorModel:update()
 	end
 
 	local dtp = self:getDtpAbsolute(time)
-	if self.intervalManager.grabbedInterval then
+	if self.intervalManager.grabbedVertex then
 		self.intervalManager:moveGrabbed(time)
 	end
 	self.audio_engine:update()

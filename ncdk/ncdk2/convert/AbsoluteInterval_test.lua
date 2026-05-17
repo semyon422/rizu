@@ -131,7 +131,7 @@ function test.adjust_tempo_left(t)
 	local points = layer:getPointList()
 
 	t:eq(#points, 2)
-	t:eq(points[1]._interval:getTempo(), 120)
+	t:eq(points[1]._vertex:getTempo(), 120)
 	t:eq(points[2].time, Fraction(4))
 end
 
@@ -154,7 +154,7 @@ function test.adjust_tempo_right(t)
 	local points = layer:getPointList()
 
 	t:eq(#points, 2)
-	t:eq(points[1]._interval:getTempo(), 120)
+	t:eq(points[1]._vertex:getTempo(), 120)
 	t:eq(points[2].time, Fraction(4))
 end
 
@@ -177,7 +177,7 @@ function test.auxiliary_interval_int(t)
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)
-	t:eq(points[1]._interval:getTempo(), 121)
+	t:eq(points[1]._vertex:getTempo(), 121)
 	t:eq(points[2].time, Fraction(4))
 	t:eq(points[3].time, Fraction(5))
 	t:eq(points[2].absoluteTime, 4 * 60 / 121)
@@ -203,7 +203,7 @@ function test.auxiliary_interval_frac(t)
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)
-	t:eq(points[1]._interval:getTempo(), 140)
+	t:eq(points[1]._vertex:getTempo(), 140)
 	t:eq(points[2].time, Fraction(9, 2))
 	t:eq(points[3].time, Fraction(5))
 	t:eq(points[2].absoluteTime, 60 / 140 * 4.5)
@@ -243,7 +243,7 @@ function test.auxiliary_interval_frac_right_point(t)
 	t:eq(vp_1.point, points[3])
 	t:eq(points[3].time, Fraction(5))
 
-	t:eq(points[1]._interval:getTempo(), 140)
+	t:eq(points[1]._vertex:getTempo(), 140)
 	t:eq(points[2].time, Fraction(9, 2))
 	t:eq(points[2].absoluteTime, 60 / 140 * 4.5)
 end

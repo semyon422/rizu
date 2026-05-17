@@ -9,24 +9,24 @@ function test.int_abs(t)
 	points:initDefault()
 
 	local p = points:interpolateAbsolute(16, 0.5)
-	t:eq(p.interval.offset, 0)
+	t:eq(p.vertex.offset, 0)
 	t:eq(p.time, Fraction(1, 2))
 	t:eq(p.absoluteTime, 0.5)
-	t:eq(p.prev, p.interval.point)
-	t:eq(p.next, p.interval.next.point)
+	t:eq(p.prev, p.vertex.point)
+	t:eq(p.next, p.vertex.next.point)
 
 	p = points:interpolateAbsolute(16, -0.5)
-	t:eq(p.interval.offset, 0)
+	t:eq(p.vertex.offset, 0)
 	t:eq(p.time, Fraction(-1, 2))
 	t:eq(p.absoluteTime, -0.5)
 	t:eq(p.prev, nil)
-	t:eq(p.next, p.interval.point)
+	t:eq(p.next, p.vertex.point)
 
 	p = points:interpolateAbsolute(16, 1.5)
-	t:eq(p.interval.offset, 1)
+	t:eq(p.vertex.offset, 1)
 	t:eq(p.time, Fraction(1, 2))
 	t:eq(p.absoluteTime, 1.5)
-	t:eq(p.prev, p.interval.point)
+	t:eq(p.prev, p.vertex.point)
 	t:eq(p.next, nil)
 end
 
@@ -74,15 +74,15 @@ function test.int_frac(t)
 	local points = Points()
 	points:initDefault()
 
-	local ivl = points:getFirstPoint().interval
+	local vertex = points:getFirstPoint().vertex
 
-	local p = points:interpolateFraction(ivl, Fraction(1, 2))
+	local p = points:interpolateFraction(vertex, Fraction(1, 2))
 	t:eq(p.absoluteTime, 0.5)
 
-	p = points:interpolateFraction(ivl, Fraction(-1, 2))
+	p = points:interpolateFraction(vertex, Fraction(-1, 2))
 	t:eq(p.absoluteTime, -0.5)
 
-	p = points:interpolateFraction(ivl.next, Fraction(1, 2))
+	p = points:interpolateFraction(vertex.next, Fraction(1, 2))
 	t:eq(p.absoluteTime, 1.5)
 end
 
@@ -94,26 +94,26 @@ function test.int_close_to(t)
 	local p100 = points:getLastPoint()
 
 	local intervals = Intervals(points)
-	intervals:moveInterval(p0._interval.next, 10)
-	intervals:updateInterval(p0._interval, 10)
+	intervals:moveVertex(p0._vertex.next, 10)
+	intervals:updateVertex(p0._vertex, 10)
 
 	points:interpolateAbsolute(16, 2.5)
 	local p25 = points:saveSearchPoint()
 
-	intervals:splitInterval(p25)
+	intervals:splitVertex(p25)
 
 	local p = points:interpolateAbsolute(16, 2.501)
-	t:eq(p.interval.offset, 2.5)
+	t:eq(p.vertex.offset, 2.5)
 	t:eq(p.time, Fraction(1, 2))
 	t:eq(p.absoluteTime, 2.5)
 
 	p = points:interpolateAbsolute(16, 2.499)
-	t:eq(p.interval.offset, 2.5)
+	t:eq(p.vertex.offset, 2.5)
 	t:eq(p.time, Fraction(1, 2))
 	t:eq(p.absoluteTime, 2.5)
 
 	p = points:interpolateAbsolute(16, 2.25)
-	t:eq(p.interval.offset, 0)
+	t:eq(p.vertex.offset, 0)
 	t:eq(p.time, Fraction(9, 4))
 	t:eq(p.absoluteTime, 2.25)
 end
@@ -139,7 +139,7 @@ function test.global_time(t)
 
 	local intervals = Intervals(points)
 
-	intervals:splitInterval(p35)
+	intervals:splitVertex(p35)
 
 	t:eq(p_15:getGlobalTime(), Fraction(-3, 2))
 	t:eq(p0:getGlobalTime(), Fraction(0))

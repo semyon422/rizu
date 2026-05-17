@@ -7,7 +7,7 @@ local GraphsGenerator = class()
 
 function GraphsGenerator:load()
 	self.densityGraph = {}
-	self.intervalDatasGraph = {n = 0}
+	self.vertexDatasGraph = {n = 0}
 end
 
 ---@param chart ncdk2.Chart
@@ -51,20 +51,20 @@ end
 ---@param layer chartedit.Layer
 ---@param firstTime number
 ---@param lastTime number
-function GraphsGenerator:genIntervalsGraph(layer, firstTime, lastTime)
-	local ivl = layer.points:getFirstPoint().interval
+function GraphsGenerator:genVerticesGraph(layer, firstTime, lastTime)
+	local vertex = layer.points:getFirstPoint().vertex
 
 	local offsets = {}
-	while ivl do
-		table.insert(offsets, ivl.point.absoluteTime)
-		ivl = ivl.next
+	while vertex do
+		table.insert(offsets, vertex.point.absoluteTime)
+		vertex = vertex.next
 	end
 	table.sort(offsets)
 
 	local pointsCount = 2000
 
-	self.intervalDatasGraph = {n = pointsCount}
-	local points = self.intervalDatasGraph
+	self.vertexDatasGraph = {n = pointsCount}
+	local points = self.vertexDatasGraph
 
 	for _, time in ipairs(offsets) do
 		local pos = math_util.map(time, firstTime, lastTime, 0, pointsCount)

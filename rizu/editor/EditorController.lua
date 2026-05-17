@@ -477,7 +477,7 @@ function EditorController:exportBmsTemplate(columns_out)
 				---@cast point ncdk2.IntervalPoint
 
 				if not tempo then
-					tempo = point.interval:getTempo()
+					tempo = point.vertex:getTempo()
 				end
 
 				local time = point.time + beat_offset

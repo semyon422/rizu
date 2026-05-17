@@ -27,8 +27,8 @@ function test.basic(t)
 	t:eq(#points, 2)
 	t:eq(points[1].absoluteTime, 0)
 	t:eq(points[2].absoluteTime, 2)
-	t:eq(points[1]._interval.offset, 0)
-	t:eq(points[2]._interval.offset, 2)
+	t:eq(points[1]._vertex.offset, 0)
+	t:eq(points[2]._vertex.offset, 2)
 end
 
 function test.stop(t)
@@ -101,8 +101,8 @@ function test.fractions(t)
 	t:eq(p_1.time, Fraction(7, 2))
 	t:eq(p_2.time, Fraction(4))
 
-	t:eq(p_0._interval.offset, 0.25)
-	t:eq(p_1._interval.offset, 1.75)
+	t:eq(p_0._vertex.offset, 0.25)
+	t:eq(p_1._vertex.offset, 1.75)
 end
 
 function test.single_point(t)

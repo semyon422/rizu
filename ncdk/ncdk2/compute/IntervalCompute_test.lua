@@ -1,6 +1,6 @@
 local IntervalCompute = require("ncdk2.compute.IntervalCompute")
 local IntervalPoint = require("ncdk2.tp.IntervalPoint")
-local Interval = require("ncdk2.to.Interval")
+local Vertex = require("ncdk2.to.Interval")
 local Fraction = require("ncdk.Fraction")
 
 local test = {}
@@ -23,10 +23,10 @@ function test.basic2(t)
 		newp(5),
 	}
 
-	local int_0 = Interval(0)
-	local int_4 = Interval(4)
-	points[1]._interval = int_0
-	points[5]._interval = int_4
+	local int_0 = Vertex(0)
+	local int_4 = Vertex(4)
+	points[1]._vertex = int_0
+	points[5]._vertex = int_4
 
 	conv:compute(points)
 

@@ -16,22 +16,22 @@ function IntervalAbsolute:convertPoints(points)
 	---@type {[string]: ncdk2.AbsolutePoint}
 	local points_map = {}
 
-	---@type {[ncdk2.Interval]: number}
+	---@type {[ncdk2.Vertex]: number}
 	local interval_tempos = {}
 
 	for _, p in ipairs(points) do
-		local _interval = p._interval
-		if _interval then
-			interval_tempos[_interval] = _interval:getTempo()
+		local _vertex = p._vertex
+		if _vertex then
+			interval_tempos[_vertex] = _vertex:getTempo()
 		end
 	end
 
 	local first_measure = points[1].measure ~= nil
 
 	for _, p in ipairs(points) do
-		local _interval = p._interval
-		local interval = p.interval
-		local tempo = interval_tempos[interval]
+		local _vertex = p._vertex
+		local vertex = p.vertex
+		local tempo = interval_tempos[vertex]
 
 		local _measure = p._measure
 		local measure = p.measure
@@ -50,7 +50,7 @@ function IntervalAbsolute:convertPoints(points)
 		setmetatable(p, AbsolutePoint)
 		table_util.clear(p)
 
-		if _interval or _measure then
+		if _vertex or _measure then
 			p._tempo = Tempo(tempo)
 			local offset = (time + (beat_offset or 0)) % 1
 			if _measure or offset:tonumber() ~= 0 then
@@ -58,7 +58,7 @@ function IntervalAbsolute:convertPoints(points)
 			end
 		end
 
-		if not first_measure and _interval then
+		if not first_measure and _vertex then
 			first_measure = true
 			p._measure = Measure()
 		end

@@ -1,6 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
-local Interval = require("ncdk2.to.Interval")
+local Vertex = require("ncdk2.to.Interval")
 local IntervalPoint = require("ncdk2.tp.IntervalPoint")
 local IntervalLayer = require("ncdk2.layers.IntervalLayer")
 local TempoConnector = require("ncdk2.convert.TempoConnector")
@@ -78,14 +78,14 @@ function AbsoluteInterval:loadTempos(points)
 end
 
 ---@param points ncdk2.AbsolutePoint[]
----@return {[ncdk.Fraction]: ncdk2.Interval}
+---@return {[ncdk.Fraction]: ncdk2.Vertex}
 ---@return {[ncdk2.Tempo]: number}
 ---@return {[ncdk2.Tempo]: number}
 ---@return {[ncdk2.Tempo]: ncdk.Fraction}
 function AbsoluteInterval:computeTempos(points)
 	local tempos, tempo_offsets = self:loadTempos(points)
 
-	---@type {[ncdk.Fraction]: ncdk2.Interval}
+	---@type {[ncdk.Fraction]: ncdk2.Vertex}
 	local intervals = {}
 	---@type {[ncdk2.Tempo]: number}
 	local tempo_beat_offsets = {}
@@ -98,9 +98,9 @@ function AbsoluteInterval:computeTempos(points)
 
 	local total_beats = 0
 	tempo_beat_offsets[tempos[1]] = total_beats
-	intervals[Fraction(0)] = Interval(tempo_offsets[tempos[1]])
+	intervals[Fraction(0)] = Vertex(tempo_offsets[tempos[1]])
 
-	---@type {[number]: ncdk2.Interval}
+	---@type {[number]: ncdk2.Vertex}
 	local offset_intervals = {}
 
 	for i = 2, #tempos  do
@@ -118,18 +118,18 @@ function AbsoluteInterval:computeTempos(points)
 
 		if aux_interval and beats[1] ~= 0 then
 			local aux_offset = beats:tonumber() * beat_duration + offset
-			local interval = Interval(aux_offset)
+			local vertex = Vertex(aux_offset)
 			assert(not offset_intervals[aux_offset], aux_offset)
-			offset_intervals[aux_offset] = interval
-			intervals[beats + total_beats] = interval
+			offset_intervals[aux_offset] = vertex
+			intervals[beats + total_beats] = vertex
 		end
 
 		total_beats = total_beats + int_beats
 		local _offset = tempo_offsets[tempo]
-		local interval = Interval(_offset)
+		local vertex = Vertex(_offset)
 		assert(not offset_intervals[_offset], _offset)
-		offset_intervals[_offset] = interval
-		intervals[Fraction(total_beats)] = interval
+		offset_intervals[_offset] = vertex
+		intervals[Fraction(total_beats)] = vertex
 
 		tempo_beat_offsets[tempo] = total_beats
 	end
@@ -197,11 +197,11 @@ function AbsoluteInterval:convert(layer, fraction_mode)
 		if i == 1 and not p._tempo then
 			local time_ceil_n = time:floor()
 			local beats = time_ceil_n - tempo_beat_offsets[tempo]
-			intervals[Fraction(time_ceil_n)] = Interval(tempo_offset + beat_duration * beats)
+			intervals[Fraction(time_ceil_n)] = Vertex(tempo_offset + beat_duration * beats)
 		elseif i == #points and not p._tempo then
 			local time_ceil_n = time:ceil()
 			local beats = time_ceil_n - tempo_beat_offsets[tempo]
-			intervals[Fraction(time_ceil_n)] = Interval(tempo_offset + beat_duration * beats)
+			intervals[Fraction(time_ceil_n)] = Vertex(tempo_offset + beat_duration * beats)
 		end
 
 		---@cast p -ncdk2.AbsolutePoint, +ncdk2.IntervalPoint
@@ -233,9 +233,9 @@ function AbsoluteInterval:convert(layer, fraction_mode)
 	layer.points = points_map
 	layer.visuals = visuals
 
-	for time, interval in pairs(intervals) do
+	for time, vertex in pairs(intervals) do
 		local p = layer:getPoint(time)
-		p._interval = interval
+		p._vertex = vertex
 	end
 
 	layer.intervalCompute:compute(layer:getPointList())

@@ -1,36 +1,36 @@
 local class = require("class")
 
----@class chartedit.Interval
----@operator call: chartedit.Interval
+---@class chartedit.Vertex
+---@operator call: chartedit.Vertex
 ---@field point chartedit.Point
----@field next chartedit.Interval
----@field prev chartedit.Interval
-local Interval = class()
+---@field next chartedit.Vertex
+---@field prev chartedit.Vertex
+local Vertex = class()
 
 ---@param offset number
 ---@param beats integer
-function Interval:new(offset, beats)
+function Vertex:new(offset, beats)
 	self.offset = offset
 	self.beats = beats
 end
 
 ---@return ncdk.Fraction
-function Interval:start()
+function Vertex:start()
 	return self.point.time % 1
 end
 
 ---@return number
-function Interval:startn()
+function Vertex:startn()
 	return self.point.time:tonumber() % 1
 end
 
 ---@return ncdk.Fraction
-function Interval:_end()
+function Vertex:_end()
 	return self.next:start() + self.beats
 end
 
 ---@return number
-function Interval:getDuration()
+function Vertex:getDuration()
 	local duration = self.next:startn() - self:startn() + self.beats
 	if duration <= 0 then
 		error("zero interval duration found: " .. tostring(self) .. ", " .. tostring(self.next))
@@ -39,20 +39,20 @@ function Interval:getDuration()
 end
 
 ---@return number
-function Interval:getBeatDuration()
+function Vertex:getBeatDuration()
 	local a, b = self:getPair()
 	return (b.offset - a.offset) / a:getDuration()
 end
 
 ---@return number
-function Interval:getTempo()
+function Vertex:getTempo()
 	return 60 / self:getBeatDuration()
 end
 
----@return chartedit.Interval
----@return chartedit.Interval
+---@return chartedit.Vertex
+---@return chartedit.Vertex
 ---@return boolean
-function Interval:getPair()
+function Vertex:getPair()
 	local a = self
 	local n = a.next
 	if n then
@@ -62,35 +62,35 @@ function Interval:getPair()
 end
 
 ---@return boolean
-function Interval:isSingle()
+function Vertex:isSingle()
 	return not self.prev and not self.next
 end
 
----@param a chartedit.Interval
+---@param a chartedit.Vertex
 ---@return string
-function Interval.__tostring(a)
-	return ("Interval(%s, %s)"):format(a.offset, a.beats)
+function Vertex.__tostring(a)
+	return ("Vertex(%s, %s)"):format(a.offset, a.beats)
 end
 
----@param a chartedit.Interval
----@param b chartedit.Interval
+---@param a chartedit.Vertex
+---@param b chartedit.Vertex
 ---@return boolean
-function Interval.__eq(a, b)
+function Vertex.__eq(a, b)
 	return a.offset == b.offset
 end
 
----@param a chartedit.Interval
----@param b chartedit.Interval
+---@param a chartedit.Vertex
+---@param b chartedit.Vertex
 ---@return boolean
-function Interval.__lt(a, b)
+function Vertex.__lt(a, b)
 	return a.offset < b.offset
 end
 
----@param a chartedit.Interval
----@param b chartedit.Interval
+---@param a chartedit.Vertex
+---@param b chartedit.Vertex
 ---@return boolean
-function Interval.__le(a, b)
+function Vertex.__le(a, b)
 	return a.offset <= b.offset
 end
 
-return Interval
+return Vertex

@@ -128,8 +128,8 @@ function ChartEncoder:encodeTimingPoints()
 		local tempo = p._tempo
 		---@type ncdk2.Stop
 		local stop = p._stop
-		---@type ncdk2.Interval
-		local interval = p._interval
+		---@type ncdk2.Vertex
+		local vertex = p._vertex
 
 		if tempo then
 			table.insert(tpoints, {
@@ -151,10 +151,10 @@ function ChartEncoder:encodeTimingPoints()
 				timingChange = true,
 			})
 		end
-		if interval then
+		if vertex then
 			table.insert(tpoints, {
 				offset = p.absoluteTime * 1000,
-				beatLength = interval:getBeatDuration() * 1000,
+				beatLength = vertex:getBeatDuration() * 1000,
 				timeSignature = 4,  -- do later
 				timingChange = true,
 			})

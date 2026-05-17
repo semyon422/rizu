@@ -6,8 +6,8 @@ local Fraction = require("ncdk.Fraction")
 ---@operator call: chartedit.Point
 ---@field _measure ncdk2.Measure?
 ---@field measure ncdk2.Measure?
----@field _interval chartedit.Interval?
----@field interval chartedit.Interval
+---@field _vertex chartedit.Vertex?
+---@field vertex chartedit.Vertex
 ---@field absoluteTime number
 ---@field prev chartedit.Point?
 ---@field next chartedit.Point?
@@ -23,17 +23,17 @@ function Point.__index(p, k, v)
 	return Point[k]
 end
 
----@param interval chartedit.Interval
+---@param vertex chartedit.Vertex
 ---@param time ncdk.Fraction
-function Point:new(interval, time)
-	self.interval = interval
+function Point:new(vertex, time)
+	self.vertex = vertex
 	self.time = time
 end
 
----@return chartedit.Interval
+---@return chartedit.Vertex
 ---@return ncdk.Fraction
 function Point:unpack()
-	return self.interval, self.time
+	return self.vertex, self.time
 end
 
 ---@param point chartedit.Point?
@@ -58,41 +58,41 @@ end
 ---@return ncdk.Fraction
 function Point:getGlobalTime()
 	local beat_offset = 0
-	local ivl = self.interval.prev
-	while ivl do
-		beat_offset = beat_offset + ivl.beats
-		ivl = ivl.prev
+	local vertex = self.vertex.prev
+	while vertex do
+		beat_offset = beat_offset + vertex.beats
+		vertex = vertex.prev
 	end
 	return self.time + beat_offset
 end
 
----@param interval chartedit.Interval
+---@param vertex chartedit.Vertex
 ---@param time ncdk.Fraction
----@return chartedit.Interval
+---@return chartedit.Vertex
 ---@return ncdk.Fraction
-local function add(interval, time)
-	if interval.next and time >= interval:_end() then
-		time = time - interval.beats
-		interval = interval.next
-		return add(interval, time)
-	elseif interval.prev and time < interval:start() then
-		interval = interval.prev
-		time = time + interval.beats
-		return add(interval, time)
+local function add(vertex, time)
+	if vertex.next and time >= vertex:_end() then
+		time = time - vertex.beats
+		vertex = vertex.next
+		return add(vertex, time)
+	elseif vertex.prev and time < vertex:start() then
+		vertex = vertex.prev
+		time = time + vertex.beats
+		return add(vertex, time)
 	end
-	return interval, time
+	return vertex, time
 end
 
 ---@param duration ncdk.Fraction
----@return chartedit.Interval
+---@return chartedit.Vertex
 ---@return ncdk.Fraction
 function Point:add(duration)
-	return add(self.interval, self.time + duration)
+	return add(self.vertex, self.time + duration)
 end
 
----@param id1 chartedit.Interval
+---@param id1 chartedit.Vertex
 ---@param t1 ncdk.Fraction
----@param id2 chartedit.Interval
+---@param id2 chartedit.Vertex
 ---@param t2 ncdk.Fraction
 ---@return ncdk.Fraction
 local function sub(id1, t1, id2, t2)
@@ -108,33 +108,33 @@ end
 ---@return ncdk.Fraction
 function Point:sub(point)
 	return sub(
-		self.interval,
+		self.vertex,
 		self.time,
-		point.interval,
+		point.vertex,
 		point.time
 	)
 end
 
 ---@return number
 function Point:tonumber()
-	local ivl = self.interval
-	if type(ivl) == "number" then
-		return ivl
+	local vertex = self.vertex
+	if type(vertex) == "number" then
+		return vertex
 	end
-	if ivl:isSingle() then
-		return ivl.offset
+	if vertex:isSingle() then
+		return vertex.offset
 	end
-	local a, b, offset = ivl:getPair()
+	local a, b, offset = vertex:getPair()
 	local time = self.time:tonumber() - a:startn() + (offset and a.beats or 0)
 	return a.offset + a:getBeatDuration() * time
 end
 
----@param ivl chartedit.Interval
+---@param vertex chartedit.Vertex
 ---@param t number
 ---@param limit number
 ---@param measure ncdk2.Measure?
-function Point:fromnumber(ivl, t, limit, measure)
-	local a, b, offset = ivl:getPair()
+function Point:fromnumber(vertex, t, limit, measure)
+	local a, b, offset = vertex:getPair()
 	local time = (t - a.offset) / a:getBeatDuration() + a:startn()
 	if offset then
 		time = time - a.beats
@@ -152,7 +152,7 @@ end
 ---@param a chartedit.Point
 ---@return string
 function Point.__tostring(a)
-	return ("Point(%s, %s)"):format(a.interval, a.time)
+	return ("Point(%s, %s)"):format(a.vertex, a.time)
 end
 
 ---@param a chartedit.Point
@@ -160,7 +160,7 @@ end
 ---@return number?
 ---@return number?
 local function number_intervals(a, b)
-	local ia, ib = a.interval, b.interval
+	local ia, ib = a.vertex, b.vertex
 	local ta, tb = type(ia) == "table", type(ib) == "table"
 	if ta and tb then
 		return
@@ -180,7 +180,7 @@ end
 function Point.__eq(a, b)
 	local na, nb = number_intervals(a, b)
 	if na then return na == nb end
-	local ai, bi = a.interval, b.interval
+	local ai, bi = a.vertex, b.vertex
 	return ai == bi and a.time == b.time
 end
 
@@ -190,7 +190,7 @@ end
 function Point.__lt(a, b)
 	local na, nb = number_intervals(a, b)
 	if na then return na < nb end
-	local ai, bi = a.interval, b.interval
+	local ai, bi = a.vertex, b.vertex
 	return ai < bi or ai == bi and a.time < b.time
 end
 
@@ -200,7 +200,7 @@ end
 function Point.__le(a, b)
 	local na, nb = number_intervals(a, b)
 	if na then return na <= nb end
-	local ai, bi = a.interval, b.interval
+	local ai, bi = a.vertex, b.vertex
 	return ai < bi or ai == bi and a.time < b.time or ai == bi and a.time == b.time
 end
 

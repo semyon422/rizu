@@ -1,24 +1,24 @@
 local class = require("class")
 
----@class ncdk2.Interval
----@operator call: ncdk2.Interval
+---@class ncdk2.Vertex
+---@operator call: ncdk2.Vertex
 ---@field point ncdk2.IntervalPoint
----@field next ncdk2.Interval?
----@field prev ncdk2.Interval?
-local Interval = class()
+---@field next ncdk2.Vertex?
+---@field prev ncdk2.Vertex?
+local Vertex = class()
 
 ---@param offset number
-function Interval:new(offset)
+function Vertex:new(offset)
 	self.offset = offset
 end
 
 ---@return ncdk.Fraction
-function Interval:time()
+function Vertex:time()
 	return self.point.time
 end
 
 ---@return number
-function Interval:getDuration()
+function Vertex:getDuration()
 	local duration = (self.next:time() - self:time()):tonumber()
 	if duration <= 0 then
 		error("zero interval duration found: " .. tostring(self) .. ", " .. tostring(self.next))
@@ -27,20 +27,20 @@ function Interval:getDuration()
 end
 
 ---@return number
-function Interval:getBeatDuration()
+function Vertex:getBeatDuration()
 	local a, b = self:getPair()
 	return (b.offset - a.offset) / a:getDuration()
 end
 
 ---@return number
-function Interval:getTempo()
+function Vertex:getTempo()
 	return 60 / self:getBeatDuration()
 end
 
----@return ncdk2.Interval
----@return ncdk2.Interval
+---@return ncdk2.Vertex
+---@return ncdk2.Vertex
 ---@return boolean
-function Interval:getPair()
+function Vertex:getPair()
 	local a = self
 	local n = a.next
 	if n then
@@ -50,14 +50,14 @@ function Interval:getPair()
 end
 
 ---@return boolean
-function Interval:isSingle()
+function Vertex:isSingle()
 	return not self.prev and not self.next
 end
 
----@param a ncdk2.Interval
+---@param a ncdk2.Vertex
 ---@return string
-function Interval.__tostring(a)
-	return ("Interval(%s)"):format(a.offset)
+function Vertex.__tostring(a)
+	return ("Vertex(%s)"):format(a.offset)
 end
 
-return Interval
+return Vertex

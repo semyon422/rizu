@@ -135,36 +135,36 @@ function tabs.timings(self)
 
 	imgui.separator()
 
-	local interval = dtp._interval
+	local vertex = dtp._vertex
 	local intervalManager = editorModel.intervalManager
 
-	if dtp.interval then
-		imgui.text("Tempo: " .. dtp.interval:getTempo() .. " bpm")
+	if dtp.vertex then
+		imgui.text("Tempo: " .. dtp.vertex:getTempo() .. " bpm")
 	end
 
 	if not intervalManager:isGrabbed() then
-		if not interval then
+		if not vertex then
 			if imgui.button("split button", "split") then
 				intervalManager:split(dtp)
 			end
-		elseif imgui.button("grab interval button", "grab") then
-			intervalManager:grab(interval)
+		elseif imgui.button("grab vertex button", "grab") then
+			intervalManager:grab(vertex)
 		end
 	else
-		if imgui.button("drop interval button", "drop") then
+		if imgui.button("drop vertex button", "drop") then
 			intervalManager:drop()
 		end
 	end
-	if interval and not intervalManager:isGrabbed() then
+	if vertex and not intervalManager:isGrabbed() then
 		just.sameline()
-		if imgui.button("merge interval button", "merge") then
-			intervalManager:merge(interval.point)
+		if imgui.button("merge vertex button", "merge") then
+			intervalManager:merge(vertex.point)
 			editorModel.scroller:scrollSecondsDelta(0)
 		end
-		local beats = interval.beats
-		local newBeats = imgui.intButtons("update interval", beats, 1, "beats")
+		local beats = vertex.beats
+		local newBeats = imgui.intButtons("update vertex", beats, 1, "beats")
 		if beats ~= newBeats then
-			intervalManager:update(interval, newBeats)
+			intervalManager:update(vertex, newBeats)
 		end
 	end
 

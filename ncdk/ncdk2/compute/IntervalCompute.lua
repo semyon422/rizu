@@ -18,12 +18,12 @@ end
 function IntervalCompute:compute(points)
 	local measure = self:getFirstMeasure(points)
 
-	---@type ncdk2.Interval[]
+	---@type ncdk2.Vertex[]
 	local intervals = {}
 	for _, p in ipairs(points) do
-		if p._interval then
-			table.insert(intervals, p._interval)
-			p._interval.point = p
+		if p._vertex then
+			table.insert(intervals, p._vertex)
+			p._vertex.point = p
 		end
 	end
 
@@ -39,12 +39,12 @@ function IntervalCompute:compute(points)
 			measure = point._measure
 		end
 
-		local _interval = point._interval
-		if _interval then
-			interval = _interval
+		local _vertex = point._vertex
+		if _vertex then
+			interval = _vertex
 		end
 
-		point.interval = interval
+		point.vertex = interval
 		point.measure = measure
 	end
 

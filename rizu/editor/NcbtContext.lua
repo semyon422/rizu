@@ -55,11 +55,11 @@ function NcbtContext:apply(layer)
 
 	local p = layer.points:getFirstPoint()
 	visual:getPoint(p)
-	p._interval:new(self.offset, beats)
+	p._vertex:new(self.offset, beats)
 
 	local p = layer.points:getLastPoint()
 	visual:getPoint(p)
-	p._interval:new(lastOffset, 1)
+	p._vertex:new(lastOffset, 1)
 
 end
 

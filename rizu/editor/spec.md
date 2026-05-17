@@ -28,7 +28,7 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 
 ### ADR: Interval-Based Timing Only
 - **Context**: The underlying `ncdk` library supports multiple timing models. The editor currently uses only the "interval" model.
-- **Decision**: The timeline is always divided into intervals by vertices. Users split intervals (add a vertex), merge intervals (remove a vertex), or drag vertices to adjust timing. Vertex order cannot be changed by dragging.
+- **Decision**: The timeline is always divided into intervals by vertices. Users split segments (add a vertex), merge segments (remove a vertex), or drag vertices to adjust timing. Vertex order cannot be changed by dragging.
 - **Consequence**: The editor does not support absolute or other timing models. Adding a new model requires changes across `IntervalManager`, the layer system, and the `ncdk` bindings.
 
 ### ADR: Single-Layer Editing
@@ -51,13 +51,13 @@ Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates link
 Handles adding, removing, copying, pasting, flipping, and grab/drag operations on notes. All mutations are recorded through `EditorChanges` for undo/redo support.
 
 ### `IntervalManager` — Timing Vertex Manipulation
-Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual interval data.
+Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual vertex data.
 
 ### `Scroller` — Timeline Navigation
-Scroll by seconds or snap grid units. Respects interval boundaries and the current snap resolution.
+Scroll by seconds or snap grid units. Respects vertex boundaries and the current snap resolution.
 
 ### `GraphsGenerator` — Scrollbar Visualization
-Generates a note density graph and an interval-vertex graph for the scrollbar UI.
+Generates a note density graph and a vertex graph for the scrollbar UI.
 
 ### `EditorChanges` — Undo/Redo
 Wraps the generic `Changes` system with method-call commands. Records add/remove note operations with corresponding redo and undo pairs.

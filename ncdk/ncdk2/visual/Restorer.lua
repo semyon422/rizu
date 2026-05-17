@@ -27,10 +27,10 @@ function Restorer:restore(vps)
 
 		local cur_vel = dvt / dat
 
-		---@type ncdk2.Interval?
-		local interval = next_vp.point.interval
-		if interval then
-			dvt = dvt / interval:getBeatDuration()
+		---@type ncdk2.Vertex?
+		local vertex = next_vp.point.vertex
+		if vertex then
+			dvt = dvt / vertex:getBeatDuration()
 		end
 
 		if dat == 0 and dvt > 0 then

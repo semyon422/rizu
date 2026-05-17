@@ -4,8 +4,8 @@ local Point = require("ncdk2.tp.Point")
 ---@operator call: ncdk2.IntervalPoint
 ---@field _measure ncdk2.Measure?
 ---@field measure ncdk2.Measure?
----@field _interval ncdk2.Interval?
----@field interval ncdk2.Interval
+---@field _vertex ncdk2.Vertex?
+---@field vertex ncdk2.Vertex
 local IntervalPoint = Point + {}
 
 ---@param time ncdk.Fraction
@@ -15,7 +15,7 @@ end
 
 ---@return number
 function IntervalPoint:tonumber()
-	local id = self.interval
+	local id = self.vertex
 	if not id then
 		return 0
 	end
@@ -39,7 +39,7 @@ end
 
 ---@return number
 function IntervalPoint:getBeatDuration()
-	local id = self.interval
+	local id = self.vertex
 	if not id then
 		return 0
 	end

@@ -192,7 +192,7 @@ function test.interval_expand(t)
 	local vis = Visual()
 
 	local point = Point(0)
-	point.interval = {getBeatDuration = function() return 60 / 120 end}
+	point.vertex = {getBeatDuration = function() return 60 / 120 end}
 
 	local vp0 = vis:newPoint(point)
 	local vp1 = vis:newPoint(point)

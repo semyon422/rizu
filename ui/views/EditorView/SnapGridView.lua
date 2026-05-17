@@ -116,24 +116,24 @@ function SnapGridView:drawComputedGrid(field, currentTime, width)
 	local point = layer.points:interpolateAbsolute(1, currentTime - range)
 	local measure
 
-	local interval = point.interval
+	local vertex = point.vertex
 	local time = point.time
-	interval, time = point:add(Fraction((time * snap):ceil() + 1, snap) - time)
+	vertex, time = point:add(Fraction((time * snap):ceil() + 1, snap) - time)
 
 	point = layer.points:interpolateAbsolute(1, currentTime + range)
-	local endInterval = point.interval
+	local endVertex = point.vertex
 	local endTime = point.time
 	endTime = Fraction((endTime * snap):floor(), snap)
 
-	point = layer.points:interpolateFraction(interval, time)
+	point = layer.points:interpolateFraction(vertex, time)
 
-	while interval and interval < endInterval or interval == endInterval and time <= endTime do
-		point = point or layer.points:interpolateFraction(interval, time)
+	while vertex and vertex < endVertex or vertex == endVertex and time <= endTime do
+		point = point or layer.points:interpolateFraction(vertex, time)
 		if not point or not point[field] then
 			break
 		end
 
-		local drawNothing, skipInterval
+		local drawNothing, skipVertex
 
 		if measure ~= point.measure then
 			measure = point.measure
@@ -141,18 +141,18 @@ function SnapGridView:drawComputedGrid(field, currentTime, width)
 			while delta[1] < 0 do
 				delta = delta + Fraction(1, snap)
 			end
-			interval, time = point:add(delta)
-			point = layer.points:interpolateFraction(interval, time)
+			vertex, time = point:add(delta)
+			point = layer.points:interpolateFraction(vertex, time)
 			if not point or not point[field] then
 				break
 			end
 		end
 
-		if not drawNothing and interval.next then
-			local dt = interval.next.point.absoluteTime - interval.point.absoluteTime
+		if not drawNothing and vertex.next then
+			local dt = vertex.next.point.absoluteTime - vertex.point.absoluteTime
 			if dt < 0.01 then
 				drawNothing = true
-				skipInterval = true
+				skipVertex = true
 			end
 		end
 
@@ -162,11 +162,11 @@ function SnapGridView:drawComputedGrid(field, currentTime, width)
 			self:drawSnap(point, field, currentTime, width)
 		end
 
-		if skipInterval then
-			interval, time = interval.next, interval:start()
-			point = interval.point
+		if skipVertex then
+			vertex, time = vertex.next, vertex:start()
+			point = vertex.point
 		else
-			interval, time = point:add(Fraction(1, snap))
+			vertex, time = point:add(Fraction(1, snap))
 			point = nil
 		end
 	end
@@ -188,16 +188,16 @@ function SnapGridView:drawTimings(_w, _h)
 	love.graphics.setColor(1, 0.8, 0.2)
 	love.graphics.setLineWidth(4)
 	for p, vp, notes in layer:iter(editorModel:getIterRange()) do
-		local interval = p._interval
+		local vertex = p._vertex
 		local measure = p._measure
 
-		if interval then
+		if vertex then
 			love.graphics.setColor(1, 0.8, 0.2)
 		elseif measure then
 			love.graphics.setColor(snaps[editorModel:getSnap(p:getBeatModulo())] or colors.white)
 		end
 
-		if interval or measure then
+		if vertex or measure then
 			local y = noteSkin:getTimePosition((editorTimePoint.absoluteTime - p.absoluteTime) * editor.speed)
 			love.graphics.line(0, y, _w, y)
 		end

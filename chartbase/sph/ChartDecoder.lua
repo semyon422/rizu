@@ -6,7 +6,7 @@ local Note = require("notechart.Note")
 local Velocity = require("ncdk2.visual.Velocity")
 local Expand = require("ncdk2.visual.Expand")
 local Measure = require("ncdk2.to.Measure")
-local Interval = require("ncdk2.to.Interval")
+local Vertex = require("ncdk2.to.Interval")
 local IntervalLayer = require("ncdk2.layers.IntervalLayer")
 local InputMode = require("ncdk.InputMode")
 local Fraction = require("ncdk.Fraction")
@@ -108,7 +108,7 @@ function ChartDecoder:processLine(line)
 	local visualPoint = visual:newPoint(point)
 
 	if line.offset then
-		point._interval = Interval(line.offset)
+		point._vertex = Vertex(line.offset)
 	end
 
 	visualPoint.comment = line.comment
@@ -197,7 +197,7 @@ function ChartDecoder:addAudio()
 	layer.visuals.main = visual
 
 	local point = layer:getPoint(Fraction(0))
-	point._interval = Interval(0)
+	point._vertex = Vertex(0)
 	local vp = visual:getPoint(point)
 
 	local note = Note(vp, "audio", "sample")

@@ -1,6 +1,6 @@
 local class = require("class")
 local Points = require("chartedit.Points")
-local Intervals = require("chartedit.Intervals")
+local Vertices = require("chartedit.Intervals")
 
 ---@alias chartedit.PointNotes {[ncdk2.Column]: ncdk2.Note}
 
@@ -12,7 +12,7 @@ local Layer = class()
 function Layer:new()
 	self.visuals = {}
 	self.points = Points(function(p) self:removeAllPointsVisual(p) end)
-	self.intervals = Intervals(self.points)
+	self.vertices = Vertices(self.points)
 end
 
 ---@param p chartedit.Point

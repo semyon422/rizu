@@ -201,8 +201,8 @@ function ChartEncoder:encodeSph(chart, chartmeta)
 					end
 
 					if not same then
-						if t._interval then
-							line.offset = t._interval.offset
+						if t._vertex then
+							line.offset = t._vertex.offset
 						end
 						if t._measure then
 							line.measure = t._measure.offset

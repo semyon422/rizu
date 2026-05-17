@@ -24,7 +24,7 @@ return function(self, w, h)
 	local value = (editorTimePoint.absoluteTime - firstTime) / fullLength
 
 	local densityPoints = editorModel.graphsGenerator.densityGraph
-	local intervalPoints = editorModel.graphsGenerator.intervalDatasGraph
+	local vertexPoints = editorModel.graphsGenerator.vertexDatasGraph
 
 	local over = just.is_over(w, h)
 	local pos = getPosition(w, h)
@@ -40,9 +40,9 @@ return function(self, w, h)
 	local a, b = h / 2, w - h / 2
 
 	love.graphics.setColor(1, 1, 0.1, 0.7)
-	for i = 0, intervalPoints.n do
-		if intervalPoints[i] then
-			local x = math_util.map(i, 0, intervalPoints.n, a, b)
+	for i = 0, vertexPoints.n do
+		if vertexPoints[i] then
+			local x = math_util.map(i, 0, vertexPoints.n, a, b)
 			love.graphics.line(x, pad, x, _h + pad)
 		end
 	end

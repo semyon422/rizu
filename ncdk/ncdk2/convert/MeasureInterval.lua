@@ -1,6 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
-local Interval = require("ncdk2.to.Interval")
+local Vertex = require("ncdk2.to.Interval")
 local IntervalPoint = require("ncdk2.tp.IntervalPoint")
 local IntervalLayer = require("ncdk2.layers.IntervalLayer")
 local Restorer = require("ncdk2.visual.Restorer")
@@ -46,7 +46,7 @@ function MeasureInterval:convertPoints(points)
 		p:new(beatTime)
 		points_map[tostring(p)] = p
 		if _tempo or _stop or prev_stop then
-			p._interval = Interval(absoluteTime)
+			p._vertex = Vertex(absoluteTime)
 			prev_stop = _stop ~= nil
 		end
 		last_point = p
@@ -61,8 +61,8 @@ function MeasureInterval:convertPoints(points)
 		absoluteTime = absoluteTime + _tempo:getBeatDuration()
 	end
 
-	if not last_point._interval then
-		last_point._interval = Interval(absoluteTime)
+	if not last_point._vertex then
+		last_point._vertex = Vertex(absoluteTime)
 	end
 
 	return points_map
