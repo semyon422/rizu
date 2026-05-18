@@ -23,7 +23,6 @@ function test.loads_normalized_valid_specs_for_all_targets(t)
 		local spec = DependencySpec.load(target)
 		t:eq(spec.target, target)
 		t:assert(#spec.steps > 0)
-		t:assert(#spec.outputs > 0)
 
 		for _, step in ipairs(spec.steps) do
 			t:assert(type(step.outputs) == "table")

@@ -45,9 +45,6 @@ function SpecValidator.validate(spec)
 	if type(spec.steps) ~= "table" then
 		error("Spec is missing steps table")
 	end
-	if type(spec.outputs) ~= "table" then
-		error("Spec is missing outputs table")
-	end
 	---@type {[string]: true}
 	local ids = {}
 	for _, step in ipairs(spec.steps) do

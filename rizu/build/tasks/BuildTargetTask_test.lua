@@ -68,10 +68,9 @@ function test.build_target_status_and_uptodate(t)
 		for _, path in ipairs(step.inputs or {}) do
 			createOutput(state.fs, BuildEnv.interpolate(env, path), 1)
 		end
-	end
-
-	for _, output in ipairs(spec.outputs) do
-		createOutput(state.fs, BuildEnv.interpolate(env, output), 2)
+		for _, path in ipairs(step.outputs or {}) do
+			createOutput(state.fs, BuildEnv.interpolate(env, path), 2)
+		end
 	end
 
 	t:eq(task:upToDate(ctx), true)

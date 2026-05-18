@@ -54,7 +54,6 @@
 ---@class rizu.build.deps.Spec
 ---@field target rizu.build.Target?
 ---@field steps rizu.build.deps.Step[]
----@field outputs string[]
 
 ---@class rizu.build.deps.Env
 ---@field ctx rizu.build.Context
