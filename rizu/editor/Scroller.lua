@@ -10,7 +10,7 @@ function Scroller:_scrollPoint(point)
 	if not point then
 		return
 	end
-	point:clone(self.editorModel.point)
+	point:clone(self.editorModel.session.point)
 end
 
 ---@param point ncdk2.Point
@@ -30,7 +30,7 @@ end
 
 ---@param delta number
 function Scroller:scrollSecondsDelta(delta)
-	self:scrollSeconds(self.editorModel.point.absoluteTime + delta)
+	self:scrollSeconds(self.editorModel.session.point.absoluteTime + delta)
 end
 
 ---@param delta number
@@ -40,7 +40,7 @@ function Scroller:scrollSnaps(delta)
 	end
 	self:scrollPoint(
 		self.editorModel.layer.points:interpolateFraction(
-			self:getNextSnapIntervalTime(self.editorModel.point, delta)
+			self:getNextSnapIntervalTime(self.editorModel.session.point, delta)
 		)
 	)
 end

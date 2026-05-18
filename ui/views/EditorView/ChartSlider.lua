@@ -17,7 +17,7 @@ return function(self, w, h)
 	love.graphics.setColor(1, 1, 1, 1)
 
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 
 	local firstTime, lastTime = editorModel:getFirstLastTime()
 	local fullLength = lastTime - firstTime
@@ -75,10 +75,10 @@ return function(self, w, h)
 		end
 		if editorModel.timer.is_playing then
 			editorModel:pause()
-			editorModel.dragging = true
+			editorModel.session.dragging = true
 		end
-	elseif editorModel.dragging then
+	elseif editorModel.session.dragging then
 		editorModel:play()
-		editorModel.dragging = false
+		editorModel.session.dragging = false
 	end
 end

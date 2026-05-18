@@ -12,6 +12,8 @@ local EditorChanges = require("rizu.editor.EditorChanges")
 local NoteManager = require("rizu.editor.NoteManager")
 local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
+local BmsToolsContext = require("rizu.editor.BmsToolsContext")
+local EditorSession = require("rizu.editor.EditorSession")
 local pattern_analyzer = require("libchart.pattern_analyzer")
 local Point = require("chartedit.Point")
 local Metadata = require("sph.Metadata")
@@ -48,9 +50,8 @@ function EditorModel:new(configModel, resourceModel)
 	for _, v in pairs(self) do
 		v.editorModel = self
 	end
-	self.state = self.states[1]
-
-	self.bms_tools = {}
+	self.bmsToolsContext = BmsToolsContext()
+	self.session = EditorSession(self)
 end
 
 function EditorModel:load()
@@ -61,17 +62,7 @@ function EditorModel:load()
 	self.layer, self.notes = self.noteChartLoader:load()
 	self.visual = self.layer.visuals.main or self.layer.visuals[""]
 
-	self.patterns_analyzed = pattern_analyzer.format(pattern_analyzer.analyze(self.chart))
-
-	self.changes = Changes()
-	-- ld:syncChanges(self.changes:get())
-
-	self.graphsGenerator:load()
-
-	self.resourcesLoaded = false
-
-	self.point = Point()
-	self:getDtpAbsolute(0):clone(self.point)
+	self.session:load(self)
 
 	self.timer:pause()
 	self.timer:setTime(editor.time)
@@ -85,11 +76,7 @@ function EditorModel:load()
 
 	self.scroller:scrollSeconds(self.timer:getTime())
 
-	self.bms_tools = {
-		offset = self.layer.points:getFirstPoint().vertex.offset,
-		tempo = self.layer.points:getFirstPoint().vertex:getTempo(),
-		beat_offset = 0,
-	}
+	self.bmsToolsContext:initFromLayer(self.layer)
 
 	self.metadata:new()
 	self.metadata:fromChartmeta(self.chartmeta)
@@ -103,22 +90,7 @@ function EditorModel:applyNcbt()
 	self.ncbtContext:apply(self.layer)
 end
 
-function EditorModel:resetOffsetTempo()
-	local offset = self.bms_tools.offset
-	local tempo = self.bms_tools.tempo
 
-	local layer = self.layer
-
-	local p1 = layer.points:getFirstPoint()
-	local p2 = layer.points:getLastPoint()
-
-	if not p1 or not p2 then
-		return
-	end
-
-	p1.vertex.offset = offset
-	p2.vertex.offset = offset + p2:sub(p1):tonumber() * 60 / tempo
-end
 
 ---@return table
 function EditorModel:getSettings()
@@ -153,7 +125,7 @@ end
 ---@return number
 function EditorModel:getIterRange()
 	local editor = self:getSettings()
-	local absoluteTime = self.point.absoluteTime
+	local absoluteTime = self.session.point.absoluteTime
 	local delta = 1 / editor.speed
 	return absoluteTime - delta, absoluteTime + delta
 end
@@ -247,9 +219,9 @@ end
 function EditorModel:getMouseTime(dy)
 	dy = dy or 0
 	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
-	local noteSkin = self.noteSkin
+	local noteSkin = self.session.noteSkin
 	local editor = self:getSettings()
-	return self.point.absoluteTime - noteSkin:getInverseTimePosition(my + dy) / editor.speed
+	return self.session.point.absoluteTime - noteSkin:getInverseTimePosition(my + dy) / editor.speed
 end
 
 ---@param note rizu.editor.EditorNote
@@ -260,20 +232,20 @@ end
 function EditorModel:selectStart()
 	self.visualEngine:selectStart()
 	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
-	self.selectRect = {mx, my, mx, my}
-	self.selectStartTime = self:getMouseTime()
+	self.session.selectRect = {mx, my, mx, my}
+	self.session.selectStartTime = self:getMouseTime()
 	just.select(mx, my, mx, my)
 end
 
 function EditorModel:selectEnd()
 	self.visualEngine:selectEnd()
-	self.selectRect = nil
+	self.session.selectRect = nil
 	just.unselect()
 end
 
 function EditorModel:update()
 	local editor = self:getSettings()
-	local noteSkin = self.noteSkin
+	local noteSkin = self.session.noteSkin
 
 	local time = self.timer:getTime()
 	editor.time = time
@@ -281,12 +253,12 @@ function EditorModel:update()
 	self.noteManager:update()
 	self.metronome:update()
 
-	if self.selectRect then
+	if self.session.selectRect then
 		local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
-		self.selectRect[2] = noteSkin:getTimePosition((time - self.selectStartTime) * editor.speed)
-		self.selectRect[3] = mx
-		self.selectRect[4] = my
-		just.select(self.selectRect[1], self.selectRect[2], mx, my)
+		self.session.selectRect[2] = noteSkin:getTimePosition((time - self.session.selectStartTime) * editor.speed)
+		self.session.selectRect[3] = mx
+		self.session.selectRect[4] = my
+		just.select(self.session.selectRect[1], self.session.selectRect[2], mx, my)
 	end
 
 	local dtp = self:getDtpAbsolute(time)
@@ -295,7 +267,7 @@ function EditorModel:update()
 	end
 	self.audio_engine:update()
 
-	dtp:clone(self.point)
+	dtp:clone(self.session.point)
 
 	self.visualEngine:update()
 end

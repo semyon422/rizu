@@ -178,7 +178,7 @@ end
 ---@param _h number
 function SnapGridView:drawTimings(_w, _h)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -209,7 +209,7 @@ end
 ---@param _h number
 function SnapGridView:drawComments(_w, _h)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -252,7 +252,7 @@ end
 ---@param self table
 local function drawMouse(self)
 	local editorModel = self.game.editorModel
-	local dt = editorModel:getMouseTime() - editorModel.point.absoluteTime
+	local dt = editorModel:getMouseTime() - editorModel.session.point.absoluteTime
 
 	love.graphics.push()
 	local w, h = Layout:move("base")
@@ -289,7 +289,7 @@ function SnapGridView:draw()
 	local lineHeight = 55
 	imgui.setSize(w, h, 200, lineHeight)
 
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 
 	love.graphics.replaceTransform(gfx_util.transform(self.transform))
 	love.graphics.translate(noteSkin.baseOffset, 0)
@@ -326,11 +326,11 @@ function SnapGridView:draw()
 		editorModel.scroller:scrollSecondsDelta((a - b) / editor.speed)
 		if editorModel.timer.is_playing then
 			editorModel:pause()
-			self.dragging = true
+			editorModel.session.dragging = true
 		end
-	elseif self.dragging then
+	elseif editorModel.session.dragging then
 		editorModel:play()
-		self.dragging = false
+		editorModel.session.dragging = false
 	end
 	prevMouseY = _my
 

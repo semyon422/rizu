@@ -5,7 +5,7 @@ local ShortEditorNote = require("rizu.editor.ShortEditorNote")
 local LongEditorNote = require("rizu.editor.LongEditorNote")
 local Note = require("ncdk2.notes.Note")
 
----@class rizu.editor.EditorNoteManager
+---@class rizu.editor.NoteManager
 ---@operator call: rizu.editor.EditorNoteManager
 local NoteManager = class()
 
@@ -16,13 +16,13 @@ end
 ---@return number
 function NoteManager:getColumnOver()
 	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
-	local noteSkin = self.editorModel.noteSkin
+	local noteSkin = self.editorModel.session.noteSkin
 	return noteSkin:getInverseColumnPosition(mx)
 end
 
 function NoteManager:update()
 	local editor = self.editorModel:getSettings()
-	local noteSkin = self.editorModel.noteSkin
+	local noteSkin = self.editorModel.session.noteSkin
 
 	for _, note in ipairs(self.grabbedNotes) do
 		note:update()
@@ -133,7 +133,7 @@ function NoteManager:pasteNotes()
 	end
 
 	self.editorModel.editorChanges:reset()
-	local point = self.editorModel.point
+	local point = self.editorModel.session.point
 	for _, note in ipairs(copiedNotes) do
 		self:_addNotes(note:paste(point))
 	end
@@ -143,7 +143,7 @@ end
 ---@param part string
 ---@param mouseTime number
 function NoteManager:grabNotes(part, mouseTime)
-	local noteSkin = self.editorModel.noteSkin
+	local noteSkin = self.editorModel.session.noteSkin
 	local editor = self.editorModel:getSettings()
 
 	self.grabbedNotes = {}
@@ -266,7 +266,7 @@ end
 
 function NoteManager:flipNotes()
 	local editorModel = self.editorModel
-	local noteSkin = self.editorModel.noteSkin
+	local noteSkin = self.editorModel.session.noteSkin
 
 	editorModel.editorChanges:reset()
 

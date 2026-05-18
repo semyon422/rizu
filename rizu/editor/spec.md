@@ -39,10 +39,21 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 ## Core Components
 
 ### `EditorModel` — Central State
-Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state.
+Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state. Delegates per-session mutable state to `EditorSession`.
+
+### `EditorSession` — Per-Session Mutable State
+Holds state that changes during an active editing session:
+- `point`: current timeline position
+- `noteSkin`: loaded note skin reference
+- `selectRect`, `selectStartTime`: rectangle selection state
+- `state`: current overlay tab
+- `patterns_analyzed`: pattern analysis results
+- `dragging`: UI drag state
+
+Separated from `EditorModel` so that session-scoped data does not leak into the core model.
 
 ### `EditorController` — Load/Save/Export
-Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart, BMS template, iBMSC clipboard). Receives events and forwards them to the model.
+Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart). Delegates BMS-specific exports to dedicated modules in `exports/`.
 
 ### `VisualEngine` — Note Rendering And Selection
 Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates linked notes in the visible time range, creates or reuses note objects, and tracks selection state. Uses `EditorNoteFactory` to produce the correct note subclass.
@@ -71,6 +82,9 @@ Provides a metronome click synced to the current timing data.
 ### `NcbtContext` — Tempo And Offset Detection
 Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Results can be applied to the chart's interval data.
 
+### `BmsToolsContext` — BMS State Container
+Holds BMS-specific editing state (`offset`, `tempo`, `beat_offset`) and provides `resetOffsetTempo()` to apply those values to the chart's layer vertices. Separated from `EditorModel` to isolate BMS-specific concerns.
+
 ## Note Types
 
 | Note type | Editor class | Visual type |
@@ -91,10 +105,16 @@ Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Result
 
 ## BMS-Specific Features (Experimental)
 
-These features are experimental and planned for a full redesign:
-- **Keysound slicer**: Renders the full audio waveform, slices samples at note boundaries, and writes `.wav` files alongside the chart.
-- **iBMSC Clipboard Data export**: Maps editor notes to iBMSC clipboard format columns and writes the output file.
-- **BMS template export**: Generates a `.bme` template from stem charts and their associated hitsounds.
+These features are experimental and planned for a full redesign. Their logic is isolated in `rizu/editor/exports/`:
+
+### `exports/BmsKeysoundSlicer`
+Renders the full audio waveform, slices samples at note boundaries, and writes `.wav` files alongside the chart.
+
+### `exports/BmsTemplateExporter`
+Generates a `.bme` template from stem charts and their associated hitsounds. Supports 5K, 7K, and 10K column layouts.
+
+### `exports/UbmscExporter`
+Maps editor notes to iBMSC clipboard format columns and writes the output file.
 
 ## UI Layer (`ui/views/EditorView/`)
 

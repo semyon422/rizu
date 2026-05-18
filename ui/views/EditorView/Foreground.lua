@@ -62,7 +62,7 @@ local function PatternsAnalyzed(self)
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.setFont(spherefonts.get("Noto Sans Mono", 22))
 
-	gfx_util.printFrame(self.game.editorModel.patterns_analyzed, 0, 0, w, h, "left", "top")
+	gfx_util.printFrame(self.game.editorModel.session.patterns_analyzed, 0, 0, w, h, "left", "top")
 end
 
 return function(self)
