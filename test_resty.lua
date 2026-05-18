@@ -47,8 +47,24 @@ tio.blacklist = {
 
 local testing = Testing(tio)
 
+-- Parse flags: --json enables structured JSON output
+local i = 1
+local json_mode = false
+while i <= #arg do
+	if arg[i] == "--json" then
+		json_mode = true
+		table.remove(arg, i)
+	else
+		i = i + 1
+	end
+end
+
 local file_pattern, method_pattern = arg[1], arg[2]
-testing:test(file_pattern, method_pattern)
+if json_mode then
+	testing:test_json(file_pattern, method_pattern)
+else
+	testing:test(file_pattern, method_pattern)
+end
 
 if luacov_runner then
 	debug.sethook(nil)
