@@ -1,3 +1,6 @@
+local BuildConfig = require("rizu.build.BuildConfig")
+
+---@class rizu.build.deps.spec.source.PrefixSpec
 local PrefixSpec = {}
 
 ---@param target rizu.build.Target
@@ -6,7 +9,7 @@ local PrefixSpec = {}
 function PrefixSpec.add(target, spec, prefix)
 	local actions = {}
 	if target == "macos" then
-		table.insert(actions, {type = "assert_exists", path = "build/deps/osxcross/target/bin"})
+		table.insert(actions, {type = "assert_exists", path = BuildConfig.getOsxcrossToolchainBin()})
 	end
 	table.insert(actions, {type = "ensure_dir", path = "${deps_dir}/local"})
 	table.insert(actions, {type = "ensure_dir", path = prefix})

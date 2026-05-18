@@ -1,3 +1,4 @@
+local BuildConfig = require("rizu.build.BuildConfig")
 local Common = require("rizu.build.deps.spec.CommonSpec")
 local FFTWSourceSpec = require("rizu.build.deps.spec.source.FFTWSourceSpec")
 local IconvSourceSpec = require("rizu.build.deps.spec.source.IconvSourceSpec")
@@ -19,8 +20,8 @@ local Windows = {}
 function Windows.build()
 	local target = "windows"
 	local spec = Common.buildShared(target)
-	local prefix = "${deps_dir}/local/windows"
-	local prefix_abs = "${root_abs}/build/deps/local/windows"
+	local prefix = "${deps_dir}/" .. BuildConfig.getLocalPrefixDir("windows")
+	local prefix_abs = "${root_abs}/" .. BuildConfig.ROOT_DIRS.deps .. "/" .. BuildConfig.getLocalPrefixDir("windows")
 
 	PrefixSpec.add(target, spec, prefix)
 	ZlibSourceSpec.add(target, spec, prefix, prefix_abs)

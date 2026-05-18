@@ -40,15 +40,16 @@ function LuamidiModuleSpec.add(target, spec)
 		libs = {"asound", "pthread"}
 	end
 
+	local deps_dir = BuildConfig.getLuamidiDepsDir()
 	ModuleUtil.addStep(spec, {
 		id = compile_id,
 		kind = "source-build",
 		status_label = "Luamidi Artifact",
 		outputs = {artifact},
 		inputs = {
-			"build/deps/luamidi/src/luamidi.cpp",
-			"build/deps/luamidi/rtmidi/RtMidi.cpp",
-			"build/deps/luamidi/rtmidi/RtMidi.h",
+			deps_dir .. "/src/luamidi.cpp",
+			deps_dir .. "/rtmidi/RtMidi.cpp",
+			deps_dir .. "/rtmidi/RtMidi.h",
 			"tree/include/luajit-2.1/lua.h",
 		},
 		actions = {
@@ -57,8 +58,8 @@ function LuamidiModuleSpec.add(target, spec)
 				compiler = compiler,
 				env = env,
 				cflags = cflags,
-				includes = {"tree/include/luajit-2.1", "build/deps/luamidi/rtmidi"},
-				sources = {"build/deps/luamidi/src/luamidi.cpp", "build/deps/luamidi/rtmidi/RtMidi.cpp"},
+				includes = {"tree/include/luajit-2.1", deps_dir .. "/rtmidi"},
+				sources = {deps_dir .. "/src/luamidi.cpp", deps_dir .. "/rtmidi/RtMidi.cpp"},
 				output = artifact,
 				lib_dirs = lib_dirs,
 				libs = libs,

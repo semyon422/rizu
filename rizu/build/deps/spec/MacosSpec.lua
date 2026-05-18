@@ -1,3 +1,4 @@
+local BuildConfig = require("rizu.build.BuildConfig")
 local Common = require("rizu.build.deps.spec.CommonSpec")
 local FFTWSourceSpec = require("rizu.build.deps.spec.source.FFTWSourceSpec")
 local FFmpegSourceSpec = require("rizu.build.deps.spec.source.FFmpegSourceSpec")
@@ -21,8 +22,8 @@ local Macos = {}
 function Macos.build()
 	local target = "macos"
 	local spec = Common.buildShared(target)
-	local prefix = "${deps_dir}/local/macos"
-	local prefix_abs = "${root_abs}/build/deps/local/macos"
+	local prefix = "${deps_dir}/" .. BuildConfig.getLocalPrefixDir("macos")
+	local prefix_abs = "${root_abs}/" .. BuildConfig.ROOT_DIRS.deps .. "/" .. BuildConfig.getLocalPrefixDir("macos")
 	local tc_bin = MacOSCross.TOOLCHAIN_BIN
 
 	PrefixSpec.add(target, spec, prefix)

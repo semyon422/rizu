@@ -28,19 +28,20 @@ function MinacalcModuleSpec.add(target, spec)
 		table.insert(cflags, "dynamic_lookup")
 	end
 
+	local deps_dir = BuildConfig.getMinacalcDepsDir()
 	ModuleUtil.addStep(spec, {
 		id = compile_id,
 		kind = "source-build",
 		status_label = "Minacalc Artifact",
 		outputs = {artifact},
-		inputs = {"build/deps/minacalc/API.cpp", "build/deps/minacalc/MinaCalc/MinaCalc.cpp"},
+		inputs = {deps_dir .. "/API.cpp", deps_dir .. "/MinaCalc/MinaCalc.cpp"},
 		actions = {
 			{
 				type = "compile_cpp",
 				compiler = compiler,
 				env = env,
 				cflags = cflags,
-				sources = {"build/deps/minacalc/MinaCalc/MinaCalc.cpp", "build/deps/minacalc/API.cpp"},
+				sources = {deps_dir .. "/MinaCalc/MinaCalc.cpp", deps_dir .. "/API.cpp"},
 				output = artifact,
 				libs = {"m"},
 			},

@@ -1,3 +1,4 @@
+local BuildConfig = require("rizu.build.BuildConfig")
 local Common = require("rizu.build.deps.spec.CommonSpec")
 local FFTWSourceSpec = require("rizu.build.deps.spec.source.FFTWSourceSpec")
 local IconvSourceSpec = require("rizu.build.deps.spec.source.IconvSourceSpec")
@@ -19,8 +20,8 @@ local Linux = {}
 function Linux.build()
 	local target = "linux"
 	local spec = Common.buildShared(target)
-	local prefix = "${deps_dir}/local/linux"
-	local prefix_abs = "${root_abs}/build/deps/local/linux"
+	local prefix = "${deps_dir}/" .. BuildConfig.getLocalPrefixDir("linux")
+	local prefix_abs = "${root_abs}/" .. BuildConfig.ROOT_DIRS.deps .. "/" .. BuildConfig.getLocalPrefixDir("linux")
 
 	PrefixSpec.add(target, spec, prefix)
 	ZlibSourceSpec.add(target, spec, prefix, prefix_abs)
