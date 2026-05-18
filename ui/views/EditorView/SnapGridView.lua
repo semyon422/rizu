@@ -324,7 +324,7 @@ function SnapGridView:draw()
 		local a = noteSkin:getInverseTimePosition(_my)
 		local b = noteSkin:getInverseTimePosition(prevMouseY)
 		editorModel.scroller:scrollSecondsDelta((a - b) / editor.speed)
-		if editorModel.timer.isPlaying then
+		if editorModel.timer.is_playing then
 			editorModel:pause()
 			self.dragging = true
 		end
@@ -351,7 +351,7 @@ function SnapGridView:draw()
 		elseif lctrl then
 			editorModel:setLogSpeed(editorModel:getLogSpeed() + scroll)
 		else
-			if editorModel.timer.isPlaying and scroll < 0 then
+			if editorModel.timer.is_playing and scroll < 0 then
 				editorModel.scroller:scrollSnaps(scroll)
 			end
 			editorModel.scroller:scrollSnaps(scroll)

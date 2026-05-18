@@ -73,7 +73,7 @@ return function(self, w, h)
 		if new_value then
 			editorModel.scroller:scrollSeconds(new_value * fullLength + firstTime)
 		end
-		if editorModel.timer.isPlaying then
+		if editorModel.timer.is_playing then
 			editorModel:pause()
 			editorModel.dragging = true
 		end
