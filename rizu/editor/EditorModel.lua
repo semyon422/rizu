@@ -145,7 +145,7 @@ end
 
 ---@param time number
 function EditorModel:setTime(time)
-	self.timer:setTime(time)
+	self.timer:setTime(time, true)
 	self.audio_engine:setPosition(time)
 end
 
