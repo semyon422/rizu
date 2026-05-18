@@ -3,6 +3,10 @@
 ---| "windows"
 ---| "macos"
 
+---@alias rizu.build.LuaJITTarget
+---| "linux"
+---| "windows"
+
 ---@alias rizu.build.deps.StepKind
 ---| "archive"
 ---| "git"

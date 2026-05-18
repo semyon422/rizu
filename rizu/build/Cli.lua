@@ -12,13 +12,14 @@ for _, target in ipairs(BuildConfig.TARGETS) do
 	target_set[target] = true
 end
 
+local target_help = table.concat(BuildConfig.TARGETS, "|")
+
 ---@type {[string]: true}
 local luajit_target_set = {}
 for _, target in ipairs(TaskRegistry.LUAJIT_TARGETS) do
 	luajit_target_set[target] = true
 end
 
-local target_help = table.concat(BuildConfig.TARGETS, "|")
 local luajit_target_help = table.concat(TaskRegistry.LUAJIT_TARGETS, "|")
 
 ---@param message string
@@ -39,12 +40,13 @@ local function getTargetArg(target, command_name)
 end
 
 ---@param target string?
----@return "linux"|"windows"
+---@return rizu.build.LuaJITTarget
 local function getLuaJITTargetArg(target)
 	local t = target or "linux"
 	if not luajit_target_set[t] then
 		exitWithError(string.format("Unsupported target for luajit: %s (expected %s)", tostring(t), luajit_target_help))
 	end
+	---@cast t rizu.build.LuaJITTarget
 	return t
 end
 
@@ -93,6 +95,45 @@ local function clean(ctx, scope)
 	print("Cleaned: " .. scope)
 end
 
+---@param rows rizu.build.StatusRow[]
+local function printStatusRows(rows)
+	for _, res in ipairs(rows) do
+		print(string.format("  %-30s [%s]", res.name, res.value))
+	end
+end
+
+---@param runner rizu.build.TaskRunner
+---@param targets rizu.build.Target[]
+---@return string[]
+local function collectBuildTargetDeps(runner, targets)
+	---@type {[string]: true}
+	local seen = {}
+	---@type string[]
+	local deps = {}
+	for _, t in ipairs(targets) do
+		local build_task = runner.tasks["build_target_" .. t]
+		if build_task and build_task.deps then
+			for _, dep_name in ipairs(build_task.deps) do
+				if not seen[dep_name] then
+					seen[dep_name] = true
+					table.insert(deps, dep_name)
+				end
+			end
+		end
+	end
+	return deps
+end
+
+---@param ctx rizu.build.Context
+---@param runner rizu.build.TaskRunner
+---@param task_name string
+local function printTaskStatus(ctx, runner, task_name)
+	local task = runner.tasks[task_name]
+	if task and task.getStatus then
+		printStatusRows(task:getStatus(ctx))
+	end
+end
+
 ---@param ctx rizu.build.Context
 ---@param runner rizu.build.TaskRunner
 ---@param target_arg string?
@@ -100,22 +141,15 @@ local function printStatus(ctx, runner, target_arg)
 	local target = getTargetOrAllArg(target_arg, "linux")
 	print("=== Rizu Build Status ===")
 	local targets = target == "all" and BuildConfig.TARGETS or {target}
+	for _, dep_name in ipairs(collectBuildTargetDeps(runner, targets)) do
+		printTaskStatus(ctx, runner, dep_name)
+	end
 	for _, t in ipairs(targets) do
-		local task = runner.tasks["build_target_" .. t]
-		if task and task.getStatus then
-			for _, res in ipairs(task:getStatus(ctx)) do
-				print(string.format("  %-30s [%s]", res.name, res.value))
-			end
-		end
+		printTaskStatus(ctx, runner, "build_target_" .. t)
 	end
 	local global_tasks = {"assemble_repo", "zip_repo", "package_macos"}
 	for _, task_name in ipairs(global_tasks) do
-		local task = runner.tasks[task_name]
-		if task and task.getStatus then
-			for _, res in ipairs(task:getStatus(ctx)) do
-				print(string.format("  %-30s [%s]", res.name, res.value))
-			end
-		end
+		printTaskStatus(ctx, runner, task_name)
 	end
 	print("=========================")
 end
@@ -150,7 +184,7 @@ local function createCommands(ctx, runner, target_arg, scope_arg)
 			end,
 		},
 		luajit = {
-			help = "Build/install luajit locally: luajit <" .. luajit_target_help .. ">",
+			help = "Build/install LuaJIT SDK: luajit <" .. luajit_target_help .. ">",
 			run = function()
 				runner:run("setup_luajit_" .. getLuaJITTargetArg(target_arg))
 			end,

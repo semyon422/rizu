@@ -57,6 +57,13 @@ local function createOutput(fs, path, time)
 end
 
 ---@param t testing.T
+function test.build_target_deps(t)
+	t:tdeq(BuildTargetTask("linux").deps, {"setup_luajit_linux"})
+	t:tdeq(BuildTargetTask("windows").deps, {"setup_luajit_linux", "setup_luajit_windows"})
+	t:tdeq(BuildTargetTask("macos").deps, {"setup_luajit_linux", "setup_macos_toolchain"})
+end
+
+---@param t testing.T
 function test.build_target_status_and_uptodate(t)
 	local ctx, state = makeCtx()
 	local task = BuildTargetTask("linux")
