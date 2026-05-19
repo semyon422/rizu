@@ -1,5 +1,5 @@
 local Layer = require("ui.Layer")
-local composition = require("ui.composition")
+local S = require("ui.composition.Strategies")
 local PingPongBackground = require("yi.views.PingPongBackground")
 local CodeDecoration = require("yi.views.CodeDecoration")
 
@@ -13,10 +13,10 @@ function SkyBackground:new(yi)
 	local image = love.graphics.newImage("resources/yi/sky_background.jpg")
 	self.background = PingPongBackground(image)
 	self.code = CodeDecoration(yi.resources)
-	self.composition_root = composition.Stack({
+	self.composition:setRoot(S.Stack({
 		self.background,
 		self.code,
-	})
+	}))
 end
 
 return SkyBackground

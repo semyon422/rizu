@@ -88,6 +88,11 @@ function Painter.drawSprite(quad, x, y, width, height, r)
 	return out
 end
 
+function Painter.snapToPixel()
+	local screen_x, screen_y = lg.transformPoint(0, 0)
+	lg.translate(math.floor(screen_x + 0.5) - screen_x, math.floor(screen_y + 0.5) - screen_y)
+end
+
 ---@param drawable love.Drawable | love.Image
 ---@param x number?
 ---@param y number?

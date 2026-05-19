@@ -26,18 +26,13 @@ local wave_shader_code = [[
 		float dist_to_top = top_wave - uv.y;
 		float dist_to_bottom = uv.y - bottom_wave;
 		float inside = min(dist_to_top, dist_to_bottom);
-		float alpha = smoothstep(0.0, 0.02, inside) * 0.8;
+		float alpha = smoothstep(0.0, 0.005, inside) * 0.8;
 		return vec4(vec3(1.0), alpha) * color;
 	}
 ]]
 
----@param resources yi.Resources
-function MainMenuWave:new(resources)
+function MainMenuWave:new()
 	View.new(self)
-	self.resources = assert(resources)
-	self.width_percent = 1
-	self.height = 600
-	self.pivot = {0.5, 0.5}
 	self.wave_speed = 0.18
 	self.wave_amplitude = 0.025
 	self.wave_frequency = 2.1
@@ -61,7 +56,7 @@ function MainMenuWave:draw()
 	shader:send("time", love.timer.getTime())
 	lg.setShader(shader)
 	lg.setColor(color[1], color[2], color[3], self.alpha)
-	lg.draw(pixel, 0, 0, 0, self.width, self.height)
+	lg.draw(pixel, 0, 0, 0, self.box.width, self.box.height)
 	lg.setShader()
 	lg.pop()
 end

@@ -1,6 +1,6 @@
 local Screen = require("yi.Screen")
-local composition = require("ui.composition")
 local UIFactory = require("yi.UIFactory")
+local S = require("ui.composition.Strategies")
 local MainMenuWave = require("yi.views.MainMenuWave")
 
 ---@class yi.MainMenu : yi.Screen
@@ -13,26 +13,31 @@ function MainMenu:new(yi)
 	self.yi = yi
 
 	local ui = UIFactory(yi.resources)
-	self.composition_root = composition.Stack({
-		MainMenuWave(yi.resources),
-		composition.Vertical({
-			pivot = {0.5, 0.5},
-			align = {0, 0.5},
 
-			ui:Image({
-				image = "rizu",
-				scale_x = 0.7,
-				scale_y = 0.7,
-				pivot = {0.5, 0.5},
+	self.composition:setRoot(S.Stack({
+		MainMenuWave(),
+
+		S.Anchor({
+			pivot = {0.5, 0.5},
+
+			S.Column({
+				align = 0.5,
+				gap = 20,
+
+				ui:Image({
+					image = "rizu",
+					size_scale = 0.7,
+				}),
+				ui:Label({
+					y = -4,
+					font_size = 24,
+					font = "regular",
+					text = "[Enter] Play [M] Multiplayer [C] Config",
+				}),
 			}),
-			ui:Label({
-				y = -4,
-				font_size = 24,
-				font = "regular",
-				text = "[Enter] Play [M] Multiplayer [C] Config",
-			}),
-		})
-	})
+
+		}),
+	}))
 end
 
 function MainMenu:draw()

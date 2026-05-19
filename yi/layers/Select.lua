@@ -1,5 +1,5 @@
 local Screen = require("yi.Screen")
-local composition = require("ui.composition")
+local S = require("ui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
@@ -36,25 +36,25 @@ function Select:new(yi)
 	self.chart_info = ChartInfo(yi.resources)
 	self.chart_info.pivot = {0, 1}
 
-	self.composition_root = composition.Stack({
+	self.composition:setRoot(S.Stack({
 		ui:Image({
 			image = "select_bg_gradient",
 			mode = "stretch",
 			color = Colors.slate_900_70
 		}),
-		composition.Stack({
+		S.Stack({
 			padding = GAP,
-			composition.Vertical({
+			S.Column({
 				gap = -10,
 				self.title,
 				self.artist,
 			}),
-			composition.Vertical({
+			S.Anchor({
 				pivot = {0, 1},
 				self.chart_info
 			})
 		}),
-	})
+	}))
 end
 
 function Select:handleKeyDown(key)
@@ -69,8 +69,8 @@ function Select:receive(event)
 	if event.type == "chartview" then
 		local cv = event.chartview ---@type rizu.library.Chartview
 		self.chart_info:bind(cv, self.yi.game.replayBase)
-		self.title:setText(cv.title)
-		self.artist:setText(cv.artist)
+		self.title:setText(cv.title or "")
+		self.artist:setText(cv.artist or "")
 		return
 	end
 

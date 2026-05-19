@@ -31,7 +31,6 @@ function Title:new(atlas, quads)
 	self.description = quads.configuration_description
 	self.thing = quads.config_thing
 
-	self:setSizePercent(1, 1)
 	self.gap = Title.gap
 	self.title_offset_x = Title.title_offset_x
 	self.right_margin = Title.right_margin
@@ -71,8 +70,8 @@ function Title:draw()
 
 	local count = 5
 	local total_w = self.thing_width * count + self.thing_gap * (count - 1)
-	local things_x = self.width - total_w - self.right_margin
-	local things_y = self.height - self.thing_height - self.things_bottom_margin
+	local things_x = self.box.width - total_w - self.right_margin
+	local things_y = self.box.height - self.thing_height - self.things_bottom_margin
 	Painter.row(true, self.thing_gap, things_x, things_y)
 
 	local cycle_duration = self.thing_activation_span
@@ -106,7 +105,7 @@ function Title:draw()
 	Painter.row(false)
 
 	Painter.setColor(1, 1, 1, 0.5)
-	Painter.drawSprite(self.quads.pixel, 0, self.height - self.line_height, self.width, self.line_height)
+	Painter.drawSprite(self.quads.pixel, 0, self.box.height - self.line_height, self.box.width, self.line_height)
 end
 
 return Title

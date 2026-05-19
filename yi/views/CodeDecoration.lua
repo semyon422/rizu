@@ -113,7 +113,7 @@ function CodeDecoration:rebuildCodeText()
 		end
 	end
 
-	self.code_text = love.graphics.newText(self.code_font, code_fragments)
+	self.code_text = love.graphics.newTextBatch(self.code_font, code_fragments)
 end
 
 function CodeDecoration:onLayoutUpdate()
@@ -128,7 +128,7 @@ end
 
 function CodeDecoration:draw()
 	local lg = love.graphics
-	local text_height = self:toLogicalSize(self.code_text:getHeight())
+	local text_height = self.code_text:getHeight()
 	local loop_height = text_height + self.code_loop_gap
 	local scroll_offset = (self.time * self.code_scroll_speed) % loop_height
 	local first_text_y = 32 - scroll_offset

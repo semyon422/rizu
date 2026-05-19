@@ -2,7 +2,7 @@ local class = require("class")
 
 local SkyBackground = require("yi.layers.SkyBackground")
 local MainMenu = require("yi.layers.MainMenu")
-local Multiplayer = require("yi.layers.Multiplayer")
+--local Multiplayer = require("yi.layers.Multiplayer")
 local Config = require("yi.layers.Config")
 local Select = require("yi.layers.Select")
 
@@ -20,7 +20,7 @@ function ScreenComposition:new(yi, inputs)
 	self.inputs = inputs
 	self.sky_menu_background = SkyBackground(yi)
 	self.config = Config(yi)
-	self.multiplayer = Multiplayer(yi)
+	--self.multiplayer = Multiplayer(yi)
 	self.main_menu = MainMenu(yi)
 	self.select = Select(yi)
 
@@ -28,12 +28,26 @@ function ScreenComposition:new(yi, inputs)
 	self.screens = {
 		main_menu = self.main_menu,
 		config = self.config,
-		multiplayer = self.multiplayer,
+		--multiplayer = self.multiplayer,
 		select = self.select
 	}
 
+	local w, h = love.graphics.getDimensions()
+
+	self.sky_menu_background:setDimensions(w, h)
+	self.sky_menu_background:load()
+
+	for _, v in pairs(self.screens) do
+		v:setDimensions(w, h)
+		v:load()
+	end
+
 	self.chart_menu_alpha = SpringValue({value = 0})
 	self.sky_menu_alpha = SpringValue({value = 0})
+
+	self.sky_menu_canvas = love.graphics.newCanvas(w, h)
+	self.chart_menu_canvas = love.graphics.newCanvas(w, h)
+	self.shared_layer_canvas = love.graphics.newCanvas(w, h)
 
 	self:setScreen(self.main_menu)
 end
@@ -47,11 +61,11 @@ function ScreenComposition:setScreen(screen)
 
 	self.current_screen = screen
 	self.current_screen:enter()
+	self.sky_menu_alpha:set(1)
 
 	if
 		screen == self.main_menu or
-		screen == self.config or
-		screen == self.multiplayer
+		screen == self.config
 	then
 		self.chart_menu_alpha:set(0)
 		self.sky_menu_alpha:set(1)
@@ -61,7 +75,6 @@ function ScreenComposition:setScreen(screen)
 		self.sky_menu_alpha:set(0)
 		self.chart_menu_alpha:set(1)
 	end
-
 end
 
 ---@param dt number
@@ -77,31 +90,6 @@ function ScreenComposition:update(dt)
 	end
 
 	self.current_screen:acceptInputs(self.inputs)
-end
-
----@param canvas love.Canvas?
-local function release_canvas(canvas)
-	if canvas then
-		canvas:release()
-	end
-end
-
----@param w number
----@param h number
----@param layout_scale number
-function ScreenComposition:onWindowDimensionsChanged(w, h, layout_scale)
-	self.sky_menu_background:updateDimensions(w, h, layout_scale)
-
-	release_canvas(self.shared_layer_canvas)
-	release_canvas(self.chart_menu_canvas)
-	release_canvas(self.sky_menu_canvas)
-	self.sky_menu_canvas = love.graphics.newCanvas(w, h)
-	self.chart_menu_canvas = love.graphics.newCanvas(w, h)
-	self.shared_layer_canvas = love.graphics.newCanvas(w, h)
-
-	for _, v in pairs(self.screens) do
-		v:updateDimensions(w, h, layout_scale)
-	end
 end
 
 local ww, wh = 0, 0
@@ -131,21 +119,25 @@ function ScreenComposition:draw()
 		self.sky_menu_background:draw()
 
 		if self.config:isVisible() then self.config:draw() end
-		if self.multiplayer:isVisible() then self.multiplayer:draw() end
+		--if self.multiplayer:isVisible() then self.multiplayer:draw() end
 		if self.main_menu:isVisible() then self.main_menu:draw() end
 
 		love.graphics.setBlendMode("alpha")
 
+		love.graphics.setCanvas()
+
+		love.graphics.setStencilMode("draw", 1)
 		ww, wh = love.graphics.getDimensions()
 		st_w, st_h = ww * a, wh * a
 		st_r = 1 - a
-		love.graphics.setCanvas()
-		love.graphics.stencil(menu_stencil, "replace", 1)
-		love.graphics.setStencilTest("equal", 1)
+		menu_stencil()
+		love.graphics.setStencilMode("test")
+
 		love.graphics.setBlendMode("alpha", "premultiplied")
 		love.graphics.draw(self.sky_menu_canvas)
 		love.graphics.setBlendMode("alpha")
-		love.graphics.setStencilTest()
+
+		love.graphics.setStencilMode("off")
 	end
 end
 

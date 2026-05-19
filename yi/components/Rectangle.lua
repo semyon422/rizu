@@ -4,6 +4,7 @@ local View = require("ui.View")
 ---@field atlas love.Image
 ---@field quad love.Quad
 ---@field color number[]?
+---@field fit_box boolean
 
 ---@class yi.Rectangle : ui.View
 ---@overload fun(params: yi.RectangleParams): yi.Rectangle
@@ -18,11 +19,16 @@ function Rectangle:new(params)
 	self.atlas = assert(params.atlas, "Rectangle atlas is required")
 	self.quad = assert(params.quad, "Rectangle quad is required")
 	self.color = params.color or {1, 1, 1, 1}
+	self.fit_box = params.fit_box
 end
 
 function Rectangle:draw()
 	love.graphics.setColor(self.color)
-	love.graphics.draw(self.atlas, self.quad, 0, 0, 0, self.width, self.height)
+	if self.fit_box then
+		love.graphics.draw(self.atlas, self.quad, 0, 0, 0, self.box.width, self.box.height)
+	else
+		love.graphics.draw(self.atlas, self.quad, 0, 0, 0, self.width, self.height)
+	end
 end
 
 return Rectangle

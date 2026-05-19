@@ -71,8 +71,12 @@ function Panel:new(params)
 	self.draw_border_width = 0
 end
 
-function Panel:onLayoutUpdate()
-	local w, h = self.width, self.height
+function Panel:load()
+	self:build()
+end
+
+function Panel:build()
+	local w, h = self.box.width, self.box.height
 	local bevel = math.max(0, math.min(self.bevel_size, w, h))
 	local fill_points = self.fill_polygon_points
 	fill_points[1], fill_points[2] = bevel, 0
@@ -94,15 +98,13 @@ function Panel:onLayoutUpdate()
 	points[11], points[12] = half, inner_bevel + half
 	points[13], points[14] = inner_bevel + half, half
 	self.draw_border_width = border_width
-
-	print(self.box.width, self.box.height)
 end
 
 function Panel:draw()
 	local lg = love.graphics
 	local shader = getCRTShader()
 	local x1, y1 = lg.transformPoint(0, 0)
-	local x2, y2 = lg.transformPoint(self.width, self.height)
+	local x2, y2 = lg.transformPoint(self.box.width, self.box.height)
 	local left = math.min(x1, x2)
 	local top = math.min(y1, y2)
 	local width = math.max(1, math.abs(x2 - x1))

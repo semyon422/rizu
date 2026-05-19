@@ -50,7 +50,7 @@ end
 
 function PingPongBackground:draw()
 	local lg = love.graphics
-	local ww, wh = self.width, self.height
+	local ww, wh = self.box.width, self.box.height
 	local iw, ih = self.image:getDimensions()
 	local cover_scale = math.max(ww / iw, wh / ih) * self.scale_factor
 	local scaled_w = iw * cover_scale

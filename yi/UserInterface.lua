@@ -17,25 +17,31 @@ local TARGET_HEIGHT = 1080
 function UserInterface:new(game)
 	self.game = game
 
+	local ww, wh = love.graphics.getDimensions()
+	self.prev_w, self.prev_h = ww, wh
+
 	self.resources = Resources()
 	self.resources:load()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
-	self.composition = ScreenComposition(self, self.inputs)
 end
 
 function UserInterface:load()
+	self:buildUI()
+end
+
+function UserInterface:buildUI()
+	local w, h = love.graphics.getDimensions()
+	self.ui_scale = 1 --math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
 	Painter.setAtlas(self.resources.atlas)
-	Painter.setScale(1)
+	Painter.setScale(self.ui_scale)
+	self.composition = ScreenComposition(self, self.inputs)
 end
 
 ---@param dt number
 function UserInterface:update(dt)
 	if self:windowDimensionsChanged() then
-		local w, h = love.graphics.getDimensions()
-		local layout_scale = math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
-		Painter.setScale(layout_scale)
-		self.composition:onWindowDimensionsChanged(w, h, layout_scale)
+		self:buildUI()
 	end
 
 	self.modifiers.control = love.keyboard.isDown("lctrl", "rctrl")

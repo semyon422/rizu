@@ -1,10 +1,8 @@
 local class = require("class")
 
 local Button = require("yi.components.Button")
-local TabButton = require("yi.components.TabButton")
 local Rectangle = require("yi.components.Rectangle")
 local Panel = require("yi.components.Panel")
-local List = require("yi.components.List")
 local Image = require("yi.components.Image")
 local Label = require("yi.components.Label")
 
@@ -82,6 +80,7 @@ function UIFactory:Rectangle(params)
 		atlas = params.atlas or self.atlas,
 		quad = params.quad or self.quads.pixel,
 		color = params.color or {1, 1, 1, 1},
+		fit_box = (params.fit_box == nil) and true or params.fit_box
 	}), params)
 end
 
@@ -150,13 +149,6 @@ function UIFactory:TabButton(params)
 end
 
 ---@param params table?
----@return yi.List
-function UIFactory:List(params)
-	params = params or {}
-	return apply_view_params(List(params), params)
-end
-
----@param params table?
 ---@return yi.Image
 function UIFactory:Image(params)
 	params = params or {}
@@ -166,6 +158,7 @@ function UIFactory:Image(params)
 		quad = quad,
 		color = params.color or {1, 1, 1, 1},
 		mode = params.mode,
+		size_scale = params.size_scale or 1
 	}), params)
 end
 

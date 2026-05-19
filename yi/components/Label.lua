@@ -12,14 +12,6 @@ local Painter = require("yi.Painter")
 ---@operator call: yi.Label
 local Label = View + {}
 
----@private
-function Label:rebuildText()
-	self.font = self.resources:getScaledFont(self.font_name, self.font_size, self.ui_scale)
-	self.text_batch = love.graphics.newText(self.font, self.text)
-	local width, height = self.text_batch:getDimensions()
-	self:setSize(self:toLogicalSize(width), self:toLogicalSize(height))
-end
-
 ---@param params yi.LabelParams
 function Label:new(params)
 	View.new(self)
@@ -28,21 +20,19 @@ function Label:new(params)
 	self.font_size = assert(params.font_size, "Label font_size is required")
 	self.color = assert(params.color, "Color is required")
 	self.text = assert(params.text, "Label text is required")
-	self:rebuildText()
+	self.font = self.resources:getFont(self.font_name, self.font_size)
+	self.text_batch = love.graphics.newTextBatch(self.font, self.text)
+	self:setWidth(self.text_batch:getWidth())
+	self:setHeight(self.text_batch:getHeight())
 end
 
 ---@param text string
 function Label:setText(text)
 	self.text = text
-	self:rebuildText()
-end
-
-function Label:onLayoutUpdate()
-	self:rebuildText()
+	self.text_batch:set(text)
 end
 
 function Label:draw()
-	love.graphics.setColor(self.color)
 	Painter.drawText(self.text_batch, 0, 0)
 end
 
