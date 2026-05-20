@@ -1,6 +1,6 @@
 local valid = require("valid")
 local table_util = require("table_util")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 local types = require("sea.shared.types")
 local chart_types = require("sea.chart.types")
 local ChartmetaKey = require("sea.chart.ChartmetaKey")

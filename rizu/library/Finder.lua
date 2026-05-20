@@ -1,4 +1,4 @@
-local ChartLocation = require("notechart.ChartLocation")
+local ChartLocation = require("chart.format.notechart.ChartLocation")
 local path_util = require("path_util")
 local class = require("class")
 

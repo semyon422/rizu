@@ -1,6 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
-local AbsoluteLayer = require("ncdk2.layers.AbsoluteLayer")
+local AbsoluteLayer = require("chart.model.layers.AbsoluteLayer")
 local DiffcalcRegistry = require("sphere.models.DifficultyModel.DiffcalcRegistry")
 local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
 

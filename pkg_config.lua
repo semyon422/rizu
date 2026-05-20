@@ -9,9 +9,6 @@ pkg.addc("tree/lib/lua/5.1")
 pkg.add() -- Root folder
 pkg.add("3rd-deps/lua")
 pkg.add("aqua")
-pkg.add("ncdk")
-pkg.add("chartbase")
-pkg.add("libchart")
 pkg.add("tree/share/lua/5.1")
 
 -- Platform specific binaries

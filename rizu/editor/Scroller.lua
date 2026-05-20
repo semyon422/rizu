@@ -1,5 +1,5 @@
 local class = require("class")
-local Fraction = require("ncdk.Fraction")
+local Fraction = require("chart.core.Fraction")
 
 ---@class rizu.editor.Scroller
 ---@operator call: rizu.editor.Scroller

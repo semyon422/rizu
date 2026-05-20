@@ -1,5 +1,5 @@
 local class = require("class")
-local Osr = require("osu.Osr")
+local Osr = require("chart.format.osu.Osr")
 
 ---@class sea.OsrConverter
 ---@operator call: sea.OsrConverter

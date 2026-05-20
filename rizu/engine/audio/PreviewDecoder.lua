@@ -3,7 +3,7 @@ local SoftwareMixer = require("rizu.engine.audio.SoftwareMixer")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local LazyDecoder = require("rizu.engine.audio.LazyDecoder")
 local LazyDataDecoder = require("rizu.engine.audio.LazyDataDecoder")
-local OJM = require("o2jam.OJM")
+local OJM = require("chart.format.o2jam.OJM")
 
 ---@class rizu.audio.PreviewDecoder: rizu.audio.IDecoder
 ---@operator call: rizu.audio.PreviewDecoder

@@ -1,8 +1,8 @@
 local class = require("class")
 local ModifierModel = require("sphere.models.ModifierModel")
-local SphPreview = require("sph.SphPreview")
-local Sph = require("sph.Sph")
-local ChartDecoder = require("sph.ChartDecoder")
+local SphPreview = require("chart.format.sph.SphPreview")
+local Sph = require("chart.format.sph.Sph")
+local ChartDecoder = require("chart.format.sph.ChartDecoder")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 
 ---@alias rizu.library.ChartProvider fun(hash: string): ncdk2.Chart[]?, string?

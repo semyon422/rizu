@@ -1,8 +1,8 @@
 local class = require("class")
 local table_util = require("table_util")
 local GraphicalNoteFactory = require("sphere.models.RhythmModel.GraphicEngine.GraphicalNoteFactory")
-local Point = require("ncdk2.tp.Point")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
+local VisualPoint = require("chart.model.visual.VisualPoint")
 
 ---@class sphere.EventsRenderer
 ---@operator call: sphere.EventsRenderer

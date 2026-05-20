@@ -1,5 +1,5 @@
 local class = require("class")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 
 ---@class sea.ModifiersMetaState

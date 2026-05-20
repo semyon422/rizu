@@ -6,7 +6,7 @@ local LongVisualNote = require("rizu.engine.visual.LongVisualNote")
 ---@operator call: rizu.VisualNoteFactory
 local VisualNoteFactory = class()
 
----@type {[notechart.NoteType]: string}
+---@type {[chart.NoteType]: string}
 local types = {
 	tap = "short",
 	hold = "long",

@@ -217,7 +217,7 @@ end)
 local loadOJN = thread.async(function(path)
 	require("love.filesystem")
 	require("love.image")
-	local OJN = require("o2jam.OJN")
+	local OJN = require("chart.format.o2jam.OJN")
 
 	local content = love.filesystem.read(path)
 	if not content then

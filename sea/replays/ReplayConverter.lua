@@ -1,5 +1,5 @@
 local class = require("class")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local TimingsDefiner = require("sea.timings.TimingsDefiner")

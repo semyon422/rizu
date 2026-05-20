@@ -1,5 +1,5 @@
 local just = require("just")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local imgui = require("imgui")
 local ModalImView = require("ui.imviews.ModalImView")
 local _transform = require("gfx_util").transform

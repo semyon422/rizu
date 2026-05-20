@@ -1,5 +1,5 @@
-local normalscore = require("libchart.normalscore3")
-local erfunc = require("libchart.erfunc")
+local normalscore = require("chart.scoring.normalscore3")
+local erfunc = require("chart.scoring.erfunc")
 local ScoreSystem = require("sphere.models.RhythmModel.ScoreEngine.ScoreSystem")
 local IAccuracySource = require("sphere.models.RhythmModel.ScoreEngine.IAccuracySource")
 local IScoreSource = require("sphere.models.RhythmModel.ScoreEngine.IScoreSource")

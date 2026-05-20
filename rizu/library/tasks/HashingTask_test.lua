@@ -49,7 +49,7 @@ input 4key
 	local expected_hash = digest.hash("md5", content, true)
 
 	-- Setup real generators
-	local ChartFactory = require("notechart.ChartFactory")
+	local ChartFactory = require("chart.format.notechart.ChartFactory")
 	local cmg = ChartmetaGenerator(chartsRepo, chartfilesRepo, ChartFactory)
 
 	local difficultyModel = DifficultyModel()
@@ -113,7 +113,7 @@ function test.malformed_chart(t)
 	fs:createDirectory("dir/set")
 	fs:write("dir/set/bad.sph", "this is not an SPH file")
 
-	local ChartFactory = require("notechart.ChartFactory")
+	local ChartFactory = require("chart.format.notechart.ChartFactory")
 	local cmg = ChartmetaGenerator(chartsRepo, chartfilesRepo, ChartFactory)
 	local difficultyModel = DifficultyModel()
 	local cdg = ChartdiffGenerator(chartsRepo, difficultyModel)

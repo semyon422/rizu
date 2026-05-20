@@ -1,5 +1,5 @@
 local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
-local osu_starrate = require("libchart.osu_starrate")
+local osu_starrate = require("chart.scoring.osu_starrate")
 
 ---@class sphere.OsuDiffcalc: sphere.IDiffcalc
 ---@operator call: sphere.OsuDiffcalc

@@ -1,5 +1,5 @@
 local just = require("just")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local spherefonts = require("sphere.assets.fonts")
 local icons = require("sphere.assets.icons")
 local gfx_util = require("gfx_util")

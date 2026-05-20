@@ -1,6 +1,6 @@
 local Modifier = require("sphere.models.ModifierModel.Modifier")
-local Notes = require("ncdk2.notes.Notes")
-local Note = require("ncdk2.notes.Note")
+local Notes = require("chart.model.notes.Notes")
+local Note = require("chart.model.notes.Note")
 
 ---@class sphere.FullLongNote: sphere.Modifier
 ---@operator call: sphere.FullLongNote

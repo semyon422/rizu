@@ -1,7 +1,7 @@
 --- SOURCE: https://github.com/etternagame/etterna
 --- SOURCE: https://github.com/etternagame/etterna/blob/master/Themes/_fallback/Scripts/10%20Scores.lua
 
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 local math_util = require("math_util")
 local ScoreSystem = require("sphere.models.RhythmModel.ScoreEngine.ScoreSystem")
 local IAccuracySource = require("sphere.models.RhythmModel.ScoreEngine.IAccuracySource")

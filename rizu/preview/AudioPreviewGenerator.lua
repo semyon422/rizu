@@ -1,7 +1,7 @@
 local class = require("class")
 local AudioPreview = require("rizu.preview.AudioPreview")
 local ResourceFinder = require("rizu.files.ResourceFinder")
-local OJM = require("o2jam.OJM")
+local OJM = require("chart.format.o2jam.OJM")
 
 ---@class rizu.preview.AudioPreviewGenerator
 ---@operator call: rizu.preview.AudioPreviewGenerator

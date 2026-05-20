@@ -1,6 +1,6 @@
-local Note = require("ncdk2.notes.Note")
-local Notes = require("ncdk2.notes.Notes")
-local InputMode = require("ncdk.InputMode")
+local Note = require("chart.model.notes.Note")
+local Notes = require("chart.model.notes.Notes")
+local InputMode = require("chart.core.InputMode")
 local Modifier = require("sphere.models.ModifierModel.Modifier")
 local MultiOverPlay = require("sphere.models.ModifierModel.MultiOverPlay")
 

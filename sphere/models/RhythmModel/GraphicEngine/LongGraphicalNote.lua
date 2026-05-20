@@ -1,6 +1,6 @@
 local GraphicalNote = require("sphere.models.RhythmModel.GraphicEngine.GraphicalNote")
-local Point = require("ncdk2.tp.Point")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
+local VisualPoint = require("chart.model.visual.VisualPoint")
 
 ---@class sphere.LongGraphicalNote: sphere.GraphicalNote
 ---@operator call: sphere.LongGraphicalNote

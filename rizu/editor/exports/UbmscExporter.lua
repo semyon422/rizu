@@ -3,7 +3,7 @@ local path_util = require("path_util")
 local string_util = require("string_util")
 local table_util = require("table_util")
 local dpairs = require("dpairs")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 ---@class rizu.editor.exports.UbmscExporter
 ---@operator call: rizu.editor.exports.UbmscExporter

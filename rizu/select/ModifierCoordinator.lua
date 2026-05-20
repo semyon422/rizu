@@ -1,7 +1,7 @@
 local class = require("class")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 ---@class rizu.select.ModifierCoordinator
 ---@operator call: rizu.select.ModifierCoordinator

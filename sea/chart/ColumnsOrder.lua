@@ -1,6 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 ---@param t integer[]
 ---@param j integer

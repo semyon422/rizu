@@ -1,6 +1,6 @@
 local class = require("class")
 local math_util = require("math_util")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 
 ---@class sphere.TimeRateModel
 ---@operator call: sphere.TimeRateModel

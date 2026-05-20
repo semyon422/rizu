@@ -1,7 +1,7 @@
 local rbtree = require("rbtree")
 local ncbt = require("ncbt")
 local class = require("class")
-local Visual = require("chartedit.Visual")
+local Visual = require("chart.chartedit.Visual")
 
 ---@class rizu.editor.NcbtContext
 ---@operator call: rizu.editor.NcbtContext

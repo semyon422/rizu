@@ -1,5 +1,5 @@
 local class = require("class")
-local ChartEncoder = require("osu.ChartEncoder")
+local ChartEncoder = require("chart.format.osu.ChartEncoder")
 local ModifierModel = require("sphere.models.ModifierModel")
 
 ---@class rizu.library.ChartExporter

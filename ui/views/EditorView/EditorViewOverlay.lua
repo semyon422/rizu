@@ -1,7 +1,7 @@
 local just = require("just")
 local spherefonts = require("sphere.assets.fonts")
 local imgui = require("imgui")
-local Fraction = require("ncdk.Fraction")
+local Fraction = require("chart.core.Fraction")
 local gfx_util = require("gfx_util")
 
 local Layout = require("ui.views.EditorView.Layout")

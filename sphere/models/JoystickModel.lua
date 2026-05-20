@@ -1,7 +1,7 @@
 local class = require("class")
 local table_util = require("table_util")
-local AnalogScratch = require("libchart.AnalogScratch")
-local ScratchMapper = require("libchart.ScratchMapper")
+local AnalogScratch = require("chart.transform.AnalogScratch")
+local ScratchMapper = require("chart.transform.ScratchMapper")
 
 ---@class sphere.JoystickModel
 ---@operator call: sphere.JoystickModel

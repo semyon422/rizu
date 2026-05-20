@@ -9,7 +9,7 @@ local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
 local TableStorage = require("sea.chart.storage.TableStorage")
 local ReplayBase = require("sea.replays.ReplayBase")
 local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
-local simplify_notechart = require("libchart.simplify_notechart")
+local simplify_notechart = require("chart.transform.simplify_notechart")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local ReplayFactory = require("rizu.engine.replay.ReplayFactory")
 

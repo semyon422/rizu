@@ -2,8 +2,8 @@ local class = require("class")
 local path_util = require("path_util")
 local string_util = require("string_util")
 local table_util = require("table_util")
-local ChartDecoder = require("sph.ChartDecoder")
-local base36 = require("bms.base36")
+local ChartDecoder = require("chart.format.sph.ChartDecoder")
+local base36 = require("chart.format.bms.base36")
 local md5 = require("md5")
 
 ---@class rizu.editor.exports.BmsTemplateExporter

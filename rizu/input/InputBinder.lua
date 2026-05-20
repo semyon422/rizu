@@ -1,5 +1,5 @@
 local class = require("class")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 local EventIdMapper = require("rizu.input.EventIdMapper")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 

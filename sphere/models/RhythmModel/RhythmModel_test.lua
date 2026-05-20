@@ -3,10 +3,10 @@ local LogicEngine = require("sphere.models.RhythmModel.LogicEngine")
 local GraphicEngine = require("sphere.models.RhythmModel.GraphicEngine")
 local table_util = require("table_util")
 
-local Chart = require("ncdk2.Chart")
-local AbsoluteLayer = require("ncdk2.layers.AbsoluteLayer")
-local Visual = require("ncdk2.visual.Visual")
-local Note = require("notechart.Note")
+local Chart = require("chart.model.Chart")
+local AbsoluteLayer = require("chart.model.layers.AbsoluteLayer")
+local Visual = require("chart.model.visual.Visual")
+local Note = require("chart.format.notechart.Note")
 
 local visualTimeInfo = {
 	rate = 1,

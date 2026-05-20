@@ -7,7 +7,7 @@ local ChartmetaGenerator = class()
 
 ---@param chartsRepo sea.ChartsRepo
 ---@param chartfilesRepo rizu.library.ChartfilesRepo
----@param chartFactory notechart.ChartFactory
+---@param chartFactory chart.ChartFactory
 function ChartmetaGenerator:new(chartsRepo, chartfilesRepo, chartFactory)
 	self.chartsRepo = chartsRepo
 	self.chartfilesRepo = chartfilesRepo

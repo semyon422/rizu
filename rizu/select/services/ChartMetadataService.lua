@@ -1,6 +1,6 @@
 local class = require("class")
 local path_util = require("path_util")
-local ChartFactory = require("notechart.ChartFactory")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
 
 ---@class rizu.select.services.ChartMetadataService
 ---@operator call: rizu.select.services.ChartMetadataService

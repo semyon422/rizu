@@ -1,5 +1,5 @@
 local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
-local enps = require("libchart.enps")
+local enps = require("chart.scoring.enps")
 
 ---@class sphere.EnpsDiffcalc: sphere.IDiffcalc
 ---@operator call: sphere.EnpsDiffcalc

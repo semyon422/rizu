@@ -14,9 +14,9 @@ local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
 local BmsToolsContext = require("rizu.editor.BmsToolsContext")
 local EditorSession = require("rizu.editor.EditorSession")
-local pattern_analyzer = require("libchart.pattern_analyzer")
-local Point = require("chartedit.Point")
-local Metadata = require("sph.Metadata")
+local pattern_analyzer = require("chart.scoring.pattern_analyzer")
+local Point = require("chart.chartedit.Point")
+local Metadata = require("chart.format.sph.Metadata")
 
 ---@class rizu.editor.EditorModel
 ---@operator call: rizu.editor.EditorModel

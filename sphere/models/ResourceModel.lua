@@ -57,7 +57,7 @@ end
 
 local loadOjm = thread.async(function(path)
 	local audio = require("audio")
-	local OJM = require("o2jam.OJM")
+	local OJM = require("chart.format.o2jam.OJM")
 
 	local fileData, err = love.filesystem.newFileData(path)
 	if not fileData then

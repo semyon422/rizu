@@ -1,5 +1,5 @@
 local class = require("class")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local Chartfile = require("sea.chart.Chartfile")
 local UserRole = require("sea.access.UserRole")
 local SessionInsecure = require("sea.access.SessionInsecure")

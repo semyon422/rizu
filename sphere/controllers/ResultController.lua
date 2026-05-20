@@ -1,5 +1,5 @@
 local class = require("class")
-local simplify_notechart = require("libchart.simplify_notechart")
+local simplify_notechart = require("chart.transform.simplify_notechart")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local ReplayLoader = require("sea.replays.ReplayLoader")
 local RhythmEngineLoader = require("rizu.gameplay.RhythmEngineLoader")
@@ -104,7 +104,7 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 
 	if self.game.configModel.configs.settings.miscellaneous.generateGifResult then
 		local chart = assert(game.computeContext.chart)
-		local GifResult = require("libchart.GifResult")
+		local GifResult = require("chart.transform.GifResult")
 		local gif_result = GifResult()
 		local bg_path = game.chartSelector:getBackgroundPath()
 		if bg_path then

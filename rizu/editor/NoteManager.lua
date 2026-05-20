@@ -1,9 +1,9 @@
 local class = require("class")
-local Fraction = require("ncdk.Fraction")
+local Fraction = require("chart.core.Fraction")
 local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
 local ShortEditorNote = require("rizu.editor.ShortEditorNote")
 local LongEditorNote = require("rizu.editor.LongEditorNote")
-local Note = require("ncdk2.notes.Note")
+local Note = require("chart.model.notes.Note")
 
 ---@class rizu.editor.NoteManager
 ---@operator call: rizu.editor.EditorNoteManager

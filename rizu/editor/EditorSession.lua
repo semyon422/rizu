@@ -1,7 +1,7 @@
 local class = require("class")
 local Changes = require("Changes")
-local Point = require("chartedit.Point")
-local pattern_analyzer = require("libchart.pattern_analyzer")
+local Point = require("chart.chartedit.Point")
+local pattern_analyzer = require("chart.scoring.pattern_analyzer")
 
 ---@class rizu.editor.EditorSession
 ---@operator call: rizu.editor.EditorSession

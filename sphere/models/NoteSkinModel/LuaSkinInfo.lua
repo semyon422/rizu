@@ -1,5 +1,5 @@
 local SkinInfo = require("sphere.models.NoteSkinModel.SkinInfo")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 ---@class sphere.LuaSkinInfo: sphere.SkinInfo
 ---@operator call: sphere.LuaSkinInfo

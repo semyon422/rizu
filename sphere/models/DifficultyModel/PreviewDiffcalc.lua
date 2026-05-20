@@ -1,10 +1,10 @@
 local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
-local RefChart = require("refchart.RefChart")
-local Restorer = require("refchart.Restorer")
-local ChartEncoder = require("sph.ChartEncoder")
-local SphPreview = require("sph.SphPreview")
-local LinesCleaner = require("sph.lines.LinesCleaner")
-local IntervalLayer = require("ncdk2.layers.IntervalLayer")
+local RefChart = require("chart.refchart.RefChart")
+local Restorer = require("chart.refchart.Restorer")
+local ChartEncoder = require("chart.format.sph.ChartEncoder")
+local SphPreview = require("chart.format.sph.SphPreview")
+local LinesCleaner = require("chart.format.sph.lines.LinesCleaner")
+local IntervalLayer = require("chart.model.layers.IntervalLayer")
 
 ---@class sphere.PreviewDiffcalc: sphere.IDiffcalc
 ---@operator call: sphere.PreviewDiffcalc

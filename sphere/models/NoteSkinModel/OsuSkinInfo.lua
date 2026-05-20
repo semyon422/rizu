@@ -3,7 +3,7 @@ local OsuNoteSkin = require("sphere.models.NoteSkinModel.OsuNoteSkin")
 local OsuSpriteRepo = require("sphere.models.NoteSkinModel.osu.OsuSpriteRepo")
 local OsuSpriteLocator = require("sphere.models.NoteSkinModel.osu.OsuSpriteLocator")
 local utf8validate = require("utf8validate")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 ---@class sphere.OsuSkinInfo: sphere.SkinInfo
 ---@operator call: sphere.OsuSkinInfo

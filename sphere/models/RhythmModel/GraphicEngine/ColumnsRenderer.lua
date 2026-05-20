@@ -1,7 +1,7 @@
 local class = require("class")
 local ColumnRenderer = require("sphere.models.RhythmModel.GraphicEngine.ColumnRenderer")
-local Point = require("ncdk2.tp.Point")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
+local VisualPoint = require("chart.model.visual.VisualPoint")
 
 ---@class sphere.ColumnsRenderer
 ---@operator call: sphere.ColumnsRenderer
