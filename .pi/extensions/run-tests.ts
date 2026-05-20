@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
-import { Text } from "@earendil-works/pi-tui";
+import { Container, Text } from "@earendil-works/pi-tui";
 
 const TEST_SCRIPT = "./test";
 
@@ -139,6 +139,16 @@ export default function (pi: ExtensionAPI) {
 			const passed = result.total - result.fail;
 			const allPassed = result.fail === 0;
 
+			// Collect failed files and methods
+			const failedFiles = new Set<string>();
+			const failedMethodKeys = new Set<string>();
+			for (const err of result.errors) {
+				failedFiles.add(err.file);
+				if (err.method) {
+					failedMethodKeys.add(`${err.file}:${err.method}`);
+				}
+			}
+
 			// Build summary
 			const lines: string[] = [];
 			lines.push(
@@ -146,6 +156,17 @@ export default function (pi: ExtensionAPI) {
 					? `✅ All ${result.total} test(s) passed`
 					: `❌ ${result.fail} of ${result.total} test(s) failed`,
 			);
+
+			// Failed files and methods summary
+			if (failedFiles.size > 0 && !params.quick) {
+				lines.push("");
+				lines.push("## Failed");
+				for (const f of failedFiles) {
+					const fileErrors = result.errors.filter((e) => e.file === f);
+					const methods = fileErrors.filter((e) => e.method).map((e) => e.method!);
+					lines.push(`- \`${f}\` (${fileErrors.length} failure${fileErrors.length > 1 ? "s" : ""})${methods.length > 0 ? ": " + methods.join(", ") : ""}`);
+				}
+			}
 
 			// File timing breakdown
 			if (result.files.length > 0 && !params.quick) {
@@ -187,6 +208,8 @@ export default function (pi: ExtensionAPI) {
 					failed: result.fail,
 					files: result.files.length,
 					totalTime,
+					failedFiles: [...failedFiles],
+					failedMethods: [...failedMethodKeys],
 				},
 			};
 		},
@@ -210,21 +233,34 @@ export default function (pi: ExtensionAPI) {
 				failed?: number;
 				files?: number;
 				totalTime?: number;
+				failedFiles?: string[];
+				failedMethods?: string[];
 			};
 
 			const status = details.failed && details.failed > 0 ? "FAIL" : "OK";
 			const statusColor = details.failed && details.failed > 0 ? "error" : "success";
 
-			let text = theme.fg(statusColor, `${status}: ${details.total ?? "?"} tests, ${details.files ?? "?"} files, ${formatTime(details.totalTime ?? 0)}`);
+			const container = new Container();
 
+			// Summary line
+			container.addChild(new Text(theme.fg(statusColor, `${status}: ${details.total ?? "?"} tests, ${details.files ?? "?"} files, ${formatTime(details.totalTime ?? 0)}`), 0, 0));
+
+			// Failed methods line (always shown when there are failures)
+			if (details.failed && details.failed > 0 && details.failedMethods && details.failedMethods.length > 0) {
+				container.addChild(new Text(theme.fg("error", `  Failed: ${details.failedMethods.join(", ")}`), 0, 0));
+			} else if (details.failed && details.failed > 0) {
+				container.addChild(new Text(theme.fg("error", `  Failed: ${details.failed} test(s) in ${details.failedFiles?.length ?? "?"} file(s)`), 0, 0));
+			}
+
+			// Full details (only when expanded)
 			if (expanded) {
 				const content = result.content?.[0];
 				if (content?.type === "text") {
-					text += "\n" + theme.fg("dim", content.text);
+					container.addChild(new Text(theme.fg("dim", content.text), 0, 0));
 				}
 			}
 
-			return new Text(text, 0, 0);
+			return container;
 		},
 	});
 
