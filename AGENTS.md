@@ -29,12 +29,33 @@ After editing:
 - For cross-worker, websocket, or ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
 - If the worktree is already dirty, do not revert unrelated user changes.
 
+## Batch Text Substitution
+
+When performing mass find-and-replace (e.g., renaming namespaces, moving modules), scope substitutions by **line context** to avoid corrupting unrelated text like URLs, variable names, or data paths.
+
+**Scope by line pattern, not by text alone:**
+
+```bash
+# Only touch require() calls
+sed '/require.*"/ s/old.prefix/new.prefix/g' file.lua
+
+# Only touch annotation lines
+sed '/^---/ s/old.prefix/new.prefix/g' file.lua
+```
+
+**Rules:**
+- Never apply a bare `s/old/new/g` across entire files when the pattern could match variable names, URLs, config keys, or string literals.
+- After substitution, verify with `grep` that no unintended lines were changed.
+- If the pattern is short (e.g., `osu.`, `sph.`), always scope by line context — these can easily match inside URLs (`osu.ppy.sh`), variable names (`sph.metadata`), or table keys (`a.midi.constantVolume`).
+- When moving modules, update require paths and class annotations separately, each scoped to their respective line patterns.
+- Run tests after mass substitution to catch silent corruption.
+
 ## Project Map
 
 - `rizu/`: modern game client and core systems. Start with `rizu/spec.md`.
 - `sea/`: website, server-side logic, shared web infrastructure. Start with `sea/spec.md`.
 - `aqua/`: general-purpose shared Lua infrastructure. Start with `aqua/spec.md`.
-- `chartbase/`: chart parsers and format-specific loaders. See format-local specs when present.
+- `chart/`: chart infrastructure — data model, format parsers, scoring, transformation. Start with `chart/spec.md`.
 - `sphere/`: legacy client code that is gradually being rewritten into `rizu/`. Start with `sphere/spec.md`.
 
 Existing feature specs worth checking early:
@@ -45,7 +66,7 @@ Existing feature specs worth checking early:
 - `rizu/dlc/spec.md`
 - `rizu/gameplay/spec.md`
 - `rizu/engine/spec.md`
-- `chartbase/sph/spec.md`
+- `chart/format/sph/spec.md`
 
 ## Building And Running
 
