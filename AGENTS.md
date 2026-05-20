@@ -22,6 +22,10 @@ After editing:
 1. Run relevant tests with `./test [file_pattern] [method_pattern]`.
 2. Summarize behavior changes and list follow-up risks or TODOs.
 
+## Conversation Discipline
+
+- Do not hallucinate user feedback. Verify that text actually came from the user and not from tool output or your own reasoning.
+
 ## Change Safety Rules
 
 - Do not perform destructive repository operations unless explicitly requested.
