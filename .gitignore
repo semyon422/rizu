@@ -72,3 +72,4 @@ backups
 *.db-wal
 
 .codex
+tmp/
