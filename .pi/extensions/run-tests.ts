@@ -67,7 +67,6 @@ export default function (pi: ExtensionAPI) {
 			"Use run_tests after making code changes to verify nothing broke.",
 			"Use run_tests with file_pattern to run focused tests for the changed module.",
 			"Use run_tests with method_pattern to run a single test method.",
-			"When tests fail, analyze the error details before attempting fixes.",
 		],
 		parameters: Type.Object({
 			file_pattern: Type.Optional(
@@ -80,12 +79,6 @@ export default function (pi: ExtensionAPI) {
 				Type.String({
 					description:
 						"Lua pattern to match test method names within matched files. E.g. 'auto_timings' runs only methods matching that name.",
-				}),
-			),
-			quick: Type.Optional(
-				Type.Boolean({
-					description:
-						"If true, only show a summary (pass/fail counts and timing) without error details. Default: false.",
 				}),
 			),
 		}),
@@ -158,7 +151,7 @@ export default function (pi: ExtensionAPI) {
 			);
 
 			// Failed files and methods summary
-			if (failedFiles.size > 0 && !params.quick) {
+			if (failedFiles.size > 0) {
 				lines.push("");
 				lines.push("## Failed");
 				for (const f of failedFiles) {
@@ -169,7 +162,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// File timing breakdown
-			if (result.files.length > 0 && !params.quick) {
+			if (result.files.length > 0) {
 				lines.push("");
 				lines.push("## Files");
 				for (const f of result.files) {
@@ -182,7 +175,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// Error details
-			if (result.errors.length > 0 && !params.quick) {
+			if (result.errors.length > 0) {
 				lines.push("");
 				lines.push("## Errors");
 				for (const err of result.errors) {
@@ -217,7 +210,6 @@ export default function (pi: ExtensionAPI) {
 			const parts: string[] = ["Run tests"];
 			if (args.file_pattern) parts.push(args.file_pattern);
 			if (args.method_pattern) parts.push(`method ${args.method_pattern}`);
-			if (args.quick) parts.push("(summary only)");
 			return new Text(theme.fg("toolTitle", theme.bold("run_tests ")) + theme.fg("dim", parts.join(" ")), 0, 0);
 		},
 		renderResult(result, { expanded, isPartial }, theme, _context) {
@@ -261,41 +253,6 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			return container;
-		},
-	});
-
-	// Register a command for quick access — runs tests directly, no LLM needed
-	pi.registerCommand("test", {
-		description: "Run tests (all or by pattern)",
-		handler: async (args, ctx) => {
-			const cmdArgs: string[] = ["--json"];
-			if (args) cmdArgs.push(args);
-
-			try {
-				const output = execFileSync(TEST_SCRIPT, cmdArgs, {
-					cwd: ctx.cwd,
-					encoding: "utf-8",
-					timeout: 120_000,
-				}).trim();
-
-				const result = extractJsonResult(output);
-				const passed = result.total - result.fail;
-				const totalTime = result.files.reduce((sum, f) => sum + f.time, 0);
-
-				if (result.fail === 0) {
-					ctx.ui.notify(`✅ All ${result.total} test(s) passed in ${formatTime(totalTime)}`, "info");
-				} else {
-					ctx.ui.notify(`❌ ${result.fail} of ${result.total} test(s) failed`, "error");
-
-					// Show error details
-					for (const err of result.errors) {
-						const methodTag = err.method ? ` (${err.method})` : "";
-						ctx.ui.notify(`${err.file}:${err.line}${methodTag}`, "error");
-					}
-				}
-			} catch (error: any) {
-				ctx.ui.notify(`Test error: ${error.message ?? String(error)}`, "error");
-			}
 		},
 	});
 
