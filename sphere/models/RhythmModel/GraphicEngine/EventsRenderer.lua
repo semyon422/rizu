@@ -12,7 +12,7 @@ local function sort_const(a, b)
 	return a.startNote.visualPoint.point:compare(b.startNote.visualPoint.point)
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param graphicEngine sphere.GraphicEngine
 function EventsRenderer:new(chart, graphicEngine)
 	self.chart = chart
@@ -32,7 +32,7 @@ function EventsRenderer:load()
 	local graphicEngine = self.graphicEngine
 	local chart = self.chart
 
-	---@type {[ncdk2.Visual]: ncdk2.VisualPoint}
+	---@type {[chart.Visual]: chart.VisualPoint}
 	self.cvp = {}
 
 	for _, visual in ipairs(self.chart:getVisuals()) do
@@ -40,7 +40,7 @@ function EventsRenderer:load()
 		visual:generateEvents()
 	end
 
-	---@type {[ncdk2.VisualPoint]: -1|1}
+	---@type {[chart.VisualPoint]: -1|1}
 	self.point_events = {}
 
 	local point_events = self.point_events

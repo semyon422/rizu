@@ -31,7 +31,7 @@ function VisualEngine:insertNoteEvent(vp, event)
 	table.insert(self.point_notes[vp], event)
 end
 
----@param linked_note ncdk2.LinkedNote
+---@param linked_note chart.LinkedNote
 ---@param visual_note rizu.VisualNote
 function VisualEngine:addNote(linked_note, visual_note)
 	local event = {
@@ -45,10 +45,10 @@ function VisualEngine:addNote(linked_note, visual_note)
 	end
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param lazy_scrollers boolean?
 function VisualEngine:load(chart, lazy_scrollers)
-	---@type {[ncdk2.Visual]: ncdk2.VisualPoint}
+	---@type {[chart.Visual]: chart.VisualPoint}
 	self.cvp = {}
 
 	---@type {[rizu.VisualNote]: true}
@@ -56,9 +56,9 @@ function VisualEngine:load(chart, lazy_scrollers)
 	---@type rizu.VisualNote[]
 	self.visible_notes = {}
 
-	---@type {[ncdk2.VisualPoint]: -1|1}
+	---@type {[chart.VisualPoint]: -1|1}
 	self.point_events = {}
-	---@type {[ncdk2.VisualPoint]: {linked_note: ncdk2.LinkedNote, visual_note: rizu.VisualNote}[]}
+	---@type {[chart.VisualPoint]: {linked_note: chart.LinkedNote, visual_note: rizu.VisualNote}[]}
 	self.point_notes = {}
 
 	for _, visual in ipairs(chart:getVisuals()) do
@@ -72,7 +72,7 @@ function VisualEngine:load(chart, lazy_scrollers)
 	end
 
 	for _, linked_note in ipairs(chart.notes:getLinkedNotes()) do
-		local visual = chart:getVisualByPoint(linked_note.startNote.visualPoint --[[@as ncdk2.VisualPoint]])
+		local visual = chart:getVisualByPoint(linked_note.startNote.visualPoint --[[@as chart.VisualPoint]])
 		if visual and not visual.bga then
 			local visual_note = self.visual_note_factory:getNote(linked_note)
 			if visual_note then

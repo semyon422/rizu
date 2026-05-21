@@ -21,9 +21,9 @@ function test.basic(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 4)
@@ -62,9 +62,9 @@ function test.point_merge(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)
@@ -96,9 +96,9 @@ function test.single_tempo_wrong_snap(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)
@@ -125,9 +125,9 @@ function test.adjust_tempo_left(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 2)
@@ -148,9 +148,9 @@ function test.adjust_tempo_right(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 2)
@@ -171,9 +171,9 @@ function test.auxiliary_interval_int(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)
@@ -197,9 +197,9 @@ function test.auxiliary_interval_frac(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)
@@ -232,9 +232,9 @@ function test.auxiliary_interval_frac_right_point(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 3)

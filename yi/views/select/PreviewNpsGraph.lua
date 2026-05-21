@@ -36,7 +36,7 @@ function PreviewNpsGraph:receive(event)
 	end
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function PreviewNpsGraph:setChart(chart)
 	table_util.clear(self.note_times)
 	for _, note in ipairs(chart.notes:getLinkedNotes()) do

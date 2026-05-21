@@ -22,7 +22,7 @@ end
 ---@param inputMode ncdk.InputMode
 ---@return table
 function Mirror:getMap(config, inputMode)
-	---@type {[ncdk2.Column]: ncdk2.Column}
+	---@type {[chart.Column]: chart.Column}
 	local map = {}
 
 	local value = config.value

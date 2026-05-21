@@ -6,7 +6,7 @@ local table_util = require("table_util")
 local EditorNote = class()
 
 ---@param noteType string
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param visual_info rizu.VisualInfo
 function EditorNote:new(noteType, note, visual_info)
 	self.noteType = noteType
@@ -19,7 +19,7 @@ function EditorNote:new(noteType, note, visual_info)
 end
 
 ---@param absoluteTime number
----@param column ncdk2.Column
+---@param column chart.Column
 ---@return rizu.editor.EditorNote?
 function EditorNote:create(absoluteTime, column) end
 
@@ -51,12 +51,12 @@ function EditorNote:clone()
 	return note
 end
 
----@return ncdk2.Note[]
+---@return chart.Note[]
 function EditorNote:getNotes()
 	return {}
 end
 
----@param column ncdk2.Column
+---@param column chart.Column
 function EditorNote:setColumn(column)
 	self.column = column
 	self.startNote.column = column

@@ -26,7 +26,7 @@ function MinLnLength:getString(config)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function MinLnLength:apply(config, chart)
 	local duration = config.value
 

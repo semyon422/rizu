@@ -22,7 +22,7 @@ function FullLongNote:getString(config)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function FullLongNote:apply(config, chart)
 	self.chart = chart
 	self.level = config.value
@@ -37,14 +37,14 @@ function FullLongNote:apply(config, chart)
 end
 
 ---@param i number
----@param n ncdk2.Note
+---@param n chart.Note
 ---@param max_n integer
 function FullLongNote:processNote(i, n, max_n)
 	if n.type ~= "tap" then
 		return
 	end
 
-	---@type {[ncdk2.IVisualPoint]: true}
+	---@type {[chart.IVisualPoint]: true}
 	local vp_map = {}
 	local notes = self.chart.notes.notes
 	local _n
@@ -67,7 +67,7 @@ function FullLongNote:processNote(i, n, max_n)
 	table.sort(vps)
 	vps = self:cleanTimePointList(vps, n, _n)
 
-	---@type ncdk2.IVisualPoint
+	---@type chart.IVisualPoint
 	local end_vp
 	local level = self.level
 	if level >= 3 then
@@ -91,10 +91,10 @@ function FullLongNote:processNote(i, n, max_n)
 	self.chart.notes:insert(endNote)
 end
 
----@param vps ncdk2.IVisualPoint[]
----@param n ncdk2.Note
----@param _n ncdk2.Note?
----@return ncdk2.IVisualPoint[]
+---@param vps chart.IVisualPoint[]
+---@param n chart.Note
+---@param _n chart.Note?
+---@return chart.IVisualPoint[]
 function FullLongNote:cleanTimePointList(vps, n, _n)
 	local min_time = n.visualPoint.point.absoluteTime
 	local max_time = _n and _n.visualPoint.point.absoluteTime or math.huge

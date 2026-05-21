@@ -151,7 +151,7 @@ function ChartEncoder:encodeSph(chart, chartmeta)
 	local layer = chart.layers.main
 	self.layer = layer
 
-	---@type {[ncdk2.VisualPoint]: {[ncdk2.Column]: ncdk2.Note}}
+	---@type {[chart.VisualPoint]: {[chart.Column]: chart.Note}}
 	local point_notes = {}
 	self.point_notes = point_notes
 
@@ -163,7 +163,7 @@ function ChartEncoder:encodeSph(chart, chartmeta)
 
 	for _, note in chart.notes:iter() do
 		local vp = note.visualPoint
-		local nds = point_notes[vp  --[[@as ncdk2.VisualPoint]]]
+		local nds = point_notes[vp  --[[@as chart.VisualPoint]]]
 		if nds then
 			local column = note.column
 			if nds[column] then
@@ -185,7 +185,7 @@ function ChartEncoder:encodeSph(chart, chartmeta)
 
 	local points = layer:getPointList()
 	for _, t in ipairs(points) do
-		---@cast t -ncdk2.Point, +ncdk2.IntervalPoint
+		---@cast t -chart.Point, +chart.IntervalPoint
 		local same = false
 		for _, vname in ipairs(visual_names) do
 			local visual = layer.visuals[vname]

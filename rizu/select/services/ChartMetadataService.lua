@@ -52,7 +52,7 @@ function ChartMetadataService:getAudioPathPreview(chartview)
 end
 
 ---@param chartview rizu.library.LocatedChartview
----@return ncdk2.Chart?
+---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ChartMetadataService:loadChart(chartview)
 	local content = self.fs:read(chartview.location_path)
@@ -70,7 +70,7 @@ function ChartMetadataService:loadChart(chartview)
 end
 
 ---@param chartview rizu.library.LocatedChartview
----@return ncdk2.Chart?
+---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ChartMetadataService:loadChartAbsolute(chartview)
 	local chart, chartmeta = self:loadChart(chartview)

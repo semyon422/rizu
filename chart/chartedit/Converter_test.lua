@@ -55,7 +55,7 @@ input 4key
 
 		local note = chart.notes:getNotes()[1]
 		local p = note.visualPoint.point
-		---@cast p ncdk2.IntervalPoint
+		---@cast p chart.IntervalPoint
 		t:eq(p.time, Fraction(-7, 2))
 	end
 
@@ -105,7 +105,7 @@ input 4key
 
 		local note = chart.notes:getNotes()[1]
 		local p = note.visualPoint.point
-		---@cast p ncdk2.IntervalPoint
+		---@cast p chart.IntervalPoint
 		t:eq(p.time, Fraction(-4))
 	end
 
@@ -210,7 +210,7 @@ input 4key
 	local _layers, _notes = Converter:load(chart)
 
 	local notes = chart.notes:getNotes()
-	---@type ncdk2.Note[]
+	---@type chart.Note[]
 	local enotes = {}
 	for n in _notes:iter() do
 		table.insert(enotes, n)
@@ -221,7 +221,7 @@ input 4key
 	for i, n in ipairs(notes) do
 		local a = n.visualPoint.point
 		local b = enotes[i].visualPoint.point
-		---@cast a ncdk2.IntervalPoint
+		---@cast a chart.IntervalPoint
 		---@cast b chartedit.Point
 		t:eq(a.time, b:getGlobalTime())
 	end

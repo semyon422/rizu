@@ -16,8 +16,8 @@ local ReplayPlayer = require("rizu.engine.replay.ReplayPlayer")
 
 ---@class sea.ComputeContext
 ---@operator call: sea.ComputeContext
----@field chart_chartmetas {chart: ncdk2.Chart, chartmeta: sea.Chartmeta}[]?
----@field chart ncdk2.Chart?
+---@field chart_chartmetas {chart: chart.Chart, chartmeta: sea.Chartmeta}[]?
+---@field chart chart.Chart?
 ---@field chartmeta sea.Chartmeta?
 ---@field chartdiff sea.Chartdiff?
 ---@field chartplay sea.Chartplay?
@@ -30,7 +30,7 @@ end
 ---@param name string
 ---@param data string
 ---@param index integer
----@return {chart: ncdk2.Chart, chartmeta: sea.Chartmeta}?
+---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}?
 ---@return string?
 function ComputeContext:fromFileData(name, data, index)
 	local ccm, err = ChartFactory:getCharts(name, data)
@@ -47,7 +47,7 @@ function ComputeContext:fromFileData(name, data, index)
 	}
 end
 
----@return ncdk2.Chart?
+---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ComputeContext:toAbsolute()
 	self.chart.layers.main:toAbsolute()
@@ -77,7 +77,7 @@ function ComputeContext:applyModifierReorder(replayBase, inputMode)
 	replayBase.columns_order = co:export()
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param rate number
 ---@return sea.Chartdiff
 ---@return sphere.DiffcalcContext
@@ -220,7 +220,7 @@ function ComputeContext:applyColumnOrder(columns_order)
 	chart.notes = new_notes
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param tempo number
 local function applyTempo(chart, tempo)
 	for _, visual in ipairs(chart:getVisuals()) do

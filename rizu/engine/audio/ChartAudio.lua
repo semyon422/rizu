@@ -36,7 +36,7 @@ function ChartAudio:getStartTime()
 	return sound and sound.time or 0
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param with_playable boolean?
 function ChartAudio:load(chart, with_playable)
 	local sounds = self.sounds

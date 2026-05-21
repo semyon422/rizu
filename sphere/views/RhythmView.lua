@@ -74,7 +74,7 @@ function RhythmView:drawSelected(note)
 	end
 end
 
----@param note ncdk2.Note
+---@param note chart.Note
 function RhythmView:pressNote(note) end
 
 ---@return sphere.NoteSkin

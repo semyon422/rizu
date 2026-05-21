@@ -53,7 +53,7 @@ end
 ---@param range {[1]: number, [2]: number}
 ---@return chart.VisualEvent[]
 function VisualEventsN2:generate(vps, range)
-	---@type ncdk2.VisualEvent[]
+	---@type chart.VisualEvent[]
 	local events = {}
 
 	for j = 1, #vps do

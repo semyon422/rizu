@@ -5,7 +5,7 @@ local Sph = require("chart.format.sph.Sph")
 local ChartDecoder = require("chart.format.sph.ChartDecoder")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 
----@alias rizu.library.ChartProvider fun(hash: string): ncdk2.Chart[]?, string?
+---@alias rizu.library.ChartProvider fun(hash: string): chart.Chart[]?, string?
 
 ---@class rizu.library.DifficultyTask
 ---@operator call: rizu.library.DifficultyTask
@@ -76,7 +76,7 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 	local chartdiffs = self.chartsRepo:getIncompleteChartdiffs()
 	
 	self.batchProcessor:process(chartdiffs, "difficulty", #chartdiffs, function(chartdiff)
-		---@type ncdk2.Chart
+		---@type chart.Chart
 		local chart
 
 		local preview = chartdiff.notes_preview

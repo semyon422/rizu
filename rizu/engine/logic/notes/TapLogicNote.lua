@@ -6,7 +6,7 @@ local LogicNote = require("rizu.engine.logic.notes.LogicNote")
 ---@operator call: rizu.TapLogicNote
 local TapLogicNote = LogicNote + {}
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param logic_info rizu.LogicInfo
 function TapLogicNote:new(note, logic_info)
 	assert(note:getType() == "tap")

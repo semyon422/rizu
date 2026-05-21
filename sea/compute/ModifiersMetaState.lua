@@ -18,7 +18,7 @@ function ModifiersMetaState:resetOrder()
 	self.reorders = 0
 end
 
----@param map {[ncdk2.Column]: ncdk2.Column}
+---@param map {[chart.Column]: chart.Column}
 function ModifiersMetaState:applyOrder(map)
 	self.reorders = self.reorders + 1
 	self.columns_order:apply(map)

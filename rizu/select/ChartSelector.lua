@@ -164,7 +164,7 @@ function ChartSelector:getAudioPathPreview()
 end
 
 ---@param settings table?
----@return ncdk2.Chart?
+---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ChartSelector:loadChart(settings)
 	local chartview = self.chartview
@@ -173,7 +173,7 @@ function ChartSelector:loadChart(settings)
 end
 
 ---@param settings table?
----@return ncdk2.Chart?
+---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ChartSelector:loadChartAbsolute(settings)
 	local chartview = self.chartview

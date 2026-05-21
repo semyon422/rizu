@@ -39,7 +39,7 @@ function Engine:setEnabled(enabled)
 	end
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param resources {[string]: string}?
 ---@param auto_key_sound boolean?
 function Engine:load(chart, resources, auto_key_sound)

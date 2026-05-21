@@ -191,7 +191,7 @@ function RhythmModel:setAdjustRate(adjustRate)
 	self.timeEngine.adjustRate = adjustRate
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param chartmeta sea.Chartmeta
 ---@param chartdiff sea.Chartdiff
 ---@param diffcalc_context sphere.DiffcalcContext

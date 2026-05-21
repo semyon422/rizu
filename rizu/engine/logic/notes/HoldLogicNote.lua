@@ -22,7 +22,7 @@ local active_states = table_util.invert({
 ---@operator call: rizu.HoldLogicNote
 local HoldLogicNote = LogicNote + {}
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param logic_info rizu.LogicInfo
 function HoldLogicNote:new(note, logic_info)
 	assert(note:isLong())

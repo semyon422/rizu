@@ -9,7 +9,7 @@ local LinkedNote = require("chart.model.notes.LinkedNote")
 local ShortEditorNote = EditorNote + ShortVisualNote
 
 ---@param absoluteTime number
----@param column ncdk2.Column
+---@param column chart.Column
 ---@return rizu.editor.ShortEditorNote?
 function ShortEditorNote:create(absoluteTime, column)
 	local editorModel = self.editorModel
@@ -69,7 +69,7 @@ function ShortEditorNote:copy(copyPoint)
 end
 
 ---@param point chartedit.Point
----@return ncdk2.Note[]
+---@return chart.Note[]
 function ShortEditorNote:paste(point)
 	local layer = self.editorModel.layer
 	local visual = self.editorModel.visual

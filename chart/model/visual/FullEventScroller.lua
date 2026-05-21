@@ -20,7 +20,7 @@ function FullEventScroller:generate(points, lazy)
 
 	self.ve = VisualEvents()
 
-	---@type ncdk2.EventScroller[]
+	---@type chart.EventScroller[]
 	self.scrollers = {}
 	self.end_po2 = end_po2
 	self.scroller_index = start_po2
@@ -87,7 +87,7 @@ end
 ---@return {[chart.VisualPoint]: true}
 ---@return {[chart.VisualPoint]: true}
 local function map_update(_new, _old)
-	---@type {[ncdk2.VisualPoint]: true}, {[ncdk2.VisualPoint]: true}
+	---@type {[chart.VisualPoint]: true}, {[chart.VisualPoint]: true}
 	local old, new = {}, {}
 	for v in pairs(_new) do
 		if not _old[v] then

@@ -197,7 +197,7 @@ function NoteManager:removeNote(note)
 	self.editorModel.editorChanges:next()
 end
 
----@param notes ncdk2.Note[]
+---@param notes chart.Note[]
 function NoteManager:_addNotes(notes)
 	local lnotes = self.editorModel.notes
 	local found = false

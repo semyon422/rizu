@@ -18,7 +18,7 @@ local notes = {
 }
 
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@return sphere.LogicalNote?
 function LogicalNoteFactory:getNote(note)
 	local classAndData = notes[note:getType()]

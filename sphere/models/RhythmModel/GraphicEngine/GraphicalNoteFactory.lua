@@ -15,7 +15,7 @@ local GraphicalNoteFactory = class()
 ---| "ImageNote"
 ---| "VideoNote"
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@return sphere.GraphicalNoteType
 local function getImageNoteType(note)
 	local image = note.startNote.data.images[1]
@@ -41,7 +41,7 @@ local notes = {
 	sprite = {ImageNote, getImageNoteType},
 }
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@return sphere.GraphicalNote?
 function GraphicalNoteFactory:getNote(note)
 	local classAndType = notes[note:getType()]

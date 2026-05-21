@@ -27,7 +27,7 @@ function Restorer:restore(vps)
 
 		local cur_vel = dvt / dat
 
-		---@type ncdk2.Vertex?
+		---@type chart.Vertex?
 		local vertex = next_vp.point.vertex
 		if vertex then
 			dvt = dvt / vertex:getBeatDuration()

@@ -51,7 +51,7 @@ function Notes:removeAll(vp)
 	for _, tree in pairs(self.trees) do
 		local a = tree:findex(vp, ex_vp)
 		if a then
-			---@type ncdk2.Note
+			---@type chart.Note
 			local note = a.key
 			tree:remove(note)
 		end
@@ -75,7 +75,7 @@ function Notes:iter(start_time, end_time)
 			a = a or b
 			a = a and a:prev() or a
 			while a do
-				---@type ncdk2.Note
+				---@type chart.Note
 				local note = a.key
 				if note:getTime() > end_time then
 					break
@@ -112,11 +112,11 @@ function Notes:iterLinked(start_time, end_time)
 			a = a or b
 			a = a and a:prev() or a
 
-			---@type {[ncdk2.Column]: {[ncdk2.NoteType]: ncdk2.Note[]}}
+			---@type {[chart.Column]: {[chart.NoteType]: chart.Note[]}}
 			local ctn_stack = {}
 
 			while a do
-				---@type ncdk2.Note
+				---@type chart.Note
 				local note = a.key
 				if note:getTime() > end_time and is_ctn_stack_empty(ctn_stack) then
 					break
@@ -144,7 +144,7 @@ end
 ---@param end_time number?
 ---@return chart.Note[]
 function Notes:getNotes(start_time, end_time)
-	---@type ncdk2.Note[]
+	---@type chart.Note[]
 	local notes = {}
 	for note in self:iter(start_time, end_time) do
 		table.insert(notes, note)
@@ -157,7 +157,7 @@ end
 ---@param end_time number?
 ---@return chart.LinkedNote[]
 function Notes:getLinkedNotes(start_time, end_time)
-	---@type ncdk2.LinkedNote[]
+	---@type chart.LinkedNote[]
 	local notes = {}
 	for note in self:iterLinked(start_time, end_time) do
 		table.insert(notes, note)

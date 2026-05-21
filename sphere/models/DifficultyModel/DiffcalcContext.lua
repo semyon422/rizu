@@ -7,7 +7,7 @@ local simplify_notechart = require("chart.transform.simplify_notechart")
 local DiffcalcContext = class()
 
 ---@param chartdiff sea.Chartdiff
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param rate number
 function DiffcalcContext:new(chartdiff, chart, rate)
 	self.chartdiff = chartdiff

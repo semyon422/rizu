@@ -7,7 +7,7 @@ local InputNote = class()
 InputNote.is_bottom = false
 
 ---@param note rizu.LogicNote
----@param input_map {[ncdk2.Column]: integer}
+---@param input_map {[chart.Column]: integer}
 function InputNote:new(note, input_map)
 	self.logic_note = note
 	self.input_map = input_map

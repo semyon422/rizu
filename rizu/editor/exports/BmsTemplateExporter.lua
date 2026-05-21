@@ -49,7 +49,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 	local chartview = chartSelector.chartview
 	local real_dir = chartview.real_dir
 
-	---@type ncdk2.Chart[]
+	---@type chart.Chart[]
 	local stem_charts = {}
 
 	for _, name in ipairs(love.filesystem.getDirectoryItems(real_dir) --[=[@as string[]]=]) do
@@ -113,7 +113,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 				ks_index = ks_index + 1
 
 				local point = n_a.startNote.visualPoint.point
-				---@cast point ncdk2.IntervalPoint
+				---@cast point chart.IntervalPoint
 
 				if not tempo then
 					tempo = point.vertex:getTempo()

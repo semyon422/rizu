@@ -7,7 +7,7 @@ local VisualPoint = require("chart.model.visual.VisualPoint")
 ---@operator call: sphere.ColumnsRenderer
 local ColumnsRenderer = class()
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param graphicEngine sphere.GraphicEngine
 function ColumnsRenderer:new(chart, graphicEngine)
 	self.chart = chart
@@ -15,14 +15,14 @@ function ColumnsRenderer:new(chart, graphicEngine)
 end
 
 function ColumnsRenderer:load()
-	---@type {[ncdk2.Visual]: ncdk2.VisualPoint}
+	---@type {[chart.Visual]: chart.VisualPoint}
 	self.cvp = {}
 
 	for _, visual in ipairs(self.chart:getVisuals()) do
 		self.cvp[visual] = VisualPoint(Point())
 	end
 
-	---@type {[ncdk2.Column]: sphere.ColumnRenderer}
+	---@type {[chart.Column]: sphere.ColumnRenderer}
 	self.columnRenderers = {}
 	for column, notes in pairs(self.chart.notes:getColumnLinkedNotes()) do
 		local columnRenderer = ColumnRenderer(notes, column, self)

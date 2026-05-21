@@ -21,14 +21,14 @@ function Restorer:restore(refchart)
 
 	chart.inputMode = InputMode(refchart.inputmode)
 
-	---@type {[string]: {[string]: ncdk2.VisualPoint[]}}
+	---@type {[string]: {[string]: chart.VisualPoint[]}}
 	local ps = {}
 
 	for l_name, _layer in pairs(refchart.layers) do
 		local layer = AbsoluteLayer()
 		chart.layers[l_name] = layer
 
-		---@type ncdk2.AbsolutePoint[]
+		---@type chart.AbsolutePoint[]
 		local points = {}
 
 		for i, _p in ipairs(_layer.points) do

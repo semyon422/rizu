@@ -12,7 +12,7 @@ local MeasureInterval = class()
 ---@param points chart.MeasurePoint[]
 ---@return {[string]: chart.IntervalPoint}
 function MeasureInterval:convertPoints(points)
-	---@type {[string]: ncdk2.IntervalPoint}
+	---@type {[string]: chart.IntervalPoint}
 	local points_map = {}
 	if #points == 0 then
 		return points_map
@@ -20,12 +20,12 @@ function MeasureInterval:convertPoints(points)
 
 	local absoluteTime = 0
 
-	---@type ncdk2.IntervalPoint
+	---@type chart.IntervalPoint
 	local last_point
 
 	local prev_stop = false
 
-	---@type ncdk2.Tempo?
+	---@type chart.Tempo?
 	local _tempo
 	local stop_beats = 0
 	for _, p in ipairs(points) do
@@ -39,7 +39,7 @@ function MeasureInterval:convertPoints(points)
 		local beatTime = assert(p.beatTime) + stop_beats
 		absoluteTime = assert(p.absoluteTime)
 
-		---@cast p -ncdk2.MeasurePoint, +ncdk2.IntervalPoint
+		---@cast p -chart.MeasurePoint, +chart.IntervalPoint
 		setmetatable(p, IntervalPoint)
 		table_util.clear(p)
 
@@ -53,7 +53,7 @@ function MeasureInterval:convertPoints(points)
 	end
 
 	-- Non empty MeasureLayer always have at least one Tempo object
-	---@cast _tempo ncdk2.Tempo
+	---@cast _tempo chart.Tempo
 
 	if #points == 1 then
 		last_point = IntervalPoint(last_point.time + 1)
@@ -79,7 +79,7 @@ function MeasureInterval:convert(layer)
 
 	local visuals = layer.visuals
 
-	---@cast layer -ncdk2.MeasureLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.MeasureLayer, +chart.IntervalLayer
 	setmetatable(layer, IntervalLayer)
 	table_util.clear(layer)
 

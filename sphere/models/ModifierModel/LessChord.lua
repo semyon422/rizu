@@ -33,7 +33,7 @@ end
 --		 and LN + LN chords
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function LessChord:apply(config, chart)
 	local configVal
 	if config.value ~= "none" then

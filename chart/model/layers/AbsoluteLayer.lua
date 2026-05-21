@@ -20,7 +20,7 @@ end
 ---@param time number
 ---@return chart.AbsolutePoint
 function AbsoluteLayer:getPoint(time)
-	---@type ncdk2.AbsolutePoint
+	---@type chart.AbsolutePoint
 	return Layer.getPoint(self, time)
 end
 

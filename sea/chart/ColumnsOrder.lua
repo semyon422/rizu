@@ -37,7 +37,7 @@ function ColumnsOrder:import(values)
 
 	values = values or {}
 
-	---@type {[ncdk2.Column]: ncdk2.Column}
+	---@type {[chart.Column]: chart.Column}
 	local map = {}
 	for i = 1, columns do
 		map[inputs[values[i] or i]] = inputs[i]
@@ -66,7 +66,7 @@ function ColumnsOrder:export()
 	return nil
 end
 
----@return {[ncdk2.Column]: ncdk2.Column}
+---@return {[chart.Column]: chart.Column}
 function ColumnsOrder:getInverseMap()
 	return table_util.invert(self.map)
 end
@@ -77,7 +77,7 @@ function ColumnsOrder:equals(co)
 	return table_util.equal(self.map, co.map)
 end
 
----@param map {[ncdk2.Column]: ncdk2.Column}
+---@param map {[chart.Column]: chart.Column}
 ---@return sea.ColumnsOrder
 function ColumnsOrder:apply(map)
 	for a, b in pairs(self.map) do
@@ -93,7 +93,7 @@ function ColumnsOrder:transform(f, ...)
 	local inputMode = self.inputMode
 	---@cast inputMode +{[string]: integer}
 
-	---@type {[ncdk2.Column]: ncdk2.Column}
+	---@type {[chart.Column]: chart.Column}
 	local map = {}
 
 	for t, c in pairs(inputMode) do

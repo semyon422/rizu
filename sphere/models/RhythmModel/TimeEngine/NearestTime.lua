@@ -14,7 +14,7 @@ function NearestTime:new(window)
 	self.currentIndex = 1
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function NearestTime:loadTimePoints(chart)
 	local timeList = {}
 

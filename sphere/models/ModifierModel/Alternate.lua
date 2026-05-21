@@ -30,7 +30,7 @@ function Alternate:applyMeta(config, state)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function Alternate:apply(config, chart)
 	local inputMode = chart.inputMode
 

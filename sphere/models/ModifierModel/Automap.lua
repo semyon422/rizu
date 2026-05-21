@@ -45,7 +45,7 @@ function Automap:applyMeta(config, state)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function Automap:apply(config, chart)
 	self.old = config.version == -1
 	self.targetMode = config.value

@@ -25,7 +25,7 @@ function LogicNoteFactory:new(logic_info)
 	self.logic_info = logic_info
 end
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@return rizu.LogicNote?
 function LogicNoteFactory:getNote(note)
 	local Note = notes[note:getType()]

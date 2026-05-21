@@ -23,7 +23,7 @@ function Visual:new(visual, p_to_index, vp_ref, l_name, v_name)
 		vp_ref[vp] = VisualPointReference(l_name, v_name, i)
 		_points[i] = VisualPoint(
 			vp,
-			p_to_index[vp.point --[[@as ncdk2.AbsolutePoint]]]
+			p_to_index[vp.point --[[@as chart.AbsolutePoint]]]
 		)
 	end
 end

@@ -124,11 +124,11 @@ function ChartEncoder:encodeTimingPoints()
 	local layer = self.chart.layers.main
 	local tpoints = self.rawOsu.TimingPoints
 	for _, p in pairs(layer.points) do
-		---@type ncdk2.Tempo
+		---@type chart.Tempo
 		local tempo = p._tempo
-		---@type ncdk2.Stop
+		---@type chart.Stop
 		local stop = p._stop
-		---@type ncdk2.Vertex
+		---@type chart.Vertex
 		local vertex = p._vertex
 
 		if tempo then
@@ -162,7 +162,7 @@ function ChartEncoder:encodeTimingPoints()
 	end
 	if layer.visuals.main then
 		for _, p in ipairs(layer.visuals.main.points) do
-			---@type ncdk2.Velocity
+			---@type chart.Velocity
 			local velocity = p._velocity
 			if velocity then
 				table.insert(tpoints, {

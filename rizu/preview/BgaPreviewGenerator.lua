@@ -16,7 +16,7 @@ local bms_bga_whitelist = {
 	["bmsbga10"] = true,
 }
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param hash string
 function BgaPreviewGenerator:generate(chart, hash)
 	local preview = BgaPreview()
@@ -29,7 +29,7 @@ function BgaPreviewGenerator:generate(chart, hash)
 	local column_set = {}
 
 	for _, linked_note in ipairs(chart.notes:getLinkedNotes()) do
-		local visual = chart:getVisualByPoint(linked_note.startNote.visualPoint --[[@as ncdk2.VisualPoint]])
+		local visual = chart:getVisualByPoint(linked_note.startNote.visualPoint --[[@as chart.VisualPoint]])
 
 		if visual and visual.bga then
 			local column = linked_note:getColumn()

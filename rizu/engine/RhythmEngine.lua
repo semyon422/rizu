@@ -182,7 +182,7 @@ function RhythmEngine:getProgress()
 	return self.play_progress:get(self:getTime())
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param chartmeta sea.Chartmeta
 ---@param chartdiff sea.Chartdiff
 function RhythmEngine:setChart(chart, chartmeta, chartdiff)

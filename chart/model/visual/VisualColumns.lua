@@ -11,9 +11,9 @@ local VisualColumns = class()
 function VisualColumns:new(visual, shareColumns)
 	self.visual = visual
 	self.shareColumns = shareColumns ~= false
-	---@type {[ncdk2.Point]: ncdk2.VisualPoint[] | {[ncdk2.Column]: ncdk2.VisualPoint[]}}
+	---@type {[chart.Point]: chart.VisualPoint[] | {[chart.Column]: chart.VisualPoint[]}}
 	self.points = {}
-	---@type {[ncdk2.Point]: {[ncdk2.Column]: integer}}
+	---@type {[chart.Point]: {[chart.Column]: integer}}
 	self.indexes = {}
 end
 

@@ -25,7 +25,7 @@ end
 MultiplePlay.applyMeta = MultiOverPlay.applyMeta
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function MultiplePlay:apply(config, chart)
 	local value = config.value
 

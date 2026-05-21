@@ -6,7 +6,7 @@ local LogicalNoteFactory = require("sphere.models.RhythmModel.LogicEngine.Logica
 local NoteHandler = class()
 
 ---@param logicEngine sphere.LogicEngine
----@param notes ncdk2.LinkedNote[]
+---@param notes chart.LinkedNote[]
 function NoteHandler:new(logicEngine, notes)
 	self.logicEngine = logicEngine
 	self.lnotes = notes

@@ -39,7 +39,7 @@ end
 function ChartDecoder:decode(s, hash)
 	self.hash = hash
 	local ojn = Ojn(s)
-	---@type {chart: ncdk2.Chart, chartmeta: sea.Chartmeta}[]
+	---@type {chart: chart.Chart, chartmeta: sea.Chartmeta}[]
 	local ret = {{}, {}, {}}
 	ret[1].chart, ret[1].chartmeta = self:decodeOjn(ojn, 1)
 	ret[2].chart, ret[2].chartmeta = self:decodeOjn(ojn, 2)

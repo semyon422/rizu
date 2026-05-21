@@ -18,7 +18,7 @@ end
 function IntervalCompute:compute(points)
 	local measure = self:getFirstMeasure(points)
 
-	---@type ncdk2.Vertex[]
+	---@type chart.Vertex[]
 	local intervals = {}
 	for _, p in ipairs(points) do
 		if p._vertex then

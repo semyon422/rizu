@@ -12,7 +12,7 @@ function FakeLogicNote:new()
 	self.inputs = {}
 end
 
----@return ncdk2.Column
+---@return chart.Column
 function FakeLogicNote:getColumn()
 	return self.column
 end

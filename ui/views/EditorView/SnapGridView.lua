@@ -67,7 +67,7 @@ local snaps = {
 	[8] = colors.green,
 }
 
----@param point ncdk2.IntervalPoint
+---@param point chart.IntervalPoint
 ---@param field string
 ---@param currentTime number
 ---@param width number

@@ -20,7 +20,7 @@ end
 ---@param time chart.Fraction
 ---@return chart.IntervalPoint
 function IntervalLayer:getPoint(time)
-	---@type ncdk2.IntervalPoint
+	---@type chart.IntervalPoint
 	return Layer.getPoint(self, time)
 end
 

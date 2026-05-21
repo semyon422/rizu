@@ -72,7 +72,7 @@ end
 function InputMode:getInputs()
 	local inputs = self:getList()
 
-	---@type ncdk2.Column[]
+	---@type chart.Column[]
 	local i2c = {}
 
 	for i = 1, #inputs do
@@ -88,7 +88,7 @@ end
 function InputMode:getInputMap()
 	local inputs = self:getList()
 
-	---@type {[ncdk2.Column]: integer}
+	---@type {[chart.Column]: integer}
 	local c2i = {}
 
 	local count = 0

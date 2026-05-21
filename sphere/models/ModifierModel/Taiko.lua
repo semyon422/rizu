@@ -26,7 +26,7 @@ local function getKey(i)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function Taiko:apply(config, chart)
 	local inputMode = chart.inputMode
 

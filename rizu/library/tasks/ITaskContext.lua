@@ -26,7 +26,7 @@ local class = require("class")
 local ITaskContext = class()
 
 ---@param hash string
----@return ncdk2.Chart[]?
+---@return chart.Chart[]?
 ---@return string?
 function ITaskContext:getChartsByHash(hash)
 	error("not implemented")

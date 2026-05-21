@@ -46,7 +46,7 @@ function AudioEngine:unload()
 	self.loaded = false
 end
 
----@param note ncdk2.Note
+---@param note chart.Note
 ---@param isBackground boolean?
 function AudioEngine:playNote(note, isBackground)
 	if not self.loaded or not note or not note.data.sounds then
