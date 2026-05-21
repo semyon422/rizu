@@ -85,11 +85,11 @@ end
 function AbsoluteInterval:computeTempos(points)
 	local tempos, tempo_offsets = self:loadTempos(points)
 
-	---@type {[ncdk.Fraction]: chart.Vertex}
+	---@type {[chart.Fraction]: chart.Vertex}
 	local intervals = {}
 	---@type {[chart.Tempo]: number}
 	local tempo_beat_offsets = {}
-	---@type {[chart.Tempo]: ncdk.Fraction}
+	---@type {[chart.Tempo]: chart.Fraction}
 	local tempo_beats = {}
 
 	if #tempos == 0 then
@@ -160,7 +160,7 @@ function AbsoluteInterval:convert(layer, fraction_mode)
 	---@type {[string]: chart.IntervalPoint}
 	local points_map = {}
 
-	---@type ncdk.Fraction
+	---@type chart.Fraction
 	local prev_time
 
 	local prev_absoluteTime = 0

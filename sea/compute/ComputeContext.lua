@@ -54,7 +54,7 @@ function ComputeContext:toAbsolute()
 end
 
 ---@param replayBase sea.ReplayBase
----@param inputMode ncdk.InputMode?
+---@param inputMode chart.InputMode?
 function ComputeContext:applyModifierReorder(replayBase, inputMode)
 	if not inputMode then
 		local chart = assert(self.chart)

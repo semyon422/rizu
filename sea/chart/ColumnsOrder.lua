@@ -22,7 +22,7 @@ end
 ---@operator call: sea.ColumnsOrder
 local ColumnsOrder = class()
 
----@param inputmode string|ncdk.InputMode
+---@param inputmode string|chart.InputMode
 ---@param values integer[]? valid values
 function ColumnsOrder:new(inputmode, values)
 	self.inputMode = InputMode(inputmode)

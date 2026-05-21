@@ -79,9 +79,9 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 
 	---@type number
 	local tempo
-	---@type {time: ncdk.Fraction, column: integer, sound: integer}[]
+	---@type {time: chart.Fraction, column: integer, sound: integer}[]
 	local notes = {}
-	---@type ncdk.Fraction
+	---@type chart.Fraction
 	local max_time
 
 	local beat_offset = editorModel.bmsToolsContext.beat_offset
@@ -139,14 +139,14 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 		return
 	end
 
-	---@type {[integer]: {[integer]: {time: ncdk.Fraction, sound: integer}[]}}
+	---@type {[integer]: {[integer]: {time: chart.Fraction, sound: integer}[]}}
 	local notes_grouped = {}
-	---@type {[integer]: {[integer]: {time: ncdk.Fraction, sound: integer}[]}}
+	---@type {[integer]: {[integer]: {time: chart.Fraction, sound: integer}[]}}
 	local play_notes_grouped = {}
 
 	local pattern_notes = getPatternNotes(editorModel.notes, sounds_map)
 
-	---@param time ncdk.Fraction
+	---@param time chart.Fraction
 	---@param sound integer
 	---@return integer?
 	local function getPatternKey(time, sound)

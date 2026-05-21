@@ -6,7 +6,7 @@ local ColumnsOrder = require("sea.chart.ColumnsOrder")
 ---@operator call: sea.ModifiersMetaState
 local ModifiersMetaState = class()
 
----@param inputMode ncdk.InputMode?
+---@param inputMode chart.InputMode?
 function ModifiersMetaState:new(inputMode)
 	self.inputMode = InputMode(inputMode)
 	self.custom = false

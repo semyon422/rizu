@@ -42,7 +42,7 @@ local ChartDecoders = {
 ---@param filename string
 ---@return chart.IChartDecoder
 function ChartFactory:getChartDecoder(filename)
-	---@type chartbase.IChartDecoder
+	---@type chart.IChartDecoder
 	local Decoder = assert(ChartDecoders[path_util.ext(filename, true)])
 	return Decoder()
 end
@@ -55,7 +55,7 @@ end
 function ChartFactory:getCharts(filename, content, hash)
 	hash = hash or digest.hash("md5", content, true)
 
-	---@type chartbase.IChartDecoder
+	---@type chart.IChartDecoder
 	local decoder = assert(ChartDecoders[path_util.ext(filename, true)], filename)()
 
 	local status, chart_chartmetas = xpcall(decoder.decode, debug.traceback, decoder, content, hash)

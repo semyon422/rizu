@@ -123,7 +123,7 @@ function ModifierModel:fixOldFormat(modifiers)
 end
 
 ---@param replayBase sea.ReplayBase
----@param inputMode ncdk.InputMode
+---@param inputMode chart.InputMode
 ---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ModifierModel:applyModifierReorder(replayBase, inputMode)

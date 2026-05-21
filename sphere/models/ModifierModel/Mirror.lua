@@ -19,7 +19,7 @@ function Mirror:getString(config)
 end
 
 ---@param config table
----@param inputMode ncdk.InputMode
+---@param inputMode chart.InputMode
 ---@return table
 function Mirror:getMap(config, inputMode)
 	---@type {[chart.Column]: chart.Column}

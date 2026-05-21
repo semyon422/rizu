@@ -29,7 +29,7 @@ function Shift:getString(config)
 end
 
 ---@param config table
----@param inputMode ncdk.InputMode
+---@param inputMode chart.InputMode
 ---@return table
 function Shift:getMap(config, inputMode)
 	local map = {}

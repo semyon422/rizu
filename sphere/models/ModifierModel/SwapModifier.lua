@@ -9,7 +9,7 @@ local SwapModifier = Modifier + {}
 SwapModifier.name = "SwapModifier"
 
 ---@param config table
----@param inputMode ncdk.InputMode
+---@param inputMode chart.InputMode
 ---@return {[chart.Column]: chart.Column}
 function SwapModifier:getMap(config, inputMode)
 	return {}

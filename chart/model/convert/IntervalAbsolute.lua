@@ -38,7 +38,7 @@ function IntervalAbsolute:convertPoints(points)
 
 		local time = p.time
 
-		---@type ncdk.Fraction
+		---@type chart.Fraction
 		local beat_offset
 		if measure then
 			beat_offset = measure.offset

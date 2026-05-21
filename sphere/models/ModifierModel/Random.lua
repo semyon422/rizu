@@ -19,7 +19,7 @@ function Random:getString(config)
 end
 
 ---@param config table
----@param inputMode ncdk.InputMode
+---@param inputMode chart.InputMode
 ---@return table
 function Random:getMap(config, inputMode)
 	local value = config.value

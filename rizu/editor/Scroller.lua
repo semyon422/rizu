@@ -48,7 +48,7 @@ end
 ---@param point chartedit.Point
 ---@param delta number
 ---@return chartedit.Vertex
----@return ncdk.Fraction
+---@return chart.Fraction
 function Scroller:getNextSnapIntervalTime(point, delta)
 	local editor = self.editorModel:getSettings()
 

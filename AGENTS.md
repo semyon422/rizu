@@ -54,8 +54,8 @@ When performing mass find-and-replace (e.g., renaming namespaces, moving modules
 # Only touch require() calls
 sed '/require.*"/ s/old.prefix/new.prefix/g' file.lua
 
-# Only touch annotation lines (use --- not ^--- — annotations are often indented)
-sed '/---/ s/old.prefix/new.prefix/g' file.lua
+# Only touch comments (covers --- annotations, -- inline casts, and all comment variants)
+sed '/--/ s/old.prefix/new.prefix/g' file.lua
 ```
 
 **Rules:**
