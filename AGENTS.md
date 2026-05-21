@@ -277,3 +277,35 @@ Update a nearby `spec.md` when you:
 - formalize conventions that future agents need in that folder.
 
 Keep root `AGENTS.md` focused on universal rules. Put feature-specific details in the closest relevant `spec.md`.
+
+## PI Agent
+
+This repository ships custom PI extensions in `.pi/extensions/`. Agents running under PI have access to these in addition to the default tool set.
+
+### Extensions
+
+#### `run_tests`
+
+Tool: `run_tests` — runs the Lua test suite via `./test --json` and returns structured results.
+
+Parameters:
+- `file_pattern` — file path pattern to match test files (e.g. `rizu/gameplay`, `GameplayTimings_test.lua`). Omit to run all tests.
+- `method_pattern` — Lua pattern to match test method names within matched files (e.g. `auto_timings`).
+
+Use `run_tests` instead of calling `./test` through `bash`. It parses JSON output, formats timing per file, and surfaces error details with file, line, and method context.
+
+#### Auto-Test Notification
+
+When the `edit` or `write` tool modifies a `.lua` file that has a corresponding `_test.lua` file, the extension posts a notification so the agent knows tests exist for that module.
+
+### Common Pitfalls
+
+- When using the `edit` tool, always pass `edits` as an array of objects (`[{oldText, newText}, ...]`). Passing a string (e.g. from JSON serialization) causes a validation error. Double-check the structure before calling.
+
+### Extension Development Workflow
+
+When modifying files in `.pi/extensions/`, changes do not take effect immediately. The user must run the `/reload` command to reload extensions. After editing an extension:
+
+1. Tell the user to run `/reload` and wait for confirmation that they did so.
+2. Do not test the changed extension (e.g., via `run_tests`) until the user confirms the reload.
+3. Remind the user about `/reload` if they ask you to test changes without reloading first.
