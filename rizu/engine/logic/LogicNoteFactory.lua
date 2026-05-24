@@ -7,7 +7,7 @@ local SimpleLogicNote = require("rizu.engine.logic.notes.SimpleLogicNote")
 ---@operator call: rizu.LogicNoteFactory
 local LogicNoteFactory = class()
 
----@type {[notechart.NoteType]: rizu.LogicNote?}
+---@type {[chart.NoteType]: rizu.LogicNote?}
 local notes = {
 	tap = TapLogicNote,
 	hold = HoldLogicNote,

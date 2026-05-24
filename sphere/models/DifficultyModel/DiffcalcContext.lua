@@ -1,6 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
-local simplify_notechart = require("libchart.simplify_notechart")
+local simplify_notechart = require("chart.transform.simplify_notechart")
 
 ---@class sphere.DiffcalcContext
 ---@operator call: sphere.DiffcalcContext

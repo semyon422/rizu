@@ -9,8 +9,8 @@ local InputManager = require("sphere.models.RhythmModel.InputManager")
 local PauseCounter = require("sphere.models.RhythmModel.PauseCounter")
 local ChartplayComputed = require("sea.chart.ChartplayComputed")
 local Timings = require("sea.chart.Timings")
-local osu_pp = require("libchart.osu_pp")
-local minacalc = require("libchart.minacalc")
+local osu_pp = require("chart.scoring.osu_pp")
+local minacalc = require("chart.scoring.minacalc")
 -- require("sphere.models.RhythmModel.LogicEngine.Test")
 
 ---@class sphere.RhythmModel

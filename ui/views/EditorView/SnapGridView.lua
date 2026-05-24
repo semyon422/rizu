@@ -3,7 +3,7 @@ local gfx_util = require("gfx_util")
 local math_util = require("math_util")
 local spherefonts = require("sphere.assets.fonts")
 local just = require("just")
-local Fraction = require("ncdk.Fraction")
+local Fraction = require("chart.core.Fraction")
 local imgui = require("imgui")
 
 local Layout = require("ui.views.EditorView.Layout")
@@ -116,24 +116,24 @@ function SnapGridView:drawComputedGrid(field, currentTime, width)
 	local point = layer.points:interpolateAbsolute(1, currentTime - range)
 	local measure
 
-	local interval = point.interval
+	local vertex = point.vertex
 	local time = point.time
-	interval, time = point:add(Fraction((time * snap):ceil() + 1, snap) - time)
+	vertex, time = point:add(Fraction((time * snap):ceil() + 1, snap) - time)
 
 	point = layer.points:interpolateAbsolute(1, currentTime + range)
-	local endInterval = point.interval
+	local endVertex = point.vertex
 	local endTime = point.time
 	endTime = Fraction((endTime * snap):floor(), snap)
 
-	point = layer.points:interpolateFraction(interval, time)
+	point = layer.points:interpolateFraction(vertex, time)
 
-	while interval and interval < endInterval or interval == endInterval and time <= endTime do
-		point = point or layer.points:interpolateFraction(interval, time)
+	while vertex and vertex < endVertex or vertex == endVertex and time <= endTime do
+		point = point or layer.points:interpolateFraction(vertex, time)
 		if not point or not point[field] then
 			break
 		end
 
-		local drawNothing, skipInterval
+		local drawNothing, skipVertex
 
 		if measure ~= point.measure then
 			measure = point.measure
@@ -141,18 +141,18 @@ function SnapGridView:drawComputedGrid(field, currentTime, width)
 			while delta[1] < 0 do
 				delta = delta + Fraction(1, snap)
 			end
-			interval, time = point:add(delta)
-			point = layer.points:interpolateFraction(interval, time)
+			vertex, time = point:add(delta)
+			point = layer.points:interpolateFraction(vertex, time)
 			if not point or not point[field] then
 				break
 			end
 		end
 
-		if not drawNothing and interval.next then
-			local dt = interval.next.point.absoluteTime - interval.point.absoluteTime
+		if not drawNothing and vertex.next then
+			local dt = vertex.next.point.absoluteTime - vertex.point.absoluteTime
 			if dt < 0.01 then
 				drawNothing = true
-				skipInterval = true
+				skipVertex = true
 			end
 		end
 
@@ -162,11 +162,11 @@ function SnapGridView:drawComputedGrid(field, currentTime, width)
 			self:drawSnap(point, field, currentTime, width)
 		end
 
-		if skipInterval then
-			interval, time = interval.next, interval:start()
-			point = interval.point
+		if skipVertex then
+			vertex, time = vertex.next, vertex:start()
+			point = vertex.point
 		else
-			interval, time = point:add(Fraction(1, snap))
+			vertex, time = point:add(Fraction(1, snap))
 			point = nil
 		end
 	end
@@ -178,7 +178,7 @@ end
 ---@param _h number
 function SnapGridView:drawTimings(_w, _h)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -188,16 +188,16 @@ function SnapGridView:drawTimings(_w, _h)
 	love.graphics.setColor(1, 0.8, 0.2)
 	love.graphics.setLineWidth(4)
 	for p, vp, notes in layer:iter(editorModel:getIterRange()) do
-		local interval = p._interval
+		local vertex = p._vertex
 		local measure = p._measure
 
-		if interval then
+		if vertex then
 			love.graphics.setColor(1, 0.8, 0.2)
 		elseif measure then
 			love.graphics.setColor(snaps[editorModel:getSnap(p:getBeatModulo())] or colors.white)
 		end
 
-		if interval or measure then
+		if vertex or measure then
 			local y = noteSkin:getTimePosition((editorTimePoint.absoluteTime - p.absoluteTime) * editor.speed)
 			love.graphics.line(0, y, _w, y)
 		end
@@ -209,7 +209,7 @@ end
 ---@param _h number
 function SnapGridView:drawComments(_w, _h)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -252,7 +252,7 @@ end
 ---@param self table
 local function drawMouse(self)
 	local editorModel = self.game.editorModel
-	local dt = editorModel:getMouseTime() - editorModel.point.absoluteTime
+	local dt = editorModel:getMouseTime() - editorModel.session.point.absoluteTime
 
 	love.graphics.push()
 	local w, h = Layout:move("base")
@@ -289,7 +289,7 @@ function SnapGridView:draw()
 	local lineHeight = 55
 	imgui.setSize(w, h, 200, lineHeight)
 
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 
 	love.graphics.replaceTransform(gfx_util.transform(self.transform))
 	love.graphics.translate(noteSkin.baseOffset, 0)
@@ -324,13 +324,13 @@ function SnapGridView:draw()
 		local a = noteSkin:getInverseTimePosition(_my)
 		local b = noteSkin:getInverseTimePosition(prevMouseY)
 		editorModel.scroller:scrollSecondsDelta((a - b) / editor.speed)
-		if editorModel.timer.isPlaying then
+		if editorModel.timer.is_playing then
 			editorModel:pause()
-			self.dragging = true
+			editorModel.session.dragging = true
 		end
-	elseif self.dragging then
+	elseif editorModel.session.dragging then
 		editorModel:play()
-		self.dragging = false
+		editorModel.session.dragging = false
 	end
 	prevMouseY = _my
 
@@ -351,7 +351,7 @@ function SnapGridView:draw()
 		elseif lctrl then
 			editorModel:setLogSpeed(editorModel:getLogSpeed() + scroll)
 		else
-			if editorModel.timer.isPlaying and scroll < 0 then
+			if editorModel.timer.is_playing and scroll < 0 then
 				editorModel.scroller:scrollSnaps(scroll)
 			end
 			editorModel.scroller:scrollSnaps(scroll)

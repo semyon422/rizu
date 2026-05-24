@@ -4,29 +4,23 @@ local ModuleUtil = require("rizu.build.deps.spec.module.ModuleUtil")
 ---@class rizu.build.deps.spec.module.VideoModuleSpec
 local VideoModuleSpec = {}
 
-local FFMPEG_INCLUDE_BY_TARGET = {
-	linux = "build/deps/ffmpeg-linux/include",
-	windows = "build/deps/ffmpeg-win/include",
-	macos = "build/deps/local/macos/ffmpeg/include",
-}
-
 ---@param target rizu.build.Target
 ---@param artifact string
 ---@return rizu.build.deps.Action
 local function videoCompileAction(target, artifact)
 	local compiler = "gcc"
 	local cflags = {"-shared", "-fPIC", "-Wl,-rpath,'$ORIGIN'"}
-	local lib_dirs = {"build/deps/ffmpeg-linux/lib"}
+	local lib_dirs = {BuildConfig.getFfmpegDepsDir(target) .. "/lib"}
 	local env
 	if target == "windows" then
 		compiler = ModuleUtil.CC_BY_TARGET.windows
 		cflags = {"-shared", "-fPIC"}
-		lib_dirs = {"tree/lib", "build/deps/ffmpeg-win/lib"}
+		lib_dirs = {"tree/lib", BuildConfig.getFfmpegDepsDir(target) .. "/lib"}
 	elseif target == "macos" then
 		compiler = ModuleUtil.CC_BY_TARGET.macos
 		env = ModuleUtil.ENV_BY_TARGET.macos
 		cflags = {"-shared", "-fPIC", "-undefined", "dynamic_lookup", "-Wl,-rpath,@loader_path"}
-		lib_dirs = {"build/deps/local/macos/ffmpeg/lib"}
+		lib_dirs = {BuildConfig.getFfmpegDepsDir(target) .. "/lib"}
 	end
 
 	local libs = {"avformat", "avcodec", "swresample", "swscale", "avutil", "m"}
@@ -41,7 +35,7 @@ local function videoCompileAction(target, artifact)
 		cflags = cflags,
 		includes = {
 			"tree/include/luajit-2.1",
-			FFMPEG_INCLUDE_BY_TARGET[target],
+			BuildConfig.getFfmpegDepsDir(target) .. "/include",
 		},
 		sources = {"aqua/video.c"},
 		output = artifact,
@@ -57,20 +51,20 @@ local function videoRequires(target)
 		return {
 			"tree/include/luajit-2.1/lua.h",
 			"tree/lib/libluajit-5.1.dll.a",
-			"build/deps/ffmpeg-win/include/libavcodec/avcodec.h",
-			"build/deps/ffmpeg-win/lib/libavcodec.dll.a",
+			BuildConfig.getFfmpegDepsDir(target) .. "/include/libavcodec/avcodec.h",
+			BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.dll.a",
 		}
 	elseif target == "macos" then
 		return {
 			"tree/include/luajit-2.1/lua.h",
-			"build/deps/local/macos/ffmpeg/include/libavcodec/avcodec.h",
-			"build/deps/local/macos/ffmpeg/lib/libavcodec.dylib",
+			BuildConfig.getFfmpegDepsDir(target) .. "/include/libavcodec/avcodec.h",
+			BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.dylib",
 		}
 	end
 	return {
 		"tree/include/luajit-2.1/lua.h",
-		"build/deps/ffmpeg-linux/include/libavcodec/avcodec.h",
-		"build/deps/ffmpeg-linux/lib/libavcodec.so.62",
+		BuildConfig.getFfmpegDepsDir(target) .. "/include/libavcodec/avcodec.h",
+		BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.so.62",
 	}
 end
 

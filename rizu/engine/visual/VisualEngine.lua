@@ -1,8 +1,8 @@
 local class = require("class")
 local table_util = require("table_util")
 local VisualNoteFactory = require("rizu.engine.visual.VisualNoteFactory")
-local Point = require("ncdk2.tp.Point")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
+local VisualPoint = require("chart.model.visual.VisualPoint")
 
 ---@class rizu.VisualEngine
 ---@operator call: rizu.VisualEngine

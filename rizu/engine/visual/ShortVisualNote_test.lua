@@ -1,9 +1,9 @@
 local ShortVisualNote = require("rizu.engine.visual.ShortVisualNote")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local LinkedNote = require("ncdk2.notes.LinkedNote")
-local Note = require("ncdk2.notes.Note")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
-local Point = require("ncdk2.tp.Point")
+local LinkedNote = require("chart.model.notes.LinkedNote")
+local Note = require("chart.model.notes.Note")
+local VisualPoint = require("chart.model.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
 
 local test = {}
 

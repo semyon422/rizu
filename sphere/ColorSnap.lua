@@ -1,5 +1,5 @@
 local class = require("class")
-local Snap = require("ncdk2.convert.Snap")
+local Snap = require("chart.model.convert.Snap")
 
 ---@class sphere.ColorSnap
 ---@operator call: sphere.ColorSnap

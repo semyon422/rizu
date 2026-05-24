@@ -87,4 +87,45 @@ function BuildConfig.getDepsDir()
 	return BuildConfig.ROOT_DIRS.deps
 end
 
+--- Dependency sub-directory paths (relative to deps dir)
+
+---@type {[rizu.build.Target]: string}
+BuildConfig.FFMPEG_DEPS_DIRS = {
+	linux = "ffmpeg-linux",
+	windows = "ffmpeg-win",
+	macos = "local/macos/ffmpeg",
+}
+
+---@param target rizu.build.Target
+---@return string
+function BuildConfig.getFfmpegDepsDir(target)
+	return BuildConfig.ROOT_DIRS.deps .. "/" .. BuildConfig.FFMPEG_DEPS_DIRS[target]
+end
+
+---@return string
+function BuildConfig.getSevenZipSdkDir()
+	return BuildConfig.ROOT_DIRS.deps .. "/7zsdk"
+end
+
+---@return string
+function BuildConfig.getMinacalcDepsDir()
+	return BuildConfig.ROOT_DIRS.deps .. "/minacalc"
+end
+
+---@return string
+function BuildConfig.getLuamidiDepsDir()
+	return BuildConfig.ROOT_DIRS.deps .. "/luamidi"
+end
+
+---@return string
+function BuildConfig.getOsxcrossToolchainBin()
+	return BuildConfig.ROOT_DIRS.deps .. "/osxcross/target/bin"
+end
+
+---@param target rizu.build.Target
+---@return string
+function BuildConfig.getLocalPrefixDir(target)
+	return "local/" .. target
+end
+
 return BuildConfig

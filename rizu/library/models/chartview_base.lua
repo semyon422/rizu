@@ -1,5 +1,5 @@
 local path_util = require("path_util")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local RateType = require("sea.chart.RateType")
 local ChartFormat = require("sea.chart.ChartFormat")
 local Timings = require("sea.chart.Timings")

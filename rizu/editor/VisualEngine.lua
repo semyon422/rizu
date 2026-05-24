@@ -28,7 +28,7 @@ VisualEngine.range = {-1, 1}
 
 ---@return number
 function VisualEngine:getCurrentTime()
-	return self.editorModel.point.absoluteTime
+	return self.editorModel.session.point.absoluteTime
 end
 
 ---@return number

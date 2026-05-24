@@ -1,6 +1,6 @@
 local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
 local TestChartFactory = require("sea.chart.TestChartFactory")
-local Note = require("notechart.Note")
+local Note = require("chart.format.notechart.Note")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}

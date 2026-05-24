@@ -17,14 +17,14 @@ return function(self, w, h)
 	love.graphics.setColor(1, 1, 1, 1)
 
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 
 	local firstTime, lastTime = editorModel:getFirstLastTime()
 	local fullLength = lastTime - firstTime
 	local value = (editorTimePoint.absoluteTime - firstTime) / fullLength
 
 	local densityPoints = editorModel.graphsGenerator.densityGraph
-	local intervalPoints = editorModel.graphsGenerator.intervalDatasGraph
+	local vertexPoints = editorModel.graphsGenerator.vertexDatasGraph
 
 	local over = just.is_over(w, h)
 	local pos = getPosition(w, h)
@@ -40,9 +40,9 @@ return function(self, w, h)
 	local a, b = h / 2, w - h / 2
 
 	love.graphics.setColor(1, 1, 0.1, 0.7)
-	for i = 0, intervalPoints.n do
-		if intervalPoints[i] then
-			local x = math_util.map(i, 0, intervalPoints.n, a, b)
+	for i = 0, vertexPoints.n do
+		if vertexPoints[i] then
+			local x = math_util.map(i, 0, vertexPoints.n, a, b)
 			love.graphics.line(x, pad, x, _h + pad)
 		end
 	end
@@ -73,12 +73,12 @@ return function(self, w, h)
 		if new_value then
 			editorModel.scroller:scrollSeconds(new_value * fullLength + firstTime)
 		end
-		if editorModel.timer.isPlaying then
+		if editorModel.timer.is_playing then
 			editorModel:pause()
-			editorModel.dragging = true
+			editorModel.session.dragging = true
 		end
-	elseif editorModel.dragging then
+	elseif editorModel.session.dragging then
 		editorModel:play()
-		editorModel.dragging = false
+		editorModel.session.dragging = false
 	end
 end

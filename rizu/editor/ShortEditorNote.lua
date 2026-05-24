@@ -1,8 +1,8 @@
 local EditorNote = require("rizu.editor.EditorNote")
 local ShortVisualNote = require("rizu.engine.visual.ShortVisualNote")
-local VisualPoint = require("chartedit.VisualPoint")
-local Note = require("ncdk2.notes.Note")
-local LinkedNote = require("ncdk2.notes.LinkedNote")
+local VisualPoint = require("chart.chartedit.VisualPoint")
+local Note = require("chart.model.notes.Note")
+local LinkedNote = require("chart.model.notes.LinkedNote")
 
 ---@class rizu.editor.ShortEditorNote: rizu.editor.EditorNote, rizu.ShortVisualNote
 ---@operator call: rizu.editor.ShortEditorNote

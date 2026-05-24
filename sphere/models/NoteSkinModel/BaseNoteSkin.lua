@@ -1,7 +1,7 @@
 local NoteSkinVsrg = require("sphere.models.NoteSkinModel.NoteSkinVsrg")
 local BasePlayfield = require("sphere.models.NoteSkinModel.BasePlayfield")
 local JustConfig = require("sphere.JustConfig")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 ---@class sphere.BaseNoteSkin: sphere.NoteSkinVsrg
 ---@operator call: sphere.BaseNoteSkin

@@ -1,5 +1,5 @@
-local NoteChartExporter = require("osu.NoteChartExporter")
-local NoteChartFactory = require("notechart.NoteChartFactory")
+local NoteChartExporter = require("chart.format.osu.NoteChartExporter")
+local NoteChartFactory = require("chart.format.notechart.NoteChartFactory")
 
 ---@param path string
 ---@param index number?

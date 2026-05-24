@@ -1,7 +1,7 @@
 local rbtree = require("rbtree")
 local ncbt = require("ncbt")
 local class = require("class")
-local Visual = require("chartedit.Visual")
+local Visual = require("chart.chartedit.Visual")
 
 ---@class rizu.editor.NcbtContext
 ---@operator call: rizu.editor.NcbtContext
@@ -55,11 +55,11 @@ function NcbtContext:apply(layer)
 
 	local p = layer.points:getFirstPoint()
 	visual:getPoint(p)
-	p._interval:new(self.offset, beats)
+	p._vertex:new(self.offset, beats)
 
 	local p = layer.points:getLastPoint()
 	visual:getPoint(p)
-	p._interval:new(lastOffset, 1)
+	p._vertex:new(lastOffset, 1)
 
 end
 

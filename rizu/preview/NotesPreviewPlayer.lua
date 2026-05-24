@@ -1,9 +1,9 @@
 local class = require("class")
 local VisualEngine = require("rizu.engine.visual.VisualEngine")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local ChartDecoder = require("sph.ChartDecoder")
-local SphPreview = require("sph.SphPreview")
-local Sph = require("sph.Sph")
+local ChartDecoder = require("chart.format.sph.ChartDecoder")
+local SphPreview = require("chart.format.sph.SphPreview")
+local Sph = require("chart.format.sph.Sph")
 local BaseSkinInfo = require("sphere.models.NoteSkinModel.BaseSkinInfo")
 local ComputeContext = require("sea.compute.ComputeContext")
 

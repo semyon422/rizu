@@ -1,7 +1,7 @@
 local just = require("just")
 local spherefonts = require("sphere.assets.fonts")
 local imgui = require("imgui")
-local Fraction = require("ncdk.Fraction")
+local Fraction = require("chart.core.Fraction")
 local gfx_util = require("gfx_util")
 
 local Layout = require("ui.views.EditorView.Layout")
@@ -96,7 +96,7 @@ function tabs.audio(self)
 	imgui.separator()
 	local md = self.game.editorModel.chartmeta
 	if imgui.button("set as preview", "set this moment as a preview") then
-		md.preview_time = editorModel.point.absoluteTime
+		md.preview_time = editorModel.session.point.absoluteTime
 	end
 end
 
@@ -109,7 +109,7 @@ function tabs.timings(self)
 	local editor = self.game.configModel.configs.settings.editor
 	local layer = editorModel.layer
 
-	local dtp = editorModel.point
+	local dtp = editorModel.session.point
 
 	if imgui.button("prev tp", "<") and dtp.prev then
 		editorModel.scroller:scrollTimePoint(dtp.prev)
@@ -135,36 +135,36 @@ function tabs.timings(self)
 
 	imgui.separator()
 
-	local interval = dtp._interval
+	local vertex = dtp._vertex
 	local intervalManager = editorModel.intervalManager
 
-	if dtp.interval then
-		imgui.text("Tempo: " .. dtp.interval:getTempo() .. " bpm")
+	if dtp.vertex then
+		imgui.text("Tempo: " .. dtp.vertex:getTempo() .. " bpm")
 	end
 
 	if not intervalManager:isGrabbed() then
-		if not interval then
+		if not vertex then
 			if imgui.button("split button", "split") then
 				intervalManager:split(dtp)
 			end
-		elseif imgui.button("grab interval button", "grab") then
-			intervalManager:grab(interval)
+		elseif imgui.button("grab vertex button", "grab") then
+			intervalManager:grab(vertex)
 		end
 	else
-		if imgui.button("drop interval button", "drop") then
+		if imgui.button("drop vertex button", "drop") then
 			intervalManager:drop()
 		end
 	end
-	if interval and not intervalManager:isGrabbed() then
+	if vertex and not intervalManager:isGrabbed() then
 		just.sameline()
-		if imgui.button("merge interval button", "merge") then
-			intervalManager:merge(interval.point)
+		if imgui.button("merge vertex button", "merge") then
+			intervalManager:merge(vertex.point)
 			editorModel.scroller:scrollSecondsDelta(0)
 		end
-		local beats = interval.beats
-		local newBeats = imgui.intButtons("update interval", beats, 1, "beats")
+		local beats = vertex.beats
+		local newBeats = imgui.intButtons("update vertex", beats, 1, "beats")
 		if beats ~= newBeats then
-			intervalManager:update(interval, newBeats)
+			intervalManager:update(vertex, newBeats)
 		end
 	end
 
@@ -263,7 +263,7 @@ function tabs.notes(self)
 		editorModel.noteManager:changeType()
 	end
 
-	local _, note = next(editorModel.graphicEngine.selectedNotes)
+	local _, note = next(editorModel.visualEngine.selectedNotes)
 	if note and imgui.button("scroll to note", "scroll to") then
 		editorModel.scroller:scrollPoint(note.startNote.visualPoint.point)
 	end
@@ -275,17 +275,17 @@ function tabs.notes(self)
 		if batch_comment == "" then
 			batch_comment = nil
 		end
-		for _, note in pairs(editorModel.graphicEngine.selectedNotes) do
+		for _, note in pairs(editorModel.visualEngine.selectedNotes) do
 			note.startNote.visualPoint.comment = batch_comment
 		end
 	end
 	if imgui.button("reset comment notes", "reset") then
-		for _, note in pairs(editorModel.graphicEngine.selectedNotes) do
+		for _, note in pairs(editorModel.visualEngine.selectedNotes) do
 			note.startNote.visualPoint.comment = nil
 		end
 	end
 
-	local _, sel_note = next(editorModel.graphicEngine.selectedNotes)
+	local _, sel_note = next(editorModel.visualEngine.selectedNotes)
 	if sel_note then
 		local sounds = sel_note.startNote.sounds
 		if sounds and sounds[1] then
@@ -299,25 +299,25 @@ function tabs.bms(self)
 	local editorModel = self.game.editorModel
 	local editor = self.game.configModel.configs.settings.editor
 
-	local bms_tools = editorModel.bms_tools
+	local bms_tools = editorModel.bmsToolsContext
 	imgui.text("BMS creation tools")
 
 	bms_tools.offset = tonumber(imgui.input("offset", bms_tools.offset, "offset")) or 0
 	bms_tools.tempo = tonumber(imgui.input("tempo", bms_tools.tempo, "tempo")) or 120
 
 	if imgui.button("bms apply tempo", "apply") then
-		editorModel:resetOffsetTempo()
+		bms_tools:resetOffsetTempo(editorModel.layer)
 	end
 
 	imgui.text("offset")
 	if imgui.button("bms add offset", "+1ms") then
 		bms_tools.offset = bms_tools.offset + 0.001
-		editorModel:resetOffsetTempo()
+		bms_tools:resetOffsetTempo(editorModel.layer)
 	end
 	just.sameline()
 	if imgui.button("bms sub offset", "-1ms") then
 		bms_tools.offset = bms_tools.offset - 0.001
-		editorModel:resetOffsetTempo()
+		bms_tools:resetOffsetTempo(editorModel.layer)
 	end
 
 	if imgui.button("slice keysounds", "slice keysounds") then
@@ -351,10 +351,10 @@ return function(self)
 	imgui.setSize(400, h, 200, lineHeight)
 	love.graphics.setColor(1, 1, 1, 1)
 
-	editorModel.state = imgui.tabs("editor overlay tabs", editorModel.state, editorModel.states)
+	editorModel.session.state = imgui.tabs("editor overlay tabs", editorModel.session.state, editorModel.states)
 	love.graphics.setColor(1, 1, 1, 1)
 	imgui.setSize(400, h, 200, lineHeight)
-	tabs[editorModel.state](self)
+	tabs[editorModel.session.state](self)
 
 	if not editorModel.resourcesLoaded then
 		w, h = Layout:move("base")

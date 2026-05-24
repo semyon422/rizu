@@ -1,7 +1,7 @@
 local ResourceLoader = require("rizu.files.ResourceLoader")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local FakeFilesystem = require("fs.FakeFilesystem")
-local Resources = require("ncdk.Resources")
+local Resources = require("chart.core.Resources")
 
 local test = {}
 

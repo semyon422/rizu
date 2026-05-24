@@ -1,5 +1,5 @@
 local class = require("class")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 
 ---@class sea.LeaderboardUser
 ---@operator call: sea.LeaderboardUser

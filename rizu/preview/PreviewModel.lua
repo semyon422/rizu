@@ -278,7 +278,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	local AudioPreviewGenerator = require("rizu.preview.AudioPreviewGenerator")
 	local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
 	local Decoder = require("rizu.engine.audio.bass.Decoder")
-	local ChartFactory = require("notechart.ChartFactory")
+	local ChartFactory = require("chart.format.notechart.ChartFactory")
 	local LoveFilesystem = require("fs.LoveFilesystem")
 
 	require("love.filesystem")

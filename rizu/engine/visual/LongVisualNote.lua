@@ -1,7 +1,7 @@
 local math_util = require("math_util")
 local VisualNote = require("rizu.engine.visual.VisualNote")
-local Point = require("ncdk2.tp.Point")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
+local VisualPoint = require("chart.model.visual.VisualPoint")
 
 ---@class rizu.LongVisualNote: rizu.VisualNote
 ---@operator call: rizu.LongVisualNote

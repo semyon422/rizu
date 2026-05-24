@@ -2,7 +2,7 @@ local class = require("class")
 local thread = require("thread")
 local path_util = require("path_util")
 local fs_util = require("fs_util")
-local Sph = require("sph.Sph")
+local Sph = require("chart.format.sph.Sph")
 
 ---@class rizu.library.LibraryDropManager
 ---@operator call: rizu.library.LibraryDropManager

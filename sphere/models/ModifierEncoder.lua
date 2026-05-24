@@ -4,7 +4,7 @@ local stbl = require("stbl")
 local table_util = require("table_util")
 local string_util = require("string_util")
 local md5 = require("md5")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 
 local ModifierEncoder = class()

@@ -1,6 +1,6 @@
 local class = require("class")
-local osu_pp = require("libchart.osu_pp")
-local minacalc = require("libchart.minacalc")
+local osu_pp = require("chart.scoring.osu_pp")
+local minacalc = require("chart.scoring.minacalc")
 local ChartplayComputed = require("sea.chart.ChartplayComputed")
 
 ---@class rizu.ChartplayComputedFactory

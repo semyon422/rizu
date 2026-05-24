@@ -9,10 +9,6 @@ local SEVENZIP_CFLAGS_BY_TARGET = {
 	windows = {"-shared", "-fPIC"},
 	macos = {"-dynamiclib", "-fPIC"},
 }
-local SEVENZIP_SDK_INPUTS = {
-	"build/deps/7zsdk/C/Alloc.c",
-	"build/deps/7zsdk/C/LzmaLib.c",
-}
 
 ---@param target rizu.build.Target
 ---@param spec rizu.build.deps.Spec
@@ -30,19 +26,20 @@ function SevenZipModuleSpec.add(target, spec)
 	local cflags = SEVENZIP_CFLAGS_BY_TARGET[target]
 	local env = ModuleUtil.ENV_BY_TARGET[target]
 
+	local sdk_dir = BuildConfig.getSevenZipSdkDir()
 	ModuleUtil.addStep(spec, {
 		id = compile_id,
 		kind = "source-build",
 		status_label = "7z Artifact",
 		outputs = {artifact},
-		inputs = {"aqua/7z.c", SEVENZIP_SDK_INPUTS[1], SEVENZIP_SDK_INPUTS[2]},
+		inputs = {"aqua/7z.c", sdk_dir .. "/C/Alloc.c", sdk_dir .. "/C/LzmaLib.c"},
 		actions = {
 			{
 				type = "compile_c",
 				compiler = compiler,
 				env = env,
 				cflags = cflags,
-				includes = {"build/deps/7zsdk/C", "aqua"},
+				includes = {sdk_dir .. "/C", "aqua"},
 				sources = {"aqua/7z.c"},
 				output = artifact,
 			},

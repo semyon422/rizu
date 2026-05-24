@@ -22,6 +22,10 @@ After editing:
 1. Run relevant tests with `./test [file_pattern] [method_pattern]`.
 2. Summarize behavior changes and list follow-up risks or TODOs.
 
+## Conversation Discipline
+
+- Do not hallucinate user feedback. Verify that text actually came from the user and not from tool output or your own reasoning.
+
 ## Change Safety Rules
 
 - Do not perform destructive repository operations unless explicitly requested.
@@ -29,12 +33,33 @@ After editing:
 - For cross-worker, websocket, or ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
 - If the worktree is already dirty, do not revert unrelated user changes.
 
+## Batch Text Substitution
+
+When performing mass find-and-replace (e.g., renaming namespaces, moving modules), scope substitutions by **line context** to avoid corrupting unrelated text like URLs, variable names, or data paths.
+
+**Scope by line pattern, not by text alone:**
+
+```bash
+# Only touch require() calls
+sed '/require.*"/ s/old.prefix/new.prefix/g' file.lua
+
+# Only touch annotation lines
+sed '/^---/ s/old.prefix/new.prefix/g' file.lua
+```
+
+**Rules:**
+- Never apply a bare `s/old/new/g` across entire files when the pattern could match variable names, URLs, config keys, or string literals.
+- After substitution, verify with `grep` that no unintended lines were changed.
+- If the pattern is short (e.g., `osu.`, `sph.`), always scope by line context — these can easily match inside URLs (`osu.ppy.sh`), variable names (`sph.metadata`), or table keys (`a.midi.constantVolume`).
+- When moving modules, update require paths and class annotations separately, each scoped to their respective line patterns.
+- Run tests after mass substitution to catch silent corruption.
+
 ## Project Map
 
 - `rizu/`: modern game client and core systems. Start with `rizu/spec.md`.
 - `sea/`: website, server-side logic, shared web infrastructure. Start with `sea/spec.md`.
 - `aqua/`: general-purpose shared Lua infrastructure. Start with `aqua/spec.md`.
-- `chartbase/`: chart parsers and format-specific loaders. See format-local specs when present.
+- `chart/`: chart infrastructure — data model, format parsers, scoring, transformation. Start with `chart/spec.md`.
 - `sphere/`: legacy client code that is gradually being rewritten into `rizu/`. Start with `sphere/spec.md`.
 
 Existing feature specs worth checking early:
@@ -45,7 +70,7 @@ Existing feature specs worth checking early:
 - `rizu/dlc/spec.md`
 - `rizu/gameplay/spec.md`
 - `rizu/engine/spec.md`
-- `chartbase/sph/spec.md`
+- `chart/format/sph/spec.md`
 
 ## Building And Running
 
@@ -252,3 +277,35 @@ Update a nearby `spec.md` when you:
 - formalize conventions that future agents need in that folder.
 
 Keep root `AGENTS.md` focused on universal rules. Put feature-specific details in the closest relevant `spec.md`.
+
+## PI Agent
+
+This repository ships custom PI extensions in `.pi/extensions/`. Agents running under PI have access to these in addition to the default tool set.
+
+### Extensions
+
+#### `run_tests`
+
+Tool: `run_tests` — runs the Lua test suite via `./test --json` and returns structured results.
+
+Parameters:
+- `file_pattern` — file path pattern to match test files (e.g. `rizu/gameplay`, `GameplayTimings_test.lua`). Omit to run all tests.
+- `method_pattern` — Lua pattern to match test method names within matched files (e.g. `auto_timings`).
+
+Use `run_tests` instead of calling `./test` through `bash`. It parses JSON output, formats timing per file, and surfaces error details with file, line, and method context.
+
+#### Auto-Test Notification
+
+When the `edit` or `write` tool modifies a `.lua` file that has a corresponding `_test.lua` file, the extension posts a notification so the agent knows tests exist for that module.
+
+### Common Pitfalls
+
+- When using the `edit` tool, always pass `edits` as an array of objects (`[{oldText, newText}, ...]`). Passing a string (e.g. from JSON serialization) causes a validation error. Double-check the structure before calling.
+
+### Extension Development Workflow
+
+When modifying files in `.pi/extensions/`, changes do not take effect immediately. The user must run the `/reload` command to reload extensions. After editing an extension:
+
+1. Tell the user to run `/reload` and wait for confirmation that they did so.
+2. Do not test the changed extension (e.g., via `run_tests`) until the user confirms the reload.
+3. Remind the user about `/reload` if they ask you to test changes without reloading first.

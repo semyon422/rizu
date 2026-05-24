@@ -25,10 +25,10 @@ local function getImageNoteType(note)
 	return "ImageNote"
 end
 
----@see notechart.Note
+---@see chart.NotechartNote
 ---@see sphere.NoteViewFactory
 
----@type {[notechart.NoteType]: {[1]: table, [2]: sphere.GraphicalNoteType}}
+---@type {[chart.NoteType]: {[1]: table, [2]: sphere.GraphicalNoteType}}
 local notes = {
 	tap = {ShortGraphicalNote, "ShortNote"},
 	hold = {LongGraphicalNote, "LongNote"},

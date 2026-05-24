@@ -1,7 +1,7 @@
 local class = require("class")
-local Converter = require("chartedit.Converter")
+local Converter = require("chart.chartedit.Converter")
 
----@class rizu.editor.EditorNoteChartLoader
+---@class rizu.editor.NoteChartLoader
 ---@operator call: rizu.editor.EditorNoteChartLoader
 local NoteChartLoader = class()
 

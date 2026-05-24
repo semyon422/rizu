@@ -1,6 +1,6 @@
 local table_util = require("table_util")
 local Modifier = require("sphere.models.ModifierModel.Modifier")
-local Notes = require("ncdk2.notes.Notes")
+local Notes = require("chart.model.notes.Notes")
 
 ---@class sphere.SwapModifier: sphere.Modifier
 ---@operator call: sphere.SwapModifier

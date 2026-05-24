@@ -1,10 +1,10 @@
 local BgaEngine = require("rizu.engine.sprite.BgaEngine")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local Chart = require("ncdk2.Chart")
-local AbsoluteLayer = require("ncdk2.layers.AbsoluteLayer")
-local Visual = require("ncdk2.visual.Visual")
-local InputMode = require("ncdk.InputMode")
-local Note = require("notechart.Note")
+local Chart = require("chart.model.Chart")
+local AbsoluteLayer = require("chart.model.layers.AbsoluteLayer")
+local Visual = require("chart.model.visual.Visual")
+local InputMode = require("chart.core.InputMode")
+local Note = require("chart.format.notechart.Note")
 
 local test = {}
 

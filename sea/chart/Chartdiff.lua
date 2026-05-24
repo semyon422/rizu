@@ -18,7 +18,7 @@ local chart_types = require("sea.chart.types")
 ---@field start_time number not affected by rate
 ---@field notes_count integer total object count
 ---@field judges_count integer total number of judgeable QTEs (long note = 2 qte)
----@field note_types_count {[notechart.NoteType]: integer} by type, sum = notes_count
+---@field note_types_count {[chart.NoteType]: integer} by type, sum = notes_count
 ---@field density_data number[] 128 values, 4 bit per value, density of hits
 ---@field sv_data number[] 128 values, 4 bit per value, (visual duration) / (absoulte duration) ?
 ---@field enps_diff number

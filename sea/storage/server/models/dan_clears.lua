@@ -1,5 +1,5 @@
 local DanClear = require("sea.dan.DanClear")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local stbl = require("stbl")
 
 ---@type rdb.ModelOptions

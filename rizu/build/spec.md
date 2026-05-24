@@ -10,7 +10,8 @@ The system is optimized for local development and CI usage on Linux hosts while 
 
 ## User Experience
 - One entry point: `./rizu/build/make.lua`.
-- One target command: `build_target <linux|windows|macos>`.
+- One target command: `build_target <linux|windows|macos>` (runs LuaJIT setup steps automatically).
+- Optional `luajit <linux|windows>` to build only the LuaJIT SDK under `tree/`.
 - Clear packaging separation:
   - `repo` assembles repository content and update metadata.
   - `package` builds archives from the assembled repository.
@@ -47,13 +48,13 @@ This avoids duplicated side effects and makes task dependencies explicit.
 
 ## Task Graph
 1. `setup_host`
-2. `setup_luajit_linux`, `setup_luajit_windows`
-3. `setup_macos_toolchain`
-4. `build_target_<target>`
-5. `assemble_repo` (depends on all `build_target_*`)
-6. `zip_repo`, `package_macos` (depend on `assemble_repo`)
+2. `setup_macos_toolchain` (macOS builds only, via `build_target_macos`)
+3. `build_target_<target>` (pulls `setup_luajit_linux` for every target; `setup_luajit_windows` for Windows)
+4. `assemble_repo` (depends on all `build_target_*`)
+5. `zip_repo`, `package_macos` (depend on `assemble_repo`)
 
 CLI mapping:
+- `luajit` -> `setup_luajit_<linux|windows>`
 - `repo` -> `assemble_repo`
 - `package` -> `zip_repo` + `package_macos`
 
@@ -61,6 +62,7 @@ CLI mapping:
 - `DependencySpec`: public dependency-step spec entrypoint; resolves target builders, composes native module steps, normalizes, and validates target specs. Prefetch uses the same spec but only runs download and git actions.
 - `LinuxSpec`, `WindowsSpec`, and `MacosSpec`: target orchestrators that select target paths/toolchains and compose source dependency recipes.
 - `deps/spec/source/*SourceSpec`: per-dependency recipes for zlib, iconv, OpenSSL, LuaSec, FFTW, SQLite, and macOS FFmpeg source builds.
+- `deps/spec/common/LuaJITSpec`: declarative LuaJIT clone and install steps into `tree/`; executed by `SetupLuaJITTask`.
 - `SpecNormalizer`: fills defaults and infers outputs from declarative actions.
 - `SpecValidator` + `ActionSchema`: validate step shape, supported action types, required fields, and shell-action policy.
 - `NativeModulesSpec`: appends declarative compile and publish steps for target-native modules (`7z`, `video`, `minacalc`, `luamidi`).

@@ -9,7 +9,7 @@ local Layout = require("ui.views.EditorView.Layout")
 
 return function(self)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.point
+	local editorTimePoint = editorModel.session.point
 
 	local w, h = Layout:move("footer")
 	love.graphics.setColor(1, 1, 1, 1)
@@ -22,11 +22,11 @@ return function(self)
 
 	just.row(true)
 
-	local play_pause = editorModel.timer.isPlaying and "pause" or "play"
+	local play_pause = editorModel.timer.is_playing and "pause" or "play"
 	local button_pressed = imgui.TextButton("play/pause", play_pause, 110, lineHeight)
 	local key_pressed = just.keypressed("space")
 	if button_pressed or key_pressed then
-		if editorModel.timer.isPlaying then
+		if editorModel.timer.is_playing then
 			editorModel:pause()
 		else
 			editorModel:play()

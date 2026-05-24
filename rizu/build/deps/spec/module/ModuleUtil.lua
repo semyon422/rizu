@@ -21,18 +21,9 @@ ModuleUtil.ENV_BY_TARGET = {
 }
 
 ---@param spec rizu.build.deps.Spec
----@param outputs string[]?
-function ModuleUtil.appendOutputs(spec, outputs)
-	for _, path in ipairs(outputs or {}) do
-		table.insert(spec.outputs, path)
-	end
-end
-
----@param spec rizu.build.deps.Spec
 ---@param step rizu.build.deps.Step
 function ModuleUtil.addStep(spec, step)
 	table.insert(spec.steps, step)
-	ModuleUtil.appendOutputs(spec, step.outputs)
 end
 
 function ModuleUtil.makeStepIds(key)

@@ -1,4 +1,4 @@
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local stbl = require("stbl")
 local Gamemode = require("sea.chart.Gamemode")
 local Chartdiff = require("sea.chart.Chartdiff")

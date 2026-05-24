@@ -1,5 +1,5 @@
 local thread = require("thread")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 local class = require("class")
 local Observable = require("Observable")
 

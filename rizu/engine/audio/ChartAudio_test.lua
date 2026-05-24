@@ -1,5 +1,5 @@
 local ChartAudio = require("rizu.engine.audio.ChartAudio")
-local ChartFactory = require("notechart.ChartFactory")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
 
 local cf = ChartFactory()
 local test_chart_header = [[

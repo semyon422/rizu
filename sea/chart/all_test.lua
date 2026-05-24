@@ -32,7 +32,7 @@ local User = require("sea.access.User")
 local Replay = require("sea.replays.Replay")
 local ReplayCoder = require("sea.replays.ReplayCoder")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 local test = {}
 

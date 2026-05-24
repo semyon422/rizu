@@ -1,6 +1,6 @@
 local class = require("class")
 local spherefonts = require("sphere.assets.fonts")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 local just = require("just")
 local Format = require("sphere.views.Format")
 

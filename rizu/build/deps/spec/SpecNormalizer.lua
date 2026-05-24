@@ -54,14 +54,6 @@ function SpecNormalizer.normalize(spec)
 		step.inputs = step.inputs or {}
 		step.status_label = step.status_label or step.id
 	end
-	spec.outputs = spec.outputs or {}
-	if #spec.outputs == 0 then
-		for _, step in ipairs(spec.steps) do
-			for _, out in ipairs(step.outputs or {}) do
-				table.insert(spec.outputs, out)
-			end
-		end
-	end
 	return spec
 end
 

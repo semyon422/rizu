@@ -1,4 +1,4 @@
-local NanoChart = require("libchart.NanoChart")
+local NanoChart = require("chart.transform.NanoChart")
 local zlib = require("zlib")
 
 ---@alias sea.ReplayEvent {[1]: number, [2]: integer, [3]: boolean}

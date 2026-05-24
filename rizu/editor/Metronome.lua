@@ -23,7 +23,7 @@ end
 
 function Metronome:updateNextTime()
 	local editorModel = self.editorModel
-	local point = editorModel.point
+	local point = editorModel.session.point
 	local layer = editorModel.layer
 	local currentTime = editorModel.timer:getTime()
 
@@ -33,9 +33,9 @@ function Metronome:updateNextTime()
 		return
 	end
 
-	local interval, t = editorModel.scroller:getNextSnapIntervalTime(point, 1)
+	local vertex, t = editorModel.scroller:getNextSnapIntervalTime(point, 1)
 
-	local nextPoint = layer.points:interpolateFraction(interval, t)
+	local nextPoint = layer.points:interpolateFraction(vertex, t)
 
 	self.nextTime = nextPoint:tonumber()
 	self.isNextBeat = (nextPoint.time % 1):tonumber() == 0

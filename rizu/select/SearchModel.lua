@@ -1,6 +1,6 @@
 local class = require("class")
 local string_util = require("string_util")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 
 ---@class rizu.select.SearchModel
 ---@operator call: rizu.select.SearchModel

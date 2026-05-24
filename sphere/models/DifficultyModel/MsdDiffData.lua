@@ -1,6 +1,6 @@
 local class = require("class")
 local ffi = require("ffi")
-local minacalc = require("libchart.minacalc")
+local minacalc = require("chart.scoring.minacalc")
 
 ---@class sphere.MsdDiffData: minacalc.Ssr
 ---@operator call: sphere.MsdDiffData

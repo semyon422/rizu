@@ -14,7 +14,6 @@ function CommonSpec.buildShared(target)
 	local spec = {
 		target = target,
 		steps = {},
-		outputs = {},
 	}
 
 	FFmpegSpec.add(target, spec)

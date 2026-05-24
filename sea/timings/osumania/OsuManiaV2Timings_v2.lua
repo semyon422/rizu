@@ -2,7 +2,7 @@ local ITimingValuesPreset = require("sea.timings.ITimingValuesPreset")
 local TimingValues = require("sea.chart.TimingValues")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
-local odhp = require("osu.odhp")
+local odhp = require("chart.format.osu.odhp")
 
 -- TODO: validate before release
 

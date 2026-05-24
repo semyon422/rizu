@@ -11,14 +11,25 @@ local Evaluator = require("rizu.build.deps.engine.Evaluator")
 local BuildTargetTask = ITask + {}
 
 ---@param target rizu.build.Target
+---@return string[]
+local function depsForTarget(target)
+	---@type string[]
+	local deps = {"setup_luajit_linux"}
+	if target == "windows" then
+		table.insert(deps, "setup_luajit_windows")
+	end
+	if target == "macos" then
+		table.insert(deps, "setup_macos_toolchain")
+	end
+	return deps
+end
+
+---@param target rizu.build.Target
 function BuildTargetTask:new(target)
 	---@type string
 	self.name = "build_target_" .. target
 	self.target = target
-	self.deps = {}
-	if target == "macos" then
-		self.deps = {"setup_macos_toolchain"}
-	end
+	self.deps = depsForTarget(target)
 end
 
 ---@param ctx rizu.build.Context

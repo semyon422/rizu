@@ -452,7 +452,7 @@ end
 
 ---@param self table
 local function NotechartInfo(self)
-	local erfunc = require("libchart.erfunc")
+	local erfunc = require("chart.scoring.erfunc")
 	local ratingHitTimingWindow = self.game.configModel.configs.settings.gameplay.ratingHitTimingWindow
 
 	---@type sphere.GameController

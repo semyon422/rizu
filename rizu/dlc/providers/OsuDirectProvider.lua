@@ -1,6 +1,6 @@
 local class = require("class")
 local http_util = require("web.http.util")
-local osudirect = require("libchart.osudirect")
+local osudirect = require("chart.transform.osudirect")
 
 ---@class rizu.dlc.providers.OsuDirectProvider : rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.OsuDirectProvider

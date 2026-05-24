@@ -1,4 +1,4 @@
-local ChartFactory = require("notechart.ChartFactory")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartFormat = require("sea.chart.ChartFormat")
 
 local function newInputModeScoreFilter(name, inputMode)

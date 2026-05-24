@@ -1,6 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
-local OJM = require("o2jam.OJM")
+local OJM = require("chart.format.o2jam.OJM")
 local path_util = require("path_util")
 
 ---@class rizu.ResourceLoader
