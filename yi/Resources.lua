@@ -1,6 +1,6 @@
 local class = require("class")
 local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
-local Path = require("Path")
+local Path = require("aqua.Path")
 
 ---@class yi.Resources
 ---@overload fun(): yi.Resources
@@ -8,15 +8,15 @@ local Path = require("Path")
 local Resources = class()
 
 Resources.font_paths = {
-	regular = "resources/fonts/MiSans-Regular.ttf",
-	bold = "resources/fonts/MiSans-Bold.ttf",
-	black = "resources/fonts/MiSans-Heavy.ttf",
-	icons = "resources/fonts/lucide.ttf"
+	regular = "resources/fonts/Chakra_Petch/ChakraPetch-Regular.ttf",
+	medium = "resources/fonts/Chakra_Petch/ChakraPetch-Medium.ttf",
+	semi_bold = "resources/fonts/Chakra_Petch/ChakraPetch-SemiBold.ttf",
+	bold = "resources/fonts/Chakra_Petch/ChakraPetch-Bold.ttf",
 }
 
-Resources.images_dir = "resources/yi"
+Resources.images_dir = "resources/yi/batch"
 
----@alias yi.FontName "regular" | "bold" | "black" | "icons"
+---@alias yi.FontName string
 ---@alias yi.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
 
 function Resources:new()
@@ -36,14 +36,15 @@ function Resources:load()
 		end
 	end
 
+	local pixel = love.image.newImageData(1, 1)
+	pixel:setPixel(0, 0, 1, 1, 1, 1)
+	t.pixel = pixel
+
 	local packer = ImageAtlasPacker()
 	local atlas_image_data, quads = packer:pack(t)
 	self.atlas = love.graphics.newImage(atlas_image_data)
+	self.atlas:setWrap("clamp", "clamp")
 	self.quads = quads
-
-	-- Hack to get the crisp scaling
-	local x, y = self.quads.pixel:getViewport()
-	self.quads.pixel:setViewport(x + 1, y + 1, 1, 1, self.atlas:getDimensions())
 end
 
 ---@param dpi number
@@ -53,7 +54,7 @@ function Resources:setDpi(dpi)
 end
 
 ---@param name yi.FontName
----@param size yi.FontSize
+---@param size yi.FontSize|integer
 ---@return love.Font
 function Resources:getFont(name, size)
 	---@cast name string
@@ -67,6 +68,17 @@ function Resources:getFont(name, size)
 	end
 
 	return self.fonts[key]
+end
+
+---@param name yi.FontName
+---@param size yi.FontSize|integer
+---@param ui_scale number?
+---@return love.Font
+---@return integer
+function Resources:getScaledFont(name, size, ui_scale)
+	ui_scale = ui_scale or 1
+	local scaled_size = math.max(1, math.floor(size * ui_scale))
+	return self:getFont(name, scaled_size), scaled_size
 end
 
 return Resources
