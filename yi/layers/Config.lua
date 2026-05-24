@@ -2,8 +2,7 @@ local Screen = require("yi.Screen")
 local Title = require("yi.views.Title")
 
 local ConfigList = require("yi.views.config_list.ConfigList")
-local Colors = require("yi.Colors")
-local UIFactory = require("yi.UIFactory")
+local ConfigTopBar = require("yi.views.config_list.ConfigTopBar")
 
 local S = require("ui.composition.Strategies")
 
@@ -18,21 +17,27 @@ function Config:new(yi)
 
 	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
 
+	local config_list = ConfigList(yi.resources)
+	local tabs = {"ALL", "AUDIO", "VIDEO", "UI", "GAMEPLAY"}
+	self.top_bar = ConfigTopBar(yi.resources, tabs, function() end)
+
 	self.composition:setRoot(S.Stack({
-		padding = {100, 60, 100, 60},
+		padding = {100, 60, 60, 100},
 
 		S.Track({
 			direction = "column",
-			space = {120, 20, "*"},
+			space = {120, 20, 70, 20, "*"},
 
 			Title(self.atlas, self.quads),
+			S.Stack(),
+			self.top_bar,
 			S.Stack(),
 			S.Stack({
 				padding = 20,
 
 				S.Anchor({
 					pivot = {0.5, 0},
-					ConfigList(yi.resources)
+					config_list
 				})
 			})
 		}),
@@ -60,6 +65,11 @@ function Config:handleKeyDown(key)
 		self.yi.composition:setScreen(
 			self.yi.composition.previous_screen or self.yi.composition.main_menu
 		)
+		return true
+	end
+
+	if tonumber(key) then
+		self.top_bar:setTabActive(tonumber(key))
 	end
 end
 

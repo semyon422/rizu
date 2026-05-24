@@ -1,15 +1,9 @@
 local View = require("ui.View")
 
----@alias yi.ImageMode
----| "none"
----| "stretch"
----| "fit"
-
 ---@class yi.ImageParams
 ---@field atlas love.Image
 ---@field quad love.Quad
 ---@field color ui.Color?
----@field mode yi.ImageMode?
 ---@field size_scale number
 
 ---@class yi.Image : ui.View
@@ -22,7 +16,6 @@ function Image:new(params)
 	self.atlas = assert(params.atlas, "Image atlas is required")
 	self.quad = assert(params.quad, "Image quad is required")
 	self.color = params.color or {1, 1, 1, 1}
-	self.mode = params.mode or "none"
 
 	local _, _, w, h = self.quad:getViewport()
 	self.size_scale = params.size_scale or 1

@@ -26,7 +26,7 @@ local wave_shader_code = [[
 		float dist_to_top = top_wave - uv.y;
 		float dist_to_bottom = uv.y - bottom_wave;
 		float inside = min(dist_to_top, dist_to_bottom);
-		float alpha = smoothstep(0.0, 0.005, inside) * 0.8;
+		float alpha = smoothstep(0.0, 0.02, inside) * 0.8;
 		return vec4(vec3(1.0), alpha) * color;
 	}
 ]]

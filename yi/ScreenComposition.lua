@@ -2,7 +2,6 @@ local class = require("class")
 
 local SkyBackground = require("yi.layers.SkyBackground")
 local MainMenu = require("yi.layers.MainMenu")
---local Multiplayer = require("yi.layers.Multiplayer")
 local Config = require("yi.layers.Config")
 local Select = require("yi.layers.Select")
 
@@ -16,11 +15,12 @@ local ScreenComposition = class()
 
 ---@param yi yi.UserInterface
 ---@param inputs ui.Inputs
-function ScreenComposition:new(yi, inputs)
+function ScreenComposition:new(yi, inputs, scale)
 	self.inputs = inputs
+	self.scale = scale
+
 	self.sky_menu_background = SkyBackground(yi)
 	self.config = Config(yi)
-	--self.multiplayer = Multiplayer(yi)
 	self.main_menu = MainMenu(yi)
 	self.select = Select(yi)
 
@@ -28,26 +28,25 @@ function ScreenComposition:new(yi, inputs)
 	self.screens = {
 		main_menu = self.main_menu,
 		config = self.config,
-		--multiplayer = self.multiplayer,
 		select = self.select
 	}
 
-	local w, h = love.graphics.getDimensions()
+	local ww, wh = love.graphics.getDimensions()
 
-	self.sky_menu_background:setDimensions(w, h)
+	self.sky_menu_background:setDimensions(ww, wh)
 	self.sky_menu_background:load()
 
 	for _, v in pairs(self.screens) do
-		v:setDimensions(w, h)
+		v:setDimensions(ww, wh)
 		v:load()
 	end
 
 	self.chart_menu_alpha = SpringValue({value = 0})
 	self.sky_menu_alpha = SpringValue({value = 0})
 
-	self.sky_menu_canvas = love.graphics.newCanvas(w, h)
-	self.chart_menu_canvas = love.graphics.newCanvas(w, h)
-	self.shared_layer_canvas = love.graphics.newCanvas(w, h)
+	self.sky_menu_canvas = love.graphics.newCanvas(ww, wh)
+	self.chart_menu_canvas = love.graphics.newCanvas(ww, wh)
+	self.shared_layer_canvas = love.graphics.newCanvas(ww, wh)
 
 	self:setScreen(self.main_menu)
 end
@@ -114,7 +113,6 @@ function ScreenComposition:draw()
 
 		love.graphics.setBlendMode("alpha", "alphamultiply")
 		love.graphics.setCanvas(self.sky_menu_canvas)
-		love.graphics.clear()
 
 		self.sky_menu_background:draw()
 

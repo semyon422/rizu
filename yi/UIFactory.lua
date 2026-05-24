@@ -2,7 +2,6 @@ local class = require("class")
 
 local Button = require("yi.components.Button")
 local Rectangle = require("yi.components.Rectangle")
-local Panel = require("yi.components.Panel")
 local Image = require("yi.components.Image")
 local Label = require("yi.components.Label")
 
@@ -81,18 +80,6 @@ function UIFactory:Rectangle(params)
 		quad = params.quad or self.quads.pixel,
 		color = params.color or {1, 1, 1, 1},
 		fit_box = (params.fit_box == nil) and true or params.fit_box
-	}), params)
-end
-
----@param params table?
----@return ui.Panel
-function UIFactory:Panel(params)
-	params = params or {}
-	return apply_view_params(Panel({
-		atlas = params.atlas or self.atlas,
-		pixel = params.pixel or self.quads.pixel,
-		color = params.color or self.colors.slate_900_70,
-		border_color = params.border_color or self.colors.white_90,
 	}), params)
 end
 

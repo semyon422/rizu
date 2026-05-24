@@ -27,15 +27,15 @@ function UserInterface:new(game)
 end
 
 function UserInterface:load()
+	love.keyboard.setKeyRepeat(true)
 	self:buildUI()
 end
 
 function UserInterface:buildUI()
-	local w, h = love.graphics.getDimensions()
-	self.ui_scale = 1 --math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
 	Painter.setAtlas(self.resources.atlas)
-	Painter.setScale(self.ui_scale)
-	self.composition = ScreenComposition(self, self.inputs)
+	local w, h = love.graphics.getDimensions()
+	self.ui_scale = math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
+	self.composition = ScreenComposition(self, self.inputs, self.ui_scale)
 end
 
 ---@param dt number
