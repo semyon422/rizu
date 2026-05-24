@@ -23,7 +23,7 @@ end
 ---@param range {[1]: number, [2]: number}
 ---@return chart.VisualEvent[]
 function VisualEvents:generateVisual(vps, range)
-	---@type ncdk2.VisualEvent[]
+	---@type chart.VisualEvent[]
 	local events = {}
 
 	for j = 1, #vps do
@@ -55,14 +55,14 @@ end
 function VisualEvents:toAbsolute(vps, events)
 	local _offset = vps[1].currentSpeed >= 0 and 0 or #events
 
-	---@type ncdk2.VisualEvent[]
+	---@type chart.VisualEvent[]
 	local abs_events = {}
 
 	local first_vp = vps[1]
 	if first_vp.currentSpeed == 0 then
 		_offset = 0
 		local startTime = first_vp.visualTime
-		---@type {[ncdk2.VisualPoint]: true}
+		---@type {[chart.VisualPoint]: true}
 		local visiblePoints = {}
 		local offset, vp, show = self:next(events, _offset, startTime)
 		while offset do
@@ -80,7 +80,7 @@ function VisualEvents:toAbsolute(vps, events)
 		end
 	end
 
-	---@type {[ncdk2.VisualPoint]: true}
+	---@type {[chart.VisualPoint]: true}
 	local visiblePoints = {}
 
 	for i = 1, #vps do

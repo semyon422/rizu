@@ -2,14 +2,14 @@ local class = require("class")
 
 ---@class sphere.GraphicalNote
 ---@operator call: sphere.GraphicalNote
----@field currentVisualPoint ncdk2.IVisualPoint
----@field visual ncdk2.Visual
+---@field currentVisualPoint chart.IVisualPoint
+---@field visual chart.Visual
 ---@field graphicEngine sphere.GraphicEngine
----@field column ncdk2.Column
+---@field column chart.Column
 local GraphicalNote = class()
 
 ---@param noteType string?
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 function GraphicalNote:new(noteType, note)
 	self.noteType = noteType
 	self.startNote = note and note.startNote
@@ -30,7 +30,7 @@ function GraphicalNote:getPressedTime()
 	return logicalNote and logicalNote.pressedTime
 end
 
----@param visualPoint ncdk2.IVisualPoint
+---@param visualPoint chart.IVisualPoint
 ---@return number
 function GraphicalNote:getVisualTime(visualPoint)
 	if self.graphicEngine.constant then

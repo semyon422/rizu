@@ -5,7 +5,7 @@ local Fraction = require("chart.core.Fraction")
 ---@operator call: rizu.editor.Scroller
 local Scroller = class()
 
----@param point ncdk2.Point
+---@param point chart.Point
 function Scroller:_scrollPoint(point)
 	if not point then
 		return
@@ -13,7 +13,7 @@ function Scroller:_scrollPoint(point)
 	point:clone(self.editorModel.session.point)
 end
 
----@param point ncdk2.Point
+---@param point chart.Point
 function Scroller:scrollPoint(point)
 	if not point then
 		return
@@ -48,7 +48,7 @@ end
 ---@param point chartedit.Point
 ---@param delta number
 ---@return chartedit.Vertex
----@return ncdk.Fraction
+---@return chart.Fraction
 function Scroller:getNextSnapIntervalTime(point, delta)
 	local editor = self.editorModel:getSettings()
 

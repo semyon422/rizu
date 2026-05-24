@@ -18,13 +18,13 @@ function LogicEngine:new(timeEngine, scoreEngine)
 	self.scoreEngine = scoreEngine
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function LogicEngine:setChart(chart)
 	self.chart = chart
 end
 
 function LogicEngine:load()
-	---@type {[ncdk2.Note]: sphere.LogicalNote}
+	---@type {[chart.Note]: sphere.LogicalNote}
 	self.sharedLogicalNotes = {}
 
 	---@type sphere.NoteHandler[]
@@ -97,7 +97,7 @@ function LogicEngine:receive(event)
 	self.eventTime = nil
 end
 
----@param note ncdk2.Note
+---@param note chart.Note
 ---@return sphere.LogicalNote?
 function LogicEngine:getLogicalNote(note)
 	return self.sharedLogicalNotes[note]
@@ -108,7 +108,7 @@ function LogicEngine:sendScore(event)
 	self.scoreEngine:receive(event)
 end
 
----@param note ncdk2.Note
+---@param note chart.Note
 ---@param isBackground boolean?
 function LogicEngine:playSound(note, isBackground)
 	self.observable:send({

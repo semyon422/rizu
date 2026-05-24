@@ -21,7 +21,7 @@ function GraphicEngine:new(visualTimeInfo, logicEngine)
 	self.logicEngine = logicEngine
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function GraphicEngine:setChart(chart)
 	self.chart = chart
 end
@@ -90,7 +90,7 @@ function GraphicEngine:getInputOffset()
 	return logicEngine and logicEngine.inputOffset or 0
 end
 
----@param note ncdk2.Note
+---@param note chart.Note
 ---@return sphere.LogicalNote?
 function GraphicEngine:getLogicalNote(note)
 	local logicEngine = self.logicEngine

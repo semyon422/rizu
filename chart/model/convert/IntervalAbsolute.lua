@@ -13,10 +13,10 @@ local IntervalAbsolute = class()
 ---@param points chart.IntervalPoint[]
 ---@return {[string]: chart.AbsolutePoint}
 function IntervalAbsolute:convertPoints(points)
-	---@type {[string]: ncdk2.AbsolutePoint}
+	---@type {[string]: chart.AbsolutePoint}
 	local points_map = {}
 
-	---@type {[ncdk2.Vertex]: number}
+	---@type {[chart.Vertex]: number}
 	local interval_tempos = {}
 
 	for _, p in ipairs(points) do
@@ -38,7 +38,7 @@ function IntervalAbsolute:convertPoints(points)
 
 		local time = p.time
 
-		---@type ncdk.Fraction
+		---@type chart.Fraction
 		local beat_offset
 		if measure then
 			beat_offset = measure.offset
@@ -46,7 +46,7 @@ function IntervalAbsolute:convertPoints(points)
 
 		local absoluteTime = p.absoluteTime
 
-		---@cast p -ncdk2.IntervalPoint, +ncdk2.AbsolutePoint
+		---@cast p -chart.IntervalPoint, +chart.AbsolutePoint
 		setmetatable(p, AbsolutePoint)
 		table_util.clear(p)
 
@@ -77,7 +77,7 @@ function IntervalAbsolute:convert(layer)
 
 	local visuals = layer.visuals
 
-	---@cast layer -ncdk2.IntervalLayer, +ncdk2.AbsoluteLayer
+	---@cast layer -chart.IntervalLayer, +chart.AbsoluteLayer
 	setmetatable(layer, AbsoluteLayer)
 	table_util.clear(layer)
 

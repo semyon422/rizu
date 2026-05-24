@@ -7,7 +7,7 @@ local FakeTaskContext = ITaskContext + {}
 function FakeTaskContext:new()
 	---@type table[]
 	self.actions = {}
-	---@type {[string]: ncdk2.Chart[]}
+	---@type {[string]: chart.Chart[]}
 	self.charts = {}
 end
 

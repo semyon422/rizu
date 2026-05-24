@@ -9,7 +9,7 @@ local LongVisualNote = VisualNote + {}
 
 LongVisualNote.type = "long"
 
----@param vp ncdk2.IVisualPoint
+---@param vp chart.IVisualPoint
 local function copy_point(vp)
 	local _p = Point(vp.point.absoluteTime)
 	local _vp = VisualPoint(_p)

@@ -4,7 +4,7 @@ local VisualInfo = require("rizu.engine.visual.VisualInfo")
 
 ---@class rizu.editor.VisualEngine
 ---@operator call: rizu.editor.VisualEngine
----@field selectedNotes {[ncdk2.Note]: rizu.editor.EditorNote}
+---@field selectedNotes {[chart.Note]: rizu.editor.EditorNote}
 ---@field editorModel rizu.editor.EditorModel
 ---@field visual_info rizu.VisualInfo
 local VisualEngine = class()
@@ -47,7 +47,7 @@ function VisualEngine:getVisualTimeRate()
 	return editor.speed
 end
 
----@param note ncdk2.Note
+---@param note chart.Note
 ---@return rizu.LogicNote?
 function VisualEngine:getLogicalNote(note)
 	return
@@ -93,8 +93,8 @@ function VisualEngine:selectNote(note, keepOthers)
 	self.selectedNotes[note.startNote] = nil
 end
 
----@param _note ncdk2.LinkedNote
----@param column ncdk2.Column
+---@param _note chart.LinkedNote
+---@param column chart.Column
 ---@return rizu.editor.EditorNote?
 function VisualEngine:newNote(_note, column)
 	local note = EditorNoteFactory:newNote(_note, self.visual_info)

@@ -11,7 +11,7 @@ function ChartdiffGenerator:new(chartsRepo, difficultyModel)
 	self.difficultyModel = difficultyModel
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param rate number
 function ChartdiffGenerator:compute(chart, rate)
 	local chartdiff = {
@@ -26,7 +26,7 @@ function ChartdiffGenerator:compute(chart, rate)
 	return chartdiff
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param hash string
 ---@param index number
 ---@return sea.Chartdiff?

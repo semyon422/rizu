@@ -6,8 +6,8 @@ local GraphicalNoteFactory = require("sphere.models.RhythmModel.GraphicEngine.Gr
 ---@operator call: sphere.ColumnRenderer
 local ColumnRenderer = class()
 
----@param notes ncdk2.LinkedNote[]
----@param column ncdk2.Column
+---@param notes chart.LinkedNote[]
+---@param column chart.Column
 ---@param columnsRenderer sphere.ColumnsRenderer
 function ColumnRenderer:new(notes, column, columnsRenderer)
 	self._notes = notes

@@ -14,7 +14,7 @@ local bms_bga_whitelist = {
 ---@field type "ImageNote"|"VideoNote"
 ---@field name string
 ---@field time number
----@field column ncdk2.Column
+---@field column chart.Column
 
 ---@class rizu.sprite.BgaEngine
 ---@operator call: rizu.sprite.BgaEngine
@@ -26,9 +26,9 @@ function BgaEngine:new(visual_info)
 	self.video_engine = VideoEngine()
 	self.sprite_engine = SpriteEngine()
 
-	---@type {[ncdk2.Visual]: {[ncdk2.Column]: rizu.sprite.BgaEvent[]}}
+	---@type {[chart.Visual]: {[chart.Column]: rizu.sprite.BgaEvent[]}}
 	self.bga_notes = {}
-	---@type {[ncdk2.Visual]: {[ncdk2.Column]: integer}}
+	---@type {[chart.Visual]: {[chart.Column]: integer}}
 	self.last_bga_index = {}
 	---@type rizu.sprite.BgaEvent[]
 	self.active_notes = {}
@@ -52,7 +52,7 @@ local function _findBgaIndex(notes, time)
 	return ans
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param resources {[string]: string}
 function BgaEngine:load(chart, resources)
 	self.video_engine:unload()
@@ -74,7 +74,7 @@ function BgaEngine:load(chart, resources)
 	end
 
 	for _, linked_note in ipairs(chart.notes:getLinkedNotes()) do
-		local visual = chart:getVisualByPoint(linked_note.startNote.visualPoint --[[@as ncdk2.VisualPoint]])
+		local visual = chart:getVisualByPoint(linked_note.startNote.visualPoint --[[@as chart.VisualPoint]])
 
 		if visual and visual.bga then
 			local column = linked_note:getColumn()

@@ -4,7 +4,7 @@ local table_util = require("table_util")
 ---@param note_types chart.NoteType[]
 ---@return {time: number, column: integer, input: chart.Column, end_time: number?}[]
 local function simplify_notechart(chart, note_types)
-	---@type {time: number, column: integer, input: ncdk2.Column, end_time: number?}[]
+	---@type {time: number, column: integer, input: chart.Column, end_time: number?}[]
 	local notes = {}
 
 	local inputMap = chart.inputMode:getInputMap()

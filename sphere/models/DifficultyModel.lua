@@ -25,7 +25,7 @@ function DifficultyModel:new()
 end
 
 ---@param chartdiff sea.Chartdiff
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param rate number
 ---@return sphere.DiffcalcContext
 function DifficultyModel:compute(chartdiff, chart, rate)

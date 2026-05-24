@@ -10,7 +10,7 @@ NoLongNote.shortName = "NLN"
 NoLongNote.description = "Remove long notes"
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function NoLongNote:apply(config, chart)
 	for _, note in ipairs(chart.notes:getLinkedNotes()) do
 		if note:getType() == "hold" or note:getType() == "laser" then

@@ -53,30 +53,44 @@ end
 ---@param range {[1]: number, [2]: number}
 ---@return chart.VisualEvent[]
 function VisualEventsN2:generate(vps, range)
-	---@type ncdk2.VisualEvent[]
+	---@type chart.VisualEvent[]
 	local events = {}
 
 	for j = 1, #vps do
 		local vp = vps[j]
-		for i = 1, #vps do
-			local _vp = vps[i]  -- current time is from i to i+1
-			local rightTime = intersect(vps, j, i, range[2])
-			local leftTime = intersect(vps, j, i, range[1])
-			local speed = vp.localSpeed * _vp.currentSpeed
 
-			if rightTime then
-				table.insert(events, {
-					time = rightTime,
-					action = speed >= 0 and 1 or -1,
-					point = vp,
-				})
-			end
-			if leftTime then
-				table.insert(events, {
-					time = leftTime,
-					action = speed >= 0 and -1 or 1,
-					point = vp,
-				})
+		if vp.localSpeed == 0 then
+			table.insert(events, {
+				time = -math.huge,
+				action = -1,
+				point = vp,
+			})
+			table.insert(events, {
+				time = math.huge,
+				action = -1,
+				point = vp,
+			})
+		else
+			for i = 1, #vps do
+				local _vp = vps[i]  -- current time is from i to i+1
+				local rightTime = intersect(vps, j, i, range[2])
+				local leftTime = intersect(vps, j, i, range[1])
+				local speed = vp.localSpeed * _vp.currentSpeed
+
+				if rightTime then
+					table.insert(events, {
+						time = rightTime,
+						action = speed >= 0 and 1 or -1,
+						point = vp,
+					})
+				end
+				if leftTime then
+					table.insert(events, {
+						time = leftTime,
+						action = speed >= 0 and -1 or 1,
+						point = vp,
+					})
+				end
 			end
 		end
 	end

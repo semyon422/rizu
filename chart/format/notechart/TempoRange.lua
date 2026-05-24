@@ -7,11 +7,11 @@ function TempoRange:find(chart, minTime, maxTime)
 	---@type {[number]: number}
 	local durations = {}
 
-	---@type ncdk2.AbsolutePoint[]
+	---@type chart.AbsolutePoint[]
 	local tempoPoints = {}
 	local pointList = chart.layers.main:getPointList()
 	for _, point in ipairs(pointList) do
-		---@type ncdk2.Tempo
+		---@type chart.Tempo
 		local tempo = point._tempo
 		if tempo then
 			table.insert(tempoPoints, point)

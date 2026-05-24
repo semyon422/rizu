@@ -4,7 +4,7 @@ local LogicalNote = require("sphere.models.RhythmModel.LogicEngine.LogicalNote")
 ---@operator call: sphere.LongLogicalNote
 local LongLogicalNote = LogicalNote + {}
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param isPlayable boolean?
 ---@param isScorable boolean?
 ---@param isInputMatchable boolean?

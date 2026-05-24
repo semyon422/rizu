@@ -115,7 +115,7 @@ function ResourceModel:rewind()
 	end
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param callback function
 function ResourceModel:load(chart, callback)
 	local fileFinder = self.fileFinder

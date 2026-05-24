@@ -81,7 +81,7 @@ function NoteSkinVsrg:setInput(inputs)
 	self.columnsCount = #inputs
 end
 
----@param column ncdk2.Column
+---@param column chart.Column
 ---@return number?
 function NoteSkinVsrg:getInputColumn(column)
 	return self.input_to_columns[column][1]

@@ -18,7 +18,7 @@ function NoScratch:applyMeta(config, state)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function NoScratch:apply(config, chart)
 	chart.inputMode.scratch = nil
 

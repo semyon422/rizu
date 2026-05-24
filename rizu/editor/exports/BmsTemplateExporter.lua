@@ -49,7 +49,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 	local chartview = chartSelector.chartview
 	local real_dir = chartview.real_dir
 
-	---@type ncdk2.Chart[]
+	---@type chart.Chart[]
 	local stem_charts = {}
 
 	for _, name in ipairs(love.filesystem.getDirectoryItems(real_dir) --[=[@as string[]]=]) do
@@ -79,9 +79,9 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 
 	---@type number
 	local tempo
-	---@type {time: ncdk.Fraction, column: integer, sound: integer}[]
+	---@type {time: chart.Fraction, column: integer, sound: integer}[]
 	local notes = {}
-	---@type ncdk.Fraction
+	---@type chart.Fraction
 	local max_time
 
 	local beat_offset = editorModel.bmsToolsContext.beat_offset
@@ -113,7 +113,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 				ks_index = ks_index + 1
 
 				local point = n_a.startNote.visualPoint.point
-				---@cast point ncdk2.IntervalPoint
+				---@cast point chart.IntervalPoint
 
 				if not tempo then
 					tempo = point.vertex:getTempo()
@@ -139,14 +139,14 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 		return
 	end
 
-	---@type {[integer]: {[integer]: {time: ncdk.Fraction, sound: integer}[]}}
+	---@type {[integer]: {[integer]: {time: chart.Fraction, sound: integer}[]}}
 	local notes_grouped = {}
-	---@type {[integer]: {[integer]: {time: ncdk.Fraction, sound: integer}[]}}
+	---@type {[integer]: {[integer]: {time: chart.Fraction, sound: integer}[]}}
 	local play_notes_grouped = {}
 
 	local pattern_notes = getPatternNotes(editorModel.notes, sounds_map)
 
-	---@param time ncdk.Fraction
+	---@param time chart.Fraction
 	---@param sound integer
 	---@return integer?
 	local function getPatternKey(time, sound)

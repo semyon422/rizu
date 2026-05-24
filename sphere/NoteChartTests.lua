@@ -3,7 +3,7 @@ local NoteChartFactory = require("chart.format.notechart.NoteChartFactory")
 
 ---@param path string
 ---@param index number?
----@return ncdk.NoteChart
+---@return chart.NoteChart
 local function loadNoteChart(path, index)
 	return assert(NoteChartFactory:getNoteChart(
 		path,
@@ -12,7 +12,7 @@ local function loadNoteChart(path, index)
 	))
 end
 
----@param noteChart ncdk.NoteChart
+---@param noteChart chart.NoteChart
 ---@return string
 local function export(noteChart)
 	local nce = NoteChartExporter()

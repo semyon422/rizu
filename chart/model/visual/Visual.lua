@@ -71,7 +71,7 @@ function Visual:compute()
 
 	self:sort()
 
-	---@type {[ncdk2.Point]: integer}
+	---@type {[chart.Point]: integer}
 	local point_index = {}
 	for i, vp in ipairs(points) do
 		if not point_index[vp.point] then
@@ -92,7 +92,7 @@ function Visual:compute()
 	local monotonicVisualTime = 0
 	local absoluteTime = points[1].point.absoluteTime
 	for _, visualPoint in ipairs(points) do
-		---@type ncdk2.Point|ncdk2.AbsolutePoint|ncdk2.MeasurePoint|ncdk2.IntervalPoint
+		---@type chart.Point|chart.AbsolutePoint|chart.MeasurePoint|chart.IntervalPoint
 		local point = visualPoint.point
 
 		local _currentSpeed = self:multiply(velocity, _tempo)

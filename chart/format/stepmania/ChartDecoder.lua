@@ -44,7 +44,7 @@ function ChartDecoder:decode(s, hash)
 	content = self.conv:convert(content)
 	sm:import(content)
 
-	---@type {chart: ncdk2.Chart, chartmeta: sea.Chartmeta}[]
+	---@type {chart: chart.Chart, chartmeta: sea.Chartmeta}[]
 	local charts = {}
 	for i = 1, #sm.charts do
 		local chart, chartmeta = self:decodeSm(sm, i)

@@ -10,7 +10,7 @@ function GraphsGenerator:load()
 	self.vertexDatasGraph = {n = 0}
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param firstTime number
 ---@param lastTime number
 function GraphsGenerator:genDensityGraph(chart, firstTime, lastTime)

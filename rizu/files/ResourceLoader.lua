@@ -27,7 +27,7 @@ function ResourceLoader:new(fs, resource_finder)
 	end})
 end
 
----@param resources ncdk.Resources
+---@param resources chart.Resources
 function ResourceLoader:load(resources)
 	local fs = self.fs
 	local resource_finder = self.resource_finder

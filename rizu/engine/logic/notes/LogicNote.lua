@@ -8,7 +8,7 @@ local LogicNote = class()
 
 LogicNote.index = 0
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param logic_info rizu.LogicInfo
 function LogicNote:new(note, logic_info)
 	self.linked_note = note
@@ -45,7 +45,7 @@ function LogicNote:update()
 	error("not implemented")
 end
 
----@return ncdk2.Column
+---@return chart.Column
 function LogicNote:getColumn()
 	return self.linked_note:getColumn()
 end

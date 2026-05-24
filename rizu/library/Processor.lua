@@ -158,7 +158,7 @@ function Processor:computeLocation(path, location_id)
 end
 
 ---@param hash string
----@return ncdk2.Chart[]?
+---@return chart.Chart[]?
 ---@return string?
 function Processor:getChartsByHash(hash)
 	local chartfile = self.chartfilesRepo:selectChartfileByHash(hash)
@@ -184,7 +184,7 @@ function Processor:getChartsByHash(hash)
 		return nil, err
 	end
 
-	---@type ncdk2.Chart[]
+	---@type chart.Chart[]
 	local charts = {}
 	for i, t in ipairs(chart_chartmetas) do
 		charts[i] = t.chart

@@ -42,7 +42,7 @@ function SphLines:decodeLine(line)
 	pline.comment = line.comment
 	local offset = line.offset
 
-	---@type ncdk.Fraction?
+	---@type chart.Fraction?
 	local lineTime
 	if line.time then
 		lineTime = line.time

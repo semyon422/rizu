@@ -24,7 +24,7 @@ function VisualNoteFactory:new(visual_info)
 	self.visual_info = visual_info
 end
 
----@param linked_note ncdk2.LinkedNote
+---@param linked_note chart.LinkedNote
 ---@return rizu.VisualNote?
 function VisualNoteFactory:getNote(linked_note)
 	local Note = linked_note:isShort() and ShortVisualNote or LongVisualNote

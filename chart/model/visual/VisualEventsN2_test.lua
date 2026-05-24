@@ -353,6 +353,30 @@ function test.zero_both(t)
 	})
 end
 
+function test.zero_local_speed(t)
+	local vis = Visual()
+	local vps = {
+		vis:newPoint(Point(-100)),
+		vis:newPoint(Point(0)),
+		vis:newPoint(Point(100)),
+	}
+	vps[1]._velocity = Velocity(1, 1)
+	vps[2]._velocity = Velocity(1, 0)
+	vps[3]._velocity = Velocity(1, 1)
+
+	vis:compute()
+
+	local ve = VisualEventsN2()
+	local events = ve:generate(vps, {-1, 1})
+	clear_events(events)
+
+	local ve1 = VisualEvents()
+	local abs_events = ve1:generate(vps, {-1, 1})
+	clear_events(abs_events)
+	eq_events(t, abs_events, events)
+	t:tdeq(abs_events, events)
+end
+
 function test._local(t)
 	local vis = Visual()
 	local vps = {

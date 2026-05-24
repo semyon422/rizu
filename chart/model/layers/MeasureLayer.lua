@@ -28,7 +28,7 @@ end
 ---@param isRightSide boolean?
 ---@return chart.MeasurePoint
 function MeasureLayer:getPoint(time, isRightSide)
-	---@type ncdk2.MeasurePoint
+	---@type chart.MeasurePoint
 	return Layer.getPoint(self, time, isRightSide)
 end
 
@@ -46,7 +46,7 @@ end
 function MeasureLayer:toAbsolute()
 	local IntervalAbsolute = require("chart.model.convert.IntervalAbsolute")
 	self:toInterval()
-	---@cast self -ncdk2.MeasureLayer, +ncdk2.IntervalLayer
+	---@cast self -chart.MeasureLayer, +chart.IntervalLayer
 	local conv2 = IntervalAbsolute()
 	conv2:convert(self)
 end

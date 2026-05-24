@@ -1,4 +1,7 @@
 #!/bin/bash
+# Limit virtual memory to 2GB to prevent runaway test scripts from consuming all RAM
+ulimit -v 2097152
+
 rm -f luacov.stats.out
 cd "$(dirname "$0")"
 source ./aqua/env/luajit_setenv

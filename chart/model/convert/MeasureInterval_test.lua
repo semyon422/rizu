@@ -19,9 +19,9 @@ function test.basic(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.MeasureLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.MeasureLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 2)
@@ -48,9 +48,9 @@ function test.stop(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.MeasureLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.MeasureLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 4)
@@ -84,9 +84,9 @@ function test.fractions(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.MeasureLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.MeasureLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 4)
@@ -116,9 +116,9 @@ function test.single_point(t)
 	layer:compute()
 
 	conv:convert(layer)
-	---@cast layer -ncdk2.MeasureLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.MeasureLayer, +chart.IntervalLayer
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	t:eq(#points, 2)

@@ -19,7 +19,7 @@ input 4key
 ]]
 
 ---@param notes string
----@return ncdk2.Chart
+---@return chart.Chart
 local function get_chart(notes)
 	return assert(cf:getCharts("chart.sph", test_chart_header .. notes))[1].chart
 end

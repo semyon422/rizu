@@ -29,11 +29,11 @@ function Converter:load(_chart)
 	local notes = eNotes()
 	local function on_vp_remove(vp) notes:removeAll(vp) end
 
-	---@type {[ncdk2.VisualPoint]: chartedit.VisualPoint}
+	---@type {[chart.VisualPoint]: chartedit.VisualPoint}
 	local vp_map = {}
 	for name, _layer in pairs(_chart.layers) do
 		if IntervalLayer * _layer then
-			---@cast _layer ncdk2.IntervalLayer
+			---@cast _layer chart.IntervalLayer
 			layers[name] = self:loadLayer(_layer, vp_map)
 			for _, visual in pairs(layers[name].visuals) do
 				visual.on_remove = on_vp_remove
@@ -43,7 +43,7 @@ function Converter:load(_chart)
 
 	for _, _note in _chart.notes:iter() do
 		local note = _note:clone()
-		local vp = vp_map[_note.visualPoint  --[[@as ncdk2.VisualPoint]]]
+		local vp = vp_map[_note.visualPoint  --[[@as chart.VisualPoint]]]
 		if vp then
 			note.visualPoint = vp
 			notes:addNote(note, note.column)
@@ -59,10 +59,10 @@ end
 function Converter:loadLayer(_layer, vp_map)
 	local layer = Layer()
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local _ps = _layer:getPointList()
 
-	---@type {[ncdk2.Vertex]: chartedit.Vertex}
+	---@type {[chart.Vertex]: chartedit.Vertex}
 	local vertex_map = {}
 	---@type chartedit.Vertex[]
 	local vertices = {}
@@ -77,7 +77,7 @@ function Converter:loadLayer(_layer, vp_map)
 	end
 	table_util.to_linked(vertices)
 
-	---@type {[ncdk2.IntervalPoint]: chartedit.Point}
+	---@type {[chart.IntervalPoint]: chartedit.Point}
 	local p_map = {}
 	---@type chartedit.Point[]
 	local ps = {}
@@ -104,7 +104,7 @@ function Converter:loadLayer(_layer, vp_map)
 		local _vps = _visual.points
 		for i = #_vps, 1, -1 do
 			local _vp = _vps[i]
-			local p = p_map[_vp.point --[[@as ncdk2.IntervalPoint]]]
+			local p = p_map[_vp.point --[[@as chart.IntervalPoint]]]
 			local vp = eVisualPoint(p)
 			vp._velocity = _vp._velocity
 			vp._expand = _vp._expand
@@ -126,7 +126,7 @@ end
 function Converter:save(_layers, _notes)
 	local chart = Chart()
 
-	---@type {[chartedit.VisualPoint]: ncdk2.VisualPoint}
+	---@type {[chartedit.VisualPoint]: chart.VisualPoint}
 	local vp_map = {}
 	for name, _layer in pairs(_layers) do
 		chart.layers[name] = self:saveLayer(_layer, vp_map)
@@ -157,7 +157,7 @@ function Converter:saveLayer(_layer, vp_map)
 		return layer
 	end
 
-	---@type {[chartedit.Vertex]: ncdk2.Vertex}
+	---@type {[chartedit.Vertex]: chart.Vertex}
 	local vertex_map = {}
 	---@type {[chartedit.Vertex]: number}
 	local vertex_beats = {}
@@ -169,7 +169,7 @@ function Converter:saveLayer(_layer, vp_map)
 		vertex_total_beats = vertex_total_beats + _vertex.beats
 	end
 
-	---@type {[chartedit.Point]: ncdk2.IntervalPoint}
+	---@type {[chartedit.Point]: chart.IntervalPoint}
 	local p_map = {}
 	local _ps = table_util.to_array(first_point)
 	for _, _p in ipairs(_ps) do
@@ -185,9 +185,9 @@ function Converter:saveLayer(_layer, vp_map)
 
 	for name, _visual in pairs(_layer.visuals) do
 		local visual = nVisual()
-		---@type ncdk2.VisualPoint[]
+		---@type chart.VisualPoint[]
 		local vps = {}
-		---@type {[ncdk2.Point]: ncdk2.VisualPoint}
+		---@type {[chart.Point]: chart.VisualPoint}
 		local p2vp = {}
 		local _vps = table_util.to_array(_visual.head)
 		for i, _vp in ipairs(_vps) do

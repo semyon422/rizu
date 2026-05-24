@@ -6,7 +6,7 @@ local ColumnsOrder = require("sea.chart.ColumnsOrder")
 ---@operator call: sea.ModifiersMetaState
 local ModifiersMetaState = class()
 
----@param inputMode ncdk.InputMode?
+---@param inputMode chart.InputMode?
 function ModifiersMetaState:new(inputMode)
 	self.inputMode = InputMode(inputMode)
 	self.custom = false
@@ -18,7 +18,7 @@ function ModifiersMetaState:resetOrder()
 	self.reorders = 0
 end
 
----@param map {[ncdk2.Column]: ncdk2.Column}
+---@param map {[chart.Column]: chart.Column}
 function ModifiersMetaState:applyOrder(map)
 	self.reorders = self.reorders + 1
 	self.columns_order:apply(map)

@@ -182,7 +182,7 @@ function tabs.timings(self)
 	elseif dtp.prev then
 		p = dtp.prev.prev
 	end
-	---@cast p ncdk2.IntervalPoint
+	---@cast p chart.IntervalPoint
 
 	if p and p.absoluteTime == dtp.absoluteTime then
 		local vp = editorModel.visual:getPoint(p)

@@ -14,7 +14,7 @@ local RefChart = class()
 function RefChart:new(chart)
 	self.inputmode = chart.inputMode
 
-	---@type {[ncdk2.VisualPoint]: refchart.VisualPointReference}
+	---@type {[chart.VisualPoint]: refchart.VisualPointReference}
 	local vp_ref = {}
 
 	self.layers = {}

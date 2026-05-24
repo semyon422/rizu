@@ -17,7 +17,7 @@ function ActiveInputNotes:new(logic_notes)
 	self.cache = {}
 end
 
----@param input_map {[ncdk2.Column]: integer}
+---@param input_map {[chart.Column]: integer}
 function ActiveInputNotes:setInputMap(input_map)
 	self.input_map = input_map
 end

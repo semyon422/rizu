@@ -107,7 +107,7 @@ end
 
 ---@param inputmode_str string e.g. "4key"
 ---@param notes_table table[] e.g. {{time = 0, column = 1, velocity = {1, 1, 1}}, {time = 1, column = 2, end_time = 2}}
----@return {chart: ncdk2.Chart, chartmeta: sea.Chartmeta, chartdiff: sea.Chartdiff}
+---@return {chart: chart.Chart, chartmeta: sea.Chartmeta, chartdiff: sea.Chartdiff}
 function TestChartFactory:create(inputmode_str, notes_table)
 	local chart = Chart()
 	chart.inputMode = InputMode(inputmode_str)

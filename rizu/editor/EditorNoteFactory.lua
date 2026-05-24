@@ -18,7 +18,7 @@ local notes = {
 	-- sprite = {ShortEditorNote, "SoundNote"},
 }
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param visual_info rizu.VisualInfo
 ---@return rizu.editor.EditorNote?
 function EditorNoteFactory:newNote(note, visual_info)
@@ -29,7 +29,7 @@ function EditorNoteFactory:newNote(note, visual_info)
 	return classAndType[1](classAndType[2], note, visual_info)
 end
 
----@param note_type ncdk2.NoteType
+---@param note_type chart.NoteType
 ---@param visual_info rizu.VisualInfo
 ---@return rizu.editor.EditorNote?
 function EditorNoteFactory:newNote_t(note_type, visual_info)

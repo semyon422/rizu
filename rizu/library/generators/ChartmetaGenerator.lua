@@ -18,7 +18,7 @@ end
 ---@param content string
 ---@param not_reuse boolean?
 ---@return string?
----@return {chart: ncdk2.Chart, chartmeta: sea.Chartmeta}[]|string?
+---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}[]|string?
 function ChartmetaGenerator:generate(chartfile, content, not_reuse)
 	local chartfilesRepo = self.chartfilesRepo
 	local chartsRepo = self.chartsRepo

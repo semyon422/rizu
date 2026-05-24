@@ -18,7 +18,7 @@ function LogicEngine:new(logic_info)
 	self:setNotes({})
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function LogicEngine:load(chart)
 	local input_note_factory = self.input_note_factory
 
@@ -39,7 +39,7 @@ function LogicEngine:setNotes(notes)
 
 	-- The *only* reason to process columns separately
 	-- is to process spam (clear->clear) and keysounds for early notes.
-	---@type {[ncdk2.Column]: rizu.LogicNote[]}
+	---@type {[chart.Column]: rizu.LogicNote[]}
 	local column_notes = {}
 	self.column_notes = column_notes
 
@@ -51,7 +51,7 @@ function LogicEngine:setNotes(notes)
 		table.insert(column_notes[column], note)
 	end
 
-	---@type {[ncdk2.Column]: integer}
+	---@type {[chart.Column]: integer}
 	local column_note_indexes = {}
 	self.column_note_indexes = column_note_indexes
 
@@ -64,7 +64,7 @@ function LogicEngine:setNotes(notes)
 	---@type {[rizu.LogicNote]: true}
 	self.tracked_notes = {}
 
-	---@type {[ncdk2.LinkedNote]: rizu.LogicNote?}
+	---@type {[chart.LinkedNote]: rizu.LogicNote?}
 	local linked_to_logic = {}
 	for _, logic_note in ipairs(notes) do
 		linked_to_logic[logic_note.linked_note] = logic_note

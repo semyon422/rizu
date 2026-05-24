@@ -60,7 +60,7 @@ function ModifierModel:increaseModifierValue(modifier, delta)
 end
 
 ---@param modifiers table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function ModifierModel:apply(modifiers, chart)
 	local obj = {}
 	for _, modifier in ipairs(modifiers) do
@@ -123,8 +123,8 @@ function ModifierModel:fixOldFormat(modifiers)
 end
 
 ---@param replayBase sea.ReplayBase
----@param inputMode ncdk.InputMode
----@return ncdk2.Chart?
+---@param inputMode chart.InputMode
+---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ModifierModel:applyModifierReorder(replayBase, inputMode)
 	local state = ModifiersMetaState(inputMode)

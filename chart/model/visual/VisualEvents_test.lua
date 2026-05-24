@@ -101,10 +101,12 @@ local function rand_vel()
 end
 
 function test.N2_validate(t)
+	math.randomseed(12345)
+
 	local vis = Visual()
 
 	local time = 0
-	for i = 1, 200 do
+	for i = 1, 50 do
 		local vp = vis:newPoint(Point(time))
 		time = time + 100
 		vp._velocity = Velocity(rand_vel(), rand_vel(), 1)

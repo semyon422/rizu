@@ -43,7 +43,7 @@ function FakeClient:new(accuracy, miss_ratio)
 	self.compute_data_loader = ComputeDataLoader(self.compute_data_provider)
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param accuracy number
 ---@param miss_ratio integer?
 ---@return rizu.ReplayFrame[]

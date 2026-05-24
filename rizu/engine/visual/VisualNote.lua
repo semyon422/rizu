@@ -4,12 +4,12 @@ local class = require("class")
 
 ---@class rizu.VisualNote
 ---@operator call: rizu.VisualNote
----@field cvp ncdk2.VisualPoint
----@field visual ncdk2.Visual
+---@field cvp chart.VisualPoint
+---@field visual chart.Visual
 ---@field type rizu.VisualNoteType
 local VisualNote = class()
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@param visual_info rizu.VisualInfo
 function VisualNote:new(note, visual_info)
 	self.linked_note = note
@@ -18,7 +18,7 @@ end
 
 function VisualNote:update() end
 
----@return ncdk2.Column
+---@return chart.Column
 function VisualNote:getColumn()
 	return self.linked_note:getColumn()
 end
@@ -40,7 +40,7 @@ function VisualNote:getPressedTime()
 	return input_note and input_note.pressed_time
 end
 
----@param vp ncdk2.IVisualPoint
+---@param vp chart.IVisualPoint
 ---@return number
 function VisualNote:getVisualTime(vp)
 	if self.visual_info.const then

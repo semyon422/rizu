@@ -14,7 +14,7 @@ function AudioPreviewGenerator:new(fs, decoder_factory)
 	self.decoder_factory = assert(decoder_factory, "missing decoder_factory")
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param chart_dir string
 ---@param hash string
 function AudioPreviewGenerator:generate(chart, chart_dir, hash)
@@ -41,7 +41,7 @@ function AudioPreviewGenerator:generate(chart, chart_dir, hash)
 	return self:generateFromFiles(chart, finder, hash)
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param ojm o2jam.OJM
 ---@param ojm_filename string
 ---@param hash string
@@ -74,7 +74,7 @@ function AudioPreviewGenerator:generateFromOjm(chart, ojm, ojm_filename, hash)
 	self:writePreview(preview, hash)
 end
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param finder rizu.ResourceFinder
 ---@param hash string
 function AudioPreviewGenerator:generateFromFiles(chart, finder, hash)

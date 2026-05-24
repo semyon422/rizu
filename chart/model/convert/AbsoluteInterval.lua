@@ -60,10 +60,10 @@ end
 ---@return chart.Tempo[]
 ---@return {[chart.Tempo]: number}
 function AbsoluteInterval:loadTempos(points)
-	---@type {[ncdk2.Tempo]: number}
+	---@type {[chart.Tempo]: number}
 	local tempo_offsets = {}
 
-	---@type ncdk2.Tempo[]
+	---@type chart.Tempo[]
 	local tempos = {}
 
 	for _, point in ipairs(points) do
@@ -85,11 +85,11 @@ end
 function AbsoluteInterval:computeTempos(points)
 	local tempos, tempo_offsets = self:loadTempos(points)
 
-	---@type {[ncdk.Fraction]: ncdk2.Vertex}
+	---@type {[chart.Fraction]: chart.Vertex}
 	local intervals = {}
-	---@type {[ncdk2.Tempo]: number}
+	---@type {[chart.Tempo]: number}
 	local tempo_beat_offsets = {}
-	---@type {[ncdk2.Tempo]: ncdk.Fraction}
+	---@type {[chart.Tempo]: chart.Fraction}
 	local tempo_beats = {}
 
 	if #tempos == 0 then
@@ -100,7 +100,7 @@ function AbsoluteInterval:computeTempos(points)
 	tempo_beat_offsets[tempos[1]] = total_beats
 	intervals[Fraction(0)] = Vertex(tempo_offsets[tempos[1]])
 
-	---@type {[number]: ncdk2.Vertex}
+	---@type {[number]: chart.Vertex}
 	local offset_intervals = {}
 
 	for i = 2, #tempos  do
@@ -144,23 +144,23 @@ function AbsoluteInterval:convert(layer, fraction_mode)
 		fraction_mode = false
 	end
 
-	---@type ncdk2.AbsolutePoint[]
+	---@type chart.AbsolutePoint[]
 	local points = layer:getPointList()
 
 	local intervals, tempo_beat_offsets, tempo_offsets, tempo_beats = self:computeTempos(points)
 
 	if not next(intervals) then
-		---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+		---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 		setmetatable(layer, IntervalLayer)
 		table_util.clear(layer)
 		layer:new()
 		return
 	end
 
-	---@type {[string]: ncdk2.IntervalPoint}
+	---@type {[string]: chart.IntervalPoint}
 	local points_map = {}
 
-	---@type ncdk.Fraction
+	---@type chart.Fraction
 	local prev_time
 
 	local prev_absoluteTime = 0
@@ -204,7 +204,7 @@ function AbsoluteInterval:convert(layer, fraction_mode)
 			intervals[Fraction(time_ceil_n)] = Vertex(tempo_offset + beat_duration * beats)
 		end
 
-		---@cast p -ncdk2.AbsolutePoint, +ncdk2.IntervalPoint
+		---@cast p -chart.AbsolutePoint, +chart.IntervalPoint
 		setmetatable(p, IntervalPoint)
 		table_util.clear(p)
 
@@ -225,7 +225,7 @@ function AbsoluteInterval:convert(layer, fraction_mode)
 
 	local visuals = layer.visuals
 
-	---@cast layer -ncdk2.AbsoluteLayer, +ncdk2.IntervalLayer
+	---@cast layer -chart.AbsoluteLayer, +chart.IntervalLayer
 	setmetatable(layer, IntervalLayer)
 	table_util.clear(layer)
 

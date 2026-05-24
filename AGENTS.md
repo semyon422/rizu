@@ -33,6 +33,17 @@ After editing:
 - For cross-worker, websocket, or ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
 - If the worktree is already dirty, do not revert unrelated user changes.
 
+### Temporary Scripts
+
+- Place all temporary scripts (Lua, bash, etc.) inside the repository — use `tmp/` or the repo root. Never create them outside the repo directory.
+- When running ad-hoc Lua scripts via `bash`, always enforce a memory limit with `ulimit -v` and use the system `luajit` directly (not `./test`):
+
+```bash
+bash -c 'ulimit -v 2097152 && luajit tmp/my_script.lua'
+```
+
+This prevents runaway scripts from consuming all available RAM. The `./test` runner already applies this limit internally.
+
 ## Batch Text Substitution
 
 When performing mass find-and-replace (e.g., renaming namespaces, moving modules), scope substitutions by **line context** to avoid corrupting unrelated text like URLs, variable names, or data paths.
@@ -43,8 +54,8 @@ When performing mass find-and-replace (e.g., renaming namespaces, moving modules
 # Only touch require() calls
 sed '/require.*"/ s/old.prefix/new.prefix/g' file.lua
 
-# Only touch annotation lines
-sed '/^---/ s/old.prefix/new.prefix/g' file.lua
+# Only touch comments (covers --- annotations, -- inline casts, and all comment variants)
+sed '/--/ s/old.prefix/new.prefix/g' file.lua
 ```
 
 **Rules:**

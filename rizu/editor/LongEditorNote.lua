@@ -15,7 +15,7 @@ function LongEditorNote:update()
 end
 
 ---@param absoluteTime number
----@param column ncdk2.Column
+---@param column chart.Column
 ---@return rizu.editor.LongEditorNote?
 function LongEditorNote:create(absoluteTime, column)
 	local editorModel = self.editorModel
@@ -134,7 +134,7 @@ function LongEditorNote:copy(copyPoint)
 end
 
 ---@param point chartedit.Point
----@return ncdk2.Note[]
+---@return chart.Note[]
 function LongEditorNote:paste(point)
 	local layer = self.editorModel.layer
 	local visual = self.editorModel.visual
@@ -148,7 +148,7 @@ function LongEditorNote:paste(point)
 	return {startNote, endNote}
 end
 
----@return ncdk2.Note[]
+---@return chart.Note[]
 function LongEditorNote:getNotes()
 	return {self.startNote, self.endNote}
 end

@@ -25,14 +25,14 @@ function MaxChord:getString(config)
 	return "CH", tostring(config.value)
 end
 
----@param note ncdk2.LinkedNote
+---@param note chart.LinkedNote
 ---@return boolean
 local function checkNote(note)
 	local t = note:getType()
 	return t == "tap" or t == "hold"
 end
 
----@param notes ncdk2.LinkedNote[]
+---@param notes chart.LinkedNote[]
 ---@param i number
 ---@param dir number?  -- 1 = forward, -1 = backward
 ---@return number
@@ -92,7 +92,7 @@ local function zeroes(size)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function MaxChord:apply(config, chart)
 	local maxChord = config.value
 	local columns = chart.inputMode.key
@@ -190,7 +190,7 @@ function MaxChord:apply(config, chart)
 	end
 
 	for _, note in ipairs(deletedNotes) do
-		---@type ncdk2.LinkedNote
+		---@type chart.LinkedNote
 		local _note = note.baseNote
 		_note:setType("sample")
 	end

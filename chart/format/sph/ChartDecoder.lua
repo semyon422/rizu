@@ -50,7 +50,7 @@ function ChartDecoder:decodeSph(sph)
 	chart.layers.main = layer
 	self.layer = layer
 
-	---@type ncdk2.Point?
+	---@type chart.Point?
 	self.close_point = nil
 
 	---@type {[string]: true}
@@ -221,7 +221,7 @@ function ChartDecoder:getChartmeta()
 
 	local layer = self.chart.layers.main
 
-	---@type ncdk2.IntervalPoint[]
+	---@type chart.IntervalPoint[]
 	local points = layer:getPointList()
 
 	local a = points[1]

@@ -19,7 +19,7 @@ local _w, _h = w / 2, 55
 local r = 8
 local window_id = "PlayConfigView"
 
----@type ncdk2.Column
+---@type chart.Column
 local swapping_column
 
 return ModalImView(function(self, quit)

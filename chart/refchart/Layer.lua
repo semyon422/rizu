@@ -12,12 +12,12 @@ local Layer = class()
 ---@param l_name string
 ---@param vp_ref {[chart.VisualPoint]: refchart.VisualPointReference}
 function Layer:new(layer, l_name, vp_ref)
-	---@type {[ncdk2.AbsolutePoint]: integer}
+	---@type {[chart.AbsolutePoint]: integer}
 	local p_to_index = {}
 
 	self.points = {}
 	local _points = self.points
-	for i, p in ipairs(layer:getPointList() --[=[@as ncdk2.AbsolutePoint[]]=]) do
+	for i, p in ipairs(layer:getPointList() --[=[@as chart.AbsolutePoint[]]=]) do
 		p_to_index[p] = i
 		_points[i] = Point(p)
 	end

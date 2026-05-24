@@ -50,7 +50,7 @@ function InputBinder:transform(event)
 	end
 end
 
----@param vkey ncdk2.Column
+---@param vkey chart.Column
 ---@param index integer
 ---@param key rizu.InputKey?
 ---@param device rizu.InputDevice?
@@ -74,7 +74,7 @@ function InputBinder:setKey(vkey, index, key, device)
 	binds[index] = {key, device.type, device.id}
 end
 
----@param vkey ncdk2.Column
+---@param vkey chart.Column
 ---@param index number
 ---@return rizu.InputKey?
 ---@return rizu.InputDeviceType?

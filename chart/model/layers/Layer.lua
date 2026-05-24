@@ -48,7 +48,7 @@ end
 
 ---@return chart.Point[]
 function Layer:getPointList()
-	---@type ncdk2.Point[]
+	---@type chart.Point[]
 	local points = {}
 	for _, point in pairs(self.points) do
 		table.insert(points, point)

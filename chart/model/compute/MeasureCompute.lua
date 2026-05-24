@@ -37,7 +37,7 @@ function MeasureCompute:compute(points)
 	for _, point in ipairs(points) do
 		local measureTime = point.measureTime
 
-		---@type ncdk.Fraction
+		---@type chart.Fraction
 		beatTime = beatTime + signature * (measureTime - currentTime)
 
 		---@type number

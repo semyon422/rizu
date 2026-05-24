@@ -6,7 +6,7 @@ local class = require("class")
 ---@field rate number
 ---@field shortening number
 ---@field const boolean
----@field logic_notes {[ncdk2.LinkedNote]: rizu.LogicNote?}
+---@field logic_notes {[chart.LinkedNote]: rizu.LogicNote?}
 local VisualInfo = class()
 
 function VisualInfo:new()

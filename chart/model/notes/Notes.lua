@@ -9,13 +9,13 @@ local LinkedNote = require("chart.model.notes.LinkedNote")
 local Notes = class()
 
 function Notes:new()
-	---@type ncdk2.Note[]
+	---@type chart.Note[]
 	self.notes = {}
 
-	---@type ncdk2.LinkedNote[]
+	---@type chart.LinkedNote[]
 	self.linked_notes = {}
 
-	---@type {[ncdk2.VisualPoint]: {[ncdk2.Column]: ncdk2.Note}}
+	---@type {[chart.VisualPoint]: {[chart.Column]: chart.Note}}
 	self.point_notes = {}
 end
 
@@ -38,7 +38,7 @@ end
 
 ---@return {[chart.Column]: chart.Note[]}
 function Notes:getColumnNotes()
-	---@type {[ncdk2.Column]: ncdk2.Note[]}
+	---@type {[chart.Column]: chart.Note[]}
 	local _notes = {}
 	for _, note in self:iter() do
 		local column = note.column
@@ -50,7 +50,7 @@ end
 
 ---@return {[chart.Column]: chart.LinkedNote[]}
 function Notes:getColumnLinkedNotes()
-	---@type {[ncdk2.Column]: ncdk2.LinkedNote[]}
+	---@type {[chart.Column]: chart.LinkedNote[]}
 	local _notes = {}
 	for column, notes in pairs(self:getColumnNotes()) do
 		_notes[column] = self:link(notes)
@@ -83,7 +83,7 @@ function Notes:insert(note)
 
 	local column = note.column
 	local vp = note.visualPoint
-	---@cast vp ncdk2.VisualPoint
+	---@cast vp chart.VisualPoint
 
 	local point_notes = self.point_notes
 	point_notes[vp] = point_notes[vp] or {}
@@ -108,7 +108,7 @@ function Notes:isValid()
 	for _, note in self:iter() do
 		local vp = note.visualPoint
 		local column = note.column
-		---@cast vp ncdk2.VisualPoint
+		---@cast vp chart.VisualPoint
 		local check_note = point_notes[vp] and point_notes[vp][column]
 		if check_note ~= note then
 			return nil, ("note was mutated: %s"):format(note)
@@ -120,7 +120,7 @@ function Notes:isValid()
 		end
 	end
 
-	---@type {[ncdk2.Column]: {[ncdk2.NoteType]: integer}}
+	---@type {[chart.Column]: {[chart.NoteType]: integer}}
 	local weights = {}
 
 	for _, note in self:iter() do
@@ -147,10 +147,10 @@ end
 ---@param notes chart.Note[]
 ---@return chart.LinkedNote[]
 function Notes:link(notes)
-	---@type ncdk2.LinkedNote[]
+	---@type chart.LinkedNote[]
 	local lnotes = {}
 
-	---@type {[ncdk2.Column]: {[ncdk2.NoteType]: integer[]}}
+	---@type {[chart.Column]: {[chart.NoteType]: integer[]}}
 	local istack = {}
 
 	for _, note in ipairs(notes) do

@@ -23,7 +23,7 @@ for _, t in pairs(hardcodedMaps) do
 end
 
 ---@param config table
----@param inputMode ncdk.InputMode
+---@param inputMode chart.InputMode
 ---@return table
 function BracketSwap:getMap(config, inputMode)
 	local keyCount = inputMode.key

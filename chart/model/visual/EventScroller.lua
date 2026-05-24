@@ -18,7 +18,7 @@ function EventScroller:new(events)
 	self.offset = 0
 
 	--- Only used by FullEventScroller
-	---@type {[ncdk2.VisualPoint]: true}
+	---@type {[chart.VisualPoint]: true}
 	self.visible_points = {}
 end
 
