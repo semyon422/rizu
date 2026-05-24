@@ -1,4 +1,4 @@
-local Screen = require("yi.Screen")
+local Layer = require("ui.Layer")
 local Title = require("yi.views.Title")
 
 local ConfigList = require("yi.views.config_list.ConfigList")
@@ -6,13 +6,13 @@ local ConfigTopBar = require("yi.views.config_list.ConfigTopBar")
 
 local S = require("ui.composition.Strategies")
 
----@class yi.Config : yi.Screen
+---@class yi.Config : ui.Layer
 ---@operator call: yi.Config
-local Config = Screen + {}
+local Config = Layer + {}
 
 ---@param yi yi.UserInterface
 function Config:new(yi)
-	Screen.new(self)
+	Layer.new(self)
 	self.yi = yi
 
 	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
@@ -44,27 +44,14 @@ function Config:new(yi)
 	}))
 end
 
-function Config:draw()
-	local a = self.transition:get()
-
-	love.graphics.push("all")
-	love.graphics.setCanvas(self.yi.composition.shared_layer_canvas)
-	love.graphics.clear()
-	Screen.draw(self)
-	love.graphics.pop()
-
-	love.graphics.push("all")
-	love.graphics.setColor(a, a, a, a)
-	love.graphics.setBlendMode("alpha", "premultiplied")
-	love.graphics.draw(self.yi.composition.shared_layer_canvas)
-	love.graphics.pop()
-end
-
 function Config:handleKeyDown(key)
 	if key == "escape" then
-		self.yi.composition:setScreen(
-			self.yi.composition.previous_screen or self.yi.composition.main_menu
-		)
+		local prev = self.yi.previous_screen
+		if not prev or prev == "config" then
+			self.yi:setScreen("main_menu")
+		else
+			self.yi:setScreen(prev)
+		end
 		return true
 	end
 

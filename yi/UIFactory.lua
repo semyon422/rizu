@@ -144,7 +144,7 @@ function UIFactory:Image(params)
 		atlas = self.atlas,
 		quad = quad,
 		color = params.color or {1, 1, 1, 1},
-		mode = params.mode,
+		fit_box = params.fit_box or false,
 		size_scale = params.size_scale or 1
 	}), params)
 end

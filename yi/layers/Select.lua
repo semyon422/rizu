@@ -1,21 +1,21 @@
-local Screen = require("yi.Screen")
+local Layer = require("ui.Layer")
 local S = require("ui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
 local ChartInfo = require("yi.views.ChartInfo")
 
----@class yi.Select : yi.Screen
+---@class yi.Select : ui.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
-local Select = Screen + {}
+local Select = Layer + {}
 
 local GAP = 20
 
 ---@param yi yi.UserInterface
 function Select:new(yi)
-	Screen.new(self)
+	Layer.new(self)
 	self.yi = yi
-	yi.game.chartSelector.onChanged:add(self)
+	yi.game.chartSelector.onChanged:add(self) -- TODO: REMOVE ON UNLOAD!!!!!!!!!!
 
 	local ui = UIFactory(yi.resources)
 
@@ -39,7 +39,7 @@ function Select:new(yi)
 	self.composition:setRoot(S.Stack({
 		ui:Image({
 			image = "select_bg_gradient",
-			mode = "stretch",
+			fit_box = true,
 			color = Colors.slate_900_70
 		}),
 		S.Stack({
@@ -55,26 +55,48 @@ function Select:new(yi)
 			})
 		}),
 	}))
+
+	local cv = self.yi.game.chartSelector.chartview
+	if cv then
+		self:onChartviewUpdate(cv)
+	end
+end
+
+---@param cv rizu.library.Chartview
+function Select:onChartviewUpdate(cv)
+	if not cv.hash then
+		return
+	end
+	self.chart_info:bind(cv, self.yi.game.replayBase)
+	self.title:setText(cv.title or "")
+	self.artist:setText(cv.artist or "")
 end
 
 function Select:handleKeyDown(key)
 	if key == "escape" then
-		self.yi.composition:setScreen(self.yi.composition.main_menu)
+		self.yi:setScreen("main_menu")
+	elseif key == "return" then
+		self.yi:setScreen("gameplay")
 	elseif key == "c" then
-		self.yi.composition:setScreen(self.yi.composition.config)
+		self.yi:setScreen("config")
+	elseif key == "j" then
+		self.yi.game.chartSelector:scrollLevel(1, -1)
+	elseif key == "k" then
+		self.yi.game.chartSelector:scrollLevel(1, 1)
+	elseif key == "h" then
+		self.yi.game.chartSelector:scrollLevel(2, -1)
+	elseif key == "l" then
+		self.yi.game.chartSelector:scrollLevel(2, 1)
 	end
 end
 
 function Select:receive(event)
 	if event.type == "chartview" then
-		local cv = event.chartview ---@type rizu.library.Chartview
-		self.chart_info:bind(cv, self.yi.game.replayBase)
-		self.title:setText(cv.title or "")
-		self.artist:setText(cv.artist or "")
+		self:onChartviewUpdate(event.chartview)
 		return
 	end
 
-	Screen.receive(self, event)
+	Layer.receive(self, event)
 end
 
 return Select

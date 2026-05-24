@@ -1,12 +1,15 @@
 local IUserInterface = require("sphere.IUserInterface")
 local Inputs = require("ui.input.Inputs")
 local Resources = require("yi.Resources")
+local Menus = require("yi.Menus")
+local ChartMenus = require("yi.ChartMenus")
 local Painter = require("yi.Painter")
-local ScreenComposition = require("yi.ScreenComposition")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
 ---@field modifiers ui.ModifierKeys
+---@field current_screen string?
+---@field previous_screen string?
 local UserInterface = IUserInterface + {}
 
 local MAX_DT = 1 / 30
@@ -34,8 +37,35 @@ end
 function UserInterface:buildUI()
 	Painter.setAtlas(self.resources.atlas)
 	local w, h = love.graphics.getDimensions()
-	self.ui_scale = math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
-	self.composition = ScreenComposition(self, self.inputs, self.ui_scale)
+	self.menus = Menus(self, w, h)
+	self.chart_menus = ChartMenus(self, w, h)
+
+	local screen = self.current_screen or "main_menu"
+
+	if self.menus:hasScreen(screen) then
+		self.menus.visiblity:snap(1)
+	else
+		self.menus.visiblity:snap(0)
+	end
+
+	self:setScreen(screen)
+end
+
+---@param screen string
+function UserInterface:setScreen(screen)
+	self.previous_screen = self.current_screen
+
+	if self.menus:hasScreen(screen) then
+		self.menus:setScreen(screen)
+		print("hello?")
+	elseif self.chart_menus:hasScreen(screen) then
+		self.menus:hide()
+		self.chart_menus:setScreen(screen)
+	else
+		error("Screen doesn't exist")
+	end
+
+	self.current_screen = screen
 end
 
 ---@param dt number
@@ -49,11 +79,19 @@ function UserInterface:update(dt)
 	self.modifiers.shift = love.keyboard.isDown("lshift", "rshift")
 
 	self.inputs:beginFrame(love.mouse.getPosition())
-	self.composition:update(math.min(dt, MAX_DT))
+
+	self.chart_menus:update(dt)
+	self.menus:update(dt)
 end
 
 function UserInterface:draw()
-	self.composition:draw()
+	if self.menus.visiblity:get() < 1 then
+		self.chart_menus:draw()
+	end
+
+	if self.menus:isVisible() then
+		self.menus:draw()
+	end
 end
 
 function UserInterface:windowDimensionsChanged()
@@ -66,7 +104,14 @@ end
 ---@param event table
 function UserInterface:receive(event)
 	self.inputs:receive(event, self.modifiers)
-	self.composition:receive(event)
+
+	local s = self.current_screen
+
+	if s == "main_menu" or s == "config" then
+		self.menus:receive(event)
+	elseif s == "select" or s == "gameplay" then
+		self.chart_menus:receive(event)
+	end
 end
 
 return UserInterface

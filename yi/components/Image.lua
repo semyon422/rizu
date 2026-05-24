@@ -5,6 +5,7 @@ local View = require("ui.View")
 ---@field quad love.Quad
 ---@field color ui.Color?
 ---@field size_scale number
+---@field fit_box boolean
 
 ---@class yi.Image : ui.View
 ---@operator call: yi.Image
@@ -18,14 +19,30 @@ function Image:new(params)
 	self.color = params.color or {1, 1, 1, 1}
 
 	local _, _, w, h = self.quad:getViewport()
-	self.size_scale = params.size_scale or 1
-	self.width = w * self.size_scale
-	self.height = h * self.size_scale
+	self.size_scale_x = params.size_scale or 1
+	self.size_scale_y = self.size_scale_x
+	self.image_width, self.image_height = w * self.size_scale_x, h * self.size_scale_y
+	self.fit_box = params.fit_box
+
+	if not self.fit_box then
+		self.width, self.height = self.image_width, self.image_height
+	end
+end
+
+function Image:load()
+	if self.fit_box then
+		local _, _, iw, ih = self.quad:getViewport()
+		local bw, bh = self.box:getDimensions()
+		self.size_scale_x = bw / iw
+		self.size_scale_y = bh / ih
+		self.width = bw
+		self.height = bh
+	end
 end
 
 function Image:draw()
 	love.graphics.setColor(self.color)
-	love.graphics.scale(self.size_scale)
+	love.graphics.scale(self.size_scale_x, self.size_scale_y)
 	love.graphics.draw(self.atlas, self.quad)
 end
 
