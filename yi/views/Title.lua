@@ -51,6 +51,8 @@ function Title:new(atlas, quads)
 	self.line_height = Title.line_height
 end
 
+local lg = love.graphics
+
 function Title:draw()
 	local t = love.timer.getTime()
 	local title_alpha = 1
@@ -61,18 +63,20 @@ function Title:draw()
 		title_alpha = 1 - (1 - self.title_dim_alpha) * pulse
 	end
 
-	Painter.setColor(1, 1, 1, title_alpha)
-	Painter.column(true, self.gap, self.title_offset_x, 0)
-	Painter.drawSprite(self.title, nil, nil, self.title_width, self.title_height)
-	Painter.setColor(Colors.white)
-	Painter.drawSprite(self.description, -self.title_offset_x, nil, self.description_width, self.description_height)
-	Painter.column(false)
+	lg.setColor(1, 1, 1, title_alpha)
+	lg.push()
+	lg.draw(self.atlas, self.title)
+	lg.translate(0, Painter.getQuadHeight(self.title) + self.gap)
+	lg.setColor(Colors.white)
+	lg.draw(self.atlas, self.description, -self.title_offset_x)
+	lg.pop()
 
 	local count = 5
 	local total_w = self.thing_width * count + self.thing_gap * (count - 1)
 	local things_x = self.box.width - total_w - self.right_margin
 	local things_y = self.box.height - self.thing_height - self.things_bottom_margin
-	Painter.row(true, self.thing_gap, things_x, things_y)
+	lg.push()
+	lg.translate(things_x, things_y)
 
 	local cycle_duration = self.thing_activation_span
 		+ self.thing_active_hold
@@ -83,7 +87,7 @@ function Title:draw()
 	local activation_step = self.thing_activation_span / steps
 	local deactivation_step = self.thing_deactivation_span / steps
 
-	Painter.setBlendMode("add")
+	lg.setBlendMode("add")
 
 	for i = 1, count do
 		local is_active = false
@@ -96,16 +100,18 @@ function Title:draw()
 			is_active = off_t < deactivation_step * (i - 1)
 		end
 		if is_active then
-			Painter.setColor(1, 1, 1, 0.4)
+			lg.setColor(1, 1, 1, 0.4)
 		else
-			Painter.setColor(1, 1, 1, 0.2)
+			lg.setColor(1, 1, 1, 0.2)
 		end
-		Painter.drawSprite(self.thing, nil, nil, self.thing_width, self.thing_height)
+		lg.draw(self.atlas, self.thing)
+		lg.translate(self.thing_width + self.thing_gap, 0)
 	end
-	Painter.row(false)
 
-	Painter.setColor(1, 1, 1, 0.5)
-	Painter.drawSprite(self.quads.pixel, 0, self.box.height - self.line_height, self.box.width, self.line_height)
+	lg.pop()
+
+	lg.setColor(1, 1, 1, 0.5)
+	lg.draw(self.atlas, self.quads.pixel, 0, self.box.height - self.line_height, 0, self.box.width, self.line_height)
 end
 
 return Title

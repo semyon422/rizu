@@ -1,6 +1,5 @@
 local class = require("class")
 
-local Button = require("yi.components.Button")
 local Rectangle = require("yi.components.Rectangle")
 local Image = require("yi.components.Image")
 local Label = require("yi.components.Label")
@@ -80,58 +79,6 @@ function UIFactory:Rectangle(params)
 		quad = params.quad or self.quads.pixel,
 		color = params.color or {1, 1, 1, 1},
 		fit_box = (params.fit_box == nil) and true or params.fit_box
-	}), params)
-end
-
----@param params table?
----@return yi.Button
-function UIFactory:Button(params)
-	params = params or {}
-	params.width = params.width or 240
-	params.height = params.height or 45
-	params.font = params.font or "bold"
-	params.font_size = params.font_size or 24
-	params.text = params.text or ""
-
-	return apply_view_params(Button({
-		atlas = params.atlas or self.atlas,
-		button_quad = self.quads.button_rounded,
-		pixel = params.pixel or self.quads.pixel,
-		resources = self.resources,
-		font_name = params.font,
-		font_size = params.font_size,
-		button_color = params.button_color or self.colors.cyan_400_10,
-		text_color = params.text_color or self.colors.cyan_400,
-		text = params.text,
-		on_click = params.on_click,
-	}), params)
-end
-
----@param params table?
----@return yi.TabButton
-function UIFactory:TabButton(params)
-	params = params or {}
-	params.width_percent = 1
-	params.height = 70
-	params.text = params.text or ""
-	params.line_width = params.line_width or 1
-	params.bevel_size = params.bevel_size or 16
-	params.text_padding_x = params.text_padding_x or 24
-	if params.active == nil then
-		params.active = false
-	end
-
-	return apply_view_params(TabButton({
-		pixel = params.pixel or self.quads.pixel,
-		resources = self.resources,
-		font_name = "bold",
-		font_size = 32,
-		text = params.text,
-		line_width = params.line_width,
-		bevel_size = params.bevel_size,
-		text_padding_x = params.text_padding_x,
-		active = params.active,
-		on_click = params.on_click,
 	}), params)
 end
 

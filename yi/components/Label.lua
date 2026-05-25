@@ -1,5 +1,4 @@
 local View = require("ui.View")
-local Painter = require("yi.Painter")
 
 ---@class yi.LabelParams
 ---@field resources yi.Resources
@@ -32,8 +31,11 @@ function Label:setText(text)
 	self.text_batch:set(text)
 end
 
+local lg = love.graphics
+
 function Label:draw()
-	Painter.drawText(self.text_batch, 0, 0)
+	local screen_x, screen_y = lg.transformPoint(0, 0)
+	lg.draw(self.text_batch, math.floor(screen_x + 0.5) - screen_x, math.floor(screen_y + 0.5) - screen_y)
 end
 
 return Label

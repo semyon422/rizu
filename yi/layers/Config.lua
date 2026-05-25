@@ -26,7 +26,7 @@ function Config:new(yi)
 
 		S.Track({
 			direction = "column",
-			space = {120, 20, 70, 20, "*"},
+			space = {120, 20, 50, 20, "*"},
 
 			Title(self.atlas, self.quads),
 			S.Stack(),

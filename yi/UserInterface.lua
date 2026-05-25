@@ -35,7 +35,6 @@ function UserInterface:load()
 end
 
 function UserInterface:buildUI()
-	Painter.setAtlas(self.resources.atlas)
 	local w, h = love.graphics.getDimensions()
 	self.menus = Menus(self, w, h)
 	self.chart_menus = ChartMenus(self, w, h)
