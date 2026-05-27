@@ -1,7 +1,7 @@
 local bit = require("bit")
 local class = require("class")
 
----@type table<integer, bancho.GameMode>
+---@type {[integer]: bancho.GameMode}
 local _byValue = {}
 
 ---@class bancho.GameMode

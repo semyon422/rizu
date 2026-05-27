@@ -5,8 +5,9 @@ local Channel = require("bancho.model.Channel")
 local class = require("class")
 
 ---@class bancho.model.ChannelCollection
+---@operator call: bancho.model.ChannelCollection
 ---@field _list bancho.model.Channel[]
----@field _by_name table<string, bancho.model.Channel>
+---@field _by_name {[string]: bancho.model.Channel}
 local ChannelCollection = class()
 
 function ChannelCollection:new()
@@ -45,7 +46,7 @@ end
 --- Send a message to all players in a channel.
 ---@param channel bancho.model.Channel
 ---@param msg string
----@param sender any sender player
+---@param sender bancho.model.Player
 function ChannelCollection:sendTo(channel, msg, sender)
 	for _, p in pairs(channel.players) do
 		if p.id ~= sender.id then

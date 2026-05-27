@@ -25,6 +25,7 @@ local class = require("class")
 local function parseClientHashes(client_hashes)
 	-- Remove trailing colon
 	client_hashes = client_hashes:gsub(":%s*$", "")
+	---@type string[]
 	local parts = {}
 	for part in client_hashes:gmatch("[^:]+") do
 		table.insert(parts, part)
@@ -69,6 +70,7 @@ local LoginFailureReason = {
 ---@field failure_reason? integer
 
 ---@class bancho.auth.LoginHandler
+---@operator call: bancho.auth.LoginHandler
 local LoginHandler = class()
 
 function LoginHandler:new()
@@ -84,6 +86,7 @@ end
 --- @param body string raw request body
 --- @return bancho.auth.LoginResult
 function LoginHandler.parse(body)
+	---@type string[]
 	local lines = {}
 	for line in body:gmatch("([^\n]+)\n?") do
 		if #line > 0 then
@@ -103,6 +106,7 @@ function LoginHandler.parse(body)
 		return {ok = false, failure_reason = LoginFailureReason.AUTHENTICATION_FAILED}
 	end
 
+	---@type string[]
 	local parts = {}
 	for part in remainder:gmatch("[^|]+") do
 		table.insert(parts, part)
@@ -140,8 +144,8 @@ function LoginHandler.parse(body)
 end
 
 --- Validate login data against restrictions.
---- @param login_data bancho.auth.LoginData
---- @return boolean
+---@param login_data bancho.auth.LoginData
+---@return boolean
 function LoginHandler.validate(self, login_data)
 	-- Check for empty adapters (anti-cheat: empty adapters string)
 	if login_data.client_hashes.adapters_str == "" then

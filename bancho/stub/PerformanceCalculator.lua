@@ -5,6 +5,7 @@
 local class = require("class")
 
 ---@class bancho.stub.PerformanceCalculator
+---@operator call: bancho.stub.PerformanceCalculator
 local PerformanceCalculator = class()
 
 function PerformanceCalculator:new(fixed_pp, fixed_sr)

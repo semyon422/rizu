@@ -5,7 +5,8 @@ local Match = require("bancho.model.Match")
 local class = require("class")
 
 ---@class bancho.model.MatchCollection
----@field _matches table<integer, bancho.model.Match?>
+---@operator call: bancho.model.MatchCollection
+---@field _matches {[integer]: bancho.model.Match?}
 ---@field max_matches integer
 local MatchCollection = class()
 
@@ -55,6 +56,7 @@ end
 --- Return all active matches.
 ---@return bancho.model.Match[]
 function MatchCollection:all()
+	---@type bancho.model.Match[]
 	local result = {}
 	for _, m in pairs(self._matches) do
 		if m ~= nil then

@@ -1,3 +1,5 @@
+--- Client-side packet IDs for Bancho protocol.
+---@class bancho.protocol.ClientPackets
 local M = {}
 M.CHANGE_ACTION = 0
 M.SEND_PUBLIC_MESSAGE = 1

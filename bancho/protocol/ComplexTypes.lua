@@ -89,6 +89,7 @@ local M = {}
 ---@param reader bancho.protocol.PacketReader
 ---@return bancho.protocol.MultiplayerMatch
 function M.readMatch(reader)
+	---@type bancho.protocol.MultiplayerMatch
 	local m = {}
 	m.id = reader:readI16()
 	m.in_progress = reader:readI8() == 1
@@ -100,7 +101,9 @@ function M.readMatch(reader)
 	m.map_id = reader:readI32()
 	m.map_md5 = reader:readString()
 
+	---@type integer[]
 	m.slot_statuses = {}
+	---@type integer[]
 	m.slot_teams = {}
 	for _ = 1, 16 do
 		table.insert(m.slot_statuses, reader:readI8())
@@ -109,6 +112,7 @@ function M.readMatch(reader)
 		table.insert(m.slot_teams, reader:readI8())
 	end
 
+	---@type integer[]
 	m.slot_ids = {}
 	for _, status in ipairs(m.slot_statuses) do
 		if bit.band(status, 124) ~= 0 then
@@ -123,6 +127,7 @@ function M.readMatch(reader)
 	m.freemods = reader:readI8() == 1
 
 	if m.freemods then
+		---@type integer[]
 		m.slot_mods = {}
 		for _ = 1, 16 do
 			table.insert(m.slot_mods, reader:readI32())
@@ -140,6 +145,7 @@ end
 ---@param reader bancho.protocol.PacketReader
 ---@return bancho.protocol.ScoreFrame
 function M.readScoreFrame(reader)
+	---@type bancho.protocol.ScoreFrame
 	local sf = {}
 	sf.time = reader:readI32()
 	sf.id = reader:readU8()
@@ -185,6 +191,7 @@ function M.readReplayFrameBundle(reader)
 	local extra = reader:readI32()
 	local framecount = reader:readU16()
 
+	---@type bancho.protocol.ReplayFrame[]
 	local frames = {}
 	for _ = 1, framecount do
 		table.insert(frames, M.readReplayFrame(reader))

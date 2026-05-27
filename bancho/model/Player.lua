@@ -28,6 +28,7 @@ local class = require("class")
 ---@field map_id integer
 
 ---@class bancho.model.Player
+---@operator call: bancho.model.Player
 ---@field id integer
 ---@field name string
 ---@field safe_name string
@@ -67,6 +68,7 @@ function Player:new(id, name, priv)
 	}
 
 	--- Initialize default stats for all game modes.
+	---@type {[integer]: bancho.model.ModeStats}
 	self.stats = {}
 	for i = 0, 11 do
 		self.stats[i] = {
@@ -88,16 +90,19 @@ function Player:new(id, name, priv)
 		}
 	end
 
+	---@type string[]
 	self._packet_queue = {}
 	return self
 end
 
 --- Enqueue a packet to be sent to this player.
+---@param data string packet data
 function Player:enqueue(data)
 	table.insert(self._packet_queue, data)
 end
 
 --- Dequeue all enqueued packets as a single blob.
+---@return string? concatenated packet data or nil if empty
 function Player:dequeue()
 	if #self._packet_queue == 0 then return nil end
 	local data = table.concat(self._packet_queue)

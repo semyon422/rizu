@@ -5,6 +5,7 @@
 local class = require("class")
 
 ---@class bancho.stub.GeoLocator
+---@operator call: bancho.stub.GeoLocator
 local GeoLocator = class()
 
 function GeoLocator:new(country)

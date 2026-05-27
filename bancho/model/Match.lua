@@ -9,6 +9,7 @@ local class = require("class")
 
 --- Match slot (16 total, indices 0-15).
 ---@class bancho.model.Slot
+---@operator call: bancho.model.Slot
 ---@field player any? player object or nil
 ---@field status integer (SlotStatus.*)
 ---@field team integer (MatchConstants.MatchTeams.*)
@@ -25,6 +26,8 @@ function Slot:new()
 	return self
 end
 
+--- Check if the slot is empty.
+---@return boolean
 function Slot:empty()
 	return self.player == nil
 end
@@ -39,6 +42,7 @@ function Slot:reset()
 end
 
 --- Copy state from another slot.
+---@param other bancho.model.Slot source slot
 function Slot:copyFrom(other)
 	self.player = other.player
 	self.status = other.status
@@ -49,6 +53,7 @@ end
 
 --- Match with 16 slots, settings, and state.
 ---@class bancho.model.Match
+---@operator call: bancho.model.Match
 ---@field id integer
 ---@field name string
 ---@field passwd string
@@ -80,6 +85,7 @@ function Match:new(id, name, passwd, host_id, mode, mods, win_condition, team_ty
 	self.win_condition = win_condition
 	self.team_type = team_type
 	self.in_progress = false
+	---@type {[integer]: bancho.model.Slot}
 	self.slots = {}
 	for i = 0, 15 do
 		self.slots[i] = Slot()
@@ -88,6 +94,8 @@ function Match:new(id, name, passwd, host_id, mode, mods, win_condition, team_ty
 end
 
 --- Get slot by player reference.
+---@param player bancho.model.Player
+---@return bancho.model.Slot?
 function Match:getSlot(player)
 	for i = 0, 15 do
 		local s = self.slots[i]
@@ -99,6 +107,8 @@ function Match:getSlot(player)
 end
 
 --- Get slot index by player reference.
+---@param player bancho.model.Player
+---@return integer?
 function Match:getSlotId(player)
 	for i = 0, 15 do
 		if self.slots[i].player == player then
@@ -109,6 +119,7 @@ function Match:getSlotId(player)
 end
 
 --- Get first free slot index, or nil.
+---@return integer?
 function Match:getFree()
 	for i = 0, 15 do
 		if self.slots[i].status == SlotStatus.OPEN then

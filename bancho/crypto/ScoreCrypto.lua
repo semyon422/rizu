@@ -10,6 +10,7 @@
 local class = require("class")
 
 ---@class bancho.crypto.ScoreCrypto
+---@operator call: bancho.crypto.ScoreCrypto
 local ScoreCrypto = class()
 
 function ScoreCrypto:new()
@@ -17,8 +18,8 @@ function ScoreCrypto:new()
 end
 
 --- Derive the encryption key from osu version.
---- @param osu_version string
---- @return string
+---@param osu_version string
+---@return string
 function ScoreCrypto.deriveKey(osu_version)
 	-- Key format: "osu!-scoreburgr---------{version}"
 	-- Total key length is 32 bytes (Rijndael-256 block size)
@@ -28,13 +29,14 @@ end
 
 --- Encrypt score data (stub: XOR with key for testing).
 --- Real implementation would use Rijndael-256 CBC.
---- @param data string
---- @param key string
---- @param iv string
---- @return string encrypted data
+---@param data string
+---@param key string
+---@param iv string
+---@return string encrypted_data
 function ScoreCrypto.encrypt(data, key, iv)
 	-- Stub: XOR-based encryption for test compatibility
 	-- Real implementation would use Rijndael-256 CBC with PKCS7 padding
+	---@type string[]
 	local out = {}
 	local keyLen = #key
 	local ivLen = #iv
@@ -48,12 +50,13 @@ end
 
 --- Decrypt score data (stub: XOR with key for testing).
 --- Real implementation would use Rijndael-256 CBC.
---- @param encrypted string
---- @param key string
---- @param iv string
---- @return string decrypted data
+---@param encrypted string
+---@param key string
+---@param iv string
+---@return string decrypted_data
 function ScoreCrypto.decrypt(encrypted, key, iv)
 	-- Stub: XOR-based decryption for test compatibility
+	---@type string[]
 	local out = {}
 	local keyLen = #key
 	for i = 1, #encrypted do

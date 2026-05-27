@@ -36,6 +36,7 @@ local function computeOnlineChecksum(score_data, map_md5, max_combo, perfect, us
 end
 
 ---@class bancho.score.ScoreSubmitter
+---@operator call: bancho.score.ScoreSubmitter
 local ScoreSubmitter = class()
 
 function ScoreSubmitter:new()
@@ -44,10 +45,9 @@ end
 
 --- Calculate the submission status for a score.
 --- Compares against existing best score on the map.
----@param self bancho.score.ScoreSubmitter
 ---@param current_pp number
 ---@param existing_best_pp? number
----@return integer (SubmissionStatus.*)
+---@return integer submission status (SubmissionStatus.*)
 function ScoreSubmitter:calculateStatus(current_pp, existing_best_pp)
 	if current_pp > (existing_best_pp or 0) then
 		return SubmissionStatus.BEST

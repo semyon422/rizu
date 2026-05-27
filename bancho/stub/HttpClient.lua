@@ -5,10 +5,11 @@
 local class = require("class")
 
 ---@class bancho.stub.HttpClient
+---@operator call: bancho.stub.HttpClient
 local HttpClient = class()
 
 function HttpClient:new()
-	---@type table<string, table> url -> response
+	---@type {[string]: table} url -> response
 	self._responses = {}
 	return self
 end

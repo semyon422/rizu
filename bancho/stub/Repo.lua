@@ -5,14 +5,15 @@
 local class = require("class")
 
 ---@class bancho.stub.Repo
+---@operator call: bancho.stub.Repo
 local Repo = class()
 
 function Repo:new()
-	---@type table<integer, table> id -> user record
+	---@type {[integer]: table} id -> user record
 	self._users = {}
-	---@type table<string, table[]> md5 -> score records
+	---@type {[string]: table[]} md5 -> score records
 	self._scores = {}
-	---@type table<string, table> md5 -> beatmap record
+	---@type {[string]: table} md5 -> beatmap record
 	self._beatmaps = {}
 	return self
 end
@@ -48,6 +49,7 @@ end
 ---@return table[]
 function Repo:findScores(map_md5, mode)
 	local scores = self._scores[map_md5] or {}
+	---@type table[]
 	local result = {}
 	for _, s in ipairs(scores) do
 		if s.mode == mode then

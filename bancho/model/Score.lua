@@ -15,6 +15,7 @@ local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 local ClientFlags = {NONE = 0}
 
 ---@class bancho.model.Score
+---@operator call: bancho.model.Score
 ---@field mode integer vanilla mode (0-3)
 ---@field mods integer mods bitmask
 ---@field n300 integer
@@ -74,6 +75,8 @@ end
 ---   [14] gamemode (int)
 ---   [15] play_time (yyMMddHHmmss)
 ---   [16] osu_version + client_flags
+---@param data string[] colon-delimited submission fields
+---@return bancho.model.Score self
 function Score:fromSubmission(data)
 	self.n300 = tonumber(data[2])
 	self.n100 = tonumber(data[3])
@@ -93,6 +96,7 @@ function Score:fromSubmission(data)
 end
 
 --- Calculate accuracy for the current score's game mode.
+---@return number accuracy percentage (0-100)
 function Score:calculateAccuracy()
 	local mode_vn = self.mode % 4
 

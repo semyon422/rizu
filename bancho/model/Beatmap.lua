@@ -5,6 +5,7 @@ local RankedStatus = require("bancho.constants.RankedStatus")
 local class = require("class")
 
 ---@class bancho.model.Beatmap
+---@operator call: bancho.model.Beatmap
 ---@field md5 string
 ---@field id integer
 ---@field set_id integer
@@ -46,16 +47,19 @@ function Beatmap:new()
 end
 
 --- Full osu! formatted name: "Artist - Title [Version]".
+---@return string
 function Beatmap:fullName()
 	return self.artist .. " - " .. self.title .. " [" .. self.version .. "]"
 end
 
 --- Whether the map has a ranked leaderboard.
+---@return boolean
 function Beatmap:hasLeaderboard()
 	return RankedStatus.hasLeaderboard(self.status)
 end
 
 --- Whether scores on this map award ranked PP.
+---@return boolean
 function Beatmap:awardsRankedPP()
 	return RankedStatus.awardsRankedPP(self.status)
 end

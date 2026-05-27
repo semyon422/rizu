@@ -10,6 +10,7 @@ local class = require("class")
 
 --- Match manager: coordinates multiplayer match lifecycle.
 ---@class bancho.multiplayer.MatchManager
+---@operator call: bancho.multiplayer.MatchManager
 ---@field matches bancho.model.MatchCollection
 local MatchManager = class()
 
@@ -40,7 +41,7 @@ end
 
 --- Add a player to a match.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 ---@return boolean true on success
 function MatchManager:addPlayer(match, player)
 	local slot_id = match:getFree()
@@ -55,7 +56,7 @@ end
 
 --- Remove a player from a match.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 function MatchManager:removePlayer(match, player)
 	local slot_id = match:getSlotId(player)
 	if slot_id == nil then return end
@@ -66,7 +67,7 @@ end
 
 --- Set a player's ready status.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 ---@param ready boolean
 function MatchManager:setReady(match, player, ready)
 	local slot = match:getSlot(player)
@@ -81,7 +82,7 @@ end
 
 --- Set a player's mods.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 ---@param mods integer
 function MatchManager:setMods(match, player, mods)
 	local slot = match:getSlot(player)
@@ -92,7 +93,7 @@ end
 
 --- Set a player's team.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 ---@param team integer
 function MatchManager:setTeam(match, player, team)
 	local slot = match:getSlot(player)
@@ -103,7 +104,7 @@ end
 
 --- Mark a player as loaded.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 function MatchManager:setLoaded(match, player)
 	local slot = match:getSlot(player)
 	if not slot then return end
@@ -119,8 +120,8 @@ end
 
 --- Complete a player's play in the match.
 ---@param match bancho.model.Match
----@param player table
----@param score table score data
+---@param player bancho.model.Player
+---@param score bancho.model.Score
 function MatchManager:complete(match, player, score)
 	local slot = match:getSlot(player)
 	if not slot then return end
@@ -130,7 +131,7 @@ end
 
 --- Handle a player failing the match.
 ---@param match bancho.model.Match
----@param player table
+---@param player bancho.model.Player
 function MatchManager:fail(match, player)
 	local slot = match:getSlot(player)
 	if not slot then return end
@@ -140,7 +141,7 @@ end
 
 --- Transfer host to a new player.
 ---@param match bancho.model.Match
----@param new_host table
+---@param new_host bancho.model.Player
 function MatchManager:transferHost(match, new_host)
 	if not match:getSlot(new_host) then return end
 	match.host_id = new_host.id
@@ -155,8 +156,9 @@ end
 
 --- Get all players in a match.
 ---@param match bancho.model.Match
----@return table[]
+---@return bancho.model.Player[]
 function MatchManager:getPlayers(match)
+	---@type bancho.model.Player[]
 	local players = {}
 	for i = 0, 15 do
 		if match.slots[i].player ~= nil then
@@ -169,8 +171,9 @@ end
 --- Get all players with a given slot status.
 ---@param match bancho.model.Match
 ---@param status integer
----@return table[]
+---@return bancho.model.Player[]
 function MatchManager:getPlayersByStatus(match, status)
+	---@type bancho.model.Player[]
 	local players = {}
 	for i = 0, 15 do
 		if match.slots[i].player ~= nil and match.slots[i].status == status then
@@ -208,9 +211,13 @@ end
 ---@param match bancho.model.Match
 ---@return bancho.protocol.MultiplayerMatch
 function MatchManager:buildMatchData(match)
+	---@type integer[]
 	local slot_statuses = {}
+	---@type integer[]
 	local slot_teams = {}
+	---@type integer[]
 	local slot_ids = {}
+	---@type integer[]
 	local slot_mods = {}
 
 	for i = 0, 15 do

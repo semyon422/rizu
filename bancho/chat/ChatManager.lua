@@ -10,6 +10,7 @@ local class = require("class")
 
 --- Chat manager: coordinates chat and channel operations.
 ---@class bancho.chat.ChatManager
+---@operator call: bancho.chat.ChatManager
 ---@field channels bancho.model.ChannelCollection
 local ChatManager = class()
 
@@ -34,7 +35,7 @@ end
 
 --- Join a channel.
 ---@param channel bancho.model.Channel
----@param player table
+---@param player bancho.model.Player
 ---@return boolean true on success
 function ChatManager:join(channel, player)
 	if not channel:canRead(player.priv) then return false end
@@ -45,14 +46,14 @@ end
 
 --- Leave a channel.
 ---@param channel bancho.model.Channel
----@param player table
+---@param player bancho.model.Player
 function ChatManager:leave(channel, player)
 	channel:remove(player)
 end
 
 --- Send a message to a channel.
 ---@param channel bancho.model.Channel
----@param player table
+---@param player bancho.model.Player
 ---@param msg string
 ---@return boolean true on success
 function ChatManager:send(channel, player, msg)
@@ -70,8 +71,8 @@ function ChatManager:send(channel, player, msg)
 end
 
 --- Send a private message.
----@param sender table
----@param target table
+---@param sender bancho.model.Player
+---@param target bancho.model.Player
 ---@param msg string
 ---@return boolean true on success
 function ChatManager:sendPrivate(sender, target, msg)
@@ -99,7 +100,7 @@ function ChatManager:sendBot(channel, msg)
 end
 
 --- Broadcast a message to all channels a player is in.
----@param player table
+---@param player bancho.model.Player
 ---@param msg string
 function ChatManager:broadcastToPlayer(player, msg)
 	local data = ServerPackets.sendMessage("Bot", msg, "", 0)
@@ -107,7 +108,7 @@ function ChatManager:broadcastToPlayer(player, msg)
 end
 
 --- Send a notification to a player.
----@param player table
+---@param player bancho.model.Player
 ---@param msg string
 function ChatManager:notify(player, msg)
 	local data = ServerPackets.notification(msg)
@@ -116,7 +117,7 @@ end
 
 --- Kick a player from a channel.
 ---@param channel bancho.model.Channel
----@param player table
+---@param player bancho.model.Player
 function ChatManager:kick(channel, player)
 	channel:remove(player)
 
@@ -138,7 +139,7 @@ function ChatManager:getChannel(name)
 end
 
 --- Send channel info to a player.
----@param player table
+---@param player bancho.model.Player
 ---@param name string
 ---@param topic string
 ---@param p_count integer
@@ -148,7 +149,7 @@ function ChatManager:sendChannelInfo(player, name, topic, p_count)
 end
 
 --- Auto join channels for a player.
----@param player table
+---@param player bancho.model.Player
 function ChatManager:autoJoin(player)
 	for _, ch in ipairs(self:getChannels()) do
 		if ch.auto_join then
@@ -158,7 +159,7 @@ function ChatManager:autoJoin(player)
 end
 
 --- Send login messages: privileges, friends list, channel info, etc.
----@param player table
+---@param player bancho.model.Player
 ---@param friends integer[] friend IDs
 function ChatManager:sendLoginMessages(player, friends)
 	-- Send bancho privileges

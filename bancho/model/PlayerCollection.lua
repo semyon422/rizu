@@ -6,10 +6,11 @@ local Privileges = require("bancho.constants.Privileges")
 local class = require("class")
 
 ---@class bancho.model.PlayerCollection
+---@operator call: bancho.model.PlayerCollection
 ---@field _list bancho.model.Player[]
----@field _by_token table<string, bancho.model.Player>
----@field _by_id table<integer, bancho.model.Player>
----@field _by_name table<string, bancho.model.Player>
+---@field _by_token {[string]: bancho.model.Player}
+---@field _by_id {[integer]: bancho.model.Player}
+---@field _by_name {[string]: bancho.model.Player}
 local PlayerCollection = class()
 
 function PlayerCollection:new()
@@ -21,9 +22,9 @@ function PlayerCollection:new()
 end
 
 --- Get a player by token, id, or name.
----@param token? string
----@param id? integer
----@param name? string
+---@param token string?
+---@param id integer?
+---@param name string?
 ---@return bancho.model.Player?
 function PlayerCollection:get(token, id, name)
 	if token ~= nil then
@@ -68,8 +69,9 @@ function PlayerCollection:remove(player)
 end
 
 --- Get the set of current player IDs.
----@return table<integer, true>
+---@return {[integer]: true}
 function PlayerCollection:ids()
+	---@type {[integer]: true}
 	local ids = {}
 	for _, p in ipairs(self._list) do
 		ids[p.id] = true
@@ -80,6 +82,7 @@ end
 --- Get all staff players online.
 ---@return bancho.model.Player[]
 function PlayerCollection:staff()
+	---@type bancho.model.Player[]
 	local result = {}
 	for _, p in ipairs(self._list) do
 		if bit.band(p.priv, Privileges.STAFF) ~= 0 then

@@ -9,10 +9,11 @@ local class = require("class")
 ---@field verify fun(password: string, hash: string): boolean
 
 ---@class bancho.stub.BcryptHasher : bancho.IBcryptHasher
+---@operator call: bancho.stub.BcryptHasher
 local BcryptHasher = class()
 
 function BcryptHasher:new()
-	---@type table<string, string> username -> hash
+	---@type {[string]: string}
 	self._hashes = {}
 	return self
 end
