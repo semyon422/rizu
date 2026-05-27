@@ -1,0 +1,9 @@
+local M = {}
+M.OPEN = 0
+M.NOT_READY = 1
+M.READY = 2
+M.PLAYING = 3
+M.LOADED = 4
+M.COMPLETED = 5
+M.FAILED = 6
+return M
