@@ -109,8 +109,10 @@ Examples:
 
 - Follow `.editorconfig`: use tabs for indentation and do not indent empty lines.
 - Omit empty `:new()` constructors.
-- **Require Paths**: Use absolute paths starting from the nearest root defined in `pkg_config.lua` (e.g., `aqua/`, `3rd-deps/lua/`, or the project root). For example, use `require("json")` instead of `require("3rd-deps.lua.json")`. Exceptions are `require("aqua.pkg")` and anything in the `preload/` folder (e.g., `require("preload.iconv")`).
-- Avoid using Lua global names like `type`, `table`, `string`, or `pairs` as locals. If needed, prefix with `_`.
+- **Require Paths**: Use absolute paths starting from the nearest root defined in `pkg_config.lua` (e.g., `aqua/`, `3rd-deps/lua/`, or the project root). For example, use `require("json")` instead of `require("3rd-deps.lua.json")`, and `require("byte")` instead of `require("aqua.byte")`. Exceptions are `require("aqua.pkg")` and anything in the `preload/` folder (e.g., `require("preload.iconv")`).
+- **Move all requires to the top of the file** — do not use inline/local requires except when breaking circular dependencies.
+- **Prefer `function M.f()` format** over `M.f = function()` for module methods. This is more idiomatic Lua and works better with EmmyLua annotations.
+- **Avoid Lua global name shadowing**: do not use `type`, `table`, `string`, or `pairs` as local variable names. Prefix with `_` or use an alternative name (e.g., `string_byte` for `string.byte`).
 - Prefer minimal comments and use EmmyLua for API documentation.
 
 ### Naming And Namespaces
@@ -259,10 +261,26 @@ Patterns to prefer:
 - Prefer tests that validate behavior, invariants, failure modes, and internal contracts over tests that restate implementation details.
 - If a module moves or is renamed, move and update its tests too.
 
-Test structure:
-- A test file returns a table of test functions.
-- Each test function receives `t` of type `testing.T`.
+Test file structure:
+- Use `local test = {}` pattern instead of `return { ... }`.
+- Define test functions with `function test.test_name(t)` format, not as table entries.
+- Add `---@param t testing.T` annotations to each test function.
+- Return `test` at the end of the file.
 - Use the assertion helpers on `t` such as `eq`, `ne`, `aeq`, `tdeq`, `has_error`, and `has_not_error`.
+
+Example test file:
+
+```lua
+local MyModule = require("my.module")
+
+local test = {}
+
+function test.test_basic(t)
+	t:eq(MyModule.doThing(), "expected")
+end
+
+return test
+```
 
 For ICC or shared-memory communication tests:
 - Use `FakeSharedDict`.
