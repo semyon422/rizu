@@ -83,6 +83,55 @@ Existing feature specs worth checking early:
 - `rizu/engine/spec.md`
 - `chart/format/sph/spec.md`
 
+## Server Configuration Files
+
+All server configuration lives at the repository root. Edit the source files and recompile before restarting.
+
+### `nginx_config.lua` — OpenResty configuration source
+
+Single source of truth for the OpenResty server. See `aqua/web/nginx/nginx_config.lua` for the base example. Controls:
+- **`listen`** — port the server binds to (default `8180`)
+- **`shared_dicts`** — shared memory dictionaries (e.g. `players`, `mp_rooms`). Any new shared dict must be declared here AND in a repo class
+- **`package_path`** / **`package_cpath`** — additional Lua module search paths
+- **`require`** — modules pre-loaded at server init
+- **`handler`** — entry point module for request handling (`sea.app.handler`)
+
+Edits are compiled into `nginx.conf` via:
+```bash
+luajit aqua/web/nginx/compile.lua
+```
+This reads `nginx_config.lua` and processes `aqua/web/nginx/nginx.conf.template` (etlua) to produce `nginx.conf`. **Never edit `nginx.conf` directly** — it will be overwritten on the next compile.
+
+### `app_config.lua` — Application runtime configuration
+
+Runtime settings loaded by `sea.app.AppConfig` at startup. Controls:
+- **`sessions_secret`** — session cookie signing key
+- **`is_register_enabled`** / **`is_login_enabled`** — auth feature toggles
+- **`recaptcha`** — reCAPTCHA site and secret keys
+- **`osu_api`** — osu! OAuth client credentials and redirect URI
+- **`multiplayer`** — multiplayer server address and port
+- **`responsible_person`** — legal contact information
+
+`sea/app/AppConfig.lua` ships the default shape with placeholder values. `app_config.lua` overrides it at runtime.
+
+### `conf.lua` — LÖVE Framework configuration
+
+Standard LÖVE `love.conf()` entry point. Configures:
+- Window, graphics, and module settings for the game client
+- Enabled/disabled LÖVE modules (physics is off, audio/graphics/threading on)
+- Identity and save directory behavior
+
+### `pkg_config.lua` — Module path configuration
+
+Sets up `package.path` and `package.cpath` for both the game client and server. Adds:
+- Root folder, `3rd-deps/lua`, `aqua`, and tree-sitter paths
+- Platform-specific binary directories (`bin/linux64`, `bin/win64`, `bin/mac64`)
+- Exports paths to Lua and LÖVE require systems
+
+### `my.cnf` — MySQL client configuration
+
+MySQL connection settings for `db_dump` / `db_restore` scripts. Keep credentials in `my.cnf` (gitignored); `my.cnf.example` tracks the template.
+
 ## Building And Running
 
 Run the game with the bundled LÖVE launchers:
@@ -103,6 +152,12 @@ Examples:
 ./test rizu/build
 ```
 
+## Tech Stack
+
+- **LuaJIT 2.1** everywhere — all runtime code targets LuaJIT 2.1. Use `luajit` when running scripts from the command line.
+- **OpenResty** for the server and website (`sea/`). All server-side code runs inside the OpenResty Lua environment.
+- **LÖVE Framework** for the game client (`rizu/`, `sphere/`). The game is built as a LÖVE game and launched with the bundled launchers.
+
 ## Code Conventions
 
 ### Lua Style
@@ -113,6 +168,7 @@ Examples:
 - **Move all requires to the top of the file** — do not use inline/local requires except when breaking circular dependencies.
 - **Prefer `function M.f()` format** over `M.f = function()` for module methods. This is more idiomatic Lua and works better with EmmyLua annotations.
 - **Avoid Lua global name shadowing**: do not use `type`, `table`, `string`, or `pairs` as local variable names. Prefix with `_` or use an alternative name (e.g., `string_byte` for `string.byte`).
+- **Fail fast on bad input**: avoid `value = config.value or fallback` patterns. Trust developer data and let invalid input error rather than silently substituting a default. Validate explicitly when needed.
 - Prefer minimal comments and use EmmyLua for API documentation.
 
 ### Naming And Namespaces
@@ -166,6 +222,53 @@ Class rules:
 - Put structural fields on the class with `---@field` when instances are expected to carry them beyond a tiny local scope and LuaLS would not otherwise know they exist.
 - Class annotations must match the real namespace and class name used by the module, not a guessed name derived only from the file path.
 - Interface-like classes should use the `I` prefix and declare fields or methods that callers rely on.
+
+**Canonical class example:**
+
+```lua
+local class = require("class")
+
+-- Manages user connections and session state.
+---@class app.Users
+---@operator call: app.Users
+---@field users {[string]: app.User}
+local Users = class()
+
+-- Class-level default — instances inherit this value.
+Users.default_timeout = 30
+
+---@param config app.Config
+function Users:new(config)
+	self.max_users = config.max_users
+	self.users = {}
+	-- Accumulator table — annotate at init so LuaLS knows the entry type.
+	---@type app.Event[]
+	self.events = {}
+end
+
+---@param user app.User
+---@return boolean added
+function Users:add(user)
+	if #self.users >= self.max_users then
+		return false
+	end
+	self.users[user.id] = user
+	return true
+end
+
+---@param id string
+---@return app.User? user
+function Users:get(id)
+	return self.users[id]
+end
+
+-- Returns nothing — no @return annotation needed.
+function Users:clear()
+	self.users = {}
+end
+
+return Users
+```
 
 Field rules:
 - Use `---@field name Type` for stable instance fields, config fields, DTOs, and state containers.
@@ -263,7 +366,7 @@ Patterns to prefer:
 
 Test file structure:
 - Use `local test = {}` pattern instead of `return { ... }`.
-- Define test functions with `function test.test_name(t)` format, not as table entries.
+- Define test functions with `function test.name(t)` format (not `test.test_name`), not as table entries.
 - Add `---@param t testing.T` annotations to each test function.
 - Return `test` at the end of the file.
 - Use the assertion helpers on `t` such as `eq`, `ne`, `aeq`, `tdeq`, `has_error`, and `has_not_error`.
@@ -275,7 +378,7 @@ local MyModule = require("my.module")
 
 local test = {}
 
-function test.test_basic(t)
+function test.basic(t)
 	t:eq(MyModule.doThing(), "expected")
 end
 
