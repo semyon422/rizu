@@ -55,17 +55,90 @@ Every module has a corresponding `_test.lua` file covering core behavior.
 
 ---
 
+## Complete Endpoint List
+
+All endpoints below are HTTP-only. The Bancho protocol uses only POST `/` with token-based session management. Every other endpoint is a standard HTTP request from the osu! client.
+
+### Bancho Protocol
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/` | Status page (browser) showing online players, matches, handled packets |
+| `POST` | `/` | **Bancho protocol endpoint** — login (no `osu-token`) or packet exchange (with `osu-token`) |
+| `GET` | `/online` | Debug page listing online players and bots |
+| `GET` | `/matches` | Debug page listing active multiplayer matches |
+
+### In-Game Web API (`/web/`)
+
+These endpoints are called directly by the osu! client during normal gameplay.
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `POST` | `/web/osu-submit-modular.php` | **Score submission** — multipart POST with encrypted score data, replay file, IV, password, osu version, client hash, unique IDs. Decrypts score, verifies checksums, calculates PP/accuracy, stores score, updates stats, returns submission charts |
+| `POST` | `/web/osu-submit-modular-selector.php` | **Score submission (session variant)** — same as above but authenticated via `token` header instead of password |
+| `GET` | `/web/osu-osz2-getscores.php` | **Leaderboard** — returns ranked status, beatmap metadata, personal best, and up to 50 scores in pipe-delimited format. Supports types: Top, Mods, Friends, Country, Local |
+| `GET` | `/web/osu-getreplay.php` | Serve `.osr` replay files by score ID |
+| `GET` | `/web/osu-getfriends.php` | Return newline-delimited friend user IDs |
+| `POST` | `/web/osu-getbeatmapinfo.php` | Beatmap info lookup by filename or ID. Returns map ID, set ID, MD5, status, per-mode grades |
+| `GET` | `/web/osu-search.php` | Beatmap search (proxies to osu! API mirror). Returns osu!Direct format |
+| `GET` | `/web/osu-search-set.php` | Beatmap set detail lookup by set ID, beatmap ID, or checksum |
+| `GET` | `/web/osu-getfavourites.php` | Return newline-delimited favourited set IDs |
+| `GET` | `/web/osu-addfavourite.php` | Add beatmap set to favourites |
+| `GET` | `/web/lastfm.php` | **Anti-cheat** — client sends hidden flags detecting modified clients (hq!osu, AQN). Returns empty or triggers restriction |
+| `POST` | `/web/osu-screenshot.php` | Screenshot upload. Validates PNG/JPEG headers, stores file |
+| `GET` | `/web/osu-rate.php` | Beatmap rating submission and average retrieval |
+| `POST` | `/web/osu-comment.php` | Beatmap/replay comment get (action=get) and post (action=post) |
+| `GET` | `/web/osu-markasread.php` | Mark mail conversation as read |
+| `GET` | `/web/osu-getseasonal.php` | Return seasonal background configuration (JSON) |
+| `GET` | `/web/bancho_connect.php` | Client connection check (called before login) |
+| `GET` | `/web/check-updates.php` | Client update check |
+
+### File Serving
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/ss/{id}.{ext}` | Serve screenshot files (jpg/jpeg/png) |
+| `GET` | `/d/{set_id}` | Redirect to beatmap download (`.osz2`) from mirror |
+| `GET` | `/web/maps/{filename}` | Serve updated `.osu` files |
+
+### Account Management
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `POST` | `/users` | **In-game registration** — validates username, email, password, creates user + stats rows |
+| `POST` | `/difficulty-rating` | Redirect to osu.ppy.sh |
+
+### Out Of Scope
+
+The following endpoint groups exist in bancho.py but are **not needed** for our implementation:
+
+- **Developer API v1** (`/api/v1/*`) — 16 public endpoints for external integrations (player search, stats, leaderboards, PP calculation). Not needed since we don't have a separate web frontend consuming these.
+- **Developer API v2** (`/api/v2/*`) — REST API for a web frontend (clans, maps, players, scores). Not needed for the same reason.
+- **Redirects** (`/beatmapsets/*`, `/beatmaps/*`, etc.) — Conditional redirects to `osu.ppy.sh` for browser navigation. Irrelevant for an in-game server.
+
+### Unhandled Endpoints
+
+These endpoints exist on official osu! servers but are not implemented by bancho.py:
+
+- `POST /web/osu-error.php` — Client error reporting
+- `POST /web/osu-session.php` — Session management
+- `POST /web/osu-osz2-bmsubmit-post.php` — Beatmap submission
+- `POST /web/osu-osz2-bmsubmit-upload.php` — Beatmap file upload
+- `GET /web/osu-osz2-bmsubmit-getid.php` — Beatmap submission ID
+- `GET /web/osu-get-beatmap-topic.php` | Forum topic for a beatmap set |
+
+---
+
 ## What Is Needed For A Fully Working osu! Server
 
 The code above covers the protocol layer, domain models, and business logic in isolation. To become a production-ready osu! server, the following pieces are still needed:
 
-### 1. TCP/HTTP Server (Transport Layer)
+### 1. HTTP Server (Transport Layer)
 
-The Bancho protocol uses HTTP POST with token-based session management, not raw TCP. The server needs:
+The Bancho protocol uses **only HTTP POST** for transport — no raw TCP, no WebSocket. Every client→server message is its own HTTP POST, and the server's reply packets are batched into the response body.
 
-- **HTTP endpoint for `/` (Bancho)** — Accepts POST requests. On login (no `osu-token` header), returns `cho-token` header + binary packet body. On subsequent requests, validates `osu-token` header, drains the player's packet queue, and processes incoming packets.
-- **WebSocket or long-polling fallback** — Some mirrors use WebSocket for real-time packet delivery. The current packet queue model (enqueue/dequeue on each POST) is the standard Bancho approach.
-- **Integration with LÖVE's networking** — Since this runs inside the LÖVE game client, the server likely needs to bridge between LÖVE's socket API and the Bancho protocol. This is the key architectural decision: whether the bancho module runs as a standalone Lua server (using LuaSocket or similar) or as a component within the game's existing network layer.
+- **POST `/` (Bancho)** — On login (no `osu-token` header): body is `username\npassword_md5\nclient_info\n`, response is `cho-token` header + binary packet body. On subsequent requests: validates `osu-token` header, processes incoming binary packets, drains the player's queued outgoing packets as the response body.
+- **Integration with LÖVE's networking** — Since this runs inside the LÖVE game client, the server needs to bridge between LÖVE's socket API and the Bancho protocol. The key architectural decision: whether the bancho module runs as a standalone Lua HTTP server (using LuaSocket or similar) or as a component within the game's existing network layer.
 
 ### 2. Real Database Backend
 
@@ -173,7 +246,6 @@ bancho.py has an extensive in-game command system (`/ban`, `/unban`, `/silence`,
 - **Map requests** — Users can request maps be added to the server's library.
 - **Tourney pools** — Tournament map pool management.
 - **Discord integration** — Rich presence, status updates.
-- **API v2** — REST API for web frontend (player profiles, score listings, clan pages, map pages).
 - **Multi-region endpoint support** — `SWITCH_SERVER` packet for failover between server instances.
 
 ---
