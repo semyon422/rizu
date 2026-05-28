@@ -71,14 +71,35 @@ function Repo:findScores(map_md5, mode)
 	return result
 end
 
---- Add a score.
+--- Find best score for a user on a map.
 ---@param map_md5 string
----@param score table
-function Repo:addScore(map_md5, score)
-	if not self._scores[map_md5] then
-		self._scores[map_md5] = {}
+---@param user_id integer
+---@param mode integer
+---@return table?
+function Repo:findBestScore(map_md5, user_id, mode)
+	local scores = self._scores[map_md5] or {}
+	---@type table?
+	local best = nil
+	for _, s in ipairs(scores) do
+		if s.user_id == user_id and s.mode == mode then
+			if not best or (s.pp or 0) > (best.pp or 0) then
+				best = s
+			end
+		end
 	end
-	table.insert(self._scores[map_md5], score)
+	return best
+end
+
+--- Add a score.
+---@param score table
+---@return integer score_id
+function Repo:addScore(score)
+	if not self._scores[score.map_md5] then
+		self._scores[score.map_md5] = {}
+	end
+	score.id = #self._scores[score.map_md5] + 1
+	table.insert(self._scores[score.map_md5], score)
+	return score.id
 end
 
 --- Find a beatmap by md5.

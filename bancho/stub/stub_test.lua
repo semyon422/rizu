@@ -24,15 +24,18 @@ end
 
 function test.repo_scores(t)
 	local r = stub.Repo()
-	r:addScore("map_md5_1", {mode = 0, score = 123456})
-	r:addScore("map_md5_1", {mode = 0, score = 654321})
-	r:addScore("map_md5_1", {mode = 1, score = 111111})
+	r:addScore({map_md5 = "map_md5_1", mode = 0, score = 123456, user_id = 1, pp = 50})
+	r:addScore({map_md5 = "map_md5_1", mode = 0, score = 654321, user_id = 1, pp = 100})
+	r:addScore({map_md5 = "map_md5_1", mode = 1, score = 111111, user_id = 1, pp = 75})
 
 	local scores = r:findScores("map_md5_1", 0)
 	t:eq(#scores, 2)
 
 	local scores2 = r:findScores("map_md5_1", 1)
 	t:eq(#scores2, 1)
+
+	local best = r:findBestScore("map_md5_1", 1, 0)
+	t:eq(best.score, 654321)
 end
 
 function test.repo_beatmaps(t)

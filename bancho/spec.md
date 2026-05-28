@@ -33,13 +33,13 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 ### Business Logic
 
 - **auth/LoginHandler.lua** — Login request parser: splits `username\npassword_md5\nosu_version|utc_offset|display_city|client_hashes|pm_private\n`, parses osu version string (`bYYYYMMDDrNstream`), parses client hashes, returns structured `LoginData`. Includes anti-cheat adapter string check.
-- **score/Submitter.lua** — Score submission processing: `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`), online checksum computation (stub).
+- **score/Submitter.lua** — Score submission processing: `submit()` (multipart parsing, score decryption, checksum validation, score persistence, stats updates), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`), online checksum computation (stub).
 - **multiplayer/MatchManager.lua** — Full match lifecycle: create, add/remove player, ready, mods, team, loaded, start, complete, fail, transfer host, change password, dispose, build protocol match data.
 - **chat/ChatManager.lua** — Chat operations: create/join/leave channels, send public/private/bot messages, kick, notify, broadcast, auto-join, and full login message flow (privileges → friends list → protocol version → channel info → channel info end → auto-join).
 
 ### Cryptography (`bancho/crypto/`)
 
-- **ScoreCrypto.lua** — Score encryption/decryption stub (XOR-based for testing). Documents the real algorithm: Rijndael-256 CBC with PKCS7 padding, key = `"osu!-scoreburgr---------{osu_version}"`.
+- **ScoreCrypto.lua** — Score encryption/decryption: `decryptScore()` (base64 decode, AES decrypt, extract client hash), `encrypt()`/`decrypt()` (XOR-based stub for testing). Documents the real algorithm: Rijndael-256 CBC with PKCS7 padding, key = `"osu!-scoreburgr---------{osu_version}"`.
 
 ### Constants (`bancho/constants/`)
 
@@ -121,13 +121,13 @@ In-chat command parsing and dispatch.
 HTTP resource classes that integrate with the `sea/` web framework via domain-based routing.
 
 - **BanchoProtocolResource.lua** — `POST /` (Bancho protocol: login + packet exchange), `GET /` (status page), `GET /online`, `GET /matches`. Domain-restricted to `osu.*`, `c.*`, `ce.*`, `c4.*`, `c5.*`, `c6.*`.
-- **OsuWebResource.lua** — All `/web/*` endpoints: score submission, leaderboards, replays, friends, beatmap info, search, favourites, lastfm anti-cheat, screenshots, ratings, comments, mail, seasonal backgrounds, connection checks. Domain-restricted to `osu.*`.
-- **FileResource.lua** — `/ss/:id.:ext` (screenshots), `/d/:set_id` (beatmap downloads), `/web/maps/:filename` (.osu files). Domain-restricted to `osu.*`.
-- **AccountResource.lua** — `POST /users` (in-game registration), `POST /difficulty-rating` (redirect). Domain-restricted to `osu.*`.
+- **OsuWebResource.lua** — All `/web/*` endpoints. Implemented: score submission (multipart parsing, decryption, checksum validation, score persistence), leaderboards (with user name resolution), friends, beatmap info (filename MD5 lookup), favourites, screenshots (multipart upload with image validation), ratings, comments, mail, seasonal backgrounds, connection checks. Domain-restricted to `osu.*`.
+- **FileResource.lua** — `/ss/:id.:ext` (screenshots), `/d/:set_id` (beatmap downloads via redirect), `/web/maps/:filename` (.osu files). Domain-restricted to `osu.*`.
+- **AccountResource.lua** — `POST /users` (in-game registration with validation), `POST /difficulty-rating` (redirect). Domain-restricted to `osu.*`.
 
 ### Stubs (`bancho/stub/`)
 
-Test doubles for external dependencies: `BcryptHasher`, `Repo` (users/scores/beatmaps), `HttpClient`, `GeoLocator`, `PerformanceCalculator`.
+Test doubles for external dependencies: `BcryptHasher`, `Repo` (users/scores/beatmaps with `findBestScore`, `addScore`), `HttpClient`, `GeoLocator`, `PerformanceCalculator`.
 
 ### Tests
 

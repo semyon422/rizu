@@ -198,8 +198,64 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 		return
 	end
 
-	-- TODO: Parse multipart form data
-	-- Required fields: score (encrypted data + replay), iv, pass, osuver, s, c1, etc.
+	-- Parse multipart form fields
+	local fields = {}
+	local score_parts = {}
+
+	multipart:receive_preamble()
+
+	local headers, err = multipart:receive()
+	while headers and err ~= "no parts" do
+		local part_data = multipart.bsoc:receiveany(1024 * 1024)
+		if part_data then
+			-- Extract field name from Content-Disposition
+			local disp = headers:get("Content-Disposition") or ""
+			local field_name = disp:match('name="([^"]+)"')
+			if field_name then
+				if field_name == "score" then
+					-- score field appears twice: encrypted data + replay file
+					table.insert(score_parts, part_data)
+				else
+					fields[field_name] = part_data
+				end
+			end
+		end
+
+		headers, err = multipart:receive()
+	end
+
+	-- Extract score data and replay
+	if #score_parts < 2 then
+		res:send("")
+		return
+	end
+
+	local score_data_b64 = score_parts[1]
+	local replay_data = score_parts[2]
+
+	-- Decrypt score data
+	local iv = fields.iv or ""
+	local osuver = fields.osuver or ""
+	local client_hash_b64 = fields.s or ""
+
+	local score_crypto = ScoreCrypto:new()
+	local score_data, client_hash = score_crypto:decryptScore(score_data_b64, client_hash_b64, iv, osuver)
+	if not score_data then
+		res:send("")
+		return
+	end
+
+	-- Authenticate player
+	local pw_md5 = fields.pass or ""
+	local player = self:lookupPlayer(score_data.username, pw_md5)
+	if not player then
+		res:send("")
+		return
+	end
+
+	-- Submit score
+	self.server.score_submitter:submit(player, score_data, replay_data, fields)
+
 	res:send("")
 end
 
@@ -223,7 +279,61 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 		return
 	end
 
-	-- TODO: Parse multipart form data and submit score
+	-- Parse multipart form fields
+	local multipart, err = http_util.get_multipart(req)
+	if not multipart then
+		res.status = 400
+		res:send(err or "invalid multipart")
+		return
+	end
+
+	local fields = {}
+	local score_parts = {}
+
+	multipart:receive_preamble()
+
+	local headers, err = multipart:receive()
+	while headers and err ~= "no parts" do
+		local part_data = multipart.bsoc:receiveany(1024 * 1024)
+		if part_data then
+			local disp = headers:get("Content-Disposition") or ""
+			local field_name = disp:match('name="([^"]+)"')
+			if field_name then
+				if field_name == "score" then
+					table.insert(score_parts, part_data)
+				else
+					fields[field_name] = part_data
+				end
+			end
+		end
+
+		headers, err = multipart:receive()
+	end
+
+	-- Extract score data and replay
+	if #score_parts < 2 then
+		res:send("")
+		return
+	end
+
+	local score_data_b64 = score_parts[1]
+	local replay_data = score_parts[2]
+
+	-- Decrypt score data
+	local iv = fields.iv or ""
+	local osuver = fields.osuver or ""
+	local client_hash_b64 = fields.s or ""
+
+	local score_crypto = ScoreCrypto:new()
+	local score_data, client_hash = score_crypto:decryptScore(score_data_b64, client_hash_b64, iv, osuver)
+	if not score_data then
+		res:send("")
+		return
+	end
+
+	-- Submit score
+	self.server.score_submitter:submit(player, score_data, replay_data, fields)
+
 	res:send("")
 end
 
@@ -312,10 +422,20 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 	-- Add score entries
 	for i, score in ipairs(scores) do
 		if i > 50 then break end
+
+		-- Resolve username
+		local name = "unknown"
+		if score.userid and self.server.user_repo then
+			local user = self.server.user_repo:findUser(score.userid)
+			if user then
+				name = user.name or "unknown"
+			end
+		end
+
 		table.insert(response_lines, string.format(
 			"%d|%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|1",
 			score.id or 0,
-			"unknown", -- name (TODO: resolve from user repo)
+			name,
 			math.floor(score.score or 0),
 			score.max_combo or 0,
 			score.n50 or 0,
@@ -429,9 +549,34 @@ function OsuWebResource:osuGetBeatmapInfo(req, res, ctx)
 	end
 
 	local response_lines = {}
-	for idx, filename in ipairs(filenames) do
-		if self.server.beatmap_repo then
-			-- TODO: lookup by filename
+	for _, filename in ipairs(filenames) do
+		local md5 = filename:match("^(%x+)%.")
+		local bmap = nil
+		if md5 and self.server.beatmap_repo then
+			bmap = self.server.beatmap_repo:findBeatmap(md5)
+		end
+
+		if bmap then
+			table.insert(response_lines, string.format(
+				"%d|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|",
+				bmap.set_id or 0,
+				bmap.id or 0,
+				bmap.artist or "",
+				bmap.title or "",
+				bmap.version or "",
+				bmap.creator or "",
+				bmap.status or "0",
+				bmap.bpm or "0",
+				bmap.drain or "0",
+				bmap.circle_difficulty or "0",
+				bmap.overall_difficulty or "0",
+				bmap.approval_date or "0",
+				bmap.playcount or "0",
+				bmap.passcount or "0",
+				bmap.total_length or "0"
+			))
+		else
+			table.insert(response_lines, "")
 		end
 	end
 
@@ -448,8 +593,16 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuSearch(req, res, ctx)
-	-- TODO: proxy to osu! API mirror
-	res:send("-1")
+	-- Search query is in ctx.query.s
+	-- Returns newline-delimited lines of: set_id|difficulty_rating|playcount|passcount|status|bpm|title|artist|version|creator|length|md5
+	local query_str = ctx.query.s or ""
+	if #query_str == 0 then
+		res:send("")
+		return
+	end
+
+	-- TODO: implement beatmap search (proxy to osu! API or local DB)
+	res:send("")
 end
 
 --- GET /web/osu-search-set.php
@@ -458,7 +611,13 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuSearchSet(req, res, ctx)
-	-- TODO: lookup set by ID/checksum
+	local set_id = tonumber(ctx.query.s) or tonumber(ctx.query.c)
+	if not set_id then
+		res:send("")
+		return
+	end
+
+	-- TODO: implement beatmap set lookup
 	res:send("")
 end
 
@@ -472,8 +631,22 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuGetFavourites(req, res, ctx)
-	-- TODO: implement
-	res:send("")
+	local query = ctx.query
+	local username = socket_url.unescape(query.u or "")
+	local password_md5 = query.h or ""
+
+	local player = self:lookupPlayer(username, password_md5)
+	if not player then
+		res:send("")
+		return
+	end
+
+	local favourites = {}
+	if self.server.favourites_repo then
+		favourites = self.server.favourites_repo:getFavourites(player.id)
+	end
+
+	res:send(table.concat(favourites, "\n"))
 end
 
 --- GET /web/osu-addfavourite.php
@@ -482,7 +655,21 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuAddFavourite(req, res, ctx)
-	-- TODO: implement
+	local query = ctx.query
+	local username = socket_url.unescape(query.u or "")
+	local password_md5 = query.h or ""
+	local set_id = tonumber(query.b)
+
+	local player = self:lookupPlayer(username, password_md5)
+	if not player then
+		res:send("Added favourite!")
+		return
+	end
+
+	if set_id and self.server.favourites_repo then
+		self.server.favourites_repo:addFavourite(player.id, set_id)
+	end
+
 	res:send("Added favourite!")
 end
 
@@ -530,7 +717,44 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuScreenshot(req, res, ctx)
-	-- TODO: parse multipart, validate image, save file
+	local multipart, err = http_util.get_multipart(req)
+	if not multipart then
+		res.status = 400
+		res:send(err or "invalid multipart")
+		return
+	end
+
+	-- Read preamble
+	multipart:receive_preamble()
+
+	-- Read part headers
+	local headers, err = multipart:receive()
+	if not headers then
+		res.status = 400
+		res:send(err or "invalid part")
+		return
+	end
+
+	-- Read the image data
+	local image_data = multipart.bsoc:receiveany(1024 * 1024) -- max 1MB
+	if not image_data then
+		res:send("")
+		return
+	end
+
+	-- Validate image (check magic bytes)
+	local magic = image_data:sub(1, 3):byte(1, 3)
+	local valid = false
+	if magic == 137 then valid = true -- PNG
+	elseif magic == 255 then valid = true -- JPEG
+	end
+
+	if not valid then
+		res:send("")
+		return
+	end
+
+	-- TODO: save to disk with unique filename
 	res:send("")
 end
 
@@ -544,8 +768,28 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuRate(req, res, ctx)
-	-- TODO: implement rating system
-	res:send("ok")
+	local query = ctx.query
+	local action = query.action
+	local beatmap_id = tonumber(query.b)
+
+	if action == "rate" then
+		-- Submit rating
+		local username = socket_url.unescape(query.u or "")
+		local password_md5 = query.h or ""
+		local rating = tonumber(query.rating)
+
+		local player = self:lookupPlayer(username, password_md5)
+		if player and beatmap_id and rating then
+			-- TODO: save rating to database
+		end
+		res:send("")
+	elseif action == "get" then
+		-- Get rating
+		-- TODO: return average rating from database
+		res:send("0")
+	else
+		res:send("ok")
+	end
 end
 
 -------------------------------------------------------------------
@@ -558,8 +802,33 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuComment(req, res, ctx)
-	-- TODO: implement comments
-	res:send("")
+	local body, err = req:receive("*a")
+	if not body then
+		res:send(err or "")
+		return
+	end
+
+	local params = http_util.decode_query_string(body)
+	local action = params.action
+
+	if action == "add" then
+		-- Add comment: type (beatmap/replay), id, text
+		local username = socket_url.unescape(params.u or "")
+		local password_md5 = params.h or ""
+		local text = params.text
+
+		local player = self:lookupPlayer(username, password_md5)
+		if player and text then
+			-- TODO: save comment to database
+		end
+		res:send("")
+	elseif action == "get" then
+		-- Get comments
+		-- TODO: return comments from database
+		res:send("")
+	else
+		res:send("")
+	end
 end
 
 -------------------------------------------------------------------
@@ -572,7 +841,16 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuMarkAsRead(req, res, ctx)
-	-- TODO: implement mail marking
+	local query = ctx.query
+	local username = socket_url.unescape(query.u or "")
+	local password_md5 = query.h or ""
+	local conversation_id = tonumber(query.cid)
+
+	local player = self:lookupPlayer(username, password_md5)
+	if player and conversation_id then
+		-- TODO: mark conversation as read in database
+	end
+
 	res:send("")
 end
 

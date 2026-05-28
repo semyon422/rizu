@@ -67,4 +67,36 @@ function ScoreCrypto.decrypt(encrypted, key, iv)
 	return table.concat(out)
 end
 
+--- Decrypt score submission data.
+--- The score data is base64-encoded, then AES-encrypted.
+--- Returns the decrypted score fields and client hash.
+---@param score_data_b64 string base64-encoded encrypted score data
+---@param client_hash_b64 string base64-encoded client hash
+---@param iv_b64 string base64-encoded IV
+---@param osu_version string osu! client version
+---@return string? score_data decrypted score data (colon-delimited)
+---@return string? client_hash decoded client hash
+function ScoreCrypto:decryptScore(score_data_b64, client_hash_b64, iv_b64, osu_version)
+	local mime = require("mime")
+
+	-- Decode base64
+	local score_data_enc = mime.unb64(score_data_b64)
+	local iv_enc = mime.unb64(iv_b64)
+
+	-- Derive key
+	local key = ScoreCrypto.deriveKey(osu_version)
+
+	-- Decrypt score data (the last 32 bytes are the client hash)
+	local decrypted = ScoreCrypto.decrypt(score_data_enc, key, iv_enc)
+	if not decrypted or #decrypted < 32 then
+		return nil, nil
+	end
+
+	-- Extract client hash from end of decrypted data
+	local score_data = decrypted:sub(1, #decrypted - 32)
+	local client_hash = decrypted:sub(-32)
+
+	return score_data, client_hash
+end
+
 return ScoreCrypto
