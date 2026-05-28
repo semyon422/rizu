@@ -286,4 +286,14 @@ function M.channelAutoJoin(name, topic, p_count)
 	local body = ComplexTypes.writeChannel({name = name, topic = topic, players = p_count})
 	return Binary.writeHeader(M.CHANNEL_AUTO_JOIN, #body) .. body
 end
+
+M.RESTART_SERVER = 62
+
+--- Build a restart server packet.
+---@param delay_ms integer milliseconds until reconnection
+---@return string
+function M.restartServer(delay_ms)
+	return Binary.writeHeader(M.RESTART_SERVER, 4) .. Binary.writeI32(delay_ms)
+end
+
 return M

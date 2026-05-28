@@ -127,7 +127,12 @@ end
 function App:handle(req, res, ip, port)
 	local parsed_uri = socket_url.parse(req.uri)
 
-	local resource, path_params, methods = self.router:getResource(parsed_uri.path)
+	-- Extract host from the Host header
+	local host_header = req.headers:get("host") or ""
+	-- Strip port if present (e.g. "rizu.su:8091" → "rizu.su")
+	local host_name = host_header:match("^(%S+):") or host_header
+
+	local resource, path_params, methods = self.router:getResource(parsed_uri.path, host_name)
 
 	if not resource or not path_params or not methods then
 		res.status = 404

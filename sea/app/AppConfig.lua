@@ -23,6 +23,12 @@ local AppConfig = {
 		port = 9000,
 	},
 
+	-- Bancho (osu! server) configuration
+	bancho_domain = "rizu.su",
+	bancho_bot_name = "bot",
+	bancho_bot_id = 1,
+	bancho_max_matches = 64,
+
 	responsible_person = {
 		name = "Name",
 		email = "email@example.com",

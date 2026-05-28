@@ -129,4 +129,15 @@ function PacketReader:readBytes(n)
 	return v
 end
 
+--- Read a packet header (u16 id + u8 padding + u32 body length).
+---@return {id: integer, bodyLen: integer}?
+function PacketReader:readHeader()
+	if self.pos + 6 > #self.body then
+		return nil
+	end
+	local id, bodyLen, nextPos = Binary.readHeader(self.body, self.pos)
+	self.pos = nextPos
+	return {id = id, bodyLen = bodyLen}
+end
+
 return PacketReader

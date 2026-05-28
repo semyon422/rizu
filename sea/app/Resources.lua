@@ -33,6 +33,13 @@ local ChartplayResource = require("sea.chart.http.ChartplayResource")
 
 local WebsocketResource = require("sea.shared.http.WebsocketResource")
 
+-- Bancho (osu! server) resources
+local BanchoServer = require("bancho.server.BanchoServer")
+local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
+local OsuWebResource = require("bancho.http.OsuWebResource")
+local BanchoFileResource = require("bancho.http.FileResource")
+local BanchoAccountResource = require("bancho.http.AccountResource")
+
 ---@class sea.Resources
 ---@operator call: sea.Resources
 local Resources = class()
@@ -75,6 +82,18 @@ function Resources:new(domain, server_remote, views, sessions, app_config)
 	self.chartplay = ChartplayResource(nil, views)
 
 	self.websocket = WebsocketResource(domain, views)
+
+	-- Bancho server state
+	self.bancho = BanchoServer({
+		domain = app_config.bancho_domain,
+		allow_registration = app_config.is_register_enabled,
+	})
+
+	-- Bancho HTTP resources (domain-restricted)
+	self.bancho_protocol = BanchoProtocolResource(self.bancho)
+	self.bancho_web = OsuWebResource(self.bancho)
+	self.bancho_files = BanchoFileResource(self.bancho)
+	self.bancho_account = BanchoAccountResource(self.bancho)
 end
 
 function Resources:getList()
@@ -111,6 +130,12 @@ function Resources:getList()
 		self.chartplay,
 
 		self.websocket,
+
+		-- Bancho resources (domain-restricted to osu.*, c.*, etc.)
+		self.bancho_protocol,
+		self.bancho_web,
+		self.bancho_files,
+		self.bancho_account,
 	}
 end
 

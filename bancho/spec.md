@@ -45,6 +45,19 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 
 Complete constant sets: `Action`, `ClientFlags`, `ClientPrivileges`, `GameMode` (with relax/autopilot variants and `fromParams`), `Grade`, `LoginFailureReason`, `MatchConstants` (win conditions, team types, teams), `Mods` (with `filterInvalidCombos`, `fromModString`, `toString`), `Privileges`, `RankedStatus`, `ReplayAction`, `SlotStatus`, `SubmissionStatus`.
 
+### Server State (`bancho/server/`)
+
+- **BanchoServer.lua** — Central server state holding `PlayerCollection`, `MatchCollection`, `ChannelCollection`, and repository references. Provides shared state for all HTTP resources and packet handlers. Defines repository interfaces (`IUserRepo`, `IScoreRepo`, `IBeatmapRepo`, etc.) that can be backed by stubs (testing) or real database adapters (production).
+
+### HTTP Resources (`bancho/http/`)
+
+HTTP resource classes that integrate with the `sea/` web framework via domain-based routing.
+
+- **BanchoProtocolResource.lua** — `POST /` (Bancho protocol: login + packet exchange), `GET /` (status page), `GET /online`, `GET /matches`. Domain-restricted to `osu.*`, `c.*`, `ce.*`, `c4.*`, `c5.*`, `c6.*`.
+- **OsuWebResource.lua** — All `/web/*` endpoints: score submission, leaderboards, replays, friends, beatmap info, search, favourites, lastfm anti-cheat, screenshots, ratings, comments, mail, seasonal backgrounds, connection checks. Domain-restricted to `osu.*`.
+- **FileResource.lua** — `/ss/:id.:ext` (screenshots), `/d/:set_id` (beatmap downloads), `/web/maps/:filename` (.osu files). Domain-restricted to `osu.*`.
+- **AccountResource.lua** — `POST /users` (in-game registration), `POST /difficulty-rating` (redirect). Domain-restricted to `osu.*`.
+
 ### Stubs (`bancho/stub/`)
 
 Test doubles for external dependencies: `BcryptHasher`, `Repo` (users/scores/beatmaps), `HttpClient`, `GeoLocator`, `PerformanceCalculator`.
@@ -169,21 +182,27 @@ All current "repositories" are in-memory stubs. A real server needs:
 
 ### 4. Web API Endpoints
 
-The osu! client makes HTTP requests to several endpoints beyond the Bancho protocol:
+The osu! client makes HTTP requests to several endpoints beyond the Bancho protocol. **All endpoints are now implemented as `IResource` classes in `bancho/http/`** and registered with domain-based routing. The following remain as stubs or partial implementations:
 
-- **`POST /web/osu-submit-modular.php`** — Main score submission endpoint. Receives multipart form data with encrypted score, replay file, IV, password, osu version, client hash, unique IDs. Must: decrypt score, verify checksums, look up beatmap and player, calculate PP/accuracy, store score, update stats, return submission charts.
-- **`POST /web/osu-submit-modular-selector.php`** — Variant used by newer clients with active session tokens. Same core logic but authenticated via `token` header instead of password.
-- **`GET /web/osu-osz2-getscores.php`** — Leaderboard endpoint. Returns ranked status, beatmap metadata, and up to 50 scores in pipe-delimited format. Supports leaderboard types: Top, Mods, Friends, Country, Local.
-- **`GET /web/osu-getreplay.php`** — Serve `.osr` replay files by score ID.
-- **`GET /web/osu-getfriends.php`** — Return newline-delimited friend IDs.
-- **`POST /web/osu-getbeatmapinfo.php`** — Beatmap info lookup by filename or ID. Returns map ID, set ID, MD5, status, and per-mode grades.
-- **`GET /web/osu-search.php`** — Beatmap search (proxies to osu! API mirror). Returns osu!Direct format.
-- **`GET /web/osu-search-set.php`** — Beatmap set detail lookup.
-- **`GET /web/osu-getfavourites.php`** — Return favourited set IDs.
-- **`GET /web/osu-addfavourite.php`** — Add beatmap set to favourites.
-- **`GET /web/lastfm.php`** — Anti-cheat endpoint. Client sends hidden flags that detect modified clients (hq!osu, AQN). Returns empty or triggers restriction.
-- **`POST /web/osu-screenshot.php`** — Screenshot upload endpoint.
-- **`GET /web/osu-rate.php`** — Beatmap rating submission and retrieval.
+- **`POST /web/osu-submit-modular.php`** — Score submission skeleton exists. Needs: multipart parsing, score decryption, checksum verification, PP calculation, score storage, stats update, chart response.
+- **`POST /web/osu-submit-modular-selector.php`** — Token-authenticated variant. Same needs as above.
+- **`GET /web/osu-osz2-getscores.php`** — Leaderboard skeleton exists. Returns basic structure; needs: proper score lookup, personal best calculation, leaderboard type filtering.
+- **`GET /web/osu-getreplay.php`** — Replay serving skeleton. Needs: replay repo integration.
+- **`GET /web/osu-getfriends.php`** — Friends list skeleton. Needs: friends repo integration.
+- **`POST /web/osu-getbeatmapinfo.php`** — Beatmap info stub. Needs: filename lookup, grade computation.
+- **`GET /web/osu-search.php`** — Search proxy stub. Needs: mirror integration.
+- **`GET /web/osu-search-set.php`** — Set detail stub. Needs: database lookup.
+- **`GET /web/osu-getfavourites.php`** — Favourites stub. Needs: favourites repo.
+- **`GET /web/osu-addfavourite.php`** — Add favourite stub. Needs: favourites repo.
+- **`GET /web/lastfm.php`** — Anti-cheat skeleton. Basic flag parsing exists.
+- **`POST /web/osu-screenshot.php`** — Screenshot upload stub. Needs: multipart parsing, file validation, storage.
+- **`GET /web/osu-rate.php`** — Rating stub. Needs: ratings repo.
+
+Additionally:
+- **`POST /users`** — In-game registration. Full implementation with validation exists.
+- **`GET /ss/:id.:ext`** — Screenshot serving. Full implementation exists.
+- **`GET /d/:set_id`** — Download redirect. Redirects to osu.ppy.sh.
+- **`GET /web/maps/:filename`** — .osu file serving. Full implementation exists.
 
 ### 5. Performance Calculation (PP/SR)
 
@@ -264,6 +283,8 @@ bancho/
   chat/         — Chat and channel management
   crypto/       — Encryption/decryption
   constants/    — Enums and bitmasks
+  server/       — Central server state (BanchoServer)
+  http/         — HTTP resource classes for sea/ integration
   stub/         — Test doubles for external dependencies
 ```
 
@@ -273,6 +294,28 @@ bancho/
 - **Packet queue model**: Each player has an internal packet queue. Managers enqueue packets; the transport layer drains them on each client request.
 - **In-memory collections**: `PlayerCollection`, `MatchCollection`, `ChannelCollection` provide in-memory registries. For production, these would be backed by or synchronized with a database.
 - **LuaJIT FFI**: Used for binary operations (float conversion, LEB128). Should also be used for crypto (Rijndael-256) and potentially PP calculation (baton binding).
+
+### HTTP Integration With sea/
+
+Bancho HTTP endpoints are integrated into the `sea/` web framework as `IResource` classes registered in `sea/app/Resources.lua`. The router supports **domain-based routing** so different `Host` headers get different handlers:
+
+```
+Reverse Proxy (nginx)
+  └── example.com:443 → localhost:8091 (sea app, all domains)
+       ├── Host: example.com → website resources (index, auth, users, etc.)
+       ├── Host: osu.{domain} → bancho /web/* endpoints + Bancho protocol
+       ├── Host: c/c4/c5/c6.{domain} → Bancho protocol only
+       └── Host: b.{domain} → beatmap files (redirect to osu!)
+```
+
+**Domain-based routing** works as follows:
+- Each `IResource` can declare a `domains` field (string array of patterns)
+- Patterns support `*` as a wildcard (e.g., `"c.*"` matches `"c.example.com"`, `"c.other.net"`)
+- Resources with domain restrictions match only when the `Host` header matches
+- Resources without domain restrictions match all hosts (backward compatible)
+- The router checks domain-restricted routes first, then falls back to unrestricted routes
+
+**Configuration**: `nginx_config.lua` has `proxied = true` to read `X-Real-IP` from the reverse proxy and `client_max_body_size = "20M"` for score submissions with replay files.
 
 ### Integration With The Game Client
 

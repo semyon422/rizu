@@ -1,0 +1,615 @@
+--- osu! client web API endpoints.
+---
+--- These endpoints are called by the osu! client for score submission,
+--- leaderboards, beatmap info, friends, and other in-game features.
+
+local IResource = require("web.framework.IResource")
+local http_util = require("web.http.util")
+local json = require("web.json")
+local ScoreCrypto = require("bancho.crypto.ScoreCrypto")
+local Score = require("bancho.model.Score")
+local RankedStatus = require("bancho.constants.RankedStatus")
+local SubmissionStatus = require("bancho.constants.SubmissionStatus")
+local GameMode = require("bancho.constants.GameMode")
+local Mods = require("bancho.constants.Mods")
+local Grade = require("bancho.constants.Grade")
+local ClientFlags = require("bancho.constants.ClientFlags")
+
+local socket_url = require("socket.url")
+
+--- Helper to send JSON response.
+---@param res web.IResponse
+---@param data any
+local function util_send_json(res, data)
+	res.headers:set("Content-Type", "application/json")
+	res:send(json.encode(data))
+end
+
+---@class bancho.http.OsuWebResource: web.IResource
+---@operator call: bancho.http.OsuWebResource
+---@field server bancho.server.BanchoServer
+local OsuWebResource = IResource + {}
+
+OsuWebResource.routes = {
+	-- Score submission
+	{"/web/osu-submit-modular.php", {
+		POST = "osuSubmitModular",
+	}},
+	{"/web/osu-submit-modular-selector.php", {
+		POST = "osuSubmitModularSelector",
+	}},
+
+	-- Leaderboards
+	{"/web/osu-osz2-getscores.php", {
+		GET = "osuGetscores",
+	}},
+
+	-- Replays
+	{"/web/osu-getreplay.php", {
+		GET = "osuGetReplay",
+	}},
+
+	-- Friends
+	{"/web/osu-getfriends.php", {
+		POST = "osuGetFriends",
+	}},
+
+	-- Beatmap info
+	{"/web/osu-getbeatmapinfo.php", {
+		POST = "osuGetBeatmapInfo",
+	}},
+
+	-- Beatmap search
+	{"/web/osu-search.php", {
+		GET = "osuSearch",
+	}},
+	{"/web/osu-search-set.php", {
+		GET = "osuSearchSet",
+	}},
+
+	-- Favourites
+	{"/web/osu-getfavourites.php", {
+		GET = "osuGetFavourites",
+	}},
+	{"/web/osu-addfavourite.php", {
+		GET = "osuAddFavourite",
+	}},
+
+	-- Anti-cheat
+	{"/web/lastfm.php", {
+		GET = "lastFm",
+	}},
+
+	-- Screenshots
+	{"/web/osu-screenshot.php", {
+		POST = "osuScreenshot",
+	}},
+
+	-- Ratings
+	{"/web/osu-rate.php", {
+		GET = "osuRate",
+	}},
+
+	-- Comments
+	{"/web/osu-comment.php", {
+		POST = "osuComment",
+	}},
+
+	-- Mail
+	{"/web/osu-markasread.php", {
+		GET = "osuMarkAsRead",
+	}},
+
+	-- Seasonal
+	{"/web/osu-getseasonal.php", {
+		GET = "osuGetSeasonal",
+	}},
+
+	-- Connection checks
+	{"/web/bancho_connect.php", {
+		GET = "banchoConnect",
+	}},
+	{"/web/check-updates.php", {
+		GET = "checkUpdates",
+	}},
+}
+
+--- Domains that serve osu! web API endpoints.
+OsuWebResource.domains = {"osu.*"}
+
+---@param server bancho.server.BanchoServer
+function OsuWebResource:new(server)
+	self.server = server
+end
+
+--- Authenticate a player from form/query params.
+---@param req web.IRequest
+---@param u_alias string username parameter alias (default "u")
+---@param h_alias string password parameter alias (default "h")
+---@return bancho.model.Player?
+---@return string? error message
+function OsuWebResource:authenticatePlayer(req, u_alias, h_alias)
+	u_alias = u_alias or "u"
+	h_alias = h_alias or "h"
+
+	local username, password_md5
+	local content_type = req.headers:get("Content-Type") or ""
+
+	if content_type:find("multipart") then
+		-- For multipart, we need to parse differently
+		return nil, "multipart auth not yet supported"
+	elseif content_type:find("application/x-www-form-urlencoded") then
+		local body, err = req:receive("*a")
+		if not body then
+			return nil, err
+		end
+		local params = http_util.decode_query_string(body)
+		username = params[u_alias]
+		password_md5 = params[h_alias]
+	else
+		-- Try query string
+		return nil, "no auth params"
+	end
+
+	if not username or not password_md5 then
+		return nil, "missing auth params"
+	end
+
+	username = socket_url.unescape(username)
+	return self:lookupPlayer(username, password_md5)
+end
+
+--- Look up an online player by name and password.
+---@param username string
+---@param password_md5 string
+---@return bancho.model.Player?
+function OsuWebResource:lookupPlayer(username, password_md5)
+	-- First check online players
+	local player = self.server.players:get(nil, nil, username)
+	if player then
+		-- Verify password matches stored hash
+		if self.server.user_repo then
+			local user = self.server.user_repo:findUserByNameAndPassword(username, password_md5)
+			if user then
+				return player
+			end
+		else
+			return player
+		end
+	end
+	return nil
+end
+
+-------------------------------------------------------------------
+-- Score Submission
+-------------------------------------------------------------------
+
+--- POST /web/osu-submit-modular.php
+--- Score submission with encrypted score data.
+--- Authenticated via password (u, p params in score data).
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuSubmitModular(req, res, ctx)
+	local multipart, err = http_util.get_multipart(req)
+	if not multipart then
+		res.status = 400
+		res:send(err or "invalid multipart")
+		return
+	end
+
+	-- TODO: Parse multipart form data
+	-- Required fields: score (encrypted data + replay), iv, pass, osuver, s, c1, etc.
+	res:send("")
+end
+
+--- POST /web/osu-submit-modular-selector.php
+--- Score submission with session token authentication.
+--- Authenticated via token header.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
+	local token = req.headers:get("token")
+	if not token then
+		res.status = 401
+		res:send("")
+		return
+	end
+
+	local player = self.server.players:get(token)
+	if not player then
+		res:send("") -- Client will retry when online
+		return
+	end
+
+	-- TODO: Parse multipart form data and submit score
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Leaderboards
+-------------------------------------------------------------------
+
+--- GET /web/osu-osz2-getscores.php
+--- Returns leaderboard data for a beatmap.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuGetscores(req, res, ctx)
+	local query = ctx.query
+
+	-- Authenticate player
+	local username = socket_url.unescape(query.us or query.u or "")
+	local password_md5 = query.ha or query.h or ""
+	if not username or not password_md5 then
+		res:send("")
+		return
+	end
+
+	local player = self:lookupPlayer(username, password_md5)
+	if not player then
+		res:send("")
+		return
+	end
+
+	local map_md5 = query.c
+	local map_filename = socket_url.unescape(query.f or "")
+	local map_set_id = tonumber(query.i) or -1
+	local mode = tonumber(query.m) or 0
+	local mods = tonumber(query.mods) or 0
+	local leaderboard_type = tonumber(query.v) or 0
+
+	-- Handle relax/autopilot mode shifting
+	if mods ~= 0 then
+		if bit.band(mods, Mods.RELAX) ~= 0 then
+			if mode ~= 3 then -- rx!mania doesn't exist
+				mode = mode + 4
+			else
+				mods = bit.band(mods, bit.bnot(Mods.RELAX))
+			end
+		elseif bit.band(mods, Mods.AUTOPILOT) ~= 0 then
+			if mode ~= 1 and mode ~= 2 and mode ~= 3 then
+				mode = mode + 8
+			else
+				mods = bit.band(mods, bit.bnot(Mods.AUTOPILOT))
+			end
+		end
+	end
+
+	-- Look up beatmap
+	local bmap = nil
+	if self.server.beatmap_repo then
+		bmap = self.server.beatmap_repo:findBeatmap(map_md5)
+	end
+
+	if not bmap then
+		res:send("-1|false")
+		return
+	end
+
+	-- Check ranked status
+	if bmap.status < RankedStatus.Ranked then
+		res:send(tonumber(bmap.status) .. "|false")
+		return
+	end
+
+	-- Fetch scores
+	local scoring_metric = mode >= 4 and "pp" or "score"
+	local scores = {}
+	if self.server.score_repo then
+		scores = self.server.score_repo:findScores(map_md5, mode)
+	end
+
+	-- Build response
+	local response_lines = {
+		string.format("%d|false|%d|%d|%d|0|",
+			bmap.status, bmap.id, bmap.set_id, #scores),
+		string.format("0\n%s\n0", bmap.full_name or ""),
+		"", -- personal best (empty)
+	}
+
+	-- Add score entries
+	for i, score in ipairs(scores) do
+		if i > 50 then break end
+		table.insert(response_lines, string.format(
+			"%d|%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|1",
+			score.id or 0,
+			"unknown", -- name (TODO: resolve from user repo)
+			math.floor(score.score or 0),
+			score.max_combo or 0,
+			score.n50 or 0,
+			score.n100 or 0,
+			score.n300 or 0,
+			score.nmiss or 0,
+			score.ngeki or 0,
+			score.nkatu or 0,
+			score.perfect and 1 or 0,
+			score.mods or 0,
+			score.userid or 0,
+			i,
+			score.play_time or 0,
+			1 -- has_replay
+		))
+	end
+
+	res:send(table.concat(response_lines, "\n"))
+end
+
+-------------------------------------------------------------------
+-- Replays
+-------------------------------------------------------------------
+
+--- GET /web/osu-getreplay.php
+--- Serve replay file for a score.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuGetReplay(req, res, ctx)
+	local query = ctx.query
+	local score_id = tonumber(query.c)
+	if not score_id then
+		res.status = 404
+		res:send("")
+		return
+	end
+
+	if self.server.replay_repo then
+		local replay_data = self.server.replay_repo:getReplay(score_id)
+		if replay_data then
+			res.headers:set("Content-Type", "application/octet-stream")
+			res:send(replay_data)
+			return
+		end
+	end
+
+	res.status = 404
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Friends
+-------------------------------------------------------------------
+
+--- POST /web/osu-getfriends.php
+--- Return newline-delimited friend user IDs.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuGetFriends(req, res, ctx)
+	local body, err = req:receive("*a")
+	if not body then
+		res:send(err or "")
+		return
+	end
+
+	local params = http_util.decode_query_string(body)
+	local username = socket_url.unescape(params.u or "")
+	local password_md5 = params.h or ""
+
+	local player = self:lookupPlayer(username, password_md5)
+	if not player then
+		res:send("")
+		return
+	end
+
+	local friends = {}
+	if self.server.friends_repo then
+		friends = self.server.friends_repo:getFriends(player.id)
+	end
+
+	res:send(table.concat(friends, "\n"))
+end
+
+-------------------------------------------------------------------
+-- Beatmap Info
+-------------------------------------------------------------------
+
+--- POST /web/osu-getbeatmapinfo.php
+--- Beatmap info lookup by filename or ID.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuGetBeatmapInfo(req, res, ctx)
+	local body, err = req:receive("*a")
+	if not body then
+		res:send(err or "")
+		return
+	end
+
+	local params = http_util.decode_query_string(body)
+
+	-- Parse filenames (Filenames[] format)
+	---@type string[]
+	local filenames = {}
+	for k, v in pairs(params) do
+		if k:match("^Filenames%[") then
+			table.insert(filenames, v)
+		end
+	end
+
+	local response_lines = {}
+	for idx, filename in ipairs(filenames) do
+		if self.server.beatmap_repo then
+			-- TODO: lookup by filename
+		end
+	end
+
+	res:send(table.concat(response_lines, "\n"))
+end
+
+-------------------------------------------------------------------
+-- Beatmap Search
+-------------------------------------------------------------------
+
+--- GET /web/osu-search.php
+--- Beatmap search (proxies to osu! API mirror).
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuSearch(req, res, ctx)
+	-- TODO: proxy to osu! API mirror
+	res:send("-1")
+end
+
+--- GET /web/osu-search-set.php
+--- Beatmap set detail lookup.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuSearchSet(req, res, ctx)
+	-- TODO: lookup set by ID/checksum
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Favourites
+-------------------------------------------------------------------
+
+--- GET /web/osu-getfavourites.php
+--- Return favourited beatmap set IDs.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuGetFavourites(req, res, ctx)
+	-- TODO: implement
+	res:send("")
+end
+
+--- GET /web/osu-addfavourite.php
+--- Add beatmap set to favourites.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuAddFavourite(req, res, ctx)
+	-- TODO: implement
+	res:send("Added favourite!")
+end
+
+-------------------------------------------------------------------
+-- Anti-Cheat (Last.fm)
+-------------------------------------------------------------------
+
+--- GET /web/lastfm.php
+--- Anti-cheat endpoint. Client sends hidden flags.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:lastFm(req, res, ctx)
+	local query = ctx.query
+	local action = query.action
+	local beatmap_id = query.b
+
+	if not beatmap_id or beatmap_id:sub(1, 1) ~= "a" then
+		res:send("-3")
+		return
+	end
+
+	-- Parse anti-cheat flags
+	local flags_str = beatmap_id:sub(2)
+	local flags = tonumber(flags_str) or 0
+
+	-- Check for hq!osu flags
+	if bit.band(flags, 1) ~= 0 or bit.band(flags, 2) ~= 0 then
+		-- HQ assembly or HQ file detected
+		-- TODO: restrict player
+		res:send("-3")
+		return
+	end
+
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Screenshots
+-------------------------------------------------------------------
+
+--- POST /web/osu-screenshot.php
+--- Screenshot upload.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuScreenshot(req, res, ctx)
+	-- TODO: parse multipart, validate image, save file
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Ratings
+-------------------------------------------------------------------
+
+--- GET /web/osu-rate.php
+--- Beatmap rating submission and retrieval.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuRate(req, res, ctx)
+	-- TODO: implement rating system
+	res:send("ok")
+end
+
+-------------------------------------------------------------------
+-- Comments
+-------------------------------------------------------------------
+
+--- POST /web/osu-comment.php
+--- Beatmap/replay comment get/post.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuComment(req, res, ctx)
+	-- TODO: implement comments
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Mail
+-------------------------------------------------------------------
+
+--- GET /web/osu-markasread.php
+--- Mark mail conversation as read.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuMarkAsRead(req, res, ctx)
+	-- TODO: implement mail marking
+	res:send("")
+end
+
+-------------------------------------------------------------------
+-- Seasonal
+-------------------------------------------------------------------
+
+--- GET /web/osu-getseasonal.php
+--- Return seasonal background configuration.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:osuGetSeasonal(req, res, ctx)
+	local backgrounds = self.server.config.seasonal_backgrounds or {}
+	util_send_json(res, backgrounds)
+end
+
+-------------------------------------------------------------------
+-- Connection Checks
+-------------------------------------------------------------------
+
+--- GET /web/bancho_connect.php
+--- Client connection check (called before login).
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:banchoConnect(req, res, ctx)
+	res:send("")
+end
+
+--- GET /web/check-updates.php
+--- Client update check.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function OsuWebResource:checkUpdates(req, res, ctx)
+	res:send("")
+end
+
+return OsuWebResource
