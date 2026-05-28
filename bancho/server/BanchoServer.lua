@@ -12,9 +12,8 @@ local LoginHandler = require("bancho.auth.LoginHandler")
 local MatchManager = require("bancho.multiplayer.MatchManager")
 local ChatManager = require("bancho.chat.ChatManager")
 local ScoreSubmitter = require("bancho.score.Submitter")
-local ServerPackets = require("bancho.protocol.ServerPackets")
-local ClientPackets = require("bancho.protocol.ClientPackets")
-local PacketReader = require("bancho.protocol.PacketReader")
+local PacketRouter = require("bancho.handler.PacketRouter")
+local CommandDispatcher = require("bancho.command.CommandDispatcher")
 
 local class = require("class")
 
@@ -72,13 +71,14 @@ local class = require("class")
 --- Server configuration.
 ---@class bancho.server.BanchoConfig
 ---@field domain string Server domain (e.g. "rizu.su")
----@field osu_domains string[] Domains that serve osu! endpoints (e.g. {"osu.rizu.su", "osu.dfjk.ru"})
----@field bancho_domains string[] Domains that serve bancho protocol (e.g. {"c.rizu.su", "c.dfjk.ru"})
+---@field osu_domains string[] Domains that serve osu! endpoints
+---@field bancho_domains string[] Domains that serve bancho protocol
 ---@field bot_name string Bot player name
 ---@field bot_id integer Bot player ID
 ---@field max_matches integer Maximum concurrent matches
 ---@field allow_registration boolean Allow in-game registration
 ---@field seasonal_backgrounds table[] Seasonal background configuration
+---@field command_prefix string Command prefix character
 
 ---@class bancho.server.BanchoServer
 ---@operator call: bancho.server.BanchoServer
@@ -89,7 +89,8 @@ local class = require("class")
 ---@field match_manager bancho.multiplayer.MatchManager
 ---@field chat_manager bancho.chat.ChatManager
 ---@field score_submitter bancho.score.Submitter
----@field packets {[integer]: table} Packet handler registry
+---@field router bancho.handler.PacketRouter
+---@field commands bancho.command.CommandDispatcher
 ---@field config bancho.server.BanchoConfig
 ---@field user_repo? bancho.server.IUserRepo
 ---@field score_repo? bancho.server.IScoreRepo
@@ -109,15 +110,35 @@ function BanchoServer:new(config)
 	self.config.max_matches = self.config.max_matches or 64
 	self.config.allow_registration = self.config.allow_registration ~= false
 	self.config.seasonal_backgrounds = self.config.seasonal_backgrounds or {}
+	self.config.command_prefix = self.config.command_prefix or "!"
 
 	self.players = PlayerCollection()
 	self.matches = MatchCollection(self.config.max_matches)
 	self.channels = ChannelCollection()
 	self.login_handler = LoginHandler()
-	self.match_manager = MatchManager(self)
-	self.chat_manager = ChatManager(self)
+	self.match_manager = MatchManager(self.matches)
+	self.chat_manager = ChatManager(self.channels)
 	self.score_submitter = ScoreSubmitter(self)
-	self.packets = {}
+
+	-- Packet router
+	self.router = PacketRouter()
+	self.router:setServer(self)
+
+	-- Wire match_manager to use server's match collection
+	self.match_manager.matches = self.matches
+
+	-- Wire chat_manager to use server's channel collection
+	self.chat_manager.channels = self.channels
+
+	-- Command dispatcher
+	self.commands = CommandDispatcher(self.config.command_prefix)
+
+	-- Register all handlers and commands
+	local registerHandlers = require("bancho.handler")
+	registerHandlers(self.router)
+
+	local registerCommands = require("bancho.command")
+	registerCommands(self.commands)
 
 	-- Initialize default channels
 	self:initializeChannels()
@@ -131,7 +152,7 @@ function BanchoServer:initializeChannels()
 	self.channels:add(Channel("#general", "General discussion", 0, 0, true, false))
 	self.channels:add(Channel("#halp", "Technical support", 0, 0, true, false))
 	self.channels:add(Channel("#shout", "Shout channel", 0, 0, false, false))
-	self.channels:add(Channel("#announce", "Announcements", 0, 1, true, false))
+	self.channels:add(Channel("#announce", "Announcements", 1, 0, true, false))
 end
 
 --- Set repository backends.
@@ -158,37 +179,11 @@ function BanchoServer:getBot()
 	return self.players:get(nil, self.config.bot_id)
 end
 
---- Handle a Bancho protocol packet for a player.
----@param player bancho.model.Player
----@param packet_id integer
----@param reader bancho.protocol.PacketReader
-function BanchoServer:handlePacket(player, packet_id, reader)
-	local handler = self.packets[packet_id]
-	if not handler then
-		return
-	end
-	handler(self, player, reader)
-end
-
---- Register a packet handler.
----@param packet_id integer
----@param handler fun(server: bancho.server.BanchoServer, player: bancho.model.Player, reader: bancho.protocol.PacketReader)
-function BanchoServer:registerPacket(packet_id, handler)
-	self.packets[packet_id] = handler
-end
-
 --- Process incoming binary data for a player, dispatching packets.
 ---@param player bancho.model.Player
 ---@param data string raw binary data
 function BanchoServer:processPackets(player, data)
-	local reader = PacketReader(data)
-	while reader:hasMore() do
-		local header = reader:readHeader()
-		if not header then
-			break
-		end
-		self:handlePacket(player, header.id, reader)
-	end
+	self.router:dispatch(player, data)
 end
 
 return BanchoServer

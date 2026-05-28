@@ -35,11 +35,17 @@ local class = require("class")
 ---@field priv integer privileges bitmask
 ---@field token string
 ---@field is_online boolean
+---@field restricted boolean account restricted status
 ---@field bancho_priv integer client privileges bitmask
 ---@field status bancho.model.Status
 ---@field stats {[integer]: bancho.model.ModeStats} stats by game mode
 ---@field _packet_queue string[]
 ---@field silence_end integer
+---@field silenced boolean chat silenced status
+---@field utc_offset integer
+---@field spectating bancho.model.Player? player being spectated
+---@field spectators bancho.model.Player[] players spectating this player
+---@field match bancho.model.Match? current multiplayer match
 local Player = class()
 
 --- Generate a random UUID token (simplified).
@@ -56,7 +62,13 @@ function Player:new(id, name, priv)
 	self.priv = priv
 	self.token = _genToken()
 	self.is_online = false
+	self.restricted = false
 	self.silence_end = 0
+	self.silenced = false
+	self.utc_offset = 0
+	self.spectating = nil
+	self.spectators = {}
+	self.match = nil
 
 	self.status = {
 		action = Action.IDLE,
@@ -108,6 +120,23 @@ function Player:dequeue()
 	local data = table.concat(self._packet_queue)
 	self._packet_queue = {}
 	return data
+end
+
+--- Add a spectator watching this player.
+---@param spectator bancho.model.Player
+function Player:addSpectator(spectator)
+	table.insert(self.spectators, spectator)
+end
+
+--- Remove a spectator from this player.
+---@param spectator bancho.model.Player
+function Player:removeSpectator(spectator)
+	for i = 1, #self.spectators do
+		if self.spectators[i].id == spectator.id then
+			table.remove(self.spectators, i)
+			break
+		end
+	end
 end
 
 --- Get client-side privileges bitmask.

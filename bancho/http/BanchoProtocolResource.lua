@@ -8,17 +8,8 @@
 
 local IResource = require("web.framework.IResource")
 local ServerPackets = require("bancho.protocol.ServerPackets")
-local ClientPackets = require("bancho.protocol.ClientPackets")
-local PacketReader = require("bancho.protocol.PacketReader")
-local Binary = require("bancho.protocol.Binary")
 local LoginHandler = require("bancho.auth.LoginHandler")
-local GameMode = require("bancho.constants.GameMode")
-local Privileges = require("bancho.constants.Privileges")
 local ClientPrivileges = require("bancho.constants.ClientPrivileges")
-local BcryptHasher = require("sea.access.BcryptPasswordHasher")
-
-local json = require("web.json")
-local http_util = require("web.http.util")
 
 ---@class bancho.http.BanchoProtocolResource: web.IResource
 ---@operator call: bancho.http.BanchoProtocolResource
@@ -62,7 +53,7 @@ end
 function BanchoProtocolResource:getStatus(req, res, ctx)
 	local players = self.server.players
 	local matches = self.server.matches
-	local all_packets = ClientPackets
+	local router = self.server.router
 
 	local player_list = players:all()
 	local match_list = matches:all()
@@ -71,6 +62,12 @@ function BanchoProtocolResource:getStatus(req, res, ctx)
 		if p.id ~= self.server.config.bot_id then
 			non_bot_count = non_bot_count + 1
 		end
+	end
+
+	-- Build packet list
+	local packet_lines = {}
+	for _, pkt in ipairs(router.handled_packets) do
+		table.insert(packet_lines, string.format("%s (%d)", pkt.name, pkt.id))
 	end
 
 	local body = ([[
@@ -89,8 +86,8 @@ Running bancho server
 		:format(
 			non_bot_count,
 			#match_list,
-			#all_packets,
-			""
+			#router.handled_packets,
+			table.concat(packet_lines, "\n")
 		)
 
 	res.headers:set("Content-Type", "text/html; charset=utf-8")
@@ -272,7 +269,9 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	-- Channel info
 	for _, channel in ipairs(server.channels:all()) do
 		if channel.auto_join then
-			data = data .. ServerPackets.channelInfo(channel.name, channel.topic or "", #channel.players)
+			local count = 0
+			for _ in pairs(channel.players) do count = count + 1 end
+			data = data .. ServerPackets.channelInfo(channel.name, channel.topic or "", count)
 		end
 	end
 	data = data .. ServerPackets.channelInfoEnd()
