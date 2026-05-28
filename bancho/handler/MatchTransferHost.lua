@@ -1,0 +1,57 @@
+--- Packet 70: MATCH_TRANSFER_HOST
+--- Host transfers match host to another player.
+
+local ServerPackets = require("bancho.protocol.ServerPackets")
+local IPacketHandler = require("bancho.handler.IPacketHandler")
+
+--- Match transfer host handler data.
+---@class bancho.handler.MatchTransferHostData
+---@field slot_id integer
+
+--- Packet 70: MATCH_TRANSFER_HOST
+---@class bancho.handler.MatchTransferHost: bancho.handler.IPacketHandler
+---@operator call: bancho.handler.MatchTransferHost
+local MatchTransferHost = IPacketHandler + {}
+
+---@return bancho.handler.MatchTransferHostData
+function MatchTransferHost:parse(reader, bodyLen)
+	return { slot_id = reader:readI32() }
+end
+
+---@param server bancho.server.BanchoServer
+---@param player bancho.model.Player
+---@param data bancho.handler.MatchTransferHostData
+function MatchTransferHost:handle(server, player, data)
+	if not player.match then return end
+
+	-- Only host can transfer
+	if player.match.host_id ~= player.id then return end
+
+	-- Validate slot range
+	if data.slot_id < 0 or data.slot_id > 15 then return end
+
+	local match = player.match
+	local targetSlot = match.slots[data.slot_id]
+	if not targetSlot.player then return end
+
+	-- Transfer host
+	server.match_manager:transferHost(match, targetSlot.player)
+
+	-- Broadcast transfer host packet
+	local pkt = ServerPackets.matchTransferHost()
+	for i = 0, 15 do
+		if match.slots[i].player ~= nil then
+			match.slots[i].player:enqueue(pkt)
+		end
+	end
+
+	-- Broadcast updated match state
+	local match_data = server.match_manager:buildMatchData(match)
+	if match.chat then
+		for _, p in pairs(match.chat.players) do
+			p:enqueue(ServerPackets.updateMatch(match_data))
+		end
+	end
+end
+
+return MatchTransferHost

@@ -6,4 +6,6 @@ M.PLAYING = 3
 M.LOADED = 4
 M.COMPLETED = 5
 M.FAILED = 6
+M.NO_MAP = 7
+M.LOCKED = 8
 return M

@@ -15,6 +15,7 @@ local class = require("class")
 ---@field team integer (MatchConstants.MatchTeams.*)
 ---@field mods integer
 ---@field loaded boolean
+---@field skipped boolean
 local Slot = class()
 
 function Slot:new()
@@ -23,6 +24,7 @@ function Slot:new()
 	self.team = MatchConstants.MatchTeams.NEUTRAL
 	self.mods = Mods.NOMOD
 	self.loaded = false
+	self.skipped = false
 	return self
 end
 
@@ -39,6 +41,7 @@ function Slot:reset()
 	self.team = MatchConstants.MatchTeams.NEUTRAL
 	self.mods = Mods.NOMOD
 	self.loaded = false
+	self.skipped = false
 end
 
 --- Copy state from another slot.

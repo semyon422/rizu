@@ -46,6 +46,13 @@ local class = require("class")
 ---@field spectating bancho.model.Player? player being spectated
 ---@field spectators bancho.model.Player[] players spectating this player
 ---@field match bancho.model.Match? current multiplayer match
+---@field in_lobby boolean whether player is in multiplayer lobby
+---@field pm_private boolean block non-friend DMs
+---@field away_msg string? away message text
+---@field pres_filter integer presence filter (0-2)
+---@field stealth boolean stealth spectating mode
+---@field blocks integer[] blocked user IDs
+---@field friends integer[] friend user IDs
 local Player = class()
 
 --- Generate a random UUID token (simplified).
@@ -69,6 +76,13 @@ function Player:new(id, name, priv)
 	self.spectating = nil
 	self.spectators = {}
 	self.match = nil
+	self.in_lobby = false
+	self.pm_private = false
+	self.away_msg = nil
+	self.pres_filter = 0
+	self.stealth = false
+	self.blocks = {}
+	self.friends = {}
 
 	self.status = {
 		action = Action.IDLE,

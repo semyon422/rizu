@@ -45,9 +45,76 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 
 Complete constant sets: `Action`, `ClientFlags`, `ClientPrivileges`, `GameMode` (with relax/autopilot variants and `fromParams`), `Grade`, `LoginFailureReason`, `MatchConstants` (win conditions, team types, teams), `Mods` (with `filterInvalidCombos`, `fromModString`, `toString`), `Privileges`, `RankedStatus`, `ReplayAction`, `SlotStatus`, `SubmissionStatus`.
 
+### Packet Handlers (`bancho/handler/`)
+
+Central packet router and handler classes. Each handler inherits `IPacketHandler` via `class()` and implements `parse(reader, bodyLen)` and `handle(server, player, data)`.
+
+- **IPacketHandler.lua** — Base class defining the handler interface. Subclasses inherit via `IPacketHandler + {}`.
+- **PacketRouter.lua** — Maintains two handler registries (`handlers_all` for unrestricted players, `handlers_restricted` for restricted players). The dispatch loop reads packet headers, looks up the handler in the correct registry, calls `handler:parse()` then `handler:handle()`.
+- **init.lua** — Registers all 17 handlers with the router at server startup.
+
+Handler classes (all inherit `IPacketHandler`, all use `function Class:parse(reader, bodyLen)` and `function Class:handle(server, player, data)`):
+
+| Handler | Packet ID | Data Type | Restricted? |
+| :--- | :---: | :--- | :---: |
+| Ping | 4 | `PingData` (empty) | ✓ |
+| ChangeAction | 0 | `ChangeActionData` | ✓ |
+| Logout | 2 | `LogoutData` (empty) | ✓ |
+| StatusUpdateRequest | 3 | `StatusUpdateRequestData` (empty) | ✓ |
+| SendPublicMessage | 1 | `bancho.protocol.Message` | — |
+| SendPrivateMessage | 25 | `bancho.protocol.Message` | — |
+| StartSpectating | 16 | `StartSpectatingData` | — |
+| StopSpectating | 17 | `StopSpectatingData` (empty) | — |
+| SpectateFrames | 18 | `SpectateFramesData` | — |
+| CantSpectate | 21 | `CantSpectateData` (empty) | — |
+| PartLobby | 29 | `PartLobbyData` (empty) | — |
+| JoinLobby | 30 | `JoinLobbyData` (empty) | — |
+| ChannelJoin | 63 | `ChannelJoinData` | ✓ |
+| ChannelPart | 78 | `ChannelPartData` | ✓ |
+| CreateMatch | 31 | `CreateMatchData` | — |
+| JoinMatch | 32 | `JoinMatchData` | — |
+| PartMatch | 33 | `PartMatchData` (empty) | — |
+| MatchChangeSlot | 38 | `MatchChangeSlotData` | — |
+| MatchReady | 39 | `MatchReadyData` (empty) | — |
+| MatchLock | 40 | `MatchLockData` | — |
+| MatchChangeSettings | 41 | `bancho.protocol.MultiplayerMatch` | — |
+| MatchStart | 44 | `MatchStartData` (empty) | — |
+| MatchScoreUpdate | 47 | `MatchScoreUpdateData` | — |
+| MatchComplete | 49 | `MatchCompleteData` (empty) | — |
+| MatchChangeMods | 51 | `MatchChangeModsData` | — |
+| MatchLoadComplete | 52 | `MatchLoadCompleteData` (empty) | — |
+| MatchNoBeatmap | 54 | `MatchNoBeatmapData` (empty) | — |
+| MatchNotReady | 55 | `MatchNotReadyData` (empty) | — |
+| MatchFailed | 56 | `MatchFailedData` (empty) | — |
+| MatchHasBeatmap | 59 | `MatchHasBeatmapData` (empty) | — |
+| MatchSkipRequest | 60 | `MatchSkipRequestData` (empty) | — |
+| MatchTransferHost | 70 | `MatchTransferHostData` | — |
+| MatchChangeTeam | 77 | `MatchChangeTeamData` (empty) | — |
+| MatchInvite | 87 | `MatchInviteData` | — |
+| MatchChangePassword | 90 | `bancho.protocol.MultiplayerMatch` | — |
+| FriendAdd | 73 | `FriendAddData` | — |
+| FriendRemove | 74 | `FriendRemoveData` | — |
+| ReceiveUpdates | 79 | `ReceiveUpdatesData` | ✓ |
+| SetAwayMessage | 82 | `bancho.protocol.Message` | — |
+| UserStatsRequest | 85 | `UserStatsRequestData` | ✓ |
+| UserPresenceRequest | 97 | `UserPresenceRequestData` | — |
+| UserPresenceRequestAll | 98 | `UserPresenceRequestAllData` | — |
+| ToggleBlockNonFriendDms | 99 | `ToggleBlockNonFriendDmsData` | — |
+| TournamentMatchInfoRequest | 93 | `TournamentMatchInfoRequestData` (empty) | — |
+| TournamentJoinMatchChannel | 108 | `TournamentJoinMatchChannelData` (empty) | — |
+| TournamentLeaveMatchChannel | 109 | `TournamentLeaveMatchChannelData` (empty) | — |
+
+### Command Dispatcher (`bancho/command/`)
+
+In-chat command parsing and dispatch.
+
+- **CommandSet.lua** — Class for grouped subcommands (e.g. `mp_*`). Each set has a `prefix`, optional `doc`, and a `commands` array.
+- **CommandDispatcher.lua** — Parses `!command args` or `/command args` from chat messages. Supports flat commands, subcommand sets, privilege gating, hidden commands, and help text generation.
+- **init.lua** — Registers the `help` command and the `mp_*` command set (`mp start`, `mp abort`, `mp map`, `mp host`, `mp mods`, `mp freemods`, `mp invite`).
+
 ### Server State (`bancho/server/`)
 
-- **BanchoServer.lua** — Central server state holding `PlayerCollection`, `MatchCollection`, `ChannelCollection`, and repository references. Provides shared state for all HTTP resources and packet handlers. Defines repository interfaces (`IUserRepo`, `IScoreRepo`, `IBeatmapRepo`, etc.) that can be backed by stubs (testing) or real database adapters (production).
+- **BanchoServer.lua** — Central server state holding `PlayerCollection`, `MatchCollection`, `ChannelCollection`, `PacketRouter`, `CommandDispatcher`, and repository references. Provides shared state for all HTTP resources and packet handlers. Defines repository interfaces (`IUserRepo`, `IScoreRepo`, `IBeatmapRepo`, etc.) that can be backed by stubs (testing) or real database adapters (production).
 
 ### HTTP Resources (`bancho/http/`)
 
@@ -219,14 +286,24 @@ Additionally:
 - **Beatmap mirror integration** — Sync beatmap metadata from `https://osu.ppy.sh/` or a mirror (like `quasibit` or `flyingshots`). The `MIRROR_SEARCH_ENDPOINT` setting controls this.
 - **File serving** — Serve `.osz2` files to clients for download during multiplayer matches.
 
-### 7. Packet Router / Command Dispatcher
+### 7. Packet Handler Coverage
 
-The current code has managers but no central packet router. Need:
+bancho.py registers **46 handlers** total. We have implemented **all 46**.
 
-- **Packet dispatch loop** — Parse incoming binary data, read headers, dispatch to handlers by packet ID. The bancho.py pattern uses a `BanchoPacketReader` iterator with a `PacketMap` dictionary.
-- **Packet handlers** — One handler class per client packet (e.g., `ChangeAction`, `SendPublicMessage`, `Logout`, `Ping`, `StartSpectating`, `CreateMatch`, `JoinMatch`, etc.). Each handler reads its body from the PacketReader and delegates to the appropriate manager.
-- **Spectator system** — Track spectator relationships, forward replay frames from watched player to watchers, handle fellow-spectator join/leave notifications.
-- **Multiplayer packet relay** — During active matches, relay `MATCH_SCORE_UPDATE` frames between players, handle `MATCH_ALL_PLAYERS_LOADED`, `MATCH_COMPLETE`, `MATCH_SKIP`, etc.
+**Full coverage** — all `@register(ClientPackets.*)` handlers from bancho.py are implemented.
+
+**Low-priority gaps** (non-blocking, documented in handler source):
+- **SendPrivateMessage** — Online-to-online only. Missing: mail system for offline messages, command dispatcher integration with bot, /np PP calculation.
+- **UserStatsRequest/UserPresenceRequest** — Uses `country_code = 0`, `longitude = 0`, `latitude = 0` (geo not implemented).
+- **Tournament handlers** (3) — Stubs. Tournament system not implemented.
+
+**Not registered by bancho.py** (defined in `ClientPackets` but no `@register`):
+- `ERROR_REPORT` (20), `BEATMAP_INFO_REQUEST` (68), `IRC_ONLY` (84) — not handled by bancho.py
+
+**Remaining work on existing handlers:**
+- **SendPublicMessage** — Wire command dispatcher integration (currently no `!command` parsing in public messages).
+- **Spectator system** — `Player.lua` has `spectating`/`spectators` fields; handlers use them. Fellow-spectator notifications are implemented.
+- **Multiplayer relay** — All match packets now handled: `MATCH_LOAD_COMPLETE`, `MATCH_SKIP`, `MATCH_FAIL`, `MATCH_NO_BEATMAP`, `MATCH_HAS_BEATMAP`, etc.
 
 ### 8. Anti-Cheat System
 
@@ -283,6 +360,8 @@ bancho/
   chat/         — Chat and channel management
   crypto/       — Encryption/decryption
   constants/    — Enums and bitmasks
+  handler/      — Packet router + handler classes (IPacketHandler, PacketRouter, 46 handlers)
+  command/      — Command dispatcher + command set classes
   server/       — Central server state (BanchoServer)
   http/         — HTTP resource classes for sea/ integration
   stub/         — Test doubles for external dependencies
@@ -294,6 +373,7 @@ bancho/
 - **Packet queue model**: Each player has an internal packet queue. Managers enqueue packets; the transport layer drains them on each client request.
 - **In-memory collections**: `PlayerCollection`, `MatchCollection`, `ChannelCollection` provide in-memory registries. For production, these would be backed by or synchronized with a database.
 - **LuaJIT FFI**: Used for binary operations (float conversion, LEB128). Should also be used for crypto (Rijndael-256) and potentially PP calculation (baton binding).
+- **Class inheritance**: All packet handlers inherit `IPacketHandler` via `IPacketHandler + {}`. Uniform API: `parse(reader, bodyLen)` reads exactly `bodyLen` bytes, `handle(server, player, data)` executes business logic. Each handler defines a local `HandlerData` type used as the return type of `parse` and parameter type of `handle`.
 
 ### HTTP Integration With sea/
 
