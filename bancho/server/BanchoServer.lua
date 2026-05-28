@@ -79,6 +79,8 @@ local class = require("class")
 ---@field allow_registration boolean Allow in-game registration
 ---@field seasonal_backgrounds table[] Seasonal background configuration
 ---@field command_prefix string Command prefix character
+---@field menu_icon_url string Main menu icon URL
+---@field menu_onclick_url string Main menu icon click URL
 
 ---@class bancho.server.BanchoServer
 ---@operator call: bancho.server.BanchoServer
@@ -111,6 +113,8 @@ function BanchoServer:new(config)
 	self.config.allow_registration = self.config.allow_registration ~= false
 	self.config.seasonal_backgrounds = self.config.seasonal_backgrounds or {}
 	self.config.command_prefix = self.config.command_prefix or "!"
+	self.config.menu_icon_url = self.config.menu_icon_url or ""
+	self.config.menu_onclick_url = self.config.menu_onclick_url or ""
 
 	self.players = PlayerCollection()
 	self.matches = MatchCollection(self.config.max_matches)

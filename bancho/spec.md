@@ -51,7 +51,7 @@ Central packet router and handler classes. Each handler inherits `IPacketHandler
 
 - **IPacketHandler.lua** — Base class defining the handler interface. Subclasses inherit via `IPacketHandler + {}`.
 - **PacketRouter.lua** — Maintains two handler registries (`handlers_all` for unrestricted players, `handlers_restricted` for restricted players). The dispatch loop reads packet headers, looks up the handler in the correct registry, calls `handler:parse()` then `handler:handle()`.
-- **init.lua** — Registers all 17 handlers with the router at server startup.
+- **init.lua** — Registers all 46 handlers with the router at server startup.
 
 Handler classes (all inherit `IPacketHandler`, all use `function Class:parse(reader, bodyLen)` and `function Class:handle(server, player, data)`):
 
@@ -120,7 +120,7 @@ In-chat command parsing and dispatch.
 
 HTTP resource classes that integrate with the `sea/` web framework via domain-based routing.
 
-- **BanchoProtocolResource.lua** — `POST /` (Bancho protocol: login + packet exchange), `GET /` (status page), `GET /online`, `GET /matches`. Domain-restricted to `osu.*`, `c.*`, `ce.*`, `c4.*`, `c5.*`, `c6.*`.
+- **BanchoProtocolResource.lua** — `POST /` (Bancho protocol: login + packet exchange), `GET /` (status page), `GET /online`, `GET /matches`. Login flow: protocol version → login reply → bancho privileges | SUPPORTER → welcome notification → channel info (auto-join channels except #lobby, broadcast to viewers) → channel info end → main menu icon → friends list → silence end (remaining seconds) → user presence + stats → broadcast to others → other players' presence + stats (restricted players hidden). Packet exchange: lookup by token → process packets → drain queue. Domain-restricted to `osu.*`, `c.*`, `ce.*`, `c4.*`, `c5.*`, `c6.*`.
 - **OsuWebResource.lua** — All `/web/*` endpoints. Implemented: score submission (multipart parsing, decryption, checksum validation, score persistence), leaderboards (with user name resolution), friends, beatmap info (filename MD5 lookup), favourites, screenshots (multipart upload with image validation), ratings, comments, mail, seasonal backgrounds, connection checks. Domain-restricted to `osu.*`.
 - **FileResource.lua** — `/ss/:id.:ext` (screenshots), `/d/:set_id` (beatmap downloads via redirect), `/web/maps/:filename` (.osu files). Domain-restricted to `osu.*`.
 - **AccountResource.lua** — `POST /users` (in-game registration with validation), `POST /difficulty-rating` (redirect). Domain-restricted to `osu.*`.

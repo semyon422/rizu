@@ -266,15 +266,34 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	data = data .. ServerPackets.banchoPrivileges(bit.bor(player:bancho_priv(), ClientPrivileges.SUPPORTER))
 	data = data .. ServerPackets.notification("Welcome back to " .. server.config.domain .. "!")
 
-	-- Channel info
+	-- Send channel info for auto-join channels (except #lobby)
+	-- Broadcast channel info to all players who can see each channel
 	for _, channel in ipairs(server.channels:all()) do
-		if channel.auto_join then
+		if channel.auto_join and channel:canRead(player.priv) and channel.real_name ~= "#lobby" then
 			local count = 0
 			for _ in pairs(channel.players) do count = count + 1 end
-			data = data .. ServerPackets.channelInfo(channel.name, channel.topic or "", count)
+
+			local chan_info = ServerPackets.channelInfo(channel.real_name, channel.topic or "", count)
+			data = data .. chan_info
+
+			-- Broadcast channel info update to all players who can see this channel
+			for _, other in ipairs(server.players:all()) do
+				if channel:canRead(other.priv) then
+					other:enqueue(chan_info)
+				end
+			end
+
+			-- Auto-join the player to the channel
+			server.chat_manager:join(channel, player)
 		end
 	end
+
 	data = data .. ServerPackets.channelInfoEnd()
+
+	-- Main menu icon
+	local menu_icon_url = server.config.menu_icon_url or ""
+	local menu_onclick_url = server.config.menu_onclick_url or ""
+	data = data .. ServerPackets.mainMenuIcon(menu_icon_url, menu_onclick_url)
 
 	-- Friends list
 	local friends = {}
@@ -283,10 +302,20 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	end
 	data = data .. ServerPackets.friendsList(friends)
 
+	-- Silence end (remaining seconds)
+	local remaining_silence = 0
+	if player.silenced and player.silence_end > 0 then
+		remaining_silence = player.silence_end - os.time()
+		if remaining_silence < 0 then
+			remaining_silence = 0
+		end
+	end
+	data = data .. ServerPackets.silenceEnd(remaining_silence)
+
 	-- User presence and stats for this player
 	local mode = player.status.mode
 	local stats = player.stats[mode] or player.stats[0]
-	data = data .. ServerPackets.userPresence(
+	local user_data = ServerPackets.userPresence(
 		player.id,
 		player.name,
 		player.utc_offset or 0,
@@ -296,7 +325,7 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		0, -- latitude
 		stats.rank
 	)
-	data = data .. ServerPackets.userStats(
+	user_data = user_data .. ServerPackets.userStats(
 		player.id,
 		player.status.action,
 		player.status.info_text or "",
@@ -311,41 +340,17 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		stats.rank,
 		stats.pp
 	)
+	data = data .. user_data
 
 	-- Broadcast presence to other players
-	local presence_data = ServerPackets.userPresence(
-		player.id,
-		player.name,
-		player.utc_offset or 0,
-		0,
-		bit.bor(player:bancho_priv(), bit.lshift(mode, 5)),
-		0,
-		0,
-		stats.rank
-	)
-	local stats_data = ServerPackets.userStats(
-		player.id,
-		player.status.action,
-		player.status.info_text or "",
-		player.status.map_md5 or "",
-		player.status.mods,
-		mode,
-		player.status.map_id or 0,
-		stats.rscore,
-		stats.acc,
-		stats.plays,
-		stats.tscore,
-		stats.rank,
-		stats.pp
-	)
-
-	server.players:enqueue(presence_data .. stats_data, {player})
+	server.players:enqueue(user_data, {player})
 
 	-- Send presence of other players to the new player
 	for _, other in ipairs(server.players:all()) do
-		if other.id ~= player.id then
+		if other.id ~= player.id and not player.silenced and not other.silenced then
 			local other_mode = other.status.mode
 			local other_stats = other.stats[other_mode] or other.stats[0]
+
 			data = data .. ServerPackets.userPresence(
 				other.id,
 				other.name,

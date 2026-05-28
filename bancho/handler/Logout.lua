@@ -22,6 +22,23 @@ end
 ---@param player bancho.model.Player
 ---@param data bancho.handler.LogoutData
 function Logout:handle(server, player, data)
+	-- Remove player from all channels
+	for _, channel in ipairs(server.channels:all()) do
+		if channel:contains(player) then
+			server.chat_manager:leave(channel, player)
+
+			-- Broadcast channel info update
+			local count = 0
+			for _ in pairs(channel.players) do count = count + 1 end
+			local chan_info = ServerPackets.channelInfo(channel.real_name, channel.topic or "", count)
+			for _, other in ipairs(server.players:all()) do
+				if channel:canRead(other.priv) then
+					other:enqueue(chan_info)
+				end
+			end
+		end
+	end
+
 	-- Broadcast logout to all other players
 	server.players:enqueue(ServerPackets.userLogout(player.id), {player})
 
