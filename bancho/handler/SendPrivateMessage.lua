@@ -1,9 +1,8 @@
 --- Packet 25: SEND_PRIVATE_MESSAGE
 --- Private message between players.
 ---
---- NOTE: Full implementation requires mail system for offline messages,
---- block list persistence, and command dispatcher integration with bot.
---- Currently handles online-to-online messages only.
+--- NOTE: Full implementation requires mail system for offline messages
+--- and block list persistence. Currently handles online-to-online messages only.
 
 local Action = require("bancho.constants.Action")
 local ServerPackets = require("bancho.protocol.ServerPackets")
@@ -85,6 +84,22 @@ function SendPrivateMessage:handle(server, player, data)
 
 	-- Send message to target if online
 	if target.is_online then
+		-- Check if target is bot
+		local bot = server:getBot()
+		if bot and target.id == bot.id then
+			-- Dispatch commands to bot
+			local result = server.commands:dispatch(player, target, msg)
+			if result then
+				-- Command executed
+				if result.response then
+					local respPkt = ServerPackets.sendMessage(bot.name, result.response, targetName, bot.id)
+					player:enqueue(respPkt)
+				end
+				return
+			end
+		end
+
+		-- Normal PM
 		local pkt = ServerPackets.sendMessage(player.name, msg, targetName, player.id)
 		target:enqueue(pkt)
 	else

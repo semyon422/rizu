@@ -301,7 +301,8 @@ bancho.py registers **46 handlers** total. We have implemented **all 46**.
 - `ERROR_REPORT` (20), `BEATMAP_INFO_REQUEST` (68), `IRC_ONLY` (84) — not handled by bancho.py
 
 **Remaining work on existing handlers:**
-- **SendPublicMessage** — Wire command dispatcher integration (currently no `!command` parsing in public messages).
+- **SendPublicMessage** — Command dispatcher wired. `!command` messages are dispatched; responses sent to channel.
+- **SendPrivateMessage** — Command dispatcher wired for bot PMs. `!command` to bot dispatches and responds.
 - **Spectator system** — `Player.lua` has `spectating`/`spectators` fields; handlers use them. Fellow-spectator notifications are implemented.
 - **Multiplayer relay** — All match packets now handled: `MATCH_LOAD_COMPLETE`, `MATCH_SKIP`, `MATCH_FAIL`, `MATCH_NO_BEATMAP`, `MATCH_HAS_BEATMAP`, etc.
 

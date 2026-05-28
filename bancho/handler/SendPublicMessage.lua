@@ -61,6 +61,21 @@ function SendPublicMessage:handle(server, player, data)
 	if not target_channel:contains(player) then return end
 	if not target_channel:canWrite(player.priv) then return end
 
+	-- Check for command
+	local result = server.commands:dispatch(player, target_channel, text)
+	if result then
+		-- Command executed
+		if result.response then
+			-- Send response to channel members
+			local respPkt = ServerPackets.sendMessage(server.config.bot_name, result.response, target_channel.name, server.config.bot_id)
+			for _, p in pairs(target_channel.players) do
+				p:enqueue(respPkt)
+			end
+		end
+		return
+	end
+
+	-- Not a command — send as normal message
 	-- Truncate long messages
 	if #text > 2000 then
 		text = text:sub(1, 2000) .. "... (truncated)"

@@ -77,6 +77,7 @@ function CommandDispatcher:dispatch(player, recipient, msg)
 
 	-- Build context
 	local ctx = {
+		_dispatcher = self,
 		player = player,
 		trigger = trigger,
 		args = args,
