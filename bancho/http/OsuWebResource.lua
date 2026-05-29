@@ -273,9 +273,13 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 	fields.client_hash = client_hash or ""
 
 	-- Submit score
-	self.server.score_submitter:submit(player, parts, replay_data, fields)
+	local chart_response = self.server.score_submitter:submit(player, parts, replay_data, fields)
 
-	res:send("")
+	if chart_response then
+		res:send(chart_response)
+	else
+		res:send("error: no")
+	end
 end
 
 --- POST /web/osu-submit-modular-selector.php
@@ -366,9 +370,13 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 	fields.client_hash = client_hash or ""
 
 	-- Submit score
-	self.server.score_submitter:submit(player, parts, replay_data, fields)
+	local chart_response = self.server.score_submitter:submit(player, parts, replay_data, fields)
 
-	res:send("")
+	if chart_response then
+		res:send(chart_response)
+	else
+		res:send("error: no")
+	end
 end
 
 -------------------------------------------------------------------

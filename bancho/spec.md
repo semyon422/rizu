@@ -27,13 +27,14 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 - **MatchCollection.lua** — Fixed-size match registry (default 64) with `get`, `getFree`, `add`, `remove`, `all`.
 - **Channel.lua** — Chat channel with name, topic, player set, read/write privilege checks, auto-join, and instance (auto-delete) flags.
 - **ChannelCollection.lua** — Channel registry indexed by name with `get`, `add`, `remove`, `sendTo`, `all`.
-- **Score.lua** — Score data model with `fromSubmission()` parser (colon-delimited format), per-mode accuracy calculation (osu!, taiko, catch, mania with ScoreV2 support), grade handling, and `computeOnlineChecksum()` for score tamper detection (MD5 of chickenmcnuggets salted string).
+- **Score.lua** — Score data model with `fromSubmission()` parser (colon-delimited format), per-mode accuracy calculation (osu!, taiko, catch, mania with ScoreV2 support), grade handling, `computeOnlineChecksum()` for score tamper detection (MD5 of chickenmcnuggets salted string), and `calculatePP(beatmap)` for performance points (mania via `chart/scoring/osu_pp.lua`).
 - **Beatmap.lua** — Beatmap metadata: md5, id, set_id, artist, title, version, creator, total_length, max_combo, status, mode, bpm, CS/OD/AR/HP, star rating. Methods: `fullName`, `hasLeaderboard`, `awardsRankedPP`.
 
 ### Business Logic
 
 - **auth/LoginHandler.lua** — Login request parser: splits `username\npassword_md5\nosu_version|utc_offset|display_city|client_hashes|pm_private\n`, parses osu version string (`bYYYYMMDDrNstream`), parses client hashes, returns structured `LoginData`. Includes anti-cheat adapter string check.
-- **score/Submitter.lua** — Score submission processing: `submit()` (score parsing, accuracy calculation, PP calculation via `Score:calculatePP()`, checksum validation via `Score:computeOnlineChecksum()`, score persistence, stats updates), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`).
+- **score/Submitter.lua** — Score submission processing: `submit()` (score parsing, accuracy calculation, PP calculation via `Score:calculatePP()`, checksum validation via `Score:computeOnlineChecksum()`, score persistence, stats updates, chart response generation), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`).
+- **score/Chart.lua** — Score submission chart response generator. Produces pipe-delimited chart string with beatmap info, beatmap ranking (before/after), and overall ranking (before/after) sections.
 - **multiplayer/MatchManager.lua** — Full match lifecycle: create, add/remove player, ready, mods, team, loaded, start, complete, fail, transfer host, change password, dispose, build protocol match data.
 - **chat/ChatManager.lua** — Chat operations: create/join/leave channels, send public/private/bot messages, kick, notify, broadcast, auto-join, and full login message flow (privileges → friends list → protocol version → channel info → channel info end → auto-join).
 
@@ -252,7 +253,7 @@ All current "repositories" are in-memory stubs. A real server needs:
 
 The osu! client makes HTTP requests to several endpoints beyond the Bancho protocol. **All endpoints are now implemented as `IResource` classes in `bancho/http/`** and registered with domain-based routing. The following remain as stubs or partial implementations:
 
-- **`POST /web/osu-submit-modular.php`** — Score submission: multipart parsing, score decryption (Rijndael-256 CBC), checksum verification, score persistence, stats update. Still needs: PP calculation, chart response.
+- **`POST /web/osu-submit-modular.php`** — Score submission: multipart parsing, score decryption (Rijndael-256 CBC), checksum verification, PP calculation (mania), chart response generation, score persistence, stats update.
 - **`POST /web/osu-submit-modular-selector.php`** — Token-authenticated variant. Same needs as above.
 - **`GET /web/osu-osz2-getscores.php`** — Leaderboard skeleton exists. Returns basic structure; needs: proper score lookup, personal best calculation, leaderboard type filtering.
 - **`GET /web/osu-getreplay.php`** — Replay serving skeleton. Needs: replay repo integration.

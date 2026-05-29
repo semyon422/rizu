@@ -1,12 +1,14 @@
 --- Score submission processing.
 ---
 --- Handles parsing the MODULAR selector submission, validating checksums,
---- and determining submission status (new best / submitted / failed).
+--- calculating PP, and determining submission status (new best / submitted / failed).
+--- Returns the chart response string for the osu! client.
 
 local class = require("class")
 local Score = require("bancho.model.Score")
 local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 local RankedStatus = require("bancho.constants.RankedStatus")
+local Chart = require("bancho.score.Chart")
 
 ---@class bancho.score.ScoreSubmitter
 ---@operator call: bancho.score.ScoreSubmitter
@@ -20,11 +22,13 @@ function ScoreSubmitter:new(server)
 end
 
 --- Submit a score from the client.
---- Parses the score data, validates checksums, and persists the score.
+--- Parses the score data, validates checksums, calculates PP, persists the score,
+--- and returns the chart response string for the osu! client.
 ---@param player bancho.model.Player
 ---@param parts string[] parsed score data: [1]=map_md5, [2]=username, [3..]=score fields
 ---@param replay_data string replay file data
 ---@param fields table form fields from submission
+---@return string|nil chart_response pipe-delimited chart string (nil on failure)
 function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	-- Minimum fields check: map_md5, username, online_checksum, n300, n100, n50, ngeki, nkatu, nmiss, score, max_combo, perfect, grade, mods, passed, mode, play_time
 	if #parts < 16 then
@@ -129,26 +133,41 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	end
 
 	-- Update player stats
+	local prev_stats = nil
+	local current_stats = nil
 	if self.server.stats_repo then
+		-- Capture stats before update for chart comparison
+		prev_stats = self.server.stats_repo:getStats(player.id, score.mode)
+
 		local stats_update = {
-			plays = (stats_update and stats_update.plays or 0) + 1,
-			playtime = (stats_update and stats_update.playtime or 0) + (tonumber(fields.st) or 0) / 1000,
-			tscore = (stats_update and stats_update.tscore or 0) + score.score,
-			total_hits = (stats_update and stats_update.total_hits or 0) + score.n300 + score.n100 + score.n50,
+			plays = (prev_stats and prev_stats.plays or 0) + 1,
+			playtime = (prev_stats and prev_stats.playtime or 0) + (tonumber(fields.st) or 0) / 1000,
+			tscore = (prev_stats and prev_stats.tscore or 0) + score.score,
+			total_hits = (prev_stats and prev_stats.total_hits or 0) + score.n300 + score.n100 + score.n50,
 		}
 
 		-- Update max combo if needed
-		if score.max_combo > (stats_update and stats_update.max_combo or 0) then
+		if score.max_combo > (prev_stats and prev_stats.max_combo or 0) then
 			stats_update.max_combo = score.max_combo
 		end
 
 		self.server.stats_repo:updateStats(player.id, score.mode, stats_update)
+
+		-- Get updated stats for chart
+		current_stats = self.server.stats_repo:getStats(player.id, score.mode)
 	end
 
 	-- If it's a new best and map awards ranked PP, send notification
 	if score.status == SubmissionStatus.BEST and self:mapAwardsRankedPP(bmap.status or 0) then
 		-- TODO: send notification to player
 	end
+
+	-- Generate chart response
+	if score.passed then
+		return self:generateChart(player, score, bmap, existing_best, prev_stats, current_stats, score_id)
+	end
+
+	return nil
 end
 
 --- Calculate the submission status for a score.
@@ -176,6 +195,34 @@ end
 ---@return boolean
 function ScoreSubmitter:mapHasLeaderboard(ranked_status)
 	return RankedStatus.hasLeaderboard(ranked_status)
+end
+
+--- Generate the chart response for the osu! client.
+--- Returns the pipe-delimited chart string.
+---@param player bancho.model.Player
+---@param score bancho.model.Score
+---@param bmap table beatmap data
+---@param prev_best table|nil previous best score
+---@param prev_stats table|nil previous overall stats
+---@param current_stats table|nil current overall stats
+---@param score_id integer new score ID
+---@return string chart_response
+function ScoreSubmitter:generateChart(player, score, bmap, prev_best, prev_stats, current_stats, score_id)
+	-- Add player_id to score for chart
+	score.player_id = player.id
+
+	local ctx = {
+		score_id = score_id or 0,
+		bmap = bmap,
+		score = score,
+		prev_best = prev_best,
+		prev_stats = prev_stats,
+		current_stats = current_stats or {},
+		domain = self.server.config.domain or "rizu.su",
+		achievements = "",
+	}
+
+	return Chart.generate(ctx)
 end
 
 return ScoreSubmitter
