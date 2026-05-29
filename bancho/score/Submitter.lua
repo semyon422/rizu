@@ -47,10 +47,19 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 		parts[15], parts[16], parts[17], parts[18]
 	})
 
-	-- Look up beatmap
+	-- Look up beatmap: DB → local .osu file → osu.direct API
 	local bmap = nil
 	if self.server.beatmap_repo then
 		bmap = self.server.beatmap_repo:findBeatmap(map_md5)
+	end
+
+	-- If not in DB, try loading from local storage or API
+	if not bmap and self.server.beatmap_loader then
+		bmap = self.server.beatmap_loader:load(map_md5)
+		if bmap and self.server.beatmap_repo then
+			-- Cache in DB for future lookups
+			self.server.beatmap_repo:addBeatmap(bmap)
+		end
 	end
 
 	if not bmap then

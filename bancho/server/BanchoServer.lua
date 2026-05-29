@@ -15,6 +15,7 @@ local ScoreSubmitter = require("bancho.score.Submitter")
 local PacketRouter = require("bancho.handler.PacketRouter")
 local CommandDispatcher = require("bancho.command.CommandDispatcher")
 local BanchoDatabase = require("bancho.db.BanchoDatabase")
+local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
 
 local class = require("class")
 
@@ -103,6 +104,7 @@ local class = require("class")
 ---@field favourites_repo? bancho.server.IFavouritesRepo
 ---@field stats_repo? bancho.server.IStatsRepo
 ---@field replay_repo? bancho.server.IReplayRepo
+---@field beatmap_loader? bancho.beatmap.BeatmapLoader
 local BanchoServer = class()
 
 ---@param config bancho.server.BanchoConfig
@@ -148,7 +150,10 @@ function BanchoServer:new(config)
 
 	-- Initialize default channels
 	self:initializeChannels()
-	return self
+
+	-- Beatmap loader (parses .osu files, caches in DB)
+	local LinuxFilesystem = require("fs.LinuxFilesystem")
+	self.beatmap_loader = BeatmapLoader(LinuxFilesystem())
 end
 
 --- Initialize default channels.

@@ -147,6 +147,22 @@ SQLite-backed persistence layer using `aqua/rdb` ORM. Follows the same pattern a
 - **repos/StatsRepo.lua** — `getStats`, `updateStats`, `createAllModes`.
 - **repos/ReplayRepo.lua** — `saveReplay`, `getReplay`.
 
+### Beatmap Loading (`bancho/beatmap/`)
+
+- **BeatmapLoader.lua** — Parses `.osu` files from `storages/charts/<md5>` and populates beatmap metadata. Falls back to osu.direct API when local file is missing. Computes star rating for osu!mania from parsed notes.
+
+**Beatmap loading flow**:
+1. `ScoreSubmitter:submit()` calls `beatmap_repo:findBeatmap(md5)`
+2. If not found → `beatmap_loader:load(md5)` reads `.osu` file from `storages/charts/<md5>`
+3. If file missing → fetches from `osu.direct/api/get_beatmaps?h=<md5>`
+4. Loaded beatmap is cached in DB via `beatmap_repo:addBeatmap()`
+
+**Metadata extraction from `.osu`**:
+- `RawOsu:decode()` parses all sections (General, Metadata, Difficulty, TimingPoints, HitObjects)
+- Extracts: id, set_id, artist, title, version, creator, mode, cs, od, ar, hp, bpm, total_length, max_combo
+- Mania SR computed via `osu_starrate.Beatmap:calculateStarRate()`
+- Status defaults to `RankedStatus.PENDING`
+
 **Integration**: `BanchoServer:setupDatabase(path)` creates the database, opens it, and wires all repos automatically. Called from `sea/app/Resources.lua` at startup. Default path is `bancho.db`; pass `":memory:"` for in-memory testing.
 
 ### End-to-End Flow
@@ -157,7 +173,12 @@ SQLite-backed persistence layer using `aqua/rdb` ORM. Follows the same pattern a
 2. **Login** (`POST /` Bancho protocol): Parses credentials → looks up user by name → verifies `bcrypt.verify(client_md5, pw_bcrypt)` → creates in-memory `Player` with token → sends login packet sequence → returns `cho-token` header.
 3. **Score Submission** (`POST /web/osu-submit-modular.php`): Decrypts score (Rijndael-256 CBC) → validates checksum → looks up beatmap → calculates accuracy + PP → persists score + replay → updates stats → returns chart response.
 
-**Prerequisite**: Beatmap database must be populated (via mirror sync or manual import) before score submission can succeed.
+**Beatmap Storage**: Beatmap metadata is loaded on-demand via `bancho.beatmap.BeatmapLoader`:
+- **Local `.osu` files**: `storages/charts/<md5>` — parsed with `chart.format.osu.RawOsu` to extract all metadata
+- **Star rating**: Computed from notes for osu!mania via `chart.scoring.osu_starrate`; other modes default to 0
+- **API fallback**: `osu.direct/api/get_beatmaps?h=<md5>` — used when local file is missing
+- **Caching**: Loaded beatmaps are cached in the SQLite `beatmaps` table for future lookups
+- **Score submission**: `ScoreSubmitter:submit()` uses `beatmap_loader:load()` when DB lookup fails
 
 ### Tests
 
