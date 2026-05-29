@@ -18,7 +18,10 @@ local SendPublicMessage = IPacketHandler + {}
 
 ---@return bancho.protocol.Message
 function SendPublicMessage:parse(reader, bodyLen)
-	return ComplexTypes.readMessage(reader)
+	return {
+		recipient = reader:readString(),
+		text = reader:readString(),
+	}
 end
 
 ---@param server bancho.server.BanchoServer

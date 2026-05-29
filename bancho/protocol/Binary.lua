@@ -64,6 +64,7 @@ end
 ---@param v integer
 ---@return string
 function M.writeI8(v)
+	v = tonumber(v) or 0
 	return strchar(bit.band(v + 256, 255))
 end
 
@@ -71,6 +72,7 @@ end
 ---@param v integer
 ---@return string
 function M.writeU8(v)
+	v = tonumber(v) or 0
 	return strchar(bit.band(v, 255))
 end
 
@@ -78,6 +80,7 @@ end
 ---@param v integer
 ---@return string
 function M.writeI16(v)
+	v = tonumber(v) or 0
 	v = bit.band(v + 65536, 65535)
 	return strchar(bit.band(v, 255), bit.rshift(v, 8))
 end
@@ -86,6 +89,7 @@ end
 ---@param v integer
 ---@return string
 function M.writeU16(v)
+	v = tonumber(v) or 0
 	v = bit.band(v, 65535)
 	return strchar(bit.band(v, 255), bit.rshift(v, 8))
 end
@@ -94,7 +98,7 @@ end
 ---@param v integer
 ---@return string
 function M.writeI32(v)
-	v = v % 4294967296
+	v = (tonumber(v) or 0) % 4294967296
 	return strchar(
 		bit.band(v, 255),
 		bit.band(bit.rshift(v, 8), 255),
@@ -114,7 +118,7 @@ end
 ---@param v integer
 ---@return string
 function M.writeI64(v)
-	v = v % math.pow(2, 64)
+	v = (tonumber(v) or 0) % math.pow(2, 64)
 	---@type integer[]
 	local out = {}
 	for _ = 1, 8 do
@@ -137,7 +141,7 @@ end
 function M.writeF32(v)
 	local p = ffi.new("uint8_t[4]")
 	local u = byte_mod.union_le(p)
-	u.f32 = v
+	u.f32 = tonumber(v) or 0
 	return ffi.string(p, 4)
 end
 

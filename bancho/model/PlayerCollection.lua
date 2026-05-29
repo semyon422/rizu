@@ -8,6 +8,7 @@
 
 local Player = require("bancho.model.Player")
 local Privileges = require("bancho.constants.Privileges")
+local stbl = require("stbl")
 
 local class = require("class")
 
@@ -42,18 +43,21 @@ function PlayerCollection:get(token, id, name)
 		if token ~= nil then
 			key = "p:" .. token
 		elseif id ~= nil then
-			key = "pid:" .. id
+			key = "pid:" .. tostring(id)
 		elseif name ~= nil then
 			key = "pname:" .. name:lower():gsub(" ", "_"):gsub("[^a-z0-9_]", "_")
 		end
 
 		if key then
-			local data = self._dict:get(key)
-			if data then
-				return Player:fromData(data, self)
+			local encoded = self._dict:get(key)
+			if encoded then
+				local data = stbl.decode(encoded)
+				if data then
+					return Player:fromData(data, self)
+				end
 			end
+			return nil
 		end
-		return nil
 	end
 
 	-- In-memory fallback
@@ -73,10 +77,10 @@ end
 ---@param player bancho.model.Player
 function PlayerCollection:add(player)
 	if self._dict then
-		local data = player:toData()
-		self._dict:set("p:" .. player.token, data)
-		self._dict:set("pid:" .. player.id, data)
-		self._dict:set("pname:" .. player.safe_name, data)
+		local encoded = stbl.encode(player:toData())
+		self._dict:set("p:" .. player.token, encoded)
+		self._dict:set("pid:" .. player.id, encoded)
+		self._dict:set("pname:" .. player.safe_name, encoded)
 		return
 	end
 
@@ -233,12 +237,15 @@ function PlayerCollection:all()
 	if self._dict then
 		---@type bancho.model.Player[]
 		local result = {}
-		local keys = self._dict:get_keys()
+		local keys = self._dict:get_keys(1000)
 		for _, key in ipairs(keys) do
 			if type(key) == "string" and key:sub(1, 2) == "p:" then
-				local data = self._dict:get(key)
-				if data then
-					table.insert(result, Player:fromData(data, self))
+				local encoded = self._dict:get(key)
+				if encoded then
+					local data = stbl.decode(encoded)
+					if data then
+						table.insert(result, Player:fromData(data, self))
+					end
 				end
 			end
 		end

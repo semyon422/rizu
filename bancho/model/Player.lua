@@ -234,7 +234,8 @@ function Player:toData()
 	end
 
 	for mode, mode_stats in pairs(self.stats) do
-		data.stats[mode] = {
+		local mode_val = type(mode) == "table" and mode.value or mode
+		data.stats[mode_val] = {
 			tscore = mode_stats.tscore,
 			rscore = mode_stats.rscore,
 			pp = mode_stats.pp,
@@ -243,8 +244,12 @@ function Player:toData()
 			playtime = mode_stats.playtime,
 			max_combo = mode_stats.max_combo,
 			rank = mode_stats.rank,
-			grades = mode_stats.grades,
+			grades = {},
 		}
+		for grade, count in pairs(mode_stats.grades) do
+			local grade_val = type(grade) == "table" and grade.value or grade
+			data.stats[mode_val].grades[grade_val] = count
+		end
 	end
 
 	return data
@@ -295,7 +300,8 @@ function Player:fromData(data, collection)
 
 	-- Restore stats
 	if data.stats then
-		for mode, mode_stats in pairs(data.stats) do
+		for mode_key, mode_stats in pairs(data.stats) do
+			local mode = type(mode_key) == "number" and GameMode[mode_key] or mode_key
 			player.stats[mode].tscore = mode_stats.tscore
 			player.stats[mode].rscore = mode_stats.rscore
 			player.stats[mode].pp = mode_stats.pp
@@ -305,8 +311,22 @@ function Player:fromData(data, collection)
 			player.stats[mode].max_combo = mode_stats.max_combo
 			player.stats[mode].rank = mode_stats.rank
 			if mode_stats.grades then
-				for grade, count in pairs(mode_stats.grades) do
-					player.stats[mode].grades[grade] = count
+				for grade_key, count in pairs(mode_stats.grades) do
+					local grade
+					if type(grade_key) == "number" then
+						-- Find Grade object by value
+						for _, g in ipairs({Grade.N, Grade.F, Grade.D, Grade.C, Grade.B, Grade.A, Grade.S, Grade.SH, Grade.X, Grade.XH}) do
+							if g.value == grade_key then
+								grade = g
+								break
+							end
+						end
+					else
+						grade = grade_key
+					end
+					if grade then
+						player.stats[mode].grades[grade] = count
+					end
 				end
 			end
 		end

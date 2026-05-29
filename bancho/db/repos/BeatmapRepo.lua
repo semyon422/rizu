@@ -25,16 +25,6 @@ function BeatmapRepo:findBeatmapById(id)
 	return self.models.beatmaps:find({id = id})
 end
 
---- Find a beatmap by filename (artist - title).
----@param filename string
----@return table?
-function BeatmapRepo:findBeatmapByFilename(filename)
-	-- Try to match by title substring
-	return self.models.beatmaps:find({title = filename}, {
-		-- Use LIKE for partial match
-	})
-end
-
 --- Add a beatmap.
 ---@param bmap table
 function BeatmapRepo:addBeatmap(bmap)
@@ -46,10 +36,13 @@ end
 ---@param plays_increment integer
 ---@param passes_increment integer
 function BeatmapRepo:updateCounts(md5, plays_increment, passes_increment)
-	self.models.beatmaps.orm:query(
-		"UPDATE beatmaps SET plays = plays + ?, passes = passes + ? WHERE md5 = ?",
-		{plays_increment, passes_increment, md5}
-	)
+	local bmap = self.models.beatmaps:find({md5 = md5})
+	if bmap then
+		self.models.beatmaps:update({
+			plays = bmap.plays + plays_increment,
+			passes = bmap.passes + passes_increment,
+		}, {md5 = md5})
+	end
 end
 
 return BeatmapRepo

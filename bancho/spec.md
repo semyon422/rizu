@@ -591,6 +591,7 @@ Player data shape stored in dict:
 
 ```
 bancho/
+  client/       — Bancho protocol client for e2e testing and rizu integration (see bancho/client/spec.md)
   config/       — Configuration class (BanchoConfig) + example
   protocol/     — Binary protocol (packets, serialization)
   model/        — Domain objects (Player, Match, Score, etc.)

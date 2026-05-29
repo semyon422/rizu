@@ -33,7 +33,8 @@ function UserStatsRequest:handle(server, player, data)
 
 		-- Send user stats
 		local mode = target.status.mode
-		local stats = target.stats[mode]
+		local stats = target.stats[mode] or target.stats[0]
+		if not stats then goto continue end
 		local pkt = ServerPackets.userStats(
 			target.id,
 			target.status.action,

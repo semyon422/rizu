@@ -27,6 +27,9 @@ BanchoProtocolResource.routes = {
 	{"/matches", {
 		GET = "getMatches",
 	}},
+	{"/debug/shared-memory", {
+		GET = "getSharedMemory",
+	}},
 }
 
 --- Domains that serve the Bancho protocol.
@@ -166,6 +169,85 @@ matches:
 </html>
 		]])
 		:format(table.concat(match_lines, "\n"))
+
+	res.headers:set("Content-Type", "text/html; charset=utf-8")
+	res:send(body)
+end
+
+--- GET /debug/shared-memory — Debug page showing shared memory state.
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ctx sea.RequestContext
+function BanchoProtocolResource:getSharedMemory(req, res, ctx)
+	local lines = {}
+	local server = self.server
+	local stbl = require("stbl")
+
+	-- Check if shared memory is available
+	local SharedMemory = require("web.nginx.SharedMemory")
+	local sm = SharedMemory()
+
+	-- Check bancho_players dict
+	local player_dict = sm:get("bancho_players")
+	local player_keys = player_dict:get_keys(1000)
+	table.insert(lines, string.format("bancho_players: %d keys", #player_keys))
+	for _, key in ipairs(player_keys) do
+		local encoded = player_dict:get(key)
+		if encoded then
+			local data = stbl.decode(encoded)
+			if data then
+				local name = data.name or "?"
+				local id = data.id or "?"
+				table.insert(lines, string.format("  %s: id=%s name=%s", key, id, name))
+			end
+		end
+	end
+
+	-- Check bancho_matches dict
+	local match_dict = sm:get("bancho_matches")
+	local match_keys = match_dict:get_keys(1000)
+	table.insert(lines, string.format("bancho_matches: %d keys", #match_keys))
+	for _, key in ipairs(match_keys) do
+		local encoded = match_dict:get(key)
+		if encoded then
+			local data = stbl.decode(encoded)
+			if data then
+				local name = data.name or "?"
+				local id = data.id or "?"
+				table.insert(lines, string.format("  %s: id=%s name=%s", key, id, name))
+			end
+		end
+	end
+
+	-- Check bancho_channels dict
+	local channel_dict = sm:get("bancho_channels")
+	local channel_keys = channel_dict:get_keys(1000)
+	table.insert(lines, string.format("bancho_channels: %d keys", #channel_keys))
+	for _, key in ipairs(channel_keys) do
+		local encoded = channel_dict:get(key)
+		if encoded then
+			local data = stbl.decode(encoded)
+			if data then
+				local name = data.name or "?"
+				table.insert(lines, string.format("  %s: name=%s", key, name))
+			end
+		end
+	end
+
+	-- Check in-memory collections
+	table.insert(lines, "")
+	table.insert(lines, string.format("In-memory players: %d", #server.players:all()))
+	table.insert(lines, string.format("In-memory matches: %d", #server.matches:all()))
+	table.insert(lines, string.format("In-memory channels: %d", #server.channels:all()))
+
+	local body = ([[<!DOCTYPE html>
+<body style="font-family: monospace; white-space: pre-wrap;">
+<a href="/">back</a>
+
+%s
+</body>
+</html>]])
+		:format(table.concat(lines, "\n"))
 
 	res.headers:set("Content-Type", "text/html; charset=utf-8")
 	res:send(body)
@@ -313,13 +395,14 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 
 	-- User presence and stats for this player
 	local mode = player.status.mode
-	local stats = player.stats[mode] or player.stats[0]
+	local mode_val = mode.value
+	local stats = player.stats[mode_val] or player.stats[0]
 	local user_data = ServerPackets.userPresence(
 		player.id,
 		player.name,
 		player.utc_offset or 0,
 		0, -- country code (TODO)
-		bit.bor(player:bancho_priv(), bit.lshift(mode, 5)),
+		bit.bor(player:bancho_priv(), bit.lshift(mode_val, 5)),
 		0, -- longitude
 		0, -- latitude
 		stats.rank
@@ -330,7 +413,7 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		player.status.info_text or "",
 		player.status.map_md5 or "",
 		player.status.mods,
-		mode,
+		mode_val,
 		player.status.map_id or 0,
 		stats.rscore,
 		stats.acc,
@@ -348,14 +431,15 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	for _, other in ipairs(server.players:all()) do
 		if other.id ~= player.id and not player.silenced and not other.silenced then
 			local other_mode = other.status.mode
-			local other_stats = other.stats[other_mode] or other.stats[0]
+			local other_mode_val = other_mode.value
+			local other_stats = other.stats[other_mode_val] or other.stats[0]
 
 			data = data .. ServerPackets.userPresence(
 				other.id,
 				other.name,
 				other.utc_offset or 0,
 				0,
-				bit.bor(other:bancho_priv(), bit.lshift(other_mode, 5)),
+				bit.bor(other:bancho_priv(), bit.lshift(other_mode_val, 5)),
 				0,
 				0,
 				other_stats.rank
@@ -366,7 +450,7 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 				other.status.info_text or "",
 				other.status.map_md5 or "",
 				other.status.mods,
-				other_mode,
+				other_mode_val,
 				other.status.map_id or 0,
 				other_stats.rscore,
 				other_stats.acc,
@@ -411,7 +495,7 @@ function BanchoProtocolResource:handlePackets(token, body, res, ctx)
 	if not response_data then
 		response_data = player:dequeue()
 	end
-	res:send(response_data)
+	res:send(response_data or "")
 end
 
 return BanchoProtocolResource

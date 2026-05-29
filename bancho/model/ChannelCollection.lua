@@ -6,6 +6,7 @@
 --- When no dict is provided, falls back to in-memory tables (for tests).
 
 local Channel = require("bancho.model.Channel")
+local stbl = require("stbl")
 
 local class = require("class")
 
@@ -29,9 +30,12 @@ end
 ---@return bancho.model.Channel?
 function ChannelCollection:get(name)
 	if self._dict then
-		local data = self._dict:get("c:" .. name)
-		if data then
-			return Channel:fromData(data)
+		local encoded = self._dict:get("c:" .. name)
+		if encoded then
+			local data = stbl.decode(encoded)
+			if data then
+				return Channel:fromData(data)
+			end
 		end
 		return nil
 	end
@@ -43,7 +47,7 @@ end
 ---@param channel bancho.model.Channel
 function ChannelCollection:add(channel)
 	if self._dict then
-		self._dict:set("c:" .. channel.real_name, channel:toData())
+		self._dict:set("c:" .. channel.real_name, stbl.encode(channel:toData()))
 		return
 	end
 
@@ -89,12 +93,15 @@ function ChannelCollection:all()
 	if self._dict then
 		---@type bancho.model.Channel[]
 		local result = {}
-		local keys = self._dict:get_keys()
+		local keys = self._dict:get_keys(1000)
 		for _, key in ipairs(keys) do
 			if type(key) == "string" and key:sub(1, 2) == "c:" then
-				local data = self._dict:get(key)
-				if data then
-					table.insert(result, Channel:fromData(data))
+				local encoded = self._dict:get(key)
+				if encoded then
+					local data = stbl.decode(encoded)
+					if data then
+						table.insert(result, Channel:fromData(data))
+					end
 				end
 			end
 		end

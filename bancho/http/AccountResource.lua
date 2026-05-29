@@ -9,6 +9,14 @@ local BcryptPasswordHasher = require("sea.access.BcryptPasswordHasher")
 
 local class = require("class")
 
+--- Helper to send JSON response.
+---@param res web.IResponse
+---@param data any
+local function util_send_json(res, data)
+	res.headers:set("Content-Type", "application/json")
+	res:send(json.encode(data))
+end
+
 ---@class bancho.http.AccountResource: web.IResource
 ---@operator call: bancho.http.AccountResource
 ---@field server bancho.server.BanchoServer
@@ -121,10 +129,15 @@ function AccountResource:registerAccount(req, res, ctx)
 	end
 
 	local unique_chars = {}
+	local unique_count = 0
 	for i = 1, #password do
-		unique_chars[password:sub(i, i)] = true
+		local ch = password:sub(i, i)
+		if not unique_chars[ch] then
+			unique_chars[ch] = true
+			unique_count = unique_count + 1
+		end
 	end
-	if #unique_chars <= 3 then
+	if unique_count <= 3 then
 		util_send_json(res, {
 			form_error = {
 				user = {
@@ -213,14 +226,6 @@ function AccountResource:difficultyRating(req, res, ctx)
 	res.status = 307
 	res.headers:set("Location", "https://osu.ppy.sh" .. ctx.parsed_uri.path)
 	res:send("")
-end
-
---- Helper to send JSON response.
----@param res web.IResponse
----@param data any
-local function util_send_json(res, data)
-	res.headers:set("Content-Type", "application/json")
-	res:send(json.encode(data))
 end
 
 return AccountResource

@@ -6,6 +6,7 @@
 --- When no dict is provided, falls back to in-memory tables (for tests).
 
 local Match = require("bancho.model.Match")
+local stbl = require("stbl")
 
 local class = require("class")
 
@@ -37,9 +38,12 @@ function MatchCollection:get(id)
 	end
 
 	if self._dict then
-		local data = self._dict:get("m:" .. id)
-		if data then
-			return Match:fromData(data)
+		local encoded = self._dict:get("m:" .. id)
+		if encoded then
+			local data = stbl.decode(encoded)
+			if data then
+				return Match:fromData(data)
+			end
 		end
 		return nil
 	end
@@ -62,7 +66,7 @@ end
 ---@param match bancho.model.Match
 function MatchCollection:add(match)
 	if self._dict then
-		self._dict:set("m:" .. match.id, match:toData())
+		self._dict:set("m:" .. match.id, stbl.encode(match:toData()))
 		return
 	end
 
@@ -89,12 +93,15 @@ function MatchCollection:all()
 	local result = {}
 
 	if self._dict then
-		local keys = self._dict:get_keys()
+		local keys = self._dict:get_keys(1000)
 		for _, key in ipairs(keys) do
 			if type(key) == "string" and key:sub(1, 2) == "m:" then
-				local data = self._dict:get(key)
-				if data then
-					table.insert(result, Match:fromData(data))
+				local encoded = self._dict:get(key)
+				if encoded then
+					local data = stbl.decode(encoded)
+					if data then
+						table.insert(result, Match:fromData(data))
+					end
 				end
 			end
 		end

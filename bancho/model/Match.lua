@@ -171,7 +171,7 @@ function Match:toData()
 		map_md5 = self.map_md5,
 		map_name = self.map_name,
 		host_id = self.host_id,
-		mode = self.mode,
+		mode = type(self.mode) == "table" and self.mode.value or self.mode,
 		mods = self.mods,
 		freemods = self.freemods,
 		win_condition = self.win_condition,
@@ -202,12 +202,13 @@ end
 ---@param collection? bancho.model.PlayerCollection
 ---@return bancho.model.Match
 function Match:fromData(data, collection)
+	local mode = type(data.mode) == "number" and GameMode[data.mode] or data.mode
 	local match = Match(
 		data.id,
 		data.name,
 		data.passwd,
 		data.host_id,
-		data.mode,
+		mode,
 		data.mods,
 		data.win_condition,
 		data.team_type,

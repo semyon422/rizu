@@ -1,2 +1,7 @@
 ---@type rdb.ModelOptions
-return {}
+return {
+	types = {
+		plays = "number",
+		passes = "number",
+	},
+}

@@ -22,13 +22,9 @@ end
 ---@param name string
 ---@return table?
 function UserRepo:findUserByName(name)
-	-- SQLite doesn't support case-insensitive collation by default on TEXT,
-	-- but we can use COLLATE NOCASE.
-	-- However, the ORM uses = comparisons, so we do a manual query.
-	return self.models.users.orm:query(
-		"SELECT * FROM users WHERE name = ? COLLATE NOCASE LIMIT 1",
-		{name}
-	)[1]
+	return self.models.users:find({
+		[{"name = ? COLLATE NOCASE"}] = name,
+	})
 end
 
 --- Find a user by name and verify password.
@@ -40,11 +36,9 @@ end
 function UserRepo:findUserByNameAndPassword(name, password_md5)
 	local bcrypt = require("bcrypt")
 
-	---@type rdb.Row?
-	local user = self.models.users.orm:query(
-		"SELECT * FROM users WHERE name = ? COLLATE NOCASE LIMIT 1",
-		{name}
-	)[1]
+	local user = self.models.users:find({
+		[{"name = ? COLLATE NOCASE"}] = name,
+	})
 
 	if not user then
 		return nil
