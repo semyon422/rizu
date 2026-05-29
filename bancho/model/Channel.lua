@@ -14,6 +14,17 @@ local class = require("class")
 ---@field write_priv integer
 ---@field auto_join boolean
 ---@field instance boolean (auto-delete when empty)
+
+--- Flat, JSON-serializable channel data for shared dict storage.
+---@class bancho.model.ChannelData
+---@field name string
+---@field real_name string
+---@field topic string
+---@field player_ids integer[]
+---@field read_priv integer
+---@field write_priv integer
+---@field auto_join boolean
+---@field instance boolean
 local Channel = class()
 
 function Channel:new(name, topic, read_priv, write_priv, auto_join, instance)
@@ -65,6 +76,59 @@ end
 ---@param player bancho.model.Player
 function Channel:remove(player)
 	self.players[player.id] = nil
+end
+
+--- Serialize this channel to a flat, JSON-compatible data table.
+--- Player references are stored as IDs.
+---@return bancho.model.ChannelData
+function Channel:toData()
+	---@type integer[]
+	local player_ids = {}
+	for id in pairs(self.players) do
+		table.insert(player_ids, id)
+	end
+
+	---@type bancho.model.ChannelData
+	return {
+		name = self.name,
+		real_name = self.real_name,
+		topic = self.topic,
+		player_ids = player_ids,
+		read_priv = self.read_priv,
+		write_priv = self.write_priv,
+		auto_join = self.auto_join,
+		instance = self.instance,
+	}
+end
+
+--- Reconstruct a Channel from flat data.
+--- Player references are resolved via the collection.
+---
+---@param data bancho.model.ChannelData
+---@param collection? bancho.model.PlayerCollection
+---@return bancho.model.Channel
+function Channel:fromData(data, collection)
+	local channel = Channel(
+		data.name,
+		data.topic,
+		data.read_priv,
+		data.write_priv,
+		data.auto_join,
+		data.instance
+	)
+	channel.real_name = data.real_name
+
+	-- Resolve player references
+	if collection and data.player_ids then
+		for _, id in ipairs(data.player_ids) do
+			local player = collection:get(nil, id)
+			if player then
+				channel.players[id] = player
+			end
+		end
+	end
+
+	return channel
 end
 
 return Channel

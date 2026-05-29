@@ -99,8 +99,16 @@ local class = require("class")
 ---@field beatmap_loader? bancho.beatmap.BeatmapLoader
 local BanchoServer = class()
 
----@param overrides table? Runtime overrides merged on top of bancho/config.lua
-function BanchoServer:new(overrides)
+---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
+---@param overrides? table? Runtime overrides merged on top of bancho/config.lua
+function BanchoServer:new(shared_memory, overrides)
+	-- Handle positional argument ambiguity: if first arg is a table without
+	-- the `get` method of SharedMemory, treat it as overrides.
+	if shared_memory and type(shared_memory.get) ~= "function" then
+		overrides = shared_memory
+		shared_memory = nil
+	end
+
 	-- Load production config (bancho/config.lua) which returns a BanchoConfig instance
 	local file_config = require("bancho.config")
 
@@ -111,9 +119,18 @@ function BanchoServer:new(overrides)
 		self.config = file_config
 	end
 
-	self.players = PlayerCollection()
-	self.matches = MatchCollection(self.config.max_matches)
-	self.channels = ChannelCollection()
+	-- Create collections with shared dict backends (or in-memory for tests)
+	local player_dict = shared_memory and shared_memory:get("bancho_players")
+	local match_dict = shared_memory and shared_memory:get("bancho_matches")
+	local channel_dict = shared_memory and shared_memory:get("bancho_channels")
+
+	self.players = PlayerCollection(player_dict)
+	self.matches = MatchCollection(match_dict, self.config.max_matches)
+	self.channels = ChannelCollection(channel_dict)
+
+	-- Wire cross-reference resolution
+	self.players:setMatches(self.matches)
+
 	self.login_handler = LoginHandler()
 	self.match_manager = MatchManager(self.matches)
 	self.chat_manager = ChatManager(self.channels)

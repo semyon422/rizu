@@ -16,6 +16,15 @@ local class = require("class")
 ---@field mods integer
 ---@field loaded boolean
 ---@field skipped boolean
+
+--- Flat, JSON-serializable slot data.
+---@class bancho.model.SlotData
+---@field player_id integer?
+---@field status integer
+---@field team integer
+---@field mods integer
+---@field loaded boolean
+---@field skipped boolean
 local Slot = class()
 
 function Slot:new()
@@ -72,6 +81,23 @@ end
 ---@field slots {[integer]: bancho.model.Slot}
 ---@field in_progress boolean
 ---@field chat any? channel object
+
+--- Flat, JSON-serializable match data for shared dict storage.
+---@class bancho.model.MatchData
+---@field id integer
+---@field name string
+---@field passwd string
+---@field map_id integer
+---@field map_md5 string
+---@field map_name string
+---@field host_id integer
+---@field mode bancho.GameMode
+---@field mods integer
+---@field freemods boolean
+---@field win_condition integer
+---@field team_type integer
+---@field in_progress boolean
+---@field slots {[integer]: bancho.model.SlotData}
 local Match = class()
 
 function Match:new(id, name, passwd, host_id, mode, mods, win_condition, team_type, freemods)
@@ -130,6 +156,87 @@ function Match:getFree()
 		end
 	end
 	return nil
+end
+
+--- Serialize this match to a flat, JSON-compatible data table.
+--- Player references in slots are stored as IDs.
+---@return bancho.model.MatchData
+function Match:toData()
+	---@type bancho.model.MatchData
+	local data = {
+		id = self.id,
+		name = self.name,
+		passwd = self.passwd,
+		map_id = self.map_id,
+		map_md5 = self.map_md5,
+		map_name = self.map_name,
+		host_id = self.host_id,
+		mode = self.mode,
+		mods = self.mods,
+		freemods = self.freemods,
+		win_condition = self.win_condition,
+		team_type = self.team_type,
+		in_progress = self.in_progress,
+		slots = {},
+	}
+
+	for i = 0, 15 do
+		local slot = self.slots[i]
+		data.slots[i] = {
+			player_id = slot.player and slot.player.id or nil,
+			status = slot.status,
+			team = slot.team,
+			mods = slot.mods,
+			loaded = slot.loaded,
+			skipped = slot.skipped,
+		}
+	end
+
+	return data
+end
+
+--- Reconstruct a Match from flat data.
+--- Player references in slots are resolved via the collection.
+---
+---@param data bancho.model.MatchData
+---@param collection? bancho.model.PlayerCollection
+---@return bancho.model.Match
+function Match:fromData(data, collection)
+	local match = Match(
+		data.id,
+		data.name,
+		data.passwd,
+		data.host_id,
+		data.mode,
+		data.mods,
+		data.win_condition,
+		data.team_type,
+		data.freemods
+	)
+	match.map_id = data.map_id
+	match.map_md5 = data.map_md5
+	match.map_name = data.map_name
+	match.in_progress = data.in_progress
+
+	-- Restore slots with player references resolved
+	if data.slots then
+		for i = 0, 15 do
+			local slotData = data.slots[i]
+			if slotData then
+				match.slots[i].status = slotData.status
+				match.slots[i].team = slotData.team
+				match.slots[i].mods = slotData.mods
+				match.slots[i].loaded = slotData.loaded
+				match.slots[i].skipped = slotData.skipped
+
+				if collection and slotData.player_id then
+					match.slots[i].player = collection:get(nil, slotData.player_id)
+				end
+			end
+		end
+	end
+
+	return match
 end
 
 return Match

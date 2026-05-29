@@ -424,6 +424,167 @@ bancho.py has an extensive in-game command system (`/ban`, `/unban`, `/silence`,
 
 ---
 
+## Shared Dict Implementation
+
+**DONE** — `PlayerCollection`, `MatchCollection`, `ChannelCollection` accept optional `ISharedDict`.
+`BanchoServer:new(shared_memory)` injects dict backends. `BanchoProtocolResource` uses `drain_packets`.
+19 integration tests in `bancho/model/SharedDictCollection_test.lua`.
+
+### Remaining
+
+- **Persistent state across server restarts** — shared dicts are volatile; need periodic DB sync
+- **Background task integration** — ghost disconnect, donor expiry (separate concern)
+- **`lua_code_cache = "on"`** — production `nginx_config.lua` still has `"off"`; switch when ready
+
+### Implementation Details
+
+OpenResty runs N worker processes (one per CPU core by default). Each worker has its own Lua state and Lua module cache. With `lua_code_cache = "off"` (current dev config), modules are reloaded every request — meaning `BanchoServer` is recreated fresh on every request and all in-memory state is lost. Even with `lua_code_cache = "on"`, state is isolated per worker — a player logged in via worker 1 is invisible to worker 2.
+
+### Problem
+
+OpenResty runs N worker processes (one per CPU core by default). Each worker has its own Lua state and Lua module cache. With `lua_code_cache = "off"` (current dev config), modules are reloaded every request — meaning `BanchoServer` is recreated fresh on every request and all in-memory state is lost. Even with `lua_code_cache = "on"`, state is isolated per worker — a player logged in via worker 1 is invisible to worker 2.
+
+**Current in-memory state lost between requests/workers:**
+
+| Collection | Location | Contents | Impact if lost |
+|---|---|---|---|
+| `PlayerCollection` | `server.players` | Online players by token, ID, safe_name | Login→packet exchange broken |
+| `MatchCollection` | `server.matches` | Up to 64 active multiplayer rooms | All match state lost |
+| `ChannelCollection` | `server.channels` | Chat channels + player membership | Chat broken |
+| `Player._packet_queue` | per-player | Outgoing binary packets | Responses never sent |
+| `Player.status` | per-player | Action, map, mods, mode | Presence broken |
+| `Player.spectating` / `.spectators` | per-player | Cross-player references | Spectating broken |
+| `Match.slots[16]` | per-match | Player refs, status, team, mods | Match relay broken |
+| `Channel.players` | per-channel | Player ID set | Membership broken |
+
+### Existing Infrastructure
+
+The project already has the solution pattern:
+
+```
+SharedMemory:get("name")
+  → NginxSharedDict(ngx.shared.name)    in production (OpenResty)
+  → FakeSharedDict()                     in tests (LuaJIT)
+```
+
+Already declared in `nginx_config.lua`:
+```lua
+shared_dicts = {
+    players = "1m",
+    mp_rooms = "1m",
+    mp_room_users = "1m",
+}
+```
+
+### Design
+
+**New shared dict declarations** (in `nginx_config.lua`):
+```lua
+shared_dicts = {
+    players = "1m",
+    mp_rooms = "1m",
+    mp_room_users = "1m",
+    bancho_players = "10m",   -- serialized Player data
+    bancho_matches = "5m",    -- serialized Match data
+    bancho_channels = "1m",   -- serialized Channel data
+}
+```
+
+**Key naming convention:**
+- `"p:<token>"` → Player data (lookup by token for packet exchange)
+- `"pid:<id>"` → Player data (lookup by ID for broadcasts)
+- `"m:<id>"` → Match data
+- `"c:<name>"` → Channel data
+- `"pq:<token>"` → Packet queue (using dict list ops)
+
+**Serialization:** `ISharedDict` stores JSON-serializable values. Domain objects are converted to flat data tables (no methods, no live cross-references) before storage. References are resolved by ID on access.
+
+Player data shape stored in dict:
+```lua
+{
+    id = 123,
+    name = "Player",
+    token = "abc-def-ghi",
+    priv = 1,
+    restricted = false,
+    silenced = false,
+    silence_end = 0,
+    utc_offset = 0,
+    pm_private = false,
+    stealth = false,
+    in_lobby = false,
+    away_msg = nil,
+    pres_filter = 0,
+    spectating_id = nil,        -- player ID, not reference
+    spectators = { 456, 789 },  -- player IDs, not references
+    match_id = nil,             -- match ID, not reference
+    blocks = {},
+    friends = {},
+    status = { action = 0, info_text = "", map_md5 = "", mods = 0, mode = 0, map_id = 0 },
+    stats = { [0] = { tscore = 0, rscore = 0, pp = 0, acc = 0, plays = 0, playtime = 0, max_combo = 0, rank = 0, grades = {} }, ... },
+}
+```
+
+**Collection rewrite:** `PlayerCollection`, `MatchCollection`, `ChannelCollection` accept an `ISharedDict` and delegate storage. API surface (`get`, `add`, `remove`, `all`) stays identical — callers are unaware of the backend.
+
+**Injection:** `BanchoServer:new(shared_memory)` receives `SharedMemory` from `sea.app.App`. Collections are constructed with `shared_memory:get("bancho_players")`, etc.
+
+### Implementation Steps
+
+**Step 1: Serialization layer** (`bancho/model/PlayerData.lua`, `MatchData.lua`, `ChannelData.lua`)
+- Define flat data shapes for each entity
+- `Player:toData()` / `Player.fromData(data, collection)` conversion methods
+- `Match:toData()` / `Match.fromData(data, collection)` conversion methods
+- `Channel:toData()` / `Channel.fromData(data, collection)` conversion methods
+- Cross-references stored as IDs; resolved via collection lookup on `fromData()`
+
+**Step 2: SharedDict-backed collections** (`bancho/model/PlayerCollection.lua` etc.)
+- Accept optional `ISharedDict` in constructor
+- When dict is present: all CRUD goes through dict (JSON serialize/deserialize)
+- When dict is absent: fall back to in-memory tables (existing behavior, for tests)
+- `PlayerCollection:get(token)` → dict `get("p:<token>")` or dict `get("pid:<id>")`
+- `PlayerCollection:add(player)` → dict `set("p:<token>", data)` + dict `set("pid:<id>", data)`
+- `PlayerCollection:remove(player)` → dict `delete("p:<token>")` + dict `delete("pid:<id>")`
+- `PlayerCollection:all()` → iterate dict keys, deserialize
+- `PlayerCollection:enqueue(data, immune)` → for each player, dict `rpush("pq:<token>", data)`
+- Packet drain → `BanchoProtocolResource:handlePackets()` uses dict `lpop("pq:<token>")` in loop
+
+**Step 3: BanchoServer wiring**
+- `BanchoServer:new(config, shared_memory)` — accept SharedMemory parameter
+- Create collections with dict backends: `PlayerCollection(shared_memory:get("bancho_players"))`
+- `sea/app/Resources.lua` passes `self.shared_memory` to `BanchoServer()`
+- Config file adds `shared_dicts` section for dict size overrides
+
+**Step 4: Integration tests**
+- Verify login → packet exchange → logout flow with `FakeSharedDict`
+- Verify two separate `BanchoServer` instances sharing the same dict see each other's players
+- Verify match creation/join/relay with shared state
+- Verify channel join/leave/message with shared state
+- Verify packet queue accumulation and drain
+
+**Step 5: Production config**
+- `nginx_config.lua` declares `bancho_players`, `bancho_matches`, `bancho_channels`
+- `bancho/config.lua` adds `shared_dicts` section for size tuning
+- `lua_code_cache = "on"` in production `nginx_config.lua`
+
+### Risks & Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Dict memory exhaustion | Monitor `free_space()`, implement eviction of stale players |n|---|---|
+| Concurrent access to same key | OpenResty shared dicts are thread-safe; use `replace()` for atomic updates |
+| Large packet queues | Limit queue size per player; drop oldest packets if limit exceeded |
+| Serialization/deserialization cost | Profile; batch operations; cache deserialized objects per-request |
+| Cross-reference consistency | Resolve references at read time, not write time; accept eventual consistency |
+
+### Out Of Scope (for now)
+
+- Persistent state across server restarts (shared dicts are volatile)
+- Cross-server state sync (single OpenResty instance)
+- Background task integration (ghost disconnect, donor expiry) — separate concern
+
+---
+
 ## Architecture Notes
 
 ### Module Organization
@@ -454,7 +615,7 @@ bancho/
 
 - **Stub-driven**: External dependencies (database, crypto, HTTP, geolocation, PP calculation) are abstracted behind stubs. This allows full unit testing without infrastructure.
 - **Packet queue model**: Each player has an internal packet queue. Managers enqueue packets; the transport layer drains them on each client request.
-- **In-memory collections**: `PlayerCollection`, `MatchCollection`, `ChannelCollection` provide in-memory registries. For production, these would be backed by or synchronized with a database.
+- **Shared dict collections**: `PlayerCollection`, `MatchCollection`, `ChannelCollection` delegate to `ISharedDict` in production (OpenResty `ngx.shared.DICT`) and fall back to in-memory tables in tests (`FakeSharedDict`). All cross-references stored as IDs and resolved on access. See [Shared Dict Implementation Plan](#shared-dict-implementation-plan).
 - **LuaJIT FFI**: Used for binary operations (float conversion, LEB128). Should also be used for crypto (Rijndael-256) and potentially PP calculation (baton binding).
 - **Class inheritance**: All packet handlers inherit `IPacketHandler` via `IPacketHandler + {}`. Uniform API: `parse(reader, bodyLen)` reads exactly `bodyLen` bytes, `handle(server, player, data)` executes business logic. Each handler defines a local `HandlerData` type used as the return type of `parse` and parameter type of `handle`.
 

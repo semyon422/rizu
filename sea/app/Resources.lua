@@ -84,7 +84,7 @@ function Resources:new(domain, server_remote, views, sessions, app_config)
 	self.websocket = WebsocketResource(domain, views)
 
 	-- Bancho server state (config loaded from bancho/config.lua)
-	self.bancho = BanchoServer()
+	self.bancho = BanchoServer(self.shared_memory)
 	self.bancho:setupDatabase()
 
 	-- Bancho HTTP resources (domain-restricted)

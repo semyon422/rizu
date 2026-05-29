@@ -27,6 +27,30 @@ local class = require("class")
 ---@field mode bancho.GameMode
 ---@field map_id integer
 
+--- Flat, JSON-serializable player data for shared dict storage.
+---@class bancho.model.PlayerData
+---@field id integer
+---@field name string
+---@field safe_name string
+---@field priv integer
+---@field token string
+---@field restricted boolean
+---@field silenced boolean
+---@field silence_end integer
+---@field utc_offset integer
+---@field pm_private boolean
+---@field stealth boolean
+---@field in_lobby boolean
+---@field away_msg string?
+---@field pres_filter integer
+---@field spectating_id integer?
+---@field spectators integer[]
+---@field match_id integer?
+---@field blocks integer[]
+---@field friends integer[]
+---@field status bancho.model.Status
+---@field stats {[integer]: bancho.model.ModeStats}
+
 ---@class bancho.model.Player
 ---@operator call: bancho.model.Player
 ---@field id integer
@@ -167,6 +191,128 @@ function Player:bancho_priv()
 		p = bit.bor(p, bit.bor(ClientPrivileges.DEVELOPER, ClientPrivileges.OWNER))
 	end
 	return p
+end
+
+--- Serialize this player to a flat, JSON-compatible data table.
+--- Cross-references (spectating, spectators, match) are stored as IDs.
+---@return bancho.model.PlayerData
+function Player:toData()
+	---@type bancho.model.PlayerData
+	local data = {
+		id = self.id,
+		name = self.name,
+		safe_name = self.safe_name,
+		priv = self.priv,
+		token = self.token,
+		restricted = self.restricted,
+		silenced = self.silenced,
+		silence_end = self.silence_end,
+		utc_offset = self.utc_offset,
+		pm_private = self.pm_private,
+		stealth = self.stealth,
+		in_lobby = self.in_lobby,
+		away_msg = self.away_msg,
+		pres_filter = self.pres_filter,
+		spectating_id = self.spectating and self.spectating.id or nil,
+		spectators = {}, -- player IDs
+		match_id = self.match and self.match.id or nil,
+		blocks = self.blocks,
+		friends = self.friends,
+		status = {
+			action = self.status.action,
+			info_text = self.status.info_text,
+			map_md5 = self.status.map_md5,
+			mods = self.status.mods,
+			mode = self.status.mode,
+			map_id = self.status.map_id,
+		},
+		stats = {},
+	}
+
+	for _, spec in ipairs(self.spectators) do
+		table.insert(data.spectators, spec.id)
+	end
+
+	for mode, mode_stats in pairs(self.stats) do
+		data.stats[mode] = {
+			tscore = mode_stats.tscore,
+			rscore = mode_stats.rscore,
+			pp = mode_stats.pp,
+			acc = mode_stats.acc,
+			plays = mode_stats.plays,
+			playtime = mode_stats.playtime,
+			max_combo = mode_stats.max_combo,
+			rank = mode_stats.rank,
+			grades = mode_stats.grades,
+		}
+	end
+
+	return data
+end
+
+--- Reconstruct a Player from flat data.
+--- Cross-references are resolved via the collection.
+---
+---@param data bancho.model.PlayerData
+---@param collection? bancho.model.PlayerCollection
+---@return bancho.model.Player
+function Player:fromData(data, collection)
+	local player = Player(data.id, data.name, data.priv)
+	player.token = data.token
+	player.safe_name = data.safe_name
+	player.restricted = data.restricted
+	player.silenced = data.silenced
+	player.silence_end = data.silence_end
+	player.utc_offset = data.utc_offset
+	player.pm_private = data.pm_private
+	player.stealth = data.stealth
+	player.in_lobby = data.in_lobby
+	player.away_msg = data.away_msg
+	player.pres_filter = data.pres_filter
+	player.blocks = data.blocks or {}
+	player.friends = data.friends or {}
+
+	-- Resolve cross-references
+	if collection and data.spectating_id then
+		player.spectating = collection:get(nil, data.spectating_id)
+	end
+	if collection and data.match_id then
+		player.match = collection:getMatch(data.match_id)
+	end
+
+	-- Spectators are resolved at read time (lazy)
+	player.spectators = {} -- IDs stored in data.spectators
+
+	-- Restore status
+	if data.status then
+		player.status.action = data.status.action
+		player.status.info_text = data.status.info_text
+		player.status.map_md5 = data.status.map_md5
+		player.status.mods = data.status.mods
+		player.status.mode = data.status.mode
+		player.status.map_id = data.status.map_id
+	end
+
+	-- Restore stats
+	if data.stats then
+		for mode, mode_stats in pairs(data.stats) do
+			player.stats[mode].tscore = mode_stats.tscore
+			player.stats[mode].rscore = mode_stats.rscore
+			player.stats[mode].pp = mode_stats.pp
+			player.stats[mode].acc = mode_stats.acc
+			player.stats[mode].plays = mode_stats.plays
+			player.stats[mode].playtime = mode_stats.playtime
+			player.stats[mode].max_combo = mode_stats.max_combo
+			player.stats[mode].rank = mode_stats.rank
+			if mode_stats.grades then
+				for grade, count in pairs(mode_stats.grades) do
+					player.stats[mode].grades[grade] = count
+				end
+			end
+		end
+	end
+
+	return player
 end
 
 return Player

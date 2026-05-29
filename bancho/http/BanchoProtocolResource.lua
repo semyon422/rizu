@@ -405,7 +405,12 @@ function BanchoProtocolResource:handlePackets(token, body, res, ctx)
 	end
 
 	-- Drain player's outgoing packet queue
-	local response_data = player:dequeue()
+	-- For dict-backed collections, use drain_packets (dict list ops).
+	-- For in-memory collections, use Player:dequeue() directly.
+	local response_data = self.server.players:drain_packets(token)
+	if not response_data then
+		response_data = player:dequeue()
+	end
 	res:send(response_data)
 end
 
