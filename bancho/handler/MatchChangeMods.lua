@@ -1,6 +1,7 @@
 --- Packet 51: MATCH_CHANGE_MODS
 --- Player changes their mods in the match.
 
+local bit = require("bit")
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local Mods = require("bancho.constants.Mods")
 local IPacketHandler = require("bancho.handler.IPacketHandler")
@@ -32,10 +33,10 @@ function MatchChangeMods:handle(server, player, data)
 	if match.freemods then
 		-- Host can set speed-changing mods for the match
 		if player.id == match.host_id then
-			match.mods = data.mods & Mods.SPEED_CHANGING_MODS
+			match.mods = bit.band(data.mods, Mods.SPEED_CHANGING_MODS)
 		end
 		-- Player sets their own slot mods (non-speed-changing)
-		slot.mods = data.mods & ~Mods.SPEED_CHANGING_MODS
+		slot.mods = bit.band(data.mods, bit.bnot(Mods.SPEED_CHANGING_MODS))
 	else
 		-- Only host can change mods in non-freemods matches
 		if player.id ~= match.host_id then return end

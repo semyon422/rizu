@@ -14,6 +14,7 @@ local ChatManager = require("bancho.chat.ChatManager")
 local ScoreSubmitter = require("bancho.score.Submitter")
 local PacketRouter = require("bancho.handler.PacketRouter")
 local CommandDispatcher = require("bancho.command.CommandDispatcher")
+local BanchoDatabase = require("bancho.db.BanchoDatabase")
 
 local class = require("class")
 
@@ -84,6 +85,7 @@ local class = require("class")
 
 ---@class bancho.server.BanchoServer
 ---@operator call: bancho.server.BanchoServer
+---@field db? bancho.BanchoDatabase
 ---@field players bancho.model.PlayerCollection
 ---@field matches bancho.model.MatchCollection
 ---@field channels bancho.model.ChannelCollection
@@ -175,6 +177,40 @@ function BanchoServer:setRepos(user_repo, score_repo, beatmap_repo, friends_repo
 	self.favourites_repo = favourites_repo
 	self.stats_repo = stats_repo
 	self.replay_repo = replay_repo
+end
+
+--- Set up SQLite database and wire all repos automatically.
+--- This is a convenience method that creates a BanchoDatabase, opens it,
+--- and wires all repos from `bancho.db.repos`.
+---@param path string? Database file path (default: "bancho.db")
+function BanchoServer:setupDatabase(path)
+	local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
+	local Repos = require("bancho.db.repos")
+
+	self.db = BanchoDatabase(LjsqliteDatabase())
+	if path then
+		self.db.path = path
+	end
+	self.db:open()
+
+	local repos = Repos(self.db.models)
+	self:setRepos(
+		repos.user_repo,
+		repos.score_repo,
+		repos.beatmap_repo,
+		repos.friends_repo,
+		repos.favourites_repo,
+		repos.stats_repo,
+		repos.replay_repo
+	)
+end
+
+--- Close the database connection.
+function BanchoServer:closeDatabase()
+	if self.db then
+		self.db:close()
+		self.db = nil
+	end
 end
 
 --- Get or create the bot player.

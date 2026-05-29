@@ -131,6 +131,24 @@ HTTP resource classes that integrate with the `sea/` web framework via domain-ba
 
 Test doubles for external dependencies: `BcryptHasher`, `Repo` (users/scores/beatmaps with `findBestScore`, `addScore`), `HttpClient`, `GeoLocator`, `PerformanceCalculator`.
 
+### Database (`bancho/db/`)
+
+SQLite-backed persistence layer using `aqua/rdb` ORM. Follows the same pattern as `sea.storage.server.ServerSqliteDatabase`.
+
+- **BanchoDatabase.lua** — Database wrapper with `LjsqliteDatabase`, `TableOrm`, `Models` (auto-loaded from `bancho.db.models`), and `SqliteMigrator`. Default path: `bancho.db`. Supports WAL mode, foreign keys, and versioned migrations.
+- **schema.sql** — Initial schema (v1) with tables: `users`, `stats`, `beatmaps`, `scores`, `friends`, `favourites`, `replays`.
+- **models/*.lua** — Model options for each table (type conversions, boolean fields).
+- **repos/init.lua** — Factory that creates all repository instances from shared `rdb.Models`.
+- **repos/UserRepo.lua** — `findUser`, `findUserByName` (case-insensitive), `findUserByNameAndPassword`, `createUser`, `partialUpdate`, `findByEmail`, `findByToken`.
+- **repos/ScoreRepo.lua** — `findScores`, `findBestScore`, `findScore`, `addScore`, `findTopScores`.
+- **repos/BeatmapRepo.lua** — `findBeatmap`, `findBeatmapById`, `findBeatmapByFilename`, `addBeatmap`, `updateCounts`.
+- **repos/FriendsRepo.lua** — `getFriends`, `addFriend`, `removeFriend`.
+- **repos/FavouritesRepo.lua** — `getFavourites`, `addFavourite`, `removeFavourite`.
+- **repos/StatsRepo.lua** — `getStats`, `updateStats`, `createAllModes`.
+- **repos/ReplayRepo.lua** — `saveReplay`, `getReplay`.
+
+**Integration**: `BanchoServer:setupDatabase(path)` creates the database, opens it, and wires all repos automatically. Default path is `bancho.db`; pass `":memory:"` for in-memory testing.
+
 ### Tests
 
 Every module has a corresponding `_test.lua` file covering core behavior.
@@ -224,21 +242,17 @@ The Bancho protocol uses **only HTTP POST** for transport — no raw TCP, no Web
 
 ### 2. Real Database Backend
 
-All current "repositories" are in-memory stubs. A real server needs:
+**DONE** — SQLite backend implemented in `bancho/db/` using `aqua/rdb` ORM.
 
-- **User table** — `id`, `name`, `password` (bcrypt hash), `privileges`, `country_acronym`, `country_code`, `silence_end`, `token`, `client_hashes` (path_md5, adapters_md5, uninstall_md5, disk_signature_md5).
-- **Stats table** — Per-mode stats: `user_id`, `mode`, `tscore`, `rscore`, `pp`, `acc`, `plays`, `playtime`, `max_combo`, `rank`, grade counts (xh, x, sh, s, a).
-- **Scores table** — `id`, `map_md5`, `score`, `pp`, `acc`, `max_combo`, `mods`, hit counts (n300, n100, n50, nmiss, ngeki, nkatu), `grade`, `status` (SubmissionStatus), `mode`, `play_time`, `time_elapsed`, `client_flags`, `user_id`, `perfect`, `online_checksum`.
-- **Beatmaps table** — `id`, `set_id`, `md5`, `filename`, `artist`, `title`, `version`, `creator`, `total_length`, `max_combo`, `status`, `mode`, `bpm`, `cs`, `od`, `ar`, `hp`, `diff` (star rating), `plays`, `passes`.
-- **Scores-Friends/Following table** — For friends list, friend presence requests.
+Implemented tables: `users`, `stats`, `beatmaps`, `scores`, `friends`, `favourites`, `replays`.
+All repositories (`UserRepo`, `ScoreRepo`, `BeatmapRepo`, `FriendsRepo`, `FavouritesRepo`, `StatsRepo`, `ReplayRepo`) are wired through `BanchoServer:setupDatabase()`.
+
+**Remaining tables** (not yet needed):
 - **Mail table** — In-game mail system.
 - **Achievements tables** — Server achievement definitions and per-user unlocked achievements.
 - **Ratings table** — Per-user beatmap ratings.
-- **Favourites table** — Per-user favourited beatmap sets.
 - **Logs table** — In-game login logs, moderation logs, chat logs.
 - **Clans tables** — Clan definitions, clan members, clan tags.
-
-**Database choice**: Could use SQLite (simple, embedded, good for single-server setups), MySQL/MariaDB (bancho.py default, good for multi-instance), or any SQL backend with a Lua driver. The `stub/Repo` pattern already abstracts this.
 
 ### 3. Real Rijndael-256 Implementation
 

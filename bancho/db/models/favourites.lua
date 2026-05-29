@@ -1,0 +1,2 @@
+---@type rdb.ModelOptions
+return {}
