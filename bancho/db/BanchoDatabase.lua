@@ -10,7 +10,7 @@ local SqliteMigrator = require("rdb.db.SqliteMigrator")
 local autoload = require("autoload")
 local io_util = require("io_util")
 
-local user_version = 1
+local user_version = 2
 
 ---@class bancho.BanchoDatabase
 ---@operator call: bancho.BanchoDatabase

@@ -37,13 +37,14 @@ function Repo:findUserByName(name)
 	return nil
 end
 
---- Find a user by name and password MD5.
+--- Find a user by name and verify password.
+--- Stub: direct comparison (real impl uses bcrypt.verify).
 ---@param name string
 ---@param password_md5 string
 ---@return table?
 function Repo:findUserByNameAndPassword(name, password_md5)
 	local user = self:findUserByName(name)
-	if user and user.pw_md5 == password_md5 then
+	if user and user.pw_bcrypt == password_md5 then
 		return user
 	end
 	return nil

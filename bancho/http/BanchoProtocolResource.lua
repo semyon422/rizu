@@ -43,7 +43,6 @@ BanchoProtocolResource.domains = {
 ---@param server bancho.server.BanchoServer
 function BanchoProtocolResource:new(server)
 	self.server = server
-	self.bcrypt = BcryptHasher()
 end
 
 --- GET / — Status page showing server info.

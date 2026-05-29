@@ -88,6 +88,7 @@ function Resources:new(domain, server_remote, views, sessions, app_config)
 		domain = app_config.bancho_domain,
 		allow_registration = app_config.is_register_enabled,
 	})
+	self.bancho:setupDatabase()
 
 	-- Bancho HTTP resources (domain-restricted)
 	self.bancho_protocol = BanchoProtocolResource(self.bancho)

@@ -5,6 +5,7 @@
 local IResource = require("web.framework.IResource")
 local http_util = require("web.http.util")
 local json = require("web.json")
+local BcryptPasswordHasher = require("sea.access.BcryptPasswordHasher")
 
 local class = require("class")
 
@@ -161,9 +162,13 @@ function AccountResource:registerAccount(req, res, ctx)
 
 	-- If check == 0, actually create the account
 	if check == 0 then
-		-- Compute password hashes
+		-- Compute password hash
+		-- Client sends plaintext → we compute md5(plaintext) → bcrypt(md5)
+		-- This matches bancho.py: client always sends MD5, server stores bcrypt(md5)
 		local md5 = require("md5")
 		local pw_md5 = md5.sumhexa(password)
+		local hasher = BcryptPasswordHasher()
+		local pw_bcrypt = hasher:digest(pw_md5)
 
 		-- Get country from IP (TODO: use geolocation service)
 		local country = "XX"
@@ -173,7 +178,7 @@ function AccountResource:registerAccount(req, res, ctx)
 			local user = self.server.user_repo:createUser(
 				username,
 				email,
-				pw_md5, -- TODO: use bcrypt
+				pw_bcrypt,
 				country
 			)
 

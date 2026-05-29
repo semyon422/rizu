@@ -147,7 +147,17 @@ SQLite-backed persistence layer using `aqua/rdb` ORM. Follows the same pattern a
 - **repos/StatsRepo.lua** — `getStats`, `updateStats`, `createAllModes`.
 - **repos/ReplayRepo.lua** — `saveReplay`, `getReplay`.
 
-**Integration**: `BanchoServer:setupDatabase(path)` creates the database, opens it, and wires all repos automatically. Default path is `bancho.db`; pass `":memory:"` for in-memory testing.
+**Integration**: `BanchoServer:setupDatabase(path)` creates the database, opens it, and wires all repos automatically. Called from `sea/app/Resources.lua` at startup. Default path is `bancho.db`; pass `":memory:"` for in-memory testing.
+
+### End-to-End Flow
+
+**Registration → Login → Score Submission** is now wired end-to-end:
+
+1. **Registration** (`POST /users`): Validates username/email/password → computes `md5(password)` → `bcrypt(md5)` → stores only `pw_bcrypt` in DB → creates stats rows for all 4 modes → returns "ok". Uses `sea.access.BcryptPasswordHasher` (wraps `bcrypt` FFI). `pw_md5` is **not stored** — it's only used as an intermediate to compute bcrypt.
+2. **Login** (`POST /` Bancho protocol): Parses credentials → looks up user by name → verifies `bcrypt.verify(client_md5, pw_bcrypt)` → creates in-memory `Player` with token → sends login packet sequence → returns `cho-token` header.
+3. **Score Submission** (`POST /web/osu-submit-modular.php`): Decrypts score (Rijndael-256 CBC) → validates checksum → looks up beatmap → calculates accuracy + PP → persists score + replay → updates stats → returns chart response.
+
+**Prerequisite**: Beatmap database must be populated (via mirror sync or manual import) before score submission can succeed.
 
 ### Tests
 

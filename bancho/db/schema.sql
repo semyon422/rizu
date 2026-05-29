@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS `users` (
 	`name` TEXT NOT NULL,
 	`email` TEXT NOT NULL,
 	`pw_bcrypt` TEXT NOT NULL,
-	`pw_md5` TEXT NOT NULL,
 	`priv` INTEGER NOT NULL DEFAULT 0,
 	`country_acronym` TEXT NOT NULL DEFAULT '',
 	`country_code` TEXT NOT NULL DEFAULT '',

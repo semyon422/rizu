@@ -29,10 +29,15 @@ function test.user_repo_crud(t)
 	local db = create_db()
 	local repos = Repos(db.models)
 
-	-- Create user
-	local user = repos.user_repo:createUser("TestUser", "test@test.com", "bcrypt_hash", "US")
+	-- Create user with bcrypt hash (matches bancho.py pattern)
+	local bcrypt = require("bcrypt")
+	local pw_md5 = "5f4dcc3b5aa765d61d8327deb882cf99"
+	local pw_bcrypt = bcrypt.digest(pw_md5, 10)
+
+	local user = repos.user_repo:createUser("TestUser", "test@test.com", pw_bcrypt, "US")
 	t:eq(user.name, "TestUser")
 	t:ne(user.id, nil)
+	t:ne(user.pw_bcrypt, "")
 
 	-- Find by id
 	local found = repos.user_repo:findUser(user.id)
@@ -51,9 +56,13 @@ function test.user_repo_crud(t)
 	local updated = repos.user_repo:findUser(user.id)
 	t:eq(updated.priv, 1)
 
-	-- Find by name and password
-	local by_pw = repos.user_repo:findUserByNameAndPassword("TestUser", "abc123")
-	t:eq(by_pw, nil) -- pw_md5 doesn't match
+	-- Find by name and password (correct MD5 → bcrypt verify)
+	local by_pw = repos.user_repo:findUserByNameAndPassword("TestUser", pw_md5)
+	t:eq(by_pw.name, "TestUser")
+
+	-- Find by name and wrong password
+	local wrong_pw = repos.user_repo:findUserByNameAndPassword("TestUser", "abc123")
+	t:eq(wrong_pw, nil)
 	db:close()
 end
 
@@ -223,7 +232,10 @@ function test.user_token_lookup(t)
 	local db = create_db()
 	local repos = Repos(db.models)
 
-	repos.user_repo:createUser("TokenUser", "token@test.com", "hash", "US")
+	local bcrypt = require("bcrypt")
+	local pw_bcrypt = bcrypt.digest("abc123", 10)
+
+	repos.user_repo:createUser("TokenUser", "token@test.com", pw_bcrypt, "US")
 	local user = repos.user_repo:findUserByName("TokenUser")
 	repos.user_repo:partialUpdate(user.id, {token = "abc-token-123"})
 

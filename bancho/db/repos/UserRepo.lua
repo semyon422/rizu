@@ -31,23 +31,36 @@ function UserRepo:findUserByName(name)
 	)[1]
 end
 
---- Find a user by name and password MD5.
+--- Find a user by name and verify password.
+--- Client sends md5(password), server verifies against bcrypt(md5) stored in pw_bcrypt.
+--- This matches bancho.py's from_login() flow.
 ---@param name string
----@param password_md5 string
+---@param password_md5 string MD5 hash sent by client
 ---@return table?
 function UserRepo:findUserByNameAndPassword(name, password_md5)
+	local bcrypt = require("bcrypt")
+
 	---@type rdb.Row?
 	local user = self.models.users.orm:query(
-		"SELECT * FROM users WHERE name = ? COLLATE NOCASE AND pw_md5 = ? LIMIT 1",
-		{name, password_md5}
+		"SELECT * FROM users WHERE name = ? COLLATE NOCASE LIMIT 1",
+		{name}
 	)[1]
-	return user
+
+	if not user then
+		return nil
+	end
+
+	if bcrypt.verify(password_md5, user.pw_bcrypt) then
+		return user
+	end
+
+	return nil
 end
 
 --- Create a new user.
 ---@param name string
 ---@param email string
----@param pw_bcrypt string
+---@param pw_bcrypt string Bcrypt hash of md5(password)
 ---@param country string
 ---@return table?
 function UserRepo:createUser(name, email, pw_bcrypt, country)
@@ -55,7 +68,6 @@ function UserRepo:createUser(name, email, pw_bcrypt, country)
 		name = name,
 		email = email,
 		pw_bcrypt = pw_bcrypt,
-		pw_md5 = "",
 		country_acronym = country or "",
 		country_code = country or "",
 	})
