@@ -56,6 +56,9 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	-- Calculate accuracy
 	score:calculateAccuracy()
 
+	-- Calculate PP
+	score:calculatePP(bmap)
+
 	-- Validate online checksum
 	local osu_version = fields.osuver or ""
 	local client_hash = fields.client_hash or ""

@@ -33,7 +33,7 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 ### Business Logic
 
 - **auth/LoginHandler.lua** — Login request parser: splits `username\npassword_md5\nosu_version|utc_offset|display_city|client_hashes|pm_private\n`, parses osu version string (`bYYYYMMDDrNstream`), parses client hashes, returns structured `LoginData`. Includes anti-cheat adapter string check.
-- **score/Submitter.lua** — Score submission processing: `submit()` (score parsing, checksum validation via `Score:computeOnlineChecksum()`, score persistence, stats updates), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`).
+- **score/Submitter.lua** — Score submission processing: `submit()` (score parsing, accuracy calculation, PP calculation via `Score:calculatePP()`, checksum validation via `Score:computeOnlineChecksum()`, score persistence, stats updates), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`).
 - **multiplayer/MatchManager.lua** — Full match lifecycle: create, add/remove player, ready, mods, team, loaded, start, complete, fail, transfer host, change password, dispose, build protocol match data.
 - **chat/ChatManager.lua** — Chat operations: create/join/leave channels, send public/private/bot messages, kick, notify, broadcast, auto-join, and full login message flow (privileges → friends list → protocol version → channel info → channel info end → auto-join).
 
@@ -274,11 +274,13 @@ Additionally:
 
 ### 5. Performance Calculation (PP/SR)
 
-`bancho/stub/PerformanceCalculator.lua` returns fixed values. A real server needs:
+**osu!mania PP: DONE** — `Score:calculatePP(beatmap)` uses `chart/scoring/osu_pp.lua` to compute PP from accuracy, star rating, note count, and OD. Stores result in `score.pp` and `score.sr`.
 
-- **Star Rating (SR) calculation** — Parse `.osu` beatmap files to compute difficulty rating based on circle spacing, approach rate, note density, etc. This is complex mode-specific math.
-- **Performance Points (PP) calculation** — Compute PP from score data + beatmap difficulty. Different formulas per game mode (osu!std, taiko, catch, mania). The official formula is documented in the osu! wiki and implemented in the `baton` (C++) library.
-- **Options**: (a) FFI binding to `baton` C++ library, (b) HTTP call to a PP calculation microservice, (c) pure-Lua port of the algorithm.
+**Other modes (osu!std, taiko, catch): NOT IMPLEMENTED** — `calculatePP` returns 0 for non-mania modes.
+
+- **Star Rating (SR)** — Stored on `Beatmap.diff`. For mania, can be computed from `.osu` notes via `chart/scoring/osu_starrate.lua`.
+- **Performance Points (PP)** — `chart/scoring/osu_pp.lua` implements the mania PP formula. `Score:calculatePP(beatmap)` calls it during submission.
+- **Options for other modes**: (a) FFI binding to `baton` C++ library, (b) HTTP call to a PP calculation microservice, (c) pure-Lua port of the algorithm.
 
 ### 6. Beatmap File Management
 

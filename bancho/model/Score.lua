@@ -6,6 +6,7 @@
 
 local Grade = require("bancho.constants.Grade")
 local Mods = require("bancho.constants.Mods")
+local osu_pp = require("chart.scoring.osu_pp")
 
 local class = require("class")
 
@@ -127,6 +128,7 @@ function Score:fromSubmission(data)
 end
 
 --- Calculate accuracy for the current score's game mode.
+--- Stores the result in self.accuracy and returns it.
 ---@return number accuracy percentage (0-100)
 function Score:calculateAccuracy()
 	local mode_vn = self.mode % 4
@@ -134,34 +136,72 @@ function Score:calculateAccuracy()
 	if mode_vn == 0 then
 		-- osu!std
 		local total = self.n300 + self.n100 + self.n50 + self.nmiss
-		if total == 0 then return 0.0 end
-		return 100.0 * ((self.n300 * 300 + self.n100 * 100 + self.n50 * 50) / (total * 300))
+		if total == 0 then self.accuracy = 0.0; return 0.0 end
+		self.accuracy = 100.0 * ((self.n300 * 300 + self.n100 * 100 + self.n50 * 50) / (total * 300))
+		return self.accuracy
 
 	elseif mode_vn == 1 then
 		-- taiko
 		local total = self.n300 + self.n100 + self.nmiss
-		if total == 0 then return 0.0 end
-		return 100.0 * ((self.n100 * 0.5 + self.n300) / total)
+		if total == 0 then self.accuracy = 0.0; return 0.0 end
+		self.accuracy = 100.0 * ((self.n100 * 0.5 + self.n300) / total)
+		return self.accuracy
 
 	elseif mode_vn == 2 then
 		-- catch
 		local total = self.n300 + self.n100 + self.n50 + self.nkatu + self.nmiss
-		if total == 0 then return 0.0 end
-		return 100.0 * (self.n300 + self.n100 + self.n50) / total
+		if total == 0 then self.accuracy = 0.0; return 0.0 end
+		self.accuracy = 100.0 * (self.n300 + self.n100 + self.n50) / total
+		return self.accuracy
 
 	elseif mode_vn == 3 then
 		-- mania
 		local total = self.n300 + self.n100 + self.n50 + self.ngeki + self.nkatu + self.nmiss
-		if total == 0 then return 0.0 end
+		if total == 0 then self.accuracy = 0.0; return 0.0 end
 		if self.mods ~= nil and bit.band(self.mods, Mods.SCOREV2) ~= 0 then
 			-- ScoreV2: geki = 305, katu = 200, max = 305
-			return 100.0 * ((self.n50 * 50 + self.n100 * 100 + self.nkatu * 200 + self.n300 * 300 + self.ngeki * 305) / (total * 305))
+			self.accuracy = 100.0 * ((self.n50 * 50 + self.n100 * 100 + self.nkatu * 200 + self.n300 * 300 + self.ngeki * 305) / (total * 305))
+		else
+			-- Default: geki = 300, katu = 200, max = 300
+			self.accuracy = 100.0 * ((self.n50 * 50 + self.n100 * 100 + self.nkatu * 200 + (self.n300 + self.ngeki) * 300) / (total * 300))
 		end
-		-- Default: geki = 300, katu = 200, max = 300
-		return 100.0 * ((self.n50 * 50 + self.n100 * 100 + self.nkatu * 200 + (self.n300 + self.ngeki) * 300) / (total * 300))
+		return self.accuracy
 	end
 
+	self.accuracy = 0.0
 	return 0.0
+end
+
+--- Calculate performance points (PP) for this score.
+---
+--- Uses the chart.scoring.osu_pp module which implements the mania PP formula.
+--- For other modes (osu!, taiko, catch), returns 0 as those modes are not yet implemented.
+---
+---@param beatmap bancho.model.Beatmap beatmap with star rating and OD
+---@return number pp
+function Score:calculatePP(beatmap)
+	local mode_vn = self.mode % 4
+
+	local stars = beatmap.diff or 0
+	local od = beatmap.od or 0
+
+	-- Total number of hit objects
+	local total_notes = self.n300 + self.n100 + self.n50 + self.ngeki + self.nkatu + self.nmiss
+
+	-- Accuracy as ratio [0, 1]
+	local acc_ratio = self.accuracy / 100
+
+	if mode_vn == 3 then
+		-- osu!mania
+		self.pp = osu_pp.calc(acc_ratio, stars, total_notes, od)
+		self.sr = stars
+		return self.pp
+	end
+
+	-- Other modes not yet implemented
+	self.pp = 0
+	self.sr = stars
+	return self.pp
 end
 
 --- Compute the online checksum for score verification.

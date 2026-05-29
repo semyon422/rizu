@@ -1,6 +1,7 @@
 --- Tests for bancho Score model.
 
 local Score = require("bancho.model.Score")
+local Beatmap = require("bancho.model.Beatmap")
 local Grade = require("bancho.constants.Grade")
 local Mods = require("bancho.constants.Mods")
 
@@ -145,6 +146,88 @@ function test.computeOnlineChecksum_different_inputs(t)
 	local cs1 = score1:computeOnlineChecksum("user1", "abc123def456789012345678", "20240101", "client_hash", "")
 	local cs2 = score2:computeOnlineChecksum("user2", "abc123def456789012345678", "20240101", "client_hash", "")
 	t:ne(cs1, cs2)
+end
+
+function test.calculatePP_mania(t)
+	local score = Score:new()
+	score:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"3", "240101120000", "20240101"  -- mode 3 = mania
+	})
+	score:calculateAccuracy()
+
+	local bmap = Beatmap:new()
+	bmap.diff = 5.0  -- star rating
+	bmap.od = 7
+
+	local pp = score:calculatePP(bmap)
+	t:ne(pp, 0)
+	t:ne(score.pp, 0)
+	t:eq(score.sr, 5.0)
+end
+
+function test.calculatePP_mania_high_accuracy(t)
+	local score = Score:new()
+	score:fromSubmission({
+		"checksum", "500", "200", "50", "100", "50", "0",
+		"999999", "1000", "False", "x", "0", "True",
+		"3", "240101120000", "20240101"  -- mode 3 = mania
+	})
+	score:calculateAccuracy()
+
+	local bmap = Beatmap:new()
+	bmap.diff = 11.39
+	bmap.od = 7
+
+	local pp = score:calculatePP(bmap)
+	t:ne(pp, 0)
+	-- PP should be positive and reasonable for high accuracy on high SR
+	t:ne(pp < 10, true)
+end
+
+function test.calculatePP_mania_deterministic(t)
+	local bmap = Beatmap:new()
+	bmap.diff = 5.0
+	bmap.od = 7
+
+	local score1 = Score:new()
+	score1:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"3", "240101120000", "20240101"
+	})
+	score1:calculateAccuracy()
+	local pp1 = score1:calculatePP(bmap)
+
+	local score2 = Score:new()
+	score2:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"3", "240101120000", "20240101"
+	})
+	score2:calculateAccuracy()
+	local pp2 = score2:calculatePP(bmap)
+
+	t:eq(pp1, pp2)
+end
+
+function test.calculatePP_other_modes_not_implemented(t)
+	local score = Score:new()
+	score:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"  -- mode 0 = osu!std (not implemented)
+	})
+	score:calculateAccuracy()
+
+	local bmap = Beatmap:new()
+	bmap.diff = 5.0
+	bmap.od = 7
+
+	local pp = score:calculatePP(bmap)
+	t:eq(pp, 0)
+	t:eq(score.sr, 5.0)  -- SR still set
 end
 
 return test
