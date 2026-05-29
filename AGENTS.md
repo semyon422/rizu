@@ -36,13 +36,13 @@ After editing:
 ### Temporary Scripts
 
 - Place all temporary scripts (Lua, bash, etc.) inside the repository — use `tmp/` or the repo root. Never create them outside the repo directory.
-- When running ad-hoc Lua scripts via `bash`, always enforce a memory limit with `ulimit -v` and use the system `luajit` directly (not `./test`):
+- When running ad-hoc Lua scripts via `bash`, always use `./luajit` (not `./test`):
 
 ```bash
-bash -c 'ulimit -v 2097152 && luajit tmp/my_script.lua'
+./luajit tmp/my_script.lua
 ```
 
-This prevents runaway scripts from consuming all available RAM. The `./test` runner already applies this limit internally.
+`./luajit` is a wrapper around `./luajit.lua` that enforces a 2 GB memory limit via `ulimit -v`. The `./test` runner already applies this limit internally.
 
 ## Batch Text Substitution
 
@@ -98,7 +98,7 @@ Single source of truth for the OpenResty server. See `aqua/web/nginx/nginx_confi
 
 Edits are compiled into `nginx.conf` via:
 ```bash
-luajit aqua/web/nginx/compile.lua
+./luajit aqua/web/nginx/compile.lua
 ```
 This reads `nginx_config.lua` and processes `aqua/web/nginx/nginx.conf.template` (etlua) to produce `nginx.conf`. **Never edit `nginx.conf` directly** — it will be overwritten on the next compile.
 
@@ -154,7 +154,7 @@ Examples:
 
 ## Tech Stack
 
-- **LuaJIT 2.1** everywhere — all runtime code targets LuaJIT 2.1. Use `luajit` when running scripts from the command line.
+- **LuaJIT 2.1** everywhere — all runtime code targets LuaJIT 2.1. Use `./luajit` when running scripts from the command line.
 - **OpenResty** for the server and website (`sea/`). All server-side code runs inside the OpenResty Lua environment.
 - **LÖVE Framework** for the game client (`rizu/`, `sphere/`). The game is built as a LÖVE game and launched with the bundled launchers.
 
