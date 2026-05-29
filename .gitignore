@@ -63,6 +63,7 @@ userdata/result.gif
 nginx.conf
 nginx_config.lua
 app_config.lua
+bancho/config.lua
 my.cnf
 backups
 

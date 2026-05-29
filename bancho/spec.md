@@ -114,9 +114,35 @@ In-chat command parsing and dispatch.
 - **CommandDispatcher.lua** — Parses `!command args` or `/command args` from chat messages. Supports flat commands, subcommand sets, privilege gating, hidden commands, and help text generation.
 - **init.lua** — Registers the `help` command and the `mp_*` command set (`mp start`, `mp abort`, `mp map`, `mp host`, `mp mods`, `mp freemods`, `mp invite`).
 
+### Configuration (`bancho/config/`)
+
+Server configuration via `bancho.config.BanchoConfig` class. Follows the same pattern as `sphere.persistence.ConfigModel`: defaults defined in code, deep-merged with user overrides from a config file.
+
+- **BanchoConfig.lua** — Config class with `new(overrides)` constructor and `merge(base, overrides)` static method. Deep-merges overrides into `BanchoConfig.defaults`. All fields have sensible defaults.
+- **config.example.lua** — Documented example with all available fields. Copy to `config.lua` to get started.
+- **config.lua** — Gitignored production config. Returns `BanchoConfig:new({...})` with production overrides.
+
+**Config fields:**
+- `domain` — Server domain (e.g. "rizu.su")
+- `bot_name`, `bot_id` — Bot player identity
+- `db_path` — SQLite database file path
+- `mirror_search_endpoint`, `mirror_download_endpoint` — Beatmap mirror URLs
+- `beatmaps_path`, `replays_path`, `screenshots_path` — File storage directories
+- `max_matches` — Maximum concurrent multiplayer rooms
+- `allow_registration` — Allow in-game registration
+- `disallow_old_clients` — Reject outdated osu! clients
+- `disallowed_names`, `disallowed_passwords` — Registration blocks
+- `command_prefix` — In-game command prefix character
+- `menu_icon_url`, `menu_onclick_url` — Main menu icon
+- `seasonal_backgrounds` — Seasonal background configuration
+- `cached_accuracies` — Accuracy percentages for /np PP pre-calculation
+- `channels` — Default channel definitions
+
+**Loading:** `BanchoServer:new()` loads `bancho/config.lua` automatically. Runtime overrides can be passed: `BanchoServer({ domain = "override.com" })`.
+
 ### Server State (`bancho/server/`)
 
-- **BanchoServer.lua** — Central server state holding `PlayerCollection`, `MatchCollection`, `ChannelCollection`, `PacketRouter`, `CommandDispatcher`, and repository references. Provides shared state for all HTTP resources and packet handlers. Defines repository interfaces (`IUserRepo`, `IScoreRepo`, `IBeatmapRepo`, etc.) that can be backed by stubs (testing) or real database adapters (production).
+- **BanchoServer.lua** — Central server state holding `PlayerCollection`, `MatchCollection`, `ChannelCollection`, `PacketRouter`, `CommandDispatcher`, and repository references. Provides shared state for all HTTP resources and packet handlers. Defines repository interfaces (`IUserRepo`, `IScoreRepo`, `IBeatmapRepo`, etc.) that can be backed by stubs (testing) or real database adapters (production). Configuration loaded from `bancho/config.lua` via `BanchoConfig`.
 
 ### HTTP Resources (`bancho/http/`)
 
@@ -373,7 +399,9 @@ bancho.py registers **46 handlers** total. We have implemented **all 46**.
 
 ### 10. Configuration / Settings
 
-- **Server settings module** — Domain, database connection strings, mirror endpoints, bot configuration, feature flags (e.g., enable restrictions, enable PP calculation).
+**DONE** — `bancho.config.BanchoConfig` class with defaults, `bancho/config.example.lua`, and gitignored `bancho/config.lua`.
+
+**Remaining:**
 - **Environment variable support** — Mirror bancho.py's `.env` pattern for configuration.
 
 ### 11. Moderation / Admin Commands
@@ -402,6 +430,7 @@ bancho.py has an extensive in-game command system (`/ban`, `/unban`, `/silence`,
 
 ```
 bancho/
+  config/       — Configuration class (BanchoConfig) + example
   protocol/     — Binary protocol (packets, serialization)
   model/        — Domain objects (Player, Match, Score, etc.)
   auth/         — Authentication (login parsing, validation)
@@ -416,6 +445,10 @@ bancho/
   http/         — HTTP resource classes for sea/ integration
   stub/         — Test doubles for external dependencies
 ```
+
+**Config files:**
+- `bancho/config.example.lua` — Documented example (committed)
+- `bancho/config.lua` — Production overrides (gitignored)
 
 ### Design Principles
 

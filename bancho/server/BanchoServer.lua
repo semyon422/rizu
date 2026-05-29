@@ -16,6 +16,7 @@ local PacketRouter = require("bancho.handler.PacketRouter")
 local CommandDispatcher = require("bancho.command.CommandDispatcher")
 local BanchoDatabase = require("bancho.db.BanchoDatabase")
 local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
+local BanchoConfig = require("bancho.config.BanchoConfig")
 
 local class = require("class")
 
@@ -71,18 +72,9 @@ local class = require("class")
 ---@field getReplay fun(self: bancho.server.IReplayRepo, score_id: integer): string?
 
 --- Server configuration.
----@class bancho.server.BanchoConfig
----@field domain string Server domain (e.g. "rizu.su")
----@field osu_domains string[] Domains that serve osu! endpoints
----@field bancho_domains string[] Domains that serve bancho protocol
----@field bot_name string Bot player name
----@field bot_id integer Bot player ID
----@field max_matches integer Maximum concurrent matches
----@field allow_registration boolean Allow in-game registration
----@field seasonal_backgrounds table[] Seasonal background configuration
----@field command_prefix string Command prefix character
----@field menu_icon_url string Main menu icon URL
----@field menu_onclick_url string Main menu icon click URL
+--- Loaded from `bancho/config.lua` via `bancho.config.BanchoConfig`.
+--- See `bancho/config.example.lua` for all available options.
+---@alias bancho.config bancho.config.BanchoConfig
 
 ---@class bancho.server.BanchoServer
 ---@operator call: bancho.server.BanchoServer
@@ -107,18 +99,17 @@ local class = require("class")
 ---@field beatmap_loader? bancho.beatmap.BeatmapLoader
 local BanchoServer = class()
 
----@param config bancho.server.BanchoConfig
-function BanchoServer:new(config)
-	self.config = config or {}
-	self.config.domain = self.config.domain or "rizu.su"
-	self.config.bot_name = self.config.bot_name or "bot"
-	self.config.bot_id = self.config.bot_id or 1
-	self.config.max_matches = self.config.max_matches or 64
-	self.config.allow_registration = self.config.allow_registration ~= false
-	self.config.seasonal_backgrounds = self.config.seasonal_backgrounds or {}
-	self.config.command_prefix = self.config.command_prefix or "!"
-	self.config.menu_icon_url = self.config.menu_icon_url or ""
-	self.config.menu_onclick_url = self.config.menu_onclick_url or ""
+---@param overrides table? Runtime overrides merged on top of bancho/config.lua
+function BanchoServer:new(overrides)
+	-- Load production config (bancho/config.lua) which returns a BanchoConfig instance
+	local file_config = require("bancho.config")
+
+	-- Merge runtime overrides on top of file config
+	if overrides then
+		self.config = BanchoConfig:merge(file_config, overrides)
+	else
+		self.config = file_config
+	end
 
 	self.players = PlayerCollection()
 	self.matches = MatchCollection(self.config.max_matches)
