@@ -27,13 +27,13 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 - **MatchCollection.lua** — Fixed-size match registry (default 64) with `get`, `getFree`, `add`, `remove`, `all`.
 - **Channel.lua** — Chat channel with name, topic, player set, read/write privilege checks, auto-join, and instance (auto-delete) flags.
 - **ChannelCollection.lua** — Channel registry indexed by name with `get`, `add`, `remove`, `sendTo`, `all`.
-- **Score.lua** — Score data model with `fromSubmission()` parser (colon-delimited format), per-mode accuracy calculation (osu!, taiko, catch, mania with ScoreV2 support), and grade handling.
+- **Score.lua** — Score data model with `fromSubmission()` parser (colon-delimited format), per-mode accuracy calculation (osu!, taiko, catch, mania with ScoreV2 support), grade handling, and `computeOnlineChecksum()` for score tamper detection (MD5 of chickenmcnuggets salted string).
 - **Beatmap.lua** — Beatmap metadata: md5, id, set_id, artist, title, version, creator, total_length, max_combo, status, mode, bpm, CS/OD/AR/HP, star rating. Methods: `fullName`, `hasLeaderboard`, `awardsRankedPP`.
 
 ### Business Logic
 
 - **auth/LoginHandler.lua** — Login request parser: splits `username\npassword_md5\nosu_version|utc_offset|display_city|client_hashes|pm_private\n`, parses osu version string (`bYYYYMMDDrNstream`), parses client hashes, returns structured `LoginData`. Includes anti-cheat adapter string check.
-- **score/Submitter.lua** — Score submission processing: `submit()` (multipart parsing, score decryption, checksum validation, score persistence, stats updates), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`), online checksum computation (stub).
+- **score/Submitter.lua** — Score submission processing: `submit()` (score parsing, checksum validation via `Score:computeOnlineChecksum()`, score persistence, stats updates), `calculateStatus()` (BEST vs SUBMITTED comparison), map ranking checks (`mapAwardsRankedPP`, `mapHasLeaderboard`).
 - **multiplayer/MatchManager.lua** — Full match lifecycle: create, add/remove player, ready, mods, team, loaded, start, complete, fail, transfer host, change password, dispose, build protocol match data.
 - **chat/ChatManager.lua** — Chat operations: create/join/leave channels, send public/private/bot messages, kick, notify, broadcast, auto-join, and full login message flow (privileges → friends list → protocol version → channel info → channel info end → auto-join).
 
@@ -241,18 +241,18 @@ All current "repositories" are in-memory stubs. A real server needs:
 
 ### 3. Real Rijndael-256 Implementation
 
-`bancho/crypto/ScoreCrypto.lua` currently uses XOR stub encryption. The real score submission endpoint requires:
+**DONE** — `bancho/crypto/Rijndael.lua` implements AES-256-CBC with PKCS7 padding via OpenSSL FFI. `ScoreCrypto` delegates to it.
 
 - **Rijndael-256 CBC** with PKCS7 padding for decrypting the `score` form parameter.
-- **Key derivation**: `"osu!-scoreburgr---------{osu_version}"` (padded to 32 bytes).
+- **Key derivation**: `"osu!-scoreburgr---------{osu_version}"` (32 bytes).
 - **IV**: Provided by the client in the `iv` form parameter (base64).
-- This could use LuaJIT FFI to call into a C library (libmbedcrypto, OpenSSL, or a standalone Rijndael implementation) or a pure-Lua port.
+- Uses LuaJIT FFI to call OpenSSL `EVP_aes_256_cbc` directly.
 
 ### 4. Web API Endpoints
 
 The osu! client makes HTTP requests to several endpoints beyond the Bancho protocol. **All endpoints are now implemented as `IResource` classes in `bancho/http/`** and registered with domain-based routing. The following remain as stubs or partial implementations:
 
-- **`POST /web/osu-submit-modular.php`** — Score submission skeleton exists. Needs: multipart parsing, score decryption, checksum verification, PP calculation, score storage, stats update, chart response.
+- **`POST /web/osu-submit-modular.php`** — Score submission: multipart parsing, score decryption (Rijndael-256 CBC), checksum verification, score persistence, stats update. Still needs: PP calculation, chart response.
 - **`POST /web/osu-submit-modular-selector.php`** — Token-authenticated variant. Same needs as above.
 - **`GET /web/osu-osz2-getscores.php`** — Leaderboard skeleton exists. Returns basic structure; needs: proper score lookup, personal best calculation, leaderboard type filtering.
 - **`GET /web/osu-getreplay.php`** — Replay serving skeleton. Needs: replay repo integration.
@@ -309,8 +309,8 @@ bancho.py registers **46 handlers** total. We have implemented **all 46**.
 
 ### 8. Anti-Cheat System
 
+- **Score checksum validation** — **DONE** — `Score:computeOnlineChecksum()` computes MD5 of the chickenmcnuggets salted string and compares against client-provided checksum. Rejects tampered scores.
 - **Client hash verification** — On login, store and verify client file hashes (path MD5, adapters, uninstall, disk signature).
-- **Score checksum validation** — On score submission, compute the online checksum and compare with client-provided value.
 - **Last.fm anti-cheat** — Parse the hidden flags sent via `/web/lastfm.php` to detect hq!osu, AQN, and other modified clients.
 - **Restrict/ban system** — Ability to restrict players (kick from server, mark account), with reason tracking and admin tools.
 - **Silence system** — Time-limited chat silences with expiry tracking.

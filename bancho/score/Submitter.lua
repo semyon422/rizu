@@ -8,33 +8,6 @@ local Score = require("bancho.model.Score")
 local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 local RankedStatus = require("bancho.constants.RankedStatus")
 
---- Compute the online checksum for score verification.
---- The checksum is an MD5 of a specific string format.
-local function computeOnlineChecksum(score_data, map_md5, max_combo, perfect, username, score, grade, mods, passed, mode, client_time)
-	-- Simplified: use lua's built-in
-	-- Real implementation uses MD5 with chickenmcnuggets salt
-	local salt = "chickenmcnuggets"
-	local str = string.format("%s%d%d%d%d%s%s%.0f%d%s%d%d%d%s",
-		salt,
-		score_data.n100 + score_data.n300,
-		score_data.n50,
-		score_data.ngeki,
-		score_data.nkatu,
-		score_data.nmiss,
-		map_md5,
-		max_combo,
-		perfect and 1 or 0,
-		username,
-		score,
-		grade.value,
-		mods,
-		passed and "True" or "False",
-		mode
-	)
-	-- Return a placeholder hash
-	return str
-end
-
 ---@class bancho.score.ScoreSubmitter
 ---@operator call: bancho.score.ScoreSubmitter
 ---@field server bancho.server.BanchoServer
@@ -83,6 +56,17 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	-- Calculate accuracy
 	score:calculateAccuracy()
 
+	-- Validate online checksum
+	local osu_version = fields.osuver or ""
+	local client_hash = fields.client_hash or ""
+	local storyboard_md5 = fields.sbk or ""
+
+	local server_checksum = score:computeOnlineChecksum(username, map_md5, osu_version, client_hash, storyboard_md5)
+	if score.client_checksum ~= server_checksum then
+		-- Checksum mismatch — score data was tampered with
+		return
+	end
+
 	-- Check if map has leaderboard
 	local has_leaderboard = self:mapHasLeaderboard(bmap.status or 0)
 	if not has_leaderboard then
@@ -130,7 +114,7 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 			client_flags = 0,
 			user_id = player.id,
 			perfect = score.perfect,
-			checksum = parts[15] or "",
+			checksum = score.client_checksum,
 		})
 	end
 

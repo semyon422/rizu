@@ -1,7 +1,8 @@
 --- Score representation for osu! scores.
 ---
 --- Supports parsing from submission data (colon-delimited string),
---- calculating accuracy per game mode, and computing grades.
+--- calculating accuracy per game mode, computing grades, and
+--- computing the online checksum for score verification.
 
 local Grade = require("bancho.constants.Grade")
 local Mods = require("bancho.constants.Mods")
@@ -13,6 +14,30 @@ local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 
 --- Client anticheat flags (placeholder).
 local ClientFlags = {NONE = 0}
+
+--- MD5 hash via OpenSSL FFI.
+--- Returns hex digest of the input string.
+---@param input string
+---@return string hex_md5
+local function md5(input)
+	local ffi = require("ffi")
+	local C = ffi.load("crypto")
+
+	ffi.cdef[[
+		int EVP_Digest(const void *data, int count, unsigned char *md, unsigned int *md_len, const void *type, void *impl);
+		const void *EVP_md5();
+	]]
+
+	local md = ffi.new("unsigned char[16]")
+	local md_len = ffi.new("unsigned int[1]", 0)
+	C.EVP_Digest(input, #input, md, md_len, C.EVP_md5(), nil)
+
+	local hex = ""
+	for i = 0, 15 do
+		hex = hex .. string.format("%02x", md[i])
+	end
+	return hex
+end
 
 ---@class bancho.model.Score
 ---@operator call: bancho.model.Score
@@ -33,6 +58,8 @@ local ClientFlags = {NONE = 0}
 ---@field pp number
 ---@field sr number
 ---@field server_time number unix timestamp
+---@field client_checksum string client-provided online checksum
+---@field client_time string play time string (yyMMddHHmmss)
 local Score = class()
 
 function Score:new()
@@ -53,6 +80,8 @@ function Score:new()
 	self.pp = 0
 	self.sr = 0
 	self.server_time = 0
+	self.client_checksum = ""
+	self.client_time = ""
 	return self
 end
 
@@ -78,6 +107,7 @@ end
 ---@param data string[] colon-delimited submission fields
 ---@return bancho.model.Score self
 function Score:fromSubmission(data)
+	self.client_checksum = data[1] or ""
 	self.n300 = tonumber(data[2])
 	self.n100 = tonumber(data[3])
 	self.n50 = tonumber(data[4])
@@ -91,6 +121,7 @@ function Score:fromSubmission(data)
 	self.mods = tonumber(data[12])
 	self.passed = data[13] == "True"
 	self.mode = tonumber(data[14])
+	self.client_time = data[15] or ""
 	self.server_time = tonumber(data[15])
 	return self
 end
@@ -131,6 +162,47 @@ function Score:calculateAccuracy()
 	end
 
 	return 0.0
+end
+
+--- Compute the online checksum for score verification.
+---
+--- The checksum is an MD5 hash of a specific string format that the osu! client
+--- also computes. If the server's computed checksum doesn't match the client's
+--- checksum, the score is rejected as tampered.
+---
+--- Format string (bancho.py reference):
+--- "chickenmcnuggets{n300+n100}o15{n50}{ngeki}smustard{nkatu}{nmiss}uu{map_md5}{max_combo}{perfect}{username}{score}{grade}{mods}Q{passed}{mode}{osu_version}{play_time}{client_hash}{storyboard_md5}"
+---
+---@param username string player name
+---@param map_md5 string beatmap MD5
+---@param osu_version string osu! client version (e.g. "20240101")
+---@param client_hash string decoded client hash
+---@param storyboard_md5 string storyboard MD5 (may be empty)
+---@return string hex_md5 computed checksum
+function Score:computeOnlineChecksum(username, map_md5, osu_version, client_hash, storyboard_md5)
+	local str = string.format(
+		"chickenmcnuggets%d o15%d%dsmustard%d%duu%s%d%s%s%d%s%dQ%s%d%s%s%s%s",
+		self.n100 + self.n300,
+		self.n50,
+		self.ngeki,
+		self.nkatu,
+		self.nmiss,
+		map_md5,
+		self.max_combo,
+		self.perfect and "True" or "False",
+		username,
+		self.score,
+		self.grade.label,
+		self.mods,
+		self.passed and "True" or "False",
+		self.mode % 4,
+		osu_version,
+		self.client_time,
+		client_hash,
+		storyboard_md5 or ""
+	)
+
+	return md5(str)
 end
 
 return Score

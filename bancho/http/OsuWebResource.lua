@@ -269,7 +269,10 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 		return
 	end
 
-	-- Submit score (pass parsed parts starting from index 3 for fromSubmission)
+	-- Add decoded client hash to fields for checksum validation
+	fields.client_hash = client_hash or ""
+
+	-- Submit score
 	self.server.score_submitter:submit(player, parts, replay_data, fields)
 
 	res:send("")
@@ -359,7 +362,10 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 		return
 	end
 
-	-- Submit score (pass parsed parts)
+	-- Add decoded client hash to fields for checksum validation
+	fields.client_hash = client_hash or ""
+
+	-- Submit score
 	self.server.score_submitter:submit(player, parts, replay_data, fields)
 
 	res:send("")

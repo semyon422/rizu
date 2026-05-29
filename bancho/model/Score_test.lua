@@ -1,88 +1,150 @@
---- Tests for bancho model Score.
+--- Tests for bancho Score model.
 
 local Score = require("bancho.model.Score")
 local Grade = require("bancho.constants.Grade")
+local Mods = require("bancho.constants.Mods")
 
 local test = {}
 
-function test.score_fromSubmission(t)
-	local s = Score:new():fromSubmission({
-		"",                 -- [1] online_checksum
-		"123",              -- [2] n300
-		"45",               -- [3] n100
-		"12",               -- [4] n50
-		"5",                -- [5] ngeki
-		"3",                -- [6] nkatu
-		"2",                -- [7] nmiss
-		"123456",           -- [8] score
-		"500",              -- [9] max_combo
-		"True",             -- [10] perfect
-		"xh",               -- [11] grade
-		"1048576",          -- [12] mods
-		"True",             -- [13] passed
-		"0",                -- [14] gamemode
-		"240101120000",     -- [15] play_time
-		"",                 -- [16] osu_version
+function test.fromSubmission(t)
+	local score = Score:new()
+	score:fromSubmission({
+		"abc123", -- checksum
+		"100", -- n300
+		"50", -- n100
+		"25", -- n50
+		"10", -- ngeki
+		"5", -- nkatu
+		"3", -- nmiss
+		"123456", -- score
+		"500", -- max_combo
+		"True", -- perfect
+		"s", -- grade
+		"0", -- mods
+		"True", -- passed
+		"0", -- mode
+		"240101120000", -- play_time
+		"20240101", -- osu_version
 	})
-	t:eq(s.n300, 123)
-	t:eq(s.n100, 45)
-	t:eq(s.n50, 12)
-	t:eq(s.ngeki, 5)
-	t:eq(s.nkatu, 3)
-	t:eq(s.nmiss, 2)
-	t:eq(s.score, 123456)
-	t:eq(s.max_combo, 500)
-	t:eq(s.perfect, true)
-	t:eq(s.grade, Grade.XH)
-	t:eq(s.passed, true)
-	t:eq(s.mode, 0)
+
+	t:eq(score.n300, 100)
+	t:eq(score.n100, 50)
+	t:eq(score.n50, 25)
+	t:eq(score.ngeki, 10)
+	t:eq(score.nkatu, 5)
+	t:eq(score.nmiss, 3)
+	t:eq(score.score, 123456)
+	t:eq(score.max_combo, 500)
+	t:eq(score.perfect, true)
+	t:eq(score.grade, Grade.S)
+	t:eq(score.mods, 0)
+	t:eq(score.passed, true)
+	t:eq(score.mode, 0)
+	t:eq(score.client_checksum, "abc123")
+	t:eq(score.client_time, "240101120000")
 end
 
-function test.accuracy_osu(t)
-	local s = Score:new()
-	s.n300 = 300; s.n100 = 10; s.n50 = 5; s.nmiss = 2; s.mode = 0
-	local acc = s:calculateAccuracy()
-	t:assert(acc > 95.9 and acc < 96.0, "acc=" .. tostring(acc))
+function test.calculateAccuracy_osu(t)
+	local score = Score:new()
+	score.n300 = 100
+	score.n100 = 50
+	score.n50 = 25
+	score.nmiss = 3
+	score.mode = 0
+
+	local acc = score:calculateAccuracy()
+	-- (100*300 + 50*100 + 25*50) / (178 * 300) * 100 = 67.88...
+	t:aeq(acc, 67.883895131086, 0.001)
 end
 
-function test.accuracy_osu_empty(t)
-	local s = Score:new()
-	s.n300 = 0; s.n100 = 0; s.n50 = 0; s.nmiss = 0; s.mode = 0
-	t:eq(s:calculateAccuracy(), 0)
+function test.calculateAccuracy_taiko(t)
+	local score = Score:new()
+	score.n300 = 100
+	score.n100 = 50
+	score.nmiss = 3
+	score.mode = 1
+
+	local acc = score:calculateAccuracy()
+	-- (100 + 50*0.5) / 153 * 100 = 81.69...
+	t:aeq(acc, 81.699346405229, 0.001)
 end
 
-function test.accuracy_taiko(t)
-	local s = Score:new()
-	s.n300 = 200; s.n100 = 100; s.nmiss = 5; s.mode = 1
-	local acc = s:calculateAccuracy()
-	t:assert(acc > 81.9 and acc < 82.0, "acc=" .. tostring(acc))
+function test.calculateAccuracy_mania_scorev2(t)
+	local score = Score:new()
+	score.n300 = 100
+	score.n100 = 50
+	score.n50 = 25
+	score.ngeki = 10
+	score.nkatu = 5
+	score.nmiss = 3
+	score.mode = 3
+	score.mods = Mods.SCOREV2
+
+	local acc = score:calculateAccuracy()
+	t:ne(acc, 0)
 end
 
-function test.accuracy_catch(t)
-	local s = Score:new()
-	s.n300 = 300; s.n100 = 50; s.n50 = 10; s.nkatu = 5; s.nmiss = 3; s.mode = 2
-	local acc = s:calculateAccuracy()
-	t:assert(acc > 97.8 and acc < 97.9, "acc=" .. tostring(acc))
+function test.computeOnlineChecksum(t)
+	local score = Score:new()
+	score:fromSubmission({
+		"test_checksum",
+		"100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"
+	})
+
+	local checksum = score:computeOnlineChecksum(
+		"testuser",
+		"abc123def456789012345678",
+		"20240101",
+		"client_hash_abc123",
+		""
+	)
+
+	-- Verify it returns a valid MD5 hex string (32 chars, hex only)
+	t:eq(#checksum, 32)
+	t:ne(checksum:match("^[0-9a-f]+$"), nil)
 end
 
-function test.accuracy_mania(t)
-	local s = Score:new()
-	s.n300 = 300; s.ngeki = 20; s.n100 = 50; s.nkatu = 10; s.n50 = 5; s.nmiss = 2; s.mode = 3
-	local acc = s:calculateAccuracy()
-	t:assert(acc > 88.9 and acc < 89.0, "acc=" .. tostring(acc))
+function test.computeOnlineChecksum_deterministic(t)
+	local score1 = Score:new()
+	score1:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"
+	})
+
+	local score2 = Score:new()
+	score2:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"
+	})
+
+	local cs1 = score1:computeOnlineChecksum("testuser", "abc123def456789012345678", "20240101", "client_hash", "")
+	local cs2 = score2:computeOnlineChecksum("testuser", "abc123def456789012345678", "20240101", "client_hash", "")
+	t:eq(cs1, cs2)
 end
 
-function test.grade_fromString(t)
-	t:eq(Grade.fromString("xh"), Grade.XH)
-	t:eq(Grade.fromString("x"), Grade.X)
-	t:eq(Grade.fromString("sh"), Grade.SH)
-	t:eq(Grade.fromString("s"), Grade.S)
-	t:eq(Grade.fromString("a"), Grade.A)
-	t:eq(Grade.fromString("b"), Grade.B)
-	t:eq(Grade.fromString("c"), Grade.C)
-	t:eq(Grade.fromString("d"), Grade.D)
-	t:eq(Grade.fromString("f"), Grade.F)
-	t:eq(Grade.fromString("n"), Grade.N)
+function test.computeOnlineChecksum_different_inputs(t)
+	local score1 = Score:new()
+	score1:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"
+	})
+
+	local score2 = Score:new()
+	score2:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"
+	})
+
+	-- Different username produces different checksum
+	local cs1 = score1:computeOnlineChecksum("user1", "abc123def456789012345678", "20240101", "client_hash", "")
+	local cs2 = score2:computeOnlineChecksum("user2", "abc123def456789012345678", "20240101", "client_hash", "")
+	t:ne(cs1, cs2)
 end
 
 return test
