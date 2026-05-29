@@ -39,7 +39,8 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 
 ### Cryptography (`bancho/crypto/`)
 
-- **ScoreCrypto.lua** — Score encryption/decryption: `decryptScore()` (base64 decode, AES decrypt, extract client hash), `encrypt()`/`decrypt()` (XOR-based stub for testing). Documents the real algorithm: Rijndael-256 CBC with PKCS7 padding, key = `"osu!-scoreburgr---------{osu_version}"`.
+- **ScoreCrypto.lua** — Score encryption/decryption: `decryptScore()` (decrypts score data + client hash separately), `encrypt()`/`decrypt()` (Rijndael-256 CBC with PKCS7 padding via OpenSSL FFI). Key = `"osu!-scoreburgr---------{osu_version}"` (32 bytes).
+- **Rijndael.lua** — OpenSSL FFI bindings for AES-256-CBC: `encrypt()` (plaintext → base64 ciphertext), `decrypt()` (base64 ciphertext → plaintext), `deriveKey()` (osu version → 32-byte key).
 
 ### Constants (`bancho/constants/`)
 

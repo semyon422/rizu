@@ -3,9 +3,9 @@
 --- Implements Rijndael-256 CBC encryption/decryption with PKCS7 padding.
 --- The key derivation: "osu!-scoreburgr---------{osu_version}"
 ---
---- This is a stub implementation using a simple reversible cipher
---- for testing purposes. A real implementation would use libmbedcrypto
---- or a Lua port of Rijndael-256.
+--- Uses OpenSSL FFI for real Rijndael-256 CBC implementation.
+
+local Rijndael = require("bancho.crypto.Rijndael")
 
 local class = require("class")
 
@@ -21,50 +21,29 @@ end
 ---@param osu_version string
 ---@return string
 function ScoreCrypto.deriveKey(osu_version)
-	-- Key format: "osu!-scoreburgr---------{version}"
-	-- Total key length is 32 bytes (Rijndael-256 block size)
-	local prefix = "osu!-scoreburgr---------"
-	return prefix .. osu_version
+	return Rijndael.deriveKey(osu_version)
 end
 
---- Encrypt score data (stub: XOR with key for testing).
---- Real implementation would use Rijndael-256 CBC.
----@param data string
+--- Encrypt score data.
+--- Returns base64-encoded ciphertext.
+---@param plaintext string
 ---@param key string
----@param iv string
----@return string encrypted_data
-function ScoreCrypto.encrypt(data, key, iv)
-	-- Stub: XOR-based encryption for test compatibility
-	-- Real implementation would use Rijndael-256 CBC with PKCS7 padding
-	---@type string[]
-	local out = {}
-	local keyLen = #key
-	local ivLen = #iv
-	for i = 1, #data do
-		local c = data:sub(i, i):byte()
-		local k = key:sub(((i - 1) % keyLen) + 1, (i % keyLen) + 1):byte()
-		table.insert(out, string.char(bit.bxor(c, k)))
-	end
-	return table.concat(out)
+---@param iv_b64 string base64-encoded IV
+---@return string? ciphertext_b64
+---@return string? error
+function ScoreCrypto.encrypt(plaintext, key, iv_b64)
+	return Rijndael.encrypt(plaintext, key, iv_b64)
 end
 
---- Decrypt score data (stub: XOR with key for testing).
---- Real implementation would use Rijndael-256 CBC.
----@param encrypted string
+--- Decrypt score data.
+--- Returns decrypted plaintext.
+---@param ciphertext_b64 string base64-encoded ciphertext
 ---@param key string
----@param iv string
----@return string decrypted_data
-function ScoreCrypto.decrypt(encrypted, key, iv)
-	-- Stub: XOR-based decryption for test compatibility
-	---@type string[]
-	local out = {}
-	local keyLen = #key
-	for i = 1, #encrypted do
-		local c = encrypted:sub(i, i):byte()
-		local k = key:sub(((i - 1) % keyLen) + 1, (i % keyLen) + 1):byte()
-		table.insert(out, string.char(bit.bxor(c, k)))
-	end
-	return table.concat(out)
+---@param iv_b64 string base64-encoded IV
+---@return string? plaintext
+---@return string? error
+function ScoreCrypto.decrypt(ciphertext_b64, key, iv_b64)
+	return Rijndael.decrypt(ciphertext_b64, key, iv_b64)
 end
 
 --- Decrypt score submission data.
@@ -77,24 +56,19 @@ end
 ---@return string? score_data decrypted score data (colon-delimited)
 ---@return string? client_hash decoded client hash
 function ScoreCrypto:decryptScore(score_data_b64, client_hash_b64, iv_b64, osu_version)
-	local mime = require("mime")
-
-	-- Decode base64
-	local score_data_enc = mime.unb64(score_data_b64)
-	local iv_enc = mime.unb64(iv_b64)
-
-	-- Derive key
 	local key = ScoreCrypto.deriveKey(osu_version)
 
-	-- Decrypt score data (the last 32 bytes are the client hash)
-	local decrypted = ScoreCrypto.decrypt(score_data_enc, key, iv_enc)
-	if not decrypted or #decrypted < 32 then
-		return nil, nil
+	-- Decrypt score data
+	local score_data, err = ScoreCrypto.decrypt(score_data_b64, key, iv_b64)
+	if not score_data then
+		return nil, err
 	end
 
-	-- Extract client hash from end of decrypted data
-	local score_data = decrypted:sub(1, #decrypted - 32)
-	local client_hash = decrypted:sub(-32)
+	-- Decrypt client hash
+	local client_hash, err2 = ScoreCrypto.decrypt(client_hash_b64, key, iv_b64)
+	if not client_hash then
+		return nil, err2
+	end
 
 	return score_data, client_hash
 end

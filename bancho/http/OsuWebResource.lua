@@ -245,16 +245,32 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 		return
 	end
 
+	-- Parse score data (colon-delimited)
+	local parts = {}
+	for part in score_data:gmatch("[^:]+") do
+		parts[#parts + 1] = part
+	end
+
+	-- Minimum fields check: map_md5, username, n300, n100, n50, ngeki, nkatu, nmiss, score, max_combo, perfect, grade, mods, passed, mode, play_time
+	if #parts < 16 then
+		res:send("")
+		return
+	end
+
+	-- Extract map MD5 and username
+	local map_md5 = parts[1]
+	local username = parts[2]
+
 	-- Authenticate player
 	local pw_md5 = fields.pass or ""
-	local player = self:lookupPlayer(score_data.username, pw_md5)
+	local player = self:lookupPlayer(username, pw_md5)
 	if not player then
 		res:send("")
 		return
 	end
 
-	-- Submit score
-	self.server.score_submitter:submit(player, score_data, replay_data, fields)
+	-- Submit score (pass parsed parts starting from index 3 for fromSubmission)
+	self.server.score_submitter:submit(player, parts, replay_data, fields)
 
 	res:send("")
 end
@@ -331,8 +347,20 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 		return
 	end
 
-	-- Submit score
-	self.server.score_submitter:submit(player, score_data, replay_data, fields)
+	-- Parse score data (colon-delimited)
+	local parts = {}
+	for part in score_data:gmatch("[^:]+") do
+		parts[#parts + 1] = part
+	end
+
+	-- Minimum fields check
+	if #parts < 16 then
+		res:send("")
+		return
+	end
+
+	-- Submit score (pass parsed parts)
+	self.server.score_submitter:submit(player, parts, replay_data, fields)
 
 	res:send("")
 end

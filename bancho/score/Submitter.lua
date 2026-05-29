@@ -49,30 +49,26 @@ end
 --- Submit a score from the client.
 --- Parses the score data, validates checksums, and persists the score.
 ---@param player bancho.model.Player
----@param score_data string decrypted score data (colon-delimited)
+---@param parts string[] parsed score data: [1]=map_md5, [2]=username, [3..]=score fields
 ---@param replay_data string replay file data
 ---@param fields table form fields from submission
-function ScoreSubmitter:submit(player, score_data, replay_data, fields)
-	-- Parse score data (colon-delimited)
-	local parts = {}
-	for part in score_data:gmatch("[^:]+") do
-		parts[#parts + 1] = part
-	end
-
-	-- Minimum fields check
-	if #parts < 15 then
+function ScoreSubmitter:submit(player, parts, replay_data, fields)
+	-- Minimum fields check: map_md5, username, online_checksum, n300, n100, n50, ngeki, nkatu, nmiss, score, max_combo, perfect, grade, mods, passed, mode, play_time
+	if #parts < 16 then
 		return
 	end
 
-	-- Parse score from submission data
-	local score = Score:new()
-	score:fromSubmission(parts)
-
-	-- Extract map MD5 (first field)
+	-- Extract map MD5 and username
 	local map_md5 = parts[1]
-	if not map_md5 then
-		return
-	end
+	local username = parts[2]
+
+	-- Parse score from submission data (skip map_md5 and username)
+	local score = Score:new()
+	score:fromSubmission({
+		parts[3], parts[4], parts[5], parts[6], parts[7], parts[8],
+		parts[9], parts[10], parts[11], parts[12], parts[13], parts[14],
+		parts[15], parts[16], parts[17], parts[18]
+	})
 
 	-- Look up beatmap
 	local bmap = nil
