@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 ulimit -v 2097152
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/usr/lib:$PWD/bin/linux64"
 exec luajit "$(dirname "$0")/luajit.lua" "$@"
