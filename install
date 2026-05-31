@@ -13,6 +13,7 @@ luarocks install luacov
 luarocks install luacov-reporter-lcov
 luarocks install nginx-lua-prometheus
 luarocks install enet
+luarocks install lua-resty-nats-next
 
 mkdir -p logs
 mkdir -p temp

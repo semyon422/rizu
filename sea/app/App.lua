@@ -15,6 +15,7 @@ local etlua_util = require("web.framework.page.etlua_util")
 local ServerRemoteValidation = require("sea.app.remotes.ServerRemoteValidation")
 local brand = require("brand")
 local SharedMemory = require("web.nginx.SharedMemory")
+local RestyNats = require("icc.nats.RestyNats")
 
 ---@class sea.RequestContext
 ---@field [any] any
@@ -47,9 +48,12 @@ function App:new(app_config)
 	self.domain = Domain(self.repos, app_config)
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
 
+	-- Initialize NATS connection (shared across all WebSocket handlers in this worker)
+	local nats = RestyNats.instance()
+
 	local whitelist = require("sea.app.remotes.whitelist")
 	local client_whitelist = require("sea.app.remotes.client_whitelist")
-	self.domain.user_connections:setup(self.server_remote, whitelist, client_whitelist)
+	self.domain.user_connections:setup(self.server_remote, whitelist, client_whitelist, nats)
 
 	local views = Views(etlua_util.autoload(), "sea/shared/http/layout.etlua")
 	self.resources = Resources(self.domain, self.server_remote, views, self.sessions, app_config, self.shared_memory)

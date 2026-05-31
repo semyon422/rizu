@@ -123,7 +123,7 @@ end
 ---@param msg string
 ---@param caller_peer sea.Peer
 function Domain:printAll(msg, caller_peer)
-	local peers = self.user_connections:getPeers(caller_peer.peer_id)
+	local peers = self.user_connections:getPeers(caller_peer.nc, caller_peer.inbox)
 	for _, peer in ipairs(peers) do
 		peer.remote_no_return:print(msg)
 	end
@@ -132,7 +132,7 @@ end
 ---@param caller_peer sea.Peer
 ---@return number[]
 function Domain:getRandomNumbersFromAllClients(caller_peer)
-	local peers = self.user_connections:getPeers(caller_peer.peer_id)
+	local peers = self.user_connections:getPeers(caller_peer.nc, caller_peer.inbox)
 	local numbers = {}
 	for _, peer in ipairs(peers) do
 		local ok, num = pcall(peer.remote.getRandomNumber, peer.remote)

@@ -1,7 +1,6 @@
 local class = require("class")
 local TaskHandler = require("icc.TaskHandler")
 local RemoteHandler = require("icc.RemoteHandler")
-local Queues = require("icc.Queues")
 local User = require("sea.access.User")
 local InternalPeer = require("sea.app.InternalPeer")
 
@@ -11,6 +10,7 @@ local EMPTY_USER = User()
 ---@operator call: sea.UserConnections
 ---@field task_handler icc.TaskHandler
 ---@field remote_handler icc.RemoteHandler
+---@field nats nats.INats NATS client connection
 local UserConnections = class()
 
 UserConnections.ttl = 90
@@ -20,18 +20,17 @@ UserConnections.ttl = 90
 function UserConnections:new(repo, users_repo)
 	self.repo = repo
 	self.users_repo = users_repo
-	self.queues = Queues(function(peer_id)
-		return self.repo:getQueue(peer_id)
-	end)
 end
 
 ---@param server_remote sea.ServerRemote
 ---@param whitelist icc.RemoteHandlerWhitelist
 ---@param client_whitelist icc.RemoteHandlerWhitelist
-function UserConnections:setup(server_remote, whitelist, client_whitelist)
+---@param nats nats.INats NATS client connection
+function UserConnections:setup(server_remote, whitelist, client_whitelist, nats)
 	self.remote_handler = RemoteHandler(server_remote, whitelist)
 	self.task_handler = TaskHandler(self.remote_handler, "server")
 	self.client_whitelist = client_whitelist
+	self.nats = nats
 end
 
 ---@param peer_id string
@@ -89,21 +88,22 @@ function UserConnections:_getUser(user_id)
 end
 
 ---@param peer_id string
----@param caller_peer_id string
+---@param nc nats.INats NATS connection
+---@param inbox string caller's inbox subject
 ---@return sea.InternalPeer?
-function UserConnections:getPeer(peer_id, caller_peer_id)
+function UserConnections:getPeer(peer_id, nc, inbox)
 	if not self.repo:hasConnection(peer_id) then
 		return
 	end
 	local user_id = self.repo:getConnectionUser(peer_id)
 	local user = self:_getUser(user_id)
-	local icc_peer = self.queues:getPeer(peer_id, caller_peer_id)
-	return InternalPeer(self.task_handler, icc_peer, user, peer_id)
+	return InternalPeer(self.task_handler, nc, inbox, user, peer_id)
 end
 
----@param caller_peer_id string
+---@param nc nats.INats NATS connection
+---@param inbox string caller's inbox subject
 ---@return sea.InternalPeer[]
-function UserConnections:getPeers(caller_peer_id)
+function UserConnections:getPeers(nc, inbox)
 	local peers = {}
 	---@type {[integer|true]: sea.User}
 	local users_cache = {}
@@ -113,22 +113,21 @@ function UserConnections:getPeers(caller_peer_id)
 			user = self:_getUser(user_id)
 			users_cache[user_id] = user
 		end
-		local icc_peer = self.queues:getPeer(peer_id, caller_peer_id)
-		table.insert(peers, InternalPeer(self.task_handler, icc_peer, user, peer_id))
+		table.insert(peers, InternalPeer(self.task_handler, nc, inbox, user, peer_id))
 	end)
 	return peers
 end
 
 ---@param user_id integer
----@param caller_peer_id string
+---@param nc nats.INats NATS connection
+---@param inbox string caller's inbox subject
 ---@return sea.InternalPeer[]
-function UserConnections:getPeersForUser(user_id, caller_peer_id)
+function UserConnections:getPeersForUser(user_id, nc, inbox)
 	local peers = {}
 	local user = self:_getUser(user_id)
 	self.repo:forEachConnection(function(conn_user_id, peer_id)
 		if conn_user_id == user_id then
-			local icc_peer = self.queues:getPeer(peer_id, caller_peer_id)
-			table.insert(peers, InternalPeer(self.task_handler, icc_peer, user, peer_id))
+			table.insert(peers, InternalPeer(self.task_handler, nc, inbox, user, peer_id))
 		end
 	end)
 	return peers
@@ -139,22 +138,6 @@ end
 function UserConnections:createClientTaskHandler(client_remote)
 	local handler = RemoteHandler(client_remote, self.client_whitelist)
 	return TaskHandler(handler, "client-proxy")
-end
-
----@param sid string
----@param task_handler icc.TaskHandler
-function UserConnections:processQueue(sid, task_handler)
-	while true do
-		local msg, return_peer = self.queues:pop(sid)
-		if not msg then break end
-
-		if not msg.ret then
-			assert(return_peer)
-			task_handler:handleCall(return_peer, {}, msg)
-		else
-			self.task_handler:handleReturn(msg)
-		end
-	end
 end
 
 return UserConnections

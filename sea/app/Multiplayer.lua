@@ -18,7 +18,7 @@ end
 
 ---@param peer sea.Peer
 function Multiplayer:getPeers(peer)
-	return self.user_connections:getPeers(peer.ip, peer.port)
+	return self.user_connections:getPeers(peer.nc, peer.inbox)
 end
 
 ---@param peer sea.Peer
