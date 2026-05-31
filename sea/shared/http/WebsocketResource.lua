@@ -1,5 +1,4 @@
 local WebsocketPeer = require("icc.WebsocketPeer")
-local NatsPeer = require("icc.nats.NatsPeer")
 local Message = require("icc.Message")
 local IResource = require("web.framework.IResource")
 local Websocket = require("web.ws.Websocket")
@@ -66,8 +65,7 @@ function WebsocketResource:server(req, res, ctx)
 		task_handler:handleReturn(msg)
 	end)
 
-	local remote_ctx = Peer(task_handler, ws_peer, nats, inbox,
-		ctx.session_user, ctx.ip, ctx.port, ctx.peer_id, ctx.session)
+	local peer = Peer(task_handler, ws_peer, nats, inbox, ctx.session_user, ctx.ip, ctx.port, ctx.peer_id, ctx.session)
 
 	function ws.protocol:text(payload, fin)
 		if not fin then return end
@@ -75,7 +73,7 @@ function WebsocketResource:server(req, res, ctx)
 		local msg = ws_peer:decode(payload)
 		if not msg then return end
 
-		local ok, err = xpcall(task_handler.handle, debug.traceback, task_handler, ws_peer, remote_ctx, msg)
+		local ok, err = xpcall(task_handler.handle, debug.traceback, task_handler, ws_peer, peer, msg)
 		if not ok then
 			print("icc error ", err)
 		end
@@ -87,27 +85,14 @@ function WebsocketResource:server(req, res, ctx)
 		return
 	end
 
-	self.domain:onConnect(remote_ctx)
+	local client_task_handler = user_connections:createClientTaskHandler(peer.remote)
+	peer:setup_dispatch(client_task_handler)
 
-	local client_task_handler = user_connections:createClientTaskHandler(remote_ctx.remote)
+	-- Subscribe BEFORE onConnect so broadcasts reach this peer
+	peer:subscribe("icc.peer." .. ctx.peer_id)
+	peer:subscribe("icc.broadcast.all")
 
-	-- Subscribe to NATS for server→client messages
-	local peer_sid
-	_, _, peer_sid = nats:subscribe("icc.peer." .. ctx.peer_id, function(nats_msg)
-		local msg = ws_peer:decode(nats_msg.payload)
-		if not msg then return end
-
-		msg.reply_to = nats_msg.reply_to
-
-		-- Two-way calls: use NatsPeer(reply_to) for response routing
-		-- One-way broadcasts: ws_peer (no response sent anyway)
-		local reply_peer = nats_msg.reply_to and NatsPeer(nats, nil, nats_msg.reply_to) or ws_peer
-		local ok, err = xpcall(client_task_handler.handleCall, debug.traceback,
-			client_task_handler, reply_peer, {}, msg)
-		if not ok then
-			print("nats dispatch error", err)
-		end
-	end)
+	self.domain:onConnect(peer)
 
 	local ok, err = ws:loop()
 	if not ok then
@@ -115,10 +100,12 @@ function WebsocketResource:server(req, res, ctx)
 	end
 
 	-- Cleanup NATS subscriptions (by SID to avoid clobbering other connections)
-	if peer_sid then nats:unsubscribe(peer_sid) end
 	if inbox_sid then nats:unsubscribe(inbox_sid) end
+	for _, sid in pairs(peer.broadcast_sids) do
+		nats:unsubscribe(sid)
+	end
 
-	self.domain:onDisconnect(remote_ctx)
+	self.domain:onDisconnect(peer)
 end
 
 ---@param req web.IRequest

@@ -99,42 +99,35 @@ end
 ---@param peer sea.Peer
 function Multiplayer:pushUsers(peer)
 	local users = self:getUsers(peer)
-	for _, p in ipairs(self:getPeers(peer)) do
-		p.remote_no_return.multiplayer:setUsers(users)
-	end
+	self.user_connections:broadcastAll().multiplayer:setUsers(users)
 end
 
 ---@param peer sea.Peer
 function Multiplayer:pushRooms(peer)
 	local rooms = self:getRooms()
-	for _, p in ipairs(self:getPeers(peer)) do
-		p.remote_no_return.multiplayer:setRooms(rooms)
-	end
+	self.user_connections:broadcastAll().multiplayer:setRooms(rooms)
 end
 
 ---@param room_id integer
 ---@param peer sea.Peer
 function Multiplayer:pushRoomUsers(room_id, peer)
 	local room_users = self.multiplayer_repo:getRoomUsers(room_id)
-	for _, p in self:iterRoomPeers(room_id, peer) do
-		p.remote_no_return.multiplayer:setRoomUsers(room_users)
-	end
+	self.user_connections:broadcastRoom(room_id).multiplayer:setRoomUsers(room_users)
 end
 
 ---@param room_id integer
 ---@param room sea.Room|sea.RoomUpdate
 ---@param peer sea.Peer
 function Multiplayer:syncRoomParts(room_id, room, peer)
-	for _, p in self:iterRoomPeers(room_id, peer) do
-		if room.rules then
-			p.remote_no_return.multiplayer:syncRules()
-		end
-		if room.chartmeta_key then
-			p.remote_no_return.multiplayer:syncChart()
-		end
-		if room.replay_base then
-			p.remote_no_return.multiplayer:syncReplayBase()
-		end
+	local broadcast = self.user_connections:broadcastRoom(room_id)
+	if room.rules then
+		broadcast.multiplayer:syncRules()
+	end
+	if room.chartmeta_key then
+		broadcast.multiplayer:syncChart()
+	end
+	if room.replay_base then
+		broadcast.multiplayer:syncReplayBase()
 	end
 end
 
@@ -212,6 +205,7 @@ function Multiplayer:joinRoom(peer, room_id, password)
 	room_user = RoomUser(room.id, user.id)
 	room_user = self.multiplayer_repo:createRoomUser(room_user)
 
+	self:_subscribeRoom(peer, room_id)
 	self:pushRoomUsers(room_id, peer)
 	self:syncRoomParts(room_id, room, peer)
 
@@ -289,6 +283,7 @@ function Multiplayer:leaveRoom(peer, user)
 		return nil, "is not in a room"
 	end
 
+	self:_unsubscribeRoom(peer, room_id)
 	return self:kickUser(peer, room_id, user.id)
 end
 
@@ -307,9 +302,7 @@ function Multiplayer:sendMessage(peer, room_id, msg)
 	local user = peer.user
 	msg = ("%s: %s"):format(user.name, msg)
 
-	for _, p in self:iterRoomPeers(room_id, peer) do
-		p.remote_no_return.multiplayer:addMessage(msg)
-	end
+	self.user_connections:broadcastRoom(room_id).multiplayer:addMessage(msg)
 end
 
 ---@param peer sea.Peer
@@ -410,9 +403,7 @@ function Multiplayer:startLocalMatch(peer)
 		return
 	end
 
-	for _, p in self:iterRoomPeers(room_id, peer) do
-		p.remote_no_return.multiplayer:startMatch()
-	end
+	self.user_connections:broadcastRoom(room_id).multiplayer:startMatch()
 end
 
 ---@param peer sea.Peer
@@ -422,9 +413,21 @@ function Multiplayer:stopLocalMatch(peer)
 		return
 	end
 
-	for _, p in self:iterRoomPeers(room_id, peer) do
-		p.remote_no_return.multiplayer:stopMatch()
-	end
+	self.user_connections:broadcastRoom(room_id).multiplayer:stopMatch()
+end
+
+--- Subscribe this peer to a room's broadcast channel.
+---@param peer sea.Peer
+---@param room_id integer
+function Multiplayer:_subscribeRoom(peer, room_id)
+	peer:subscribe("icc.broadcast.room." .. room_id)
+end
+
+--- Unsubscribe this peer from its current room's broadcast channel.
+---@param peer sea.Peer
+---@param room_id integer
+function Multiplayer:_unsubscribeRoom(peer, room_id)
+	peer:unsubscribe("icc.broadcast.room." .. room_id)
 end
 
 return Multiplayer

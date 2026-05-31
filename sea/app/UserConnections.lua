@@ -1,6 +1,9 @@
 local class = require("class")
 local TaskHandler = require("icc.TaskHandler")
 local RemoteHandler = require("icc.RemoteHandler")
+local BroadcastingPeer = require("icc.BroadcastingPeer")
+local Remote = require("icc.Remote")
+local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
 local User = require("sea.access.User")
 local InternalPeer = require("sea.app.InternalPeer")
 
@@ -121,6 +124,29 @@ end
 function UserConnections:createClientTaskHandler(client_remote)
 	local handler = RemoteHandler(client_remote, self.client_whitelist)
 	return TaskHandler(handler, "client-proxy")
+end
+
+--- No-return broadcast remote for all connected peers.
+---@return sea.ClientRemoteValidation
+function UserConnections:broadcastAll()
+	local peer = BroadcastingPeer(self.nats, "icc.broadcast.all")
+	return ClientRemoteValidation(-Remote(self.task_handler, peer))
+end
+
+--- No-return broadcast remote for a specific room.
+---@param room_id integer
+---@return sea.ClientRemoteValidation
+function UserConnections:broadcastRoom(room_id)
+	local peer = BroadcastingPeer(self.nats, "icc.broadcast.room." .. room_id)
+	return ClientRemoteValidation(-Remote(self.task_handler, peer))
+end
+
+--- No-return broadcast remote for all sockets of a user.
+---@param user_id integer
+---@return sea.ClientRemoteValidation
+function UserConnections:broadcastUser(user_id)
+	local peer = BroadcastingPeer(self.nats, "icc.broadcast.user." .. user_id)
+	return ClientRemoteValidation(-Remote(self.task_handler, peer))
 end
 
 return UserConnections

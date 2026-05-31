@@ -117,16 +117,17 @@ function Domain:onAuth(peer, old_user)
 	if old_user and not old_user:isAnon() and old_user.id ~= peer.user.id then
 		self.multiplayer:leaveRoom(peer, old_user)
 	end
+
+	-- Subscribe to user-targeted broadcasts
+	peer:subscribe("icc.broadcast.user." .. peer.user.id)
+
 	self.multiplayer:connected(peer)
 end
 
 ---@param msg string
 ---@param caller_peer sea.Peer
 function Domain:printAll(msg, caller_peer)
-	local peers = self.user_connections:getPeers(caller_peer)
-	for _, peer in ipairs(peers) do
-		peer.remote_no_return:print(msg)
-	end
+	self.user_connections:broadcastAll():print(msg)
 end
 
 ---@param caller_peer sea.Peer
