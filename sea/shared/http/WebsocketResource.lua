@@ -45,7 +45,8 @@ function WebsocketResource:server(req, res, ctx)
 	-- Subscribe to our inbox for two-way call responses
 	-- When callee responds to reply_to (icc.inbox.{peer_id}.{id}),
 	-- this routes the response to task_handler:handleReturn() to resume the waiting coroutine
-	nats:subscribe(inbox .. ".*", function(nats_msg)
+	local inbox_sid
+	_, _, inbox_sid = nats:subscribe(inbox .. ".*", function(nats_msg)
 		local id = tonumber(nats_msg.subject:match("^.+%.(%d+)$"))
 		if not id then return end
 
@@ -91,7 +92,8 @@ function WebsocketResource:server(req, res, ctx)
 	local client_task_handler = user_connections:createClientTaskHandler(remote_ctx.remote)
 
 	-- Subscribe to NATS for server→client messages
-	nats:subscribe("icc.peer." .. ctx.peer_id, function(nats_msg)
+	local peer_sid
+	_, _, peer_sid = nats:subscribe("icc.peer." .. ctx.peer_id, function(nats_msg)
 		local msg = ws_peer:decode(nats_msg.payload)
 		if not msg then return end
 
@@ -112,9 +114,9 @@ function WebsocketResource:server(req, res, ctx)
 		print(err)
 	end
 
-	-- Cleanup NATS subscriptions
-	nats:unsubscribe("icc.peer." .. ctx.peer_id)
-	nats:unsubscribe(inbox .. ".*")
+	-- Cleanup NATS subscriptions (by SID to avoid clobbering other connections)
+	if peer_sid then nats:unsubscribe(peer_sid) end
+	if inbox_sid then nats:unsubscribe(inbox_sid) end
 
 	self.domain:onDisconnect(remote_ctx)
 end
