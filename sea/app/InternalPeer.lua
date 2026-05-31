@@ -9,7 +9,6 @@ local Remote = require("icc.Remote")
 ---@field peer_id string ip:port
 ---@field remote sea.ClientRemoteValidation
 ---@field remote_no_return sea.ClientRemoteValidation
----@field peer sea.InternalPeer
 local InternalPeer = class()
 
 ---@param th icc.TaskHandler
@@ -20,7 +19,6 @@ local InternalPeer = class()
 function InternalPeer:new(th, nc, inbox, user, peer_id)
 	self.user = user
 	self.peer_id = peer_id
-	self.peer = self
 
 	-- Create target-specific NATS peer
 	local nats = NatsPeer(nc, inbox, peer_id)

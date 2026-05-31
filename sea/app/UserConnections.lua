@@ -88,22 +88,20 @@ function UserConnections:_getUser(user_id)
 end
 
 ---@param peer_id string
----@param nc nats.INats NATS connection
----@param inbox string caller's inbox subject
+---@param peer sea.Peer
 ---@return sea.InternalPeer?
-function UserConnections:getPeer(peer_id, nc, inbox)
+function UserConnections:getPeer(peer_id, peer)
 	if not self.repo:hasConnection(peer_id) then
 		return
 	end
 	local user_id = self.repo:getConnectionUser(peer_id)
 	local user = self:_getUser(user_id)
-	return InternalPeer(self.task_handler, nc, inbox, user, peer_id)
+	return InternalPeer(self.task_handler, peer.nc, peer.inbox, user, peer_id)
 end
 
----@param nc nats.INats NATS connection
----@param inbox string caller's inbox subject
+---@param peer sea.Peer
 ---@return sea.InternalPeer[]
-function UserConnections:getPeers(nc, inbox)
+function UserConnections:getPeers(peer)
 	local peers = {}
 	---@type {[integer|true]: sea.User}
 	local users_cache = {}
@@ -113,22 +111,7 @@ function UserConnections:getPeers(nc, inbox)
 			user = self:_getUser(user_id)
 			users_cache[user_id] = user
 		end
-		table.insert(peers, InternalPeer(self.task_handler, nc, inbox, user, peer_id))
-	end)
-	return peers
-end
-
----@param user_id integer
----@param nc nats.INats NATS connection
----@param inbox string caller's inbox subject
----@return sea.InternalPeer[]
-function UserConnections:getPeersForUser(user_id, nc, inbox)
-	local peers = {}
-	local user = self:_getUser(user_id)
-	self.repo:forEachConnection(function(conn_user_id, peer_id)
-		if conn_user_id == user_id then
-			table.insert(peers, InternalPeer(self.task_handler, nc, inbox, user, peer_id))
-		end
+		table.insert(peers, InternalPeer(self.task_handler, peer.nc, peer.inbox, user, peer_id))
 	end)
 	return peers
 end

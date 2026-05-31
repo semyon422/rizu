@@ -96,4 +96,18 @@ function UserConnectionsRepo:isUserOnline(user_id)
 	return self.dict:get(self:_getUserKey(user_id)) ~= nil
 end
 
+---@param user_id integer
+---@return string|nil peer_id
+function UserConnectionsRepo:getPeerIdByUserId(user_id)
+	local keys = self.dict:get_keys(0)
+	for _, key in ipairs(keys) do
+		if key:sub(1, 2) == "c:" then
+			local conn_user_id = self.dict:get(key)
+			if conn_user_id == user_id then
+				return key:sub(3)
+			end
+		end
+	end
+end
+
 return UserConnectionsRepo

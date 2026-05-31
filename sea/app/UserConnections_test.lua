@@ -81,7 +81,7 @@ function test.full_call(t)
 	end)
 
 	-- Connection 1 calls Connection 2
-	local peer2_from_1 = uc:getPeer(sid2, nc, "icc.inbox." .. sid1)
+	local peer2_from_1 = uc:getPeer(sid2, {nc = nc, inbox = "icc.inbox." .. sid1})
 	---@cast peer2_from_1 -?
 
 	---@type integer?
@@ -129,7 +129,7 @@ function test.get_peer(t)
 	uc:onConnect(sid2, 2)
 
 	-- Connection 1 wants to call Connection 2
-	local peer2_from_1 = uc:getPeer(sid2, nc, "icc.inbox." .. sid1)
+	local peer2_from_1 = uc:getPeer(sid2, {nc = nc, inbox = "icc.inbox." .. sid1})
 	---@cast peer2_from_1 -?
 
 	t:eq(peer2_from_1.peer_id, sid2)
@@ -159,7 +159,7 @@ function test.get_peers(t)
 	uc:onConnect("2.2.2.2:2", 2)
 	uc:onConnect("3.3.3.3:3", 3)
 
-	local peers = uc:getPeers(nc, "icc.inbox.caller")
+	local peers = uc:getPeers({nc = nc, inbox = "icc.inbox.caller"})
 
 	t:eq(#peers, 3)
 	for _, peer in ipairs(peers) do

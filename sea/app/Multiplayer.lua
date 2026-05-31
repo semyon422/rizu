@@ -18,7 +18,7 @@ end
 
 ---@param peer sea.Peer
 function Multiplayer:getPeers(peer)
-	return self.user_connections:getPeers(peer.nc, peer.inbox)
+	return self.user_connections:getPeers(peer)
 end
 
 ---@param peer sea.Peer
@@ -50,13 +50,13 @@ end
 
 ---@param user_id integer
 ---@param peer sea.Peer
----@return sea.Peer?
+---@return sea.InternalPeer?
 function Multiplayer:getPeerByUserId(user_id, peer)
-	for _, p in ipairs(self:getPeers(peer)) do
-		if p.user.id == user_id then
-			return p
-		end
+	local peer_id = self.user_connections.repo:getPeerIdByUserId(user_id)
+	if not peer_id then
+		return
 	end
+	return self.user_connections:getPeer(peer_id, peer)
 end
 
 ---@param room_id integer
