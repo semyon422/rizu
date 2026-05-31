@@ -65,13 +65,17 @@ end
 
 --- Subscribe this peer to a NATS broadcast subject.
 --- Tracks the SID for cleanup on disconnect. Idempotent.
+--- Silently no-ops if NATS is unavailable.
 ---@param subject string
 function Peer:subscribe(subject)
 	if self.broadcast_sids[subject] then
 		return
 	end
-	local sid
-	_, _, sid = self.nc:subscribe(subject, self.dispatch_nats)
+	local ok, err, sid = self.nc:subscribe(subject, self.dispatch_nats)
+	if not ok then
+		print("[nats] subscribe error: " .. tostring(err))
+		return
+	end
 	self.broadcast_sids[subject] = sid
 end
 

@@ -44,7 +44,7 @@ function WebsocketResource:server(req, res, ctx)
 	-- Subscribe to our inbox for two-way call responses
 	-- When callee responds to reply_to (icc.inbox.{peer_id}.{id}),
 	-- this routes the response to task_handler:handleReturn() to resume the waiting coroutine
-	local inbox_sid
+	local _, inbox_sid = nil, nil
 	_, _, inbox_sid = nats:subscribe(inbox .. ".*", function(nats_msg)
 		local id = tonumber(nats_msg.subject:match("^.+%.(%d+)$"))
 		if not id then return end
@@ -64,6 +64,7 @@ function WebsocketResource:server(req, res, ctx)
 
 		task_handler:handleReturn(msg)
 	end)
+	-- inbox_sid is nil when NATS is unavailable; two-way ICC calls will error immediately
 
 	local peer = Peer(task_handler, ws_peer, nats, inbox, ctx.session_user, ctx.ip, ctx.port, ctx.peer_id, ctx.session)
 
