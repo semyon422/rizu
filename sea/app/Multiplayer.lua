@@ -76,22 +76,20 @@ function Multiplayer:pushUsers()
 end
 
 ---@param peer sea.Peer
-function Multiplayer:pushRooms(peer)
+function Multiplayer:pushRooms()
 	local rooms = self:getRooms()
 	self.user_connections:broadcastAll().multiplayer:setRooms(rooms)
 end
 
 ---@param room_id integer
----@param peer sea.Peer
-function Multiplayer:pushRoomUsers(room_id, peer)
+function Multiplayer:pushRoomUsers(room_id)
 	local room_users = self.multiplayer_repo:getRoomUsers(room_id)
 	self.user_connections:broadcastRoom(room_id).multiplayer:setRoomUsers(room_users)
 end
 
 ---@param room_id integer
 ---@param room sea.Room|sea.RoomUpdate
----@param peer sea.Peer
-function Multiplayer:syncRoomParts(room_id, room, peer)
+function Multiplayer:syncRoomParts(room_id, room)
 	local broadcast = self.user_connections:broadcastRoom(room_id)
 	if room.rules then
 		broadcast.multiplayer:syncRules()
@@ -117,7 +115,7 @@ function Multiplayer:createRoom(peer, room_values)
 	room_values.host_user_id = user.id
 
 	local room = self.multiplayer_repo:createRoom(room_values)
-	self:pushRooms(peer)
+	self:pushRooms()
 
 	self:joinRoom(peer, room.id, room.password)
 
@@ -143,9 +141,9 @@ function Multiplayer:updateRoom(peer, room_id, room_values)
 	room_values.id = room_id
 
 	self.multiplayer_repo:updateRoom(room_values)
-	self:pushRooms(peer)
+	self:pushRooms()
 
-	self:syncRoomParts(room_id, room_values, peer)
+	self:syncRoomParts(room_id, room_values)
 
 	return true
 end
@@ -179,8 +177,8 @@ function Multiplayer:joinRoom(peer, room_id, password)
 	room_user = self.multiplayer_repo:createRoomUser(room_user)
 
 	self:_subscribeRoom(peer, room_id)
-	self:pushRoomUsers(room_id, peer)
-	self:syncRoomParts(room_id, room, peer)
+	self:pushRoomUsers(room_id)
+	self:syncRoomParts(room_id, room)
 
 	return true
 end
@@ -210,14 +208,14 @@ function Multiplayer:kickUser(peer, room_id, target_user_id)
 
 	if #room_users == 0 then
 		self.multiplayer_repo:deleteRoom(room_id)
-		self:pushRooms(peer)
+		self:pushRooms()
 	else
 		if room.host_user_id == target_user_id then
 			room.host_user_id = room_users[1].user_id
 			self.multiplayer_repo:updateRoom(room)
-			self:pushRooms(peer)
+			self:pushRooms()
 		end
-		self:pushRoomUsers(room_id, peer)
+		self:pushRoomUsers(room_id)
 	end
 
 	for _, target_peer in ipairs(self:getPeersByUserId(target_user_id, peer)) do
@@ -320,7 +318,7 @@ function Multiplayer:switchReady(peer)
 	room_user.is_ready = not room_user.is_ready
 	self.multiplayer_repo:updateRoomUser(room_user)
 
-	self:pushRoomUsers(room_user.room_id, peer)
+	self:pushRoomUsers(room_user.room_id)
 end
 
 ---@param peer sea.Peer
@@ -335,7 +333,7 @@ function Multiplayer:setChartFound(peer, found)
 	room_user.chart_found = found
 	self.multiplayer_repo:updateRoomUser(room_user)
 
-	self:pushRoomUsers(room_user.room_id, peer)
+	self:pushRoomUsers(room_user.room_id)
 end
 
 ---@param peer sea.Peer
@@ -350,7 +348,7 @@ function Multiplayer:setChartplayComputed(peer, chartplay_computed)
 	room_user.chartplay_computed = chartplay_computed
 	self.multiplayer_repo:updateRoomUser(room_user)
 
-	self:pushRoomUsers(room_user.room_id, peer)
+	self:pushRoomUsers(room_user.room_id)
 end
 
 ---@param peer sea.Peer
@@ -365,7 +363,7 @@ function Multiplayer:setPlaying(peer, is_playing)
 	room_user.is_playing = is_playing
 	self.multiplayer_repo:updateRoomUser(room_user)
 
-	self:pushRoomUsers(room_user.room_id, peer)
+	self:pushRoomUsers(room_user.room_id)
 end
 
 ---@param peer sea.Peer

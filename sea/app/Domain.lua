@@ -125,8 +125,7 @@ function Domain:onAuth(peer, old_user)
 end
 
 ---@param msg string
----@param caller_peer sea.Peer
-function Domain:printAll(msg, caller_peer)
+function Domain:printAll(msg)
 	self.user_connections:broadcastAll():print(msg)
 end
 

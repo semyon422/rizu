@@ -47,7 +47,7 @@ end
 
 ---@param msg string
 function ServerRemote:printAll(msg)
-	self.domain:printAll(msg, self.peer)
+	self.domain:printAll(msg)
 end
 
 ---@return number[]
