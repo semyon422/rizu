@@ -42,16 +42,32 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 
 ## Architecture Decisions
 
-### ADR: Shared-Memory Queue Transport Across Workers
-- Cross-worker or cross-connection communication should use shared-memory queues such as `aqua/icc/SharedMemoryQueue.lua`.
-- Queue messages must be stored as encoded strings, typically through `icc.StringBufferPeer`, because OpenResty shared dictionaries only support strings or numbers in list-like storage.
+### ADR: NATS Broadcast Transport
+- Cross-worker and cross-connection fan-out uses NATS pub/sub via `icc.BroadcastingPeer`.
+- `UserConnections:broadcastAll()`, `:broadcastRoom(room_id)`, and `:broadcastUser(user_id)` return no-return remotes backed by `BroadcastingPeer`.
+- Broadcasts are best-effort: `BroadcastingPeer:send()` returns `0` on publish failure (prints warning, doesn't crash the caller).
+- NATS subjects follow the pattern `icc.broadcast.{scope}.{id}` where scope is `all`, `room`, or `user`.
+- `sea.Peer:subscribe(subject)` and `:unsubscribe(subject)` manage NATS subscriptions with SID tracking. Idempotent, silently no-ops if NATS is unavailable.
+- `Peer:setup_dispatch(client_task_handler)` installs the NATS→WebSocket dispatcher on the peer.
+- `RestyNats` handles connection failure gracefully: returns `(nil, err)` instead of crashing. Caches failure state to avoid repeated connection attempts.
+
+### ADR: Connection Tracking
+- `UserConnectionsRepo` tracks connections using `c:{peer_id}` keys in shared memory with TTL.
+- Online status is derived from active connections — no separate `u:` key. `isUserOnline()` checks `getPeerIdsByUserId()`.
+- `getPeerIdsByUserId()` returns all peer IDs for a user (supports multi-socket users).
+- `UserConnections:getOnlineUsers()` collects unique user IDs from connections and fetches in a single batch query via `UsersRepo:getUsersByIds(ids)`.
+- `EMPTY_USER` is used for both anonymous and deleted users — both behave identically (`isAnon()` returns true).
 
 ### ADR: Context-Injection Remote Dispatch
 - `icc.RemoteHandler` dispatches incoming paths against the real remote object and injects connection context into `self`.
 - `IClientRemoteContext` and `IServerRemoteContext` exist for shared field annotations only and should not grow behavior methods.
 
-### ADR: Async Delivery For Websocket Feeds
-- Use `ngx.thread.spawn` inside websocket resources for background loops that pop from shared-memory queues and deliver messages to clients.
+### ADR: Subscription Lifecycle
+- NATS subscriptions are managed by domain objects, not by `AuthServerRemote` or `MultiplayerServerRemote`.
+- `Domain:onAuth()` subscribes to `icc.broadcast.user.{user_id}`.
+- `Multiplayer:joinRoom()` subscribes to `icc.broadcast.room.{room_id}`; `leaveRoom()` unsubscribes.
+- `WebsocketResource` subscribes to `icc.peer.{peer_id}` and `icc.broadcast.all` before `onConnect`.
+- All subscription SIDs are cleaned up in `peer.broadcast_sids` on disconnect.
 
 ## Verification
 
@@ -60,3 +76,7 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
   - whitelist entries are updated,
   - queue encoding and decoding still match,
   - tests cover message payloads where practical.
+- For broadcast changes, verify:
+  - `BroadcastingPeer` subjects match `Peer:subscribe()` subjects,
+  - subscription/unsubscription pairs are balanced,
+  - NATS failure doesn't crash the connection.
