@@ -38,13 +38,21 @@ end
 
 ---@param user_id integer
 ---@param peer sea.Peer
----@return sea.InternalPeer?
-function Multiplayer:getPeerByUserId(user_id, peer)
-	local peer_id = self.user_connections.repo:getPeerIdByUserId(user_id)
-	if not peer_id then
-		return
+---@return sea.InternalPeer[]
+function Multiplayer:getPeersByUserId(user_id, peer)
+	local peer_ids = self.user_connections.repo:getPeerIdsByUserId(user_id)
+	if #peer_ids == 0 then
+		return {}
 	end
-	return self.user_connections:getPeer(peer_id, peer)
+	---@type sea.InternalPeer[]
+	local peers = {}
+	for _, peer_id in ipairs(peer_ids) do
+		local p = self.user_connections:getPeer(peer_id, peer)
+		if p then
+			table.insert(peers, p)
+		end
+	end
+	return peers
 end
 
 ---@return sea.Room[]
@@ -212,8 +220,7 @@ function Multiplayer:kickUser(peer, room_id, target_user_id)
 		self:pushRoomUsers(room_id, peer)
 	end
 
-	local target_peer = self:getPeerByUserId(target_user_id, peer)
-	if target_peer then
+	for _, target_peer in ipairs(self:getPeersByUserId(target_user_id, peer)) do
 		target_peer.remote_no_return.multiplayer:setRoomUsers({})
 	end
 

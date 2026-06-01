@@ -97,17 +97,20 @@ function UserConnectionsRepo:isUserOnline(user_id)
 end
 
 ---@param user_id integer
----@return string|nil peer_id
-function UserConnectionsRepo:getPeerIdByUserId(user_id)
+---@return string[] peer_ids
+function UserConnectionsRepo:getPeerIdsByUserId(user_id)
+	---@type string[]
+	local peer_ids = {}
 	local keys = self.dict:get_keys(0)
 	for _, key in ipairs(keys) do
 		if key:sub(1, 2) == "c:" then
 			local conn_user_id = self.dict:get(key)
 			if conn_user_id == user_id then
-				return key:sub(3)
+				table.insert(peer_ids, key:sub(3))
 			end
 		end
 	end
+	return peer_ids
 end
 
 return UserConnectionsRepo
