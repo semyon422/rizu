@@ -170,12 +170,15 @@ function test.multi_instance_matches(t)
 		MatchConstants.MatchWinConditions.SCORE, MatchConstants.MatchTeamTypes.HEAD_TO_HEAD, false)
 	col1:add(m)
 
+	-- Flush to persist the match (simulates request boundary)
+	col1:flush()
+
 	t:ne(col2:get(5), nil)
 	t:eq(col2:get(5).id, 5)
 
 	col2:remove(col2:get(5))
-	-- Flush col1's cache to simulate request boundary
-	col1:flush()
+	-- Flush col2's cache to simulate request boundary
+	col2:flush()
 	t:eq(col1:get(5), nil)
 end
 

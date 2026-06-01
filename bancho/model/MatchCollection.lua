@@ -50,7 +50,8 @@ function MatchCollection:get(id)
 		local encoded = self._dict:get("m:" .. id)
 		if encoded then
 			local data = stbl.decode(encoded)
-			if data then
+			if data and not data.reserved then
+				-- Skip placeholder entries (not yet flushed)
 				local match = Match:fromData(data, self._players)
 				self._cache[id] = match
 				return match
@@ -74,12 +75,14 @@ function MatchCollection:getFree()
 end
 
 --- Add a match.
---- For dict-backed collections, uses atomic :add() to prevent race conditions.
+--- For dict-backed collections, reserves the slot atomically then defers persistence to flush.
+--- This ensures the match is persisted with all its players/slots fully initialized.
 ---@param match bancho.model.Match
 ---@return boolean success true on success, false if another worker claimed the slot
 function MatchCollection:add(match)
 	if self._dict then
-		local ok, err = self._dict:add("m:" .. match.id, stbl.encode(match:toData()))
+		-- Reserve the slot atomically with a placeholder
+		local ok, err = self._dict:add("m:" .. match.id, stbl.encode({reserved = true}))
 		if not ok and err == "exists" then
 			return false
 		end
@@ -120,7 +123,8 @@ function MatchCollection:all()
 				local encoded = self._dict:get(key)
 				if encoded then
 					local data = stbl.decode(encoded)
-					if data then
+					if data and not data.reserved then
+						-- Skip placeholder entries (not yet flushed)
 						-- Don't pass player collection to avoid circular Match->Player->Match deserialization
 						table.insert(result, Match:fromData(data))
 					end
