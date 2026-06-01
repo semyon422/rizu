@@ -1,5 +1,4 @@
 local class = require("class")
-local SharedMemoryQueue = require("icc.SharedMemoryQueue")
 
 ---@class sea.UserConnectionsRepo
 ---@operator call: sea.UserConnectionsRepo
@@ -13,11 +12,6 @@ end
 ---@private
 function UserConnectionsRepo:_getConnKey(peer_id)
 	return "c:" .. tostring(peer_id)
-end
-
----@private
-function UserConnectionsRepo:_getQueueKey(peer_id)
-	return "q:" .. tostring(peer_id)
 end
 
 ---@param peer_id string
@@ -42,13 +36,6 @@ end
 ---@param peer_id string
 function UserConnectionsRepo:removeConnection(peer_id)
 	self.dict:delete(self:_getConnKey(peer_id))
-	self.dict:delete(self:_getQueueKey(peer_id))
-end
-
----@param peer_id string
----@return icc.SharedMemoryQueue
-function UserConnectionsRepo:getQueue(peer_id)
-	return SharedMemoryQueue(self.dict, self:_getQueueKey(peer_id))
 end
 
 ---@param callback fun(user_id: integer|true, peer_id: string)
