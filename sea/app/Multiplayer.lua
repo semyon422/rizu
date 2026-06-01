@@ -17,13 +17,8 @@ function Multiplayer:new(multiplayer_repo, user_connections)
 end
 
 ---@param peer sea.Peer
-function Multiplayer:getPeers(peer)
-	return self.user_connections:getPeers(peer)
-end
-
----@param peer sea.Peer
 function Multiplayer:connected(peer)
-	self:pushUsers(peer)
+	self:pushUsers()
 	peer.remote_no_return.multiplayer:setRooms(self:getRooms())
 end
 
@@ -32,16 +27,9 @@ function Multiplayer:disconnected(peer)
 	self:leaveRoom(peer)
 end
 
----@param peer sea.Peer
 ---@return sea.User[]
-function Multiplayer:getUsers(peer)
-	---@type sea.User[]
-	local users = {}
-	for _, p in ipairs(self:getPeers(peer)) do
-		if not p.user:isAnon() then
-			table.insert(users, p.user)
-		end
-	end
+function Multiplayer:getUsers()
+	local users = self.user_connections:getOnlineUsers()
 	table.sort(users, function(a, b)
 		return a.id < b.id
 	end)
@@ -59,28 +47,6 @@ function Multiplayer:getPeerByUserId(user_id, peer)
 	return self.user_connections:getPeer(peer_id, peer)
 end
 
----@param room_id integer
----@param peer sea.Peer
-function Multiplayer:iterRoomPeers(room_id, peer)
-	local room_users = self.multiplayer_repo:getRoomUsers(room_id)
-
-	---@type {[integer]: true}
-	local user_ids = {}
-	for _, room_user in ipairs(room_users) do
-		user_ids[room_user.user_id] = true
-	end
-
-	---@type sea.Peer[]
-	local peers = {}
-	for _, p in ipairs(self:getPeers(peer)) do
-		if user_ids[p.user.id] then
-			table.insert(peers, p)
-		end
-	end
-
-	return ipairs(peers)
-end
-
 ---@return sea.Room[]
 function Multiplayer:getRooms()
 	local rooms = self.multiplayer_repo:getRooms()
@@ -96,9 +62,8 @@ function Multiplayer:getRoom(id)
 	return self.multiplayer_repo:getRoom(id)
 end
 
----@param peer sea.Peer
-function Multiplayer:pushUsers(peer)
-	local users = self:getUsers(peer)
+function Multiplayer:pushUsers()
+	local users = self:getUsers()
 	self.user_connections:broadcastAll().multiplayer:setUsers(users)
 end
 

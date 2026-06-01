@@ -21,7 +21,7 @@ end
 
 ---@return sea.User[]
 function MultiplayerServerRemote:getUsers()
-	return self.multiplayer:getUsers(self.peer)
+	return self.multiplayer:getUsers()
 end
 
 ---@return sea.User

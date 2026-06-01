@@ -119,6 +119,23 @@ function UserConnections:getPeers(peer)
 	return peers
 end
 
+--- Get all currently connected non-anonymous users.
+--- Collects unique user IDs from the shared dict and fetches in one query.
+---@return sea.User[]
+function UserConnections:getOnlineUsers()
+	---@type {[integer]: true}
+	local seen = {}
+	---@type integer[]
+	local ids = {}
+	self.repo:forEachConnection(function(user_id)
+		if type(user_id) ~= "number" then return end
+		if seen[user_id] then return end
+		seen[user_id] = true
+		table.insert(ids, user_id)
+	end)
+	return self.users_repo:getUsersByIds(ids)
+end
+
 ---@param client_remote sea.ClientRemoteValidation
 ---@return icc.TaskHandler
 function UserConnections:createClientTaskHandler(client_remote)

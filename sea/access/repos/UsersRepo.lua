@@ -50,6 +50,18 @@ function UsersRepo:getUser(id)
 	return user
 end
 
+--- Fetch multiple users by ID in a single query.
+---@param ids integer[]
+---@return sea.User[]
+function UsersRepo:getUsersByIds(ids)
+	if #ids == 0 then
+		return {}
+	end
+	local users = self.models.users:select({id__in = ids})
+	self.models.users:preload(users, "user_roles")
+	return users
+end
+
 ---@param id integer
 ---@return sea.UserInsecure?
 function UsersRepo:getUserInsecure(id)

@@ -108,7 +108,7 @@ end
 function Domain:onDisconnect(peer)
 	self.multiplayer:disconnected(peer)
 	self.user_connections:onDisconnect(peer.peer_id, peer.user.id)
-	self.multiplayer:pushUsers(peer)
+	self.multiplayer:pushUsers()
 end
 
 ---@param peer sea.Peer
