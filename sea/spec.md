@@ -49,7 +49,7 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 - NATS subjects follow the pattern `icc.broadcast.{scope}.{id}` where scope is `all`, `room`, or `user`.
 - `sea.Peer:subscribe(subject)` and `:unsubscribe(subject)` manage NATS subscriptions with SID tracking. Idempotent, silently no-ops if NATS is unavailable.
 - `Peer:setup_dispatch(client_task_handler)` installs the NATS→WebSocket dispatcher on the peer.
-- `RestyNats` handles connection failure gracefully: returns `(nil, err)` instead of crashing. Caches failure state to avoid repeated connection attempts.
+- `RestyNats` handles connection failure gracefully: returns `(nil, err)` instead of crashing. Caches initial connect failure to avoid retry storms. On receive loop death (socket error, parse error), resets state so subsequent calls reconnect automatically.
 
 ### ADR: Connection Tracking
 - `UserConnectionsRepo` tracks connections using `c:{peer_id}` keys in shared memory with TTL.
