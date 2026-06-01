@@ -149,10 +149,6 @@ function AuthServerRemote:logout()
 
 	self.user_connections:heartbeat(self.peer_id, nil)
 
-	if old_id then
-		self.user_connections:onUserDisconnect(old_id)
-	end
-
 	if self.on_auth then
 		self.on_auth(self.peer, old_user)
 	end

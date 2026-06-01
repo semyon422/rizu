@@ -44,30 +44,14 @@ end
 
 ---@param peer_id string
 ---@param user_id? integer
-function UserConnections:onDisconnect(peer_id, user_id)
+function UserConnections:onDisconnect(peer_id)
 	self.repo:removeConnection(peer_id)
-	if user_id then
-		self.repo:setUserOffline(user_id)
-	end
-end
-
----@param user_id integer
-function UserConnections:onUserConnect(user_id)
-	self.repo:setUserOnline(user_id, self.ttl)
-end
-
----@param user_id integer
-function UserConnections:onUserDisconnect(user_id)
-	self.repo:setUserOffline(user_id)
 end
 
 ---@param peer_id string
 ---@param user_id? integer
 function UserConnections:heartbeat(peer_id, user_id)
 	self.repo:setConnection(peer_id, user_id, self.ttl)
-	if user_id then
-		self.repo:setUserOnline(user_id, self.ttl)
-	end
 end
 
 function UserConnections:getOnlineCount()

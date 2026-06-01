@@ -20,11 +20,6 @@ function UserConnectionsRepo:_getQueueKey(peer_id)
 	return "q:" .. tostring(peer_id)
 end
 
----@private
-function UserConnectionsRepo:_getUserKey(user_id)
-	return "u:" .. tostring(user_id)
-end
-
 ---@param peer_id string
 ---@param user_id? integer
 ---@param ttl integer
@@ -56,17 +51,6 @@ function UserConnectionsRepo:getQueue(peer_id)
 	return SharedMemoryQueue(self.dict, self:_getQueueKey(peer_id))
 end
 
----@param user_id integer
----@param ttl integer
-function UserConnectionsRepo:setUserOnline(user_id, ttl)
-	self.dict:set(self:_getUserKey(user_id), true, ttl)
-end
-
----@param user_id integer
-function UserConnectionsRepo:setUserOffline(user_id)
-	self.dict:delete(self:_getUserKey(user_id))
-end
-
 ---@param callback fun(user_id: integer|true, peer_id: string)
 function UserConnectionsRepo:forEachConnection(callback)
 	local keys = self.dict:get_keys(0)
@@ -90,10 +74,12 @@ function UserConnectionsRepo:getGlobalCount()
 	return count
 end
 
+--- Check if a user has any active connections.
+--- Derived from c: keys — no separate TTL key needed.
 ---@param user_id integer
 ---@return boolean
 function UserConnectionsRepo:isUserOnline(user_id)
-	return self.dict:get(self:_getUserKey(user_id)) ~= nil
+	return #self:getPeerIdsByUserId(user_id) > 0
 end
 
 ---@param user_id integer
