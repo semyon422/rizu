@@ -8,6 +8,15 @@ local ClientPrivileges = require("bancho.constants.ClientPrivileges")
 
 local class = require("class")
 
+--- Thread-local flag to prevent circular deserialization.
+--- When Player:fromData() is running, Match:fromData() should NOT resolve
+--- player references (which would trigger Player:fromData() again).
+local registry = debug.getregistry()
+local function _isResolvingPlayer()
+	return registry._resolving_player == true
+end
+registry._resolving_player = false
+
 ---@class bancho.model.ModeStats
 ---@field tscore integer total score
 ---@field rscore integer ranked score
@@ -262,6 +271,9 @@ end
 ---@param collection? bancho.model.PlayerCollection
 ---@return bancho.model.Player
 function Player:fromData(data, collection)
+	-- Set flag to prevent circular deserialization
+	registry._resolving_player = true
+
 	local player = Player(data.id, data.name, data.priv)
 	player.token = data.token
 	player.safe_name = data.safe_name
@@ -332,7 +344,16 @@ function Player:fromData(data, collection)
 		end
 	end
 
+	-- Clear flag
+	registry._resolving_player = false
 	return player
+end
+
+--- Check if a Player is currently being deserialized.
+--- Used by Match:fromData() to avoid circular deserialization.
+---@return boolean
+function Player.is_resolving()
+	return registry._resolving_player == true
 end
 
 return Player

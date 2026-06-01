@@ -46,13 +46,8 @@ function MatchStart:handle(server, player, data)
 	match.in_progress = true
 	server.match_manager:start(match)
 
-	-- Send MATCH_START to all players
-	local match_data = server.match_manager:buildMatchData(match)
-	if match.chat then
-		for _, p in pairs(match.chat.players) do
-			p:enqueue(ServerPackets.matchStart(match_data))
-		end
-	end
+	-- Send MATCH_START to all players in match slots
+	match:broadcast(ServerPackets.matchStart(server.match_manager:buildMatchData(match)), server.players)
 end
 
 return MatchStart

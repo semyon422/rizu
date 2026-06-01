@@ -41,9 +41,13 @@ function MatchScoreUpdate:handle(server, player, data)
 
 	-- Send to all other players in the match
 	for i = 0, 15 do
-		local other = match.slots[i].player
-		if other and other.id ~= player.id then
-			other:enqueue(full_packet)
+		local slot = match.slots[i]
+		local target = slot.player
+		if not target and slot.player_id then
+			target = server.players:get(nil, slot.player_id)
+		end
+		if target and target.id ~= player.id then
+			target:enqueue(full_packet)
 		end
 	end
 end

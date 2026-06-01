@@ -13,6 +13,8 @@ local class = require("class")
 ---@class bancho.model.MatchCollection
 ---@operator call: bancho.model.MatchCollection
 ---@field _dict? web.ISharedDict
+---@field _players? bancho.model.PlayerCollection
+---@field _cache {[integer]: bancho.model.Match} per-request cache (dict mode only)
 ---@field _matches {[integer]: bancho.model.Match?}
 ---@field max_matches integer
 local MatchCollection = class()
@@ -21,6 +23,7 @@ local MatchCollection = class()
 ---@param max_matches? integer Maximum concurrent multiplayer rooms
 function MatchCollection:new(dict, max_matches)
 	self._dict = dict
+	self._cache = {}
 	self.max_matches = max_matches or 64
 	self._matches = {}
 	for i = 1, self.max_matches do
@@ -30,6 +33,7 @@ function MatchCollection:new(dict, max_matches)
 end
 
 --- Get a match by id.
+--- For dict-backed collections, results are cached per-request.
 ---@param id integer
 ---@return bancho.model.Match?
 function MatchCollection:get(id)
@@ -38,11 +42,18 @@ function MatchCollection:get(id)
 	end
 
 	if self._dict then
+		-- Check cache first
+		if self._cache[id] then
+			return self._cache[id]
+		end
+
 		local encoded = self._dict:get("m:" .. id)
 		if encoded then
 			local data = stbl.decode(encoded)
 			if data then
-				return Match:fromData(data)
+				local match = Match:fromData(data, self._players)
+				self._cache[id] = match
+				return match
 			end
 		end
 		return nil
@@ -63,14 +74,21 @@ function MatchCollection:getFree()
 end
 
 --- Add a match.
+--- For dict-backed collections, uses atomic :add() to prevent race conditions.
 ---@param match bancho.model.Match
+---@return boolean success true on success, false if another worker claimed the slot
 function MatchCollection:add(match)
 	if self._dict then
-		self._dict:set("m:" .. match.id, stbl.encode(match:toData()))
-		return
+		local ok, err = self._dict:add("m:" .. match.id, stbl.encode(match:toData()))
+		if not ok and err == "exists" then
+			return false
+		end
+		self._cache[match.id] = match
+		return true
 	end
 
 	self._matches[match.id] = match
+	return true
 end
 
 --- Remove a match.
@@ -80,6 +98,7 @@ function MatchCollection:remove(match)
 
 	if self._dict then
 		self._dict:delete("m:" .. match.id)
+		self._cache[match.id] = nil
 		return
 	end
 
@@ -87,6 +106,8 @@ function MatchCollection:remove(match)
 end
 
 --- Return all active matches.
+--- Cross-references (slot players) are NOT resolved to avoid circular
+--- deserialization. Use :get() for individual lookups that need full resolution.
 ---@return bancho.model.Match[]
 function MatchCollection:all()
 	---@type bancho.model.Match[]
@@ -100,6 +121,7 @@ function MatchCollection:all()
 				if encoded then
 					local data = stbl.decode(encoded)
 					if data then
+						-- Don't pass player collection to avoid circular Match->Player->Match deserialization
 						table.insert(result, Match:fromData(data))
 					end
 				end
@@ -114,6 +136,27 @@ function MatchCollection:all()
 		end
 	end
 	return result
+end
+
+--- Write back all cached objects to the shared dict.
+--- Called at end of request to persist mutations.
+--- Uses :replace() to avoid resurrecting objects deleted by other workers.
+--- Clears the cache after flushing.
+function MatchCollection:flush()
+	if not self._dict then return end
+
+	for _, match in pairs(self._cache) do
+		-- :replace() only writes if the key already exists
+		-- This prevents resurrecting matches deleted by another worker
+		self._dict:replace("m:" .. match.id, stbl.encode(match:toData()))
+	end
+	self._cache = {}
+end
+
+--- Set the player collection for resolving cross-references.
+---@param players bancho.model.PlayerCollection
+function MatchCollection:setPlayers(players)
+	self._players = players
 end
 
 return MatchCollection

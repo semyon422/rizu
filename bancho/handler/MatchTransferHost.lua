@@ -38,20 +38,10 @@ function MatchTransferHost:handle(server, player, data)
 	server.match_manager:transferHost(match, targetSlot.player)
 
 	-- Broadcast transfer host packet
-	local pkt = ServerPackets.matchTransferHost()
-	for i = 0, 15 do
-		if match.slots[i].player ~= nil then
-			match.slots[i].player:enqueue(pkt)
-		end
-	end
+	match:broadcast(ServerPackets.matchTransferHost(), server.players)
 
-	-- Broadcast updated match state
-	local match_data = server.match_manager:buildMatchData(match)
-	if match.chat then
-		for _, p in pairs(match.chat.players) do
-			p:enqueue(ServerPackets.updateMatch(match_data))
-		end
-	end
+	-- Broadcast updated match state to all players in match slots
+	match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(match)), server.players)
 end
 
 return MatchTransferHost

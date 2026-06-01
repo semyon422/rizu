@@ -42,12 +42,7 @@ function MatchLoadComplete:handle(server, player, data)
 
 	-- If all players are loaded, send all players loaded signal
 	if not hasPlaying then
-		local pkt = ServerPackets.matchAllPlayersLoaded()
-		for i = 0, 15 do
-			if match.slots[i].player ~= nil then
-				match.slots[i].player:enqueue(pkt)
-			end
-		end
+		match:broadcast(ServerPackets.matchAllPlayersLoaded(), server.players)
 	end
 end
 

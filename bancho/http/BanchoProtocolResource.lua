@@ -462,6 +462,15 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		end
 	end
 
+	-- Flush all mutations back to shared dict
+	xpcall(function()
+		server.players:flush()
+		server.matches:flush()
+		server.channels:flush()
+	end, function(err)
+		ngx.log(ngx.ERR, "flush error: ", tostring(err))
+	end)
+
 	res.headers:set("cho-token", player.token)
 	res:send(data)
 end
@@ -487,6 +496,17 @@ function BanchoProtocolResource:handlePackets(token, body, res, ctx)
 	if #body > 0 then
 		self.server:processPackets(player, body)
 	end
+
+	-- Flush all mutations back to shared dict
+	-- Wrapped in pcall so flush errors don't break the response
+	xpcall(function()
+		self.server.players:flush()
+		self.server.matches:flush()
+		self.server.channels:flush()
+	end, function(err)
+		-- Log flush errors but don't fail the request
+		ngx.log(ngx.ERR, "flush error: ", tostring(err))
+	end)
 
 	-- Drain player's outgoing packet queue
 	-- For dict-backed collections, use drain_packets (dict list ops).

@@ -39,13 +39,8 @@ function MatchLock:handle(server, player, data)
 		slot.status = SlotStatus.LOCKED
 	end
 
-	-- Broadcast updated match state
-	local match_data = server.match_manager:buildMatchData(player.match)
-	if player.match.chat then
-		for _, p in pairs(player.match.chat.players) do
-			p:enqueue(ServerPackets.updateMatch(match_data))
-		end
-	end
+	-- Broadcast updated match state to all players in match slots
+	player.match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(player.match)), server.players)
 end
 
 return MatchLock

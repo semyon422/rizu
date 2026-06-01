@@ -3,6 +3,7 @@
 local SlotStatus = require("bancho.constants.SlotStatus")
 local MatchConstants = require("bancho.constants.MatchConstants")
 local GameMode = require("bancho.constants.GameMode")
+local Player = require("bancho.model.Player")
 local Mods = require("bancho.constants.Mods")
 
 local class = require("class")
@@ -131,6 +132,27 @@ function Match:getSlot(player)
 		if s.player == player then
 			return s
 		end
+		-- Fallback: check player_id (when player ref not resolved due to circular dep)
+		if s.player_id ~= nil and s.player_id == player.id then
+			return s
+		end
+	end
+	return nil
+end
+
+--- Get slot by player ID (works even when player refs aren't resolved).
+---@param player_id integer
+---@return bancho.model.MatchSlot?
+function Match:getSlotById(player_id)
+	for i = 0, 15 do
+		local s = self.slots[i]
+		if s.player and s.player.id == player_id then
+			return s
+		end
+		-- Fallback: check player_id directly (when player ref not resolved)
+		if s.player_id ~= nil and s.player_id == player_id then
+			return s
+		end
 	end
 	return nil
 end
@@ -140,7 +162,28 @@ end
 ---@return integer?
 function Match:getSlotId(player)
 	for i = 0, 15 do
-		if self.slots[i].player == player then
+		local s = self.slots[i]
+		if s.player == player then
+			return i
+		end
+		-- Fallback: check player_id (when player ref not resolved due to circular dep)
+		if s.player_id ~= nil and s.player_id == player.id then
+			return i
+		end
+	end
+	return nil
+end
+
+--- Get slot index by player ID (works even when player refs aren't resolved).
+---@param player_id integer
+---@return integer?
+function Match:getSlotIdById(player_id)
+	for i = 0, 15 do
+		local s = self.slots[i]
+		if s.player and s.player.id == player_id then
+			return i
+		end
+		if s.player_id ~= nil and s.player_id == player_id then
 			return i
 		end
 	end
@@ -220,6 +263,9 @@ function Match:fromData(data, collection)
 	match.in_progress = data.in_progress
 
 	-- Restore slots with player references resolved
+	-- Always restore player_id so getSlot/getSlotId can use it as fallback
+	-- Skip player reference resolution if a Player is currently being deserialized
+	-- to avoid circular dependency: Player -> Match -> Player -> Match -> ...
 	if data.slots then
 		for i = 0, 15 do
 			local slotData = data.slots[i]
@@ -229,8 +275,9 @@ function Match:fromData(data, collection)
 				match.slots[i].mods = slotData.mods
 				match.slots[i].loaded = slotData.loaded
 				match.slots[i].skipped = slotData.skipped
+				match.slots[i].player_id = slotData.player_id
 
-				if collection and slotData.player_id then
+				if not Player.is_resolving() and collection and slotData.player_id then
 					match.slots[i].player = collection:get(nil, slotData.player_id)
 				end
 			end
@@ -238,6 +285,23 @@ function Match:fromData(data, collection)
 	end
 
 	return match
+end
+
+--- Broadcast a packet to all players in match slots.
+--- Uses player_id fallback when player refs aren't resolved.
+---@param packet string
+---@param players bancho.model.PlayerCollection
+function Match:broadcast(packet, players)
+	for i = 0, 15 do
+		local slot = self.slots[i]
+		local target = slot.player
+		if not target and slot.player_id then
+			target = players:get(nil, slot.player_id)
+		end
+		if target then
+			target:enqueue(packet)
+		end
+	end
 end
 
 return Match

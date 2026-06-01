@@ -29,12 +29,7 @@ function MatchFailed:handle(server, player, data)
 	if slotId == nil then return end
 
 	-- Notify all players that this player failed
-	local pkt = ServerPackets.matchPlayerFailed(slotId)
-	for i = 0, 15 do
-		if match.slots[i].player ~= nil then
-			match.slots[i].player:enqueue(pkt)
-		end
-	end
+	match:broadcast(ServerPackets.matchPlayerFailed(slotId), server.players)
 end
 
 return MatchFailed

@@ -39,6 +39,8 @@ function test.multi_instance_players(t)
 
 	-- Remove via col2, col1 sees it removed
 	col2:remove(found)
+	-- Flush col1's cache to simulate request boundary
+	col1:flush()
 	t:eq(col1:get(p.token), nil)
 	t:eq(col1:len(), 0)
 end
@@ -172,6 +174,8 @@ function test.multi_instance_matches(t)
 	t:eq(col2:get(5).id, 5)
 
 	col2:remove(col2:get(5))
+	-- Flush col1's cache to simulate request boundary
+	col1:flush()
 	t:eq(col1:get(5), nil)
 end
 

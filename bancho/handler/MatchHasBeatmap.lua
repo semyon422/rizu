@@ -31,13 +31,8 @@ function MatchHasBeatmap:handle(server, player, data)
 
 	slot.status = SlotStatus.NOT_READY
 
-	-- Broadcast updated match state
-	local match_data = server.match_manager:buildMatchData(match)
-	if match.chat then
-		for _, p in pairs(match.chat.players) do
-			p:enqueue(ServerPackets.updateMatch(match_data))
-		end
-	end
+	-- Broadcast updated match state to all players in match slots
+	match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(match)), server.players)
 end
 
 return MatchHasBeatmap

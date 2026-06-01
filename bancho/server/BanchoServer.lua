@@ -130,6 +130,8 @@ function BanchoServer:new(shared_memory, overrides)
 
 	-- Wire cross-reference resolution
 	self.players:setMatches(self.matches)
+	self.matches:setPlayers(self.players)
+	self.channels:setPlayers(self.players)
 
 	self.login_handler = LoginHandler()
 	self.match_manager = MatchManager(self.matches)

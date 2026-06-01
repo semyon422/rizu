@@ -20,6 +20,7 @@ function MatchManager:new(matches)
 end
 
 --- Create a new match.
+--- Uses atomic :add() to prevent race conditions on multi-worker servers.
 ---@param name string
 ---@param password string
 ---@param host_id integer
@@ -34,7 +35,16 @@ function MatchManager:create(name, password, host_id, mode, mods, win_condition,
 	if id == nil then return nil end
 
 	local m = Match(id, name, password, host_id, mode, mods, win_condition, team_type, freemods)
-	self.matches:add(m)
+	if not self.matches:add(m) then
+		-- Another worker claimed this slot — retry with next free slot
+		id = self.matches:getFree()
+		if id == nil then return nil end
+
+		m = Match(id, name, password, host_id, mode, mods, win_condition, team_type, freemods)
+		if not self.matches:add(m) then
+			return nil  -- give up after one retry
+		end
+	end
 
 	return m
 end
@@ -51,6 +61,11 @@ function MatchManager:addPlayer(match, player)
 	slot.player = player
 	slot.status = SlotStatus.NOT_READY
 
+	-- Add player to match chat channel for broadcasts
+	if match.chat then
+		match.chat:add(player)
+	end
+
 	return true
 end
 
@@ -63,6 +78,11 @@ function MatchManager:removePlayer(match, player)
 
 	local slot = match.slots[slot_id]
 	slot:reset()
+
+	-- Remove player from match chat channel
+	if match.chat then
+		match.chat:remove(player)
+	end
 end
 
 --- Set a player's ready status.

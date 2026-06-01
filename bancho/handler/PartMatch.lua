@@ -28,21 +28,17 @@ function PartMatch:handle(server, player, data)
 	-- Remove player from match
 	server.match_manager:removePlayer(match, player)
 
-	-- Broadcast updated match state
+	-- Broadcast updated match state to all remaining players + the leaving player
 	local match_data = server.match_manager:buildMatchData(match)
-	match.chat:add(player) -- temporarily add for broadcast
-	if match.chat then
-		for _, p in pairs(match.chat.players) do
-			p:enqueue(ServerPackets.updateMatch(match_data))
-		end
-	end
+	player:enqueue(ServerPackets.updateMatch(match_data))
+	match:broadcast(ServerPackets.updateMatch(match_data), server.players)
 
 	player.match = nil
 
 	-- If match has no players, dispose it
 	local has_players = false
 	for i = 0, 15 do
-		if match.slots[i].player ~= nil then
+		if match.slots[i].player ~= nil or match.slots[i].player_id ~= nil then
 			has_players = true
 			break
 		end

@@ -31,12 +31,8 @@ function MatchComplete:handle(server, player, data)
 	-- Mark player as completed
 	slot.status = SlotStatus.COMPLETED
 
-	-- Broadcast match complete
-	if match.chat then
-		for _, p in pairs(match.chat.players) do
-			p:enqueue(ServerPackets.matchComplete())
-		end
-	end
+	-- Broadcast match complete to all players in match slots
+	match:broadcast(ServerPackets.matchComplete(), server.players)
 end
 
 return MatchComplete

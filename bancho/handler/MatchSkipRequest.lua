@@ -32,12 +32,7 @@ function MatchSkipRequest:handle(server, player, data)
 	slot.skipped = true
 
 	-- Notify all players of this skip vote
-	local skippedPkt = ServerPackets.matchPlayerSkipped(player.id)
-	for i = 0, 15 do
-		if match.slots[i].player ~= nil then
-			match.slots[i].player:enqueue(skippedPkt)
-		end
-	end
+	match:broadcast(ServerPackets.matchPlayerSkipped(player.id), server.players)
 
 	-- Check if all playing players have skipped
 	for i = 0, 15 do
@@ -47,12 +42,7 @@ function MatchSkipRequest:handle(server, player, data)
 	end
 
 	-- All players have skipped, send skip signal
-	local skipPkt = ServerPackets.matchSkip()
-	for i = 0, 15 do
-		if match.slots[i].player ~= nil then
-			match.slots[i].player:enqueue(skipPkt)
-		end
-	end
+	match:broadcast(ServerPackets.matchSkip(), server.players)
 end
 
 return MatchSkipRequest

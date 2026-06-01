@@ -16,6 +16,7 @@ local class = require("class")
 ---@operator call: bancho.model.PlayerCollection
 ---@field _dict? web.ISharedDict
 ---@field _matches? bancho.model.MatchCollection
+---@field _cache {[integer]: bancho.model.Player} per-request cache (dict mode only)
 ---@field _list bancho.model.Player[]
 ---@field _by_token {[string]: bancho.model.Player}
 ---@field _by_id {[integer]: bancho.model.Player}
@@ -25,6 +26,7 @@ local PlayerCollection = class()
 ---@param dict? web.ISharedDict Shared dict for cross-worker persistence
 function PlayerCollection:new(dict)
 	self._dict = dict
+	self._cache = {}
 	self._list = {}
 	self._by_token = {}
 	self._by_id = {}
@@ -33,12 +35,18 @@ function PlayerCollection:new(dict)
 end
 
 --- Get a player by token, id, or name.
+--- For dict-backed collections, results are cached per-request.
 ---@param token string?
 ---@param id integer?
 ---@param name string?
 ---@return bancho.model.Player?
 function PlayerCollection:get(token, id, name)
 	if self._dict then
+		-- Check cache first (canonical key is player id)
+		if id ~= nil and self._cache[id] then
+			return self._cache[id]
+		end
+
 		local key
 		if token ~= nil then
 			key = "p:" .. token
@@ -53,7 +61,9 @@ function PlayerCollection:get(token, id, name)
 			if encoded then
 				local data = stbl.decode(encoded)
 				if data then
-					return Player:fromData(data, self)
+					local player = Player:fromData(data, self)
+					self._cache[player.id] = player
+					return player
 				end
 			end
 			return nil
@@ -81,6 +91,7 @@ function PlayerCollection:add(player)
 		self._dict:set("p:" .. player.token, encoded)
 		self._dict:set("pid:" .. player.id, encoded)
 		self._dict:set("pname:" .. player.safe_name, encoded)
+		self._cache[player.id] = player
 		return
 	end
 
@@ -101,6 +112,7 @@ function PlayerCollection:remove(player)
 		self._dict:delete("pid:" .. player.id)
 		self._dict:delete("pname:" .. player.safe_name)
 		self._dict:delete("pq:" .. player.token)
+		self._cache[player.id] = nil
 		return
 	end
 
@@ -230,8 +242,28 @@ function PlayerCollection:drain_packets(token)
 	return table.concat(packets)
 end
 
+--- Write back all cached objects to the shared dict.
+--- Called at end of request to persist mutations.
+--- Uses :replace() to avoid resurrecting objects deleted by other workers.
+--- Clears the cache after flushing.
+function PlayerCollection:flush()
+	if not self._dict then return end
+
+	for _, player in pairs(self._cache) do
+		local encoded = stbl.encode(player:toData())
+		-- :replace() only writes if the key already exists
+		-- This prevents resurrecting players deleted by another worker
+		self._dict:replace("p:" .. player.token, encoded)
+		self._dict:replace("pid:" .. player.id, encoded)
+		self._dict:replace("pname:" .. player.safe_name, encoded)
+	end
+	self._cache = {}
+end
+
 --- Return the list of all players.
 --- For dict-backed collections, iterates dict keys and deserializes.
+--- Cross-references (match, spectating) are NOT resolved to avoid circular
+--- deserialization. Use :get() for individual lookups that need full resolution.
 ---@return bancho.model.Player[]
 function PlayerCollection:all()
 	if self._dict then
@@ -244,7 +276,8 @@ function PlayerCollection:all()
 				if encoded then
 					local data = stbl.decode(encoded)
 					if data then
-						table.insert(result, Player:fromData(data, self))
+						-- Don't pass collection to avoid circular Player->Match->Player deserialization
+						table.insert(result, Player:fromData(data))
 					end
 				end
 			end
