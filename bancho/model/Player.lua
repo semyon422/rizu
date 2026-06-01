@@ -88,11 +88,11 @@ registry._resolving_player = false
 ---@field friends integer[] friend user IDs
 local Player = class()
 
---- Generate a random UUID token (simplified).
-local _token_counter = 0
-local function _genToken()
-	_token_counter = _token_counter + 1
-	return tostring(_token_counter) .. "-" .. tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
+--- Generate a unique token.
+--- Uses os.time + user ID for uniqueness.
+--- Works even with module reloads (lua_code_cache off).
+local function _genToken(user_id)
+	return string.format('%d-%d-%d', user_id or 0, os.time(), math.random(100000, 999999))
 end
 
 function Player:new(id, name, priv)
@@ -100,7 +100,7 @@ function Player:new(id, name, priv)
 	self.name = name
 	self.safe_name = name:lower():gsub(" ", "_"):gsub("[^a-z0-9_]", "_")
 	self.priv = priv
-	self.token = _genToken()
+	self.token = _genToken(id)
 	self.is_online = false
 	self.restricted = false
 	self.silence_end = 0
