@@ -30,6 +30,7 @@ end
 ---@field bot_name string Bot player name
 ---@field bot_id integer Bot player ID
 ---@field db_path string SQLite database file path
+---@field osu_api_key string? Official osu! API v1 key (for beatmap lookup fallback)
 ---@field mirror_search_endpoint string Beatmap search API endpoint
 ---@field mirror_download_endpoint string Beatmap download redirect endpoint
 ---@field beatmaps_path string Directory for .osu files
@@ -65,6 +66,8 @@ BanchoConfig.defaults = {
 	bot_id = 1,
 
 	db_path = "bancho.db",
+
+	osu_api_key = nil,
 
 	mirror_search_endpoint = "",
 	mirror_download_endpoint = "",

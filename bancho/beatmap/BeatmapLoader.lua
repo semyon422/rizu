@@ -1,6 +1,6 @@
 --- Beatmap loader: parses .osu files from local storage and populates the beatmap DB.
 ---
---- Falls back to osu.direct API when the local file is missing.
+--- Falls back to the official osu! API v1 when the local file is missing.
 --- Computes star rating for osu!mania from parsed notes; other modes default to 0.
 
 local class = require("class")
@@ -12,11 +12,14 @@ local CHARTS_DIR = "storages/charts"
 ---@class bancho.beatmap.BeatmapLoader
 ---@operator call: bancho.beatmap.BeatmapLoader
 ---@field fs fs.IFilesystem
+---@field api_key string?
 local BeatmapLoader = class()
 
 ---@param fs fs.IFilesystem
-function BeatmapLoader:new(fs)
+---@param api_key string?
+function BeatmapLoader:new(fs, api_key)
 	self.fs = fs
+	self.api_key = api_key
 end
 
 --- Load a beatmap from local .osu file or API fallback.
@@ -219,13 +222,17 @@ function BeatmapLoader:calculateManiaSr(hitObjects, keymode, timingPoints)
 	return beatmap:calculateStarRate()
 end
 
---- Fetch beatmap metadata from osu.direct API.
+--- Fetch beatmap metadata from the official osu! API v1.
 ---@param md5 string beatmap MD5
 ---@return table? metadata, string? error
 function BeatmapLoader:fetchFromApi(md5)
+	if not self.api_key then
+		return nil, "osu_api_key not configured"
+	end
+
 	local http_util = require("web.http.util")
 
-	local url = "https://osu.direct/api/get_beatmaps?h=" .. md5
+	local url = "https://old.ppy.sh/api/get_beatmaps?h=" .. md5 .. "&k=" .. self.api_key
 
 	-- Wrap in pcall because HTTP may not be available in all environments
 	local ok, result, err = pcall(function()

@@ -163,7 +163,7 @@ function BanchoServer:new(shared_memory, overrides)
 
 	-- Beatmap loader (parses .osu files, caches in DB)
 	local LinuxFilesystem = require("fs.LinuxFilesystem")
-	self.beatmap_loader = BeatmapLoader(LinuxFilesystem())
+	self.beatmap_loader = BeatmapLoader(LinuxFilesystem(), self.config.osu_api_key)
 end
 
 --- Initialize default channels.

@@ -259,25 +259,43 @@ HPDrainRate:5
 end
 
 function test.api_fallback(t)
+	-- Read API key from prod config; skip if not configured
+	local prod_config = require("bancho.config")
+	if not prod_config.osu_api_key then
+		return
+	end
+
 	local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
 
 	-- Empty filesystem forces API fallback
-	local loader = BeatmapLoader(FakeFilesystem())
+	local loader = BeatmapLoader(FakeFilesystem(), prod_config.osu_api_key)
 
-	-- Fetch a real beatmap from osu.direct
+	-- Fetch a real beatmap from osu! API v1
 	local bmap, err = loader:load("1cf5b2c2edfafd055536d2cefcb89c0e")
 	t:ne(bmap, nil, "should load from API")
 	t:eq(err, nil, "should not error")
 
 	if bmap then
-		t:eq(bmap.id, 313)
+		t:eq(bmap.id, 315)
 		t:eq(bmap.artist, "FAIRY FORE")
 		t:eq(bmap.title, "Vivid")
-		t:eq(bmap.version, "Easy")
+		t:eq(bmap.version, "Insane")
 		t:eq(bmap.mode, 0)
 		t:ne(bmap.diff, 0, "API should return SR")
 		t:ne(bmap.bpm, 0, "API should return BPM")
 	end
+end
+
+function test.api_fallback_no_key(t)
+	local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
+
+	-- No API key configured
+	local loader = BeatmapLoader(FakeFilesystem())
+
+	local bmap, err = loader:load("1cf5b2c2edfafd055536d2cefcb89c0e")
+	t:eq(bmap, nil, "should return nil")
+	t:ne(err, nil, "should return error")
+	t:ne(string.find(err, "osu_api_key"), nil, "error should mention missing key")
 end
 
 return test

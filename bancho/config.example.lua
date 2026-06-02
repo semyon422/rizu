@@ -20,6 +20,11 @@ return BanchoConfig:new({
 	--- SQLite database file path
 	db_path = "bancho.db",
 
+	--- Official osu! API v1 key
+	--- Required for beatmap lookup when local .osu file is missing.
+	--- Obtain from https://osu.ppy.sh/p/api
+	osu_api_key = "your_api_key_here",
+
 	--- Beatmap mirrors
 	--- Used by osu-search.php to proxy beatmap search results
 	mirror_search_endpoint = "",  -- e.g. "https://quasibit.nebelwelt.net/api/get_beatmaps"
