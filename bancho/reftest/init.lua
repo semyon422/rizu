@@ -92,7 +92,7 @@ end
 function M.http_post(url, body, headers)
 	M.ensure_deps()
 	headers = headers or {}
-	headers["Content-Type"] = "application/x-www-form-urlencoded"
+	headers["Content-Type"] = headers["Content-Type"] or "application/x-www-form-urlencoded"
 	local client = HttpClient(LsTcpSocket())
 	client.tcp_soc:settimeout(15)
 	local req, res = client:connect(url)

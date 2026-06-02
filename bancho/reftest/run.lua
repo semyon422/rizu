@@ -96,8 +96,8 @@ local function run_tests_for_server(srv)
 		end
 	end
 
-	-- HTTP and web tests.
-	http_test.run(srv, u1, p1)
+	-- HTTP and web tests (pass MD5 hash for auth).
+	http_test.run(srv, u1, reftest.md5.sumhexa(p1))
 	web_test.run(srv)
 end
 
