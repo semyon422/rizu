@@ -63,6 +63,10 @@ local MultiplayerClient = require("sea.multi.MultiplayerClient")
 
 local DlcManager = require("rizu.dlc.DlcManager")
 
+local Config = require("rizu.config.Config")
+local ConfigRepo = require("rizu.config.ConfigRepo")
+local SettingsSchema = require("rizu.config.schemas.Settings")
+
 ---@class sphere.GameController
 ---@operator call: sphere.GameController
 local GameController = class()
@@ -227,6 +231,9 @@ function GameController:new()
 	self.gameInteractor = GameInteractor(self)
 
 	self.global_timer = GlobalTimer()
+
+	self.settings_config_repo = ConfigRepo("userdata/settings.json", self.fs)
+	self.settings_config = Config(SettingsSchema)
 end
 
 function GameController:load()
@@ -261,6 +268,8 @@ function GameController:load()
 	self.multiplayerModel:connect()
 
 	self.backgroundModel:load()
+
+	self.settings_config_repo:load(self.settings_config)
 end
 
 function GameController:unload()
@@ -270,6 +279,7 @@ function GameController:unload()
 	self.multiplayerController:unload()
 	self.ui:unload()
 	self.app:unload()
+	self.settings_config_repo:save(self.settings_config)
 end
 
 ---@param dt number

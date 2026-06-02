@@ -46,8 +46,8 @@ end
 
 function Container:load()
 	local gap = 12
-	local x = 24
 	local y = (self.box.height - self.children[1]:getHeight()) / 2
+	local x = y
 
 	for _, v in ipairs(self.children) do
 		v:setPosition(x, y)
@@ -62,10 +62,14 @@ function ConfigTopBar:draw()
 
 	local w = self.box.width
 	local _, _, iw, ih = quads.pill_cap:getViewport()
+	local cap_scale = self.box.height / ih
 	lg.setColor(1, 1, 1, 0.7)
+	lg.push()
+	lg.scale(cap_scale)
 	lg.draw(atlas, quads.pill_cap)
-	lg.draw(atlas, quads.pixel, iw, 0, 0, w - iw * 2, ih)
-	lg.draw(atlas, quads.pill_cap, w, 0, 0, -1, 1)
+	lg.draw(atlas, quads.pixel, iw, 0, 0, w / cap_scale - iw * 2, ih)
+	lg.draw(atlas, quads.pill_cap, w / cap_scale, 0, 0, -1, 1)
+	lg.pop()
 
 	self.text_batch:clear()
 	Container.draw(self)

@@ -35,7 +35,6 @@ function UserInterface:load()
 end
 
 function UserInterface:buildUI()
-	Painter.setAtlas(self.resources.atlas)
 	local w, h = love.graphics.getDimensions()
 	self.menus = Menus(self, w, h)
 	self.chart_menus = ChartMenus(self, w, h)
@@ -57,7 +56,6 @@ function UserInterface:setScreen(screen)
 
 	if self.menus:hasScreen(screen) then
 		self.menus:setScreen(screen)
-		print("hello?")
 	elseif self.chart_menus:hasScreen(screen) then
 		self.menus:hide()
 		self.chart_menus:setScreen(screen)

@@ -1,5 +1,6 @@
 local ConfigItem = require("yi.views.config_list.ConfigItem")
 local math_util = require("math_util")
+local table_util = require("table_util")
 
 ---@class yi.ConfigDropdown : yi.ConfigItem
 ---@operator call: yi.ConfigDropdown
@@ -8,17 +9,16 @@ local Dropdown = ConfigItem + {}
 local lg = love.graphics
 
 ---@param label string
----@param items any[]
----@param format (fun(v: number): string)?
----@param get_value fun(): number
----@param set_value fun(v: number)
-function Dropdown:new(label, items, format, get_value, set_value)
+---@param setting rizu.config.kinds.Choice
+---@param cfg rizu.config.Config
+function Dropdown:new(label, setting, cfg)
 	self.label = label
-	self.items = items
-	self.format = format or tostring
-	self.get_value = get_value
-	self.set_value = set_value
-	self.value = self.get_value()
+	self.setting = setting
+	self.cfg = cfg
+	self.items = setting.options
+	self.format = setting.format or tostring
+	self.value_str = self.cfg:getString(setting)
+	self.index = table_util.indexof(self.items, self.value_str)
 	self:updateSelectedText()
 end
 
@@ -33,9 +33,9 @@ function Dropdown:onDirectionalKeyPressed(k)
 		return
 	end
 
-	local i = math_util.clamp(self.value + dir, 1, #self.items)
-	self.set_value(i)
-	self.value = self.get_value()
+	local i = math_util.clamp(self.index + dir, 1, #self.items)
+	self.index = i
+	self.cfg:setString(self.setting, self.items[i])
 	self:updateSelectedText()
 end
 
@@ -45,7 +45,7 @@ function Dropdown:updateSelectedText()
 		return
 	end
 
-	local v = self.items[self.value]
+	local v = self.items[self.index]
 	if not v then
 		self.value_str = "Error: Invalid index"
 		return

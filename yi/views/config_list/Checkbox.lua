@@ -6,21 +6,21 @@ local Colors = require("yi.Colors")
 local Checkbox = ConfigItem + {}
 
 ---@param label string
----@param get_value fun(): boolean
----@param set_value fun(v: boolean)
-function Checkbox:new(label, get_value, set_value)
+---@param setting rizu.config.Setting
+---@param cfg rizu.config.Config
+function Checkbox:new(label, setting, cfg)
 	self.label = label
-	self.get_value = get_value
-	self.set_value = set_value
+	self.setting = setting
+	self.cfg = cfg
 
-	self.toggled = self.get_value()
+	self.toggled = cfg:getBoolean(setting)
 	self.target_alpha = self.toggled and 1 or 0
 	self.current_alpha = self.target_alpha
 end
 
 function Checkbox:onClick()
-	self.set_value(not self.toggled)
-	self.toggled = self.get_value()
+	self.cfg:setBoolean(self.setting, not self.toggled)
+	self.toggled = self.cfg:getBoolean(self.setting)
 	self.target_alpha = self.toggled and 1 or 0
 end
 

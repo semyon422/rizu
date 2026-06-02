@@ -15,9 +15,13 @@ local ConfigList = View + {}
 local GAP = 10
 
 ---@param resources yi.Resources
-function ConfigList:new(resources)
+---@param schema {[string]: {[string]: {[string]: rizu.config.Setting}}}
+---@param cfg rizu.config.Config
+function ConfigList:new(resources, schema, cfg)
 	View.new(self)
 	self.resources = resources
+	self.schema = schema
+	self.cfg = cfg
 	self.items = {}
 	self.focus_index = 0
 	self.scroll_position = 0
@@ -25,19 +29,26 @@ function ConfigList:new(resources)
 	local font = resources:getFont("regular", 36)
 	self.text_batch = love.graphics.newTextBatch(font)
 
-	local chk = true
-	local slider_v = 50
-	local dropdown_v = 1
-	local dropdown_items = {"Option A", "Option B", "Option C"}
-
-	for i = 1, 3 do
-		table.insert(self.items, Checkbox("Checkbox", function() return chk end, function(v) chk = v end))
-		table.insert(self.items, Slider("Slider", 0, 100, 5, "%i", function() return slider_v end, function(v) slider_v = v end))
-		table.insert(self.items, Dropdown("Dropdown", dropdown_items, nil, function() return dropdown_v end, function(v) dropdown_v = v end))
-	end
-
 	self:setSize(ConfigItem.width, 800)
 	self.handles_keyboard_input = true
+
+	for group_name, group in pairs(schema) do
+		for section_name, section in pairs(group) do
+			for setting_name, setting in pairs(section) do
+				local key = ("%s.%s.%s"):format(group_name, section_name, setting_name)
+				local kind = setting.kind
+				local item ---@type yi.ConfigItem?
+				if kind == "checkbox" then
+					item = Checkbox(key, setting, cfg)
+				elseif kind == "range" then
+					item = Slider(key, setting, cfg)
+				elseif kind == "choice" then
+					item = Dropdown(key, setting, cfg)
+				end
+				table.insert(self.items, item)
+			end
+		end
+	end
 end
 
 function ConfigList:onKeyDown(e)

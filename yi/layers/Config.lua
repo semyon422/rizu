@@ -1,5 +1,6 @@
 local Layer = require("ui.Layer")
 local Title = require("yi.views.Title")
+local SettingsSchema = require("rizu.config.schemas.Settings")
 
 local ConfigList = require("yi.views.config_list.ConfigList")
 local ConfigTopBar = require("yi.views.config_list.ConfigTopBar")
@@ -17,16 +18,26 @@ function Config:new(yi)
 
 	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
 
-	local config_list = ConfigList(yi.resources)
-	local tabs = {"ALL", "AUDIO", "VIDEO", "UI", "GAMEPLAY"}
-	self.top_bar = ConfigTopBar(yi.resources, tabs, function() end)
+	local cfg = self.yi.game.settings_config
+	local config_list = ConfigList(yi.resources, SettingsSchema, cfg)
+
+	local groups = {}
+	for group, _ in pairs(SettingsSchema) do
+		table.insert(groups, group)
+	end
+
+	self.top_bar = ConfigTopBar(
+		yi.resources,
+		groups,
+		function() end
+	)
 
 	self.composition:setRoot(S.Stack({
 		padding = {100, 60, 60, 100},
 
 		S.Track({
 			direction = "column",
-			space = {120, 20, 70, 20, "*"},
+			space = {120, 20, 50, 20, "*"},
 
 			Title(self.atlas, self.quads),
 			S.Stack(),

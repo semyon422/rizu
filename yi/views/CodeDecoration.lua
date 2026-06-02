@@ -1,5 +1,4 @@
 local View = require("ui.View")
-local Painter = require("yi.Painter")
 local Path = require("aqua.Path")
 
 ---@class yi.CodeDecoration : ui.View
@@ -137,8 +136,8 @@ function CodeDecoration:draw()
 	lg.setBlendMode("add")
 	lg.setColor(1, 1, 1, self.code_alpha)
 	-- Should be drawn unsnapped because it's always animated
-	Painter.draw(self.code_text, self.code_padding_x, first_text_y)
-	Painter.draw(self.code_text, self.code_padding_x, first_text_y + loop_height)
+	lg.draw(self.code_text, self.code_padding_x, first_text_y)
+	lg.draw(self.code_text, self.code_padding_x, first_text_y + loop_height)
 	lg.pop()
 end
 
