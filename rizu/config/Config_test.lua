@@ -3,7 +3,7 @@ local Checkbox = require("rizu.config.kinds.Checkbox")
 local Choice = require("rizu.config.kinds.Choice")
 local Range = require("rizu.config.kinds.Range")
 local Textbox = require("rizu.config.kinds.Textbox")
-local ConfigRepo = require("rizu.config.ConfigRepo")
+local ConfigManager = require("rizu.config.ConfigManager")
 
 local test = {}
 
@@ -137,7 +137,7 @@ function test.serialization_and_deserialization(t)
 	t:eq(config2:get(schema.gameplay.speed.scroll), 4.5)
 end
 
-function test.config_repo(t)
+function test.config_manager(t)
 	local schema = {
 		audio = {
 			volume = {
@@ -150,16 +150,24 @@ function test.config_repo(t)
 
 	local LinuxFilesystem = require("aqua.fs.LinuxFilesystem")
 	local temp_filepath = "tmp_config_test.json"
-	local repo = ConfigRepo(temp_filepath, LinuxFilesystem())
-	local save_ok = repo:save(config)
+	local manager = ConfigManager(LinuxFilesystem())
+	local save_ok = manager:save(temp_filepath, config)
 	t:eq(save_ok, true)
 
 	local config2 = Config(schema)
-	local load_ok = repo:load(config2)
+	local load_ok = manager:load(temp_filepath, config2)
 	t:eq(load_ok, true)
 	t:eq(config2:get(schema.audio.volume.master), 0.5)
 
-	repo.fs:remove(temp_filepath)
+	local registered = manager:register("test", schema, temp_filepath)
+	registered:set(schema.audio.volume.master, 0.8)
+	manager:saveById("test")
+	
+	local registered2 = manager:register("test2", schema, temp_filepath)
+	manager:loadById("test2")
+	t:eq(registered2:get(schema.audio.volume.master), 0.8)
+
+	manager.fs:remove(temp_filepath)
 end
 
 function test.type_validation(t)

@@ -14,7 +14,7 @@ Define the architecture and specification for the new configuration system in Ri
 
 ### 1. Data Model & Class Structure
 
-The configuration data model is represented by three main classes: `Config`, `Setting`, and `ConfigRepo`.
+The configuration data model is represented by three main classes: `Config`, `Setting`, and `ConfigManager`.
 
 ```mermaid
 classDiagram
@@ -31,15 +31,18 @@ classDiagram
         +serialize() string
         +deserialize(string) boolean
     }
-    class ConfigRepo {
-        +string filepath
+    class ConfigManager {
         +fs.IFilesystem fs
-        +load(Config) boolean
-        +save(Config) boolean
+        +table configs
+        +table paths
+        +register(id, schema, path) Config
+        +get(id) Config
+        +load(filename, Config) boolean
+        +save(filename, Config) boolean
     }
     Config "1" *-- "many" Setting : contains
-    ConfigRepo ..> Config : loads/saves
-    ConfigRepo ..> fs.IFilesystem : uses
+    ConfigManager ..> Config : manages
+    ConfigManager ..> fs.IFilesystem : uses
 ```
 
 #### The `Setting` Class
@@ -80,14 +83,19 @@ classDiagram
   - `Config:serialize()`: Returns a JSON-serialized string of the current `persistent_values` mapped by setting path.
   - `Config:deserialize(json)`: Deserializes setting path-value pairs from a JSON string into `persistent_values`.
 
-#### The `ConfigRepo` Class
-- **Decoupled Disk Storage**: Handles all file reading and writing operations to load or save configuration state without polluting the core `Config` model. It communicates with the filesystem via the `fs.IFilesystem` interface.
+#### The `ConfigManager` Class
+- **Centralized Registry & IO**: Acts as a central registry for `Config` instances and handles all file reading and writing operations to load or save configuration state without polluting the core `Config` model.
 - **Fields**:
   - `fs: fs.IFilesystem` — Filesystem interface instance used for file operations (defaults to `LoveFilesystem` inside LÖVE runtime, or `LinuxFilesystem` under CLI/testing).
+  - `configs: table` — A map of registered `id` strings to their `Config` instances.
+  - `paths: table` — A map of registered `id` strings to their file paths.
 - **Methods**:
-  - `ConfigRepo:new(filepath, target_fs)`: Instantiates the repo with a path and optional custom filesystem implementation.
-  - `ConfigRepo:load(config)`: Reads JSON configuration from file and deserializes it into the config.
-  - `ConfigRepo:save(config)`: Serializes configuration and writes it to file.
+  - `ConfigManager:new(target_fs)`: Instantiates the manager with a filesystem implementation.
+  - `ConfigManager:register(id, schema, path)`: Instantiates a `Config` from the `schema`, registers it under the given `id` with the associated `path`, and returns it.
+  - `ConfigManager:get(id)`: Retrieves a registered `Config`.
+  - `ConfigManager:load(filename, config)`: Reads JSON configuration from file and deserializes it into the config.
+  - `ConfigManager:save(filename, config)`: Serializes configuration and writes it to file.
+  - `ConfigManager:loadById(id)` / `saveById(id)`: Loads or saves a registered config using its registered path.
 
 ---
 
