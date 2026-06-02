@@ -245,6 +245,8 @@ function MatchManager:buildMatchData(match)
 		slot_teams[#slot_teams + 1] = match.slots[i].team
 		if match.slots[i].player ~= nil then
 			slot_ids[#slot_ids + 1] = match.slots[i].player.id
+		elseif match.slots[i].player_id ~= nil then
+			slot_ids[#slot_ids + 1] = match.slots[i].player_id
 		end
 		slot_mods[#slot_mods + 1] = match.slots[i].mods
 	end

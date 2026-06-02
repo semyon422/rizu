@@ -87,11 +87,30 @@ function SendPublicMessage:handle(server, player, data)
 
 	-- Send message to all channel members
 	local msg = ServerPackets.sendMessage(player.name, text, target_channel.name, player.id)
-	for _, p in pairs(target_channel.players) do
-		if p.id ~= player.id then
-			p:enqueue(msg)
+
+	-- Build immune list (just the sender)
+	local immune = {player}
+
+	-- Use PlayerCollection:enqueue for dict-backed collections
+	-- This ensures messages persist across requests via dict pq
+	local function broadcast(targetPlayers)
+		if server.players._dict then
+			-- For dict-backed collections, use the dict pq
+			for _, p in pairs(targetPlayers) do
+				if p.id ~= player.id then
+					server.players._dict:rpush("pq:" .. p.token, msg)
+				end
+			end
+		else
+			for _, p in pairs(targetPlayers) do
+				if p.id ~= player.id then
+					p:enqueue(msg)
+				end
+			end
 		end
 	end
+
+	broadcast(target_channel.players)
 end
 
 return SendPublicMessage

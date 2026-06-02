@@ -56,6 +56,14 @@ function JoinMatch:handle(server, player, data)
 	-- Add player to match
 	server.match_manager:addPlayer(match, player)
 
+	-- Add player to match chat channel (match.chat may be nil if loaded from dict)
+	if not match.chat then
+		match.chat = server.channels:get("#multi_" .. match.id)
+	end
+	if match.chat then
+		match.chat:add(player)
+	end
+
 	-- Set player's match reference
 	player.match = match
 

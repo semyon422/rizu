@@ -508,14 +508,23 @@ function BanchoProtocolResource:handlePackets(token, body, res, ctx)
 		ngx.log(ngx.ERR, "flush error: ", tostring(err))
 	end)
 
-	-- Drain player's outgoing packet queue
-	-- For dict-backed collections, use drain_packets (dict list ops).
-	-- For in-memory collections, use Player:dequeue() directly.
-	local response_data = self.server.players:drain_packets(token)
-	if not response_data then
-		response_data = player:dequeue()
+	-- Drain player's outgoing packet queue.
+	-- For dict-backed collections, drain both the dict queue (broadcast packets)
+	-- and the in-memory queue (handler response packets) and concatenate them.
+	local dict_data = self.server.players:drain_packets(token)
+	local mem_data = player:dequeue()
+
+	local response_data
+	if dict_data and mem_data then
+		response_data = dict_data .. mem_data
+	elseif dict_data then
+		response_data = dict_data
+	elseif mem_data then
+		response_data = mem_data
+	else
+		response_data = ""
 	end
-	res:send(response_data or "")
+	res:send(response_data)
 end
 
 return BanchoProtocolResource

@@ -167,13 +167,23 @@ function BanchoServer:new(shared_memory, overrides)
 end
 
 --- Initialize default channels.
+--- Only creates channels that don't already exist (to avoid overwriting
+--- channels that were created by other workers/requests).
 function BanchoServer:initializeChannels()
-	self.channels:add(Channel("#lobby", "Multiplayer lobby", 0, 0, false, false))
-	self.channels:add(Channel("#beginners", "For osu! beginners", 0, 0, true, false))
-	self.channels:add(Channel("#general", "General discussion", 0, 0, true, false))
-	self.channels:add(Channel("#halp", "Technical support", 0, 0, true, false))
-	self.channels:add(Channel("#shout", "Shout channel", 0, 0, false, false))
-	self.channels:add(Channel("#announce", "Announcements", 1, 0, true, false))
+	local default_channels = {
+		{"#lobby", "Multiplayer lobby", 0, 0, false, false},
+		{"#beginners", "For osu! beginners", 0, 0, true, false},
+		{"#general", "General discussion", 0, 0, true, false},
+		{"#halp", "Technical support", 0, 0, true, false},
+		{"#shout", "Shout channel", 0, 0, false, false},
+		{"#announce", "Announcements", 1, 0, true, false},
+	}
+
+	for _, ch_data in ipairs(default_channels) do
+		if not self.channels:get(ch_data[1]) then
+			self.channels:add(Channel(unpack(ch_data)))
+		end
+	end
 end
 
 --- Set repository backends.

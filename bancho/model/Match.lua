@@ -226,7 +226,7 @@ function Match:toData()
 	for i = 0, 15 do
 		local slot = self.slots[i]
 		data.slots[i] = {
-			player_id = slot.player and slot.player.id or nil,
+			player_id = slot.player_id or (slot.player and slot.player.id) or nil,
 			status = slot.status,
 			team = slot.team,
 			mods = slot.mods,
