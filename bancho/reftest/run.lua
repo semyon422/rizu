@@ -43,6 +43,12 @@ local function run_tests_for_server(srv)
 		io.write(string.format("  Warning: Could not register second user\n"))
 	end
 
+	-- Third user for two-player host (avoids session conflict on bancho.py).
+	local u3, _, p3 = reftest.register_user(srv)
+	if u3 then
+		io.write(string.format("  Registered: %s\n", u3))
+	end
+
 	-- Login and login packets.
 	local c1, uid1 = login_test.run(srv, u1, p1)
 
@@ -54,13 +60,29 @@ local function run_tests_for_server(srv)
 		social_test.run(c1, u1, uid1)
 	end
 
-	-- Two-player tests (re-login c1 to refresh session).
-	if u2 and c1 then
+	-- Two-player tests.
+	-- Use u3 (fresh user) as host to avoid session conflict on bancho.py.
+	if not u2 or not c1 then
+		io.write(string.format("  [DEBUG] Skipping two-player tests: u2=%s c1=%s\n", tostring(u2), tostring(c1 ~= nil)))
+	else
 		match_test.run_complete_fail(c1)
-		local c2, uid2 = reftest.login(srv, u2, p2)
-		if c2 then
-			local c1_fresh, uid1_fresh = reftest.login(srv, u1, p1)
-			if c1_fresh then
+		local c2, uid2, err2 = reftest.login(srv, u2, p2)
+		if not c2 then
+			io.write(string.format("  [DEBUG] c2 login failed for %s: %s\n", srv.name, tostring(err2)))
+		else
+			-- Use u3 as host (fresh session, no conflict).
+			local c1_fresh, uid1_fresh, err1
+			if u3 then
+				c1_fresh, uid1_fresh, err1 = reftest.login(srv, u3, p3)
+			else
+				-- Fallback: re-login u1 (may fail on bancho.py).
+				c1:logout()
+				os.execute("sleep 11")
+				c1_fresh, uid1_fresh, err1 = reftest.login(srv, u1, p1)
+			end
+			if not c1_fresh then
+				io.write(string.format("  [DEBUG] c1 re-login failed for %s: %s\n", srv.name, tostring(err1)))
+			else
 				match_test.run_lifecycle(c1_fresh, c2)
 				spectating_test.run(c1_fresh, c2)
 				messaging_test.run(c1_fresh, c2)
