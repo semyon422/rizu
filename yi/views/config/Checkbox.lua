@@ -1,4 +1,4 @@
-local ConfigItem = require("yi.views.config_list.ConfigItem")
+local ConfigItem = require("yi.views.config.ConfigItem")
 local Colors = require("yi.Colors")
 
 ---@class yi.ConfigCheckbox : yi.ConfigItem

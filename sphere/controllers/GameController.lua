@@ -228,7 +228,7 @@ function GameController:new()
 
 	self.global_timer = GlobalTimer()
 
-	self.settings_config = self.persistence.configManager:get("settings")
+	self.settings_config = assert(self.persistence.configManager:get("settings"))
 end
 
 function GameController:load()

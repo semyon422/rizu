@@ -1,4 +1,4 @@
-local ConfigItem = require("yi.views.config_list.ConfigItem")
+local ConfigItem = require("yi.views.config.ConfigItem")
 local math_util = require("math_util")
 local table_util = require("table_util")
 

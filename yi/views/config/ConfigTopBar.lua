@@ -1,5 +1,5 @@
 local Container = require("ui.Container")
-local TabButton = require("yi.views.config_list.TabButton")
+local TabButton = require("yi.views.config.TabButton")
 local Painter = require("yi.Painter")
 
 ---@class yi.ConfigTopBar : ui.Container

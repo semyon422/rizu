@@ -20,7 +20,7 @@ function ConfigItem:onDirectionalKeyPressed(k) end
 
 ---@param dt number
 function ConfigItem:update(dt)
-	self.hover_t = math_util.clamp(self.hover_t + (self.is_focused and dt * 8 or -dt * 8), 0, 1)
+	self.hover_t = math_util.clamp(self.hover_t + (self.is_focused and dt * 32 or -dt * 8), 0, 1)
 end
 
 local lg = love.graphics

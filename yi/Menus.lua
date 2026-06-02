@@ -104,23 +104,28 @@ local function menu_stencil()
 	love.graphics.pop()
 end
 
+local canvas_t = {nil, stencil = true}
+
 function Menus:draw()
 	local a = self.visiblity:get()
+	canvas_t[1] = self.canvas
 
 	love.graphics.setBlendMode("alpha", "alphamultiply")
-	love.graphics.setCanvas(self.canvas)
+	love.graphics.setCanvas(canvas_t)
 	self.background:draw()
 
 	if not self.springs_stable then
 		for screen, spring in pairs(self.screen_springs) do
 			local a = spring:get()
 			if a > 0 then
-				love.graphics.setCanvas(self.screen_canvas)
+				canvas_t[1] = self.screen_canvas
+				love.graphics.setCanvas(canvas_t)
 				love.graphics.clear()
 				love.graphics.setColor(1, 1, 1)
 				love.graphics.setBlendMode("alpha", "alphamultiply")
 				screen:draw()
-				love.graphics.setCanvas(self.canvas)
+				canvas_t[1] = self.canvas
+				love.graphics.setCanvas(canvas_t)
 
 				love.graphics.setBlendMode("alpha", "premultiplied")
 				love.graphics.setColor(a, a, a, a)

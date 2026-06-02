@@ -1,10 +1,12 @@
 local View = require("ui.View")
-local ConfigItem = require("yi.views.config_list.ConfigItem")
-local Checkbox = require("yi.views.config_list.Checkbox")
-local Slider = require("yi.views.config_list.Slider")
-local Dropdown = require("yi.views.config_list.Dropdown")
+local ConfigItem = require("yi.views.config.ConfigItem")
+local Checkbox = require("yi.views.config.Checkbox")
+local Slider = require("yi.views.config.Slider")
+local Dropdown = require("yi.views.config.Dropdown")
 local Painter = require("yi.Painter")
 local math_util = require("math_util")
+local SpringValue = require("ui.anim.SpringValue")
+
 
 ---@class yi.ConfigList : ui.View
 ---@operator call: yi.ConfigList
@@ -24,31 +26,21 @@ function ConfigList:new(resources, schema, cfg)
 	self.cfg = cfg
 	self.items = {}
 	self.focus_index = 0
-	self.scroll_position = 0
+	self.scroll_spring = SpringValue()
 
 	local font = resources:getFont("regular", 36)
 	self.text_batch = love.graphics.newTextBatch(font)
 
-	self:setSize(ConfigItem.width, 800)
+	self:setWidth(ConfigItem.width)
 	self.handles_keyboard_input = true
 
-	for group_name, group in pairs(schema) do
-		for section_name, section in pairs(group) do
-			for setting_name, setting in pairs(section) do
-				local key = ("%s.%s.%s"):format(group_name, section_name, setting_name)
-				local kind = setting.kind
-				local item ---@type yi.ConfigItem?
-				if kind == "checkbox" then
-					item = Checkbox(key, setting, cfg)
-				elseif kind == "range" then
-					item = Slider(key, setting, cfg)
-				elseif kind == "choice" then
-					item = Dropdown(key, setting, cfg)
-				end
-				table.insert(self.items, item)
-			end
-		end
-	end
+end
+
+---@param items yi.ConfigItem[]
+function ConfigList:setItems(items)
+	self.focus_index = 0
+	self.scroll_spring:snap(0)
+	self.items = items
 end
 
 function ConfigList:onKeyDown(e)
@@ -80,6 +72,14 @@ function ConfigList:onKeyDown(e)
 	end
 
 	self.focus_index = math_util.clamp(self.focus_index + index_delta, 1, #self.items)
+
+	local center = (self.box.height / (ConfigItem.height + GAP) / 2)
+	local a = math.max(0, self.focus_index - center)
+	local b = math.min(a, #self.items - center * 2)
+
+	self.scroll_spring:set(
+		b * ConfigItem.height + GAP * b
+	)
 	self.items[self.focus_index].is_focused = true
 
 	return true
@@ -91,15 +91,23 @@ function ConfigList:update(dt)
 	for _, v in ipairs(self.items) do
 		v:update(dt)
 	end
+
+	self.scroll_spring:update(dt)
 end
 
 function ConfigList:draw()
 	local atlas, quads = self.resources.atlas, self.resources.quads
 	local text_batch = self.text_batch
-	local global_y = self.scroll_position
+	local global_y = 0
+	local scroll_position = self.scroll_spring:get()
 
 	text_batch:clear()
+
+	love.graphics.setStencilMode("draw", 1)
+	love.graphics.rectangle("fill", -16, 0, self.width + 32, self.box.height)
+	love.graphics.setStencilMode("test")
 	lg.push()
+	lg.translate(0, -scroll_position)
 
 	for _, v in ipairs(self.items) do
 		lg.push("all")
@@ -112,8 +120,10 @@ function ConfigList:draw()
 	end
 
 	lg.pop()
+	lg.translate(0, -scroll_position)
 	Painter.snapToPixel()
 	lg.draw(text_batch)
+	love.graphics.setStencilMode("off")
 end
 
 return ConfigList
