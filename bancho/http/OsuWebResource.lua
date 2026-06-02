@@ -448,9 +448,10 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 		return
 	end
 
-	-- Check ranked status
-	if bmap.status < RankedStatus.Ranked then
-		res:send(tonumber(bmap.status) .. "|false")
+	-- Check ranked status (default to PENDING if not set)
+	local beatmap_status = bmap.status or RankedStatus.NOT_SUBMITTED
+	if beatmap_status < RankedStatus.RANKED then
+		res:send(beatmap_status .. "|false")
 		return
 	end
 
@@ -464,7 +465,7 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 	-- Build response
 	local response_lines = {
 		string.format("%d|false|%d|%d|%d|0|",
-			bmap.status, bmap.id, bmap.set_id, #scores),
+			beatmap_status, bmap.id, bmap.set_id, #scores),
 		string.format("0\n%s\n0", bmap.full_name or ""),
 		"", -- personal best (empty)
 	}

@@ -271,7 +271,7 @@ function BeatmapLoader:fetchFromApi(md5)
 		creator = api.creator or "",
 		total_length = tonumber(api.total_length) or 0,
 		max_combo = tonumber(api.max_combo) or 0,
-		status = tonumber(api.approved) or RankedStatus.PENDING,
+		status = RankedStatus.fromOsuApi(tonumber(api.approved) or 0),
 		mode = tonumber(api.mode) or 0,
 		bpm = tonumber(api.bpm) or 0,
 		cs = tonumber(api.diff_size) or 0,
