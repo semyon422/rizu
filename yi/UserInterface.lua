@@ -56,7 +56,6 @@ function UserInterface:setScreen(screen)
 
 	if self.menus:hasScreen(screen) then
 		self.menus:setScreen(screen)
-		print("hello?")
 	elseif self.chart_menus:hasScreen(screen) then
 		self.menus:hide()
 		self.chart_menus:setScreen(screen)

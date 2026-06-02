@@ -7,21 +7,17 @@ local math_util = require("math_util")
 local Slider = ConfigItem + {}
 
 ---@param label string
----@param min number
----@param max number
----@param step number
----@param format (fun(v: number): string) | string
----@param get_value fun(): number
----@param set_value fun(v: number)
-function Slider:new(label, min, max, step, format, get_value, set_value)
+---@param setting rizu.config.kinds.Range
+---@param cfg rizu.config.Config
+function Slider:new(label, setting, cfg)
 	self.label = label
-	self.min = min
-	self.max = max
-	self.step = step
-	self.format = format
-	self.get_value = get_value
-	self.set_value = set_value
-	self.value = self.get_value()
+	self.setting = setting
+	self.cfg = cfg
+	self.min = setting.min_value
+	self.max = setting.max_value
+	self.step = setting.step
+	self.format = setting.format or "%g"
+	self.value = cfg:getNumber(setting)
 	self.value_str = ""
 	self.current_percent = 0
 	self.target_percent = 0
@@ -51,8 +47,8 @@ function Slider:onDirectionalKeyPressed(k)
 
 	local v = math_util.clamp(self.value + dir * self.step, self.min, self.max)
 	v = math_util.round(v, self.step)
-	self.set_value(v)
-	self.value = self.get_value()
+	self.cfg:setNumber(self.setting, v)
+	self.value = self.cfg:getNumber(self.setting)
 	self:updateTargetPercent()
 end
 
