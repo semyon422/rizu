@@ -25,7 +25,7 @@ ClientConfig.defaults = {
 	scheme = "http",
 	username = "",
 	password_md5 = "",
-	osu_version = "b20240101r1stable",
+	osu_version = "b20240101",
 	utc_offset = 0,
 	timeout = 5,
 	max_retries = 3,
@@ -55,12 +55,14 @@ function ClientConfig:url()
 end
 
 --- Build the login body string.
+--- Format: username\npassword_md5\nosu_version|utc_offset|display_city|client_hashes|pm_private\n
+--- client_hashes must end with ':' as bancho.py strips client_hashes[:-1] before splitting.
 ---@return string
 function ClientConfig:login_body()
 	return table.concat({
 		self.username,
 		self.password_md5,
-		self.osu_version .. "|" .. self.utc_offset .. "|0|hash1:adapters:hash2:hash3:hash4|" .. (self.pm_private and "1" or "0"),
+		self.osu_version .. "|" .. self.utc_offset .. "|0|hash1:adapters:hash2:hash3:hash4:|" .. (self.pm_private and "1" or "0"),
 	}, "\n") .. "\n"
 end
 
