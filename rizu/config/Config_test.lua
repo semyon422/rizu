@@ -4,6 +4,7 @@ local Choice = require("rizu.config.kinds.Choice")
 local Range = require("rizu.config.kinds.Range")
 local Textbox = require("rizu.config.kinds.Textbox")
 local ConfigManager = require("rizu.config.ConfigManager")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
@@ -148,9 +149,8 @@ function test.config_manager(t)
 	local config = Config(schema)
 	config:set(schema.audio.volume.master, 0.5)
 
-	local LinuxFilesystem = require("aqua.fs.LinuxFilesystem")
 	local temp_filepath = "tmp_config_test.json"
-	local manager = ConfigManager(LinuxFilesystem())
+	local manager = ConfigManager(FakeFilesystem())
 	local save_ok = manager:save(temp_filepath, config)
 	t:eq(save_ok, true)
 
