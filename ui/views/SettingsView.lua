@@ -9,6 +9,7 @@ local audio = require("audio")
 local utf8validate = require("utf8validate")
 local fonts = require("sphere.assets.fonts")
 local loop = require("rizu.loop.Loop")
+local SettingsScheme = require("rizu.config.schemas.Settings")
 
 local transform = {{1 / 2, -16 / 9 / 2}, 0, 0, {0, 1 / 1080}, {0, 1 / 1080}, 0, 0, 0, 0}
 
@@ -323,7 +324,11 @@ function drawSection:themes()
 		local pressed = imgui.button(v.display_name, v.display_name)
 
 		if pressed then
-			g.userInterface = v.name
+			self.game.settings_config:setString(
+				SettingsScheme.graphics.appearance.user_interface,
+				v.name
+			)
+			self.game.settings_config:commit()
 			ui_model:loadSelected()
 		end
 	end

@@ -80,7 +80,7 @@ local schema = {
 		appearance = {
 			cursor = Choice("circle", {"circle", "arrow", "system"}),
 			fonts_dpi = Choice(1, {1, 2}),
-			user_interface = Choice("old", {"old", "new"}),
+			user_interface = Choice("old", {"old", "new"}):setDeferred(true),
 		},
 	},
 	audio = {

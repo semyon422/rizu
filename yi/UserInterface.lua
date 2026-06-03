@@ -3,7 +3,7 @@ local Inputs = require("ui.input.Inputs")
 local Resources = require("yi.Resources")
 local Menus = require("yi.Menus")
 local ChartMenus = require("yi.ChartMenus")
-local Painter = require("yi.Painter")
+local SettingsScheme = require("rizu.config.schemas.Settings")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
@@ -27,11 +27,17 @@ function UserInterface:new(game)
 	self.resources:load()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
+
 end
 
 function UserInterface:load()
-	love.keyboard.setKeyRepeat(true)
+	self.game.settings_config.onChanged:add(self)
 	self:buildUI()
+	love.keyboard.setKeyRepeat(true)
+end
+
+function UserInterface:unload()
+	self.game.settings_config.onChanged:remove(self)
 end
 
 function UserInterface:buildUI()
@@ -102,6 +108,18 @@ end
 ---@param event table
 function UserInterface:receive(event)
 	self.inputs:receive(event, self.modifiers)
+
+	if event.type == "config_commit" then
+		local ui = SettingsScheme.graphics.appearance.user_interface
+		if event[1] == ui then
+			local name = self.game.settings_config:getString(ui)
+			if name then
+				self.game.uiModel:setUserInterface(name)
+				self.game.uiModel:loadSelected()
+				return
+			end
+		end
+	end
 
 	local s = self.current_screen
 

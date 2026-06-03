@@ -75,6 +75,7 @@ function GameController:new()
 	self.packageManager = PackageManager()
 
 	self.persistence = Persistence()
+	self.settings_config = assert(self.persistence.configManager:get("settings"))
 	self.app = App(self.persistence)
 	self.uiModel = UserInterfaceModel(self)
 
@@ -227,8 +228,6 @@ function GameController:new()
 	self.gameInteractor = GameInteractor(self)
 
 	self.global_timer = GlobalTimer()
-
-	self.settings_config = assert(self.persistence.configManager:get("settings"))
 end
 
 function GameController:load()
@@ -272,6 +271,7 @@ function GameController:unload()
 	self.multiplayerController:unload()
 	self.ui:unload()
 	self.app:unload()
+	self.persistence:unload()
 end
 
 ---@param dt number

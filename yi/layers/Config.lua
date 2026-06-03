@@ -118,6 +118,7 @@ function Config:handleKeyDown(key)
 		else
 			self.yi:setScreen(prev)
 		end
+		self.yi.game.settings_config:commit()
 		return true
 	end
 

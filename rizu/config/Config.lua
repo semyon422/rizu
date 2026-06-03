@@ -147,7 +147,7 @@ function Config:commit()
 
 	if #updated_settings > 0 then
 		for _, setting in ipairs(updated_settings) do
-			self.onChanged:send(setting)
+			self.onChanged:send({type = "config_commit", setting})
 		end
 	end
 end
