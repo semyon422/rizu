@@ -8,10 +8,8 @@ local Path = require("aqua.Path")
 local Resources = class()
 
 Resources.font_paths = {
-	regular = "resources/fonts/Chakra_Petch/ChakraPetch-Regular.ttf",
-	medium = "resources/fonts/Chakra_Petch/ChakraPetch-Medium.ttf",
-	semi_bold = "resources/fonts/Chakra_Petch/ChakraPetch-SemiBold.ttf",
-	bold = "resources/fonts/Chakra_Petch/ChakraPetch-Bold.ttf",
+	regular = "resources/fonts/Roboto/Roboto-Regular.ttf",
+	bold = "resources/fonts/Roboto/Roboto-Bold.ttf",
 }
 
 Resources.images_dir = "resources/yi/batch"
