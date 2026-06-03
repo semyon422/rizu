@@ -45,7 +45,7 @@ function Checkbox:draw(atlas, quads, text_batch, global_y)
 	colored_string[1][4] = self.current_alpha
 	text_batch:addf(colored_string, math.huge, "left", self.width - 324, global_y + 12, 0, 0.8, 0.8)
 
-	local c = Colors.cyan_400
+	local c = Colors.accent
 	lg.setColor(c[1], c[2], c[3], (0.7 + self.hover_t * 0.3) * self.current_alpha)
 
 	lg.draw(atlas, quads.config_background_cap, self.right_side_x + 3, 13, 0, 0.6, 0.6)

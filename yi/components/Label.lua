@@ -35,6 +35,7 @@ local lg = love.graphics
 
 function Label:draw()
 	local screen_x, screen_y = lg.transformPoint(0, 0)
+	lg.setColor(self.color)
 	lg.draw(self.text_batch, math.floor(screen_x + 0.5) - screen_x, math.floor(screen_y + 0.5) - screen_y)
 end
 

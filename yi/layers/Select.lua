@@ -3,7 +3,8 @@ local S = require("ui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
-local ChartInfo = require("yi.views.ChartInfo")
+local ChartInfo = require("yi.views.select.ChartInfo")
+local IconButton = require("yi.views.IconButton")
 
 ---@class yi.Select : ui.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
@@ -23,24 +24,48 @@ function Select:new(yi)
 		font = "bold",
 		font_size = 72,
 		text = "Artist",
-		color = Colors.text_title,
+		color = Colors.text,
 	})
 
 	self.artist = ui:Label({
 		font = "bold",
 		font_size = 46,
 		text = "Title",
-		color = Colors.text_subsection,
+		color = Colors.text_muted,
 	})
 
 	self.chart_info = ChartInfo(yi.resources)
 	self.chart_info.pivot = {0, 1}
 
 	self.composition:setRoot(S.Stack({
-		ui:Image({
-			image = "select_bg_gradient",
-			fit_box = true,
-			color = Colors.slate_900_70
+		S.Track({
+			space = {"*", 2, 64},
+			ui:Image({
+				image = "select_bg_gradient",
+				fit_box = true,
+				color = Colors.select_bg_gradient
+			}),
+			ui:Rectangle({
+				fit_box = true,
+				color = Colors.select_side_panel_line
+			}),
+			S.Stack({
+				ui:Rectangle({
+					fit_box = true,
+					color = Colors.select_side_panel_bg
+				}),
+				S.Stack({
+					padding = {0, 10, 0, 0},
+					S.Track({
+						space = {"-", "-"},
+						direction = "column",
+						gap = 10,
+						align = 0.5,
+						IconButton(yi.resources, yi.resources.quads.icon_note),
+						IconButton(yi.resources, yi.resources.quads.icon_note),
+					})
+				})
+			})
 		}),
 		S.Stack({
 			padding = GAP,

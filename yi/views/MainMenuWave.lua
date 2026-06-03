@@ -36,7 +36,7 @@ function MainMenuWave:new()
 	self.wave_speed = 0.18
 	self.wave_amplitude = 0.025
 	self.wave_frequency = 2.1
-	self.color = Colors.cyan_400
+	self.color = Colors.accent
 	self.alpha = 0.42
 	self.pixel = love.graphics.newCanvas(1, 1)
 	self.shader = love.graphics.newShader(wave_shader_code)

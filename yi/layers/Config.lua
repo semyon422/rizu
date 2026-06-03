@@ -1,7 +1,7 @@
 local Layer = require("ui.Layer")
-local Title = require("yi.views.Title")
 local SettingsSchema = require("rizu.config.schemas.Settings")
 
+local Title = require("yi.views.config.Title")
 local ConfigList = require("yi.views.config.ConfigList")
 local ConfigTopBar = require("yi.views.config.ConfigTopBar")
 local Checkbox = require("yi.views.config.Checkbox")

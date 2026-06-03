@@ -67,7 +67,7 @@ function Title:draw()
 	lg.push()
 	lg.draw(self.atlas, self.title)
 	lg.translate(0, Painter.getQuadHeight(self.title) + self.gap)
-	lg.setColor(Colors.white)
+	lg.setColor(Colors.text)
 	lg.draw(self.atlas, self.description, -self.title_offset_x)
 	lg.pop()
 

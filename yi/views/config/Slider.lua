@@ -73,7 +73,7 @@ function Slider:draw(atlas, quads, text_batch, global_y)
 	colored_string[2] = self.value_str
 	text_batch:addf(colored_string, self.right_side_x - 10, "right", 0, global_y + 6)
 
-	local c = Colors.cyan_400
+	local c = Colors.accent
 	lg.setColor(c[1], c[2], c[3], 0.7 + self.hover_t * 0.3)
 
 	local p = self.current_percent

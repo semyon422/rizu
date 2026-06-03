@@ -61,9 +61,9 @@ end
 local lg = love.graphics
 
 function ChartInfo:draw()
-	lg.setColor(Colors.text_subsection)
+	lg.setColor(Colors.text_muted)
 	lg.draw(self.keys)
-	lg.setColor(Colors.text_label)
+	lg.setColor(Colors.text)
 	lg.draw(self.values)
 end
 

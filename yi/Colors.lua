@@ -1,58 +1,42 @@
----@class yi.Colors
-local ui_colors = {
-	cyan_400 = {34, 211, 238, 255},
-	cyan_200 = {165, 243, 252, 255},
-	cyan_100 = {207, 250, 254, 255},
-	cyan_500_30 = {6, 182, 212, 77},
-	cyan_400_50 = {34, 211, 238, 128},
-	cyan_400_25 = {34, 211, 238, 64},
-	cyan_400_10 = {34, 211, 238, 26},
+---@param str string
+---@param alpha number?
+---@return [number, number, number, number]
+local function hex(str, alpha)
+	str = str:gsub("#", "")
 
-	red_500 = {239, 68, 68, 255},
-	emerald_400 = {52, 211, 153, 255},
-	amber_400 = {251, 191, 36, 255},
+	if #str ~= 6 then
+		error("Invalid hex")
+	end
 
-	black = {0, 0, 0, 255},
-	black_80 = {0, 0, 0, 204},
-	black_70 = {0, 0, 0, 255 * 0.7},
-	black_60 = {0, 0, 0, 255 * 0.6},
-	black_50 = {0, 0, 0, 128},
-	black_40 = {0, 0, 0, 255 * 0.4},
+	local r = tonumber(str:sub(1, 2), 16)
+	local g = tonumber(str:sub(3, 4), 16)
+	local b = tonumber(str:sub(5, 6), 16)
 
-	slate_900 = {15, 23, 42, 255},
-	slate_900_70 = {15, 23, 42, 179},
+	if not (r and g and b) then
+		error("Invalid hex characters found in string.")
+	end
 
-	slate_800 = {30, 41, 59, 255},
-	slate_800_80 = {30, 41, 59, 204},
-	slate_700_80 = {51, 65, 85, 204},
-	slate_600 = {71, 85, 105, 255},
-	slate_400 = {148, 163, 184, 255},
+	alpha = math.max(0, math.min(1, alpha or 1))
 
-	blue_900_40 = {30, 58, 138, 102},
-	transparent = {0, 0, 0, 0},
-
-	white = {255, 255, 255, 255},
-	white_90 = {255, 255, 255, 230},
-	white_80 = {255, 255, 255, 255 * 0.8},
-	white_70 = {255, 255, 255, 179},
-	white_50 = {255, 255, 255, 128},
-	white_40 = {255, 255, 255, 102},
-	white_30 = {255, 255, 255, 77},
-	white_10 = {255, 255, 255, 26},
-	white_5 = {255, 255, 255, 13},
-
-	text_title = {235, 245, 255, 255},
-	text_section = {220, 235, 255, 255},
-	text_subsection = {160, 180, 205, 255},
-	text_label = {200, 215, 235, 255},
-	text_muted = {130, 150, 175, 255},
-}
-
----@type yi.Colors
-local Colors = {}
-
-for k, v in pairs(ui_colors) do
-	Colors[k] = {love.math.colorFromBytes(v[1], v[2], v[3], v[4])}
+	return {
+		r / 255,
+		g / 255,
+		b / 255,
+		alpha
+	}
 end
+
+---@class yi.Colors
+local Colors = {
+	accent = hex("00CCFF"),
+	text = hex("F2F2FF"),
+	text_muted = hex("A6B2CC"),
+
+	select_bg_gradient = {love.math.colorFromBytes(15, 23, 42, 179)},
+	select_side_panel_bg = hex("0C0C11"),
+	select_side_panel_line = hex("464B5C"),
+	icon_button_bg = hex("1E2835")
+
+}
 
 return Colors
