@@ -79,7 +79,6 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 
 	local server_checksum = score:computeOnlineChecksum(username, map_md5, osu_version, client_hash, storyboard_md5)
 	if score.client_checksum ~= server_checksum then
-		-- Checksum mismatch — score data was tampered with
 		return
 	end
 
@@ -130,7 +129,7 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 			client_flags = 0,
 			user_id = player.id,
 			perfect = score.perfect,
-			checksum = score.client_checksum,
+			online_checksum = score.client_checksum,
 		})
 	end
 

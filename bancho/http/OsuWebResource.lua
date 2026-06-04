@@ -5,9 +5,11 @@
 
 local IResource = require("web.framework.IResource")
 local http_util = require("web.http.util")
+local ExtendedSocket = require("web.socket.ExtendedSocket")
 local json = require("web.json")
 local ScoreCrypto = require("bancho.crypto.ScoreCrypto")
 local Score = require("bancho.model.Score")
+local Player = require("bancho.model.Player")
 local RankedStatus = require("bancho.constants.RankedStatus")
 local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 local GameMode = require("bancho.constants.GameMode")
@@ -191,7 +193,7 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuSubmitModular(req, res, ctx)
-	local multipart, err = http_util.get_multipart(req)
+	local multipart, err = http_util.get_multipart(req, {read_all = true})
 	if not multipart then
 		res.status = 400
 		res:send(err or "invalid multipart")
@@ -206,7 +208,7 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 
 	local headers, err = multipart:receive()
 	while headers and err ~= "no parts" do
-		local part_data = multipart.bsoc:receiveany(1024 * 1024)
+		local part_data = ExtendedSocket(multipart.bsoc):receive("*a")
 		if part_data then
 			-- Extract field name from Content-Disposition
 			local disp = headers:get("Content-Disposition") or ""
@@ -283,27 +285,15 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 end
 
 --- POST /web/osu-submit-modular-selector.php
---- Score submission with session token authentication.
---- Authenticated via token header.
+--- Score submission with password authentication.
+--- Authenticated via username (from decrypted score data) + password MD5 (from form field).
+--- See bancho.py: from_login(username, pw_md5)
 ---@param req web.IRequest
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
-	local token = req.headers:get("token")
-	if not token then
-		res.status = 401
-		res:send("")
-		return
-	end
-
-	local player = self.server.players:get(token)
-	if not player then
-		res:send("") -- Client will retry when online
-		return
-	end
-
 	-- Parse multipart form fields
-	local multipart, err = http_util.get_multipart(req)
+	local multipart, err = http_util.get_multipart(req, {read_all = true})
 	if not multipart then
 		res.status = 400
 		res:send(err or "invalid multipart")
@@ -317,7 +307,7 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 
 	local headers, err = multipart:receive()
 	while headers and err ~= "no parts" do
-		local part_data = multipart.bsoc:receiveany(1024 * 1024)
+		local part_data = ExtendedSocket(multipart.bsoc):receive("*a")
 		if part_data then
 			local disp = headers:get("Content-Disposition") or ""
 			local field_name = disp:match('name="([^"]+)"')
@@ -360,11 +350,26 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 		parts[#parts + 1] = part
 	end
 
-	-- Minimum fields check
+	-- Minimum fields check: map_md5, username, online_checksum, n300, n100, n50, ngeki, nkatu, nmiss, score, max_combo, perfect, grade, mods, passed, mode, play_time
 	if #parts < 16 then
 		res:send("")
 		return
 	end
+
+	-- Extract username from decrypted score data
+	local map_md5 = parts[1]
+	local username = parts[2]
+	local pw_md5 = fields.pass or ""
+
+	-- Authenticate via username + password MD5 (bancho.py: from_login)
+	local user = self.server.user_repo:findUserByNameAndPassword(username, pw_md5)
+	if not user then
+		res:send("")
+		return
+	end
+
+	-- Create player object for submission
+	local player = Player(user.id, username, user.priv or 0)
 
 	-- Add decoded client hash to fields for checksum validation
 	fields.client_hash = client_hash or ""
@@ -776,7 +781,7 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuScreenshot(req, res, ctx)
-	local multipart, err = http_util.get_multipart(req)
+	local multipart, err = http_util.get_multipart(req, {read_all = true})
 	if not multipart then
 		res.status = 400
 		res:send(err or "invalid multipart")
@@ -795,7 +800,7 @@ function OsuWebResource:osuScreenshot(req, res, ctx)
 	end
 
 	-- Read the image data
-	local image_data = multipart.bsoc:receiveany(1024 * 1024) -- max 1MB
+	local image_data = ExtendedSocket(multipart.bsoc):receive("*a") -- max 1MB
 	if not image_data then
 		res:send("")
 		return

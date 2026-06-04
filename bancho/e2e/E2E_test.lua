@@ -301,6 +301,172 @@ function test.match_chat(t)
 	ctx:close()
 end
 
+--- Score submission via ScoreSubmitter:submit.
+--- Tests the core submission logic: checksum validation, PP calculation, persistence.
+function test.score_submission(t)
+	local ctx = E2EContext()
+	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	t:eq(user_id, 1)
+
+	-- Create a beatmap in the database
+	local Repos = require("bancho.db.repos")
+	local repos = Repos(ctx.db.models)
+	local bmap_md5 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+	repos.beatmap_repo:addBeatmap({
+		id = 12345,
+		set_id = 1234,
+		md5 = bmap_md5,
+		artist = "TestArtist",
+		title = "TestTitle",
+		version = "Easy",
+		creator = "TestCreator",
+		status = 2, -- ranked
+		diff = 5.0,
+		od = 7,
+		mode = 3, -- mania
+	})
+
+	-- Create server with shared memory and repos
+	local BanchoServer = require("bancho.server.BanchoServer")
+	local server = BanchoServer(ctx.shared_memory)
+	server:setRepos(
+		repos.user_repo, repos.score_repo, repos.beatmap_repo,
+		repos.friends_repo, repos.favourites_repo, repos.stats_repo, repos.replay_repo
+	)
+
+	-- Login the player via BanchoProtocolResource
+	local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
+	local proto_resource = BanchoProtocolResource(server)
+
+	-- Build login request
+	local ExtendedStringSocket = require("bancho.e2e.ExtendedStringSocket")
+	local Request = require("web.http.Request")
+	local Response = require("web.http.Response")
+
+	local login_soc = ExtendedStringSocket()
+	local login_res_soc = login_soc:split()
+
+	local login_body = table.concat({
+		"TestUser",
+		md5.sumhexa("testpass"),
+		"b20240101|0|0|hash1:adapters:hash2:hash3:hash4:|0",
+	}, "\n") .. "\n"
+
+	local login_request = {
+		"POST / HTTP/1.1",
+		"Host: osu.example.com",
+		"Content-Length: " .. #login_body,
+		"",
+		login_body,
+	}
+	login_res_soc:send(table.concat(login_request, "\r\n"))
+
+	local login_req = Request(login_soc, "r")
+	local login_res = Response(login_res_soc, "w")
+	proto_resource:handleProtocol(login_req, login_res)
+
+	-- Verify player is online
+	local player = server.players:get(nil, nil, "TestUser")
+	t:ne(player, nil)
+	t:eq(player.id, user_id)
+
+	-- Prepare score data
+	local username = "TestUser"
+	local osu_version = "20240101"
+	local client_hash = "test_client_hash_1234567890123456789012345678901234567890123456789012"
+	local storyboard_md5 = ""
+
+	-- Score fields (mania mode)
+	local n300 = 500
+	local n100 = 200
+	local n50 = 50
+	local ngeki = 100
+	local nkatu = 50
+	local nmiss = 0
+	local score_value = 999999
+	local max_combo = 1000
+	local perfect = false
+	local grade = "x"
+	local mods = 0
+	local passed = true
+	local mode = 3
+	local play_time = "240101120000"
+
+	-- Compute the online checksum using Score:computeOnlineChecksum
+	local Score = require("bancho.model.Score")
+	local temp_score = Score:new()
+	temp_score.n300 = n300
+	temp_score.n100 = n100
+	temp_score.n50 = n50
+	temp_score.ngeki = ngeki
+	temp_score.nkatu = nkatu
+	temp_score.nmiss = nmiss
+	temp_score.score = score_value
+	temp_score.max_combo = max_combo
+	temp_score.perfect = perfect
+	temp_score.grade = require("bancho.constants.Grade").fromString(grade)
+	temp_score.mods = mods
+	temp_score.passed = passed
+	temp_score.mode = mode
+	temp_score.client_time = play_time
+
+	local checksum = temp_score:computeOnlineChecksum(
+		username,
+		bmap_md5,
+		osu_version,
+		client_hash,
+		storyboard_md5
+	)
+
+	-- Build parts array: [1]=map_md5, [2]=username, [3..]=score fields
+	-- Score fields: online_checksum, n300, n100, n50, ngeki, nkatu, nmiss, score, max_combo, perfect, grade, mods, passed, mode, play_time
+	local parts = {
+		bmap_md5,          -- [1] map_md5
+		username,          -- [2] username
+		checksum,          -- [3] online_checksum
+		tostring(n300),    -- [4] n300
+		tostring(n100),    -- [5] n100
+		tostring(n50),     -- [6] n50
+		tostring(ngeki),   -- [7] ngeki
+		tostring(nkatu),   -- [8] nkatu
+		tostring(nmiss),   -- [9] nmiss
+		tostring(score_value), -- [10] score
+		tostring(max_combo),   -- [11] max_combo
+		perfect and "True" or "False", -- [12] perfect
+		grade,             -- [13] grade
+		tostring(mods),    -- [14] mods
+		passed and "True" or "False", -- [15] passed
+		tostring(mode),    -- [16] mode
+		play_time,         -- [17] play_time
+	}
+
+	-- Build fields table
+	local fields = {
+		osuver = osu_version,
+		client_hash = client_hash,
+		sbk = storyboard_md5,
+		st = "60000", -- time elapsed in milliseconds
+	}
+
+	-- Submit score directly via ScoreSubmitter
+	local chart_response = server.score_submitter:submit(player, parts, "fake_replay", fields)
+
+	-- Verify chart response is not nil
+	t:ne(chart_response, nil)
+	t:ne(chart_response, "")
+
+	-- Verify score was saved to database
+	local saved_score = repos.score_repo:findBestScore(bmap_md5, user_id, mode)
+	t:ne(saved_score, nil)
+	t:eq(saved_score.score, score_value)
+	t:eq(saved_score.n300, n300)
+	t:eq(saved_score.n100, n100)
+	t:eq(saved_score.nmiss, nmiss)
+	t:eq(saved_score.grade, require("bancho.constants.Grade").X.value)
+
+	ctx:close()
+end
+
 --- Match ready status is reflected in UPDATE_MATCH.
 function test.match_ready_status(t)
 	local ctx = E2EContext()

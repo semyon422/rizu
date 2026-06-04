@@ -221,7 +221,7 @@ end
 ---@return string hex_md5 computed checksum
 function Score:computeOnlineChecksum(username, map_md5, osu_version, client_hash, storyboard_md5)
 	local str = string.format(
-		"chickenmcnuggets%d o15%d%dsmustard%d%duu%s%d%s%s%d%s%dQ%s%d%s%s%s%s",
+		"chickenmcnuggets%do15%d%dsmustard%d%duu%s%d%s%s%d%s%dQ%s%d%s%s%s%s",
 		self.n100 + self.n300,
 		self.n50,
 		self.ngeki,

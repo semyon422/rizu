@@ -9,17 +9,18 @@ reftest.setup_modules()
 reftest.ensure_deps()
 
 -- Import test modules.
-local login_test = require("bancho.reftest.login_test")
-local presence_test = require("bancho.reftest.presence_test")
-local lobby_test = require("bancho.reftest.lobby_test")
-local chat_test = require("bancho.reftest.chat_test")
-local social_test = require("bancho.reftest.social_test")
-local match_test = require("bancho.reftest.match_test")
-local match_advanced_test = require("bancho.reftest.match_advanced_test")
-local spectating_test = require("bancho.reftest.spectating_test")
-local messaging_test = require("bancho.reftest.messaging_test")
-local http_test = require("bancho.reftest.http_test")
-local web_test = require("bancho.reftest.web_test")
+local login_test = require("bancho.reftest.login_reftest")
+local score_test = require("bancho.reftest.score_reftest")
+local presence_test = require("bancho.reftest.presence_reftest")
+local lobby_test = require("bancho.reftest.lobby_reftest")
+local chat_test = require("bancho.reftest.chat_reftest")
+local social_test = require("bancho.reftest.social_reftest")
+local match_test = require("bancho.reftest.match_reftest")
+local match_advanced_test = require("bancho.reftest.match_advanced_reftest")
+local spectating_test = require("bancho.reftest.spectating_reftest")
+local messaging_test = require("bancho.reftest.messaging_reftest")
+local http_test = require("bancho.reftest.http_reftest")
+local web_test = require("bancho.reftest.web_reftest")
 
 -- ============================================================================
 -- Server runner
@@ -99,6 +100,11 @@ local function run_tests_for_server(srv)
 	-- HTTP and web tests (pass MD5 hash for auth).
 	http_test.run(srv, u1, reftest.md5.sumhexa(p1))
 	web_test.run(srv)
+
+	-- Score submission test (needs token from login).
+	if c1 then
+		score_test.run(srv, u1, reftest.md5.sumhexa(p1))
+	end
 end
 
 -- ============================================================================

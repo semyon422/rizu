@@ -3,5 +3,6 @@ return {
 	types = {
 		pp = "number",
 		acc = "number",
+		perfect = "boolean",
 	},
 }
