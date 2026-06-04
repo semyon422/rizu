@@ -36,15 +36,18 @@ function Anchor:measure()
 	self.width, self.height = total_w, total_h
 end
 
-function Anchor:grow(_, _)
+function Anchor:grow(available_w, available_h)
+	self.available_w = available_w
+	self.available_h = available_h
+
 	for _, v in ipairs(self.nodes) do
 		v:grow(self.width, self.height)
 	end
 end
 
 function Anchor:arrange()
-	local x = self.x + self.layout_x + (self.parent.width - self.width) * self.pivot[1]
-	local y = self.y + self.layout_y + (self.parent.height - self.height) * self.pivot[2]
+	local x = self.x + self.layout_x + (self.available_w - self.width) * self.pivot[1]
+	local y = self.y + self.layout_y + (self.available_h - self.height) * self.pivot[2]
 
 	for _, v in ipairs(self.views) do
 		v.box.x = x

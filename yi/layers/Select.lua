@@ -55,7 +55,7 @@ function Select:new(yi)
 					color = Colors.select_side_panel_bg
 				}),
 				S.Stack({
-					padding = {0, 10, 0, 0},
+					padding = {0, 10, 10, 0},
 					S.Track({
 						space = {"-", "-", "-"},
 						direction = "column",
@@ -63,6 +63,10 @@ function Select:new(yi)
 						align = 0.5,
 						IconButton(yi.resources, yi.resources.quads.icon_music),
 						IconButton(yi.resources, yi.resources.quads.icon_folder),
+						IconButton(yi.resources, yi.resources.quads.icon_download),
+					}),
+					S.Anchor({
+						pivot = {0.5, 1},
 						IconButton(yi.resources, yi.resources.quads.icon_download),
 					})
 				})

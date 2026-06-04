@@ -2,7 +2,7 @@ local Node = require("gui.composition.Node")
 
 ---@class gui.Composition.Stack: gui.Composition.Node
 ---@operator call: gui.Composition.Stack
----@field padding [number, number, number, number] left top right bottom
+---@field padding [number, number, number, number] left top bottom right
 local Stack = Node + {}
 
 function Stack:applyParams(t)
