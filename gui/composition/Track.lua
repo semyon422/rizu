@@ -77,7 +77,14 @@ function Track:applyParams(t)
 	self.direction = t.direction or "row"
 	self.gap = t.gap or 0
 	self.align = t.align or 0
-	assert(#self.space == (#self.views + #self.nodes), "The number of partitions doesn't match the amount of views and nodes")
+
+	local diff = #self.views + #self.nodes - #self.space
+
+	if diff then
+		for i = 1, diff do
+			table.insert(self.space, "-")
+		end
+	end
 
 	if self.direction == "column" then
 		self.getMainSize = getHeight

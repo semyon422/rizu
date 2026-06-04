@@ -57,7 +57,6 @@ function Select:new(yi)
 				S.Stack({
 					padding = {0, 10, 10, 0},
 					S.Track({
-						space = {"-", "-", "-"},
 						direction = "column",
 						gap = 10,
 						align = 0.5,
