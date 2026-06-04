@@ -481,8 +481,8 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 
 		-- Resolve username
 		local name = "unknown"
-		if score.userid and self.server.user_repo then
-			local user = self.server.user_repo:findUser(score.userid)
+		if score.user_id and self.server.user_repo then
+			local user = self.server.user_repo:findUser(score.user_id)
 			if user then
 				name = user.name or "unknown"
 			end
