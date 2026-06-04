@@ -1,6 +1,6 @@
-local View = require("ui.View")
+local View = require("gui.View")
 
----@class yi.ConfigTabButton : ui.View
+---@class yi.ConfigTabButton : gui.View
 ---@operator call: yi.ConfigTabButton
 local TabButton = View + {}
 

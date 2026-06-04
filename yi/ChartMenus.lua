@@ -2,11 +2,11 @@ local class = require("class")
 local ChartBackground = require("yi.layers.ChartBackground")
 local Select = require("yi.layers.Select")
 local Gameplay = require("yi.layers.Gameplay")
-local SpringValue = require("ui.anim.SpringValue")
+local SpringValue = require("gui.anim.SpringValue")
 
 ---@class yi.ChartMenus
 ---@operator call: yi.ChartMenus
----@field private screen_springs {[ui.Layer]: ui.anim.SpringValue}
+---@field private screen_springs {[gui.Layer]: gui.anim.SpringValue}
 local ChartMenus = class()
 
 ---@param yi yi.UserInterface

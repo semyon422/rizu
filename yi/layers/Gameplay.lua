@@ -1,9 +1,9 @@
-local Layer = require("ui.Layer")
+local Layer = require("gui.Layer")
 local SequenceView = require("sphere.views.SequenceView")
-local S = require("ui.composition.Strategies")
-local View = require("ui.View")
+local S = require("gui.composition.Strategies")
+local View = require("gui.View")
 
----@class yi.Gameplay : ui.Layer
+---@class yi.Gameplay : gui.Layer
 ---@operator call: yi.Gameplay
 local Gameplay = Layer + {}
 

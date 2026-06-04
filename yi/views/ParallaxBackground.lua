@@ -1,6 +1,6 @@
-local View = require("ui.View")
+local View = require("gui.View")
 
----@class yi.ParallaxBackground : ui.View
+---@class yi.ParallaxBackground : gui.View
 ---@overload fun(background_model: sphere.BackgroundModel): yi.ParallaxBackground
 local ParallaxBackground = View + {}
 

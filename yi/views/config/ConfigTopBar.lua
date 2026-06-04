@@ -1,8 +1,8 @@
-local Container = require("ui.Container")
+local Container = require("gui.Container")
 local TabButton = require("yi.views.config.TabButton")
 local Painter = require("yi.Painter")
 
----@class yi.ConfigTopBar : ui.Container
+---@class yi.ConfigTopBar : gui.Container
 ---@operator call: yi.ConfigTopBar
 ---@field children yi.ConfigTabButton[]
 local ConfigTopBar = Container + {}

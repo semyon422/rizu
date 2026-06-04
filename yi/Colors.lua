@@ -35,8 +35,8 @@ local Colors = {
 	select_bg_gradient = {love.math.colorFromBytes(15, 23, 42, 179)},
 	select_side_panel_bg = hex("0C0C11"),
 	select_side_panel_line = hex("464B5C"),
-	icon_button_bg = hex("1E2835")
-
+	icon_button_bg = hex("1E2835"),
+	icon_content = {1, 1, 1, 1}
 }
 
 return Colors

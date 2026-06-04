@@ -1,14 +1,14 @@
-local View = require("ui.View")
+local View = require("gui.View")
 local ConfigItem = require("yi.views.config.ConfigItem")
 local Checkbox = require("yi.views.config.Checkbox")
 local Slider = require("yi.views.config.Slider")
 local Dropdown = require("yi.views.config.Dropdown")
 local Painter = require("yi.Painter")
 local math_util = require("math_util")
-local SpringValue = require("ui.anim.SpringValue")
+local SpringValue = require("gui.anim.SpringValue")
 
 
----@class yi.ConfigList : ui.View
+---@class yi.ConfigList : gui.View
 ---@operator call: yi.ConfigList
 ---@field items yi.ConfigItem[]
 ---@field focus_index integer

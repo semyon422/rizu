@@ -1,4 +1,4 @@
-local View = require("ui.View")
+local View = require("gui.View")
 
 ---@class yi.RectangleParams
 ---@field atlas love.Image
@@ -6,7 +6,7 @@ local View = require("ui.View")
 ---@field color number[]?
 ---@field fit_box boolean
 
----@class yi.Rectangle : ui.View
+---@class yi.Rectangle : gui.View
 ---@overload fun(params: yi.RectangleParams): yi.Rectangle
 ---@field atlas love.Image
 ---@field quad love.Quad

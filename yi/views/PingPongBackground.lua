@@ -1,6 +1,6 @@
-local View = require("ui.View")
+local View = require("gui.View")
 
----@class yi.PingPongBackground : ui.View
+---@class yi.PingPongBackground : gui.View
 ---@overload fun(image: love.Image): yi.PingPongBackground
 local PingPongBackground = View + {}
 

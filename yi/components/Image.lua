@@ -1,13 +1,13 @@
-local View = require("ui.View")
+local View = require("gui.View")
 
 ---@class yi.ImageParams
 ---@field atlas love.Image
 ---@field quad love.Quad
----@field color ui.Color?
+---@field color gui.Color?
 ---@field size_scale number
 ---@field fit_box boolean
 
----@class yi.Image : ui.View
+---@class yi.Image : gui.View
 ---@operator call: yi.Image
 local Image = View + {}
 

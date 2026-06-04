@@ -1,12 +1,12 @@
-local Layer = require("ui.Layer")
-local S = require("ui.composition.Strategies")
+local Layer = require("gui.Layer")
+local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
 local ChartInfo = require("yi.views.select.ChartInfo")
 local IconButton = require("yi.views.IconButton")
 
----@class yi.Select : ui.Layer
+---@class yi.Select : gui.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
 local Select = Layer + {}
 
@@ -57,12 +57,13 @@ function Select:new(yi)
 				S.Stack({
 					padding = {0, 10, 0, 0},
 					S.Track({
-						space = {"-", "-"},
+						space = {"-", "-", "-"},
 						direction = "column",
 						gap = 10,
 						align = 0.5,
-						IconButton(yi.resources, yi.resources.quads.icon_note),
-						IconButton(yi.resources, yi.resources.quads.icon_note),
+						IconButton(yi.resources, yi.resources.quads.icon_music),
+						IconButton(yi.resources, yi.resources.quads.icon_folder),
+						IconButton(yi.resources, yi.resources.quads.icon_download),
 					})
 				})
 			})

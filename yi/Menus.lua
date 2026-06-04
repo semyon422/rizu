@@ -1,13 +1,13 @@
 local SkyBackground = require("yi.layers.SkyBackground")
 local MainMenu = require("yi.layers.MainMenu")
 local Config = require("yi.layers.Config")
-local SpringValue = require("ui.anim.SpringValue")
+local SpringValue = require("gui.anim.SpringValue")
 
 local class = require("class")
 
 ---@class yi.Menus
 ---@overload fun(yi: yi.UserInterface, w: number, h: number): yi.Menus
----@field private screen_springs {[ui.Layer]: ui.anim.SpringValue}
+---@field private screen_springs {[gui.Layer]: gui.anim.SpringValue}
 local Menus = class()
 
 ---@param yi yi.UserInterface

@@ -1,7 +1,7 @@
-local View = require("ui.View")
+local View = require("gui.View")
 local Colors = require("yi.Colors")
 
----@class yi.ChartInfo: ui.View
+---@class yi.ChartInfo: gui.View
 ---@operator call: yi.ChartInfo
 local ChartInfo = View + {}
 

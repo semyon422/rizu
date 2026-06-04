@@ -1,9 +1,9 @@
-local Layer = require("ui.Layer")
-local S = require("ui.composition.Strategies")
+local Layer = require("gui.Layer")
+local S = require("gui.composition.Strategies")
 local PingPongBackground = require("yi.views.PingPongBackground")
 local CodeDecoration = require("yi.views.CodeDecoration")
 
----@class yi.MenuBackground : ui.Layer
+---@class yi.MenuBackground : gui.Layer
 ---@operator call: yi.MenuBackground
 local SkyBackground = Layer + {}
 

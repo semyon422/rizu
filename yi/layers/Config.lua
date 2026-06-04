@@ -1,4 +1,4 @@
-local Layer = require("ui.Layer")
+local Layer = require("gui.Layer")
 local SettingsSchema = require("rizu.config.schemas.Settings")
 
 local Title = require("yi.views.config.Title")
@@ -10,9 +10,9 @@ local Dropdown = require("yi.views.config.Dropdown")
 
 local lang = require("yi.lang.en")
 
-local S = require("ui.composition.Strategies")
+local S = require("gui.composition.Strategies")
 
----@class yi.Config : ui.Layer
+---@class yi.Config : gui.Layer
 ---@operator call: yi.Config
 local Config = Layer + {}
 

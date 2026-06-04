@@ -1,7 +1,7 @@
-local View = require("ui.View")
+local View = require("gui.View")
 local Colors = require("yi.Colors")
 
----@class yi.MainMenuWave : ui.View
+---@class yi.MainMenuWave : gui.View
 ---@operator call: yi.MainMenuWave
 local MainMenuWave = View + {}
 

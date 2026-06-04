@@ -1,13 +1,13 @@
-local View = require("ui.View")
+local View = require("gui.View")
 
 ---@class yi.LabelParams
 ---@field resources yi.Resources
 ---@field font_name yi.FontName
 ---@field font_size integer
 ---@field text string
----@field color ui.Color
+---@field color gui.Color
 
----@class yi.Label : ui.View
+---@class yi.Label : gui.View
 ---@operator call: yi.Label
 local Label = View + {}
 

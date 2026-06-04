@@ -1,7 +1,7 @@
-local View = require("ui.View")
+local View = require("gui.View")
 local Colors = require("yi.Colors")
 
----@class yi.views.IconButton : ui.View
+---@class yi.views.IconButton : gui.View
 ---@operator call: yi.views.IconButton
 local IconButton = View + {}
 

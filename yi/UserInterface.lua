@@ -1,5 +1,5 @@
 local IUserInterface = require("sphere.IUserInterface")
-local Inputs = require("ui.input.Inputs")
+local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
 local Menus = require("yi.Menus")
 local ChartMenus = require("yi.ChartMenus")
@@ -7,7 +7,7 @@ local SettingsScheme = require("rizu.config.schemas.Settings")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
----@field modifiers ui.ModifierKeys
+---@field modifiers gui.ModifierKeys
 ---@field current_screen string?
 ---@field previous_screen string?
 local UserInterface = IUserInterface + {}

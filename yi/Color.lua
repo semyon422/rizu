@@ -12,20 +12,20 @@ local function clamp01(value)
 	return value
 end
 
----@param out ui.Color
+---@param out gui.Color
 ---@param r number
 ---@param g number
 ---@param b number
 ---@param a number
----@return ui.Color
+---@return gui.Color
 function Color.set(out, r, g, b, a)
 	out[1], out[2], out[3], out[4] = r, g, b, a
 	return out
 end
 
----@param out ui.Color
----@param source ui.Color
----@return ui.Color
+---@param out gui.Color
+---@param source gui.Color
+---@return gui.Color
 function Color.copy_to(out, source)
 	out[1] = source[1]
 	out[2] = source[2]
@@ -34,11 +34,11 @@ function Color.copy_to(out, source)
 	return out
 end
 
----@param out ui.Color
----@param source ui.Color
+---@param out gui.Color
+---@param source gui.Color
 ---@param rgb_scale number
 ---@param alpha_scale number
----@return ui.Color
+---@return gui.Color
 function Color.scale_to(out, source, rgb_scale, alpha_scale)
 	out[1] = clamp01(source[1] * rgb_scale)
 	out[2] = clamp01(source[2] * rgb_scale)
@@ -47,10 +47,10 @@ function Color.scale_to(out, source, rgb_scale, alpha_scale)
 	return out
 end
 
----@param out ui.Color
----@param source ui.Color
+---@param out gui.Color
+---@param source gui.Color
 ---@param alpha_scale number
----@return ui.Color
+---@return gui.Color
 function Color.scale_alpha_to(out, source, alpha_scale)
 	out[1] = source[1]
 	out[2] = source[2]
@@ -59,11 +59,11 @@ function Color.scale_alpha_to(out, source, alpha_scale)
 	return out
 end
 
----@param out ui.Color
----@param source ui.Color
+---@param out gui.Color
+---@param source gui.Color
 ---@param factor number
 ---@param alpha_boost number
----@return ui.Color
+---@return gui.Color
 function Color.brighten_to(out, source, factor, alpha_boost)
 	out[1] = clamp01(source[1] * factor)
 	out[2] = clamp01(source[2] * factor)
@@ -72,11 +72,11 @@ function Color.brighten_to(out, source, factor, alpha_boost)
 	return out
 end
 
----@param out ui.Color
----@param a ui.Color
----@param b ui.Color
+---@param out gui.Color
+---@param a gui.Color
+---@param b gui.Color
 ---@param t number
----@return ui.Color
+---@return gui.Color
 function Color.mix_to(out, a, b, t)
 	local aa = a[4] or 1
 	local ba = b[4] or 1
@@ -87,7 +87,7 @@ function Color.mix_to(out, a, b, t)
 	return out
 end
 
----@param color ui.Color
+---@param color gui.Color
 function Color.apply(color)
 	love.graphics.setColor(color[1], color[2], color[3], color[4] or 1)
 end

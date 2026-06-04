@@ -16,12 +16,12 @@ function UIFactory:new(resources)
 	self.quads = assert(resources.quads)
 end
 
----@generic T: ui.View
+---@generic T: gui.View
 ---@param view T
 ---@param params table
 ---@return T
 local function apply_view_params(view, params)
-	---@cast view ui.View
+	---@cast view gui.View
 	if params.x then
 		view.x = params.x
 	end

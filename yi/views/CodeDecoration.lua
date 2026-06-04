@@ -1,7 +1,7 @@
-local View = require("ui.View")
+local View = require("gui.View")
 local Path = require("aqua.Path")
 
----@class yi.CodeDecoration : ui.View
+---@class yi.CodeDecoration : gui.View
 ---@overload fun(resources: yi.Resources): yi.CodeDecoration
 local CodeDecoration = View + {}
 

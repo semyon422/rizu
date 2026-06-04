@@ -1,8 +1,8 @@
-local View = require("ui.View")
+local View = require("gui.View")
 local Colors = require("yi.Colors")
 local Painter = require("yi.Painter")
 
----@class yi.ConfigTitle : ui.View
+---@class yi.ConfigTitle : gui.View
 ---@operator call: yi.ConfigTitle
 local Title = View + {}
 

@@ -1,9 +1,9 @@
-local Layer = require("ui.Layer")
+local Layer = require("gui.Layer")
 local UIFactory = require("yi.UIFactory")
-local S = require("ui.composition.Strategies")
+local S = require("gui.composition.Strategies")
 local MainMenuWave = require("yi.views.MainMenuWave")
 
----@class yi.MainMenu : ui.Layer
+---@class yi.MainMenu : gui.Layer
 ---@operator call: yi.MainMenu
 local MainMenu = Layer + {}
 
