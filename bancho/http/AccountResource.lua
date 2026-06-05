@@ -73,10 +73,9 @@ function AccountResource:registerAccount(req, res, ctx)
 	-- Extract form fields from multipart
 	local fields = {}
 	multipart:receive_preamble()
-	local headers, err = multipart:receive()
+	local headers, err = multipart:receive_headers()
 	while headers and err ~= "no parts" do
-		local ExtendedSocket = require("web.socket.ExtendedSocket")
-		local part_data = ExtendedSocket(multipart.bsoc):receive("*a")
+		local part_data = multipart:receive("*a")
 		if part_data then
 			local disp = headers:get("Content-Disposition") or ""
 			local field_name = disp:match('name="([^"]+)"')
@@ -84,7 +83,7 @@ function AccountResource:registerAccount(req, res, ctx)
 				fields[field_name] = part_data
 			end
 		end
-		headers, err = multipart:receive()
+		headers, err = multipart:receive_headers()
 	end
 
 	local username = fields["user[username]"] or ""

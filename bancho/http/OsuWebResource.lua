@@ -5,7 +5,6 @@
 
 local IResource = require("web.framework.IResource")
 local http_util = require("web.http.util")
-local ExtendedSocket = require("web.socket.ExtendedSocket")
 local json = require("web.json")
 local ScoreCrypto = require("bancho.crypto.ScoreCrypto")
 local Score = require("bancho.model.Score")
@@ -206,9 +205,9 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 
 	multipart:receive_preamble()
 
-	local headers, err = multipart:receive()
+	local headers, err = multipart:receive_headers()
 	while headers and err ~= "no parts" do
-		local part_data = ExtendedSocket(multipart.bsoc):receive("*a")
+		local part_data = multipart:receive("*a")
 		if part_data then
 			-- Extract field name from Content-Disposition
 			local disp = headers:get("Content-Disposition") or ""
@@ -223,7 +222,7 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 			end
 		end
 
-		headers, err = multipart:receive()
+		headers, err = multipart:receive_headers()
 	end
 
 	-- Extract score data and replay
@@ -305,9 +304,9 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 
 	multipart:receive_preamble()
 
-	local headers, err = multipart:receive()
+	local headers, err = multipart:receive_headers()
 	while headers and err ~= "no parts" do
-		local part_data = ExtendedSocket(multipart.bsoc):receive("*a")
+		local part_data = multipart:receive("*a")
 		if part_data then
 			local disp = headers:get("Content-Disposition") or ""
 			local field_name = disp:match('name="([^"]+)"')
@@ -320,7 +319,7 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 			end
 		end
 
-		headers, err = multipart:receive()
+		headers, err = multipart:receive_headers()
 	end
 
 	-- Extract score data and replay
@@ -792,7 +791,7 @@ function OsuWebResource:osuScreenshot(req, res, ctx)
 	multipart:receive_preamble()
 
 	-- Read part headers
-	local headers, err = multipart:receive()
+	local headers, err = multipart:receive_headers()
 	if not headers then
 		res.status = 400
 		res:send(err or "invalid part")
@@ -800,7 +799,7 @@ function OsuWebResource:osuScreenshot(req, res, ctx)
 	end
 
 	-- Read the image data
-	local image_data = ExtendedSocket(multipart.bsoc):receive("*a") -- max 1MB
+	local image_data = multipart:receive("*a") -- max 1MB
 	if not image_data then
 		res:send("")
 		return
