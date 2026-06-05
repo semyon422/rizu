@@ -29,7 +29,13 @@ local Channel = class()
 
 function Channel:new(name, topic, read_priv, write_priv, auto_join, instance)
 	self.real_name = name
-	self.name = name
+	if name:sub(1, 6) == "#spec_" then
+		self.name = "#spectator"
+	elseif name:sub(1, 7) == "#multi_" then
+		self.name = "#multiplayer"
+	else
+		self.name = name
+	end
 	self.topic = topic
 	self.players = {}
 	self.read_priv = read_priv or Privileges.UNRESTRICTED

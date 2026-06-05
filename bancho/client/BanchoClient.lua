@@ -26,6 +26,7 @@ local ClientConfig = require("bancho.client.ClientConfig")
 local HttpTransport = require("bancho.client.HttpTransport")
 local Binary = require("bancho.protocol.Binary")
 local PacketWriter = require("bancho.protocol.PacketWriter")
+local ComplexTypes = require("bancho.protocol.ComplexTypes")
 local ClientPackets = require("bancho.protocol.ClientPackets")
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local SlotStatus = require("bancho.constants.SlotStatus")
@@ -111,10 +112,13 @@ end
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
 function BanchoClient:send_message(recipient, message)
-	local w = PacketWriter()
-	w:writeString(recipient)
-	w:writeString(message)
-	return self:send(self:build_packet(ClientPackets.SEND_PUBLIC_MESSAGE, w.body))
+	local body = ComplexTypes.writeMessage({
+		sender = self.config.username or "",
+		text = message,
+		recipient = recipient,
+		sender_id = self.user_id or 0,
+	})
+	return self:send(self:build_packet(ClientPackets.SEND_PUBLIC_MESSAGE, body))
 end
 
 --- Send a private message to a user.
@@ -123,10 +127,13 @@ end
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
 function BanchoClient:send_private_message(target, message)
-	local w = PacketWriter()
-	w:writeString(target)
-	w:writeString(message)
-	return self:send(self:build_packet(ClientPackets.SEND_PRIVATE_MESSAGE, w.body))
+	local body = ComplexTypes.writeMessage({
+		sender = self.config.username or "",
+		text = message,
+		recipient = target,
+		sender_id = self.user_id or 0,
+	})
+	return self:send(self:build_packet(ClientPackets.SEND_PRIVATE_MESSAGE, body))
 end
 
 --- Join a chat channel.
@@ -264,9 +271,13 @@ end
 ---@return string? error
 function BanchoClient:set_away_message(message)
 	message = message or ""
-	local w = PacketWriter()
-	w:writeString(message)
-	return self:send(self:build_packet(ClientPackets.SET_AWAY_MESSAGE, w.body))
+	local body = ComplexTypes.writeMessage({
+		sender = self.config.username or "",
+		text = message,
+		recipient = "",
+		sender_id = self.user_id or 0,
+	})
+	return self:send(self:build_packet(ClientPackets.SET_AWAY_MESSAGE, body))
 end
 
 --- Request user stats for a specific user.

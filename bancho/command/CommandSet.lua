@@ -16,6 +16,7 @@ local class = require("class")
 ---@field trigger string command trigger used
 ---@field args string[] parsed arguments
 ---@field recipient bancho.model.Channel|bancho.model.Player channel or player being messaged
+---@field server? bancho.server.BanchoServer
 
 --- Command set for grouped subcommands (e.g. `mp_*`).
 ---@class bancho.command.CommandSet

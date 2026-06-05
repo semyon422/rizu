@@ -1,5 +1,7 @@
 --- User repository backed by SQLite.
 
+local Privileges = require("bancho.constants.Privileges")
+
 local class = require("class")
 
 ---@class bancho.UserRepo
@@ -62,6 +64,7 @@ function UserRepo:createUser(name, email, pw_bcrypt, country)
 		name = name,
 		email = email,
 		pw_bcrypt = pw_bcrypt,
+		priv = Privileges.UNRESTRICTED,
 		country_acronym = country or "",
 		country_code = country or "",
 	})

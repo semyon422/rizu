@@ -60,18 +60,15 @@ function JoinMatch:handle(server, player, data)
 		return
 	end
 
+	-- Restore match chat channel when loading from dict.
+	if not match.chat then
+		match.chat = server.channels:get("#multi_" .. match.id)
+	end
+
 	-- Add player to match
 	if not server.match_manager:addPlayer(match, player) then
 		player:enqueue(ServerPackets.matchJoinFail())
 		return
-	end
-
-	-- Add player to match chat channel (match.chat may be nil if loaded from dict)
-	if not match.chat then
-		match.chat = server.channels:get("#multi_" .. match.id)
-	end
-	if match.chat then
-		match.chat:add(player)
 	end
 
 	-- Set player's match reference

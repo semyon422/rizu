@@ -18,10 +18,7 @@ local SendPublicMessage = IPacketHandler + {}
 
 ---@return bancho.protocol.Message
 function SendPublicMessage:parse(reader, bodyLen)
-	return {
-		recipient = reader:readString(),
-		text = reader:readString(),
-	}
+	return ComplexTypes.readMessage(reader)
 end
 
 ---@param server bancho.server.BanchoServer
@@ -55,6 +52,9 @@ function SendPublicMessage:handle(server, player, data)
 	elseif recipient == "#multiplayer" then
 		-- Multiplayer match channel
 		if not player.match then return end
+		if not player.match.chat then
+			player.match.chat = server.channels:get("#multi_" .. player.match.id)
+		end
 		target_channel = player.match.chat
 	else
 		target_channel = server.channels:get(recipient)
@@ -65,7 +65,7 @@ function SendPublicMessage:handle(server, player, data)
 	if not target_channel:canWrite(player.priv) then return end
 
 	-- Check for command
-	local result = server.commands:dispatch(player, target_channel, text)
+	local result = server.commands:dispatch(player, target_channel, text, server)
 	if result then
 		-- Command executed
 		if result.response then

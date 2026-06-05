@@ -376,19 +376,38 @@ function test.match_chat(t)
 	local pkts_a, _ = client_a:create_match("Chat Test", "")
 	local match_id = extract_match_id(pkts_a)
 	t:ne(match_id, nil)
+	t:ne(find_packet(pkts_a, ServerPackets.CHANNEL_JOIN_SUCCESS), nil)
 
 	-- Player B joins match
 	local pkts_b, _ = client_b:join_match(match_id)
 	t:ne(find_packet(pkts_b, ServerPackets.MATCH_JOIN_SUCCESS), nil)
+	t:ne(find_packet(pkts_b, ServerPackets.CHANNEL_JOIN_SUCCESS), nil)
 
 	-- Player A sends message in match channel
-	local channel_name = "#multi_" .. match_id
-	pkts_a, _ = client_a:send_message(channel_name, "GG in match!")
+	pkts_a, _ = client_a:send_message("#multiplayer", "GG in match!")
 
 	-- Player B should receive the message
 	pkts_b, _ = client_b:ping()
 	local msg = extract_message(pkts_b)
 	t:eq(msg, "GG in match!")
+
+	ctx:close()
+end
+
+function test.match_command_start_solo(t)
+	local ctx = E2EContext()
+	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+
+	local client_a = create_e2e_client(ctx, "PlayerA", md5.sumhexa("passA"))
+	t:eq(client_a:login().success, true)
+
+	local pkts_a, _ = client_a:create_match("Solo Start", "")
+	t:ne(find_packet(pkts_a, ServerPackets.MATCH_JOIN_SUCCESS), nil)
+
+	pkts_a, _ = client_a:send_message("#multiplayer", "!mp start")
+	t:ne(find_packet(pkts_a, ServerPackets.MATCH_START), nil)
+	local msg = extract_message(pkts_a)
+	t:eq(msg, "Good luck!")
 
 	ctx:close()
 end

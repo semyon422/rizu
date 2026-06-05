@@ -55,8 +55,9 @@ end
 ---@param player bancho.model.Player
 ---@param recipient bancho.model.Channel|bancho.model.Player
 ---@param msg string raw message text
+---@param server? bancho.server.BanchoServer
 ---@return {response: string?, executed: boolean}?
-function CommandDispatcher:dispatch(player, recipient, msg)
+function CommandDispatcher:dispatch(player, recipient, msg, server)
 	-- Check prefix
 	if msg:sub(1, #self.prefix) ~= self.prefix then return nil end
 
@@ -82,6 +83,7 @@ function CommandDispatcher:dispatch(player, recipient, msg)
 		trigger = trigger,
 		args = args,
 		recipient = recipient,
+		server = server,
 	}
 
 	-- Search flat commands

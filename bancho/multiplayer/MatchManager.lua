@@ -6,6 +6,7 @@
 local bit = require("bit")
 local Match = require("bancho.model.Match")
 local SlotStatus = require("bancho.constants.SlotStatus")
+local ServerPackets = require("bancho.protocol.ServerPackets")
 
 local class = require("class")
 
@@ -63,9 +64,19 @@ function MatchManager:addPlayer(match, player)
 	slot.player_id = player.id
 	slot.status = SlotStatus.NOT_READY
 
-	-- Add player to match chat channel for broadcasts
+	-- Add player to match chat channel and announce membership.
 	if match.chat then
 		match.chat:add(player)
+		player:enqueue(ServerPackets.channelJoin(match.chat.name))
+
+		local count = 0
+		for _ in pairs(match.chat.players) do
+			count = count + 1
+		end
+		local info = ServerPackets.channelInfo(match.chat.name, match.chat.topic, count)
+		for _, p in pairs(match.chat.players) do
+			p:enqueue(info)
+		end
 	end
 
 	return true
@@ -81,9 +92,19 @@ function MatchManager:removePlayer(match, player)
 	local slot = match.slots[slot_id]
 	slot:reset()
 
-	-- Remove player from match chat channel
-	if match.chat then
+	-- Remove player from match chat channel and announce departure.
+	if match.chat and match.chat:contains(player) then
 		match.chat:remove(player)
+		player:enqueue(ServerPackets.channelKick(match.chat.name))
+
+		local count = 0
+		for _ in pairs(match.chat.players) do
+			count = count + 1
+		end
+		local info = ServerPackets.channelInfo(match.chat.name, match.chat.topic, count)
+		for _, p in pairs(match.chat.players) do
+			p:enqueue(info)
+		end
 	end
 end
 

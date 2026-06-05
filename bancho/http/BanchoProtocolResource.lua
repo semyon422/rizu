@@ -10,6 +10,7 @@ local IResource = require("web.framework.IResource")
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local LoginHandler = require("bancho.auth.LoginHandler")
 local ClientPrivileges = require("bancho.constants.ClientPrivileges")
+local Privileges = require("bancho.constants.Privileges")
 
 ---@class bancho.http.BanchoProtocolResource: web.IResource
 ---@operator call: bancho.http.BanchoProtocolResource
@@ -334,7 +335,8 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 
 	-- Create player instance
 	local Player = require("bancho.model.Player")
-	local player = Player(user.id, login_data.username, user.priv or 0)
+	local priv = user.priv ~= 0 and user.priv or Privileges.UNRESTRICTED
+	local player = Player(user.id, login_data.username, priv)
 	player.is_online = true
 
 	-- Add player to collection
