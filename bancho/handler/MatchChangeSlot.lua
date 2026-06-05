@@ -46,8 +46,9 @@ function MatchChangeSlot:handle(server, player, data)
 	-- Update player's match reference
 	player.match = match
 
-	-- Broadcast updated match state to all players in match slots
-	match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(match)), server.players)
+	-- Broadcast updated match state
+	local match_data = server.match_manager:buildMatchData(match)
+	server.chat_manager:notifyMatchUpdate(match, match_data, server.channels, true)
 end
 
 return MatchChangeSlot

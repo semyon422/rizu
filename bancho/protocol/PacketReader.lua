@@ -48,9 +48,19 @@ function PacketReader:readString()
 	return v
 end
 
+--- Ensure there are enough bytes remaining.
+---@param needed integer
+local function checkBounds(self, needed)
+	if self.pos + needed - 1 > #self.body then
+		error(string.format("PacketReader: read past end of body (pos=%d, needed=%d, bodyLen=%d)",
+			self.pos, needed, #self.body))
+	end
+end
+
 --- Read a signed 8-bit integer.
 ---@return integer
 function PacketReader:readI8()
+	checkBounds(self, 1)
 	local v, n = Binary.readI8(self.body, self.pos)
 	self.pos = n
 	return v
@@ -59,6 +69,7 @@ end
 --- Read an unsigned 8-bit integer.
 ---@return integer
 function PacketReader:readU8()
+	checkBounds(self, 1)
 	local v, n = Binary.readU8(self.body, self.pos)
 	self.pos = n
 	return v
@@ -67,6 +78,7 @@ end
 --- Read a signed 16-bit integer.
 ---@return integer
 function PacketReader:readI16()
+	checkBounds(self, 2)
 	local v, n = Binary.readI16(self.body, self.pos)
 	self.pos = n
 	return v
@@ -75,6 +87,7 @@ end
 --- Read an unsigned 16-bit integer.
 ---@return integer
 function PacketReader:readU16()
+	checkBounds(self, 2)
 	local v, n = Binary.readU16(self.body, self.pos)
 	self.pos = n
 	return v
@@ -83,6 +96,7 @@ end
 --- Read a signed 32-bit integer.
 ---@return integer
 function PacketReader:readI32()
+	checkBounds(self, 4)
 	local v, n = Binary.readI32(self.body, self.pos)
 	self.pos = n
 	return v
@@ -91,6 +105,7 @@ end
 --- Read an unsigned 32-bit integer.
 ---@return integer
 function PacketReader:readU32()
+	checkBounds(self, 4)
 	local v, n = Binary.readU32(self.body, self.pos)
 	self.pos = n
 	return v
@@ -99,6 +114,7 @@ end
 --- Read a 32-bit float.
 ---@return number
 function PacketReader:readF32()
+	checkBounds(self, 4)
 	local v, n = Binary.readF32(self.body, self.pos)
 	self.pos = n
 	return v
@@ -107,6 +123,7 @@ end
 --- Read a 64-bit float.
 ---@return number
 function PacketReader:readF64()
+	checkBounds(self, 8)
 	local v, n = Binary.readF64(self.body, self.pos)
 	self.pos = n
 	return v

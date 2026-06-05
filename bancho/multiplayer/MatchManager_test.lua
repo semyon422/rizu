@@ -207,7 +207,7 @@ function test.build_match_data(t)
 	t:eq(data.name, m.name)
 	t:eq(#data.slot_statuses, 16)
 	t:eq(#data.slot_teams, 16)
-	t:eq(#data.slot_ids, 1) -- only 1 player
+	t:eq(#data.slot_ids, 1) -- NOT_READY is an occupied slot in Bancho's bitflag protocol
 	t:eq(data.host_id, 1)
 end
 

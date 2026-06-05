@@ -148,8 +148,8 @@ function test.match_read_basic(t)
 	w:writeI32(123) -- map_id
 	w:writeString("abc123") -- map_md5
 
-	-- 16 slot statuses (all OPEN = 0)
-	for _ = 1, 16 do w:writeI8(0) end
+	-- 16 slot statuses (all OPEN)
+	for _ = 1, 16 do w:writeI8(SlotStatus.OPEN) end
 	-- 16 slot teams (all NEUTRAL = 0)
 	for _ = 1, 16 do w:writeI8(0) end
 	-- no slot_ids (all slots empty)
@@ -173,6 +173,7 @@ function test.match_read_basic(t)
 	t:eq(#m.slot_statuses, 16)
 	t:eq(#m.slot_teams, 16)
 	t:eq(#m.slot_ids, 0)
+	t:eq(m.slot_statuses[1], SlotStatus.OPEN)
 	t:eq(m.host_id, 1)
 	t:eq(m.mode, 0)
 	t:eq(m.freemods, false)

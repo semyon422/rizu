@@ -64,6 +64,11 @@ function PacketRouter:dispatch(player, data)
 	local registry = self:getRegistry(player)
 	local reader = require("bancho.protocol.PacketReader")(data)
 
+	-- Track match creation/join within this request so we can skip
+	-- PART_MATCH if the client sends it in the same batch (osu! client
+	-- often bundles CREATE_MATCH + PART_MATCH together).
+	local just_joined_match_id = nil
+
 	while reader:hasMore() do
 		local header = reader:readHeader()
 		if not header then
@@ -75,8 +80,28 @@ function PacketRouter:dispatch(player, data)
 			-- Unknown/unhandled packet — skip its body.
 			reader:skip(header.bodyLen)
 		else
+			local bodyStart = reader.pos
 			local result = handler:parse(reader, header.bodyLen)
-			handler:handle(self._server, player, result)
+			-- Advance to the next packet boundary regardless of how many
+			-- bytes the handler actually consumed.
+			reader.pos = bodyStart + header.bodyLen
+
+			-- Skip PART_MATCH if player just created/joined a match in this request.
+			-- The client often bundles CREATE_MATCH + PART_MATCH in one request.
+			if header.id == 33 and just_joined_match_id ~= nil then
+				ngx.log(ngx.WARN, string.format(
+					"Skipping PART_MATCH: player %s just joined match %d in this request",
+					player.name, just_joined_match_id))
+			else
+				handler:handle(self._server, player, result)
+
+				-- Track match creation (31) and join (32)
+				if header.id == 31 or header.id == 32 then
+					if player.match then
+						just_joined_match_id = player.match.id
+					end
+				end
+			end
 		end
 	end
 end

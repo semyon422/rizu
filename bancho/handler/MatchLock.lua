@@ -36,11 +36,17 @@ function MatchLock:handle(server, player, data)
 	if slot.status == SlotStatus.LOCKED then
 		slot.status = SlotStatus.OPEN
 	else
+		if slot.player and slot.player.id == player.match.host_id then
+			return
+		end
+		if slot.player ~= nil or slot.player_id ~= nil then
+			slot:reset()
+		end
 		slot.status = SlotStatus.LOCKED
 	end
 
-	-- Broadcast updated match state to all players in match slots
-	player.match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(player.match)), server.players)
+	local match_data = server.match_manager:buildMatchData(player.match)
+	server.chat_manager:notifyMatchUpdate(player.match, match_data, server.channels, true)
 end
 
 return MatchLock

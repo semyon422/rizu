@@ -41,6 +41,13 @@ function JoinMatch:handle(server, player, data)
 		return
 	end
 
+	-- Already in this match — just re-send state
+	if player.match and player.match.id == match.id then
+		local match_data = server.match_manager:buildMatchData(match)
+		player:enqueue(ServerPackets.matchJoinSuccess(match_data))
+		return
+	end
+
 	-- Leave current match if in one
 	if player.match then
 		server.match_manager:removePlayer(player.match, player)
@@ -54,7 +61,10 @@ function JoinMatch:handle(server, player, data)
 	end
 
 	-- Add player to match
-	server.match_manager:addPlayer(match, player)
+	if not server.match_manager:addPlayer(match, player) then
+		player:enqueue(ServerPackets.matchJoinFail())
+		return
+	end
 
 	-- Add player to match chat channel (match.chat may be nil if loaded from dict)
 	if not match.chat then
@@ -70,6 +80,9 @@ function JoinMatch:handle(server, player, data)
 	-- Send join success
 	local match_data = server.match_manager:buildMatchData(match)
 	player:enqueue(ServerPackets.matchJoinSuccess(match_data))
+
+	-- Broadcast match state to lobby and match participants
+	server.chat_manager:notifyMatchUpdate(match, match_data, server.channels, true)
 end
 
 return JoinMatch

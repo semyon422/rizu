@@ -158,6 +158,37 @@ function ChatManager:autoJoin(player)
 	end
 end
 
+--- Broadcast match state update to match participants and lobby.
+---@param match bancho.model.Match
+---@param match_data bancho.protocol.MultiplayerMatch
+---@param channels bancho.model.ChannelCollection
+---@param lobby? boolean
+function ChatManager:notifyMatchUpdate(match, match_data, channels, lobby)
+	-- Restore match chat channel when loading matches from shared state.
+	if not match.chat then
+		match.chat = channels:get("#multi_" .. match.id)
+	end
+
+	-- Send to match chat participants (with password)
+	if match.chat then
+		local update_pw = ServerPackets.updateMatch(match_data, true)
+		for _, p in pairs(match.chat.players) do
+			p:enqueue(update_pw)
+		end
+	end
+
+	-- Send to lobby (without password)
+	if lobby ~= false then
+		local lobby_ch = channels:get("#lobby")
+		if lobby_ch then
+			local update_no_pw = ServerPackets.updateMatch(match_data, false)
+			for _, p in pairs(lobby_ch.players) do
+				p:enqueue(update_no_pw)
+			end
+		end
+	end
+end
+
 --- Send login messages: privileges, friends list, channel info, etc.
 ---@param player bancho.model.Player
 ---@param friends integer[] friend IDs

@@ -28,11 +28,6 @@ function PartMatch:handle(server, player, data)
 	-- Remove player from match
 	server.match_manager:removePlayer(match, player)
 
-	-- Broadcast updated match state to all remaining players + the leaving player
-	local match_data = server.match_manager:buildMatchData(match)
-	player:enqueue(ServerPackets.updateMatch(match_data))
-	match:broadcast(ServerPackets.updateMatch(match_data), server.players)
-
 	player.match = nil
 
 	-- If match has no players, dispose it
@@ -43,8 +38,24 @@ function PartMatch:handle(server, player, data)
 			break
 		end
 	end
+
 	if not has_players then
+		-- Broadcast disposal to lobby
+		local lobby_ch = server.channels:get("#lobby")
+		if lobby_ch then
+			for _, p in pairs(lobby_ch.players) do
+				p:enqueue(ServerPackets.disposeMatch(match.id))
+			end
+		end
 		server.match_manager:dispose(match.id)
+	else
+		-- Broadcast updated match state to all remaining players + the leaving player
+		local match_data = server.match_manager:buildMatchData(match)
+		player:enqueue(ServerPackets.updateMatch(match_data))
+		match:broadcast(ServerPackets.updateMatch(match_data), server.players)
+
+		-- Also notify lobby
+		server.chat_manager:notifyMatchUpdate(match, match_data, server.channels, true)
 	end
 end
 

@@ -115,7 +115,7 @@ function M.readMatch(reader)
 	---@type integer[]
 	m.slot_ids = {}
 	for _, status in ipairs(m.slot_statuses) do
-		if status ~= 0 then
+		if bit.band(status, 124) ~= 0 then
 			table.insert(m.slot_ids, reader:readI32())
 		end
 	end
@@ -273,7 +273,7 @@ function M.writeMatch(m, send_pw)
 
 	local slot_idx = 1
 	for i = 1, #m.slot_statuses do
-		if m.slot_statuses[i] ~= 0 then
+		if bit.band(m.slot_statuses[i], 124) ~= 0 then
 			w:writeI32(m.slot_ids[slot_idx] or 0)
 			slot_idx = slot_idx + 1
 		end

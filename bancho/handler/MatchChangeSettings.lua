@@ -3,6 +3,7 @@
 
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local ComplexTypes = require("bancho.protocol.ComplexTypes")
+local SlotStatus = require("bancho.constants.SlotStatus")
 local IPacketHandler = require("bancho.handler.IPacketHandler")
 
 --- Match change settings handler data.
@@ -55,8 +56,21 @@ function MatchChangeSettings:handle(server, player, data)
 		end
 	end
 
-	-- Broadcast updated match state to all players in match slots
-	match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(match)), server.players)
+	-- Preserve client-provided open/locked layout for empty slots.
+	for i = 1, 16 do
+		local idx = i - 1
+		local slot = match.slots[idx]
+		if slot.player == nil and slot.player_id == nil then
+			local status = data.slot_statuses[i]
+			if status == SlotStatus.OPEN or status == SlotStatus.LOCKED then
+				slot.status = status
+			end
+			slot.team = data.slot_teams[i]
+		end
+	end
+
+	local match_data = server.match_manager:buildMatchData(match)
+	server.chat_manager:notifyMatchUpdate(match, match_data, server.channels, true)
 end
 
 return MatchChangeSettings

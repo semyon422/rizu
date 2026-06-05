@@ -174,6 +174,26 @@ function test.multi_instance_matches(t)
 	t:eq(col1:get(5), nil)
 end
 
+function test.multi_instance_match_slots_persist(t)
+	local SlotStatus = require("bancho.constants.SlotStatus")
+
+	local dict = FakeSharedDict()
+	local col1 = MatchCollection(dict)
+	local col2 = MatchCollection(dict)
+
+	local m = Match(5, "Shared Match", "", 1, GameMode.VANILLA_OSU, Mods.NOMOD,
+		MatchConstants.MatchWinConditions.SCORE, MatchConstants.MatchTeamTypes.HEAD_TO_HEAD, false)
+	m.slots[0].status = SlotStatus.NOT_READY
+	m.slots[0].player = {id = 1}
+	col1:add(m)
+	col1:flush()
+
+	local found = col2:get(5)
+	t:ne(found, nil)
+	t:eq(found.slots[0].status, SlotStatus.NOT_READY)
+	t:eq(found.slots[0].player_id, 1)
+end
+
 --- Match getFree works with dict.
 function test.match_get_free(t)
 	local dict = FakeSharedDict()

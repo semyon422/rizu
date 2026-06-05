@@ -12,6 +12,7 @@ local class = require("class")
 ---@class bancho.model.Slot
 ---@operator call: bancho.model.Slot
 ---@field player any? player object or nil
+---@field player_id integer?
 ---@field status integer (SlotStatus.*)
 ---@field team integer (MatchConstants.MatchTeams.*)
 ---@field mods integer
@@ -30,6 +31,7 @@ local Slot = class()
 
 function Slot:new()
 	self.player = nil
+	self.player_id = nil
 	self.status = SlotStatus.OPEN
 	self.team = MatchConstants.MatchTeams.NEUTRAL
 	self.mods = Mods.NOMOD
@@ -41,12 +43,13 @@ end
 --- Check if the slot is empty.
 ---@return boolean
 function Slot:empty()
-	return self.player == nil
+	return self.player == nil and self.player_id == nil
 end
 
 --- Reset slot to open state.
 function Slot:reset()
 	self.player = nil
+	self.player_id = nil
 	self.status = SlotStatus.OPEN
 	self.team = MatchConstants.MatchTeams.NEUTRAL
 	self.mods = Mods.NOMOD
@@ -58,10 +61,12 @@ end
 ---@param other bancho.model.Slot source slot
 function Slot:copyFrom(other)
 	self.player = other.player
+	self.player_id = other.player_id or (other.player and other.player.id) or nil
 	self.status = other.status
 	self.team = other.team
 	self.mods = other.mods
 	self.loaded = other.loaded
+	self.skipped = other.skipped
 end
 
 --- Match with 16 slots, settings, and state.

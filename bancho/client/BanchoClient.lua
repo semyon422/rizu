@@ -28,6 +28,7 @@ local Binary = require("bancho.protocol.Binary")
 local PacketWriter = require("bancho.protocol.PacketWriter")
 local ClientPackets = require("bancho.protocol.ClientPackets")
 local ServerPackets = require("bancho.protocol.ServerPackets")
+local SlotStatus = require("bancho.constants.SlotStatus")
 
 local class = require("class")
 
@@ -166,7 +167,7 @@ function BanchoClient:create_match(name, password)
 	w:writeString("") -- map_name
 	w:writeI32(0) -- map_id
 	w:writeString("") -- map_md5
-	for _ = 1, 16 do w:writeI8(0) end -- slot_statuses
+	for _ = 1, 16 do w:writeI8(SlotStatus.OPEN) end -- slot_statuses
 	for _ = 1, 16 do w:writeI8(0) end -- slot_teams
 	-- No slot_ids needed (all slots empty)
 	w:writeI32(self.user_id) -- host_id

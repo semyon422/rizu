@@ -10,6 +10,7 @@ if not ngx then
 	ngx = { log = function() end, WARN = 4, ERR = 3 }
 end
 
+local bit = require("bit")
 local E2EContext = require("bancho.e2e.E2EContext")
 local FakeHttpTransport = require("bancho.e2e.FakeHttpTransport")
 local BanchoClient = require("bancho.client.BanchoClient")
@@ -167,10 +168,9 @@ function test.create_and_part_match(t)
 	local match_id = extract_match_id(pkts)
 	t:ne(match_id, nil)
 
-	-- Part match (sends UPDATE_MATCH, not DISPOSE_MATCH)
+	-- Part match as the only player; room is disposed.
 	pkts, err = client:part_match()
 	t:eq(err, nil)
-	t:ne(find_packet(pkts, ServerPackets.UPDATE_MATCH), nil)
 
 	ctx:close()
 end
@@ -212,8 +212,13 @@ function test.two_player_match(t)
 			find_packet(pkts_b, ServerPackets.MATCH_JOIN_SUCCESS).body
 		)
 	)
-	-- slot_ids should have 2 entries (host + joiner)
-	t:eq(#join_data_b.slot_ids, 2)
+	-- slot_ids are only sent for slots with status & 124 != 0.
+	-- Count occupied slots via the same bitmask Bancho uses.
+	local occupied = 0
+	for _, s in ipairs(join_data_b.slot_statuses) do
+		if bit.band(s, 124) ~= 0 then occupied = occupied + 1 end
+	end
+	t:eq(occupied, 2)
 
 	-- Player A ready
 	pkts_a, err = client_a:match_ready()
@@ -225,10 +230,9 @@ function test.two_player_match(t)
 	t:eq(err, nil)
 	t:ne(find_packet(pkts_b, ServerPackets.UPDATE_MATCH), nil)
 
-	-- Player A locks
+	-- Player A locks (test client targets host slot 0, which is ignored)
 	pkts_a, err = client_a:match_lock(true)
 	t:eq(err, nil)
-	t:ne(find_packet(pkts_a, ServerPackets.UPDATE_MATCH), nil)
 
 	-- Player A parts
 	pkts_a, err = client_a:part_match()
@@ -685,16 +689,15 @@ function test.match_ready_status(t)
 	local statuses = extract_slot_statuses(pkts_a)
 	t:ne(statuses, nil)
 
-	-- Slot 0 (host) should be READY (2), slot 1 should be NOT_READY (1)
-	-- SlotStatus: OPEN=0, NOT_READY=1, READY=2
-	t:eq(statuses[1], 2) -- Player A is ready
-	t:eq(statuses[2], 1) -- Player B is not ready
+	-- Slot 0 (host) should be READY, slot 1 should be NOT_READY.
+	t:eq(statuses[1], 8) -- Player A is ready
+	t:eq(statuses[2], 4) -- Player B is not ready
 
 	-- Player B ready
 	pkts_b, _ = client_b:match_ready()
 	statuses = extract_slot_statuses(pkts_b)
-	t:eq(statuses[1], 2) -- Player A still ready
-	t:eq(statuses[2], 2) -- Player B now ready
+	t:eq(statuses[1], 8) -- Player A still ready
+	t:eq(statuses[2], 8) -- Player B now ready
 
 	ctx:close()
 end

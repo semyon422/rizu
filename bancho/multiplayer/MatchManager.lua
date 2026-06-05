@@ -3,6 +3,7 @@
 --- Handles creating, joining, leaving, readying, starting, and completing matches.
 --- State changes are tracked; packet serialization is the caller's responsibility.
 
+local bit = require("bit")
 local Match = require("bancho.model.Match")
 local SlotStatus = require("bancho.constants.SlotStatus")
 
@@ -59,6 +60,7 @@ function MatchManager:addPlayer(match, player)
 
 	local slot = match.slots[slot_id]
 	slot.player = player
+	slot.player_id = player.id
 	slot.status = SlotStatus.NOT_READY
 
 	-- Add player to match chat channel for broadcasts
@@ -243,10 +245,12 @@ function MatchManager:buildMatchData(match)
 	for i = 0, 15 do
 		slot_statuses[#slot_statuses + 1] = match.slots[i].status
 		slot_teams[#slot_teams + 1] = match.slots[i].team
-		if match.slots[i].player ~= nil then
-			slot_ids[#slot_ids + 1] = match.slots[i].player.id
-		elseif match.slots[i].player_id ~= nil then
-			slot_ids[#slot_ids + 1] = match.slots[i].player_id
+		if bit.band(match.slots[i].status, 124) ~= 0 then
+			if match.slots[i].player ~= nil then
+				slot_ids[#slot_ids + 1] = match.slots[i].player.id
+			elseif match.slots[i].player_id ~= nil then
+				slot_ids[#slot_ids + 1] = match.slots[i].player_id
+			end
 		end
 		slot_mods[#slot_mods + 1] = match.slots[i].mods
 	end
@@ -266,7 +270,7 @@ function MatchManager:buildMatchData(match)
 		slot_ids = slot_ids,
 		slot_mods = slot_mods,
 		host_id = match.host_id,
-		mode = match.mode,
+		mode = type(match.mode) == "table" and match.mode.value or match.mode,
 		win_condition = match.win_condition,
 		team_type = match.team_type,
 		freemods = match.freemods,

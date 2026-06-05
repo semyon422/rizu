@@ -74,6 +74,14 @@ function test.match_getFree_noFreeSlots(t)
 	t:eq(m:getFree(), 0) -- index 0 is still open
 end
 
+function test.match_getFree_ignores_not_ready_without_player(t)
+	local m = Match:new(1, "Test", "", 1, GameMode.VANILLA_OSU, Mods.NOMOD,
+		MatchConstants.MatchWinConditions.SCORE, MatchConstants.MatchTeamTypes.HEAD_TO_HEAD, false)
+
+	m.slots[0].status = SlotStatus.NOT_READY
+	t:eq(m:getFree(), 1)
+end
+
 function test.match_slotReset(t)
 	local m = Match:new(1, "Test", "", 1, GameMode.VANILLA_OSU, Mods.NOMOD,
 		MatchConstants.MatchWinConditions.SCORE, MatchConstants.MatchTeamTypes.HEAD_TO_HEAD, false)
@@ -81,6 +89,7 @@ function test.match_slotReset(t)
 	local player = {id = 42}
 	local slot = m.slots[3]
 	slot.player = player
+	slot.player_id = 42
 	slot.status = SlotStatus.PLAYING
 	slot.team = MatchConstants.MatchTeams.RED
 	slot.mods = bit.bor(Mods.HIDDEN, Mods.DOUBLETIME)
@@ -89,6 +98,7 @@ function test.match_slotReset(t)
 	slot:reset()
 
 	t:assert(slot:empty())
+	t:eq(slot.player_id, nil)
 	t:eq(slot.status, SlotStatus.OPEN)
 	t:eq(slot.team, MatchConstants.MatchTeams.NEUTRAL)
 	t:eq(slot.mods, Mods.NOMOD)
