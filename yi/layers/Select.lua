@@ -6,6 +6,7 @@ local Resources = require("yi.Resources")
 
 local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
+local GameplayState = require("yi.views.info.GameplayState")
 local IconButton = require("yi.views.IconButton")
 
 ---@class yi.Select : gui.Layer
@@ -38,6 +39,8 @@ function Select:new(yi)
 
 	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
+	self.gameplay_state = GameplayState()
+	self.gameplay_state.y = -9
 
 	local button_back = function()
 		self.yi:setScreen("main_menu")
@@ -115,7 +118,8 @@ function Select:new(yi)
 							fit_box = false,
 							color = Colors.line,
 							blend_mode = "add"
-						})
+						}),
+						self.gameplay_state
 					}),
 					ui:Rectangle({
 						width = 900,
@@ -134,6 +138,8 @@ function Select:new(yi)
 	if cv then
 		self:onChartviewUpdate(cv)
 	end
+
+	self.gameplay_state:bind(self.yi.game.replayBase)
 end
 
 ---@param cv rizu.library.Chartview
