@@ -37,6 +37,14 @@ function Select:new(yi)
 	self.chart_info = ChartInfo(yi.resources)
 	self.chart_info.pivot = {0, 1}
 
+	local button_back = function()
+		self.yi:setScreen("main_menu")
+	end
+
+	local button_config = function()
+		self.yi:setScreen("config")
+	end
+
 	self.composition:setRoot(S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
@@ -63,10 +71,21 @@ function Select:new(yi)
 						IconButton(yi.resources, yi.resources.quads.icon_music),
 						IconButton(yi.resources, yi.resources.quads.icon_folder),
 						IconButton(yi.resources, yi.resources.quads.icon_download),
+						ui:Rectangle({
+							width = 64,
+							height = 2,
+							fit_box = false,
+							color = Colors.select_side_panel_line
+						}),
+						IconButton(yi.resources, yi.resources.quads.icon_gear, button_config),
+						IconButton(yi.resources, yi.resources.quads.icon_funnel),
+						IconButton(yi.resources, yi.resources.quads.icon_sparkles),
+						IconButton(yi.resources, yi.resources.quads.icon_keyboard),
+						IconButton(yi.resources, yi.resources.quads.icon_palette),
 					}),
 					S.Anchor({
 						pivot = {0.5, 1},
-						IconButton(yi.resources, yi.resources.quads.icon_download),
+						IconButton(yi.resources, yi.resources.quads.icon_chevron_left, button_back),
 					})
 				})
 			})

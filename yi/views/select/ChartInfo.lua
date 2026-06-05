@@ -11,8 +11,8 @@ local BOTTOM_VK_GAP = 45
 ---@param resources yi.Resources
 function ChartInfo:new(resources)
 	View.new(self)
-	local kf = resources:getFont("regular", 24)
-	local vf = resources:getFont("regular", 36)
+	local kf = resources:getFont("bold", 24)
+	local vf = resources:getFont("bold", 36)
 	self.keys = love.graphics.newTextBatch(kf)
 	self.values = love.graphics.newTextBatch(vf)
 	self:setHeight(vf:getHeight())
@@ -65,6 +65,7 @@ function ChartInfo:draw()
 	lg.draw(self.keys)
 	lg.setColor(Colors.text)
 	lg.draw(self.values)
+	lg.setColor(1, 1, 1, 1)
 end
 
 return ChartInfo

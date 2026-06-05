@@ -120,8 +120,8 @@ function Track:grow(available_w, available_h)
 
 		if v == "-" then
 			local s = self.getMainSize(item)
-			self.setSize(item, s, cross_size)
 			space_left = space_left - s
+			self.setSize(item, s, cross_size)
 		elseif type(v) == "number" then
 			if v >= 0 then
 				space_left = space_left - v

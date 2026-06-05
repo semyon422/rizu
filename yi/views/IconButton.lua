@@ -7,11 +7,13 @@ local IconButton = View + {}
 
 ---@param resources yi.Resources
 ---@param icon_quad love.Quad
-function IconButton:new(resources, icon_quad)
+---@param on_click function?
+function IconButton:new(resources, icon_quad, on_click)
 	View.new(self)
 	self.atlas = resources.atlas
 	self.background_quad = resources.quads.background_icon_button
 	self.icon_quad = icon_quad
+	self.on_click = on_click
 
 	local _, _, bw, bh = self.background_quad:getViewport()
 	local _, _, w, h = self.icon_quad:getViewport()
@@ -19,12 +21,27 @@ function IconButton:new(resources, icon_quad)
 
 	self.icon_x = (bw - w) / 2
 	self.icon_y = (bh - h) / 2
+
+	self.handles_mouse_input = true
+end
+
+function IconButton:onMouseClick(e)
+	if self.on_click then
+		self.on_click()
+	end
+	return true
 end
 
 function IconButton:draw()
-	love.graphics.setColor(Colors.icon_button_bg)
+	local bg = Colors.icon_button_bg
+
+	if self.mouse_over then
+		bg = Colors.icon_button_bg_hover
+	end
+
+	love.graphics.setColor(bg)
 	love.graphics.draw(self.atlas, self.background_quad)
-	love.graphics.setColor(Colors.text)
+	love.graphics.setColor(Colors.icon_content)
 	love.graphics.draw(self.atlas, self.icon_quad, self.icon_x, self.icon_y)
 end
 

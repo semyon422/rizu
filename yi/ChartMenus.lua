@@ -52,6 +52,7 @@ function ChartMenus:setScreen(screen)
 end
 
 function ChartMenus:update(dt)
+	self.current_screen:acceptInputs(self.inputs)
 	self.chart_background:update(dt)
 	self.current_screen:update(dt)
 

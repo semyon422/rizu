@@ -36,6 +36,7 @@ local Colors = {
 	select_side_panel_bg = hex("0C0C11"),
 	select_side_panel_line = hex("464B5C"),
 	icon_button_bg = hex("1E2835"),
+	icon_button_bg_hover = hex("51627A"),
 	icon_content = {1, 1, 1, 1}
 }
 

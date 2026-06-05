@@ -40,6 +40,11 @@ function Anchor:grow(available_w, available_h)
 	self.available_w = available_w
 	self.available_h = available_h
 
+	for _, v in ipairs(self.views) do
+		v.box.width = self.width
+		v.box.height = self.height
+	end
+
 	for _, v in ipairs(self.nodes) do
 		v:grow(self.width, self.height)
 	end

@@ -43,6 +43,12 @@ function Resources:load()
 	self.atlas = love.graphics.newImage(atlas_image_data)
 	self.atlas:setWrap("clamp", "clamp")
 	self.quads = quads
+
+	setmetatable(self.quads, {
+		__index = function(_self, k)
+			assert(rawget(_self, k), k)
+		end
+	})
 end
 
 ---@param dpi number
