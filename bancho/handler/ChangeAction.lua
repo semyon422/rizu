@@ -66,6 +66,9 @@ function ChangeAction:handle(server, player, data)
 	player.status.map_id = data.map_id
 
 	-- Broadcast updated stats to all online players
+	local mode = player.status.mode
+	local stats = server.stats_repo and server.stats_repo:getStats(player.id, mode) or {}
+
 	server.players:enqueue(
 		ServerPackets.userStats(
 			player.id,
@@ -73,14 +76,14 @@ function ChangeAction:handle(server, player, data)
 			player.status.info_text,
 			player.status.map_md5,
 			player.status.mods,
-			player.status.mode,
+			mode,
 			player.status.map_id,
-			(player.stats[player.status.mode] or player.stats[0]).rscore,
-			(player.stats[player.status.mode] or player.stats[0]).acc,
-			(player.stats[player.status.mode] or player.stats[0]).plays,
-			(player.stats[player.status.mode] or player.stats[0]).tscore,
-			(player.stats[player.status.mode] or player.stats[0]).rank,
-			(player.stats[player.status.mode] or player.stats[0]).pp
+			stats.rscore or 0,
+			stats.acc or 0,
+			stats.plays or 0,
+			stats.tscore or 0,
+			stats.rank or 0,
+			stats.pp or 0
 		),
 		{player}
 	)

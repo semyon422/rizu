@@ -29,14 +29,6 @@ function FriendRemove:handle(server, player, data)
 	local bot = server:getBot()
 	if bot and target.id == bot.id then return end
 
-	-- Remove from friends
-	for i = 1, #player.friends do
-		if player.friends[i] == target.id then
-			table.remove(player.friends, i)
-			break
-		end
-	end
-
 	-- Persist to database
 	if server.friends_repo then
 		server.friends_repo:removeFriend(player.id, target.id)

@@ -21,7 +21,10 @@ end
 ---@param player bancho.model.Player
 ---@param data bancho.handler.ToggleBlockNonFriendDmsData
 function ToggleBlockNonFriendDms:handle(server, player, data)
-	player.pm_private = (data.value == 1)
+	-- Persist to database
+	if server.user_repo then
+		server.user_repo:updateSessionPrefs(player.id, {pm_private = (data.value == 1)})
+	end
 end
 
 return ToggleBlockNonFriendDms

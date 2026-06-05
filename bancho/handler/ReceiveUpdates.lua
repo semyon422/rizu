@@ -24,7 +24,10 @@ function ReceiveUpdates:handle(server, player, data)
 	-- Valid values: 0 = all, 1 = mods only, 2 = friends only
 	if data.value < 0 or data.value > 2 then return end
 
-	player.pres_filter = data.value
+	-- Persist to database
+	if server.user_repo then
+		server.user_repo:updateSessionPrefs(player.id, {pres_filter = data.value})
+	end
 end
 
 return ReceiveUpdates

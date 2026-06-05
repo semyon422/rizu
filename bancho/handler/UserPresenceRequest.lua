@@ -33,16 +33,17 @@ function UserPresenceRequest:handle(server, player, data)
 			goto continue
 		end
 
+		local stats = server.stats_repo and server.stats_repo:getStats(target.id, target.status.mode) or {}
 		local pkt = ServerPackets.userPresence(
 			target.id,
 			target.name,
-			target.utc_offset,
+			0, -- utc_offset (TODO: load from DB)
 			0, -- country_code (TODO: geo)
 			target:bancho_priv(),
 			target.status.mode,
 			0, -- longitude (TODO: geo)
 			0, -- latitude (TODO: geo)
-			target.stats[target.status.mode].rank
+			stats.rank or 0
 		)
 		player:enqueue(pkt)
 

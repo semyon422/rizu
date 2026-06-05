@@ -18,13 +18,10 @@ function test.player_creation(t)
 	t:eq(p.is_online, false)
 end
 
-function test.player_stats(t)
+function test.player_no_stats(t)
 	local p = Player:new(1, "Test", Privileges.UNRESTRICTED)
-	t:eq(p.stats[0].tscore, 0)
-	t:eq(p.stats[0].pp, 0)
-	t:eq(p.stats[0].acc, 0)
-	t:eq(p.stats[0].plays, 0)
-	t:eq(p.stats[0].rank, 0)
+	-- Stats are no longer stored on Player, they come from DB via stats_repo
+	t:eq(p.stats, nil)
 end
 
 function test.player_status(t)

@@ -69,12 +69,8 @@ function test.player_serialization_roundtrip(t)
 	p.restricted = true
 	p.silenced = true
 	p.silence_end = 1000
-	p.utc_offset = 5
-	p.pm_private = true
 	p.stealth = true
 	p.in_lobby = true
-	p.away_msg = "brb"
-	p.pres_filter = 2
 
 	col:add(p)
 
@@ -85,12 +81,8 @@ function test.player_serialization_roundtrip(t)
 	t:eq(found.restricted, true)
 	t:eq(found.silenced, true)
 	t:eq(found.silence_end, 1000)
-	t:eq(found.utc_offset, 5)
-	t:eq(found.pm_private, true)
 	t:eq(found.stealth, true)
 	t:eq(found.in_lobby, true)
-	t:eq(found.away_msg, "brb")
-	t:eq(found.pres_filter, 2)
 end
 
 --- Packet queue via dict list ops.
@@ -331,12 +323,12 @@ function test.player_to_data(t)
 	t:eq(data.name, "DataUser")
 	t:eq(data.token, p.token)
 	t:eq(data.restricted, true)
-	t:eq(data.away_msg, "testing")
 	t:eq(data.spectating_id, nil)
 	t:eq(data.match_id, nil)
 	t:eq(type(data.spectators), "table")
 	t:eq(type(data.status), "table")
-	t:eq(type(data.stats), "table")
+	-- stats are no longer serialized (loaded from DB at runtime)
+	t:eq(data.stats, nil)
 end
 
 --- Match:toData() produces clean serializable data.

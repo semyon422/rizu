@@ -104,6 +104,19 @@ function PlayerCollection:add(player)
 	self._by_name[player.safe_name] = player
 end
 
+--- Update a player in the shared dict (re-serialize).
+--- Used when player stats change and other workers need to see the update.
+---@param player bancho.model.Player
+function PlayerCollection:updatePlayer(player)
+	if self._dict then
+		local encoded = stbl.encode(player:toData())
+		self._dict:set("p:" .. player.token, encoded)
+		self._dict:set("pid:" .. player.id, encoded)
+		self._dict:set("pname:" .. player.safe_name, encoded)
+		self._cache[player.id] = player
+	end
+end
+
 --- Remove a player from the collection.
 ---@param player bancho.model.Player
 function PlayerCollection:remove(player)

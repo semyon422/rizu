@@ -42,4 +42,13 @@ function FriendsRepo:removeFriend(user_id, friend_id)
 	return #result > 0
 end
 
+--- Check if a friend relation exists.
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function FriendsRepo:isFriend(user_id, friend_id)
+	local row = self.models.friends:find({user_id = user_id, friend_id = friend_id})
+	return row ~= nil
+end
+
 return FriendsRepo

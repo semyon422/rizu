@@ -45,6 +45,7 @@ end
 --- POST /users
 --- In-game account registration.
 --- Validates username, email, password and creates user + stats rows.
+--- Client sends multipart form data.
 ---@param req web.IRequest
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
@@ -61,18 +62,35 @@ function AccountResource:registerAccount(req, res, ctx)
 		return
 	end
 
-	local body, err = req:receive("*a")
-	if not body then
+	-- Parse multipart form data
+	local multipart, err = http_util.get_multipart(req, {read_all = true})
+	if not multipart then
 		res.status = 400
-		res:send(err or "failed to read body")
+		res:send(err or "invalid multipart")
 		return
 	end
 
-	local params = http_util.decode_query_string(body)
-	local username = params["user[username]"] or ""
-	local email = params["user[user_email]"] or ""
-	local password = params["user[password]"] or ""
-	local check = tonumber(params.check) or 0
+	-- Extract form fields from multipart
+	local fields = {}
+	multipart:receive_preamble()
+	local headers, err = multipart:receive()
+	while headers and err ~= "no parts" do
+		local ExtendedSocket = require("web.socket.ExtendedSocket")
+		local part_data = ExtendedSocket(multipart.bsoc):receive("*a")
+		if part_data then
+			local disp = headers:get("Content-Disposition") or ""
+			local field_name = disp:match('name="([^"]+)"')
+			if field_name then
+				fields[field_name] = part_data
+			end
+		end
+		headers, err = multipart:receive()
+	end
+
+	local username = fields["user[username]"] or ""
+	local email = fields["user[user_email]"] or ""
+	local password = fields["user[password]"] or ""
+	local check = tonumber(fields.check) or 0
 
 	-- Validate required fields
 	if not username or not email or not password then
@@ -81,51 +99,31 @@ function AccountResource:registerAccount(req, res, ctx)
 		return
 	end
 
+	-- Collect all errors (matches bancho.py approach)
+	---@type {[string]: string[]}
+	local errors = {
+		username = {},
+		user_email = {},
+		password = {},
+	}
+
 	-- Validate username: 2-15 characters, alphanumeric + space/underscore
 	if #username < 2 or #username > 15 then
-		util_send_json(res, {
-			form_error = {
-				user = {
-					username = {"Must be 2-15 characters in length."},
-				},
-			},
-		})
-		return
+		table.insert(errors.username, "Must be 2-15 characters in length.")
 	end
 
 	if username:find("_") and username:find(" ") then
-		util_send_json(res, {
-			form_error = {
-				user = {
-					username = {'May contain "_" and " ", but not both.'},
-				},
-			},
-		})
-		return
+		table.insert(errors.username, 'May contain "_" and " ", but not both.')
 	end
 
 	-- Validate email format (basic check)
 	if not email:match("^[^@%s]+@[^@%s]+%.[^@%s]+$") then
-		util_send_json(res, {
-			form_error = {
-				user = {
-					["user_email"] = {"Invalid email syntax."},
-				},
-			},
-		})
-		return
+		table.insert(errors.user_email, "Invalid email syntax.")
 	end
 
 	-- Validate password: 8-32 characters, more than 3 unique characters
 	if #password < 8 or #password > 32 then
-		util_send_json(res, {
-			form_error = {
-				user = {
-					password = {"Must be 8-32 characters in length."},
-				},
-			},
-		})
-		return
+		table.insert(errors.password, "Must be 8-32 characters in length.")
 	end
 
 	local unique_chars = {}
@@ -138,39 +136,33 @@ function AccountResource:registerAccount(req, res, ctx)
 		end
 	end
 	if unique_count <= 3 then
-		util_send_json(res, {
-			form_error = {
-				user = {
-					password = {"Must have more than 3 unique characters."},
-				},
-			},
-		})
-		return
+		table.insert(errors.password, "Must have more than 3 unique characters.")
 	end
 
-	-- Check if username/email already taken
+	-- Check if username/email already taken (only if no format errors for that field)
 	if self.server.user_repo then
-		if self.server.user_repo:findUserByName(username) then
-			util_send_json(res, {
-				form_error = {
-					user = {
-						username = {"Username already taken by another player."},
-					},
-				},
-			})
-			return
+		if #errors.username == 0 and self.server.user_repo:findUserByName(username) then
+			table.insert(errors.username, "Username already taken by another player.")
 		end
 
-		if self.server.user_repo:findByEmail(email) then
-			util_send_json(res, {
-				form_error = {
-					user = {
-						["user_email"] = {"Email already taken by another player."},
-					},
-				},
-			})
-			return
+		if #errors.user_email == 0 and self.server.user_repo:findByEmail(email) then
+			table.insert(errors.user_email, "Email already taken by another player.")
 		end
+	end
+
+	-- Send all errors at once (matches bancho.py format)
+	local has_errors = #errors.username > 0 or #errors.user_email > 0 or #errors.password > 0
+	if has_errors then
+		-- Join errors with newlines per field (matches bancho.py)
+		local joined_errors = {}
+		for field, field_errors in pairs(errors) do
+			if #field_errors > 0 then
+				joined_errors[field] = {table.concat(field_errors, "\n")}
+			end
+		end
+		res.status = 400
+		util_send_json(res, {form_error = {user = joined_errors}})
+		return
 	end
 
 	-- If check == 0, actually create the account
@@ -200,8 +192,6 @@ function AccountResource:registerAccount(req, res, ctx)
 				if self.server.stats_repo then
 					self.server.stats_repo:createAllModes(user.id)
 				end
-
-				print(string.format("User %s (%d) registered!", username, user.id))
 			else
 				res.status = 500
 				res:send("Failed to create user")

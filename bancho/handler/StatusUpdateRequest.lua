@@ -22,7 +22,7 @@ end
 ---@param data bancho.handler.StatusUpdateRequestData
 function StatusUpdateRequest:handle(server, player, data)
 	local mode = player.status.mode
-	local stats = player.stats[mode] or player.stats[0]
+	local stats = server.stats_repo and server.stats_repo:getStats(player.id, mode) or {}
 
 	player:enqueue(ServerPackets.userStats(
 		player.id,
@@ -32,12 +32,12 @@ function StatusUpdateRequest:handle(server, player, data)
 		player.status.mods,
 		mode,
 		player.status.map_id,
-		stats.rscore,
-		stats.acc,
-		stats.plays,
-		stats.tscore,
-		stats.rank,
-		stats.pp
+		stats.rscore or 0,
+		stats.acc or 0,
+		stats.plays or 0,
+		stats.tscore or 0,
+		stats.rank or 0,
+		stats.pp or 0
 	))
 end
 

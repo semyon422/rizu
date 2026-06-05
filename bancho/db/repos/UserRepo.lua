@@ -90,4 +90,33 @@ function UserRepo:findByToken(token)
 	return self.models.users:find({token = token})
 end
 
+--- Update session preference fields.
+---@param id integer
+---@param fields table Fields with utc_offset, pm_private, stealth, away_msg, pres_filter
+function UserRepo:updateSessionPrefs(id, fields)
+	local allowed = {
+		utc_offset = true,
+		pm_private = true,
+		stealth = true,
+		away_msg = true,
+		pres_filter = true,
+	}
+
+	local update = {}
+	for k, v in pairs(fields) do
+		if allowed[k] then
+			-- Convert boolean to integer for SQL
+			if type(v) == "boolean" then
+				update[k] = v and 1 or 0
+			else
+				update[k] = v
+			end
+		end
+	end
+
+	if #update > 0 then
+		self.models.users:update(update, {id = id})
+	end
+end
+
 return UserRepo

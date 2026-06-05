@@ -19,16 +19,26 @@ function StatsRepo:getStats(user_id, mode)
 	return self.models.stats:find({user_id = user_id, mode = mode})
 end
 
---- Update stats for a user in a specific mode.
+--- Update or create stats for a user in a specific mode.
+--- Reads current row, merges with new fields, then writes back.
+--- Creates the row if it doesn't exist (upsert).
 ---@param user_id integer
 ---@param mode integer
 ---@param fields table
 ---@return boolean
 function StatsRepo:updateStats(user_id, mode, fields)
-	fields.user_id = user_id
-	fields.mode = mode
-	local result = self.models.stats:update(fields, {user_id = user_id, mode = mode})
-	return #result > 0
+	local current = self.models.stats:find({user_id = user_id, mode = mode})
+	if current then
+		for k, v in pairs(fields) do
+			current[k] = v
+		end
+		self.models.stats:update(current, {user_id = user_id, mode = mode})
+	else
+		fields.user_id = user_id
+		fields.mode = mode
+		self.models.stats:insert({fields})
+	end
+	return true
 end
 
 --- Create stats rows for all modes (0=std, 1=taiko, 2=catch, 3=mania).

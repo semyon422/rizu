@@ -21,7 +21,10 @@ end
 ---@param player bancho.model.Player
 ---@param data bancho.handler.SetAwayMessageData
 function SetAwayMessage:handle(server, player, data)
-	player.away_msg = data.text
+	-- Persist to database
+	if server.user_repo then
+		server.user_repo:updateSessionPrefs(player.id, {away_msg = data.text})
+	end
 end
 
 return SetAwayMessage

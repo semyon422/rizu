@@ -326,7 +326,7 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		return
 	end
 
-	-- Check if already logged in
+	-- Remove existing player if already logged in
 	local existing = server.players:get(nil, user.id)
 	if existing then
 		server.players:remove(existing)
@@ -336,7 +336,6 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	local Player = require("bancho.model.Player")
 	local player = Player(user.id, login_data.username, user.priv or 0)
 	player.is_online = true
-	player.utc_offset = login_data.utc_offset or 0
 
 	-- Add player to collection
 	server.players:add(player)
@@ -396,16 +395,16 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	-- User presence and stats for this player
 	local mode = player.status.mode
 	local mode_val = mode.value
-	local stats = player.stats[mode_val] or player.stats[0]
+	local stats = server.stats_repo and server.stats_repo:getStats(player.id, mode_val) or {}
 	local user_data = ServerPackets.userPresence(
 		player.id,
 		player.name,
-		player.utc_offset or 0,
+		0, -- utc_offset (TODO: load from DB)
 		0, -- country code (TODO)
 		bit.bor(player:bancho_priv(), bit.lshift(mode_val, 5)),
 		0, -- longitude
 		0, -- latitude
-		stats.rank
+		stats.rank or 0
 	)
 	user_data = user_data .. ServerPackets.userStats(
 		player.id,
@@ -415,12 +414,12 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		player.status.mods,
 		mode_val,
 		player.status.map_id or 0,
-		stats.rscore,
-		stats.acc,
-		stats.plays,
-		stats.tscore,
-		stats.rank,
-		stats.pp
+		stats.rscore or 0,
+		stats.acc or 0,
+		stats.plays or 0,
+		stats.tscore or 0,
+		stats.rank or 0,
+		stats.pp or 0
 	)
 	data = data .. user_data
 
@@ -432,17 +431,17 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		if other.id ~= player.id and not player.silenced and not other.silenced then
 			local other_mode = other.status.mode
 			local other_mode_val = other_mode.value
-			local other_stats = other.stats[other_mode_val] or other.stats[0]
+			local other_stats = server.stats_repo and server.stats_repo:getStats(other.id, other_mode_val) or {}
 
 			data = data .. ServerPackets.userPresence(
 				other.id,
 				other.name,
-				other.utc_offset or 0,
+				0, -- utc_offset (TODO: load from DB)
 				0,
 				bit.bor(other:bancho_priv(), bit.lshift(other_mode_val, 5)),
 				0,
 				0,
-				other_stats.rank
+				other_stats.rank or 0
 			)
 			data = data .. ServerPackets.userStats(
 				other.id,
@@ -452,12 +451,12 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 				other.status.mods,
 				other_mode_val,
 				other.status.map_id or 0,
-				other_stats.rscore,
-				other_stats.acc,
-				other_stats.plays,
-				other_stats.tscore,
-				other_stats.rank,
-				other_stats.pp
+				other_stats.rscore or 0,
+				other_stats.acc or 0,
+				other_stats.plays or 0,
+				other_stats.tscore or 0,
+				other_stats.rank or 0,
+				other_stats.pp or 0
 			)
 		end
 	end

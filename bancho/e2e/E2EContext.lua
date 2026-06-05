@@ -64,6 +64,93 @@ function E2EContext:createResource()
 	return BanchoProtocolResource(server)
 end
 
+--- Create a fresh AccountResource backed by a new BanchoServer.
+--- Simulates a new worker handling a registration request.
+---@return bancho.http.AccountResource
+function E2EContext:createAccountResource()
+	local server = BanchoServer(self.shared_memory, {
+		db_path = ":memory:",
+		allow_registration = true,
+	})
+
+	-- Wire up repos from the shared database
+	local repos = Repos(self.db.models)
+	server:setRepos(
+		repos.user_repo,
+		repos.score_repo,
+		repos.beatmap_repo,
+		repos.friends_repo,
+		repos.favourites_repo,
+		repos.stats_repo,
+		repos.replay_repo
+	)
+
+	local AccountResource = require("bancho.http.AccountResource")
+	return AccountResource(server)
+end
+
+--- Create an HTTP request/response pair for testing with multipart body.
+--- Uses ExtendedStringSocket to simulate HTTP without real networking.
+---@param method string HTTP method (GET, POST, etc.)
+---@param path string Request path
+---@param fields table Form fields
+---@return web.IRequest request
+---@return web.IResponse response
+---@return bancho.e2e.ExtendedStringSocket read_socket socket to read response from
+function E2EContext:createMultipartRequest(method, path, fields)
+	local ExtendedStringSocket = require("bancho.e2e.ExtendedStringSocket")
+	local Request = require("web.http.Request")
+	local Response = require("web.http.Response")
+
+	-- Create socket pair
+	local req_soc = ExtendedStringSocket()
+	local res_soc = req_soc:split()
+
+	-- Build multipart body
+	-- Format must match what MultipartString expects: \r\n--boundary\r\nheaders\r\n\r\nvalue
+	local boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+	local body = ""
+	for name, value in pairs(fields) do
+		body = body .. string.format("\r\n--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s", boundary, name, value)
+	end
+	body = body .. string.format("\r\n--%s--\r\n", boundary)
+
+	-- Build request string
+	local request_lines = {
+		string.format("%s %s HTTP/1.0", method, path),
+		"Host: osu.example.com",
+		"Content-Type: multipart/form-data; boundary=" .. boundary,
+		"Content-Length: " .. tostring(#body),
+		"", -- blank line separates headers from body
+		body,
+	}
+	local request_str = table.concat(request_lines, "\r\n")
+
+	-- Send request data to res_soc so it appears in req_soc (for Request to read)
+	res_soc:send(request_str)
+
+	-- Create real Request/Response objects
+	local req = Request(req_soc, "r")
+	local res = Response(res_soc, "w")
+
+	req:receive_headers()
+
+	-- Response writes to res_soc, data appears in req_soc for us to read
+	return req, res, req_soc
+end
+
+--- Read the HTTP response body from a socket.
+---@param read_socket bancho.e2e.ExtendedStringSocket
+---@return string body
+function E2EContext:readHttpResponse(read_socket)
+	local raw = read_socket.soc.remainder or ""
+	local header_end = raw:find("\r\n\r\n")
+	if header_end then
+		return raw:sub(header_end + 4)
+	end
+	return raw
+end
+
 --- Create a user in the database for testing.
 ---@param username string
 ---@param password_md5 string

@@ -33,8 +33,7 @@ function UserStatsRequest:handle(server, player, data)
 
 		-- Send user stats
 		local mode = target.status.mode
-		local stats = target.stats[mode] or target.stats[0]
-		if not stats then goto continue end
+		local stats = server.stats_repo and server.stats_repo:getStats(target.id, mode) or {}
 		local pkt = ServerPackets.userStats(
 			target.id,
 			target.status.action,
@@ -43,12 +42,12 @@ function UserStatsRequest:handle(server, player, data)
 			target.status.mods,
 			mode,
 			target.status.map_id,
-			stats.rscore,
-			stats.acc,
-			stats.plays,
-			stats.tscore,
-			stats.rank,
-			stats.pp
+			stats.rscore or 0,
+			stats.acc or 0,
+			stats.plays or 0,
+			stats.tscore or 0,
+			stats.rank or 0,
+			stats.pp or 0
 		)
 		player:enqueue(pkt)
 

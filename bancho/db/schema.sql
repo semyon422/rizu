@@ -1,5 +1,5 @@
 -- Bancho database schema.
--- Version 1: initial schema.
+-- Version 2: added session fields to users table.
 
 -- User accounts.
 CREATE TABLE IF NOT EXISTS `users` (
@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS `users` (
 	`is_restricted` INTEGER NOT NULL DEFAULT 0,
 	`is_bot` INTEGER NOT NULL DEFAULT 0,
 	`created_at` INTEGER NOT NULL DEFAULT 0,
+	-- Session preferences (persisted from Player)
+	`utc_offset` INTEGER NOT NULL DEFAULT 0,
+	`pm_private` INTEGER NOT NULL DEFAULT 0,
+	`stealth` INTEGER NOT NULL DEFAULT 0,
+	`away_msg` TEXT NOT NULL DEFAULT '',
+	`pres_filter` INTEGER NOT NULL DEFAULT 0,
 	UNIQUE(`name`),
 	UNIQUE(`email`)
 );

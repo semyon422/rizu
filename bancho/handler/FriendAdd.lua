@@ -38,12 +38,9 @@ function FriendAdd:handle(server, player, data)
 	end
 
 	-- Add to friends if not already present
-	for _, friendId in ipairs(player.friends) do
-		if friendId == target.id then
-			return -- Already friends
-		end
+	if server.friends_repo and server.friends_repo:isFriend(player.id, target.id) then
+		return -- Already friends
 	end
-	table.insert(player.friends, target.id)
 
 	-- Persist to database
 	if server.friends_repo then
@@ -51,16 +48,17 @@ function FriendAdd:handle(server, player, data)
 	end
 
 	-- Send friend presence
+	local target_stats = server.stats_repo and server.stats_repo:getStats(target.id, target.status.mode) or {}
 	local presencePkt = ServerPackets.userPresence(
 		target.id,
 		target.name,
-		target.utc_offset,
+		0, -- utc_offset (TODO: load from DB)
 		0, -- country_code (TODO: geo)
 		target:bancho_priv(),
 		target.status.mode,
 		0, -- longitude (TODO: geo)
 		0, -- latitude (TODO: geo)
-		target.stats[target.status.mode].rank
+		target_stats.rank or 0
 	)
 	player:enqueue(presencePkt)
 end
