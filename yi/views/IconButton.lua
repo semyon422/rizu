@@ -1,5 +1,6 @@
 local View = require("gui.View")
 local Colors = require("yi.Colors")
+local Painter = require("yi.Painter")
 
 ---@class yi.views.IconButton : gui.View
 ---@operator call: yi.views.IconButton
@@ -42,6 +43,7 @@ function IconButton:draw()
 	love.graphics.setColor(bg)
 	love.graphics.draw(self.atlas, self.background_quad)
 	love.graphics.setColor(Colors.icon_content)
+	Painter.snapToPixel()
 	love.graphics.draw(self.atlas, self.icon_quad, self.icon_x, self.icon_y)
 end
 

@@ -68,7 +68,7 @@ function Select:new(yi)
 						direction = "column",
 						gap = 10,
 						align = 0.5,
-						IconButton(yi.resources, yi.resources.quads.icon_music),
+						IconButton(yi.resources, yi.resources.quads.icon_note),
 						IconButton(yi.resources, yi.resources.quads.icon_folder),
 						IconButton(yi.resources, yi.resources.quads.icon_download),
 						ui:Rectangle({
