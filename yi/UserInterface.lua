@@ -23,11 +23,9 @@ function UserInterface:new(game)
 	local ww, wh = love.graphics.getDimensions()
 	self.prev_w, self.prev_h = ww, wh
 
-	self.resources = Resources()
-	self.resources:load()
+	Resources.load()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
-
 end
 
 function UserInterface:load()

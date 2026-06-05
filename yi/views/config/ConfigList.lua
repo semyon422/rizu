@@ -6,6 +6,7 @@ local Dropdown = require("yi.views.config.Dropdown")
 local Painter = require("yi.Painter")
 local math_util = require("math_util")
 local SpringValue = require("gui.anim.SpringValue")
+local Resources = require("yi.Resources")
 
 
 ---@class yi.ConfigList : gui.View
@@ -16,19 +17,17 @@ local ConfigList = View + {}
 
 local GAP = 10
 
----@param resources yi.Resources
 ---@param schema {[string]: {[string]: {[string]: rizu.config.Setting}}}
 ---@param cfg rizu.config.Config
-function ConfigList:new(resources, schema, cfg)
+function ConfigList:new(schema, cfg)
 	View.new(self)
-	self.resources = resources
 	self.schema = schema
 	self.cfg = cfg
 	self.items = {}
 	self.focus_index = 0
 	self.scroll_spring = SpringValue()
 
-	local font = resources:getFont("regular", 36)
+	local font = Resources.getFont("regular", 36)
 	self.text_batch = love.graphics.newTextBatch(font)
 
 	self:setWidth(ConfigItem.width)
@@ -96,7 +95,7 @@ function ConfigList:update(dt)
 end
 
 function ConfigList:draw()
-	local atlas, quads = self.resources.atlas, self.resources.quads
+	local atlas, quads = Resources.atlas, Resources.quads
 	local text_batch = self.text_batch
 	local global_y = 0
 	local scroll_position = self.scroll_spring:get()

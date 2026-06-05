@@ -1,5 +1,6 @@
 local Layer = require("gui.Layer")
 local SettingsSchema = require("rizu.config.schemas.Settings")
+local Resources = require("yi.Resources")
 
 local Title = require("yi.views.config.Title")
 local ConfigList = require("yi.views.config.ConfigList")
@@ -21,15 +22,13 @@ function Config:new(yi)
 	Layer.new(self)
 	self.yi = yi
 
-	self.atlas, self.quads = yi.resources.atlas, yi.resources.quads
+	self.atlas, self.quads = Resources.atlas, Resources.quads
 	self.groups = {"all", "audio", "graphics", "gameplay", "select", "input", "offsets", "misc"}
 
 	local cfg = self.yi.game.settings_config
-	self.config_list = ConfigList(yi.resources, SettingsSchema, cfg)
-
+	self.config_list = ConfigList(SettingsSchema, cfg)
 
 	self.top_bar = ConfigTopBar(
-		yi.resources,
 		self.groups,
 		function() end
 	)

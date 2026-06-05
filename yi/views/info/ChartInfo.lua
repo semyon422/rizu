@@ -1,5 +1,6 @@
 local View = require("gui.View")
 local Colors = require("yi.Colors")
+local Resources = require("yi.Resources")
 
 ---@class yi.ChartInfo: gui.View
 ---@operator call: yi.ChartInfo
@@ -8,11 +9,10 @@ local ChartInfo = View + {}
 local BOTTOM_KV_GAP = 10
 local BOTTOM_VK_GAP = 45
 
----@param resources yi.Resources
-function ChartInfo:new(resources)
+function ChartInfo:new()
 	View.new(self)
-	local kf = resources:getFont("bold", 24)
-	local vf = resources:getFont("bold", 36)
+	local kf = Resources.getFont("bold", 24)
+	local vf = Resources.getFont("bold", 36)
 	self.keys = love.graphics.newTextBatch(kf)
 	self.values = love.graphics.newTextBatch(vf)
 	self:setHeight(vf:getHeight())

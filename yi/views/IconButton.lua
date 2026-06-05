@@ -1,18 +1,18 @@
 local View = require("gui.View")
 local Colors = require("yi.Colors")
 local Painter = require("yi.Painter")
+local Resources = require("yi.Resources")
 
 ---@class yi.views.IconButton : gui.View
 ---@operator call: yi.views.IconButton
 local IconButton = View + {}
 
----@param resources yi.Resources
 ---@param icon_quad love.Quad
 ---@param on_click function?
-function IconButton:new(resources, icon_quad, on_click)
+function IconButton:new(icon_quad, on_click)
 	View.new(self)
-	self.atlas = resources.atlas
-	self.background_quad = resources.quads.background_icon_button
+	self.atlas = Resources.atlas
+	self.background_quad = Resources.quads.background_icon_button
 	self.icon_quad = icon_quad
 	self.on_click = on_click
 

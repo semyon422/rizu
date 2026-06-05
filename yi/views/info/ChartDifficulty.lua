@@ -2,6 +2,7 @@ local View = require("gui.View")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 local Settings = require("rizu.config.schemas.Settings")
+local Resources = require("yi.Resources")
 
 ---@class yi.views.info.ChartDifficulty : gui.View
 ---@operator call: yi.views.info.ChartDifficulty
@@ -10,11 +11,10 @@ local ChartDifficulty = View + {}
 ---@param yi yi.UserInterface
 function ChartDifficulty:new(yi)
 	View.new(self)
-	local resources = yi.resources
 	self.config = yi.game.settings_config
-	self.calc_font = resources:getFont("bold", 24)
-	self.diff_font = resources:getFont("bold", 72)
-	self.patterns_font = resources:getFont("bold", 24)
+	self.calc_font = Resources.getFont("bold", 24)
+	self.diff_font = Resources.getFont("bold", 72)
+	self.patterns_font = Resources.getFont("bold", 24)
 
 	self.calculator = "MSD"
 	self.difficulty = "0.0"

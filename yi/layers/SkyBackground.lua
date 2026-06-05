@@ -12,7 +12,7 @@ function SkyBackground:new(yi)
 	Layer.new(self)
 	local image = love.graphics.newImage("resources/yi/sky_background.jpg")
 	self.background = PingPongBackground(image)
-	self.code = CodeDecoration(yi.resources)
+	self.code = CodeDecoration()
 	self.composition:setRoot(S.Stack({
 		self.background,
 		self.code,

@@ -2,6 +2,7 @@ local Layer = require("gui.Layer")
 local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
+local Resources = require("yi.Resources")
 
 local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
@@ -19,7 +20,7 @@ function Select:new(yi)
 	self.yi = yi
 	yi.game.chartSelector.onChanged:add(self) -- TODO: REMOVE ON UNLOAD!!!!!!!!!!
 
-	local ui = UIFactory(yi.resources)
+	local ui = UIFactory()
 
 	self.title = ui:Label({
 		font = "bold",
@@ -35,7 +36,7 @@ function Select:new(yi)
 		color = Colors.text_muted,
 	})
 
-	self.chart_info = ChartInfo(yi.resources)
+	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
 
 	local button_back = function()
@@ -69,24 +70,24 @@ function Select:new(yi)
 						direction = "column",
 						gap = 10,
 						align = 0.5,
-						IconButton(yi.resources, yi.resources.quads.icon_note),
-						IconButton(yi.resources, yi.resources.quads.icon_folder),
-						IconButton(yi.resources, yi.resources.quads.icon_download),
+						IconButton(Resources.quads.icon_note),
+						IconButton(Resources.quads.icon_folder),
+						IconButton(Resources.quads.icon_download),
 						ui:Rectangle({
 							width = 64,
 							height = 2,
 							fit_box = false,
 							color = Colors.line
 						}),
-						IconButton(yi.resources, yi.resources.quads.icon_gear, button_config),
-						IconButton(yi.resources, yi.resources.quads.icon_funnel),
-						IconButton(yi.resources, yi.resources.quads.icon_sparkles),
-						IconButton(yi.resources, yi.resources.quads.icon_keyboard),
-						IconButton(yi.resources, yi.resources.quads.icon_palette),
+						IconButton(Resources.quads.icon_gear, button_config),
+						IconButton(Resources.quads.icon_funnel),
+						IconButton(Resources.quads.icon_sparkles),
+						IconButton(Resources.quads.icon_keyboard),
+						IconButton(Resources.quads.icon_palette),
 					}),
 					S.Anchor({
 						pivot = {0.5, 1},
-						IconButton(yi.resources, yi.resources.quads.icon_chevron_left, button_back),
+						IconButton(Resources.quads.icon_chevron_left, button_back),
 					})
 				})
 			})

@@ -1,26 +1,25 @@
 local Container = require("gui.Container")
 local TabButton = require("yi.views.config.TabButton")
 local Painter = require("yi.Painter")
+local Resources = require("yi.Resources")
 
 ---@class yi.ConfigTopBar : gui.Container
 ---@operator call: yi.ConfigTopBar
 ---@field children yi.ConfigTabButton[]
 local ConfigTopBar = Container + {}
 
----@param resources yi.Resources
 ---@param tabs string[]
 ---@param on_tab_change fun(tab_index: integer)
-function ConfigTopBar:new(resources, tabs, on_tab_change)
+function ConfigTopBar:new(tabs, on_tab_change)
 	Container.new(self)
-	self.resources = resources
 
-	local font = self.resources:getFont("bold", 24)
+	local font = Resources.getFont("bold", 24)
 	self.text_batch = love.graphics.newTextBatch(font)
 
 	for i, v in ipairs(tabs) do
 		table.insert(
 			self.children,
-			TabButton(resources, self.text_batch, v, function(tab)
+			TabButton(self.text_batch, v, function(tab)
 				self:deactivateAllTabs()
 				tab.active = true
 				on_tab_change(i)
@@ -58,7 +57,7 @@ end
 local lg = love.graphics
 
 function ConfigTopBar:draw()
-	local atlas, quads = self.resources.atlas, self.resources.quads
+	local atlas, quads = Resources.atlas, Resources.quads
 
 	local w = self.box.width
 	local _, _, iw, ih = quads.pill_cap:getViewport()

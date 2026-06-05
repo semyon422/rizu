@@ -3,17 +3,16 @@ local class = require("class")
 local Rectangle = require("yi.components.Rectangle")
 local Image = require("yi.components.Image")
 local Label = require("yi.components.Label")
+local Resources = require("yi.Resources")
 
 ---@class yi.UIFactory
----@overload fun(resources: yi.Resources): yi.UIFactory
+---@overload fun(): yi.UIFactory
 local UIFactory = class()
 
----@param resources yi.Resources
-function UIFactory:new(resources)
-	self.resources = assert(resources)
+function UIFactory:new()
 	self.colors = require("yi.Colors")
-	self.atlas = assert(resources.atlas)
-	self.quads = assert(resources.quads)
+	self.atlas = assert(Resources.atlas)
+	self.quads = assert(Resources.quads)
 end
 
 ---@generic T: gui.View
@@ -105,7 +104,6 @@ function UIFactory:Label(params)
 	assert(params.font_size, "Font size is required")
 	params.text = params.text or ""
 	return apply_view_params(Label({
-		resources = self.resources,
 		font_name = params.font,
 		font_size = params.font_size,
 		text = params.text,

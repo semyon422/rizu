@@ -12,7 +12,7 @@ function MainMenu:new(yi)
 	Layer.new(self)
 	self.yi = yi
 
-	local ui = UIFactory(yi.resources)
+	local ui = UIFactory()
 
 	self.composition:setRoot(S.Stack({
 		MainMenuWave(),

@@ -1,11 +1,12 @@
-local class = require("class")
 local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
 local Path = require("aqua.Path")
 
 ---@class yi.Resources
----@overload fun(): yi.Resources
+---@field atlas love.Image
+---@field quads {[string]: love.Quad}
+---@field dpi number
 ---@field fonts {[string]: love.Font}
-local Resources = class()
+local Resources = {}
 
 Resources.font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
 Resources.font_paths = {
@@ -14,15 +15,13 @@ Resources.font_paths = {
 }
 
 Resources.images_dir = "resources/yi/batch"
+Resources.dpi = 1
+Resources.fonts = {}
 
 ---@alias yi.FontName string
 ---@alias yi.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
 
-function Resources:new()
-	self:setDpi(1)
-end
-
-function Resources:load()
+function Resources.load()
 	local t = {} ---@type {[string]: love.ImageData}
 	local getDirItems = love.filesystem.getDirectoryItems
 
@@ -41,11 +40,11 @@ function Resources:load()
 
 	local packer = ImageAtlasPacker()
 	local atlas_image_data, quads = packer:pack(t)
-	self.atlas = love.graphics.newImage(atlas_image_data)
-	self.atlas:setWrap("clamp", "clamp")
-	self.quads = quads
+	Resources.atlas = love.graphics.newImage(atlas_image_data)
+	Resources.atlas:setWrap("clamp", "clamp")
+	Resources.quads = quads
 
-	setmetatable(self.quads, {
+	setmetatable(Resources.quads, {
 		__index = function(_self, k)
 			assert(rawget(_self, k), k)
 		end
@@ -53,28 +52,28 @@ function Resources:load()
 end
 
 ---@param dpi number
-function Resources:setDpi(dpi)
-	self.dpi = dpi
-	self.fonts = {}
+function Resources.setDpi(dpi)
+	Resources.dpi = dpi
+	Resources.fonts = {}
 end
 
 ---@param name yi.FontName
 ---@param size yi.FontSize|integer
 ---@return love.Font
-function Resources:getFont(name, size)
+function Resources.getFont(name, size)
 	---@cast name string
 	---@cast size integer
 	local key = name .. tostring(size)
 
-	if not self.fonts[key] then
-		local path = self.font_paths[name]
-		local object = love.graphics.newFont(path, size, "normal", self.dpi)
-		local fallback = love.graphics.newFont(Resources.font_fallback_path, size, "normal", self.dpi)
+	if not Resources.fonts[key] then
+		local path = Resources.font_paths[name]
+		local object = love.graphics.newFont(path, size, "normal", Resources.dpi)
+		local fallback = love.graphics.newFont(Resources.font_fallback_path, size, "normal", Resources.dpi)
 		object:setFallbacks(fallback)
-		self.fonts[key] = object
+		Resources.fonts[key] = object
 	end
 
-	return self.fonts[key]
+	return Resources.fonts[key]
 end
 
 ---@param name yi.FontName
@@ -82,10 +81,10 @@ end
 ---@param ui_scale number?
 ---@return love.Font
 ---@return integer
-function Resources:getScaledFont(name, size, ui_scale)
+function Resources.getScaledFont(name, size, ui_scale)
 	ui_scale = ui_scale or 1
 	local scaled_size = math.max(1, math.floor(size * ui_scale))
-	return self:getFont(name, scaled_size), scaled_size
+	return Resources.getFont(name, scaled_size), scaled_size
 end
 
 return Resources

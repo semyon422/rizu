@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local Resources = require("yi.Resources")
 
 ---@class yi.ConfigTabButton : gui.View
 ---@operator call: yi.ConfigTabButton
@@ -9,13 +10,11 @@ local padding_y = 6
 local padding_x_half = padding_x / 2
 local padding_y_half = padding_y / 2
 
----@param resources yi.Resources
 ---@param text_batch love.TextBatch
 ---@param text string
 ---@param on_click fun(self: yi.ConfigTabButton)
-function TabButton:new(resources, text_batch, text, on_click)
+function TabButton:new(text_batch, text, on_click)
 	View.new(self)
-	self.resources = resources
 	self.text_batch = text_batch
 	self.text = text
 	self.on_click = on_click
@@ -37,7 +36,7 @@ local black = {0, 0, 0, 1}
 local colored_string = {white, ""}
 
 function TabButton:draw()
-	local atlas, quads = self.resources.atlas, self.resources.quads
+	local atlas, quads = Resources.atlas, Resources.quads
 	colored_string[2] = self.text
 	local _, _, iw, ih = quads.pill_cap:getViewport()
 

@@ -1,8 +1,9 @@
 local View = require("gui.View")
 local Path = require("aqua.Path")
+local Resources = require("yi.Resources")
 
 ---@class yi.CodeDecoration : gui.View
----@overload fun(resources: yi.Resources): yi.CodeDecoration
+---@overload fun(): yi.CodeDecoration
 local CodeDecoration = View + {}
 
 local skipped_directories = {
@@ -82,10 +83,8 @@ local function load_random_project_code(count)
 	return files
 end
 
----@param resources yi.Resources
-function CodeDecoration:new(resources)
+function CodeDecoration:new()
 	View.new(self)
-	self.resources = assert(resources)
 	self.time = 0
 	self.code_scroll_speed = 18
 	self.code_padding_x = 48
@@ -116,7 +115,7 @@ function CodeDecoration:rebuildCodeText()
 end
 
 function CodeDecoration:onLayoutUpdate()
-	self.code_font = self.resources:getScaledFont(self.code_font_name, self.code_font_size, self.ui_scale)
+	self.code_font = Resources.getScaledFont(self.code_font_name, self.code_font_size, self.ui_scale)
 	self:rebuildCodeText()
 end
 
