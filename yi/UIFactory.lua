@@ -78,7 +78,8 @@ function UIFactory:Rectangle(params)
 		atlas = params.atlas or self.atlas,
 		quad = params.quad or self.quads.pixel,
 		color = params.color or {1, 1, 1, 1},
-		fit_box = (params.fit_box == nil) and true or params.fit_box
+		fit_box = (params.fit_box == nil) and true or params.fit_box,
+		blend_mode = params.blend_mode or "alpha"
 	}), params)
 end
 

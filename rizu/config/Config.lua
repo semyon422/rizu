@@ -104,7 +104,7 @@ function Config:set(setting, value)
 			return
 		end
 		self.persistent_values[setting] = value
-		self.onChanged:send(setting)
+		self.onChanged:send({type = "config_commit", setting})
 	end
 end
 

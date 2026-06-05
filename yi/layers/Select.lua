@@ -3,7 +3,8 @@ local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
-local ChartInfo = require("yi.views.select.ChartInfo")
+local ChartInfo = require("yi.views.info.ChartInfo")
+local ChartDifficulty = require("yi.views.info.ChartDifficulty")
 local IconButton = require("yi.views.IconButton")
 
 ---@class yi.Select : gui.Layer
@@ -35,7 +36,7 @@ function Select:new(yi)
 	})
 
 	self.chart_info = ChartInfo(yi.resources)
-	self.chart_info.pivot = {0, 1}
+	self.chart_diff = ChartDifficulty(yi)
 
 	local button_back = function()
 		self.yi:setScreen("main_menu")
@@ -55,7 +56,7 @@ function Select:new(yi)
 			}),
 			ui:Rectangle({
 				fit_box = true,
-				color = Colors.select_side_panel_line
+				color = Colors.line
 			}),
 			S.Stack({
 				ui:Rectangle({
@@ -75,7 +76,7 @@ function Select:new(yi)
 							width = 64,
 							height = 2,
 							fit_box = false,
-							color = Colors.select_side_panel_line
+							color = Colors.line
 						}),
 						IconButton(yi.resources, yi.resources.quads.icon_gear, button_config),
 						IconButton(yi.resources, yi.resources.quads.icon_funnel),
@@ -99,7 +100,31 @@ function Select:new(yi)
 			}),
 			S.Anchor({
 				pivot = {0, 1},
-				self.chart_info
+				S.Flow({
+					direction = "column",
+					gap = 10,
+					S.Flow({
+						direction = "row",
+						gap = 20,
+						align = 1,
+						self.chart_diff,
+						ui:Rectangle({
+							width = 3,
+							height = 80,
+							fit_box = false,
+							color = Colors.line,
+							blend_mode = "add"
+						})
+					}),
+					ui:Rectangle({
+						width = 900,
+						height = 3,
+						fit_box = false,
+						color = Colors.line,
+						blend_mode = "add"
+					}),
+					self.chart_info
+				}),
 			})
 		}),
 	}))
@@ -116,6 +141,7 @@ function Select:onChartviewUpdate(cv)
 		return
 	end
 	self.chart_info:bind(cv, self.yi.game.replayBase)
+	self.chart_diff:bind(cv)
 	self.title:setText(cv.title or "")
 	self.artist:setText(cv.artist or "")
 end

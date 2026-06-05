@@ -81,7 +81,7 @@ function Track:applyParams(t)
 	local diff = #self.views + #self.nodes - #self.space
 
 	if diff then
-		for i = 1, diff do
+		for _ = 1, diff do
 			table.insert(self.space, "-")
 		end
 	end

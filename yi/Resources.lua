@@ -7,6 +7,7 @@ local Path = require("aqua.Path")
 ---@field fonts {[string]: love.Font}
 local Resources = class()
 
+Resources.font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
 Resources.font_paths = {
 	regular = "resources/fonts/Roboto/Roboto-Regular.ttf",
 	bold = "resources/fonts/Roboto/Roboto-Bold.ttf",
@@ -68,6 +69,8 @@ function Resources:getFont(name, size)
 	if not self.fonts[key] then
 		local path = self.font_paths[name]
 		local object = love.graphics.newFont(path, size, "normal", self.dpi)
+		local fallback = love.graphics.newFont(Resources.font_fallback_path, size, "normal", self.dpi)
+		object:setFallbacks(fallback)
 		self.fonts[key] = object
 	end
 
