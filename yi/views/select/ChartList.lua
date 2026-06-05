@@ -16,6 +16,7 @@ function ChartList:new(chart_selector)
 	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 24))
 	self.scroll_spring = SpringValue()
 	self.atlas, self.quads = Resources.atlas, Resources.quads
+	self.handles_mouse_input = true
 end
 
 function ChartList:load()
@@ -24,14 +25,25 @@ function ChartList:load()
 
 	self.item_height = self.height / ITEMS_ON_SCREEN
 
-	local selected_index = self.chart_selector.state:getPrimary().index
-	self.scroll_spring:snap(selected_index)
+	self.scroll_spring:snap(self:getSelectedIndex())
+end
+
+function ChartList:getSelectedIndex()
+	return self.chart_selector.state:getPrimary().index
+end
+
+function ChartList:onScroll(e)
+	if e.direction_y > 0 then
+		self.chart_selector:scrollLevel(1, -1)
+	elseif e.direction_y < 0 then
+		self.chart_selector:scrollLevel(1, 1)
+	end
 end
 
 local cs = {Colors.text, ""}
 
 function ChartList:update(dt)
-	local selected_index = self.chart_selector.state:getPrimary().index
+	local selected_index = self:getSelectedIndex()
 
 	self.scroll_spring:set(selected_index)
 	self.scroll_spring:update(dt)
