@@ -402,7 +402,8 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		player.name,
 		0, -- utc_offset (TODO: load from DB)
 		0, -- country code (TODO)
-		bit.bor(player:bancho_priv(), bit.lshift(mode_val, 5)),
+		player:bancho_priv(),
+		mode_val,
 		0, -- longitude
 		0, -- latitude
 		stats.rank or 0
@@ -440,7 +441,8 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 				other.name,
 				0, -- utc_offset (TODO: load from DB)
 				0,
-				bit.bor(other:bancho_priv(), bit.lshift(other_mode_val, 5)),
+				other:bancho_priv(),
+				other_mode_val,
 				0,
 				0,
 				other_stats.rank or 0

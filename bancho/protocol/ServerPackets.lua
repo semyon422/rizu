@@ -194,6 +194,9 @@ function M.userStats(user_id, action, info_text, map_md5, mods, mode, map_id, ra
 		ranked_score = pp
 		pp = 0
 	end
+	if accuracy > 1 then
+		accuracy = accuracy / 100
+	end
 	local w = PacketWriter()
 	w:writeI32(user_id)
 	w:writeU8(action)

@@ -94,6 +94,35 @@ local function extract_message(packets)
 	return nil
 end
 
+---@param pkt bancho.client.IncomingPacket
+---@return number accuracy
+local function extract_stats_accuracy(pkt)
+	local reader = require("bancho.protocol.PacketReader")(pkt.body)
+	reader:readI32()
+	reader:readU8()
+	reader:readString()
+	reader:readString()
+	reader:readI32()
+	reader:readU8()
+	reader:readI32()
+	reader:skip(8)
+	return reader:readF32()
+end
+
+---@param pkt bancho.client.IncomingPacket
+---@return integer global_rank
+local function extract_presence_rank(pkt)
+	local reader = require("bancho.protocol.PacketReader")(pkt.body)
+	reader:readI32()
+	reader:readString()
+	reader:readU8()
+	reader:readU8()
+	reader:readU8()
+	reader:readF32()
+	reader:readF32()
+	return reader:readI32()
+end
+
 -- ============================================================
 -- Tests
 -- ============================================================
@@ -131,6 +160,64 @@ function test.login_wrong_password(t)
 	local result = client:login()
 
 	t:eq(result.success, false)
+	ctx:close()
+end
+
+function test.login_sends_ranked_presence_and_normalized_stats(t)
+	local ctx = E2EContext()
+	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	local repos = Repos(ctx.db.models)
+	repos.stats_repo:updateStats(user_id, 0, {
+		rank = 321,
+		acc = 98.76,
+		pp = 456,
+	})
+
+	local client = create_e2e_client(ctx, "TestUser", md5.sumhexa("testpass"))
+	local result = client:login()
+	t:eq(result.success, true)
+
+	local presence_pkt = find_packet(result.packets, ServerPackets.USER_PRESENCE)
+	t:ne(presence_pkt, nil)
+	t:eq(extract_presence_rank(presence_pkt), 321)
+
+	local stats_pkt = find_packet(result.packets, ServerPackets.USER_STATS)
+	t:ne(stats_pkt, nil)
+	t:aeq(extract_stats_accuracy(stats_pkt), 0.9876, 0.0001)
+
+	ctx:close()
+end
+
+function test.change_action_sends_updated_stats_to_self(t)
+	local ctx = E2EContext()
+	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	local repos = Repos(ctx.db.models)
+	repos.stats_repo:updateStats(user_id, 3, {
+		plays = 12,
+		acc = 97.5,
+		pp = 321,
+		rank = 123,
+	})
+
+	local client = create_e2e_client(ctx, "TestUser", md5.sumhexa("testpass"))
+	local result = client:login()
+	t:eq(result.success, true)
+
+	local body = Binary.writeU8(0)
+		.. Binary.writeString("")
+		.. Binary.writeString("")
+		.. Binary.writeU32(0)
+		.. Binary.writeU8(3)
+		.. Binary.writeI32(0)
+	local packet = Binary.writeHeader(0, #body) .. body
+
+	local packets, err = client:send(packet)
+	t:eq(err, nil)
+
+	local stats_pkt = find_packet(packets, ServerPackets.USER_STATS)
+	t:ne(stats_pkt, nil)
+	t:aeq(extract_stats_accuracy(stats_pkt), 0.975, 0.0001)
+
 	ctx:close()
 end
 

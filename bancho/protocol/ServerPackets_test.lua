@@ -47,6 +47,20 @@ function test.user_stats(t)
 	t:assert(bodyLen > 0)
 end
 
+function test.user_stats_percent_accuracy(t)
+	local pkt = ServerPackets.userStats(42, 0, "", "", 0, 0, 0, 10000, 95.5, 50, 50000, 100, 250)
+	local reader = PacketReader(pkt:sub(Binary.HEADER_SIZE + 1))
+	reader:readI32()
+	reader:readU8()
+	reader:readString()
+	reader:readString()
+	reader:readI32()
+	reader:readU8()
+	reader:readI32()
+	reader:skip(8)
+	t:aeq(reader:readF32(), 0.955, 0.0001)
+end
+
 function test.user_presence(t)
 	local pkt = ServerPackets.userPresence(42, "TestUser", 5, 840, 1, 0, -73.0, 42.0, 500)
 	local id, bodyLen = Binary.readHeader(pkt, 1)

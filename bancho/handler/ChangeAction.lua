@@ -84,8 +84,7 @@ function ChangeAction:handle(server, player, data)
 			stats.tscore or 0,
 			stats.rank or 0,
 			stats.pp or 0
-		),
-		{player}
+		)
 	)
 end
 

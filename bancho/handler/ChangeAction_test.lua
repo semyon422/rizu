@@ -50,9 +50,12 @@ function test.handle_calls_fromValue(t)
 		},
 	}
 
+	local enqueue_calls = {}
 	local server = {
 		players = {
-			enqueue = function() end,
+			enqueue = function(_, packet, immune)
+				table.insert(enqueue_calls, {packet = packet, immune = immune})
+			end,
 		},
 	}
 
@@ -60,6 +63,8 @@ function test.handle_calls_fromValue(t)
 	handler:handle(server, player, data)
 	t:eq(player.status.action, 2)
 	t:eq(player.status.mode, GameMode.fromValue(0))
+	t:eq(#enqueue_calls, 1)
+	t:eq(enqueue_calls[1].immune, nil)
 end
 
 function test.handle_relax_mode(t)
