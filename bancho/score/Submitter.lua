@@ -8,6 +8,7 @@ local class = require("class")
 local Score = require("bancho.model.Score")
 local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 local RankedStatus = require("bancho.constants.RankedStatus")
+local Grade = require("bancho.constants.Grade")
 local Chart = require("bancho.score.Chart")
 
 ---@class bancho.score.ScoreSubmitter
@@ -95,7 +96,12 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	end
 
 	-- Determine submission status
-	score.status = self:calculateStatus(score.pp or 0, existing_best and existing_best.pp or 0)
+	score.status = self:calculateStatus(
+		score.pp or 0,
+		score.score or 0,
+		existing_best and existing_best.pp or 0,
+		existing_best and existing_best.score or 0
+	)
 
 	-- If not passed, set status to failed
 	if not score.passed then
@@ -140,29 +146,92 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 		end
 	end
 
-	-- Update player stats
+	-- Update player stats (always use vanilla mode 0-3)
 	local prev_stats = nil
 	local current_stats = nil
+	local vanilla_mode = score.mode % 4
 	if self.server.stats_repo then
 		-- Capture stats before update for chart comparison
-		prev_stats = self.server.stats_repo:getStats(player.id, score.mode)
+		prev_stats = self.server.stats_repo:getStats(player.id, vanilla_mode)
 
-		local stats_update = {
-			plays = (prev_stats and prev_stats.plays or 0) + 1,
-			playtime = (prev_stats and prev_stats.playtime or 0) + (tonumber(fields.st) or 0) / 1000,
-			tscore = (prev_stats and prev_stats.tscore or 0) + score.score,
-			total_hits = (prev_stats and prev_stats.total_hits or 0) + score.n300 + score.n100 + score.n50,
-		}
+		local stats_update = {}
 
-		-- Update max combo if needed
-		if score.max_combo > (prev_stats and prev_stats.max_combo or 0) then
-			stats_update.max_combo = score.max_combo
+		-- Stats updated for all submitted scores
+		stats_update.plays = (prev_stats and prev_stats.plays or 0) + 1
+		stats_update.playtime = (prev_stats and prev_stats.playtime or 0) + (tonumber(fields.st) or 0) / 1000
+		stats_update.tscore = (prev_stats and prev_stats.tscore or 0) + score.score
+		local total_hits = score.n300 + score.n100 + score.n50
+		if vanilla_mode == 1 or vanilla_mode == 3 then
+			-- taiko and mania use geki & katu for total hits
+			total_hits = total_hits + score.ngeki + score.nkatu
+		end
+		stats_update.total_hits = (prev_stats and prev_stats.total_hits or 0) + total_hits
+
+		-- Update max combo if needed (only when passed and has leaderboard)
+		if score.passed and has_leaderboard then
+			if score.max_combo > (prev_stats and prev_stats.max_combo or 0) then
+				stats_update.max_combo = score.max_combo
+			end
 		end
 
-		self.server.stats_repo:updateStats(player.id, score.mode, stats_update)
+		-- Update ranked stats only when:
+		-- 1. Score is passed
+		-- 2. Map has leaderboard (ranked, approved, or loved)
+		-- 3. Map awards ranked PP (ranked or approved only)
+		-- 4. This is a new best score
+		if score.passed and has_leaderboard and self:mapAwardsRankedPP(bmap.status or 0) and score.status == SubmissionStatus.BEST then
+			-- Update ranked score
+			local additional_rscore = score.score
+			if existing_best then
+				additional_rscore = additional_rscore - (existing_best.score or 0)
+			end
+			stats_update.rscore = (prev_stats and prev_stats.rscore or 0) + additional_rscore
+
+			-- Update grade counts
+			if score.grade.value >= Grade.A.value then
+				local grade_col = score.grade.stats_column
+				stats_update[grade_col] = (prev_stats and prev_stats[grade_col] or 0) + 1
+			end
+			if existing_best and existing_best.grade ~= nil and existing_best.grade >= Grade.A.value then
+				local prev_grade = Grade.fromValue(existing_best.grade)
+				if prev_grade and prev_grade.stats_column then
+					local prev_grade_col = prev_grade.stats_column
+					stats_update[prev_grade_col] = (prev_stats and prev_stats[prev_grade_col] or 0) - 1
+				end
+			end
+
+			-- Calculate weighted PP and accuracy from all best ranked scores
+			if self.server.score_repo then
+				local best_scores = self.server.score_repo:findBestRankedScores(player.id, vanilla_mode)
+				if #best_scores > 0 then
+					-- Weighted accuracy: sum(acc * 0.95^i) with bonus
+					local weighted_acc = 0
+					for i, row in ipairs(best_scores) do
+						weighted_acc = weighted_acc + (row.acc or 0) * (0.95 ^ (i - 1))
+					end
+					local bonus_acc = 100.0 / (20 * (1 - 0.95 ^ #best_scores))
+					stats_update.acc = (weighted_acc * bonus_acc) / 100
+
+					-- Weighted PP: sum(pp * 0.95^i) + bonus
+					local weighted_pp = 0
+					for i, row in ipairs(best_scores) do
+						weighted_pp = weighted_pp + (row.pp or 0) * (0.95 ^ (i - 1))
+					end
+					local bonus_pp = 416.6667 * (1 - 0.9994 ^ #best_scores)
+					stats_update.pp = math.floor(weighted_pp + bonus_pp)
+				end
+			end
+
+			-- Calculate global rank
+			if stats_update.pp then
+				stats_update.rank = self.server.stats_repo:getGlobalRank(player.id, vanilla_mode, stats_update.pp)
+			end
+		end
+
+		self.server.stats_repo:updateStats(player.id, vanilla_mode, stats_update)
 
 		-- Get updated stats for chart
-		current_stats = self.server.stats_repo:getStats(player.id, score.mode)
+		current_stats = self.server.stats_repo:getStats(player.id, vanilla_mode)
 	end
 
 	-- If it's a new best and map awards ranked PP, send notification
@@ -180,15 +249,25 @@ end
 
 --- Calculate the submission status for a score.
 --- Compares against existing best score on the map.
+--- When PP is 0 (e.g. osu!std not yet implemented), falls back to score comparison.
 ---@param current_pp number
+---@param current_score number
 ---@param existing_best_pp? number
+---@param existing_best_score? number
 ---@return integer submission status (SubmissionStatus.*)
-function ScoreSubmitter:calculateStatus(current_pp, existing_best_pp)
-	if current_pp > (existing_best_pp or 0) then
-		return SubmissionStatus.BEST
+function ScoreSubmitter:calculateStatus(current_pp, current_score, existing_best_pp, existing_best_score)
+	if current_pp > 0 then
+		-- PP is available, use it
+		if current_pp > (existing_best_pp or 0) then
+			return SubmissionStatus.BEST
+		end
 	else
-		return SubmissionStatus.SUBMITTED
+		-- PP not available, fall back to score comparison
+		if current_score > (existing_best_score or 0) then
+			return SubmissionStatus.BEST
+		end
 	end
+	return SubmissionStatus.SUBMITTED
 end
 
 --- Check if a map awards ranked PP.

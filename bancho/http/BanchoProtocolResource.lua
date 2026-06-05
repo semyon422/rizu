@@ -395,7 +395,8 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	-- User presence and stats for this player
 	local mode = player.status.mode
 	local mode_val = mode.value
-	local stats = server.stats_repo and server.stats_repo:getStats(player.id, mode_val) or {}
+	local vanilla_mode = mode:asVanilla()
+	local stats = server.stats_repo and server.stats_repo:getStats(player.id, vanilla_mode) or {}
 	local user_data = ServerPackets.userPresence(
 		player.id,
 		player.name,
@@ -431,7 +432,8 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 		if other.id ~= player.id and not player.silenced and not other.silenced then
 			local other_mode = other.status.mode
 			local other_mode_val = other_mode.value
-			local other_stats = server.stats_repo and server.stats_repo:getStats(other.id, other_mode_val) or {}
+			local other_vanilla_mode = other_mode:asVanilla()
+			local other_stats = server.stats_repo and server.stats_repo:getStats(other.id, other_vanilla_mode) or {}
 
 			data = data .. ServerPackets.userPresence(
 				other.id,

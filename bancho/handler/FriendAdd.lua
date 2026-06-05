@@ -48,14 +48,15 @@ function FriendAdd:handle(server, player, data)
 	end
 
 	-- Send friend presence
-	local target_stats = server.stats_repo and server.stats_repo:getStats(target.id, target.status.mode) or {}
+	local target_mode = target.status.mode:asVanilla()
+	local target_stats = server.stats_repo and server.stats_repo:getStats(target.id, target_mode) or {}
 	local presencePkt = ServerPackets.userPresence(
 		target.id,
 		target.name,
 		0, -- utc_offset (TODO: load from DB)
 		0, -- country_code (TODO: geo)
 		target:bancho_priv(),
-		target.status.mode,
+		target_mode,
 		0, -- longitude (TODO: geo)
 		0, -- latitude (TODO: geo)
 		target_stats.rank or 0

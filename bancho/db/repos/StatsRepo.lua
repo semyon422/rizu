@@ -54,4 +54,20 @@ function StatsRepo:createAllModes(user_id)
 	return true
 end
 
+--- Calculate global rank for a user in a specific mode.
+--- Rank is 1-based position among all users sorted by pp DESC.
+---@param user_id integer
+---@param mode integer vanilla mode (0-3)
+---@param pp number user's current pp
+---@return integer rank
+function StatsRepo:getGlobalRank(user_id, mode, pp)
+	local orm = self.models._orm
+	local rows = orm:query(
+		[[SELECT COUNT(*) as higher FROM stats
+		WHERE mode = ? AND pp > ?]],
+		{mode, pp}
+	)
+	return (rows[1] and rows[1].higher or 0) + 1
+end
+
 return StatsRepo

@@ -66,7 +66,7 @@ function ChangeAction:handle(server, player, data)
 	player.status.map_id = data.map_id
 
 	-- Broadcast updated stats to all online players
-	local mode = player.status.mode
+	local mode = player.status.mode:asVanilla()
 	local stats = server.stats_repo and server.stats_repo:getStats(player.id, mode) or {}
 
 	server.players:enqueue(

@@ -59,4 +59,22 @@ function ScoreRepo:findTopScores(map_md5, mode, limit)
 	})
 end
 
+--- Find all best ranked/approved scores for a user in a mode.
+--- Returns scores with status=2 (BEST) on maps with status IN (2, 3) (ranked, approved).
+--- Ordered by pp DESC for weighted pp/acc calculation.
+---@param user_id integer
+---@param mode integer vanilla mode (0-3)
+---@return table[] scores with {pp, acc} fields
+function ScoreRepo:findBestRankedScores(user_id, mode)
+	local orm = self.models._orm
+	return orm:query(
+		[[SELECT s.pp, s.acc FROM scores s
+		INNER JOIN beatmaps b ON s.map_md5 = b.md5
+		WHERE s.user_id = ? AND s.mode = ?
+		AND s.status = 2 AND b.status IN (2, 3)
+		ORDER BY s.pp DESC]],
+		{user_id, mode}
+	)
+end
+
 return ScoreRepo

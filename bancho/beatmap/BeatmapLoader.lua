@@ -24,6 +24,7 @@ end
 
 --- Load a beatmap from local .osu file or API fallback.
 --- Returns a table compatible with beatmap_repo:addBeatmap().
+--- Always queries the API for ranked status when local file is found.
 ---@param md5 string beatmap file MD5
 ---@return table? beatmap metadata table, string? error
 function BeatmapLoader:load(md5)
@@ -31,12 +32,46 @@ function BeatmapLoader:load(md5)
 	local path = CHARTS_DIR .. "/" .. md5
 	local content = self:readFile(path)
 
+	local local_data = nil
 	if content then
-		return self:parseOsu(content, md5)
+		local_data = self:parseOsu(content, md5)
 	end
 
-	-- Fallback: fetch from osu.direct API
-	return self:fetchFromApi(md5)
+	-- Always try API for ranked status and metadata
+	local api_data = nil
+	if self.api_key then
+		local ok, result = pcall(self.fetchFromApi, self, md5)
+		if ok and result then
+			api_data = result
+		end
+	end
+
+	-- Merge: prefer API data for status, use local data for computed fields
+	if api_data then
+		if local_data then
+			-- Use API status and star rating, keep local computed values
+			api_data.status = api_data.status or RankedStatus.PENDING
+			api_data.total_length = local_data.total_length
+			api_data.max_combo = local_data.max_combo
+			if local_data.diff > 0 then
+				api_data.diff = local_data.diff
+			end
+		end
+		return api_data
+	end
+
+	-- No API data, use local file with PENDING status
+	if local_data then
+		local_data.status = RankedStatus.PENDING
+		return local_data
+	end
+
+	-- Neither local file nor API data available
+	if not self.api_key then
+		return nil, "osu_api_key not configured"
+	end
+
+	return nil, "beatmap not found locally or via API"
 end
 
 --- Read a file from disk.
@@ -120,7 +155,7 @@ function BeatmapLoader:parseOsu(content, md5)
 		creator = metadata.Creator or "",
 		total_length = total_length,
 		max_combo = max_combo,
-		status = RankedStatus.PENDING,
+		status = RankedStatus.RANKED,
 		mode = mode,
 		bpm = bpm,
 		cs = cs,

@@ -623,6 +623,15 @@ function test.stats_persistence(t)
 	t:eq(db_stats.plays, 1)
 	t:eq(db_stats.tscore, score_value)
 
+	-- Verify ranked stats are updated (map is ranked, score is new best)
+	t:eq(db_stats.rscore, score_value, "rscore should equal score value for first ranked score")
+	-- Note: pp is 0 for osu!std (not yet implemented), non-zero for mania
+	t:ne(db_stats.acc, 0, "acc should be calculated")
+	t:eq(db_stats.rank, 1, "rank should be 1 for first user")
+	t:eq(db_stats.x_count, 1, "x_count should be 1 for X grade")
+	t:eq(db_stats.s_count, 0, "s_count should be 0")
+	t:eq(db_stats.a_count, 0, "a_count should be 0")
+
 	-- Now simulate a new worker: create a fresh server and verify stats are loaded from DB
 	local server2 = BanchoServer(ctx.shared_memory)
 	server2:setRepos(

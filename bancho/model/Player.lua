@@ -229,8 +229,17 @@ function Player:fromData(data, collection)
 		player.status.info_text = data.status.info_text
 		player.status.map_md5 = data.status.map_md5
 		player.status.mods = data.status.mods
-		player.status.mode = data.status.mode
 		player.status.map_id = data.status.map_id
+
+		-- Reconstruct GameMode from serialized data (metatable lost in JSON round-trip)
+		local mode_data = data.status.mode
+		if type(mode_data) == "table" and mode_data.value ~= nil then
+			player.status.mode = GameMode.fromValue(mode_data.value)
+		elseif type(mode_data) == "number" then
+			player.status.mode = GameMode.fromValue(mode_data)
+		else
+			player.status.mode = GameMode.fromValue(0)
+		end
 	end
 
 	-- Clear flag

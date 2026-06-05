@@ -9,17 +9,26 @@ local test = {}
 
 function test.calculateStatus_new_best(t)
 	local s = Submitter:new()
-	t:eq(s:calculateStatus(1000, 500), SubmissionStatus.BEST)
+	-- PP-based: current pp > existing pp
+	t:eq(s:calculateStatus(1000, 999999, 500, 500000), SubmissionStatus.BEST)
+	-- Score-based fallback: current score > existing score
+	t:eq(s:calculateStatus(0, 999999, 0, 500000), SubmissionStatus.BEST)
 end
 
 function test.calculateStatus_submitted(t)
 	local s = Submitter:new()
-	t:eq(s:calculateStatus(500, 1000), SubmissionStatus.SUBMITTED)
+	-- PP-based: current pp < existing pp
+	t:eq(s:calculateStatus(500, 500000, 1000, 999999), SubmissionStatus.SUBMITTED)
+	-- Score-based fallback: current score < existing score
+	t:eq(s:calculateStatus(0, 500000, 0, 999999), SubmissionStatus.SUBMITTED)
 end
 
 function test.calculateStatus_first_score(t)
 	local s = Submitter:new()
-	t:eq(s:calculateStatus(100, nil), SubmissionStatus.BEST)
+	-- No existing score
+	t:eq(s:calculateStatus(100, 999999, nil, nil), SubmissionStatus.BEST)
+	-- No existing score, pp=0
+	t:eq(s:calculateStatus(0, 999999, nil, nil), SubmissionStatus.BEST)
 end
 
 function test.mapAwardsRankedPP_ranked(t)

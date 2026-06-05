@@ -21,7 +21,7 @@ end
 ---@param player bancho.model.Player
 ---@param data bancho.handler.StatusUpdateRequestData
 function StatusUpdateRequest:handle(server, player, data)
-	local mode = player.status.mode
+	local mode = player.status.mode:asVanilla()
 	local stats = server.stats_repo and server.stats_repo:getStats(player.id, mode) or {}
 
 	player:enqueue(ServerPackets.userStats(
