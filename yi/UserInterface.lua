@@ -40,6 +40,8 @@ end
 
 function UserInterface:buildUI()
 	local w, h = love.graphics.getDimensions()
+	local scale = math.min(1, math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT))
+	Resources.setFontScale(scale)
 	self.menus = Menus(self, w, h)
 	self.chart_menus = ChartMenus(self, w, h)
 
@@ -82,8 +84,12 @@ function UserInterface:update(dt)
 
 	self.inputs:beginFrame(love.mouse.getPosition())
 
-	self.chart_menus:update(dt)
-	self.menus:update(dt)
+	if self.menus.visiblity:get() < 1 then
+		self.chart_menus:update(dt)
+	end
+	if self.menus:isVisible() or self.menus:hasScreen(self.current_screen) then
+		self.menus:update(dt)
+	end
 end
 
 function UserInterface:draw()

@@ -8,6 +8,7 @@ local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
 local GameplayState = require("yi.views.info.GameplayState")
 local IconButton = require("yi.views.IconButton")
+local ChartList = require("yi.views.select.ChartList")
 
 ---@class yi.Select : gui.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
@@ -41,6 +42,7 @@ function Select:new(yi)
 	self.chart_diff = ChartDifficulty(yi)
 	self.gameplay_state = GameplayState()
 	self.gameplay_state.y = -9
+	self.chart_list = ChartList(self.yi.game.chartSelector)
 
 	local button_back = function()
 		self.yi:setScreen("main_menu")
@@ -53,10 +55,13 @@ function Select:new(yi)
 	self.composition:setRoot(S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
-			ui:Image({
-				image = "select_bg_gradient",
-				fit_box = true,
-				color = Colors.select_bg_gradient
+			S.Stack({
+				ui:Image({
+					image = "select_bg_gradient",
+					fit_box = true,
+					color = Colors.select_bg_gradient
+				}),
+				self.chart_list
 			}),
 			ui:Rectangle({
 				fit_box = true,
@@ -98,7 +103,7 @@ function Select:new(yi)
 		S.Stack({
 			padding = GAP,
 			S.Column({
-				gap = -10,
+				gap = -5,
 				self.title,
 				self.artist,
 			}),
@@ -161,9 +166,9 @@ function Select:handleKeyDown(key)
 	elseif key == "c" then
 		self.yi:setScreen("config")
 	elseif key == "j" then
-		self.yi.game.chartSelector:scrollLevel(1, -1)
-	elseif key == "k" then
 		self.yi.game.chartSelector:scrollLevel(1, 1)
+	elseif key == "k" then
+		self.yi.game.chartSelector:scrollLevel(1, -1)
 	elseif key == "h" then
 		self.yi.game.chartSelector:scrollLevel(2, -1)
 	elseif key == "l" then

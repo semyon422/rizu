@@ -1,6 +1,9 @@
 local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
 local Path = require("aqua.Path")
 
+---@alias yi.FontName string
+---@alias yi.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
+
 ---@class yi.Resources
 ---@field atlas love.Image
 ---@field quads {[string]: love.Quad}
@@ -15,11 +18,8 @@ Resources.font_paths = {
 }
 
 Resources.images_dir = "resources/yi/batch"
-Resources.dpi = 1
 Resources.fonts = {}
-
----@alias yi.FontName string
----@alias yi.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
+Resources.font_scale = 1
 
 function Resources.load()
 	local t = {} ---@type {[string]: love.ImageData}
@@ -51,9 +51,9 @@ function Resources.load()
 	})
 end
 
----@param dpi number
-function Resources.setDpi(dpi)
-	Resources.dpi = dpi
+---@param v number
+function Resources.setFontScale(v)
+	Resources.font_scale = v
 	Resources.fonts = {}
 end
 
@@ -67,8 +67,8 @@ function Resources.getFont(name, size)
 
 	if not Resources.fonts[key] then
 		local path = Resources.font_paths[name]
-		local object = love.graphics.newFont(path, size, "normal", Resources.dpi)
-		local fallback = love.graphics.newFont(Resources.font_fallback_path, size, "normal", Resources.dpi)
+		local object = love.graphics.newFont(path, size)
+		local fallback = love.graphics.newFont(Resources.font_fallback_path, size)
 		object:setFallbacks(fallback)
 		Resources.fonts[key] = object
 	end
@@ -78,13 +78,10 @@ end
 
 ---@param name yi.FontName
 ---@param size yi.FontSize|integer
----@param ui_scale number?
 ---@return love.Font
----@return integer
-function Resources.getScaledFont(name, size, ui_scale)
-	ui_scale = ui_scale or 1
-	local scaled_size = math.max(1, math.floor(size * ui_scale))
-	return Resources.getFont(name, scaled_size), scaled_size
+function Resources.getScaledFont(name, size)
+	local scaled_size = math.max(1, math.floor(size * Resources.font_scale))
+	return Resources.getFont(name, scaled_size)
 end
 
 return Resources
