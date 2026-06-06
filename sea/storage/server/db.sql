@@ -215,8 +215,8 @@ CREATE TABLE IF NOT EXISTS `osu_beatmapsets` (
 );
 
 CREATE TABLE IF NOT EXISTS `osu_beatmaps` (
-	`id` INTEGER NOT NULL,
-	`beatmapset_id` INTEGER NOT NULL,
+	`id` INTEGER,
+	`beatmapset_id` INTEGER,
 	`status` INTEGER NOT NULL,
 	`hash` TEXT NOT NULL,
 	`updated_at` INTEGER NOT NULL

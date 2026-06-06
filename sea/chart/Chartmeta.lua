@@ -11,7 +11,7 @@ local ChartmetaKey = require("sea.chart.ChartmetaKey")
 ---@field id integer
 ---@field created_at integer
 ---@field computed_at integer
----@field osu_ranked_status integer
+---@field osu_ranked_status integer? Deprecated and currently unused. Kept only for compatibility and scheduled for future removal.
 --- CLIENT-ONLY
 ---@field offset number
 --- ChartmetaKey

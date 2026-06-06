@@ -61,8 +61,6 @@ end
 ---@param beatmap sea.OsuBeatmap
 ---@return sea.OsuBeatmap
 function OsuRepo:createBeatmap(beatmap)
-	assert(beatmap.id)
-	assert(beatmap.beatmapset_id)
 	return self.models.osu_beatmaps:create(beatmap)
 end
 

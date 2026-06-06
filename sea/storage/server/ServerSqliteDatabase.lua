@@ -12,7 +12,7 @@ local ServerSqliteDatabase = class()
 
 ServerSqliteDatabase.path = "server.db"
 
-local user_version = 6
+local user_version = 7
 
 ---@param db rdb.SqliteDatabase
 function ServerSqliteDatabase:new(db)

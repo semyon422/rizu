@@ -47,16 +47,11 @@ function OsuBeatmaps:getOrCreateOsuBeatmapByHash(hash, time)
 		return nil, "beatmaps lookup: " .. err
 	end
 
-	if not beatmap.id then
-		-- or create an unknown-state object
-		return nil, "not found"
-	end
-
 	osu_beatmap = OsuBeatmap()
 	osu_beatmap.id = beatmap.id
 	osu_beatmap.beatmapset_id = beatmap.beatmapset_id
-	osu_beatmap.hash = beatmap.checksum
-	osu_beatmap.status = beatmap.status
+	osu_beatmap.hash = beatmap.checksum or hash
+	osu_beatmap.status = beatmap.status or "missing"
 	osu_beatmap.updated_at = time
 
 	osu_beatmap = repo:createBeatmap(osu_beatmap)

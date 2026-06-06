@@ -2,6 +2,8 @@ local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
 local UsersRepo = require("sea.access.repos.UsersRepo")
 local LeaderboardsRepo = require("sea.leaderboards.repos.LeaderboardsRepo")
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
+local OsuRepo = require("sea.osu.repos.OsuRepo")
 local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
 
@@ -37,16 +39,19 @@ function test.setup_legacy_database_with_sea_user_repo(t)
 
 	local users_repo = UsersRepo(sea_db.models)
 	local leaderboards_repo = LeaderboardsRepo(sea_db.models)
+	local charts_repo = ChartsRepo(sea_db.models)
+	local osu_repo = OsuRepo(sea_db.models)
 	local server = BanchoServer()
 	local path = "tmp_bancho_adapter_test.db"
 
 	os.remove(path)
-	BanchoAdapter.setupLegacyDatabase(server, path, users_repo, leaderboards_repo)
+	BanchoAdapter.setupLegacyDatabase(server, path, users_repo, leaderboards_repo, charts_repo, osu_repo)
 
 	t:eq(getmetatable(server.user_repo), BanchoAdapter.SeaUserRepo)
 	t:eq(getmetatable(server.friends_repo), BanchoAdapter.SeaFriendsRepo)
 	t:eq(getmetatable(server.favourites_repo), BanchoAdapter.SeaFavouritesRepo)
 	t:eq(getmetatable(server.stats_repo), BanchoAdapter.SeaStatsRepo)
+	t:eq(getmetatable(server.beatmap_repo), BanchoAdapter.SeaBeatmapRepo)
 	t:ne(server.score_repo, nil)
 
 	server:closeDatabase()
