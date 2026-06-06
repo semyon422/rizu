@@ -3,10 +3,14 @@ local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local Repos = require("bancho.db.repos")
 
 local SeaUserRepo = require("bancho.adapter.SeaUserRepo")
+local SeaFriendsRepo = require("bancho.adapter.SeaFriendsRepo")
+local SeaFavouritesRepo = require("bancho.adapter.SeaFavouritesRepo")
 
 local BanchoAdapter = {}
 
 BanchoAdapter.SeaUserRepo = SeaUserRepo
+BanchoAdapter.SeaFriendsRepo = SeaFriendsRepo
+BanchoAdapter.SeaFavouritesRepo = SeaFavouritesRepo
 
 ---@param server bancho.server.BanchoServer
 ---@param path string?
@@ -22,14 +26,16 @@ function BanchoAdapter.setupLegacyDatabase(server, path, users_repo)
 
 	local repos = Repos(db.models)
 	local user_repo = users_repo and SeaUserRepo(users_repo) or repos.user_repo
+	local friends_repo = users_repo and SeaFriendsRepo(users_repo) or repos.friends_repo
+	local favourites_repo = users_repo and SeaFavouritesRepo(users_repo) or repos.favourites_repo
 
 	server.db = db
 	server:setRepos(
 		user_repo,
 		repos.score_repo,
 		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
+		friends_repo,
+		favourites_repo,
 		repos.stats_repo,
 		repos.replay_repo
 	)

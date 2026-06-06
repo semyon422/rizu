@@ -156,6 +156,68 @@ function UsersRepo:deleteBanchoUserSettings(user_id)
 	return self.models.bancho_user_settings:delete({user_id = assert(user_id)})[1]
 end
 
+---@param user_id integer
+---@return integer[]
+function UsersRepo:getUserFriends(user_id)
+	local rows = self.models.user_friends:select({user_id = assert(user_id)})
+	local ids = {}
+	for _, row in ipairs(rows) do
+		table.insert(ids, row.friend_id)
+	end
+	return ids
+end
+
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function UsersRepo:addUserFriend(user_id, friend_id)
+	local row = self.models.user_friends:create({user_id = user_id, friend_id = friend_id})
+	return row ~= nil
+end
+
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function UsersRepo:removeUserFriend(user_id, friend_id)
+	local rows = self.models.user_friends:delete({user_id = user_id, friend_id = friend_id})
+	return #rows > 0
+end
+
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function UsersRepo:isUserFriend(user_id, friend_id)
+	local row = self.models.user_friends:find({user_id = user_id, friend_id = friend_id})
+	return row ~= nil
+end
+
+---@param user_id integer
+---@return integer[]
+function UsersRepo:getUserOsuFavourites(user_id)
+	local rows = self.models.user_osu_favourites:select({user_id = assert(user_id)})
+	local ids = {}
+	for _, row in ipairs(rows) do
+		table.insert(ids, row.set_id)
+	end
+	return ids
+end
+
+---@param user_id integer
+---@param set_id integer
+---@return boolean
+function UsersRepo:addUserOsuFavourite(user_id, set_id)
+	local row = self.models.user_osu_favourites:create({user_id = user_id, set_id = set_id})
+	return row ~= nil
+end
+
+---@param user_id integer
+---@param set_id integer
+---@return boolean
+function UsersRepo:removeUserOsuFavourite(user_id, set_id)
+	local rows = self.models.user_osu_favourites:delete({user_id = user_id, set_id = set_id})
+	return #rows > 0
+end
+
 --------------------------------------------------------------------------------
 
 ---@param user_id integer

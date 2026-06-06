@@ -53,6 +53,18 @@ CREATE TABLE IF NOT EXISTS `bancho_user_settings` (
 	`pres_filter` INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS `user_friends` (
+	`user_id` INTEGER NOT NULL,
+	`friend_id` INTEGER NOT NULL,
+	PRIMARY KEY (`user_id`, `friend_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `user_osu_favourites` (
+	`user_id` INTEGER NOT NULL,
+	`set_id` INTEGER NOT NULL,
+	PRIMARY KEY (`user_id`, `set_id`)
+);
+
 CREATE TABLE IF NOT EXISTS `user_locations` (
 	`id` INTEGER PRIMARY KEY,
 	`user_id` INTEGER NOT NULL,

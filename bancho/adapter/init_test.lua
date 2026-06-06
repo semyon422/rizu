@@ -42,6 +42,8 @@ function test.setup_legacy_database_with_sea_user_repo(t)
 	BanchoAdapter.setupLegacyDatabase(server, path, users_repo)
 
 	t:eq(getmetatable(server.user_repo), BanchoAdapter.SeaUserRepo)
+	t:eq(getmetatable(server.friends_repo), BanchoAdapter.SeaFriendsRepo)
+	t:eq(getmetatable(server.favourites_repo), BanchoAdapter.SeaFavouritesRepo)
 	t:ne(server.score_repo, nil)
 
 	server:closeDatabase()
