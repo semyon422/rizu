@@ -32,15 +32,24 @@ function MatchTransferHost:handle(server, player, data)
 
 	local match = player.match
 	local targetSlot = match.slots[data.slot_id]
-	if not targetSlot.player then return end
+	local target = targetSlot.player
+	if not target and targetSlot.player_id then
+		target = server.players:get(nil, targetSlot.player_id)
+	end
+	if not target then return end
 
 	-- Transfer host
-	server.match_manager:transferHost(match, targetSlot.player)
+	server.match_manager:transferHost(match, target)
 
-	-- Broadcast transfer host packet
-	match:broadcast(ServerPackets.matchTransferHost(), server.players)
+	-- Only the new host gets MATCH_TRANSFER_HOST.
+	local host_pkt = ServerPackets.matchTransferHost()
+	if server.players._dict then
+		server.players._dict:rpush("pq:" .. target.token, host_pkt)
+	else
+		target:enqueue(host_pkt)
+	end
 
-	-- Broadcast updated match state to all players in match slots
+	-- Everyone gets the updated match state.
 	match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(match)), server.players)
 end
 

@@ -10,6 +10,14 @@ local ServerPackets = require("bancho.protocol.ServerPackets")
 
 local class = require("class")
 
+local function enqueue_player(players, player, data)
+	if players and players._dict then
+		players._dict:rpush("pq:" .. player.token, data)
+	else
+		player:enqueue(data)
+	end
+end
+
 --- Match manager: coordinates multiplayer match lifecycle.
 ---@class bancho.multiplayer.MatchManager
 ---@operator call: bancho.multiplayer.MatchManager
@@ -75,7 +83,7 @@ function MatchManager:addPlayer(match, player)
 		end
 		local info = ServerPackets.channelInfo(match.chat.name, match.chat.topic, count)
 		for _, p in pairs(match.chat.players) do
-			p:enqueue(info)
+			enqueue_player(self.matches._players, p, info)
 		end
 	end
 
@@ -103,7 +111,7 @@ function MatchManager:removePlayer(match, player)
 		end
 		local info = ServerPackets.channelInfo(match.chat.name, match.chat.topic, count)
 		for _, p in pairs(match.chat.players) do
-			p:enqueue(info)
+			enqueue_player(self.matches._players, p, info)
 		end
 	end
 end

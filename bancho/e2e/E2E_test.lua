@@ -70,7 +70,12 @@ end
 ---@param packets bancho.client.IncomingPacket[]
 ---@return integer[]?
 local function extract_slot_statuses(packets)
-	local pkt = find_packet(packets, ServerPackets.UPDATE_MATCH)
+	local pkt
+	for _, candidate in ipairs(packets) do
+		if candidate.id == ServerPackets.UPDATE_MATCH then
+			pkt = candidate
+		end
+	end
 	if pkt then
 		local ComplexTypes = require("bancho.protocol.ComplexTypes")
 		local reader = require("bancho.protocol.PacketReader")(pkt.body)
@@ -293,6 +298,17 @@ function test.two_player_match(t)
 	t:eq(err, nil)
 	t:ne(find_packet(pkts_b, ServerPackets.MATCH_JOIN_SUCCESS), nil)
 
+	-- Host should receive an updated match state on the next request.
+	pkts_a, err = client_a:ping()
+	t:eq(err, nil)
+	local host_slot_statuses = extract_slot_statuses(pkts_a)
+	t:ne(host_slot_statuses, nil)
+	local host_occupied = 0
+	for _, s in ipairs(host_slot_statuses) do
+		if bit.band(s, 124) ~= 0 then host_occupied = host_occupied + 1 end
+	end
+	t:eq(host_occupied, 2)
+
 	-- Verify both players are in the match
 	local join_data_b = require("bancho.protocol.ComplexTypes").readMatch(
 		require("bancho.protocol.PacketReader")(
@@ -408,6 +424,33 @@ function test.match_command_start_solo(t)
 	t:ne(find_packet(pkts_a, ServerPackets.MATCH_START), nil)
 	local msg = extract_message(pkts_a)
 	t:eq(msg, "Good luck!")
+
+	ctx:close()
+end
+
+function test.match_command_transfer_host(t)
+	local ctx = E2EContext()
+	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+
+	local client_a = create_e2e_client(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client_b = create_e2e_client(ctx, "PlayerB", md5.sumhexa("passB"))
+	t:eq(client_a:login().success, true)
+	t:eq(client_b:login().success, true)
+
+	local pkts_a, _ = client_a:create_match("Host Transfer", "")
+	local match_id = extract_match_id(pkts_a)
+	t:ne(match_id, nil)
+	local pkts_b, _ = client_b:join_match(match_id)
+	t:ne(find_packet(pkts_b, ServerPackets.MATCH_JOIN_SUCCESS), nil)
+
+	pkts_a, _ = client_a:send_message("#multiplayer", "!mp host PlayerB")
+	t:eq(extract_message(pkts_a), "Match host transferred.")
+
+	pkts_b, _ = client_b:ping()
+	t:ne(find_packet(pkts_b, ServerPackets.MATCH_TRANSFER_HOST), nil)
+	local statuses = extract_slot_statuses(pkts_b)
+	t:ne(statuses, nil)
 
 	ctx:close()
 end

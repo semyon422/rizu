@@ -16,7 +16,11 @@ end
 ---@param mode integer
 ---@return table?
 function StatsRepo:getStats(user_id, mode)
-	return self.models.stats:find({user_id = user_id, mode = mode})
+	local stats = self.models.stats:find({user_id = user_id, mode = mode})
+	if stats and (stats.rank == nil or stats.rank == 0) and (stats.pp or 0) > 0 then
+		stats.rank = self:getGlobalRank(user_id, mode, stats.pp)
+	end
+	return stats
 end
 
 --- Update or create stats for a user in a specific mode.

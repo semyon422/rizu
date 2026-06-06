@@ -250,7 +250,10 @@ end
 ---@param collection? bancho.model.PlayerCollection
 ---@return bancho.model.Match
 function Match:fromData(data, collection)
-	local mode = type(data.mode) == "number" and GameMode[data.mode] or data.mode
+	local mode = data.mode
+	if type(mode) == "number" then
+		mode = GameMode.fromValue(mode)
+	end
 	local match = Match(
 		data.id,
 		data.name,
@@ -304,7 +307,11 @@ function Match:broadcast(packet, players)
 			target = players:get(nil, slot.player_id)
 		end
 		if target then
-			target:enqueue(packet)
+			if players._dict then
+				players._dict:rpush("pq:" .. target.token, packet)
+			else
+				target:enqueue(packet)
+			end
 		end
 	end
 end

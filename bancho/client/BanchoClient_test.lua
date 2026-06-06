@@ -252,10 +252,13 @@ end
 --- Build match transfer host packet.
 function test.build_match_transfer_host(t)
 	local client = BanchoClient(ClientConfig {})
-	local packet = client:build_packet(ClientPackets.MATCH_TRANSFER_HOST, "")
+	local w = PacketWriter()
+	w:writeI32(2)
+	local packet = client:build_packet(ClientPackets.MATCH_TRANSFER_HOST, w.body)
 
-	local id = Binary.readU16(packet, 1)
+	local id, bodyLen = Binary.readHeader(packet, 1)
 	t:eq(id, ClientPackets.MATCH_TRANSFER_HOST)
+	t:eq(bodyLen, 4)
 end
 
 --- Build match change mods packet.

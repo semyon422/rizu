@@ -8,6 +8,14 @@ local ServerPackets = require("bancho.protocol.ServerPackets")
 
 local class = require("class")
 
+local function enqueue_player(players, player, data)
+	if players and players._dict then
+		players._dict:rpush("pq:" .. player.token, data)
+	else
+		player:enqueue(data)
+	end
+end
+
 --- Chat manager: coordinates chat and channel operations.
 ---@class bancho.chat.ChatManager
 ---@operator call: bancho.chat.ChatManager
@@ -169,11 +177,13 @@ function ChatManager:notifyMatchUpdate(match, match_data, channels, lobby)
 		match.chat = channels:get("#multi_" .. match.id)
 	end
 
+	local players = channels._players
+
 	-- Send to match chat participants (with password)
 	if match.chat then
 		local update_pw = ServerPackets.updateMatch(match_data, true)
 		for _, p in pairs(match.chat.players) do
-			p:enqueue(update_pw)
+			enqueue_player(players, p, update_pw)
 		end
 	end
 
@@ -183,7 +193,7 @@ function ChatManager:notifyMatchUpdate(match, match_data, channels, lobby)
 		if lobby_ch then
 			local update_no_pw = ServerPackets.updateMatch(match_data, false)
 			for _, p in pairs(lobby_ch.players) do
-				p:enqueue(update_no_pw)
+				enqueue_player(players, p, update_no_pw)
 			end
 		end
 	end

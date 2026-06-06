@@ -127,4 +127,22 @@ function test.match_slotCopyFrom(t)
 	t:eq(dst.loaded, true)
 end
 
+function test.match_fromData_restores_numeric_mode(t)
+	local match = Match:fromData({
+		id = 1,
+		name = "Test",
+		passwd = "",
+		host_id = 1,
+		mode = 3,
+		mods = Mods.NOMOD,
+		freemods = false,
+		win_condition = MatchConstants.MatchWinConditions.SCORE,
+		team_type = MatchConstants.MatchTeamTypes.HEAD_TO_HEAD,
+		in_progress = false,
+		slots = {},
+	})
+
+	t:eq(match.mode.value, GameMode.VANILLA_MANIA.value)
+end
+
 return test

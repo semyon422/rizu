@@ -93,7 +93,50 @@ return function(dispatcher)
 	}
 	mp_set.commands[#mp_set.commands + 1] = {
 		triggers = {"host"},
-		callback = function() return "mp host not yet implemented" end,
+		callback = function(ctx)
+			local player = ctx.player
+			local server = ctx.server
+			local match = player.match
+			if not server or not match then
+				return "Join a match first."
+			end
+			if ctx.recipient.name ~= "#multiplayer" then
+				return "Use this command in #multiplayer."
+			end
+			if match.host_id ~= player.id then
+				return "Only the host can transfer host."
+			end
+			if #ctx.args ~= 1 then
+				return "Invalid syntax: !mp host <name>"
+			end
+
+			local wanted = ctx.args[1]:lower()
+			local target
+			for i = 0, 15 do
+				local slot = match.slots[i]
+				local slot_player = slot.player
+				if not slot_player and slot.player_id then
+					slot_player = server.players:get(nil, slot.player_id)
+				end
+				if slot_player and slot_player.id ~= player.id and slot_player.name:lower() == wanted then
+					target = slot_player
+					break
+				end
+			end
+			if not target then
+				return "Player not found in match."
+			end
+
+			server.match_manager:transferHost(match, target)
+			local host_pkt = ServerPackets.matchTransferHost()
+			if server.players._dict then
+				server.players._dict:rpush("pq:" .. target.token, host_pkt)
+			else
+				target:enqueue(host_pkt)
+			end
+			match:broadcast(ServerPackets.updateMatch(server.match_manager:buildMatchData(match)), server.players)
+			return "Match host transferred."
+		end,
 		priv = Privileges.UNRESTRICTED,
 		hidden = false,
 		doc = "Transfer match host",

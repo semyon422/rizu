@@ -72,6 +72,7 @@ function test.stats_repo_crud(t)
 
 	-- Create stats for all modes
 	repos.stats_repo:createAllModes(1)
+	repos.stats_repo:createAllModes(2)
 
 	-- Get stats
 	local stats = repos.stats_repo:getStats(1, 0)
@@ -80,10 +81,12 @@ function test.stats_repo_crud(t)
 	t:eq(stats.tscore, 0)
 
 	-- Update stats
-	repos.stats_repo:updateStats(1, 0, {tscore = 100000, plays = 5})
+	repos.stats_repo:updateStats(1, 0, {tscore = 100000, plays = 5, pp = 50})
+	repos.stats_repo:updateStats(2, 0, {pp = 100})
 	local updated = repos.stats_repo:getStats(1, 0)
 	t:eq(updated.tscore, 100000)
 	t:eq(updated.plays, 5)
+	t:eq(updated.rank, 2)
 
 	-- Other modes should be untouched
 	local stats_taiko = repos.stats_repo:getStats(1, 1)

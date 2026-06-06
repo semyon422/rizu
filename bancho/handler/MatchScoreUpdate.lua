@@ -2,7 +2,6 @@
 --- Client sends a score frame during an active match.
 --- Forwarded to all other players in the match.
 
-local Binary = require("bancho.protocol.Binary")
 local ComplexTypes = require("bancho.protocol.ComplexTypes")
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local IPacketHandler = require("bancho.handler.IPacketHandler")
@@ -30,16 +29,12 @@ function MatchScoreUpdate:handle(server, player, data)
 	local match = player.match
 	if not match.in_progress then return end
 
-	local slot = match:getSlot(player)
-	if not slot then return end
+	local slot_id = match:getSlotId(player)
+	if slot_id == nil then return end
 
-	-- Build score update packet
+	data.score_frame.id = slot_id
 	local packet = ServerPackets.matchScoreUpdate(data.score_frame)
 
-	-- Prepend slot ID (i32) to identify which player sent it
-	local full_packet = Binary.writeI32(slot) .. packet
-
-	-- Send to all other players in the match
 	for i = 0, 15 do
 		local slot = match.slots[i]
 		local target = slot.player
@@ -47,7 +42,11 @@ function MatchScoreUpdate:handle(server, player, data)
 			target = server.players:get(nil, slot.player_id)
 		end
 		if target and target.id ~= player.id then
-			target:enqueue(full_packet)
+			if server.players._dict then
+				server.players._dict:rpush("pq:" .. target.token, packet)
+			else
+				target:enqueue(packet)
+			end
 		end
 	end
 end

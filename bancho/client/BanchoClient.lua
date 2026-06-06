@@ -381,10 +381,13 @@ function BanchoClient:match_skip()
 end
 
 --- Match: transfer host.
+---@param slot_id integer Target slot ID
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:match_transfer_host()
-	return self:send(self:build_packet(ClientPackets.MATCH_TRANSFER_HOST, ""))
+function BanchoClient:match_transfer_host(slot_id)
+	local w = PacketWriter()
+	w:writeI32(slot_id)
+	return self:send(self:build_packet(ClientPackets.MATCH_TRANSFER_HOST, w.body))
 end
 
 --- Match: change mods.
