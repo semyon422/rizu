@@ -3,6 +3,7 @@ local ChartBackground = require("yi.layers.ChartBackground")
 local Select = require("yi.layers.Select")
 local Gameplay = require("yi.layers.Gameplay")
 local ChartLoading = require("yi.layers.ChartLoading")
+local Result = require("yi.layers.Result")
 local SpringValue = require("gui.anim.SpringValue")
 
 ---@class yi.ChartMenus
@@ -19,22 +20,26 @@ function ChartMenus:new(yi, w, h)
 	self.select = Select(yi)
 	self.gameplay = Gameplay(yi)
 	self.chart_loading = ChartLoading(yi)
+	self.result = Result(yi)
 
 	self.chart_background:setDimensions(w, h)
 	self.select:setDimensions(w, h)
 	self.gameplay:setDimensions(w, h)
 	self.chart_loading:setDimensions(w, h)
+	self.result:setDimensions(w, h)
 
 	self.chart_background:load()
 	self.select:load()
 	self.gameplay:load()
 	self.chart_loading:load()
+	self.result:load()
 
 	self.springs_stable = true
 	self.screen_springs = {
 		[self.select] = SpringValue({value = 1}),
 		[self.chart_loading] = SpringValue({value = 0}),
-		[self.gameplay] = SpringValue({value = 0})
+		[self.gameplay] = SpringValue({value = 0}),
+		[self.result] = SpringValue({value = 0})
 	}
 
 	self.screen_canvas = love.graphics.newCanvas(w, h)
@@ -45,7 +50,11 @@ function ChartMenus:unload() end
 
 ---@param screen string
 function ChartMenus:hasScreen(screen)
-	return screen == "select" or screen == "gameplay" or screen == "chart_loading"
+	return
+		screen == "select" or
+		screen == "gameplay" or
+		screen == "chart_loading" or
+		screen == "result"
 end
 
 ---@param screen string
@@ -58,6 +67,8 @@ function ChartMenus:setScreen(screen)
 	elseif screen == "gameplay" then
 		self.current_screen = self.gameplay
 		self.gameplay:start()
+	elseif screen == "result" then
+		self.current_screen = self.result
 	end
 end
 

@@ -63,24 +63,29 @@ end
 
 ---@param screen string
 function UserInterface:setScreen(screen)
-	self.previous_screen = self.current_screen
-
-	if self.menus:hasScreen(screen) then
-		self.menus:setScreen(screen)
-	elseif self.chart_menus:hasScreen(screen) then
-		self.menus:hide()
-		self.chart_menus:setScreen(screen)
-	else
-		error("Screen doesn't exist")
-	end
-
-	self.current_screen = screen
+	self.next_screen = screen
 end
 
 ---@param dt number
 function UserInterface:update(dt)
 	if self:windowDimensionsChanged() then
 		self:buildUI()
+	end
+
+	if self.next_screen then
+		self.previous_screen = self.current_screen
+
+		if self.menus:hasScreen(self.next_screen) then
+			self.menus:setScreen(self.next_screen)
+		elseif self.chart_menus:hasScreen(self.next_screen) then
+			self.menus:hide()
+			self.chart_menus:setScreen(self.next_screen)
+		else
+			error("Screen doesn't exist")
+		end
+
+		self.current_screen = self.next_screen
+		self.next_screen = nil
 	end
 
 	self.modifiers.control = love.keyboard.isDown("lctrl", "rctrl")
@@ -132,9 +137,9 @@ function UserInterface:receive(event)
 
 	local s = self.current_screen
 
-	if s == "main_menu" or s == "config" then
+	if self.menus:hasScreen(self.current_screen) then
 		self.menus:receive(event)
-	elseif s == "select" or s == "gameplay" then
+	elseif self.chart_menus:hasScreen(self.current_screen) then
 		self.chart_menus:receive(event)
 	end
 end

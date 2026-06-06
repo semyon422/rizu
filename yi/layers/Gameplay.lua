@@ -13,6 +13,8 @@ function Gameplay:new(yi)
 	self.yi = yi
 	self.game = yi.game
 	self.sequence_view = SequenceView()
+	self.game_interactor = self.game.gameInteractor
+	self.gameplay_interactor = self.game.gameplayInteractor
 
 	local sv_view = View()
 	sv_view.draw = function() self.sequence_view:draw() end
@@ -31,7 +33,7 @@ function Gameplay:start()
 end
 
 function Gameplay:stop()
-	self.game.gameplayInteractor:unloadGameplay()
+	self.gameplay_interactor:unloadGameplay()
 	self.sequence_view:unload()
 end
 
@@ -50,14 +52,19 @@ end
 function Gameplay:handleKeyDown(k)
 	if k == "escape" then
 		self:stop()
-		self.yi:setScreen("select")
+
+		if self.gameplay_interactor:hasResult() then
+			self.yi:setScreen("result")
+		else
+			self.yi:setScreen("select")
+		end
 	end
 end
 
 function Gameplay:receive(event)
-	Layer.receive(self, event)
 	self.game.gameplayInteractor:receive(event)
 	self.sequence_view:receive(event)
+	Layer.receive(self, event)
 end
 
 return Gameplay
