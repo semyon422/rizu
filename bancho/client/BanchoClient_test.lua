@@ -487,9 +487,7 @@ end
 --- Build user presence request packet.
 function test.build_user_presence_request(t)
 	local client = BanchoClient(ClientConfig {})
-	local w = PacketWriter()
-	w:writeString("TargetUser")
-	local packet = client:build_packet(ClientPackets.USER_PRESENCE_REQUEST, w.body)
+	local packet = client:build_packet(ClientPackets.USER_PRESENCE_REQUEST, Binary.writeI32List({42}))
 
 	local id = Binary.readU16(packet, 1)
 	t:eq(id, ClientPackets.USER_PRESENCE_REQUEST)

@@ -512,6 +512,84 @@ function test.host_transfers_when_host_parts_match(t)
 	ctx:close()
 end
 
+function test.friend_add_remove(t)
+	local ctx = E2EContext()
+	local user_a = ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	local repos = Repos(ctx.db.models)
+
+	local client_a = create_e2e_client(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client_b = create_e2e_client(ctx, "PlayerB", md5.sumhexa("passB"))
+	t:eq(client_a:login().success, true)
+	t:eq(client_b:login().success, true)
+
+	local pkts_a, err = client_a:add_friend(user_b)
+	t:eq(err, nil)
+	t:eq(repos.friends_repo:isFriend(user_a, user_b), true)
+	t:ne(find_packet(pkts_a, ServerPackets.USER_PRESENCE), nil)
+
+	pkts_a, err = client_a:remove_friend(user_b)
+	t:eq(err, nil)
+	t:eq(repos.friends_repo:isFriend(user_a, user_b), false)
+
+	ctx:close()
+end
+
+function test.user_stats_and_presence_request(t)
+	local ctx = E2EContext()
+	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	local repos = Repos(ctx.db.models)
+	repos.stats_repo:updateStats(user_b, 0, {
+		rank = 123,
+		acc = 98.5,
+		pp = 456,
+	})
+
+	local client_a = create_e2e_client(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client_b = create_e2e_client(ctx, "PlayerB", md5.sumhexa("passB"))
+	t:eq(client_a:login().success, true)
+	t:eq(client_b:login().success, true)
+
+	local pkts, err = client_a:request_user_stats(user_b)
+	t:eq(err, nil)
+	local stats_pkt = find_packet(pkts, ServerPackets.USER_STATS)
+	t:ne(stats_pkt, nil)
+	t:aeq(extract_stats_accuracy(stats_pkt), 0.985, 0.0001)
+
+	pkts, err = client_a:request_user_presence(user_b)
+	t:eq(err, nil)
+	local presence_pkt = find_packet(pkts, ServerPackets.USER_PRESENCE)
+	t:ne(presence_pkt, nil)
+	t:eq(extract_presence_rank(presence_pkt), 123)
+
+	ctx:close()
+end
+
+function test.join_lobby_receives_existing_matches(t)
+	local ctx = E2EContext()
+	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+
+	local client_a = create_e2e_client(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client_b = create_e2e_client(ctx, "PlayerB", md5.sumhexa("passB"))
+	t:eq(client_a:login().success, true)
+	t:eq(client_b:login().success, true)
+
+	local pkts_a, _ = client_a:create_match("Lobby Test", "")
+	t:ne(extract_match_id(pkts_a), nil)
+
+	local pkts_b, err = client_b:join_lobby()
+	t:eq(err, nil)
+	t:ne(find_packet(pkts_b, ServerPackets.NEW_MATCH), nil)
+
+	pkts_b, err = client_b:part_lobby()
+	t:eq(err, nil)
+	t:eq(#pkts_b, 0)
+
+	ctx:close()
+end
+
 --- Score submission via ScoreSubmitter:submit.
 --- Tests the core submission logic: checksum validation, PP calculation, persistence.
 function test.score_submission(t)

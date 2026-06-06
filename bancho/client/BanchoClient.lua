@@ -292,13 +292,11 @@ function BanchoClient:request_user_stats(user_id)
 end
 
 --- Request user presence for a specific user.
----@param username string Target username
+---@param user_id integer Target user ID
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:request_user_presence(username)
-	local w = PacketWriter()
-	w:writeString(username)
-	return self:send(self:build_packet(ClientPackets.USER_PRESENCE_REQUEST, w.body))
+function BanchoClient:request_user_presence(user_id)
+	return self:send(self:build_packet(ClientPackets.USER_PRESENCE_REQUEST, Binary.writeI32List({user_id})))
 end
 
 --- Request presence of all online users.
@@ -321,23 +319,19 @@ function BanchoClient:receive_updates(mode, enabled)
 end
 
 --- Add a friend.
----@param username string Friend username
+---@param user_id integer Friend user ID
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:add_friend(username)
-	local w = PacketWriter()
-	w:writeString(username)
-	return self:send(self:build_packet(ClientPackets.FRIEND_ADD, w.body))
+function BanchoClient:add_friend(user_id)
+	return self:send(self:build_packet(ClientPackets.FRIEND_ADD, Binary.writeI32(user_id)))
 end
 
 --- Remove a friend.
----@param username string Friend username
+---@param user_id integer Friend user ID
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:remove_friend(username)
-	local w = PacketWriter()
-	w:writeString(username)
-	return self:send(self:build_packet(ClientPackets.FRIEND_REMOVE, w.body))
+function BanchoClient:remove_friend(user_id)
+	return self:send(self:build_packet(ClientPackets.FRIEND_REMOVE, Binary.writeI32(user_id)))
 end
 
 --- Toggle blocking non-friend DMs.
