@@ -198,6 +198,22 @@ function MatchManager:transferHost(match, new_host)
 	match.host_id = new_host.id
 end
 
+--- Get the first remaining player in the match, or nil.
+---@param match bancho.model.Match
+---@return bancho.model.Player?
+function MatchManager:getNextHost(match)
+	for i = 0, 15 do
+		local slot = match.slots[i]
+		local player = slot.player
+		if not player and slot.player_id and self.matches._players then
+			player = self.matches._players:get(nil, slot.player_id)
+		end
+		if player then
+			return player
+		end
+	end
+end
+
 --- Change match password.
 ---@param match bancho.model.Match
 ---@param new_password string

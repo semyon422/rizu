@@ -49,6 +49,19 @@ function PartMatch:handle(server, player, data)
 		end
 		server.match_manager:dispose(match.id)
 	else
+		if match.host_id == player.id then
+			local new_host = server.match_manager:getNextHost(match)
+			if new_host then
+				server.match_manager:transferHost(match, new_host)
+				local host_pkt = ServerPackets.matchTransferHost()
+				if server.players._dict then
+					server.players._dict:rpush("pq:" .. new_host.token, host_pkt)
+				else
+					new_host:enqueue(host_pkt)
+				end
+			end
+		end
+
 		-- Broadcast updated match state to all remaining players + the leaving player
 		local match_data = server.match_manager:buildMatchData(match)
 		player:enqueue(ServerPackets.updateMatch(match_data))

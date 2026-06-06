@@ -48,8 +48,38 @@ function Logout:handle(server, player, data)
 
 	-- If player is in a match, remove them
 	if player.match then
-		server.match_manager:removePlayer(player.match, player)
+		local match = player.match
+		server.match_manager:removePlayer(match, player)
 		player.match = nil
+
+		local has_players = false
+		for i = 0, 15 do
+			if match.slots[i].player ~= nil or match.slots[i].player_id ~= nil then
+				has_players = true
+				break
+			end
+		end
+
+		if not has_players then
+			server.match_manager:dispose(match.id)
+		else
+			if match.host_id == player.id then
+				local new_host = server.match_manager:getNextHost(match)
+				if new_host then
+					server.match_manager:transferHost(match, new_host)
+					local host_pkt = ServerPackets.matchTransferHost()
+					if server.players._dict then
+						server.players._dict:rpush("pq:" .. new_host.token, host_pkt)
+					else
+						new_host:enqueue(host_pkt)
+					end
+				end
+			end
+
+			local match_data = server.match_manager:buildMatchData(match)
+			match:broadcast(ServerPackets.updateMatch(match_data), server.players)
+			server.chat_manager:notifyMatchUpdate(match, match_data, server.channels, true)
+		end
 	end
 
 	-- If player is spectating, stop
