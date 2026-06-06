@@ -87,7 +87,7 @@ function Resources:new(domain, server_remote, views, sessions, app_config, share
 
 	-- Bancho server state (config loaded from bancho/config.lua)
 	self.bancho = BanchoServer(shared_memory)
-	BanchoAdapter.setupLegacyDatabase(self.bancho, nil, domain.users_repo)
+	BanchoAdapter.setupLegacyDatabase(self.bancho, nil, domain.users_repo, domain.repos.leaderboards_repo)
 
 	-- Bancho HTTP resources (domain-restricted)
 	self.bancho_protocol = BanchoProtocolResource(self.bancho)
