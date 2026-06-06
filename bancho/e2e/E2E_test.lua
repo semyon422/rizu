@@ -455,6 +455,38 @@ function test.match_command_transfer_host(t)
 	ctx:close()
 end
 
+function test.match_start_ui_two_players(t)
+	local ctx = E2EContext()
+	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+
+	local client_a = create_e2e_client(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client_b = create_e2e_client(ctx, "PlayerB", md5.sumhexa("passB"))
+	t:eq(client_a:login().success, true)
+	t:eq(client_b:login().success, true)
+
+	local pkts_a, _ = client_a:create_match("UI Start", "")
+	local match_id = extract_match_id(pkts_a)
+	t:ne(match_id, nil)
+	local pkts_b, _ = client_b:join_match(match_id)
+	t:ne(find_packet(pkts_b, ServerPackets.MATCH_JOIN_SUCCESS), nil)
+
+	client_a:match_ready()
+	client_b:match_ready()
+
+	pkts_a, _ = client_a:match_start()
+	t:ne(find_packet(pkts_a, ServerPackets.MATCH_START), nil)
+	local statuses = extract_slot_statuses(pkts_a)
+	t:ne(statuses, nil)
+	t:eq(statuses[1], 32)
+	t:eq(statuses[2], 32)
+
+	pkts_b, _ = client_b:ping()
+	t:ne(find_packet(pkts_b, ServerPackets.MATCH_START), nil)
+
+	ctx:close()
+end
+
 --- Score submission via ScoreSubmitter:submit.
 --- Tests the core submission logic: checksum validation, PP calculation, persistence.
 function test.score_submission(t)

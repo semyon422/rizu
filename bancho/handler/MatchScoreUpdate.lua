@@ -41,7 +41,7 @@ function MatchScoreUpdate:handle(server, player, data)
 		if not target and slot.player_id then
 			target = server.players:get(nil, slot.player_id)
 		end
-		if target and target.id ~= player.id then
+		if target then
 			if server.players._dict then
 				server.players._dict:rpush("pq:" .. target.token, packet)
 			else

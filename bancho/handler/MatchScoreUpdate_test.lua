@@ -8,15 +8,21 @@ local test = {}
 
 function test.handle_sets_slot_id_in_score_frame(t)
 	local handler = MatchScoreUpdate()
-	local queued
+	local queued = {}
 	local target = {
 		id = 2,
 		token = "target-token",
 		enqueue = function(self, data)
-			queued = data
+			queued[#queued + 1] = data
 		end,
 	}
-	local player = {id = 10}
+	local player = {
+		id = 10,
+		token = "self-token",
+		enqueue = function(self, data)
+			queued[#queued + 1] = data
+		end,
+	}
 	local match = {
 		in_progress = true,
 		slots = {},
@@ -58,10 +64,10 @@ function test.handle_sets_slot_id_in_score_frame(t)
 		},
 	})
 
-	t:ne(queued, nil)
-	local id, bodyLen = Binary.readHeader(queued, 1)
+	t:eq(#queued, 2)
+	local id, bodyLen = Binary.readHeader(queued[1], 1)
 	t:eq(id, ServerPackets.MATCH_SCORE_UPDATE)
-	local frame = ComplexTypes.readScoreFrame(PacketReader(queued:sub(Binary.HEADER_SIZE + 1, Binary.HEADER_SIZE + bodyLen)))
+	local frame = ComplexTypes.readScoreFrame(PacketReader(queued[1]:sub(Binary.HEADER_SIZE + 1, Binary.HEADER_SIZE + bodyLen)))
 	t:eq(frame.id, 3)
 end
 

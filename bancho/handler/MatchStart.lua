@@ -29,25 +29,29 @@ function MatchStart:handle(server, player, data)
 	-- Only host can start
 	if match.host_id ~= player.id then return end
 
-	-- Check all players are ready (unless already in progress)
+	local no_map = {}
 	for i = 0, 15 do
-		if match.slots[i].player ~= nil and match.slots[i].status ~= SlotStatus.READY then
-			return -- Not all ready, ignore
+		local slot = match.slots[i]
+		if slot.player ~= nil or slot.player_id ~= nil then
+			if slot.status ~= SlotStatus.NO_MAP then
+				slot.status = SlotStatus.PLAYING
+			else
+				local target = slot.player
+				if not target and slot.player_id then
+					target = server.players:get(nil, slot.player_id)
+				end
+				if target then
+					no_map[#no_map + 1] = target
+				end
+			end
 		end
 	end
 
-	-- Set all players to PLAYING status
-	for i = 0, 15 do
-		if match.slots[i].player ~= nil then
-			match.slots[i].status = SlotStatus.PLAYING
-		end
-	end
-
-	match.in_progress = true
 	server.match_manager:start(match)
 
-	-- Send MATCH_START to all players in match slots
-	match:broadcast(ServerPackets.matchStart(server.match_manager:buildMatchData(match)), server.players)
+	local pkt = ServerPackets.matchStart(server.match_manager:buildMatchData(match))
+	match:broadcast(pkt, server.players, no_map)
+	server.chat_manager:notifyMatchUpdate(match, server.match_manager:buildMatchData(match), server.channels, true)
 end
 
 return MatchStart

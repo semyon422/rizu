@@ -299,7 +299,8 @@ end
 --- Uses player_id fallback when player refs aren't resolved.
 ---@param packet string
 ---@param players bancho.model.PlayerCollection
-function Match:broadcast(packet, players)
+---@param immune? bancho.model.Player[]
+function Match:broadcast(packet, players, immune)
 	for i = 0, 15 do
 		local slot = self.slots[i]
 		local target = slot.player
@@ -307,10 +308,21 @@ function Match:broadcast(packet, players)
 			target = players:get(nil, slot.player_id)
 		end
 		if target then
-			if players._dict then
-				players._dict:rpush("pq:" .. target.token, packet)
-			else
-				target:enqueue(packet)
+			local skip = false
+			if immune then
+				for _, imp in ipairs(immune) do
+					if target.id == imp.id then
+						skip = true
+						break
+					end
+				end
+			end
+			if not skip then
+				if players._dict then
+					players._dict:rpush("pq:" .. target.token, packet)
+				else
+					target:enqueue(packet)
+				end
 			end
 		end
 	end
