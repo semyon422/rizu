@@ -78,7 +78,7 @@ BanchoConfig.defaults = {
 
 	max_matches = 64,
 
-	allow_registration = true,
+	allow_registration = false,
 	disallow_old_clients = false,
 	disallowed_names = {},
 	disallowed_passwords = {},

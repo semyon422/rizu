@@ -1,3 +1,5 @@
+local bcrypt = require("bcrypt")
+local md5 = require("md5")
 local CustomAccess = require("sea.access.CustomAccess")
 local IPasswordHasher = require("sea.access.IPasswordHasher")
 local UsersRepo = require("sea.access.repos.UsersRepo")
@@ -107,6 +109,9 @@ function test.register_email_password(t)
 	t:eq(su.user.email, nil)
 	t:eq(su.user.password, nil)
 
+	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(su.user.id))
+	t:assert(bcrypt.verify(md5.sumhexa("password"), bancho_credential.password_md5_bcrypt))
+
 	---@type any
 	local _
 
@@ -179,6 +184,9 @@ function test.login_email_password(t)
 	t:eq(su.user.email, nil)
 	t:eq(su.user.password, nil)
 
+	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(su.user.id))
+	t:assert(bcrypt.verify(md5.sumhexa("password"), bancho_credential.password_md5_bcrypt))
+
 	---@type any
 	local _
 
@@ -196,6 +204,35 @@ function test.login_email_password(t)
 	user_values.password = "password"
 	_, err = users:login(ctx.anon_user, "127.0.0.1", time, user_values)
 	t:eq(err, "disabled")
+end
+
+---@param t testing.T
+function test.login_populates_missing_bancho_credential(t)
+	local ctx = create_test_ctx()
+	local time = 0
+	local users = Users(ctx.users_repo, IPasswordHasher())
+
+	local user_values = UserInsecure()
+	user_values.name = "user"
+	user_values.email = "user@example.com"
+	user_values.password = "password"
+	user_values.latest_activity = time
+	user_values.created_at = time
+
+	local created_user = ctx.users_repo:createUser(user_values)
+	t:eq(ctx.users_repo:getBanchoCredential(created_user.id), nil)
+
+	local login_values = UserInsecure()
+	login_values.email = "user@example.com"
+	login_values.password = "password"
+
+	local su, err = users:login(ctx.anon_user, "127.0.0.1", time, login_values)
+	if not t:assert(su, err) then
+		return
+	end
+
+	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(created_user.id))
+	t:assert(bcrypt.verify(md5.sumhexa("password"), bancho_credential.password_md5_bcrypt))
 end
 
 ---@param t testing.T
@@ -386,6 +423,9 @@ function test.update_password(t)
 	local _user = users.users_repo:getUserInsecure(user.id)
 	---@cast _user -?
 	t:eq(_user.password, "new_password")
+
+	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(user.id))
+	t:assert(bcrypt.verify(md5.sumhexa("new_password"), bancho_credential.password_md5_bcrypt))
 end
 
 ---@param t testing.T
@@ -437,6 +477,9 @@ function test.reset_password(t)
 
 	user = assert(ctx.users_repo:getUserInsecure(1))
 	t:eq(user.password, "new_password")
+
+	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(user.id))
+	t:assert(bcrypt.verify(md5.sumhexa("new_password"), bancho_credential.password_md5_bcrypt))
 
 	local _, err = users:updatePasswordUsingCode(0, code, "new_password")
 	t:eq(err, "code used")

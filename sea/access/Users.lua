@@ -6,6 +6,7 @@ local UserLocation = require("sea.access.UserLocation")
 local Session = require("sea.access.Session")
 local SessionInsecure = require("sea.access.SessionInsecure")
 local AuthCode = require("sea.access.AuthCode")
+local BanchoCredentials = require("sea.access.BanchoCredentials")
 
 ---@class sea.Users
 ---@operator call: sea.Users
@@ -18,11 +19,13 @@ Users.ip_register_delay = 24 * 60 * 60
 ---@param users_repo sea.UsersRepo
 ---@param password_hasher sea.IPasswordHasher
 ---@param email_sender sea.IEmailSender
-function Users:new(users_repo, password_hasher, email_sender)
+---@param bancho_credentials? sea.BanchoCredentials
+function Users:new(users_repo, password_hasher, email_sender, bancho_credentials)
 	self.users_repo = users_repo
 	self.password_hasher = password_hasher
 	self.email_sender = email_sender
 	self.users_access = UsersAccess()
+	self.bancho_credentials = bancho_credentials or BanchoCredentials(users_repo)
 end
 
 ---@param order string?
@@ -93,6 +96,7 @@ function Users:register(_, ip, time, user_values)
 	user.created_at = time
 
 	user = self.users_repo:createUser(user)
+	self.bancho_credentials:syncPassword(user.id, user_values.password, time)
 
 	local session = SessionInsecure()
 	session.user_id = user.id
@@ -137,6 +141,7 @@ function Users:login(_, ip, time, user_values)
 		return nil, "invalid_credentials"
 	end
 
+	self.bancho_credentials:syncPassword(user.id, user_values.password, time)
 	user = user:hideCredentials()
 
 	local session = SessionInsecure()
@@ -274,7 +279,9 @@ function Users:updatePassword(user, current_password, new_password, time)
 	end
 
 	target_user.password = self.password_hasher:digest(new_password)
-	return self.users_repo:updateUser(target_user)
+	target_user = self.users_repo:updateUser(target_user)
+	self.bancho_credentials:syncPassword(target_user.id, new_password, time)
+	return target_user
 end
 
 ---@param time integer
@@ -303,7 +310,9 @@ function Users:updatePasswordUsingCode(time, code, new_password)
 	user_insecure.id = user.id
 	user_insecure.password = self.password_hasher:digest(new_password)
 
-	return self.users_repo:updateUser(user_insecure)
+	user_insecure = self.users_repo:updateUser(user_insecure)
+	self.bancho_credentials:syncPassword(user.id, new_password, time)
+	return user_insecure
 end
 
 ---@param user sea.User

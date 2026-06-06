@@ -109,6 +109,56 @@ end
 --------------------------------------------------------------------------------
 
 ---@param user_id integer
+---@return sea.BanchoCredential?
+function UsersRepo:getBanchoCredential(user_id)
+	return self.models.bancho_credentials:find({user_id = assert(user_id)})
+end
+
+---@param bancho_credential sea.BanchoCredential
+---@return sea.BanchoCredential
+function UsersRepo:createBanchoCredential(bancho_credential)
+	return self.models.bancho_credentials:create(bancho_credential)
+end
+
+---@param bancho_credential sea.BanchoCredential
+---@return sea.BanchoCredential
+function UsersRepo:updateBanchoCredential(bancho_credential)
+	return self.models.bancho_credentials:update(bancho_credential, {user_id = assert(bancho_credential.user_id)})[1]
+end
+
+---@param user_id integer
+---@return sea.BanchoCredential?
+function UsersRepo:deleteBanchoCredential(user_id)
+	return self.models.bancho_credentials:delete({user_id = assert(user_id)})[1]
+end
+
+---@param user_id integer
+---@return sea.BanchoUserSettings?
+function UsersRepo:getBanchoUserSettings(user_id)
+	return self.models.bancho_user_settings:find({user_id = assert(user_id)})
+end
+
+---@param bancho_user_settings sea.BanchoUserSettings
+---@return sea.BanchoUserSettings
+function UsersRepo:createBanchoUserSettings(bancho_user_settings)
+	return self.models.bancho_user_settings:create(bancho_user_settings)
+end
+
+---@param bancho_user_settings sea.BanchoUserSettings
+---@return sea.BanchoUserSettings
+function UsersRepo:updateBanchoUserSettings(bancho_user_settings)
+	return self.models.bancho_user_settings:update(bancho_user_settings, {user_id = assert(bancho_user_settings.user_id)})[1]
+end
+
+---@param user_id integer
+---@return sea.BanchoUserSettings?
+function UsersRepo:deleteBanchoUserSettings(user_id)
+	return self.models.bancho_user_settings:delete({user_id = assert(user_id)})[1]
+end
+
+--------------------------------------------------------------------------------
+
+---@param user_id integer
 ---@return sea.UserRole[]
 function UsersRepo:getUserRoles(user_id)
 	return self.models.user_roles:select({

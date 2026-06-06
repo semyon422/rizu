@@ -34,6 +34,7 @@ local ChartplayResource = require("sea.chart.http.ChartplayResource")
 local WebsocketResource = require("sea.shared.http.WebsocketResource")
 
 -- Bancho (osu! server) resources
+local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
 local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
 local OsuWebResource = require("bancho.http.OsuWebResource")
@@ -86,7 +87,7 @@ function Resources:new(domain, server_remote, views, sessions, app_config, share
 
 	-- Bancho server state (config loaded from bancho/config.lua)
 	self.bancho = BanchoServer(shared_memory)
-	self.bancho:setupDatabase()
+	BanchoAdapter.setupLegacyDatabase(self.bancho, nil, domain.users_repo)
 
 	-- Bancho HTTP resources (domain-restricted)
 	self.bancho_protocol = BanchoProtocolResource(self.bancho)

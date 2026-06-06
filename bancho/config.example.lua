@@ -38,8 +38,8 @@ return BanchoConfig:new({
 	--- Maximum number of concurrent multiplayer rooms
 	max_matches = 64,
 
-	--- Allow in-game registration via POST /users
-	allow_registration = true,
+	--- In-game registration is disabled while account ownership lives in Sea.
+	allow_registration = false,
 
 	--- Reject clients older than the latest major osu! release
 	disallow_old_clients = false,

@@ -14,7 +14,6 @@ local ChatManager = require("bancho.chat.ChatManager")
 local ScoreSubmitter = require("bancho.score.Submitter")
 local PacketRouter = require("bancho.handler.PacketRouter")
 local CommandDispatcher = require("bancho.command.CommandDispatcher")
-local BanchoDatabase = require("bancho.db.BanchoDatabase")
 local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
 local BanchoConfig = require("bancho.config.BanchoConfig")
 
@@ -204,30 +203,13 @@ function BanchoServer:setRepos(user_repo, score_repo, beatmap_repo, friends_repo
 	self.replay_repo = replay_repo
 end
 
---- Set up SQLite database and wire all repos automatically.
---- This is a convenience method that creates a BanchoDatabase, opens it,
---- and wires all repos from `bancho.db.repos`.
+--- Set up legacy Bancho SQLite persistence and wire all repos automatically.
+--- Kept as a compatibility helper while repo wiring is being moved into the
+--- adapter layer owned by `sea`.
 ---@param path string? Database file path (default: "bancho.db")
 function BanchoServer:setupDatabase(path)
-	local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
-	local Repos = require("bancho.db.repos")
-
-	self.db = BanchoDatabase(LjsqliteDatabase())
-	if path then
-		self.db.path = path
-	end
-	self.db:open()
-
-	local repos = Repos(self.db.models)
-	self:setRepos(
-		repos.user_repo,
-		repos.score_repo,
-		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
-		repos.stats_repo,
-		repos.replay_repo
-	)
+	local BanchoAdapter = require("bancho.adapter")
+	BanchoAdapter.setupLegacyDatabase(self, path)
 end
 
 --- Close the database connection.

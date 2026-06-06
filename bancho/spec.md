@@ -317,6 +317,7 @@ Required solution:
 - add Bancho-compatible credential storage or derivation in `sea`
 - keep password updates synchronized
 - provide adapter repo methods for Bancho username-based login
+- prefer a Sea-owned `bancho_credentials` persistence object over overloading the main Sea password field
 
 ### User / Privilege Model
 
@@ -406,6 +407,7 @@ Definition of done:
 
 - add Sea-backed Bancho user repo implementation
 - add Sea-side storage for Bancho-compatible login credentials
+- introduce a Sea-owned `bancho_credentials` table or equivalent persistence object for `bcrypt(md5(password))`
 - map Sea user roles / bans into Bancho privileges and restriction state
 - decide whether Bancho in-game registration is disabled initially or bridged into Sea registration
 
