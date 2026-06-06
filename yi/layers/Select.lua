@@ -11,6 +11,8 @@ local IconButton = require("yi.views.IconButton")
 local ChartList = require("yi.views.select.ChartList")
 local SpringValue = require("gui.anim.SpringValue")
 
+local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
+
 ---@class yi.Select : gui.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
 local Select = Layer + {}
@@ -44,6 +46,8 @@ function Select:new(yi)
 	self.gameplay_state = GameplayState()
 	self.gameplay_state.y = -9
 	self.chart_list = ChartList(self.yi.game.chartSelector)
+
+	self.chart_preview_view = ChartPreviewView(yi.game)
 
 	self.zoom = SpringValue({value = 1})
 
@@ -150,6 +154,23 @@ function Select:new(yi)
 	self.gameplay_state:bind(self.yi.game.replayBase)
 end
 
+function Select:load()
+	Layer.load(self)
+	self.chart_preview_view:load()
+end
+
+function Select:update(dt)
+	self.chart_preview_view:update(dt)
+	Layer.update(self, dt)
+end
+
+function Select:draw()
+	love.graphics.push("all")
+	self.chart_preview_view:draw()
+	love.graphics.pop()
+	Layer.draw(self)
+end
+
 ---@param cv rizu.library.Chartview
 function Select:onChartviewUpdate(cv)
 	if not cv.hash then
@@ -185,6 +206,7 @@ function Select:receive(event)
 		return
 	end
 
+	self.chart_preview_view:receive(event)
 	Layer.receive(self, event)
 end
 
