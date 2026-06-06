@@ -9,6 +9,7 @@ local ChartDifficulty = require("yi.views.info.ChartDifficulty")
 local GameplayState = require("yi.views.info.GameplayState")
 local IconButton = require("yi.views.IconButton")
 local ChartList = require("yi.views.select.ChartList")
+local SpringValue = require("gui.anim.SpringValue")
 
 ---@class yi.Select : gui.Layer
 ---@overload fun(yi: yi.UserInterface): yi.Select
@@ -43,6 +44,8 @@ function Select:new(yi)
 	self.gameplay_state = GameplayState()
 	self.gameplay_state.y = -9
 	self.chart_list = ChartList(self.yi.game.chartSelector)
+
+	self.zoom = SpringValue({value = 1})
 
 	local button_back = function()
 		self.yi:setScreen("main_menu")
@@ -162,7 +165,7 @@ function Select:handleKeyDown(key)
 	if key == "escape" then
 		self.yi:setScreen("main_menu")
 	elseif key == "return" then
-		self.yi:setScreen("gameplay")
+		self.yi:setScreen("chart_loading")
 	elseif key == "c" then
 		self.yi:setScreen("config")
 	elseif key == "j" then

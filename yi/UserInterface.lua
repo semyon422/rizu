@@ -42,6 +42,11 @@ function UserInterface:buildUI()
 	local w, h = love.graphics.getDimensions()
 	local scale = math.min(1, math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT))
 	Resources.setFontScale(scale)
+
+	if self.chart_menus then
+		self.chart_menus:unload()
+	end
+
 	self.menus = Menus(self, w, h)
 	self.chart_menus = ChartMenus(self, w, h)
 

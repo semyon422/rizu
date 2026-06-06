@@ -23,8 +23,6 @@ function Gameplay:new(yi)
 end
 
 function Gameplay:start()
-	self.game.gameInteractor:loadGameplaySelectedChart()
-
 	local sv = self.sequence_view
 	sv.game = self.game
 	sv.subscreen = "gameplay"
