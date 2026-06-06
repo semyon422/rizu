@@ -117,7 +117,7 @@ function UserRepo:updateSessionPrefs(id, fields)
 		end
 	end
 
-	if #update > 0 then
+	if next(update) ~= nil then
 		self.models.users:update(update, {id = id})
 	end
 end

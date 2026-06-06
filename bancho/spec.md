@@ -21,7 +21,7 @@ Complete binary protocol implementation for the Bancho packet format (7-byte hea
 
 ### Domain Models (`bancho/model/`)
 
-- **Player.lua** — Online player state: ID, name, privileges, token, status (action, map, mods, mode), per-mode stats (tscore, rscore, pp, acc, plays, playtime, max_combo, rank, grades), packet queue with enqueue/dequeue, silence tracking, and client privilege derivation.
+- **Player.lua** — Online session state: ID, name, privileges, token, status (action, map, mods, mode), packet queue with enqueue/dequeue, silence tracking, spectating links, multiplayer membership, and client privilege derivation. Persisted profile data is not mirrored into `Player`.
 - **PlayerCollection.lua** — In-memory registry indexed by token, ID, and safe name. Supports `get`, `add`, `remove`, `ids`, `staff`, `enqueue` (broadcast with immune list).
 - **Match.lua** — 16-slot multiplayer room with settings (map, mode, mods, freemods, win condition, team type), slot management (player, status, team, mods, loaded), and helper methods (`getSlot`, `getFree`, etc.).
 - **MatchCollection.lua** — Fixed-size match registry (default 64) with `get`, `getFree`, `add`, `remove`, `all`.
@@ -423,6 +423,45 @@ bancho.py has an extensive in-game command system (`/ban`, `/unban`, `/silence`,
 - **Multi-region endpoint support** — `SWITCH_SERVER` packet for failover between server instances.
 
 ---
+
+## ADR: DB-Only Persisted User Fields
+
+### Decision
+
+Persisted user data remains DB-owned and is not duplicated into shared Bancho session objects.
+
+### Why
+
+bancho.py often keeps more user/profile state live on the in-memory player object. In this Lua port, shared session objects are also serialized through shared dicts for cross-worker visibility. Mirroring DB-backed user fields into `Player` would create two sources of truth:
+
+- the SQLite row (`users`, `friends`, related repos)
+- the shared-session `Player` snapshot in memory/shared dicts
+
+That duplication makes cross-worker bugs easier to introduce and harder to reason about.
+
+### Consequences
+
+`bancho.model.Player` should contain session/runtime state only, for example:
+
+- login token
+- online status
+- current action/map/mods/mode
+- silence state for the active session
+- spectating relationships
+- multiplayer membership
+- per-request packet queue
+
+The following stay DB-owned and must be queried from repos when needed instead of cached in `Player`:
+
+- friends / friend relationships
+- PM privacy (`pm_private`)
+- away message (`away_msg`)
+- presence filter (`pres_filter`)
+- UTC offset and other profile/session-preference fields stored in `users`
+
+### Implementation Rule
+
+When a handler needs persisted user data, prefer repo lookups at the point of use over copying that data into shared player serialization. This differs from bancho.py in some places, but keeps a single source of truth in this port.
 
 ## Shared Dict Implementation
 

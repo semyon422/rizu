@@ -338,6 +338,16 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	local priv = user.priv ~= 0 and user.priv or Privileges.UNRESTRICTED
 	local player = Player(user.id, login_data.username, priv)
 	player.is_online = true
+	player.restricted = user.is_restricted == true or user.is_restricted == 1
+	player.silence_end = user.silence_end or 0
+	player.silenced = player.silence_end > os.time()
+
+	if server.user_repo then
+		server.user_repo:updateSessionPrefs(player.id, {
+			utc_offset = login_data.utc_offset,
+			pm_private = login_data.pm_private,
+		})
+	end
 
 	-- Add player to collection
 	server.players:add(player)
@@ -355,8 +365,9 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 			local count = 0
 			for _ in pairs(channel.players) do count = count + 1 end
 
+			local chan_auto = ServerPackets.channelAutoJoin(channel.real_name, channel.topic or "", count)
 			local chan_info = ServerPackets.channelInfo(channel.real_name, channel.topic or "", count)
-			data = data .. chan_info
+			data = data .. chan_auto .. chan_info
 
 			-- Broadcast channel info update to all players who can see this channel
 			for _, other in ipairs(server.players:all()) do
@@ -376,6 +387,9 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	local menu_icon_url = server.config.menu_icon_url or ""
 	local menu_onclick_url = server.config.menu_onclick_url or ""
 	data = data .. ServerPackets.mainMenuIcon(menu_icon_url, menu_onclick_url)
+	if player.restricted then
+		data = data .. ServerPackets.accountRestricted()
+	end
 
 	-- Friends list
 	local friends = {}
@@ -402,7 +416,7 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 	local user_data = ServerPackets.userPresence(
 		player.id,
 		player.name,
-		0, -- utc_offset (TODO: load from DB)
+		user.utc_offset or login_data.utc_offset or 0,
 		0, -- country code (TODO)
 		player:bancho_priv(),
 		mode_val,
@@ -437,11 +451,12 @@ function BanchoProtocolResource:handleLogin(body, res, ctx)
 			local other_mode_val = other_mode.value
 			local other_vanilla_mode = other_mode:asVanilla()
 			local other_stats = server.stats_repo and server.stats_repo:getStats(other.id, other_vanilla_mode) or {}
+			local other_user = server.user_repo and server.user_repo:findUser(other.id) or nil
 
 			data = data .. ServerPackets.userPresence(
 				other.id,
 				other.name,
-				0, -- utc_offset (TODO: load from DB)
+				other_user and other_user.utc_offset or 0,
 				0,
 				other:bancho_priv(),
 				other_mode_val,

@@ -29,7 +29,7 @@ function SendPrivateMessage:handle(server, player, data)
 	if player.silenced then return end
 
 	-- Trim message text
-	local msg = data.text:gsub("^%s*(.-)%s*$", "")
+	local msg = data.text:gsub("^%s*(.-)%s*$", "%1")
 	if #msg == 0 then return end
 
 	local targetName = data.recipient
@@ -49,16 +49,12 @@ function SendPrivateMessage:handle(server, player, data)
 		end
 	end
 
+	local target_user = server.user_repo and server.user_repo:findUser(target.id) or nil
+
 	-- Check if target has PMs restricted to friends
-	if target.pm_private and #target.friends > 0 then
-		local isFriend = false
-		for _, friendId in ipairs(target.friends) do
-			if friendId == player.id then
-				isFriend = true
-				break
-			end
-		end
-		if not isFriend then
+	if target_user and (target_user.pm_private == true or target_user.pm_private == 1) then
+		local is_friend = server.friends_repo and server.friends_repo:isFriend(target.id, player.id) or false
+		if not is_friend then
 			player:enqueue(ServerPackets.userDmBlocked(targetName))
 			return
 		end
@@ -77,9 +73,14 @@ function SendPrivateMessage:handle(server, player, data)
 	end
 
 	-- Send away message if target is AFK
-	if target.status.action == Action.AFK and target.away_msg then
-		-- TODO: send away message as private message
-		return
+	local away_msg = target_user and target_user.away_msg or nil
+	if target.status.action == Action.AFK and away_msg and #away_msg > 0 then
+		local away = ServerPackets.sendMessage(target.name, away_msg, player.name, target.id)
+		if server.players._dict then
+			server.players._dict:rpush("pq:" .. player.token, away)
+		else
+			player:enqueue(away)
+		end
 	end
 
 	-- Send message to target if online
@@ -93,7 +94,11 @@ function SendPrivateMessage:handle(server, player, data)
 				-- Command executed
 				if result.response then
 					local respPkt = ServerPackets.sendMessage(bot.name, result.response, targetName, bot.id)
-					player:enqueue(respPkt)
+					if server.players._dict then
+						server.players._dict:rpush("pq:" .. player.token, respPkt)
+					else
+						player:enqueue(respPkt)
+					end
 				end
 				return
 			end
@@ -101,7 +106,11 @@ function SendPrivateMessage:handle(server, player, data)
 
 		-- Normal PM
 		local pkt = ServerPackets.sendMessage(player.name, msg, targetName, player.id)
-		target:enqueue(pkt)
+		if server.players._dict then
+			server.players._dict:rpush("pq:" .. target.token, pkt)
+		else
+			target:enqueue(pkt)
+		end
 	else
 		-- TODO: mail system — store for offline delivery
 		player:enqueue(ServerPackets.notification(targetName .. " is currently offline, but will receive your message on their next login."))

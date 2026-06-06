@@ -228,7 +228,6 @@ function BanchoClient:ping()
 end
 
 --- Update player status/action.
---- Format: mode\0info_text\0map_md5\0mods\0action\0map_id
 ---@param mode integer Game mode (0=osu, 1=taiko, 2=ctb, 3=mania)
 ---@param action integer Action ID
 ---@param info_text string Status text
@@ -239,13 +238,13 @@ end
 ---@return string? error
 function BanchoClient:update_status(mode, action, info_text, map_md5, mods, map_id)
 	local w = PacketWriter()
-	w:writeU8(mode)
+	w:writeU8(action)
 	w:writeString(info_text)
 	w:writeString(map_md5)
 	w:writeI32(mods)
-	w:writeU8(action)
+	w:writeU8(mode)
 	w:writeI32(map_id)
-	return self:send(self:build_packet(ClientPackets.REQUEST_STATUS_UPDATE, w.body))
+	return self:send(self:build_packet(ClientPackets.CHANGE_ACTION, w.body))
 end
 
 --- Start spectating a player.
@@ -300,22 +299,19 @@ function BanchoClient:request_user_presence(user_id)
 end
 
 --- Request presence of all online users.
+---@param ingame_time? integer
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:request_all_presences()
-	return self:send(self:build_packet(ClientPackets.USER_PRESENCE_REQUEST_ALL, ""))
+function BanchoClient:request_all_presences(ingame_time)
+	return self:send(self:build_packet(ClientPackets.USER_PRESENCE_REQUEST_ALL, Binary.writeI32(ingame_time or 0)))
 end
 
---- Toggle receiving presence updates.
----@param mode integer Game mode to receive updates for
----@param enabled boolean True to receive, false to stop
+--- Set presence update filter.
+---@param value integer 0=all, 1=mods only, 2=friends only
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:receive_updates(mode, enabled)
-	local w = PacketWriter()
-	w:writeU8(mode)
-	w:writeU8(enabled and 1 or 0)
-	return self:send(self:build_packet(ClientPackets.RECEIVE_UPDATES, w.body))
+function BanchoClient:receive_updates(value)
+	return self:send(self:build_packet(ClientPackets.RECEIVE_UPDATES, Binary.writeI32(value)))
 end
 
 --- Add a friend.
@@ -335,10 +331,11 @@ function BanchoClient:remove_friend(user_id)
 end
 
 --- Toggle blocking non-friend DMs.
+---@param enabled boolean
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:toggle_block_dms()
-	return self:send(self:build_packet(ClientPackets.TOGGLE_BLOCK_NON_FRIEND_DMS, ""))
+function BanchoClient:toggle_block_dms(enabled)
+	return self:send(self:build_packet(ClientPackets.TOGGLE_BLOCK_NON_FRIEND_DMS, Binary.writeI32(enabled and 1 or 0)))
 end
 
 --- Match: ready up.
@@ -348,15 +345,13 @@ function BanchoClient:match_ready()
 	return self:send(self:build_packet(ClientPackets.MATCH_READY, ""))
 end
 
---- Match: lock/unlock the match.
----@param locked boolean True to lock, false to unlock
+--- Match: lock or unlock a slot.
+---@param slot_id? integer Slot ID to toggle (default 0)
 ---@return bancho.client.IncomingPacket[]
 ---@return string? error
-function BanchoClient:match_lock(locked)
-	-- Match lock sends slot ID (I32) to lock/unlock
-	-- Use slot 0 as default (host slot)
+function BanchoClient:match_lock(slot_id)
 	local w = PacketWriter()
-	w:writeI32(0)
+	w:writeI32(type(slot_id) == "number" and slot_id or 0)
 	return self:send(self:build_packet(ClientPackets.MATCH_LOCK, w.body))
 end
 

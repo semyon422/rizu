@@ -4,6 +4,27 @@
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local IPacketHandler = require("bancho.handler.IPacketHandler")
 
+local function enqueue_player(players, player, packet)
+	if players and players._dict then
+		players._dict:rpush("pq:" .. player.token, packet)
+	else
+		player:enqueue(packet)
+	end
+end
+
+local function get_spectators(server, target, exclude_id)
+	local result = {}
+	for _, candidate in ipairs(server.players:all()) do
+		local spectating_id = candidate.spectating and candidate.spectating.id or candidate.spectating_id
+		if spectating_id == target.id then
+			if not exclude_id or candidate.id ~= exclude_id then
+				result[#result + 1] = candidate
+			end
+		end
+	end
+	return result
+end
+
 --- Stop spectating handler data (empty).
 ---@class bancho.handler.StopSpectatingData
 
@@ -25,19 +46,14 @@ function StopSpectating:handle(server, player, data)
 
 	local host = player.spectating
 
-	-- Remove from host's spectator list
-	host:removeSpectator(player)
-
-	-- Notify host
-	host:enqueue(ServerPackets.spectatorLeft(player.id))
-
-	-- Notify fellow spectators
 	local left = ServerPackets.fellowSpectatorLeft(player.id)
-	for _, spec in ipairs(host.spectators) do
-		spec:enqueue(left)
-	end
+	enqueue_player(server.players, host, ServerPackets.spectatorLeft(player.id))
 
 	player.spectating = nil
+	player.spectating_id = nil
+	for _, spec in ipairs(get_spectators(server, host, player.id)) do
+		enqueue_player(server.players, spec, left)
+	end
 end
 
 return StopSpectating

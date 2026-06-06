@@ -28,11 +28,31 @@ function MatchComplete:handle(server, player, data)
 	local slot = match:getSlot(player)
 	if not slot then return end
 
-	-- Mark player as completed
 	slot.status = SlotStatus.COMPLETED
 
-	-- Broadcast match complete to all players in match slots
-	match:broadcast(ServerPackets.matchComplete(), server.players)
+	local immune = {}
+	for i = 0, 15 do
+		local current = match.slots[i]
+		if current.status == SlotStatus.PLAYING then
+			return
+		end
+		if current.player and current.status ~= SlotStatus.COMPLETED then
+			immune[#immune + 1] = current.player
+		end
+	end
+
+	for i = 0, 15 do
+		local current = match.slots[i]
+		if current.status == SlotStatus.COMPLETED then
+			current.status = SlotStatus.NOT_READY
+		end
+		current.loaded = false
+		current.skipped = false
+	end
+	match.in_progress = false
+
+	match:broadcast(ServerPackets.matchComplete(), server.players, immune)
+	server.chat_manager:notifyMatchUpdate(match, server.match_manager:buildMatchData(match), server.channels, true)
 end
 
 return MatchComplete

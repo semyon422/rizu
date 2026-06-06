@@ -5,6 +5,14 @@
 local Binary = require("bancho.protocol.Binary")
 local IPacketHandler = require("bancho.handler.IPacketHandler")
 
+local function enqueue_player(players, player, packet)
+	if players and players._dict then
+		players._dict:rpush("pq:" .. player.token, packet)
+	else
+		player:enqueue(packet)
+	end
+end
+
 --- Spectate frames handler data.
 ---@class bancho.handler.SpectateFramesData
 ---@field raw_data string
@@ -27,9 +35,11 @@ function SpectateFrames:handle(server, player, data)
 	-- Build spectate frames packet (ID 15) with raw data
 	local packet = Binary.writeHeader(15, #data.raw_data) .. data.raw_data
 
-	-- Enqueue to all spectators of this player
-	for _, spectator in ipairs(player.spectators) do
-		spectator:enqueue(packet)
+	for _, spectator in ipairs(server.players:all()) do
+		local spectating_id = spectator.spectating and spectator.spectating.id or spectator.spectating_id
+		if spectating_id == player.id then
+			enqueue_player(server.players, spectator, packet)
+		end
 	end
 end
 

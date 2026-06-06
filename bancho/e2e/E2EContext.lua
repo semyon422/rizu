@@ -24,6 +24,27 @@ local class = require("class")
 ---@field db bancho.BanchoDatabase Database instance
 local E2EContext = class()
 
+---@param overrides? table
+---@return bancho.server.BanchoServer
+function E2EContext:createServer(overrides)
+	local server = BanchoServer(self.shared_memory, overrides or {
+		db_path = ":memory:",
+	})
+
+	local repos = Repos(self.db.models)
+	server:setRepos(
+		repos.user_repo,
+		repos.score_repo,
+		repos.beatmap_repo,
+		repos.friends_repo,
+		repos.favourites_repo,
+		repos.stats_repo,
+		repos.replay_repo
+	)
+
+	return server
+end
+
 function E2EContext:new()
 	-- Single SharedMemory instance shared across all BanchoServer instances.
 	-- In tests, ngx.shared is nil so SharedMemory falls back to FakeSharedDict.
@@ -43,50 +64,57 @@ end
 --- Simulates a new worker handling a request.
 ---@return bancho.http.BanchoProtocolResource
 function E2EContext:createResource()
-	-- Create server with shared memory and in-memory DB override
-	local server = BanchoServer(self.shared_memory, {
-		db_path = ":memory:",
-	})
-
-	-- Wire up repos from the shared database
-	local repos = Repos(self.db.models)
-	server:setRepos(
-		repos.user_repo,
-		repos.score_repo,
-		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
-		repos.stats_repo,
-		repos.replay_repo
-	)
-
 	local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
-	return BanchoProtocolResource(server)
+	return BanchoProtocolResource(self:createServer())
 end
 
 --- Create a fresh AccountResource backed by a new BanchoServer.
 --- Simulates a new worker handling a registration request.
 ---@return bancho.http.AccountResource
 function E2EContext:createAccountResource()
-	local server = BanchoServer(self.shared_memory, {
+	local AccountResource = require("bancho.http.AccountResource")
+	return AccountResource(self:createServer({
 		db_path = ":memory:",
 		allow_registration = true,
-	})
+	}))
+end
 
-	-- Wire up repos from the shared database
-	local repos = Repos(self.db.models)
-	server:setRepos(
-		repos.user_repo,
-		repos.score_repo,
-		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
-		repos.stats_repo,
-		repos.replay_repo
-	)
+--- Create an HTTP request/response pair for tests.
+---@param method string
+---@param path string
+---@param headers? {[string]: string}
+---@param body? string
+---@return web.IRequest request
+---@return web.IResponse response
+---@return bancho.e2e.ExtendedStringSocket read_socket
+function E2EContext:createHttpRequest(method, path, headers, body)
+	local ExtendedStringSocket = require("bancho.e2e.ExtendedStringSocket")
+	local Request = require("web.http.Request")
+	local Response = require("web.http.Response")
 
-	local AccountResource = require("bancho.http.AccountResource")
-	return AccountResource(server)
+	body = body or ""
+	headers = headers or {}
+
+	local req_soc = ExtendedStringSocket()
+	local res_soc = req_soc:split()
+
+	local request_lines = {
+		string.format("%s %s HTTP/1.0", method, path),
+		"Host: osu.example.com",
+		"Content-Length: " .. tostring(#body),
+	}
+	for name, value in pairs(headers) do
+		request_lines[#request_lines + 1] = name .. ": " .. value
+	end
+	request_lines[#request_lines + 1] = ""
+	request_lines[#request_lines + 1] = body
+
+	res_soc:send(table.concat(request_lines, "\r\n"))
+
+	local req = Request(req_soc, "r")
+	local res = Response(res_soc, "w")
+	req:receive_headers()
+	return req, res, req_soc
 end
 
 --- Create an HTTP request/response pair for testing with multipart body.
@@ -98,16 +126,6 @@ end
 ---@return web.IResponse response
 ---@return bancho.e2e.ExtendedStringSocket read_socket socket to read response from
 function E2EContext:createMultipartRequest(method, path, fields)
-	local ExtendedStringSocket = require("bancho.e2e.ExtendedStringSocket")
-	local Request = require("web.http.Request")
-	local Response = require("web.http.Response")
-
-	-- Create socket pair
-	local req_soc = ExtendedStringSocket()
-	local res_soc = req_soc:split()
-
-	-- Build multipart body
-	-- Format must match what MultipartString expects: \r\n--boundary\r\nheaders\r\n\r\nvalue
 	local boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
 	local body = ""
 	for name, value in pairs(fields) do
@@ -115,28 +133,9 @@ function E2EContext:createMultipartRequest(method, path, fields)
 	end
 	body = body .. string.format("\r\n--%s--\r\n", boundary)
 
-	-- Build request string
-	local request_lines = {
-		string.format("%s %s HTTP/1.0", method, path),
-		"Host: osu.example.com",
-		"Content-Type: multipart/form-data; boundary=" .. boundary,
-		"Content-Length: " .. tostring(#body),
-		"", -- blank line separates headers from body
-		body,
-	}
-	local request_str = table.concat(request_lines, "\r\n")
-
-	-- Send request data to res_soc so it appears in req_soc (for Request to read)
-	res_soc:send(request_str)
-
-	-- Create real Request/Response objects
-	local req = Request(req_soc, "r")
-	local res = Response(res_soc, "w")
-
-	req:receive_headers()
-
-	-- Response writes to res_soc, data appears in req_soc for us to read
-	return req, res, req_soc
+	return self:createHttpRequest(method, path, {
+		["Content-Type"] = "multipart/form-data; boundary=" .. boundary,
+	}, body)
 end
 
 --- Read the HTTP response body from a socket.

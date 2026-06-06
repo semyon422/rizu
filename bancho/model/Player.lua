@@ -35,6 +35,7 @@ registry._resolving_player = false
 ---@field safe_name string
 ---@field priv integer
 ---@field token string
+---@field is_online boolean
 ---@field restricted boolean
 ---@field silenced boolean
 ---@field silence_end integer
@@ -61,11 +62,12 @@ registry._resolving_player = false
 ---@field silence_end integer
 ---@field silenced boolean chat silenced status
 ---@field spectating bancho.model.Player? player being spectated
+---@field spectating_id integer?
 ---@field spectators bancho.model.Player[] players spectating this player
 ---@field match bancho.model.Match? current multiplayer match
 ---@field in_lobby boolean whether player is in multiplayer lobby
 ---@field stealth boolean stealth spectating mode (session-only)
----@field blocks integer[] blocked user IDs (session-only, not persisted)
+---@field blocks integer[] blocked user IDs (session-only)
 local Player = class()
 
 --- Generate a unique token.
@@ -86,6 +88,7 @@ function Player:new(id, name, priv)
 	self.silence_end = 0
 	self.silenced = false
 	self.spectating = nil
+	self.spectating_id = nil
 	self.spectators = {}
 	self.match = nil
 	self.in_lobby = false
@@ -166,6 +169,7 @@ function Player:toData()
 		safe_name = self.safe_name,
 		priv = self.priv,
 		token = self.token,
+		is_online = self.is_online,
 		restricted = self.restricted,
 		silenced = self.silenced,
 		silence_end = self.silence_end,
@@ -178,7 +182,7 @@ function Player:toData()
 			map_id = self.status.map_id,
 		},
 		blocks = self.blocks,
-		spectating_id = self.spectating and self.spectating.id or nil,
+		spectating_id = self.spectating and self.spectating.id or self.spectating_id,
 		spectators = {}, -- player IDs
 		match_id = self.match and self.match.id or nil,
 		in_lobby = self.in_lobby,
@@ -205,6 +209,7 @@ function Player:fromData(data, collection)
 	local player = Player(data.id, data.name, data.priv)
 	player.token = data.token
 	player.safe_name = data.safe_name
+	player.is_online = data.is_online ~= false
 	player.restricted = data.restricted
 	player.silenced = data.silenced
 	player.silence_end = data.silence_end
@@ -213,6 +218,7 @@ function Player:fromData(data, collection)
 	player.blocks = data.blocks or {}
 
 	-- Resolve cross-references
+	player.spectating_id = data.spectating_id
 	if collection and data.spectating_id then
 		player.spectating = collection:get(nil, data.spectating_id)
 	end

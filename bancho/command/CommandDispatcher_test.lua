@@ -2,6 +2,13 @@ local bit = require("bit")
 local CommandDispatcher = require("bancho.command.CommandDispatcher")
 local CommandSet = require("bancho.command.CommandSet")
 local Privileges = require("bancho.constants.Privileges")
+local SlotStatus = require("bancho.constants.SlotStatus")
+
+local function create_mp_dispatcher()
+	local dispatcher = CommandDispatcher("!")
+	require("bancho.command")(dispatcher)
+	return dispatcher
+end
 
 local test = {}
 
@@ -174,6 +181,59 @@ function test.hasPriv(t)
 	t:eq(dispatcher:hasPriv({ priv = Privileges.UNRESTRICTED }, Privileges.UNRESTRICTED), true)
 	t:eq(dispatcher:hasPriv({ priv = Privileges.UNRESTRICTED }, Privileges.MODERATOR), false)
 	t:eq(dispatcher:hasPriv({ priv = bit.bor(Privileges.UNRESTRICTED, Privileges.ADMINISTRATOR) }, Privileges.ADMINISTRATOR), true)
+end
+
+function test.mp_start_wrong_channel(t)
+	local dispatcher = create_mp_dispatcher()
+	local result = dispatcher:dispatch(
+		{ priv = Privileges.UNRESTRICTED, id = 1, match = { host_id = 1, slots = {} } },
+		{ name = "#general" },
+		"!mp start",
+		{ match_manager = { start = function() end }, players = {} }
+	)
+	t:eq(result.response, "Use this command in #multiplayer.")
+end
+
+function test.mp_start_requires_ready_unless_force(t)
+	local dispatcher = create_mp_dispatcher()
+	local match = {
+		host_id = 1,
+		in_progress = false,
+		slots = {},
+		broadcast = function() end,
+	}
+	for i = 0, 15 do
+		match.slots[i] = {}
+	end
+	match.slots[0] = { player = { id = 1 }, status = SlotStatus.READY }
+	match.slots[1] = { player = { id = 2 }, status = SlotStatus.NOT_READY }
+
+	local result = dispatcher:dispatch(
+		{ priv = Privileges.UNRESTRICTED, id = 1, match = match },
+		{ name = "#multiplayer" },
+		"!mp start",
+		{ match_manager = { start = function() end }, players = {} }
+	)
+	t:eq(result.response, "Not all players are ready (`!mp start force` to override).")
+
+end
+
+function test.mp_host_invalid_target(t)
+	local dispatcher = create_mp_dispatcher()
+	local match = { host_id = 1, slots = {} }
+	for i = 0, 15 do
+		match.slots[i] = {}
+	end
+	match.slots[0] = { player = { id = 1, name = "Host" } }
+	match.slots[1] = { player = { id = 2, name = "Guest" } }
+
+	local result = dispatcher:dispatch(
+		{ priv = Privileges.UNRESTRICTED, id = 1, match = match },
+		{ name = "#multiplayer" },
+		"!mp host Missing",
+		{ match_manager = { transferHost = function() end }, players = {} }
+	)
+	t:eq(result.response, "Player not found in match.")
 end
 
 return test
