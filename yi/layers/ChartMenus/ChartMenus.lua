@@ -1,15 +1,15 @@
-local Layer = require("yi.Layer")
+local ScreenContainer = require("yi.ScreenContainer")
 local ParallaxBackground = require("yi.views.ParallaxBackground")
 local Select = require("yi.layers.ChartMenus.Select")
 local ChartLoading = require("yi.layers.ChartMenus.ChartLoading")
 local Gameplay = require("yi.layers.ChartMenus.Gameplay")
 local Result = require("yi.layers.ChartMenus.Result")
 
----@class yi.ChartMenus : yi.Layer
+---@class yi.ChartMenus : yi.ScreenContainer
 ---@operator call: yi.ChartMenus
 ---@field screens yi.Screen[]
 ---@field current_screen yi.Screen
-local ChartMenus = Layer + {}
+local ChartMenus = ScreenContainer + {}
 
 ---@param yi yi.UserInterface
 function ChartMenus:new(yi)
@@ -21,14 +21,12 @@ function ChartMenus:new(yi)
 
 	self.background = ParallaxBackground(yi.game.backgroundModel)
 
-	self.screens = {
+	self:initScreens({
 		self.select,
 		self.chart_loading,
 		self.gameplay,
 		self.result
-	}
-
-	self.current_screen = self.select
+	}, self.select)
 end
 
 function ChartMenus:load()
@@ -47,7 +45,7 @@ end
 
 function ChartMenus:update(dt)
 	self.background:update(dt)
-	self.current_screen:update(dt)
+	self:updateScreens(dt)
 end
 
 function ChartMenus:acceptInputs(inputs)
@@ -58,7 +56,8 @@ function ChartMenus:draw()
 	love.graphics.push("all")
 	self.background:draw()
 	love.graphics.pop()
-	self.current_screen:draw()
+
+	self:drawScreens(nil)
 end
 
 ---@param event table

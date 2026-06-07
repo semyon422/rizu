@@ -12,8 +12,8 @@ local SettingsScheme = require("rizu.config.schemas.Settings")
 ---@field next_screen string?
 ---@field current_screen string?
 ---@field previous_screen string?
----@field current_layer yi.Layer
----@field screens {[string]: {layer: yi.Layer, screen: yi.Screen}}
+---@field current_layer yi.ScreenContainer
+---@field screens {[string]: {layer: yi.ScreenContainer, screen: yi.Screen}}
 local UserInterface = IUserInterface + {}
 
 local MAX_DT = 1 / 30
@@ -42,12 +42,9 @@ function UserInterface:load()
 
 	self.chart_menus = ChartMenus(self)
 	self.menus = Menus(self)
-	table.insert(self.layers, self.chart_menus)
-	table.insert(self.layers, self.menus)
 
-	for _, layer in ipairs(self.layers) do
-		layer:load()
-	end
+	self.chart_menus:load()
+	self.menus:load()
 
 	self.current_layer = self.menus
 
@@ -65,12 +62,8 @@ end
 
 function UserInterface:unload()
 	self.game.settings_config.onChanged:remove(self)
-
-	for _, layer in ipairs(self.layers) do
-		layer:unload()
-	end
-
-	self.layers = {}
+	self.chart_menus:unload()
+	self.menus:unload()
 end
 
 ---@param screen string
@@ -98,9 +91,6 @@ function UserInterface:transitToNextScreen()
 	local next_screen = config.screen
 
 	local current_layer = self.current_layer
-	---@cast current_layer yi.Menus | yi.ChartMenus
-	---@cast next_layer yi.Menus | yi.ChartMenus
-	--- TODO: yi.Menus and yi.ChartMenus should inherit ScreenContainer or something
 
 	if current_layer and current_layer.current_screen then
 		current_layer.current_screen:exit()
@@ -138,14 +128,18 @@ function UserInterface:update(dt)
 		self.current_layer:acceptInputs(self.inputs)
 	end
 
-	for _, layer in ipairs(self.layers) do
-		layer:update(dt)
+	if self.menus.visiblity:get() < 1 then
+		self.chart_menus:update(dt)
 	end
+	self.menus:update(dt)
 end
 
 function UserInterface:draw()
-	for _, layer in ipairs(self.layers) do
-		layer:draw()
+	if self.menus.visiblity:get() < 1 then
+		self.chart_menus:draw()
+	end
+	if self.menus:isVisible() then
+		self.menus:draw()
 	end
 end
 
@@ -172,9 +166,8 @@ function UserInterface:receive(event)
 		end
 	end
 
-	for _, layer in ipairs(self.layers) do
-		layer:receive(event)
-	end
+	self.menus:receive(event)
+	self.chart_menus:receive(event)
 end
 
 return UserInterface

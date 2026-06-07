@@ -1,4 +1,4 @@
-local Layer = require("yi.Layer")
+local ScreenContainer = require("yi.ScreenContainer")
 
 local MainMenu = require("yi.layers.Menus.MainMenu")
 local Config = require("yi.layers.Menus.Config")
@@ -7,12 +7,12 @@ local SpringValue = require("gui.anim.SpringValue")
 local PingPongBackground = require("yi.views.PingPongBackground")
 local CodeDecoration = require("yi.views.CodeDecoration")
 
----@class yi.Menus : yi.Layer
+---@class yi.Menus : yi.ScreenContainer
 ---@overload fun(yi: yi.UserInterface): yi.Menus
 ---@field current_screen yi.Screen
 ---@field screens yi.Screen[]
----@field private screen_springs {[yi.Layer]: gui.anim.SpringValue}
-local Menus = Layer + {}
+---@field private screen_springs {[yi.Screen]: gui.anim.SpringValue}
+local Menus = ScreenContainer + {}
 
 ---@param yi yi.UserInterface
 function Menus:new(yi)
@@ -25,16 +25,14 @@ function Menus:new(yi)
 	self.main_menu = MainMenu(yi)
 	self.config = Config(yi)
 
-	self.screens = {
-		self.main_menu,
-		self.config
-	}
-
 	local w, h = love.graphics.getDimensions()
 	self.canvas = love.graphics.newCanvas(w, h)
 	self.visiblity = SpringValue({value = 1})
 
-	self.current_screen = self.main_menu
+	self:initScreens({
+		self.main_menu,
+		self.config
+	}, self.main_menu)
 end
 
 function Menus:load()
@@ -62,11 +60,7 @@ end
 function Menus:update(dt)
 	self.background:update(dt)
 	self.code_decoration:update(dt)
-
-	for _, v in ipairs(self.screens) do
-		v:update(dt)
-	end
-
+	self:updateScreens(dt)
 	self.visiblity:update(dt)
 end
 
@@ -85,7 +79,8 @@ function Menus:draw()
 
 	self.background:draw()
 	self.code_decoration:draw()
-	self.current_screen:draw()
+
+	self:drawScreens(self.canvas)
 
 	love.graphics.setBlendMode("alpha")
 
