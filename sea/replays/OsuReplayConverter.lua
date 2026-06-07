@@ -1,5 +1,6 @@
 local bit = require("bit")
 local md5 = require("md5")
+local _7z = require("7z")
 local class = require("class")
 local Osr = require("chart.format.osu.Osr")
 local Replay = require("sea.replays.Replay")
@@ -14,6 +15,55 @@ local ColumnsOrder = require("sea.chart.ColumnsOrder")
 ---@class sea.OsuReplayConverter
 ---@operator call: sea.OsuReplayConverter
 local OsuReplayConverter = class()
+
+---@param replay sea.Replay
+---@param mania_events {[1]: integer, [2]: integer, [3]: boolean}[]
+function OsuReplayConverter:fillReplayFrames(replay, mania_events)
+	---@type rizu.ReplayFrame[]
+	replay.frames = {}
+	for i, event in ipairs(mania_events) do
+		replay.frames[i] = {
+			time = event[1] / 1000,
+			event = {
+				id = event[2],
+				column = event[2],
+				value = event[3],
+			},
+		}
+	end
+end
+
+---@param events chart.osu.OsrEvent[]
+---@return string
+function OsuReplayConverter:encodeReplayEvents(events)
+	local out = {}
+	for i, event in ipairs(events) do
+		out[i] = ("%s|%s|%s|%s,"):format(event[1], event[2], event[3], event[4])
+	end
+	return table.concat(out)
+end
+
+---@param replay_data string
+---@return chart.osu.OsrEvent[]?
+---@return string?
+function OsuReplayConverter:decodeSubmissionReplayEvents(replay_data)
+	local ok, uncomp_replay = pcall(_7z.decode_s, replay_data)
+	if not ok then
+		return nil, tostring(uncomp_replay)
+	end
+
+	---@type chart.osu.OsrEvent[]
+	local events = {}
+	for dt, x, y, km in uncomp_replay:gmatch("([^,^|]+)|([^,^|]+)|([^,^|]+)|([^,^|]+),") do
+		events[#events + 1] = {
+			tonumber(dt),
+			tonumber(x),
+			tonumber(y),
+			tonumber(km),
+		}
+	end
+	return events
+end
 
 ---@param mods integer
 ---@return sea.ChartModifier[]
@@ -116,19 +166,54 @@ function OsuReplayConverter:fromOsr(replay_data, hash, index, od, inputmode)
 	replay.pause_count = 0
 	replay.created_at = tonumber(osr:getTimestamp())
 	replay.rate_type = replay.rate == 1 and "linear" or "exp"
-	---@type rizu.ReplayFrame[]
-	replay.frames = {}
+	self:fillReplayFrames(replay, osr:decodeManiaEvents())
 
-	for i, event in ipairs(osr:decodeManiaEvents()) do
-		replay.frames[i] = {
-			time = event[1] / 1000,
-			event = {
-				id = event[2],
-				column = event[2],
-				value = event[3],
-			},
-		}
+	local data = assert(ReplayCoder.encode(replay))
+	return replay, data, md5.sumhexa(data)
+end
+
+---@param replay_data string
+---@param hash string
+---@param index integer
+---@param od number
+---@param inputmode string
+---@param mods integer
+---@param created_at integer
+---@return sea.Replay?
+---@return string?
+---@return string?
+function OsuReplayConverter:fromSubmissionReplay(replay_data, hash, index, od, inputmode, mods, created_at)
+	local events, err = self:decodeSubmissionReplayEvents(replay_data)
+	if not events then
+		return nil, err
 	end
+
+	local replay = Replay()
+	replay.version = 2
+	replay.hash = hash
+	replay.index = index
+	replay.modifiers = self:getModifiers(mods)
+	replay.rate = self:getRate(mods)
+	replay.mode = "mania"
+	replay.nearest = true
+	replay.tap_only = false
+	replay.timings = Timings("osuod", od)
+	replay.subtimings = self:getSubtimings(mods)
+	replay.timing_values = assert(TimingValuesFactory:get(replay.timings, replay.subtimings))
+	replay.healths = nil
+	replay.columns_order, err = self:getColumnsOrder(mods, inputmode)
+	if err then
+		return nil, err
+	end
+	replay.custom = false
+	replay.const = false
+	replay.pause_count = 0
+	replay.created_at = created_at
+	replay.rate_type = replay.rate == 1 and "linear" or "exp"
+
+	local osr = Osr()
+	osr.events = events
+	self:fillReplayFrames(replay, osr:decodeManiaEvents())
 
 	local data = assert(ReplayCoder.encode(replay))
 	return replay, data, md5.sumhexa(data)
@@ -164,6 +249,25 @@ function OsuReplayConverter:getGradeValue(score)
 		return score.grade
 	end
 	return Grade.fromString((score.getGrade and score:getGrade() or "F"):lower()).value
+end
+
+---@param replay sea.Replay|sea.Chartplay
+---@return string
+function OsuReplayConverter:toSubmissionReplay(replay)
+	local osr = Osr()
+
+	---@type [integer, integer, boolean][]
+	local mania_events = {}
+	for i, frame in ipairs(replay.frames) do
+		mania_events[i] = {
+			math.floor(frame.time * 1000 + 0.5),
+			frame.event.column,
+			not not frame.event.value,
+		}
+	end
+	osr:encodeManiaEvents(mania_events)
+
+	return _7z.encode_s(self:encodeReplayEvents(osr.events), osr.lzma_props)
 end
 
 ---@param chartmeta sea.Chartmeta

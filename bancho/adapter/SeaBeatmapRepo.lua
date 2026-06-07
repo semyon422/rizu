@@ -78,14 +78,14 @@ function SeaBeatmapRepo:ensureBeatmap(md5)
 
 	local chartmeta = charts_repo.models.chartmetas:find({hash = md5})
 	local chartdiff = charts_repo:selectDefaultChartdiff(md5, 1)
-	if chartmeta and chartdiff then
+	local content = self.charts_storage and self.charts_storage:get(md5) or nil
+	if chartmeta and chartdiff and content then
 		return osu_beatmap, chartmeta
 	end
 	if not osu_beatmap.id or not self.charts_storage then
 		return osu_beatmap, chartmeta
 	end
 
-	local content = self.charts_storage:get(md5)
 	if not content then
 		content = self:fetchOsuFile(osu_beatmap.id)
 		if not content then

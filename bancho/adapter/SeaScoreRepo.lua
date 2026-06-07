@@ -13,17 +13,20 @@ local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 ---@field charts_repo sea.ChartsRepo
 ---@field chartplay_submission sea.ChartplaySubmission
 ---@field charts_storage sea.IKeyValueStorage
+---@field beatmap_repo? bancho.adapter.SeaBeatmapRepo
 local SeaScoreRepo = class()
 
 ---@param users_repo sea.UsersRepo
 ---@param charts_repo sea.ChartsRepo
 ---@param chartplay_submission sea.ChartplaySubmission
 ---@param charts_storage sea.IKeyValueStorage
-function SeaScoreRepo:new(users_repo, charts_repo, chartplay_submission, charts_storage)
+---@param beatmap_repo? bancho.adapter.SeaBeatmapRepo
+function SeaScoreRepo:new(users_repo, charts_repo, chartplay_submission, charts_storage, beatmap_repo)
 	self.users_repo = users_repo
 	self.charts_repo = charts_repo
 	self.chartplay_submission = chartplay_submission
 	self.charts_storage = charts_storage
+	self.beatmap_repo = beatmap_repo
 	self.osu_replay_converter = OsuReplayConverter()
 end
 
@@ -161,15 +164,33 @@ function SeaScoreRepo:findBestRankedScores(user_id, mode)
 	return self:sortScores(rows)
 end
 
+---@param map_md5 string
+---@return string?
+---@return string?
+function SeaScoreRepo:ensureChartData(map_md5)
+	local chart_data, err = self.charts_storage:get(map_md5)
+	if chart_data then
+		return chart_data
+	end
+	if self.beatmap_repo and self.beatmap_repo.ensureBeatmap then
+		self.beatmap_repo:ensureBeatmap(map_md5)
+		chart_data, err = self.charts_storage:get(map_md5)
+		if chart_data then
+			return chart_data
+		end
+	end
+	return nil, err or "missing chart data"
+end
+
 ---@param score table
 ---@param beatmap table
 ---@param replay_data string
 ---@return integer?
 ---@return string?
 function SeaScoreRepo:submitScore(score, beatmap, replay_data)
-	local chart_data, err = self.charts_storage:get(score.map_md5)
+	local chart_data, err = self:ensureChartData(score.map_md5)
 	if not chart_data then
-		return nil, "missing chart data"
+		return nil, err
 	end
 
 	local compute_ctx = ComputeContext()
@@ -178,15 +199,17 @@ function SeaScoreRepo:submitScore(score, beatmap, replay_data)
 		return nil, "load chart: " .. ferr
 	end
 
-	local replay, replay_file_data, replay_hash = self.osu_replay_converter:fromOsr(
+	local replay, replay_file_data, replay_hash = self.osu_replay_converter:fromSubmissionReplay(
 		replay_data,
 		score.map_md5,
 		1,
 		beatmap.od or 0,
-		chart_chartmeta.chartmeta.inputmode
+		chart_chartmeta.chartmeta.inputmode,
+		score.mods or 0,
+		score.play_time or score.created_at or os.time()
 	)
 	if not replay then
-		return nil, "convert osr: " .. err
+		return nil, "convert replay: " .. tostring(replay_file_data)
 	end
 
 	local chartdiff_values = compute_ctx:computeBase(replay)

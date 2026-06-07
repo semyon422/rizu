@@ -5,6 +5,8 @@ local Subtimings = require("sea.chart.Subtimings")
 local OsuReplayConverter = require("sea.replays.OsuReplayConverter")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 local Mods = require("bancho.constants.Mods")
+local Osr = require("chart.format.osu.Osr")
+local _7z = require("7z")
 local bit = require("bit")
 
 local test = {}
@@ -92,6 +94,83 @@ function test.random_mod_is_rejected_on_import(t)
 	t:eq(loaded, nil)
 	t:eq(err, "random mod is not supported")
 	t:eq(bit.band(converter:getModsFromReplay(replay, "4key"), Mods.RANDOM) ~= 0, true)
+end
+
+---@param t testing.T
+function test.import_submission_replay_mania(t)
+	local converter = OsuReplayConverter()
+	local osr = Osr()
+	osr.mods = Mods.DOUBLETIME
+	osr:encodeManiaEvents({
+		{0, 1, true},
+		{100, 1, false},
+		{200, 2, true},
+		{300, 2, false},
+	})
+
+	local replay_string = converter:encodeReplayEvents(osr.events)
+	local replay_data = _7z.encode_s(replay_string, osr.lzma_props)
+	local loaded, _, replay_hash = assert(converter:fromSubmissionReplay(
+		replay_data,
+		"0123456789abcdef0123456789abcdef",
+		1,
+		8,
+		"4key",
+		Mods.DOUBLETIME,
+		123456
+	))
+
+	t:eq(loaded.rate, 1.5)
+	t:eq(loaded.created_at, 123456)
+	t:eq(#loaded.frames, 4)
+	t:eq(loaded.frames[1].event.column, 1)
+	t:eq(loaded.frames[3].event.column, 2)
+	t:eq(replay_hash:match("^[0-9a-f]+$") ~= nil, true)
+end
+
+---@param t testing.T
+function test.export_submission_replay_mania(t)
+	local converter = OsuReplayConverter()
+	local replay = Replay()
+	replay.version = 2
+	replay.hash = "0123456789abcdef0123456789abcdef"
+	replay.index = 1
+	replay.modifiers = {}
+	replay.rate = 1
+	replay.mode = "mania"
+	replay.nearest = true
+	replay.tap_only = false
+	replay.timings = Timings("osuod", 8)
+	replay.subtimings = Subtimings("scorev", 1)
+	replay.timing_values = assert(TimingValuesFactory:get(replay.timings, replay.subtimings))
+	replay.healths = nil
+	replay.columns_order = nil
+	replay.custom = false
+	replay.const = false
+	replay.pause_count = 0
+	replay.created_at = 123456
+	replay.rate_type = "linear"
+	replay.frames = {
+		{time = 0.000, event = {id = 1, column = 1, value = true}},
+		{time = 0.100, event = {id = 1, column = 1, value = false}},
+		{time = 0.200, event = {id = 2, column = 2, value = true}},
+		{time = 0.300, event = {id = 2, column = 2, value = false}},
+	}
+
+	local replay_data = converter:toSubmissionReplay(replay)
+	local loaded = assert(converter:fromSubmissionReplay(
+		replay_data,
+		replay.hash,
+		replay.index,
+		8,
+		"4key",
+		0,
+		replay.created_at
+	))
+
+	t:eq(#loaded.frames, #replay.frames)
+	t:eq(loaded.frames[2].event.value, false)
+	t:eq(loaded.frames[4].event.column, 2)
 end
 
 return test

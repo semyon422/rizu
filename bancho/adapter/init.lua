@@ -45,7 +45,7 @@ function BanchoAdapter.setupLegacyDatabase(server, path, users_repo, leaderboard
 	local favourites_repo = users_repo and SeaFavouritesRepo(users_repo) or repos.favourites_repo
 	local stats_repo = users_repo and leaderboards_repo and SeaStatsRepo(users_repo, leaderboards_repo) or repos.stats_repo
 	local beatmap_repo = charts_repo and osu_repo and SeaBeatmapRepo(charts_repo, osu_repo, osu_beatmaps, charts_storage) or repos.beatmap_repo
-	local score_repo = users_repo and charts_repo and chartplay_submission and charts_storage and SeaScoreRepo(users_repo, charts_repo, chartplay_submission, charts_storage) or repos.score_repo
+	local score_repo = users_repo and charts_repo and chartplay_submission and charts_storage and SeaScoreRepo(users_repo, charts_repo, chartplay_submission, charts_storage, beatmap_repo) or repos.score_repo
 	local replay_repo = users_repo and charts_repo and replays_storage and SeaReplayRepo(charts_repo, users_repo, replays_storage) or repos.replay_repo
 
 	server.db = db

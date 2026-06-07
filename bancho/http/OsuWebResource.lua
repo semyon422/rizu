@@ -26,6 +26,16 @@ local function util_send_json(res, data)
 	res:send(json.encode(data))
 end
 
+---@param s string?
+---@return string
+local function normalize_submission_username(s)
+	s = s or ""
+	if s:sub(-1) == " " then
+		return s:sub(1, -2)
+	end
+	return s
+end
+
 ---@class bancho.http.OsuWebResource: web.IResource
 ---@operator call: bancho.http.OsuWebResource
 ---@field server bancho.server.BanchoServer
@@ -205,8 +215,8 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 
 	multipart:receive_preamble()
 
-	local headers, err = multipart:receive_headers()
-	while headers and err ~= "no parts" do
+	local headers, receive_err = multipart:receive_headers()
+	while headers and receive_err ~= "no parts" do
 		local part_data = multipart:receive("*a")
 		if part_data then
 			-- Extract field name from Content-Disposition
@@ -222,7 +232,7 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 			end
 		end
 
-		headers, err = multipart:receive_headers()
+		headers, receive_err = multipart:receive_headers()
 	end
 
 	-- Extract score data and replay
@@ -258,11 +268,8 @@ function OsuWebResource:osuSubmitModular(req, res, ctx)
 		return
 	end
 
-	-- Extract map MD5 and username
-	local map_md5 = parts[1]
-	local username = parts[2]
-
 	-- Authenticate player
+	local username = normalize_submission_username(parts[2])
 	local pw_md5 = fields.pass or ""
 	local player = self:lookupPlayer(username, pw_md5)
 	if not player then
@@ -291,7 +298,6 @@ end
 ---@param res web.IResponse
 ---@param ctx sea.RequestContext
 function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
-	-- Parse multipart form fields
 	local multipart, err = http_util.get_multipart(req, {read_all = true})
 	if not multipart then
 		res.status = 400
@@ -299,13 +305,14 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 		return
 	end
 
+	-- Parse multipart form fields
 	local fields = {}
 	local score_parts = {}
 
 	multipart:receive_preamble()
 
-	local headers, err = multipart:receive_headers()
-	while headers and err ~= "no parts" do
+	local headers, receive_err = multipart:receive_headers()
+	while headers and receive_err ~= "no parts" do
 		local part_data = multipart:receive("*a")
 		if part_data then
 			local disp = headers:get("Content-Disposition") or ""
@@ -319,7 +326,7 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 			end
 		end
 
-		headers, err = multipart:receive_headers()
+		headers, receive_err = multipart:receive_headers()
 	end
 
 	-- Extract score data and replay
@@ -355,12 +362,9 @@ function OsuWebResource:osuSubmitModularSelector(req, res, ctx)
 		return
 	end
 
-	-- Extract username from decrypted score data
-	local map_md5 = parts[1]
-	local username = parts[2]
-	local pw_md5 = fields.pass or ""
-
 	-- Authenticate via username + password MD5 (bancho.py: from_login)
+	local username = normalize_submission_username(parts[2])
+	local pw_md5 = fields.pass or ""
 	local user = self.server.user_repo:findUserByNameAndPassword(username, pw_md5)
 	if not user then
 		res:send("")

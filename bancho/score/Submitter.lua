@@ -11,6 +11,16 @@ local RankedStatus = require("bancho.constants.RankedStatus")
 local Grade = require("bancho.constants.Grade")
 local Chart = require("bancho.score.Chart")
 
+---@param s string?
+---@return string
+local function normalize_submission_username(s)
+	s = s or ""
+	if s:sub(-1) == " " then
+		return s:sub(1, -2)
+	end
+	return s
+end
+
 ---@class bancho.score.ScoreSubmitter
 ---@operator call: bancho.score.ScoreSubmitter
 ---@field server bancho.server.BanchoServer
@@ -38,7 +48,7 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 
 	-- Extract map MD5 and username
 	local map_md5 = parts[1]
-	local username = parts[2]
+	local username = normalize_submission_username(parts[2])
 
 	-- Parse score from submission data (skip map_md5 and username)
 	local score = Score:new()

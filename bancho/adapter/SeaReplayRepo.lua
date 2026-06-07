@@ -35,9 +35,7 @@ function SeaReplayRepo:getReplayFromChartplay(chartplay, score_id)
 		return nil
 	end
 	local replay = assert(ReplayLoader.load(replay_data))
-	local chartmeta = assert(self.charts_repo.models.chartmetas:find({hash = chartplay.hash, index = chartplay.index}))
-	local user = assert(self.users_repo:getUser(chartplay.user_id))
-	return self.osu_replay_converter:toOsr(chartmeta, replay, user.name, chartplay, score_id)
+	return self.osu_replay_converter:toSubmissionReplay(replay)
 end
 
 ---@param score_id integer

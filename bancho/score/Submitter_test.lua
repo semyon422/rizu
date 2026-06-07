@@ -93,4 +93,19 @@ function test.checksum_validation_different_inputs(t)
 	t:ne(cs1, cs3)
 end
 
+---@param t testing.T
+function test.checksum_validation_trims_username_for_submission(t)
+	local score = Score:new()
+	score:fromSubmission({
+		"checksum", "100", "50", "25", "10", "5", "3",
+		"123456", "500", "True", "s", "0", "True",
+		"0", "240101120000", "20240101"
+	})
+
+	local trimmed = score:computeOnlineChecksum("testuser", "abc123def456789012345678", "20240101", "client_hash", "")
+	local untrimmed = score:computeOnlineChecksum("testuser ", "abc123def456789012345678", "20240101", "client_hash", "")
+
+	t:ne(trimmed, untrimmed)
+end
+
 return test
