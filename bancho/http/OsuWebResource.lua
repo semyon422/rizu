@@ -387,6 +387,33 @@ end
 -- Leaderboards
 -------------------------------------------------------------------
 
+---@param score table
+---@param rank integer
+---@param name string
+---@param has_replay boolean
+---@return string
+function OsuWebResource:formatScoreLine(score, rank, name, has_replay)
+	return string.format(
+		"%d|%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d",
+		score.id or 0,
+		name,
+		math.floor(score.score or 0),
+		score.max_combo or 0,
+		score.n50 or 0,
+		score.n100 or 0,
+		score.n300 or 0,
+		score.nmiss or 0,
+		score.ngeki or 0,
+		score.nkatu or 0,
+		score.perfect and 1 or 0,
+		score.mods or 0,
+		score.user_id or score.userid or 0,
+		rank,
+		score.play_time or 0,
+		has_replay and 1 or 0
+	)
+end
+
 --- GET /web/osu-osz2-getscores.php
 --- Returns leaderboard data for a beatmap.
 ---@param req web.IRequest
@@ -410,11 +437,8 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 	end
 
 	local map_md5 = query.c
-	local map_filename = socket_url.unescape(query.f or "")
-	local map_set_id = tonumber(query.i) or -1
 	local mode = tonumber(query.m) or 0
 	local mods = tonumber(query.mods) or 0
-	local leaderboard_type = tonumber(query.v) or 0
 
 	-- Handle relax/autopilot mode shifting
 	if mods ~= 0 then
@@ -459,55 +483,50 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 		return
 	end
 
-	-- Fetch scores
-	local scoring_metric = mode >= 4 and "pp" or "score"
 	local scores = {}
+	local personal_best
 	if self.server.score_repo then
 		scores = self.server.score_repo:findScores(map_md5, mode)
+		personal_best = self.server.score_repo:findBestScore(map_md5, player.id, mode)
 	end
 
-	-- Build response
+	local displayed_count = math.min(#scores, 50)
 	local response_lines = {
 		string.format("%d|false|%d|%d|%d|0|",
-			beatmap_status, bmap.id, bmap.set_id, #scores),
+			beatmap_status, bmap.id, bmap.set_id, displayed_count),
 		string.format("0\n%s\n0", bmap.full_name or ""),
-		"", -- personal best (empty)
 	}
 
-	-- Add score entries
+	local user_name_cache = {}
+	local personal_best_line = ""
 	for i, score in ipairs(scores) do
 		if i > 50 then break end
-
-		-- Resolve username
-		local name = "unknown"
-		if score.user_id and self.server.user_repo then
-			local user = self.server.user_repo:findUser(score.user_id)
-			if user then
-				name = user.name or "unknown"
+		local user_id = score.user_id or score.userid or 0
+		local name = user_name_cache[user_id]
+		if not name then
+			name = "unknown"
+			if user_id ~= 0 and self.server.user_repo then
+				local user = self.server.user_repo:findUser(user_id)
+				if user then
+					name = user.name or "unknown"
+				end
 			end
+			user_name_cache[user_id] = name
 		end
 
-		table.insert(response_lines, string.format(
-			"%d|%s|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|%d|1",
-			score.id or 0,
-			name,
-			math.floor(score.score or 0),
-			score.max_combo or 0,
-			score.n50 or 0,
-			score.n100 or 0,
-			score.n300 or 0,
-			score.nmiss or 0,
-			score.ngeki or 0,
-			score.nkatu or 0,
-			score.perfect and 1 or 0,
-			score.mods or 0,
-			score.userid or 0,
-			i,
-			score.play_time or 0,
-			1 -- has_replay
-		))
+		local has_replay = false
+		if self.server.replay_repo and score.id then
+			has_replay = self.server.replay_repo:getReplay(score.id) ~= nil
+		end
+
+		local line = self:formatScoreLine(score, i, name, has_replay)
+		if personal_best and score.id == personal_best.id then
+			personal_best_line = line
+		end
+		table.insert(response_lines, line)
 	end
 
+	table.insert(response_lines, 3, personal_best_line)
 	res:send(table.concat(response_lines, "\n"))
 end
 
