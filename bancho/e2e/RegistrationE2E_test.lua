@@ -158,4 +158,61 @@ function test.register_invalid_email(t)
 	ctx:close()
 end
 
+---@param t testing.T
+function test.register_username_space_and_underscore(t)
+	local ctx = E2EContext()
+	local account_resource = ctx:createAccountResource()
+
+	local req, res, read_soc = ctx:createMultipartRequest("POST", "/users", {
+		["user[username]"] = "Bad_Name Here",
+		["user[user_email]"] = "test@test.com",
+		["user[password]"] = "testpass123",
+		check = "0",
+	})
+	account_resource:registerAccount(req, res)
+	local body = ctx:readHttpResponse(read_soc)
+	t:ne(body, "ok")
+	t:ne(body:find("but not both"), nil)
+
+	ctx:close()
+end
+
+---@param t testing.T
+function test.register_low_unique_password(t)
+	local ctx = E2EContext()
+	local account_resource = ctx:createAccountResource()
+
+	local req, res, read_soc = ctx:createMultipartRequest("POST", "/users", {
+		["user[username]"] = "TestUser",
+		["user[user_email]"] = "test@test.com",
+		["user[password]"] = "aaaa1111",
+		check = "0",
+	})
+	account_resource:registerAccount(req, res)
+	local body = ctx:readHttpResponse(read_soc)
+	t:ne(body, "ok")
+	t:ne(body:find("more than 3 unique characters"), nil)
+
+	ctx:close()
+end
+
+---@param t testing.T
+function test.register_check_only(t)
+	local ctx = E2EContext()
+	local account_resource = ctx:createAccountResource()
+	local repos = Repos(ctx.db.models)
+
+	local req, res, read_soc = ctx:createMultipartRequest("POST", "/users", {
+		["user[username]"] = "DryRunUser",
+		["user[user_email]"] = "dryrun@test.com",
+		["user[password]"] = "testpass123",
+		check = "1",
+	})
+	account_resource:registerAccount(req, res)
+	t:eq(ctx:readHttpResponse(read_soc), "ok")
+	t:eq(repos.user_repo:findUserByName("DryRunUser"), nil)
+
+	ctx:close()
+end
+
 return test

@@ -10,7 +10,7 @@ function test.defaults(t)
 	t:eq(config.bot_id, 1)
 	t:eq(config.db_path, "bancho.db")
 	t:eq(config.max_matches, 64)
-	t:eq(config.allow_registration, true)
+	t:eq(config.allow_registration, false)
 	t:eq(config.command_prefix, "!")
 	t:eq(#config.channels, 6)
 end
