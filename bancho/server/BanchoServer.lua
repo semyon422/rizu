@@ -36,6 +36,7 @@ local class = require("class")
 ---@field findBestScore fun(self: bancho.server.IScoreRepo, map_md5: string, user_id: integer, mode: integer): table?
 ---@field findScore fun(self: bancho.server.IScoreRepo, id: integer): table?
 ---@field addScore fun(self: bancho.server.IScoreRepo, score: table): integer
+---@field submitScore? fun(self: bancho.server.IScoreRepo, score: table, beatmap: table, replay_data: string): integer?, string?
 
 --- Repository interface for beatmaps.
 ---@class bancho.server.IBeatmapRepo

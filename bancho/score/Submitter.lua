@@ -114,7 +114,7 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	-- Save score to database
 	local score_id = 0
 	if self.server.score_repo then
-		score_id = self.server.score_repo:addScore({
+		local score_values = {
 			map_md5 = map_md5,
 			score = score.score,
 			pp = score.pp or 0,
@@ -136,13 +136,19 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 			user_id = player.id,
 			perfect = score.perfect,
 			online_checksum = score.client_checksum,
-		})
-	end
-
-	-- Save replay
-	if score.passed and replay_data and score_id > 0 then
-		if self.server.replay_repo then
-			self.server.replay_repo:saveReplay(score_id, replay_data)
+			created_at = score.server_time,
+		}
+		if self.server.score_repo.submitScore and score.passed and replay_data then
+			local err
+			score_id, err = self.server.score_repo:submitScore(score_values, bmap, replay_data)
+			if not score_id then
+				return nil
+			end
+		else
+			score_id = self.server.score_repo:addScore(score_values)
+			if score.passed and replay_data and score_id > 0 and self.server.replay_repo then
+				self.server.replay_repo:saveReplay(score_id, replay_data)
+			end
 		end
 	end
 

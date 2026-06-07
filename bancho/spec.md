@@ -455,14 +455,16 @@ Definition of done:
 
 - implement Bancho score submission against Sea-owned persistence
 - start with osu!mania only
-- decide per endpoint whether to:
-  - translate into existing `sea` chartplay submission, or
-  - use dedicated Bancho-compatible Sea tables as an intermediate layer
-- expose Bancho leaderboard responses from Sea-backed data
+- use canonical Sea chartplay + replay storage for submitted plays
+- convert uploaded `.osr` replays into canonical Sea/Rizu replays on submission
+- serve Bancho-compatible replay downloads by converting canonical Sea/Rizu replays back into `.osr` on demand
+- expose Bancho leaderboard responses from Sea-backed data, including synthesized or stubbed Bancho views from canonical chartplays where needed
 
 Definition of done:
 
 - osu!mania score submission and basic leaderboard flows work without Bancho SQLite
+- submitted osu replays become visible and replayable in Rizu via canonical Sea replay storage
+- Bancho replay downloads work from canonical Sea replay storage via on-demand conversion
 - replay persistence is Sea-owned
 - unsupported non-mania modes fail explicitly
 

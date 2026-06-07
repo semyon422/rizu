@@ -1,4 +1,5 @@
 local class = require("class")
+local LinuxFilesystem = require("fs.LinuxFilesystem")
 local http_util = require("web.http.util")
 local socket_url = require("socket.url")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
@@ -45,7 +46,7 @@ function App:new(app_config)
 	self.shared_memory = SharedMemory()
 
 	self.repos = Repos(self.app_db.models, self.shared_memory)
-	self.domain = Domain(self.repos, app_config)
+	self.domain = Domain(self.repos, app_config, LinuxFilesystem())
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
 
 	-- Initialize NATS connection (shared across all WebSocket handlers in this worker)

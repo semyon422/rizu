@@ -95,7 +95,9 @@ function Resources:new(domain, server_remote, views, sessions, app_config, share
 		domain.repos.charts_repo,
 		domain.repos.osu_repo,
 		domain.osu_beatmaps,
-		domain.charts_storage
+		domain.charts_storage,
+		domain.chartplay_submission,
+		domain.replays_storage
 	)
 
 	-- Bancho HTTP resources (domain-restricted)
