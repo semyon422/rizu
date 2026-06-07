@@ -1,5 +1,4 @@
 local class = require("class")
-local Box = require("gui.Box")
 
 ---@class gui.Composition.Node
 ---@operator call: gui.Composition.Node
@@ -36,7 +35,6 @@ function Node:new(t)
 
 	for _, v in ipairs(t) do
 		if v._is_view then
-			v.box = Box()
 			table.insert(self.views, v)
 		elseif v._is_node then
 			v.parent = self

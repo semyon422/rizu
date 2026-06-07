@@ -1,5 +1,6 @@
 local IInputHandler = require("gui.input.IInputHandler")
-local math_util = require("aqua.math_util")
+local math_util = require("math_util")
+local Box = require("gui.Box")
 
 ---@alias gui.ViewPoint [number, number]
 ---@alias gui.Color [number, number, number, number]
@@ -15,8 +16,7 @@ local math_util = require("aqua.math_util")
 ---@field scale_x number
 ---@field scale_y number
 ---@field transform love.Transform
----@field box gui.Box?
----@field visible boolean
+---@field box gui.Box
 ---@field width_percent number? -- 0..1 ratio of parent box width
 ---@field height_percent number? -- 0..1 ratio of parent box height
 ---@field is_focusable boolean
@@ -33,9 +33,12 @@ function View:new()
 	self.width = 0
 	self.height = 0
 	self.pivot = {0, 0}
-	self.transform = math_util.newTransform()
+	local tf = math_util.newTransform() ---@cast tf love.Transform
+	self.transform = tf
 	self.box = nil
 	self.visible = true
+	self.box = Box()
+	self.box:update(0, 0, love.graphics.getDimensions())
 	self.rotation = 0
 	self.scale_x = 1
 	self.scale_y = 1
@@ -57,11 +60,10 @@ function View:onFocus(e) end
 ---@param e gui.FocusLostEvent
 function View:onFocusLost(e) end
 
-local temp_tf = math_util.newTransform()
+local temp_tf = math_util.newTransform() ---@cast temp_tf love.Transform
 
 function View:updateTransform()
 	local box = self.box
-	assert(box, "gui.View:updateTransform() requires self.box")
 	local pivot = self.pivot
 	local box_width = box.width
 	local box_height = box.height
@@ -81,7 +83,7 @@ end
 ---@param screen_y number
 ---@return boolean
 function View:isMouseOver(screen_x, screen_y)
-	if not self.visible or not self.handles_mouse_input then
+	if not self.handles_mouse_input then
 		return false
 	end
 	local imx, imy = self.transform:inverseTransformPoint(screen_x, screen_y)

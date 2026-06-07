@@ -1,4 +1,4 @@
-local Layer = require("gui.Layer")
+local Screen = require("yi.Screen")
 local Loading = require("yi.views.Loading")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
@@ -7,18 +7,18 @@ local L = require("yi.lang.en")
 local thread = require("thread")
 local delay = require("delay")
 
----@class yi.layers.ChartLoading : gui.Layer
+---@class yi.layers.ChartLoading : yi.Screen
 ---@operator call: yi.layers.ChartLoading
-local ChartLoading = Layer + {}
+local ChartLoading = Screen + {}
 
 ---@param yi yi.UserInterface
 function ChartLoading:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
 
 	local ui = UIFactory()
 
-	self.composition:setRoot(S.Stack({
+	self.root = S.Stack({
 		padding = 20,
 
 		S.Anchor({
@@ -35,10 +35,10 @@ function ChartLoading:new(yi)
 				Loading(),
 			}),
 		})
-	}))
+	})
 end
 
-function ChartLoading:transitToGameplay()
+function ChartLoading:enter()
 	thread.coro(function()
 		delay.sleep(0.3)
 		self.yi.game.gameInteractor:loadGameplaySelectedChart()

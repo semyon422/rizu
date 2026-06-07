@@ -1,10 +1,9 @@
-local Layer = require("gui.Layer")
+local Screen = require("yi.Screen")
 local SettingsSchema = require("rizu.config.schemas.Settings")
 local Resources = require("yi.Resources")
 
 local Title = require("yi.views.config.Title")
 local ConfigList = require("yi.views.config.ConfigList")
-local ConfigTopBar = require("yi.views.config.ConfigTopBar")
 local Checkbox = require("yi.views.config.Checkbox")
 local Slider = require("yi.views.config.Slider")
 local Dropdown = require("yi.views.config.Dropdown")
@@ -13,13 +12,13 @@ local lang = require("yi.lang.en")
 
 local S = require("gui.composition.Strategies")
 
----@class yi.Config : gui.Layer
+---@class yi.Config : yi.Screen
 ---@operator call: yi.Config
-local Config = Layer + {}
+local Config = Screen + {}
 
 ---@param yi yi.UserInterface
 function Config:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
 
 	self.atlas, self.quads = Resources.atlas, Resources.quads
@@ -28,23 +27,16 @@ function Config:new(yi)
 	local cfg = self.yi.game.settings_config
 	self.config_list = ConfigList(SettingsSchema, cfg)
 
-	self.top_bar = ConfigTopBar(
-		self.groups,
-		function() end
-	)
-
 	self:setTab("all")
 
-	self.composition:setRoot(S.Stack({
+	self.root = S.Stack({
 		padding = {100, 60, 20, 100},
 
 		S.Track({
 			direction = "column",
-			space = {120, 20, 50, 20, "*"},
+			space = {120, 20, "*"},
 
 			Title(self.atlas, self.quads),
-			S.Stack(),
-			self.top_bar,
 			S.Stack(),
 			S.Track({
 				space = {"*", "-", "*"},
@@ -53,7 +45,7 @@ function Config:new(yi)
 				S.Stack(),
 			})
 		}),
-	}))
+	})
 end
 
 ---@param group_name string
@@ -124,7 +116,7 @@ function Config:handleKeyDown(key)
 	local n = tonumber(key)
 	if n then
 		self:setTab(self.groups[n])
-		self.top_bar:setTabActive(n)
+		--self.top_bar:setTabActive(n)
 	end
 end
 

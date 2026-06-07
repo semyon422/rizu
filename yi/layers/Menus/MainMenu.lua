@@ -1,20 +1,19 @@
-local Layer = require("gui.Layer")
+local Screen = require("yi.Screen")
 local UIFactory = require("yi.UIFactory")
 local S = require("gui.composition.Strategies")
 local MainMenuWave = require("yi.views.MainMenuWave")
 
----@class yi.MainMenu : gui.Layer
+---@class yi.MainMenu : yi.Screen
 ---@operator call: yi.MainMenu
-local MainMenu = Layer + {}
+local MainMenu = Screen + {}
 
 ---@param yi yi.UserInterface
 function MainMenu:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
-
 	local ui = UIFactory()
 
-	self.composition:setRoot(S.Stack({
+	self.root = S.Stack({
 		MainMenuWave(),
 
 		S.Anchor({
@@ -30,15 +29,19 @@ function MainMenu:new(yi)
 				}),
 			}),
 		}),
-	}))
+	})
 end
 
 function MainMenu:handleKeyDown(key)
-	if key == "return" then
-		self.yi:setScreen("select")
-	elseif key == "c" then
+	if key == "c" then
 		self.yi:setScreen("config")
+	elseif key == "return" then
+		self.yi:setScreen("select")
+	else
+		return false
 	end
+
+	return true
 end
 
 return MainMenu

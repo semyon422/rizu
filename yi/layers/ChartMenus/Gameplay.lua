@@ -1,70 +1,65 @@
-local Layer = require("gui.Layer")
+local Screen = require("yi.Screen")
 local SequenceView = require("sphere.views.SequenceView")
 local S = require("gui.composition.Strategies")
 local View = require("gui.View")
 
----@class yi.Gameplay : gui.Layer
+---@class yi.Gameplay : yi.Screen
 ---@operator call: yi.Gameplay
-local Gameplay = Layer + {}
+local Gameplay = Screen + {}
 
 ---@param yi yi.UserInterface
 function Gameplay:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
 	self.game = yi.game
 	self.sequence_view = SequenceView()
 	self.game_interactor = self.game.gameInteractor
 	self.gameplay_interactor = self.game.gameplayInteractor
-
-	local sv_view = View()
-	sv_view.draw = function() self.sequence_view:draw() end
-
-	self.composition:setRoot(S.Stack({
-		sv_view
-	}))
 end
 
-function Gameplay:start()
+function Gameplay:enter()
 	local sv = self.sequence_view
-	sv.game = self.game
-	sv.subscreen = "gameplay"
+	sv.game = self.game ---@diagnostic disable-line
+	sv.subscreen = "gameplay" ---@diagnostic disable-line
 	sv:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
 	sv:load()
 end
 
-function Gameplay:stop()
+function Gameplay:exit()
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_view:unload()
 end
 
 function Gameplay:update(dt)
 	self.sequence_view:update(dt)
-	Layer.update(self, dt)
+	Screen.update(self, dt)
 end
 
 function Gameplay:draw()
 	love.graphics.push()
 	self.sequence_view:draw()
 	love.graphics.pop()
-	Layer.draw(self)
+	Screen.draw(self)
 end
 
 function Gameplay:handleKeyDown(k)
 	if k == "escape" then
-		self:stop()
-
 		if self.gameplay_interactor:hasResult() then
 			self.yi:setScreen("result")
 		else
 			self.yi:setScreen("select")
 		end
+
+		return true
 	end
+
+	return false
 end
 
 function Gameplay:receive(event)
 	self.game.gameplayInteractor:receive(event)
 	self.sequence_view:receive(event)
-	Layer.receive(self, event)
+	Screen.receive(self, event)
 end
 
 return Gameplay

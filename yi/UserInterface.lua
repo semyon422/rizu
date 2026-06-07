@@ -1,15 +1,19 @@
 local IUserInterface = require("sphere.IUserInterface")
 local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
-local Menus = require("yi.Menus")
-local ChartMenus = require("yi.ChartMenus")
+local Menus = require("yi.layers.Menus.Menus")
+local ChartMenus = require("yi.layers.ChartMenus.ChartMenus")
 local SettingsScheme = require("rizu.config.schemas.Settings")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
 ---@field modifiers gui.ModifierKeys
+---@field layers yi.Layer[]
+---@field next_screen string?
 ---@field current_screen string?
 ---@field previous_screen string?
+---@field current_layer yi.Layer
+---@field screens {[string]: {layer: yi.Layer, screen: yi.Screen}}
 local UserInterface = IUserInterface + {}
 
 local MAX_DT = 1 / 30
@@ -26,66 +30,102 @@ function UserInterface:new(game)
 	Resources.load()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
+	self.layers = {}
 end
 
 function UserInterface:load()
 	self.game.settings_config.onChanged:add(self)
-	self:buildUI()
+
+	local w, h = love.graphics.getDimensions()
+	local scale = math.min(1, math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT))
+	Resources.setFontScale(scale)
+
+	self.chart_menus = ChartMenus(self)
+	self.menus = Menus(self)
+	table.insert(self.layers, self.chart_menus)
+	table.insert(self.layers, self.menus)
+
+	for _, layer in ipairs(self.layers) do
+		layer:load()
+	end
+
+	self.current_layer = self.menus
+
+	self.screens = {
+		main_menu = {layer = self.menus, screen = self.menus.main_menu},
+		config = {layer = self.menus, screen = self.menus.config},
+		select = {layer = self.chart_menus, screen = self.chart_menus.select},
+		chart_loading = {layer = self.chart_menus, screen = self.chart_menus.chart_loading},
+		gameplay = {layer = self.chart_menus, screen = self.chart_menus.gameplay},
+		result = {layer = self.chart_menus, screen = self.chart_menus.result},
+	}
+
 	love.keyboard.setKeyRepeat(true)
 end
 
 function UserInterface:unload()
 	self.game.settings_config.onChanged:remove(self)
-end
 
-function UserInterface:buildUI()
-	local w, h = love.graphics.getDimensions()
-	local scale = math.min(1, math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT))
-	Resources.setFontScale(scale)
-
-	if self.chart_menus then
-		self.chart_menus:unload()
+	for _, layer in ipairs(self.layers) do
+		layer:unload()
 	end
 
-	self.menus = Menus(self, w, h)
-	self.chart_menus = ChartMenus(self, w, h)
-
-	local screen = self.current_screen or "main_menu"
-
-	if self.menus:hasScreen(screen) then
-		self.menus.visiblity:snap(1)
-	else
-		self.menus.visiblity:snap(0)
-	end
-
-	self:setScreen(screen)
+	self.layers = {}
 end
 
 ---@param screen string
 function UserInterface:setScreen(screen)
+	self.previous_screen = self.current_screen
 	self.next_screen = screen
+end
+
+function UserInterface:transitToNextScreen()
+	local screen_name = self.next_screen
+	self.current_screen = screen_name
+	self.next_screen = nil
+
+	if not screen_name then
+		return
+	end
+
+	local config = self.screens[screen_name]
+
+	if not config then
+		return
+	end
+
+	local next_layer = config.layer
+	local next_screen = config.screen
+
+	local current_layer = self.current_layer
+	---@cast current_layer yi.Menus | yi.ChartMenus
+	---@cast next_layer yi.Menus | yi.ChartMenus
+	--- TODO: yi.Menus and yi.ChartMenus should inherit ScreenContainer or something
+
+	if current_layer and current_layer.current_screen then
+		current_layer.current_screen:exit()
+	end
+
+	if next_layer == self.menus then
+		self.menus:show()
+	else
+		self.menus:hide()
+	end
+
+	next_layer.current_screen = next_screen
+	self.current_layer = next_layer
+	next_screen:enter()
 end
 
 ---@param dt number
 function UserInterface:update(dt)
 	if self:windowDimensionsChanged() then
-		self:buildUI()
+		self:unload()
+		self:load()
 	end
 
 	if self.next_screen then
-		self.previous_screen = self.current_screen
-
-		if self.menus:hasScreen(self.next_screen) then
-			self.menus:setScreen(self.next_screen)
-		elseif self.chart_menus:hasScreen(self.next_screen) then
-			self.menus:hide()
-			self.chart_menus:setScreen(self.next_screen)
-		else
-			error("Screen doesn't exist")
-		end
-
-		self.current_screen = self.next_screen
-		self.next_screen = nil
+		self:transitToNextScreen()
 	end
 
 	self.modifiers.control = love.keyboard.isDown("lctrl", "rctrl")
@@ -94,21 +134,18 @@ function UserInterface:update(dt)
 
 	self.inputs:beginFrame(love.mouse.getPosition())
 
-	if self.menus.visiblity:get() < 1 then
-		self.chart_menus:update(dt)
+	if self.current_layer then
+		self.current_layer:acceptInputs(self.inputs)
 	end
-	if self.menus:isVisible() or self.menus:hasScreen(self.current_screen) then
-		self.menus:update(dt)
+
+	for _, layer in ipairs(self.layers) do
+		layer:update(dt)
 	end
 end
 
 function UserInterface:draw()
-	if self.menus.visiblity:get() < 1 then
-		self.chart_menus:draw()
-	end
-
-	if self.menus:isVisible() then
-		self.menus:draw()
+	for _, layer in ipairs(self.layers) do
+		layer:draw()
 	end
 end
 
@@ -135,12 +172,8 @@ function UserInterface:receive(event)
 		end
 	end
 
-	local s = self.current_screen
-
-	if self.menus:hasScreen(self.current_screen) then
-		self.menus:receive(event)
-	elseif self.chart_menus:hasScreen(self.current_screen) then
-		self.chart_menus:receive(event)
+	for _, layer in ipairs(self.layers) do
+		layer:receive(event)
 	end
 end
 

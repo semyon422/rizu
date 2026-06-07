@@ -75,10 +75,6 @@ end
 
 ---@param view gui.View
 function Inputs:processView(view)
-	if not view.visible then
-		return
-	end
-
 	if view.handles_mouse_input or view.handles_keyboard_input then
 		if view.handles_keyboard_input then
 			table.insert(self.focus_requesters, view)

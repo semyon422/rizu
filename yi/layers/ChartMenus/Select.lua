@@ -1,4 +1,4 @@
-local Layer = require("gui.Layer")
+local Screen = require("yi.Screen")
 local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
@@ -13,17 +13,16 @@ local SpringValue = require("gui.anim.SpringValue")
 
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 
----@class yi.Select : gui.Layer
+---@class yi.Select : yi.Screen
 ---@overload fun(yi: yi.UserInterface): yi.Select
-local Select = Layer + {}
+local Select = Screen + {}
 
 local GAP = 20
 
 ---@param yi yi.UserInterface
 function Select:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
-	yi.game.chartSelector.onChanged:add(self) -- TODO: REMOVE ON UNLOAD!!!!!!!!!!
 
 	local ui = UIFactory()
 
@@ -59,7 +58,7 @@ function Select:new(yi)
 		self.yi:setScreen("config")
 	end
 
-	self.composition:setRoot(S.Stack({
+	self.root = S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
 			S.Stack({
@@ -144,7 +143,7 @@ function Select:new(yi)
 				}),
 			})
 		}),
-	}))
+	})
 
 	local cv = self.yi.game.chartSelector.chartview
 	if cv then
@@ -155,20 +154,25 @@ function Select:new(yi)
 end
 
 function Select:load()
-	Layer.load(self)
+	Screen.load(self)
 	self.chart_preview_view:load()
+	self.yi.game.chartSelector.onChanged:add(self)
+end
+
+function Select:unload()
+	self.yi.game.chartSelector.onChanged:remove(self)
 end
 
 function Select:update(dt)
 	self.chart_preview_view:update(dt)
-	Layer.update(self, dt)
+	Screen.update(self, dt)
 end
 
 function Select:draw()
 	love.graphics.push("all")
 	self.chart_preview_view:draw()
 	love.graphics.pop()
-	Layer.draw(self)
+	Screen.draw(self)
 end
 
 ---@param cv rizu.library.Chartview
@@ -197,7 +201,11 @@ function Select:handleKeyDown(key)
 		self.yi.game.chartSelector:scrollLevel(2, -1)
 	elseif key == "l" then
 		self.yi.game.chartSelector:scrollLevel(2, 1)
+	else
+		return false
 	end
+
+	return true
 end
 
 function Select:receive(event)
@@ -207,7 +215,7 @@ function Select:receive(event)
 	end
 
 	self.chart_preview_view:receive(event)
-	Layer.receive(self, event)
+	Screen.receive(self, event)
 end
 
 return Select

@@ -1,5 +1,5 @@
 local class = require("class")
-local math_util = require("aqua.math_util")
+local math_util = require("math_util")
 
 ---@class gui.Box
 ---@operator call: gui.Box
@@ -10,7 +10,8 @@ function Box:new()
 	self.y = 0
 	self.width = 0
 	self.height = 0
-	self.transform = math_util.newTransform()
+	local tf = math_util.newTransform() ---@cast tf love.Transform
+	self.transform = tf
 end
 
 ---@param x number

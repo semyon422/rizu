@@ -1,20 +1,20 @@
-local Layer = require("gui.Layer")
+local Screen = require("yi.Screen")
 local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 
----@class yi.layers.Result : gui.Layer
+---@class yi.layers.Result : yi.Screen
 ---@operator call: yi.layers.Result
-local Result = Layer + {}
+local Result = Screen + {}
 
 ---@param yi yi.UserInterface
 function Result:new(yi)
-	Layer.new(self)
+	Screen.new(self)
 	self.yi = yi
 
 	local ui = UIFactory()
 
-	self.composition:setRoot(S.Stack({
+	self.root = S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
 			S.Stack({
@@ -44,7 +44,7 @@ function Result:new(yi)
 				color = Colors.text,
 			}),
 		})
-	}))
+	})
 end
 
 function Result:handleKeyDown(key)
@@ -52,7 +52,11 @@ function Result:handleKeyDown(key)
 		self.yi:setScreen("select")
 	elseif key == "c" then
 		self.yi:setScreen("config")
+	else
+		return false
 	end
+
+	return true
 end
 
 return Result
