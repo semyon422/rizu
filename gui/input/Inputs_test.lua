@@ -1,39 +1,3 @@
-local function make_transform()
-	return {
-		setTransformation = function(self, x, y, r, sx, sy, ox, oy)
-			self.x = x or 0
-			self.y = y or 0
-			self.sx = sx or 1
-			self.sy = sy or 1
-			return self
-		end,
-		reset = function(self)
-			self.x = 0
-			self.y = 0
-			self.sx = 1
-			self.sy = 1
-			return self
-		end,
-		apply = function(self, other)
-			self.x = self.x + (other.x or 0) * self.sx
-			self.y = self.y + (other.y or 0) * self.sy
-			self.sx = self.sx * (other.sx or 1)
-			self.sy = self.sy * (other.sy or 1)
-			return self
-		end,
-		inverseTransformPoint = function(self, x, y)
-			return (x - self.x) / self.sx, (y - self.y) / self.sy
-		end,
-	}
-end
-
-_G.love = _G.love or {}
-love.math = love.math or {}
-love.math.newTransform = love.math.newTransform or make_transform
-love.timer = love.timer or {}
-love.timer.getTime = love.timer.getTime or function()
-	return 0
-end
 
 local Box = require("gui.Box")
 local View = require("gui.View")

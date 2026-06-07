@@ -1,16 +1,3 @@
-local transform = {}
-
-function transform:setTransformation() end
-
-love = love or {}
-love.timer = love.timer or {
-	getTime = os.clock,
-}
-love.math = love.math or {}
-love.math.newTransform = love.math.newTransform or function()
-	return transform
-end
-
 local Flow = require("gui.composition.Flow")
 
 local test = {}

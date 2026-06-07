@@ -1,4 +1,5 @@
 local IInputHandler = require("gui.input.IInputHandler")
+local math_util = require("aqua.math_util")
 
 ---@alias gui.ViewPoint [number, number]
 ---@alias gui.Color [number, number, number, number]
@@ -32,7 +33,7 @@ function View:new()
 	self.width = 0
 	self.height = 0
 	self.pivot = {0, 0}
-	self.transform = love.math.newTransform()
+	self.transform = math_util.newTransform()
 	self.box = nil
 	self.visible = true
 	self.rotation = 0
@@ -56,7 +57,7 @@ function View:onFocus(e) end
 ---@param e gui.FocusLostEvent
 function View:onFocusLost(e) end
 
-local temp_tf = love.math.newTransform()
+local temp_tf = math_util.newTransform()
 
 function View:updateTransform()
 	local box = self.box
@@ -176,7 +177,7 @@ function View:setScale(x, y)
 	return self
 end
 
----@return number 
+---@return number
 ---@return number
 function View:getDimensions()
 	return self.width, self.height

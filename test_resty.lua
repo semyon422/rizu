@@ -19,6 +19,9 @@ end
 
 pkg.export_lua()
 
+local pprint = require("pprint")
+pprint.export()
+
 -- lua-nginx-module bug fix
 coroutine.wrap = require("icc.co").wrap
 
