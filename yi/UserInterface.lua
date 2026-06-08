@@ -3,7 +3,12 @@ local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
 local Menus = require("yi.layers.Menus.Menus")
 local ChartMenus = require("yi.layers.ChartMenus.ChartMenus")
+local Overlay = require("yi.layers.Overlay")
 local SettingsScheme = require("rizu.config.schemas.Settings")
+
+local Registry = require("yi.command_palette.Registry")
+local PaletteState = require("yi.command_palette.PaletteState")
+local GlobalCommands = require("yi.command_palette.GlobalCommands")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
@@ -14,6 +19,8 @@ local SettingsScheme = require("rizu.config.schemas.Settings")
 ---@field previous_screen string?
 ---@field current_layer yi.ScreenContainer
 ---@field screens {[string]: {layer: yi.ScreenContainer, screen: yi.Screen}}
+---@field command_registry yi.command_palette.Registry
+---@field command_palette yi.command_palette.PaletteState
 local UserInterface = IUserInterface + {}
 
 local MAX_DT = 1 / 30
@@ -31,6 +38,12 @@ function UserInterface:new(game)
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
 	self.layers = {}
+
+	self.command_registry = Registry()
+	for _, cmd in ipairs(GlobalCommands.get(game)) do
+		self.command_registry:registerGlobal(cmd)
+	end
+	self.command_palette = PaletteState(self.command_registry)
 end
 
 function UserInterface:load()
@@ -42,9 +55,11 @@ function UserInterface:load()
 
 	self.chart_menus = ChartMenus(self)
 	self.menus = Menus(self)
+	self.overlay = Overlay(self)
 
 	self.chart_menus:load()
 	self.menus:load()
+	self.overlay:load()
 
 	self.current_layer = self.menus
 
@@ -58,12 +73,19 @@ function UserInterface:load()
 	}
 
 	love.keyboard.setKeyRepeat(true)
+	love.keyboard.setTextInput(true)
 end
 
 function UserInterface:unload()
+	local screen_name = self.current_screen
+	if screen_name then
+		self.screens[screen_name].screen:exit()
+	end
+
 	self.game.settings_config.onChanged:remove(self)
 	self.chart_menus:unload()
 	self.menus:unload()
+	self.overlay:unload()
 end
 
 ---@param screen string
@@ -124,6 +146,8 @@ function UserInterface:update(dt)
 
 	self.inputs:beginFrame(love.mouse.getPosition())
 
+	self.overlay:acceptInputs(self.inputs)
+
 	if self.current_layer then
 		self.current_layer:acceptInputs(self.inputs)
 	end
@@ -132,6 +156,7 @@ function UserInterface:update(dt)
 		self.chart_menus:update(dt)
 	end
 	self.menus:update(dt)
+	self.overlay:update(dt)
 end
 
 function UserInterface:draw()
@@ -141,6 +166,7 @@ function UserInterface:draw()
 	if self.menus:isVisible() then
 		self.menus:draw()
 	end
+	self.overlay:draw()
 end
 
 function UserInterface:windowDimensionsChanged()

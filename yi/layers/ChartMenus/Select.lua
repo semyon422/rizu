@@ -13,6 +13,8 @@ local SpringValue = require("gui.anim.SpringValue")
 
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 
+local SelectCommands = require("yi.layers.ChartMenus.SelectCommands")
+
 ---@class yi.Select : yi.Screen
 ---@overload fun(yi: yi.UserInterface): yi.Select
 local Select = Screen + {}
@@ -151,6 +153,7 @@ function Select:new(yi)
 	end
 
 	self.gameplay_state:bind(self.yi.game.replayBase)
+	self.commands = SelectCommands(self.yi.game)
 end
 
 function Select:load()
@@ -161,6 +164,14 @@ end
 
 function Select:unload()
 	self.yi.game.chartSelector.onChanged:remove(self)
+end
+
+function Select:enter()
+	self.yi.command_registry:pushContext("select", self.commands)
+end
+
+function Select:exit()
+	self.yi.command_registry:popContext("select")
 end
 
 function Select:update(dt)

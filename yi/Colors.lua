@@ -26,15 +26,18 @@ local function hex(str, alpha)
 	}
 end
 
+local background = hex("0C0C11")
+
 ---@class yi.Colors
 local Colors = {
 	accent = hex("00CCFF"),
 	text = hex("F2F2FF"),
 	text_muted = hex("A6B2CC"),
 	line = hex("464B5C"),
+	background = background,
 
 	select_bg_gradient = {love.math.colorFromBytes(15, 23, 42, 179)},
-	select_side_panel_bg = hex("0C0C11"),
+	select_side_panel_bg = background,
 	icon_button_bg = hex("1E2835"),
 	icon_button_bg_hover = hex("51627A"),
 	icon_content = hex("F2F2FF")

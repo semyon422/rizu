@@ -5,10 +5,12 @@ local View = require("gui.View")
 ---@operator call: yi.Screen
 ---@field root gui.Composition.Node?
 ---@field views gui.View[]
+---@field hidden_views gui.View[]
 local Screen = Layer + {}
 
 function Screen:new()
 	self.views = {}
+	self.hidden_views = {}
 	self.input_handler = View()
 	self.input_handler.handles_keyboard_input = true
 	self.input_handler.onKeyDown = function(_, e)
@@ -27,6 +29,11 @@ function Screen:load()
 	end
 
 	for _, v in ipairs(self.views) do
+		v:load()
+		v:updateTransform()
+	end
+
+	for _, v in ipairs(self.hidden_views) do
 		v:load()
 		v:updateTransform()
 	end
@@ -62,5 +69,37 @@ end
 
 ---@param key string
 function Screen:handleKeyDown(key) end
+
+---@param view gui.View
+function Screen:hideView(view)
+	for i, v in ipairs(self.views) do
+		if v == view then
+			table.remove(self.views, i)
+			for _, hv in ipairs(self.hidden_views) do
+				if hv == view then
+					return
+				end
+			end
+			table.insert(self.hidden_views, view)
+			return
+		end
+	end
+end
+
+---@param view gui.View
+function Screen:showView(view)
+	for i, v in ipairs(self.hidden_views) do
+		if v == view then
+			table.remove(self.hidden_views, i)
+			for _, ev in ipairs(self.views) do
+				if ev == view then
+					return
+				end
+			end
+			table.insert(self.views, view)
+			return
+		end
+	end
+end
 
 return Screen
