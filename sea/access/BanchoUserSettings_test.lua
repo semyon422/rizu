@@ -41,6 +41,7 @@ function test.bancho_user_settings_roundtrip(t)
 	settings.stealth = true
 	settings.away_msg = "away"
 	settings.pres_filter = 2
+	settings.silence_end = 123
 	ctx.users_repo:createBanchoUserSettings(settings)
 
 	local loaded = ctx.users_repo:getBanchoUserSettings(user.id)
@@ -48,6 +49,7 @@ function test.bancho_user_settings_roundtrip(t)
 	t:eq(loaded.utc_offset, 3)
 	t:eq(loaded.pm_private, true)
 	t:eq(loaded.away_msg, "away")
+	t:eq(loaded.silence_end, 123)
 
 	loaded.pres_filter = 1
 	ctx.users_repo:updateBanchoUserSettings(loaded)

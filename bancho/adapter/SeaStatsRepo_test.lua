@@ -90,6 +90,26 @@ function test.get_stats_falls_back_to_stubs(t)
 end
 
 ---@param t testing.T
+function test.update_stats_is_stubbed(t)
+	local ctx = create_ctx()
+	local user = create_user(ctx, "user", "user@example.com")
+
+	t:eq(ctx.repo:updateStats(user.id, 3, {
+		plays = 4,
+		tscore = 123456,
+		pp = 222,
+	}), true)
+
+	local stats = assert(ctx.repo:getStats(user.id, 3))
+	ctx.db:close()
+
+	t:eq(stats.plays, 0)
+	t:eq(stats.tscore, 0)
+	t:eq(stats.pp, 0)
+	t:eq(stats.rank, 0)
+end
+
+---@param t testing.T
 function test.get_global_rank_uses_existing_rank_or_count(t)
 	local ctx = create_ctx()
 	local user1 = create_user(ctx, "user1", "user1@example.com")

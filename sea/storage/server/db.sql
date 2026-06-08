@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS `bancho_user_settings` (
 	`pm_private` INTEGER NOT NULL DEFAULT 0,
 	`stealth` INTEGER NOT NULL DEFAULT 0,
 	`away_msg` TEXT NOT NULL DEFAULT '',
-	`pres_filter` INTEGER NOT NULL DEFAULT 0
+	`pres_filter` INTEGER NOT NULL DEFAULT 0,
+	`silence_end` INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS `user_friends` (

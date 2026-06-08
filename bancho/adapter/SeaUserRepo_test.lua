@@ -126,6 +126,7 @@ function test.update_session_prefs_persists_settings(t)
 		stealth = true,
 		away_msg = "afk",
 		pres_filter = 2,
+		silence_end = 123,
 	})
 
 	local settings = assert(ctx.users_repo:getBanchoUserSettings(user.id))
@@ -137,10 +138,12 @@ function test.update_session_prefs_persists_settings(t)
 	t:eq(settings.stealth, true)
 	t:eq(settings.away_msg, "afk")
 	t:eq(settings.pres_filter, 2)
+	t:eq(settings.silence_end, 123)
 	t:eq(bancho_user.utc_offset, 4)
 	t:eq(bancho_user.pm_private, true)
 	t:eq(bancho_user.away_msg, "afk")
 	t:eq(bancho_user.pres_filter, 2)
+	t:eq(bancho_user.silence_end, 123)
 end
 
 ---@param t testing.T

@@ -176,8 +176,7 @@ function AccountResource:registerAccount(req, res, ctx)
 
 	if check == 0 then
 		local hasher = BcryptPasswordHasher()
-		local user = user_repo:createUser(username, email, hasher:digest(md5.sumhexa(password)), "XX")
-		self.server.stats_repo:createAllModes(user.id)
+		user_repo:createUser(username, email, hasher:digest(md5.sumhexa(password)), "XX")
 	end
 
 	res.status = 200

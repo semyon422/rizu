@@ -17,9 +17,6 @@ return BanchoConfig:new({
 	bot_name = "bot",
 	bot_id = 1,
 
-	--- SQLite database file path
-	db_path = "bancho.db",
-
 	--- Official osu! API v1 key
 	--- Required for beatmap lookup when local .osu file is missing.
 	--- Obtain from https://osu.ppy.sh/p/api

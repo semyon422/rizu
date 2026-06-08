@@ -59,6 +59,7 @@ function SeaUserRepo:toBanchoUser(user)
 		stealth = settings.stealth,
 		away_msg = settings.away_msg,
 		pres_filter = settings.pres_filter,
+		silence_end = settings.silence_end,
 	}
 end
 
@@ -147,7 +148,7 @@ function SeaUserRepo:partialUpdate(id, fields)
 	end
 
 	for key in pairs(fields) do
-		if key ~= "name" and key ~= "email" and key ~= "country_code" and key ~= "is_restricted" then
+		if key ~= "name" and key ~= "email" and key ~= "country_code" and key ~= "is_restricted" and key ~= "silence_end" then
 			return false
 		end
 	end
@@ -166,6 +167,11 @@ function SeaUserRepo:partialUpdate(id, fields)
 	end
 
 	self.users_repo:updateUser(user)
+
+	if fields.silence_end ~= nil then
+		self:updateSessionPrefs(id, {silence_end = fields.silence_end})
+	end
+
 	return true
 end
 
@@ -195,6 +201,7 @@ function SeaUserRepo:updateSessionPrefs(id, fields)
 		stealth = true,
 		away_msg = true,
 		pres_filter = true,
+		silence_end = true,
 	}
 
 	for key, value in pairs(fields) do

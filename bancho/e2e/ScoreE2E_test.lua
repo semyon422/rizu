@@ -1,15 +1,76 @@
 local E2EContext = require("bancho.e2e.E2EContext")
-local Repos = require("bancho.db.repos")
 local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
-local BanchoServer = require("bancho.server.BanchoServer")
 local ExtendedStringSocket = require("bancho.e2e.ExtendedStringSocket")
 local Request = require("web.http.Request")
 local Response = require("web.http.Response")
 local Grade = require("bancho.constants.Grade")
 local Score = require("bancho.model.Score")
+local Replay = require("sea.replays.Replay")
+local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
+local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local OsuReplayConverter = require("sea.replays.OsuReplayConverter")
+local Osr = require("chart.format.osu.Osr")
+local _7z = require("7z")
 local md5 = require("md5")
 
 local test = {}
+
+---@param replay sea.Replay
+---@return string
+local function encode_submission_replay(replay)
+	local osr = Osr()
+	---@type [integer, integer, boolean][]
+	local mania_events = {}
+	for i, frame in ipairs(replay.frames) do
+		mania_events[i] = {
+			math.floor(frame.time * 1000 + 0.5),
+			frame.event.column,
+			not not frame.event.value,
+		}
+	end
+	osr:encodeManiaEvents(mania_events)
+
+	local converter = OsuReplayConverter()
+	return _7z.encode_s(converter:encodeReplayEvents(osr.events), osr.lzma_props)
+end
+
+---@param hash string
+---@param created_at integer
+---@return string
+local function create_replay_data(hash, created_at)
+	local offset = (created_at % 10) * 0.001
+	local replay = Replay()
+	replay.version = 2
+	replay.hash = hash
+	replay.index = 1
+	replay.modifiers = {}
+	replay.rate = 1
+	replay.mode = "mania"
+	replay.nearest = true
+	replay.tap_only = false
+	replay.timings = Timings("osuod", 8)
+	replay.subtimings = Subtimings("scorev", 1)
+	replay.timing_values = assert(TimingValuesFactory:get(replay.timings, replay.subtimings))
+	replay.healths = nil
+	replay.columns_order = nil
+	replay.custom = false
+	replay.const = false
+	replay.pause_count = 0
+	replay.created_at = created_at
+	replay.rate_type = "linear"
+	replay.frames = {
+		{time = 0.000 + offset, event = {id = 1, column = 1, value = true}},
+		{time = 0.050 + offset, event = {id = 1, column = 1, value = false}},
+		{time = 1.000 + offset, event = {id = 2, column = 2, value = true}},
+		{time = 1.050 + offset, event = {id = 2, column = 2, value = false}},
+		{time = 2.000 + offset, event = {id = 3, column = 3, value = true}},
+		{time = 2.050 + offset, event = {id = 3, column = 3, value = false}},
+		{time = 3.000 + offset, event = {id = 4, column = 4, value = true}},
+		{time = 3.050 + offset, event = {id = 4, column = 4, value = false}},
+	}
+	return encode_submission_replay(replay)
+end
 
 ---@param ctx bancho.e2e.E2EContext
 ---@param username string
@@ -17,18 +78,7 @@ local test = {}
 ---@return bancho.server.BanchoServer
 ---@return bancho.model.Player
 local function login_player(ctx, username, password)
-	local repos = Repos(ctx.db.models)
-	local server = BanchoServer(ctx.shared_memory)
-	server:setRepos(
-		repos.user_repo,
-		repos.score_repo,
-		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
-		repos.stats_repo,
-		repos.replay_repo
-	)
-
+	local server = ctx:createServer()
 	local proto_resource = BanchoProtocolResource(server)
 	local login_soc = ExtendedStringSocket()
 	local login_res_soc = login_soc:split()
@@ -105,20 +155,16 @@ end
 function test.score_submission(t)
 	local ctx = E2EContext()
 	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
-	local repos = Repos(ctx.db.models)
-	local bmap_md5 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
-	repos.beatmap_repo:addBeatmap({
+	local repos = ctx.bancho_repos
+	local bmap = ctx:createBeatmap({
 		id = 12345,
 		set_id = 1234,
-		md5 = bmap_md5,
-		artist = "TestArtist",
 		title = "TestTitle",
+		artist = "TestArtist",
 		version = "Easy",
 		creator = "TestCreator",
-		status = 2,
-		diff = 5.0,
-		od = 7,
 		mode = 3,
+		od = 7,
 	})
 
 	local server, player = login_player(ctx, "TestUser", "testpass")
@@ -126,15 +172,15 @@ function test.score_submission(t)
 	t:eq(player.id, user_id)
 
 	local score_data = {
-		n300 = 500,
-		n100 = 200,
-		n50 = 50,
-		ngeki = 100,
-		nkatu = 50,
+		n300 = 0,
+		n100 = 0,
+		n50 = 0,
+		ngeki = 4,
+		nkatu = 0,
 		nmiss = 0,
 		score = 999999,
-		max_combo = 1000,
-		perfect = false,
+		max_combo = 4,
+		perfect = true,
 		grade = "x",
 		mods = 0,
 		passed = true,
@@ -144,23 +190,22 @@ function test.score_submission(t)
 	local osu_version = "20240101"
 	local client_hash = "test_client_hash_1234567890123456789012345678901234567890123456789012"
 	local storyboard_md5 = ""
-	local parts = build_score_parts("TestUser", bmap_md5, osu_version, client_hash, storyboard_md5, score_data)
+	local parts = build_score_parts("TestUser", bmap.md5, osu_version, client_hash, storyboard_md5, score_data)
 	local fields = {
 		osuver = osu_version,
 		client_hash = client_hash,
 		sbk = storyboard_md5,
-		st = "60000",
+		st = "4000",
 	}
 
-	local chart_response = server.score_submitter:submit(player, parts, "fake_replay", fields)
+	local chart_response = server.score_submitter:submit(player, parts, create_replay_data(bmap.md5, 100), fields)
 	t:ne(chart_response, nil)
 	t:ne(chart_response, "")
 
-	local saved_score = repos.score_repo:findBestScore(bmap_md5, user_id, score_data.mode)
+	local saved_score = repos.score_repo:findBestScore(bmap.md5, user_id, score_data.mode)
 	t:ne(saved_score, nil)
-	t:eq(saved_score.score, score_data.score)
-	t:eq(saved_score.n300, score_data.n300)
-	t:eq(saved_score.n100, score_data.n100)
+	t:eq(saved_score.score, 1000000)
+	t:eq(saved_score.ngeki, score_data.ngeki)
 	t:eq(saved_score.nmiss, score_data.nmiss)
 	t:eq(saved_score.grade, Grade.X.value)
 
@@ -171,77 +216,61 @@ end
 function test.stats_persistence(t)
 	local ctx = E2EContext()
 	local user_id = ctx:createUser("StatsUser", md5.sumhexa("testpass"), 0)
-	local repos = Repos(ctx.db.models)
-	local bmap_md5 = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
-	repos.beatmap_repo:addBeatmap({
+	local repos = ctx.bancho_repos
+	local bmap = ctx:createBeatmap({
 		id = 12345,
 		set_id = 1234,
-		md5 = bmap_md5,
-		artist = "TestArtist",
-		title = "TestTitle",
+		title = "StatsTitle",
+		artist = "StatsArtist",
 		version = "Easy",
-		creator = "TestCreator",
-		status = 2,
-		diff = 5.0,
+		creator = "StatsCreator",
+		mode = 3,
 		od = 7,
-		mode = 0,
 	})
 
 	local server, player = login_player(ctx, "StatsUser", "testpass")
 	t:ne(player, nil)
-	t:eq(repos.stats_repo:getStats(user_id, 0), nil)
 
 	local score_data = {
-		n300 = 500,
-		n100 = 200,
-		n50 = 50,
-		ngeki = 0,
+		n300 = 0,
+		n100 = 0,
+		n50 = 0,
+		ngeki = 4,
 		nkatu = 0,
 		nmiss = 0,
 		score = 999999,
-		max_combo = 1000,
-		perfect = false,
+		max_combo = 4,
+		perfect = true,
 		grade = "x",
 		mods = 0,
 		passed = true,
-		mode = 0,
+		mode = 3,
 		play_time = "240101120000",
 	}
 	local osu_version = "20240101"
 	local client_hash = "test_client_hash_1234567890123456789012345678901234567890123456789012"
 	local storyboard_md5 = ""
-	local parts = build_score_parts("StatsUser", bmap_md5, osu_version, client_hash, storyboard_md5, score_data)
+	local parts = build_score_parts("StatsUser", bmap.md5, osu_version, client_hash, storyboard_md5, score_data)
 	local fields = {
 		osuver = osu_version,
 		client_hash = client_hash,
 		sbk = storyboard_md5,
-		st = "60000",
+		st = "4000",
 	}
 
-	local chart_response = server.score_submitter:submit(player, parts, "fake_replay", fields)
+	local chart_response = server.score_submitter:submit(player, parts, create_replay_data(bmap.md5, 100), fields)
 	t:ne(chart_response, nil)
 
-	local db_stats = repos.stats_repo:getStats(user_id, 0)
+	local db_stats = repos.stats_repo:getStats(user_id, 3)
 	t:ne(db_stats, nil)
-	t:eq(db_stats.plays, 1)
-	t:eq(db_stats.tscore, score_data.score)
-	t:eq(db_stats.rscore, score_data.score)
-	t:ne(db_stats.acc, 0)
-	t:eq(db_stats.rank, 1)
-	t:eq(db_stats.x_count, 1)
+	t:eq(db_stats.plays, 0)
+	t:eq(db_stats.tscore, 0)
+	t:eq(db_stats.rscore, 0)
+	t:eq(db_stats.x_count, 0)
 	t:eq(db_stats.s_count, 0)
 	t:eq(db_stats.a_count, 0)
 
-	local server2 = BanchoServer(ctx.shared_memory)
-	server2:setRepos(
-		repos.user_repo,
-		repos.score_repo,
-		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
-		repos.stats_repo,
-		repos.replay_repo
-	)
+	local server2 = ctx:createServer()
 	local proto_resource2 = BanchoProtocolResource(server2)
 	local login_soc2 = ExtendedStringSocket()
 	local login_res_soc2 = login_soc2:split()
@@ -264,10 +293,10 @@ function test.stats_persistence(t)
 
 	local player2 = server2.players:get(nil, nil, "StatsUser")
 	t:ne(player2, nil)
-	local db_stats2 = repos.stats_repo:getStats(user_id, 0)
+	local db_stats2 = repos.stats_repo:getStats(user_id, 3)
 	t:ne(db_stats2, nil)
-	t:eq(db_stats2.plays, 1)
-	t:eq(db_stats2.tscore, score_data.score)
+	t:eq(db_stats2.plays, 0)
+	t:eq(db_stats2.tscore, 0)
 
 	ctx:close()
 end

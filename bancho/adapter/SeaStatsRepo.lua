@@ -100,12 +100,6 @@ function SeaStatsRepo:updateStats(user_id, mode, fields)
 end
 
 ---@param user_id integer
----@return boolean
-function SeaStatsRepo:createAllModes(user_id)
-	return true
-end
-
----@param user_id integer
 ---@param mode integer
 ---@param pp number
 ---@return integer

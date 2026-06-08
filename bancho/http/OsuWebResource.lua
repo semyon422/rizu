@@ -470,9 +470,6 @@ function OsuWebResource:osuGetscores(req, res, ctx)
 	-- If not in DB, try loading from local storage or API
 	if not bmap and self.server.beatmap_loader then
 		bmap = self.server.beatmap_loader:load(map_md5)
-		if bmap and self.server.beatmap_repo then
-			self.server.beatmap_repo:addBeatmap(bmap)
-		end
 	end
 
 	if not bmap then
@@ -637,9 +634,6 @@ function OsuWebResource:osuGetBeatmapInfo(req, res, ctx)
 		-- If not in DB, try loading from local storage or API
 		if not bmap and md5 and self.server.beatmap_loader then
 			bmap = self.server.beatmap_loader:load(md5)
-			if bmap and self.server.beatmap_repo then
-				self.server.beatmap_repo:addBeatmap(bmap)
-			end
 		end
 
 		if bmap then

@@ -1,6 +1,5 @@
 local E2EContext = require("bancho.e2e.E2EContext")
 local TestLib = require("bancho.e2e.TestLib")
-local Repos = require("bancho.db.repos")
 local md5 = require("md5")
 
 local test = {}
@@ -22,7 +21,7 @@ function test.register_and_login(t)
 	account_resource:registerAccount(req, res)
 	t:eq(ctx:readHttpResponse(read_soc), "ok")
 
-	local repos = Repos(ctx.db.models)
+	local repos = ctx.bancho_repos
 	local user = repos.user_repo:findUserByName(username)
 	t:ne(user, nil)
 	t:eq(user.name, username)
@@ -200,7 +199,7 @@ end
 function test.register_check_only(t)
 	local ctx = E2EContext()
 	local account_resource = ctx:createAccountResource()
-	local repos = Repos(ctx.db.models)
+	local repos = ctx.bancho_repos
 
 	local req, res, read_soc = ctx:createMultipartRequest("POST", "/users", {
 		["user[username]"] = "DryRunUser",

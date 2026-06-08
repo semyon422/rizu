@@ -8,7 +8,6 @@ function test.defaults(t)
 	t:eq(config.domain, "rizu.su")
 	t:eq(config.bot_name, "bot")
 	t:eq(config.bot_id, 1)
-	t:eq(config.db_path, "bancho.db")
 	t:eq(config.max_matches, 64)
 	t:eq(config.allow_registration, false)
 	t:eq(config.command_prefix, "!")
@@ -28,7 +27,6 @@ function test.overrides(t)
 
 	-- Unset fields retain defaults
 	t:eq(config.bot_id, 1)
-	t:eq(config.db_path, "bancho.db")
 	t:eq(config.command_prefix, "!")
 end
 

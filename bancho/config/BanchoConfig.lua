@@ -29,7 +29,6 @@ end
 ---@field domain string Server domain (e.g. "rizu.su")
 ---@field bot_name string Bot player name
 ---@field bot_id integer Bot player ID
----@field db_path string SQLite database file path
 ---@field osu_api_key string? Official osu! API v1 key (for beatmap lookup fallback)
 ---@field mirror_search_endpoint string Beatmap search API endpoint
 ---@field mirror_download_endpoint string Beatmap download redirect endpoint
@@ -64,8 +63,6 @@ BanchoConfig.defaults = {
 	domain = "rizu.su",
 	bot_name = "bot",
 	bot_id = 1,
-
-	db_path = "bancho.db",
 
 	osu_api_key = nil,
 

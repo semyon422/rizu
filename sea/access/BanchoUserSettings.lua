@@ -10,6 +10,7 @@ local types = require("sea.shared.types")
 ---@field stealth boolean
 ---@field away_msg string
 ---@field pres_filter integer
+---@field silence_end integer
 local BanchoUserSettings = class()
 
 function BanchoUserSettings:new()
@@ -18,6 +19,7 @@ function BanchoUserSettings:new()
 	self.stealth = false
 	self.away_msg = ""
 	self.pres_filter = 0
+	self.silence_end = 0
 end
 
 BanchoUserSettings.struct = {
@@ -27,6 +29,7 @@ BanchoUserSettings.struct = {
 	stealth = types.boolean,
 	away_msg = types.string,
 	pres_filter = types.integer,
+	silence_end = types.integer,
 }
 
 local validate_bancho_user_settings = valid.struct(BanchoUserSettings.struct)

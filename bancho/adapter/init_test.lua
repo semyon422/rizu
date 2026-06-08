@@ -1,62 +1,49 @@
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
+local SharedMemory = require("web.nginx.SharedMemory")
+local FakeFilesystem = require("fs.FakeFilesystem")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
-local UsersRepo = require("sea.access.repos.UsersRepo")
-local LeaderboardsRepo = require("sea.leaderboards.repos.LeaderboardsRepo")
-local ChartsRepo = require("sea.chart.repos.ChartsRepo")
-local OsuRepo = require("sea.osu.repos.OsuRepo")
+local Repos = require("sea.app.Repos")
+local Domain = require("sea.app.Domain")
 local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
 
 local test = {}
 
 ---@param t testing.T
-function test.setup_legacy_database(t)
-	local server = BanchoServer()
-	local path = "tmp_bancho_adapter_test.db"
+function test.setup_sea_repos(t)
+	local db = ServerSqliteDatabase(LjsqliteDatabase())
+	db.path = ":memory:"
+	db:remove()
+	db:open()
 
-	os.remove(path)
-	BanchoAdapter.setupLegacyDatabase(server, path)
+	local shared_memory = SharedMemory()
+	local repos = Repos(db.models, shared_memory)
+	local domain = Domain(repos, {
+		osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"},
+	}, FakeFilesystem())
+	local server = BanchoServer(shared_memory)
 
-	t:ne(server.db, nil)
-	t:ne(server.user_repo, nil)
-	t:ne(server.score_repo, nil)
-	t:ne(server.beatmap_repo, nil)
-	t:ne(server.friends_repo, nil)
-	t:ne(server.favourites_repo, nil)
-	t:ne(server.stats_repo, nil)
-	t:ne(server.replay_repo, nil)
-
-	server:closeDatabase()
-	os.remove(path)
-end
-
----@param t testing.T
-function test.setup_legacy_database_with_sea_user_repo(t)
-	local sea_db = ServerSqliteDatabase(LjsqliteDatabase())
-	sea_db.path = ":memory:"
-	sea_db:remove()
-	sea_db:open()
-
-	local users_repo = UsersRepo(sea_db.models)
-	local leaderboards_repo = LeaderboardsRepo(sea_db.models)
-	local charts_repo = ChartsRepo(sea_db.models)
-	local osu_repo = OsuRepo(sea_db.models)
-	local server = BanchoServer()
-	local path = "tmp_bancho_adapter_test.db"
-
-	os.remove(path)
-	BanchoAdapter.setupLegacyDatabase(server, path, users_repo, leaderboards_repo, charts_repo, osu_repo)
+	BanchoAdapter.setupSeaRepos(
+		server,
+		repos.users_repo,
+		repos.leaderboards_repo,
+		repos.charts_repo,
+		repos.osu_repo,
+		domain.osu_beatmaps,
+		domain.charts_storage,
+		domain.chartplay_submission,
+		domain.replays_storage
+	)
 
 	t:eq(getmetatable(server.user_repo), BanchoAdapter.SeaUserRepo)
 	t:eq(getmetatable(server.friends_repo), BanchoAdapter.SeaFriendsRepo)
 	t:eq(getmetatable(server.favourites_repo), BanchoAdapter.SeaFavouritesRepo)
 	t:eq(getmetatable(server.stats_repo), BanchoAdapter.SeaStatsRepo)
 	t:eq(getmetatable(server.beatmap_repo), BanchoAdapter.SeaBeatmapRepo)
-	t:ne(server.score_repo, nil)
+	t:eq(getmetatable(server.score_repo), BanchoAdapter.SeaScoreRepo)
+	t:eq(getmetatable(server.replay_repo), BanchoAdapter.SeaReplayRepo)
 
-	server:closeDatabase()
-	sea_db:close()
-	os.remove(path)
+	db:close()
 end
 
 return test

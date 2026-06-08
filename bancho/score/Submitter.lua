@@ -67,10 +67,6 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 	-- If not in DB, try loading from local storage or API
 	if not bmap and self.server.beatmap_loader then
 		bmap = self.server.beatmap_loader:load(map_md5)
-		if bmap and self.server.beatmap_repo then
-			-- Cache in DB for future lookups
-			self.server.beatmap_repo:addBeatmap(bmap)
-		end
 	end
 
 	if not bmap then
@@ -148,16 +144,10 @@ function ScoreSubmitter:submit(player, parts, replay_data, fields)
 			online_checksum = score.client_checksum,
 			created_at = score.server_time,
 		}
-		if self.server.score_repo.submitScore and score.passed and replay_data then
-			local err
-			score_id, err = self.server.score_repo:submitScore(score_values, bmap, replay_data)
+		if score.passed and replay_data then
+			score_id = self.server.score_repo:submitScore(score_values, bmap, replay_data)
 			if not score_id then
 				return nil
-			end
-		else
-			score_id = self.server.score_repo:addScore(score_values)
-			if score.passed and replay_data and score_id > 0 and self.server.replay_repo then
-				self.server.replay_repo:saveReplay(score_id, replay_data)
 			end
 		end
 	end

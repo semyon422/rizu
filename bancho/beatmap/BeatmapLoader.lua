@@ -23,7 +23,7 @@ function BeatmapLoader:new(fs, api_key)
 end
 
 --- Load a beatmap from local .osu file or API fallback.
---- Returns a table compatible with beatmap_repo:addBeatmap().
+--- Returns a Bancho-compatible beatmap table for in-memory use.
 --- Always queries the API for ranked status when local file is found.
 ---@param md5 string beatmap file MD5
 ---@return table? beatmap metadata table, string? error

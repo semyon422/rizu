@@ -170,16 +170,4 @@ function SeaBeatmapRepo:findBeatmapById(id)
 	return self:toBanchoBeatmap(chartmeta, osu_beatmap)
 end
 
----@param bmap table
-function SeaBeatmapRepo:addBeatmap(bmap)
-	return
-end
-
----@param md5 string
----@param plays_increment integer
----@param passes_increment integer
-function SeaBeatmapRepo:updateCounts(md5, plays_increment, passes_increment)
-	return
-end
-
 return SeaBeatmapRepo

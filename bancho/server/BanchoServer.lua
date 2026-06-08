@@ -35,8 +35,7 @@ local class = require("class")
 ---@field findScores fun(self: bancho.server.IScoreRepo, map_md5: string, mode: integer): table[]
 ---@field findBestScore fun(self: bancho.server.IScoreRepo, map_md5: string, user_id: integer, mode: integer): table?
 ---@field findScore fun(self: bancho.server.IScoreRepo, id: integer): table?
----@field addScore fun(self: bancho.server.IScoreRepo, score: table): integer
----@field submitScore? fun(self: bancho.server.IScoreRepo, score: table, beatmap: table, replay_data: string): integer?, string?
+---@field submitScore fun(self: bancho.server.IScoreRepo, score: table, beatmap: table, replay_data: string): integer?, string?
 
 --- Repository interface for beatmaps.
 ---@class bancho.server.IBeatmapRepo
@@ -68,7 +67,6 @@ local class = require("class")
 --- Repository interface for replays.
 ---@class bancho.server.IReplayRepo
 ---@operator call: bancho.server.IReplayRepo
----@field saveReplay fun(self: bancho.server.IReplayRepo, score_id: integer, data: string): boolean
 ---@field getReplay fun(self: bancho.server.IReplayRepo, score_id: integer): string?
 
 --- Server configuration.
@@ -78,7 +76,6 @@ local class = require("class")
 
 ---@class bancho.server.BanchoServer
 ---@operator call: bancho.server.BanchoServer
----@field db? bancho.BanchoDatabase
 ---@field players bancho.model.PlayerCollection
 ---@field matches bancho.model.MatchCollection
 ---@field channels bancho.model.ChannelCollection
@@ -202,23 +199,6 @@ function BanchoServer:setRepos(user_repo, score_repo, beatmap_repo, friends_repo
 	self.favourites_repo = favourites_repo
 	self.stats_repo = stats_repo
 	self.replay_repo = replay_repo
-end
-
---- Set up legacy Bancho SQLite persistence and wire all repos automatically.
---- Kept as a compatibility helper while repo wiring is being moved into the
---- adapter layer owned by `sea`.
----@param path string? Database file path (default: "bancho.db")
-function BanchoServer:setupDatabase(path)
-	local BanchoAdapter = require("bancho.adapter")
-	BanchoAdapter.setupLegacyDatabase(self, path)
-end
-
---- Close the database connection.
-function BanchoServer:closeDatabase()
-	if self.db then
-		self.db:close()
-		self.db = nil
-	end
 end
 
 --- Get or create the bot player.

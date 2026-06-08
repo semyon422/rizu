@@ -1,7 +1,3 @@
-local BanchoDatabase = require("bancho.db.BanchoDatabase")
-local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
-local Repos = require("bancho.db.repos")
-
 local SeaUserRepo = require("bancho.adapter.SeaUserRepo")
 local SeaFriendsRepo = require("bancho.adapter.SeaFriendsRepo")
 local SeaFavouritesRepo = require("bancho.adapter.SeaFavouritesRepo")
@@ -20,46 +16,70 @@ BanchoAdapter.SeaBeatmapRepo = SeaBeatmapRepo
 BanchoAdapter.SeaScoreRepo = SeaScoreRepo
 BanchoAdapter.SeaReplayRepo = SeaReplayRepo
 
+---@class bancho.adapter.Repos
+---@field user_repo bancho.adapter.SeaUserRepo
+---@field score_repo bancho.adapter.SeaScoreRepo
+---@field beatmap_repo bancho.adapter.SeaBeatmapRepo
+---@field friends_repo bancho.adapter.SeaFriendsRepo
+---@field favourites_repo bancho.adapter.SeaFavouritesRepo
+---@field stats_repo bancho.adapter.SeaStatsRepo
+---@field replay_repo bancho.adapter.SeaReplayRepo
+
+---@param users_repo sea.UsersRepo
+---@param leaderboards_repo sea.LeaderboardsRepo
+---@param charts_repo sea.ChartsRepo
+---@param osu_repo sea.OsuRepo
+---@param osu_beatmaps sea.OsuBeatmaps
+---@param charts_storage sea.IKeyValueStorage
+---@param chartplay_submission sea.ChartplaySubmission
+---@param replays_storage sea.IKeyValueStorage
+---@return bancho.adapter.Repos
+function BanchoAdapter.createSeaRepos(users_repo, leaderboards_repo, charts_repo, osu_repo, osu_beatmaps, charts_storage, chartplay_submission, replays_storage)
+	local beatmap_repo = SeaBeatmapRepo(charts_repo, osu_repo, osu_beatmaps, charts_storage)
+	return {
+		user_repo = SeaUserRepo(users_repo),
+		score_repo = SeaScoreRepo(users_repo, charts_repo, chartplay_submission, charts_storage, beatmap_repo),
+		beatmap_repo = beatmap_repo,
+		friends_repo = SeaFriendsRepo(users_repo),
+		favourites_repo = SeaFavouritesRepo(users_repo),
+		stats_repo = SeaStatsRepo(users_repo, leaderboards_repo),
+		replay_repo = SeaReplayRepo(charts_repo, users_repo, replays_storage),
+	}
+end
+
 ---@param server bancho.server.BanchoServer
----@param path string?
----@param users_repo? sea.UsersRepo
----@param leaderboards_repo? sea.LeaderboardsRepo
----@param charts_repo? sea.ChartsRepo
----@param osu_repo? sea.OsuRepo
----@param osu_beatmaps? sea.OsuBeatmaps
----@param charts_storage? sea.IKeyValueStorage
----@param chartplay_submission? sea.ChartplaySubmission
----@param replays_storage? sea.IKeyValueStorage
----@return bancho.BanchoDatabase
----@return bancho.Repos
-function BanchoAdapter.setupLegacyDatabase(server, path, users_repo, leaderboards_repo, charts_repo, osu_repo, osu_beatmaps, charts_storage, chartplay_submission, replays_storage)
-	local db = BanchoDatabase(LjsqliteDatabase())
-	if path then
-		db.path = path
-	end
-	db:open()
-
-	local repos = Repos(db.models)
-	local user_repo = users_repo and SeaUserRepo(users_repo) or repos.user_repo
-	local friends_repo = users_repo and SeaFriendsRepo(users_repo) or repos.friends_repo
-	local favourites_repo = users_repo and SeaFavouritesRepo(users_repo) or repos.favourites_repo
-	local stats_repo = users_repo and leaderboards_repo and SeaStatsRepo(users_repo, leaderboards_repo) or repos.stats_repo
-	local beatmap_repo = charts_repo and osu_repo and SeaBeatmapRepo(charts_repo, osu_repo, osu_beatmaps, charts_storage) or repos.beatmap_repo
-	local score_repo = users_repo and charts_repo and chartplay_submission and charts_storage and SeaScoreRepo(users_repo, charts_repo, chartplay_submission, charts_storage, beatmap_repo) or repos.score_repo
-	local replay_repo = users_repo and charts_repo and replays_storage and SeaReplayRepo(charts_repo, users_repo, replays_storage) or repos.replay_repo
-
-	server.db = db
-	server:setRepos(
-		user_repo,
-		score_repo,
-		beatmap_repo,
-		friends_repo,
-		favourites_repo,
-		stats_repo,
-		replay_repo
+---@param users_repo sea.UsersRepo
+---@param leaderboards_repo sea.LeaderboardsRepo
+---@param charts_repo sea.ChartsRepo
+---@param osu_repo sea.OsuRepo
+---@param osu_beatmaps sea.OsuBeatmaps
+---@param charts_storage sea.IKeyValueStorage
+---@param chartplay_submission sea.ChartplaySubmission
+---@param replays_storage sea.IKeyValueStorage
+---@return bancho.adapter.Repos
+function BanchoAdapter.setupSeaRepos(server, users_repo, leaderboards_repo, charts_repo, osu_repo, osu_beatmaps, charts_storage, chartplay_submission, replays_storage)
+	local repos = BanchoAdapter.createSeaRepos(
+		users_repo,
+		leaderboards_repo,
+		charts_repo,
+		osu_repo,
+		osu_beatmaps,
+		charts_storage,
+		chartplay_submission,
+		replays_storage
 	)
 
-	return db, repos
+	server:setRepos(
+		repos.user_repo,
+		repos.score_repo,
+		repos.beatmap_repo,
+		repos.friends_repo,
+		repos.favourites_repo,
+		repos.stats_repo,
+		repos.replay_repo
+	)
+
+	return repos
 end
 
 return BanchoAdapter

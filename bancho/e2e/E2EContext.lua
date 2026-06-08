@@ -1,92 +1,126 @@
 --- E2E test context.
 ---
---- Manages shared FakeSharedDict and SQLite database for in-memory E2E tests.
+--- Manages shared FakeSharedDict and a Sea server database for in-memory E2E tests.
 --- Each request creates a fresh BanchoServer instance backed by the shared dicts
 --- to simulate the multi-worker OpenResty model.
----
---- Uses `web.SharedMemory` which automatically falls back to `FakeSharedDict`
---- when `ngx.shared` is nil (test environment). A single SharedMemory instance
---- is shared across all BanchoServer instances so they see the same dicts.
 
 local SharedMemory = require("web.nginx.SharedMemory")
+local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
-local Repos = require("bancho.db.repos")
+local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
+local SeaRepos = require("sea.app.Repos")
+local Domain = require("sea.app.Domain")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
+local ComputeContext = require("sea.compute.ComputeContext")
+local ReplayBase = require("sea.replays.ReplayBase")
+local digest = require("digest")
 local bcrypt = require("bcrypt")
 
 local class = require("class")
 
+local sample_osu_template = [[
+osu file format v14
+
+[General]
+Mode: %d
+AudioFilename: audio.mp3
+PreviewTime: 0
+
+[Metadata]
+Title:%s
+Artist:%s
+Creator:%s
+Version:%s
+BeatmapID:%d
+BeatmapSetID:%d
+
+[Difficulty]
+CircleSize:4
+OverallDifficulty:%s
+
+[TimingPoints]
+0,500,4,2,0,70,1,0
+
+[HitObjects]
+64,192,0,1,0,0:0:0:0:
+192,192,1000,1,0,0:0:0:0:
+320,192,2000,1,0,0:0:0:0:
+448,192,3000,1,0,0:0:0:0:
+]]
+
 --- E2E test context.
---- Creates shared fake shared-memory and a temporary SQLite database.
---- Each call to :createResource() produces a fresh BanchoServer + resource pair.
 ---@class bancho.e2e.E2EContext
 ---@operator call: bancho.e2e.E2EContext
----@field shared_memory web.SharedMemory Shared memory (uses FakeSharedDict in tests)
----@field db bancho.BanchoDatabase Database instance
+---@field shared_memory web.SharedMemory
+---@field fs fs.FakeFilesystem
+---@field db sea.ServerSqliteDatabase
+---@field repos sea.Repos
+---@field domain sea.Domain
+---@field bancho_repos bancho.adapter.Repos
 local E2EContext = class()
 
 ---@param overrides? table
 ---@return bancho.server.BanchoServer
 function E2EContext:createServer(overrides)
-	local server = BanchoServer(self.shared_memory, overrides or {
-		db_path = ":memory:",
-	})
-
-	local repos = Repos(self.db.models)
-	server:setRepos(
-		repos.user_repo,
-		repos.score_repo,
-		repos.beatmap_repo,
-		repos.friends_repo,
-		repos.favourites_repo,
-		repos.stats_repo,
-		repos.replay_repo
+	local server = BanchoServer(self.shared_memory, overrides)
+	BanchoAdapter.setupSeaRepos(
+		server,
+		self.repos.users_repo,
+		self.repos.leaderboards_repo,
+		self.repos.charts_repo,
+		self.repos.osu_repo,
+		self.domain.osu_beatmaps,
+		self.domain.charts_storage,
+		self.domain.chartplay_submission,
+		self.domain.replays_storage
 	)
-
 	return server
 end
 
 function E2EContext:new()
-	-- Single SharedMemory instance shared across all BanchoServer instances.
-	-- In tests, ngx.shared is nil so SharedMemory falls back to FakeSharedDict.
-	-- Dicts are cached per-instance so all servers see the same data.
 	self.shared_memory = SharedMemory()
-
-	-- Use in-memory database
-	local BanchoDatabase = require("bancho.db.BanchoDatabase")
-	local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
-	self.db = BanchoDatabase(LjsqliteDatabase())
+	self.fs = FakeFilesystem()
+	self.db = ServerSqliteDatabase(LjsqliteDatabase())
 	self.db.path = ":memory:"
+	self.db:remove()
 	self.db:open()
+	self.repos = SeaRepos(self.db.models, self.shared_memory)
+	self.domain = Domain(self.repos, {
+		osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"},
+	}, self.fs)
+	self.bancho_repos = BanchoAdapter.createSeaRepos(
+		self.repos.users_repo,
+		self.repos.leaderboards_repo,
+		self.repos.charts_repo,
+		self.repos.osu_repo,
+		self.domain.osu_beatmaps,
+		self.domain.charts_storage,
+		self.domain.chartplay_submission,
+		self.domain.replays_storage
+	)
 	return self
 end
 
---- Create a fresh BanchoProtocolResource backed by a new BanchoServer.
---- Simulates a new worker handling a request.
 ---@return bancho.http.BanchoProtocolResource
 function E2EContext:createResource()
 	local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
 	return BanchoProtocolResource(self:createServer())
 end
 
---- Create a fresh AccountResource backed by a new BanchoServer.
---- Simulates a new worker handling a registration request.
 ---@return bancho.http.AccountResource
 function E2EContext:createAccountResource()
 	local AccountResource = require("bancho.http.AccountResource")
-	return AccountResource(self:createServer({
-		db_path = ":memory:",
-		allow_registration = true,
-	}))
+	return AccountResource(self:createServer({allow_registration = true}))
 end
 
---- Create an HTTP request/response pair for tests.
 ---@param method string
 ---@param path string
 ---@param headers? {[string]: string}
 ---@param body? string
----@return web.IRequest request
----@return web.IResponse response
----@return bancho.e2e.ExtendedStringSocket read_socket
+---@return web.IRequest
+---@return web.IResponse
+---@return bancho.e2e.ExtendedStringSocket
 function E2EContext:createHttpRequest(method, path, headers, body)
 	local ExtendedStringSocket = require("bancho.e2e.ExtendedStringSocket")
 	local Request = require("web.http.Request")
@@ -117,14 +151,12 @@ function E2EContext:createHttpRequest(method, path, headers, body)
 	return req, res, req_soc
 end
 
---- Create an HTTP request/response pair for testing with multipart body.
---- Uses ExtendedStringSocket to simulate HTTP without real networking.
----@param method string HTTP method (GET, POST, etc.)
----@param path string Request path
----@param fields table Form fields
----@return web.IRequest request
----@return web.IResponse response
----@return bancho.e2e.ExtendedStringSocket read_socket socket to read response from
+---@param method string
+---@param path string
+---@param fields table
+---@return web.IRequest
+---@return web.IResponse
+---@return bancho.e2e.ExtendedStringSocket
 function E2EContext:createMultipartRequest(method, path, fields)
 	local boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
 	local body = ""
@@ -138,9 +170,8 @@ function E2EContext:createMultipartRequest(method, path, fields)
 	}, body)
 end
 
---- Read the HTTP response body from a socket.
 ---@param read_socket bancho.e2e.ExtendedStringSocket
----@return string body
+---@return string
 function E2EContext:readHttpResponse(read_socket)
 	local raw = read_socket.soc.remainder or ""
 	local header_end = raw:find("\r\n\r\n")
@@ -150,23 +181,71 @@ function E2EContext:readHttpResponse(read_socket)
 	return raw
 end
 
---- Create a user in the database for testing.
 ---@param username string
 ---@param password_md5 string
 ---@param priv integer
----@return integer user_id
+---@return integer
 function E2EContext:createUser(username, password_md5, priv)
-	local repos = Repos(self.db.models)
-
-	-- Store bcrypt hash of the MD5 password
-	local pw_bcrypt = bcrypt.digest(password_md5, 4)
-
-	local user = repos.user_repo:createUser(username, username .. "@test.com", pw_bcrypt, "US")
-	repos.user_repo:partialUpdate(user.id, {priv = priv})
+	local user = assert(self.bancho_repos.user_repo:createUser(
+		username,
+		username .. "@test.com",
+		bcrypt.digest(password_md5, 4),
+		"US"
+	))
 	return user.id
 end
 
---- Clean up temp database.
+---@param fields? table
+---@return table
+function E2EContext:createBeatmap(fields)
+	fields = fields or {}
+	local beatmap_id = fields.id or 12345
+	local set_id = fields.set_id or 54321
+	local title = fields.title or "Title"
+	local artist = fields.artist or "Artist"
+	local creator = fields.creator or "Mapper"
+	local version = fields.version or "Insane"
+	local mode = fields.mode or 3
+	local od = fields.od or 8
+	local content = fields.content or sample_osu_template:format(mode, title, artist, creator, version, beatmap_id, set_id, od)
+	local hash = fields.md5 or digest.hash("md5", content, true)
+
+	self.domain.charts_storage:set(hash, content)
+	assert(self.repos.osu_repo:createBeatmap({
+		id = beatmap_id,
+		beatmapset_id = set_id,
+		hash = hash,
+		status = fields.osu_status or "ranked",
+		updated_at = fields.updated_at or 100,
+	}))
+
+	local compute_ctx = ComputeContext()
+	local chart_chartmeta = assert(compute_ctx:fromFileData(beatmap_id .. ".osu", content, 1))
+	local chartmeta = chart_chartmeta.chartmeta
+	chartmeta.hash = hash
+	chartmeta.osu_beatmap_id = beatmap_id
+	chartmeta.osu_beatmapset_id = set_id
+	if fields.level ~= nil then
+		chartmeta.level = fields.level
+	end
+	if fields.title ~= nil then
+		chartmeta.title = fields.title
+	end
+	if fields.artist ~= nil then
+		chartmeta.artist = fields.artist
+	end
+	if fields.version ~= nil then
+		chartmeta.name = fields.version
+	end
+	if fields.creator ~= nil then
+		chartmeta.creator = fields.creator
+	end
+	assert(self.repos.charts_repo:createUpdateChartmeta(chartmeta, fields.updated_at or 100))
+	assert(self.repos.charts_repo:createUpdateChartdiff(compute_ctx:computeBase(ReplayBase()), fields.updated_at or 100))
+
+	return assert(self.bancho_repos.beatmap_repo:findBeatmap(hash))
+end
+
 function E2EContext:close()
 	self.db:close()
 end

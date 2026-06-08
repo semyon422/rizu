@@ -143,7 +143,7 @@ function test.private_message_to_silenced_target(t)
 	local ctx = E2EContext()
 	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
 	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
-	local repos = require("bancho.db.repos")(ctx.db.models)
+	local repos = ctx.bancho_repos
 	repos.user_repo:partialUpdate(user_b, {silence_end = os.time() + 60})
 
 	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))

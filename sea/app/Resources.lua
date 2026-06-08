@@ -87,9 +87,8 @@ function Resources:new(domain, server_remote, views, sessions, app_config, share
 
 	-- Bancho server state (config loaded from bancho/config.lua)
 	self.bancho = BanchoServer(shared_memory)
-	BanchoAdapter.setupLegacyDatabase(
+	BanchoAdapter.setupSeaRepos(
 		self.bancho,
-		nil,
 		domain.users_repo,
 		domain.repos.leaderboards_repo,
 		domain.repos.charts_repo,

@@ -1,17 +1,44 @@
 local E2EContext = require("bancho.e2e.E2EContext")
 local TestLib = require("bancho.e2e.TestLib")
-local Repos = require("bancho.db.repos")
+local erfunc = require("chart.scoring.erfunc")
 local ServerPackets = require("bancho.protocol.ServerPackets")
+local Leaderboard = require("sea.leaderboards.Leaderboard")
+local LeaderboardUser = require("sea.leaderboards.LeaderboardUser")
 local md5 = require("md5")
 
 local test = {}
+
+local function create_osu_pp_leaderboard(ctx, mode)
+	local leaderboard = Leaderboard()
+	leaderboard.name = "chart.osu." .. mode
+	leaderboard.rating_calc = "pp"
+	leaderboard.mode = mode
+	return ctx.repos.leaderboards_repo:createLeaderboard(leaderboard)
+end
+
+local function encode_accuracy(norm_accuracy)
+	return 0.032 / (erfunc.erfinv(norm_accuracy) * math.sqrt(2))
+end
+
+local function create_leaderboard_user(ctx, leaderboard_id, user_id, total_rating, total_accuracy, total_plays, rank)
+	local leaderboard_user = LeaderboardUser()
+	leaderboard_user.leaderboard_id = leaderboard_id
+	leaderboard_user.user_id = user_id
+	leaderboard_user.total_rating = total_rating
+	leaderboard_user.total_accuracy = encode_accuracy(total_accuracy)
+	leaderboard_user.total_plays = total_plays
+	leaderboard_user.ranked_plays = total_plays
+	leaderboard_user.rank = rank
+	leaderboard_user.updated_at = 0
+	ctx.repos.leaderboards_repo:createLeaderboardUser(leaderboard_user)
+end
 
 ---@param t testing.T
 function test.friend_add_remove(t)
 	local ctx = E2EContext()
 	local user_a = ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
 	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
-	local repos = Repos(ctx.db.models)
+	local repos = ctx.bancho_repos
 
 	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
 	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
@@ -35,12 +62,8 @@ function test.user_stats_and_presence_request(t)
 	local ctx = E2EContext()
 	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
 	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
-	local repos = Repos(ctx.db.models)
-	repos.stats_repo:updateStats(user_b, 0, {
-		rank = 123,
-		acc = 98.5,
-		pp = 456,
-	})
+	local leaderboard = create_osu_pp_leaderboard(ctx, "osu")
+	create_leaderboard_user(ctx, leaderboard.id, user_b, 456.8, 0.985, 0, 123)
 
 	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
 	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))

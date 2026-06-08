@@ -22,7 +22,7 @@ The goal is practical client compatibility, not a line-by-line clone of official
 
 - **LuaJIT 2.1** runtime
 - **OpenResty / sea** HTTP resource model for protocol and `/web/*` endpoints
-- **SQLite via `aqua/rdb`** for persistence
+- **Sea server SQLite schema via `aqua/rdb`** for persistence
 - **Shared dict backed collections** for cross-worker online state
 - **LÖVE project integration** so the module fits the rest of this repository
 
@@ -35,7 +35,7 @@ Important folders:
 - `bancho/model/` — online session models and shared-state collections
 - `bancho/server/` — central runtime wiring (`BanchoServer`)
 - `bancho/http/` — Bancho protocol and osu web resources
-- `bancho/db/` — SQLite schema, models, and repos
+- `bancho/adapter/` — Sea-backed repository adapters for Bancho compatibility
 - `bancho/multiplayer/` — room lifecycle logic
 - `bancho/chat/` — channels and messaging
 - `bancho/score/` — score submission and chart response logic
@@ -72,7 +72,7 @@ Handlers and resources should depend on the server object and repos instead of c
 
 Online runtime state lives in shared collections so multiple OpenResty workers can see the same sessions, matches, and channels.
 
-Persisted state lives in SQLite and repos.
+Persisted state lives in the Sea server DB and Bancho adapter repos.
 
 This split is intentional.
 
@@ -86,7 +86,7 @@ Persisted user data stays DB-owned and is not mirrored into shared `Player` sess
 
 bancho.py often keeps more user/profile data on live player objects. In this port, online state is also serialized through shared dicts for cross-worker visibility. Copying DB-backed fields into `Player` would create two sources of truth:
 
-- SQLite rows and repos
+- Sea DB rows and repos
 - shared session snapshots
 
 That makes correctness worse, especially across requests and workers.
@@ -119,25 +119,24 @@ This is a deliberate divergence from bancho.py. The Lua port prefers a stricter 
 
 ### Persisted data
 
-SQLite schema and repos in `bancho/db/` are the source of truth for:
+Sea-backed persistence and adapter repos are the source of truth for:
 
-- users
-- stats
-- beatmaps
-- scores
+- users and Bancho credentials
+- Bancho user settings and stats
+- beatmap identity bridging
+- canonical score / replay persistence
 - friends
 - favourites
-- replays
 
-Main repos:
+Main adapter repos:
 
-- `UserRepo`
-- `StatsRepo`
-- `ScoreRepo`
-- `BeatmapRepo`
-- `FriendsRepo`
-- `FavouritesRepo`
-- `ReplayRepo`
+- `SeaUserRepo`
+- `SeaStatsRepo`
+- `SeaScoreRepo`
+- `SeaBeatmapRepo`
+- `SeaFriendsRepo`
+- `SeaFavouritesRepo`
+- `SeaReplayRepo`
 
 ### Shared runtime data
 
@@ -239,7 +238,7 @@ From the repository point of view, the Bancho module becomes a compatibility sur
 
 Move persistence into `sea/` first, keep protocol/runtime adaptation in `bancho/`, and only then reduce duplicated models and flows where it is safe.
 
-The existing `BanchoServer:setRepos(...)` seam is the preferred migration hook. `BanchoServer` should continue to depend on explicit repository interfaces, but the backing implementations should come from `sea/` instead of `bancho/db/*`.
+The existing `BanchoServer:setRepos(...)` seam is the preferred migration hook. `BanchoServer` should continue to depend on explicit repository interfaces, and the backing implementations should come from `sea/`.
 
 ## Architecture Decisions
 
@@ -393,9 +392,9 @@ Required solution:
 
 ### Phase 1 — Stop Wiring Bancho To Its Own SQLite DB
 
-- remove or bypass `BanchoServer:setupDatabase()` from `sea/app/Resources.lua`
 - construct Sea-backed adapter repos and inject them via `BanchoServer:setRepos(...)`
-- keep `bancho/db/*` only as a temporary reference until all required adapter repos exist
+- keep Bancho runtime boot free of any Bancho-owned DB wrapper
+- use Sea server DB fixtures in tests as well as production
 
 Definition of done:
 

@@ -19,17 +19,9 @@ function SeaReplayRepo:new(charts_repo, users_repo, replays_storage)
 	self.osu_replay_converter = OsuReplayConverter()
 end
 
----@param score_id integer
----@param data string
----@return boolean
-function SeaReplayRepo:saveReplay(score_id, data)
-	return true
-end
-
 ---@param chartplay sea.Chartplay
----@param score_id integer
 ---@return string?
-function SeaReplayRepo:getReplayFromChartplay(chartplay, score_id)
+function SeaReplayRepo:getReplayFromChartplay(chartplay)
 	local replay_data = self.replays_storage:get(chartplay.replay_hash)
 	if not replay_data then
 		return nil
@@ -45,7 +37,7 @@ function SeaReplayRepo:getReplay(score_id)
 	if not chartplay then
 		return nil
 	end
-	return self:getReplayFromChartplay(chartplay, score_id)
+	return self:getReplayFromChartplay(chartplay)
 end
 
 return SeaReplayRepo

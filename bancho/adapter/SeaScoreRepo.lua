@@ -138,12 +138,6 @@ function SeaScoreRepo:findScore(id)
 	return self:chartplayToScore(chartplay, chartmeta)
 end
 
----@param score table
----@return integer
-function SeaScoreRepo:addScore(score)
-	return 0
-end
-
 ---@param user_id integer
 ---@param mode integer
 ---@return table[]
