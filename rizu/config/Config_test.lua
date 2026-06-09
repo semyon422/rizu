@@ -5,8 +5,15 @@ local Range = require("rizu.config.kinds.Range")
 local Textbox = require("rizu.config.kinds.Textbox")
 local ConfigManager = require("rizu.config.ConfigManager")
 local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.schemas.Settings")
 
 local test = {}
+
+---@param t testing.T
+function test.settings_schema_defaults_to_new_ui(t)
+	local config = Config(Settings)
+	t:eq(config:getString(Settings.graphics.appearance.user_interface), "new")
+end
 
 function test.automatic_discovery(t)
 	local schema = {

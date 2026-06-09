@@ -27,17 +27,23 @@ function SelectView:beginUnload()
 end
 
 function SelectView:unload()
-	self.chartPreviewView:unload()
+	if self.chartPreviewView then
+		self.chartPreviewView:unload()
+	end
 end
 
 ---@param dt number
 function SelectView:update(dt)
-	self.chartPreviewView:update(dt)
+	if self.chartPreviewView then
+		self.chartPreviewView:update(dt)
+	end
 end
 
 ---@param event table
 function SelectView:receive(event)
-	self.chartPreviewView:receive(event)
+	if self.chartPreviewView then
+		self.chartPreviewView:receive(event)
+	end
 end
 
 function SelectView:draw()
@@ -45,7 +51,9 @@ function SelectView:draw()
 
 	Layout:draw()
 	Background(self)
-	self.chartPreviewView:draw()
+	if self.chartPreviewView then
+		self.chartPreviewView:draw()
+	end
 	SelectViewConfig(self)
 
 	local kp = just.keypressed
