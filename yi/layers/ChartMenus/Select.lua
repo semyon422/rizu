@@ -215,7 +215,9 @@ function Select:handleKeyDown(key)
 	elseif key == "m" then
 		self.yi.modals:open("modifiers")
 	elseif key == "i" then
-		self.yi.modals:open("inputs")
+		self.yi.modals:open("input")
+	elseif key == "f" then
+		self.yi.modals:open("filters")
 	else
 		return false
 	end
