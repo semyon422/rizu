@@ -35,12 +35,12 @@ function ShortEditorNote:grab(t, part, deltaColumn, lockSnap)
 	self.grabbedPart = part
 	self.grabbedDeltaColumn = deltaColumn
 
+	self.startNote = self.startNote:clone()
+	self.linked_note.startNote = self.startNote
+
 	if lockSnap then
 		return
 	end
-
-	self.startNote = self.startNote:clone()
-	self.linked_note.startNote = self.startNote
 
 	self.grabbedDeltaTime = t - self.startNote:getTime()
 	self.startNote.visualPoint = VisualPoint({})

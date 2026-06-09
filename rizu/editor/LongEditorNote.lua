@@ -51,16 +51,16 @@ function LongEditorNote:grab(t, part, deltaColumn, lockSnap)
 	self.grabbedPart = part
 	self.grabbedDeltaColumn = deltaColumn
 
-	if lockSnap then
-		return
-	end
-
 	self.startNote = self.startNote:clone()
 	self.endNote = self.endNote:clone()
 	self.linked_note.startNote = self.startNote
 	self.linked_note.endNote = self.endNote
 	self.startNote.endNote = self.endNote
 	self.endNote.startNote = self.startNote
+
+	if lockSnap then
+		return
+	end
 
 	local startTime = self.startNote:getTime()
 	local endTime = self.endNote:getTime()

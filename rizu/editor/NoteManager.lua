@@ -1,20 +1,27 @@
 local class = require("class")
-local Fraction = require("chart.core.Fraction")
+local EditorNoteOps = require("rizu.editor.EditorNoteOps")
 local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
-local ShortEditorNote = require("rizu.editor.ShortEditorNote")
-local LongEditorNote = require("rizu.editor.LongEditorNote")
-local Note = require("chart.model.notes.Note")
 
 ---@class rizu.editor.NoteManager
----@operator call: rizu.editor.EditorNoteManager
+---@operator call: rizu.editor.NoteManager
 local NoteManager = class()
 
 function NoteManager:new()
 	self.grabbedNotes = {}
+	self.noteOps = EditorNoteOps()
+end
+
+---@return rizu.editor.EditorNoteOps
+function NoteManager:getNoteOps()
+	self.noteOps.editorModel = self.editorModel
+	return self.noteOps
 end
 
 ---@return number
 function NoteManager:getColumnOver()
+	if self.columnOver then
+		return self.columnOver
+	end
 	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
 	local noteSkin = self.editorModel.session.noteSkin
 	return noteSkin:getInverseColumnPosition(mx)
@@ -81,49 +88,17 @@ end
 function NoteManager:changeType()
 	---@type rizu.editor.EditorModel
 	local editorModel = self.editorModel
-	local layer = editorModel.layer
-	local visual = editorModel.visual
 	local editor = editorModel:getSettings()
 
-	-- self.editorModel.editorChanges:reset()
+	editorModel.editorChanges:reset()
 
 	for _, note in pairs(editorModel.visualEngine.selectedNotes) do
-		note:remove()
-		if not note.endNote then
-			local startNote = note.startNote
-			startNote.type = "hold"
-			startNote.weight = 1
-
-			local p = startNote.visualPoint.point
-			local p_end = layer.points:getPoint(p:add(Fraction(1, editor.snap)))
-			local vp_end = visual:getPoint(p_end)
-			local endNote = Note(vp_end, note.column, "hold", -1)
-			editorModel.notes:addNote(endNote)
-
-			note.endNote = endNote
-
-			endNote.startNote = startNote
-			startNote.endNote = endNote
-
-			setmetatable(note, LongEditorNote)
-		else
-			local startNote = note.startNote
-			startNote.type = "tap"
-			startNote.weight = 0
-			startNote.endNote = nil
-			note.endNote.type = "ignore"
-			note.endNote.weight = 0
-			note.endNote.startNote = nil
-			note.endNote = nil
-
-			setmetatable(note, ShortEditorNote)
-		end
-		note:add()
+		self:getNoteOps():changeType(note, editor.snap)
 	end
 
 	self.editorModel.visualEngine:reset()
 
-	-- self.editorModel.editorChanges:next()
+	self.editorModel.editorChanges:next()
 end
 
 function NoteManager:pasteNotes()
@@ -179,15 +154,7 @@ end
 ---@param note rizu.editor.EditorNote
 function NoteManager:_removeNote(note)
 	self.editorModel.visualEngine.selectedNotes[note.startNote] = nil
-	local lnotes = self.editorModel.notes
-	local notes = note:getNotes()
-	for _, _note in ipairs(notes) do
-		lnotes:removeNote(_note)
-		self.editorModel.editorChanges:add(
-			{lnotes, "removeNote", lnotes, _note},
-			{lnotes, "addNote", lnotes, _note}
-		)
-	end
+	self:getNoteOps():removeNotes(note:getNotes())
 end
 
 ---@param note rizu.editor.EditorNote
@@ -199,22 +166,7 @@ end
 
 ---@param notes chart.Note[]
 function NoteManager:_addNotes(notes)
-	local lnotes = self.editorModel.notes
-	local found = false
-	for _, _note in ipairs(notes) do
-		found = found or lnotes:findNote(_note)
-	end
-	if found then
-		return
-	end
-
-	for _, _note in ipairs(notes) do
-		lnotes:addNote(_note)
-		self.editorModel.editorChanges:add(
-			{lnotes, "addNote", lnotes, _note},
-			{lnotes, "removeNote", lnotes, _note}
-		)
-	end
+	return self:getNoteOps():addNotes(notes)
 end
 
 ---@param noteType string
