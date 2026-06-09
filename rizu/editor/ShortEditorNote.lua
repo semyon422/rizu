@@ -35,8 +35,7 @@ function ShortEditorNote:grab(t, part, deltaColumn, lockSnap)
 	self.grabbedPart = part
 	self.grabbedDeltaColumn = deltaColumn
 
-	self.startNote = self.startNote:clone()
-	self.linked_note.startNote = self.startNote
+	self:cloneStartNote()
 
 	if lockSnap then
 		return

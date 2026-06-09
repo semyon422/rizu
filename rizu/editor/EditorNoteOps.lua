@@ -88,14 +88,7 @@ function EditorNoteOps:flipNote(noteSkin, note)
 	self:removeNotes(note:getNotes())
 
 	local flippedNote = note:clone()
-	flippedNote.startNote = note.startNote:clone()
-	flippedNote.linked_note.startNote = flippedNote.startNote
-	if note.endNote then
-		flippedNote.endNote = note.endNote:clone()
-		flippedNote.linked_note.endNote = flippedNote.endNote
-		flippedNote.startNote.endNote = flippedNote.endNote
-		flippedNote.endNote.startNote = flippedNote.startNote
-	end
+	flippedNote:cloneLinkedNotes()
 
 	local columns = noteSkin.columnsCount
 	local column = columns - noteSkin:getInputColumn(note.column) + 1

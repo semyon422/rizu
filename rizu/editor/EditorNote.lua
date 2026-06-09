@@ -51,6 +51,29 @@ function EditorNote:clone()
 	return note
 end
 
+function EditorNote:cloneStartNote()
+	self.startNote = self.startNote:clone()
+	self.linked_note.startNote = self.startNote
+end
+
+function EditorNote:cloneEndNote()
+	self.endNote = self.endNote:clone()
+	self.linked_note.endNote = self.endNote
+end
+
+function EditorNote:linkLongNotes()
+	self.startNote.endNote = self.endNote
+	self.endNote.startNote = self.startNote
+end
+
+function EditorNote:cloneLinkedNotes()
+	self:cloneStartNote()
+	if self.endNote then
+		self:cloneEndNote()
+		self:linkLongNotes()
+	end
+end
+
 ---@return chart.Note[]
 function EditorNote:getNotes()
 	return {}
