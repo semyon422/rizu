@@ -213,7 +213,9 @@ function Select:handleKeyDown(key)
 	elseif key == "l" then
 		self.yi.game.chartSelector:scrollLevel(2, 1)
 	elseif key == "m" then
-		self.yi.modals:openModifiers()
+		self.yi.modals:open("modifiers")
+	elseif key == "i" then
+		self.yi.modals:open("inputs")
 	else
 		return false
 	end
