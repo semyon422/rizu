@@ -1,108 +1,10 @@
-local EditorChanges = require("rizu.editor.EditorChanges")
+local EditorTestFactory = require("rizu.editor.EditorTestFactory")
 local Fraction = require("chart.core.Fraction")
-local Layer = require("chart.chartedit.Layer")
-local Notes = require("chart.chartedit.Notes")
-local NoteManager = require("rizu.editor.NoteManager")
-local Point = require("chart.chartedit.Point")
-local Scroller = require("rizu.editor.Scroller")
-local Visual = require("chart.chartedit.Visual")
-local VisualInfo = require("rizu.engine.visual.VisualInfo")
 
 local test = {}
-
-local function createNoteSkin()
-	return {
-		columnsCount = 4,
-		getInputColumn = function(_, column)
-			return tonumber(column:match("^key(%d+)$"))
-		end,
-		getFirstColumnInput = function(_, column)
-			return "key" .. column
-		end,
-	}
-end
-
-local function createEditorModel()
-	local layer = Layer()
-	layer.points:initDefault()
-	local visual = Visual()
-	layer.visuals.main = visual
-
-	local editorChanges = EditorChanges()
-	local noteManager = NoteManager()
-	local scroller = Scroller()
-
-	local editorModel = {
-		layer = layer,
-		visual = visual,
-		notes = Notes(),
-		editorChanges = editorChanges,
-		noteManager = noteManager,
-		scroller = scroller,
-		session = {
-			point = layer.points:getFirstPoint():clone(Point()),
-			noteSkin = createNoteSkin(),
-		},
-		settings = {
-			snap = 4,
-			tool = "ShortNote",
-			lockSnap = true,
-		},
-		visualEngine = {
-			notes = {},
-			selectedNotes = {},
-			visual_info = VisualInfo(),
-			reset_count = 0,
-		},
-	}
-
-	function editorModel:getSettings()
-		return self.settings
-	end
-
-	function editorModel:getDtpAbsolute(time)
-		local point = self.layer.points:interpolateAbsolute(self.settings.snap, time)
-		point.absoluteTime = time
-		return point
-	end
-
-	function editorModel:setSessionTime(time)
-		self:getDtpAbsolute(time):clone(self.session.point)
-	end
-
-	function editorModel:getMouseTime()
-		return self.mouseTime or 0
-	end
-
-	function editorModel.visualEngine:reset()
-		self.notes = {}
-		self.selectedNotes = {}
-		self.reset_count = self.reset_count + 1
-	end
-
-	function editorModel.visualEngine:selectNote(note)
-		self.selectedNotes = {}
-		if note then
-			self.selectedNotes[note.startNote] = note
-		end
-	end
-
-	editorChanges.editorModel = editorModel
-	noteManager.editorModel = editorModel
-	scroller.editorModel = editorModel
-
-	return editorModel
-end
-
-local function getNotes(editorModel)
-	return editorModel.notes:getNotes()
-end
-
-local function selectNote(editorModel, note)
-	editorModel.visualEngine.selectedNotes = {
-		[note.startNote] = note,
-	}
-end
+local createEditorModel = EditorTestFactory.createEditorModel
+local getNotes = EditorTestFactory.getNotes
+local selectNote = EditorTestFactory.selectNote
 
 ---@param t testing.T
 function test.add_short_note(t)
@@ -134,6 +36,52 @@ function test.add_long_note(t)
 	t:eq(notes[1].column, "key2")
 	t:eq(notes[2].column, "key2")
 	t:eq(notes[2].visualPoint.point.time, Fraction(1, 2))
+end
+
+---@param t testing.T
+function test.add_note_starts_drag(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.tool = "ShortNote"
+	editorModel.settings.lockSnap = false
+	editorModel.mouseTime = 0.25
+	editorModel.noteManager.columnOver = 1
+
+	editorModel.noteManager:addNote(0.25, "key1")
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 0)
+	t:eq(#editorModel.noteManager.grabbedNotes, 1)
+	t:eq(editorModel.noteManager.grabbedNotes[1].startNote.column, "key1")
+
+	editorModel.noteManager:dropNotes(0.75)
+	notes = getNotes(editorModel)
+	t:eq(#notes, 1)
+	t:eq(notes[1]:getTime(), 0.75)
+
+	editorModel.editorChanges:undo()
+	notes = getNotes(editorModel)
+	t:eq(#notes, 0)
+end
+
+---@param t testing.T
+function test.add_long_note_starts_tail_drag(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.tool = "LongNote"
+	editorModel.settings.lockSnap = false
+	editorModel.mouseTime = 0.25
+	editorModel.noteManager.columnOver = 2
+
+	editorModel.noteManager:addNote(0.25, "key2")
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 0)
+	t:eq(#editorModel.noteManager.grabbedNotes, 1)
+
+	editorModel.noteManager:dropNotes(0.75)
+	notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0.25)
+	t:eq(notes[2]:getTime(), 0.75)
 end
 
 ---@param t testing.T
@@ -214,11 +162,22 @@ function test.flip_notes(t)
 	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
 	---@cast note -?
 	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.editorChanges:next()
 	selectNote(editorModel, note)
 
 	editorModel.noteManager:flipNotes()
 
 	local notes = getNotes(editorModel)
+	t:eq(#notes, 1)
+	t:eq(notes[1].column, "key4")
+
+	editorModel.editorChanges:undo()
+	notes = getNotes(editorModel)
+	t:eq(#notes, 1)
+	t:eq(notes[1].column, "key1")
+
+	editorModel.editorChanges:redo()
+	notes = getNotes(editorModel)
 	t:eq(#notes, 1)
 	t:eq(notes[1].column, "key4")
 end

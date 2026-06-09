@@ -64,6 +64,67 @@ function EditorNoteOps:removeNotes(notes)
 	end
 end
 
+---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
+---@return number deleted
+function EditorNoteOps:deleteSelected(selectedNotes)
+	local editorModel = self.editorModel
+	editorModel.editorChanges:reset()
+
+	local count = 0
+	for _, note in pairs(selectedNotes) do
+		selectedNotes[note.startNote] = nil
+		self:removeNotes(note:getNotes())
+		count = count + 1
+	end
+
+	editorModel.editorChanges:next()
+	return count
+end
+
+---@param noteSkin table
+---@param note rizu.editor.EditorNote
+---@return rizu.editor.EditorNote
+function EditorNoteOps:flipNote(noteSkin, note)
+	self:removeNotes(note:getNotes())
+
+	local flippedNote = note:clone()
+	flippedNote.startNote = note.startNote:clone()
+	flippedNote.linked_note.startNote = flippedNote.startNote
+	if note.endNote then
+		flippedNote.endNote = note.endNote:clone()
+		flippedNote.linked_note.endNote = flippedNote.endNote
+		flippedNote.startNote.endNote = flippedNote.endNote
+		flippedNote.endNote.startNote = flippedNote.startNote
+	end
+
+	local columns = noteSkin.columnsCount
+	local column = columns - noteSkin:getInputColumn(note.column) + 1
+	flippedNote:setColumn(noteSkin:getFirstColumnInput(column))
+	self:addNotes(flippedNote:getNotes())
+
+	return flippedNote
+end
+
+---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
+---@param noteSkin table
+function EditorNoteOps:flipSelected(selectedNotes, noteSkin)
+	local editorModel = self.editorModel
+	editorModel.editorChanges:reset()
+
+	local notes = {}
+	for _, note in pairs(selectedNotes) do
+		table.insert(notes, note)
+	end
+
+	for _, note in ipairs(notes) do
+		selectedNotes[note.startNote] = nil
+		local flippedNote = self:flipNote(noteSkin, note)
+		selectedNotes[flippedNote.startNote] = flippedNote
+	end
+
+	editorModel.editorChanges:next()
+end
+
 ---@param note rizu.editor.EditorNote
 ---@param endNote chart.Note
 ---@param noteType chart.NoteType
