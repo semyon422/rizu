@@ -1,4 +1,5 @@
 local class = require("class")
+local EditorSelection = require("rizu.editor.EditorSelection")
 local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
 
@@ -11,15 +12,16 @@ local VisualEngine = class()
 
 function VisualEngine:new()
 	self.notes = {}
-	self.selectedNotes = {}
+	self.selection = EditorSelection()
+	self.selectedNotes = self.selection.notes
 	self.visual_info = VisualInfo()
 end
 
 function VisualEngine:reset()
-	self:selectEnd()
-	self:selectNote()
+	self.selection:finish()
+	self.selection:clear(self.notes)
 	self.notes = {}
-	self.selectedNotes = {}
+	self.selectedNotes = self.selection.notes
 end
 
 VisualEngine.longNoteShortening = 0
@@ -54,43 +56,19 @@ function VisualEngine:getLogicalNote(note)
 end
 
 function VisualEngine:selectStart()
-	for _, note in ipairs(self.notes) do
-		note.selected = false
-	end
-	self.selectedNotes = {}
-	self.selecting = true
+	self.selection:start(self.notes)
+	self.selectedNotes = self.selection.notes
 end
 
 function VisualEngine:selectEnd()
-	self.selecting = false
+	self.selection:finish()
 end
 
 ---@param note rizu.editor.EditorNote?
 ---@param keepOthers boolean?
 function VisualEngine:selectNote(note, keepOthers)
-	if not note then
-		for _, _note in ipairs(self.notes) do
-			_note.selected = false
-		end
-		self.selectedNotes = {}
-		return
-	end
-	if not note.selected then
-		if not keepOthers then
-			for _, _note in ipairs(self.notes) do
-				_note.selected = false
-			end
-			self.selectedNotes = {}
-		end
-		note.selected = true
-		self.selectedNotes[note.startNote] = note
-		return
-	end
-	if not keepOthers then
-		return
-	end
-	note.selected = false
-	self.selectedNotes[note.startNote] = nil
+	self.selection:select(note, keepOthers, self.notes)
+	self.selectedNotes = self.selection.notes
 end
 
 ---@param _note chart.LinkedNote
@@ -118,20 +96,14 @@ function VisualEngine:update()
 	visual_info.rate = editor.speed
 	visual_info.const = self.constant
 
-	local selectedNotes = self.selectedNotes
+	local selectedNotes = self.selection.notes
 
 	local notesMap = {}
+	self.selection:updateVisible(self.notes)
 	for _, note in ipairs(self.notes) do
 		notesMap[note.startNote] = note
 		note.cvp = editorModel.visualPoint
 		note.visual = editorModel.visual
-		if note.selecting then
-			note.selected = true
-			selectedNotes[note.startNote] = note
-		elseif self.selecting then
-			note.selected = false
-			selectedNotes[note.startNote] = nil
-		end
 	end
 
 	local newNotes = {}
