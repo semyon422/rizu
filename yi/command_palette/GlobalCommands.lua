@@ -48,6 +48,16 @@ function M.get(game)
 					game.modifierSelectModel:change()
 				end
 			end
+		},
+		{
+			id = "global.open_editor",
+			title = "Editor: Open",
+			description = "Opens the editor screen",
+			callback = function()
+				if game.chartSelector:notechartExists() then
+					game.ui:setScreen("editor")
+				end
+			end
 		}
 	}
 end

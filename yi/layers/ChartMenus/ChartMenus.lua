@@ -4,6 +4,7 @@ local Select = require("yi.layers.ChartMenus.Select")
 local ChartLoading = require("yi.layers.ChartMenus.ChartLoading")
 local Gameplay = require("yi.layers.ChartMenus.Gameplay")
 local Result = require("yi.layers.ChartMenus.Result")
+local Editor = require("yi.layers.ChartMenus.Editor")
 
 ---@class yi.ChartMenus : yi.ScreenContainer
 ---@operator call: yi.ChartMenus
@@ -18,6 +19,7 @@ function ChartMenus:new(yi)
 	self.chart_loading = ChartLoading(yi)
 	self.gameplay = Gameplay(yi)
 	self.result = Result(yi)
+	self.editor = Editor(yi)
 
 	self.background = ParallaxBackground(yi.game.backgroundModel)
 
@@ -25,7 +27,8 @@ function ChartMenus:new(yi)
 		self.select,
 		self.chart_loading,
 		self.gameplay,
-		self.result
+		self.result,
+		self.editor
 	}, self.select)
 end
 

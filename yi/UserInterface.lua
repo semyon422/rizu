@@ -71,6 +71,7 @@ function UserInterface:load()
 		chart_loading = {layer = self.chart_menus, screen = self.chart_menus.chart_loading},
 		gameplay = {layer = self.chart_menus, screen = self.chart_menus.gameplay},
 		result = {layer = self.chart_menus, screen = self.chart_menus.result},
+		editor = {layer = self.chart_menus, screen = self.chart_menus.editor},
 	}
 
 	love.keyboard.setKeyRepeat(true)
