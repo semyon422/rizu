@@ -29,8 +29,9 @@ function BmsToolsContext:resetOffsetTempo(layer)
 		return
 	end
 
+	local beats = p2:sub(p1):tonumber()
 	p1.vertex.offset = self.offset
-	p2.vertex.offset = self.offset + p2:sub(p1):tonumber() * 60 / self.tempo
+	p2.vertex.offset = self.offset + beats * 60 / self.tempo
 end
 
 return BmsToolsContext

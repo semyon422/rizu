@@ -60,7 +60,7 @@ function EditorRhythmView:draw()
 
 	local Head = noteSkin.notes.ShortNote.Head
 
-	if editorModel.state == "notes" then
+	if editorModel.session.state == "notes" then
 		if editor.tool == "ShortNote" or editor.tool == "LongNote" then
 			for i = 1, noteSkin.columnsCount do
 				local x = noteSkin:getValue(Head.x, i)
@@ -79,8 +79,8 @@ function EditorRhythmView:draw()
 				editorModel:selectStart()
 			end
 		end
-		if editorModel.selectRect then
-			local x, y, x1, y1 = unpack(editorModel.selectRect)
+		if editorModel.session.selectRect then
+			local x, y, x1, y1 = unpack(editorModel.session.selectRect)
 			love.graphics.push("all")
 			love.graphics.setColor(1, 1, 1, 1)
 			love.graphics.rectangle("line", x, y, x1 - x, y1 - y)
@@ -92,7 +92,7 @@ function EditorRhythmView:draw()
 
 	RhythmView.draw(self)
 
-	if editorModel.state ~= "notes" then
+	if editorModel.session.state ~= "notes" then
 		return
 	end
 
@@ -104,7 +104,7 @@ function EditorRhythmView:draw()
 			local t = editorModel:getMouseTime()
 			noteManager:dropNotes(t)
 		end
-		if editorModel.selectRect then
+		if editorModel.session.selectRect then
 			editorModel:selectEnd()
 		end
 	end

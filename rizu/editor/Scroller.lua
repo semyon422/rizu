@@ -22,6 +22,11 @@ function Scroller:scrollPoint(point)
 	self.editorModel:setTime(point.absoluteTime)
 end
 
+---@param point chart.Point
+function Scroller:scrollTimePoint(point)
+	self:scrollPoint(point)
+end
+
 ---@param absoluteTime number
 function Scroller:scrollSeconds(absoluteTime)
 	local point = self.editorModel:getDtpAbsolute(absoluteTime)

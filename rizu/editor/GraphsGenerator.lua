@@ -43,6 +43,10 @@ function GraphsGenerator:genDensityGraph(chart, firstTime, lastTime)
 		maxValue = math.max(maxValue, points[i])
 	end
 
+	if maxValue == 0 then
+		return
+	end
+
 	for i = 0, pointsCount do
 		points[i] = points[i] / maxValue
 	end

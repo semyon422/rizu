@@ -53,11 +53,17 @@ function tabs.audio(self)
 	local editorModel = self.game.editorModel
 
 	local playing = 0
-	for _ in pairs(editorModel.audioManager.sources) do
+	local audioEngine = editorModel.audio_engine
+	if audioEngine.source and audioEngine.source.is_playing then
+		playing = playing + 1
+	end
+	if audioEngine.foregroundSource and audioEngine.foregroundSource.is_playing then
 		playing = playing + 1
 	end
 	imgui.text("playing sounds: " .. playing)
-	imgui.text("offsync: " .. to_ms(editorModel.timer:getAudioOffsync() or 0))
+	local audioPosition = audioEngine:getPosition()
+	local offsync = audioPosition and editorModel.timer:getTime() - audioPosition or 0
+	imgui.text("offsync: " .. to_ms(offsync))
 
 	local settings = self.game.configModel.configs.settings
 	local a = settings.audio
