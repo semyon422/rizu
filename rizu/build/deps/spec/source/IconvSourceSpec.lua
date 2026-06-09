@@ -29,7 +29,7 @@ function IconvSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 				type = "configure",
 				dir = extract,
 				env = Dd32Spec.env(),
-				args = {"--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "CFLAGS=-fPIC"},
+				args = {"--prefix=" .. prefix_abs, "--enable-shared", "--disable-static", "--disable-nls", "CFLAGS=-fPIC"},
 			},
 			{type = "make", dir = extract, args = {"-j$(nproc)"}},
 			{type = "make", dir = extract, args = {"install"}},
