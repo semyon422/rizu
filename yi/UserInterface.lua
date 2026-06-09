@@ -5,6 +5,7 @@ local Menus = require("yi.layers.Menus.Menus")
 local ChartMenus = require("yi.layers.ChartMenus.ChartMenus")
 local Overlay = require("yi.layers.Overlay")
 local SettingsScheme = require("rizu.config.schemas.Settings")
+local delay = require("delay")
 
 local Registry = require("yi.command_palette.Registry")
 local PaletteState = require("yi.command_palette.PaletteState")
@@ -74,6 +75,7 @@ function UserInterface:load()
 
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
+	self:setScreen("main_menu")
 end
 
 function UserInterface:unload()
@@ -86,6 +88,7 @@ function UserInterface:unload()
 	self.chart_menus:unload()
 	self.menus:unload()
 	self.overlay:unload()
+	self:setScreen("main_menu")
 end
 
 ---@param screen string
@@ -129,11 +132,15 @@ function UserInterface:transitToNextScreen()
 	next_screen:enter()
 end
 
+function UserInterface:reload()
+	self:unload()
+	self:load()
+end
+
 ---@param dt number
 function UserInterface:update(dt)
 	if self:windowDimensionsChanged() then
-		self:unload()
-		self:load()
+		delay.debounce(self, "yi_window_dimensions_changed", 0.2, self.reload, self)
 	end
 
 	if self.next_screen then

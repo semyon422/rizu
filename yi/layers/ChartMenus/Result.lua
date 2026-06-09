@@ -39,7 +39,7 @@ function Result:new(yi)
 			pivot = {0.5, 0.5},
 			ui:Label({
 				font = "bold",
-				font_size = 72,
+				font_size = 128,
 				text = "95.78%",
 				color = Colors.text,
 			}),
