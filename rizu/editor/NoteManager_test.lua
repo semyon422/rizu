@@ -390,4 +390,135 @@ function test.lock_snap_drag_column_undo_redo(t)
 	t:eq(notes[1]:getTime(), 0.25)
 end
 
+---@param t testing.T
+function test.drag_long_head_undo_redo(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.lockSnap = false
+	editorModel.noteManager.columnOver = 2
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.editorChanges:next()
+	selectNote(editorModel, note)
+
+	editorModel.noteManager:grabNotes("head", 0.25)
+	editorModel.noteManager:dropNotes(0)
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0)
+	t:eq(notes[2]:getTime(), 0.5)
+
+	editorModel.editorChanges:undo()
+	notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0.25)
+	t:eq(notes[2]:getTime(), 0.5)
+
+	editorModel.editorChanges:redo()
+	notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0)
+	t:eq(notes[2]:getTime(), 0.5)
+end
+
+---@param t testing.T
+function test.drag_long_head_to_tail_keeps_length(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.lockSnap = false
+	editorModel.noteManager.columnOver = 2
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.editorChanges:next()
+	selectNote(editorModel, note)
+
+	editorModel.noteManager:grabNotes("head", 0.25)
+	editorModel.noteManager:dropNotes(0.5)
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0.25)
+	t:eq(notes[2]:getTime(), 0.5)
+end
+
+---@param t testing.T
+function test.drag_long_body_preserves_duration(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.lockSnap = false
+	editorModel.noteManager.columnOver = 2
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.editorChanges:next()
+	selectNote(editorModel, note)
+
+	editorModel.noteManager:grabNotes("body", 0.25)
+	editorModel.noteManager:dropNotes(0.5)
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0.5)
+	t:eq(notes[2]:getTime(), 0.75)
+	t:eq(notes[2]:getTime() - notes[1]:getTime(), 0.25)
+
+	editorModel.editorChanges:undo()
+	notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0.25)
+	t:eq(notes[2]:getTime(), 0.5)
+end
+
+---@param t testing.T
+function test.drag_long_tail_to_head_keeps_length(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.lockSnap = false
+	editorModel.noteManager.columnOver = 2
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.editorChanges:next()
+	selectNote(editorModel, note)
+
+	editorModel.noteManager:grabNotes("tail", 0.5)
+	editorModel.noteManager:dropNotes(0.25)
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1]:getTime(), 0.25)
+	t:eq(notes[2]:getTime(), 0.5)
+end
+
+---@param t testing.T
+function test.drag_long_body_changes_column(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.lockSnap = false
+	editorModel.noteManager.columnOver = 2
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.editorChanges:next()
+	selectNote(editorModel, note)
+
+	editorModel.noteManager:grabNotes("body", 0.25)
+	editorModel.noteManager.columnOver = 3
+	editorModel.noteManager:update()
+	editorModel.noteManager:dropNotes(0.5)
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1].column, "key3")
+	t:eq(notes[2].column, "key3")
+	t:eq(notes[1]:getTime(), 0.5)
+	t:eq(notes[2]:getTime(), 0.75)
+
+	editorModel.editorChanges:undo()
+	notes = getNotes(editorModel)
+	t:eq(#notes, 2)
+	t:eq(notes[1].column, "key2")
+	t:eq(notes[2].column, "key2")
+	t:eq(notes[1]:getTime(), 0.25)
+	t:eq(notes[2]:getTime(), 0.5)
+end
+
 return test
