@@ -75,15 +75,15 @@ function Screen:hideView(view)
 	for i, v in ipairs(self.views) do
 		if v == view then
 			table.remove(self.views, i)
-			for _, hv in ipairs(self.hidden_views) do
-				if hv == view then
-					return
-				end
-			end
-			table.insert(self.hidden_views, view)
+			break
+		end
+	end
+	for _, hv in ipairs(self.hidden_views) do
+		if hv == view then
 			return
 		end
 	end
+	table.insert(self.hidden_views, view)
 end
 
 ---@param view gui.View

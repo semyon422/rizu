@@ -3,6 +3,7 @@ local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
 local Menus = require("yi.layers.Menus.Menus")
 local ChartMenus = require("yi.layers.ChartMenus.ChartMenus")
+local Modals = require("yi.layers.Modals")
 local Overlay = require("yi.layers.Overlay")
 local SettingsScheme = require("rizu.config.schemas.Settings")
 local delay = require("delay")
@@ -56,10 +57,12 @@ function UserInterface:load()
 
 	self.chart_menus = ChartMenus(self)
 	self.menus = Menus(self)
+	self.modals = Modals(self)
 	self.overlay = Overlay(self)
 
 	self.chart_menus:load()
 	self.menus:load()
+	self.modals:load()
 	self.overlay:load()
 
 	self.current_layer = self.menus
@@ -88,6 +91,7 @@ function UserInterface:unload()
 	self.game.settings_config.onChanged:remove(self)
 	self.chart_menus:unload()
 	self.menus:unload()
+	self.modals:unload()
 	self.overlay:unload()
 	self:setScreen("main_menu")
 end
@@ -154,6 +158,7 @@ function UserInterface:update(dt)
 
 	self.inputs:beginFrame(love.mouse.getPosition())
 
+	self.modals:acceptInputs(self.inputs)
 	self.overlay:acceptInputs(self.inputs)
 
 	if self.current_layer then
@@ -164,6 +169,7 @@ function UserInterface:update(dt)
 		self.chart_menus:update(dt)
 	end
 	self.menus:update(dt)
+	self.modals:update(dt)
 	self.overlay:update(dt)
 end
 
@@ -174,6 +180,7 @@ function UserInterface:draw()
 	if self.menus:isVisible() then
 		self.menus:draw()
 	end
+	self.modals:draw()
 	self.overlay:draw()
 end
 
