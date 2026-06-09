@@ -2,11 +2,13 @@ local Screen = require("yi.Screen")
 local ModifierView = require("yi.views.slop.ModifierView")
 local InputView = require("yi.views.slop.InputView")
 local FiltersView = require("yi.views.slop.FiltersView")
+local NoteSkinView = require("yi.views.slop.NoteSkinView")
 
 ---@alias yi.Modals.Names
 ---| "modifiers"
 ---| "input"
 ---| "filters"
+---| "noteskins"
 
 ---@class yi.Modals : yi.Screen
 ---@operator call: yi.Modals
@@ -25,9 +27,13 @@ function Modals:new(yi)
 	self.filters = FiltersView(yi.game)
 	self.filters:setPivot(0.5, 0.5)
 
+	self.noteskins = NoteSkinView(yi.game)
+	self.noteskins:setPivot(0.5, 0.5)
+
 	self:hideView(self.modifiers)
 	self:hideView(self.input)
 	self:hideView(self.filters)
+	self:hideView(self.noteskins)
 end
 
 ---@param modal_name yi.Modals.Names

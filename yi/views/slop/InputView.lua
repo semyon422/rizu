@@ -95,6 +95,7 @@ function InputView:update(dt)
 
 	-- Update text batch
 	self.text_batch:clear()
+	self.text_batch:add("TODO: DEVICE ID IS ALWAYS 1, onKeyDown event doesn't contain it", 50, self.height - 50)
 	local font = self.text_batch:getFont()
 	local font_h = font:getHeight()
 	local text_offset_y = (self.item_height - font_h) / 2
@@ -152,7 +153,7 @@ function InputView:onKeyDown(e)
 		local inputMode = tostring(self.modifierCoordinator.state.inputMode)
 
 		-- Bind the pressed key
-		self.inputModel:setKey(inputMode, virtualKey, bind_idx, "keyboard", nil, e.key)
+		self.inputModel:setKey(inputMode, virtualKey, bind_idx, "keyboard", 1, e.key)
 		self.binding_slot = nil
 		return true
 	end

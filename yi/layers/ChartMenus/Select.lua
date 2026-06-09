@@ -60,6 +60,22 @@ function Select:new(yi)
 		self.yi:setScreen("config")
 	end
 
+	local button_modifiers = function()
+		self.yi.modals:open("modifiers")
+	end
+
+	local button_input = function()
+		self.yi.modals:open("input")
+	end
+
+	local button_filters = function()
+		self.yi.modals:open("filters")
+	end
+
+	local button_noteskins = function()
+		self.yi.modals:open("noteskins")
+	end
+
 	self.root = S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
@@ -96,10 +112,10 @@ function Select:new(yi)
 							color = Colors.line
 						}),
 						IconButton(Resources.quads.icon_gear, button_config),
-						IconButton(Resources.quads.icon_funnel),
-						IconButton(Resources.quads.icon_sparkles),
-						IconButton(Resources.quads.icon_keyboard),
-						IconButton(Resources.quads.icon_palette),
+						IconButton(Resources.quads.icon_funnel, button_filters),
+						IconButton(Resources.quads.icon_sparkles, button_modifiers),
+						IconButton(Resources.quads.icon_keyboard, button_input),
+						IconButton(Resources.quads.icon_palette, button_noteskins),
 					}),
 					S.Anchor({
 						pivot = {0.5, 1},
@@ -172,6 +188,7 @@ end
 
 function Select:exit()
 	self.yi.command_registry:popContext("select")
+	self.yi.modals:close()
 end
 
 function Select:update(dt)
@@ -218,6 +235,8 @@ function Select:handleKeyDown(key)
 		self.yi.modals:open("input")
 	elseif key == "f" then
 		self.yi.modals:open("filters")
+	elseif key == "n" then
+		self.yi.modals:open("noteskins")
 	else
 		return false
 	end
