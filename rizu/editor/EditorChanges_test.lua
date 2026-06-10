@@ -45,4 +45,31 @@ function test.undo_redo_group(t)
 	t:eq(resetCount, 2)
 end
 
+---@param t testing.T
+function test.command_helper(t)
+	local target = {value = 0}
+	setmetatable(target, {__index = Target})
+
+	local changes = EditorChanges()
+	changes.editorModel = {
+		visualEngine = {
+			reset = function() end,
+		},
+	}
+
+	target:set(3)
+	changes:add(
+		changes:command(target, "set", 3),
+		changes:command(target, "set", 0)
+	)
+	changes:next()
+	target:set(7)
+
+	changes:undo()
+	t:eq(target.value, 0)
+
+	changes:redo()
+	t:eq(target.value, 3)
+end
+
 return test

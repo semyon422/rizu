@@ -10,10 +10,15 @@ function EditorChanges:new()
 	self.commands = {}
 end
 
+---@param command table
+local function run(command)
+	command[1][command[2]](unpack(command, 3))
+end
+
 function EditorChanges:undo()
 	for i in self.changes:undo() do
 		local cmd = self.commands[i].undo
-		cmd[1][cmd[2]](unpack(cmd, 3))
+		run(cmd)
 	end
 	self.editorModel.visualEngine:reset()
 end
@@ -21,7 +26,7 @@ end
 function EditorChanges:redo()
 	for i in self.changes:redo() do
 		local cmd = self.commands[i].redo
-		cmd[1][cmd[2]](unpack(cmd, 3))
+		run(cmd)
 	end
 	self.editorModel.visualEngine:reset()
 end
@@ -36,6 +41,32 @@ function EditorChanges:add(redo, undo)
 		redo = redo,
 		undo = undo,
 	}
+end
+
+---@param target table
+---@param method string
+---@param ... any
+---@return table
+function EditorChanges:command(target, method, ...)
+	return {target, method, target, ...}
+end
+
+---@param noteStorage chartedit.Notes
+---@param note chart.Note
+function EditorChanges:addNoteAdd(noteStorage, note)
+	self:add(
+		self:command(noteStorage, "addNote", note),
+		self:command(noteStorage, "removeNote", note)
+	)
+end
+
+---@param noteStorage chartedit.Notes
+---@param note chart.Note
+function EditorChanges:addNoteRemove(noteStorage, note)
+	self:add(
+		self:command(noteStorage, "removeNote", note),
+		self:command(noteStorage, "addNote", note)
+	)
 end
 
 function EditorChanges:next()

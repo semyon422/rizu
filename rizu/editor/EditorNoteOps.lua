@@ -12,19 +12,13 @@ local EditorNoteOps = class()
 ---@param note chart.Note
 function EditorNoteOps:recordAdd(note)
 	local notes = self.editorModel.notes
-	self.editorModel.editorChanges:add(
-		{notes, "addNote", notes, note},
-		{notes, "removeNote", notes, note}
-	)
+	self.editorModel.editorChanges:addNoteAdd(notes, note)
 end
 
 ---@param note chart.Note
 function EditorNoteOps:recordRemove(note)
 	local notes = self.editorModel.notes
-	self.editorModel.editorChanges:add(
-		{notes, "removeNote", notes, note},
-		{notes, "addNote", notes, note}
-	)
+	self.editorModel.editorChanges:addNoteRemove(notes, note)
 end
 
 ---@param notes chart.Note[]
@@ -175,8 +169,8 @@ function EditorNoteOps:changeType(note, snap)
 
 		self:setLong(note, endNote, "hold")
 		editorModel.editorChanges:add(
-			{self, "setLong", self, note, endNote, "hold"},
-			{self, "setShort", self, note, endNote}
+			editorModel.editorChanges:command(self, "setLong", note, endNote, "hold"),
+			editorModel.editorChanges:command(self, "setShort", note, endNote)
 		)
 		return
 	end
@@ -185,8 +179,8 @@ function EditorNoteOps:changeType(note, snap)
 	local noteType = note.startNote.type
 	self:setShort(note, endNote)
 	editorModel.editorChanges:add(
-		{self, "setShort", self, note, endNote},
-		{self, "setLong", self, note, endNote, noteType}
+		editorModel.editorChanges:command(self, "setShort", note, endNote),
+		editorModel.editorChanges:command(self, "setLong", note, endNote, noteType)
 	)
 end
 
