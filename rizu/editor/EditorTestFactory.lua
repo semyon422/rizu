@@ -1,4 +1,5 @@
 local EditorChanges = require("rizu.editor.EditorChanges")
+local IntervalManager = require("rizu.editor.IntervalManager")
 local Layer = require("chart.chartedit.Layer")
 local Notes = require("chart.chartedit.Notes")
 local NoteManager = require("rizu.editor.NoteManager")
@@ -26,10 +27,15 @@ end
 function EditorTestFactory.createEditorModel()
 	local layer = Layer()
 	layer.points:initDefault()
+	local notes = Notes()
 	local visual = Visual()
+	visual.on_remove = function(vp)
+		notes:removeAll(vp)
+	end
 	layer.visuals.main = visual
 
 	local editorChanges = EditorChanges()
+	local intervalManager = IntervalManager()
 	local noteManager = NoteManager()
 	local scroller = Scroller()
 
@@ -37,8 +43,9 @@ function EditorTestFactory.createEditorModel()
 	local editorModel = {
 		layer = layer,
 		visual = visual,
-		notes = Notes(),
+		notes = notes,
 		editorChanges = editorChanges,
+		intervalManager = intervalManager,
 		noteManager = noteManager,
 		scroller = scroller,
 		session = {
@@ -90,6 +97,7 @@ function EditorTestFactory.createEditorModel()
 	end
 
 	editorChanges.editorModel = editorModel
+	intervalManager.editorModel = editorModel
 	noteManager.editorModel = editorModel
 	scroller.editorModel = editorModel
 

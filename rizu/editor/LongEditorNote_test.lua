@@ -38,6 +38,29 @@ function test.copy_paste(t)
 	t:eq(notes[2]:getTime(), 1)
 	t:eq(notes[1].column, "key2")
 	t:eq(notes[2].column, "key2")
+	t:eq(notes[1].endNote, notes[2])
+	t:eq(notes[2].startNote, notes[1])
+	t:ne(notes[1].endNote, note.endNote)
+	t:ne(notes[2].startNote, note.startNote)
+end
+
+---@param t testing.T
+function test.copy_paste_preserves_duration_after_timing_change(t)
+	local editorModel = createEditorModel()
+	local vertex = editorModel.layer.points:getFirstPoint()._vertex
+	editorModel.intervalManager:update(vertex, 3)
+
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	local copyPoint = note.startNote.visualPoint.point
+	local pastePoint = editorModel:getDtpAbsolute(0.5)
+	local duration = note.endNote:getTime() - note.startNote:getTime()
+
+	note:copy(copyPoint)
+	local notes = note:paste(pastePoint)
+
+	t:eq(notes[1]:getTime(), 0.5)
+	t:aeq(notes[2]:getTime() - notes[1]:getTime(), duration, 1e-9)
 end
 
 ---@param t testing.T
@@ -79,6 +102,19 @@ function test.grab_body_drop_preserves_duration(t)
 
 	note:grab(0.25, "body", 0, false)
 	note:drop(0.5)
+
+	t:eq(note.startNote:getTime(), 0.5)
+	t:eq(note.endNote:getTime(), 0.75)
+end
+
+---@param t testing.T
+function test.grab_body_from_middle_preserves_cursor_offset(t)
+	local editorModel = createEditorModel()
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+
+	note:grab(0.375, "body", 0, false)
+	note:drop(0.625)
 
 	t:eq(note.startNote:getTime(), 0.5)
 	t:eq(note.endNote:getTime(), 0.75)

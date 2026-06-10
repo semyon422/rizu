@@ -64,6 +64,8 @@ Handles adding, removing, copying, pasting, flipping, and grab/drag operations o
 ### `IntervalManager` — Timing Vertex Manipulation
 Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual vertex data.
 
+Shrinking an interval can remove chartedit points and the visual points/notes anchored to them. `IntervalManager` captures those removed points through `IntervalUpdateSnapshot` before applying the timing mutation so undo/redo can restore or remove both points and notes consistently.
+
 ### `Scroller` — Timeline Navigation
 Scroll by seconds or snap grid units. Respects vertex boundaries and the current snap resolution.
 

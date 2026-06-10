@@ -139,6 +139,8 @@ function LongEditorNote:paste(point)
 
 	startNote.visualPoint = visual:getPoint(layer.points:getPoint(point:add(self.deltaStartTime)))
 	endNote.visualPoint = visual:getPoint(layer.points:getPoint(point:add(self.deltaEndTime)))
+	startNote.endNote = endNote
+	endNote.startNote = startNote
 
 	return {startNote, endNote}
 end
