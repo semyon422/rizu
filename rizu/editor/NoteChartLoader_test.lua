@@ -8,6 +8,16 @@ local test = {}
 local selectNote = EditorTestFactory.selectNote
 
 ---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.EditorNoteChartLoader
+local function attachLoader(editorModel)
+	editorModel.chart = Converter:save({main = editorModel.layer}, editorModel.notes)
+	local loader = NoteChartLoader()
+	loader.editorModel = editorModel
+	editorModel.noteChartLoader = loader
+	return loader
+end
+
+---@param editorModel rizu.editor.EditorModel
 local function reloadThroughNoteChartLoader(editorModel)
 	local chart = Converter:save({main = editorModel.layer}, editorModel.notes)
 	local loadedEditorModel = EditorTestFactory.createEditorModel()
@@ -113,6 +123,44 @@ function test.undo_before_save_persists_undone_state(t)
 	t:eq(#notes, 1)
 	t:eq(notes[1]:getTime(), 0.25)
 	t:eq(notes[1].column, "key1")
+end
+
+---@param t testing.T
+function test.save_updates_chart_notes_without_editor_links(t)
+	local editorModel = EditorTestFactory.createEditorModel()
+	local loader = attachLoader(editorModel)
+	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
+	---@cast note -?
+	editorModel.noteManager:_addNotes(note:getNotes())
+
+	loader:save()
+	local notes = editorModel.chart.notes:getNotes()
+
+	t:eq(#notes, 2)
+	t:eq(notes[1].type, "hold")
+	t:eq(notes[2].type, "hold")
+	t:eq(notes[1].startNote, nil)
+	t:eq(notes[1].endNote, nil)
+	t:eq(notes[2].startNote, nil)
+	t:eq(notes[2].endNote, nil)
+end
+
+---@param t testing.T
+function test.save_updates_chart_timing_layer(t)
+	local editorModel = EditorTestFactory.createEditorModel()
+	local loader = attachLoader(editorModel)
+	local intervalManager = editorModel.intervalManager
+	local point = editorModel:getDtpAbsolute(0.5)
+	local vertex = intervalManager:split(point)
+	intervalManager:update(vertex, 2)
+
+	loader:save()
+	local points = editorModel.chart.layers.main:getPointList()
+
+	t:eq(#points, 3)
+	t:eq(points[1]._vertex.offset, 0)
+	t:eq(points[2]._vertex.offset, 0.5)
+	t:eq(points[2].time, Fraction(1, 2))
 end
 
 return test

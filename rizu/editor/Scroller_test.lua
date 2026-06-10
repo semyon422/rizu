@@ -27,6 +27,15 @@ local function createEditorModel()
 		return self.layer.points:interpolateAbsolute(self.settings.snap, time)
 	end
 
+	function editorModel:getSessionTime()
+		return self.session.point.absoluteTime
+	end
+
+	function editorModel:setSessionPoint(point)
+		self.setSessionPointCount = (self.setSessionPointCount or 0) + 1
+		point:clone(self.session.point)
+	end
+
 	function editorModel:setTime(time)
 		self.time = time
 	end
@@ -57,6 +66,7 @@ function test.scroll_time_point_alias(t)
 
 	t:eq(editorModel.time, 0.5)
 	t:eq(editorModel.session.point.absoluteTime, 0.5)
+	t:eq(editorModel.setSessionPointCount, 1)
 end
 
 ---@param t testing.T
@@ -75,6 +85,37 @@ function test.scroll_snaps(t)
 
 	t:eq(editorModel.time, 0.25)
 	t:eq(editorModel.session.point.time, Fraction(1, 4))
+end
+
+---@param t testing.T
+function test.scroll_seconds_delta_uses_session_time(t)
+	local editorModel = createEditorModel()
+	local scroller = Scroller()
+	scroller.editorModel = editorModel
+
+	scroller:scrollSeconds(0.5)
+	scroller:scrollSecondsDelta(0.25)
+
+	t:eq(editorModel.time, 0.75)
+	t:eq(editorModel.session.point.absoluteTime, 0.75)
+end
+
+---@param t testing.T
+function test.scroll_snaps_ignored_while_interval_grabbed(t)
+	local editorModel = createEditorModel()
+	editorModel.intervalManager = {
+		isGrabbed = function()
+			return true
+		end,
+	}
+
+	local scroller = Scroller()
+	scroller.editorModel = editorModel
+
+	scroller:scrollSnaps(1)
+
+	t:eq(editorModel.time, nil)
+	t:eq(editorModel.session.point.absoluteTime, 0)
 end
 
 return test

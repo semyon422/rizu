@@ -10,7 +10,7 @@ function Scroller:_scrollPoint(point)
 	if not point then
 		return
 	end
-	point:clone(self.editorModel.session.point)
+	self.editorModel:setSessionPoint(point)
 end
 
 ---@param point chart.Point
@@ -35,7 +35,7 @@ end
 
 ---@param delta number
 function Scroller:scrollSecondsDelta(delta)
-	self:scrollSeconds(self.editorModel.session.point.absoluteTime + delta)
+	self:scrollSeconds(self.editorModel:getSessionTime() + delta)
 end
 
 ---@param delta number

@@ -12,7 +12,7 @@ The chart editor provides tools for creating, modifying, and exporting rhythm ga
 - A scrollbar with a note density graph and waveform view lets the user navigate long charts quickly.
 
 ## Current State
-The editor is functional but carries legacy code migrated from the `sphere` namespace. BMS-specific features are experimental and planned for a full redesign. The module is targeted for gradual modernization under `rizu.editor`.
+The editor is functional but carries legacy code migrated from the `sphere` namespace. The core note, timing, selection, scrolling, load/save, and update-loop paths now have focused regression coverage and are being modernized incrementally. BMS-specific export features are experimental and intentionally deferred until the planned parser rewrite.
 
 ## Architecture Decisions
 
@@ -41,6 +41,8 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 ### `EditorModel` — Central State
 Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state. Delegates per-session mutable state to `EditorSession`.
 
+`load()` and `update()` are split into named substeps so lifecycle behavior can be tested without running the full client. Keep orchestration changes covered by `EditorModel_test.lua`.
+
 ### `EditorSession` — Per-Session Mutable State
 Holds state that changes during an active editing session:
 - `point`: current timeline position
@@ -55,8 +57,12 @@ Separated from `EditorModel` so that session-scoped data does not leak into the 
 ### `EditorController` — Load/Save/Export
 Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart). Delegates BMS-specific exports to dedicated modules in `exports/`.
 
+The load/save boundary is tested with fakes for chart selection, note skin loading, resource lookup, file writes, and library recomputation. Resource path ordering is centralized in `getResourcePaths()`.
+
 ### `VisualEngine` — Note Rendering And Selection
 Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates linked notes in the visible time range, creates or reuses note objects, and tracks selection state. Uses `EditorNoteFactory` to produce the correct note subclass.
+
+Selection state is keyed by the note's current `startNote`. Drag operations that clone notes must update selection keys to avoid stale selected notes after visual refresh.
 
 ### `NoteManager` — Note Manipulation
 Handles adding, removing, copying, pasting, flipping, and grab/drag operations on notes. All mutations are recorded through `EditorChanges` for undo/redo support.
@@ -68,6 +74,8 @@ Shrinking an interval can remove chartedit points and the visual points/notes an
 
 ### `Scroller` — Timeline Navigation
 Scroll by seconds or snap grid units. Respects vertex boundaries and the current snap resolution.
+
+Session point writes go through `EditorModel:setSessionPoint()` so timeline state updates have one owner.
 
 ### `GraphsGenerator` — Scrollbar Visualization
 Generates a note density graph and a vertex graph for the scrollbar UI.
@@ -109,7 +117,7 @@ Editor note objects may carry runtime-only links such as `startNote` and `endNot
 
 ## BMS-Specific Features (Experimental)
 
-These features are experimental and planned for a full redesign. Their logic is isolated in `rizu/editor/exports/`:
+These features are experimental and planned for a full redesign after the parser rewrite. Do not spend modernization effort here unless a targeted bug blocks core editor work. Their logic is isolated in `rizu/editor/exports/`:
 
 ### `exports/BmsKeysoundSlicer`
 Renders the full audio waveform, slices samples at note boundaries, and writes `.wav` files alongside the chart.
@@ -145,3 +153,17 @@ Editor settings are stored through `sphere.ConfigModel` under `settings.editor`:
 - Run focused tests with `./test rizu/editor` after changes.
 - Validate note mutations (add, remove, copy, paste, flip) and undo/redo behavior.
 - When modifying interval or timing logic, also verify that `ncdk`-level tests pass.
+
+## Modernization Status
+
+Covered and partially modernized:
+- Note classes and note operations, including long-note paste links, drag, cut/copy/paste, and multi-selection undo/redo.
+- Interval timing operations, including split/merge/update, destructive shrink snapshots, note restoration, and vertex drag undo/redo.
+- Visual selection refresh, scroller/session interaction, editor model load/update lifecycle, and note chart load/save roundtrips.
+- `EditorController` load/save wiring for note skin, resources, file writes, and library recomputation.
+
+Remaining higher-risk areas:
+- Full `EditorController` export methods beyond `.sph` save.
+- `EditorModel:loadResources()`, graph generation with real charts/audio, and waveform/audio resource failure modes.
+- UI view integration under `ui/views/EditorView/`.
+- BMS-specific exporters, intentionally deferred until parser rewrite work.

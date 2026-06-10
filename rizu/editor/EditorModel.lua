@@ -59,25 +59,52 @@ function EditorModel:load()
 
 	local editor = self:getSettings()
 
+	self:loadChartData()
+	self:loadSession()
+	self:loadTimer(editor)
+	self:loadAudio()
+	self:loadMetronome()
+	self:loadInitialScroll()
+	self:loadBmsToolsContext()
+	self:loadMetadata()
+end
+
+function EditorModel:loadChartData()
 	self.layer, self.notes = self.noteChartLoader:load()
 	self.visual = self.layer.visuals.main or self.layer.visuals[""]
+end
 
+function EditorModel:loadSession()
 	self.session:load(self)
+end
 
+---@param editor table
+function EditorModel:loadTimer(editor)
 	self.timer:pause()
 	self.timer:setTime(editor.time)
+end
 
+function EditorModel:loadAudio()
 	local volume = self.configModel.configs.settings.audio.volume
 	self.audio_engine:setVolume(volume.master * volume.music, volume.master * volume.keysounds)
 	self.audio_engine:setAudioMode(self.configModel.configs.settings.audio.mode)
+end
 
+function EditorModel:loadMetronome()
+	local volume = self.configModel.configs.settings.audio.volume
 	self.metronome.volume = volume
 	self.metronome:load()
+end
 
+function EditorModel:loadInitialScroll()
 	self.scroller:scrollSeconds(self.timer:getTime())
+end
 
+function EditorModel:loadBmsToolsContext()
 	self.bmsToolsContext:initFromLayer(self.layer)
+end
 
+function EditorModel:loadMetadata()
 	self.metadata:new()
 	self.metadata:fromChartmeta(self.chartmeta)
 end
@@ -261,16 +288,21 @@ function EditorModel:selectEnd()
 	just.unselect()
 end
 
-function EditorModel:update()
-	local editor = self:getSettings()
-	local noteSkin = self.session.noteSkin
-
-	local time = self.timer:getTime()
+---@param editor table
+---@param time number
+function EditorModel:updateEditorTime(editor, time)
 	editor.time = time
+end
 
+function EditorModel:updateManagers()
 	self.noteManager:update()
 	self.metronome:update()
+end
 
+---@param editor table
+---@param noteSkin table
+---@param time number
+function EditorModel:updateSelectionRect(editor, noteSkin, time)
 	if self.session.selectRect then
 		local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
 		self.session.selectRect[2] = noteSkin:getTimePosition((time - self.session.selectStartTime) * editor.speed)
@@ -278,16 +310,43 @@ function EditorModel:update()
 		self.session.selectRect[4] = my
 		just.select(self.session.selectRect[1], self.session.selectRect[2], mx, my)
 	end
+end
 
-	local dtp = self:getDtpAbsolute(time)
+---@param time number
+function EditorModel:updateTimingDrag(time)
 	if self.intervalManager.grabbedVertex then
 		self.intervalManager:moveGrabbed(time)
 	end
+end
+
+function EditorModel:updateAudio()
 	self.audio_engine:update()
+end
 
-	self:setSessionPoint(dtp)
+---@param point chartedit.Point
+function EditorModel:updateSessionPoint(point)
+	self:setSessionPoint(point)
+end
 
+function EditorModel:updateVisuals()
 	self.visualEngine:update()
+end
+
+function EditorModel:update()
+	local editor = self:getSettings()
+	local noteSkin = self.session.noteSkin
+
+	local time = self.timer:getTime()
+	self:updateEditorTime(editor, time)
+
+	self:updateManagers()
+	self:updateSelectionRect(editor, noteSkin, time)
+
+	local dtp = self:getDtpAbsolute(time)
+	self:updateTimingDrag(time)
+	self:updateAudio()
+	self:updateSessionPoint(dtp)
+	self:updateVisuals()
 end
 
 ---@param event table

@@ -91,6 +91,23 @@ function EditorController:load()
 
 	self.previewModel:stop()
 
+	local paths = self:getResourcePaths(chartview, noteSkin)
+	self:loadResourcePaths(paths)
+
+	self.resource_loader:load(chart.resources)
+
+	self.resourceModel:load(chart, function()
+		editorModel:loadResources(self.resource_loader.resources)
+	end)
+
+	self.windowModel:setVsyncOnSelect(false)
+end
+
+---@param chartview table
+---@param noteSkin table
+---@return string[]
+function EditorController:getResourcePaths(chartview, noteSkin)
+	local configModel = self.configModel
 	local paths = {}
 	if configModel.configs.settings.gameplay.skin_resources_top_priority then
 		table.insert(paths, noteSkin.directoryPath)
@@ -101,21 +118,18 @@ function EditorController:load()
 	end
 	table.insert(paths, "userdata/hitsounds")
 	table.insert(paths, "userdata/hitsounds/midi")
+	return paths
+end
 
+---@param paths string[]
+function EditorController:loadResourcePaths(paths)
+	local fileFinder = self.fileFinder
 	fileFinder:reset()
 	self.resource_finder:reset()
 	for _, path in ipairs(paths) do
 		fileFinder:addPath(path)
 		self.resource_finder:addPath(path)
 	end
-
-	self.resource_loader:load(chart.resources)
-
-	self.resourceModel:load(chart, function()
-		editorModel:loadResources(self.resource_loader.resources)
-	end)
-
-	self.windowModel:setVsyncOnSelect(false)
 end
 
 function EditorController:unload()
