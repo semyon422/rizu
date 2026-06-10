@@ -139,6 +139,8 @@ function Converter:save(_layers, _notes)
 		if vp then
 			note.visualPoint = vp
 			note.column = column
+			note.startNote = nil
+			note.endNote = nil
 			notes:insert(note)
 		end
 	end

@@ -72,4 +72,38 @@ function test.command_helper(t)
 	t:eq(target.value, 3)
 end
 
+---@param t testing.T
+function test.undo_runs_group_in_reverse_order(t)
+	local calls = {}
+	local target = {}
+
+	function target:push(value)
+		table.insert(calls, value)
+	end
+
+	local changes = EditorChanges()
+	changes.editorModel = {
+		visualEngine = {
+			reset = function() end,
+		},
+	}
+
+	changes:reset()
+	changes:add(
+		changes:command(target, "push", "redo-1"),
+		changes:command(target, "push", "undo-1")
+	)
+	changes:add(
+		changes:command(target, "push", "redo-2"),
+		changes:command(target, "push", "undo-2")
+	)
+	changes:next()
+
+	changes:undo()
+	t:tdeq(calls, {"undo-2", "undo-1"})
+
+	changes:redo()
+	t:tdeq(calls, {"undo-2", "undo-1", "redo-1", "redo-2"})
+end
+
 return test

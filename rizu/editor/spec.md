@@ -105,6 +105,8 @@ Holds BMS-specific editing state (`offset`, `tempo`, `beat_offset`) and provides
 - **Save**: `.sph` (default, via `ChartEncoder`).
 - **Export**: `.osu` (via `OsuChartEncoder`), NanoChart files, BMS template (`.bme`), iBMSC clipboard data.
 
+Editor note objects may carry runtime-only links such as `startNote` and `endNote` for manipulation. Save/conversion code must strip those links before inserting notes into the chart model.
+
 ## BMS-Specific Features (Experimental)
 
 These features are experimental and planned for a full redesign. Their logic is isolated in `rizu/editor/exports/`:

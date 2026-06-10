@@ -18,6 +18,32 @@ function NoteDragSession:clear()
 	end
 end
 
+---@param noteSkin table
+---@param column integer?
+---@param note rizu.editor.EditorNote
+---@return number?
+local function getColumnDelta(noteSkin, column, note)
+	if not column then
+		return
+	end
+	local noteColumn = noteSkin:getInputColumn(note.column)
+	if not noteColumn then
+		return
+	end
+	return column - noteColumn
+end
+
+---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
+---@return rizu.editor.EditorNote[]
+local function getSelectedNotes(selectedNotes)
+	---@type rizu.editor.EditorNote[]
+	local notes = {}
+	for _, note in pairs(selectedNotes) do
+		table.insert(notes, note)
+	end
+	return notes
+end
+
 ---@param note rizu.editor.EditorNote
 ---@param part string
 ---@param mouseTime number
@@ -30,13 +56,13 @@ function NoteDragSession:grabNew(note, part, mouseTime)
 	self:clear()
 	editorModel.editorChanges:reset()
 	local column = noteManager:getColumnOver()
-	local noteColumn = noteSkin:getInputColumn(note.column)
-	if not noteColumn then
+	local deltaColumn = getColumnDelta(noteSkin, column, note)
+	if not deltaColumn then
 		return
 	end
 
 	table.insert(self.grabbedNotes, note)
-	note:grab(mouseTime, part, column - noteColumn, editor.lockSnap)
+	note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
 	editorModel.visualEngine.selectedNotes[note.startNote] = note
 end
 
@@ -71,12 +97,12 @@ function NoteDragSession:grab(part, mouseTime)
 	self:clear()
 	editorModel.editorChanges:reset()
 	local column = noteManager:getColumnOver()
-	for _, note in pairs(editorModel.visualEngine.selectedNotes) do
-		local noteColumn = noteSkin:getInputColumn(note.column)
-		if noteColumn then
+	for _, note in ipairs(getSelectedNotes(editorModel.visualEngine.selectedNotes)) do
+		local deltaColumn = getColumnDelta(noteSkin, column, note)
+		if deltaColumn then
 			table.insert(self.grabbedNotes, note)
 			noteManager:_removeNote(note)
-			note:grab(mouseTime, part, column - noteColumn, editor.lockSnap)
+			note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
 		end
 	end
 end

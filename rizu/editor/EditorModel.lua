@@ -90,16 +90,19 @@ function EditorModel:applyNcbt()
 	self.ncbtContext:apply(self.layer)
 end
 
-
-
+---@param editor table
 ---@return table
-function EditorModel:getSettings()
-	local editor = self.configModel.configs.settings.editor
+function EditorModel:normalizeEditorSettings(editor)
 	if editor.speed <= 0 then
 		editor.speed = 1
 	end
 	editor.snap = math.min(math.max(editor.snap, 1), self.max_snap)
 	return editor
+end
+
+---@return table
+function EditorModel:getSettings()
+	return self:normalizeEditorSettings(self.configModel.configs.settings.editor)
 end
 
 ---@return table
@@ -125,7 +128,7 @@ end
 ---@return number
 function EditorModel:getIterRange()
 	local editor = self:getSettings()
-	local absoluteTime = self.session.point.absoluteTime
+	local absoluteTime = self:getSessionTime()
 	local delta = 1 / editor.speed
 	return absoluteTime - delta, absoluteTime + delta
 end
@@ -178,6 +181,21 @@ function EditorModel:getDtpAbsolute(time)
 	return p
 end
 
+---@return number
+function EditorModel:getSessionTime()
+	return self.session.point.absoluteTime
+end
+
+---@param time number
+function EditorModel:setSessionTime(time)
+	self:getDtpAbsolute(time):clone(self.session.point)
+end
+
+---@param point chartedit.Point
+function EditorModel:setSessionPoint(point)
+	point:clone(self.session.point)
+end
+
 function EditorModel:unload()
 	self.loaded = false
 	self.audio_engine:unload()
@@ -221,7 +239,7 @@ function EditorModel:getMouseTime(dy)
 	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
 	local noteSkin = self.session.noteSkin
 	local editor = self:getSettings()
-	return self.session.point.absoluteTime - noteSkin:getInverseTimePosition(my + dy) / editor.speed
+	return self:getSessionTime() - noteSkin:getInverseTimePosition(my + dy) / editor.speed
 end
 
 ---@param note rizu.editor.EditorNote
@@ -267,7 +285,7 @@ function EditorModel:update()
 	end
 	self.audio_engine:update()
 
-	dtp:clone(self.session.point)
+	self:setSessionPoint(dtp)
 
 	self.visualEngine:update()
 end
@@ -283,13 +301,13 @@ end
 function EditorModel:incSnap()
 	local editor = self:getSettings()
 	editor.snap = editor.snap * 2
-	editor.snap = math.min(math.max(editor.snap, 1), self.max_snap)
+	self:normalizeEditorSettings(editor)
 end
 
 function EditorModel:decSnap()
 	local editor = self:getSettings()
 	editor.snap = math.floor(editor.snap / 2)
-	editor.snap = math.min(math.max(editor.snap, 1), self.max_snap)
+	self:normalizeEditorSettings(editor)
 end
 
 ---@param j number|table
