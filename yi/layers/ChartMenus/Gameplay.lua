@@ -23,11 +23,15 @@ function Gameplay:enter()
 	sv.subscreen = "gameplay" ---@diagnostic disable-line
 	sv:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
 	sv:load()
+	love.keyboard.setKeyRepeat(false)
+	love.keyboard.setTextInput(false)
 end
 
 function Gameplay:exit()
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_view:unload()
+	love.keyboard.setKeyRepeat(true)
+	love.keyboard.setTextInput(true)
 end
 
 function Gameplay:update(dt)

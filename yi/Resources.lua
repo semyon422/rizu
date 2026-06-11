@@ -1,5 +1,5 @@
 local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
-local Path = require("aqua.Path")
+local Path = require("Path")
 
 ---@alias yi.FontName string
 ---@alias yi.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
