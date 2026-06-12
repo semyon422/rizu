@@ -21,10 +21,10 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 - **Decision**: The editor uses `rizu.engine.audio.Engine` for playback and waveform generation, and the `ncdk` interval timing model for the timeline. No separate audio or timing subsystem is introduced.
 - **Consequence**: Editor playback matches gameplay playback exactly. Changes to the audio backend or timing model propagate to the editor automatically.
 
-### ADR: Model-Controller With Sub-Managers
+### ADR: Model-Controller With Services
 - **Context**: The editor coordinates audio, notes, timing vertices, selection, undo/redo, scrolling, and UI overlays.
-- **Decision**: `EditorModel` owns all sub-managers and the chart data. `EditorController` handles load/save, file operations, and format conversion. Sub-managers each own a narrow concern (notes, intervals, scrolling, graphs, undo/redo).
-- **Consequence**: The update loop is centralized in `EditorModel:update()`. Each sub-manager can be tested or replaced independently.
+- **Decision**: `EditorModel` owns chart data and update-loop orchestration. `EditorServices` owns default construction and attachment of editor collaborators. `EditorController` handles load/save, file operations, and format conversion. Services each own a narrow concern (notes, intervals, scrolling, graphs, undo/redo).
+- **Consequence**: The update loop remains centralized in `EditorModel:update()`, while collaborator wiring lives in a focused composition object. Each service can be tested or replaced independently.
 
 ### ADR: Interval-Based Timing Only
 - **Context**: The underlying `ncdk` library supports multiple timing models. The editor currently uses only the "interval" model.
@@ -39,11 +39,13 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 ## Core Components
 
 ### `EditorModel` — Central State
-Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state. Mutable editor state is split into focused state objects instead of a shared session bag.
+Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`) and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state through services. Mutable editor state is split into focused state objects instead of a shared session bag.
 
-`load()` delegates lifecycle sequencing to `EditorLoadService`; `update()` is split into named substeps so behavior can be tested without running the full client. Keep orchestration changes covered by `EditorLoadService_test.lua` and `EditorModel_test.lua`. Load currently sets `loaded = true` before running substeps and fails fast if a substep errors.
+`load()` delegates lifecycle sequencing to `EditorLoadService` through an explicit load context; `update()` is split into named substeps so behavior can be tested without running the full client. Keep orchestration changes covered by `EditorLoadService_test.lua` and `EditorModel_test.lua`. Load currently sets `loaded = true` before running substeps and fails fast if a substep errors.
 
-`loadResources()` keeps the model-level loaded gate, then delegates audio resource loading, waveform rendering, and graph generation to `EditorResourceLoadService`. The service marks `resourcesLoaded = true` only after all three steps finish, so audio or graph failures leave the editor in the not-ready resource state.
+`loadResources()` keeps the model-level loaded gate, then delegates audio resource loading, waveform rendering, and graph generation to `EditorResourceLoadService` through a narrow resource-load context. The service marks `resourcesLoaded = true` only after all three steps finish, so audio or graph failures leave the editor in the not-ready resource state.
+
+`EditorModel` keeps service adapter context factories grouped near `load()`: load, session reset, resource loading, and rectangle selection. Add new model-to-service contexts there rather than inlining callback tables inside orchestration methods.
 
 Lifecycle fields such as `loaded`, `resourcesLoaded`, `visual`, `wave`, and `changes` are owned by `EditorRuntimeState`. Access them through `EditorModel` methods such as `isLoaded()`, `isResourcesLoaded()`, `getVisual()`, `getWave()`, and `getChanges()`; do not add raw mirror fields back to `EditorModel`.
 
@@ -57,18 +59,23 @@ Pattern-analysis display text is owned by `EditorAnalysisState`. Use `EditorMode
 
 `EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`. Editor-view modifier checks such as command hotkeys, fine scrolling, snap changes, and speed changes should be named `EditorInput` queries exposed through `EditorModel`, not direct `love.keyboard` reads in views.
 
-Manager ownership is attached explicitly in `attachManagers()`. Do not restore broad table mutation such as iterating over every `EditorModel` field; config, resource, input, metadata, timer, audio, and state objects must not accidentally receive `editorModel` back-references. Constructor dependencies may inject manager instances for focused tests, while production continues to use the default manager classes.
+### `EditorServices` — Model Composition
+Owns default construction of editor collaborators and copies them onto `EditorModel` for compatibility with existing callers. New model-level collaborators should be added to `EditorServices` first, then exposed on `EditorModel` only when current callers still need a direct field.
+
+`EditorServices:attachEditorModel(editorModel)` attaches ownership explicitly. Do not restore broad table mutation such as iterating over every `EditorModel` field; config, resource, input, metadata, timer, audio, and state objects must not accidentally receive `editorModel` back-references. Constructor dependencies may still inject service instances for focused tests, while production uses the default service classes through `EditorServices`.
+
+`EditorServices:update()` owns the per-frame service tick for note dragging and metronome updates. Keep broader chart, timing, audio, cursor, and visual update ordering in `EditorModel:update()`.
 
 ### Removed Session Bag
 `EditorModel.session` has been removed as a state bag. Do not add it back. Prefer `EditorCursorState`, `EditorSelectionState`, `EditorRenderState`, `EditorAnalysisState`, `EditorRuntimeState`, or `EditorViewState` depending on ownership.
 
-`EditorSessionResetService` owns load-time session reset orchestration: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, and selection cleanup.
+`EditorSessionResetService` owns load-time session reset orchestration through an explicit reset context: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, and selection cleanup.
 
-`EditorPlaybackService` owns timer/audio coordination: timer loading, audio settings loading, exact seek updates, audio resource loading, play/pause, and audio updates. Keep playback behavior behind `EditorModel` wrappers so existing callers do not reach into the service directly unless they are focused tests.
+`EditorPlaybackService` owns timer/audio coordination: timer loading, audio settings loading, exact seek updates, audio resource loading, play/pause, and audio updates. It receives explicit timer, audio engine, chart, audio settings, and interval-grab dependencies rather than the whole `EditorModel`; keep playback behavior behind `EditorModel` wrappers so existing callers do not reach into the service directly unless they are focused tests.
 
-`EditorSelectionService` owns selection actions: note selection, rectangle-selection lifecycle, and rectangle-selection updates. It pairs with `EditorSelectionState`; `EditorModel` keeps wrapper methods for callers.
+`EditorSelectionService` owns selection actions: note selection, rectangle-selection lifecycle, and rectangle-selection updates. It pairs with `EditorSelectionState` through a narrow rectangle-selection context; `EditorModel` keeps wrapper methods for callers.
 
-`EditorSettingsService` owns editor/audio settings helpers: editor settings normalization, log speed, snap increment/decrement, and snap display bucket calculation. Keep snap/speed mutation rules here rather than scattering them through view code.
+`EditorSettingsService` owns editor/audio settings helpers: editor settings normalization, log speed, snap increment/decrement, and snap display bucket calculation. It operates on `ConfigModel` or the concrete `settings.editor` table rather than receiving the whole `EditorModel`; keep snap/speed mutation rules here rather than scattering them through view code.
 
 ### `EditorViewState` — Per-Screen UI State
 Holds editor UI state that should not live in chart or model state:

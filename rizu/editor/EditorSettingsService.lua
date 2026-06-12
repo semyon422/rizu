@@ -15,51 +15,49 @@ function EditorSettingsService:normalizeEditorSettings(editor, maxSnap)
 	return editor
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param configModel sphere.ConfigModel
+---@param maxSnap number
 ---@return table
-function EditorSettingsService:getSettings(editorModel)
-	return self:normalizeEditorSettings(editorModel.configModel.configs.settings.editor, editorModel.max_snap)
+function EditorSettingsService:getSettings(configModel, maxSnap)
+	return self:normalizeEditorSettings(configModel.configs.settings.editor, maxSnap)
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param configModel sphere.ConfigModel
 ---@return table
-function EditorSettingsService:getAudioSettings(editorModel)
-	return editorModel.configModel.configs.settings.audio
+function EditorSettingsService:getAudioSettings(configModel)
+	return configModel.configs.settings.audio
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param editor table
 ---@return number
-function EditorSettingsService:getLogSpeed(editorModel)
-	local editor = self:getSettings(editorModel)
+function EditorSettingsService:getLogSpeed(editor)
 	return math.floor(10 * math.log(editor.speed, 2) + 0.5)
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param editor table
 ---@param logSpeed number
-function EditorSettingsService:setLogSpeed(editorModel, logSpeed)
-	local editor = self:getSettings(editorModel)
+function EditorSettingsService:setLogSpeed(editor, logSpeed)
 	editor.speed = 2 ^ (logSpeed / 10)
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorSettingsService:incSnap(editorModel)
-	local editor = self:getSettings(editorModel)
+---@param editor table
+---@param maxSnap number
+function EditorSettingsService:incSnap(editor, maxSnap)
 	editor.snap = editor.snap * 2
-	self:normalizeEditorSettings(editor, editorModel.max_snap)
+	self:normalizeEditorSettings(editor, maxSnap)
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorSettingsService:decSnap(editorModel)
-	local editor = self:getSettings(editorModel)
+---@param editor table
+---@param maxSnap number
+function EditorSettingsService:decSnap(editor, maxSnap)
 	editor.snap = math.floor(editor.snap / 2)
-	self:normalizeEditorSettings(editor, editorModel.max_snap)
+	self:normalizeEditorSettings(editor, maxSnap)
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param editor table
 ---@param j number|table
 ---@return number
-function EditorSettingsService:getSnap(editorModel, j)
-	local editor = self:getSettings(editorModel)
+function EditorSettingsService:getSnap(editor, j)
 	local snap = editor.snap
 	if type(j) == "table" then
 		j, snap = 16 * j, 16

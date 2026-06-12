@@ -5,41 +5,40 @@ local test = {}
 ---@param t testing.T
 function test.reset_initializes_editor_session_state(t)
 	local calls = {}
-	local selectionState = {
-		finish = function()
-			table.insert(calls, "selection")
-		end,
-	}
 	local changes
-	local editorModel = {
-		graphsGenerator = {
-			load = function()
-				table.insert(calls, "graphs")
-			end,
-		},
+	local nextChanges = {}
+	local context = {
 		analyzePatterns = function()
 			table.insert(calls, "analysis")
 		end,
-		setChanges = function(_, nextChanges)
-			table.insert(calls, "changes")
-			changes = nextChanges
+		newChanges = function()
+			table.insert(calls, "new-changes")
+			return nextChanges
 		end,
-		setResourcesLoaded = function(_, loaded)
+		setChanges = function(loadedChanges)
+			table.insert(calls, "changes")
+			changes = loadedChanges
+		end,
+		loadGraphs = function()
+			table.insert(calls, "graphs")
+		end,
+		setResourcesLoaded = function(loaded)
 			table.insert(calls, "resources:" .. tostring(loaded))
 		end,
-		setSessionTime = function(_, time)
+		setSessionTime = function(time)
 			table.insert(calls, "time:" .. time)
 		end,
-		getSelectionState = function()
-			return selectionState
+		finishSelection = function()
+			table.insert(calls, "selection")
 		end,
 	}
 
-	EditorSessionResetService():reset(editorModel)
+	EditorSessionResetService():reset(context)
 
-	t:ne(changes, nil)
+	t:eq(changes, nextChanges)
 	t:tdeq(calls, {
 		"analysis",
+		"new-changes",
 		"changes",
 		"graphs",
 		"resources:false",

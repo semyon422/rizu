@@ -30,7 +30,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 			t:eq(time, 0)
 		end,
 	}
-	local managers = {
+	local services = {
 		noteChartLoader = {},
 		audio_engine = {},
 		ncbtContext = {},
@@ -95,69 +95,71 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		configModel = configModel,
 		resourceModel = resourceModel,
 		input = input,
-		noteChartLoader = managers.noteChartLoader,
-		audio_engine = managers.audio_engine,
-		ncbtContext = managers.ncbtContext,
-		intervalManager = managers.intervalManager,
-		graphsGenerator = managers.graphsGenerator,
-		editorChanges = managers.editorChanges,
-		timer = managers.timer,
-		noteService = managers.noteService,
-		visualEngine = managers.visualEngine,
-		scroller = managers.scroller,
-		metronome = managers.metronome,
-		metadata = managers.metadata,
-		bmsToolsContext = managers.bmsToolsContext,
-		loadService = managers.loadService,
-		sessionResetService = managers.sessionResetService,
-		resourceLoadService = managers.resourceLoadService,
-		playbackService = managers.playbackService,
-		selectionService = managers.selectionService,
-		settingsService = managers.settingsService,
-		cursorState = managers.cursorState,
-		selectionState = managers.selectionState,
-		renderState = managers.renderState,
-		analysisState = managers.analysisState,
-		runtimeState = managers.runtimeState,
-		viewState = managers.viewState,
+		noteChartLoader = services.noteChartLoader,
+		audio_engine = services.audio_engine,
+		ncbtContext = services.ncbtContext,
+		intervalManager = services.intervalManager,
+		graphsGenerator = services.graphsGenerator,
+		editorChanges = services.editorChanges,
+		timer = services.timer,
+		noteService = services.noteService,
+		visualEngine = services.visualEngine,
+		scroller = services.scroller,
+		metronome = services.metronome,
+		metadata = services.metadata,
+		bmsToolsContext = services.bmsToolsContext,
+		loadService = services.loadService,
+		sessionResetService = services.sessionResetService,
+		resourceLoadService = services.resourceLoadService,
+		playbackService = services.playbackService,
+		selectionService = services.selectionService,
+		settingsService = services.settingsService,
+		cursorState = services.cursorState,
+		selectionState = services.selectionState,
+		renderState = services.renderState,
+		analysisState = services.analysisState,
+		runtimeState = services.runtimeState,
+		viewState = services.viewState,
 	})
 
 	t:eq(editorModel.configModel, configModel)
 	t:eq(editorModel.resourceModel, resourceModel)
-	t:eq(editorModel.noteService, managers.noteService)
-	t:eq(editorModel.visualEngine, managers.visualEngine)
-	t:eq(managers.noteChartLoader.editorModel, editorModel)
-	t:eq(managers.ncbtContext.editorModel, editorModel)
-	t:eq(managers.intervalManager.editorModel, editorModel)
-	t:eq(managers.graphsGenerator.editorModel, editorModel)
-	t:eq(managers.editorChanges.editorModel, editorModel)
-	t:eq(managers.noteService.editorModel, editorModel)
-	t:eq(managers.visualEngine.editorModel, editorModel)
-	t:eq(managers.scroller.editorModel, editorModel)
-	t:eq(managers.metronome.editorModel, editorModel)
-	t:eq(managers.bmsToolsContext.editorModel, editorModel)
+	t:eq(editorModel.services.noteService, services.noteService)
+	t:eq(editorModel.services.metronome, services.metronome)
+	t:eq(editorModel.noteService, services.noteService)
+	t:eq(editorModel.visualEngine, services.visualEngine)
+	t:eq(services.noteChartLoader.editorModel, editorModel)
+	t:eq(services.ncbtContext.editorModel, editorModel)
+	t:eq(services.intervalManager.editorModel, editorModel)
+	t:eq(services.graphsGenerator.editorModel, editorModel)
+	t:eq(services.editorChanges.editorModel, editorModel)
+	t:eq(services.noteService.editorModel, editorModel)
+	t:eq(services.visualEngine.editorModel, editorModel)
+	t:eq(services.scroller.editorModel, editorModel)
+	t:eq(services.metronome.editorModel, editorModel)
+	t:eq(services.bmsToolsContext.editorModel, editorModel)
 	t:eq(configModel.editorModel, nil)
 	t:eq(resourceModel.editorModel, nil)
 	t:eq(input.editorModel, nil)
-	t:eq(managers.audio_engine.editorModel, nil)
-	t:eq(managers.timer.editorModel, nil)
-	t:eq(managers.metadata.editorModel, nil)
-	t:eq(managers.loadService.editorModel, nil)
-	t:eq(managers.sessionResetService.editorModel, nil)
-	t:eq(managers.resourceLoadService.editorModel, nil)
-	t:eq(managers.playbackService.editorModel, nil)
-	t:eq(managers.selectionService.editorModel, nil)
-	t:eq(managers.settingsService.editorModel, nil)
-	t:eq(managers.cursorState.editorModel, nil)
-	t:eq(managers.selectionState.editorModel, nil)
-	t:eq(managers.renderState.editorModel, nil)
-	t:eq(managers.analysisState.editorModel, nil)
-	t:eq(managers.runtimeState.editorModel, nil)
-	t:eq(managers.viewState.editorModel, nil)
-	t:eq(editorModel:getPoint(), managers.cursorState:getPoint())
-	t:eq(editorModel:getSelectionState(), managers.selectionState)
-	t:eq(editorModel:getNoteSkin(), managers.renderState:getNoteSkin())
-	t:eq(editorModel:getPatternsAnalyzed(), managers.analysisState:getPatternsAnalyzed())
+	t:eq(services.audio_engine.editorModel, nil)
+	t:eq(services.timer.editorModel, nil)
+	t:eq(services.metadata.editorModel, nil)
+	t:eq(services.loadService.editorModel, nil)
+	t:eq(services.sessionResetService.editorModel, nil)
+	t:eq(services.resourceLoadService.editorModel, nil)
+	t:eq(services.playbackService.editorModel, nil)
+	t:eq(services.selectionService.editorModel, nil)
+	t:eq(services.settingsService.editorModel, nil)
+	t:eq(services.cursorState.editorModel, nil)
+	t:eq(services.selectionState.editorModel, nil)
+	t:eq(services.renderState.editorModel, nil)
+	t:eq(services.analysisState.editorModel, nil)
+	t:eq(services.runtimeState.editorModel, nil)
+	t:eq(services.viewState.editorModel, nil)
+	t:eq(editorModel:getPoint(), services.cursorState:getPoint())
+	t:eq(editorModel:getSelectionState(), services.selectionState)
+	t:eq(editorModel:getNoteSkin(), services.renderState:getNoteSkin())
+	t:eq(editorModel:getPatternsAnalyzed(), services.analysisState:getPatternsAnalyzed())
 	t:eq(editorModel.isMultiSelectRequested(), true)
 	t:eq(editorModel.isEditorCommandRequested(), true)
 	t:eq(editorModel.isFineScrollRequested(), true)
@@ -388,9 +390,15 @@ function test.load_initializes_editor_collaborators(t)
 			end,
 		},
 		sessionResetService = {
-			reset = function(_, model)
+			reset = function(_, context)
 				table.insert(calls, "state-reset")
-				t:eq(model.chartmeta.title, "Title")
+				t:eq(type(context.analyzePatterns), "function")
+				t:eq(type(context.newChanges), "function")
+				t:eq(type(context.setChanges), "function")
+				t:eq(type(context.loadGraphs), "function")
+				t:eq(type(context.setResourcesLoaded), "function")
+				t:eq(type(context.setSessionTime), "function")
+				t:eq(type(context.finishSelection), "function")
 			end,
 		},
 		timer = {
@@ -689,9 +697,12 @@ function test.load_resources_delegates_when_loaded(t)
 	local editorModel
 	editorModel = {
 		resourceLoadService = {
-			load = function(_, model, loadedResources)
+			load = function(_, context, loadedResources)
 				table.insert(calls, "resource")
-				t:eq(model, editorModel)
+				t:eq(type(context.loadAudioResources), "function")
+				t:eq(type(context.renderWave), "function")
+				t:eq(type(context.genGraphs), "function")
+				t:eq(type(context.setResourcesLoaded), "function")
 				t:eq(loadedResources, resources)
 			end,
 		},
@@ -702,6 +713,46 @@ function test.load_resources_delegates_when_loaded(t)
 	editorModel:loadResources(resources)
 
 	t:tdeq(calls, {"resource"})
+end
+
+---@param t testing.T
+function test.resource_load_context_delegates_to_model_methods(t)
+	local calls = {}
+	local resources = {
+		audio = "song.ogg",
+	}
+	---@type rizu.editor.EditorModel
+	local editorModel = {}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	function editorModel:loadAudioResources(loadedResources)
+		table.insert(calls, "audio:" .. loadedResources.audio)
+	end
+
+	function editorModel:renderWave()
+		table.insert(calls, "wave")
+	end
+
+	function editorModel:genGraphs()
+		table.insert(calls, "graphs")
+	end
+
+	function editorModel:setResourcesLoaded(loaded)
+		table.insert(calls, "loaded:" .. tostring(loaded))
+	end
+
+	local context = editorModel:createResourceLoadContext()
+	context.loadAudioResources(resources)
+	context.renderWave()
+	context.genGraphs()
+	context.setResourcesLoaded(true)
+
+	t:tdeq(calls, {
+		"audio:song.ogg",
+		"wave",
+		"graphs",
+		"loaded:true",
+	})
 end
 
 ---@param t testing.T

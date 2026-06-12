@@ -8,19 +8,16 @@ function test.select_note_uses_multi_select_predicate(t)
 	local note = {}
 	local selectedNote
 	local keepOthers
-	local editorModel = {
-		isMultiSelectRequested = function()
-			return true
+	local visualEngine = {
+		selectNote = function(_, nextNote, nextKeepOthers)
+			selectedNote = nextNote
+			keepOthers = nextKeepOthers
 		end,
-		visualEngine = {
-			selectNote = function(_, nextNote, nextKeepOthers)
-				selectedNote = nextNote
-				keepOthers = nextKeepOthers
-			end,
-		},
 	}
 
-	EditorSelectionService():selectNote(editorModel, note)
+	EditorSelectionService():selectNote(visualEngine, function()
+		return true
+	end, note)
 
 	t:eq(selectedNote, note)
 	t:eq(keepOthers, true)
@@ -30,23 +27,21 @@ end
 function test.rectangle_selection_lifecycle(t)
 	local calls = {}
 	local selectionState = EditorSelectionState()
-	local editorModel = {
-		visualEngine = {
-			selectStart = function()
-				table.insert(calls, "visual-start")
-			end,
-			selectEnd = function()
-				table.insert(calls, "visual-end")
-			end,
-		},
+	local visualEngine = {
+		selectStart = function()
+			table.insert(calls, "visual-start")
+		end,
+		selectEnd = function()
+			table.insert(calls, "visual-end")
+		end,
+	}
+	local context = {
+		selectionState = selectionState,
 		getMousePosition = function()
 			return 3, 4
 		end,
 		getMouseTime = function()
 			return 1
-		end,
-		getSelectionState = function()
-			return selectionState
 		end,
 		selectRegion = function(x1, y1, x2, y2)
 			table.insert(calls, ("select:%s:%s:%s:%s"):format(x1, y1, x2, y2))
@@ -57,13 +52,13 @@ function test.rectangle_selection_lifecycle(t)
 	}
 
 	local service = EditorSelectionService()
-	service:selectStart(editorModel)
-	service:updateSelectionRect(editorModel, {speed = 2}, {
+	service:selectStart(visualEngine, context)
+	service:updateSelectionRect(context, {speed = 2}, {
 		getTimePosition = function(_, time)
 			return time * 10
 		end,
 	}, 6)
-	service:selectEnd(editorModel)
+	service:selectEnd(visualEngine, context)
 
 	t:tdeq(calls, {
 		"visual-start",

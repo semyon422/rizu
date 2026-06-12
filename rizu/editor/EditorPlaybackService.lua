@@ -4,53 +4,60 @@ local class = require("class")
 ---@operator call: rizu.editor.EditorPlaybackService
 local EditorPlaybackService = class()
 
----@param editorModel rizu.editor.EditorModel
+---@param timer rizu.editor.TimeManager
 ---@param editor table
-function EditorPlaybackService:loadTimer(editorModel, editor)
-	editorModel.timer:pause()
-	editorModel.timer:setTime(editor.time)
+function EditorPlaybackService:loadTimer(timer, editor)
+	timer:pause()
+	timer:setTime(editor.time)
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorPlaybackService:loadAudio(editorModel)
-	local volume = editorModel.configModel.configs.settings.audio.volume
-	editorModel.audio_engine:setVolume(volume.master * volume.music, volume.master * volume.keysounds)
-	editorModel.audio_engine:setAudioMode(editorModel.configModel.configs.settings.audio.mode)
+---@param audioEngine rizu.engine.audio.Engine
+---@param audioSettings table
+function EditorPlaybackService:loadAudio(audioEngine, audioSettings)
+	local volume = audioSettings.volume
+	audioEngine:setVolume(volume.master * volume.music, volume.master * volume.keysounds)
+	audioEngine:setAudioMode(audioSettings.mode)
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param timer rizu.editor.TimeManager
+---@param audioEngine rizu.engine.audio.Engine
 ---@param time number
-function EditorPlaybackService:setTime(editorModel, time)
-	editorModel.timer:setTime(time, true)
-	editorModel.audio_engine:setPosition(time)
+function EditorPlaybackService:setTime(timer, audioEngine, time)
+	timer:setTime(time, true)
+	audioEngine:setPosition(time)
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param audioEngine rizu.engine.audio.Engine
+---@param timer rizu.editor.TimeManager
+---@param chart sea.Chart
 ---@param resources {[string]: string}
-function EditorPlaybackService:loadAudioResources(editorModel, resources)
-	editorModel.audio_engine:setEnabled(true)
-	editorModel.audio_engine:load(editorModel.chart, resources)
-	editorModel.audio_engine:setPosition(editorModel.timer:getTime())
+function EditorPlaybackService:loadAudioResources(audioEngine, timer, chart, resources)
+	audioEngine:setEnabled(true)
+	audioEngine:load(chart, resources)
+	audioEngine:setPosition(timer:getTime())
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorPlaybackService:play(editorModel)
-	if editorModel.intervalManager:isGrabbed() then
+---@param timer rizu.editor.TimeManager
+---@param audioEngine rizu.engine.audio.Engine
+---@param isIntervalGrabbed fun(): boolean
+function EditorPlaybackService:play(timer, audioEngine, isIntervalGrabbed)
+	if isIntervalGrabbed() then
 		return
 	end
-	editorModel.timer:play()
-	editorModel.audio_engine:play()
+	timer:play()
+	audioEngine:play()
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorPlaybackService:pause(editorModel)
-	editorModel.timer:pause()
-	editorModel.audio_engine:pause()
+---@param timer rizu.editor.TimeManager
+---@param audioEngine rizu.engine.audio.Engine
+function EditorPlaybackService:pause(timer, audioEngine)
+	timer:pause()
+	audioEngine:pause()
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorPlaybackService:updateAudio(editorModel)
-	editorModel.audio_engine:update()
+---@param audioEngine rizu.engine.audio.Engine
+function EditorPlaybackService:updateAudio(audioEngine)
+	audioEngine:update()
 end
 
 return EditorPlaybackService

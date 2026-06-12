@@ -8,11 +8,12 @@ function test.load_runs_resource_steps_in_order(t)
 	local resources = {
 		audio = "song.ogg",
 	}
-	local editorModel = {
-		setResourcesLoaded = function(self, loaded)
-			self.resourcesLoaded = loaded
+	local resourcesLoaded
+	local context = {
+		setResourcesLoaded = function(loaded)
+			resourcesLoaded = loaded
 		end,
-		loadAudioResources = function(_, loadedResources)
+		loadAudioResources = function(loadedResources)
 			table.insert(calls, "audio:" .. loadedResources.audio)
 		end,
 		renderWave = function()
@@ -23,18 +24,19 @@ function test.load_runs_resource_steps_in_order(t)
 		end,
 	}
 
-	EditorResourceLoadService():load(editorModel, resources)
+	EditorResourceLoadService():load(context, resources)
 
-	t:eq(editorModel.resourcesLoaded, true)
+	t:eq(resourcesLoaded, true)
 	t:tdeq(calls, {"audio:song.ogg", "wave", "graphs"})
 end
 
 ---@param t testing.T
 function test.load_fails_fast_on_audio_error(t)
 	local calls = {}
-	local editorModel = {
-		setResourcesLoaded = function(self, loaded)
-			self.resourcesLoaded = loaded
+	local resourcesLoaded
+	local context = {
+		setResourcesLoaded = function(loaded)
+			resourcesLoaded = loaded
 		end,
 		loadAudioResources = function()
 			table.insert(calls, "audio")
@@ -49,19 +51,20 @@ function test.load_fails_fast_on_audio_error(t)
 	}
 
 	t:has_error(function()
-		EditorResourceLoadService():load(editorModel, {})
+		EditorResourceLoadService():load(context, {})
 	end)
 
-	t:eq(editorModel.resourcesLoaded, nil)
+	t:eq(resourcesLoaded, nil)
 	t:tdeq(calls, {"audio"})
 end
 
 ---@param t testing.T
 function test.load_does_not_mark_loaded_when_graphs_fail(t)
 	local calls = {}
-	local editorModel = {
-		setResourcesLoaded = function(self, loaded)
-			self.resourcesLoaded = loaded
+	local resourcesLoaded
+	local context = {
+		setResourcesLoaded = function(loaded)
+			resourcesLoaded = loaded
 		end,
 		loadAudioResources = function()
 			table.insert(calls, "audio")
@@ -76,10 +79,10 @@ function test.load_does_not_mark_loaded_when_graphs_fail(t)
 	}
 
 	t:has_error(function()
-		EditorResourceLoadService():load(editorModel, {})
+		EditorResourceLoadService():load(context, {})
 	end)
 
-	t:eq(editorModel.resourcesLoaded, nil)
+	t:eq(resourcesLoaded, nil)
 	t:tdeq(calls, {"audio", "wave", "graphs"})
 end
 

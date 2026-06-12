@@ -8,9 +8,10 @@ function test.load_runs_lifecycle_steps_in_order(t)
 	local editor = {
 		speed = 1,
 	}
-	local editorModel = {
-		setLoaded = function(self, loaded)
-			self.loaded = loaded
+	local loaded
+	local context = {
+		setLoaded = function(nextLoaded)
+			loaded = nextLoaded
 		end,
 		getSettings = function()
 			table.insert(calls, "settings")
@@ -22,7 +23,7 @@ function test.load_runs_lifecycle_steps_in_order(t)
 		resetState = function()
 			table.insert(calls, "reset")
 		end,
-		loadTimer = function(_, loadedEditor)
+		loadTimer = function(loadedEditor)
 			table.insert(calls, "timer")
 			t:eq(loadedEditor, editor)
 		end,
@@ -43,9 +44,9 @@ function test.load_runs_lifecycle_steps_in_order(t)
 		end,
 	}
 
-	EditorLoadService():load(editorModel)
+	EditorLoadService():load(context)
 
-	t:eq(editorModel.loaded, true)
+	t:eq(loaded, true)
 	t:tdeq(calls, {
 		"settings",
 		"chart",
@@ -62,9 +63,10 @@ end
 ---@param t testing.T
 function test.load_fails_fast_and_keeps_current_loaded_semantics(t)
 	local calls = {}
-	local editorModel = {
-		setLoaded = function(self, loaded)
-			self.loaded = loaded
+	local loaded
+	local context = {
+		setLoaded = function(nextLoaded)
+			loaded = nextLoaded
 		end,
 		getSettings = function()
 			table.insert(calls, "settings")
@@ -98,10 +100,10 @@ function test.load_fails_fast_and_keeps_current_loaded_semantics(t)
 	}
 
 	t:has_error(function()
-		EditorLoadService():load(editorModel)
+		EditorLoadService():load(context)
 	end)
 
-	t:eq(editorModel.loaded, true)
+	t:eq(loaded, true)
 	t:tdeq(calls, {"settings", "chart", "reset", "timer", "audio"})
 end
 
