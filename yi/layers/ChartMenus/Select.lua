@@ -84,6 +84,10 @@ function Select:new(yi)
 		self.yi.modals:open("noteskins")
 	end
 
+	local button_scores = function()
+		self.yi.modals:open("scores")
+	end
+
 	self.root = S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
@@ -124,6 +128,7 @@ function Select:new(yi)
 						IconButton(Resources.quads.icon_sparkles, button_modifiers),
 						IconButton(Resources.quads.icon_keyboard, button_input),
 						IconButton(Resources.quads.icon_palette, button_noteskins),
+						IconButton(Resources.quads.icon_trophy, button_scores),
 					}),
 					S.Anchor({
 						pivot = {0.5, 1},

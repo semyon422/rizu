@@ -21,6 +21,7 @@ function Result:new(yi)
 		text = "??.??%",
 		color = Colors.text,
 	})
+	self.accuracy:setPivot(0.5, 0.5)
 	self.judge_segments = JudgeSegments()
 
 	self.root = S.Stack({
@@ -50,10 +51,7 @@ function Result:new(yi)
 			self.judge_segments
 		}),
 
-		S.Anchor({
-			pivot = {0.5, 0.5},
-			self.accuracy
-		})
+		self.accuracy
 	})
 end
 
