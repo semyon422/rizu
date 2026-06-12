@@ -274,6 +274,33 @@ function test.unload_stops_runtime_resources(t)
 end
 
 ---@param t testing.T
+function test.select_note_uses_injected_multi_select_predicate(t)
+	local note = {
+		id = "note",
+	}
+	local selectedNote
+	local keepOthers
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		visualEngine = {
+			selectNote = function(_, visualNote, keep)
+				selectedNote = visualNote
+				keepOthers = keep
+			end,
+		},
+		isMultiSelectRequested = function()
+			return true
+		end,
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:selectNote(note)
+
+	t:eq(selectedNote, note)
+	t:eq(keepOthers, true)
+end
+
+---@param t testing.T
 function test.load_resources_ignored_when_not_loaded(t)
 	local calls = {}
 	---@type rizu.editor.EditorModel

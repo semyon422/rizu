@@ -57,6 +57,9 @@ function EditorTestFactory.createEditorModel()
 			tool = "ShortNote",
 			lockSnap = true,
 		},
+		isMultiSelectRequested = function()
+			return false
+		end,
 		visualEngine = {
 			notes = {},
 			selectedNotes = {},

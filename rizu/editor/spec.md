@@ -43,6 +43,8 @@ Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, 
 
 `load()` and `update()` are split into named substeps so lifecycle behavior can be tested without running the full client. Keep orchestration changes covered by `EditorModel_test.lua`.
 
+Input-derived decisions should enter through injected predicates or event data. For example, multi-select note selection is driven by `isMultiSelectRequested` instead of reading keyboard state inside the model.
+
 ### `EditorSession` — Per-Session Mutable State
 Holds state that changes during an active editing session:
 - `point`: current timeline position
@@ -58,6 +60,8 @@ Separated from `EditorModel` so that session-scoped data does not leak into the 
 Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart). Delegates BMS-specific exports to dedicated modules in `exports/`.
 
 The load/save boundary is tested with fakes for chart selection, note skin loading, resource lookup, file writes, and library recomputation. Resource path ordering is centralized in `getResourcePaths()`. Editor-owned file writes go through `fs.IFilesystem` instead of direct `love.filesystem` calls.
+
+Modifier application on load is driven by an injected predicate so `EditorController` does not read keyboard state directly. Dropped audio imports are delegated to `EditorDropImport`, which owns extension filtering and writes imported files through `fs.IFilesystem`.
 
 ### `VisualEngine` — Note Rendering And Selection
 Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates linked notes in the visible time range, creates or reuses note objects, and tracks selection state. Uses `EditorNoteFactory` to produce the correct note subclass.
@@ -88,6 +92,8 @@ Extends `rizu.engine.time.LocalTimer`. Controls play/pause and current playback 
 
 ### `Metronome` — Click Track
 Provides a metronome click synced to the current timing data.
+
+Loads its click sample through `fs.IFilesystem` so editor model tests do not depend on `love.filesystem`.
 
 ### `NcbtContext` — Tempo And Offset Detection
 Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Results can be applied to the chart's interval data.

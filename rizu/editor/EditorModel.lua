@@ -21,6 +21,7 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@class rizu.editor.EditorModel
 ---@operator call: rizu.editor.EditorModel
 ---@field layer chartedit.Layer
+---@field isMultiSelectRequested fun(): boolean
 local EditorModel = class()
 
 EditorModel.tools = {"Select", "ShortNote", "LongNote", "SoundNote"}
@@ -29,9 +30,14 @@ EditorModel.max_snap = 192
 
 ---@param configModel sphere.ConfigModel
 ---@param resourceModel sphere.ResourceModel
-function EditorModel:new(configModel, resourceModel)
+---@param fs fs.IFilesystem?
+---@param isMultiSelectRequested (fun(): boolean)?
+function EditorModel:new(configModel, resourceModel, fs, isMultiSelectRequested)
 	self.configModel = configModel
 	self.resourceModel = resourceModel
+	self.isMultiSelectRequested = isMultiSelectRequested or function()
+		return false
+	end
 
 	self.noteChartLoader = NoteChartLoader()
 	self.audio_engine = AudioEngine()
@@ -44,7 +50,7 @@ function EditorModel:new(configModel, resourceModel)
 	self.noteManager = NoteManager()
 	self.visualEngine = VisualEngine()
 	self.scroller = Scroller()
-	self.metronome = Metronome()
+	self.metronome = Metronome(fs)
 	self.metadata = Metadata()
 
 	for _, v in pairs(self) do
@@ -278,7 +284,7 @@ end
 
 ---@param note rizu.editor.EditorNote
 function EditorModel:selectNote(note)
-	self.visualEngine:selectNote(note, love.keyboard.isDown("lctrl"))
+	self.visualEngine:selectNote(note, self.isMultiSelectRequested())
 end
 
 function EditorModel:selectStart()

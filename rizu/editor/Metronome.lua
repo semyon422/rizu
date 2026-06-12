@@ -1,15 +1,25 @@
 local class = require("class")
 local audio = require("audio")
+local ffi = require("ffi")
+local LoveFilesystem = require("fs.LoveFilesystem")
 
 ---@class rizu.editor.Metronome
 ---@operator call: rizu.editor.Metronome
+---@field fs fs.IFilesystem
 local Metronome = class()
 
 local samplePath = "resources/metronome.ogg"
 
+---@param fs fs.IFilesystem?
+function Metronome:new(fs)
+	self.fs = fs or LoveFilesystem()
+end
+
 function Metronome:load()
-	self.fileData = love.filesystem.newFileData(samplePath)
-	self.soundData = audio.SoundData(self.fileData:getFFIPointer(), self.fileData:getSize())
+	local sampleData = assert(self.fs:read(samplePath))
+	self.sampleBuffer = ffi.new("uint8_t[?]", #sampleData)
+	ffi.copy(self.sampleBuffer, sampleData, #sampleData)
+	self.soundData = assert(audio.SoundData(self.sampleBuffer, #sampleData))
 	self.source = audio.newSource(self.soundData)
 
 	self.nextTime = math.huge

@@ -1,6 +1,7 @@
 local class = require("class")
 local BmsKeysoundSlicer = require("rizu.editor.exports.BmsKeysoundSlicer")
 local BmsTemplateExporter = require("rizu.editor.exports.BmsTemplateExporter")
+local EditorDropImport = require("rizu.editor.EditorDropImport")
 local UbmscExporter = require("rizu.editor.exports.UbmscExporter")
 local LoveFilesystem = require("fs.LoveFilesystem")
 
@@ -39,6 +40,8 @@ local EditorController = class()
 ---@param resource_finder rizu.ResourceFinder
 ---@param resource_loader rizu.ResourceLoader
 ---@param fs fs.IFilesystem?
+---@param isModifierApplyRequested (fun(): boolean)?
+---@param dropImport rizu.editor.EditorDropImport?
 function EditorController:new(
 	chartSelector,
 	editorModel,
@@ -52,7 +55,9 @@ function EditorController:new(
 	replayBase,
 	resource_finder,
 	resource_loader,
-	fs
+	fs,
+	isModifierApplyRequested,
+	dropImport
 )
 	self.chartSelector = chartSelector
 	self.editorModel = editorModel
@@ -67,18 +72,19 @@ function EditorController:new(
 	self.resource_finder = resource_finder
 	self.resource_loader = resource_loader
 	self.fs = fs or LoveFilesystem()
+	self.isModifierApplyRequested = isModifierApplyRequested or function()
+		return false
+	end
+	self.dropImport = dropImport or EditorDropImport(self.fs)
 end
 
 function EditorController:load()
-
 	local chartSelector = self.chartSelector
 	local editorModel = self.editorModel
-	local configModel = self.configModel
-	local fileFinder = self.fileFinder
 
 	local chart, chartmeta = chartSelector:loadChart()
 
-	if love.keyboard.isDown("lshift") then
+	if self.isModifierApplyRequested() then
 		ModifierModel:apply(self.replayBase.modifiers, chart)
 	end
 
@@ -265,25 +271,9 @@ function EditorController:receive(event)
 	end
 end
 
-local exts = {
-	mp3 = true,
-	ogg = true,
-}
-
 ---@param file love.File
 function EditorController:filedropped(file)
-	local path = file:getFilename():gsub("\\", "/")
-
-	local _name, ext = path:match("^(.+)%.(.-)$")
-	if not exts[ext] then
-		return
-	end
-
-	local audioName = _name:match("^.+/(.-)$")
-	local chartSetPath = "userdata/charts/editor/" .. os.time() .. " " .. audioName
-
-	self.fs:createDirectory(chartSetPath)
-	self.fs:write(chartSetPath .. "/" .. audioName .. "." .. ext, file:read())
+	self.dropImport:import(file)
 end
 
 return EditorController

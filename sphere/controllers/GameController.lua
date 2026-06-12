@@ -102,7 +102,11 @@ function GameController:new()
 	self.pauseModel = PauseModel(self.persistence.configModel, self.rhythm_engine)
 	self.editorModel = EditorModel(
 		self.persistence.configModel,
-		self.resourceModel
+		self.resourceModel,
+		self.fs,
+		function()
+			return love.keyboard.isDown("lctrl")
+		end
 	)
 	self.speedModel = SpeedModel(self.persistence.configModel)
 	self.computeContext = ComputeContext()
@@ -222,7 +226,10 @@ function GameController:new()
 		self.replayBase,
 		self.resource_finder,
 		self.resource_loader,
-		self.fs
+		self.fs,
+		function()
+			return love.keyboard.isDown("lshift")
+		end
 	)
 
 	self.gameplayInteractor = GameplayInteractor(self)
