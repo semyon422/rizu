@@ -45,7 +45,7 @@ Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, 
 
 `loadResources()` keeps the model-level loaded gate, then delegates audio resource loading, waveform rendering, and graph generation to `EditorResourceLoadService`. The service marks `resourcesLoaded = true` only after all three steps finish, so audio or graph failures leave the editor in the not-ready resource state.
 
-Lifecycle fields such as `loaded`, `resourcesLoaded`, `visual`, `wave`, and `changes` are owned by `EditorRuntimeState`. `EditorModel` still mirrors those fields during the migration for legacy note and visual modules, but new code should use `EditorModel` accessors such as `isLoaded()`, `isResourcesLoaded()`, `getVisual()`, and `getWave()`.
+Lifecycle fields such as `loaded`, `resourcesLoaded`, `visual`, `wave`, and `changes` are owned by `EditorRuntimeState`. Access them through `EditorModel` methods such as `isLoaded()`, `isResourcesLoaded()`, `getVisual()`, `getWave()`, and `getChanges()`; do not add raw mirror fields back to `EditorModel`.
 
 `EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`. Editor-view modifier checks such as command hotkeys, fine scrolling, snap changes, and speed changes should be named `EditorInput` queries exposed through `EditorModel`, not direct `love.keyboard` reads in views.
 
@@ -56,11 +56,16 @@ Holds state that changes during an active editing session:
 - `point`: current timeline position
 - `noteSkin`: loaded note skin reference
 - `selectRect`, `selectStartTime`: rectangle selection state
-- `state`: current overlay tab
 - `patterns_analyzed`: pattern analysis results
-- `dragging`: UI drag state
 
 Separated from `EditorModel` so that session-scoped data does not leak into the core model.
+
+### `EditorViewState` — Per-Screen UI State
+Holds editor UI state that should not live in chart/session state:
+- `overlayState`: current overlay tab
+- `dragging`: transient UI drag state used by scrollbar and snap-grid interactions
+
+View services should mutate `EditorViewState` rather than adding UI-only fields to `EditorSession` or `EditorModel`.
 
 ### `EditorController` — Load/Save/Export
 Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart). Delegates NanoChart and BMS-specific exports to dedicated modules in `exports/`.
@@ -160,7 +165,7 @@ The editor UI is composed of separate view modules:
 - `EditorViewOverlay`: menus, tool selection, and configuration panels.
 - `Layout`: view composition and sizing.
 
-Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Rendering code may still call LÖVE and `just` directly, but model readiness, waveform, visual access, modifier state, and small state mutations should stay behind model methods so the model can continue moving runtime state out of ad hoc fields.
+Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Rendering code may still call LÖVE and `just` directly, but model readiness, waveform, visual access, modifier state, and small UI mutations should stay behind model or service methods so runtime state does not drift into ad hoc fields.
 
 Foreground hotkeys are dispatched through `EditorActionService`; views pass key state into the service instead of owning command behavior. Snap-grid scroll and drag behavior is owned by `EditorScrollInputService`, including fine-scroll speed override, pause/resume while dragging, snap changes, and speed changes. Overlay-only actions such as preview time, comments, selected-note commands, and BMS offset/tempo controls live in `EditorOverlayActionService` rather than `EditorModel`.
 

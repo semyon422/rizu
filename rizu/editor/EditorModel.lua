@@ -11,6 +11,7 @@ local EditorInput = require("rizu.editor.EditorInput")
 local EditorLoadService = require("rizu.editor.EditorLoadService")
 local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
+local EditorViewState = require("rizu.editor.EditorViewState")
 local NoteManager = require("rizu.editor.NoteManager")
 local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
@@ -48,6 +49,7 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field loadService rizu.editor.EditorLoadService?
 ---@field resourceLoadService rizu.editor.EditorResourceLoadService?
 ---@field runtimeState rizu.editor.EditorRuntimeState?
+---@field viewState rizu.editor.EditorViewState?
 
 ---@class rizu.editor.EditorModel
 ---@operator call: rizu.editor.EditorModel
@@ -60,6 +62,8 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field isFineScrollRequested fun(): boolean
 ---@field isSnapChangeRequested fun(): boolean
 ---@field isSpeedChangeRequested fun(): boolean
+---@field runtimeState rizu.editor.EditorRuntimeState
+---@field viewState rizu.editor.EditorViewState
 local EditorModel = class()
 
 EditorModel.tools = {"Select", "ShortNote", "LongNote", "SoundNote"}
@@ -116,6 +120,7 @@ function EditorModel:new(deps)
 	self.loadService = deps.loadService or EditorLoadService()
 	self.resourceLoadService = deps.resourceLoadService or EditorResourceLoadService()
 	self.runtimeState = deps.runtimeState or EditorRuntimeState()
+	self.viewState = deps.viewState or EditorViewState()
 
 	self:attachManagers()
 end
@@ -143,11 +148,6 @@ function EditorModel:getRuntimeState()
 	local runtimeState = self.runtimeState
 	if not runtimeState then
 		runtimeState = EditorRuntimeState()
-		runtimeState:setLoaded(self.loaded == true)
-		runtimeState:setResourcesLoaded(self.resourcesLoaded == true)
-		runtimeState:setVisual(self.visual)
-		runtimeState:setWave(self.wave)
-		runtimeState:setChanges(self.changes)
 		self.runtimeState = runtimeState
 	end
 	return runtimeState
@@ -268,7 +268,6 @@ end
 ---@param loaded boolean
 function EditorModel:setLoaded(loaded)
 	self:getRuntimeState():setLoaded(loaded)
-	self.loaded = loaded
 end
 
 ---@return boolean
@@ -279,7 +278,6 @@ end
 ---@param loaded boolean
 function EditorModel:setResourcesLoaded(loaded)
 	self:getRuntimeState():setResourcesLoaded(loaded)
-	self.resourcesLoaded = loaded
 end
 
 ---@return boolean
@@ -290,7 +288,6 @@ end
 ---@param visual chartedit.Visual?
 function EditorModel:setVisual(visual)
 	self:getRuntimeState():setVisual(visual)
-	self.visual = visual
 end
 
 ---@return chartedit.Visual?
@@ -301,7 +298,6 @@ end
 ---@param wave table?
 function EditorModel:setWave(wave)
 	self:getRuntimeState():setWave(wave)
-	self.wave = wave
 end
 
 ---@return table?
@@ -312,7 +308,6 @@ end
 ---@param changes Changes?
 function EditorModel:setChanges(changes)
 	self:getRuntimeState():setChanges(changes)
-	self.changes = changes
 end
 
 ---@return Changes?

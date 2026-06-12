@@ -75,10 +75,10 @@ return function(self, w, h)
 		end
 		if editorModel.timer.is_playing then
 			editorModel:pause()
-			editorModel.session.dragging = true
+			editorModel.viewState:setDragging(true)
 		end
-	elseif editorModel.session.dragging then
+	elseif editorModel.viewState:isDragging() then
 		editorModel:play()
-		editorModel.session.dragging = false
+		editorModel.viewState:setDragging(false)
 	end
 end

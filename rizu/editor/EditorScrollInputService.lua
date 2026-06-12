@@ -42,11 +42,11 @@ function EditorScrollInputService:update(editorModel, noteSkin, editor, frame)
 		editorModel.scroller:scrollSecondsDelta((currentYTime - prevYTime) / editor.speed)
 		if editorModel.timer.is_playing then
 			editorModel:pause()
-			editorModel.session.dragging = true
+			editorModel.viewState:setDragging(true)
 		end
-	elseif editorModel.session.dragging then
+	elseif editorModel.viewState:isDragging() then
 		editorModel:play()
-		editorModel.session.dragging = false
+		editorModel.viewState:setDragging(false)
 	end
 	self.prevMouseY = frame.mouseY
 

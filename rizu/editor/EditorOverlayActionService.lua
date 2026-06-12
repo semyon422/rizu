@@ -12,13 +12,13 @@ end
 ---@param editorModel rizu.editor.EditorModel
 ---@param state string
 function EditorOverlayActionService:setOverlayState(editorModel, state)
-	editorModel.session.state = state
+	editorModel.viewState:setOverlayState(state)
 end
 
 ---@param editorModel rizu.editor.EditorModel
 ---@return string
 function EditorOverlayActionService:getOverlayState(editorModel)
-	return editorModel.session.state
+	return editorModel.viewState:getOverlayState()
 end
 
 ---@param editorModel rizu.editor.EditorModel

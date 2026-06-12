@@ -1,10 +1,11 @@
 local EditorScrollInputService = require("rizu.editor.EditorScrollInputService")
+local EditorViewState = require("rizu.editor.EditorViewState")
 
 local test = {}
 
 local function createModel(flags, calls)
 	return {
-		session = {},
+		viewState = EditorViewState(),
 		timer = {
 			is_playing = false,
 		},
@@ -104,7 +105,7 @@ function test.drag_scroll_pauses_and_resumes_playback(t)
 		dragActive = true,
 	})
 
-	t:eq(model.session.dragging, true)
+	t:eq(model.viewState:isDragging(), true)
 	t:tdeq(calls, {"seconds:0.01", "pause"})
 
 	flags.fine = false
@@ -113,7 +114,7 @@ function test.drag_scroll_pauses_and_resumes_playback(t)
 		dragActive = false,
 	})
 
-	t:eq(model.session.dragging, false)
+	t:eq(model.viewState:isDragging(), false)
 	t:tdeq(calls, {"seconds:0.01", "pause", "play"})
 end
 

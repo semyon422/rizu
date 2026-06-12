@@ -1,4 +1,5 @@
 local EditorOverlayActionService = require("rizu.editor.EditorOverlayActionService")
+local EditorViewState = require("rizu.editor.EditorViewState")
 
 local test = {}
 
@@ -18,8 +19,8 @@ function test.ui_action_methods_update_editor_state(t)
 			point = {
 				absoluteTime = 12.5,
 			},
-			state = "info",
 		},
+		viewState = EditorViewState(),
 		noteManager = {
 			changeType = function()
 				table.insert(calls, "change-type")

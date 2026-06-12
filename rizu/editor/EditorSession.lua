@@ -9,15 +9,12 @@ local pattern_analyzer = require("chart.scoring.pattern_analyzer")
 ---@field noteSkin any
 ---@field selectRect number[]?
 ---@field selectStartTime number?
----@field state string
 ---@field patterns_analyzed string
----@field dragging boolean?
 local EditorSession = class()
 
 ---@param editorModel rizu.editor.EditorModel
 function EditorSession:new(editorModel)
 	self.point = Point()
-	self.state = "info"
 end
 
 ---@param editorModel rizu.editor.EditorModel

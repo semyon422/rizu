@@ -1,5 +1,6 @@
 local EditorModel = require("rizu.editor.EditorModel")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
+local EditorViewState = require("rizu.editor.EditorViewState")
 
 local test = {}
 local createEditorModel
@@ -40,6 +41,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		loadService = {},
 		resourceLoadService = {},
 		runtimeState = EditorRuntimeState(),
+		viewState = EditorViewState(),
 	}
 	local inputCalls = {}
 	local input = {
@@ -96,6 +98,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		loadService = managers.loadService,
 		resourceLoadService = managers.resourceLoadService,
 		runtimeState = managers.runtimeState,
+		viewState = managers.viewState,
 	})
 
 	t:eq(editorModel.configModel, configModel)
@@ -122,6 +125,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(managers.loadService.editorModel, nil)
 	t:eq(managers.resourceLoadService.editorModel, nil)
 	t:eq(managers.runtimeState.editorModel, nil)
+	t:eq(managers.viewState.editorModel, nil)
 	t:eq(editorModel.isMultiSelectRequested(), true)
 	t:eq(editorModel.isEditorCommandRequested(), true)
 	t:eq(editorModel.isFineScrollRequested(), true)
@@ -146,7 +150,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 end
 
 ---@param t testing.T
-function test.runtime_state_methods_mirror_legacy_fields(t)
+function test.runtime_state_methods_use_runtime_state(t)
 	local editorModel = createEditorModel()
 	local visual = {}
 	local wave = {}
@@ -159,15 +163,13 @@ function test.runtime_state_methods_mirror_legacy_fields(t)
 	editorModel:setChanges(changes)
 
 	t:eq(editorModel:isLoaded(), true)
-	t:eq(editorModel.loaded, true)
 	t:eq(editorModel:isResourcesLoaded(), true)
-	t:eq(editorModel.resourcesLoaded, true)
 	t:eq(editorModel:getVisual(), visual)
-	t:eq(editorModel.visual, visual)
 	t:eq(editorModel:getWave(), wave)
-	t:eq(editorModel.wave, wave)
 	t:eq(editorModel:getChanges(), changes)
-	t:eq(editorModel.changes, changes)
+	t:eq(editorModel:getRuntimeState():getVisual(), visual)
+	t:eq(editorModel:getRuntimeState():getWave(), wave)
+	t:eq(editorModel:getRuntimeState():getChanges(), changes)
 end
 
 ---@param t testing.T
@@ -405,10 +407,10 @@ function test.load_initializes_editor_collaborators(t)
 
 	editorModel:load()
 
-	t:eq(editorModel.loaded, true)
+	t:eq(editorModel:isLoaded(), true)
 	t:eq(editorModel.layer, layer)
 	t:eq(editorModel.notes, notes)
-	t:eq(editorModel.visual, "main-visual")
+	t:eq(editorModel:getVisual(), "main-visual")
 	t:eq(editorModel.metronome.volume, volume)
 	t:tdeq(calls, {
 		"chart-load",
@@ -449,7 +451,7 @@ function test.load_chart_data_falls_back_to_default_visual(t)
 
 	t:eq(editorModel.layer, layer)
 	t:eq(editorModel.notes, notes)
-	t:eq(editorModel.visual, defaultVisual)
+	t:eq(editorModel:getVisual(), defaultVisual)
 end
 
 ---@param t testing.T
@@ -469,7 +471,7 @@ function test.load_chart_data_allows_missing_visual_to_surface(t)
 
 	editorModel:loadChartData()
 
-	t:eq(editorModel.visual, nil)
+	t:eq(editorModel:getVisual(), nil)
 end
 
 ---@param t testing.T
@@ -477,7 +479,6 @@ function test.unload_stops_runtime_resources(t)
 	local calls = {}
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		loaded = true,
 		audio_engine = {
 			unload = function()
 				table.insert(calls, "audio")
@@ -490,10 +491,11 @@ function test.unload_stops_runtime_resources(t)
 		},
 	}
 	setmetatable(editorModel, {__index = EditorModel})
+	editorModel:setLoaded(true)
 
 	editorModel:unload()
 
-	t:eq(editorModel.loaded, false)
+	t:eq(editorModel:isLoaded(), false)
 	t:tdeq(calls, {"audio", "metronome"})
 end
 
@@ -628,7 +630,7 @@ function test.load_resources_ignored_when_not_loaded(t)
 	editorModel:loadResources({})
 
 	t:tdeq(calls, {})
-	t:eq(editorModel.resourcesLoaded, nil)
+	t:eq(editorModel:isResourcesLoaded(), false)
 end
 
 ---@param t testing.T
@@ -640,7 +642,6 @@ function test.load_resources_delegates_when_loaded(t)
 	---@type rizu.editor.EditorModel
 	local editorModel
 	editorModel = {
-		loaded = true,
 		resourceLoadService = {
 			load = function(_, model, loadedResources)
 				table.insert(calls, "resource")
@@ -650,6 +651,7 @@ function test.load_resources_delegates_when_loaded(t)
 		},
 	}
 	setmetatable(editorModel, {__index = EditorModel})
+	editorModel:setLoaded(true)
 
 	editorModel:loadResources(resources)
 
