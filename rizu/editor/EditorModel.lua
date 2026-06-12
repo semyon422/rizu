@@ -27,6 +27,10 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field getMousePosition (fun(): number, number)?
 ---@field selectRegion (fun(x1: number, y1: number, x2: number, y2: number))?
 ---@field unselectRegion (fun())?
+---@field isEditorCommandRequested (fun(): boolean)?
+---@field isFineScrollRequested (fun(): boolean)?
+---@field isSnapChangeRequested (fun(): boolean)?
+---@field isSpeedChangeRequested (fun(): boolean)?
 ---@field noteChartLoader rizu.editor.EditorNoteChartLoader?
 ---@field audio_engine rizu.engine.audio.Engine?
 ---@field ncbtContext rizu.editor.NcbtContext?
@@ -52,6 +56,10 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field getMousePosition fun(): number, number
 ---@field selectRegion fun(x1: number, y1: number, x2: number, y2: number)
 ---@field unselectRegion fun()
+---@field isEditorCommandRequested fun(): boolean
+---@field isFineScrollRequested fun(): boolean
+---@field isSnapChangeRequested fun(): boolean
+---@field isSpeedChangeRequested fun(): boolean
 local EditorModel = class()
 
 EditorModel.tools = {"Select", "ShortNote", "LongNote", "SoundNote"}
@@ -76,6 +84,18 @@ function EditorModel:new(deps)
 	end
 	self.unselectRegion = deps.unselectRegion or function()
 		input:unselectRegion()
+	end
+	self.isEditorCommandRequested = deps.isEditorCommandRequested or function()
+		return input:isEditorCommandRequested()
+	end
+	self.isFineScrollRequested = deps.isFineScrollRequested or function()
+		return input:isFineScrollRequested()
+	end
+	self.isSnapChangeRequested = deps.isSnapChangeRequested or function()
+		return input:isSnapChangeRequested()
+	end
+	self.isSpeedChangeRequested = deps.isSpeedChangeRequested or function()
+		return input:isSpeedChangeRequested()
 	end
 
 	self.noteChartLoader = deps.noteChartLoader or NoteChartLoader()
@@ -498,6 +518,85 @@ function EditorModel:decSnap()
 	local editor = self:getSettings()
 	editor.snap = math.floor(editor.snap / 2)
 	self:normalizeEditorSettings(editor)
+end
+
+function EditorModel:setPreviewTimeToSession()
+	self.chartmeta.preview_time = self.session.point.absoluteTime
+end
+
+---@return number?
+function EditorModel:getPreviewTime()
+	return tonumber(self.chartmeta.preview_time)
+end
+
+---@param state string
+function EditorModel:setOverlayState(state)
+	self.session.state = state
+end
+
+---@return string
+function EditorModel:getOverlayState()
+	return self.session.state
+end
+
+function EditorModel:changeSelectedNoteType()
+	self.noteManager:changeType()
+end
+
+---@param point chartedit.Point
+function EditorModel:scrollPoint(point)
+	self.scroller:scrollPoint(point)
+end
+
+---@return boolean
+function EditorModel:scrollToFirstSelectedNote()
+	local _, note = next(self.visualEngine.selectedNotes)
+	if not note then
+		return false
+	end
+	self:scrollPoint(note.startNote.visualPoint.point)
+	return true
+end
+
+---@param visualPoint chartedit.VisualPoint
+---@param comment string?
+function EditorModel:setVisualPointComment(visualPoint, comment)
+	if comment == "" then
+		comment = nil
+	end
+	visualPoint.comment = comment
+end
+
+---@param visualPoint chartedit.VisualPoint
+function EditorModel:resetVisualPointComment(visualPoint)
+	visualPoint.comment = nil
+	visualPoint.temp_comment = nil
+end
+
+---@param comment string?
+function EditorModel:setSelectedNotesComment(comment)
+	if comment == "" then
+		comment = nil
+	end
+	for _, note in pairs(self.visualEngine.selectedNotes) do
+		note.startNote.visualPoint.comment = comment
+	end
+end
+
+function EditorModel:resetSelectedNotesComment()
+	for _, note in pairs(self.visualEngine.selectedNotes) do
+		note.startNote.visualPoint.comment = nil
+	end
+end
+
+function EditorModel:applyBmsOffsetTempo()
+	self.bmsToolsContext:resetOffsetTempo(self.layer)
+end
+
+---@param delta number
+function EditorModel:changeBmsOffset(delta)
+	self.bmsToolsContext.offset = self.bmsToolsContext.offset + delta
+	self:applyBmsOffsetTempo()
 end
 
 ---@param j number|table

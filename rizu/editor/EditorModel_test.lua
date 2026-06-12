@@ -57,6 +57,22 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		unselectRegion = function()
 			table.insert(inputCalls, "unselect")
 		end,
+		isEditorCommandRequested = function()
+			table.insert(inputCalls, "command")
+			return true
+		end,
+		isFineScrollRequested = function()
+			table.insert(inputCalls, "fine")
+			return true
+		end,
+		isSnapChangeRequested = function()
+			table.insert(inputCalls, "snap")
+			return true
+		end,
+		isSpeedChangeRequested = function()
+			table.insert(inputCalls, "speed")
+			return true
+		end,
 	}
 
 	local editorModel = EditorModel({
@@ -107,13 +123,26 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(managers.resourceLoadService.editorModel, nil)
 	t:eq(managers.runtimeState.editorModel, nil)
 	t:eq(editorModel.isMultiSelectRequested(), true)
+	t:eq(editorModel.isEditorCommandRequested(), true)
+	t:eq(editorModel.isFineScrollRequested(), true)
+	t:eq(editorModel.isSnapChangeRequested(), true)
+	t:eq(editorModel.isSpeedChangeRequested(), true)
 	local mx, my = editorModel.getMousePosition()
 	editorModel.selectRegion(1, 2, 3, 4)
 	editorModel.unselectRegion()
 
 	t:eq(mx, 7)
 	t:eq(my, 11)
-	t:tdeq(inputCalls, {"multi", "mouse", "select:1:2:3:4", "unselect"})
+	t:tdeq(inputCalls, {
+		"multi",
+		"command",
+		"fine",
+		"snap",
+		"speed",
+		"mouse",
+		"select:1:2:3:4",
+		"unselect",
+	})
 end
 
 ---@param t testing.T
@@ -139,6 +168,106 @@ function test.runtime_state_methods_mirror_legacy_fields(t)
 	t:eq(editorModel.wave, wave)
 	t:eq(editorModel:getChanges(), changes)
 	t:eq(editorModel.changes, changes)
+end
+
+---@param t testing.T
+function test.ui_action_methods_update_editor_state(t)
+	local calls = {}
+	local point = {}
+	local selectedVisualPoint = {}
+	local selectedNote = {
+		startNote = {
+			visualPoint = selectedVisualPoint,
+		},
+	}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		chartmeta = {},
+		session = {
+			point = {
+				absoluteTime = 12.5,
+			},
+			state = "info",
+		},
+		noteManager = {
+			changeType = function()
+				table.insert(calls, "change-type")
+			end,
+		},
+		scroller = {
+			scrollPoint = function(_, scrolledPoint)
+				table.insert(calls, "scroll")
+				t:eq(scrolledPoint, point)
+			end,
+		},
+		visualEngine = {
+			selectedNotes = {
+				[selectedNote.startNote] = selectedNote,
+			},
+		},
+	}
+	selectedVisualPoint.point = point
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:setPreviewTimeToSession()
+	editorModel:setOverlayState("notes")
+	editorModel:changeSelectedNoteType()
+	local scrolled = editorModel:scrollToFirstSelectedNote()
+	editorModel:setVisualPointComment(selectedVisualPoint, "")
+	editorModel:setVisualPointComment(selectedVisualPoint, "comment")
+	editorModel:resetVisualPointComment(selectedVisualPoint)
+	editorModel:setSelectedNotesComment("batch")
+	editorModel:resetSelectedNotesComment()
+
+	t:eq(editorModel.chartmeta.preview_time, 12.5)
+	t:eq(editorModel:getPreviewTime(), 12.5)
+	t:eq(editorModel:getOverlayState(), "notes")
+	t:eq(scrolled, true)
+	t:eq(selectedVisualPoint.comment, nil)
+	t:eq(selectedVisualPoint.temp_comment, nil)
+	t:tdeq(calls, {"change-type", "scroll"})
+end
+
+---@param t testing.T
+function test.scroll_to_first_selected_note_returns_false_without_selection(t)
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		visualEngine = {
+			selectedNotes = {},
+		},
+		scroller = {
+			scrollPoint = function()
+				error("unexpected scroll")
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	t:eq(editorModel:scrollToFirstSelectedNote(), false)
+end
+
+---@param t testing.T
+function test.bms_ui_methods_apply_offset_tempo(t)
+	local calls = {}
+	local layer = {}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		layer = layer,
+		bmsToolsContext = {
+			offset = 0.25,
+			resetOffsetTempo = function(_, appliedLayer)
+				table.insert(calls, "reset")
+				t:eq(appliedLayer, layer)
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:applyBmsOffsetTempo()
+	editorModel:changeBmsOffset(0.001)
+
+	t:eq(editorModel.bmsToolsContext.offset, 0.251)
+	t:tdeq(calls, {"reset", "reset"})
 end
 
 ---@return rizu.editor.EditorModel

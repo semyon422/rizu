@@ -54,7 +54,7 @@ return function(self, w, h)
 		love.graphics.line(x, (1 - densityPoints[i]) * _h + pad, x2, (1 - densityPoints[i + 1]) * _h + pad)
 	end
 
-	local preview_time = tonumber(self.game.editorModel.chartmeta.preview_time)
+	local preview_time = editorModel:getPreviewTime()
 	if preview_time then
 		local x = math_util.map(preview_time, firstTime, lastTime, a, b)
 		love.graphics.setColor(0.1, 0.6, 1, 1)

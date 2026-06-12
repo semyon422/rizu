@@ -11,8 +11,28 @@ function EditorInput:isMultiSelectRequested()
 end
 
 ---@return boolean
+function EditorInput:isEditorCommandRequested()
+	return love.keyboard.isDown("lctrl")
+end
+
+---@return boolean
 function EditorInput:isModifierApplyRequested()
 	return love.keyboard.isDown("lshift")
+end
+
+---@return boolean
+function EditorInput:isFineScrollRequested()
+	return love.keyboard.isDown("lalt")
+end
+
+---@return boolean
+function EditorInput:isSnapChangeRequested()
+	return love.keyboard.isDown("lshift")
+end
+
+---@return boolean
+function EditorInput:isSpeedChangeRequested()
+	return love.keyboard.isDown("lctrl")
 end
 
 ---@return number

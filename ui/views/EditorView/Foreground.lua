@@ -10,10 +10,8 @@ local function Hotkeys(self)
 	local noteManager = editorModel.noteManager
 	local notificationModel = self.game.notificationModel
 
-	local lctrl = love.keyboard.isDown("lctrl")
-
 	local kp = just.keypressed
-	if lctrl then
+	if editorModel.isEditorCommandRequested() then
 		if kp("s") then
 			self.game.editorController:save()
 			notificationModel:notify("saved")

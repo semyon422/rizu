@@ -100,9 +100,8 @@ function tabs.audio(self)
 	wf.scale = imgui.slider1("wf.scale", wf.scale, "%0.2f", 0, 1, 0.01, "scale")
 
 	imgui.separator()
-	local md = self.game.editorModel.chartmeta
 	if imgui.button("set as preview", "set this moment as a preview") then
-		md.preview_time = editorModel.session.point.absoluteTime
+		editorModel:setPreviewTimeToSession()
 	end
 end
 
@@ -194,14 +193,10 @@ function tabs.timings(self)
 		local vp = editorModel:getVisual():getPoint(p)
 		vp.temp_comment = imgui.input("vp comment", vp.temp_comment or vp.comment, "comment")
 		if imgui.button("save comment", "save") then
-			if vp.temp_comment == "" then
-				vp.temp_comment = nil
-			end
-			vp.comment = vp.temp_comment
+			editorModel:setVisualPointComment(vp, vp.temp_comment)
 		end
 		if imgui.button("reset comment", "reset") then
-			vp.comment = nil
-			vp.temp_comment = nil
+			editorModel:resetVisualPointComment(vp)
 		end
 	end
 
@@ -266,29 +261,21 @@ function tabs.notes(self)
 	end
 
 	if imgui.button("changeType", "change type") then
-		editorModel.noteManager:changeType()
+		editorModel:changeSelectedNoteType()
 	end
 
-	local _, note = next(editorModel.visualEngine.selectedNotes)
-	if note and imgui.button("scroll to note", "scroll to") then
-		editorModel.scroller:scrollPoint(note.startNote.visualPoint.point)
+	if next(editorModel.visualEngine.selectedNotes) and imgui.button("scroll to note", "scroll to") then
+		editorModel:scrollToFirstSelectedNote()
 	end
 
 	imgui.separator()
 
 	batch_comment = imgui.input("vps comment", batch_comment, "comment")
 	if imgui.button("save comment notes", "save") then
-		if batch_comment == "" then
-			batch_comment = nil
-		end
-		for _, note in pairs(editorModel.visualEngine.selectedNotes) do
-			note.startNote.visualPoint.comment = batch_comment
-		end
+		editorModel:setSelectedNotesComment(batch_comment)
 	end
 	if imgui.button("reset comment notes", "reset") then
-		for _, note in pairs(editorModel.visualEngine.selectedNotes) do
-			note.startNote.visualPoint.comment = nil
-		end
+		editorModel:resetSelectedNotesComment()
 	end
 
 	local _, sel_note = next(editorModel.visualEngine.selectedNotes)
@@ -312,18 +299,16 @@ function tabs.bms(self)
 	bms_tools.tempo = tonumber(imgui.input("tempo", bms_tools.tempo, "tempo")) or 120
 
 	if imgui.button("bms apply tempo", "apply") then
-		bms_tools:resetOffsetTempo(editorModel.layer)
+		editorModel:applyBmsOffsetTempo()
 	end
 
 	imgui.text("offset")
 	if imgui.button("bms add offset", "+1ms") then
-		bms_tools.offset = bms_tools.offset + 0.001
-		bms_tools:resetOffsetTempo(editorModel.layer)
+		editorModel:changeBmsOffset(0.001)
 	end
 	just.sameline()
 	if imgui.button("bms sub offset", "-1ms") then
-		bms_tools.offset = bms_tools.offset - 0.001
-		bms_tools:resetOffsetTempo(editorModel.layer)
+		editorModel:changeBmsOffset(-0.001)
 	end
 
 	if imgui.button("slice keysounds", "slice keysounds") then
@@ -357,10 +342,10 @@ return function(self)
 	imgui.setSize(400, h, 200, lineHeight)
 	love.graphics.setColor(1, 1, 1, 1)
 
-	editorModel.session.state = imgui.tabs("editor overlay tabs", editorModel.session.state, editorModel.states)
+	editorModel:setOverlayState(imgui.tabs("editor overlay tabs", editorModel:getOverlayState(), editorModel.states))
 	love.graphics.setColor(1, 1, 1, 1)
 	imgui.setSize(400, h, 200, lineHeight)
-	tabs[editorModel.session.state](self)
+	tabs[editorModel:getOverlayState()](self)
 
 	if not editorModel:isResourcesLoaded() then
 		w, h = Layout:move("base")

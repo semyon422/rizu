@@ -47,7 +47,7 @@ Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, 
 
 Lifecycle fields such as `loaded`, `resourcesLoaded`, `visual`, `wave`, and `changes` are owned by `EditorRuntimeState`. `EditorModel` still mirrors those fields during the migration for legacy note and visual modules, but new code should use `EditorModel` accessors such as `isLoaded()`, `isResourcesLoaded()`, `getVisual()`, and `getWave()`.
 
-`EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`.
+`EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`. Editor-view modifier checks such as command hotkeys, fine scrolling, snap changes, and speed changes should be named `EditorInput` queries exposed through `EditorModel`, not direct `love.keyboard` reads in views.
 
 Manager ownership is attached explicitly in `attachManagers()`. Do not restore broad table mutation such as iterating over every `EditorModel` field; config, resource, input, metadata, timer, audio, and session objects must not accidentally receive `editorModel` back-references. Constructor dependencies may inject manager instances for focused tests, while production continues to use the default manager classes.
 
@@ -158,7 +158,7 @@ The editor UI is composed of separate view modules:
 - `EditorViewOverlay`: menus, tool selection, and configuration panels.
 - `Layout`: view composition and sizing.
 
-Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Rendering code may still call LÖVE and `just` directly, but model readiness, waveform, and visual access should stay behind model methods so the model can continue moving runtime state out of ad hoc fields.
+Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Rendering code may still call LÖVE and `just` directly, but model readiness, waveform, visual access, modifier state, and small state mutations should stay behind model methods so the model can continue moving runtime state out of ad hoc fields.
 
 ## Configuration
 

@@ -86,12 +86,12 @@ function SnapGridView:drawSnap(point, field, currentTime, width)
 		tostring(point) .. "scroll",
 		just.is_over(size, size, -size / 2, -size / 2) or just.is_over(size, size, -size / 2 + width, -size / 2)
 	)
-	if hovered then
-		love.graphics.setLineWidth(4)
-	end
-	if changed then
-		editorModel.scroller:scrollPoint(point)
-	end
+		if hovered then
+			love.graphics.setLineWidth(4)
+		end
+		if changed then
+			editorModel:scrollPoint(point)
+		end
 
 	love.graphics.line(0, 0, width, 0)
 	love.graphics.pop()
@@ -308,7 +308,9 @@ function SnapGridView:draw()
 	self:drawTimingObjects("absoluteTime", editorTimePoint.absoluteTime, 500, 50, "left", getVelocityText)
 	love.graphics.pop()
 
-	local lalt, lshift, lctrl = love.keyboard.isDown("lalt"), love.keyboard.isDown("lshift"), love.keyboard.isDown("lctrl")
+	local lalt = editorModel.isFineScrollRequested()
+	local lshift = editorModel.isSnapChangeRequested()
+	local lctrl = editorModel.isSpeedChangeRequested()
 
 	if lalt and not speedOrig then
 		speedOrig = editor.speed
