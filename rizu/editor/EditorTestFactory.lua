@@ -126,7 +126,7 @@ function EditorTestFactory.createEditorModel()
 
 	editorChanges:setContext(EditorTestFactory.createEditorChangesContext(editorModel))
 	intervalManager:setContext(EditorTestFactory.createIntervalManagerContext(editorModel))
-	noteService:setEditorModel(editorModel)
+	noteService:setContext(EditorTestFactory.createEditorNoteServiceContext(editorModel))
 	scroller:setContext(EditorTestFactory.createScrollerContext(editorModel))
 
 	return editorModel
@@ -180,9 +180,114 @@ function EditorTestFactory.createVisualEngineContext(editorModel)
 		getIterRange = function()
 			return editorModel:getIterRange()
 		end,
-		getEditorModel = function()
-			return editorModel
+		getEditorNoteContext = function()
+			return EditorTestFactory.createEditorNoteContext(editorModel)
 		end,
+	}
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.EditorNoteContext
+function EditorTestFactory.createEditorNoteContext(editorModel)
+	return {
+		getDtpAbsolute = function(absoluteTime)
+			return editorModel:getDtpAbsolute(absoluteTime)
+		end,
+		getLayer = function()
+			return editorModel.layer
+		end,
+		getVisual = function()
+			return editorModel:getVisual()
+		end,
+		getNextSnapIntervalTime = function(point, delta)
+			return editorModel.scroller:getNextSnapIntervalTime(point, delta)
+		end,
+	}
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.EditorNoteServiceContext
+function EditorTestFactory.createEditorNoteServiceContext(editorModel)
+	return {
+		columnService = {
+			getMousePosition = function()
+				return editorModel.getMousePosition()
+			end,
+			getNoteSkin = function()
+				return editorModel:getNoteSkin()
+			end,
+		},
+		commandService = {
+			getSelectedNotes = function()
+				return editorModel.visualEngine.selectedNotes
+			end,
+			editorChanges = editorModel.editorChanges,
+			getSettings = function()
+				return editorModel:getSettings()
+			end,
+			getNoteSkin = function()
+				return editorModel:getNoteSkin()
+			end,
+			resetVisual = function()
+				editorModel.visualEngine:reset()
+			end,
+			getNoteOpsContext = function()
+				return {
+					notes = editorModel.notes,
+					editorChanges = editorModel.editorChanges,
+					getLayer = function()
+						return editorModel.layer
+					end,
+					getVisual = function()
+						return editorModel:getVisual()
+					end,
+				}
+			end,
+		},
+		dragService = {
+			getNoteSkin = function()
+				return editorModel:getNoteSkin()
+			end,
+			getSettings = function()
+				return editorModel:getSettings()
+			end,
+			editorChanges = editorModel.editorChanges,
+			getSelectedNotes = function()
+				return editorModel.visualEngine.selectedNotes
+			end,
+			getMouseTime = function()
+				return editorModel:getMouseTime()
+			end,
+		},
+		clipboardService = {
+			getSelectedNotes = function()
+				return editorModel.visualEngine.selectedNotes
+			end,
+			editorChanges = editorModel.editorChanges,
+			getPoint = function()
+				return editorModel:getPoint()
+			end,
+		},
+		createService = {
+			getVisualInfo = function()
+				return editorModel.visualEngine.visual_info
+			end,
+			getEditorNoteContext = function()
+				return EditorTestFactory.createEditorNoteContext(editorModel)
+			end,
+			getVisualEngine = function()
+				return editorModel.visualEngine
+			end,
+			getSettings = function()
+				return editorModel:getSettings()
+			end,
+			selectNote = function(note)
+				editorModel.visualEngine:selectNote(note)
+			end,
+			getMouseTime = function()
+				return editorModel:getMouseTime()
+			end,
+		},
 	}
 end
 

@@ -280,9 +280,110 @@ function EditorModel:createVisualEngineContext()
 		getIterRange = function()
 			return self:getIterRange()
 		end,
-		getEditorModel = function()
-			return self
+		getEditorNoteContext = function()
+			return self:createEditorNoteContext()
 		end,
+	}
+end
+
+---@return rizu.editor.EditorNoteContext
+function EditorModel:createEditorNoteContext()
+	return {
+		getDtpAbsolute = function(absoluteTime)
+			return self:getDtpAbsolute(absoluteTime)
+		end,
+		getLayer = function()
+			return self.layer
+		end,
+		getVisual = function()
+			return self:getVisual()
+		end,
+		getNextSnapIntervalTime = function(point, delta)
+			return self.scroller:getNextSnapIntervalTime(point, delta)
+		end,
+	}
+end
+
+---@return rizu.editor.EditorNoteServiceContext
+function EditorModel:createEditorNoteServiceContext()
+	return {
+		columnService = {
+			getMousePosition = self.getMousePosition,
+			getNoteSkin = function()
+				return self:getNoteSkin()
+			end,
+		},
+		commandService = {
+			getSelectedNotes = function()
+				return self.visualEngine.selectedNotes
+			end,
+			editorChanges = self.editorChanges,
+			getSettings = function()
+				return self:getSettings()
+			end,
+			getNoteSkin = function()
+				return self:getNoteSkin()
+			end,
+			resetVisual = function()
+				self.visualEngine:reset()
+			end,
+			getNoteOpsContext = function()
+				return {
+					notes = self.notes,
+					editorChanges = self.editorChanges,
+					getLayer = function()
+						return self.layer
+					end,
+					getVisual = function()
+						return self:getVisual()
+					end,
+				}
+			end,
+		},
+		dragService = {
+			getNoteSkin = function()
+				return self:getNoteSkin()
+			end,
+			getSettings = function()
+				return self:getSettings()
+			end,
+			editorChanges = self.editorChanges,
+			getSelectedNotes = function()
+				return self.visualEngine.selectedNotes
+			end,
+			getMouseTime = function()
+				return self:getMouseTime()
+			end,
+		},
+		clipboardService = {
+			getSelectedNotes = function()
+				return self.visualEngine.selectedNotes
+			end,
+			editorChanges = self.editorChanges,
+			getPoint = function()
+				return self:getPoint()
+			end,
+		},
+		createService = {
+			getVisualInfo = function()
+				return self.visualEngine.visual_info
+			end,
+			getEditorNoteContext = function()
+				return self:createEditorNoteContext()
+			end,
+			getVisualEngine = function()
+				return self.visualEngine
+			end,
+			getSettings = function()
+				return self:getSettings()
+			end,
+			selectNote = function(note)
+				self.visualEngine:selectNote(note)
+			end,
+			getMouseTime = function()
+				return self:getMouseTime()
+			end,
+		},
 	}
 end
 

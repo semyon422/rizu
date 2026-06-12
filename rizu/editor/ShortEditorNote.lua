@@ -12,11 +12,11 @@ local ShortEditorNote = EditorNote + ShortVisualNote
 ---@param column chart.Column
 ---@return rizu.editor.ShortEditorNote?
 function ShortEditorNote:create(absoluteTime, column)
-	local editorModel = self.editorModel
-	local layer = editorModel.layer
-	local visual = editorModel:getVisual()
+	local context = self.context
+	local layer = context.getLayer()
+	local visual = context.getVisual()
 
-	local dtp = editorModel:getDtpAbsolute(absoluteTime)
+	local dtp = context.getDtpAbsolute(absoluteTime)
 	local p = layer.points:saveSearchPoint(dtp)
 	local vp = visual:getPoint(p)
 	local note = Note(vp, column, "tap")
@@ -48,10 +48,10 @@ end
 
 ---@param t number
 function ShortEditorNote:drop(t)
-	local editorModel = self.editorModel
-	local layer = editorModel.layer
-	local visual = editorModel:getVisual()
-	local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime)
+	local context = self.context
+	local layer = context.getLayer()
+	local visual = context.getVisual()
+	local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime)
 	local p = layer.points:saveSearchPoint()
 	local vp = visual:getPoint(p)
 	self.startNote.visualPoint = vp
@@ -59,7 +59,7 @@ end
 
 ---@param t number
 function ShortEditorNote:updateGrabbed(t)
-	self.editorModel:getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.startNote.visualPoint.point)
+	self.context.getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.startNote.visualPoint.point)
 end
 
 ---@param copyPoint chartedit.Point
@@ -70,8 +70,9 @@ end
 ---@param point chartedit.Point
 ---@return chart.Note[]
 function ShortEditorNote:paste(point)
-	local layer = self.editorModel.layer
-	local visual = self.editorModel:getVisual()
+	local context = self.context
+	local layer = context.getLayer()
+	local visual = context.getVisual()
 	local new_point = layer.points:getPoint(point:add(self.deltaStartTime))
 	local startNote = self.startNote:clone()
 	startNote.visualPoint = visual:getPoint(new_point)

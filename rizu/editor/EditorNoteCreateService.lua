@@ -3,7 +3,7 @@ local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
 
 ---@class rizu.editor.EditorNoteCreateServiceContext
 ---@field getVisualInfo fun(): rizu.VisualInfo
----@field getEditorModel fun(): rizu.editor.EditorModel
+---@field getEditorNoteContext fun(): rizu.editor.EditorNoteContext
 ---@field getVisualEngine fun(): rizu.editor.VisualEngine
 ---@field getSettings fun(): table
 ---@field selectNote fun(note: rizu.editor.EditorNote?)
@@ -25,30 +25,6 @@ function EditorNoteCreateService:setContext(context)
 	self.context = context
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorNoteCreateService:setEditorModel(editorModel)
-	self:setContext({
-		getVisualInfo = function()
-			return editorModel.visualEngine.visual_info
-		end,
-		getEditorModel = function()
-			return editorModel
-		end,
-		getVisualEngine = function()
-			return editorModel.visualEngine
-		end,
-		getSettings = function()
-			return editorModel:getSettings()
-		end,
-		selectNote = function(note)
-			editorModel.visualEngine:selectNote(note)
-		end,
-		getMouseTime = function()
-			return editorModel:getMouseTime()
-		end,
-	})
-end
-
 ---@param noteType string
 ---@param absoluteTime number
 ---@param column string
@@ -59,7 +35,7 @@ function EditorNoteCreateService:newNote(noteType, absoluteTime, column)
 	if not note then
 		return
 	end
-	note.editorModel = context.getEditorModel()
+	note:setContext(context.getEditorNoteContext())
 	note.visualEngine = context.getVisualEngine()
 	note.column = column
 	return note:create(absoluteTime, column)

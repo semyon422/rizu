@@ -146,11 +146,7 @@ function EditorServices:attachEditorModel(editorModel)
 	self.noteChartLoader:setContext(editorModel:createNoteChartLoaderContext())
 	self.intervalManager:setContext(editorModel:createIntervalManagerContext())
 	self.editorChanges:setContext(editorModel:createEditorChangesContext())
-	if self.noteService.setEditorModel then
-		self.noteService:setEditorModel(editorModel)
-	else
-		self.noteService.editorModel = editorModel
-	end
+	self.noteService:setContext(editorModel:createEditorNoteServiceContext())
 	self.visualEngine:setContext(editorModel:createVisualEngineContext())
 	self.scroller:setContext(editorModel:createScrollerContext())
 	self.metronome:setContext(editorModel:createMetronomeContext())

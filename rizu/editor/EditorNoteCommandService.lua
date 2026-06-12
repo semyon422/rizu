@@ -24,37 +24,6 @@ function EditorNoteCommandService:setContext(context)
 	self.context = context
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorNoteCommandService:setEditorModel(editorModel)
-	self:setContext({
-		getSelectedNotes = function()
-			return editorModel.visualEngine.selectedNotes
-		end,
-		editorChanges = editorModel.editorChanges,
-		getSettings = function()
-			return editorModel:getSettings()
-		end,
-		getNoteSkin = function()
-			return editorModel:getNoteSkin()
-		end,
-		resetVisual = function()
-			editorModel.visualEngine:reset()
-		end,
-		getNoteOpsContext = function()
-			return {
-				notes = editorModel.notes,
-				editorChanges = editorModel.editorChanges,
-				getLayer = function()
-					return editorModel.layer
-				end,
-				getVisual = function()
-					return editorModel:getVisual()
-				end,
-			}
-		end,
-	})
-end
-
 ---@return rizu.editor.EditorNoteOps
 function EditorNoteCommandService:getNoteOps()
 	self.noteOps:setContext(self.context.getNoteOpsContext())

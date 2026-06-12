@@ -5,8 +5,16 @@ local EditorNoteCommandService = require("rizu.editor.EditorNoteCommandService")
 local EditorNoteCreateService = require("rizu.editor.EditorNoteCreateService")
 local EditorNoteDragService = require("rizu.editor.EditorNoteDragService")
 
+---@class rizu.editor.EditorNoteServiceContext
+---@field columnService rizu.editor.EditorNoteColumnServiceContext
+---@field commandService rizu.editor.EditorNoteCommandServiceContext
+---@field dragService rizu.editor.EditorNoteDragServiceContext
+---@field clipboardService rizu.editor.EditorClipboardServiceContext
+---@field createService rizu.editor.EditorNoteCreateServiceContext
+
 ---@class rizu.editor.EditorNoteService
 ---@operator call: rizu.editor.EditorNoteService
+---@field context rizu.editor.EditorNoteServiceContext
 local EditorNoteService = class()
 
 function EditorNoteService:new()
@@ -17,14 +25,14 @@ function EditorNoteService:new()
 	self.createService = EditorNoteCreateService(self.dragService)
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorNoteService:setEditorModel(editorModel)
-	self.editorModel = editorModel
-	self.columnService:setEditorModel(editorModel)
-	self.commandService:setEditorModel(editorModel)
-	self.dragService:setEditorModel(editorModel)
-	self.clipboardService:setEditorModel(editorModel)
-	self.createService:setEditorModel(editorModel)
+---@param context rizu.editor.EditorNoteServiceContext
+function EditorNoteService:setContext(context)
+	self.context = context
+	self.columnService:setContext(context.columnService)
+	self.commandService:setContext(context.commandService)
+	self.dragService:setContext(context.dragService)
+	self.clipboardService:setContext(context.clipboardService)
+	self.createService:setContext(context.createService)
 end
 
 function EditorNoteService:update()

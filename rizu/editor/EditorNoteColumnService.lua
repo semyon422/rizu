@@ -18,18 +18,6 @@ function EditorNoteColumnService:setContext(context)
 	self.context = context
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorNoteColumnService:setEditorModel(editorModel)
-	self:setContext({
-		getMousePosition = function()
-			return editorModel.getMousePosition()
-		end,
-		getNoteSkin = function()
-			return editorModel:getNoteSkin()
-		end,
-	})
-end
-
 ---@return number
 function EditorNoteColumnService:getColumnOver()
 	if self.columnOver then

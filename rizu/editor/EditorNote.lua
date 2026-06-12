@@ -3,7 +3,14 @@ local table_util = require("table_util")
 
 ---@class rizu.editor.EditorNote
 ---@operator call: rizu.editor.EditorNote
+---@field context rizu.editor.EditorNoteContext
 local EditorNote = class()
+
+---@class rizu.editor.EditorNoteContext
+---@field getDtpAbsolute fun(absoluteTime: number): chartedit.Point
+---@field getLayer fun(): chartedit.Layer
+---@field getVisual fun(): chartedit.Visual
+---@field getNextSnapIntervalTime fun(point: chartedit.Point, delta: number): chartedit.Vertex, chart.Fraction
 
 ---@param noteType string
 ---@param note chart.LinkedNote
@@ -16,6 +23,11 @@ function EditorNote:new(noteType, note, visual_info)
 		self.startNote = note.startNote
 		self.endNote = note.endNote
 	end
+end
+
+---@param context rizu.editor.EditorNoteContext
+function EditorNote:setContext(context)
+	self.context = context
 end
 
 ---@param absoluteTime number

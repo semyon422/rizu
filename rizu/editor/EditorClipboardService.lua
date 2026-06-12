@@ -22,19 +22,6 @@ function EditorClipboardService:setContext(context)
 	self.context = context
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorClipboardService:setEditorModel(editorModel)
-	self:setContext({
-		getSelectedNotes = function()
-			return editorModel.visualEngine.selectedNotes
-		end,
-		editorChanges = editorModel.editorChanges,
-		getPoint = function()
-			return editorModel:getPoint()
-		end,
-	})
-end
-
 ---@param cut boolean?
 function EditorClipboardService:copy(cut)
 	local context = self.context

@@ -105,35 +105,37 @@ Converts the persisted `chart.Chart` into editable `chartedit.Layer` and `charte
 ### `VisualEngine` — Note Rendering And Selection
 Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates linked notes in the visible time range, creates or reuses note objects, and tracks selection state. Uses `EditorNoteFactory` to produce the correct note subclass.
 
-`VisualEngine` receives `VisualEngineContext` from `EditorServices` for session time, editor settings, visual point, visual, notes, and visible iteration range. Phase 1 keeps a transitional `getEditorModel()` entry only so existing `EditorNote` subclasses can continue receiving `note.editorModel`; do not use that entry for new `VisualEngine` behavior.
+`VisualEngine` receives `VisualEngineContext` from `EditorServices` for session time, editor settings, visual point, visual, notes, visible iteration range, and editor-note context creation. Newly-created visual note wrappers should receive `EditorNoteContext`, not the whole `EditorModel`.
 
 Selection state is keyed by the note's current `startNote`. Drag operations that clone notes must update selection keys to avoid stale selected notes after visual refresh.
 
 ### `EditorNoteService` — Note Manipulation
 Facade for note manipulation commands and composition root for focused note services. Code should require `rizu.editor.EditorNoteService` directly.
 
-`EditorNoteCreateService` owns editor-note construction and add-note tool behavior. It creates the correct editor note class through `EditorNoteFactory`, initializes editor/visual links, selects newly-created notes, and hands them to `EditorNoteDragService` for immediate drag placement. Test setup and service code that need a raw editor note should call `createService:newNote(...)` directly; `EditorNoteService` only exposes the user-facing `addNote(...)` command. It receives `EditorNoteCreateServiceContext`; `getEditorModel()` is a temporary bridge only for initializing existing editor-note wrappers.
+`EditorNoteCreateService` owns editor-note construction and add-note tool behavior. It creates the correct editor note class through `EditorNoteFactory`, initializes editor/visual links, selects newly-created notes, and hands them to `EditorNoteDragService` for immediate drag placement. Test setup and service code that need a raw editor note should call `createService:newNote(...)` directly; `EditorNoteService` only exposes the user-facing `addNote(...)` command. It receives `EditorNoteCreateServiceContext` and assigns `EditorNoteContext` to new note wrappers.
 
-`EditorNoteColumnService` owns editor column lookup for note creation and dragging. Tests may set `columnService.columnOver` to force a deterministic hovered column; runtime lookups derive the column from the mouse position and active note skin. It receives `EditorNoteColumnServiceContext`; `setEditorModel()` is a compatibility adapter until note-service composition moves fully to contexts.
+`EditorNoteColumnService` owns editor column lookup for note creation and dragging. Tests may set `columnService.columnOver` to force a deterministic hovered column; runtime lookups derive the column from the mouse position and active note skin. It receives `EditorNoteColumnServiceContext`.
 
-`EditorClipboardService` owns copy, cut, and paste behavior. It keeps copied editor notes, chooses the earliest copied point as the paste origin, and records cut/paste undo boundaries through `EditorChanges`. It receives `EditorClipboardServiceContext`; `setEditorModel()` is a compatibility adapter until note-service composition moves fully to contexts.
+`EditorClipboardService` owns copy, cut, and paste behavior. It keeps copied editor notes, chooses the earliest copied point as the paste origin, and records cut/paste undo boundaries through `EditorChanges`. It receives `EditorClipboardServiceContext`.
 
-`EditorNoteDragService` owns note drag lifecycle state and behavior: grabbing existing or newly-created notes, updating unlocked-snap drags, preserving column deltas, dropping notes back into the chart, and restoring selected-note keys. It receives `EditorNoteDragServiceContext`; `setEditorModel()` is a compatibility adapter until note-service composition moves fully to contexts.
+`EditorNoteDragService` owns note drag lifecycle state and behavior: grabbing existing or newly-created notes, updating unlocked-snap drags, preserving column deltas, dropping notes back into the chart, and restoring selected-note keys. It receives `EditorNoteDragServiceContext`.
 
-`EditorNoteCommandService` owns command-level note mutations: direct note insertion/removal, delete selected, remove one note with undo boundary, change selected note type, and flip selected notes. It wraps `EditorNoteOps` and owns undo/redo boundaries around those commands. New code should call it directly for mutation setup instead of adding private `EditorNoteService` wrappers. It receives `EditorNoteCommandServiceContext`; `setEditorModel()` is a compatibility adapter until the remaining note services move to contexts.
+`EditorNoteCommandService` owns command-level note mutations: direct note insertion/removal, delete selected, remove one note with undo boundary, change selected note type, and flip selected notes. It wraps `EditorNoteOps` and owns undo/redo boundaries around those commands. New code should call it directly for mutation setup instead of adding private `EditorNoteService` wrappers. It receives `EditorNoteCommandServiceContext`.
 
 `EditorNoteOps` receives `EditorNoteOpsContext` for note storage, undo/redo recording, layer lookup, and visual lookup. It should not receive an `EditorModel` back-reference; command services may still build the ops context from their current editor-model bridge until those services are split.
 
-`EditorNoteService` is a small UI-facing facade and service composition root. It should not expose low-level `EditorNoteOps` or raw note construction helpers, and it should not mirror collaborator state. Use `getGrabbedNotes()` and `getCopiedNotes()` when UI code needs transient drag or clipboard state.
+`EditorNoteService` is a small UI-facing facade and service composition root. Runtime code attaches it through `EditorNoteServiceContext`, which groups the focused note-service contexts built by `EditorModel:createEditorNoteServiceContext()`. It should not expose low-level `EditorNoteOps` or raw note construction helpers, and it should not mirror collaborator state. Use `getGrabbedNotes()` and `getCopiedNotes()` when UI code needs transient drag or clipboard state.
 
-Note services should receive explicit dependencies from `EditorNoteService` instead of keeping a service-root back-reference. `EditorNoteService:setEditorModel(editorModel)` attaches the model to each service after `EditorModel` has been constructed.
+`ShortEditorNote` and `LongEditorNote` receive `EditorNoteContext` for layer, visual, absolute-time point lookup, and next-snap lookup. They should not receive an `EditorModel` back-reference.
+
+Note services should receive explicit dependencies from `EditorNoteService` instead of keeping a service-root back-reference. `EditorNoteService` and its focused subservices are context-only.
 
 All mutations are recorded through `EditorChanges` for undo/redo support.
 
 Editor tests should use `EditorTestFactory` note helpers for common setup:
 `createNote()` for a raw editor note, `addNote()` for chart insertion, `addCommittedNote()` when undo history needs an initial boundary, and `addSelectedNote()` / `addCommittedSelectedNote()` for selected-note command setup. Spell out lower-level `commandService:addNotes(...)` calls only when the test is explicitly covering duplicate insertion, multi-note setup, or low-level note ops.
 
-`EditorTestFactory.createNoteChartLoaderContext(editorModel)`, `createEditorChangesContext(editorModel)`, `createScrollerContext(editorModel)`, `createIntervalManagerContext(editorModel)`, and `createMetronomeContext(editorModel)` mirror the runtime context shapes for lightweight editor-model fakes. Prefer them over rebuilding callback tables in each test.
+`EditorTestFactory.createEditorNoteServiceContext(editorModel)`, `createEditorNoteContext(editorModel)`, `createNoteChartLoaderContext(editorModel)`, `createEditorChangesContext(editorModel)`, `createScrollerContext(editorModel)`, `createIntervalManagerContext(editorModel)`, and `createMetronomeContext(editorModel)` mirror the runtime context shapes for lightweight editor-model fakes. Prefer them over rebuilding callback tables in each test.
 
 ### `IntervalManager` — Timing Vertex Manipulation
 Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual vertex data.
@@ -262,7 +264,7 @@ Covered and partially modernized:
 - Editor screen update/draw/receive sequencing through `EditorScreenFrameService`.
 
 Remaining higher-risk areas:
-- Editor note classes and note-editing services still carry broad editor-model access and should be split only behind behavior tests. `VisualEngineContext.getEditorModel()` exists only as a temporary bridge for those note classes.
+- `EditorController` remains a boundary/orchestration class with an `EditorModel` reference for load/save/export routing.
 - Graph generation with real charts/audio and waveform/audio resource failure modes beyond service sequencing.
 - UI view integration under `ui/views/EditorView/`.
 - BMS-specific exporters, intentionally deferred until parser rewrite work.

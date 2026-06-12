@@ -13,6 +13,7 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	local noteChartLoaderContext = {}
 	local visualEngineContext = {}
 	local metronomeContext = {}
+	local noteServiceContext = {}
 	local editorModel = {
 		createNoteChartLoaderContext = function()
 			return noteChartLoaderContext
@@ -28,6 +29,9 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 		end,
 		createVisualEngineContext = function()
 			return visualEngineContext
+		end,
+		createEditorNoteServiceContext = function()
+			return noteServiceContext
 		end,
 		createMetronomeContext = function()
 			return metronomeContext
@@ -69,8 +73,8 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(deps.graphsGenerator.editorModel, nil)
 	t:eq(deps.editorChanges.context, editorChangesContext)
 	t:eq(deps.editorChanges.editorModel, nil)
-	t:eq(deps.noteService.editorModel, editorModel)
-	t:eq(deps.noteService.attachedWithMethod, true)
+	t:eq(deps.noteService.context, noteServiceContext)
+	t:eq(deps.noteService.editorModel, nil)
 	t:eq(deps.visualEngine.context, visualEngineContext)
 	t:eq(deps.visualEngine.editorModel, nil)
 	t:eq(deps.scroller.context, scrollerContext)
@@ -113,9 +117,8 @@ end
 ---@return rizu.editor.EditorServicesDeps
 function createDeps()
 	local noteService = {
-		setEditorModel = function(self, editorModel)
-			self.editorModel = editorModel
-			self.attachedWithMethod = true
+		setContext = function(self, context)
+			self.context = context
 		end,
 	}
 	local scroller = {

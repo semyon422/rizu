@@ -10,7 +10,7 @@ local VisualInfo = require("rizu.engine.visual.VisualInfo")
 ---@field getVisual fun(): chartedit.Visual?
 ---@field getNotes fun(): chartedit.Notes
 ---@field getIterRange fun(): number, number
----@field getEditorModel fun(): rizu.editor.EditorModel
+---@field getEditorNoteContext fun(): rizu.editor.EditorNoteContext
 
 ---@class rizu.editor.VisualEngine
 ---@operator call: rizu.editor.VisualEngine
@@ -93,7 +93,7 @@ function VisualEngine:newNote(_note, column)
 	if not note then
 		return
 	end
-	note.editorModel = self.context.getEditorModel()
+	note:setContext(self.context.getEditorNoteContext())
 	note.visualEngine = self
 	note.column = column
 	note.cvp = self.context.getVisualPoint()

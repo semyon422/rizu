@@ -28,25 +28,6 @@ function EditorNoteDragService:setContext(context)
 	self.context = context
 end
 
----@param editorModel rizu.editor.EditorModel
-function EditorNoteDragService:setEditorModel(editorModel)
-	self:setContext({
-		getNoteSkin = function()
-			return editorModel:getNoteSkin()
-		end,
-		getSettings = function()
-			return editorModel:getSettings()
-		end,
-		editorChanges = editorModel.editorChanges,
-		getSelectedNotes = function()
-			return editorModel.visualEngine.selectedNotes
-		end,
-		getMouseTime = function()
-			return editorModel:getMouseTime()
-		end,
-	})
-end
-
 function EditorNoteDragService:clear()
 	for i = #self.grabbedNotes, 1, -1 do
 		self.grabbedNotes[i] = nil

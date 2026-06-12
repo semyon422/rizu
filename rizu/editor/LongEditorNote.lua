@@ -18,17 +18,17 @@ end
 ---@param column chart.Column
 ---@return rizu.editor.LongEditorNote?
 function LongEditorNote:create(absoluteTime, column)
-	local editorModel = self.editorModel
-	local layer = editorModel.layer
-	local visual = editorModel:getVisual()
+	local context = self.context
+	local layer = context.getLayer()
+	local visual = context.getVisual()
 
-	local dtp = editorModel:getDtpAbsolute(absoluteTime)
+	local dtp = context.getDtpAbsolute(absoluteTime)
 	local p = layer.points:saveSearchPoint(dtp)
 	local vp = visual:getPoint(p)
 	local startNote = Note(vp, column, "hold", 1)
 	self.startNote = startNote
 
-	local p = layer.points:getPoint(editorModel.scroller:getNextSnapIntervalTime(p, 1))
+	local p = layer.points:getPoint(context.getNextSnapIntervalTime(p, 1))
 	local vp = visual:getPoint(p)
 	local endNote = Note(vp, column, "hold", -1)
 	self.endNote = endNote
@@ -78,31 +78,31 @@ end
 
 ---@param t number
 function LongEditorNote:drop(t)
-	local editorModel = self.editorModel
-	local layer = editorModel.layer
-	local visual = editorModel:getVisual()
+	local context = self.context
+	local layer = context.getLayer()
+	local visual = context.getVisual()
 	if self.grabbedPart == "head" then
-		local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime)
+		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime)
 		local p = layer.points:saveSearchPoint()
 		if p == self.endNote.visualPoint.point then
-			p = layer.points:getPoint(editorModel.scroller:getNextSnapIntervalTime(p, -1))
+			p = layer.points:getPoint(context.getNextSnapIntervalTime(p, -1))
 		end
 		local vp = visual:getPoint(p)
 		self.startNote.visualPoint = vp
 	elseif self.grabbedPart == "tail" then
-		local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime)
+		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime)
 		local p = layer.points:saveSearchPoint()
 		if self.startNote.visualPoint.point == p then
-			p = layer.points:getPoint(editorModel.scroller:getNextSnapIntervalTime(p, 1))
+			p = layer.points:getPoint(context.getNextSnapIntervalTime(p, 1))
 		end
 		local vp = visual:getPoint(p)
 		self.endNote.visualPoint = vp
 	elseif self.grabbedPart == "body" then
-		local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime[1])
+		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime[1])
 		local p = layer.points:saveSearchPoint()
 		local vp = visual:getPoint(p)
 		self.startNote.visualPoint = vp
-		local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime[2])
+		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime[2])
 		local p = layer.points:saveSearchPoint()
 		local vp = visual:getPoint(p)
 		self.endNote.visualPoint = vp
@@ -111,14 +111,14 @@ end
 
 ---@param t number
 function LongEditorNote:updateGrabbed(t)
-	local editorModel = self.editorModel
+	local context = self.context
 	if self.grabbedPart == "head" then
-		editorModel:getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.startNote.visualPoint.point)
+		context.getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.startNote.visualPoint.point)
 	elseif self.grabbedPart == "tail" then
-		editorModel:getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.endNote.visualPoint.point)
+		context.getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.endNote.visualPoint.point)
 	elseif self.grabbedPart == "body" then
-		editorModel:getDtpAbsolute(t - self.grabbedDeltaTime[1]):clone(self.startNote.visualPoint.point)
-		editorModel:getDtpAbsolute(t - self.grabbedDeltaTime[2]):clone(self.endNote.visualPoint.point)
+		context.getDtpAbsolute(t - self.grabbedDeltaTime[1]):clone(self.startNote.visualPoint.point)
+		context.getDtpAbsolute(t - self.grabbedDeltaTime[2]):clone(self.endNote.visualPoint.point)
 	end
 end
 
@@ -131,8 +131,9 @@ end
 ---@param point chartedit.Point
 ---@return chart.Note[]
 function LongEditorNote:paste(point)
-	local layer = self.editorModel.layer
-	local visual = self.editorModel:getVisual()
+	local context = self.context
+	local layer = context.getLayer()
+	local visual = context.getVisual()
 
 	local startNote = self.startNote:clone()
 	local endNote = self.endNote:clone()

@@ -60,6 +60,11 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 			self.context = context
 		end,
 	}
+	local noteService = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
 	local services = {
 		noteChartLoader = noteChartLoader,
 		audio_engine = {},
@@ -68,7 +73,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		graphsGenerator = {},
 		editorChanges = editorChanges,
 		timer = timer,
-		noteService = {},
+		noteService = noteService,
 		visualEngine = visualEngine,
 		scroller = scroller,
 		metronome = metronome,
@@ -165,7 +170,9 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(services.graphsGenerator.editorModel, nil)
 	t:eq(type(services.editorChanges.context.resetVisual), "function")
 	t:eq(services.editorChanges.editorModel, nil)
-	t:eq(services.noteService.editorModel, editorModel)
+	t:eq(type(services.noteService.context.commandService.getSelectedNotes), "function")
+	t:eq(services.noteService.context.commandService.editorChanges, editorModel.editorChanges)
+	t:eq(services.noteService.editorModel, nil)
 	t:eq(type(services.visualEngine.context.getNotes), "function")
 	t:eq(services.visualEngine.editorModel, nil)
 	t:eq(type(services.scroller.context.getPoint), "function")
@@ -806,6 +813,59 @@ function test.interval_manager_context_reads_current_model_state(t)
 	editorModel.notes = {updated = true}
 	t:eq(context.getLayer(), editorModel.layer)
 	t:eq(context.getNotes(), editorModel.notes)
+end
+
+---@param t testing.T
+function test.editor_note_service_context_reads_current_model_state(t)
+	local editorModel = {
+		layer = {},
+		notes = {},
+		editorChanges = {},
+		visualEngine = {
+			selectedNotes = {},
+			visual_info = {},
+			reset = function() end,
+			selectNote = function() end,
+		},
+		scroller = {
+			getNextSnapIntervalTime = function()
+				return "vertex", "time"
+			end,
+		},
+		getMousePosition = function()
+			return 10, 20
+		end,
+		getNoteSkin = function()
+			return "noteSkin"
+		end,
+		getSettings = function()
+			return "settings"
+		end,
+		getMouseTime = function()
+			return 1.25
+		end,
+		getPoint = function()
+			return "point"
+		end,
+		getVisual = function()
+			return "visual"
+		end,
+		getDtpAbsolute = function(_, absoluteTime)
+			return "dtp:" .. absoluteTime
+		end,
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	local context = editorModel:createEditorNoteServiceContext()
+
+	t:eq(context.columnService.getNoteSkin(), "noteSkin")
+	t:eq(context.commandService.getSelectedNotes(), editorModel.visualEngine.selectedNotes)
+	t:eq(context.commandService.editorChanges, editorModel.editorChanges)
+	t:eq(context.commandService.getNoteOpsContext().notes, editorModel.notes)
+	t:eq(context.dragService.getMouseTime(), 1.25)
+	t:eq(context.clipboardService.getPoint(), "point")
+	t:eq(context.createService.getVisualInfo(), editorModel.visualEngine.visual_info)
+	t:eq(context.createService.getEditorNoteContext().getLayer(), editorModel.layer)
 end
 
 ---@param t testing.T
