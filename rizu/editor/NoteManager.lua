@@ -27,7 +27,7 @@ function NoteManager:getColumnOver()
 	if self.columnOver then
 		return self.columnOver
 	end
-	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
+	local mx, _my = self.editorModel.getMousePosition()
 	local noteSkin = self.editorModel.session.noteSkin
 	return noteSkin:getInverseColumnPosition(mx)
 end

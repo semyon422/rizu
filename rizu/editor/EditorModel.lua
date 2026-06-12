@@ -2,7 +2,6 @@ local class = require("class")
 local AudioEngine = require("rizu.engine.audio.Engine")
 local TimeManager = require("rizu.editor.TimeManager")
 local VisualEngine = require("rizu.editor.VisualEngine")
-local just = require("just")
 local Changes = require("Changes")
 local NoteChartLoader = require("rizu.editor.NoteChartLoader")
 local NcbtContext = require("rizu.editor.NcbtContext")
@@ -18,10 +17,20 @@ local pattern_analyzer = require("chart.scoring.pattern_analyzer")
 local Point = require("chart.chartedit.Point")
 local Metadata = require("chart.format.sph.Metadata")
 
+---@class rizu.editor.EditorModelDeps
+---@field fs fs.IFilesystem?
+---@field isMultiSelectRequested (fun(): boolean)?
+---@field getMousePosition (fun(): number, number)?
+---@field selectRegion (fun(x1: number, y1: number, x2: number, y2: number))?
+---@field unselectRegion (fun())?
+
 ---@class rizu.editor.EditorModel
 ---@operator call: rizu.editor.EditorModel
 ---@field layer chartedit.Layer
 ---@field isMultiSelectRequested fun(): boolean
+---@field getMousePosition fun(): number, number
+---@field selectRegion fun(x1: number, y1: number, x2: number, y2: number)
+---@field unselectRegion fun()
 local EditorModel = class()
 
 EditorModel.tools = {"Select", "ShortNote", "LongNote", "SoundNote"}
@@ -30,14 +39,19 @@ EditorModel.max_snap = 192
 
 ---@param configModel sphere.ConfigModel
 ---@param resourceModel sphere.ResourceModel
----@param fs fs.IFilesystem?
----@param isMultiSelectRequested (fun(): boolean)?
-function EditorModel:new(configModel, resourceModel, fs, isMultiSelectRequested)
+---@param deps rizu.editor.EditorModelDeps?
+function EditorModel:new(configModel, resourceModel, deps)
+	deps = deps or {}
 	self.configModel = configModel
 	self.resourceModel = resourceModel
-	self.isMultiSelectRequested = isMultiSelectRequested or function()
+	self.isMultiSelectRequested = deps.isMultiSelectRequested or function()
 		return false
 	end
+	self.getMousePosition = deps.getMousePosition or function()
+		return 0, 0
+	end
+	self.selectRegion = deps.selectRegion or function() end
+	self.unselectRegion = deps.unselectRegion or function() end
 
 	self.noteChartLoader = NoteChartLoader()
 	self.audio_engine = AudioEngine()
@@ -50,7 +64,7 @@ function EditorModel:new(configModel, resourceModel, fs, isMultiSelectRequested)
 	self.noteManager = NoteManager()
 	self.visualEngine = VisualEngine()
 	self.scroller = Scroller()
-	self.metronome = Metronome(fs)
+	self.metronome = Metronome(deps.fs)
 	self.metadata = Metadata()
 
 	for _, v in pairs(self) do
@@ -276,7 +290,7 @@ end
 ---@return number
 function EditorModel:getMouseTime(dy)
 	dy = dy or 0
-	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
+	local _mx, my = self.getMousePosition()
 	local noteSkin = self.session.noteSkin
 	local editor = self:getSettings()
 	return self:getSessionTime() - noteSkin:getInverseTimePosition(my + dy) / editor.speed
@@ -289,16 +303,16 @@ end
 
 function EditorModel:selectStart()
 	self.visualEngine:selectStart()
-	local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
+	local mx, my = self.getMousePosition()
 	self.session.selectRect = {mx, my, mx, my}
 	self.session.selectStartTime = self:getMouseTime()
-	just.select(mx, my, mx, my)
+	self.selectRegion(mx, my, mx, my)
 end
 
 function EditorModel:selectEnd()
 	self.visualEngine:selectEnd()
 	self.session.selectRect = nil
-	just.unselect()
+	self.unselectRegion()
 end
 
 ---@param editor table
@@ -317,11 +331,11 @@ end
 ---@param time number
 function EditorModel:updateSelectionRect(editor, noteSkin, time)
 	if self.session.selectRect then
-		local mx, my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
+		local mx, my = self.getMousePosition()
 		self.session.selectRect[2] = noteSkin:getTimePosition((time - self.session.selectStartTime) * editor.speed)
 		self.session.selectRect[3] = mx
 		self.session.selectRect[4] = my
-		just.select(self.session.selectRect[1], self.session.selectRect[2], mx, my)
+		self.selectRegion(self.session.selectRect[1], self.session.selectRect[2], mx, my)
 	end
 end
 

@@ -3,69 +3,59 @@ local BmsKeysoundSlicer = require("rizu.editor.exports.BmsKeysoundSlicer")
 local BmsTemplateExporter = require("rizu.editor.exports.BmsTemplateExporter")
 local EditorDropImport = require("rizu.editor.EditorDropImport")
 local NanoChartExporter = require("rizu.editor.exports.NanoChartExporter")
+local OsuChartExporter = require("rizu.editor.exports.OsuChartExporter")
+local SphChartSaver = require("rizu.editor.exports.SphChartSaver")
 local UbmscExporter = require("rizu.editor.exports.UbmscExporter")
 local LoveFilesystem = require("fs.LoveFilesystem")
 
-local ChartEncoder = require("chart.format.sph.ChartEncoder")
-local OsuChartEncoder = require("chart.format.osu.ChartEncoder")
 local ModifierModel = require("sphere.models.ModifierModel")
+
+---@class rizu.editor.EditorControllerDeps
+---@field chartSelector rizu.select.ChartSelector
+---@field editorModel rizu.editor.EditorModel
+---@field noteSkinModel sphere.NoteSkinModel
+---@field configModel sphere.ConfigModel
+---@field resourceModel sphere.ResourceModel
+---@field windowModel sphere.WindowModel
+---@field library rizu.library
+---@field fileFinder sphere.FileFinder
+---@field previewModel rizu.preview.PreviewModel
+---@field replayBase sea.ReplayBase
+---@field resource_finder rizu.ResourceFinder
+---@field resource_loader rizu.ResourceLoader
+---@field fs fs.IFilesystem?
+---@field isModifierApplyRequested (fun(): boolean)?
+---@field dropImport rizu.editor.EditorDropImport?
+---@field sphChartSaver rizu.editor.exports.SphChartSaver?
+---@field osuChartExporter rizu.editor.exports.OsuChartExporter?
+---@field nanoChartExporter rizu.editor.exports.NanoChartExporter?
 
 ---@class rizu.editor.EditorController
 ---@operator call: rizu.editor.EditorController
 local EditorController = class()
 
----@param chartSelector rizu.select.ChartSelector
----@param editorModel rizu.editor.EditorModel
----@param noteSkinModel sphere.NoteSkinModel
----@param configModel sphere.ConfigModel
----@param resourceModel sphere.ResourceModel
----@param windowModel sphere.WindowModel
----@param library rizu.library
----@param fileFinder sphere.FileFinder
----@param previewModel rizu.preview.PreviewModel
----@param replayBase sea.ReplayBase
----@param resource_finder rizu.ResourceFinder
----@param resource_loader rizu.ResourceLoader
----@param fs fs.IFilesystem?
----@param isModifierApplyRequested (fun(): boolean)?
----@param dropImport rizu.editor.EditorDropImport?
----@param nanoChartExporter rizu.editor.exports.NanoChartExporter?
-function EditorController:new(
-	chartSelector,
-	editorModel,
-	noteSkinModel,
-	configModel,
-	resourceModel,
-	windowModel,
-	library,
-	fileFinder,
-	previewModel,
-	replayBase,
-	resource_finder,
-	resource_loader,
-	fs,
-	isModifierApplyRequested,
-	dropImport,
-	nanoChartExporter
-)
-	self.chartSelector = chartSelector
-	self.editorModel = editorModel
-	self.noteSkinModel = noteSkinModel
-	self.configModel = configModel
-	self.resourceModel = resourceModel
-	self.windowModel = windowModel
-	self.library = library
-	self.fileFinder = fileFinder
-	self.previewModel = previewModel
-	self.replayBase = replayBase
-	self.resource_finder = resource_finder
-	self.resource_loader = resource_loader
-	self.fs = fs or LoveFilesystem()
-	self.isModifierApplyRequested = isModifierApplyRequested or function()
+---@param deps rizu.editor.EditorControllerDeps
+function EditorController:new(deps)
+	self.chartSelector = deps.chartSelector
+	self.editorModel = deps.editorModel
+	self.noteSkinModel = deps.noteSkinModel
+	self.configModel = deps.configModel
+	self.resourceModel = deps.resourceModel
+	self.windowModel = deps.windowModel
+	self.library = deps.library
+	self.fileFinder = deps.fileFinder
+	self.previewModel = deps.previewModel
+	self.replayBase = deps.replayBase
+	self.resource_finder = deps.resource_finder
+	self.resource_loader = deps.resource_loader
+	self.fs = deps.fs or LoveFilesystem()
+	self.isModifierApplyRequested = deps.isModifierApplyRequested or function()
 		return false
 	end
-	self.dropImport = dropImport or EditorDropImport(self.fs)
-	self.nanoChartExporter = nanoChartExporter or NanoChartExporter(self.fs)
+	self.dropImport = deps.dropImport or EditorDropImport(self.fs)
+	self.sphChartSaver = deps.sphChartSaver or SphChartSaver(self.fs)
+	self.osuChartExporter = deps.osuChartExporter or OsuChartExporter(self.fs)
+	self.nanoChartExporter = deps.nanoChartExporter or NanoChartExporter(self.fs)
 end
 
 function EditorController:load()
@@ -151,42 +141,11 @@ function EditorController:exportBmsTemplate(columns_out)
 end
 
 function EditorController:save()
-	local chartSelector = self.chartSelector
-	local editorModel = self.editorModel
-
-	self.editorModel:save()
-	self.editorModel:genGraphs()
-
-	local encoder = ChartEncoder()
-	local data = encoder:encode({{
-		chart = editorModel.chart,
-		chartmeta = editorModel.chartmeta,
-	}})
-
-	local chartview = chartSelector.chartview
-	local path = chartview.location_path:gsub(".sph$", "") .. ".sph"
-
-	assert(self.fs:write(path, data))
-
-	self.library:computeLocation(chartview.dir, chartview.location_id)
+	self.sphChartSaver:save(self.chartSelector.chartview, self.editorModel, self.library)
 end
 
 function EditorController:saveToOsu()
-	local chartSelector = self.chartSelector
-	local editorModel = self.editorModel
-
-	self.editorModel:save()
-
-	local encoder = OsuChartEncoder()
-	local data = encoder:encode({{
-		chart = editorModel.chart,
-		chartmeta = editorModel.chartmeta,
-	}})
-
-	local chartview = chartSelector.chartview
-	local path = chartview.location_path:gsub(".osu$", ""):gsub(".sph$", "") .. ".sph.osu"
-
-	assert(self.fs:write(path, data))
+	self.osuChartExporter:export(self.chartSelector.chartview, self.editorModel)
 end
 
 function EditorController:saveToNanoChart()

@@ -60,6 +60,11 @@ function EditorTestFactory.createEditorModel()
 		isMultiSelectRequested = function()
 			return false
 		end,
+		getMousePosition = function()
+			return 0, 0
+		end,
+		selectRegion = function() end,
+		unselectRegion = function() end,
 		visualEngine = {
 			notes = {},
 			selectedNotes = {},

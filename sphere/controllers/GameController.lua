@@ -1,4 +1,5 @@
 local class = require("class")
+local just = require("just")
 
 local OnlineModel = require("sphere.models.OnlineModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
@@ -103,10 +104,21 @@ function GameController:new()
 	self.editorModel = EditorModel(
 		self.persistence.configModel,
 		self.resourceModel,
-		self.fs,
-		function()
-			return love.keyboard.isDown("lctrl")
-		end
+		{
+			fs = self.fs,
+			isMultiSelectRequested = function()
+				return love.keyboard.isDown("lctrl")
+			end,
+			getMousePosition = function()
+				return love.graphics.inverseTransformPoint(love.mouse.getPosition())
+			end,
+			selectRegion = function(x1, y1, x2, y2)
+				just.select(x1, y1, x2, y2)
+			end,
+			unselectRegion = function()
+				just.unselect()
+			end,
+		}
 	)
 	self.speedModel = SpeedModel(self.persistence.configModel)
 	self.computeContext = ComputeContext()
@@ -213,24 +225,24 @@ function GameController:new()
 	self.resource_finder = ResourceFinder(self.fs)
 	self.resource_loader = ResourceLoader(self.fs, self.resource_finder)
 
-	self.editorController = EditorController(
-		self.chartSelector,
-		self.editorModel,
-		self.noteSkinModel,
-		self.configModel,
-		self.resourceModel,
-		self.windowModel,
-		self.library,
-		self.fileFinder,
-		self.previewModel,
-		self.replayBase,
-		self.resource_finder,
-		self.resource_loader,
-		self.fs,
-		function()
+	self.editorController = EditorController({
+		chartSelector = self.chartSelector,
+		editorModel = self.editorModel,
+		noteSkinModel = self.noteSkinModel,
+		configModel = self.configModel,
+		resourceModel = self.resourceModel,
+		windowModel = self.windowModel,
+		library = self.library,
+		fileFinder = self.fileFinder,
+		previewModel = self.previewModel,
+		replayBase = self.replayBase,
+		resource_finder = self.resource_finder,
+		resource_loader = self.resource_loader,
+		fs = self.fs,
+		isModifierApplyRequested = function()
 			return love.keyboard.isDown("lshift")
-		end
-	)
+		end,
+	})
 
 	self.gameplayInteractor = GameplayInteractor(self)
 	self.gameInteractor = GameInteractor(self)

@@ -1,8 +1,6 @@
-local ChartEncoder = require("chart.format.sph.ChartEncoder")
 local EditorController = require("rizu.editor.EditorController")
 local EditorDropImport = require("rizu.editor.EditorDropImport")
 local FakeFilesystem = require("fs.FakeFilesystem")
-local OsuChartEncoder = require("chart.format.osu.ChartEncoder")
 local ModifierModel = require("sphere.models.ModifierModel")
 
 local test = {}
@@ -10,24 +8,7 @@ local test = {}
 ---@param fields table
 ---@return rizu.editor.EditorController
 local function createController(fields)
-	return EditorController(
-		fields.chartSelector,
-		fields.editorModel,
-		fields.noteSkinModel,
-		fields.configModel,
-		fields.resourceModel,
-		fields.windowModel,
-		fields.library,
-		fields.fileFinder,
-		fields.previewModel,
-		fields.replayBase,
-		fields.resource_finder,
-		fields.resource_loader,
-		fields.fs,
-		fields.isModifierApplyRequested,
-		fields.dropImport,
-		fields.nanoChartExporter
-	)
+	return EditorController(fields)
 end
 
 ---@param t testing.T
@@ -276,173 +257,70 @@ function test.unload_restores_vsync(t)
 end
 
 ---@param t testing.T
-function test.save_writes_sph_and_recomputes_library(t)
-	local oldEncode = ChartEncoder.encode
-	local fs = FakeFilesystem()
-	fs:createDirectory("charts")
-	ChartEncoder.encode = function(_, payload)
-		t:eq(payload[1].chart.id, "chart")
-		t:eq(payload[1].chartmeta.title, "Title")
-		return "encoded"
-	end
-
-	local calls = {}
+function test.save_delegates_to_sph_saver(t)
+	local chartview = {
+		location_path = "charts/example.osu",
+		dir = "charts",
+		location_id = 42,
+	}
+	local editorModel = {
+		id = "editor",
+	}
+	local library = {
+		id = "library",
+	}
+	local savedChartview
+	local savedEditorModel
+	local savedLibrary
 	local controller = createController({
 		chartSelector = {
-			chartview = {
-				location_path = "charts/example.osu",
-				dir = "charts",
-				location_id = 42,
-			},
+			chartview = chartview,
 		},
-		editorModel = {
-			chart = {
-				id = "chart",
-			},
-			chartmeta = {
-				title = "Title",
-			},
-			save = function()
-				table.insert(calls, "save")
-			end,
-			genGraphs = function()
-				table.insert(calls, "graphs")
-			end,
-		},
-		library = {
-			computeLocation = function(_, dir, locationId)
-				table.insert(calls, ("library:%s:%s"):format(dir, locationId))
-			end,
-		},
-		fs = fs,
-	})
-
-	controller:save()
-	ChartEncoder.encode = oldEncode
-
-	t:tdeq(calls, {"save", "graphs", "library:charts:42"})
-	t:eq(fs:read("charts/example.osu.sph"), "encoded")
-end
-
----@param t testing.T
-function test.save_errors_when_sph_write_fails(t)
-	local oldEncode = ChartEncoder.encode
-	ChartEncoder.encode = function()
-		return "encoded"
-	end
-
-	local calls = {}
-	local controller = createController({
-		chartSelector = {
-			chartview = {
-				location_path = "charts/example.osu",
-				dir = "charts",
-				location_id = 42,
-			},
-		},
-		editorModel = {
-			chart = {},
-			chartmeta = {},
-			save = function()
-				table.insert(calls, "save")
-			end,
-			genGraphs = function()
-				table.insert(calls, "graphs")
-			end,
-		},
-		library = {
-			computeLocation = function()
-				table.insert(calls, "library")
-			end,
-		},
-		fs = {
-			write = function()
-				return false
+		editorModel = editorModel,
+		library = library,
+		sphChartSaver = {
+			save = function(_, cv, model, lib)
+				savedChartview = cv
+				savedEditorModel = model
+				savedLibrary = lib
 			end,
 		},
 	})
 
-	t:has_error(function()
-		controller:save()
-	end)
-	ChartEncoder.encode = oldEncode
+	controller:save()
 
-	t:tdeq(calls, {"save", "graphs"})
+	t:eq(savedChartview, chartview)
+	t:eq(savedEditorModel, editorModel)
+	t:eq(savedLibrary, library)
 end
 
 ---@param t testing.T
-function test.save_to_osu_writes_sph_osu(t)
-	local oldEncode = OsuChartEncoder.encode
-	local fs = FakeFilesystem()
-	fs:createDirectory("charts")
-	OsuChartEncoder.encode = function(_, payload)
-		t:eq(payload[1].chart.id, "chart")
-		t:eq(payload[1].chartmeta.title, "Title")
-		return "osu-encoded"
-	end
-
-	local calls = {}
+function test.save_to_osu_delegates_to_exporter(t)
+	local chartview = {
+		location_path = "charts/example.sph",
+	}
+	local editorModel = {
+		id = "editor",
+	}
+	local exportedChartview
+	local exportedEditorModel
 	local controller = createController({
 		chartSelector = {
-			chartview = {
-				location_path = "charts/example.sph",
-			},
+			chartview = chartview,
 		},
-		editorModel = {
-			chart = {
-				id = "chart",
-			},
-			chartmeta = {
-				title = "Title",
-			},
-			save = function()
-				table.insert(calls, "save")
+		editorModel = editorModel,
+		osuChartExporter = {
+			export = function(_, cv, model)
+				exportedChartview = cv
+				exportedEditorModel = model
 			end,
 		},
-		fs = fs,
 	})
 
 	controller:saveToOsu()
-	OsuChartEncoder.encode = oldEncode
 
-	t:tdeq(calls, {"save"})
-	t:eq(fs:read("charts/example.sph.osu"), "osu-encoded")
-end
-
----@param t testing.T
-function test.save_to_osu_errors_when_write_fails(t)
-	local oldEncode = OsuChartEncoder.encode
-	OsuChartEncoder.encode = function()
-		return "osu-encoded"
-	end
-
-	local calls = {}
-	local controller = createController({
-		chartSelector = {
-			chartview = {
-				location_path = "charts/example.sph",
-			},
-		},
-		editorModel = {
-			chart = {},
-			chartmeta = {},
-			save = function()
-				table.insert(calls, "save")
-			end,
-		},
-		fs = {
-			write = function()
-				return false
-			end,
-		},
-	})
-
-	t:has_error(function()
-		controller:saveToOsu()
-	end)
-	OsuChartEncoder.encode = oldEncode
-
-	t:tdeq(calls, {"save"})
+	t:eq(exportedChartview, chartview)
+	t:eq(exportedEditorModel, editorModel)
 end
 
 ---@param t testing.T

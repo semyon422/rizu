@@ -301,6 +301,93 @@ function test.select_note_uses_injected_multi_select_predicate(t)
 end
 
 ---@param t testing.T
+function test.get_mouse_time_uses_injected_mouse_position(t)
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		session = {
+			point = {
+				absoluteTime = 10,
+			},
+			noteSkin = {
+				getInverseTimePosition = function(_, y)
+					return y / 2
+				end,
+			},
+		},
+		getMousePosition = function()
+			return 12, 8
+		end,
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	function editorModel:getSettings()
+		return {
+			speed = 2,
+		}
+	end
+
+	t:eq(editorModel:getMouseTime(4), 7)
+end
+
+---@param t testing.T
+function test.selection_region_uses_injected_callbacks(t)
+	local calls = {}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		session = {
+			noteSkin = {
+				getInverseTimePosition = function(_, y)
+					return y
+				end,
+				getTimePosition = function(_, time)
+					return time * 10
+				end,
+			},
+			point = {
+				absoluteTime = 5,
+			},
+		},
+		visualEngine = {
+			selectStart = function()
+				table.insert(calls, "visual-start")
+			end,
+			selectEnd = function()
+				table.insert(calls, "visual-end")
+			end,
+		},
+		getMousePosition = function()
+			return 3, 4
+		end,
+		selectRegion = function(x1, y1, x2, y2)
+			table.insert(calls, ("select:%s:%s:%s:%s"):format(x1, y1, x2, y2))
+		end,
+		unselectRegion = function()
+			table.insert(calls, "unselect")
+		end,
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	function editorModel:getSettings()
+		return {
+			speed = 1,
+		}
+	end
+
+	editorModel:selectStart()
+	editorModel:updateSelectionRect({speed = 2}, editorModel.session.noteSkin, 6)
+	editorModel:selectEnd()
+
+	t:eq(editorModel.session.selectRect, nil)
+	t:tdeq(calls, {
+		"visual-start",
+		"select:3:4:3:4",
+		"select:3:100:3:4",
+		"visual-end",
+		"unselect",
+	})
+end
+
+---@param t testing.T
 function test.load_resources_ignored_when_not_loaded(t)
 	local calls = {}
 	---@type rizu.editor.EditorModel

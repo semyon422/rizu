@@ -43,7 +43,7 @@ Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, 
 
 `load()` and `update()` are split into named substeps so lifecycle behavior can be tested without running the full client. Keep orchestration changes covered by `EditorModel_test.lua`.
 
-Input-derived decisions should enter through injected predicates or event data. For example, multi-select note selection is driven by `isMultiSelectRequested` instead of reading keyboard state inside the model.
+Input-derived decisions should enter through injected predicates or event data. For example, multi-select note selection is driven by `isMultiSelectRequested` instead of reading keyboard state inside the model. Mouse position and rectangle-selection UI calls are injected into `EditorModel` so model tests do not depend on `love.graphics`, `love.mouse`, or `just`.
 
 ### `EditorSession` — Per-Session Mutable State
 Holds state that changes during an active editing session:
@@ -62,6 +62,10 @@ Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEn
 The load/save boundary is tested with fakes for chart selection, note skin loading, resource lookup, file writes, and library recomputation. Resource path ordering is centralized in `getResourcePaths()`. Editor-owned file writes go through `fs.IFilesystem` instead of direct `love.filesystem` calls.
 
 Modifier application on load is driven by an injected predicate so `EditorController` does not read keyboard state directly. Dropped audio imports are delegated to `EditorDropImport`, which owns extension filtering and writes imported files through `fs.IFilesystem`.
+
+`EditorController` takes a dependency table rather than a long positional constructor. Keep new controller collaborators in that table to avoid argument-order bugs.
+
+`exports/SphChartSaver` owns default `.sph` save behavior and library recomputation. `exports/OsuChartExporter` owns `.osu` export file generation. Both write through `fs.IFilesystem` and have focused tests for write failures.
 
 `exports/NanoChartExporter` owns `.nanochart`, compressed `.nanochart`, and SPH preview file generation. It reads notes from the current `chart.Chart` model after `EditorModel:save()` and writes through `fs.IFilesystem`; do not revive legacy `editorModel.noteChart` usage.
 
