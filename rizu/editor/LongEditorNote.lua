@@ -20,7 +20,7 @@ end
 function LongEditorNote:create(absoluteTime, column)
 	local editorModel = self.editorModel
 	local layer = editorModel.layer
-	local visual = editorModel.visual
+	local visual = editorModel:getVisual()
 
 	local dtp = editorModel:getDtpAbsolute(absoluteTime)
 	local p = layer.points:saveSearchPoint(dtp)
@@ -80,7 +80,7 @@ end
 function LongEditorNote:drop(t)
 	local editorModel = self.editorModel
 	local layer = editorModel.layer
-	local visual = editorModel.visual
+	local visual = editorModel:getVisual()
 	if self.grabbedPart == "head" then
 		local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime)
 		local p = layer.points:saveSearchPoint()
@@ -132,7 +132,7 @@ end
 ---@return chart.Note[]
 function LongEditorNote:paste(point)
 	local layer = self.editorModel.layer
-	local visual = self.editorModel.visual
+	local visual = self.editorModel:getVisual()
 
 	local startNote = self.startNote:clone()
 	local endNote = self.endNote:clone()

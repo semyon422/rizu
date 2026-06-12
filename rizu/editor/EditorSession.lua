@@ -24,10 +24,10 @@ end
 function EditorSession:load(editorModel)
 	self.patterns_analyzed = pattern_analyzer.format(pattern_analyzer.analyze(editorModel.chart))
 
-	editorModel.changes = Changes()
+	editorModel:setChanges(Changes())
 	editorModel.graphsGenerator:load()
 
-	editorModel.resourcesLoaded = false
+	editorModel:setResourcesLoaded(false)
 
 	self.point = Point()
 	editorModel:getDtpAbsolute(0):clone(self.point)

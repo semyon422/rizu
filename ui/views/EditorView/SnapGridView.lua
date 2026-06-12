@@ -220,7 +220,7 @@ function SnapGridView:drawComments(_w, _h)
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.setFont(spherefonts.get("Noto Sans", 16))
 	for p in layer:iter(editorModel:getIterRange()) do
-		local vp = editorModel.visual:getPoint(p)
+		local vp = editorModel:getVisual():getPoint(p)
 		local comment = vp.comment
 
 		if comment then

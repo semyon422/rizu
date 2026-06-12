@@ -9,7 +9,7 @@ local gfx_util = require("gfx_util")
 ---@return table
 local function getPointList(self, points, pointOffset, samplesPerPoint, channel)
 	local editorModel = self.game.editorModel
-	local wave = editorModel.wave
+	local wave = editorModel:getWave()
 
 	local sampleCount = wave.samples_count
 	local channelCount = wave.channels_count
@@ -92,7 +92,7 @@ end
 ---@param h number
 local function loadWaveform(self, w, h)
 	local editorModel = self.game.editorModel
-	local wave = editorModel.wave
+	local wave = editorModel:getWave()
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -162,7 +162,7 @@ end
 
 return function(self)
 	local editorModel = self.game.editorModel
-	local wave = editorModel.wave
+	local wave = editorModel:getWave()
 	if not wave then
 		return
 	end

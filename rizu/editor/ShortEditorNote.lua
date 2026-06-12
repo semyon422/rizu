@@ -14,7 +14,7 @@ local ShortEditorNote = EditorNote + ShortVisualNote
 function ShortEditorNote:create(absoluteTime, column)
 	local editorModel = self.editorModel
 	local layer = editorModel.layer
-	local visual = editorModel.visual
+	local visual = editorModel:getVisual()
 
 	local dtp = editorModel:getDtpAbsolute(absoluteTime)
 	local p = layer.points:saveSearchPoint(dtp)
@@ -50,7 +50,7 @@ end
 function ShortEditorNote:drop(t)
 	local editorModel = self.editorModel
 	local layer = editorModel.layer
-	local visual = editorModel.visual
+	local visual = editorModel:getVisual()
 	local dtp = editorModel:getDtpAbsolute(t - self.grabbedDeltaTime)
 	local p = layer.points:saveSearchPoint()
 	local vp = visual:getPoint(p)
@@ -71,7 +71,7 @@ end
 ---@return chart.Note[]
 function ShortEditorNote:paste(point)
 	local layer = self.editorModel.layer
-	local visual = self.editorModel.visual
+	local visual = self.editorModel:getVisual()
 	local new_point = layer.points:getPoint(point:add(self.deltaStartTime))
 	local startNote = self.startNote:clone()
 	startNote.visualPoint = visual:getPoint(new_point)

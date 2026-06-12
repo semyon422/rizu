@@ -1,9 +1,148 @@
 local EditorModel = require("rizu.editor.EditorModel")
+local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 
 local test = {}
+local createEditorModel
+
+---@param t testing.T
+function test.new_uses_dependency_table_and_input_adapter(t)
+	local configModel = {
+		configs = {
+			settings = {
+				editor = {
+					speed = 1,
+					snap = 4,
+				},
+			},
+		},
+	}
+	local resourceModel = {}
+	local timer = {
+		setGlobalTime = function(_, time)
+			t:eq(time, 0)
+		end,
+	}
+	local managers = {
+		noteChartLoader = {},
+		audio_engine = {},
+		ncbtContext = {},
+		intervalManager = {},
+		graphsGenerator = {},
+		editorChanges = {},
+		timer = timer,
+		noteManager = {},
+		visualEngine = {},
+		scroller = {},
+		metronome = {},
+		metadata = {},
+		bmsToolsContext = {},
+		session = {},
+		loadService = {},
+		resourceLoadService = {},
+		runtimeState = EditorRuntimeState(),
+	}
+	local inputCalls = {}
+	local input = {
+		isMultiSelectRequested = function()
+			table.insert(inputCalls, "multi")
+			return true
+		end,
+		getMousePosition = function()
+			table.insert(inputCalls, "mouse")
+			return 7, 11
+		end,
+		selectRegion = function(_, x1, y1, x2, y2)
+			table.insert(inputCalls, ("select:%s:%s:%s:%s"):format(x1, y1, x2, y2))
+		end,
+		unselectRegion = function()
+			table.insert(inputCalls, "unselect")
+		end,
+	}
+
+	local editorModel = EditorModel({
+		configModel = configModel,
+		resourceModel = resourceModel,
+		input = input,
+		noteChartLoader = managers.noteChartLoader,
+		audio_engine = managers.audio_engine,
+		ncbtContext = managers.ncbtContext,
+		intervalManager = managers.intervalManager,
+		graphsGenerator = managers.graphsGenerator,
+		editorChanges = managers.editorChanges,
+		timer = managers.timer,
+		noteManager = managers.noteManager,
+		visualEngine = managers.visualEngine,
+		scroller = managers.scroller,
+		metronome = managers.metronome,
+		metadata = managers.metadata,
+		bmsToolsContext = managers.bmsToolsContext,
+		session = managers.session,
+		loadService = managers.loadService,
+		resourceLoadService = managers.resourceLoadService,
+		runtimeState = managers.runtimeState,
+	})
+
+	t:eq(editorModel.configModel, configModel)
+	t:eq(editorModel.resourceModel, resourceModel)
+	t:eq(editorModel.noteManager, managers.noteManager)
+	t:eq(editorModel.visualEngine, managers.visualEngine)
+	t:eq(managers.noteChartLoader.editorModel, editorModel)
+	t:eq(managers.ncbtContext.editorModel, editorModel)
+	t:eq(managers.intervalManager.editorModel, editorModel)
+	t:eq(managers.graphsGenerator.editorModel, editorModel)
+	t:eq(managers.editorChanges.editorModel, editorModel)
+	t:eq(managers.noteManager.editorModel, editorModel)
+	t:eq(managers.visualEngine.editorModel, editorModel)
+	t:eq(managers.scroller.editorModel, editorModel)
+	t:eq(managers.metronome.editorModel, editorModel)
+	t:eq(managers.bmsToolsContext.editorModel, editorModel)
+	t:eq(configModel.editorModel, nil)
+	t:eq(resourceModel.editorModel, nil)
+	t:eq(input.editorModel, nil)
+	t:eq(managers.audio_engine.editorModel, nil)
+	t:eq(managers.timer.editorModel, nil)
+	t:eq(managers.metadata.editorModel, nil)
+	t:eq(managers.session.editorModel, nil)
+	t:eq(managers.loadService.editorModel, nil)
+	t:eq(managers.resourceLoadService.editorModel, nil)
+	t:eq(managers.runtimeState.editorModel, nil)
+	t:eq(editorModel.isMultiSelectRequested(), true)
+	local mx, my = editorModel.getMousePosition()
+	editorModel.selectRegion(1, 2, 3, 4)
+	editorModel.unselectRegion()
+
+	t:eq(mx, 7)
+	t:eq(my, 11)
+	t:tdeq(inputCalls, {"multi", "mouse", "select:1:2:3:4", "unselect"})
+end
+
+---@param t testing.T
+function test.runtime_state_methods_mirror_legacy_fields(t)
+	local editorModel = createEditorModel()
+	local visual = {}
+	local wave = {}
+	local changes = {}
+
+	editorModel:setLoaded(true)
+	editorModel:setResourcesLoaded(true)
+	editorModel:setVisual(visual)
+	editorModel:setWave(wave)
+	editorModel:setChanges(changes)
+
+	t:eq(editorModel:isLoaded(), true)
+	t:eq(editorModel.loaded, true)
+	t:eq(editorModel:isResourcesLoaded(), true)
+	t:eq(editorModel.resourcesLoaded, true)
+	t:eq(editorModel:getVisual(), visual)
+	t:eq(editorModel.visual, visual)
+	t:eq(editorModel:getWave(), wave)
+	t:eq(editorModel.wave, wave)
+	t:eq(editorModel:getChanges(), changes)
+	t:eq(editorModel.changes, changes)
+end
 
 ---@return rizu.editor.EditorModel
-local function createEditorModel()
+function createEditorModel()
 	---@type rizu.editor.EditorModel
 	local editorModel = {
 		configModel = {
@@ -249,6 +388,52 @@ function test.load_initializes_editor_collaborators(t)
 end
 
 ---@param t testing.T
+function test.load_chart_data_falls_back_to_default_visual(t)
+	local defaultVisual = {}
+	local layer = {
+		visuals = {
+			[""] = defaultVisual,
+		},
+	}
+	local notes = {}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		noteChartLoader = {
+			load = function()
+				return layer, notes
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:loadChartData()
+
+	t:eq(editorModel.layer, layer)
+	t:eq(editorModel.notes, notes)
+	t:eq(editorModel.visual, defaultVisual)
+end
+
+---@param t testing.T
+function test.load_chart_data_allows_missing_visual_to_surface(t)
+	local layer = {
+		visuals = {},
+	}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		noteChartLoader = {
+			load = function()
+				return layer, {}
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:loadChartData()
+
+	t:eq(editorModel.visual, nil)
+end
+
+---@param t testing.T
 function test.unload_stops_runtime_resources(t)
 	local calls = {}
 	---@type rizu.editor.EditorModel
@@ -408,52 +593,63 @@ function test.load_resources_ignored_when_not_loaded(t)
 end
 
 ---@param t testing.T
-function test.load_resources_loads_audio_wave_and_graphs(t)
+function test.load_resources_delegates_when_loaded(t)
 	local calls = {}
-	local chart = {
-		id = "chart",
-	}
 	local resources = {
 		audio = "song.ogg",
 	}
 	---@type rizu.editor.EditorModel
-	local editorModel = {
+	local editorModel
+	editorModel = {
 		loaded = true,
-		chart = chart,
-		timer = {
-			getTime = function()
-				table.insert(calls, "timer")
-				return 2.5
-			end,
-		},
-		audio_engine = {
-			setEnabled = function(_, enabled)
-				table.insert(calls, "enabled:" .. tostring(enabled))
-			end,
-			load = function(_, loadedChart, loadedResources)
-				table.insert(calls, "load")
-				t:eq(loadedChart, chart)
+		resourceLoadService = {
+			load = function(_, model, loadedResources)
+				table.insert(calls, "resource")
+				t:eq(model, editorModel)
 				t:eq(loadedResources, resources)
 			end,
-			setPosition = function(_, time)
-				table.insert(calls, "position:" .. time)
-			end,
-			renderWave = function()
-				table.insert(calls, "wave")
-				return "wave-data"
-			end,
 		},
-		genGraphs = function(self)
-			table.insert(calls, "graphs")
-		end,
 	}
 	setmetatable(editorModel, {__index = EditorModel})
 
 	editorModel:loadResources(resources)
 
-	t:eq(editorModel.wave, "wave-data")
-	t:eq(editorModel.resourcesLoaded, true)
-	t:tdeq(calls, {"enabled:true", "load", "timer", "position:2.5", "wave", "graphs"})
+	t:tdeq(calls, {"resource"})
+end
+
+---@param t testing.T
+function test.load_metronome_propagates_failure(t)
+	local calls = {}
+	local volume = {
+		master = 1,
+		metronome = 0.5,
+	}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		configModel = {
+			configs = {
+				settings = {
+					audio = {
+						volume = volume,
+					},
+				},
+			},
+		},
+		metronome = {
+			load = function()
+				table.insert(calls, "load")
+				error("metronome failed")
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	t:has_error(function()
+		editorModel:loadMetronome()
+	end)
+
+	t:eq(editorModel.metronome.volume, volume)
+	t:tdeq(calls, {"load"})
 end
 
 ---@param t testing.T
@@ -482,13 +678,85 @@ function test.gen_graphs_uses_first_last_time(t)
 	}
 	setmetatable(editorModel, {__index = EditorModel})
 
-	function editorModel:getFirstLastTime()
+	function editorModel:getTimelineRange()
 		return -1, 4
 	end
 
 	editorModel:genGraphs()
 
 	t:tdeq(calls, {"density:-1:4", "vertices:-1:4"})
+end
+
+---@param t testing.T
+function test.get_first_last_time_includes_audio_start_before_first_point(t)
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		audio_engine = {
+			getStartTime = function()
+				return -0.25
+			end,
+		},
+		layer = {
+			points = {
+				getFirstPoint = function()
+					return {
+						tonumber = function()
+							return 1
+						end,
+					}
+				end,
+				getLastPoint = function()
+					return {
+						tonumber = function()
+							return 3
+						end,
+					}
+				end,
+			},
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	local firstTime, lastTime = editorModel:getFirstLastTime()
+
+	t:eq(firstTime, -0.25)
+	t:eq(lastTime, 3)
+end
+
+---@param t testing.T
+function test.get_first_last_time_keeps_chart_start_when_audio_starts_later(t)
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		audio_engine = {
+			getStartTime = function()
+				return 1.5
+			end,
+		},
+		layer = {
+			points = {
+				getFirstPoint = function()
+					return {
+						tonumber = function()
+							return 0
+						end,
+					}
+				end,
+				getLastPoint = function()
+					return {
+						tonumber = function()
+							return 4
+						end,
+					}
+				end,
+			},
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	local firstTime, lastTime = editorModel:getTimelineRange()
+
+	t:eq(firstTime, 0)
+	t:eq(lastTime, 4)
 end
 
 return test

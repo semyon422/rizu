@@ -2,27 +2,48 @@ local class = require("class")
 local AudioEngine = require("rizu.engine.audio.Engine")
 local TimeManager = require("rizu.editor.TimeManager")
 local VisualEngine = require("rizu.editor.VisualEngine")
-local Changes = require("Changes")
 local NoteChartLoader = require("rizu.editor.NoteChartLoader")
 local NcbtContext = require("rizu.editor.NcbtContext")
 local IntervalManager = require("rizu.editor.IntervalManager")
 local GraphsGenerator = require("rizu.editor.GraphsGenerator")
 local EditorChanges = require("rizu.editor.EditorChanges")
+local EditorInput = require("rizu.editor.EditorInput")
+local EditorLoadService = require("rizu.editor.EditorLoadService")
+local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService")
+local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local NoteManager = require("rizu.editor.NoteManager")
 local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
 local BmsToolsContext = require("rizu.editor.BmsToolsContext")
 local EditorSession = require("rizu.editor.EditorSession")
-local pattern_analyzer = require("chart.scoring.pattern_analyzer")
-local Point = require("chart.chartedit.Point")
 local Metadata = require("chart.format.sph.Metadata")
 
 ---@class rizu.editor.EditorModelDeps
+---@field configModel sphere.ConfigModel
+---@field resourceModel sphere.ResourceModel
 ---@field fs fs.IFilesystem?
+---@field input rizu.editor.EditorInput?
 ---@field isMultiSelectRequested (fun(): boolean)?
 ---@field getMousePosition (fun(): number, number)?
 ---@field selectRegion (fun(x1: number, y1: number, x2: number, y2: number))?
 ---@field unselectRegion (fun())?
+---@field noteChartLoader rizu.editor.EditorNoteChartLoader?
+---@field audio_engine rizu.engine.audio.Engine?
+---@field ncbtContext rizu.editor.NcbtContext?
+---@field intervalManager rizu.editor.IntervalManager?
+---@field graphsGenerator rizu.editor.GraphsGenerator?
+---@field editorChanges rizu.editor.EditorChanges?
+---@field timer rizu.editor.TimeManager?
+---@field noteManager rizu.editor.NoteManager?
+---@field visualEngine rizu.editor.VisualEngine?
+---@field scroller rizu.editor.Scroller?
+---@field metronome rizu.editor.Metronome?
+---@field metadata chart.sph.Metadata?
+---@field bmsToolsContext rizu.editor.BmsToolsContext?
+---@field session rizu.editor.EditorSession?
+---@field loadService rizu.editor.EditorLoadService?
+---@field resourceLoadService rizu.editor.EditorResourceLoadService?
+---@field runtimeState rizu.editor.EditorRuntimeState?
 
 ---@class rizu.editor.EditorModel
 ---@operator call: rizu.editor.EditorModel
@@ -37,61 +58,84 @@ EditorModel.tools = {"Select", "ShortNote", "LongNote", "SoundNote"}
 EditorModel.states = {"info", "audio", "timings", "notes", "bms"}
 EditorModel.max_snap = 192
 
----@param configModel sphere.ConfigModel
----@param resourceModel sphere.ResourceModel
----@param deps rizu.editor.EditorModelDeps?
-function EditorModel:new(configModel, resourceModel, deps)
-	deps = deps or {}
-	self.configModel = configModel
-	self.resourceModel = resourceModel
+---@param deps rizu.editor.EditorModelDeps
+function EditorModel:new(deps)
+	self.configModel = deps.configModel
+	self.resourceModel = deps.resourceModel
+
+	local input = deps.input or EditorInput()
+	self.input = input
 	self.isMultiSelectRequested = deps.isMultiSelectRequested or function()
-		return false
+		return input:isMultiSelectRequested()
 	end
 	self.getMousePosition = deps.getMousePosition or function()
-		return 0, 0
+		return input:getMousePosition()
 	end
-	self.selectRegion = deps.selectRegion or function() end
-	self.unselectRegion = deps.unselectRegion or function() end
+	self.selectRegion = deps.selectRegion or function(x1, y1, x2, y2)
+		input:selectRegion(x1, y1, x2, y2)
+	end
+	self.unselectRegion = deps.unselectRegion or function()
+		input:unselectRegion()
+	end
 
-	self.noteChartLoader = NoteChartLoader()
-	self.audio_engine = AudioEngine()
-	self.ncbtContext = NcbtContext()
-	self.intervalManager = IntervalManager()
-	self.graphsGenerator = GraphsGenerator()
-	self.editorChanges = EditorChanges()
-	self.timer = TimeManager()
+	self.noteChartLoader = deps.noteChartLoader or NoteChartLoader()
+	self.audio_engine = deps.audio_engine or AudioEngine()
+	self.ncbtContext = deps.ncbtContext or NcbtContext()
+	self.intervalManager = deps.intervalManager or IntervalManager()
+	self.graphsGenerator = deps.graphsGenerator or GraphsGenerator()
+	self.editorChanges = deps.editorChanges or EditorChanges()
+	self.timer = deps.timer or TimeManager()
 	self.timer:setGlobalTime(0)
-	self.noteManager = NoteManager()
-	self.visualEngine = VisualEngine()
-	self.scroller = Scroller()
-	self.metronome = Metronome(deps.fs)
-	self.metadata = Metadata()
+	self.noteManager = deps.noteManager or NoteManager()
+	self.visualEngine = deps.visualEngine or VisualEngine()
+	self.scroller = deps.scroller or Scroller()
+	self.metronome = deps.metronome or Metronome(deps.fs)
+	self.metadata = deps.metadata or Metadata()
+	self.bmsToolsContext = deps.bmsToolsContext or BmsToolsContext()
+	self.session = deps.session or EditorSession(self)
+	self.loadService = deps.loadService or EditorLoadService()
+	self.resourceLoadService = deps.resourceLoadService or EditorResourceLoadService()
+	self.runtimeState = deps.runtimeState or EditorRuntimeState()
 
-	for _, v in pairs(self) do
-		v.editorModel = self
-	end
-	self.bmsToolsContext = BmsToolsContext()
-	self.session = EditorSession(self)
+	self:attachManagers()
+end
+
+function EditorModel:attachManagers()
+	self.noteChartLoader.editorModel = self
+	self.ncbtContext.editorModel = self
+	self.intervalManager.editorModel = self
+	self.graphsGenerator.editorModel = self
+	self.editorChanges.editorModel = self
+	self.noteManager.editorModel = self
+	self.visualEngine.editorModel = self
+	self.scroller.editorModel = self
+	self.metronome.editorModel = self
+	self.bmsToolsContext.editorModel = self
 end
 
 function EditorModel:load()
-	self.loaded = true
+	local loadService = self.loadService or EditorLoadService()
+	loadService:load(self)
+end
 
-	local editor = self:getSettings()
-
-	self:loadChartData()
-	self:loadSession()
-	self:loadTimer(editor)
-	self:loadAudio()
-	self:loadMetronome()
-	self:loadInitialScroll()
-	self:loadBmsToolsContext()
-	self:loadMetadata()
+---@return rizu.editor.EditorRuntimeState
+function EditorModel:getRuntimeState()
+	local runtimeState = self.runtimeState
+	if not runtimeState then
+		runtimeState = EditorRuntimeState()
+		runtimeState:setLoaded(self.loaded == true)
+		runtimeState:setResourcesLoaded(self.resourcesLoaded == true)
+		runtimeState:setVisual(self.visual)
+		runtimeState:setWave(self.wave)
+		runtimeState:setChanges(self.changes)
+		self.runtimeState = runtimeState
+	end
+	return runtimeState
 end
 
 function EditorModel:loadChartData()
 	self.layer, self.notes = self.noteChartLoader:load()
-	self.visual = self.layer.visuals.main or self.layer.visuals[""]
+	self:setVisual(self.layer.visuals.main or self.layer.visuals[""])
 end
 
 function EditorModel:loadSession()
@@ -182,15 +226,12 @@ end
 
 ---@param resources {[string]: string}
 function EditorModel:loadResources(resources)
-	if not self.loaded then
+	if not self:isLoaded() then
 		return
 	end
 
-	self:loadAudioResources(resources)
-	self:renderWave()
-	self:genGraphs()
-
-	self.resourcesLoaded = true
+	local resourceLoadService = self.resourceLoadService or EditorResourceLoadService()
+	resourceLoadService:load(self, resources)
 end
 
 ---@param resources {[string]: string}
@@ -201,7 +242,62 @@ function EditorModel:loadAudioResources(resources)
 end
 
 function EditorModel:renderWave()
-	self.wave = self.audio_engine:renderWave()
+	self:setWave(self.audio_engine:renderWave())
+end
+
+---@param loaded boolean
+function EditorModel:setLoaded(loaded)
+	self:getRuntimeState():setLoaded(loaded)
+	self.loaded = loaded
+end
+
+---@return boolean
+function EditorModel:isLoaded()
+	return self:getRuntimeState():isLoaded()
+end
+
+---@param loaded boolean
+function EditorModel:setResourcesLoaded(loaded)
+	self:getRuntimeState():setResourcesLoaded(loaded)
+	self.resourcesLoaded = loaded
+end
+
+---@return boolean
+function EditorModel:isResourcesLoaded()
+	return self:getRuntimeState():isResourcesLoaded()
+end
+
+---@param visual chartedit.Visual?
+function EditorModel:setVisual(visual)
+	self:getRuntimeState():setVisual(visual)
+	self.visual = visual
+end
+
+---@return chartedit.Visual?
+function EditorModel:getVisual()
+	return self:getRuntimeState():getVisual()
+end
+
+---@param wave table?
+function EditorModel:setWave(wave)
+	self:getRuntimeState():setWave(wave)
+	self.wave = wave
+end
+
+---@return table?
+function EditorModel:getWave()
+	return self:getRuntimeState():getWave()
+end
+
+---@param changes Changes?
+function EditorModel:setChanges(changes)
+	self:getRuntimeState():setChanges(changes)
+	self.changes = changes
+end
+
+---@return Changes?
+function EditorModel:getChanges()
+	return self:getRuntimeState():getChanges()
 end
 
 ---@return number
@@ -220,8 +316,14 @@ function EditorModel:getFirstLastTime()
 	return firstTime, lastTime
 end
 
+---@return number
+---@return number
+function EditorModel:getTimelineRange()
+	return self:getFirstLastTime()
+end
+
 function EditorModel:genGraphs()
-	local a, b = self:getFirstLastTime()
+	local a, b = self:getTimelineRange()
 	self.graphsGenerator:genDensityGraph(self.chart, a, b)
 	self.graphsGenerator:genVerticesGraph(self.layer, a, b)
 end
@@ -251,7 +353,9 @@ function EditorModel:setSessionPoint(point)
 end
 
 function EditorModel:unload()
-	self.loaded = false
+	self:setLoaded(false)
+	self:setResourcesLoaded(false)
+	self:setWave(nil)
 	self.audio_engine:unload()
 	self.metronome:unload()
 end

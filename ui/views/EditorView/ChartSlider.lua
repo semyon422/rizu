@@ -19,7 +19,7 @@ return function(self, w, h)
 	local editorModel = self.game.editorModel
 	local editorTimePoint = editorModel.session.point
 
-	local firstTime, lastTime = editorModel:getFirstLastTime()
+	local firstTime, lastTime = editorModel:getTimelineRange()
 	local fullLength = lastTime - firstTime
 	local value = (editorTimePoint.absoluteTime - firstTime) / fullLength
 

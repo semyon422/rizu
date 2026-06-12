@@ -1,5 +1,4 @@
 local class = require("class")
-local just = require("just")
 
 local OnlineModel = require("sphere.models.OnlineModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
@@ -9,6 +8,7 @@ local ChartSelector = require("rizu.select.ChartSelector")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local CollectionSelector = require("rizu.select.CollectionSelector")
 local MultiplayerModel = require("sphere.models.MultiplayerModel")
+local EditorInput = require("rizu.editor.EditorInput")
 local EditorModel = require("rizu.editor.EditorModel")
 local SpeedModel = require("sphere.models.SpeedModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
@@ -101,25 +101,13 @@ function GameController:new()
 		self.persistence.fileFinder
 	)
 	self.pauseModel = PauseModel(self.persistence.configModel, self.rhythm_engine)
-	self.editorModel = EditorModel(
-		self.persistence.configModel,
-		self.resourceModel,
-		{
-			fs = self.fs,
-			isMultiSelectRequested = function()
-				return love.keyboard.isDown("lctrl")
-			end,
-			getMousePosition = function()
-				return love.graphics.inverseTransformPoint(love.mouse.getPosition())
-			end,
-			selectRegion = function(x1, y1, x2, y2)
-				just.select(x1, y1, x2, y2)
-			end,
-			unselectRegion = function()
-				just.unselect()
-			end,
-		}
-	)
+	self.editorInput = EditorInput()
+	self.editorModel = EditorModel({
+		configModel = self.persistence.configModel,
+		resourceModel = self.resourceModel,
+		fs = self.fs,
+		input = self.editorInput,
+	})
 	self.speedModel = SpeedModel(self.persistence.configModel)
 	self.computeContext = ComputeContext()
 	self.replayBase = ReplayBase()
@@ -240,7 +228,7 @@ function GameController:new()
 		resource_loader = self.resource_loader,
 		fs = self.fs,
 		isModifierApplyRequested = function()
-			return love.keyboard.isDown("lshift")
+			return self.editorInput:isModifierApplyRequested()
 		end,
 	})
 

@@ -191,7 +191,7 @@ function tabs.timings(self)
 	---@cast p chart.IntervalPoint
 
 	if p and p.absoluteTime == dtp.absoluteTime then
-		local vp = editorModel.visual:getPoint(p)
+		local vp = editorModel:getVisual():getPoint(p)
 		vp.temp_comment = imgui.input("vp comment", vp.temp_comment or vp.comment, "comment")
 		if imgui.button("save comment", "save") then
 			if vp.temp_comment == "" then
@@ -362,7 +362,7 @@ return function(self)
 	imgui.setSize(400, h, 200, lineHeight)
 	tabs[editorModel.session.state](self)
 
-	if not editorModel.resourcesLoaded then
+	if not editorModel:isResourcesLoaded() then
 		w, h = Layout:move("base")
 		love.graphics.setColor(1, 1, 1, 0.5)
 		love.graphics.setFont(spherefonts.get("Noto Sans", 160))

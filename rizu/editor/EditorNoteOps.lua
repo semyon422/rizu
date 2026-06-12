@@ -165,7 +165,7 @@ function EditorNoteOps:changeType(note, snap)
 		local startNote = note.startNote
 		local p = startNote.visualPoint.point
 		local endPoint = editorModel.layer.points:getPoint(p:add(Fraction(1, snap)))
-		local endNote = Note(editorModel.visual:getPoint(endPoint), note.column, "hold", -1)
+		local endNote = Note(editorModel:getVisual():getPoint(endPoint), note.column, "hold", -1)
 
 		self:setLong(note, endNote, "hold")
 		editorModel.editorChanges:add(

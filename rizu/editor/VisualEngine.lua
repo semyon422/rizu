@@ -83,7 +83,7 @@ function VisualEngine:newNote(_note, column)
 	note.visualEngine = self
 	note.column = column
 	note.cvp = self.editorModel.visualPoint
-	note.visual = self.editorModel.visual
+	note.visual = self.editorModel:getVisual()
 	return note
 end
 
@@ -103,7 +103,7 @@ function VisualEngine:update()
 	for _, note in ipairs(self.notes) do
 		notesMap[note.startNote] = note
 		note.cvp = editorModel.visualPoint
-		note.visual = editorModel.visual
+		note.visual = editorModel:getVisual()
 	end
 
 	local newNotes = {}

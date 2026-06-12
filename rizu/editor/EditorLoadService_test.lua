@@ -1,0 +1,108 @@
+local EditorLoadService = require("rizu.editor.EditorLoadService")
+
+local test = {}
+
+---@param t testing.T
+function test.load_runs_lifecycle_steps_in_order(t)
+	local calls = {}
+	local editor = {
+		speed = 1,
+	}
+	local editorModel = {
+		setLoaded = function(self, loaded)
+			self.loaded = loaded
+		end,
+		getSettings = function()
+			table.insert(calls, "settings")
+			return editor
+		end,
+		loadChartData = function()
+			table.insert(calls, "chart")
+		end,
+		loadSession = function()
+			table.insert(calls, "session")
+		end,
+		loadTimer = function(_, loadedEditor)
+			table.insert(calls, "timer")
+			t:eq(loadedEditor, editor)
+		end,
+		loadAudio = function()
+			table.insert(calls, "audio")
+		end,
+		loadMetronome = function()
+			table.insert(calls, "metronome")
+		end,
+		loadInitialScroll = function()
+			table.insert(calls, "scroll")
+		end,
+		loadBmsToolsContext = function()
+			table.insert(calls, "bms")
+		end,
+		loadMetadata = function()
+			table.insert(calls, "metadata")
+		end,
+	}
+
+	EditorLoadService():load(editorModel)
+
+	t:eq(editorModel.loaded, true)
+	t:tdeq(calls, {
+		"settings",
+		"chart",
+		"session",
+		"timer",
+		"audio",
+		"metronome",
+		"scroll",
+		"bms",
+		"metadata",
+	})
+end
+
+---@param t testing.T
+function test.load_fails_fast_and_keeps_current_loaded_semantics(t)
+	local calls = {}
+	local editorModel = {
+		setLoaded = function(self, loaded)
+			self.loaded = loaded
+		end,
+		getSettings = function()
+			table.insert(calls, "settings")
+			return {}
+		end,
+		loadChartData = function()
+			table.insert(calls, "chart")
+		end,
+		loadSession = function()
+			table.insert(calls, "session")
+		end,
+		loadTimer = function()
+			table.insert(calls, "timer")
+		end,
+		loadAudio = function()
+			table.insert(calls, "audio")
+			error("audio failed")
+		end,
+		loadMetronome = function()
+			table.insert(calls, "metronome")
+		end,
+		loadInitialScroll = function()
+			table.insert(calls, "scroll")
+		end,
+		loadBmsToolsContext = function()
+			table.insert(calls, "bms")
+		end,
+		loadMetadata = function()
+			table.insert(calls, "metadata")
+		end,
+	}
+
+	t:has_error(function()
+		EditorLoadService():load(editorModel)
+	end)
+
+	t:eq(editorModel.loaded, true)
+	t:tdeq(calls, {"settings", "chart", "session", "timer", "audio"})
+end
+
+return test

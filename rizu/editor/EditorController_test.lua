@@ -145,6 +145,114 @@ function test.load_wires_chart_skin_resources_and_window(t)
 end
 
 ---@param t testing.T
+function test.load_resource_failure_propagates_before_vsync_switch(t)
+	local calls = {}
+	local chart = {
+		inputMode = "4key",
+		resources = {
+			audio = "song.ogg",
+		},
+	}
+	local controller = createController({
+		chartSelector = {
+			chartview = {
+				location_dir = "chart/path",
+			},
+			loadChart = function()
+				table.insert(calls, "chart-load")
+				return chart, {}
+			end,
+		},
+		editorModel = {
+			session = {},
+			load = function()
+				table.insert(calls, "editor-load")
+			end,
+			loadResources = function()
+				table.insert(calls, "editor-resources")
+				error("resource load failed")
+			end,
+		},
+		noteSkinModel = {
+			loadNoteSkin = function()
+				return {
+					directoryPath = "skin/path",
+					loadData = function()
+						table.insert(calls, "skin-load")
+					end,
+				}
+			end,
+		},
+		configModel = {
+			configs = {
+				settings = {
+					gameplay = {
+						skin_resources_top_priority = false,
+					},
+				},
+			},
+		},
+		resourceModel = {
+			load = function(_, _, callback)
+				table.insert(calls, "resource-model")
+				callback()
+			end,
+		},
+		windowModel = {
+			setVsyncOnSelect = function(_, enabled)
+				table.insert(calls, "vsync:" .. tostring(enabled))
+			end,
+		},
+		library = {},
+		fileFinder = {
+			reset = function()
+				table.insert(calls, "file-reset")
+			end,
+			addPath = function() end,
+		},
+		previewModel = {
+			stop = function()
+				table.insert(calls, "preview-stop")
+			end,
+		},
+		replayBase = {
+			modifiers = {},
+		},
+		resource_finder = {
+			reset = function()
+				table.insert(calls, "resource-reset")
+			end,
+			addPath = function() end,
+		},
+		resource_loader = {
+			resources = {},
+			load = function()
+				table.insert(calls, "resource-loader")
+			end,
+		},
+		isModifierApplyRequested = function()
+			return false
+		end,
+	})
+
+	t:has_error(function()
+		controller:load()
+	end)
+
+	t:tdeq(calls, {
+		"chart-load",
+		"skin-load",
+		"editor-load",
+		"preview-stop",
+		"file-reset",
+		"resource-reset",
+		"resource-loader",
+		"resource-model",
+		"editor-resources",
+	})
+end
+
+---@param t testing.T
 function test.load_applies_modifiers_when_requested(t)
 	local oldApply = ModifierModel.apply
 	local appliedModifiers

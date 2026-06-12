@@ -83,6 +83,10 @@ function EditorTestFactory.createEditorModel()
 		return point
 	end
 
+	function editorModel:getVisual()
+		return self.visual
+	end
+
 	function editorModel:setSessionTime(time)
 		self:getDtpAbsolute(time):clone(self.session.point)
 	end

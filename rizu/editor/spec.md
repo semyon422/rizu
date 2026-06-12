@@ -41,9 +41,15 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 ### `EditorModel` — Central State
 Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state. Delegates per-session mutable state to `EditorSession`.
 
-`load()` and `update()` are split into named substeps so lifecycle behavior can be tested without running the full client. Keep orchestration changes covered by `EditorModel_test.lua`.
+`load()` delegates lifecycle sequencing to `EditorLoadService`; `update()` is split into named substeps so behavior can be tested without running the full client. Keep orchestration changes covered by `EditorLoadService_test.lua` and `EditorModel_test.lua`. Load currently sets `loaded = true` before running substeps and fails fast if a substep errors.
 
-Input-derived decisions should enter through injected predicates or event data. For example, multi-select note selection is driven by `isMultiSelectRequested` instead of reading keyboard state inside the model. Mouse position and rectangle-selection UI calls are injected into `EditorModel` so model tests do not depend on `love.graphics`, `love.mouse`, or `just`.
+`loadResources()` keeps the model-level loaded gate, then delegates audio resource loading, waveform rendering, and graph generation to `EditorResourceLoadService`. The service marks `resourcesLoaded = true` only after all three steps finish, so audio or graph failures leave the editor in the not-ready resource state.
+
+Lifecycle fields such as `loaded`, `resourcesLoaded`, `visual`, `wave`, and `changes` are owned by `EditorRuntimeState`. `EditorModel` still mirrors those fields during the migration for legacy note and visual modules, but new code should use `EditorModel` accessors such as `isLoaded()`, `isResourcesLoaded()`, `getVisual()`, and `getWave()`.
+
+`EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`.
+
+Manager ownership is attached explicitly in `attachManagers()`. Do not restore broad table mutation such as iterating over every `EditorModel` field; config, resource, input, metadata, timer, audio, and session objects must not accidentally receive `editorModel` back-references. Constructor dependencies may inject manager instances for focused tests, while production continues to use the default manager classes.
 
 ### `EditorSession` — Per-Session Mutable State
 Holds state that changes during an active editing session:
@@ -152,6 +158,8 @@ The editor UI is composed of separate view modules:
 - `EditorViewOverlay`: menus, tool selection, and configuration panels.
 - `Layout`: view composition and sizing.
 
+Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Rendering code may still call LÖVE and `just` directly, but model readiness, waveform, and visual access should stay behind model methods so the model can continue moving runtime state out of ad hoc fields.
+
 ## Configuration
 
 Editor settings are stored through `sphere.ConfigModel` under `settings.editor`:
@@ -173,9 +181,9 @@ Covered and partially modernized:
 - Interval timing operations, including split/merge/update, destructive shrink snapshots, note restoration, and vertex drag undo/redo.
 - Visual selection refresh, scroller/session interaction, editor model load/update lifecycle, and note chart load/save roundtrips.
 - `EditorController` load/save wiring for note skin, resources, file writes, and library recomputation.
+- Resource-load sequencing and lifecycle state ownership through `EditorResourceLoadService` and `EditorRuntimeState`.
 
 Remaining higher-risk areas:
-- Full `EditorController` export methods beyond `.sph` save.
-- `EditorModel:loadResources()`, graph generation with real charts/audio, and waveform/audio resource failure modes.
+- Graph generation with real charts/audio and waveform/audio resource failure modes beyond service sequencing.
 - UI view integration under `ui/views/EditorView/`.
 - BMS-specific exporters, intentionally deferred until parser rewrite work.
