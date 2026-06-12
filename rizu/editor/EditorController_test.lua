@@ -25,7 +25,8 @@ local function createController(fields)
 		fields.resource_loader,
 		fields.fs,
 		fields.isModifierApplyRequested,
-		fields.dropImport
+		fields.dropImport,
+		fields.nanoChartExporter
 	)
 end
 
@@ -442,6 +443,35 @@ function test.save_to_osu_errors_when_write_fails(t)
 	OsuChartEncoder.encode = oldEncode
 
 	t:tdeq(calls, {"save"})
+end
+
+---@param t testing.T
+function test.save_to_nanochart_delegates_to_exporter(t)
+	local chartview = {
+		real_path = "charts/example",
+	}
+	local editorModel = {
+		id = "editor",
+	}
+	local exportedChartview
+	local exportedEditorModel
+	local controller = createController({
+		chartSelector = {
+			chartview = chartview,
+		},
+		editorModel = editorModel,
+		nanoChartExporter = {
+			export = function(_, cv, model)
+				exportedChartview = cv
+				exportedEditorModel = model
+			end,
+		},
+	})
+
+	controller:saveToNanoChart()
+
+	t:eq(exportedChartview, chartview)
+	t:eq(exportedEditorModel, editorModel)
 end
 
 ---@param t testing.T

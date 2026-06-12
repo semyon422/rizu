@@ -2,26 +2,13 @@ local class = require("class")
 local BmsKeysoundSlicer = require("rizu.editor.exports.BmsKeysoundSlicer")
 local BmsTemplateExporter = require("rizu.editor.exports.BmsTemplateExporter")
 local EditorDropImport = require("rizu.editor.EditorDropImport")
+local NanoChartExporter = require("rizu.editor.exports.NanoChartExporter")
 local UbmscExporter = require("rizu.editor.exports.UbmscExporter")
 local LoveFilesystem = require("fs.LoveFilesystem")
 
-local dpairs = require("dpairs")
-local path_util = require("path_util")
-local table_util = require("table_util")
-local string_util = require("string_util")
 local ChartEncoder = require("chart.format.sph.ChartEncoder")
-local ChartDecoder = require("chart.format.sph.ChartDecoder")
-local BmsChartDecoder = require("chart.format.bms.ChartDecoder")
 local OsuChartEncoder = require("chart.format.osu.ChartEncoder")
-local NanoChart = require("chart.transform.NanoChart")
-local InputMode = require("chart.core.InputMode")
-local zlib = require("zlib")
-local SphPreview = require("chart.format.sph.SphPreview")
 local ModifierModel = require("sphere.models.ModifierModel")
-local Wave = require("audio.Wave")
-local base36 = require("chart.format.bms.base36")
-local decibel = require("decibel")
-local md5 = require("md5")
 
 ---@class rizu.editor.EditorController
 ---@operator call: rizu.editor.EditorController
@@ -42,6 +29,7 @@ local EditorController = class()
 ---@param fs fs.IFilesystem?
 ---@param isModifierApplyRequested (fun(): boolean)?
 ---@param dropImport rizu.editor.EditorDropImport?
+---@param nanoChartExporter rizu.editor.exports.NanoChartExporter?
 function EditorController:new(
 	chartSelector,
 	editorModel,
@@ -57,7 +45,8 @@ function EditorController:new(
 	resource_loader,
 	fs,
 	isModifierApplyRequested,
-	dropImport
+	dropImport,
+	nanoChartExporter
 )
 	self.chartSelector = chartSelector
 	self.editorModel = editorModel
@@ -76,6 +65,7 @@ function EditorController:new(
 		return false
 	end
 	self.dropImport = dropImport or EditorDropImport(self.fs)
+	self.nanoChartExporter = nanoChartExporter or NanoChartExporter(self.fs)
 end
 
 function EditorController:load()
@@ -200,67 +190,7 @@ function EditorController:saveToOsu()
 end
 
 function EditorController:saveToNanoChart()
-	local chartSelector = self.chartSelector
-	local editorModel = self.editorModel
-
-	self.editorModel:save()
-
-	local nanoChart = NanoChart()
-
-	local abs_notes = {}
-
-	for noteDatas, inputType, inputIndex, layerDataIndex in editorModel.noteChart:getInputIterator() do
-		for _, noteData in ipairs(noteDatas) do
-			if inputType == "key" and (noteData.noteType == "ShortNote" or noteData.noteType == "LongNoteStart") then
-				abs_notes[#abs_notes + 1] = {
-					time = noteData.timePoint.absoluteTime,
-					type = 1,
-					input = 1,
-				}
-			end
-		end
-	end
-
-	local emptyHash = string_util.char(0):rep(16)
-	local content = nanoChart:encode(emptyHash, editorModel.noteChart.inputMode.key, abs_notes)
-	local compressedContent = zlib.compress(content)
-
-	local chartview = chartSelector.chartview
-
-	local path = chartview.real_path
-
-	local f = assert(io.open(path .. ".nanochart_compressed", "w"))
-	f:write(compressedContent)
-	f:close()
-	local f = assert(io.open(path .. ".nanochart", "w"))
-	f:write(content)
-	f:close()
-
-	local exp = NoteChartExporter()
-	exp.noteChart = editorModel.noteChart
-	local sph_chart = exp:export()
-
-	local content = SphPreview:encodeLines(exp.sph.sphLines:encode())
-	local compressedContent = zlib.compress(content)
-
-	local content1 = SphPreview:encodeLines(exp.sph.sphLines:encode(), 1)
-	local compressedContent1 = zlib.compress(content1)
-
-	local f = assert(io.open(path .. ".preview0_compressed", "w"))
-	f:write(compressedContent)
-	f:close()
-	local f = assert(io.open(path .. ".preview0", "w"))
-	f:write(content)
-	f:close()
-	local f = assert(io.open(path .. ".preview1_compressed", "w"))
-	f:write(compressedContent1)
-	f:close()
-	local f = assert(io.open(path .. ".preview1", "w"))
-	f:write(content1)
-	f:close()
-	-- local f = assert(io.open(path .. ".preview_lines", "w"))
-	-- f:write(require("inspect")(lines))
-	-- f:close()
+	self.nanoChartExporter:export(self.chartSelector.chartview, self.editorModel)
 end
 
 ---@param event table
