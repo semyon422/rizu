@@ -39,7 +39,7 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 ## Core Components
 
 ### `EditorModel` — Central State
-Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state. Delegates per-session mutable state to `EditorSession`.
+Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, and the main update loop. Coordinates playback, scrolling, note rendering, and undo/redo state. Mutable editor state is split into focused state objects instead of a shared session bag.
 
 `load()` delegates lifecycle sequencing to `EditorLoadService`; `update()` is split into named substeps so behavior can be tested without running the full client. Keep orchestration changes covered by `EditorLoadService_test.lua` and `EditorModel_test.lua`. Load currently sets `loaded = true` before running substeps and fails fast if a substep errors.
 
@@ -47,25 +47,29 @@ Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`), all sub-managers, 
 
 Lifecycle fields such as `loaded`, `resourcesLoaded`, `visual`, `wave`, and `changes` are owned by `EditorRuntimeState`. Access them through `EditorModel` methods such as `isLoaded()`, `isResourcesLoaded()`, `getVisual()`, `getWave()`, and `getChanges()`; do not add raw mirror fields back to `EditorModel`.
 
+The current timeline position is owned by `EditorCursorState`. Use `EditorModel:getPoint()`, `getSessionTime()`, `setSessionPoint()`, and `setSessionTime()` instead of reading or replacing `session.point` directly. `session.point` remains a compatibility alias for code that has not been migrated yet and must stay pointed at the cursor state's stable point object.
+
+Rectangle-selection drag state is owned by `EditorSelectionState`. Use `EditorModel:selectStart()`, `selectEnd()`, and `updateSelectionRect()` instead of writing `session.selectRect` or `session.selectStartTime` directly. The session fields remain compatibility aliases while older code and tests are migrated.
+
+The loaded note skin is owned by `EditorRenderState`. Use `EditorModel:setNoteSkin()` and `getNoteSkin()` instead of writing or reading `session.noteSkin` directly. `session.noteSkin` remains a compatibility alias for old fakes and code that has not moved to the accessor yet.
+
+Pattern-analysis display text is owned by `EditorAnalysisState`. Use `EditorModel:analyzePatterns()` and `getPatternsAnalyzed()` instead of reading or writing `session.patterns_analyzed`.
+
 `EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`. Editor-view modifier checks such as command hotkeys, fine scrolling, snap changes, and speed changes should be named `EditorInput` queries exposed through `EditorModel`, not direct `love.keyboard` reads in views.
 
 Manager ownership is attached explicitly in `attachManagers()`. Do not restore broad table mutation such as iterating over every `EditorModel` field; config, resource, input, metadata, timer, audio, and session objects must not accidentally receive `editorModel` back-references. Constructor dependencies may inject manager instances for focused tests, while production continues to use the default manager classes.
 
-### `EditorSession` — Per-Session Mutable State
-Holds state that changes during an active editing session:
-- `point`: current timeline position
-- `noteSkin`: loaded note skin reference
-- `selectRect`, `selectStartTime`: rectangle selection state
-- `patterns_analyzed`: pattern analysis results
+### Session Compatibility Aliases
+`EditorModel.session` is a plain compatibility table for aliases that migrated to dedicated state objects. Do not add new state to it. Prefer `EditorCursorState`, `EditorSelectionState`, `EditorRenderState`, `EditorAnalysisState`, `EditorRuntimeState`, or `EditorViewState` depending on ownership.
 
-Separated from `EditorModel` so that session-scoped data does not leak into the core model.
+`EditorSessionResetService` owns load-time session reset orchestration: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, selection cleanup, and session alias synchronization.
 
 ### `EditorViewState` — Per-Screen UI State
 Holds editor UI state that should not live in chart/session state:
 - `overlayState`: current overlay tab
 - `dragging`: transient UI drag state used by scrollbar and snap-grid interactions
 
-View services should mutate `EditorViewState` rather than adding UI-only fields to `EditorSession` or `EditorModel`.
+View services should mutate `EditorViewState` rather than adding UI-only fields to the session compatibility table or `EditorModel`.
 
 ### `EditorController` — Load/Save/Export
 Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart). Delegates NanoChart and BMS-specific exports to dedicated modules in `exports/`.

@@ -178,7 +178,7 @@ end
 ---@param _h number
 function SnapGridView:drawTimings(_w, _h)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.session.point
+	local editorTimePoint = editorModel:getPoint()
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -209,7 +209,7 @@ end
 ---@param _h number
 function SnapGridView:drawComments(_w, _h)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.session.point
+	local editorTimePoint = editorModel:getPoint()
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
 
@@ -252,7 +252,7 @@ end
 ---@param self table
 local function drawMouse(self)
 	local editorModel = self.game.editorModel
-	local dt = editorModel:getMouseTime() - editorModel.session.point.absoluteTime
+	local dt = editorModel:getMouseTime() - editorModel:getSessionTime()
 
 	love.graphics.push()
 	local w, h = Layout:move("base")
@@ -287,7 +287,7 @@ function SnapGridView:draw()
 	local lineHeight = 55
 	imgui.setSize(w, h, 200, lineHeight)
 
-	local editorTimePoint = editorModel.session.point
+	local editorTimePoint = editorModel:getPoint()
 
 	love.graphics.replaceTransform(gfx_util.transform(self.transform))
 	love.graphics.translate(noteSkin.baseOffset, 0)

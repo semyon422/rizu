@@ -30,7 +30,7 @@ VisualEngine.range = {-1, 1}
 
 ---@return number
 function VisualEngine:getCurrentTime()
-	return self.editorModel.session.point.absoluteTime
+	return self.editorModel:getSessionTime()
 end
 
 ---@return number

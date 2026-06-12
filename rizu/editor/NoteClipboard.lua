@@ -52,7 +52,7 @@ function NoteClipboard:paste()
 	local editorModel = noteManager.editorModel
 
 	editorModel.editorChanges:reset()
-	local point = editorModel.session.point
+	local point = editorModel:getPoint()
 	for _, note in ipairs(copiedNotes) do
 		noteManager:_addNotes(note:paste(point))
 	end

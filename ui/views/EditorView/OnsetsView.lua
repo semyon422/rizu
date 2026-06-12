@@ -14,7 +14,7 @@ return function(self)
 		return
 	end
 
-	local time = editorModel.session.point.absoluteTime - editorModel.audio_engine:getStartTime()
+	local time = editorModel:getSessionTime() - editorModel.audio_engine:getStartTime()
 
 	local a, b = onsets:findex(time - 1 / editor.speed, exTime)
 	local node = a or b

@@ -1,4 +1,8 @@
 local EditorModel = require("rizu.editor.EditorModel")
+local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
+local EditorCursorState = require("rizu.editor.EditorCursorState")
+local EditorRenderState = require("rizu.editor.EditorRenderState")
+local EditorSelectionState = require("rizu.editor.EditorSelectionState")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
 
@@ -39,7 +43,12 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		bmsToolsContext = {},
 		session = {},
 		loadService = {},
+		sessionResetService = {},
 		resourceLoadService = {},
+		cursorState = EditorCursorState(),
+		selectionState = EditorSelectionState(),
+		renderState = EditorRenderState(),
+		analysisState = EditorAnalysisState(),
 		runtimeState = EditorRuntimeState(),
 		viewState = EditorViewState(),
 	}
@@ -96,7 +105,12 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		bmsToolsContext = managers.bmsToolsContext,
 		session = managers.session,
 		loadService = managers.loadService,
+		sessionResetService = managers.sessionResetService,
 		resourceLoadService = managers.resourceLoadService,
+		cursorState = managers.cursorState,
+		selectionState = managers.selectionState,
+		renderState = managers.renderState,
+		analysisState = managers.analysisState,
 		runtimeState = managers.runtimeState,
 		viewState = managers.viewState,
 	})
@@ -123,9 +137,18 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(managers.metadata.editorModel, nil)
 	t:eq(managers.session.editorModel, nil)
 	t:eq(managers.loadService.editorModel, nil)
+	t:eq(managers.sessionResetService.editorModel, nil)
 	t:eq(managers.resourceLoadService.editorModel, nil)
+	t:eq(managers.cursorState.editorModel, nil)
+	t:eq(managers.selectionState.editorModel, nil)
+	t:eq(managers.renderState.editorModel, nil)
+	t:eq(managers.analysisState.editorModel, nil)
 	t:eq(managers.runtimeState.editorModel, nil)
 	t:eq(managers.viewState.editorModel, nil)
+	t:eq(editorModel.session.point, managers.cursorState:getPoint())
+	t:eq(editorModel.session.selectRect, managers.selectionState:getRect())
+	t:eq(editorModel.session.noteSkin, managers.renderState:getNoteSkin())
+	t:eq(editorModel.session.patterns_analyzed, managers.analysisState:getPatternsAnalyzed())
 	t:eq(editorModel.isMultiSelectRequested(), true)
 	t:eq(editorModel.isEditorCommandRequested(), true)
 	t:eq(editorModel.isFineScrollRequested(), true)
@@ -184,6 +207,10 @@ end
 
 ---@return rizu.editor.EditorModel
 function createEditorModel()
+	local cursorState = EditorCursorState()
+	local selectionState = EditorSelectionState()
+	local renderState = EditorRenderState()
+	local analysisState = EditorAnalysisState()
 	---@type rizu.editor.EditorModel
 	local editorModel = {
 		configModel = {
@@ -197,8 +224,12 @@ function createEditorModel()
 			},
 		},
 		session = {
-			point = {},
+			point = cursorState:getPoint(),
 		},
+		cursorState = cursorState,
+		selectionState = selectionState,
+		renderState = renderState,
+		analysisState = analysisState,
 	}
 	setmetatable(editorModel, {__index = EditorModel})
 	return editorModel
@@ -279,6 +310,10 @@ function test.update_order(t)
 	}
 	setmetatable(editorModel, {__index = EditorModel})
 
+	function editorModel:getNoteSkin()
+		return self.session.noteSkin
+	end
+
 	function editorModel:getSettings()
 		table.insert(calls, "settings")
 		return editor
@@ -348,9 +383,9 @@ function test.load_initializes_editor_collaborators(t)
 				return layer, notes
 			end,
 		},
-		session = {
-			load = function(_, model)
-				table.insert(calls, "session-load")
+		sessionResetService = {
+			reset = function(_, model)
+				table.insert(calls, "session-reset")
 				t:eq(model.chartmeta.title, "Title")
 			end,
 		},
@@ -414,7 +449,7 @@ function test.load_initializes_editor_collaborators(t)
 	t:eq(editorModel.metronome.volume, volume)
 	t:tdeq(calls, {
 		"chart-load",
-		"session-load",
+		"session-reset",
 		"timer-pause",
 		"timer-time:1.25",
 		"audio-volume:0.4:0.125",
@@ -546,6 +581,10 @@ function test.get_mouse_time_uses_injected_mouse_position(t)
 	}
 	setmetatable(editorModel, {__index = EditorModel})
 
+	function editorModel:getNoteSkin()
+		return self.session.noteSkin
+	end
+
 	function editorModel:getSettings()
 		return {
 			speed = 2,
@@ -592,6 +631,10 @@ function test.selection_region_uses_injected_callbacks(t)
 		end,
 	}
 	setmetatable(editorModel, {__index = EditorModel})
+
+	function editorModel:getNoteSkin()
+		return self.session.noteSkin
+	end
 
 	function editorModel:getSettings()
 		return {

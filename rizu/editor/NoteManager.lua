@@ -28,7 +28,7 @@ function NoteManager:getColumnOver()
 		return self.columnOver
 	end
 	local mx, _my = self.editorModel.getMousePosition()
-	local noteSkin = self.editorModel.session.noteSkin
+	local noteSkin = assert(self.editorModel:getNoteSkin())
 	return noteSkin:getInverseColumnPosition(mx)
 end
 
@@ -113,7 +113,7 @@ end
 
 function NoteManager:flipNotes()
 	local editorModel = self.editorModel
-	local noteSkin = self.editorModel.session.noteSkin
+	local noteSkin = assert(self.editorModel:getNoteSkin())
 
 	self:getNoteOps():flipSelected(editorModel.visualEngine.selectedNotes, noteSkin)
 end

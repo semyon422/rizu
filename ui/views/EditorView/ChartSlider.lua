@@ -17,7 +17,7 @@ return function(self, w, h)
 	love.graphics.setColor(1, 1, 1, 1)
 
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.session.point
+	local editorTimePoint = editorModel:getPoint()
 
 	local firstTime, lastTime = editorModel:getTimelineRange()
 	local fullLength = lastTime - firstTime

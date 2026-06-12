@@ -11,6 +11,28 @@ local function createController(fields)
 	return EditorController(fields)
 end
 
+local function createEditorModel(calls, onLoadResources)
+	return {
+		session = {},
+		setNoteSkin = function(self, noteSkin)
+			self.session.noteSkin = noteSkin
+			self.noteSkin = noteSkin
+		end,
+		getNoteSkin = function(self)
+			return self.noteSkin
+		end,
+		load = function(self)
+			table.insert(calls, "editor-load")
+			if self.onLoad then
+				self:onLoad()
+			end
+		end,
+		loadResources = onLoadResources or function(_, resources)
+			table.insert(calls, "editor-resources:" .. resources.loaded)
+		end,
+	}
+end
+
 ---@param t testing.T
 function test.load_wires_chart_skin_resources_and_window(t)
 	local calls = {}
@@ -35,18 +57,13 @@ function test.load_wires_chart_skin_resources_and_window(t)
 	}
 	local fileFinderPaths = {}
 	local resourceFinderPaths = {}
-	local editorModel = {
-		session = {},
-		load = function(self)
-			table.insert(calls, "editor-load")
-			t:eq(self.chart, chart)
-			t:eq(self.chartmeta, chartmeta)
-			t:eq(self.session.noteSkin, noteSkin)
-		end,
-		loadResources = function(_, resources)
-			table.insert(calls, "editor-resources:" .. resources.loaded)
-		end,
-	}
+	local editorModel = createEditorModel(calls)
+	function editorModel:onLoad()
+		t:eq(self.chart, chart)
+		t:eq(self.chartmeta, chartmeta)
+		t:eq(self:getNoteSkin(), noteSkin)
+		t:eq(self.session.noteSkin, noteSkin)
+	end
 
 	local controller = createController({
 		chartSelector = {
@@ -163,16 +180,10 @@ function test.load_resource_failure_propagates_before_vsync_switch(t)
 				return chart, {}
 			end,
 		},
-		editorModel = {
-			session = {},
-			load = function()
-				table.insert(calls, "editor-load")
-			end,
-			loadResources = function()
-				table.insert(calls, "editor-resources")
-				error("resource load failed")
-			end,
-		},
+		editorModel = createEditorModel(calls, function()
+			table.insert(calls, "editor-resources")
+			error("resource load failed")
+		end),
 		noteSkinModel = {
 			loadNoteSkin = function()
 				return {
@@ -282,11 +293,7 @@ function test.load_applies_modifiers_when_requested(t)
 				return chart, {}
 			end,
 		},
-		editorModel = {
-			session = {},
-			load = function() end,
-			loadResources = function() end,
-		},
+		editorModel = createEditorModel({}, function() end),
 		noteSkinModel = {
 			loadNoteSkin = function()
 				return {

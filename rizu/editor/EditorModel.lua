@@ -9,14 +9,18 @@ local GraphsGenerator = require("rizu.editor.GraphsGenerator")
 local EditorChanges = require("rizu.editor.EditorChanges")
 local EditorInput = require("rizu.editor.EditorInput")
 local EditorLoadService = require("rizu.editor.EditorLoadService")
+local EditorSessionResetService = require("rizu.editor.EditorSessionResetService")
 local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService")
+local EditorCursorState = require("rizu.editor.EditorCursorState")
+local EditorSelectionState = require("rizu.editor.EditorSelectionState")
+local EditorRenderState = require("rizu.editor.EditorRenderState")
+local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
 local NoteManager = require("rizu.editor.NoteManager")
 local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
 local BmsToolsContext = require("rizu.editor.BmsToolsContext")
-local EditorSession = require("rizu.editor.EditorSession")
 local Metadata = require("chart.format.sph.Metadata")
 
 ---@class rizu.editor.EditorModelDeps
@@ -45,9 +49,14 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field metronome rizu.editor.Metronome?
 ---@field metadata chart.sph.Metadata?
 ---@field bmsToolsContext rizu.editor.BmsToolsContext?
----@field session rizu.editor.EditorSession?
+---@field session table?
 ---@field loadService rizu.editor.EditorLoadService?
+---@field sessionResetService rizu.editor.EditorSessionResetService?
 ---@field resourceLoadService rizu.editor.EditorResourceLoadService?
+---@field cursorState rizu.editor.EditorCursorState?
+---@field selectionState rizu.editor.EditorSelectionState?
+---@field renderState rizu.editor.EditorRenderState?
+---@field analysisState rizu.editor.EditorAnalysisState?
 ---@field runtimeState rizu.editor.EditorRuntimeState?
 ---@field viewState rizu.editor.EditorViewState?
 
@@ -62,6 +71,10 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field isFineScrollRequested fun(): boolean
 ---@field isSnapChangeRequested fun(): boolean
 ---@field isSpeedChangeRequested fun(): boolean
+---@field cursorState rizu.editor.EditorCursorState
+---@field selectionState rizu.editor.EditorSelectionState
+---@field renderState rizu.editor.EditorRenderState
+---@field analysisState rizu.editor.EditorAnalysisState
 ---@field runtimeState rizu.editor.EditorRuntimeState
 ---@field viewState rizu.editor.EditorViewState
 local EditorModel = class()
@@ -116,8 +129,14 @@ function EditorModel:new(deps)
 	self.metronome = deps.metronome or Metronome(deps.fs)
 	self.metadata = deps.metadata or Metadata()
 	self.bmsToolsContext = deps.bmsToolsContext or BmsToolsContext()
-	self.session = deps.session or EditorSession(self)
+	self.cursorState = deps.cursorState or EditorCursorState()
+	self.selectionState = deps.selectionState or EditorSelectionState()
+	self.renderState = deps.renderState or EditorRenderState()
+	self.analysisState = deps.analysisState or EditorAnalysisState()
+	self.session = deps.session or {}
+	self:syncSessionAliases()
 	self.loadService = deps.loadService or EditorLoadService()
+	self.sessionResetService = deps.sessionResetService or EditorSessionResetService()
 	self.resourceLoadService = deps.resourceLoadService or EditorResourceLoadService()
 	self.runtimeState = deps.runtimeState or EditorRuntimeState()
 	self.viewState = deps.viewState or EditorViewState()
@@ -138,6 +157,15 @@ function EditorModel:attachManagers()
 	self.bmsToolsContext.editorModel = self
 end
 
+function EditorModel:syncSessionAliases()
+	local session = self.session
+	session.point = self:getCursorState():getPoint()
+	session.selectRect = self:getSelectionState():getRect()
+	session.selectStartTime = self:getSelectionState():getStartTime()
+	session.noteSkin = self:getRenderState():getNoteSkin()
+	session.patterns_analyzed = self:getAnalysisState():getPatternsAnalyzed()
+end
+
 function EditorModel:load()
 	local loadService = self.loadService or EditorLoadService()
 	loadService:load(self)
@@ -153,13 +181,86 @@ function EditorModel:getRuntimeState()
 	return runtimeState
 end
 
+---@return rizu.editor.EditorCursorState
+function EditorModel:getCursorState()
+	local cursorState = self.cursorState
+	if not cursorState then
+		cursorState = EditorCursorState()
+		self.cursorState = cursorState
+		if self.session.point then
+			cursorState:setPoint(self.session.point)
+		end
+		self.session.point = cursorState:getPoint()
+	end
+	return cursorState
+end
+
+---@return rizu.editor.EditorSelectionState
+function EditorModel:getSelectionState()
+	local selectionState = self.selectionState
+	if not selectionState then
+		selectionState = EditorSelectionState()
+		self.selectionState = selectionState
+		selectionState.rect = self.session.selectRect
+		selectionState.startTime = self.session.selectStartTime
+	end
+	self.session.selectRect = selectionState:getRect()
+	self.session.selectStartTime = selectionState:getStartTime()
+	return selectionState
+end
+
+---@return rizu.editor.EditorRenderState
+function EditorModel:getRenderState()
+	local renderState = self.renderState
+	if not renderState then
+		renderState = EditorRenderState()
+		self.renderState = renderState
+		renderState:setNoteSkin(self.session.noteSkin)
+	end
+	self.session.noteSkin = renderState:getNoteSkin()
+	return renderState
+end
+
+---@return rizu.editor.EditorAnalysisState
+function EditorModel:getAnalysisState()
+	local analysisState = self.analysisState
+	if not analysisState then
+		analysisState = EditorAnalysisState()
+		self.analysisState = analysisState
+		analysisState.patternsAnalyzed = self.session.patterns_analyzed
+	end
+	self.session.patterns_analyzed = analysisState:getPatternsAnalyzed()
+	return analysisState
+end
+
+function EditorModel:analyzePatterns()
+	self:getAnalysisState():analyze(self.chart)
+	self.session.patterns_analyzed = self:getAnalysisState():getPatternsAnalyzed()
+end
+
+---@return string?
+function EditorModel:getPatternsAnalyzed()
+	return self:getAnalysisState():getPatternsAnalyzed()
+end
+
+---@param noteSkin table?
+function EditorModel:setNoteSkin(noteSkin)
+	self:getRenderState():setNoteSkin(noteSkin)
+	self.session.noteSkin = noteSkin
+end
+
+---@return table?
+function EditorModel:getNoteSkin()
+	return self:getRenderState():getNoteSkin()
+end
+
 function EditorModel:loadChartData()
 	self.layer, self.notes = self.noteChartLoader:load()
 	self:setVisual(self.layer.visuals.main or self.layer.visuals[""])
 end
 
 function EditorModel:loadSession()
-	self.session:load(self)
+	self.sessionResetService:reset(self)
 end
 
 ---@param editor table
@@ -354,17 +455,24 @@ end
 
 ---@return number
 function EditorModel:getSessionTime()
-	return self.session.point.absoluteTime
+	return self:getCursorState():getTime()
 end
 
 ---@param time number
 function EditorModel:setSessionTime(time)
-	self:getDtpAbsolute(time):clone(self.session.point)
+	self:getCursorState():setPoint(self:getDtpAbsolute(time))
+	self.session.point = self:getCursorState():getPoint()
 end
 
 ---@param point chartedit.Point
 function EditorModel:setSessionPoint(point)
-	point:clone(self.session.point)
+	self:getCursorState():setPoint(point)
+	self.session.point = self:getCursorState():getPoint()
+end
+
+---@return chartedit.Point
+function EditorModel:getPoint()
+	return self:getCursorState():getPoint()
 end
 
 function EditorModel:unload()
@@ -410,7 +518,7 @@ end
 function EditorModel:getMouseTime(dy)
 	dy = dy or 0
 	local _mx, my = self.getMousePosition()
-	local noteSkin = self.session.noteSkin
+	local noteSkin = assert(self:getNoteSkin())
 	local editor = self:getSettings()
 	return self:getSessionTime() - noteSkin:getInverseTimePosition(my + dy) / editor.speed
 end
@@ -423,14 +531,18 @@ end
 function EditorModel:selectStart()
 	self.visualEngine:selectStart()
 	local mx, my = self.getMousePosition()
-	self.session.selectRect = {mx, my, mx, my}
-	self.session.selectStartTime = self:getMouseTime()
+	local selectionState = self:getSelectionState()
+	selectionState:start(mx, my, self:getMouseTime())
+	self.session.selectRect = selectionState:getRect()
+	self.session.selectStartTime = selectionState:getStartTime()
 	self.selectRegion(mx, my, mx, my)
 end
 
 function EditorModel:selectEnd()
 	self.visualEngine:selectEnd()
+	self:getSelectionState():finish()
 	self.session.selectRect = nil
+	self.session.selectStartTime = nil
 	self.unselectRegion()
 end
 
@@ -449,12 +561,16 @@ end
 ---@param noteSkin table
 ---@param time number
 function EditorModel:updateSelectionRect(editor, noteSkin, time)
-	if self.session.selectRect then
+	local selectionState = self:getSelectionState()
+	local rect = selectionState:getRect()
+	local startTime = selectionState:getStartTime()
+	if rect and startTime then
 		local mx, my = self.getMousePosition()
-		self.session.selectRect[2] = noteSkin:getTimePosition((time - self.session.selectStartTime) * editor.speed)
-		self.session.selectRect[3] = mx
-		self.session.selectRect[4] = my
-		self.selectRegion(self.session.selectRect[1], self.session.selectRect[2], mx, my)
+		local rectY = noteSkin:getTimePosition((time - startTime) * editor.speed)
+		selectionState:update(mx, my, rectY)
+		self.session.selectRect = rect
+		self.session.selectStartTime = startTime
+		self.selectRegion(rect[1], rect[2], mx, my)
 	end
 end
 
@@ -480,7 +596,7 @@ end
 
 function EditorModel:update()
 	local editor = self:getSettings()
-	local noteSkin = self.session.noteSkin
+	local noteSkin = assert(self:getNoteSkin())
 
 	local time = self.timer:getTime()
 	self:updateEditorTime(editor, time)

@@ -91,6 +91,22 @@ function EditorTestFactory.createEditorModel()
 		self:getDtpAbsolute(time):clone(self.session.point)
 	end
 
+	function editorModel:getSessionTime()
+		return self.session.point.absoluteTime
+	end
+
+	function editorModel:getPoint()
+		return self.session.point
+	end
+
+	function editorModel:getNoteSkin()
+		return self.session.noteSkin
+	end
+
+	function editorModel:setNoteSkin(noteSkin)
+		self.session.noteSkin = noteSkin
+	end
+
 	function editorModel:getMouseTime()
 		return self.mouseTime or 0
 	end

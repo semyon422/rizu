@@ -114,7 +114,7 @@ function tabs.timings(self)
 	local editor = self.game.configModel.configs.settings.editor
 	local layer = editorModel.layer
 
-	local dtp = editorModel.session.point
+	local dtp = editorModel:getPoint()
 
 	if imgui.button("prev tp", "<") and dtp.prev then
 		editorModel.scroller:scrollTimePoint(dtp.prev)

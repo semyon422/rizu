@@ -20,6 +20,9 @@ function test.ui_action_methods_update_editor_state(t)
 				absoluteTime = 12.5,
 			},
 		},
+		getSessionTime = function()
+			return 12.5
+		end,
 		viewState = EditorViewState(),
 		noteManager = {
 			changeType = function()

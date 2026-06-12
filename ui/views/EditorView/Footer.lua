@@ -9,7 +9,7 @@ local Layout = require("ui.views.EditorView.Layout")
 
 return function(self)
 	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel.session.point
+	local editorTimePoint = editorModel:getPoint()
 
 	local w, h = Layout:move("footer")
 	love.graphics.setColor(1, 1, 1, 1)

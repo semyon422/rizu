@@ -45,7 +45,7 @@ function Scroller:scrollSnaps(delta)
 	end
 	self:scrollPoint(
 		self.editorModel.layer.points:interpolateFraction(
-			self:getNextSnapIntervalTime(self.editorModel.session.point, delta)
+			self:getNextSnapIntervalTime(self.editorModel:getPoint(), delta)
 		)
 	)
 end

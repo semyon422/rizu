@@ -31,6 +31,10 @@ local function createEditorModel()
 		return self.session.point.absoluteTime
 	end
 
+	function editorModel:getPoint()
+		return self.session.point
+	end
+
 	function editorModel:setSessionPoint(point)
 		self.setSessionPointCount = (self.setSessionPointCount or 0) + 1
 		point:clone(self.session.point)

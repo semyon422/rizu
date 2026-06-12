@@ -74,7 +74,7 @@ function EditorController:load()
 	noteSkin:loadData()
 	noteSkin.editor = true
 
-	editorModel.session.noteSkin = noteSkin
+	editorModel:setNoteSkin(noteSkin)
 	editorModel.chart = chart
 	editorModel.chartmeta = chartmeta
 	editorModel:load()

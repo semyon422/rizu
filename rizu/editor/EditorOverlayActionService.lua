@@ -6,7 +6,7 @@ local EditorOverlayActionService = class()
 
 ---@param editorModel rizu.editor.EditorModel
 function EditorOverlayActionService:setPreviewTimeToSession(editorModel)
-	editorModel.chartmeta.preview_time = editorModel.session.point.absoluteTime
+	editorModel.chartmeta.preview_time = editorModel:getSessionTime()
 end
 
 ---@param editorModel rizu.editor.EditorModel

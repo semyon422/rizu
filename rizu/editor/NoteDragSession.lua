@@ -50,7 +50,7 @@ end
 function NoteDragSession:grabNew(note, part, mouseTime)
 	local noteManager = self.noteManager
 	local editorModel = noteManager.editorModel
-	local noteSkin = editorModel.session.noteSkin
+	local noteSkin = assert(editorModel:getNoteSkin())
 	local editor = editorModel:getSettings()
 
 	self:clear()
@@ -70,7 +70,7 @@ function NoteDragSession:update()
 	local noteManager = self.noteManager
 	local editorModel = noteManager.editorModel
 	local editor = editorModel:getSettings()
-	local noteSkin = editorModel.session.noteSkin
+	local noteSkin = assert(editorModel:getNoteSkin())
 
 	for _, note in ipairs(self.grabbedNotes) do
 		note:update()
@@ -91,7 +91,7 @@ end
 function NoteDragSession:grab(part, mouseTime)
 	local noteManager = self.noteManager
 	local editorModel = noteManager.editorModel
-	local noteSkin = editorModel.session.noteSkin
+	local noteSkin = assert(editorModel:getNoteSkin())
 	local editor = editorModel:getSettings()
 
 	self:clear()

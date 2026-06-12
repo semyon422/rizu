@@ -33,7 +33,7 @@ end
 
 function Metronome:updateNextTime()
 	local editorModel = self.editorModel
-	local point = editorModel.session.point
+	local point = editorModel:getPoint()
 	local layer = editorModel.layer
 	local currentTime = editorModel.timer:getTime()
 
