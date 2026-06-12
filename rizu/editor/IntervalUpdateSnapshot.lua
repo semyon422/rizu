@@ -41,12 +41,13 @@ local function collectPointNotes(note_storage, point)
 	return notes
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param context rizu.editor.IntervalManagerContext
 ---@param vertex chartedit.Vertex
 ---@param beats number
 ---@return rizu.editor.IntervalUpdateSnapshot.RemovedPoint[]?
-function IntervalUpdateSnapshot.captureRemovedPoints(editorModel, vertex, beats)
-	beats = getClampedBeats(vertex, beats, editorModel.layer.vertices.minBeatDuration)
+function IntervalUpdateSnapshot.captureRemovedPoints(context, vertex, beats)
+	local layer = context.getLayer()
+	beats = getClampedBeats(vertex, beats, layer.vertices.minBeatDuration)
 	if not beats or beats >= vertex.beats then
 		return
 	end
@@ -61,7 +62,7 @@ function IntervalUpdateSnapshot.captureRemovedPoints(editorModel, vertex, beats)
 		table.insert(removed_points, {
 			vertex = point.vertex,
 			time = point.time,
-			notes = collectPointNotes(editorModel.notes, point),
+			notes = collectPointNotes(context.getNotes(), point),
 		})
 		point = point.prev
 	end
@@ -84,15 +85,15 @@ function IntervalUpdateSnapshot.removeNotes(note_storage, removed_points)
 	end
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param context rizu.editor.IntervalManagerContext
 ---@param removed_points rizu.editor.IntervalUpdateSnapshot.RemovedPoint[]?
-function IntervalUpdateSnapshot.restore(editorModel, removed_points)
+function IntervalUpdateSnapshot.restore(context, removed_points)
 	if not removed_points then
 		return
 	end
 
-	local layer = editorModel.layer
-	local note_storage = editorModel.notes
+	local layer = context.getLayer()
+	local note_storage = context.getNotes()
 	for _, removed_point in ipairs(removed_points) do
 		local point = layer.points:getPoint(removed_point.vertex, removed_point.time)
 		local visual_point

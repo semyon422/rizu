@@ -27,7 +27,7 @@ local Metadata = require("chart.format.sph.Metadata")
 
 ---@class rizu.editor.EditorServicesDeps
 ---@field fs fs.IFilesystem?
----@field noteChartLoader rizu.editor.EditorNoteChartLoader?
+---@field noteChartLoader rizu.editor.NoteChartLoader?
 ---@field audio_engine rizu.engine.audio.Engine?
 ---@field ncbtContext rizu.editor.NcbtContext?
 ---@field intervalManager rizu.editor.IntervalManager?
@@ -55,7 +55,7 @@ local Metadata = require("chart.format.sph.Metadata")
 
 ---@class rizu.editor.EditorServices
 ---@operator call: rizu.editor.EditorServices
----@field noteChartLoader rizu.editor.EditorNoteChartLoader
+---@field noteChartLoader rizu.editor.NoteChartLoader
 ---@field audio_engine rizu.engine.audio.Engine
 ---@field ncbtContext rizu.editor.NcbtContext
 ---@field intervalManager rizu.editor.IntervalManager
@@ -143,20 +143,17 @@ end
 
 ---@param editorModel rizu.editor.EditorModel
 function EditorServices:attachEditorModel(editorModel)
-	self.noteChartLoader.editorModel = editorModel
-	self.ncbtContext.editorModel = editorModel
-	self.intervalManager.editorModel = editorModel
-	self.graphsGenerator.editorModel = editorModel
-	self.editorChanges.editorModel = editorModel
+	self.noteChartLoader:setContext(editorModel:createNoteChartLoaderContext())
+	self.intervalManager:setContext(editorModel:createIntervalManagerContext())
+	self.editorChanges:setContext(editorModel:createEditorChangesContext())
 	if self.noteService.setEditorModel then
 		self.noteService:setEditorModel(editorModel)
 	else
 		self.noteService.editorModel = editorModel
 	end
 	self.visualEngine.editorModel = editorModel
-	self.scroller.editorModel = editorModel
-	self.metronome.editorModel = editorModel
-	self.bmsToolsContext.editorModel = editorModel
+	self.scroller:setContext(editorModel:createScrollerContext())
+	self.metronome:setContext(editorModel:createMetronomeContext())
 end
 
 function EditorServices:update()

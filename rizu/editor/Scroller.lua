@@ -1,51 +1,67 @@
 local class = require("class")
 local Fraction = require("chart.core.Fraction")
 
+---@class rizu.editor.ScrollerContext
+---@field getDtpAbsolute fun(absoluteTime: number): chartedit.Point
+---@field getSessionTime fun(): number
+---@field getPoint fun(): chartedit.Point
+---@field setSessionPoint fun(point: chartedit.Point)
+---@field setTime fun(time: number)
+---@field isIntervalGrabbed fun(): boolean
+---@field interpolateFraction fun(vertex: chartedit.Vertex, time: chart.Fraction): chartedit.Point
+---@field getSettings fun(): table
+
 ---@class rizu.editor.Scroller
 ---@operator call: rizu.editor.Scroller
+---@field context rizu.editor.ScrollerContext
 local Scroller = class()
 
----@param point chart.Point
+---@param context rizu.editor.ScrollerContext
+function Scroller:setContext(context)
+	self.context = context
+end
+
+---@param point chartedit.Point
 function Scroller:_scrollPoint(point)
 	if not point then
 		return
 	end
-	self.editorModel:setSessionPoint(point)
+	self.context.setSessionPoint(point)
 end
 
----@param point chart.Point
+---@param point chartedit.Point
 function Scroller:scrollPoint(point)
 	if not point then
 		return
 	end
 	self:_scrollPoint(point)
-	self.editorModel:setTime(point.absoluteTime)
+	self.context.setTime(point.absoluteTime)
 end
 
----@param point chart.Point
+---@param point chartedit.Point
 function Scroller:scrollTimePoint(point)
 	self:scrollPoint(point)
 end
 
 ---@param absoluteTime number
 function Scroller:scrollSeconds(absoluteTime)
-	local point = self.editorModel:getDtpAbsolute(absoluteTime)
+	local point = self.context.getDtpAbsolute(absoluteTime)
 	self:scrollPoint(point)
 end
 
 ---@param delta number
 function Scroller:scrollSecondsDelta(delta)
-	self:scrollSeconds(self.editorModel:getSessionTime() + delta)
+	self:scrollSeconds(self.context.getSessionTime() + delta)
 end
 
 ---@param delta number
 function Scroller:scrollSnaps(delta)
-	if self.editorModel.intervalManager:isGrabbed() then
+	if self.context.isIntervalGrabbed() then
 		return
 	end
 	self:scrollPoint(
-		self.editorModel.layer.points:interpolateFraction(
-			self:getNextSnapIntervalTime(self.editorModel:getPoint(), delta)
+		self.context.interpolateFraction(
+			self:getNextSnapIntervalTime(self.context.getPoint(), delta)
 		)
 	)
 end
@@ -55,7 +71,7 @@ end
 ---@return chartedit.Vertex
 ---@return chart.Fraction
 function Scroller:getNextSnapIntervalTime(point, delta)
-	local editor = self.editorModel:getSettings()
+	local editor = self.context.getSettings()
 
 	local snap = editor.snap
 	local snapTime = point.time * snap

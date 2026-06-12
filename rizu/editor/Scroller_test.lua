@@ -45,11 +45,41 @@ local function createEditorModel()
 	return editorModel
 end
 
+local function createScroller(editorModel)
+	local scroller = Scroller()
+	scroller:setContext({
+		getDtpAbsolute = function(time)
+			return editorModel:getDtpAbsolute(time)
+		end,
+		getSessionTime = function()
+			return editorModel:getSessionTime()
+		end,
+		getPoint = function()
+			return editorModel:getPoint()
+		end,
+		setSessionPoint = function(point)
+			editorModel:setSessionPoint(point)
+		end,
+		setTime = function(time)
+			editorModel:setTime(time)
+		end,
+		isIntervalGrabbed = function()
+			return editorModel.intervalManager:isGrabbed()
+		end,
+		interpolateFraction = function(vertex, time)
+			return editorModel.layer.points:interpolateFraction(vertex, time)
+		end,
+		getSettings = function()
+			return editorModel:getSettings()
+		end,
+	})
+	return scroller
+end
+
 ---@param t testing.T
 function test.next_snap(t)
 	local editorModel = createEditorModel()
-	local scroller = Scroller()
-	scroller.editorModel = editorModel
+	local scroller = createScroller(editorModel)
 
 	local vertex, time = scroller:getNextSnapIntervalTime(editorModel:getPoint(), 1)
 
@@ -60,8 +90,7 @@ end
 ---@param t testing.T
 function test.scroll_time_point_alias(t)
 	local editorModel = createEditorModel()
-	local scroller = Scroller()
-	scroller.editorModel = editorModel
+	local scroller = createScroller(editorModel)
 
 	local point = editorModel.layer.points:interpolateAbsolute(4, 0.5)
 	scroller:scrollTimePoint(point)
@@ -80,8 +109,7 @@ function test.scroll_snaps(t)
 		end,
 	}
 
-	local scroller = Scroller()
-	scroller.editorModel = editorModel
+	local scroller = createScroller(editorModel)
 
 	scroller:scrollSnaps(1)
 
@@ -92,8 +120,7 @@ end
 ---@param t testing.T
 function test.scroll_seconds_delta_uses_session_time(t)
 	local editorModel = createEditorModel()
-	local scroller = Scroller()
-	scroller.editorModel = editorModel
+	local scroller = createScroller(editorModel)
 
 	scroller:scrollSeconds(0.5)
 	scroller:scrollSecondsDelta(0.25)
@@ -111,8 +138,7 @@ function test.scroll_snaps_ignored_while_interval_grabbed(t)
 		end,
 	}
 
-	local scroller = Scroller()
-	scroller.editorModel = editorModel
+	local scroller = createScroller(editorModel)
 
 	scroller:scrollSnaps(1)
 

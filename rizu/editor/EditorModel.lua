@@ -192,6 +192,91 @@ function EditorModel:createSelectionRectContext()
 	}
 end
 
+---@return rizu.editor.ScrollerContext
+function EditorModel:createScrollerContext()
+	return {
+		getDtpAbsolute = function(absoluteTime)
+			return self:getDtpAbsolute(absoluteTime)
+		end,
+		getSessionTime = function()
+			return self:getSessionTime()
+		end,
+		getPoint = function()
+			return self:getPoint()
+		end,
+		setSessionPoint = function(point)
+			self:setSessionPoint(point)
+		end,
+		setTime = function(time)
+			self:setTime(time)
+		end,
+		isIntervalGrabbed = function()
+			return self.intervalManager:isGrabbed()
+		end,
+		interpolateFraction = function(vertex, time)
+			return self.layer.points:interpolateFraction(vertex, time)
+		end,
+		getSettings = function()
+			return self:getSettings()
+		end,
+	}
+end
+
+---@return rizu.editor.IntervalManagerContext
+function EditorModel:createIntervalManagerContext()
+	return {
+		getLayer = function()
+			return self.layer
+		end,
+		getNotes = function()
+			return self.notes
+		end,
+		editorChanges = self.editorChanges,
+	}
+end
+
+---@return rizu.editor.EditorChangesContext
+function EditorModel:createEditorChangesContext()
+	return {
+		resetVisual = function()
+			self.visualEngine:reset()
+		end,
+	}
+end
+
+---@return rizu.editor.NoteChartLoaderContext
+function EditorModel:createNoteChartLoaderContext()
+	return {
+		getChart = function()
+			return self.chart
+		end,
+		getLayer = function()
+			return self.layer
+		end,
+		getNotes = function()
+			return self.notes
+		end,
+	}
+end
+
+---@return rizu.editor.MetronomeContext
+function EditorModel:createMetronomeContext()
+	return {
+		getPoint = function()
+			return self:getPoint()
+		end,
+		getCurrentTime = function()
+			return self.timer:getTime()
+		end,
+		getNextSnapIntervalTime = function(point, delta)
+			return self.scroller:getNextSnapIntervalTime(point, delta)
+		end,
+		interpolateFraction = function(vertex, time)
+			return self.layer.points:interpolateFraction(vertex, time)
+		end,
+	}
+end
+
 ---@return rizu.editor.EditorRuntimeState
 function EditorModel:getRuntimeState()
 	local runtimeState = self.runtimeState

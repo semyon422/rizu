@@ -22,7 +22,11 @@ local function createContext()
 			reset = function() end,
 		},
 	}
-	editorChanges.editorModel = editorModel
+	editorChanges:setContext({
+		resetVisual = function()
+			editorModel.visualEngine:reset()
+		end,
+	})
 
 	local ops = EditorNoteOps()
 	ops.editorModel = editorModel

@@ -1,13 +1,22 @@
 local class = require("class")
 local Changes = require("Changes")
 
+---@class rizu.editor.EditorChangesContext
+---@field resetVisual fun()
+
 ---@class rizu.editor.EditorChanges
 ---@operator call: rizu.editor.EditorChanges
+---@field context rizu.editor.EditorChangesContext
 local EditorChanges = class()
 
 function EditorChanges:new()
 	self.changes = Changes()
 	self.commands = {}
+end
+
+---@param context rizu.editor.EditorChangesContext
+function EditorChanges:setContext(context)
+	self.context = context
 end
 
 ---@param command table
@@ -20,7 +29,7 @@ function EditorChanges:undo()
 		local cmd = self.commands[i].undo
 		run(cmd)
 	end
-	self.editorModel.visualEngine:reset()
+	self.context.resetVisual()
 end
 
 function EditorChanges:redo()
@@ -28,7 +37,7 @@ function EditorChanges:redo()
 		local cmd = self.commands[i].redo
 		run(cmd)
 	end
-	self.editorModel.visualEngine:reset()
+	self.context.resetVisual()
 end
 
 function EditorChanges:reset()

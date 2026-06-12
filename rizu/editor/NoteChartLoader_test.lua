@@ -8,11 +8,11 @@ local test = {}
 local selectNote = EditorTestFactory.selectNote
 
 ---@param editorModel rizu.editor.EditorModel
----@return rizu.editor.EditorNoteChartLoader
+---@return rizu.editor.NoteChartLoader
 local function attachLoader(editorModel)
 	editorModel.chart = Converter:save({main = editorModel.layer}, editorModel.notes)
 	local loader = NoteChartLoader()
-	loader.editorModel = editorModel
+	loader:setContext(EditorTestFactory.createNoteChartLoaderContext(editorModel))
 	editorModel.noteChartLoader = loader
 	return loader
 end
@@ -24,7 +24,7 @@ local function reloadThroughNoteChartLoader(editorModel)
 	loadedEditorModel.chart = chart
 
 	local loader = NoteChartLoader()
-	loader.editorModel = loadedEditorModel
+	loader:setContext(EditorTestFactory.createNoteChartLoaderContext(loadedEditorModel))
 	loadedEditorModel.noteChartLoader = loader
 	loadedEditorModel.layer, loadedEditorModel.notes = loader:load()
 	loadedEditorModel.visual = loadedEditorModel.layer.visuals.main

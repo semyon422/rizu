@@ -7,7 +7,28 @@ local createDeps
 function test.applies_and_attaches_editor_model_collaborators(t)
 	local deps = createDeps()
 	local services = EditorServices(deps)
-	local editorModel = {}
+	local scrollerContext = {}
+	local intervalContext = {}
+	local editorChangesContext = {}
+	local noteChartLoaderContext = {}
+	local metronomeContext = {}
+	local editorModel = {
+		createNoteChartLoaderContext = function()
+			return noteChartLoaderContext
+		end,
+		createScrollerContext = function()
+			return scrollerContext
+		end,
+		createIntervalManagerContext = function()
+			return intervalContext
+		end,
+		createEditorChangesContext = function()
+			return editorChangesContext
+		end,
+		createMetronomeContext = function()
+			return metronomeContext
+		end,
+	}
 
 	services:applyToEditorModel(editorModel)
 	services:attachEditorModel(editorModel)
@@ -37,17 +58,19 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(editorModel.analysisState, deps.analysisState)
 	t:eq(editorModel.runtimeState, deps.runtimeState)
 	t:eq(editorModel.viewState, deps.viewState)
-	t:eq(deps.noteChartLoader.editorModel, editorModel)
-	t:eq(deps.ncbtContext.editorModel, editorModel)
-	t:eq(deps.intervalManager.editorModel, editorModel)
-	t:eq(deps.graphsGenerator.editorModel, editorModel)
-	t:eq(deps.editorChanges.editorModel, editorModel)
+	t:eq(deps.noteChartLoader.context, noteChartLoaderContext)
+	t:eq(deps.noteChartLoader.editorModel, nil)
+	t:eq(deps.ncbtContext.editorModel, nil)
+	t:eq(deps.intervalManager.context, intervalContext)
+	t:eq(deps.graphsGenerator.editorModel, nil)
+	t:eq(deps.editorChanges.context, editorChangesContext)
+	t:eq(deps.editorChanges.editorModel, nil)
 	t:eq(deps.noteService.editorModel, editorModel)
 	t:eq(deps.noteService.attachedWithMethod, true)
 	t:eq(deps.visualEngine.editorModel, editorModel)
-	t:eq(deps.scroller.editorModel, editorModel)
-	t:eq(deps.metronome.editorModel, editorModel)
-	t:eq(deps.bmsToolsContext.editorModel, editorModel)
+	t:eq(deps.scroller.context, scrollerContext)
+	t:eq(deps.metronome.context, metronomeContext)
+	t:eq(deps.bmsToolsContext.editorModel, nil)
 	t:eq(deps.audio_engine.editorModel, nil)
 	t:eq(deps.timer.editorModel, nil)
 	t:eq(deps.metadata.editorModel, nil)
@@ -90,18 +113,43 @@ function createDeps()
 			self.attachedWithMethod = true
 		end,
 	}
+	local scroller = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local intervalManager = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local metronome = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local editorChanges = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local noteChartLoader = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
 	return {
-		noteChartLoader = {},
+		noteChartLoader = noteChartLoader,
 		audio_engine = {},
 		ncbtContext = {},
-		intervalManager = {},
+		intervalManager = intervalManager,
 		graphsGenerator = {},
-		editorChanges = {},
+		editorChanges = editorChanges,
 		timer = {},
 		noteService = noteService,
 		visualEngine = {},
-		scroller = {},
-		metronome = {},
+		scroller = scroller,
+		metronome = metronome,
 		metadata = {},
 		bmsToolsContext = {},
 		loadService = {},

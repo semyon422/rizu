@@ -30,18 +30,43 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 			t:eq(time, 0)
 		end,
 	}
+	local scroller = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local intervalManager = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local metronome = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local editorChanges = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local noteChartLoader = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
 	local services = {
-		noteChartLoader = {},
+		noteChartLoader = noteChartLoader,
 		audio_engine = {},
 		ncbtContext = {},
-		intervalManager = {},
+		intervalManager = intervalManager,
 		graphsGenerator = {},
-		editorChanges = {},
+		editorChanges = editorChanges,
 		timer = timer,
 		noteService = {},
 		visualEngine = {},
-		scroller = {},
-		metronome = {},
+		scroller = scroller,
+		metronome = metronome,
 		metadata = {},
 		bmsToolsContext = {},
 		loadService = {},
@@ -128,16 +153,18 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(editorModel.services.metronome, services.metronome)
 	t:eq(editorModel.noteService, services.noteService)
 	t:eq(editorModel.visualEngine, services.visualEngine)
-	t:eq(services.noteChartLoader.editorModel, editorModel)
-	t:eq(services.ncbtContext.editorModel, editorModel)
-	t:eq(services.intervalManager.editorModel, editorModel)
-	t:eq(services.graphsGenerator.editorModel, editorModel)
-	t:eq(services.editorChanges.editorModel, editorModel)
+	t:eq(type(services.noteChartLoader.context.getChart), "function")
+	t:eq(services.noteChartLoader.editorModel, nil)
+	t:eq(services.ncbtContext.editorModel, nil)
+	t:eq(type(services.intervalManager.context.getLayer), "function")
+	t:eq(services.graphsGenerator.editorModel, nil)
+	t:eq(type(services.editorChanges.context.resetVisual), "function")
+	t:eq(services.editorChanges.editorModel, nil)
 	t:eq(services.noteService.editorModel, editorModel)
 	t:eq(services.visualEngine.editorModel, editorModel)
-	t:eq(services.scroller.editorModel, editorModel)
-	t:eq(services.metronome.editorModel, editorModel)
-	t:eq(services.bmsToolsContext.editorModel, editorModel)
+	t:eq(type(services.scroller.context.getPoint), "function")
+	t:eq(type(services.metronome.context.getPoint), "function")
+	t:eq(services.bmsToolsContext.editorModel, nil)
 	t:eq(configModel.editorModel, nil)
 	t:eq(resourceModel.editorModel, nil)
 	t:eq(input.editorModel, nil)
@@ -753,6 +780,26 @@ function test.resource_load_context_delegates_to_model_methods(t)
 		"graphs",
 		"loaded:true",
 	})
+end
+
+---@param t testing.T
+function test.interval_manager_context_reads_current_model_state(t)
+	local editorModel = {
+		layer = {},
+		notes = {},
+		editorChanges = {},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	local context = editorModel:createIntervalManagerContext()
+	t:eq(context.getLayer(), editorModel.layer)
+	t:eq(context.getNotes(), editorModel.notes)
+	t:eq(context.editorChanges, editorModel.editorChanges)
+
+	editorModel.layer = {updated = true}
+	editorModel.notes = {updated = true}
+	t:eq(context.getLayer(), editorModel.layer)
+	t:eq(context.getNotes(), editorModel.notes)
 end
 
 ---@param t testing.T

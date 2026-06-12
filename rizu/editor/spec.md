@@ -97,6 +97,11 @@ Modifier application on load is driven by an injected predicate so `EditorContro
 
 `exports/NanoChartExporter` owns `.nanochart`, compressed `.nanochart`, and SPH preview file generation. It reads notes from the current `chart.Chart` model after `EditorModel:save()` and writes through `fs.IFilesystem`; do not revive legacy `editorModel.noteChart` usage.
 
+### `NoteChartLoader` — Edit Chart Conversion
+Converts the persisted `chart.Chart` into editable `chartedit.Layer` and `chartedit.Notes` data, and writes edited data back into the current chart on save.
+
+`NoteChartLoader` receives a narrow `NoteChartLoaderContext` from `EditorServices` instead of reading the whole `EditorModel`. The context supplies the current chart, layer, and notes lazily so load-time and save-time state changes stay owned by `EditorModel`.
+
 ### `VisualEngine` — Note Rendering And Selection
 Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates linked notes in the visible time range, creates or reuses note objects, and tracks selection state. Uses `EditorNoteFactory` to produce the correct note subclass.
 
@@ -124,21 +129,29 @@ All mutations are recorded through `EditorChanges` for undo/redo support.
 Editor tests should use `EditorTestFactory` note helpers for common setup:
 `createNote()` for a raw editor note, `addNote()` for chart insertion, `addCommittedNote()` when undo history needs an initial boundary, and `addSelectedNote()` / `addCommittedSelectedNote()` for selected-note command setup. Spell out lower-level `commandService:addNotes(...)` calls only when the test is explicitly covering duplicate insertion, multi-note setup, or low-level note ops.
 
+`EditorTestFactory.createNoteChartLoaderContext(editorModel)`, `createEditorChangesContext(editorModel)`, `createScrollerContext(editorModel)`, `createIntervalManagerContext(editorModel)`, and `createMetronomeContext(editorModel)` mirror the runtime context shapes for lightweight editor-model fakes. Prefer them over rebuilding callback tables in each test.
+
 ### `IntervalManager` — Timing Vertex Manipulation
 Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual vertex data.
+
+`IntervalManager` receives a narrow `IntervalManagerContext` from `EditorServices` instead of reading the whole `EditorModel`. The context reads layer and notes lazily because the manager is attached before chart data is loaded.
 
 Shrinking an interval can remove chartedit points and the visual points/notes anchored to them. `IntervalManager` captures those removed points through `IntervalUpdateSnapshot` before applying the timing mutation so undo/redo can restore or remove both points and notes consistently.
 
 ### `Scroller` — Timeline Navigation
 Scroll by seconds or snap grid units. Respects vertex boundaries and the current snap resolution.
 
-Cursor writes go through `EditorModel:setSessionPoint()` so timeline state updates have one owner.
+`Scroller` receives a narrow `ScrollerContext` from `EditorServices` instead of reading the whole `EditorModel`. Cursor writes go through `EditorModel:setSessionPoint()` so timeline state updates have one owner.
 
 ### `GraphsGenerator` — Scrollbar Visualization
 Generates a note density graph and a vertex graph for the scrollbar UI.
 
+`GraphsGenerator` is argument-driven and should not receive an `EditorModel` back-reference. `EditorModel:genGraphs()` supplies the current chart, layer, and timeline range.
+
 ### `EditorChanges` — Undo/Redo
 Wraps the generic `Changes` system with method-call commands. Records add/remove note operations with corresponding redo and undo pairs.
+
+`EditorChanges` receives a narrow `EditorChangesContext` with `resetVisual()` instead of reading the whole `EditorModel`. Undo and redo call that reset after replaying a change group so visual note caches and selections are rebuilt by the visual layer.
 
 ### `TimeManager` — Playback Timer
 Extends `rizu.engine.time.LocalTimer`. Controls play/pause and current playback position.
@@ -146,13 +159,19 @@ Extends `rizu.engine.time.LocalTimer`. Controls play/pause and current playback 
 ### `Metronome` — Click Track
 Provides a metronome click synced to the current timing data.
 
+`Metronome` receives a narrow `MetronomeContext` from `EditorServices` instead of reading the whole `EditorModel`. It uses the context for current time, current point, next snap lookup, and point interpolation.
+
 Loads its click sample through `fs.IFilesystem` so editor model tests do not depend on `love.filesystem`.
 
 ### `NcbtContext` — Tempo And Offset Detection
 Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Results can be applied to the chart's interval data.
 
+`NcbtContext` is argument-driven: detection receives sound data, and application receives the target chartedit layer. It should not receive an `EditorModel` back-reference.
+
 ### `BmsToolsContext` — BMS State Container
 Holds BMS-specific editing state (`offset`, `tempo`, `beat_offset`) and provides `resetOffsetTempo()` to apply those values to the chart's layer vertices. Separated from `EditorModel` to isolate BMS-specific concerns.
+
+`BmsToolsContext` is argument-driven for layer operations. It may store BMS-specific values, but chart mutation should continue to receive the target layer explicitly rather than reading it from `EditorModel`.
 
 ## Note Types
 
@@ -229,8 +248,8 @@ Editor settings are stored through `sphere.ConfigModel` under `settings.editor`:
 
 Covered and partially modernized:
 - Note classes and note operations, including long-note paste links, drag, cut/copy/paste, and multi-selection undo/redo.
-- Interval timing operations, including split/merge/update, destructive shrink snapshots, note restoration, and vertex drag undo/redo.
-- Visual selection refresh, scroller/cursor interaction, editor model load/update lifecycle, and note chart load/save roundtrips.
+- Interval timing operations, including split/merge/update, destructive shrink snapshots, note restoration, vertex drag undo/redo, and the `IntervalManagerContext` boundary used by `IntervalManager` and `IntervalUpdateSnapshot`.
+- Visual selection refresh, scroller/cursor interaction, editor model load/update lifecycle, and note chart load/save roundtrips. `NoteChartLoader` uses `NoteChartLoaderContext`, `EditorChanges` uses `EditorChangesContext`, `Scroller` uses `ScrollerContext`, `Metronome` uses `MetronomeContext`, and `GraphsGenerator`, `NcbtContext`, and `BmsToolsContext` remain argument-driven without `EditorModel` back-references.
 - `EditorController` load/save wiring for note skin, resources, file writes, and library recomputation.
 - Resource-load sequencing and lifecycle state ownership through `EditorResourceLoadService` and `EditorRuntimeState`.
 - Editor view command, overlay action, and snap-grid scroll behavior through focused services.
@@ -239,6 +258,7 @@ Covered and partially modernized:
 - Editor screen update/draw/receive sequencing through `EditorScreenFrameService`.
 
 Remaining higher-risk areas:
+- `VisualEngine`, editor note classes, and note-editing services still carry broad editor-model access and should be split only behind behavior tests.
 - Graph generation with real charts/audio and waveform/audio resource failure modes beyond service sequencing.
 - UI view integration under `ui/views/EditorView/`.
 - BMS-specific exporters, intentionally deferred until parser rewrite work.

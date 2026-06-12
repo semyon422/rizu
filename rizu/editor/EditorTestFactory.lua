@@ -124,12 +124,83 @@ function EditorTestFactory.createEditorModel()
 		end
 	end
 
-	editorChanges.editorModel = editorModel
-	intervalManager.editorModel = editorModel
+	editorChanges:setContext(EditorTestFactory.createEditorChangesContext(editorModel))
+	intervalManager:setContext(EditorTestFactory.createIntervalManagerContext(editorModel))
 	noteService:setEditorModel(editorModel)
-	scroller.editorModel = editorModel
+	scroller:setContext(EditorTestFactory.createScrollerContext(editorModel))
 
 	return editorModel
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.NoteChartLoaderContext
+function EditorTestFactory.createNoteChartLoaderContext(editorModel)
+	return {
+		getChart = function()
+			return editorModel.chart
+		end,
+		getLayer = function()
+			return editorModel.layer
+		end,
+		getNotes = function()
+			return editorModel.notes
+		end,
+	}
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.EditorChangesContext
+function EditorTestFactory.createEditorChangesContext(editorModel)
+	return {
+		resetVisual = function()
+			editorModel.visualEngine:reset()
+		end,
+	}
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.IntervalManagerContext
+function EditorTestFactory.createIntervalManagerContext(editorModel)
+	return {
+		getLayer = function()
+			return editorModel.layer
+		end,
+		getNotes = function()
+			return editorModel.notes
+		end,
+		editorChanges = editorModel.editorChanges,
+	}
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.ScrollerContext
+function EditorTestFactory.createScrollerContext(editorModel)
+	return {
+		getDtpAbsolute = function(absoluteTime)
+			return editorModel:getDtpAbsolute(absoluteTime)
+		end,
+		getSessionTime = function()
+			return editorModel:getSessionTime()
+		end,
+		getPoint = function()
+			return editorModel:getPoint()
+		end,
+		setSessionPoint = function(sessionPoint)
+			sessionPoint:clone(editorModel.point)
+		end,
+		setTime = function(time)
+			editorModel:setSessionTime(time)
+		end,
+		isIntervalGrabbed = function()
+			return false
+		end,
+		interpolateFraction = function(vertex, time)
+			return editorModel.layer.points:interpolateFraction(vertex, time)
+		end,
+		getSettings = function()
+			return editorModel:getSettings()
+		end,
+	}
 end
 
 ---@param editorModel rizu.editor.EditorModel

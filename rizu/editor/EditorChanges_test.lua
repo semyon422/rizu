@@ -15,13 +15,11 @@ function test.undo_redo_group(t)
 
 	local resetCount = 0
 	local changes = EditorChanges()
-	changes.editorModel = {
-		visualEngine = {
-			reset = function()
-				resetCount = resetCount + 1
-			end,
-		},
-	}
+	changes:setContext({
+		resetVisual = function()
+			resetCount = resetCount + 1
+		end,
+	})
 
 	changes:reset()
 	target:set(1)
@@ -51,11 +49,9 @@ function test.command_helper(t)
 	setmetatable(target, {__index = Target})
 
 	local changes = EditorChanges()
-	changes.editorModel = {
-		visualEngine = {
-			reset = function() end,
-		},
-	}
+	changes:setContext({
+		resetVisual = function() end,
+	})
 
 	target:set(3)
 	changes:add(
@@ -82,11 +78,9 @@ function test.undo_runs_group_in_reverse_order(t)
 	end
 
 	local changes = EditorChanges()
-	changes.editorModel = {
-		visualEngine = {
-			reset = function() end,
-		},
-	}
+	changes:setContext({
+		resetVisual = function() end,
+	})
 
 	changes:reset()
 	changes:add(

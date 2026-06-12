@@ -6,13 +6,25 @@ local LoveFilesystem = require("fs.LoveFilesystem")
 ---@class rizu.editor.Metronome
 ---@operator call: rizu.editor.Metronome
 ---@field fs fs.IFilesystem
+---@field context rizu.editor.MetronomeContext
 local Metronome = class()
+
+---@class rizu.editor.MetronomeContext
+---@field getPoint fun(): chartedit.Point
+---@field getCurrentTime fun(): number
+---@field getNextSnapIntervalTime fun(point: chartedit.Point, delta: number): chartedit.Vertex, chart.Fraction
+---@field interpolateFraction fun(vertex: chartedit.Vertex, time: chart.Fraction): chartedit.Point
 
 local samplePath = "resources/metronome.ogg"
 
 ---@param fs fs.IFilesystem?
 function Metronome:new(fs)
 	self.fs = fs or LoveFilesystem()
+end
+
+---@param context rizu.editor.MetronomeContext
+function Metronome:setContext(context)
+	self.context = context
 end
 
 function Metronome:load()
@@ -32,10 +44,9 @@ function Metronome:unload()
 end
 
 function Metronome:updateNextTime()
-	local editorModel = self.editorModel
-	local point = editorModel:getPoint()
-	local layer = editorModel.layer
-	local currentTime = editorModel.timer:getTime()
+	local context = self.context
+	local point = context.getPoint()
+	local currentTime = context.getCurrentTime()
 
 	if point:tonumber() > currentTime then
 		self.nextTime = point:tonumber()
@@ -43,18 +54,16 @@ function Metronome:updateNextTime()
 		return
 	end
 
-	local vertex, t = editorModel.scroller:getNextSnapIntervalTime(point, 1)
+	local vertex, t = context.getNextSnapIntervalTime(point, 1)
 
-	local nextPoint = layer.points:interpolateFraction(vertex, t)
+	local nextPoint = context.interpolateFraction(vertex, t)
 
 	self.nextTime = nextPoint:tonumber()
 	self.isNextBeat = (nextPoint.time % 1):tonumber() == 0
 end
 
 function Metronome:update()
-	local editorModel = self.editorModel
-
-	local currentTime = editorModel.timer:getTime()
+	local currentTime = self.context.getCurrentTime()
 	if currentTime >= self.nextTime then
 		local source = self.source
 		source:stop()
