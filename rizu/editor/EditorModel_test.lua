@@ -273,4 +273,108 @@ function test.unload_stops_runtime_resources(t)
 	t:tdeq(calls, {"audio", "metronome"})
 end
 
+---@param t testing.T
+function test.load_resources_ignored_when_not_loaded(t)
+	local calls = {}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		loaded = false,
+		audio_engine = {
+			setEnabled = function()
+				table.insert(calls, "audio")
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:loadResources({})
+
+	t:tdeq(calls, {})
+	t:eq(editorModel.resourcesLoaded, nil)
+end
+
+---@param t testing.T
+function test.load_resources_loads_audio_wave_and_graphs(t)
+	local calls = {}
+	local chart = {
+		id = "chart",
+	}
+	local resources = {
+		audio = "song.ogg",
+	}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		loaded = true,
+		chart = chart,
+		timer = {
+			getTime = function()
+				table.insert(calls, "timer")
+				return 2.5
+			end,
+		},
+		audio_engine = {
+			setEnabled = function(_, enabled)
+				table.insert(calls, "enabled:" .. tostring(enabled))
+			end,
+			load = function(_, loadedChart, loadedResources)
+				table.insert(calls, "load")
+				t:eq(loadedChart, chart)
+				t:eq(loadedResources, resources)
+			end,
+			setPosition = function(_, time)
+				table.insert(calls, "position:" .. time)
+			end,
+			renderWave = function()
+				table.insert(calls, "wave")
+				return "wave-data"
+			end,
+		},
+		genGraphs = function(self)
+			table.insert(calls, "graphs")
+		end,
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	editorModel:loadResources(resources)
+
+	t:eq(editorModel.wave, "wave-data")
+	t:eq(editorModel.resourcesLoaded, true)
+	t:tdeq(calls, {"enabled:true", "load", "timer", "position:2.5", "wave", "graphs"})
+end
+
+---@param t testing.T
+function test.gen_graphs_uses_first_last_time(t)
+	local calls = {}
+	local chart = {
+		id = "chart",
+	}
+	local layer = {
+		id = "layer",
+	}
+	---@type rizu.editor.EditorModel
+	local editorModel = {
+		chart = chart,
+		layer = layer,
+		graphsGenerator = {
+			genDensityGraph = function(_, loadedChart, firstTime, lastTime)
+				table.insert(calls, ("density:%s:%s"):format(firstTime, lastTime))
+				t:eq(loadedChart, chart)
+			end,
+			genVerticesGraph = function(_, loadedLayer, firstTime, lastTime)
+				table.insert(calls, ("vertices:%s:%s"):format(firstTime, lastTime))
+				t:eq(loadedLayer, layer)
+			end,
+		},
+	}
+	setmetatable(editorModel, {__index = EditorModel})
+
+	function editorModel:getFirstLastTime()
+		return -1, 4
+	end
+
+	editorModel:genGraphs()
+
+	t:tdeq(calls, {"density:-1:4", "vertices:-1:4"})
+end
+
 return test

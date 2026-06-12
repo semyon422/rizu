@@ -166,15 +166,22 @@ function EditorModel:loadResources(resources)
 		return
 	end
 
-	self.audio_engine:setEnabled(true)
-	self.audio_engine:load(self.chart, resources)
-	self.audio_engine:setPosition(self.timer:getTime())
-
-	self.wave = self.audio_engine:renderWave()
-
+	self:loadAudioResources(resources)
+	self:renderWave()
 	self:genGraphs()
 
 	self.resourcesLoaded = true
+end
+
+---@param resources {[string]: string}
+function EditorModel:loadAudioResources(resources)
+	self.audio_engine:setEnabled(true)
+	self.audio_engine:load(self.chart, resources)
+	self.audio_engine:setPosition(self.timer:getTime())
+end
+
+function EditorModel:renderWave()
+	self.wave = self.audio_engine:renderWave()
 end
 
 ---@return number

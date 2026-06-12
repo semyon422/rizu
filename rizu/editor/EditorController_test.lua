@@ -1,5 +1,6 @@
 local ChartEncoder = require("chart.format.sph.ChartEncoder")
 local EditorController = require("rizu.editor.EditorController")
+local OsuChartEncoder = require("chart.format.osu.ChartEncoder")
 
 local test = {}
 
@@ -245,6 +246,49 @@ function test.save_writes_sph_and_recomputes_library(t)
 
 	t:tdeq(calls, {"save", "graphs", "library:charts:42"})
 	t:tdeq(writes, {{"charts/example.osu.sph", "encoded"}})
+end
+
+---@param t testing.T
+function test.save_to_osu_writes_sph_osu(t)
+	local restoreLove = installLoveStubs()
+	local oldEncode = OsuChartEncoder.encode
+	local writes = {}
+	OsuChartEncoder.encode = function(_, payload)
+		t:eq(payload[1].chart.id, "chart")
+		t:eq(payload[1].chartmeta.title, "Title")
+		return "osu-encoded"
+	end
+	love.filesystem.write = function(path, data)
+		table.insert(writes, {path, data})
+		return true
+	end
+
+	local calls = {}
+	local controller = createController({
+		chartSelector = {
+			chartview = {
+				location_path = "charts/example.sph",
+			},
+		},
+		editorModel = {
+			chart = {
+				id = "chart",
+			},
+			chartmeta = {
+				title = "Title",
+			},
+			save = function()
+				table.insert(calls, "save")
+			end,
+		},
+	})
+
+	controller:saveToOsu()
+	OsuChartEncoder.encode = oldEncode
+	restoreLove()
+
+	t:tdeq(calls, {"save"})
+	t:tdeq(writes, {{"charts/example.sph.osu", "osu-encoded"}})
 end
 
 return test
