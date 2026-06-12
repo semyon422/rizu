@@ -1,20 +1,16 @@
 local ChartEncoder = require("chart.format.sph.ChartEncoder")
 local EditorController = require("rizu.editor.EditorController")
+local FakeFilesystem = require("fs.FakeFilesystem")
 local OsuChartEncoder = require("chart.format.osu.ChartEncoder")
 
 local test = {}
 
-local function installLoveStubs()
+local function installLoveKeyboardStub()
 	local oldLove = love
 	love = {
 		keyboard = {
 			isDown = function()
 				return false
-			end,
-		},
-		filesystem = {
-			write = function()
-				return true
 			end,
 		},
 	}
@@ -38,13 +34,14 @@ local function createController(fields)
 		fields.previewModel,
 		fields.replayBase,
 		fields.resource_finder,
-		fields.resource_loader
+		fields.resource_loader,
+		fields.fs
 	)
 end
 
 ---@param t testing.T
 function test.load_wires_chart_skin_resources_and_window(t)
-	local restoreLove = installLoveStubs()
+	local restoreLove = installLoveKeyboardStub()
 	local calls = {}
 	local chart = {
 		inputMode = setmetatable({}, {
@@ -197,17 +194,13 @@ end
 
 ---@param t testing.T
 function test.save_writes_sph_and_recomputes_library(t)
-	local restoreLove = installLoveStubs()
 	local oldEncode = ChartEncoder.encode
-	local writes = {}
+	local fs = FakeFilesystem()
+	fs:createDirectory("charts")
 	ChartEncoder.encode = function(_, payload)
 		t:eq(payload[1].chart.id, "chart")
 		t:eq(payload[1].chartmeta.title, "Title")
 		return "encoded"
-	end
-	love.filesystem.write = function(path, data)
-		table.insert(writes, {path, data})
-		return true
 	end
 
 	local calls = {}
@@ -238,29 +231,25 @@ function test.save_writes_sph_and_recomputes_library(t)
 				table.insert(calls, ("library:%s:%s"):format(dir, locationId))
 			end,
 		},
+		fs = fs,
 	})
 
 	controller:save()
 	ChartEncoder.encode = oldEncode
-	restoreLove()
 
 	t:tdeq(calls, {"save", "graphs", "library:charts:42"})
-	t:tdeq(writes, {{"charts/example.osu.sph", "encoded"}})
+	t:eq(fs:read("charts/example.osu.sph"), "encoded")
 end
 
 ---@param t testing.T
 function test.save_to_osu_writes_sph_osu(t)
-	local restoreLove = installLoveStubs()
 	local oldEncode = OsuChartEncoder.encode
-	local writes = {}
+	local fs = FakeFilesystem()
+	fs:createDirectory("charts")
 	OsuChartEncoder.encode = function(_, payload)
 		t:eq(payload[1].chart.id, "chart")
 		t:eq(payload[1].chartmeta.title, "Title")
 		return "osu-encoded"
-	end
-	love.filesystem.write = function(path, data)
-		table.insert(writes, {path, data})
-		return true
 	end
 
 	local calls = {}
@@ -281,14 +270,41 @@ function test.save_to_osu_writes_sph_osu(t)
 				table.insert(calls, "save")
 			end,
 		},
+		fs = fs,
 	})
 
 	controller:saveToOsu()
 	OsuChartEncoder.encode = oldEncode
-	restoreLove()
 
 	t:tdeq(calls, {"save"})
-	t:tdeq(writes, {{"charts/example.sph.osu", "osu-encoded"}})
+	t:eq(fs:read("charts/example.sph.osu"), "osu-encoded")
+end
+
+---@param t testing.T
+function test.filedropped_writes_audio_through_filesystem(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata")
+	fs:createDirectory("userdata/charts")
+	fs:createDirectory("userdata/charts/editor")
+	local oldTime = os.time
+	os.time = function()
+		return 123
+	end
+
+	local controller = createController({
+		fs = fs,
+	})
+	controller:filedropped({
+		getFilename = function()
+			return "drop/song.ogg"
+		end,
+		read = function()
+			return "audio-data"
+		end,
+	})
+	os.time = oldTime
+
+	t:eq(fs:read("userdata/charts/editor/123 song/song.ogg"), "audio-data")
 end
 
 return test

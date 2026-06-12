@@ -57,7 +57,7 @@ Separated from `EditorModel` so that session-scoped data does not leak into the 
 ### `EditorController` — Load/Save/Export
 Orchestrates chart loading via `ChartSelector`, saves to `.sph` through `ChartEncoder`, and handles export formats (`.osu`, NanoChart). Delegates BMS-specific exports to dedicated modules in `exports/`.
 
-The load/save boundary is tested with fakes for chart selection, note skin loading, resource lookup, file writes, and library recomputation. Resource path ordering is centralized in `getResourcePaths()`.
+The load/save boundary is tested with fakes for chart selection, note skin loading, resource lookup, file writes, and library recomputation. Resource path ordering is centralized in `getResourcePaths()`. Editor-owned file writes go through `fs.IFilesystem` instead of direct `love.filesystem` calls.
 
 ### `VisualEngine` — Note Rendering And Selection
 Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates linked notes in the visible time range, creates or reuses note objects, and tracks selection state. Uses `EditorNoteFactory` to produce the correct note subclass.

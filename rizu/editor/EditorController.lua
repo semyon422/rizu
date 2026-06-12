@@ -2,6 +2,7 @@ local class = require("class")
 local BmsKeysoundSlicer = require("rizu.editor.exports.BmsKeysoundSlicer")
 local BmsTemplateExporter = require("rizu.editor.exports.BmsTemplateExporter")
 local UbmscExporter = require("rizu.editor.exports.UbmscExporter")
+local LoveFilesystem = require("fs.LoveFilesystem")
 
 local dpairs = require("dpairs")
 local path_util = require("path_util")
@@ -37,6 +38,7 @@ local EditorController = class()
 ---@param replayBase sea.ReplayBase
 ---@param resource_finder rizu.ResourceFinder
 ---@param resource_loader rizu.ResourceLoader
+---@param fs fs.IFilesystem?
 function EditorController:new(
 	chartSelector,
 	editorModel,
@@ -49,7 +51,8 @@ function EditorController:new(
 	previewModel,
 	replayBase,
 	resource_finder,
-	resource_loader
+	resource_loader,
+	fs
 )
 	self.chartSelector = chartSelector
 	self.editorModel = editorModel
@@ -63,6 +66,7 @@ function EditorController:new(
 	self.replayBase = replayBase
 	self.resource_finder = resource_finder
 	self.resource_loader = resource_loader
+	self.fs = fs or LoveFilesystem()
 end
 
 function EditorController:load()
@@ -166,7 +170,7 @@ function EditorController:save()
 	local chartview = chartSelector.chartview
 	local path = chartview.location_path:gsub(".sph$", "") .. ".sph"
 
-	assert(love.filesystem.write(path, data))
+	assert(self.fs:write(path, data))
 
 	self.library:computeLocation(chartview.dir, chartview.location_id)
 end
@@ -186,7 +190,7 @@ function EditorController:saveToOsu()
 	local chartview = chartSelector.chartview
 	local path = chartview.location_path:gsub(".osu$", ""):gsub(".sph$", "") .. ".sph.osu"
 
-	assert(love.filesystem.write(path, data))
+	assert(self.fs:write(path, data))
 end
 
 function EditorController:saveToNanoChart()
@@ -278,7 +282,8 @@ function EditorController:filedropped(file)
 	local audioName = _name:match("^.+/(.-)$")
 	local chartSetPath = "userdata/charts/editor/" .. os.time() .. " " .. audioName
 
-	love.filesystem.write(chartSetPath .. "/" .. audioName .. "." .. ext, file:read())
+	self.fs:createDirectory(chartSetPath)
+	self.fs:write(chartSetPath .. "/" .. audioName .. "." .. ext, file:read())
 end
 
 return EditorController

@@ -221,7 +221,8 @@ function GameController:new()
 		self.previewModel,
 		self.replayBase,
 		self.resource_finder,
-		self.resource_loader
+		self.resource_loader,
+		self.fs
 	)
 
 	self.gameplayInteractor = GameplayInteractor(self)
