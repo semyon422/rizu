@@ -6,7 +6,6 @@ local EditorRenderState = require("rizu.editor.EditorRenderState")
 local EditorSelectionState = require("rizu.editor.EditorSelectionState")
 local EditorSelectionService = require("rizu.editor.EditorSelectionService")
 local EditorSettingsService = require("rizu.editor.EditorSettingsService")
-local EditorHistoryService = require("rizu.editor.EditorHistoryService")
 local EditorAnalysisService = require("rizu.editor.EditorAnalysisService")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
@@ -98,7 +97,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		playbackService = EditorPlaybackService(),
 		selectionService = EditorSelectionService(),
 		settingsService = EditorSettingsService(),
-		historyService = EditorHistoryService(),
 		analysisService = EditorAnalysisService(),
 		cursorState = EditorCursorState(),
 		selectionState = EditorSelectionState(),
@@ -166,7 +164,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		playbackService = services.playbackService,
 		selectionService = services.selectionService,
 		settingsService = services.settingsService,
-		historyService = services.historyService,
 		analysisService = services.analysisService,
 		cursorState = services.cursorState,
 		selectionState = services.selectionState,
@@ -185,7 +182,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(editorModel.noteService, services.noteService)
 	t:eq(editorModel.saveService, services.saveService)
 	t:eq(editorModel.frameService, services.frameService)
-	t:eq(editorModel.historyService, services.historyService)
 	t:eq(editorModel.analysisService, services.analysisService)
 	t:eq(editorModel.visualEngine, services.visualEngine)
 	t:eq(type(services.noteChartLoader.context.getChart), "function")
@@ -216,7 +212,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(services.playbackService.editorModel, nil)
 	t:eq(services.selectionService.editorModel, nil)
 	t:eq(services.settingsService.editorModel, nil)
-	t:eq(services.historyService.editorModel, nil)
 	t:eq(services.analysisService.editorModel, nil)
 	t:eq(services.cursorState.editorModel, nil)
 	t:eq(services.selectionState.editorModel, nil)
@@ -456,25 +451,18 @@ function test.settings_commands_use_settings_context(t)
 end
 
 ---@param t testing.T
-function test.history_commands_use_history_context(t)
+function test.history_commands_use_editor_changes(t)
 	local calls = {}
 	local editorChanges = {
-		id = "changes",
+		undo = function()
+			table.insert(calls, "undo")
+		end,
+		redo = function()
+			table.insert(calls, "redo")
+		end,
 	}
 	---@type rizu.editor.EditorModel
-	local editorModel = {
-		editorChanges = editorChanges,
-		historyService = {
-			undo = function(_, context)
-				table.insert(calls, "undo")
-					t:eq(context:getEditorChanges(), editorChanges)
-			end,
-			redo = function(_, context)
-				table.insert(calls, "redo")
-					t:eq(context:getEditorChanges(), editorChanges)
-			end,
-		},
-	}
+	local editorModel = {editorChanges = editorChanges}
 	attachEditorModel(editorModel)
 
 	editorModel:undo()
@@ -505,6 +493,7 @@ function createEditorModel()
 		selectionState = selectionState,
 		renderState = renderState,
 		analysisState = analysisState,
+		settingsService = EditorSettingsService(),
 	}
 	attachEditorModel(editorModel)
 	return editorModel
@@ -537,212 +526,41 @@ function test.set_session_point_clones_point(t)
 end
 
 ---@param t testing.T
-function test.update_order(t)
+function test.update_delegates_to_frame_service_context(t)
 	local calls = {}
-	local editor = {
-		speed = 1,
-	}
-	local point = {
-		absoluteTime = 0.5,
-	}
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		noteSkin = {},
-		timer = {
-			getTime = function()
-				table.insert(calls, "timer")
-				return 0.5
-			end,
-		},
-		noteService = {
-			update = function()
-				table.insert(calls, "notes")
-			end,
-		},
-		metronome = {
-			update = function()
-				table.insert(calls, "metronome")
-			end,
-		},
-		selectionService = {
-			updateSelectionRect = function() end,
-		},
-		intervalManager = {
-			grabbedVertex = true,
-			moveGrabbed = function(_, time)
-				table.insert(calls, "timing:" .. time)
-			end,
-		},
-		audio_engine = {
-			update = function()
-				table.insert(calls, "audio")
-			end,
-		},
-		visualEngine = {
-			update = function()
-				table.insert(calls, "visuals")
+		frameService = {
+			update = function(_, context)
+				table.insert(calls, "update")
+				t:eq(type(context.getTimer), "function")
 			end,
 		},
 	}
 	attachEditorModel(editorModel)
 
-	function editorModel:getNoteSkin()
-		return self.noteSkin
-	end
-
-	function editorModel:getSettings()
-		table.insert(calls, "settings")
-		return editor
-	end
-
-	function editorModel:getDtpAbsolute(time)
-		table.insert(calls, "point:" .. time)
-		return point
-	end
-
-	function editorModel:setSessionPoint(sessionPoint)
-		table.insert(calls, "cursor")
-		t:eq(sessionPoint, point)
-	end
-
 	editorModel:update()
 
-	t:eq(editor.time, 0.5)
-	t:tdeq(calls, {
-		"settings",
-		"timer",
-		"notes",
-		"metronome",
-		"point:0.5",
-		"timing:0.5",
-		"audio",
-		"cursor",
-		"visuals",
-	})
+	t:tdeq(calls, {"update"})
 end
 
 ---@param t testing.T
-function test.load_initializes_editor_collaborators(t)
+function test.load_delegates_to_load_service_context(t)
 	local calls = {}
-	local layer = {
-		visuals = {
-			main = "main-visual",
-		},
-	}
-	local notes = {}
-	local editor = {
-		time = 1.25,
-		speed = 1,
-		snap = 4,
-	}
-	local volume = {
-		master = 0.5,
-		music = 0.8,
-		keysounds = 0.25,
-	}
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		configModel = {
-			configs = {
-				settings = {
-					editor = editor,
-					audio = {
-						volume = volume,
-						mode = "mono",
-					},
-				},
-			},
-		},
-		noteChartLoader = {
-			load = function()
-				table.insert(calls, "chart-load")
-				return layer, notes
+		loadService = {
+			load = function(_, context)
+				table.insert(calls, "load")
+				t:eq(type(context.getNoteChartLoader), "function")
 			end,
-		},
-		sessionResetService = {
-			reset = function(_, context)
-				table.insert(calls, "state-reset")
-				t:eq(type(context.analyzePatterns), "function")
-				t:eq(type(context.newChanges), "function")
-				t:eq(type(context.setChanges), "function")
-				t:eq(type(context.loadGraphs), "function")
-				t:eq(type(context.setResourcesLoaded), "function")
-				t:eq(type(context.setSessionTime), "function")
-				t:eq(type(context.finishSelection), "function")
-			end,
-		},
-		timer = {
-			pause = function()
-				table.insert(calls, "timer-pause")
-			end,
-			setTime = function(_, time)
-				table.insert(calls, "timer-time:" .. time)
-			end,
-			getTime = function()
-				table.insert(calls, "timer-get")
-				return 1.25
-			end,
-		},
-		audio_engine = {
-			setVolume = function(_, music, keysounds)
-				table.insert(calls, ("audio-volume:%s:%s"):format(music, keysounds))
-			end,
-			setAudioMode = function(_, mode)
-				table.insert(calls, "audio-mode:" .. mode)
-			end,
-		},
-		metronome = {
-			load = function()
-				table.insert(calls, "metronome-load")
-			end,
-		},
-		scroller = {
-			scrollSeconds = function(_, time)
-				table.insert(calls, "scroll:" .. time)
-			end,
-		},
-		bmsToolsContext = {
-			initFromLayer = function(_, loadedLayer)
-				table.insert(calls, "bms-init")
-				t:eq(loadedLayer, layer)
-			end,
-		},
-		metadata = {
-			new = function()
-				table.insert(calls, "metadata-new")
-			end,
-			fromChartmeta = function(_, chartmeta)
-				table.insert(calls, "metadata-chartmeta")
-				t:eq(chartmeta.title, "Title")
-			end,
-		},
-		chartmeta = {
-			title = "Title",
 		},
 	}
 	attachEditorModel(editorModel)
 
 	editorModel:load()
 
-	t:eq(editorModel:isLoaded(), true)
-	t:eq(editorModel.layer, layer)
-	t:eq(editorModel.notes, notes)
-	t:eq(editorModel:getVisual(), "main-visual")
-	t:eq(editorModel.metronome.volume, volume)
-	t:tdeq(calls, {
-		"chart-load",
-		"state-reset",
-		"timer-pause",
-		"timer-time:1.25",
-		"audio-volume:0.4:0.125",
-		"audio-mode:mono",
-		"metronome-load",
-		"timer-get",
-		"scroll:1.25",
-		"bms-init",
-		"metadata-new",
-		"metadata-chartmeta",
-	})
+	t:tdeq(calls, {"load"})
 end
 
 ---@param t testing.T
@@ -785,6 +603,7 @@ function test.select_note_uses_injected_multi_select_predicate(t)
 				keepOthers = keep
 			end,
 		},
+		selectionService = EditorSelectionService(),
 		isMultiSelectRequested = function()
 			return true
 		end,
@@ -851,6 +670,7 @@ function test.selection_region_uses_injected_callbacks(t)
 				table.insert(calls, "visual-end")
 			end,
 		},
+		selectionService = EditorSelectionService(),
 		getMousePosition = function()
 			return 3, 4
 		end,

@@ -14,7 +14,6 @@ local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService
 local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
 local EditorSelectionService = require("rizu.editor.EditorSelectionService")
 local EditorSettingsService = require("rizu.editor.EditorSettingsService")
-local EditorHistoryService = require("rizu.editor.EditorHistoryService")
 local EditorAnalysisService = require("rizu.editor.EditorAnalysisService")
 local EditorCursorState = require("rizu.editor.EditorCursorState")
 local EditorSelectionState = require("rizu.editor.EditorSelectionState")
@@ -51,7 +50,6 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field playbackService rizu.editor.EditorPlaybackService?
 ---@field selectionService rizu.editor.EditorSelectionService?
 ---@field settingsService rizu.editor.EditorSettingsService?
----@field historyService rizu.editor.EditorHistoryService?
 ---@field analysisService rizu.editor.EditorAnalysisService?
 ---@field cursorState rizu.editor.EditorCursorState?
 ---@field selectionState rizu.editor.EditorSelectionState?
@@ -83,7 +81,6 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field playbackService rizu.editor.EditorPlaybackService
 ---@field selectionService rizu.editor.EditorSelectionService
 ---@field settingsService rizu.editor.EditorSettingsService
----@field historyService rizu.editor.EditorHistoryService
 ---@field analysisService rizu.editor.EditorAnalysisService
 ---@field cursorState rizu.editor.EditorCursorState
 ---@field selectionState rizu.editor.EditorSelectionState
@@ -117,7 +114,6 @@ function EditorServices:new(deps)
 	self.playbackService = deps.playbackService or EditorPlaybackService()
 	self.selectionService = deps.selectionService or EditorSelectionService()
 	self.settingsService = deps.settingsService or EditorSettingsService()
-	self.historyService = deps.historyService or EditorHistoryService()
 	self.analysisService = deps.analysisService or EditorAnalysisService()
 	self.cursorState = deps.cursorState or EditorCursorState()
 	self.selectionState = deps.selectionState or EditorSelectionState()
@@ -150,7 +146,6 @@ function EditorServices:applyToEditorModel(editorModel)
 	editorModel.playbackService = self.playbackService
 	editorModel.selectionService = self.selectionService
 	editorModel.settingsService = self.settingsService
-	editorModel.historyService = self.historyService
 	editorModel.analysisService = self.analysisService
 	editorModel.cursorState = self.cursorState
 	editorModel.selectionState = self.selectionState

@@ -59,6 +59,8 @@ Pattern-analysis display text is owned by `EditorAnalysisState`. Use `EditorMode
 
 `EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`. Editor-view modifier checks such as command hotkeys, fine scrolling, snap changes, and speed changes should be named `EditorInput` queries exposed through `EditorModel`, not direct `love.keyboard` reads in views.
 
+`EditorModel` should rely on `EditorServices` to attach model collaborators during construction. Facade methods should call attached services directly instead of constructing fallback service instances; partial tests that call a service-backed facade must provide that service explicitly.
+
 ### `EditorServices` — Model Composition
 Owns default construction of editor collaborators and copies them onto `EditorModel` for compatibility with existing callers. New model-level collaborators should be added to `EditorServices` first, then exposed on `EditorModel` only when current callers still need a direct field.
 
@@ -79,7 +81,7 @@ Owns default construction of editor collaborators and copies them onto `EditorMo
 
 `EditorSettingsService` owns editor/audio settings helpers: editor settings normalization, log speed, snap increment/decrement, and snap display bucket calculation. Editor-facing commands use `EditorSettingsContext` with `ConfigModel` and `maxSnap`; low-level helpers may still operate on the concrete `settings.editor` table. Keep snap/speed mutation rules here rather than scattering them through view code.
 
-`EditorHistoryService` owns editor-facing undo/redo commands through `EditorHistoryContext`. The context contains `EditorChanges`; `EditorModel` should keep `undo()` and `redo()` as stable facade methods for callers.
+`EditorModel` owns editor-facing undo/redo facade methods and delegates them directly to `EditorChanges`. Do not reintroduce a history service unless undo/redo grows real orchestration beyond `EditorChanges`.
 
 ### `EditorViewState` — Per-Screen UI State
 Holds editor UI state that should not live in chart or model state:

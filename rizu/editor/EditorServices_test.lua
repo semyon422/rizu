@@ -35,7 +35,6 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(editorModel.playbackService, deps.playbackService)
 	t:eq(editorModel.selectionService, deps.selectionService)
 	t:eq(editorModel.settingsService, deps.settingsService)
-	t:eq(editorModel.historyService, deps.historyService)
 	t:eq(editorModel.analysisService, deps.analysisService)
 	t:eq(editorModel.cursorState, deps.cursorState)
 	t:eq(editorModel.selectionState, deps.selectionState)
@@ -68,7 +67,6 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(deps.playbackService.editorModel, nil)
 	t:eq(deps.selectionService.editorModel, nil)
 	t:eq(deps.settingsService.editorModel, nil)
-	t:eq(deps.historyService.editorModel, nil)
 	t:eq(deps.analysisService.editorModel, nil)
 	t:eq(deps.cursorState.editorModel, nil)
 	t:eq(deps.selectionState.editorModel, nil)
@@ -154,7 +152,6 @@ function createDeps()
 		playbackService = {},
 		selectionService = {},
 		settingsService = {},
-		historyService = {},
 		analysisService = {},
 		cursorState = {},
 		selectionState = {},

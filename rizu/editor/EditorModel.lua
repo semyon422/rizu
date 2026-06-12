@@ -1,20 +1,11 @@
 local class = require("class")
 local EditorInput = require("rizu.editor.EditorInput")
 local EditorServices = require("rizu.editor.EditorServices")
-local EditorLoadService = require("rizu.editor.EditorLoadService")
-local EditorSaveService = require("rizu.editor.EditorSaveService")
-local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService")
-local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
-local EditorSelectionService = require("rizu.editor.EditorSelectionService")
-local EditorSettingsService = require("rizu.editor.EditorSettingsService")
-local EditorHistoryService = require("rizu.editor.EditorHistoryService")
-local EditorAnalysisService = require("rizu.editor.EditorAnalysisService")
 local EditorCursorState = require("rizu.editor.EditorCursorState")
 local EditorSelectionState = require("rizu.editor.EditorSelectionState")
 local EditorRenderState = require("rizu.editor.EditorRenderState")
 local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
-local EditorModelFrameService = require("rizu.editor.EditorModelFrameService")
 local EditorModelContext = require("rizu.editor.EditorModelContext")
 
 ---@class rizu.editor.EditorModelDeps: rizu.editor.EditorServicesDeps
@@ -51,7 +42,6 @@ local EditorModelContext = require("rizu.editor.EditorModelContext")
 ---@field saveService rizu.editor.EditorSaveService
 ---@field selectionService rizu.editor.EditorSelectionService
 ---@field settingsService rizu.editor.EditorSettingsService
----@field historyService rizu.editor.EditorHistoryService
 ---@field analysisService rizu.editor.EditorAnalysisService
 ---@field runtimeState rizu.editor.EditorRuntimeState
 ---@field viewState rizu.editor.EditorViewState
@@ -69,7 +59,19 @@ function EditorModel:new(deps)
 	self.configModel = deps.configModel
 	self.resourceModel = deps.resourceModel
 
-	local input = deps.input or EditorInput()
+	self:setInput(deps.input or EditorInput(), deps)
+
+	local services = deps.services or EditorServices(deps)
+	self.services = services
+	services:applyToEditorModel(self)
+	self.context = EditorModelContext(self)
+	self.timer:setGlobalTime(0)
+	services:attachEditorModel(self)
+end
+
+---@param input rizu.editor.EditorInput
+---@param deps rizu.editor.EditorModelDeps
+function EditorModel:setInput(input, deps)
 	self.input = input
 	self.isMultiSelectRequested = deps.isMultiSelectRequested or function()
 		return input:isMultiSelectRequested()
@@ -95,18 +97,10 @@ function EditorModel:new(deps)
 	self.isSpeedChangeRequested = deps.isSpeedChangeRequested or function()
 		return input:isSpeedChangeRequested()
 	end
-
-	local services = deps.services or EditorServices(deps)
-	self.services = services
-	services:applyToEditorModel(self)
-	self.context = EditorModelContext(self)
-	self.timer:setGlobalTime(0)
-	services:attachEditorModel(self)
 end
 
 function EditorModel:load()
-	local loadService = self.loadService or EditorLoadService()
-	loadService:load(self.context)
+	self.loadService:load(self.context)
 end
 
 ---@return rizu.editor.EditorRuntimeState
@@ -179,43 +173,40 @@ function EditorModel:getNoteSkin()
 end
 
 function EditorModel:detectTempoOffset()
-	(self.analysisService or EditorAnalysisService()):detectTempoOffset(self.context)
+	self.analysisService:detectTempoOffset(self.context)
 end
 
 function EditorModel:applyNcbt()
-	(self.analysisService or EditorAnalysisService()):applyNcbt(self.context)
+	self.analysisService:applyNcbt(self.context)
 end
 
 ---@param editor table
 ---@return table
 function EditorModel:normalizeEditorSettings(editor)
-	return (self.settingsService or EditorSettingsService()):normalizeContextEditorSettings(
-		self.context,
-		editor
-	)
+	return self.settingsService:normalizeContextEditorSettings(self.context, editor)
 end
 
 ---@return table
 function EditorModel:getSettings()
-	return (self.settingsService or EditorSettingsService()):getEditorSettings(self.context)
+	return self.settingsService:getEditorSettings(self.context)
 end
 
 ---@return table
 function EditorModel:getAudioSettings()
-	return (self.settingsService or EditorSettingsService()):getEditorAudioSettings(self.context)
+	return self.settingsService:getEditorAudioSettings(self.context)
 end
 
 function EditorModel:undo()
-	(self.historyService or EditorHistoryService()):undo(self.context)
+	self.editorChanges:undo()
 end
 
 function EditorModel:redo()
-	(self.historyService or EditorHistoryService()):redo(self.context)
+	self.editorChanges:redo()
 end
 
 ---@param time number
 function EditorModel:setTime(time)
-	(self.playbackService or EditorPlaybackService()):setEditorTime(self.context, time)
+	self.playbackService:setEditorTime(self.context, time)
 end
 
 ---@return number
@@ -233,17 +224,16 @@ function EditorModel:loadResources(resources)
 		return
 	end
 
-	local resourceLoadService = self.resourceLoadService or EditorResourceLoadService()
-	resourceLoadService:load(self.context, resources)
+	self.resourceLoadService:load(self.context, resources)
 end
 
 ---@param resources {[string]: string}
 function EditorModel:loadAudioResources(resources)
-	(self.playbackService or EditorPlaybackService()):loadEditorAudioResources(self.context, resources)
+	self.playbackService:loadEditorAudioResources(self.context, resources)
 end
 
 function EditorModel:renderWave()
-	(self.analysisService or EditorAnalysisService()):renderWave(self.context)
+	self.analysisService:renderWave(self.context)
 end
 
 ---@param loaded boolean
@@ -299,17 +289,17 @@ end
 ---@return number
 ---@return number
 function EditorModel:getFirstLastTime()
-	return (self.analysisService or EditorAnalysisService()):getFirstLastTime(self.context)
+	return self.analysisService:getFirstLastTime(self.context)
 end
 
 ---@return number
 ---@return number
 function EditorModel:getTimelineRange()
-	return (self.analysisService or EditorAnalysisService()):getTimelineRange(self.context)
+	return self.analysisService:getTimelineRange(self.context)
 end
 
 function EditorModel:genGraphs()
-	(self.analysisService or EditorAnalysisService()):genGraphs(self.context)
+	self.analysisService:genGraphs(self.context)
 end
 
 ---@param time number
@@ -350,25 +340,25 @@ function EditorModel:unload()
 end
 
 function EditorModel:save()
-	(self.saveService or EditorSaveService()):save(self.context)
+	self.saveService:save(self.context)
 end
 
 function EditorModel:play()
-	(self.playbackService or EditorPlaybackService()):playEditor(self.context)
+	self.playbackService:playEditor(self.context)
 end
 
 function EditorModel:pause()
-	(self.playbackService or EditorPlaybackService()):pauseEditor(self.context)
+	self.playbackService:pauseEditor(self.context)
 end
 
 ---@return number
 function EditorModel:getLogSpeed()
-	return (self.settingsService or EditorSettingsService()):getEditorLogSpeed(self.context)
+	return self.settingsService:getEditorLogSpeed(self.context)
 end
 
 ---@param logSpeed number
 function EditorModel:setLogSpeed(logSpeed)
-	(self.settingsService or EditorSettingsService()):setEditorLogSpeed(self.context, logSpeed)
+	self.settingsService:setEditorLogSpeed(self.context, logSpeed)
 end
 
 ---@param dy number?
@@ -383,32 +373,32 @@ end
 
 ---@param note rizu.editor.EditorNote
 function EditorModel:selectNote(note)
-	(self.selectionService or EditorSelectionService()):selectNote(self.visualEngine, self.isMultiSelectRequested, note)
+	self.selectionService:selectNote(self.visualEngine, self.isMultiSelectRequested, note)
 end
 
 function EditorModel:selectStart()
-	(self.selectionService or EditorSelectionService()):selectStart(self.visualEngine, self.context)
+	self.selectionService:selectStart(self.visualEngine, self.context)
 end
 
 function EditorModel:selectEnd()
-	(self.selectionService or EditorSelectionService()):selectEnd(self.visualEngine, self.context)
+	self.selectionService:selectEnd(self.visualEngine, self.context)
 end
 
 function EditorModel:update()
-	(self.frameService or EditorModelFrameService()):update(self.context)
+	self.frameService:update(self.context)
 end
 
 ---@param event table
 function EditorModel:receive(event)
-	(self.frameService or EditorModelFrameService()):receive(self.context, event)
+	self.frameService:receive(self.context, event)
 end
 
 function EditorModel:incSnap()
-	(self.settingsService or EditorSettingsService()):incEditorSnap(self.context)
+	self.settingsService:incEditorSnap(self.context)
 end
 
 function EditorModel:decSnap()
-	(self.settingsService or EditorSettingsService()):decEditorSnap(self.context)
+	self.settingsService:decEditorSnap(self.context)
 end
 
 ---@return number?
@@ -424,7 +414,7 @@ end
 ---@param j number|table
 ---@return number
 function EditorModel:getSnap(j)
-	return (self.settingsService or EditorSettingsService()):getEditorSnap(self.context, j)
+	return self.settingsService:getEditorSnap(self.context, j)
 end
 
 ---@return number
