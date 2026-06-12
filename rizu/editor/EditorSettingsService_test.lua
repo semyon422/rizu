@@ -45,17 +45,21 @@ function test.editor_context_helpers(t)
 		snap = 999,
 	}
 	local context = {
-		configModel = {
-			configs = {
-				settings = {
-					editor = editor,
-					audio = {
-						mode = "stereo",
+		getConfigModel = function()
+			return {
+				configs = {
+					settings = {
+						editor = editor,
+						audio = {
+							mode = "stereo",
+						},
 					},
 				},
-			},
-		},
-		maxSnap = 192,
+			}
+		end,
+		getMaxSnap = function()
+			return 192
+		end,
 	}
 	local service = EditorSettingsService()
 

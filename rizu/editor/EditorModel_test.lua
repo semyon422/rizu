@@ -10,9 +10,19 @@ local EditorHistoryService = require("rizu.editor.EditorHistoryService")
 local EditorAnalysisService = require("rizu.editor.EditorAnalysisService")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
+local EditorModelContext = require("rizu.editor.EditorModelContext")
 
 local test = {}
 local createEditorModel
+local attachEditorModel
+
+---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.EditorModel
+function attachEditorModel(editorModel)
+	setmetatable(editorModel, {__index = EditorModel})
+	editorModel.context = EditorModelContext(editorModel)
+	return editorModel
+end
 
 ---@param t testing.T
 function test.new_uses_dependency_table_and_input_adapter(t)
@@ -185,8 +195,8 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(services.graphsGenerator.editorModel, nil)
 	t:eq(type(services.editorChanges.context.resetVisual), "function")
 	t:eq(services.editorChanges.editorModel, nil)
-	t:eq(type(services.noteService.context.commandService.getSelectedNotes), "function")
-	t:eq(services.noteService.context.commandService.editorChanges, editorModel.editorChanges)
+	t:eq(type(services.noteService.context.getSelectedNotes), "function")
+	t:eq(services.noteService.context:getEditorChanges(), editorModel.editorChanges)
 	t:eq(services.noteService.editorModel, nil)
 	t:eq(type(services.visualEngine.context.getNotes), "function")
 	t:eq(services.visualEngine.editorModel, nil)
@@ -255,18 +265,18 @@ function test.save_delegates_to_save_service_context(t)
 		saveService = {
 			save = function(_, context)
 				savedContext = context
-				context.setChartmeta({
+				context:setChartmeta({
 					title = "Saved",
 				})
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:save()
 
-	t:eq(savedContext.metadata, editorModel.metadata)
-	t:eq(savedContext.noteChartLoader, editorModel.noteChartLoader)
+	t:eq(savedContext:getMetadata(), editorModel.metadata)
+	t:eq(savedContext:getNoteChartLoader(), editorModel.noteChartLoader)
 	t:eq(editorModel.chartmeta.title, "Saved")
 end
 
@@ -324,24 +334,24 @@ function test.playback_commands_use_playback_context(t)
 		playbackService = {
 			setEditorTime = function(_, context, time)
 				table.insert(calls, "time:" .. time)
-				t:eq(context.timer, editorModel.timer)
-				t:eq(context.audio_engine, editorModel.audio_engine)
+				t:eq(context:getTimer(), editorModel.timer)
+				t:eq(context:getAudioEngine(), editorModel.audio_engine)
 			end,
 			loadEditorAudioResources = function(_, context, resources)
 				table.insert(calls, "resources:" .. resources.audio)
-				t:eq(context.chart, editorModel.chart)
+				t:eq(context:getChart(), editorModel.chart)
 			end,
 			playEditor = function(_, context)
 				table.insert(calls, "play")
-				t:eq(context.intervalManager, editorModel.intervalManager)
+				t:eq(context:getIntervalManager(), editorModel.intervalManager)
 			end,
 			pauseEditor = function(_, context)
 				table.insert(calls, "pause")
-				t:eq(context.audio_engine, editorModel.audio_engine)
+				t:eq(context:getAudioEngine(), editorModel.audio_engine)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:setTime(1.25)
 	editorModel:loadAudioResources({audio = "song.ogg"})
@@ -381,48 +391,48 @@ function test.settings_commands_use_settings_context(t)
 		settingsService = {
 			normalizeContextEditorSettings = function(_, context, value)
 				table.insert(calls, "normalize")
-				t:eq(context.configModel, editorModel.configModel)
-				t:eq(context.maxSnap, 64)
+				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getMaxSnap(), 64)
 				t:eq(value, editor)
 				return value
 			end,
 			getEditorSettings = function(_, context)
 				table.insert(calls, "settings")
-				t:eq(context.configModel, editorModel.configModel)
-				t:eq(context.maxSnap, 64)
+				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getMaxSnap(), 64)
 				return editor
 			end,
 			getEditorAudioSettings = function(_, context)
 				table.insert(calls, "audio")
-				t:eq(context.configModel, editorModel.configModel)
-				t:eq(context.maxSnap, 64)
+				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getMaxSnap(), 64)
 				return audio
 			end,
 			getEditorLogSpeed = function(_, context)
 				table.insert(calls, "log")
-				t:eq(context.configModel, editorModel.configModel)
+				t:eq(context:getConfigModel(), editorModel.configModel)
 				return 20
 			end,
 			setEditorLogSpeed = function(_, context, logSpeed)
 				table.insert(calls, "setLog:" .. logSpeed)
-				t:eq(context.maxSnap, 64)
+				t:eq(context:getMaxSnap(), 64)
 			end,
 			incEditorSnap = function(_, context)
 				table.insert(calls, "inc")
-				t:eq(context.configModel, editorModel.configModel)
+				t:eq(context:getConfigModel(), editorModel.configModel)
 			end,
 			decEditorSnap = function(_, context)
 				table.insert(calls, "dec")
-				t:eq(context.maxSnap, 64)
+				t:eq(context:getMaxSnap(), 64)
 			end,
 			getEditorSnap = function(_, context, j)
 				table.insert(calls, "snap:" .. j)
-				t:eq(context.configModel, editorModel.configModel)
+				t:eq(context:getConfigModel(), editorModel.configModel)
 				return 8
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	t:eq(editorModel:normalizeEditorSettings(editor), editor)
 	t:eq(editorModel:getSettings(), editor)
@@ -457,15 +467,15 @@ function test.history_commands_use_history_context(t)
 		historyService = {
 			undo = function(_, context)
 				table.insert(calls, "undo")
-				t:eq(context.editorChanges, editorChanges)
+					t:eq(context:getEditorChanges(), editorChanges)
 			end,
 			redo = function(_, context)
 				table.insert(calls, "redo")
-				t:eq(context.editorChanges, editorChanges)
+					t:eq(context:getEditorChanges(), editorChanges)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:undo()
 	editorModel:redo()
@@ -496,7 +506,7 @@ function createEditorModel()
 		renderState = renderState,
 		analysisState = analysisState,
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 	return editorModel
 end
 
@@ -574,7 +584,7 @@ function test.update_order(t)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	function editorModel:getNoteSkin()
 		return self.noteSkin
@@ -710,7 +720,7 @@ function test.load_initializes_editor_collaborators(t)
 			title = "Title",
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:load()
 
@@ -751,7 +761,7 @@ function test.unload_stops_runtime_resources(t)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 	editorModel:setLoaded(true)
 
 	editorModel:unload()
@@ -779,7 +789,7 @@ function test.select_note_uses_injected_multi_select_predicate(t)
 			return true
 		end,
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:selectNote(note)
 
@@ -800,7 +810,7 @@ function test.get_mouse_time_uses_injected_mouse_position(t)
 			return 12, 8
 		end,
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	function editorModel:getNoteSkin()
 		return self.noteSkin
@@ -851,7 +861,7 @@ function test.selection_region_uses_injected_callbacks(t)
 			table.insert(calls, "unselect")
 		end,
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	function editorModel:getNoteSkin()
 		return self.noteSkin
@@ -869,7 +879,7 @@ function test.selection_region_uses_injected_callbacks(t)
 
 	editorModel:selectStart()
 	EditorSelectionService():updateSelectionRect(
-		editorModel:createSelectionRectContext(),
+		editorModel.context,
 		{speed = 2},
 		editorModel:getNoteSkin(),
 		6
@@ -898,7 +908,7 @@ function test.load_resources_ignored_when_not_loaded(t)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:loadResources({})
 
@@ -926,7 +936,7 @@ function test.load_resources_delegates_when_loaded(t)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 	editorModel:setLoaded(true)
 
 	editorModel:loadResources(resources)
@@ -956,16 +966,16 @@ function test.resource_load_context_delegates_to_services_and_model_methods(t)
 			id = "intervals",
 		},
 		playbackService = {
-			loadEditorAudioResources = function(_, playbackContext, loadedResources)
-				table.insert(calls, "audio:" .. loadedResources.audio)
-				t:eq(playbackContext.timer, editorModel.timer)
-				t:eq(playbackContext.audio_engine, editorModel.audio_engine)
-				t:eq(playbackContext.chart, editorModel.chart)
-				t:eq(playbackContext.intervalManager, editorModel.intervalManager)
-			end,
-		},
+				loadEditorAudioResources = function(_, playbackContext, loadedResources)
+					table.insert(calls, "audio:" .. loadedResources.audio)
+					t:eq(playbackContext:getTimer(), editorModel.timer)
+					t:eq(playbackContext:getAudioEngine(), editorModel.audio_engine)
+					t:eq(playbackContext:getChart(), editorModel.chart)
+					t:eq(playbackContext:getIntervalManager(), editorModel.intervalManager)
+				end,
+			},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	function editorModel:renderWave()
 		table.insert(calls, "wave")
@@ -979,11 +989,11 @@ function test.resource_load_context_delegates_to_services_and_model_methods(t)
 		table.insert(calls, "loaded:" .. tostring(loaded))
 	end
 
-	local context = editorModel:createResourceLoadContext()
-	context.loadAudioResources(resources)
-	context.renderWave()
-	context.genGraphs()
-	context.setResourcesLoaded(true)
+	local context = editorModel.context
+	context:loadAudioResources(resources)
+	context:renderWave()
+	context:genGraphs()
+	context:setResourcesLoaded(true)
 
 	t:tdeq(calls, {
 		"audio:song.ogg",
@@ -1000,17 +1010,17 @@ function test.interval_manager_context_reads_current_model_state(t)
 		notes = {},
 		editorChanges = {},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
-	local context = editorModel:createIntervalManagerContext()
-	t:eq(context.getLayer(), editorModel.layer)
-	t:eq(context.getNotes(), editorModel.notes)
-	t:eq(context.editorChanges, editorModel.editorChanges)
+	local context = editorModel.context
+	t:eq(context:getLayer(), editorModel.layer)
+	t:eq(context:getNotes(), editorModel.notes)
+	t:eq(context:getEditorChanges(), editorModel.editorChanges)
 
 	editorModel.layer = {updated = true}
 	editorModel.notes = {updated = true}
-	t:eq(context.getLayer(), editorModel.layer)
-	t:eq(context.getNotes(), editorModel.notes)
+	t:eq(context:getLayer(), editorModel.layer)
+	t:eq(context:getNotes(), editorModel.notes)
 end
 
 ---@param t testing.T
@@ -1052,18 +1062,18 @@ function test.editor_note_service_context_reads_current_model_state(t)
 			return "dtp:" .. absoluteTime
 		end,
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
-	local context = editorModel:createEditorNoteServiceContext()
+	local context = editorModel.context
 
-	t:eq(context.columnService.getNoteSkin(), "noteSkin")
-	t:eq(context.commandService.getSelectedNotes(), editorModel.visualEngine.selectedNotes)
-	t:eq(context.commandService.editorChanges, editorModel.editorChanges)
-	t:eq(context.commandService.getNoteOpsContext().notes, editorModel.notes)
-	t:eq(context.dragService.getMouseTime(), 1.25)
-	t:eq(context.clipboardService.getPoint(), "point")
-	t:eq(context.createService.getVisualInfo(), editorModel.visualEngine.visual_info)
-	t:eq(context.createService.getEditorNoteContext().getLayer(), editorModel.layer)
+	t:eq(context:getNoteSkin(), "noteSkin")
+	t:eq(context:getSelectedNotes(), editorModel.visualEngine.selectedNotes)
+	t:eq(context:getEditorChanges(), editorModel.editorChanges)
+	t:eq(context:getNoteOpsContext():getNotes(), editorModel.notes)
+	t:eq(context:getMouseTime(), 1.25)
+	t:eq(context:getPoint(), "point")
+	t:eq(context:getVisualInfo(), editorModel.visualEngine.visual_info)
+	t:eq(context:getEditorNoteContext():getLayer(), editorModel.layer)
 end
 
 ---@param t testing.T
@@ -1095,35 +1105,35 @@ function test.analysis_commands_use_analysis_context(t)
 		analysisService = {
 			detectTempoOffset = function(_, context)
 				table.insert(calls, "detect")
-				t:eq(context.ncbtContext, editorModel.ncbtContext)
-				t:eq(context.audio_engine, editorModel.audio_engine)
+					t:eq(context:getNcbtContext(), editorModel.ncbtContext)
+					t:eq(context:getAudioEngine(), editorModel.audio_engine)
 			end,
 			applyNcbt = function(_, context)
 				table.insert(calls, "apply")
-				t:eq(context.layer, layer)
+					t:eq(context:getLayer(), layer)
 			end,
 			renderWave = function(_, context)
 				table.insert(calls, "wave")
-				t:eq(context.audio_engine, editorModel.audio_engine)
-				context.setWave(wave)
+					t:eq(context:getAudioEngine(), editorModel.audio_engine)
+					context:setWave(wave)
 			end,
 			getFirstLastTime = function(_, context)
 				table.insert(calls, "firstLast")
-				t:eq(context.layer, layer)
+					t:eq(context:getLayer(), layer)
 				return -1, 4
 			end,
 			getTimelineRange = function(_, context)
 				table.insert(calls, "timeline")
-				t:eq(context.chart, chart)
+					t:eq(context:getChart(), chart)
 				return -2, 5
 			end,
 			genGraphs = function(_, context)
 				table.insert(calls, "graphs")
-				t:eq(context.graphsGenerator, editorModel.graphsGenerator)
+					t:eq(context:getGraphsGenerator(), editorModel.graphsGenerator)
 			end,
 		},
 	}
-	setmetatable(editorModel, {__index = EditorModel})
+	attachEditorModel(editorModel)
 
 	editorModel:detectTempoOffset()
 	editorModel:applyNcbt()

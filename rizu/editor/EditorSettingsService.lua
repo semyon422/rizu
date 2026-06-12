@@ -5,8 +5,6 @@ local class = require("class")
 local EditorSettingsService = class()
 
 ---@class rizu.editor.EditorSettingsContext
----@field configModel sphere.ConfigModel
----@field maxSnap number
 
 ---@param editor table
 ---@param maxSnap number
@@ -29,7 +27,7 @@ end
 ---@param context rizu.editor.EditorSettingsContext
 ---@return table
 function EditorSettingsService:getEditorSettings(context)
-	return self:getSettings(context.configModel, context.maxSnap)
+	return self:getSettings(context:getConfigModel(), context:getMaxSnap())
 end
 
 ---@param configModel sphere.ConfigModel
@@ -41,7 +39,7 @@ end
 ---@param context rizu.editor.EditorSettingsContext
 ---@return table
 function EditorSettingsService:getEditorAudioSettings(context)
-	return self:getAudioSettings(context.configModel)
+	return self:getAudioSettings(context:getConfigModel())
 end
 
 ---@param editor table
@@ -77,7 +75,7 @@ end
 
 ---@param context rizu.editor.EditorSettingsContext
 function EditorSettingsService:incEditorSnap(context)
-	self:incSnap(self:getEditorSettings(context), context.maxSnap)
+	self:incSnap(self:getEditorSettings(context), context:getMaxSnap())
 end
 
 ---@param editor table
@@ -89,7 +87,7 @@ end
 
 ---@param context rizu.editor.EditorSettingsContext
 function EditorSettingsService:decEditorSnap(context)
-	self:decSnap(self:getEditorSettings(context), context.maxSnap)
+	self:decSnap(self:getEditorSettings(context), context:getMaxSnap())
 end
 
 ---@param editor table
@@ -121,7 +119,7 @@ end
 ---@param editor table
 ---@return table
 function EditorSettingsService:normalizeContextEditorSettings(context, editor)
-	return self:normalizeEditorSettings(editor, context.maxSnap)
+	return self:normalizeEditorSettings(editor, context:getMaxSnap())
 end
 
 return EditorSettingsService

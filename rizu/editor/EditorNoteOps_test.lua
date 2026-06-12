@@ -34,16 +34,25 @@ local function createContext()
 	})
 
 	local ops = EditorNoteOps()
-	ops:setContext({
-		notes = editorModel.notes,
-		editorChanges = editorModel.editorChanges,
-		getLayer = function()
-			return editorModel.layer
-		end,
-		getVisual = function()
-			return editorModel:getVisual()
-		end,
-	})
+	local context = {}
+
+	function context:getNotes()
+		return editorModel.notes
+	end
+
+	function context:getEditorChanges()
+		return editorModel.editorChanges
+	end
+
+	function context:getLayer()
+		return editorModel.layer
+	end
+
+	function context:getVisual()
+		return editorModel:getVisual()
+	end
+
+	ops:setContext(context)
 
 	return ops, editorModel, note
 end

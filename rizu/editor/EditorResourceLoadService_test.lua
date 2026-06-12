@@ -10,10 +10,10 @@ function test.load_runs_resource_steps_in_order(t)
 	}
 	local resourcesLoaded
 	local context = {
-		setResourcesLoaded = function(loaded)
+		setResourcesLoaded = function(_, loaded)
 			resourcesLoaded = loaded
 		end,
-		loadAudioResources = function(loadedResources)
+		loadAudioResources = function(_, loadedResources)
 			table.insert(calls, "audio:" .. loadedResources.audio)
 		end,
 		renderWave = function()
@@ -35,7 +35,7 @@ function test.load_fails_fast_on_audio_error(t)
 	local calls = {}
 	local resourcesLoaded
 	local context = {
-		setResourcesLoaded = function(loaded)
+		setResourcesLoaded = function(_, loaded)
 			resourcesLoaded = loaded
 		end,
 		loadAudioResources = function()
@@ -63,7 +63,7 @@ function test.load_does_not_mark_loaded_when_graphs_fail(t)
 	local calls = {}
 	local resourcesLoaded
 	local context = {
-		setResourcesLoaded = function(loaded)
+		setResourcesLoaded = function(_, loaded)
 			resourcesLoaded = loaded
 		end,
 		loadAudioResources = function()

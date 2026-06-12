@@ -3,7 +3,6 @@ local EditorInput = require("rizu.editor.EditorInput")
 local EditorServices = require("rizu.editor.EditorServices")
 local EditorLoadService = require("rizu.editor.EditorLoadService")
 local EditorSaveService = require("rizu.editor.EditorSaveService")
-local EditorSessionResetService = require("rizu.editor.EditorSessionResetService")
 local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService")
 local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
 local EditorSelectionService = require("rizu.editor.EditorSelectionService")
@@ -16,6 +15,7 @@ local EditorRenderState = require("rizu.editor.EditorRenderState")
 local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorModelFrameService = require("rizu.editor.EditorModelFrameService")
+local EditorModelContext = require("rizu.editor.EditorModelContext")
 
 ---@class rizu.editor.EditorModelDeps: rizu.editor.EditorServicesDeps
 ---@field services rizu.editor.EditorServices?
@@ -56,6 +56,7 @@ local EditorModelFrameService = require("rizu.editor.EditorModelFrameService")
 ---@field runtimeState rizu.editor.EditorRuntimeState
 ---@field viewState rizu.editor.EditorViewState
 ---@field frameService rizu.editor.EditorModelFrameService
+---@field context rizu.editor.EditorModelContext
 ---@field services rizu.editor.EditorServices
 local EditorModel = class()
 
@@ -98,372 +99,14 @@ function EditorModel:new(deps)
 	local services = deps.services or EditorServices(deps)
 	self.services = services
 	services:applyToEditorModel(self)
+	self.context = EditorModelContext(self)
 	self.timer:setGlobalTime(0)
 	services:attachEditorModel(self)
 end
 
 function EditorModel:load()
 	local loadService = self.loadService or EditorLoadService()
-	loadService:load(self:createLoadContext())
-end
-
----@return rizu.editor.EditorSaveContext
-function EditorModel:createSaveContext()
-	return {
-		metadata = self.metadata,
-		setChartmeta = function(chartmeta)
-			self.chartmeta = chartmeta
-		end,
-		noteChartLoader = self.noteChartLoader,
-	}
-end
-
----@return rizu.editor.EditorLoadContext
-function EditorModel:createLoadContext()
-	return {
-		setLoaded = function(loaded)
-			self:setLoaded(loaded)
-		end,
-		getSettings = function()
-			return self:getSettings()
-		end,
-		noteChartLoader = self.noteChartLoader,
-		setChartData = function(layer, notes)
-			self.layer = layer
-			self.notes = notes
-		end,
-		setVisual = function(visual)
-			self:setVisual(visual)
-		end,
-		sessionResetService = self.sessionResetService,
-		createSessionResetContext = function()
-			return self:createSessionResetContext()
-		end,
-		playbackService = self.playbackService,
-		timer = self.timer,
-		audio_engine = self.audio_engine,
-		getAudioSettings = function()
-			return self:getAudioSettings()
-		end,
-		configModel = self.configModel,
-		metronome = self.metronome,
-		scroller = self.scroller,
-		bmsToolsContext = self.bmsToolsContext,
-		metadata = self.metadata,
-		chartmeta = self.chartmeta,
-	}
-end
-
----@return rizu.editor.EditorSessionResetContext
-function EditorModel:createSessionResetContext()
-	local newChanges = self.sessionResetService.newChanges or EditorSessionResetService.newChanges
-	return {
-		analyzePatterns = function()
-			self:analyzePatterns()
-		end,
-		newChanges = newChanges,
-		setChanges = function(changes)
-			self:setChanges(changes)
-		end,
-		loadGraphs = function()
-			self.graphsGenerator:load()
-		end,
-		setResourcesLoaded = function(loaded)
-			self:setResourcesLoaded(loaded)
-		end,
-		setSessionTime = function(time)
-			self:setSessionTime(time)
-		end,
-		finishSelection = function()
-			self:getSelectionState():finish()
-		end,
-	}
-end
-
----@return rizu.editor.EditorResourceLoadContext
-function EditorModel:createResourceLoadContext()
-	return {
-		loadAudioResources = function(loadedResources)
-			(self.playbackService or EditorPlaybackService()):loadEditorAudioResources(
-				self:createPlaybackContext(),
-				loadedResources
-			)
-		end,
-		renderWave = function()
-			self:renderWave()
-		end,
-		genGraphs = function()
-			self:genGraphs()
-		end,
-		setResourcesLoaded = function(loaded)
-			self:setResourcesLoaded(loaded)
-		end,
-	}
-end
-
----@return rizu.editor.EditorPlaybackContext
-function EditorModel:createPlaybackContext()
-	return {
-		timer = self.timer,
-		audio_engine = self.audio_engine,
-		chart = self.chart,
-		intervalManager = self.intervalManager,
-	}
-end
-
----@return rizu.editor.EditorSettingsContext
-function EditorModel:createSettingsContext()
-	return {
-		configModel = self.configModel,
-		maxSnap = self.max_snap,
-	}
-end
-
----@return rizu.editor.EditorHistoryContext
-function EditorModel:createHistoryContext()
-	return {
-		editorChanges = self.editorChanges,
-	}
-end
-
----@return rizu.editor.EditorAnalysisContext
-function EditorModel:createAnalysisContext()
-	return {
-		ncbtContext = self.ncbtContext,
-		audio_engine = self.audio_engine,
-		layer = self.layer,
-		chart = self.chart,
-		graphsGenerator = self.graphsGenerator,
-		setWave = function(wave)
-			self:setWave(wave)
-		end,
-	}
-end
-
----@return rizu.editor.EditorSelectionRectContext
-function EditorModel:createSelectionRectContext()
-	return {
-		selectionState = self:getSelectionState(),
-		getMousePosition = self.getMousePosition,
-		getMouseTime = function()
-			return self:getMouseTime()
-		end,
-		selectRegion = self.selectRegion,
-		unselectRegion = self.unselectRegion,
-	}
-end
-
----@return rizu.editor.ScrollerContext
-function EditorModel:createScrollerContext()
-	return {
-		getDtpAbsolute = function(absoluteTime)
-			return self:getDtpAbsolute(absoluteTime)
-		end,
-		getSessionTime = function()
-			return self:getSessionTime()
-		end,
-		getPoint = function()
-			return self:getPoint()
-		end,
-		setSessionPoint = function(point)
-			self:setSessionPoint(point)
-		end,
-		setTime = function(time)
-			self:setTime(time)
-		end,
-		isIntervalGrabbed = function()
-			return self.intervalManager:isGrabbed()
-		end,
-		interpolateFraction = function(vertex, time)
-			return self.layer.points:interpolateFraction(vertex, time)
-		end,
-		getSettings = function()
-			return self:getSettings()
-		end,
-	}
-end
-
----@return rizu.editor.IntervalManagerContext
-function EditorModel:createIntervalManagerContext()
-	return {
-		getLayer = function()
-			return self.layer
-		end,
-		getNotes = function()
-			return self.notes
-		end,
-		editorChanges = self.editorChanges,
-	}
-end
-
----@return rizu.editor.EditorChangesContext
-function EditorModel:createEditorChangesContext()
-	return {
-		resetVisual = function()
-			self.visualEngine:reset()
-		end,
-	}
-end
-
----@return rizu.editor.NoteChartLoaderContext
-function EditorModel:createNoteChartLoaderContext()
-	return {
-		getChart = function()
-			return self.chart
-		end,
-		getLayer = function()
-			return self.layer
-		end,
-		getNotes = function()
-			return self.notes
-		end,
-	}
-end
-
----@return rizu.editor.VisualEngineContext
-function EditorModel:createVisualEngineContext()
-	return {
-		getSessionTime = function()
-			return self:getSessionTime()
-		end,
-		getEditorSettings = function()
-			return self.configModel.configs.settings.editor
-		end,
-		getVisualPoint = function()
-			return self.visualPoint
-		end,
-		getVisual = function()
-			return self:getVisual()
-		end,
-		getNotes = function()
-			return self.notes
-		end,
-		getIterRange = function()
-			return self:getIterRange()
-		end,
-		getEditorNoteContext = function()
-			return self:createEditorNoteContext()
-		end,
-	}
-end
-
----@return rizu.editor.EditorNoteContext
-function EditorModel:createEditorNoteContext()
-	return {
-		getDtpAbsolute = function(absoluteTime)
-			return self:getDtpAbsolute(absoluteTime)
-		end,
-		getLayer = function()
-			return self.layer
-		end,
-		getVisual = function()
-			return self:getVisual()
-		end,
-		getNextSnapIntervalTime = function(point, delta)
-			return self.scroller:getNextSnapIntervalTime(point, delta)
-		end,
-	}
-end
-
----@return rizu.editor.EditorNoteServiceContext
-function EditorModel:createEditorNoteServiceContext()
-	return {
-		columnService = {
-			getMousePosition = self.getMousePosition,
-			getNoteSkin = function()
-				return self:getNoteSkin()
-			end,
-		},
-		commandService = {
-			getSelectedNotes = function()
-				return self.visualEngine.selectedNotes
-			end,
-			editorChanges = self.editorChanges,
-			getSettings = function()
-				return self:getSettings()
-			end,
-			getNoteSkin = function()
-				return self:getNoteSkin()
-			end,
-			resetVisual = function()
-				self.visualEngine:reset()
-			end,
-			getNoteOpsContext = function()
-				return {
-					notes = self.notes,
-					editorChanges = self.editorChanges,
-					getLayer = function()
-						return self.layer
-					end,
-					getVisual = function()
-						return self:getVisual()
-					end,
-				}
-			end,
-		},
-		dragService = {
-			getNoteSkin = function()
-				return self:getNoteSkin()
-			end,
-			getSettings = function()
-				return self:getSettings()
-			end,
-			editorChanges = self.editorChanges,
-			getSelectedNotes = function()
-				return self.visualEngine.selectedNotes
-			end,
-			getMouseTime = function()
-				return self:getMouseTime()
-			end,
-		},
-		clipboardService = {
-			getSelectedNotes = function()
-				return self.visualEngine.selectedNotes
-			end,
-			editorChanges = self.editorChanges,
-			getPoint = function()
-				return self:getPoint()
-			end,
-		},
-		createService = {
-			getVisualInfo = function()
-				return self.visualEngine.visual_info
-			end,
-			getEditorNoteContext = function()
-				return self:createEditorNoteContext()
-			end,
-			getVisualEngine = function()
-				return self.visualEngine
-			end,
-			getSettings = function()
-				return self:getSettings()
-			end,
-			selectNote = function(note)
-				self.visualEngine:selectNote(note)
-			end,
-			getMouseTime = function()
-				return self:getMouseTime()
-			end,
-		},
-	}
-end
-
----@return rizu.editor.MetronomeContext
-function EditorModel:createMetronomeContext()
-	return {
-		getPoint = function()
-			return self:getPoint()
-		end,
-		getCurrentTime = function()
-			return self.timer:getTime()
-		end,
-		getNextSnapIntervalTime = function(point, delta)
-			return self.scroller:getNextSnapIntervalTime(point, delta)
-		end,
-		interpolateFraction = function(vertex, time)
-			return self.layer.points:interpolateFraction(vertex, time)
-		end,
-	}
+	loadService:load(self.context)
 end
 
 ---@return rizu.editor.EditorRuntimeState
@@ -536,43 +179,43 @@ function EditorModel:getNoteSkin()
 end
 
 function EditorModel:detectTempoOffset()
-	(self.analysisService or EditorAnalysisService()):detectTempoOffset(self:createAnalysisContext())
+	(self.analysisService or EditorAnalysisService()):detectTempoOffset(self.context)
 end
 
 function EditorModel:applyNcbt()
-	(self.analysisService or EditorAnalysisService()):applyNcbt(self:createAnalysisContext())
+	(self.analysisService or EditorAnalysisService()):applyNcbt(self.context)
 end
 
 ---@param editor table
 ---@return table
 function EditorModel:normalizeEditorSettings(editor)
 	return (self.settingsService or EditorSettingsService()):normalizeContextEditorSettings(
-		self:createSettingsContext(),
+		self.context,
 		editor
 	)
 end
 
 ---@return table
 function EditorModel:getSettings()
-	return (self.settingsService or EditorSettingsService()):getEditorSettings(self:createSettingsContext())
+	return (self.settingsService or EditorSettingsService()):getEditorSettings(self.context)
 end
 
 ---@return table
 function EditorModel:getAudioSettings()
-	return (self.settingsService or EditorSettingsService()):getEditorAudioSettings(self:createSettingsContext())
+	return (self.settingsService or EditorSettingsService()):getEditorAudioSettings(self.context)
 end
 
 function EditorModel:undo()
-	(self.historyService or EditorHistoryService()):undo(self:createHistoryContext())
+	(self.historyService or EditorHistoryService()):undo(self.context)
 end
 
 function EditorModel:redo()
-	(self.historyService or EditorHistoryService()):redo(self:createHistoryContext())
+	(self.historyService or EditorHistoryService()):redo(self.context)
 end
 
 ---@param time number
 function EditorModel:setTime(time)
-	(self.playbackService or EditorPlaybackService()):setEditorTime(self:createPlaybackContext(), time)
+	(self.playbackService or EditorPlaybackService()):setEditorTime(self.context, time)
 end
 
 ---@return number
@@ -591,16 +234,16 @@ function EditorModel:loadResources(resources)
 	end
 
 	local resourceLoadService = self.resourceLoadService or EditorResourceLoadService()
-	resourceLoadService:load(self:createResourceLoadContext(), resources)
+	resourceLoadService:load(self.context, resources)
 end
 
 ---@param resources {[string]: string}
 function EditorModel:loadAudioResources(resources)
-	(self.playbackService or EditorPlaybackService()):loadEditorAudioResources(self:createPlaybackContext(), resources)
+	(self.playbackService or EditorPlaybackService()):loadEditorAudioResources(self.context, resources)
 end
 
 function EditorModel:renderWave()
-	(self.analysisService or EditorAnalysisService()):renderWave(self:createAnalysisContext())
+	(self.analysisService or EditorAnalysisService()):renderWave(self.context)
 end
 
 ---@param loaded boolean
@@ -656,17 +299,17 @@ end
 ---@return number
 ---@return number
 function EditorModel:getFirstLastTime()
-	return (self.analysisService or EditorAnalysisService()):getFirstLastTime(self:createAnalysisContext())
+	return (self.analysisService or EditorAnalysisService()):getFirstLastTime(self.context)
 end
 
 ---@return number
 ---@return number
 function EditorModel:getTimelineRange()
-	return (self.analysisService or EditorAnalysisService()):getTimelineRange(self:createAnalysisContext())
+	return (self.analysisService or EditorAnalysisService()):getTimelineRange(self.context)
 end
 
 function EditorModel:genGraphs()
-	(self.analysisService or EditorAnalysisService()):genGraphs(self:createAnalysisContext())
+	(self.analysisService or EditorAnalysisService()):genGraphs(self.context)
 end
 
 ---@param time number
@@ -707,25 +350,25 @@ function EditorModel:unload()
 end
 
 function EditorModel:save()
-	(self.saveService or EditorSaveService()):save(self:createSaveContext())
+	(self.saveService or EditorSaveService()):save(self.context)
 end
 
 function EditorModel:play()
-	(self.playbackService or EditorPlaybackService()):playEditor(self:createPlaybackContext())
+	(self.playbackService or EditorPlaybackService()):playEditor(self.context)
 end
 
 function EditorModel:pause()
-	(self.playbackService or EditorPlaybackService()):pauseEditor(self:createPlaybackContext())
+	(self.playbackService or EditorPlaybackService()):pauseEditor(self.context)
 end
 
 ---@return number
 function EditorModel:getLogSpeed()
-	return (self.settingsService or EditorSettingsService()):getEditorLogSpeed(self:createSettingsContext())
+	return (self.settingsService or EditorSettingsService()):getEditorLogSpeed(self.context)
 end
 
 ---@param logSpeed number
 function EditorModel:setLogSpeed(logSpeed)
-	(self.settingsService or EditorSettingsService()):setEditorLogSpeed(self:createSettingsContext(), logSpeed)
+	(self.settingsService or EditorSettingsService()):setEditorLogSpeed(self.context, logSpeed)
 end
 
 ---@param dy number?
@@ -744,58 +387,28 @@ function EditorModel:selectNote(note)
 end
 
 function EditorModel:selectStart()
-	(self.selectionService or EditorSelectionService()):selectStart(self.visualEngine, self:createSelectionRectContext())
+	(self.selectionService or EditorSelectionService()):selectStart(self.visualEngine, self.context)
 end
 
 function EditorModel:selectEnd()
-	(self.selectionService or EditorSelectionService()):selectEnd(self.visualEngine, self:createSelectionRectContext())
+	(self.selectionService or EditorSelectionService()):selectEnd(self.visualEngine, self.context)
 end
 
 function EditorModel:update()
-	(self.frameService or EditorModelFrameService()):update(self:createFrameContext())
+	(self.frameService or EditorModelFrameService()):update(self.context)
 end
 
 ---@param event table
 function EditorModel:receive(event)
-	(self.frameService or EditorModelFrameService()):receive(self:createFrameContext(), event)
-end
-
----@return rizu.editor.EditorModelFrameContext
-function EditorModel:createFrameContext()
-	return {
-		timer = self.timer,
-		services = self.services,
-		noteService = self.noteService,
-		metronome = self.metronome,
-		selectionService = self.selectionService,
-		playbackService = self.playbackService,
-		audio_engine = self.audio_engine,
-		intervalManager = self.intervalManager,
-		visualEngine = self.visualEngine,
-		getSettings = function()
-			return self:getSettings()
-		end,
-		getNoteSkin = function()
-			return self:getNoteSkin()
-		end,
-		getDtpAbsolute = function(time)
-			return self:getDtpAbsolute(time)
-		end,
-		setSessionPoint = function(point)
-			self:setSessionPoint(point)
-		end,
-		createSelectionRectContext = function()
-			return self:createSelectionRectContext()
-		end,
-	}
+	(self.frameService or EditorModelFrameService()):receive(self.context, event)
 end
 
 function EditorModel:incSnap()
-	(self.settingsService or EditorSettingsService()):incEditorSnap(self:createSettingsContext())
+	(self.settingsService or EditorSettingsService()):incEditorSnap(self.context)
 end
 
 function EditorModel:decSnap()
-	(self.settingsService or EditorSettingsService()):decEditorSnap(self:createSettingsContext())
+	(self.settingsService or EditorSettingsService()):decEditorSnap(self.context)
 end
 
 ---@return number?
@@ -811,7 +424,7 @@ end
 ---@param j number|table
 ---@return number
 function EditorModel:getSnap(j)
-	return (self.settingsService or EditorSettingsService()):getEditorSnap(self:createSettingsContext(), j)
+	return (self.settingsService or EditorSettingsService()):getEditorSnap(self.context, j)
 end
 
 ---@return number

@@ -69,6 +69,8 @@ Owns default construction of editor collaborators and copies them onto `EditorMo
 ### Removed Session Bag
 `EditorModel.session` has been removed as a state bag. Do not add it back. Prefer `EditorCursorState`, `EditorSelectionState`, `EditorRenderState`, `EditorAnalysisState`, `EditorRuntimeState`, or `EditorViewState` depending on ownership.
 
+`EditorModelContext` is the internal adapter from `EditorModel` to editor services. `EditorModel` owns one context instance and passes it to services instead of building per-call context tables. The adapter implements the service context contracts while tests should keep using narrow fakes for service-level dependency checks.
+
 `EditorSessionResetService` owns load-time session reset orchestration through an explicit reset context: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, and selection cleanup.
 
 `EditorPlaybackService` owns timer/audio coordination: timer loading, audio settings loading, exact seek updates, audio resource loading, play/pause, and audio updates. It receives explicit timer, audio engine, chart, audio settings, and interval-grab dependencies rather than the whole `EditorModel`; keep playback behavior behind `EditorModel` wrappers so existing callers do not reach into the service directly unless they are focused tests.
@@ -138,7 +140,7 @@ Facade for note manipulation commands and composition root for focused note serv
 
 `EditorNoteOps` receives `EditorNoteOpsContext` for note storage, undo/redo recording, layer lookup, and visual lookup. It should not receive an `EditorModel` back-reference; command services may still build the ops context from their current editor-model bridge until those services are split.
 
-`EditorNoteService` is a small UI-facing facade and service composition root. Runtime code attaches it through `EditorNoteServiceContext`, which groups the focused note-service contexts built by `EditorModel:createEditorNoteServiceContext()`. It should not expose low-level `EditorNoteOps` or raw note construction helpers, and it should not mirror collaborator state. Use `getGrabbedNotes()` and `getCopiedNotes()` when UI code needs transient drag or clipboard state.
+`EditorNoteService` is a small UI-facing facade and service composition root. Runtime code attaches it through `EditorModelContext`, which groups the focused note-service contexts. It should not expose low-level `EditorNoteOps` or raw note construction helpers, and it should not mirror collaborator state. Use `getGrabbedNotes()` and `getCopiedNotes()` when UI code needs transient drag or clipboard state.
 
 `ShortEditorNote` and `LongEditorNote` receive `EditorNoteContext` for layer, visual, absolute-time point lookup, and next-snap lookup. They should not receive an `EditorModel` back-reference.
 
@@ -149,7 +151,7 @@ All mutations are recorded through `EditorChanges` for undo/redo support.
 Editor tests should use `EditorTestFactory` note helpers for common setup:
 `createNote()` for a raw editor note, `addNote()` for chart insertion, `addCommittedNote()` when undo history needs an initial boundary, and `addSelectedNote()` / `addCommittedSelectedNote()` for selected-note command setup. Spell out lower-level `commandService:addNotes(...)` calls only when the test is explicitly covering duplicate insertion, multi-note setup, or low-level note ops.
 
-`EditorTestFactory.createEditorNoteServiceContext(editorModel)`, `createEditorNoteContext(editorModel)`, `createNoteChartLoaderContext(editorModel)`, `createEditorChangesContext(editorModel)`, `createScrollerContext(editorModel)`, `createIntervalManagerContext(editorModel)`, and `createMetronomeContext(editorModel)` mirror the runtime context shapes for lightweight editor-model fakes. Prefer them over rebuilding callback tables in each test.
+`EditorTestFactory.createEditorModel()` attaches `EditorModelContext`, matching runtime service wiring. Older narrow context helper factories remain available for focused tests that intentionally avoid the full adapter.
 
 ### `IntervalManager` — Timing Vertex Manipulation
 Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual vertex data.
@@ -283,6 +285,7 @@ Covered and partially modernized:
 - Editor model save sequencing through `EditorSaveService`.
 - Editor model playback command wiring through `EditorPlaybackContext`.
 - Editor model analysis, graph, NCBT, and waveform command wiring through `EditorAnalysisContext`.
+- Editor model service context adaptation through `EditorModelContext`.
 
 Remaining higher-risk areas:
 - `EditorController` remains a boundary/orchestration class with an `EditorModel` reference for load/save/export routing.

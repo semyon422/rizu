@@ -7,14 +7,16 @@ function test.undo_redo_delegate_to_editor_changes(t)
 	local calls = {}
 	local service = EditorHistoryService()
 	local context = {
-		editorChanges = {
-			undo = function()
-				table.insert(calls, "undo")
-			end,
-			redo = function()
-				table.insert(calls, "redo")
-			end,
-		},
+		getEditorChanges = function()
+			return {
+				undo = function()
+					table.insert(calls, "undo")
+				end,
+				redo = function()
+					table.insert(calls, "redo")
+				end,
+			}
+		end,
 	}
 
 	service:undo(context)

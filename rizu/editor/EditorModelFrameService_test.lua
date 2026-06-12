@@ -9,45 +9,6 @@ function test.update_order(t)
 	local noteSkin = {}
 	local point = {}
 	local context = {
-		timer = {
-			getTime = function()
-				table.insert(calls, "timer")
-				return 0.5
-			end,
-		},
-		services = {
-			update = function()
-				table.insert(calls, "services")
-			end,
-		},
-		selectionService = {
-			updateSelectionRect = function(_, selectionContext, frameEditor, frameNoteSkin, time)
-				table.insert(calls, "selection:" .. time)
-				t:eq(selectionContext.id, "selection")
-				t:eq(frameEditor, editor)
-				t:eq(frameNoteSkin, noteSkin)
-			end,
-		},
-		playbackService = {
-			updateAudio = function(_, audioEngine)
-				table.insert(calls, "audio")
-				t:eq(audioEngine.id, "audio")
-			end,
-		},
-		audio_engine = {
-			id = "audio",
-		},
-		intervalManager = {
-			grabbedVertex = true,
-			moveGrabbed = function(_, time)
-				table.insert(calls, "timing:" .. time)
-			end,
-		},
-		visualEngine = {
-			update = function()
-				table.insert(calls, "visuals")
-			end,
-		},
 		getSettings = function()
 			table.insert(calls, "settings")
 			return editor
@@ -56,17 +17,64 @@ function test.update_order(t)
 			table.insert(calls, "skin")
 			return noteSkin
 		end,
-		getDtpAbsolute = function(time)
+		getTimer = function()
+			return {
+				getTime = function()
+					table.insert(calls, "timer")
+					return 0.5
+				end,
+			}
+		end,
+		getServices = function()
+			return {
+				update = function()
+					table.insert(calls, "services")
+				end,
+			}
+		end,
+		getSelectionService = function()
+			return {
+				updateSelectionRect = function(_, selectionContext, frameEditor, frameNoteSkin, time)
+					table.insert(calls, "selection:" .. time)
+					t:eq(frameEditor, editor)
+					t:eq(frameNoteSkin, noteSkin)
+				end,
+			}
+		end,
+		getDtpAbsolute = function(_, time)
 			table.insert(calls, "point:" .. time)
 			return point
 		end,
-		setSessionPoint = function(framePoint)
+		getIntervalManager = function()
+			return {
+				grabbedVertex = true,
+				moveGrabbed = function(_, time)
+					table.insert(calls, "timing:" .. time)
+				end,
+			}
+		end,
+		getPlaybackService = function()
+			return {
+				updateAudio = function(_, audioEngine)
+					table.insert(calls, "audio")
+					t:eq(audioEngine.id, "audio")
+				end,
+			}
+		end,
+		getAudioEngine = function()
+			return {
+				id = "audio",
+			}
+		end,
+		setSessionPoint = function(_, framePoint)
 			table.insert(calls, "cursor")
 			t:eq(framePoint, point)
 		end,
-		createSelectionRectContext = function()
+		getVisualEngine = function()
 			return {
-				id = "selection",
+				update = function()
+					table.insert(calls, "visuals")
+				end,
 			}
 		end,
 	}
@@ -91,11 +99,13 @@ end
 function test.receive_frame_started_sets_timer(t)
 	local setTime
 	local context = {
-		timer = {
-			setGlobalTime = function(_, time)
-				setTime = time
-			end,
-		},
+		getTimer = function()
+			return {
+				setGlobalTime = function(_, time)
+					setTime = time
+				end,
+			}
+		end,
 	}
 
 	EditorModelFrameService():receive(context, {
@@ -110,11 +120,13 @@ end
 function test.receive_ignores_other_events(t)
 	local called = false
 	local context = {
-		timer = {
-			setGlobalTime = function()
-				called = true
-			end,
-		},
+		getTimer = function()
+			return {
+				setGlobalTime = function()
+					called = true
+				end,
+			}
+		end,
 	}
 
 	EditorModelFrameService():receive(context, {

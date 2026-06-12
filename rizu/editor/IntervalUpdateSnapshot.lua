@@ -46,7 +46,7 @@ end
 ---@param beats number
 ---@return rizu.editor.IntervalUpdateSnapshot.RemovedPoint[]?
 function IntervalUpdateSnapshot.captureRemovedPoints(context, vertex, beats)
-	local layer = context.getLayer()
+	local layer = context:getLayer()
 	beats = getClampedBeats(vertex, beats, layer.vertices.minBeatDuration)
 	if not beats or beats >= vertex.beats then
 		return
@@ -62,7 +62,7 @@ function IntervalUpdateSnapshot.captureRemovedPoints(context, vertex, beats)
 		table.insert(removed_points, {
 			vertex = point.vertex,
 			time = point.time,
-			notes = collectPointNotes(context.getNotes(), point),
+			notes = collectPointNotes(context:getNotes(), point),
 		})
 		point = point.prev
 	end
@@ -92,8 +92,8 @@ function IntervalUpdateSnapshot.restore(context, removed_points)
 		return
 	end
 
-	local layer = context.getLayer()
-	local note_storage = context.getNotes()
+	local layer = context:getLayer()
+	local note_storage = context:getNotes()
 	for _, removed_point in ipairs(removed_points) do
 		local point = layer.points:getPoint(removed_point.vertex, removed_point.time)
 		local visual_point

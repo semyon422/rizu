@@ -96,47 +96,55 @@ end
 function test.editor_context_commands(t)
 	local calls = {}
 	local context = {
-		timer = {
-			setTime = function(_, time, exact)
-				table.insert(calls, ("timer-time:%s:%s"):format(time, tostring(exact)))
-			end,
-			getTime = function()
-				table.insert(calls, "timer-get")
-				return 2.5
-			end,
-			play = function()
-				table.insert(calls, "timer-play")
-			end,
-			pause = function()
-				table.insert(calls, "timer-pause")
-			end,
-		},
-		audio_engine = {
-			setPosition = function(_, time)
-				table.insert(calls, "position:" .. time)
-			end,
-			setEnabled = function(_, enabled)
-				table.insert(calls, "enabled:" .. tostring(enabled))
-			end,
-			load = function(_, chart, resources)
-				table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
-			end,
-			play = function()
-				table.insert(calls, "audio-play")
-			end,
-			pause = function()
-				table.insert(calls, "audio-pause")
-			end,
-		},
-		chart = {
-			id = "chart",
-		},
-		intervalManager = {
-			isGrabbed = function()
-				table.insert(calls, "grabbed")
-				return false
-			end,
-		},
+		getTimer = function()
+			return {
+				setTime = function(_, time, exact)
+					table.insert(calls, ("timer-time:%s:%s"):format(time, tostring(exact)))
+				end,
+				getTime = function()
+					table.insert(calls, "timer-get")
+					return 2.5
+				end,
+				play = function()
+					table.insert(calls, "timer-play")
+				end,
+				pause = function()
+					table.insert(calls, "timer-pause")
+				end,
+			}
+		end,
+		getAudioEngine = function()
+			return {
+				setPosition = function(_, time)
+					table.insert(calls, "position:" .. time)
+				end,
+				setEnabled = function(_, enabled)
+					table.insert(calls, "enabled:" .. tostring(enabled))
+				end,
+				load = function(_, chart, resources)
+					table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
+				end,
+				play = function()
+					table.insert(calls, "audio-play")
+				end,
+				pause = function()
+					table.insert(calls, "audio-pause")
+				end,
+			}
+		end,
+		getChart = function()
+			return {
+				id = "chart",
+			}
+		end,
+		getIntervalManager = function()
+			return {
+				isGrabbed = function()
+					table.insert(calls, "grabbed")
+					return false
+				end,
+			}
+		end,
 	}
 	local service = EditorPlaybackService()
 

@@ -29,7 +29,7 @@ function EditorChanges:undo()
 		local cmd = self.commands[i].undo
 		run(cmd)
 	end
-	self.context.resetVisual()
+	self.context:resetVisual()
 end
 
 function EditorChanges:redo()
@@ -37,7 +37,7 @@ function EditorChanges:redo()
 		local cmd = self.commands[i].redo
 		run(cmd)
 	end
-	self.context.resetVisual()
+	self.context:resetVisual()
 end
 
 function EditorChanges:reset()

@@ -31,12 +31,12 @@ end
 ---@return rizu.editor.EditorNote?
 function EditorNoteCreateService:newNote(noteType, absoluteTime, column)
 	local context = self.context
-	local note = EditorNoteFactory:newNote_t(noteType, context.getVisualInfo())
+	local note = EditorNoteFactory:newNote_t(noteType, context:getVisualInfo())
 	if not note then
 		return
 	end
-	note:setContext(context.getEditorNoteContext())
-	note.visualEngine = context.getVisualEngine()
+	note:setContext(context:getEditorNoteContext())
+	note.visualEngine = context:getVisualEngine()
 	note.column = column
 	return note:create(absoluteTime, column)
 end
@@ -45,8 +45,8 @@ end
 ---@param column string
 function EditorNoteCreateService:addNote(absoluteTime, column)
 	local context = self.context
-	local editor = context.getSettings()
-	context.selectNote()
+	local editor = context:getSettings()
+	context:selectNote()
 
 	local note
 	if editor.tool == "ShortNote" then
@@ -59,14 +59,14 @@ function EditorNoteCreateService:addNote(absoluteTime, column)
 		return
 	end
 
-	context.selectNote(note)
+	context:selectNote(note)
 	if editor.tool == "ShortNote" then
-		self.dragService:grabNew(note, "head", context.getMouseTime())
+		self.dragService:grabNew(note, "head", context:getMouseTime())
 	elseif editor.tool == "LongNote" then
 		self.dragService:grabNew(
 			note,
 			"tail",
-			context.getMouseTime() +
+			context:getMouseTime() +
 			note.endNote:getTime() -
 			note.startNote:getTime()
 		)

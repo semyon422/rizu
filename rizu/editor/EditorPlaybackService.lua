@@ -5,11 +5,6 @@ local class = require("class")
 local EditorPlaybackService = class()
 
 ---@class rizu.editor.EditorPlaybackContext
----@field timer rizu.editor.TimeManager
----@field audio_engine rizu.engine.audio.Engine
----@field chart sea.Chart
----@field intervalManager rizu.editor.IntervalManager
-
 ---@param timer rizu.editor.TimeManager
 ---@param editor table
 function EditorPlaybackService:loadTimer(timer, editor)
@@ -69,25 +64,25 @@ end
 ---@param context rizu.editor.EditorPlaybackContext
 ---@param time number
 function EditorPlaybackService:setEditorTime(context, time)
-	self:setTime(context.timer, context.audio_engine, time)
+	self:setTime(context:getTimer(), context:getAudioEngine(), time)
 end
 
 ---@param context rizu.editor.EditorPlaybackContext
 ---@param resources {[string]: string}
 function EditorPlaybackService:loadEditorAudioResources(context, resources)
-	self:loadAudioResources(context.audio_engine, context.timer, context.chart, resources)
+	self:loadAudioResources(context:getAudioEngine(), context:getTimer(), context:getChart(), resources)
 end
 
 ---@param context rizu.editor.EditorPlaybackContext
 function EditorPlaybackService:playEditor(context)
-	self:play(context.timer, context.audio_engine, function()
-		return context.intervalManager:isGrabbed()
+	self:play(context:getTimer(), context:getAudioEngine(), function()
+		return context:getIntervalManager():isGrabbed()
 	end)
 end
 
 ---@param context rizu.editor.EditorPlaybackContext
 function EditorPlaybackService:pauseEditor(context)
-	self:pause(context.timer, context.audio_engine)
+	self:pause(context:getTimer(), context:getAudioEngine())
 end
 
 return EditorPlaybackService

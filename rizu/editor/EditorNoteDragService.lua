@@ -3,7 +3,6 @@ local class = require("class")
 ---@class rizu.editor.EditorNoteDragServiceContext
 ---@field getNoteSkin fun(): table?
 ---@field getSettings fun(): table
----@field editorChanges rizu.editor.EditorChanges
 ---@field getSelectedNotes fun(): {[chart.Note]: rizu.editor.EditorNote}
 ---@field getMouseTime fun(): number
 
@@ -65,11 +64,11 @@ end
 ---@param mouseTime number
 function EditorNoteDragService:grabNew(note, part, mouseTime)
 	local context = self.context
-	local noteSkin = assert(context.getNoteSkin())
-	local editor = context.getSettings()
+	local noteSkin = assert(context:getNoteSkin())
+	local editor = context:getSettings()
 
 	self:clear()
-	context.editorChanges:reset()
+	context:getEditorChanges():reset()
 	local column = self.columnService:getColumnOver()
 	local deltaColumn = getColumnDelta(noteSkin, column, note)
 	if not deltaColumn then
@@ -78,17 +77,17 @@ function EditorNoteDragService:grabNew(note, part, mouseTime)
 
 	table.insert(self.grabbedNotes, note)
 	note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
-	context.getSelectedNotes()[note.startNote] = note
+	context:getSelectedNotes()[note.startNote] = note
 end
 
 function EditorNoteDragService:update()
 	local context = self.context
-	local editor = context.getSettings()
-	local noteSkin = assert(context.getNoteSkin())
+	local editor = context:getSettings()
+	local noteSkin = assert(context:getNoteSkin())
 
 	for _, note in ipairs(self.grabbedNotes) do
 		note:update()
-		local time = context.getMouseTime()
+		local time = context:getMouseTime()
 		if not editor.lockSnap then
 			note:updateGrabbed(time)
 		end
@@ -104,13 +103,13 @@ end
 ---@param mouseTime number
 function EditorNoteDragService:grab(part, mouseTime)
 	local context = self.context
-	local noteSkin = assert(context.getNoteSkin())
-	local editor = context.getSettings()
+	local noteSkin = assert(context:getNoteSkin())
+	local editor = context:getSettings()
 
 	self:clear()
-	context.editorChanges:reset()
+	context:getEditorChanges():reset()
 	local column = self.columnService:getColumnOver()
-	for _, note in ipairs(getSelectedNotes(context.getSelectedNotes())) do
+	for _, note in ipairs(getSelectedNotes(context:getSelectedNotes())) do
 		local deltaColumn = getColumnDelta(noteSkin, column, note)
 		if deltaColumn then
 			table.insert(self.grabbedNotes, note)
@@ -123,17 +122,17 @@ end
 ---@param mouseTime number
 function EditorNoteDragService:drop(mouseTime)
 	local context = self.context
-	local editor = context.getSettings()
+	local editor = context:getSettings()
 
 	for _, note in ipairs(self.grabbedNotes) do
 		if not editor.lockSnap then
 			note:drop(mouseTime)
 		end
 		self.commandService:addNotes(note:getNotes())
-		context.getSelectedNotes()[note.startNote] = note
+		context:getSelectedNotes()[note.startNote] = note
 	end
 	self:clear()
-	context.editorChanges:next()
+	context:getEditorChanges():next()
 end
 
 return EditorNoteDragService

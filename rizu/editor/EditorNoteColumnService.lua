@@ -23,8 +23,8 @@ function EditorNoteColumnService:getColumnOver()
 	if self.columnOver then
 		return self.columnOver
 	end
-	local mx, _my = self.context.getMousePosition()
-	local noteSkin = assert(self.context.getNoteSkin())
+	local mx, _my = self.context:getMousePosition()
+	local noteSkin = assert(self.context:getNoteSkin())
 	return noteSkin:getInverseColumnPosition(mx)
 end
 

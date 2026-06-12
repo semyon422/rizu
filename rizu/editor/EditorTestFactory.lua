@@ -7,6 +7,7 @@ local Point = require("chart.chartedit.Point")
 local Scroller = require("rizu.editor.Scroller")
 local Visual = require("chart.chartedit.Visual")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
+local EditorModelContext = require("rizu.editor.EditorModelContext")
 
 local EditorTestFactory = {}
 
@@ -91,6 +92,10 @@ function EditorTestFactory.createEditorModel()
 		self:getDtpAbsolute(time):clone(self.point)
 	end
 
+	function editorModel:setTime(time)
+		self:setSessionTime(time)
+	end
+
 	function editorModel:getSessionTime()
 		return self.point.absoluteTime
 	end
@@ -124,10 +129,11 @@ function EditorTestFactory.createEditorModel()
 		end
 	end
 
-	editorChanges:setContext(EditorTestFactory.createEditorChangesContext(editorModel))
-	intervalManager:setContext(EditorTestFactory.createIntervalManagerContext(editorModel))
-	noteService:setContext(EditorTestFactory.createEditorNoteServiceContext(editorModel))
-	scroller:setContext(EditorTestFactory.createScrollerContext(editorModel))
+	editorModel.context = EditorModelContext(editorModel)
+	editorChanges:setContext(editorModel.context)
+	intervalManager:setContext(editorModel.context)
+	noteService:setContext(editorModel.context)
+	scroller:setContext(editorModel.context)
 
 	return editorModel
 end

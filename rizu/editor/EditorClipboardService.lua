@@ -2,7 +2,6 @@ local class = require("class")
 
 ---@class rizu.editor.EditorClipboardServiceContext
 ---@field getSelectedNotes fun(): {[chart.Note]: rizu.editor.EditorNote}
----@field editorChanges rizu.editor.EditorChanges
 ---@field getPoint fun(): chartedit.Point
 
 ---@class rizu.editor.EditorClipboardService
@@ -25,16 +24,17 @@ end
 ---@param cut boolean?
 function EditorClipboardService:copy(cut)
 	local context = self.context
+	local editorChanges = context:getEditorChanges()
 
 	if cut then
-		context.editorChanges:reset()
+		editorChanges:reset()
 	end
 
 	---@type rizu.editor.EditorNote[]
 	self.copiedNotes = {}
 	local copyPoint
 
-	for _, note in pairs(context.getSelectedNotes()) do
+	for _, note in pairs(context:getSelectedNotes()) do
 		if not copyPoint or note.startNote.visualPoint.point < copyPoint then
 			copyPoint = note.startNote.visualPoint.point
 		end
@@ -49,7 +49,7 @@ function EditorClipboardService:copy(cut)
 	end
 
 	if cut then
-		context.editorChanges:next()
+		editorChanges:next()
 	end
 end
 
@@ -61,12 +61,13 @@ function EditorClipboardService:paste()
 
 	local context = self.context
 
-	context.editorChanges:reset()
-	local point = context.getPoint()
+	local editorChanges = context:getEditorChanges()
+	editorChanges:reset()
+	local point = context:getPoint()
 	for _, note in ipairs(copiedNotes) do
 		self.commandService:addNotes(note:paste(point))
 	end
-	context.editorChanges:next()
+	editorChanges:next()
 end
 
 return EditorClipboardService

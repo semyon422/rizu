@@ -19,16 +19,16 @@ end
 ---@return rizu.editor.LongEditorNote?
 function LongEditorNote:create(absoluteTime, column)
 	local context = self.context
-	local layer = context.getLayer()
-	local visual = context.getVisual()
+	local layer = context:getLayer()
+	local visual = context:getVisual()
 
-	local dtp = context.getDtpAbsolute(absoluteTime)
+	local dtp = context:getDtpAbsolute(absoluteTime)
 	local p = layer.points:saveSearchPoint(dtp)
 	local vp = visual:getPoint(p)
 	local startNote = Note(vp, column, "hold", 1)
 	self.startNote = startNote
 
-	local p = layer.points:getPoint(context.getNextSnapIntervalTime(p, 1))
+	local p = layer.points:getPoint(context:getNextSnapIntervalTime(p, 1))
 	local vp = visual:getPoint(p)
 	local endNote = Note(vp, column, "hold", -1)
 	self.endNote = endNote
@@ -79,30 +79,30 @@ end
 ---@param t number
 function LongEditorNote:drop(t)
 	local context = self.context
-	local layer = context.getLayer()
-	local visual = context.getVisual()
+	local layer = context:getLayer()
+	local visual = context:getVisual()
 	if self.grabbedPart == "head" then
-		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime)
+		local dtp = context:getDtpAbsolute(t - self.grabbedDeltaTime)
 		local p = layer.points:saveSearchPoint()
 		if p == self.endNote.visualPoint.point then
-			p = layer.points:getPoint(context.getNextSnapIntervalTime(p, -1))
+			p = layer.points:getPoint(context:getNextSnapIntervalTime(p, -1))
 		end
 		local vp = visual:getPoint(p)
 		self.startNote.visualPoint = vp
 	elseif self.grabbedPart == "tail" then
-		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime)
+		local dtp = context:getDtpAbsolute(t - self.grabbedDeltaTime)
 		local p = layer.points:saveSearchPoint()
 		if self.startNote.visualPoint.point == p then
-			p = layer.points:getPoint(context.getNextSnapIntervalTime(p, 1))
+			p = layer.points:getPoint(context:getNextSnapIntervalTime(p, 1))
 		end
 		local vp = visual:getPoint(p)
 		self.endNote.visualPoint = vp
 	elseif self.grabbedPart == "body" then
-		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime[1])
+		local dtp = context:getDtpAbsolute(t - self.grabbedDeltaTime[1])
 		local p = layer.points:saveSearchPoint()
 		local vp = visual:getPoint(p)
 		self.startNote.visualPoint = vp
-		local dtp = context.getDtpAbsolute(t - self.grabbedDeltaTime[2])
+		local dtp = context:getDtpAbsolute(t - self.grabbedDeltaTime[2])
 		local p = layer.points:saveSearchPoint()
 		local vp = visual:getPoint(p)
 		self.endNote.visualPoint = vp
@@ -113,12 +113,12 @@ end
 function LongEditorNote:updateGrabbed(t)
 	local context = self.context
 	if self.grabbedPart == "head" then
-		context.getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.startNote.visualPoint.point)
+		context:getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.startNote.visualPoint.point)
 	elseif self.grabbedPart == "tail" then
-		context.getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.endNote.visualPoint.point)
+		context:getDtpAbsolute(t - self.grabbedDeltaTime):clone(self.endNote.visualPoint.point)
 	elseif self.grabbedPart == "body" then
-		context.getDtpAbsolute(t - self.grabbedDeltaTime[1]):clone(self.startNote.visualPoint.point)
-		context.getDtpAbsolute(t - self.grabbedDeltaTime[2]):clone(self.endNote.visualPoint.point)
+		context:getDtpAbsolute(t - self.grabbedDeltaTime[1]):clone(self.startNote.visualPoint.point)
+		context:getDtpAbsolute(t - self.grabbedDeltaTime[2]):clone(self.endNote.visualPoint.point)
 	end
 end
 
@@ -132,8 +132,8 @@ end
 ---@return chart.Note[]
 function LongEditorNote:paste(point)
 	local context = self.context
-	local layer = context.getLayer()
-	local visual = context.getVisual()
+	local layer = context:getLayer()
+	local visual = context:getVisual()
 
 	local startNote = self.startNote:clone()
 	local endNote = self.endNote:clone()

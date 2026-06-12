@@ -19,15 +19,15 @@ end
 ---@return chartedit.Layer
 ---@return chartedit.Notes
 function NoteChartLoader:load()
-	local chart = self.context.getChart()
+	local chart = self.context:getChart()
 	chart.layers.main:toInterval()
 	local layers, notes = Converter:load(chart)
 	return layers.main, notes
 end
 
 function NoteChartLoader:save()
-	local chart = Converter:save({main = self.context.getLayer()}, self.context.getNotes())
-	local targetChart = self.context.getChart()
+	local chart = Converter:save({main = self.context:getLayer()}, self.context:getNotes())
+	local targetChart = self.context:getChart()
 	targetChart.layers.main = chart.layers.main
 	targetChart.notes = chart.notes
 end

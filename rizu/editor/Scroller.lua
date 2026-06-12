@@ -26,7 +26,7 @@ function Scroller:_scrollPoint(point)
 	if not point then
 		return
 	end
-	self.context.setSessionPoint(point)
+	self.context:setSessionPoint(point)
 end
 
 ---@param point chartedit.Point
@@ -35,7 +35,7 @@ function Scroller:scrollPoint(point)
 		return
 	end
 	self:_scrollPoint(point)
-	self.context.setTime(point.absoluteTime)
+	self.context:setTime(point.absoluteTime)
 end
 
 ---@param point chartedit.Point
@@ -45,23 +45,23 @@ end
 
 ---@param absoluteTime number
 function Scroller:scrollSeconds(absoluteTime)
-	local point = self.context.getDtpAbsolute(absoluteTime)
+	local point = self.context:getDtpAbsolute(absoluteTime)
 	self:scrollPoint(point)
 end
 
 ---@param delta number
 function Scroller:scrollSecondsDelta(delta)
-	self:scrollSeconds(self.context.getSessionTime() + delta)
+	self:scrollSeconds(self.context:getSessionTime() + delta)
 end
 
 ---@param delta number
 function Scroller:scrollSnaps(delta)
-	if self.context.isIntervalGrabbed() then
+	if self.context:isIntervalGrabbed() then
 		return
 	end
 	self:scrollPoint(
-		self.context.interpolateFraction(
-			self:getNextSnapIntervalTime(self.context.getPoint(), delta)
+		self.context:interpolateFraction(
+			self:getNextSnapIntervalTime(self.context:getPoint(), delta)
 		)
 	)
 end
@@ -71,7 +71,7 @@ end
 ---@return chartedit.Vertex
 ---@return chart.Fraction
 function Scroller:getNextSnapIntervalTime(point, delta)
-	local editor = self.context.getSettings()
+	local editor = self.context:getSettings()
 
 	local snap = editor.snap
 	local snapTime = point.time * snap

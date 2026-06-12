@@ -36,14 +36,16 @@ function test.rectangle_selection_lifecycle(t)
 		end,
 	}
 	local context = {
-		selectionState = selectionState,
 		getMousePosition = function()
 			return 3, 4
 		end,
 		getMouseTime = function()
 			return 1
 		end,
-		selectRegion = function(x1, y1, x2, y2)
+		getSelectionState = function()
+			return selectionState
+		end,
+		selectRegion = function(_, x1, y1, x2, y2)
 			table.insert(calls, ("select:%s:%s:%s:%s"):format(x1, y1, x2, y2))
 		end,
 		unselectRegion = function()

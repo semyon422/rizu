@@ -47,32 +47,41 @@ end
 
 local function createScroller(editorModel)
 	local scroller = Scroller()
-	scroller:setContext({
-		getDtpAbsolute = function(time)
-			return editorModel:getDtpAbsolute(time)
-		end,
-		getSessionTime = function()
-			return editorModel:getSessionTime()
-		end,
-		getPoint = function()
-			return editorModel:getPoint()
-		end,
-		setSessionPoint = function(point)
-			editorModel:setSessionPoint(point)
-		end,
-		setTime = function(time)
-			editorModel:setTime(time)
-		end,
-		isIntervalGrabbed = function()
-			return editorModel.intervalManager:isGrabbed()
-		end,
-		interpolateFraction = function(vertex, time)
-			return editorModel.layer.points:interpolateFraction(vertex, time)
-		end,
-		getSettings = function()
-			return editorModel:getSettings()
-		end,
-	})
+	local context = {}
+
+	function context:getDtpAbsolute(time)
+		return editorModel:getDtpAbsolute(time)
+	end
+
+	function context:getSessionTime()
+		return editorModel:getSessionTime()
+	end
+
+	function context:getPoint()
+		return editorModel:getPoint()
+	end
+
+	function context:setSessionPoint(point)
+		editorModel:setSessionPoint(point)
+	end
+
+	function context:setTime(time)
+		editorModel:setTime(time)
+	end
+
+	function context:isIntervalGrabbed()
+		return editorModel.intervalManager:isGrabbed()
+	end
+
+	function context:interpolateFraction(vertex, time)
+		return editorModel.layer.points:interpolateFraction(vertex, time)
+	end
+
+	function context:getSettings()
+		return editorModel:getSettings()
+	end
+
+	scroller:setContext(context)
 	return scroller
 end
 

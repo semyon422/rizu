@@ -49,20 +49,20 @@ function test.update_next_time_uses_current_point_before_current_time(t)
 		end,
 	}
 	local metronome = Metronome(FakeFilesystem())
-	metronome:setContext({
-		getPoint = function()
+	local context = {}
+	function context:getPoint()
 			return point
-		end,
-		getCurrentTime = function()
+	end
+	function context:getCurrentTime()
 			return 0.5
-		end,
-		getNextSnapIntervalTime = function()
+	end
+	function context:getNextSnapIntervalTime()
 			error("next snap should not be requested")
-		end,
-		interpolateFraction = function()
+	end
+	function context:interpolateFraction()
 			error("next point should not be interpolated")
-		end,
-	})
+	end
+	metronome:setContext(context)
 
 	metronome:updateNextTime()
 
@@ -86,24 +86,24 @@ function test.update_next_time_uses_next_snap_after_current_point(t)
 		end,
 	}
 	local metronome = Metronome(FakeFilesystem())
-	metronome:setContext({
-		getPoint = function()
+	local context = {}
+	function context:getPoint()
 			return point
-		end,
-		getCurrentTime = function()
+	end
+	function context:getCurrentTime()
 			return 0.75
-		end,
-		getNextSnapIntervalTime = function(loadedPoint, delta)
+	end
+	function context:getNextSnapIntervalTime(loadedPoint, delta)
 			t:eq(loadedPoint, point)
 			t:eq(delta, 1)
 			return vertex, Fraction(3, 2)
-		end,
-		interpolateFraction = function(loadedVertex, time)
+	end
+	function context:interpolateFraction(loadedVertex, time)
 			t:eq(loadedVertex, vertex)
 			t:eq(time, Fraction(3, 2))
 			return nextPoint
-		end,
-	})
+	end
+	metronome:setContext(context)
 
 	metronome:updateNextTime()
 

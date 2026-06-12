@@ -44,7 +44,7 @@ VisualEngine.range = {-1, 1}
 
 ---@return number
 function VisualEngine:getCurrentTime()
-	return self.context.getSessionTime()
+	return self.context:getSessionTime()
 end
 
 ---@return number
@@ -59,7 +59,7 @@ end
 
 ---@return number
 function VisualEngine:getVisualTimeRate()
-	local editor = self.context.getEditorSettings()
+	local editor = self.context:getEditorSettings()
 	return editor.speed
 end
 
@@ -93,17 +93,17 @@ function VisualEngine:newNote(_note, column)
 	if not note then
 		return
 	end
-	note:setContext(self.context.getEditorNoteContext())
+	note:setContext(self.context:getEditorNoteContext())
 	note.visualEngine = self
 	note.column = column
-	note.cvp = self.context.getVisualPoint()
-	note.visual = self.context.getVisual()
+	note.cvp = self.context:getVisualPoint()
+	note.visual = self.context:getVisual()
 	return note
 end
 
 function VisualEngine:update()
 	local context = self.context
-	local editor = context.getEditorSettings()
+	local editor = context:getEditorSettings()
 
 	local visual_info = self.visual_info
 	visual_info.time = self:getCurrentTime()
@@ -116,14 +116,14 @@ function VisualEngine:update()
 	self.selection:updateVisible(self.notes)
 	for _, note in ipairs(self.notes) do
 		notesMap[note.startNote] = note
-		note.cvp = context.getVisualPoint()
-		note.visual = context.getVisual()
+		note.cvp = context:getVisualPoint()
+		note.visual = context:getVisual()
 	end
 
 	local newNotes = {}
 	self.notes = newNotes
 
-	for _note, column in context.getNotes():iterLinked(context.getIterRange()) do
+	for _note, column in context:getNotes():iterLinked(context:getIterRange()) do
 		local startNote = _note.startNote
 		local note = notesMap[startNote] or
 			selectedNotes[startNote] or

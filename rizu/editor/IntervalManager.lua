@@ -4,7 +4,6 @@ local IntervalUpdateSnapshot = require("rizu.editor.IntervalUpdateSnapshot")
 ---@class rizu.editor.IntervalManagerContext
 ---@field getLayer fun(): chartedit.Layer
 ---@field getNotes fun(): chartedit.Notes
----@field editorChanges rizu.editor.EditorChanges
 
 ---@class rizu.editor.IntervalManager
 ---@operator call: rizu.editor.IntervalManager
@@ -26,7 +25,7 @@ function IntervalManager:drop()
 	local vertex = self.grabbedVertex
 	local offset = self.grabbedVertexOffset
 	if vertex and offset and vertex.offset ~= offset then
-		local editorChanges = self.context.editorChanges
+		local editorChanges = self.context:getEditorChanges()
 		editorChanges:reset()
 		editorChanges:add(
 			editorChanges:command(self, "setOffset", vertex, vertex.offset),
@@ -45,23 +44,23 @@ end
 
 ---@param time number
 function IntervalManager:moveGrabbed(time)
-	self.context.getLayer().vertices:moveVertex(self.grabbedVertex, time)
+	self.context:getLayer().vertices:moveVertex(self.grabbedVertex, time)
 end
 
 ---@param vertex chartedit.Vertex
 ---@param offset number
 function IntervalManager:setOffset(vertex, offset)
-	self.context.getLayer().vertices:moveVertex(vertex, offset)
+	self.context:getLayer().vertices:moveVertex(vertex, offset)
 end
 
 ---@param point chartedit.Point
 ---@return chartedit.Vertex
 function IntervalManager:split(point)
-	local layer = self.context.getLayer()
+	local layer = self.context:getLayer()
 	local p = layer.points:getPoint(point:unpack())
 	layer.visuals.main:getPoint(p)
 	layer.vertices:splitVertex(p)
-	local editorChanges = self.context.editorChanges
+	local editorChanges = self.context:getEditorChanges()
 	editorChanges:reset()
 	editorChanges:add(
 		editorChanges:command(self, "splitRaw", p),
@@ -76,9 +75,9 @@ function IntervalManager:merge(point)
 	if not point._vertex then
 		return
 	end
-	local editorChanges = self.context.editorChanges
+	local editorChanges = self.context:getEditorChanges()
 	editorChanges:reset()
-	self.context.getLayer().vertices:mergeVertex(point)
+	self.context:getLayer().vertices:mergeVertex(point)
 	editorChanges:add(
 		editorChanges:command(self, "mergeRaw", point),
 		editorChanges:command(self, "splitRaw", point)
@@ -91,12 +90,12 @@ end
 function IntervalManager:update(vertex, beats)
 	local oldBeats = vertex.beats
 	local removed_points = IntervalUpdateSnapshot.captureRemovedPoints(self.context, vertex, beats)
-	IntervalUpdateSnapshot.removeNotes(self.context.getNotes(), removed_points)
-	self.context.getLayer().vertices:updateVertex(vertex, beats)
+	IntervalUpdateSnapshot.removeNotes(self.context:getNotes(), removed_points)
+	self.context:getLayer().vertices:updateVertex(vertex, beats)
 	if vertex.beats == oldBeats then
 		return
 	end
-	local editorChanges = self.context.editorChanges
+	local editorChanges = self.context:getEditorChanges()
 	editorChanges:reset()
 	editorChanges:add(
 		editorChanges:command(self, "updateRaw", vertex, vertex.beats, removed_points),
@@ -107,12 +106,12 @@ end
 
 ---@param point chartedit.Point
 function IntervalManager:splitRaw(point)
-	self.context.getLayer().vertices:splitVertex(point)
+	self.context:getLayer().vertices:splitVertex(point)
 end
 
 ---@param point chartedit.Point
 function IntervalManager:mergeRaw(point)
-	self.context.getLayer().vertices:mergeVertex(point)
+	self.context:getLayer().vertices:mergeVertex(point)
 end
 
 ---@param vertex chartedit.Vertex
@@ -121,9 +120,9 @@ end
 ---@param restore_removed_points boolean?
 function IntervalManager:updateRaw(vertex, beats, removed_points, restore_removed_points)
 	if not restore_removed_points then
-		IntervalUpdateSnapshot.removeNotes(self.context.getNotes(), removed_points)
+		IntervalUpdateSnapshot.removeNotes(self.context:getNotes(), removed_points)
 	end
-	self.context.getLayer().vertices:updateVertex(vertex, beats)
+	self.context:getLayer().vertices:updateVertex(vertex, beats)
 	if not restore_removed_points then
 		return
 	end

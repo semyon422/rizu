@@ -7,35 +7,9 @@ local createDeps
 function test.applies_and_attaches_editor_model_collaborators(t)
 	local deps = createDeps()
 	local services = EditorServices(deps)
-	local scrollerContext = {}
-	local intervalContext = {}
-	local editorChangesContext = {}
-	local noteChartLoaderContext = {}
-	local visualEngineContext = {}
-	local metronomeContext = {}
-	local noteServiceContext = {}
+	local context = {}
 	local editorModel = {
-		createNoteChartLoaderContext = function()
-			return noteChartLoaderContext
-		end,
-		createScrollerContext = function()
-			return scrollerContext
-		end,
-		createIntervalManagerContext = function()
-			return intervalContext
-		end,
-		createEditorChangesContext = function()
-			return editorChangesContext
-		end,
-		createVisualEngineContext = function()
-			return visualEngineContext
-		end,
-		createEditorNoteServiceContext = function()
-			return noteServiceContext
-		end,
-		createMetronomeContext = function()
-			return metronomeContext
-		end,
+		context = context,
 	}
 
 	services:applyToEditorModel(editorModel)
@@ -70,19 +44,19 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(editorModel.runtimeState, deps.runtimeState)
 	t:eq(editorModel.viewState, deps.viewState)
 	t:eq(editorModel.frameService, deps.frameService)
-	t:eq(deps.noteChartLoader.context, noteChartLoaderContext)
+	t:eq(deps.noteChartLoader.context, context)
 	t:eq(deps.noteChartLoader.editorModel, nil)
 	t:eq(deps.ncbtContext.editorModel, nil)
-	t:eq(deps.intervalManager.context, intervalContext)
+	t:eq(deps.intervalManager.context, context)
 	t:eq(deps.graphsGenerator.editorModel, nil)
-	t:eq(deps.editorChanges.context, editorChangesContext)
+	t:eq(deps.editorChanges.context, context)
 	t:eq(deps.editorChanges.editorModel, nil)
-	t:eq(deps.noteService.context, noteServiceContext)
+	t:eq(deps.noteService.context, context)
 	t:eq(deps.noteService.editorModel, nil)
-	t:eq(deps.visualEngine.context, visualEngineContext)
+	t:eq(deps.visualEngine.context, context)
 	t:eq(deps.visualEngine.editorModel, nil)
-	t:eq(deps.scroller.context, scrollerContext)
-	t:eq(deps.metronome.context, metronomeContext)
+	t:eq(deps.scroller.context, context)
+	t:eq(deps.metronome.context, context)
 	t:eq(deps.bmsToolsContext.editorModel, nil)
 	t:eq(deps.audio_engine.editorModel, nil)
 	t:eq(deps.timer.editorModel, nil)

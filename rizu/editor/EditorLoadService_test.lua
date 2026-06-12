@@ -26,7 +26,7 @@ local function createContext(calls)
 	}
 	local context
 	context = {
-		setLoaded = function(loaded)
+		setLoaded = function(_, loaded)
 			table.insert(calls, "loaded:" .. tostring(loaded))
 		end,
 		getSettings = function()
@@ -39,12 +39,15 @@ local function createContext(calls)
 				return layer, notes
 			end,
 		},
-		setChartData = function(loadedLayer, loadedNotes)
+		getNoteChartLoader = function()
+			return context.noteChartLoader
+		end,
+		setChartData = function(_, loadedLayer, loadedNotes)
 			table.insert(calls, "chart-data")
 			context.layer = loadedLayer
 			context.notes = loadedNotes
 		end,
-		setVisual = function(visual)
+		setVisual = function(_, visual)
 			table.insert(calls, "visual:" .. visual.id)
 			context.visual = visual
 		end,
@@ -53,7 +56,10 @@ local function createContext(calls)
 				table.insert(calls, "reset:" .. sessionContext.id)
 			end,
 		},
-		createSessionResetContext = function()
+		getSessionResetService = function()
+			return context.sessionResetService
+		end,
+		getSessionResetContext = function()
 			return {
 				id = "session",
 			}
@@ -68,6 +74,9 @@ local function createContext(calls)
 				audioEngine.settings = loadedAudioSettings
 			end,
 		},
+		getPlaybackService = function()
+			return context.playbackService
+		end,
 		timer = {
 			time = 0,
 			setTime = function(self, time)
@@ -78,7 +87,13 @@ local function createContext(calls)
 				return self.time
 			end,
 		},
+		getTimer = function()
+			return context.timer
+		end,
 		audio_engine = {},
+		getAudioEngine = function()
+			return context.audio_engine
+		end,
 		getAudioSettings = function()
 			return audioSettings
 		end,
@@ -89,22 +104,34 @@ local function createContext(calls)
 				},
 			},
 		},
+		getConfigModel = function()
+			return context.configModel
+		end,
 		metronome = {
 			load = function()
 				table.insert(calls, "metronome")
 			end,
 		},
+		getMetronome = function()
+			return context.metronome
+		end,
 		scroller = {
 			scrollSeconds = function(_, time)
 				table.insert(calls, "scroll:" .. time)
 			end,
 		},
+		getScroller = function()
+			return context.scroller
+		end,
 		bmsToolsContext = {
 			initFromLayer = function(_, loadedLayer)
 				table.insert(calls, "bms")
 				context.bmsLayer = loadedLayer
 			end,
 		},
+		getBmsToolsContext = function()
+			return context.bmsToolsContext
+		end,
 		metadata = {
 			new = function()
 				table.insert(calls, "metadata-new")
@@ -116,6 +143,12 @@ local function createContext(calls)
 		chartmeta = {
 			title = "Title",
 		},
+		getMetadata = function()
+			return context.metadata
+		end,
+		getChartmeta = function()
+			return context.chartmeta
+		end,
 	}
 	return context
 end
@@ -179,7 +212,7 @@ function test.load_allows_missing_visual_to_surface(t)
 			visuals = {},
 		}, {}
 	end
-	context.setVisual = function(visual)
+	context.setVisual = function(_, visual)
 		context.visual = visual
 	end
 

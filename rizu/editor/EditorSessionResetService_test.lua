@@ -15,17 +15,17 @@ function test.reset_initializes_editor_session_state(t)
 			table.insert(calls, "new-changes")
 			return nextChanges
 		end,
-		setChanges = function(loadedChanges)
+		setChanges = function(_, loadedChanges)
 			table.insert(calls, "changes")
 			changes = loadedChanges
 		end,
 		loadGraphs = function()
 			table.insert(calls, "graphs")
 		end,
-		setResourcesLoaded = function(loaded)
+		setResourcesLoaded = function(_, loaded)
 			table.insert(calls, "resources:" .. tostring(loaded))
 		end,
-		setSessionTime = function(time)
+		setSessionTime = function(_, time)
 			table.insert(calls, "time:" .. time)
 		end,
 		finishSelection = function()
