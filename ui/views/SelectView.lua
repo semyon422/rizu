@@ -105,7 +105,6 @@ function SelectView:edit()
 	if not self.game.chartSelector:notechartExists() then
 		return
 	end
-	self:changeScreen("editorView")
 end
 
 function SelectView:switchToNoteCharts()

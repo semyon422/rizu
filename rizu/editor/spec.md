@@ -148,6 +148,8 @@ Maps editor notes to iBMSC clipboard format columns and writes the output file.
 
 ## UI Layer (`ui/views/EditorView/`)
 
+The editor is opened through the new `yi/layers/ChartMenus/Editor` screen only. The old `ui/views/EditorView.lua` screen was removed; keep `ui/views/EditorView/` as shared view modules used by the `yi` screen, not as a standalone legacy entry point.
+
 The editor UI is composed of separate view modules:
 - `Foreground`: main note display and playfield.
 - `WaveformView`: audio waveform visualization.
@@ -161,6 +163,8 @@ The editor UI is composed of separate view modules:
 Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Rendering code may still call LÖVE and `just` directly, but model readiness, waveform, visual access, modifier state, and small state mutations should stay behind model methods so the model can continue moving runtime state out of ad hoc fields.
 
 Foreground hotkeys are dispatched through `EditorActionService`; views pass key state into the service instead of owning command behavior. Snap-grid scroll and drag behavior is owned by `EditorScrollInputService`, including fine-scroll speed override, pause/resume while dragging, snap changes, and speed changes. Overlay-only actions such as preview time, comments, selected-note commands, and BMS offset/tempo controls live in `EditorOverlayActionService` rather than `EditorModel`.
+
+The active `yi/layers/ChartMenus/Editor` screen delegates enter/exit sequencing to `EditorScreenLoadService`. The service owns loading flags, editor controller load/unload, snap-grid construction, note-skin transforms, and sequence view load/unload so partial-load failures clear `loading` instead of leaving the screen stuck.
 
 ## Configuration
 
@@ -185,6 +189,7 @@ Covered and partially modernized:
 - `EditorController` load/save wiring for note skin, resources, file writes, and library recomputation.
 - Resource-load sequencing and lifecycle state ownership through `EditorResourceLoadService` and `EditorRuntimeState`.
 - Editor view command, overlay action, and snap-grid scroll behavior through focused services.
+- Editor screen enter/exit lifecycle through `EditorScreenLoadService`.
 
 Remaining higher-risk areas:
 - Graph generation with real charts/audio and waveform/audio resource failure modes beyond service sequencing.

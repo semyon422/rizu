@@ -1,6 +1,4 @@
 local Screen = require("yi.Screen")
-local SequenceView = require("sphere.views.SequenceView")
-local SnapGridView = require("ui.views.EditorView.SnapGridView")
 local Layout = require("ui.views.EditorView.Layout")
 local EditorViewConfig = require("ui.views.EditorView.EditorViewConfig")
 local EditorViewOverlay = require("ui.views.EditorView.EditorViewOverlay")
@@ -12,6 +10,7 @@ local OnsetsDistView = require("ui.views.EditorView.OnsetsDistView")
 local gfx_util = require("gfx_util")
 local just = require("just")
 local thread = require("thread")
+local EditorScreenLoadService = require("rizu.editor.EditorScreenLoadService")
 
 ---@class yi.layers.Editor : yi.Screen
 ---@operator call: yi.layers.Editor
@@ -22,7 +21,7 @@ function Editor:new(yi)
 	Screen.new(self)
 	self.yi = yi
 	self.game = yi.game
-	self.sequence_view = SequenceView()
+	self.editorScreenLoadService = EditorScreenLoadService()
 	self.editor_loaded = false
 	self.loading = false
 end
@@ -32,27 +31,8 @@ function Editor:enter()
 		return
 	end
 
-	self.loading = true
-
 	thread.coro(function()
-		self.game.editorController:load()
-
-		local note_skin = self.game.noteSkinModel.noteSkin
-		local playfield = note_skin.playField
-
-		self.snap_grid_view = SnapGridView()
-		self.snap_grid_view.game = self.game
-		self.snap_grid_view.transform = playfield:newNoteskinTransform()
-		self.transform = playfield:newNoteskinTransform()
-
-		local sequence_view = self.sequence_view
-		sequence_view.game = self.game ---@diagnostic disable-line
-		sequence_view.subscreen = "editor" ---@diagnostic disable-line
-		sequence_view:setSequenceConfig(playfield)
-		sequence_view:load()
-
-		self.editor_loaded = true
-		self.loading = false
+		self.editorScreenLoadService:enter(self)
 	end)()
 end
 
@@ -67,14 +47,7 @@ function Editor:handleKeyDown(key)
 end
 
 function Editor:exit()
-	if not self.editor_loaded then
-		self.loading = false
-		return
-	end
-
-	self.game.editorController:unload()
-	self.sequence_view:unload()
-	self.editor_loaded = false
+	self.editorScreenLoadService:exit(self)
 end
 
 ---@param dt number

@@ -6,7 +6,6 @@ local SelectView = require("ui.views.SelectView")
 local ResultView = require("ui.views.ResultView")
 local GameplayView = require("ui.views.GameplayView")
 local MultiplayerView = require("ui.views.MultiplayerView")
-local EditorView = require("ui.views.EditorView")
 
 ---@class ui.UserInterface: sphere.IUserInterface
 ---@operator call: ui.UserInterface
@@ -20,7 +19,6 @@ function UserInterface:new(game)
 	self.resultView = ResultView(game)
 	self.gameplayView = GameplayView(game)
 	self.multiplayerView = MultiplayerView(game)
-	self.editorView = EditorView(game)
 
 	self.configs = game.persistence.configModel.configs
 	self.screenshotModel = game.app.screenshotModel
