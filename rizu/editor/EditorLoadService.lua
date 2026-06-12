@@ -11,7 +11,7 @@ function EditorLoadService:load(editorModel)
 	local editor = editorModel:getSettings()
 
 	editorModel:loadChartData()
-	editorModel:loadSession()
+	editorModel:resetState()
 	editorModel:loadTimer(editor)
 	editorModel:loadAudio()
 	editorModel:loadMetronome()

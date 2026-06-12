@@ -11,9 +11,7 @@ local function createEditorModel()
 
 	local editorModel = {
 		layer = layer,
-		session = {
-			point = layer.points:getFirstPoint():clone(Point()),
-		},
+		point = layer.points:getFirstPoint():clone(Point()),
 		settings = {
 			snap = 4,
 		},
@@ -28,16 +26,16 @@ local function createEditorModel()
 	end
 
 	function editorModel:getSessionTime()
-		return self.session.point.absoluteTime
+		return self.point.absoluteTime
 	end
 
 	function editorModel:getPoint()
-		return self.session.point
+		return self.point
 	end
 
 	function editorModel:setSessionPoint(point)
 		self.setSessionPointCount = (self.setSessionPointCount or 0) + 1
-		point:clone(self.session.point)
+		point:clone(self.point)
 	end
 
 	function editorModel:setTime(time)
@@ -53,7 +51,7 @@ function test.next_snap(t)
 	local scroller = Scroller()
 	scroller.editorModel = editorModel
 
-	local vertex, time = scroller:getNextSnapIntervalTime(editorModel.session.point, 1)
+	local vertex, time = scroller:getNextSnapIntervalTime(editorModel:getPoint(), 1)
 
 	t:eq(vertex, editorModel.layer.points:getFirstPoint().vertex)
 	t:eq(time, Fraction(1, 4))
@@ -69,7 +67,7 @@ function test.scroll_time_point_alias(t)
 	scroller:scrollTimePoint(point)
 
 	t:eq(editorModel.time, 0.5)
-	t:eq(editorModel.session.point.absoluteTime, 0.5)
+	t:eq(editorModel:getPoint().absoluteTime, 0.5)
 	t:eq(editorModel.setSessionPointCount, 1)
 end
 
@@ -88,7 +86,7 @@ function test.scroll_snaps(t)
 	scroller:scrollSnaps(1)
 
 	t:eq(editorModel.time, 0.25)
-	t:eq(editorModel.session.point.time, Fraction(1, 4))
+	t:eq(editorModel:getPoint().time, Fraction(1, 4))
 end
 
 ---@param t testing.T
@@ -101,7 +99,7 @@ function test.scroll_seconds_delta_uses_session_time(t)
 	scroller:scrollSecondsDelta(0.25)
 
 	t:eq(editorModel.time, 0.75)
-	t:eq(editorModel.session.point.absoluteTime, 0.75)
+	t:eq(editorModel:getPoint().absoluteTime, 0.75)
 end
 
 ---@param t testing.T
@@ -119,7 +117,7 @@ function test.scroll_snaps_ignored_while_interval_grabbed(t)
 	scroller:scrollSnaps(1)
 
 	t:eq(editorModel.time, nil)
-	t:eq(editorModel.session.point.absoluteTime, 0)
+	t:eq(editorModel:getPoint().absoluteTime, 0)
 end
 
 return test

@@ -1,8 +1,11 @@
 local EditorModel = require("rizu.editor.EditorModel")
 local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
 local EditorCursorState = require("rizu.editor.EditorCursorState")
+local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
 local EditorRenderState = require("rizu.editor.EditorRenderState")
 local EditorSelectionState = require("rizu.editor.EditorSelectionState")
+local EditorSelectionService = require("rizu.editor.EditorSelectionService")
+local EditorSettingsService = require("rizu.editor.EditorSettingsService")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
 
@@ -41,10 +44,12 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		metronome = {},
 		metadata = {},
 		bmsToolsContext = {},
-		session = {},
 		loadService = {},
 		sessionResetService = {},
 		resourceLoadService = {},
+		playbackService = EditorPlaybackService(),
+		selectionService = EditorSelectionService(),
+		settingsService = EditorSettingsService(),
 		cursorState = EditorCursorState(),
 		selectionState = EditorSelectionState(),
 		renderState = EditorRenderState(),
@@ -103,10 +108,12 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		metronome = managers.metronome,
 		metadata = managers.metadata,
 		bmsToolsContext = managers.bmsToolsContext,
-		session = managers.session,
 		loadService = managers.loadService,
 		sessionResetService = managers.sessionResetService,
 		resourceLoadService = managers.resourceLoadService,
+		playbackService = managers.playbackService,
+		selectionService = managers.selectionService,
+		settingsService = managers.settingsService,
 		cursorState = managers.cursorState,
 		selectionState = managers.selectionState,
 		renderState = managers.renderState,
@@ -135,20 +142,22 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(managers.audio_engine.editorModel, nil)
 	t:eq(managers.timer.editorModel, nil)
 	t:eq(managers.metadata.editorModel, nil)
-	t:eq(managers.session.editorModel, nil)
 	t:eq(managers.loadService.editorModel, nil)
 	t:eq(managers.sessionResetService.editorModel, nil)
 	t:eq(managers.resourceLoadService.editorModel, nil)
+	t:eq(managers.playbackService.editorModel, nil)
+	t:eq(managers.selectionService.editorModel, nil)
+	t:eq(managers.settingsService.editorModel, nil)
 	t:eq(managers.cursorState.editorModel, nil)
 	t:eq(managers.selectionState.editorModel, nil)
 	t:eq(managers.renderState.editorModel, nil)
 	t:eq(managers.analysisState.editorModel, nil)
 	t:eq(managers.runtimeState.editorModel, nil)
 	t:eq(managers.viewState.editorModel, nil)
-	t:eq(editorModel.session.point, managers.cursorState:getPoint())
-	t:eq(editorModel.session.selectRect, managers.selectionState:getRect())
-	t:eq(editorModel.session.noteSkin, managers.renderState:getNoteSkin())
-	t:eq(editorModel.session.patterns_analyzed, managers.analysisState:getPatternsAnalyzed())
+	t:eq(editorModel:getPoint(), managers.cursorState:getPoint())
+	t:eq(editorModel:getSelectionState(), managers.selectionState)
+	t:eq(editorModel:getNoteSkin(), managers.renderState:getNoteSkin())
+	t:eq(editorModel:getPatternsAnalyzed(), managers.analysisState:getPatternsAnalyzed())
 	t:eq(editorModel.isMultiSelectRequested(), true)
 	t:eq(editorModel.isEditorCommandRequested(), true)
 	t:eq(editorModel.isFineScrollRequested(), true)
@@ -223,9 +232,6 @@ function createEditorModel()
 				},
 			},
 		},
-		session = {
-			point = cursorState:getPoint(),
-		},
 		cursorState = cursorState,
 		selectionState = selectionState,
 		renderState = renderState,
@@ -258,7 +264,7 @@ function test.set_session_point_clones_point(t)
 	editorModel:setSessionPoint(point)
 
 	t:eq(editorModel:getSessionTime(), 1.25)
-	t:eq(editorModel.session.point.cloned, true)
+	t:eq(editorModel:getPoint().cloned, true)
 end
 
 ---@param t testing.T
@@ -272,9 +278,7 @@ function test.update_order(t)
 	}
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		session = {
-			noteSkin = {},
-		},
+		noteSkin = {},
 		timer = {
 			getTime = function()
 				table.insert(calls, "timer")
@@ -311,7 +315,7 @@ function test.update_order(t)
 	setmetatable(editorModel, {__index = EditorModel})
 
 	function editorModel:getNoteSkin()
-		return self.session.noteSkin
+		return self.noteSkin
 	end
 
 	function editorModel:getSettings()
@@ -325,7 +329,7 @@ function test.update_order(t)
 	end
 
 	function editorModel:setSessionPoint(sessionPoint)
-		table.insert(calls, "session")
+		table.insert(calls, "cursor")
 		t:eq(sessionPoint, point)
 	end
 
@@ -340,7 +344,7 @@ function test.update_order(t)
 		"point:0.5",
 		"timing:0.5",
 		"audio",
-		"session",
+		"cursor",
 		"visuals",
 	})
 end
@@ -385,7 +389,7 @@ function test.load_initializes_editor_collaborators(t)
 		},
 		sessionResetService = {
 			reset = function(_, model)
-				table.insert(calls, "session-reset")
+				table.insert(calls, "state-reset")
 				t:eq(model.chartmeta.title, "Title")
 			end,
 		},
@@ -449,7 +453,7 @@ function test.load_initializes_editor_collaborators(t)
 	t:eq(editorModel.metronome.volume, volume)
 	t:tdeq(calls, {
 		"chart-load",
-		"session-reset",
+		"state-reset",
 		"timer-pause",
 		"timer-time:1.25",
 		"audio-volume:0.4:0.125",
@@ -565,15 +569,10 @@ end
 function test.get_mouse_time_uses_injected_mouse_position(t)
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		session = {
-			point = {
-				absoluteTime = 10,
-			},
-			noteSkin = {
-				getInverseTimePosition = function(_, y)
-					return y / 2
-				end,
-			},
+		noteSkin = {
+			getInverseTimePosition = function(_, y)
+				return y / 2
+			end,
 		},
 		getMousePosition = function()
 			return 12, 8
@@ -582,7 +581,11 @@ function test.get_mouse_time_uses_injected_mouse_position(t)
 	setmetatable(editorModel, {__index = EditorModel})
 
 	function editorModel:getNoteSkin()
-		return self.session.noteSkin
+		return self.noteSkin
+	end
+
+	function editorModel:getSessionTime()
+		return 10
 	end
 
 	function editorModel:getSettings()
@@ -599,19 +602,15 @@ function test.selection_region_uses_injected_callbacks(t)
 	local calls = {}
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		session = {
-			noteSkin = {
-				getInverseTimePosition = function(_, y)
-					return y
-				end,
-				getTimePosition = function(_, time)
-					return time * 10
-				end,
-			},
-			point = {
-				absoluteTime = 5,
-			},
+		noteSkin = {
+			getInverseTimePosition = function(_, y)
+				return y
+			end,
+			getTimePosition = function(_, time)
+				return time * 10
+			end,
 		},
+		selectionState = EditorSelectionState(),
 		visualEngine = {
 			selectStart = function()
 				table.insert(calls, "visual-start")
@@ -633,7 +632,11 @@ function test.selection_region_uses_injected_callbacks(t)
 	setmetatable(editorModel, {__index = EditorModel})
 
 	function editorModel:getNoteSkin()
-		return self.session.noteSkin
+		return self.noteSkin
+	end
+
+	function editorModel:getSessionTime()
+		return 5
 	end
 
 	function editorModel:getSettings()
@@ -643,10 +646,10 @@ function test.selection_region_uses_injected_callbacks(t)
 	end
 
 	editorModel:selectStart()
-	editorModel:updateSelectionRect({speed = 2}, editorModel.session.noteSkin, 6)
+	editorModel:updateSelectionRect({speed = 2}, editorModel:getNoteSkin(), 6)
 	editorModel:selectEnd()
 
-	t:eq(editorModel.session.selectRect, nil)
+	t:eq(editorModel:getSelectionState():getRect(), nil)
 	t:tdeq(calls, {
 		"visual-start",
 		"select:3:4:3:4",

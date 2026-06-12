@@ -13,9 +13,7 @@ end
 
 local function createEditorModel(calls, onLoadResources)
 	return {
-		session = {},
 		setNoteSkin = function(self, noteSkin)
-			self.session.noteSkin = noteSkin
 			self.noteSkin = noteSkin
 		end,
 		getNoteSkin = function(self)
@@ -62,7 +60,6 @@ function test.load_wires_chart_skin_resources_and_window(t)
 		t:eq(self.chart, chart)
 		t:eq(self.chartmeta, chartmeta)
 		t:eq(self:getNoteSkin(), noteSkin)
-		t:eq(self.session.noteSkin, noteSkin)
 	end
 
 	local controller = createController({

@@ -13,7 +13,6 @@ function EditorSessionResetService:reset(editorModel)
 	editorModel:setResourcesLoaded(false)
 	editorModel:setSessionTime(0)
 	editorModel:getSelectionState():finish()
-	editorModel:syncSessionAliases()
 end
 
 return EditorSessionResetService

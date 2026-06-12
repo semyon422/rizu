@@ -19,8 +19,8 @@ function test.load_runs_lifecycle_steps_in_order(t)
 		loadChartData = function()
 			table.insert(calls, "chart")
 		end,
-		loadSession = function()
-			table.insert(calls, "session")
+		resetState = function()
+			table.insert(calls, "reset")
 		end,
 		loadTimer = function(_, loadedEditor)
 			table.insert(calls, "timer")
@@ -49,7 +49,7 @@ function test.load_runs_lifecycle_steps_in_order(t)
 	t:tdeq(calls, {
 		"settings",
 		"chart",
-		"session",
+		"reset",
 		"timer",
 		"audio",
 		"metronome",
@@ -73,8 +73,8 @@ function test.load_fails_fast_and_keeps_current_loaded_semantics(t)
 		loadChartData = function()
 			table.insert(calls, "chart")
 		end,
-		loadSession = function()
-			table.insert(calls, "session")
+		resetState = function()
+			table.insert(calls, "reset")
 		end,
 		loadTimer = function()
 			table.insert(calls, "timer")
@@ -102,7 +102,7 @@ function test.load_fails_fast_and_keeps_current_loaded_semantics(t)
 	end)
 
 	t:eq(editorModel.loaded, true)
-	t:tdeq(calls, {"settings", "chart", "session", "timer", "audio"})
+	t:tdeq(calls, {"settings", "chart", "reset", "timer", "audio"})
 end
 
 return test

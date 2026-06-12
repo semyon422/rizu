@@ -38,6 +38,8 @@ function EditorTestFactory.createEditorModel()
 	local intervalManager = IntervalManager()
 	local noteManager = NoteManager()
 	local scroller = Scroller()
+	local point = layer.points:getFirstPoint():clone(Point())
+	local noteSkin = EditorTestFactory.createNoteSkin()
 
 	---@type rizu.editor.EditorModel
 	local editorModel = {
@@ -48,10 +50,8 @@ function EditorTestFactory.createEditorModel()
 		intervalManager = intervalManager,
 		noteManager = noteManager,
 		scroller = scroller,
-		session = {
-			point = layer.points:getFirstPoint():clone(Point()),
-			noteSkin = EditorTestFactory.createNoteSkin(),
-		},
+		point = point,
+		noteSkin = noteSkin,
 		settings = {
 			snap = 4,
 			tool = "ShortNote",
@@ -88,23 +88,23 @@ function EditorTestFactory.createEditorModel()
 	end
 
 	function editorModel:setSessionTime(time)
-		self:getDtpAbsolute(time):clone(self.session.point)
+		self:getDtpAbsolute(time):clone(self.point)
 	end
 
 	function editorModel:getSessionTime()
-		return self.session.point.absoluteTime
+		return self.point.absoluteTime
 	end
 
 	function editorModel:getPoint()
-		return self.session.point
+		return self.point
 	end
 
 	function editorModel:getNoteSkin()
-		return self.session.noteSkin
+		return self.noteSkin
 	end
 
 	function editorModel:setNoteSkin(noteSkin)
-		self.session.noteSkin = noteSkin
+		self.noteSkin = noteSkin
 	end
 
 	function editorModel:getMouseTime()

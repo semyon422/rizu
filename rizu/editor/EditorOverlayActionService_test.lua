@@ -15,11 +15,6 @@ function test.ui_action_methods_update_editor_state(t)
 	}
 	local editorModel = {
 		chartmeta = {},
-		session = {
-			point = {
-				absoluteTime = 12.5,
-			},
-		},
 		getSessionTime = function()
 			return 12.5
 		end,

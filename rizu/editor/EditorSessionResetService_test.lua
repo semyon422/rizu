@@ -33,9 +33,6 @@ function test.reset_initializes_editor_session_state(t)
 		getSelectionState = function()
 			return selectionState
 		end,
-		syncSessionAliases = function()
-			table.insert(calls, "sync")
-		end,
 	}
 
 	EditorSessionResetService():reset(editorModel)
@@ -48,7 +45,6 @@ function test.reset_initializes_editor_session_state(t)
 		"resources:false",
 		"time:0",
 		"selection",
-		"sync",
 	})
 end
 
