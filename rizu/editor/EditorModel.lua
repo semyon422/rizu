@@ -20,7 +20,7 @@ local EditorRenderState = require("rizu.editor.EditorRenderState")
 local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
-local NoteManager = require("rizu.editor.NoteManager")
+local EditorNoteService = require("rizu.editor.EditorNoteService")
 local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
 local BmsToolsContext = require("rizu.editor.BmsToolsContext")
@@ -46,7 +46,7 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field graphsGenerator rizu.editor.GraphsGenerator?
 ---@field editorChanges rizu.editor.EditorChanges?
 ---@field timer rizu.editor.TimeManager?
----@field noteManager rizu.editor.NoteManager?
+---@field noteService rizu.editor.EditorNoteService?
 ---@field visualEngine rizu.editor.VisualEngine?
 ---@field scroller rizu.editor.Scroller?
 ---@field metronome rizu.editor.Metronome?
@@ -131,7 +131,7 @@ function EditorModel:new(deps)
 	self.editorChanges = deps.editorChanges or EditorChanges()
 	self.timer = deps.timer or TimeManager()
 	self.timer:setGlobalTime(0)
-	self.noteManager = deps.noteManager or NoteManager()
+	self.noteService = deps.noteService or EditorNoteService()
 	self.visualEngine = deps.visualEngine or VisualEngine()
 	self.scroller = deps.scroller or Scroller()
 	self.metronome = deps.metronome or Metronome(deps.fs)
@@ -159,7 +159,11 @@ function EditorModel:attachManagers()
 	self.intervalManager.editorModel = self
 	self.graphsGenerator.editorModel = self
 	self.editorChanges.editorModel = self
-	self.noteManager.editorModel = self
+	if self.noteService.setEditorModel then
+		self.noteService:setEditorModel(self)
+	else
+		self.noteService.editorModel = self
+	end
 	self.visualEngine.editorModel = self
 	self.scroller.editorModel = self
 	self.metronome.editorModel = self
@@ -510,7 +514,7 @@ function EditorModel:updateEditorTime(editor, time)
 end
 
 function EditorModel:updateManagers()
-	self.noteManager:update()
+	self.noteService:update()
 	self.metronome:update()
 end
 

@@ -39,9 +39,7 @@ function test.interval_shrink_undo_save_after_load(t)
 	editorModel.intervalManager:update(vertex, 3)
 	editorModel.editorChanges:reset()
 
-	local note = editorModel.noteManager:newNote("tap", 0.75, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
+	local note = EditorTestFactory.addNote(editorModel, "tap", 0.75, "key1")
 
 	local loadedEditorModel = reloadThroughNoteChartLoader(editorModel)
 	local loadedVertex = loadedEditorModel.layer.points:getFirstPoint()._vertex
@@ -60,9 +58,7 @@ end
 ---@param t testing.T
 function test.long_note_save_load_roundtrip(t)
 	local editorModel = EditorTestFactory.createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
+	local note = EditorTestFactory.addNote(editorModel, "hold", 0.25, "key2")
 
 	local loadedEditorModel = reloadThroughNoteChartLoader(editorModel)
 	local notes = loadedEditorModel.notes:getNotes()
@@ -106,13 +102,10 @@ end
 ---@param t testing.T
 function test.undo_before_save_persists_undone_state(t)
 	local editorModel = EditorTestFactory.createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
+	local note = EditorTestFactory.addCommittedNote(editorModel, "tap", 0.25, "key1")
 
 	selectNote(editorModel, note)
-	editorModel.noteManager:deleteNotes()
+	editorModel.noteService:deleteNotes()
 	t:eq(#editorModel.notes:getNotes(), 0)
 
 	editorModel.editorChanges:undo()
@@ -129,9 +122,7 @@ end
 function test.save_updates_chart_notes_without_editor_links(t)
 	local editorModel = EditorTestFactory.createEditorModel()
 	local loader = attachLoader(editorModel)
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
+	local note = EditorTestFactory.addNote(editorModel, "hold", 0.25, "key2")
 
 	loader:save()
 	local notes = editorModel.chart.notes:getNotes()

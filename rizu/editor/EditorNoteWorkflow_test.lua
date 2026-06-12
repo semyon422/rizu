@@ -9,10 +9,9 @@ local selectNote = EditorTestFactory.selectNote
 ---@param t testing.T
 function test.add_short_note(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.noteService.commandService:addNotes(note:getNotes())
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 1)
@@ -24,10 +23,9 @@ end
 ---@param t testing.T
 function test.add_long_note(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.noteService.commandService:addNotes(note:getNotes())
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -44,16 +42,16 @@ function test.add_note_starts_drag(t)
 	editorModel.settings.tool = "ShortNote"
 	editorModel.settings.lockSnap = false
 	editorModel.mouseTime = 0.25
-	editorModel.noteManager.columnOver = 1
+	editorModel.noteService.columnService.columnOver = 1
 
-	editorModel.noteManager:addNote(0.25, "key1")
+	editorModel.noteService:addNote(0.25, "key1")
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 0)
-	t:eq(#editorModel.noteManager.grabbedNotes, 1)
-	t:eq(editorModel.noteManager.grabbedNotes[1].startNote.column, "key1")
+	t:eq(#editorModel.noteService.dragService.grabbedNotes, 1)
+	t:eq(editorModel.noteService.dragService.grabbedNotes[1].startNote.column, "key1")
 
-	editorModel.noteManager:dropNotes(0.75)
+	editorModel.noteService:dropNotes(0.75)
 	notes = getNotes(editorModel)
 	t:eq(#notes, 1)
 	t:eq(notes[1]:getTime(), 0.75)
@@ -69,15 +67,15 @@ function test.add_long_note_starts_tail_drag(t)
 	editorModel.settings.tool = "LongNote"
 	editorModel.settings.lockSnap = false
 	editorModel.mouseTime = 0.25
-	editorModel.noteManager.columnOver = 2
+	editorModel.noteService.columnService.columnOver = 2
 
-	editorModel.noteManager:addNote(0.25, "key2")
+	editorModel.noteService:addNote(0.25, "key2")
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 0)
-	t:eq(#editorModel.noteManager.grabbedNotes, 1)
+	t:eq(#editorModel.noteService.dragService.grabbedNotes, 1)
 
-	editorModel.noteManager:dropNotes(0.75)
+	editorModel.noteService:dropNotes(0.75)
 	notes = getNotes(editorModel)
 	t:eq(#notes, 2)
 	t:eq(notes[1]:getTime(), 0.25)
@@ -87,11 +85,10 @@ end
 ---@param t testing.T
 function test.duplicate_prevention(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.noteManager:_addNotes(note:getNotes())
+	editorModel.noteService.commandService:addNotes(note:getNotes())
+	editorModel.noteService.commandService:addNotes(note:getNotes())
 
 	t:eq(#getNotes(editorModel), 1)
 end
@@ -99,13 +96,9 @@ end
 ---@param t testing.T
 function test.delete_undo_redo(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	local deleted = editorModel.noteManager:deleteNotes()
+	local deleted = editorModel.noteService:deleteNotes()
 
 	t:eq(deleted, 1)
 	t:eq(#getNotes(editorModel), 0)
@@ -120,14 +113,11 @@ end
 ---@param t testing.T
 function test.copy_paste(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:copyNotes()
+	editorModel.noteService:copyNotes()
 	editorModel:setSessionTime(0.75)
-	editorModel.noteManager:pasteNotes()
+	editorModel.noteService:pasteNotes()
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -139,15 +129,11 @@ end
 ---@param t testing.T
 function test.cut_undo_redo(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:copyNotes(true)
+	editorModel.noteService:copyNotes(true)
 	t:eq(#getNotes(editorModel), 0)
-	t:eq(#editorModel.noteManager.copiedNotes, 1)
+	t:eq(#editorModel.noteService.clipboardService.copiedNotes, 1)
 
 	editorModel.editorChanges:undo()
 	t:eq(#getNotes(editorModel), 1)
@@ -159,13 +145,9 @@ end
 ---@param t testing.T
 function test.flip_notes(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:flipNotes()
+	editorModel.noteService:flipNotes()
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 1)
@@ -185,13 +167,9 @@ end
 ---@param t testing.T
 function test.change_short_to_long_undo_redo(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:changeType()
+	editorModel.noteService:changeType()
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -219,14 +197,11 @@ end
 ---@param t testing.T
 function test.change_long_to_short_undo_redo(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
+	local note = EditorTestFactory.addCommittedNote(editorModel, "hold", 0.25, "key2")
 	local originalEndNote = note.endNote
 	selectNote(editorModel, note)
 
-	editorModel.noteManager:changeType()
+	editorModel.noteService:changeType()
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 1)
@@ -255,15 +230,11 @@ end
 function test.drag_short_note_undo_redo(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 1
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 1
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:grabNotes("head", 0.25)
-	editorModel.noteManager:dropNotes(0.75)
+	editorModel.noteService:grabNotes("head", 0.25)
+	editorModel.noteService:dropNotes(0.75)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 1)
@@ -285,15 +256,11 @@ end
 function test.drag_long_tail_undo_redo(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:grabNotes("tail", 0.5)
-	editorModel.noteManager:dropNotes(0.75)
+	editorModel.noteService:grabNotes("tail", 0.5)
+	editorModel.noteService:dropNotes(0.75)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -319,17 +286,13 @@ end
 function test.lock_snap_drag_column_undo_redo(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = true
-	editorModel.noteManager.columnOver = 1
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 1
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:grabNotes("head", 0.25)
-	editorModel.noteManager.columnOver = 4
-	editorModel.noteManager:update()
-	editorModel.noteManager:dropNotes(0.25)
+	editorModel.noteService:grabNotes("head", 0.25)
+	editorModel.noteService.columnService.columnOver = 4
+	editorModel.noteService:update()
+	editorModel.noteService:dropNotes(0.25)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 1)
@@ -353,15 +316,11 @@ end
 function test.drag_long_head_undo_redo(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:grabNotes("head", 0.25)
-	editorModel.noteManager:dropNotes(0)
+	editorModel.noteService:grabNotes("head", 0.25)
+	editorModel.noteService:dropNotes(0)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -385,15 +344,11 @@ end
 function test.drag_long_head_to_tail_keeps_length(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:grabNotes("head", 0.25)
-	editorModel.noteManager:dropNotes(0.5)
+	editorModel.noteService:grabNotes("head", 0.25)
+	editorModel.noteService:dropNotes(0.5)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -405,15 +360,11 @@ end
 function test.drag_long_body_preserves_duration(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:grabNotes("body", 0.25)
-	editorModel.noteManager:dropNotes(0.5)
+	editorModel.noteService:grabNotes("body", 0.25)
+	editorModel.noteService:dropNotes(0.5)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -432,15 +383,11 @@ end
 function test.drag_long_tail_to_head_keeps_length(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:grabNotes("tail", 0.5)
-	editorModel.noteManager:dropNotes(0.25)
+	editorModel.noteService:grabNotes("tail", 0.5)
+	editorModel.noteService:dropNotes(0.25)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -452,17 +399,13 @@ end
 function test.drag_long_body_changes_column(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:grabNotes("body", 0.25)
-	editorModel.noteManager.columnOver = 3
-	editorModel.noteManager:update()
-	editorModel.noteManager:dropNotes(0.5)
+	editorModel.noteService:grabNotes("body", 0.25)
+	editorModel.noteService.columnService.columnOver = 3
+	editorModel.noteService:update()
+	editorModel.noteService:dropNotes(0.5)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -484,24 +427,22 @@ end
 function test.drag_selected_long_notes_body_undo_redo(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
+	editorModel.noteService.columnService.columnOver = 2
 
-	local note1 = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	local note2 = editorModel.noteManager:newNote("hold", 0.75, "key3")
-	---@cast note1 -?
-	---@cast note2 -?
-	editorModel.noteManager:_addNotes(note1:getNotes())
-	editorModel.noteManager:_addNotes(note2:getNotes())
+	local note1 = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
+	local note2 = EditorTestFactory.createNote(editorModel, "hold", 0.75, "key3")
+	editorModel.noteService.commandService:addNotes(note1:getNotes())
+	editorModel.noteService.commandService:addNotes(note2:getNotes())
 	editorModel.editorChanges:next()
 	editorModel.visualEngine.selectedNotes = {
 		[note1.startNote] = note1,
 		[note2.startNote] = note2,
 	}
 
-	editorModel.noteManager:grabNotes("body", 0.25)
-	editorModel.noteManager.columnOver = 3
-	editorModel.noteManager:update()
-	editorModel.noteManager:dropNotes(0.5)
+	editorModel.noteService:grabNotes("body", 0.25)
+	editorModel.noteService.columnService.columnOver = 3
+	editorModel.noteService:update()
+	editorModel.noteService:dropNotes(0.5)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 4)
@@ -545,16 +486,13 @@ end
 function test.drag_long_note_keeps_selection_on_cloned_start(t)
 	local editorModel = createEditorModel()
 	editorModel.settings.lockSnap = false
-	editorModel.noteManager.columnOver = 2
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
+	editorModel.noteService.columnService.columnOver = 2
+	local note = EditorTestFactory.addCommittedNote(editorModel, "hold", 0.25, "key2")
 	local originalStartNote = note.startNote
 	selectNote(editorModel, note)
 
-	editorModel.noteManager:grabNotes("body", 0.25)
-	editorModel.noteManager:dropNotes(0.5)
+	editorModel.noteService:grabNotes("body", 0.25)
+	editorModel.noteService:dropNotes(0.5)
 
 	t:eq(editorModel.visualEngine.selectedNotes[originalStartNote], nil)
 	t:eq(editorModel.visualEngine.selectedNotes[note.startNote], note)
@@ -562,48 +500,11 @@ function test.drag_long_note_keeps_selection_on_cloned_start(t)
 end
 
 ---@param t testing.T
-function test.mixed_note_transaction_undo_redo(t)
-	local editorModel = createEditorModel()
-	local noteToRemove = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	local noteToAdd = editorModel.noteManager:newNote("tap", 0.75, "key2")
-	---@cast noteToRemove -?
-	---@cast noteToAdd -?
-	editorModel.noteManager:_addNotes(noteToRemove:getNotes())
-	editorModel.editorChanges:next()
-
-	editorModel.editorChanges:reset()
-	editorModel.noteManager:getNoteOps():removeNotes(noteToRemove:getNotes())
-	editorModel.noteManager:getNoteOps():addNotes(noteToAdd:getNotes())
-	editorModel.editorChanges:next()
-
-	local notes = getNotes(editorModel)
-	t:eq(#notes, 1)
-	t:eq(notes[1]:getTime(), 0.75)
-	t:eq(notes[1].column, "key2")
-
-	editorModel.editorChanges:undo()
-	notes = getNotes(editorModel)
-	t:eq(#notes, 1)
-	t:eq(notes[1]:getTime(), 0.25)
-	t:eq(notes[1].column, "key1")
-
-	editorModel.editorChanges:redo()
-	notes = getNotes(editorModel)
-	t:eq(#notes, 1)
-	t:eq(notes[1]:getTime(), 0.75)
-	t:eq(notes[1].column, "key2")
-end
-
----@param t testing.T
 function test.delete_undo_clears_selection_state(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager:deleteNotes()
+	editorModel.noteService:deleteNotes()
 	t:eq(editorModel.visualEngine.selectedNotes[note.startNote], nil)
 
 	editorModel.editorChanges:undo()
@@ -615,13 +516,9 @@ end
 ---@param t testing.T
 function test.cut_clears_stale_selection_and_undo_restores_notes(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addCommittedSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:copyNotes(true)
+	editorModel.noteService:copyNotes(true)
 
 	t:eq(#getNotes(editorModel), 0)
 	t:eq(editorModel.visualEngine.selectedNotes[note.startNote], nil)
@@ -637,14 +534,11 @@ end
 ---@param t testing.T
 function test.paste_does_not_select_pasted_notes(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	selectNote(editorModel, note)
+	local note = EditorTestFactory.addSelectedNote(editorModel, "hold", 0.25, "key2")
 
-	editorModel.noteManager:copyNotes()
+	editorModel.noteService:copyNotes()
 	editorModel:setSessionTime(0.75)
-	editorModel.noteManager:pasteNotes()
+	editorModel.noteService:pasteNotes()
 
 	t:eq(#getNotes(editorModel), 4)
 	t:eq(next(editorModel.visualEngine.selectedNotes), note.startNote)

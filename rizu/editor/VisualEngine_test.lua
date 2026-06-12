@@ -27,9 +27,7 @@ end
 ---@param editorModel rizu.editor.EditorModel
 ---@return rizu.editor.EditorNote
 local function addShortNote(editorModel)
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
+	local note = EditorTestFactory.addNote(editorModel, "tap", 0.25, "key1")
 	editorModel.visualEngine:update()
 	return editorModel.visualEngine.notes[1]
 end

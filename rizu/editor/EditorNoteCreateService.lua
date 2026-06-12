@@ -1,22 +1,28 @@
 local class = require("class")
 local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
 
----@class rizu.editor.NoteCreator
----@operator call: rizu.editor.NoteCreator
----@field noteManager rizu.editor.NoteManager
-local NoteCreator = class()
+---@class rizu.editor.EditorNoteCreateService
+---@operator call: rizu.editor.EditorNoteCreateService
+---@field editorModel rizu.editor.EditorModel
+---@field dragService rizu.editor.EditorNoteDragService
+local EditorNoteCreateService = class()
 
----@param noteManager rizu.editor.NoteManager
-function NoteCreator:new(noteManager)
-	self.noteManager = noteManager
+---@param dragService rizu.editor.EditorNoteDragService
+function EditorNoteCreateService:new(dragService)
+	self.dragService = dragService
+end
+
+---@param editorModel rizu.editor.EditorModel
+function EditorNoteCreateService:setEditorModel(editorModel)
+	self.editorModel = editorModel
 end
 
 ---@param noteType string
 ---@param absoluteTime number
 ---@param column string
 ---@return rizu.editor.EditorNote?
-function NoteCreator:newNote(noteType, absoluteTime, column)
-	local editorModel = self.noteManager.editorModel
+function EditorNoteCreateService:newNote(noteType, absoluteTime, column)
+	local editorModel = self.editorModel
 	local note = EditorNoteFactory:newNote_t(noteType, editorModel.visualEngine.visual_info)
 	if not note then
 		return
@@ -29,9 +35,8 @@ end
 
 ---@param absoluteTime number
 ---@param column string
-function NoteCreator:addNote(absoluteTime, column)
-	local noteManager = self.noteManager
-	local editorModel = noteManager.editorModel
+function EditorNoteCreateService:addNote(absoluteTime, column)
+	local editorModel = self.editorModel
 	local editor = editorModel:getSettings()
 	editorModel.visualEngine:selectNote()
 
@@ -48,9 +53,9 @@ function NoteCreator:addNote(absoluteTime, column)
 
 	editorModel.visualEngine:selectNote(note)
 	if editor.tool == "ShortNote" then
-		noteManager.dragSession:grabNew(note, "head", editorModel:getMouseTime())
+		self.dragService:grabNew(note, "head", editorModel:getMouseTime())
 	elseif editor.tool == "LongNote" then
-		noteManager.dragSession:grabNew(
+		self.dragService:grabNew(
 			note,
 			"tail",
 			editorModel:getMouseTime() +
@@ -60,4 +65,4 @@ function NoteCreator:addNote(absoluteTime, column)
 	end
 end
 
-return NoteCreator
+return EditorNoteCreateService

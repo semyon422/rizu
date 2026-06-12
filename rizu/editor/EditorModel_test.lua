@@ -38,7 +38,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		graphsGenerator = {},
 		editorChanges = {},
 		timer = timer,
-		noteManager = {},
+		noteService = {},
 		visualEngine = {},
 		scroller = {},
 		metronome = {},
@@ -102,7 +102,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		graphsGenerator = managers.graphsGenerator,
 		editorChanges = managers.editorChanges,
 		timer = managers.timer,
-		noteManager = managers.noteManager,
+		noteService = managers.noteService,
 		visualEngine = managers.visualEngine,
 		scroller = managers.scroller,
 		metronome = managers.metronome,
@@ -124,14 +124,14 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 
 	t:eq(editorModel.configModel, configModel)
 	t:eq(editorModel.resourceModel, resourceModel)
-	t:eq(editorModel.noteManager, managers.noteManager)
+	t:eq(editorModel.noteService, managers.noteService)
 	t:eq(editorModel.visualEngine, managers.visualEngine)
 	t:eq(managers.noteChartLoader.editorModel, editorModel)
 	t:eq(managers.ncbtContext.editorModel, editorModel)
 	t:eq(managers.intervalManager.editorModel, editorModel)
 	t:eq(managers.graphsGenerator.editorModel, editorModel)
 	t:eq(managers.editorChanges.editorModel, editorModel)
-	t:eq(managers.noteManager.editorModel, editorModel)
+	t:eq(managers.noteService.editorModel, editorModel)
 	t:eq(managers.visualEngine.editorModel, editorModel)
 	t:eq(managers.scroller.editorModel, editorModel)
 	t:eq(managers.metronome.editorModel, editorModel)
@@ -285,7 +285,7 @@ function test.update_order(t)
 				return 0.5
 			end,
 		},
-		noteManager = {
+		noteService = {
 			update = function()
 				table.insert(calls, "notes")
 			end,

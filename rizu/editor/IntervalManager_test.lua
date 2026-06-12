@@ -41,9 +41,7 @@ end
 ---@param start_time number
 ---@return rizu.editor.LongEditorNote
 local function addLongNote(editorModel, start_time)
-	local note = editorModel.noteManager:newNote("hold", start_time, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
+	local note = EditorTestFactory.addNote(editorModel, "hold", start_time, "key1")
 	return note
 end
 
@@ -195,9 +193,7 @@ function test.update_shrink_undo_restores_removed_notes(t)
 	intervalManager:update(vertex, 3)
 	editorModel.editorChanges:reset()
 
-	local note = editorModel.noteManager:newNote("tap", 0.75, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
+	local note = EditorTestFactory.addNote(editorModel, "tap", 0.75, "key1")
 	editorModel.editorChanges:reset()
 
 	intervalManager:update(vertex, 1)

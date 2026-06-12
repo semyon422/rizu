@@ -16,7 +16,7 @@ local EditorActionService = class()
 function EditorActionService:handleHotkeys(context)
 	local editorController = context.editorController
 	local editorModel = context.editorModel
-	local noteManager = editorModel.noteManager
+	local noteService = editorModel.noteService
 	local notificationModel = context.notificationModel
 	local keypressed = context.keypressed
 
@@ -25,16 +25,16 @@ function EditorActionService:handleHotkeys(context)
 			editorController:save()
 			notificationModel:notify("saved")
 		elseif keypressed("c") then
-			noteManager:copyNotes()
-			notificationModel:notify("copy " .. #noteManager.copiedNotes .. " notes")
+			noteService:copyNotes()
+			notificationModel:notify("copy " .. #noteService:getCopiedNotes() .. " notes")
 		elseif keypressed("x") then
-			noteManager:copyNotes(true)
-			notificationModel:notify("cut " .. #noteManager.copiedNotes .. " notes")
+			noteService:copyNotes(true)
+			notificationModel:notify("cut " .. #noteService:getCopiedNotes() .. " notes")
 		elseif keypressed("v") then
-			noteManager:pasteNotes()
-			notificationModel:notify("paste " .. #noteManager.copiedNotes .. " notes")
+			noteService:pasteNotes()
+			notificationModel:notify("paste " .. #noteService:getCopiedNotes() .. " notes")
 		elseif keypressed("h") then
-			noteManager:flipNotes()
+			noteService:flipNotes()
 			notificationModel:notify("flip")
 		elseif keypressed("z") then
 			editorModel:undo()
@@ -46,7 +46,7 @@ function EditorActionService:handleHotkeys(context)
 	end
 
 	if keypressed("delete") then
-		local deleted = noteManager:deleteNotes()
+		local deleted = noteService:deleteNotes()
 		notificationModel:notify("delete " .. deleted .. " notes")
 	end
 end

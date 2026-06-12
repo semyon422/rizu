@@ -9,8 +9,7 @@ local getNotes = EditorTestFactory.getNotes
 function test.new_note(t)
 	local editorModel = createEditorModel()
 
-	local note = editorModel.noteManager.creator:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = editorModel.noteService.createService:newNote("tap", 0.25, "key1")
 
 	t:eq(note.startNote.column, "key1")
 	t:eq(note.startNote.type, "tap")
@@ -23,14 +22,14 @@ function test.add_note_commits_on_drop(t)
 	editorModel.settings.tool = "ShortNote"
 	editorModel.settings.lockSnap = false
 	editorModel.mouseTime = 0.25
-	editorModel.noteManager.columnOver = 1
+	editorModel.noteService.columnService.columnOver = 1
 
-	editorModel.noteManager.creator:addNote(0.25, "key1")
+	editorModel.noteService.createService:addNote(0.25, "key1")
 
 	t:eq(#getNotes(editorModel), 0)
-	t:eq(#editorModel.noteManager.grabbedNotes, 1)
+	t:eq(#editorModel.noteService.dragService.grabbedNotes, 1)
 
-	editorModel.noteManager:dropNotes(0.75)
+	editorModel.noteService:dropNotes(0.75)
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 1)

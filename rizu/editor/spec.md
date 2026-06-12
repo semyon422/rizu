@@ -95,8 +95,27 @@ Maintains the pool of visible `EditorNote` wrappers. Each frame it iterates link
 
 Selection state is keyed by the note's current `startNote`. Drag operations that clone notes must update selection keys to avoid stale selected notes after visual refresh.
 
-### `NoteManager` — Note Manipulation
-Handles adding, removing, copying, pasting, flipping, and grab/drag operations on notes. All mutations are recorded through `EditorChanges` for undo/redo support.
+### `EditorNoteService` — Note Manipulation
+Facade for note manipulation commands and composition root for focused note services. Code should require `rizu.editor.EditorNoteService` directly.
+
+`EditorNoteCreateService` owns editor-note construction and add-note tool behavior. It creates the correct editor note class through `EditorNoteFactory`, initializes editor/visual links, selects newly-created notes, and hands them to `EditorNoteDragService` for immediate drag placement. Test setup and service code that need a raw editor note should call `createService:newNote(...)` directly; `EditorNoteService` only exposes the user-facing `addNote(...)` command.
+
+`EditorNoteColumnService` owns editor column lookup for note creation and dragging. Tests may set `columnService.columnOver` to force a deterministic hovered column; runtime lookups derive the column from the mouse position and active note skin.
+
+`EditorClipboardService` owns copy, cut, and paste behavior. It keeps copied editor notes, chooses the earliest copied point as the paste origin, and records cut/paste undo boundaries through `EditorChanges`.
+
+`EditorNoteDragService` owns note drag lifecycle state and behavior: grabbing existing or newly-created notes, updating unlocked-snap drags, preserving column deltas, dropping notes back into the chart, and restoring selected-note keys.
+
+`EditorNoteCommandService` owns command-level note mutations: direct note insertion/removal, delete selected, remove one note with undo boundary, change selected note type, and flip selected notes. It wraps `EditorNoteOps` and owns undo/redo boundaries around those commands. New code should call it directly for mutation setup instead of adding private `EditorNoteService` wrappers.
+
+`EditorNoteService` is a small UI-facing facade and service composition root. It should not expose low-level `EditorNoteOps` or raw note construction helpers, and it should not mirror collaborator state. Use `getGrabbedNotes()` and `getCopiedNotes()` when UI code needs transient drag or clipboard state.
+
+Note services should receive explicit dependencies from `EditorNoteService` instead of keeping a service-root back-reference. `EditorNoteService:setEditorModel(editorModel)` attaches the model to each service after `EditorModel` has been constructed.
+
+All mutations are recorded through `EditorChanges` for undo/redo support.
+
+Editor tests should use `EditorTestFactory` note helpers for common setup:
+`createNote()` for a raw editor note, `addNote()` for chart insertion, `addCommittedNote()` when undo history needs an initial boundary, and `addSelectedNote()` / `addCommittedSelectedNote()` for selected-note command setup. Spell out lower-level `commandService:addNotes(...)` calls only when the test is explicitly covering duplicate insertion, multi-note setup, or low-level note ops.
 
 ### `IntervalManager` — Timing Vertex Manipulation
 Split, merge, grab, and drop timing vertices on the interval timeline. Delegates to the `ncdk` layer system for the actual vertex data.
@@ -106,7 +125,7 @@ Shrinking an interval can remove chartedit points and the visual points/notes an
 ### `Scroller` — Timeline Navigation
 Scroll by seconds or snap grid units. Respects vertex boundaries and the current snap resolution.
 
-Session point writes go through `EditorModel:setSessionPoint()` so timeline state updates have one owner.
+Cursor writes go through `EditorModel:setSessionPoint()` so timeline state updates have one owner.
 
 ### `GraphsGenerator` — Scrollbar Visualization
 Generates a note density graph and a vertex graph for the scrollbar UI.

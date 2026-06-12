@@ -7,8 +7,7 @@ local createEditorModel = EditorTestFactory.createEditorModel
 ---@param t testing.T
 function test.create(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
 	t:eq(note.startNote.type, "hold")
 	t:eq(note.endNote.type, "hold")
@@ -25,8 +24,7 @@ end
 ---@param t testing.T
 function test.copy_paste(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 	local copyPoint = note.startNote.visualPoint.point
 	local pastePoint = editorModel:getDtpAbsolute(0.75)
 
@@ -50,8 +48,7 @@ function test.copy_paste_preserves_duration_after_timing_change(t)
 	local vertex = editorModel.layer.points:getFirstPoint()._vertex
 	editorModel.intervalManager:update(vertex, 3)
 
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 	local copyPoint = note.startNote.visualPoint.point
 	local pastePoint = editorModel:getDtpAbsolute(0.5)
 	local duration = note.endNote:getTime() - note.startNote:getTime()
@@ -66,8 +63,7 @@ end
 ---@param t testing.T
 function test.grab_head_drop(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 	local originalStartNote = note.startNote
 	local originalEndNote = note.endNote
 
@@ -84,8 +80,7 @@ end
 ---@param t testing.T
 function test.grab_tail_drop(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
 	note:grab(0.5, "tail", 0, false)
 	note:drop(0.75)
@@ -97,8 +92,7 @@ end
 ---@param t testing.T
 function test.grab_body_drop_preserves_duration(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
 	note:grab(0.25, "body", 0, false)
 	note:drop(0.5)
@@ -110,8 +104,7 @@ end
 ---@param t testing.T
 function test.grab_body_from_middle_preserves_cursor_offset(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
 	note:grab(0.375, "body", 0, false)
 	note:drop(0.625)
@@ -123,8 +116,7 @@ end
 ---@param t testing.T
 function test.head_to_tail_keeps_length(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
 	note:grab(0.25, "head", 0, false)
 	note:drop(0.5)
@@ -136,8 +128,7 @@ end
 ---@param t testing.T
 function test.tail_to_head_keeps_length(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 
 	note:grab(0.5, "tail", 0, false)
 	note:drop(0.25)
@@ -149,8 +140,7 @@ end
 ---@param t testing.T
 function test.lock_snap_grab_clones(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("hold", 0.25, "key2")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "hold", 0.25, "key2")
 	local originalStartNote = note.startNote
 	local originalEndNote = note.endNote
 

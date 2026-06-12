@@ -4,10 +4,12 @@ local test = {}
 
 local function createContext(pressed)
 	local calls = {}
-	local noteManager = {
-		copiedNotes = {"a", "b"},
+	local noteService = {
 		copyNotes = function(_, cut)
 			table.insert(calls, cut and "cut" or "copy")
+		end,
+		getCopiedNotes = function()
+			return {"a", "b"}
 		end,
 		pasteNotes = function()
 			table.insert(calls, "paste")
@@ -27,7 +29,7 @@ local function createContext(pressed)
 			end,
 		},
 		editorModel = {
-			noteManager = noteManager,
+			noteService = noteService,
 			isEditorCommandRequested = function()
 				return pressed.command == true
 			end,

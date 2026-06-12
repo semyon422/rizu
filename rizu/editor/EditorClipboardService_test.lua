@@ -4,19 +4,15 @@ local test = {}
 
 local createEditorModel = EditorTestFactory.createEditorModel
 local getNotes = EditorTestFactory.getNotes
-local selectNote = EditorTestFactory.selectNote
 
 ---@param t testing.T
 function test.copy_paste(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	selectNote(editorModel, note)
+	EditorTestFactory.addSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager.clipboard:copy()
+	editorModel.noteService.clipboardService:copy()
 	editorModel:setSessionTime(0.75)
-	editorModel.noteManager.clipboard:paste()
+	editorModel.noteService.clipboardService:paste()
 
 	local notes = getNotes(editorModel)
 	t:eq(#notes, 2)
@@ -27,16 +23,12 @@ end
 ---@param t testing.T
 function test.cut_undo(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
-	editorModel.noteManager:_addNotes(note:getNotes())
-	editorModel.editorChanges:next()
-	selectNote(editorModel, note)
+	EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	editorModel.noteManager.clipboard:copy(true)
+	editorModel.noteService.clipboardService:copy(true)
 
 	t:eq(#getNotes(editorModel), 0)
-	t:eq(#editorModel.noteManager.clipboard.copiedNotes, 1)
+	t:eq(#editorModel.noteService.clipboardService.copiedNotes, 1)
 
 	editorModel.editorChanges:undo()
 	t:eq(#getNotes(editorModel), 1)

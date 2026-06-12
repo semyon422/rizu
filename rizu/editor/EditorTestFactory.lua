@@ -2,7 +2,7 @@ local EditorChanges = require("rizu.editor.EditorChanges")
 local IntervalManager = require("rizu.editor.IntervalManager")
 local Layer = require("chart.chartedit.Layer")
 local Notes = require("chart.chartedit.Notes")
-local NoteManager = require("rizu.editor.NoteManager")
+local EditorNoteService = require("rizu.editor.EditorNoteService")
 local Point = require("chart.chartedit.Point")
 local Scroller = require("rizu.editor.Scroller")
 local Visual = require("chart.chartedit.Visual")
@@ -36,7 +36,7 @@ function EditorTestFactory.createEditorModel()
 
 	local editorChanges = EditorChanges()
 	local intervalManager = IntervalManager()
-	local noteManager = NoteManager()
+	local noteService = EditorNoteService()
 	local scroller = Scroller()
 	local point = layer.points:getFirstPoint():clone(Point())
 	local noteSkin = EditorTestFactory.createNoteSkin()
@@ -48,7 +48,7 @@ function EditorTestFactory.createEditorModel()
 		notes = notes,
 		editorChanges = editorChanges,
 		intervalManager = intervalManager,
-		noteManager = noteManager,
+		noteService = noteService,
 		scroller = scroller,
 		point = point,
 		noteSkin = noteSkin,
@@ -126,7 +126,7 @@ function EditorTestFactory.createEditorModel()
 
 	editorChanges.editorModel = editorModel
 	intervalManager.editorModel = editorModel
-	noteManager.editorModel = editorModel
+	noteService:setEditorModel(editorModel)
 	scroller.editorModel = editorModel
 
 	return editorModel
@@ -144,6 +144,59 @@ function EditorTestFactory.selectNote(editorModel, note)
 	editorModel.visualEngine.selectedNotes = {
 		[note.startNote] = note,
 	}
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@param noteType string
+---@param absoluteTime number
+---@param column string
+---@return rizu.editor.EditorNote
+function EditorTestFactory.createNote(editorModel, noteType, absoluteTime, column)
+	return assert(editorModel.noteService.createService:newNote(noteType, absoluteTime, column))
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@param noteType string
+---@param absoluteTime number
+---@param column string
+---@return rizu.editor.EditorNote
+function EditorTestFactory.addNote(editorModel, noteType, absoluteTime, column)
+	local note = EditorTestFactory.createNote(editorModel, noteType, absoluteTime, column)
+	editorModel.noteService.commandService:addNotes(note:getNotes())
+	return note
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@param noteType string
+---@param absoluteTime number
+---@param column string
+---@return rizu.editor.EditorNote
+function EditorTestFactory.addCommittedNote(editorModel, noteType, absoluteTime, column)
+	local note = EditorTestFactory.addNote(editorModel, noteType, absoluteTime, column)
+	editorModel.editorChanges:next()
+	return note
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@param noteType string
+---@param absoluteTime number
+---@param column string
+---@return rizu.editor.EditorNote
+function EditorTestFactory.addSelectedNote(editorModel, noteType, absoluteTime, column)
+	local note = EditorTestFactory.addNote(editorModel, noteType, absoluteTime, column)
+	EditorTestFactory.selectNote(editorModel, note)
+	return note
+end
+
+---@param editorModel rizu.editor.EditorModel
+---@param noteType string
+---@param absoluteTime number
+---@param column string
+---@return rizu.editor.EditorNote
+function EditorTestFactory.addCommittedSelectedNote(editorModel, noteType, absoluteTime, column)
+	local note = EditorTestFactory.addCommittedNote(editorModel, noteType, absoluteTime, column)
+	EditorTestFactory.selectNote(editorModel, note)
+	return note
 end
 
 return EditorTestFactory

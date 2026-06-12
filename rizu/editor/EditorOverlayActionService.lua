@@ -23,7 +23,7 @@ end
 
 ---@param editorModel rizu.editor.EditorModel
 function EditorOverlayActionService:changeSelectedNoteType(editorModel)
-	editorModel.noteManager:changeType()
+	editorModel.noteService:changeType()
 end
 
 ---@param editorModel rizu.editor.EditorModel

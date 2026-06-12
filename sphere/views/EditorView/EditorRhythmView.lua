@@ -9,7 +9,7 @@ local EditorRhythmView = RhythmView + {}
 ---@param note sphere.GraphicalNote
 function EditorRhythmView:processNote(note)
 	local editorModel = self.game.editorModel
-	local noteManager = editorModel.noteManager
+	local noteService = editorModel.noteService
 	local visualEngine = editorModel.visualEngine
 
 	local mouseTime = editorModel:getMouseTime()
@@ -18,9 +18,9 @@ function EditorRhythmView:processNote(note)
 		if over then
 			if just.mousepressed(1) then
 				visualEngine:selectNote(note)
-				noteManager:grabNotes("body", mouseTime)
+				noteService:grabNotes("body", mouseTime)
 			elseif just.mousepressed(2) then
-				noteManager:removeNote(note)
+				noteService:removeNote(note)
 			end
 		end
 	elseif note.noteType == "LongNote" then
@@ -30,24 +30,24 @@ function EditorRhythmView:processNote(note)
 		if just.mousepressed(1) then
 			if bodyOver then
 				visualEngine:selectNote(note)
-				noteManager:grabNotes("body", mouseTime)
+				noteService:grabNotes("body", mouseTime)
 			elseif headOver then
 				visualEngine:selectNote(note)
-				noteManager:grabNotes("head", mouseTime)
+				noteService:grabNotes("head", mouseTime)
 			elseif tailOver then
 				visualEngine:selectNote(note)
-				noteManager:grabNotes("tail", mouseTime)
+				noteService:grabNotes("tail", mouseTime)
 			end
 		end
 		if (bodyOver or headOver or tailOver) and just.mousepressed(2) then
-			noteManager:removeNote(note)
+			noteService:removeNote(note)
 		end
 	end
 end
 
 function EditorRhythmView:draw()
 	local editorModel = self.game.editorModel
-	local noteManager = editorModel.noteManager
+	local noteService = editorModel.noteService
 	local layer = editorModel.layer
 	local noteSkin = self.game.noteSkinModel.noteSkin
 	local editor = self.game.configModel.configs.settings.editor
@@ -70,7 +70,7 @@ function EditorRhythmView:draw()
 				over = just.mouse_over("add note" .. i, over, "mouse")
 				if over and just.mousepressed(1) then
 					local t = editorModel:getMouseTime(h / 2)
-					noteManager:addNote(t, "key" .. i)
+					noteService:addNote(t, "key" .. i)
 				end
 			end
 		elseif editor.tool == "Select" then
@@ -100,9 +100,9 @@ function EditorRhythmView:draw()
 		self:processNote(note)
 	end
 	if just.mousereleased(1) then
-		if next(editorModel.noteManager.grabbedNotes) then
+		if next(editorModel.noteService:getGrabbedNotes()) then
 			local t = editorModel:getMouseTime()
-			noteManager:dropNotes(t)
+			noteService:dropNotes(t)
 		end
 		if editorModel.session.selectRect then
 			editorModel:selectEnd()
@@ -116,7 +116,7 @@ function EditorRhythmView:processNotes(f)
 	for _, note in ipairs(editorModel.visualEngine.notes) do
 		f(self, note)
 	end
-	for _, note in ipairs(editorModel.noteManager.grabbedNotes) do
+	for _, note in ipairs(editorModel.noteService:getGrabbedNotes()) do
 		f(self, note)
 	end
 end

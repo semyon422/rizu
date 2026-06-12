@@ -7,8 +7,7 @@ local createEditorModel = EditorTestFactory.createEditorModel
 ---@param t testing.T
 function test.create(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 
 	t:eq(note.startNote.type, "tap")
 	t:eq(note.startNote.column, "key1")
@@ -20,8 +19,7 @@ end
 ---@param t testing.T
 function test.copy_paste(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 	local copyPoint = note.startNote.visualPoint.point
 	local pastePoint = editorModel:getDtpAbsolute(0.75)
 
@@ -36,8 +34,7 @@ end
 ---@param t testing.T
 function test.grab_drop(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 	local originalStartNote = note.startNote
 
 	note:grab(0.25, "head", 0, false)
@@ -51,8 +48,7 @@ end
 ---@param t testing.T
 function test.lock_snap_grab_clones(t)
 	local editorModel = createEditorModel()
-	local note = editorModel.noteManager:newNote("tap", 0.25, "key1")
-	---@cast note -?
+	local note = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 	local originalStartNote = note.startNote
 
 	note:grab(0.25, "head", 0, true)

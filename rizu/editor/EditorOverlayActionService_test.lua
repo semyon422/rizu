@@ -19,7 +19,7 @@ function test.ui_action_methods_update_editor_state(t)
 			return 12.5
 		end,
 		viewState = EditorViewState(),
-		noteManager = {
+		noteService = {
 			changeType = function()
 				table.insert(calls, "change-type")
 			end,
