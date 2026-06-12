@@ -11,6 +11,7 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	local intervalContext = {}
 	local editorChangesContext = {}
 	local noteChartLoaderContext = {}
+	local visualEngineContext = {}
 	local metronomeContext = {}
 	local editorModel = {
 		createNoteChartLoaderContext = function()
@@ -24,6 +25,9 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 		end,
 		createEditorChangesContext = function()
 			return editorChangesContext
+		end,
+		createVisualEngineContext = function()
+			return visualEngineContext
 		end,
 		createMetronomeContext = function()
 			return metronomeContext
@@ -67,7 +71,8 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(deps.editorChanges.editorModel, nil)
 	t:eq(deps.noteService.editorModel, editorModel)
 	t:eq(deps.noteService.attachedWithMethod, true)
-	t:eq(deps.visualEngine.editorModel, editorModel)
+	t:eq(deps.visualEngine.context, visualEngineContext)
+	t:eq(deps.visualEngine.editorModel, nil)
 	t:eq(deps.scroller.context, scrollerContext)
 	t:eq(deps.metronome.context, metronomeContext)
 	t:eq(deps.bmsToolsContext.editorModel, nil)
@@ -138,6 +143,11 @@ function createDeps()
 			self.context = context
 		end,
 	}
+	local visualEngine = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
 	return {
 		noteChartLoader = noteChartLoader,
 		audio_engine = {},
@@ -147,7 +157,7 @@ function createDeps()
 		editorChanges = editorChanges,
 		timer = {},
 		noteService = noteService,
-		visualEngine = {},
+		visualEngine = visualEngine,
 		scroller = scroller,
 		metronome = metronome,
 		metadata = {},

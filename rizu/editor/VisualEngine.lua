@@ -3,10 +3,19 @@ local EditorSelection = require("rizu.editor.EditorSelection")
 local EditorNoteFactory = require("rizu.editor.EditorNoteFactory")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
 
+---@class rizu.editor.VisualEngineContext
+---@field getSessionTime fun(): number
+---@field getEditorSettings fun(): table
+---@field getVisualPoint fun(): chartedit.VisualPoint?
+---@field getVisual fun(): chartedit.Visual?
+---@field getNotes fun(): chartedit.Notes
+---@field getIterRange fun(): number, number
+---@field getEditorModel fun(): rizu.editor.EditorModel
+
 ---@class rizu.editor.VisualEngine
 ---@operator call: rizu.editor.VisualEngine
 ---@field selectedNotes {[chart.Note]: rizu.editor.EditorNote}
----@field editorModel rizu.editor.EditorModel
+---@field context rizu.editor.VisualEngineContext
 ---@field visual_info rizu.VisualInfo
 local VisualEngine = class()
 
@@ -15,6 +24,11 @@ function VisualEngine:new()
 	self.selection = EditorSelection()
 	self.selectedNotes = self.selection.notes
 	self.visual_info = VisualInfo()
+end
+
+---@param context rizu.editor.VisualEngineContext
+function VisualEngine:setContext(context)
+	self.context = context
 end
 
 function VisualEngine:reset()
@@ -30,7 +44,7 @@ VisualEngine.range = {-1, 1}
 
 ---@return number
 function VisualEngine:getCurrentTime()
-	return self.editorModel:getSessionTime()
+	return self.context.getSessionTime()
 end
 
 ---@return number
@@ -45,7 +59,7 @@ end
 
 ---@return number
 function VisualEngine:getVisualTimeRate()
-	local editor = self.editorModel.configModel.configs.settings.editor
+	local editor = self.context.getEditorSettings()
 	return editor.speed
 end
 
@@ -79,17 +93,17 @@ function VisualEngine:newNote(_note, column)
 	if not note then
 		return
 	end
-	note.editorModel = self.editorModel
+	note.editorModel = self.context.getEditorModel()
 	note.visualEngine = self
 	note.column = column
-	note.cvp = self.editorModel.visualPoint
-	note.visual = self.editorModel:getVisual()
+	note.cvp = self.context.getVisualPoint()
+	note.visual = self.context.getVisual()
 	return note
 end
 
 function VisualEngine:update()
-	local editorModel = self.editorModel
-	local editor = editorModel.configModel.configs.settings.editor
+	local context = self.context
+	local editor = context.getEditorSettings()
 
 	local visual_info = self.visual_info
 	visual_info.time = self:getCurrentTime()
@@ -102,14 +116,14 @@ function VisualEngine:update()
 	self.selection:updateVisible(self.notes)
 	for _, note in ipairs(self.notes) do
 		notesMap[note.startNote] = note
-		note.cvp = editorModel.visualPoint
-		note.visual = editorModel:getVisual()
+		note.cvp = context.getVisualPoint()
+		note.visual = context.getVisual()
 	end
 
 	local newNotes = {}
 	self.notes = newNotes
 
-	for _note, column in editorModel.notes:iterLinked(editorModel:getIterRange()) do
+	for _note, column in context.getNotes():iterLinked(context.getIterRange()) do
 		local startNote = _note.startNote
 		local note = notesMap[startNote] or
 			selectedNotes[startNote] or

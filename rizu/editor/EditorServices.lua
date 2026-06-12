@@ -151,7 +151,7 @@ function EditorServices:attachEditorModel(editorModel)
 	else
 		self.noteService.editorModel = editorModel
 	end
-	self.visualEngine.editorModel = editorModel
+	self.visualEngine:setContext(editorModel:createVisualEngineContext())
 	self.scroller:setContext(editorModel:createScrollerContext())
 	self.metronome:setContext(editorModel:createMetronomeContext())
 end

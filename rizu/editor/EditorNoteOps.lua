@@ -4,27 +4,38 @@ local LongEditorNote = require("rizu.editor.LongEditorNote")
 local Note = require("chart.model.notes.Note")
 local ShortEditorNote = require("rizu.editor.ShortEditorNote")
 
+---@class rizu.editor.EditorNoteOpsContext
+---@field notes chartedit.Notes
+---@field editorChanges rizu.editor.EditorChanges
+---@field getLayer fun(): chartedit.Layer
+---@field getVisual fun(): chartedit.Visual
+
 ---@class rizu.editor.EditorNoteOps
 ---@operator call: rizu.editor.EditorNoteOps
----@field editorModel rizu.editor.EditorModel
+---@field context rizu.editor.EditorNoteOpsContext
 local EditorNoteOps = class()
+
+---@param context rizu.editor.EditorNoteOpsContext
+function EditorNoteOps:setContext(context)
+	self.context = context
+end
 
 ---@param note chart.Note
 function EditorNoteOps:recordAdd(note)
-	local notes = self.editorModel.notes
-	self.editorModel.editorChanges:addNoteAdd(notes, note)
+	local context = self.context
+	context.editorChanges:addNoteAdd(context.notes, note)
 end
 
 ---@param note chart.Note
 function EditorNoteOps:recordRemove(note)
-	local notes = self.editorModel.notes
-	self.editorModel.editorChanges:addNoteRemove(notes, note)
+	local context = self.context
+	context.editorChanges:addNoteRemove(context.notes, note)
 end
 
 ---@param notes chart.Note[]
 ---@return boolean found
 function EditorNoteOps:hasAny(notes)
-	local noteStorage = self.editorModel.notes
+	local noteStorage = self.context.notes
 	for _, note in ipairs(notes) do
 		if noteStorage:findNote(note) then
 			return true
@@ -40,7 +51,7 @@ function EditorNoteOps:addNotes(notes)
 		return false
 	end
 
-	local noteStorage = self.editorModel.notes
+	local noteStorage = self.context.notes
 	for _, note in ipairs(notes) do
 		noteStorage:addNote(note)
 		self:recordAdd(note)
@@ -51,7 +62,7 @@ end
 
 ---@param notes chart.Note[]
 function EditorNoteOps:removeNotes(notes)
-	local noteStorage = self.editorModel.notes
+	local noteStorage = self.context.notes
 	for _, note in ipairs(notes) do
 		noteStorage:removeNote(note)
 		self:recordRemove(note)
@@ -61,8 +72,8 @@ end
 ---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
 ---@return number deleted
 function EditorNoteOps:deleteSelected(selectedNotes)
-	local editorModel = self.editorModel
-	editorModel.editorChanges:reset()
+	local editorChanges = self.context.editorChanges
+	editorChanges:reset()
 
 	local count = 0
 	for _, note in pairs(selectedNotes) do
@@ -71,7 +82,7 @@ function EditorNoteOps:deleteSelected(selectedNotes)
 		count = count + 1
 	end
 
-	editorModel.editorChanges:next()
+	editorChanges:next()
 	return count
 end
 
@@ -95,8 +106,8 @@ end
 ---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
 ---@param noteSkin table
 function EditorNoteOps:flipSelected(selectedNotes, noteSkin)
-	local editorModel = self.editorModel
-	editorModel.editorChanges:reset()
+	local editorChanges = self.context.editorChanges
+	editorChanges:reset()
 
 	local notes = {}
 	for _, note in pairs(selectedNotes) do
@@ -109,14 +120,14 @@ function EditorNoteOps:flipSelected(selectedNotes, noteSkin)
 		selectedNotes[flippedNote.startNote] = flippedNote
 	end
 
-	editorModel.editorChanges:next()
+	editorChanges:next()
 end
 
 ---@param note rizu.editor.EditorNote
 ---@param endNote chart.Note
 ---@param noteType chart.NoteType
 function EditorNoteOps:setLong(note, endNote, noteType)
-	local noteStorage = self.editorModel.notes
+	local noteStorage = self.context.notes
 	local startNote = note.startNote
 
 	startNote.type = noteType
@@ -139,7 +150,7 @@ end
 ---@param note rizu.editor.EditorNote
 ---@param endNote chart.Note
 function EditorNoteOps:setShort(note, endNote)
-	local noteStorage = self.editorModel.notes
+	local noteStorage = self.context.notes
 	local startNote = note.startNote
 
 	noteStorage:removeNote(endNote)
@@ -159,18 +170,19 @@ end
 ---@param note rizu.editor.EditorNote
 ---@param snap integer
 function EditorNoteOps:changeType(note, snap)
-	local editorModel = self.editorModel
+	local context = self.context
+	local editorChanges = context.editorChanges
 
 	if not note.endNote then
 		local startNote = note.startNote
 		local p = startNote.visualPoint.point
-		local endPoint = editorModel.layer.points:getPoint(p:add(Fraction(1, snap)))
-		local endNote = Note(editorModel:getVisual():getPoint(endPoint), note.column, "hold", -1)
+		local endPoint = context.getLayer().points:getPoint(p:add(Fraction(1, snap)))
+		local endNote = Note(context.getVisual():getPoint(endPoint), note.column, "hold", -1)
 
 		self:setLong(note, endNote, "hold")
-		editorModel.editorChanges:add(
-			editorModel.editorChanges:command(self, "setLong", note, endNote, "hold"),
-			editorModel.editorChanges:command(self, "setShort", note, endNote)
+		editorChanges:add(
+			editorChanges:command(self, "setLong", note, endNote, "hold"),
+			editorChanges:command(self, "setShort", note, endNote)
 		)
 		return
 	end
@@ -178,9 +190,9 @@ function EditorNoteOps:changeType(note, snap)
 	local endNote = note.endNote
 	local noteType = note.startNote.type
 	self:setShort(note, endNote)
-	editorModel.editorChanges:add(
-		editorModel.editorChanges:command(self, "setShort", note, endNote),
-		editorModel.editorChanges:command(self, "setLong", note, endNote, noteType)
+	editorChanges:add(
+		editorChanges:command(self, "setShort", note, endNote),
+		editorChanges:command(self, "setLong", note, endNote, noteType)
 	)
 end
 

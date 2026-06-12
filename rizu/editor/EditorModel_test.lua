@@ -55,6 +55,11 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 			self.context = context
 		end,
 	}
+	local visualEngine = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
 	local services = {
 		noteChartLoader = noteChartLoader,
 		audio_engine = {},
@@ -64,7 +69,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		editorChanges = editorChanges,
 		timer = timer,
 		noteService = {},
-		visualEngine = {},
+		visualEngine = visualEngine,
 		scroller = scroller,
 		metronome = metronome,
 		metadata = {},
@@ -161,7 +166,8 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(type(services.editorChanges.context.resetVisual), "function")
 	t:eq(services.editorChanges.editorModel, nil)
 	t:eq(services.noteService.editorModel, editorModel)
-	t:eq(services.visualEngine.editorModel, editorModel)
+	t:eq(type(services.visualEngine.context.getNotes), "function")
+	t:eq(services.visualEngine.editorModel, nil)
 	t:eq(type(services.scroller.context.getPoint), "function")
 	t:eq(type(services.metronome.context.getPoint), "function")
 	t:eq(services.bmsToolsContext.editorModel, nil)

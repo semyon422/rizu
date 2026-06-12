@@ -45,6 +45,8 @@ function test.mixed_ops_transaction_undo_redo(t)
 	local noteToRemove = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 	local noteToAdd = EditorTestFactory.createNote(editorModel, "tap", 0.75, "key2")
 	local noteOps = editorModel.noteService.commandService:getNoteOps()
+	t:eq(noteOps.context.notes, editorModel.notes)
+	t:eq(noteOps.context.editorChanges, editorModel.editorChanges)
 
 	noteOps:addNotes(noteToRemove:getNotes())
 	editorModel.editorChanges:next()

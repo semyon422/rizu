@@ -1,8 +1,15 @@
 local class = require("class")
 
+---@class rizu.editor.EditorNoteDragServiceContext
+---@field getNoteSkin fun(): table?
+---@field getSettings fun(): table
+---@field editorChanges rizu.editor.EditorChanges
+---@field getSelectedNotes fun(): {[chart.Note]: rizu.editor.EditorNote}
+---@field getMouseTime fun(): number
+
 ---@class rizu.editor.EditorNoteDragService
 ---@operator call: rizu.editor.EditorNoteDragService
----@field editorModel rizu.editor.EditorModel
+---@field context rizu.editor.EditorNoteDragServiceContext
 ---@field commandService rizu.editor.EditorNoteCommandService
 ---@field columnService rizu.editor.EditorNoteColumnService
 ---@field grabbedNotes rizu.editor.EditorNote[]
@@ -16,9 +23,28 @@ function EditorNoteDragService:new(commandService, columnService)
 	self.grabbedNotes = {}
 end
 
+---@param context rizu.editor.EditorNoteDragServiceContext
+function EditorNoteDragService:setContext(context)
+	self.context = context
+end
+
 ---@param editorModel rizu.editor.EditorModel
 function EditorNoteDragService:setEditorModel(editorModel)
-	self.editorModel = editorModel
+	self:setContext({
+		getNoteSkin = function()
+			return editorModel:getNoteSkin()
+		end,
+		getSettings = function()
+			return editorModel:getSettings()
+		end,
+		editorChanges = editorModel.editorChanges,
+		getSelectedNotes = function()
+			return editorModel.visualEngine.selectedNotes
+		end,
+		getMouseTime = function()
+			return editorModel:getMouseTime()
+		end,
+	})
 end
 
 function EditorNoteDragService:clear()
@@ -57,12 +83,12 @@ end
 ---@param part string
 ---@param mouseTime number
 function EditorNoteDragService:grabNew(note, part, mouseTime)
-	local editorModel = self.editorModel
-	local noteSkin = assert(editorModel:getNoteSkin())
-	local editor = editorModel:getSettings()
+	local context = self.context
+	local noteSkin = assert(context.getNoteSkin())
+	local editor = context.getSettings()
 
 	self:clear()
-	editorModel.editorChanges:reset()
+	context.editorChanges:reset()
 	local column = self.columnService:getColumnOver()
 	local deltaColumn = getColumnDelta(noteSkin, column, note)
 	if not deltaColumn then
@@ -71,17 +97,17 @@ function EditorNoteDragService:grabNew(note, part, mouseTime)
 
 	table.insert(self.grabbedNotes, note)
 	note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
-	editorModel.visualEngine.selectedNotes[note.startNote] = note
+	context.getSelectedNotes()[note.startNote] = note
 end
 
 function EditorNoteDragService:update()
-	local editorModel = self.editorModel
-	local editor = editorModel:getSettings()
-	local noteSkin = assert(editorModel:getNoteSkin())
+	local context = self.context
+	local editor = context.getSettings()
+	local noteSkin = assert(context.getNoteSkin())
 
 	for _, note in ipairs(self.grabbedNotes) do
 		note:update()
-		local time = editorModel:getMouseTime()
+		local time = context.getMouseTime()
 		if not editor.lockSnap then
 			note:updateGrabbed(time)
 		end
@@ -96,14 +122,14 @@ end
 ---@param part string
 ---@param mouseTime number
 function EditorNoteDragService:grab(part, mouseTime)
-	local editorModel = self.editorModel
-	local noteSkin = assert(editorModel:getNoteSkin())
-	local editor = editorModel:getSettings()
+	local context = self.context
+	local noteSkin = assert(context.getNoteSkin())
+	local editor = context.getSettings()
 
 	self:clear()
-	editorModel.editorChanges:reset()
+	context.editorChanges:reset()
 	local column = self.columnService:getColumnOver()
-	for _, note in ipairs(getSelectedNotes(editorModel.visualEngine.selectedNotes)) do
+	for _, note in ipairs(getSelectedNotes(context.getSelectedNotes())) do
 		local deltaColumn = getColumnDelta(noteSkin, column, note)
 		if deltaColumn then
 			table.insert(self.grabbedNotes, note)
@@ -115,18 +141,18 @@ end
 
 ---@param mouseTime number
 function EditorNoteDragService:drop(mouseTime)
-	local editorModel = self.editorModel
-	local editor = editorModel:getSettings()
+	local context = self.context
+	local editor = context.getSettings()
 
 	for _, note in ipairs(self.grabbedNotes) do
 		if not editor.lockSnap then
 			note:drop(mouseTime)
 		end
 		self.commandService:addNotes(note:getNotes())
-		editorModel.visualEngine.selectedNotes[note.startNote] = note
+		context.getSelectedNotes()[note.startNote] = note
 	end
 	self:clear()
-	editorModel.editorChanges:next()
+	context.editorChanges:next()
 end
 
 return EditorNoteDragService

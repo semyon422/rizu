@@ -159,6 +159,34 @@ function EditorTestFactory.createEditorChangesContext(editorModel)
 end
 
 ---@param editorModel rizu.editor.EditorModel
+---@return rizu.editor.VisualEngineContext
+function EditorTestFactory.createVisualEngineContext(editorModel)
+	return {
+		getSessionTime = function()
+			return editorModel:getSessionTime()
+		end,
+		getEditorSettings = function()
+			return editorModel.configModel.configs.settings.editor
+		end,
+		getVisualPoint = function()
+			return editorModel.visualPoint
+		end,
+		getVisual = function()
+			return editorModel:getVisual()
+		end,
+		getNotes = function()
+			return editorModel.notes
+		end,
+		getIterRange = function()
+			return editorModel:getIterRange()
+		end,
+		getEditorModel = function()
+			return editorModel
+		end,
+	}
+end
+
+---@param editorModel rizu.editor.EditorModel
 ---@return rizu.editor.IntervalManagerContext
 function EditorTestFactory.createIntervalManagerContext(editorModel)
 	return {

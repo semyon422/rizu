@@ -259,6 +259,33 @@ function EditorModel:createNoteChartLoaderContext()
 	}
 end
 
+---@return rizu.editor.VisualEngineContext
+function EditorModel:createVisualEngineContext()
+	return {
+		getSessionTime = function()
+			return self:getSessionTime()
+		end,
+		getEditorSettings = function()
+			return self.configModel.configs.settings.editor
+		end,
+		getVisualPoint = function()
+			return self.visualPoint
+		end,
+		getVisual = function()
+			return self:getVisual()
+		end,
+		getNotes = function()
+			return self.notes
+		end,
+		getIterRange = function()
+			return self:getIterRange()
+		end,
+		getEditorModel = function()
+			return self
+		end,
+	}
+end
+
 ---@return rizu.editor.MetronomeContext
 function EditorModel:createMetronomeContext()
 	return {

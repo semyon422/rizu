@@ -16,12 +16,17 @@ local function createContext()
 
 	local editorChanges = EditorChanges()
 	local editorModel = {
+		layer = layer,
+		visual = visual,
 		notes = Notes(),
 		editorChanges = editorChanges,
 		visualEngine = {
 			reset = function() end,
 		},
 	}
+	function editorModel:getVisual()
+		return self.visual
+	end
 	editorChanges:setContext({
 		resetVisual = function()
 			editorModel.visualEngine:reset()
@@ -29,7 +34,16 @@ local function createContext()
 	})
 
 	local ops = EditorNoteOps()
-	ops.editorModel = editorModel
+	ops:setContext({
+		notes = editorModel.notes,
+		editorChanges = editorModel.editorChanges,
+		getLayer = function()
+			return editorModel.layer
+		end,
+		getVisual = function()
+			return editorModel:getVisual()
+		end,
+	})
 
 	return ops, editorModel, note
 end

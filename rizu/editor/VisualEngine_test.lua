@@ -7,7 +7,6 @@ local test = {}
 local function createEditorModel()
 	local editorModel = EditorTestFactory.createEditorModel()
 	local visualEngine = VisualEngine()
-	visualEngine.editorModel = editorModel
 	editorModel.visualEngine = visualEngine
 	editorModel.configModel = {
 		configs = {
@@ -21,6 +20,7 @@ local function createEditorModel()
 	function editorModel:getIterRange()
 		return -math.huge, math.huge
 	end
+	visualEngine:setContext(EditorTestFactory.createVisualEngineContext(editorModel))
 	return editorModel
 end
 
