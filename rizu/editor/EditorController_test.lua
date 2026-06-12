@@ -1,7 +1,6 @@
 local EditorController = require("rizu.editor.EditorController")
 local EditorDropImport = require("rizu.editor.EditorDropImport")
 local FakeFilesystem = require("fs.FakeFilesystem")
-local ModifierModel = require("sphere.models.ModifierModel")
 
 local test = {}
 
@@ -262,13 +261,8 @@ end
 
 ---@param t testing.T
 function test.load_applies_modifiers_when_requested(t)
-	local oldApply = ModifierModel.apply
 	local appliedModifiers
 	local appliedChart
-	ModifierModel.apply = function(_, modifiers, chart)
-		appliedModifiers = modifiers
-		appliedChart = chart
-	end
 
 	local chart = {
 		inputMode = setmetatable({}, {
@@ -338,10 +332,15 @@ function test.load_applies_modifiers_when_requested(t)
 		isModifierApplyRequested = function()
 			return true
 		end,
+		modifierModel = {
+			apply = function(_, modifiers, loadedChart)
+				appliedModifiers = modifiers
+				appliedChart = loadedChart
+			end,
+		},
 	})
 
 	controller:load()
-	ModifierModel.apply = oldApply
 
 	t:eq(appliedModifiers, modifiers)
 	t:eq(appliedChart, chart)

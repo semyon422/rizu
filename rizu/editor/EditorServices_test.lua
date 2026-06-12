@@ -55,17 +55,21 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(editorModel.metadata, deps.metadata)
 	t:eq(editorModel.bmsToolsContext, deps.bmsToolsContext)
 	t:eq(editorModel.loadService, deps.loadService)
+	t:eq(editorModel.saveService, deps.saveService)
 	t:eq(editorModel.sessionResetService, deps.sessionResetService)
 	t:eq(editorModel.resourceLoadService, deps.resourceLoadService)
 	t:eq(editorModel.playbackService, deps.playbackService)
 	t:eq(editorModel.selectionService, deps.selectionService)
 	t:eq(editorModel.settingsService, deps.settingsService)
+	t:eq(editorModel.historyService, deps.historyService)
+	t:eq(editorModel.analysisService, deps.analysisService)
 	t:eq(editorModel.cursorState, deps.cursorState)
 	t:eq(editorModel.selectionState, deps.selectionState)
 	t:eq(editorModel.renderState, deps.renderState)
 	t:eq(editorModel.analysisState, deps.analysisState)
 	t:eq(editorModel.runtimeState, deps.runtimeState)
 	t:eq(editorModel.viewState, deps.viewState)
+	t:eq(editorModel.frameService, deps.frameService)
 	t:eq(deps.noteChartLoader.context, noteChartLoaderContext)
 	t:eq(deps.noteChartLoader.editorModel, nil)
 	t:eq(deps.ncbtContext.editorModel, nil)
@@ -84,17 +88,21 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(deps.timer.editorModel, nil)
 	t:eq(deps.metadata.editorModel, nil)
 	t:eq(deps.loadService.editorModel, nil)
+	t:eq(deps.saveService.editorModel, nil)
 	t:eq(deps.sessionResetService.editorModel, nil)
 	t:eq(deps.resourceLoadService.editorModel, nil)
 	t:eq(deps.playbackService.editorModel, nil)
 	t:eq(deps.selectionService.editorModel, nil)
 	t:eq(deps.settingsService.editorModel, nil)
+	t:eq(deps.historyService.editorModel, nil)
+	t:eq(deps.analysisService.editorModel, nil)
 	t:eq(deps.cursorState.editorModel, nil)
 	t:eq(deps.selectionState.editorModel, nil)
 	t:eq(deps.renderState.editorModel, nil)
 	t:eq(deps.analysisState.editorModel, nil)
 	t:eq(deps.runtimeState.editorModel, nil)
 	t:eq(deps.viewState.editorModel, nil)
+	t:eq(deps.frameService.editorModel, nil)
 end
 
 ---@param t testing.T
@@ -166,17 +174,21 @@ function createDeps()
 		metadata = {},
 		bmsToolsContext = {},
 		loadService = {},
+		saveService = {},
 		sessionResetService = {},
 		resourceLoadService = {},
 		playbackService = {},
 		selectionService = {},
 		settingsService = {},
+		historyService = {},
+		analysisService = {},
 		cursorState = {},
 		selectionState = {},
 		renderState = {},
 		analysisState = {},
 		runtimeState = {},
 		viewState = {},
+		frameService = {},
 	}
 end
 

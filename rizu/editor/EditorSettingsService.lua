@@ -4,6 +4,10 @@ local class = require("class")
 ---@operator call: rizu.editor.EditorSettingsService
 local EditorSettingsService = class()
 
+---@class rizu.editor.EditorSettingsContext
+---@field configModel sphere.ConfigModel
+---@field maxSnap number
+
 ---@param editor table
 ---@param maxSnap number
 ---@return table
@@ -22,10 +26,22 @@ function EditorSettingsService:getSettings(configModel, maxSnap)
 	return self:normalizeEditorSettings(configModel.configs.settings.editor, maxSnap)
 end
 
+---@param context rizu.editor.EditorSettingsContext
+---@return table
+function EditorSettingsService:getEditorSettings(context)
+	return self:getSettings(context.configModel, context.maxSnap)
+end
+
 ---@param configModel sphere.ConfigModel
 ---@return table
 function EditorSettingsService:getAudioSettings(configModel)
 	return configModel.configs.settings.audio
+end
+
+---@param context rizu.editor.EditorSettingsContext
+---@return table
+function EditorSettingsService:getEditorAudioSettings(context)
+	return self:getAudioSettings(context.configModel)
 end
 
 ---@param editor table
@@ -34,10 +50,22 @@ function EditorSettingsService:getLogSpeed(editor)
 	return math.floor(10 * math.log(editor.speed, 2) + 0.5)
 end
 
+---@param context rizu.editor.EditorSettingsContext
+---@return number
+function EditorSettingsService:getEditorLogSpeed(context)
+	return self:getLogSpeed(self:getEditorSettings(context))
+end
+
 ---@param editor table
 ---@param logSpeed number
 function EditorSettingsService:setLogSpeed(editor, logSpeed)
 	editor.speed = 2 ^ (logSpeed / 10)
+end
+
+---@param context rizu.editor.EditorSettingsContext
+---@param logSpeed number
+function EditorSettingsService:setEditorLogSpeed(context, logSpeed)
+	self:setLogSpeed(self:getEditorSettings(context), logSpeed)
 end
 
 ---@param editor table
@@ -47,11 +75,21 @@ function EditorSettingsService:incSnap(editor, maxSnap)
 	self:normalizeEditorSettings(editor, maxSnap)
 end
 
+---@param context rizu.editor.EditorSettingsContext
+function EditorSettingsService:incEditorSnap(context)
+	self:incSnap(self:getEditorSettings(context), context.maxSnap)
+end
+
 ---@param editor table
 ---@param maxSnap number
 function EditorSettingsService:decSnap(editor, maxSnap)
 	editor.snap = math.floor(editor.snap / 2)
 	self:normalizeEditorSettings(editor, maxSnap)
+end
+
+---@param context rizu.editor.EditorSettingsContext
+function EditorSettingsService:decEditorSnap(context)
+	self:decSnap(self:getEditorSettings(context), context.maxSnap)
 end
 
 ---@param editor table
@@ -70,6 +108,20 @@ function EditorSettingsService:getSnap(editor, j)
 		end
 	end
 	return k
+end
+
+---@param context rizu.editor.EditorSettingsContext
+---@param j number|table
+---@return number
+function EditorSettingsService:getEditorSnap(context, j)
+	return self:getSnap(self:getEditorSettings(context), j)
+end
+
+---@param context rizu.editor.EditorSettingsContext
+---@param editor table
+---@return table
+function EditorSettingsService:normalizeContextEditorSettings(context, editor)
+	return self:normalizeEditorSettings(editor, context.maxSnap)
 end
 
 return EditorSettingsService

@@ -75,7 +75,9 @@ Owns default construction of editor collaborators and copies them onto `EditorMo
 
 `EditorSelectionService` owns selection actions: note selection, rectangle-selection lifecycle, and rectangle-selection updates. It pairs with `EditorSelectionState` through a narrow rectangle-selection context; `EditorModel` keeps wrapper methods for callers.
 
-`EditorSettingsService` owns editor/audio settings helpers: editor settings normalization, log speed, snap increment/decrement, and snap display bucket calculation. It operates on `ConfigModel` or the concrete `settings.editor` table rather than receiving the whole `EditorModel`; keep snap/speed mutation rules here rather than scattering them through view code.
+`EditorSettingsService` owns editor/audio settings helpers: editor settings normalization, log speed, snap increment/decrement, and snap display bucket calculation. Editor-facing commands use `EditorSettingsContext` with `ConfigModel` and `maxSnap`; low-level helpers may still operate on the concrete `settings.editor` table. Keep snap/speed mutation rules here rather than scattering them through view code.
+
+`EditorHistoryService` owns editor-facing undo/redo commands through `EditorHistoryContext`. The context contains `EditorChanges`; `EditorModel` should keep `undo()` and `redo()` as stable facade methods for callers.
 
 ### `EditorViewState` — Per-Screen UI State
 Holds editor UI state that should not live in chart or model state:
@@ -92,6 +94,18 @@ The load/save boundary is tested with fakes for chart selection, note skin loadi
 Modifier application on load is driven by an injected predicate so `EditorController` does not read keyboard state directly. Dropped audio imports are delegated to `EditorDropImport`, which owns extension filtering and writes imported files through `fs.IFilesystem`.
 
 `EditorController` takes a dependency table rather than a long positional constructor. Keep new controller collaborators in that table to avoid argument-order bugs.
+
+`EditorLoadControllerService` owns chart load orchestration for the controller: chart selection, optional modifier application, note-skin loading, initial editor model population, preview stop, resource path setup, resource loading, and the select-screen vsync switch. `EditorController:load()` should delegate through this service.
+
+`EditorExportService` owns the controller's save/export command delegation. `EditorController` should route `sliceKeysounds`, `exportUBmsC`, `exportBmsTemplate`, `save`, `saveToOsu`, and `saveToNanoChart` through this service instead of constructing exporters inline. BMS exporter internals are intentionally left alone until the parser rewrite, but controller-level delegation is tested with fakes.
+
+`EditorModelFrameService` owns model frame routing through `EditorModelFrameContext`: update order for editor settings time, service ticks, selection rectangle, timing drag, audio update, cursor point, visual refresh, and `framestarted` timer events. `EditorModel:update()` and `EditorModel:receive()` should remain thin delegates.
+
+`EditorLoadService` owns editor-model load sequencing through `EditorLoadContext`: chartedit layer/note loading, visual selection, session reset, timer/audio initialization, metronome load, initial scroll, BMS tools context initialization, and metadata load. `EditorModel:load()` should remain a thin delegate.
+
+`EditorSaveService` owns editor-model save sequencing through `EditorSaveContext`: metadata conversion updates `chartmeta` before `NoteChartLoader:save()` writes chartedit data back to the chart. `EditorModel:save()` should remain a thin delegate.
+
+`EditorPlaybackService` exposes editor-facing playback commands through `EditorPlaybackContext`: set time, load audio resources, play, and pause. `EditorModel` should build the context and stay a facade for UI callers.
 
 `exports/SphChartSaver` owns default `.sph` save behavior and library recomputation. `exports/OsuChartExporter` owns `.osu` export file generation. Both write through `fs.IFilesystem` and have focused tests for write failures.
 
@@ -152,7 +166,7 @@ Scroll by seconds or snap grid units. Respects vertex boundaries and the current
 ### `GraphsGenerator` — Scrollbar Visualization
 Generates a note density graph and a vertex graph for the scrollbar UI.
 
-`GraphsGenerator` is argument-driven and should not receive an `EditorModel` back-reference. `EditorModel:genGraphs()` supplies the current chart, layer, and timeline range.
+`GraphsGenerator` is argument-driven and should not receive an `EditorModel` back-reference. `EditorAnalysisService` supplies the current chart, layer, and timeline range through `EditorAnalysisContext`.
 
 ### `EditorChanges` — Undo/Redo
 Wraps the generic `Changes` system with method-call commands. Records add/remove note operations with corresponding redo and undo pairs.
@@ -173,6 +187,8 @@ Loads its click sample through `fs.IFilesystem` so editor model tests do not dep
 Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Results can be applied to the chart's interval data.
 
 `NcbtContext` is argument-driven: detection receives sound data, and application receives the target chartedit layer. It should not receive an `EditorModel` back-reference.
+
+`EditorAnalysisService` owns waveform rendering, NCBT detect/apply commands, timeline range calculation, and graph generation through `EditorAnalysisContext`. `EditorModel` keeps facade methods for callers but should not directly coordinate `audio_engine`, `NcbtContext`, `GraphsGenerator`, and chart/layer state for these commands.
 
 ### `BmsToolsContext` — BMS State Container
 Holds BMS-specific editing state (`offset`, `tempo`, `beat_offset`) and provides `resetOffsetTempo()` to apply those values to the chart's layer vertices. Separated from `EditorModel` to isolate BMS-specific concerns.
@@ -256,12 +272,17 @@ Covered and partially modernized:
 - Note classes and note operations, including long-note paste links, drag, cut/copy/paste, and multi-selection undo/redo.
 - Interval timing operations, including split/merge/update, destructive shrink snapshots, note restoration, vertex drag undo/redo, and the `IntervalManagerContext` boundary used by `IntervalManager` and `IntervalUpdateSnapshot`.
 - Visual selection refresh, scroller/cursor interaction, editor model load/update lifecycle, and note chart load/save roundtrips. `VisualEngine` uses `VisualEngineContext`, `NoteChartLoader` uses `NoteChartLoaderContext`, `EditorChanges` uses `EditorChangesContext`, `Scroller` uses `ScrollerContext`, `Metronome` uses `MetronomeContext`, and `GraphsGenerator`, `NcbtContext`, and `BmsToolsContext` remain argument-driven without `EditorModel` back-references.
-- `EditorController` load/save wiring for note skin, resources, file writes, and library recomputation.
+- `EditorController` load/save wiring for note skin, resources, file writes, load/export delegation, and library recomputation.
 - Resource-load sequencing and lifecycle state ownership through `EditorResourceLoadService` and `EditorRuntimeState`.
 - Editor view command, overlay action, and snap-grid scroll behavior through focused services.
 - Editor screen enter/exit lifecycle through `EditorScreenLoadService`.
 - Editor view service ownership through `EditorViewServices`.
 - Editor screen update/draw/receive sequencing through `EditorScreenFrameService`.
+- Editor model update/receive sequencing through `EditorModelFrameService`.
+- Editor model load sequencing through `EditorLoadService`.
+- Editor model save sequencing through `EditorSaveService`.
+- Editor model playback command wiring through `EditorPlaybackContext`.
+- Editor model analysis, graph, NCBT, and waveform command wiring through `EditorAnalysisContext`.
 
 Remaining higher-risk areas:
 - `EditorController` remains a boundary/orchestration class with an `EditorModel` reference for load/save/export routing.

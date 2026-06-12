@@ -92,4 +92,72 @@ function test.play_respects_grabbed_interval(t)
 	t:tdeq(calls, {})
 end
 
+---@param t testing.T
+function test.editor_context_commands(t)
+	local calls = {}
+	local context = {
+		timer = {
+			setTime = function(_, time, exact)
+				table.insert(calls, ("timer-time:%s:%s"):format(time, tostring(exact)))
+			end,
+			getTime = function()
+				table.insert(calls, "timer-get")
+				return 2.5
+			end,
+			play = function()
+				table.insert(calls, "timer-play")
+			end,
+			pause = function()
+				table.insert(calls, "timer-pause")
+			end,
+		},
+		audio_engine = {
+			setPosition = function(_, time)
+				table.insert(calls, "position:" .. time)
+			end,
+			setEnabled = function(_, enabled)
+				table.insert(calls, "enabled:" .. tostring(enabled))
+			end,
+			load = function(_, chart, resources)
+				table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
+			end,
+			play = function()
+				table.insert(calls, "audio-play")
+			end,
+			pause = function()
+				table.insert(calls, "audio-pause")
+			end,
+		},
+		chart = {
+			id = "chart",
+		},
+		intervalManager = {
+			isGrabbed = function()
+				table.insert(calls, "grabbed")
+				return false
+			end,
+		},
+	}
+	local service = EditorPlaybackService()
+
+	service:setEditorTime(context, 1.25)
+	service:loadEditorAudioResources(context, {audio = "song.ogg"})
+	service:playEditor(context)
+	service:pauseEditor(context)
+
+	t:tdeq(calls, {
+		"timer-time:1.25:true",
+		"position:1.25",
+		"enabled:true",
+		"load:chart:song.ogg",
+		"timer-get",
+		"position:2.5",
+		"grabbed",
+		"timer-play",
+		"audio-play",
+		"timer-pause",
+		"audio-pause",
+	})
+end
+
 return test

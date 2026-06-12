@@ -8,11 +8,14 @@ local IntervalManager = require("rizu.editor.IntervalManager")
 local GraphsGenerator = require("rizu.editor.GraphsGenerator")
 local EditorChanges = require("rizu.editor.EditorChanges")
 local EditorLoadService = require("rizu.editor.EditorLoadService")
+local EditorSaveService = require("rizu.editor.EditorSaveService")
 local EditorSessionResetService = require("rizu.editor.EditorSessionResetService")
 local EditorResourceLoadService = require("rizu.editor.EditorResourceLoadService")
 local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
 local EditorSelectionService = require("rizu.editor.EditorSelectionService")
 local EditorSettingsService = require("rizu.editor.EditorSettingsService")
+local EditorHistoryService = require("rizu.editor.EditorHistoryService")
+local EditorAnalysisService = require("rizu.editor.EditorAnalysisService")
 local EditorCursorState = require("rizu.editor.EditorCursorState")
 local EditorSelectionState = require("rizu.editor.EditorSelectionState")
 local EditorRenderState = require("rizu.editor.EditorRenderState")
@@ -20,6 +23,7 @@ local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
 local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.EditorViewState")
 local EditorNoteService = require("rizu.editor.EditorNoteService")
+local EditorModelFrameService = require("rizu.editor.EditorModelFrameService")
 local Scroller = require("rizu.editor.Scroller")
 local Metronome = require("rizu.editor.Metronome")
 local BmsToolsContext = require("rizu.editor.BmsToolsContext")
@@ -41,17 +45,21 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field metadata chart.sph.Metadata?
 ---@field bmsToolsContext rizu.editor.BmsToolsContext?
 ---@field loadService rizu.editor.EditorLoadService?
+---@field saveService rizu.editor.EditorSaveService?
 ---@field sessionResetService rizu.editor.EditorSessionResetService?
 ---@field resourceLoadService rizu.editor.EditorResourceLoadService?
 ---@field playbackService rizu.editor.EditorPlaybackService?
 ---@field selectionService rizu.editor.EditorSelectionService?
 ---@field settingsService rizu.editor.EditorSettingsService?
+---@field historyService rizu.editor.EditorHistoryService?
+---@field analysisService rizu.editor.EditorAnalysisService?
 ---@field cursorState rizu.editor.EditorCursorState?
 ---@field selectionState rizu.editor.EditorSelectionState?
 ---@field renderState rizu.editor.EditorRenderState?
 ---@field analysisState rizu.editor.EditorAnalysisState?
 ---@field runtimeState rizu.editor.EditorRuntimeState?
 ---@field viewState rizu.editor.EditorViewState?
+---@field frameService rizu.editor.EditorModelFrameService?
 
 ---@class rizu.editor.EditorServices
 ---@operator call: rizu.editor.EditorServices
@@ -69,17 +77,21 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@field metadata chart.sph.Metadata
 ---@field bmsToolsContext rizu.editor.BmsToolsContext
 ---@field loadService rizu.editor.EditorLoadService
+---@field saveService rizu.editor.EditorSaveService
 ---@field sessionResetService rizu.editor.EditorSessionResetService
 ---@field resourceLoadService rizu.editor.EditorResourceLoadService
 ---@field playbackService rizu.editor.EditorPlaybackService
 ---@field selectionService rizu.editor.EditorSelectionService
 ---@field settingsService rizu.editor.EditorSettingsService
+---@field historyService rizu.editor.EditorHistoryService
+---@field analysisService rizu.editor.EditorAnalysisService
 ---@field cursorState rizu.editor.EditorCursorState
 ---@field selectionState rizu.editor.EditorSelectionState
 ---@field renderState rizu.editor.EditorRenderState
 ---@field analysisState rizu.editor.EditorAnalysisState
 ---@field runtimeState rizu.editor.EditorRuntimeState
 ---@field viewState rizu.editor.EditorViewState
+---@field frameService rizu.editor.EditorModelFrameService
 local EditorServices = class()
 
 ---@param deps rizu.editor.EditorServicesDeps?
@@ -99,17 +111,21 @@ function EditorServices:new(deps)
 	self.metadata = deps.metadata or Metadata()
 	self.bmsToolsContext = deps.bmsToolsContext or BmsToolsContext()
 	self.loadService = deps.loadService or EditorLoadService()
+	self.saveService = deps.saveService or EditorSaveService()
 	self.sessionResetService = deps.sessionResetService or EditorSessionResetService()
 	self.resourceLoadService = deps.resourceLoadService or EditorResourceLoadService()
 	self.playbackService = deps.playbackService or EditorPlaybackService()
 	self.selectionService = deps.selectionService or EditorSelectionService()
 	self.settingsService = deps.settingsService or EditorSettingsService()
+	self.historyService = deps.historyService or EditorHistoryService()
+	self.analysisService = deps.analysisService or EditorAnalysisService()
 	self.cursorState = deps.cursorState or EditorCursorState()
 	self.selectionState = deps.selectionState or EditorSelectionState()
 	self.renderState = deps.renderState or EditorRenderState()
 	self.analysisState = deps.analysisState or EditorAnalysisState()
 	self.runtimeState = deps.runtimeState or EditorRuntimeState()
 	self.viewState = deps.viewState or EditorViewState()
+	self.frameService = deps.frameService or EditorModelFrameService()
 end
 
 ---@param editorModel rizu.editor.EditorModel
@@ -128,17 +144,21 @@ function EditorServices:applyToEditorModel(editorModel)
 	editorModel.metadata = self.metadata
 	editorModel.bmsToolsContext = self.bmsToolsContext
 	editorModel.loadService = self.loadService
+	editorModel.saveService = self.saveService
 	editorModel.sessionResetService = self.sessionResetService
 	editorModel.resourceLoadService = self.resourceLoadService
 	editorModel.playbackService = self.playbackService
 	editorModel.selectionService = self.selectionService
 	editorModel.settingsService = self.settingsService
+	editorModel.historyService = self.historyService
+	editorModel.analysisService = self.analysisService
 	editorModel.cursorState = self.cursorState
 	editorModel.selectionState = self.selectionState
 	editorModel.renderState = self.renderState
 	editorModel.analysisState = self.analysisState
 	editorModel.runtimeState = self.runtimeState
 	editorModel.viewState = self.viewState
+	editorModel.frameService = self.frameService
 end
 
 ---@param editorModel rizu.editor.EditorModel
