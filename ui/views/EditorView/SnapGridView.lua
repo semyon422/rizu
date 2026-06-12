@@ -6,9 +6,14 @@ local just = require("just")
 local Fraction = require("chart.core.Fraction")
 local imgui = require("imgui")
 
+local EditorScrollInputService = require("rizu.editor.EditorScrollInputService")
 local Layout = require("ui.views.EditorView.Layout")
 
 local SnapGridView = class()
+
+function SnapGridView:new()
+	self.scrollInputService = EditorScrollInputService()
+end
 
 ---@return string
 local function getVelocityText()
@@ -274,8 +279,6 @@ local function drawMouse(self)
 	love.graphics.pop()
 end
 
-local prevMouseY = 0
-local speedOrig
 function SnapGridView:draw()
 	local editorModel = self.game.editorModel
 	local noteSkin = self.game.noteSkinModel.noteSkin
@@ -308,34 +311,6 @@ function SnapGridView:draw()
 	self:drawTimingObjects("absoluteTime", editorTimePoint.absoluteTime, 500, 50, "left", getVelocityText)
 	love.graphics.pop()
 
-	local lalt = editorModel.isFineScrollRequested()
-	local lshift = editorModel.isSnapChangeRequested()
-	local lctrl = editorModel.isSpeedChangeRequested()
-
-	if lalt and not speedOrig then
-		speedOrig = editor.speed
-		editor.speed = 1000 / noteSkin.unit * 10
-	elseif not lalt and speedOrig then
-		editor.speed = speedOrig
-		speedOrig = nil
-	end
-	if lalt or lshift or lctrl then
-		drawMouse(self)
-	end
-	if (lalt or lshift) and drag("drag1", width, h) then
-		local a = noteSkin:getInverseTimePosition(_my)
-		local b = noteSkin:getInverseTimePosition(prevMouseY)
-		editorModel.scroller:scrollSecondsDelta((a - b) / editor.speed)
-		if editorModel.timer.is_playing then
-			editorModel:pause()
-			editorModel.session.dragging = true
-		end
-	elseif editorModel.session.dragging then
-		editorModel:play()
-		editorModel.session.dragging = false
-	end
-	prevMouseY = _my
-
 	local scroll = just.wheel_over("scale scroll", true)
 	if just.keypressed("right") then
 		scroll = 1
@@ -343,21 +318,14 @@ function SnapGridView:draw()
 		scroll = -1
 	end
 
-	if scroll then
-		if lshift then
-			if scroll == 1 then
-				editorModel:incSnap()
-			elseif scroll == -1 then
-				editorModel:decSnap()
-			end
-		elseif lctrl then
-			editorModel:setLogSpeed(editorModel:getLogSpeed() + scroll)
-		else
-			if editorModel.timer.is_playing and scroll < 0 then
-				editorModel.scroller:scrollSnaps(scroll)
-			end
-			editorModel.scroller:scrollSnaps(scroll)
-		end
+	local canDrag = editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()
+	local scrollState = self.scrollInputService:update(editorModel, noteSkin, editor, {
+		mouseY = _my,
+		dragActive = canDrag and drag("drag1", width, h),
+		scroll = scroll,
+	})
+	if scrollState.showMouseDelta then
+		drawMouse(self)
 	end
 end
 
