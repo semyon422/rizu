@@ -22,6 +22,15 @@ function ChartLoading:new(yi)
 		padding = 20,
 
 		S.Anchor({
+			pivot = {0.5, 0.5},
+			ui:Label({
+				font = "bold",
+				font_size = 36,
+				text = "TODO: semyon pls make chart loading async",
+				color = Colors.text
+			}),
+		}),
+		S.Anchor({
 			pivot = {1, 1},
 			S.Flow({
 				align = 0.5,

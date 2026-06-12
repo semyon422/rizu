@@ -3,6 +3,7 @@ local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local Resources = require("yi.Resources")
+local string_util = require("string_util")
 
 local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
@@ -40,6 +41,13 @@ function Select:new(yi)
 		font_size = 46,
 		text = "Title",
 		color = Colors.text_muted,
+	})
+
+	self.creator = ui:Label({
+		font = "regular",
+		font_size = 24,
+		text = "Creator • (optional) Etterna pack",
+		color = Colors.text_muted
 	})
 
 	self.chart_info = ChartInfo()
@@ -127,9 +135,9 @@ function Select:new(yi)
 		S.Stack({
 			padding = GAP,
 			S.Column({
-				gap = -5,
 				self.title,
 				self.artist,
+				self.creator
 			}),
 			S.Anchor({
 				pivot = {0, 1},
@@ -210,8 +218,26 @@ function Select:onChartviewUpdate(cv)
 	end
 	self.chart_info:bind(cv, self.yi.game.replayBase)
 	self.chart_diff:bind(cv)
-	self.title:setText(cv.title or "")
-	self.artist:setText(cv.artist or "")
+	self.title:setText(cv.title or "Unknown Title")
+	self.artist:setText(cv.artist or "Unknown Artist")
+
+	local creator = cv.creator
+	if not creator or creator == "" then
+		creator = nil
+	end
+
+	if cv.format == "stepmania" then
+		local path = cv.path or "Unknown Path"
+		local spl = string_util.split(path, "/")
+		local pack = spl[1] or "Unknown Path"
+		if creator then
+			self.creator:setText(("%s • %s"):format(creator, pack))
+		else
+			self.creator:setText(("%s"):format(pack))
+		end
+	elseif creator then
+		self.creator:setText(creator)
+	end
 end
 
 function Select:handleKeyDown(key)
@@ -245,7 +271,7 @@ function Select:handleKeyDown(key)
 end
 
 function Select:receive(event)
-	if event.type == "chartview" then
+	if event.type == "chartview" then --- TODO: Why is this 'type' when it should be 'name'?
 		self:onChartviewUpdate(event.chartview)
 		return
 	end
