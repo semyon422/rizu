@@ -6,14 +6,9 @@ local just = require("just")
 local Fraction = require("chart.core.Fraction")
 local imgui = require("imgui")
 
-local EditorScrollInputService = require("rizu.editor.EditorScrollInputService")
 local Layout = require("ui.views.EditorView.Layout")
 
 local SnapGridView = class()
-
-function SnapGridView:new()
-	self.scrollInputService = EditorScrollInputService()
-end
 
 ---@return string
 local function getVelocityText()
@@ -319,7 +314,7 @@ function SnapGridView:draw()
 	end
 
 	local canDrag = editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()
-	local scrollState = self.scrollInputService:update(editorModel, noteSkin, editor, {
+	local scrollState = self.editorViewServices.scrollInputService:update(editorModel, noteSkin, editor, {
 		mouseY = _my,
 		dragActive = canDrag and drag("drag1", width, h),
 		scroll = scroll,

@@ -1,15 +1,6 @@
 local Screen = require("yi.Screen")
-local Layout = require("ui.views.EditorView.Layout")
-local EditorViewConfig = require("ui.views.EditorView.EditorViewConfig")
-local EditorViewOverlay = require("ui.views.EditorView.EditorViewOverlay")
-local Footer = require("ui.views.EditorView.Footer")
-local Foreground = require("ui.views.EditorView.Foreground")
-local WaveformView = require("ui.views.EditorView.WaveformView")
-local OnsetsView = require("ui.views.EditorView.OnsetsView")
-local OnsetsDistView = require("ui.views.EditorView.OnsetsDistView")
-local gfx_util = require("gfx_util")
-local just = require("just")
 local thread = require("thread")
+local EditorScreenFrameService = require("rizu.editor.EditorScreenFrameService")
 local EditorScreenLoadService = require("rizu.editor.EditorScreenLoadService")
 
 ---@class yi.layers.Editor : yi.Screen
@@ -22,6 +13,7 @@ function Editor:new(yi)
 	self.yi = yi
 	self.game = yi.game
 	self.editorScreenLoadService = EditorScreenLoadService()
+	self.editorScreenFrameService = EditorScreenFrameService()
 	self.editor_loaded = false
 	self.loading = false
 end
@@ -52,45 +44,16 @@ end
 
 ---@param dt number
 function Editor:update(dt)
-	if not self.editor_loaded then
-		return
-	end
-
-	love.graphics.replaceTransform(gfx_util.transform(self.transform))
-	self.game.editorModel:update()
-	self.sequence_view:update(dt)
+	self.editorScreenFrameService:update(self, dt)
 end
 
 function Editor:draw()
-	if not self.editor_loaded then
-		return
-	end
-
-	just.container("yi editor screen", true)
-
-	Layout:draw()
-	EditorViewConfig(self)
-	self.sequence_view:draw()
-	self.snap_grid_view:draw()
-	WaveformView(self)
-	OnsetsView(self)
-	OnsetsDistView(self)
-	Footer(self)
-	EditorViewOverlay(self)
-	Foreground(self)
-
-	just.container()
+	self.editorScreenFrameService:draw(self)
 end
 
 ---@param event table
 function Editor:receive(event)
-	if not self.editor_loaded then
-		return
-	end
-
-	self.game.editorController:receive(event)
-	self.sequence_view:receive(event)
-	Screen.receive(self, event)
+	self.editorScreenFrameService:receive(self, event)
 end
 
 return Editor

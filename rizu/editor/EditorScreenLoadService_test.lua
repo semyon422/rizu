@@ -24,6 +24,7 @@ local function createScreen(calls)
 		end,
 	}
 	local snapGridView = {}
+	local editorViewServices = {}
 	local screen = {
 		game = {
 			editorController = {
@@ -52,14 +53,18 @@ local function createScreen(calls)
 			table.insert(calls, "snap-new")
 			return snapGridView
 		end,
+		viewServicesFactory = function()
+			table.insert(calls, "services-new")
+			return editorViewServices
+		end,
 	})
-	return service, screen, sequenceView, snapGridView
+	return service, screen, sequenceView, snapGridView, editorViewServices
 end
 
 ---@param t testing.T
 function test.enter_loads_editor_screen_views(t)
 	local calls = {}
-	local service, screen, sequenceView, snapGridView = createScreen(calls)
+	local service, screen, sequenceView, snapGridView, editorViewServices = createScreen(calls)
 
 	local started = service:enter(screen)
 
@@ -68,12 +73,15 @@ function test.enter_loads_editor_screen_views(t)
 	t:eq(screen.loading, false)
 	t:eq(screen.sequence_view, sequenceView)
 	t:eq(screen.snap_grid_view, snapGridView)
+	t:eq(screen.editorViewServices, editorViewServices)
+	t:eq(snapGridView.editorViewServices, editorViewServices)
 	t:eq(sequenceView.game, screen.game)
 	t:eq(sequenceView.subscreen, "editor")
 	t:eq(snapGridView.game, screen.game)
 	t:ne(screen.transform, snapGridView.transform)
 	t:tdeq(calls, {
 		"editor-load",
+		"services-new",
 		"snap-new",
 		"transform",
 		"transform",
@@ -112,6 +120,8 @@ function test.enter_failure_clears_loading_state(t)
 
 	t:eq(screen.editor_loaded, false)
 	t:eq(screen.loading, false)
+	t:eq(screen.editorViewServices, nil)
+	t:eq(screen.snap_grid_view, nil)
 	t:tdeq(calls, {"editor-load"})
 end
 
@@ -129,6 +139,8 @@ function test.exit_unloads_only_when_loaded(t)
 	t:eq(unloaded, true)
 	t:eq(screen.editor_loaded, false)
 	t:eq(screen.loading, false)
+	t:eq(screen.editorViewServices, nil)
+	t:eq(screen.snap_grid_view, nil)
 	t:eq(calls[#calls - 1], "editor-unload")
 	t:eq(calls[#calls], "sequence-unload")
 end

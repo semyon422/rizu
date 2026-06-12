@@ -2,14 +2,11 @@ local just = require("just")
 local gfx_util = require("gfx_util")
 local spherefonts = require("sphere.assets.fonts")
 
-local EditorActionService = require("rizu.editor.EditorActionService")
 local Layout = require("ui.views.EditorView.Layout")
-
-local actionService = EditorActionService()
 
 ---@param self table
 local function Hotkeys(self)
-	actionService:handleHotkeys({
+	self.editorViewServices.actionService:handleHotkeys({
 		editorController = self.game.editorController,
 		editorModel = self.game.editorModel,
 		notificationModel = self.game.notificationModel,

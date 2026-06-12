@@ -4,10 +4,8 @@ local imgui = require("imgui")
 local Fraction = require("chart.core.Fraction")
 local gfx_util = require("gfx_util")
 
-local EditorOverlayActionService = require("rizu.editor.EditorOverlayActionService")
 local Layout = require("ui.views.EditorView.Layout")
 
-local overlayActionService = EditorOverlayActionService()
 local tabs = {}
 
 ---@param t number
@@ -103,7 +101,7 @@ function tabs.audio(self)
 
 	imgui.separator()
 	if imgui.button("set as preview", "set this moment as a preview") then
-		overlayActionService:setPreviewTimeToSession(editorModel)
+		self.editorViewServices.overlayActionService:setPreviewTimeToSession(editorModel)
 	end
 end
 
@@ -195,10 +193,10 @@ function tabs.timings(self)
 		local vp = editorModel:getVisual():getPoint(p)
 		vp.temp_comment = imgui.input("vp comment", vp.temp_comment or vp.comment, "comment")
 		if imgui.button("save comment", "save") then
-			overlayActionService:setVisualPointComment(vp, vp.temp_comment)
+			self.editorViewServices.overlayActionService:setVisualPointComment(vp, vp.temp_comment)
 		end
 		if imgui.button("reset comment", "reset") then
-			overlayActionService:resetVisualPointComment(vp)
+			self.editorViewServices.overlayActionService:resetVisualPointComment(vp)
 		end
 	end
 
@@ -263,21 +261,21 @@ function tabs.notes(self)
 	end
 
 	if imgui.button("changeType", "change type") then
-		overlayActionService:changeSelectedNoteType(editorModel)
+		self.editorViewServices.overlayActionService:changeSelectedNoteType(editorModel)
 	end
 
 	if next(editorModel.visualEngine.selectedNotes) and imgui.button("scroll to note", "scroll to") then
-		overlayActionService:scrollToFirstSelectedNote(editorModel)
+		self.editorViewServices.overlayActionService:scrollToFirstSelectedNote(editorModel)
 	end
 
 	imgui.separator()
 
 	batch_comment = imgui.input("vps comment", batch_comment, "comment")
 	if imgui.button("save comment notes", "save") then
-		overlayActionService:setSelectedNotesComment(editorModel, batch_comment)
+		self.editorViewServices.overlayActionService:setSelectedNotesComment(editorModel, batch_comment)
 	end
 	if imgui.button("reset comment notes", "reset") then
-		overlayActionService:resetSelectedNotesComment(editorModel)
+		self.editorViewServices.overlayActionService:resetSelectedNotesComment(editorModel)
 	end
 
 	local _, sel_note = next(editorModel.visualEngine.selectedNotes)
@@ -301,16 +299,16 @@ function tabs.bms(self)
 	bms_tools.tempo = tonumber(imgui.input("tempo", bms_tools.tempo, "tempo")) or 120
 
 	if imgui.button("bms apply tempo", "apply") then
-		overlayActionService:applyBmsOffsetTempo(editorModel)
+		self.editorViewServices.overlayActionService:applyBmsOffsetTempo(editorModel)
 	end
 
 	imgui.text("offset")
 	if imgui.button("bms add offset", "+1ms") then
-		overlayActionService:changeBmsOffset(editorModel, 0.001)
+		self.editorViewServices.overlayActionService:changeBmsOffset(editorModel, 0.001)
 	end
 	just.sameline()
 	if imgui.button("bms sub offset", "-1ms") then
-		overlayActionService:changeBmsOffset(editorModel, -0.001)
+		self.editorViewServices.overlayActionService:changeBmsOffset(editorModel, -0.001)
 	end
 
 	if imgui.button("slice keysounds", "slice keysounds") then
@@ -344,6 +342,7 @@ return function(self)
 	imgui.setSize(400, h, 200, lineHeight)
 	love.graphics.setColor(1, 1, 1, 1)
 
+	local overlayActionService = self.editorViewServices.overlayActionService
 	overlayActionService:setOverlayState(
 		editorModel,
 		imgui.tabs("editor overlay tabs", overlayActionService:getOverlayState(editorModel), editorModel.states)

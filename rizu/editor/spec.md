@@ -166,6 +166,10 @@ Foreground hotkeys are dispatched through `EditorActionService`; views pass key 
 
 The active `yi/layers/ChartMenus/Editor` screen delegates enter/exit sequencing to `EditorScreenLoadService`. The service owns loading flags, editor controller load/unload, snap-grid construction, note-skin transforms, and sequence view load/unload so partial-load failures clear `loading` instead of leaving the screen stuck.
 
+`EditorScreenLoadService` also creates `EditorViewServices`, the per-screen bundle for editor view collaborators. Views should use `self.editorViewServices.actionService`, `overlayActionService`, and `scrollInputService` rather than constructing module-local services. This keeps stateful view behavior reset with screen load/unload and makes future view tests injectable.
+
+Per-frame screen sequencing lives in `EditorScreenFrameService`. It owns loaded gating and order for update, draw, and event receive; the `yi` screen should stay a thin delegator except for screen-navigation key handling.
+
 ## Configuration
 
 Editor settings are stored through `sphere.ConfigModel` under `settings.editor`:
@@ -190,6 +194,8 @@ Covered and partially modernized:
 - Resource-load sequencing and lifecycle state ownership through `EditorResourceLoadService` and `EditorRuntimeState`.
 - Editor view command, overlay action, and snap-grid scroll behavior through focused services.
 - Editor screen enter/exit lifecycle through `EditorScreenLoadService`.
+- Editor view service ownership through `EditorViewServices`.
+- Editor screen update/draw/receive sequencing through `EditorScreenFrameService`.
 
 Remaining higher-risk areas:
 - Graph generation with real charts/audio and waveform/audio resource failure modes beyond service sequencing.

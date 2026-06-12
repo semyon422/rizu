@@ -1,15 +1,18 @@
 local class = require("class")
 local SequenceView = require("sphere.views.SequenceView")
 local SnapGridView = require("ui.views.EditorView.SnapGridView")
+local EditorViewServices = require("rizu.editor.EditorViewServices")
 
 ---@class rizu.editor.EditorScreenLoadServiceDeps
 ---@field sequenceViewFactory (fun(): table)?
 ---@field snapGridViewFactory (fun(): table)?
+---@field viewServicesFactory (fun(): rizu.editor.EditorViewServices)?
 
 ---@class rizu.editor.EditorScreenLoadService
 ---@operator call: rizu.editor.EditorScreenLoadService
 ---@field sequenceViewFactory fun(): table
 ---@field snapGridViewFactory fun(): table
+---@field viewServicesFactory fun(): rizu.editor.EditorViewServices
 local EditorScreenLoadService = class()
 
 ---@param deps rizu.editor.EditorScreenLoadServiceDeps?
@@ -20,6 +23,9 @@ function EditorScreenLoadService:new(deps)
 	end
 	self.snapGridViewFactory = deps.snapGridViewFactory or function()
 		return SnapGridView()
+	end
+	self.viewServicesFactory = deps.viewServicesFactory or function()
+		return EditorViewServices()
 	end
 end
 
@@ -38,6 +44,8 @@ function EditorScreenLoadService:enter(screen)
 	if not ok then
 		screen.loading = false
 		screen.editor_loaded = false
+		screen.editorViewServices = nil
+		screen.snap_grid_view = nil
 		error(err)
 	end
 
@@ -53,9 +61,12 @@ function EditorScreenLoadService:load(screen)
 
 	local noteSkin = game.noteSkinModel.noteSkin
 	local playfield = noteSkin.playField
+	local editorViewServices = self.viewServicesFactory()
+	screen.editorViewServices = editorViewServices
 
 	local snapGridView = self.snapGridViewFactory()
 	snapGridView.game = game
+	snapGridView.editorViewServices = editorViewServices
 	snapGridView.transform = playfield:newNoteskinTransform()
 	screen.snap_grid_view = snapGridView
 	screen.transform = playfield:newNoteskinTransform()
@@ -80,6 +91,8 @@ function EditorScreenLoadService:exit(screen)
 	screen.sequence_view:unload()
 	screen.editor_loaded = false
 	screen.loading = false
+	screen.editorViewServices = nil
+	screen.snap_grid_view = nil
 	return true
 end
 
