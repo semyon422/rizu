@@ -31,13 +31,27 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     if (angle < 0.0) angle += 2.0 * PI;
     float t = angle / (2.0 * PI);
 
-    // 3. Segment evaluation
+    // 3. Segment evaluation & Gradient Bounds Tracking
     vec4 segmentColor = u_colors[0];
+    float segStart = 0.0;
+    float segEnd = u_thresholds[0];
+
     for (int i = 0; i < {{COUNT_MINUS_ONE}}; i++) {
         if (t > u_thresholds[i]) {
             segmentColor = u_colors[i + 1];
+            segStart = u_thresholds[i];
+            segEnd = (i + 1 < {{COUNT_MINUS_ONE}}) ? u_thresholds[i + 1] : 1.0;
         }
     }
+
+    // Calculate local t (0.0 at the start of the segment, 1.0 at the end)
+    float localT = (t - segStart) / (segEnd - segStart);
+    localT = clamp(localT, 0.0, 1.0);
+
+    // Apply darkening factor (1.0 at start, fading down to 0.4 at the end)
+    // Adjust 0.4 to whatever minimum brightness you prefer!
+    float darkeningFactor = mix(1.0, 0.8, localT);
+    segmentColor.rgb *= darkeningFactor;
 
     // 4. Gaps calculation
     float tGap = u_gapWidth / (2.0 * PI); 
