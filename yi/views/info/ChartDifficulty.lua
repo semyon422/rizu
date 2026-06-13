@@ -70,28 +70,25 @@ local diff_column_format = {
 function ChartDifficulty:bind(chartview)
 	local p1, p2 = getTopPatterns(chartview.msd_diff_data)
 
-	local hue = 0
 	local difficulty = 0
 	local diff_column = self.config:getString(Settings.select.display.diff_column)
 	local postfix = ""
 
 	if diff_column == "msd_diff" then
 		difficulty = chartview.msd_diff
-		hue = Color.convertDiffToHue((math.min(difficulty, 40) / 40) / 1.3)
+		Color.msdToColor(difficulty, self.difficulty_color)
 	elseif diff_column == "osu_diff" then
 		difficulty = chartview.osu_diff
-		hue = Color.convertDiffToHue((math.min(difficulty, 10) / 10))
+		Color.osuToColor(difficulty, self.difficulty_color)
 		postfix = "★"
 	elseif diff_column == "enps_diff" then
 		difficulty = chartview.enps_diff
-		hue = Color.convertDiffToHue((math.min(difficulty, 30) / 30))
+		Color.enpsToColor(difficulty, self.difficulty_color)
 	elseif diff_column == "user_diff" then
 		difficulty = chartview.user_diff
-		hue = 0
 	end
 
 	self.difficulty = ("%0.1f%s"):format(difficulty, postfix)
-	Color.HSV(hue, 1, 1, self.difficulty_color)
 	self.calculator = diff_column_format[diff_column] or "UNKNOWN"
 
 	if p2 then

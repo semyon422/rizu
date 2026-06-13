@@ -91,7 +91,7 @@ end
 ---@param s number
 ---@param v number
 ---@param out gui.Color
----@return number[]
+---@return gui.Color
 function Color.HSV(h, s, v, out)
 	if s <= 0 then return {v, v, v, 1} end
 	h = h * 6
@@ -127,6 +127,30 @@ function Color.convertDiffToHue(x)
 	else
 		return 0.8
 	end
+end
+
+---@param diff number
+---@param out gui.Color
+---@return gui.Color
+function Color.enpsToColor(diff, out)
+	local hue = Color.convertDiffToHue((math.min(diff, 30) / 30))
+	return Color.HSV(hue, 1, 1, out)
+end
+
+---@param diff number
+---@param out gui.Color
+---@return gui.Color
+function Color.msdToColor(diff, out)
+	local hue = Color.convertDiffToHue((math.min(diff, 40) / 40) / 1.3)
+	return Color.HSV(hue, 1, 1, out)
+end
+
+---@param diff number
+---@param out gui.Color
+---@return gui.Color
+function Color.osuToColor(diff, out)
+	local hue = Color.convertDiffToHue((math.min(diff, 10) / 10))
+	return Color.HSV(hue, 1, 1, out)
 end
 
 return Color

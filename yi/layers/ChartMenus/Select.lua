@@ -9,6 +9,7 @@ local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
 local GameplayState = require("yi.views.info.GameplayState")
 local IconButton = require("yi.views.IconButton")
+local SetList = require("yi.views.select.SetList")
 local ChartList = require("yi.views.select.ChartList")
 local SpringValue = require("gui.anim.SpringValue")
 
@@ -54,7 +55,9 @@ function Select:new(yi)
 	self.chart_diff = ChartDifficulty(yi)
 	self.gameplay_state = GameplayState()
 	self.gameplay_state.y = -9
-	self.chart_list = ChartList(self.yi.game.chartSelector)
+	self.set_list = SetList(self.yi.game.chartSelector)
+	self.chart_list = ChartList(self.yi.game.chartSelector, self.yi.game.settings_config)
+	self.chart_list.x = GAP
 
 	self.chart_preview_view = ChartPreviewView(yi.game)
 
@@ -91,13 +94,22 @@ function Select:new(yi)
 	self.root = S.Stack({
 		S.Track({
 			space = {"*", 2, 64},
-			S.Stack({
+			S.Stack({ -- Inner container
 				ui:Image({
 					image = "select_bg_gradient",
 					fit_box = true,
 					color = Colors.select_bg_gradient
 				}),
-				self.chart_list
+
+				S.Anchor({
+					pivot = {1, 0},
+					self.set_list,
+				}),
+
+				S.Anchor({
+					pivot = {0, 0.5},
+					self.chart_list
+				})
 			}),
 			ui:Rectangle({
 				fit_box = true,
@@ -189,14 +201,17 @@ function Select:load()
 	Screen.load(self)
 	self.chart_preview_view:load()
 	self.yi.game.chartSelector.onChanged:add(self)
+	self.yi.game.chartSelector.state.onChanged:add(self)
 end
 
 function Select:unload()
 	self.yi.game.chartSelector.onChanged:remove(self)
+	self.yi.game.chartSelector.state.onChanged:remove(self)
 end
 
 function Select:enter()
 	self.yi.command_registry:pushContext("select", self.commands)
+	self.chart_list:slideIn()
 end
 
 function Select:exit()
@@ -278,6 +293,11 @@ end
 function Select:receive(event)
 	if event.type == "chartview" then --- TODO: Why is this 'type' when it should be 'name'?
 		self:onChartviewUpdate(event.chartview)
+		return
+	end
+
+	if event.type == "selection" and event.level == 1 then
+		self.chart_list:slideIn()
 		return
 	end
 

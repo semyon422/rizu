@@ -87,6 +87,7 @@ function Menus:draw()
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.setCanvas()
 
+	love.graphics.clear(false, true, false)
 	love.graphics.setStencilMode("draw", 1)
 	local ww, wh = love.graphics.getDimensions()
 	local st_w, st_h = ww * a, wh * a
