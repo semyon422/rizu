@@ -18,20 +18,16 @@ function ChartList:new(chart_selector, config)
 	self.sprite_batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self.visible_items = 5
 	self.gap_half = 5
-	self:setSize(450, 315)
+	local _, _, w, h = Resources.quads.chart_panel:getViewport()
+	self:setSize(450, h * self.visible_items)
 	self.slide_in = SpringValue()
 end
 
 function ChartList:load()
 	BaseList.load(self)
 
-	self.gradient = Resources.quads.chart_list_selected_gradient
-	local _, _, w, h = self.gradient:getViewport()
 	local th = self.text_batch:getFont():getHeight() ---@type number
-	self.gradient_w = -2
-	self.gradient_x = w * 2
 	self.text_y = (self.item_height - th) / 2 + 2
-
 	self.diff_column = self.config:getString(Settings.select.display.diff_column)
 end
 
@@ -74,26 +70,8 @@ function ChartList:addToBatch(item, y, is_selected)
 	end
 
 	color[4] = is_selected and 1 or 0.4
-
 	self.sprite_batch:setColor(color[1], color[2], color[3], color[4])
-	self.sprite_batch:add(
-		Resources.quads.pixel,
-		0,
-		y + self.gap_half,
-		0,
-		5,
-		self.item_height - self.gap_half
-	)
-
-	color[4] = is_selected and 0.6 or 0.2
-	self.sprite_batch:setColor(color[1], color[2], color[3], color[4])
-	self.sprite_batch:add(Resources.quads.chart_list_selected_gradient,
-		5 + self.gradient_x,
-		y + self.gap_half,
-		0,
-		self.gradient_w,
-		self.item_height - self.gap_half
-	)
+	self.sprite_batch:add(Resources.quads.chart_panel, 0, y)
 
 	if item.inputmode then
 		local text = item.inputmode:gsub("key", "K"):gsub("scratch", "S")
