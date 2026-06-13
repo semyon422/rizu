@@ -1,7 +1,7 @@
 local class = require("class")
 local EditorSessionResetService = require("rizu.editor.EditorSessionResetService")
 
----@class rizu.editor.EditorModelContext
+---@class rizu.editor.EditorModelContext: rizu.editor.EditorLoadContext, rizu.editor.EditorSaveContext, rizu.editor.EditorSessionResetContext, rizu.editor.EditorResourceLoadContext, rizu.editor.EditorPlaybackContext, rizu.editor.EditorSettingsContext, rizu.editor.EditorAnalysisContext, rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorNoteServiceContext, rizu.editor.VisualEngineContext, rizu.editor.NoteChartLoaderContext, rizu.editor.IntervalManagerContext, rizu.editor.EditorChangesContext, rizu.editor.ScrollerContext, rizu.editor.MetronomeContext, rizu.editor.EditorNoteOpsContext, rizu.editor.EditorNoteContext
 ---@operator call: rizu.editor.EditorModelContext
 ---@field model rizu.editor.EditorModel
 local EditorModelContext = class()
@@ -10,6 +10,8 @@ local EditorModelContext = class()
 function EditorModelContext:new(model)
 	self.model = model
 end
+
+-- Load/save context
 
 ---@return chart.sph.Metadata
 function EditorModelContext:getMetadata()
@@ -48,6 +50,8 @@ function EditorModelContext:setVisual(visual)
 	self.model:setVisual(visual)
 end
 
+-- Load-time session reset context
+
 ---@return rizu.editor.EditorSessionResetService
 function EditorModelContext:getSessionResetService()
 	return self.model.sessionResetService
@@ -57,6 +61,42 @@ end
 function EditorModelContext:getSessionResetContext()
 	return self
 end
+
+function EditorModelContext:analyzePatterns()
+	self.model:analyzePatterns()
+end
+
+---@return Changes
+function EditorModelContext:newChanges()
+	local sessionResetService = self.model.sessionResetService
+	local newChanges = sessionResetService.newChanges or EditorSessionResetService.newChanges
+	return newChanges()
+end
+
+---@param changes Changes
+function EditorModelContext:setChanges(changes)
+	self.model:setChanges(changes)
+end
+
+function EditorModelContext:loadGraphs()
+	self.model.graphsGenerator:load()
+end
+
+---@param loaded boolean
+function EditorModelContext:setResourcesLoaded(loaded)
+	self.model:setResourcesLoaded(loaded)
+end
+
+---@param time number
+function EditorModelContext:setSessionTime(time)
+	self.model:setSessionTime(time)
+end
+
+function EditorModelContext:finishSelection()
+	self.model:getSelectionState():finish()
+end
+
+-- Playback and resource-load context
 
 ---@return rizu.editor.EditorPlaybackService?
 function EditorModelContext:getPlaybackService()
@@ -98,45 +138,6 @@ function EditorModelContext:getBmsToolsContext()
 	return self.model.bmsToolsContext
 end
 
----@return table
-function EditorModelContext:getChartmeta()
-	return self.model.chartmeta
-end
-
-function EditorModelContext:analyzePatterns()
-	self.model:analyzePatterns()
-end
-
----@return Changes
-function EditorModelContext:newChanges()
-	local sessionResetService = self.model.sessionResetService
-	local newChanges = sessionResetService.newChanges or EditorSessionResetService.newChanges
-	return newChanges()
-end
-
----@param changes Changes
-function EditorModelContext:setChanges(changes)
-	self.model:setChanges(changes)
-end
-
-function EditorModelContext:loadGraphs()
-	self.model.graphsGenerator:load()
-end
-
----@param loaded boolean
-function EditorModelContext:setResourcesLoaded(loaded)
-	self.model:setResourcesLoaded(loaded)
-end
-
----@param time number
-function EditorModelContext:setSessionTime(time)
-	self.model:setSessionTime(time)
-end
-
-function EditorModelContext:finishSelection()
-	self.model:getSelectionState():finish()
-end
-
 ---@param loadedResources {[string]: string}
 function EditorModelContext:loadAudioResources(loadedResources)
 	self.model.playbackService:loadEditorAudioResources(self, loadedResources)
@@ -148,6 +149,13 @@ end
 
 function EditorModelContext:genGraphs()
 	self.model:genGraphs()
+end
+
+-- Chart data and analysis context
+
+---@return table
+function EditorModelContext:getChartmeta()
+	return self.model.chartmeta
 end
 
 ---@return chart.Chart
@@ -190,6 +198,8 @@ function EditorModelContext:getEditorChanges()
 	return self.model.editorChanges
 end
 
+-- Selection context
+
 ---@return rizu.editor.EditorSelectionState
 function EditorModelContext:getSelectionState()
 	return self.model:getSelectionState()
@@ -217,6 +227,8 @@ end
 function EditorModelContext:unselectRegion()
 	self.model.unselectRegion()
 end
+
+-- Timeline and scrolling context
 
 ---@param absoluteTime number
 ---@return chartedit.Point?
@@ -259,6 +271,8 @@ end
 function EditorModelContext:resetVisual()
 	self.model.visualEngine:reset()
 end
+
+-- Visual/note rendering context
 
 ---@return table
 function EditorModelContext:getEditorSettings()
@@ -304,6 +318,8 @@ function EditorModelContext:getNoteSkin()
 	return self.model:getNoteSkin()
 end
 
+-- Frame/update service context
+
 ---@return rizu.editor.EditorServices?
 function EditorModelContext:getServices()
 	return self.model.services
@@ -328,6 +344,8 @@ end
 function EditorModelContext:getMaxSnap()
 	return self.model.max_snap
 end
+
+-- Note editing context
 
 ---@return {[chart.Note]: rizu.editor.EditorNote}
 function EditorModelContext:getSelectedNotes()

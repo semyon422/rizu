@@ -5,6 +5,10 @@ local class = require("class")
 local EditorPlaybackService = class()
 
 ---@class rizu.editor.EditorPlaybackContext
+---@field getTimer fun(self: rizu.editor.EditorPlaybackContext): rizu.editor.TimeManager
+---@field getAudioEngine fun(self: rizu.editor.EditorPlaybackContext): rizu.engine.audio.Engine
+---@field getChart fun(self: rizu.editor.EditorPlaybackContext): chart.Chart
+---@field getIntervalManager fun(self: rizu.editor.EditorPlaybackContext): rizu.editor.IntervalManager
 ---@param timer rizu.editor.TimeManager
 ---@param editor table
 function EditorPlaybackService:loadTimer(timer, editor)

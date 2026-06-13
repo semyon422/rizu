@@ -1,6 +1,99 @@
+local EditorNoteService = require("rizu.editor.EditorNoteService")
 local EditorTestFactory = require("rizu.editor.EditorTestFactory")
 
 local test = {}
+
+---@param calls string[]
+---@param name string
+---@return table
+local function createSubservice(calls, name)
+	return {
+		grabbedNotes = {name .. "-grabbed"},
+		copiedNotes = {name .. "-copied"},
+		setContext = function(self, context)
+			self.context = context
+			table.insert(calls, name .. ":context")
+		end,
+		update = function()
+			table.insert(calls, name .. ":update")
+		end,
+		copy = function(_, cut)
+			table.insert(calls, name .. ":copy:" .. tostring(cut))
+		end,
+		deleteSelected = function()
+			table.insert(calls, name .. ":delete")
+			return 2
+		end,
+		changeSelectedType = function()
+			table.insert(calls, name .. ":change")
+		end,
+		paste = function()
+			table.insert(calls, name .. ":paste")
+		end,
+		grab = function(_, part, mouseTime)
+			table.insert(calls, ("%s:grab:%s:%s"):format(name, part, mouseTime))
+		end,
+		drop = function(_, mouseTime)
+			table.insert(calls, name .. ":drop:" .. mouseTime)
+		end,
+		removeNote = function(_, note)
+			table.insert(calls, name .. ":remove:" .. note.id)
+		end,
+		addNote = function(_, absoluteTime, column)
+			table.insert(calls, ("%s:add:%s:%s"):format(name, absoluteTime, column))
+		end,
+		flipSelected = function()
+			table.insert(calls, name .. ":flip")
+		end,
+	}
+end
+
+---@param t testing.T
+function test.uses_injected_focused_services(t)
+	local calls = {}
+	local deps = {
+		columnService = createSubservice(calls, "column"),
+		commandService = createSubservice(calls, "command"),
+		dragService = createSubservice(calls, "drag"),
+		clipboardService = createSubservice(calls, "clipboard"),
+		createService = createSubservice(calls, "create"),
+	}
+	local context = {}
+	local noteService = EditorNoteService(deps)
+
+	noteService:setContext(context)
+	noteService:update()
+	noteService:copyNotes(true)
+	t:eq(noteService:deleteNotes(), 2)
+	noteService:changeType()
+	noteService:pasteNotes()
+	noteService:grabNotes("head", 0.25)
+	noteService:dropNotes(0.5)
+	noteService:removeNote({id = "note"})
+	noteService:addNote(0.75, "key1")
+	noteService:flipNotes()
+
+	t:eq(deps.dragService.context, context)
+	t:eq(noteService:getGrabbedNotes(), deps.dragService.grabbedNotes)
+	t:eq(noteService:getCopiedNotes(), deps.clipboardService.copiedNotes)
+	t:tdeq(calls, {
+		"column:context",
+		"command:context",
+		"drag:context",
+		"clipboard:context",
+		"create:context",
+		"drag:update",
+		"clipboard:copy:true",
+		"command:delete",
+		"command:change",
+		"clipboard:paste",
+		"drag:grab:head:0.25",
+		"drag:drop:0.5",
+		"command:remove:note",
+		"create:add:0.75:key1",
+		"command:flip",
+	})
+end
 
 ---@param t testing.T
 function test.constructs_focused_services(t)

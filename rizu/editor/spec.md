@@ -73,6 +73,8 @@ Owns default construction of editor collaborators and copies them onto `EditorMo
 
 `EditorModelContext` is the internal adapter from `EditorModel` to editor services. `EditorModel` owns one context instance and passes it to services instead of building per-call context tables. The adapter implements the service context contracts while tests should keep using narrow fakes for service-level dependency checks.
 
+Service context annotations should list the exact methods a service calls. When one adapter implements several contracts, declare that aggregation on the adapter class instead of leaving marker-only context types.
+
 `EditorSessionResetService` owns load-time session reset orchestration through an explicit reset context: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, and selection cleanup.
 
 `EditorPlaybackService` owns timer/audio coordination: timer loading, audio settings loading, exact seek updates, audio resource loading, play/pause, and audio updates. It receives explicit timer, audio engine, chart, audio settings, and interval-grab dependencies rather than the whole `EditorModel`; keep playback behavior behind `EditorModel` wrappers so existing callers do not reach into the service directly unless they are focused tests.
@@ -143,6 +145,8 @@ Facade for note manipulation commands and composition root for focused note serv
 `EditorNoteOps` receives `EditorNoteOpsContext` for note storage, undo/redo recording, layer lookup, and visual lookup. It should not receive an `EditorModel` back-reference; command services may still build the ops context from their current editor-model bridge until those services are split.
 
 `EditorNoteService` is a small UI-facing facade and service composition root. Runtime code attaches it through `EditorModelContext`, which groups the focused note-service contexts. It should not expose low-level `EditorNoteOps` or raw note construction helpers, and it should not mirror collaborator state. Use `getGrabbedNotes()` and `getCopiedNotes()` when UI code needs transient drag or clipboard state.
+
+`EditorNoteService` accepts `EditorNoteServiceDeps` for focused subservice injection. Production uses the default subservice graph, while tests may inject narrow fakes for facade wiring without reaching into concrete subservice behavior.
 
 `ShortEditorNote` and `LongEditorNote` receive `EditorNoteContext` for layer, visual, absolute-time point lookup, and next-snap lookup. They should not receive an `EditorModel` back-reference.
 

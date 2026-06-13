@@ -2,6 +2,13 @@ local class = require("class")
 local Changes = require("Changes")
 
 ---@class rizu.editor.EditorSessionResetContext
+---@field analyzePatterns fun(self: rizu.editor.EditorSessionResetContext)
+---@field newChanges fun(self: rizu.editor.EditorSessionResetContext): Changes
+---@field setChanges fun(self: rizu.editor.EditorSessionResetContext, changes: Changes)
+---@field loadGraphs fun(self: rizu.editor.EditorSessionResetContext)
+---@field setResourcesLoaded fun(self: rizu.editor.EditorSessionResetContext, loaded: boolean)
+---@field setSessionTime fun(self: rizu.editor.EditorSessionResetContext, time: number)
+---@field finishSelection fun(self: rizu.editor.EditorSessionResetContext)
 
 ---@class rizu.editor.EditorSessionResetService
 ---@operator call: rizu.editor.EditorSessionResetService

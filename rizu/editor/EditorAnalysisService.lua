@@ -1,6 +1,12 @@
 local class = require("class")
 
 ---@class rizu.editor.EditorAnalysisContext
+---@field getNcbtContext fun(self: rizu.editor.EditorAnalysisContext): rizu.editor.NcbtContext
+---@field getAudioEngine fun(self: rizu.editor.EditorAnalysisContext): rizu.engine.audio.Engine
+---@field getLayer fun(self: rizu.editor.EditorAnalysisContext): chartedit.Layer
+---@field setWave fun(self: rizu.editor.EditorAnalysisContext, wave: table?)
+---@field getGraphsGenerator fun(self: rizu.editor.EditorAnalysisContext): rizu.editor.GraphsGenerator
+---@field getChart fun(self: rizu.editor.EditorAnalysisContext): chart.Chart
 
 ---@class rizu.editor.EditorAnalysisService
 ---@operator call: rizu.editor.EditorAnalysisService

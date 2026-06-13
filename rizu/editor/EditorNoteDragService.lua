@@ -5,6 +5,7 @@ local class = require("class")
 ---@field getSettings fun(): table
 ---@field getSelectedNotes fun(): {[chart.Note]: rizu.editor.EditorNote}
 ---@field getMouseTime fun(): number
+---@field getEditorChanges fun(): rizu.editor.EditorChanges
 
 ---@class rizu.editor.EditorNoteDragService
 ---@operator call: rizu.editor.EditorNoteDragService
@@ -33,6 +34,11 @@ function EditorNoteDragService:clear()
 	end
 end
 
+function EditorNoteDragService:beginDrag()
+	self:clear()
+	self.context:getEditorChanges():reset()
+end
+
 ---@param noteSkin table
 ---@param column integer?
 ---@param note rizu.editor.EditorNote
@@ -48,6 +54,18 @@ local function getColumnDelta(noteSkin, column, note)
 	return column - noteColumn
 end
 
+---@return number?
+function EditorNoteDragService:getColumnOver()
+	return self.columnService:getColumnOver()
+end
+
+---@param noteSkin table
+---@param note rizu.editor.EditorNote
+---@return number?
+function EditorNoteDragService:getGrabDeltaColumn(noteSkin, note)
+	return getColumnDelta(noteSkin, self:getColumnOver(), note)
+end
+
 ---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
 ---@return rizu.editor.EditorNote[]
 local function getSelectedNotes(selectedNotes)
@@ -59,25 +77,77 @@ local function getSelectedNotes(selectedNotes)
 	return notes
 end
 
+---@return rizu.editor.EditorNote[]
+function EditorNoteDragService:getSelectedNotes()
+	return getSelectedNotes(self.context:getSelectedNotes())
+end
+
+---@param note rizu.editor.EditorNote
+function EditorNoteDragService:addGrabbedNote(note)
+	table.insert(self.grabbedNotes, note)
+end
+
+---@param note rizu.editor.EditorNote
+function EditorNoteDragService:selectGrabbedNote(note)
+	self.context:getSelectedNotes()[note.startNote] = note
+end
+
+---@param noteSkin table
+---@param note rizu.editor.EditorNote
+---@param part string
+---@param mouseTime number
+---@param removeBeforeGrab boolean
+---@return boolean grabbed
+function EditorNoteDragService:grabNote(noteSkin, note, part, mouseTime, removeBeforeGrab)
+	local deltaColumn = self:getGrabDeltaColumn(noteSkin, note)
+	if not deltaColumn then
+		return false
+	end
+
+	if removeBeforeGrab then
+		self.commandService:removeNoteWithoutUndoBoundary(note)
+	end
+
+	local editor = self.context:getSettings()
+	self:addGrabbedNote(note)
+	note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
+	return true
+end
+
 ---@param note rizu.editor.EditorNote
 ---@param part string
 ---@param mouseTime number
 function EditorNoteDragService:grabNew(note, part, mouseTime)
 	local context = self.context
 	local noteSkin = assert(context:getNoteSkin())
-	local editor = context:getSettings()
 
-	self:clear()
-	context:getEditorChanges():reset()
-	local column = self.columnService:getColumnOver()
-	local deltaColumn = getColumnDelta(noteSkin, column, note)
-	if not deltaColumn then
+	self:beginDrag()
+	if not self:grabNote(noteSkin, note, part, mouseTime, false) then
 		return
 	end
 
-	table.insert(self.grabbedNotes, note)
-	note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
-	context:getSelectedNotes()[note.startNote] = note
+	self:selectGrabbedNote(note)
+end
+
+---@param noteSkin table
+---@param note rizu.editor.EditorNote
+function EditorNoteDragService:updateNoteColumn(noteSkin, note)
+	local column = self:getColumnOver()
+	if not column then
+		return
+	end
+
+	column = column - note.grabbedDeltaColumn
+	note:setColumn(noteSkin:getFirstColumnInput(column))
+end
+
+---@param editor table
+---@param note rizu.editor.EditorNote
+function EditorNoteDragService:updateGrabbedNote(editor, note)
+	note:update()
+	if not editor.lockSnap then
+		note:updateGrabbed(self.context:getMouseTime())
+	end
 end
 
 function EditorNoteDragService:update()
@@ -86,16 +156,8 @@ function EditorNoteDragService:update()
 	local noteSkin = assert(context:getNoteSkin())
 
 	for _, note in ipairs(self.grabbedNotes) do
-		note:update()
-		local time = context:getMouseTime()
-		if not editor.lockSnap then
-			note:updateGrabbed(time)
-		end
-		local column = self.columnService:getColumnOver()
-		if column then
-			column = column - note.grabbedDeltaColumn
-			note:setColumn(noteSkin:getFirstColumnInput(column))
-		end
+		self:updateGrabbedNote(editor, note)
+		self:updateNoteColumn(noteSkin, note)
 	end
 end
 
@@ -104,19 +166,22 @@ end
 function EditorNoteDragService:grab(part, mouseTime)
 	local context = self.context
 	local noteSkin = assert(context:getNoteSkin())
-	local editor = context:getSettings()
 
-	self:clear()
-	context:getEditorChanges():reset()
-	local column = self.columnService:getColumnOver()
-	for _, note in ipairs(getSelectedNotes(context:getSelectedNotes())) do
-		local deltaColumn = getColumnDelta(noteSkin, column, note)
-		if deltaColumn then
-			table.insert(self.grabbedNotes, note)
-			self.commandService:removeNoteWithoutUndoBoundary(note)
-			note:grab(mouseTime, part, deltaColumn, editor.lockSnap)
-		end
+	self:beginDrag()
+	for _, note in ipairs(self:getSelectedNotes()) do
+		self:grabNote(noteSkin, note, part, mouseTime, true)
 	end
+end
+
+---@param editor table
+---@param note rizu.editor.EditorNote
+---@param mouseTime number
+function EditorNoteDragService:dropNote(editor, note, mouseTime)
+	if not editor.lockSnap then
+		note:drop(mouseTime)
+	end
+	self.commandService:addNotes(note:getNotes())
+	self:selectGrabbedNote(note)
 end
 
 ---@param mouseTime number
@@ -125,11 +190,7 @@ function EditorNoteDragService:drop(mouseTime)
 	local editor = context:getSettings()
 
 	for _, note in ipairs(self.grabbedNotes) do
-		if not editor.lockSnap then
-			note:drop(mouseTime)
-		end
-		self.commandService:addNotes(note:getNotes())
-		context:getSelectedNotes()[note.startNote] = note
+		self:dropNote(editor, note, mouseTime)
 	end
 	self:clear()
 	context:getEditorChanges():next()

@@ -1,6 +1,9 @@
 local class = require("class")
 
 ---@class rizu.editor.EditorSaveContext
+---@field setChartmeta fun(self: rizu.editor.EditorSaveContext, chartmeta: table)
+---@field getMetadata fun(self: rizu.editor.EditorSaveContext): chart.sph.Metadata
+---@field getNoteChartLoader fun(self: rizu.editor.EditorSaveContext): rizu.editor.NoteChartLoader
 
 ---@class rizu.editor.EditorSaveService
 ---@operator call: rizu.editor.EditorSaveService

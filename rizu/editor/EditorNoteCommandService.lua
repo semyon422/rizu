@@ -7,6 +7,7 @@ local EditorNoteOps = require("rizu.editor.EditorNoteOps")
 ---@field getNoteSkin fun(): table?
 ---@field resetVisual fun()
 ---@field getNoteOpsContext fun(): rizu.editor.EditorNoteOpsContext
+---@field getEditorChanges fun(): rizu.editor.EditorChanges
 
 ---@class rizu.editor.EditorNoteCommandService
 ---@operator call: rizu.editor.EditorNoteCommandService

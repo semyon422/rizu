@@ -9,45 +9,95 @@ local EditorActionService = class()
 ---@class rizu.editor.EditorActionContext
 ---@field editorController rizu.editor.EditorController
 ---@field editorModel rizu.editor.EditorModel
----@field notificationModel table
+---@field notificationModel {notify: fun(self: table, message: string)}
 ---@field keypressed rizu.editor.KeyPressedFunc
 
 ---@param context rizu.editor.EditorActionContext
+function EditorActionService:save(context)
+	context.editorController:save()
+	context.notificationModel:notify("saved")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:copy(context)
+	local noteService = context.editorModel.noteService
+	noteService:copyNotes()
+	context.notificationModel:notify("copy " .. #noteService:getCopiedNotes() .. " notes")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:cut(context)
+	local noteService = context.editorModel.noteService
+	noteService:copyNotes(true)
+	context.notificationModel:notify("cut " .. #noteService:getCopiedNotes() .. " notes")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:paste(context)
+	local noteService = context.editorModel.noteService
+	noteService:pasteNotes()
+	context.notificationModel:notify("paste " .. #noteService:getCopiedNotes() .. " notes")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:flip(context)
+	context.editorModel.noteService:flipNotes()
+	context.notificationModel:notify("flip")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:undo(context)
+	context.editorModel:undo()
+	context.notificationModel:notify("undo")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:redo(context)
+	context.editorModel:redo()
+	context.notificationModel:notify("redo")
+end
+
+---@param context rizu.editor.EditorActionContext
+function EditorActionService:delete(context)
+	local deleted = context.editorModel.noteService:deleteNotes()
+	context.notificationModel:notify("delete " .. deleted .. " notes")
+end
+
+---@param context rizu.editor.EditorActionContext
+---@return boolean handled
+function EditorActionService:handleCommandHotkey(context)
+	local keypressed = context.keypressed
+	if keypressed("s") then
+		self:save(context)
+	elseif keypressed("c") then
+		self:copy(context)
+	elseif keypressed("x") then
+		self:cut(context)
+	elseif keypressed("v") then
+		self:paste(context)
+	elseif keypressed("h") then
+		self:flip(context)
+	elseif keypressed("z") then
+		self:undo(context)
+	elseif keypressed("y") then
+		self:redo(context)
+	else
+		return false
+	end
+	return true
+end
+
+---@param context rizu.editor.EditorActionContext
 function EditorActionService:handleHotkeys(context)
-	local editorController = context.editorController
 	local editorModel = context.editorModel
-	local noteService = editorModel.noteService
-	local notificationModel = context.notificationModel
 	local keypressed = context.keypressed
 
 	if editorModel.isEditorCommandRequested() then
-		if keypressed("s") then
-			editorController:save()
-			notificationModel:notify("saved")
-		elseif keypressed("c") then
-			noteService:copyNotes()
-			notificationModel:notify("copy " .. #noteService:getCopiedNotes() .. " notes")
-		elseif keypressed("x") then
-			noteService:copyNotes(true)
-			notificationModel:notify("cut " .. #noteService:getCopiedNotes() .. " notes")
-		elseif keypressed("v") then
-			noteService:pasteNotes()
-			notificationModel:notify("paste " .. #noteService:getCopiedNotes() .. " notes")
-		elseif keypressed("h") then
-			noteService:flipNotes()
-			notificationModel:notify("flip")
-		elseif keypressed("z") then
-			editorModel:undo()
-			notificationModel:notify("undo")
-		elseif keypressed("y") then
-			editorModel:redo()
-			notificationModel:notify("redo")
-		end
+		self:handleCommandHotkey(context)
 	end
 
 	if keypressed("delete") then
-		local deleted = noteService:deleteNotes()
-		notificationModel:notify("delete " .. deleted .. " notes")
+		self:delete(context)
 	end
 end
 

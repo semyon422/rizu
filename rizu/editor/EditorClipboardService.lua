@@ -3,6 +3,7 @@ local class = require("class")
 ---@class rizu.editor.EditorClipboardServiceContext
 ---@field getSelectedNotes fun(): {[chart.Note]: rizu.editor.EditorNote}
 ---@field getPoint fun(): chartedit.Point
+---@field getEditorChanges fun(): rizu.editor.EditorChanges
 
 ---@class rizu.editor.EditorClipboardService
 ---@operator call: rizu.editor.EditorClipboardService

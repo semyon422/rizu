@@ -1,6 +1,10 @@
 local class = require("class")
 
 ---@class rizu.editor.EditorResourceLoadContext
+---@field loadAudioResources fun(self: rizu.editor.EditorResourceLoadContext, resources: {[string]: string})
+---@field renderWave fun(self: rizu.editor.EditorResourceLoadContext)
+---@field genGraphs fun(self: rizu.editor.EditorResourceLoadContext)
+---@field setResourcesLoaded fun(self: rizu.editor.EditorResourceLoadContext, loaded: boolean)
 
 ---@class rizu.editor.EditorResourceLoadService
 ---@operator call: rizu.editor.EditorResourceLoadService

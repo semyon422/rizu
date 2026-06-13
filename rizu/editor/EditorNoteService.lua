@@ -5,19 +5,37 @@ local EditorNoteCommandService = require("rizu.editor.EditorNoteCommandService")
 local EditorNoteCreateService = require("rizu.editor.EditorNoteCreateService")
 local EditorNoteDragService = require("rizu.editor.EditorNoteDragService")
 
----@class rizu.editor.EditorNoteServiceContext
+---@class rizu.editor.EditorNoteServiceContext: rizu.editor.EditorNoteColumnServiceContext, rizu.editor.EditorNoteCommandServiceContext, rizu.editor.EditorNoteDragServiceContext, rizu.editor.EditorClipboardServiceContext, rizu.editor.EditorNoteCreateServiceContext
+
+---@class rizu.editor.EditorNoteServiceDeps
+---@field columnService rizu.editor.EditorNoteColumnService?
+---@field commandService rizu.editor.EditorNoteCommandService?
+---@field dragService rizu.editor.EditorNoteDragService?
+---@field clipboardService rizu.editor.EditorClipboardService?
+---@field createService rizu.editor.EditorNoteCreateService?
 
 ---@class rizu.editor.EditorNoteService
 ---@operator call: rizu.editor.EditorNoteService
 ---@field context rizu.editor.EditorNoteServiceContext
+---@field columnService rizu.editor.EditorNoteColumnService
+---@field commandService rizu.editor.EditorNoteCommandService
+---@field dragService rizu.editor.EditorNoteDragService
+---@field clipboardService rizu.editor.EditorClipboardService
+---@field createService rizu.editor.EditorNoteCreateService
 local EditorNoteService = class()
 
-function EditorNoteService:new()
-	self.columnService = EditorNoteColumnService()
-	self.commandService = EditorNoteCommandService()
-	self.dragService = EditorNoteDragService(self.commandService, self.columnService)
-	self.clipboardService = EditorClipboardService(self.commandService)
-	self.createService = EditorNoteCreateService(self.dragService)
+---@param deps rizu.editor.EditorNoteServiceDeps?
+function EditorNoteService:new(deps)
+	deps = deps or {}
+	local columnService = deps.columnService or EditorNoteColumnService()
+	local commandService = deps.commandService or EditorNoteCommandService()
+	local dragService = deps.dragService or EditorNoteDragService(commandService, columnService)
+
+	self.columnService = columnService
+	self.commandService = commandService
+	self.dragService = dragService
+	self.clipboardService = deps.clipboardService or EditorClipboardService(commandService)
+	self.createService = deps.createService or EditorNoteCreateService(dragService)
 end
 
 ---@param context rizu.editor.EditorNoteServiceContext

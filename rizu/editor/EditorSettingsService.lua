@@ -5,6 +5,8 @@ local class = require("class")
 local EditorSettingsService = class()
 
 ---@class rizu.editor.EditorSettingsContext
+---@field getConfigModel fun(self: rizu.editor.EditorSettingsContext): sphere.ConfigModel
+---@field getMaxSnap fun(self: rizu.editor.EditorSettingsContext): number
 
 ---@param editor table
 ---@param maxSnap number
