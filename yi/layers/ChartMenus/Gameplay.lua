@@ -25,6 +25,8 @@ function Gameplay:enter()
 	sv:load()
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
+	love.mouse.setVisible(false)
+	self.yi.chart_menus.background:setDim(1)
 end
 
 function Gameplay:exit()
@@ -32,6 +34,8 @@ function Gameplay:exit()
 	self.sequence_view:unload()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
+	love.mouse.setVisible(true)
+	self.yi.chart_menus.background:setDim(0.35)
 end
 
 function Gameplay:update(dt)

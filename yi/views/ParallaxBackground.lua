@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local SpringValue = require("gui.anim.SpringValue")
 
 ---@class yi.ParallaxBackground : gui.View
 ---@overload fun(background_model: sphere.BackgroundModel): yi.ParallaxBackground
@@ -18,14 +19,12 @@ function ParallaxBackground:new(background_model)
 	self.target_parallax_x = 0
 	self.target_parallax_y = 0
 
-	self.dim = 0.5
-	self.target_dim = 0.5
-	self.dim_smoothing = 5
+	self.dim_spring = SpringValue({value = 0.35})
 end
 
 ---@param dim number
 function ParallaxBackground:setDim(dim)
-	self.target_dim = dim
+	self.dim_spring:set(dim)
 end
 
 ---@param dt number
@@ -64,15 +63,13 @@ function ParallaxBackground:update(dt)
 	if self.parallax_x ~= self.parallax_x then self.parallax_x = 0 end
 	if self.parallax_y ~= self.parallax_y then self.parallax_y = 0 end
 
-	local dim_smoothing = math.max(0, math.min(self.dim_smoothing * dt, 1))
-	if dim_smoothing ~= dim_smoothing then dim_smoothing = 0 end
-	self.dim = self.dim + (self.target_dim - self.dim) * dim_smoothing
+	self.dim_spring:update(dt)
 end
 
 function ParallaxBackground:draw()
 	local images = self.background_model.images
 	local alpha = self.background_model.alpha
-	local dim = 1 - self.dim
+	local dim = 1 - self.dim_spring:get()
 	local w, h = self.box:getDimensions()
 
 	for i = 1, 3 do

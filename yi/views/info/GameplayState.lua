@@ -84,9 +84,13 @@ local function formatScoreSystem(timings, subtimings)
 end
 
 ---@param replay_base sea.ReplayBase
-function GameplayState:bind(replay_base)
+---@param time_rate_model sphere.TimeRateModel
+function GameplayState:bind(replay_base, time_rate_model)
 	local mods = getModifierString(replay_base.modifiers)
 	mods = mods == "" and "No mods" or mods
+
+	self.small_batch:clear()
+	self.large_batch:clear()
 
 	local i = 0
 	cs[1] = Colors.text_muted
@@ -100,7 +104,7 @@ function GameplayState:bind(replay_base)
 	local x = self.large_batch:getWidth(i) + gap
 	local y = self.height - self.small_font:getHeight() - 3
 	cs[1] = Colors.accent
-	cs[2] = ("%0.02fx"):format(replay_base.rate)
+	cs[2] = ("%0.02fx"):format(time_rate_model:get())
 	i = self.small_batch:add(cs, x, y)
 
 	x = x + self.small_batch:getWidth(i) + gap

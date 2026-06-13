@@ -41,7 +41,7 @@ function Select:new(yi)
 		font = "bold",
 		font_size = 46,
 		text = "Title",
-		color = Colors.text_muted,
+		color = Colors.text,
 	})
 
 	self.creator = ui:Label({
@@ -50,6 +50,7 @@ function Select:new(yi)
 		text = "Creator • (optional) Etterna pack",
 		color = Colors.text_muted
 	})
+	self.creator.y = 4
 
 	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
@@ -193,7 +194,7 @@ function Select:new(yi)
 		self:onChartviewUpdate(cv)
 	end
 
-	self.gameplay_state:bind(self.yi.game.replayBase)
+	self.gameplay_state:bind(self.yi.game.replayBase, self.yi.game.timeRateModel)
 	self.commands = SelectCommands(self.yi.game)
 end
 
@@ -237,7 +238,7 @@ function Select:onChartviewUpdate(cv)
 		return
 	end
 	self.chart_info:bind(cv, self.yi.game.replayBase)
-	self.chart_diff:bind(cv)
+	self.chart_diff:bind(cv, self.yi.game.timeRateModel:get())
 	self.title:setText(cv.title or "Unknown Title")
 	self.artist:setText(cv.artist or "Unknown Artist")
 
@@ -260,6 +261,12 @@ function Select:onChartviewUpdate(cv)
 	end
 end
 
+function Select:updateInfo()
+	local cv = self.yi.game.chartSelector.chartview
+	self:onChartviewUpdate(cv)
+	self.gameplay_state:bind(self.yi.game.replayBase, self.yi.game.timeRateModel)
+end
+
 function Select:handleKeyDown(key)
 	if key == "escape" then
 		self.yi:setScreen("main_menu")
@@ -275,6 +282,14 @@ function Select:handleKeyDown(key)
 		self.yi.game.chartSelector:scrollLevel(2, -1)
 	elseif key == "l" then
 		self.yi.game.chartSelector:scrollLevel(2, 1)
+	elseif key == "[" then
+		self.yi.game.timeRateModel:increase(-1)
+		self.yi.game.modifierSelectModel:change()
+		self:updateInfo()
+	elseif key == "]" then
+		self.yi.game.timeRateModel:increase(1)
+		self.yi.game.modifierSelectModel:change()
+		self:updateInfo()
 	elseif key == "m" then
 		self.yi.modals:open("modifiers")
 	elseif key == "i" then

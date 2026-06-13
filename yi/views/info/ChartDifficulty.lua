@@ -3,6 +3,7 @@ local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 local Settings = require("rizu.config.schemas.Settings")
 local Resources = require("yi.Resources")
+local Msd = require("yi.Msd")
 
 ---@class yi.views.info.ChartDifficulty : gui.View
 ---@operator call: yi.views.info.ChartDifficulty
@@ -67,7 +68,8 @@ local diff_column_format = {
 }
 
 ---@param chartview rizu.library.Chartview
-function ChartDifficulty:bind(chartview)
+---@param rate number
+function ChartDifficulty:bind(chartview, rate)
 	local p1, p2 = getTopPatterns(chartview.msd_diff_data)
 
 	local difficulty = 0
@@ -75,7 +77,8 @@ function ChartDifficulty:bind(chartview)
 	local postfix = ""
 
 	if diff_column == "msd_diff" then
-		difficulty = chartview.msd_diff
+		local msd = Msd(chartview.msd_diff_data, chartview.msd_diff_rates)
+		difficulty = msd:getOverall(rate)
 		Color.msdToColor(difficulty, self.difficulty_color)
 	elseif diff_column == "osu_diff" then
 		difficulty = chartview.osu_diff
