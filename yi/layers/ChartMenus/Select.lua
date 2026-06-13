@@ -3,8 +3,9 @@ local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local Resources = require("yi.Resources")
-local string_util = require("string_util")
 
+
+local ChartHeader = require("yi.views.info.ChartHeader")
 local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
 local GameplayState = require("yi.views.info.GameplayState")
@@ -30,27 +31,7 @@ function Select:new(yi)
 
 	local ui = UIFactory()
 
-	self.title = ui:Label({
-		font = "bold",
-		font_size = 72,
-		text = "Artist",
-		color = Colors.text,
-	})
-
-	self.artist = ui:Label({
-		font = "bold",
-		font_size = 46,
-		text = "Title",
-		color = Colors.text,
-	})
-
-	self.creator = ui:Label({
-		font = "regular",
-		font_size = 24,
-		text = "Creator • (optional) Etterna pack",
-		color = Colors.text_muted
-	})
-	self.creator.y = 4
+	self.chart_header = ChartHeader()
 
 	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
@@ -152,11 +133,7 @@ function Select:new(yi)
 		}),
 		S.Stack({
 			padding = GAP,
-			S.Column({
-				self.title,
-				self.artist,
-				self.creator
-			}),
+			self.chart_header,
 			S.Anchor({
 				pivot = {0, 1},
 				S.Flow({
@@ -239,26 +216,7 @@ function Select:onChartviewUpdate(cv)
 	end
 	self.chart_info:bind(cv, self.yi.game.replayBase)
 	self.chart_diff:bind(cv, self.yi.game.timeRateModel:get())
-	self.title:setText(cv.title or "Unknown Title")
-	self.artist:setText(cv.artist or "Unknown Artist")
-
-	local creator = cv.creator
-	if not creator or creator == "" then
-		creator = nil
-	end
-
-	if cv.format == "stepmania" then
-		local path = cv.path or "Unknown Path"
-		local spl = string_util.split(path, "/")
-		local pack = spl[1] or "Unknown Path"
-		if creator then
-			self.creator:setText(("%s • %s"):format(creator, pack))
-		else
-			self.creator:setText(("%s"):format(pack))
-		end
-	elseif creator then
-		self.creator:setText(creator)
-	end
+	self.chart_header:bind(cv)
 end
 
 function Select:updateInfo()
@@ -313,6 +271,7 @@ function Select:receive(event)
 
 	if event.type == "selection" and event.level == 1 then
 		self.chart_list:slideIn()
+		self.chart_header:fadeIn()
 		return
 	end
 
