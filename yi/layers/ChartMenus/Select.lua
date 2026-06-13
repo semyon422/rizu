@@ -24,27 +24,7 @@ local Select = Screen + {}
 
 local GAP = 20
 
----@param yi yi.UserInterface
-function Select:new(yi)
-	Screen.new(self)
-	self.yi = yi
-
-	local ui = UIFactory()
-
-	self.chart_header = ChartHeader()
-
-	self.chart_info = ChartInfo()
-	self.chart_diff = ChartDifficulty(yi)
-	self.gameplay_state = GameplayState()
-	self.gameplay_state.y = -9
-	self.set_list = SetList(self.yi.game.chartSelector)
-	self.chart_list = ChartList(self.yi.game.chartSelector, self.yi.game.settings_config)
-	self.chart_list.x = GAP
-
-	self.chart_preview_view = ChartPreviewView(yi.game)
-
-	self.zoom = SpringValue({value = 1})
-
+local function createSidePanel(self, ui)
 	local button_back = function()
 		self.yi:setScreen("main_menu")
 	end
@@ -73,67 +53,58 @@ function Select:new(yi)
 		self.yi.modals:open("scores")
 	end
 
-	self.root = S.Stack({
-		S.Track({
-			space = {"*", 2, 64},
-			S.Stack({ -- Inner container
-				ui:Image({
-					image = "select_bg_gradient",
-					fit_box = true,
-					color = Colors.select_bg_gradient
-				}),
-
-				S.Anchor({
-					pivot = {1, 0},
-					self.set_list,
-				}),
-
-				S.Anchor({
-					pivot = {0, 0.5},
-					self.chart_list
-				})
-			}),
-			ui:Rectangle({
-				fit_box = true,
-				color = Colors.line
-			}),
-			S.Stack({
-				ui:Rectangle({
-					fit_box = true,
-					color = Colors.select_side_panel_bg
-				}),
-				S.Stack({
-					padding = {0, 10, 10, 0},
-					S.Track({
-						direction = "column",
-						gap = 10,
-						align = 0.5,
-						IconButton(Resources.quads.icon_note),
-						IconButton(Resources.quads.icon_folder),
-						IconButton(Resources.quads.icon_download),
-						ui:Rectangle({
-							width = 64,
-							height = 2,
-							fit_box = false,
-							color = Colors.line
-						}),
-						IconButton(Resources.quads.icon_gear, button_config),
-						IconButton(Resources.quads.icon_funnel, button_filters),
-						IconButton(Resources.quads.icon_sparkles, button_modifiers),
-						IconButton(Resources.quads.icon_keyboard, button_input),
-						IconButton(Resources.quads.icon_palette, button_noteskins),
-						IconButton(Resources.quads.icon_trophy, button_scores),
-					}),
-					S.Anchor({
-						pivot = {0.5, 1},
-						IconButton(Resources.quads.icon_chevron_left, button_back),
-					})
-				})
-			})
+	return S.Stack({
+		ui:Rectangle({
+			fit_box = true,
+			color = Colors.select_side_panel_bg
 		}),
 		S.Stack({
+			padding = {0, 10, 10, 0},
+			S.Track({
+				direction = "column",
+				gap = 10,
+				align = 0.5,
+				IconButton(Resources.quads.icon_note),
+				IconButton(Resources.quads.icon_folder),
+				IconButton(Resources.quads.icon_download),
+				ui:Rectangle({
+					width = 64,
+					height = 2,
+					fit_box = false,
+					color = Colors.line
+				}),
+				IconButton(Resources.quads.icon_gear, button_config),
+				IconButton(Resources.quads.icon_funnel, button_filters),
+				IconButton(Resources.quads.icon_sparkles, button_modifiers),
+				IconButton(Resources.quads.icon_keyboard, button_input),
+				IconButton(Resources.quads.icon_palette, button_noteskins),
+				IconButton(Resources.quads.icon_trophy, button_scores),
+			}),
+			S.Anchor({
+				pivot = {0.5, 1},
+				IconButton(Resources.quads.icon_chevron_left, button_back),
+			})
+		})
+	})
+end
+
+local function createInnerContainer(self, ui)
+	return S.Stack({
+		ui:Image({
+			image = "select_bg_gradient",
+			fit_box = true,
+			color = Colors.select_bg_gradient
+		}),
+
+		S.Stack({ -- Inner container
 			padding = GAP,
 			self.chart_header,
+
+			S.Anchor({
+				pivot = {0, 0.5},
+				self.chart_list
+			}),
+
 			S.Anchor({
 				pivot = {0, 1},
 				S.Flow({
@@ -165,6 +136,90 @@ function Select:new(yi)
 			})
 		}),
 	})
+end
+
+---@param ui yi.UIFactory
+---@return gui.Composition.Node
+function Select:createLayoutVersion1(ui)
+	return S.Stack({
+		S.Track({
+			space = {"*", 2, 64},
+
+			S.Stack({
+				createInnerContainer(self, ui),
+				S.Anchor({
+					pivot = {1, 0},
+					self.set_list,
+				}),
+			}),
+
+			ui:Rectangle({
+				fit_box = true,
+				color = Colors.line
+			}),
+
+			createSidePanel(self, ui),
+		}),
+	})
+end
+
+---@param ui yi.UIFactory
+---@return gui.Composition.Node
+function Select:createLayoutVersion2(ui)
+	return S.Stack({
+		S.Track({
+			space = {64, 2, 500, 4, "*"},
+
+			createSidePanel(self, ui),
+
+			ui:Rectangle({
+				fit_box = true,
+				color = Colors.line
+			}),
+
+			S.Stack({
+				ui:Rectangle({
+					color = Colors.select_bg_gradient,
+				}),
+				self.set_list,
+			}),
+
+			ui:Rectangle({
+				fit_box = true,
+				color = Colors.line
+			}),
+
+			createInnerContainer(self, ui)
+		}),
+	})
+end
+
+---@param yi yi.UserInterface
+function Select:new(yi)
+	Screen.new(self)
+	self.yi = yi
+
+	local ui = UIFactory()
+
+	self.chart_header = ChartHeader()
+
+	self.chart_info = ChartInfo()
+	self.chart_diff = ChartDifficulty(yi)
+	self.gameplay_state = GameplayState()
+	self.gameplay_state.y = -9
+	self.set_list = SetList(self.yi.game.chartSelector)
+	self.chart_list = ChartList(self.yi.game.chartSelector, self.yi.game.settings_config)
+	self.chart_list.x = GAP
+
+	self.chart_preview_view = ChartPreviewView(yi.game)
+
+	local layout_version = 2
+
+	if layout_version == 1 then
+		self.root = self:createLayoutVersion1(ui)
+	elseif layout_version == 2 then
+		self.root = self:createLayoutVersion2(ui)
+	end
 
 	local cv = self.yi.game.chartSelector.chartview
 	if cv then
