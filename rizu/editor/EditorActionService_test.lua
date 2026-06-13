@@ -4,12 +4,12 @@ local test = {}
 
 local function createContext(pressed)
 	local calls = {}
-	local noteService = {
+	local context = {
+		save = function()
+			table.insert(calls, "save")
+		end,
 		copyNotes = function(_, cut)
 			table.insert(calls, cut and "cut" or "copy")
-		end,
-		getCopiedNotes = function()
-			return {"a", "b"}
 		end,
 		pasteNotes = function()
 			table.insert(calls, "paste")
@@ -17,34 +17,25 @@ local function createContext(pressed)
 		flipNotes = function()
 			table.insert(calls, "flip")
 		end,
+		undo = function()
+			table.insert(calls, "undo")
+		end,
+		redo = function()
+			table.insert(calls, "redo")
+		end,
 		deleteNotes = function()
 			table.insert(calls, "delete")
 			return 3
 		end,
-	}
-	local context = {
-		editorController = {
-			save = function()
-				table.insert(calls, "save")
-			end,
-		},
-		editorModel = {
-			noteService = noteService,
-			isEditorCommandRequested = function()
-				return pressed.command == true
-			end,
-			undo = function()
-				table.insert(calls, "undo")
-			end,
-			redo = function()
-				table.insert(calls, "redo")
-			end,
-		},
-		notificationModel = {
-			notify = function(_, message)
-				table.insert(calls, "notify:" .. message)
-			end,
-		},
+		getCopiedNoteCount = function()
+			return 2
+		end,
+		notify = function(_, message)
+			table.insert(calls, "notify:" .. message)
+		end,
+		isEditorCommandRequested = function()
+			return pressed.command == true
+		end,
 		keypressed = function(key)
 			return pressed[key] == true
 		end,
@@ -87,7 +78,7 @@ function test.delete_does_not_require_command_modifier(t)
 end
 
 ---@param t testing.T
-function test_command_hotkeys_ignore_without_modifier(t)
+function test.command_hotkeys_ignore_without_modifier(t)
 	local context, calls = createContext({
 		command = false,
 		s = true,

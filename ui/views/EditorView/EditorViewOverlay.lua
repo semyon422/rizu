@@ -1,12 +1,71 @@
 local just = require("just")
 local spherefonts = require("sphere.assets.fonts")
 local imgui = require("imgui")
-local Fraction = require("chart.core.Fraction")
 local gfx_util = require("gfx_util")
 
 local Layout = require("ui.views.EditorView.Layout")
 
 local tabs = {}
+
+---@param self table
+---@return rizu.editor.EditorViewContext
+local function getOverlayContext(self)
+	return self.game.editorModel.context:getViewContext()
+end
+
+---@param self table
+---@return rizu.editor.EditorBmsOverlayContext
+local function getBmsOverlayContext(self)
+	local overlayActionService = self.editorViewServices.overlayActionService
+	local overlayContext = getOverlayContext(self)
+	local editorController = self.game.editorController
+
+	return {
+		getBmsToolsContext = function()
+			return overlayContext:getBmsToolsContext()
+		end,
+		applyBmsOffsetTempo = function()
+			overlayActionService:applyBmsOffsetTempo(overlayContext)
+		end,
+		changeBmsOffset = function(_, delta)
+			overlayActionService:changeBmsOffset(overlayContext, delta)
+		end,
+		sliceKeysounds = function()
+			editorController:sliceKeysounds()
+		end,
+		exportBmsTemplate = function(_, columnsOut)
+			editorController:exportBmsTemplate(columnsOut)
+		end,
+		exportUBmsC = function()
+			editorController:exportUBmsC()
+		end,
+	}
+end
+
+---@param self table
+---@return rizu.editor.EditorInfoOverlayContext
+local function getInfoOverlayContext(self)
+	local metadata = self.game.editorModel.metadata
+	local editorController = self.game.editorController
+
+	return {
+		iterMetadata = function()
+			return metadata:iter()
+		end,
+		setMetadata = function(_, key, value)
+			metadata:set(key, value)
+		end,
+		save = function()
+			editorController:save()
+		end,
+		saveToOsu = function()
+			editorController:saveToOsu()
+		end,
+		saveToNanoChart = function()
+			editorController:saveToNanoChart()
+		end,
+	}
+end
 
 ---@param t number
 ---@return string
@@ -16,28 +75,26 @@ end
 
 ---@param self table
 function tabs.info(self)
-	---@type rizu.editor.EditorModel
-	local editorModel = self.game.editorModel
-
 	imgui.setSize(400, 1080, 400, 55)
 	imgui.text("Chart info")
 
-	for k, v in editorModel.metadata:iter() do
-		v = imgui.input(k .. " input", v, k)
-		editorModel.metadata:set(k, v)
-	end
+	local infoOverlayService = self.editorViewServices.infoOverlayService
+	local infoOverlayContext = getInfoOverlayContext(self)
+	infoOverlayService:editMetadata(infoOverlayContext, function(key, value)
+		return imgui.input(key .. " input", value, key)
+	end)
 
 	imgui.separator()
 
 	if imgui.button("save btn", "save") then
-		self.game.editorController:save()
+		infoOverlayService:save(infoOverlayContext)
 	end
 	just.sameline()
 	if imgui.button("save to osu btn", "save to osu") then
-		self.game.editorController:saveToOsu()
+		infoOverlayService:saveToOsu(infoOverlayContext)
 	end
 	if imgui.button("save to nanochart btn", "save to nanochart") then
-		self.game.editorController:saveToNanoChart()
+		infoOverlayService:saveToNanoChart(infoOverlayContext)
 	end
 
 	love.graphics.push("all")
@@ -50,35 +107,26 @@ end
 
 ---@param self table
 function tabs.audio(self)
-	local editorModel = self.game.editorModel
+	local audioState = self.editorViewServices.audioOverlayService:getState(getOverlayContext(self))
+	imgui.text("playing sounds: " .. audioState.playingCount)
+	imgui.text("offsync: " .. to_ms(audioState.offsync))
 
-	local playing = 0
-	local audioEngine = editorModel.audio_engine
-	if audioEngine.source and audioEngine.source.is_playing then
-		playing = playing + 1
-	end
-	if audioEngine.foregroundSource and audioEngine.foregroundSource.is_playing then
-		playing = playing + 1
-	end
-	imgui.text("playing sounds: " .. playing)
-	local audioPosition = audioEngine:getPosition()
-	local offsync = audioPosition and editorModel.timer:getTime() - audioPosition or 0
-	imgui.text("offsync: " .. to_ms(offsync))
-
-	local settings = self.game.configModel.configs.settings
-	local a = settings.audio
+	local audioSettingsOverlayService = self.editorViewServices.audioSettingsOverlayService
+	local audioSettingsOverlayContext = getOverlayContext(self)
+	local audioSettingsState = audioSettingsOverlayService:getState(audioSettingsOverlayContext)
+	local a = audioSettingsState.audio
 	local v = a.volume
 	if a.volumeType == "linear" then
-		v.master = imgui.slider1("v.master", v.master, "%0.2f", 0, 1, 0.01, "master")
-		v.music = imgui.slider1("v.music", v.music, "%0.2f", 0, 1, 0.01, "music")
-		v.keysounds = imgui.slider1("v.keysounds", v.keysounds, "%0.2f", 0, 1, 0.01, "keysounds")
-		v.metronome = imgui.slider1("v.metronome", v.metronome, "%0.2f", 0, 1, 0.01, "metronome")
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "master", imgui.slider1("v.master", v.master, "%0.2f", 0, 1, 0.01, "master"))
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "music", imgui.slider1("v.music", v.music, "%0.2f", 0, 1, 0.01, "music"))
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "keysounds", imgui.slider1("v.keysounds", v.keysounds, "%0.2f", 0, 1, 0.01, "keysounds"))
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "metronome", imgui.slider1("v.metronome", v.metronome, "%0.2f", 0, 1, 0.01, "metronome"))
 	elseif a.volumeType == "logarithmic" then
 		local logk = 20 / math.log(10)
-		v.master = imgui.logslider("v.master", v.master, "%ddB", -60, 0, 1, logk, "master")
-		v.music = imgui.logslider("v.music", v.music, "%ddB", -60, 0, 1, logk, "music")
-		v.keysounds = imgui.logslider("v.keysounds", v.keysounds, "%ddB", -60, 0, 1, logk, "keysounds")
-		v.metronome = imgui.logslider("v.metronome", v.metronome, "%ddB", -60, 0, 1, logk, "metronome")
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "master", imgui.logslider("v.master", v.master, "%ddB", -60, 0, 1, logk, "master"))
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "music", imgui.logslider("v.music", v.music, "%ddB", -60, 0, 1, logk, "music"))
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "keysounds", imgui.logslider("v.keysounds", v.keysounds, "%ddB", -60, 0, 1, logk, "keysounds"))
+		audioSettingsOverlayService:setVolume(audioSettingsOverlayContext, "metronome", imgui.logslider("v.metronome", v.metronome, "%ddB", -60, 0, 1, logk, "metronome"))
 	end
 
 	imgui.separator()
@@ -89,108 +137,98 @@ function tabs.audio(self)
 
 	imgui.separator()
 
-	local ed = settings.editor
-	ed.audioOffset = imgui.slider1("ed.audioOffset", ed.audioOffset * 1000, "%dms", -200, 200, 1, "main audio offset") / 1000
-	ed.waveformOffset = imgui.slider1("ed.waveformOffset", ed.waveformOffset * 1000, "%dms", -200, 200, 1, "waveform offset") / 1000
+	local ed = audioSettingsState.editor
+	audioSettingsOverlayService:setAudioOffset(audioSettingsOverlayContext, imgui.slider1("ed.audioOffset", ed.audioOffset * 1000, "%dms", -200, 200, 1, "main audio offset") / 1000)
+	audioSettingsOverlayService:setWaveformOffset(audioSettingsOverlayContext, imgui.slider1("ed.waveformOffset", ed.waveformOffset * 1000, "%dms", -200, 200, 1, "waveform offset") / 1000)
 
 	imgui.separator()
 	imgui.text("waveform")
-	local wf = self.game.configModel.configs.settings.editor.waveform
-	wf.opacity = imgui.slider1("wf.opacity", wf.opacity, "%0.2f", 0, 1, 0.01, "opacity")
-	wf.scale = imgui.slider1("wf.scale", wf.scale, "%0.2f", 0, 1, 0.01, "scale")
+	local wf = audioSettingsState.waveform
+	audioSettingsOverlayService:setWaveformOpacity(audioSettingsOverlayContext, imgui.slider1("wf.opacity", wf.opacity, "%0.2f", 0, 1, 0.01, "opacity"))
+	audioSettingsOverlayService:setWaveformScale(audioSettingsOverlayContext, imgui.slider1("wf.scale", wf.scale, "%0.2f", 0, 1, 0.01, "scale"))
 
 	imgui.separator()
 	if imgui.button("set as preview", "set this moment as a preview") then
-		self.editorViewServices.overlayActionService:setPreviewTimeToSession(editorModel)
+		self.editorViewServices.overlayActionService:setPreviewTimeToSession(getOverlayContext(self))
 	end
 end
 
-local velocity = "1"
-local expand = {"0", "1"}
-
 ---@param self table
 function tabs.timings(self)
-	local editorModel = self.game.editorModel
-	local editor = self.game.configModel.configs.settings.editor
-	local layer = editorModel.layer
+	local overlayContext = getOverlayContext(self)
+	local timingOverlayService = self.editorViewServices.timingOverlayService
 
-	local dtp = editorModel:getPoint()
+	local dtp = timingOverlayService:getPoint(overlayContext)
 
 	if imgui.button("prev tp", "<") and dtp.prev then
-		editorModel.scroller:scrollTimePoint(dtp.prev)
+		timingOverlayService:scrollPrev(overlayContext)
 	end
 	just.sameline()
 	if imgui.button("next tp", ">") and dtp.next then
-		editorModel.scroller:scrollTimePoint(dtp.next)
+		timingOverlayService:scrollNext(overlayContext)
 	end
 	just.sameline()
 	imgui.label("dtp label", tostring(dtp))
 
-	editor.showTimings = imgui.checkbox("show timings", editor.showTimings, "show timings")
+	timingOverlayService:setShowTimings(
+		overlayContext,
+		imgui.checkbox("show timings", timingOverlayService:isShowTimings(overlayContext), "show timings")
+	)
 
+	local overlayActionService = self.editorViewServices.overlayActionService
 	if imgui.button("ncbt", "detect tempo and offset") then
-		editorModel:detectTempoOffset()
+		overlayActionService:detectTempoOffset(overlayContext)
 	end
-	if editorModel.ncbtContext.tempo then
+	if overlayActionService:hasDetectedTempoOffset(overlayContext) then
 		just.sameline()
 		if imgui.button("ncbt apply", "apply") then
-			editorModel:applyNcbt()
+			overlayActionService:applyNcbt(overlayContext)
 		end
 	end
 
 	imgui.separator()
 
 	local vertex = dtp._vertex
-	local intervalManager = editorModel.intervalManager
 
 	if dtp.vertex then
 		imgui.text("Tempo: " .. dtp.vertex:getTempo() .. " bpm")
 	end
 
-	if not intervalManager:isGrabbed() then
+	if not timingOverlayService:isGrabbed(overlayContext) then
 		if not vertex then
 			if imgui.button("split button", "split") then
-				intervalManager:split(dtp)
+				timingOverlayService:split(overlayContext, dtp)
 			end
 		elseif imgui.button("grab vertex button", "grab") then
-			intervalManager:grab(vertex)
+			timingOverlayService:grab(overlayContext, vertex)
 		end
 	else
 		if imgui.button("drop vertex button", "drop") then
-			intervalManager:drop()
+			timingOverlayService:drop(overlayContext)
 		end
 	end
-	if vertex and not intervalManager:isGrabbed() then
+	if vertex and not timingOverlayService:isGrabbed(overlayContext) then
 		just.sameline()
 		if imgui.button("merge vertex button", "merge") then
-			intervalManager:merge(vertex.point)
-			editorModel.scroller:scrollSecondsDelta(0)
+			timingOverlayService:merge(overlayContext, vertex.point)
 		end
 		local beats = vertex.beats
 		local newBeats = imgui.intButtons("update vertex", beats, 1, "beats")
 		if beats ~= newBeats then
-			intervalManager:update(vertex, newBeats)
+			timingOverlayService:update(overlayContext, vertex, newBeats)
 		end
 	end
 
 	imgui.separator()
 
-	local totalBeats, avgBeatDuration = editorModel:getTotalBeats()
+	local totalBeats, avgBeatDuration = overlayActionService:getTotalBeats(overlayContext)
 	imgui.text("Total beats: " .. totalBeats)
 	imgui.text("Average tempo: " .. 60 / avgBeatDuration .. " bpm")
 
 	imgui.separator()
 
-	local p
-	if dtp.next then
-		p = dtp.next.prev
-	elseif dtp.prev then
-		p = dtp.prev.prev
-	end
-	---@cast p chart.IntervalPoint
-
-	if p and p.absoluteTime == dtp.absoluteTime then
-		local vp = editorModel:getVisual():getPoint(p)
+	local vp = timingOverlayService:getCommentVisualPoint(overlayContext, dtp)
+	if vp then
 		vp.temp_comment = imgui.input("vp comment", vp.temp_comment or vp.comment, "comment")
 		if imgui.button("save comment", "save") then
 			self.editorViewServices.overlayActionService:setVisualPointComment(vp, vp.temp_comment)
@@ -199,134 +237,110 @@ function tabs.timings(self)
 			self.editorViewServices.overlayActionService:resetVisualPointComment(vp)
 		end
 	end
-
-
-	do return end
-
-	just.row(true)
-	velocity = imgui.input("velocity input", velocity, "velocity")
-	if imgui.button("add velocity button", "add") then
-		layer:getVelocityData(dtp, tonumber(velocity))
-	end
-
-	just.row(true)
-	expand[1] = imgui.input("expand n input", expand[1])
-	imgui.unindent()
-	imgui.label("/ label", "/")
-	expand[2] = imgui.input("expand d input", expand[2], "expand")
-	if imgui.button("add expand button", "add") then
-		layer:getExpandData(dtp, Fraction(tonumber(expand[1]), tonumber(expand[2])))
-	end
-
-	just.row()
-
-	if dtp._velocityData then
-		imgui.label("velocity label", "Velocity: " .. dtp._velocityData.currentSpeed .. " x")
-		just.sameline()
-		if imgui.button("remove velocity button", "remove") then
-			layer:removeVelocityData(dtp)
-		end
-	end
-	if dtp._expandData then
-		imgui.label("expand label", "Expand: " .. dtp._expandData.duration .. " beats")
-		just.sameline()
-		if imgui.button("remove expand button", "remove") then
-			layer:removeExpandData(dtp)
-		end
-	end
 end
-
-local qwerty = "qwerty"
 
 local batch_comment = ""
 
 ---@param self table
 function tabs.notes(self)
-	local editorModel = self.game.editorModel
-	local editor = self.game.configModel.configs.settings.editor
+	local overlayContext = getOverlayContext(self)
+	local notesOverlayService = self.editorViewServices.notesOverlayService
+	local notesState = notesOverlayService:getState(overlayContext)
 
-	local logSpeed = imgui.slider1("editor speed", editorModel:getLogSpeed(), "%d", -30, 50, 1, "speed")
-	if logSpeed ~= editorModel:getLogSpeed() then
-		editorModel:setLogSpeed(logSpeed)
+	local logSpeed = imgui.slider1("editor speed", notesState.logSpeed, "%d", -30, 50, 1, "speed")
+	if logSpeed ~= notesState.logSpeed then
+		notesOverlayService:setLogSpeed(overlayContext, logSpeed)
 	end
-	editor.snap = imgui.slider1("snap select", editor.snap, "%d", 1, editorModel.max_snap, 1, "snap")
-	editor.lockSnap = imgui.checkbox("lock snap", editor.lockSnap, "lock snap")
-	editor.tool = imgui.combo("tool select", editor.tool, editorModel.tools, nil, "tool")
+	notesOverlayService:setSnap(
+		overlayContext,
+		imgui.slider1("snap select", notesState.snap, "%d", 1, notesState.maxSnap, 1, "snap")
+	)
+	notesOverlayService:setLockSnap(
+		overlayContext,
+		imgui.checkbox("lock snap", notesState.lockSnap, "lock snap")
+	)
+	notesOverlayService:setTool(
+		overlayContext,
+		imgui.combo("tool select", notesState.tool, notesState.tools, nil, "tool")
+	)
 	imgui.text("Use qwer to select tool")
 
-	for i = 1, #editorModel.tools do
-		if just.keypressed(qwerty:sub(i, i)) then
-			editor.tool = editorModel.tools[i]
+	for i = 1, #notesState.tools do
+		local key = ("qwerty"):sub(i, i)
+		if just.keypressed(key) then
+			notesOverlayService:setToolForHotkey(overlayContext, key)
 		end
 	end
 
 	if imgui.button("changeType", "change type") then
-		self.editorViewServices.overlayActionService:changeSelectedNoteType(editorModel)
+		self.editorViewServices.overlayActionService:changeSelectedNoteType(overlayContext)
 	end
 
-	if next(editorModel.visualEngine.selectedNotes) and imgui.button("scroll to note", "scroll to") then
-		self.editorViewServices.overlayActionService:scrollToFirstSelectedNote(editorModel)
+	if notesState.hasSelectedNotes and imgui.button("scroll to note", "scroll to") then
+		self.editorViewServices.overlayActionService:scrollToFirstSelectedNote(overlayContext)
 	end
 
 	imgui.separator()
 
 	batch_comment = imgui.input("vps comment", batch_comment, "comment")
 	if imgui.button("save comment notes", "save") then
-		self.editorViewServices.overlayActionService:setSelectedNotesComment(editorModel, batch_comment)
+		self.editorViewServices.overlayActionService:setSelectedNotesComment(overlayContext, batch_comment)
 	end
 	if imgui.button("reset comment notes", "reset") then
-		self.editorViewServices.overlayActionService:resetSelectedNotesComment(editorModel)
+		self.editorViewServices.overlayActionService:resetSelectedNotesComment(overlayContext)
 	end
 
-	local _, sel_note = next(editorModel.visualEngine.selectedNotes)
-	if sel_note then
-		local sounds = sel_note.startNote.sounds
-		if sounds and sounds[1] then
-			imgui.text(sounds[1][1])
-		end
+	if notesState.selectedNoteSound then
+		imgui.text(notesState.selectedNoteSound)
 	end
 end
 
 ---@param self table
 function tabs.bms(self)
-	local editorModel = self.game.editorModel
-	local editor = self.game.configModel.configs.settings.editor
+	local bmsOverlayService = self.editorViewServices.bmsOverlayService
+	local bmsOverlayContext = getBmsOverlayContext(self)
 
-	local bms_tools = editorModel.bmsToolsContext
+	local bms_tools = bmsOverlayService:getBmsToolsContext(bmsOverlayContext)
 	imgui.text("BMS creation tools")
 
-	bms_tools.offset = tonumber(imgui.input("offset", bms_tools.offset, "offset")) or 0
-	bms_tools.tempo = tonumber(imgui.input("tempo", bms_tools.tempo, "tempo")) or 120
+	bmsOverlayService:setOffsetTempo(
+		bmsOverlayContext,
+		tonumber(imgui.input("offset", bms_tools.offset, "offset")) or 0,
+		tonumber(imgui.input("tempo", bms_tools.tempo, "tempo")) or 120
+	)
 
 	if imgui.button("bms apply tempo", "apply") then
-		self.editorViewServices.overlayActionService:applyBmsOffsetTempo(editorModel)
+		bmsOverlayService:applyOffsetTempo(bmsOverlayContext)
 	end
 
 	imgui.text("offset")
 	if imgui.button("bms add offset", "+1ms") then
-		self.editorViewServices.overlayActionService:changeBmsOffset(editorModel, 0.001)
+		bmsOverlayService:changeOffset(bmsOverlayContext, 0.001)
 	end
 	just.sameline()
 	if imgui.button("bms sub offset", "-1ms") then
-		self.editorViewServices.overlayActionService:changeBmsOffset(editorModel, -0.001)
+		bmsOverlayService:changeOffset(bmsOverlayContext, -0.001)
 	end
 
 	if imgui.button("slice keysounds", "slice keysounds") then
-		self.game.editorController:sliceKeysounds()
+		bmsOverlayService:sliceKeysounds(bmsOverlayContext)
 	end
 
-	bms_tools.beat_offset = tonumber(imgui.input("beat_offset", bms_tools.beat_offset, "beat offset")) or 0
+	bmsOverlayService:setBeatOffset(
+		bmsOverlayContext,
+		tonumber(imgui.input("beat_offset", bms_tools.beat_offset, "beat offset")) or 0
+	)
 	if imgui.button("create bms template 5K", "create bms template 5K") then
-		self.game.editorController:exportBmsTemplate(5)
+		bmsOverlayService:exportBmsTemplate(bmsOverlayContext, 5)
 	end
 	if imgui.button("create bms template 7K", "create bms template 7K") then
-		self.game.editorController:exportBmsTemplate(7)
+		bmsOverlayService:exportBmsTemplate(bmsOverlayContext, 7)
 	end
 	if imgui.button("create bms template 10K", "create bms template 10K") then
-		self.game.editorController:exportBmsTemplate(10)
+		bmsOverlayService:exportBmsTemplate(bmsOverlayContext, 10)
 	end
 	if imgui.button("export ubmsc", "export ubmsc") then
-		self.game.editorController:exportUBmsC()
+		bmsOverlayService:exportUBmsC(bmsOverlayContext)
 	end
 end
 
@@ -343,13 +357,14 @@ return function(self)
 	love.graphics.setColor(1, 1, 1, 1)
 
 	local overlayActionService = self.editorViewServices.overlayActionService
+	local overlayContext = getOverlayContext(self)
 	overlayActionService:setOverlayState(
-		editorModel,
-		imgui.tabs("editor overlay tabs", overlayActionService:getOverlayState(editorModel), editorModel.states)
+		overlayContext,
+		imgui.tabs("editor overlay tabs", overlayActionService:getOverlayState(overlayContext), editorModel.states)
 	)
 	love.graphics.setColor(1, 1, 1, 1)
 	imgui.setSize(400, h, 200, lineHeight)
-	tabs[overlayActionService:getOverlayState(editorModel)](self)
+	tabs[overlayActionService:getOverlayState(overlayContext)](self)
 
 	if not editorModel:isResourcesLoaded() then
 		w, h = Layout:move("base")

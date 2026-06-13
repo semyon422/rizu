@@ -8,8 +8,9 @@ local ChartSlider = require("ui.views.EditorView.ChartSlider")
 local Layout = require("ui.views.EditorView.Layout")
 
 return function(self)
-	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel:getPoint()
+	local context = self.game.editorModel.context:getViewContext()
+	local footerService = self.editorViewServices.footerService
+	local state = footerService:getState(context)
 
 	local w, h = Layout:move("footer")
 	love.graphics.setColor(1, 1, 1, 1)
@@ -22,22 +23,17 @@ return function(self)
 
 	just.row(true)
 
-	local play_pause = editorModel.timer.is_playing and "pause" or "play"
-	local button_pressed = imgui.TextButton("play/pause", play_pause, 110, lineHeight)
+	local button_pressed = imgui.TextButton("play/pause", state.playPauseLabel, 110, lineHeight)
 	local key_pressed = just.keypressed("space")
 	if button_pressed or key_pressed then
-		if editorModel.timer.is_playing then
-			editorModel:pause()
-		else
-			editorModel:play()
-		end
+		footerService:togglePlayback(context)
 	end
 
-	imgui.TextButton(nil, time_util.format(editorTimePoint.absoluteTime, 3), 220, lineHeight)
+	imgui.TextButton(nil, time_util.format(state.absoluteTime, 3), 220, lineHeight)
 
-	local newRate = imgui.Slider("rate slider", editorModel.timer.rate, w / 6, lineHeight, ("%0.2fx"):format(editorModel.timer.rate))
+	local newRate = imgui.Slider("rate slider", state.rate, w / 6, lineHeight, ("%0.2fx"):format(state.rate))
 	if newRate then
-		editorModel.timer:setRate(math.min(math.max(newRate, 0.25), 1))
+		footerService:setRate(context, newRate)
 	end
 
 	just.row()

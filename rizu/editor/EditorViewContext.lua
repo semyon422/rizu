@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class rizu.editor.EditorViewContext: rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorSettingsContext, rizu.editor.VisualEngineContext, rizu.editor.EditorChangesContext
+---@class rizu.editor.EditorViewContext: rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorSettingsContext, rizu.editor.VisualEngineContext, rizu.editor.EditorChangesContext, rizu.editor.EditorOverlayActionContext, rizu.editor.EditorScrollInputContext, rizu.editor.EditorChartSliderContext, rizu.editor.EditorFooterContext, rizu.editor.EditorWaveformContext, rizu.editor.EditorOnsetsContext, rizu.editor.EditorTimingOverlayContext, rizu.editor.EditorAudioOverlayContext, rizu.editor.EditorAudioSettingsOverlayContext, rizu.editor.EditorNotesOverlayContext
 ---@operator call: rizu.editor.EditorViewContext
 ---@field model rizu.editor.EditorModel
 local EditorViewContext = class()
@@ -48,9 +48,19 @@ function EditorViewContext:getEditorSettings()
 	return self.model.configModel.configs.settings.editor
 end
 
+---@return table
+function EditorViewContext:getAudioSettings()
+	return self.model.configModel.configs.settings.audio
+end
+
 ---@return table?
 function EditorViewContext:getNoteSkin()
 	return self.model:getNoteSkin()
+end
+
+---@return table?
+function EditorViewContext:getWave()
+	return self.model:getWave()
 end
 
 ---@return rizu.editor.TimeManager
@@ -61,6 +71,11 @@ end
 ---@return rizu.editor.EditorNoteService
 function EditorViewContext:getNoteService()
 	return self.model.noteService
+end
+
+---@return rizu.editor.EditorViewState
+function EditorViewContext:getViewState()
+	return self.model.viewState
 end
 
 ---@return rizu.editor.Metronome
@@ -94,6 +109,16 @@ function EditorViewContext:getAudioEngine()
 	return self.model.audio_engine
 end
 
+---@return number
+function EditorViewContext:getAudioStartTime()
+	return self.model.audio_engine:getStartTime()
+end
+
+---@return number
+function EditorViewContext:getTimerTime()
+	return self.model.timer:getTime()
+end
+
 ---@param point chartedit.Point
 function EditorViewContext:setSessionPoint(point)
 	self.model:setSessionPoint(point)
@@ -102,6 +127,11 @@ end
 ---@return rizu.editor.VisualEngine
 function EditorViewContext:getVisualEngine()
 	return self.model.visualEngine
+end
+
+---@return {[chart.Note]: rizu.editor.EditorNote}
+function EditorViewContext:getSelectedNotes()
+	return self.model.visualEngine.selectedNotes
 end
 
 ---@return sphere.ConfigModel
@@ -114,9 +144,24 @@ function EditorViewContext:getMaxSnap()
 	return self.model.max_snap
 end
 
+---@return string[]
+function EditorViewContext:getTools()
+	return self.model.tools
+end
+
 ---@return number
 function EditorViewContext:getSessionTime()
 	return self.model:getSessionTime()
+end
+
+---@return chartedit.Point
+function EditorViewContext:getPoint()
+	return self.model:getPoint()
+end
+
+---@return table
+function EditorViewContext:getChartmeta()
+	return self.model.chartmeta
 end
 
 ---@return chartedit.Point?
@@ -127,6 +172,12 @@ end
 ---@return chartedit.Visual?
 function EditorViewContext:getVisual()
 	return self.model:getVisual()
+end
+
+---@param point chartedit.Point
+---@return chartedit.VisualPoint
+function EditorViewContext:getVisualPointFor(point)
+	return self.model:getVisual():getPoint(point)
 end
 
 ---@return chartedit.Notes
@@ -147,6 +198,135 @@ end
 
 function EditorViewContext:resetVisual()
 	self.model.visualEngine:reset()
+end
+
+---@param point chartedit.Point
+function EditorViewContext:scrollPoint(point)
+	self.model:scrollPoint(point)
+end
+
+---@param point chartedit.Point
+function EditorViewContext:scrollTimePoint(point)
+	self.model.scroller:scrollTimePoint(point)
+end
+
+---@return rizu.editor.BmsToolsContext
+function EditorViewContext:getBmsToolsContext()
+	return self.model.bmsToolsContext
+end
+
+---@return chartedit.Layer
+function EditorViewContext:getLayer()
+	return self.model.layer
+end
+
+---@return rizu.editor.EditorAnalysisService
+function EditorViewContext:getAnalysisService()
+	return self.model.analysisService
+end
+
+---@return rizu.editor.EditorAnalysisContext
+function EditorViewContext:getAnalysisContext()
+	return self.model.context:getAnalysisContext()
+end
+
+---@return rizu.editor.NcbtContext
+function EditorViewContext:getNcbtContext()
+	return self.model.ncbtContext
+end
+
+---@return number
+---@return number
+function EditorViewContext:getTimelineRange()
+	return self.model.analysisService:getTimelineRange(self.model.context:getAnalysisContext())
+end
+
+---@return table
+function EditorViewContext:getDensityGraph()
+	return self.model.graphsGenerator.densityGraph
+end
+
+---@return table
+function EditorViewContext:getVertexDataGraph()
+	return self.model.graphsGenerator.vertexDatasGraph
+end
+
+---@return number?
+function EditorViewContext:getPreviewTime()
+	return self.model:getPreviewTime()
+end
+
+---@param time number
+function EditorViewContext:scrollSeconds(time)
+	self.model.scroller:scrollSeconds(time)
+end
+
+---@return boolean
+function EditorViewContext:isFineScrollRequested()
+	return self.model.isFineScrollRequested()
+end
+
+---@return boolean
+function EditorViewContext:isSnapChangeRequested()
+	return self.model.isSnapChangeRequested()
+end
+
+---@return boolean
+function EditorViewContext:isSpeedChangeRequested()
+	return self.model.isSpeedChangeRequested()
+end
+
+---@return number
+function EditorViewContext:getLogSpeed()
+	return self.model:getLogSpeed()
+end
+
+---@param logSpeed number
+function EditorViewContext:setLogSpeed(logSpeed)
+	self.model:setLogSpeed(logSpeed)
+end
+
+---@param delta number
+function EditorViewContext:scrollSecondsDelta(delta)
+	self.model.scroller:scrollSecondsDelta(delta)
+end
+
+---@param scroll number
+function EditorViewContext:scrollSnaps(scroll)
+	self.model.scroller:scrollSnaps(scroll)
+end
+
+---@return boolean
+function EditorViewContext:isPlaying()
+	return self.model.timer.is_playing
+end
+
+---@return number
+function EditorViewContext:getRate()
+	return self.model.timer.rate
+end
+
+---@param rate number
+function EditorViewContext:setRate(rate)
+	self.model.timer:setRate(rate)
+end
+
+function EditorViewContext:play()
+	self.model:play()
+end
+
+function EditorViewContext:pause()
+	self.model:pause()
+end
+
+---@return boolean
+function EditorViewContext:isDragging()
+	return self.model.viewState:isDragging()
+end
+
+---@param dragging boolean
+function EditorViewContext:setDragging(dragging)
+	self.model.viewState:setDragging(dragging)
 end
 
 return EditorViewContext

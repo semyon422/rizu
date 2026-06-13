@@ -8,6 +8,22 @@ local class = require("class")
 ---@field dragActive boolean
 ---@field scroll number?
 
+---@class rizu.editor.EditorScrollInputContext
+---@field isFineScrollRequested fun(self: rizu.editor.EditorScrollInputContext): boolean
+---@field isSnapChangeRequested fun(self: rizu.editor.EditorScrollInputContext): boolean
+---@field isSpeedChangeRequested fun(self: rizu.editor.EditorScrollInputContext): boolean
+---@field scrollSecondsDelta fun(self: rizu.editor.EditorScrollInputContext, delta: number)
+---@field scrollSnaps fun(self: rizu.editor.EditorScrollInputContext, scroll: number)
+---@field isPlaying fun(self: rizu.editor.EditorScrollInputContext): boolean
+---@field play fun(self: rizu.editor.EditorScrollInputContext)
+---@field pause fun(self: rizu.editor.EditorScrollInputContext)
+---@field isDragging fun(self: rizu.editor.EditorScrollInputContext): boolean
+---@field setDragging fun(self: rizu.editor.EditorScrollInputContext, dragging: boolean)
+---@field incSnap fun(self: rizu.editor.EditorScrollInputContext)
+---@field decSnap fun(self: rizu.editor.EditorScrollInputContext)
+---@field getLogSpeed fun(self: rizu.editor.EditorScrollInputContext): number
+---@field setLogSpeed fun(self: rizu.editor.EditorScrollInputContext, logSpeed: number)
+
 ---@class rizu.editor.EditorScrollInputService
 ---@operator call: rizu.editor.EditorScrollInputService
 ---@field prevMouseY number
@@ -18,15 +34,15 @@ function EditorScrollInputService:new()
 	self.prevMouseY = 0
 end
 
----@param editorModel rizu.editor.EditorModel
+---@param context rizu.editor.EditorScrollInputContext
 ---@param noteSkin table
 ---@param editor table
 ---@param frame rizu.editor.EditorScrollInputFrame
 ---@return rizu.editor.EditorScrollInputState
-function EditorScrollInputService:update(editorModel, noteSkin, editor, frame)
-	local fineScroll = editorModel.isFineScrollRequested()
-	local snapChange = editorModel.isSnapChangeRequested()
-	local speedChange = editorModel.isSpeedChangeRequested()
+function EditorScrollInputService:update(context, noteSkin, editor, frame)
+	local fineScroll = context:isFineScrollRequested()
+	local snapChange = context:isSnapChangeRequested()
+	local speedChange = context:isSpeedChangeRequested()
 
 	if fineScroll and not self.originalSpeed then
 		self.originalSpeed = editor.speed
@@ -39,14 +55,14 @@ function EditorScrollInputService:update(editorModel, noteSkin, editor, frame)
 	if (fineScroll or snapChange) and frame.dragActive then
 		local currentYTime = noteSkin:getInverseTimePosition(frame.mouseY)
 		local prevYTime = noteSkin:getInverseTimePosition(self.prevMouseY)
-		editorModel.scroller:scrollSecondsDelta((currentYTime - prevYTime) / editor.speed)
-		if editorModel.timer.is_playing then
-			editorModel:pause()
-			editorModel.viewState:setDragging(true)
+		context:scrollSecondsDelta((currentYTime - prevYTime) / editor.speed)
+		if context:isPlaying() then
+			context:pause()
+			context:setDragging(true)
 		end
-	elseif editorModel.viewState:isDragging() then
-		editorModel:play()
-		editorModel.viewState:setDragging(false)
+	elseif context:isDragging() then
+		context:play()
+		context:setDragging(false)
 	end
 	self.prevMouseY = frame.mouseY
 
@@ -54,17 +70,17 @@ function EditorScrollInputService:update(editorModel, noteSkin, editor, frame)
 	if scroll then
 		if snapChange then
 			if scroll == 1 then
-				editorModel:incSnap()
+				context:incSnap()
 			elseif scroll == -1 then
-				editorModel:decSnap()
+				context:decSnap()
 			end
 		elseif speedChange then
-			editorModel:setLogSpeed(editorModel:getLogSpeed() + scroll)
+			context:setLogSpeed(context:getLogSpeed() + scroll)
 		else
-			if editorModel.timer.is_playing and scroll < 0 then
-				editorModel.scroller:scrollSnaps(scroll)
+			if context:isPlaying() and scroll < 0 then
+				context:scrollSnaps(scroll)
 			end
-			editorModel.scroller:scrollSnaps(scroll)
+			context:scrollSnaps(scroll)
 		end
 	end
 

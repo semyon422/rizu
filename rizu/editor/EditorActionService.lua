@@ -7,60 +7,64 @@ local EditorActionService = class()
 ---@alias rizu.editor.KeyPressedFunc fun(key: string): boolean
 
 ---@class rizu.editor.EditorActionContext
----@field editorController rizu.editor.EditorController
----@field editorModel rizu.editor.EditorModel
----@field notificationModel {notify: fun(self: table, message: string)}
+---@field save fun(self: rizu.editor.EditorActionContext)
+---@field copyNotes fun(self: rizu.editor.EditorActionContext, cut: boolean?)
+---@field pasteNotes fun(self: rizu.editor.EditorActionContext)
+---@field flipNotes fun(self: rizu.editor.EditorActionContext)
+---@field undo fun(self: rizu.editor.EditorActionContext)
+---@field redo fun(self: rizu.editor.EditorActionContext)
+---@field deleteNotes fun(self: rizu.editor.EditorActionContext): integer
+---@field getCopiedNoteCount fun(self: rizu.editor.EditorActionContext): integer
+---@field notify fun(self: rizu.editor.EditorActionContext, message: string)
+---@field isEditorCommandRequested fun(self: rizu.editor.EditorActionContext): boolean
 ---@field keypressed rizu.editor.KeyPressedFunc
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:save(context)
-	context.editorController:save()
-	context.notificationModel:notify("saved")
+	context:save()
+	context:notify("saved")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:copy(context)
-	local noteService = context.editorModel.noteService
-	noteService:copyNotes()
-	context.notificationModel:notify("copy " .. #noteService:getCopiedNotes() .. " notes")
+	context:copyNotes()
+	context:notify("copy " .. context:getCopiedNoteCount() .. " notes")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:cut(context)
-	local noteService = context.editorModel.noteService
-	noteService:copyNotes(true)
-	context.notificationModel:notify("cut " .. #noteService:getCopiedNotes() .. " notes")
+	context:copyNotes(true)
+	context:notify("cut " .. context:getCopiedNoteCount() .. " notes")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:paste(context)
-	local noteService = context.editorModel.noteService
-	noteService:pasteNotes()
-	context.notificationModel:notify("paste " .. #noteService:getCopiedNotes() .. " notes")
+	context:pasteNotes()
+	context:notify("paste " .. context:getCopiedNoteCount() .. " notes")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:flip(context)
-	context.editorModel.noteService:flipNotes()
-	context.notificationModel:notify("flip")
+	context:flipNotes()
+	context:notify("flip")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:undo(context)
-	context.editorModel:undo()
-	context.notificationModel:notify("undo")
+	context:undo()
+	context:notify("undo")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:redo(context)
-	context.editorModel:redo()
-	context.notificationModel:notify("redo")
+	context:redo()
+	context:notify("redo")
 end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:delete(context)
-	local deleted = context.editorModel.noteService:deleteNotes()
-	context.notificationModel:notify("delete " .. deleted .. " notes")
+	local deleted = context:deleteNotes()
+	context:notify("delete " .. deleted .. " notes")
 end
 
 ---@param context rizu.editor.EditorActionContext
@@ -89,10 +93,9 @@ end
 
 ---@param context rizu.editor.EditorActionContext
 function EditorActionService:handleHotkeys(context)
-	local editorModel = context.editorModel
 	local keypressed = context.keypressed
 
-	if editorModel.isEditorCommandRequested() then
+	if context:isEditorCommandRequested() then
 		self:handleCommandHotkey(context)
 	end
 

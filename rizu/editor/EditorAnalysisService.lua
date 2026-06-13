@@ -52,6 +52,19 @@ function EditorAnalysisService:getTimelineRange(context)
 end
 
 ---@param context rizu.editor.EditorAnalysisContext
+---@return number totalBeats
+---@return number avgBeatDuration
+function EditorAnalysisService:getTotalBeats(context)
+	local points = context:getLayer():getPointList()
+	local firstPoint = points[1]
+	local lastPoint = points[#points]
+	local totalBeats = (lastPoint.time - firstPoint.time):tonumber()
+	local avgBeatDuration = (lastPoint.absoluteTime - firstPoint.absoluteTime) / totalBeats
+
+	return totalBeats, avgBeatDuration
+end
+
+---@param context rizu.editor.EditorAnalysisContext
 function EditorAnalysisService:genGraphs(context)
 	local firstTime, lastTime = self:getTimelineRange(context)
 	local graphsGenerator = context:getGraphsGenerator()

@@ -3,20 +3,15 @@ local EditorViewState = require("rizu.editor.EditorViewState")
 
 local test = {}
 
-local function createModel(flags, calls)
+local function createContext(flags, calls)
+	local viewState = EditorViewState()
+	local timer = {
+		is_playing = false,
+	}
+
 	return {
-		viewState = EditorViewState(),
-		timer = {
-			is_playing = false,
-		},
-		scroller = {
-			scrollSecondsDelta = function(_, delta)
-				table.insert(calls, "seconds:" .. delta)
-			end,
-			scrollSnaps = function(_, scroll)
-				table.insert(calls, "snaps:" .. scroll)
-			end,
-		},
+		viewState = viewState,
+		timer = timer,
 		isFineScrollRequested = function()
 			return flags.fine == true
 		end,
@@ -26,13 +21,28 @@ local function createModel(flags, calls)
 		isSpeedChangeRequested = function()
 			return flags.speed == true
 		end,
-		pause = function(self)
-			table.insert(calls, "pause")
-			self.timer.is_playing = false
+		scrollSecondsDelta = function(_, delta)
+			table.insert(calls, "seconds:" .. delta)
 		end,
-		play = function(self)
+		scrollSnaps = function(_, scroll)
+			table.insert(calls, "snaps:" .. scroll)
+		end,
+		isPlaying = function()
+			return timer.is_playing
+		end,
+		pause = function()
+			table.insert(calls, "pause")
+			timer.is_playing = false
+		end,
+		play = function()
 			table.insert(calls, "play")
-			self.timer.is_playing = true
+			timer.is_playing = true
+		end,
+		isDragging = function()
+			return viewState:isDragging()
+		end,
+		setDragging = function(_, dragging)
+			viewState:setDragging(dragging)
 		end,
 		incSnap = function()
 			table.insert(calls, "inc")
@@ -66,10 +76,10 @@ function test.fine_scroll_overrides_and_restores_speed(t)
 	local editor = {
 		speed = 2,
 	}
-	local model = createModel(flags, calls)
+	local context = createContext(flags, calls)
 	local service = EditorScrollInputService()
 
-	local state = service:update(model, noteSkin, editor, {
+	local state = service:update(context, noteSkin, editor, {
 		mouseY = 20,
 		dragActive = false,
 	})
@@ -78,7 +88,7 @@ function test.fine_scroll_overrides_and_restores_speed(t)
 	t:eq(state.showMouseDelta, true)
 
 	flags.fine = false
-	service:update(model, noteSkin, editor, {
+	service:update(context, noteSkin, editor, {
 		mouseY = 20,
 		dragActive = false,
 	})
@@ -95,26 +105,26 @@ function test.drag_scroll_pauses_and_resumes_playback(t)
 	local editor = {
 		speed = 2,
 	}
-	local model = createModel(flags, calls)
-	model.timer.is_playing = true
+	local context = createContext(flags, calls)
+	context.timer.is_playing = true
 	local service = EditorScrollInputService()
 	service.prevMouseY = 10
 
-	service:update(model, noteSkin, editor, {
+	service:update(context, noteSkin, editor, {
 		mouseY = 30,
 		dragActive = true,
 	})
 
-	t:eq(model.viewState:isDragging(), true)
+	t:eq(context.viewState:isDragging(), true)
 	t:tdeq(calls, {"seconds:0.01", "pause"})
 
 	flags.fine = false
-	service:update(model, noteSkin, editor, {
+	service:update(context, noteSkin, editor, {
 		mouseY = 30,
 		dragActive = false,
 	})
 
-	t:eq(model.viewState:isDragging(), false)
+	t:eq(context.viewState:isDragging(), false)
 	t:tdeq(calls, {"seconds:0.01", "pause", "play"})
 end
 
@@ -125,17 +135,17 @@ function test.scroll_changes_snap_or_speed(t)
 		speed = 1,
 	}
 
-	EditorScrollInputService():update(createModel({snap = true}, calls), noteSkin, editor, {
+	EditorScrollInputService():update(createContext({snap = true}, calls), noteSkin, editor, {
 		mouseY = 0,
 		dragActive = false,
 		scroll = 1,
 	})
-	EditorScrollInputService():update(createModel({snap = true}, calls), noteSkin, editor, {
+	EditorScrollInputService():update(createContext({snap = true}, calls), noteSkin, editor, {
 		mouseY = 0,
 		dragActive = false,
 		scroll = -1,
 	})
-	EditorScrollInputService():update(createModel({speed = true}, calls), noteSkin, editor, {
+	EditorScrollInputService():update(createContext({speed = true}, calls), noteSkin, editor, {
 		mouseY = 0,
 		dragActive = false,
 		scroll = 2,
@@ -150,10 +160,10 @@ function test.normal_scroll_preserves_current_double_scroll_semantics(t)
 	local editor = {
 		speed = 1,
 	}
-	local model = createModel({}, calls)
-	model.timer.is_playing = true
+	local context = createContext({}, calls)
+	context.timer.is_playing = true
 
-	EditorScrollInputService():update(model, noteSkin, editor, {
+	EditorScrollInputService():update(context, noteSkin, editor, {
 		mouseY = 0,
 		dragActive = false,
 		scroll = -1,

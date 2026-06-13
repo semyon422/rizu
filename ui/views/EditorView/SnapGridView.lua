@@ -314,7 +314,7 @@ function SnapGridView:draw()
 	end
 
 	local canDrag = editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()
-	local scrollState = self.editorViewServices.scrollInputService:update(editorModel, noteSkin, editor, {
+	local scrollState = self.editorViewServices.scrollInputService:update(editorModel.context:getViewContext(), noteSkin, editor, {
 		mouseY = _my,
 		dragActive = canDrag and drag("drag1", width, h),
 		scroll = scroll,

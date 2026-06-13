@@ -1,27 +1,13 @@
 local gfx_util = require("gfx_util")
 
----@param key table
-local function exTime(key)
-	return key.time
-end
-
 return function(self)
 	local editor = self.game.configModel.configs.settings.editor
-	local editorModel = self.game.editorModel
-	local ncbtContext = editorModel.ncbtContext
-	local onsets = ncbtContext.onsets
-	if not onsets then
+	local onsetsService = self.editorViewServices.onsetsService
+	local state = onsetsService:getOnsetsState(self.game.editorModel.context:getViewContext(), editor.speed)
+	if not state then
 		return
 	end
-
-	local time = editorModel:getSessionTime() - editorModel.audio_engine:getStartTime()
-
-	local a, b = onsets:findex(time - 1 / editor.speed, exTime)
-	local node = a or b
-
-	if not node then
-		return
-	end
+	local node = state.node
 
 	local noteSkin = self.game.noteSkinModel.noteSkin
 
@@ -34,9 +20,9 @@ return function(self)
 	love.graphics.replaceTransform(gfx_util.transform(self.transform))
 	love.graphics.translate(noteSkin.baseOffset + noteSkin.fullWidth, 0)
 
-	while node and node.key.time < time + 1 / editor.speed do
+	while node and onsetsService:isNodeVisible(state, node) do
 		local onset = node.key
-		local y = noteSkin:getTimePosition((time - onset.time) * editor.speed)
+		local y = noteSkin:getTimePosition((state.time - onset.time) * editor.speed)
 
 		local value = onset.value
 
@@ -44,7 +30,7 @@ return function(self)
 			love.graphics.setColor(1, 1, 1, 0.5)
 		else
 			if onset.peak_time then
-				local yp = noteSkin:getTimePosition((time - onset.peak_time) * editor.speed)
+				local yp = noteSkin:getTimePosition((state.time - onset.peak_time) * editor.speed)
 				love.graphics.setColor(1, 1, 1, 0.2)
 				love.graphics.line(100, yp, 300, yp)
 			end

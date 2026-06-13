@@ -1,4 +1,5 @@
 local EditorAnalysisService = require("rizu.editor.EditorAnalysisService")
+local Fraction = require("chart.core.Fraction")
 
 local test = {}
 
@@ -125,6 +126,34 @@ function test.get_timeline_range_keeps_chart_start_when_audio_starts_later(t)
 
 	t:eq(firstTime, 0)
 	t:eq(lastTime, 4)
+end
+
+---@param t testing.T
+function test.get_total_beats_returns_average_beat_duration(t)
+	local service = EditorAnalysisService()
+	local context = {
+		getLayer = function()
+			return {
+				getPointList = function()
+					return {
+						{
+							time = Fraction(0),
+							absoluteTime = 1,
+						},
+						{
+							time = Fraction(12),
+							absoluteTime = 7,
+						},
+					}
+				end,
+			}
+		end,
+	}
+
+	local totalBeats, avgBeatDuration = service:getTotalBeats(context)
+
+	t:eq(totalBeats, 12)
+	t:eq(avgBeatDuration, 0.5)
 end
 
 ---@param t testing.T

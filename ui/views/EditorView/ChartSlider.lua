@@ -16,20 +16,19 @@ return function(self, w, h)
 	theme.rectangle(w, h)
 	love.graphics.setColor(1, 1, 1, 1)
 
-	local editorModel = self.game.editorModel
-	local editorTimePoint = editorModel:getPoint()
+	local context = self.game.editorModel.context:getViewContext()
+	local chartSliderService = self.editorViewServices.chartSliderService
+	local state = chartSliderService:getState(context)
 
-	local firstTime, lastTime = editorModel:getTimelineRange()
-	local fullLength = lastTime - firstTime
-	local value = (editorTimePoint.absoluteTime - firstTime) / fullLength
-
-	local densityPoints = editorModel.graphsGenerator.densityGraph
-	local vertexPoints = editorModel.graphsGenerator.vertexDatasGraph
+	local firstTime = state.firstTime
+	local lastTime = state.lastTime
+	local densityPoints = state.densityPoints
+	local vertexPoints = state.vertexPoints
 
 	local over = just.is_over(w, h)
 	local pos = getPosition(w, h)
 
-	local new_value, active, hovered = just.slider("time slider", over, pos, value)
+	local new_value, active, hovered = just.slider("time slider", over, pos, state.value)
 
 	love.graphics.setLineWidth(2)
 	theme.setColor(active, hovered)
@@ -54,7 +53,7 @@ return function(self, w, h)
 		love.graphics.line(x, (1 - densityPoints[i]) * _h + pad, x2, (1 - densityPoints[i + 1]) * _h + pad)
 	end
 
-	local preview_time = editorModel:getPreviewTime()
+	local preview_time = state.previewTime
 	if preview_time then
 		local x = math_util.map(preview_time, firstTime, lastTime, a, b)
 		love.graphics.setColor(0.1, 0.6, 1, 1)
@@ -63,22 +62,14 @@ return function(self, w, h)
 		love.graphics.setLineWidth(1)
 	end
 
-	local x = math_util.map(math.min(math.max(value, 0), 1), 0, 1, a, b)
+	local x = math_util.map(math.min(math.max(state.value, 0), 1), 0, 1, a, b)
 	love.graphics.setColor(1, 1, 1, 1)
 	theme.fillrect(h, h, x - h / 2, 0)
 
 	just.next(w, h)
 
-	if just.active_id == "time slider" then
-		if new_value then
-			editorModel.scroller:scrollSeconds(new_value * fullLength + firstTime)
-		end
-		if editorModel.timer.is_playing then
-			editorModel:pause()
-			editorModel.viewState:setDragging(true)
-		end
-	elseif editorModel.viewState:isDragging() then
-		editorModel:play()
-		editorModel.viewState:setDragging(false)
-	end
+	chartSliderService:updateDrag(context, state, {
+		active = just.active_id == "time slider",
+		newValue = new_value,
+	})
 end

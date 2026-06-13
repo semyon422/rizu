@@ -6,10 +6,42 @@ local Layout = require("ui.views.EditorView.Layout")
 
 ---@param self table
 local function Hotkeys(self)
+	local editorController = self.game.editorController
+	local editorModel = self.game.editorModel
+	local notificationModel = self.game.notificationModel
+	local noteService = editorModel.noteService
+
 	self.editorViewServices.actionService:handleHotkeys({
-		editorController = self.game.editorController,
-		editorModel = self.game.editorModel,
-		notificationModel = self.game.notificationModel,
+		save = function()
+			editorController:save()
+		end,
+		copyNotes = function(_, cut)
+			noteService:copyNotes(cut)
+		end,
+		pasteNotes = function()
+			noteService:pasteNotes()
+		end,
+		flipNotes = function()
+			noteService:flipNotes()
+		end,
+		undo = function()
+			editorModel:undo()
+		end,
+		redo = function()
+			editorModel:redo()
+		end,
+		deleteNotes = function()
+			return noteService:deleteNotes()
+		end,
+		getCopiedNoteCount = function()
+			return #noteService:getCopiedNotes()
+		end,
+		notify = function(_, message)
+			notificationModel:notify(message)
+		end,
+		isEditorCommandRequested = function()
+			return editorModel.isEditorCommandRequested()
+		end,
 		keypressed = just.keypressed,
 	})
 end
