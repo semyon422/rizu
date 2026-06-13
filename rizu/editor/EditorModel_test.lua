@@ -332,10 +332,6 @@ function test.playback_commands_use_playback_context(t)
 				t:eq(context:getTimer(), editorModel.timer)
 				t:eq(context:getAudioEngine(), editorModel.audio_engine)
 			end,
-			loadEditorAudioResources = function(_, context, resources)
-				table.insert(calls, "resources:" .. resources.audio)
-				t:eq(context:getChart(), editorModel.chart)
-			end,
 			playEditor = function(_, context)
 				table.insert(calls, "play")
 				t:eq(context:getIntervalManager(), editorModel.intervalManager)
@@ -349,13 +345,11 @@ function test.playback_commands_use_playback_context(t)
 	attachEditorModel(editorModel)
 
 	editorModel:setTime(1.25)
-	editorModel:loadAudioResources({audio = "song.ogg"})
 	editorModel:play()
 	editorModel:pause()
 
 	t:tdeq(calls, {
 		"time:1.25",
-		"resources:song.ogg",
 		"play",
 		"pause",
 	})
@@ -699,7 +693,7 @@ function test.selection_region_uses_injected_callbacks(t)
 
 	editorModel:selectStart()
 	EditorSelectionService():updateSelectionRect(
-		editorModel.context,
+		editorModel.context:getSelectionRectContext(),
 		{speed = 2},
 		editorModel:getNoteSkin(),
 		6
@@ -748,9 +742,10 @@ function test.load_resources_delegates_when_loaded(t)
 		resourceLoadService = {
 			load = function(_, context, loadedResources)
 				table.insert(calls, "resource")
-				t:eq(type(context.loadAudioResources), "function")
-				t:eq(type(context.renderWave), "function")
-				t:eq(type(context.genGraphs), "function")
+				t:eq(type(context.getPlaybackService), "function")
+				t:eq(type(context.getPlaybackContext), "function")
+				t:eq(type(context.getAnalysisService), "function")
+				t:eq(type(context.getAnalysisContext), "function")
 				t:eq(type(context.setResourcesLoaded), "function")
 				t:eq(loadedResources, resources)
 			end,
@@ -765,11 +760,11 @@ function test.load_resources_delegates_when_loaded(t)
 end
 
 ---@param t testing.T
-function test.resource_load_context_delegates_to_services_and_model_methods(t)
-	local calls = {}
+function test.resource_load_context_exposes_resource_collaborators(t)
 	local resources = {
 		audio = "song.ogg",
 	}
+	local wave = {}
 	---@type rizu.editor.EditorModel
 	local editorModel
 	editorModel = {
@@ -786,41 +781,42 @@ function test.resource_load_context_delegates_to_services_and_model_methods(t)
 			id = "intervals",
 		},
 		playbackService = {
-				loadEditorAudioResources = function(_, playbackContext, loadedResources)
-					table.insert(calls, "audio:" .. loadedResources.audio)
-					t:eq(playbackContext:getTimer(), editorModel.timer)
-					t:eq(playbackContext:getAudioEngine(), editorModel.audio_engine)
-					t:eq(playbackContext:getChart(), editorModel.chart)
-					t:eq(playbackContext:getIntervalManager(), editorModel.intervalManager)
-				end,
-			},
+			loadEditorAudioResources = function(_, playbackContext, loadedResources)
+				t:eq(loadedResources, resources)
+				t:eq(playbackContext:getTimer(), editorModel.timer)
+				t:eq(playbackContext:getAudioEngine(), editorModel.audio_engine)
+				t:eq(playbackContext:getChart(), editorModel.chart)
+				t:eq(playbackContext:getIntervalManager(), editorModel.intervalManager)
+			end,
+		},
+		analysisService = {
+			renderWave = function(_, analysisContext)
+				t:eq(analysisContext:getAudioEngine(), editorModel.audio_engine)
+				analysisContext:setWave(wave)
+			end,
+			genGraphs = function(_, analysisContext)
+				t:eq(analysisContext:getChart(), editorModel.chart)
+				t:eq(analysisContext:getGraphsGenerator(), editorModel.graphsGenerator)
+			end,
+		},
+		graphsGenerator = {
+			id = "graphs",
+		},
 	}
 	attachEditorModel(editorModel)
 
-	function editorModel:renderWave()
-		table.insert(calls, "wave")
-	end
-
-	function editorModel:genGraphs()
-		table.insert(calls, "graphs")
-	end
-
 	function editorModel:setResourcesLoaded(loaded)
-		table.insert(calls, "loaded:" .. tostring(loaded))
+		self.resourcesLoaded = loaded
 	end
 
-	local context = editorModel.context
-	context:loadAudioResources(resources)
-	context:renderWave()
-	context:genGraphs()
+	local context = editorModel.context:getResourceLoadContext()
+	context:getPlaybackService():loadEditorAudioResources(context:getPlaybackContext(), resources)
+	context:getAnalysisService():renderWave(context:getAnalysisContext())
+	context:getAnalysisService():genGraphs(context:getAnalysisContext())
 	context:setResourcesLoaded(true)
 
-	t:tdeq(calls, {
-		"audio:song.ogg",
-		"wave",
-		"graphs",
-		"loaded:true",
-	})
+	t:eq(editorModel:getWave(), wave)
+	t:eq(editorModel.resourcesLoaded, true)
 end
 
 ---@param t testing.T
@@ -832,7 +828,7 @@ function test.interval_manager_context_reads_current_model_state(t)
 	}
 	attachEditorModel(editorModel)
 
-	local context = editorModel.context
+	local context = editorModel.context:getIntervalManagerContext()
 	t:eq(context:getLayer(), editorModel.layer)
 	t:eq(context:getNotes(), editorModel.notes)
 	t:eq(context:getEditorChanges(), editorModel.editorChanges)
@@ -884,7 +880,7 @@ function test.editor_note_service_context_reads_current_model_state(t)
 	}
 	attachEditorModel(editorModel)
 
-	local context = editorModel.context
+	local context = editorModel.context:getNoteServiceContext()
 
 	t:eq(context:getNoteSkin(), "noteSkin")
 	t:eq(context:getSelectedNotes(), editorModel.visualEngine.selectedNotes)
@@ -897,56 +893,19 @@ function test.editor_note_service_context_reads_current_model_state(t)
 end
 
 ---@param t testing.T
-function test.analysis_commands_use_analysis_context(t)
+function test.graph_generation_uses_analysis_context(t)
 	local calls = {}
 	local chart = {
 		id = "chart",
 	}
-	local layer = {
-		id = "layer",
-	}
-	local wave = {
-		id = "wave",
-	}
 	---@type rizu.editor.EditorModel
 	local editorModel
 	editorModel = {
-		ncbtContext = {
-			id = "ncbt",
-		},
-		audio_engine = {
-			id = "audio",
-		},
 		chart = chart,
-		layer = layer,
 		graphsGenerator = {
 			id = "graphs",
 		},
 		analysisService = {
-			detectTempoOffset = function(_, context)
-				table.insert(calls, "detect")
-					t:eq(context:getNcbtContext(), editorModel.ncbtContext)
-					t:eq(context:getAudioEngine(), editorModel.audio_engine)
-			end,
-			applyNcbt = function(_, context)
-				table.insert(calls, "apply")
-					t:eq(context:getLayer(), layer)
-			end,
-			renderWave = function(_, context)
-				table.insert(calls, "wave")
-					t:eq(context:getAudioEngine(), editorModel.audio_engine)
-					context:setWave(wave)
-			end,
-			getFirstLastTime = function(_, context)
-				table.insert(calls, "firstLast")
-					t:eq(context:getLayer(), layer)
-				return -1, 4
-			end,
-			getTimelineRange = function(_, context)
-				table.insert(calls, "timeline")
-					t:eq(context:getChart(), chart)
-				return -2, 5
-			end,
 			genGraphs = function(_, context)
 				table.insert(calls, "graphs")
 					t:eq(context:getGraphsGenerator(), editorModel.graphsGenerator)
@@ -955,19 +914,9 @@ function test.analysis_commands_use_analysis_context(t)
 	}
 	attachEditorModel(editorModel)
 
-	editorModel:detectTempoOffset()
-	editorModel:applyNcbt()
-	editorModel:renderWave()
-	local firstTime, lastTime = editorModel:getFirstLastTime()
-	local timelineStart, timelineEnd = editorModel:getTimelineRange()
 	editorModel:genGraphs()
 
-	t:eq(editorModel:getWave(), wave)
-	t:eq(firstTime, -1)
-	t:eq(lastTime, 4)
-	t:eq(timelineStart, -2)
-	t:eq(timelineEnd, 5)
-	t:tdeq(calls, {"detect", "apply", "wave", "firstLast", "timeline", "graphs"})
+	t:tdeq(calls, {"graphs"})
 end
 
 return test

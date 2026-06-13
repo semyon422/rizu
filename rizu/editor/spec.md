@@ -43,7 +43,7 @@ Owns the chart data (`layer`, `notes`, `chart`, `chartmeta`) and the main update
 
 `load()` delegates lifecycle sequencing to `EditorLoadService` through an explicit load context; `update()` is split into named substeps so behavior can be tested without running the full client. Keep orchestration changes covered by `EditorLoadService_test.lua` and `EditorModel_test.lua`. Load currently sets `loaded = true` before running substeps and fails fast if a substep errors.
 
-`loadResources()` keeps the model-level loaded gate, then delegates audio resource loading, waveform rendering, and graph generation to `EditorResourceLoadService` through a narrow resource-load context. The service marks `resourcesLoaded = true` only after all three steps finish, so audio or graph failures leave the editor in the not-ready resource state.
+`loadResources()` keeps the model-level loaded gate, then delegates audio resource loading, waveform rendering, and graph generation to `EditorResourceLoadService` through a narrow resource-load context. The service coordinates `EditorPlaybackService` and `EditorAnalysisService` directly through focused context getters, then marks `resourcesLoaded = true` only after all three steps finish, so audio or graph failures leave the editor in the not-ready resource state.
 
 `EditorModel` keeps service adapter context factories grouped near `load()`: load, session reset, resource loading, and rectangle selection. Add new model-to-service contexts there rather than inlining callback tables inside orchestration methods.
 
@@ -55,27 +55,35 @@ Rectangle-selection drag state is owned by `EditorSelectionState`. Use `EditorMo
 
 The loaded note skin is owned by `EditorRenderState`. Use `EditorModel:setNoteSkin()` and `getNoteSkin()`.
 
-Pattern-analysis display text is owned by `EditorAnalysisState`. Use `EditorModel:analyzePatterns()` and `getPatternsAnalyzed()`.
+Pattern-analysis display text is owned by `EditorAnalysisState`. Load-time analysis is triggered by `EditorSessionResetService`; UI code should read the result through `EditorModel:getPatternsAnalyzed()`.
 
 `EditorModel` takes a dependency table rather than positional constructor arguments. Input-derived decisions should enter through injected predicates or event data. Runtime keyboard, mouse, and rectangle-selection UI calls live in `EditorInput`; model tests can inject plain functions or fake inputs instead of depending on `love.graphics`, `love.mouse`, `love.keyboard`, or `just`. Editor-view modifier checks such as command hotkeys, fine scrolling, snap changes, and speed changes should be named `EditorInput` queries exposed through `EditorModel`, not direct `love.keyboard` reads in views.
 
 `EditorModel` should rely on `EditorServices` to attach model collaborators during construction. Facade methods should call attached services directly instead of constructing fallback service instances; partial tests that call a service-backed facade must provide that service explicitly.
+
+Keep `EditorModel` facades limited to methods used by UI/controller/export callers. Analysis internals such as NCBT detection, waveform rendering, and timeline range calculation belong on `EditorAnalysisService`; playback resource loading belongs on `EditorResourceLoadService`/`EditorPlaybackService`.
 
 ### `EditorServices` — Model Composition
 Owns default construction of editor collaborators and copies them onto `EditorModel` for compatibility with existing callers. New model-level collaborators should be added to `EditorServices` first, then exposed on `EditorModel` only when current callers still need a direct field.
 
 `EditorServices:attachEditorModel(editorModel)` attaches ownership explicitly. Do not restore broad table mutation such as iterating over every `EditorModel` field; config, resource, input, metadata, timer, audio, and state objects must not accidentally receive `editorModel` back-references. Constructor dependencies may still inject service instances for focused tests, while production uses the default service classes through `EditorServices`.
 
-`EditorServices:update()` owns the per-frame service tick for note dragging and metronome updates. Keep broader chart, timing, audio, cursor, and visual update ordering in `EditorModel:update()`.
+`EditorModelFrameService:updateServices()` owns the per-frame tick for note dragging and metronome updates through explicit `EditorViewContext` collaborators. Keep broader chart, timing, audio, cursor, and visual update ordering in `EditorModel:update()`.
 
 ### Removed Session Bag
 `EditorModel.session` has been removed as a state bag. Do not add it back. Prefer `EditorCursorState`, `EditorSelectionState`, `EditorRenderState`, `EditorAnalysisState`, `EditorRuntimeState`, or `EditorViewState` depending on ownership.
 
-`EditorModelContext` is the internal adapter from `EditorModel` to editor services. `EditorModel` owns one context instance and passes it to services instead of building per-call context tables. The adapter implements the service context contracts while tests should keep using narrow fakes for service-level dependency checks.
+`EditorModelContext` is the internal adapter aggregate from `EditorModel` to editor services. `EditorModel` owns one aggregate instance, but collaborators receive focused model-backed contexts from it:
+- `EditorDataContext` for chart lifecycle, load/save, resource loading, analysis, chart conversion, and interval mutation.
+- `EditorTimelineContext` for playback, scrolling, and metronome timeline access.
+- `EditorViewContext` for settings, frame updates, visual rendering, rectangle selection, and visual reset.
+- `EditorNoteEditContext` for note service composition, note operations, and editor note wrappers.
+
+Tests should keep using narrow fakes for service-level dependency checks. New runtime collaborators should receive one of the focused contexts instead of the aggregate.
 
 Service context annotations should list the exact methods a service calls. When one adapter implements several contracts, declare that aggregation on the adapter class instead of leaving marker-only context types.
 
-`EditorSessionResetService` owns load-time session reset orchestration through an explicit reset context: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, and selection cleanup.
+`EditorSessionResetService` owns load-time session reset orchestration through an explicit reset context: pattern analysis, undo history reset, graph generator load, resource-ready reset, cursor reset, and selection cleanup. The reset context exposes state objects and collaborators; it should not wrap those operations in extra context methods.
 
 `EditorPlaybackService` owns timer/audio coordination: timer loading, audio settings loading, exact seek updates, audio resource loading, play/pause, and audio updates. It receives explicit timer, audio engine, chart, audio settings, and interval-grab dependencies rather than the whole `EditorModel`; keep playback behavior behind `EditorModel` wrappers so existing callers do not reach into the service directly unless they are focused tests.
 
@@ -196,7 +204,7 @@ Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Result
 
 `NcbtContext` is argument-driven: detection receives sound data, and application receives the target chartedit layer. It should not receive an `EditorModel` back-reference.
 
-`EditorAnalysisService` owns waveform rendering, NCBT detect/apply commands, timeline range calculation, and graph generation through `EditorAnalysisContext`. `EditorModel` keeps facade methods for callers but should not directly coordinate `audio_engine`, `NcbtContext`, `GraphsGenerator`, and chart/layer state for these commands.
+`EditorAnalysisService` owns waveform rendering, NCBT detect/apply commands, timeline range calculation, and graph generation through `EditorAnalysisContext`. `EditorModel` should not expose facades for analysis internals; UI commands that need NCBT or waveform actions should call `EditorAnalysisService` through the focused analysis context or introduce a dedicated command service.
 
 ### `BmsToolsContext` — BMS State Container
 Holds BMS-specific editing state (`offset`, `tempo`, `beat_offset`) and provides `resetOffsetTempo()` to apply those values to the chart's layer vertices. Separated from `EditorModel` to isolate BMS-specific concerns.
@@ -290,7 +298,7 @@ Covered and partially modernized:
 - Editor model load sequencing through `EditorLoadService`.
 - Editor model save sequencing through `EditorSaveService`.
 - Editor model playback command wiring through `EditorPlaybackContext`.
-- Editor model analysis, graph, NCBT, and waveform command wiring through `EditorAnalysisContext`.
+- Editor analysis, graph, NCBT, and waveform command wiring through `EditorAnalysisService` and `EditorAnalysisContext`.
 - Editor model service context adaptation through `EditorModelContext`.
 
 Remaining higher-risk areas:

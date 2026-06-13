@@ -7,7 +7,36 @@ local createDeps
 function test.applies_and_attaches_editor_model_collaborators(t)
 	local deps = createDeps()
 	local services = EditorServices(deps)
-	local context = {}
+	local context = {
+		noteChartLoaderContext = {},
+		intervalManagerContext = {},
+		editorChangesContext = {},
+		noteServiceContext = {},
+		visualEngineContext = {},
+		scrollerContext = {},
+		metronomeContext = {},
+	}
+	function context:getNoteChartLoaderContext()
+		return self.noteChartLoaderContext
+	end
+	function context:getIntervalManagerContext()
+		return self.intervalManagerContext
+	end
+	function context:getEditorChangesContext()
+		return self.editorChangesContext
+	end
+	function context:getNoteServiceContext()
+		return self.noteServiceContext
+	end
+	function context:getVisualEngineContext()
+		return self.visualEngineContext
+	end
+	function context:getScrollerContext()
+		return self.scrollerContext
+	end
+	function context:getMetronomeContext()
+		return self.metronomeContext
+	end
 	local editorModel = {
 		context = context,
 	}
@@ -43,19 +72,19 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(editorModel.runtimeState, deps.runtimeState)
 	t:eq(editorModel.viewState, deps.viewState)
 	t:eq(editorModel.frameService, deps.frameService)
-	t:eq(deps.noteChartLoader.context, context)
+	t:eq(deps.noteChartLoader.context, context.noteChartLoaderContext)
 	t:eq(deps.noteChartLoader.editorModel, nil)
 	t:eq(deps.ncbtContext.editorModel, nil)
-	t:eq(deps.intervalManager.context, context)
+	t:eq(deps.intervalManager.context, context.intervalManagerContext)
 	t:eq(deps.graphsGenerator.editorModel, nil)
-	t:eq(deps.editorChanges.context, context)
+	t:eq(deps.editorChanges.context, context.editorChangesContext)
 	t:eq(deps.editorChanges.editorModel, nil)
-	t:eq(deps.noteService.context, context)
+	t:eq(deps.noteService.context, context.noteServiceContext)
 	t:eq(deps.noteService.editorModel, nil)
-	t:eq(deps.visualEngine.context, context)
+	t:eq(deps.visualEngine.context, context.visualEngineContext)
 	t:eq(deps.visualEngine.editorModel, nil)
-	t:eq(deps.scroller.context, context)
-	t:eq(deps.metronome.context, context)
+	t:eq(deps.scroller.context, context.scrollerContext)
+	t:eq(deps.metronome.context, context.metronomeContext)
 	t:eq(deps.bmsToolsContext.editorModel, nil)
 	t:eq(deps.audio_engine.editorModel, nil)
 	t:eq(deps.timer.editorModel, nil)
@@ -75,23 +104,6 @@ function test.applies_and_attaches_editor_model_collaborators(t)
 	t:eq(deps.runtimeState.editorModel, nil)
 	t:eq(deps.viewState.editorModel, nil)
 	t:eq(deps.frameService.editorModel, nil)
-end
-
----@param t testing.T
-function test.update_ticks_frame_services(t)
-	local calls = {}
-	local deps = createDeps()
-	deps.noteService.update = function()
-		table.insert(calls, "notes")
-	end
-	deps.metronome.update = function()
-		table.insert(calls, "metronome")
-	end
-	local services = EditorServices(deps)
-
-	services:update()
-
-	t:tdeq(calls, {"notes", "metronome"})
 end
 
 ---@return rizu.editor.EditorServicesDeps

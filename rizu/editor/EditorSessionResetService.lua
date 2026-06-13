@@ -2,13 +2,13 @@ local class = require("class")
 local Changes = require("Changes")
 
 ---@class rizu.editor.EditorSessionResetContext
----@field analyzePatterns fun(self: rizu.editor.EditorSessionResetContext)
----@field newChanges fun(self: rizu.editor.EditorSessionResetContext): Changes
+---@field getAnalysisState fun(self: rizu.editor.EditorSessionResetContext): rizu.editor.EditorAnalysisState
+---@field getChart fun(self: rizu.editor.EditorSessionResetContext): chart.Chart
 ---@field setChanges fun(self: rizu.editor.EditorSessionResetContext, changes: Changes)
----@field loadGraphs fun(self: rizu.editor.EditorSessionResetContext)
+---@field getGraphsGenerator fun(self: rizu.editor.EditorSessionResetContext): rizu.editor.GraphsGenerator
 ---@field setResourcesLoaded fun(self: rizu.editor.EditorSessionResetContext, loaded: boolean)
 ---@field setSessionTime fun(self: rizu.editor.EditorSessionResetContext, time: number)
----@field finishSelection fun(self: rizu.editor.EditorSessionResetContext)
+---@field getSelectionState fun(self: rizu.editor.EditorSessionResetContext): rizu.editor.EditorSelectionState
 
 ---@class rizu.editor.EditorSessionResetService
 ---@operator call: rizu.editor.EditorSessionResetService
@@ -16,12 +16,12 @@ local EditorSessionResetService = class()
 
 ---@param context rizu.editor.EditorSessionResetContext
 function EditorSessionResetService:reset(context)
-	context:analyzePatterns()
-	context:setChanges(context:newChanges())
-	context:loadGraphs()
+	context:getAnalysisState():analyze(context:getChart())
+	context:setChanges(self.newChanges())
+	context:getGraphsGenerator():load()
 	context:setResourcesLoaded(false)
 	context:setSessionTime(0)
-	context:finishSelection()
+	context:getSelectionState():finish()
 end
 
 ---@return Changes

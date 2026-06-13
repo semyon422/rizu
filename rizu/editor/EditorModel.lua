@@ -54,6 +54,8 @@ EditorModel.tools = {"Select", "ShortNote", "LongNote", "SoundNote"}
 EditorModel.states = {"info", "audio", "timings", "notes", "bms"}
 EditorModel.max_snap = 192
 
+-- Construction and input
+
 ---@param deps rizu.editor.EditorModelDeps
 function EditorModel:new(deps)
 	self.configModel = deps.configModel
@@ -99,9 +101,25 @@ function EditorModel:setInput(input, deps)
 	end
 end
 
+-- Lifecycle
+
 function EditorModel:load()
-	self.loadService:load(self.context)
+	self.loadService:load(self.context:getLoadContext())
 end
+
+function EditorModel:unload()
+	self:setLoaded(false)
+	self:setResourcesLoaded(false)
+	self:setWave(nil)
+	self.audio_engine:unload()
+	self.metronome:unload()
+end
+
+function EditorModel:save()
+	self.saveService:save(self.context:getSaveContext())
+end
+
+-- State accessors
 
 ---@return rizu.editor.EditorRuntimeState
 function EditorModel:getRuntimeState()
@@ -153,10 +171,6 @@ function EditorModel:getAnalysisState()
 	return analysisState
 end
 
-function EditorModel:analyzePatterns()
-	self:getAnalysisState():analyze(self.chart)
-end
-
 ---@return string?
 function EditorModel:getPatternsAnalyzed()
 	return self:getAnalysisState():getPatternsAnalyzed()
@@ -170,70 +184,6 @@ end
 ---@return table?
 function EditorModel:getNoteSkin()
 	return self:getRenderState():getNoteSkin()
-end
-
-function EditorModel:detectTempoOffset()
-	self.analysisService:detectTempoOffset(self.context)
-end
-
-function EditorModel:applyNcbt()
-	self.analysisService:applyNcbt(self.context)
-end
-
----@param editor table
----@return table
-function EditorModel:normalizeEditorSettings(editor)
-	return self.settingsService:normalizeContextEditorSettings(self.context, editor)
-end
-
----@return table
-function EditorModel:getSettings()
-	return self.settingsService:getEditorSettings(self.context)
-end
-
----@return table
-function EditorModel:getAudioSettings()
-	return self.settingsService:getEditorAudioSettings(self.context)
-end
-
-function EditorModel:undo()
-	self.editorChanges:undo()
-end
-
-function EditorModel:redo()
-	self.editorChanges:redo()
-end
-
----@param time number
-function EditorModel:setTime(time)
-	self.playbackService:setEditorTime(self.context, time)
-end
-
----@return number
----@return number
-function EditorModel:getIterRange()
-	local editor = self:getSettings()
-	local absoluteTime = self:getSessionTime()
-	local delta = 1 / editor.speed
-	return absoluteTime - delta, absoluteTime + delta
-end
-
----@param resources {[string]: string}
-function EditorModel:loadResources(resources)
-	if not self:isLoaded() then
-		return
-	end
-
-	self.resourceLoadService:load(self.context, resources)
-end
-
----@param resources {[string]: string}
-function EditorModel:loadAudioResources(resources)
-	self.playbackService:loadEditorAudioResources(self.context, resources)
-end
-
-function EditorModel:renderWave()
-	self.analysisService:renderWave(self.context)
 end
 
 ---@param loaded boolean
@@ -286,21 +236,49 @@ function EditorModel:getChanges()
 	return self:getRuntimeState():getChanges()
 end
 
----@return number
----@return number
-function EditorModel:getFirstLastTime()
-	return self.analysisService:getFirstLastTime(self.context)
+-- Settings
+
+---@param editor table
+---@return table
+function EditorModel:normalizeEditorSettings(editor)
+	return self.settingsService:normalizeContextEditorSettings(self.context:getSettingsContext(), editor)
+end
+
+---@return table
+function EditorModel:getSettings()
+	return self.settingsService:getEditorSettings(self.context:getSettingsContext())
+end
+
+---@return table
+function EditorModel:getAudioSettings()
+	return self.settingsService:getEditorAudioSettings(self.context:getSettingsContext())
 end
 
 ---@return number
----@return number
-function EditorModel:getTimelineRange()
-	return self.analysisService:getTimelineRange(self.context)
+function EditorModel:getLogSpeed()
+	return self.settingsService:getEditorLogSpeed(self.context:getSettingsContext())
 end
 
-function EditorModel:genGraphs()
-	self.analysisService:genGraphs(self.context)
+---@param logSpeed number
+function EditorModel:setLogSpeed(logSpeed)
+	self.settingsService:setEditorLogSpeed(self.context:getSettingsContext(), logSpeed)
 end
+
+function EditorModel:incSnap()
+	self.settingsService:incEditorSnap(self.context:getSettingsContext())
+end
+
+function EditorModel:decSnap()
+	self.settingsService:decEditorSnap(self.context:getSettingsContext())
+end
+
+---@param j number|table
+---@return number
+function EditorModel:getSnap(j)
+	return self.settingsService:getEditorSnap(self.context:getSettingsContext(), j)
+end
+
+-- Timeline and playback
 
 ---@param time number
 ---@return chartedit.Point?
@@ -331,34 +309,26 @@ function EditorModel:getPoint()
 	return self:getCursorState():getPoint()
 end
 
-function EditorModel:unload()
-	self:setLoaded(false)
-	self:setResourcesLoaded(false)
-	self:setWave(nil)
-	self.audio_engine:unload()
-	self.metronome:unload()
-end
-
-function EditorModel:save()
-	self.saveService:save(self.context)
+---@param time number
+function EditorModel:setTime(time)
+	self.playbackService:setEditorTime(self.context:getPlaybackContext(), time)
 end
 
 function EditorModel:play()
-	self.playbackService:playEditor(self.context)
+	self.playbackService:playEditor(self.context:getPlaybackContext())
 end
 
 function EditorModel:pause()
-	self.playbackService:pauseEditor(self.context)
+	self.playbackService:pauseEditor(self.context:getPlaybackContext())
 end
 
 ---@return number
-function EditorModel:getLogSpeed()
-	return self.settingsService:getEditorLogSpeed(self.context)
-end
-
----@param logSpeed number
-function EditorModel:setLogSpeed(logSpeed)
-	self.settingsService:setEditorLogSpeed(self.context, logSpeed)
+---@return number
+function EditorModel:getIterRange()
+	local editor = self:getSettings()
+	local absoluteTime = self:getSessionTime()
+	local delta = 1 / editor.speed
+	return absoluteTime - delta, absoluteTime + delta
 end
 
 ---@param dy number?
@@ -371,63 +341,67 @@ function EditorModel:getMouseTime(dy)
 	return self:getSessionTime() - noteSkin:getInverseTimePosition(my + dy) / editor.speed
 end
 
+---@param point chartedit.Point
+function EditorModel:scrollPoint(point)
+	self.scroller:scrollPoint(point)
+end
+
+-- Resources and analysis
+
+---@param resources {[string]: string}
+function EditorModel:loadResources(resources)
+	if not self:isLoaded() then
+		return
+	end
+
+	self.resourceLoadService:load(self.context:getResourceLoadContext(), resources)
+end
+
+function EditorModel:genGraphs()
+	self.analysisService:genGraphs(self.context:getAnalysisContext())
+end
+
+-- Editing commands
+
+function EditorModel:undo()
+	self.editorChanges:undo()
+end
+
+function EditorModel:redo()
+	self.editorChanges:redo()
+end
+
+-- Selection
+
 ---@param note rizu.editor.EditorNote
 function EditorModel:selectNote(note)
 	self.selectionService:selectNote(self.visualEngine, self.isMultiSelectRequested, note)
 end
 
 function EditorModel:selectStart()
-	self.selectionService:selectStart(self.visualEngine, self.context)
+	self.selectionService:selectStart(self.visualEngine, self.context:getSelectionRectContext())
 end
 
 function EditorModel:selectEnd()
-	self.selectionService:selectEnd(self.visualEngine, self.context)
+	self.selectionService:selectEnd(self.visualEngine, self.context:getSelectionRectContext())
 end
 
+-- Frame/update
+
 function EditorModel:update()
-	self.frameService:update(self.context)
+	self.frameService:update(self.context:getFrameContext())
 end
 
 ---@param event table
 function EditorModel:receive(event)
-	self.frameService:receive(self.context, event)
+	self.frameService:receive(self.context:getFrameContext(), event)
 end
 
-function EditorModel:incSnap()
-	self.settingsService:incEditorSnap(self.context)
-end
-
-function EditorModel:decSnap()
-	self.settingsService:decEditorSnap(self.context)
-end
+-- Chart metadata
 
 ---@return number?
 function EditorModel:getPreviewTime()
 	return tonumber(self.chartmeta.preview_time)
-end
-
----@param point chartedit.Point
-function EditorModel:scrollPoint(point)
-	self.scroller:scrollPoint(point)
-end
-
----@param j number|table
----@return number
-function EditorModel:getSnap(j)
-	return self.settingsService:getEditorSnap(self.context, j)
-end
-
----@return number
----@return number
-function EditorModel:getTotalBeats()
-	local layer = self.layer
-	local a = layer.points:getFirstPoint()
-	local b = layer.points:getLastPoint()
-
-	local beats = b:sub(a)
-	local avgBeatDuration = (b.absoluteTime - a.absoluteTime) / beats
-
-	return beats, avgBeatDuration
 end
 
 return EditorModel

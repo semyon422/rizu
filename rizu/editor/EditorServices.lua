@@ -159,18 +159,13 @@ end
 ---@param editorModel rizu.editor.EditorModel
 function EditorServices:attachEditorModel(editorModel)
 	local context = editorModel.context
-	self.noteChartLoader:setContext(context)
-	self.intervalManager:setContext(context)
-	self.editorChanges:setContext(context)
-	self.noteService:setContext(context)
-	self.visualEngine:setContext(context)
-	self.scroller:setContext(context)
-	self.metronome:setContext(context)
-end
-
-function EditorServices:update()
-	self.noteService:update()
-	self.metronome:update()
+	self.noteChartLoader:setContext(context:getNoteChartLoaderContext())
+	self.intervalManager:setContext(context:getIntervalManagerContext())
+	self.editorChanges:setContext(context:getEditorChangesContext())
+	self.noteService:setContext(context:getNoteServiceContext())
+	self.visualEngine:setContext(context:getVisualEngineContext())
+	self.scroller:setContext(context:getScrollerContext())
+	self.metronome:setContext(context:getMetronomeContext())
 end
 
 return EditorServices

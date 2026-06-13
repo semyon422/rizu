@@ -1,18 +1,15 @@
 local class = require("class")
-local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
-local EditorSelectionService = require("rizu.editor.EditorSelectionService")
 
 ---@class rizu.editor.EditorModelFrameContext: rizu.editor.EditorSelectionRectContext
 ---@field getSettings fun(self: rizu.editor.EditorModelFrameContext): table
 ---@field getNoteSkin fun(self: rizu.editor.EditorModelFrameContext): table?
 ---@field getTimer fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.TimeManager
----@field getServices fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.EditorServices?
 ---@field getNoteService fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.EditorNoteService
 ---@field getMetronome fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.Metronome
----@field getSelectionService fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.EditorSelectionService?
+---@field getSelectionService fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.EditorSelectionService
 ---@field getDtpAbsolute fun(self: rizu.editor.EditorModelFrameContext, time: number): chartedit.Point
 ---@field getIntervalManager fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.IntervalManager
----@field getPlaybackService fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.EditorPlaybackService?
+---@field getPlaybackService fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.EditorPlaybackService
 ---@field getAudioEngine fun(self: rizu.editor.EditorModelFrameContext): rizu.engine.audio.Engine
 ---@field setSessionPoint fun(self: rizu.editor.EditorModelFrameContext, point: chartedit.Point)
 ---@field getVisualEngine fun(self: rizu.editor.EditorModelFrameContext): rizu.editor.VisualEngine
@@ -33,12 +30,6 @@ end
 
 ---@param context rizu.editor.EditorModelFrameContext
 function EditorModelFrameService:updateServices(context)
-	local services = context:getServices()
-	if services then
-		services:update()
-		return
-	end
-
 	context:getNoteService():update()
 	context:getMetronome():update()
 end
@@ -48,7 +39,7 @@ end
 ---@param noteSkin table
 ---@param time number
 function EditorModelFrameService:updateSelection(context, editor, noteSkin, time)
-	(context:getSelectionService() or EditorSelectionService()):updateSelectionRect(
+	context:getSelectionService():updateSelectionRect(
 		context,
 		editor,
 		noteSkin,
@@ -67,7 +58,7 @@ end
 
 ---@param context rizu.editor.EditorModelFrameContext
 function EditorModelFrameService:updateAudio(context)
-	(context:getPlaybackService() or EditorPlaybackService()):updateAudio(context:getAudioEngine())
+	context:getPlaybackService():updateAudio(context:getAudioEngine())
 end
 
 ---@param context rizu.editor.EditorModelFrameContext

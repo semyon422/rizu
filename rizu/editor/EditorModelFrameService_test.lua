@@ -25,10 +25,17 @@ function test.update_order(t)
 				end,
 			}
 		end,
-		getServices = function()
+		getNoteService = function()
 			return {
 				update = function()
-					table.insert(calls, "services")
+					table.insert(calls, "notes")
+				end,
+			}
+		end,
+		getMetronome = function()
+			return {
+				update = function()
+					table.insert(calls, "metronome")
 				end,
 			}
 		end,
@@ -85,7 +92,8 @@ function test.update_order(t)
 		"settings",
 		"skin",
 		"timer",
-		"services",
+		"notes",
+		"metronome",
 		"selection:0.5",
 		"point:0.5",
 		"timing:0.5",

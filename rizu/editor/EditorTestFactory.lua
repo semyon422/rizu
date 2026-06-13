@@ -130,10 +130,10 @@ function EditorTestFactory.createEditorModel()
 	end
 
 	editorModel.context = EditorModelContext(editorModel)
-	editorChanges:setContext(editorModel.context)
-	intervalManager:setContext(editorModel.context)
-	noteService:setContext(editorModel.context)
-	scroller:setContext(editorModel.context)
+	editorChanges:setContext(editorModel.context:getEditorChangesContext())
+	intervalManager:setContext(editorModel.context:getIntervalManagerContext())
+	noteService:setContext(editorModel.context:getNoteServiceContext())
+	scroller:setContext(editorModel.context:getScrollerContext())
 
 	return editorModel
 end

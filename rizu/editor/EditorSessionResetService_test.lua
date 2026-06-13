@@ -6,21 +6,29 @@ local test = {}
 function test.reset_initializes_editor_session_state(t)
 	local calls = {}
 	local changes
-	local nextChanges = {}
+	local chart = {}
 	local context = {
-		analyzePatterns = function()
-			table.insert(calls, "analysis")
+		getAnalysisState = function()
+			return {
+				analyze = function(_, loadedChart)
+					table.insert(calls, "analysis")
+					t:eq(loadedChart, chart)
+				end,
+			}
 		end,
-		newChanges = function()
-			table.insert(calls, "new-changes")
-			return nextChanges
+		getChart = function()
+			return chart
 		end,
 		setChanges = function(_, loadedChanges)
 			table.insert(calls, "changes")
 			changes = loadedChanges
 		end,
-		loadGraphs = function()
-			table.insert(calls, "graphs")
+		getGraphsGenerator = function()
+			return {
+				load = function()
+					table.insert(calls, "graphs")
+				end,
+			}
 		end,
 		setResourcesLoaded = function(_, loaded)
 			table.insert(calls, "resources:" .. tostring(loaded))
@@ -28,17 +36,20 @@ function test.reset_initializes_editor_session_state(t)
 		setSessionTime = function(_, time)
 			table.insert(calls, "time:" .. time)
 		end,
-		finishSelection = function()
-			table.insert(calls, "selection")
+		getSelectionState = function()
+			return {
+				finish = function()
+					table.insert(calls, "selection")
+				end,
+			}
 		end,
 	}
 
 	EditorSessionResetService():reset(context)
 
-	t:eq(changes, nextChanges)
+	t:ne(changes, nil)
 	t:tdeq(calls, {
 		"analysis",
-		"new-changes",
 		"changes",
 		"graphs",
 		"resources:false",

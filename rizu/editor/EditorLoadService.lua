@@ -1,10 +1,9 @@
 local class = require("class")
-local EditorPlaybackService = require("rizu.editor.EditorPlaybackService")
 
 ---@class rizu.editor.EditorLoadContext
 ---@field setLoaded fun(self: rizu.editor.EditorLoadContext, loaded: boolean)
 ---@field getSettings fun(self: rizu.editor.EditorLoadContext): table
----@field getPlaybackService fun(self: rizu.editor.EditorLoadContext): rizu.editor.EditorPlaybackService?
+---@field getPlaybackService fun(self: rizu.editor.EditorLoadContext): rizu.editor.EditorPlaybackService
 ---@field getNoteChartLoader fun(self: rizu.editor.EditorLoadContext): rizu.editor.NoteChartLoader
 ---@field setChartData fun(self: rizu.editor.EditorLoadContext, layer: chartedit.Layer, notes: chartedit.Notes)
 ---@field setVisual fun(self: rizu.editor.EditorLoadContext, visual: chartedit.Visual?)
@@ -29,7 +28,7 @@ function EditorLoadService:load(context)
 	context:setLoaded(true)
 
 	local editor = context:getSettings()
-	local playbackService = context:getPlaybackService() or EditorPlaybackService()
+	local playbackService = context:getPlaybackService()
 
 	local layer, notes = context:getNoteChartLoader():load()
 	context:setChartData(layer, notes)

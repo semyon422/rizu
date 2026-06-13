@@ -10,17 +10,31 @@ function test.load_runs_resource_steps_in_order(t)
 	}
 	local resourcesLoaded
 	local context = {
+		getPlaybackService = function()
+			return {
+				loadEditorAudioResources = function(_, _playbackContext, loadedResources)
+					table.insert(calls, "audio:" .. loadedResources.audio)
+				end,
+			}
+		end,
+		getPlaybackContext = function()
+			return "playback"
+		end,
+		getAnalysisService = function()
+			return {
+				renderWave = function()
+					table.insert(calls, "wave")
+				end,
+				genGraphs = function()
+					table.insert(calls, "graphs")
+				end,
+			}
+		end,
+		getAnalysisContext = function()
+			return "analysis"
+		end,
 		setResourcesLoaded = function(_, loaded)
 			resourcesLoaded = loaded
-		end,
-		loadAudioResources = function(_, loadedResources)
-			table.insert(calls, "audio:" .. loadedResources.audio)
-		end,
-		renderWave = function()
-			table.insert(calls, "wave")
-		end,
-		genGraphs = function()
-			table.insert(calls, "graphs")
 		end,
 	}
 
@@ -35,18 +49,32 @@ function test.load_fails_fast_on_audio_error(t)
 	local calls = {}
 	local resourcesLoaded
 	local context = {
+		getPlaybackService = function()
+			return {
+				loadEditorAudioResources = function()
+					table.insert(calls, "audio")
+					error("audio failed")
+				end,
+			}
+		end,
+		getPlaybackContext = function()
+			return "playback"
+		end,
+		getAnalysisService = function()
+			return {
+				renderWave = function()
+					table.insert(calls, "wave")
+				end,
+				genGraphs = function()
+					table.insert(calls, "graphs")
+				end,
+			}
+		end,
+		getAnalysisContext = function()
+			return "analysis"
+		end,
 		setResourcesLoaded = function(_, loaded)
 			resourcesLoaded = loaded
-		end,
-		loadAudioResources = function()
-			table.insert(calls, "audio")
-			error("audio failed")
-		end,
-		renderWave = function()
-			table.insert(calls, "wave")
-		end,
-		genGraphs = function()
-			table.insert(calls, "graphs")
 		end,
 	}
 
@@ -63,18 +91,32 @@ function test.load_does_not_mark_loaded_when_graphs_fail(t)
 	local calls = {}
 	local resourcesLoaded
 	local context = {
+		getPlaybackService = function()
+			return {
+				loadEditorAudioResources = function()
+					table.insert(calls, "audio")
+				end,
+			}
+		end,
+		getPlaybackContext = function()
+			return "playback"
+		end,
+		getAnalysisService = function()
+			return {
+				renderWave = function()
+					table.insert(calls, "wave")
+				end,
+				genGraphs = function()
+					table.insert(calls, "graphs")
+					error("graphs failed")
+				end,
+			}
+		end,
+		getAnalysisContext = function()
+			return "analysis"
+		end,
 		setResourcesLoaded = function(_, loaded)
 			resourcesLoaded = loaded
-		end,
-		loadAudioResources = function()
-			table.insert(calls, "audio")
-		end,
-		renderWave = function()
-			table.insert(calls, "wave")
-		end,
-		genGraphs = function()
-			table.insert(calls, "graphs")
-			error("graphs failed")
 		end,
 	}
 
