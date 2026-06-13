@@ -111,9 +111,13 @@ function ChartDifficulty:draw()
 	lg.setColor(Colors.text_muted)
 	lg.print(self.calculator)
 
-	lg.setColor(self.difficulty_color)
 	lg.setFont(self.diff_font)
+	lg.setColor(0, 0, 0, 0.3)
+	lg.print(self.difficulty, 2, self.diff_y + 2)
+
+	lg.setColor(self.difficulty_color)
 	lg.print(self.difficulty, 0, self.diff_y)
+
 
 	lg.setFont(self.patterns_font)
 	lg.setColor(Colors.text)

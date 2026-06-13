@@ -76,13 +76,13 @@ function ChartList:addToBatch(item, y, is_selected)
 	if item.inputmode then
 		local text = item.inputmode:gsub("key", "K"):gsub("scratch", "S")
 		shadow_string[2] = text
-		self.text_batch:addf(shadow_string, 90, "center", 5 + 2, y + self.text_y + 2)
+		self.text_batch:addf(shadow_string, 90, "center", 5 + 2, y + self.text_y)
 		self.text_batch:addf(text, 90, "center", 5, y + self.text_y)
 	end
 
 	if item.name then
 		shadow_string[2] = item.name
-		self.text_batch:add(shadow_string, 100 + 2, y + self.text_y + 2)
+		self.text_batch:add(shadow_string, 100 + 2, y + self.text_y)
 		self.text_batch:add(item.name, 100, y + self.text_y)
 	end
 end
