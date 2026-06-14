@@ -85,13 +85,18 @@ function Painter.getFontHeight(size)
 	return Painter.font:getHeight() * (size / Painter.font_base_size)
 end
 
-
 ---@param text string
 ---@param font_size number
 ---@return number
 function Painter.getFontWidth(text, font_size)
 	return Painter.font:getWidth(text) * (font_size / Painter.font_base_size)
 end
+
+---@param size number
+function Painter.getFontScaleFor(size)
+	return size / Painter.font_base_size
+end
+
 
 function Painter.beginTextDrawing()
 	love.graphics.setShader(Painter.font_shader)

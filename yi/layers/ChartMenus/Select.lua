@@ -10,8 +10,7 @@ local ChartInfo = require("yi.views.info.ChartInfo")
 local ChartDifficulty = require("yi.views.info.ChartDifficulty")
 local GameplayState = require("yi.views.info.GameplayState")
 local IconButton = require("yi.views.IconButton")
-local SetList = require("yi.views.select.SetList")
-local ChartList = require("yi.views.select.ChartList")
+local CombinedList = require("yi.views.select.CombinedList")
 local SpringValue = require("gui.anim.SpringValue")
 
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
@@ -98,12 +97,8 @@ local function createInnerContainer(self, ui)
 
 		S.Stack({ -- Inner container
 			padding = GAP,
-			self.chart_header,
 
-			S.Anchor({
-				pivot = {0, 0.5},
-				self.chart_list
-			}),
+			self.chart_header,
 
 			S.Anchor({
 				pivot = {0, 1},
@@ -150,7 +145,7 @@ function Select:createLayoutVersion1(ui)
 				S.Align({
 					direction = "row",
 					align = 1,
-					self.set_list
+					self.combined_list
 				}),
 			}),
 
@@ -160,41 +155,6 @@ function Select:createLayoutVersion1(ui)
 			}),
 
 			createSidePanel(self, ui),
-		}),
-	})
-end
-
----@param ui yi.UIFactory
----@return gui.Composition.Node
-function Select:createLayoutVersion2(ui)
-	return S.Stack({
-		S.Track({
-			space = {64, 2, 500, 4, "*"},
-
-			createSidePanel(self, ui),
-
-			ui:Rectangle({
-				fit_box = true,
-				color = Colors.line
-			}),
-
-			S.Stack({
-				ui:Rectangle({
-					color = Colors.select_bg_gradient,
-				}),
-				S.Align({
-					direction = "row",
-					align = 0,
-					self.set_list
-				}),
-			}),
-
-			ui:Rectangle({
-				fit_box = true,
-				color = Colors.line
-			}),
-
-			createInnerContainer(self, ui)
 		}),
 	})
 end
@@ -211,19 +171,12 @@ function Select:new(yi)
 	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
 	self.gameplay_state = GameplayState()
-	self.set_list = SetList(self.yi.game.chartSelector)
-	self.chart_list = ChartList(self.yi.game.chartSelector, self.yi.game.settings_config)
-	self.chart_list.x = GAP
+	self.combined_list = CombinedList(self.yi.game.chartSelector, self.yi.game.settings_config)
+	self.combined_list.x = -5
 
 	self.chart_preview_view = ChartPreviewView(yi.game)
 
-	local layout_version = 1
-
-	if layout_version == 1 then
-		self.root = self:createLayoutVersion1(ui)
-	elseif layout_version == 2 then
-		self.root = self:createLayoutVersion2(ui)
-	end
+	self.root = self:createLayoutVersion1(ui)
 
 	local cv = self.yi.game.chartSelector.chartview
 	if cv then
@@ -248,7 +201,6 @@ end
 
 function Select:enter()
 	self.yi.command_registry:pushContext("select", self.commands)
-	self.chart_list:slideIn()
 end
 
 function Select:exit()
@@ -328,9 +280,10 @@ function Select:receive(event)
 		return
 	end
 
-	if event.type == "selection" and event.level == 1 then
-		self.chart_list:slideIn()
-		self.chart_header:fadeIn()
+	if event.type == "selection" then
+		if event.level == 1 then
+			self.chart_header:fadeIn()
+		end
 		return
 	end
 

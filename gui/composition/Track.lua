@@ -166,11 +166,11 @@ function Track:arrange()
 		for _, v in ipairs(self.combined) do
 			if v._is_view then
 				v.box.x = x
-				v.box.y = y
+				v.box.y = y + (self.height - v.height) * self.align
 				x = x + v.box.width + self.gap
 			elseif v._is_node then ---@cast v gui.Composition.Node
 				v.layout_x = x
-				v.layout_y = y
+				v.layout_y = y + (self.height - v.height) * self.align
 				x = x + v.width + self.gap
 				v:arrange()
 			end
