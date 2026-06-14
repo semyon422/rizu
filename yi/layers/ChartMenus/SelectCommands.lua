@@ -1,6 +1,70 @@
+local modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
+
+local mode_names = {
+	chartfile_sets = "sets",
+	chartfiles = "files",
+	chartmetas = "metas",
+	chartdiffs = "diffs",
+	chartplays = "plays",
+}
+
+---@return yi.command_palette.Fuzzy.Candidate[] choices
+local function getModeChoices()
+	---@type yi.command_palette.Fuzzy.Candidate[]
+	local choices = {}
+	for _, mode in ipairs(modes) do
+		table.insert(choices, {
+			title = mode_names[mode],
+			value = mode,
+		})
+	end
+	return choices
+end
+
 ---@param game sphere.GameController
+---@param key "primary_mode"|"secondary_mode"
+---@param mode string
+local function setSelectionMode(game, key, mode)
+	game.configModel.configs.settings.select[key] = mode
+	game.chartSelector:noDebounceRefresh()
+end
+
+---@param game sphere.GameController
+---@return yi.command_palette.Command[]
 return function(game)
 	return {
+		{
+			id = "select.set_primary_mode",
+			title = "Select: Set Primary Mode",
+			description = "Changes the primary selection list mode",
+			arguments = {
+				{
+					name = "mode",
+					type = "string",
+					prompt = "Select primary mode:",
+					choices = getModeChoices(),
+				}
+			},
+			callback = function(args)
+				setSelectionMode(game, "primary_mode", args.mode)
+			end
+		},
+		{
+			id = "select.set_secondary_mode",
+			title = "Select: Set Secondary Mode",
+			description = "Changes the secondary selection list mode",
+			arguments = {
+				{
+					name = "mode",
+					type = "string",
+					prompt = "Select secondary mode:",
+					choices = getModeChoices(),
+				}
+			},
+			callback = function(args)
+				setSelectionMode(game, "secondary_mode", args.mode)
+			end
+		},
 		{
 			id = "select.export_osu",
 			title = "Export chart: To .osu",
