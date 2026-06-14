@@ -21,6 +21,20 @@ local function getModeChoices()
 	return choices
 end
 
+---@param sortModel rizu.select.SortModel
+---@return yi.command_palette.Fuzzy.Candidate[] choices
+local function getSortChoices(sortModel)
+	---@type yi.command_palette.Fuzzy.Candidate[]
+	local choices = {}
+	for _, name in ipairs(sortModel.names) do
+		table.insert(choices, {
+			title = name,
+			value = name,
+		})
+	end
+	return choices
+end
+
 ---@param game sphere.GameController
 ---@param key "primary_mode"|"secondary_mode"
 ---@param mode string
@@ -63,6 +77,22 @@ return function(game)
 			},
 			callback = function(args)
 				setSelectionMode(game, "secondary_mode", args.mode)
+			end
+		},
+		{
+			id = "select.set_sorting",
+			title = "Select: Set Sorting",
+			description = "Changes the chart list sorting",
+			arguments = {
+				{
+					name = "sorting",
+					type = "string",
+					prompt = "Select sorting:",
+					choices = getSortChoices(game.chartSelector.sortModel),
+				}
+			},
+			callback = function(args)
+				game.chartSelector:setSortFunction(args.sorting)
 			end
 		},
 		{
