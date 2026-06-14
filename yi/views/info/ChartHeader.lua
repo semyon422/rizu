@@ -19,8 +19,8 @@ function ChartHeader:new()
 	self.creator_text = ""
 
 	self.alpha_title = TweenValue({value = 1, duration = 0.3, easing = "inQuad"})
-	self.alpha_artist = TweenValue({value = 1, duration = 0.4, easing = "inQuad"})
-	self.alpha_creator = TweenValue({value = 1, duration = 0.45, easing = "inQuad"})
+	self.alpha_artist = TweenValue({value = 1, duration = 0.34, easing = "inQuad"})
+	self.alpha_creator = TweenValue({value = 1, duration = 0.4, easing = "inQuad"})
 
 	self:setHeight(self.font_title:getHeight() + self.font_artist:getHeight() + self.font_creator:getHeight() + 4)
 end
@@ -76,20 +76,33 @@ function ChartHeader:draw()
 	local y = 0
 	local t_c = Colors.text
 	local m_c = Colors.text_muted
+	local s_c = Colors.text_shadow
 
+	-- title
 	lg.setFont(self.font_title)
+	lg.setColor(s_c[1], s_c[2], s_c[3], (s_c[4] or 1) * self.alpha_title:get())
+	lg.print(self.title_text, 2, y + 2)
+
 	lg.setColor(t_c[1], t_c[2], t_c[3], (t_c[4] or 1) * self.alpha_title:get())
 	lg.print(self.title_text, 0, y)
 	y = y + self.font_title:getHeight()
 
+	-- artist
 	lg.setFont(self.font_artist)
+	lg.setColor(s_c[1], s_c[2], s_c[3], (s_c[4] or 1) * self.alpha_title:get())
+	lg.print(self.artist_text, 2, y + 2)
+
 	lg.setColor(t_c[1], t_c[2], t_c[3], (t_c[4] or 1) * self.alpha_artist:get())
 	lg.print(self.artist_text, 0, y)
 	y = y + self.font_artist:getHeight()
 
-	lg.setFont(self.font_creator)
-	lg.setColor(m_c[1], m_c[2], m_c[3], (m_c[4] or 1) * self.alpha_creator:get())
+	-- creator
 	y = y + 4
+	lg.setFont(self.font_creator)
+	lg.setColor(s_c[1], s_c[2], s_c[3], (s_c[4] or 1) * self.alpha_title:get())
+	lg.print(self.creator_text, 2, y + 2)
+
+	lg.setColor(m_c[1], m_c[2], m_c[3], (m_c[4] or 1) * self.alpha_creator:get())
 	lg.print(self.creator_text, 0, y)
 
 	lg.setColor(1, 1, 1, 1)

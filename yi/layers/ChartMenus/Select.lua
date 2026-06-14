@@ -109,7 +109,7 @@ local function createInnerContainer(self, ui)
 				pivot = {0, 1},
 				S.Flow({
 					direction = "column",
-					gap = 10,
+					gap = 20,
 					S.Flow({
 						direction = "row",
 						gap = 20,
@@ -117,7 +117,7 @@ local function createInnerContainer(self, ui)
 						self.chart_diff,
 						ui:Rectangle({
 							width = 3,
-							height = 80,
+							height = 74,
 							fit_box = false,
 							color = Colors.line,
 							blend_mode = "add"
@@ -206,14 +206,13 @@ function Select:new(yi)
 	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
 	self.gameplay_state = GameplayState()
-	self.gameplay_state.y = -9
 	self.set_list = SetList(self.yi.game.chartSelector)
 	self.chart_list = ChartList(self.yi.game.chartSelector, self.yi.game.settings_config)
 	self.chart_list.x = GAP
 
 	self.chart_preview_view = ChartPreviewView(yi.game)
 
-	local layout_version = 2
+	local layout_version = 1
 
 	if layout_version == 1 then
 		self.root = self:createLayoutVersion1(ui)

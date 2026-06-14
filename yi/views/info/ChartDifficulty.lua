@@ -2,8 +2,8 @@ local View = require("gui.View")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 local Settings = require("rizu.config.schemas.Settings")
-local Resources = require("yi.Resources")
 local Msd = require("yi.Msd")
+local Painter = require("yi.Painter")
 
 ---@class yi.views.info.ChartDifficulty : gui.View
 ---@operator call: yi.views.info.ChartDifficulty
@@ -13,20 +13,14 @@ local ChartDifficulty = View + {}
 function ChartDifficulty:new(yi)
 	View.new(self)
 	self.config = yi.game.settings_config
-	self.calc_font = Resources.getFont("bold", 24)
-	self.diff_font = Resources.getFont("bold", 72)
-	self.patterns_font = Resources.getFont("bold", 24)
-
 	self.calculator = "MSD"
 	self.difficulty = "0.0"
 	self.difficulty_color = {1, 1, 1, 1}
 	self.patterns = "None"
 	self.pattern_count = 1
 
-	local h = self.calc_font:getHeight() + self.diff_font:getHeight()
+	local h = Painter.getFontHeight(72) + Painter.getFontHeight(24)
 	self:setSize(350, h)
-
-	self.diff_y = self.calc_font:getHeight()
 end
 
 ---@param data {[string]: number}
@@ -101,29 +95,34 @@ function ChartDifficulty:bind(chartview, rate)
 		self.patterns = p1:upper()
 		self.pattern_count = 1
 	end
-
 end
 
 local lg = love.graphics
 
 function ChartDifficulty:draw()
-	lg.setFont(self.calc_font)
-	lg.setColor(Colors.text_muted)
-	lg.print(self.calculator)
+	local s24 = Painter.getFontHeight(24)
+	local s72 = Painter.getFontHeight(72)
 
-	lg.setFont(self.diff_font)
-	lg.setColor(0, 0, 0, 0.3)
-	lg.print(self.difficulty, 2, self.diff_y + 2)
+	Painter.setFontOutline(0.12)
+	Painter.setFontThickness(0.45)
+	Painter.setFontOutlineColor(Colors.text_shadow)
+	Painter.beginTextDrawing()
+
+	lg.setColor(Colors.text_muted)
+	Painter.setFontSize(24)
+	Painter.print(self.calculator)
 
 	lg.setColor(self.difficulty_color)
-	lg.print(self.difficulty, 0, self.diff_y)
+	lg.translate(0, s24)
+	Painter.setFontSize(72)
+	Painter.print(self.difficulty)
 
-
-	lg.setFont(self.patterns_font)
 	lg.setColor(Colors.text)
-	local h = self.patterns_font:getHeight() * self.pattern_count
-	local y = (self.diff_font:getHeight() - h) / 2
-	lg.printf(self.patterns, 0, y + self.diff_y, self.width, "right")
+	lg.translate(0, s72 - s24 * self.pattern_count)
+	Painter.setFontSize(24)
+	Painter.printf(self.patterns, 0, 0, self.width, "right")
+
+	Painter.endTextDrawing()
 end
 
 return ChartDifficulty

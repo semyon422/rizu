@@ -24,6 +24,7 @@ function Result:new(yi)
 		font_size = 128,
 		text = "??.??%",
 		color = Colors.text,
+		outline = 0.08,
 	})
 	self.accuracy:setPivot(0.5, 0.5)
 	self.judge_segments = JudgeSegments()
@@ -43,6 +44,13 @@ function Result:new(yi)
 					fit_box = true,
 					color = Colors.select_bg_gradient
 				}),
+
+				S.Anchor({
+					pivot = {0.5, 0.5},
+					self.judge_segments
+				}),
+
+				self.accuracy
 			}),
 			ui:Rectangle({
 				fit_box = true,
@@ -90,12 +98,6 @@ function Result:new(yi)
 			})
 		}),
 
-		S.Anchor({
-			pivot = {0.5, 0.5},
-			self.judge_segments
-		}),
-
-		self.accuracy
 	})
 end
 

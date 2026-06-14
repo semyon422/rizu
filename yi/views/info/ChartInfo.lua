@@ -1,36 +1,20 @@
 local View = require("gui.View")
 local Colors = require("yi.Colors")
-local Resources = require("yi.Resources")
+local Painter = require("yi.Painter")
 
 ---@class yi.ChartInfo: gui.View
 ---@operator call: yi.ChartInfo
 local ChartInfo = View + {}
 
-local BOTTOM_KV_GAP = 10
-local BOTTOM_VK_GAP = 45
-
 function ChartInfo:new()
 	View.new(self)
-	local kf = Resources.getFont("bold", 24)
-	local vf = Resources.getFont("bold", 36)
-	self.keys = love.graphics.newTextBatch(kf)
-	self.values = love.graphics.newTextBatch(vf)
-	self:setHeight(vf:getHeight())
-end
+	self:setHeight(36)
 
-local x = 0
-local tk_y = 0
-
----@param tk love.Text
----@param tv love.Text
----@param k string
----@param v string
-local function addKV(tk, tv, k, v)
-	local i = 0
-	i = tk:add(k, x, tk_y)
-	x = x + tk:getWidth(i) + BOTTOM_KV_GAP
-	i = tv:add(v, x)
-	x = x + tv:getWidth(i) + BOTTOM_VK_GAP
+	self.duration = "00:00"
+	self.mode = "?K"
+	self.notes = "0"
+	self.tempo = "0"
+	self.ln = "0%%"
 end
 
 ---@param chartview rizu.library.Chartview
@@ -45,27 +29,45 @@ function ChartInfo:bind(chartview, replay_base)
 	local minutes = duration / 60
 	local seconds = duration % 60
 
-	local tk = self.keys
-	local tv = self.values
-	x = 0
-	tk_y = (tv:getFont():getHeight() - tk:getFont():getHeight()) / 2
-	tk:clear()
-	tv:clear()
-	addKV(tk, tv, "DURATION", ("%i:%0.2i"):format(minutes, seconds))
-	addKV(tk, tv, "NOTES", tostring(notes))
-	addKV(tk, tv, "MODE", tostring(mode))
-	addKV(tk, tv, "TEMPO", ("%i"):format(tempo))
-	addKV(tk, tv, "LN", ("%i%%"):format((ln * 100)))
+	self.duration = ("%i:%0.2i"):format(minutes, seconds)
+	self.mode = mode
+	self.notes = tostring(notes)
+	self.tempo = ("%i"):format(tempo)
+	self.ln = ("%i%%"):format((ln * 100))
 end
 
 local lg = love.graphics
+local KV_GAP = 10
+local VK_GAP = 45
+
+local function drawKV(k, v, ky)
+	lg.setColor(Colors.text_muted)
+	Painter.setFontSize(24)
+	Painter.print(k, 0, ky)
+
+	lg.setColor(Colors.text)
+	lg.translate(Painter.getFontWidth(k, 24) + KV_GAP, 0)
+	Painter.setFontSize(36)
+	Painter.print(v)
+
+	lg.translate(Painter.getFontWidth(v, 36) + VK_GAP, 0)
+end
 
 function ChartInfo:draw()
-	lg.setColor(Colors.text_muted)
-	lg.draw(self.keys)
-	lg.setColor(Colors.text)
-	lg.draw(self.values)
-	lg.setColor(1, 1, 1, 1)
+	local half = (Painter.getFontHeight(36) - Painter.getFontHeight(24)) / 2
+
+	Painter.setFontOutline(0.12)
+	Painter.setFontThickness(0.45)
+	Painter.setFontOutlineColor(Colors.text_shadow)
+	Painter.beginTextDrawing()
+
+	drawKV("DURATION", self.duration, half)
+	drawKV("MODE", self.mode, half)
+	drawKV("NOTES", self.notes, half)
+	drawKV("TEMPO", self.tempo, half)
+	drawKV("LN", self.ln, half)
+
+	Painter.endTextDrawing()
 end
 
 return ChartInfo

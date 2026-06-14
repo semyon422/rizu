@@ -11,11 +11,14 @@ local Path = require("Path")
 ---@field fonts {[string]: love.Font}
 local Resources = {}
 
-Resources.font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
-Resources.font_paths = {
+Resources.ttf_font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
+Resources.ttf_font_paths = {
 	regular = "resources/fonts/Roboto/Roboto-Regular.ttf",
 	bold = "resources/fonts/Roboto/Roboto-Bold.ttf",
 }
+
+Resources.sdf_font_path = "resources/fonts/Roboto/Roboto-SDF.fnt"
+Resources.sdf_font_base_size = 48
 
 Resources.images_dir = "resources/yi/batch"
 Resources.fonts = {}
@@ -66,9 +69,9 @@ function Resources.getFont(name, size)
 	local key = name .. tostring(size)
 
 	if not Resources.fonts[key] then
-		local path = Resources.font_paths[name]
+		local path = Resources.ttf_font_paths[name]
 		local object = love.graphics.newFont(path, size)
-		local fallback = love.graphics.newFont(Resources.font_fallback_path, size)
+		local fallback = love.graphics.newFont(Resources.ttf_font_fallback_path, size)
 		object:setFallbacks(fallback)
 		Resources.fonts[key] = object
 	end
@@ -82,6 +85,14 @@ end
 function Resources.getScaledFont(name, size)
 	local scaled_size = math.max(1, math.floor(size * Resources.font_scale))
 	return Resources.getFont(name, scaled_size)
+end
+
+---@return love.Font
+function Resources.getSdfFont()
+	if not Resources.sdf_font then
+		Resources.sdf_font = love.graphics.newFont(Resources.sdf_font_path)
+	end
+	return Resources.sdf_font
 end
 
 return Resources

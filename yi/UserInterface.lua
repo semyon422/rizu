@@ -1,6 +1,7 @@
 local IUserInterface = require("sphere.IUserInterface")
 local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
+local Painter = require("yi.Painter")
 local Menus = require("yi.layers.Menus.Menus")
 local ChartMenus = require("yi.layers.ChartMenus.ChartMenus")
 local Modals = require("yi.layers.Modals")
@@ -37,6 +38,7 @@ function UserInterface:new(game)
 	self.prev_w, self.prev_h = ww, wh
 
 	Resources.load()
+	Painter.init()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
 	self.layers = {}

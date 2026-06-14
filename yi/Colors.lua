@@ -33,6 +33,7 @@ local Colors = {
 	accent = hex("00CCFF"),
 	text = hex("F2F2FF"),
 	text_muted = hex("A6B2CC"),
+	text_shadow = hex("0A0E17", 0.6),
 	line = hex("464B5C"),
 	background = background,
 

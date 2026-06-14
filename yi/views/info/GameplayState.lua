@@ -1,5 +1,5 @@
 local View = require("gui.View")
-local Resources = require("yi.Resources")
+local Painter = require("yi.Painter")
 local Colors = require("yi.Colors")
 local ModifierEncoder = require("sphere.models.ModifierEncoder")
 local ModifierModel = require("sphere.models.ModifierModel")
@@ -10,12 +10,7 @@ local GameplayState = View + {}
 
 function GameplayState:new()
 	View.new(self)
-	self.small_font = Resources.getFont("bold", 24)
-	self.large_font = Resources.getFont("bold", 36)
-	self.small_batch = love.graphics.newTextBatch(self.small_font)
-	self.large_batch = love.graphics.newTextBatch(self.large_font)
-
-	self:setSize(200, self.small_font:getHeight() + self.large_font:getHeight())
+	self:setSize(300, Painter.getFontHeight(24) + Painter.getFontHeight(36))
 end
 
 function GameplayState:onScroll(e)
@@ -89,33 +84,43 @@ function GameplayState:bind(replay_base, time_rate_model)
 	local mods = getModifierString(replay_base.modifiers)
 	mods = mods == "" and "No mods" or mods
 
-	self.small_batch:clear()
-	self.large_batch:clear()
-
-	local i = 0
-	cs[1] = Colors.text_muted
-	cs[2] = "MODIFIERS"
-	self.small_batch:add(cs)
-
-	cs[1] = Colors.text
-	cs[2] = mods
-	i = self.large_batch:add(cs, 0, self.small_font:getHeight())
-
-	local x = self.large_batch:getWidth(i) + gap
-	local y = self.height - self.small_font:getHeight() - 3
-	cs[1] = Colors.accent
-	cs[2] = ("%0.02fx"):format(time_rate_model:get())
-	i = self.small_batch:add(cs, x, y)
-
-	x = x + self.small_batch:getWidth(i) + gap
-	cs[1] = Colors.text_muted
-	cs[2] = formatScoreSystem(replay_base.timings, replay_base.subtimings)
-	self.small_batch:add(cs, x, y)
+	self.mods = mods
+	self.rate = ("%0.02fx"):format(time_rate_model:get())
+	self.score_system = formatScoreSystem(replay_base.timings, replay_base.subtimings)
 end
 
+local lg = love.graphics
+
 function GameplayState:draw()
-	love.graphics.draw(self.small_batch)
-	love.graphics.draw(self.large_batch)
+	local s24 = Painter.getFontHeight(24)
+
+	Painter.setFontOutline(0.12)
+	Painter.setFontThickness(0.45)
+	Painter.setFontOutlineColor(Colors.text_shadow)
+
+	Painter.beginTextDrawing()
+
+	lg.setColor(Colors.text_muted)
+	Painter.setFontSize(24)
+	Painter.print("MODIFIERS")
+
+	lg.setColor(1, 1, 1)
+	Painter.setFontSize(36)
+	Painter.print(self.mods, 0, s24)
+
+	lg.setColor(Colors.accent)
+	lg.translate(
+		Painter.getFontWidth(self.mods, 36) + 10,
+		self.height - s24
+	)
+	Painter.setFontSize(24)
+	Painter.print(self.rate)
+
+	lg.setColor(Colors.text_muted)
+	lg.translate(Painter.getFontWidth(self.rate, 24) + 10, 0)
+	Painter.print(self.score_system)
+
+	Painter.endTextDrawing()
 end
 
 return GameplayState

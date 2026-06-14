@@ -107,7 +107,9 @@ function UIFactory:Label(params)
 		font_name = params.font,
 		font_size = params.font_size,
 		text = params.text,
-		color = params.color or self.colors.white
+		color = params.color,
+		outline = params.outline,
+		outline_color = params.outline_color
 	}), params)
 end
 
