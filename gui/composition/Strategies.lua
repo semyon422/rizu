@@ -4,7 +4,8 @@ local Strategies = {
 	Column = require("gui.composition.Column"),
 	Flow = require("gui.composition.Flow"),
 	Track = require("gui.composition.Track"),
-	Anchor = require("gui.composition.Anchor")
+	Anchor = require("gui.composition.Anchor"),
+	Align = require("gui.composition.Align")
 }
 
 return Strategies

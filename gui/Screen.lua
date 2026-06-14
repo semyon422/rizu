@@ -9,6 +9,7 @@ local View = require("gui.View")
 local Screen = Layer + {}
 
 function Screen:new()
+	self.ui_scale = 1
 	self.views = {}
 	self.hidden_views = {}
 	self.input_handler = View()
@@ -21,7 +22,7 @@ end
 function Screen:load()
 	assert(self.views, "Call Composition.new(self)")
 
-	local scale = self.ui_scale or 1
+	local scale = self.ui_scale
 
 	if self.root then
 		self.root:measure()

@@ -147,9 +147,10 @@ function Select:createLayoutVersion1(ui)
 
 			S.Stack({
 				createInnerContainer(self, ui),
-				S.Anchor({
-					pivot = {1, 0},
-					self.set_list,
+				S.Align({
+					direction = "row",
+					align = 1,
+					self.set_list
 				}),
 			}),
 
@@ -181,7 +182,11 @@ function Select:createLayoutVersion2(ui)
 				ui:Rectangle({
 					color = Colors.select_bg_gradient,
 				}),
-				self.set_list,
+				S.Align({
+					direction = "row",
+					align = 0,
+					self.set_list
+				}),
 			}),
 
 			ui:Rectangle({

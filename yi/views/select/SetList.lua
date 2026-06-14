@@ -10,9 +10,9 @@ local SetList = BaseList + {}
 function SetList:new(chart_selector)
 	BaseList.new(self)
 	self.chart_selector = chart_selector
-	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 24))
+	self.text_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.atlas, self.quads = Resources.atlas, Resources.quads
-	self:setSize(500, love.graphics.getHeight())
+	self:setWidth(500)
 end
 
 function SetList:getSelectedIndex()
