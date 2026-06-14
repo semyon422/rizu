@@ -33,7 +33,6 @@ function Result:new(yi)
 	self.chart_info = ChartInfo()
 	self.chart_diff = ChartDifficulty(yi)
 	self.gameplay_state = GameplayState()
-	self.gameplay_state.y = -9
 
 	self.root = S.Stack({
 		S.Track({
@@ -71,7 +70,7 @@ function Result:new(yi)
 				pivot = {0, 1},
 				S.Flow({
 					direction = "column",
-					gap = 10,
+					gap = 20,
 					S.Flow({
 						direction = "row",
 						gap = 20,
