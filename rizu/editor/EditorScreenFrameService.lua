@@ -59,6 +59,9 @@ function EditorScreenFrameService:update(screen, dt)
 	self.graphics.replaceTransform(self.transform(screen.transform))
 	screen.game.editorModel:update()
 	screen.sequence_view:update(dt)
+	if screen.editor_retained_views and self.baseScreen.update then
+		self.baseScreen.update(screen, dt)
+	end
 	return true
 end
 
@@ -75,11 +78,15 @@ function EditorScreenFrameService:draw(screen)
 	self.editorViewConfig(screen)
 	screen.sequence_view:draw()
 	screen.snap_grid_view:draw()
-	self.waveformView(screen)
-	self.onsetsView(screen)
-	self.onsetsDistView(screen)
-	self.footer(screen)
-	self.editorViewOverlay(screen)
+	if screen.editor_retained_views then
+		self.baseScreen.draw(screen)
+	else
+		self.waveformView(screen)
+		self.onsetsView(screen)
+		self.onsetsDistView(screen)
+		self.footer(screen)
+		self.editorViewOverlay(screen)
+	end
 	self.foreground(screen)
 
 	self.container()

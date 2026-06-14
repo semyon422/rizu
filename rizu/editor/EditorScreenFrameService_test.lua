@@ -78,6 +78,12 @@ local function createService(calls)
 			end,
 		},
 		baseScreen = {
+			update = function(_, dt)
+				table.insert(calls, "screen-update:" .. dt)
+			end,
+			draw = function()
+				table.insert(calls, "screen-draw")
+			end,
 			receive = function(_, event)
 				table.insert(calls, "screen:" .. event.name)
 			end,
@@ -111,6 +117,23 @@ function test.update_order_when_loaded(t)
 end
 
 ---@param t testing.T
+function test.update_includes_retained_views_when_attached(t)
+	local calls = {}
+	local screen = createScreen(calls)
+	screen.editor_retained_views = {{}}
+
+	t:eq(createService(calls):update(screen, 0.5), true)
+
+	t:tdeq(calls, {
+		"transform:screen-transform",
+		"replace:love-transform",
+		"model-update",
+		"sequence-update:0.5",
+		"screen-update:0.5",
+	})
+end
+
+---@param t testing.T
 function test.draw_order_when_loaded(t)
 	local calls = {}
 	local screen = createScreen(calls)
@@ -128,6 +151,26 @@ function test.draw_order_when_loaded(t)
 		"onsets-dist",
 		"footer",
 		"overlay",
+		"foreground",
+		"container:end",
+	})
+end
+
+---@param t testing.T
+function test.draw_uses_retained_views_when_attached(t)
+	local calls = {}
+	local screen = createScreen(calls)
+	screen.editor_retained_views = {{}}
+
+	t:eq(createService(calls):draw(screen), true)
+
+	t:tdeq(calls, {
+		"container:yi editor screen:true",
+		"layout",
+		"config",
+		"sequence-draw",
+		"snap-draw",
+		"screen-draw",
 		"foreground",
 		"container:end",
 	})
