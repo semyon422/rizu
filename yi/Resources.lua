@@ -23,6 +23,7 @@ Resources.sdf_font_base_size = 48
 Resources.images_dir = "resources/yi/batch"
 Resources.fonts = {}
 Resources.font_scale = 1
+Resources.ui_scale = 1
 
 function Resources.load()
 	local t = {} ---@type {[string]: love.ImageData}
@@ -60,6 +61,16 @@ function Resources.setFontScale(v)
 	Resources.fonts = {}
 end
 
+---@param v number
+function Resources.setUIScale(v)
+	Resources.ui_scale = v
+end
+
+---@return number
+function Resources.getUIScale()
+	return Resources.ui_scale or 1
+end
+
 ---@param name yi.FontName
 ---@param size yi.FontSize|integer
 ---@return love.Font
@@ -81,9 +92,11 @@ end
 
 ---@param name yi.FontName
 ---@param size yi.FontSize|integer
+---@param scale? number
 ---@return love.Font
-function Resources.getScaledFont(name, size)
-	local scaled_size = math.max(1, math.floor(size * Resources.font_scale))
+function Resources.getScaledFont(name, size, scale)
+	scale = scale or Resources.font_scale or 1
+	local scaled_size = math.max(1, math.floor(size * scale))
 	return Resources.getFont(name, scaled_size)
 end
 

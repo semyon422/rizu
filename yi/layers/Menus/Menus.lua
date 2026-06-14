@@ -6,6 +6,7 @@ local SpringValue = require("gui.anim.SpringValue")
 
 local PingPongBackground = require("yi.views.PingPongBackground")
 local CodeDecoration = require("yi.views.CodeDecoration")
+local Resources = require("yi.Resources")
 
 ---@class yi.Menus : yi.ScreenContainer
 ---@overload fun(yi: yi.UserInterface): yi.Menus
@@ -36,10 +37,18 @@ function Menus:new(yi)
 end
 
 function Menus:load()
+	local scale = Resources.getUIScale()
+	self.background.ui_scale = scale
+	self.code_decoration.ui_scale = scale
+
 	self.background:load()
 	self.code_decoration:load()
 
+	self.background:applyLayout()
+	self.code_decoration:applyLayout()
+
 	for _, v in ipairs(self.screens) do
+		v.ui_scale = scale
 		v:load()
 	end
 end
@@ -77,7 +86,11 @@ function Menus:draw()
 	love.graphics.setBlendMode("alpha", "alphamultiply")
 	love.graphics.setCanvas(canvas_t)
 
+	love.graphics.push("all")
+	love.graphics.applyTransform(self.background.transform)
 	self.background:draw()
+	love.graphics.pop()
+
 	self.code_decoration:draw()
 
 	self:drawScreens(self.canvas)

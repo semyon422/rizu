@@ -16,12 +16,12 @@ local GlobalCommands = require("yi.command_palette.GlobalCommands")
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
 ---@field modifiers gui.ModifierKeys
----@field layers yi.Layer[]
+---@field layers gui.Layer[]
 ---@field next_screen string?
 ---@field current_screen string?
 ---@field previous_screen string?
 ---@field current_layer yi.ScreenContainer
----@field screens {[string]: {layer: yi.ScreenContainer, screen: yi.Screen}}
+---@field screens {[string]: {layer: yi.ScreenContainer, screen: gui.Screen}}
 ---@field command_registry yi.command_palette.Registry
 ---@field command_palette yi.command_palette.PaletteState
 local UserInterface = IUserInterface + {}
@@ -54,13 +54,19 @@ function UserInterface:load()
 	self.game.settings_config.onChanged:add(self)
 
 	local w, h = love.graphics.getDimensions()
-	local scale = math.min(1, math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT))
-	Resources.setFontScale(scale)
+	local scale = math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
+	Resources.setUIScale(scale)
+	Resources.setFontScale(1)
 
 	self.chart_menus = ChartMenus(self)
 	self.menus = Menus(self)
 	self.modals = Modals(self)
 	self.overlay = Overlay(self)
+
+	self.chart_menus.ui_scale = scale
+	self.menus.ui_scale = scale
+	self.modals.ui_scale = scale
+	self.overlay.ui_scale = scale
 
 	self.chart_menus:load()
 	self.menus:load()

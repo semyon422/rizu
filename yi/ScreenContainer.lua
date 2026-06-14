@@ -1,17 +1,17 @@
-local Layer = require("yi.Layer")
+local Layer = require("gui.Layer")
 local SpringValue = require("gui.anim.SpringValue")
 
----@class yi.ScreenContainer : yi.Layer
+---@class yi.ScreenContainer : gui.Layer
 ---@operator call: yi.ScreenContainer
----@field current_screen yi.Screen
----@field screens yi.Screen[]
----@field screen_springs {[yi.Screen]: gui.anim.SpringValue}
+---@field current_screen gui.Screen
+---@field screens gui.Screen[]
+---@field screen_springs {[gui.Screen]: gui.anim.SpringValue}
 ---@field springs_stable boolean
 ---@field screen_canvas love.Canvas
 local ScreenContainer = Layer + {}
 
----@param screens yi.Screen[]
----@param initial_screen yi.Screen
+---@param screens gui.Screen[]
+---@param initial_screen gui.Screen
 function ScreenContainer:initScreens(screens, initial_screen)
 	self.screens = screens
 	self.current_screen = initial_screen

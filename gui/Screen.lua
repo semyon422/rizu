@@ -1,7 +1,7 @@
-local Layer = require("yi.Layer")
+local Layer = require("gui.Layer")
 local View = require("gui.View")
 
----@class yi.Screen : yi.Layer
+---@class yi.Screen : gui.Layer
 ---@operator call: yi.Screen
 ---@field root gui.Composition.Node?
 ---@field views gui.View[]
@@ -21,21 +21,26 @@ end
 function Screen:load()
 	assert(self.views, "Call Composition.new(self)")
 
+	local scale = self.ui_scale or 1
+
 	if self.root then
 		self.root:measure()
-		self.root:grow(love.graphics.getDimensions())
+		local w, h = love.graphics.getDimensions()
+		self.root:grow(w / scale, h / scale)
 		self.root:arrange()
 		self.root:insertViewsInto(self.views)
 	end
 
 	for _, v in ipairs(self.views) do
+		v.ui_scale = scale
 		v:load()
-		v:updateTransform()
+		v:applyLayout()
 	end
 
 	for _, v in ipairs(self.hidden_views) do
+		v.ui_scale = scale
 		v:load()
-		v:updateTransform()
+		v:applyLayout()
 	end
 end
 

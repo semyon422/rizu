@@ -17,12 +17,10 @@ local Box = require("gui.Box")
 ---@field scale_y number
 ---@field transform love.Transform
 ---@field box gui.Box
----@field width_percent number? -- 0..1 ratio of parent box width
----@field height_percent number? -- 0..1 ratio of parent box height
----@field is_focusable boolean
 ---@field focused boolean
 ---@field mouse_over boolean
 ---@field pressed boolean
+---@field ui_scale number?
 local View = IInputHandler + {}
 
 View._is_view = true
@@ -35,7 +33,6 @@ function View:new()
 	self.pivot = {0, 0}
 	local tf = math_util.newTransform() ---@cast tf love.Transform
 	self.transform = tf
-	self.box = nil
 	self.visible = true
 	self.box = Box()
 	self.box:update(0, 0, love.graphics.getDimensions())
@@ -43,12 +40,12 @@ function View:new()
 	self.scale_x = 1
 	self.scale_y = 1
 
-	self.is_focusable = false
 	self.focused = false
 	self.mouse_over = false
 	self.pressed = false
 	self.handles_mouse_input = false
 	self.handles_keyboard_input = false
+	self:updateTransform()
 	self._constructed = true
 end
 
@@ -60,23 +57,34 @@ function View:onFocus(e) end
 ---@param e gui.FocusLostEvent
 function View:onFocusLost(e) end
 
-local temp_tf = math_util.newTransform() ---@cast temp_tf love.Transform
-
 function View:updateTransform()
+	local scale = self.ui_scale or 1
 	local box = self.box
 	local pivot = self.pivot
 	local box_width = box.width
 	local box_height = box.height
 	local ax, ay = box_width * pivot[1], box_height * pivot[2]
 	local ox, oy = self.width * pivot[1], self.height * pivot[2]
-	local x, y = self.x + self.box.x + ax, self.y + self.box.y + ay
-	local sx = self.scale_x
-	local sy = self.scale_y
+	local x, y = (self.x + box.x + ax) * scale, (self.y + box.y + ay) * scale
+	local sx = self.scale_x * scale
+	local sy = self.scale_y * scale
 	local r = self.rotation
-	temp_tf:setTransformation(x, y, r, sx, sy, ox, oy)
-	self.transform:reset()
-	self.transform:apply(box.transform)
-	self.transform:apply(temp_tf)
+	self.transform:setTransformation(x, y, r, sx, sy, ox, oy)
+end
+
+function View:applyLayout()
+	local scale = self.ui_scale or 1
+	self.ui_scale = scale
+	if self.box then
+		local bw, bh = self.box.width, self.box.height
+		local ww, wh = love.graphics.getDimensions()
+		if self.box.x == 0 and self.box.y == 0 and (bw == ww or bw == ww / scale or bw == 0) then
+			bw = ww / scale
+			bh = wh / scale
+		end
+		self.box:update(self.box.x, self.box.y, bw, bh)
+	end
+	self:updateTransform()
 end
 
 ---@param screen_x number

@@ -1,4 +1,4 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local ModifierView = require("yi.views.slop.ModifierView")
 local InputView = require("yi.views.slop.InputView")
 local FiltersView = require("yi.views.slop.FiltersView")
@@ -12,7 +12,7 @@ local ScoreView = require("yi.views.slop.ScoreView")
 ---| "noteskins"
 ---| "scores"
 
----@class yi.Modals : yi.Screen
+---@class yi.Modals : gui.Screen
 ---@operator call: yi.Modals
 ---@field current_modal gui.View?
 local Modals = Screen + {}

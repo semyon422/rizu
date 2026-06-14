@@ -1,9 +1,9 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
 local S = require("gui.composition.Strategies")
 local View = require("gui.View")
 
----@class yi.Gameplay : yi.Screen
+---@class yi.Gameplay : gui.Screen
 ---@operator call: yi.Gameplay
 local Gameplay = Screen + {}
 

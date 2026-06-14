@@ -1,5 +1,5 @@
 local class = require("class")
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local Layout = require("ui.views.EditorView.Layout")
 local EditorViewConfig = require("ui.views.EditorView.EditorViewConfig")
 local EditorViewOverlay = require("ui.views.EditorView.EditorViewOverlay")

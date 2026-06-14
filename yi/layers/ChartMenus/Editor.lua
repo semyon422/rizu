@@ -1,9 +1,9 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local thread = require("thread")
 local EditorScreenFrameService = require("rizu.editor.EditorScreenFrameService")
 local EditorScreenLoadService = require("rizu.editor.EditorScreenLoadService")
 
----@class yi.layers.Editor : yi.Screen
+---@class yi.layers.Editor : gui.Screen
 ---@operator call: yi.layers.Editor
 local Editor = Screen + {}
 

@@ -1,4 +1,5 @@
 local Flow = require("gui.composition.Flow")
+local Box = require("gui.Box")
 
 local test = {}
 
@@ -6,10 +7,14 @@ local test = {}
 ---@param height number
 ---@return gui.View
 local function view(width, height)
+	local b = Box()
+	b.width = width
+	b.height = height
 	return {
 		_is_view = true,
 		width = width,
 		height = height,
+		box = b,
 	}
 end
 

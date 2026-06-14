@@ -1,7 +1,7 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local CommandPalette = require("yi.views.CommandPalette")
 
----@class yi.layers.Overlay : yi.Screen
+---@class yi.layers.Overlay : gui.Screen
 ---@operator call: yi.layers.Overlay
 local Overlay = Screen + {}
 

@@ -1,9 +1,9 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local UIFactory = require("yi.UIFactory")
 local S = require("gui.composition.Strategies")
 local MainMenuWave = require("yi.views.MainMenuWave")
 
----@class yi.MainMenu : yi.Screen
+---@class yi.MainMenu : gui.Screen
 ---@operator call: yi.MainMenu
 local MainMenu = Screen + {}
 

@@ -1,4 +1,4 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local SettingsSchema = require("rizu.config.schemas.Settings")
 local Resources = require("yi.Resources")
 
@@ -12,7 +12,7 @@ local lang = require("yi.lang.en")
 
 local S = require("gui.composition.Strategies")
 
----@class yi.Config : yi.Screen
+---@class yi.Config : gui.Screen
 ---@operator call: yi.Config
 local Config = Screen + {}
 

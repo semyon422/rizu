@@ -1,7 +1,7 @@
 local IInputHandler = require("gui.input.IInputHandler")
 
----@class yi.Layer : gui.IInputHandler
----@operator call: yi.Layer
+---@class gui.Layer : gui.IInputHandler
+---@operator call: gui.Layer
 local Layer = IInputHandler + {}
 
 Layer.handles_keyboard_input = true

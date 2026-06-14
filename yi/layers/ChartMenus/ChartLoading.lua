@@ -1,4 +1,4 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local Loading = require("yi.views.Loading")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
@@ -7,7 +7,7 @@ local L = require("yi.lang.en")
 local thread = require("thread")
 local delay = require("delay")
 
----@class yi.layers.ChartLoading : yi.Screen
+---@class yi.layers.ChartLoading : gui.Screen
 ---@operator call: yi.layers.ChartLoading
 local ChartLoading = Screen + {}
 

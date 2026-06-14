@@ -5,6 +5,7 @@ local ChartLoading = require("yi.layers.ChartMenus.ChartLoading")
 local Gameplay = require("yi.layers.ChartMenus.Gameplay")
 local Result = require("yi.layers.ChartMenus.Result")
 local Editor = require("yi.layers.ChartMenus.Editor")
+local Resources = require("yi.Resources")
 
 ---@class yi.ChartMenus : yi.ScreenContainer
 ---@operator call: yi.ChartMenus
@@ -33,9 +34,13 @@ function ChartMenus:new(yi)
 end
 
 function ChartMenus:load()
+	local scale = Resources.getUIScale()
+	self.background.ui_scale = scale
 	self.background:load()
+	self.background:applyLayout()
 
 	for _, v in ipairs(self.screens) do
+		v.ui_scale = scale
 		v:load()
 	end
 end
@@ -57,6 +62,7 @@ end
 
 function ChartMenus:draw()
 	love.graphics.push("all")
+	love.graphics.applyTransform(self.background.transform)
 	self.background:draw()
 	love.graphics.pop()
 

@@ -1,4 +1,4 @@
-local Screen = require("yi.Screen")
+local Screen = require("gui.Screen")
 local S = require("gui.composition.Strategies")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
@@ -18,7 +18,7 @@ local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 
 local SelectCommands = require("yi.layers.ChartMenus.SelectCommands")
 
----@class yi.Select : yi.Screen
+---@class yi.Select : gui.Screen
 ---@overload fun(yi: yi.UserInterface): yi.Select
 local Select = Screen + {}
 
