@@ -17,6 +17,10 @@ end
 function test.get_state_returns_audio_editor_and_waveform_settings(t)
 	local audio = {
 		volumeType = "linear",
+		mode = {
+			primary = "bass_sample",
+			secondary = "love",
+		},
 		volume = {
 			master = 0.9,
 			music = 0.8,
@@ -106,6 +110,8 @@ function test.get_state_returns_audio_editor_and_waveform_settings(t)
 		max = 1,
 		step = 0.01,
 	})
+	t:eq(state.primaryModeLabel, "primary: bass_sample")
+	t:eq(state.secondaryModeLabel, "secondary: love")
 end
 
 ---@param t testing.T
@@ -113,6 +119,10 @@ function test.get_state_returns_logarithmic_volume_sliders(t)
 	local state = EditorAudioSettingsOverlayService():getState(createContext({
 		audio = {
 			volumeType = "logarithmic",
+			mode = {
+				primary = "bass_sample",
+				secondary = "love",
+			},
 			volume = {
 				master = 0.5,
 				music = -0.25,
@@ -145,6 +155,10 @@ end
 ---@param t testing.T
 function test.setters_mutate_settings(t)
 	local audio = {
+		mode = {
+			primary = "bass_sample",
+			secondary = "love",
+		},
 		volume = {},
 	}
 	local editor = {
@@ -177,6 +191,10 @@ end
 function test.handle_input_mutates_settings(t)
 	local audio = {
 		volumeType = "linear",
+		mode = {
+			primary = "bass_sample",
+			secondary = "love",
+		},
 		volume = {
 			master = 1,
 			music = 1,
@@ -224,6 +242,10 @@ end
 function test.handle_input_converts_logarithmic_volume_to_linear_storage(t)
 	local audio = {
 		volumeType = "logarithmic",
+		mode = {
+			primary = "bass_sample",
+			secondary = "love",
+		},
 		volume = {
 			master = 1,
 		},

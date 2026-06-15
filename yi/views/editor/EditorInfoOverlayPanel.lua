@@ -1,5 +1,4 @@
 local class = require("class")
-local spherefonts = require("sphere.assets.fonts")
 
 ---@class yi.views.editor.EditorInfoOverlayPanel
 ---@operator call: yi.views.editor.EditorInfoOverlayPanel
@@ -33,15 +32,6 @@ function EditorInfoOverlayPanel:draw(screen, panel, infoOverlayContext)
 		saveToOsuPressed = saveToOsuPressed,
 		saveToNanoChartPressed = saveToNanoChartPressed,
 	})
-
-	love.graphics.push("all")
-	love.graphics.setColor(1, 1, 1, 0.75)
-	love.graphics.setFont(spherefonts.get("Noto Sans", 36))
-	for i, label in ipairs(state.developmentLabels) do
-		panel:label(label, 0, panel.cursorY + (i - 1) * 48, panel.panelWidth, 48)
-	end
-	love.graphics.pop()
-	panel.cursorY = panel.cursorY + #state.developmentLabels * 48
 end
 
 return EditorInfoOverlayPanel

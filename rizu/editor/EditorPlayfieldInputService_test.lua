@@ -5,6 +5,9 @@ local test = {}
 local function createService(calls)
 	return EditorPlayfieldInputService({
 		playfieldService = {
+			isNotesActive = function(_, context)
+				return context.notesActive ~= false
+			end,
 			selectNoteAndGrab = function(_, context, note, part, mouseTime)
 				table.insert(calls, ("grab:%s:%s"):format(part, mouseTime))
 				context.note = note
@@ -144,6 +147,40 @@ function test.release_input_drops_and_ends_selection(t)
 	}), false)
 
 	t:tdeq(calls, {"drop:4.5", "select-end"})
+end
+
+---@param t testing.T
+function test.input_is_ignored_when_notes_tab_is_inactive(t)
+	local calls = {}
+	local service = createService(calls)
+	local context = {
+		notesActive = false,
+		dropResult = true,
+		selectEndResult = true,
+	}
+
+	t:eq(service:handleNoteInput(context, {
+		note = {},
+		mouseTime = 1.5,
+		leftPressed = true,
+		bodyOver = true,
+	}), false)
+	t:eq(service:handleColumnInput(context, {
+		columnIndex = 4,
+		time = 2.5,
+		over = true,
+		leftPressed = true,
+	}), false)
+	t:eq(service:handleSelectInput(context, {
+		over = true,
+		leftPressed = true,
+	}), false)
+	t:eq(service:handleReleaseInput(context, {
+		leftReleased = true,
+		mouseTime = 4.5,
+	}), false)
+
+	t:tdeq(calls, {})
 end
 
 return test

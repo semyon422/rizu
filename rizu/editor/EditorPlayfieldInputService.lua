@@ -51,6 +51,10 @@ end
 ---@param input rizu.editor.EditorPlayfieldNoteInput
 ---@return boolean handled
 function EditorPlayfieldInputService:handleNoteInput(context, input)
+	if not self.playfieldService:isNotesActive(context) then
+		return false
+	end
+
 	local part
 	if input.bodyOver then
 		part = "body"
@@ -81,6 +85,10 @@ end
 ---@param input rizu.editor.EditorPlayfieldColumnInput
 ---@return boolean handled
 function EditorPlayfieldInputService:handleColumnInput(context, input)
+	if not self.playfieldService:isNotesActive(context) then
+		return false
+	end
+
 	if not input.over or not input.leftPressed then
 		return false
 	end
@@ -93,6 +101,10 @@ end
 ---@param input rizu.editor.EditorPlayfieldSelectInput
 ---@return boolean handled
 function EditorPlayfieldInputService:handleSelectInput(context, input)
+	if not self.playfieldService:isNotesActive(context) then
+		return false
+	end
+
 	if not input.over or not input.leftPressed then
 		return false
 	end
@@ -105,6 +117,10 @@ end
 ---@param input rizu.editor.EditorPlayfieldReleaseInput
 ---@return boolean handled
 function EditorPlayfieldInputService:handleReleaseInput(context, input)
+	if not self.playfieldService:isNotesActive(context) then
+		return false
+	end
+
 	if not input.leftReleased then
 		return false
 	end

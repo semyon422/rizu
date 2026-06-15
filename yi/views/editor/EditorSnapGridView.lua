@@ -14,11 +14,6 @@ local EditorLayout = require("yi.views.editor.EditorLayout")
 ---@field leftDown boolean
 local EditorSnapGridView = View + {}
 
----@return string
-local function getVelocityText()
-	return ""
-end
-
 local colors = {
 	gray = {0.2, 0.2, 0.2},
 	white = {1, 1, 1},
@@ -204,37 +199,6 @@ function EditorSnapGridView:onKeyDown(e)
 	return self.widgets:onKeyDown(e)
 end
 
----@param field string
----@param currentTime number
----@param w number
----@param h number
----@param align string
----@param getText function
-function EditorSnapGridView:drawTimingObjects(field, currentTime, w, h, align, getText)
-	do return end
-	local editorModel = self.screen.game.editorModel
-	local rangeTracker = editorModel.layerData.ranges.timePoint
-	local noteSkin = self.screen.game.noteSkinModel.noteSkin
-	local editor = self.screen.game.configModel.configs.settings.editor
-	local timePoint = rangeTracker.head
-	if not timePoint or not currentTime then
-		return
-	end
-
-	local endTimePoint = rangeTracker.tail
-	local t
-	while timePoint and timePoint <= endTimePoint do
-		local text = getText(timePoint)
-		if text and not t or timePoint.absoluteTime - t >= 0.01 then
-			local y = noteSkin:getTimePosition((currentTime - timePoint[field]) * editor.speed)
-			gfx_util.printFrame(text, 0, y - h / 2, w, h, align, "center")
-			t = timePoint.absoluteTime
-		end
-
-		timePoint = timePoint.next
-	end
-end
-
 ---@param point chart.IntervalPoint
 ---@param field string
 ---@param currentTime number
@@ -373,27 +337,27 @@ function EditorSnapGridView:drawTimings(_w, _h)
 end
 
 ---@param _w number
+---@param _w number
 ---@param _h number
-function EditorSnapGridView:drawComments(_w, _h)
+function EditorSnapGridView:drawTimingLabels(_w, _h)
 	local editorModel = self.screen.game.editorModel
 	local editorTimePoint = editorModel:getPoint()
 	local noteSkin = self.screen.game.noteSkinModel.noteSkin
 	local editor = self.screen.game.configModel.configs.settings.editor
-
-	---@type chartedit.Layer
-	local layer = editorModel.layer
+	local snapGridService = self.screen.editorViewServices.snapGridService
+	local labels = snapGridService:getLabels(editorModel.context:getViewContext(), editor.showTimings)
 
 	love.graphics.push("all")
 	love.graphics.setColor(1, 1, 1)
 	love.graphics.setFont(spherefonts.get("Noto Sans", 16))
-	for p in layer:iter(editorModel:getIterRange()) do
-		local vp = editorModel:getVisual():getPoint(p)
-		local comment = vp.comment
-
-		if comment then
-			local y = noteSkin:getTimePosition((editorTimePoint.absoluteTime - p.absoluteTime) * editor.speed)
-			love.graphics.print(comment, _w + 20, y - 20, 0)
+	for _, label in ipairs(labels) do
+		local y = noteSkin:getTimePosition((editorTimePoint.absoluteTime - label.point.absoluteTime) * editor.speed)
+		if label.kind == "timing" then
+			love.graphics.setColor(1, 0.8, 0.2, 1)
+		else
+			love.graphics.setColor(1, 1, 1, 1)
 		end
+		love.graphics.print(label.text, _w + 20, y - 20 + label.lane * 18, 0)
 	end
 	love.graphics.pop()
 end
@@ -448,10 +412,7 @@ function EditorSnapGridView:draw()
 	if editor.showTimings then
 		self:drawTimings(width, h)
 	end
-	self:drawComments(width, h)
-
-	love.graphics.translate(width + 40, 0)
-	self:drawTimingObjects("absoluteTime", editorTimePoint.absoluteTime, 500, 50, "left", getVelocityText)
+	self:drawTimingLabels(width, h)
 	love.graphics.pop()
 
 	local scroll = self.scroll

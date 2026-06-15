@@ -12,6 +12,7 @@ local EditorOverlayActionService = require("rizu.editor.EditorOverlayActionServi
 local EditorOverlayContextFactory = require("rizu.editor.EditorOverlayContextFactory")
 local EditorOverlayShellService = require("rizu.editor.EditorOverlayShellService")
 local EditorScrollInputService = require("rizu.editor.EditorScrollInputService")
+local EditorSnapGridService = require("rizu.editor.EditorSnapGridService")
 local EditorTimingOverlayService = require("rizu.editor.EditorTimingOverlayService")
 local EditorWaveformService = require("rizu.editor.EditorWaveformService")
 
@@ -29,6 +30,7 @@ local EditorWaveformService = require("rizu.editor.EditorWaveformService")
 ---@field overlayContextFactory rizu.editor.EditorOverlayContextFactory?
 ---@field overlayShellService rizu.editor.EditorOverlayShellService?
 ---@field scrollInputService rizu.editor.EditorScrollInputService?
+---@field snapGridService rizu.editor.EditorSnapGridService?
 ---@field timingOverlayService rizu.editor.EditorTimingOverlayService?
 ---@field waveformService rizu.editor.EditorWaveformService?
 
@@ -47,6 +49,7 @@ local EditorWaveformService = require("rizu.editor.EditorWaveformService")
 ---@field overlayContextFactory rizu.editor.EditorOverlayContextFactory
 ---@field overlayShellService rizu.editor.EditorOverlayShellService
 ---@field scrollInputService rizu.editor.EditorScrollInputService
+---@field snapGridService rizu.editor.EditorSnapGridService
 ---@field timingOverlayService rizu.editor.EditorTimingOverlayService
 ---@field waveformService rizu.editor.EditorWaveformService
 local EditorViewServices = class()
@@ -67,6 +70,7 @@ function EditorViewServices:new(deps)
 	self.overlayContextFactory = deps.overlayContextFactory or EditorOverlayContextFactory()
 	self.overlayShellService = deps.overlayShellService or EditorOverlayShellService()
 	self.scrollInputService = deps.scrollInputService or EditorScrollInputService()
+	self.snapGridService = deps.snapGridService or EditorSnapGridService()
 	self.timingOverlayService = deps.timingOverlayService or EditorTimingOverlayService()
 	self.waveformService = deps.waveformService or EditorWaveformService()
 end

@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class rizu.editor.EditorViewContext: rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorSettingsContext, rizu.editor.VisualEngineContext, rizu.editor.EditorChangesContext, rizu.editor.EditorOverlayActionContext, rizu.editor.EditorOverlayShellContext, rizu.editor.EditorScrollInputContext, rizu.editor.EditorChartSliderContext, rizu.editor.EditorFooterContext, rizu.editor.EditorWaveformContext, rizu.editor.EditorOnsetsContext, rizu.editor.EditorTimingOverlayContext, rizu.editor.EditorAudioOverlayContext, rizu.editor.EditorAudioSettingsOverlayContext, rizu.editor.EditorNotesOverlayContext, rizu.editor.EditorPlayfieldContext
+---@class rizu.editor.EditorViewContext: rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorSettingsContext, rizu.editor.VisualEngineContext, rizu.editor.EditorChangesContext, rizu.editor.EditorOverlayActionContext, rizu.editor.EditorOverlayShellContext, rizu.editor.EditorScrollInputContext, rizu.editor.EditorChartSliderContext, rizu.editor.EditorFooterContext, rizu.editor.EditorWaveformContext, rizu.editor.EditorOnsetsContext, rizu.editor.EditorSnapGridContext, rizu.editor.EditorTimingOverlayContext, rizu.editor.EditorAudioOverlayContext, rizu.editor.EditorAudioSettingsOverlayContext, rizu.editor.EditorNotesOverlayContext, rizu.editor.EditorPlayfieldContext
 ---@operator call: rizu.editor.EditorViewContext
 ---@field model rizu.editor.EditorModel
 local EditorViewContext = class()

@@ -96,6 +96,79 @@ function test.scroll_to_first_selected_note_returns_false_without_selection(t)
 end
 
 ---@param t testing.T
+function test.selected_notes_action_input_runs_only_when_selection_exists(t)
+	local calls = {}
+	local point = {}
+	local visualPoint = {
+		point = point,
+	}
+	local selectedNote = {
+		startNote = {
+			visualPoint = visualPoint,
+		},
+	}
+	local service = EditorOverlayActionService()
+	local context = createContext({
+		selectedNotes = {
+			[selectedNote.startNote] = selectedNote,
+		},
+		noteService = {
+			changeType = function()
+				table.insert(calls, "change-type")
+			end,
+		},
+		scrollPoint = function(scrolledPoint)
+			table.insert(calls, "scroll")
+			t:eq(scrolledPoint, point)
+		end,
+	})
+	local state = service:getSelectedNotesActionState(context)
+
+	t:eq(state.hasSelectedNotes, true)
+
+	service:handleSelectedNotesActionInput(context, state, {
+		changeTypePressed = true,
+		scrollPressed = true,
+		saveCommentPressed = true,
+		resetCommentPressed = false,
+		comment = "comment",
+	})
+
+	t:eq(visualPoint.comment, "comment")
+	t:tdeq(calls, {"change-type", "scroll"})
+end
+
+---@param t testing.T
+function test.selected_notes_action_input_ignores_commands_without_selection(t)
+	local calls = {}
+	local service = EditorOverlayActionService()
+	local context = createContext({
+		selectedNotes = {},
+		noteService = {
+			changeType = function()
+				table.insert(calls, "change-type")
+			end,
+		},
+		scrollPoint = function()
+			table.insert(calls, "scroll")
+		end,
+	})
+	local state = service:getSelectedNotesActionState(context)
+
+	t:eq(state.hasSelectedNotes, false)
+
+	service:handleSelectedNotesActionInput(context, state, {
+		changeTypePressed = true,
+		scrollPressed = true,
+		saveCommentPressed = true,
+		resetCommentPressed = true,
+		comment = "comment",
+	})
+
+	t:tdeq(calls, {})
+end
+
+---@param t testing.T
 function test.bms_ui_methods_apply_offset_tempo(t)
 	local calls = {}
 	local layer = {}

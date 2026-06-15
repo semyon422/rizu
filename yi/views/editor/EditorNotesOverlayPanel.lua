@@ -31,23 +31,21 @@ function EditorNotesOverlayPanel:draw(screen, panel, overlayContext)
 	})
 	panel:text(notesState.toolHotkeyLabel)
 
-	if panel:button("changeType", "change type") then
-		screen.editorViewServices.overlayActionService:changeSelectedNoteType(overlayContext)
-	end
-
-	if notesState.hasSelectedNotes and panel:button("scroll to note", "scroll to") then
-		screen.editorViewServices.overlayActionService:scrollToFirstSelectedNote(overlayContext)
-	end
+	local selectedNotesActionService = screen.editorViewServices.overlayActionService
+	local selectedNotesActionState = selectedNotesActionService:getSelectedNotesActionState(overlayContext)
+	local changeTypePressed = selectedNotesActionState.hasSelectedNotes and panel:button("changeType", "change type")
+	local scrollPressed = selectedNotesActionState.hasSelectedNotes and panel:button("scroll to note", "scroll to")
 
 	panel:separator()
 
 	self.batchComment = panel:input("vps comment", self.batchComment, "comment")
-	if panel:button("save comment notes", "save") then
-		screen.editorViewServices.overlayActionService:setSelectedNotesComment(overlayContext, self.batchComment)
-	end
-	if panel:button("reset comment notes", "reset") then
-		screen.editorViewServices.overlayActionService:resetSelectedNotesComment(overlayContext)
-	end
+	selectedNotesActionService:handleSelectedNotesActionInput(overlayContext, selectedNotesActionState, {
+		changeTypePressed = changeTypePressed,
+		scrollPressed = scrollPressed,
+		saveCommentPressed = selectedNotesActionState.hasSelectedNotes and panel:button("save comment notes", "save"),
+		resetCommentPressed = selectedNotesActionState.hasSelectedNotes and panel:button("reset comment notes", "reset"),
+		comment = self.batchComment,
+	})
 
 	if notesState.selectedNoteSound then
 		panel:text(notesState.selectedNoteSound)

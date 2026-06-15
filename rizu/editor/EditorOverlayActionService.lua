@@ -13,6 +13,16 @@ local class = require("class")
 ---@field detectPressed boolean
 ---@field applyPressed boolean
 
+---@class rizu.editor.EditorSelectedNotesActionState
+---@field hasSelectedNotes boolean
+
+---@class rizu.editor.EditorSelectedNotesActionInput
+---@field changeTypePressed boolean
+---@field scrollPressed boolean
+---@field saveCommentPressed boolean
+---@field resetCommentPressed boolean
+---@field comment string?
+
 ---@class rizu.editor.EditorOverlayActionContext
 ---@field getChartmeta fun(self: rizu.editor.EditorOverlayActionContext): table
 ---@field getSessionTime fun(self: rizu.editor.EditorOverlayActionContext): number
@@ -37,6 +47,35 @@ end
 ---@param context rizu.editor.EditorOverlayActionContext
 function EditorOverlayActionService:changeSelectedNoteType(context)
 	context:getNoteService():changeType()
+end
+
+---@param context rizu.editor.EditorOverlayActionContext
+---@return rizu.editor.EditorSelectedNotesActionState
+function EditorOverlayActionService:getSelectedNotesActionState(context)
+	return {
+		hasSelectedNotes = next(context:getSelectedNotes()) ~= nil,
+	}
+end
+
+---@param context rizu.editor.EditorOverlayActionContext
+---@param state rizu.editor.EditorSelectedNotesActionState
+---@param input rizu.editor.EditorSelectedNotesActionInput
+function EditorOverlayActionService:handleSelectedNotesActionInput(context, state, input)
+	if not state.hasSelectedNotes then
+		return
+	end
+	if input.changeTypePressed then
+		self:changeSelectedNoteType(context)
+	end
+	if input.scrollPressed then
+		self:scrollToFirstSelectedNote(context)
+	end
+	if input.saveCommentPressed then
+		self:setSelectedNotesComment(context, input.comment)
+	end
+	if input.resetCommentPressed then
+		self:resetSelectedNotesComment(context)
+	end
 end
 
 ---@param context rizu.editor.EditorOverlayActionContext

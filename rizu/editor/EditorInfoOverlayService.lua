@@ -3,7 +3,6 @@ local class = require("class")
 ---@class rizu.editor.EditorInfoOverlayState
 ---@field title string
 ---@field fields rizu.editor.EditorInfoMetadataField[]
----@field developmentLabels string[]
 
 ---@class rizu.editor.EditorInfoMetadataField
 ---@field key string
@@ -41,10 +40,6 @@ function EditorInfoOverlayService:getState(context)
 	return {
 		title = "Chart info",
 		fields = fields,
-		developmentLabels = {
-			"The editor",
-			"is in development",
-		},
 	}
 end
 

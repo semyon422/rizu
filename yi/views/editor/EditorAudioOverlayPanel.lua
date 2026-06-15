@@ -14,7 +14,6 @@ function EditorAudioOverlayPanel:draw(screen, panel, overlayContext)
 
 	local audioSettingsOverlayService = screen.editorViewServices.audioSettingsOverlayService
 	local audioSettingsState = audioSettingsOverlayService:getState(overlayContext)
-	local a = audioSettingsState.audio
 
 	---@type {[string]: number}
 	local volumes = {}
@@ -24,8 +23,8 @@ function EditorAudioOverlayPanel:draw(screen, panel, overlayContext)
 
 	panel:separator()
 	panel:text("audio modes")
-	panel:text("primary: " .. a.mode.primary)
-	panel:text("secondary: " .. a.mode.secondary)
+	panel:text(audioSettingsState.primaryModeLabel)
+	panel:text(audioSettingsState.secondaryModeLabel)
 
 	panel:separator()
 	local audioOffsetSlider = audioSettingsState.audioOffsetSlider

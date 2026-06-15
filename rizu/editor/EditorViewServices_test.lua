@@ -20,6 +20,7 @@ function test.defaults_create_view_services(t)
 	t:eq(type(services.overlayContextFactory.createInfoOverlayContext), "function")
 	t:eq(type(services.overlayShellService.getState), "function")
 	t:eq(type(services.scrollInputService.update), "function")
+	t:eq(type(services.snapGridService.getLabels), "function")
 	t:eq(type(services.timingOverlayService.getPoint), "function")
 	t:eq(type(services.waveformService.update), "function")
 end
@@ -39,6 +40,7 @@ function test.dependencies_can_be_injected(t)
 	local overlayContextFactory = {}
 	local overlayShellService = {}
 	local scrollInputService = {}
+	local snapGridService = {}
 	local timingOverlayService = {}
 	local waveformService = {}
 
@@ -56,6 +58,7 @@ function test.dependencies_can_be_injected(t)
 		overlayContextFactory = overlayContextFactory,
 		overlayShellService = overlayShellService,
 		scrollInputService = scrollInputService,
+		snapGridService = snapGridService,
 		timingOverlayService = timingOverlayService,
 		waveformService = waveformService,
 	})
@@ -73,6 +76,7 @@ function test.dependencies_can_be_injected(t)
 	t:eq(services.overlayContextFactory, overlayContextFactory)
 	t:eq(services.overlayShellService, overlayShellService)
 	t:eq(services.scrollInputService, scrollInputService)
+	t:eq(services.snapGridService, snapGridService)
 	t:eq(services.timingOverlayService, timingOverlayService)
 	t:eq(services.waveformService, waveformService)
 end

@@ -19,6 +19,7 @@ function EditorTimingOverlayPanel:draw(screen, panel, overlayContext)
 	})
 	panel:endRow()
 	panel:text(timingState.pointLabel)
+	panel:text(timingState.pointStatusLabel)
 
 	timingOverlayService:setShowTimings(
 		overlayContext,
@@ -33,7 +34,6 @@ function EditorTimingOverlayPanel:draw(screen, panel, overlayContext)
 
 	panel:separator()
 
-	local vertex = timingState.vertex
 	if timingState.tempoLabel then
 		panel:text(timingState.tempoLabel)
 	end
@@ -43,18 +43,18 @@ function EditorTimingOverlayPanel:draw(screen, panel, overlayContext)
 	local dropPressed = false
 	local mergePressed = false
 	local newBeats = timingState.beats
-	if not timingState.isGrabbed then
-		if not vertex then
-			splitPressed = panel:button("split button", "split")
-		else
-			grabPressed = panel:button("grab vertex button", "grab")
-		end
-	else
-		dropPressed = panel:button("drop vertex button", "drop")
+	if timingState.canSplit then
+		splitPressed = panel:button("split button", timingState.vertexActionLabel)
+	elseif timingState.canGrab then
+		grabPressed = panel:button("grab vertex button", timingState.vertexActionLabel)
+	elseif timingState.canDrop then
+		dropPressed = panel:button("drop vertex button", timingState.vertexActionLabel)
 	end
 
-	if vertex and not timingState.isGrabbed then
+	if timingState.canMerge then
 		mergePressed = panel:button("merge vertex button", "merge")
+	end
+	if timingState.canEditBeats then
 		newBeats = panel:slider("update vertex", timingState.beats, 1, 64, 1, timingState.beatsLabel)
 	end
 	timingOverlayService:handleVertexInput(overlayContext, timingState, {

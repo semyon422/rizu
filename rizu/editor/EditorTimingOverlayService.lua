@@ -3,10 +3,17 @@ local class = require("class")
 ---@class rizu.editor.EditorTimingOverlayState
 ---@field point chartedit.Point
 ---@field pointLabel string
+---@field pointStatusLabel string
 ---@field showTimings boolean
 ---@field canScrollPrev boolean
 ---@field canScrollNext boolean
 ---@field isGrabbed boolean
+---@field canSplit boolean
+---@field canGrab boolean
+---@field canDrop boolean
+---@field canMerge boolean
+---@field canEditBeats boolean
+---@field vertexActionLabel string
 ---@field vertex chartedit.Vertex?
 ---@field tempoLabel string?
 ---@field beats number?
@@ -44,18 +51,36 @@ local EditorTimingOverlayService = class()
 function EditorTimingOverlayService:getState(context)
 	local point = context:getPoint()
 	local vertex = point._vertex
+	local isGrabbed = self:isGrabbed(context)
+	local hasVertex = vertex ~= nil
 	local tempoLabel
 	if point.vertex then
 		tempoLabel = "Tempo: " .. point.vertex:getTempo() .. " bpm"
+	end
+	local pointStatusLabel = "Timing point"
+	local vertexActionLabel = "split"
+	if isGrabbed then
+		pointStatusLabel = "Grabbed timing vertex"
+		vertexActionLabel = "drop"
+	elseif hasVertex then
+		pointStatusLabel = "Timing vertex"
+		vertexActionLabel = "grab"
 	end
 
 	return {
 		point = point,
 		pointLabel = tostring(point),
+		pointStatusLabel = pointStatusLabel,
 		showTimings = self:isShowTimings(context),
 		canScrollPrev = point.prev ~= nil,
 		canScrollNext = point.next ~= nil,
-		isGrabbed = self:isGrabbed(context),
+		isGrabbed = isGrabbed,
+		canSplit = not isGrabbed and not hasVertex,
+		canGrab = not isGrabbed and hasVertex,
+		canDrop = isGrabbed,
+		canMerge = not isGrabbed and hasVertex,
+		canEditBeats = not isGrabbed and hasVertex,
+		vertexActionLabel = vertexActionLabel,
 		vertex = vertex,
 		tempoLabel = tempoLabel,
 		beats = vertex and vertex.beats or nil,

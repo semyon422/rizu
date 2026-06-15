@@ -62,14 +62,77 @@ function test.get_state_returns_point_display_and_vertex_controls(t)
 
 	t:eq(state.point, point)
 	t:eq(state.pointLabel, "timing-point")
+	t:eq(state.pointStatusLabel, "Timing vertex")
 	t:eq(state.showTimings, true)
 	t:eq(state.canScrollPrev, true)
 	t:eq(state.canScrollNext, true)
 	t:eq(state.isGrabbed, false)
+	t:eq(state.canSplit, false)
+	t:eq(state.canGrab, true)
+	t:eq(state.canDrop, false)
+	t:eq(state.canMerge, true)
+	t:eq(state.canEditBeats, true)
+	t:eq(state.vertexActionLabel, "grab")
 	t:eq(state.vertex, point._vertex)
 	t:eq(state.tempoLabel, "Tempo: 150 bpm")
 	t:eq(state.beats, 4)
 	t:eq(state.beatsLabel, "beats 4")
+end
+
+---@param t testing.T
+function test.get_state_exposes_split_action_without_vertex(t)
+	local service = EditorTimingOverlayService()
+	local context = createContext({
+		editor = {
+			showTimings = false,
+		},
+		point = {},
+		intervalManager = {
+			isGrabbed = function()
+				return false
+			end,
+		},
+	})
+
+	local state = service:getState(context)
+
+	t:eq(state.canSplit, true)
+	t:eq(state.canGrab, false)
+	t:eq(state.canDrop, false)
+	t:eq(state.canMerge, false)
+	t:eq(state.canEditBeats, false)
+	t:eq(state.pointStatusLabel, "Timing point")
+	t:eq(state.vertexActionLabel, "split")
+end
+
+---@param t testing.T
+function test.get_state_exposes_drop_action_while_grabbed(t)
+	local service = EditorTimingOverlayService()
+	local context = createContext({
+		editor = {
+			showTimings = false,
+		},
+		point = {
+			_vertex = {
+				beats = 4,
+			},
+		},
+		intervalManager = {
+			isGrabbed = function()
+				return true
+			end,
+		},
+	})
+
+	local state = service:getState(context)
+
+	t:eq(state.canSplit, false)
+	t:eq(state.canGrab, false)
+	t:eq(state.canDrop, true)
+	t:eq(state.canMerge, false)
+	t:eq(state.canEditBeats, false)
+	t:eq(state.pointStatusLabel, "Grabbed timing vertex")
+	t:eq(state.vertexActionLabel, "drop")
 end
 
 ---@param t testing.T

@@ -57,10 +57,6 @@ function test.get_state_returns_metadata_fields(t)
 			inputId = "artist input",
 		},
 	})
-	t:tdeq(state.developmentLabels, {
-		"The editor",
-		"is in development",
-	})
 end
 
 ---@param t testing.T

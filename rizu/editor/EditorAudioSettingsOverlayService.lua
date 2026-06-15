@@ -10,6 +10,8 @@ local decibel = require("decibel")
 ---@field waveformOffsetSlider rizu.editor.EditorAudioSettingsSlider
 ---@field waveformOpacitySlider rizu.editor.EditorAudioSettingsSlider
 ---@field waveformScaleSlider rizu.editor.EditorAudioSettingsSlider
+---@field primaryModeLabel string
+---@field secondaryModeLabel string
 
 ---@class rizu.editor.EditorAudioSettingsSlider
 ---@field key string
@@ -55,6 +57,8 @@ function EditorAudioSettingsOverlayService:getState(context)
 		waveformOffsetSlider = self:getOffsetSlider("ed.waveformOffset", "waveform offset", editor.waveformOffset),
 		waveformOpacitySlider = self:getUnitSlider("wf.opacity", "opacity", editor.waveform.opacity),
 		waveformScaleSlider = self:getUnitSlider("wf.scale", "scale", editor.waveform.scale),
+		primaryModeLabel = "primary: " .. context:getAudioSettings().mode.primary,
+		secondaryModeLabel = "secondary: " .. context:getAudioSettings().mode.secondary,
 	}
 end
 
