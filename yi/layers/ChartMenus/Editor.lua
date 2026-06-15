@@ -1,7 +1,7 @@
 local Screen = require("gui.Screen")
 local thread = require("thread")
-local EditorScreenFrameService = require("rizu.editor.EditorScreenFrameService")
-local EditorScreenLoadService = require("rizu.editor.EditorScreenLoadService")
+local EditorScreenFrameService = require("rizu.editor.view.EditorScreenFrameService")
+local EditorScreenLoadService = require("rizu.editor.view.EditorScreenLoadService")
 
 ---@class yi.layers.Editor : gui.Screen
 ---@operator call: yi.layers.Editor

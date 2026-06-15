@@ -1,12 +1,12 @@
 local class = require("class")
 local EditorInput = require("rizu.editor.EditorInput")
 local EditorServices = require("rizu.editor.EditorServices")
-local EditorCursorState = require("rizu.editor.EditorCursorState")
-local EditorSelectionState = require("rizu.editor.EditorSelectionState")
-local EditorRenderState = require("rizu.editor.EditorRenderState")
-local EditorAnalysisState = require("rizu.editor.EditorAnalysisState")
-local EditorRuntimeState = require("rizu.editor.EditorRuntimeState")
-local EditorModelContext = require("rizu.editor.EditorModelContext")
+local EditorCursorState = require("rizu.editor.state.EditorCursorState")
+local EditorSelectionState = require("rizu.editor.state.EditorSelectionState")
+local EditorRenderState = require("rizu.editor.state.EditorRenderState")
+local EditorAnalysisState = require("rizu.editor.state.EditorAnalysisState")
+local EditorRuntimeState = require("rizu.editor.state.EditorRuntimeState")
+local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
 
 ---@class rizu.editor.EditorModelDeps: rizu.editor.EditorServicesDeps
 ---@field services rizu.editor.EditorServices?

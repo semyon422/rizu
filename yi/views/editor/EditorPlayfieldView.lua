@@ -1,7 +1,7 @@
 local View = require("gui.View")
-local EditorPlayfieldHitTestService = require("rizu.editor.EditorPlayfieldHitTestService")
-local EditorPlayfieldInputService = require("rizu.editor.EditorPlayfieldInputService")
-local EditorPlayfieldService = require("rizu.editor.EditorPlayfieldService")
+local EditorPlayfieldHitTestService = require("rizu.editor.view.playfield.EditorPlayfieldHitTestService")
+local EditorPlayfieldInputService = require("rizu.editor.view.playfield.EditorPlayfieldInputService")
+local EditorPlayfieldService = require("rizu.editor.view.playfield.EditorPlayfieldService")
 local gfx_util = require("gfx_util")
 
 ---@class yi.views.editor.EditorPlayfieldView: gui.View

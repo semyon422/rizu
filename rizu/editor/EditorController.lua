@@ -1,7 +1,7 @@
 local class = require("class")
-local EditorDropImport = require("rizu.editor.EditorDropImport")
-local EditorExportService = require("rizu.editor.EditorExportService")
-local EditorLoadControllerService = require("rizu.editor.EditorLoadControllerService")
+local EditorDropImport = require("rizu.editor.controller.EditorDropImport")
+local EditorExportService = require("rizu.editor.controller.EditorExportService")
+local EditorLoadControllerService = require("rizu.editor.controller.EditorLoadControllerService")
 local LoveFilesystem = require("fs.LoveFilesystem")
 
 ---@class rizu.editor.EditorControllerDeps

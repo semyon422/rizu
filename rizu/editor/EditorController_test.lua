@@ -1,5 +1,5 @@
 local EditorController = require("rizu.editor.EditorController")
-local EditorDropImport = require("rizu.editor.EditorDropImport")
+local EditorDropImport = require("rizu.editor.controller.EditorDropImport")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}

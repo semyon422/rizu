@@ -14,6 +14,29 @@ The chart editor provides tools for creating, modifying, and exporting rhythm ga
 ## Current State
 The editor is functional but carries legacy code migrated from the `sphere` namespace. The core note, timing, selection, scrolling, load/save, and update-loop paths now have focused regression coverage and are being modernized incrementally. BMS-specific export features are experimental and intentionally deferred until the planned parser rewrite.
 
+## Module Layout
+
+The editor backend is organized by subsystem. Keep new modules close to the subsystem that owns their state or behavior:
+
+- `EditorModel.lua`, `EditorController.lua`, `EditorServices.lua`, and `EditorInput.lua`: top-level facades and composition entry points.
+- `contexts/`: model-backed adapters that satisfy narrow service context contracts.
+- `state/`: focused mutable state objects owned by `EditorServices` and attached to `EditorModel`.
+- `lifecycle/`: editor-model load/save/resource/frame/session orchestration.
+- `controller/`: controller-facing load, drop-import, and export command orchestration.
+- `notes/`: editor note wrappers, note factory, note mutation services, drag, clipboard, and note ops.
+- `timing/`: interval timing mutation and timeline scrolling.
+- `playback/`: timer/audio playback service, time manager, and metronome.
+- `analysis/`: waveform analysis, NCBT, graph generation, and timeline analysis helpers.
+- `visual/`: editable chart conversion and visible editor-note cache.
+- `selection/`: rectangle selection and selection service behavior.
+- `settings/`: editor/audio settings mutation helpers.
+- `changes/`: undo/redo command wrapper.
+- `view/`: retained editor view services used by `yi/views/editor`; overlay services live in `view/overlays/`, playfield input services live in `view/playfield/`.
+- `bms/`: BMS-specific editor state containers. BMS exporters remain in `exports/`.
+- `test/`: shared editor test factories and helpers.
+
+Runtime class annotations still use the existing `rizu.editor.*` names. The first restructure moved module paths only; class namespace renames should be handled separately, if they are ever worth the churn.
+
 ## Architecture Decisions
 
 ### ADR: Reuse Game Engine Audio And Timing
