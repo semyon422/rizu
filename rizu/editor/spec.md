@@ -43,8 +43,8 @@ The editor is functional but carries legacy code migrated from the `sphere` name
 
 ### ADR: Retained Playfield Input
 - **Context**: The note-skin sequence renderer is still shared with gameplay, but editor note input and rectangle selection should belong to retained editor views.
-- **Decision**: `EditorSequenceView` owns editor-only note-skin sequence iteration. `EditorRhythmView` keeps the shared note-view drawing path and reports post-draw editor interaction state on notes. `EditorPlayfieldView` owns retained mouse events, selection-rectangle drawing, add-note/select-note/remove-note/drop-note routing, and calls `EditorPlayfieldInputService` with explicit input facts after notes have drawn their interaction state.
-- **Consequence**: Editor playfield input no longer depends on `just`, immediate-mode mouse state, or raw shared note-view hover fields. `EditorRhythmView` uses the original shared note views for drawing, then reports hover/selection through `EditorNote:setPartInteractionState()`; playfield hit testing reads `EditorNote:getInteractionState()`.
+- **Decision**: `EditorSequenceView` owns editor-only note-skin sequence iteration and injects `EditorRhythmView` from the shared gameplay notes view marked with `isNotesView = true`. `EditorRhythmView` keeps the shared note-view drawing path and reports post-draw editor interaction state on notes. `EditorPlayfieldView` owns retained mouse events, selection-rectangle drawing, add-note/select-note/remove-note/drop-note routing, and calls `EditorPlayfieldInputService` with explicit input facts after notes have drawn their interaction state.
+- **Consequence**: Editor playfield input no longer depends on `just`, immediate-mode mouse state, raw shared note-view hover fields, or editor views registered by `sphere.models.NoteSkinModel.PlayfieldVsrg`. `EditorRhythmView` uses the original shared note views for drawing, then reports hover/selection through `EditorNote:setPartInteractionState()`; playfield hit testing reads `EditorNote:getInteractionState()`.
 
 ## Core Components
 
@@ -259,7 +259,7 @@ Maps editor notes to iBMSC clipboard format columns and writes the output file.
 The editor is opened through the new `yi/layers/ChartMenus/Editor` screen only. The old `ui/views/EditorView.lua` screen was removed. New editor UI views live under `yi/views/editor/`; the legacy `ui/views/EditorView/` modules have been removed.
 
 The editor UI is composed of retained view modules under `yi.views.editor`:
-- `EditorSequenceView`: editor-only iteration over note-skin sequence view objects.
+- `EditorSequenceView`: editor-only iteration over note-skin sequence view objects and injection of editor rhythm rendering from the shared gameplay notes view marked with `isNotesView = true`. Sets `missingEditorNotesView` when a skin does not expose a reusable notes view.
 - `EditorRhythmView`: editor note source routing and post-draw note interaction reporting while preserving shared note-view drawing.
 - `EditorPlayfieldView`: retained playfield input, note-command routing, and selection rectangle drawing.
 - `EditorSnapGridView`: snap-grid rendering, timing/comment markers, and snap-scroll input.

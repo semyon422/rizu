@@ -6,7 +6,6 @@ local ImageView = require("sphere.views.ImageView")
 local CameraView = require("sphere.views.CameraView")
 local ImageAnimationView = require("sphere.views.ImageAnimationView")
 
-local EditorRhythmView = require("yi.views.editor.EditorRhythmView")
 local ChartPreviewRhythmView = require("sphere.views.SelectView.ChartPreviewRhythmView")
 local RhythmView = require("sphere.views.RhythmView")
 local RectangleProgressView = require("sphere.views.GameplayView.RectangleProgressView")
@@ -129,15 +128,12 @@ function PlayfieldVsrg:addNotes(object)
 		object.transform = self:newNoteskinTransform()
 	end
 
-	self:add(EditorRhythmView({
-		transform = object.transform,
-		subscreen = "editor",
-	}))
 	self:add(ChartPreviewRhythmView({
 		transform = object.transform,
 		subscreen = "preview",
 	}))
 
+	object.isNotesView = true
 	object.subscreen = "gameplay"
 	return self:addRhythmView(object)
 end

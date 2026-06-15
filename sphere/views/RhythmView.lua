@@ -5,6 +5,7 @@ local gfx_util = require("gfx_util")
 ---@class sphere.RhythmView
 ---@operator call: sphere.RhythmView
 ---@field game sphere.GameController
+---@field isNotesView boolean?
 local RhythmView = class()
 
 RhythmView.mode = "default"

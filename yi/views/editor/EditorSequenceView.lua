@@ -1,4 +1,6 @@
 local View = require("gui.View")
+local EditorRhythmView = require("yi.views.editor.EditorRhythmView")
+local RhythmView = require("sphere.views.RhythmView")
 
 ---@param views table
 ---@param out table?
@@ -15,6 +17,35 @@ local function flattenViews(views, out)
 	return out
 end
 
+---@param view table
+---@return boolean
+local function isGameplayNotesView(view)
+	return RhythmView * view and view.subscreen == "gameplay" and view.isNotesView == true
+end
+
+---@param view table
+---@return yi.views.editor.EditorRhythmView
+local function createEditorRhythmView(view)
+	return EditorRhythmView({
+		transform = view.transform,
+		subscreen = "editor",
+	})
+end
+
+---@param views table[]
+---@return table[]
+local function withEditorRhythmViews(views)
+	---@type table[]
+	local out = {}
+	for _, view in ipairs(views) do
+		table.insert(out, view)
+		if isGameplayNotesView(view) then
+			table.insert(out, createEditorRhythmView(view))
+		end
+	end
+	return out
+end
+
 ---@class yi.views.editor.EditorSequenceView: gui.View
 ---@operator call: yi.views.editor.EditorSequenceView
 ---@field screen table
@@ -22,6 +53,7 @@ end
 ---@field viewById {[string]: table}
 ---@field iterating boolean?
 ---@field abortIterating boolean?
+---@field missingEditorNotesView boolean
 local EditorSequenceView = View + {}
 
 ---@param screen table
@@ -30,6 +62,7 @@ function EditorSequenceView:new(screen)
 	self.screen = screen
 	self.sequenceViews = {}
 	self.viewById = {}
+	self.missingEditorNotesView = false
 	screen.editor_sequence_view = self
 	self:setSize(love.graphics.getDimensions())
 end
@@ -42,9 +75,13 @@ end
 
 ---@param playfield table
 function EditorSequenceView:setPlayfield(playfield)
-	self.sequenceViews = flattenViews(playfield)
+	self.sequenceViews = withEditorRhythmViews(flattenViews(playfield))
+	self.missingEditorNotesView = true
 	self.viewById = {}
 	for _, view in ipairs(self.sequenceViews) do
+		if EditorRhythmView * view then
+			self.missingEditorNotesView = false
+		end
 		view.sequenceView = self
 		view.game = self.screen.game
 		view.screenView = self
