@@ -4,6 +4,7 @@ local IntervalUpdateSnapshot = require("rizu.editor.timing.IntervalUpdateSnapsho
 ---@class rizu.editor.IntervalManagerContext
 ---@field getLayer fun(): chartedit.Layer
 ---@field getNotes fun(): chartedit.Notes
+---@field getEditorChanges fun(): rizu.editor.EditorChanges
 
 ---@class rizu.editor.IntervalManager
 ---@operator call: rizu.editor.IntervalManager

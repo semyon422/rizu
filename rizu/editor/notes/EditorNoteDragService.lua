@@ -34,6 +34,11 @@ function EditorNoteDragService:clear()
 	end
 end
 
+---@return rizu.editor.EditorNote[]
+function EditorNoteDragService:getGrabbedNotes()
+	return self.grabbedNotes
+end
+
 function EditorNoteDragService:beginDrag()
 	self:clear()
 	self.context:getEditorChanges():reset()

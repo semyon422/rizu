@@ -99,12 +99,12 @@ end
 
 ---@return rizu.editor.EditorNote[]
 function EditorNoteService:getGrabbedNotes()
-	return self.dragService.grabbedNotes
+	return self.dragService:getGrabbedNotes()
 end
 
 ---@return rizu.editor.EditorNote[]
 function EditorNoteService:getCopiedNotes()
-	return self.clipboardService.copiedNotes or {}
+	return self.clipboardService:getCopiedNotes()
 end
 
 ---@param column integer?

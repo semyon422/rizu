@@ -17,6 +17,12 @@ local function createSubservice(calls, name)
 		update = function()
 			table.insert(calls, name .. ":update")
 		end,
+		getGrabbedNotes = function(self)
+			return self.grabbedNotes
+		end,
+		getCopiedNotes = function(self)
+			return self.copiedNotes
+		end,
 		copy = function(_, cut)
 			table.insert(calls, name .. ":copy:" .. tostring(cut))
 		end,
@@ -74,8 +80,8 @@ function test.uses_injected_focused_services(t)
 	noteService:flipNotes()
 
 	t:eq(deps.dragService.context, context)
-	t:eq(noteService:getGrabbedNotes(), deps.dragService.grabbedNotes)
-	t:eq(noteService:getCopiedNotes(), deps.clipboardService.copiedNotes)
+	t:eq(noteService:getGrabbedNotes(), deps.dragService:getGrabbedNotes())
+	t:eq(noteService:getCopiedNotes(), deps.clipboardService:getCopiedNotes())
 	t:tdeq(calls, {
 		"column:context",
 		"command:context",

@@ -61,9 +61,7 @@ function EditorAnalysisService:getFirstLastTime(context)
 		audioStartTime,
 		layer.points:getFirstPoint():tonumber()
 	)
-	local lastTime = math.max(
-		layer.points:getLastPoint():tonumber()
-	)
+	local lastTime = layer.points:getLastPoint():tonumber()
 	if wave then
 		lastTime = math.max(lastTime, audioStartTime + wave:getDuration())
 	end

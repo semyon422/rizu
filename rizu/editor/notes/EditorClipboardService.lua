@@ -22,6 +22,11 @@ function EditorClipboardService:setContext(context)
 	self.context = context
 end
 
+---@return rizu.editor.EditorNote[]
+function EditorClipboardService:getCopiedNotes()
+	return self.copiedNotes or {}
+end
+
 ---@param cut boolean?
 function EditorClipboardService:copy(cut)
 	local context = self.context
