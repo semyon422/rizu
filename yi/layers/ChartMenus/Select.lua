@@ -172,7 +172,6 @@ function Select:new(yi)
 	self.chart_diff = ChartDifficulty(yi)
 	self.gameplay_state = GameplayState()
 	self.combined_list = CombinedList(self.yi.game.chartSelector, self.yi.game.settings_config)
-	self.combined_list.x = -5
 
 	self.chart_preview_view = ChartPreviewView(yi.game)
 

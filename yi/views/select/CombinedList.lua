@@ -1,58 +1,97 @@
-local BaseList = require("yi.views.select.BaseList")
+local View = require("gui.View")
 local Resources = require("yi.Resources")
 local Settings = require("rizu.config.schemas.Settings")
 local Colors = require("yi.Colors")
 local Color = require("yi.Color")
 local Painter = require("yi.Painter")
+local SpringValue = require("gui.anim.SpringValue")
 
----@class yi.views.select.CombinedList : yi.views.select.BaseList
+---@class yi.views.select.CombinedList : gui.View
 ---@operator call: yi.views.select.CombinedList
-local CombinedList = BaseList + {}
+local CombinedList = View + {}
 
 ---@param chart_selector rizu.select.ChartSelector
 ---@param config rizu.config.Config
 function CombinedList:new(chart_selector, config)
-	BaseList.new(self)
+	View.new(self)
+	self.scroll_spring = SpringValue({stiffness = 480, damping = 48})
+	self.handles_mouse_input = true
 	self.chart_selector = chart_selector
 	self.config = config
-	self.sdf_batch = love.graphics.newTextBatch(Resources.getSdfFont())
-	self.text_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24))
+	self.sdf_batch = love.graphics.newTextBatch(Resources.getSdfFont()) ---@type love.Text
+	self.text_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
 	self.sprite_batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self:setWidth(500)
 end
 
 function CombinedList:load()
-	self.h_set = Painter.getQuadHeight(Resources.quads.set_panel)
-	self.h_chart = Painter.getQuadHeight(Resources.quads.chart_panel)
+	self.set_height = Painter.getQuadHeight(Resources.quads.set_panel)
+	self.chart_height = Painter.getQuadHeight(Resources.quads.chart_panel)
 	self.gap = 8
 	self.diff_column = self.config:getString(Settings.select.display.diff_column)
-	BaseList.load(self)
+	View.load(self)
+	self:snapToSelected()
 end
 
-function CombinedList:snapToSelected()
-	local sel_set_index = self:getSelectedIndex()
-	if sel_set_index then
-		local num_charts = self.chart_selector.stores[2]:count()
-		local sel_chart_index = self.chart_selector.state:getSecondary().index
-		local focus_y, focus_h
-		if sel_chart_index and sel_chart_index > 0 and sel_chart_index <= num_charts then
-			focus_y = sel_set_index * (self.h_set + self.gap) + self.h_set + self.gap + (sel_chart_index - 1) * (self.h_chart + self.gap)
-			focus_h = self.h_chart
-		else
-			focus_y = sel_set_index * (self.h_set + self.gap)
-			focus_h = self.h_set
-		end
-		local scroll_target = focus_y - ((self.height and self.height > 0) and (self.height - focus_h) / 2 or (540 - focus_h / 2))
-		self.scroll_spring:snap(scroll_target)
+---@param i integer
+---@param sel_set_index integer
+---@param total_chart_height number
+---@return number
+function CombinedList:getSetY(i, sel_set_index, total_chart_height)
+	if i <= sel_set_index then
+		return (i - 1) * (self.set_height + self.gap)
+	else
+		return (i - 1) * (self.set_height + self.gap) + total_chart_height
 	end
 end
 
-function CombinedList:getSelectedIndex()
+---@param c integer
+---@param sel_set_index integer
+---@return number
+function CombinedList:getChartY(c, sel_set_index)
+	return (sel_set_index - 1) * (self.set_height + self.gap) + self.set_height + self.gap + (c - 1) * (self.chart_height + self.gap)
+end
+
+---@param sel_set_index integer
+---@param sel_chart_index integer
+---@return number
+function CombinedList:getScrollTarget(sel_set_index, sel_chart_index)
+	local focus_y = self:getChartY(sel_chart_index, sel_set_index)
+	local focus_h = self.chart_height
+	return focus_y - ((self.height and self.height > 0) and (self.height - focus_h) / 2 or (540 - focus_h / 2))
+end
+
+function CombinedList:snapToSelected()
+	local sel_set_index = self:getPrimarySelectedIndex()
+	local sel_chart_index = self:getSecondarySelectedIndex()
+
+	if not sel_set_index or not sel_chart_index then
+		return
+	end
+
+	self.scroll_spring:snap(self:getScrollTarget(sel_set_index, sel_chart_index))
+end
+
+---@return integer
+function CombinedList:getPrimarySelectedIndex()
 	return self.chart_selector.state:getPrimary().index
 end
 
-function CombinedList:getItem(index)
+---@return integer
+function CombinedList:getSecondarySelectedIndex()
+	return self.chart_selector.state:getSecondary().index
+end
+
+---@param index integer
+---@return rizu.library.LocatedChartview?
+function CombinedList:getPrimaryItem(index)
 	return self.chart_selector.stores[1]:get(index)
+end
+
+---@param index integer
+---@return rizu.library.LocatedChartview?
+function CombinedList:getSecondaryItem(index)
+	return self.chart_selector.stores[2]:get(index)
 end
 
 function CombinedList:onScroll(e)
@@ -69,14 +108,16 @@ function CombinedList:resetBatches()
 	self.sdf_batch:clear()
 end
 
-function CombinedList:addSetToBatch(item, y, is_selected)
+function CombinedList:addSetToBatch(item, y, is_selected, index)
 	local alpha = is_selected and 1.0 or 0.5
 	local center_y = (self.height and self.height > 0) and (self.height / 2) or 540
-	local dist = (y + self.h_set / 2) - center_y
+	local dist = (y + self.set_height / 2) - center_y
 	local norm_dist = dist / center_y
 	local shift_x = (norm_dist * norm_dist) * 50
 
-	local px = self.width - 477 + shift_x
+	local slide_offset = is_selected and -50 or 0
+
+	local px = self.width - 477 + shift_x + slide_offset
 	local py = y
 
 	self.sprite_batch:setColor(alpha, alpha, alpha, 1)
@@ -102,14 +143,16 @@ function CombinedList:addSetToBatch(item, y, is_selected)
 	self.text_batch:add({artist_color, artist_text}, tx, ty_artist)
 end
 
-function CombinedList:addChartToBatch(item, y, is_selected)
-	local alpha = is_selected and 1.0 or 0.6
+function CombinedList:addChartToBatch(item, y, is_selected, index)
+	local alpha = is_selected and 1.0 or 0.9
 	local center_y = (self.height and self.height > 0) and (self.height / 2) or 540
-	local dist = (y + self.h_chart / 2) - center_y
+	local dist = (y + self.chart_height / 2) - center_y
 	local norm_dist = dist / center_y
-	local shift_x = (norm_dist * norm_dist) * 50
+	local shift_x = (norm_dist * norm_dist) * 150
 
-	local px = self.width - 437 + shift_x
+	local slide_offset = is_selected and -50 or 0
+
+	local px = self.width - 437 + shift_x + slide_offset
 	local py = y
 
 	local color = {1, 1, 1, 1}
@@ -153,73 +196,82 @@ function CombinedList:addChartToBatch(item, y, is_selected)
 end
 
 function CombinedList:update(dt)
-	local sel_set_index = self:getSelectedIndex()
+	local sel_set_index = self:getPrimarySelectedIndex()
 	if not sel_set_index then return end
 
 	local num_charts = self.chart_selector.stores[2]:count()
-	local total_chart_height = num_charts * (self.h_chart + self.gap)
+	local total_chart_height = num_charts * (self.chart_height + self.gap)
+	local sel_chart_index = self:getSecondarySelectedIndex()
 
-	local sel_chart_index = self.chart_selector.state:getSecondary().index
-
-	local focus_y, focus_h
-	if sel_chart_index and sel_chart_index > 0 and sel_chart_index <= num_charts then
-		focus_y = sel_set_index * (self.h_set + self.gap) + self.h_set + self.gap + (sel_chart_index - 1) * (self.h_chart + self.gap)
-		focus_h = self.h_chart
-	else
-		focus_y = sel_set_index * (self.h_set + self.gap)
-		focus_h = self.h_set
-	end
-
-	local scroll_target = focus_y - ((self.height and self.height > 0) and (self.height - focus_h) / 2 or (540 - focus_h / 2))
+	-- Focus camera on target
+	local scroll_target = self:getScrollTarget(sel_set_index, sel_chart_index)
 	self.scroll_spring:set(scroll_target)
 	self.scroll_spring:update(dt)
 
-	local scroll_y = self.scroll_spring:get()
+	self:rebuildBatches(sel_set_index, sel_chart_index, num_charts, total_chart_height)
+end
 
+---@param sel_set_index integer
+---@param sel_chart_index integer
+---@param num_charts integer
+---@param total_chart_height number
+function CombinedList:rebuildBatches(sel_set_index, sel_chart_index, num_charts, total_chart_height)
+	local scroll_y = self.scroll_spring:get()
 	self:resetBatches()
 
 	local num_sets = self.chart_selector.stores[1]:count()
+	local step = self.set_height + self.gap
+	local view_height = (self.height and self.height > 0) and self.height or 1080
 
-	for i = 1, num_sets do
-		local set_y
-		if i <= sel_set_index then
-			set_y = i * (self.h_set + self.gap)
-		else
-			set_y = i * (self.h_set + self.gap) + total_chart_height
-		end
+	-- Draw visible sets before/including the selected set
+	local min_i_1 = math.max(1, math.floor((scroll_y - self.set_height) / step) - 1)
+	local max_i_1 = math.min(sel_set_index, math.ceil((scroll_y + view_height) / step) + 1)
 
+	for i = min_i_1, max_i_1 do
+		local set_y = self:getSetY(i, sel_set_index, total_chart_height)
 		local screen_y = set_y - scroll_y
 
-		if screen_y + self.h_set >= 0 and screen_y <= self.height then
-			local set_item = self.chart_selector.stores[1]:get(i)
+		if screen_y + self.set_height >= 0 and screen_y <= view_height then
+			local set_item = self:getPrimaryItem(i)
 			if set_item then
-				self:addSetToBatch(set_item, screen_y, i == sel_set_index)
+				self:addSetToBatch(set_item, screen_y, i == sel_set_index, i)
 			end
 		end
 
 		if i == sel_set_index and num_charts > 0 then
 			for c = 1, num_charts do
-				local chart_y = sel_set_index * (self.h_set + self.gap) + self.h_set + self.gap + (c - 1) * (self.h_chart + self.gap)
+				local chart_y = self:getChartY(c, sel_set_index)
 				local chart_screen_y = chart_y - scroll_y
 
-				if chart_screen_y + self.h_chart >= 0 and chart_screen_y <= self.height then
-					local chart_item = self.chart_selector.stores[2]:get(c)
+				if chart_screen_y + self.chart_height >= 0 and chart_screen_y <= view_height then
+					local chart_item = self:getSecondaryItem(c)
 					if chart_item then
 						local is_chart_selected = (c == sel_chart_index)
-						self:addChartToBatch(chart_item, chart_screen_y, is_chart_selected)
+						self:addChartToBatch(chart_item, chart_screen_y, is_chart_selected, c)
 					end
 				end
+			end
+		end
+	end
+
+	-- Draw visible sets after the selected set
+	local min_i_2 = math.max(sel_set_index + 1, math.floor((scroll_y - self.set_height - total_chart_height) / step) - 1)
+	local max_i_2 = math.min(num_sets, math.ceil((scroll_y + view_height - total_chart_height) / step) + 2)
+
+	for i = min_i_2, max_i_2 do
+		local set_y = self:getSetY(i, sel_set_index, total_chart_height)
+		local screen_y = set_y - scroll_y
+
+		if screen_y + self.set_height >= 0 and screen_y <= view_height then
+			local set_item = self:getPrimaryItem(i)
+			if set_item then
+				self:addSetToBatch(set_item, screen_y, false, i)
 			end
 		end
 	end
 end
 
 function CombinedList:draw()
-	love.graphics.clear(false, true, false)
-	love.graphics.setStencilMode("draw", 1)
-	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
-	love.graphics.setStencilMode("test")
-
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.draw(self.sprite_batch)
 	love.graphics.draw(self.text_batch)
@@ -230,8 +282,6 @@ function CombinedList:draw()
 	Painter.beginTextDrawing()
 	love.graphics.draw(self.sdf_batch)
 	Painter.endTextDrawing()
-
-	love.graphics.setStencilMode("off")
 end
 
 return CombinedList
