@@ -1,5 +1,4 @@
 local class = require("class")
-local just = require("just")
 
 ---@class rizu.editor.EditorInput
 ---@operator call: rizu.editor.EditorInput
@@ -46,11 +45,9 @@ end
 ---@param x2 number
 ---@param y2 number
 function EditorInput:selectRegion(x1, y1, x2, y2)
-	just.select(x1, y1, x2, y2)
 end
 
 function EditorInput:unselectRegion()
-	just.unselect()
 end
 
 return EditorInput

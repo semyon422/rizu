@@ -11,24 +11,14 @@ local function createScreen(calls)
 			}
 		end,
 	}
-	local sequenceView = {
-		setSequenceConfig = function(_, loadedPlayfield)
-			table.insert(calls, "sequence-config")
-			assert(loadedPlayfield == playfield)
-		end,
-		load = function()
-			table.insert(calls, "sequence-load")
-		end,
-		unload = function()
-			table.insert(calls, "sequence-unload")
-		end,
-	}
-	local snapGridView = {}
 	local editorViewServices = {}
 	local retainedViews = {
 		{
 			load = function()
 				table.insert(calls, "retained-load:1")
+			end,
+			unload = function()
+				table.insert(calls, "retained-unload:1")
 			end,
 			updateTransform = function()
 				table.insert(calls, "retained-transform:1")
@@ -37,6 +27,9 @@ local function createScreen(calls)
 		{
 			load = function()
 				table.insert(calls, "retained-load:2")
+			end,
+			unload = function()
+				table.insert(calls, "retained-unload:2")
 			end,
 			updateTransform = function()
 				table.insert(calls, "retained-transform:2")
@@ -64,14 +57,6 @@ local function createScreen(calls)
 		views = {},
 	}
 	local service = EditorScreenLoadService({
-		sequenceViewFactory = function()
-			table.insert(calls, "sequence-new")
-			return sequenceView
-		end,
-		snapGridViewFactory = function()
-			table.insert(calls, "snap-new")
-			return snapGridView
-		end,
 		viewServicesFactory = function()
 			table.insert(calls, "services-new")
 			return editorViewServices
@@ -82,39 +67,30 @@ local function createScreen(calls)
 			return retainedViews
 		end,
 	})
-	return service, screen, sequenceView, snapGridView, editorViewServices, retainedViews
+	return service, screen, editorViewServices, retainedViews
 end
 
 ---@param t testing.T
 function test.enter_loads_editor_screen_views(t)
 	local calls = {}
-	local service, screen, sequenceView, snapGridView, editorViewServices, retainedViews = createScreen(calls)
+	local service, screen, editorViewServices, retainedViews = createScreen(calls)
 
 	local started = service:enter(screen)
 
 	t:eq(started, true)
 	t:eq(screen.editor_loaded, true)
 	t:eq(screen.loading, false)
-	t:eq(screen.sequence_view, sequenceView)
-	t:eq(screen.snap_grid_view, snapGridView)
 	t:eq(screen.editorViewServices, editorViewServices)
 	t:eq(screen.editor_retained_views, retainedViews)
+	t:eq(screen.snap_grid_transform.id, "transform-3")
 	t:eq(screen.views[1], retainedViews[1])
 	t:eq(screen.views[2], retainedViews[2])
-	t:eq(snapGridView.editorViewServices, editorViewServices)
-	t:eq(sequenceView.game, screen.game)
-	t:eq(sequenceView.subscreen, "editor")
-	t:eq(snapGridView.game, screen.game)
-	t:ne(screen.transform, snapGridView.transform)
+	t:ne(screen.transform, screen.snap_grid_transform)
 	t:tdeq(calls, {
 		"editor-load",
 		"services-new",
-		"snap-new",
 		"transform",
 		"transform",
-		"sequence-new",
-		"sequence-config",
-		"sequence-load",
 		"retained-new",
 		"retained-load:1",
 		"retained-transform:1",
@@ -154,7 +130,7 @@ function test.enter_failure_clears_loading_state(t)
 	t:eq(screen.loading, false)
 	t:eq(screen.editorViewServices, nil)
 	t:eq(screen.editor_retained_views, nil)
-	t:eq(screen.snap_grid_view, nil)
+	t:eq(screen.snap_grid_transform, nil)
 	t:tdeq(calls, {"editor-load"})
 end
 
@@ -174,10 +150,12 @@ function test.exit_unloads_only_when_loaded(t)
 	t:eq(screen.loading, false)
 	t:eq(screen.editorViewServices, nil)
 	t:eq(screen.editor_retained_views, nil)
-	t:eq(screen.snap_grid_view, nil)
+	t:eq(screen.editor_sequence_view, nil)
+	t:eq(screen.snap_grid_transform, nil)
 	t:eq(#screen.views, 0)
-	t:eq(calls[#calls - 1], "editor-unload")
-	t:eq(calls[#calls], "sequence-unload")
+	t:eq(calls[#calls - 2], "editor-unload")
+	t:eq(calls[#calls - 1], "retained-unload:1")
+	t:eq(calls[#calls], "retained-unload:2")
 end
 
 return test

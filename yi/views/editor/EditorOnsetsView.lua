@@ -1,15 +1,33 @@
+local View = require("gui.View")
 local gfx_util = require("gfx_util")
 
-return function(self)
-	local editor = self.game.configModel.configs.settings.editor
-	local onsetsService = self.editorViewServices.onsetsService
-	local state = onsetsService:getOnsetsState(self.game.editorModel.context:getViewContext(), editor.speed)
+---@class yi.views.editor.EditorOnsetsView: gui.View
+---@operator call: yi.views.editor.EditorOnsetsView
+---@field screen table
+local EditorOnsetsView = View + {}
+
+---@param screen table
+function EditorOnsetsView:new(screen)
+	View.new(self)
+	self.screen = screen
+	self:setSize(love.graphics.getDimensions())
+end
+
+function EditorOnsetsView:load()
+	self:setSize(love.graphics.getDimensions())
+end
+
+function EditorOnsetsView:draw()
+	local screen = self.screen
+	local editor = screen.game.configModel.configs.settings.editor
+	local onsetsService = screen.editorViewServices.onsetsService
+	local state = onsetsService:getOnsetsState(screen.game.editorModel.context:getViewContext(), editor.speed)
 	if not state then
 		return
 	end
 	local node = state.node
 
-	local noteSkin = self.game.noteSkinModel.noteSkin
+	local noteSkin = screen.game.noteSkinModel.noteSkin
 
 	love.graphics.push("all")
 	love.graphics.setLineJoin("none")
@@ -17,7 +35,7 @@ return function(self)
 	love.graphics.setLineWidth(2)
 	love.graphics.setColor(1, 1, 1, 1)
 
-	love.graphics.replaceTransform(gfx_util.transform(self.transform))
+	love.graphics.replaceTransform(gfx_util.transform(screen.transform))
 	love.graphics.translate(noteSkin.baseOffset + noteSkin.fullWidth, 0)
 
 	while node and onsetsService:isNodeVisible(state, node) do
@@ -44,3 +62,5 @@ return function(self)
 
 	love.graphics.pop()
 end
+
+return EditorOnsetsView

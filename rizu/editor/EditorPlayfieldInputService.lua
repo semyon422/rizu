@@ -4,6 +4,11 @@ local EditorPlayfieldService = require("rizu.editor.EditorPlayfieldService")
 ---@class rizu.editor.EditorPlayfieldInputServiceDeps
 ---@field playfieldService rizu.editor.EditorPlayfieldService?
 
+---@class rizu.editor.EditorPlayfieldInputState
+---@field leftPressed boolean
+---@field rightPressed boolean
+---@field leftReleased boolean
+
 ---@class rizu.editor.EditorPlayfieldNoteInput
 ---@field note rizu.editor.EditorNote
 ---@field mouseTime number

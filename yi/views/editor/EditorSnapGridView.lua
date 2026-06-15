@@ -1,49 +1,22 @@
-local class = require("class")
-local gfx_util = require("gfx_util")
-local math_util = require("math_util")
-local spherefonts = require("sphere.assets.fonts")
-local just = require("just")
+local View = require("gui.View")
 local Fraction = require("chart.core.Fraction")
-local imgui = require("imgui")
+local gfx_util = require("gfx_util")
+local spherefonts = require("sphere.assets.fonts")
+local EditorGui = require("yi.views.editor.EditorGui")
 
-local Layout = require("ui.views.EditorView.Layout")
+local EditorLayout = require("yi.views.editor.EditorLayout")
 
-local SnapGridView = class()
+---@class yi.views.editor.EditorSnapGridView: gui.View
+---@operator call: yi.views.editor.EditorSnapGridView
+---@field screen table
+---@field gui yi.views.editor.EditorGui
+---@field scroll number?
+---@field dragActive boolean
+local EditorSnapGridView = View + {}
 
 ---@return string
 local function getVelocityText()
 	return ""
-end
-
----@param field string
----@param currentTime number
----@param w number
----@param h number
----@param align string
----@param getText function
-function SnapGridView:drawTimingObjects(field, currentTime, w, h, align, getText)
-	do return end
-	local editorModel = self.game.editorModel
-	local rangeTracker = editorModel.layerData.ranges.timePoint
-	local noteSkin = self.game.noteSkinModel.noteSkin
-	local editor = self.game.configModel.configs.settings.editor
-	local timePoint = rangeTracker.head
-	if not timePoint or not currentTime then
-		return
-	end
-
-	local endTimePoint = rangeTracker.tail
-	local t
-	while timePoint and timePoint <= endTimePoint do
-		local text = getText(timePoint)
-		if text and not t or timePoint.absoluteTime - t >= 0.01 then
-			local y = noteSkin:getTimePosition((currentTime - timePoint[field]) * editor.speed)
-			gfx_util.printFrame(text, 0, y - h / 2, w, h, align, "center")
-			t = timePoint.absoluteTime
-		end
-
-		timePoint = timePoint.next
-	end
 end
 
 local colors = {
@@ -67,14 +40,114 @@ local snaps = {
 	[8] = colors.green,
 }
 
+---@param screen table
+function EditorSnapGridView:new(screen)
+	View.new(self)
+	self.screen = screen
+	self.gui = EditorGui()
+	self.dragActive = false
+	self.handles_mouse_input = true
+	self.handles_keyboard_input = true
+	self:setSize(love.graphics.getDimensions())
+end
+
+function EditorSnapGridView:load()
+	self:setSize(love.graphics.getDimensions())
+end
+
+---@param screen_x number
+---@param screen_y number
+---@return boolean
+function EditorSnapGridView:isMouseOver(screen_x, screen_y)
+	local editorModel = self.screen.game.editorModel
+	if editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested() then
+		return self.gui:containsPoint(screen_x, screen_y)
+	end
+
+	local control = self.gui:getControlAt(screen_x, screen_y)
+	return control and control.id ~= "snap grid drag" or false
+end
+
+---@param e gui.MouseDownEvent
+function EditorSnapGridView:onMouseDown(e)
+	local editorModel = self.screen.game.editorModel
+	if self.gui:getControlAt(e.x, e.y) and not (editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()) then
+		local control = self.gui:getControlAt(e.x, e.y)
+		if control and control.id == "snap grid drag" then
+			return
+		end
+	end
+	return self.gui:onMouseDown(e)
+end
+
+---@param e gui.MouseUpEvent
+function EditorSnapGridView:onMouseUp(e)
+	self.dragActive = false
+	return self.gui:onMouseUp(e)
+end
+
+---@param e gui.DragEvent
+function EditorSnapGridView:onDrag(e)
+	self.dragActive = self.gui.activeId == "snap grid drag"
+	return self.gui:onDrag(e)
+end
+
+---@param e gui.DragEndEvent
+function EditorSnapGridView:onDragEnd(e)
+	self.dragActive = false
+	return self.gui:onDragEnd(e)
+end
+
+---@param e gui.ScrollEvent
+function EditorSnapGridView:onScroll(e)
+	self.scroll = e.direction_y
+	return true
+end
+
+---@param e gui.KeyDownEvent
+function EditorSnapGridView:onKeyDown(e)
+	return self.gui:onKeyDown(e)
+end
+
+---@param field string
+---@param currentTime number
+---@param w number
+---@param h number
+---@param align string
+---@param getText function
+function EditorSnapGridView:drawTimingObjects(field, currentTime, w, h, align, getText)
+	do return end
+	local editorModel = self.screen.game.editorModel
+	local rangeTracker = editorModel.layerData.ranges.timePoint
+	local noteSkin = self.screen.game.noteSkinModel.noteSkin
+	local editor = self.screen.game.configModel.configs.settings.editor
+	local timePoint = rangeTracker.head
+	if not timePoint or not currentTime then
+		return
+	end
+
+	local endTimePoint = rangeTracker.tail
+	local t
+	while timePoint and timePoint <= endTimePoint do
+		local text = getText(timePoint)
+		if text and not t or timePoint.absoluteTime - t >= 0.01 then
+			local y = noteSkin:getTimePosition((currentTime - timePoint[field]) * editor.speed)
+			gfx_util.printFrame(text, 0, y - h / 2, w, h, align, "center")
+			t = timePoint.absoluteTime
+		end
+
+		timePoint = timePoint.next
+	end
+end
+
 ---@param point chart.IntervalPoint
 ---@param field string
 ---@param currentTime number
 ---@param width number
-function SnapGridView:drawSnap(point, field, currentTime, width)
-	local editorModel = self.game.editorModel
-	local noteSkin = self.game.noteSkinModel.noteSkin
-	local editor = self.game.configModel.configs.settings.editor
+function EditorSnapGridView:drawSnap(point, field, currentTime, width)
+	local editorModel = self.screen.game.editorModel
+	local noteSkin = self.screen.game.noteSkinModel.noteSkin
+	local editor = self.screen.game.configModel.configs.settings.editor
 
 	local y = noteSkin:getTimePosition((currentTime - point[field]) * editor.speed)
 
@@ -82,16 +155,16 @@ function SnapGridView:drawSnap(point, field, currentTime, width)
 	love.graphics.translate(0, y)
 
 	local size = 20
-	local changed, active, hovered = just.button(
-		tostring(point) .. "scroll",
-		just.is_over(size, size, -size / 2, -size / 2) or just.is_over(size, size, -size / 2 + width, -size / 2)
-	)
-		if hovered then
-			love.graphics.setLineWidth(4)
-		end
-		if changed then
-			editorModel:scrollPoint(point)
-		end
+	local id = tostring(point) .. "scroll"
+	self.gui:register(id, "button", -size / 2, -size / 2, size, size)
+	self.gui:register(id .. "right", "button", -size / 2 + width, -size / 2, size, size)
+	local hovered = self.gui:isOver(id, -size / 2, -size / 2, size, size) or self.gui:isOver(id .. "right", -size / 2 + width, -size / 2, size, size)
+	if hovered then
+		love.graphics.setLineWidth(4)
+	end
+	if self.gui.clicked[id] or self.gui.clicked[id .. "right"] then
+		editorModel:scrollPoint(point)
+	end
 
 	love.graphics.line(0, 0, width, 0)
 	love.graphics.pop()
@@ -100,9 +173,9 @@ end
 ---@param field string
 ---@param currentTime number
 ---@param width number
-function SnapGridView:drawComputedGrid(field, currentTime, width)
-	local editorModel = self.game.editorModel
-	local editor = self.game.configModel.configs.settings.editor
+function EditorSnapGridView:drawComputedGrid(field, currentTime, width)
+	local editorModel = self.screen.game.editorModel
+	local editor = self.screen.game.configModel.configs.settings.editor
 	local layer = editorModel.layer
 	local snap = editor.snap
 
@@ -176,18 +249,18 @@ end
 
 ---@param _w number
 ---@param _h number
-function SnapGridView:drawTimings(_w, _h)
-	local editorModel = self.game.editorModel
+function EditorSnapGridView:drawTimings(_w, _h)
+	local editorModel = self.screen.game.editorModel
 	local editorTimePoint = editorModel:getPoint()
-	local noteSkin = self.game.noteSkinModel.noteSkin
-	local editor = self.game.configModel.configs.settings.editor
+	local noteSkin = self.screen.game.noteSkinModel.noteSkin
+	local editor = self.screen.game.configModel.configs.settings.editor
 
-	local layer = self.game.editorModel.layer
+	local layer = self.screen.game.editorModel.layer
 
 	love.graphics.push("all")
 	love.graphics.setColor(1, 0.8, 0.2)
 	love.graphics.setLineWidth(4)
-	for p, vp, notes in layer:iter(editorModel:getIterRange()) do
+	for p in layer:iter(editorModel:getIterRange()) do
 		local vertex = p._vertex
 		local measure = p._measure
 
@@ -207,11 +280,11 @@ end
 
 ---@param _w number
 ---@param _h number
-function SnapGridView:drawComments(_w, _h)
-	local editorModel = self.game.editorModel
+function EditorSnapGridView:drawComments(_w, _h)
+	local editorModel = self.screen.game.editorModel
 	local editorTimePoint = editorModel:getPoint()
-	local noteSkin = self.game.noteSkinModel.noteSkin
-	local editor = self.game.configModel.configs.settings.editor
+	local noteSkin = self.screen.game.noteSkinModel.noteSkin
+	local editor = self.screen.game.configModel.configs.settings.editor
 
 	---@type chartedit.Layer
 	local layer = editorModel.layer
@@ -231,31 +304,12 @@ function SnapGridView:drawComments(_w, _h)
 	love.graphics.pop()
 end
 
----@param id any
----@param w number
----@param h number
----@return boolean
-local function drag(id, w, h)
-	local over = just.is_over(w, h)
-	local _, active, hovered = just.button(id, over)
-
-	if hovered then
-		local alpha = active and 0.2 or 0.1
-		love.graphics.setColor(1, 1, 1, alpha)
-		love.graphics.rectangle("fill", 0, 0, w, h)
-	end
-	love.graphics.setColor(1, 1, 1, 1)
-
-	return just.active_id == id
-end
-
----@param self table
-local function drawMouse(self)
-	local editorModel = self.game.editorModel
+function EditorSnapGridView:drawMouse()
+	local editorModel = self.screen.game.editorModel
 	local dt = editorModel:getMouseTime() - editorModel:getSessionTime()
 
 	love.graphics.push()
-	local w, h = Layout:move("base")
+	EditorLayout:move("base")
 
 	local x, y = love.graphics.inverseTransformPoint(love.mouse.getPosition())
 
@@ -270,29 +324,29 @@ local function drawMouse(self)
 	love.graphics.rectangle("fill", x, y, width + padding * 2, height)
 
 	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.printf(("%3.1fms"):format(dt * 1000), x + padding, y, width, "left")
+	love.graphics.printf(text, x + padding, y, width, "left")
 	love.graphics.pop()
 end
 
-function SnapGridView:draw()
-	local editorModel = self.game.editorModel
-	local noteSkin = self.game.noteSkinModel.noteSkin
-	local editor = self.game.configModel.configs.settings.editor
+function EditorSnapGridView:draw()
+	local screen = self.screen
+	local editorModel = screen.game.editorModel
+	local noteSkin = screen.game.noteSkinModel.noteSkin
+	local editor = screen.game.configModel.configs.settings.editor
 
-	local w, h = Layout:move("base")
+	local w, h = EditorLayout:move("base")
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.setFont(spherefonts.get("Noto Sans", 24))
 	love.graphics.setLineStyle("smooth")
 
-	local lineHeight = 55
-	imgui.setSize(w, h, 200, lineHeight)
-
 	local editorTimePoint = editorModel:getPoint()
 
-	love.graphics.replaceTransform(gfx_util.transform(self.transform))
+	love.graphics.replaceTransform(gfx_util.transform(screen.snap_grid_transform))
 	love.graphics.translate(noteSkin.baseOffset, 0)
 	local width = noteSkin.fullWidth
-	local _mx, _my = love.graphics.inverseTransformPoint(love.mouse.getPosition())
+	local _, mouseY = love.graphics.inverseTransformPoint(love.mouse.getPosition())
+
+	self.gui:register("snap grid drag", "button", 0, 0, width, h)
 
 	love.graphics.push()
 	self:drawComputedGrid("absoluteTime", editorTimePoint.absoluteTime, width)
@@ -306,22 +360,24 @@ function SnapGridView:draw()
 	self:drawTimingObjects("absoluteTime", editorTimePoint.absoluteTime, 500, 50, "left", getVelocityText)
 	love.graphics.pop()
 
-	local scroll = just.wheel_over("scale scroll", true)
-	if just.keypressed("right") then
+	local scroll = self.scroll
+	self.scroll = nil
+	if self.gui:consumeKey("right") then
 		scroll = 1
-	elseif just.keypressed("left") then
+	elseif self.gui:consumeKey("left") then
 		scroll = -1
 	end
 
 	local canDrag = editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()
-	local scrollState = self.editorViewServices.scrollInputService:update(editorModel.context:getViewContext(), noteSkin, editor, {
-		mouseY = _my,
-		dragActive = canDrag and drag("drag1", width, h),
+	local scrollState = screen.editorViewServices.scrollInputService:update(editorModel.context:getViewContext(), noteSkin, editor, {
+		mouseY = mouseY,
+		dragActive = canDrag and self.dragActive,
 		scroll = scroll,
 	})
 	if scrollState.showMouseDelta then
-		drawMouse(self)
+		self:drawMouse()
 	end
+	self.gui:finishFrame()
 end
 
-return SnapGridView
+return EditorSnapGridView

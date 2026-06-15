@@ -23,6 +23,7 @@ function Editor:enter()
 		return
 	end
 
+	self.yi.chart_menus.background:setDim(0.8)
 	thread.coro(function()
 		self.editorScreenLoadService:enter(self)
 	end)()
@@ -40,6 +41,7 @@ end
 
 function Editor:exit()
 	self.editorScreenLoadService:exit(self)
+	self.yi.chart_menus.background:setDim(0.35)
 end
 
 ---@param dt number
