@@ -286,6 +286,11 @@ function Select:receive(event)
 		return
 	end
 
+	if event.type == "update_primary_items" then
+		self.combined_list:clearItems()
+		self.combined_list:reloadItems()
+	end
+
 	self.chart_preview_view:receive(event)
 	Screen.receive(self, event)
 end

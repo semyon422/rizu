@@ -21,6 +21,12 @@ function CombinedList:new(chart_selector, config)
 	self.sdf_batch = love.graphics.newTextBatch(Resources.getSdfFont()) ---@type love.Text
 	self.text_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
 	self.sprite_batch = love.graphics.newSpriteBatch(Resources.atlas)
+	self.set_y_positions = {}
+	self.chart_y_positions = {}
+	self.last_sel_set_index = nil
+	self.items_cleared = false
+	self.charts_alpha_spring = SpringValue({stiffness = 300, damping = 30})
+	self.charts_alpha_spring:snap(0.0)
 	self:setWidth(500)
 end
 
@@ -62,6 +68,8 @@ function CombinedList:getScrollTarget(sel_set_index, sel_chart_index)
 end
 
 function CombinedList:snapToSelected()
+	if self.items_cleared then return end
+
 	local sel_set_index = self:getPrimarySelectedIndex()
 	local sel_chart_index = self:getSecondarySelectedIndex()
 
@@ -69,7 +77,37 @@ function CombinedList:snapToSelected()
 		return
 	end
 
+	local num_sets = self.chart_selector.stores[1]:count()
+	local num_charts = self.chart_selector.stores[2]:count()
+	local total_chart_height = num_charts * (self.chart_height + self.gap)
+
+	self.set_y_positions = {}
+	for i = 1, num_sets do
+		self.set_y_positions[i] = self:getSetY(i, sel_set_index, total_chart_height)
+	end
+
+	self.chart_y_positions = {}
+	for c = 1, num_charts do
+		self.chart_y_positions[c] = self:getChartY(c, sel_set_index)
+	end
+	self.last_sel_set_index = sel_set_index
+	self.charts_alpha_spring:snap(1.0)
+
 	self.scroll_spring:snap(self:getScrollTarget(sel_set_index, sel_chart_index))
+end
+
+function CombinedList:clearItems()
+	self.set_y_positions = {}
+	self.chart_y_positions = {}
+	self.last_sel_set_index = nil
+	self.charts_alpha_spring:snap(0.0)
+	self:resetBatches()
+	self.items_cleared = true
+end
+
+function CombinedList:reloadItems()
+	self.items_cleared = false
+	self:snapToSelected()
 end
 
 ---@return integer
@@ -143,12 +181,13 @@ function CombinedList:addSetToBatch(item, y, is_selected, index)
 	self.text_batch:add({artist_color, artist_text}, tx, ty_artist)
 end
 
-function CombinedList:addChartToBatch(item, y, is_selected, index)
-	local alpha = is_selected and 1.0 or 0.9
+function CombinedList:addChartToBatch(item, y, is_selected, index, alpha_factor)
+	local base_alpha = is_selected and 1.0 or 0.9
+	local alpha = base_alpha * (alpha_factor or 1.0)
 	local center_y = (self.height and self.height > 0) and (self.height / 2) or 540
 	local dist = (y + self.chart_height / 2) - center_y
 	local norm_dist = dist / center_y
-	local shift_x = (norm_dist * norm_dist) * 150
+	local shift_x = (norm_dist * norm_dist) * 50
 
 	local slide_offset = is_selected and -50 or 0
 
@@ -196,17 +235,49 @@ function CombinedList:addChartToBatch(item, y, is_selected, index)
 end
 
 function CombinedList:update(dt)
+	if self.items_cleared then
+		self:resetBatches()
+		return
+	end
+
 	local sel_set_index = self:getPrimarySelectedIndex()
 	if not sel_set_index then return end
 
+	local num_sets = self.chart_selector.stores[1]:count()
+	if #self.set_y_positions ~= num_sets then
+		self.set_y_positions = {}
+	end
+
 	local num_charts = self.chart_selector.stores[2]:count()
+	if self.last_sel_set_index ~= sel_set_index or #self.chart_y_positions ~= num_charts then
+		self.chart_y_positions = {}
+		self.last_sel_set_index = sel_set_index
+		self.charts_alpha_spring:snap(0.0)
+	end
+
 	local total_chart_height = num_charts * (self.chart_height + self.gap)
 	local sel_chart_index = self:getSecondarySelectedIndex()
+
+	-- Update animated positions
+	local decay = math.pow(0.875, dt / (1 / 60))
+	for i = 1, num_sets do
+		local target_y = self:getSetY(i, sel_set_index, total_chart_height)
+		self.set_y_positions[i] = target_y - (target_y - (self.set_y_positions[i] or target_y)) * decay
+	end
+
+	local parent_y = self.set_y_positions[sel_set_index] or ((sel_set_index - 1) * (self.set_height + self.gap))
+	for c = 1, num_charts do
+		local target_y = self:getChartY(c, sel_set_index)
+		self.chart_y_positions[c] = target_y - (target_y - (self.chart_y_positions[c] or parent_y)) * decay
+	end
 
 	-- Focus camera on target
 	local scroll_target = self:getScrollTarget(sel_set_index, sel_chart_index)
 	self.scroll_spring:set(scroll_target)
 	self.scroll_spring:update(dt)
+
+	self.charts_alpha_spring:set(1.0)
+	self.charts_alpha_spring:update(dt)
 
 	self:rebuildBatches(sel_set_index, sel_chart_index, num_charts, total_chart_height)
 end
@@ -224,11 +295,11 @@ function CombinedList:rebuildBatches(sel_set_index, sel_chart_index, num_charts,
 	local view_height = (self.height and self.height > 0) and self.height or 1080
 
 	-- Draw visible sets before/including the selected set
-	local min_i_1 = math.max(1, math.floor((scroll_y - self.set_height) / step) - 1)
-	local max_i_1 = math.min(sel_set_index, math.ceil((scroll_y + view_height) / step) + 1)
+	local min_i_1 = math.max(1, math.floor((scroll_y - self.set_height) / step) - 2)
+	local max_i_1 = math.min(sel_set_index, math.ceil((scroll_y + view_height) / step) + 2)
 
 	for i = min_i_1, max_i_1 do
-		local set_y = self:getSetY(i, sel_set_index, total_chart_height)
+		local set_y = self.set_y_positions[i] or self:getSetY(i, sel_set_index, total_chart_height)
 		local screen_y = set_y - scroll_y
 
 		if screen_y + self.set_height >= 0 and screen_y <= view_height then
@@ -237,29 +308,31 @@ function CombinedList:rebuildBatches(sel_set_index, sel_chart_index, num_charts,
 				self:addSetToBatch(set_item, screen_y, i == sel_set_index, i)
 			end
 		end
+	end
 
-		if i == sel_set_index and num_charts > 0 then
-			for c = 1, num_charts do
-				local chart_y = self:getChartY(c, sel_set_index)
-				local chart_screen_y = chart_y - scroll_y
+	-- Draw visible charts of the selected set
+	if num_charts > 0 then
+		local alpha_factor = self.charts_alpha_spring:get()
+		for c = 1, num_charts do
+			local chart_y = self.chart_y_positions[c] or self:getChartY(c, sel_set_index)
+			local chart_screen_y = chart_y - scroll_y
 
-				if chart_screen_y + self.chart_height >= 0 and chart_screen_y <= view_height then
-					local chart_item = self:getSecondaryItem(c)
-					if chart_item then
-						local is_chart_selected = (c == sel_chart_index)
-						self:addChartToBatch(chart_item, chart_screen_y, is_chart_selected, c)
-					end
+			if chart_screen_y + self.chart_height >= 0 and chart_screen_y <= view_height then
+				local chart_item = self:getSecondaryItem(c)
+				if chart_item then
+					local is_chart_selected = (c == sel_chart_index)
+					self:addChartToBatch(chart_item, chart_screen_y, is_chart_selected, c, alpha_factor)
 				end
 			end
 		end
 	end
 
 	-- Draw visible sets after the selected set
-	local min_i_2 = math.max(sel_set_index + 1, math.floor((scroll_y - self.set_height - total_chart_height) / step) - 1)
-	local max_i_2 = math.min(num_sets, math.ceil((scroll_y + view_height - total_chart_height) / step) + 2)
+	local min_i_2 = math.max(sel_set_index + 1, math.floor((scroll_y - self.set_height - total_chart_height) / step) - 2)
+	local max_i_2 = math.min(num_sets, math.ceil((scroll_y + view_height - total_chart_height) / step) + 3)
 
 	for i = min_i_2, max_i_2 do
-		local set_y = self:getSetY(i, sel_set_index, total_chart_height)
+		local set_y = self.set_y_positions[i] or self:getSetY(i, sel_set_index, total_chart_height)
 		local screen_y = set_y - scroll_y
 
 		if screen_y + self.set_height >= 0 and screen_y <= view_height then
