@@ -88,8 +88,9 @@ end
 
 ---@param absoluteTime number
 ---@param column string
-function EditorNoteService:addNote(absoluteTime, column)
-	self.createService:addNote(absoluteTime, column)
+---@param mouseTime number?
+function EditorNoteService:addNote(absoluteTime, column, mouseTime)
+	self.createService:addNote(absoluteTime, column, mouseTime)
 end
 
 function EditorNoteService:flipNotes()
@@ -104,6 +105,11 @@ end
 ---@return rizu.editor.EditorNote[]
 function EditorNoteService:getCopiedNotes()
 	return self.clipboardService.copiedNotes or {}
+end
+
+---@param column integer?
+function EditorNoteService:setColumnOver(column)
+	self.columnService:setColumnOver(column)
 end
 
 return EditorNoteService

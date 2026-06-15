@@ -15,14 +15,17 @@ function test.stores_overlay_and_dragging_state(t)
 	local state = EditorViewState()
 
 	state:setOverlayState("notes")
-	state:setDragging(true)
+	state:setDragging(true, "scroll")
 
 	t:eq(state:getOverlayState(), "notes")
 	t:eq(state:isDragging(), true)
+	t:eq(state:isDragging("scroll"), true)
+	t:eq(state:isDragging("chartSlider"), false)
 
-	state:setDragging(false)
+	state:setDragging(false, "scroll")
 
 	t:eq(state:isDragging(), false)
+	t:eq(state.draggingOwner, nil)
 end
 
 return test

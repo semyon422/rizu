@@ -1,6 +1,20 @@
 local class = require("class")
 
----@alias rizu.editor.MetadataEditFunc fun(key: string, value: string)
+---@class rizu.editor.EditorInfoOverlayState
+---@field title string
+---@field fields rizu.editor.EditorInfoMetadataField[]
+---@field developmentLabels string[]
+
+---@class rizu.editor.EditorInfoMetadataField
+---@field key string
+---@field value string
+---@field inputId string
+
+---@class rizu.editor.EditorInfoOverlayInput
+---@field metadata {[string]: string}
+---@field savePressed boolean
+---@field saveToOsuPressed boolean
+---@field saveToNanoChartPressed boolean
 
 ---@class rizu.editor.EditorInfoOverlayContext
 ---@field iterMetadata fun(self: rizu.editor.EditorInfoOverlayContext): fun(): string?, string?
@@ -14,10 +28,40 @@ local class = require("class")
 local EditorInfoOverlayService = class()
 
 ---@param context rizu.editor.EditorInfoOverlayContext
----@param edit rizu.editor.MetadataEditFunc
-function EditorInfoOverlayService:editMetadata(context, edit)
+---@return rizu.editor.EditorInfoOverlayState
+function EditorInfoOverlayService:getState(context)
+	local fields = {}
 	for key, value in context:iterMetadata() do
-		context:setMetadata(key, edit(key, value))
+		fields[#fields + 1] = {
+			key = key,
+			value = value,
+			inputId = key .. " input",
+		}
+	end
+	return {
+		title = "Chart info",
+		fields = fields,
+		developmentLabels = {
+			"The editor",
+			"is in development",
+		},
+	}
+end
+
+---@param context rizu.editor.EditorInfoOverlayContext
+---@param input rizu.editor.EditorInfoOverlayInput
+function EditorInfoOverlayService:handleInput(context, input)
+	for key, value in pairs(input.metadata) do
+		context:setMetadata(key, value)
+	end
+	if input.savePressed then
+		self:save(context)
+	end
+	if input.saveToOsuPressed then
+		self:saveToOsu(context)
+	end
+	if input.saveToNanoChartPressed then
+		self:saveToNanoChart(context)
 	end
 end
 

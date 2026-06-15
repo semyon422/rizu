@@ -39,7 +39,11 @@ end
 function EditorPlaybackService:loadAudioResources(audioEngine, timer, chart, resources)
 	audioEngine:setEnabled(true)
 	audioEngine:load(chart, resources)
-	audioEngine:setPosition(timer:getTime())
+	audioEngine:setRate(timer.rate)
+	self:setTime(timer, audioEngine, timer:getTime())
+	if timer.is_playing then
+		audioEngine:play()
+	end
 end
 
 ---@param timer rizu.editor.TimeManager
@@ -49,6 +53,7 @@ function EditorPlaybackService:play(timer, audioEngine, isIntervalGrabbed)
 	if isIntervalGrabbed() then
 		return
 	end
+	audioEngine:setPosition(timer:getTime())
 	timer:play()
 	audioEngine:play()
 end

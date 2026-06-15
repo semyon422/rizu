@@ -16,30 +16,20 @@ function EditorNotesOverlayPanel:draw(screen, panel, overlayContext)
 	local notesOverlayService = screen.editorViewServices.notesOverlayService
 	local notesState = notesOverlayService:getState(overlayContext)
 
-	local logSpeed = panel:slider("editor speed", notesState.logSpeed, -30, 50, 1, "speed " .. notesState.logSpeed)
-	if logSpeed ~= notesState.logSpeed then
-		notesOverlayService:setLogSpeed(overlayContext, logSpeed)
+	---@type {[string]: boolean}
+	local pressedHotkeys = {}
+	for _, key in ipairs(notesState.toolHotkeys) do
+		pressedHotkeys[key] = panel:consumeKey(key)
 	end
-	notesOverlayService:setSnap(
-		overlayContext,
-		panel:slider("snap select", notesState.snap, 1, notesState.maxSnap, 1, "snap " .. notesState.snap)
-	)
-	notesOverlayService:setLockSnap(
-		overlayContext,
-		panel:checkbox("lock snap", notesState.lockSnap, "lock snap")
-	)
-	notesOverlayService:setTool(
-		overlayContext,
-		panel:combo("tool select", notesState.tool, notesState.tools)
-	)
-	panel:text("Use qwer to select tool")
 
-	for i = 1, #notesState.tools do
-		local key = ("qwerty"):sub(i, i)
-		if panel:consumeKey(key) then
-			notesOverlayService:setToolForHotkey(overlayContext, key)
-		end
-	end
+	notesOverlayService:handleInput(overlayContext, notesState, {
+		logSpeed = panel:slider("editor speed", notesState.logSpeed, -30, 50, 1, notesState.logSpeedLabel),
+		snap = panel:slider("snap select", notesState.snap, 1, notesState.maxSnap, 1, notesState.snapLabel),
+		lockSnap = panel:checkbox("lock snap", notesState.lockSnap, "lock snap"),
+		tool = panel:combo("tool select", notesState.tool, notesState.tools),
+		pressedHotkeys = pressedHotkeys,
+	})
+	panel:text(notesState.toolHotkeyLabel)
 
 	if panel:button("changeType", "change type") then
 		screen.editorViewServices.overlayActionService:changeSelectedNoteType(overlayContext)

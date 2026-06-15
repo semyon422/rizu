@@ -4,6 +4,7 @@ local class = require("class")
 ---@operator call: rizu.editor.EditorViewState
 ---@field overlayState string
 ---@field dragging boolean?
+---@field draggingOwner string?
 local EditorViewState = class()
 
 function EditorViewState:new()
@@ -21,12 +22,18 @@ function EditorViewState:getOverlayState()
 end
 
 ---@param dragging boolean
-function EditorViewState:setDragging(dragging)
+---@param owner string?
+function EditorViewState:setDragging(dragging, owner)
 	self.dragging = dragging
+	self.draggingOwner = dragging and owner or nil
 end
 
+---@param owner string?
 ---@return boolean
-function EditorViewState:isDragging()
+function EditorViewState:isDragging(owner)
+	if owner then
+		return self.dragging == true and self.draggingOwner == owner
+	end
 	return self.dragging == true
 end
 

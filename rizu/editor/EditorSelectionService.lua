@@ -21,9 +21,18 @@ end
 ---@param visualEngine rizu.editor.VisualEngine
 ---@param context rizu.editor.EditorSelectionRectContext
 function EditorSelectionService:selectStart(visualEngine, context)
-	visualEngine:selectStart()
 	local mx, my = context:getMousePosition()
-	context:getSelectionState():start(mx, my, context:getMouseTime())
+	self:selectStartAt(visualEngine, context, mx, my, context:getMouseTime())
+end
+
+---@param visualEngine rizu.editor.VisualEngine
+---@param context rizu.editor.EditorSelectionRectContext
+---@param mx number
+---@param my number
+---@param mouseTime number
+function EditorSelectionService:selectStartAt(visualEngine, context, mx, my, mouseTime)
+	visualEngine:selectStart()
+	context:getSelectionState():start(mx, my, mouseTime)
 	context:selectRegion(mx, my, mx, my)
 end
 

@@ -19,6 +19,10 @@ local function createContext(fields)
 		getVisualEngine = function()
 			return fields.visualEngine
 		end,
+		selectNote = function(_, note)
+			table.insert(fields.calls, "select-note")
+			fields.selectedNote = note
+		end,
 		selectStart = function()
 			table.insert(fields.calls, "select-start")
 		end,
@@ -63,7 +67,11 @@ function test.tool_helpers_distinguish_select_and_note_tools(t)
 		editor = {
 			tool = "Select",
 		},
-		viewState = {},
+		viewState = {
+			getOverlayState = function()
+				return "notes"
+			end,
+		},
 		selectionState = {},
 	})
 
@@ -77,21 +85,47 @@ function test.tool_helpers_distinguish_select_and_note_tools(t)
 end
 
 ---@param t testing.T
+function test.note_editing_is_active_only_on_notes_tab(t)
+	local service = EditorPlayfieldService()
+	local activeTab = "notes"
+	local context = createContext({
+		calls = {},
+		editor = {
+			tool = "ShortNote",
+		},
+		viewState = {
+			getOverlayState = function()
+				return activeTab
+			end,
+		},
+		selectionState = {},
+	})
+
+	t:eq(service:isNotesActive(context), true)
+	t:eq(service:canAddNote(context), true)
+
+	activeTab = "timings"
+	t:eq(service:isNotesActive(context), false)
+	t:eq(service:canAddNote(context), false)
+
+	context:getEditorSettings().tool = "Select"
+	t:eq(service:isSelectTool(context), false)
+
+	activeTab = "notes"
+	t:eq(service:isSelectTool(context), true)
+end
+
+---@param t testing.T
 function test.note_commands_delegate_to_note_service_and_visual_engine(t)
 	local calls = {}
 	local note = {}
 	local service = EditorPlayfieldService()
-	local context = createContext({
+	local fields = {
 		calls = calls,
 		editor = {},
 		viewState = {},
 		selectionState = {},
-		visualEngine = {
-			selectNote = function(_, selectedNote)
-				table.insert(calls, "select-note")
-				t:eq(selectedNote, note)
-			end,
-		},
+		visualEngine = {},
 		noteService = {
 			addNote = function(_, time, column)
 				table.insert(calls, ("add:%s:%s"):format(time, column))
@@ -104,12 +138,14 @@ function test.note_commands_delegate_to_note_service_and_visual_engine(t)
 				t:eq(removedNote, note)
 			end,
 		},
-	})
+	}
+	local context = createContext(fields)
 
 	service:addNote(context, 1.5, 3)
 	service:selectNoteAndGrab(context, note, "tail", 2.5)
 	service:removeNote(context, note)
 
+	t:eq(fields.selectedNote, note)
 	t:tdeq(calls, {
 		"add:1.5:key3",
 		"select-note",

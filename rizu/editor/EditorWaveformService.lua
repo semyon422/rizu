@@ -16,6 +16,8 @@ local math_util = require("math_util")
 ---@field lines table[]
 ---@field points table[]
 ---@field key string?
+---@field wave table?
+---@field waveSignature string?
 ---@field prevSamplesPerPoint number
 ---@field renderedPointOffset number|false?
 ---@field pointDrawDelta number
@@ -109,31 +111,14 @@ end
 ---@param channelCount integer
 function EditorWaveformService:updateLines(wave, width, height, pointOffset, samplesPerPoint, channelCount)
 	local points = math.floor(height)
-	local key = pointOffset .. "/" .. samplesPerPoint
+	local key = pointOffset .. "/" .. samplesPerPoint .. "/" .. channelCount .. "/" .. points
 	if self.key == key then
 		return
 	end
 	self.key = key
 
-	if samplesPerPoint ~= self.prevSamplesPerPoint then
-		self.renderedPointOffset = nil
-		self.prevSamplesPerPoint = samplesPerPoint
-	end
-
-	if self.renderedPointOffset then
-		local pointStart, pointEnd = self.renderedPointOffset - points, self.renderedPointOffset + points - 1
-		local newPointStart, newPointEnd = pointOffset - points, pointOffset + points - 1
-		if math_util.intersect1(pointStart, pointEnd, newPointStart, newPointEnd) then
-			self:adjustPoints(wave, pointStart, newPointStart, points * 2, samplesPerPoint, channelCount)
-		else
-			self.renderedPointOffset = false
-		end
-	end
-
-	if not self.renderedPointOffset then
-		for j = 0, channelCount - 1 do
-			self.points[j] = self:getPointList(wave, points * 2, pointOffset - points, samplesPerPoint, j)
-		end
+	for j = 0, channelCount - 1 do
+		self.points[j] = self:getPointList(wave, points * 2, pointOffset - points, samplesPerPoint, j)
 	end
 
 	self.renderedPointOffset = pointOffset
@@ -163,11 +148,22 @@ end
 ---@param context rizu.editor.EditorWaveformContext
 ---@param noteSkin table
 ---@param editor table
+---@param height number?
 ---@return rizu.editor.EditorWaveformState?
-function EditorWaveformService:update(context, noteSkin, editor)
+function EditorWaveformService:update(context, noteSkin, editor, height)
 	local wave = context:getWave()
 	if not wave then
 		return nil
+	end
+	local waveSignature = ("%s/%s/%s"):format(wave.samples_count, wave.sample_rate, wave.channels_count)
+	if self.wave ~= wave or self.waveSignature ~= waveSignature then
+		self.wave = wave
+		self.waveSignature = waveSignature
+		self.key = nil
+		self.renderedPointOffset = nil
+		self.prevSamplesPerPoint = 0
+		self.lines = {}
+		self.points = {}
 	end
 
 	local sampleRate = wave.sample_rate
@@ -176,7 +172,7 @@ function EditorWaveformService:update(context, noteSkin, editor)
 	local pointOffset = math.floor(sampleOffset / samplesPerPoint)
 	self.pointDrawDelta = sampleOffset / samplesPerPoint - pointOffset
 
-	self:updateLines(wave, noteSkin.fullWidth, noteSkin.unit, pointOffset, samplesPerPoint, wave.channels_count)
+	self:updateLines(wave, noteSkin.fullWidth, height or noteSkin.unit, pointOffset, samplesPerPoint, wave.channels_count)
 
 	return {
 		lines = self.lines,

@@ -107,6 +107,12 @@ function test.view_context_delegates_to_model(t)
 		setLogSpeed = function(_, logSpeed)
 			table.insert(calls, "log-speed:" .. logSpeed)
 		end,
+		incSnap = function()
+			table.insert(calls, "inc-snap")
+		end,
+		decSnap = function()
+			table.insert(calls, "dec-snap")
+		end,
 		getVisual = function()
 			return {
 				getPoint = function(_, point)
@@ -132,6 +138,9 @@ function test.view_context_delegates_to_model(t)
 		end,
 		unselectRegion = function()
 			table.insert(calls, "unselect")
+		end,
+		selectNote = function(_, note)
+			table.insert(calls, "select-note:" .. note.id)
 		end,
 		analysisService = {
 			id = "analysis",
@@ -167,6 +176,9 @@ function test.view_context_delegates_to_model(t)
 			getStartTime = function()
 				return -0.25
 			end,
+			setRate = function(_, rate)
+				table.insert(calls, "audio-rate:" .. rate)
+			end,
 		},
 		timer = {
 			rate = 0.75,
@@ -201,6 +213,9 @@ function test.view_context_delegates_to_model(t)
 	t:eq(context:getMouseTime(), 1.25)
 	context:selectRegion(1, 2, 3, 4)
 	context:unselectRegion()
+	context:selectNote({
+		id = "note",
+	})
 	context:resetVisual()
 	t:eq(context:getAnalysisService(), model.analysisService)
 	t:eq(context:getAnalysisContext(), model.context:getAnalysisContext())
@@ -210,6 +225,8 @@ function test.view_context_delegates_to_model(t)
 	t:eq(context:getAudioStartTime(), -0.25)
 	t:eq(context:getTimerTime(), 4.5)
 	context:setRate(0.5)
+	context:incSnap()
+	context:decSnap()
 	local firstTime, lastTime = context:getTimelineRange()
 	t:eq(firstTime, 1)
 	t:eq(lastTime, 5)
@@ -231,8 +248,12 @@ function test.view_context_delegates_to_model(t)
 		"mouse",
 		"select:1:2:3:4",
 		"unselect",
+		"select-note:note",
 		"reset",
 		"rate:0.5",
+		"audio-rate:0.5",
+		"inc-snap",
+		"dec-snap",
 		"timeline",
 		"scroll:3",
 		"scroll-point:point",

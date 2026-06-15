@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local EditorWidgets = require("yi.views.editor.EditorWidgets")
 local gfx_util = require("gfx_util")
 local spherefonts = require("sphere.assets.fonts")
 
@@ -7,14 +8,14 @@ local EditorLayout = require("yi.views.editor.EditorLayout")
 ---@class yi.views.editor.EditorForegroundView: gui.View
 ---@operator call: yi.views.editor.EditorForegroundView
 ---@field screen table
----@field keyPressed {[string]: boolean}
+---@field widgets yi.views.editor.EditorWidgets
 local EditorForegroundView = View + {}
 
 ---@param screen table
 function EditorForegroundView:new(screen)
 	View.new(self)
 	self.screen = screen
-	self.keyPressed = {}
+	self.widgets = EditorWidgets()
 	self.handles_keyboard_input = true
 	self:setSize(love.graphics.getDimensions())
 end
@@ -25,20 +26,17 @@ end
 
 ---@param e gui.KeyDownEvent
 function EditorForegroundView:onKeyDown(e)
-	self.keyPressed[e.key] = true
-	return true
+	return self.widgets:onKeyDown(e)
 end
 
 ---@param key string
 ---@return boolean
 function EditorForegroundView:consumeKey(key)
-	local pressed = self.keyPressed[key] or false
-	self.keyPressed[key] = nil
-	return pressed
+	return self.widgets:consumeKey(key)
 end
 
 function EditorForegroundView:finishFrame()
-	table.clear(self.keyPressed)
+	self.widgets:finishFrame()
 end
 
 function EditorForegroundView:handleHotkeys()

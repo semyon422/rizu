@@ -18,6 +18,11 @@ function EditorNoteColumnService:setContext(context)
 	self.context = context
 end
 
+---@param column integer?
+function EditorNoteColumnService:setColumnOver(column)
+	self.columnOver = column
+end
+
 ---@return number
 function EditorNoteColumnService:getColumnOver()
 	if self.columnOver then

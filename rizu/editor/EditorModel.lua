@@ -382,6 +382,13 @@ function EditorModel:selectStart()
 	self.selectionService:selectStart(self.visualEngine, self.context:getSelectionRectContext())
 end
 
+---@param mx number
+---@param my number
+---@param mouseTime number
+function EditorModel:selectStartAt(mx, my, mouseTime)
+	self.selectionService:selectStartAt(self.visualEngine, self.context:getSelectionRectContext(), mx, my, mouseTime)
+end
+
 function EditorModel:selectEnd()
 	self.selectionService:selectEnd(self.visualEngine, self.context:getSelectionRectContext())
 end

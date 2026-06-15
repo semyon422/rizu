@@ -4,34 +4,41 @@ local class = require("class")
 ---@operator call: rizu.editor.EditorInput
 local EditorInput = class()
 
+---@param left string
+---@param right string
+---@return boolean
+local function isModifierDown(left, right)
+	return love.keyboard.isDown(left) or love.keyboard.isDown(right)
+end
+
 ---@return boolean
 function EditorInput:isMultiSelectRequested()
-	return love.keyboard.isDown("lctrl")
+	return isModifierDown("lctrl", "rctrl")
 end
 
 ---@return boolean
 function EditorInput:isEditorCommandRequested()
-	return love.keyboard.isDown("lctrl")
+	return isModifierDown("lctrl", "rctrl")
 end
 
 ---@return boolean
 function EditorInput:isModifierApplyRequested()
-	return love.keyboard.isDown("lshift")
+	return isModifierDown("lshift", "rshift")
 end
 
 ---@return boolean
 function EditorInput:isFineScrollRequested()
-	return love.keyboard.isDown("lalt")
+	return isModifierDown("lalt", "ralt")
 end
 
 ---@return boolean
 function EditorInput:isSnapChangeRequested()
-	return love.keyboard.isDown("lshift")
+	return isModifierDown("lshift", "rshift")
 end
 
 ---@return boolean
 function EditorInput:isSpeedChangeRequested()
-	return love.keyboard.isDown("lctrl")
+	return isModifierDown("lctrl", "rctrl")
 end
 
 ---@return number

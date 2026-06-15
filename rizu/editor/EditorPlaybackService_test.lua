@@ -14,6 +14,8 @@ function test.load_and_update_audio_timer(t)
 		},
 	}
 	local timer = {
+		rate = 1.25,
+		is_playing = true,
 		pause = function()
 			table.insert(calls, "timer-pause")
 		end,
@@ -41,6 +43,12 @@ function test.load_and_update_audio_timer(t)
 		load = function(_, chart, resources)
 			table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
 		end,
+		setRate = function(_, rate)
+			table.insert(calls, "audio-rate:" .. rate)
+		end,
+		play = function()
+			table.insert(calls, "audio-play")
+		end,
 		update = function()
 			table.insert(calls, "update")
 		end,
@@ -65,8 +73,11 @@ function test.load_and_update_audio_timer(t)
 		"position:3",
 		"enabled:true",
 		"load:chart:song.ogg",
+		"audio-rate:1.25",
 		"timer-get",
+		"timer-time:1.5:true",
 		"position:1.5",
+		"audio-play",
 		"update",
 	})
 end
@@ -98,6 +109,8 @@ function test.editor_context_commands(t)
 	local context = {
 		getTimer = function()
 			return {
+				rate = 0.75,
+				is_playing = false,
 				setTime = function(_, time, exact)
 					table.insert(calls, ("timer-time:%s:%s"):format(time, tostring(exact)))
 				end,
@@ -123,6 +136,9 @@ function test.editor_context_commands(t)
 				end,
 				load = function(_, chart, resources)
 					table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
+				end,
+				setRate = function(_, rate)
+					table.insert(calls, "audio-rate:" .. rate)
 				end,
 				play = function()
 					table.insert(calls, "audio-play")
@@ -158,9 +174,13 @@ function test.editor_context_commands(t)
 		"position:1.25",
 		"enabled:true",
 		"load:chart:song.ogg",
+		"audio-rate:0.75",
 		"timer-get",
+		"timer-time:2.5:true",
 		"position:2.5",
 		"grabbed",
+		"timer-get",
+		"position:2.5",
 		"timer-play",
 		"audio-play",
 		"timer-pause",

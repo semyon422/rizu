@@ -18,11 +18,21 @@ local function createScreen(calls)
 				end,
 			},
 		},
-		editor_sequence_view = {
-			receive = function(_, event)
-				table.insert(calls, "sequence:" .. event.name)
-			end,
-		},
+	editor_sequence_view = {
+		receive = function(_, event)
+			table.insert(calls, "sequence:" .. event.name)
+		end,
+	},
+	editor_snap_grid_view = {
+		receive = function(_, event)
+			table.insert(calls, "snap:" .. event.name)
+		end,
+	},
+	editor_playfield_view = {
+		receive = function(_, event)
+			table.insert(calls, "playfield:" .. event.name)
+		end,
+	},
 	}
 end
 
@@ -38,8 +48,14 @@ local function createService(calls)
 			return "love-transform"
 		end,
 		graphics = {
+			push = function(kind)
+				table.insert(calls, "push:" .. kind)
+			end,
 			replaceTransform = function(transform)
 				table.insert(calls, "replace:" .. transform)
+			end,
+			pop = function()
+				table.insert(calls, "pop")
 			end,
 		},
 		baseScreen = {
@@ -74,9 +90,11 @@ function test.update_order_when_loaded(t)
 	t:eq(createService(calls):update(screen, 0.5), true)
 
 	t:tdeq(calls, {
+		"push:all",
 		"transform:screen-transform",
 		"replace:love-transform",
 		"model-update",
+		"pop",
 		"screen-update:0.5",
 	})
 end
@@ -90,9 +108,11 @@ function test.update_includes_screen_views_when_attached(t)
 	t:eq(createService(calls):update(screen, 0.5), true)
 
 	t:tdeq(calls, {
+		"push:all",
 		"transform:screen-transform",
 		"replace:love-transform",
 		"model-update",
+		"pop",
 		"screen-update:0.5",
 	})
 end
@@ -142,6 +162,8 @@ function test.receive_order_when_loaded(t)
 	t:eq(createService(calls):receive(screen, {name = "event"}), true)
 
 	t:tdeq(calls, {
+		"snap:event",
+		"playfield:event",
 		"controller:event",
 		"sequence:event",
 		"screen:event",

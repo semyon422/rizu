@@ -32,6 +32,8 @@ function test.get_state_counts_playing_sources_and_offsync(t)
 
 	t:eq(state.playingCount, 1)
 	t:eq(state.offsync, 0.25)
+	t:eq(state.playingCountLabel, "playing sounds: 1")
+	t:eq(state.offsyncLabel, "offsync: 250ms")
 end
 
 ---@param t testing.T
@@ -50,6 +52,8 @@ function test.get_state_uses_zero_offsync_without_audio_position(t)
 
 	t:eq(state.playingCount, 1)
 	t:eq(state.offsync, 0)
+	t:eq(state.playingCountLabel, "playing sounds: 1")
+	t:eq(state.offsyncLabel, "offsync: 0ms")
 end
 
 return test

@@ -21,10 +21,14 @@ local EditorPlayfieldService = require("rizu.editor.EditorPlayfieldService")
 ---@class rizu.editor.EditorPlayfieldColumnInput
 ---@field columnIndex integer
 ---@field time number
+---@field mouseTime number?
 ---@field over boolean?
 ---@field leftPressed boolean?
 
 ---@class rizu.editor.EditorPlayfieldSelectInput
+---@field mx number?
+---@field my number?
+---@field mouseTime number?
 ---@field over boolean?
 ---@field leftPressed boolean?
 
@@ -81,7 +85,7 @@ function EditorPlayfieldInputService:handleColumnInput(context, input)
 		return false
 	end
 
-	self.playfieldService:addNote(context, input.time, input.columnIndex)
+	self.playfieldService:addNote(context, input.time, input.columnIndex, input.mouseTime)
 	return true
 end
 
@@ -93,7 +97,7 @@ function EditorPlayfieldInputService:handleSelectInput(context, input)
 		return false
 	end
 
-	self.playfieldService:selectStart(context)
+	self.playfieldService:selectStart(context, input.mx, input.my, input.mouseTime)
 	return true
 end
 

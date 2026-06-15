@@ -177,6 +177,11 @@ function EditorDataContext:setWave(wave)
 	self.model:setWave(wave)
 end
 
+---@return table?
+function EditorDataContext:getWave()
+	return self.model:getWave()
+end
+
 ---@return rizu.editor.EditorChanges
 function EditorDataContext:getEditorChanges()
 	return self.model.editorChanges

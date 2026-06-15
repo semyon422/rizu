@@ -1,26 +1,17 @@
 local View = require("gui.View")
 local Fraction = require("chart.core.Fraction")
+local EditorWidgets = require("yi.views.editor.EditorWidgets")
 local gfx_util = require("gfx_util")
 local spherefonts = require("sphere.assets.fonts")
 local EditorLayout = require("yi.views.editor.EditorLayout")
 
----@class yi.views.editor.EditorSnapGridControlRect
----@field id string
----@field x number
----@field y number
----@field w number
----@field h number
-
 ---@class yi.views.editor.EditorSnapGridView: gui.View
 ---@operator call: yi.views.editor.EditorSnapGridView
 ---@field screen table
----@field controls {[string]: yi.views.editor.EditorSnapGridControlRect}
----@field controlOrder string[]
----@field clicked {[string]: boolean}
----@field keyPressed {[string]: boolean}
----@field activeControl string?
+---@field widgets yi.views.editor.EditorWidgets
 ---@field scroll number?
 ---@field dragActive boolean
+---@field leftDown boolean
 local EditorSnapGridView = View + {}
 
 ---@return string
@@ -53,46 +44,85 @@ local snaps = {
 function EditorSnapGridView:new(screen)
 	View.new(self)
 	self.screen = screen
-	self.controls = {}
-	self.controlOrder = {}
-	self.clicked = {}
-	self.keyPressed = {}
+	screen.editor_snap_grid_view = self
+	self.widgets = EditorWidgets()
 	self.dragActive = false
+	self.leftDown = false
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self:setSize(love.graphics.getDimensions())
 end
 
+---@param screen_x number
+---@param screen_y number
+---@return boolean
+function EditorSnapGridView:isMouseOverPlayfield(screen_x, screen_y)
+	local noteSkin = self.screen.game.noteSkinModel.noteSkin
+	local transform = gfx_util.transform(self.screen.snap_grid_transform)
+	local x = transform:inverseTransformPoint(screen_x, screen_y)
+	x = x - noteSkin.baseOffset
+	return x >= 0 and x <= noteSkin.fullWidth
+end
+
+function EditorSnapGridView:update()
+	self:updateDragActive()
+end
+
+---@return boolean dragActive
+function EditorSnapGridView:updateDragActive()
+	local editorModel = self.screen.game.editorModel
+	local leftDown = love.mouse.isDown(1)
+	if leftDown and (editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()) then
+		local x, y = love.mouse.getPosition()
+		self.dragActive = self.dragActive or self:isMouseOverPlayfield(x, y)
+	elseif not leftDown then
+		self.dragActive = false
+	end
+	self.leftDown = leftDown
+	return self.dragActive
+end
+
+---@param event table
+function EditorSnapGridView:receive(event)
+	local x, y = love.mouse.getPosition()
+	if event.name == "mousepressed" then
+		if self:isMouseOver(x, y) then
+			self:onMouseDown({
+				x = x,
+				y = y,
+				button = event[3],
+			})
+			local editorModel = self.screen.game.editorModel
+			if event[3] == 1 and (editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()) then
+				self.dragActive = true
+			end
+		end
+	elseif event.name == "mousereleased" then
+		self:onMouseUp({
+			x = x,
+			y = y,
+			button = event[3],
+		})
+	elseif event.name == "mousemoved" then
+		if self.dragActive or self.widgets:hasActive() then
+			self:onDrag({
+				x = x,
+				y = y,
+				button = 1,
+			})
+		end
+	elseif event.name == "wheelmoved" then
+		if self:isMouseOver(x, y) then
+			self:onScroll({
+				direction_x = event[1],
+				direction_y = event[2],
+			})
+		end
+	end
+end
+
 function EditorSnapGridView:load()
 	self:setSize(love.graphics.getDimensions())
-end
-
----@param rect yi.views.editor.EditorSnapGridControlRect?
----@param x number
----@param y number
----@return boolean
-function EditorSnapGridView:controlContains(rect, x, y)
-	return rect ~= nil and x >= rect.x and x <= rect.x + rect.w and y >= rect.y and y <= rect.y + rect.h
-end
-
----@param id string
----@param x number
----@param y number
----@param w number
----@param h number
-function EditorSnapGridView:registerControl(id, x, y, w, h)
-	local sx, sy = love.graphics.transformPoint(x, y)
-	local sx2, sy2 = love.graphics.transformPoint(x + w, y + h)
-	if not self.controls[id] then
-		table.insert(self.controlOrder, id)
-	end
-	self.controls[id] = {
-		id = id,
-		x = math.min(sx, sx2),
-		y = math.min(sy, sy2),
-		w = math.abs(sx2 - sx),
-		h = math.abs(sy2 - sy),
-	}
 end
 
 ---@param id string
@@ -102,41 +132,19 @@ end
 ---@param h number
 ---@return boolean
 function EditorSnapGridView:isLocalHovered(id, x, y, w, h)
-	self:registerControl(id, x, y, w, h)
-	local mx, my = love.mouse.getPosition()
-	return self:controlContains(self.controls[id], mx, my)
-end
-
----@param x number
----@param y number
----@return yi.views.editor.EditorSnapGridControlRect?
-function EditorSnapGridView:getControlAt(x, y)
-	for i = #self.controlOrder, 1, -1 do
-		local control = self.controls[self.controlOrder[i]]
-		if self:controlContains(control, x, y) then
-			return control
-		end
-	end
+	self.widgets:register(id, "button", x, y, w, h)
+	return self.widgets:isMouseOver(id)
 end
 
 ---@param x number
 ---@param y number
 ---@return boolean
 function EditorSnapGridView:containsPoint(x, y)
-	return self:getControlAt(x, y) ~= nil
-end
-
----@param key string
----@return boolean
-function EditorSnapGridView:consumeKey(key)
-	local pressed = self.keyPressed[key] or false
-	self.keyPressed[key] = nil
-	return pressed
+	return self.widgets:containsPoint(x, y)
 end
 
 function EditorSnapGridView:finishFrame()
-	table.clear(self.clicked)
-	table.clear(self.keyPressed)
+	self.widgets:finishFrame()
 end
 
 ---@param screen_x number
@@ -148,45 +156,41 @@ function EditorSnapGridView:isMouseOver(screen_x, screen_y)
 		return self:containsPoint(screen_x, screen_y)
 	end
 
-	local control = self:getControlAt(screen_x, screen_y)
+	local control = self.widgets:getControlAt(screen_x, screen_y)
 	return control and control.id ~= "snap grid drag" or false
 end
 
 ---@param e gui.MouseDownEvent
 function EditorSnapGridView:onMouseDown(e)
 	local editorModel = self.screen.game.editorModel
-	local control = self:getControlAt(e.x, e.y)
+	local control = self.widgets:getControlAt(e.x, e.y)
 	if not control then
 		return
 	end
 	if control.id == "snap grid drag" and not (editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()) then
 		return
 	end
-	self.activeControl = control.id
+	self.widgets:setActive(control.id)
 	return true
 end
 
 ---@param e gui.MouseUpEvent
 function EditorSnapGridView:onMouseUp(e)
-	local activeControl = self.activeControl
-	self.activeControl = nil
+	local activeControl = self.widgets:endPress(e)
 	self.dragActive = false
-	if activeControl and self:controlContains(self.controls[activeControl], e.x, e.y) then
-		self.clicked[activeControl] = true
-	end
 	return activeControl ~= nil
 end
 
 ---@param e gui.DragEvent
 function EditorSnapGridView:onDrag(e)
-	self.dragActive = self.activeControl == "snap grid drag"
-	return self.activeControl ~= nil
+	self.dragActive = self.dragActive or self.widgets:isActive("snap grid drag")
+	return self.dragActive or self.widgets:hasActive()
 end
 
 ---@param e gui.DragEndEvent
 function EditorSnapGridView:onDragEnd(e)
 	self.dragActive = false
-	return self.activeControl ~= nil
+	return self.widgets:hasActive()
 end
 
 ---@param e gui.ScrollEvent
@@ -197,8 +201,7 @@ end
 
 ---@param e gui.KeyDownEvent
 function EditorSnapGridView:onKeyDown(e)
-	self.keyPressed[e.key] = true
-	return true
+	return self.widgets:onKeyDown(e)
 end
 
 ---@param field string
@@ -253,7 +256,7 @@ function EditorSnapGridView:drawSnap(point, field, currentTime, width)
 	if hovered then
 		love.graphics.setLineWidth(4)
 	end
-	if self.clicked[id] or self.clicked[id .. "right"] then
+	if self.widgets:clicked(id) or self.widgets:clicked(id .. "right") then
 		editorModel:scrollPoint(point)
 	end
 
@@ -437,7 +440,7 @@ function EditorSnapGridView:draw()
 	local width = noteSkin.fullWidth
 	local _, mouseY = love.graphics.inverseTransformPoint(love.mouse.getPosition())
 
-	self:registerControl("snap grid drag", 0, 0, width, h)
+	self.widgets:register("snap grid drag", "button", 0, 0, width, h)
 
 	love.graphics.push()
 	self:drawComputedGrid("absoluteTime", editorTimePoint.absoluteTime, width)
@@ -453,13 +456,14 @@ function EditorSnapGridView:draw()
 
 	local scroll = self.scroll
 	self.scroll = nil
-	if self:consumeKey("right") then
+	if self.widgets:consumeKey("right") then
 		scroll = 1
-	elseif self:consumeKey("left") then
+	elseif self.widgets:consumeKey("left") then
 		scroll = -1
 	end
 
 	local canDrag = editorModel.isFineScrollRequested() or editorModel.isSnapChangeRequested()
+	self:updateDragActive()
 	local scrollState = screen.editorViewServices.scrollInputService:update(editorModel.context:getViewContext(), noteSkin, editor, {
 		mouseY = mouseY,
 		dragActive = canDrag and self.dragActive,

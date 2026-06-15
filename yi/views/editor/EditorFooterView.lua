@@ -1,69 +1,8 @@
 local View = require("gui.View")
+local EditorWidgets = require("yi.views.editor.EditorWidgets")
 local math_util = require("math_util")
 local spherefonts = require("sphere.assets.fonts")
-local time_util = require("time_util")
 local EditorLayout = require("yi.views.editor.EditorLayout")
-
----@class yi.views.editor.EditorFooterControlRect
----@field x number
----@field y number
----@field w number
----@field h number
-
----@param value number
----@return number
-local function clamp01(value)
-	return math.min(math.max(value, 0), 1)
-end
-
----@param value number
----@param step number
----@return number
-local function snap(value, step)
-	return math.floor(value / step + 0.5) * step
-end
-
----@param x number
----@param y number
----@param w number
----@param h number
----@return yi.views.editor.EditorFooterControlRect
-local function getScreenRect(x, y, w, h)
-	local sx, sy = love.graphics.transformPoint(x, y)
-	local sx2, sy2 = love.graphics.transformPoint(x + w, y + h)
-	return {
-		x = math.min(sx, sx2),
-		y = math.min(sy, sy2),
-		w = math.abs(sx2 - sx),
-		h = math.abs(sy2 - sy),
-	}
-end
-
----@param rect yi.views.editor.EditorFooterControlRect?
----@param x number
----@param y number
----@return boolean
-local function contains(rect, x, y)
-	return rect ~= nil and x >= rect.x and x <= rect.x + rect.w and y >= rect.y and y <= rect.y + rect.h
-end
-
----@param rect yi.views.editor.EditorFooterControlRect
----@param x number
----@return number
-local function getRectFraction(rect, x)
-	return clamp01((x - rect.x) / rect.w)
-end
-
----@param x number
----@param y number
----@param w number
----@param h number
----@return boolean
-local function isLocalHovered(x, y, w, h)
-	local rect = getScreenRect(x, y, w, h)
-	local mx, my = love.mouse.getPosition()
-	return contains(rect, mx, my)
-end
 
 ---@param w number
 ---@param h number
@@ -74,34 +13,17 @@ local function getChartSliderMouseValue(w, h)
 	return math.min(math.max(value, 0), 1)
 end
 
----@param active boolean
----@param hovered boolean
-local function setButtonColor(active, hovered)
-	if active then
-		love.graphics.setColor(0.5, 0.65, 1, 0.9)
-	elseif hovered then
-		love.graphics.setColor(0.35, 0.42, 0.55, 0.95)
-	else
-		love.graphics.setColor(0.18, 0.2, 0.24, 0.95)
-	end
-end
-
 ---@class yi.views.editor.EditorFooterView: gui.View
 ---@operator call: yi.views.editor.EditorFooterView
 ---@field screen table
----@field controls {[string]: yi.views.editor.EditorFooterControlRect}
----@field activeControl string?
----@field clickedPlayPause boolean
----@field pressedSpace boolean
----@field rateDragValue number?
----@field chartSliderDragValue number?
+---@field widgets yi.views.editor.EditorWidgets
 local EditorFooterView = View + {}
 
 ---@param screen table
 function EditorFooterView:new(screen)
 	View.new(self)
 	self.screen = screen
-	self.controls = {}
+	self.widgets = EditorWidgets()
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self:setSize(love.graphics.getDimensions())
@@ -115,128 +37,41 @@ end
 ---@param screen_y number
 ---@return boolean
 function EditorFooterView:isMouseOver(screen_x, screen_y)
-	return contains(self.controls.playPause, screen_x, screen_y)
-		or contains(self.controls.rateSlider, screen_x, screen_y)
-		or contains(self.controls.chartSlider, screen_x, screen_y)
+	return self.widgets:contains("playPause", screen_x, screen_y)
+		or self.widgets:contains("rateSlider", screen_x, screen_y)
+		or self.widgets:contains("chartSlider", screen_x, screen_y)
 end
 
 ---@param e gui.MouseDownEvent
 function EditorFooterView:onMouseDown(e)
-	if contains(self.controls.chartSlider, e.x, e.y) then
-		self.activeControl = "chartSlider"
-		self.chartSliderDragValue = getRectFraction(self.controls.chartSlider, e.x)
-		return true
-	elseif contains(self.controls.rateSlider, e.x, e.y) then
-		self.activeControl = "rateSlider"
-		self.rateDragValue = getRectFraction(self.controls.rateSlider, e.x)
-		return true
-	elseif contains(self.controls.playPause, e.x, e.y) then
-		self.activeControl = "playPause"
-		return true
-	end
+	return self.widgets:onMouseDown(e)
 end
 
 ---@param e gui.MouseUpEvent
 function EditorFooterView:onMouseUp(e)
-	local activeControl = self.activeControl
-	self.activeControl = nil
-	if activeControl == "playPause" and contains(self.controls.playPause, e.x, e.y) then
-		self.clickedPlayPause = true
-	end
-	return activeControl ~= nil
+	return self.widgets:onMouseUp(e)
 end
 
 ---@param e gui.DragEvent
 function EditorFooterView:onDrag(e)
-	if self.activeControl == "chartSlider" and self.controls.chartSlider then
-		self.chartSliderDragValue = getRectFraction(self.controls.chartSlider, e.x)
-		return true
-	elseif self.activeControl == "rateSlider" and self.controls.rateSlider then
-		self.rateDragValue = getRectFraction(self.controls.rateSlider, e.x)
-		return true
-	end
+	return self.widgets:onDrag(e)
 end
 
 ---@param e gui.DragEndEvent
 function EditorFooterView:onDragEnd(e)
-	return self:onDrag(e)
+	return self.widgets:onDragEnd(e)
 end
 
 ---@param e gui.KeyDownEvent
 function EditorFooterView:onKeyDown(e)
 	if e.key == "space" then
-		self.pressedSpace = true
+		self.widgets:onKeyDown(e)
 		return true
 	end
 end
 
 function EditorFooterView:finishFrame()
-	self.clickedPlayPause = false
-	self.pressedSpace = false
-	self.rateDragValue = nil
-	self.chartSliderDragValue = nil
-end
-
----@param id string
----@param x number
----@param y number
----@param w number
----@param h number
-function EditorFooterView:setControlRect(id, x, y, w, h)
-	self.controls[id] = getScreenRect(x, y, w, h)
-end
-
----@param text string
----@param x number
----@param y number
----@param w number
----@param h number
----@param align string?
-function EditorFooterView:drawLabel(text, x, y, w, h, align)
-	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.printf(text, x, y + math.max((h - love.graphics.getFont():getHeight()) / 2, 0), w, align or "left")
-end
-
----@param id string
----@param text string
----@param x number
----@param y number
----@param w number
----@param h number
-function EditorFooterView:drawButton(id, text, x, y, w, h)
-	self:setControlRect(id, x, y, w, h)
-	setButtonColor(self.activeControl == id, isLocalHovered(x, y, w, h))
-	love.graphics.rectangle("fill", x, y, w, h, 4, 4)
-	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.printf(text, x, y + math.max((h - love.graphics.getFont():getHeight()) / 2, 0), w, "center")
-end
-
----@param id string
----@param value number
----@param minValue number
----@param maxValue number
----@param step number
----@param text string
----@param x number
----@param y number
----@param w number
----@param h number
----@return number
-function EditorFooterView:drawRateSlider(id, value, minValue, maxValue, step, text, x, y, w, h)
-	self:setControlRect(id, x, y, w, h)
-	local fraction = self.rateDragValue
-	if fraction then
-		value = snap(math_util.map(fraction, 0, 1, minValue, maxValue), step)
-	end
-
-	setButtonColor(self.activeControl == id, isLocalHovered(x, y, w, h))
-	love.graphics.rectangle("fill", x, y, w, h, 4, 4)
-
-	local normalized = clamp01((value - minValue) / (maxValue - minValue))
-	love.graphics.setColor(0.7, 0.78, 1, 0.9)
-	love.graphics.rectangle("fill", x, y, w * normalized, h, 4, 4)
-	self:drawLabel(text, x, y, w, h, "center")
-	return value
+	self.widgets:finishFrame()
 end
 
 ---@param w number
@@ -258,13 +93,13 @@ function EditorFooterView:drawChartSlider(w, h)
 
 	local pos = getChartSliderMouseValue(w, h)
 
-	self:setControlRect("chartSlider", 0, 0, w, h)
-	local newValue = self.chartSliderDragValue or pos
-	local active = self.activeControl == "chartSlider"
-	local hovered = isLocalHovered(0, 0, w, h)
+	self.widgets:register("chartSlider", "slider", 0, 0, w, h)
+	local newValue = self.widgets:getDragFraction("chartSlider") or pos
+	local active = self.widgets:isActive("chartSlider")
+	local hovered = self.widgets:isMouseOver("chartSlider")
 
 	love.graphics.setLineWidth(2)
-	setButtonColor(active, hovered)
+	self.widgets:setButtonColor(active, hovered)
 	love.graphics.rectangle("fill", 0, 0, w, h, 4, 4)
 	local pad = h * 0.1
 	local innerHeight = h - 2 * pad
@@ -295,7 +130,7 @@ function EditorFooterView:drawChartSlider(w, h)
 		love.graphics.setLineWidth(1)
 	end
 
-	local x = math_util.map(math.min(math.max(state.value, 0), 1), 0, 1, a, b)
+	local x = math_util.map(EditorWidgets.clamp01(state.value), 0, 1, a, b)
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.rectangle("fill", x - h / 2, 0, h, h, 4, 4)
 
@@ -319,17 +154,16 @@ function EditorFooterView:draw()
 
 	love.graphics.translate(0, h - lineHeight * 2)
 
-	self:drawButton("playPause", state.playPauseLabel, 0, 0, 110, lineHeight)
-	if self.clickedPlayPause or self.pressedSpace then
-		footerService:togglePlayback(context)
-	end
+	self.widgets:button("playPause", state.playPauseLabel, 0, 0, 110, lineHeight)
 
-	self:drawLabel(time_util.format(state.absoluteTime, 3), 120, 0, 220, lineHeight, "center")
+	self.widgets:label(state.absoluteTimeLabel, 120, 0, 220, lineHeight, "center")
 
-	local newRate = self:drawRateSlider("rateSlider", state.rate, 0.5, 2, 0.01, ("%0.2fx"):format(state.rate), 350, 0, w / 6, lineHeight)
-	if newRate ~= state.rate then
-		footerService:setRate(context, newRate)
-	end
+	local rateNormalized = EditorWidgets.clamp01((state.rate - state.rateMin) / (state.rateMax - state.rateMin))
+	self.widgets:slider("rateSlider", rateNormalized, 0, 1, nil, state.rateLabel, 350, 0, w / 6, lineHeight)
+	footerService:handleInput(context, state, {
+		togglePlayback = self.widgets:clicked("playPause") or self.widgets:consumeKey("space"),
+		rateFraction = self.widgets:getDragFraction("rateSlider"),
+	})
 
 	love.graphics.translate(0, lineHeight)
 	self:drawChartSlider(w, lineHeight)

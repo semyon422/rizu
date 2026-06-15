@@ -43,10 +43,12 @@ end
 
 ---@param absoluteTime number
 ---@param column string
-function EditorNoteCreateService:addNote(absoluteTime, column)
+---@param mouseTime number?
+function EditorNoteCreateService:addNote(absoluteTime, column, mouseTime)
 	local context = self.context
 	local editor = context:getSettings()
 	context:selectNote()
+	mouseTime = mouseTime or context:getMouseTime()
 
 	local note
 	if editor.tool == "ShortNote" then
@@ -61,12 +63,12 @@ function EditorNoteCreateService:addNote(absoluteTime, column)
 
 	context:selectNote(note)
 	if editor.tool == "ShortNote" then
-		self.dragService:grabNew(note, "head", context:getMouseTime())
+		self.dragService:grabNew(note, "head", mouseTime)
 	elseif editor.tool == "LongNote" then
 		self.dragService:grabNew(
 			note,
 			"tail",
-			context:getMouseTime() +
+			mouseTime +
 			note.endNote:getTime() -
 			note.startNote:getTime()
 		)

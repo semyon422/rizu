@@ -17,8 +17,8 @@ local class = require("class")
 ---@field isPlaying fun(self: rizu.editor.EditorScrollInputContext): boolean
 ---@field play fun(self: rizu.editor.EditorScrollInputContext)
 ---@field pause fun(self: rizu.editor.EditorScrollInputContext)
----@field isDragging fun(self: rizu.editor.EditorScrollInputContext): boolean
----@field setDragging fun(self: rizu.editor.EditorScrollInputContext, dragging: boolean)
+---@field isDragging fun(self: rizu.editor.EditorScrollInputContext, owner?: string): boolean
+---@field setDragging fun(self: rizu.editor.EditorScrollInputContext, dragging: boolean, owner?: string)
 ---@field incSnap fun(self: rizu.editor.EditorScrollInputContext)
 ---@field decSnap fun(self: rizu.editor.EditorScrollInputContext)
 ---@field getLogSpeed fun(self: rizu.editor.EditorScrollInputContext): number
@@ -58,11 +58,11 @@ function EditorScrollInputService:update(context, noteSkin, editor, frame)
 		context:scrollSecondsDelta((currentYTime - prevYTime) / editor.speed)
 		if context:isPlaying() then
 			context:pause()
-			context:setDragging(true)
+			context:setDragging(true, "scroll")
 		end
-	elseif context:isDragging() then
+	elseif context:isDragging("scroll") then
 		context:play()
-		context:setDragging(false)
+		context:setDragging(false, "scroll")
 	end
 	self.prevMouseY = frame.mouseY
 

@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local EditorWidgets = require("yi.views.editor.EditorWidgets")
 local gfx_util = require("gfx_util")
 local spherefonts = require("sphere.assets.fonts")
 local EditorAudioOverlayPanel = require("yi.views.editor.EditorAudioOverlayPanel")
@@ -14,18 +15,29 @@ local EditorLayout = require("yi.views.editor.EditorLayout")
 ---@operator call: yi.views.editor.EditorOverlayView
 ---@field screen table
 ---@field panel yi.views.editor.EditorOverlayPanel
+---@field widgets yi.views.editor.EditorWidgets
 ---@field infoPanel yi.views.editor.EditorInfoOverlayPanel
 ---@field audioPanel yi.views.editor.EditorAudioOverlayPanel
 ---@field bmsPanel yi.views.editor.EditorBmsOverlayPanel
 ---@field notesPanel yi.views.editor.EditorNotesOverlayPanel
 ---@field timingPanel yi.views.editor.EditorTimingOverlayPanel
+---@field tabDrawers {[string]: string}
 local EditorOverlayView = View + {}
+
+EditorOverlayView.tabDrawers = {
+	info = "drawInfoTab",
+	audio = "drawAudioTab",
+	timings = "drawTimingsTab",
+	notes = "drawNotesTab",
+	bms = "drawBmsTab",
+}
 
 ---@param screen table
 function EditorOverlayView:new(screen)
 	View.new(self)
 	self.screen = screen
 	self.panel = EditorOverlayPanel()
+	self.widgets = EditorWidgets()
 	self.infoPanel = EditorInfoOverlayPanel()
 	self.audioPanel = EditorAudioOverlayPanel()
 	self.bmsPanel = EditorBmsOverlayPanel()
@@ -84,56 +96,14 @@ end
 
 ---@return rizu.editor.EditorBmsOverlayContext
 function EditorOverlayView:getBmsOverlayContext()
-	local screen = self.screen
-	local overlayActionService = screen.editorViewServices.overlayActionService
 	local overlayContext = self:getOverlayContext()
-	local editorController = screen.game.editorController
-
-	return {
-		getBmsToolsContext = function()
-			return overlayContext:getBmsToolsContext()
-		end,
-		applyBmsOffsetTempo = function()
-			overlayActionService:applyBmsOffsetTempo(overlayContext)
-		end,
-		changeBmsOffset = function(_, delta)
-			overlayActionService:changeBmsOffset(overlayContext, delta)
-		end,
-		sliceKeysounds = function()
-			editorController:sliceKeysounds()
-		end,
-		exportBmsTemplate = function(_, columnsOut)
-			editorController:exportBmsTemplate(columnsOut)
-		end,
-		exportUBmsC = function()
-			editorController:exportUBmsC()
-		end,
-	}
+	return self.screen.editorViewServices.overlayContextFactory:createBmsOverlayContext(self.screen, overlayContext)
 end
 
 ---@return rizu.editor.EditorInfoOverlayContext
 function EditorOverlayView:getInfoOverlayContext()
-	local screen = self.screen
-	local metadata = screen.game.editorModel.metadata
-	local editorController = screen.game.editorController
-
-	return {
-		iterMetadata = function()
-			return metadata:iter()
-		end,
-		setMetadata = function(_, key, value)
-			metadata:set(key, value)
-		end,
-		save = function()
-			editorController:save()
-		end,
-		saveToOsu = function()
-			editorController:saveToOsu()
-		end,
-		saveToNanoChart = function()
-			editorController:saveToNanoChart()
-		end,
-	}
+	local overlayContext = self:getOverlayContext()
+	return self.screen.editorViewServices.overlayContextFactory:createInfoOverlayContext(self.screen, overlayContext)
 end
 
 function EditorOverlayView:drawInfoTab()
@@ -156,24 +126,17 @@ function EditorOverlayView:drawBmsTab()
 	self.bmsPanel:draw(self.screen, self.panel, self:getBmsOverlayContext())
 end
 
-function EditorOverlayView:drawActiveTab()
-	local state = self.screen.editorViewServices.overlayActionService:getOverlayState(self:getOverlayContext())
-
-	if state == "info" then
-		self:drawInfoTab()
-	elseif state == "audio" then
-		self:drawAudioTab()
-	elseif state == "timings" then
-		self:drawTimingsTab()
-	elseif state == "notes" then
-		self:drawNotesTab()
-	elseif state == "bms" then
-		self:drawBmsTab()
+---@param activeTab string
+function EditorOverlayView:drawActiveTab(activeTab)
+	local methodName = self.tabDrawers[activeTab]
+	if methodName then
+		self[methodName](self)
 	end
 end
 
-function EditorOverlayView:drawLoading()
-	if self.screen.game.editorModel:isResourcesLoaded() then
+---@param resourcesLoaded boolean
+function EditorOverlayView:drawLoading(resourcesLoaded)
+	if resourcesLoaded then
 		return
 	end
 
@@ -185,26 +148,25 @@ end
 
 function EditorOverlayView:draw()
 	local screen = self.screen
-	local editorModel = screen.game.editorModel
 	local _, h = EditorLayout:move("base")
+	local overlayContext = self:getOverlayContext()
+	local overlayShellService = screen.editorViewServices.overlayShellService
+	local state = overlayShellService:getState(overlayContext)
 
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.setFont(spherefonts.get("Noto Sans", 24))
 	love.graphics.setLineStyle("smooth")
 
-	local overlayActionService = screen.editorViewServices.overlayActionService
-	local overlayContext = self:getOverlayContext()
-	overlayActionService:setOverlayState(
-		overlayContext,
-		self.panel:tabs("editor overlay tabs", overlayActionService:getOverlayState(overlayContext), editorModel.states, 0, 0, 400, 55)
-	)
+	local activeTab = self.panel:tabs("editor overlay tabs", state.activeTab, state.tabs, 0, 0, 400, 55)
+	overlayShellService:handleInput(overlayContext, {
+		activeTab = activeTab,
+	})
 
-	love.graphics.setColor(0, 0, 0, 0.35)
-	love.graphics.rectangle("fill", 0, 55, 420, h - 55)
+	self.widgets:panelBackground(0, 55, 420, h - 55)
 	love.graphics.setColor(1, 1, 1, 1)
 	self.panel:reset()
-	self:drawActiveTab()
-	self:drawLoading()
+	self:drawActiveTab(activeTab)
+	self:drawLoading(state.resourcesLoaded)
 	self.panel:finishFrame()
 end
 

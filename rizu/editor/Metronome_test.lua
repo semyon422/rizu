@@ -168,4 +168,48 @@ function test.update_plays_click_when_next_time_reached(t)
 	t:eq(metronome.nextTime, 2)
 end
 
+---@param t testing.T
+function test.update_clamps_persisted_volume_values(t)
+	local calls = {}
+	local metronome = Metronome(FakeFilesystem())
+	metronome.volume = {
+		master = 2,
+		metronome = -0.25,
+	}
+	metronome.nextTime = 1
+	metronome.isNextBeat = false
+	metronome.source = {
+		stop = function() end,
+		setVolume = function(_, volume)
+			table.insert(calls, "volume:" .. volume)
+		end,
+		setRate = function() end,
+		play = function() end,
+	}
+	local point = {
+		time = Fraction(1, 1),
+		tonumber = function()
+			return 2
+		end,
+	}
+	metronome:setContext({
+		getPoint = function()
+			return point
+		end,
+		getCurrentTime = function()
+			return 1
+		end,
+		getNextSnapIntervalTime = function()
+			error("next snap should not be requested")
+		end,
+		interpolateFraction = function()
+			error("next point should not be interpolated")
+		end,
+	})
+
+	metronome:update()
+
+	t:tdeq(calls, {"volume:0"})
+end
+
 return test

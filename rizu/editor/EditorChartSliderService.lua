@@ -23,8 +23,8 @@ local class = require("class")
 ---@field isPlaying fun(self: rizu.editor.EditorChartSliderContext): boolean
 ---@field play fun(self: rizu.editor.EditorChartSliderContext)
 ---@field pause fun(self: rizu.editor.EditorChartSliderContext)
----@field isDragging fun(self: rizu.editor.EditorChartSliderContext): boolean
----@field setDragging fun(self: rizu.editor.EditorChartSliderContext, dragging: boolean)
+---@field isDragging fun(self: rizu.editor.EditorChartSliderContext, owner?: string): boolean
+---@field setDragging fun(self: rizu.editor.EditorChartSliderContext, dragging: boolean, owner?: string)
 
 ---@class rizu.editor.EditorChartSliderService
 ---@operator call: rizu.editor.EditorChartSliderService
@@ -59,11 +59,11 @@ function EditorChartSliderService:updateDrag(context, state, input)
 		end
 		if context:isPlaying() then
 			context:pause()
-			context:setDragging(true)
+			context:setDragging(true, "chartSlider")
 		end
-	elseif context:isDragging() then
+	elseif context:isDragging("chartSlider") then
 		context:play()
-		context:setDragging(false)
+		context:setDragging(false, "chartSlider")
 	end
 end
 

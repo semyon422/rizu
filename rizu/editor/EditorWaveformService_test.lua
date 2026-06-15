@@ -78,4 +78,60 @@ function test.update_tracks_fractional_point_draw_delta(t)
 	t:eq(state.pointDrawDelta, 0.4)
 end
 
+---@param t testing.T
+function test.update_resets_cached_lines_when_wave_changes(t)
+	local service = EditorWaveformService()
+	local noteSkin = {
+		fullWidth = 100,
+		unit = 2,
+	}
+	local editor = {
+		speed = 5,
+		waveformOffset = 0,
+	}
+	local firstState = service:update(createContext({
+		wave = createWave({0.5, 0.5, 0.5, 0.5}),
+		sessionTime = 0,
+		audioStartTime = 0,
+	}), noteSkin, editor)
+	local secondState = service:update(createContext({
+		wave = createWave({-0.5, -0.5, -0.5, -0.5}),
+		sessionTime = 0,
+		audioStartTime = 0,
+	}), noteSkin, editor)
+
+	t:ne(firstState, nil)
+	t:ne(secondState, nil)
+	---@cast firstState -nil
+	---@cast secondState -nil
+	t:ne(firstState.lines[0][1], secondState.lines[0][1])
+end
+
+---@param t testing.T
+function test.update_uses_visible_height_when_provided(t)
+	local service = EditorWaveformService()
+	local context = createContext({
+		wave = createWave({0.5, -0.5, 0.5, -0.5, 0.5, -0.5}),
+		sessionTime = 0,
+		audioStartTime = 0,
+	})
+	local noteSkin = {
+		fullWidth = 100,
+		unit = 2,
+	}
+	local editor = {
+		speed = 5,
+		waveformOffset = 0,
+	}
+
+	local defaultState = service:update(context, noteSkin, editor)
+	local visibleState = service:update(context, noteSkin, editor, 4)
+
+	t:ne(defaultState, nil)
+	t:ne(visibleState, nil)
+	---@cast defaultState -nil
+	---@cast visibleState -nil
+	t:eq(#defaultState.lines[0] < #visibleState.lines[0], true)
+end
+
 return test

@@ -17,6 +17,12 @@ local Metronome = class()
 
 local samplePath = "resources/metronome.ogg"
 
+---@param value number
+---@return number
+local function clampVolume(value)
+	return math.min(math.max(value, 0), 1)
+end
+
 ---@param fs fs.IFilesystem?
 function Metronome:new(fs)
 	self.fs = fs or LoveFilesystem()
@@ -67,7 +73,7 @@ function Metronome:update()
 	if currentTime >= self.nextTime then
 		local source = self.source
 		source:stop()
-		source:setVolume(self.volume.master * self.volume.metronome)
+		source:setVolume(clampVolume(self.volume.master) * clampVolume(self.volume.metronome))
 		source:setRate(2099 / 2645)
 		if self.isNextBeat then
 			source:setRate(1)

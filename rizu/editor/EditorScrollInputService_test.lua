@@ -38,11 +38,11 @@ local function createContext(flags, calls)
 			table.insert(calls, "play")
 			timer.is_playing = true
 		end,
-		isDragging = function()
-			return viewState:isDragging()
+		isDragging = function(_, owner)
+			return viewState:isDragging(owner)
 		end,
-		setDragging = function(_, dragging)
-			viewState:setDragging(dragging)
+		setDragging = function(_, dragging, owner)
+			viewState:setDragging(dragging, owner)
 		end,
 		incSnap = function()
 			table.insert(calls, "inc")
@@ -116,6 +116,7 @@ function test.drag_scroll_pauses_and_resumes_playback(t)
 	})
 
 	t:eq(context.viewState:isDragging(), true)
+	t:eq(context.viewState:isDragging("scroll"), true)
 	t:tdeq(calls, {"seconds:0.01", "pause"})
 
 	flags.fine = false
@@ -126,6 +127,24 @@ function test.drag_scroll_pauses_and_resumes_playback(t)
 
 	t:eq(context.viewState:isDragging(), false)
 	t:tdeq(calls, {"seconds:0.01", "pause", "play"})
+end
+
+---@param t testing.T
+function test.inactive_scroll_does_not_resume_chart_slider_drag(t)
+	local calls = {}
+	local editor = {
+		speed = 2,
+	}
+	local context = createContext({}, calls)
+	context.viewState:setDragging(true, "chartSlider")
+
+	EditorScrollInputService():update(context, noteSkin, editor, {
+		mouseY = 30,
+		dragActive = false,
+	})
+
+	t:eq(context.viewState:isDragging("chartSlider"), true)
+	t:tdeq(calls, {})
 end
 
 ---@param t testing.T

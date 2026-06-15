@@ -36,4 +36,21 @@ function test.add_note_commits_on_drop(t)
 	t:eq(notes[1]:getTime(), 0.75)
 end
 
+---@param t testing.T
+function test.add_note_uses_explicit_grab_time(t)
+	local editorModel = createEditorModel()
+	editorModel.settings.tool = "ShortNote"
+	editorModel.settings.lockSnap = false
+	editorModel.mouseTime = 99
+	editorModel.noteService.columnService.columnOver = 1
+
+	editorModel.noteService.createService:addNote(0.25, "key1", 0.25)
+	editorModel.noteService:update()
+	editorModel.noteService:dropNotes(0.75)
+
+	local notes = getNotes(editorModel)
+	t:eq(#notes, 1)
+	t:eq(notes[1]:getTime(), 0.75)
+end
+
 return test

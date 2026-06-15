@@ -33,12 +33,13 @@ local function createContext(fields)
 			fields.playing = false
 			table.insert(fields.calls, "pause")
 		end,
-		isDragging = function()
-			return fields.dragging == true
+		isDragging = function(_, owner)
+			return fields.dragging == true and (owner == nil or fields.draggingOwner == owner)
 		end,
-		setDragging = function(_, dragging)
+		setDragging = function(_, dragging, owner)
 			fields.dragging = dragging
-			table.insert(fields.calls, "dragging:" .. tostring(dragging))
+			fields.draggingOwner = dragging and owner or nil
+			table.insert(fields.calls, ("dragging:%s:%s"):format(tostring(dragging), tostring(owner)))
 		end,
 	}
 end
@@ -89,7 +90,7 @@ function test.active_drag_scrolls_and_pauses_playback(t)
 		newValue = 0.25,
 	})
 
-	t:tdeq(calls, {"scroll:15", "pause", "dragging:true"})
+	t:tdeq(calls, {"scroll:15", "pause", "dragging:true:chartSlider"})
 end
 
 ---@param t testing.T
@@ -98,6 +99,7 @@ function test.releasing_drag_resumes_playback(t)
 	local context = createContext({
 		calls = calls,
 		dragging = true,
+		draggingOwner = "chartSlider",
 		scrollSeconds = function() end,
 	})
 
@@ -105,7 +107,24 @@ function test.releasing_drag_resumes_playback(t)
 		active = false,
 	})
 
-	t:tdeq(calls, {"play", "dragging:false"})
+	t:tdeq(calls, {"play", "dragging:false:chartSlider"})
+end
+
+---@param t testing.T
+function test.inactive_slider_does_not_resume_scroll_drag(t)
+	local calls = {}
+	local context = createContext({
+		calls = calls,
+		dragging = true,
+		draggingOwner = "scroll",
+		scrollSeconds = function() end,
+	})
+
+	EditorChartSliderService():updateDrag(context, {}, {
+		active = false,
+	})
+
+	t:tdeq(calls, {})
 end
 
 return test

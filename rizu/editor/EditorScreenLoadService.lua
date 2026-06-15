@@ -96,6 +96,8 @@ function EditorScreenLoadService:detachRetainedViews(screen)
 	end
 	screen.editor_retained_views = nil
 	screen.editor_sequence_view = nil
+	screen.editor_snap_grid_view = nil
+	screen.editor_playfield_view = nil
 end
 
 ---@param screen table

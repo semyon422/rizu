@@ -33,25 +33,64 @@ local function createContext(fields)
 end
 
 ---@param t testing.T
-function test.edit_metadata_applies_callback_results(t)
-	local calls = {}
+function test.get_state_returns_metadata_fields(t)
 	local metadata = {
 		title = "Song",
 		artist = "Artist",
 	}
+	local state = EditorInfoOverlayService():getState(createContext({
+		calls = {},
+		metadata = metadata,
+		keys = {"title", "artist"},
+	}))
+
+	t:eq(state.title, "Chart info")
+	t:tdeq(state.fields, {
+		{
+			key = "title",
+			value = "Song",
+			inputId = "title input",
+		},
+		{
+			key = "artist",
+			value = "Artist",
+			inputId = "artist input",
+		},
+	})
+	t:tdeq(state.developmentLabels, {
+		"The editor",
+		"is in development",
+	})
+end
+
+---@param t testing.T
+function test.handle_input_updates_metadata_and_runs_save_commands(t)
+	local calls = {}
+	local metadata = {
+		title = "Song",
+	}
 	local context = createContext({
 		calls = calls,
 		metadata = metadata,
-		keys = {"title", "artist"},
+		keys = {"title"},
 	})
 
-	EditorInfoOverlayService():editMetadata(context, function(key, value)
-		return value .. ":" .. key
-	end)
+	EditorInfoOverlayService():handleInput(context, {
+		metadata = {
+			title = "New Song",
+		},
+		savePressed = true,
+		saveToOsuPressed = true,
+		saveToNanoChartPressed = true,
+	})
 
-	t:eq(metadata.title, "Song:title")
-	t:eq(metadata.artist, "Artist:artist")
-	t:tdeq(calls, {"metadata:title=Song:title", "metadata:artist=Artist:artist"})
+	t:eq(metadata.title, "New Song")
+	t:tdeq(calls, {
+		"metadata:title=New Song",
+		"save",
+		"osu",
+		"nano",
+	})
 end
 
 ---@param t testing.T

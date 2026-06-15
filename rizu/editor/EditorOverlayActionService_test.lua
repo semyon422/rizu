@@ -1,5 +1,4 @@
 local EditorOverlayActionService = require("rizu.editor.EditorOverlayActionService")
-local EditorViewState = require("rizu.editor.EditorViewState")
 
 local test = {}
 
@@ -10,9 +9,6 @@ local function createContext(fields)
 		end,
 		getSessionTime = function()
 			return fields.sessionTime
-		end,
-		getViewState = function()
-			return fields.viewState
 		end,
 		getNoteService = function()
 			return fields.noteService
@@ -55,7 +51,6 @@ function test.ui_action_methods_update_editor_state(t)
 	local context = createContext({
 		chartmeta = chartmeta,
 		sessionTime = 12.5,
-		viewState = EditorViewState(),
 		selectedNotes = {
 			[selectedNote.startNote] = selectedNote,
 		},
@@ -73,7 +68,6 @@ function test.ui_action_methods_update_editor_state(t)
 
 	local service = EditorOverlayActionService()
 	service:setPreviewTimeToSession(context)
-	service:setOverlayState(context, "notes")
 	service:changeSelectedNoteType(context)
 	local scrolled = service:scrollToFirstSelectedNote(context)
 	service:setVisualPointComment(selectedVisualPoint, "")
@@ -83,7 +77,6 @@ function test.ui_action_methods_update_editor_state(t)
 	service:resetSelectedNotesComment(context)
 
 	t:eq(chartmeta.preview_time, 12.5)
-	t:eq(service:getOverlayState(context), "notes")
 	t:eq(scrolled, true)
 	t:eq(selectedVisualPoint.comment, nil)
 	t:eq(selectedVisualPoint.temp_comment, nil)
@@ -155,12 +148,50 @@ function test.analysis_ui_methods_delegate_to_analysis_service(t)
 
 	service:detectTempoOffset(context)
 	t:eq(service:hasDetectedTempoOffset(context), true)
+	local ncbtActionState = service:getNcbtActionState(context)
+	t:eq(ncbtActionState.canApply, true)
+	service:handleNcbtActionInput(context, ncbtActionState, {
+		detectPressed = true,
+		applyPressed = true,
+	})
 	service:applyNcbt(context)
 	local totalBeats, avgBeatDuration = service:getTotalBeats(context)
+	local beatSummaryState = service:getBeatSummaryState(context)
 
 	t:eq(totalBeats, 12)
 	t:eq(avgBeatDuration, 0.5)
-	t:tdeq(calls, {"detect", "apply", "beats"})
+	t:eq(beatSummaryState.totalBeats, 12)
+	t:eq(beatSummaryState.avgBeatDuration, 0.5)
+	t:eq(beatSummaryState.totalBeatsLabel, "Total beats: 12")
+	t:eq(beatSummaryState.averageTempoLabel, "Average tempo: 120 bpm")
+	t:tdeq(calls, {"detect", "detect", "apply", "apply", "beats", "beats"})
+end
+
+---@param t testing.T
+function test.ncbt_action_input_does_not_apply_when_unavailable(t)
+	local calls = {}
+	local service = EditorOverlayActionService()
+	local context = createContext({
+		analysisContext = {},
+		ncbtContext = {},
+		analysisService = {
+			detectTempoOffset = function()
+				table.insert(calls, "detect")
+			end,
+			applyNcbt = function()
+				table.insert(calls, "apply")
+			end,
+		},
+	})
+	local state = service:getNcbtActionState(context)
+
+	service:handleNcbtActionInput(context, state, {
+		detectPressed = true,
+		applyPressed = true,
+	})
+
+	t:eq(state.canApply, false)
+	t:tdeq(calls, {"detect"})
 end
 
 return test

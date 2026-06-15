@@ -3,6 +3,8 @@ local class = require("class")
 ---@class rizu.editor.EditorAudioOverlayState
 ---@field playingCount integer
 ---@field offsync number
+---@field playingCountLabel string
+---@field offsyncLabel string
 
 ---@class rizu.editor.EditorAudioOverlayContext
 ---@field getAudioEngine fun(self: rizu.editor.EditorAudioOverlayContext): rizu.engine.audio.Engine
@@ -11,6 +13,12 @@ local class = require("class")
 ---@class rizu.editor.EditorAudioOverlayService
 ---@operator call: rizu.editor.EditorAudioOverlayService
 local EditorAudioOverlayService = class()
+
+---@param seconds number
+---@return string
+function EditorAudioOverlayService:formatMilliseconds(seconds)
+	return math.floor(seconds * 1000) .. "ms"
+end
 
 ---@param source table?
 ---@return integer
@@ -27,9 +35,14 @@ function EditorAudioOverlayService:getState(context)
 	local audioEngine = context:getAudioEngine()
 	local audioPosition = audioEngine:getPosition()
 
+	local playingCount = playingSourceCount(audioEngine.source) + playingSourceCount(audioEngine.foregroundSource)
+	local offsync = audioPosition and context:getTimerTime() - audioPosition or 0
+
 	return {
-		playingCount = playingSourceCount(audioEngine.source) + playingSourceCount(audioEngine.foregroundSource),
-		offsync = audioPosition and context:getTimerTime() - audioPosition or 0,
+		playingCount = playingCount,
+		offsync = offsync,
+		playingCountLabel = "playing sounds: " .. playingCount,
+		offsyncLabel = "offsync: " .. self:formatMilliseconds(offsync),
 	}
 end
 

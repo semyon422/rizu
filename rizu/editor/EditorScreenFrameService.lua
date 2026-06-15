@@ -30,8 +30,10 @@ function EditorScreenFrameService:update(screen, dt)
 		return false
 	end
 
+	self.graphics.push("all")
 	self.graphics.replaceTransform(self.transform(screen.transform))
 	screen.game.editorModel:update()
+	self.graphics.pop()
 	if self.baseScreen.update then
 		self.baseScreen.update(screen, dt)
 	end
@@ -58,6 +60,12 @@ function EditorScreenFrameService:receive(screen, event)
 		return false
 	end
 
+	if screen.editor_snap_grid_view then
+		screen.editor_snap_grid_view:receive(event)
+	end
+	if screen.editor_playfield_view then
+		screen.editor_playfield_view:receive(event)
+	end
 	screen.game.editorController:receive(event)
 	screen.editor_sequence_view:receive(event)
 	self.baseScreen.receive(screen, event)

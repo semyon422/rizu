@@ -29,7 +29,8 @@ function EditorWaveformView:draw()
 	local state = screen.editorViewServices.waveformService:update(
 		screen.game.editorModel.context:getViewContext(),
 		noteSkin,
-		editor
+		editor,
+		self:getHeight()
 	)
 	if not state then
 		return

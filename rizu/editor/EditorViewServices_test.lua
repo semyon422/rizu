@@ -12,10 +12,13 @@ function test.defaults_create_view_services(t)
 	t:eq(type(services.bmsOverlayService.getBmsToolsContext), "function")
 	t:eq(type(services.chartSliderService.getState), "function")
 	t:eq(type(services.footerService.getState), "function")
-	t:eq(type(services.infoOverlayService.editMetadata), "function")
+	t:eq(type(services.infoOverlayService.getState), "function")
+	t:eq(type(services.infoOverlayService.handleInput), "function")
 	t:eq(type(services.notesOverlayService.getState), "function")
 	t:eq(type(services.onsetsService.getOnsetsState), "function")
 	t:eq(type(services.overlayActionService.setPreviewTimeToSession), "function")
+	t:eq(type(services.overlayContextFactory.createInfoOverlayContext), "function")
+	t:eq(type(services.overlayShellService.getState), "function")
 	t:eq(type(services.scrollInputService.update), "function")
 	t:eq(type(services.timingOverlayService.getPoint), "function")
 	t:eq(type(services.waveformService.update), "function")
@@ -33,6 +36,8 @@ function test.dependencies_can_be_injected(t)
 	local notesOverlayService = {}
 	local onsetsService = {}
 	local overlayActionService = {}
+	local overlayContextFactory = {}
+	local overlayShellService = {}
 	local scrollInputService = {}
 	local timingOverlayService = {}
 	local waveformService = {}
@@ -48,6 +53,8 @@ function test.dependencies_can_be_injected(t)
 		notesOverlayService = notesOverlayService,
 		onsetsService = onsetsService,
 		overlayActionService = overlayActionService,
+		overlayContextFactory = overlayContextFactory,
+		overlayShellService = overlayShellService,
 		scrollInputService = scrollInputService,
 		timingOverlayService = timingOverlayService,
 		waveformService = waveformService,
@@ -63,6 +70,8 @@ function test.dependencies_can_be_injected(t)
 	t:eq(services.notesOverlayService, notesOverlayService)
 	t:eq(services.onsetsService, onsetsService)
 	t:eq(services.overlayActionService, overlayActionService)
+	t:eq(services.overlayContextFactory, overlayContextFactory)
+	t:eq(services.overlayShellService, overlayShellService)
 	t:eq(services.scrollInputService, scrollInputService)
 	t:eq(services.timingOverlayService, timingOverlayService)
 	t:eq(services.waveformService, waveformService)

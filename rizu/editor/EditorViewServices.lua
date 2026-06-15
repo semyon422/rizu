@@ -9,6 +9,8 @@ local EditorInfoOverlayService = require("rizu.editor.EditorInfoOverlayService")
 local EditorNotesOverlayService = require("rizu.editor.EditorNotesOverlayService")
 local EditorOnsetsService = require("rizu.editor.EditorOnsetsService")
 local EditorOverlayActionService = require("rizu.editor.EditorOverlayActionService")
+local EditorOverlayContextFactory = require("rizu.editor.EditorOverlayContextFactory")
+local EditorOverlayShellService = require("rizu.editor.EditorOverlayShellService")
 local EditorScrollInputService = require("rizu.editor.EditorScrollInputService")
 local EditorTimingOverlayService = require("rizu.editor.EditorTimingOverlayService")
 local EditorWaveformService = require("rizu.editor.EditorWaveformService")
@@ -24,6 +26,8 @@ local EditorWaveformService = require("rizu.editor.EditorWaveformService")
 ---@field notesOverlayService rizu.editor.EditorNotesOverlayService?
 ---@field onsetsService rizu.editor.EditorOnsetsService?
 ---@field overlayActionService rizu.editor.EditorOverlayActionService?
+---@field overlayContextFactory rizu.editor.EditorOverlayContextFactory?
+---@field overlayShellService rizu.editor.EditorOverlayShellService?
 ---@field scrollInputService rizu.editor.EditorScrollInputService?
 ---@field timingOverlayService rizu.editor.EditorTimingOverlayService?
 ---@field waveformService rizu.editor.EditorWaveformService?
@@ -40,6 +44,8 @@ local EditorWaveformService = require("rizu.editor.EditorWaveformService")
 ---@field notesOverlayService rizu.editor.EditorNotesOverlayService
 ---@field onsetsService rizu.editor.EditorOnsetsService
 ---@field overlayActionService rizu.editor.EditorOverlayActionService
+---@field overlayContextFactory rizu.editor.EditorOverlayContextFactory
+---@field overlayShellService rizu.editor.EditorOverlayShellService
 ---@field scrollInputService rizu.editor.EditorScrollInputService
 ---@field timingOverlayService rizu.editor.EditorTimingOverlayService
 ---@field waveformService rizu.editor.EditorWaveformService
@@ -58,6 +64,8 @@ function EditorViewServices:new(deps)
 	self.notesOverlayService = deps.notesOverlayService or EditorNotesOverlayService()
 	self.onsetsService = deps.onsetsService or EditorOnsetsService()
 	self.overlayActionService = deps.overlayActionService or EditorOverlayActionService()
+	self.overlayContextFactory = deps.overlayContextFactory or EditorOverlayContextFactory()
+	self.overlayShellService = deps.overlayShellService or EditorOverlayShellService()
 	self.scrollInputService = deps.scrollInputService or EditorScrollInputService()
 	self.timingOverlayService = deps.timingOverlayService or EditorTimingOverlayService()
 	self.waveformService = deps.waveformService or EditorWaveformService()

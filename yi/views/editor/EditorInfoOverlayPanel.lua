@@ -9,33 +9,39 @@ local EditorInfoOverlayPanel = class()
 ---@param panel yi.views.editor.EditorOverlayPanel
 ---@param infoOverlayContext rizu.editor.EditorInfoOverlayContext
 function EditorInfoOverlayPanel:draw(screen, panel, infoOverlayContext)
-	panel:text("Chart info")
-
 	local infoOverlayService = screen.editorViewServices.infoOverlayService
-	infoOverlayService:editMetadata(infoOverlayContext, function(key, value)
-		return panel:input(key .. " input", value, key)
-	end)
+	local state = infoOverlayService:getState(infoOverlayContext)
+
+	panel:text(state.title)
+
+	---@type {[string]: string}
+	local metadata = {}
+	for _, field in ipairs(state.fields) do
+		metadata[field.key] = panel:input(field.inputId, field.value, field.key)
+	end
 
 	panel:separator()
 
-	if panel:smallButton("save btn", "save") then
-		infoOverlayService:save(infoOverlayContext)
-	end
-	if panel:smallButton("save to osu btn", "save osu") then
-		infoOverlayService:saveToOsu(infoOverlayContext)
-	end
+	local savePressed = panel:smallButton("save btn", "save")
+	local saveToOsuPressed = panel:smallButton("save to osu btn", "save osu")
 	panel:endRow()
-	if panel:button("save to nanochart btn", "save to nanochart") then
-		infoOverlayService:saveToNanoChart(infoOverlayContext)
-	end
+	local saveToNanoChartPressed = panel:button("save to nanochart btn", "save to nanochart")
+
+	infoOverlayService:handleInput(infoOverlayContext, {
+		metadata = metadata,
+		savePressed = savePressed,
+		saveToOsuPressed = saveToOsuPressed,
+		saveToNanoChartPressed = saveToNanoChartPressed,
+	})
 
 	love.graphics.push("all")
 	love.graphics.setColor(1, 1, 1, 0.75)
 	love.graphics.setFont(spherefonts.get("Noto Sans", 36))
-	panel:label("The editor", 0, panel.cursorY, panel.panelWidth, 48)
-	panel:label("is in development", 0, panel.cursorY + 48, panel.panelWidth, 48)
+	for i, label in ipairs(state.developmentLabels) do
+		panel:label(label, 0, panel.cursorY + (i - 1) * 48, panel.panelWidth, 48)
+	end
 	love.graphics.pop()
-	panel.cursorY = panel.cursorY + 96
+	panel.cursorY = panel.cursorY + #state.developmentLabels * 48
 end
 
 return EditorInfoOverlayPanel

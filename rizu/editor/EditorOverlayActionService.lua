@@ -1,9 +1,21 @@
 local class = require("class")
 
+---@class rizu.editor.EditorBeatSummaryState
+---@field totalBeats number
+---@field avgBeatDuration number
+---@field totalBeatsLabel string
+---@field averageTempoLabel string
+
+---@class rizu.editor.EditorNcbtActionState
+---@field canApply boolean
+
+---@class rizu.editor.EditorNcbtActionInput
+---@field detectPressed boolean
+---@field applyPressed boolean
+
 ---@class rizu.editor.EditorOverlayActionContext
 ---@field getChartmeta fun(self: rizu.editor.EditorOverlayActionContext): table
 ---@field getSessionTime fun(self: rizu.editor.EditorOverlayActionContext): number
----@field getViewState fun(self: rizu.editor.EditorOverlayActionContext): rizu.editor.EditorViewState
 ---@field getNoteService fun(self: rizu.editor.EditorOverlayActionContext): rizu.editor.EditorNoteService
 ---@field getSelectedNotes fun(self: rizu.editor.EditorOverlayActionContext): {[chart.Note]: rizu.editor.EditorNote}
 ---@field scrollPoint fun(self: rizu.editor.EditorOverlayActionContext, point: chartedit.Point)
@@ -20,18 +32,6 @@ local EditorOverlayActionService = class()
 ---@param context rizu.editor.EditorOverlayActionContext
 function EditorOverlayActionService:setPreviewTimeToSession(context)
 	context:getChartmeta().preview_time = context:getSessionTime()
-end
-
----@param context rizu.editor.EditorOverlayActionContext
----@param state string
-function EditorOverlayActionService:setOverlayState(context, state)
-	context:getViewState():setOverlayState(state)
-end
-
----@param context rizu.editor.EditorOverlayActionContext
----@return string
-function EditorOverlayActionService:getOverlayState(context)
-	return context:getViewState():getOverlayState()
 end
 
 ---@param context rizu.editor.EditorOverlayActionContext
@@ -108,6 +108,26 @@ function EditorOverlayActionService:hasDetectedTempoOffset(context)
 end
 
 ---@param context rizu.editor.EditorOverlayActionContext
+---@return rizu.editor.EditorNcbtActionState
+function EditorOverlayActionService:getNcbtActionState(context)
+	return {
+		canApply = self:hasDetectedTempoOffset(context),
+	}
+end
+
+---@param context rizu.editor.EditorOverlayActionContext
+---@param state rizu.editor.EditorNcbtActionState
+---@param input rizu.editor.EditorNcbtActionInput
+function EditorOverlayActionService:handleNcbtActionInput(context, state, input)
+	if input.detectPressed then
+		self:detectTempoOffset(context)
+	end
+	if state.canApply and input.applyPressed then
+		self:applyNcbt(context)
+	end
+end
+
+---@param context rizu.editor.EditorOverlayActionContext
 function EditorOverlayActionService:applyNcbt(context)
 	context:getAnalysisService():applyNcbt(context:getAnalysisContext())
 end
@@ -117,6 +137,19 @@ end
 ---@return number avgBeatDuration
 function EditorOverlayActionService:getTotalBeats(context)
 	return context:getAnalysisService():getTotalBeats(context:getAnalysisContext())
+end
+
+---@param context rizu.editor.EditorOverlayActionContext
+---@return rizu.editor.EditorBeatSummaryState
+function EditorOverlayActionService:getBeatSummaryState(context)
+	local totalBeats, avgBeatDuration = self:getTotalBeats(context)
+	local averageTempo = 60 / avgBeatDuration
+	return {
+		totalBeats = totalBeats,
+		avgBeatDuration = avgBeatDuration,
+		totalBeatsLabel = "Total beats: " .. totalBeats,
+		averageTempoLabel = "Average tempo: " .. averageTempo .. " bpm",
+	}
 end
 
 return EditorOverlayActionService

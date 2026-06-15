@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class rizu.editor.EditorViewContext: rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorSettingsContext, rizu.editor.VisualEngineContext, rizu.editor.EditorChangesContext, rizu.editor.EditorOverlayActionContext, rizu.editor.EditorScrollInputContext, rizu.editor.EditorChartSliderContext, rizu.editor.EditorFooterContext, rizu.editor.EditorWaveformContext, rizu.editor.EditorOnsetsContext, rizu.editor.EditorTimingOverlayContext, rizu.editor.EditorAudioOverlayContext, rizu.editor.EditorAudioSettingsOverlayContext, rizu.editor.EditorNotesOverlayContext, rizu.editor.EditorPlayfieldContext
+---@class rizu.editor.EditorViewContext: rizu.editor.EditorSelectionRectContext, rizu.editor.EditorModelFrameContext, rizu.editor.EditorSettingsContext, rizu.editor.VisualEngineContext, rizu.editor.EditorChangesContext, rizu.editor.EditorOverlayActionContext, rizu.editor.EditorOverlayShellContext, rizu.editor.EditorScrollInputContext, rizu.editor.EditorChartSliderContext, rizu.editor.EditorFooterContext, rizu.editor.EditorWaveformContext, rizu.editor.EditorOnsetsContext, rizu.editor.EditorTimingOverlayContext, rizu.editor.EditorAudioOverlayContext, rizu.editor.EditorAudioSettingsOverlayContext, rizu.editor.EditorNotesOverlayContext, rizu.editor.EditorPlayfieldContext
 ---@operator call: rizu.editor.EditorViewContext
 ---@field model rizu.editor.EditorModel
 local EditorViewContext = class()
@@ -38,8 +38,20 @@ function EditorViewContext:unselectRegion()
 	self.model.unselectRegion()
 end
 
+---@param note rizu.editor.EditorNote
+function EditorViewContext:selectNote(note)
+	self.model:selectNote(note)
+end
+
 function EditorViewContext:selectStart()
 	self.model:selectStart()
+end
+
+---@param mx number
+---@param my number
+---@param mouseTime number
+function EditorViewContext:selectStartAt(mx, my, mouseTime)
+	self.model:selectStartAt(mx, my, mouseTime)
 end
 
 function EditorViewContext:selectEnd()
@@ -84,6 +96,16 @@ end
 ---@return rizu.editor.EditorViewState
 function EditorViewContext:getViewState()
 	return self.model.viewState
+end
+
+---@return string[]
+function EditorViewContext:getOverlayTabs()
+	return self.model.states
+end
+
+---@return boolean
+function EditorViewContext:isResourcesLoaded()
+	return self.model:isResourcesLoaded()
 end
 
 ---@return rizu.editor.Metronome
@@ -304,6 +326,14 @@ function EditorViewContext:scrollSnaps(scroll)
 	self.model.scroller:scrollSnaps(scroll)
 end
 
+function EditorViewContext:incSnap()
+	self.model:incSnap()
+end
+
+function EditorViewContext:decSnap()
+	self.model:decSnap()
+end
+
 ---@return boolean
 function EditorViewContext:isPlaying()
 	return self.model.timer.is_playing
@@ -317,6 +347,7 @@ end
 ---@param rate number
 function EditorViewContext:setRate(rate)
 	self.model.timer:setRate(rate)
+	self.model.audio_engine:setRate(rate)
 end
 
 function EditorViewContext:play()
@@ -327,14 +358,16 @@ function EditorViewContext:pause()
 	self.model:pause()
 end
 
+---@param owner string?
 ---@return boolean
-function EditorViewContext:isDragging()
-	return self.model.viewState:isDragging()
+function EditorViewContext:isDragging(owner)
+	return self.model.viewState:isDragging(owner)
 end
 
 ---@param dragging boolean
-function EditorViewContext:setDragging(dragging)
-	self.model.viewState:setDragging(dragging)
+---@param owner string?
+function EditorViewContext:setDragging(dragging, owner)
+	self.model.viewState:setDragging(dragging, owner)
 end
 
 return EditorViewContext

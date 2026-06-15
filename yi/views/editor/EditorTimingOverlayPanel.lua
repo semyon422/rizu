@@ -11,75 +11,79 @@ function EditorTimingOverlayPanel:draw(screen, panel, overlayContext)
 	local timingOverlayService = screen.editorViewServices.timingOverlayService
 	local overlayActionService = screen.editorViewServices.overlayActionService
 
-	local dtp = timingOverlayService:getPoint(overlayContext)
+	local timingState = timingOverlayService:getState(overlayContext)
 
-	if panel:smallButton("prev tp", "<") and dtp.prev then
-		timingOverlayService:scrollPrev(overlayContext)
-	end
-	if panel:smallButton("next tp", ">") and dtp.next then
-		timingOverlayService:scrollNext(overlayContext)
-	end
+	timingOverlayService:handleNavigationInput(overlayContext, {
+		prevPressed = panel:smallButton("prev tp", "<") and timingState.canScrollPrev,
+		nextPressed = panel:smallButton("next tp", ">") and timingState.canScrollNext,
+	})
 	panel:endRow()
-	panel:text(tostring(dtp))
+	panel:text(timingState.pointLabel)
 
 	timingOverlayService:setShowTimings(
 		overlayContext,
-		panel:checkbox("show timings", timingOverlayService:isShowTimings(overlayContext), "show timings")
+		panel:checkbox("show timings", timingState.showTimings, "show timings")
 	)
 
-	if panel:button("ncbt", "detect tempo and offset") then
-		overlayActionService:detectTempoOffset(overlayContext)
-	end
-	if overlayActionService:hasDetectedTempoOffset(overlayContext) and panel:button("ncbt apply", "apply") then
-		overlayActionService:applyNcbt(overlayContext)
-	end
+	local ncbtActionState = overlayActionService:getNcbtActionState(overlayContext)
+	overlayActionService:handleNcbtActionInput(overlayContext, ncbtActionState, {
+		detectPressed = panel:button("ncbt", "detect tempo and offset"),
+		applyPressed = ncbtActionState.canApply and panel:button("ncbt apply", "apply"),
+	})
 
 	panel:separator()
 
-	local vertex = dtp._vertex
-	if dtp.vertex then
-		panel:text("Tempo: " .. dtp.vertex:getTempo() .. " bpm")
+	local vertex = timingState.vertex
+	if timingState.tempoLabel then
+		panel:text(timingState.tempoLabel)
 	end
 
-	if not timingOverlayService:isGrabbed(overlayContext) then
+	local splitPressed = false
+	local grabPressed = false
+	local dropPressed = false
+	local mergePressed = false
+	local newBeats = timingState.beats
+	if not timingState.isGrabbed then
 		if not vertex then
-			if panel:button("split button", "split") then
-				timingOverlayService:split(overlayContext, dtp)
-			end
-		elseif panel:button("grab vertex button", "grab") then
-			timingOverlayService:grab(overlayContext, vertex)
+			splitPressed = panel:button("split button", "split")
+		else
+			grabPressed = panel:button("grab vertex button", "grab")
 		end
-	elseif panel:button("drop vertex button", "drop") then
-		timingOverlayService:drop(overlayContext)
+	else
+		dropPressed = panel:button("drop vertex button", "drop")
 	end
 
-	if vertex and not timingOverlayService:isGrabbed(overlayContext) then
-		if panel:button("merge vertex button", "merge") then
-			timingOverlayService:merge(overlayContext, vertex.point)
-		end
-		local beats = vertex.beats
-		local newBeats = panel:slider("update vertex", beats, 1, 64, 1, "beats " .. beats)
-		if beats ~= newBeats then
-			timingOverlayService:update(overlayContext, vertex, newBeats)
-		end
+	if vertex and not timingState.isGrabbed then
+		mergePressed = panel:button("merge vertex button", "merge")
+		newBeats = panel:slider("update vertex", timingState.beats, 1, 64, 1, timingState.beatsLabel)
 	end
+	timingOverlayService:handleVertexInput(overlayContext, timingState, {
+		splitPressed = splitPressed,
+		grabPressed = grabPressed,
+		dropPressed = dropPressed,
+		mergePressed = mergePressed,
+		beats = newBeats,
+	})
 
 	panel:separator()
 
-	local totalBeats, avgBeatDuration = overlayActionService:getTotalBeats(overlayContext)
-	panel:text("Total beats: " .. totalBeats)
-	panel:text("Average tempo: " .. 60 / avgBeatDuration .. " bpm")
+	local beatSummaryState = overlayActionService:getBeatSummaryState(overlayContext)
+	panel:text(beatSummaryState.totalBeatsLabel)
+	panel:text(beatSummaryState.averageTempoLabel)
 
 	panel:separator()
 
-	local vp = timingOverlayService:getCommentVisualPoint(overlayContext, dtp)
-	if vp then
-		vp.temp_comment = panel:input("vp comment", vp.temp_comment or vp.comment, "comment")
+	local commentState = timingOverlayService:getCommentState(overlayContext, timingState)
+	if commentState then
+		timingOverlayService:setCommentDraft(
+			commentState,
+			panel:input("vp comment", commentState.value, "comment")
+		)
 		if panel:button("save comment", "save") then
-			screen.editorViewServices.overlayActionService:setVisualPointComment(vp, vp.temp_comment)
+			screen.editorViewServices.overlayActionService:setVisualPointComment(commentState.visualPoint, commentState.value)
 		end
 		if panel:button("reset comment", "reset") then
-			screen.editorViewServices.overlayActionService:resetVisualPointComment(vp)
+			screen.editorViewServices.overlayActionService:resetVisualPointComment(commentState.visualPoint)
 		end
 	end
 end
