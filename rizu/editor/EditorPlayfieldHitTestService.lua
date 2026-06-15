@@ -27,28 +27,30 @@ function EditorPlayfieldHitTestService:new(deps)
 	end
 end
 
----@param note sphere.GraphicalNote
+---@param note rizu.editor.EditorNote
 ---@param mouseTime number
 ---@param inputState rizu.editor.EditorPlayfieldInputState
 ---@return rizu.editor.EditorPlayfieldNoteInput?
 function EditorPlayfieldHitTestService:getNoteInput(note, mouseTime, inputState)
 	if note.noteType == "ShortNote" then
+		local interactionState = note:getInteractionState()
 		return {
 			note = note,
 			mouseTime = mouseTime,
 			leftPressed = inputState.leftPressed,
 			rightPressed = inputState.rightPressed,
-			bodyOver = self.mouseOver(note, note.over, "mouse"),
+			bodyOver = self.mouseOver(note, interactionState.bodyOver, "mouse"),
 		}
 	elseif note.noteType == "LongNote" then
+		local interactionState = note:getInteractionState()
 		return {
 			note = note,
 			mouseTime = mouseTime,
 			leftPressed = inputState.leftPressed,
 			rightPressed = inputState.rightPressed,
-			bodyOver = self.mouseOver(tostring(note) .. "body", note.bodyOver, "mouse"),
-			headOver = self.mouseOver(tostring(note) .. "head", note.headOver, "mouse"),
-			tailOver = self.mouseOver(tostring(note) .. "tail", note.tailOver, "mouse"),
+			bodyOver = self.mouseOver(tostring(note) .. "body", interactionState.bodyOver, "mouse"),
+			headOver = self.mouseOver(tostring(note) .. "head", interactionState.headOver, "mouse"),
+			tailOver = self.mouseOver(tostring(note) .. "tail", interactionState.tailOver, "mouse"),
 		}
 	end
 end

@@ -78,7 +78,7 @@ function EditorPlayfieldView:clearInputState()
 	self.leftReleased = false
 end
 
----@param note sphere.GraphicalNote
+---@param note rizu.editor.EditorNote
 ---@param context rizu.editor.EditorPlayfieldContext
 ---@param inputState rizu.editor.EditorPlayfieldInputState
 function EditorPlayfieldView:processNote(note, context, inputState)

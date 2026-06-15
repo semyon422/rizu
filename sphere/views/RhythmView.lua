@@ -18,9 +18,15 @@ function RhythmView:processNotes(f)
 end
 
 ---@param note sphere.GraphicalNote
+---@return sphere.NoteView?
+function RhythmView:getNoteView(note)
+	return NoteViewFactory:getNoteView(note, self.mode)
+end
+
+---@param note sphere.GraphicalNote
 function RhythmView:fillChord(note)
 	local noteSkin = self:getNoteSkin()
-	local noteView = NoteViewFactory:getNoteView(note, self.mode)
+	local noteView = self:getNoteView(note)
 	if not noteView then
 		return
 	end
@@ -39,7 +45,7 @@ end
 ---@param note sphere.GraphicalNote
 function RhythmView:drawNote(note)
 	local noteSkin = self:getNoteSkin()
-	local noteView = NoteViewFactory:getNoteView(note, self.mode)
+	local noteView = self:getNoteView(note)
 	if not noteView then
 		return
 	end
@@ -59,7 +65,7 @@ end
 ---@param note sphere.GraphicalNote
 function RhythmView:drawSelected(note)
 	local noteSkin = self:getNoteSkin()
-	local noteView = NoteViewFactory:getNoteView(note, self.mode)
+	local noteView = self:getNoteView(note)
 	if not (noteView and noteView.drawSelected and note.selected) then
 		return
 	end

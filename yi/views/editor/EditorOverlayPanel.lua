@@ -2,7 +2,7 @@ local class = require("class")
 local math_util = require("math_util")
 local spherefonts = require("sphere.assets.fonts")
 
----@class yi.views.editor.EditorGuiControl
+---@class yi.views.editor.EditorOverlayControl
 ---@field id string
 ---@field kind string
 ---@field x number
@@ -10,9 +10,9 @@ local spherefonts = require("sphere.assets.fonts")
 ---@field w number
 ---@field h number
 
----@class yi.views.editor.EditorGui
----@operator call: yi.views.editor.EditorGui
----@field controls {[string]: yi.views.editor.EditorGuiControl}
+---@class yi.views.editor.EditorOverlayPanel
+---@operator call: yi.views.editor.EditorOverlayPanel
+---@field controls {[string]: yi.views.editor.EditorOverlayControl}
 ---@field controlOrder string[]
 ---@field clicked {[string]: boolean}
 ---@field dragged {[string]: number}
@@ -20,28 +20,40 @@ local spherefonts = require("sphere.assets.fonts")
 ---@field activeId string?
 ---@field focusedId string?
 ---@field editValues {[string]: string}
-local EditorGui = class()
+---@field cursorX number
+---@field cursorY number
+---@field panelWidth number
+---@field lineHeight number
+local EditorOverlayPanel = class()
 
-function EditorGui:new()
+function EditorOverlayPanel:new()
 	self.controls = {}
 	self.controlOrder = {}
 	self.clicked = {}
 	self.dragged = {}
 	self.keyPressed = {}
 	self.editValues = {}
+	self.cursorX = 0
+	self.cursorY = 55
+	self.panelWidth = 400
+	self.lineHeight = 55
 end
 
-function EditorGui:finishFrame()
-	table.clear(self.clicked)
-	table.clear(self.dragged)
-	table.clear(self.keyPressed)
+local function setButtonColor(active, hovered)
+	if active then
+		love.graphics.setColor(0.5, 0.65, 1, 0.9)
+	elseif hovered then
+		love.graphics.setColor(0.35, 0.42, 0.55, 0.95)
+	else
+		love.graphics.setColor(0.18, 0.2, 0.24, 0.95)
+	end
 end
 
----@param key string
-function EditorGui:consumeKey(key)
-	local pressed = self.keyPressed[key] or false
-	self.keyPressed[key] = nil
-	return pressed
+---@param screen_x number
+---@param screen_y number
+---@return boolean
+function EditorOverlayPanel:containsPoint(screen_x, screen_y)
+	return self:getControlAt(screen_x, screen_y) ~= nil
 end
 
 ---@param id string
@@ -50,7 +62,7 @@ end
 ---@param y number
 ---@param w number
 ---@param h number
-function EditorGui:register(id, kind, x, y, w, h)
+function EditorOverlayPanel:register(id, kind, x, y, w, h)
 	local sx, sy = love.graphics.transformPoint(x, y)
 	local sx2, sy2 = love.graphics.transformPoint(x + w, y + h)
 	if not self.controls[id] then
@@ -71,8 +83,8 @@ end
 ---@param y number
 ---@param w number
 ---@param h number
----@return boolean hovered
-function EditorGui:isOver(id, x, y, w, h)
+---@return boolean
+function EditorOverlayPanel:isOver(id, x, y, w, h)
 	local mx, my = love.mouse.getPosition()
 	local sx, sy = love.graphics.transformPoint(x, y)
 	local sx2, sy2 = love.graphics.transformPoint(x + w, y + h)
@@ -81,18 +93,18 @@ function EditorGui:isOver(id, x, y, w, h)
 	return mx >= left and mx <= left + width and my >= top and my <= top + height
 end
 
----@param control yi.views.editor.EditorGuiControl
+---@param control yi.views.editor.EditorOverlayControl?
 ---@param x number
 ---@param y number
 ---@return boolean
-function EditorGui:controlContains(control, x, y)
-	return x >= control.x and x <= control.x + control.w and y >= control.y and y <= control.y + control.h
+function EditorOverlayPanel:controlContains(control, x, y)
+	return control ~= nil and x >= control.x and x <= control.x + control.w and y >= control.y and y <= control.y + control.h
 end
 
 ---@param x number
 ---@param y number
----@return yi.views.editor.EditorGuiControl?
-function EditorGui:getControlAt(x, y)
+---@return yi.views.editor.EditorOverlayControl?
+function EditorOverlayPanel:getControlAt(x, y)
 	for i = #self.controlOrder, 1, -1 do
 		local control = self.controls[self.controlOrder[i]]
 		if self:controlContains(control, x, y) then
@@ -101,15 +113,8 @@ function EditorGui:getControlAt(x, y)
 	end
 end
 
----@param x number
----@param y number
----@return boolean
-function EditorGui:containsPoint(x, y)
-	return self:getControlAt(x, y) ~= nil
-end
-
 ---@param e gui.MouseDownEvent
-function EditorGui:onMouseDown(e)
+function EditorOverlayPanel:onMouseDown(e)
 	local control = self:getControlAt(e.x, e.y)
 	if not control then
 		return
@@ -127,7 +132,7 @@ function EditorGui:onMouseDown(e)
 end
 
 ---@param e gui.MouseUpEvent
-function EditorGui:onMouseUp(e)
+function EditorOverlayPanel:onMouseUp(e)
 	local activeId = self.activeId
 	if not activeId then
 		return
@@ -135,14 +140,14 @@ function EditorGui:onMouseUp(e)
 
 	local control = self.controls[activeId]
 	self.activeId = nil
-	if control and self:controlContains(control, e.x, e.y) then
+	if self:controlContains(control, e.x, e.y) then
 		self.clicked[activeId] = true
 	end
 	return true
 end
 
 ---@param e gui.DragEvent
-function EditorGui:onDrag(e)
+function EditorOverlayPanel:onDrag(e)
 	local activeId = self.activeId
 	local control = activeId and self.controls[activeId]
 	if not control then
@@ -155,12 +160,12 @@ function EditorGui:onDrag(e)
 end
 
 ---@param e gui.DragEndEvent
-function EditorGui:onDragEnd(e)
+function EditorOverlayPanel:onDragEnd(e)
 	return self:onDrag(e)
 end
 
 ---@param e gui.KeyDownEvent
-function EditorGui:onKeyDown(e)
+function EditorOverlayPanel:onKeyDown(e)
 	self.keyPressed[e.key] = true
 
 	local id = self.focusedId
@@ -182,7 +187,7 @@ function EditorGui:onKeyDown(e)
 end
 
 ---@param e gui.TextInputEvent
-function EditorGui:onTextInput(e)
+function EditorOverlayPanel:onTextInput(e)
 	local id = self.focusedId
 	if not id then
 		return
@@ -191,14 +196,78 @@ function EditorGui:onTextInput(e)
 	return true
 end
 
-local function setButtonColor(active, hovered)
-	if active then
-		love.graphics.setColor(0.5, 0.65, 1, 0.9)
-	elseif hovered then
-		love.graphics.setColor(0.35, 0.42, 0.55, 0.95)
-	else
-		love.graphics.setColor(0.18, 0.2, 0.24, 0.95)
-	end
+function EditorOverlayPanel:finishFrame()
+	table.clear(self.clicked)
+	table.clear(self.dragged)
+	table.clear(self.keyPressed)
+end
+
+function EditorOverlayPanel:reset()
+	self.cursorX = 0
+	self.cursorY = 55
+	self.panelWidth = 400
+	self.lineHeight = 55
+	love.graphics.setFont(spherefonts.get("Noto Sans", 24))
+end
+
+---@param text string
+function EditorOverlayPanel:text(text)
+	self:label(text, self.cursorX, self.cursorY, self.panelWidth, self.lineHeight)
+	self.cursorY = self.cursorY + self.lineHeight
+end
+
+function EditorOverlayPanel:separator()
+	self.cursorY = self.cursorY + 10
+	love.graphics.setColor(1, 1, 1, 0.25)
+	love.graphics.line(self.cursorX, self.cursorY, self.cursorX + self.panelWidth, self.cursorY)
+	self.cursorY = self.cursorY + 10
+end
+
+---@param id string
+---@param text string
+---@param width number?
+---@return boolean clicked
+function EditorOverlayPanel:button(id, text, width)
+	local clicked = self:drawButton(id, text, self.cursorX, self.cursorY, width or self.panelWidth, self.lineHeight)
+	self.cursorY = self.cursorY + self.lineHeight
+	return clicked
+end
+
+---@param id string
+---@param text string
+---@return boolean clicked
+function EditorOverlayPanel:smallButton(id, text)
+	local clicked = self:drawButton(id, text, self.cursorX, self.cursorY, 90, self.lineHeight)
+	self.cursorX = self.cursorX + 100
+	return clicked
+end
+
+function EditorOverlayPanel:endRow()
+	self.cursorX = 0
+	self.cursorY = self.cursorY + self.lineHeight
+end
+
+---@param id string
+---@param value number
+---@param minValue number
+---@param maxValue number
+---@param step number
+---@param label string
+---@return number
+function EditorOverlayPanel:slider(id, value, minValue, maxValue, step, label)
+	local newValue = self:drawSlider(id, value, minValue, maxValue, step, label, self.cursorX, self.cursorY, self.panelWidth, self.lineHeight)
+	self.cursorY = self.cursorY + self.lineHeight
+	return newValue
+end
+
+---@param id string
+---@param value string|number
+---@param label string
+---@return string
+function EditorOverlayPanel:input(id, value, label)
+	local newValue = self:drawInput(id, tostring(value), label, self.cursorX, self.cursorY, self.panelWidth, self.lineHeight)
+	self.cursorY = self.cursorY + self.lineHeight
+	return newValue
 end
 
 ---@param text string
@@ -207,7 +276,7 @@ end
 ---@param w number
 ---@param h number
 ---@param align string?
-function EditorGui:label(text, x, y, w, h, align)
+function EditorOverlayPanel:label(text, x, y, w, h, align)
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.printf(text, x, y + math.max((h - love.graphics.getFont():getHeight()) / 2, 0), w, align or "left")
 end
@@ -219,7 +288,7 @@ end
 ---@param w number
 ---@param h number
 ---@return boolean clicked
-function EditorGui:button(id, text, x, y, w, h)
+function EditorOverlayPanel:drawButton(id, text, x, y, w, h)
 	self:register(id, "button", x, y, w, h)
 	local hovered = self:isOver(id, x, y, w, h)
 	setButtonColor(self.activeId == id, hovered)
@@ -232,17 +301,43 @@ end
 ---@param id string
 ---@param value boolean
 ---@param text string
----@param x number
----@param y number
----@param w number
----@param h number
----@return boolean value
-function EditorGui:checkbox(id, value, text, x, y, w, h)
-	local clicked = self:button(id, (value and "[x] " or "[ ] ") .. text, x, y, w, h)
-	if clicked then
-		return not value
+---@return boolean
+function EditorOverlayPanel:checkbox(id, value, text)
+	local newValue = value
+	if self:drawButton(id, (value and "[x] " or "[ ] ") .. text, self.cursorX, self.cursorY, self.panelWidth, self.lineHeight) then
+		newValue = not value
 	end
-	return value
+	self.cursorY = self.cursorY + self.lineHeight
+	return newValue
+end
+
+---@param id string
+---@param value string
+---@param values string[]
+---@return string
+function EditorOverlayPanel:combo(id, value, values)
+	local newValue = value
+	if self:drawButton(id, value, self.cursorX, self.cursorY, self.panelWidth, self.lineHeight) then
+		for i, option in ipairs(values) do
+			if option == value then
+				newValue = values[i % #values + 1]
+				break
+			end
+		end
+		if newValue == value then
+			newValue = values[1]
+		end
+	end
+	self.cursorY = self.cursorY + self.lineHeight
+	return newValue
+end
+
+---@param key string
+---@return boolean
+function EditorOverlayPanel:consumeKey(key)
+	local pressed = self.keyPressed[key] or false
+	self.keyPressed[key] = nil
+	return pressed
 end
 
 ---@param id string
@@ -255,8 +350,8 @@ end
 ---@param y number
 ---@param w number
 ---@param h number
----@return number value
-function EditorGui:slider(id, value, minValue, maxValue, step, text, x, y, w, h)
+---@return number
+function EditorOverlayPanel:drawSlider(id, value, minValue, maxValue, step, text, x, y, w, h)
 	self:register(id, "slider", x, y, w, h)
 	local fraction = self.dragged[id]
 	if fraction then
@@ -271,8 +366,7 @@ function EditorGui:slider(id, value, minValue, maxValue, step, text, x, y, w, h)
 	local normalized = (value - minValue) / (maxValue - minValue)
 	love.graphics.setColor(0.7, 0.78, 1, 0.9)
 	love.graphics.rectangle("fill", x, y, w * math.min(math.max(normalized, 0), 1), h, 4, 4)
-	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.printf(text, x, y + math.max((h - love.graphics.getFont():getHeight()) / 2, 0), w, "center")
+	self:label(text, x, y, w, h, "center")
 	return value
 end
 
@@ -283,8 +377,8 @@ end
 ---@param y number
 ---@param w number
 ---@param h number
----@return string value
-function EditorGui:input(id, value, placeholder, x, y, w, h)
+---@return string
+function EditorOverlayPanel:drawInput(id, value, placeholder, x, y, w, h)
 	if self.focusedId ~= id then
 		self.editValues[id] = value
 	end
@@ -293,8 +387,7 @@ function EditorGui:input(id, value, placeholder, x, y, w, h)
 	local hovered = self:isOver(id, x, y, w, h)
 	setButtonColor(self.focusedId == id, hovered)
 	love.graphics.rectangle("fill", x, y, w, h, 4, 4)
-	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.printf(self.editValues[id] or placeholder, x + 8, y + math.max((h - love.graphics.getFont():getHeight()) / 2, 0), w - 16, "left")
+	self:label(self.editValues[id] or placeholder, x + 8, y, w - 16, h)
 	return self.editValues[id] or value
 end
 
@@ -305,32 +398,12 @@ end
 ---@param y number
 ---@param w number
 ---@param h number
----@return string value
-function EditorGui:combo(id, value, values, x, y, w, h)
-	if self:button(id, value, x, y, w, h) then
-		for i, option in ipairs(values) do
-			if option == value then
-				return values[i % #values + 1]
-			end
-		end
-		return values[1]
-	end
-	return value
-end
-
----@param id string
----@param value string
----@param values string[]
----@param x number
----@param y number
----@param w number
----@param h number
----@return string value
-function EditorGui:tabs(id, value, values, x, y, w, h)
+---@return string
+function EditorOverlayPanel:tabs(id, value, values, x, y, w, h)
 	local tabWidth = w / #values
 	for i, option in ipairs(values) do
 		local tabId = id .. ":" .. option
-		local clicked = self:button(tabId, option, x + (i - 1) * tabWidth, y, tabWidth, h)
+		local clicked = self:drawButton(tabId, option, x + (i - 1) * tabWidth, y, tabWidth, h)
 		if option == value then
 			love.graphics.setColor(0.7, 0.78, 1, 0.35)
 			love.graphics.rectangle("fill", x + (i - 1) * tabWidth, y, tabWidth, h, 4, 4)
@@ -342,8 +415,4 @@ function EditorGui:tabs(id, value, values, x, y, w, h)
 	return value
 end
 
-function EditorGui:setFont()
-	love.graphics.setFont(spherefonts.get("Noto Sans", 24))
-end
-
-return EditorGui
+return EditorOverlayPanel

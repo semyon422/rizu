@@ -18,13 +18,30 @@ local function createService(calls, results)
 	})
 end
 
+local function createShortNote(state)
+	return {
+		noteType = "ShortNote",
+		getInteractionState = function()
+			return state
+		end,
+	}
+end
+
+local function createLongNote(state)
+	return {
+		noteType = "LongNote",
+		getInteractionState = function()
+			return state
+		end,
+	}
+end
+
 ---@param t testing.T
 function test.short_note_input_uses_note_hover(t)
 	local calls = {}
-	local note = {
-		noteType = "ShortNote",
-		over = true,
-	}
+	local note = createShortNote({
+		bodyOver = true,
+	})
 	local service = createService(calls, {
 		[note] = false,
 	})
@@ -45,12 +62,11 @@ end
 ---@param t testing.T
 function test.long_note_input_uses_body_head_tail_hover(t)
 	local calls = {}
-	local note = {
-		noteType = "LongNote",
+	local note = createLongNote({
 		bodyOver = true,
 		headOver = false,
 		tailOver = false,
-	}
+	})
 	local noteId = tostring(note)
 	local service = createService(calls, {
 		[noteId .. "body"] = false,
@@ -75,6 +91,23 @@ function test.long_note_input_uses_body_head_tail_hover(t)
 		"mouse:" .. noteId .. "head:false:mouse",
 		"mouse:" .. noteId .. "tail:false:mouse",
 	})
+end
+
+---@param t testing.T
+function test.unknown_note_type_is_ignored(t)
+	local calls = {}
+	local service = createService(calls, {})
+
+	local input = service:getNoteInput({
+		noteType = "Unsupported",
+	}, 1.5, {
+		leftPressed = true,
+		rightPressed = false,
+		leftReleased = false,
+	})
+
+	t:eq(input, nil)
+	t:tdeq(calls, {})
 end
 
 ---@param t testing.T

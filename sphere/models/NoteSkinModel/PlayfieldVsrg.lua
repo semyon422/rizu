@@ -6,7 +6,7 @@ local ImageView = require("sphere.views.ImageView")
 local CameraView = require("sphere.views.CameraView")
 local ImageAnimationView = require("sphere.views.ImageAnimationView")
 
-local EditorRhythmView = require("sphere.views.EditorView.EditorRhythmView")
+local EditorRhythmView = require("yi.views.editor.EditorRhythmView")
 local ChartPreviewRhythmView = require("sphere.views.SelectView.ChartPreviewRhythmView")
 local RhythmView = require("sphere.views.RhythmView")
 local RectangleProgressView = require("sphere.views.GameplayView.RectangleProgressView")

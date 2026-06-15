@@ -4,7 +4,16 @@ local table_util = require("table_util")
 ---@class rizu.editor.EditorNote
 ---@operator call: rizu.editor.EditorNote
 ---@field context rizu.editor.EditorNoteContext
+---@field interactionState rizu.editor.EditorNoteInteractionState
 local EditorNote = class()
+
+---@class rizu.editor.EditorNoteInteractionState
+---@field bodyOver boolean
+---@field headOver boolean
+---@field tailOver boolean
+---@field bodySelecting boolean
+---@field headSelecting boolean
+---@field tailSelecting boolean
 
 ---@class rizu.editor.EditorNoteContext
 ---@field getDtpAbsolute fun(absoluteTime: number): chartedit.Point
@@ -19,6 +28,7 @@ function EditorNote:new(noteType, note, visual_info)
 	self.noteType = noteType
 	self.linked_note = note
 	self.visual_info = visual_info
+	self:clearInteractionState()
 	if note then
 		self.startNote = note.startNote
 		self.endNote = note.endNote
@@ -28,6 +38,41 @@ end
 ---@param context rizu.editor.EditorNoteContext
 function EditorNote:setContext(context)
 	self.context = context
+end
+
+function EditorNote:clearInteractionState()
+	self.interactionState = {
+		bodyOver = false,
+		headOver = false,
+		tailOver = false,
+		bodySelecting = false,
+		headSelecting = false,
+		tailSelecting = false,
+	}
+	self.selecting = false
+end
+
+---@param part "body"|"head"|"tail"
+---@param over boolean
+---@param selecting boolean
+function EditorNote:setPartInteractionState(part, over, selecting)
+	local state = self.interactionState
+	if part == "body" then
+		state.bodyOver = over
+		state.bodySelecting = selecting
+	elseif part == "head" then
+		state.headOver = over
+		state.headSelecting = selecting
+	elseif part == "tail" then
+		state.tailOver = over
+		state.tailSelecting = selecting
+	end
+	self.selecting = state.bodySelecting or state.headSelecting or state.tailSelecting
+end
+
+---@return rizu.editor.EditorNoteInteractionState
+function EditorNote:getInteractionState()
+	return self.interactionState
 end
 
 ---@param absoluteTime number

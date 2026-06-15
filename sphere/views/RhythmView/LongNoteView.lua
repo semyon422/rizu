@@ -27,35 +27,6 @@ function LongNoteView:draw()
 		headSpriteBatch:setColor(headView:getColor())
 		headSpriteBatch:add(self:getDraw(headView:getQuad(), self:getHeadTransformParams()))
 	end
-
-	local hw = self:getNotePart("Head")
-	local tw = self:getNotePart("Tail")
-
-	local note = self.graphicalNote
-
-	if headSpriteBatch then
-		local tf = gfx_util.transform(self:getHeadTransformParams())
-		local w, h = hw:getDimensions()
-		note.headOver = self:isMouseOverPart(tf, w, h)
-		note.headSelecting = self:isSelectedPart(tf, w, h)
-	end
-
-	if tailSpriteBatch then
-		local tf = gfx_util.transform(self:getTailTransformParams())
-		local w, h = tw:getDimensions()
-		note.tailOver = self:isMouseOverPart(tf, w, h)
-		note.tailSelecting = self:isSelectedPart(tf, w, h)
-	end
-
-	if bodySpriteBatch then
-		local tf = gfx_util.transform(self:getBodyTransformParams())
-		local _, _, w, h = self.bodyQuad:getViewport()
-		note.bodyOver = self:isMouseOverPart(tf, w, h)
-		note.bodySelecting = self:isSelectedPart(tf, w, h)
-	end
-
-	self.graphicalNote.over = note.headOver or note.tailOver or note.bodyOver
-	self.graphicalNote.selecting = note.headSelecting or note.tailSelecting or note.bodySelecting
 end
 
 function LongNoteView:drawSelected()
