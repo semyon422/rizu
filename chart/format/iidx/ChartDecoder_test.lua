@@ -186,4 +186,28 @@ function test.keysound_events_attach_to_notes(t)
 	t:eq(assert(find_sound_note(chart, "42")).column, "key4")
 end
 
+---@param t testing.T
+function test.zero_value_notes_inherit_lane_keysound(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
+		SPN = {
+			{tick = 0, type = 4, lane = 0, value = 150},
+			{tick = 0, type = 12, lane = 0, value = 0},
+			{tick = 1500, type = 12, lane = 0, value = 0},
+			{tick = 600, type = 2, lane = 3, value = 42},
+			{tick = 750, type = 0, lane = 3, value = 0},
+			{tick = 900, type = 0, lane = 3, value = 0},
+		},
+	}), nil, {song_id = 1234}))
+
+	local chart = charts[1].chart
+	local sounds = {}
+	for _, note in ipairs(chart.notes.notes) do
+		if note.type == "tap" then
+			sounds[#sounds + 1] = assert(note.data.sounds)[1][1]
+		end
+	end
+
+	t:tdeq(sounds, {"42", "42"})
+end
+
 return test

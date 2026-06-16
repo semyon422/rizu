@@ -280,6 +280,9 @@ function ChartDecoder:decodeSection(section, variation)
 		end)
 	end
 
+	---@type {[string]: integer}
+	local inherited_sounds = {}
+
 	for _, event in ipairs(section.events) do
 		if event.type == 4 then
 			local point = layer:getPoint(tick_to_measure(ticks, event.tick))
@@ -292,15 +295,20 @@ function ChartDecoder:decodeSection(section, variation)
 			local queued_sounds = note_sounds[get_lane_sound_key(get_side(event), event.raw_lane)]
 			---@type [string, number][]?
 			local sounds
+			local inherited_key = get_lane_sound_key(get_side(event), event.raw_lane)
 			while queued_sounds and queued_sounds[1] and queued_sounds[1].tick <= event.tick do
 				local sound_event = table.remove(queued_sounds, 1)
 				sounds = sounds or {}
 				sounds[#sounds + 1] = {tostring(sound_event.value), 1}
+				inherited_sounds[inherited_key] = sound_event.value
 			end
 			if sounds then
 				note.data.sounds = sounds
 			elseif event.value > 0 then
 				note.data.sounds = {{tostring(event.value), 1}}
+				inherited_sounds[inherited_key] = event.value
+			elseif inherited_sounds[inherited_key] then
+				note.data.sounds = {{tostring(inherited_sounds[inherited_key]), 1}}
 			end
 			chart.notes:insert(note)
 			local measure = tick_to_measure(ticks, event.tick):tonumber()
