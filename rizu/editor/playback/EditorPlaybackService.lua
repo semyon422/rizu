@@ -38,7 +38,7 @@ end
 ---@param resources {[string]: string}
 function EditorPlaybackService:loadAudioResources(audioEngine, timer, chart, resources)
 	audioEngine:setEnabled(true)
-	audioEngine:load(chart, resources)
+	audioEngine:load(chart, resources, true)
 	audioEngine:setRate(timer.rate)
 	self:setTime(timer, audioEngine, timer:getTime())
 	if timer.is_playing then

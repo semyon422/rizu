@@ -40,8 +40,8 @@ function test.load_and_update_audio_timer(t)
 		setEnabled = function(_, enabled)
 			table.insert(calls, "enabled:" .. tostring(enabled))
 		end,
-		load = function(_, chart, resources)
-			table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
+		load = function(_, chart, resources, autoKeySound)
+			table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio .. ":" .. tostring(autoKeySound))
 		end,
 		setRate = function(_, rate)
 			table.insert(calls, "audio-rate:" .. rate)
@@ -72,7 +72,7 @@ function test.load_and_update_audio_timer(t)
 		"timer-time:3:true",
 		"position:3",
 		"enabled:true",
-		"load:chart:song.ogg",
+		"load:chart:song.ogg:true",
 		"audio-rate:1.25",
 		"timer-get",
 		"timer-time:1.5:true",
@@ -134,8 +134,8 @@ function test.editor_context_commands(t)
 				setEnabled = function(_, enabled)
 					table.insert(calls, "enabled:" .. tostring(enabled))
 				end,
-				load = function(_, chart, resources)
-					table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio)
+				load = function(_, chart, resources, autoKeySound)
+					table.insert(calls, "load:" .. chart.id .. ":" .. resources.audio .. ":" .. tostring(autoKeySound))
 				end,
 				setRate = function(_, rate)
 					table.insert(calls, "audio-rate:" .. rate)
@@ -173,7 +173,7 @@ function test.editor_context_commands(t)
 		"timer-time:1.25:true",
 		"position:1.25",
 		"enabled:true",
-		"load:chart:song.ogg",
+		"load:chart:song.ogg:true",
 		"audio-rate:0.75",
 		"timer-get",
 		"timer-time:2.5:true",
