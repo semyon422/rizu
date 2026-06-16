@@ -5,6 +5,8 @@ local FileTypes = {
 	image = {"png", "bmp", "jpg"},
 	video = {"mpg", "avi", "mp4", "mpeg", "wmv"},
 	ojm = {"ojm"},
+	s3p = {"s3p"},
+	["2dx"] = {"2dx"},
 }
 
 local FileTypeMap = {}

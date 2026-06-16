@@ -1,7 +1,9 @@
 local class = require("class")
 local table_util = require("table_util")
 local OJM = require("chart.format.o2jam.OJM")
-local path_util = require("path_util")
+local S3P = require("chart.format.iidx.S3P")
+local TwoDx = require("chart.format.iidx.TwoDx")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 
 ---@class rizu.ResourceLoader
 ---@operator call: rizu.ResourceLoader
@@ -47,7 +49,7 @@ function ResourceLoader:load(resources)
 				table.insert(new_paths, found_path)
 
 				if _type == "ojm" then
-					local data = fs:read(found_path)
+					local data = ChartfileReader.read(fs, found_path)
 					if data then
 						local ojm = OJM(data)
 						for id, sample_data in pairs(ojm.samples) do
@@ -57,8 +59,39 @@ function ResourceLoader:load(resources)
 							table.insert(new_paths, virtual_path)
 						end
 					end
+				elseif _type == "s3p" then
+					local data = ChartfileReader.read(fs, found_path)
+					if data then
+						local pack = S3P.parse(data)
+						for id = 1, pack.count do
+							local sample_data = S3P.sample_payload_by_id(pack, id)
+							if sample_data then
+								local virtual_path = found_path .. ":" .. id
+								file_paths[tostring(id)] = virtual_path
+								self.file_contents[virtual_path] = sample_data
+								table.insert(new_paths, virtual_path)
+							end
+						end
+					end
+				elseif _type == "2dx" then
+					local data = ChartfileReader.read(fs, found_path)
+					if data then
+						local archive = TwoDx.parse(data)
+						for id = 1, archive.count do
+							local sample_data = TwoDx.payload(archive, id)
+							local sample_name = tostring(id)
+							if sample_data and not file_paths[sample_name] then
+								local virtual_path = found_path .. ":" .. id
+								file_paths[sample_name] = virtual_path
+								self.file_contents[virtual_path] = sample_data
+								table.insert(new_paths, virtual_path)
+							end
+						end
+					end
 				end
-				break
+				if _type ~= "2dx" then
+					break
+				end
 			end
 		end
 	end
@@ -85,7 +118,7 @@ function ResourceLoader:load(resources)
 	while path do
 		file_pendings[path] = nil
 		if not self.file_contents[path] then
-			self.file_contents[path] = fs:read(path)
+			self.file_contents[path] = ChartfileReader.read(fs, path)
 		end
 		path = next(file_pendings)
 	end

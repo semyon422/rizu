@@ -1,7 +1,8 @@
 local class = require("class")
 local path_util = require("path_util")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 
----@alias rizu.ResourceFormat "audio"|"image"|"video"|"ojm"
+---@alias rizu.ResourceFormat "audio"|"image"|"video"|"ojm"|"s3p"|"2dx"
 
 ---@type {[rizu.ResourceFormat]: string[]}
 local format_extensions = {
@@ -9,6 +10,8 @@ local format_extensions = {
 	image = {"png", "bmp", "jpg"},
 	video = {"mpg", "avi", "mp4", "mpeg", "wmv"},
 	ojm = {"ojm"},
+	s3p = {"s3p"},
+	["2dx"] = {"2dx"},
 }
 
 ---@type {[string]: rizu.ResourceFormat}
@@ -26,6 +29,8 @@ local type_to_format = {
 	image = "image",
 	video = "video",
 	ojm = "ojm",
+	s3p = "s3p",
+	["2dx"] = "2dx",
 }
 
 ---@class rizu.ResourceFinder
@@ -82,6 +87,15 @@ end
 function ResourceFinder:getFilesRecursive(path, list, prefix)
 	list = list or {}
 	prefix = prefix or ""
+
+	if path:lower():match("%.ifs$") then
+		local files = ChartfileReader.listArchive(self.fs, path) or {}
+		for _, file in ipairs(files) do
+			table.insert(list, file)
+		end
+		return list
+	end
+
 	for _, file in ipairs(self.fs:getDirectoryItems(path)) do
 		local info = assert(self.fs:getInfo(path .. "/" .. file))
 		if info.type == "directory" then

@@ -101,6 +101,7 @@ function Library:load(db_path)
 		self.worker = self:createAndLoadWorker(self.workingDirectory)
 	else
 		self.tr = ThreadRemote("rizu.library.Library", self)
+		self.tr.task_handler.timeout = 60 * 60 * 24
 		self.worker = self.tr:start(self.createAndLoadWorker, self.workingDirectory)
 	end
 end

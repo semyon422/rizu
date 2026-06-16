@@ -91,4 +91,17 @@ function test.render_wave_renders_from_start_and_restores_mixer_position(t)
 	t:eq(wave:getSampleInt(3, 1), 103)
 end
 
+---@param t testing.T
+function test.render_wave_returns_empty_wave_for_empty_mixer(t)
+	local engine = AudioEngine()
+	engine.mixer = {
+		empty = true,
+	}
+
+	local wave = engine:renderWave()
+
+	t:eq(wave.samples_count, 0)
+	t:eq(wave.channels_count, 0)
+end
+
 return test

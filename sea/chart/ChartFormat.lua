@@ -10,6 +10,7 @@ local ChartFormat = {
 	quaver = 5,
 	midi = 6,
 	ksm = 7,
+	iidx = 8,
 }
 
 return Enum(ChartFormat)

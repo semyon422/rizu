@@ -33,6 +33,12 @@ end
 
 function CollectionStore:setPath(path, location_id)
 	self.tree = self.root_tree
+	if not path and not location_id then
+		self.tree.selected = 1
+		self.onChanged:send({tree = self.tree})
+		return
+	end
+
 	if self.locations_in_collections then
 		self:setPathLic(path, location_id)
 	else

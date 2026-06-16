@@ -2,6 +2,7 @@ local PreviewDecoder = require("rizu.engine.audio.PreviewDecoder")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local AudioPreview = require("rizu.preview.AudioPreview")
 local FakeDecoder = require("rizu.engine.audio.fake.Decoder")
+local Fixtures = require("chart.format.iidx.TestFixtures")
 local ffi = require("ffi")
 
 local test = {}
@@ -117,6 +118,68 @@ function test.resource_finder_integration(t)
 
 	local decoder = PreviewDecoder(fs, "my_chart", preview, factory)
 	t:eq(found_data, "bgm_data", "Should have loaded bgm_data")
+
+	decoder:release()
+end
+
+---@param t testing.T
+function test.s3p_inside_ifs(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("chart")
+	fs:write("chart/01234.ifs", Fixtures.ifs(1234, Fixtures.sampleChart(), Fixtures.s3p({"sound1", "sound2"})))
+
+	local preview = AudioPreview()
+	preview.samples = {"01234/01234.s3p"}
+	preview.events = {
+		{time = 0, sample_index = 1, duration = 0.1, volume = 1},
+		{time = 1, sample_index = 2, duration = 0.1, volume = 1},
+	}
+
+	---@type {[string]: integer}
+	local loaded = {}
+	local function factory(data)
+		loaded[data] = (loaded[data] or 0) + 1
+		local sample_rate = 44100
+		local duration = 0.1
+		return FakeDecoder(math.floor(duration * sample_rate), sample_rate, 2)
+	end
+
+	local decoder = PreviewDecoder(fs, "chart/01234.ifs", preview, factory)
+
+	t:eq(loaded.sound1, 1)
+	t:eq(loaded.sound2, nil)
+
+	decoder:release()
+end
+
+---@param t testing.T
+function test.two_dx_inside_ifs(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("chart")
+	fs:write("chart/01234.ifs", Fixtures.ifs(1234, Fixtures.sampleChart(), nil, {
+		{path = "01234/012341.2dx", data = Fixtures.twoDx("012341", {"sound1", "sound2"}), time = 1234},
+	}))
+
+	local preview = AudioPreview()
+	preview.samples = {"01234/012341.2dx"}
+	preview.events = {
+		{time = 0, sample_index = 1, duration = 0.1, volume = 1},
+		{time = 1, sample_index = 2, duration = 0.1, volume = 1},
+	}
+
+	---@type {[string]: integer}
+	local loaded = {}
+	local function factory(data)
+		loaded[data] = (loaded[data] or 0) + 1
+		local sample_rate = 44100
+		local duration = 0.1
+		return FakeDecoder(math.floor(duration * sample_rate), sample_rate, 2)
+	end
+
+	local decoder = PreviewDecoder(fs, "chart/01234.ifs", preview, factory)
+
+	t:eq(loaded.sound1, 1)
+	t:eq(loaded.sound2, nil)
 
 	decoder:release()
 end

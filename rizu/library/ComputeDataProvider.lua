@@ -1,4 +1,5 @@
 local IComputeDataProvider = require("sea.compute.IComputeDataProvider")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 local path_util = require("path_util")
 local md5 = require("md5")
 local types = require("sea.shared.types")
@@ -44,9 +45,9 @@ function ComputeDataProvider:getChartData(hash)
 	end
 
 	local prefix = self.locations:getPrefix(location)
-	local path = path_util.join(prefix, chartfile_set.dir, chartfile_set.name, chartfile.name)
+	local path = path_util.join(prefix, chartfile.path)
 
-	local data = self.fs:read(path)
+	local data = ChartfileReader.read(self.fs, path)
 	if not data then
 		return nil, "file not found"
 	end

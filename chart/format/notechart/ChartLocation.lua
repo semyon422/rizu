@@ -23,6 +23,7 @@ local Related = table_util.invert({
 	"sph",
 	"sm",
 	"ssc",
+	"1",
 })
 
 ---@param filename string

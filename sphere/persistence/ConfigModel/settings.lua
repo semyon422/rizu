@@ -210,6 +210,7 @@ local settings = {
 		quaver = {"quaver"},
 		midi = {"sphere"},
 		ksm = {"sphere"},
+		iidx = {"sphere"},
 	},
 	timings = {
 		arbitrary = 0,

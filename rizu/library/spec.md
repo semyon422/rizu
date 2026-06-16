@@ -26,6 +26,11 @@ The library is structured around a 5-level hierarchy, where each level represent
 
 ## Architecture Decisions (ADR)
 
+### ADR: Metadata-Driven IIDX Locations
+- **Context**: beatmania IIDX game data stores song metadata globally in `info/*/music_data.bin` and chart payloads in `sound/*.ifs`, so recursively treating every file as a normal chart folder is both slow and semantically wrong.
+- **Decision**: Locations that contain `info/*/music_data.bin` and `sound/` are auto-detected as IIDX data roots during cache updates. They use a metadata-driven scanner that imports only metadata-listed `.ifs` archives present on disk.
+- **Consequence**: Users can add an IIDX `contents/data` folder as a regular location while the library avoids regular recursive scanning for that root. Each `.ifs` archive is stored as a chartfile set, and the internal `<song_id>/<song_id>.1` chart payload is stored as the chartfile and hash identity. IIDX gameplay loads `.s3p` keysounds from the same `.ifs`; preview audio and BGA are left for later passes.
+
 ### ADR: Unified FFI Indexing
 - **Context**: Transferring thousands of rich Lua tables between the database thread and the UI thread causes massive garbage collection pressure and "stuttering."
 - **Decision**: We use a custom C-struct (`chartview_struct`) containing essential IDs and flags (lamp status, etc.). Query results are returned as a packed buffer of these structs along with a set of **ID-to-Index maps**.

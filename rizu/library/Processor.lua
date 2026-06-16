@@ -1,10 +1,14 @@
 local LocationsRepo = require("rizu.library.repos.LocationsRepo")
 local Finder = require("rizu.library.Finder")
 local FileCacheGenerator = require("rizu.library.generators.FileCacheGenerator")
+local IidxCatalog = require("chart.format.iidx.Catalog")
+local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
+local IidxFileCacheGenerator = require("rizu.library.iidx.FileCacheGenerator")
 local ChartmetaGenerator = require("rizu.library.generators.ChartmetaGenerator")
 local ChartdiffGenerator = require("rizu.library.generators.ChartdiffGenerator")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 local DifficultyModel = require("sphere.models.DifficultyModel")
 local Locations = require("rizu.library.Locations")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
@@ -50,6 +54,7 @@ function Processor:new(db, fs, workingDirectory, timer)
 	self.taskContext = TaskContext(self)
 
 	self.fileCacheGenerator = FileCacheGenerator(self.chartfilesRepo, self.finder, self.taskContext)
+	self.iidxFileCacheGenerator = IidxFileCacheGenerator(self.chartfilesRepo, self.fs, self.taskContext)
 	self.chartdiffGenerator = ChartdiffGenerator(self.chartsRepo, self.difficultyModel)
 	self.chartmetaGenerator = ChartmetaGenerator(self.chartsRepo, self.chartfilesRepo, ChartFactory)
 
@@ -119,6 +124,8 @@ function Processor:computeLocation(path, location_id)
 	end
 
 	local location_prefix = self.locations:getPrefix(location)
+	local is_iidx_location = IidxCatalog.isLocation(self.fs, location_prefix)
+	print("location type", is_iidx_location and "iidx" or "regular", location_prefix)
 
 	self:resetProgress()
 
@@ -126,7 +133,11 @@ function Processor:computeLocation(path, location_id)
 
 	self:begin()
 	print("fileCacheGenerator.scan", path, location_id, location_prefix)
-	self.fileCacheGenerator:scan(path, location_id, location_prefix)
+	if is_iidx_location then
+		self.iidxFileCacheGenerator:scan(path, location_id, location_prefix)
+	else
+		self.fileCacheGenerator:scan(path, location_id, location_prefix)
+	end
 	self:commit()
 
 	self.stage = "hashing"
@@ -147,12 +158,33 @@ function Processor:computeLocation(path, location_id)
 
 	print("chartfilesRepo.selectUnhashedChartfiles", unhashed_path, location_id, set_id)
 	local chartfiles = self.chartfilesRepo:selectUnhashedChartfiles(unhashed_path, location_id, set_id)
+	print(("hashing: %d chartfiles queued"):format(#chartfiles))
 
-	local batchProcessor = BatchProcessor(self.taskContext, self.timer, 100)
+	local batchProcessor = BatchProcessor(self.taskContext, self.timer, is_iidx_location and 1 or 100)
+	local hashed_count = 0
 	batchProcessor:process(chartfiles, "hashing", #chartfiles, function(chartfile)
-		self.hashingTask:processChartfile(chartfile, location_prefix)
+		local context
+		if is_iidx_location then
+			local song = self.iidxFileCacheGenerator:getSongByChartfileName(chartfile.name)
+			context = {
+				song_id = song and song.song_id,
+				iidx_song = song,
+			}
+		end
+		local start_time = self.timer:getTime()
+		self.hashingTask:processChartfile(chartfile, location_prefix, context)
+		hashed_count = hashed_count + 1
+		if is_iidx_location then
+			print(("iidx hashing: done %d/%d %s %.2fs"):format(
+				hashed_count,
+				#chartfiles,
+				chartfile.name,
+				self.timer:getTime() - start_time
+			))
+		end
 		return chartfile.name
 	end)
+	print("caching complete", path, location_id)
 
 	self.taskContext:finish()
 end
@@ -174,12 +206,17 @@ function Processor:getChartsByHash(hash)
 	local prefix = self.locations:getPrefix(location)
 
 	local full_path = path_util.join(prefix, chartfile.path)
-	local data, err = self.fs:read(full_path)
+	local data, err = ChartfileReader.read(self.fs, full_path)
 	if not data then
 		return nil, err
 	end
 
-	local chart_chartmetas, err = ChartFactory:getCharts(chartfile.name, data)
+	local chart_chartmetas, err = ChartFactory:getCharts(
+		chartfile.name,
+		data,
+		nil,
+		IidxDecodeContext.fromLocation(self.fs, prefix, chartfile.name)
+	)
 	if not chart_chartmetas then
 		return nil, err
 	end

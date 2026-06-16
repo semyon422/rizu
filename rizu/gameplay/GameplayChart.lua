@@ -1,4 +1,6 @@
 local class = require("class")
+local ChartfileReader = require("rizu.library.ChartfileReader")
+local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
 
 ---@class rizu.GameplayChart
 ---@operator call: rizu.GameplayChart
@@ -20,8 +22,9 @@ function GameplayChart:load(replayBase, ctx)
 	local config = self.config
 	local fs = self.fs
 
-	local data = assert(fs:read(chartview.location_path))
-	assert(ctx:fromFileData(chartview.chartfile_name, data, chartview.index))
+	local data = assert(ChartfileReader.read(fs, chartview.location_path))
+	local context = IidxDecodeContext.fromLocation(fs, chartview.location_prefix, chartview.chartfile_name)
+	assert(ctx:fromFileData(chartview.chartfile_name, data, chartview.index, context))
 	ctx:applyModifierReorder(replayBase)
 	ctx:computeBase(replayBase)
 

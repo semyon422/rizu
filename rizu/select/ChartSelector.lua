@@ -1,4 +1,5 @@
 local class = require("class")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 local delay = require("delay")
 local Observable = require("Observable")
 local SelectionState = require("rizu.select.SelectionState")
@@ -197,7 +198,7 @@ end
 function ChartSelector:notechartExists()
 	local chartview = self.chartview
 	if chartview and chartview.location_path then
-		return self.fs:getInfo(chartview.location_path) ~= nil
+		return ChartfileReader.getInfo(self.fs, chartview.location_path) ~= nil
 	end
 	return false
 end

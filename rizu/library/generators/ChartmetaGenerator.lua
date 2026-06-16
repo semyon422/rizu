@@ -17,9 +17,10 @@ end
 ---@param chartfile sea.ClientChartfile
 ---@param content string
 ---@param not_reuse boolean?
+---@param context table?
 ---@return string?
 ---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}[]|string?
-function ChartmetaGenerator:generate(chartfile, content, not_reuse)
+function ChartmetaGenerator:generate(chartfile, content, not_reuse, context)
 	local chartfilesRepo = self.chartfilesRepo
 	local chartsRepo = self.chartsRepo
 
@@ -31,7 +32,7 @@ function ChartmetaGenerator:generate(chartfile, content, not_reuse)
 		return "reused"
 	end
 
-	local chart_chartmetas, err = self.chartFactory:getCharts(chartfile.name, content, hash)
+	local chart_chartmetas, err = self.chartFactory:getCharts(chartfile.name, content, hash, context)
 	if not chart_chartmetas then
 		return nil, err
 	end

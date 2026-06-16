@@ -1,6 +1,8 @@
 local class = require("class")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 local path_util = require("path_util")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
+local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
 
 ---@class rizu.select.services.ChartMetadataService
 ---@operator call: rizu.select.services.ChartMetadataService
@@ -55,14 +57,16 @@ end
 ---@return chart.Chart?
 ---@return sea.Chartmeta?
 function ChartMetadataService:loadChart(chartview)
-	local content = self.fs:read(chartview.location_path)
+	local content = ChartfileReader.read(self.fs, chartview.location_path)
 	if not content then
 		return
 	end
 
 	local chart_chartmetas = assert(ChartFactory:getCharts(
 		chartview.chartfile_name,
-		content
+		content,
+		nil,
+		IidxDecodeContext.fromLocation(self.fs, chartview.location_prefix, chartview.chartfile_name)
 	))
 	local t = chart_chartmetas[chartview.index]
 

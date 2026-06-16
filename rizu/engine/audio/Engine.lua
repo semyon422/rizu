@@ -123,12 +123,19 @@ end
 ---@return audio.Wave
 function Engine:renderWave()
 	local mixer = self.mixer
+	if not mixer or mixer.empty then
+		return Wave()
+	end
 	local position = mixer:getPosition()
 	local start_time = mixer:getTimeBounds()
+	local samples_duration = mixer:getSamplesDuration()
+	if samples_duration <= 0 then
+		return Wave()
+	end
 	mixer:setPosition(start_time)
 
 	local wave = Wave()
-	wave:initBuffer(mixer:getChannelCount(), mixer:getSamplesDuration())
+	wave:initBuffer(mixer:getChannelCount(), samples_duration)
 	mixer:getData(wave.byte_ptr, mixer:getBytesDuration())
 	mixer:setPosition(position)
 	return wave

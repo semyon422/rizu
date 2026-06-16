@@ -30,10 +30,11 @@ end
 ---@param name string
 ---@param data string
 ---@param index integer
+---@param context table?
 ---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}?
 ---@return string?
-function ComputeContext:fromFileData(name, data, index)
-	local ccm, err = ChartFactory:getCharts(name, data)
+function ComputeContext:fromFileData(name, data, index, context)
+	local ccm, err = ChartFactory:getCharts(name, data, nil, context)
 	if not ccm then
 		return nil, "get charts: " .. err
 	end

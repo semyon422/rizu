@@ -20,7 +20,8 @@ ChartFactory.extensions = {
 	"qua",
 	"mid",
 	"midi",
-	"ksh"
+	"ksh",
+	"1"
 }
 
 local ChartDecoders = {
@@ -37,6 +38,7 @@ local ChartDecoders = {
 	mid = require("chart.format.midi.ChartDecoder"),
 	midi = require("chart.format.midi.ChartDecoder"),
 	ksh = require("chart.format.ksm.ChartDecoder"),
+	["1"] = require("chart.format.iidx.ChartDecoder"),
 }
 
 ---@param filename string
@@ -50,15 +52,18 @@ end
 ---@param filename string
 ---@param content string
 ---@param hash string?
+---@param context table?
 ---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}[]?
 ---@return string?
-function ChartFactory:getCharts(filename, content, hash)
+function ChartFactory:getCharts(filename, content, hash, context)
 	hash = hash or digest.hash("md5", content, true)
+	context = context or {}
+	context.filename = context.filename or filename
 
 	---@type chart.IChartDecoder
 	local decoder = assert(ChartDecoders[path_util.ext(filename, true)], filename)()
 
-	local status, chart_chartmetas = xpcall(decoder.decode, debug.traceback, decoder, content, hash)
+	local status, chart_chartmetas = xpcall(decoder.decode, debug.traceback, decoder, content, hash, context)
 	if not status then
 		---@cast chart_chartmetas -table, +string
 		return valid.format(nil, chart_chartmetas)

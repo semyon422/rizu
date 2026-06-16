@@ -22,6 +22,45 @@ function CollectionSelector:load()
 	self.store:setPath(config.collection, config.location_id)
 end
 
+---@param path string?
+---@param location_id integer?
+function CollectionSelector:selectCollection(path, location_id)
+	local old_item = self:getSelectedItem()
+	self.store:setPath(path, location_id)
+
+	local item = self:getSelectedItem()
+	local config = self.configModel.configs.select
+	config.collection = item and item.path
+	config.location_id = item and item.location_id
+
+	self.onChanged:send({
+		type = "collection_changed",
+		item = item,
+		path_changed = not old_item or old_item.path ~= (item and item.path)
+	})
+end
+
+---@param enabled boolean
+function CollectionSelector:setLocationsInCollections(enabled)
+	local settings = self.configModel.configs.settings
+	local config = self.configModel.configs.select
+	local old_item = self:getSelectedItem()
+
+	settings.select.locations_in_collections = enabled
+	self.store:load(enabled)
+	self.store:setPath(config.collection, config.location_id)
+
+	local item = self:getSelectedItem()
+	config.collection = item and item.path
+	config.location_id = item and item.location_id
+
+	self.onChanged:send({
+		type = "collection_changed",
+		item = item,
+		path_changed = not old_item or old_item.path ~= (item and item.path)
+	})
+end
+
 ---@param direction number?
 ---@param destination number?
 ---@param force boolean?

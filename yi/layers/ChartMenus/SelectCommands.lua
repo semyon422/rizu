@@ -10,6 +10,10 @@ local mode_names = {
 	chartplays = "plays",
 }
 
+---@class yi.layers.ChartMenus.CollectionChoiceValue
+---@field path string?
+---@field location_id integer?
+
 ---@return yi.command_palette.Fuzzy.Candidate[] choices
 local function getModeChoices()
 	---@type yi.command_palette.Fuzzy.Candidate[]
@@ -21,6 +25,59 @@ local function getModeChoices()
 		})
 	end
 	return choices
+end
+
+---@param node rizu.library.Collections.TreeNode
+---@param choices yi.command_palette.Fuzzy.Candidate[]
+---@param prefix string
+local function addCollectionChoices(node, choices, prefix)
+	for _, item in ipairs(node.items) do
+		if item.depth > node.depth then
+			local title = prefix .. item.name
+			table.insert(choices, {
+				title = ("%s (%s)"):format(title, item.count),
+				value = {
+					path = item.path,
+					location_id = item.location_id,
+				},
+			})
+
+			addCollectionChoices(item, choices, title .. "/")
+		end
+	end
+end
+
+---@param collectionSelector rizu.select.CollectionSelector
+---@return yi.command_palette.Fuzzy.Candidate[] choices
+local function getCollectionChoices(collectionSelector)
+	local tree = collectionSelector.store.root_tree
+
+	---@type yi.command_palette.Fuzzy.Candidate[]
+	local choices = {
+		{
+			title = ("All collections (%s)"):format(tree.count),
+			value = {
+				path = nil,
+				location_id = nil,
+			},
+		},
+	}
+	addCollectionChoices(tree, choices, "")
+	return choices
+end
+
+---@return yi.command_palette.Fuzzy.Candidate[] choices
+local function getBooleanChoices()
+	return {
+		{
+			title = "Enabled",
+			value = true,
+		},
+		{
+			title = "Disabled",
+			value = false,
+		},
+	}
 end
 
 ---@param sortModel rizu.select.SortModel
@@ -79,6 +136,42 @@ return function(game)
 			},
 			callback = function(args)
 				setSelectionMode(game, "secondary_mode", args.mode)
+			end
+		},
+		{
+			id = "select.set_collection",
+			title = "Select: Set Collection",
+			description = "Changes the selected chart collection",
+			arguments = {
+				{
+					name = "collection",
+					type = "string",
+					prompt = "Select collection:",
+					choices = function()
+						return getCollectionChoices(game.collectionSelector)
+					end,
+				}
+			},
+			callback = function(args)
+				---@type yi.layers.ChartMenus.CollectionChoiceValue
+				local collection = args.collection
+				game.collectionSelector:selectCollection(collection.path, collection.location_id)
+			end
+		},
+		{
+			id = "select.set_locations_in_collections",
+			title = "Select: Set Locations in Collections",
+			description = "Shows locations as the top collection level",
+			arguments = {
+				{
+					name = "enabled",
+					type = "boolean",
+					prompt = "Locations in collections:",
+					choices = getBooleanChoices(),
+				}
+			},
+			callback = function(args)
+				game.collectionSelector:setLocationsInCollections(args.enabled)
 			end
 		},
 		{

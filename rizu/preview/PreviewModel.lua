@@ -4,6 +4,7 @@ local thread = require("thread")
 local AudioPreviewPlayer = require("rizu.preview.AudioPreviewPlayer")
 local BgaPreviewPlayer = require("rizu.preview.BgaPreviewPlayer")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 
 ---@class rizu.preview.PreviewModel
 ---@operator call: rizu.preview.PreviewModel
@@ -13,6 +14,13 @@ PreviewModel.preview_time = 0
 PreviewModel.position = 0
 PreviewModel.mode = "absolute"
 PreviewModel.manual_time = 0
+
+---@param chartview table
+---@return string?
+local function get_preview_resource_dir(chartview)
+	local archive_path = chartview.location_path and ChartfileReader.splitArchivePath(chartview.location_path)
+	return archive_path or chartview.location_dir
+end
 
 ---@param configModel sphere.ConfigModel
 ---@param replayBase sea.ReplayBase
@@ -248,7 +256,7 @@ function PreviewModel:loadPreview()
 
 		if audio_exists and self.loaded_audio_hash ~= hash then
 			self.loaded_audio_hash = hash
-			self.audioPreviewPlayer:load(audio_preview_path, self.chartview.location_dir)
+			self.audioPreviewPlayer:load(audio_preview_path, get_preview_resource_dir(self.chartview))
 			self.audioPreviewPlayer:setVolume(volume)
 			self.audioPreviewPlayer:setRate(self.rate)
 			self.audioPreviewPlayer:seek(position)
@@ -279,6 +287,8 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
 	local Decoder = require("rizu.engine.audio.bass.Decoder")
 	local ChartFactory = require("chart.format.notechart.ChartFactory")
+	local ChartfileReader = require("rizu.library.ChartfileReader")
+	local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
 	local LoveFilesystem = require("fs.LoveFilesystem")
 
 	require("love.filesystem")
@@ -289,13 +299,18 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	end)
 	local bga_generator = BgaPreviewGenerator(fs)
 
-	local content = fs:read(chartview_data.location_path)
+	local content = ChartfileReader.read(fs, chartview_data.location_path)
 	if not content then
 		print("Preview: could not read " .. tostring(chartview_data.location_path))
 		return false
 	end
 
-	local chart_chartmetas = ChartFactory:getCharts(chartview_data.chartfile_name, content)
+	local chart_chartmetas = ChartFactory:getCharts(
+		chartview_data.chartfile_name,
+		content,
+		nil,
+		IidxDecodeContext.fromLocation(fs, chartview_data.location_prefix, chartview_data.chartfile_name)
+	)
 	if not chart_chartmetas then
 		print("Preview: chart parsing failed for " .. tostring(chartview_data.chartfile_name))
 		return false
@@ -311,7 +326,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 
 	local audio_preview_path = "userdata/audio_previews/" .. chartview_data.hash .. ".audio_preview"
 	if not fs:getInfo(audio_preview_path) then
-		audio_generator:generate(t.chart, chartview_data.location_dir, chartview_data.hash)
+		audio_generator:generate(t.chart, chartview_data.preview_resource_dir, chartview_data.hash)
 	end
 
 	local bga_preview_path = "userdata/bga_previews/" .. chartview_data.hash .. ".bga_preview"
@@ -332,7 +347,9 @@ function PreviewModel:generatePreview(chartview)
 
 	local chartview_data = {
 		location_path = chartview.location_path,
+		location_prefix = chartview.location_prefix,
 		location_dir = chartview.location_dir,
+		preview_resource_dir = get_preview_resource_dir(chartview),
 		chartfile_name = chartview.chartfile_name,
 		index = chartview.index,
 		hash = hash,

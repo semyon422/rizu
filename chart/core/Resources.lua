@@ -1,6 +1,6 @@
 local class = require("class")
 
----@alias chart.ResourceType "sound"|"image"|"ojm"
+---@alias chart.ResourceType "sound"|"image"|"ojm"|"s3p"|"2dx"
 
 ---@class chart.Resources
 ---@operator call: chart.Resources

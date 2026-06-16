@@ -76,6 +76,7 @@ input 4key
 	db:unload()
 end
 
+---@param t testing.T
 function test.read_error(t)
 	local fs = FakeFilesystem() -- Empty filesystem
 
