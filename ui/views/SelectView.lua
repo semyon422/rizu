@@ -18,6 +18,7 @@ SelectView.subscreen = "notecharts"
 SelectView.searchMode = "filter"
 
 function SelectView:load()
+	self.game.selectionCoordinator:activatePreview()
 	self.game.chartSelector:setChanged()
 	self.chartPreviewView = ChartPreviewView(self.game, self.ui)
 	self.chartPreviewView:load()

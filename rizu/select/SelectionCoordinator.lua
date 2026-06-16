@@ -50,6 +50,11 @@ function SelectionCoordinator:load()
 	self.previewModel:load()
 end
 
+function SelectionCoordinator:activatePreview()
+	self.previewModel:load()
+	self.chartSelector:setChanged()
+end
+
 function SelectionCoordinator:beginUnload()
 	self.chartSelector:setLock(true)
 end

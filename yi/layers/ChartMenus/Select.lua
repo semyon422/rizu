@@ -199,6 +199,7 @@ function Select:unload()
 end
 
 function Select:enter()
+	self.yi.game.selectionCoordinator:activatePreview()
 	self.yi.command_registry:pushContext("select", self.commands)
 end
 

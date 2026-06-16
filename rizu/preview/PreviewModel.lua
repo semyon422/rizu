@@ -46,6 +46,7 @@ function PreviewModel:new(configModel, replayBase, game)
 end
 
 function PreviewModel:load()
+	self.active = true
 	self.audio_path = ""
 	self.volume = 0
 	self.rate = 1
@@ -57,6 +58,9 @@ end
 ---@param mode string?
 ---@param chartview table?
 function PreviewModel:setAudioPathPreview(audio_path, preview_time, mode, chartview)
+	if not self.active then
+		return
+	end
 	if self.audio_path ~= audio_path or self.chartview ~= chartview or self.preview_time ~= preview_time or self.mode ~= mode then
 		self.audio_path = audio_path
 		self.preview_time = preview_time
@@ -68,6 +72,11 @@ function PreviewModel:setAudioPathPreview(audio_path, preview_time, mode, chartv
 end
 
 function PreviewModel:update()
+	if not self.active then
+		self.audioPreviewPlayer:pause()
+		return
+	end
+
 	local settings = self.configModel.configs.settings
 	local muteOnUnfocus = settings.miscellaneous.muteOnUnfocus
 	local hasFocus = love.window.hasFocus()
@@ -370,6 +379,7 @@ function PreviewModel:generatePreview(chartview)
 end
 
 function PreviewModel:stop()
+	self.active = false
 	self.audioPreviewPlayer:stop()
 	self.bgaPreviewPlayer:stop()
 	self.chartPreview:setChartview(nil)
