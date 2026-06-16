@@ -24,7 +24,29 @@ function SelectionActions:openDirectory()
 		return
 	end
 
-	local dir_path = Path(location.path) .. Path(chartview.dir)
+	self:openLocationDirectory(location, chartview.dir)
+end
+
+function SelectionActions:openSelectedLocationDirectory()
+	local chartview = self.chartSelector.chartview
+	if not chartview then
+		return
+	end
+	local location = self.library.locationsRepo:selectLocationById(chartview.location_id)
+	if not location then
+		return
+	end
+
+	self:openLocationDirectory(location)
+end
+
+---@param location rizu.library.Location
+---@param dir string?
+function SelectionActions:openLocationDirectory(location, dir)
+	local dir_path = Path(location.path)
+	if dir then
+		dir_path = dir_path .. Path(dir)
+	end
 
 	if not dir_path.absolute then
 		local source = love.filesystem.getSource()

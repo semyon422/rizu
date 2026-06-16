@@ -6,7 +6,7 @@ local Fuzzy = require("yi.command_palette.Fuzzy")
 ---@field type "string"|"number"|"boolean"
 ---@field prompt string?
 ---@field default any?
----@field choices yi.command_palette.Fuzzy.Candidate[]?
+---@field choices yi.command_palette.Fuzzy.Candidate[]|fun(): yi.command_palette.Fuzzy.Candidate[]?
 ---@field validate (fun(val: string): boolean, string?)?
 
 ---@class yi.command_palette.Command
@@ -78,7 +78,11 @@ function PaletteState:getCandidates()
 		-- Arguments mode
 		local arg_def = self.active_command.arguments[self.current_arg_idx]
 		if arg_def.choices then
-			return Fuzzy.filter(self.query, arg_def.choices, "title")
+			local choices = arg_def.choices
+			if type(choices) == "function" then
+				choices = choices()
+			end
+			return Fuzzy.filter(self.query, choices, "title")
 		end
 		return {} -- Text or number input (no static list choices)
 	end

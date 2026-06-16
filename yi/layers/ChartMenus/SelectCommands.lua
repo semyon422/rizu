@@ -1,3 +1,5 @@
+local LocationCommands = require("yi.layers.ChartMenus.LocationCommands")
+
 local modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
 
 local mode_names = {
@@ -46,7 +48,7 @@ end
 ---@param game sphere.GameController
 ---@return yi.command_palette.Command[]
 return function(game)
-	return {
+	local commands = {
 		{
 			id = "select.set_primary_mode",
 			title = "Select: Set Primary Mode",
@@ -116,8 +118,14 @@ return function(game)
 			title = "File: Open location folder",
 			description = "Opens the folder of the selected location in the file manager",
 			callback = function()
-				error("TODO")
+				game.selectionActions:openSelectedLocationDirectory()
 			end
 		},
 	}
+
+	for _, command in ipairs(LocationCommands.get(game)) do
+		table.insert(commands, command)
+	end
+
+	return commands
 end

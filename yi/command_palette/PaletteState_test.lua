@@ -89,4 +89,58 @@ function test.state_machine_with_arguments(t)
 	t:eq(state:isArgumentMode(), false)
 end
 
+---@param t testing.T
+function test.dynamic_argument_choices(t)
+	local reg = Registry()
+	local choices = {
+		{
+			title = "First",
+			value = 1,
+		},
+	}
+	local called_value = nil
+
+	reg:registerGlobal({
+		id = "choose",
+		title = "Choose Value",
+		arguments = {
+			{
+				name = "value",
+				type = "number",
+				prompt = "Choose value:",
+				choices = function()
+					return choices
+				end,
+			},
+		},
+		callback = function(args)
+			called_value = args.value
+		end,
+	})
+
+	local state = PaletteState(reg)
+	state:setQuery("choose")
+	local success, err, executed = state:confirmSelection(state:getCandidates()[1])
+	t:eq(success, true)
+	t:eq(err, nil)
+	t:eq(executed, false)
+
+	choices = {
+		{
+			title = "Second",
+			value = 2,
+		},
+	}
+
+	local candidates = state:getCandidates()
+	t:eq(#candidates, 1)
+	t:eq(candidates[1].title, "Second")
+
+	success, err, executed = state:confirmSelection(candidates[1])
+	t:eq(success, true)
+	t:eq(err, nil)
+	t:eq(executed, true)
+	t:eq(called_value, 2)
+end
+
 return test

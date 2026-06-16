@@ -22,6 +22,8 @@ function CommandPalette:new(state, on_close)
 	self.descriptions = love.graphics.newTextBatch(Resources.getFont("regular", 16))
 	self.handles_keyboard_input = true
 	self.query = ""
+	self.selected_index = 1
+	self.candidates = {}
 	self.state:setQuery(self.query)
 	self:updateText()
 end
@@ -29,7 +31,29 @@ end
 function CommandPalette:reset()
 	self.query = ""
 	self.prompt = nil
+	self.selected_index = 1
 	self.state:reset()
+	self:updateText()
+end
+
+---@return table? candidate
+function CommandPalette:getSelectedCandidate()
+	local candidates = self.candidates
+	if #candidates == 0 then
+		return nil
+	end
+	self.selected_index = math.max(1, math.min(self.selected_index, #candidates))
+	return candidates[self.selected_index]
+end
+
+---@param offset integer
+function CommandPalette:moveSelection(offset)
+	local candidates = self.candidates
+	if #candidates == 0 then
+		self.selected_index = 1
+		return
+	end
+	self.selected_index = ((self.selected_index - 1 + offset) % #candidates) + 1
 	self:updateText()
 end
 
@@ -40,12 +64,16 @@ function CommandPalette:onKeyDown(e)
 			if byte_offset then
 				self.query = self.query:sub(1, byte_offset - 1)
 			end
+			self.selected_index = 1
 			self.state:setQuery(self.query)
 			self:updateText()
 		end
-	elseif e.key == "return" then
-		local c = self.state:getCandidates()
-		local success, err, executed = self.state:confirmSelection(c[1])
+	elseif e.key == "down" then
+		self:moveSelection(1)
+	elseif e.key == "up" then
+		self:moveSelection(-1)
+	elseif e.key == "return" or e.key == "kpenter" then
+		local success, err, executed = self.state:confirmSelection(self:getSelectedCandidate())
 
 		if not success then
 			print(err)
@@ -59,6 +87,7 @@ function CommandPalette:onKeyDown(e)
 
 		if self.state:isArgumentMode() then
 			self.query = ""
+			self.selected_index = 1
 			self.prompt	= self.state:getPromptText()
 			self:updateText()
 		end
@@ -68,6 +97,7 @@ end
 
 function CommandPalette:onTextInput(e)
 	self.query = self.query .. e.key
+	self.selected_index = 1
 	self.state:setQuery(self.query)
 	self:updateText()
 	return true
@@ -75,6 +105,12 @@ end
 
 function CommandPalette:updateText()
 	local c = self.state:getCandidates()
+	self.candidates = c
+	if #c == 0 then
+		self.selected_index = 1
+	else
+		self.selected_index = math.max(1, math.min(self.selected_index, #c))
+	end
 
 	self.names:clear()
 	self.descriptions:clear()
@@ -95,6 +131,18 @@ function CommandPalette:draw()
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
 	love.graphics.setColor(Colors.line)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, CELL_HEIGHT)
+	if self.candidates[self.selected_index] then
+		love.graphics.setColor(Colors.line)
+		love.graphics.draw(
+			Resources.atlas,
+			Resources.quads.pixel,
+			0,
+			self.selected_index * CELL_HEIGHT,
+			0,
+			self.width,
+			CELL_HEIGHT
+		)
+	end
 
 	love.graphics.setBlendMode("add")
 	love.graphics.setColor(Colors.line)
