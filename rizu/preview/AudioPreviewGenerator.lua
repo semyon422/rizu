@@ -3,6 +3,7 @@ local AudioPreview = require("rizu.preview.AudioPreview")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local OJM = require("chart.format.o2jam.OJM")
 local S3P = require("chart.format.iidx.S3P")
+local S3PAudio = require("chart.format.iidx.S3PAudio")
 local TwoDx = require("chart.format.iidx.TwoDx")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 
@@ -150,7 +151,7 @@ function AudioPreviewGenerator:generateFromS3p(chart, pack, s3p_filename, hash)
 		if sounds then
 			for _, sound_data in ipairs(sounds) do
 				local id = tonumber(sound_data[1])
-				local sample_data = id and S3P.sample_payload_by_id(pack, id)
+				local sample_data = id and S3PAudio.payload_by_id(pack, id)
 				if id and sample_data then
 					local duration = self:getSampleDuration(sample_data, id, sample_durations, "S3P")
 					if duration > 0 then

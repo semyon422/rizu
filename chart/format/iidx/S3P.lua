@@ -9,6 +9,7 @@
 ---@field checksum string?
 ---@field format string?
 ---@field extension string?
+---@field audio_payload string?
 
 ---@class chart.iidx.S3PPack
 ---@field magic string

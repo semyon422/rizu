@@ -2,6 +2,7 @@ local class = require("class")
 local table_util = require("table_util")
 local OJM = require("chart.format.o2jam.OJM")
 local S3P = require("chart.format.iidx.S3P")
+local S3PAudio = require("chart.format.iidx.S3PAudio")
 local TwoDx = require("chart.format.iidx.TwoDx")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 
@@ -64,7 +65,7 @@ function ResourceLoader:load(resources)
 					if data then
 						local pack = S3P.parse(data)
 						for id = 1, pack.count do
-							local sample_data = S3P.sample_payload_by_id(pack, id)
+							local sample_data = S3PAudio.payload_by_id(pack, id)
 							if sample_data then
 								local virtual_path = found_path .. ":" .. id
 								file_paths[tostring(id)] = virtual_path

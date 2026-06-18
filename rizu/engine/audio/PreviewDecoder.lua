@@ -3,6 +3,7 @@ local SoftwareMixer = require("rizu.engine.audio.SoftwareMixer")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local LazyDecoder = require("rizu.engine.audio.LazyDecoder")
 local LazyDataDecoder = require("rizu.engine.audio.LazyDataDecoder")
+local LazyS3PDecoder = require("rizu.engine.audio.LazyS3PDecoder")
 local OJM = require("chart.format.o2jam.OJM")
 local S3P = require("chart.format.iidx.S3P")
 local TwoDx = require("chart.format.iidx.TwoDx")
@@ -114,28 +115,14 @@ function PreviewDecoder:newS3p(fs, rf, preview, decoder_factory)
 		return
 	end
 
-	local sample_rate, channels, bytes_per_sample = 44100, 2, 2
-	for _, event in ipairs(preview.events) do
-		local sample_data = S3P.sample_payload_by_id(pack, event.sample_index)
-		if sample_data then
-			local dec = decoder_factory(sample_data)
-			sample_rate = dec:getSampleRate()
-			channels = dec:getChannelCount()
-			bytes_per_sample = dec:getBytesPerSample()
-			dec:release()
-			break
-		end
-	end
-
 	local sounds = {}
 	local decoders = {}
 	for _, event in ipairs(preview.events) do
-		local sample_data = S3P.sample_payload_by_id(pack, event.sample_index)
-		if sample_data then
+		if S3P.sample_payload_by_id(pack, event.sample_index) then
 			table.insert(sounds, {time = event.time})
-			table.insert(decoders, LazyDataDecoder(
-				sample_data, decoder_factory,
-				event.duration, sample_rate, channels, bytes_per_sample,
+			table.insert(decoders, LazyS3PDecoder(
+				pack, event.sample_index, decoder_factory,
+				event.duration, 44100, 2, 2,
 				event.volume
 			))
 		end

@@ -64,7 +64,12 @@ function AudioPreviewPlayer:load(preview_path, chart_dir)
 	end, chart_dir, preview_path)
 
 	thread.coro(function()
-		local min_time, max_time = preview_and_decoder.preview:getRange()
+		local ok, min_time, max_time = pcall(function()
+			return preview_and_decoder.preview:getRange()
+		end)
+		if not ok then
+			return
+		end
 		if generation ~= self.load_generation then
 			return
 		end
