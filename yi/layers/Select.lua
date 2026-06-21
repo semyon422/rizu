@@ -14,7 +14,7 @@ function Select:new(ui)
 	Screen.new(self)
 	self.ui = ui
 	self.background_panel = BackgroundPanel(ui.game.backgroundModel)
-	self.score_list = ScoreList(ui.game.scoreSelector)
+	self.score_list = ScoreList(ui.game.scoreSelector, function(i) self:openScore(i) end)
 
 	self.root = S.Stack({
 		S.Track({
@@ -41,6 +41,13 @@ function Select:new(ui)
 	})
 end
 
+---@param index integer
+function Select:openScore(index)
+	self.ui.game.scoreSelector:scrollScore(nil, index)
+	self.ui.game.resultController:replayNoteChartAsync("result", self.ui.game.scoreSelector.chartplay)
+	self.ui:setScreen("result")
+end
+
 function Select:enter()
 	self.ui.game.chartSelector.onChanged:add(self)
 	self.ui.game.chartSelector.state.onChanged:add(self)
@@ -48,6 +55,7 @@ function Select:enter()
 	local cv = self.ui.game.chartSelector.chartview
 	if cv then
 		self:onChartviewUpdate(cv)
+		self.score_list:reload()
 	end
 end
 
