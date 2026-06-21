@@ -37,6 +37,13 @@ local Colors = {
 	elements = hex("19171E"),
 	accent = hex("D9A04F"),
 	accent2 = hex("E2B13C"),
+
+	grade_x = hex("00b4fc"),
+	grade_s = hex("FFE342"),
+	grade_a = hex("95FF74"),
+	grade_b = hex("c57ffd"),
+	grade_c = hex("f96baf"),
+	grade_d = hex("ff6a78"),
 }
 
 return Colors

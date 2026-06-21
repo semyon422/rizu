@@ -13,12 +13,11 @@ local Resources = {}
 
 Resources.ttf_font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
 Resources.ttf_font_paths = {
-	regular = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Regular.ttf",
-	bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
+	regular = "resources/fonts/Rubik/Rubik-Regular.ttf",
+	bold = "resources/fonts/Rubik/Rubik-Regular.ttf",
+	cjk_regular = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Regular.ttf",
+	cjk_bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
 }
-
-Resources.sdf_font_path = "resources/fonts/Rubik/Rubik.fnt"
-Resources.sdf_font_base_size = 48
 
 Resources.images_dir = "resources/yi/batch"
 Resources.fonts = {}
@@ -98,14 +97,6 @@ function Resources.getScaledFont(name, size, scale)
 	scale = scale or Resources.font_scale or 1
 	local scaled_size = math.max(1, math.floor(size * scale))
 	return Resources.getFont(name, scaled_size)
-end
-
----@return love.Font
-function Resources.getSdfFont()
-	if not Resources.sdf_font then
-		Resources.sdf_font = love.graphics.newFont(Resources.sdf_font_path)
-	end
-	return Resources.sdf_font
 end
 
 return Resources

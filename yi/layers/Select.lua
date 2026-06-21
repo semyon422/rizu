@@ -3,6 +3,7 @@ local S = require("gui.composition.Strategies")
 local Colors = require("yi.Colors")
 local Rectangle = require("yi.views.Rectangle")
 local BackgroundPanel = require("yi.views.select.BackgroundPanel")
+local ScoreList = require("yi.views.select.ScoreList")
 
 ---@class yi.layers.Select: gui.Screen
 ---@operator call: yi.layers.Select
@@ -13,6 +14,7 @@ function Select:new(ui)
 	Screen.new(self)
 	self.ui = ui
 	self.background_panel = BackgroundPanel(ui.game.backgroundModel)
+	self.score_list = ScoreList(ui.game.scoreSelector)
 
 	self.root = S.Stack({
 		S.Track({
@@ -42,6 +44,7 @@ end
 function Select:enter()
 	self.ui.game.chartSelector.onChanged:add(self)
 	self.ui.game.chartSelector.state.onChanged:add(self)
+	self.ui.game.scoreSelector.onChanged:add(self)
 	local cv = self.ui.game.chartSelector.chartview
 	if cv then
 		self:onChartviewUpdate(cv)
@@ -51,6 +54,7 @@ end
 function Select:exit()
 	self.ui.game.chartSelector.onChanged:remove(self)
 	self.ui.game.chartSelector.state.onChanged:remove(self)
+	self.ui.game.scoreSelector.onChanged:remove(self)
 end
 
 function Select:createLeftColumn()
@@ -59,7 +63,7 @@ function Select:createLeftColumn()
 		space = {469, "*", 400},
 		self.background_panel,
 		S.Stack(),
-		Rectangle({color = Colors.panel})
+		self.score_list
 	})
 end
 
@@ -97,6 +101,9 @@ function Select:receive(event)
 	Screen.receive(self, event)
 	if event.type == "chartview" and event.chartview.hash then --- TODO: Why is this 'type' when it should be 'name'?
 		self:onChartviewUpdate(event.chartview)
+	end
+	if event.type == "scores_loaded" then
+		self.score_list:reload()
 	end
 end
 
