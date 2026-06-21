@@ -82,6 +82,12 @@ function UserInterface:load()
 end
 
 function UserInterface:unload()
+	self.current_screen:exit()
+
+	for _, v in pairs(self.screens) do
+		v:unload()
+	end
+
 	self.modals:unload()
 	self.overlay:unload()
 end

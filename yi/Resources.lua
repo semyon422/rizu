@@ -13,11 +13,11 @@ local Resources = {}
 
 Resources.ttf_font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
 Resources.ttf_font_paths = {
-	regular = "resources/fonts/Roboto/Roboto-Regular.ttf",
-	bold = "resources/fonts/Roboto/Roboto-Bold.ttf",
+	regular = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Regular.ttf",
+	bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
 }
 
-Resources.sdf_font_path = "resources/fonts/Roboto/Roboto-SDF.fnt"
+Resources.sdf_font_path = "resources/fonts/Rubik/Rubik.fnt"
 Resources.sdf_font_base_size = 48
 
 Resources.images_dir = "resources/yi/batch"
