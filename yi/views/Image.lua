@@ -1,11 +1,11 @@
 local View = require("gui.View")
+local Resources = require("yi.Resources")
 
 ---@class yi.ImageParams
----@field atlas love.Image
 ---@field quad love.Quad
 ---@field color gui.Color?
----@field size_scale number
----@field fit_box boolean
+---@field size_scale number?
+---@field fit_box boolean?
 
 ---@class yi.Image : gui.View
 ---@operator call: yi.Image
@@ -14,7 +14,6 @@ local Image = View + {}
 ---@param params yi.ImageParams
 function Image:new(params)
 	View.new(self)
-	self.atlas = assert(params.atlas, "Image atlas is required")
 	self.quad = assert(params.quad, "Image quad is required")
 	self.color = params.color or {1, 1, 1, 1}
 
@@ -43,7 +42,7 @@ end
 function Image:draw()
 	love.graphics.setColor(self.color)
 	love.graphics.scale(self.size_scale_x, self.size_scale_y)
-	love.graphics.draw(self.atlas, self.quad)
+	love.graphics.draw(Resources.atlas, self.quad)
 end
 
 return Image

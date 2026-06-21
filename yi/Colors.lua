@@ -32,6 +32,7 @@ local Colors = {
 	text_muted = hex("A6B2CC"),
 	panel = hex("131116"),
 	panel_alt = hex("1B171F"),
+	hover = hex("322725"),
 	outline = hex("222026"),
 	background = hex("0D0C0F"),
 	elements = hex("19171E"),

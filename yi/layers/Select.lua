@@ -1,9 +1,13 @@
 local Screen = require("gui.Screen")
 local S = require("gui.composition.Strategies")
 local Colors = require("yi.Colors")
+local Resources = require("yi.Resources")
 local Rectangle = require("yi.views.Rectangle")
+local Image = require("yi.views.Image")
+local Label = require("yi.views.Label")
 local BackgroundPanel = require("yi.views.select.BackgroundPanel")
 local ScoreList = require("yi.views.select.ScoreList")
+local ChartSets = require("yi.views.select.ChartSets")
 
 ---@class yi.layers.Select: gui.Screen
 ---@operator call: yi.layers.Select
@@ -15,13 +19,14 @@ function Select:new(ui)
 	self.ui = ui
 	self.background_panel = BackgroundPanel(ui.game.backgroundModel)
 	self.score_list = ScoreList(ui.game.scoreSelector, function(i) self:openScore(i) end)
+	self.chart_sets = ChartSets(ui.game.chartSelector, function(i) end)
 
 	self.root = S.Stack({
 		S.Track({
 			direction = "column",
 			space = {70, 2, "*", 2, 70},
 
-			Rectangle({color = Colors.panel}),
+			self:createHeader(),
 			Rectangle({color = Colors.outline}),
 			S.Stack({
 				padding = {0, 20, 20, 0},
@@ -86,7 +91,33 @@ function Select:createRightColumn()
 		S.Stack(),
 		Rectangle({color = Colors.panel}),
 		S.Stack(),
+		self.chart_sets
+	})
+end
+
+function Select:createHeader()
+	return S.Stack({
 		Rectangle({color = Colors.panel}),
+		S.Track({
+			direction = "row",
+			space = {"*", -0.44, "*", -0.46, "*"},
+
+			S.Stack(),
+			S.Anchor({
+				pivot = {0, 0.5},
+
+				S.Flow({
+					direction = "row",
+					align = 0.5,
+					gap = 32,
+					Image({quad = Resources.quads.rizu_small}),
+					Label({font_name = "regular", font_size = 24, text = "Online: 1"})
+				})
+			}),
+			S.Stack(),
+			S.Stack(),
+			S.Stack()
+		})
 	})
 end
 
