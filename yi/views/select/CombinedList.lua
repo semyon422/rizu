@@ -19,15 +19,18 @@ function CombinedList:new(chart_selector, config)
 	self.chart_selector = chart_selector
 	self.config = config
 	self.sdf_batch = love.graphics.newTextBatch(Resources.getSdfFont()) ---@type love.Text
-	self.text_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
+	self.text_batch = love.graphics.newTextBatch(Resources.getFont("bold", 24)) ---@type love.Text
 	self.sprite_batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self.set_y_positions = {}
 	self.chart_y_positions = {}
 	self.last_sel_set_index = nil
+	self.last_sel_chart_index = nil
 	self.items_cleared = false
 	self.charts_alpha_spring = SpringValue({stiffness = 300, damping = 30})
 	self.charts_alpha_spring:snap(0.0)
+	self.free_scroll = 0
 	self:setWidth(500)
+	self.x = -8
 end
 
 function CombinedList:load()
@@ -64,7 +67,7 @@ end
 function CombinedList:getScrollTarget(sel_set_index, sel_chart_index)
 	local focus_y = self:getChartY(sel_chart_index, sel_set_index)
 	local focus_h = self.chart_height
-	return focus_y - ((self.height and self.height > 0) and (self.height - focus_h) / 2 or (540 - focus_h / 2))
+	return focus_y - ((self.height and self.height > 0) and (self.height - focus_h) / 2 or (540 - focus_h / 2)) - self.free_scroll
 end
 
 function CombinedList:snapToSelected()
@@ -133,10 +136,23 @@ function CombinedList:getSecondaryItem(index)
 end
 
 function CombinedList:onScroll(e)
+	local sel_set_index = self:getPrimarySelectedIndex()
+	if not sel_set_index then return end
+
+	local sel_chart_index = self:getSecondarySelectedIndex()
+	if not sel_chart_index then return end
+
+	local num_sets = self.chart_selector.stores[1]:count()
+	local num_charts = self.chart_selector.stores[2]:count()
+	local set_step = self.set_height + self.gap
+	local chart_step = self.chart_height + self.gap
+	local max_up = (sel_set_index - 1) * set_step + (sel_chart_index - 1) * chart_step
+	local max_down = (num_sets - sel_set_index) * set_step + (num_charts - sel_chart_index) * chart_step
+
 	if e.direction_y > 0 then
-		self.chart_selector:scrollLevel(1, -1)
+		self.free_scroll = math.min(self.free_scroll + chart_step, max_up)
 	elseif e.direction_y < 0 then
-		self.chart_selector:scrollLevel(1, 1)
+		self.free_scroll = math.max(self.free_scroll - chart_step, -max_down)
 	end
 end
 
@@ -146,52 +162,66 @@ function CombinedList:resetBatches()
 	self.sdf_batch:clear()
 end
 
+local title_color = {Colors.text[1], Colors.text[2], Colors.text[3], 1}
+local title_color_selected = {0, 0, 0, 1}
+local artist_color = {Colors.text_muted[1], Colors.text_muted[2], Colors.text_muted[3], 1}
+local artist_color_select = {0, 0, 0, 1}
+local shadow_color = {0, 0, 0, 1}
+local shadow_color_selected = {1, 1, 1, 0}
+local background_color = {Colors.background[1], Colors.background[2], Colors.background[3], 0.42}
+local background_color_selected = {1, 1, 1, 0.78}
+local colored_string = {{1, 1, 1, 1}, ""}
+
+---@param item rizu.library.LocatedChartview
+---@param y number
+---@param is_selected boolean
+---@param index integer
 function CombinedList:addSetToBatch(item, y, is_selected, index)
-	local alpha = is_selected and 1.0 or 0.5
-	local center_y = (self.height and self.height > 0) and (self.height / 2) or 540
-	local dist = (y + self.set_height / 2) - center_y
-	local norm_dist = dist / center_y
-	local shift_x = (norm_dist * norm_dist) * 50
-
-	local slide_offset = is_selected and -50 or 0
-
-	local px = self.width - 477 + shift_x + slide_offset
+	local px = self.width - 500
 	local py = y
 
-	self.sprite_batch:setColor(alpha, alpha, alpha, 1)
-	self.sprite_batch:add(Resources.quads.set_panel, px, py)
-
-	local tx = px + 24
+	local tx = px + 20
 	local ty_title = py + 18
 	local ty_artist = py + 50
 
-	local shadow_color = {0, 0, 0, 0.5 * alpha}
-	local title_color = {Colors.text[1], Colors.text[2], Colors.text[3], alpha}
-	local artist_color = {Colors.text_muted[1], Colors.text_muted[2], Colors.text_muted[3], alpha}
+	local sc = shadow_color
+	local ac = artist_color
+	local tc = title_color
+	local bc = background_color
+
+	if is_selected then
+		sc = shadow_color_selected
+		ac = artist_color_select
+		tc = title_color_selected
+		bc = background_color_selected
+	end
+
+	self.sprite_batch:setColor(bc[1], bc[2], bc[3], bc[4])
+	self.sprite_batch:add(Resources.quads.pixel, px, py, 0, 500, 100)
 
 	local title_text = item.title or "Unknown"
 	local artist_text = item.artist or "Unknown"
 
 	-- Draw title
-	self.text_batch:add({shadow_color, title_text}, tx + 2, ty_title + 2)
-	self.text_batch:add({title_color, title_text}, tx, ty_title)
+	colored_string[1] = sc
+	colored_string[2] = title_text
+	self.text_batch:add(colored_string, tx + 2, ty_title + 2)
+	colored_string[1] = tc
+	self.text_batch:add(colored_string, tx, ty_title)
 
 	-- Draw artist
-	self.text_batch:add({shadow_color, artist_text}, tx + 2, ty_artist + 2)
-	self.text_batch:add({artist_color, artist_text}, tx, ty_artist)
+	colored_string[1] = sc
+	colored_string[2] = artist_text
+	self.text_batch:add(colored_string, tx + 2, ty_artist + 2)
+	colored_string[1] = ac
+	self.text_batch:add(colored_string, tx, ty_artist)
 end
 
 function CombinedList:addChartToBatch(item, y, is_selected, index, alpha_factor)
 	local base_alpha = is_selected and 1.0 or 0.9
 	local alpha = base_alpha * (alpha_factor or 1.0)
-	local center_y = (self.height and self.height > 0) and (self.height / 2) or 540
-	local dist = (y + self.chart_height / 2) - center_y
-	local norm_dist = dist / center_y
-	local shift_x = (norm_dist * norm_dist) * 50
 
-	local slide_offset = is_selected and -50 or 0
-
-	local px = self.width - 437 + shift_x + slide_offset
+	local px = self.width - 500
 	local py = y
 
 	local color = {1, 1, 1, 1}
@@ -217,20 +247,28 @@ function CombinedList:addChartToBatch(item, y, is_selected, index, alpha_factor)
 	-- Draw difficulty rating
 	local diff_text = string.format("%.1f", diff_val)
 	local diff_color = {color[1], color[2], color[3], alpha}
-	self.sdf_batch:add({diff_color, diff_text}, px + 15, py + 8, 0, Painter.getFontScaleFor(32))
+	colored_string[1] = diff_color
+	colored_string[2] = diff_text
+	self.sdf_batch:add(colored_string, px + 15, py + 8, 0, Painter.getFontScaleFor(32))
 
 	-- Draw difficulty name
 	local name_text = item.name or "Unknown"
 	local name_color = {Colors.text[1], Colors.text[2], Colors.text[3], alpha}
-	self.text_batch:add({shadow_color, name_text}, px + 100 + 2, text_y + 2)
-	self.text_batch:add({name_color, name_text}, px + 100, text_y)
+	colored_string[1] = shadow_color
+	colored_string[2] = name_text
+	self.text_batch:add(colored_string, px + 100 + 2, text_y + 2)
+	colored_string[1] = name_color
+	self.text_batch:add(colored_string, px + 100, text_y)
 
 	-- Draw input mode
 	if item.inputmode then
 		local input_text = item.inputmode:gsub("key", "K"):gsub("scratch", "S")
 		local input_color = {Colors.text[1], Colors.text[2], Colors.text[3], alpha}
-		self.text_batch:addf({shadow_color, input_text}, 100, "right", px + 317 + 2, text_y + 2)
-		self.text_batch:addf({input_color, input_text}, 100, "right", px + 317, text_y)
+		colored_string[1] = shadow_color
+		colored_string[2] = input_text
+		self.text_batch:addf(colored_string, 100, "right", px + 317 + 2, text_y + 2)
+		colored_string[1] = input_color
+		self.text_batch:addf(colored_string, 100, "right", px + 317, text_y)
 	end
 end
 
@@ -249,26 +287,36 @@ function CombinedList:update(dt)
 	end
 
 	local num_charts = self.chart_selector.stores[2]:count()
-	if self.last_sel_set_index ~= sel_set_index or #self.chart_y_positions ~= num_charts then
+	local sel_chart_index = self:getSecondarySelectedIndex()
+
+	local set_changed = self.last_sel_set_index ~= sel_set_index
+	local chart_count_changed = #self.chart_y_positions ~= num_charts
+	local chart_changed = self.last_sel_chart_index ~= sel_chart_index
+
+	if set_changed or chart_count_changed then
 		self.chart_y_positions = {}
-		self.last_sel_set_index = sel_set_index
 		self.charts_alpha_spring:snap(0.0)
 	end
 
+	if set_changed or chart_changed or chart_count_changed then
+		self.last_sel_set_index = sel_set_index
+		self.last_sel_chart_index = sel_chart_index
+		self.free_scroll = 0
+	end
+
 	local total_chart_height = num_charts * (self.chart_height + self.gap)
-	local sel_chart_index = self:getSecondarySelectedIndex()
 
 	-- Update animated positions
-	local decay = math.pow(0.875, dt / (1 / 60))
+	local decay = math.pow(0.875, dt * 60)
 	for i = 1, num_sets do
 		local target_y = self:getSetY(i, sel_set_index, total_chart_height)
 		self.set_y_positions[i] = target_y - (target_y - (self.set_y_positions[i] or target_y)) * decay
 	end
 
-	local parent_y = self.set_y_positions[sel_set_index] or ((sel_set_index - 1) * (self.set_height + self.gap))
+	local first_chart_y = self:getChartY(1, sel_set_index)
 	for c = 1, num_charts do
 		local target_y = self:getChartY(c, sel_set_index)
-		self.chart_y_positions[c] = target_y - (target_y - (self.chart_y_positions[c] or parent_y)) * decay
+		self.chart_y_positions[c] = target_y - (target_y - (self.chart_y_positions[c] or first_chart_y)) * decay
 	end
 
 	-- Focus camera on target
