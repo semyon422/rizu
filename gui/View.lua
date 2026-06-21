@@ -73,17 +73,6 @@ function View:updateTransform()
 end
 
 function View:applyLayout()
-	local scale = self.ui_scale or 1
-	self.ui_scale = scale
-	if self.box then
-		local bw, bh = self.box.width, self.box.height
-		local ww, wh = love.graphics.getDimensions()
-		if self.box.x == 0 and self.box.y == 0 and (bw == ww or bw == ww / scale or bw == 0) then
-			bw = ww / scale
-			bh = wh / scale
-		end
-		self.box:update(self.box.x, self.box.y, bw, bh)
-	end
 	self:updateTransform()
 end
 

@@ -1,8 +1,8 @@
 local Layer = require("gui.Layer")
 local View = require("gui.View")
 
----@class yi.Screen : gui.Layer
----@operator call: yi.Screen
+---@class gui.Screen : gui.Layer
+---@operator call: gui.Screen
 ---@field root gui.Composition.Node?
 ---@field views gui.View[]
 ---@field hidden_views gui.View[]

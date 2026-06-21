@@ -1,6 +1,5 @@
 local Screen = require("gui.Screen")
 local Loading = require("yi.views.Loading")
-local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local S = require("gui.composition.Strategies")
 local thread = require("thread")

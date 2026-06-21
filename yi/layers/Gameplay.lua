@@ -1,17 +1,15 @@
 local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
-local S = require("gui.composition.Strategies")
-local View = require("gui.View")
 
 ---@class yi.Gameplay : gui.Screen
 ---@operator call: yi.Gameplay
 local Gameplay = Screen + {}
 
----@param yi yi.UserInterface
-function Gameplay:new(yi)
+---@param ui yi.UserInterface
+function Gameplay:new(ui)
 	Screen.new(self)
-	self.yi = yi
-	self.game = yi.game
+	self.ui = ui
+	self.game = ui.game
 	self.sequence_view = SequenceView()
 	self.game_interactor = self.game.gameInteractor
 	self.gameplay_interactor = self.game.gameplayInteractor
@@ -21,12 +19,12 @@ function Gameplay:enter()
 	local sv = self.sequence_view
 	sv.game = self.game ---@diagnostic disable-line
 	sv.subscreen = "gameplay" ---@diagnostic disable-line
+	self.game.gameInteractor:loadGameplaySelectedChart()
 	sv:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
 	sv:load()
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(false)
-	self.yi.chart_menus.background:setDim(1)
 end
 
 function Gameplay:exit()
@@ -35,7 +33,6 @@ function Gameplay:exit()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
 	love.mouse.setVisible(true)
-	self.yi.chart_menus.background:setDim(0.35)
 end
 
 function Gameplay:update(dt)
@@ -53,9 +50,9 @@ end
 function Gameplay:handleKeyDown(k)
 	if k == "escape" then
 		if self.gameplay_interactor:hasResult() then
-			self.yi:setScreen("result")
+			--self.ui:setScreen("result")
 		else
-			self.yi:setScreen("select")
+			self.ui:setScreen("select")
 		end
 
 		return true

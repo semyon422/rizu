@@ -1,12 +1,7 @@
 local Screen = require("gui.Screen")
 local S = require("gui.composition.Strategies")
-local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local JudgeSegments = require("yi.views.result.JudgeSegments")
-local ChartHeader = require("yi.views.info.ChartHeader")
-local ChartInfo = require("yi.views.info.ChartInfo")
-local ChartDifficulty = require("yi.views.info.ChartDifficulty")
-local GameplayState = require("yi.views.info.GameplayState")
 
 ---@class yi.layers.Result : gui.Screen
 ---@operator call: yi.layers.Result

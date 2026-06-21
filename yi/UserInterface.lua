@@ -2,11 +2,12 @@ local IUserInterface = require("sphere.IUserInterface")
 local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
 local Painter = require("yi.Painter")
-local Menus = require("yi.layers.Menus.Menus")
-local ChartMenus = require("yi.layers.ChartMenus.ChartMenus")
+local Select = require("yi.layers.Select")
+local Gameplay =  require("yi.layers.Gameplay")
 local Modals = require("yi.layers.Modals")
 local Overlay = require("yi.layers.Overlay")
 local SettingsScheme = require("rizu.config.schemas.Settings")
+local Colors = require("yi.Colors")
 local delay = require("delay")
 
 local Registry = require("yi.command_palette.Registry")
@@ -17,17 +18,14 @@ local GlobalCommands = require("yi.command_palette.GlobalCommands")
 ---@overload fun(game: sphere.GameController): yi.UserInterface
 ---@field modifiers gui.ModifierKeys
 ---@field layers gui.Layer[]
----@field next_screen string?
----@field current_screen string?
----@field previous_screen string?
----@field current_layer yi.ScreenContainer
----@field screens {[string]: {layer: yi.ScreenContainer, screen: gui.Screen}}
+---@field next_screen gui.Screen?
+---@field current_screen gui.Screen?
+---@field previous_screen gui.Screen?
+---@field screens {[string]: gui.Screen}
 ---@field command_registry yi.command_palette.Registry
 ---@field command_palette yi.command_palette.PaletteState
 local UserInterface = IUserInterface + {}
 
-local MAX_DT = 1 / 30
-local TARGET_WIDTH = 1920
 local TARGET_HEIGHT = 1080
 
 ---@param game sphere.GameController
@@ -41,7 +39,8 @@ function UserInterface:new(game)
 	Painter.init()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
-	self.layers = {}
+
+	self.screens = {}
 
 	self.command_registry = Registry()
 	for _, cmd in ipairs(GlobalCommands.get(game)) do
@@ -53,96 +52,60 @@ end
 function UserInterface:load()
 	self.game.settings_config.onChanged:add(self)
 
-	local w, h = love.graphics.getDimensions()
-	local scale = math.min(w / TARGET_WIDTH, h / TARGET_HEIGHT)
+	local h = love.graphics.getHeight()
+	local scale = h / TARGET_HEIGHT
 	Resources.setUIScale(scale)
 	Resources.setFontScale(1)
 
-	self.chart_menus = ChartMenus(self)
-	self.menus = Menus(self)
 	self.modals = Modals(self)
 	self.overlay = Overlay(self)
 
-	self.chart_menus.ui_scale = scale
-	self.menus.ui_scale = scale
 	self.modals.ui_scale = scale
 	self.overlay.ui_scale = scale
 
-	self.chart_menus:load()
-	self.menus:load()
 	self.modals:load()
 	self.overlay:load()
 
-	self.current_layer = self.menus
-
 	self.screens = {
-		main_menu = {layer = self.menus, screen = self.menus.main_menu},
-		config = {layer = self.menus, screen = self.menus.config},
-		select = {layer = self.chart_menus, screen = self.chart_menus.select},
-		chart_loading = {layer = self.chart_menus, screen = self.chart_menus.chart_loading},
-		gameplay = {layer = self.chart_menus, screen = self.chart_menus.gameplay},
-		result = {layer = self.chart_menus, screen = self.chart_menus.result},
-		editor = {layer = self.chart_menus, screen = self.chart_menus.editor},
+		select = Select(self),
+		gameplay = Gameplay(self)
 	}
+
+	for _, v in pairs(self.screens) do
+		v.ui_scale = scale
+		v:load()
+	end
 
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
-	self:setScreen("main_menu")
+	self:setScreen("select")
 end
 
 function UserInterface:unload()
-	local screen_name = self.current_screen
-	if screen_name then
-		self.screens[screen_name].screen:exit()
-	end
-
-	self.game.settings_config.onChanged:remove(self)
-	self.chart_menus:unload()
-	self.menus:unload()
 	self.modals:unload()
 	self.overlay:unload()
-	self:setScreen("main_menu")
 end
 
----@param screen string
-function UserInterface:setScreen(screen)
+---@param screen_name string
+function UserInterface:setScreen(screen_name)
 	self.previous_screen = self.current_screen
-	self.next_screen = screen
+	self.next_screen = self.screens[screen_name]
 end
 
 function UserInterface:transitToNextScreen()
-	local screen_name = self.next_screen
-	self.current_screen = screen_name
+	if not self.next_screen then
+		return
+	end
+
+	self.previous_screen = self.current_screen
+	self.current_screen = self.next_screen
 	self.next_screen = nil
 
-	if not screen_name then
-		return
+	if self.previous_screen then
+		self.previous_screen:exit()
 	end
 
-	local config = self.screens[screen_name]
-
-	if not config then
-		return
-	end
-
-	local next_layer = config.layer
-	local next_screen = config.screen
-
-	local current_layer = self.current_layer
-
-	if current_layer and current_layer.current_screen then
-		current_layer.current_screen:exit()
-	end
-
-	if next_layer == self.menus then
-		self.menus:show()
-	else
-		self.menus:hide()
-	end
-
-	next_layer.current_screen = next_screen
-	self.current_layer = next_layer
-	next_screen:enter()
+	self.current_screen:enter()
 end
 
 function UserInterface:reload()
@@ -169,25 +132,22 @@ function UserInterface:update(dt)
 	self.modals:acceptInputs(self.inputs)
 	self.overlay:acceptInputs(self.inputs)
 
-	if self.current_layer then
-		self.current_layer:acceptInputs(self.inputs)
-	end
-
-	if self.menus.visiblity:get() < 1 then
-		self.chart_menus:update(dt)
-	end
-	self.menus:update(dt)
 	self.modals:update(dt)
 	self.overlay:update(dt)
+
+	if self.current_screen then
+		self.current_screen:acceptInputs(self.inputs)
+		self.current_screen:update(dt)
+	end
 end
 
 function UserInterface:draw()
-	if self.menus.visiblity:get() < 1 then
-		self.chart_menus:draw()
+	love.graphics.clear(Colors.background)
+
+	if self.current_screen then
+		self.current_screen:draw()
 	end
-	if self.menus:isVisible() then
-		self.menus:draw()
-	end
+
 	self.modals:draw()
 	self.overlay:draw()
 end
@@ -214,9 +174,6 @@ function UserInterface:receive(event)
 			end
 		end
 	end
-
-	self.menus:receive(event)
-	self.chart_menus:receive(event)
 end
 
 return UserInterface

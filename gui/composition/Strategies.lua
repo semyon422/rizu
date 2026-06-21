@@ -5,7 +5,8 @@ local Strategies = {
 	Flow = require("gui.composition.Flow"),
 	Track = require("gui.composition.Track"),
 	Anchor = require("gui.composition.Anchor"),
-	Align = require("gui.composition.Align")
+	Align = require("gui.composition.Align"),
+	Fixed = require("gui.composition.Fixed")
 }
 
 return Strategies
