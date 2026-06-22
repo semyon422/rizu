@@ -1,6 +1,7 @@
 local class = require("class")
 local valid = require("valid")
 local table_util = require("table_util")
+local path_util = require("path_util")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
 local DifficultyModel = require("sphere.models.DifficultyModel")
 local ModifierModel = require("sphere.models.ModifierModel")
@@ -31,17 +32,28 @@ end
 ---@param data string
 ---@param index integer
 ---@param context table?
+---@param skip_absolute boolean?
+---@param selected_only boolean?
 ---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}?
 ---@return string?
-function ComputeContext:fromFileData(name, data, index, context)
+function ComputeContext:fromFileData(name, data, index, context, skip_absolute, selected_only)
+	local result_index = index
+	if selected_only and path_util.ext(name, true) == "1" then
+		context = table_util.copy(context or {})
+		context.selected_index = index
+		result_index = 1
+	end
+
 	local ccm, err = ChartFactory:getCharts(name, data, nil, context)
 	if not ccm then
 		return nil, "get charts: " .. err
 	end
 	self.chart_chartmetas = ccm
-	self.chart = ccm[index].chart
-	self.chartmeta = ccm[index].chartmeta
-	self:toAbsolute()
+	self.chart = ccm[result_index].chart
+	self.chartmeta = ccm[result_index].chartmeta
+	if not skip_absolute then
+		self:toAbsolute()
+	end
 	return {
 		chart = self.chart,
 		chartmeta = self.chartmeta,

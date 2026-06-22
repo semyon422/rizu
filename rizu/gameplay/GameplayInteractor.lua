@@ -65,7 +65,14 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	game.previewModel:stop()
 
-	GameplayChart(game.configModel.configs.settings, game.fs, chartview):load(game.replayBase, game.computeContext)
+	local gameplay_chart = GameplayChart(game.configModel.configs.settings, game.fs, chartview)
+	local data, context = gameplay_chart:prepareAsync()
+
+	local compute_result = gameplay_chart:computeAsync(game.replayBase, data, context)
+	if load_generation ~= self.load_generation then
+		return false
+	end
+	gameplay_chart:applyComputed(game.replayBase, game.computeContext, compute_result)
 
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
@@ -82,6 +89,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	self:loadFileFinderPaths(paths)
 
 	local resource_future = game.resource_loader:startLoadAsync(chart.resources, paths)
+
 	local snapshot = game.resource_loader:waitLoadAsync(resource_future)
 	if load_generation ~= self.load_generation then
 		return false
