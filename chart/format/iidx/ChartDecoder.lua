@@ -179,6 +179,14 @@ local function normalize_bpm(value)
 	return value
 end
 
+---@param event chart.iidx.Chart1Event
+---@return chart.Fraction
+local function get_signature(event)
+	local denominator = event.raw_lane
+	assert(denominator > 0, "invalid IIDX meter denominator")
+	return Fraction(event.value * 4, denominator)
+end
+
 ---@param side integer
 ---@param lane integer
 ---@return string
@@ -287,6 +295,10 @@ function ChartDecoder:decodeSection(section, variation)
 		if event.type == 4 then
 			local point = layer:getPoint(tick_to_measure(ticks, event.tick))
 			point._tempo = Tempo(normalize_bpm(event.value))
+			visual:getPoint(point)
+		elseif event.type == 5 then
+			local point = layer:getPoint(tick_to_measure(ticks, event.tick))
+			point._signature = Signature(get_signature(event))
 			visual:getPoint(point)
 		elseif is_playable_note(event) then
 			local point = layer:getPoint(tick_to_measure(ticks, event.tick))

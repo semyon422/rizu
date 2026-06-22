@@ -163,6 +163,29 @@ function test.off_grid_ticks_stay_inside_measure(t)
 end
 
 ---@param t testing.T
+function test.meter_events_change_measure_duration(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
+		SPN = {
+			{tick = 0, type = 4, lane = 0, value = 160},
+			{tick = 0, type = 5, lane = 4, value = 3},
+			{tick = 0, type = 12, lane = 0, value = 0},
+			{tick = 1125, type = 12, lane = 0, value = 0},
+			{tick = 1125, type = 5, lane = 4, value = 4},
+			{tick = 2725, type = 12, lane = 0, value = 0},
+			{tick = 1125, type = 0, lane = 0, value = 1},
+			{tick = 2725, type = 0, lane = 1, value = 2},
+		},
+	}), nil, {song_id = 1234}))
+
+	local chart = charts[1].chart
+	local first_note = assert(find_sound_note(chart, "1"))
+	local second_note = assert(find_sound_note(chart, "2"))
+
+	t:aeq(first_note:getTime(), 1.125, 0.0001)
+	t:aeq(second_note:getTime(), 2.625, 0.0001)
+end
+
+---@param t testing.T
 function test.keysound_events_attach_to_notes(t)
 	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
 		SPN = {
