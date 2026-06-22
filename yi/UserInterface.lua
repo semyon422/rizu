@@ -9,6 +9,7 @@ local Modals = require("yi.layers.Modals")
 local Overlay = require("yi.layers.Overlay")
 local SettingsScheme = require("rizu.config.schemas.Settings")
 local Colors = require("yi.Colors")
+local Sounds = require("yi.Sounds")
 local delay = require("delay")
 
 local Registry = require("yi.command_palette.Registry")
@@ -37,6 +38,7 @@ function UserInterface:new(game)
 	self.prev_w, self.prev_h = ww, wh
 
 	Resources.load()
+	Sounds.load()
 	Painter.init()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}

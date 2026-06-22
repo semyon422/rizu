@@ -129,10 +129,6 @@ end
 function Select:handleKeyDown(key)
 	if key == "return" then
 		self.ui:setScreen("gameplay")
-	elseif key == "j" then
-		self.ui.game.chartSelector:scrollLevel(1, 1)
-	elseif key == "k" then
-		self.ui.game.chartSelector:scrollLevel(1, -1)
 	end
 end
 

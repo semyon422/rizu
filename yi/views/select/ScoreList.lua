@@ -1,6 +1,7 @@
 local View = require("gui.View")
 local SpringValue = require("gui.anim.SpringValue")
 local Resources = require("yi.Resources")
+local Sounds = require("yi.Sounds")
 local Colors = require("yi.Colors")
 local Painter = require("yi.Painter")
 local time_util = require("time_util")
@@ -111,6 +112,7 @@ function ScoreList:update(dt)
 		self.selected_index = nil
 	end
 
+	local last_hover = self.hover_index
 	self.hover_index = nil
 	if self.mouse_over then
 		local _, my = self.transform:inverseTransformPoint(love.mouse.getPosition())
@@ -124,6 +126,10 @@ function ScoreList:update(dt)
 				self.hover_index = idx
 			end
 		end
+	end
+
+	if last_hover ~= self.hover_index then
+		Sounds.play("hover")
 	end
 
 	self.batch:clear()
@@ -233,7 +239,11 @@ function ScoreList:onKeyDown(e)
 		if self.selected_index then
 			self.on_score_selected(self.selected_index)
 		end
+	else
+		return false
 	end
+
+	return true
 end
 
 function ScoreList:scrollToIndex(index)
@@ -250,6 +260,7 @@ end
 function ScoreList:onMouseClick(e)
 	if self.hover_index then
 		self.on_score_selected(self.hover_index)
+		return true
 	end
 end
 

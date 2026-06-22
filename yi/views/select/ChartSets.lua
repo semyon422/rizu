@@ -3,6 +3,7 @@ local SpringValue = require("gui.anim.SpringValue")
 local Resources = require("yi.Resources")
 local Colors = require("yi.Colors")
 local Painter = require("yi.Painter")
+local Sounds = require("yi.Sounds")
 
 ---@class yi.views.select.ChartSets : gui.View
 ---@operator call: yi.views.select.ChartSets
@@ -55,6 +56,7 @@ function ChartSets:update(dt)
 	local item_count = store:count()
 	local row_step = self.item_height + self.gap
 
+	local last_hover = self.hover_index
 	self.hover_index = nil
 	if self.mouse_over then
 		local _, my = self.transform:inverseTransformPoint(love.mouse.getPosition())
@@ -69,6 +71,10 @@ function ChartSets:update(dt)
 		end
 	else
 		self.scroll_offset = 0
+	end
+
+	if last_hover ~= self.hover_index then
+		Sounds.play("hover")
 	end
 
 	self.batch:clear()
@@ -149,15 +155,18 @@ end
 function ChartSets:onScroll(e)
 	local row_step = self.item_height + self.gap
 	self.scroll_offset = self.scroll_offset - e.direction_y * row_step
+	return true
 end
 
 function ChartSets:onKeyDown(e)
-	if e.key == "down" then
+	if e.key == "j" then
 		self.chartSelector:scrollLevel(1, 1)
-	elseif e.key == "up" then
+		Sounds.play("set_changed")
+		return true
+	elseif e.key == "k" then
 		self.chartSelector:scrollLevel(1, -1)
-	elseif e.key == "right" then
-		self.on_selected(self.chartSelector.state:getPrimary().index)
+		Sounds.play("set_changed")
+		return true
 	end
 end
 
@@ -172,6 +181,8 @@ function ChartSets:onMouseClick(e)
 		self.chartSelector:scrollLevel(1, nil, self.hover_index)
 		self:scrollToIndex(self.hover_index)
 		self.on_selected(self.hover_index)
+		Sounds.play("set_changed")
+		return true
 	end
 end
 
