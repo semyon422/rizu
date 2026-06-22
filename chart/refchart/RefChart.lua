@@ -1,18 +1,19 @@
 local class = require("class")
+local table_util = require("table_util")
 local Layer = require("chart.refchart.Layer")
 local Note = require("chart.refchart.Note")
 
 ---@class refchart.RefChart
 ---@operator call: refchart.RefChart
----@field inputmode chart.InputMode
+---@field inputmode {[string]: integer}
 ---@field layers {[string]: refchart.Layer}
 ---@field notes refchart.Note[]
----@field resources string[][]
+---@field resources {[1]: chart.ResourceType, [integer]: string}[]
 local RefChart = class()
 
 ---@param chart chart.Chart
 function RefChart:new(chart)
-	self.inputmode = chart.inputMode
+	self.inputmode = table_util.copy(chart.inputMode)
 
 	---@type {[chart.VisualPoint]: refchart.VisualPointReference}
 	local vp_ref = {}

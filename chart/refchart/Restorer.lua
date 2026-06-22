@@ -1,4 +1,5 @@
 local class = require("class")
+local table_util = require("table_util")
 local Fraction = require("chart.core.Fraction")
 local InputMode = require("chart.core.InputMode")
 local Chart = require("chart.model.Chart")
@@ -38,7 +39,7 @@ function Restorer:restore(refchart)
 				p._tempo = Tempo(_p.tempo)
 			end
 			if _p.measure then
-				p._measure = Measure(_p.measure)
+				p._measure = Measure(Fraction(_p.measure))
 			end
 		end
 
@@ -72,7 +73,7 @@ function Restorer:restore(refchart)
 	for _, _note in ipairs(refchart.notes) do
 		local vp_ref = _note.point
 		local vp = ps[vp_ref.layer][vp_ref.visual][vp_ref.index]
-		local note = Note(vp, _note.column, _note.type, _note.weight, _note.data)
+		local note = Note(vp, _note.column, _note.type, _note.weight, table_util.deepcopy(_note.data))
 		chart.notes:insert(note)
 	end
 

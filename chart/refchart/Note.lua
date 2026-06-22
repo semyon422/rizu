@@ -1,4 +1,5 @@
 local class = require("class")
+local table_util = require("table_util")
 
 ---@class refchart.Note
 ---@operator call: refchart.Note
@@ -15,7 +16,7 @@ function Note:new(note, point)
 	self.column = note.column
 	self.type = note.type
 	self.weight = note.weight
-	self.data = note.data
+	self.data = table_util.deepcopy(note.data)
 end
 
 return Note

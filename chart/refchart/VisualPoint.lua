@@ -4,7 +4,7 @@ local class = require("class")
 ---@operator call: refchart.VisualPoint
 ---@field point integer
 ---@field expand number?
----@field velocity number[]?
+---@field velocity {[1]: number, [2]: number, [3]: number}?
 local VisualPoint = class()
 
 ---@param vp chart.VisualPoint
