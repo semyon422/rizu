@@ -50,6 +50,20 @@ function ResourceFinder:reset()
 	self.path_files = {}
 end
 
+---@return {paths: string[], path_files: {[string]: {lookup: {[string]: string}, stems: {[string]: {[string]: string}}}}}
+function ResourceFinder:getSnapshot()
+	return {
+		paths = self.paths,
+		path_files = self.path_files,
+	}
+end
+
+---@param snapshot {paths: string[], path_files: {[string]: {lookup: {[string]: string}, stems: {[string]: {[string]: string}}}}}
+function ResourceFinder:applySnapshot(snapshot)
+	self.paths = snapshot.paths
+	self.path_files = snapshot.path_files
+end
+
 ---@param path string
 function ResourceFinder:addPath(path)
 	path = assert(path, "missing path")

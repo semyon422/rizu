@@ -1,4 +1,5 @@
 local class = require("class")
+local thread = require("thread")
 local table_util = require("table_util")
 local OJM = require("chart.format.o2jam.OJM")
 local S3P = require("chart.format.iidx.S3P")
@@ -9,6 +10,15 @@ local ChartfileReader = require("rizu.library.ChartfileReader")
 ---@class rizu.ResourceLoader
 ---@operator call: rizu.ResourceLoader
 local ResourceLoader = class()
+
+---@class rizu.ResourceEntry
+---@field type chart.ResourceType
+---@field paths string[]
+
+---@class rizu.ResourceLoaderSnapshot
+---@field finder {paths: string[], path_files: {[string]: {lookup: {[string]: string}, stems: {[string]: {[string]: string}}}}}
+---@field file_paths {[string|integer]: string}
+---@field file_contents {[string]: string}
 
 ---@param fs fs.IFilesystem
 ---@param resource_finder rizu.ResourceFinder
@@ -31,7 +41,21 @@ function ResourceLoader:new(fs, resource_finder)
 end
 
 ---@param resources chart.Resources
-function ResourceLoader:load(resources)
+---@return rizu.ResourceEntry[]
+function ResourceLoader.getResourceEntries(resources)
+	---@type rizu.ResourceEntry[]
+	local entries = {}
+	for _type, paths in resources:iter() do
+		table.insert(entries, {
+			type = _type,
+			paths = paths,
+		})
+	end
+	return entries
+end
+
+---@param entries rizu.ResourceEntry[]
+function ResourceLoader:loadEntries(entries)
 	local fs = self.fs
 	local resource_finder = self.resource_finder
 
@@ -41,13 +65,14 @@ function ResourceLoader:load(resources)
 	---@type string[]
 	local new_paths = {}
 
-	for _type, paths in resources:iter() do
+	for _, entry in ipairs(entries) do
+		local _type = entry.type
+		local paths = entry.paths
 		local name = paths[1]
 		for _, path in ipairs(paths) do
 			local found_path = resource_finder:findFile(path, _type)
 			if found_path then
 				file_paths[name] = found_path
-				table.insert(new_paths, found_path)
 
 				if _type == "ojm" then
 					local data = ChartfileReader.read(fs, found_path)
@@ -89,6 +114,8 @@ function ResourceLoader:load(resources)
 							end
 						end
 					end
+				else
+					table.insert(new_paths, found_path)
 				end
 				if _type ~= "2dx" then
 					break
@@ -123,6 +150,74 @@ function ResourceLoader:load(resources)
 		end
 		path = next(file_pendings)
 	end
+end
+
+---@param resources chart.Resources
+function ResourceLoader:load(resources)
+	self:loadEntries(ResourceLoader.getResourceEntries(resources))
+end
+
+---@return rizu.ResourceLoaderSnapshot
+function ResourceLoader:getSnapshot()
+	return {
+		finder = self.resource_finder:getSnapshot(),
+		file_paths = self.file_paths,
+		file_contents = self.file_contents,
+	}
+end
+
+---@param snapshot rizu.ResourceLoaderSnapshot
+function ResourceLoader:applySnapshot(snapshot)
+	self.resource_finder:applySnapshot(snapshot.finder)
+	self.file_paths = snapshot.file_paths
+	self.file_contents = snapshot.file_contents
+	self.file_pendings = {}
+end
+
+local function loadAsyncWorker(entries, paths)
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	local ResourceFinder = require("rizu.files.ResourceFinder")
+	local WorkerResourceLoader = require("rizu.files.ResourceLoader")
+
+	local fs = LoveFilesystem()
+	local resource_finder = ResourceFinder(fs)
+	for _, path in ipairs(paths) do
+		resource_finder:addPath(path)
+	end
+
+	local resource_loader = WorkerResourceLoader(fs, resource_finder)
+	resource_loader:loadEntries(entries)
+	return resource_loader:getSnapshot()
+end
+
+local async_load = thread.async(loadAsyncWorker)
+
+---@param entries rizu.ResourceEntry[]
+---@param paths string[]
+---@return thread.Future
+function ResourceLoader.startEntriesAsync(entries, paths)
+	local future_load = thread.future(loadAsyncWorker)
+	return future_load(entries, paths)
+end
+
+---@param resources chart.Resources
+---@param paths string[]
+---@return thread.Future
+function ResourceLoader:startLoadAsync(resources, paths)
+	return ResourceLoader.startEntriesAsync(ResourceLoader.getResourceEntries(resources), paths)
+end
+
+---@param future thread.Future
+---@return rizu.ResourceLoaderSnapshot
+function ResourceLoader:waitLoadAsync(future)
+	return thread.wait(future)
+end
+
+---@param resources chart.Resources
+---@param paths string[]
+---@return rizu.ResourceLoaderSnapshot
+function ResourceLoader:loadAsync(resources, paths)
+	return async_load(ResourceLoader.getResourceEntries(resources), paths)
 end
 
 ---@param name string

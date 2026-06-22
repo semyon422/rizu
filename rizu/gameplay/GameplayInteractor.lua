@@ -17,6 +17,7 @@ function GameplayInteractor:new(game)
 	self.replaying = false
 	self.autoplay = false
 	self.audio_disabled = false
+	self.load_generation = 0
 
 	self.score_saver = ScoreSaver(
 		game.fs,
@@ -28,8 +29,39 @@ function GameplayInteractor:new(game)
 	)
 end
 
-function GameplayInteractor:loadGameplay(chartview)
+---@param noteSkin table
+---@param chartview table
+---@return string[]
+function GameplayInteractor:getResourcePaths(noteSkin, chartview)
+	local paths = {}
+	if self.game.configModel.configs.settings.gameplay.skin_resources_top_priority then
+		table.insert(paths, noteSkin.directoryPath)
+		table.insert(paths, chartview.location_dir)
+	else
+		table.insert(paths, chartview.location_dir)
+		table.insert(paths, noteSkin.directoryPath)
+	end
+	table.insert(paths, "userdata/hitsounds")
+	table.insert(paths, "userdata/hitsounds/midi")
+	return paths
+end
+
+---@param paths string[]
+function GameplayInteractor:loadFileFinderPaths(paths)
+	local fileFinder = self.game.fileFinder
+	fileFinder:reset()
+	for _, path in ipairs(paths) do
+		fileFinder:addPath(path)
+	end
+end
+
+---@param chartview table
+---@return boolean loaded
+function GameplayInteractor:loadGameplayAsync(chartview)
 	local game = self.game
+	self.load_generation = self.load_generation + 1
+	local load_generation = self.load_generation
+	self.loaded = false
 
 	game.previewModel:stop()
 
@@ -46,26 +78,15 @@ function GameplayInteractor:loadGameplay(chartview)
 	noteSkin:loadData()
 	self.noteSkin = noteSkin
 
-	game.resource_finder:reset()
-	game.fileFinder:reset()
+	local paths = self:getResourcePaths(noteSkin, chartview)
+	self:loadFileFinderPaths(paths)
 
-	local paths = {}
-	if game.configModel.configs.settings.gameplay.skin_resources_top_priority then
-		table.insert(paths, noteSkin.directoryPath)
-		table.insert(paths, chartview.location_dir)
-	else
-		table.insert(paths, chartview.location_dir)
-		table.insert(paths, noteSkin.directoryPath)
+	local resource_future = game.resource_loader:startLoadAsync(chart.resources, paths)
+	local snapshot = game.resource_loader:waitLoadAsync(resource_future)
+	if load_generation ~= self.load_generation then
+		return false
 	end
-	table.insert(paths, "userdata/hitsounds")
-	table.insert(paths, "userdata/hitsounds/midi")
-
-	for _, path in ipairs(paths) do
-		game.resource_finder:addPath(path)
-		game.fileFinder:addPath(path)
-	end
-
-	game.resource_loader:load(chart.resources)
+	game.resource_loader:applySnapshot(snapshot)
 
 	self:load(self.autoplay)
 
@@ -80,6 +101,7 @@ function GameplayInteractor:loadGameplay(chartview)
 	self:play()
 
 	self.loaded = true
+	return true
 end
 
 ---@param autoplay boolean?
@@ -123,6 +145,7 @@ function GameplayInteractor:setReplayFrames(frames)
 end
 
 function GameplayInteractor:unloadGameplay()
+	self.load_generation = self.load_generation + 1
 	self.loaded = false
 	self.replaying = false
 	self.autoplay = false
@@ -131,7 +154,9 @@ function GameplayInteractor:unloadGameplay()
 	game.discordModel:setPresence({})
 	self:skip()
 
-	game.rhythm_engine:unloadAudio()
+	if game.rhythm_engine then
+		game.rhythm_engine:unloadAudio()
+	end
 
 	if self:hasResult() then
 		self:saveScore()
@@ -164,7 +189,7 @@ end
 
 ---@return boolean
 function GameplayInteractor:hasResult()
-	return self.gameplay_session:hasResult()
+	return self.gameplay_session and self.gameplay_session:hasResult() or false
 end
 
 function GameplayInteractor:saveScore()
@@ -186,7 +211,6 @@ function GameplayInteractor:retry()
 	local replayBase = game.replayBase
 
 	game.pauseModel:load()
-	game.resource_loader:rewind()
 
 	self:load(self.autoplay)
 
@@ -199,7 +223,9 @@ function GameplayInteractor:skipIntro()
 end
 
 function GameplayInteractor:skip()
-	self.game.rhythm_engine:setTime(math.huge)
+	if self.game.rhythm_engine then
+		self.game.rhythm_engine:setTime(math.huge)
+	end
 end
 
 ---@param state "play"|"pause"|"retry"

@@ -28,6 +28,11 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 - `RhythmEngine:hasResult()` is the gate for whether a play can produce a score.
 - Session code may coordinate around this, but should not replace or bypass the engine's result validity rules.
 
+### ADR: Gameplay Resource Loading Is Threaded
+- Gameplay startup loads chart audio, image, video, and packed sample resources through `ResourceLoader:loadAsync()` so the chart-loading screen can continue updating while filesystem reads and archive unpacking run in a worker thread.
+- The async path returns a resource snapshot that is applied to the main-thread `ResourceLoader`; rhythm engine setup and `play()` happen only after that snapshot is installed.
+- Editor resource loading stays synchronous for now, because editor startup has different UI/state expectations and was not part of the gameplay-start lag fix.
+
 ## Testing Patterns
 
 - Advance time with `GameplaySession:update(global_time)`.

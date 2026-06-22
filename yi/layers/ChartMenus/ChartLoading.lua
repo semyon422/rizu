@@ -3,7 +3,6 @@ local Loading = require("yi.views.Loading")
 local UIFactory = require("yi.UIFactory")
 local Colors = require("yi.Colors")
 local S = require("gui.composition.Strategies")
-local L = require("yi.lang.en")
 local thread = require("thread")
 local delay = require("delay")
 
@@ -26,7 +25,7 @@ function ChartLoading:new(yi)
 			ui:Label({
 				font = "bold",
 				font_size = 36,
-				text = "TODO: semyon pls make chart loading async",
+				text = "Loading chart",
 				color = Colors.text
 			}),
 		}),
@@ -50,9 +49,11 @@ end
 function ChartLoading:enter()
 	thread.coro(function()
 		delay.sleep(0.3)
-		self.yi.game.gameInteractor:loadGameplaySelectedChart()
+		local loaded = self.yi.game.gameInteractor:loadGameplaySelectedChartAsync()
 		delay.sleep(0.01)
-		self.yi:setScreen("gameplay")
+		if loaded then
+			self.yi:setScreen("gameplay")
+		end
 	end)()
 end
 

@@ -9,9 +9,10 @@ function GameInteractor:new(game)
 	self.game = game
 end
 
-function GameInteractor:loadGameplaySelectedChart()
+---@return boolean loaded
+function GameInteractor:loadGameplaySelectedChartAsync()
 	local game = self.game
-	game.gameplayInteractor:loadGameplay(game.chartSelector.chartview)
+	return game.gameplayInteractor:loadGameplayAsync(game.chartSelector.chartview)
 end
 
 ---@param itemIndex integer?

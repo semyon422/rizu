@@ -37,6 +37,51 @@ function test.all(t)
 end
 
 ---@param t testing.T
+function test.resource_entries(t)
+	local res = Resources()
+	res:add("sound", "audio.ogg", "audio.mp3")
+	res:add("image", "bg.png")
+
+	local entries = ResourceLoader.getResourceEntries(res)
+	table.sort(entries, function(a, b)
+		return a.type < b.type
+	end)
+
+	t:tdeq(entries, {
+		{
+			type = "image",
+			paths = {"bg.png"},
+		},
+		{
+			type = "sound",
+			paths = {"audio.ogg", "audio.mp3"},
+		},
+	})
+end
+
+---@param t testing.T
+function test.apply_snapshot(t)
+	local fs = FakeFilesystem()
+	local rf = ResourceFinder(fs)
+	local rl = ResourceLoader(fs, rf)
+	local res = Resources()
+
+	fs:createDirectory("dir")
+	fs:write("dir/audio.mp3", "audio")
+
+	rf:addPath("dir")
+	res:add("sound", "audio.mp3")
+	rl:load(res)
+
+	local rf2 = ResourceFinder(fs)
+	local rl2 = ResourceLoader(fs, rf2)
+	rl2:applySnapshot(rl:getSnapshot())
+
+	t:eq(rl2:getResource("audio.mp3"), "audio")
+	t:eq(rf2:findFile("AUDIO.ogg"), "dir/audio.mp3")
+end
+
+---@param t testing.T
 function test.iidx_s3p_inside_ifs(t)
 	local fs = FakeFilesystem()
 	local rf = ResourceFinder(fs)
@@ -80,6 +125,7 @@ function test.iidx_2dx_inside_ifs(t)
 	t:eq(rl:getResource("0"), nil)
 	t:eq(rl:getResource("1"), "sound1")
 	t:eq(rl:getResource("2"), "sound2")
+	t:eq(rl.file_contents["data/sound/01234.ifs/01234/012341.2dx"], nil)
 end
 
 ---@param t testing.T
