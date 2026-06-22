@@ -117,6 +117,27 @@ function test.decode_extracted_chart_fixture(t)
 end
 
 ---@param t testing.T
+function test.decode_selected_index(t)
+	local charts = assert(ChartFactory:getCharts("01234.1", Fixtures.sampleChart(), nil, {
+		song_id = 1234,
+		selected_index = 2,
+		iidx_song = {
+			song_id = 1234,
+			title = "Selected",
+			levels = {
+				SPN = 3,
+				DPN = 4,
+			},
+		},
+	}))
+
+	t:eq(#charts, 1)
+	t:eq(charts[1].chartmeta.index, 2)
+	t:eq(charts[1].chartmeta.name, "DPN")
+	t:eq(charts[1].chartmeta.inputmode, "14key2scratch")
+end
+
+---@param t testing.T
 function test.tap_note_counts(t)
 	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.sampleChart(), nil, {
 		song_id = 1234,

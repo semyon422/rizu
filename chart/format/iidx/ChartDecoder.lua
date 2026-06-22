@@ -198,6 +198,7 @@ end
 ---@field filename string?
 ---@field song_id integer?
 ---@field iidx_song chart.iidx.MusicDbEntry?
+---@field selected_index integer?
 
 ---@param s string
 ---@param hash string?
@@ -214,17 +215,24 @@ function ChartDecoder:decode(s, hash, context)
 
 	---@type {chart: chart.Chart, chartmeta: sea.Chartmeta}[]
 	local out = {}
+	local out_index = 0
 	for _, variation in ipairs(variations) do
-			local section = chart1.sections[variation.section]
-			local song = context.iidx_song
-			if section and #section.events > 0 then
+		local section = chart1.sections[variation.section]
+		local song = context.iidx_song
+		if section and #section.events > 0 then
+			out_index = out_index + 1
+			if not context.selected_index or out_index == context.selected_index then
 				local chart = self:decodeSection(section, variation)
 				add_audio_resources(song_id, chart, song, variation)
-				local chartmeta = self:getChartmeta(#out + 1, song_id, song, variation, chart)
-			out[#out + 1] = {
-				chart = chart,
-				chartmeta = chartmeta,
-			}
+				local chartmeta = self:getChartmeta(out_index, song_id, song, variation, chart)
+				out[#out + 1] = {
+					chart = chart,
+					chartmeta = chartmeta,
+				}
+				if context.selected_index then
+					break
+				end
+			end
 		end
 	end
 
