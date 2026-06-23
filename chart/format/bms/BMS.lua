@@ -3,12 +3,17 @@ local string_util = require("string_util")
 local Fraction = require("chart.core.Fraction")
 local enums = require("chart.format.bms.enums")
 
-local exactSignatureDenominatorLimit = 10000
-local fallbackSignatureDenominatorLimit = 192
+local exactMeterBeatsDenominatorLimit = 10000
+local fallbackMeterDenominatorLimit = 192
+
+---@alias chart.bms.ResourceMap {[string]: string}
+---@alias chart.bms.NumberResourceMap {[string]: number?}
+---@alias chart.bms.ChannelValues string[]
+---@alias chart.bms.BeatSignature chart.Fraction
 
 ---@class chart.bms.TimeData
 ---@field measureTime chart.Fraction
----@field [string] string[]?
+---@field [string] chart.bms.ChannelValues?
 
 ---@class chart.bms.BMS
 ---@operator call: chart.bms.BMS
@@ -17,7 +22,7 @@ local fallbackSignatureDenominatorLimit = 192
 ---@field bpm {[string]: number?}
 ---@field bmp {[string]: string}
 ---@field stop {[string]: number?}
----@field signature {[integer]: chart.Fraction?}
+---@field signature {[integer]: chart.bms.BeatSignature?}
 ---@field inputExisting table
 ---@field channelExisting {[string]: boolean}
 ---@field timePointLimit integer
@@ -35,17 +40,17 @@ local fallbackSignatureDenominatorLimit = 192
 local BMS = class()
 
 function BMS:new()
-	---@type {[string]: string}
+	---@type chart.bms.ResourceMap
 	self.header = {}
-	---@type {[string]: string}
+	---@type chart.bms.ResourceMap
 	self.wav = {}
-	---@type {[string]: number?}
+	---@type chart.bms.NumberResourceMap
 	self.bpm = {}
-	---@type {[string]: string}
+	---@type chart.bms.ResourceMap
 	self.bmp = {}
-	---@type {[string]: number?}
+	---@type chart.bms.NumberResourceMap
 	self.stop = {}
-	---@type {[integer]: chart.Fraction?}
+	---@type {[integer]: chart.bms.BeatSignature?}
 	self.signature = {}
 
 	self.inputExisting = {}
@@ -82,20 +87,26 @@ local function parseDecimalFraction(value)
 	return Fraction(numerator, denominator)
 end
 
+---@param meter chart.Fraction
+---@return chart.bms.BeatSignature
+local function meterToBeatSignature(meter)
+	return meter * 4
+end
+
 ---@param value string
----@return chart.Fraction?
-local function parseSignature(value)
-	local exact = parseDecimalFraction(value)
-	if not exact then
+---@return chart.bms.BeatSignature?
+local function parseMeterSignature(value)
+	local exactMeter = parseDecimalFraction(value)
+	if not exactMeter then
 		return nil
 	end
-	if exact <= Fraction(0) then
+	if exactMeter <= Fraction(0) then
 		return nil
 	end
 
-	local signature = exact * 4
-	if signature[2] <= exactSignatureDenominatorLimit then
-		return signature
+	local exactBeatSignature = meterToBeatSignature(exactMeter)
+	if exactBeatSignature[2] <= exactMeterBeatsDenominatorLimit then
+		return exactBeatSignature
 	end
 
 	local number = tonumber((value:gsub(",", ".")))
@@ -103,11 +114,11 @@ local function parseSignature(value)
 		return nil
 	end
 
-	signature = Fraction(number, fallbackSignatureDenominatorLimit, "round")
-	if signature == Fraction(0) and number ~= 0 then
-		signature = Fraction(1, fallbackSignatureDenominatorLimit)
+	local fallbackMeter = Fraction(number, fallbackMeterDenominatorLimit, "round")
+	if fallbackMeter == Fraction(0) and number ~= 0 then
+		fallbackMeter = Fraction(1, fallbackMeterDenominatorLimit)
 	end
-	return signature * 4
+	return meterToBeatSignature(fallbackMeter)
 end
 
 ---@param noteChartString string
@@ -154,7 +165,7 @@ function BMS:processLine(line)
 end
 
 ---@param line string
----@param target {[string]: string}
+---@param target chart.bms.ResourceMap
 ---@param pattern string
 function BMS:processResourceLine(line, target, pattern)
 	local index, value = line:match(pattern)
@@ -162,7 +173,7 @@ function BMS:processResourceLine(line, target, pattern)
 end
 
 ---@param line string
----@param target {[string]: number?}
+---@param target chart.bms.NumberResourceMap
 ---@param pattern string
 function BMS:processNumberResourceLine(line, target, pattern)
 	local index, value = line:match(pattern)
@@ -248,9 +259,9 @@ end
 ---@param measure integer
 ---@param message string
 function BMS:processSignature(measure, message)
-	local signature = parseSignature(message)
-	if signature then
-		self.signature[measure] = signature
+	local beatSignature = parseMeterSignature(message)
+	if beatSignature then
+		self.signature[measure] = beatSignature
 	end
 end
 
@@ -319,20 +330,21 @@ function BMS:processLineData(line)
 		self.measureCount = measure
 	end
 
-	if not enums.ChannelEnum[channel] then
+	local channelInfo = enums.ChannelEnum[channel]
+	if not channelInfo then
 		return
 	end
 
 	self:updateMode(channel)
 
-	if enums.ChannelEnum[channel].name == "Signature" then
+	if channelInfo.name == "Signature" then
 		self:processSignature(measure, message)
 		return
 	end
 
 	self:updateTempoFlags(measure, channel, message)
 
-	local compound = enums.ChannelEnum[channel].name ~= "BGM"
+	local compound = channelInfo.name ~= "BGM"
 	local messageLength = math.floor(#message / 2)
 	for i = 1, messageLength do
 		local value = message:sub(2 * i - 1, 2 * i)
@@ -340,26 +352,26 @@ function BMS:processLineData(line)
 			local measureTime = Fraction(i - 1, messageLength) + measure
 			local timeData = self:getTimeData(measureTime)
 
-			local settedNoteChannel = self:getSetNoteChannel(timeData, channel)
+			local setNoteChannel = self:getSetNoteChannel(timeData, channel)
 
 			timeData[channel] = timeData[channel] or {}
 			if compound then
-				if enums.ChannelEnum[channel].name == "Note" then
-					if enums.ChannelEnum[channel].long then
-						if settedNoteChannel then
-							timeData[settedNoteChannel][1] = nil
-							timeData[settedNoteChannel] = nil
+				if channelInfo.name == "Note" then
+					if channelInfo.long then
+						if setNoteChannel then
+							timeData[setNoteChannel][1] = nil
+							timeData[setNoteChannel] = nil
 						end
 						timeData[channel] = timeData[channel] or {}
 						timeData[channel][1] = value
 					end
-					if not enums.ChannelEnum[channel].long and not settedNoteChannel then
+					if not channelInfo.long and not setNoteChannel then
 						timeData[channel][1] = value
 					end
 				else
 					timeData[channel][1] = value
-					if enums.ChannelEnum[channel].name == "Tempo" or
-						enums.ChannelEnum[channel].name == "ExtendedTempo"
+					if channelInfo.name == "Tempo" or
+						channelInfo.name == "ExtendedTempo"
 					then
 						self.hasTempo = true
 					end
