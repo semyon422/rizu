@@ -51,6 +51,19 @@ end
 
 ---@class chart.bms.ChartDecoder: chart.IChartDecoder
 ---@operator call: chart.bms.ChartDecoder
+---@field bms chart.bms.BMS
+---@field chart chart.Chart
+---@field layer chart.MeasureLayer
+---@field visual chart.Visual
+---@field visualColumns chart.VisualColumns
+---@field visualBga chart.Visual
+---@field visualBgaColumns chart.VisualColumns
+---@field ChannelEnum {[string]: chart.bms.ChannelInfo}
+---@field minPoint chart.Point?
+---@field maxPoint chart.Point?
+---@field totalLength number
+---@field minTime number
+---@field maxTime number
 local ChartDecoder = IChartDecoder + {}
 
 local encodings = {
@@ -197,7 +210,7 @@ function ChartDecoder:addFirstTempo()
 	end
 end
 
----@param timeData table
+---@param timeData chart.bms.TimeData
 function ChartDecoder:setTempo(timeData)
 	if not timeData[enums.BackChannelEnum["Tempo"]] then
 		return
@@ -209,7 +222,7 @@ function ChartDecoder:setTempo(timeData)
 	self.visualBga:getPoint(point)
 end
 
----@param timeData table
+---@param timeData chart.bms.TimeData
 ---@return boolean?
 function ChartDecoder:setExtendedTempo(timeData)
 	if not timeData[enums.BackChannelEnum["ExtendedTempo"]] then
@@ -229,7 +242,7 @@ function ChartDecoder:setExtendedTempo(timeData)
 	return true
 end
 
----@param timeData table
+---@param timeData chart.bms.TimeData
 function ChartDecoder:setStop(timeData)
 	if not timeData[enums.BackChannelEnum["Stop"]] then
 		return
@@ -254,6 +267,7 @@ end
 
 function ChartDecoder:processData()
 	local visualColumns = self.visualColumns
+	---@type {[string]: notechart.Note}
 	local longNoteData = {}
 
 	self.minPoint = nil

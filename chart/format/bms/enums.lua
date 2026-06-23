@@ -1,5 +1,15 @@
 local enums = {}
 
+---@class chart.bms.ChannelInfo
+---@field name "BGM"|"Signature"|"Tempo"|"ExtendedTempo"|"Stop"|"BGA"|"Note"
+---@field channelBase string?
+---@field inputType string?
+---@field inputIndex integer?
+---@field long boolean?
+---@field mine boolean?
+---@field invisible boolean?
+
+---@type {[string]: chart.bms.ChannelInfo}
 enums.ChannelEnum = {
 	["01"] = {name = "BGM", inputType = "auto", inputIndex = 0},
 	["02"] = {name = "Signature"},
@@ -105,6 +115,7 @@ enums.ChannelEnum = {
 	["47"] = {name = "Note", channelBase = "27", inputType = "pedal", inputIndex = 2, invisible = true},
 }
 
+---@type {[string]: chart.bms.ChannelInfo}
 enums.ChannelEnum5Keys = {
 	["21"] = {name = "Note", inputType = "key", inputIndex = 6},
 	["22"] = {name = "Note", inputType = "key", inputIndex = 7},
@@ -125,6 +136,7 @@ enums.ChannelEnum5Keys = {
 	["E5"] = {name = "Note", inputType = "key", inputIndex = 10, mine = true},
 }
 
+---@type {[string]: chart.bms.ChannelInfo}
 enums.ChannelEnum9Keys = {
 	["22"] = {name = "Note", inputType = "key", inputIndex = 6},
 	["23"] = {name = "Note", inputType = "key", inputIndex = 7},
@@ -142,6 +154,7 @@ enums.ChannelEnum9Keys = {
 	["E5"] = {name = "Note", inputType = "key", inputIndex = 9, mine = true},
 }
 
+---@type {[string]: chart.bms.ChannelInfo}
 enums.ChannelEnumPMS5Keys = {
 	["13"] = {name = "Note", inputType = "key", inputIndex = 1},
 	["14"] = {name = "Note", inputType = "key", inputIndex = 2},
@@ -162,6 +175,7 @@ enums.ChannelEnumPMS5Keys = {
 	["E3"] = {name = "Note", inputType = "key", inputIndex = 5, mine = true},
 }
 
+---@type {[string]: chart.bms.ChannelInfo}
 enums.ChannelEnumDsc = {
 	["26"] = {name = "Note", inputType = "pedal", inputIndex = 1},
 	["66"] = {name = "Note", inputType = "pedal", inputIndex = 1, long = true},

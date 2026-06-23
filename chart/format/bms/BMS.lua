@@ -3,19 +3,50 @@ local string_util = require("string_util")
 local Fraction = require("chart.core.Fraction")
 local enums = require("chart.format.bms.enums")
 
+---@class chart.bms.TimeData
+---@field measureTime chart.Fraction
+---@field [string] string[]?
+
 ---@class chart.bms.BMS
 ---@operator call: chart.bms.BMS
+---@field header {[string]: string}
+---@field wav {[string]: string}
+---@field bpm {[string]: number?}
+---@field bmp {[string]: string}
+---@field stop {[string]: number?}
+---@field signature {[integer]: number?}
+---@field inputExisting table
+---@field channelExisting {[string]: boolean}
+---@field timePointLimit integer
+---@field timePointCount integer
+---@field primaryTempo number
+---@field measureCount integer
+---@field hasTempo boolean
+---@field tempoAtStart boolean?
+---@field baseTempo number?
+---@field lnobj string?
+---@field pms boolean?
+---@field mode integer?
+---@field timePoints {[string]: chart.bms.TimeData}
+---@field timeList chart.bms.TimeData[]
 local BMS = class()
 
 function BMS:new()
+	---@type {[string]: string}
 	self.header = {}
+	---@type {[string]: string}
 	self.wav = {}
+	---@type {[string]: number?}
 	self.bpm = {}
+	---@type {[string]: string}
 	self.bmp = {}
+	---@type {[string]: number?}
 	self.stop = {}
+	---@type {[integer]: number?}
 	self.signature = {}
 
 	self.inputExisting = {}
+	---@type {[string]: boolean}
 	self.channelExisting = {}
 
 	self.timePointLimit = 25000
@@ -25,7 +56,9 @@ function BMS:new()
 	self.measureCount = 0
 	self.hasTempo = false
 
+	---@type {[string]: chart.bms.TimeData}
 	self.timePoints = {}
+	---@type chart.bms.TimeData[]
 	self.timeList = {}
 end
 
@@ -35,6 +68,10 @@ function BMS:import(noteChartString)
 		self:processLine(string_util.trim(line))
 	end
 
+	self:finalizeImport()
+end
+
+function BMS:finalizeImport()
 	if not self.hasTempo then
 		self.baseTempo = self.primaryTempo
 	end
@@ -52,23 +89,36 @@ end
 
 ---@param line string
 function BMS:processLine(line)
-	if line:upper():find("^#WAV%S%S%s+.+$") then
-		local index, fileName = line:match("^#...(..)%s+(.+)$")
-		self.wav[index:upper()] = fileName
-	elseif line:upper():find("^#BPM%S%S%s+.+$") then
-		local index, tempo = line:match("^#...(..)%s+(.+)$")
-		self.bpm[index:upper()] = tonumber(tempo)
-	elseif line:upper():find("^#BMP%S%S%s+.+$") then
-		local index, path = line:match("^#...(..)%s+(.+)$")
-		self.bmp[index:upper()] = path
-	elseif line:upper():find("^#STOP%S%S%s+.+$") then
-		local index, duration = line:match("^#....(..)%s+(.+)$")
-		self.stop[index:upper()] = tonumber(duration)
+	local upperLine = line:upper()
+	if upperLine:find("^#WAV%S%S%s+.+$") then
+		self:processResourceLine(line, self.wav, "^#...(..)%s+(.+)$")
+	elseif upperLine:find("^#BPM%S%S%s+.+$") then
+		self:processNumberResourceLine(line, self.bpm, "^#...(..)%s+(.+)$")
+	elseif upperLine:find("^#BMP%S%S%s+.+$") then
+		self:processResourceLine(line, self.bmp, "^#...(..)%s+(.+)$")
+	elseif upperLine:find("^#STOP%S%S%s+.+$") then
+		self:processNumberResourceLine(line, self.stop, "^#....(..)%s+(.+)$")
 	elseif line:find("^#%d%d%d%S%S:.+$") then
 		self:processLineData(line)
 	elseif line:find("^#%S+%s+.+$") then
 		self:processHeaderLine(line)
 	end
+end
+
+---@param line string
+---@param target {[string]: string}
+---@param pattern string
+function BMS:processResourceLine(line, target, pattern)
+	local index, value = line:match(pattern)
+	target[index:upper()] = value
+end
+
+---@param line string
+---@param target {[string]: number?}
+---@param pattern string
+function BMS:processNumberResourceLine(line, target, pattern)
+	local index, value = line:match(pattern)
+	target[index:upper()] = tonumber(value)
 end
 
 ---@param line string
@@ -141,9 +191,67 @@ end
 function BMS:updateMode(channel)
 	local channelExisting = self.channelExisting
 
-    local channelInfo = enums.ChannelEnum[channel]
-    if channelInfo and channelInfo.name == "Note" then
-        channelExisting[channelInfo.channelBase] = true
+	local channelInfo = enums.ChannelEnum[channel]
+	if channelInfo and channelInfo.name == "Note" then
+		channelExisting[channelInfo.channelBase] = true
+	end
+end
+
+---@param measure integer
+---@param message string
+function BMS:processSignature(measure, message)
+	self.signature[measure] = tonumber((message:gsub(",", ".")))
+end
+
+---@param measure integer
+---@param channel string
+---@param message string
+function BMS:updateTempoFlags(measure, channel, message)
+	local channelInfo = enums.ChannelEnum[channel]
+	if
+		(channelInfo.name == "Tempo" or channelInfo.name == "ExtendedTempo") and
+		measure == 0 and
+		message:sub(1, 2) ~= "00"
+	then
+		self.tempoAtStart = true
+		self.hasTempo = true
+	end
+end
+
+---@param measureTime chart.Fraction
+---@return chart.bms.TimeData
+function BMS:getTimeData(measureTime)
+	local measureTimeString = tostring(measureTime)
+	local timeData = self.timePoints[measureTimeString]
+	if timeData then
+		return timeData
+	end
+
+	---@type chart.bms.TimeData
+	timeData = {
+		measureTime = measureTime,
+	}
+	self.timePoints[measureTimeString] = timeData
+	self.timePointCount = self.timePointCount + 1
+
+	return timeData
+end
+
+---@param timeData chart.bms.TimeData
+---@param channel string
+---@return string?
+function BMS:getSetNoteChannel(timeData, channel)
+	local channelInfo = enums.ChannelEnum[channel]
+	for currentChannel in pairs(timeData) do
+		local currentChannelInfo = enums.ChannelEnum[currentChannel]
+		if
+			currentChannelInfo and
+			currentChannelInfo.name == "Note" and
+			channelInfo.inputType == currentChannelInfo.inputType and
+			channelInfo.inputIndex == currentChannelInfo.inputIndex
+		then
+			return currentChannel -- may differ from channel due to different channels for long notes
+		end
 	end
 end
 
@@ -167,19 +275,11 @@ function BMS:processLineData(line)
 	self:updateMode(channel)
 
 	if enums.ChannelEnum[channel].name == "Signature" then
-		self.signature[measure] = tonumber((message:gsub(",", ".")))
+		self:processSignature(measure, message)
 		return
 	end
 
-	if
-		(enums.ChannelEnum[channel].name == "Tempo" or
-		enums.ChannelEnum[channel].name == "ExtendedTempo") and
-		measure == 0 and
-		message:sub(1, 2) ~= "00"
-	then
-		self.tempoAtStart = true
-		self.hasTempo = true
-	end
+	self:updateTempoFlags(measure, channel, message)
 
 	local compound = enums.ChannelEnum[channel].name ~= "BGM"
 	local messageLength = math.floor(#message / 2)
@@ -187,31 +287,9 @@ function BMS:processLineData(line)
 		local value = message:sub(2 * i - 1, 2 * i)
 		if value ~= "00" then
 			local measureTime = Fraction(i - 1, messageLength) + measure
-			local measureTimeString = tostring(measureTime)
+			local timeData = self:getTimeData(measureTime)
 
-			local timeData
-			if self.timePoints[measureTimeString] then
-				timeData = self.timePoints[measureTimeString]
-			else
-				timeData = {}
-				timeData.measureTime = measureTime
-				self.timePoints[measureTimeString] = timeData
-
-				self.timePointCount = self.timePointCount + 1
-			end
-
-			local settedNoteChannel
-			for currentChannel, values in pairs(timeData) do
-				if
-					enums.ChannelEnum[currentChannel] and
-					enums.ChannelEnum[currentChannel].name == "Note" and
-					enums.ChannelEnum[channel].inputType == enums.ChannelEnum[currentChannel].inputType and
-					enums.ChannelEnum[channel].inputIndex == enums.ChannelEnum[currentChannel].inputIndex
-				then
-					settedNoteChannel = currentChannel -- may differs from channel due to different channels for long notes
-					break
-				end
-			end
+			local settedNoteChannel = self:getSetNoteChannel(timeData, channel)
 
 			timeData[channel] = timeData[channel] or {}
 			if compound then
