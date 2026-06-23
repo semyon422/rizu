@@ -1,16 +1,47 @@
 local class = require("class")
 local ffi = require("ffi")
 local bit = require("bit")
-local byte = require("byte_old")
+local byte = require("byte")
 local Fraction = require("chart.core.Fraction")
+
+---@class chart.o2jam.OJNChart
+---@field level integer
+---@field event_count integer
+---@field notes integer
+---@field measure_count integer
+---@field package_count integer
+---@field duration integer
+---@field note_offset integer
+---@field note_offset_end integer
+---@field event_list chart.o2jam.OJNEvent[]
+
+---@class chart.o2jam.OJNEvent
+---@field channel string
+---@field measure integer
+---@field position chart.Fraction
+---@field value number
+---@field type "NONE"|"HOLD"|"RELEASE"
+---@field volume number?
+---@field pan number?
 
 ---@class chart.o2jam.OJN
 ---@operator call: chart.o2jam.OJN
+---@field buffer byte.Buffer
+---@field charts chart.o2jam.OJNChart[]
 local OJN = class()
+
+---@param s string
+---@return byte.Buffer
+local function buffer_from_string(s)
+	local buffer = byte.buffer(#s)
+	buffer:fill(s)
+	buffer:seek(0)
+	return buffer
+end
 
 ---@param ojnString string
 function OJN:new(ojnString)
-	self.buffer = byte.buffer_t(ffi.cast("unsigned char *", ojnString), #ojnString)
+	self.buffer = buffer_from_string(ojnString)
 	self.charts = {{}, {}, {}}
 	self:process()
 	self.buffer = nil
@@ -46,24 +77,24 @@ end
 
 -- https://github.com/SirusDoma/O2MusicList/blob/master/Source/Decoders/OJNDecoder.cs
 
----@return ffi.cdata*
+---@return byte.Buffer
 function OJN:decrypt()
 	local buffer = self.buffer
 	buffer:seek(0)
-	local input = buffer.pointer
+	local input = buffer.ptr
 
 	buffer:seek(3)
-	local blockSize = buffer:uint8()
-	local mainKey = buffer:uint8()
-	local midKey = buffer:uint8()
-	local initialKey = buffer:uint8()
+	local blockSize = buffer:read("u8")
+	local mainKey = buffer:read("u8")
+	local midKey = buffer:read("u8")
+	local initialKey = buffer:read("u8")
 
 	local encryptKeys = ffi.new("uint8_t[?]", blockSize, mainKey)
 	encryptKeys[0] = initialKey
 	encryptKeys[math.floor(blockSize / 2)] = midKey
 
 	local outputBuffer = byte.buffer(buffer.size - buffer.offset)
-	local output = outputBuffer.pointer
+	local output = outputBuffer.ptr
 	for i = 0, tonumber(outputBuffer.size - 1), blockSize do
 		for j = 0, blockSize - 1 do
 			local offset = i + j
@@ -82,60 +113,60 @@ function OJN:readHeader()
 	local buffer = self.buffer
 	buffer:seek(0)
 
-	self.songid = buffer:int32_le()
-	self.signature = buffer:cstring(4)
+	self.songid = buffer:read("i32")
+	self.signature = buffer:string(4, true)
 	assert(self.signature == "ojn", "Invalid OJN signature")
 
-	self.encode_version = buffer:float_le()
-	self.genre = buffer:int32_le()
+	self.encode_version = buffer:read("f32")
+	self.genre = buffer:read("i32")
 	self.str_genre = self.genre_map[(self.genre < 0 or self.genre > 10) and 10 or self.genre]
-	self.bpm = buffer:float_le()
+	self.bpm = buffer:read("f32")
 
 	local charts = self.charts
-	charts[1].level = buffer:int16_le()
-	charts[2].level = buffer:int16_le()
-	charts[3].level = buffer:int16_le()
-	buffer:int16_le()
+	charts[1].level = buffer:read("i16")
+	charts[2].level = buffer:read("i16")
+	charts[3].level = buffer:read("i16")
+	buffer:read("i16")
 
-	charts[1].event_count = buffer:int32_le()
-	charts[2].event_count = buffer:int32_le()
-	charts[3].event_count = buffer:int32_le()
+	charts[1].event_count = buffer:read("i32")
+	charts[2].event_count = buffer:read("i32")
+	charts[3].event_count = buffer:read("i32")
 
-	charts[1].notes = buffer:int32_le()
-	charts[2].notes = buffer:int32_le()
-	charts[3].notes = buffer:int32_le()
+	charts[1].notes = buffer:read("i32")
+	charts[2].notes = buffer:read("i32")
+	charts[3].notes = buffer:read("i32")
 
-	charts[1].measure_count = buffer:int32_le()
-	charts[2].measure_count = buffer:int32_le()
-	charts[3].measure_count = buffer:int32_le()
+	charts[1].measure_count = buffer:read("i32")
+	charts[2].measure_count = buffer:read("i32")
+	charts[3].measure_count = buffer:read("i32")
 
-	charts[1].package_count = buffer:int32_le()
-	charts[2].package_count = buffer:int32_le()
-	charts[3].package_count = buffer:int32_le()
+	charts[1].package_count = buffer:read("i32")
+	charts[2].package_count = buffer:read("i32")
+	charts[3].package_count = buffer:read("i32")
 
-	self.old_encode_version = buffer:int16_le()
-	self.old_songid = buffer:int16_le()
-	self.old_genre = buffer:cstring(20)
-	self.bmp_size = buffer:int32_le()
-	self.file_version = buffer:int32_le()
+	self.old_encode_version = buffer:read("i16")
+	self.old_songid = buffer:read("i16")
+	self.old_genre = buffer:string(20, true)
+	self.bmp_size = buffer:read("i32")
+	self.file_version = buffer:read("i32")
 
-	self.str_title = buffer:cstring(64)
-	self.str_artist = buffer:cstring(32)
-	self.str_noter = buffer:cstring(32)
+	self.str_title = buffer:string(64, true)
+	self.str_artist = buffer:string(32, true)
+	self.str_noter = buffer:string(32, true)
 
-	self.sample_file = buffer:cstring(32)
+	self.sample_file = buffer:string(32, true)
 	self.ojm_file = self.sample_file
 
-	self.cover_size = buffer:int32_le()
+	self.cover_size = buffer:read("i32")
 
-	charts[1].duration = buffer:int32_le()
-	charts[2].duration = buffer:int32_le()
-	charts[3].duration = buffer:int32_le()
+	charts[1].duration = buffer:read("i32")
+	charts[2].duration = buffer:read("i32")
+	charts[3].duration = buffer:read("i32")
 
-	charts[1].note_offset = buffer:int32_le()
-	charts[2].note_offset = buffer:int32_le()
-	charts[3].note_offset = buffer:int32_le()
-	self.cover_offset = buffer:int32_le()
+	charts[1].note_offset = buffer:read("i32")
+	charts[2].note_offset = buffer:read("i32")
+	charts[3].note_offset = buffer:read("i32")
+	self.cover_offset = buffer:read("i32")
 
 	charts[1].note_offset_end = self.charts[2].note_offset
 	charts[2].note_offset_end = self.charts[3].note_offset
@@ -154,7 +185,7 @@ local channel_names = {
 	[8] = "NOTE_7",
 }
 
----@param chart table
+---@param chart chart.o2jam.OJNChart
 function OJN:readChart(chart)
 	local buffer = self.buffer:seek(chart.note_offset)
 
@@ -168,16 +199,16 @@ function OJN:readChart(chart)
 			return
 		end
 
-		local measure = buffer:int32_le()
-		local channel_number = buffer:int16_le()
-		local events_count = buffer:int16_le()
+		local measure = buffer:read("i32")
+		local channel_number = buffer:read("i16")
+		local events_count = buffer:read("i16")
 
 		local channel = channel_names[channel_number] or "AUTO_PLAY"
 
 		for i = 0, events_count - 1 do
 			local position = Fraction(i, events_count)
 			if channel == "BPM_CHANGE" or channel == "TIME_SIGNATURE" then
-				local value = buffer:float_le()
+				local value = buffer:read("f32")
 				if value ~= 0 then
 					table.insert(events, {
 						channel = channel,
@@ -188,9 +219,9 @@ function OJN:readChart(chart)
 					})
 				end
 			else
-				local value = buffer:int16_le()
-				local volume_pan = buffer:int8()
-				local type = buffer:uint8()
+				local value = buffer:read("i16")
+				local volume_pan = buffer:read("i8")
+				local type = buffer:read("u8")
 				if value ~= 0 then
 					local volume = bit.band(bit.rshift(volume_pan, 4), 0x0F) / 16
 					if volume == 0 then volume = 1 end

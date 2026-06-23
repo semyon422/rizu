@@ -1,19 +1,26 @@
 local class = require("class")
-local byte = require("byte_old")
+local byte = require("byte")
 local bit = require("bit")
+local Wave = require("audio.Wave")
 
 ---@class chart.o2jam.OJM
 ---@operator call: chart.o2jam.OJM
+---@field buffer byte.Buffer
+---@field samples {[integer]: string}
 local OJM = class()
 
----@param pointer string|ffi.cdata*
----@param size number?
-function OJM:new(pointer, size)
-	if type(pointer) == "string" then
-		self.buffer = byte.buffer(#pointer):fill(pointer):seek(0)
-	else
-		self.buffer = byte.buffer_t(pointer, size)
-	end
+---@param s string
+---@return byte.Buffer
+local function buffer_from_string(s)
+	local buffer = byte.buffer(#s)
+	buffer:fill(s)
+	buffer:seek(0)
+	return buffer
+end
+
+---@param data string
+function OJM:new(data)
+	self.buffer = buffer_from_string(data)
 
 	self.samples = {}
 	self.acc_keybyte = 0xFF
@@ -70,7 +77,7 @@ OJM.REARRANGE_TABLE = {
 }
 
 function OJM:process()
-	self.signature = self.buffer:uint32_le()
+	self.signature = self.buffer:read("u32")
 
 	if self.signature == self.M30_SIGNATURE then
 		self:parseM30()
@@ -84,12 +91,12 @@ end
 function OJM:parseM30()
 	local buffer = self.buffer
 
-	local file_format_version = buffer:int32_le()
-	local encryption_flag = buffer:int32_le()
-	local sample_count = buffer:int32_le()
-	local sample_offset = buffer:int32_le()
-	local payload_size = buffer:int32_le()
-	local padding = buffer:int32_le()
+	local file_format_version = buffer:read("i32")
+	local encryption_flag = buffer:read("i32")
+	local sample_count = buffer:read("i32")
+	local sample_offset = buffer:read("i32")
+	local payload_size = buffer:read("i32")
+	local padding = buffer:read("i32")
 
 	assert(buffer.offset == sample_offset)
 
@@ -98,19 +105,19 @@ function OJM:parseM30()
 			break
 		end
 
-		local sample_name = buffer:cstring(32)
+		local sample_name = buffer:string(32, true)
 
 		if not sample_name:find(".") then sample_name = sample_name .. ".ogg" end
 
-		local sample_size = buffer:int32_le()
+		local sample_size = buffer:read("i32")
 
-		local codec_code = buffer:int16_le()
-		local codec_code2 = buffer:int16_le()
+		local codec_code = buffer:read("i16")
+		local codec_code2 = buffer:read("i16")
 
-		local music_flag = buffer:int32_le()
-		local ref = buffer:int16_le()
-		local unk_zero = buffer:int16_le()
-		local pcm_samples = buffer:int32_le()
+		local music_flag = buffer:read("i32")
+		local ref = buffer:read("i16")
+		local unk_zero = buffer:read("i16")
+		local pcm_samples = buffer:read("i32")
 
 		if encryption_flag == 0 then
 		elseif encryption_flag == 16 then
@@ -131,7 +138,7 @@ end
 
 function OJM:M30_xor(mask, length)
 	local buffer = self.buffer
-	local pointer = buffer.pointer + buffer.offset
+	local pointer = buffer.ptr + buffer.offset
 	for i = 0, length - 4, 4 do
 		pointer[i + 0] = bit.bxor(pointer[i + 0], mask[1])
 		pointer[i + 1] = bit.bxor(pointer[i + 1], mask[2])
@@ -145,11 +152,11 @@ function OJM:parseOMC(decrypt)
 
 	buffer:seek(4)
 
-	local unk1 = buffer:int16_le()
-	local unk2 = buffer:int16_le()
-	local wav_start = buffer:int32_le()
-	local ogg_start = buffer:int32_le()
-	local filesize = buffer:int32_le()
+	local unk1 = buffer:read("i16")
+	local unk2 = buffer:read("i16")
+	local wav_start = buffer:read("i32")
+	local ogg_start = buffer:read("i32")
+	local filesize = buffer:read("i32")
 
 	local file_offset = 20
 	local sample_id = 0
@@ -161,39 +168,23 @@ function OJM:parseOMC(decrypt)
 		buffer:seek(file_offset)
 		file_offset = file_offset + 56
 
-		local sample_name = buffer:cstring(32)
+		local sample_name = buffer:string(32, true)
 
 		if not sample_name:find(".") then sample_name = sample_name .. ".wav" end
 
-		local audio_format = buffer:int16_le()
-		local num_channels = buffer:int16_le()
-		local sample_rate = buffer:int32_le()
-		local bit_rate = buffer:int32_le()
-		local block_align = buffer:int16_le()
-		local bits_per_sample = buffer:int16_le()
-		local data = buffer:int32_le()
-		local chunk_size = buffer:int32_le()
+		local audio_format = buffer:read("i16")
+		local num_channels = buffer:read("i16")
+		local sample_rate = buffer:read("i32")
+		local bit_rate = buffer:read("i32")
+		local block_align = buffer:read("i16")
+		local bits_per_sample = buffer:read("i16")
+		local data = buffer:read("i32")
+		local chunk_size = buffer:read("i32")
 
 		if chunk_size == 0 then
 			sample_id = sample_id + 1
 		else
-			local headerTable = {
-				"RIFF", -- ChunkID
-				byte.int32_to_string_le(44 + chunk_size - 8), -- ChunkSize
-				"WAVE", -- Format
-				"fmt ", -- Subchunk1ID
-				byte.int32_to_string_le(16), -- Subchunk1Size
-				byte.int16_to_string_le(audio_format), -- AudioFormat
-				byte.int16_to_string_le(num_channels), -- NumChannels
-				byte.int32_to_string_le(sample_rate), -- SampleRate
-				byte.int32_to_string_le(sample_rate * num_channels * bits_per_sample / 8), -- ByteRate
-				byte.int16_to_string_le(block_align), -- BlockAlign
-				byte.int16_to_string_le(bits_per_sample), -- BitsPerSample
-				"data", -- Subchunk2ID
-				byte.int32_to_string_le(chunk_size) -- Subchunk2Size
-			}
-			local headerString = table.concat(headerTable)
-			assert(#headerString == 44)
+			local headerString = Wave.encodeHeader(num_channels, sample_rate, bits_per_sample / 8, chunk_size, audio_format)
 
 			file_offset = file_offset + chunk_size
 
@@ -218,11 +209,11 @@ function OJM:parseOMC(decrypt)
 		buffer:seek(file_offset)
 		file_offset = file_offset + 36
 
-		local sample_name = buffer:cstring(32)
+		local sample_name = buffer:string(32, true)
 
 		if not sample_name:find(".") then sample_name = sample_name .. ".ogg" end
 
-		local sample_size = buffer:int32_le()
+		local sample_size = buffer:read("i32")
 
 		if sample_size == 0 then
 			sample_id = sample_id + 1
@@ -246,7 +237,7 @@ function OJM:rearrange(buf, buffer)
 		local block_start_plain = block_size * self.REARRANGE_TABLE[key + 1]
 
 		for i = 0, block_size - 1 do
-			buf.pointer[block_start_plain + i] = buffer.pointer[buffer.offset + block_start_encoded + i]
+			buf.ptr[block_start_plain + i] = buffer.ptr[buffer.offset + block_start_encoded + i]
 		end
 
 		key = key + 1
@@ -257,14 +248,14 @@ function OJM:OMC_xor(buf)
 	local temp
 	local this_byte
 	for i = 0, tonumber(buf.size) - 1 do
-		temp = buf.pointer[i]
-		this_byte = buf.pointer[i]
+		temp = buf.ptr[i]
+		this_byte = buf.ptr[i]
 
 		if bit.band(bit.lshift(self.acc_keybyte, self.acc_counter), 0x80) ~= 0 then
 			this_byte = bit.band(bit.bnot(this_byte), 0xff)
 		end
 
-		buf.pointer[i] = this_byte
+		buf.ptr[i] = this_byte
 		self.acc_counter = self.acc_counter + 1
 		if self.acc_counter > 7 then
 			self.acc_counter = 0

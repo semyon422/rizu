@@ -64,7 +64,7 @@ local loadOjm = thread.async(function(path)
 		return false, err
 	end
 
-	local ojm = OJM(fileData:getFFIPointer(), fileData:getSize())
+	local ojm = OJM(fileData:getString())
 	local soundDatas = {}
 
 	for sampleIndex, sampleData in pairs(ojm.samples) do
