@@ -49,6 +49,19 @@ local function splitTitle(title)
 	return title:sub(1, bracketStart - 1), name
 end
 
+---@param value string?
+---@return number?
+local function parseInlineTempo(value)
+	if not value then
+		return nil
+	end
+	local tempo = tonumber(value, 16)
+	if not tempo then
+		return nil
+	end
+	return math.abs(tempo)
+end
+
 ---@class chart.bms.ChartDecoder: chart.IChartDecoder
 ---@operator call: chart.bms.ChartDecoder
 ---@field bms chart.bms.BMS
@@ -64,6 +77,7 @@ end
 ---@field totalLength number
 ---@field minTime number
 ---@field maxTime number
+---@field hash string?
 local ChartDecoder = IChartDecoder + {}
 
 local encodings = {
@@ -202,7 +216,8 @@ function ChartDecoder:setInputMode()
 end
 
 function ChartDecoder:addFirstTempo()
-	if not self.bms.tempoAtStart and self.bms.baseTempo then
+	local startTimeData = self.bms.timePoints[tostring(Fraction(0))]
+	if not self:hasValidTempoAtStart(startTimeData) and self.bms.baseTempo then
 		local point = self.layer:getPoint(Fraction(0))
 		point._tempo = Tempo(self.bms.baseTempo)
 		self.visual:getPoint(point)
@@ -210,14 +225,33 @@ function ChartDecoder:addFirstTempo()
 	end
 end
 
+---@param timeData chart.bms.TimeData?
+---@return boolean
+function ChartDecoder:hasValidTempoAtStart(timeData)
+	if not timeData then
+		return false
+	end
+
+	local extendedTempoData = timeData[enums.BackChannelEnum["ExtendedTempo"]]
+	if extendedTempoData and self.bms.bpm[extendedTempoData[1]] then
+		return true
+	end
+
+	local tempoData = timeData[enums.BackChannelEnum["Tempo"]]
+	return parseInlineTempo(tempoData and tempoData[1]) ~= nil
+end
+
 ---@param timeData chart.bms.TimeData
 function ChartDecoder:setTempo(timeData)
 	if not timeData[enums.BackChannelEnum["Tempo"]] then
 		return
 	end
-	local tempo = tonumber(timeData[enums.BackChannelEnum["Tempo"]][1], 16)
+	local tempo = parseInlineTempo(timeData[enums.BackChannelEnum["Tempo"]][1])
+	if not tempo then
+		return
+	end
 	local point = self.layer:getPoint(timeData.measureTime)
-	point._tempo = Tempo(math.abs(tempo))
+	point._tempo = Tempo(tempo)
 	self.visual:getPoint(point)
 	self.visualBga:getPoint(point)
 end

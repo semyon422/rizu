@@ -94,6 +94,18 @@ function test.decode_mine_and_invisible_lane_conflict(t)
 end
 
 ---@param t testing.T
+function test.decode_ignores_invalid_start_tempo_markers(t)
+	local decoded = ChartDecoder():decode(Fixtures.basic({
+		"#00003:GG",
+		"#00008:AA",
+		"#00111:01",
+	}), hash)
+
+	t:eq(decoded[1].chartmeta.tempo, 120)
+	t:eq(decoded[1].chart.inputMode.key, 5)
+end
+
+---@param t testing.T
 function test.decode_pms_uses_pms_mode(t)
 	local decoded = PmsChartDecoder():decode(Fixtures.basic({
 		"#00124:01",
