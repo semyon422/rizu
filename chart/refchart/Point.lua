@@ -4,7 +4,7 @@ local class = require("class")
 ---@operator call: refchart.Point
 ---@field time number
 ---@field tempo number?
----@field measure {[1]: integer, [2]: integer}?
+---@field measure chart.Fraction?
 local Point = class()
 
 ---@param p chart.AbsolutePoint

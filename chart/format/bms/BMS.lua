@@ -3,6 +3,9 @@ local string_util = require("string_util")
 local Fraction = require("chart.core.Fraction")
 local enums = require("chart.format.bms.enums")
 
+local exactSignatureDenominatorLimit = 10000
+local fallbackSignatureDenominatorLimit = 192
+
 ---@class chart.bms.TimeData
 ---@field measureTime chart.Fraction
 ---@field [string] string[]?
@@ -14,7 +17,7 @@ local enums = require("chart.format.bms.enums")
 ---@field bpm {[string]: number?}
 ---@field bmp {[string]: string}
 ---@field stop {[string]: number?}
----@field signature {[integer]: number?}
+---@field signature {[integer]: chart.Fraction?}
 ---@field inputExisting table
 ---@field channelExisting {[string]: boolean}
 ---@field timePointLimit integer
@@ -42,7 +45,7 @@ function BMS:new()
 	self.bmp = {}
 	---@type {[string]: number?}
 	self.stop = {}
-	---@type {[integer]: number?}
+	---@type {[integer]: chart.Fraction?}
 	self.signature = {}
 
 	self.inputExisting = {}
@@ -60,6 +63,51 @@ function BMS:new()
 	self.timePoints = {}
 	---@type chart.bms.TimeData[]
 	self.timeList = {}
+end
+
+---@param value string
+---@return chart.Fraction?
+local function parseDecimalFraction(value)
+	local sign, integer, decimal = value:gsub(",", "."):match("^([+-]?)(%d*)%.?(%d*)$")
+	if not sign or integer == "" and decimal == "" then
+		return nil
+	end
+
+	local denominator = 10 ^ #decimal
+	local numerator = tonumber(integer == "" and "0" or integer) * denominator + tonumber(decimal == "" and "0" or decimal)
+	if sign == "-" then
+		numerator = -numerator
+	end
+
+	return Fraction(numerator, denominator)
+end
+
+---@param value string
+---@return chart.Fraction?
+local function parseSignature(value)
+	local exact = parseDecimalFraction(value)
+	if not exact then
+		return nil
+	end
+	if exact <= Fraction(0) then
+		return nil
+	end
+
+	local signature = exact * 4
+	if signature[2] <= exactSignatureDenominatorLimit then
+		return signature
+	end
+
+	local number = tonumber((value:gsub(",", ".")))
+	if number <= 0 then
+		return nil
+	end
+
+	signature = Fraction(number, fallbackSignatureDenominatorLimit, "round")
+	if signature == Fraction(0) and number ~= 0 then
+		signature = Fraction(1, fallbackSignatureDenominatorLimit)
+	end
+	return signature * 4
 end
 
 ---@param noteChartString string
@@ -200,7 +248,10 @@ end
 ---@param measure integer
 ---@param message string
 function BMS:processSignature(measure, message)
-	self.signature[measure] = tonumber((message:gsub(",", ".")))
+	local signature = parseSignature(message)
+	if signature then
+		self.signature[measure] = signature
+	end
 end
 
 ---@param measure integer

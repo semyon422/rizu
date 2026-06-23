@@ -1,5 +1,6 @@
 local IntervalAbsolute = require("chart.model.convert.IntervalAbsolute")
 local IntervalLayer = require("chart.model.layers.IntervalLayer")
+local IntervalPoint = require("chart.model.tp.IntervalPoint")
 local Vertex = require("chart.model.to.Interval")
 local Measure = require("chart.model.to.Measure")
 local Fraction = require("chart.core.Fraction")
@@ -105,6 +106,21 @@ function test.measure_on_vertex(t)
 	t:eq(p0:getBeatModulo(), 0.25)
 	t:eq(p05:getBeatModulo(), 0.75)
 	t:eq(p2:getBeatModulo(), 0.25)
+end
+
+---@param t testing.T
+function test.invalid_fraction_time_errors(t)
+	local conv = IntervalAbsolute()
+	local fraction_mt = getmetatable(Fraction(0))
+
+	local p = IntervalPoint(setmetatable({2220394914790230.75, 1}, fraction_mt))
+	p._measure = Measure(Fraction(0))
+	p.measure = p._measure
+	p.absoluteTime = 1
+
+	t:eq(t:has_error(function()
+		conv:convertPoints({p})
+	end), "invalid numerator: 2220394914790230.75")
 end
 
 return test

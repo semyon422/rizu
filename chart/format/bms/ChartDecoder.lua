@@ -310,9 +310,9 @@ function ChartDecoder:processData()
 	local layer = self.layer
 	local chart = self.chart
 
-	for measureIndex, value in pairs(self.bms.signature) do
+	for measureIndex, signature in pairs(self.bms.signature) do
 		local point = layer:getPoint(Fraction(measureIndex))
-		point._signature = Signature(Fraction(value * 4, 1000, "closest"))
+		point._signature = Signature(signature)
 		self.visual:getPoint(point)
 		self.visualBga:getPoint(point)
 		local next_point = layer:getPoint(Fraction(measureIndex + 1))

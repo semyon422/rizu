@@ -22,6 +22,7 @@ The parser intentionally keeps several legacy behaviors:
 - Invalid numeric resource values such as `#BPMAA nope` and `#STOPAA nope` are stored as absent values.
 - Invalid inline tempo data and invalid extended tempo references are ignored during decode.
 - If measure zero contains only unusable tempo markers, the base BPM is still inserted.
+- Positive `#xxx02` meter values are first parsed as exact decimals and converted to beats per measure. Exact values with denominator `<= 10000` are preserved, so intentional finite decimal meters such as `0.40921875` become `13095/8000` beats. Larger exact denominators are treated as repeating-decimal noise and approximated on a fixed `1/192` meter grid, so values such as `1.29166666666667` become `31/24` meter (`31/6` beats). Non-positive meter values are ignored because the chart model cannot represent zero-duration or negative-duration measures.
 - `LNOBJ` and long-note channels keep the legacy pairing behavior, including replacing conflicting lane data at the same time point.
 - A long-note channel value matching `LNOBJ` closes an open normal note on the same base lane. Some real charts encode long notes as a normal-channel head and a long-channel `LNOBJ` tail.
 - PMS mode is selected by `PmsChartDecoder` setting `bms.pms` before import.

@@ -156,6 +156,13 @@ function Fraction:new(n, d, round)
 	end
 
 	n, d = reduce(n, d)
+	if d % 1 ~= 0 or d == 0 then
+		error(("invalid denominator: %0.20g"):format(d))
+	end
+	if n % 1 ~= 0 then
+		error(("invalid numerator: %0.20g"):format(n))
+	end
+
 	local key = get_key(n, d)
 	local f = fractions[key]
 	if f then

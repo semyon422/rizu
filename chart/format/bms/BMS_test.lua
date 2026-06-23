@@ -1,5 +1,6 @@
 local BMS = require("chart.format.bms.BMS")
 local Fixtures = require("chart.format.bms.TestFixtures")
+local Fraction = require("chart.core.Fraction")
 
 local test = {}
 
@@ -43,7 +44,7 @@ function test.timing_and_line_data(t)
 		"#00211:010",
 	}))
 
-	t:eq(bms.signature[0], 1.5)
+	t:eq(bms.signature[0], Fraction(6))
 	t:eq(bms.tempoAtStart, true)
 	t:eq(bms.measureCount, 999)
 	t:eq(#bms.timeList, 4)
@@ -54,6 +55,31 @@ function test.timing_and_line_data(t)
 	t:tdeq(bms.timeList[2]["01"], {"01"})
 	t:tdeq(bms.timeList[3]["01"], {"02"})
 	t:eq(bms.timeList[4]["11"][1], "01")
+end
+
+---@param t testing.T
+function test.signature_decimal_values_are_approximated_with_simple_denominators(t)
+	local bms = parse(Fixtures.join({
+		"#04802:0.500375",
+		"#09202:0.625375",
+		"#09302:0.75025",
+		"#13502:0.40921875",
+		"#14602:0.00025",
+		"#15002:0.78125",
+		"#15102:1.29166666666667",
+		"#15202:0",
+		"#15302:-1",
+	}))
+
+	t:eq(bms.signature[48], Fraction(4003, 2000))
+	t:eq(bms.signature[92], Fraction(5003, 2000))
+	t:eq(bms.signature[93], Fraction(3001, 1000))
+	t:eq(bms.signature[135], Fraction(13095, 8000))
+	t:eq(bms.signature[146], Fraction(1, 1000))
+	t:eq(bms.signature[150], Fraction(25, 8))
+	t:eq(bms.signature[151], Fraction(31, 6))
+	t:eq(bms.signature[152], nil)
+	t:eq(bms.signature[153], nil)
 end
 
 ---@param t testing.T

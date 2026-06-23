@@ -108,6 +108,10 @@ function test.basic(t)
 		t:has_error(Fraction, 1, 0),
 		"invalid denominator: 0"
 	)
+	t:eq(
+		t:has_error(Fraction, {2220394914790230.75, 1}),
+		"invalid numerator: 2220394914790230.75"
+	)
 end
 
 return test

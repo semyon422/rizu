@@ -1,6 +1,7 @@
 local ChartDecoder = require("chart.format.bms.ChartDecoder")
 local PmsChartDecoder = require("chart.format.bms.PmsChartDecoder")
 local Fixtures = require("chart.format.bms.TestFixtures")
+local Fraction = require("chart.core.Fraction")
 
 local test = {}
 
@@ -138,6 +139,17 @@ function test.decode_ignores_invalid_start_tempo_markers(t)
 
 	t:eq(decoded[1].chartmeta.tempo, 120)
 	t:eq(decoded[1].chart.inputMode.key, 5)
+end
+
+---@param t testing.T
+function test.decode_uses_bounded_signature_decimal(t)
+	local decoded = ChartDecoder():decode(Fixtures.basic({
+		"#00002:0.500375",
+	}), hash)
+
+	local point = decoded[1].chart.layers.main:getPoint(Fraction(0))
+
+	t:eq(point._signature.signature, Fraction(4003, 2000))
 end
 
 ---@param t testing.T
