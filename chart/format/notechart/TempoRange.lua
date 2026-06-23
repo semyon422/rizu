@@ -34,7 +34,7 @@ function TempoRange:find(chart, minTime, maxTime)
 	end
 
 	local longestDuration = 0
-	local average, minimum, maximum = 1, 1, 1
+	local average, minimum, maximum
 
 	for tempo, duration in pairs(durations) do
 		if duration > longestDuration then
@@ -49,7 +49,7 @@ function TempoRange:find(chart, minTime, maxTime)
 		end
 	end
 
-	return average, minimum, maximum
+	return average or 1, minimum or 1, maximum or 1
 end
 
 return TempoRange
