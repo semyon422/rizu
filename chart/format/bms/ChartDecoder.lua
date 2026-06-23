@@ -369,7 +369,19 @@ function ChartDecoder:processData()
 					elseif channelInfo.mine then
 						note.type = "mine"
 					elseif channelInfo.long then
-						if not longNoteData[channelIndex] then
+						local baseChannelIndex = channelInfo.channelBase
+						if
+							baseChannelIndex and
+							longNoteData[baseChannelIndex] and
+							value == self.bms.lnobj
+						then
+							longNoteData[baseChannelIndex].type = "hold"
+							longNoteData[baseChannelIndex].weight = 1
+							note.type = "hold"
+							note.weight = -1
+							note.data.sounds = {}
+							longNoteData[baseChannelIndex] = nil
+						elseif not longNoteData[channelIndex] then
 							note.type = "hold"
 							note.weight = 1
 							longNoteData[channelIndex] = note

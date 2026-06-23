@@ -75,6 +75,41 @@ function test.decode_lnobj_hold(t)
 end
 
 ---@param t testing.T
+function test.decode_lnobj_tail_on_long_channel(t)
+	local decoded = ChartDecoder():decode(Fixtures.basic({
+		"#LNOBJ ZZ",
+		"#00113:01",
+		"#00153:00ZZ",
+		"#00213:01",
+		"#00253:00ZZ",
+	}), hash)
+	local chart = decoded[1].chart
+
+	local holds = {}
+	for _, note in ipairs(chart.notes.notes) do
+		if note.column == "key3" and note.type == "hold" then
+			holds[#holds + 1] = note
+		end
+	end
+
+	table.sort(holds, function(a, b)
+		return a:getTime() < b:getTime()
+	end)
+
+	t:eq(#holds, 4)
+	t:eq(holds[1].weight, 1)
+	t:eq(holds[1].data.sounds[1][1], "hit.wav")
+	t:aeq(holds[1]:getTime(), 2, 0.0001)
+	t:eq(holds[2].weight, -1)
+	t:eq(#holds[2].data.sounds, 0)
+	t:aeq(holds[2]:getTime(), 3, 0.0001)
+	t:eq(holds[3].weight, 1)
+	t:aeq(holds[3]:getTime(), 4, 0.0001)
+	t:eq(holds[4].weight, -1)
+	t:aeq(holds[4]:getTime(), 5, 0.0001)
+end
+
+---@param t testing.T
 function test.decode_mine_and_invisible_lane_conflict(t)
 	local decoded = ChartDecoder():decode(Fixtures.basic({
 		"#001D1:01",

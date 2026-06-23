@@ -23,6 +23,7 @@ The parser intentionally keeps several legacy behaviors:
 - Invalid inline tempo data and invalid extended tempo references are ignored during decode.
 - If measure zero contains only unusable tempo markers, the base BPM is still inserted.
 - `LNOBJ` and long-note channels keep the legacy pairing behavior, including replacing conflicting lane data at the same time point.
+- A long-note channel value matching `LNOBJ` closes an open normal note on the same base lane. Some real charts encode long notes as a normal-channel head and a long-channel `LNOBJ` tail.
 - PMS mode is selected by `PmsChartDecoder` setting `bms.pms` before import.
 
 Base tempo behavior is compatibility-sensitive. A valid `#BPM` header becomes chart metadata tempo and the initial tempo when no valid measure-zero tempo is present. If no tempo is found at all, `BMS` falls back to its `primaryTempo`.
