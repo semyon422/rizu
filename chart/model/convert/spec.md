@@ -14,4 +14,6 @@ Players and library scanners should get stable chart timing for decoded charts. 
 
 Known inaccuracy: dense or extreme absolute timing can produce large note-time deltas after `AbsoluteLayer:toInterval()`. The `bms_huge_tempo` fixture is a useful stress case: decoding is valid and direct `MeasureLayer:toInterval()` preserves notes, but forcing `MeasureLayer -> AbsoluteLayer -> IntervalLayer` can merge/quantize many dense timing points and move notes by over a second.
 
+The `bms_abs_int_test` fixtures are smaller examples of the same tradeoff. Normal BMS decode, direct `MeasureLayer:toInterval()`, `MeasureLayer:toAbsolute()`, editor converter round trip, `computeBase`, and fake replay all pass. Forced `AbsoluteLayer:toInterval()` still moves notes: `_ TRAINING.bme` moves 9 notes by up to about 7.3 ms, and `_r2_rather.bme` moves 242 notes by up to about 13.9 ms.
+
 Future improvements should make this tradeoff explicit. Possible directions include preserving exact absolute offsets for dense regions, selecting finer denominators locally, lowering merge tolerance only where needed, or making lossy conversion opt-in for editor-friendly cleanup. Any change here should include regression tests that compare note times before and after conversion for dense timing fixtures.
