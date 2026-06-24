@@ -4,6 +4,7 @@ local gfx_util = require("gfx_util")
 local flux = require("flux")
 local delay = require("delay")
 local Path = require("Path")
+local ImageDataDecoder = require("ImageDataDecoder")
 
 ---@class sphere.BackgroundModel
 ---@operator call: sphere.BackgroundModel
@@ -28,9 +29,9 @@ function BackgroundModel:load()
 	self.defaultImages = {}
 	for _, item in ipairs(dir) do
 		local path = defaultBackgroundsPath .. "/" .. item
-		local status, imageData = pcall(love.image.newImageData, path)
+		local imageData = ImageDataDecoder.decodePath(path)
 
-		if status then
+		if imageData then
 			local image = love.graphics.newImage(imageData)
 			table.insert(self.defaultImages, image)
 		end
@@ -202,22 +203,21 @@ end
 local loadImage = thread.async(function(path)
 	require("love.filesystem")
 	require("love.image")
+	local ImageDataDecoder = require("ImageDataDecoder")
 
 	local info = love.filesystem.getInfo(path)
 	if not info then
 		return
 	end
 
-	local status, imageData = pcall(love.image.newImageData, path)
-	if status then
-		return imageData
-	end
+	return ImageDataDecoder.decodePath(path)
 end)
 
 local loadOJN = thread.async(function(path)
 	require("love.filesystem")
 	require("love.image")
 	local OJN = require("chart.format.o2jam.OJN")
+	local ImageDataDecoder = require("ImageDataDecoder")
 
 	local content = love.filesystem.read(path)
 	if not content then
@@ -230,10 +230,7 @@ local loadOJN = thread.async(function(path)
 	end
 
 	local fileData = love.filesystem.newFileData(ojn.cover, "cover")
-	local status, imageData = pcall(love.image.newImageData, fileData)
-	if status then
-		return imageData
-	end
+	return ImageDataDecoder.decodeFileData(fileData, path .. ":cover")
 end)
 
 local loadHttp = thread.async(function(url)
@@ -245,11 +242,9 @@ local loadHttp = thread.async(function(url)
 
 	require("love.filesystem")
 	require("love.image")
+	local ImageDataDecoder = require("ImageDataDecoder")
 	local fileData = love.filesystem.newFileData(body, "cover")
-	local status, imageData = pcall(love.image.newImageData, fileData)
-	if status then
-		return imageData
-	end
+	return ImageDataDecoder.decodeFileData(fileData, url)
 end)
 
 ---@param path string

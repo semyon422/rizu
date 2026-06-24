@@ -29,9 +29,8 @@ end
 
 local newImageDataAsync = thread.async(function(s)
 	require("love.image")
-	local status, err = pcall(love.image.newImageData, s)
-	if not status then return end
-	return err
+	local ImageDataDecoder = require("ImageDataDecoder")
+	return ImageDataDecoder.decodePath(s)
 end)
 
 ---@param s string

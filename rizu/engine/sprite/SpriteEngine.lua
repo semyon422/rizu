@@ -1,4 +1,5 @@
 local class = require("class")
+local ImageDataDecoder = require("ImageDataDecoder")
 
 ---@class rizu.sprite.SpriteEngine
 ---@operator call: rizu.sprite.SpriteEngine
@@ -17,8 +18,10 @@ function SpriteEngine:load(image_names, resources)
 		local content = resources[name]
 		if content then
 			local fileData = love.filesystem.newFileData(content, tostring(name))
-			local imageData = love.image.newImageData(fileData)
-			self.images[name] = love.graphics.newImage(imageData)
+			local imageData = ImageDataDecoder.decodeFileData(fileData, tostring(name))
+			if imageData then
+				self.images[name] = love.graphics.newImage(imageData)
+			end
 		end
 	end
 end
