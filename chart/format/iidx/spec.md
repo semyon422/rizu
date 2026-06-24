@@ -20,5 +20,7 @@ Provide read-only beatmania IIDX chart support for game `data` folders by parsin
 - `.2dx` gameplay keysound banks are selected from `music_data.bin` variation ident bytes when metadata is available. Ident byte `"0"` maps to `<song_id>.2dx`; other ident bytes map to `<song_id><ident>.2dx`, for example `"a"` maps to `<song_id>a.2dx`.
 - When decoding without metadata, `.2dx` gameplay resources are omitted. Standalone `.1` decoding remains usable for chart structure, but keysound playback requires `music_data.bin` context.
 - `<song_id>_pre.2dx` is preview audio and is not used as a gameplay keysound bank.
-- BGA remains out of scope for now.
+- Metadata `bga_filename` entries are imported as BMS-style BGA sprite notes on a dedicated `bga` visual at chart load. IIDX filenames are usually extensionless movie stems, so the decoder stores them as `.mp4` image resources; the resource finder may still resolve another video extension such as `.wmv` by stem.
+- Metadata `bga_delay` is interpreted as a 60 fps frame offset. Negative values place the BGA note before chart time zero so video playback starts already advanced at song start.
+- IIDX gameplay/editor/preview resource loading includes the content-level `movie` directory in addition to the song `sound/*.ifs` archive when a chart comes from an IIDX location.
 - Metadata from the newest/highest-version `music_data.bin` is preferred, with older metadata folders filling missing song IDs.

@@ -19,6 +19,7 @@ local TestFixtures = {}
 ---@field levels integer[]?
 ---@field volume integer?
 ---@field idents integer[]?
+---@field bga_delay integer?
 ---@field bga_filename string?
 
 ---@type {[chart.iidx.VariationName]: integer}
@@ -259,7 +260,9 @@ local function music_entry(song)
 	b:write("u32", song.volume or 100)
 	out[#out + 1] = buffer_string(b, 8)
 	out[#out + 1] = u8s(song.idents or {48, 48, 48, 48, 48, 48, 48, 48, 48, 48})
-	out[#out + 1] = string.rep("\0", 2)
+	local bga_delay = buffer(2)
+	bga_delay:write("i16", song.bga_delay or 0)
+	out[#out + 1] = buffer_string(bga_delay, 2)
 	out[#out + 1] = fixed(song.bga_filename, 0x20)
 	out[#out + 1] = string.rep("\0", 4)
 	out[#out + 1] = string.rep("\0", 0x20 * 10)

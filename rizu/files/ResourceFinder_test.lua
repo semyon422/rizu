@@ -107,6 +107,19 @@ function test.exact_path_with_wrong_extension_does_not_match_explicit_format(t)
 end
 
 ---@param t testing.T
+function test.extension_infers_format_before_explicit_type(t)
+	local fs = FakeFilesystem()
+	local rf = ResourceFinder(fs)
+
+	fs:createDirectory("dir")
+	fs:write("dir/01234.mp4", "")
+
+	rf:addPath("dir")
+
+	t:eq(rf:findFile("01234.mp4", "image"), "dir/01234.mp4")
+end
+
+---@param t testing.T
 function test.exact_match_priority_across_paths(t)
 	local fs = FakeFilesystem()
 	local rf = ResourceFinder(fs)

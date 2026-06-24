@@ -5,6 +5,7 @@ local AudioPreviewPlayer = require("rizu.preview.AudioPreviewPlayer")
 local BgaPreviewPlayer = require("rizu.preview.BgaPreviewPlayer")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
 local ChartfileReader = require("rizu.library.ChartfileReader")
+local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
 
 ---@class rizu.preview.PreviewModel
 ---@operator call: rizu.preview.PreviewModel
@@ -20,6 +21,22 @@ PreviewModel.manual_time = 0
 local function get_preview_resource_dir(chartview)
 	local archive_path = chartview.location_path and ChartfileReader.splitArchivePath(chartview.location_path)
 	return archive_path or chartview.location_dir
+end
+
+---@param chartview table
+---@param fs fs.IFilesystem
+---@return string[]
+local function get_bga_preview_resource_paths(chartview, fs)
+	local paths = {}
+	local resource_dir = get_preview_resource_dir(chartview)
+	if resource_dir then
+		paths[#paths + 1] = resource_dir
+	end
+	local movie_path = IidxResourcePaths.getMoviePath(chartview, fs)
+	if movie_path then
+		paths[#paths + 1] = movie_path
+	end
+	return paths
 end
 
 ---@param hash string
@@ -280,7 +297,12 @@ function PreviewModel:loadPreview()
 		if bga_exists and self.loaded_hash ~= hash then
 			self.loaded_hash = hash
 			local LoveFilesystem = require("fs.LoveFilesystem")
-			self.bgaPreviewPlayer:load(bga_preview_path, self.chartview.location_dir, LoveFilesystem())
+			local fs = LoveFilesystem()
+			self.bgaPreviewPlayer:load(
+				bga_preview_path,
+				get_bga_preview_resource_paths(self.chartview, fs),
+				fs
+			)
 			self.bgaPreviewPlayer:seek(self:getTime())
 		end
 

@@ -1,4 +1,5 @@
 local EditorLoadControllerService = require("rizu.editor.controller.EditorLoadControllerService")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
@@ -35,6 +36,30 @@ function test.resource_paths_follow_priority_setting(t)
 	t:tdeq(service:getResourcePaths(createConfigModel(false), chartview, noteSkin), {
 		"chart/path",
 		"skin/path",
+		"userdata/hitsounds",
+		"userdata/hitsounds/midi",
+	})
+end
+
+---@param t testing.T
+function test.iidx_resource_paths_include_movie_directory(t)
+	local service = EditorLoadControllerService()
+	local fs = FakeFilesystem()
+	fs:createDirectory("data")
+	fs:createDirectory("data/movie")
+	local chartview = {
+		format = "iidx",
+		location_prefix = "data",
+		location_dir = "data/sound/01234.ifs",
+	}
+	local noteSkin = {
+		directoryPath = "skin/path",
+	}
+
+	t:tdeq(service:getResourcePaths(createConfigModel(false), chartview, noteSkin, fs), {
+		"data/sound/01234.ifs",
+		"skin/path",
+		"data/movie",
 		"userdata/hitsounds",
 		"userdata/hitsounds/midi",
 	})

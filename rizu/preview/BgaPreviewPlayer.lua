@@ -37,9 +37,9 @@ local function _findBgaIndex(notes, time)
 end
 
 ---@param preview_path string
----@param chart_dir string
+---@param chart_dirs string|string[]
 ---@param fs fs.IFilesystem
-function BgaPreviewPlayer:load(preview_path, chart_dir, fs)
+function BgaPreviewPlayer:load(preview_path, chart_dirs, fs)
 	self:stop()
 
 	local data = fs:read(preview_path)
@@ -56,7 +56,14 @@ function BgaPreviewPlayer:load(preview_path, chart_dir, fs)
 	end
 
 	local finder = ResourceFinder(fs)
-	finder:addPath(chart_dir)
+	if type(chart_dirs) == "string" then
+		chart_dirs = {chart_dirs}
+	end
+	for _, chart_dir in ipairs(chart_dirs) do
+		if fs:getInfo(chart_dir) then
+			finder:addPath(chart_dir)
+		end
+	end
 
 	---@type string[]
 	local image_names = {}

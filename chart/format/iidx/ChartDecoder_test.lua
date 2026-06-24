@@ -18,6 +18,16 @@ local function find_sound_note(chart, sample_id)
 	end
 end
 
+---@param chart chart.Chart
+---@return notechart.Note?
+local function find_bga_note(chart)
+	for _, note in chart.notes:iter() do
+		if note.type == "sprite" then
+			return note
+		end
+	end
+end
+
 ---@param t testing.T
 function test.decode_chart_extracted_from_ifs_fixture(t)
 	local chart_data = Fixtures.sampleChart()
@@ -92,6 +102,31 @@ function test.uses_base_2dx_bank_for_zero_ident(t)
 	}))
 
 	t:tdeq(charts[1].chart.resources["2dx"]["01234/01234.2dx"], {"01234/01234.2dx"})
+end
+
+---@param t testing.T
+function test.uses_metadata_bga_video(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.sampleChart(), nil, {
+		song_id = 1234,
+		iidx_song = {
+			song_id = 1234,
+			title = "Fixture",
+			bga_delay = -120,
+			bga_filename = "01234",
+			levels = {
+				SPN = 3,
+				DPN = 4,
+			},
+		},
+	}))
+
+	local chart = charts[1].chart
+	t:tdeq(chart.resources.image["01234.mp4"], {"01234.mp4"})
+
+	local note = assert(find_bga_note(chart))
+	t:eq(note.column, "bga")
+	t:eq(assert(note.data.images)[1][1], "01234.mp4")
+	t:aeq(note:getTime(), -2, 0.0001)
 end
 
 ---@param t testing.T

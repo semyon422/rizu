@@ -6,6 +6,7 @@ local InputBinder = require("rizu.input.InputBinder")
 local KeyPhysicInputEvent = require("rizu.input.KeyPhysicInputEvent")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ScoreSaver = require("rizu.gameplay.ScoreSaver")
+local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
 
 ---@class rizu.GameplayInteractor
 ---@operator call: rizu.GameplayInteractor
@@ -40,6 +41,10 @@ function GameplayInteractor:getResourcePaths(noteSkin, chartview)
 	else
 		table.insert(paths, chartview.location_dir)
 		table.insert(paths, noteSkin.directoryPath)
+	end
+	local movie_path = IidxResourcePaths.getMoviePath(chartview, self.game.fs)
+	if movie_path then
+		table.insert(paths, movie_path)
 	end
 	table.insert(paths, "userdata/hitsounds")
 	table.insert(paths, "userdata/hitsounds/midi")
