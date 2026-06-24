@@ -17,6 +17,7 @@ local requirements = {
 	remove = {"path"},
 	set_executable = {"path"},
 	write_file = {"path", "content"},
+	replace_text = {"path", "replacements"},
 	git_clone = {"url", "dest"},
 	git_submodule = {"dir"},
 	shell = {"command"},
@@ -41,6 +42,27 @@ local function validateStripComponents(action)
 	local value = action.strip_components
 	if type(value) ~= "number" or value < 0 or value % 1 ~= 0 then
 		error("Action '" .. tostring(action.type) .. "' field 'strip_components' must be a non-negative integer")
+	end
+end
+
+---@param action rizu.build.deps.Action
+local function validateReplacements(action)
+	if action.type ~= "replace_text" then
+		return
+	end
+	if type(action.replacements) ~= "table" or #action.replacements == 0 then
+		error("Action 'replace_text' field 'replacements' must be a non-empty array")
+	end
+	for i, replacement in ipairs(action.replacements) do
+		if type(replacement.old_text) ~= "string" then
+			error(string.format("Action 'replace_text' replacement %d is missing string field 'old_text'", i))
+		end
+		if type(replacement.new_text) ~= "string" then
+			error(string.format("Action 'replace_text' replacement %d is missing string field 'new_text'", i))
+		end
+		if replacement.count ~= nil and (type(replacement.count) ~= "number" or replacement.count < 1 or replacement.count % 1 ~= 0) then
+			error(string.format("Action 'replace_text' replacement %d field 'count' must be a positive integer", i))
+		end
 	end
 end
 
@@ -73,6 +95,7 @@ function ActionSchema.validate(action, step)
 	if action.type == "extract" or action.type == "extract_first_match" then
 		validateStripComponents(action)
 	end
+	validateReplacements(action)
 end
 
 return ActionSchema

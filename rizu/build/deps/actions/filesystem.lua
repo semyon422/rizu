@@ -56,6 +56,65 @@ function M.write_file(env, action)
 	return Util.resultOk(string.format("write_file %s", path))
 end
 
+---@param data string
+---@param old_text string
+---@param new_text string
+---@param max_count integer?
+---@return string
+---@return integer
+local function replacePlain(data, old_text, new_text, max_count)
+	if old_text == "" then
+		error("replace_text old_text must not be empty")
+	end
+
+	local parts = {}
+	local pos = 1
+	local count = 0
+
+	while max_count == nil or count < max_count do
+		local first, last = data:find(old_text, pos, true)
+		if not first then
+			break
+		end
+		table.insert(parts, data:sub(pos, first - 1))
+		table.insert(parts, new_text)
+		pos = last + 1
+		count = count + 1
+	end
+
+	table.insert(parts, data:sub(pos))
+	return table.concat(parts), count
+end
+
+function M.replace_text(env, action)
+	local path = Util.resolve(env, action.path)
+	local data, read_err = env.ctx.fs:read(path)
+	if not data then
+		error("Failed to read file for replace_text: " .. path .. ": " .. tostring(read_err))
+	end
+
+	for _, replacement in ipairs(action.replacements or {}) do
+		local old_text = Util.resolve(env, replacement.old_text)
+		local new_text = Util.resolve(env, replacement.new_text)
+		local count
+		data, count = replacePlain(data, old_text, new_text, replacement.count)
+		if count == 0 and old_text:find("\n", 1, true) then
+			local old_crlf = old_text:gsub("\n", "\r\n")
+			local new_crlf = new_text:gsub("\n", "\r\n")
+			data, count = replacePlain(data, old_crlf, new_crlf, replacement.count)
+		end
+		if count == 0 then
+			error("replace_text did not find expected text in " .. path)
+		end
+	end
+
+	local ok, write_err = env.ctx.fs:write(path, data)
+	if not ok then
+		error("Failed to write file for replace_text: " .. path .. ": " .. tostring(write_err))
+	end
+	return Util.resultOk(string.format("replace_text %s", path))
+end
+
 function M.noop(_env, _action)
 	return Util.resultOk("<noop>")
 end

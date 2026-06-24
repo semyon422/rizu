@@ -19,6 +19,7 @@
 ---@class rizu.build.deps.Action
 ---@field type string
 ---@field command string?
+---@field replacements rizu.build.deps.TextReplacement[]?
 ---@field compiler string?
 ---@field recursive boolean?
 ---@field dir string?
@@ -46,6 +47,11 @@
 ---@field args string[]?
 ---@field content string?
 ---@field inputs string[]?
+
+---@class rizu.build.deps.TextReplacement
+---@field old_text string
+---@field new_text string
+---@field count integer?
 
 ---@class rizu.build.deps.Step
 ---@field id string

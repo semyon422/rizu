@@ -46,4 +46,28 @@ function test.extract_action_requires_integer_strip_components(t)
 	end, "strip_components")
 end
 
+---@param t testing.T
+function test.replace_text_action_requires_replacements(t)
+	expectErrorContains(t, function()
+		ActionSchema.validate({
+			type = "replace_text",
+			path = "file.c",
+			replacements = {},
+		}, {id = "replace_text"})
+	end, "non-empty array")
+end
+
+---@param t testing.T
+function test.replace_text_action_requires_text_fields(t)
+	expectErrorContains(t, function()
+		ActionSchema.validate({
+			type = "replace_text",
+			path = "file.c",
+			replacements = {
+				{old_text = "a"},
+			},
+		}, {id = "replace_text"})
+	end, "new_text")
+end
+
 return test
