@@ -22,6 +22,12 @@ local function get_preview_resource_dir(chartview)
 	return archive_path or chartview.location_dir
 end
 
+---@param hash string
+---@return string
+local function get_audio_preview_path(hash)
+	return "userdata/audio_previews/" .. hash .. ".audio_preview"
+end
+
 ---@param configModel sphere.ConfigModel
 ---@param replayBase sea.ReplayBase
 ---@param game table
@@ -257,7 +263,7 @@ function PreviewModel:loadPreview()
 	---@type string?
 	local hash = self.chartview and self.chartview.hash
 	if hash then
-		local audio_preview_path = "userdata/audio_previews/" .. hash .. ".audio_preview"
+		local audio_preview_path = get_audio_preview_path(hash)
 		local bga_preview_path = "userdata/bga_previews/" .. hash .. ".bga_preview"
 
 		local audio_exists = love.filesystem.getInfo(audio_preview_path)

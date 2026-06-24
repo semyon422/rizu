@@ -92,6 +92,21 @@ function test.explicit_format(t)
 end
 
 ---@param t testing.T
+function test.exact_path_with_wrong_extension_does_not_match_explicit_format(t)
+	local fs = FakeFilesystem()
+	local rf = ResourceFinder(fs)
+
+	fs:createDirectory("dir")
+	fs:createDirectory("dir/sound")
+	fs:write("dir/sound/29093.ifs", "")
+
+	rf:addPath("dir")
+
+	t:eq(rf:findFile("sound/29093.ifs", "image"), nil)
+	t:eq(rf:findFile("sound/29093.ifs", "video"), nil)
+end
+
+---@param t testing.T
 function test.exact_match_priority_across_paths(t)
 	local fs = FakeFilesystem()
 	local rf = ResourceFinder(fs)

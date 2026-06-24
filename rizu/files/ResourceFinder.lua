@@ -148,7 +148,7 @@ function ResourceFinder:findFile(req_name_ext, format)
 
 	for _, path in ipairs(self.paths) do
 		local req_path = path .. "/" .. req_name_ext
-		if self.fs:getInfo(req_path) then
+		if inferred_format == format and self.fs:getInfo(req_path) then
 			return req_path
 		end
 
@@ -156,7 +156,7 @@ function ResourceFinder:findFile(req_name_ext, format)
 		if index then
 			-- 1. Case-insensitive exact match
 			local exact = index.lookup[req_name_ext_lower]
-			if exact then
+			if exact and inferred_format == format then
 				return path .. "/" .. exact
 			end
 

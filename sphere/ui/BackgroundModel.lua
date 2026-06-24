@@ -81,16 +81,6 @@ function BackgroundModel:loadBackgroundDebounce(path)
 	delay.debounce(self, "loadDebounce", 0.1, self.loadBackground, self)
 end
 
----@param path string?
----@return boolean
-function BackgroundModel:isValidImage(path)
-	if not path then
-		return false
-	end
-	local info = love.filesystem.getInfo(path)
-	return info and info.type ~= "directory"
-end
-
 local image_ext = {
 	png = true,
 	jpg = true,
@@ -98,6 +88,21 @@ local image_ext = {
 	tga = true,
 	bmp = true,
 }
+
+---@param path string?
+---@return boolean
+function BackgroundModel:isValidImage(path)
+	if not path then
+		return false
+	end
+	local ext = Path(path):getExtension()
+	ext = ext and ext:lower()
+	if not ext or not image_ext[ext] then
+		return false
+	end
+	local info = love.filesystem.getInfo(path)
+	return info and info.type ~= "directory"
+end
 
 ---@return string?
 function BackgroundModel:findBackground()
