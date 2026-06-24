@@ -1,6 +1,6 @@
 local S3P = require("chart.format.iidx.S3P")
-local S3PAudio = require("chart.format.iidx.S3PAudio")
 local Fixtures = require("chart.format.iidx.TestFixtures")
+local S3PAudio = require("chart.format.iidx.S3PAudio")
 
 local test = {}
 
@@ -10,20 +10,11 @@ local asf_header = string.char(
 )
 
 ---@param t testing.T
-function test.decodes_wma_payload_with_video_module(t)
-	local old_video = package.loaded.video
-	package.loaded.video = {
-		decode_audio = function(data)
-			return "RIFF" .. data
-		end,
-	}
-
+function test.keeps_wma_payload_encoded(t)
 	local pack = S3P.parse(Fixtures.s3p({asf_header .. "payload"}))
 	local payload = S3PAudio.payload_by_id(pack, 1)
 
-	package.loaded.video = old_video
-
-	t:eq(payload, "RIFF" .. asf_header .. "payload")
+	t:eq(payload, asf_header .. "payload")
 	t:eq(S3PAudio.payload_by_id(pack, 1), payload)
 end
 

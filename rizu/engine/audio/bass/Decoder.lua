@@ -36,7 +36,7 @@ function Decoder:new(data)
 	bass_assert(self.resample_channel ~= 0)
 
 	---@type integer
-	local ok = bass_mix.BASS_Mixer_StreamAddChannel(self.resample_channel, self.decode_channel, 0)
+	local ok = bass_mix.BASS_Mixer_StreamAddChannel(self.resample_channel, self.decode_channel, bass_flags.BASS_MIXER_CHAN_NORAMPIN)
 	bass_assert(ok == 1)
 
 	self.position = 0

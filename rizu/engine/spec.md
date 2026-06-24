@@ -24,12 +24,16 @@ The engine module provides the low-level runtime systems for rhythm processing, 
   - `rizu.audio.IDecoder`
   - `rizu.audio.ISource`
 - Current backends:
-  - `rizu.audio.bass.*` for the primary BASS implementation
+  - `rizu.audio.bass.*` for the primary BASS implementation, with BASS_FFMPEG plugin decoding
   - `rizu.audio.fake.*` for testing or disabled-audio scenarios
 
 ### ADR: Central Audio Engine Coordination
 - `rizu.audio.Engine` coordinates background playback and foreground hitsounds.
 - `rizu.audio.SoftwareMixer` is used when multiple streams need software-level combination, such as waveform rendering or preview workflows.
+
+### ADR: Streaming Decode Stays In BASS Channels
+- Runtime playback uses BASS streams so encoded files are decoded on demand instead of fully decoded before playback.
+- The BASS_FFMPEG plugin lets BASS streams decode through FFmpeg while preserving BASS mixer, tempo, seeking, and keysound behavior.
 
 ### ADR: Session-Level Policy Outside Core Timing
 - Flags such as autoplay or promode should be coordinated by higher-level gameplay/session code where possible, even if legacy paths still exist elsewhere.

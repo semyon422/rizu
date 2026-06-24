@@ -165,24 +165,15 @@ function test.s3p_inside_ifs(t)
 end
 
 ---@param t testing.T
-function test.s3p_wma_decode_is_on_demand(t)
+function test.s3p_payload_load_is_on_demand(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("chart")
-	fs:write("chart/01234.ifs", Fixtures.ifs(1234, Fixtures.sampleChart(), Fixtures.s3p({asf_header .. "sound1"})))
+	fs:write("chart/01234.ifs", Fixtures.ifs(1234, Fixtures.sampleChart(), Fixtures.s3p({"RIFFsound1"})))
 
 	local preview = AudioPreview()
 	preview.samples = {"01234/01234.s3p"}
 	preview.events = {
 		{time = 0, sample_index = 1, duration = 0.1, volume = 1},
-	}
-
-	local decode_count = 0
-	local old_video = package.loaded.video
-	package.loaded.video = {
-		decode_audio = function(data)
-			decode_count = decode_count + 1
-			return "RIFF" .. data
-		end,
 	}
 
 	---@type {[string]: integer}
@@ -194,16 +185,13 @@ function test.s3p_wma_decode_is_on_demand(t)
 		return FakeDecoder(math.floor(duration * sample_rate), sample_rate, 2)
 	end)
 
-	t:eq(decode_count, 0)
+	t:eq(loaded.RIFFsound1, nil)
 
 	local buf_len = 44100 * 2 * 2
 	local buf = ffi.new("int16_t[?]", buf_len / 2)
 	decoder:getData(buf, buf_len)
 
-	package.loaded.video = old_video
-
-	t:eq(decode_count, 1)
-	t:eq(loaded["RIFF" .. asf_header .. "sound1"], 1)
+	t:eq(loaded.RIFFsound1, 1)
 
 	decoder:release()
 end
