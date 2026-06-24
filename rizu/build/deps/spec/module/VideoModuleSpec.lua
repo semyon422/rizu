@@ -23,7 +23,7 @@ local function videoCompileAction(target, artifact)
 		lib_dirs = {BuildConfig.getFfmpegDepsDir(target) .. "/lib"}
 	end
 
-	local libs = {"avformat", "avcodec", "swresample", "swscale", "avutil", "m"}
+	local libs = {"avformat", "avcodec", "swscale", "avutil", "m"}
 	if target == "windows" then
 		table.insert(libs, ":libluajit-5.1.dll.a")
 	end

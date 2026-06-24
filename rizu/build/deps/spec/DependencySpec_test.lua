@@ -54,6 +54,55 @@ function test.includes_native_module_steps_for_all_targets(t)
 end
 
 ---@param t testing.T
+function test.includes_local_bass_ffmpeg_source_build_for_all_targets(t)
+	local case_by_target = {
+		{
+			target = "linux",
+			output = "${bin_dir}/libbass_ffmpeg.so",
+			inputs = {
+				"aqua/bass/ffmpeg_plugin.c",
+				"build/deps/ffmpeg-linux/include/libavcodec/avcodec.h",
+				"build/deps/ffmpeg-linux/lib/libavcodec.so.62",
+				"${bin_dir}/libbass.so",
+			},
+		},
+		{
+			target = "windows",
+			output = "${bin_dir}/bass_ffmpeg.dll",
+			inputs = {
+				"aqua/bass/ffmpeg_plugin.c",
+				"build/deps/ffmpeg-win/include/libavcodec/avcodec.h",
+				"build/deps/ffmpeg-win/lib/libavcodec.dll.a",
+				"${bin_dir}/bass.dll",
+			},
+		},
+		{
+			target = "macos",
+			output = "${bin_dir}/libbass_ffmpeg.dylib",
+			inputs = {
+				"aqua/bass/ffmpeg_plugin.c",
+				"build/deps/local/macos/ffmpeg/include/libavcodec/avcodec.h",
+				"build/deps/local/macos/ffmpeg/lib/libavcodec.dylib",
+				"${bin_dir}/libbass.dylib",
+			},
+		},
+	}
+
+	for _, case in ipairs(case_by_target) do
+		local spec = DependencySpec.load(case.target)
+		local step = findStep(spec, "dep_bass_ffmpeg")
+		t:assert(step)
+		---@cast step -?
+
+		t:tdeq(step.outputs, {case.output})
+		t:tdeq(step.inputs, case.inputs)
+		t:eq(step.actions[1].type, "compile_c")
+		t:tdeq(step.actions[1].sources, {"aqua/bass/ffmpeg_plugin.c"})
+		t:eq(step.actions[2].path, case.output)
+	end
+end
+
+---@param t testing.T
 function test.macos_native_steps_use_osxcross_and_track_ffmpeg_inputs(t)
 	local spec = DependencySpec.load("macos")
 	local video = findStep(spec, "module_video_artifact")

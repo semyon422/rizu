@@ -53,11 +53,6 @@ local Manifest = {
 		windows = {url = "https://www.un4seen.com/files/z/0/bass_fx24.zip", archive = "bass_fx-win.zip"},
 		macos = {url = "https://www.un4seen.com/files/z/0/bass_fx24-osx.zip", archive = "bass_fx-macos.zip"},
 	},
-	bassopus = {
-		linux = {url = "https://www.un4seen.com/files/bassopus24-linux.zip", archive = "bassopus-linux.zip"},
-		windows = {url = "https://www.un4seen.com/files/bassopus24.zip", archive = "bassopus-win.zip"},
-		macos = {url = "https://www.un4seen.com/files/bassopus24-osx.zip", archive = "bassopus-macos.zip"},
-	},
 	fftw_source = {
 		linux = {url = "https://www.fftw.org/fftw-3.3.10.tar.gz", archive = "fftw-3.3.10.tar.gz", dir = "fftw_linux"},
 		windows = {url = "https://www.fftw.org/fftw-3.3.10.tar.gz", archive = "fftw-3.3.10.tar.gz", dir = "fftw_windows"},

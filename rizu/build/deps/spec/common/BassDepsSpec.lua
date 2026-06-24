@@ -3,12 +3,11 @@ local Manifest = require("rizu.build.deps.Manifest")
 ---@class rizu.build.deps.spec.common.BassDepsSpec
 local BassDepsSpec = {}
 
-local BASS_DEPS = {"bass", "bassmix", "bass_fx", "bassopus"}
+local BASS_DEPS = {"bass", "bassmix", "bass_fx"}
 local OUTPUT_NAME = {
 	bass = {linux = "libbass.so", windows = "bass.dll", macos = "libbass.dylib"},
 	bassmix = {linux = "libbassmix.so", windows = "bassmix.dll", macos = "libbassmix.dylib"},
 	bass_fx = {linux = "libbass_fx.so", windows = "bass_fx.dll", macos = "libbass_fx.dylib"},
-	bassopus = {linux = "libbassopus.so", windows = "bassopus.dll", macos = "libbassopus.dylib"},
 }
 
 local function getSourcePath(dep_name, target, extract)
