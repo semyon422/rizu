@@ -140,6 +140,36 @@ function test.basic(t)
 end
 
 ---@param t testing.T
+function test.bga_visual_is_restored(t)
+	local chart = Chart()
+
+	chart.inputMode:set("4key")
+
+	local layer = AbsoluteLayer()
+	chart.layers.main = layer
+
+	local visual = Visual()
+	visual.bga = true
+	layer.visuals.bga = visual
+
+	local p = layer:getPoint(0)
+	local vp = visual:getPoint(p)
+	local note = Note(vp, "bga", "sprite", 0, {
+		images = {{"movie.mp4", 1}},
+	})
+	chart.notes:insert(note)
+	chart.resources:add("image", "movie.mp4")
+
+	chart:compute()
+
+	local refchart = RefChart(chart)
+	t:eq(refchart.layers.main.visuals.bga.bga, true)
+
+	local restored_chart = Restorer():restore(refchart)
+	t:eq(restored_chart.layers.main.visuals.bga.bga, true)
+end
+
+---@param t testing.T
 function test.note_data_is_snapshotted(t)
 	local chart = createChartWithNoteData()
 	local refchart = RefChart(chart)

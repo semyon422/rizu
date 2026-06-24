@@ -15,6 +15,7 @@ local Visual = class()
 function Visual:new(visual, p_to_index, vp_ref, l_name, v_name)
 	self.primaryTempo = visual.primaryTempo
 	self.tempoMultiplyTarget = visual.tempoMultiplyTarget
+	self.bga = visual.bga or nil
 
 	self.points = {}
 	local _points = self.points

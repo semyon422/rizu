@@ -55,6 +55,7 @@ function Restorer:restore(refchart)
 
 			visual.primaryTempo = _visual.primaryTempo
 			visual.tempoMultiplyTarget = _visual.tempoMultiplyTarget
+			visual.bga = _visual.bga
 
 			for j, _vp in ipairs(_visual.points) do
 				local p = points[_vp.point]
