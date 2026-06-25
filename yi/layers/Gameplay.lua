@@ -50,15 +50,17 @@ end
 function Gameplay:handleKeyDown(k)
 	if k == "escape" then
 		if self.gameplay_interactor:hasResult() then
-			--self.ui:setScreen("result")
+			self.ui:setScreen("result")
 		else
 			self.ui:setScreen("select")
 		end
-
-		return true
+	elseif k == "space" then
+		self.gameplay_interactor:skipIntro()
+	else
+		return false
 	end
 
-	return false
+	return true
 end
 
 function Gameplay:receive(event)

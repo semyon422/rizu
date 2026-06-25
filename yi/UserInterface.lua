@@ -184,6 +184,10 @@ function UserInterface:receive(event)
 			end
 		end
 	end
+
+	if self.current_screen then
+		self.current_screen:receive(event)
+	end
 end
 
 return UserInterface

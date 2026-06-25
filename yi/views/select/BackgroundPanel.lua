@@ -28,8 +28,8 @@ local shader_code = [[
 function BackgroundPanel:new(bg_model)
 	View.new(self)
 	self.bg_model = bg_model
-	self.title_font = Resources.getFont("bold", 48)
-	self.artist_font = Resources.getFont("bold", 24)
+	self.title_font = Resources.getFont("cjk_bold", 48)
+	self.artist_font = Resources.getFont("cjk_bold", 24)
 	self.bg_shader = love.graphics.newShader(shader_code)
 	self.title = "Title"
 	self.artist = "Artist"
