@@ -52,7 +52,7 @@ end
 
 ---@param game sphere.GameController
 ---@return yi.command_palette.Command[]
-function M.get(game)
+return function(game)
 	return {
 		{
 			id = "locations.create",
@@ -220,5 +220,3 @@ function M.get(game)
 		},
 	}
 end
-
-return M

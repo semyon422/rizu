@@ -1,5 +1,3 @@
-local LocationCommands = require("yi.layers.ChartMenus.LocationCommands")
-
 local modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
 
 local mode_names = {
@@ -215,10 +213,6 @@ return function(game)
 			end
 		},
 	}
-
-	for _, command in ipairs(LocationCommands.get(game)) do
-		table.insert(commands, command)
-	end
 
 	return commands
 end

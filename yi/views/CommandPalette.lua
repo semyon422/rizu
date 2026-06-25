@@ -129,10 +129,10 @@ end
 function CommandPalette:draw()
 	love.graphics.setColor(Colors.background)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
-	love.graphics.setColor(Colors.line)
+	love.graphics.setColor(Colors.outline)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, CELL_HEIGHT)
 	if self.candidates[self.selected_index] then
-		love.graphics.setColor(Colors.line)
+		love.graphics.setColor(Colors.outline)
 		love.graphics.draw(
 			Resources.atlas,
 			Resources.quads.pixel,
@@ -145,7 +145,7 @@ function CommandPalette:draw()
 	end
 
 	love.graphics.setBlendMode("add")
-	love.graphics.setColor(Colors.line)
+	love.graphics.setColor(Colors.outline)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, -2, 0, self.width, 2)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, -2, -2, 0, 2, self.height + 2)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, -2, self.height, 0, self.width + 4, 2)

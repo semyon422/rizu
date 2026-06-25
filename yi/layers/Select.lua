@@ -8,6 +8,8 @@ local Label = require("yi.views.Label")
 local BackgroundPanel = require("yi.views.select.BackgroundPanel")
 local ScoreList = require("yi.views.select.ScoreList")
 local ChartSets = require("yi.views.select.ChartSets")
+local SelectCommands = require("yi.layers.SelectCommands")
+local LocationCommands = require("yi.layers.LocationCommands")
 
 ---@class yi.layers.Select: gui.Screen
 ---@operator call: yi.layers.Select
@@ -44,6 +46,9 @@ function Select:new(ui)
 			Rectangle({color = Colors.panel}),
 		})
 	})
+
+	self.select_commands = SelectCommands(ui.game)
+	self.location_commands = LocationCommands(ui.game)
 end
 
 ---@param index integer
@@ -62,12 +67,17 @@ function Select:enter()
 		self:onChartviewUpdate(cv)
 		self.score_list:reload()
 	end
+
+	self.ui.command_registry:pushContext("select", self.select_commands)
+	self.ui.command_registry:pushContext("locations", self.location_commands)
 end
 
 function Select:exit()
 	self.ui.game.chartSelector.onChanged:remove(self)
 	self.ui.game.chartSelector.state.onChanged:remove(self)
 	self.ui.game.scoreSelector.onChanged:remove(self)
+	self.ui.command_registry:popContext("select")
+	self.ui.command_registry:popContext("locations")
 end
 
 function Select:createLeftColumn()
