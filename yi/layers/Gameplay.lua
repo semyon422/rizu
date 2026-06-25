@@ -19,7 +19,6 @@ function Gameplay:enter()
 	local sv = self.sequence_view
 	sv.game = self.game ---@diagnostic disable-line
 	sv.subscreen = "gameplay" ---@diagnostic disable-line
-	self.game.gameInteractor:loadGameplaySelectedChart()
 	sv:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
 	sv:load()
 	love.keyboard.setKeyRepeat(false)

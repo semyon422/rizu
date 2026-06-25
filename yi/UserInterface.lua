@@ -3,7 +3,8 @@ local Inputs = require("gui.input.Inputs")
 local Resources = require("yi.Resources")
 local Painter = require("yi.Painter")
 local Select = require("yi.layers.Select")
-local Gameplay =  require("yi.layers.Gameplay")
+local Gameplay = require("yi.layers.Gameplay")
+local ChartLoading = require("yi.layers.ChartLoading")
 local Result = require("yi.layers.Result")
 local Modals = require("yi.layers.Modals")
 local Overlay = require("yi.layers.Overlay")
@@ -72,7 +73,8 @@ function UserInterface:load()
 	self.screens = {
 		select = Select(self),
 		gameplay = Gameplay(self),
-		result = Result(self)
+		result = Result(self),
+		chart_loading = ChartLoading(self)
 	}
 
 	for _, v in pairs(self.screens) do

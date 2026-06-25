@@ -128,7 +128,7 @@ end
 
 function Select:handleKeyDown(key)
 	if key == "return" then
-		self.ui:setScreen("gameplay")
+		self.ui:setScreen("chart_loading")
 	end
 end
 

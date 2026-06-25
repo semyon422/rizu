@@ -1,6 +1,7 @@
 local Screen = require("gui.Screen")
 local Loading = require("yi.views.Loading")
 local Colors = require("yi.Colors")
+local Label = require("yi.views.Label")
 local S = require("gui.composition.Strategies")
 local thread = require("thread")
 local delay = require("delay")
@@ -14,27 +15,16 @@ function ChartLoading:new(yi)
 	Screen.new(self)
 	self.yi = yi
 
-	local ui = UIFactory()
-
 	self.root = S.Stack({
 		padding = 20,
 
-		S.Anchor({
-			pivot = {0.5, 0.5},
-			ui:Label({
-				font = "bold",
-				font_size = 36,
-				text = "Loading chart",
-				color = Colors.text
-			}),
-		}),
 		S.Anchor({
 			pivot = {1, 1},
 			S.Flow({
 				align = 0.5,
 				gap = 20,
-				ui:Label({
-					font = "bold",
+				Label({
+					font_name = "bold",
 					font_size = 36,
 					text = "Loading...",
 					color = Colors.text
