@@ -8,6 +8,9 @@ local Label = require("yi.views.Label")
 local BackgroundPanel = require("yi.views.select.BackgroundPanel")
 local ScoreList = require("yi.views.select.ScoreList")
 local ChartSets = require("yi.views.select.ChartSets")
+local PlayerInfo = require("yi.views.PlayerInfo")
+local SessionInfo = require("yi.views.SessionInfo")
+local FooterButton = require("yi.views.FooterButton")
 local SelectCommands = require("yi.layers.SelectCommands")
 local LocationCommands = require("yi.layers.LocationCommands")
 
@@ -22,6 +25,14 @@ function Select:new(ui)
 	self.background_panel = BackgroundPanel(ui.game.backgroundModel)
 	self.score_list = ScoreList(ui.game.scoreSelector, function(i) self:openScore(i) end)
 	self.chart_sets = ChartSets(ui.game.chartSelector, function(i) end)
+	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
+	self.session_info = SessionInfo():setPosition(10, 2)
+	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "QUIT", function()
+		love.event.quit()
+	end)
+	self.play_button = FooterButton(Colors.play_button, {0, 0, 0, 1}, "PLAY", function()
+		self.ui:setScreen("chart_loading")
+	end)
 
 	self.root = S.Stack({
 		S.Track({
@@ -43,7 +54,7 @@ function Select:new(ui)
 				}),
 			}),
 			Rectangle({color = Colors.outline}),
-			Rectangle({color = Colors.panel}),
+			self:createFooter()
 		})
 	})
 
@@ -127,6 +138,34 @@ function Select:createHeader()
 			S.Stack(),
 			S.Stack(),
 			S.Stack()
+		})
+	})
+end
+
+function Select:createFooter()
+	return S.Stack({
+		Rectangle({color = Colors.panel}),
+		S.Anchor({
+			pivot = {0, 0.5},
+
+			S.Flow({
+				direction = "row",
+				gap = 10,
+				align = 0.5,
+				self.back_button,
+				self.player_info,
+				self.session_info
+			})
+		}),
+		S.Anchor({
+			pivot = {1, 0.5},
+
+			S.Flow({
+				direction = "row",
+				gap = 10,
+				align = 0.5,
+				self.play_button
+			})
 		})
 	})
 end

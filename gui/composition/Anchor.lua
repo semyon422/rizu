@@ -7,6 +7,8 @@ local Anchor = Node + {}
 
 function Anchor:applyParams(t)
 	local pivot = t.pivot
+	self.x = t.x or 0
+	self.y = t.y or 0
 
 	if type(pivot) == "table" then
 		assert(#pivot, "Pivot table should have 2 values")
