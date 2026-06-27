@@ -153,4 +153,9 @@ function Color.osuToColor(diff, out)
 	return Color.HSV(hue, 1, 1, out)
 end
 
+function Color.linearRateToColor(rate, out)
+	local hue = Color.convertDiffToHue(rate / 4)
+	return Color.HSV(hue, rate / 4, 1, out)
+end
+
 return Color

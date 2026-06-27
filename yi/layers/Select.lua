@@ -13,6 +13,7 @@ local PlayerInfo = require("yi.views.PlayerInfo")
 local SessionInfo = require("yi.views.SessionInfo")
 local FooterButton = require("yi.views.FooterButton")
 local IconButton = require("yi.views.IconButton")
+local TimeRate = require("yi.views.select.TimeRate")
 local SelectCommands = require("yi.layers.SelectCommands")
 local LocationCommands = require("yi.layers.LocationCommands")
 
@@ -32,6 +33,7 @@ function Select:new(ui)
 	self.chart_grid = ChartGrid(ui.game.chartSelector)
 	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
 	self.session_info = SessionInfo():setPosition(10, 2)
+	self.time_rate = TimeRate(ui.game.timeRateModel, ui.game.modifierSelectModel)
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "QUIT", function()
 		love.event.quit()
 	end)
@@ -178,6 +180,7 @@ function Select:createFooter()
 				direction = "row",
 				gap = 10,
 				align = 0.5,
+				self.time_rate,
 				self.play_button
 			})
 		})
