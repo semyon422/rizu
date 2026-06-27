@@ -45,6 +45,19 @@ function Screen:load()
 	end
 end
 
+function Screen:unload()
+	for _, v in ipairs(self.views) do
+		v:unload()
+	end
+
+	for _, v in ipairs(self.hidden_views) do
+		v:unload()
+	end
+
+	self.views = {}
+	self.hidden_views = {}
+end
+
 function Screen:enter() end
 
 function Screen:exit() end

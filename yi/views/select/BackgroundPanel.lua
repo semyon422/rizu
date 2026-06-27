@@ -38,25 +38,7 @@ local function popCancer()
 	love.graphics.getDimensions = base_lg_getDimensions
 end
 
-local bg_shader_code = [[
-	extern vec2 container_size;
-    extern vec2 container_pos;
-    extern float corner_radius;
-
-    float rounded_box_sdf(vec2 center_pos, vec2 size, float radius) {
-        return length(max(abs(center_pos) - size + radius, 0.0)) - radius;
-    }
-
-    vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-        vec4 pixel = Texel(texture, texture_coords);
-        vec2 center = container_pos + (container_size * 0.5);
-        float corner_dist = rounded_box_sdf(screen_coords - center, container_size * 0.5, corner_radius);
-        float corner_mask = smoothstep(2.0, 0.0, corner_dist);
-        return pixel * color * corner_mask;
-    }
-]]
-
-local preview_shader_code = [[
+local shader_code = [[
 	extern vec2 container_size;
 	extern float corner_radius;
 
@@ -79,8 +61,7 @@ function BackgroundPanel:new(bg_model, game)
 	self.bg_model = bg_model
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
-	self.bg_shader = love.graphics.newShader(bg_shader_code)
-	self.preview_shader = love.graphics.newShader(preview_shader_code)
+	self.bg_shader = love.graphics.newShader(shader_code)
 	self.title = "Title"
 	self.artist = "Artist"
 	self.ranked = false
@@ -100,6 +81,11 @@ function BackgroundPanel:load()
 	self.preview_canvas = love.graphics.newCanvas(preview_width, preview_height)
 end
 
+function BackgroundPanel:unload()
+	self.preview_canvas:release()
+	self.preview_canvas = nil
+end
+
 function BackgroundPanel:updateTransform()
 	View.updateTransform(self)
 	local x, y = self.transform:transformPoint(0, 0)
@@ -108,11 +94,8 @@ function BackgroundPanel:updateTransform()
 	self.container_screen_y = y
 	self.container_screen_w = math.abs(sw - x)
 	self.container_screen_h = math.abs(sh - y)
-	self.bg_shader:send("container_pos", {self.container_screen_x, self.container_screen_y})
 	self.bg_shader:send("container_size", {self.container_screen_w, self.container_screen_h})
 	self.bg_shader:send("corner_radius", 8)
-	self.preview_shader:send("container_size", {self.container_screen_w, self.container_screen_h})
-	self.preview_shader:send("corner_radius", 8)
 end
 
 function BackgroundPanel:update(dt)
@@ -148,10 +131,12 @@ function BackgroundPanel:drawBackground()
 	local alpha = self.bg_model.alpha
 	local w, h = self.box:getDimensions()
 
-	lg.setShader(self.bg_shader)
-	lg.setScissor(self.container_screen_x, self.container_screen_y, self.container_screen_w, self.container_screen_h)
+	lg.push("all")
+	lg.setCanvas(self.preview_canvas)
+	lg.clear()
+	lg.origin()
 
-	for i = 1, 3 do
+	for i = 1, 2 do
 		if not images[i] then
 			break
 		end
@@ -160,8 +145,6 @@ function BackgroundPanel:drawBackground()
 			lg.setColor(1, 1, 1, 1)
 		elseif i == 2 then
 			lg.setColor(1, 1, 1, alpha)
-		elseif i == 3 then
-			lg.setColor(1, 1, 1, 0)
 		end
 
 		local img = images[i]
@@ -173,22 +156,15 @@ function BackgroundPanel:drawBackground()
 		lg.draw(img, offset_x, offset_y, 0, scale, scale)
 	end
 
-	lg.setShader()
-	lg.setScissor()
 	lg.setColor(1, 1, 1, 1)
 
 	-- TODO: don't do this if chart preview is disabled
-	lg.push("all")
 	pushCancer()
-	lg.setCanvas(self.preview_canvas)
-	lg.clear()
-	lg.origin()
 	self.chart_preview_view:draw()
-	lg.setCanvas()
 	popCancer()
 	lg.pop()
 
-	lg.setShader(self.preview_shader)
+	lg.setShader(self.bg_shader)
 	lg.draw(self.preview_canvas)
 	lg.draw(Resources.atlas, Resources.quads.select_bg_overlay, 0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
 	lg.setShader()

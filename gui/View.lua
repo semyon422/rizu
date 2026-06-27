@@ -51,6 +51,8 @@ end
 
 function View:load() end
 
+function View:unload() end
+
 ---@param e gui.FocusEvent
 function View:onFocus(e) end
 
