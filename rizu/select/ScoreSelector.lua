@@ -33,7 +33,6 @@ end
 function ScoreSelector:receive(event)
 	if event.items then
 		self:findScore()
-		self.onChanged:send({type = "scores_loaded"})
 		return
 	end
 
