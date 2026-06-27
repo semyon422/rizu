@@ -148,7 +148,7 @@ function BackgroundPanel:drawBackground()
 	local alpha = self.bg_model.alpha
 	local w, h = self.box:getDimensions()
 
-	love.graphics.setShader(self.bg_shader)
+	lg.setShader(self.bg_shader)
 	lg.setScissor(self.container_screen_x, self.container_screen_y, self.container_screen_w, self.container_screen_h)
 
 	for i = 1, 3 do
@@ -157,11 +157,11 @@ function BackgroundPanel:drawBackground()
 		end
 
 		if i == 1 then
-			love.graphics.setColor(1, 1, 1, 1)
+			lg.setColor(1, 1, 1, 1)
 		elseif i == 2 then
-			love.graphics.setColor(1, 1, 1, alpha)
+			lg.setColor(1, 1, 1, alpha)
 		elseif i == 3 then
-			love.graphics.setColor(1, 1, 1, 0)
+			lg.setColor(1, 1, 1, 0)
 		end
 
 		local img = images[i]
@@ -173,16 +173,9 @@ function BackgroundPanel:drawBackground()
 		lg.draw(img, offset_x, offset_y, 0, scale, scale)
 	end
 
+	lg.setShader()
 	lg.setScissor()
-
 	lg.setColor(1, 1, 1, 1)
-
-	lg.draw(Resources.atlas, Resources.quads.select_bg_overlay, 0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
-	love.graphics.setShader()
-end
-
-function BackgroundPanel:draw()
-	self:drawBackground()
 
 	-- TODO: don't do this if chart preview is disabled
 	lg.push("all")
@@ -197,8 +190,14 @@ function BackgroundPanel:draw()
 
 	lg.setShader(self.preview_shader)
 	lg.draw(self.preview_canvas)
+	lg.draw(Resources.atlas, Resources.quads.select_bg_overlay, 0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
 	lg.setShader()
+end
 
+function BackgroundPanel:draw()
+	self:drawBackground()
+
+	lg.setScissor(self.container_screen_x, self.container_screen_y, self.container_screen_w, self.container_screen_h)
 	lg.setFont(self.artist_font)
 	lg.setColor(Colors.accent2)
 	lg.print(self.artist, 20, self.artist_y)
@@ -206,6 +205,7 @@ function BackgroundPanel:draw()
 	lg.setFont(self.title_font)
 	lg.setColor(Colors.text)
 	lg.print(self.title, 20, self.title_y)
+	lg.setScissor()
 
 	if self.ranked then
 		local _, _, w, h = Resources.quads.tag_ranked:getViewport()
