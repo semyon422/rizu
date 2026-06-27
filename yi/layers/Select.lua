@@ -14,6 +14,7 @@ local SessionInfo = require("yi.views.SessionInfo")
 local FooterButton = require("yi.views.FooterButton")
 local IconButton = require("yi.views.IconButton")
 local TimeRate = require("yi.views.select.TimeRate")
+local GameplayModifiers = require("yi.views.select.GameplayModifiers")
 local SelectCommands = require("yi.layers.SelectCommands")
 local LocationCommands = require("yi.layers.LocationCommands")
 
@@ -34,6 +35,7 @@ function Select:new(ui)
 	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
 	self.session_info = SessionInfo():setPosition(10, 2)
 	self.time_rate = TimeRate(ui.game.timeRateModel, ui.game.modifierSelectModel)
+	self.gameplay_modifiers = GameplayModifiers()
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "QUIT", function()
 		love.event.quit()
 	end)
@@ -93,6 +95,7 @@ function Select:enter()
 		self:onChartviewUpdate(cv)
 		self.score_list:reload()
 		self.chart_grid:reloadItems()
+		self.gameplay_modifiers:bind(self.ui.game.replayBase)
 	end
 
 	self.ui.command_registry:pushContext("select", self.select_commands)
@@ -180,6 +183,7 @@ function Select:createFooter()
 				direction = "row",
 				gap = 10,
 				align = 0.5,
+				self.gameplay_modifiers,
 				self.time_rate,
 				self.play_button
 			})
@@ -221,8 +225,8 @@ function Select:createSidebar()
 				IconButton(Resources.quads.icon_download),
 				IconButton(Resources.quads.icon_gear, button_config),
 				Rectangle({color = Colors.outline}):setSize(64, 2),
-				IconButton(Resources.quads.icon_funnel, button_filters),
 				IconButton(Resources.quads.icon_sparkles, button_modifiers),
+				IconButton(Resources.quads.icon_funnel, button_filters),
 				IconButton(Resources.quads.icon_keyboard, button_input),
 				IconButton(Resources.quads.icon_palette, button_noteskins),
 			}),
@@ -250,6 +254,7 @@ function Select:receive(event)
 	if event.type == "set_changed" then
 		self.score_list:reload()
 		self.chart_grid:reloadItems()
+		self.gameplay_modifiers:bind(self.ui.game.replayBase)
 	end
 
 	self.background_panel:receive(event)
