@@ -12,12 +12,15 @@ local ChartGrid = require("yi.views.select.ChartGrid")
 local PlayerInfo = require("yi.views.PlayerInfo")
 local SessionInfo = require("yi.views.SessionInfo")
 local FooterButton = require("yi.views.FooterButton")
+local IconButton = require("yi.views.IconButton")
 local SelectCommands = require("yi.layers.SelectCommands")
 local LocationCommands = require("yi.layers.LocationCommands")
 
 ---@class yi.layers.Select: gui.Screen
 ---@operator call: yi.layers.Select
 local Select = Screen + {}
+
+local HORIZONTAL_PARTITION = {"*", -0.44, "*", -0.46, "*"}
 
 ---@param ui yi.UserInterface
 function Select:new(ui)
@@ -38,26 +41,33 @@ function Select:new(ui)
 
 	self.root = S.Stack({
 		S.Track({
-			direction = "column",
-			space = {70, 2, "*", 2, 70},
+			space = {"*", 2, 64},
+			direction = "row",
 
-			self:createHeader(),
-			Rectangle({color = Colors.outline}),
-			S.Stack({
-				padding = {0, 20, 20, 0},
-				S.Track({
-					direction = "row",
-					space = {"*", -0.44, "*", -0.46, "*"},
-					S.Stack(), -- Left gap
-					self:createLeftColumn(),
-					S.Stack(), -- Center gap
-					self:createRightColumn(),
-					S.Stack() -- Right gap
+			S.Track({
+				direction = "column",
+				space = {70, 2, "*", 2, 70},
+
+				self:createHeader(),
+				Rectangle({color = Colors.outline}),
+				S.Stack({
+					padding = {0, 20, 20, 0},
+					S.Track({
+						direction = "row",
+						space = HORIZONTAL_PARTITION,
+						S.Stack(), -- Left gap
+						self:createLeftColumn(),
+						S.Stack(), -- Center gap
+						self:createRightColumn(),
+						S.Stack(), -- Right gap
+					}),
 				}),
+				Rectangle({color = Colors.outline}),
+				self:createFooter()
 			}),
-			Rectangle({color = Colors.outline}),
-			self:createFooter()
-		})
+			Rectangle({color = Colors.outline}), -- Line
+			self:createSidebar()
+		}),
 	})
 
 	self.select_commands = SelectCommands(ui.game)
@@ -125,7 +135,7 @@ function Select:createHeader()
 		Rectangle({color = Colors.panel}),
 		S.Track({
 			direction = "row",
-			space = {"*", -0.44, "*", -0.46, "*"},
+			space = HORIZONTAL_PARTITION,
 
 			S.Stack(),
 			S.Anchor({
@@ -141,7 +151,7 @@ function Select:createHeader()
 			}),
 			S.Stack(),
 			S.Stack(),
-			S.Stack()
+			S.Stack(),
 		})
 	})
 end
@@ -170,6 +180,29 @@ function Select:createFooter()
 				align = 0.5,
 				self.play_button
 			})
+		})
+	})
+end
+
+function Select:createSidebar()
+	return S.Stack({
+		Rectangle({color = Colors.panel}),
+
+		S.Stack({
+			padding = {0, 10, 10, 0},
+			S.Track({
+				direction = "column",
+				gap = 10,
+				align = 0.5,
+				IconButton(Resources.quads.icon_folder),
+				IconButton(Resources.quads.icon_download),
+				IconButton(Resources.quads.icon_gear, nil),
+				Rectangle({color = Colors.outline}):setSize(64, 2),
+				IconButton(Resources.quads.icon_funnel, nil),
+				IconButton(Resources.quads.icon_sparkles, nil),
+				IconButton(Resources.quads.icon_keyboard, nil),
+				IconButton(Resources.quads.icon_palette, nil),
+			}),
 		})
 	})
 end

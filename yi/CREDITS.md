@@ -26,3 +26,7 @@ Modified
 Website: https://freesound.org/people/CAT-FOX_ALEX/sounds/817323/
 License: https://creativecommons.org/publicdomain/zero/1.0/
 Modified
+
+## resources/yi/sounds/click
+Website: https://freesound.org/people/vacuumfan7072/sounds/394159/
+License: https://creativecommons.org/publicdomain/zero/1.0/

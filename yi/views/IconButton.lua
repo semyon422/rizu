@@ -2,6 +2,7 @@ local View = require("gui.View")
 local Colors = require("yi.Colors")
 local Painter = require("yi.Painter")
 local Resources = require("yi.Resources")
+local Sounds = require("yi.Sounds")
 
 ---@class yi.views.IconButton : gui.View
 ---@operator call: yi.views.IconButton
@@ -30,19 +31,24 @@ function IconButton:onMouseClick(e)
 	if self.on_click then
 		self.on_click()
 	end
+	Sounds.play("click")
 	return true
 end
 
+function IconButton:onHover(e)
+	Sounds.play("hover")
+end
+
 function IconButton:draw()
-	local bg = Colors.icon_button_bg
+	local bg = Colors.elements
 
 	if self.mouse_over then
-		bg = Colors.icon_button_bg_hover
+		bg = Colors.accent
 	end
 
 	love.graphics.setColor(bg)
 	love.graphics.draw(self.atlas, self.background_quad)
-	love.graphics.setColor(Colors.icon_content)
+	love.graphics.setColor(Colors.text)
 	Painter.snapToPixel()
 	love.graphics.draw(self.atlas, self.icon_quad, self.icon_x, self.icon_y)
 end

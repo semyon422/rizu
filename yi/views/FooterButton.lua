@@ -35,6 +35,7 @@ end
 
 function FooterButton:onMouseClick(e)
 	self.on_click()
+	Sounds.play("click")
 	return true
 end
 
