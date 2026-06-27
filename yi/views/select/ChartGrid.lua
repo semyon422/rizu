@@ -35,6 +35,9 @@ local COL_WIDTH = 345
 local COL_X_GAP = 5
 local COL_Y_GAP = 5
 local ROW_HEIGHT = 42 + COL_Y_GAP
+local SCROLLBAR_PADDING = 0
+local SCROLLBAR_WIDTH = 8
+local SCROLLBAR_THUMB_HEIGHT = 24
 
 ---@param chart_selector rizu.select.ChartSelector
 function ChartGrid:new(chart_selector)
@@ -46,6 +49,8 @@ function ChartGrid:new(chart_selector)
 	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self.scroll_spring = SpringValue({stiffness = 480, damping = 48})
 	self.scroll_offset = 0
+	self.scrollbar_color = {Colors.text[1], Colors.text[2], Colors.text[3], 0.25}
+	self.scrollbar_bg_color = {Colors.text_muted[1], Colors.text_muted[2], Colors.text_muted[3], 0.15}
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 
@@ -78,7 +83,8 @@ end
 
 function ChartGrid:clampScroll(value)
 	local total_rows = math.max(1, math.ceil(#self.items / self.columns))
-	local max_scroll = math.max(0, (total_rows - 1) * ROW_HEIGHT)
+	local visible_rows = math.max(1, math.ceil(self.height / ROW_HEIGHT))
+	local max_scroll = math.max(0, (total_rows - visible_rows) * ROW_HEIGHT)
 	return math.max(0, math.min(value, max_scroll))
 end
 
@@ -197,16 +203,46 @@ function ChartGrid:update(dt)
 	end
 end
 
-function ChartGrid:draw()
-	love.graphics.clear(false, true, false)
-	love.graphics.setStencilMode("draw", 1)
-	love.graphics.rectangle("fill", 0, 0, self.box:getDimensions())
-	love.graphics.setStencilMode("test")
+local lg = love.graphics
 
-	love.graphics.setColor(1, 1, 1)
-	love.graphics.draw(self.batch)
-	love.graphics.draw(self.meta_batch)
-	love.graphics.draw(self.names_batch)
-	love.graphics.setStencilMode("off")
+function ChartGrid:drawScrollbar()
+	local total_rows = math.max(1, math.ceil(#self.items / self.columns))
+	if total_rows <= 3 then
+		return
+	end
+
+	local visible_rows = math.max(1, math.ceil(self.height / ROW_HEIGHT))
+	local max_scroll = math.max(0, (total_rows - visible_rows) * ROW_HEIGHT)
+
+	local x = self.box.width - SCROLLBAR_PADDING - SCROLLBAR_WIDTH
+	local y = SCROLLBAR_PADDING
+	local h = math.max(0, self.height - SCROLLBAR_PADDING * 2)
+
+	lg.setColor(self.scrollbar_bg_color)
+	lg.rectangle("fill", x, y, SCROLLBAR_WIDTH, h)
+
+	local thumb_h = SCROLLBAR_THUMB_HEIGHT
+	local thumb_y = y
+	if max_scroll > 0 then
+		thumb_y = y + (h - thumb_h) * (self.scroll_spring:get() / max_scroll)
+	end
+
+	lg.setColor(self.scrollbar_color)
+	lg.rectangle("fill", x, thumb_y, SCROLLBAR_WIDTH, thumb_h)
+	lg.setColor(1, 1, 1, 1)
+end
+
+function ChartGrid:draw()
+	lg.clear(false, true, false)
+	lg.setStencilMode("draw", 1)
+	lg.rectangle("fill", 0, 0, self.box:getDimensions())
+	lg.setStencilMode("test")
+
+	lg.setColor(1, 1, 1)
+	lg.draw(self.batch)
+	lg.draw(self.meta_batch)
+	lg.draw(self.names_batch)
+	lg.setStencilMode("off")
+	self:drawScrollbar()
 end
 return ChartGrid
