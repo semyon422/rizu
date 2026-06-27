@@ -8,6 +8,7 @@ local Label = require("yi.views.Label")
 local BackgroundPanel = require("yi.views.select.BackgroundPanel")
 local ScoreList = require("yi.views.select.ScoreList")
 local ChartSets = require("yi.views.select.ChartSets")
+local ChartGrid = require("yi.views.select.ChartGrid")
 local PlayerInfo = require("yi.views.PlayerInfo")
 local SessionInfo = require("yi.views.SessionInfo")
 local FooterButton = require("yi.views.FooterButton")
@@ -25,6 +26,7 @@ function Select:new(ui)
 	self.background_panel = BackgroundPanel(ui.game.backgroundModel)
 	self.score_list = ScoreList(ui.game.scoreSelector, function(i) self:openScore(i) end)
 	self.chart_sets = ChartSets(ui.game.chartSelector, function(i) end)
+	self.chart_grid = ChartGrid(ui.game.chartSelector)
 	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
 	self.session_info = SessionInfo():setPosition(10, 2)
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "QUIT", function()
@@ -60,6 +62,7 @@ function Select:new(ui)
 
 	self.select_commands = SelectCommands(ui.game)
 	self.location_commands = LocationCommands(ui.game)
+	self.next_reload_time = math.huge
 end
 
 ---@param index integer
@@ -77,6 +80,7 @@ function Select:enter()
 	if cv then
 		self:onChartviewUpdate(cv)
 		self.score_list:reload()
+		self.chart_grid:reloadItems()
 	end
 
 	self.ui.command_registry:pushContext("select", self.select_commands)
@@ -110,7 +114,7 @@ function Select:createRightColumn()
 		S.Stack(),
 		Rectangle({color = Colors.panel}),
 		S.Stack(),
-		Rectangle({color = Colors.panel}),
+		self.chart_grid,
 		S.Stack(),
 		self.chart_sets
 	})
@@ -186,8 +190,10 @@ function Select:receive(event)
 	if event.type == "chartview" and event.chartview.hash then --- TODO: Why is this 'type' when it should be 'name'?
 		self:onChartviewUpdate(event.chartview)
 	end
-	if event.type == "scores_loaded" then
+
+	if event.type == "set_changed" then
 		self.score_list:reload()
+		self.chart_grid:reloadItems()
 	end
 end
 
