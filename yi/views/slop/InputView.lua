@@ -19,7 +19,7 @@ function InputView:new(game)
 	self.inputModel = assert(game.inputModel)
 	self.modifierCoordinator = assert(game.modifierCoordinator)
 
-	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 20))
+	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 24))
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 
@@ -239,7 +239,7 @@ function InputView:draw()
 
 	-- Draw outlines with "add" blend mode
 	love.graphics.setBlendMode("add")
-	love.graphics.setColor(Colors.line)
+	love.graphics.setColor(Colors.outline)
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40, 0, self.col_width, 1) -- Top
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40 + self.col_height - 1, 0, self.col_width, 1) -- Bottom
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40, 0, 1, self.col_height) -- Left
@@ -286,7 +286,7 @@ function InputView:draw()
 			local slots_start_x = self.padding + 260
 			for j = 1, binds_count + 1 do
 				local slot_x = slots_start_x + (j - 1) * 110
-				love.graphics.setColor(Colors.line)
+				love.graphics.setColor(Colors.outline)
 				love.graphics.draw(atlas, pixel, slot_x, item_y + 2, 0, 100, 1) -- Top
 				love.graphics.draw(atlas, pixel, slot_x, item_y + self.item_height - 3, 0, 100, 1) -- Bottom
 				love.graphics.draw(atlas, pixel, slot_x, item_y + 2, 0, 1, self.item_height - 4) -- Left

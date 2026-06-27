@@ -19,7 +19,7 @@ function FiltersView:new(game)
 	self.chartSelector = assert(game.chartSelector)
 	self.filterModel = assert(game.chartSelector.filterModel)
 
-	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 20))
+	self.text_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.handles_mouse_input = true
 
 	-- Layout constants
@@ -222,7 +222,7 @@ function FiltersView:draw()
 
 	-- Draw outlines with "add" blend mode
 	love.graphics.setBlendMode("add")
-	love.graphics.setColor(Colors.line)
+	love.graphics.setColor(Colors.outline)
 	love.graphics.draw(atlas, pixel, self.padding_x, self.padding_y + 40, 0, self.col_width, 1) -- Top
 	love.graphics.draw(atlas, pixel, self.padding_x, self.padding_y + 40 + self.col_height - 1, 0, self.col_width, 1) -- Bottom
 	love.graphics.draw(atlas, pixel, self.padding_x, self.padding_y + 40, 0, 1, self.col_height) -- Left
@@ -262,7 +262,7 @@ function FiltersView:draw()
 				love.graphics.draw(atlas, pixel, btn_x, btn_y, 0, btn_w, self.item_height)
 			else
 				-- Inactive state: outlined button
-				love.graphics.setColor(Colors.line)
+				love.graphics.setColor(Colors.outline)
 				love.graphics.draw(atlas, pixel, btn_x, btn_y, 0, btn_w, 1) -- Top
 				love.graphics.draw(atlas, pixel, btn_x, btn_y + self.item_height - 1, 0, btn_w, 1) -- Bottom
 				love.graphics.draw(atlas, pixel, btn_x, btn_y, 0, 1, self.item_height) -- Left

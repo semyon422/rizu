@@ -185,6 +185,26 @@ function Select:createFooter()
 end
 
 function Select:createSidebar()
+	local button_config = function()
+		--self.ui:setScreen("config")
+	end
+
+	local button_modifiers = function()
+		self.ui.modals:open("modifiers")
+	end
+
+	local button_input = function()
+		self.ui.modals:open("input")
+	end
+
+	local button_filters = function()
+		self.ui.modals:open("filters")
+	end
+
+	local button_noteskins = function()
+		self.ui.modals:open("noteskins")
+	end
+
 	return S.Stack({
 		Rectangle({color = Colors.panel}),
 
@@ -196,12 +216,12 @@ function Select:createSidebar()
 				align = 0.5,
 				IconButton(Resources.quads.icon_folder),
 				IconButton(Resources.quads.icon_download),
-				IconButton(Resources.quads.icon_gear, nil),
+				IconButton(Resources.quads.icon_gear, button_config),
 				Rectangle({color = Colors.outline}):setSize(64, 2),
-				IconButton(Resources.quads.icon_funnel, nil),
-				IconButton(Resources.quads.icon_sparkles, nil),
-				IconButton(Resources.quads.icon_keyboard, nil),
-				IconButton(Resources.quads.icon_palette, nil),
+				IconButton(Resources.quads.icon_funnel, button_filters),
+				IconButton(Resources.quads.icon_sparkles, button_modifiers),
+				IconButton(Resources.quads.icon_keyboard, button_input),
+				IconButton(Resources.quads.icon_palette, button_noteskins),
 			}),
 		})
 	})

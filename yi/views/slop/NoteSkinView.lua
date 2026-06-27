@@ -20,7 +20,7 @@ function NoteSkinView:new(game)
 	self.game = assert(game)
 	self.noteSkinModel = assert(game.noteSkinModel)
 
-	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 20))
+	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 24))
 	self.handles_mouse_input = true
 
 	-- Layout constants
@@ -162,7 +162,7 @@ function NoteSkinView:draw()
 
 	-- Draw outlines with "add" blend mode
 	love.graphics.setBlendMode("add")
-	love.graphics.setColor(Colors.line)
+	love.graphics.setColor(Colors.outline)
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40, 0, self.col_width, 1) -- Top
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40 + self.col_height - 1, 0, self.col_width, 1) -- Bottom
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40, 0, 1, self.col_height) -- Left
@@ -234,7 +234,7 @@ function NoteSkinView:draw()
 
 		-- Draw borders
 		love.graphics.setBlendMode("add")
-		love.graphics.setColor(Colors.line)
+		love.graphics.setColor(Colors.outline)
 		love.graphics.draw(atlas, pixel, 0, 0, 0, cw, 1) -- Top
 		love.graphics.draw(atlas, pixel, 0, ch - 1, 0, cw, 1) -- Bottom
 		love.graphics.draw(atlas, pixel, 0, 0, 0, 1, ch) -- Left

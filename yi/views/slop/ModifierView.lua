@@ -17,7 +17,7 @@ local ModifierView = View + {}
 function ModifierView:new(modifierSelectModel)
 	View.new(self)
 	self.modifierSelectModel = modifierSelectModel
-	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 20))
+	self.text_batch = love.graphics.newTextBatch(Resources.getScaledFont("regular", 24))
 	self.handles_mouse_input = true
 
 	-- Layout constants
@@ -317,7 +317,7 @@ function ModifierView:draw()
 
 	-- Draw lines/outlines with "add" blend mode
 	love.graphics.setBlendMode("add")
-	love.graphics.setColor(Colors.line)
+	love.graphics.setColor(Colors.outline)
 	-- Left column borders
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40, 0, self.col_width, 1) -- Top
 	love.graphics.draw(atlas, pixel, self.padding, self.padding + 40 + self.col_height - 1, 0, self.col_width, 1) -- Bottom
@@ -368,7 +368,7 @@ function ModifierView:draw()
 		if mod and mod.defaultValue ~= nil then
 			if type(mod.defaultValue) == "number" then
 				-- Draw slider track
-				love.graphics.setColor(Colors.line)
+				love.graphics.setColor(Colors.outline)
 				love.graphics.draw(atlas, pixel, right_x + 250, item_y + self.item_height / 2 - 1, 0, 180, 2)
 
 				-- Draw slider handle
