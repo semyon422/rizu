@@ -23,7 +23,7 @@ local Select = Screen + {}
 function Select:new(ui)
 	Screen.new(self)
 	self.ui = ui
-	self.background_panel = BackgroundPanel(ui.game.backgroundModel)
+	self.background_panel = BackgroundPanel(ui.game.backgroundModel, ui.game)
 	self.score_list = ScoreList(ui.game.scoreSelector, function(i) self:openScore(i) end)
 	self.chart_sets = ChartSets(ui.game.chartSelector, function(i) end)
 	self.chart_grid = ChartGrid(ui.game.chartSelector)
@@ -195,6 +195,8 @@ function Select:receive(event)
 		self.score_list:reload()
 		self.chart_grid:reloadItems()
 	end
+
+	self.background_panel:receive(event)
 end
 
 return Select

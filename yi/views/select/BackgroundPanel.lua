@@ -1,10 +1,42 @@
 local View = require("gui.View")
 local Resources = require("yi.Resources")
 local Colors = require("yi.Colors")
+local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 
 ---@class yi.BackgroundPanel : gui.View
 ---@operator call: yi.BackgroundPanel
 local BackgroundPanel = View + {}
+
+local base_lg_getWidth = love.graphics.getWidth
+local base_lg_getHeight = love.graphics.getHeight
+local base_lg_getDimensions = love.graphics.getDimensions
+
+local preview_width = 0
+local preview_height = 0
+
+local function cancer_lg_getWidth()
+	return preview_width
+end
+
+local function cancer_lg_getHeight()
+	return preview_height
+end
+
+local function cancer_lg_getDimensions()
+	return preview_width, preview_height
+end
+
+local function pushCancer()
+	love.graphics.getWidth = cancer_lg_getWidth
+	love.graphics.getHeight = cancer_lg_getHeight
+	love.graphics.getDimensions = cancer_lg_getDimensions
+end
+
+local function popCancer()
+	love.graphics.getWidth = base_lg_getWidth
+	love.graphics.getHeight = base_lg_getHeight
+	love.graphics.getDimensions = base_lg_getDimensions
+end
 
 local shader_code = [[
 	extern vec2 container_size;
@@ -25,7 +57,8 @@ local shader_code = [[
 ]]
 
 ---@param bg_model sphere.BackgroundModel
-function BackgroundPanel:new(bg_model)
+---@param game sphere.GameController
+function BackgroundPanel:new(bg_model, game)
 	View.new(self)
 	self.bg_model = bg_model
 	self.title_font = Resources.getFont("cjk_bold", 48)
@@ -34,6 +67,7 @@ function BackgroundPanel:new(bg_model)
 	self.title = "Title"
 	self.artist = "Artist"
 	self.ranked = false
+	self.chart_preview_view = ChartPreviewView(game)
 end
 
 function BackgroundPanel:load()
@@ -43,6 +77,13 @@ function BackgroundPanel:load()
 	local _, _, w, h = Resources.quads.select_bg_overlay:getViewport()
 	self.bg_overlay_sx = self.box.width / w
 	self.bg_overlay_sy = self.box.height / h
+	self.chart_preview_view:load()
+	preview_width, preview_height = self.box:getDimensions()
+	self.preview_canvas = love.graphics.newCanvas(preview_width, preview_height)
+end
+
+function BackgroundPanel:update(dt)
+	self.chart_preview_view:update(dt)
 end
 
 ---@param chartview rizu.library.LocatedChartview
@@ -129,6 +170,22 @@ function BackgroundPanel:draw()
 	end
 
 	lg.setScissor()
+
+	lg.push("all")
+	pushCancer()
+	lg.setCanvas(self.preview_canvas)
+	lg.clear()
+	lg.origin()
+	self.chart_preview_view:draw()
+	lg.setCanvas()
+	popCancer()
+	lg.pop()
+
+	lg.draw(self.preview_canvas)
+end
+
+function BackgroundPanel:receive(event)
+	self.chart_preview_view:receive(event)
 end
 
 return BackgroundPanel
