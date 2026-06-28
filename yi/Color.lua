@@ -153,9 +153,20 @@ function Color.osuToColor(diff, out)
 	return Color.HSV(hue, 1, 1, out)
 end
 
+---@param rate number
+---@param out gui.Color
+---@return gui.Color
 function Color.linearRateToColor(rate, out)
 	local hue = Color.convertDiffToHue(rate / 4)
 	return Color.HSV(hue, rate / 4, 1, out)
+end
+
+---@param ln_percent number
+---@param out gui.Color
+---@return gui.Color
+function Color.lnPercentToColor(ln_percent, out)
+	local hue = Color.convertDiffToHue(ln_percent)
+	return Color.HSV(hue, ln_percent, 1, out)
 end
 
 return Color

@@ -15,6 +15,7 @@ local FooterButton = require("yi.views.FooterButton")
 local IconButton = require("yi.views.IconButton")
 local TimeRate = require("yi.views.select.TimeRate")
 local GameplayModifiers = require("yi.views.select.GameplayModifiers")
+local InfoPanel = require("yi.views.select.InfoPanel")
 local SelectCommands = require("yi.layers.SelectCommands")
 local LocationCommands = require("yi.layers.LocationCommands")
 
@@ -36,6 +37,7 @@ function Select:new(ui)
 	self.session_info = SessionInfo():setPosition(10, 2)
 	self.time_rate = TimeRate(ui.game.timeRateModel, ui.game.modifierSelectModel)
 	self.gameplay_modifiers = GameplayModifiers()
+	self.info_panel = InfoPanel()
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "QUIT", function()
 		love.event.quit()
 	end)
@@ -123,11 +125,11 @@ end
 function Select:createRightColumn()
 	return S.Track({
 		direction = "column",
-		space = {28, 57, 64, 22, 136, 22, 562},
+		space = {28, "*", 122, "*", 136, "*", 562},
 
 		Rectangle({color = Colors.panel}),
 		S.Stack(),
-		Rectangle({color = Colors.panel}),
+		self.info_panel,
 		S.Stack(),
 		self.chart_grid,
 		S.Stack(),
@@ -237,6 +239,7 @@ end
 ---@param cv rizu.library.LocatedChartview
 function Select:onChartviewUpdate(cv)
 	self.background_panel:bind(cv)
+	self.info_panel:bind(cv)
 end
 
 function Select:handleKeyDown(key)

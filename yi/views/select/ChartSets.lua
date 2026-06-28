@@ -46,6 +46,7 @@ function ChartSets:load()
 	self.stroke_height = Painter.getQuadHeight(Resources.quads.list_item_stroke_cap_left)
 	local stroke_mid_width = Painter.getQuadWidth(Resources.quads.list_item_stroke_cap_middle)
 	self.stroke_mid_scale = (self.box.width - self.stroke_left_width - self.stroke_right_width) / stroke_mid_width
+	self.scroll_spring:snap(self.chartSelector.state:getPrimary().index * ITEM_HEIGHT)
 end
 
 function ChartSets:clampScroll(value)
