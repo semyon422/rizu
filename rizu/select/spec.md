@@ -48,3 +48,42 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 - **Selected Chart**: The item at the finest active level (typically Level 2) is considered the "Selected Chart."
 - **Gameplay Sync**: Selection changes update the `ReplayBase` with variation-specific settings (modifiers, rate) if the mode is `chartdiffs` or `chartplays`.
 - **Observables**: UI components bind to `ListStore.onChanged` for item updates and `SelectionState.onChanged` for selection and scroll updates.
+
+## Future Work and Open Questions
+
+### User Experience
+- **Single-list layouts**: The selection model is technically two lists, but some `primary_mode` / `secondary_mode` combinations always produce a secondary list with one logical item. Those modes should probably render as a single-list UI.
+- **Incremental cache refreshes**: The lists should update while charts are still being cached, so the player can immediately play anything that has already been processed. This needs design work because rebuilding large lists can take seconds for very large libraries.
+- **Collections**: Current collections are folder-like path prefixes used for filtering. Keep that behavior, but consider renaming it to make room for real user-defined collections. Collections may also need separate scopes for sets, metas, diffs, and plays.
+- **Score visibility**: Document which scores should be shown for each selection state, including the relationship between selected item, selected variation, local scores, online scores, and multiplayer context.
+- **Online score latency**: Online scores appear to load slowly. Review the debounce strategy and consider loading them immediately when the selected playable chart changes.
+- **Duplicate scrolling bug**: Investigate a bug where scrolling through duplicates keeps restoring the first duplicate, making it impossible to scroll downward.
+
+### Selection, Scores, and Replay State
+- **Gameplay sync details**: Expand the `Gameplay Sync` section with the exact data written to `ReplayBase`. `ScoreSelector:updateReplayBase(chartview)` appears to be the current implementation reference.
+- **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
+- **Score async state**: Review asynchronous score loading for possible state desynchronization, especially around `ScoreSelector:pullScore(noUpdate)`.
+- **Multiplayer coupling**: Revisit how selection state feeds multiplayer state. `self.multiplayerModel.client:updateReplayBase()` suggests multiplayer currently carries selection-specific behavior that may need a cleaner boundary.
+- **Host chart lookup**: Reevaluate `findNotechart` / `find_notechart`. The main use case seems to be multiplayer host chart selection, and that lookup probably should target `chartmeta`.
+
+### Boundaries and Dependencies
+- **Event wiring**: Centralize event-based system coupling if possible. `SelectionCoordinator` already handles some of this, but there may be additional event wiring elsewhere.
+- **UI-only effects**: Move UI concerns out of selection logic, including `self.windowModel:setVsyncOnSelect(true)`.
+- **Configuration IO**: Move config persistence out of the select module. Calls such as `self.configModel:write()` make selection responsible for IO that belongs at a higher layer.
+- **Filesystem and OS integration**: Move path resolution and URL/file opening out of selection code. The `love.filesystem` source-path fallback and `love.system.openURL(tostring(dir_path))` should likely be behind an injected service such as a relative-to-absolute path resolver and opener.
+- **Dependency inversion**: Consider introducing interfaces around services used by `rizu.select` so the module depends on selection-domain contracts instead of concrete application models.
+- **Web chart action**: `SelectionActions:openWebNotechart()` is stale and the current website does not fully support it. Either redesign it against the current web feature set or remove it from the selection action surface.
+
+### Types and Naming
+- **Location DTO split**: Split `rizu.library.Location` into two shapes: the full runtime entity and a narrower insert-data record used by repositories. Look for similar patterns elsewhere before applying this broadly.
+- **Untyped data params**: Replace broad annotations such as `---@param data table` with specific DTO or record types.
+- **Integer annotations**: Use `integer` for indexes and IDs, for example `level`, `index`, and optional `id` parameters that are currently annotated as `number`.
+- **Score naming**: Rename `scoreId`-style identifiers toward `play` / `chartplay` terminology to match the library hierarchy.
+- **FilterModel annotations**: Add missing annotations in `FilterModel` and related model classes.
+- **Event typing**: Add typed event unions. The discriminated event shape can use one variant with a `type` field and other payload-specific variants, with `---@cast` applied in `receive` branches after checking `type`.
+
+### Filters and Task Infrastructure
+- **Filter editing**: Reconsider how custom filters merge with defaults. A dedicated in-game filter editor may be better than manual config editing; if so, persist the complete filter set instead of merging custom filters into defaults at runtime.
+- **TaskRunner overrides**: Document the override system in `TaskRunner`, including what can be overridden and why the mechanism exists.
+- **ChartMetadataService shape**: Consider splitting `ChartMetadataService` or renaming it if it currently owns multiple responsibilities.
+- **Formatting cleanup**: Repository-wide formatting cleanup is still needed, but it is broader than the select module and should be handled separately.

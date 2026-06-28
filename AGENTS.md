@@ -398,6 +398,7 @@ For ICC or shared-memory communication tests:
   - `## Goal`
   - `## User Experience`
 - Significant architectural choices should be recorded in an `## Architecture Decisions` or `## ADR` section.
+- A `## Future Work and Open Questions` section is not a strict TODO list. It may contain exploratory ideas that require research and may later prove unnecessary, unsuitable, or lower-priority after implementation details are better understood.
 - Use precise terminology. For example, do not use "difficulty" when you mean chart variation or chart file.
 
 ## When To Create Or Update A Spec

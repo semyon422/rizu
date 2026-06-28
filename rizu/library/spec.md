@@ -29,7 +29,7 @@ The library is structured around a 5-level hierarchy, where each level represent
 ### ADR: Metadata-Driven IIDX Locations
 - **Context**: beatmania IIDX game data stores song metadata globally in `info/*/music_data.bin` and chart payloads in `sound/*.ifs`, so recursively treating every file as a normal chart folder is both slow and semantically wrong.
 - **Decision**: Locations that contain `info/*/music_data.bin` and `sound/` are auto-detected as IIDX data roots during cache updates. They use a metadata-driven scanner that imports only metadata-listed `.ifs` archives present on disk.
-- **Consequence**: Users can add an IIDX `contents/data` folder as a regular location while the library avoids regular recursive scanning for that root. Each `.ifs` archive is stored as a chartfile set, and the internal `<song_id>/<song_id>.1` chart payload is stored as the chartfile and hash identity. IIDX gameplay loads `.s3p` keysounds from the same `.ifs`; preview audio and BGA are left for later passes.
+- **Consequence**: Users can add an IIDX `contents/data` folder as a regular location while the library avoids regular recursive scanning for that root. Each `.ifs` archive is stored as a chartfile set, and the internal `<song_id>/<song_id>.1` chart payload is stored as the chartfile and hash identity. IIDX gameplay loads `.s3p` keysounds from the same `.ifs`; preview audio and BGA assets are also resolved through the container structure.
 
 ### ADR: Unified FFI Indexing
 - **Context**: Transferring thousands of rich Lua tables between the database thread and the UI thread causes massive garbage collection pressure and "stuttering."
@@ -88,3 +88,33 @@ To keep the memory footprint minimal, rich metadata (titles, artists, paths) is 
 | `chartmetas` | `chartdiffs` | `meta` | `diff` | **Drill-down:** Select a chart, see all its playable variations/modifiers. |
 | `chartdiffs` | `chartmetas` | `meta` | `diff` | **Context:** Select a variation, see all variations of that chart. |
 | `chartfile_sets` | `chartdiffs` | `set` | `diff` | **Deep Drill-down:** Select a set, see all variations of all charts in it. |
+
+## Future Work and Open Questions
+
+### Documentation
+- **Cross-module boundaries**: Separate the responsibilities of `rizu.library` and `rizu.select` more strictly in the documentation. The select module depends heavily on library query behavior, so library docs should describe data/query semantics while select docs should describe UI state and interaction.
+- **External game imports**: Expand the user experience section with chart imports from other games and formats, not only existing local chart folders.
+- **IIDX `.ifs` paths**: Document `.ifs` representation in more detail. An `.ifs` file is a container with an internal file tree, not a chart by itself, so the docs should explain how external paths, internal paths, chartfile sets, chartfiles, preview audio, BGA, and keysounds relate.
+- **Future `.osz` support**: Consider direct `.osz` reading using the same container-oriented approach as `.ifs`.
+- **Selection examples**: Add concrete primary/secondary list examples for most mode combinations, possibly excluding `chartfiles` if it is too low-level for player-facing examples. The current query matrix is correct but hard to understand without worked examples.
+- **Mounts UI**: Document the useful actions available in the mounts view, since the UI already exposes many library-management operations there.
+
+### Caching and Performance
+- **Incremental cache updates**: Add a mechanism for library lists to update while chart caching is still running. Players should be able to play charts that have already been processed instead of waiting for the whole cache run.
+- **Pipeline parallelism**: Split caching into stages that can surface partial results. A fast first pass could show discovered files as provisional charts; later passes can parse metadata, refresh list entries, and calculate difficulty.
+- **Difficulty calculation**: Benchmark the cache pipeline. Difficulty calculation is likely a bottleneck and may need to run later or across multiple worker threads. Metadata parsing is more likely to be limited by file IO.
+- **On-scroll recache checks**: Consider checking whether the currently visible file has changed while scrolling and recache only that file if needed. This must be clearly communicated to the player and tightly scoped. For osu! files, the game could also check the osu! website and offer a local update when a newer version exists.
+- **Worker repo lifetime**: Repositories in the worker are currently created on demand. Consider constructing them once in the worker constructor if that reduces overhead without making state harder to reason about.
+
+### Architecture and Boundaries
+- **LibraryDropManager**: Review `LibraryDropManager`; it appears legacy and may need a cleaner design.
+- **Export filesystem boundary**: Move `ChartExporter:exportToOsu` behind an `IFilesystem` abstraction so export code does not depend directly on concrete filesystem APIs.
+- **Database path ownership**: Make the database path required at `Database:load(path)` and move fallback resolution to a higher level. Add a command-line option for selecting a database path so developers can open a different database without renaming files.
+- **Logging**: Add a logging class or interface in `aqua` and use it instead of direct `print` calls. This is a repository-wide concern, not just a library change.
+- **DifficultyModel extensibility**: `DifficultyModel` can accept custom difficulty calculators, but that capability is not exposed well. Design a player- or developer-facing way to configure and use custom calculators.
+
+### Types and Coroutines
+- **`views.lua` typing**: Review `views.lua` types; several query and view shapes may be expressible more precisely.
+- **Model typing**: Add stronger annotations for library models where LuaLS currently sees broad or unknown shapes.
+- **FileCacheGenerator iterator**: Narrow the iterator type in `FileCacheGenerator`; it is currently too broad to communicate its contract well.
+- **Coroutine contracts**: Type raw `yield` / `resume` flows where it helps comprehension and diagnostics. Small semantic wrappers may be clearer than direct calls such as `coroutine.yield("not_found", a, b, nil)`.
