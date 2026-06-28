@@ -120,6 +120,9 @@ function ScoreSelector:pullScore(noUpdate)
 	local select = self.configModel.configs.select
 	if select.scoreSourceName == "online" then
 		self.store:clear()
+		if not chartview.hash or not chartview.index then
+			return
+		end
 		self:updateOnlineScoreItems(chartview, generation)
 		return
 	end

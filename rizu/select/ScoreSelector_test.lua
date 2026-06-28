@@ -153,6 +153,39 @@ function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart
 end
 
 ---@param t testing.T
+function test.online_missing_chart_key_does_not_start_throttle(t)
+	local time = {0}
+	delay.set_timer(time)
+
+	local replayBase = ReplayBase()
+	local selector = createSelector("chartmetas", replayBase)
+	selector.configModel.configs.select.scoreSourceName = "online"
+
+	---@type string[]
+	local updated_hashes = {}
+	selector.store = {
+		clear = function() end,
+		updateItems = function(_, chartview)
+			table.insert(updated_hashes, chartview.hash)
+		end,
+	}
+
+	selector:setChart({chartfile_id = 1})
+	t:tdeq(updated_hashes, {})
+
+	selector:setChart({hash = "loaded", index = 1})
+	t:tdeq(updated_hashes, {"loaded"})
+
+	time[1] = 1
+	delay.update()
+	t:tdeq(updated_hashes, {"loaded"})
+
+	delay.set_timer(function()
+		return 0
+	end)
+end
+
+---@param t testing.T
 function test.online_debounce_receive_does_not_block_event_dispatch(t)
 	local time = {0}
 	delay.set_timer(time)
