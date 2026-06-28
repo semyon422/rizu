@@ -5,6 +5,11 @@ local thread = require("thread")
 ---@operator call: rizu.select.tasks.TaskRunner
 local TaskRunner = class()
 
+TaskRunner.priority = {
+	high = 1,
+	low = 2,
+}
+
 function TaskRunner:new()
 	---@type function?
 	self.current_task_func = nil
@@ -16,9 +21,9 @@ function TaskRunner:new()
 end
 
 ---@param task_func function
----@param level number? Lower is higher priority (e.g. 1 = Set, 2 = Chart, 3 = Score)
+---@param level integer? Lower is higher priority. Use `TaskRunner.priority`.
 function TaskRunner:push(task_func, level)
-	level = level or 1
+	level = level or TaskRunner.priority.high
 	if not self.is_running then
 		self:_run(task_func, level)
 	else
@@ -32,7 +37,7 @@ end
 
 ---@private
 ---@param task_func function
----@param level number
+---@param level integer
 TaskRunner._run = thread.coro(function(self, task_func, level)
 	self.is_running = true
 	self.current_task_func = task_func

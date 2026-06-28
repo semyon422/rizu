@@ -66,6 +66,20 @@ Score loads are generation-guarded. Every new chart selection creates a new scor
 
 Manual modifier changes are handled separately by `ModifierCoordinator:update()`, which applies modifier metadata without re-importing selection data and then syncs the current `ReplayBase` to multiplayer.
 
+### TaskRunner Overrides
+`rizu.select.tasks.TaskRunner` serializes asynchronous selection work so rapid UI input does not run every obsolete intermediate refresh. It intentionally keeps only one pending task while another task is running.
+
+- A running task is never interrupted.
+- Use `TaskRunner.priority.high` for primary refresh, find-chart, and primary-selection work.
+- Use `TaskRunner.priority.low` for secondary-selection follow-up work.
+- Internally, lower numeric `level` means higher priority.
+- If no task is running, the pushed task starts immediately.
+- If a task is already running and no pending task exists, the pushed task becomes pending.
+- If a pending task exists, a new task replaces it only when the new task has higher or equal priority (`new_level <= pending_level`).
+- When the running task finishes, the latest accepted pending task runs next.
+
+This means repeated scroll or refresh input collapses to the most recent relevant task, while coarser selection refreshes can override lower-priority detail work.
+
 ## Future Work and Open Questions
 
 ### User Experience
@@ -98,6 +112,5 @@ Manual modifier changes are handled separately by `ModifierCoordinator:update()`
 
 ### Filters and Task Infrastructure
 - **Filter editing**: Reconsider how custom filters merge with defaults. A dedicated in-game filter editor may be better than manual config editing; if so, persist the complete filter set instead of merging custom filters into defaults at runtime.
-- **TaskRunner overrides**: Document the override system in `TaskRunner`, including what can be overridden and why the mechanism exists.
 - **ChartMetadataService shape**: Consider splitting `ChartMetadataService` or renaming it if it currently owns multiple responsibilities.
 - **Formatting cleanup**: Repository-wide formatting cleanup is still needed, but it is broader than the select module and should be handled separately.

@@ -96,13 +96,13 @@ function ChartSelector:receive(event)
 		if event.level == 1 then
 			self.taskRunner:push(function()
 				self:pullLevel(2)
-			end, 1)
+			end, TaskRunner.priority.high)
 		elseif event.level == 2 then
 			self.taskRunner:push(function()
 				local index = self.stores[1]:indexof(self.config)
 				local item = self.stores[1]:get(index)
 				self.state:setSelection(1, index, item and item.chartfile_set_id)
-			end, 2)
+			end, TaskRunner.priority.low)
 		end
 	end
 end
@@ -153,7 +153,7 @@ function ChartSelector:findNotechart(hash, index)
 			end
 			self.onChanged:send({type = "find_notechart", hash = hash, index = index})
 		end
-	end, 1)
+	end, TaskRunner.priority.high)
 end
 
 ---@return string?
@@ -222,7 +222,7 @@ function ChartSelector:noDebounceRefresh(...)
 		if self.chartview then
 			self:setConfig(self.chartview)
 		end
-	end, 1)
+	end, TaskRunner.priority.high)
 end
 
 ---@param sortFunctionName string
