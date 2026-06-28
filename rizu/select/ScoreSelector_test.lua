@@ -148,6 +148,43 @@ function test.online_debounce_does_not_update_stale_chart(t)
 end
 
 ---@param t testing.T
+function test.online_debounce_receive_does_not_block_event_dispatch(t)
+	local time = {0}
+	delay.set_timer(time)
+
+	local replayBase = ReplayBase()
+	local selector = createSelector("chartmetas", replayBase)
+	selector.configModel.configs.select.scoreSourceName = "online"
+	selector.chartview = {hash = "selected", index = 1}
+
+	---@type string[]
+	local updated_hashes = {}
+	selector.store = {
+		clear = function() end,
+		updateItems = function(_, chartview)
+			table.insert(updated_hashes, chartview.hash)
+		end,
+	}
+
+	local returned = false
+	coroutine.wrap(function()
+		selector:receive({type = "set_changed"})
+		returned = true
+	end)()
+
+	t:eq(returned, true)
+	t:tdeq(updated_hashes, {})
+
+	time[1] = 1
+	delay.update()
+	t:tdeq(updated_hashes, {"selected"})
+
+	delay.set_timer(function()
+		return 0
+	end)
+end
+
+---@param t testing.T
 function test.score_store_ignores_stale_provider_result(t)
 	local configModel = createConfigModel("chartmetas")
 	local store

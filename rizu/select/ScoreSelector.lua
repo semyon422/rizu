@@ -114,13 +114,23 @@ function ScoreSelector:pullScore(noUpdate)
 	if select.scoreSourceName == "online" then
 		self.store:clear()
 		if coroutine.running() then
-			delay.sleep(self.debounceTime)
-			if request_id ~= self.scoreRequestId then
-				return
-			end
+			coroutine.wrap(function()
+				delay.sleep(self.debounceTime)
+				if request_id ~= self.scoreRequestId then
+					return
+				end
+				self:updateScoreItems(chartview, request_id)
+			end)()
+			return
 		end
 	end
 
+	self:updateScoreItems(chartview, request_id)
+end
+
+---@param chartview rizu.library.LocatedChartview
+---@param request_id integer
+function ScoreSelector:updateScoreItems(chartview, request_id)
 	local config = self.configModel.configs.settings.select
 	local secondary_mode = config.secondary_mode or "chartmetas"
 	local exact = secondary_mode == "chartdiffs" or secondary_mode == "chartplays"
