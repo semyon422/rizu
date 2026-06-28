@@ -14,10 +14,6 @@ local schema = {
 			osu = Range(1.0, 1, 40.0, 0.5),
 			scale_speed_with_rate = Checkbox(false),
 		},
-		health = {
-			auto_shift = Checkbox(false),
-			misses_to_fail = Range(20, 0, 100, 1),
-		},
 		background_animation = {
 			video = Checkbox(false),
 			image = Checkbox(false),
@@ -50,16 +46,16 @@ local schema = {
 	},
 	graphics = {
 		display = {
-			fps_limit = Range(240, 30, 1000, 1),
+			fps_limit = Range(240, 30, 1024, 1),
 			unlimited_fps = Checkbox(false),
-			busy_loop_ratio = Range(0, 0, 1, 0.01),
-			sleep_function = Choice("love", {"love", "ffi"}),
 			fullscreen = Checkbox(false),
 			fullscreen_type = Choice("exclusive", {"desktop", "exclusive"}),
 			vsync = Choice(0, {-1, 0, 1}),
 			msaa = Choice(0, {0, 1, 2, 4, 8, 16}),
-			dwm_flush = Checkbox(false),
 			threaded_input = Checkbox(false),
+			sleep_function = Choice("love", {"love", "ffi"}),
+			busy_loop_ratio = Range(0, 0, 1, 0.01),
+			dwm_flush = Checkbox(false),
 			vsync_on_select = Checkbox(true),
 		},
 		dim = {
@@ -67,21 +63,9 @@ local schema = {
 			gameplay = Range(0.8, 0, 1, 0.01),
 			result = Range(0, 0, 1, 0.01),
 		},
-		blur = {
-			select = Range(0, 0, 20, 1),
-			gameplay = Range(0, 0, 20, 1),
-			result = Range(0, 0, 20, 1),
-		},
-		camera = {
-			enabled = Checkbox(false),
-			rx = Checkbox(false),
-			ry = Checkbox(true),
-		},
 		appearance = {
-			cursor = Choice("circle", {"circle", "arrow", "system"}),
-			fonts_dpi = Choice(1, {1, 2}),
-			user_interface = Choice("new", {"old", "new"}):setDeferred(true),
-		},
+			user_interface = Choice("new", {"old", "new"})
+		}
 	},
 	audio = {
 		volume = {
@@ -134,47 +118,20 @@ local schema = {
 		},
 	},
 	select = {
-		mode = {
-			primary = Choice("chartfile_sets", {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}),
-			secondary = Choice("chartmetas", {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}),
-		},
 		display = {
 			diff_column = Choice("enps_diff", {"enps_diff", "osu_diff", "msd_diff", "user_diff"}),
 			chart_preview = Checkbox(true),
 		},
 	},
 	input = {
-		hotkeys = {
+		gameplay_hotkeys = {
 			pause = Textbox("escape"),
 			skip_intro = Textbox("space"),
-			quick_restart = Textbox("`"),
-			select_random = Textbox("f2"),
 			offset_decrease = Textbox("-"),
 			offset_increase = Textbox("="),
 			offset_reset = Textbox("delete"),
 			play_speed_decrease = Textbox("f3"),
 			play_speed_increase = Textbox("f4"),
-			time_rate_decrease = Textbox("f5"),
-			time_rate_increase = Textbox("f6"),
-			screenshot_capture = Textbox("f12"),
-			screenshot_open = Textbox("lshift"),
-		},
-	},
-	editor = {
-		playback = {
-			speed = Range(1.0, 0.1, 2.0, 0.1),
-			audio_offset = Range(0, -1, 1, 0.001),
-			waveform_offset = Range(0, -1, 1, 0.001),
-		},
-		grid = {
-			snap = Range(1, 1, 192, 1),
-			lock_snap = Checkbox(true),
-		},
-		display = {
-			show_timings = Checkbox(true),
-			tool = Choice("Select", {"Select", "Draw", "Erase"}),
-			waveform_opacity = Range(0.5, 0, 1, 0.01),
-			waveform_scale = Range(0.5, 0.1, 2.0, 0.1),
 		},
 	},
 	misc = {
@@ -183,24 +140,8 @@ local schema = {
 			mute_on_unfocus = Checkbox(false),
 			show_non_mania_charts = Checkbox(false),
 			show_fps = Checkbox(false),
-			show_tasks = Checkbox(false),
-			show_debug_menu = Checkbox(false),
 			discord_presence = Checkbox(true),
-			generate_gif_result = Checkbox(false),
 		},
-		idk = {
-			timings_arbitrary = Range(0, 0, 100, 0.001),
-			timings_sphere = Range(0, 0, 100, 0.001),
-			timings_simple = Range(0.160, 0, 100, 0.001),
-			timings_osuod = Range(10, 0, 10, 0.1),
-			timings_etternaj = Range(4, 0, 10, 0.1),
-			timings_quaver = Range(0, 0, 100, 0.001),
-			timings_bmsrank = Range(3, 0, 10, 0.1),
-			replay_auto_timings = Checkbox(true),
-			replay_auto_healths = Checkbox(true),
-			replay_auto_const = Checkbox(false),
-			replay_auto_tap_only = Checkbox(false),
-		}
 	}
 }
 

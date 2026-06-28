@@ -5,7 +5,7 @@ local FallbackUserInterface = require("sphere.FallbackUserInterface")
 local OldUserInterface = require("ui.UserInterface")
 local NewUserInterface = require("yi.UserInterface")
 
-local SettingsScheme = require("rizu.config.schemas.Settings")
+local Settings = require("rizu.config.schemas.Settings")
 
 ---@class sphere.UserInterfaceModel.ItemEntry
 ---@field name string
@@ -22,8 +22,7 @@ local UserInterfaceModel = class()
 ---@param game sphere.GameController
 function UserInterfaceModel:new(game)
 	self.game = game
-	self.config = game.settings_config
-	self.ui_setting = SettingsScheme.graphics.appearance.user_interface
+	self.settings = game.settings
 	self.items = {}
 
 	self:add("old", "2022 UI", OldUserInterface, "")
@@ -65,13 +64,11 @@ end
 
 ---@param name string
 function UserInterfaceModel:setUserInterface(name)
-	self.config:setString(self.ui_setting, name)
-	print(name)
+	self.settings:setString(Settings.graphics.appearance.user_interface, name)
 end
 
 function UserInterfaceModel:loadSelected()
-	local name = self.config:getString(self.ui_setting)
-	print(name)
+	local name = self.settings:getString(Settings.graphics.appearance.user_interface)
 
 	local item = table_util.find(self.items, function(v)
 		return v.name == name

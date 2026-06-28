@@ -8,7 +8,7 @@ local ChartLoading = require("yi.layers.ChartLoading")
 local Result = require("yi.layers.Result")
 local Modals = require("yi.layers.Modals")
 local Overlay = require("yi.layers.Overlay")
-local SettingsScheme = require("rizu.config.schemas.Settings")
+local Settings = require("rizu.config.schemas.Settings")
 local Colors = require("yi.Colors")
 local Sounds = require("yi.Sounds")
 local delay = require("delay")
@@ -54,7 +54,7 @@ function UserInterface:new(game)
 end
 
 function UserInterface:load()
-	self.game.settings_config.onChanged:add(self)
+	self.game.settings.onChanged:add(self)
 
 	local h = love.graphics.getHeight()
 	local scale = h / TARGET_HEIGHT
@@ -176,9 +176,9 @@ function UserInterface:receive(event)
 	self.inputs:receive(event, self.modifiers)
 
 	if event.type == "config_commit" then
-		local ui = SettingsScheme.graphics.appearance.user_interface
+		local ui = Settings.graphics.appearance.user_interface
 		if event[1] == ui then
-			local name = self.game.settings_config:getString(ui)
+			local name = self.game.settings:getString(ui)
 			if name then
 				self.game.uiModel:setUserInterface(name)
 				self.game.uiModel:loadSelected()

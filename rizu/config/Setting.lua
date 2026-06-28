@@ -2,6 +2,7 @@ local class = require("class")
 
 ---@class rizu.config.Setting
 ---@operator call: rizu.config.Setting
+---@field order integer A unique ID for UI sorting
 ---@field kind string
 ---@field default_value any
 ---@field is_deferred boolean
@@ -9,9 +10,15 @@ local class = require("class")
 ---@field is_restart_required boolean
 local Setting = class()
 
+-- Global counter for UI sorting
+local setting_count = 0
+
 ---@param kind string
 ---@param default_value any
 function Setting:new(kind, default_value)
+	self.order = setting_count
+	setting_count = setting_count + 1
+
 	self.kind = kind
 	self.default_value = default_value
 	self.is_deferred = false

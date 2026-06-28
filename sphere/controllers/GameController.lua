@@ -76,7 +76,7 @@ function GameController:new()
 	self.packageManager = PackageManager()
 
 	self.persistence = Persistence()
-	self.settings_config = assert(self.persistence.configManager:get("settings"))
+	self.settings = assert(self.persistence.configManager:get("settings"))
 	self.app = App(self.persistence)
 	self.uiModel = UserInterfaceModel(self)
 
