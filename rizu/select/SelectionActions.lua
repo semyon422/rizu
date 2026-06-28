@@ -1,5 +1,4 @@
 local class = require("class")
-local Path = require("Path")
 
 ---@class rizu.select.SelectionActions
 ---@operator call: rizu.select.SelectionActions
@@ -8,10 +7,12 @@ local SelectionActions = class()
 ---@param chartSelector rizu.select.ChartSelector
 ---@param library rizu.library.Library
 ---@param onlineModel sphere.OnlineModel
-function SelectionActions:new(chartSelector, library, onlineModel)
+---@param locationDirectoryOpener rizu.select.services.LocationDirectoryOpener
+function SelectionActions:new(chartSelector, library, onlineModel, locationDirectoryOpener)
 	self.chartSelector = chartSelector
 	self.library = library
 	self.onlineModel = onlineModel
+	self.locationDirectoryOpener = locationDirectoryOpener
 end
 
 function SelectionActions:openDirectory()
@@ -43,20 +44,7 @@ end
 ---@param location rizu.library.Location
 ---@param dir string?
 function SelectionActions:openLocationDirectory(location, dir)
-	local dir_path = Path(location.path)
-	if dir then
-		dir_path = dir_path .. Path(dir)
-	end
-
-	if not dir_path.absolute then
-		local source = love.filesystem.getSource()
-		if source:find("^.+%.love$") then
-			source = love.filesystem.getSourceBaseDirectory()
-		end
-		dir_path = Path(source) .. dir_path
-	end
-
-	love.system.openURL(tostring(dir_path))
+	self.locationDirectoryOpener:open(location, dir)
 end
 
 function SelectionActions:openWebNotechart()

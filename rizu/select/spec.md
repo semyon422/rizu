@@ -85,6 +85,9 @@ Select module event payloads are documented as EmmyLua aliases in `rizu.select.e
 
 All select events must include a `type` field. Prefer narrowing event unions with `if event.type == ...` checks and only add explicit casts when LuaLS cannot infer the concrete payload. Prefer `emitChanged` over calling raw `observable:send`, so LuaLS can check the event payload shape.
 
+### Filesystem and OS Integration
+`SelectionActions` delegates opening local chart and location directories to `LocationDirectoryOpener`. This keeps selected-location lookup in the action layer while isolating `love.filesystem` source-path resolution and `love.system.openURL` behind an injected service.
+
 ## Future Work and Open Questions
 
 ### User Experience
@@ -103,7 +106,6 @@ All select events must include a `type` field. Prefer narrowing event unions wit
 - **Event wiring**: Centralize event-based system coupling if possible. `SelectionCoordinator` already handles some of this, but there may be additional event wiring elsewhere.
 - **UI-only effects**: Move UI concerns out of selection logic, including `self.windowModel:setVsyncOnSelect(true)`.
 - **Configuration IO**: Move config persistence out of the select module. Calls such as `self.configModel:write()` make selection responsible for IO that belongs at a higher layer.
-- **Filesystem and OS integration**: Move path resolution and URL/file opening out of selection code. The `love.filesystem` source-path fallback and `love.system.openURL(tostring(dir_path))` should likely be behind an injected service such as a relative-to-absolute path resolver and opener.
 - **Dependency inversion**: Consider introducing interfaces around services used by `rizu.select` so the module depends on selection-domain contracts instead of concrete application models.
 - **Web chart action**: `SelectionActions:openWebNotechart()` is stale and the current website does not fully support it. Either redesign it against the current web feature set or remove it from the selection action surface.
 

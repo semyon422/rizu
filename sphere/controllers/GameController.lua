@@ -22,6 +22,7 @@ local ModifierCoordinator = require("rizu.select.ModifierCoordinator")
 local LibraryDropManager = require("rizu.library.LibraryDropManager")
 local ChartExporter = require("rizu.library.ChartExporter")
 local SelectionActions = require("rizu.select.SelectionActions")
+local LocationDirectoryOpener = require("rizu.select.services.LocationDirectoryOpener")
 local ResultController = require("sphere.controllers.ResultController")
 local MultiplayerController = require("sphere.controllers.MultiplayerController")
 local EditorController = require("rizu.editor.EditorController")
@@ -192,7 +193,8 @@ function GameController:new()
 	self.selectionActions = SelectionActions(
 		self.chartSelector,
 		self.library,
-		self.onlineModel
+		self.onlineModel,
+		LocationDirectoryOpener()
 	)
 
 	self.resultController = ResultController(self)
