@@ -55,16 +55,23 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	self.state.onChanged:add(self)
 
 	self.onChanged:add({
+		---@param event rizu.select.ChartSelectorEvent
 		receive = function(_, event)
 			if event.type == "chartview" then
-				print(event.chartview.chartfile_id, event.chartview.title)
+				---@cast event rizu.select.ChartviewEvent
+				local chartview = event.chartview
+				if chartview then
+					print(chartview.chartfile_id, chartview.title)
+				end
 			end
 		end
 	})
 
 	self.stores[1].onChanged:add({
+		---@param event rizu.select.ListStoreEvent
 		receive = function(_, event)
 			if event.type == "item_loaded" then
+				---@cast event rizu.select.ListStoreItemLoadedEvent
 				local current = self.state:getSelection(1)
 				if event.index == current.index then
 					self:setChanged()
@@ -73,8 +80,10 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 		end
 	})
 	self.stores[2].onChanged:add({
+		---@param event rizu.select.ListStoreEvent
 		receive = function(_, event)
 			if event.type == "item_loaded" then
+				---@cast event rizu.select.ListStoreItemLoadedEvent
 				local current = self.state:getSelection(2)
 				if event.index == current.index then
 					self.onChanged:send({type = "chartview", chartview = self.chartview})
@@ -85,14 +94,17 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	})
 end
 
+---@param chartview rizu.library.LocatedChartview?
 function ChartSelector:setChartview(chartview)
 	self.chartview = chartview
 	self.changed = true
 	self.onChanged:send({type = "chartview", chartview = chartview})
 end
 
+---@param event rizu.select.SelectionStateEvent
 function ChartSelector:receive(event)
 	if event.type == "selection" then
+		---@cast event rizu.select.SelectionEvent
 		if event.level == 1 then
 			self.taskRunner:push(function()
 				self:pullLevel(2)
@@ -128,7 +140,7 @@ function ChartSelector:updatePrimaryItems()
 end
 
 ---@param hash string
----@param index number
+---@param index integer
 function ChartSelector:findNotechart(hash, index)
 	local config = self.configModel.configs.settings.select
 	local params = {
@@ -260,7 +272,7 @@ function ChartSelector:scrollRandom()
 	self:scrollLevel(1, nil, destination)
 end
 
----@param chartview table
+---@param chartview rizu.library.IChartviewBase?
 function ChartSelector:setConfig(chartview)
 	if not chartview or not chartview.chartfile_id or chartview.chartfile_id == 0 then return end
 	self.config.chartfile_set_id = chartview.chartfile_set_id
@@ -271,9 +283,9 @@ function ChartSelector:setConfig(chartview)
 	self.config.select_chartplay_id = chartview.chartplay_id
 end
 
----@param level number
----@param direction number?
----@param destination number?
+---@param level integer
+---@param direction integer?
+---@param destination integer?
 function ChartSelector:scrollLevel(level, direction, destination)
 	local store = self.stores[level]
 	local current = self.state:getSelection(level)
@@ -331,7 +343,7 @@ function ChartSelector:refresh(noUpdate, noPullNext)
 	end
 end
 
----@param level number
+---@param level integer
 function ChartSelector:pullLevel(level)
 	if level ~= 2 then return end -- Currently only supports 2 levels
 

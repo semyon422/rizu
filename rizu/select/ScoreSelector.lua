@@ -31,20 +31,23 @@ function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
 	self.scoreRequestId = 0
 end
 
+---@param event rizu.select.Event
 function ScoreSelector:receive(event)
-	if event.items then
+	if event.type == "items" then
+		---@cast event rizu.select.ScoreStoreItemsEvent
 		self:findScore()
 		return
 	end
 
 	if event.type == "selection" and event.level == 2 then
+		---@cast event rizu.select.SelectionEvent
 		self:setChart(self.chartview)
 	elseif event.type == "find_notechart" or event.type == "set_changed" then
 		self:setChart(self.chartview)
 	end
 end
 
----@param chartview table?
+---@param chartview rizu.library.LocatedChartview?
 function ScoreSelector:setChart(chartview)
 	self.chartview = chartview
 	self.chartplay = nil
@@ -110,8 +113,8 @@ function ScoreSelector:pullScore(noUpdate)
 	self.store:updateItems(chartview, exact, request_id)
 end
 
----@param direction number?
----@param destination number?
+---@param direction integer?
+---@param destination integer?
 function ScoreSelector:scrollScore(direction, destination)
 	local items = self.store.items
 
@@ -130,7 +133,7 @@ function ScoreSelector:scrollScore(direction, destination)
 	self.onChanged:send({type = "scroll_score", chartplay = chartplay})
 end
 
----@param chartview table
+---@param chartview rizu.library.LocatedChartview
 function ScoreSelector:updateReplayBase(chartview)
 	local config = self.configModel.configs.settings.select
 	local secondary_mode = config.secondary_mode or "chartmetas"

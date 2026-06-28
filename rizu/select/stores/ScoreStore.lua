@@ -24,7 +24,7 @@ function ScoreStore:new(configModel, localProvider, onlineProvider)
 	self.requestId = 0
 end
 
----@param i number
+---@param i integer
 ---@return sea.Chartplay?
 function ScoreStore:get(i)
 	return self.items[i]
@@ -32,7 +32,7 @@ end
 
 function ScoreStore:clear()
 	self.items = {}
-	self.onChanged:send({items = self.items})
+	self.onChanged:send({type = "items", items = self.items})
 end
 
 ---@return number
@@ -40,8 +40,8 @@ function ScoreStore:count()
 	return #self.items
 end
 
----@param scores table
----@return table
+---@param scores sea.Chartplay[]?
+---@return sea.Chartplay[]
 function ScoreStore:filterScores(scores)
 	if not scores then return {} end
 
@@ -73,7 +73,7 @@ function ScoreStore:filterScores(scores)
 	return newScores
 end
 
----@param chartview table
+---@param chartview sea.ChartmetaKey|sea.ChartdiffKey
 ---@param exact boolean?
 ---@param request_id integer
 ---@return nil?
@@ -82,7 +82,7 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 
 	if not chartview.hash or not chartview.index then
 		self.items = {}
-		self.onChanged:send({items = self.items})
+		self.onChanged:send({type = "items", items = self.items})
 		return
 	end
 
@@ -104,13 +104,13 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 	end
 
 	self.items = self:filterScores(chartplays)
-	self.onChanged:send({items = self.items})
+	self.onChanged:send({type = "items", items = self.items})
 end
 
 ScoreStore.updateItems = thread.coro(ScoreStore.updateItemsAsync)
 
----@param chartplay_id number
----@return number
+---@param chartplay_id integer
+---@return integer
 function ScoreStore:getItemIndex(chartplay_id)
 	local items = self.items
 

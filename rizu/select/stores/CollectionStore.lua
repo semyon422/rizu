@@ -17,7 +17,7 @@ function CollectionStore:enter()
 	local node = self.tree.items[self.tree.selected]
 	if #node.items > 1 then
 		self.tree = node
-		self.onChanged:send({tree = self.tree})
+		self.onChanged:send({type = "tree", tree = self.tree})
 	end
 end
 
@@ -28,14 +28,14 @@ function CollectionStore:load(locations_in_collections)
 	self.locations_in_collections = locations_in_collections
 	self.root_tree = tree
 	self.tree = tree
-	self.onChanged:send({tree = self.tree})
+	self.onChanged:send({type = "tree", tree = self.tree})
 end
 
 function CollectionStore:setPath(path, location_id)
 	self.tree = self.root_tree
 	if not path and not location_id then
 		self.tree.selected = 1
-		self.onChanged:send({tree = self.tree})
+		self.onChanged:send({type = "tree", tree = self.tree})
 		return
 	end
 
@@ -44,7 +44,7 @@ function CollectionStore:setPath(path, location_id)
 	else
 		self:setPathP(path)
 	end
-	self.onChanged:send({tree = self.tree})
+	self.onChanged:send({type = "tree", tree = self.tree})
 end
 
 function CollectionStore:setPathLic(path, location_id)

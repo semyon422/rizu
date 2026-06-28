@@ -40,11 +40,11 @@ function ListStore:setResult(result, mode)
 	end
 
 	self.cache:new()
-	self.onChanged:send({count = self.itemsCount})
+	self.onChanged:send({type = "count", count = self.itemsCount})
 end
 
 ---@private
----@param index number
+---@param index integer
 ---@return rizu.library.LocatedChartview?
 function ListStore:_loadObject(index)
 	if not self.items or index < 1 or index > self.itemsCount then
@@ -86,7 +86,7 @@ function ListStore:count()
 	return self.itemsCount
 end
 
----@param i number
+---@param i integer
 ---@return rizu.library.LocatedChartview?
 function ListStore:get(i)
 	if i < 1 or i > self.itemsCount then

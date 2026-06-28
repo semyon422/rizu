@@ -61,8 +61,8 @@ function CollectionSelector:setLocationsInCollections(enabled)
 	})
 end
 
----@param direction number?
----@param destination number?
+---@param direction integer?
+---@param destination integer?
 ---@param force boolean?
 function CollectionSelector:scrollCollection(direction, destination, force)
 	local items = self.store.tree.items

@@ -6,8 +6,8 @@ local Observable = require("Observable")
 local SelectionState = class()
 
 ---@class rizu.select.SelectionLevel
----@field index number
----@field id number?
+---@field index integer
+---@field id integer?
 
 function SelectionState:new()
 	---@type rizu.select.SelectionLevel[]
@@ -15,17 +15,17 @@ function SelectionState:new()
 		{index = 1, id = nil}, -- Primary
 		{index = 1, id = nil}, -- Secondary
 	}
-	---@type number
+	---@type integer
 	self.chartplayIndex = 1
-	---@type number?
+	---@type integer?
 	self.scoreId = nil
 
 	self.onChanged = Observable()
 end
 
----@param level number
----@param index number
----@param id number?
+---@param level integer
+---@param index integer
+---@param id integer?
 function SelectionState:setSelection(level, index, id)
 	local l = self.levels[level]
 	if not l then
@@ -41,8 +41,8 @@ function SelectionState:setSelection(level, index, id)
 	self.onChanged:send({type = "selection", level = level, index = index, id = id})
 end
 
----@param index number
----@param id number?
+---@param index integer
+---@param id integer?
 function SelectionState:setScore(index, id)
 	if self.chartplayIndex == index and self.scoreId == id then return end
 	self.chartplayIndex = index

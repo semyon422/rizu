@@ -26,8 +26,10 @@ function SelectionCoordinator:new(
 	self.windowModel = windowModel
 
 	self.chartSelector.state.onChanged:add({
+		---@param event rizu.select.SelectionStateEvent
 		receive = function(_, event)
 			if event.type == "selection" and event.level == 2 then
+				---@cast event rizu.select.SelectionEvent
 				self.scoreSelector:setChart(self.chartSelector.chartview)
 			end
 		end
@@ -36,8 +38,10 @@ function SelectionCoordinator:new(
 	self.chartSelector.onChanged:add(self.scoreSelector)
 
 	self.collectionSelector.onChanged:add({
+		---@param event rizu.select.CollectionSelectorEvent
 		receive = function(_, event)
 			if event.type == "collection_changed" then
+				---@cast event rizu.select.CollectionChangedEvent
 				self.chartSelector:noDebounceRefresh(not event.path_changed)
 			end
 		end
