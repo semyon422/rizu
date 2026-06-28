@@ -46,7 +46,7 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 
 ## Synchronization
 - **Selected Chart**: The item at the finest active level (typically Level 2) is considered the "Selected Chart."
-- **Observables**: UI components bind to `ListStore.onChanged` for item updates and `SelectionState.onChanged` for selection and scroll updates.
+- **Observables**: UI components bind through `onChanged(observer)` methods for item, selection, and scroll updates. Classes keep the underlying observable in an `observable` field.
 
 ### Scores and ReplayBase
 `ScoreSelector` owns score list loading and score selection for the current chartview. Score loading is scoped by `settings.select.secondary_mode`:
@@ -81,9 +81,9 @@ Manual modifier changes are handled separately by `ModifierCoordinator:update()`
 This means repeated scroll or refresh input collapses to the most recent relevant task, while coarser selection refreshes can override lower-priority detail work.
 
 ### Event Types
-Select module event payloads are documented as EmmyLua aliases in `rizu.select.events`. Modules that send or receive select events should annotate `receive(event)` callbacks with the narrowest useful event union.
+Select module event payloads are documented as EmmyLua aliases in `rizu.select.events`. Classes expose typed `onChanged(observer)` and `emitChanged(event)` wrapper methods around their `observable` field. These wrappers accept either an observer object or a plain `fun(event)` callback with the concrete event union for that class.
 
-All select events must include a `type` field. Events should be narrowed with `---@cast` inside the matching `if event.type == ...` branch when LuaLS cannot infer the concrete payload.
+All select events must include a `type` field. Prefer narrowing event unions with `if event.type == ...` checks and only add explicit casts when LuaLS cannot infer the concrete payload. Prefer `emitChanged` over calling raw `observable:send`, so LuaLS can check the event payload shape.
 
 ## Future Work and Open Questions
 

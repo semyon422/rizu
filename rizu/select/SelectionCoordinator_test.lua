@@ -8,22 +8,16 @@ function test.activate_preview_loads_preview_and_marks_selection_changed(t)
 	local coordinator = SelectionCoordinator(
 		{
 			state = {
-				onChanged = {
-					add = function() end,
-				},
+				onChanged = function() end,
 			},
-			onChanged = {
-				add = function() end,
-			},
+			onChanged = function() end,
 			setChanged = function()
 				table.insert(calls, "changed")
 			end,
 		},
 		{},
 		{
-			onChanged = {
-				add = function() end,
-			},
+			onChanged = function() end,
 		},
 		{},
 		{

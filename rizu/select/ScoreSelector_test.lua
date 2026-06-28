@@ -171,11 +171,9 @@ function test.score_store_ignores_stale_provider_result(t)
 	store = ScoreStore(configModel, localProvider, onlineProvider)
 
 	local changed_count = 0
-	store.onChanged:add({
-		receive = function()
-			changed_count = changed_count + 1
-		end,
-	})
+	store:onChanged(function()
+		changed_count = changed_count + 1
+	end)
 
 	store:updateItemsAsync({hash = "old", index = 1}, false, 1)
 

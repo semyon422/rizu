@@ -12,7 +12,19 @@ function CollectionSelector:new(configModel, library)
 	self.configModel = configModel
 	self.library = library
 	self.store = CollectionStore(library)
-	self.onChanged = Observable()
+	self.observable = Observable()
+end
+
+---@param observer rizu.select.CollectionSelectorEventObserver|rizu.select.CollectionSelectorEventReceiver
+---@return util.Observer
+function CollectionSelector:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param event rizu.select.CollectionSelectorEvent
+function CollectionSelector:emitChanged(event)
+	self.observable:send(event)
 end
 
 function CollectionSelector:load()
@@ -33,7 +45,7 @@ function CollectionSelector:selectCollection(path, location_id)
 	config.collection = item and item.path
 	config.location_id = item and item.location_id
 
-	self.onChanged:send({
+	self:emitChanged({
 		type = "collection_changed",
 		item = item,
 		path_changed = not old_item or old_item.path ~= (item and item.path)
@@ -54,7 +66,7 @@ function CollectionSelector:setLocationsInCollections(enabled)
 	config.collection = item and item.path
 	config.location_id = item and item.location_id
 
-	self.onChanged:send({
+	self:emitChanged({
 		type = "collection_changed",
 		item = item,
 		path_changed = not old_item or old_item.path ~= (item and item.path)
@@ -81,7 +93,7 @@ function CollectionSelector:scrollCollection(direction, destination, force)
 	config.collection = item.path
 	config.location_id = item.location_id
 
-	self.onChanged:send({
+	self:emitChanged({
 		type = "collection_changed",
 		item = item,
 		path_changed = not old_item or old_item.path ~= item.path

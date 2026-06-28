@@ -24,23 +24,33 @@ function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
 	local localProvider = LocalScoreProvider(library)
 	local onlineProvider = OnlineScoreProvider(onlineModel)
 	self.store = ScoreStore(configModel, localProvider, onlineProvider)
-	self.store.onChanged:add(self)
+	self.store:onChanged(self)
 
-	self.onChanged = Observable()
+	self.observable = Observable()
 	self.debounceTime = 0.5
 	self.scoreRequestId = 0
+end
+
+---@param observer rizu.select.ScoreSelectorEventObserver|rizu.select.ScoreSelectorEventReceiver
+---@return util.Observer
+function ScoreSelector:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param event rizu.select.ScoreSelectorEvent
+function ScoreSelector:emitChanged(event)
+	self.observable:send(event)
 end
 
 ---@param event rizu.select.Event
 function ScoreSelector:receive(event)
 	if event.type == "items" then
-		---@cast event rizu.select.ScoreStoreItemsEvent
 		self:findScore()
 		return
 	end
 
 	if event.type == "selection" and event.level == 2 then
-		---@cast event rizu.select.SelectionEvent
 		self:setChart(self.chartview)
 	elseif event.type == "find_notechart" or event.type == "set_changed" then
 		self:setChart(self.chartview)
@@ -130,7 +140,7 @@ function ScoreSelector:scrollScore(direction, destination)
 	self.state:setScore(destination, chartplay.id)
 
 	self.chartplay = chartplay
-	self.onChanged:send({type = "scroll_score", chartplay = chartplay})
+	self:emitChanged({type = "scroll_score", chartplay = chartplay})
 end
 
 ---@param chartview rizu.library.LocatedChartview

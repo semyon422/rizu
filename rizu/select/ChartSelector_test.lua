@@ -59,26 +59,26 @@ function test.scrolling(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
-	model:load()
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	chartSelector:load()
 
-	t:eq(model.state.levels[1].index, 1)
-	t:eq(model.state.levels[1].id, 1)
+	t:eq(chartSelector.state.levels[1].index, 1)
+	t:eq(chartSelector.state.levels[1].id, 1)
 
-	model:scrollLevel(1, 1)
-	t:eq(model.state.levels[1].index, 2)
-	t:eq(model.state.levels[1].id, 2)
-	t:eq(model.chartview.chartfile_id, 2)
+	chartSelector:scrollLevel(1, 1)
+	t:eq(chartSelector.state.levels[1].index, 2)
+	t:eq(chartSelector.state.levels[1].id, 2)
+	t:eq(chartSelector.chartview.chartfile_id, 2)
 
-	model:scrollLevel(1, 1)
-	t:eq(model.state.levels[1].index, 3)
-	t:eq(model.state.levels[1].id, 3)
-	t:eq(model.chartview.chartfile_id, 3)
+	chartSelector:scrollLevel(1, 1)
+	t:eq(chartSelector.state.levels[1].index, 3)
+	t:eq(chartSelector.state.levels[1].id, 3)
+	t:eq(chartSelector.chartview.chartfile_id, 3)
 
 	-- Scroll back
-	model:scrollLevel(1, -1)
-	t:eq(model.state.levels[1].index, 2)
-	t:eq(model.state.levels[1].id, 2)
+	chartSelector:scrollLevel(1, -1)
+	t:eq(chartSelector.state.levels[1].index, 2)
+	t:eq(chartSelector.state.levels[1].id, 2)
 
 	library:unload()
 end
@@ -95,26 +95,26 @@ function test.chart_navigation(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
-	model:load()
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	chartSelector:load()
 
-	t:eq(model.state.levels[2].index, 1)
-	t:eq(model.state.levels[2].id, 1)
+	t:eq(chartSelector.state.levels[2].index, 1)
+	t:eq(chartSelector.state.levels[2].id, 1)
 
-	model:scrollLevel(2, 1)
-	t:eq(model.state.levels[2].index, 2)
-	t:eq(model.state.levels[2].id, 2)
-	t:eq(model.chartview.chartfile_id, 2)
+	chartSelector:scrollLevel(2, 1)
+	t:eq(chartSelector.state.levels[2].index, 2)
+	t:eq(chartSelector.state.levels[2].id, 2)
+	t:eq(chartSelector.chartview.chartfile_id, 2)
 
-	model:scrollLevel(2, 1)
-	t:eq(model.state.levels[2].index, 3)
-	t:eq(model.state.levels[2].id, 3)
-	t:eq(model.chartview.chartfile_id, 3)
+	chartSelector:scrollLevel(2, 1)
+	t:eq(chartSelector.state.levels[2].index, 3)
+	t:eq(chartSelector.state.levels[2].id, 3)
+	t:eq(chartSelector.chartview.chartfile_id, 3)
 
 	-- Scroll back
-	model:scrollLevel(2, -1)
-	t:eq(model.state.levels[2].index, 2)
-	t:eq(model.state.levels[2].id, 2)
+	chartSelector:scrollLevel(2, -1)
+	t:eq(chartSelector.state.levels[2].index, 2)
+	t:eq(chartSelector.state.levels[2].id, 2)
 
 	library:unload()
 end
@@ -156,19 +156,19 @@ function test.duplicate_chartmeta_restores_by_chartfile(t)
 
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
-	model:load()
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	chartSelector:load()
 
-	t:eq(model.stores[2]:count(), 3)
+	t:eq(chartSelector.stores[2]:count(), 3)
 
-	model:scrollLevel(2, 1)
-	t:eq(model.state.levels[2].index, 2)
-	t:eq(model.chartview.chartfile_id, 2)
-	t:eq(model.chartview.chartmeta_id, 10)
+	chartSelector:scrollLevel(2, 1)
+	t:eq(chartSelector.state.levels[2].index, 2)
+	t:eq(chartSelector.chartview.chartfile_id, 2)
+	t:eq(chartSelector.chartview.chartmeta_id, 10)
 
-	model:pullLevel(2)
-	t:eq(model.state.levels[2].index, 2)
-	t:eq(model.chartview.chartfile_id, 2)
+	chartSelector:pullLevel(2)
+	t:eq(chartSelector.state.levels[2].index, 2)
+	t:eq(chartSelector.chartview.chartfile_id, 2)
 
 	library:unload()
 end
@@ -184,22 +184,20 @@ function test.chartview_event(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
 	
 	local chartviewEvents = 0
-	model.onChanged:add({
-		receive = function(_, event)
-			if event.type == "chartview" then
-				chartviewEvents = chartviewEvents + 1
-			end
+	chartSelector:onChanged(function(event)
+		if event.type == "chartview" then
+			chartviewEvents = chartviewEvents + 1
 		end
-	})
+	end)
 
-	model:load()
+	chartSelector:load()
 	-- load calls refresh, which calls pullLevel, which also triggers selection event -> pullLevel again
 	t:eq(chartviewEvents, 2)
 
-	model:scrollLevel(2, 1)
+	chartSelector:scrollLevel(2, 1)
 	-- scrollLevel calls setChartview
 	-- it also calls setSelection(2, ...) which triggers receive -> push setSelection(1, ...)
 	-- setSelection(1, ...) if it triggers, might trigger pullLevel again.
@@ -230,13 +228,11 @@ function test.score_navigation(t)
 	local scoreSelector = ScoreSelector(configModel, library, onlineModel, replayBase, chartModel.state)
 	
 	-- Wire them up like SelectionCoordinator would
-	chartModel.state.onChanged:add({
-		receive = function(_, event)
-			if event.type == "selection" and event.level == 2 then
-				scoreSelector:setChart(chartModel.chartview)
-			end
+	chartModel.state:onChanged(function(event)
+		if event.type == "selection" and event.level == 2 then
+			scoreSelector:setChart(chartModel.chartview)
 		end
-	})
+	end)
 
 	chartModel:load()
 	scoreSelector:setChart(chartModel.chartview)

@@ -20,7 +20,19 @@ function SelectionState:new()
 	---@type integer?
 	self.scoreId = nil
 
-	self.onChanged = Observable()
+	self.observable = Observable()
+end
+
+---@param observer rizu.select.SelectionStateEventObserver|rizu.select.SelectionStateEventReceiver
+---@return util.Observer
+function SelectionState:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param event rizu.select.SelectionStateEvent
+function SelectionState:emitChanged(event)
+	self.observable:send(event)
 end
 
 ---@param level integer
@@ -38,7 +50,7 @@ function SelectionState:setSelection(level, index, id)
 	l.index = index
 	l.id = id
 
-	self.onChanged:send({type = "selection", level = level, index = index, id = id})
+	self:emitChanged({type = "selection", level = level, index = index, id = id})
 end
 
 ---@param index integer
@@ -47,7 +59,7 @@ function SelectionState:setScore(index, id)
 	if self.chartplayIndex == index and self.scoreId == id then return end
 	self.chartplayIndex = index
 	self.scoreId = id
-	self.onChanged:send({type = "score", index = index, id = id})
+	self:emitChanged({type = "score", index = index, id = id})
 end
 
 -- Getters

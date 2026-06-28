@@ -20,8 +20,20 @@ function ScoreStore:new(configModel, localProvider, onlineProvider)
 	self.localProvider = localProvider
 	self.onlineProvider = onlineProvider
 	self.items = {}
-	self.onChanged = Observable()
+	self.observable = Observable()
 	self.requestId = 0
+end
+
+---@param observer rizu.select.ScoreStoreEventObserver|rizu.select.ScoreStoreEventReceiver
+---@return util.Observer
+function ScoreStore:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param event rizu.select.ScoreStoreEvent
+function ScoreStore:emitChanged(event)
+	self.observable:send(event)
 end
 
 ---@param i integer
@@ -32,7 +44,7 @@ end
 
 function ScoreStore:clear()
 	self.items = {}
-	self.onChanged:send({type = "items", items = self.items})
+	self:emitChanged({type = "items", items = self.items})
 end
 
 ---@return number
@@ -82,7 +94,7 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 
 	if not chartview.hash or not chartview.index then
 		self.items = {}
-		self.onChanged:send({type = "items", items = self.items})
+		self:emitChanged({type = "items", items = self.items})
 		return
 	end
 
@@ -104,7 +116,7 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 	end
 
 	self.items = self:filterScores(chartplays)
-	self.onChanged:send({type = "items", items = self.items})
+	self:emitChanged({type = "items", items = self.items})
 end
 
 ScoreStore.updateItems = thread.coro(ScoreStore.updateItemsAsync)

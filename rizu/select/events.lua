@@ -91,4 +91,25 @@
 ---| rizu.select.ScoreStoreEvent
 ---| rizu.select.CollectionStoreEvent
 
+---@alias rizu.select.SelectionStateEventReceiver fun(event: rizu.select.SelectionStateEvent)
+---@alias rizu.select.SelectionStateEventObserver {receive: fun(self: table, event: rizu.select.SelectionStateEvent)}
+
+---@alias rizu.select.ChartSelectorEventReceiver fun(event: rizu.select.ChartSelectorEvent)
+---@alias rizu.select.ChartSelectorEventObserver {receive: fun(self: table, event: rizu.select.ChartSelectorEvent)}
+
+---@alias rizu.select.ScoreSelectorEventReceiver fun(event: rizu.select.ScoreSelectorEvent)
+---@alias rizu.select.ScoreSelectorEventObserver {receive: fun(self: table, event: rizu.select.ScoreSelectorEvent)}
+
+---@alias rizu.select.CollectionSelectorEventReceiver fun(event: rizu.select.CollectionSelectorEvent)
+---@alias rizu.select.CollectionSelectorEventObserver {receive: fun(self: table, event: rizu.select.CollectionSelectorEvent)}
+
+---@alias rizu.select.ListStoreEventReceiver fun(event: rizu.select.ListStoreEvent)
+---@alias rizu.select.ListStoreEventObserver {receive: fun(self: table, event: rizu.select.ListStoreEvent)}
+
+---@alias rizu.select.ScoreStoreEventReceiver fun(event: rizu.select.ScoreStoreEvent)
+---@alias rizu.select.ScoreStoreEventObserver {receive: fun(self: table, event: rizu.select.ScoreStoreEvent)}
+
+---@alias rizu.select.CollectionStoreEventReceiver fun(event: rizu.select.CollectionStoreEvent)
+---@alias rizu.select.CollectionStoreEventObserver {receive: fun(self: table, event: rizu.select.CollectionStoreEvent)}
+
 return {}

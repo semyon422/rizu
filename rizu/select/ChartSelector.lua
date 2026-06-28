@@ -51,60 +51,59 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	self.metadataService = ChartMetadataService(fs)
 	self.taskRunner = TaskRunner()
 
-	self.onChanged = Observable()
-	self.state.onChanged:add(self)
+	self.observable = Observable()
+	self.state:onChanged(self)
 
-	self.onChanged:add({
-		---@param event rizu.select.ChartSelectorEvent
-		receive = function(_, event)
-			if event.type == "chartview" then
-				---@cast event rizu.select.ChartviewEvent
-				local chartview = event.chartview
-				if chartview then
-					print(chartview.chartfile_id, chartview.title)
-				end
+	self:onChanged(function(event)
+		if event.type == "chartview" then
+			local chartview = event.chartview
+			if chartview then
+				print(chartview.chartfile_id, chartview.title)
 			end
 		end
-	})
+	end)
 
-	self.stores[1].onChanged:add({
-		---@param event rizu.select.ListStoreEvent
-		receive = function(_, event)
-			if event.type == "item_loaded" then
-				---@cast event rizu.select.ListStoreItemLoadedEvent
-				local current = self.state:getSelection(1)
-				if event.index == current.index then
-					self:setChanged()
-				end
+	self.stores[1]:onChanged(function(event)
+		if event.type == "item_loaded" then
+			local current = self.state:getSelection(1)
+			if event.index == current.index then
+				self:setChanged()
 			end
 		end
-	})
-	self.stores[2].onChanged:add({
-		---@param event rizu.select.ListStoreEvent
-		receive = function(_, event)
-			if event.type == "item_loaded" then
-				---@cast event rizu.select.ListStoreItemLoadedEvent
-				local current = self.state:getSelection(2)
-				if event.index == current.index then
-					self.onChanged:send({type = "chartview", chartview = self.chartview})
-					self:setChanged()
-				end
+	end)
+	self.stores[2]:onChanged(function(event)
+		if event.type == "item_loaded" then
+			local current = self.state:getSelection(2)
+			if event.index == current.index then
+				self:emitChanged({type = "chartview", chartview = self.chartview})
+				self:setChanged()
 			end
 		end
-	})
+	end)
+end
+
+---@param observer rizu.select.ChartSelectorEventObserver|rizu.select.ChartSelectorEventReceiver
+---@return util.Observer
+function ChartSelector:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param event rizu.select.ChartSelectorEvent
+function ChartSelector:emitChanged(event)
+	self.observable:send(event)
 end
 
 ---@param chartview rizu.library.LocatedChartview?
 function ChartSelector:setChartview(chartview)
 	self.chartview = chartview
 	self.changed = true
-	self.onChanged:send({type = "chartview", chartview = chartview})
+	self:emitChanged({type = "chartview", chartview = chartview})
 end
 
 ---@param event rizu.select.SelectionStateEvent
 function ChartSelector:receive(event)
 	if event.type == "selection" then
-		---@cast event rizu.select.SelectionEvent
 		if event.level == 1 then
 			self.taskRunner:push(function()
 				self:pullLevel(2)
@@ -136,7 +135,7 @@ function ChartSelector:updatePrimaryItems()
 	local result = self.library:queryAsync(params)
 	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
 	self.stores[1]:setResult(result, self:getPrimaryMode())
-	self.onChanged:send({type = "update_primary_items"})
+	self:emitChanged({type = "update_primary_items"})
 end
 
 ---@param hash string
@@ -163,7 +162,7 @@ function ChartSelector:findNotechart(hash, index)
 				self.state:setSelection(1, 1, chartview.chartfile_set_id)
 				self.state:setSelection(2, 1, chartview.chartfile_id)
 			end
-			self.onChanged:send({type = "find_notechart", hash = hash, index = index})
+			self:emitChanged({type = "find_notechart", hash = hash, index = index})
 		end
 	end, TaskRunner.priority.high)
 end
@@ -211,7 +210,7 @@ end
 
 function ChartSelector:setChanged()
 	self.changed = true
-	self.onChanged:send({type = "set_changed"})
+	self:emitChanged({type = "set_changed"})
 end
 
 ---@return boolean
@@ -306,7 +305,7 @@ function ChartSelector:scrollLevel(level, direction, destination)
 	else
 		self:setChartview(item)
 		self.state:setSelection(2, destination, item.chartfile_id)
-		self.onChanged:send({type = "scroll_level", level = level, chartview = item})
+		self:emitChanged({type = "scroll_level", level = level, chartview = item})
 	end
 end
 

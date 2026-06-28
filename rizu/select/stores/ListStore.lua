@@ -11,7 +11,7 @@ local ListStore = class()
 ---@param timer time.ITimer
 function ListStore:new(library, timer)
 	self.library = library
-	self.onChanged = Observable()
+	self.observable = Observable()
 
 	---@type cdata?
 	self.items = nil
@@ -24,6 +24,18 @@ function ListStore:new(library, timer)
 	self.cache.load = function(_, k)
 		return self:_loadObject(k)
 	end
+end
+
+---@param observer rizu.select.ListStoreEventObserver|rizu.select.ListStoreEventReceiver
+---@return util.Observer
+function ListStore:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param event rizu.select.ListStoreEvent
+function ListStore:emitChanged(event)
+	self.observable:send(event)
 end
 
 ---@param result table?
@@ -40,7 +52,7 @@ function ListStore:setResult(result, mode)
 	end
 
 	self.cache:new()
-	self.onChanged:send({type = "count", count = self.itemsCount})
+	self:emitChanged({type = "count", count = self.itemsCount})
 end
 
 ---@private
@@ -74,7 +86,7 @@ function ListStore:_loadObject(index)
 			chartview.lamp = struct.lamp
 			self.library:enrichChartview(chartview)
 			table_util.copy(chartview, item)
-			self.onChanged:send({type = "item_loaded", index = index, item = item})
+			self:emitChanged({type = "item_loaded", index = index, item = item})
 		end
 	end)()
 
