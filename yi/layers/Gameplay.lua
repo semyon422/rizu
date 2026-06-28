@@ -1,5 +1,10 @@
 local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
+local S = require("gui.composition.Strategies")
+local ClearStatus = require("yi.views.gameplay.ClearStatus")
+local Colors = require("yi.Colors")
+local delay = require("delay")
+local thread = require("thread")
 
 ---@class yi.Gameplay : gui.Screen
 ---@operator call: yi.Gameplay
@@ -13,6 +18,15 @@ function Gameplay:new(ui)
 	self.sequence_view = SequenceView()
 	self.game_interactor = self.game.gameInteractor
 	self.gameplay_interactor = self.game.gameplayInteractor
+	self.play_progress = self.game.rhythm_engine.play_progress
+
+	self.clear_status = ClearStatus()
+	self.clear_status:setPivot(0, 0.5)
+	self.is_playing = true
+
+	self.root = S.Stack({
+		self.clear_status
+	})
 end
 
 function Gameplay:enter()
@@ -24,6 +38,8 @@ function Gameplay:enter()
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(false)
+	self.is_playing = true
+	self.clear_status:hide()
 end
 
 function Gameplay:exit()
@@ -34,8 +50,39 @@ function Gameplay:exit()
 	love.mouse.setVisible(true)
 end
 
+function Gameplay:observeCompletion()
+	local p = self.game.rhythm_engine:getProgress()
+
+	if p < 1 then
+		return
+	end
+
+	self.is_playing = false
+
+	local base = self.game.rhythm_engine.score_engine.scores.base
+
+	if base.missCount == 0 then
+		self.clear_status:bind("FULL COMBO", Colors.grade_s)
+	else
+		self.clear_status:bind("STAGE COMPLETED", Colors.text)
+	end
+
+	-- Bad things will happen if you change the resolution while this is running...
+	thread.coro(function()
+		delay.sleep(0.22)
+		self.clear_status:show()
+		delay.sleep(1)
+		self.ui:setScreen("result")
+	end)()
+end
+
 function Gameplay:update(dt)
 	self.sequence_view:update(dt)
+
+	if self.is_playing then
+		self:observeCompletion()
+	end
+
 	Screen.update(self, dt)
 end
 
