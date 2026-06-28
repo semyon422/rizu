@@ -5,6 +5,7 @@ local table_util = require("table_util")
 
 ---@class rizu.select.stores.ListStore
 ---@operator call: rizu.select.stores.ListStore
+---@field generation integer
 local ListStore = class()
 
 ---@param library rizu.library.Library
@@ -18,6 +19,7 @@ function ListStore:new(library, timer)
 	self.itemsCount = 0
 	self.maps = {}
 	self.mode = "chartmetas"
+	self.generation = 0
 
 	local cache = ExpireTable(timer)
 	self.cache = cache
@@ -48,6 +50,7 @@ end
 ---@param mode string
 function ListStore:setResult(result, mode)
 	self.mode = mode
+	self.generation = self.generation + 1
 
 	if not result then
 		self.items = nil
@@ -85,7 +88,11 @@ function ListStore:_loadObject(index)
 
 	coroutine.wrap(function()
 		local params = self.library.chartviewsRepo.params
+		local generation = self.generation
 		local chartview = self.library:getChartviewAsync(params, item)
+		if generation ~= self.generation then
+			return
+		end
 		if chartview then
 			---@cast chartview rizu.library.LocatedChartview
 			chartview.lamp = item.lamp
