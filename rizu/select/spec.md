@@ -46,8 +46,23 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 
 ## Synchronization
 - **Selected Chart**: The item at the finest active level (typically Level 2) is considered the "Selected Chart."
-- **Gameplay Sync**: Selection changes update the `ReplayBase` with variation-specific settings (modifiers, rate) if the mode is `chartdiffs` or `chartplays`.
 - **Observables**: UI components bind to `ListStore.onChanged` for item updates and `SelectionState.onChanged` for selection and scroll updates.
+
+### Scores and ReplayBase
+`ScoreSelector` owns score list loading and score selection for the current chartview. Score loading is scoped by `settings.select.secondary_mode`:
+
+- `chartfile_sets`, `chartfiles`, `chartmetas`: load scores for the selected `chartmeta` when `hash` and `index` are available.
+- `chartdiffs`, `chartplays`: load exact scores for the selected `chartdiff`.
+
+`ScoreSelector:updateReplayBase(chartview)` is called from `ModifierCoordinator:applyModifierMeta(true)` when a selection change should refresh gameplay settings. The current contract is:
+
+| Secondary mode | ReplayBase update |
+| :--- | :--- |
+| `chartfile_sets` / `chartfiles` / `chartmetas` | Do not mutate `ReplayBase`; player-selected gameplay settings remain active. |
+| `chartdiffs` | Copy chartdiff key fields: `modifiers`, `rate`, and `mode`. |
+| `chartplays` | Copy chartdiff key fields plus play-specific fields: `nearest`, `tap_only`, `timings`, `subtimings`, `healths`, `columns_order`, `custom`, `const`, and `rate_type`. |
+
+Manual modifier changes are handled separately by `ModifierCoordinator:update()`, which applies modifier metadata without re-importing selection data and then syncs the current `ReplayBase` to multiplayer.
 
 ## Future Work and Open Questions
 
@@ -59,7 +74,6 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 - **Online score latency**: Online scores appear to load slowly. Review the debounce strategy and consider loading them immediately when the selected playable chart changes.
 
 ### Selection, Scores, and Replay State
-- **Gameplay sync details**: Expand the `Gameplay Sync` section with the exact data written to `ReplayBase`. `ScoreSelector:updateReplayBase(chartview)` appears to be the current implementation reference.
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
 - **Score async state**: Review asynchronous score loading for possible state desynchronization, especially around `ScoreSelector:pullScore(noUpdate)`.
 - **Multiplayer coupling**: Revisit how selection state feeds multiplayer state. `self.multiplayerModel.client:updateReplayBase()` suggests multiplayer currently carries selection-specific behavior that may need a cleaner boundary.

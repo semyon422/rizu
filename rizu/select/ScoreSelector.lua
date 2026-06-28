@@ -144,6 +144,7 @@ function ScoreSelector:updateReplayBase(chartview)
 	replayBase.tap_only = chartview.tap_only or false
 	replayBase.timings = chartview.timings
 	replayBase.subtimings = chartview.subtimings
+	replayBase.healths = chartview.healths
 	replayBase.columns_order = chartview.columns_order
 	replayBase.custom = chartview.custom or false
 	replayBase.const = chartview.const or false
