@@ -28,6 +28,7 @@ function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
 
 	self.onChanged = Observable()
 	self.debounceTime = 0.5
+	self.scoreRequestId = 0
 end
 
 function ScoreSelector:receive(event)
@@ -49,6 +50,7 @@ function ScoreSelector:setChart(chartview)
 	self.chartplay = nil
 
 	if not chartview then
+		self.scoreRequestId = self.scoreRequestId + 1
 		self:clear()
 		self.state:setScore(1, nil)
 		return
@@ -86,11 +88,17 @@ function ScoreSelector:pullScore(noUpdate)
 		return
 	end
 
+	self.scoreRequestId = self.scoreRequestId + 1
+	local request_id = self.scoreRequestId
+
 	local select = self.configModel.configs.select
 	if select.scoreSourceName == "online" then
 		self.store:clear()
 		if coroutine.running() then
 			delay.sleep(self.debounceTime)
+			if request_id ~= self.scoreRequestId then
+				return
+			end
 		end
 	end
 
@@ -99,7 +107,7 @@ function ScoreSelector:pullScore(noUpdate)
 	local exact = secondary_mode == "chartdiffs" or secondary_mode == "chartplays"
 	
 	-- We use the coro version to ensure the task runner waits for completion
-	self.store:updateItems(chartview, exact)
+	self.store:updateItems(chartview, exact, request_id)
 end
 
 ---@param direction number?

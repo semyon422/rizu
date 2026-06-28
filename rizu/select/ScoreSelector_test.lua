@@ -1,7 +1,9 @@
 local Healths = require("sea.chart.Healths")
+local delay = require("delay")
 local ReplayBase = require("sea.replays.ReplayBase")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local SelectionState = require("rizu.select.SelectionState")
+local ScoreStore = require("rizu.select.stores.ScoreStore")
 local Subtimings = require("sea.chart.Subtimings")
 local Timings = require("sea.chart.Timings")
 
@@ -107,6 +109,78 @@ function test.chartplays_mode_updates_chartplay_base_fields(t)
 	t:eq(replayBase.custom, true)
 	t:eq(replayBase.const, true)
 	t:eq(replayBase.rate_type, "exp")
+end
+
+---@param t testing.T
+function test.online_debounce_does_not_update_stale_chart(t)
+	local time = {0}
+	delay.set_timer(time)
+
+	local replayBase = ReplayBase()
+	local selector = createSelector("chartmetas", replayBase)
+	selector.configModel.configs.select.scoreSourceName = "online"
+
+	---@type string[]
+	local updated_hashes = {}
+	selector.store = {
+		clear = function() end,
+		updateItems = function(_, chartview)
+			table.insert(updated_hashes, chartview.hash)
+		end,
+	}
+
+	coroutine.wrap(function()
+		selector:setChart({hash = "old", index = 1})
+	end)()
+
+	t:tdeq(updated_hashes, {})
+
+	selector:setChart({hash = "new", index = 1})
+	t:tdeq(updated_hashes, {"new"})
+
+	time[1] = 1
+	delay.update()
+	t:tdeq(updated_hashes, {"new"})
+
+	delay.set_timer(function()
+		return 0
+	end)
+end
+
+---@param t testing.T
+function test.score_store_ignores_stale_provider_result(t)
+	local configModel = createConfigModel("chartmetas")
+	local store
+	local localProvider = {
+		getChartplaysForChartmeta = function()
+			store.requestId = 2
+			return {{id = 1, accuracy = 1}}
+		end,
+		getChartplaysForChartdiff = function()
+			return {}
+		end,
+	}
+	local onlineProvider = {
+		getChartplaysForChartmeta = function()
+			return {}
+		end,
+		getChartplaysForChartdiff = function()
+			return {}
+		end,
+	}
+	store = ScoreStore(configModel, localProvider, onlineProvider)
+
+	local changed_count = 0
+	store.onChanged:add({
+		receive = function()
+			changed_count = changed_count + 1
+		end,
+	})
+
+	store:updateItemsAsync({hash = "old", index = 1}, false, 1)
+
+	t:eq(store:count(), 0)
+	t:eq(changed_count, 0)
 end
 
 return test

@@ -54,6 +54,8 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 - `chartfile_sets`, `chartfiles`, `chartmetas`: load scores for the selected `chartmeta` when `hash` and `index` are available.
 - `chartdiffs`, `chartplays`: load exact scores for the selected `chartdiff`.
 
+Score loads are generation-guarded. Every new chart selection creates a new score request ID; delayed online debounce work and late provider results must be ignored if a newer request has started. This keeps scores, `SelectionState.scoreId`, and `ScoreSelector.chartplay` aligned with the current chartview.
+
 `ScoreSelector:updateReplayBase(chartview)` is called from `ModifierCoordinator:applyModifierMeta(true)` when a selection change should refresh gameplay settings. The current contract is:
 
 | Secondary mode | ReplayBase update |
@@ -75,7 +77,6 @@ Manual modifier changes are handled separately by `ModifierCoordinator:update()`
 
 ### Selection, Scores, and Replay State
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
-- **Score async state**: Review asynchronous score loading for possible state desynchronization, especially around `ScoreSelector:pullScore(noUpdate)`.
 - **Multiplayer coupling**: Revisit how selection state feeds multiplayer state. `self.multiplayerModel.client:updateReplayBase()` suggests multiplayer currently carries selection-specific behavior that may need a cleaner boundary.
 - **Host chart lookup**: Reevaluate `findNotechart` / `find_notechart`. The main use case seems to be multiplayer host chart selection, and that lookup probably should target `chartmeta`.
 

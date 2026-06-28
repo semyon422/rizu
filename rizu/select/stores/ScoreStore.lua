@@ -21,6 +21,7 @@ function ScoreStore:new(configModel, localProvider, onlineProvider)
 	self.onlineProvider = onlineProvider
 	self.items = {}
 	self.onChanged = Observable()
+	self.requestId = 0
 end
 
 ---@param i number
@@ -74,8 +75,11 @@ end
 
 ---@param chartview table
 ---@param exact boolean?
+---@param request_id integer
 ---@return nil?
-function ScoreStore:updateItemsAsync(chartview, exact)
+function ScoreStore:updateItemsAsync(chartview, exact, request_id)
+	self.requestId = request_id
+
 	if not chartview.hash or not chartview.index then
 		self.items = {}
 		self.onChanged:send({items = self.items})
@@ -93,6 +97,10 @@ function ScoreStore:updateItemsAsync(chartview, exact)
 		chartplays = provider:getChartplaysForChartdiff(chartview)
 	else
 		chartplays = provider:getChartplaysForChartmeta(chartview)
+	end
+
+	if request_id ~= self.requestId then
+		return
 	end
 
 	self.items = self:filterScores(chartplays)
