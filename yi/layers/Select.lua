@@ -106,6 +106,7 @@ end
 function Select:enter()
 	self.ui.game.chartSelector:onChanged(self)
 	self.ui.game.chartSelector.state:onChanged(self)
+	self.ui.game.chartSelector.stores[2]:onChanged(self)
 	self.ui.game.scoreSelector:onChanged(self)
 	local cv = self.ui.game.chartSelector.chartview
 	if cv then
@@ -120,6 +121,7 @@ end
 function Select:exit()
 	self.ui.game.chartSelector:offChanged(self)
 	self.ui.game.chartSelector.state:offChanged(self)
+	self.ui.game.chartSelector.stores[2]:offChanged(self)
 	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.command_registry:popContext("select")
 	self.ui.command_registry:popContext("locations")
@@ -282,6 +284,8 @@ function Select:receive(event)
 
 	if event.type == "set_changed" then
 		self:updateInfo()
+	elseif event.type == "count" or event.type == "item_loaded" then
+		self.chart_grid:reloadItems()
 	end
 
 	self.background_panel:receive(event)
