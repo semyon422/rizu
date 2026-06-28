@@ -185,6 +185,25 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 end
 
 ---@param t testing.T
+function test.score_items_event_is_forwarded_to_ui_observers(t)
+	local replayBase = ReplayBase()
+	local selector = createSelector("chartmetas", replayBase)
+	selector.store.items = {{id = 12, accuracy = 1}}
+
+	local received
+	selector:onChanged(function(event)
+		received = event
+	end)
+
+	selector:receive({type = "items", items = selector.store.items})
+
+	t:tdeq(received, {type = "items", items = selector.store.items})
+	t:eq(selector.chartplay, selector.store.items[1])
+	t:eq(selector.state.chartplayIndex, 1)
+	t:eq(selector.state.scoreId, 12)
+end
+
+---@param t testing.T
 function test.score_store_ignores_stale_provider_result(t)
 	local configModel = createConfigModel("chartmetas")
 	local store

@@ -284,6 +284,8 @@ function Select:receive(event)
 
 	if event.type == "set_changed" then
 		self:updateInfo()
+	elseif event.type == "items" then
+		self.score_list:reload()
 	elseif event.type == "count" or event.type == "item_loaded" then
 		self.chart_grid:requestReloadItems()
 	end

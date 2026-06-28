@@ -68,6 +68,7 @@
 
 ---@alias rizu.select.ScoreSelectorEvent
 ---| rizu.select.ScrollScoreEvent
+---| rizu.select.ScoreStoreItemsEvent
 
 ---@alias rizu.select.CollectionSelectorEvent
 ---| rizu.select.CollectionChangedEvent

@@ -53,6 +53,7 @@ end
 function ScoreSelector:receive(event)
 	if event.type == "items" then
 		self:findScore()
+		self:emitChanged(event)
 		return
 	end
 
