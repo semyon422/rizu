@@ -79,6 +79,18 @@ To keep the memory footprint minimal, rich metadata (titles, artists, paths) is 
 2. `getChartview(struct)` is called only for items currently in the viewport.
 3. `rizu.library.Locations` provides a high-speed path resolution service using an in-memory cache to avoid redundant SQL queries.
 
+### Partial Cache States
+Cache updates move chart data through several valid intermediate states. The rest of the system must treat these as normal data, not as corruption:
+
+1. **Scanned**: `chartfile_sets` and `chartfiles` exist, but `chartfiles.hash` is still `NULL`. Metadata, diffs, plays, and difficulty values may be absent.
+2. **Hashed and parsed**: `chartfiles.hash` and `chartmetas` exist. Default `chartdiffs` may still be missing if parsing or difficulty calculation failed or has not run yet.
+3. **Default diff computed**: Base `chartdiffs` exist, but modified diffs, score-linked diffs, chartplays, or computed score data may still be missing.
+4. **Fully enriched**: Metadata, default and modified diffs, scores, and derived difficulty/score fields are available.
+
+Query behavior should preserve provisional rows where possible. `ChartviewsRepo` uses `LEFT JOIN` for metadata, diffs, and plays in non-`chartplays` modes, so scanned-only files can still appear in `chartfile_sets`, `chartfiles`, `chartmetas`, and `chartdiffs` views with missing logical IDs represented as `0` in the slim FFI index. `chartplays` mode requires actual play rows and may be empty for the same files.
+
+Callers must guard optional data before using rich chart fields. Selection can keep a provisional `chartview` by `chartfile_id`, but preview, score loading, chart loading, replay-base sync, and UI detail panels must handle missing `hash`, `index`, `title`, `chartmeta_id`, `chartdiff_id`, difficulty values, and media paths.
+
 ### Query Logic Matrix
 | Primary Mode | Secondary Mode | Filter Level | Group Level | User Experience |
 | :--- | :--- | :--- | :--- | :--- |

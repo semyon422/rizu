@@ -48,6 +48,27 @@ local function setup()
 	return db, repo, factory
 end
 
+local function setup_partial_cache()
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+
+	db.models.locations:create({
+		id = 1, name = "Test", path = "/test", is_relative = 0, is_internal = 0,
+	})
+	db.models.chartfile_sets:create({
+		id = 1, location_id = 1, name = "Set 1", dir = "s1", modified_at = 0, is_file = 0,
+	})
+	db.models.chartfiles:create({
+		id = 1, set_id = 1, name = "f1.osu", modified_at = 0,
+	})
+
+	local repo = ChartviewsRepo(db.models)
+	repo:setSync(true)
+	repo.params = {difficulty = "enps_diff", where = {}}
+
+	return db, repo
+end
+
 ---@param t testing.T
 function test.primary_modes(t)
 	local db, repo = setup()
@@ -63,6 +84,34 @@ function test.primary_modes(t)
 	t:eq(count("chartmetas"), 4, "Metas mode: m1, m2 (in f1), m3 (in f2), m4 (in f3)")
 	t:eq(count("chartdiffs"), 5, "Diffs mode: m1-d1, m2-d1, m3-d1, m4-d1, m4-d2")
 	t:eq(count("chartplays"), 3, "Plays mode: p1, p2, p3 (Note: chartplays level is INNER JOIN, only Set 2 has plays in this setup)")
+
+	db:unload()
+end
+
+---@param t testing.T
+function test.partial_cache_primary_modes(t)
+	local db, repo = setup_partial_cache()
+
+	local function query(mode)
+		repo.params.primary_mode = mode
+		repo.params.secondary_mode = "chartmetas"
+		return repo:query()
+	end
+
+	for _, mode in ipairs({"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs"}) do
+		local res = query(mode)
+		t:eq(res.count, 1, mode .. " should include scanned chartfiles before hashing finishes")
+
+		local items = repo:unpackResult(res)
+		local item = items[0]
+		t:eq(item.chartfile_set_id, 1)
+		t:eq(item.chartfile_id, 1)
+		t:eq(item.chartmeta_id, 0)
+		t:eq(item.chartdiff_id, 0)
+		t:eq(item.chartplay_id, 0)
+	end
+
+	t:eq(query("chartplays").count, 0, "plays mode requires chartplays")
 
 	db:unload()
 end
