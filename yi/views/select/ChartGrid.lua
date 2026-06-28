@@ -108,6 +108,10 @@ function ChartGrid:reloadItems()
 	end
 end
 
+function ChartGrid:requestReloadItems()
+	self.reload_items_needed = true
+end
+
 function ChartGrid:onScroll(e)
 	self.scroll_offset = self:clampScroll(self.scroll_offset - e.direction_y * ROW_HEIGHT)
 	return true
@@ -144,6 +148,11 @@ end
 local cs = {{1, 1, 1, 1}, ""}
 
 function ChartGrid:update(dt)
+	if self.reload_items_needed then
+		self.reload_items_needed = false
+		self:reloadItems()
+	end
+
 	self.scroll_spring:update(dt)
 	self.scroll_spring:set(self:clampScroll(self.scroll_offset))
 

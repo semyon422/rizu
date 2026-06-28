@@ -285,7 +285,7 @@ function Select:receive(event)
 	if event.type == "set_changed" then
 		self:updateInfo()
 	elseif event.type == "count" or event.type == "item_loaded" then
-		self.chart_grid:reloadItems()
+		self.chart_grid:requestReloadItems()
 	end
 
 	self.background_panel:receive(event)
