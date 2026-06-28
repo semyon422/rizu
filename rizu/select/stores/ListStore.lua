@@ -69,8 +69,7 @@ function ListStore:_loadObject(index)
 		return nil
 	end
 
-	local struct = self.items[index - 1]
-	local item = self.library.chartviewsRepo:structToTable(struct)
+	local item = self.library.chartviewsRepo:structToTable(self.items[index - 1])
 
 	if self.library.is_sync or not self.library.worker then
 		local chartview = self.library.chartviewsRepo:getChartview(item)
@@ -78,7 +77,7 @@ function ListStore:_loadObject(index)
 			return nil
 		end
 		---@cast chartview rizu.library.LocatedChartview
-		chartview.lamp = struct.lamp
+		chartview.lamp = item.lamp
 		self.library:enrichChartview(chartview)
 		table_util.copy(chartview, item)
 		return item
@@ -89,7 +88,7 @@ function ListStore:_loadObject(index)
 		local chartview = self.library:getChartviewAsync(params, item)
 		if chartview then
 			---@cast chartview rizu.library.LocatedChartview
-			chartview.lamp = struct.lamp
+			chartview.lamp = item.lamp
 			self.library:enrichChartview(chartview)
 			table_util.copy(chartview, item)
 			self:emitChanged({type = "item_loaded", index = index, item = item})
