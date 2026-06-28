@@ -54,7 +54,9 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 - `chartfile_sets`, `chartfiles`, `chartmetas`: load scores for the selected `chartmeta` when `hash` and `index` are available.
 - `chartdiffs`, `chartplays`: load exact scores for the selected `chartdiff`.
 
-Score loads are generation-guarded. Every new chart selection creates a new score request ID; delayed online debounce work and late provider results must be ignored if a newer request has started. This keeps scores, `SelectionState.scoreId`, and `ScoreSelector.chartplay` aligned with the current chartview.
+Score loads are generation-guarded. Every new chart selection increments the score loading generation; delayed online throttle work and late provider results must be ignored if a newer generation has started. This keeps scores, `SelectionState.scoreId`, and `ScoreSelector.chartplay` aligned with the current chartview.
+
+Online score loading uses an immediate-plus-trailing throttle. The first selected chart after an idle period requests scores immediately. Further chart changes during the throttle window only replace the pending request, and when the window ends the latest pending chart is requested. This keeps online scores responsive without sending a request for every intermediate chart while the player scrolls quickly.
 
 `ScoreSelector:updateReplayBase(chartview)` is called from `ModifierCoordinator:applyModifierMeta(true)` when a selection change should refresh gameplay settings. The current contract is:
 
@@ -95,7 +97,6 @@ All select events must include a `type` field. Event type names should describe 
 - **Incremental cache refreshes**: The lists should update while charts are still being cached, so the player can immediately play anything that has already been processed. This needs design work because rebuilding large lists can take seconds for very large libraries.
 - **Collections**: Current collections are folder-like path prefixes used for filtering. Keep that behavior, but consider renaming it to make room for real user-defined collections. Collections may also need separate scopes for sets, metas, diffs, and plays.
 - **Score visibility**: Document which scores should be shown for each selection state, including the relationship between selected item, selected variation, local scores, online scores, and multiplayer context.
-- **Online score latency**: Online scores appear to load slowly. Review the debounce strategy and consider loading them immediately when the selected playable chart changes.
 
 ### Selection, Scores, and Replay State
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.

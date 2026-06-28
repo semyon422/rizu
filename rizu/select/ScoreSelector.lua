@@ -7,6 +7,9 @@ local OnlineScoreProvider = require("rizu.select.providers.OnlineScoreProvider")
 
 ---@class rizu.select.ScoreSelector
 ---@operator call: rizu.select.ScoreSelector
+---@field onlineScoreCooldownActive boolean
+---@field pendingOnlineScoreChartview rizu.library.LocatedChartview?
+---@field pendingOnlineScoreGeneration integer?
 local ScoreSelector = class()
 
 ---@param configModel sphere.ConfigModel
@@ -28,7 +31,10 @@ function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
 
 	self.observable = Observable()
 	self.debounceTime = 0.5
-	self.scoreRequestId = 0
+	self.generation = 0
+	self.onlineScoreCooldownActive = false
+	self.pendingOnlineScoreChartview = nil
+	self.pendingOnlineScoreGeneration = nil
 end
 
 ---@param observer rizu.select.ScoreSelectorEventObserver|rizu.select.ScoreSelectorEventReceiver
@@ -70,7 +76,7 @@ function ScoreSelector:setChart(chartview)
 	self.chartplay = nil
 
 	if not chartview then
-		self.scoreRequestId = self.scoreRequestId + 1
+		self.generation = self.generation + 1
 		self:clear()
 		self.state:setScore(1, nil)
 		return
@@ -108,36 +114,66 @@ function ScoreSelector:pullScore(noUpdate)
 		return
 	end
 
-	self.scoreRequestId = self.scoreRequestId + 1
-	local request_id = self.scoreRequestId
+	self.generation = self.generation + 1
+	local generation = self.generation
 
 	local select = self.configModel.configs.select
 	if select.scoreSourceName == "online" then
 		self.store:clear()
-		if coroutine.running() then
-			coroutine.wrap(function()
-				delay.sleep(self.debounceTime)
-				if request_id ~= self.scoreRequestId then
-					return
-				end
-				self:updateScoreItems(chartview, request_id)
-			end)()
-			return
-		end
+		self:updateOnlineScoreItems(chartview, generation)
+		return
 	end
 
-	self:updateScoreItems(chartview, request_id)
+	self:updateScoreItems(chartview, generation)
 end
 
 ---@param chartview rizu.library.LocatedChartview
----@param request_id integer
-function ScoreSelector:updateScoreItems(chartview, request_id)
+---@param generation integer
+function ScoreSelector:updateOnlineScoreItems(chartview, generation)
+	if self.onlineScoreCooldownActive then
+		self.pendingOnlineScoreChartview = chartview
+		self.pendingOnlineScoreGeneration = generation
+		return
+	end
+
+	self:updateScoreItems(chartview, generation)
+	self:startOnlineScoreCooldown()
+end
+
+function ScoreSelector:startOnlineScoreCooldown()
+	if self.onlineScoreCooldownActive then
+		return
+	end
+
+	self.onlineScoreCooldownActive = true
+	coroutine.wrap(function()
+		while true do
+			delay.sleep(self.debounceTime)
+
+			local chartview = self.pendingOnlineScoreChartview
+			local generation = self.pendingOnlineScoreGeneration
+			self.pendingOnlineScoreChartview = nil
+			self.pendingOnlineScoreGeneration = nil
+
+			if not chartview or generation ~= self.generation then
+				self.onlineScoreCooldownActive = false
+				return
+			end
+
+			self:updateScoreItems(chartview, generation)
+		end
+	end)()
+end
+
+---@param chartview rizu.library.LocatedChartview
+---@param generation integer
+function ScoreSelector:updateScoreItems(chartview, generation)
 	local config = self.configModel.configs.settings.select
 	local secondary_mode = config.secondary_mode or "chartmetas"
 	local exact = secondary_mode == "chartdiffs" or secondary_mode == "chartplays"
-	
+
 	-- We use the coro version to ensure the task runner waits for completion
-	self.store:updateItems(chartview, exact, request_id)
+	self.store:updateItems(chartview, exact, generation)
 end
 
 ---@param direction integer?

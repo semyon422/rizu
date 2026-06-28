@@ -112,7 +112,7 @@ function test.chartplays_mode_updates_chartplay_base_fields(t)
 end
 
 ---@param t testing.T
-function test.online_debounce_does_not_update_stale_chart(t)
+function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart(t)
 	local time = {0}
 	delay.set_timer(time)
 
@@ -133,14 +133,19 @@ function test.online_debounce_does_not_update_stale_chart(t)
 		selector:setChart({hash = "old", index = 1})
 	end)()
 
-	t:tdeq(updated_hashes, {})
+	t:tdeq(updated_hashes, {"old"})
 
+	selector:setChart({hash = "middle", index = 1})
 	selector:setChart({hash = "new", index = 1})
-	t:tdeq(updated_hashes, {"new"})
+	t:tdeq(updated_hashes, {"old"})
 
 	time[1] = 1
 	delay.update()
-	t:tdeq(updated_hashes, {"new"})
+	t:tdeq(updated_hashes, {"old", "new"})
+
+	time[1] = 2
+	delay.update()
+	t:tdeq(updated_hashes, {"old", "new"})
 
 	delay.set_timer(function()
 		return 0
@@ -173,7 +178,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 	end)()
 
 	t:eq(returned, true)
-	t:tdeq(updated_hashes, {})
+	t:tdeq(updated_hashes, {"selected"})
 
 	time[1] = 1
 	delay.update()
