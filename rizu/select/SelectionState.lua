@@ -30,6 +30,12 @@ function SelectionState:onChanged(observer)
 	return self.observable:add(observer)
 end
 
+---@param observer util.Observer
+---@return util.Observer?
+function SelectionState:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
 ---@param event rizu.select.SelectionStateEvent
 function SelectionState:emitChanged(event)
 	self.observable:send(event)

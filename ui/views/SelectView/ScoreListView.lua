@@ -11,7 +11,7 @@ ScoreListView.rows = 5
 function ScoreListView:reloadItems()
 	local scoreStore = self.game.scoreSelector.store
 	if not self.isSubscribed then
-		scoreStore.onChanged:add(self)
+		scoreStore:onChanged(self)
 		self.isSubscribed = true
 		self.items = scoreStore
 		self.refreshNeeded = true

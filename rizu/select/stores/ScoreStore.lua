@@ -31,6 +31,12 @@ function ScoreStore:onChanged(observer)
 	return self.observable:add(observer)
 end
 
+---@param observer util.Observer
+---@return util.Observer?
+function ScoreStore:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
 ---@param event rizu.select.ScoreStoreEvent
 function ScoreStore:emitChanged(event)
 	self.observable:send(event)

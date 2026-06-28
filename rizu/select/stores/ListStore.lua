@@ -33,6 +33,12 @@ function ListStore:onChanged(observer)
 	return self.observable:add(observer)
 end
 
+---@param observer util.Observer
+---@return util.Observer?
+function ListStore:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
 ---@param event rizu.select.ListStoreEvent
 function ListStore:emitChanged(event)
 	self.observable:send(event)

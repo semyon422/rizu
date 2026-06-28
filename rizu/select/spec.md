@@ -81,7 +81,7 @@ Manual modifier changes are handled separately by `ModifierCoordinator:update()`
 This means repeated scroll or refresh input collapses to the most recent relevant task, while coarser selection refreshes can override lower-priority detail work.
 
 ### Event Types
-Select module event payloads are documented as EmmyLua aliases in `rizu.select.events`. Classes expose typed `onChanged(observer)` and `emitChanged(event)` wrapper methods around their `observable` field. These wrappers accept either an observer object or a plain `fun(event)` callback with the concrete event union for that class.
+Select module event payloads are documented as EmmyLua aliases in `rizu.select.events`. Classes expose typed `onChanged(observer)`, `offChanged(observer)`, and `emitChanged(event)` wrapper methods around their `observable` field. `onChanged` accepts either an observer object or a plain `fun(event)` callback with the concrete event union for that class.
 
 All select events must include a `type` field. Prefer narrowing event unions with `if event.type == ...` checks and only add explicit casts when LuaLS cannot infer the concrete payload. Prefer `emitChanged` over calling raw `observable:send`, so LuaLS can check the event payload shape.
 

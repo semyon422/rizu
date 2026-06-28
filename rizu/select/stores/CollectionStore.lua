@@ -20,6 +20,12 @@ function CollectionStore:onChanged(observer)
 	return self.observable:add(observer)
 end
 
+---@param observer util.Observer
+---@return util.Observer?
+function CollectionStore:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
 ---@param event rizu.select.CollectionStoreEvent
 function CollectionStore:emitChanged(event)
 	self.observable:send(event)

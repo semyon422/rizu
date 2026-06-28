@@ -104,9 +104,9 @@ function Select:openScore(index)
 end
 
 function Select:enter()
-	self.ui.game.chartSelector.onChanged:add(self)
-	self.ui.game.chartSelector.state.onChanged:add(self)
-	self.ui.game.scoreSelector.onChanged:add(self)
+	self.ui.game.chartSelector:onChanged(self)
+	self.ui.game.chartSelector.state:onChanged(self)
+	self.ui.game.scoreSelector:onChanged(self)
 	local cv = self.ui.game.chartSelector.chartview
 	if cv then
 		self:onChartviewUpdate(cv)
@@ -118,9 +118,9 @@ function Select:enter()
 end
 
 function Select:exit()
-	self.ui.game.chartSelector.onChanged:remove(self)
-	self.ui.game.chartSelector.state.onChanged:remove(self)
-	self.ui.game.scoreSelector.onChanged:remove(self)
+	self.ui.game.chartSelector:offChanged(self)
+	self.ui.game.chartSelector.state:offChanged(self)
+	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.command_registry:popContext("select")
 	self.ui.command_registry:popContext("locations")
 end

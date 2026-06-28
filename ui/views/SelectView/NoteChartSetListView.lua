@@ -9,7 +9,7 @@ NoteChartSetListView.rows = 11
 function NoteChartSetListView:reloadItems()
 	local chartSetStore = self.game.chartSelector.stores[1]
 	if not self.isSubscribed then
-		chartSetStore.onChanged:add(self)
+		chartSetStore:onChanged(self)
 		self.isSubscribed = true
 		self.items = chartSetStore
 		self.refreshNeeded = true

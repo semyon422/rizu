@@ -9,7 +9,7 @@ CollectionListView.rows = 11
 function CollectionListView:reloadItems()
 	local collectionStore = self.game.collectionSelector.store
 	if not self.isSubscribed then
-		collectionStore.onChanged:add(self)
+		collectionStore:onChanged(self)
 		self.isSubscribed = true
 		self.items = collectionStore.tree.items
 		self.refreshNeeded = true
