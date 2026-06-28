@@ -101,6 +101,7 @@ To keep the memory footprint minimal, rich metadata (titles, artists, paths) is 
 
 ### Caching and Performance
 - **Incremental cache updates**: Add a mechanism for library lists to update while chart caching is still running. Players should be able to play charts that have already been processed instead of waiting for the whole cache run.
+- **Partial cache states**: Review, document, and test behavior while the cache is incomplete. Intermediate states are valid system states, so queries, selection, previews, scoring, and UI refreshes must handle missing hashes, metadata, diffs, scores, or difficulty values without assuming the full pipeline has finished.
 - **Pipeline parallelism**: Split caching into stages that can surface partial results. A fast first pass could show discovered files as provisional charts; later passes can parse metadata, refresh list entries, and calculate difficulty.
 - **Difficulty calculation**: Benchmark the cache pipeline. Difficulty calculation is likely a bottleneck and may need to run later or across multiple worker threads. Metadata parsing is more likely to be limited by file IO.
 - **On-scroll recache checks**: Consider checking whether the currently visible file has changed while scrolling and recache only that file if needed. This must be clearly communicated to the player and tightly scoped. For osu! files, the game could also check the osu! website and offer a local update when a newer version exists.
