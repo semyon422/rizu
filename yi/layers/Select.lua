@@ -38,6 +38,21 @@ function Select:new(ui)
 	self.time_rate = TimeRate(ui.game.timeRateModel, ui.game.modifierSelectModel)
 	self.gameplay_modifiers = GameplayModifiers()
 	self.info_panel = InfoPanel()
+
+	self.location_label = Label({
+		font_name = "regular",
+		font_size = 24,
+		text = "Displaying the entire library",
+		color = Colors.text_muted
+	}):setPivot(0, 0.5)
+
+	self.filters_label = Label({
+		font_name = "regular",
+		font_size = 24,
+		text = "No filters",
+		color = Colors.text_muted
+	}):setPivot(1, 0.5)
+
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "QUIT", function()
 		love.event.quit()
 	end)
@@ -95,9 +110,7 @@ function Select:enter()
 	local cv = self.ui.game.chartSelector.chartview
 	if cv then
 		self:onChartviewUpdate(cv)
-		self.score_list:reload()
-		self.chart_grid:reloadItems()
-		self.gameplay_modifiers:bind(self.ui.game.replayBase)
+		self:updateInfo()
 	end
 
 	self.ui.command_registry:pushContext("select", self.select_commands)
@@ -125,9 +138,16 @@ end
 function Select:createRightColumn()
 	return S.Track({
 		direction = "column",
-		space = {28, "*", 122, "*", 136, "*", 562},
+		space = {40, "*", 122, "*", 136, "*", 562},
 
-		Rectangle({color = Colors.panel}),
+		S.Stack({
+			Rectangle({color = Colors.panel}),
+			S.Stack({
+				padding = {10, 0, 0, 10},
+				self.location_label,
+				self.filters_label
+			})
+		}),
 		S.Stack(),
 		self.info_panel,
 		S.Stack(),
@@ -242,6 +262,12 @@ function Select:onChartviewUpdate(cv)
 	self.info_panel:bind(cv)
 end
 
+function Select:updateInfo()
+	self.score_list:reload()
+	self.chart_grid:reloadItems()
+	self.gameplay_modifiers:bind(self.ui.game.replayBase)
+end
+
 function Select:handleKeyDown(key)
 	if key == "return" then
 		self.ui:setScreen("chart_loading")
@@ -255,9 +281,7 @@ function Select:receive(event)
 	end
 
 	if event.type == "set_changed" then
-		self.score_list:reload()
-		self.chart_grid:reloadItems()
-		self.gameplay_modifiers:bind(self.ui.game.replayBase)
+		self:updateInfo()
 	end
 
 	self.background_panel:receive(event)
