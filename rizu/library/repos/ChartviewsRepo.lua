@@ -78,6 +78,13 @@ function ChartviewsRepo:structToTable(struct)
 	}
 end
 
+---@param chartfile_id integer
+---@param id integer
+---@return string
+local function getCompositeIndexKey(chartfile_id, id)
+	return ("%d:%d"):format(chartfile_id, id)
+end
+
 function ChartviewsRepo:_fetchResult(model, where, options)
 	local count_options = {
 		columns = {"1"},
@@ -91,6 +98,8 @@ function ChartviewsRepo:_fetchResult(model, where, options)
 	local chartdiff_id_to_global_index = {}
 	local chartplay_id_to_global_index = {}
 	local set_id_to_global_index = {}
+	local chartfile_chartmeta_id_to_global_index = {}
+	local chartfile_chartdiff_id_to_global_index = {}
 
 	local c = 0
 	for i, row in model:select_iter(where, options) do
@@ -107,6 +116,8 @@ function ChartviewsRepo:_fetchResult(model, where, options)
 		chartmeta_id_to_global_index[entry.chartmeta_id] = c
 		chartdiff_id_to_global_index[entry.chartdiff_id] = c
 		chartplay_id_to_global_index[entry.chartplay_id] = c
+		chartfile_chartmeta_id_to_global_index[getCompositeIndexKey(entry.chartfile_id, entry.chartmeta_id)] = c
+		chartfile_chartdiff_id_to_global_index[getCompositeIndexKey(entry.chartfile_id, entry.chartdiff_id)] = c
 	end
 
 	return self:packResult(struct_array, c, {
@@ -115,8 +126,12 @@ function ChartviewsRepo:_fetchResult(model, where, options)
 		chartmeta_id_to_global_index = chartmeta_id_to_global_index,
 		chartdiff_id_to_global_index = chartdiff_id_to_global_index,
 		chartplay_id_to_global_index = chartplay_id_to_global_index,
+		chartfile_chartmeta_id_to_global_index = chartfile_chartmeta_id_to_global_index,
+		chartfile_chartdiff_id_to_global_index = chartfile_chartdiff_id_to_global_index,
 	})
 end
+
+ChartviewsRepo.getCompositeIndexKey = getCompositeIndexKey
 
 ---@param params table
 function ChartviewsRepo:queryAsync(params)

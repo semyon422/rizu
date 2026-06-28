@@ -17,6 +17,7 @@ function ListStore:new(library, timer)
 	self.items = nil
 	self.itemsCount = 0
 	self.maps = {}
+	self.mode = "chartmetas"
 
 	local cache = ExpireTable(timer)
 	self.cache = cache
@@ -26,7 +27,10 @@ function ListStore:new(library, timer)
 end
 
 ---@param result table?
-function ListStore:setResult(result)
+---@param mode string
+function ListStore:setResult(result, mode)
+	self.mode = mode
+
 	if not result then
 		self.items = nil
 		self.itemsCount = 0
@@ -95,7 +99,51 @@ end
 ---@return number
 function ListStore:indexof(chartview)
 	local maps = self.maps
+	local mode = self.mode
 	local id
+
+	if mode == "chartfile_sets" then
+		id = chartview.chartfile_set_id
+		if id and id ~= 0 and maps.set_id_to_global_index[id] then
+			return maps.set_id_to_global_index[id]
+		end
+	elseif mode == "chartfiles" then
+		id = chartview.chartfile_id
+		if id and id ~= 0 and maps.chartfile_id_to_global_index[id] then
+			return maps.chartfile_id_to_global_index[id]
+		end
+	elseif mode == "chartmetas" then
+		local chartfile_id = chartview.chartfile_id
+		id = chartview.chartmeta_id
+		if chartfile_id and chartfile_id ~= 0 and id and id ~= 0 then
+			local key = self.library.chartviewsRepo.getCompositeIndexKey(chartfile_id, id)
+			local map = maps.chartfile_chartmeta_id_to_global_index
+			if map and map[key] then
+				return map[key]
+			end
+		end
+		if id and id ~= 0 and maps.chartmeta_id_to_global_index[id] then
+			return maps.chartmeta_id_to_global_index[id]
+		end
+	elseif mode == "chartdiffs" then
+		local chartfile_id = chartview.chartfile_id
+		id = chartview.chartdiff_id
+		if chartfile_id and chartfile_id ~= 0 and id and id ~= 0 then
+			local key = self.library.chartviewsRepo.getCompositeIndexKey(chartfile_id, id)
+			local map = maps.chartfile_chartdiff_id_to_global_index
+			if map and map[key] then
+				return map[key]
+			end
+		end
+		if id and id ~= 0 and maps.chartdiff_id_to_global_index[id] then
+			return maps.chartdiff_id_to_global_index[id]
+		end
+	elseif mode == "chartplays" then
+		id = chartview.chartplay_id
+		if id and id ~= 0 and maps.chartplay_id_to_global_index[id] then
+			return maps.chartplay_id_to_global_index[id]
+		end
+	end
 
 	id = chartview.chartplay_id
 	if id and id ~= 0 and maps.chartplay_id_to_global_index[id] then

@@ -67,11 +67,15 @@ function TestLibraryFactory:populate(lib, data)
 
 		-- Insert chartmeta
 		local chartmeta = self.tcf:createChartmeta(entry)
-		lib.database.models.chartmetas:create(chartmeta)
+		if not chartmeta.id or not lib.database.models.chartmetas:find({id = chartmeta.id}) then
+			lib.database.models.chartmetas:create(chartmeta)
+		end
 
 		-- Insert chartdiff
 		local chartdiff = self.tcf:createChartdiff(entry)
-		lib.database.models.chartdiffs:create(chartdiff)
+		if not chartdiff.id or not lib.database.models.chartdiffs:find({id = chartdiff.id}) then
+			lib.database.models.chartdiffs:create(chartdiff)
+		end
 	end
 end
 

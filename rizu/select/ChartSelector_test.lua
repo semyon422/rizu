@@ -119,6 +119,60 @@ function test.chart_navigation(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.duplicate_chartmeta_restores_by_chartfile(t)
+	local charts = {
+		{
+			chartfile_set_id = 1,
+			chartfile_id = 1,
+			chartmeta_id = 10,
+			chartdiff_id = 20,
+			hash = "duplicate_hash",
+			index = 1,
+			chartfile_name = "duplicate_1.osu",
+		},
+		{
+			chartfile_set_id = 1,
+			chartfile_id = 2,
+			chartmeta_id = 10,
+			chartdiff_id = 20,
+			hash = "duplicate_hash",
+			index = 1,
+			chartfile_name = "duplicate_2.osu",
+		},
+		{
+			chartfile_set_id = 1,
+			chartfile_id = 3,
+			chartmeta_id = 10,
+			chartdiff_id = 20,
+			hash = "duplicate_hash",
+			index = 1,
+			chartfile_name = "duplicate_3.osu",
+		},
+	}
+	local configModel = createMockConfigModel()
+	local library = tlf:create()
+	tlf:populate(library, charts)
+
+	local fs = {read = function() end, getInfo = function() end}
+
+	local model = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	model:load()
+
+	t:eq(model.stores[2]:count(), 3)
+
+	model:scrollLevel(2, 1)
+	t:eq(model.state.levels[2].index, 2)
+	t:eq(model.chartview.chartfile_id, 2)
+	t:eq(model.chartview.chartmeta_id, 10)
+
+	model:pullLevel(2)
+	t:eq(model.state.levels[2].index, 2)
+	t:eq(model.chartview.chartfile_id, 2)
+
+	library:unload()
+end
+
 function test.chartview_event(t)
 	local charts = {
 		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h1", index = 1},

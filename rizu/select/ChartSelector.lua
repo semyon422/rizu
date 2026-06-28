@@ -17,6 +17,14 @@ local ChartSelector = class()
 
 ChartSelector.debounceTime = 0.5
 
+local LEVELS = {
+	chartfile_sets = 1,
+	chartfiles = 2,
+	chartmetas = 3,
+	chartdiffs = 4,
+	chartplays = 5,
+}
+
 ---@param configModel sphere.ConfigModel
 ---@param library rizu.library.Library
 ---@param fs fs.IFilesystem
@@ -115,7 +123,7 @@ function ChartSelector:updatePrimaryItems()
 
 	local result = self.library:queryAsync(params)
 	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
-	self.stores[1]:setResult(result)
+	self.stores[1]:setResult(result, self:getPrimaryMode())
 	self.onChanged:send({type = "update_primary_items"})
 end
 
@@ -131,11 +139,11 @@ function ChartSelector:findNotechart(hash, index)
 		local result = self.library:queryAsync(params)
 		if result then
 			self.library.chartviewsRepo.params = params
-			self.stores[1]:setResult(result)
+			self.stores[1]:setResult(result, "chartmetas")
 			local item = self.stores[1]:get(1)
 			if item then
 				local result2 = self.library:getViewsAsync(params, item)
-				self.stores[2]:setResult(result2)
+				self.stores[2]:setResult(result2, "chartmetas")
 
 				local chartview = self.stores[2]:get(1)
 				self:setChartview(chartview)
@@ -228,6 +236,24 @@ function ChartSelector:setLock(locked)
 	self.locked = locked
 end
 
+---@return string
+function ChartSelector:getPrimaryMode()
+	local select_config = self.configModel.configs.settings.select
+	return select_config.primary_mode or "chartmetas"
+end
+
+---@return string
+function ChartSelector:getSecondaryResultMode()
+	local select_config = self.configModel.configs.settings.select
+	local primary_mode = select_config.primary_mode or "chartmetas"
+	local secondary_mode = select_config.secondary_mode or "chartmetas"
+
+	if LEVELS[secondary_mode] >= LEVELS[primary_mode] then
+		return secondary_mode
+	end
+	return primary_mode
+end
+
 function ChartSelector:scrollRandom()
 	local itemsCount = self.stores[1]:count()
 	local destination = math.random(1, itemsCount)
@@ -295,7 +321,7 @@ function ChartSelector:refresh(noUpdate, noPullNext)
 
 		self:setChartview(nil)
 
-		self.stores[2]:setResult(nil)
+		self.stores[2]:setResult(nil, self:getSecondaryResultMode())
 	end
 
 	self.state:setSelection(1, index, item and item.chartfile_set_id)
@@ -313,9 +339,9 @@ function ChartSelector:pullLevel(level)
 	if parentItem and parentItem.chartfile_set_id and parentItem.chartfile_set_id ~= 0 then
 		local params = self.queryBuilder:build(self.config)
 		local result = self.library:getViewsAsync(params, parentItem)
-		self.stores[2]:setResult(result)
+		self.stores[2]:setResult(result, self:getSecondaryResultMode())
 	else
-		self.stores[2]:setResult(nil)
+		self.stores[2]:setResult(nil, self:getSecondaryResultMode())
 	end
 
 	local index = self.stores[2]:indexof(self.config)

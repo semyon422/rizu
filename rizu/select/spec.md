@@ -42,7 +42,7 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 ### Update Lifecycle
 1. **Full Refresh**: Triggered by changes in filters, search, or sorting. `ChartSelector:updatePrimaryItems()` calls the library query engine asynchronously.
 2. **Level Propagation**: Triggered when the primary selection changes. `ChartSelector:pullLevel(2)` is called to fetch related child items in the worker thread.
-3. **Restoration**: After any list update, the system uses ID-to-Index maps provided by the query result to re-focus the previously selected item.
+3. **Restoration**: After any list update, the system uses mode-aware ID-to-Index maps provided by the query result to re-focus the previously selected item. `chartmetas` and `chartdiffs` restoration uses `chartfile_id` plus the logical ID so duplicate files for the same logical chart do not collapse to the first or last duplicate.
 
 ## Synchronization
 - **Selected Chart**: The item at the finest active level (typically Level 2) is considered the "Selected Chart."
@@ -57,7 +57,6 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 - **Collections**: Current collections are folder-like path prefixes used for filtering. Keep that behavior, but consider renaming it to make room for real user-defined collections. Collections may also need separate scopes for sets, metas, diffs, and plays.
 - **Score visibility**: Document which scores should be shown for each selection state, including the relationship between selected item, selected variation, local scores, online scores, and multiplayer context.
 - **Online score latency**: Online scores appear to load slowly. Review the debounce strategy and consider loading them immediately when the selected playable chart changes.
-- **Duplicate scrolling bug**: Investigate a bug where scrolling through duplicates keeps restoring the first duplicate, making it impossible to scroll downward.
 
 ### Selection, Scores, and Replay State
 - **Gameplay sync details**: Expand the `Gameplay Sync` section with the exact data written to `ReplayBase`. `ScoreSelector:updateReplayBase(chartview)` appears to be the current implementation reference.
