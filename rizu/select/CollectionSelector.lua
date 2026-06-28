@@ -52,7 +52,7 @@ function CollectionSelector:selectCollection(path, location_id)
 	config.location_id = item and item.location_id
 
 	self:emitChanged({
-		type = "collection_changed",
+		type = "collection_selection_changed",
 		item = item,
 		path_changed = not old_item or old_item.path ~= (item and item.path)
 	})
@@ -73,7 +73,7 @@ function CollectionSelector:setLocationsInCollections(enabled)
 	config.location_id = item and item.location_id
 
 	self:emitChanged({
-		type = "collection_changed",
+		type = "collection_selection_changed",
 		item = item,
 		path_changed = not old_item or old_item.path ~= (item and item.path)
 	})
@@ -100,7 +100,7 @@ function CollectionSelector:scrollCollection(direction, destination, force)
 	config.location_id = item.location_id
 
 	self:emitChanged({
-		type = "collection_changed",
+		type = "collection_selection_changed",
 		item = item,
 		path_changed = not old_item or old_item.path ~= item.path
 	})

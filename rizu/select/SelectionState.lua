@@ -56,7 +56,7 @@ function SelectionState:setSelection(level, index, id)
 	l.index = index
 	l.id = id
 
-	self:emitChanged({type = "selection", level = level, index = index, id = id})
+	self:emitChanged({type = "selection_changed", level = level, index = index, id = id})
 end
 
 ---@param index integer
@@ -65,7 +65,7 @@ function SelectionState:setScore(index, id)
 	if self.chartplayIndex == index and self.scoreId == id then return end
 	self.chartplayIndex = index
 	self.scoreId = id
-	self:emitChanged({type = "score", index = index, id = id})
+	self:emitChanged({type = "score_selection_changed", index = index, id = id})
 end
 
 -- Getters

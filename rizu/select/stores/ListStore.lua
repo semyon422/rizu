@@ -61,7 +61,7 @@ function ListStore:setResult(result, mode)
 	end
 
 	self.cache:new()
-	self:emitChanged({type = "count", count = self.itemsCount})
+	self:emitChanged({type = "list_count_changed", count = self.itemsCount})
 end
 
 ---@private
@@ -98,7 +98,7 @@ function ListStore:_loadObject(index)
 			chartview.lamp = item.lamp
 			self.library:enrichChartview(chartview)
 			table_util.copy(chartview, item)
-			self:emitChanged({type = "item_loaded", index = index, item = item})
+			self:emitChanged({type = "list_item_loaded", index = index, item = item})
 		end
 	end)()
 

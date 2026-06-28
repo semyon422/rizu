@@ -50,7 +50,7 @@ end
 
 function ScoreStore:clear()
 	self.items = {}
-	self:emitChanged({type = "items", items = self.items})
+	self:emitChanged({type = "score_items_changed", items = self.items})
 end
 
 ---@return number
@@ -100,7 +100,7 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 
 	if not chartview.hash or not chartview.index then
 		self.items = {}
-		self:emitChanged({type = "items", items = self.items})
+		self:emitChanged({type = "score_items_changed", items = self.items})
 		return
 	end
 
@@ -122,7 +122,7 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 	end
 
 	self.items = self:filterScores(chartplays)
-	self:emitChanged({type = "items", items = self.items})
+	self:emitChanged({type = "score_items_changed", items = self.items})
 end
 
 ScoreStore.updateItems = thread.coro(ScoreStore.updateItemsAsync)

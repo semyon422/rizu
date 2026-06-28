@@ -51,15 +51,15 @@ end
 
 ---@param event rizu.select.Event
 function ScoreSelector:receive(event)
-	if event.type == "items" then
+	if event.type == "score_items_changed" then
 		self:findScore()
 		self:emitChanged(event)
 		return
 	end
 
-	if event.type == "selection" and event.level == 2 then
+	if event.type == "selection_changed" and event.level == 2 then
 		self:setChart(self.chartview)
-	elseif event.type == "find_notechart" or event.type == "set_changed" then
+	elseif event.type == "notechart_found" or event.type == "selected_set_changed" then
 		self:setChart(self.chartview)
 	end
 end
@@ -157,7 +157,7 @@ function ScoreSelector:scrollScore(direction, destination)
 	self.state:setScore(destination, chartplay.id)
 
 	self.chartplay = chartplay
-	self:emitChanged({type = "scroll_score", chartplay = chartplay})
+	self:emitChanged({type = "score_scrolled", chartplay = chartplay})
 end
 
 ---@param chartview rizu.library.LocatedChartview

@@ -55,7 +55,7 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	self.state:onChanged(self)
 
 	self:onChanged(function(event)
-		if event.type == "chartview" then
+		if event.type == "chartview_changed" then
 			local chartview = event.chartview
 			if chartview then
 				print(chartview.chartfile_id, chartview.title)
@@ -64,7 +64,7 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	end)
 
 	self.stores[1]:onChanged(function(event)
-		if event.type == "item_loaded" then
+		if event.type == "list_item_loaded" then
 			local current = self.state:getSelection(1)
 			if event.index == current.index then
 				self:setChanged()
@@ -72,10 +72,10 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 		end
 	end)
 	self.stores[2]:onChanged(function(event)
-		if event.type == "item_loaded" then
+		if event.type == "list_item_loaded" then
 			local current = self.state:getSelection(2)
 			if event.index == current.index then
-				self:emitChanged({type = "chartview", chartview = self.chartview})
+				self:emitChanged({type = "chartview_changed", chartview = self.chartview})
 				self:setChanged()
 			end
 		end
@@ -104,12 +104,12 @@ end
 function ChartSelector:setChartview(chartview)
 	self.chartview = chartview
 	self.changed = true
-	self:emitChanged({type = "chartview", chartview = chartview})
+	self:emitChanged({type = "chartview_changed", chartview = chartview})
 end
 
 ---@param event rizu.select.SelectionStateEvent
 function ChartSelector:receive(event)
-	if event.type == "selection" then
+	if event.type == "selection_changed" then
 		if event.level == 1 then
 			self.taskRunner:push(function()
 				self:pullLevel(2)
@@ -141,7 +141,7 @@ function ChartSelector:updatePrimaryItems()
 	local result = self.library:queryAsync(params)
 	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
 	self.stores[1]:setResult(result, self:getPrimaryMode())
-	self:emitChanged({type = "update_primary_items"})
+	self:emitChanged({type = "primary_items_updated"})
 end
 
 ---@param hash string
@@ -168,7 +168,7 @@ function ChartSelector:findNotechart(hash, index)
 				self.state:setSelection(1, 1, chartview.chartfile_set_id)
 				self.state:setSelection(2, 1, chartview.chartfile_id)
 			end
-			self:emitChanged({type = "find_notechart", hash = hash, index = index})
+			self:emitChanged({type = "notechart_found", hash = hash, index = index})
 		end
 	end, TaskRunner.priority.high)
 end
@@ -216,7 +216,7 @@ end
 
 function ChartSelector:setChanged()
 	self.changed = true
-	self:emitChanged({type = "set_changed"})
+	self:emitChanged({type = "selected_set_changed"})
 end
 
 ---@return boolean
@@ -311,7 +311,7 @@ function ChartSelector:scrollLevel(level, direction, destination)
 	else
 		self:setChartview(item)
 		self.state:setSelection(2, destination, item.chartfile_id)
-		self:emitChanged({type = "scroll_level", level = level, chartview = item})
+		self:emitChanged({type = "level_scrolled", level = level, chartview = item})
 	end
 end
 

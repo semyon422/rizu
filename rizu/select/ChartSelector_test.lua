@@ -188,7 +188,7 @@ function test.chartview_event(t)
 	
 	local chartviewEvents = 0
 	chartSelector:onChanged(function(event)
-		if event.type == "chartview" then
+		if event.type == "chartview_changed" then
 			chartviewEvents = chartviewEvents + 1
 		end
 	end)
@@ -229,7 +229,7 @@ function test.score_navigation(t)
 	
 	-- Wire them up like SelectionCoordinator would
 	chartModel.state:onChanged(function(event)
-		if event.type == "selection" and event.level == 2 then
+		if event.type == "selection_changed" and event.level == 2 then
 			scoreSelector:setChart(chartModel.chartview)
 		end
 	end)

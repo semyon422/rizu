@@ -168,7 +168,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 
 	local returned = false
 	coroutine.wrap(function()
-		selector:receive({type = "set_changed"})
+		selector:receive({type = "selected_set_changed"})
 		returned = true
 	end)()
 
@@ -195,9 +195,9 @@ function test.score_items_event_is_forwarded_to_ui_observers(t)
 		received = event
 	end)
 
-	selector:receive({type = "items", items = selector.store.items})
+	selector:receive({type = "score_items_changed", items = selector.store.items})
 
-	t:tdeq(received, {type = "items", items = selector.store.items})
+	t:tdeq(received, {type = "score_items_changed", items = selector.store.items})
 	t:eq(selector.chartplay, selector.store.items[1])
 	t:eq(selector.state.chartplayIndex, 1)
 	t:eq(selector.state.scoreId, 12)

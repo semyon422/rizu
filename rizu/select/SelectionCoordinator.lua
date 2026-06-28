@@ -26,7 +26,7 @@ function SelectionCoordinator:new(
 	self.windowModel = windowModel
 
 	self.chartSelector.state:onChanged(function(event)
-		if event.type == "selection" and event.level == 2 then
+		if event.type == "selection_changed" and event.level == 2 then
 			self.scoreSelector:setChart(self.chartSelector.chartview)
 		end
 	end)
@@ -34,7 +34,7 @@ function SelectionCoordinator:new(
 	self.chartSelector:onChanged(self.scoreSelector)
 
 	self.collectionSelector:onChanged(function(event)
-		if event.type == "collection_changed" then
+		if event.type == "collection_selection_changed" then
 			self.chartSelector:noDebounceRefresh(not event.path_changed)
 		end
 	end)

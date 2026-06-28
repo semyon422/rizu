@@ -1,87 +1,87 @@
----@class rizu.select.SelectionEvent
----@field type "selection"
+---@class rizu.select.SelectionChangedEvent
+---@field type "selection_changed"
 ---@field level integer
 ---@field index integer
 ---@field id integer?
 
----@class rizu.select.ScoreEvent
----@field type "score"
+---@class rizu.select.ScoreSelectionChangedEvent
+---@field type "score_selection_changed"
 ---@field index integer
 ---@field id integer?
 
----@class rizu.select.ChartviewEvent
----@field type "chartview"
+---@class rizu.select.ChartviewChangedEvent
+---@field type "chartview_changed"
 ---@field chartview rizu.library.LocatedChartview?
 
----@class rizu.select.UpdatePrimaryItemsEvent
----@field type "update_primary_items"
+---@class rizu.select.PrimaryItemsUpdatedEvent
+---@field type "primary_items_updated"
 
----@class rizu.select.FindNotechartEvent
----@field type "find_notechart"
+---@class rizu.select.NotechartFoundEvent
+---@field type "notechart_found"
 ---@field hash string
 ---@field index integer
 
----@class rizu.select.SetChangedEvent
----@field type "set_changed"
+---@class rizu.select.SelectedSetChangedEvent
+---@field type "selected_set_changed"
 
----@class rizu.select.ScrollLevelEvent
----@field type "scroll_level"
+---@class rizu.select.LevelScrolledEvent
+---@field type "level_scrolled"
 ---@field level integer
 ---@field chartview rizu.library.LocatedChartview
 
----@class rizu.select.ScrollScoreEvent
----@field type "scroll_score"
+---@class rizu.select.ScoreScrolledEvent
+---@field type "score_scrolled"
 ---@field chartplay sea.Chartplay
 
----@class rizu.select.CollectionChangedEvent
----@field type "collection_changed"
+---@class rizu.select.CollectionSelectionChangedEvent
+---@field type "collection_selection_changed"
 ---@field item table?
 ---@field path_changed boolean
 
----@class rizu.select.ListStoreCountEvent
----@field type "count"
+---@class rizu.select.ListStoreCountChangedEvent
+---@field type "list_count_changed"
 ---@field count integer
 
 ---@class rizu.select.ListStoreItemLoadedEvent
----@field type "item_loaded"
+---@field type "list_item_loaded"
 ---@field index integer
 ---@field item rizu.library.LocatedChartview
 
----@class rizu.select.ScoreStoreItemsEvent
----@field type "items"
+---@class rizu.select.ScoreStoreItemsChangedEvent
+---@field type "score_items_changed"
 ---@field items sea.Chartplay[]
 
----@class rizu.select.CollectionStoreTreeEvent
----@field type "tree"
+---@class rizu.select.CollectionStoreTreeChangedEvent
+---@field type "collection_tree_changed"
 ---@field tree table
 
 ---@alias rizu.select.SelectionStateEvent
----| rizu.select.SelectionEvent
----| rizu.select.ScoreEvent
+---| rizu.select.SelectionChangedEvent
+---| rizu.select.ScoreSelectionChangedEvent
 
 ---@alias rizu.select.ChartSelectorEvent
----| rizu.select.ChartviewEvent
----| rizu.select.UpdatePrimaryItemsEvent
----| rizu.select.FindNotechartEvent
----| rizu.select.SetChangedEvent
----| rizu.select.ScrollLevelEvent
+---| rizu.select.ChartviewChangedEvent
+---| rizu.select.PrimaryItemsUpdatedEvent
+---| rizu.select.NotechartFoundEvent
+---| rizu.select.SelectedSetChangedEvent
+---| rizu.select.LevelScrolledEvent
 
 ---@alias rizu.select.ScoreSelectorEvent
----| rizu.select.ScrollScoreEvent
----| rizu.select.ScoreStoreItemsEvent
+---| rizu.select.ScoreScrolledEvent
+---| rizu.select.ScoreStoreItemsChangedEvent
 
 ---@alias rizu.select.CollectionSelectorEvent
----| rizu.select.CollectionChangedEvent
+---| rizu.select.CollectionSelectionChangedEvent
 
 ---@alias rizu.select.ListStoreEvent
----| rizu.select.ListStoreCountEvent
+---| rizu.select.ListStoreCountChangedEvent
 ---| rizu.select.ListStoreItemLoadedEvent
 
 ---@alias rizu.select.ScoreStoreEvent
----| rizu.select.ScoreStoreItemsEvent
+---| rizu.select.ScoreStoreItemsChangedEvent
 
 ---@alias rizu.select.CollectionStoreEvent
----| rizu.select.CollectionStoreTreeEvent
+---| rizu.select.CollectionStoreTreeChangedEvent
 
 ---@alias rizu.select.Event
 ---| rizu.select.SelectionStateEvent

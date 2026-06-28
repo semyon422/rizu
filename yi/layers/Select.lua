@@ -278,15 +278,15 @@ end
 
 function Select:receive(event)
 	Screen.receive(self, event)
-	if event.type == "chartview" and event.chartview.hash then --- TODO: Why is this 'type' when it should be 'name'?
+	if event.type == "chartview_changed" and event.chartview.hash then
 		self:onChartviewUpdate(event.chartview)
 	end
 
-	if event.type == "set_changed" then
+	if event.type == "selected_set_changed" then
 		self:updateInfo()
-	elseif event.type == "items" then
+	elseif event.type == "score_items_changed" then
 		self.score_list:reload()
-	elseif event.type == "count" or event.type == "item_loaded" then
+	elseif event.type == "list_count_changed" or event.type == "list_item_loaded" then
 		self.chart_grid:requestReloadItems()
 	end
 
