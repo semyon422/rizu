@@ -4,14 +4,23 @@ local SpriteEngine = require("rizu.engine.sprite.SpriteEngine")
 local VideoEngine = require("rizu.engine.sprite.VideoEngine")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local path_util = require("path_util")
+local thread = require("thread")
 
 ---@class rizu.preview.BgaPreviewPlayer
 ---@operator call: rizu.preview.BgaPreviewPlayer
 local BgaPreviewPlayer = class()
 
+---@class rizu.preview.LoadedBgaPreviewResources
+---@field samples string[]
+---@field events rizu.preview.BgaPreviewEvent[]
+---@field image_names string[]
+---@field video_names string[]
+---@field resources {[string]: string}
+
 function BgaPreviewPlayer:new()
 	self.sprite_engine = SpriteEngine()
 	self.video_engine = VideoEngine()
+	self.load_generation = 0
 	---@type rizu.sprite.BgaEvent[]
 	self.active_notes = {}
 	---@type {[integer]: rizu.preview.BgaPreviewEvent[]}
@@ -37,16 +46,69 @@ local function _findBgaIndex(notes, time)
 end
 
 ---@param preview_path string
----@param chart_dirs string|string[]
----@param fs fs.IFilesystem
-function BgaPreviewPlayer:load(preview_path, chart_dirs, fs)
-	self:stop()
+---@param chart_dirs string[]?
+---@return rizu.preview.LoadedBgaPreviewResources?
+local loadPreviewResourcesAsync = thread.async(function(preview_path, chart_dirs)
+	require("love.filesystem")
 
+	local BgaPreview = require("rizu.preview.BgaPreview")
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	local ResourceFinder = require("rizu.files.ResourceFinder")
+	local path_util = require("path_util")
+
+	local fs = LoveFilesystem()
 	local data = fs:read(preview_path)
-	if not data then return end
+	if not data then
+		return
+	end
 
 	local preview = BgaPreview()
 	preview:decode(data)
+
+	local finder = ResourceFinder(fs)
+	if type(chart_dirs) == "string" then
+		chart_dirs = {chart_dirs}
+	end
+	chart_dirs = chart_dirs or {}
+	for _, chart_dir in ipairs(chart_dirs) do
+		if fs:getInfo(chart_dir) then
+			finder:addPath(chart_dir)
+		end
+	end
+
+	---@type rizu.preview.LoadedBgaPreviewResources
+	local result = {
+		samples = preview.samples,
+		events = preview.events,
+		image_names = {},
+		video_names = {},
+		resources = {},
+	}
+
+	for _, name in ipairs(preview.samples) do
+		local full_path = finder:findFile(name, "image") or finder:findFile(name, "video")
+		if full_path then
+			local content = fs:read(full_path)
+			if content then
+				result.resources[name] = content
+				local _, ext = path_util.name_ext(name)
+				if ResourceFinder:getFormat(ext) == "video" then
+					table.insert(result.video_names, name)
+				else
+					table.insert(result.image_names, name)
+				end
+			end
+		end
+	end
+
+	return result
+end)
+
+---@param result rizu.preview.LoadedBgaPreviewResources
+function BgaPreviewPlayer:applyLoadedPreview(result)
+	local preview = BgaPreview()
+	preview.samples = result.samples
+	preview.events = result.events
 	self.preview = preview
 
 	self.events_by_column = {}
@@ -55,41 +117,40 @@ function BgaPreviewPlayer:load(preview_path, chart_dirs, fs)
 		table.insert(self.events_by_column[event.column], event)
 	end
 
-	local finder = ResourceFinder(fs)
+	self.sprite_engine:load(result.image_names, result.resources)
+	self.video_engine:load(result.video_names, result.resources)
+
+	if self.pending_seek then
+		local pending_seek = self.pending_seek
+		self.pending_seek = nil
+		self:seek(pending_seek)
+	end
+end
+
+---@param preview_path string
+---@param chart_dirs string|string[]
+---@param fs fs.IFilesystem
+function BgaPreviewPlayer:load(preview_path, chart_dirs, _fs)
+	self:stop()
+	self.load_generation = self.load_generation + 1
+	local generation = self.load_generation
+
 	if type(chart_dirs) == "string" then
 		chart_dirs = {chart_dirs}
 	end
-	for _, chart_dir in ipairs(chart_dirs) do
-		if fs:getInfo(chart_dir) then
-			finder:addPath(chart_dir)
+	chart_dirs = chart_dirs or {}
+
+	thread.coro(function()
+		local ok, result = pcall(loadPreviewResourcesAsync, preview_path, chart_dirs)
+		if generation ~= self.load_generation then
+			return
 		end
-	end
-
-	---@type string[]
-	local image_names = {}
-	---@type string[]
-	local video_names = {}
-	---@type {[string]: string}
-	local resources = {}
-
-	for _, name in ipairs(preview.samples) do
-		local full_path = finder:findFile(name, "image") or finder:findFile(name, "video")
-		if full_path then
-			local content = fs:read(full_path)
-			if content then
-				resources[name] = content
-				local _, ext = path_util.name_ext(name)
-				if ResourceFinder:getFormat(ext) == "video" then
-					table.insert(video_names, name)
-				else
-					table.insert(image_names, name)
-				end
-			end
+		if not ok or not result then
+			return
 		end
-	end
-
-	self.sprite_engine:load(image_names, resources)
-	self.video_engine:load(video_names, resources)
+		---@cast result rizu.preview.LoadedBgaPreviewResources
+		self:applyLoadedPreview(result)
+	end)()
 end
 
 function BgaPreviewPlayer:update(time)
@@ -125,6 +186,11 @@ end
 
 ---@param time number
 function BgaPreviewPlayer:seek(time)
+	if not self.preview then
+		self.pending_seek = time
+		return
+	end
+
 	self:update(time)
 	for _, bga_event in ipairs(self.active_notes) do
 		if bga_event.type == "VideoNote" then
@@ -135,11 +201,13 @@ function BgaPreviewPlayer:seek(time)
 end
 
 function BgaPreviewPlayer:stop()
+	self.load_generation = (self.load_generation or 0) + 1
 	self.sprite_engine:unload()
 	self.video_engine:unload()
 	self.active_notes = {}
 	self.events_by_column = {}
 	self.preview = nil
+	self.pending_seek = nil
 end
 
 function BgaPreviewPlayer:release()
