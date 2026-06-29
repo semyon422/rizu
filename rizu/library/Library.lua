@@ -142,6 +142,13 @@ end
 
 Library.unload = thread.coro(Library.unload)
 
+function Library:stopThread()
+	if self.tr then
+		self.tr:stopDetached()
+		self.tr = nil
+	end
+end
+
 ---@param status rizu.library.TaskStatus
 ---@param errors string[]
 function Library:updateProgress(status, errors)

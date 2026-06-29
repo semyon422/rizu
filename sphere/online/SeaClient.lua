@@ -59,6 +59,7 @@ end
 ---@param on_connect function
 function SeaClient:load(url, on_connect)
 	self.url = url
+	self.stopped = false
 
 	if not self.threaded then
 		self.sphws = SphereWebsocket()
@@ -82,7 +83,7 @@ function SeaClient:load(url, on_connect)
 	end
 
 	self.reconnect_thread = coroutine.create(function()
-		while true do
+		while not self.stopped do
 			local state = self.sphws_ret:getState()
 			if state ~= "open" then
 				self.client:setUser()
@@ -106,7 +107,7 @@ function SeaClient:load(url, on_connect)
 	assert(coroutine.resume(self.reconnect_thread))
 
 	self.ping_thread = coroutine.create(function()
-		while true do
+		while not self.stopped do
 			local state = self.sphws_ret:getState()
 			if state == "open" then
 				self.sphws_ret.ws:send("ping")
@@ -116,6 +117,18 @@ function SeaClient:load(url, on_connect)
 		end
 	end)
 	assert(coroutine.resume(self.ping_thread))
+end
+
+function SeaClient:unload()
+	if self.stopped then
+		return
+	end
+	self.stopped = true
+	self.connected = false
+	if self.thread_remote then
+		self.thread_remote:stopDetached()
+		self.thread_remote = nil
+	end
 end
 
 function SeaClient:update()

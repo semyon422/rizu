@@ -275,9 +275,13 @@ function GameController:load()
 end
 
 function GameController:unload()
+	self.seaClient:unload()
+	self.previewModel:release()
+	self.dlcManager:unload()
+	self.library:stopThread()
+
 	self.selectionCoordinator:unload()
 	self.modifierCoordinator:unload()
-	self.previewModel:release()
 	self.multiplayerController:unload()
 	self.ui:unload()
 	self.app:unload()

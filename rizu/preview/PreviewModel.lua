@@ -70,6 +70,7 @@ end
 
 function PreviewModel:load()
 	self.active = true
+	self.released = false
 	self.audio_path = ""
 	self.volume = 0
 	self.rate = 1
@@ -425,6 +426,10 @@ function PreviewModel:stop()
 end
 
 function PreviewModel:release()
+	if self.released then
+		return
+	end
+	self.released = true
 	self:stop()
 	self.audioPreviewPlayer:release()
 	self.bgaPreviewPlayer:release()

@@ -46,6 +46,13 @@ function DlcManager:update()
 	end
 end
 
+function DlcManager:unload()
+	if self.tr then
+		self.tr:stopDetached()
+		self.tr = nil
+	end
+end
+
 ---@param query string
 ---@param filters table?
 ---@param provider_name string?
