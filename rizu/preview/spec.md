@@ -24,7 +24,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 ### ADR: Async BGA Video Playback
 - **Context**: Preview videos can be large and expensive to decode. Decoding or seeking them on the main thread causes visible stutter while scrolling charts.
 - **Decision**: `BgaPreviewPlayer` uses `AsyncVideoEngine`, which runs `AsyncVideoWorker.lua` in a LÖVE thread. The worker opens video files through `video.openPath(path)`, which uses PhysFS-backed FFmpeg AVIO callbacks for virtual filesystem reads. The worker decodes batches of `ImageData` and sends decoded frames back to the main thread.
-- **Consequence**: The main thread only drains decoded frames and uploads the currently displayed frame to the GPU. `AsyncVideoEngine` depends on `IAsyncVideoTransport` and `IAsyncVideoLogger` so thread/channel wiring and diagnostics can be tested with fake implementations. `readAt` is used only for the first frame of a batch after a real seek or jump; sequential frames use `read()` to preserve decoder state. Queue resets must allow a small half-frame presentation lead so normal frame selection is not mistaken for a backward seek.
+- **Consequence**: The main thread only drains decoded frames and uploads the currently displayed frame to the GPU. `AsyncVideoEngine` depends on `IAsyncVideoTransport` and `IAsyncVideoLogger` so thread/channel wiring and diagnostics can be tested with fake implementations. `readAt` is used only for the first frame of a batch after a real seek or jump; sequential frames use `read()` to preserve decoder state. Queue resets must allow a small half-frame presentation lead so normal frame selection is not mistaken for a backward seek. If the preview clock asks for a video time beyond the resource duration, the worker sends the final decoded frame as an ended frame and the main thread holds it instead of repeatedly seeking past EOF.
 
 ## Implementation Details
 
@@ -44,6 +44,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 - **Async video backpressure**: each video has at most one pending worker request. A newer desired time replaces older intent, and stale generation/request responses must not affect current state.
 - **Async video queue resets**: queue resets are reserved for real backward seeks, stale batches behind the playback clock, or obsolete future batches. Normal fractional timer jitter around the displayed frame must not be treated as a seek.
 - **Async video decoder state**: `readAt` is intentionally rare because it flushes FFmpeg decoder state and caused visible preview stutter when used for ordinary playback. After the initial frame of a batch, or after a real seek/jump, sequential frames must use `read()` so decoder state stays warm.
+- **Async video EOF handling**: a request beyond the video's duration must not create a `readAt`/`read_miss` retry loop. The worker should decode the final available frame, report it as `ended`, and the main thread should stop requesting later frames until the playback clock seeks backward.
 - **Thread boundary**: the worker may read virtual paths and decode frames, but the main thread remains responsible for GPU image creation/replacement. The main thread should not decode video frames.
 - **Thread lifecycle**: async video workers must be registered as managed threads in `ThreadPool` so shutdown/quitting code can see and stop them. A transport should unregister only after the underlying worker is no longer running, unless it never started or already finished.
 
@@ -60,52 +61,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 
 ## Future Work and Open Questions
 
-### BGA Video Playback Roadmap
-The target model for preview video is: video data is read off the main thread, decoded off the main thread, and decoded frames are sent back to the main thread for presentation. File access goes through `love.filesystem`/PhysFS-compatible virtual paths so mounted chart resources, archives, and normal filesystem paths all behave the same.
+### BGA Video Playback
+Async video playback is currently scoped to select preview. Gameplay BGA still uses its existing path. Reusing the async preview pipeline for gameplay may be useful later, but it should be treated as a separate design task because gameplay has stricter timing, lifetime, and failure-mode expectations.
 
-The work should stay incremental so each step can be validated in-game before adding the next layer of complexity:
-
-1. **Worker decode with memory-backed video data**
-   - Goal: prove the architecture where decoding runs in a worker and the main thread receives decoded frames.
-   - Worker reads the virtual path with `love.filesystem.read(path)`.
-   - Worker opens the video with `video.open(pointer, size)`.
-   - Main sends requests such as `name`, `time`, and `generation`.
-   - Worker seeks/reads and returns decoded frame data with `name`, `time`, `frame_time`, `width`, `height`, and image payload.
-   - Validation: BGA preview video does not freeze the main thread during seek/play, stale generations are ignored, and fast chart scrolling does not crash.
-
-2. **Request protocol and backpressure**
-   - Goal: avoid filling channels or memory with obsolete decoded frames.
-   - Each video should have bounded pending work.
-   - New desired times should supersede stale requests.
-   - The main thread should apply a returned frame only if `generation`, `name`, and request identity are still current.
-   - Validation: fast seek/scroll does not make video visibly catch up to old times, and memory does not grow from queued frames.
-
-3. **Path-based C API backed by PhysFS**
-   - Status: implemented.
-   - Goal: stop loading entire video files into memory.
-   - `video.openPath(path)` in `aqua/video.c` uses `PHYSFS_openRead(path)` plus a custom FFmpeg `AVIOContext` with read/seek/tell callbacks.
-   - PhysFS symbols are resolved from the LÖVE runtime dynamically so the module does not require direct PhysFS linkage.
-   - Validation: `video.openPath("mounted_charts/.../bga.mp4")` should work for virtual paths, archives, and ordinary mounted paths, with seek/readAt behavior matching the memory-backed decoder.
-
-4. **Switch the worker from read-whole-file to openPath**
-   - Status: implemented for preview worker.
-   - Worker receives virtual paths.
-   - Worker opens video through `video.openPath(path)`.
-   - FFmpeg reads chunks through PhysFS callbacks.
-   - Worker still decodes frames and main still receives decoded images.
-   - Validation: large videos are not loaded entirely into memory, mounted chart paths work, and fast scrolling releases old decoders.
-
-5. **Keep integration scoped to preview first**
-   - Goal: improve select preview without changing gameplay BGA behavior.
-   - Apply async video to `BgaPreviewPlayer` first.
-   - Keep `BgaView` drawing `video.image` through the existing drawable path.
-   - Validation: select preview is smoother, gameplay BGA remains unchanged, and only after that should gameplay video reuse be considered.
-
-6. **Cleanup, tests, and commits**
-   - Suggested commit sequence:
-     - async video worker with memory-backed decode,
-     - request/backpressure protocol,
-     - PhysFS-backed `video.openPath`,
-     - worker switch to `openPath`,
-     - cleanup and regression tests.
-   - This keeps a safe ladder: first prove worker decode helps, then separately tackle the riskier PhysFS/FFmpeg callback layer.
+Some imported libraries can contain unusual or stale `preview_time` metadata. The async video pipeline now handles video times beyond EOF by holding the final frame, but metadata normalization may still be worth revisiting if a format consistently stores preview offsets in unexpected units.
