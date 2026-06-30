@@ -1,4 +1,9 @@
 local class = require("class")
+local AsyncVideoConfig = require("rizu.preview.AsyncVideoConfig")
+local AsyncVideoQueue = require("rizu.preview.AsyncVideoQueue")
+local AsyncVideoThreadTransport = require("rizu.preview.AsyncVideoThreadTransport")
+local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
+require("rizu.preview.AsyncVideoProtocol")
 
 ---@class rizu.preview.AsyncVideo
 ---@operator call: rizu.preview.AsyncVideo
@@ -30,13 +35,6 @@ function AsyncVideo:release()
 	self.height = nil
 end
 
----@class rizu.preview.AsyncVideoFrame
----@field frame_time number
----@field image_data love.ImageData
----@field width integer
----@field height integer
----@field frame_rate number?
-
 ---@class rizu.preview.AsyncVideoState
 ---@field video rizu.preview.AsyncVideo
 ---@field pending boolean
@@ -48,31 +46,24 @@ end
 
 ---@class rizu.preview.AsyncVideoEngine
 ---@operator call: rizu.preview.AsyncVideoEngine
+---@field transport rizu.preview.IAsyncVideoTransport
+---@field logger rizu.preview.IAsyncVideoLogger
 local AsyncVideoEngine = class()
 
-local BUFFER_TARGET = 45
-local BUFFER_LOW_WATERMARK = 30
-local MAX_OUTPUT_FRAMES_PER_UPDATE = BUFFER_TARGET
-local SLOW_MAIN_SECONDS = 0.008
-local WORKER_PATH = "rizu/preview/AsyncVideoWorker.lua"
-
-function AsyncVideoEngine:new()
+---@param transport rizu.preview.IAsyncVideoTransport?
+---@param logger rizu.preview.IAsyncVideoLogger?
+function AsyncVideoEngine:new(transport, logger)
 	self.generation = 0
 	self.request_id = 0
+	self.transport = transport or AsyncVideoThreadTransport()
+	self.logger = logger or BgaPreviewDebug
 	---@type {[string]: rizu.preview.AsyncVideoState}
 	self.videos = {}
 end
 
 function AsyncVideoEngine:startThread()
 	local id = tostring(self):gsub("[^%w_]", "_")
-	local input_channel_name = "async_video_input_" .. id
-	local output_channel_name = "async_video_output_" .. id
-	self.input_channel = love.thread.getChannel(input_channel_name)
-	self.output_channel = love.thread.getChannel(output_channel_name)
-	self.input_channel:clear()
-	self.output_channel:clear()
-	self.thread = love.thread.newThread(WORKER_PATH)
-	self.thread:start(input_channel_name, output_channel_name)
+	self.transport:start(id)
 end
 
 ---@param video_names string[]
@@ -94,7 +85,7 @@ function AsyncVideoEngine:load(video_names, video_paths)
 		end
 	end
 
-	self.input_channel:push({
+	self.transport:send({
 		type = "load",
 		generation = self.generation,
 		video_names = video_names,
@@ -123,35 +114,11 @@ local function ensureStateDefaults(state)
 	state.queue = state.queue or {}
 end
 
----@param state rizu.preview.AsyncVideoState
----@param name string
----@param kind string
----@param time number
----@param extra string?
-local function warnQueueState(state, name, kind, time, extra)
-	local queue = state.queue
-	local first_frame = queue[1]
-	local last_frame = queue[#queue]
-	local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-	BgaPreviewDebug.warn(
-		"video_main",
-		kind,
-		name,
-		"time=" .. tostring(time),
-		"queue=" .. tostring(#queue),
-		"first=" .. tostring(first_frame and first_frame.frame_time),
-		"last=" .. tostring(last_frame and last_frame.frame_time),
-		"displayed=" .. tostring(state.displayed_frame_time),
-		"pending=" .. tostring(state.pending),
-		extra or ""
-	)
-end
-
 ---@param name string
 ---@param time number
 function AsyncVideoEngine:sendFrameRequest(name, time)
 	local state = self.videos[name]
-	if not state or not self.input_channel then
+	if not state then
 		return
 	end
 	ensureStateDefaults(state)
@@ -159,14 +126,14 @@ function AsyncVideoEngine:sendFrameRequest(name, time)
 	self.request_id = self.request_id + 1
 	state.pending = true
 	state.request_id = self.request_id
-	self.input_channel:push({
+	self.transport:send({
 		type = "frame",
 		generation = self.generation,
 		video_name = name,
 		request_id = state.request_id,
 		time = time,
 		frame_duration = state.frame_duration,
-		count = math.max(1, BUFFER_TARGET - #state.queue),
+		count = math.max(1, AsyncVideoConfig.buffer_target - #state.queue),
 	})
 end
 
@@ -184,49 +151,25 @@ function AsyncVideoEngine:requestFrame(name, time)
 		return
 	end
 
-	local frame_duration = state.frame_duration
-	if state.displayed_frame_time and time < state.displayed_frame_time - frame_duration then
-		warnQueueState(state, name, "queue_reset_backward", time)
+	local reset_reason = AsyncVideoQueue.getResetReason(state, time, AsyncVideoConfig)
+	if reset_reason then
+		self.logger:warnQueueState(state, name, reset_reason, time)
 		clearQueue(state)
-		state.displayed_frame_time = nil
-		state.pending = false
-	end
-	local first_frame = state.queue[1]
-	local last_frame = state.queue[#state.queue]
-	if last_frame and last_frame.frame_time < time - frame_duration then
-		warnQueueState(state, name, "queue_reset_stale", time)
-		clearQueue(state)
-		state.pending = false
-	elseif first_frame and first_frame.frame_time > time + frame_duration * BUFFER_TARGET then
-		warnQueueState(state, name, "queue_reset_future", time)
-		clearQueue(state)
+		if reset_reason == "queue_reset_backward" then
+			state.displayed_frame_time = nil
+		end
 		state.pending = false
 	end
 
-	-- A frame can be presented up to half a frame in the future. Do not treat
-	-- that tiny lead as a backward seek, but still prefetch if the queue is low.
-	if
-		#state.queue >= BUFFER_LOW_WATERMARK
-		and state.displayed_frame_time
-		and time < state.displayed_frame_time + frame_duration * 0.95
-	then
-		return
-	end
-	if #state.queue >= BUFFER_LOW_WATERMARK then
+	if AsyncVideoQueue.hasEnoughFrames(state, AsyncVideoConfig) then
 		return
 	end
 
-	local request_time = time
-	local last_frame = state.queue[#state.queue]
-	if last_frame then
-		request_time = math.max(request_time, last_frame.frame_time + frame_duration)
-	elseif state.displayed_frame_time then
-		request_time = math.max(request_time, state.displayed_frame_time + frame_duration)
-	end
+	local request_time = AsyncVideoQueue.getRequestTime(state, time)
 	self:sendFrameRequest(name, request_time)
 end
 
----@param event table
+---@param event rizu.preview.AsyncVideoFrameEvent
 function AsyncVideoEngine:applyFrame(event)
 	if event.generation ~= self.generation then
 		return
@@ -242,8 +185,7 @@ function AsyncVideoEngine:applyFrame(event)
 	ensureStateDefaults(state)
 
 	if not event.frame_time then
-		local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-		BgaPreviewDebug.warn("video_main", "miss", event.video_name, "id=" .. tostring(event.request_id), "time=" .. tostring(event.requested_time))
+		self.logger:warnMiss(event)
 		return
 	end
 
@@ -257,15 +199,7 @@ function AsyncVideoEngine:applyFrame(event)
 
 	local last_frame = state.queue[#state.queue]
 	if last_frame and event.frame_time <= last_frame.frame_time then
-		local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-		BgaPreviewDebug.warn(
-			"video_main",
-			"non_monotonic",
-			event.video_name,
-			"prev=" .. tostring(last_frame.frame_time),
-			"frame=" .. tostring(event.frame_time),
-			"queue=" .. tostring(#state.queue)
-		)
+		self.logger:warnNonMonotonic(event.video_name, last_frame.frame_time, event.frame_time, #state.queue)
 	end
 	table.insert(state.queue, {
 		frame_time = event.frame_time,
@@ -276,7 +210,7 @@ function AsyncVideoEngine:applyFrame(event)
 	})
 end
 
----@param event table
+---@param event rizu.preview.AsyncVideoBatchDoneEvent
 function AsyncVideoEngine:applyBatchDone(event)
 	if event.generation ~= self.generation then
 		return
@@ -342,7 +276,7 @@ function AsyncVideoEngine:presentFrame(name, time)
 	local lateness = time - frame.frame_time
 	releaseFrame(frame)
 	if dropped_frames > 1 or lateness > state.frame_duration * 1.5 then
-		warnQueueState(
+		self.logger:warnQueueState(
 			state,
 			name,
 			"queue_skip",
@@ -351,32 +285,16 @@ function AsyncVideoEngine:presentFrame(name, time)
 		)
 	end
 	local elapsed = love.timer.getTime() - t0
-	if elapsed >= SLOW_MAIN_SECONDS then
-		local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-		BgaPreviewDebug.warn(
-			"video_main",
-			"slow_present",
-			name,
-			"queue=" .. tostring(#queue),
-			"frame=" .. tostring(frame.frame_time),
-			("%.3f"):format(elapsed)
-		)
+	if elapsed >= AsyncVideoConfig.slow_main_seconds then
+		self.logger:warnSlowPresent(name, #queue, frame.frame_time, elapsed)
 	end
 end
 
 function AsyncVideoEngine:update()
 	local t0 = love.timer.getTime()
-	if self.thread then
-		local err = self.thread:getError()
-		if err then
-			error(err)
-		end
-	end
-	if not self.output_channel then
-		return
-	end
+	self.transport:checkError()
 
-	local event = self.output_channel:pop()
+	local event = self.transport:pop()
 	local frame_events = 0
 	local control_events = 0
 	while event do
@@ -387,21 +305,14 @@ function AsyncVideoEngine:update()
 			self:applyBatchDone(event)
 			control_events = control_events + 1
 		end
-		if frame_events >= MAX_OUTPUT_FRAMES_PER_UPDATE then
+		if frame_events >= AsyncVideoConfig.max_output_frames_per_update then
 			break
 		end
-		event = self.output_channel:pop()
+		event = self.transport:pop()
 	end
 	local elapsed = love.timer.getTime() - t0
-	if elapsed >= SLOW_MAIN_SECONDS then
-		local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-		BgaPreviewDebug.warn(
-			"video_main",
-			"slow_update",
-			"frames=" .. tostring(frame_events),
-			"control=" .. tostring(control_events),
-			("%.3f"):format(elapsed)
-		)
+	if elapsed >= AsyncVideoConfig.slow_main_seconds then
+		self.logger:warnSlowUpdate(frame_events, control_events, elapsed)
 	end
 end
 
@@ -413,12 +324,7 @@ function AsyncVideoEngine:unload()
 	self.videos = {}
 	self.generation = self.generation + 1
 
-	if self.input_channel then
-		self.input_channel:push({type = "stop"})
-	end
-	self.input_channel = nil
-	self.output_channel = nil
-	self.thread = nil
+	self.transport:stop()
 end
 
 function AsyncVideoEngine:rewind() end

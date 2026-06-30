@@ -3,6 +3,9 @@ require("love.filesystem")
 require("love.image")
 require("love.timer")
 
+local AsyncVideoConfig = require("rizu.preview.AsyncVideoConfig")
+require("rizu.preview.AsyncVideoProtocol")
+local AsyncVideoReadPolicy = require("rizu.preview.AsyncVideoReadPolicy")
 local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
 local LoveFilesystem = require("fs.LoveFilesystem")
 local video_module = require("video")
@@ -11,11 +14,17 @@ local input_channel_name, output_channel_name = ...
 local input_channel = love.thread.getChannel(input_channel_name)
 local output_channel = love.thread.getChannel(output_channel_name)
 
-local BUFFER_TARGET = 45
-
 local videos = {}
 local video_paths = {}
 local fs = LoveFilesystem()
+
+---@class rizu.preview.AsyncVideoWorkerItem
+---@field file_data love.FileData
+---@field video table
+---@field width integer
+---@field height integer
+---@field frame_rate number?
+---@field last_frame_time number?
 
 local function closeVideos()
 	for _, item in pairs(videos) do
@@ -24,7 +33,7 @@ local function closeVideos()
 	videos = {}
 end
 
----@param event table
+---@param event rizu.preview.AsyncVideoLoadEvent
 local function loadVideos(event)
 	closeVideos()
 	video_paths = event.video_paths or {}
@@ -35,7 +44,7 @@ local function loadVideos(event)
 end
 
 ---@param name string
----@return table?
+---@return rizu.preview.AsyncVideoWorkerItem?
 local function openVideo(name)
 	local item = videos[name]
 	if item then
@@ -45,7 +54,7 @@ local function openVideo(name)
 	local path = video_paths[name]
 	local content = path and fs:read(path)
 	if not content then
-		BgaPreviewDebug.warn("video_worker", "open_missing", name, path)
+		BgaPreviewDebug:warnWorkerOpenMissing(name, path)
 		return
 	end
 
@@ -53,7 +62,7 @@ local function openVideo(name)
 	local file_data = love.filesystem.newFileData(content, tostring(name))
 	local video = video_module.open(file_data:getPointer(), file_data:getSize())
 	if not video then
-		BgaPreviewDebug.warn("video_worker", "open_failed", name, ("%.3f"):format(love.timer.getTime() - ot))
+		BgaPreviewDebug:warnWorkerOpenFailed(name, love.timer.getTime() - ot)
 		return
 	end
 
@@ -70,7 +79,7 @@ local function openVideo(name)
 	return item
 end
 
----@param event table
+---@param event rizu.preview.AsyncVideoFrameRequestEvent
 local function sendMiss(event)
 	output_channel:push({
 		type = "frame",
@@ -81,29 +90,8 @@ local function sendMiss(event)
 	})
 end
 
----@param item table
----@param requested_time number?
----@return boolean
----@return string
-local function shouldSeek(item, requested_time)
-	if not requested_time then
-		return false, "read"
-	end
-	if not item.last_frame_time then
-		return true, "initial"
-	end
-	if requested_time < item.last_frame_time - 0.001 then
-		return true, "backward"
-	end
-	local frame_duration = (item.frame_rate and item.frame_rate > 0 and 1 / item.frame_rate) or 1 / 30
-	if requested_time - item.last_frame_time > frame_duration * 3 then
-		return true, "jump"
-	end
-	return false, "read"
-end
-
----@param event table
----@return table? next_event
+---@param event rizu.preview.AsyncVideoFrameRequestEvent
+---@return rizu.preview.AsyncVideoInputEvent? next_event
 local function readFrame(event)
 	local item = openVideo(event.video_name)
 	if not item then
@@ -111,7 +99,7 @@ local function readFrame(event)
 		return
 	end
 
-	local count = event.count or BUFFER_TARGET
+	local count = event.count or AsyncVideoConfig.buffer_target
 	local start_time = event.time
 	local sent = 0
 	local next_event
@@ -122,7 +110,7 @@ local function readFrame(event)
 		local frame_time
 		-- Use readAt only for the first frame of a batch after an actual seek/jump.
 		-- Sequential frames must use read() so FFmpeg keeps decoder state warm.
-		local use_seek, seek_reason = shouldSeek(item, requested_time)
+		local use_seek, seek_reason = AsyncVideoReadPolicy.shouldSeek(item.last_frame_time, requested_time, item.frame_rate)
 		if use_seek then
 			frame_time = item.video:readAt(image_data:getPointer(), requested_time)
 		else
@@ -130,15 +118,15 @@ local function readFrame(event)
 		end
 		local elapsed = love.timer.getTime() - t0
 		if not frame_time then
-			BgaPreviewDebug.warn("video_worker", "read_miss", event.video_name, "reason=" .. tostring(seek_reason), "req=" .. tostring(requested_time), ("%.3f"):format(elapsed))
+			BgaPreviewDebug:warnWorkerReadMiss(event.video_name, seek_reason, requested_time, elapsed)
 			break
 		end
 		item.last_frame_time = frame_time
 		if use_seek and seek_reason ~= "initial" then
-			BgaPreviewDebug.warn("video_worker", "readAt", event.video_name, "reason=" .. tostring(seek_reason), "req=" .. tostring(requested_time), "frame=" .. tostring(frame_time))
+			BgaPreviewDebug:warnWorkerReadAt(event.video_name, seek_reason, requested_time, frame_time)
 		end
 		if elapsed >= 0.15 then
-			BgaPreviewDebug.warn("video_worker", "very_slow_read", event.video_name, "reason=" .. tostring(seek_reason), "req=" .. tostring(requested_time), "frame=" .. tostring(frame_time), ("%.3f"):format(elapsed))
+			BgaPreviewDebug:warnWorkerVerySlowRead(event.video_name, seek_reason, requested_time, frame_time, elapsed)
 		end
 		sent = sent + 1
 		output_channel:push({
@@ -171,6 +159,7 @@ end
 
 local next_event
 while true do
+	---@type rizu.preview.AsyncVideoInputEvent
 	local event = next_event or input_channel:demand()
 	next_event = nil
 	if event.type == "stop" then

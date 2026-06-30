@@ -398,6 +398,7 @@ For ICC or shared-memory communication tests:
   - `## Goal`
   - `## User Experience`
 - Significant architectural choices should be recorded in an `## Architecture Decisions` or `## ADR` section.
+- Stable runtime assumptions should be recorded in an `## Invariants` section when they affect correctness, performance, or cross-module behavior. Prefer documenting invariants in the nearest `spec.md` instead of scattering long explanatory comments through implementation files. Good candidates include ownership/lifetime rules, queue ordering, thread or worker boundaries, timing assumptions, protocol constraints, and cache consistency requirements.
 - A `## Future Work and Open Questions` section is not a strict TODO list. It may contain exploratory ideas that require research and may later prove unnecessary, unsuitable, or lower-priority after implementation details are better understood.
 - Use precise terminology. For example, do not use "difficulty" when you mean chart variation or chart file.
 
@@ -407,6 +408,7 @@ Update a nearby `spec.md` when you:
 - add a new subsystem or major workflow,
 - change behavior that affects users or other modules,
 - introduce new architectural constraints,
+- add or change important invariants that future edits must preserve,
 - formalize conventions that future agents need in that folder.
 
 Keep root `AGENTS.md` focused on universal rules. Put feature-specific details in the closest relevant `spec.md`.
