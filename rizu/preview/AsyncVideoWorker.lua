@@ -7,7 +7,6 @@ local AsyncVideoConfig = require("rizu.preview.AsyncVideoConfig")
 require("rizu.preview.AsyncVideoProtocol")
 local AsyncVideoReadPolicy = require("rizu.preview.AsyncVideoReadPolicy")
 local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-local LoveFilesystem = require("fs.LoveFilesystem")
 local video_module = require("video")
 
 local input_channel_name, output_channel_name = ...
@@ -16,10 +15,8 @@ local output_channel = love.thread.getChannel(output_channel_name)
 
 local videos = {}
 local video_paths = {}
-local fs = LoveFilesystem()
 
 ---@class rizu.preview.AsyncVideoWorkerItem
----@field file_data love.FileData
 ---@field video table
 ---@field width integer
 ---@field height integer
@@ -52,24 +49,21 @@ local function openVideo(name)
 	end
 
 	local path = video_paths[name]
-	local content = path and fs:read(path)
-	if not content then
+	if not path then
 		BgaPreviewDebug:warnWorkerOpenMissing(name, path)
 		return
 	end
 
 	local ot = love.timer.getTime()
-	local file_data = love.filesystem.newFileData(content, tostring(name))
-	local video = video_module.open(file_data:getPointer(), file_data:getSize())
+	local video, err = video_module.openPath(path)
 	if not video then
-		BgaPreviewDebug:warnWorkerOpenFailed(name, love.timer.getTime() - ot)
+		BgaPreviewDebug:warnWorkerOpenFailed(name, love.timer.getTime() - ot, err)
 		return
 	end
 
 	local width, height = video:getDimensions()
 	local frame_rate = video.getFrameRate and video:getFrameRate() or nil
 	item = {
-		file_data = file_data,
 		video = video,
 		width = width,
 		height = height,

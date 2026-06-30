@@ -10,7 +10,7 @@ require("rizu.preview.AsyncVideoProtocol")
 ---@field warnSlowPresent fun(name: string, queue_size: integer, frame_time: number, elapsed: number)
 ---@field warnSlowUpdate fun(frame_events: integer, control_events: integer, elapsed: number)
 ---@field warnWorkerOpenMissing fun(name: string, path: string?)
----@field warnWorkerOpenFailed fun(name: string, elapsed: number)
+---@field warnWorkerOpenFailed fun(name: string, elapsed: number, err: any?)
 ---@field warnWorkerReadMiss fun(name: string, reason: string, requested_time: number?, elapsed: number)
 ---@field warnWorkerReadAt fun(name: string, reason: string, requested_time: number?, frame_time: number)
 ---@field warnWorkerVerySlowRead fun(name: string, reason: string, requested_time: number?, frame_time: number, elapsed: number)
@@ -114,8 +114,9 @@ end
 
 ---@param name string
 ---@param elapsed number
-function BgaPreviewDebug:warnWorkerOpenFailed(name, elapsed)
-	self.warn("video_worker", "open_failed", name, ("%.3f"):format(elapsed))
+---@param err any?
+function BgaPreviewDebug:warnWorkerOpenFailed(name, elapsed, err)
+	self.warn("video_worker", "open_failed", name, ("%.3f"):format(elapsed), tostring(err or ""))
 end
 
 ---@param name string

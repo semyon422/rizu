@@ -23,7 +23,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 
 ### ADR: Async BGA Video Playback
 - **Context**: Preview videos can be large and expensive to decode. Decoding or seeking them on the main thread causes visible stutter while scrolling charts.
-- **Decision**: `BgaPreviewPlayer` uses `AsyncVideoEngine`, which runs `AsyncVideoWorker.lua` in a LÖVE thread. The worker reads video files through the virtual filesystem, opens them with the FFmpeg-backed `video` module, decodes batches of `ImageData`, and sends decoded frames back to the main thread.
+- **Decision**: `BgaPreviewPlayer` uses `AsyncVideoEngine`, which runs `AsyncVideoWorker.lua` in a LÖVE thread. The worker opens video files through `video.openPath(path)`, which uses PhysFS-backed FFmpeg AVIO callbacks for virtual filesystem reads. The worker decodes batches of `ImageData` and sends decoded frames back to the main thread.
 - **Consequence**: The main thread only drains decoded frames and uploads the currently displayed frame to the GPU. `AsyncVideoEngine` depends on `IAsyncVideoTransport` and `IAsyncVideoLogger` so thread/channel wiring and diagnostics can be tested with fake implementations. `readAt` is used only for the first frame of a batch after a real seek or jump; sequential frames use `read()` to preserve decoder state. Queue resets must allow a small half-frame presentation lead so normal frame selection is not mistaken for a backward seek.
 
 ## Implementation Details
@@ -35,6 +35,7 @@ The preview system provides players with an immediate sensory snapshot of a song
   - **Unified Audio**: The system does not distinguish between single-file audio (osu!) and multi-sample backgrounds (BMS). All audio is treated as a sequence of events (sample index, time, duration, volume).
 - **Async Video Policies**: `AsyncVideoQueue` owns queue reset/prefetch invariants, while `AsyncVideoReadPolicy` owns the `readAt` vs `read` decision. These modules intentionally avoid LÖVE state so timing behavior can be regression-tested directly.
 - **Async Video Transport**: `AsyncVideoThreadTransport` is the production LÖVE thread/channel implementation of `IAsyncVideoTransport`; tests use fake transports to exercise `AsyncVideoEngine` as a state machine without spawning a worker.
+- **PhysFS Video Input**: `video.openPath(path)` lives in the FFmpeg-backed native video module. It resolves PhysFS symbols from the LÖVE runtime at load time, opens virtual paths with `PHYSFS_openRead`, and lets FFmpeg pull chunks through custom AVIO read/seek callbacks.
 
 ### Invariants
 - **Preview clock ownership**: `PreviewModel` owns the master preview time. Audio, notes, and BGA players are driven from that clock and should not advance their own independent playback time.
@@ -60,7 +61,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 ## Future Work and Open Questions
 
 ### BGA Video Playback Roadmap
-The target model for preview video is: video data is read off the main thread, decoded off the main thread, and decoded frames are sent back to the main thread for presentation. File access must go through `love.filesystem`/PhysFS-compatible virtual paths so mounted chart resources, archives, and normal filesystem paths all behave the same.
+The target model for preview video is: video data is read off the main thread, decoded off the main thread, and decoded frames are sent back to the main thread for presentation. File access goes through `love.filesystem`/PhysFS-compatible virtual paths so mounted chart resources, archives, and normal filesystem paths all behave the same.
 
 The work should stay incremental so each step can be validated in-game before adding the next layer of complexity:
 
@@ -80,14 +81,14 @@ The work should stay incremental so each step can be validated in-game before ad
    - Validation: fast seek/scroll does not make video visibly catch up to old times, and memory does not grow from queued frames.
 
 3. **Path-based C API backed by PhysFS**
+   - Status: implemented.
    - Goal: stop loading entire video files into memory.
-   - Add an API such as `video.openPath(path)` in `aqua/video.c`.
-   - Internally use `PHYSFS_openRead(path)` plus a custom FFmpeg `AVIOContext` with read/seek/tell callbacks.
-   - This likely needs PhysFS headers and build-system support; linking may already be available through LÖVE/PhysFS, but that must be verified.
-   - Validation: `video.openPath("mounted_charts/.../bga.mp4")` works for virtual paths, archives, and ordinary paths, with seek/readAt behavior matching the memory-backed decoder.
+   - `video.openPath(path)` in `aqua/video.c` uses `PHYSFS_openRead(path)` plus a custom FFmpeg `AVIOContext` with read/seek/tell callbacks.
+   - PhysFS symbols are resolved from the LÖVE runtime dynamically so the module does not require direct PhysFS linkage.
+   - Validation: `video.openPath("mounted_charts/.../bga.mp4")` should work for virtual paths, archives, and ordinary mounted paths, with seek/readAt behavior matching the memory-backed decoder.
 
 4. **Switch the worker from read-whole-file to openPath**
-   - Goal: reach the target runtime model.
+   - Status: implemented for preview worker.
    - Worker receives virtual paths.
    - Worker opens video through `video.openPath(path)`.
    - FFmpeg reads chunks through PhysFS callbacks.
