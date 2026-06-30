@@ -138,4 +138,41 @@ function test.request_clears_future_queue(t)
 	t:eq(logger.warnings[1][2], "queue_reset_future")
 end
 
+---@param t testing.T
+function test.request_does_not_repeat_after_final_frame(t)
+	local engine, transport = makeEngine({
+		video = {},
+		pending = false,
+		request_id = 0,
+		displayed_frame_time = 100,
+		frame_duration = 1 / 30,
+		queue = {},
+		ended = true,
+	})
+
+	engine:requestFrame("video", 101)
+
+	t:eq(transport:lastSent(), nil)
+end
+
+---@param t testing.T
+function test.backward_seek_after_final_frame_requests_again(t)
+	local engine, transport = makeEngine({
+		video = {},
+		pending = false,
+		request_id = 0,
+		displayed_frame_time = 100,
+		frame_duration = 1 / 30,
+		queue = {},
+		ended = true,
+	})
+
+	engine:requestFrame("video", 10)
+
+	t:eq(engine.videos.video.ended, nil)
+	t:eq(engine.videos.video.displayed_frame_time, nil)
+	t:eq(transport:lastSent().video_name, "video")
+	t:eq(transport:lastSent().time, 10)
+end
+
 return test

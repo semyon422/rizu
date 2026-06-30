@@ -13,6 +13,7 @@ require("rizu.preview.AsyncVideoProtocol")
 ---@field warnWorkerOpenFailed fun(name: string, elapsed: number, err: any?)
 ---@field warnWorkerReadMiss fun(name: string, reason: string, requested_time: number?, elapsed: number)
 ---@field warnWorkerReadAt fun(name: string, reason: string, requested_time: number?, frame_time: number)
+---@field warnWorkerEndHold fun(name: string, requested_time: number, frame_time: number, duration: number, elapsed: number)
 ---@field warnWorkerVerySlowRead fun(name: string, reason: string, requested_time: number?, frame_time: number, elapsed: number)
 
 BgaPreviewDebug.path = "tmp/bga-preview-debug.log"
@@ -133,6 +134,23 @@ end
 ---@param frame_time number
 function BgaPreviewDebug:warnWorkerReadAt(name, reason, requested_time, frame_time)
 	self.warn("video_worker", "readAt", name, "reason=" .. tostring(reason), "req=" .. tostring(requested_time), "frame=" .. tostring(frame_time))
+end
+
+---@param name string
+---@param requested_time number
+---@param frame_time number
+---@param duration number
+---@param elapsed number
+function BgaPreviewDebug:warnWorkerEndHold(name, requested_time, frame_time, duration, elapsed)
+	self.warn(
+		"video_worker",
+		"end_hold",
+		name,
+		"req=" .. tostring(requested_time),
+		"frame=" .. tostring(frame_time),
+		"duration=" .. tostring(duration),
+		("%.3f"):format(elapsed)
+	)
 end
 
 ---@param name string

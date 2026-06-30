@@ -43,6 +43,7 @@ end
 ---@field displayed_frame_time number?
 ---@field frame_duration number
 ---@field queue rizu.preview.AsyncVideoFrame[]
+---@field ended boolean?
 
 ---@class rizu.preview.AsyncVideoEngine
 ---@operator call: rizu.preview.AsyncVideoEngine
@@ -151,10 +152,20 @@ function AsyncVideoEngine:requestFrame(name, time)
 		return
 	end
 
+	if state.ended then
+		if state.displayed_frame_time and time < state.displayed_frame_time - state.frame_duration then
+			state.ended = nil
+			state.displayed_frame_time = nil
+		else
+			return
+		end
+	end
+
 	local reset_reason = AsyncVideoQueue.getResetReason(state, time, AsyncVideoConfig)
 	if reset_reason then
 		self.logger:warnQueueState(state, name, reset_reason, time)
 		clearQueue(state)
+		state.ended = nil
 		if reset_reason == "queue_reset_backward" then
 			state.displayed_frame_time = nil
 		end
@@ -207,6 +218,7 @@ function AsyncVideoEngine:applyFrame(event)
 		width = event.width,
 		height = event.height,
 		frame_rate = frame_rate,
+		ended = event.ended,
 	})
 end
 
@@ -273,6 +285,7 @@ function AsyncVideoEngine:presentFrame(name, time)
 		video.image:replacePixels(frame.image_data)
 	end
 	state.displayed_frame_time = frame.frame_time
+	state.ended = frame.ended or nil
 	local lateness = time - frame.frame_time
 	releaseFrame(frame)
 	if dropped_frames > 1 or lateness > state.frame_duration * 1.5 then

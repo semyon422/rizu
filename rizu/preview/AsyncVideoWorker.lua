@@ -21,6 +21,7 @@ local video_paths = {}
 ---@field width integer
 ---@field height integer
 ---@field frame_rate number?
+---@field duration number?
 ---@field last_frame_time number?
 
 local function closeVideos()
@@ -63,11 +64,13 @@ local function openVideo(name)
 
 	local width, height = video:getDimensions()
 	local frame_rate = video.getFrameRate and video:getFrameRate() or nil
+	local duration = video.getDuration and video:getDuration() or nil
 	item = {
 		video = video,
 		width = width,
 		height = height,
 		frame_rate = frame_rate,
+		duration = duration,
 	}
 	videos[name] = item
 	return item
@@ -84,6 +87,55 @@ local function sendMiss(event)
 	})
 end
 
+---@param item rizu.preview.AsyncVideoWorkerItem
+---@return number
+local function getFrameDuration(item)
+	local frame_rate = item.frame_rate
+	if frame_rate and frame_rate > 0 then
+		return 1 / frame_rate
+	end
+	return 1 / 30
+end
+
+---@param item rizu.preview.AsyncVideoWorkerItem
+---@param requested_time number
+---@return boolean
+local function isPastEnd(item, requested_time)
+	local duration = item.duration
+	return duration ~= nil and duration > 0 and requested_time > duration + getFrameDuration(item)
+end
+
+---@param event rizu.preview.AsyncVideoFrameRequestEvent
+---@param item rizu.preview.AsyncVideoWorkerItem
+---@return boolean sent
+local function sendFinalFrame(event, item)
+	local t0 = love.timer.getTime()
+	local image_data = love.image.newImageData(item.width, item.height, "rgba8")
+	local duration = item.duration or 0
+	local frame_time = item.video:readAt(image_data:getPointer(), math.max(duration - getFrameDuration(item), 0))
+	local elapsed = love.timer.getTime() - t0
+	if not frame_time then
+		BgaPreviewDebug:warnWorkerReadMiss(event.video_name, "jump", event.time, elapsed)
+		return false
+	end
+	BgaPreviewDebug:warnWorkerEndHold(event.video_name, event.time, frame_time, duration, elapsed)
+	item.last_frame_time = event.time
+	output_channel:push({
+		type = "frame",
+		generation = event.generation,
+		video_name = event.video_name,
+		request_id = event.request_id,
+		requested_time = event.time,
+		frame_time = event.time,
+		width = item.width,
+		height = item.height,
+		frame_rate = item.frame_rate,
+		image_data = image_data,
+		ended = true,
+	})
+	return true
+end
+
 ---@param event rizu.preview.AsyncVideoFrameRequestEvent
 ---@return rizu.preview.AsyncVideoInputEvent? next_event
 local function readFrame(event)
@@ -96,6 +148,21 @@ local function readFrame(event)
 	local count = event.count or AsyncVideoConfig.buffer_target
 	local start_time = event.time
 	local sent = 0
+	if isPastEnd(item, start_time) then
+		if sendFinalFrame(event, item) then
+			sent = 1
+		end
+		output_channel:push({
+			type = "batch_done",
+			generation = event.generation,
+			video_name = event.video_name,
+			request_id = event.request_id,
+			requested_time = event.time,
+			sent = sent,
+		})
+		return
+	end
+
 	local next_event
 	for i = 1, count do
 		local requested_time = i == 1 and start_time or nil

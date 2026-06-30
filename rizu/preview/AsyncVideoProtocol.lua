@@ -6,6 +6,7 @@ local AsyncVideoProtocol = {}
 ---@field width integer
 ---@field height integer
 ---@field frame_rate number?
+---@field ended boolean?
 
 ---@class rizu.preview.AsyncVideoLoadEvent
 ---@field type "load"
@@ -40,6 +41,7 @@ local AsyncVideoProtocol = {}
 ---@field height integer?
 ---@field frame_rate number?
 ---@field image_data love.ImageData?
+---@field ended boolean?
 
 ---@class rizu.preview.AsyncVideoBatchDoneEvent
 ---@field type "batch_done"
