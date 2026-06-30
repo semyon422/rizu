@@ -104,6 +104,8 @@ function Select:openScore(index)
 end
 
 function Select:enter()
+	self.ui.game.chartSelector:notifyChartviewChanged()
+
 	self.ui.game.chartSelector:onChanged(self)
 	self.ui.game.chartSelector.state:onChanged(self)
 	self.ui.game.chartSelector.stores[2]:onChanged(self)
@@ -278,7 +280,7 @@ end
 
 function Select:receive(event)
 	Screen.receive(self, event)
-	if event.type == "chartview_changed" and event.chartview.hash then
+	if event.type == "chartview_changed" and event.chartview and event.chartview.hash then
 		self:onChartviewUpdate(event.chartview)
 	end
 

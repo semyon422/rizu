@@ -38,7 +38,8 @@ function BgaView:draw()
 	local time
 
 	local rhythm_engine = self.game.rhythm_engine
-	if rhythm_engine and rhythm_engine.bga_engine and #rhythm_engine.bga_engine.active_notes > 0 then
+	local is_gameplay_loaded = self.game.gameplayInteractor and self.game.gameplayInteractor.loaded
+	if is_gameplay_loaded and rhythm_engine and rhythm_engine.bga_engine and #rhythm_engine.bga_engine.active_notes > 0 then
 		bga_engine = rhythm_engine.bga_engine
 		time = rhythm_engine.visual_info:getTime()
 	elseif self.game.previewModel and self.game.previewModel.bgaPreviewPlayer then

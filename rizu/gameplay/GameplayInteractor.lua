@@ -169,6 +169,9 @@ function GameplayInteractor:unloadGameplay()
 
 	if game.rhythm_engine then
 		game.rhythm_engine:unloadAudio()
+		if game.rhythm_engine.bga_engine then
+			game.rhythm_engine.bga_engine:unload()
+		end
 	end
 
 	if self:hasResult() then

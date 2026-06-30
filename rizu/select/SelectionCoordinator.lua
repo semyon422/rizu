@@ -32,6 +32,11 @@ function SelectionCoordinator:new(
 	end)
 
 	self.chartSelector:onChanged(self.scoreSelector)
+	self.chartSelector:onChanged(function(event)
+		if event.type == "chartview_changed" and event.chartview then
+			self:activatePreview()
+		end
+	end)
 
 	self.collectionSelector:onChanged(function(event)
 		if event.type == "collection_selection_changed" then
@@ -43,7 +48,6 @@ end
 function SelectionCoordinator:load()
 	self.chartSelector:setLock(false)
 	self.chartSelector:load()
-	self.previewModel:load()
 end
 
 function SelectionCoordinator:activatePreview()

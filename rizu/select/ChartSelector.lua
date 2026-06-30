@@ -54,15 +54,6 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	self.observable = Observable()
 	self.state:onChanged(self)
 
-	self:onChanged(function(event)
-		if event.type == "chartview_changed" then
-			local chartview = event.chartview
-			if chartview then
-				print(chartview.chartfile_id, chartview.title)
-			end
-		end
-	end)
-
 	self.stores[1]:onChanged(function(event)
 		if event.type == "list_item_loaded" then
 			local current = self.state:getSelection(1)
@@ -105,6 +96,10 @@ function ChartSelector:setChartview(chartview)
 	self.chartview = chartview
 	self.changed = true
 	self:emitChanged({type = "chartview_changed", chartview = chartview})
+end
+
+function ChartSelector:notifyChartviewChanged()
+	self:emitChanged({type = "chartview_changed", chartview = self.chartview})
 end
 
 ---@param event rizu.select.SelectionStateEvent

@@ -39,6 +39,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 
 ### Invariants
 - **Preview clock ownership**: `PreviewModel` owns the master preview time. Audio, notes, and BGA players are driven from that clock and should not advance their own independent playback time.
+- **Preview activation source**: select preview loading is triggered only from a non-empty `chartview_changed` event. Select screen entry may re-announce the currently loaded chartview, but `SelectionCoordinator:load()` must not start preview directly.
 - **Async video queue order**: `AsyncVideoEngine` expects queued video frames to be monotonic by `frame_time`. Non-monotonic frames are logged because they can cause visible skips or stale presentation.
 - **Async video frame ownership**: decoded `ImageData` is owned by the main thread after it is received from the worker. The main thread must either upload it to the `Image` or release it when it is stale, dropped, or superseded.
 - **Async video backpressure**: each video has at most one pending worker request. A newer desired time replaces older intent, and stale generation/request responses must not affect current state.
@@ -65,3 +66,5 @@ The preview system provides players with an immediate sensory snapshot of a song
 Async video playback is currently scoped to select preview. Gameplay BGA still uses its existing path. Reusing the async preview pipeline for gameplay may be useful later, but it should be treated as a separate design task because gameplay has stricter timing, lifetime, and failure-mode expectations.
 
 Some imported libraries can contain unusual or stale `preview_time` metadata. The async video pipeline now handles video times beyond EOF by holding the final frame, but metadata normalization may still be worth revisiting if a format consistently stores preview offsets in unexpected units.
+
+`sphere.views.BgaView` currently chooses between gameplay BGA and select-preview BGA in one shared draw path. This couples two different lifecycles and two different video backends, so it is easy for stale gameplay state to affect result or select screens. Refactor it later so gameplay and preview BGA presentation are owned by separate view paths or by an explicit presentation interface.
