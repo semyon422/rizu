@@ -1,7 +1,7 @@
 local class = require("class")
 local BgaPreview = require("rizu.preview.BgaPreview")
+local AsyncVideoEngine = require("rizu.preview.AsyncVideoEngine")
 local SpriteEngine = require("rizu.engine.sprite.SpriteEngine")
-local VideoEngine = require("rizu.engine.sprite.VideoEngine")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local path_util = require("path_util")
 local thread = require("thread")
@@ -16,10 +16,11 @@ local BgaPreviewPlayer = class()
 ---@field image_names string[]
 ---@field video_names string[]
 ---@field resources {[string]: string}
+---@field video_paths {[string]: string}
 
 function BgaPreviewPlayer:new()
 	self.sprite_engine = SpriteEngine()
-	self.video_engine = VideoEngine()
+	self.video_engine = AsyncVideoEngine()
 	self.load_generation = 0
 	---@type rizu.sprite.BgaEvent[]
 	self.active_notes = {}
@@ -83,18 +84,22 @@ local loadPreviewResourcesAsync = thread.async(function(preview_path, chart_dirs
 		image_names = {},
 		video_names = {},
 		resources = {},
+		video_paths = {},
 	}
 
 	for _, name in ipairs(preview.samples) do
 		local full_path = finder:findFile(name, "image") or finder:findFile(name, "video")
 		if full_path then
-			local content = fs:read(full_path)
-			if content then
-				result.resources[name] = content
-				local _, ext = path_util.name_ext(name)
-				if ResourceFinder:getFormat(ext) == "video" then
+			local _, ext = path_util.name_ext(name)
+			if ResourceFinder:getFormat(ext) == "video" then
+				if fs:getInfo(full_path) then
 					table.insert(result.video_names, name)
-				else
+					result.video_paths[name] = full_path
+				end
+			else
+				local content = fs:read(full_path)
+				if content then
+					result.resources[name] = content
 					table.insert(result.image_names, name)
 				end
 			end
@@ -118,7 +123,7 @@ function BgaPreviewPlayer:applyLoadedPreview(result)
 	end
 
 	self.sprite_engine:load(result.image_names, result.resources)
-	self.video_engine:load(result.video_names, result.resources)
+	self.video_engine:load(result.video_names, result.video_paths)
 
 	if self.pending_seek then
 		local pending_seek = self.pending_seek
@@ -154,9 +159,12 @@ function BgaPreviewPlayer:load(preview_path, chart_dirs, _fs)
 end
 
 function BgaPreviewPlayer:update(time)
+	self.video_engine:update()
 	if not self.preview then return end
 
 	local active_notes = {}
+	---@type {[string]: integer}
+	local active_video_indexes = {}
 	local columns = {}
 	for column in pairs(self.events_by_column) do
 		table.insert(columns, column)
@@ -172,14 +180,35 @@ function BgaPreviewPlayer:update(time)
 			local _, ext = path_util.name_ext(name)
 			local _type = ResourceFinder:getFormat(ext) == "video" and "VideoNote" or "ImageNote"
 
-			table.insert(active_notes, {
+			local bga_event = {
 				time = event.time,
 				column = event.column,
 				name = name,
 				type = _type,
-			})
+			}
+
+			if _type == "VideoNote" then
+				-- A video resource has one playback cursor. Some BGA files put the same
+				-- video on several columns, so drive each video name only once per frame.
+				local active_index = active_video_indexes[name]
+				local active_event = active_index and active_notes[active_index]
+				if not active_event or bga_event.time >= active_event.time then
+					if active_index then
+						active_notes[active_index] = bga_event
+					else
+						active_video_indexes[name] = #active_notes + 1
+						table.insert(active_notes, bga_event)
+					end
+				end
+			else
+				table.insert(active_notes, bga_event)
+			end
 		end
 	end
+
+	table.sort(active_notes, function(a, b)
+		return a.column < b.column
+	end)
 
 	self.active_notes = active_notes
 end

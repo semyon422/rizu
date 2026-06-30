@@ -21,6 +21,11 @@ The preview system provides players with an immediate sensory snapshot of a song
 - **Decision**: All preview generation is performed as an asynchronous task in a separate thread. Results are cached in `userdata/` using the chart's content hash.
 - **Consequence**: The main UI thread remains completely unblocked, ensuring the library browsing experience remains fluid even for new or un-cached content.
 
+### ADR: Async BGA Video Playback
+- **Context**: Preview videos can be large and expensive to decode. Decoding or seeking them on the main thread causes visible stutter while scrolling charts.
+- **Decision**: `BgaPreviewPlayer` uses `AsyncVideoEngine`, which runs `AsyncVideoWorker.lua` in a LÖVE thread. The worker reads video files through the virtual filesystem, opens them with the FFmpeg-backed `video` module, decodes batches of `ImageData`, and sends decoded frames back to the main thread.
+- **Consequence**: The main thread only drains decoded frames and uploads the currently displayed frame to the GPU. `readAt` is used only for the first frame of a batch after a real seek or jump; sequential frames use `read()` to preserve decoder state. Queue resets must allow a small half-frame presentation lead so normal frame selection is not mistaken for a backward seek.
+
 ## Implementation Details
 
 ### Components
