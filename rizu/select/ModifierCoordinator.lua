@@ -10,7 +10,7 @@ local ModifierCoordinator = class()
 ---@param chartSelector rizu.select.ChartSelector
 ---@param scoreSelector rizu.select.ScoreSelector
 ---@param modifierSelectModel sphere.ModifierSelectModel
----@param configModel sphere.ConfigModel
+---@param modifierConfigPersistence rizu.select.services.ModifierConfigPersistence
 ---@param multiplayerModel sphere.MultiplayerModel
 ---@param replayBase sea.ReplayBase
 ---@param previewModel rizu.preview.PreviewModel
@@ -18,7 +18,7 @@ function ModifierCoordinator:new(
 	chartSelector,
 	scoreSelector,
 	modifierSelectModel,
-	configModel,
+	modifierConfigPersistence,
 	multiplayerModel,
 	replayBase,
 	previewModel
@@ -26,7 +26,7 @@ function ModifierCoordinator:new(
 	self.chartSelector = chartSelector
 	self.scoreSelector = scoreSelector
 	self.modifierSelectModel = modifierSelectModel
-	self.configModel = configModel
+	self.modifierConfigPersistence = modifierConfigPersistence
 	self.multiplayerModel = multiplayerModel
 	self.replayBase = replayBase
 	self.previewModel = previewModel
@@ -35,16 +35,14 @@ function ModifierCoordinator:new(
 end
 
 function ModifierCoordinator:load()
-	self.configModel:write()
-	self.replayBase:importReplayBase(self.configModel.configs.play)
+	self.modifierConfigPersistence:loadReplayBase(self.replayBase)
 	self.modifierSelectModel:updateAdded()
 	
 	self:applySelectionModifierMeta()
 end
 
 function ModifierCoordinator:unload()
-	self.replayBase:exportReplayBase(self.configModel.configs.play)
-	self.configModel:write()
+	self.modifierConfigPersistence:saveReplayBase(self.replayBase)
 end
 
 function ModifierCoordinator:applySelectionModifierMeta()

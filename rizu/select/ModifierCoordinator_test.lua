@@ -27,12 +27,18 @@ local function createCoordinator(chartview, calls, is_changed, candidateReplayBa
 		isChanged = function()
 			return is_changed == true
 		end,
+		updateAdded = function()
+			table.insert(calls, "modifiers-added")
+		end,
 	}
-	local configModel = {
-		configs = {
-			play = {},
-		},
-		write = function() end,
+	local modifierConfigPersistence = {
+		loadReplayBase = function(_, replayBase)
+			table.insert(calls, "load-replay-base")
+			replayBase.rate = 0.5
+		end,
+		saveReplayBase = function(_, replayBase)
+			table.insert(calls, "save-replay-base:" .. tostring(replayBase.rate))
+		end,
 	}
 	local multiplayerModel = {
 		client = {
@@ -53,7 +59,7 @@ local function createCoordinator(chartview, calls, is_changed, candidateReplayBa
 		chartSelector,
 		scoreSelector,
 		modifierSelectModel,
-		configModel,
+		modifierConfigPersistence,
 		multiplayerModel,
 		replayBase,
 		previewModel
@@ -124,6 +130,34 @@ function test.selection_candidate_is_validated_before_global_import(t)
 
 	t:eq(candidateReplayBase.columns_order, nil)
 	t:eq(coordinator.replayBase.columns_order, nil)
+end
+
+---@param t testing.T
+function test.load_uses_config_persistence_and_updates_modifiers(t)
+	local calls = {}
+	local coordinator = createCoordinator({inputmode = "4key"}, calls)
+
+	coordinator:load()
+
+	t:tdeq(calls, {
+		"load-replay-base",
+		"modifiers-added",
+		"selection-replay-base",
+		"preview-rate:1.25",
+	})
+end
+
+---@param t testing.T
+function test.unload_uses_config_persistence(t)
+	local calls = {}
+	local coordinator = createCoordinator({inputmode = "4key"}, calls)
+	coordinator.replayBase.rate = 1.75
+
+	coordinator:unload()
+
+	t:tdeq(calls, {
+		"save-replay-base:1.75",
+	})
 end
 
 return test
