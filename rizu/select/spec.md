@@ -62,7 +62,7 @@ Score loads are generation-guarded. Every new chart selection increments the sco
 
 Online score loading uses an immediate-plus-trailing throttle. The first selected chart after an idle period requests scores immediately. Further chart changes during the throttle window only replace the pending request, and when the window ends the latest pending chart is requested. This keeps online scores responsive without sending a request for every intermediate chart while the player scrolls quickly.
 
-`SelectionReplayBaseApplier` owns the selection-driven mutation of the current `ReplayBase`. `ScoreSelector:updateReplayBase(chartview)` is a compatibility facade that delegates to the applier. The current contract is:
+`SelectionReplayBaseApplier` owns selection-derived `ReplayBase` fields. `buildSelectionReplayBase(chartview)` returns a candidate copy of the current `ReplayBase` with selection fields applied, while `apply(chartview)` imports that candidate back into the current global `ReplayBase` for today's behavior. `ScoreSelector:updateReplayBase(chartview)` is a compatibility facade that delegates to the applier. The current contract is:
 
 | Secondary mode | ReplayBase update |
 | :--- | :--- |

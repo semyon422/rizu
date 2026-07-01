@@ -90,4 +90,37 @@ function test.chartplays_mode_updates_chartplay_base_fields(t)
 	t:eq(replayBase.rate_type, "exp")
 end
 
+---@param t testing.T
+function test.build_selection_replay_base_does_not_mutate_current_replay_base(t)
+	local replayBase = ReplayBase()
+	replayBase.rate = 0.75
+	replayBase.modifiers = {{id = 9, value = 1}}
+
+	local selectionReplayBase, applied = SelectionReplayBaseApplier(
+		createConfigModel("chartdiffs"),
+		replayBase
+	):buildSelectionReplayBase(createChartview())
+
+	t:eq(applied, true)
+	t:eq(replayBase.rate, 0.75)
+	t:tdeq(replayBase.modifiers, {{id = 9, value = 1}})
+	t:eq(selectionReplayBase.rate, 1.5)
+	t:tdeq(selectionReplayBase.modifiers, {{id = 1, value = 2}})
+end
+
+---@param t testing.T
+function test.build_selection_replay_base_preserves_manual_fields_outside_selection_scope(t)
+	local replayBase = ReplayBase()
+	replayBase.nearest = true
+	replayBase.columns_order = {1, 2, 3, 4}
+
+	local selectionReplayBase = SelectionReplayBaseApplier(
+		createConfigModel("chartdiffs"),
+		replayBase
+	):buildSelectionReplayBase(createChartview())
+
+	t:eq(selectionReplayBase.nearest, true)
+	t:tdeq(selectionReplayBase.columns_order, {1, 2, 3, 4})
+end
+
 return test
