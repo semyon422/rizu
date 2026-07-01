@@ -116,7 +116,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 - **UI-only effects**: Move UI concerns out of selection logic, including `self.windowModel:setVsyncOnSelect(true)`.
 - **Configuration IO**: Move config persistence out of the select module. Calls such as `self.configModel:write()` make selection responsible for IO that belongs at a higher layer.
 - **Dependency inversion**: Consider introducing interfaces around services used by `rizu.select` so the module depends on selection-domain contracts instead of concrete application models.
-- **Web chart action**: `SelectionActions:openWebNotechart()` is stale and the current website does not fully support it. Either redesign it against the current web feature set or remove it from the selection action surface.
 
 ### Types and Naming
 - **Location DTO split**: Split `rizu.library.Location` into two shapes: the full runtime entity and a narrower insert-data record used by repositories. Look for similar patterns elsewhere before applying this broadly.

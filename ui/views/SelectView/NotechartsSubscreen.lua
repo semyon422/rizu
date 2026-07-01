@@ -533,10 +533,6 @@ local function NotechartsSubscreen(self)
 
 	w, h = Layout:move("column1row1row1")
 
-	-- if imgui.IconOnlyButton("open notechart page", icons("info_outline"), h, 0.5) then
-	-- 	self.game.selectionActions:openWebNotechart()
-	-- end
-
 	local online_client = game.online_client
 	local lb_user = online_client:getLeaderboardUser(1)
 	local lb = online_client:getLeaderboard(1)

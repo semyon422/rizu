@@ -47,16 +47,6 @@ function SelectionActions:openLocationDirectory(location, dir)
 	self.locationDirectoryOpener:open(location, dir)
 end
 
-function SelectionActions:openWebNotechart()
-	local chartview = self.chartSelector.chartview
-	if not chartview then
-		return
-	end
-
-	local hash, index = chartview.hash, chartview.index
-	self.onlineModel.onlineNotechartManager:openWebNotechart(hash, index)
-end
-
 ---@param force boolean?
 function SelectionActions:updateCache(force)
 	local chartview = self.chartSelector.chartview
