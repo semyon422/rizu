@@ -11,7 +11,7 @@ local SelectionReplayBaseApplier = require("rizu.select.services.SelectionReplay
 ---@field onlineScoreCooldownActive boolean
 ---@field pendingOnlineScoreChartview rizu.library.LocatedChartview?
 ---@field pendingOnlineScoreGeneration integer?
----@field replayBaseApplier rizu.select.services.SelectionReplayBaseApplier
+---@field replayBaseApplier rizu.select.ISelectionReplayBaseApplier
 local ScoreSelector = class()
 
 ---@param configModel sphere.ConfigModel

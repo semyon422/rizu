@@ -1,7 +1,12 @@
 local class = require("class")
 local ReplayBase = require("sea.replays.ReplayBase")
 
----@class rizu.select.services.SelectionReplayBaseApplier
+---@class rizu.select.ISelectionReplayBaseApplier
+---@field copySelectionFields fun(self: rizu.select.ISelectionReplayBaseApplier, chartview: rizu.library.LocatedChartview, targetReplayBase: sea.ReplayBase): boolean
+---@field buildSelectionReplayBase fun(self: rizu.select.ISelectionReplayBaseApplier, chartview: rizu.library.LocatedChartview): sea.ReplayBase, boolean
+---@field apply fun(self: rizu.select.ISelectionReplayBaseApplier, chartview: rizu.library.LocatedChartview): boolean
+
+---@class rizu.select.services.SelectionReplayBaseApplier: rizu.select.ISelectionReplayBaseApplier
 ---@operator call: rizu.select.services.SelectionReplayBaseApplier
 local SelectionReplayBaseApplier = class()
 

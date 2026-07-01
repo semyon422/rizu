@@ -107,6 +107,14 @@ All select events must include a `type` field. Event type names should describe 
 ### Modifier Config Persistence
 `ModifierConfigPersistence` owns loading and saving the play config around modifier coordination. `ModifierCoordinator` requests replay-base load/save through this adapter instead of calling `ConfigModel:write()` or reading `configs.play` directly.
 
+### Service Interfaces
+Select coordinators depend on selection-domain service interfaces instead of concrete application models where a boundary has already been isolated. The current interfaces are:
+
+- `ISelectionWindowSync` for select-screen window synchronization.
+- `IModifierConfigPersistence` for play-config load/save around modifier coordination.
+- `ISelectionReplayBaseApplier` for building selection-derived `ReplayBase` candidates.
+- `ILocationDirectoryOpener` for opening local chart and location directories.
+
 ### Partial Cache Selection
 Selection may point at provisional library rows while caching is still running. A provisional chartview remains a valid list item and can be kept in `SelectionState`, but it is not a playable chart until it has a non-zero `chartmeta_id`, `hash`, `index`, `inputmode`, and `location_path`.
 
@@ -127,7 +135,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 
 ### Boundaries and Dependencies
 - **Event wiring**: Centralize event-based system coupling if possible. `SelectionCoordinator` already handles some of this, but there may be additional event wiring elsewhere.
-- **Dependency inversion**: Consider introducing interfaces around services used by `rizu.select` so the module depends on selection-domain contracts instead of concrete application models.
 
 ### Types and Naming
 - **Location DTO split**: Split `rizu.library.Location` into two shapes: the full runtime entity and a narrower insert-data record used by repositories. Look for similar patterns elsewhere before applying this broadly.

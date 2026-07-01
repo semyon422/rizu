@@ -9,7 +9,7 @@ local SelectionCoordinator = class()
 ---@param collectionSelector rizu.select.CollectionSelector
 ---@param backgroundModel sphere.BackgroundModel
 ---@param previewModel rizu.preview.PreviewModel
----@param windowSync rizu.select.services.SelectionWindowSync
+---@param windowSync rizu.select.ISelectionWindowSync
 function SelectionCoordinator:new(
 	chartSelector,
 	scoreSelector,

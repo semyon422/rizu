@@ -10,7 +10,7 @@ local ModifierCoordinator = class()
 ---@param chartSelector rizu.select.ChartSelector
 ---@param scoreSelector rizu.select.ScoreSelector
 ---@param modifierSelectModel sphere.ModifierSelectModel
----@param modifierConfigPersistence rizu.select.services.ModifierConfigPersistence
+---@param modifierConfigPersistence rizu.select.IModifierConfigPersistence
 ---@param multiplayerModel sphere.MultiplayerModel
 ---@param replayBase sea.ReplayBase
 ---@param previewModel rizu.preview.PreviewModel

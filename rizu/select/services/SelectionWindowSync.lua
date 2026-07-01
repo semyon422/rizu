@@ -1,6 +1,9 @@
 local class = require("class")
 
----@class rizu.select.services.SelectionWindowSync
+---@class rizu.select.ISelectionWindowSync
+---@field update fun(self: rizu.select.ISelectionWindowSync)
+
+---@class rizu.select.services.SelectionWindowSync: rizu.select.ISelectionWindowSync
 ---@operator call: rizu.select.services.SelectionWindowSync
 local SelectionWindowSync = class()
 

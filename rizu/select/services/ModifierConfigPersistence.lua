@@ -1,6 +1,10 @@
 local class = require("class")
 
----@class rizu.select.services.ModifierConfigPersistence
+---@class rizu.select.IModifierConfigPersistence
+---@field loadReplayBase fun(self: rizu.select.IModifierConfigPersistence, replayBase: sea.ReplayBase)
+---@field saveReplayBase fun(self: rizu.select.IModifierConfigPersistence, replayBase: sea.ReplayBase)
+
+---@class rizu.select.services.ModifierConfigPersistence: rizu.select.IModifierConfigPersistence
 ---@operator call: rizu.select.services.ModifierConfigPersistence
 local ModifierConfigPersistence = class()
 

@@ -1,7 +1,10 @@
 local class = require("class")
 local Path = require("Path")
 
----@class rizu.select.services.LocationDirectoryOpener
+---@class rizu.select.ILocationDirectoryOpener
+---@field open fun(self: rizu.select.ILocationDirectoryOpener, location: rizu.library.Location, dir: string?)
+
+---@class rizu.select.services.LocationDirectoryOpener: rizu.select.ILocationDirectoryOpener
 ---@operator call: rizu.select.services.LocationDirectoryOpener
 local LocationDirectoryOpener = class()
 
