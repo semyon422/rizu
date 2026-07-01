@@ -72,6 +72,12 @@ Online score loading uses an immediate-plus-trailing throttle. The first selecte
 
 Manual modifier changes are handled separately by `ModifierCoordinator:update()`, which applies modifier metadata without re-importing selection data and then syncs the current `ReplayBase` to multiplayer.
 
+`ModifierCoordinator` keeps selection-driven and manual modifier flows separate:
+
+- `applySelectionModifierMeta()` is used after chart selection changes. It may import selection fields into the local `ReplayBase` through `ScoreSelector:updateReplayBase(chartview)`, then recalculates local modifier metadata and preview rate. It does not sync multiplayer by itself.
+- `applyManualModifierMeta()` is used after player-edited modifiers have already changed the local `ReplayBase`. It recalculates local modifier metadata without importing selection fields again.
+- `syncManualReplayBaseToMultiplayer()` is called only for manual modifier changes detected by `ModifierSelectModel:isChanged()`. Multiplayer room chart identity comes from `ChartSelector:findChartmeta(hash, index)` and room state, not from selection-driven modifier application.
+
 ### TaskRunner Overrides
 `rizu.select.tasks.TaskRunner` serializes asynchronous selection work so rapid UI input does not run every obsolete intermediate refresh. It intentionally keeps only one pending task while another task is running.
 
@@ -111,7 +117,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 
 ### Selection, Scores, and Replay State
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
-- **Multiplayer coupling**: Revisit how selection state feeds multiplayer state. `self.multiplayerModel.client:updateReplayBase()` suggests multiplayer currently carries selection-specific behavior that may need a cleaner boundary.
 
 ### Boundaries and Dependencies
 - **Event wiring**: Centralize event-based system coupling if possible. `SelectionCoordinator` already handles some of this, but there may be additional event wiring elsewhere.

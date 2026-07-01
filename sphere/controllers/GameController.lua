@@ -292,7 +292,7 @@ end
 function GameController:update(dt)
 	self.app:update()
 
-	self.selectionCoordinator:update(function(...) self.modifierCoordinator:applyModifierMeta(...) end)
+	self.selectionCoordinator:update(function() self.modifierCoordinator:applySelectionModifierMeta() end)
 	self.modifierCoordinator:update()
 
 	self.joystickModel:update(dt)

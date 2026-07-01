@@ -39,12 +39,20 @@ function ModifierCoordinator:load()
 	self.replayBase:importReplayBase(self.configModel.configs.play)
 	self.modifierSelectModel:updateAdded()
 	
-	self:applyModifierMeta(true)
+	self:applySelectionModifierMeta()
 end
 
 function ModifierCoordinator:unload()
 	self.replayBase:exportReplayBase(self.configModel.configs.play)
 	self.configModel:write()
+end
+
+function ModifierCoordinator:applySelectionModifierMeta()
+	self:applyModifierMeta(true)
+end
+
+function ModifierCoordinator:applyManualModifierMeta()
+	self:applyModifierMeta(false)
 end
 
 ---@param fromSelection boolean?
@@ -75,10 +83,14 @@ function ModifierCoordinator:applyModifierMeta(fromSelection)
 	end
 end
 
+function ModifierCoordinator:syncManualReplayBaseToMultiplayer()
+	self.multiplayerModel.client:updateReplayBase()
+end
+
 function ModifierCoordinator:update()
 	if self.modifierSelectModel:isChanged() then
-		self.multiplayerModel.client:updateReplayBase()
-		self:applyModifierMeta(false)
+		self:syncManualReplayBaseToMultiplayer()
+		self:applyManualModifierMeta()
 	end
 end
 
