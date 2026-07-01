@@ -54,6 +54,26 @@ function test.update_replay_base_delegates_to_applier(t)
 end
 
 ---@param t testing.T
+function test.build_selection_replay_base_delegates_to_applier(t)
+	local replayBase = ReplayBase()
+	local selector = createSelector("chartdiffs", replayBase)
+	local chartview = {hash = "h", index = 1}
+	local candidate = ReplayBase()
+	local applied = true
+	selector.replayBaseApplier = {
+		buildSelectionReplayBase = function(_, item)
+			t:eq(item, chartview)
+			return candidate, applied
+		end,
+	}
+
+	local replayBaseCandidate, was_applied = selector:buildSelectionReplayBase(chartview)
+
+	t:eq(replayBaseCandidate, candidate)
+	t:eq(was_applied, true)
+end
+
+---@param t testing.T
 function test.coarse_modes_load_chartmeta_scores(t)
 	for _, mode in ipairs({"chartfile_sets", "chartfiles", "chartmetas"}) do
 		local replayBase = ReplayBase()

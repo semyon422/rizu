@@ -218,6 +218,13 @@ function ScoreSelector:scrollScore(direction, destination)
 end
 
 ---@param chartview rizu.library.LocatedChartview
+---@return sea.ReplayBase replayBase
+---@return boolean applied
+function ScoreSelector:buildSelectionReplayBase(chartview)
+	return self.replayBaseApplier:buildSelectionReplayBase(chartview)
+end
+
+---@param chartview rizu.library.LocatedChartview
 function ScoreSelector:updateReplayBase(chartview)
 	self.replayBaseApplier:apply(chartview)
 end

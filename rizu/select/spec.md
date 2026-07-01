@@ -74,7 +74,8 @@ Manual modifier changes are handled separately by `ModifierCoordinator:update()`
 
 `ModifierCoordinator` keeps selection-driven and manual modifier flows separate:
 
-- `applySelectionModifierMeta()` is used after chart selection changes. It may import selection fields into the local `ReplayBase` through `SelectionReplayBaseApplier`, then recalculates local modifier metadata and preview rate. It does not sync multiplayer by itself.
+- `applySelectionModifierMeta()` is used after chart selection changes. It builds a selection-derived `ReplayBase` candidate through `SelectionReplayBaseApplier`, recalculates local modifier metadata and preview rate against that candidate, then imports the candidate into the global `ReplayBase`. It does not sync multiplayer by itself.
+- Selection-driven modifier metadata is calculated against the candidate returned by `buildSelectionReplayBase(chartview)`. Candidate fields such as `columns_order` are validated before the candidate is imported into the global `ReplayBase`.
 - `applyManualModifierMeta()` is used after player-edited modifiers have already changed the local `ReplayBase`. It recalculates local modifier metadata without importing selection fields again.
 - `syncManualReplayBaseToMultiplayer()` is called only for manual modifier changes detected by `ModifierSelectModel:isChanged()`. Multiplayer room chart identity comes from `ChartSelector:findChartmeta(hash, index)` and room state, not from selection-driven modifier application.
 

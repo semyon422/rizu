@@ -48,29 +48,45 @@ function ModifierCoordinator:unload()
 end
 
 function ModifierCoordinator:applySelectionModifierMeta()
-	self:applyModifierMeta(true)
+	local chartview = self.chartSelector.chartview
+	if not self.chartSelector:isPlayableChartview(chartview) then
+		self.replayBase.columns_order = nil
+		return
+	end
+
+	local replayBase = self.scoreSelector:buildSelectionReplayBase(chartview)
+	self:applyModifierMetaToReplayBase(replayBase, chartview)
+	self.replayBase:importReplayBase(replayBase)
 end
 
 function ModifierCoordinator:applyManualModifierMeta()
-	self:applyModifierMeta(false)
+	self:applyModifierMetaToCurrentReplayBase()
 end
 
 ---@param fromSelection boolean?
 function ModifierCoordinator:applyModifierMeta(fromSelection)
-	self.state.inputMode = InputMode()
-	self.state.custom = false
+	if fromSelection then
+		self:applySelectionModifierMeta()
+	else
+		self:applyManualModifierMeta()
+	end
+end
 
-	local replayBase = self.replayBase
-
+function ModifierCoordinator:applyModifierMetaToCurrentReplayBase()
 	local chartview = self.chartSelector.chartview
 	if not self.chartSelector:isPlayableChartview(chartview) then
-		replayBase.columns_order = nil
+		self.replayBase.columns_order = nil
 		return
 	end
 
-	if fromSelection then
-		self.scoreSelector:updateReplayBase(chartview)
-	end
+	self:applyModifierMetaToReplayBase(self.replayBase, chartview)
+end
+
+---@param replayBase sea.ReplayBase
+---@param chartview rizu.library.LocatedChartview
+function ModifierCoordinator:applyModifierMetaToReplayBase(replayBase, chartview)
+	self.state.inputMode = InputMode()
+	self.state.custom = false
 
 	self.previewModel:setRate(replayBase.rate)
 	self.state.inputMode:set(chartview.inputmode)

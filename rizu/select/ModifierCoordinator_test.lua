@@ -1,3 +1,4 @@
+local ReplayBase = require("sea.replays.ReplayBase")
 local ModifierCoordinator = require("rizu.select.ModifierCoordinator")
 
 local test = {}
@@ -5,8 +6,9 @@ local test = {}
 ---@param chartview table?
 ---@param calls string[]
 ---@param is_changed boolean?
+---@param candidateReplayBase sea.ReplayBase?
 ---@return rizu.select.ModifierCoordinator
-local function createCoordinator(chartview, calls, is_changed)
+local function createCoordinator(chartview, calls, is_changed, candidateReplayBase)
 	local chartSelector = {
 		chartview = chartview,
 		isPlayableChartview = function(_, item)
@@ -14,8 +16,11 @@ local function createCoordinator(chartview, calls, is_changed)
 		end,
 	}
 	local scoreSelector = {
-		updateReplayBase = function()
-			table.insert(calls, "replay-base")
+		buildSelectionReplayBase = function()
+			table.insert(calls, "selection-replay-base")
+			local replayBase = candidateReplayBase or ReplayBase()
+			replayBase.rate = 1.25
+			return replayBase, true
 		end,
 	}
 	local modifierSelectModel = {
@@ -36,14 +41,11 @@ local function createCoordinator(chartview, calls, is_changed)
 			end,
 		},
 	}
-	local replayBase = {
-		modifiers = {},
-		rate = 1,
-		columns_order = {1, 2, 3, 4},
-	}
+	local replayBase = ReplayBase()
+	replayBase.columns_order = {1, 2, 3, 4}
 	local previewModel = {
-		setRate = function()
-			table.insert(calls, "preview-rate")
+		setRate = function(_, rate)
+			table.insert(calls, "preview-rate:" .. tostring(rate))
 		end,
 	}
 
@@ -79,9 +81,10 @@ function test.playable_chartview_applies_modifier_meta(t)
 	coordinator:applySelectionModifierMeta()
 
 	t:tdeq(calls, {
-		"replay-base",
-		"preview-rate",
+		"selection-replay-base",
+		"preview-rate:1.25",
 	})
+	t:eq(coordinator.replayBase.rate, 1.25)
 end
 
 ---@param t testing.T
@@ -92,8 +95,8 @@ function test.selection_modifier_meta_does_not_sync_multiplayer(t)
 	coordinator:applySelectionModifierMeta()
 
 	t:tdeq(calls, {
-		"replay-base",
-		"preview-rate",
+		"selection-replay-base",
+		"preview-rate:1.25",
 	})
 end
 
@@ -106,8 +109,21 @@ function test.manual_modifier_change_syncs_multiplayer_without_selection_import(
 
 	t:tdeq(calls, {
 		"multiplayer",
-		"preview-rate",
+		"preview-rate:1",
 	})
+end
+
+---@param t testing.T
+function test.selection_candidate_is_validated_before_global_import(t)
+	local calls = {}
+	local candidateReplayBase = ReplayBase()
+	candidateReplayBase.columns_order = {1, 2, 3}
+	local coordinator = createCoordinator({inputmode = "4key"}, calls, nil, candidateReplayBase)
+
+	coordinator:applySelectionModifierMeta()
+
+	t:eq(candidateReplayBase.columns_order, nil)
+	t:eq(coordinator.replayBase.columns_order, nil)
 end
 
 return test
