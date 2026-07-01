@@ -207,6 +207,46 @@ function test.chartview_event(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.playable_chartview_requires_metadata_and_location(t)
+	local configModel = createMockConfigModel()
+	local library = tlf:create()
+	local fs = {read = function() end, getInfo = function() end}
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+
+	t:eq(chartSelector:isPlayableChartview({chartfile_id = 1, chartmeta_id = 0}), false)
+	t:eq(chartSelector:isPlayableChartview({
+		chartfile_id = 1,
+		chartmeta_id = 1,
+		hash = "h",
+		index = 1,
+		inputmode = "4key",
+		location_path = "charts/a.osu",
+	}), true)
+
+	library:unload()
+end
+
+---@param t testing.T
+function test.provisional_chartview_does_not_load_chart(t)
+	local configModel = createMockConfigModel()
+	local library = tlf:create()
+	local fs = {read = function() end, getInfo = function() end}
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local load_called = false
+	chartSelector.metadataService = {
+		loadChart = function()
+			load_called = true
+		end,
+	}
+	chartSelector.chartview = {chartfile_id = 1}
+
+	t:eq(chartSelector:loadChart(), nil)
+	t:eq(load_called, false)
+
+	library:unload()
+end
+
 function test.score_navigation(t)
 	local charts = {
 		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h1", index = 1}

@@ -33,7 +33,7 @@ function SelectionCoordinator:new(
 
 	self.chartSelector:onChanged(self.scoreSelector)
 	self.chartSelector:onChanged(function(event)
-		if event.type == "chartview_changed" and event.chartview then
+		if event.type == "chartview_changed" and self.chartSelector:isPlayableChartview(event.chartview) then
 			self:activatePreview()
 		end
 	end)
@@ -69,10 +69,13 @@ function SelectionCoordinator:update(applyModifierMeta)
 
 	local chartSelector = self.chartSelector
 	if chartSelector:isChanged() then
+		local chartview = chartSelector.chartview
+		local is_playable = chartSelector:isPlayableChartview(chartview)
+
 		self.backgroundModel:setBackgroundPath(chartSelector:getBackgroundPath())
 		local audio_path, preview_time, mode = chartSelector:getAudioPathPreview()
-		if audio_path or not chartSelector.chartview then
-			self.previewModel:setAudioPathPreview(audio_path, preview_time, mode, chartSelector.chartview)
+		if audio_path or not is_playable then
+			self.previewModel:setAudioPathPreview(audio_path, preview_time, mode, chartview)
 		end
 		if applyModifierMeta then
 			applyModifierMeta(true)

@@ -102,6 +102,18 @@ function ChartSelector:notifyChartviewChanged()
 	self:emitChanged({type = "chartview_changed", chartview = self.chartview})
 end
 
+---@param chartview rizu.library.LocatedChartview?
+---@return boolean
+function ChartSelector:isPlayableChartview(chartview)
+	return chartview ~= nil
+		and chartview.chartmeta_id ~= nil
+		and chartview.chartmeta_id ~= 0
+		and chartview.hash ~= nil
+		and chartview.index ~= nil
+		and chartview.inputmode ~= nil
+		and chartview.location_path ~= nil
+end
+
 ---@param event rizu.select.SelectionStateEvent
 function ChartSelector:receive(event)
 	if event.type == "selection_changed" then
@@ -171,7 +183,7 @@ end
 ---@return string?
 function ChartSelector:getBackgroundPath()
 	local chartview = self.chartview
-	if not chartview or not chartview.title then return end
+	if not self:isPlayableChartview(chartview) then return end
 	return self.metadataService:getBackgroundPath(chartview)
 end
 
@@ -180,7 +192,7 @@ end
 ---@return string?
 function ChartSelector:getAudioPathPreview()
 	local chartview = self.chartview
-	if not chartview or not chartview.title then return end
+	if not self:isPlayableChartview(chartview) then return end
 	return self.metadataService:getAudioPathPreview(chartview)
 end
 
@@ -189,7 +201,7 @@ end
 ---@return sea.Chartmeta?
 function ChartSelector:loadChart(settings)
 	local chartview = self.chartview
-	if not chartview or not chartview.title then return end
+	if not self:isPlayableChartview(chartview) then return end
 	return self.metadataService:loadChart(chartview)
 end
 
@@ -198,7 +210,7 @@ end
 ---@return sea.Chartmeta?
 function ChartSelector:loadChartAbsolute(settings)
 	local chartview = self.chartview
-	if not chartview or not chartview.title then return end
+	if not self:isPlayableChartview(chartview) then return end
 	return self.metadataService:loadChartAbsolute(chartview)
 end
 

@@ -55,7 +55,7 @@ function ModifierCoordinator:applyModifierMeta(fromSelection)
 	local replayBase = self.replayBase
 
 	local chartview = self.chartSelector.chartview
-	if not chartview then
+	if not self.chartSelector:isPlayableChartview(chartview) then
 		replayBase.columns_order = nil
 		return
 	end

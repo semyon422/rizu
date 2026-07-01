@@ -94,6 +94,11 @@ All select events must include a `type` field. Event type names should describe 
 ### Filesystem and OS Integration
 `SelectionActions` delegates opening local chart and location directories to `LocationDirectoryOpener`. This keeps selected-location lookup in the action layer while isolating `love.filesystem` source-path resolution and `love.system.openURL` behind an injected service.
 
+### Partial Cache Selection
+Selection may point at provisional library rows while caching is still running. A provisional chartview remains a valid list item and can be kept in `SelectionState`, but it is not a playable chart until it has a non-zero `chartmeta_id`, `hash`, `index`, `inputmode`, and `location_path`.
+
+Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(chartview)`. This includes preview activation, audio/background lookup, chart loading, modifier metadata application, and selection-driven `ReplayBase` updates. When selection lands on a provisional row, the preview audio should be cleared and modifier metadata should not be recalculated from incomplete chart data.
+
 ## Future Work and Open Questions
 
 ### User Experience
