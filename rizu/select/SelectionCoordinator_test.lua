@@ -46,7 +46,9 @@ local function newCoordinator(calls)
 			end,
 		},
 		{
-			setVsyncOnSelect = function() end,
+			update = function()
+				table.insert(calls, "window-sync")
+			end,
 		}
 	)
 end
@@ -137,10 +139,26 @@ function test.update_clears_preview_for_provisional_chartview(t)
 	end)
 
 	t:tdeq(calls, {
+		"window-sync",
 		"background:nil",
 		"preview:nil:1",
 	})
 	t:eq(applied, true)
+end
+
+---@param t testing.T
+function test.update_syncs_window_even_without_selection_change(t)
+	local calls = {}
+	local coordinator = newCoordinator(calls)
+	coordinator.chartSelector.isChanged = function()
+		return false
+	end
+
+	coordinator:update()
+
+	t:tdeq(calls, {
+		"window-sync",
+	})
 end
 
 return test

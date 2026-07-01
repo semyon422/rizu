@@ -9,21 +9,21 @@ local SelectionCoordinator = class()
 ---@param collectionSelector rizu.select.CollectionSelector
 ---@param backgroundModel sphere.BackgroundModel
 ---@param previewModel rizu.preview.PreviewModel
----@param windowModel sphere.WindowModel
+---@param windowSync rizu.select.services.SelectionWindowSync
 function SelectionCoordinator:new(
 	chartSelector,
 	scoreSelector,
 	collectionSelector,
 	backgroundModel,
 	previewModel,
-	windowModel
+	windowSync
 )
 	self.chartSelector = chartSelector
 	self.scoreSelector = scoreSelector
 	self.collectionSelector = collectionSelector
 	self.backgroundModel = backgroundModel
 	self.previewModel = previewModel
-	self.windowModel = windowModel
+	self.windowSync = windowSync
 
 	self.chartSelector.state:onChanged(function(event)
 		if event.type == "selection_changed" and event.level == 2 then
@@ -65,7 +65,7 @@ end
 
 ---@param applyModifierMeta? function Callback to update modifier meta
 function SelectionCoordinator:update(applyModifierMeta)
-	self.windowModel:setVsyncOnSelect(true)
+	self.windowSync:update()
 
 	local chartSelector = self.chartSelector
 	if chartSelector:isChanged() then

@@ -101,6 +101,9 @@ All select events must include a `type` field. Event type names should describe 
 ### Filesystem and OS Integration
 `SelectionActions` delegates opening local chart and location directories to `LocationDirectoryOpener`. This keeps selected-location lookup in the action layer while isolating `love.filesystem` source-path resolution and `love.system.openURL` behind an injected service.
 
+### Window Sync
+`SelectionCoordinator:update()` triggers `SelectionWindowSync:update()` while the select screen is active. `SelectionWindowSync` owns the concrete `WindowModel:setVsyncOnSelect(true)` call so selection coordination does not depend directly on window-model details.
+
 ### Partial Cache Selection
 Selection may point at provisional library rows while caching is still running. A provisional chartview remains a valid list item and can be kept in `SelectionState`, but it is not a playable chart until it has a non-zero `chartmeta_id`, `hash`, `index`, `inputmode`, and `location_path`.
 
@@ -121,7 +124,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 
 ### Boundaries and Dependencies
 - **Event wiring**: Centralize event-based system coupling if possible. `SelectionCoordinator` already handles some of this, but there may be additional event wiring elsewhere.
-- **UI-only effects**: Move UI concerns out of selection logic, including `self.windowModel:setVsyncOnSelect(true)`.
 - **Configuration IO**: Move config persistence out of the select module. Calls such as `self.configModel:write()` make selection responsible for IO that belongs at a higher layer.
 - **Dependency inversion**: Consider introducing interfaces around services used by `rizu.select` so the module depends on selection-domain contracts instead of concrete application models.
 

@@ -23,6 +23,7 @@ local LibraryDropManager = require("rizu.library.LibraryDropManager")
 local ChartExporter = require("rizu.library.ChartExporter")
 local SelectionActions = require("rizu.select.SelectionActions")
 local LocationDirectoryOpener = require("rizu.select.services.LocationDirectoryOpener")
+local SelectionWindowSync = require("rizu.select.services.SelectionWindowSync")
 local ResultController = require("sphere.controllers.ResultController")
 local MultiplayerController = require("sphere.controllers.MultiplayerController")
 local EditorController = require("rizu.editor.EditorController")
@@ -177,7 +178,7 @@ function GameController:new()
 		self.collectionSelector,
 		self.backgroundModel,
 		self.previewModel,
-		self.windowModel
+		SelectionWindowSync(self.windowModel)
 	)
 	self.modifierCoordinator = ModifierCoordinator(
 		self.chartSelector,
