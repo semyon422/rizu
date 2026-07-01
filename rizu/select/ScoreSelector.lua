@@ -4,12 +4,14 @@ local Observable = require("Observable")
 local ScoreStore = require("rizu.select.stores.ScoreStore")
 local LocalScoreProvider = require("rizu.select.providers.LocalScoreProvider")
 local OnlineScoreProvider = require("rizu.select.providers.OnlineScoreProvider")
+local SelectionReplayBaseApplier = require("rizu.select.services.SelectionReplayBaseApplier")
 
 ---@class rizu.select.ScoreSelector
 ---@operator call: rizu.select.ScoreSelector
 ---@field onlineScoreCooldownActive boolean
 ---@field pendingOnlineScoreChartview rizu.library.LocatedChartview?
 ---@field pendingOnlineScoreGeneration integer?
+---@field replayBaseApplier rizu.select.services.SelectionReplayBaseApplier
 local ScoreSelector = class()
 
 ---@param configModel sphere.ConfigModel
@@ -28,6 +30,7 @@ function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
 	local onlineProvider = OnlineScoreProvider(onlineModel)
 	self.store = ScoreStore(configModel, localProvider, onlineProvider)
 	self.store:onChanged(self)
+	self.replayBaseApplier = SelectionReplayBaseApplier(configModel, replayBase)
 
 	self.observable = Observable()
 	self.debounceTime = 0.5
@@ -216,31 +219,7 @@ end
 
 ---@param chartview rizu.library.LocatedChartview
 function ScoreSelector:updateReplayBase(chartview)
-	local config = self.configModel.configs.settings.select
-	local secondary_mode = config.secondary_mode or "chartmetas"
-	if secondary_mode == "chartfile_sets" or secondary_mode == "chartfiles" or secondary_mode == "chartmetas" then
-		return
-	end
-
-	local replayBase = self.replayBase
-
-	replayBase.modifiers = chartview.modifiers or {}
-	replayBase.rate = chartview.rate or 1
-	replayBase.mode = chartview.mode or "mania"
-
-	if secondary_mode == "chartdiffs" then
-		return
-	end
-
-	replayBase.nearest = chartview.nearest or false
-	replayBase.tap_only = chartview.tap_only or false
-	replayBase.timings = chartview.timings
-	replayBase.subtimings = chartview.subtimings
-	replayBase.healths = chartview.healths
-	replayBase.columns_order = chartview.columns_order
-	replayBase.custom = chartview.custom or false
-	replayBase.const = chartview.const or false
-	replayBase.rate_type = chartview.rate_type or "linear"
+	self.replayBaseApplier:apply(chartview)
 end
 
 return ScoreSelector

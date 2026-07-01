@@ -62,7 +62,7 @@ Score loads are generation-guarded. Every new chart selection increments the sco
 
 Online score loading uses an immediate-plus-trailing throttle. The first selected chart after an idle period requests scores immediately. Further chart changes during the throttle window only replace the pending request, and when the window ends the latest pending chart is requested. This keeps online scores responsive without sending a request for every intermediate chart while the player scrolls quickly.
 
-`ScoreSelector:updateReplayBase(chartview)` is called from `ModifierCoordinator:applyModifierMeta(true)` when a selection change should refresh gameplay settings. The current contract is:
+`SelectionReplayBaseApplier` owns the selection-driven mutation of the current `ReplayBase`. `ScoreSelector:updateReplayBase(chartview)` is a compatibility facade that delegates to the applier. The current contract is:
 
 | Secondary mode | ReplayBase update |
 | :--- | :--- |
@@ -74,7 +74,7 @@ Manual modifier changes are handled separately by `ModifierCoordinator:update()`
 
 `ModifierCoordinator` keeps selection-driven and manual modifier flows separate:
 
-- `applySelectionModifierMeta()` is used after chart selection changes. It may import selection fields into the local `ReplayBase` through `ScoreSelector:updateReplayBase(chartview)`, then recalculates local modifier metadata and preview rate. It does not sync multiplayer by itself.
+- `applySelectionModifierMeta()` is used after chart selection changes. It may import selection fields into the local `ReplayBase` through `SelectionReplayBaseApplier`, then recalculates local modifier metadata and preview rate. It does not sync multiplayer by itself.
 - `applyManualModifierMeta()` is used after player-edited modifiers have already changed the local `ReplayBase`. It recalculates local modifier metadata without importing selection fields again.
 - `syncManualReplayBaseToMultiplayer()` is called only for manual modifier changes detected by `ModifierSelectModel:isChanged()`. Multiplayer room chart identity comes from `ChartSelector:findChartmeta(hash, index)` and room state, not from selection-driven modifier application.
 
