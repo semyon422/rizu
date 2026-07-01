@@ -224,9 +224,4 @@ function ScoreSelector:buildSelectionReplayBase(chartview)
 	return self.replayBaseApplier:buildSelectionReplayBase(chartview)
 end
 
----@param chartview rizu.library.LocatedChartview
-function ScoreSelector:updateReplayBase(chartview)
-	self.replayBaseApplier:apply(chartview)
-end
-
 return ScoreSelector

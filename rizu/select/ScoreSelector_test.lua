@@ -37,23 +37,6 @@ local function createSelector(secondary_mode, replayBase)
 end
 
 ---@param t testing.T
-function test.update_replay_base_delegates_to_applier(t)
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartdiffs", replayBase)
-	local chartview = {hash = "h", index = 1}
-	local applied
-	selector.replayBaseApplier = {
-		apply = function(_, item)
-			applied = item
-		end,
-	}
-
-	selector:updateReplayBase(chartview)
-
-	t:eq(applied, chartview)
-end
-
----@param t testing.T
 function test.build_selection_replay_base_delegates_to_applier(t)
 	local replayBase = ReplayBase()
 	local selector = createSelector("chartdiffs", replayBase)
