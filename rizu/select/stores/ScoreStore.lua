@@ -7,6 +7,10 @@ local Observable = require("Observable")
 ---@operator call: rizu.select.stores.ScoreStore
 local ScoreStore = class()
 
+---@alias rizu.select.ScoreScope
+---| "chartmeta"
+---| "chartdiff"
+
 ScoreStore.scoreSources = {
 	"local",
 	"online",
@@ -92,13 +96,19 @@ function ScoreStore:filterScores(scores)
 end
 
 ---@param chartview sea.ChartmetaKey|sea.ChartdiffKey
----@param exact boolean?
+---@param score_scope rizu.select.ScoreScope?
 ---@param request_id integer
 ---@return nil?
-function ScoreStore:updateItemsAsync(chartview, exact, request_id)
+function ScoreStore:updateItemsAsync(chartview, score_scope, request_id)
 	self.requestId = request_id
 
-	if not chartview.hash or not chartview.index then
+	if not score_scope or not chartview.hash or not chartview.index then
+		self.items = {}
+		self:emitChanged({type = "score_items_changed", items = self.items})
+		return
+	end
+
+	if score_scope == "chartdiff" and (not chartview.modifiers or not chartview.rate or not chartview.mode) then
 		self.items = {}
 		self:emitChanged({type = "score_items_changed", items = self.items})
 		return
@@ -111,10 +121,12 @@ function ScoreStore:updateItemsAsync(chartview, exact, request_id)
 
 	---@type sea.Chartplay[]
 	local chartplays
-	if exact then
+	if score_scope == "chartdiff" then
 		chartplays = provider:getChartplaysForChartdiff(chartview)
-	else
+	elseif score_scope == "chartmeta" then
 		chartplays = provider:getChartplaysForChartmeta(chartview)
+	else
+		error("unknown score scope: " .. tostring(score_scope))
 	end
 
 	if request_id ~= self.requestId then

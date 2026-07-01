@@ -112,6 +112,88 @@ function test.chartplays_mode_updates_chartplay_base_fields(t)
 end
 
 ---@param t testing.T
+function test.coarse_modes_load_chartmeta_scores(t)
+	for _, mode in ipairs({"chartfile_sets", "chartfiles", "chartmetas"}) do
+		local replayBase = ReplayBase()
+		local selector = createSelector(mode, replayBase)
+		local scope
+		selector.store = {
+			updateItems = function(_, _, score_scope)
+				scope = score_scope
+			end,
+		}
+
+		selector:setChart({hash = "h", index = 1, chartdiff_id = 0})
+
+		t:eq(scope, "chartmeta", mode)
+	end
+end
+
+---@param t testing.T
+function test.chartdiff_and_chartplay_modes_load_exact_chartdiff_scores(t)
+	for _, mode in ipairs({"chartdiffs", "chartplays"}) do
+		local replayBase = ReplayBase()
+		local selector = createSelector(mode, replayBase)
+		local scope
+		selector.store = {
+			updateItems = function(_, _, score_scope)
+				scope = score_scope
+			end,
+		}
+
+		selector:setChart({
+			hash = "h",
+			index = 1,
+			chartdiff_id = 7,
+			modifiers = {},
+			rate = 1,
+			mode = "mania",
+		})
+
+		t:eq(scope, "chartdiff", mode)
+	end
+end
+
+---@param t testing.T
+function test.chartdiff_score_visibility_requires_actual_chartdiff(t)
+	local replayBase = ReplayBase()
+	local selector = createSelector("chartdiffs", replayBase)
+	local scope = false
+	selector.store = {
+		updateItems = function(_, _, score_scope)
+			scope = score_scope
+		end,
+	}
+
+	selector:setChart({hash = "h", index = 1, chartdiff_id = 0})
+
+	t:eq(scope, nil)
+end
+
+---@param t testing.T
+function test.score_store_clears_incomplete_chartdiff_key(t)
+	local configModel = createConfigModel("chartdiffs")
+	local provider_called = false
+	local provider = {
+		getChartplaysForChartmeta = function()
+			provider_called = true
+			return {}
+		end,
+		getChartplaysForChartdiff = function()
+			provider_called = true
+			return {}
+		end,
+	}
+	local store = ScoreStore(configModel, provider, provider)
+	store.items = {{id = 1, accuracy = 1}}
+
+	store:updateItemsAsync({hash = "h", index = 1, chartdiff_id = 7}, "chartdiff", 1)
+
+	t:eq(provider_called, false)
+	t:eq(store:count(), 0)
+end
+
+---@param t testing.T
 function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart(t)
 	local time = {0}
 	delay.set_timer(time)
@@ -269,7 +351,7 @@ function test.score_store_ignores_stale_provider_result(t)
 		changed_count = changed_count + 1
 	end)
 
-	store:updateItemsAsync({hash = "old", index = 1}, false, 1)
+	store:updateItemsAsync({hash = "old", index = 1}, "chartmeta", 1)
 
 	t:eq(store:count(), 0)
 	t:eq(changed_count, 0)

@@ -169,14 +169,29 @@ function ScoreSelector:startOnlineScoreCooldown()
 end
 
 ---@param chartview rizu.library.LocatedChartview
----@param generation integer
-function ScoreSelector:updateScoreItems(chartview, generation)
+---@return rizu.select.ScoreScope?
+function ScoreSelector:getScoreScope(chartview)
+	if not chartview.hash or not chartview.index then
+		return nil
+	end
+
 	local config = self.configModel.configs.settings.select
 	local secondary_mode = config.secondary_mode or "chartmetas"
-	local exact = secondary_mode == "chartdiffs" or secondary_mode == "chartplays"
+	if secondary_mode == "chartdiffs" or secondary_mode == "chartplays" then
+		if chartview.chartdiff_id and chartview.chartdiff_id ~= 0 then
+			return "chartdiff"
+		end
+		return nil
+	end
 
+	return "chartmeta"
+end
+
+---@param chartview rizu.library.LocatedChartview
+---@param generation integer
+function ScoreSelector:updateScoreItems(chartview, generation)
 	-- We use the coro version to ensure the task runner waits for completion
-	self.store:updateItems(chartview, exact, generation)
+	self.store:updateItems(chartview, self:getScoreScope(chartview), generation)
 end
 
 ---@param direction integer?

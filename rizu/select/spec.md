@@ -52,7 +52,11 @@ The `SelectionState` container maintains the current `index` and `id` for each l
 `ScoreSelector` owns score list loading and score selection for the current chartview. Score loading is scoped by `settings.select.secondary_mode`:
 
 - `chartfile_sets`, `chartfiles`, `chartmetas`: load scores for the selected `chartmeta` when `hash` and `index` are available.
-- `chartdiffs`, `chartplays`: load exact scores for the selected `chartdiff`.
+- `chartdiffs`, `chartplays`: load exact scores for the selected `chartdiff` when a real `chartdiff_id` and complete chartdiff key are available.
+
+Score visibility follows the selected chartview, not the highlighted score row. In coarse modes, the score list shows all plays for the selected song identity (`hash` + `index`) across its playable variations. In `chartdiffs` and `chartplays` modes, the score list shows only plays matching the selected playable variation (`hash`, `index`, `modifiers`, `rate`, and `mode`). `chartplays` mode still shows the exact variation's score list rather than reducing the list to only the selected play; the selected play is restored by `chartplay_id`.
+
+Partial cache states may produce provisional chartviews without a playable variation. Score loading must clear the score list instead of requesting exact chartdiff scores when the selected chartview has no `chartdiff_id`, incomplete `hash` / `index`, or incomplete chartdiff key fields.
 
 Score loads are generation-guarded. Every new chart selection increments the score loading generation; delayed online throttle work and late provider results must be ignored if a newer generation has started. This keeps scores, `SelectionState.scoreId`, and `ScoreSelector.chartplay` aligned with the current chartview.
 
@@ -96,7 +100,6 @@ All select events must include a `type` field. Event type names should describe 
 - **Single-list layouts**: The selection model is technically two lists, but some `primary_mode` / `secondary_mode` combinations always produce a secondary list with one logical item. Those modes should probably render as a single-list UI.
 - **Incremental cache refreshes**: The lists should update while charts are still being cached, so the player can immediately play anything that has already been processed. This needs design work because rebuilding large lists can take seconds for very large libraries.
 - **Collections**: Current collections are folder-like path prefixes used for filtering. Keep that behavior, but consider renaming it to make room for real user-defined collections. Collections may also need separate scopes for sets, metas, diffs, and plays.
-- **Score visibility**: Document which scores should be shown for each selection state, including the relationship between selected item, selected variation, local scores, online scores, and multiplayer context.
 
 ### Selection, Scores, and Replay State
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
