@@ -5,6 +5,17 @@ local table_util = require("table_util")
 ---@operator call: rizu.select.SelectionQueryBuilder
 local SelectionQueryBuilder = class()
 
+---@class rizu.select.SelectConfig
+---@field sortFunction string
+
+---@class rizu.select.SelectionQueryParams
+---@field order string[]
+---@field where rizu.select.QueryCondition
+---@field lamp rizu.select.QueryCondition?
+---@field difficulty string?
+---@field primary_mode string
+---@field secondary_mode string
+
 ---@param configModel sphere.ConfigModel
 ---@param sortModel rizu.select.SortModel
 ---@param searchModel rizu.select.SearchModel
@@ -16,11 +27,12 @@ function SelectionQueryBuilder:new(configModel, sortModel, searchModel, filterMo
 	self.filterModel = filterModel
 end
 
----@param config table The 'select' config from configModel
----@param collectionItem table? Current collection item
----@return table params
+---@param config rizu.select.SelectConfig The 'select' config from configModel
+---@param collectionItem rizu.library.Collections.TreeNode? Current collection item
+---@return rizu.select.SelectionQueryParams params
 function SelectionQueryBuilder:build(config, collectionItem)
 	local settings_select = self.configModel.configs.settings.select
+	---@type rizu.select.SelectionQueryParams
 	local params = {}
 
 	local primary_mode = settings_select.primary_mode or "chartmetas"

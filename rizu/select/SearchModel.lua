@@ -135,8 +135,8 @@ local flip_operators = {
 }
 
 ---@param s string
----@param cond table?
----@return table
+---@param cond rizu.select.QueryCondition?
+---@return rizu.select.QueryCondition
 function SearchModel:transformSearchString(s, cond)
 	cond = cond or {}
 
@@ -188,8 +188,8 @@ function SearchModel:getFilter()
 	end
 end
 
----@return table
----@return table?
+---@return rizu.select.QueryCondition
+---@return rizu.select.QueryCondition?
 function SearchModel:getConditions()
 	local configs = self.configModel.configs
 	local settings = configs.settings
@@ -197,6 +197,7 @@ function SearchModel:getConditions()
 
 	local filterString, lampString = _select.filterString, _select.lampString
 
+	---@type rizu.select.QueryCondition
 	local cond = {}
 
 	if not settings.miscellaneous.showNonManiaCharts then

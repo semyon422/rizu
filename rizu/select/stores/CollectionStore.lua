@@ -5,6 +5,9 @@ local Observable = require("Observable")
 
 ---@class rizu.select.stores.CollectionStore
 ---@operator call: rizu.select.stores.CollectionStore
+---@field tree rizu.library.Collections.TreeNode
+---@field root_tree rizu.library.Collections.TreeNode
+---@field locations_in_collections boolean
 local CollectionStore = class()
 
 ---@param library rizu.library.Library
@@ -49,6 +52,8 @@ function CollectionStore:load(locations_in_collections)
 	self:emitChanged({type = "collection_tree_changed", tree = self.tree})
 end
 
+---@param path string?
+---@param location_id integer?
 function CollectionStore:setPath(path, location_id)
 	self.tree = self.root_tree
 	if not path and not location_id then
@@ -65,6 +70,8 @@ function CollectionStore:setPath(path, location_id)
 	self:emitChanged({type = "collection_tree_changed", tree = self.tree})
 end
 
+---@param path string?
+---@param location_id integer?
 function CollectionStore:setPathLic(path, location_id)
 	local tree = self.tree
 
@@ -86,6 +93,7 @@ function CollectionStore:setPathLic(path, location_id)
 	self:setPathP(path)
 end
 
+---@param path string?
 function CollectionStore:setPathP(path)
 	if not path then
 		return

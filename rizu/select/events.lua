@@ -35,7 +35,7 @@
 
 ---@class rizu.select.CollectionSelectionChangedEvent
 ---@field type "collection_selection_changed"
----@field item table?
+---@field item rizu.library.Collections.TreeNode?
 ---@field path_changed boolean
 
 ---@class rizu.select.ListStoreCountChangedEvent
@@ -53,7 +53,7 @@
 
 ---@class rizu.select.CollectionStoreTreeChangedEvent
 ---@field type "collection_tree_changed"
----@field tree table
+---@field tree rizu.library.Collections.TreeNode
 
 ---@alias rizu.select.SelectionStateEvent
 ---| rizu.select.SelectionChangedEvent

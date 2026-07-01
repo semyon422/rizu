@@ -4,6 +4,7 @@ local CollectionStore = require("rizu.select.stores.CollectionStore")
 
 ---@class rizu.select.CollectionSelector
 ---@operator call: rizu.select.CollectionSelector
+---@field store rizu.select.stores.CollectionStore
 local CollectionSelector = class()
 
 ---@param configModel sphere.ConfigModel
@@ -106,7 +107,7 @@ function CollectionSelector:scrollCollection(direction, destination, force)
 	})
 end
 
----@return table?
+---@return rizu.library.Collections.TreeNode?
 function CollectionSelector:getSelectedItem()
 	return self.store.tree.items[self.store.tree.selected]
 end
