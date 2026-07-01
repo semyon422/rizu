@@ -13,6 +13,7 @@ local TaskRunner = require("rizu.select.tasks.TaskRunner")
 
 ---@class rizu.select.ChartSelector
 ---@operator call: rizu.select.ChartSelector
+---@field is_finding_chartmeta boolean?
 local ChartSelector = class()
 
 ChartSelector.debounceTime = 0.5
@@ -116,6 +117,10 @@ end
 
 ---@param event rizu.select.SelectionStateEvent
 function ChartSelector:receive(event)
+	if self.is_finding_chartmeta then
+		return
+	end
+
 	if event.type == "selection_changed" then
 		if event.level == 1 then
 			self.taskRunner:push(function()
@@ -153,11 +158,13 @@ end
 
 ---@param hash string
 ---@param index integer
-function ChartSelector:findNotechart(hash, index)
+function ChartSelector:findChartmeta(hash, index)
 	local config = self.configModel.configs.settings.select
 	local params = {
 		where = {hash = hash, index = index},
 		difficulty = config.diff_column,
+		primary_mode = "chartmetas",
+		secondary_mode = "chartmetas",
 	}
 	self.taskRunner:push(function()
 		local result = self.library:queryAsync(params)
@@ -172,10 +179,14 @@ function ChartSelector:findNotechart(hash, index)
 				local chartview = self.stores[2]:get(1)
 				self:setChartview(chartview)
 				self:setConfig(chartview)
-				self.state:setSelection(1, 1, chartview.chartfile_set_id)
-				self.state:setSelection(2, 1, chartview.chartfile_id)
+				if chartview then
+					self.is_finding_chartmeta = true
+					self.state:setSelection(1, 1, chartview.chartfile_set_id)
+					self.state:setSelection(2, 1, chartview.chartfile_id)
+					self.is_finding_chartmeta = false
+				end
 			end
-			self:emitChanged({type = "notechart_found", hash = hash, index = index})
+			self:emitChanged({type = "chartmeta_found", hash = hash, index = index})
 		end
 	end, TaskRunner.priority.high)
 end

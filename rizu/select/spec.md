@@ -99,6 +99,9 @@ Selection may point at provisional library rows while caching is still running. 
 
 Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(chartview)`. This includes preview activation, audio/background lookup, chart loading, modifier metadata application, and selection-driven `ReplayBase` updates. When selection lands on a provisional row, the preview audio should be cleared and modifier metadata should not be recalculated from incomplete chart data.
 
+### Multiplayer Chart Lookup
+`ChartSelector:findChartmeta(hash, index)` is used when a multiplayer room tells the client which chartmeta is required. The lookup intentionally targets `chartmetas` only: it answers whether the client has the song identity (`hash` + `index`). Gameplay variation details such as modifiers, rate, play-specific timing, and other `ReplayBase` fields come from multiplayer room state rather than from this local lookup.
+
 ## Future Work and Open Questions
 
 ### User Experience
@@ -109,7 +112,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 ### Selection, Scores, and Replay State
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
 - **Multiplayer coupling**: Revisit how selection state feeds multiplayer state. `self.multiplayerModel.client:updateReplayBase()` suggests multiplayer currently carries selection-specific behavior that may need a cleaner boundary.
-- **Host chart lookup**: Reevaluate `findNotechart` / `find_notechart`. The main use case seems to be multiplayer host chart selection, and that lookup probably should target `chartmeta`.
 
 ### Boundaries and Dependencies
 - **Event wiring**: Centralize event-based system coupling if possible. `SelectionCoordinator` already handles some of this, but there may be additional event wiring elsewhere.

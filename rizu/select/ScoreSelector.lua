@@ -65,7 +65,7 @@ function ScoreSelector:receive(event)
 
 	if event.type == "selection_changed" and event.level == 2 then
 		self:setChart(self.chartview)
-	elseif event.type == "notechart_found" or event.type == "selected_set_changed" then
+	elseif event.type == "chartmeta_found" or event.type == "selected_set_changed" then
 		self:setChart(self.chartview)
 	end
 end

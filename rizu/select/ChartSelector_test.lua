@@ -247,6 +247,41 @@ function test.provisional_chartview_does_not_load_chart(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.find_chartmeta_ignores_current_selection_modes(t)
+	local charts = {
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h1", index = 1},
+		{chartfile_set_id = 2, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "target", index = 1},
+	}
+	local configModel = createMockConfigModel()
+	configModel.configs.settings.select.primary_mode = "chartdiffs"
+	configModel.configs.settings.select.secondary_mode = "chartplays"
+	local library = tlf:create()
+	tlf:populate(library, charts)
+
+	local fs = {read = function() end, getInfo = function() end}
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	chartSelector.config = configModel.configs.select
+
+	local found
+	chartSelector:onChanged(function(event)
+		if event.type == "chartmeta_found" then
+			found = event
+		end
+	end)
+
+	chartSelector:findChartmeta("target", 1)
+
+	t:tdeq(found, {type = "chartmeta_found", hash = "target", index = 1})
+	t:eq(chartSelector.stores[1].mode, "chartmetas")
+	t:eq(chartSelector.stores[2].mode, "chartmetas")
+	t:eq(chartSelector.chartview.chartmeta_id, 2)
+	t:eq(chartSelector.chartview.hash, "target")
+	t:eq(chartSelector.config.chartmeta_id, 2)
+
+	library:unload()
+end
+
 function test.score_navigation(t)
 	local charts = {
 		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h1", index = 1}

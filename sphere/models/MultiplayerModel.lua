@@ -84,7 +84,7 @@ function MultiplayerModel:selectChart()
 	local index = room.chartmeta_key.index
 
 	print("find", hash, index)
-	chartSelector:findNotechart(hash, index)
+	chartSelector:findChartmeta(hash, index)
 
 	chartSelector:setLock(false)
 

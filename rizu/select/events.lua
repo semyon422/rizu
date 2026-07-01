@@ -16,8 +16,8 @@
 ---@class rizu.select.PrimaryItemsUpdatedEvent
 ---@field type "primary_items_updated"
 
----@class rizu.select.NotechartFoundEvent
----@field type "notechart_found"
+---@class rizu.select.ChartmetaFoundEvent
+---@field type "chartmeta_found"
 ---@field hash string
 ---@field index integer
 
@@ -62,7 +62,7 @@
 ---@alias rizu.select.ChartSelectorEvent
 ---| rizu.select.ChartviewChangedEvent
 ---| rizu.select.PrimaryItemsUpdatedEvent
----| rizu.select.NotechartFoundEvent
+---| rizu.select.ChartmetaFoundEvent
 ---| rizu.select.SelectedSetChangedEvent
 ---| rizu.select.LevelScrolledEvent
 
