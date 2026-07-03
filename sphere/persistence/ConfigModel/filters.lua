@@ -1,6 +1,9 @@
 local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartFormat = require("sea.chart.ChartFormat")
 
+---@param name string
+---@param inputMode string
+---@return sphere.ScoreFilter
 local function newInputModeScoreFilter(name, inputMode)
 	return {
 		name = name,
@@ -11,6 +14,26 @@ local function newInputModeScoreFilter(name, inputMode)
 end
 
 ---@class sphere.FiltersConfig
+---@field notechart (sphere.ChartFilterGroup|sphere.ChartSearchFilter)[]
+---@field score sphere.ScoreFilter[]
+
+---@class sphere.ChartConditionFilter
+---@field name string
+---@field conds rdb.Conditions
+
+---@class sphere.ChartFilterGroup
+---@field name string
+---@field [integer] sphere.ChartConditionFilter
+
+---@class sphere.ChartSearchFilter
+---@field name string
+---@field string string?
+---@field condition rdb.Conditions?
+
+---@class sphere.ScoreFilter
+---@field name string
+---@field check (fun(score: sea.Chartplay): boolean)?
+
 local filters = {
 	notechart = {
 		{

@@ -175,7 +175,7 @@ function SearchModel:transformSearchString(s, cond)
 	return cond
 end
 
----@return table?
+---@return sphere.ChartSearchFilter?
 function SearchModel:getFilter()
 	local configs = self.configModel.configs
 	local filters = configs.filters

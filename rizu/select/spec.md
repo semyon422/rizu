@@ -139,7 +139,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 ### Types and Naming
 - **Location DTO split**: Split `rizu.library.Location` into two shapes: the full runtime entity and a narrower insert-data record used by repositories. Look for similar patterns elsewhere before applying this broadly.
 - **Score naming**: Rename `scoreId`-style identifiers toward `play` / `chartplay` terminology to match the library hierarchy.
-- **FilterModel annotations**: Add missing annotations in `FilterModel` and related model classes.
 
 ### Filters and Task Infrastructure
 - **Filter editing**: Reconsider how custom filters merge with defaults. A dedicated in-game filter editor may be better than manual config editing; if so, persist the complete filter set instead of merging custom filters into defaults at runtime.

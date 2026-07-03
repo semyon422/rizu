@@ -1,4 +1,13 @@
 ---@class sphere.SelectConfig
+---@field filterName string
+---@field filterString string
+---@field lampString string
+---@field scoreFilterName string
+---@field sortFunction string
+---@field selected_filters sphere.SelectedFilters
+
+---@alias sphere.SelectedFilters {[string]: {[string]: boolean?}}
+
 local _select = {
 	collection = nil,
 	location_id = nil,

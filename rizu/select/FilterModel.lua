@@ -6,14 +6,6 @@ local table_util = require("table_util")
 ---@field combined_filters rdb.Conditions[]
 local FilterModel = class()
 
----@class rizu.select.NotechartFilter
----@field name string
----@field conds rdb.Conditions
-
----@class rizu.select.NotechartFilterGroup
----@field name string
----@field [integer] rizu.select.NotechartFilter
-
 ---@param configModel sphere.ConfigModel
 function FilterModel:new(configModel)
 	self.configModel = configModel
@@ -25,6 +17,7 @@ end
 ---@param filter_name string
 ---@return boolean?
 function FilterModel:isActive(group_name, filter_name)
+	---@type sphere.SelectedFilters
 	local af = self.configModel.configs.select.selected_filters
 	return af[group_name] and af[group_name][filter_name]
 end
@@ -33,6 +26,7 @@ end
 ---@param filter_name string
 ---@param is_active boolean?
 function FilterModel:setFilter(group_name, filter_name, is_active)
+	---@type sphere.SelectedFilters
 	local af = self.configModel.configs.select.selected_filters
 	af[group_name] = af[group_name] or {}
 	af[group_name][filter_name] = is_active
@@ -40,12 +34,12 @@ end
 
 ---@param group_name string
 ---@param filter_name string
----@return rizu.select.NotechartFilter?
+---@return sphere.ChartConditionFilter?
 function FilterModel:findFilter(group_name, filter_name)
-	---@type rizu.select.NotechartFilterGroup[]
 	local filters = self.configModel.configs.filters.notechart
 	for _, group in ipairs(filters) do
 		if group.name == group_name then
+			---@cast group sphere.ChartFilterGroup
 			for _, filter in ipairs(group) do
 				if filter.name == filter_name then
 					return filter
@@ -56,6 +50,7 @@ function FilterModel:findFilter(group_name, filter_name)
 end
 
 function FilterModel:apply()
+	---@type sphere.SelectedFilters
 	local af = self.configModel.configs.select.selected_filters
 	---@type rdb.Conditions[]
 	local combined_filters = {}

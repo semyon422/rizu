@@ -72,6 +72,7 @@ function ScoreStore:filterScores(scores)
 		score.score = s * 10000
 	end
 
+	---@type sphere.ScoreFilter[]
 	local filters = self.configModel.configs.filters.score
 	local select = self.configModel.configs.select
 	local index
