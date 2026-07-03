@@ -15,7 +15,7 @@ function TaskRunner:new()
 	self.current_task_func = nil
 	---@type function?
 	self.pending_task_func = nil
-	---@type number?
+	---@type integer?
 	self.pending_level = nil
 	self.is_running = false
 end

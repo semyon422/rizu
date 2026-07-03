@@ -68,9 +68,14 @@ function SelectionState:setScore(index, id)
 	self:emitChanged({type = "score_selection_changed", index = index, id = id})
 end
 
--- Getters
+---@param level integer
+---@return rizu.select.SelectionLevel
 function SelectionState:getSelection(level) return self.levels[level] end
+
+---@return rizu.select.SelectionLevel
 function SelectionState:getPrimary() return self.levels[1] end
+
+---@return rizu.select.SelectionLevel
 function SelectionState:getSecondary() return self.levels[2] end
 
 return SelectionState

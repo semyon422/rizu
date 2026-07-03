@@ -6,6 +6,7 @@ local table_util = require("table_util")
 ---@class rizu.select.stores.ListStore
 ---@operator call: rizu.select.stores.ListStore
 ---@field generation integer
+---@field itemsCount integer
 local ListStore = class()
 
 ---@param library rizu.library.Library
@@ -105,7 +106,7 @@ function ListStore:_loadObject(index)
 	return item
 end
 
----@return number
+---@return integer
 function ListStore:count()
 	return self.itemsCount
 end
@@ -120,7 +121,7 @@ function ListStore:get(i)
 end
 
 ---@param chartview rizu.library.IChartviewBase
----@return number
+---@return integer
 function ListStore:indexof(chartview)
 	local maps = self.maps
 	local mode = self.mode

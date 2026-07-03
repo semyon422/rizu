@@ -139,7 +139,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 ### Types and Naming
 - **Location DTO split**: Split `rizu.library.Location` into two shapes: the full runtime entity and a narrower insert-data record used by repositories. Look for similar patterns elsewhere before applying this broadly.
 - **Untyped data params**: Replace broad annotations such as `---@param data table` with specific DTO or record types.
-- **Integer annotations**: Use `integer` for indexes and IDs, for example `level`, `index`, and optional `id` parameters that are currently annotated as `number`.
 - **Score naming**: Rename `scoreId`-style identifiers toward `play` / `chartplay` terminology to match the library hierarchy.
 - **FilterModel annotations**: Add missing annotations in `FilterModel` and related model classes.
 

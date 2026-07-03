@@ -57,7 +57,7 @@ function ScoreStore:clear()
 	self:emitChanged({type = "score_items_changed", items = self.items})
 end
 
----@return number
+---@return integer
 function ScoreStore:count()
 	return #self.items
 end
