@@ -44,6 +44,8 @@ After editing:
 
 `./luajit` is a wrapper around `./luajit.lua` that enforces a 2 GB memory limit via `ulimit -v`. The `./test` runner already applies this limit internally.
 
+`./luajit` accepts Lua source code from stdin when the script path is `-`, so `./luajit - <<'EOF'` is valid for short ad-hoc checks. For reusable or multi-step scripts, prefer writing a temporary script under `tmp/` and running it by path; for short one-liners, use `./luajit -e '...'`.
+
 ## Batch Text Substitution
 
 When performing mass find-and-replace (e.g., renaming namespaces, moving modules), scope substitutions by **line context** to avoid corrupting unrelated text like URLs, variable names, or data paths.

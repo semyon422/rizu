@@ -41,8 +41,16 @@ local function parse_args()
 	end
 
 	local script_path = arg[1]
+	if script_path == "-" then
+		local code = io.read("*a")
+		local f, err = load(code, "=(stdin)")
+		if not f then
+			error(string.format("Cannot load stdin: %s", err), 0)
+		end
+		return f, 2
+	end
 	if not script_path then
-		print("Usage: luajit.lua <script.lua> [args...]\n       luajit.lua -e <code> [args...]")
+		print("Usage: luajit.lua <script.lua> [args...]\n       luajit.lua - [args...]\n       luajit.lua -e <code> [args...]")
 		os.exit(1)
 	end
 
