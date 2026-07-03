@@ -49,3 +49,7 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 8. Update all `require()` paths across the codebase.
 9. Update class annotations to drop old prefixes.
 10. Update `pkg_config.lua` to replace three roots with one.
+
+## Future Work and Open Questions
+
+- **Tempo range metadata**: `Chartmeta.tempo_min` and `Chartmeta.tempo_max` are currently populated only by the osu! and Quaver decoders. Add shared tempo-range extraction for other chart formats that can represent tempo changes, so library views can show a consistent BPM range instead of only a single `tempo` value.
