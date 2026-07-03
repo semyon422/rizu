@@ -8,13 +8,7 @@ local SelectionQueryBuilder = class()
 ---@class rizu.select.SelectConfig
 ---@field sortFunction string
 
----@class rizu.select.SelectionQueryParams
----@field order string[]
----@field where rizu.select.QueryCondition
----@field lamp rizu.select.QueryCondition?
----@field difficulty string?
----@field primary_mode string
----@field secondary_mode string
+---@alias rizu.select.SelectionQueryParams rizu.library.ChartviewsRepo.QueryParams
 
 ---@param configModel sphere.ConfigModel
 ---@param sortModel rizu.select.SortModel

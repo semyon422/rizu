@@ -3,14 +3,12 @@ local table_util = require("table_util")
 
 ---@class rizu.select.FilterModel
 ---@operator call: rizu.select.FilterModel
----@field combined_filters rizu.select.QueryCondition[]
+---@field combined_filters rdb.Conditions[]
 local FilterModel = class()
-
----@alias rizu.select.QueryCondition {[any]: any}
 
 ---@class rizu.select.NotechartFilter
 ---@field name string
----@field conds rizu.select.QueryCondition
+---@field conds rdb.Conditions
 
 ---@class rizu.select.NotechartFilterGroup
 ---@field name string
@@ -19,7 +17,7 @@ local FilterModel = class()
 ---@param configModel sphere.ConfigModel
 function FilterModel:new(configModel)
 	self.configModel = configModel
-	---@type rizu.select.QueryCondition[]
+	---@type rdb.Conditions[]
 	self.combined_filters = {}
 end
 
@@ -59,10 +57,10 @@ end
 
 function FilterModel:apply()
 	local af = self.configModel.configs.select.selected_filters
-	---@type rizu.select.QueryCondition[]
+	---@type rdb.Conditions[]
 	local combined_filters = {}
 	for group_name, group in pairs(af) do
-		---@type rizu.select.QueryCondition
+		---@type rdb.Conditions
 		local group_conds = {"or"}
 		for filter_name, is_active in pairs(group) do
 			local filter = self:findFilter(group_name, filter_name)

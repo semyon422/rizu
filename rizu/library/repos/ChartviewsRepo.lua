@@ -6,10 +6,20 @@ local QueryFragments = require("rizu.library.sql.QueryFragments")
 local Model = require("rdb.Model")
 local chartview_base = require("rizu.library.models.chartview_base")
 
----@class rizu.library.ChartviewsRepo.QueryResult
+---@class rizu.library.ChartviewsRepo.PackedQueryResult
 ---@field count integer
----@field items cdata -- struct array
----@field maps table -- id_to_global_index maps
+---@field items string Serialized `chartview_struct[]` bytes.
+---@field maps rizu.library.ChartviewsRepo.IndexMaps
+
+---@alias rizu.library.ChartviewsRepo.IndexMaps {[string]: {[integer|string]: integer}}
+
+---@class rizu.library.ChartviewsRepo.QueryParams
+---@field order string[]
+---@field where rdb.Conditions
+---@field lamp rdb.Conditions?
+---@field difficulty string?
+---@field primary_mode string
+---@field secondary_mode string
 
 ---@class rizu.library.ChartviewsRepo
 ---@operator call: rizu.library.ChartviewsRepo
@@ -44,8 +54,8 @@ ChartviewsRepo.chartview_struct = ffi.typeof("chartview_struct")
 
 ---@param struct_array cdata
 ---@param count integer
----@param maps table
----@return table
+---@param maps rizu.library.ChartviewsRepo.IndexMaps
+---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function ChartviewsRepo:packResult(struct_array, count, maps)
 	return {
 		count = count,
@@ -54,10 +64,10 @@ function ChartviewsRepo:packResult(struct_array, count, maps)
 	}
 end
 
----@param t table
+---@param t rizu.library.ChartviewsRepo.PackedQueryResult
 ---@return cdata struct_array
 ---@return integer count
----@return table maps
+---@return rizu.library.ChartviewsRepo.IndexMaps maps
 function ChartviewsRepo:unpackResult(t)
 	local count = t.count
 	local items = ffi.new("chartview_struct[?]", count)
@@ -66,7 +76,7 @@ function ChartviewsRepo:unpackResult(t)
 end
 
 ---@param struct cdata
----@return table
+---@return rizu.library.IChartviewBase
 function ChartviewsRepo:structToTable(struct)
 	return {
 		chartfile_id = struct.chartfile_id,
@@ -315,6 +325,7 @@ function ChartviewsRepo:_getSlimColumns(mode, params)
 	return columns
 end
 
+---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function ChartviewsRepo:query()
 	local params = self.params
 	local primary_mode = params.primary_mode or "chartmetas"
@@ -334,7 +345,7 @@ function ChartviewsRepo:query()
 end
 
 ---@param chartview rizu.library.IChartviewBase
----@return table result
+---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function ChartviewsRepo:getViews(chartview)
 	local params = self.params
 	local primary_mode = params.primary_mode or "chartmetas"

@@ -2,10 +2,23 @@ local SelectionActions = require("rizu.select.SelectionActions")
 
 local test = {}
 
----@param chartview table?
+---@class rizu.select.SelectionActionsTest.Chartview
+---@field location_id integer
+---@field dir string
+
+---@class rizu.select.SelectionActionsTest.Location
+---@field path string
+---@field location_id integer
+
+---@class rizu.select.SelectionActionsTest.OpenCall
+---@field location rizu.select.SelectionActionsTest.Location
+---@field dir string?
+
+---@param chartview rizu.select.SelectionActionsTest.Chartview?
 ---@return rizu.select.SelectionActions
----@return table
+---@return rizu.select.SelectionActionsTest.OpenCall[]
 local function createActions(chartview)
+	---@type rizu.select.SelectionActionsTest.OpenCall[]
 	local calls = {}
 	local library = {
 		locationsRepo = {

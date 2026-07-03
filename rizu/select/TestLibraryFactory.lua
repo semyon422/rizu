@@ -7,6 +7,37 @@ local FunctionTimer = require("time.FunctionTimer")
 ---@operator call: rizu.select.TestLibraryFactory
 local TestLibraryFactory = class()
 
+---@class rizu.select.TestChartSeed
+---@field chartfile_set_id integer
+---@field chartfile_id integer
+---@field chartmeta_id integer?
+---@field chartdiff_id integer?
+---@field id integer?
+---@field set_name string?
+---@field set_dir string?
+---@field chartfile_name string?
+---@field path string?
+---@field hash string?
+---@field index integer?
+---@field inputmode string?
+---@field title string?
+---@field artist string?
+---@field level number?
+---@field difficulty number?
+
+---@class rizu.select.TestScoreSeed
+---@field id integer?
+---@field chartplay_id integer?
+---@field user_id integer?
+---@field hash string?
+---@field index integer?
+---@field modifiers sea.Modifier[]?
+---@field rate integer?
+---@field mode sea.Gamemode?
+---@field accuracy number?
+---@field created_at integer?
+---@field rating number?
+
 function TestLibraryFactory:new()
 	self.tcf = TestChartFactory()
 end
@@ -29,7 +60,7 @@ function TestLibraryFactory:create()
 end
 
 ---@param lib rizu.library.Library
----@param data table
+---@param data rizu.select.TestChartSeed[]
 function TestLibraryFactory:populate(lib, data)
 	-- Insert location
 	local loc = lib.locationsRepo:selectLocation("charts")
@@ -80,7 +111,7 @@ function TestLibraryFactory:populate(lib, data)
 end
 
 ---@param lib rizu.library.Library
----@param data table
+---@param data rizu.select.TestScoreSeed
 function TestLibraryFactory:createScore(lib, data)
 	local chartplay = self.tcf:createChartplay(data)
 	return lib.database.models.chartplays:create(chartplay)

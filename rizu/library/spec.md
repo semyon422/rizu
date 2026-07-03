@@ -118,6 +118,7 @@ If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a so
 
 ### Documentation
 - **Cross-module boundaries**: Separate the responsibilities of `rizu.library` and `rizu.select` more strictly in the documentation. The select module depends heavily on library query behavior, so library docs should describe data/query semantics while select docs should describe UI state and interaction.
+- **Secondary list ordering**: Document how `items` are sorted in secondary-list queries, including why `ChartviewsRepo:getViews()` uses a fixed contextual order instead of the primary list's configured sort order.
 - **External game imports**: Expand the user experience section with chart imports from other games and formats, not only existing local chart folders.
 - **IIDX `.ifs` paths**: Document `.ifs` representation in more detail. An `.ifs` file is a container with an internal file tree, not a chart by itself, so the docs should explain how external paths, internal paths, chartfile sets, chartfiles, preview audio, BGA, and keysounds relate.
 - **Future `.osz` support**: Consider direct `.osz` reading using the same container-oriented approach as `.ifs`.

@@ -47,7 +47,7 @@ function ListStore:emitChanged(event)
 	self.observable:send(event)
 end
 
----@param result table?
+---@param result rizu.library.ChartviewsRepo.PackedQueryResult?
 ---@param mode string
 function ListStore:setResult(result, mode)
 	self.mode = mode

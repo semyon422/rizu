@@ -240,8 +240,8 @@ end
 
 Library.stopTask = thread.coro(Library.stopTask)
 
----@param params table
----@return table result
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:queryAsync(params)
 	if self.is_sync or not self.worker then
 		self.chartviewsRepo.params = params
@@ -250,9 +250,9 @@ function Library:queryAsync(params)
 	return self.worker:query(params)
 end
 
----@param params table
----@param chartview table
----@return table result
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param chartview rizu.library.IChartviewBase
+---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:getViewsAsync(params, chartview)
 	if self.is_sync or not self.worker then
 		self.chartviewsRepo.params = params
@@ -261,9 +261,9 @@ function Library:getViewsAsync(params, chartview)
 	return self.worker:getViews(params, chartview)
 end
 
----@param params table
----@param _chartview table
----@return table result
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param _chartview rizu.library.IChartviewBase
+---@return rizu.library.Chartview? result
 function Library:getChartviewAsync(params, _chartview)
 	if self.is_sync or not self.worker then
 		self.chartviewsRepo.params = params

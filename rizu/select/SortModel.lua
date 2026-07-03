@@ -4,12 +4,15 @@ local class = require("class")
 ---@operator call: rizu.select.SortModel
 local SortModel = class()
 
+---@alias rizu.select.SortOrder string[]
+
 ---@param name string
----@return table
+---@return rizu.select.SortOrder
 function SortModel:getOrder(name)
 	return self.orders[name] or self.orders.id
 end
 
+---@type {[string]: rizu.select.SortOrder}
 SortModel.orders = {
 	id = {},
 	title = {"title", "artist"},
