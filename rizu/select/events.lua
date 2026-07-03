@@ -4,10 +4,10 @@
 ---@field index integer
 ---@field id integer?
 
----@class rizu.select.ScoreSelectionChangedEvent
----@field type "score_selection_changed"
+---@class rizu.select.ChartplaySelectionChangedEvent
+---@field type "chartplay_selection_changed"
 ---@field index integer
----@field id integer?
+---@field chartplay_id integer?
 
 ---@class rizu.select.ChartviewChangedEvent
 ---@field type "chartview_changed"
@@ -29,8 +29,8 @@
 ---@field level integer
 ---@field chartview rizu.library.LocatedChartview
 
----@class rizu.select.ScoreScrolledEvent
----@field type "score_scrolled"
+---@class rizu.select.ChartplayScrolledEvent
+---@field type "chartplay_scrolled"
 ---@field chartplay sea.Chartplay
 
 ---@class rizu.select.CollectionSelectionChangedEvent
@@ -57,7 +57,7 @@
 
 ---@alias rizu.select.SelectionStateEvent
 ---| rizu.select.SelectionChangedEvent
----| rizu.select.ScoreSelectionChangedEvent
+---| rizu.select.ChartplaySelectionChangedEvent
 
 ---@alias rizu.select.ChartSelectorEvent
 ---| rizu.select.ChartviewChangedEvent
@@ -67,7 +67,7 @@
 ---| rizu.select.LevelScrolledEvent
 
 ---@alias rizu.select.ScoreSelectorEvent
----| rizu.select.ScoreScrolledEvent
+---| rizu.select.ChartplayScrolledEvent
 ---| rizu.select.ScoreStoreItemsChangedEvent
 
 ---@alias rizu.select.CollectionSelectorEvent

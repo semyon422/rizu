@@ -58,7 +58,7 @@ Score visibility follows the selected chartview, not the highlighted score row. 
 
 Partial cache states may produce provisional chartviews without a playable variation. Score loading must clear the score list instead of requesting exact chartdiff scores when the selected chartview has no `chartdiff_id`, incomplete `hash` / `index`, or incomplete chartdiff key fields.
 
-Score loads are generation-guarded. Every new chart selection increments the score loading generation; delayed online throttle work and late provider results must be ignored if a newer generation has started. This keeps scores, `SelectionState.scoreId`, and `ScoreSelector.chartplay` aligned with the current chartview.
+Score loads are generation-guarded. Every new chart selection increments the score loading generation; delayed online throttle work and late provider results must be ignored if a newer generation has started. This keeps scores, `SelectionState.chartplayId`, and `ScoreSelector.chartplay` aligned with the current chartview.
 
 Online score loading uses an immediate-plus-trailing throttle. The first selected chart after an idle period requests scores immediately. Further chart changes during the throttle window only replace the pending request, and when the window ends the latest pending chart is requested. This keeps online scores responsive without sending a request for every intermediate chart while the player scrolls quickly.
 
@@ -138,7 +138,6 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 
 ### Types and Naming
 - **Location DTO split**: Split `rizu.library.Location` into two shapes: the full runtime entity and a narrower insert-data record used by repositories. Look for similar patterns elsewhere before applying this broadly.
-- **Score naming**: Rename `scoreId`-style identifiers toward `play` / `chartplay` terminology to match the library hierarchy.
 
 ### Filters and Task Infrastructure
 - **Filter editing**: Reconsider how custom filters merge with defaults. A dedicated in-game filter editor may be better than manual config editing; if so, persist the complete filter set instead of merging custom filters into defaults at runtime.

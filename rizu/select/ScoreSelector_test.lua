@@ -265,7 +265,7 @@ function test.score_items_event_is_forwarded_to_ui_observers(t)
 	t:tdeq(received, {type = "score_items_changed", items = selector.store.items})
 	t:eq(selector.chartplay, selector.store.items[1])
 	t:eq(selector.state.chartplayIndex, 1)
-	t:eq(selector.state.scoreId, 12)
+	t:eq(selector.state.chartplayId, 12)
 end
 
 ---@param t testing.T

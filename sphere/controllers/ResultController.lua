@@ -26,7 +26,7 @@ end
 
 function ResultController:unload()
 	local config = self.game.configModel.configs.select
-	config.chartplay_id = config.select_chartplay_id
+	config.chartplay_id = config.selected_chartplay_id
 end
 
 ---@param chartplay sea.Chartplay

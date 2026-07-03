@@ -314,21 +314,21 @@ function test.score_navigation(t)
 
 	-- Default selection should be the latest score (highest ID), which is 103
 	t:eq(chartModel.state.chartplayIndex, 3)
-	t:eq(chartModel.state.scoreId, 103)
+	t:eq(chartModel.state.chartplayId, 103)
 
 	scoreSelector:scrollScore(-1)
 	t:eq(chartModel.state.chartplayIndex, 2)
-	t:eq(chartModel.state.scoreId, 102)
+	t:eq(chartModel.state.chartplayId, 102)
 	t:eq(scoreSelector.chartplay.id, 102)
 
 	scoreSelector:scrollScore(-1)
 	t:eq(chartModel.state.chartplayIndex, 1)
-	t:eq(chartModel.state.scoreId, 101)
+	t:eq(chartModel.state.chartplayId, 101)
 	t:eq(scoreSelector.chartplay.id, 101)
 
 	-- Scroll forward
 	scoreSelector:scrollScore(1)
-	t:eq(chartModel.state.scoreId, 102)
+	t:eq(chartModel.state.chartplayId, 102)
 
 	library:unload()
 end

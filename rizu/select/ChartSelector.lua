@@ -303,7 +303,7 @@ function ChartSelector:setConfig(chartview)
 	self.config.chartmeta_id = chartview.chartmeta_id
 	self.config.chartdiff_id = chartview.chartdiff_id
 	self.config.chartplay_id = chartview.chartplay_id
-	self.config.select_chartplay_id = chartview.chartplay_id
+	self.config.selected_chartplay_id = chartview.chartplay_id
 end
 
 ---@param level integer

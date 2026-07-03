@@ -18,7 +18,7 @@ function SelectionState:new()
 	---@type integer
 	self.chartplayIndex = 1
 	---@type integer?
-	self.scoreId = nil
+	self.chartplayId = nil
 
 	self.observable = Observable()
 end
@@ -60,12 +60,12 @@ function SelectionState:setSelection(level, index, id)
 end
 
 ---@param index integer
----@param id integer?
-function SelectionState:setScore(index, id)
-	if self.chartplayIndex == index and self.scoreId == id then return end
+---@param chartplay_id integer?
+function SelectionState:setChartplay(index, chartplay_id)
+	if self.chartplayIndex == index and self.chartplayId == chartplay_id then return end
 	self.chartplayIndex = index
-	self.scoreId = id
-	self:emitChanged({type = "score_selection_changed", index = index, id = id})
+	self.chartplayId = chartplay_id
+	self:emitChanged({type = "chartplay_selection_changed", index = index, chartplay_id = chartplay_id})
 end
 
 ---@param level integer

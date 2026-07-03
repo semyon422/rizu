@@ -81,7 +81,7 @@ function ScoreSelector:setChart(chartview)
 	if not chartview then
 		self.generation = self.generation + 1
 		self:clear()
-		self.state:setScore(1, nil)
+		self.state:setChartplay(1, nil)
 		return
 	end
 
@@ -103,7 +103,7 @@ function ScoreSelector:findScore()
 		config.chartplay_id = chartplay.id
 	end
 
-	self.state:setScore(index, chartplay and chartplay.id)
+	self.state:setChartplay(index, chartplay and chartplay.id)
 	self.chartplay = chartplay
 end
 
@@ -211,10 +211,10 @@ function ScoreSelector:scrollScore(direction, destination)
 	local config = self.configModel.configs.select
 	config.chartplay_id = chartplay.id
 
-	self.state:setScore(destination, chartplay.id)
+	self.state:setChartplay(destination, chartplay.id)
 
 	self.chartplay = chartplay
-	self:emitChanged({type = "score_scrolled", chartplay = chartplay})
+	self:emitChanged({type = "chartplay_scrolled", chartplay = chartplay})
 end
 
 ---@param chartview rizu.library.LocatedChartview

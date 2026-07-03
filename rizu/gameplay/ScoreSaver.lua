@@ -116,7 +116,7 @@ function ScoreSaver:saveScore(gameplay_session)
 	end)()
 
 	local config = self.configModel.configs.select
-	config.select_chartplay_id = config.chartplay_id
+	config.selected_chartplay_id = config.chartplay_id
 	config.chartplay_id = _chartplay.id
 end
 
