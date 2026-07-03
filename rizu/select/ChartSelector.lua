@@ -1,5 +1,4 @@
 local class = require("class")
-local ChartfileReader = require("rizu.library.ChartfileReader")
 local delay = require("delay")
 local Observable = require("Observable")
 local SelectionState = require("rizu.select.SelectionState")
@@ -8,12 +7,15 @@ local SearchModel = require("rizu.select.SearchModel")
 local SortModel = require("rizu.select.SortModel")
 local FilterModel = require("rizu.select.FilterModel")
 local SelectionQueryBuilder = require("rizu.select.SelectionQueryBuilder")
-local ChartMetadataService = require("rizu.select.services.ChartMetadataService")
+local ChartMediaService = require("rizu.select.services.ChartMediaService")
+local ChartLoader = require("rizu.select.services.ChartLoader")
 local TaskRunner = require("rizu.select.tasks.TaskRunner")
 
 ---@class rizu.select.ChartSelector
 ---@operator call: rizu.select.ChartSelector
 ---@field is_finding_chartmeta boolean?
+---@field chartMediaService rizu.select.services.ChartMediaService
+---@field chartLoader rizu.select.services.ChartLoader
 local ChartSelector = class()
 
 ChartSelector.debounceTime = 0.5
@@ -49,7 +51,8 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 	self.filterModel = FilterModel(configModel)
 	self.sortModel = SortModel()
 	self.queryBuilder = SelectionQueryBuilder(configModel, self.sortModel, self.searchModel, self.filterModel)
-	self.metadataService = ChartMetadataService(fs)
+	self.chartMediaService = ChartMediaService()
+	self.chartLoader = ChartLoader(fs)
 	self.taskRunner = TaskRunner()
 
 	self.observable = Observable()
@@ -195,7 +198,7 @@ end
 function ChartSelector:getBackgroundPath()
 	local chartview = self.chartview
 	if not self:isPlayableChartview(chartview) then return end
-	return self.metadataService:getBackgroundPath(chartview)
+	return self.chartMediaService:getBackgroundPath(chartview)
 end
 
 ---@return string?
@@ -204,7 +207,7 @@ end
 function ChartSelector:getAudioPathPreview()
 	local chartview = self.chartview
 	if not self:isPlayableChartview(chartview) then return end
-	return self.metadataService:getAudioPathPreview(chartview)
+	return self.chartMediaService:getAudioPathPreview(chartview)
 end
 
 ---@param settings table?
@@ -213,7 +216,7 @@ end
 function ChartSelector:loadChart(settings)
 	local chartview = self.chartview
 	if not self:isPlayableChartview(chartview) then return end
-	return self.metadataService:loadChart(chartview)
+	return self.chartLoader:loadChart(chartview)
 end
 
 ---@param settings table?
@@ -222,7 +225,7 @@ end
 function ChartSelector:loadChartAbsolute(settings)
 	local chartview = self.chartview
 	if not self:isPlayableChartview(chartview) then return end
-	return self.metadataService:loadChartAbsolute(chartview)
+	return self.chartLoader:loadChartAbsolute(chartview)
 end
 
 ---@return boolean

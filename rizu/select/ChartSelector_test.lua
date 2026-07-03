@@ -234,7 +234,7 @@ function test.provisional_chartview_does_not_load_chart(t)
 	local fs = {read = function() end, getInfo = function() end}
 	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
 	local load_called = false
-	chartSelector.metadataService = {
+	chartSelector.chartLoader = {
 		loadChart = function()
 			load_called = true
 		end,
