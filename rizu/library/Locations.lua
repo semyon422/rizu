@@ -123,6 +123,7 @@ function Locations:enrichChartview(chart)
 end
 
 function Locations:createDefaultLocation()
+	---@type rizu.library.LocationInsert
 	local loc = {
 		path = "userdata/charts",
 		name = "game",

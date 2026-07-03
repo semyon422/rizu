@@ -45,6 +45,7 @@ function test.mounting(t)
 	t:eq(locations[1].is_relative, true)
 
 	-- Test adding a new external location
+	---@type rizu.library.LocationInsert
 	local loc2 = {
 		path = "/ext/charts",
 		name = "ext",

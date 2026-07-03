@@ -1,9 +1,12 @@
----@class rizu.library.Location
----@field id integer
+---@class rizu.library.LocationInsert
+---@field id integer?
 ---@field path string
 ---@field name string
 ---@field is_relative boolean
 ---@field is_internal boolean
+
+---@class rizu.library.Location: rizu.library.LocationInsert
+---@field id integer
 
 ---@class rizu.library.IChartviewBase
 ---@field chartfile_id integer

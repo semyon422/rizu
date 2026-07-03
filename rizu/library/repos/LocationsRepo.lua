@@ -26,7 +26,7 @@ function LocationsRepo:selectLocationById(id)
 	return self.models.locations:find({id = assert(id)})
 end
 
----@param location rizu.library.Location
+---@param location rizu.library.LocationInsert
 ---@return rizu.library.Location
 function LocationsRepo:insertLocation(location)
 	return self.models.locations:create(location)

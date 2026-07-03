@@ -23,6 +23,7 @@ function test.getChartData(t)
 	local content = "content"
 	local valid_hash = md5.sumhexa(content)
 
+	---@type rizu.library.LocationInsert
 	local loc = {
 		path = "charts", name = "game", is_relative = true, is_internal = true,
 	}
