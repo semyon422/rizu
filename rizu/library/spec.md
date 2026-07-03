@@ -101,6 +101,19 @@ Callers must guard optional data before using rich chart fields. Selection can k
 | `chartdiffs` | `chartmetas` | `meta` | `diff` | **Context:** Select a variation, see all variations of that chart. |
 | `chartfile_sets` | `chartdiffs` | `set` | `diff` | **Deep Drill-down:** Select a set, see all variations of all charts in it. |
 
+### Selection Examples
+These examples use player-facing modes and intentionally skip `chartfiles`, which mostly exists to preserve physical-file identity for duplicates and format internals.
+
+If `primary_mode = chartfile_sets` and `secondary_mode = chartmetas`, the primary list shows packs, folders, or archives. Selecting an osu! beatmapset folder scopes the secondary list to that set and shows each song identity inside it. For ordinary single-song folders this usually looks like one song; for multi-song formats or duplicate metadata, it can show multiple chartmetas.
+
+If `primary_mode = chartmetas` and `secondary_mode = chartdiffs`, the primary list is song-oriented. Selecting a song scopes the secondary list to that chartmeta and shows playable variations such as base rate, rate variants, converted modes, or modifier-derived diffs.
+
+If `primary_mode = chartfile_sets` and `secondary_mode = chartdiffs`, the primary list stays folder/archive-oriented, but selecting a set shows all playable variations for every chartmeta in that set. This is useful when a pack/folder is the main browsing unit but the player wants to choose a specific variation directly.
+
+If `primary_mode = chartdiffs` and `secondary_mode = chartmetas`, selecting a playable variation still scopes by the containing chartmeta. The secondary list provides local context by showing the other variations of the same song, rather than jumping to unrelated charts.
+
+If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a song scopes the secondary list to score history for that song identity. This can include plays across multiple playable variations when the query groups by chartmeta first; exact score visibility in the select UI is further constrained by `rizu.select` score-loading rules.
+
 ## Future Work and Open Questions
 
 ### Documentation
@@ -108,7 +121,6 @@ Callers must guard optional data before using rich chart fields. Selection can k
 - **External game imports**: Expand the user experience section with chart imports from other games and formats, not only existing local chart folders.
 - **IIDX `.ifs` paths**: Document `.ifs` representation in more detail. An `.ifs` file is a container with an internal file tree, not a chart by itself, so the docs should explain how external paths, internal paths, chartfile sets, chartfiles, preview audio, BGA, and keysounds relate.
 - **Future `.osz` support**: Consider direct `.osz` reading using the same container-oriented approach as `.ifs`.
-- **Selection examples**: Add concrete primary/secondary list examples for most mode combinations, possibly excluding `chartfiles` if it is too low-level for player-facing examples. The current query matrix is correct but hard to understand without worked examples.
 - **Mounts UI**: Document the useful actions available in the mounts view, since the UI already exposes many library-management operations there.
 
 ### Caching and Performance
