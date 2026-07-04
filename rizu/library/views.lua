@@ -8,12 +8,14 @@
 ---@class rizu.library.Location: rizu.library.LocationInsert
 ---@field id integer
 
----@class rizu.library.IChartviewBase
+---@class rizu.library.ChartviewIds
 ---@field chartfile_id integer
 ---@field chartfile_set_id integer
 ---@field chartmeta_id integer
 ---@field chartdiff_id integer
 ---@field chartplay_id integer
+
+---@class rizu.library.IChartviewBase: rizu.library.ChartviewIds
 ---@field lamp boolean?
 
 ---@class rizu.library.LocatedChartfile: sea.ClientChartfile
@@ -31,20 +33,24 @@
 ---@field hash string
 ---@field index integer
 
----@class rizu.library.Chartview: rizu.library.IChartviewBase
+---@class rizu.library.ChartviewSetFields
 ---@field location_id integer
 ---@field set_is_file boolean
 ---@field set_dir string?
 ---@field set_name string
----@field dir string -- computed
----@field path string -- computed
 ---@field set_modified_at integer
+
+---@class rizu.library.ChartviewFileFields
 ---@field chartfile_name string
 ---@field modified_at integer
 ---@field hash string
+
+---@class rizu.library.ChartviewPlayStatFields
 ---@field accuracy number?
 ---@field miss_count integer?
 ---@field chartplay_created_at integer?
+
+---@class rizu.library.ChartviewMetaFields
 ---@field index integer
 ---@field inputmode string
 ---@field format sea.ChartFormat
@@ -69,9 +75,13 @@
 ---@field tempo_avg number?
 ---@field tempo_max number?
 ---@field tempo_min number?
+
+---@class rizu.library.ChartviewMetaUserDataFields
 ---@field chartmeta_local_offset number?
 ---@field chartmeta_rating number?
 ---@field chartmeta_comment string?
+
+---@class rizu.library.ChartviewDiffFields
 ---@field modifiers sea.Modifier[]
 ---@field rate number
 ---@field mode sea.Gamemode
@@ -91,10 +101,18 @@
 ---@field msd_diff_rates number[]
 ---@field user_diff number
 ---@field user_diff_data string
+
+---@class rizu.library.ChartviewDiffPreviewFields
 ---@field notes_preview string
+
+---@class rizu.library.ChartviewRepoComputedFields
+---@field dir string -- computed
+---@field path string -- computed
 ---@field difficulty number? -- added by repo as alias
 ---@field lamp boolean? -- added by repo
 ---@field difftable_chartmetas sea.DifftableChartmeta[]? -- enriched by repo
+
+---@class rizu.library.Chartview: rizu.library.IChartviewBase, rizu.library.ChartviewSetFields, rizu.library.ChartviewFileFields, rizu.library.ChartviewPlayStatFields, rizu.library.ChartviewMetaFields, rizu.library.ChartviewMetaUserDataFields, rizu.library.ChartviewDiffFields, rizu.library.ChartviewDiffPreviewFields, rizu.library.ChartviewRepoComputedFields
 
 ---@class rizu.library.LocatedChartview: rizu.library.Chartview
 ---@field location_prefix string
@@ -103,7 +121,7 @@
 ---@field real_dir string
 ---@field real_path string
 
----@class rizu.library.Chartplayview: rizu.library.Chartview
+---@class rizu.library.ChartviewPlayFields
 ---@field nearest boolean
 ---@field tap_only boolean
 ---@field timings sea.Timings?
@@ -113,6 +131,8 @@
 ---@field custom boolean
 ---@field const boolean
 ---@field rate_type sea.RateType
+
+---@class rizu.library.Chartplayview: rizu.library.Chartview, rizu.library.ChartviewPlayFields
 
 ---@class rizu.library.ChartplayList: rizu.library.Chartview
 ---@field chartplay_id integer

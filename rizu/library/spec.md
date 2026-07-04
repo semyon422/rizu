@@ -142,7 +142,6 @@ If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a so
 - **DifficultyModel extensibility**: `DifficultyModel` can accept custom difficulty calculators, but that capability is not exposed well. Design a player- or developer-facing way to configure and use custom calculators.
 
 ### Types and Coroutines
-- **`views.lua` typing**: Review `views.lua` types; several query and view shapes may be expressible more precisely.
 - **Model typing**: Add stronger annotations for library models where LuaLS currently sees broad or unknown shapes.
 - **FileCacheGenerator iterator**: Narrow the iterator type in `FileCacheGenerator`; it is currently too broad to communicate its contract well.
 - **Coroutine contracts**: Type raw `yield` / `resume` flows where it helps comprehension and diagnostics. Small semantic wrappers may be clearer than direct calls such as `coroutine.yield("not_found", a, b, nil)`.
