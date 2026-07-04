@@ -6,6 +6,22 @@ local class = require("class")
 ---@operator call: rizu.library.Finder
 local Finder = class()
 
+---@alias rizu.library.FinderEventType
+---| "related_dir"
+---| "related"
+---| "related_all"
+---| "unrelated_dir"
+---| "unrelated"
+---| "unrelated_all"
+---| "directory_dir"
+---| "directory"
+---| "directory_all"
+---| "not_found"
+
+---@alias rizu.library.FinderEventName string|string[]
+
+---@alias rizu.library.FinderIterator fun(should_scan: boolean?): rizu.library.FinderEventType?, string?, rizu.library.FinderEventName?, number?
+
 ---@param fs fs.IFilesystem
 function Finder:new(fs)
 	self.fs = fs
@@ -114,7 +130,7 @@ end
 
 ---@param prefix string?
 ---@param dir string?
----@return fun(): string, string, string, integer
+---@return rizu.library.FinderIterator
 function Finder:iter(prefix, dir)
 	return coroutine.wrap(function()
 		self:lookupAsync(prefix, dir)

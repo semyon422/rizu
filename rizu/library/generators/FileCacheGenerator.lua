@@ -7,6 +7,13 @@ local sql_util = require("rdb.sql_util")
 ---@operator call: rizu.library.FileCacheGenerator
 local FileCacheGenerator = class()
 
+---@class rizu.library.ChartfileSetDraft
+---@field dir string?
+---@field name string
+---@field modified_at number
+---@field is_file boolean
+---@field location_id integer
+
 ---@param chartfilesRepo rizu.library.ChartfilesRepo
 ---@param finder rizu.library.Finder
 ---@param taskContext rizu.library.ITaskContext
@@ -17,7 +24,7 @@ function FileCacheGenerator:new(chartfilesRepo, finder, taskContext)
 end
 
 ---@param root_dir string?
----@param location_id number
+---@param location_id integer
 ---@param location_prefix string?
 function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 	local iterator = self.finder:iter(location_prefix, root_dir)
@@ -40,14 +47,19 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 				location_id = location_id,
 			})
 		elseif chartfile_set and typ == "related" then
+			---@cast name string
+			---@cast modtime number
 			chartfile = self:processChartfile(chartfile_set.id, name, modtime)
 			discovered_count = discovered_count + 1
 			self.taskContext:advance(1)
 		elseif chartfile_set and typ == "related_all" then
+			---@cast name string[]
 			self.chartfilesRepo:deleteChartfiles({set_id = chartfile_set.id, name__notin = name})
 			chartfile_set = nil
 		elseif typ == "unrelated_dir" then
 		elseif typ == "unrelated" then
+			---@cast name string
+			---@cast modtime number
 			chartfile_set = self:processChartfileSet({
 				dir = dir,
 				name = name,
@@ -59,6 +71,7 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 			discovered_count = discovered_count + 1
 			self.taskContext:advance(1)
 		elseif typ == "unrelated_all" then
+			---@cast name string[]
 			self.chartfilesRepo:deleteChartfiles({set_id = chartfile_set.id, name__notin = name})
 			self.chartfilesRepo:deleteChartfileSets({
 				dir = dir,
@@ -68,8 +81,11 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 			})
 		elseif typ == "directory_dir" then
 		elseif typ == "directory" then
+			---@cast name string
+			---@cast modtime number
 			res = self:shouldScan(dir, name, modtime, location_id)
 		elseif typ == "directory_all" then
+			---@cast name string[]
 			local names_current = table_util.invert(name)
 			local chartfile_sets = self.chartfilesRepo:selectChartfileSetsAtLocation(location_id, dir)
 			local names_to_delete = {}
@@ -119,7 +135,7 @@ end
 ---@param dir string?
 ---@param name string
 ---@param modified_at number
----@param location_id number
+---@param location_id integer
 ---@return boolean
 function FileCacheGenerator:shouldScan(dir, name, modified_at, location_id)
 	local chartfile_set = self.chartfilesRepo:selectChartfileSet(dir, name, location_id)
@@ -132,8 +148,8 @@ function FileCacheGenerator:shouldScan(dir, name, modified_at, location_id)
 	return false
 end
 
----@param chartfile_set table
----@return table
+---@param chartfile_set rizu.library.ChartfileSetDraft
+---@return sea.ClientChartfileSet
 function FileCacheGenerator:processChartfileSet(chartfile_set)
 	local _chartfile_set = self.chartfilesRepo:selectChartfileSet(
 		chartfile_set.dir,
@@ -155,9 +171,9 @@ function FileCacheGenerator:processChartfileSet(chartfile_set)
 end
 
 ---@param name string
----@param set_id number
+---@param set_id integer
 ---@param modified_at number
----@return table
+---@return sea.ClientChartfile
 function FileCacheGenerator:processChartfile(set_id, name, modified_at)
 	local chartfile = self.chartfilesRepo:selectChartfile(set_id, name)
 

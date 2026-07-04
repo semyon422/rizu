@@ -143,5 +143,4 @@ If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a so
 
 ### Types and Coroutines
 - **Model typing**: Add stronger annotations for library models where LuaLS currently sees broad or unknown shapes.
-- **FileCacheGenerator iterator**: Narrow the iterator type in `FileCacheGenerator`; it is currently too broad to communicate its contract well.
 - **Coroutine contracts**: Type raw `yield` / `resume` flows where it helps comprehension and diagnostics. Small semantic wrappers may be clearer than direct calls such as `coroutine.yield("not_found", a, b, nil)`.
