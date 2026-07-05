@@ -12,13 +12,6 @@ local sql_util = require("rdb.sql_util")
 ---@field songsByChartfileName {[string]: chart.iidx.MusicDbEntry}
 local FileCacheGenerator = class()
 
----@class rizu.library.iidx.ChartfileSetDraft
----@field dir string
----@field name string
----@field modified_at integer
----@field is_file boolean
----@field location_id integer
-
 ---@param chartfilesRepo rizu.library.ChartfilesRepo
 ---@param fs fs.IFilesystem
 ---@param taskContext rizu.library.ITaskContext
@@ -125,7 +118,7 @@ function FileCacheGenerator:getModifiedAt(location_prefix, name)
 	return info.modtime
 end
 
----@param chartfile_set rizu.library.iidx.ChartfileSetDraft
+---@param chartfile_set sea.ClientChartfileSetInsert
 ---@param chartfile_name string
 ---@return sea.ClientChartfileSet
 function FileCacheGenerator:processChartfileSet(chartfile_set, chartfile_name)

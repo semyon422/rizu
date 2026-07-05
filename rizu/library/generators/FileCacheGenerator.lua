@@ -7,13 +7,6 @@ local sql_util = require("rdb.sql_util")
 ---@operator call: rizu.library.FileCacheGenerator
 local FileCacheGenerator = class()
 
----@class rizu.library.ChartfileSetDraft
----@field dir string?
----@field name string
----@field modified_at number
----@field is_file boolean
----@field location_id integer
-
 ---@param chartfilesRepo rizu.library.ChartfilesRepo
 ---@param finder rizu.library.Finder
 ---@param taskContext rizu.library.ITaskContext
@@ -148,7 +141,7 @@ function FileCacheGenerator:shouldScan(dir, name, modified_at, location_id)
 	return false
 end
 
----@param chartfile_set rizu.library.ChartfileSetDraft
+---@param chartfile_set sea.ClientChartfileSetInsert
 ---@return sea.ClientChartfileSet
 function FileCacheGenerator:processChartfileSet(chartfile_set)
 	local _chartfile_set = self.chartfilesRepo:selectChartfileSet(

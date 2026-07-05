@@ -25,13 +25,13 @@ function ChartfilesRepo:selectChartfileSet(dir, name, location_id)
 	})
 end
 
----@param chartfile_set table
+---@param chartfile_set sea.ClientChartfileSetInsert
 ---@return sea.ClientChartfileSet
 function ChartfilesRepo:insertChartfileSet(chartfile_set)
 	return self.models.chartfile_sets:create(chartfile_set)
 end
 
----@param chartfile_set table
+---@param chartfile_set sea.ClientChartfileSet
 function ChartfilesRepo:updateChartfileSet(chartfile_set)
 	self.models.chartfile_sets:update(chartfile_set, {id = assert(chartfile_set.id)})
 end
@@ -53,7 +53,7 @@ function ChartfilesRepo:selectChartfileSets()
 end
 
 ---@param location_id integer
----@param dir integer?
+---@param dir string?
 ---@return sea.ClientChartfileSet[]
 function ChartfilesRepo:selectChartfileSetsAtLocation(location_id, dir)
 	return self.models.chartfile_sets:select({
@@ -76,13 +76,13 @@ function ChartfilesRepo:selectChartfile(set_id, name)
 	return self.models.chartfiles:find({set_id = assert(set_id), name = assert(name)})
 end
 
----@param chartfile table
+---@param chartfile sea.ClientChartfileInsert
 ---@return sea.ClientChartfile
 function ChartfilesRepo:insertChartfile(chartfile)
 	return self.models.chartfiles:create(chartfile)
 end
 
----@param chartfile table
+---@param chartfile sea.ClientChartfile
 function ChartfilesRepo:updateChartfile(chartfile)
 	self.models.chartfiles:update(chartfile, {id = assert(chartfile.id)})
 end
