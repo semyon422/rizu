@@ -6,6 +6,11 @@ local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 
 ---@class rizu.library.Worker
 ---@operator call: rizu.library.Worker
+---@field library rizu.library.Library
+---@field db rizu.library.Database
+---@field processor rizu.library.Processor
+---@field errors string[]
+---@field needStop boolean?
 local Worker = class()
 
 ---@param library rizu.library.Library
@@ -54,6 +59,8 @@ function Worker:stopTask()
 	self.needStop = true
 end
 
+---@param path string?
+---@param location_id integer
 function Worker:computeLocation(path, location_id)
 	self.processor:computeLocation(path, location_id)
 end
@@ -62,6 +69,7 @@ function Worker:computeChartdiffs()
 	self.processor:computeChartdiffs()
 end
 
+---@param prefer_preview boolean
 function Worker:computeIncompleteChartdiffs(prefer_preview)
 	self.processor:computeIncompleteChartdiffs(prefer_preview)
 end
@@ -70,29 +78,41 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function Worker:query(params)
 	local repo = ChartviewsRepo(self.db.models)
 	repo.params = params
 	return repo:query()
 end
 
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param chartview rizu.library.IChartviewBase
+---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function Worker:getViews(params, chartview)
 	local repo = ChartviewsRepo(self.db.models)
 	repo.params = params
 	return repo:getViews(chartview)
 end
 
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param _chartview rizu.library.IChartviewBase
+---@return rizu.library.Chartview?
 function Worker:getChartview(params, _chartview)
 	local repo = ChartviewsRepo(self.db.models)
 	repo.params = params
 	return repo:getChartview(_chartview)
 end
 
+---@param chartdiff_key sea.ChartdiffKey
+---@return sea.Chartplay[]
 function Worker:getChartplaysForChartdiff(chartdiff_key)
 	local repo = ChartsRepo(self.db.models)
 	return repo:getChartplaysForChartdiff(chartdiff_key)
 end
 
+---@param chartmeta_key sea.ChartmetaKey
+---@return sea.Chartplay[]
 function Worker:getChartplaysForChartmeta(chartmeta_key)
 	local repo = ChartsRepo(self.db.models)
 	return repo:getChartplaysForChartmeta(chartmeta_key)
