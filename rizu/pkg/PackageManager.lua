@@ -1,11 +1,11 @@
 local class = require("class")
-local PackageMounter = require("sphere.pkg.PackageMounter")
-local PackageLoader = require("sphere.pkg.PackageLoader")
-local PackageDownloader = require("sphere.pkg.PackageDownloader")
-local PackageRequire = require("sphere.pkg.PackageRequire")
+local PackageMounter = require("rizu.pkg.PackageMounter")
+local PackageLoader = require("rizu.pkg.PackageLoader")
+local PackageDownloader = require("rizu.pkg.PackageDownloader")
+local PackageRequire = require("rizu.pkg.PackageRequire")
 
----@class sphere.PackageManager
----@operator call: sphere.PackageManager
+---@class rizu.PackageManager
+---@operator call: rizu.PackageManager
 local PackageManager = class()
 
 PackageManager.pkgs_path = "userdata/pkg"
@@ -27,12 +27,12 @@ function PackageManager:load()
 	self.packageRequire:require(self:getPackagesByType("require"))
 end
 
----@return sphere.Package[]
+---@return rizu.Package[]
 function PackageManager:getPackages()
 	return self.packages
 end
 
----@return sphere.Package?
+---@return rizu.Package?
 function PackageManager:getPackage(name)
 	return self.loader.packages[name]
 end
@@ -48,7 +48,7 @@ function PackageManager:getPackageRealPath(name)
 end
 
 ---@param _type string
----@return sphere.Package[]
+---@return rizu.Package[]
 function PackageManager:getPackagesByType(_type)
 	return self.loader:getPackagesByType(_type)
 end

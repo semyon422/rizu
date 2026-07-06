@@ -39,7 +39,7 @@ local Persistence = require("sphere.persistence.Persistence")
 local App = require("sphere.app.App")
 local UserInterfaceModel = require("sphere.models.UserInterfaceModel")
 
-local PackageManager = require("sphere.pkg.PackageManager")
+local PackageManager = require("rizu.pkg.PackageManager")
 local SeaClient = require("rizu.online.SeaClient")
 local OnlineClient = require("rizu.online.OnlineClient")
 local OnlineWrapper = require("rizu.online.OnlineWrapper")

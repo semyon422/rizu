@@ -1,4 +1,4 @@
----@class sphere.PackageRepo
+---@class rizu.PackageRepo
 local repo = {
 	{
 		name = "osu_ui",

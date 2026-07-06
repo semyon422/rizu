@@ -181,10 +181,10 @@ thread.setInitFunc(function(packageLoader)
 	if not packageLoader then
 		return
 	end
-	local PackageLoader = require("sphere.pkg.PackageLoader")
-	local PackageRequire = require("sphere.pkg.PackageRequire")
+	local PackageLoader = require("rizu.pkg.PackageLoader")
+	local PackageRequire = require("rizu.pkg.PackageRequire")
 	setmetatable(packageLoader, PackageLoader)
-	---@cast packageLoader sphere.PackageLoader
+	---@cast packageLoader rizu.PackageLoader
 	local packageRequire = PackageRequire()
 	local pkgs = packageLoader:getPackagesByType("require")
 	packageRequire:require(pkgs)

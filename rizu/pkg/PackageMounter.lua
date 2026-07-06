@@ -1,8 +1,8 @@
 local path_util = require("path_util")
 local class = require("class")
 
----@class sphere.PackageMounter
----@operator call: sphere.PackageMounter
+---@class rizu.PackageMounter
+---@operator call: rizu.PackageMounter
 ---@field paths string[]
 ---@field real_paths {[string]: string}
 local PackageMounter = class()

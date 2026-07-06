@@ -1,15 +1,15 @@
 local class = require("class")
-local Dependency = require("sphere.pkg.Dependency")
-local Version = require("sphere.pkg.Version")
+local Dependency = require("rizu.pkg.Dependency")
+local Version = require("rizu.pkg.Version")
 
----@class sphere.Package
----@operator call: sphere.Package
+---@class rizu.Package
+---@operator call: rizu.Package
 ---@field name string
 ---@field display_name string?
 ---@field creator string?
 ---@field desc string?
----@field version sphere.Version
----@field deps sphere.Dependency[]
+---@field version rizu.Version
+---@field deps rizu.Dependency[]
 ---@field types {[string]: any}
 local Package = class()
 
@@ -29,7 +29,7 @@ function Package:new(tbl)
 	self.version = Version:parse(nil_or_tostring(tbl.version))
 	self.types = type(tbl.types) == "table" and tbl.types or {}
 
-	---@type sphere.Dependency[]
+	---@type rizu.Dependency[]
 	local deps = {}
 	self.deps = deps
 	if tbl.deps then

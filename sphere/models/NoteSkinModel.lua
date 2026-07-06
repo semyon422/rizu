@@ -12,7 +12,7 @@ local path_util = require("path_util")
 local NoteSkinModel = class()
 
 ---@param configModel sphere.ConfigModel
----@param packageManager sphere.PackageManager
+---@param packageManager rizu.PackageManager
 function NoteSkinModel:new(configModel, packageManager)
 	self.configModel = configModel
 	self.packageManager = packageManager

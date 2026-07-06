@@ -1,10 +1,10 @@
 local class = require("class")
 
----@class sphere.PackageRequire
----@operator call: sphere.PackageRequire
+---@class rizu.PackageRequire
+---@operator call: rizu.PackageRequire
 local PackageRequire = class()
 
----@param pkgs sphere.Package[]
+---@param pkgs rizu.Package[]
 function PackageRequire:require(pkgs)
 	for _, pkg in ipairs(pkgs) do
 		require(pkg.types.require)

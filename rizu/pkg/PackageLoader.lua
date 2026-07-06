@@ -2,14 +2,14 @@ local path_util = require("path_util")
 local aqua_pkg = require("pkg")
 local class = require("class")
 local json = require("json")
-local Package = require("sphere.pkg.Package")
+local Package = require("rizu.pkg.Package")
 
----@class sphere.PackageLoader
----@operator call: sphere.PackageLoader
+---@class rizu.PackageLoader
+---@operator call: rizu.PackageLoader
 local PackageLoader = class()
 
 function PackageLoader:new()
-	---@type {[string]: sphere.Package}
+	---@type {[string]: rizu.Package}
 	self.packages = {}
 	---@type {[string]: string}
 	self.dirs = {}
@@ -47,9 +47,9 @@ function PackageLoader:removeLua()
 	aqua_pkg.export_love()
 end
 
----@return sphere.Package[]
+---@return rizu.Package[]
 function PackageLoader:getPackages()
-	---@type sphere.Package[]
+	---@type rizu.Package[]
 	local pkgs = {}
 	for _, pkg in pairs(self.packages) do
 		table.insert(pkgs, pkg)
@@ -61,9 +61,9 @@ function PackageLoader:getPackages()
 end
 
 ---@param _type string
----@return sphere.Package[]
+---@return rizu.Package[]
 function PackageLoader:getPackagesByType(_type)
-	---@type sphere.Package[]
+	---@type rizu.Package[]
 	local pkgs = {}
 	for _, pkg in pairs(self:getPackages()) do
 		if pkg.types[_type] then

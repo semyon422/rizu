@@ -2,12 +2,12 @@ local class = require("class")
 local table_util = require("table_util")
 local string_util = require("string_util")
 
----@class sphere.Version
----@operator call: sphere.Version
+---@class rizu.Version
+---@operator call: rizu.Version
 local Version = class()
 
 ---@param ver_str string?
----@return sphere.Version
+---@return rizu.Version
 function Version:parse(ver_str)
 	if not ver_str then
 		return Version()

@@ -1,4 +1,4 @@
-local Version = require("sphere.pkg.Version")
+local Version = require("rizu.pkg.Version")
 
 local test = {}
 

@@ -1,4 +1,4 @@
-local repo = require("sphere.pkg.repo")
+local repo = require("rizu.pkg.repo")
 
 ---@param game sphere.GameController
 ---@return yi.command_palette.Fuzzy.Candidate[] choices

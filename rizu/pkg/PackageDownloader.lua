@@ -5,8 +5,8 @@ local http_util = require("web.http.util")
 local fs_util = require("fs_util")
 local pprint = require("pprint")
 
----@class sphere.PackageDownloader
----@operator call: sphere.PackageDownloader
+---@class rizu.PackageDownloader
+---@operator call: rizu.PackageDownloader
 local PackageDownloader = class()
 
 ---@param pkgs_path string

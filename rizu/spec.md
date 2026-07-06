@@ -16,6 +16,7 @@ The `rizu/` tree contains the modern implementation of the game client. It shoul
 - `select/`: song selection state and list synchronization. See `rizu/select/spec.md`.
 - `preview/`: preview generation and synchronized playback. See `rizu/preview/spec.md`.
 - `online/`: client online state, websocket connection management, and online remotes. See `rizu/online/spec.md`.
+- `pkg/`: package discovery, mounting, Lua path injection, and package download helpers. See `rizu/pkg/spec.md`.
 - `build/`: build and packaging pipeline. See `rizu/build/spec.md`.
 - `dlc/`: downloadable content workflows. See `rizu/dlc/spec.md`.
 - `loop/`, `files/`, `game/`, `input/`: supporting modules that coordinate runtime state, filesystem abstractions, top-level game setup, and input.
