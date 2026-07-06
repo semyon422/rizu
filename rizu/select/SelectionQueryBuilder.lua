@@ -5,9 +5,6 @@ local table_util = require("table_util")
 ---@operator call: rizu.select.SelectionQueryBuilder
 local SelectionQueryBuilder = class()
 
----@class rizu.select.SelectConfig
----@field sortFunction string
-
 ---@alias rizu.select.SelectionQueryParams rizu.library.ChartviewsRepo.QueryParams
 
 ---@param configModel sphere.ConfigModel
@@ -21,7 +18,7 @@ function SelectionQueryBuilder:new(configModel, sortModel, searchModel, filterMo
 	self.filterModel = filterModel
 end
 
----@param config rizu.select.SelectConfig The 'select' config from configModel
+---@param config sphere.SelectConfig The 'select' config from configModel
 ---@param collectionItem rizu.library.Collections.TreeNode? Current collection item
 ---@return rizu.select.SelectionQueryParams params
 function SelectionQueryBuilder:build(config, collectionItem)
@@ -29,7 +26,9 @@ function SelectionQueryBuilder:build(config, collectionItem)
 	---@type rizu.select.SelectionQueryParams
 	local params = {}
 
+	---@type rizu.library.ChartviewsRepo.Mode
 	local primary_mode = settings_select.primary_mode or "chartmetas"
+	---@type rizu.library.ChartviewsRepo.Mode
 	local secondary_mode = settings_select.secondary_mode or "chartmetas"
 
 	-- Sorting

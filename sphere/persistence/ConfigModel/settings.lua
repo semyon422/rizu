@@ -1,4 +1,14 @@
+---@class sphere.SettingsSelectConfig
+---@field primary_mode rizu.library.ChartviewsRepo.Mode
+---@field secondary_mode rizu.library.ChartviewsRepo.Mode
+---@field collapse boolean Deprecated.
+---@field chartviews_table string Deprecated.
+---@field diff_column "enps_diff"|"osu_diff"|"msd_diff"|"user_diff"
+---@field locations_in_collections boolean
+---@field chart_preview boolean
+
 ---@class sphere.SettingsConfig
+---@field select sphere.SettingsSelectConfig
 local settings = {
 	audio = {
 		adjustRate = 0.1,
@@ -193,8 +203,8 @@ local settings = {
 		generateGifResult = false,
 	},
 	select = {
-		primary_mode = "chartfile_sets", ---@type "chartfile_sets"|"chartfiles"|"chartmetas"|"chartdiffs"|"chartplays"
-		secondary_mode = "chartmetas", ---@type "chartfile_sets"|"chartfiles"|"chartmetas"|"chartdiffs"|"chartplays"
+		primary_mode = "chartfile_sets",
+		secondary_mode = "chartmetas",
 		collapse = true, -- Deprecated
 		chartviews_table = "chartviews",  -- Deprecated
 		diff_column = "enps_diff",
