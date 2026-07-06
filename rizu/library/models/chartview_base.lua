@@ -9,8 +9,8 @@ local Modifiers = require("sea.storage.server.Modifiers")
 local Subtimings = require("sea.chart.Subtimings")
 local IntegerArray = require("sea.storage.server.IntegerArray")
 local IntegerArrayOptional = require("sea.storage.server.IntegerArrayOptional")
-local MsdDiffData = require("sphere.models.DifficultyModel.MsdDiffData")
-local MsdDiffRates = require("sphere.models.DifficultyModel.MsdDiffRates")
+local MsdDiffData = require("chart.difficulty.MsdDiffData")
+local MsdDiffRates = require("chart.difficulty.MsdDiffRates")
 
 ---@type rdb.ModelOptions
 local chartview_base = {}

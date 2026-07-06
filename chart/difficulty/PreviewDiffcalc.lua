@@ -1,4 +1,4 @@
-local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
+local IDiffcalc = require("chart.difficulty.IDiffcalc")
 local RefChart = require("chart.refchart.RefChart")
 local Restorer = require("chart.refchart.Restorer")
 local ChartEncoder = require("chart.format.sph.ChartEncoder")
@@ -6,14 +6,14 @@ local SphPreview = require("chart.format.sph.SphPreview")
 local LinesCleaner = require("chart.format.sph.lines.LinesCleaner")
 local IntervalLayer = require("chart.model.layers.IntervalLayer")
 
----@class sphere.PreviewDiffcalc: sphere.IDiffcalc
----@operator call: sphere.PreviewDiffcalc
+---@class chart.PreviewDiffcalc: chart.IDiffcalc
+---@operator call: chart.PreviewDiffcalc
 local PreviewDiffcalc = IDiffcalc + {}
 
 PreviewDiffcalc.name = "preview"
 PreviewDiffcalc.chartdiff_field = "notes_preview"
 
----@param ctx sphere.DiffcalcContext
+---@param ctx chart.DiffcalcContext
 function PreviewDiffcalc:compute(ctx)
 	-- make a copy because code below mutates chart
 	local refchart = RefChart(ctx.chart)

@@ -1,17 +1,17 @@
 local class = require("class")
 local table_util = require("table_util")
 local AbsoluteLayer = require("chart.model.layers.AbsoluteLayer")
-local DiffcalcRegistry = require("sphere.models.DifficultyModel.DiffcalcRegistry")
-local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
+local DiffcalcRegistry = require("chart.difficulty.DiffcalcRegistry")
+local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 
-local EnpsDiffcalc = require("sphere.models.DifficultyModel.EnpsDiffcalc")
-local NotesDiffcalc = require("sphere.models.DifficultyModel.NotesDiffcalc")
-local OsuDiffcalc = require("sphere.models.DifficultyModel.OsuDiffcalc")
-local MsdDiffcalc = require("sphere.models.DifficultyModel.MsdDiffcalc")
-local PreviewDiffcalc = require("sphere.models.DifficultyModel.PreviewDiffcalc")
+local EnpsDiffcalc = require("chart.difficulty.EnpsDiffcalc")
+local NotesDiffcalc = require("chart.difficulty.NotesDiffcalc")
+local OsuDiffcalc = require("chart.difficulty.OsuDiffcalc")
+local MsdDiffcalc = require("chart.difficulty.MsdDiffcalc")
+local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
 
----@class sphere.DifficultyModel
----@operator call: sphere.DifficultyModel
+---@class chart.DifficultyModel
+---@operator call: chart.DifficultyModel
 local DifficultyModel = class()
 
 function DifficultyModel:new()
@@ -27,7 +27,7 @@ end
 ---@param chartdiff sea.Chartdiff
 ---@param chart chart.Chart
 ---@param rate number
----@return sphere.DiffcalcContext
+---@return chart.DiffcalcContext
 function DifficultyModel:compute(chartdiff, chart, rate)
 	assert(AbsoluteLayer * chart.layers.main)
 	local context = self.context

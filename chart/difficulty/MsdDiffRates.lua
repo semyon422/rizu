@@ -1,8 +1,8 @@
 local class = require("class")
 local ffi = require("ffi")
 
----@class sphere.MsdDiffRates: minacalc.Ssr
----@operator call: sphere.MsdDiffRates
+---@class chart.MsdDiffRates: minacalc.Ssr
+---@operator call: chart.MsdDiffRates
 local MsdDiffRates = class()
 
 ---@param t number[]

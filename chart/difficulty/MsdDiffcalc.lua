@@ -1,14 +1,14 @@
-local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
+local IDiffcalc = require("chart.difficulty.IDiffcalc")
 local minacalc = require("chart.scoring.minacalc")
 
----@class sphere.MsdDiffcalc: sphere.IDiffcalc
----@operator call: sphere.MsdDiffcalc
+---@class chart.MsdDiffcalc: chart.IDiffcalc
+---@operator call: chart.MsdDiffcalc
 local MsdDiffcalc = IDiffcalc + {}
 
 MsdDiffcalc.name = "MSD"
 MsdDiffcalc.chartdiff_field = "msd_diff"
 
----@param ctx sphere.DiffcalcContext
+---@param ctx chart.DiffcalcContext
 function MsdDiffcalc:compute(ctx)
 	local notes = ctx:getSimplifiedNotes()
 

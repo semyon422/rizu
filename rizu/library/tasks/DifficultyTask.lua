@@ -11,7 +11,7 @@ local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 ---@operator call: rizu.library.DifficultyTask
 local DifficultyTask = class()
 
----@param difficultyModel sphere.DifficultyModel
+---@param difficultyModel chart.DifficultyModel
 ---@param chartdiffGenerator rizu.library.ChartdiffGenerator
 ---@param chartsRepo sea.ChartsRepo
 ---@param taskContext rizu.library.ITaskContext

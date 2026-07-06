@@ -1,13 +1,13 @@
-local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
+local IDiffcalc = require("chart.difficulty.IDiffcalc")
 
----@class sphere.NotesDiffcalc: sphere.IDiffcalc
----@operator call: sphere.NotesDiffcalc
+---@class chart.NotesDiffcalc: chart.IDiffcalc
+---@operator call: chart.NotesDiffcalc
 local NotesDiffcalc = IDiffcalc + {}
 
 NotesDiffcalc.name = "notes"
 NotesDiffcalc.chartdiff_field = "notes_count"
 
----@param ctx sphere.DiffcalcContext
+---@param ctx chart.DiffcalcContext
 function NotesDiffcalc:compute(ctx)
 	local chartdiff = ctx.chartdiff
 

@@ -4,7 +4,7 @@ local ChartfileReader = require("rizu.library.ChartfileReader")
 local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
 local Chartdiff = require("sea.chart.Chartdiff")
 local Chartmeta = require("sea.chart.Chartmeta")
-local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
+local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local ReplayBase = require("sea.replays.ReplayBase")
 local Restorer = require("chart.refchart.Restorer")
 

@@ -2,8 +2,8 @@ local class = require("class")
 local table_util = require("table_util")
 local simplify_notechart = require("chart.transform.simplify_notechart")
 
----@class sphere.DiffcalcContext
----@operator call: sphere.DiffcalcContext
+---@class chart.DiffcalcContext
+---@operator call: chart.DiffcalcContext
 local DiffcalcContext = class()
 
 ---@param chartdiff sea.Chartdiff

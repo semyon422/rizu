@@ -5,7 +5,7 @@ local class = require("class")
 local ChartdiffGenerator = class()
 
 ---@param chartsRepo sea.ChartsRepo
----@param difficultyModel sphere.DifficultyModel
+---@param difficultyModel chart.DifficultyModel
 function ChartdiffGenerator:new(chartsRepo, difficultyModel)
 	self.chartsRepo = chartsRepo
 	self.difficultyModel = difficultyModel

@@ -7,7 +7,7 @@ local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local ChartmetaGenerator = require("rizu.library.generators.ChartmetaGenerator")
 local ChartdiffGenerator = require("rizu.library.generators.ChartdiffGenerator")
-local DifficultyModel = require("sphere.models.DifficultyModel")
+local DifficultyModel = require("chart.difficulty.DifficultyModel")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local digest = require("digest")
 

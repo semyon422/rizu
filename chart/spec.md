@@ -28,6 +28,7 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 | `chart/format/ksm/` | `chartbase/ksm/` | K-Shoot Mania format decoder |
 | `chart/format/midi/` | `chartbase/midi/` | MIDI format decoder |
 | `chart/scoring/` | `libchart/libchart/` (scoring) | Scoring and difficulty calculation: `normalscore3`, `osu_pp`, `osu_starrate`, `erfunc`, `minacalc`, `enps` |
+| `chart/difficulty/` | `sphere.models.DifficultyModel` | Chart difficulty orchestration and chartdiff field calculation |
 | `chart/transform/` | `libchart/libchart/` (transform) | Chart manipulation: `NanoChart`, `Upscaler`, `Reductor`, `BlockFinder`, `GifResult`, `simplify_notechart`, `AnalogScratch`, `ScratchMapper` |
 
 ## Architecture Decisions

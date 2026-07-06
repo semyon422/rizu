@@ -1,13 +1,13 @@
 local class = require("class")
 
----@class sphere.IDiffcalc
----@operator call: sphere.IDiffcalc
+---@class chart.IDiffcalc
+---@operator call: chart.IDiffcalc
 local IDiffcalc = class()
 
 IDiffcalc.name = "IDiffcalc"
 IDiffcalc.chartdiff_field = ""
 
----@param ctx sphere.DiffcalcContext
+---@param ctx chart.DiffcalcContext
 function IDiffcalc:compute(ctx) end
 
 return IDiffcalc

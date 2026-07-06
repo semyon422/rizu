@@ -1,12 +1,12 @@
 local class = require("class")
 local table_util = require("table_util")
 
----@class sphere.DiffcalcRegistry
----@operator call: sphere.DiffcalcRegistry
+---@class chart.DiffcalcRegistry
+---@operator call: chart.DiffcalcRegistry
 local DiffcalcRegistry = class()
 
 function DiffcalcRegistry:new()
-	---@type sphere.IDiffcalc[]
+	---@type chart.IDiffcalc[]
 	self.diffcalcs = {}
 	---@type string[]
 	self.fields = {}
@@ -17,7 +17,7 @@ function DiffcalcRegistry:add(diffcalc)
 	table.insert(self.fields, diffcalc.chartdiff_field)
 end
 
----@param ctx sphere.DiffcalcContext
+---@param ctx chart.DiffcalcContext
 ---@param force boolean
 function DiffcalcRegistry:compute(ctx, force)
 	local chartdiff = ctx.chartdiff

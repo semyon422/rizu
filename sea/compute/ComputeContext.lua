@@ -3,7 +3,7 @@ local valid = require("valid")
 local table_util = require("table_util")
 local path_util = require("path_util")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
-local DifficultyModel = require("sphere.models.DifficultyModel")
+local DifficultyModel = require("chart.difficulty.DifficultyModel")
 local ModifierModel = require("sphere.models.ModifierModel")
 local Chartdiff = require("sea.chart.Chartdiff")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
@@ -93,7 +93,7 @@ end
 ---@param chart chart.Chart
 ---@param rate number
 ---@return sea.Chartdiff
----@return sphere.DiffcalcContext
+---@return chart.DiffcalcContext
 function ComputeContext:computeChartdiff(chart, rate)
 	local chartdiff = {
 		mode = "mania",
@@ -110,7 +110,7 @@ end
 ---@param replayBase sea.ReplayBase
 ---@return sea.Chartdiff
 ---@return sea.ModifiersMetaState
----@return sphere.DiffcalcContext
+---@return chart.DiffcalcContext
 function ComputeContext:computeBase(replayBase)
 	local chart = assert(self.chart)
 	local chartmeta = assert(self.chartmeta)

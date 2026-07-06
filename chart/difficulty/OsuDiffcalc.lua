@@ -1,14 +1,14 @@
-local IDiffcalc = require("sphere.models.DifficultyModel.IDiffcalc")
+local IDiffcalc = require("chart.difficulty.IDiffcalc")
 local osu_starrate = require("chart.scoring.osu_starrate")
 
----@class sphere.OsuDiffcalc: sphere.IDiffcalc
----@operator call: sphere.OsuDiffcalc
+---@class chart.OsuDiffcalc: chart.IDiffcalc
+---@operator call: chart.OsuDiffcalc
 local OsuDiffcalc = IDiffcalc + {}
 
 OsuDiffcalc.name = "osu!mania"
 OsuDiffcalc.chartdiff_field = "osu_diff"
 
----@param ctx sphere.DiffcalcContext
+---@param ctx chart.DiffcalcContext
 function OsuDiffcalc:compute(ctx)
 	local notes = ctx:getSimplifiedNotes()
 

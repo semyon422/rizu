@@ -2,8 +2,8 @@ local class = require("class")
 local ffi = require("ffi")
 local minacalc = require("chart.scoring.minacalc")
 
----@class sphere.MsdDiffData: minacalc.Ssr
----@operator call: sphere.MsdDiffData
+---@class chart.MsdDiffData: minacalc.Ssr
+---@operator call: chart.MsdDiffData
 local MsdDiffData = class()
 
 ---@param ssr minacalc.Ssr
