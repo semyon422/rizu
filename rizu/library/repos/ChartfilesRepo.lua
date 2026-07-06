@@ -36,7 +36,7 @@ function ChartfilesRepo:updateChartfileSet(chartfile_set)
 	self.models.chartfile_sets:update(chartfile_set, {id = assert(chartfile_set.id)})
 end
 
----@param conds table
+---@param conds rdb.Conditions
 function ChartfilesRepo:deleteChartfileSets(conds)
 	self.models.chartfile_sets:delete(conds)
 end
@@ -62,6 +62,7 @@ function ChartfilesRepo:selectChartfileSetsAtLocation(location_id, dir)
 	})
 end
 
+---@param conds rdb.Conditions?
 ---@return integer
 function ChartfilesRepo:countChartfileSets(conds)
 	return self.models.chartfile_sets:count(conds)
@@ -87,12 +88,12 @@ function ChartfilesRepo:updateChartfile(chartfile)
 	self.models.chartfiles:update(chartfile, {id = assert(chartfile.id)})
 end
 
----@param conds table?
+---@param conds rdb.Conditions?
 function ChartfilesRepo:resetChartfileHash(conds)
 	self.models.chartfiles:update({hash = sql_util.NULL}, conds)
 end
 
----@param conds table
+---@param conds rdb.Conditions
 function ChartfilesRepo:deleteChartfiles(conds)
 	self.models.chartfiles:delete(conds)
 end
@@ -129,6 +130,7 @@ function ChartfilesRepo:selectChartfileByHash(hash)
 	return self.models.located_chartfiles:find({hash = assert(hash)})
 end
 
+---@param conds rdb.Conditions?
 ---@return integer
 function ChartfilesRepo:countChartfiles(conds)
 	return self.models.located_chartfiles:count(conds)
