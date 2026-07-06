@@ -50,7 +50,7 @@ end
 function ResultController:replayNoteChartAsync(mode, chartplay)
 	local game = self.game
 
-	if not chartplay or not game.chartSelector:notechartExists() then
+	if not chartplay or not game.chartSelector:chartExists() then
 		return
 	end
 

@@ -228,6 +228,30 @@ function test.playable_chartview_requires_metadata_and_location(t)
 end
 
 ---@param t testing.T
+function test.chart_exists_checks_chartfile_reader(t)
+	local configModel = createMockConfigModel()
+	local library = tlf:create()
+	local checked_path
+	local fs = {
+		read = function() end,
+		getInfo = function(_, path)
+			checked_path = path
+			return path == "charts/a.osu" and {type = "file"} or nil
+		end,
+	}
+	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+
+	chartSelector.chartview = {location_path = "charts/a.osu"}
+	t:eq(chartSelector:chartExists(), true)
+	t:eq(checked_path, "charts/a.osu")
+
+	chartSelector.chartview = {location_path = "charts/missing.osu"}
+	t:eq(chartSelector:chartExists(), false)
+
+	library:unload()
+end
+
+---@param t testing.T
 function test.provisional_chartview_does_not_load_chart(t)
 	local configModel = createMockConfigModel()
 	local library = tlf:create()

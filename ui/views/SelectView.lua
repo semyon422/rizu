@@ -77,7 +77,7 @@ end
 
 function SelectView:play()
 	local chartSelector = self.game.chartSelector
-	if not chartSelector:notechartExists() then
+	if not chartSelector:chartExists() then
 		return
 	end
 
@@ -96,13 +96,13 @@ function SelectView:play()
 end
 
 function SelectView:result()
-	if self.game.chartSelector:notechartExists() and self.game.scoreSelector.chartplay then
+	if self.game.chartSelector:chartExists() and self.game.scoreSelector.chartplay then
 		self:changeScreen("resultView")
 	end
 end
 
 function SelectView:edit()
-	if not self.game.chartSelector:notechartExists() then
+	if not self.game.chartSelector:chartExists() then
 		return
 	end
 end

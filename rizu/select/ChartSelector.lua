@@ -10,6 +10,7 @@ local SelectionQueryBuilder = require("rizu.select.SelectionQueryBuilder")
 local ChartMediaService = require("rizu.select.services.ChartMediaService")
 local ChartLoader = require("rizu.select.services.ChartLoader")
 local TaskRunner = require("rizu.select.tasks.TaskRunner")
+local ChartfileReader = require("rizu.library.ChartfileReader")
 
 ---@class rizu.select.ChartSelector
 ---@operator call: rizu.select.ChartSelector
@@ -241,7 +242,7 @@ function ChartSelector:setChanged()
 end
 
 ---@return boolean
-function ChartSelector:notechartExists()
+function ChartSelector:chartExists()
 	local chartview = self.chartview
 	if chartview and chartview.location_path then
 		return ChartfileReader.getInfo(self.fs, chartview.location_path) ~= nil

@@ -54,7 +54,7 @@ function M.get(game)
 			title = "Editor: Open",
 			description = "Opens the editor screen",
 			callback = function()
-				if game.chartSelector:notechartExists() then
+				if game.chartSelector:chartExists() then
 					game.ui:setScreen("editor")
 				end
 			end
