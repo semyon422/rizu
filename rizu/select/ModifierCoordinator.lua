@@ -11,7 +11,7 @@ local ModifierCoordinator = class()
 ---@param scoreSelector rizu.select.ScoreSelector
 ---@param modifierSelectModel sphere.ModifierSelectModel
 ---@param modifierConfigPersistence rizu.select.IModifierConfigPersistence
----@param multiplayerModel sphere.MultiplayerModel
+---@param multiplayerModel rizu.MultiplayerModel
 ---@param replayBase sea.ReplayBase
 ---@param previewModel rizu.preview.PreviewModel
 function ModifierCoordinator:new(

@@ -2,15 +2,15 @@ local class = require("class")
 local delay = require("delay")
 local icc_co = require("icc.co")
 
----@class sphere.MultiplayerModel
----@operator call: sphere.MultiplayerModel
+---@class rizu.MultiplayerModel
+---@operator call: rizu.MultiplayerModel
 local MultiplayerModel = class()
 
 ---@param library rizu.library.Library
 ---@param rhythm_engine rizu.RhythmEngine
 ---@param configModel sphere.ConfigModel
 ---@param chartSelector rizu.select.ChartSelector
----@param onlineModel sphere.OnlineModel
+---@param onlineModel rizu.OnlineModel
 ---@param dlcManager rizu.dlc.DlcManager
 ---@param replayBase sea.ReplayBase
 ---@param multiplayer_client sea.MultiplayerClient

@@ -1,5 +1,5 @@
 local class = require("class")
-local OnlineClientRemote = require("sphere.online.remotes.OnlineClientRemote")
+local OnlineClientRemote = require("rizu.online.remotes.OnlineClientRemote")
 local MultiplayerClientRemote = require("sea.multi.remotes.MultiplayerClientRemote")
 
 ---@class sea.ClientRemote: sea.IClientRemoteContext
@@ -7,7 +7,7 @@ local MultiplayerClientRemote = require("sea.multi.remotes.MultiplayerClientRemo
 ---@operator call: sea.ClientRemote
 local ClientRemote = class()
 
----@param client sphere.OnlineClient
+---@param client rizu.OnlineClient
 ---@param library rizu.library.Library
 ---@param multipalyer_client sea.MultiplayerClient
 function ClientRemote:new(client, library, multipalyer_client)

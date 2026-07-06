@@ -1,10 +1,10 @@
 local class = require("class")
 
----@class sphere.OnlineClientRemote
----@operator call: sphere.OnlineClientRemote
+---@class rizu.OnlineClientRemote
+---@operator call: rizu.OnlineClientRemote
 local OnlineClientRemote = class()
 
----@param online_client sphere.OnlineClient
+---@param online_client rizu.OnlineClient
 function OnlineClientRemote:new(online_client)
 	self.online_client = online_client
 end

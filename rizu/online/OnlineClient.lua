@@ -1,7 +1,7 @@
 local class = require("class")
 
----@class sphere.OnlineClient
----@operator call: sphere.OnlineClient
+---@class rizu.OnlineClient
+---@operator call: rizu.OnlineClient
 ---@field user sea.User?
 ---@field leaderboards sea.Leaderboard[]
 ---@field leaderboard_users sea.LeaderboardUser[]

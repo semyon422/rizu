@@ -6,7 +6,7 @@ local SelectionActions = class()
 
 ---@param chartSelector rizu.select.ChartSelector
 ---@param library rizu.library.Library
----@param onlineModel sphere.OnlineModel
+---@param onlineModel rizu.OnlineModel
 ---@param locationDirectoryOpener rizu.select.ILocationDirectoryOpener
 function SelectionActions:new(chartSelector, library, onlineModel, locationDirectoryOpener)
 	self.chartSelector = chartSelector

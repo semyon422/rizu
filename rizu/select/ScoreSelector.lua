@@ -16,7 +16,7 @@ local ScoreSelector = class()
 
 ---@param configModel sphere.ConfigModel
 ---@param library rizu.library.Library
----@param onlineModel sphere.OnlineModel
+---@param onlineModel rizu.OnlineModel
 ---@param replayBase sea.ReplayBase
 ---@param state rizu.select.SelectionState
 function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)

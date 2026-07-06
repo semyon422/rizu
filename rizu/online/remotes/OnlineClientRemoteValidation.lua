@@ -2,11 +2,11 @@ local class = require("class")
 local Leaderboard = require("sea.leaderboards.Leaderboard")
 local LeaderboardUser = require("sea.leaderboards.LeaderboardUser")
 
----@class sea.OnlineClientRemoteValidation
----@operator call: sea.OnlineClientRemoteValidation
+---@class rizu.OnlineClientRemoteValidation
+---@operator call: rizu.OnlineClientRemoteValidation
 local OnlineClientRemoteValidation = class()
 
----@param remote sphere.OnlineClientRemote
+---@param remote rizu.OnlineClientRemote
 function OnlineClientRemoteValidation:new(remote)
 	self.remote = remote
 end

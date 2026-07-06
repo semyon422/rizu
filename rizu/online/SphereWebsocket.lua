@@ -4,8 +4,8 @@ local Websocket = require("web.ws.Websocket")
 local WebsocketClient = require("web.ws.WebsocketClient")
 local Subprotocol = require("web.ws.Subprotocol")
 
----@class sphere.SphereWebsocket
----@operator call: sphere.SphereWebsocket
+---@class rizu.SphereWebsocket
+---@operator call: rizu.SphereWebsocket
 local SphereWebsocket = class()
 
 function SphereWebsocket:new()

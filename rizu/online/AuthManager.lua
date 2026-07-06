@@ -2,12 +2,12 @@ local class = require("class")
 local thread = require("thread")
 local pprint = require("pprint")
 
----@class sphere.AuthManager
----@operator call: sphere.AuthManager
+---@class rizu.AuthManager
+---@operator call: rizu.AuthManager
 ---@field configModel sphere.ConfigModel
 local AuthManager = class()
 
----@param sea_client sphere.SeaClient
+---@param sea_client rizu.SeaClient
 ---@param configModel sphere.ConfigModel
 function AuthManager:new(sea_client, configModel)
 	self.sea_client = sea_client

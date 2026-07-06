@@ -1,5 +1,5 @@
 local class = require("class")
-local OnlineClientRemoteValidation = require("sphere.online.remotes.OnlineClientRemoteValidation")
+local OnlineClientRemoteValidation = require("rizu.online.remotes.OnlineClientRemoteValidation")
 local ComputeDataProviderRemoteValidation = require("sea.compute.remotes.ComputeDataProviderRemoteValidation")
 local MultiplayerClientRemoteValidation = require("sea.multi.remotes.MultiplayerClientRemoteValidation")
 

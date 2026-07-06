@@ -12,7 +12,7 @@ local ScoreSaver = class()
 ---@param fs fs.IFilesystem
 ---@param library rizu.library.Library
 ---@param configModel sphere.ConfigModel
----@param seaClient sphere.SeaClient
+---@param seaClient rizu.SeaClient
 ---@param replayBase sea.ReplayBase
 ---@param computeContext sea.ComputeContext
 function ScoreSaver:new(

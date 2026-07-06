@@ -6,7 +6,7 @@ local ChartmetaKey = require("sea.chart.ChartmetaKey")
 ---@operator call: rizu.select.providers.OnlineScoreProvider
 local OnlineScoreProvider = IScoreProvider + {}
 
----@param onlineModel sphere.OnlineModel
+---@param onlineModel rizu.OnlineModel
 function OnlineScoreProvider:new(onlineModel)
 	self.onlineModel = onlineModel
 end

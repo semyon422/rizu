@@ -2,7 +2,7 @@ local class = require("class")
 local delay = require("delay")
 local ThreadRemote = require("threadremote.ThreadRemote")
 
-local SphereWebsocket = require("sphere.online.SphereWebsocket")
+local SphereWebsocket = require("rizu.online.SphereWebsocket")
 
 local Subprotocol = require("web.ws.Subprotocol")
 
@@ -14,14 +14,14 @@ local Remote = require("icc.Remote")
 local ServerRemoteValidation = require("sea.app.remotes.ServerRemoteValidation")
 local client_whitelist = require("sea.app.remotes.client_whitelist")
 
----@class sphere.SeaClient
----@operator call: sphere.SeaClient
+---@class rizu.SeaClient
+---@operator call: rizu.SeaClient
 local SeaClient = class()
 
 SeaClient.threaded = true
 SeaClient.reconnect_interval = 10
 
----@param client sphere.OnlineClient
+---@param client rizu.OnlineClient
 ---@param client_remote sea.ClientRemote
 function SeaClient:new(client, client_remote)
 	self.client = client
@@ -69,15 +69,15 @@ function SeaClient:load(url, on_connect)
 		local thread_remote = ThreadRemote("websocket", self.protocol)
 		self.thread_remote = thread_remote
 		thread_remote:start(function(protocol)
-			local SphereWebsocket = require("sphere.online.SphereWebsocket")
+			local SphereWebsocket = require("rizu.online.SphereWebsocket")
 			local sphws = SphereWebsocket(url)
 			sphws.protocol = -protocol --[[@as web.Subprotocol]]
 			return sphws
 		end)
 		local sphws = -thread_remote.remote
 		local sphws_ret = thread_remote.remote
-		---@cast sphws -icc.Remote, +sphere.SphereWebsocket
-		---@cast sphws_ret -icc.Remote, +sphere.SphereWebsocket
+		---@cast sphws -icc.Remote, +rizu.SphereWebsocket
+		---@cast sphws_ret -icc.Remote, +rizu.SphereWebsocket
 		self.sphws = sphws
 		self.sphws_ret = sphws_ret
 	end

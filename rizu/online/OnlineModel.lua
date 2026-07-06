@@ -1,12 +1,12 @@
 local class = require("class")
-local AuthManager = require("sphere.models.OnlineModel.AuthManager")
+local AuthManager = require("rizu.online.AuthManager")
 
----@class sphere.OnlineModel
----@operator call: sphere.OnlineModel
+---@class rizu.OnlineModel
+---@operator call: rizu.OnlineModel
 local OnlineModel = class()
 
 ---@param configModel sphere.ConfigModel
----@param sea_client sphere.SeaClient
+---@param sea_client rizu.SeaClient
 function OnlineModel:new(configModel, sea_client)
 	self.configModel = configModel
 	self.sea_client = sea_client

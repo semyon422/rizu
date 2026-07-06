@@ -4,7 +4,7 @@ local class = require("class")
 ---@operator call: sphere.MultiplayerController
 local MultiplayerController = class()
 
----@param multiplayerModel sphere.MultiplayerModel
+---@param multiplayerModel rizu.MultiplayerModel
 ---@param configModel sphere.ConfigModel
 ---@param chartSelector rizu.select.ChartSelector
 ---@param replayBase sea.ReplayBase

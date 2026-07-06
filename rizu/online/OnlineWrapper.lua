@@ -1,10 +1,10 @@
 local class = require("class")
 
----@class sphere.OnlineWrapper
----@operator call: sphere.OnlineWrapper
+---@class rizu.OnlineWrapper
+---@operator call: rizu.OnlineWrapper
 local OnlineWrapper = class()
 
----@param client sphere.OnlineClient
+---@param client rizu.OnlineClient
 ---@param server_remote sea.ServerRemote
 function OnlineWrapper:new(client, server_remote)
 	self.client = client
