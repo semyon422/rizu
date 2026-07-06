@@ -8,7 +8,7 @@ local mode_names = {
 	chartplays = "plays",
 }
 
----@class yi.layers.ChartMenus.CollectionChoiceValue
+---@class yi.layers.CollectionChoiceValue
 ---@field path string?
 ---@field location_id integer?
 
@@ -151,7 +151,7 @@ return function(game)
 				}
 			},
 			callback = function(args)
-				---@type yi.layers.ChartMenus.CollectionChoiceValue
+				---@type yi.layers.CollectionChoiceValue
 				local collection = args.collection
 				game.collectionSelector:selectCollection(collection.path, collection.location_id)
 			end

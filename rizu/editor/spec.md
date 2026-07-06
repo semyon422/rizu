@@ -280,7 +280,7 @@ Maps editor notes to iBMSC clipboard format columns and writes the output file.
 
 ## UI Layer (`yi/views/editor/`)
 
-The editor is opened through the new `yi/layers/ChartMenus/Editor` screen only. The old `ui/views/EditorView.lua` screen was removed. New editor UI views live under `yi/views/editor/`; the legacy `ui/views/EditorView/` modules have been removed.
+The editor is opened through the new `yi/layers/Editor` screen only. The old `ui/views/EditorView.lua` screen was removed. New editor UI views live under `yi/views/editor/`; the legacy `ui/views/EditorView/` modules have been removed.
 
 The editor UI is composed of retained view modules under `yi.views.editor`:
 - `EditorSequenceView`: editor-only iteration over note-skin sequence view objects and injection of editor rhythm rendering from the shared gameplay notes view marked with `isNotesView = true`. Sets `missingEditorNotesView` when a skin does not expose a reusable notes view.
@@ -321,7 +321,7 @@ Future playfield work should move toward a stable editor-owned coordinate and in
 - Preserve skin compatibility by using skin views only as draw adapters until a dedicated editor skinning API exists.
 - Retire shared hover side effects from the editor path after the retained overlay owns all note and timing interactions.
 
-The active `yi/layers/ChartMenus/Editor` screen delegates enter/exit sequencing to `EditorScreenLoadService`. The service owns loading flags, editor controller load/unload, retained-view attachment, note-skin transforms, and sequence view load/unload so partial-load failures clear `loading` instead of leaving the screen stuck.
+The active `yi/layers/Editor` screen delegates enter/exit sequencing to `EditorScreenLoadService`. The service owns loading flags, editor controller load/unload, retained-view attachment, note-skin transforms, and sequence view load/unload so partial-load failures clear `loading` instead of leaving the screen stuck.
 
 `EditorScreenLoadService` also creates `EditorViewServices`, the per-screen bundle for editor view collaborators. Views should use `self.editorViewServices.actionService`, `overlayActionService`, and `scrollInputService` rather than constructing module-local services. This keeps stateful view behavior reset with screen load/unload and makes future view tests injectable.
 

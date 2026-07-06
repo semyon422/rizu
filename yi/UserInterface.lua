@@ -6,6 +6,7 @@ local Select = require("yi.layers.Select")
 local Gameplay = require("yi.layers.Gameplay")
 local ChartLoading = require("yi.layers.ChartLoading")
 local Result = require("yi.layers.Result")
+local Editor = require("yi.layers.Editor")
 local Modals = require("yi.layers.Modals")
 local Overlay = require("yi.layers.Overlay")
 local Settings = require("rizu.config.schemas.Settings")
@@ -74,7 +75,8 @@ function UserInterface:load()
 		select = Select(self),
 		gameplay = Gameplay(self),
 		result = Result(self),
-		chart_loading = ChartLoading(self)
+		chart_loading = ChartLoading(self),
+		editor = Editor(self)
 	}
 
 	for _, v in pairs(self.screens) do
@@ -100,6 +102,7 @@ end
 
 ---@param screen_name string
 function UserInterface:setScreen(screen_name)
+	assert(self.screens[screen_name], ("unknown screen: %s"):format(screen_name))
 	self.previous_screen = self.current_screen
 	self.next_screen = self.screens[screen_name]
 end

@@ -1,4 +1,4 @@
-local SelectCommands = require("yi.layers.ChartMenus.SelectCommands")
+local SelectCommands = require("yi.layers.SelectCommands")
 
 local test = {}
 
