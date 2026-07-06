@@ -132,6 +132,12 @@ Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(char
 - **Incremental cache refreshes**: The lists should update while charts are still being cached, so the player can immediately play anything that has already been processed. This needs design work because rebuilding large lists can take seconds for very large libraries.
 - **Collections**: Current collections are folder-like path prefixes used for filtering. Keep that behavior, but consider renaming it to make room for real user-defined collections. Collections may also need separate scopes for sets, metas, diffs, and plays.
 
+### Search and Navigation
+- **Debounced command-palette search**: Search commands should eventually update results while the command is still being edited, instead of waiting until the command is confirmed. This needs debouncing so each text change does not force an immediate full refresh.
+- **Non-filtering text search**: Add a search mode that behaves like search in text editors: it moves forward/backward through matching charts without filtering the list. The existing lamp search is already close to this behavior because it can express an additional search string without replacing the main filter; this likely only needs match navigation on top of that model.
+- **Select undo/redo**: Explore selection-level undo/redo for filter, search, collection, sorting, and navigation changes so players can return to a previous select state after trying a new filter.
+- **Nearest restored chart**: When scroll/selection restoration after a filter refresh cannot target the previous chart exactly, choose the nearest available chart instead of resetting to the beginning of the list. This would make flows such as playing with a no-played filter less jarring when the current chart disappears from the filtered results.
+
 ### Selection, Scores, and Replay State
 - **ReplayBase ownership**: Reconsider whether selection should automatically mutate the global `ReplayBase`. It may be safer to work with a copy until the player explicitly confirms gameplay settings.
 

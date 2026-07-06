@@ -50,6 +50,22 @@ function M.get(game)
 			end
 		},
 		{
+			id = "global.screenshot",
+			title = "Screenshot: Capture",
+			description = "Captures a screenshot",
+			callback = function()
+				game.app.screenshotModel:capture(false)
+			end
+		},
+		{
+			id = "global.screenshot_open",
+			title = "Screenshot: Capture and Open",
+			description = "Captures a screenshot and opens it in the file manager",
+			callback = function()
+				game.app.screenshotModel:capture(true)
+			end
+		},
+		{
 			id = "global.open_editor",
 			title = "Editor: Open",
 			description = "Opens the editor screen",

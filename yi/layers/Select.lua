@@ -91,7 +91,7 @@ function Select:new(ui)
 		}),
 	})
 
-	self.select_commands = SelectCommands(ui.game)
+	self.select_commands = SelectCommands(ui.game, ui)
 	self.location_commands = LocationCommands(ui.game)
 	self.next_reload_time = math.huge
 end

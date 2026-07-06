@@ -5,6 +5,7 @@ local ClearStatus = require("yi.views.gameplay.ClearStatus")
 local Colors = require("yi.Colors")
 local delay = require("delay")
 local thread = require("thread")
+local GameplayCommands = require("yi.layers.GameplayCommands")
 
 ---@class yi.Gameplay : gui.Screen
 ---@operator call: yi.Gameplay
@@ -23,6 +24,7 @@ function Gameplay:new(ui)
 	self.clear_status = ClearStatus()
 	self.clear_status:setPivot(0, 0.5)
 	self.is_playing = true
+	self.commands = GameplayCommands(ui)
 
 	self.root = S.Stack({
 		self.clear_status
@@ -40,9 +42,11 @@ function Gameplay:enter()
 	love.mouse.setVisible(false)
 	self.is_playing = true
 	self.clear_status:hide()
+	self.ui.command_registry:pushContext("gameplay", self.commands)
 end
 
 function Gameplay:exit()
+	self.ui.command_registry:popContext("gameplay")
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_view:unload()
 	love.keyboard.setKeyRepeat(true)
