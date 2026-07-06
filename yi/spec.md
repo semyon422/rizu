@@ -18,13 +18,13 @@ The `yi/` tree contains the retained UI that is replacing the legacy immediate-m
 
 ### Command Palette Migration
 
-- **Timings selector**: Replace `TimingsSelectorView` and `TimingsSelectorViewModal` with palette commands for choosing timings/subtimings and applying them to the active replay/scoring context.
-- **Play config**: Migrate `PlayConfigView` actions into the palette or retained controls, including rate type, nearest, tap-only, const/custom flags, auto timings, and column order operations.
-- **Note skin selection**: `yi` already has a note skin view, but the palette should also support selecting a note skin directly.
-- **Online actions**: Audit `OnlineView` and move login/logout/session or other online account actions into retained UI or palette commands.
-- **Database maintenance**: Location actions have initial palette coverage, but the database-management half of `MountsView` still needs commands for cache status, recompute actions, diffcalc resets, chartdiff/chartmeta cleanup, and vacuum/debug actions where still wanted.
-- **Lobby and multiplayer**: Migrate `LobbyView` and remaining multiplayer screen actions: create/join room, password flow, ready toggle, start/stop match, chart selection, modifier/settings access, chat, and downloads.
-- **Result details**: Replace `ReplayInfoModal` with a command that dumps replay/result details to the console or another developer-facing output.
+- **Timings selector**: Initial palette coverage exists for choosing timings and osu! score-version subtimings. Future work should cover arbitrary timing-window editing or a retained replacement for `TimingsModalView`.
+- **Play config**: Initial palette coverage exists for rate type, nearest, tap-only, const/custom flags, auto timings, and column order operations. Future work should decide which of these also need retained controls.
+- **Note skin selection**: Initial palette coverage exists for selecting the current input mode's note skin. Future work should cover richer skin configuration.
+- **Online actions**: Initial palette coverage exists for login/logout/quick login. Future work should audit any remaining session or account actions.
+- **Database maintenance**: Initial palette coverage exists for cache status, recompute actions, diffcalc resets, chartdiff/chartmeta cleanup, and vacuum/debug actions. Future work should review which destructive commands should get a proper retained confirmation flow.
+- **Lobby and multiplayer**: Initial palette coverage exists for create/join/leave room, ready toggle, start/stop match, selected-chart sync, replay-base sync, chat, and room chart download. Future work should rebuild the actual lobby/multiplayer retained experience.
+- **Result details**: Initial palette coverage exists for dumping replay/result details to the console.
 
 ### Retained UI Migration
 

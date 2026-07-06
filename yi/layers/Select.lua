@@ -18,6 +18,12 @@ local GameplayModifiers = require("yi.views.select.GameplayModifiers")
 local InfoPanel = require("yi.views.select.InfoPanel")
 local SelectCommands = require("yi.layers.SelectCommands")
 local LocationCommands = require("yi.layers.LocationCommands")
+local PlayConfigCommands = require("yi.layers.PlayConfigCommands")
+local NoteSkinCommands = require("yi.layers.NoteSkinCommands")
+local PackageCommands = require("yi.layers.PackageCommands")
+local OnlineCommands = require("yi.layers.OnlineCommands")
+local DatabaseCommands = require("yi.layers.DatabaseCommands")
+local MultiplayerCommands = require("yi.layers.MultiplayerCommands")
 
 ---@class yi.layers.Select: gui.Screen
 ---@operator call: yi.layers.Select
@@ -93,6 +99,12 @@ function Select:new(ui)
 
 	self.select_commands = SelectCommands(ui.game, ui)
 	self.location_commands = LocationCommands(ui.game)
+	self.play_config_commands = PlayConfigCommands(ui.game)
+	self.noteskin_commands = NoteSkinCommands(ui.game)
+	self.package_commands = PackageCommands(ui.game)
+	self.online_commands = OnlineCommands(ui.game)
+	self.database_commands = DatabaseCommands(ui.game)
+	self.multiplayer_commands = MultiplayerCommands(ui.game)
 	self.next_reload_time = math.huge
 end
 
@@ -118,6 +130,12 @@ function Select:enter()
 
 	self.ui.command_registry:pushContext("select", self.select_commands)
 	self.ui.command_registry:pushContext("locations", self.location_commands)
+	self.ui.command_registry:pushContext("play_config", self.play_config_commands)
+	self.ui.command_registry:pushContext("noteskins", self.noteskin_commands)
+	self.ui.command_registry:pushContext("packages", self.package_commands)
+	self.ui.command_registry:pushContext("online", self.online_commands)
+	self.ui.command_registry:pushContext("database", self.database_commands)
+	self.ui.command_registry:pushContext("multiplayer", self.multiplayer_commands)
 end
 
 function Select:exit()
@@ -127,6 +145,12 @@ function Select:exit()
 	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.command_registry:popContext("select")
 	self.ui.command_registry:popContext("locations")
+	self.ui.command_registry:popContext("play_config")
+	self.ui.command_registry:popContext("noteskins")
+	self.ui.command_registry:popContext("packages")
+	self.ui.command_registry:popContext("online")
+	self.ui.command_registry:popContext("database")
+	self.ui.command_registry:popContext("multiplayer")
 end
 
 function Select:createLeftColumn()
