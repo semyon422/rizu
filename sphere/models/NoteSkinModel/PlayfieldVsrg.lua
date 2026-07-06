@@ -211,7 +211,7 @@ function PlayfieldVsrg:addScore(object)
 		object = ValueView(object)
 	end
 	function object:value()
-		---@type sphere.IScoreSource
+		---@type rizu.IScoreSource
 		local score_source = self.game.rhythm_engine.score_engine.scoreSource
 		self.format = score_source.score_format
 		self.multiplier = score_source.score_multiplier
@@ -230,7 +230,7 @@ function PlayfieldVsrg:addAccuracy(object)
 		object = ValueView(object)
 	end
 	function object:value()
-		---@type sphere.IAccuracySource
+		---@type rizu.IAccuracySource
 		local accuracy_source = self.game.rhythm_engine.score_engine.accuracySource
 		self.format = accuracy_source.accuracy_format
 		self.multiplier = accuracy_source.accuracy_multiplier

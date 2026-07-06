@@ -39,7 +39,7 @@ function JudgeSegments:new()
 	self:setSize(700, 700)
 end
 
----@param judges_source sphere.IJudgesSource
+---@param judges_source rizu.IJudgesSource
 function JudgeSegments:bind(judges_source)
 	local judges = judges_source:getJudges()
 	local total = judges_source:getJudgesTotal()

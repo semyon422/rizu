@@ -294,7 +294,7 @@ The editor UI is composed of retained view modules under `yi.views.editor`:
 - `EditorForegroundView`: notification text, analyzed-pattern text, and foreground hotkeys.
 - `EditorLayout`: editor-space transform and retained view rect calculation.
 
-During editor enter, `EditorScreenLoadService` attaches these retained editor views and `EditorScreenFrameService` draws them through `yi.Screen`. The screen uses the existing chart-menu `ParallaxBackground` and only changes its dim value on editor enter/exit; editor views should not call legacy `sphere.views.BackgroundView`. Do not add new standalone editor draw modules; put new view behavior behind retained view classes and service-backed contexts.
+During editor enter, `EditorScreenLoadService` attaches these retained editor views and `EditorScreenFrameService` draws them through `yi.Screen`. The screen uses the existing chart-menu `ParallaxBackground` and only changes its dim value on editor enter/exit; editor views should use retained view classes and service-backed contexts instead of standalone legacy draw modules.
 
 Views should read lifecycle/resource state through `EditorModel` accessors instead of raw fields. Editor retained views use `gui.View` input events; panel-style overlay drawing lives in `yi.views.editor.EditorOverlayPanel` and focused tab panels rather than the screen shell. Do not add new editor UI behavior through `imgui` or `just`; model readiness, waveform, visual access, modifier state, and small UI mutations should stay behind model or service methods so runtime state does not drift into ad hoc fields.
 

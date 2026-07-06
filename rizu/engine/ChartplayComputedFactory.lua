@@ -9,7 +9,7 @@ local ChartplayComputedFactory = class()
 
 ---@param chartdiff sea.Chartdiff
 ---@param diffcalc_context sphere.DiffcalcContext
----@param score_engine sphere.ScoreEngine
+---@param score_engine rizu.ScoreEngine
 function ChartplayComputedFactory:new(chartdiff, diffcalc_context, score_engine)
 	self.chartdiff = chartdiff
 	self.diffcalc_context = diffcalc_context

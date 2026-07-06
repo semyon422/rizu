@@ -17,7 +17,7 @@ local BgaEngine = require("rizu.engine.sprite.BgaEngine")
 local PlayProgress = require("rizu.engine.PlayProgress")
 local PauseCounter = require("rizu.engine.PauseCounter")
 
-local ScoreEngine = require("sphere.models.RhythmModel.ScoreEngine")
+local ScoreEngine = require("rizu.engine.ScoreEngine")
 
 ---@class rizu.RhythmEngine
 ---@operator call: rizu.RhythmEngine

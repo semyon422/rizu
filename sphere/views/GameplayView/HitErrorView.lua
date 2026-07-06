@@ -42,7 +42,7 @@ HitErrorView.colors = {
 }
 
 function HitErrorView:load()
-	---@type sphere.ScoreEngine
+	---@type rizu.ScoreEngine
 	local score_engine = self.game.rhythm_engine.score_engine
 
 	self.judgesSource = score_engine.judgesSource
@@ -53,7 +53,7 @@ local miss = {1, 0, 0, 1}
 
 ---@param value any
 ---@param unit any
----@param judgesSource sphere.IJudgesSource
+---@param judgesSource rizu.IJudgesSource
 ---@param slice table
 ---@return table
 function HitErrorView.color(value, unit, judgesSource, slice)
@@ -129,7 +129,7 @@ function HitErrorView:drawPoint(point, fade)
 
 	if type(color) == "function" then
 		local scoreSystem = self.judgesSource
-		---@cast scoreSystem +sphere.ScoreSystem, -sphere.IJudgesSource
+		---@cast scoreSystem +rizu.ScoreSystem, -rizu.IJudgesSource
 		local slice = point[scoreSystem:getKey()]
 
 		color = color(value, unit, self.judgesSource, slice)

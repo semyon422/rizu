@@ -11,6 +11,7 @@ The engine module provides the low-level runtime systems for rhythm processing, 
 ## Module Areas
 
 - `RhythmEngine`: core note processing and timing logic.
+- `ScoreEngine`: scoring systems, judge counters, accuracy, combo, health, and score source interfaces.
 - `audio/`: provider-based audio backend system.
 - `visual/`: low-level rendering and playfield support.
 - `input/`: physical and virtual input event handling.

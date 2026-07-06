@@ -7,7 +7,7 @@ local flux = require("flux")
 ---@field animate boolean?
 ---@field scale number
 ---@field judgements sphere.ImageAnimationView[]
----@field judgesSource sphere.ScoreSystem
+---@field judgesSource rizu.ScoreSystem
 local JudgementView = class()
 
 function JudgementView:load()
@@ -19,12 +19,12 @@ function JudgementView:load()
 	end
 
 	self.totalJudges = #judges_source:getJudges()
-	---@cast judges_source +sphere.ScoreSystem, -sphere.IJudgesSource
+	---@cast judges_source +rizu.ScoreSystem, -rizu.IJudgesSource
 	self.judgesSource = judges_source
 
 	local base_score = self.scoreEngine:getScoreSystem("base")
 	assert(base_score)
-	---@cast base_score sphere.BaseScore
+	---@cast base_score rizu.BaseScore
 	self.baseScore = base_score
 
 	self.notes = 0
