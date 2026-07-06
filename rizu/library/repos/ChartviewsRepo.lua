@@ -11,18 +11,22 @@ local chartview_base = require("rizu.library.models.chartview_base")
 ---@field items string Serialized `chartview_struct[]` bytes.
 ---@field maps rizu.library.ChartviewsRepo.IndexMaps
 
+---@alias rizu.library.ChartviewsRepo.Mode "chartfile_sets"|"chartfiles"|"chartmetas"|"chartdiffs"|"chartplays"
 ---@alias rizu.library.ChartviewsRepo.IndexMaps {[string]: {[integer|string]: integer}}
 
 ---@class rizu.library.ChartviewsRepo.QueryParams
----@field order string[]
+---@field order string[]?
 ---@field where rdb.Conditions
 ---@field lamp rdb.Conditions?
 ---@field difficulty string?
----@field primary_mode string
----@field secondary_mode string
+---@field primary_mode rizu.library.ChartviewsRepo.Mode?
+---@field secondary_mode rizu.library.ChartviewsRepo.Mode?
 
 ---@class rizu.library.ChartviewsRepo
 ---@operator call: rizu.library.ChartviewsRepo
+---@field models rdb.Models
+---@field params rizu.library.ChartviewsRepo.QueryParams
+---@field is_sync boolean
 local ChartviewsRepo = class()
 
 ---@param models rdb.Models
@@ -95,6 +99,10 @@ local function getCompositeIndexKey(chartfile_id, id)
 	return ("%d:%d"):format(chartfile_id, id)
 end
 
+---@param model rdb.Model
+---@param where rdb.Conditions
+---@param options rdb.Options
+---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function ChartviewsRepo:_fetchResult(model, where, options)
 	local count_options = {
 		columns = {"1"},
@@ -143,7 +151,8 @@ end
 
 ChartviewsRepo.getCompositeIndexKey = getCompositeIndexKey
 
----@param params table
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function ChartviewsRepo:queryAsync(params)
 	if self.is_sync then
 		self.params = params
@@ -168,6 +177,10 @@ local LEVEL_GROUPS = {
 	chartplays = {"chartplay_id"},
 }
 
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param mode rizu.library.ChartviewsRepo.Mode
+---@param use_preview boolean
+---@return string
 function ChartviewsRepo:_buildViewSubquery(params, mode, use_preview)
 	local level = LEVELS[mode]
 
@@ -216,8 +229,8 @@ function ChartviewsRepo:_buildViewSubquery(params, mode, use_preview)
 	return sql
 end
 
----@param params table
----@param mode string
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param mode rizu.library.ChartviewsRepo.Mode
 ---@param use_preview boolean
 ---@return rdb.Model
 function ChartviewsRepo:_getDynamicViewModel(params, mode, use_preview)
@@ -229,6 +242,10 @@ function ChartviewsRepo:_getDynamicViewModel(params, mode, use_preview)
 	}, self.models)
 end
 
+---@param mode rizu.library.ChartviewsRepo.Mode
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@param use_preview boolean
+---@return string[]
 function ChartviewsRepo:_getColumns(mode, params, use_preview)
 	local level = LEVELS[mode]
 	local columns = {
@@ -308,6 +325,9 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 	return columns
 end
 
+---@param mode rizu.library.ChartviewsRepo.Mode
+---@param params rizu.library.ChartviewsRepo.QueryParams
+---@return string[]
 function ChartviewsRepo:_getSlimColumns(mode, params)
 	local level = LEVELS[mode]
 	local columns = {
@@ -328,7 +348,9 @@ end
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function ChartviewsRepo:query()
 	local params = self.params
+	---@type rizu.library.ChartviewsRepo.Mode
 	local primary_mode = params.primary_mode or "chartmetas"
+	---@type rizu.library.ChartviewsRepo.Mode
 	local secondary_mode = params.secondary_mode or "chartmetas"
 
 	-- Use finer mode for subquery to allow correct aggregation of underlying items
@@ -348,7 +370,9 @@ end
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function ChartviewsRepo:getViews(chartview)
 	local params = self.params
+	---@type rizu.library.ChartviewsRepo.Mode
 	local primary_mode = params.primary_mode or "chartmetas"
+	---@type rizu.library.ChartviewsRepo.Mode
 	local secondary_mode = params.secondary_mode or "chartmetas"
 
 	local primary_level = LEVELS[primary_mode]
@@ -370,6 +394,7 @@ function ChartviewsRepo:getViews(chartview)
 		"chartplay_id",
 	}
 
+	---@type rdb.Conditions
 	local where = table_util.copy(params.where)
 	if filter_level >= LEVELS.chartfile_sets then where.chartfile_set_id = chartview.chartfile_set_id end
 	if filter_level >= LEVELS.chartfiles then where.chartfile_id = chartview.chartfile_id end
@@ -412,6 +437,7 @@ function ChartviewsRepo:getChartview(_chartview)
 	local chartplay_id = _chartview.chartplay_id
 
 	local params = self.params
+	---@type rizu.library.ChartviewsRepo.Mode
 	local mode = params.secondary_mode or params.primary_mode or "chartmetas"
 	local model = self:_getDynamicViewModel(params, mode, true)
 	local columns = self:_getColumns(mode, params, true)
@@ -422,6 +448,7 @@ function ChartviewsRepo:getChartview(_chartview)
 		group = LEVELS[mode] < LEVELS.chartplays and LEVEL_GROUPS[mode] or nil,
 	}
 
+	---@type rdb.Conditions
 	local where = {}
 	---@type rizu.library.Chartview?
 	local obj
