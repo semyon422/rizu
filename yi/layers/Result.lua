@@ -14,12 +14,10 @@ function Result:new(ui)
 	self.commands = ResultCommands(ui)
 
 	self.judge_segments = JudgeSegments()
+	self.judge_segments:setPivot(0.5, 0.5)
 
 	self.root = S.Stack({
-		S.Anchor({
-			pivot = {0.5, 0.5},
-			self.judge_segments
-		}),
+		self.judge_segments
 	})
 end
 

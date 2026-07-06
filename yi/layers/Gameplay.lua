@@ -73,7 +73,7 @@ function Gameplay:observeCompletion()
 
 	-- Bad things will happen if you change the resolution while this is running...
 	thread.coro(function()
-		delay.sleep(0.22)
+		delay.sleep(0.16)
 		self.clear_status:show()
 		delay.sleep(1)
 		self.ui:setScreen("result")

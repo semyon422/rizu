@@ -25,8 +25,8 @@ function Screen:load()
 	local scale = self.ui_scale
 
 	if self.root then
-		self.root:measure()
 		local w, h = love.graphics.getDimensions()
+		self.root:measure()
 		self.root:grow(w / scale, h / scale)
 		self.root:arrange()
 		self.root:insertViewsInto(self.views)

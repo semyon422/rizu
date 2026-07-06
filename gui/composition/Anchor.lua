@@ -3,15 +3,17 @@ local Node = require("gui.composition.Node")
 ---@class gui.Composition.Anchor: gui.Composition.Node
 ---@operator call: gui.Composition.Anchor
 ---@field pivot [number, number]
+---@field available_w number set during grow
+---@field available_h number set during grow
 local Anchor = Node + {}
 
 function Anchor:applyParams(t)
-	local pivot = t.pivot
 	self.x = t.x or 0
 	self.y = t.y or 0
 
+	local pivot = t.pivot
 	if type(pivot) == "table" then
-		assert(#pivot, "Pivot table should have 2 values")
+		assert(#pivot == 2, "Pivot table should have 2 values")
 		self.pivot = pivot
 	else
 		self.pivot = {0, 0}
@@ -35,7 +37,8 @@ function Anchor:measure()
 		total_h = total_h + v.height
 	end
 
-	self.width, self.height = total_w, total_h
+	self.width = total_w
+	self.height = total_h
 end
 
 function Anchor:grow(available_w, available_h)

@@ -29,8 +29,6 @@ local MultiplayerCommands = require("yi.layers.MultiplayerCommands")
 ---@operator call: yi.layers.Select
 local Select = Screen + {}
 
-local HORIZONTAL_PARTITION = {"*", -0.44, "*", -0.46, "*"}
-
 ---@param ui yi.UserInterface
 function Select:new(ui)
 	Screen.new(self)
@@ -67,27 +65,25 @@ function Select:new(ui)
 	end)
 
 	self.root = S.Stack({
-		S.Track({
-			space = {"*", 2, 64},
+		S.Flex({
+			sizes = {"*", 2, 64},
 			direction = "row",
 
-			S.Track({
+			S.Flex({
 				direction = "column",
-				space = {70, 2, "*", 2, 70},
+				sizes = {70, 2, "*", 2, 70},
 
 				self:createHeader(),
 				Rectangle({color = Colors.outline}),
-				S.Stack({
+				S.Flex({
 					padding = {0, 20, 20, 0},
-					S.Track({
-						direction = "row",
-						space = HORIZONTAL_PARTITION,
-						S.Stack(), -- Left gap
-						self:createLeftColumn(),
-						S.Stack(), -- Center gap
-						self:createRightColumn(),
-						S.Stack(), -- Right gap
-					}),
+					direction = "row",
+					sizes = {"*", "44%", "*", "46%", "*"},
+					S.Stack(), -- Left gap
+					self:createLeftColumn(),
+					S.Stack(), -- Center gap
+					self:createRightColumn(),
+					S.Stack(), -- Right gap
 				}),
 				Rectangle({color = Colors.outline}),
 				self:createFooter()
@@ -154,9 +150,9 @@ function Select:exit()
 end
 
 function Select:createLeftColumn()
-	return S.Track({
+	return S.Flex({
 		direction = "column",
-		space = {469, "*", 400},
+		sizes = {469, "*", 400},
 		self.background_panel,
 		S.Stack(),
 		self.score_list
@@ -164,9 +160,9 @@ function Select:createLeftColumn()
 end
 
 function Select:createRightColumn()
-	return S.Track({
+	return S.Flex({
 		direction = "column",
-		space = {40, "*", 122, "*", 136, "*", 562},
+		sizes = {40, "*", 122, "*", 136, "*", 562},
 
 		S.Stack({
 			Rectangle({color = Colors.panel}),
@@ -188,21 +184,16 @@ end
 function Select:createHeader()
 	return S.Stack({
 		Rectangle({color = Colors.panel}),
-		S.Track({
+		S.Flex({
 			direction = "row",
-			space = HORIZONTAL_PARTITION,
+			sizes = {"*", "44%", "*", "46%", "*"},
 
 			S.Stack(),
-			S.Anchor({
-				pivot = {0, 0.5},
-
-				S.Flow({
-					direction = "row",
-					align = 0.5,
-					gap = 32,
-					Image({quad = Resources.quads.rizu_small}),
-					Label({font_name = "regular", font_size = 24, text = "Online: 1"})
-				})
+			S.Flex({
+				direction = "row",
+				gap = 32,
+				Image({quad = Resources.quads.rizu_small}):setPivot(0, 0.5),
+				Label({font_name = "regular", font_size = 24, text = "Online: 1"}):setPivot(0, 0.5)
 			}),
 			S.Stack(),
 			S.Stack(),
@@ -212,27 +203,29 @@ function Select:createHeader()
 end
 
 function Select:createFooter()
+	self.back_button:setPivot(0, 0.5)
+	self.player_info:setPivot(0, 0.5)
+	self.session_info:setPivot(0, 0.5)
+	self.gameplay_modifiers:setPivot(0, 0.5)
+	self.time_rate:setPivot(0, 0.5)
+	self.play_button:setPivot(0, 0.5)
+
 	return S.Stack({
 		Rectangle({color = Colors.panel}),
-		S.Anchor({
-			pivot = {0, 0.5},
+		S.Flex({
+			direction = "row",
+			justify = "space-between",
 
-			S.Flow({
+			S.Flex({
 				direction = "row",
 				gap = 10,
-				align = 0.5,
 				self.back_button,
 				self.player_info,
 				self.session_info
-			})
-		}),
-		S.Anchor({
-			pivot = {1, 0.5},
-
-			S.Flow({
+			}),
+			S.Flex({
 				direction = "row",
 				gap = 10,
-				align = 0.5,
 				self.gameplay_modifiers,
 				self.time_rate,
 				self.play_button
@@ -267,18 +260,17 @@ function Select:createSidebar()
 
 		S.Stack({
 			padding = {0, 10, 10, 0},
-			S.Track({
+			S.Flex({
 				direction = "column",
 				gap = 10,
-				align = 0.5,
-				IconButton(Resources.quads.icon_folder),
-				IconButton(Resources.quads.icon_download),
-				IconButton(Resources.quads.icon_gear, button_config),
-				Rectangle({color = Colors.outline}):setSize(64, 2),
-				IconButton(Resources.quads.icon_sparkles, button_modifiers),
-				IconButton(Resources.quads.icon_funnel, button_filters),
-				IconButton(Resources.quads.icon_keyboard, button_input),
-				IconButton(Resources.quads.icon_palette, button_noteskins),
+				IconButton(Resources.quads.icon_folder):setPivot(0.5, 0),
+				IconButton(Resources.quads.icon_download):setPivot(0.5, 0),
+				IconButton(Resources.quads.icon_gear, button_config):setPivot(0.5, 0),
+				Rectangle({color = Colors.outline}):setSize(64, 2):setPivot(0.5, 0),
+				IconButton(Resources.quads.icon_sparkles, button_modifiers):setPivot(0.5, 0),
+				IconButton(Resources.quads.icon_funnel, button_filters):setPivot(0.5, 0),
+				IconButton(Resources.quads.icon_keyboard, button_input):setPivot(0.5, 0),
+				IconButton(Resources.quads.icon_palette, button_noteskins):setPivot(0.5, 0),
 			}),
 		})
 	})

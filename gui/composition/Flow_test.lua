@@ -1,116 +1,175 @@
 local Flow = require("gui.composition.Flow")
-local Box = require("gui.Box")
 
 local test = {}
 
----@param width number
----@param height number
----@return gui.View
-local function view(width, height)
-	local b = Box()
-	b.width = width
-	b.height = height
-	return {
-		_is_view = true,
-		width = width,
-		height = height,
-		box = b,
+---@param opts {width: number?, height: number?}
+local function child(opts)
+	opts._is_node = true
+	opts.box = {}
+	function opts:measure() end
+	function opts:grow(w, h)
+		self.width = w
+		self.height = h
+		self.box.w = w
+		self.box.h = h
+	end
+	function opts:arrange()
+		self.box.x = self.layout_x
+		self.box.y = self.layout_y
+	end
+	return opts
+end
+
+local function layout(node, w, h)
+	node:measure()
+	node:grow(w, h)
+	node:arrange()
+end
+
+---@param t testing.T
+function test.row_lays_out_children_intrinsic_sizes(t)
+	local a = child{width = 50, height = 30}
+	local b = child{width = 80, height = 60}
+	local flow = Flow{
+		direction = "row",
+		gap = 10,
+		a, b,
 	}
+	layout(flow, 1000, 100)
+
+	t:eq(a.box.x, 0)
+	t:eq(a.box.y, 0)
+	t:eq(a.box.w, 50)
+	t:eq(a.box.h, 30)
+	t:eq(b.box.x, 60)
+	t:eq(b.box.y, 0)
+	t:eq(b.box.w, 80)
+	t:eq(b.box.h, 60)
 end
 
 ---@param t testing.T
-function test.row_fits_children_instead_of_available_space(t)
-	local left = view(10, 8)
-	local right = view(20, 12)
-	local flow = Flow({
-		gap = 5,
+function test.row_does_not_grow_to_available(t)
+	local a = child{width = 50, height = 30}
+	local b = child{width = 80, height = 60}
+	local flow = Flow{
+		direction = "row",
+		gap = 10,
+		a, b,
+	}
+	layout(flow, 1000, 1000)
+
+	t:eq(flow.width, 140)
+	t:eq(flow.height, 60)
+end
+
+---@param t testing.T
+function test.row_cross_align_center_within_fit_cross(t)
+	local a = child{width = 50, height = 30}
+	local b = child{width = 80, height = 60}
+	local flow = Flow{
+		direction = "row",
 		align = 0.5,
-		left,
-		right,
-	})
+		a, b,
+	}
+	layout(flow, 1000, 1000)
 
-	flow:measure()
-	t:eq(flow.width, 35)
-	t:eq(flow.height, 12)
-
-	flow:grow(200, 100)
-	t:eq(flow.width, 35)
-	t:eq(flow.height, 12)
-	t:eq(left.box.width, 10)
-	t:eq(left.box.height, 8)
-	t:eq(right.box.width, 20)
-	t:eq(right.box.height, 12)
-
-	flow:arrange()
-	t:eq(left.box.x, 0)
-	t:eq(left.box.y, 2)
-	t:eq(right.box.x, 15)
-	t:eq(right.box.y, 0)
+	t:eq(flow.height, 60)
+	t:eq(a.box.y, 15)
+	t:eq(a.box.h, 30)
+	t:eq(b.box.y, 0)
+	t:eq(b.box.h, 60)
 end
 
 ---@param t testing.T
-function test.column_fits_children_and_aligns_cross_axis(t)
-	local top = view(10, 20)
-	local bottom = view(30, 5)
-	local flow = Flow({
+function test.row_cross_align_end_within_fit_cross(t)
+	local a = child{width = 50, height = 30}
+	local b = child{width = 80, height = 60}
+	local flow = Flow{
+		direction = "row",
+		align = 1,
+		a, b,
+	}
+	layout(flow, 1000, 1000)
+
+	t:eq(a.box.y, 30)
+	t:eq(b.box.y, 0)
+end
+
+---@param t testing.T
+function test.child_without_intrinsic_cross_stays_zero(t)
+	local a = child{width = 50}
+	local flow = Flow{
+		direction = "row",
+		a,
+	}
+	layout(flow, 1000, 1000)
+
+	t:eq(a.box.w, 50)
+	t:eq(a.box.h, 0)
+	t:eq(flow.height, 0)
+end
+
+---@param t testing.T
+function test.padding_offsets_content_and_counts_in_size(t)
+	local a = child{width = 10, height = 10}
+	local flow = Flow{
+		direction = "row",
+		padding = {5, 10, 15, 20},
+		a,
+	}
+	layout(flow, 1000, 100)
+
+	t:eq(flow.width, 35)
+	t:eq(flow.height, 35)
+	t:eq(a.box.x, 5)
+	t:eq(a.box.y, 10)
+end
+
+---@param t testing.T
+function test.measure_reports_intrinsic_main_and_max_cross(t)
+	local a = child{width = 50, height = 30}
+	local b = child{width = 80, height = 60}
+	local flow = Flow{
+		direction = "row",
+		gap = 10,
+		a, b,
+	}
+	flow:measure()
+
+	t:eq(flow.width, 140)
+	t:eq(flow.height, 60)
+end
+
+---@param t testing.T
+function test.measure_column_sums_heights(t)
+	local a = child{width = 40, height = 20}
+	local b = child{width = 60, height = 30}
+	local flow = Flow{
 		direction = "column",
-		gap = 3,
-		align = 0.5,
-		top,
-		bottom,
-	})
-
+		gap = 5,
+		a, b,
+	}
 	flow:measure()
-	t:eq(flow.width, 30)
-	t:eq(flow.height, 28)
 
-	flow:grow(200, 100)
-	t:eq(flow.width, 30)
-	t:eq(flow.height, 28)
-	t:eq(top.box.width, 10)
-	t:eq(top.box.height, 20)
-	t:eq(bottom.box.width, 30)
-	t:eq(bottom.box.height, 5)
-
-	flow:arrange()
-	t:eq(top.box.x, 10)
-	t:eq(top.box.y, 0)
-	t:eq(bottom.box.x, 0)
-	t:eq(bottom.box.y, 23)
+	t:eq(flow.width, 60)
+	t:eq(flow.height, 55)
 end
 
 ---@param t testing.T
-function test.row_fits_nested_flows(t)
-	local nested_left = view(10, 8)
-	local nested_right = view(20, 12)
-	local nested = Flow({
+function test.column_lays_out_sequentially(t)
+	local a = child{width = 40, height = 20}
+	local b = child{width = 60, height = 30}
+	local flow = Flow{
+		direction = "column",
 		gap = 5,
-		nested_left,
-		nested_right,
-	})
-	local right = view(7, 6)
-	local flow = Flow({
-		gap = 3,
-		align = 0.5,
-		nested,
-		right,
-	})
+		a, b,
+	}
+	layout(flow, 1000, 1000)
 
-	flow:measure()
-	t:eq(nested.width, 35)
-	t:eq(nested.height, 12)
-	t:eq(flow.width, 45)
-	t:eq(flow.height, 12)
-
-	flow:grow(200, 100)
-	flow:arrange()
-
-	t:eq(nested_left.box.x, 0)
-	t:eq(nested_left.box.y, 0)
-	t:eq(nested_right.box.x, 15)
-	t:eq(nested_right.box.y, 0)
-	t:eq(right.box.x, 38)
-	t:eq(right.box.y, 3)
+	t:eq(a.box.x, 0)
+	t:eq(a.box.y, 0)
+	t:eq(b.box.x, 0)
+	t:eq(b.box.y, 25)
 end
 
 return test

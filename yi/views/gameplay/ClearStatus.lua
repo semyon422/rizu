@@ -21,8 +21,9 @@ function ClearStatus:new()
 	self.scissor_h = 0
 end
 
-function ClearStatus:load()
+function ClearStatus:applyLayout()
 	self:setWidth(self.box.width)
+	View.applyLayout(self)
 end
 
 ---@param text string

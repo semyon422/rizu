@@ -15,23 +15,21 @@ function ChartLoading:new(yi)
 	Screen.new(self)
 	self.yi = yi
 
-	self.root = S.Stack({
-		padding = 20,
-
-		S.Anchor({
-			pivot = {1, 1},
-			S.Flow({
-				align = 0.5,
-				gap = 20,
-				Label({
-					font_name = "bold",
-					font_size = 36,
-					text = "Loading...",
-					color = Colors.text
-				}),
-				Loading(),
+	self.root = S.Anchor({
+		pivot = {1, 1},
+		S.Flow({
+			direction = "row",
+			gap = 20,
+			align = 0.5,
+			padding = 20,
+			Label({
+				font_name = "bold",
+				font_size = 36,
+				text = "Loading...",
+				color = Colors.text
 			}),
-		})
+			Loading()
+		}),
 	})
 end
 
