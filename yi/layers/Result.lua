@@ -1,7 +1,7 @@
 local Screen = require("gui.Screen")
 local S = require("gui.composition.Strategies")
 local JudgeSegments = require("yi.views.result.JudgeSegments")
-local ResultCommands = require("yi.layers.ResultCommands")
+local ResultCommands = require("yi.commands.ResultCommands")
 
 ---@class yi.layers.Result : gui.Screen
 ---@operator call: yi.layers.Result

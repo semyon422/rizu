@@ -1,4 +1,4 @@
-local SelectCommands = require("yi.layers.SelectCommands")
+local SelectCommands = require("yi.commands.SelectCommands")
 
 local test = {}
 

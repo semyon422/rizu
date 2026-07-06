@@ -5,7 +5,7 @@ local ClearStatus = require("yi.views.gameplay.ClearStatus")
 local Colors = require("yi.Colors")
 local delay = require("delay")
 local thread = require("thread")
-local GameplayCommands = require("yi.layers.GameplayCommands")
+local GameplayCommands = require("yi.commands.GameplayCommands")
 
 ---@class yi.Gameplay : gui.Screen
 ---@operator call: yi.Gameplay
