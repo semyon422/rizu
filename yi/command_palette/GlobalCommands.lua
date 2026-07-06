@@ -2,8 +2,9 @@ local M = {}
 
 -- Returns the list of globally accessible commands.
 ---@param game sphere.GameController
+---@param ui yi.UserInterface?
 ---@return yi.command_palette.Command[]
-function M.get(game)
+function M.get(game, ui)
 	return {
 		{
 			id = "global.exit",
@@ -63,6 +64,38 @@ function M.get(game)
 			description = "Captures a screenshot and opens it in the file manager",
 			callback = function()
 				game.app.screenshotModel:capture(true)
+			end
+		},
+		{
+			id = "global.frame_time_toggle",
+			title = "Frame Time: Toggle",
+			description = "Toggles the frame time/profiler overlay",
+			callback = function()
+				if ui then
+					game.configModel.configs.settings.miscellaneous.showFPS = true
+					ui.frame_time_view.visible = not ui.frame_time_view.visible
+				end
+			end
+		},
+		{
+			id = "global.frame_time_open",
+			title = "Frame Time: Open",
+			description = "Opens the frame time/profiler overlay",
+			callback = function()
+				if ui then
+					game.configModel.configs.settings.miscellaneous.showFPS = true
+					ui.frame_time_view.visible = true
+				end
+			end
+		},
+		{
+			id = "global.frame_time_close",
+			title = "Frame Time: Close",
+			description = "Closes the frame time/profiler overlay",
+			callback = function()
+				if ui then
+					ui.frame_time_view.visible = false
+				end
 			end
 		},
 		{

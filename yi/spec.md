@@ -28,7 +28,7 @@ The `yi/` tree contains the retained UI that is replacing the legacy immediate-m
 
 ### Retained UI Migration
 
-- **Frame time/profiler view**: Rebuild `FrameTimeView` in `yi` and expose opening/toggling it from the command palette.
+- **Frame time/profiler view**: The legacy frame-time/profiler overlay is available from `yi` and can be opened/toggled from the command palette. Future work may convert it to retained UI if the debug surface needs deeper integration.
 - **Gameplay logic audit**: Review old `GameplayView` before removing it. Important behavior includes pause/retry/quit state handling, fail action behavior, focus-loss pause behavior, local offset adjustment, play-speed adjustment, and multiplayer exit conditions.
 - **Packages UI**: Rebuild or replace `PackagesView`, including local package listing, opening package folders, remote package download, and source links.
 - **Settings coverage**: Ensure retained settings expose any still-useful options that only existed in old `SettingsView`.

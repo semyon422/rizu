@@ -12,6 +12,7 @@ local Overlay = require("yi.layers.Overlay")
 local Settings = require("rizu.config.schemas.Settings")
 local Colors = require("yi.Colors")
 local Sounds = require("yi.Sounds")
+local FrameTimeView = require("yi.views.FrameTimeView")
 local delay = require("delay")
 
 local Registry = require("yi.command_palette.Registry")
@@ -28,6 +29,7 @@ local GlobalCommands = require("yi.command_palette.GlobalCommands")
 ---@field screens {[string]: gui.Screen}
 ---@field command_registry yi.command_palette.Registry
 ---@field command_palette yi.command_palette.PaletteState
+---@field frame_time_view yi.views.FrameTimeView
 local UserInterface = IUserInterface + {}
 
 local TARGET_HEIGHT = 1080
@@ -44,11 +46,13 @@ function UserInterface:new(game)
 	Painter.init()
 	self.inputs = Inputs()
 	self.modifiers = {control = false, alt = false, shift = false, super = false}
+	self.frame_time_view = FrameTimeView()
+	self.frame_time_view.game = game
 
 	self.screens = {}
 
 	self.command_registry = Registry()
-	for _, cmd in ipairs(GlobalCommands.get(game)) do
+	for _, cmd in ipairs(GlobalCommands.get(game, self)) do
 		self.command_registry:registerGlobal(cmd)
 	end
 	self.command_palette = PaletteState(self.command_registry)
@@ -70,6 +74,7 @@ function UserInterface:load()
 
 	self.modals:load()
 	self.overlay:load()
+	self.frame_time_view:load()
 
 	self.screens = {
 		select = Select(self),
@@ -165,6 +170,7 @@ function UserInterface:draw()
 
 	self.modals:draw()
 	self.overlay:draw()
+	self.frame_time_view:draw()
 end
 
 function UserInterface:windowDimensionsChanged()
@@ -177,6 +183,7 @@ end
 ---@param event table
 function UserInterface:receive(event)
 	self.inputs:receive(event, self.modifiers)
+	self.frame_time_view:receive(event)
 
 	if event.type == "config_commit" then
 		local ui = Settings.graphics.appearance.user_interface
