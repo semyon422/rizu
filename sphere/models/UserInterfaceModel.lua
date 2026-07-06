@@ -2,7 +2,6 @@ local class = require("class")
 local table_util = require("table_util")
 
 local FallbackUserInterface = require("sphere.FallbackUserInterface")
-local OldUserInterface = require("ui.UserInterface")
 local NewUserInterface = require("yi.UserInterface")
 
 local Settings = require("rizu.config.schemas.Settings")
@@ -25,7 +24,6 @@ function UserInterfaceModel:new(game)
 	self.settings = game.settings
 	self.items = {}
 
-	self:add("old", "2022 UI", OldUserInterface, "")
 	self:add("new", "2026 UI", NewUserInterface, "")
 end
 
@@ -69,6 +67,10 @@ end
 
 function UserInterfaceModel:loadSelected()
 	local name = self.settings:getString(Settings.graphics.appearance.user_interface)
+	if name == "old" then
+		name = "new"
+		self:setUserInterface(name)
+	end
 
 	local item = table_util.find(self.items, function(v)
 		return v.name == name
