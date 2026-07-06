@@ -4,6 +4,7 @@ local class = require("class")
 
 ---@class rizu.library.Finder
 ---@operator call: rizu.library.Finder
+---@field fs fs.IFilesystem
 local Finder = class()
 
 ---@alias rizu.library.FinderEventType
@@ -21,6 +22,15 @@ local Finder = class()
 ---@alias rizu.library.FinderEventName string|string[]
 
 ---@alias rizu.library.FinderIterator fun(should_scan: boolean?): rizu.library.FinderEventType?, string?, rizu.library.FinderEventName?, number?
+
+---@param typ rizu.library.FinderEventType
+---@param dir string?
+---@param name rizu.library.FinderEventName?
+---@param modified_at number?
+---@return boolean? should_scan
+local function yieldEvent(typ, dir, name, modified_at)
+	return coroutine.yield(typ, dir, name, modified_at)
+end
 
 ---@param fs fs.IFilesystem
 function Finder:new(fs)
@@ -53,7 +63,7 @@ function Finder:lookupAsync(prefix, dir)
 	local dir_info = self.fs:getInfo(prefix_dir)
 	if not dir_info then
 		local a, b = get_dir_name(dir)
-		coroutine.yield("not_found", a, b, nil)
+		yieldEvent("not_found", a, b, nil)
 		return
 	end
 
@@ -69,16 +79,16 @@ function Finder:lookupAsync(prefix, dir)
 			if not has_related then
 				has_related = true
 				local a, b = get_dir_name(dir)
-				coroutine.yield("related_dir", a, b, dir_info.modtime)
+				yieldEvent("related_dir", a, b, dir_info.modtime)
 			end
-			coroutine.yield("related", dir, item, info.modtime)
+			yieldEvent("related", dir, item, info.modtime)
 			table.insert(all_items, item)
 		end
 	end
 
 	-- If we found related files, we stop here for this directory (don't treat as container)
 	if has_related then
-		coroutine.yield("related_all", dir, all_items, dir_info.modtime)
+		yieldEvent("related_all", dir, all_items, dir_info.modtime)
 		return
 	end
 
@@ -91,22 +101,22 @@ function Finder:lookupAsync(prefix, dir)
 			if not has_unrelated then
 				has_unrelated = true
 				local a, b = get_dir_name(dir)
-				coroutine.yield("unrelated_dir", a, b, dir_info.modtime)
+				yieldEvent("unrelated_dir", a, b, dir_info.modtime)
 			end
-			coroutine.yield("unrelated", dir, item, info.modtime)
+			yieldEvent("unrelated", dir, item, info.modtime)
 			table.insert(all_items, item)
 		end
 	end
 
 	if has_unrelated then
-		coroutine.yield("unrelated_all", dir, all_items, dir_info.modtime)
+		yieldEvent("unrelated_all", dir, all_items, dir_info.modtime)
 		return
 	end
 
 	-- Phase 3: Pure directory scanning
 	-- If no charts were found, recurse into subdirectories
 	local a, b = get_dir_name(dir)
-	coroutine.yield("directory_dir", a, b, dir_info.modtime)
+	yieldEvent("directory_dir", a, b, dir_info.modtime)
 
 	---@type string[]
 	local subdirs_to_scan = {}
@@ -114,14 +124,14 @@ function Finder:lookupAsync(prefix, dir)
 		local info = self.fs:getInfo(path_util.join(prefix, dir, item))
 		if info and (info.type == "directory" or info.type == "symlink") then
 			-- The consumer can return 'false' to skip scanning this subdirectory
-			if coroutine.yield("directory", dir, item, info.modtime) then
+			if yieldEvent("directory", dir, item, info.modtime) then
 				table.insert(subdirs_to_scan, item)
 			end
 			table.insert(all_items, item)
 		end
 	end
 
-	coroutine.yield("directory_all", dir, all_items, dir_info.modtime)
+	yieldEvent("directory_all", dir, all_items, dir_info.modtime)
 
 	for _, item in ipairs(subdirs_to_scan) do
 		self:lookupAsync(prefix, path_util.join(dir, item))

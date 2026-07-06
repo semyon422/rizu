@@ -19,6 +19,20 @@ local DifftablesRepo = require("sea.difftables.repos.DifftablesRepo")
 ---@field f fun()
 ---@field co thread?
 
+---@return thread
+local function getCurrentTaskCoroutine()
+	return assert(coroutine.running(), "attempt to wait for a library task from outside a coroutine")
+end
+
+local function yieldTaskCompletion()
+	coroutine.yield()
+end
+
+---@param co thread
+local function resumeTaskCoroutine(co)
+	assert(coroutine.resume(co))
+end
+
 ---@class rizu.library.Library
 ---@operator call: rizu.library.Library
 local Library = class()
@@ -186,7 +200,7 @@ function Library:enrichChartview(chart)
 	self.locations:enrichChartview(chart)
 end
 
----@param f fun(worker: rizu.library.Library)
+---@param f fun()
 ---@param async boolean?
 function Library:addTask(f, async)
 	---@type rizu.library.LibraryTask
@@ -194,13 +208,13 @@ function Library:addTask(f, async)
 	table.insert(self.tasks, task)
 
 	if async then
-		task.co = coroutine.running()
-		coroutine.yield()
+		task.co = getCurrentTaskCoroutine()
+		yieldTaskCompletion()
 	end
 end
 
 ---@param path string?
----@param location_id number
+---@param location_id integer
 function Library:computeLocation(path, location_id)
 	self:addTask(function()
 		self.worker:computeLocation(path, location_id)
@@ -311,7 +325,7 @@ function Library:process()
 	while task do
 		task.f()
 		if task.co then
-			assert(coroutine.resume(task.co))
+			resumeTaskCoroutine(task.co)
 		end
 
 		task = table.remove(tasks, 1)
