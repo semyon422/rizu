@@ -8,6 +8,7 @@ The library system is designed to provide a fast, flexible, and deeply hierarchi
 - **Deep Drill-down**: The interface supports 5 levels of granularity, from coarsest (Chart Sets) to finest (Individual Plays/Scores).
 - **Aggregated Sorting**: When sorting a grouped list (like Sets) by an attribute like difficulty, the system uses the "maximum" value within that group (e.g., the set is sorted by its hardest variation).
 - **Instant Scrolling**: Even with 50,000+ charts, the song list remains responsive thanks to lazy loading and zero-copy memory management.
+- **External Imports**: Players can add local folders from other games as library locations, download packs through DLC, or drop supported files into the client. The library normalizes those sources into the same location/set/file/meta/diff hierarchy.
 
 ## Data Entities
 The library is structured around a 5-level hierarchy, where each level represents a more specific view of the content:
@@ -82,6 +83,40 @@ To keep the memory footprint minimal, rich metadata (titles, artists, paths) is 
 2. `getChartview(struct)` is called only for items currently in the viewport.
 3. `rizu.library.Locations` provides a high-speed path resolution service using an in-memory cache to avoid redundant SQL queries.
 
+### Module Boundaries
+`rizu.library` owns persistent chart storage, cache updates, path resolution, collection trees, and query semantics. Its public surface should answer questions such as "which chart rows exist?", "how are they grouped?", "where is this asset on disk?", and "which score rows match this chart key?"
+
+`rizu.select` owns UI state and interaction on top of those answers: active primary/secondary modes, selected indexes, scroll restoration, preview activation, score-list visibility, `ReplayBase` synchronization, and OS actions such as opening a selected folder. Select code may rely on library query invariants, but library code should not depend on select state.
+
+### Locations, Mounts, and Imports
+Locations are the boundary between user-visible folders and library-relative chart paths.
+
+- The default internal location is `userdata/charts` with direct relative access.
+- Relative locations are read directly from their stored `path`.
+- External absolute locations are mounted through the filesystem under `mounted_charts/<location_id>`; chart queries continue to store paths relative to the location, not relative to the mount point.
+- `Locations:enrichChartview` attaches `location_prefix`, `location_dir`, `location_path`, `real_dir`, and `real_path` to rich chartviews for media lookup, chart loading, and OS actions.
+
+The mounts view is the player/developer surface for this location state. Its `locations` tab can show per-location cache counts, create locations, rename or repath non-internal locations, include or hide locations in the collection tree via `settings.select.locations_in_collections`, open either the selected chart directory or the location root through select actions, update cache for the selected chart folder, update cache for a whole location, stop an active location update, delete one location's chart cache, and delete non-internal locations.
+
+The same view also has a `database` tab for broader maintenance. It shows aggregate metadata/diff/play counts, refreshes those status counters, starts missing or incomplete chartdiff computation, optionally computes incomplete diffs using preview data, recomputes chartplay-derived score data, resets individual difficulty-calculation fields, deletes all chart cache rows, deletes all or modified chartdiffs, deletes chartdiffs for the selected chart, resets `chartfiles.hash`, deletes all chartmetas or chartmetas by format, runs a selected-chart difficulty debug calculation, and exposes a database `VACUUM` action. Destructive buttons are generally left-shift guarded in the UI.
+
+DLC and drag-and-drop flows import into the internal location rather than creating a separate storage model. DLC packs are extracted under `userdata/charts/packs`, downloaded beatmapsets under `userdata/charts/downloads`, and single downloaded files into their destination folder. `LibraryDropManager` similarly creates or extracts content under `userdata/charts` and then requests a scoped `computeLocation` update.
+
+Current `.osz` handling is extraction-based: DLC and drag-and-drop expand `.osz` archives into ordinary chart folders before the library scans them. Direct `.osz` container reading is not part of the library path model yet; if it is added later, it should follow the same container-path rules used by `.ifs`.
+
+### Container Chart Paths
+Most chartfiles are ordinary filesystem files, but IIDX `.ifs` archives are represented as container paths. `ChartfileReader` treats any path matching `*.ifs/<internal path>` as an archive read: the `.ifs` prefix is read from the filesystem, then the remaining path is looked up inside the parsed archive.
+
+For metadata-driven IIDX locations:
+
+- The scanned location root is the IIDX `contents/data` directory.
+- Song metadata is loaded from `info/*/music_data.bin`.
+- Present chart archives are discovered under `sound/`.
+- Each archive, such as `sound/01234.ifs` or `sound/01234-p0.ifs`, is stored as one `chartfile_set` with `dir = "sound"` and `name` equal to the archive filename.
+- The playable payload inside that archive is stored as a `chartfile` named `<song_id>/<song_id>.1`, for example `01234/01234.1`.
+- Runtime reads combine the location prefix, set directory, archive name, and internal chartfile name into a path such as `mounted_charts/2/sound/01234.ifs/01234/01234.1`.
+- IIDX preview audio, BGA, and keysounds are resolved relative to the same location and archive conventions; chart loading creates an IIDX decode context from the location prefix and archive name.
+
 ### Partial Cache States
 Cache updates move chart data through several valid intermediate states. The rest of the system must treat these as normal data, not as corruption:
 
@@ -119,13 +154,6 @@ If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a so
 
 ## Future Work and Open Questions
 
-### Documentation
-- **Cross-module boundaries**: Separate the responsibilities of `rizu.library` and `rizu.select` more strictly in the documentation. The select module depends heavily on library query behavior, so library docs should describe data/query semantics while select docs should describe UI state and interaction.
-- **External game imports**: Expand the user experience section with chart imports from other games and formats, not only existing local chart folders.
-- **IIDX `.ifs` paths**: Document `.ifs` representation in more detail. An `.ifs` file is a container with an internal file tree, not a chart by itself, so the docs should explain how external paths, internal paths, chartfile sets, chartfiles, preview audio, BGA, and keysounds relate.
-- **Future `.osz` support**: Consider direct `.osz` reading using the same container-oriented approach as `.ifs`.
-- **Mounts UI**: Document the useful actions available in the mounts view, since the UI already exposes many library-management operations there.
-
 ### Caching and Performance
 - **Incremental cache updates**: Add a mechanism for library lists to update while chart caching is still running. Players should be able to play charts that have already been processed instead of waiting for the whole cache run.
 - **Partial cache states**: Review, document, and test behavior while the cache is incomplete. Intermediate states are valid system states, so queries, selection, previews, scoring, and UI refreshes must handle missing hashes, metadata, diffs, scores, or difficulty values without assuming the full pipeline has finished.
@@ -136,6 +164,7 @@ If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a so
 
 ### Architecture and Boundaries
 - **LibraryDropManager**: Review `LibraryDropManager`; it appears legacy and may need a cleaner design.
+- **Future `.osz` support**: Consider direct `.osz` reading using the same container-oriented approach as `.ifs`.
 - **Export filesystem boundary**: Move `ChartExporter:exportToOsu` behind an `IFilesystem` abstraction so export code does not depend directly on concrete filesystem APIs.
 - **Database path ownership**: Make the database path required at `Database:load(path)` and move fallback resolution to a higher level. Add a command-line option for selecting a database path so developers can open a different database without renaming files.
 - **Logging**: Add a logging class or interface in `aqua` and use it instead of direct `print` calls. This is a repository-wide concern, not just a library change.
