@@ -10,7 +10,7 @@ local LoveFilesystem = require("fs.LoveFilesystem")
 ---@field noteSkinModel sphere.NoteSkinModel
 ---@field configModel sphere.ConfigModel
 ---@field resourceModel sphere.ResourceModel
----@field windowModel sphere.WindowModel
+---@field windowModel rizu.WindowModel
 ---@field library rizu.library
 ---@field fileFinder sphere.FileFinder
 ---@field previewModel rizu.preview.PreviewModel

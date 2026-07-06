@@ -1,8 +1,8 @@
 local class = require("class")
 local thread = require("thread")
 
----@class sphere.UpdaterIO
----@operator call: sphere.UpdaterIO
+---@class rizu.UpdaterIO
+---@operator call: rizu.UpdaterIO
 local UpdaterIO = class()
 
 local async_download = thread.async(function(url, path)

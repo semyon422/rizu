@@ -12,7 +12,7 @@ local ModifierModel = require("sphere.models.ModifierModel")
 ---@field noteSkinModel sphere.NoteSkinModel
 ---@field configModel sphere.ConfigModel
 ---@field resourceModel sphere.ResourceModel
----@field windowModel sphere.WindowModel
+---@field windowModel rizu.WindowModel
 ---@field fileFinder sphere.FileFinder
 ---@field previewModel rizu.preview.PreviewModel
 ---@field replayBase sea.ReplayBase

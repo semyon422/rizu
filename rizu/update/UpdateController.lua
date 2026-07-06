@@ -1,13 +1,13 @@
 local class = require("class")
-local Updater = require("sphere.update.Updater")
-local UpdaterIO = require("sphere.update.UpdaterIO")
+local Updater = require("rizu.update.Updater")
+local UpdaterIO = require("rizu.update.UpdaterIO")
 local ConfigModel = require("sphere.persistence.ConfigModel")
-local WindowModel = require("sphere.app.WindowModel")
+local WindowModel = require("rizu.app.WindowModel")
 local thread = require("thread")
 local delay = require("delay")
 
----@class sphere.UpdateController
----@operator call: sphere.UpdateController
+---@class rizu.UpdateController
+---@operator call: rizu.UpdateController
 local UpdateController = class()
 
 function UpdateController:new()

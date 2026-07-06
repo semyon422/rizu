@@ -7,7 +7,7 @@ local class = require("class")
 ---@operator call: rizu.select.services.SelectionWindowSync
 local SelectionWindowSync = class()
 
----@param windowModel sphere.WindowModel
+---@param windowModel rizu.WindowModel
 function SelectionWindowSync:new(windowModel)
 	self.windowModel = windowModel
 end

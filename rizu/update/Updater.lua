@@ -1,11 +1,11 @@
 local class = require("class")
 local json = require("json")
 
----@class sphere.Updater
----@operator call: sphere.Updater
+---@class rizu.Updater
+---@operator call: rizu.Updater
 local Updater = class()
 
----@param updater_io sphere.UpdaterIO
+---@param updater_io rizu.UpdaterIO
 function Updater:new(updater_io)
 	self.updater_io = updater_io
 end

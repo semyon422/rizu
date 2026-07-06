@@ -2,8 +2,8 @@ local discordrpc = require("discordRPC")
 local class = require("class")
 local brand = require("brand")
 
----@class sphere.DiscordModel
----@operator call: sphere.DiscordModel
+---@class rizu.DiscordModel
+---@operator call: rizu.DiscordModel
 local DiscordModel = class()
 
 ---@param configModel sphere.ConfigModel

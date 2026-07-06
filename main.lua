@@ -193,7 +193,7 @@ end, function()
 end)
 
 thread.coro(function()
-	local UpdateController = require("sphere.update.UpdateController")
+	local UpdateController = require("rizu.update.UpdateController")
 	local updateController = UpdateController()
 	local needRestart = updateController:updateAsync()
 	if needRestart then

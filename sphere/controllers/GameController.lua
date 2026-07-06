@@ -36,7 +36,7 @@ local BackgroundModel = require("sphere.ui.BackgroundModel")
 local PreviewModel = require("rizu.preview.PreviewModel")
 
 local Persistence = require("sphere.persistence.Persistence")
-local App = require("sphere.app.App")
+local App = require("rizu.app.App")
 local UserInterfaceModel = require("sphere.models.UserInterfaceModel")
 
 local PackageManager = require("rizu.pkg.PackageManager")

@@ -1,10 +1,10 @@
 local class = require("class")
-local Cursor = require("sphere.app.Cursor")
+local Cursor = require("rizu.app.Cursor")
 local loop = require("rizu.loop.Loop")
 local brand = require("brand")
 
----@class sphere.WindowModel
----@operator call: sphere.WindowModel
+---@class rizu.WindowModel
+---@operator call: rizu.WindowModel
 local WindowModel = class()
 
 function WindowModel:new()

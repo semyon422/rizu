@@ -1,4 +1,4 @@
-local Updater = require("sphere.update.Updater")
+local Updater = require("rizu.update.Updater")
 local class = require("class")
 local json = require("json")
 local table_util = require("table_util")

@@ -1,12 +1,12 @@
 local class = require("class")
 
-local DiscordModel = require("sphere.app.DiscordModel")
-local WindowModel = require("sphere.app.WindowModel")
-local ScreenshotModel = require("sphere.app.ScreenshotModel")
-local AudioModel = require("sphere.app.AudioModel")
+local DiscordModel = require("rizu.app.DiscordModel")
+local WindowModel = require("rizu.app.WindowModel")
+local ScreenshotModel = require("rizu.app.ScreenshotModel")
+local AudioModel = require("rizu.app.AudioModel")
 
----@class sphere.App
----@operator call: sphere.App
+---@class rizu.App
+---@operator call: rizu.App
 local App = class()
 
 ---@param persistence sphere.Persistence

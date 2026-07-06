@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class sphere.Cursor
+---@class rizu.Cursor
 local Cursor = class()
 
 function Cursor:createCursors()

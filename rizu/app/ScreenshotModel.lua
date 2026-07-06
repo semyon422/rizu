@@ -1,7 +1,7 @@
 local class = require("class")
 
----@class sphere.ScreenshotModel
----@operator call: sphere.ScreenshotModel
+---@class rizu.ScreenshotModel
+---@operator call: rizu.ScreenshotModel
 ---@field lastSavedImagePath string?
 local ScreenshotModel = class()
 

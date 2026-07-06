@@ -17,6 +17,8 @@ The `rizu/` tree contains the modern implementation of the game client. It shoul
 - `preview/`: preview generation and synchronized playback. See `rizu/preview/spec.md`.
 - `online/`: client online state, websocket connection management, and online remotes. See `rizu/online/spec.md`.
 - `pkg/`: package discovery, mounting, Lua path injection, and package download helpers. See `rizu/pkg/spec.md`.
+- `app/`: LÖVE app wrappers for window, audio, cursor, screenshots, and Discord presence. See `rizu/app/spec.md`.
+- `update/`: startup-time auto-update checks and update IO. See `rizu/update/spec.md`.
 - `build/`: build and packaging pipeline. See `rizu/build/spec.md`.
 - `dlc/`: downloadable content workflows. See `rizu/dlc/spec.md`.
 - `loop/`, `files/`, `game/`, `input/`: supporting modules that coordinate runtime state, filesystem abstractions, top-level game setup, and input.
