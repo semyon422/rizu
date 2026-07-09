@@ -43,10 +43,11 @@ function FakeWebsocketConnection:getState()
 end
 
 ---@param url string
+---@param connect_host string?
 ---@return true?
 ---@return string?
-function FakeWebsocketConnection:connect(url)
-	table.insert(self.events, "connect:" .. url)
+function FakeWebsocketConnection:connect(url, connect_host)
+	table.insert(self.events, "connect:" .. url .. ":" .. tostring(connect_host))
 	if not self.connect_ok then
 		return nil, "connect failed"
 	end
@@ -89,6 +90,9 @@ local function load_client(connection, user)
 	function sea_client:createWebsocketConnection()
 		return connection --[[@as any]]
 	end
+	function sea_client:resolveConnectHost(url)
+		return "203.0.113.10"
+	end
 	sea_client:load("ws://example.test/ws", function() end)
 	return sea_client, client
 end
@@ -101,7 +105,7 @@ function test.main_thread_connect_replaces_disconnected_peer(t)
 
 	t:tdeq(connection.events, {
 		"close:reconnecting",
-		"connect:ws://example.test/ws",
+		"connect:ws://example.test/ws:203.0.113.10",
 	})
 	t:eq(sea_client.connected, true)
 	t:eq(sea_client.server_peer.ws, connection)
@@ -115,8 +119,30 @@ function test.failed_reconnect_keeps_disconnected_peer(t)
 
 	t:tdeq(connection.events, {
 		"close:reconnecting",
-		"connect:ws://example.test/ws",
+		"connect:ws://example.test/ws:203.0.113.10",
 	})
+	t:eq(sea_client.connected, false)
+	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
+	t:tdeq(client.users, table_util.pack(nil))
+end
+
+---@param t testing.T
+function test.failed_dns_does_not_connect(t)
+	local connection = new_connection(true)
+	local client = new_client()
+	local sea_client = SeaClient(client, {})
+	sea_client.threaded = false
+	sea_client.log = function() end
+	function sea_client:createWebsocketConnection()
+		return connection --[[@as any]]
+	end
+	function sea_client:resolveConnectHost()
+		return nil, "dns failed"
+	end
+
+	sea_client:load("ws://example.test/ws", function() end)
+
+	t:tdeq(connection.events, {"close:reconnecting"})
 	t:eq(sea_client.connected, false)
 	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
 	t:tdeq(client.users, table_util.pack(nil))

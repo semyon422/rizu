@@ -1,5 +1,7 @@
 local class = require("class")
 local delay = require("delay")
+local socket_url = require("socket.url")
+local thread = require("thread")
 local ThreadRemote = require("threadremote.ThreadRemote")
 local CosocketScheduler = require("web.luasocket.CosocketScheduler")
 
@@ -19,9 +21,14 @@ local client_whitelist = require("sea.app.remotes.client_whitelist")
 ---@operator call: rizu.SeaClient
 local SeaClient = class()
 
-SeaClient.threaded = true
+SeaClient.threaded = false
 SeaClient.reconnect_interval = 10
 SeaClient.log = print
+
+local resolve_host_async = thread.async(function(host)
+	local socket = require("socket")
+	return socket.dns.toip(host)
+end)
 
 ---@param client rizu.OnlineClient
 ---@param client_remote sea.ClientRemote
@@ -78,6 +85,17 @@ function SeaClient:closeWebsocket(err)
 end
 
 ---@param url string
+---@return string?
+---@return string?
+function SeaClient:resolveConnectHost(url)
+	local parsed_url, err = socket_url.parse(url)
+	if not parsed_url then
+		return nil, err
+	end
+	return resolve_host_async(parsed_url.host)
+end
+
+---@param url string
 ---@param on_connect function
 function SeaClient:load(url, on_connect)
 	self.url = url
@@ -111,7 +129,17 @@ function SeaClient:load(url, on_connect)
 			if state ~= "open" then
 				self:closeWebsocket("reconnecting")
 				self:log("connecting to websocket")
-				local ok, err = self.sphws_ret:connect(url)
+				local connect_host
+				local ok, err
+				if not self.thread_remote then
+					connect_host, err = self:resolveConnectHost(url)
+					ok = not not connect_host
+				else
+					ok = true
+				end
+				if ok then
+					ok, err = self.sphws_ret:connect(url, connect_host)
+				end
 				if not ok then
 					self:log("connection failed", err)
 					delay.sleep(self.reconnect_interval)
