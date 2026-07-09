@@ -67,7 +67,13 @@ end
 
 ---@return web.WebsocketConnection
 function SeaClient:createWebsocketConnection()
-	return WebsocketConnection({scheduler = self.scheduler})
+	return WebsocketConnection({
+		scheduler = self.scheduler,
+		on_connected = function(connection)
+			self.connected = true
+			self.server_peer.ws = connection
+		end,
+	})
 end
 
 function SeaClient:setDisconnected()
@@ -144,8 +150,6 @@ function SeaClient:load(url, on_connect)
 					self:log("connection failed", err)
 					delay.sleep(self.reconnect_interval)
 				else
-					self.connected = true
-					self.server_peer.ws = self.sphws_ret
 					self:log("connected")
 					on_connect()
 					self.client:setUser(self.remote:getUser())

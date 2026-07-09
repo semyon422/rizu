@@ -52,6 +52,10 @@ function FakeWebsocketConnection:connect(url, connect_host)
 		return nil, "connect failed"
 	end
 	self.state = "open"
+	if self.on_connected then
+		self.on_connected(self)
+	end
+	self:startReader()
 	return true
 end
 
@@ -72,6 +76,10 @@ function FakeWebsocketConnection:update()
 	table.insert(self.events, "update")
 end
 
+function FakeWebsocketConnection:startReader()
+	table.insert(self.events, "startReader")
+end
+
 ---@param connection rizu.FakeWebsocketConnection
 ---@param user any?
 ---@return rizu.SeaClient
@@ -88,6 +96,10 @@ local function load_client(connection, user)
 		heartbeat = function() end,
 	}
 	function sea_client:createWebsocketConnection()
+		connection.on_connected = function(_connection)
+			self.connected = true
+			self.server_peer.ws = _connection
+		end
 		return connection --[[@as any]]
 	end
 	function sea_client:resolveConnectHost(url)
@@ -106,6 +118,7 @@ function test.main_thread_connect_replaces_disconnected_peer(t)
 	t:tdeq(connection.events, {
 		"close:reconnecting",
 		"connect:ws://example.test/ws:203.0.113.10",
+		"startReader",
 	})
 	t:eq(sea_client.connected, true)
 	t:eq(sea_client.server_peer.ws, connection)
