@@ -3,7 +3,7 @@ local delay = require("delay")
 local ThreadRemote = require("threadremote.ThreadRemote")
 local CosocketScheduler = require("web.luasocket.CosocketScheduler")
 
-local SphereWebsocket = require("rizu.online.SphereWebsocket")
+local WebsocketConnection = require("web.ws.WebsocketConnection")
 
 local Subprotocol = require("web.ws.Subprotocol")
 
@@ -64,22 +64,22 @@ function SeaClient:load(url, on_connect)
 
 	if not self.threaded then
 		self.scheduler = CosocketScheduler()
-		self.sphws = SphereWebsocket({scheduler = self.scheduler})
+		self.sphws = WebsocketConnection({scheduler = self.scheduler})
 		self.sphws.protocol = self.protocol
 		self.sphws_ret = self.sphws
 	else
 		local thread_remote = ThreadRemote("websocket", self.protocol)
 		self.thread_remote = thread_remote
 		thread_remote:start(function(protocol)
-			local SphereWebsocket = require("rizu.online.SphereWebsocket")
-			local sphws = SphereWebsocket()
+			local WebsocketConnection = require("web.ws.WebsocketConnection")
+			local sphws = WebsocketConnection()
 			sphws.protocol = -protocol --[[@as web.Subprotocol]]
 			return sphws
 		end)
 		local sphws = -thread_remote.remote
 		local sphws_ret = thread_remote.remote
-		---@cast sphws -icc.Remote, +rizu.SphereWebsocket
-		---@cast sphws_ret -icc.Remote, +rizu.SphereWebsocket
+		---@cast sphws -icc.Remote, +web.WebsocketConnection
+		---@cast sphws_ret -icc.Remote, +web.WebsocketConnection
 		self.sphws = sphws
 		self.sphws_ret = sphws_ret
 	end
@@ -97,7 +97,7 @@ function SeaClient:load(url, on_connect)
 					delay.sleep(self.reconnect_interval)
 				else
 					self.connected = true
-					self.server_peer.ws = self.sphws_ret.ws
+					self.server_peer.ws = self.sphws_ret
 					print("connected")
 					on_connect()
 					self.client:setUser(self.remote:getUser())
@@ -112,7 +112,7 @@ function SeaClient:load(url, on_connect)
 		while not self.stopped do
 			local state = self.sphws_ret:getState()
 			if state == "open" then
-				self.sphws_ret.ws:send("ping")
+				self.sphws_ret:send("ping")
 				self.remote:heartbeat()
 			end
 			delay.sleep(10)
