@@ -1,6 +1,7 @@
 local class = require("class")
 local delay = require("delay")
 local ThreadRemote = require("threadremote.ThreadRemote")
+local CosocketScheduler = require("web.luasocket.CosocketScheduler")
 
 local SphereWebsocket = require("rizu.online.SphereWebsocket")
 
@@ -62,7 +63,8 @@ function SeaClient:load(url, on_connect)
 	self.stopped = false
 
 	if not self.threaded then
-		self.sphws = SphereWebsocket()
+		self.scheduler = CosocketScheduler()
+		self.sphws = SphereWebsocket({scheduler = self.scheduler})
 		self.sphws.protocol = self.protocol
 		self.sphws_ret = self.sphws
 	else
@@ -70,7 +72,7 @@ function SeaClient:load(url, on_connect)
 		self.thread_remote = thread_remote
 		thread_remote:start(function(protocol)
 			local SphereWebsocket = require("rizu.online.SphereWebsocket")
-			local sphws = SphereWebsocket(url)
+			local sphws = SphereWebsocket()
 			sphws.protocol = -protocol --[[@as web.Subprotocol]]
 			return sphws
 		end)

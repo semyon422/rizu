@@ -1,24 +1,33 @@
 local class = require("class")
-local LsTcpSocket = require("web.luasocket.LsTcpSocket")
 local Websocket = require("web.ws.Websocket")
-local WebsocketClient = require("web.ws.WebsocketClient")
+local ws_util = require("web.ws.util")
 local Subprotocol = require("web.ws.Subprotocol")
+
+---@class rizu.SphereWebsocketOptions
+---@field scheduler web.CosocketScheduler?
+---@field tcp_socket web.ITcpSocket?
+---@field ip_version 4|6?
 
 ---@class rizu.SphereWebsocket
 ---@operator call: rizu.SphereWebsocket
+---@field options rizu.SphereWebsocketOptions
+---@field scheduler web.CosocketScheduler?
 local SphereWebsocket = class()
 
-function SphereWebsocket:new()
+---@param options rizu.SphereWebsocketOptions?
+function SphereWebsocket:new(options)
 	self.protocol = Subprotocol()
+	self.options = options or {}
+	self.scheduler = self.options.scheduler
 end
 
 ---@param url string
 ---@return true?
 ---@return string?
 function SphereWebsocket:connect(url)
-	self.soc = LsTcpSocket(4)
+	local ws_client = ws_util.client(self.options)
+	self.soc = ws_client.tcp_soc
 
-	local ws_client = WebsocketClient(self.soc)
 	local re, err = ws_client:connect(url)
 	if not re then
 		return nil, err
@@ -29,7 +38,15 @@ function SphereWebsocket:connect(url)
 	ws.protocol = self.protocol
 	ws.max_payload_len = 1e7
 
-	return ws:handshake()
+	local ok
+	ok, err = ws:handshake()
+	if not ok then
+		return nil, err
+	end
+
+	self:startReader()
+
+	return true
 end
 
 ---@return web.WebsocketState
@@ -38,7 +55,37 @@ function SphereWebsocket:getState()
 	return ws and ws:getState() or "connecting"
 end
 
+function SphereWebsocket:startReader()
+	if not self.scheduler then
+		return
+	end
+
+	self.reader_thread = coroutine.create(function()
+		local ws = self.ws
+		while ws and ws:getState() == "open" do
+			local state = ws:getState()
+			local ok, err = ws:step()
+			if not ok then
+				if state ~= "closed" then
+					print(("websocket error: %s"):format(err))
+				end
+				break
+			end
+		end
+	end)
+	assert(coroutine.resume(self.reader_thread))
+end
+
 function SphereWebsocket:update()
+	local scheduler = self.scheduler
+	if scheduler then
+		local ok, err = scheduler:update(0)
+		if not ok and err then
+			print(("cosocket scheduler error: %s"):format(err))
+		end
+		return
+	end
+
 	local soc = self.soc
 	local ws = self.ws
 	if not soc or not ws then
