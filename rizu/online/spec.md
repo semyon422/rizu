@@ -22,5 +22,6 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - `SeaClient` may run the websocket in a thread, so thread initialization must be able to require `web.ws.WebsocketConnection`.
 - Main-thread websocket reads must run inside `WebsocketConnection`'s reader coroutine; `update()` should only pump the cosocket scheduler and must not call yielding socket reads directly.
 - Main-thread websocket writes must go through `WebsocketConnection:send` so one coroutine owns the websocket writer until its frame is fully sent.
+- `SeaClient` must reset `server_peer.ws` to a disconnected peer before reconnect attempts, after send failures, and during unload so remote calls cannot target a stale websocket.
 - DNS lookup is still potentially blocking in main-thread mode until a separate resolver layer is added.
 - Remote whitelist and validation stay owned by `sea.app.remotes`.

@@ -21,6 +21,7 @@ local SeaClient = class()
 
 SeaClient.threaded = true
 SeaClient.reconnect_interval = 10
+SeaClient.log = print
 
 ---@param client rizu.OnlineClient
 ---@param client_remote sea.ClientRemote
@@ -30,7 +31,8 @@ function SeaClient:new(client, client_remote)
 	self.protocol = Subprotocol()
 	self.remote_handler = RemoteHandler(client_remote, client_whitelist)
 
-	local server_peer = WebsocketPeer({send = function() return nil, "not connected" end})
+	self.disconnected_ws = {send = function() return nil, "not connected" end}
+	local server_peer = WebsocketPeer(self.disconnected_ws)
 	self.server_peer = server_peer
 
 	local task_handler = TaskHandler(self.remote_handler, "client")
@@ -56,6 +58,25 @@ function SeaClient:new(client, client_remote)
 	self.connected = false
 end
 
+---@return web.WebsocketConnection
+function SeaClient:createWebsocketConnection()
+	return WebsocketConnection({scheduler = self.scheduler})
+end
+
+function SeaClient:setDisconnected()
+	self.connected = false
+	self.server_peer.ws = self.disconnected_ws
+	self.client:setUser()
+end
+
+---@param err string?
+function SeaClient:closeWebsocket(err)
+	self:setDisconnected()
+	if self.sphws and not self.thread_remote then
+		self.sphws:close(err)
+	end
+end
+
 ---@param url string
 ---@param on_connect function
 function SeaClient:load(url, on_connect)
@@ -64,7 +85,7 @@ function SeaClient:load(url, on_connect)
 
 	if not self.threaded then
 		self.scheduler = CosocketScheduler()
-		self.sphws = WebsocketConnection({scheduler = self.scheduler})
+		self.sphws = self:createWebsocketConnection()
 		self.sphws.protocol = self.protocol
 		self.sphws_ret = self.sphws
 	else
@@ -88,17 +109,16 @@ function SeaClient:load(url, on_connect)
 		while not self.stopped do
 			local state = self.sphws_ret:getState()
 			if state ~= "open" then
-				self.client:setUser()
-				print("connecting to websocket")
+				self:closeWebsocket("reconnecting")
+				self:log("connecting to websocket")
 				local ok, err = self.sphws_ret:connect(url)
 				if not ok then
-					self.connected = false
-					print("connection failed", err)
+					self:log("connection failed", err)
 					delay.sleep(self.reconnect_interval)
 				else
 					self.connected = true
 					self.server_peer.ws = self.sphws_ret
-					print("connected")
+					self:log("connected")
 					on_connect()
 					self.client:setUser(self.remote:getUser())
 				end
@@ -112,8 +132,12 @@ function SeaClient:load(url, on_connect)
 		while not self.stopped do
 			local state = self.sphws_ret:getState()
 			if state == "open" then
-				self.sphws_ret:send("ping")
-				self.remote:heartbeat()
+				local ok, err = self.sphws_ret:send("ping")
+				if not ok then
+					self:closeWebsocket(err)
+				else
+					self.remote:heartbeat()
+				end
 			end
 			delay.sleep(10)
 		end
@@ -126,7 +150,7 @@ function SeaClient:unload()
 		return
 	end
 	self.stopped = true
-	self.connected = false
+	self:closeWebsocket("unload")
 	if self.thread_remote then
 		self.thread_remote:stopDetached()
 		self.thread_remote = nil
