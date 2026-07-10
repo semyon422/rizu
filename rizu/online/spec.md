@@ -31,3 +31,4 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - After yielding operations such as DNS resolution, websocket connect, and initial user fetch, `SeaClient` must re-check `stopped` before running follow-up connection side effects.
 - TLS verification is enabled by default through the bundled CA file and may be disabled by setting `tls_verify = false` for diagnostics or unusual deployment environments.
 - Remote whitelist and validation stay owned by `sea.app.remotes`.
+- Server remote errors are intentionally allowed to surface loudly on the client instead of being hidden behind generic websocket recovery. Online protocol and server failures should fail early and visibly so they can be fixed while test coverage keeps these paths rare.
