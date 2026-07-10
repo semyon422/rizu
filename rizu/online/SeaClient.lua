@@ -2,7 +2,6 @@ local class = require("class")
 local delay = require("delay")
 local socket_url = require("socket.url")
 local thread = require("thread")
-local ThreadRemote = require("threadremote.ThreadRemote")
 local CosocketScheduler = require("web.luasocket.CosocketScheduler")
 
 local WebsocketConnection = require("web.ws.WebsocketConnection")
@@ -21,7 +20,6 @@ local client_whitelist = require("sea.app.remotes.client_whitelist")
 ---@operator call: rizu.SeaClient
 local SeaClient = class()
 
-SeaClient.threaded = false
 SeaClient.reconnect_interval = 10
 SeaClient.log = print
 
@@ -85,15 +83,15 @@ end
 ---@param err string?
 function SeaClient:closeWebsocket(err)
 	self:setDisconnected()
-	if self.sphws and not self.thread_remote then
-		self.sphws:close(err)
+	if self.ws_con then
+		self.ws_con:close(err)
 	end
 end
 
 ---@return true?
 ---@return string?
 function SeaClient:ping()
-	local ok, err = self.sphws_ret:send("ping")
+	local ok, err = self.ws_con:send("ping")
 	if not ok then
 		self:closeWebsocket(err)
 		return nil, err
@@ -125,44 +123,22 @@ function SeaClient:load(url, on_connect)
 	self.url = url
 	self.stopped = false
 
-	if not self.threaded then
-		self.scheduler = CosocketScheduler()
-		self.sphws = self:createWebsocketConnection()
-		self.sphws.protocol = self.protocol
-		self.sphws_ret = self.sphws
-	else
-		local thread_remote = ThreadRemote("websocket", self.protocol)
-		self.thread_remote = thread_remote
-		thread_remote:start(function(protocol)
-			local WebsocketConnection = require("web.ws.WebsocketConnection")
-			local sphws = WebsocketConnection()
-			sphws.protocol = -protocol --[[@as web.Subprotocol]]
-			return sphws
-		end)
-		local sphws = -thread_remote.remote
-		local sphws_ret = thread_remote.remote
-		---@cast sphws -icc.Remote, +web.WebsocketConnection
-		---@cast sphws_ret -icc.Remote, +web.WebsocketConnection
-		self.sphws = sphws
-		self.sphws_ret = sphws_ret
-	end
+	self.scheduler = CosocketScheduler()
+	self.ws_con = self:createWebsocketConnection()
+	self.ws_con.protocol = self.protocol
 
 	self.reconnect_thread = coroutine.create(function()
 		while not self.stopped do
-			local state = self.sphws_ret:getState()
+			local state = self.ws_con:getState()
 			if state ~= "open" then
 				self:closeWebsocket("reconnecting")
 				self:log("connecting to websocket")
 				local connect_host
 				local ok, err
-				if not self.thread_remote then
-					connect_host, err = self:resolveConnectHost(url)
-					ok = not not connect_host
-				else
-					ok = true
-				end
+				connect_host, err = self:resolveConnectHost(url)
+				ok = not not connect_host
 				if ok then
-					ok, err = self.sphws_ret:connect(url, connect_host)
+					ok, err = self.ws_con:connect(url, connect_host)
 				end
 				if not ok then
 					self:log("connection failed", err)
@@ -180,7 +156,7 @@ function SeaClient:load(url, on_connect)
 
 	self.ping_thread = coroutine.create(function()
 		while not self.stopped do
-			local state = self.sphws_ret:getState()
+			local state = self.ws_con:getState()
 			if state == "open" then
 				self:ping()
 			end
@@ -196,18 +172,11 @@ function SeaClient:unload()
 	end
 	self.stopped = true
 	self:closeWebsocket("unload")
-	if self.thread_remote then
-		self.thread_remote:stopDetached()
-		self.thread_remote = nil
-	end
 end
 
 function SeaClient:update()
-	if self.thread_remote then
-		self.thread_remote:update()
-	end
-	if self.sphws then
-		self.sphws:update()
+	if self.ws_con then
+		self.ws_con:update()
 	end
 end
 

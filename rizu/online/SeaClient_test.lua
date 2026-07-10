@@ -93,7 +93,6 @@ end
 local function load_client(connection, user)
 	local client = new_client()
 	local sea_client = SeaClient(client, {})
-	sea_client.threaded = false
 	sea_client.log = function() end
 	sea_client.remote = {
 		getUser = function()
@@ -151,7 +150,6 @@ function test.failed_dns_does_not_connect(t)
 	local connection = new_connection(true)
 	local client = new_client()
 	local sea_client = SeaClient(client, {})
-	sea_client.threaded = false
 	sea_client.log = function() end
 	function sea_client:createWebsocketConnection()
 		return connection --[[@as any]]

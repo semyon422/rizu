@@ -15,12 +15,11 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - `MultiplayerModel` tracks client-side multiplayer state and coordinates room chart selection/download actions.
 - `SeaClient` bridges websocket transport, ICC remotes, and validated server remotes.
 - Client remote handlers live under `rizu.online.remotes`; server-side remote definitions remain in `sea`.
-- `SeaClient.threaded = false` is the default online transport. It uses `web.ws.WebsocketConnection` with the `aqua/web` LuaSocket cosocket scheduler so websocket connect, read, and write waits can yield inside network-owned coroutines on the main thread.
+- `SeaClient` uses `web.ws.WebsocketConnection` with the `aqua/web` LuaSocket cosocket scheduler so websocket connect, read, and write waits can yield inside network-owned coroutines on the main thread.
 - DNS resolution for main-thread websocket connects runs through `thread.async`; the resolved TCP address is passed separately from the URL host.
 
 ## Invariants
 
-- `SeaClient` may run the websocket in a thread, so thread initialization must be able to require `web.ws.WebsocketConnection`.
 - Main-thread websocket reads must run inside `WebsocketConnection`'s reader coroutine; `update()` should only pump the cosocket scheduler and must not call yielding socket reads directly.
 - Main-thread websocket writes must go through `WebsocketConnection:send` so one coroutine owns the websocket writer until its frame is fully sent.
 - `SeaClient` must assign `server_peer.ws` before starting `WebsocketConnection`'s reader coroutine, otherwise early server calls may try to reply through the disconnected peer.
