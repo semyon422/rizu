@@ -25,5 +25,6 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - Main-thread websocket writes must go through `WebsocketConnection:send` so one coroutine owns the websocket writer until its frame is fully sent.
 - `SeaClient` must assign `server_peer.ws` before starting `WebsocketConnection`'s reader coroutine, otherwise early server calls may try to reply through the disconnected peer.
 - `SeaClient` must reset `server_peer.ws` to a disconnected peer before reconnect attempts, after send failures, and during unload so remote calls cannot target a stale websocket.
+- Ping and heartbeat failures must close the current main-thread websocket and enter the normal reconnect path instead of escaping from the ping coroutine.
 - DNS lookup must not happen inside cosocket TCP connect on the main thread; resolve first through the async resolver and keep the original URL host for HTTP `Host`, SNI, and future TLS hostname verification.
 - Remote whitelist and validation stay owned by `sea.app.remotes`.

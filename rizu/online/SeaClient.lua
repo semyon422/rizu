@@ -90,6 +90,24 @@ function SeaClient:closeWebsocket(err)
 	end
 end
 
+---@return true?
+---@return string?
+function SeaClient:ping()
+	local ok, err = self.sphws_ret:send("ping")
+	if not ok then
+		self:closeWebsocket(err)
+		return nil, err
+	end
+
+	ok, err = pcall(self.remote.heartbeat, self.remote)
+	if not ok then
+		self:closeWebsocket(err)
+		return nil, err
+	end
+
+	return true
+end
+
 ---@param url string
 ---@return string?
 ---@return string?
@@ -164,12 +182,7 @@ function SeaClient:load(url, on_connect)
 		while not self.stopped do
 			local state = self.sphws_ret:getState()
 			if state == "open" then
-				local ok, err = self.sphws_ret:send("ping")
-				if not ok then
-					self:closeWebsocket(err)
-				else
-					self.remote:heartbeat()
-				end
+				self:ping()
 			end
 			delay.sleep(10)
 		end

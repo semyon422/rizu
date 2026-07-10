@@ -24,6 +24,7 @@ end
 ---@field state web.WebsocketState
 ---@field events string[]
 ---@field connect_ok boolean
+---@field send_error string?
 local FakeWebsocketConnection = {}
 FakeWebsocketConnection.__index = FakeWebsocketConnection
 
@@ -67,8 +68,13 @@ function FakeWebsocketConnection:close(err)
 	return 1
 end
 
----@return integer
+---@return integer?
+---@return string?
 function FakeWebsocketConnection:send()
+	table.insert(self.events, "send")
+	if self.send_error then
+		return nil, self.send_error
+	end
 	return 1
 end
 
@@ -119,6 +125,7 @@ function test.main_thread_connect_replaces_disconnected_peer(t)
 		"close:reconnecting",
 		"connect:ws://example.test/ws:203.0.113.10",
 		"startReader",
+		"send",
 	})
 	t:eq(sea_client.connected, true)
 	t:eq(sea_client.server_peer.ws, connection)
@@ -172,6 +179,48 @@ function test.unload_closes_main_thread_connection(t)
 	t:tdeq(connection.events, {"close:unload"})
 	t:eq(sea_client.connected, false)
 	t:eq(sea_client.stopped, true)
+	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
+	t:eq(client.users[client.users.n], nil)
+end
+
+---@param t testing.T
+function test.ping_send_failure_disconnects(t)
+	local connection = new_connection(true)
+	local sea_client, client = load_client(connection, {id = 1})
+
+	connection.events = {}
+	connection.send_error = "send failed"
+
+	t:tdeq({sea_client:ping()}, {nil, "send failed"})
+
+	t:tdeq(connection.events, {
+		"send",
+		"close:send failed",
+	})
+	t:eq(sea_client.connected, false)
+	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
+	t:eq(client.users[client.users.n], nil)
+end
+
+---@param t testing.T
+function test.ping_heartbeat_failure_disconnects(t)
+	local connection = new_connection(true)
+	local sea_client, client = load_client(connection, {id = 1})
+	sea_client.remote.heartbeat = function()
+		error("heartbeat failed")
+	end
+
+	connection.events = {}
+
+	local ok, err = sea_client:ping()
+
+	t:eq(ok, nil)
+	t:assert(tostring(err):find("heartbeat failed", 1, true))
+	t:tdeq(connection.events, {
+		"send",
+		"close:" .. tostring(err),
+	})
+	t:eq(sea_client.connected, false)
 	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
 	t:eq(client.users[client.users.n], nil)
 end
