@@ -1,4 +1,5 @@
 local SeaClient = require("rizu.online.SeaClient")
+local delay = require("delay")
 local table_util = require("table_util")
 
 local test = {}
@@ -25,6 +26,7 @@ end
 ---@field events string[]
 ---@field connect_ok boolean
 ---@field send_error string?
+---@field after_connect fun(connection: rizu.FakeWebsocketConnection)?
 local FakeWebsocketConnection = {}
 FakeWebsocketConnection.__index = FakeWebsocketConnection
 
@@ -57,6 +59,9 @@ function FakeWebsocketConnection:connect(url, connect_host)
 		self.on_connected(self)
 	end
 	self:startReader()
+	if self.after_connect then
+		self.after_connect(self)
+	end
 	return true
 end
 
@@ -146,6 +151,53 @@ function test.failed_reconnect_keeps_disconnected_peer(t)
 end
 
 ---@param t testing.T
+function test.failed_reconnect_uses_backoff(t)
+	local original_sleep = delay.sleep
+	---@type number[]
+	local sleeps = {}
+
+	local connection = new_connection(false)
+	local client = new_client()
+	local sea_client = SeaClient(client, {})
+
+	local ok, err = pcall(function()
+		delay.sleep = function(duration)
+			if coroutine.running() == sea_client.reconnect_thread then
+				table.insert(sleeps, duration)
+			end
+			return coroutine.yield()
+		end
+
+		sea_client.log = function() end
+		sea_client.reconnect_initial_interval = 1
+		sea_client.reconnect_interval = 4
+		function sea_client:createWebsocketConnection()
+			return connection --[[@as any]]
+		end
+		function sea_client:resolveConnectHost()
+			return "203.0.113.10"
+		end
+
+		sea_client:load("ws://example.test/ws", function() end)
+		assert(coroutine.resume(sea_client.reconnect_thread))
+		assert(coroutine.resume(sea_client.reconnect_thread))
+		assert(coroutine.resume(sea_client.reconnect_thread))
+		assert(coroutine.resume(sea_client.reconnect_thread))
+		assert(coroutine.resume(sea_client.reconnect_thread))
+		assert(coroutine.resume(sea_client.reconnect_thread))
+
+		t:eq(sleeps[1], 1)
+		t:eq(sleeps[3], 2)
+		t:eq(sleeps[5], 4)
+		t:eq(sleeps[7], 4)
+	end)
+	delay.sleep = original_sleep
+	if not ok then
+		error(err, 0)
+	end
+end
+
+---@param t testing.T
 function test.failed_dns_does_not_connect(t)
 	local connection = new_connection(true)
 	local client = new_client()
@@ -163,6 +215,70 @@ function test.failed_dns_does_not_connect(t)
 	t:tdeq(connection.events, {"close:reconnecting"})
 	t:eq(sea_client.connected, false)
 	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
+	t:tdeq(client.users, table_util.pack(nil))
+end
+
+---@param t testing.T
+function test.stopped_after_dns_does_not_connect(t)
+	local connection = new_connection(true)
+	local client = new_client()
+	local sea_client = SeaClient(client, {})
+	sea_client.log = function() end
+	function sea_client:createWebsocketConnection()
+		return connection --[[@as any]]
+	end
+	function sea_client:resolveConnectHost()
+		self.stopped = true
+		return "203.0.113.10"
+	end
+
+	sea_client:load("ws://example.test/ws", function()
+		error("on_connect should not be called")
+	end)
+
+	t:tdeq(connection.events, {"close:reconnecting"})
+	t:eq(sea_client.connected, false)
+	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
+	t:tdeq(client.users, table_util.pack(nil))
+end
+
+---@param t testing.T
+function test.stopped_after_connect_skips_user_sync(t)
+	local connection = new_connection(true)
+	local client = new_client()
+	local sea_client = SeaClient(client, {})
+	sea_client.log = function() end
+	sea_client.remote = {
+		getUser = function()
+			error("getUser should not be called")
+		end,
+		heartbeat = function() end,
+	}
+	function sea_client:createWebsocketConnection()
+		connection.on_connected = function(_connection)
+			self.connected = true
+			self.server_peer.ws = _connection
+		end
+		connection.after_connect = function()
+			self.stopped = true
+		end
+		return connection --[[@as any]]
+	end
+	function sea_client:resolveConnectHost()
+		return "203.0.113.10"
+	end
+
+	sea_client:load("ws://example.test/ws", function()
+		error("on_connect should not be called")
+	end)
+
+	t:tdeq(connection.events, {
+		"close:reconnecting",
+		"connect:ws://example.test/ws:203.0.113.10",
+		"startReader",
+	})
+	t:eq(sea_client.connected, true)
+	t:eq(sea_client.server_peer.ws, connection)
 	t:tdeq(client.users, table_util.pack(nil))
 end
 
@@ -221,6 +337,39 @@ function test.ping_heartbeat_failure_disconnects(t)
 	t:eq(sea_client.connected, false)
 	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
 	t:eq(client.users[client.users.n], nil)
+end
+
+---@param t testing.T
+function test.ssl_params_verify_by_default(t)
+	local sea_client = SeaClient(new_client(), {})
+
+	local params = sea_client:getSslParams()
+
+	t:eq(params.verify, "peer")
+	t:eq(params.cafile, "resources/certs/cacert.pem")
+end
+
+---@param t testing.T
+function test.ssl_params_can_disable_verification(t)
+	local sea_client = SeaClient(new_client(), {})
+	sea_client.tls_verify = false
+
+	local params = sea_client:getSslParams()
+
+	t:eq(params.verify, "none")
+	t:eq(params.cafile, nil)
+end
+
+---@param t testing.T
+function test.create_websocket_connection_passes_transport_policy(t)
+	local sea_client = SeaClient(new_client(), {})
+	sea_client.socket_timeout = 3
+	sea_client.tls_verify = false
+
+	local connection = sea_client:createWebsocketConnection()
+
+	t:eq(connection.options.timeout, 3)
+	t:eq(connection.options.ssl_params.verify, "none")
 end
 
 return test

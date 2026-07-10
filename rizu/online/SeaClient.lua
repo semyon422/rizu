@@ -21,6 +21,10 @@ local client_whitelist = require("sea.app.remotes.client_whitelist")
 local SeaClient = class()
 
 SeaClient.reconnect_interval = 10
+SeaClient.reconnect_initial_interval = 1
+SeaClient.socket_timeout = 10
+SeaClient.tls_verify = true
+SeaClient.tls_cafile = "resources/certs/cacert.pem"
 SeaClient.log = print
 
 local resolve_host_async = thread.async(function(host)
@@ -67,11 +71,28 @@ end
 function SeaClient:createWebsocketConnection()
 	return WebsocketConnection({
 		scheduler = self.scheduler,
+		timeout = self.socket_timeout,
+		ssl_params = self:getSslParams(),
 		on_connected = function(connection)
 			self.connected = true
 			self.server_peer.ws = connection
 		end,
 	})
+end
+
+---@return web.SslParams
+function SeaClient:getSslParams()
+	local params = {
+		mode = "client",
+		protocol = "any",
+		options = {"all", "no_sslv2", "no_sslv3", "no_tlsv1"},
+		verify = "none",
+	}
+	if self.tls_verify then
+		params.verify = "peer"
+		params.cafile = self.tls_cafile
+	end
+	return params
 end
 
 function SeaClient:setDisconnected()
@@ -128,6 +149,7 @@ function SeaClient:load(url, on_connect)
 	self.ws_con.protocol = self.protocol
 
 	self.reconnect_thread = coroutine.create(function()
+		local reconnect_delay = self.reconnect_initial_interval
 		while not self.stopped do
 			local state = self.ws_con:getState()
 			if state ~= "open" then
@@ -136,17 +158,32 @@ function SeaClient:load(url, on_connect)
 				local connect_host
 				local ok, err
 				connect_host, err = self:resolveConnectHost(url)
+				if self.stopped then
+					break
+				end
 				ok = not not connect_host
 				if ok then
 					ok, err = self.ws_con:connect(url, connect_host)
 				end
+				if self.stopped then
+					break
+				end
 				if not ok then
 					self:log("connection failed", err)
-					delay.sleep(self.reconnect_interval)
+					delay.sleep(reconnect_delay)
+					reconnect_delay = math.min(reconnect_delay * 2, self.reconnect_interval)
 				else
+					reconnect_delay = self.reconnect_initial_interval
 					self:log("connected")
 					on_connect()
-					self.client:setUser(self.remote:getUser())
+					if self.stopped then
+						break
+					end
+					local user = self.remote:getUser()
+					if self.stopped then
+						break
+					end
+					self.client:setUser(user)
 				end
 			end
 			delay.sleep(1)
