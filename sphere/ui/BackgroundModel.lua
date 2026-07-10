@@ -239,16 +239,16 @@ local loadOJN = thread.async(function(path)
 end)
 
 local loadHttp = thread.async(function(url)
-	local http = require("http")
-	local body = http.request(url)
-	if not body then
+	local http_util = require("web.http.util")
+	local ok, res = pcall(http_util.request, url)
+	if not ok or not res or res.status >= 400 then
 		return
 	end
 
 	require("love.filesystem")
 	require("love.image")
 	local ImageDataDecoder = require("ImageDataDecoder")
-	local fileData = love.filesystem.newFileData(body, "cover")
+	local fileData = love.filesystem.newFileData(res.body, "cover")
 	return ImageDataDecoder.decodeFileData(fileData, url)
 end)
 

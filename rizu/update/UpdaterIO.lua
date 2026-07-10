@@ -6,12 +6,20 @@ local thread = require("thread")
 local UpdaterIO = class()
 
 local async_download = thread.async(function(url, path)
-	local http = require("http")
+	local http_util = require("web.http.util")
 	local socket_url = require("socket.url")
 
 	url = socket_url.build(socket_url.parse(url))
 
-	local body = http.request(url)
+	local ok, res = pcall(http_util.request, url)
+	if not ok or not res then
+		return
+	end
+	if res.status >= 400 then
+		return
+	end
+
+	local body = res.body
 	if not body or not path then
 		return body
 	end
