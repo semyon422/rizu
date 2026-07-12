@@ -1,0 +1,150 @@
+local class = require("class")
+local socket_url = require("socket.url")
+local table_util = require("table_util")
+local thread = require("thread")
+
+local CosocketScheduler = require("web.luasocket.CosocketScheduler")
+local WebsocketConnection = require("web.ws.WebsocketConnection")
+local http_util = require("web.http.util")
+
+---@class rizu.NetworkService
+---@operator call: rizu.NetworkService
+---@field scheduler web.CosocketScheduler
+---@field timeout number
+---@field tls_verify boolean
+---@field tls_cafile string
+---@field dns_cache {[string]: string}
+---@field request_func fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?
+---@field resolve_host_func fun(host: string): string?, string?
+local NetworkService = class()
+
+NetworkService.timeout = 10
+NetworkService.tls_verify = true
+NetworkService.tls_cafile = "resources/certs/cacert.pem"
+
+local resolve_host_async = thread.async(function(host)
+	local socket = require("socket")
+	return socket.dns.toip(host)
+end)
+
+---@param options {scheduler: web.CosocketScheduler?, timeout: number?, tls_verify: boolean?, tls_cafile: string?, request_func: function?, resolve_host_func: function?}?
+function NetworkService:new(options)
+	options = options or {}
+	self.scheduler = options.scheduler or CosocketScheduler()
+	if options.timeout ~= nil then
+		self.timeout = options.timeout
+	end
+	if options.tls_verify ~= nil then
+		self.tls_verify = options.tls_verify
+	end
+	if options.tls_cafile ~= nil then
+		self.tls_cafile = options.tls_cafile
+	end
+	self.request_func = options.request_func or http_util.request
+	self.resolve_host_func = options.resolve_host_func or resolve_host_async
+	self.dns_cache = {}
+end
+
+---@return web.SslParams
+function NetworkService:getSslParams()
+	local params = {
+		mode = "client",
+		protocol = "any",
+		options = {"all", "no_sslv2", "no_sslv3", "no_tlsv1"},
+		verify = "none",
+	}
+	if self.tls_verify then
+		params.verify = "peer"
+		params.cafile = self.tls_cafile
+	end
+	return params
+end
+
+---@param host string
+---@return string?
+---@return string?
+function NetworkService:resolveHost(host)
+	local cached = self.dns_cache[host]
+	if cached then
+		return cached
+	end
+
+	local ip, err = self.resolve_host_func(host)
+	if ip then
+		self.dns_cache[host] = ip
+	end
+	return ip, err
+end
+
+---@param url string
+---@return string?
+---@return string?
+function NetworkService:resolveUrl(url)
+	local parsed_url, err = socket_url.parse(url)
+	if not parsed_url or not parsed_url.host then
+		return nil, err or "invalid url"
+	end
+	return self:resolveHost(parsed_url.host)
+end
+
+---@param options web.HttpClientOptions?
+---@return web.HttpClientOptions
+function NetworkService:getClientOptions(options)
+	local client_options = table_util.copy(options)
+	if client_options.scheduler == nil then
+		client_options.scheduler = self.scheduler
+	end
+	if client_options.timeout == nil then
+		client_options.timeout = self.timeout
+	end
+	if client_options.ssl_params == nil then
+		client_options.ssl_params = self:getSslParams()
+	end
+	return client_options
+end
+
+---@param url string
+---@param body table|string?
+---@param options web.HttpRequestOptions?
+---@return {status: integer, headers: web.Headers, body: string}?
+---@return string?
+function NetworkService:request(url, body, options)
+	local connect_host, err = self:resolveUrl(url)
+	if not connect_host then
+		return nil, err
+	end
+
+	---@type web.HttpRequestOptions
+	local request_options = self:getClientOptions(options)
+	if request_options.connect_host == nil then
+		request_options.connect_host = connect_host
+	end
+	return self.request_func(url, body, request_options)
+end
+
+---@param options web.WebsocketClientOptions?
+---@return web.WebsocketConnection
+function NetworkService:createWebsocketConnection(options)
+	local websocket_options = self:getClientOptions(options)
+	return WebsocketConnection(websocket_options)
+end
+
+---@param connection web.WebsocketConnection
+---@param url string
+---@return true?
+---@return string?
+function NetworkService:connectWebsocket(connection, url)
+	local connect_host, err = self:resolveUrl(url)
+	if not connect_host then
+		return nil, err
+	end
+	return connection:connect(url, connect_host)
+end
+
+---@return boolean?
+---@return string?
+function NetworkService:update()
+	return self.scheduler:update(0)
+end
+
+return NetworkService

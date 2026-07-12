@@ -91,13 +91,51 @@ function FakeWebsocketConnection:startReader()
 	table.insert(self.events, "startReader")
 end
 
+---@class rizu.FakeNetworkService
+---@field connect_host string?
+---@field connect_error string?
+---@field before_connect fun(network: rizu.FakeNetworkService)?
+local FakeNetworkService = {}
+FakeNetworkService.__index = FakeNetworkService
+
+---@return rizu.FakeNetworkService
+local function new_network()
+	return setmetatable({
+		connect_host = "203.0.113.10",
+	}, FakeNetworkService)
+end
+
+---@param connection rizu.FakeWebsocketConnection
+---@param url string
+---@return true?
+---@return string?
+function FakeNetworkService:connectWebsocket(connection, url)
+	if self.before_connect then
+		self:before_connect()
+	end
+	if self.connect_error then
+		return nil, self.connect_error
+	end
+	return connection:connect(url, self.connect_host)
+end
+
+function FakeNetworkService:update()
+	return true
+end
+
+---@param options web.WebsocketClientOptions
+---@return table
+function FakeNetworkService:createWebsocketConnection(options)
+	return {options = options}
+end
+
 ---@param connection rizu.FakeWebsocketConnection
 ---@param user any?
 ---@return rizu.SeaClient
 ---@return rizu.FakeOnlineClient
 local function load_client(connection, user)
 	local client = new_client()
-	local sea_client = SeaClient(client, {})
+	local sea_client = SeaClient(client, {}, new_network() --[[@as any]])
 	sea_client.log = function() end
 	sea_client.remote = {
 		getUser = function()
@@ -111,9 +149,6 @@ local function load_client(connection, user)
 			self.server_peer.ws = _connection
 		end
 		return connection --[[@as any]]
-	end
-	function sea_client:resolveConnectHost(url)
-		return "203.0.113.10"
 	end
 	sea_client:load("ws://example.test/ws", function() end)
 	return sea_client, client
@@ -158,7 +193,7 @@ function test.failed_reconnect_uses_backoff(t)
 
 	local connection = new_connection(false)
 	local client = new_client()
-	local sea_client = SeaClient(client, {})
+	local sea_client = SeaClient(client, {}, new_network() --[[@as any]])
 
 	local ok, err = pcall(function()
 		delay.sleep = function(duration)
@@ -173,9 +208,6 @@ function test.failed_reconnect_uses_backoff(t)
 		sea_client.reconnect_interval = 4
 		function sea_client:createWebsocketConnection()
 			return connection --[[@as any]]
-		end
-		function sea_client:resolveConnectHost()
-			return "203.0.113.10"
 		end
 
 		sea_client:load("ws://example.test/ws", function() end)
@@ -201,13 +233,12 @@ end
 function test.failed_dns_does_not_connect(t)
 	local connection = new_connection(true)
 	local client = new_client()
-	local sea_client = SeaClient(client, {})
+	local network = new_network()
+	network.connect_error = "dns failed"
+	local sea_client = SeaClient(client, {}, network --[[@as any]])
 	sea_client.log = function() end
 	function sea_client:createWebsocketConnection()
 		return connection --[[@as any]]
-	end
-	function sea_client:resolveConnectHost()
-		return nil, "dns failed"
 	end
 
 	sea_client:load("ws://example.test/ws", function() end)
@@ -222,14 +253,15 @@ end
 function test.stopped_after_dns_does_not_connect(t)
 	local connection = new_connection(true)
 	local client = new_client()
-	local sea_client = SeaClient(client, {})
+	local network = new_network()
+	local sea_client = SeaClient(client, {}, network --[[@as any]])
+	network.before_connect = function()
+		sea_client.stopped = true
+		network.connect_error = "dns failed"
+	end
 	sea_client.log = function() end
 	function sea_client:createWebsocketConnection()
 		return connection --[[@as any]]
-	end
-	function sea_client:resolveConnectHost()
-		self.stopped = true
-		return "203.0.113.10"
 	end
 
 	sea_client:load("ws://example.test/ws", function()
@@ -246,7 +278,7 @@ end
 function test.stopped_after_connect_skips_user_sync(t)
 	local connection = new_connection(true)
 	local client = new_client()
-	local sea_client = SeaClient(client, {})
+	local sea_client = SeaClient(client, {}, new_network() --[[@as any]])
 	sea_client.log = function() end
 	sea_client.remote = {
 		getUser = function()
@@ -263,9 +295,6 @@ function test.stopped_after_connect_skips_user_sync(t)
 			self.stopped = true
 		end
 		return connection --[[@as any]]
-	end
-	function sea_client:resolveConnectHost()
-		return "203.0.113.10"
 	end
 
 	sea_client:load("ws://example.test/ws", function()
@@ -340,36 +369,26 @@ function test.ping_heartbeat_failure_disconnects(t)
 end
 
 ---@param t testing.T
-function test.ssl_params_verify_by_default(t)
-	local sea_client = SeaClient(new_client(), {})
-
-	local params = sea_client:getSslParams()
-
-	t:eq(params.verify, "peer")
-	t:eq(params.cafile, "resources/certs/cacert.pem")
-end
-
----@param t testing.T
-function test.ssl_params_can_disable_verification(t)
-	local sea_client = SeaClient(new_client(), {})
-	sea_client.tls_verify = false
-
-	local params = sea_client:getSslParams()
-
-	t:eq(params.verify, "none")
-	t:eq(params.cafile, nil)
-end
-
----@param t testing.T
 function test.create_websocket_connection_passes_transport_policy(t)
-	local sea_client = SeaClient(new_client(), {})
-	sea_client.socket_timeout = 3
-	sea_client.tls_verify = false
+	local network = new_network()
+	function network:createWebsocketConnection(options)
+		options.timeout = 3
+		options.ssl_params = {verify = "none"}
+		return {options = options}
+	end
+	local sea_client = SeaClient(new_client(), {}, network --[[@as any]])
 
 	local connection = sea_client:createWebsocketConnection()
 
 	t:eq(connection.options.timeout, 3)
 	t:eq(connection.options.ssl_params.verify, "none")
+end
+
+---@param t testing.T
+function test.network_is_required(t)
+	t:has_error(function()
+		SeaClient(new_client(), {})
+	end, "network is required")
 end
 
 return test

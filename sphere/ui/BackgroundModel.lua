@@ -5,15 +5,9 @@ local flux = require("flux")
 local delay = require("delay")
 local Path = require("Path")
 local ImageDataDecoder = require("ImageDataDecoder")
-local socket_url = require("socket.url")
-local CosocketScheduler = require("web.luasocket.CosocketScheduler")
-local http_util = require("web.http.util")
 
 ---@class sphere.BackgroundModel
 ---@operator call: sphere.BackgroundModel
----@field http_scheduler web.CosocketScheduler
----@field http_thread thread?
----@field http_url string?
 local BackgroundModel = class()
 
 BackgroundModel.alpha = 0
@@ -22,7 +16,6 @@ local defaultBackgroundsPath = "userdata/backgrounds"
 
 function BackgroundModel:load()
 	self.path = ""
-	self.http_scheduler = CosocketScheduler()
 
 	self.emptyImage = gfx_util.newPixel(0.25, 0.25, 0.25, 1)
 	self.images = {self.emptyImage}
@@ -63,13 +56,6 @@ function BackgroundModel:setBackgroundPath(path)
 end
 
 function BackgroundModel:update()
-	if self.http_scheduler then
-		local ok, err = self.http_scheduler:update(0)
-		if not ok and err then
-			print(("background http scheduler error: %s"):format(err))
-		end
-	end
-
 	if #self.images > 1 then
 		if self.alpha == 1 then
 			table.remove(self.images, 1)
@@ -184,7 +170,6 @@ end
 function BackgroundModel:loadBackground()
 	local path = self.path
 	if not path then
-		self.http_url = nil
 		self:setBackground(self:getDefaultImage())
 		return
 	end
@@ -193,7 +178,6 @@ function BackgroundModel:loadBackground()
 		if not self:isValidImage(path) then
 			path = self:findBackground()
 			if not path then
-				self.http_url = nil
 				self:setBackground(self:getDefaultImage())
 				return
 			end
@@ -202,16 +186,12 @@ function BackgroundModel:loadBackground()
 
 	local image
 	if path:find("%.ojn$") then
-		self.http_url = nil
 		image = self:loadImage(path, "ojn")
 	elseif path:find("^http") then
-		self:startHttpLoad(path)
-		return
+		image = self:loadImage(path, "http")
 	elseif path:find("%.mid$") then
-		self.http_url = nil
 		image = self:loadImage("resources/midi/background.jpg")
 	else
-		self.http_url = nil
 		image = self:loadImage(path)
 	end
 
@@ -258,83 +238,19 @@ local loadOJN = thread.async(function(path)
 	return ImageDataDecoder.decodeFileData(fileData, path .. ":cover")
 end)
 
-local resolve_host_async = thread.async(function(host)
-	local socket = require("socket")
-	return socket.dns.toip(host)
+local loadHttp = thread.async(function(url)
+	local http_util = require("web.http.util")
+	local ok, res = pcall(http_util.request, url)
+	if not ok or not res or res.status >= 400 then
+		return
+	end
+
+	require("love.filesystem")
+	require("love.image")
+	local ImageDataDecoder = require("ImageDataDecoder")
+	local fileData = love.filesystem.newFileData(res.body, "cover")
+	return ImageDataDecoder.decodeFileData(fileData, url)
 end)
-
----@param url string
-function BackgroundModel:startHttpLoad(url)
-	self.http_url = url
-
-	self.http_thread = coroutine.create(function()
-		local parsed_url, parse_err = socket_url.parse(url)
-		if not parsed_url or not parsed_url.host then
-			self:finishHttpLoad(url, nil, parse_err or "invalid url")
-			return
-		end
-
-		local connect_host, dns_err = resolve_host_async(parsed_url.host)
-		if self.http_url ~= url then
-			return
-		end
-		if not connect_host then
-			self:finishHttpLoad(url, nil, dns_err)
-			return
-		end
-
-		local ok, res = pcall(http_util.request, url, nil, {
-			scheduler = self.http_scheduler,
-			connect_host = connect_host,
-			timeout = 10,
-		})
-		if self.http_url ~= url then
-			return
-		end
-		if not ok then
-			self:finishHttpLoad(url, nil, res)
-			return
-		end
-		if not res then
-			self:finishHttpLoad(url, nil, "request failed")
-			return
-		end
-		if res.status >= 400 then
-			self:finishHttpLoad(url, nil, "HTTP " .. res.status)
-			return
-		end
-
-		local fileData = love.filesystem.newFileData(res.body, "cover")
-		local imageData = ImageDataDecoder.decodeFileData(fileData, url)
-		self:finishHttpLoad(url, imageData)
-	end)
-
-	local ok, err = coroutine.resume(self.http_thread)
-	if not ok then
-		self.http_thread = nil
-		self:finishHttpLoad(url, nil, err)
-	end
-end
-
----@param url string
----@param imageData love.ImageData?
----@param err string?
-function BackgroundModel:finishHttpLoad(url, imageData, err)
-	if self.http_url ~= url then
-		return
-	end
-
-	self.http_thread = nil
-	if not imageData then
-		if err then
-			print(("background http load failed: %s"):format(err))
-		end
-		self:setBackground(self.emptyImage)
-		return
-	end
-
-	self:setBackground(love.graphics.newImage(imageData))
-end
 
 ---@param path string
 ---@param type string?
@@ -343,6 +259,8 @@ function BackgroundModel:loadImage(path, type)
 	local imageData
 	if type == "ojn" then
 		imageData = loadOJN(path)
+	elseif type == "http" then
+		imageData = loadHttp(path)
 	else
 		imageData = loadImage(path)
 	end

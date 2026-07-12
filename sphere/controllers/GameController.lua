@@ -43,6 +43,7 @@ local PackageManager = require("rizu.pkg.PackageManager")
 local SeaClient = require("rizu.online.SeaClient")
 local OnlineClient = require("rizu.online.OnlineClient")
 local OnlineWrapper = require("rizu.online.OnlineWrapper")
+local NetworkService = require("rizu.net.NetworkService")
 local DifftablesSync = require("sea.difftables.DifftablesSync")
 local ClientRemote = require("sea.app.remotes.ClientRemote")
 local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
@@ -87,9 +88,10 @@ function GameController:new()
 	self.dlcManager = DlcManager(self.library, self.persistence.configModel)
 
 	self.online_client = OnlineClient()
+	self.network = NetworkService()
 	self.multiplayer_client = MultiplayerClient()
 	self.client_remote = ClientRemoteValidation(ClientRemote(self.online_client, self.persistence.library, self.multiplayer_client))
-	self.seaClient = SeaClient(self.online_client, self.client_remote)
+	self.seaClient = SeaClient(self.online_client, self.client_remote, self.network)
 	self.difftables_sync = DifftablesSync(self.seaClient.remote.difftables, self.persistence.library.difftablesRepo)
 	self.online_wrapper = OnlineWrapper(self.online_client, self.seaClient.remote)
 
@@ -293,6 +295,7 @@ end
 ---@param dt number
 function GameController:update(dt)
 	self.app:update()
+	self.network:update()
 
 	self.selectionCoordinator:update(function() self.modifierCoordinator:applySelectionModifierMeta() end)
 	self.modifierCoordinator:update()
@@ -309,8 +312,6 @@ function GameController:update(dt)
 	self.previewModel:update()
 	self.ui:update(dt)
 	self.notificationModel:update()
-
-	self.seaClient:update()
 end
 
 function GameController:recreateRhythmEngine()
