@@ -18,3 +18,4 @@ The `sphere/` tree contains the older client architecture that is still maintain
 - Expect older naming, structure, and coupling patterns here.
 - Keep edits scoped and avoid churn that makes future migration harder.
 - If gameplay behavior overlaps with modern modules, use `rizu` specs as conceptual references but preserve the local architecture unless the task is specifically a migration.
+- Remote background image downloads use main-thread cosocket HTTP with async DNS and scheduler pumping in `BackgroundModel:update`; local image and OJN decoding still use the legacy thread helpers.
