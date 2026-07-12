@@ -98,6 +98,45 @@ function test.resolve_host_caches_success(t)
 	t:eq(calls, 1)
 end
 
+---@param t testing.T
+function test.diagnostics_track_dns_cache_and_copy_snapshot(t)
+	local network = NetworkService({
+		resolve_host_func = function(host)
+			return host .. ".resolved"
+		end,
+	})
+
+	t:eq(network:resolveUrl("https://example.test/a"), "example.test.resolved")
+	t:eq(network:resolveUrl("https://example.test/b"), "example.test.resolved")
+
+	local diagnostics = network:getDiagnostics()
+	t:eq(diagnostics.dns_requests, 1)
+	t:eq(diagnostics.dns_cache_hits, 1)
+
+	diagnostics.dns_requests = 100
+	t:eq(network:getDiagnostics().dns_requests, 1)
+end
+
+---@param t testing.T
+function test.diagnostics_track_request_failures(t)
+	local network = NetworkService({
+		resolve_host_func = function()
+			return nil, "dns failed"
+		end,
+	})
+
+	local res, err = network:request("https://example.test/path")
+	local diagnostics = network:getDiagnostics()
+
+	t:eq(res, nil)
+	t:eq(err, "dns failed")
+	t:eq(diagnostics.dns_requests, 1)
+	t:eq(diagnostics.dns_failures, 1)
+	t:eq(diagnostics.http_requests, 1)
+	t:eq(diagnostics.http_failures, 1)
+	t:eq(diagnostics.last_error, "dns failed")
+end
+
 ---@class rizu.FakeWebsocketConnectionForNetworkService
 ---@field connected_url string?
 ---@field connected_host string?
@@ -125,6 +164,29 @@ function test.connect_websocket_resolves_host(t)
 	t:tdeq({network:connectWebsocket(connection --[[@as any]], "wss://example.test/ws")}, {true})
 	t:eq(connection.connected_url, "wss://example.test/ws")
 	t:eq(connection.connected_host, "203.0.113.10")
+end
+
+---@param t testing.T
+function test.diagnostics_track_websocket_failures(t)
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+	})
+	local connection = {
+		connect = function()
+			return nil, "connect failed"
+		end,
+	}
+
+	local ok, err = network:connectWebsocket(connection --[[@as any]], "wss://example.test/ws")
+	local diagnostics = network:getDiagnostics()
+
+	t:eq(ok, nil)
+	t:eq(err, "connect failed")
+	t:eq(diagnostics.websocket_connects, 1)
+	t:eq(diagnostics.websocket_failures, 1)
+	t:eq(diagnostics.last_error, "connect failed")
 end
 
 ---@param t testing.T
@@ -233,6 +295,54 @@ function test.download_uses_stream_and_closes_it(t)
 	t:eq(res.body, "body")
 	t:eq(created_stream.sent_headers, true)
 	t:eq(created_stream.closed, true)
+end
+
+---@param t testing.T
+function test.diagnostics_track_download_failures(t)
+	local created_stream
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		stream_factory = function(options)
+			created_stream = new_stream(options)
+			function created_stream:receiveBody()
+				return nil, "body failed"
+			end
+			return created_stream
+		end,
+	})
+
+	local res, err = network:download("https://example.test/file.zip")
+	local diagnostics = network:getDiagnostics()
+
+	t:eq(res, nil)
+	t:eq(err, "body failed")
+	t:eq(created_stream.closed, true)
+	t:eq(diagnostics.stream_opens, 1)
+	t:eq(diagnostics.stream_failures, 0)
+	t:eq(diagnostics.downloads, 1)
+	t:eq(diagnostics.download_failures, 1)
+	t:eq(diagnostics.last_error, "body failed")
+end
+
+---@param t testing.T
+function test.diagnostics_track_scheduler_errors(t)
+	local network = NetworkService({
+		scheduler = {
+			update = function()
+				return nil, "select failed"
+			end,
+		} --[[@as any]],
+	})
+
+	local ok, err = network:update()
+	local diagnostics = network:getDiagnostics()
+
+	t:eq(ok, nil)
+	t:eq(err, "select failed")
+	t:eq(diagnostics.scheduler_errors, 1)
+	t:eq(diagnostics.last_error, "select failed")
 end
 
 ---@param t testing.T

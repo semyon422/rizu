@@ -4,6 +4,7 @@ local table_util = require("table_util")
 local thread = require("thread")
 
 local CosocketScheduler = require("web.luasocket.CosocketScheduler")
+local NetworkDiagnostics = require("rizu.net.NetworkDiagnostics")
 local WebsocketConnection = require("web.ws.WebsocketConnection")
 local HttpStream = require("web.http.HttpStream")
 local http_util = require("web.http.util")
@@ -19,6 +20,7 @@ local http_util = require("web.http.util")
 ---@field request_func fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?
 ---@field stream_factory fun(options: web.HttpStreamOptions?): web.HttpStream
 ---@field resolve_host_func fun(host: string): string?, string?
+---@field diagnostics rizu.NetworkDiagnostics
 local NetworkService = class()
 
 NetworkService.timeout = 10
@@ -51,6 +53,12 @@ function NetworkService:new(options)
 	self.stream_factory = options.stream_factory or HttpStream
 	self.resolve_host_func = options.resolve_host_func or resolve_host_async
 	self.dns_cache = {}
+	self.diagnostics = NetworkDiagnostics()
+end
+
+---@return rizu.NetworkDiagnosticsSnapshot
+function NetworkService:getDiagnostics()
+	return self.diagnostics:snapshot()
 end
 
 ---@return web.SslParams
@@ -74,12 +82,16 @@ end
 function NetworkService:resolveHost(host)
 	local cached = self.dns_cache[host]
 	if cached then
+		self.diagnostics:increment("dns_cache_hits")
 		return cached
 	end
 
+	self.diagnostics:increment("dns_requests")
 	local ip, err = self.resolve_host_func(host)
 	if ip then
 		self.dns_cache[host] = ip
+	else
+		self.diagnostics:fail("dns_failures", err)
 	end
 	return ip, err
 end
@@ -117,8 +129,10 @@ end
 ---@return {status: integer, headers: web.Headers, body: string}?
 ---@return string?
 function NetworkService:request(url, body, options)
+	self.diagnostics:increment("http_requests")
 	local connect_host, err = self:resolveUrl(url)
 	if not connect_host then
+		self.diagnostics:fail("http_failures", err)
 		return nil, err
 	end
 
@@ -127,7 +141,12 @@ function NetworkService:request(url, body, options)
 	if request_options.connect_host == nil then
 		request_options.connect_host = connect_host
 	end
-	return self.request_func(url, body, request_options)
+	local res
+	res, err = self.request_func(url, body, request_options)
+	if not res then
+		self.diagnostics:fail("http_failures", err)
+	end
+	return res, err
 end
 
 ---@param url string
@@ -135,8 +154,10 @@ end
 ---@return web.HttpStream?
 ---@return string?
 function NetworkService:openStream(url, options)
+	self.diagnostics:increment("stream_opens")
 	local connect_host, err = self:resolveUrl(url)
 	if not connect_host then
+		self.diagnostics:fail("stream_failures", err)
 		return nil, err
 	end
 
@@ -150,6 +171,7 @@ function NetworkService:openStream(url, options)
 	local ok
 	ok, err = stream:connect(url)
 	if not ok then
+		self.diagnostics:fail("stream_failures", err)
 		return nil, err
 	end
 	return stream
@@ -160,8 +182,10 @@ end
 ---@return {status: integer, headers: web.Headers, body: string}?
 ---@return string?
 function NetworkService:download(url, options)
+	self.diagnostics:increment("downloads")
 	local stream, err = self:openStream(url, options)
 	if not stream then
+		self.diagnostics:fail("download_failures", err)
 		return nil, err
 	end
 
@@ -169,6 +193,7 @@ function NetworkService:download(url, options)
 	ok, err = stream:sendHeaders()
 	if not ok then
 		stream:close()
+		self.diagnostics:fail("download_failures", err)
 		return nil, err
 	end
 
@@ -176,6 +201,7 @@ function NetworkService:download(url, options)
 	body, err = stream:receiveBody()
 	if not body then
 		stream:close()
+		self.diagnostics:fail("download_failures", err)
 		return nil, err
 	end
 
@@ -204,17 +230,28 @@ end
 ---@return true?
 ---@return string?
 function NetworkService:connectWebsocket(connection, url)
+	self.diagnostics:increment("websocket_connects")
 	local connect_host, err = self:resolveUrl(url)
 	if not connect_host then
+		self.diagnostics:fail("websocket_failures", err)
 		return nil, err
 	end
-	return connection:connect(url, connect_host)
+	local ok
+	ok, err = connection:connect(url, connect_host)
+	if not ok then
+		self.diagnostics:fail("websocket_failures", err)
+	end
+	return ok, err
 end
 
 ---@return boolean?
 ---@return string?
 function NetworkService:update()
-	return self.scheduler:update(0)
+	local ok, err = self.scheduler:update(0)
+	if not ok and err then
+		self.diagnostics:fail("scheduler_errors", err)
+	end
+	return ok, err
 end
 
 return NetworkService
