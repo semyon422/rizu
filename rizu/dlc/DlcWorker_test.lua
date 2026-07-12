@@ -37,6 +37,7 @@ function test.download_uses_injected_download_func(t)
 	local manager = new_manager()
 	local requested_url
 	local requested_options
+	local processed
 	local worker = DlcWorker(manager, "/game", nil, function(url, options)
 		requested_url = url
 		requested_options = options
@@ -50,12 +51,12 @@ function test.download_uses_injected_download_func(t)
 			}),
 			body = "helloworld",
 		}
-	end)
-	local processed
-	function worker:processDlc(id, _type, data, filename, metadata)
-		processed = {id = id, type = _type, data = data, filename = filename, metadata = metadata}
-		return true
-	end
+	end, {
+		install = function(_, id, _type, data, filename, metadata)
+			processed = {id = id, type = _type, data = data, filename = filename, metadata = metadata}
+			return true
+		end,
+	})
 
 	local ok, err = worker:download(123, "set", "mino")
 
@@ -87,7 +88,11 @@ function test.download_reports_http_error(t)
 			headers = new_headers(),
 			body = "error",
 		}
-	end)
+	end, {
+		install = function()
+			error("installer should not be called")
+		end,
+	})
 
 	local ok, err = worker:download(123, "set", "mino")
 

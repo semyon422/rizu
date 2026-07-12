@@ -4,11 +4,16 @@ local OsuFileProvider = require("rizu.dlc.providers.OsuFileProvider")
 local EtternaPackProvider = require("rizu.dlc.providers.EtternaPackProvider")
 local OsuDirectProvider = require("rizu.dlc.providers.OsuDirectProvider")
 local BeatconnectProvider = require("rizu.dlc.providers.BeatconnectProvider")
+local DlcInstaller = require("rizu.dlc.DlcInstaller")
 local path_util = require("path_util")
 local http_util = require("web.http.util")
 local socket_url = require("socket.url")
 
 ---@alias rizu.dlc.DownloadFunc fun(url: string, options: web.HttpStreamOptions?): {status: integer, headers: web.Headers, body: string}?, string?
+---@alias rizu.dlc.InstallFunc fun(self: rizu.dlc.IDlcInstaller, id: string|number, _type: rizu.dlc.DlcType, data: string, filename: string, metadata: table?): boolean?, string?
+
+---@class rizu.dlc.IDlcInstaller
+---@field install rizu.dlc.InstallFunc
 
 ---@param url string
 ---@param options web.HttpStreamOptions?
@@ -30,17 +35,20 @@ end
 ---@operator call: rizu.dlc.DlcWorker
 ---@field request fun(url: string): {status: integer, body: string}?, string?
 ---@field download_func rizu.dlc.DownloadFunc
+---@field installer rizu.dlc.IDlcInstaller
 local DlcWorker = class()
 
 ---@param manager rizu.dlc.DlcManager
 ---@param workingDirectory string
 ---@param request? fun(url: string): {status: integer, body: string}?, string?
 ---@param download_func? rizu.dlc.DownloadFunc
-function DlcWorker:new(manager, workingDirectory, request, download_func)
+---@param installer? rizu.dlc.IDlcInstaller
+function DlcWorker:new(manager, workingDirectory, request, download_func, installer)
 	self.manager = manager
 	self.workingDirectory = workingDirectory
 	self.request = request or http_util.request
 	self.download_func = download_func or default_download
+	self.installer = installer or DlcInstaller()
 	self.providers = {
 		mino = MinoProvider({request = self.request}),
 		osu_file = OsuFileProvider(),
@@ -180,7 +188,7 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 	-- Save and extract
 	self.manager:updateTask(id, {status = "extracting"})
 	
-	local success, extract_err = self:processDlc(id, _type, body, filename, metadata)
+	local success, extract_err = self.installer:install(id, _type, body, filename, metadata)
 	if not success then
 		print("[DlcWorker] Processing error for " .. tostring(id) .. ": " .. tostring(extract_err))
 		self.manager:updateTask(id, {status = "error", error = extract_err})
@@ -189,56 +197,6 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 
 	self.manager:updateTask(id, {status = "completed", progress = 1})
 	self.manager:onDlcCompleted(id, _type, metadata)
-
-	return true
-end
-
----@param id string|number
----@param _type rizu.dlc.DlcType
----@param data string
----@param filename string
----@param metadata table?
----@return boolean? success, string? error
-function DlcWorker:processDlc(id, _type, data, filename, metadata)
-	local fs = love.filesystem
-
-	local base_dir = "userdata/charts/downloads"
-	if _type == "pack" then
-		base_dir = "userdata/charts/packs"
-	elseif _type == "file" and metadata and metadata.dest_dir then
-		base_dir = metadata.dest_dir
-	end
-	
-	if not fs.getInfo(base_dir) then
-		fs.createDirectory(base_dir)
-	end
-
-	local filepath = path_util.join(base_dir, filename)
-	fs.write(filepath, data)
-
-	if _type == "set" and filename:match("%.osz$") then
-		local extract_dir = filename:match("^(.+)%.osz$")
-		local extract_path = path_util.join(base_dir, extract_dir)
-		
-		local DlcExtractor = require("rizu.dlc.DlcExtractor")
-		local ok, err = DlcExtractor.extract(filepath, extract_path)
-		if not ok then
-			return nil, "Extraction failed: " .. (err or "unknown error")
-		end
-		
-		return true
-	elseif _type == "pack" and filename:match("%.zip$") then
-		local extract_dir = filename:match("^(.+)%.zip$")
-		local extract_path = path_util.join(base_dir, extract_dir)
-		
-		local DlcExtractor = require("rizu.dlc.DlcExtractor")
-		local ok, err = DlcExtractor.extract(filepath, extract_path)
-		if not ok then
-			return nil, "Extraction failed: " .. (err or "unknown error")
-		end
-		
-		return true
-	end
 
 	return true
 end
