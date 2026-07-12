@@ -279,6 +279,7 @@ function GameController:load()
 end
 
 function GameController:unload()
+	self.network:cancelStreams("unload")
 	self.seaClient:unload()
 	self.previewModel:release()
 	self.dlcManager:unload()

@@ -205,6 +205,8 @@ end
 ---@field options web.HttpStreamOptions
 ---@field connected_url string?
 ---@field closed boolean?
+---@field canceled boolean?
+---@field cancel_err string?
 ---@field sent_headers boolean?
 ---@field res table
 local FakeHttpStream = {}
@@ -242,7 +244,23 @@ end
 
 ---@return 1
 function FakeHttpStream:close()
+	if self.closed then
+		return 1
+	end
 	self.closed = true
+	local on_close = self.options.on_close
+	if on_close then
+		on_close(self)
+	end
+	return 1
+end
+
+---@param err string?
+---@return 1
+function FakeHttpStream:cancel(err)
+	self.canceled = true
+	self.cancel_err = err or "canceled"
+	self:close()
 	return 1
 end
 
@@ -273,6 +291,58 @@ function test.open_stream_resolves_host_and_sets_defaults(t)
 	t:eq(stream.options.connect_host, "203.0.113.10")
 	t:eq(stream.options.ssl_params.verify, "none")
 	t:eq(stream.options.chunk_size, 10)
+	t:eq(network.active_streams[stream], true)
+
+	stream:close()
+	t:eq(network.active_streams[stream], nil)
+end
+
+---@param t testing.T
+function test.open_stream_preserves_on_close(t)
+	local closed_stream
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		stream_factory = function(options)
+			return new_stream(options)
+		end,
+	})
+
+	local stream = network:openStream("https://example.test/file.zip", {
+		on_close = function(_stream)
+			closed_stream = _stream
+		end,
+	})
+
+	stream:close()
+
+	t:eq(closed_stream, stream)
+	t:eq(network.active_streams[stream], nil)
+end
+
+---@param t testing.T
+function test.cancel_streams_cancels_active_streams(t)
+	local created_stream
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		stream_factory = function(options)
+			created_stream = new_stream(options)
+			return created_stream
+		end,
+	})
+
+	local stream = network:openStream("https://example.test/file.zip")
+
+	network:cancelStreams("screen closed")
+
+	t:eq(stream, created_stream)
+	t:eq(stream.canceled, true)
+	t:eq(stream.cancel_err, "screen closed")
+	t:eq(stream.closed, true)
+	t:eq(network.active_streams[stream], nil)
 end
 
 ---@param t testing.T

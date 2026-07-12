@@ -17,6 +17,7 @@ local http_util = require("web.http.util")
 ---@field tls_verify boolean
 ---@field tls_cafile string
 ---@field dns_cache {[string]: string}
+---@field active_streams {[web.HttpStream]: true}
 ---@field request_func fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?
 ---@field stream_factory fun(options: web.HttpStreamOptions?): web.HttpStream
 ---@field resolve_host_func fun(host: string): string?, string?
@@ -53,7 +54,40 @@ function NetworkService:new(options)
 	self.stream_factory = options.stream_factory or HttpStream
 	self.resolve_host_func = options.resolve_host_func or resolve_host_async
 	self.dns_cache = {}
+	self.active_streams = {}
 	self.diagnostics = NetworkDiagnostics()
+end
+
+---@param stream web.HttpStream
+function NetworkService:unregisterStream(stream)
+	self.active_streams[stream] = nil
+end
+
+---@param stream web.HttpStream
+---@param options web.HttpStreamOptions
+function NetworkService:registerStream(stream, options)
+	self.active_streams[stream] = true
+
+	local on_close = options.on_close
+	options.on_close = function(closed_stream)
+		self:unregisterStream(closed_stream)
+		if on_close then
+			on_close(closed_stream)
+		end
+	end
+end
+
+---@param err string?
+function NetworkService:cancelStreams(err)
+	---@type web.HttpStream[]
+	local streams = {}
+	for stream in pairs(self.active_streams) do
+		table.insert(streams, stream)
+	end
+
+	for _, stream in ipairs(streams) do
+		stream:cancel(err)
+	end
 end
 
 ---@return rizu.NetworkDiagnosticsSnapshot
@@ -168,9 +202,11 @@ function NetworkService:openStream(url, options)
 	end
 
 	local stream = self.stream_factory(stream_options)
+	self:registerStream(stream, stream_options)
 	local ok
 	ok, err = stream:connect(url)
 	if not ok then
+		self:unregisterStream(stream)
 		self.diagnostics:fail("stream_failures", err)
 		return nil, err
 	end
