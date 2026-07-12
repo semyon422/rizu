@@ -167,7 +167,7 @@ function GameController:new()
 	self.discordModel = self.app.discordModel
 	self.windowModel = self.app.windowModel
 
-	self.backgroundModel = BackgroundModel()
+	self.backgroundModel = BackgroundModel(self.network)
 	self.notificationModel = NotificationModel()
 	self.previewModel = PreviewModel(
 		self.persistence.configModel,

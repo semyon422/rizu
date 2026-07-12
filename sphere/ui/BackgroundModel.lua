@@ -6,13 +6,24 @@ local delay = require("delay")
 local Path = require("Path")
 local ImageDataDecoder = require("ImageDataDecoder")
 
+local loadHttpImage
+
 ---@class sphere.BackgroundModel
 ---@operator call: sphere.BackgroundModel
+---@field network rizu.NetworkService
+---@field http_image_loader fun(body: string, url: string): love.ImageData?
 local BackgroundModel = class()
 
 BackgroundModel.alpha = 0
 
 local defaultBackgroundsPath = "userdata/backgrounds"
+
+---@param network rizu.NetworkService
+---@param http_image_loader fun(body: string, url: string): love.ImageData?
+function BackgroundModel:new(network, http_image_loader)
+	self.network = assert(network, "network is required")
+	self.http_image_loader = http_image_loader or loadHttpImage
+end
 
 function BackgroundModel:load()
 	self.path = ""
@@ -238,17 +249,11 @@ local loadOJN = thread.async(function(path)
 	return ImageDataDecoder.decodeFileData(fileData, path .. ":cover")
 end)
 
-local loadHttp = thread.async(function(url)
-	local http_util = require("web.http.util")
-	local ok, res = pcall(http_util.request, url)
-	if not ok or not res or res.status >= 400 then
-		return
-	end
-
+loadHttpImage = thread.async(function(body, url)
 	require("love.filesystem")
 	require("love.image")
 	local ImageDataDecoder = require("ImageDataDecoder")
-	local fileData = love.filesystem.newFileData(res.body, "cover")
+	local fileData = love.filesystem.newFileData(body, "cover")
 	return ImageDataDecoder.decodeFileData(fileData, url)
 end)
 
@@ -260,7 +265,11 @@ function BackgroundModel:loadImage(path, type)
 	if type == "ojn" then
 		imageData = loadOJN(path)
 	elseif type == "http" then
-		imageData = loadHttp(path)
+		local res = self.network:request(path)
+		if not res or res.status >= 400 then
+			return
+		end
+		imageData = self.http_image_loader(res.body, path)
 	else
 		imageData = loadImage(path)
 	end
