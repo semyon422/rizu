@@ -76,8 +76,9 @@ function GameController:new()
 	self.fs = LoveFilesystem()
 
 	self.rhythm_engine = RhythmEngine(self.fs)
+	self.network = NetworkService()
 
-	self.packageManager = PackageManager()
+	self.packageManager = PackageManager(self.network)
 
 	self.persistence = Persistence()
 	self.settings = assert(self.persistence.configManager:get("settings"))
@@ -85,7 +86,6 @@ function GameController:new()
 	self.uiModel = UserInterfaceModel(self)
 
 	self.library = self.persistence.library
-	self.network = NetworkService()
 	self.dlcManager = DlcManager(self.library, self.network)
 
 	self.online_client = OnlineClient()

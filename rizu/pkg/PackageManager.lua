@@ -6,14 +6,17 @@ local PackageRequire = require("rizu.pkg.PackageRequire")
 
 ---@class rizu.PackageManager
 ---@operator call: rizu.PackageManager
+---@field network rizu.NetworkService
 local PackageManager = class()
 
 PackageManager.pkgs_path = "userdata/pkg"
 
-function PackageManager:new()
+---@param network rizu.NetworkService
+function PackageManager:new(network)
+	self.network = assert(network, "network is required")
 	self.mounter = PackageMounter()
 	self.loader = PackageLoader()
-	self.packageDownloader = PackageDownloader(self.pkgs_path)
+	self.packageDownloader = PackageDownloader(self.pkgs_path, self.network)
 	self.packageRequire = PackageRequire()
 end
 

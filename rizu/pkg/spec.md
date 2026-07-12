@@ -12,6 +12,7 @@ The `rizu/pkg/` module owns local package discovery, mounting, Lua path injectio
 - `PackageManager` composes mounting, metadata loading, dependency-free Lua requiring, and package downloads.
 - `PackageLoader` reads `pkg.json` metadata from mounted package roots and indexes packages by name and type.
 - `PackageRequire` runs package-declared require entry points after package Lua paths are exported.
+- `PackageDownloader` receives the shared `rizu.net.NetworkService` from `PackageManager`; package downloads use the main-thread cosocket scheduler instead of the legacy `fs_util.downloadAsync` HTTP path.
 
 ## Invariants
 
