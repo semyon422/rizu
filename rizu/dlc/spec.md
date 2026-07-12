@@ -13,15 +13,15 @@ Players access the **DLC Screen** from the sidebar to browse and search for new 
 
 ## Architecture Decisions (ADR)
 
-### ADR: Background Worker (`ThreadRemote`)
-- **Context**: Downloading and unzipping large archives (especially Etterna packs which can exceed 300MB) causes significant frame drops and UI freezes in the main Lua thread.
-- **Decision**: We use `ThreadRemote` to delegate all network and I/O heavy operations to a dedicated `DlcWorker`.
-- **Consequence**: The UI remains responsive. Communication between the UI and the worker is handled via asynchronous message passing.
+### ADR: Main-Thread Network Service
+- **Context**: Network transport has moved to `rizu.net.NetworkService`, which owns the shared cosocket scheduler, async DNS, TLS policy, and HTTP streaming helpers.
+- **Decision**: `DlcManager` requires a `NetworkService` and creates its `DlcWorker` in the main thread. `DlcWorker` receives request and download functions from the manager instead of using `ThreadRemote`.
+- **Consequence**: DLC search and download share the same scheduler as online WebSocket traffic. Large filesystem and archive work remains isolated behind `DlcInstaller`, which can later gain an async implementation without reintroducing a network worker.
 
 ### ADR: Injectable Provider Requests
 - **Context**: DLC providers need HTTP search APIs, but transport policy is moving toward `rizu.net.NetworkService`.
 - **Decision**: Providers receive a request function from `DlcWorker` instead of calling `web.http.util.request` directly. `DlcWorker:download` similarly uses an injected download function with progress callbacks.
-- **Consequence**: Search and download code stays testable with fake requests. In sync/main-thread mode, `DlcManager` wires these functions to `NetworkService:request` / `NetworkService:download`; threaded workers keep their local HTTP fallback until DLC fully moves to the main thread.
+- **Consequence**: Search and download code stays testable with fake requests. `DlcManager` wires these functions to `NetworkService:request` / `NetworkService:download`.
 
 ### ADR: Third-Party Mirrors for osu!
 - **Context**: The official osu! beatmap API requires OAuth authentication for downloads, which would require players to log in to download charts.

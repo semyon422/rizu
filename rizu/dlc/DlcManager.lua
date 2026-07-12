@@ -1,71 +1,47 @@
 local class = require("class")
-local ThreadRemote = require("threadremote.ThreadRemote")
+local DlcWorker = require("rizu.dlc.DlcWorker")
 local DlcTask = require("rizu.dlc.DlcTask")
 local Observable = require("Observable")
 
 ---@class rizu.dlc.DlcManager
 ---@operator call: rizu.dlc.DlcManager
----@field network rizu.NetworkService?
+---@field network rizu.NetworkService
 local DlcManager = class()
 
 ---@param library rizu.library.Library
----@param network rizu.NetworkService?
+---@param network rizu.NetworkService
 function DlcManager:new(library, network)
 	self.library = library
-	self.network = network
+	self.network = assert(network, "network is required")
 	self.tasks = {} ---@type {[string|number]: rizu.dlc.DlcTask}
-	self.is_sync = false
 	self.onTaskUpdated = Observable()
 	self.onDlcCompletedSignal = Observable()
 	self.workingDirectory = love.filesystem.getSource()
 end
 
----@param is_sync boolean
-function DlcManager:setSync(is_sync)
-	self.is_sync = is_sync
-end
-
 function DlcManager:load()
-	if self.is_sync then
-		self.worker = self:createAndLoadWorker(self.workingDirectory)
-	else
-		self.tr = ThreadRemote("rizu.dlc.DlcManager", self)
-		self.tr.task_handler.timeout = 3600 -- 1 hour
-		self.worker = self.tr:start(self.createAndLoadWorker, self.workingDirectory)
-	end
+	self.worker = self:createAndLoadWorker(self.workingDirectory)
 end
 
 ---@param workingDirectory string
 function DlcManager:createAndLoadWorker(workingDirectory)
-	require("preload")
-	local DlcWorker = require("rizu.dlc.DlcWorker")
-	local request
-	local download
 	local network = self.network
-	if self.is_sync and network then
-		request = function(url)
+	local worker = DlcWorker(
+		self,
+		workingDirectory,
+		function(url)
 			return network:request(url)
-		end
-		download = function(url, options)
+		end,
+		function(url, options)
 			return network:download(url, options)
 		end
-	end
-	local worker = DlcWorker(self, workingDirectory, request, download)
+	)
 	return worker
 end
 
-function DlcManager:update()
-	if self.tr then
-		self.tr:update()
-	end
-end
+function DlcManager:update() end
 
-function DlcManager:unload()
-	if self.tr then
-		self.tr:stopDetached()
-		self.tr = nil
-	end
-end
+function DlcManager:unload() end
 
 ---@param query string
 ---@param filters table?
@@ -94,12 +70,10 @@ function DlcManager:download(id, _type, provider_name, metadata)
 	self.onTaskUpdated:send({task = task})
 
 	coroutine.wrap(function()
-		-- Use no-return call (- prefix) because progress is reported via updateTask
-		(-self.worker):download(id, _type, provider_name, metadata)
+		self.worker:download(id, _type, provider_name, metadata)
 	end)()
 end
 
---- Internal method called by worker via ThreadRemote
 ---@param id string|number
 ---@param updates table
 function DlcManager:updateTask(id, updates)
@@ -112,7 +86,6 @@ function DlcManager:updateTask(id, updates)
 	self.onTaskUpdated:send({task = task})
 end
 
---- Internal method called by worker via ThreadRemote
 ---@param id string|number
 ---@param _type rizu.dlc.DlcType
 ---@param metadata table?

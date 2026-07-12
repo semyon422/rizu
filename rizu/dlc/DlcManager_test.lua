@@ -3,7 +3,7 @@ local DlcManager = require("rizu.dlc.DlcManager")
 local test = {}
 
 ---@param t testing.T
-function test.sync_worker_uses_network_transport(t)
+function test.worker_uses_network_transport(t)
 	local old_love = love
 	love = {
 		filesystem = {
@@ -27,7 +27,6 @@ function test.sync_worker_uses_network_transport(t)
 
 	local ok, err = pcall(function()
 		local manager = DlcManager({}, network --[[@as any]])
-		manager:setSync(true)
 		local worker = manager:createAndLoadWorker("/game")
 
 		worker.request("https://example.test/search")
@@ -42,6 +41,64 @@ function test.sync_worker_uses_network_transport(t)
 	t:eq(calls[2][1], "download")
 	t:eq(calls[2][2], "https://example.test/file")
 	t:tdeq(calls[2][3], {chunk_size = 1})
+end
+
+---@param t testing.T
+function test.network_is_required(t)
+	local old_love = love
+	love = {
+		filesystem = {
+			getSource = function()
+				return "/game"
+			end,
+		},
+	}
+
+	local ok, err = pcall(function()
+		DlcManager({})
+	end)
+	love = old_love
+
+	t:eq(ok, false)
+	t:assert(tostring(err):find("network is required", 1, true))
+end
+
+---@param t testing.T
+function test.download_calls_local_worker(t)
+	local old_love = love
+	love = {
+		filesystem = {
+			getSource = function()
+				return "/game"
+			end,
+		},
+	}
+
+	local called
+	local ok, err = pcall(function()
+		local manager = DlcManager({}, {} --[[@as any]])
+		manager.worker = {
+			download = function(_, id, _type, provider_name, metadata)
+				called = {id = id, type = _type, provider = provider_name, metadata = metadata}
+				manager:updateTask(id, {status = "completed"})
+			end,
+		}
+
+		local metadata = {mirror = "mino"}
+		manager:download(123, "set", "beatconnect", metadata)
+
+		t:tdeq(called, {
+			id = 123,
+			type = "set",
+			provider = "beatconnect",
+			metadata = metadata,
+		})
+		t:eq(manager.tasks[123].status, "completed")
+	end)
+	love = old_love
+	if not ok then
+		error(err, 0)
+	end
 end
 
 return test
