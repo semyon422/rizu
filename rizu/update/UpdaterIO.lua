@@ -3,27 +3,13 @@ local thread = require("thread")
 
 ---@class rizu.UpdaterIO
 ---@operator call: rizu.UpdaterIO
+---@field network rizu.NetworkService
+---@field write_func fun(path: string, body: string): boolean?, string?
+---@field remove_func fun(path: string): boolean?
+---@field crc32_func fun(path: string): integer?
 local UpdaterIO = class()
 
-local async_download = thread.async(function(url, path)
-	local http_util = require("web.http.util")
-	local socket_url = require("socket.url")
-
-	url = socket_url.build(socket_url.parse(url))
-
-	local ok, res = pcall(http_util.request, url)
-	if not ok or not res then
-		return
-	end
-	if res.status >= 400 then
-		return
-	end
-
-	local body = res.body
-	if not body or not path then
-		return body
-	end
-
+local async_write = thread.async(function(path, body)
 	local directory = path:match("^(.+)/.-$")
 	if directory and not love.filesystem.createDirectory(directory) then
 		return false, ("Could not open directory %s (not a directory)"):format(directory)
@@ -54,16 +40,40 @@ local async_crc32 = thread.async(function(path)
 	return require("crc32").hash(content)
 end)
 
+---@param network rizu.NetworkService
+---@param write_func (fun(path: string, body: string): boolean?, string?)?
+---@param remove_func (fun(path: string): boolean?)?
+---@param crc32_func (fun(path: string): integer?)?
+function UpdaterIO:new(network, write_func, remove_func, crc32_func)
+	self.network = assert(network, "network is required")
+	self.write_func = write_func or async_write
+	self.remove_func = remove_func or async_remove
+	self.crc32_func = crc32_func or async_crc32
+end
+
 function UpdaterIO:downloadAsync(url, path)
-	return async_download(url, path)
+	local res, err = self.network:download(url)
+	if not res then
+		return nil, err
+	end
+	if res.status >= 400 then
+		return nil, "HTTP " .. res.status
+	end
+
+	local body = res.body
+	if not body or not path then
+		return body
+	end
+
+	return self.write_func(path, body)
 end
 
 function UpdaterIO:removeAsync(path)
-	return async_remove(path)
+	return self.remove_func(path)
 end
 
 function UpdaterIO:crc32Async(path)
-	return async_crc32(path)
+	return self.crc32_func(path)
 end
 
 return UpdaterIO

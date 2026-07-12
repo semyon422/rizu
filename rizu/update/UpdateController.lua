@@ -1,6 +1,7 @@
 local class = require("class")
 local Updater = require("rizu.update.Updater")
 local UpdaterIO = require("rizu.update.UpdaterIO")
+local NetworkService = require("rizu.net.NetworkService")
 local ConfigModel = require("sphere.persistence.ConfigModel")
 local WindowModel = require("rizu.app.WindowModel")
 local thread = require("thread")
@@ -8,10 +9,13 @@ local delay = require("delay")
 
 ---@class rizu.UpdateController
 ---@operator call: rizu.UpdateController
+---@field network rizu.NetworkService
 local UpdateController = class()
 
-function UpdateController:new()
-	self.updater = Updater(UpdaterIO())
+---@param network rizu.NetworkService?
+function UpdateController:new(network)
+	self.network = network or NetworkService()
+	self.updater = Updater(UpdaterIO(self.network))
 	self.configModel = ConfigModel()
 	self.windowModel = WindowModel()
 end
@@ -40,6 +44,7 @@ function UpdateController:updateAsync()
 
 	function love.update(dt)
 		thread.update()
+		self.network:update()
 		delay.update()
 		self.windowModel:updateWindowState()
 	end

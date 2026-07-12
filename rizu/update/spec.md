@@ -11,7 +11,7 @@ The `rizu/update/` module owns startup-time file update checks and update IO.
 
 - `UpdateController` wires persisted config, update IO, and a minimal update draw loop.
 - `Updater` contains deterministic file-list diffing and action selection.
-- `UpdaterIO` contains asynchronous download, remove, and CRC operations.
+- `UpdaterIO` receives a `rizu.net.NetworkService` for downloads and keeps filesystem writes, remove, and CRC operations behind async filesystem helpers.
 
 ## Invariants
 
