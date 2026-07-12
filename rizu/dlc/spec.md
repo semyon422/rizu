@@ -39,7 +39,8 @@ The system handles three primary content types, which determine the extraction d
 ### Archive Extraction
 The `DlcExtractor` utility handles `.zip` and `.osz` formats.
 - **Flattening**: Many archives (like Etterna packs) wrap their contents in a redundant top-level folder. The extractor automatically flattens these structures during extraction to ensure the `dir` field in the library remains clean (e.g., `PackName/Song/` becomes `Song/`).
-- **Installer boundary**: `DlcWorker` owns provider lookup, transport, filename selection, and progress updates. `DlcInstaller` owns filesystem writes and archive extraction. This keeps network work separate from disk work so future async filesystem or worker-backed installation can be introduced behind the installer API.
+- **Installer boundary**: `DlcWorker` owns provider lookup, transport, filename selection, and progress updates. `DlcInstaller` owns filesystem writes and archive extraction.
+- **Async install**: The default worker installer is `AsyncDlcInstaller`, which runs `DlcInstaller:install()` through `thread.async`. Downloading stays on the shared cosocket scheduler while blocking filesystem writes and archive extraction run off the main thread.
 
 ### Provider Reference (Technical)
 

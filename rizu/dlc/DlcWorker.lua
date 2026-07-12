@@ -4,7 +4,7 @@ local OsuFileProvider = require("rizu.dlc.providers.OsuFileProvider")
 local EtternaPackProvider = require("rizu.dlc.providers.EtternaPackProvider")
 local OsuDirectProvider = require("rizu.dlc.providers.OsuDirectProvider")
 local BeatconnectProvider = require("rizu.dlc.providers.BeatconnectProvider")
-local DlcInstaller = require("rizu.dlc.DlcInstaller")
+local AsyncDlcInstaller = require("rizu.dlc.AsyncDlcInstaller")
 local path_util = require("path_util")
 local http_util = require("web.http.util")
 local socket_url = require("socket.url")
@@ -40,7 +40,7 @@ function DlcWorker:new(manager, workingDirectory, request, download_func, instal
 	self.workingDirectory = workingDirectory
 	self.request = assert(request, "request is required")
 	self.download_func = assert(download_func, "download_func is required")
-	self.installer = installer or DlcInstaller()
+	self.installer = installer or AsyncDlcInstaller()
 	self.providers = {
 		mino = MinoProvider({request = self.request}),
 		osu_file = OsuFileProvider(),
