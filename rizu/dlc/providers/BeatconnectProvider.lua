@@ -4,11 +4,15 @@ local json = require("json")
 
 ---@class rizu.dlc.providers.BeatconnectProvider: rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.BeatconnectProvider
+---@field request fun(url: string): {status: integer, body: string}?, string?
 local BeatconnectProvider = class()
 
-function BeatconnectProvider:new()
+---@param config {request: fun(url: string): {status: integer, body: string}?, string?}?
+function BeatconnectProvider:new(config)
+	config = config or {}
 	self.apiUrl = "https://beatconnect.io/api/search/"
 	self.downloadUrlPattern = "https://beatconnect.io/b/%s"
+	self.request = config.request or http_util.request
 end
 
 ---@param query string
@@ -29,7 +33,7 @@ function BeatconnectProvider:search(query, filters)
 
 	local url = self.apiUrl .. "?" .. http_util.encode_query_string(queryParams)
 	print("[BeatconnectProvider] Requesting URL:", url)
-	local res, err = http_util.request(url)
+	local res, err = self.request(url)
 
 	if not res then
 		return nil, err or "HTTP request failed"

@@ -5,11 +5,15 @@ local socket_url = require("socket.url")
 
 ---@class rizu.dlc.providers.EtternaPackProvider: rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.EtternaPackProvider
+---@field request fun(url: string): {status: integer, body: string}?, string?
 local EtternaPackProvider = class()
 
-function EtternaPackProvider:new()
+---@param config {request: fun(url: string): {status: integer, body: string}?, string?}?
+function EtternaPackProvider:new(config)
+	config = config or {}
 	self.apiUrl = "https://api.etternaonline.com/api/packs"
 	self.downloadUrlPattern = "https://downloads.etternaonline.com/ranked/%s.zip"
+	self.request = config.request or http_util.request
 end
 
 ---@param query string
@@ -38,7 +42,7 @@ function EtternaPackProvider:search(query, filters)
 
 	local url = self.apiUrl .. "?" .. http_util.encode_query_string(queryParams)
 	print("[EtternaPackProvider] Requesting URL:", url)
-	local res, err = http_util.request(url)
+	local res, err = self.request(url)
 
 	if not res then
 		return nil, err or "HTTP request failed"

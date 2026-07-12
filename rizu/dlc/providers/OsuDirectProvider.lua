@@ -4,6 +4,7 @@ local osudirect = require("chart.transform.osudirect")
 
 ---@class rizu.dlc.providers.OsuDirectProvider : rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.OsuDirectProvider
+---@field request fun(url: string): {status: integer, body: string}?, string?
 local OsuDirectProvider = class()
 
 local statusMap = {
@@ -14,10 +15,11 @@ local statusMap = {
 	graveyard = 5,
 }
 
----@param config {baseUrl: string, downloadUrl: string}
+---@param config {baseUrl: string, downloadUrl: string, request: (fun(url: string): {status: integer, body: string}?, string?)?}
 function OsuDirectProvider:new(config)
 	self.baseUrl = config.baseUrl
 	self.downloadUrl = config.downloadUrl
+	self.request = config.request or http_util.request
 end
 
 ---@param query string
@@ -32,7 +34,7 @@ function OsuDirectProvider:search(query, filters)
 	local url = self.baseUrl .. searchPath
 	
 	print("[OsuDirectProvider] Requesting URL:", url)
-	local res, err = http_util.request(url)
+	local res, err = self.request(url)
 	if not res then
 		return nil, err or "HTTP request failed"
 	end

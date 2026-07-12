@@ -10,25 +10,30 @@ local socket_url = require("socket.url")
 
 ---@class rizu.dlc.DlcWorker
 ---@operator call: rizu.dlc.DlcWorker
+---@field request fun(url: string): {status: integer, body: string}?, string?
 local DlcWorker = class()
 
 ---@param manager rizu.dlc.DlcManager
 ---@param workingDirectory string
-function DlcWorker:new(manager, workingDirectory)
+---@param request? fun(url: string): {status: integer, body: string}?, string?
+function DlcWorker:new(manager, workingDirectory, request)
 	self.manager = manager
 	self.workingDirectory = workingDirectory
+	self.request = request or http_util.request
 	self.providers = {
-		mino = MinoProvider(osuConfig),
+		mino = MinoProvider({request = self.request}),
 		osu_file = OsuFileProvider(),
-		etterna = EtternaPackProvider(),
-		beatconnect = BeatconnectProvider(),
+		etterna = EtternaPackProvider({request = self.request}),
+		beatconnect = BeatconnectProvider({request = self.request}),
 		akatsuki = OsuDirectProvider({
 			baseUrl = "https://osu.ppy.sb",
 			downloadUrl = "https://osu.ppy.sb/d/%s",
+			request = self.request,
 		}),
 		ripple = OsuDirectProvider({
 			baseUrl = "https://ripple.moe",
 			downloadUrl = "https://ripple.moe/d/%s",
+			request = self.request,
 		}),
 	}
 end
@@ -48,7 +53,7 @@ end
 ---@param url string
 ---@return love.ImageData? data, string? error
 function DlcWorker:fetchThumbnail(url)
-	local res, err = http_util.request(url)
+	local res, err = self.request(url)
 	if not res then return nil, err end
 	if res.status >= 400 then return nil, "HTTP " .. res.status end
 	

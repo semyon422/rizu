@@ -4,6 +4,7 @@ local json = require("json")
 
 ---@class rizu.dlc.MinoProvider: rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.MinoProvider
+---@field request fun(url: string): {status: integer, body: string}?, string?
 local MinoProvider = class()
 
 -- TODO: rate limits, bg and audio preview
@@ -22,6 +23,12 @@ local MinoRankedStatus = {
 	loved = 4,
 }
 
+---@param config {request: fun(url: string): {status: integer, body: string}?, string?}?
+function MinoProvider:new(config)
+	config = config or {}
+	self.request = config.request or http_util.request
+end
+
 ---@param query string
 ---@param filters {page: integer, status: rizu.dlc.MinoRankedStatus}?
 ---@return table[]? results
@@ -39,7 +46,7 @@ function MinoProvider:search(query, filters)
 	})
 
 	print("[MinoProvider] Requesting URL:", url)
-	local res, err = http_util.request(url)
+	local res, err = self.request(url)
 	if not res then
 		return nil, err or "HTTP request failed"
 	end

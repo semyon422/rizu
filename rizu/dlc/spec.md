@@ -18,6 +18,11 @@ Players access the **DLC Screen** from the sidebar to browse and search for new 
 - **Decision**: We use `ThreadRemote` to delegate all network and I/O heavy operations to a dedicated `DlcWorker`.
 - **Consequence**: The UI remains responsive. Communication between the UI and the worker is handled via asynchronous message passing.
 
+### ADR: Injectable Provider Requests
+- **Context**: DLC providers need HTTP search APIs, but transport policy is moving toward `rizu.net.NetworkService`.
+- **Decision**: Providers receive a request function from `DlcWorker` instead of calling `web.http.util.request` directly.
+- **Consequence**: Search code stays testable with fake requests and can later use `NetworkService:request` without changing provider parsing logic.
+
 ### ADR: Third-Party Mirrors for osu!
 - **Context**: The official osu! beatmap API requires OAuth authentication for downloads, which would require players to log in to download charts.
 - **Decision**: We route osu! downloads through public mirrors (e.g., BeatConnect, Mino).
