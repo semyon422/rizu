@@ -20,7 +20,7 @@ Players access the **DLC Screen** from the sidebar to browse and search for new 
 
 ### ADR: Injectable Provider Requests
 - **Context**: DLC providers need HTTP search APIs, but transport policy is moving toward `rizu.net.NetworkService`.
-- **Decision**: Providers receive a request function from `DlcWorker` instead of calling `web.http.util.request` directly. `DlcWorker:download` similarly uses an injected download function with progress callbacks.
+- **Decision**: `DlcWorker` requires injected request and download functions. Providers receive the request function from `DlcWorker` instead of calling `web.http.util.request` directly. `DlcWorker:download` similarly uses the injected download function with progress callbacks.
 - **Consequence**: Search and download code stays testable with fake requests. `DlcManager` wires these functions to `NetworkService:request` / `NetworkService:download`.
 
 ### ADR: Third-Party Mirrors for osu!

@@ -32,13 +32,20 @@ local function new_manager()
 	}
 end
 
+---@return fun(url: string): {status: integer, body: string}
+local function new_request()
+	return function()
+		return {status = 200, body = "ok"}
+	end
+end
+
 ---@param t testing.T
 function test.download_uses_injected_download_func(t)
 	local manager = new_manager()
 	local requested_url
 	local requested_options
 	local processed
-	local worker = DlcWorker(manager, "/game", nil, function(url, options)
+	local worker = DlcWorker(manager, "/game", new_request(), function(url, options)
 		requested_url = url
 		requested_options = options
 		options.on_download(5, 10, "hello")
@@ -82,7 +89,7 @@ end
 ---@param t testing.T
 function test.download_reports_http_error(t)
 	local manager = new_manager()
-	local worker = DlcWorker(manager, "/game", nil, function()
+	local worker = DlcWorker(manager, "/game", new_request(), function()
 		return {
 			status = 500,
 			headers = new_headers(),
@@ -100,6 +107,26 @@ function test.download_reports_http_error(t)
 	t:eq(err, "HTTP 500")
 	t:eq(manager.updates[#manager.updates].updates.status, "error")
 	t:eq(manager.updates[#manager.updates].updates.error, "HTTP 500")
+end
+
+---@param t testing.T
+function test.request_is_required(t)
+	local ok, err = pcall(function()
+		DlcWorker(new_manager(), "/game", nil --[[@as any]], function() end)
+	end)
+
+	t:eq(ok, false)
+	t:assert(tostring(err):find("request is required", 1, true))
+end
+
+---@param t testing.T
+function test.download_func_is_required(t)
+	local ok, err = pcall(function()
+		DlcWorker(new_manager(), "/game", new_request(), nil --[[@as any]])
+	end)
+
+	t:eq(ok, false)
+	t:assert(tostring(err):find("download_func is required", 1, true))
 end
 
 return test

@@ -15,14 +15,6 @@ local socket_url = require("socket.url")
 ---@class rizu.dlc.IDlcInstaller
 ---@field install rizu.dlc.InstallFunc
 
----@param url string
----@param options web.HttpStreamOptions?
----@return {status: integer, headers: web.Headers, body: string}?
----@return string?
-local function default_download(url, options)
-	return http_util.request(url, nil, options)
-end
-
 ---@return number
 local function get_time()
 	if love and love.timer and love.timer.getTime then
@@ -40,14 +32,14 @@ local DlcWorker = class()
 
 ---@param manager rizu.dlc.DlcManager
 ---@param workingDirectory string
----@param request? fun(url: string): {status: integer, body: string}?, string?
----@param download_func? rizu.dlc.DownloadFunc
+---@param request fun(url: string): {status: integer, body: string}?, string?
+---@param download_func rizu.dlc.DownloadFunc
 ---@param installer? rizu.dlc.IDlcInstaller
 function DlcWorker:new(manager, workingDirectory, request, download_func, installer)
 	self.manager = manager
 	self.workingDirectory = workingDirectory
-	self.request = request or http_util.request
-	self.download_func = download_func or default_download
+	self.request = assert(request, "request is required")
+	self.download_func = assert(download_func, "download_func is required")
 	self.installer = installer or DlcInstaller()
 	self.providers = {
 		mino = MinoProvider({request = self.request}),
