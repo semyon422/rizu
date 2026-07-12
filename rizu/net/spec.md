@@ -12,6 +12,7 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 
 - `NetworkService` owns the shared `CosocketScheduler`, async DNS resolution, DNS success cache, default socket timeout, and TLS verification policy.
 - HTTP callers use `NetworkService:request(url, body, options)`, which resolves DNS, injects `scheduler`, `connect_host`, `timeout`, and default `ssl_params`, then delegates to `web.http.util.request`.
+- Download callers can use `NetworkService:download(url, options)` for read-all downloads with `on_download` progress hooks, or `NetworkService:openStream(url, options)` for manual chunked upload/download through `web.HttpStream`.
 - WebSocket callers use `NetworkService:createWebsocketConnection()` and `NetworkService:connectWebsocket(connection, url)` so DNS and transport policy stay centralized.
 - DNS resolution still runs through `thread.async` because LuaSocket DNS lookup can block.
 
@@ -20,4 +21,5 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Callers should not parse URLs only to pass `connect_host`; that belongs in `NetworkService`.
 - The URL host must remain the HTTP `Host` header and TLS SNI name even when TCP connects to a resolved IP address.
 - `NetworkService:update()` is the central scheduler pump when the service is shared by multiple game systems.
+- `openStream()` returns a connected stream. The caller owns request upload/download sequencing and must close the stream when it does not use `download()`.
 - Feature-local network services are allowed as a fallback for isolated tests or legacy code, but normal game wiring should pass the shared service from `GameController`.

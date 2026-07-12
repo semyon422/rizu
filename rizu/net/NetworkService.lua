@@ -5,6 +5,7 @@ local thread = require("thread")
 
 local CosocketScheduler = require("web.luasocket.CosocketScheduler")
 local WebsocketConnection = require("web.ws.WebsocketConnection")
+local HttpStream = require("web.http.HttpStream")
 local http_util = require("web.http.util")
 
 ---@class rizu.NetworkService
@@ -15,6 +16,7 @@ local http_util = require("web.http.util")
 ---@field tls_cafile string
 ---@field dns_cache {[string]: string}
 ---@field request_func fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?
+---@field stream_factory fun(options: web.HttpStreamOptions?): web.HttpStream
 ---@field resolve_host_func fun(host: string): string?, string?
 local NetworkService = class()
 
@@ -27,7 +29,7 @@ local resolve_host_async = thread.async(function(host)
 	return socket.dns.toip(host)
 end)
 
----@param options {scheduler: web.CosocketScheduler?, timeout: number?, tls_verify: boolean?, tls_cafile: string?, request_func: function?, resolve_host_func: function?}?
+---@param options {scheduler: web.CosocketScheduler?, timeout: number?, tls_verify: boolean?, tls_cafile: string?, request_func: function?, stream_factory: function?, resolve_host_func: function?}?
 function NetworkService:new(options)
 	options = options or {}
 	self.scheduler = options.scheduler or CosocketScheduler()
@@ -41,6 +43,7 @@ function NetworkService:new(options)
 		self.tls_cafile = options.tls_cafile
 	end
 	self.request_func = options.request_func or http_util.request
+	self.stream_factory = options.stream_factory or HttpStream
 	self.resolve_host_func = options.resolve_host_func or resolve_host_async
 	self.dns_cache = {}
 end
@@ -120,6 +123,65 @@ function NetworkService:request(url, body, options)
 		request_options.connect_host = connect_host
 	end
 	return self.request_func(url, body, request_options)
+end
+
+---@param url string
+---@param options web.HttpStreamOptions?
+---@return web.HttpStream?
+---@return string?
+function NetworkService:openStream(url, options)
+	local connect_host, err = self:resolveUrl(url)
+	if not connect_host then
+		return nil, err
+	end
+
+	---@type web.HttpStreamOptions
+	local stream_options = self:getClientOptions(options)
+	if stream_options.connect_host == nil then
+		stream_options.connect_host = connect_host
+	end
+
+	local stream = self.stream_factory(stream_options)
+	local ok
+	ok, err = stream:connect(url)
+	if not ok then
+		return nil, err
+	end
+	return stream
+end
+
+---@param url string
+---@param options web.HttpStreamOptions?
+---@return {status: integer, headers: web.Headers, body: string}?
+---@return string?
+function NetworkService:download(url, options)
+	local stream, err = self:openStream(url, options)
+	if not stream then
+		return nil, err
+	end
+
+	local ok
+	ok, err = stream:sendHeaders()
+	if not ok then
+		stream:close()
+		return nil, err
+	end
+
+	local body
+	body, err = stream:receiveBody()
+	if not body then
+		stream:close()
+		return nil, err
+	end
+
+	local res = assert(stream.res)
+	stream:close()
+
+	return {
+		status = res.status,
+		headers = res.headers,
+		body = body,
+	}
 end
 
 ---@param options web.WebsocketClientOptions?
