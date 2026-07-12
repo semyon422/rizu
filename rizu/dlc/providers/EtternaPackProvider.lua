@@ -8,12 +8,11 @@ local socket_url = require("socket.url")
 ---@field request fun(url: string): {status: integer, body: string}?, string?
 local EtternaPackProvider = class()
 
----@param config {request: fun(url: string): {status: integer, body: string}?, string?}?
+---@param config {request: fun(url: string): {status: integer, body: string}?, string?}
 function EtternaPackProvider:new(config)
-	config = config or {}
 	self.apiUrl = "https://api.etternaonline.com/api/packs"
 	self.downloadUrlPattern = "https://downloads.etternaonline.com/ranked/%s.zip"
-	self.request = config.request or http_util.request
+	self.request = assert(config.request, "request is required")
 end
 
 ---@param query string

@@ -2,6 +2,8 @@ local MinoProvider = require("rizu.dlc.providers.MinoProvider")
 
 local test = {}
 
+local function noop_request() end
+
 ---@param t testing.T
 function test.search(t)
 	local requested_url
@@ -40,9 +42,19 @@ end
 
 ---@param t testing.T
 function test.getDownloadUrl(t)
-	local provider = MinoProvider()
+	local provider = MinoProvider({request = noop_request})
 	local url = provider:getDownloadUrl(12345)
 	t:eq(url, "https://catboy.best/d/12345")
+end
+
+---@param t testing.T
+function test.request_is_required(t)
+	local ok, err = pcall(function()
+		MinoProvider({} --[[@as any]])
+	end)
+
+	t:eq(ok, false)
+	t:assert(tostring(err):find("request is required", 1, true))
 end
 
 return test

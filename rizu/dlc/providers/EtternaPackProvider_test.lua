@@ -2,9 +2,11 @@ local EtternaPackProvider = require("rizu.dlc.providers.EtternaPackProvider")
 
 local test = {}
 
+local function noop_request() end
+
 ---@param t testing.T
 function test.getDownloadUrl(t)
-	local provider = EtternaPackProvider()
+	local provider = EtternaPackProvider({request = noop_request})
 	local url = provider:getDownloadUrl("Test Pack")
 	-- It should escape the name
 	t:eq(url, "https://downloads.etternaonline.com/ranked/Test%20Pack.zip")
@@ -42,6 +44,16 @@ function test.search_url_construction(t)
 	t:assert(requested_url:find("limit=12", 1, true))
 	t:eq(results[1].id, "Pack")
 	t:eq(results[1].total_songs, 20)
+end
+
+---@param t testing.T
+function test.request_is_required(t)
+	local ok, err = pcall(function()
+		EtternaPackProvider({} --[[@as any]])
+	end)
+
+	t:eq(ok, false)
+	t:assert(tostring(err):find("request is required", 1, true))
 end
 
 return test

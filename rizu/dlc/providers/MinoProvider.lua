@@ -23,10 +23,9 @@ local MinoRankedStatus = {
 	loved = 4,
 }
 
----@param config {request: fun(url: string): {status: integer, body: string}?, string?}?
+---@param config {request: fun(url: string): {status: integer, body: string}?, string?}
 function MinoProvider:new(config)
-	config = config or {}
-	self.request = config.request or http_util.request
+	self.request = assert(config.request, "request is required")
 end
 
 ---@param query string

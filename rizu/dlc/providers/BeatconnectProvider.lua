@@ -7,12 +7,11 @@ local json = require("json")
 ---@field request fun(url: string): {status: integer, body: string}?, string?
 local BeatconnectProvider = class()
 
----@param config {request: fun(url: string): {status: integer, body: string}?, string?}?
+---@param config {request: fun(url: string): {status: integer, body: string}?, string?}
 function BeatconnectProvider:new(config)
-	config = config or {}
 	self.apiUrl = "https://beatconnect.io/api/search/"
 	self.downloadUrlPattern = "https://beatconnect.io/b/%s"
-	self.request = config.request or http_util.request
+	self.request = assert(config.request, "request is required")
 end
 
 ---@param query string

@@ -2,16 +2,18 @@ local BeatconnectProvider = require("rizu.dlc.providers.BeatconnectProvider")
 
 local test = {}
 
+local function noop_request() end
+
 ---@param t testing.T
 function test.initialization(t)
-	local provider = BeatconnectProvider()
+	local provider = BeatconnectProvider({request = noop_request})
 	t:eq(provider.apiUrl, "https://beatconnect.io/api/search/")
 	t:eq(provider.downloadUrlPattern, "https://beatconnect.io/b/%s")
 end
 
 ---@param t testing.T
 function test.getDownloadUrl(t)
-	local provider = BeatconnectProvider()
+	local provider = BeatconnectProvider({request = noop_request})
 	t:eq(provider:getDownloadUrl(12345), "https://beatconnect.io/b/12345")
 end
 
@@ -45,6 +47,16 @@ function test.search_uses_injected_request(t)
 	t:assert(requested_url:find("s=loved", 1, true))
 	t:eq(results[1].id, 12345)
 	t:eq(results[1].thumbnail_url, "https://assets.ppy.sh/beatmaps/12345/covers/card.jpg")
+end
+
+---@param t testing.T
+function test.request_is_required(t)
+	local ok, err = pcall(function()
+		BeatconnectProvider({} --[[@as any]])
+	end)
+
+	t:eq(ok, false)
+	t:assert(tostring(err):find("request is required", 1, true))
 end
 
 return test

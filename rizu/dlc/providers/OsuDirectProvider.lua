@@ -15,11 +15,11 @@ local statusMap = {
 	graveyard = 5,
 }
 
----@param config {baseUrl: string, downloadUrl: string, request: (fun(url: string): {status: integer, body: string}?, string?)?}
+---@param config {baseUrl: string, downloadUrl: string, request: fun(url: string): {status: integer, body: string}?, string?}
 function OsuDirectProvider:new(config)
 	self.baseUrl = config.baseUrl
 	self.downloadUrl = config.downloadUrl
-	self.request = config.request or http_util.request
+	self.request = assert(config.request, "request is required")
 end
 
 ---@param query string
