@@ -8,18 +8,39 @@ local path_util = require("path_util")
 local http_util = require("web.http.util")
 local socket_url = require("socket.url")
 
+---@alias rizu.dlc.DownloadFunc fun(url: string, options: web.HttpStreamOptions?): {status: integer, headers: web.Headers, body: string}?, string?
+
+---@param url string
+---@param options web.HttpStreamOptions?
+---@return {status: integer, headers: web.Headers, body: string}?
+---@return string?
+local function default_download(url, options)
+	return http_util.request(url, nil, options)
+end
+
+---@return number
+local function get_time()
+	if love and love.timer and love.timer.getTime then
+		return love.timer.getTime()
+	end
+	return os.clock()
+end
+
 ---@class rizu.dlc.DlcWorker
 ---@operator call: rizu.dlc.DlcWorker
 ---@field request fun(url: string): {status: integer, body: string}?, string?
+---@field download_func rizu.dlc.DownloadFunc
 local DlcWorker = class()
 
 ---@param manager rizu.dlc.DlcManager
 ---@param workingDirectory string
 ---@param request? fun(url: string): {status: integer, body: string}?, string?
-function DlcWorker:new(manager, workingDirectory, request)
+---@param download_func? rizu.dlc.DownloadFunc
+function DlcWorker:new(manager, workingDirectory, request, download_func)
 	self.manager = manager
 	self.workingDirectory = workingDirectory
 	self.request = request or http_util.request
+	self.download_func = download_func or default_download
 	self.providers = {
 		mino = MinoProvider({request = self.request}),
 		osu_file = OsuFileProvider(),
@@ -100,31 +121,31 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 
 	self.manager:updateTask(id, {status = "connecting", progress = 0})
 
-	local client = http_util.client()
-	local req, res, err = client:connect(url)
-	if not req then
-		print("[DlcWorker] Connection error:", err)
-		self.manager:updateTask(id, {status = "error", error = err})
-		return nil, err
-	end
-
-	local body_t = {}
 	local total_received = 0
 	local total_size = 0
-	local start_time = love.timer.getTime()
+	local start_time = get_time()
 
-	local ok, err = req:send("")
-	if not ok then
-		print("[DlcWorker] Request send error:", err)
-		client:close()
-		self.manager:updateTask(id, {status = "error", error = err})
-		return nil, err
-	end
+	self.manager:updateTask(id, {status = "downloading", size = 0})
 
-	local ok, err = res:receive_headers()
-	if not ok then
-		print("[DlcWorker] Receive headers error:", err)
-		client:close()
+	local res, err = self.download_func(url, {
+		chunk_size = 64 * 1024,
+		on_download = function(downloaded, total)
+			total_received = downloaded
+			total_size = total or total_size
+			local current_time = get_time()
+			local duration = current_time - start_time
+			local speed = duration > 0 and (total_received / duration) or 0
+			local progress = total_size > 0 and (total_received / total_size) or 0
+
+			self.manager:updateTask(id, {
+				progress = progress,
+				total = total_received,
+				speed = speed,
+			})
+		end,
+	})
+	if not res then
+		print("[DlcWorker] Download error:", err)
 		self.manager:updateTask(id, {status = "error", error = err})
 		return nil, err
 	end
@@ -132,49 +153,19 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 	if res.status >= 400 then
 		local err_msg = "HTTP " .. res.status
 		print("[DlcWorker] HTTP error:", res.status)
-		client:close()
 		self.manager:updateTask(id, {status = "error", error = err_msg})
 		return nil, err_msg
 	end
 
-	total_size = tonumber(res.headers:get("Content-Length")) or 0
-	self.manager:updateTask(id, {status = "downloading", size = total_size})
-
-	local chunk_size = 64 * 1024
-	while true do
-		local chunk, err, partial = res:receive(chunk_size)
-		if not chunk then
-			if partial and #partial > 0 then
-				total_received = total_received + #partial
-				table.insert(body_t, partial)
-			end
-
-			if err == "closed" or err == nil then
-				break
-			end
-			print("[DlcWorker] Receive chunk error for " .. tostring(id) .. ": " .. tostring(err))
-			client:close()
-			self.manager:updateTask(id, {status = "error", error = err})
-			return nil, err
-		end
-
-		total_received = total_received + #chunk
-		table.insert(body_t, chunk)
-
-		local current_time = love.timer.getTime()
-		local duration = current_time - start_time
-		local speed = duration > 0 and (total_received / duration) or 0
-		local progress = total_size > 0 and (total_received / total_size) or 0
-
-		self.manager:updateTask(id, {
-			progress = progress,
-			total = total_received,
-			speed = speed
-		})
+	if total_size == 0 then
+		total_size = tonumber(res.headers:get("Content-Length")) or 0
 	end
+	self.manager:updateTask(id, {
+		size = total_size,
+		total = total_received > 0 and total_received or #res.body,
+	})
 
-	client:close()
-	local body = table.concat(body_t)
+	local body = res.body
 
 	-- Determine filename
 	local filename = url:match("^.+/(.-)$")

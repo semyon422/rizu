@@ -20,8 +20,8 @@ Players access the **DLC Screen** from the sidebar to browse and search for new 
 
 ### ADR: Injectable Provider Requests
 - **Context**: DLC providers need HTTP search APIs, but transport policy is moving toward `rizu.net.NetworkService`.
-- **Decision**: Providers receive a request function from `DlcWorker` instead of calling `web.http.util.request` directly.
-- **Consequence**: Search code stays testable with fake requests and can later use `NetworkService:request` without changing provider parsing logic.
+- **Decision**: Providers receive a request function from `DlcWorker` instead of calling `web.http.util.request` directly. `DlcWorker:download` similarly uses an injected download function with progress callbacks.
+- **Consequence**: Search and download code stays testable with fake requests and can later use `NetworkService:request` / `NetworkService:download` without changing provider parsing or install logic.
 
 ### ADR: Third-Party Mirrors for osu!
 - **Context**: The official osu! beatmap API requires OAuth authentication for downloads, which would require players to log in to download charts.
