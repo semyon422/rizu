@@ -85,10 +85,10 @@ function GameController:new()
 	self.uiModel = UserInterfaceModel(self)
 
 	self.library = self.persistence.library
-	self.dlcManager = DlcManager(self.library, self.persistence.configModel)
+	self.network = NetworkService()
+	self.dlcManager = DlcManager(self.library, self.network)
 
 	self.online_client = OnlineClient()
-	self.network = NetworkService()
 	self.multiplayer_client = MultiplayerClient()
 	self.client_remote = ClientRemoteValidation(ClientRemote(self.online_client, self.persistence.library, self.multiplayer_client))
 	self.seaClient = SeaClient(self.online_client, self.client_remote, self.network)

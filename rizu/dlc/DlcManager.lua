@@ -5,11 +5,14 @@ local Observable = require("Observable")
 
 ---@class rizu.dlc.DlcManager
 ---@operator call: rizu.dlc.DlcManager
+---@field network rizu.NetworkService?
 local DlcManager = class()
 
 ---@param library rizu.library.Library
-function DlcManager:new(library)
+---@param network rizu.NetworkService?
+function DlcManager:new(library, network)
 	self.library = library
+	self.network = network
 	self.tasks = {} ---@type {[string|number]: rizu.dlc.DlcTask}
 	self.is_sync = false
 	self.onTaskUpdated = Observable()
@@ -36,7 +39,18 @@ end
 function DlcManager:createAndLoadWorker(workingDirectory)
 	require("preload")
 	local DlcWorker = require("rizu.dlc.DlcWorker")
-	local worker = DlcWorker(self, workingDirectory)
+	local request
+	local download
+	local network = self.network
+	if self.is_sync and network then
+		request = function(url)
+			return network:request(url)
+		end
+		download = function(url, options)
+			return network:download(url, options)
+		end
+	end
+	local worker = DlcWorker(self, workingDirectory, request, download)
 	return worker
 end
 
