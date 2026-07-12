@@ -127,6 +127,18 @@ function test.connect_websocket_resolves_host(t)
 	t:eq(connection.connected_host, "203.0.113.10")
 end
 
+---@param t testing.T
+function test.create_websocket_connection_sets_reader_timeout(t)
+	local network = NetworkService()
+
+	local connection = network:createWebsocketConnection()
+	local explicit_connection = network:createWebsocketConnection({read_timeout = 5})
+
+	t:eq(connection.options.timeout, 10)
+	t:eq(connection.options.read_timeout, 30)
+	t:eq(explicit_connection.options.read_timeout, 5)
+end
+
 ---@class rizu.FakeHttpStreamForNetworkService
 ---@field options web.HttpStreamOptions
 ---@field connected_url string?

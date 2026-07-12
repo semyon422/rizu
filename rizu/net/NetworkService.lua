@@ -12,6 +12,7 @@ local http_util = require("web.http.util")
 ---@operator call: rizu.NetworkService
 ---@field scheduler web.CosocketScheduler
 ---@field timeout number
+---@field websocket_read_timeout number
 ---@field tls_verify boolean
 ---@field tls_cafile string
 ---@field dns_cache {[string]: string}
@@ -21,6 +22,7 @@ local http_util = require("web.http.util")
 local NetworkService = class()
 
 NetworkService.timeout = 10
+NetworkService.websocket_read_timeout = 30
 NetworkService.tls_verify = true
 NetworkService.tls_cafile = "resources/certs/cacert.pem"
 
@@ -29,12 +31,15 @@ local resolve_host_async = thread.async(function(host)
 	return socket.dns.toip(host)
 end)
 
----@param options {scheduler: web.CosocketScheduler?, timeout: number?, tls_verify: boolean?, tls_cafile: string?, request_func: function?, stream_factory: function?, resolve_host_func: function?}?
+---@param options {scheduler: web.CosocketScheduler?, timeout: number?, websocket_read_timeout: number?, tls_verify: boolean?, tls_cafile: string?, request_func: function?, stream_factory: function?, resolve_host_func: function?}?
 function NetworkService:new(options)
 	options = options or {}
 	self.scheduler = options.scheduler or CosocketScheduler()
 	if options.timeout ~= nil then
 		self.timeout = options.timeout
+	end
+	if options.websocket_read_timeout ~= nil then
+		self.websocket_read_timeout = options.websocket_read_timeout
 	end
 	if options.tls_verify ~= nil then
 		self.tls_verify = options.tls_verify
@@ -188,6 +193,9 @@ end
 ---@return web.WebsocketConnection
 function NetworkService:createWebsocketConnection(options)
 	local websocket_options = self:getClientOptions(options)
+	if websocket_options.read_timeout == nil then
+		websocket_options.read_timeout = self.websocket_read_timeout
+	end
 	return WebsocketConnection(websocket_options)
 end
 
