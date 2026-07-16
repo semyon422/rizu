@@ -33,5 +33,5 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 
 ## Future Work and Open Questions
 
-- Add a small end-to-end smoke test for the game-facing `NetworkService` HTTP/websocket wiring while keeping most edge cases on fake sockets.
+- Expose `NetworkService` diagnostics and recent status events in a dev/debug UI, possibly with a polished in-game view later.
 - Keep DNS on `thread.async(socket.dns.toip)` unless the DNS thread becomes a real operational problem or a reliable async resolver library is adopted.
