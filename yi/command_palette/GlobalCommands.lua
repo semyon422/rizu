@@ -7,6 +7,16 @@ local M = {}
 function M.get(game, ui)
 	return {
 		{
+			id = "global.ai_chat",
+			title = "AI: Open Chat",
+			description = "Opens the local AI agent chat",
+			callback = function()
+				if ui and ui.overlay then
+					ui.overlay:attachChat()
+				end
+			end,
+		},
+		{
 			id = "global.exit",
 			title = "Quit/Exit Game",
 			description = "Exits the game immediately",

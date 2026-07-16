@@ -34,6 +34,7 @@ function Persistence:load()
 	self.configManager:loadById("settings")
 
 	local configModel = self.configModel
+	configModel:open("ai")
 	configModel:open("settings", true)
 	configModel:open("select", true)
 	configModel:open("play", true)

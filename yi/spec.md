@@ -13,6 +13,8 @@ The `yi/` tree contains the retained UI that replaced the legacy immediate-mode 
 - The command palette is the preferred temporary bridge for legacy actions that already map cleanly to existing models or controllers.
 - Full retained views should replace legacy modal-heavy workflows when the interaction is stateful, visual, or needs repeated editing.
 - The old `ui/` tree has been removed. Legacy-only workflows that still matter should return as retained `yi` views, command palette actions, or model/controller services rather than restoring the deleted tree.
+- Stateful AI chat is a global overlay opened from the command palette. The view owns text entry and transcript rendering while `rizu.ai.ChatModel` owns conversation and request state.
+- AI chat and the command palette are mutually exclusive overlays so keyboard input has a single owner.
 
 ## Future Work and Open Questions
 

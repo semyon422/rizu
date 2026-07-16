@@ -30,6 +30,7 @@ function RepoAssembler:validate(gamerepo)
 
 	local game_zip_listing = ArchiveUtil.getZipListing(self.ctx, game_love)
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "rizu/game/GameInteractor.lua"), "game.love is missing rizu/game/GameInteractor.lua")
+	assert(ArchiveUtil.hasEntry(game_zip_listing, "rizu/ai/SystemPrompt.md"), "game.love is missing rizu/ai/SystemPrompt.md")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "conf.lua"), "game.love is missing conf.lua")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "main.lua"), "game.love is missing main.lua")
 
@@ -108,9 +109,13 @@ function RepoAssembler:build()
 	end
 
 	print("Cleaning up unnecessary files...")
+	local runtime_assets = {}
+	for _, path in ipairs(config.repo.runtime_assets) do
+		runtime_assets[gamedir .. "/" .. path] = true
+	end
 	local to_delete = {}
 	fs_util.find(gamedir, self.ctx.fs, function(path)
-		if not path:match("%.lua$") and not path:match("%.c$") and not path:match("%.sql$") then
+		if not path:match("%.lua$") and not path:match("%.c$") and not path:match("%.sql$") and not runtime_assets[path] then
 			table.insert(to_delete, path)
 		end
 	end)

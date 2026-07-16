@@ -2,6 +2,7 @@ local class = require("class")
 local stbl = require("stbl")
 
 ---@class sphere.Configs
+---@field ai sphere.AiConfig
 ---@field files sphere.FilesConfig
 ---@field filters sphere.FiltersConfig
 ---@field input sphere.InputConfig

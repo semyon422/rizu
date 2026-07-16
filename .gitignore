@@ -35,6 +35,7 @@ userdata/play.lua
 userdata/avatar.png
 userdata/lasterror.txt
 userdata/settings.json
+userdata/ai.lua
 
 moddedgame
 /build/

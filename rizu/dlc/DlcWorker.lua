@@ -158,7 +158,8 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 	end
 
 	if total_size == 0 then
-		total_size = tonumber(res.headers:get("Content-Length")) or 0
+		local content_length = res.headers:get("Content-Length")
+		total_size = tonumber(content_length) or 0
 	end
 	self.manager:updateTask(id, {
 		size = total_size,

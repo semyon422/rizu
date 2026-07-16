@@ -44,6 +44,11 @@ local SeaClient = require("rizu.online.SeaClient")
 local OnlineClient = require("rizu.online.OnlineClient")
 local OnlineWrapper = require("rizu.online.OnlineWrapper")
 local NetworkService = require("rizu.net.NetworkService")
+local OpenAiClient = require("ai.openai.Client")
+local OpenAiAgent = require("ai.openai.Agent")
+local AiChatModel = require("rizu.ai.ChatModel")
+local LuaEvalTool = require("rizu.ai.LuaEvalTool")
+local AiSystemPrompt = require("rizu.ai.SystemPrompt")
 local DifftablesSync = require("sea.difftables.DifftablesSync")
 local ClientRemote = require("sea.app.remotes.ClientRemote")
 local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
@@ -248,6 +253,23 @@ function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
+
+	local ai_config = self.persistence.configModel.configs.ai
+	local openai_client = OpenAiClient({
+		base_url = ai_config.base_url,
+		api_key = ai_config.api_key,
+		model = ai_config.model,
+		max_tokens = ai_config.max_tokens,
+		timeout = ai_config.timeout,
+		request = function(url, body, options)
+			return self.network:request(url, body, options)
+		end,
+		open_stream = function(url, options)
+			return self.network:openStream(url, options)
+		end,
+	})
+	local ai_agent = OpenAiAgent(openai_client, {LuaEvalTool(self)}, {streaming = true})
+	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt)
 	self.app:load()
 
 	self.uiModel:load()
@@ -279,6 +301,9 @@ function GameController:load()
 end
 
 function GameController:unload()
+	if self.aiChatModel then
+		self.aiChatModel:unload()
+	end
 	self.network:cancelStreams("unload")
 	self.seaClient:unload()
 	self.previewModel:release()

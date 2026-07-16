@@ -25,5 +25,8 @@ return {
 			"ui",
 			"yi",
 		},
+		runtime_assets = {
+			"rizu/ai/SystemPrompt.md",
+		},
 	},
 }
