@@ -9,7 +9,7 @@ local path_util = require("path_util")
 local http_util = require("web.http.util")
 local socket_url = require("socket.url")
 
----@alias rizu.dlc.DownloadFunc fun(url: string, options: web.HttpStreamOptions?): {status: integer, headers: web.Headers, body: string}?, string?
+---@alias rizu.dlc.DownloadFunc fun(url: string, options: rizu.NetworkStatusHttpOptions?): {status: integer, headers: web.Headers, body: string}?, string?
 ---@alias rizu.dlc.InstallFunc fun(self: rizu.dlc.IDlcInstaller, id: string|number, _type: rizu.dlc.DlcType, data: string, filename: string, metadata: table?): boolean?, string?
 
 ---@class rizu.dlc.IDlcInstaller
@@ -129,7 +129,12 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 
 	local res, err = self.download_func(url, {
 		chunk_size = 64 * 1024,
-		on_download = function(downloaded, total)
+		on_status = function(status)
+			if status.state ~= "downloading" then
+				return
+			end
+			local downloaded = assert(status.downloaded)
+			local total = status.total
 			total_received = downloaded
 			total_size = total or total_size
 			local current_time = get_time()

@@ -24,6 +24,36 @@ local http_util = require("web.http.util")
 ---@field diagnostics rizu.NetworkDiagnostics
 local NetworkService = class()
 
+---@alias rizu.NetworkStatusState
+---| "dns"
+---| "connecting"
+---| "uploading"
+---| "waiting_response"
+---| "downloading"
+---| "done"
+---| "failed"
+---| "canceled"
+
+---@class rizu.NetworkStatus
+---@field state rizu.NetworkStatusState
+---@field url string?
+---@field host string?
+---@field ip string?
+---@field err string?
+---@field status integer?
+---@field uploaded integer?
+---@field downloaded integer?
+---@field total integer?
+---@field chunk string?
+---@field cached boolean?
+
+---@class rizu.NetworkStatusOptions
+---@field on_status (fun(status: rizu.NetworkStatus))?
+
+---@class rizu.NetworkStatusHttpOptions: web.HttpStreamOptions
+---@field on_status (fun(status: rizu.NetworkStatus))?
+---@field status_url string?
+
 NetworkService.timeout = 10
 NetworkService.websocket_read_timeout = 30
 NetworkService.tls_verify = true
@@ -64,13 +94,20 @@ function NetworkService:unregisterStream(stream)
 end
 
 ---@param stream web.HttpStream
----@param options web.HttpStreamOptions
+---@param options rizu.NetworkStatusHttpOptions
 function NetworkService:registerStream(stream, options)
 	self.active_streams[stream] = true
 
 	local on_close = options.on_close
 	options.on_close = function(closed_stream)
 		self:unregisterStream(closed_stream)
+		if closed_stream:isCanceled() then
+			self:emitStatus(options, {
+				state = "canceled",
+				url = options.status_url,
+				err = closed_stream:getCancelError(),
+			})
+		end
 		if on_close then
 			on_close(closed_stream)
 		end
@@ -88,6 +125,69 @@ function NetworkService:cancelStreams(err)
 	for _, stream in ipairs(streams) do
 		stream:cancel(err)
 	end
+end
+
+---@param options rizu.NetworkStatusOptions?
+---@param status rizu.NetworkStatus
+function NetworkService:emitStatus(options, status)
+	local on_status = options and options.on_status
+	if on_status then
+		on_status(status)
+	end
+end
+
+---@param options table?
+---@param url string
+---@return rizu.NetworkStatusHttpOptions
+function NetworkService:getStatusOptions(options, url)
+	---@type rizu.NetworkStatusHttpOptions
+	local status_options = table_util.copy(options)
+	local on_status = status_options.on_status
+	local on_upload = status_options.on_upload
+	local on_download = status_options.on_download
+
+	if on_status or on_upload then
+		status_options.on_upload = function(uploaded, total, chunk)
+			self:emitStatus(status_options, {
+				state = "uploading",
+				url = url,
+				uploaded = uploaded,
+				total = total,
+				chunk = chunk,
+			})
+			if on_upload then
+				on_upload(uploaded, total, chunk)
+			end
+		end
+	end
+
+	if on_status or on_download then
+		status_options.on_download = function(downloaded, total, chunk)
+			self:emitStatus(status_options, {
+				state = "downloading",
+				url = url,
+				downloaded = downloaded,
+				total = total,
+				chunk = chunk,
+			})
+			if on_download then
+				on_download(downloaded, total, chunk)
+			end
+		end
+	end
+
+	return status_options
+end
+
+---@param options rizu.NetworkStatusOptions?
+---@param url string
+---@param err string?
+function NetworkService:emitFailure(options, url, err)
+	self:emitStatus(options, {
+		state = "failed",
+		url = url,
+		err = err,
+	})
 end
 
 ---@return rizu.NetworkDiagnosticsSnapshot
@@ -111,14 +211,30 @@ function NetworkService:getSslParams()
 end
 
 ---@param host string
+---@param options rizu.NetworkStatusOptions?
+---@param url string?
 ---@return string?
 ---@return string?
-function NetworkService:resolveHost(host)
+function NetworkService:resolveHost(host, options, url)
 	local cached = self.dns_cache[host]
 	if cached then
 		self.diagnostics:increment("dns_cache_hits")
+		self:emitStatus(options, {
+			state = "dns",
+			url = url,
+			host = host,
+			ip = cached,
+			cached = true,
+		})
 		return cached
 	end
+
+	self:emitStatus(options, {
+		state = "dns",
+		url = url,
+		host = host,
+		cached = false,
+	})
 
 	self.diagnostics:increment("dns_requests")
 	local ip, err = self.resolve_host_func(host)
@@ -131,14 +247,15 @@ function NetworkService:resolveHost(host)
 end
 
 ---@param url string
+---@param options rizu.NetworkStatusOptions?
 ---@return string?
 ---@return string?
-function NetworkService:resolveUrl(url)
+function NetworkService:resolveUrl(url, options)
 	local parsed_url, err = socket_url.parse(url)
 	if not parsed_url or not parsed_url.host then
 		return nil, err or "invalid url"
 	end
-	return self:resolveHost(parsed_url.host)
+	return self:resolveHost(parsed_url.host, options, url)
 end
 
 ---@param options web.HttpClientOptions?
@@ -164,21 +281,35 @@ end
 ---@return string?
 function NetworkService:request(url, body, options)
 	self.diagnostics:increment("http_requests")
-	local connect_host, err = self:resolveUrl(url)
+	---@type rizu.NetworkStatusHttpOptions
+	local request_options = self:getStatusOptions(options, url)
+	local connect_host, err = self:resolveUrl(url, request_options)
 	if not connect_host then
 		self.diagnostics:fail("http_failures", err)
+		self:emitFailure(request_options, url, err)
 		return nil, err
 	end
 
-	---@type web.HttpRequestOptions
-	local request_options = self:getClientOptions(options)
+	request_options = self:getClientOptions(request_options)
 	if request_options.connect_host == nil then
 		request_options.connect_host = connect_host
 	end
+	self:emitStatus(request_options, {
+		state = "connecting",
+		url = url,
+		ip = connect_host,
+	})
 	local res
 	res, err = self.request_func(url, body, request_options)
 	if not res then
 		self.diagnostics:fail("http_failures", err)
+		self:emitFailure(request_options, url, err)
+	else
+		self:emitStatus(request_options, {
+			state = "done",
+			url = url,
+			status = res.status,
+		})
 	end
 	return res, err
 end
@@ -189,25 +320,35 @@ end
 ---@return string?
 function NetworkService:openStream(url, options)
 	self.diagnostics:increment("stream_opens")
-	local connect_host, err = self:resolveUrl(url)
+	---@type rizu.NetworkStatusHttpOptions
+	local stream_options = self:getStatusOptions(options, url)
+	stream_options.status_url = url
+
+	local connect_host, err = self:resolveUrl(url, stream_options)
 	if not connect_host then
 		self.diagnostics:fail("stream_failures", err)
+		self:emitFailure(stream_options, url, err)
 		return nil, err
 	end
 
-	---@type web.HttpStreamOptions
-	local stream_options = self:getClientOptions(options)
+	stream_options = self:getClientOptions(stream_options)
 	if stream_options.connect_host == nil then
 		stream_options.connect_host = connect_host
 	end
 
 	local stream = self.stream_factory(stream_options)
 	self:registerStream(stream, stream_options)
+	self:emitStatus(stream_options, {
+		state = "connecting",
+		url = url,
+		ip = connect_host,
+	})
 	local ok
 	ok, err = stream:connect(url)
 	if not ok then
 		self:unregisterStream(stream)
 		self.diagnostics:fail("stream_failures", err)
+		self:emitFailure(stream_options, url, err)
 		return nil, err
 	end
 	return stream
@@ -230,19 +371,33 @@ function NetworkService:download(url, options)
 	if not ok then
 		stream:close()
 		self.diagnostics:fail("download_failures", err)
+		self:emitFailure(options, url, err)
 		return nil, err
 	end
+
+	self:emitStatus(options, {
+		state = "waiting_response",
+		url = url,
+	})
 
 	local body
 	body, err = stream:receiveBody()
 	if not body then
 		stream:close()
 		self.diagnostics:fail("download_failures", err)
+		if not stream:isCanceled() then
+			self:emitFailure(options, url, err)
+		end
 		return nil, err
 	end
 
 	local res = assert(stream.res)
 	stream:close()
+	self:emitStatus(options, {
+		state = "done",
+		url = url,
+		status = res.status,
+	})
 
 	return {
 		status = res.status,
@@ -267,15 +422,29 @@ end
 ---@return string?
 function NetworkService:connectWebsocket(connection, url)
 	self.diagnostics:increment("websocket_connects")
-	local connect_host, err = self:resolveUrl(url)
+	---@type rizu.NetworkStatusOptions?
+	local status_options = connection.options
+	local connect_host, err = self:resolveUrl(url, status_options)
 	if not connect_host then
 		self.diagnostics:fail("websocket_failures", err)
+		self:emitFailure(status_options, url, err)
 		return nil, err
 	end
+	self:emitStatus(status_options, {
+		state = "connecting",
+		url = url,
+		ip = connect_host,
+	})
 	local ok
 	ok, err = connection:connect(url, connect_host)
 	if not ok then
 		self.diagnostics:fail("websocket_failures", err)
+		self:emitFailure(status_options, url, err)
+	else
+		self:emitStatus(status_options, {
+			state = "done",
+			url = url,
+		})
 	end
 	return ok, err
 end

@@ -12,12 +12,13 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 
 - `NetworkService` owns the shared `CosocketScheduler`, async DNS resolution, DNS success cache, default socket timeout, websocket read timeout, and TLS verification policy.
 - HTTP callers use `NetworkService:request(url, body, options)`, which resolves DNS, injects `scheduler`, `connect_host`, `timeout`, and default `ssl_params`, then delegates to `web.http.util.request`.
-- Download callers can use `NetworkService:download(url, options)` for read-all downloads with `on_download` progress hooks, or `NetworkService:openStream(url, options)` for manual chunked upload/download through `web.HttpStream`.
+- Download callers can use `NetworkService:download(url, options)` for read-all downloads with `on_status` progress events or `on_download` chunk progress, or `NetworkService:openStream(url, options)` for manual chunked upload/download through `web.HttpStream`.
 - WebSocket callers use `NetworkService:createWebsocketConnection()` and `NetworkService:connectWebsocket(connection, url)` so DNS and transport policy stay centralized.
 - WebSocket connections use the default socket timeout for connect and handshake, then use a separate 30 second reader timeout so the ping interval is not racing the connect timeout.
 - DNS resolution still runs through `thread.async` because LuaSocket DNS lookup can block.
 - Runtime diagnostics should stay centralized in `NetworkService`: callers can inspect counters and the latest network error without each feature inventing local logging/state.
 - `NetworkService:cancelStreams(err)` cancels active HTTP streams/downloads owned by the shared service, allowing screens and unload paths to stop long-running transfers explicitly.
+- Network operations may report a shared `on_status(status)` shape with states such as `dns`, `connecting`, `uploading`, `waiting_response`, `downloading`, `done`, `failed`, and `canceled`.
 
 ## Invariants
 
@@ -27,10 +28,10 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - WebSocket reader timeout must stay longer than the online ping cadence unless the ping cadence changes at the same time.
 - `openStream()` returns a connected stream. The caller owns request upload/download sequencing and must close the stream when it does not use `download()`.
 - Active streams must unregister themselves when closed so later cancellation does not touch completed transfers.
+- `on_upload` / `on_download` remain supported as focused chunk-level hooks; `NetworkService` mirrors them into `on_status` when both are present.
 - Feature-local network services are allowed as a fallback for isolated tests or legacy code, but normal game wiring should pass the shared service from `GameController`.
 
 ## Future Work and Open Questions
 
-- Consider a shared progress/status shape for DNS, connect, TLS, upload, response wait, download, done, and failed states.
 - Add a small end-to-end smoke test for the game-facing `NetworkService` HTTP/websocket wiring while keeping most edge cases on fake sockets.
 - Keep DNS on `thread.async(socket.dns.toip)` unless the DNS thread becomes a real operational problem or a reliable async resolver library is adopted.

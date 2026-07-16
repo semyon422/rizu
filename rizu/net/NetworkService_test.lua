@@ -63,6 +63,48 @@ function test.request_preserves_explicit_options(t)
 end
 
 ---@param t testing.T
+function test.request_does_not_create_progress_callbacks_without_subscribers(t)
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		request_func = function(_url, _body, options)
+			return {
+				status = 200,
+				headers = {},
+				body = tostring(options.on_upload == nil and options.on_download == nil),
+			}
+		end,
+	})
+
+	local res = network:request("https://example.test/path")
+
+	t:eq(res.body, "true")
+end
+
+---@param t testing.T
+function test.request_creates_progress_callbacks_for_status_subscriber(t)
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		request_func = function(_url, _body, options)
+			return {
+				status = 200,
+				headers = {},
+				body = tostring(type(options.on_upload) == "function" and type(options.on_download) == "function"),
+			}
+		end,
+	})
+
+	local res = network:request("https://example.test/path", nil, {
+		on_status = function() end,
+	})
+
+	t:eq(res.body, "true")
+end
+
+---@param t testing.T
 function test.timeout_zero_is_explicit(t)
 	local network = NetworkService({
 		timeout = 0,
@@ -167,6 +209,30 @@ function test.connect_websocket_resolves_host(t)
 end
 
 ---@param t testing.T
+function test.connect_websocket_emits_status(t)
+	local statuses = {}
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+	})
+	local connection = setmetatable({
+		options = {
+			on_status = function(status)
+				table.insert(statuses, status)
+			end,
+		},
+	}, FakeWebsocketConnection)
+
+	t:tdeq({network:connectWebsocket(connection --[[@as any]], "wss://example.test/ws")}, {true})
+	t:tdeq(statuses, {
+		{state = "dns", url = "wss://example.test/ws", host = "example.test", cached = false},
+		{state = "connecting", url = "wss://example.test/ws", ip = "203.0.113.10"},
+		{state = "done", url = "wss://example.test/ws"},
+	})
+end
+
+---@param t testing.T
 function test.diagnostics_track_websocket_failures(t)
 	local network = NetworkService({
 		resolve_host_func = function()
@@ -255,6 +321,16 @@ function FakeHttpStream:close()
 	return 1
 end
 
+---@return boolean
+function FakeHttpStream:isCanceled()
+	return not not self.canceled
+end
+
+---@return string?
+function FakeHttpStream:getCancelError()
+	return self.cancel_err
+end
+
 ---@param err string?
 ---@return 1
 function FakeHttpStream:cancel(err)
@@ -262,6 +338,45 @@ function FakeHttpStream:cancel(err)
 	self.cancel_err = err or "canceled"
 	self:close()
 	return 1
+end
+
+---@param t testing.T
+function test.request_emits_status(t)
+	local statuses = {}
+	local downloads = {}
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		request_func = function(_url, _body, options)
+			options.on_download(5, 10, "hello")
+			return {
+				status = 200,
+				headers = {},
+				body = "hello",
+			}
+		end,
+	})
+
+	local res = network:request("https://example.test/file.txt", nil, {
+		on_status = function(status)
+			table.insert(statuses, status)
+		end,
+		on_download = function(downloaded, total, chunk)
+			table.insert(downloads, {downloaded, total, chunk})
+		end,
+	})
+
+	t:eq(res.status, 200)
+	t:tdeq(downloads, {
+		{5, 10, "hello"},
+	})
+	t:tdeq(statuses, {
+		{state = "dns", url = "https://example.test/file.txt", host = "example.test", cached = false},
+		{state = "connecting", url = "https://example.test/file.txt", ip = "203.0.113.10"},
+		{state = "downloading", url = "https://example.test/file.txt", downloaded = 5, total = 10, chunk = "hello"},
+		{state = "done", url = "https://example.test/file.txt", status = 200},
+	})
 end
 
 ---@param t testing.T
@@ -295,6 +410,66 @@ function test.open_stream_resolves_host_and_sets_defaults(t)
 
 	stream:close()
 	t:eq(network.active_streams[stream], nil)
+end
+
+---@param t testing.T
+function test.download_emits_status(t)
+	local statuses = {}
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		stream_factory = function(options)
+			return new_stream(options)
+		end,
+	})
+
+	local res = network:download("https://example.test/file.zip", {
+		on_status = function(status)
+			table.insert(statuses, status)
+		end,
+	})
+
+	t:eq(res.status, 200)
+	t:tdeq(statuses, {
+		{state = "dns", url = "https://example.test/file.zip", host = "example.test", cached = false},
+		{state = "connecting", url = "https://example.test/file.zip", ip = "203.0.113.10"},
+		{state = "waiting_response", url = "https://example.test/file.zip"},
+		{state = "done", url = "https://example.test/file.zip", status = 200},
+	})
+end
+
+---@param t testing.T
+function test.download_emits_canceled_status(t)
+	local statuses = {}
+	local network = NetworkService({
+		resolve_host_func = function()
+			return "203.0.113.10"
+		end,
+		stream_factory = function(options)
+			local stream = new_stream(options)
+			function stream:receiveBody()
+				self:cancel("screen closed")
+				return nil, "screen closed"
+			end
+			return stream
+		end,
+	})
+
+	local res, err = network:download("https://example.test/file.zip", {
+		on_status = function(status)
+			table.insert(statuses, status)
+		end,
+	})
+
+	t:eq(res, nil)
+	t:eq(err, "screen closed")
+	t:tdeq(statuses, {
+		{state = "dns", url = "https://example.test/file.zip", host = "example.test", cached = false},
+		{state = "connecting", url = "https://example.test/file.zip", ip = "203.0.113.10"},
+		{state = "waiting_response", url = "https://example.test/file.zip"},
+		{state = "canceled", url = "https://example.test/file.zip", err = "screen closed"},
+	})
 end
 
 ---@param t testing.T

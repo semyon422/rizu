@@ -48,8 +48,8 @@ function test.download_uses_injected_download_func(t)
 	local worker = DlcWorker(manager, "/game", new_request(), function(url, options)
 		requested_url = url
 		requested_options = options
-		options.on_download(5, 10, "hello")
-		options.on_download(10, 10, "world")
+		options.on_status({state = "downloading", downloaded = 5, total = 10, chunk = "hello"})
+		options.on_status({state = "downloading", downloaded = 10, total = 10, chunk = "world"})
 		return {
 			status = 200,
 			headers = new_headers({
