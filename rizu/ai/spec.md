@@ -27,6 +27,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - `NeedleModel` owns debounce, request generations, streamed proposal text, parsing, and execution gating. `NeedleWorker` owns the native context on a managed LÖVE thread.
 - `NeedleToolRegistry` snapshots only the approved semantic tools for the active command contexts and maps them back to existing command callbacks on the main thread.
 - The worker asks Needle to route across the complete active tool snapshot, then performs final argument generation with only the model-selected schema. Query text is never interpreted with keyword lists, regular expressions, or other deterministic routing and argument-extraction heuristics.
+- Worker terminal events carry queue, routing/final prefill, decode, encoder-layer progress, and total timings. `NeedleModel.telemetry` exposes only the current request's measurements.
 - Model prompts use Needle's training-time flat `parameters` format, including per-argument `required` flags and descriptions. The registry retains a separate JSON Schema-shaped representation for strict main-thread validation; model-facing schemas are never trusted as validation state.
 - Needle accepts exactly one call shaped as `[{"name": ..., "arguments": {...}}]`; generated names and arguments are validated again after constrained decoding.
 
@@ -43,6 +44,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Opening AI chat and opening the command palette are mutually exclusive so only one overlay owns keyboard input.
 - Native Needle inference never runs on the render thread, and output from superseded request IDs never becomes executable.
 - Enter executes only a complete proposal produced for the byte-identical current query. Needle has no access to Lua evaluation, arbitrary commands, conversation history, or the `game` object.
+- Superseded prefill is cooperatively cancelled between encoder layers. A currently executing layer may finish, but decoding and later layers never run for that request.
 
 ## Future Work and Open Questions
 

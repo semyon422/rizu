@@ -11,6 +11,7 @@ local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 ---@field streamed_text string
 ---@field formatted_call string?
 ---@field error string?
+---@field telemetry table?
 local NeedleModel = class()
 
 ---@param config sphere.NeedleConfig
@@ -59,6 +60,7 @@ function NeedleModel:setQuery(query)
 	self.formatted_call = nil
 	self.streamed_text = ""
 	self.error = nil
+	self.telemetry = nil
 	if query == "" then
 		if self.state ~= "unavailable" then self.state = "idle" end
 		return
@@ -82,6 +84,7 @@ function NeedleModel:sendPending()
 		request_id = self.active_request_id,
 		query = self.query,
 		tools_json = self.tool_set.tools_json,
+		enqueued_at = self.now(),
 	})
 end
 
@@ -96,6 +99,7 @@ function NeedleModel:handleEvent(event)
 		return
 	end
 	if event.request_id ~= self.active_request_id then return end
+	if event.telemetry then self.telemetry = event.telemetry end
 	if event.type == "started" then
 		self.state = "generating"
 	elseif event.type == "reset" then
@@ -119,6 +123,9 @@ function NeedleModel:handleEvent(event)
 		self.active_request_id = nil
 		self.state = "error"
 		self.error = event.error
+	elseif event.type == "cancelled" then
+		self.active_request_id = nil
+		self.state = "idle"
 	end
 end
 
@@ -134,6 +141,24 @@ function NeedleModel:update()
 		self.state = "unavailable"
 		self.error = tostring(err)
 	end
+end
+
+---@return string? summary
+function NeedleModel:formatTelemetry()
+	local telemetry = self.telemetry
+	if not telemetry or not telemetry.total_seconds then return nil end
+	local routing_prefill = telemetry.routing_prefill_seconds or 0
+	local routing = routing_prefill + (telemetry.routing_decode_seconds or 0)
+	local final_prefill = telemetry.final_prefill_seconds or 0
+	local final = final_prefill + (telemetry.final_decode_seconds or 0)
+	return ("queue %.2fs · route %.2fs (prefill %.2fs) · final %.2fs (prefill %.2fs) · total %.2fs"):format(
+		telemetry.queue_seconds or 0,
+		routing,
+		routing_prefill,
+		final,
+		final_prefill,
+		telemetry.total_seconds
+	)
 end
 
 ---@return boolean executed
@@ -159,6 +184,7 @@ function NeedleModel:cancel()
 	self.streamed_text = ""
 	self.call = nil
 	self.formatted_call = nil
+	self.telemetry = nil
 	if self.state ~= "unavailable" then self.state = "idle" end
 end
 

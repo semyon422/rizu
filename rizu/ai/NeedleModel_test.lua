@@ -36,15 +36,43 @@ function test.debounce_and_execute(t)
 	now = 10.25
 	model:update()
 	t:eq(transport.sent[1].type, "generate")
+	t:eq(transport.sent[1].enqueued_at, now)
 	local request_id = transport.sent[1].request_id
 	transport.output[1] = {type = "reset", request_id = request_id, content = '[{"name":"'}
 	transport.output[2] = {type = "delta", request_id = request_id, content = "select_random_chart"}
-	transport.output[3] = {type = "complete", request_id = request_id, content = '[{"name":"select_random_chart","arguments":{}}]'}
+	local telemetry = {total_seconds = 1.25, final_prefill_seconds = 1}
+	transport.output[3] = {
+		type = "complete",
+		request_id = request_id,
+		content = '[{"name":"select_random_chart","arguments":{}}]',
+		telemetry = telemetry,
+	}
 	model:update()
 	t:eq(model.state, "ready")
 	t:eq(model.formatted_call, "select_random_chart()")
+	t:eq(model.telemetry, telemetry)
+	t:eq(model:formatTelemetry(), "queue 0.00s · route 0.00s (prefill 0.00s) · final 1.00s (prefill 1.00s) · total 1.25s")
 	t:eq(model:execute(), true)
 	t:eq(executed.count, 1)
+end
+
+---@param t testing.T
+function test.cancelled_event_keeps_telemetry(t)
+	local transport = makeTransport()
+	local model = NeedleModel({model_path = "model", debounce_seconds = 0, max_new_tokens = 64}, transport, function() return 0 end)
+	model:activate(makeToolSet({count = 0}))
+	model:setQuery("random")
+	model:update()
+	local request_id = transport.sent[1].request_id
+	transport.output[1] = {
+		type = "cancelled",
+		request_id = request_id,
+		telemetry = {routing_layers_completed = 1, routing_layers_total = 4, total_seconds = 0.5},
+	}
+	model:update()
+	t:eq(model.state, "idle")
+	t:eq(model.telemetry.routing_layers_completed, 1)
+	t:eq(model.telemetry.routing_layers_total, 4)
 end
 
 ---@param t testing.T

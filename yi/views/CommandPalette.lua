@@ -200,6 +200,12 @@ function CommandPalette:draw()
 		local failed = model.state == "error" or model.state == "unavailable"
 		love.graphics.setColor(failed and Colors.back_button or Colors.text_muted)
 		love.graphics.printf(preview, 12, CELL_HEIGHT * 2, self.width - 24, "left")
+		local telemetry = model:formatTelemetry()
+		if telemetry then
+			love.graphics.setFont(Resources.getFont("regular", 14))
+			love.graphics.setColor(Colors.text_muted)
+			love.graphics.printf(telemetry, 12, CELL_HEIGHT * 2 + 30, self.width - 24, "left")
+		end
 	end
 end
 
