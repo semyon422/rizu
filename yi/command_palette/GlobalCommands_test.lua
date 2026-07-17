@@ -35,4 +35,16 @@ function test.registers_needle_live_argument(t)
 	t:eq(command.arguments[1].type, "string")
 end
 
+---@param t testing.T
+function test.starts_needle_gpu_probe(t)
+	local started = false
+	local command
+	for _, candidate in ipairs(GlobalCommands.get({needleGpuProbe = {start = function() started = true end}}, nil)) do
+		if candidate.id == "global.needle_gpu_probe" then command = candidate end
+	end
+	t:assert(command, "Needle GPU probe command should be registered")
+	command.callback({})
+	t:eq(started, true)
+end
+
 return test

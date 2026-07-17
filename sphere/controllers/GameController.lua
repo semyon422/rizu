@@ -50,6 +50,7 @@ local AiChatModel = require("rizu.ai.ChatModel")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
 local AiSystemPrompt = require("rizu.ai.SystemPrompt")
 local NeedleModel = require("rizu.ai.NeedleModel")
+local NeedleGpuProbe = require("rizu.ai.NeedleGpuProbe")
 local DifftablesSync = require("sea.difftables.DifftablesSync")
 local ClientRemote = require("sea.app.remotes.ClientRemote")
 local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
@@ -272,6 +273,7 @@ function GameController:load()
 	local ai_agent = OpenAiAgent(openai_client, {LuaEvalTool(self)}, {streaming = true})
 	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt)
 	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
+	self.needleGpuProbe = NeedleGpuProbe()
 	self.app:load()
 
 	self.uiModel:load()
@@ -309,6 +311,7 @@ function GameController:unload()
 	if self.needleModel then
 		self.needleModel:unload()
 	end
+	if self.needleGpuProbe then self.needleGpuProbe:release() end
 	self.network:cancelStreams("unload")
 	self.seaClient:unload()
 	self.previewModel:release()
@@ -328,6 +331,7 @@ function GameController:update(dt)
 	self.app:update()
 	self.network:update()
 	if self.needleModel then self.needleModel:update() end
+	if self.needleGpuProbe then self.needleGpuProbe:update() end
 
 	self.selectionCoordinator:update(function() self.modifierCoordinator:applySelectionModifierMeta() end)
 	self.modifierCoordinator:update()

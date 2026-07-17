@@ -18,6 +18,24 @@ function M.get(game, ui)
 			callback = function() end,
 		},
 		{
+			id = "global.needle_gpu_probe",
+			title = "Needle: GPU Probe",
+			description = "Test LÖVE compute shaders for Needle inference",
+			callback = function()
+				if game.needleGpuProbe then game.needleGpuProbe:start() end
+			end,
+		},
+		{
+			id = "global.needle_gpu_model_probe",
+			title = "Needle: GPU Model Projection",
+			description = "Upload real Needle Q8 weights and validate a GPU projection",
+			callback = function()
+				if game.needleGpuProbe then
+					game.needleGpuProbe:startModel(game.persistence.configModel.configs.needle.model_path)
+				end
+			end,
+		},
+		{
 			id = "global.ai_chat",
 			title = "AI: Open Chat",
 			description = "Opens the local AI agent chat",
