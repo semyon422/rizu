@@ -31,18 +31,21 @@ BuildConfig.MODULE_OUTPUT_NAMES = {
 		video = "video.so",
 		minacalc = "libminacalc.so",
 		luamidi = "luamidi.so",
+		needle = "libneedle_runtime.so",
 	},
 	windows = {
 		z7 = "7z.dll",
 		video = "video.dll",
 		minacalc = "minacalc.dll",
 		luamidi = "luamidi.dll",
+		needle = "needle_runtime.dll",
 	},
 	macos = {
 		z7 = "lib7z.dylib",
 		video = "video.so",
 		minacalc = "libminacalc.dylib",
 		luamidi = "luamidi.dylib",
+		needle = "libneedle_runtime.dylib",
 	},
 }
 

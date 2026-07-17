@@ -1,6 +1,7 @@
 local Screen = require("gui.Screen")
 local CommandPalette = require("yi.views.CommandPalette")
 local AiChatView = require("yi.views.AiChatView")
+local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 
 ---@class yi.layers.Overlay : gui.Screen
 ---@operator call: yi.layers.Overlay
@@ -9,9 +10,10 @@ local Overlay = Screen + {}
 ---@param yi yi.UserInterface
 function Overlay:new(yi)
 	Screen.new(self)
+	self.needle_tools = NeedleToolRegistry(yi.command_registry)
 	self.palette = CommandPalette(yi.command_palette, function()
 		self:detachPalette()
-	end)
+	end, yi.game.needleModel, self.needle_tools)
 	self.ai_chat = AiChatView(yi.game.aiChatModel, function()
 		self:detachChat()
 	end)
@@ -65,6 +67,7 @@ function Overlay:detachPalette()
 	if not self.palette_attached then
 		return false
 	end
+	self.palette.needle_model:cancel()
 	self:hideView(self.palette)
 	self.palette_attached = false
 	return true
@@ -76,6 +79,9 @@ function Overlay:handleKeyDown(key)
 	end
 
 	if key == "escape" then
+		if self.palette_attached and self.palette:goBack() then
+			return true
+		end
 		if self.chat_attached and self.ai_chat.model.busy then
 			return self.ai_chat.model:cancel()
 		end

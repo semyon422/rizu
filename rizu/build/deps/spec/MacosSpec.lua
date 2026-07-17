@@ -14,6 +14,7 @@ local SevenZipModuleSpec = require("rizu.build.deps.spec.module.SevenZipModuleSp
 local VideoModuleSpec = require("rizu.build.deps.spec.module.VideoModuleSpec")
 local MinacalcModuleSpec = require("rizu.build.deps.spec.module.MinacalcModuleSpec")
 local LuamidiModuleSpec = require("rizu.build.deps.spec.module.LuamidiModuleSpec")
+local NeedleModuleSpec = require("rizu.build.deps.spec.module.NeedleModuleSpec")
 
 ---@class rizu.build.deps.spec.MacosSpec
 local Macos = {}
@@ -40,6 +41,7 @@ function Macos.build()
 	VideoModuleSpec.add(target, spec)
 	MinacalcModuleSpec.add(target, spec)
 	LuamidiModuleSpec.add(target, spec)
+	NeedleModuleSpec.add(target, spec)
 
 	return spec
 end

@@ -6,16 +6,22 @@ local utf8 = require("utf8")
 ---@class yi.views.CommandPalette : gui.View
 ---@operator call: yi.views.CommandPalette
 ---@field prompt string?
+---@field needle_model rizu.ai.NeedleModel
+---@field needle_tools rizu.ai.NeedleToolRegistry
 local CommandPalette = View + {}
 
 local CELL_HEIGHT = 40
 
 ---@param state yi.command_palette.PaletteState
 ---@param on_close function
-function CommandPalette:new(state, on_close)
+---@param needle_model rizu.ai.NeedleModel
+---@param needle_tools rizu.ai.NeedleToolRegistry
+function CommandPalette:new(state, on_close, needle_model, needle_tools)
 	View.new(self)
 	self.state = state
 	self.on_close = on_close
+	self.needle_model = needle_model
+	self.needle_tools = needle_tools
 	self:setSize(800, 600)
 	self:setPivot(0.5, 0.5)
 	self.names = love.graphics.newTextBatch(Resources.getFont("regular", 24))
@@ -29,11 +35,34 @@ function CommandPalette:new(state, on_close)
 end
 
 function CommandPalette:reset()
+	self.needle_model:cancel()
 	self.query = ""
 	self.prompt = nil
 	self.selected_index = 1
 	self.state:reset()
 	self:updateText()
+end
+
+---@return boolean
+function CommandPalette:isNeedleMode()
+	return self.state.active_command ~= nil and self.state.active_command.id == "global.needle"
+end
+
+function CommandPalette:queryChanged()
+	self.state:setQuery(self.query)
+	if self:isNeedleMode() then self.needle_model:setQuery(self.query) end
+	self:updateText()
+end
+
+---@return boolean
+function CommandPalette:goBack()
+	if self:isNeedleMode() then self.needle_model:cancel() end
+	if not self.state:goBack() then return false end
+	self.query = self.state.query
+	self.prompt = self.state:isArgumentMode() and self.state:getPromptText() or nil
+	self.selected_index = 1
+	self:updateText()
+	return true
 end
 
 ---@return table? candidate
@@ -65,14 +94,18 @@ function CommandPalette:onKeyDown(e)
 				self.query = self.query:sub(1, byte_offset - 1)
 			end
 			self.selected_index = 1
-			self.state:setQuery(self.query)
-			self:updateText()
+			self:queryChanged()
 		end
 	elseif e.key == "down" then
 		self:moveSelection(1)
 	elseif e.key == "up" then
 		self:moveSelection(-1)
 	elseif e.key == "return" or e.key == "kpenter" then
+		if self:isNeedleMode() then
+			local executed, err = self.needle_model:execute()
+			if executed then self.on_close() elseif err then print(err) end
+			return true
+		end
 		local success, err, executed = self.state:confirmSelection(self:getSelectedCandidate())
 
 		if not success then
@@ -89,6 +122,7 @@ function CommandPalette:onKeyDown(e)
 			self.query = ""
 			self.selected_index = 1
 			self.prompt	= self.state:getPromptText()
+			if self:isNeedleMode() then self.needle_model:activate(self.needle_tools:snapshot()) end
 			self:updateText()
 		end
 	end
@@ -98,8 +132,7 @@ end
 function CommandPalette:onTextInput(e)
 	self.query = self.query .. e.key
 	self.selected_index = 1
-	self.state:setQuery(self.query)
-	self:updateText()
+	self:queryChanged()
 	return true
 end
 
@@ -153,6 +186,21 @@ function CommandPalette:draw()
 
 	love.graphics.setColor(Colors.text)
 	love.graphics.draw(self.names, 5, 5)
+
+	if self:isNeedleMode() then
+		local model = self.needle_model
+		local preview = model.formatted_call or model.streamed_text
+		if preview == "" then
+			if model.state == "debouncing" then preview = "Waiting for input pause…"
+			elseif model.state == "generating" then preview = "Generating…"
+			elseif model.state == "unavailable" or model.state == "error" then preview = model.error or "Needle unavailable"
+			else preview = "Type a request; Enter runs the displayed call." end
+		end
+		love.graphics.setFont(Resources.getFont("regular", 20))
+		local failed = model.state == "error" or model.state == "unavailable"
+		love.graphics.setColor(failed and Colors.back_button or Colors.text_muted)
+		love.graphics.printf(preview, 12, CELL_HEIGHT * 2, self.width - 24, "left")
+	end
 end
 
 return CommandPalette

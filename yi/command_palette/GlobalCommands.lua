@@ -7,6 +7,17 @@ local M = {}
 function M.get(game, ui)
 	return {
 		{
+			id = "global.needle",
+			title = "Needle",
+			description = "Turn natural language into a safe game command",
+			arguments = {{
+				name = "query",
+				type = "string",
+				prompt = "Needle:",
+			}},
+			callback = function() end,
+		},
+		{
 			id = "global.ai_chat",
 			title = "AI: Open Chat",
 			description = "Opens the local AI agent chat",

@@ -2,6 +2,8 @@
 
 Provide an in-game AI chat backed by an OpenAI-compatible local provider, with game-aware tools and state kept separate from the reusable protocol code in `aqua/ai/openai`.
 
+Also provide an offline Needle command router that turns one natural-language palette query into one explicitly confirmed, allowlisted game command.
+
 ## User Experience
 
 - The player opens AI chat from the global command palette without leaving the current screen.
@@ -9,6 +11,7 @@ Provide an in-game AI chat backed by an OpenAI-compatible local provider, with g
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
 - Closing and reopening the window preserves the current conversation; an explicit clear action starts a new conversation.
+- The player selects `Needle` in the command palette, types a query, watches a function call update after a short debounce, and presses Enter to run that exact call.
 
 ## Architecture Decisions
 
@@ -21,6 +24,11 @@ Provide an in-game AI chat backed by an OpenAI-compatible local provider, with g
 - Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
 - The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
 - The provider does not advertise developer-role support, so project instructions use a `system` message.
+- `NeedleModel` owns debounce, request generations, streamed proposal text, parsing, and execution gating. `NeedleWorker` owns the native context on a managed LÖVE thread.
+- `NeedleToolRegistry` snapshots only the approved semantic tools for the active command contexts and maps them back to existing command callbacks on the main thread.
+- The worker asks Needle to route across the complete active tool snapshot, then performs final argument generation with only the model-selected schema. Query text is never interpreted with keyword lists, regular expressions, or other deterministic routing and argument-extraction heuristics.
+- Model prompts use Needle's training-time flat `parameters` format, including per-argument `required` flags and descriptions. The registry retains a separate JSON Schema-shaped representation for strict main-thread validation; model-facing schemas are never trusted as validation state.
+- Needle accepts exactly one call shaped as `[{"name": ..., "arguments": {...}}]`; generated names and arguments are validated again after constrained decoding.
 
 ## Invariants
 
@@ -33,6 +41,8 @@ Provide an in-game AI chat backed by an OpenAI-compatible local provider, with g
 - The Lua tool is a trusted developer capability, not a security sandbox. It exposes the process globals and the `game` object, including state-changing and process-level APIs.
 - The API key must not be committed to the repository or printed in diagnostics.
 - Opening AI chat and opening the command palette are mutually exclusive so only one overlay owns keyboard input.
+- Native Needle inference never runs on the render thread, and output from superseded request IDs never becomes executable.
+- Enter executes only a complete proposal produced for the byte-identical current query. Needle has no access to Lua evaluation, arbitrary commands, conversation history, or the `game` object.
 
 ## Future Work and Open Questions
 

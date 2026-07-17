@@ -65,7 +65,7 @@ CLI mapping:
 - `deps/spec/common/LuaJITSpec`: declarative LuaJIT clone and install steps into `tree/`; executed by `SetupLuaJITTask`.
 - `SpecNormalizer`: fills defaults and infers outputs from declarative actions.
 - `SpecValidator` + `ActionSchema`: validate step shape, supported action types, required fields, and shell-action policy.
-- `NativeModulesSpec`: appends declarative compile and publish steps for target-native modules (`7z`, `video`, `minacalc`, `luamidi`).
+- Target specs append declarative compile and publish steps for native modules (`7z`, `video`, `minacalc`, `luamidi`, and the dependency-free Needle runtime).
 - `StepState`: centralizes required-input checks, output freshness, and step status state.
 - `Executor`: executes actions using shared step-state skip checks.
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.

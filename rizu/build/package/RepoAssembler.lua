@@ -33,6 +33,14 @@ function RepoAssembler:validate(gamerepo)
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "rizu/ai/SystemPrompt.md"), "game.love is missing rizu/ai/SystemPrompt.md")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "conf.lua"), "game.love is missing conf.lua")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "main.lua"), "game.love is missing main.lua")
+	assert(self.ctx.fs:getInfo(gamerepo .. "/resources/needle/needle-q8-stripped.bin") ~= nil,
+		"missing bundled Needle model")
+	assert(self.ctx.fs:getInfo(gamerepo .. "/bin/linux64/libneedle_runtime.so") ~= nil,
+		"missing Linux Needle runtime")
+	assert(self.ctx.fs:getInfo(gamerepo .. "/bin/win64/needle_runtime.dll") ~= nil,
+		"missing Windows Needle runtime")
+	assert(self.ctx.fs:getInfo(gamerepo .. "/bin/mac64/libneedle_runtime.dylib") ~= nil,
+		"missing macOS Needle runtime")
 
 	local lib_src = "3rd-deps/lib/"
 	if self.src_fs:getInfo(lib_src .. "gd.so") then

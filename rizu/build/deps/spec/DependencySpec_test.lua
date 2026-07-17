@@ -43,12 +43,20 @@ end
 
 ---@param t testing.T
 function test.includes_native_module_steps_for_all_targets(t)
+	local needle_output = {
+		linux = "bin/linux64/libneedle_runtime.so",
+		windows = "bin/win64/needle_runtime.dll",
+		macos = "bin/mac64/libneedle_runtime.dylib",
+	}
 	for _, target in ipairs({"linux", "windows", "macos"}) do
 		local spec = DependencySpec.load(target)
 		t:assert(findStep(spec, "module_z7_artifact") ~= nil)
 		t:assert(findStep(spec, "module_video_artifact") ~= nil)
 		t:assert(findStep(spec, "module_minacalc_artifact") ~= nil)
 		t:assert(findStep(spec, "module_luamidi_artifact") ~= nil)
+		t:assert(findStep(spec, "module_needle_artifact") ~= nil)
+		local needle_bin = assert(findStep(spec, "module_needle_bin"))
+		t:tdeq(needle_bin.outputs, {needle_output[target]})
 		t:assert(findStep(spec, "module_video_bin") ~= nil)
 	end
 end

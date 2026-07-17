@@ -15,6 +15,7 @@ The `yi/` tree contains the retained UI that replaced the legacy immediate-mode 
 - The old `ui/` tree has been removed. Legacy-only workflows that still matter should return as retained `yi` views, command palette actions, or model/controller services rather than restoring the deleted tree.
 - Stateful AI chat is a global overlay opened from the command palette. The view owns text entry and transcript rendering while `rizu.ai.ChatModel` owns conversation and request state.
 - AI chat and the command palette are mutually exclusive overlays so keyboard input has a single owner.
+- Needle is a live argument mode within the command palette, not a separate overlay. Its streamed function preview replaces ordinary candidates until the player executes it or returns to command search.
 
 ## Future Work and Open Questions
 
