@@ -36,6 +36,26 @@ function M.get(game, ui)
 			end,
 		},
 		{
+			id = "global.needle_gpu_encoder_probe",
+			title = "Needle: GPU Encoder Layer",
+			description = "Validate GPU Q8 encoder self-attention against the CPU runtime",
+			callback = function()
+				if game.needleGpuEncoderProbe then
+					game.needleGpuEncoderProbe:start(game.persistence.configModel.configs.needle.model_path)
+				end
+			end,
+		},
+		{
+			id = "global.needle_gpu_prefill_probe",
+			title = "Needle: GPU Encoder Prefill",
+			description = "Benchmark a 461-token GPU encoder self-attention layer",
+			callback = function()
+				if game.needleGpuEncoderProbe then
+					game.needleGpuEncoderProbe:startPrefill(game.persistence.configModel.configs.needle.model_path)
+				end
+			end,
+		},
+		{
 			id = "global.ai_chat",
 			title = "AI: Open Chat",
 			description = "Opens the local AI agent chat",

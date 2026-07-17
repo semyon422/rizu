@@ -29,6 +29,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The worker asks Needle to route across the complete active tool snapshot, then performs final argument generation with only the model-selected schema. Query text is never interpreted with keyword lists, regular expressions, or other deterministic routing and argument-extraction heuristics.
 - Worker terminal events carry queue, routing/final prefill, decode, encoder-layer progress, and total timings. `NeedleModel.telemetry` exposes only the current request's measurements.
 - `NeedleGpuProbe` is an opt-in palette diagnostic which verifies GLSL 4 support, shader-storage capacity, Q8 packed-weight compute, and async readback before any GPU inference path is enabled.
+- `NeedleGpuEncoderProbe` is a separate opt-in diagnostic. It uploads one real Q8 encoder self-attention layer, computes Q/K/V, RMSNorm/RoPE, score matrix, softmax/value, and output projection on the main-thread graphics queue, then compares its asynchronous readback with the C runtime. It is not used by live Needle inference yet.
 - Model prompts use Needle's training-time flat `parameters` format, including per-argument `required` flags and descriptions. The registry retains a separate JSON Schema-shaped representation for strict main-thread validation; model-facing schemas are never trusted as validation state.
 - Needle accepts exactly one call shaped as `[{"name": ..., "arguments": {...}}]`; generated names and arguments are validated again after constrained decoding.
 
@@ -46,6 +47,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Native Needle inference never runs on the render thread, and output from superseded request IDs never becomes executable.
 - Enter executes only a complete proposal produced for the byte-identical current query. Needle has no access to Lua evaluation, arbitrary commands, conversation history, or the `game` object.
 - Superseded prefill is cooperatively cancelled between encoder layers. A currently executing layer may finish, but decoding and later layers never run for that request.
+- GPU diagnostics never run native inference on the graphics thread. Their short CPU reference call is diagnostic-only; a future GPU inference backend must retain model buffers across requests and must not make that reference call.
 
 ## Future Work and Open Questions
 
