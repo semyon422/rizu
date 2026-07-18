@@ -134,6 +134,17 @@ Sets up `package.path` and `package.cpath` for both the game client and server. 
 
 MySQL connection settings for `db_dump` / `db_restore` scripts. Keep credentials in `my.cnf` (gitignored); `my.cnf.example` tracks the template.
 
+## Runtime Game Access
+
+The game exposes a development MCP server when enabled in ignored `userdata/mcp.lua`. Agents may use it to inspect and verify runtime behavior that repository tools cannot observe.
+
+- If a task needs a running game and MCP is unavailable, ask the user to start the game. Do not launch the graphical client implicitly.
+- Prefer focused, schema-validated MCP tools over `lua_eval` for repeatable workflows. Agents may add a focused tool with nearby tests and spec updates when the runtime capability they need does not exist yet.
+- After changing game-side MCP wiring or tools, ask the user to restart the game so the running process loads the changes. `restart_game` can perform later restarts once that tool is loaded.
+- Treat `lua_eval` and destructive MCP tools as trusted developer capabilities and use them only when needed for the task.
+
+See `rizu/net/spec.md` and `aqua/mcp/spec.md` for transport, session, security, and tool-result contracts.
+
 ## Building And Running
 
 Run the game with the bundled LÖVE launchers:
