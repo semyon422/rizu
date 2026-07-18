@@ -44,7 +44,6 @@ RuntimeStateTool.name = "get_runtime_state"
 RuntimeStateTool.description = "Get the running game's current screen, selected chart, and preview state."
 RuntimeStateTool.input_schema = {
 	type = "object",
-	properties = {},
 	additionalProperties = false,
 }
 RuntimeStateTool.output_schema = {

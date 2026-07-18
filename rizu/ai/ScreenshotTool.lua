@@ -19,7 +19,6 @@ ScreenshotTool.name = "capture_screenshot"
 ScreenshotTool.description = "Capture the current game frame and return it as a PNG image."
 ScreenshotTool.input_schema = {
 	type = "object",
-	properties = {},
 	additionalProperties = false,
 }
 ScreenshotTool.annotations = {
