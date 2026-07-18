@@ -50,6 +50,8 @@ local OpenAiClient = require("ai.openai.Client")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
+local RuntimeStateTool = require("rizu.ai.RuntimeStateTool")
+local ScreenshotTool = require("rizu.ai.ScreenshotTool")
 local AiSystemPrompt = require("rizu.ai.SystemPrompt")
 local NeedleModel = require("rizu.ai.NeedleModel")
 local NeedleGpuProbe = require("rizu.ai.NeedleGpuProbe")
@@ -280,10 +282,19 @@ function GameController:load()
 	self.needleGpuEncoderProbe = NeedleGpuEncoderProbe()
 	local mcp_config = self.persistence.configModel.configs.mcp
 	if mcp_config.enabled then
-		self.mcpServer = McpServer(self.network.scheduler, {LuaEvalTool(self)}, {
+		local session_index = 0
+		self.mcpServer = McpServer(self.network.scheduler, {
+			RuntimeStateTool(self),
+			ScreenshotTool(self),
+			LuaEvalTool(self),
+		}, {
 			host = mcp_config.host,
 			port = mcp_config.port,
 			token = mcp_config.token,
+			session_id_generator = function()
+				session_index = session_index + 1
+				return ("%d-%d"):format(os.time(), session_index)
+			end,
 			server_info = {
 				name = brand.name,
 				version = "dev",

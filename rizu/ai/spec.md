@@ -20,6 +20,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The game-wide `rizu.net.NetworkService` supplies the HTTP request function. AI traffic does not create another scheduler and must not block frame updates while waiting for the configured provider.
 - `LuaEvalTool` is project-specific because its evaluation environment exposes the current `sphere.GameController` as `game`.
 - `LuaEvalTool` implements both the OpenAI function-tool shape and the native `mcp.Tool` metadata used by `aqua/mcp`, keeping evaluation policy and behavior in one game-owned implementation.
+- The development MCP surface also provides `RuntimeStateTool` for structured read-only screen, selection, and preview observations, plus `ScreenshotTool` for asynchronous PNG image content. These focused tools are preferred over Lua evaluation when they cover the workflow.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
 - The configured provider uses the OpenAI-compatible `/v1/chat/completions` endpoint and streams assistant text through server-sent events.
 - Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
