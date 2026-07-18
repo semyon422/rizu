@@ -50,6 +50,7 @@ local OpenAiClient = require("ai.openai.Client")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
+local RestartTool = require("rizu.ai.RestartTool")
 local RuntimeStateTool = require("rizu.ai.RuntimeStateTool")
 local ScreenshotTool = require("rizu.ai.ScreenshotTool")
 local AiSystemPrompt = require("rizu.ai.SystemPrompt")
@@ -286,6 +287,7 @@ function GameController:load()
 		self.mcpServer = McpServer(self.network.scheduler, {
 			RuntimeStateTool(self),
 			ScreenshotTool(self),
+			RestartTool(),
 			LuaEvalTool(self),
 		}, {
 			host = mcp_config.host,

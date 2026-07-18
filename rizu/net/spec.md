@@ -21,7 +21,7 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Network operations may report a shared `on_status(status)` shape with states such as `dns`, `connecting`, `uploading`, `waiting_response`, `downloading`, `done`, `failed`, and `canceled`.
 - `mcp.Server` hosts the running game's MCP Streamable HTTP endpoint on the shared scheduler. The reusable protocol implementation lives in `aqua/mcp`; `GameController` injects the game identity, configuration, and tools.
 - The server is primarily a development interface for agents working on the game. It gives them runtime observation, reproduction, control, and verification capabilities that repository access alone cannot provide.
-- The MCP surface exposes focused runtime-state and screenshot tools alongside the trusted `lua_eval` tool. A development agent can inspect the current screen, chart selection, preview state, capture the rendered frame, or manipulate the `GameController` on the LÖVE main thread.
+- The MCP surface exposes focused runtime-state, screenshot, and restart tools alongside the trusted `lua_eval` tool. A development agent can inspect the current screen, chart selection, preview state, capture the rendered frame, request a LÖVE-managed restart, or manipulate the `GameController` on the LÖVE main thread.
 - `lua_eval` remains a developer escape hatch. Focused tools use schema-validated inputs and outputs plus explicit read-only, destructive, idempotent, and open-world annotations.
 
 ## Invariants
@@ -36,6 +36,7 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Feature-local network services are allowed as a fallback for isolated tests or legacy code, but normal game wiring should pass the shared service from `GameController`.
 - The MCP listener binds to `127.0.0.1` by default, rejects every request carrying an `Origin` header, and supports an optional bearer token from ignored `userdata/mcp.lua`. A non-loopback listener does not start without a non-empty token and defaults to 120 endpoint requests per minute per client IP.
 - MCP requests execute on the game main thread. Tool implementations must not block for long periods, and arbitrary Lua evaluation remains a trusted developer capability rather than a sandbox.
+- `restart_game` queues `love.event.quit("restart")`; the current response is written before the main loop consumes the quit event, after which clients must reconnect to the new process.
 - The game enables MCP sessions over request/response JSON on `POST /mcp`. Sessions scope request IDs and cooperative cancellation; `DELETE /mcp` terminates a session. `GET` returns 405 because server-initiated SSE messages are not yet supported.
 
 ## Future Work and Open Questions
