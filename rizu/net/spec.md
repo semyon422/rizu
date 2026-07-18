@@ -34,7 +34,7 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Active streams must unregister themselves when closed so later cancellation does not touch completed transfers.
 - `on_upload` / `on_download` remain supported as focused chunk-level hooks; `NetworkService` mirrors them into `on_status` when both are present.
 - Feature-local network services are allowed as a fallback for isolated tests or legacy code, but normal game wiring should pass the shared service from `GameController`.
-- The MCP listener binds to `127.0.0.1` by default, rejects every request carrying an `Origin` header, and supports an optional bearer token from ignored `userdata/mcp.lua`.
+- The MCP listener binds to `127.0.0.1` by default, rejects every request carrying an `Origin` header, and supports an optional bearer token from ignored `userdata/mcp.lua`. A non-loopback listener does not start without a non-empty token.
 - MCP requests execute on the game main thread. Tool implementations must not block for long periods, and arbitrary Lua evaluation remains a trusted developer capability rather than a sandbox.
 - The initial MCP transport is stateless request/response JSON over `POST /mcp`. `GET` returns 405 because server-initiated SSE messages are not yet supported.
 
@@ -42,7 +42,6 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 
 - Expose `NetworkService` diagnostics and recent status events in a dev/debug UI, possibly with a polished in-game view later.
 - Keep DNS on `thread.async(socket.dns.toip)` unless the DNS thread becomes a real operational problem or a reliable async resolver library is adopted.
-- Reject non-loopback MCP listeners without a non-empty bearer token.
 - Add an in-game MCP status surface showing listener state, remote exposure, active clients, and recent tool calls; add approval controls before exposing narrower player-facing mutation tools.
 - Add read-only runtime inspection tools first, followed by focused state-changing tools for workflows proven useful during development.
 - Add SSE and MCP sessions only when server-initiated notifications or requests have a concrete consumer.
