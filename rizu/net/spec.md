@@ -36,8 +36,9 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Feature-local network services are allowed as a fallback for isolated tests or legacy code, but normal game wiring should pass the shared service from `GameController`.
 - The MCP listener binds to `127.0.0.1` by default, rejects every request carrying an `Origin` header, and supports an optional bearer token from ignored `userdata/mcp.lua`. A non-loopback listener does not start without a non-empty token and defaults to 120 endpoint requests per minute per client IP.
 - MCP requests execute on the game main thread. Tool implementations must not block for long periods, and arbitrary Lua evaluation remains a trusted developer capability rather than a sandbox.
-- `restart_game` queues `love.event.quit("restart")`; the current response is written before the main loop consumes the quit event. The custom loop preserves the `"restart"` quit code through asynchronous thread shutdown so LÖVE relaunches the process, after which clients must reconnect.
+- `restart_game` queues `love.event.quit("restart")`; the current response is written before the main loop consumes the quit event. The custom loop preserves the `"restart"` quit code through asynchronous thread shutdown so LÖVE relaunches the process.
 - The game enables MCP sessions over request/response JSON on `POST /mcp`. Sessions scope request IDs and cooperative cancellation; `DELETE /mcp` terminates a session. `GET` returns 405 because server-initiated SSE messages are not yet supported.
+- Valid MCP session IDs are persisted in ignored `userdata/mcp_sessions.json`, capped at 64 entries, and expire after seven days. Restart restores only session identity; active calls do not survive. This lets an existing client continue after the endpoint returns without reinitializing.
 
 ## Future Work and Open Questions
 

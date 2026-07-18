@@ -10,7 +10,7 @@ local class = require("class")
 local RestartTool = class()
 
 RestartTool.name = "restart_game"
-RestartTool.description = "Restart the running game through the LÖVE event loop. The MCP connection will close and must reconnect after startup."
+RestartTool.description = "Restart the running game through the LÖVE event loop. MCP is temporarily unavailable while the game starts again."
 RestartTool.input_schema = {
 	type = "object",
 	additionalProperties = false,
@@ -33,7 +33,7 @@ end
 ---@return string
 function RestartTool:execute(args)
 	self.restart()
-	return "Game restart requested. Reconnect MCP after startup."
+	return "Game restart requested. MCP will return after startup."
 end
 
 return RestartTool

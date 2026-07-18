@@ -11,7 +11,7 @@ function test.requests_restart(t)
 
 	local result = tool:execute({})
 	t:eq(restarted, true)
-	t:eq(result, "Game restart requested. Reconnect MCP after startup.")
+	t:eq(result, "Game restart requested. MCP will return after startup.")
 	t:eq(tool.annotations.destructiveHint, true)
 	t:eq(tool.annotations.readOnlyHint, false)
 end
