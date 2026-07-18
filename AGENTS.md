@@ -140,7 +140,7 @@ The game exposes a development MCP server when enabled in ignored `userdata/mcp.
 
 - If a task needs a running game and MCP is unavailable, ask the user to start the game. Do not launch the graphical client implicitly.
 - Prefer focused, schema-validated MCP tools over `lua_eval` for repeatable workflows. Agents may add a focused tool with nearby tests and spec updates when the runtime capability they need does not exist yet.
-- After changing game-side MCP wiring or tools, ask the user to restart the game so the running process loads the changes. `restart_game` can perform later restarts once that tool is loaded.
+- After changing game-side MCP wiring or tools, use `restart_game` to load the changes when that tool is available. Ask the user for a manual start only when the game is not running or the running process does not yet expose the restart tool.
 - Treat `lua_eval` and destructive MCP tools as trusted developer capabilities and use them only when needed for the task.
 
 See `rizu/net/spec.md` and `aqua/mcp/spec.md` for transport, session, security, and tool-result contracts.
