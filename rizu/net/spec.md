@@ -34,7 +34,7 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Active streams must unregister themselves when closed so later cancellation does not touch completed transfers.
 - `on_upload` / `on_download` remain supported as focused chunk-level hooks; `NetworkService` mirrors them into `on_status` when both are present.
 - Feature-local network services are allowed as a fallback for isolated tests or legacy code, but normal game wiring should pass the shared service from `GameController`.
-- The MCP listener binds to `127.0.0.1` by default, rejects every request carrying an `Origin` header, and supports an optional bearer token from ignored `userdata/mcp.lua`. A non-loopback listener does not start without a non-empty token.
+- The MCP listener binds to `127.0.0.1` by default, rejects every request carrying an `Origin` header, and supports an optional bearer token from ignored `userdata/mcp.lua`. A non-loopback listener does not start without a non-empty token and defaults to 120 endpoint requests per minute per client IP.
 - MCP requests execute on the game main thread. Tool implementations must not block for long periods, and arbitrary Lua evaluation remains a trusted developer capability rather than a sandbox.
 - The initial MCP transport is stateless request/response JSON over `POST /mcp`. `GET` returns 405 because server-initiated SSE messages are not yet supported.
 
