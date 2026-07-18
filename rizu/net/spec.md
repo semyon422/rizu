@@ -45,4 +45,4 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - Add an in-game MCP status surface showing listener state, remote exposure, active clients, and recent tool calls; add approval controls before exposing narrower player-facing mutation tools.
 - Add read-only runtime inspection tools first, followed by focused state-changing tools for workflows proven useful during development.
 - Add SSE and MCP sessions only when server-initiated notifications or requests have a concrete consumer.
-- Integrate the planned reusable `mcp.Client` with the in-game AI agent only after server/client protocol tests establish its lifecycle and cancellation behavior.
+- Integrate the reusable `mcp.Client` with the in-game AI agent only after a concrete workflow establishes the required lifecycle and cancellation behavior.
