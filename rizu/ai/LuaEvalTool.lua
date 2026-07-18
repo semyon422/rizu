@@ -8,6 +8,9 @@ local table_util = require("table_util")
 ---@class rizu.ai.LuaEvalTool
 ---@operator call: rizu.ai.LuaEvalTool
 ---@field name string
+---@field description string
+---@field input_schema table
+---@field annotations mcp.ToolAnnotations
 ---@field schema aqua.openai.ToolSchema
 ---@field game sphere.GameController
 ---@field output_limit integer
@@ -15,23 +18,30 @@ local LuaEvalTool = class()
 
 LuaEvalTool.name = "lua_eval"
 LuaEvalTool.output_limit = 16384
+LuaEvalTool.description = ("Evaluate LuaJIT code in the running %s game. The global 'game' is the GameController. Use return values for observations."):format(brand.name)
+LuaEvalTool.input_schema = {
+	type = "object",
+	properties = {
+		code = {
+			type = "string",
+			description = "Lua expression or chunk to evaluate",
+		},
+	},
+	required = {"code"},
+	additionalProperties = false,
+}
+LuaEvalTool.annotations = {
+	readOnlyHint = false,
+	destructiveHint = true,
+	openWorldHint = true,
+}
 LuaEvalTool.schema = {
 	type = "function",
 	["function"] = {
 		name = "lua_eval",
-		description = ("Evaluate LuaJIT code in the running %s game. The global 'game' is the GameController. Use return values for observations."):format(brand.name),
+		description = LuaEvalTool.description,
 		strict = true,
-		parameters = {
-			type = "object",
-			properties = {
-				code = {
-					type = "string",
-					description = "Lua expression or chunk to evaluate",
-				},
-			},
-			required = {"code"},
-			additionalProperties = false,
-		},
+		parameters = LuaEvalTool.input_schema,
 	},
 }
 
@@ -101,15 +111,16 @@ end
 
 ---@param args {[string]: any}
 ---@return string
+---@return boolean is_error
 function LuaEvalTool:execute(args)
 	if type(args.code) ~= "string" or args.code == "" then
-		return json.encode({ok = false, error = "code must be a non-empty string"})
+		return json.encode({ok = false, error = "code must be a non-empty string"}), true
 	end
 
 	local printed = {}
 	local fn, compile_err = compile(args.code, self:createEnvironment(printed))
 	if not fn then
-		return json.encode({ok = false, error = compile_err})
+		return json.encode({ok = false, error = compile_err}), true
 	end
 	local results = table_util.pack(xpcall(fn, debug.traceback))
 
@@ -118,7 +129,7 @@ function LuaEvalTool:execute(args)
 			ok = false,
 			error = truncate(tostring(results[2]), self.output_limit),
 			output = truncate(table.concat(printed, "\n"), self.output_limit),
-		})
+		}), true
 	end
 
 	local values = {}
@@ -136,7 +147,7 @@ function LuaEvalTool:execute(args)
 		ok = true,
 		output = truncate(table.concat(printed, "\n"), self.output_limit),
 		values = values,
-	})
+	}), false
 end
 
 return LuaEvalTool

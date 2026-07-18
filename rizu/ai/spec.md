@@ -19,6 +19,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The system prompt is stored in `SystemPrompt.md` and loaded as a runtime asset so prompt changes do not require editing Lua source. Its `{{brand_name}}` placeholder resolves from `brand.lua`.
 - The game-wide `rizu.net.NetworkService` supplies the HTTP request function. AI traffic does not create another scheduler and must not block frame updates while waiting for the configured provider.
 - `LuaEvalTool` is project-specific because its evaluation environment exposes the current `sphere.GameController` as `game`.
+- `LuaEvalTool` implements both the OpenAI function-tool shape and the native `mcp.Tool` metadata used by `aqua/mcp`, keeping evaluation policy and behavior in one game-owned implementation.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
 - The configured provider uses the OpenAI-compatible `/v1/chat/completions` endpoint and streams assistant text through server-sent events.
 - Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
@@ -41,6 +42,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - A request retains the user message, assistant tool-call message, matching tool results, and final assistant response in protocol order.
 - Conversation trimming removes complete old turns and always preserves the system message.
 - Lua bytecode is rejected, output is size-bounded, and syntax/runtime failures are returned as tool results.
+- Lua evaluation reports an explicit MCP execution-error flag in addition to its JSON result, while the OpenAI agent continues to consume the same result text.
 - The Lua tool is a trusted developer capability, not a security sandbox. It exposes the process globals and the `game` object, including state-changing and process-level APIs.
 - The API key must not be committed to the repository or printed in diagnostics.
 - Opening AI chat and opening the command palette are mutually exclusive so only one overlay owns keyboard input.

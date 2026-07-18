@@ -1,4 +1,6 @@
 local json = require("web.json")
+local CosocketScheduler = require("web.luasocket.CosocketScheduler")
+local McpServer = require("mcp.Server")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
 
 local test = {}
@@ -48,6 +50,30 @@ function test.rejects_bytecode_and_bounds_output(t)
 	result = json.decode(tool:execute({code = "print('123456789')"}))
 	t:eq(result.ok, true)
 	t:eq(result.output, "12345678\n...[truncated]")
+end
+
+---@param t testing.T
+function test.implements_mcp_tool(t)
+	local game = {screen = "select"}
+	local tool = LuaEvalTool(game --[[@as sphere.GameController]])
+	local server = McpServer(CosocketScheduler(), {tool})
+	local listed = server:dispatch({jsonrpc = "2.0", id = 1, method = "tools/list"})
+	t:eq(listed.result.tools[1].inputSchema, tool.input_schema)
+	t:eq(listed.result.tools[1].annotations.destructiveHint, true)
+
+	local response = server:dispatch({
+		jsonrpc = "2.0",
+		id = 2,
+		method = "tools/call",
+		params = {
+			name = "lua_eval",
+			arguments = {code = "game.screen = 'gameplay'; return game.screen"},
+		},
+	})
+	local output = json.decode(response.result.content[1].text)
+	t:eq(response.result.isError, false)
+	t:eq(game.screen, "gameplay")
+	t:tdeq(output.values, {'"gameplay"'})
 end
 
 return test

@@ -1,4 +1,5 @@
 local class = require("class")
+local brand = require("brand")
 
 local OnlineModel = require("rizu.online.OnlineModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
@@ -44,6 +45,7 @@ local SeaClient = require("rizu.online.SeaClient")
 local OnlineClient = require("rizu.online.OnlineClient")
 local OnlineWrapper = require("rizu.online.OnlineWrapper")
 local NetworkService = require("rizu.net.NetworkService")
+local McpServer = require("mcp.Server")
 local OpenAiClient = require("ai.openai.Client")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
@@ -276,6 +278,24 @@ function GameController:load()
 	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
 	self.needleGpuProbe = NeedleGpuProbe()
 	self.needleGpuEncoderProbe = NeedleGpuEncoderProbe()
+	local mcp_config = self.persistence.configModel.configs.mcp
+	if mcp_config.enabled then
+		self.mcpServer = McpServer(self.network.scheduler, {LuaEvalTool(self)}, {
+			host = mcp_config.host,
+			port = mcp_config.port,
+			token = mcp_config.token,
+			server_info = {
+				name = brand.name,
+				version = "dev",
+				description = "MCP access to the running game",
+			},
+		})
+		local ok, err = self.mcpServer:start()
+		if not ok then
+			print(("MCP server failed to start: %s"):format(err))
+			self.mcpServer = nil
+		end
+	end
 	self.app:load()
 
 	self.uiModel:load()
@@ -307,6 +327,9 @@ function GameController:load()
 end
 
 function GameController:unload()
+	if self.mcpServer then
+		self.mcpServer:stop()
+	end
 	if self.aiChatModel then
 		self.aiChatModel:unload()
 	end

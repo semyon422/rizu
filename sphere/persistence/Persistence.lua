@@ -36,6 +36,7 @@ function Persistence:load()
 	local configModel = self.configModel
 	configModel:open("ai")
 	configModel:open("needle")
+	configModel:open("mcp")
 	configModel:open("settings", true)
 	configModel:open("select", true)
 	configModel:open("play", true)
