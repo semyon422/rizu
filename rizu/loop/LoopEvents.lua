@@ -91,6 +91,7 @@ function LoopEvents:pollEvents(time)
 	for name, a, b, c, d, e, f in love.event.poll() do
 		self.event_time = time
 		if name == "quit" then
+			self.loop.quit_code = a or 0
 			if not love.quit or not love.quit() then
 				self.loop.quitting = true
 				return a or 0

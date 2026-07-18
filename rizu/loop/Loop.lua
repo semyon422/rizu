@@ -52,6 +52,7 @@ function Loop:init()
 	self.prev_frame_dt = 0
 
 	self.quitting = false
+	self.quit_code = 0
 
 	self.frame_started = {name = "framestarted"}
 
@@ -73,7 +74,7 @@ function Loop:setSleepFunction(_type)
 	self.limiter.sleep_function = self.sleep_function_factory:get(_type)
 end
 
----@return number?
+---@return number|string?
 function Loop:quittingLoop()
 	return self.quitter:update()
 end

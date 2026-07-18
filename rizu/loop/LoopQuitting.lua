@@ -13,13 +13,13 @@ function LoopQuitting:new(loop)
 	self.thread_pool_unloaded = false
 end
 
----@return number?
+---@return number|string?
 function LoopQuitting:update()
 	love.event.pump()
 
 	for name in love.event.poll() do
 		if name == "quit" then
-			return 0
+			return self.loop.quit_code
 		end
 	end
 
@@ -34,7 +34,7 @@ function LoopQuitting:update()
 
 	local running_thread_names = thread.ThreadPool:getRunningThreadNames()
 	if #running_thread_names == 0 then
-		return 0
+		return self.loop.quit_code
 	end
 
 	for _, name in ipairs(running_thread_names) do
