@@ -68,7 +68,7 @@ function test.parse_validation(t)
 end
 
 ---@param t testing.T
-function test.enum_and_non_finite_validation(t)
+function test.enum_and_out_of_range_validation(t)
 	local tool = {
 		name = "example", description = "example", argument_order = {"mode", "value"},
 		parameters = {type = "object", properties = {
@@ -80,8 +80,8 @@ function test.enum_and_non_finite_validation(t)
 	local tool_set = {tools = {tool}, by_name = {[tool.name] = tool}, tools_json = "[]"}
 	local _, enum_error = NeedleToolRegistry.parse(tool_set, '[{"name":"example","arguments":{"mode":"denied","value":1}}]')
 	t:assert(enum_error:find("invalid value", 1, true))
-	local _, finite_error = NeedleToolRegistry.parse(tool_set, '[{"name":"example","arguments":{"mode":"allowed","value":1e999}}]')
-	t:assert(finite_error:find("must be finite", 1, true))
+	local _, range_error = NeedleToolRegistry.parse(tool_set, '[{"name":"example","arguments":{"mode":"allowed","value":1e999}}]')
+	t:assert(range_error:find("invalid tool-call JSON", 1, true))
 end
 
 return test

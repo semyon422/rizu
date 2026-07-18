@@ -49,7 +49,7 @@ end
 ---@return true?
 ---@return string?
 function McpSessionStore:save()
-	return self.write(self.path, json.encode(self.sessions))
+	return self.write(self.path, json.encode(json.object(self.sessions)))
 end
 
 ---@return string[]?
