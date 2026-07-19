@@ -83,7 +83,7 @@ end
 local function encodeRoutingTools(tools)
 	local encoded_tools = {}
 	for _, tool in ipairs(tools) do
-		encoded_tools[#encoded_tools + 1] = ("{\"name\":%s,\"description\":%s,\"parameters\":{}}")
+		encoded_tools[#encoded_tools + 1] = ("{\"name\":%s,\"description\":%s}")
 			:format(json.encode(tool.name), json.encode(tool.routing_description or tool.description))
 	end
 	return "[" .. table.concat(encoded_tools, ",") .. "]"
