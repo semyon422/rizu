@@ -124,6 +124,12 @@ function ChartfilesRepo:selectChartfileById(id)
 	return self.models.chartfiles:find({id = assert(id)})
 end
 
+---@param set_id integer
+---@return sea.ClientChartfile[]
+function ChartfilesRepo:selectChartfilesBySet(set_id)
+	return self.models.chartfiles:select({set_id = assert(set_id)}, {order = {"id ASC"}})
+end
+
 ---@param hash string
 ---@return rizu.library.LocatedChartfile?
 function ChartfilesRepo:selectChartfileByHash(hash)

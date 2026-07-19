@@ -374,6 +374,22 @@ return function(game, ui)
 			end
 		},
 		{
+			id = "select.export_osz",
+			title = "Export chart set: To .osz",
+			description = "Converts the selected chart set and its resources to an osu! archive",
+			callback = function()
+				game.chartExporter:exportSelectedSetToOsz(game.chartSelector, false)
+			end
+		},
+		{
+			id = "select.export_osz_compiled",
+			title = "Export chart set: To .osz (compiled audio)",
+			description = "Converts the chart set and compiles each keysounded chart to one WAV file",
+			callback = function()
+				game.chartExporter:exportSelectedSetToOsz(game.chartSelector, true)
+			end
+		},
+		{
 			id = "select.open_chart_folder",
 			title = "File: Open chart folder",
 			description = "Opens the folder of the selected chart in the file manager",

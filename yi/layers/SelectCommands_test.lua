@@ -43,6 +43,12 @@ local function makeGame()
 				names = {},
 			},
 		},
+		chartExporter = {
+			exportSelectedSetToOsz = function(self, chartSelector, compiled)
+				self.chartSelector = chartSelector
+				self.compiled = compiled
+			end,
+		},
 		collectionSelector = {
 			store = {
 				root_tree = root,
@@ -93,6 +99,21 @@ function test.set_collection_choices_and_callback(t)
 
 	t:eq(game.collectionSelector.selected_path, "packs/alpha")
 	t:eq(game.collectionSelector.selected_location_id, 7)
+end
+
+---@param t testing.T
+function test.export_osz_commands_select_normal_and_compiled_modes(t)
+	local game = makeGame()
+	local normal = findCommand(SelectCommands(game), "select.export_osz")
+	local compiled = findCommand(SelectCommands(game), "select.export_osz_compiled")
+
+	t:assert(normal)
+	t:assert(compiled)
+	normal.callback({})
+	t:eq(game.chartExporter.chartSelector, game.chartSelector)
+	t:eq(game.chartExporter.compiled, false)
+	compiled.callback({})
+	t:eq(game.chartExporter.compiled, true)
 end
 
 ---@param t testing.T
