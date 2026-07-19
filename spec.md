@@ -19,4 +19,5 @@ This file records repository-level notes that do not clearly belong to a single 
 - Use this section for quick project-wide thoughts before they have a clear owner.
 - **`deco.lua` AST rewrite**: Replace regex-based modification with full file parsing, AST edits, and source regeneration so decorator transformations are structurally safe.
 - **Thin `main.lua` startup**: Keep `main.lua` as a small LÖVE entry point and gradually move startup responsibilities into named modules. Good first targets are explicit startup-argument parsing for `cli`/`debug`/`test`, a dedicated LÖVE test runner module, platform path/bootstrap handling, decorator setup, the `love.run` handoff into `rizu.loop.Loop`, and thread/package initialization. The `_G` new-global guard should remain enabled during normal startup.
+- **Local online server**: Explore a future local/LAN server that provides online features without relying on the public server. It should integrate with the client database and chart storage so local hosting does not require duplicating chart files or other local data.
 - Move notes into a nearby module `spec.md` once the owning subsystem becomes clear.
