@@ -8,7 +8,6 @@ luarocks install bcrypt
 luarocks install md5
 luarocks install utf8
 luarocks install lsqlite3
-luarocks install etlua
 luarocks install luacov
 luarocks install luacov-reporter-lcov
 luarocks install nginx-lua-prometheus
