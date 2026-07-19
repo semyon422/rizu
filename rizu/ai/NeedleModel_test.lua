@@ -20,7 +20,7 @@ local function makeToolSet(executed)
 		argument_order = {},
 		execute = function() executed.count = executed.count + 1 end,
 	}
-	return {tools = {tool}, by_name = {[tool.name] = tool}, tools_json = "[]"}
+	return {tools = {tool}, by_name = {[tool.name] = tool}, tools_json = "[]", routing_tools_json = "routing"}
 end
 
 ---@param t testing.T
@@ -36,6 +36,7 @@ function test.debounce_and_execute(t)
 	now = 10.25
 	model:update()
 	t:eq(transport.sent[1].type, "generate")
+	t:eq(transport.sent[1].routing_tools_json, "routing")
 	t:eq(transport.sent[1].enqueued_at, now)
 	local request_id = transport.sent[1].request_id
 	transport.output[1] = {type = "reset", request_id = request_id, content = '[{"name":"'}

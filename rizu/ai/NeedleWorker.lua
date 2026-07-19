@@ -124,12 +124,15 @@ while not stopping do
 			goto continue
 		end
 		telemetry.tool_count = #tools
+		telemetry.tools_json_bytes = #event.tools_json
 
 		local selected_tool = tools[1]
 		if #tools > 1 then
+			local routing_tools_json = event.routing_tools_json or event.tools_json
+			telemetry.routing_tools_json_bytes = #routing_tools_json
 			local routing_text = ""
 			local selected_name
-			generate(event, telemetry, "routing", event.tools_json, 48, function(chunk)
+			generate(event, telemetry, "routing", routing_tools_json, 48, function(chunk)
 					routing_text = routing_text .. chunk
 					selected_name = routing_text:match('"name":"([^"]+)"')
 					return selected_name == nil and pollControl(event.request_id)

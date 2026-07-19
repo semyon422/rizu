@@ -4,6 +4,7 @@ local json = require("web.json")
 ---@class rizu.ai.NeedleTool
 ---@field name string
 ---@field description string
+---@field routing_description string?
 ---@field parameters table
 ---@field argument_order string[]
 ---@field execute fun(arguments: {[string]: any})
@@ -12,6 +13,7 @@ local json = require("web.json")
 ---@field tools rizu.ai.NeedleTool[]
 ---@field by_name {[string]: rizu.ai.NeedleTool}
 ---@field tools_json string
+---@field routing_tools_json string
 
 ---@class rizu.ai.NeedleCall
 ---@field name string
@@ -78,6 +80,15 @@ local function encodeModelTools(tools)
 	return "[" .. table.concat(encoded_tools, ",") .. "]"
 end
 
+local function encodeRoutingTools(tools)
+	local encoded_tools = {}
+	for _, tool in ipairs(tools) do
+		encoded_tools[#encoded_tools + 1] = ("{\"name\":%s,\"description\":%s,\"parameters\":{}}")
+			:format(json.encode(tool.name), json.encode(tool.routing_description or tool.description))
+	end
+	return "[" .. table.concat(encoded_tools, ",") .. "]"
+end
+
 ---@return rizu.ai.NeedleToolSet
 function NeedleToolRegistry:snapshot()
 	local commands = self:getActiveCommands()
@@ -91,6 +102,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "set_playback_rate",
 			description = "Set the music playback rate.",
+			routing_description = "rate speed playback music",
 			parameters = object({rate = {type = "number", description = "Playback rate multiplier."}}, {"rate"}),
 			argument_order = {"rate"},
 			execute = function(args)
@@ -110,6 +122,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "capture_screenshot",
 			description = "Capture a screenshot, optionally opening it in the file manager.",
+			routing_description = "screenshot capture image",
 			parameters = object({mode = stringEnum({"save", "save_and_open"}, "Whether to save only or save and open the screenshot.")}, {"mode"}),
 			argument_order = {"mode"},
 			execute = function(args)
@@ -123,6 +136,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "set_chart_search",
 			description = "Set the chart search query. Use an empty query to clear it.",
+			routing_description = "search filter charts songs",
 			parameters = object({query = {type = "string", description = "Chart search text, or an empty string to clear search."}}, {"query"}),
 			argument_order = {"query"},
 			execute = function(args) set_search.callback(args) end,
@@ -134,6 +148,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "select_random_chart",
 			description = "Select a random chart.",
+			routing_description = "random chart song select",
 			parameters = object({}, {}),
 			argument_order = {},
 			execute = function() random_chart.callback({}) end,
@@ -146,6 +161,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "start_selected_chart",
 			description = "Start the selected chart normally or with autoplay.",
+			routing_description = "play start chart autoplay",
 			parameters = object({mode = stringEnum({"play", "autoplay"}, "How to start the selected chart.")}, {"mode"}),
 			argument_order = {"mode"},
 			execute = function(args) (args.mode == "autoplay" and autoplay or play).callback({}) end,
@@ -164,6 +180,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "set_column_layout",
 			description = "Change the gameplay column layout.",
+			routing_description = "columns layout mirror random",
 			parameters = object({layout = stringEnum({"reset", "mirror", "bracketswap", "random_all", "random_left", "random_right"}, "Column layout operation to apply.")}, {"layout"}),
 			argument_order = {"layout"},
 			execute = function(args)
@@ -185,6 +202,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "set_play_option",
 			description = "Enable or disable a gameplay option.",
+			routing_description = "gameplay option enable disable",
 			parameters = object({
 				option = stringEnum({"auto_timings", "nearest", "tap_only", "const", "custom"}, "Play option to change."),
 				enabled = {type = "boolean", description = "Whether the option should be enabled."},
@@ -203,6 +221,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "open_panel",
 			description = "Open a game configuration panel or the chart editor.",
+			routing_description = "open settings panel editor",
 			parameters = object({panel = stringEnum({"modifiers", "filters", "input", "note_skins", "editor"}, "Panel to open.")}, {"panel"}),
 			argument_order = {"panel"},
 			execute = function(args) assert(panel_commands[args.panel]).callback({}) end,
@@ -218,6 +237,7 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "control_gameplay",
 			description = "Pause, resume, retry, quit, or skip the intro of gameplay.",
+			routing_description = "pause resume retry quit gameplay",
 			parameters = object({action = stringEnum({"pause", "resume", "retry", "quit", "skip_intro"}, "Gameplay action to perform.")}, {"action"}),
 			argument_order = {"action"},
 			execute = function(args) assert(gameplay_commands[args.action]).callback({}) end,
@@ -232,13 +252,19 @@ function NeedleToolRegistry:snapshot()
 		addTool(tools, by_name, {
 			name = "adjust_local_offset",
 			description = "Decrease, increase, or reset the selected chart local offset.",
+			routing_description = "offset decrease increase reset",
 			parameters = object({action = stringEnum({"decrease", "increase", "reset"}, "Local offset adjustment to perform.")}, {"action"}),
 			argument_order = {"action"},
 			execute = function(args) assert(offset_commands[args.action]).callback({}) end,
 		})
 	end
 
-	return {tools = tools, by_name = by_name, tools_json = encodeModelTools(tools)}
+	return {
+		tools = tools,
+		by_name = by_name,
+		tools_json = encodeModelTools(tools),
+		routing_tools_json = encodeRoutingTools(tools),
+	}
 end
 
 local function validateArguments(tool, arguments)

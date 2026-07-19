@@ -84,6 +84,7 @@ function NeedleModel:sendPending()
 		request_id = self.active_request_id,
 		query = self.query,
 		tools_json = self.tool_set.tools_json,
+		routing_tools_json = self.tool_set.routing_tools_json,
 		enqueued_at = self.now(),
 	})
 end
