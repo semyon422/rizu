@@ -36,47 +36,10 @@ function test.registers_needle_live_argument(t)
 end
 
 ---@param t testing.T
-function test.starts_needle_gpu_probe(t)
-	local started = false
-	local command
-	for _, candidate in ipairs(GlobalCommands.get({needleGpuProbe = {start = function() started = true end}}, nil)) do
-		if candidate.id == "global.needle_gpu_probe" then command = candidate end
+function test.omits_needle_gpu_probe_commands(t)
+	for _, command in ipairs(GlobalCommands.get({}, nil)) do
+		t:eq(command.id:find("global.needle_gpu", 1, true), nil)
 	end
-	t:assert(command, "Needle GPU probe command should be registered")
-	command.callback({})
-	t:eq(started, true)
-end
-
----@param t testing.T
-function test.starts_needle_gpu_encoder_probe(t)
-	local started_path
-	local game = {
-		needleGpuEncoderProbe = {start = function(_, path) started_path = path end},
-		persistence = {configModel = {configs = {needle = {model_path = "model.bin"}}}},
-	}
-	local command
-	for _, candidate in ipairs(GlobalCommands.get(game, nil)) do
-		if candidate.id == "global.needle_gpu_encoder_probe" then command = candidate end
-	end
-	t:assert(command, "Needle GPU encoder probe command should be registered")
-	command.callback()
-	t:eq(started_path, "model.bin")
-end
-
----@param t testing.T
-function test.starts_needle_gpu_prefill_probe(t)
-	local started_path
-	local game = {
-		needleGpuEncoderProbe = {startPrefill = function(_, path) started_path = path end},
-		persistence = {configModel = {configs = {needle = {model_path = "model.bin"}}}},
-	}
-	local command
-	for _, candidate in ipairs(GlobalCommands.get(game, nil)) do
-		if candidate.id == "global.needle_gpu_prefill_probe" then command = candidate end
-	end
-	t:assert(command, "Needle GPU prefill probe command should be registered")
-	command.callback()
-	t:eq(started_path, "model.bin")
 end
 
 return test
