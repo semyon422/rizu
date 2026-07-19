@@ -16,10 +16,17 @@ local routing_tools = {
 
 local cases = {
 	{"rate 1", "set_playback_rate"},
+	{"make song faster", "set_playback_rate"},
 	{"screenshot", "capture_screenshot"},
+	{"take screenshot", "capture_screenshot"},
 	{"autoplay", "start_selected_chart"},
+	{"start autoplay", "start_selected_chart"},
+	{"play chart", "start_selected_chart"},
 	{"mirror columns", "set_column_layout"},
+	{"randomize columns", "set_column_layout"},
 	{"open modifiers", "open_panel"},
+	{"open editor", "open_panel"},
+	{"disable const", "set_play_option"},
 }
 
 local routing_tools_json = json.encode(routing_tools)
