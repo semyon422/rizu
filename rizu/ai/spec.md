@@ -61,3 +61,4 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Add model/provider selection to retained settings.
 - Replace unrestricted game-object access with narrower read and command tools as useful workflows become clear.
 - Continue Needle runtime work by borrowing non-threading Cactus ideas first: blocked attention, FP16 scratch evaluation, fused/layout-aware kernels, and persistent execution metadata. Threading remains a later architectural decision because the embedded runtime currently documents single-threaded ownership.
+- Use `rizu/ai/benchmarks/needle_routing.lua` to check compact routing prompt latency and tool-selection quality before changing routing descriptions or schema shape.
