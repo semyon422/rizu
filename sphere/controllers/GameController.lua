@@ -50,6 +50,8 @@ local OpenAiClient = require("ai.openai.Client")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
+local ReadFileTool = require("rizu.ai.ReadFileTool")
+local SourceLocationTool = require("rizu.ai.SourceLocationTool")
 local McpSessionStore = require("rizu.ai.McpSessionStore")
 local RestartTool = require("rizu.ai.RestartTool")
 local RuntimeStateTool = require("rizu.ai.RuntimeStateTool")
@@ -278,7 +280,12 @@ function GameController:load()
 			return self.network:openStream(url, options)
 		end,
 	})
-	local ai_agent = OpenAiAgent(openai_client, {LuaEvalTool(self)}, {
+	local ai_tools = {
+		SourceLocationTool(self),
+		ReadFileTool(),
+		LuaEvalTool(self),
+	}
+	local ai_agent = OpenAiAgent(openai_client, ai_tools, {
 		streaming = true,
 		max_tool_rounds = 50,
 	})
@@ -289,12 +296,15 @@ function GameController:load()
 	local mcp_config = self.persistence.configModel.configs.mcp
 	if mcp_config.enabled then
 		local mcp_session_store = McpSessionStore()
-		self.mcpServer = McpServer(self.network.scheduler, {
+		local mcp_tools = {
 			RuntimeStateTool(self),
 			ScreenshotTool(self),
 			RestartTool(),
-			LuaEvalTool(self),
-		}, {
+		}
+		for _, tool in ipairs(ai_tools) do
+			table.insert(mcp_tools, tool)
+		end
+		self.mcpServer = McpServer(self.network.scheduler, mcp_tools, {
 			host = mcp_config.host,
 			port = mcp_config.port,
 			token = mcp_config.token,

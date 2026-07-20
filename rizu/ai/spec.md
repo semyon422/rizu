@@ -10,6 +10,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
+- The assistant can map public runtime functions to repository source locations and read bounded source ranges without using arbitrary Lua evaluation.
 - Closing and reopening the window preserves the current conversation; an explicit clear action starts a new conversation.
 - The player selects `Needle` in the command palette, types a query, watches a function call update after a short debounce, and presses Enter to run that exact call.
 
@@ -19,6 +20,8 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The system prompt is stored in `SystemPrompt.md` and loaded as a runtime asset so prompt changes do not require editing Lua source. Its `{{brand_name}}` placeholder resolves from `brand.lua`.
 - The game-wide `rizu.net.NetworkService` supplies the HTTP request function. AI traffic does not create another scheduler and must not block frame updates while waiting for the configured provider.
 - `LuaEvalTool` is project-specific because its evaluation environment exposes the current `sphere.GameController` as `game`.
+- `SourceLocationTool` resolves dot-separated public paths rooted at `game` through `debug.getinfo`; private underscore-prefixed paths are unavailable. `ReadFileTool` reads at most 200 numbered lines from allowlisted repository source roots and excludes `userdata` plus root runtime configuration files.
+- The source-location, source-reading, and Lua-evaluation tools are shared by the in-game OpenAI agent and development MCP server so both surfaces observe the same runtime-to-source workflow.
 - `LuaEvalTool` implements both the OpenAI function-tool shape and the native `mcp.Tool` metadata used by `aqua/mcp`, keeping evaluation policy and behavior in one game-owned implementation.
 - The development MCP surface also provides `RuntimeStateTool` for structured read-only screen, selection, and preview observations, `ScreenshotTool` for asynchronous PNG image content, and `RestartTool` for requesting a LÖVE-managed process restart. These focused tools are preferred over Lua evaluation when they cover the workflow.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
@@ -46,6 +49,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - A request retains the user message, assistant tool-call message, matching tool results, and final assistant response in protocol order.
 - Conversation trimming removes complete old turns and always preserves the system message.
 - Lua bytecode is rejected, output is size-bounded, and syntax/runtime failures are returned as tool results.
+- Source reads remain repository-relative, bounded, and limited to explicit source roots and extensions; they never expose ignored `userdata` configuration or root credential-bearing configuration files.
 - Lua evaluation reports an explicit MCP execution-error flag in addition to its JSON result, while the OpenAI agent continues to consume the same result text.
 - The Lua tool is a trusted developer capability, not a security sandbox. It exposes the process globals and the `game` object, including state-changing and process-level APIs.
 - The API key must not be committed to the repository or printed in diagnostics.
