@@ -9,6 +9,8 @@ local utf8 = require("utf8")
 ---@field model rizu.ai.ChatModel
 ---@field input string
 ---@field scroll integer
+---@field cached_lines {text: string, color: gui.Color}[]?
+---@field cached_wrap_width number?
 local AiChatView = View + {}
 
 local PADDING = 18
@@ -30,6 +32,17 @@ function AiChatView:new(model, on_close)
 	self.handles_mouse_input = true
 	self.input = ""
 	self.scroll = 0
+	self.cached_lines = nil
+	self.cached_wrap_width = nil
+	self.model:onChanged(self)
+end
+
+---@param event table
+function AiChatView:receive(event)
+	if event.type == "chat_changed" then
+		self.cached_lines = nil
+		self.cached_wrap_width = nil
+	end
 end
 
 ---@param e gui.MouseClickEvent
@@ -91,6 +104,9 @@ end
 function AiChatView:getLines()
 	local font = Resources.getFont("regular", 20)
 	local wrap_width = self.width - PADDING * 2
+	if self.cached_lines and self.cached_wrap_width == wrap_width then
+		return self.cached_lines
+	end
 	local lines = {}
 	local role_colors = {
 		user = Colors.accent,
@@ -106,6 +122,8 @@ function AiChatView:getLines()
 		end
 		table.insert(lines, {text = "", color = Colors.text})
 	end
+	self.cached_lines = lines
+	self.cached_wrap_width = wrap_width
 	return lines
 end
 

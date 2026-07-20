@@ -26,6 +26,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Game chat allows up to 50 sequential tool-call rounds before the agent returns a tool-limit error.
 - Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
 - The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
+- `AiChatView` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
 - The provider does not advertise developer-role support, so project instructions use a `system` message.
 - `NeedleModel` owns debounce, request generations, streamed proposal text, parsing, and execution gating. `NeedleWorker` owns the native context on a managed LÖVE thread.
 - `NeedleToolRegistry` snapshots only the approved semantic tools for the active command contexts and maps them back to existing command callbacks on the main thread.
