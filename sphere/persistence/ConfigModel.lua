@@ -5,6 +5,7 @@ local stbl = require("stbl")
 ---@field ai sphere.AiConfig
 ---@field needle sphere.NeedleConfig
 ---@field mcp sphere.McpConfig
+---@field network sphere.NetworkConfig
 ---@field files sphere.FilesConfig
 ---@field filters sphere.FiltersConfig
 ---@field input sphere.InputConfig

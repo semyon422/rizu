@@ -262,6 +262,7 @@ function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
+	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai
 	local openai_client = OpenAiClient({

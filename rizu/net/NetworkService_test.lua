@@ -63,6 +63,54 @@ function test.request_preserves_explicit_options(t)
 end
 
 ---@param t testing.T
+function test.proxy_resolves_only_proxy_and_routes_target_hostname(t)
+	local resolved_hosts = {}
+	local request_options
+	local network = NetworkService({
+		proxy = {
+			enabled = true,
+			host = "proxy.test",
+			port = 1080,
+			username = "",
+			password = "",
+		},
+		resolve_host_func = function(host)
+			table.insert(resolved_hosts, host)
+			return "192.0.2.10"
+		end,
+		request_func = function(_url, _body, options)
+			request_options = options
+			return {status = 200, headers = {}, body = "ok"}
+		end,
+	})
+
+	local res = network:request("https://example.test/path")
+
+	t:eq(res.body, "ok")
+	t:tdeq(resolved_hosts, {"proxy.test"})
+	t:eq(request_options.connect_host, "example.test")
+	t:eq(request_options.tcp_socket.proxy.host, "192.0.2.10")
+	t:eq(request_options.tcp_socket.proxy.port, 1080)
+end
+
+---@param t testing.T
+function test.disabled_proxy_uses_direct_connection(t)
+	local network = NetworkService({
+		proxy = {enabled = false, host = "", port = 1080},
+		resolve_host_func = function(host)
+			return host .. ".resolved"
+		end,
+		request_func = function(_url, _body, options)
+			return {status = 200, headers = {}, body = options.connect_host}
+		end,
+	})
+
+	local res = network:request("https://example.test/path")
+
+	t:eq(res.body, "example.test.resolved")
+end
+
+---@param t testing.T
 function test.request_does_not_create_progress_callbacks_without_subscribers(t)
 	local network = NetworkService({
 		resolve_host_func = function()
@@ -206,6 +254,30 @@ function test.connect_websocket_resolves_host(t)
 	t:tdeq({network:connectWebsocket(connection --[[@as any]], "wss://example.test/ws")}, {true})
 	t:eq(connection.connected_url, "wss://example.test/ws")
 	t:eq(connection.connected_host, "203.0.113.10")
+end
+
+---@param t testing.T
+function test.connect_websocket_uses_proxy_route(t)
+	local resolved_hosts = {}
+	local network = NetworkService({
+		proxy = {
+			enabled = true,
+			host = "proxy.test",
+			port = 1080,
+			username = "",
+			password = "",
+		},
+		resolve_host_func = function(host)
+			table.insert(resolved_hosts, host)
+			return "192.0.2.10"
+		end,
+	})
+	local connection = setmetatable({options = {}}, FakeWebsocketConnection)
+
+	t:tdeq({network:connectWebsocket(connection --[[@as any]], "wss://example.test/ws")}, {true})
+	t:tdeq(resolved_hosts, {"proxy.test"})
+	t:eq(connection.connected_host, "example.test")
+	t:eq(connection.options.tcp_socket.proxy.host, "192.0.2.10")
 end
 
 ---@param t testing.T

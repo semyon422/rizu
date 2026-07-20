@@ -28,9 +28,11 @@ function UpdateController:updateAsync()
 	configModel:open("settings")
 	configModel:open("urls")
 	configModel:open("files", true)
+	configModel:open("network")
 	configModel:read()
 
 	local configs = configModel.configs
+	self.network:setProxy(configs.network.socks5)
 
 	if
 		not configs.settings.miscellaneous.autoUpdate or

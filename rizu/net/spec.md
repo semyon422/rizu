@@ -6,7 +6,8 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 
 - Network users should be able to write linear coroutine code such as `res, err = network:request(url)` without manually splitting DNS resolution from socket connection.
 - The game should pump network readiness from one central update path instead of each feature owning an independent scheduler.
-- TLS verification, operation timeouts, DNS behavior, and resolved-host connection rules should be consistent across client features.
+- TLS verification, operation timeouts, DNS behavior, proxy routing, and resolved-host connection rules should be consistent across client features.
+- Players who need a proxy can opt into a SOCKS5 server through ignored `userdata/network.lua`; direct connections remain the default.
 
 ## Architecture Decisions
 
@@ -16,6 +17,20 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 - WebSocket callers use `NetworkService:createWebsocketConnection()` and `NetworkService:connectWebsocket(connection, url)` so DNS and transport policy stay centralized.
 - WebSocket connections use the default socket timeout for connect and handshake, then use a separate 30 second reader timeout so the ping interval is not racing the connect timeout.
 - DNS resolution still runs through `thread.async` because LuaSocket DNS lookup can block.
+- `NetworkService` optionally wraps outbound HTTP, download, AI, updater, and WebSocket sockets in `web.Socks5TcpSocket`. It resolves only the proxy host locally and sends destination hostnames to the proxy for remote DNS resolution.
+- The SOCKS5 transport supports no authentication and RFC 1929 username/password authentication. Configure it in `userdata/network.lua`:
+
+```lua
+return {
+	socks5 = {
+		enabled = true,
+		host = "127.0.0.1",
+		port = 1080,
+		username = "",
+		password = "",
+	},
+}
+```
 - Runtime diagnostics should stay centralized in `NetworkService`: callers can inspect counters and the latest network error without each feature inventing local logging/state.
 - `NetworkService:cancelStreams(err)` cancels active HTTP streams/downloads owned by the shared service, allowing screens and unload paths to stop long-running transfers explicitly.
 - Network operations may report a shared `on_status(status)` shape with states such as `dns`, `connecting`, `uploading`, `waiting_response`, `downloading`, `done`, `failed`, and `canceled`.
@@ -29,6 +44,7 @@ The `rizu/net/` module owns game-client network policy that should be shared by 
 
 - Callers should not parse URLs only to pass `connect_host`; that belongs in `NetworkService`.
 - The URL host must remain the HTTP `Host` header and TLS SNI name even when TCP connects to a resolved IP address.
+- With SOCKS5 enabled, destination DNS must stay remote: the destination hostname is used in the SOCKS5 CONNECT request while the locally resolved proxy address is the TCP peer.
 - `NetworkService:update()` is the central scheduler pump when the service is shared by multiple game systems.
 - WebSocket reader timeout must stay longer than the online ping cadence unless the ping cadence changes at the same time.
 - `openStream()` returns a connected stream. The caller owns request upload/download sequencing and must close the stream when it does not use `download()`.

@@ -4,7 +4,9 @@ local table_util = require("table_util")
 local thread = require("thread")
 
 local CosocketScheduler = require("web.luasocket.CosocketScheduler")
+local CosocketTcpSocket = require("web.luasocket.CosocketTcpSocket")
 local NetworkDiagnostics = require("rizu.net.NetworkDiagnostics")
+local Socks5TcpSocket = require("web.socket.Socks5TcpSocket")
 local WebsocketConnection = require("web.ws.WebsocketConnection")
 local HttpStream = require("web.http.HttpStream")
 local http_util = require("web.http.util")
@@ -22,6 +24,7 @@ local http_util = require("web.http.util")
 ---@field stream_factory fun(options: web.HttpStreamOptions?): web.HttpStream
 ---@field resolve_host_func fun(host: string): string?, string?
 ---@field diagnostics rizu.NetworkDiagnostics
+---@field proxy rizu.Socks5ProxyConfig?
 local NetworkService = class()
 
 ---@alias rizu.NetworkStatusState
@@ -54,6 +57,9 @@ local NetworkService = class()
 ---@field on_status (fun(status: rizu.NetworkStatus))?
 ---@field status_url string?
 
+---@class rizu.Socks5ProxyConfig: web.Socks5ProxyOptions
+---@field enabled boolean
+
 NetworkService.timeout = 10
 NetworkService.websocket_read_timeout = 30
 NetworkService.tls_verify = true
@@ -64,7 +70,7 @@ local resolve_host_async = thread.async(function(host)
 	return socket.dns.toip(host)
 end)
 
----@param options {scheduler: web.CosocketScheduler?, timeout: number?, websocket_read_timeout: number?, tls_verify: boolean?, tls_cafile: string?, request_func: function?, stream_factory: function?, resolve_host_func: function?}?
+---@param options {scheduler: web.CosocketScheduler?, timeout: number?, websocket_read_timeout: number?, tls_verify: boolean?, tls_cafile: string?, proxy: rizu.Socks5ProxyConfig?, request_func: function?, stream_factory: function?, resolve_host_func: function?}?
 function NetworkService:new(options)
 	options = options or {}
 	self.scheduler = options.scheduler or CosocketScheduler()
@@ -86,6 +92,18 @@ function NetworkService:new(options)
 	self.dns_cache = {}
 	self.active_streams = {}
 	self.diagnostics = NetworkDiagnostics()
+	self:setProxy(options.proxy)
+end
+
+---@param proxy rizu.Socks5ProxyConfig?
+function NetworkService:setProxy(proxy)
+	if not proxy or not proxy.enabled then
+		self.proxy = nil
+		return
+	end
+	assert(proxy.host ~= "", "SOCKS5 proxy host is required")
+	assert(proxy.port >= 1 and proxy.port <= 65535, "SOCKS5 proxy port is invalid")
+	self.proxy = proxy
 end
 
 ---@param stream web.HttpStream
@@ -258,6 +276,29 @@ function NetworkService:resolveUrl(url, options)
 	return self:resolveHost(parsed_url.host, options, url)
 end
 
+---@param url string
+---@param options rizu.NetworkStatusOptions?
+---@return string?
+---@return string?
+---@return string?
+function NetworkService:resolveRoute(url, options)
+	if not self.proxy then
+		local connect_host, err = self:resolveUrl(url, options)
+		return connect_host, nil, err
+	end
+
+	local parsed_url, err = socket_url.parse(url)
+	if not parsed_url or not parsed_url.host then
+		return nil, nil, err or "invalid url"
+	end
+	local proxy_host
+	proxy_host, err = self:resolveHost(self.proxy.host, options, url)
+	if not proxy_host then
+		return nil, nil, err
+	end
+	return parsed_url.host, proxy_host
+end
+
 ---@param options web.HttpClientOptions?
 ---@return web.HttpClientOptions
 function NetworkService:getClientOptions(options)
@@ -274,6 +315,27 @@ function NetworkService:getClientOptions(options)
 	return client_options
 end
 
+---@param options web.HttpClientOptions?
+---@param proxy_host string?
+---@return web.HttpClientOptions
+function NetworkService:getRoutedClientOptions(options, proxy_host)
+	local client_options = self:getClientOptions(options)
+	if not proxy_host or client_options.tcp_socket then
+		return client_options
+	end
+
+	local ip_version = proxy_host:find(":", 1, true) and 6 or 4
+	local tcp_socket = CosocketTcpSocket(assert(client_options.scheduler), ip_version)
+	local proxy = assert(self.proxy)
+	client_options.tcp_socket = Socks5TcpSocket(tcp_socket, {
+		host = proxy_host,
+		port = proxy.port,
+		username = proxy.username,
+		password = proxy.password,
+	})
+	return client_options
+end
+
 ---@param url string
 ---@param body table|string?
 ---@param options web.HttpRequestOptions?
@@ -283,21 +345,21 @@ function NetworkService:request(url, body, options)
 	self.diagnostics:increment("http_requests")
 	---@type rizu.NetworkStatusHttpOptions
 	local request_options = self:getStatusOptions(options, url)
-	local connect_host, err = self:resolveUrl(url, request_options)
+	local connect_host, proxy_host, err = self:resolveRoute(url, request_options)
 	if not connect_host then
 		self.diagnostics:fail("http_failures", err)
 		self:emitFailure(request_options, url, err)
 		return nil, err
 	end
 
-	request_options = self:getClientOptions(request_options)
+	request_options = self:getRoutedClientOptions(request_options, proxy_host)
 	if request_options.connect_host == nil then
 		request_options.connect_host = connect_host
 	end
 	self:emitStatus(request_options, {
 		state = "connecting",
 		url = url,
-		ip = connect_host,
+		ip = proxy_host or connect_host,
 	})
 	local res
 	res, err = self.request_func(url, body, request_options)
@@ -324,14 +386,14 @@ function NetworkService:openStream(url, options)
 	local stream_options = self:getStatusOptions(options, url)
 	stream_options.status_url = url
 
-	local connect_host, err = self:resolveUrl(url, stream_options)
+	local connect_host, proxy_host, err = self:resolveRoute(url, stream_options)
 	if not connect_host then
 		self.diagnostics:fail("stream_failures", err)
 		self:emitFailure(stream_options, url, err)
 		return nil, err
 	end
 
-	stream_options = self:getClientOptions(stream_options)
+	stream_options = self:getRoutedClientOptions(stream_options, proxy_host)
 	if stream_options.connect_host == nil then
 		stream_options.connect_host = connect_host
 	end
@@ -341,7 +403,7 @@ function NetworkService:openStream(url, options)
 	self:emitStatus(stream_options, {
 		state = "connecting",
 		url = url,
-		ip = connect_host,
+		ip = proxy_host or connect_host,
 	})
 	local ok
 	ok, err = stream:connect(url)
@@ -424,16 +486,19 @@ function NetworkService:connectWebsocket(connection, url)
 	self.diagnostics:increment("websocket_connects")
 	---@type rizu.NetworkStatusOptions?
 	local status_options = connection.options
-	local connect_host, err = self:resolveUrl(url, status_options)
+	local connect_host, proxy_host, err = self:resolveRoute(url, status_options)
 	if not connect_host then
 		self.diagnostics:fail("websocket_failures", err)
 		self:emitFailure(status_options, url, err)
 		return nil, err
 	end
+	if proxy_host and connection.options then
+		connection.options = self:getRoutedClientOptions(connection.options, proxy_host)
+	end
 	self:emitStatus(status_options, {
 		state = "connecting",
 		url = url,
-		ip = connect_host,
+		ip = proxy_host or connect_host,
 	})
 	local ok
 	ok, err = connection:connect(url, connect_host)

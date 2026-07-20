@@ -39,6 +39,7 @@ userdata/ai.lua
 userdata/mcp.lua
 userdata/mcp_sessions.json
 userdata/needle.lua
+userdata/network.lua
 
 moddedgame
 /build/
