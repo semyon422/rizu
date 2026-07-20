@@ -59,6 +59,8 @@ local NetworkService = class()
 
 ---@class rizu.Socks5ProxyConfig: web.Socks5ProxyOptions
 ---@field enabled boolean
+---@field whitelist string[]
+---@field blacklist string[]
 
 NetworkService.timeout = 10
 NetworkService.websocket_read_timeout = 30
@@ -103,7 +105,52 @@ function NetworkService:setProxy(proxy)
 	end
 	assert(proxy.host ~= "", "SOCKS5 proxy host is required")
 	assert(proxy.port >= 1 and proxy.port <= 65535, "SOCKS5 proxy port is invalid")
+	assert(type(proxy.whitelist) == "table", "SOCKS5 proxy whitelist is required")
+	assert(type(proxy.blacklist) == "table", "SOCKS5 proxy blacklist is required")
+	for _, domain in ipairs(proxy.whitelist) do
+		assert(type(domain) == "string" and domain ~= "", "invalid SOCKS5 proxy whitelist domain")
+	end
+	for _, domain in ipairs(proxy.blacklist) do
+		assert(type(domain) == "string" and domain ~= "", "invalid SOCKS5 proxy blacklist domain")
+	end
 	self.proxy = proxy
+end
+
+---@param host string
+---@param domain string
+---@return boolean
+local function matches_domain(host, domain)
+	host = host:lower():gsub("%.$", "")
+	domain = domain:lower():gsub("%.$", "")
+	if domain:sub(1, 2) == "*." then
+		domain = domain:sub(3)
+	elseif domain:sub(1, 1) == "." then
+		domain = domain:sub(2)
+	end
+	return host == domain or host:sub(-#domain - 1) == "." .. domain
+end
+
+---@param host string
+---@return boolean
+function NetworkService:shouldUseProxy(host)
+	local proxy = self.proxy
+	if not proxy then
+		return false
+	end
+	for _, domain in ipairs(proxy.blacklist) do
+		if matches_domain(host, domain) then
+			return false
+		end
+	end
+	if #proxy.whitelist == 0 then
+		return true
+	end
+	for _, domain in ipairs(proxy.whitelist) do
+		if matches_domain(host, domain) then
+			return true
+		end
+	end
+	return false
 end
 
 ---@param stream web.HttpStream
@@ -282,14 +329,14 @@ end
 ---@return string?
 ---@return string?
 function NetworkService:resolveRoute(url, options)
-	if not self.proxy then
-		local connect_host, err = self:resolveUrl(url, options)
-		return connect_host, nil, err
-	end
-
 	local parsed_url, err = socket_url.parse(url)
 	if not parsed_url or not parsed_url.host then
 		return nil, nil, err or "invalid url"
+	end
+	if not self:shouldUseProxy(parsed_url.host) then
+		local connect_host
+		connect_host, err = self:resolveHost(parsed_url.host, options, url)
+		return connect_host, nil, err
 	end
 	local proxy_host
 	proxy_host, err = self:resolveHost(self.proxy.host, options, url)

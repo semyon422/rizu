@@ -73,6 +73,8 @@ function test.proxy_resolves_only_proxy_and_routes_target_hostname(t)
 			port = 1080,
 			username = "",
 			password = "",
+			whitelist = {},
+			blacklist = {},
 		},
 		resolve_host_func = function(host)
 			table.insert(resolved_hosts, host)
@@ -108,6 +110,59 @@ function test.disabled_proxy_uses_direct_connection(t)
 	local res = network:request("https://example.test/path")
 
 	t:eq(res.body, "example.test.resolved")
+end
+
+---@param t testing.T
+function test.proxy_blacklist_bypasses_proxy_for_domain_and_subdomains(t)
+	local resolved_hosts = {}
+	local request_options
+	local network = NetworkService({
+		proxy = {
+			enabled = true,
+			host = "proxy.test",
+			port = 1080,
+			username = "",
+			password = "",
+			whitelist = {"example.test"},
+			blacklist = {"example.test"},
+		},
+		resolve_host_func = function(host)
+			table.insert(resolved_hosts, host)
+			return "203.0.113.10"
+		end,
+		request_func = function(_url, _body, options)
+			request_options = options
+			return {status = 200, headers = {}, body = "ok"}
+		end,
+	})
+
+	network:request("https://sub.example.test/path")
+
+	t:tdeq(resolved_hosts, {"sub.example.test"})
+	t:eq(request_options.connect_host, "203.0.113.10")
+	t:eq(request_options.tcp_socket, nil)
+end
+
+---@param t testing.T
+function test.proxy_whitelist_limits_proxy_domains(t)
+	local network = NetworkService({
+		proxy = {
+			enabled = true,
+			host = "proxy.test",
+			port = 1080,
+			username = "",
+			password = "",
+			whitelist = {"example.test", "*.other.test"},
+			blacklist = {"direct.example.test"},
+		},
+	})
+
+	t:eq(network:shouldUseProxy("example.test"), true)
+	t:eq(network:shouldUseProxy("sub.example.test"), true)
+	t:eq(network:shouldUseProxy("other.test"), true)
+	t:eq(network:shouldUseProxy("sub.other.test"), true)
+	t:eq(network:shouldUseProxy("direct.example.test"), false)
+	t:eq(network:shouldUseProxy("unlisted.test"), false)
 end
 
 ---@param t testing.T
@@ -266,6 +321,8 @@ function test.connect_websocket_uses_proxy_route(t)
 			port = 1080,
 			username = "",
 			password = "",
+			whitelist = {},
+			blacklist = {},
 		},
 		resolve_host_func = function(host)
 			table.insert(resolved_hosts, host)

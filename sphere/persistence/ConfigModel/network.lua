@@ -9,6 +9,12 @@ local network = {
 		port = 1080,
 		username = "",
 		password = "",
+		whitelist = {},
+		blacklist = {
+			"localhost",
+			"127.0.0.1",
+			"::1",
+		},
 	},
 }
 

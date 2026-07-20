@@ -28,9 +28,17 @@ return {
 		port = 1080,
 		username = "",
 		password = "",
+		whitelist = {},
+		blacklist = {
+			"localhost",
+			"127.0.0.1",
+			"::1",
+			"direct.example.com",
+		},
 	},
 }
 ```
+- `blacklist` entries always connect directly and take precedence over `whitelist`. An empty `whitelist` proxies every host not blacklisted; a non-empty `whitelist` proxies only matching entries. A plain entry such as `example.com`, `.example.com`, or `*.example.com` matches both the domain and its subdomains. Matching is case-insensitive and ignores a trailing dot.
 - Runtime diagnostics should stay centralized in `NetworkService`: callers can inspect counters and the latest network error without each feature inventing local logging/state.
 - `NetworkService:cancelStreams(err)` cancels active HTTP streams/downloads owned by the shared service, allowing screens and unload paths to stop long-running transfers explicitly.
 - Network operations may report a shared `on_status(status)` shape with states such as `dns`, `connecting`, `uploading`, `waiting_response`, `downloading`, `done`, `failed`, and `canceled`.
