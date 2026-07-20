@@ -23,6 +23,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The development MCP surface also provides `RuntimeStateTool` for structured read-only screen, selection, and preview observations, `ScreenshotTool` for asynchronous PNG image content, and `RestartTool` for requesting a LÖVE-managed process restart. These focused tools are preferred over Lua evaluation when they cover the workflow.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
 - The configured provider uses the OpenAI-compatible `/v1/chat/completions` endpoint and streams assistant text through server-sent events.
+- Game chat allows up to 50 sequential tool-call rounds before the agent returns a tool-limit error.
 - Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
 - The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
 - The provider does not advertise developer-role support, so project instructions use a `system` message.
@@ -40,6 +41,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Only one chat request may be in flight at a time.
 - Streaming text updates one in-progress assistant transcript entry rather than creating one entry per token.
 - Canceling closes the active HTTP stream, removes incomplete protocol messages from API history, preserves partial text in the visible transcript, and returns the model to idle state.
+- A failed request preserves its user prompt and every complete assistant tool-call/result group so a later retry or follow-up still has the original context. Only an incomplete trailing protocol group is removed.
 - A request retains the user message, assistant tool-call message, matching tool results, and final assistant response in protocol order.
 - Conversation trimming removes complete old turns and always preserves the system message.
 - Lua bytecode is rejected, output is size-bounded, and syntax/runtime failures are returned as tool results.

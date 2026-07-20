@@ -43,7 +43,66 @@ function test.validates_input_and_reports_errors(t)
 	t:eq(ok, true)
 	t:eq(model.entries[2].role, "error")
 	t:eq(model.entries[2].content, "offline")
-	t:eq(#model.messages, 1)
+	t:eq(#model.messages, 2)
+	t:eq(model.messages[2].role, "user")
+	t:eq(model.messages[2].content, "hello")
+end
+
+---@param t testing.T
+function test.failed_followup_after_tool_preserves_initial_prompt_and_complete_protocol(t)
+	local run_count = 0
+	local model = ChatModel(makeAgent(function(messages)
+		run_count = run_count + 1
+		if run_count == 1 then
+			table.insert(messages, {
+				role = "assistant",
+				tool_calls = {{
+					id = "call_1",
+					type = "function",
+					["function"] = {name = "lua_eval", arguments = "{}"},
+				}},
+			})
+			table.insert(messages, {role = "tool", tool_call_id = "call_1", content = "result"})
+			return nil, "followup failed"
+		end
+
+		t:eq(messages[2].role, "user")
+		t:eq(messages[2].content, "Get my IP")
+		t:eq(messages[3].role, "assistant")
+		t:eq(messages[4].role, "tool")
+		local reply = {role = "assistant", content = "continuing"}
+		table.insert(messages, reply)
+		return reply
+	end), "system")
+
+	model:send("Get my IP")
+	t:eq(#model.messages, 4)
+	t:eq(model.entries[2].role, "error")
+
+	model:send("continue")
+	t:eq(model.entries[#model.entries].content, "continuing")
+end
+
+---@param t testing.T
+function test.failure_removes_incomplete_tool_group_but_preserves_user(t)
+	local model = ChatModel(makeAgent(function(messages)
+		table.insert(messages, {
+			role = "assistant",
+			tool_calls = {
+				{id = "call_1", type = "function", ["function"] = {name = "one", arguments = "{}"}},
+				{id = "call_2", type = "function", ["function"] = {name = "two", arguments = "{}"}},
+			},
+		})
+		table.insert(messages, {role = "tool", tool_call_id = "call_1", content = "result"})
+		error("tool callback failed")
+	end), "system")
+
+	model:send("inspect")
+
+	t:eq(#model.messages, 2)
+	t:eq(model.messages[2].role, "user")
+	t:eq(model.messages[2].content, "inspect")
+	t:eq(model.entries[#model.entries].role, "error")
 end
 
 ---@param t testing.T

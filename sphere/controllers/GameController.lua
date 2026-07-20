@@ -278,7 +278,10 @@ function GameController:load()
 			return self.network:openStream(url, options)
 		end,
 	})
-	local ai_agent = OpenAiAgent(openai_client, {LuaEvalTool(self)}, {streaming = true})
+	local ai_agent = OpenAiAgent(openai_client, {LuaEvalTool(self)}, {
+		streaming = true,
+		max_tool_rounds = 50,
+	})
 	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt)
 	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
 	self.needleGpuProbe = NeedleGpuProbe()

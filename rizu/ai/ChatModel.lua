@@ -77,6 +77,56 @@ function ChatModel:removeActiveProtocolMessages()
 	self.request_start = nil
 end
 
+function ChatModel:removeIncompleteActiveProtocolMessages()
+	local request_start = self.request_start
+	if not request_start then
+		return
+	end
+
+	local complete_end = request_start
+	local index = request_start + 1
+	while index <= #self.messages do
+		local message = self.messages[index]
+		if message.role ~= "assistant" then
+			break
+		end
+
+		local tool_calls = message.tool_calls
+		if type(tool_calls) ~= "table" or #tool_calls == 0 then
+			if type(message.content) == "string" then
+				complete_end = index
+				index = index + 1
+			else
+				break
+			end
+		else
+			local group_complete = true
+			for offset, tool_call in ipairs(tool_calls) do
+				local tool_message = self.messages[index + offset]
+				if
+				type(tool_call.id) ~= "string" or
+				not tool_message or
+				tool_message.role ~= "tool" or
+				tool_message.tool_call_id ~= tool_call.id
+				then
+					group_complete = false
+					break
+				end
+			end
+			if not group_complete then
+				break
+			end
+			complete_end = index + #tool_calls
+			index = complete_end + 1
+		end
+	end
+
+	for i = #self.messages, complete_end + 1, -1 do
+		table.remove(self.messages, i)
+	end
+	self.request_start = nil
+end
+
 function ChatModel:resetMessages()
 	self.messages = {{role = "system", content = self.system_prompt}}
 end
@@ -166,10 +216,10 @@ function ChatModel:send(content)
 		end
 		self.busy = false
 		if not ok then
-			self:removeActiveProtocolMessages()
+			self:removeIncompleteActiveProtocolMessages()
 			self:addEntry("error", tostring(message))
 		elseif not message then
-			self:removeActiveProtocolMessages()
+			self:removeIncompleteActiveProtocolMessages()
 			self:addEntry("error", err or "AI request failed")
 		else
 			self.request_start = nil
