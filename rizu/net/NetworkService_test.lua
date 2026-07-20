@@ -3,6 +3,25 @@ local NetworkService = require("rizu.net.NetworkService")
 local test = {}
 
 ---@param t testing.T
+function test.injected_backends_use_private_field_names(t)
+	local request_func = function() end
+	local stream_factory = function() end
+	local resolve_host_func = function() end
+	local network = NetworkService({
+		request_func = request_func,
+		stream_factory = stream_factory,
+		resolve_host_func = resolve_host_func,
+	})
+
+	t:eq(network.request_func, nil)
+	t:eq(network.stream_factory, nil)
+	t:eq(network.resolve_host_func, nil)
+	t:eq(network._request_func, request_func)
+	t:eq(network._stream_factory, stream_factory)
+	t:eq(network._resolve_host_func, resolve_host_func)
+end
+
+---@param t testing.T
 function test.request_resolves_host_and_sets_defaults(t)
 	local calls = {}
 	local network = NetworkService({

@@ -20,9 +20,9 @@ local http_util = require("web.http.util")
 ---@field tls_cafile string
 ---@field dns_cache {[string]: string}
 ---@field active_streams {[web.HttpStream]: true}
----@field request_func fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?
----@field stream_factory fun(options: web.HttpStreamOptions?): web.HttpStream
----@field resolve_host_func fun(host: string): string?, string?
+---@field _request_func fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?
+---@field _stream_factory fun(options: web.HttpStreamOptions?): web.HttpStream
+---@field _resolve_host_func fun(host: string): string?, string?
 ---@field diagnostics rizu.NetworkDiagnostics
 ---@field proxy rizu.Socks5ProxyConfig?
 local NetworkService = class()
@@ -88,9 +88,9 @@ function NetworkService:new(options)
 	if options.tls_cafile ~= nil then
 		self.tls_cafile = options.tls_cafile
 	end
-	self.request_func = options.request_func or http_util.request
-	self.stream_factory = options.stream_factory or HttpStream
-	self.resolve_host_func = options.resolve_host_func or resolve_host_async
+	self._request_func = options.request_func or http_util.request
+	self._stream_factory = options.stream_factory or HttpStream
+	self._resolve_host_func = options.resolve_host_func or resolve_host_async
 	self.dns_cache = {}
 	self.active_streams = {}
 	self.diagnostics = NetworkDiagnostics()
@@ -302,7 +302,7 @@ function NetworkService:resolveHost(host, options, url)
 	})
 
 	self.diagnostics:increment("dns_requests")
-	local ip, err = self.resolve_host_func(host)
+	local ip, err = self._resolve_host_func(host)
 	if ip then
 		self.dns_cache[host] = ip
 	else
@@ -409,7 +409,7 @@ function NetworkService:request(url, body, options)
 		ip = proxy_host or connect_host,
 	})
 	local res
-	res, err = self.request_func(url, body, request_options)
+	res, err = self._request_func(url, body, request_options)
 	if not res then
 		self.diagnostics:fail("http_failures", err)
 		self:emitFailure(request_options, url, err)
@@ -445,7 +445,7 @@ function NetworkService:openStream(url, options)
 		stream_options.connect_host = connect_host
 	end
 
-	local stream = self.stream_factory(stream_options)
+	local stream = self._stream_factory(stream_options)
 	self:registerStream(stream, stream_options)
 	self:emitStatus(stream_options, {
 		state = "connecting",

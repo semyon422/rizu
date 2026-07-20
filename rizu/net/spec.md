@@ -40,6 +40,7 @@ return {
 ```
 - `blacklist` entries always connect directly and take precedence over `whitelist`. An empty `whitelist` proxies every host not blacklisted; a non-empty `whitelist` proxies only matching entries. A plain entry such as `example.com`, `.example.com`, or `*.example.com` matches both the domain and its subdomains. Matching is case-insensitive and ignores a trailing dot.
 - Runtime diagnostics should stay centralized in `NetworkService`: callers can inspect counters and the latest network error without each feature inventing local logging/state.
+- Injected request, stream, and resolver backends use underscore-prefixed private fields. They are test seams rather than public runtime APIs; game tools must not call them because doing so bypasses proxy and scheduler policy.
 - `NetworkService:cancelStreams(err)` cancels active HTTP streams/downloads owned by the shared service, allowing screens and unload paths to stop long-running transfers explicitly.
 - Network operations may report a shared `on_status(status)` shape with states such as `dns`, `connecting`, `uploading`, `waiting_response`, `downloading`, `done`, `failed`, and `canceled`.
 - `mcp.Server` hosts the running game's MCP Streamable HTTP endpoint on the shared scheduler. The reusable protocol implementation lives in `aqua/mcp`; `GameController` injects the game identity, configuration, and tools.
@@ -51,6 +52,7 @@ return {
 ## Invariants
 
 - Callers should not parse URLs only to pass `connect_host`; that belongs in `NetworkService`.
+- Callers, including trusted Lua tools, must use `NetworkService` methods rather than injected backend functions or raw socket modules. Direct backend access bypasses the cosocket scheduler and proxy routing.
 - The URL host must remain the HTTP `Host` header and TLS SNI name even when TCP connects to a resolved IP address.
 - With SOCKS5 enabled, destination DNS must stay remote: the destination hostname is used in the SOCKS5 CONNECT request while the locally resolved proxy address is the TCP peer.
 - `NetworkService:update()` is the central scheduler pump when the service is shared by multiple game systems.
