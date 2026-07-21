@@ -54,4 +54,35 @@ function test.wrapped_lines_are_cached_until_chat_or_width_changes(t)
 	end
 end
 
+---@param t testing.T
+function test.validates_transcript_text_before_wrapping(t)
+	local old_get_font = Resources.getFont
+	local old_love = love
+	love = {graphics = {getDimensions = function() return 1920, 1080 end}}
+	local wrapped_text
+	Resources.getFont = function()
+		return {
+			getWrap = function(_, text)
+				wrapped_text = text
+				return 0, {text}
+			end,
+		}
+	end
+
+	local ok, err = xpcall(function()
+		local model = {
+			entries = {{role = "tool", content = "bad\255text", name = "read_file"}},
+			onChanged = function() end,
+		}
+		local view = AiChatView(model --[[@as rizu.ai.ChatModel]], function() end)
+		view:getLines()
+		t:eq(wrapped_text, "[tool read_file] bad?text")
+	end, debug.traceback)
+	Resources.getFont = old_get_font
+	love = old_love
+	if not ok then
+		error(err)
+	end
+end
+
 return test

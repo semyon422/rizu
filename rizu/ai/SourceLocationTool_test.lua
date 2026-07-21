@@ -22,7 +22,7 @@ function test.locates_public_runtime_function(t)
 end
 
 ---@param t testing.T
-function test.rejects_private_missing_and_non_function_targets(t)
+function test.accepts_private_and_rejects_missing_and_non_function_targets(t)
 	local tool = SourceLocationTool({
 		service = {
 			_private = locatedFunction,
@@ -30,8 +30,9 @@ function test.rejects_private_missing_and_non_function_targets(t)
 		},
 	} --[[@as sphere.GameController]])
 
-	local _, is_error = tool:execute({target = "game.service._private"})
-	t:eq(is_error, true)
+	local result, is_error = tool:execute({target = "game.service._private"})
+	t:eq(is_error, nil)
+	t:eq(json.decode(result).target, "game.service._private")
 	_, is_error = tool:execute({target = "game.service.missing"})
 	t:eq(is_error, true)
 	_, is_error = tool:execute({target = "game.service.value"})

@@ -10,7 +10,8 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
-- The assistant can map public runtime functions to repository source locations and read bounded source ranges without using arbitrary Lua evaluation.
+- The assistant can map runtime functions to repository source locations and read source ranges without using arbitrary Lua evaluation.
+- The assistant can search mounted source files, inspect structured runtime values, and review recent failed tool calls without arbitrary Lua evaluation.
 - Closing and reopening the window preserves the current conversation; an explicit clear action starts a new conversation.
 - The player selects `Needle` in the command palette, types a query, watches a function call update after a short debounce, and presses Enter to run that exact call.
 
@@ -20,8 +21,12 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The system prompt is stored in `SystemPrompt.md` and loaded as a runtime asset so prompt changes do not require editing Lua source. Its `{{brand_name}}` placeholder resolves from `brand.lua`.
 - The game-wide `rizu.net.NetworkService` supplies the HTTP request function. AI traffic does not create another scheduler and must not block frame updates while waiting for the configured provider.
 - `LuaEvalTool` is project-specific because its evaluation environment exposes the current `sphere.GameController` as `game`.
-- `SourceLocationTool` resolves dot-separated public paths rooted at `game` through `debug.getinfo`; private underscore-prefixed paths are unavailable. `ReadFileTool` reads at most 200 numbered lines from allowlisted repository source roots and excludes `userdata` plus root runtime configuration files.
-- The source-location, source-reading, and Lua-evaluation tools are shared by the in-game OpenAI agent and development MCP server so both surfaces observe the same runtime-to-source workflow.
+- `SourceLocationTool` resolves dot-separated paths rooted at `game` through `debug.getinfo`, including underscore-prefixed implementation functions. `ReadFileTool` reads numbered ranges from any file available through an injected `fs.IFilesystem` and validates returned text as UTF-8.
+- `SearchSourceTool` recursively searches either filenames or plain-text content through the same injected `fs.IFilesystem`. Calls select case sensitivity and bound scanned files plus returned matches so work and results remain suitable for the render-thread agent.
+- `InspectRuntimeTool` traverses dot-separated paths rooted at `game` and serializes values, table fields, metatables, cycles, and function source locations. Calls explicitly bound nested depth and total table fields.
+- `ToolFailureLog` retains the latest 100 failures from both surfaces in memory. `GetToolFailuresTool` returns filtered entries newest first; failures remain visible in the console as structured JSON lines.
+- Source search, source reading, source location, runtime inspection, failure retrieval, and Lua evaluation are shared by the in-game OpenAI agent and development MCP server so both surfaces observe the same diagnostic workflow.
+- Failed OpenAI-agent and MCP tool calls invoke application-owned logging with the surface, tool name, arguments, and error. Failures include dispatch/schema errors, execution exceptions, and explicit tool error results.
 - `LuaEvalTool` implements both the OpenAI function-tool shape and the native `mcp.Tool` metadata used by `aqua/mcp`, keeping evaluation policy and behavior in one game-owned implementation.
 - The development MCP surface also provides `RuntimeStateTool` for structured read-only screen, selection, and preview observations, `ScreenshotTool` for asynchronous PNG image content, and `RestartTool` for requesting a LÖVE-managed process restart. These focused tools are preferred over Lua evaluation when they cover the workflow.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
@@ -30,6 +35,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
 - The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
 - `AiChatView` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
+- `AiChatView` validates transcript and input strings before passing them to LÖVE text APIs so malformed tool or clipboard bytes cannot crash rendering.
 - The provider does not advertise developer-role support, so project instructions use a `system` message.
 - `NeedleModel` owns debounce, request generations, streamed proposal text, parsing, and execution gating. `NeedleWorker` owns the native context on a managed LÖVE thread.
 - `NeedleToolRegistry` snapshots only the approved semantic tools for the active command contexts and maps them back to existing command callbacks on the main thread.
@@ -49,7 +55,10 @@ Also provide an offline Needle command router that turns one natural-language pa
 - A request retains the user message, assistant tool-call message, matching tool results, and final assistant response in protocol order.
 - Conversation trimming removes complete old turns and always preserves the system message.
 - Lua bytecode is rejected, output is size-bounded, and syntax/runtime failures are returned as tool results.
-- Source reads remain repository-relative, bounded, and limited to explicit source roots and extensions; they never expose ignored `userdata` configuration or root credential-bearing configuration files.
+- Source reads remain repository-relative and character-bounded, but have no root, extension, or line-count allowlist. They are a trusted developer capability and may expose ignored runtime configuration.
+- Source search requires an explicit starting path and bounds returned matches, but it does not apply a root or extension allowlist.
+- Runtime inspection never evaluates caller-provided Lua code, but table indexing and value formatting may still invoke object metatables in the trusted game process.
+- Tool failure history is process-local, bounded, and reset when the game restarts.
 - Lua evaluation reports an explicit MCP execution-error flag in addition to its JSON result, while the OpenAI agent continues to consume the same result text.
 - The Lua tool is a trusted developer capability, not a security sandbox. It exposes the process globals and the `game` object, including state-changing and process-level APIs.
 - The API key must not be committed to the repository or printed in diagnostics.

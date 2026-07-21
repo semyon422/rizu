@@ -1,4 +1,5 @@
 local class = require("class")
+local utf8validate = require("utf8validate")
 
 ---@class rizu.ai.ReadFileTool
 ---@operator call: rizu.ai.ReadFileTool
@@ -7,15 +8,13 @@ local class = require("class")
 ---@field input_schema table
 ---@field annotations mcp.ToolAnnotations
 ---@field schema aqua.openai.ToolSchema
----@field read_func fun(path: string): string?, string?
----@field max_lines integer
+---@field fs fs.IFilesystem
 ---@field max_chars integer
 local ReadFileTool = class()
 
 ReadFileTool.name = "read_file"
-ReadFileTool.max_lines = 200
 ReadFileTool.max_chars = 32768
-ReadFileTool.description = "Read a bounded, numbered line range from a repository source file. Paths are repository-relative; userdata and runtime configuration files are unavailable."
+ReadFileTool.description = "Read a numbered line range from a file available through the game's filesystem. Paths are repository-relative."
 ReadFileTool.input_schema = {
 	type = "object",
 	properties = {
@@ -31,7 +30,7 @@ ReadFileTool.input_schema = {
 		line_end = {
 			type = "integer",
 			minimum = 1,
-			description = "Last line to read, inclusive; at most 200 lines per call",
+			description = "Last line to read, inclusive",
 		},
 	},
 	required = {"path", "line_start", "line_end"},
@@ -53,70 +52,9 @@ ReadFileTool.schema = {
 	},
 }
 
-local allowed_roots = {
-	"3rd-deps/lua/",
-	"aqua/",
-	"chart/",
-	"gui/",
-	"rizu/",
-	"sea/",
-	"sphere/",
-	"yi/",
-}
-
-local allowed_root_files = {
-	["brand.lua"] = true,
-	["conf.lua"] = true,
-	["main.lua"] = true,
-	["pkg_config.lua"] = true,
-}
-
-local allowed_extensions = {
-	c = true,
-	etlua = true,
-	frag = true,
-	glsl = true,
-	h = true,
-	json = true,
-	lua = true,
-	md = true,
-	vert = true,
-}
-
----@param path string
----@return boolean
-local function isAllowedPath(path)
-	if path == "" or path:find("\0", 1, true) or path:sub(1, 1) == "/" or path:match("^%a:") then
-		return false
-	end
-	for part in path:gmatch("[^/]+") do
-		if part == "." or part == ".." or part:sub(1, 1) == "." then
-			return false
-		end
-	end
-	local extension = path:match("%.([^. /]+)$")
-	if not extension or not allowed_extensions[extension:lower()] then
-		return false
-	end
-	if allowed_root_files[path] then
-		return true
-	end
-	for _, root in ipairs(allowed_roots) do
-		if path:sub(1, #root) == root then
-			return true
-		end
-	end
-	return false
-end
-
----@param options {read_func: (fun(path: string): string?, string?)?, max_lines: integer?, max_chars: integer?}?
-function ReadFileTool:new(options)
-	options = options or {}
-	self.max_lines = options.max_lines or self.max_lines
-	self.max_chars = options.max_chars or self.max_chars
-	self.read_func = options.read_func or function(path)
-		return love.filesystem.read(path)
-	end
+---@param fs fs.IFilesystem
+function ReadFileTool:new(fs)
+	self.fs = fs
 end
 
 ---@param message string
@@ -134,8 +72,8 @@ function ReadFileTool:execute(args)
 		return fail("path must be a string")
 	end
 	local path = args.path:gsub("\\", "/")
-	if not isAllowedPath(path) then
-		return fail("path is outside allowed repository source roots")
+	if path == "" or path:find("\0", 1, true) then
+		return fail("path must be a non-empty filesystem path")
 	end
 	local line_start = args.line_start
 	local line_end = args.line_end
@@ -143,11 +81,9 @@ function ReadFileTool:execute(args)
 		return fail("line_start must be a positive integer")
 	elseif type(line_end) ~= "number" or line_end < line_start or line_end % 1 ~= 0 then
 		return fail("line_end must be an integer at or after line_start")
-	elseif line_end - line_start + 1 > self.max_lines then
-		return fail(("line range exceeds %d lines"):format(self.max_lines))
 	end
 
-	local content, err = self.read_func(path)
+	local content, err = self.fs:read(path)
 	if not content then
 		return fail(err or "file not found")
 	end
@@ -168,7 +104,7 @@ function ReadFileTool:execute(args)
 	if #result > self.max_chars then
 		result = result:sub(1, self.max_chars) .. "\n...[truncated]"
 	end
-	return result
+	return utf8validate(result)
 end
 
 return ReadFileTool

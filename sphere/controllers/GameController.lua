@@ -1,5 +1,7 @@
 local class = require("class")
 local brand = require("brand")
+local json = require("web.json")
+local utf8validate = require("utf8validate")
 
 local OnlineModel = require("rizu.online.OnlineModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
@@ -49,9 +51,13 @@ local McpServer = require("mcp.Server")
 local OpenAiClient = require("ai.openai.Client")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
+local GetToolFailuresTool = require("rizu.ai.GetToolFailuresTool")
+local InspectRuntimeTool = require("rizu.ai.InspectRuntimeTool")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
 local ReadFileTool = require("rizu.ai.ReadFileTool")
+local SearchSourceTool = require("rizu.ai.SearchSourceTool")
 local SourceLocationTool = require("rizu.ai.SourceLocationTool")
+local ToolFailureLog = require("rizu.ai.ToolFailureLog")
 local McpSessionStore = require("rizu.ai.McpSessionStore")
 local RestartTool = require("rizu.ai.RestartTool")
 local RuntimeStateTool = require("rizu.ai.RuntimeStateTool")
@@ -83,6 +89,22 @@ local GlobalTimer = require("rizu.game.GlobalTimer")
 local MultiplayerClient = require("sea.multi.MultiplayerClient")
 
 local DlcManager = require("rizu.dlc.DlcManager")
+
+---@param surface "agent"|"mcp"
+---@param name string?
+---@param arguments any
+---@param err string
+---@param failure_log rizu.ai.ToolFailureLog
+local function logToolFailure(failure_log, surface, name, arguments, err)
+	failure_log:add(surface, name, arguments, err)
+	local ok, encoded = pcall(json.encode, {
+		surface = surface,
+		tool = name,
+		arguments = arguments,
+		error = err,
+	})
+	print("AI tool failure: " .. utf8validate(ok and encoded or tostring(err)))
+end
 
 ---@class sphere.GameController
 ---@operator call: sphere.GameController
@@ -267,6 +289,7 @@ function GameController:load()
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai
+	self.aiToolFailureLog = ToolFailureLog()
 	local openai_client = OpenAiClient({
 		base_url = ai_config.base_url,
 		api_key = ai_config.api_key,
@@ -281,13 +304,19 @@ function GameController:load()
 		end,
 	})
 	local ai_tools = {
+		SearchSourceTool(self.fs),
+		InspectRuntimeTool(self),
+		GetToolFailuresTool(self.aiToolFailureLog),
 		SourceLocationTool(self),
-		ReadFileTool(),
+		ReadFileTool(self.fs),
 		LuaEvalTool(self),
 	}
 	local ai_agent = OpenAiAgent(openai_client, ai_tools, {
 		streaming = true,
 		max_tool_rounds = 50,
+		on_tool_failure = function(name, arguments, err)
+			logToolFailure(self.aiToolFailureLog, "agent", name, arguments, err)
+		end,
 	})
 	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt)
 	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
@@ -308,6 +337,9 @@ function GameController:load()
 			host = mcp_config.host,
 			port = mcp_config.port,
 			token = mcp_config.token,
+			on_tool_failure = function(name, arguments, err)
+				logToolFailure(self.aiToolFailureLog, "mcp", name, arguments, err)
+			end,
 			session_id_generator = function()
 				return mcp_session_store:generateId()
 			end,

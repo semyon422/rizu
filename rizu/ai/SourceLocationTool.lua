@@ -20,13 +20,13 @@ local json = require("web.json")
 local SourceLocationTool = class()
 
 SourceLocationTool.name = "get_source_location"
-SourceLocationTool.description = "Find the repository filename and line range for a public runtime function using a dot-separated path rooted at game, such as game.network.request. Use read_file on the returned range to inspect its implementation."
+SourceLocationTool.description = "Find the repository filename and line range for a runtime function using a dot-separated path rooted at game, such as game.network.request. Use read_file on the returned range to inspect its implementation."
 SourceLocationTool.input_schema = {
 	type = "object",
 	properties = {
 		target = {
 			type = "string",
-			description = "Public runtime function path rooted at game, for example game.aiChatModel.send",
+			description = "Runtime function path rooted at game, for example game.aiChatModel.send",
 		},
 	},
 	required = {"target"},
@@ -76,8 +76,6 @@ function SourceLocationTool:execute(args)
 			if part ~= "game" then
 				return fail("target must be rooted at game")
 			end
-		elseif part:sub(1, 1) == "_" then
-			return fail("private path segments are unavailable")
 		elseif type(value) ~= "table" then
 			return fail("cannot traverse through " .. part)
 		else

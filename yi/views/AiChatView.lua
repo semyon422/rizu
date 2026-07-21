@@ -3,6 +3,7 @@ local brand = require("brand")
 local Resources = require("yi.Resources")
 local Colors = require("yi.Colors")
 local utf8 = require("utf8")
+local utf8validate = require("utf8validate")
 
 ---@class yi.views.AiChatView : gui.View
 ---@operator call: yi.views.AiChatView
@@ -84,7 +85,7 @@ function AiChatView:onKeyDown(e)
 		self.model:clear()
 		self.scroll = 0
 	elseif e.control_pressed and e.key == "v" then
-		self.input = self.input .. love.system.getClipboardText()
+		self.input = utf8validate(self.input .. love.system.getClipboardText())
 	elseif e.key == "pageup" then
 		self.scroll = self.scroll + 10
 	elseif e.key == "pagedown" then
@@ -96,7 +97,7 @@ end
 ---@param e gui.TextInputEvent
 ---@return true
 function AiChatView:onTextInput(e)
-	self.input = self.input .. e.key
+	self.input = utf8validate(self.input .. e.key)
 	return true
 end
 
@@ -116,7 +117,8 @@ function AiChatView:getLines()
 	}
 	for _, entry in ipairs(self.model.entries) do
 		local label = entry.name and (entry.role .. " " .. entry.name) or entry.role
-		local _, wrapped = font:getWrap(("[%s] %s"):format(label, entry.content), wrap_width)
+		local text = utf8validate(("[%s] %s"):format(label, entry.content))
+		local _, wrapped = font:getWrap(text, wrap_width)
 		for _, line in ipairs(wrapped) do
 			table.insert(lines, {text = line, color = role_colors[entry.role] or Colors.text})
 		end
@@ -171,7 +173,7 @@ function AiChatView:draw()
 	love.graphics.rectangle("fill", 0, input_y, self.width, INPUT_HEIGHT)
 	love.graphics.setFont(font)
 	love.graphics.setColor(Colors.text)
-	local prompt = self.input
+	local prompt = utf8validate(self.input)
 	if prompt == "" then
 		love.graphics.setColor(Colors.text_muted)
 		prompt = "Type a message and press Enter..."
