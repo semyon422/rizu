@@ -85,6 +85,9 @@ function ReplayConverter:convertModifier(c, replay)
 	if c.value == true then
 		c.value = nil
 	end
+	if c.value == false then
+		return false
+	end
 
 	if c.name then
 		-- deleted modifiers
@@ -113,21 +116,12 @@ function ReplayConverter:convertModifier(c, replay)
 			return false
 		end
 		c.name = nil
+	end
 
-		for k in pairs(c) do
-			if k ~= "value" and k ~= "version" and k ~= "id" then
-				c[k] = nil
-			end
+	for k in pairs(c) do
+		if k ~= "value" and k ~= "version" and k ~= "id" then
+			c[k] = nil
 		end
-
-		return true
-	end
-
-	if c.value == nil then
-		return true
-	end
-	if c.value == false then
-		return false
 	end
 
 	return true
