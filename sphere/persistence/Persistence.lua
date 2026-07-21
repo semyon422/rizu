@@ -34,7 +34,7 @@ function Persistence:load()
 	self.configManager:loadById("settings")
 
 	local configModel = self.configModel
-	configModel:open("ai")
+	configModel:open("ai", true)
 	configModel:open("ai_auth", true)
 	configModel:open("needle")
 	configModel:open("mcp")

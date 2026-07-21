@@ -12,6 +12,8 @@ local utf8validate = require("utf8validate")
 ---@field scroll integer
 ---@field cached_lines {text: string, color: gui.Color}[]?
 ---@field cached_wrap_width number?
+---@field model_menu_open boolean
+---@field model_menu_scroll integer
 local AiChatView = View + {}
 
 local PADDING = 18
@@ -21,6 +23,9 @@ local LINE_HEIGHT = 24
 local STOP_WIDTH = 72
 local STOP_HEIGHT = 32
 local LOGIN_WIDTH = 142
+local MODEL_X = 170
+local MODEL_WIDTH = 300
+local MODEL_ROW_HEIGHT = 30
 
 ---@param model rizu.ai.ChatModel
 ---@param on_close fun()
@@ -36,6 +41,8 @@ function AiChatView:new(model, on_close)
 	self.scroll = 0
 	self.cached_lines = nil
 	self.cached_wrap_width = nil
+	self.model_menu_open = false
+	self.model_menu_scroll = 0
 	self.model:onChanged(self)
 end
 
@@ -57,6 +64,12 @@ end
 ---@return true
 function AiChatView:onMouseClick(e)
 	local x, y = self.transform:inverseTransformPoint(e.x, e.y)
+	if self.model_menu_open and x >= MODEL_X and x <= MODEL_X + MODEL_WIDTH and y >= TITLE_HEIGHT then
+		local index = self.model_menu_scroll + math.floor((y - TITLE_HEIGHT) / MODEL_ROW_HEIGHT) + 1
+		if self.model:getModelOptions()[index] then self.model:selectModel(index) end
+		self.model_menu_open = false
+		return true
+	end
 	if self.model.busy and x >= self.width - PADDING - STOP_WIDTH and x <= self.width - PADDING
 		and y >= 8 and y <= 8 + STOP_HEIGHT
 	then
@@ -68,6 +81,26 @@ function AiChatView:onMouseClick(e)
 		if status ~= "logging_in" and status ~= "authenticated" then
 			self.model:startLogin()
 		end
+	elseif not self.model.busy and #self.model:getModelOptions() > 0
+		and x >= MODEL_X and x <= MODEL_X + MODEL_WIDTH and y >= 8 and y <= 8 + STOP_HEIGHT
+	then
+		self.model_menu_open = not self.model_menu_open
+		self.model_menu_scroll = 0
+	else
+		self.model_menu_open = false
+	end
+	return true
+end
+
+---@param e gui.ScrollEvent
+---@return true
+function AiChatView:onScroll(e)
+	if self.model_menu_open then
+		local max_rows = math.floor((self.height - TITLE_HEIGHT) / MODEL_ROW_HEIGHT)
+		local max_scroll = math.max(0, #self.model:getModelOptions() - max_rows)
+		self.model_menu_scroll = math.max(0, math.min(max_scroll, self.model_menu_scroll - e.direction_y))
+	else
+		self.scroll = math.max(0, self.scroll + e.direction_y * 3)
 	end
 	return true
 end
@@ -75,6 +108,8 @@ end
 function AiChatView:reset()
 	self.input = ""
 	self.scroll = 0
+	self.model_menu_open = false
+	self.model_menu_scroll = 0
 end
 
 ---@param e gui.KeyDownEvent
@@ -158,6 +193,14 @@ function AiChatView:draw()
 	love.graphics.print(brand.name .. " AI", PADDING, 12)
 	love.graphics.setFont(small_font)
 	love.graphics.setColor(Colors.text_muted)
+	local model_options = self.model:getModelOptions()
+	if #model_options > 0 then
+		love.graphics.setColor(Colors.panel_alt)
+		love.graphics.rectangle("fill", MODEL_X, 8, MODEL_WIDTH, STOP_HEIGHT)
+		love.graphics.setColor(Colors.text)
+		love.graphics.printf(utf8validate(self.model:getSelectedModelLabel()), MODEL_X + 8, 15, MODEL_WIDTH - 16, "left")
+		love.graphics.setColor(Colors.text_muted)
+	end
 	local help = self.model.busy and "Esc stop  •  Ctrl+L clear  •  Shift+Enter newline"
 		or "Esc close  •  Ctrl+L clear  •  Shift+Enter newline"
 	local auth_status, auth_error = self.model:getAuthStatus()
@@ -222,6 +265,20 @@ function AiChatView:draw()
 		love.graphics.setFont(small_font)
 		love.graphics.setColor(Colors.back_button)
 		love.graphics.printf(utf8validate(auth_error), PADDING, self.height - 24, self.width - PADDING * 2, "right")
+	end
+
+	if self.model_menu_open then
+		love.graphics.setFont(small_font)
+		local max_rows = math.floor((self.height - TITLE_HEIGHT) / MODEL_ROW_HEIGHT)
+		local last_index = math.min(#model_options, self.model_menu_scroll + max_rows)
+		for index = self.model_menu_scroll + 1, last_index do
+			local model_option = model_options[index]
+			local y = TITLE_HEIGHT + (index - self.model_menu_scroll - 1) * MODEL_ROW_HEIGHT
+			love.graphics.setColor(index == self.model:getSelectedModelIndex() and Colors.accent or Colors.panel_alt)
+			love.graphics.rectangle("fill", MODEL_X, y, MODEL_WIDTH, MODEL_ROW_HEIGHT)
+			love.graphics.setColor(Colors.text)
+			love.graphics.printf(utf8validate(model_option.label), MODEL_X + 8, y + 7, MODEL_WIDTH - 16, "left")
+		end
 	end
 end
 

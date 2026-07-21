@@ -23,6 +23,7 @@ local Observable = require("Observable")
 ---@field max_history_chars integer
 ---@field max_entries integer
 ---@field auth aqua.openai.SubscriptionAuth?
+---@field provider_manager rizu.ai.ProviderManager?
 local ChatModel = class()
 
 ChatModel.max_history_chars = 200000
@@ -30,14 +31,15 @@ ChatModel.max_entries = 200
 
 ---@param agent aqua.openai.Agent
 ---@param system_prompt string
----@param options {max_history_chars: integer?, max_entries: integer?, auth: aqua.openai.SubscriptionAuth?}?
+---@param options {max_history_chars: integer?, max_entries: integer?, auth: aqua.openai.SubscriptionAuth?, provider_manager: rizu.ai.ProviderManager?}?
 function ChatModel:new(agent, system_prompt, options)
 	options = options or {}
 	self.agent = agent
 	self.system_prompt = system_prompt
 	self.max_history_chars = options.max_history_chars or self.max_history_chars
 	self.max_entries = options.max_entries or self.max_entries
-	self.auth = options.auth
+	self.provider_manager = options.provider_manager
+	self.auth = options.auth or (self.provider_manager and self.provider_manager:getAuth())
 	self.observable = Observable()
 	self.entries = {}
 	self.messages = {}
@@ -53,6 +55,47 @@ function ChatModel:new(agent, system_prompt, options)
 		end
 		self:addEntry("tool", content, tool_call["function"].name)
 	end
+end
+
+---@param auth aqua.openai.SubscriptionAuth?
+function ChatModel:setAuth(auth)
+	if self.auth == auth then return end
+	if self.auth then self.auth:offChanged(self) end
+	self.auth = auth
+	if self.auth then self.auth:onChanged(self) end
+end
+
+---@return rizu.ai.ModelOption[]
+function ChatModel:getModelOptions()
+	return self.provider_manager and self.provider_manager.options or {}
+end
+
+---@return integer
+function ChatModel:getSelectedModelIndex()
+	return self.provider_manager and self.provider_manager.selected_index or 0
+end
+
+---@return string
+function ChatModel:getSelectedModelLabel()
+	local manager = self.provider_manager
+	return manager and manager:getSelectedOption().label or ""
+end
+
+---@param index integer
+---@return boolean
+---@return string?
+function ChatModel:selectModel(index)
+	if self.busy then return false, "cannot switch model while a request is running" end
+	local manager = self.provider_manager
+	if not manager then return false, "model selection is not configured" end
+	if index == manager.selected_index then return true end
+	local client, auth = manager:select(index)
+	self.agent:setClient(client)
+	self:setAuth(auth)
+	self.entries = {}
+	self:resetMessages()
+	self:emitChanged()
+	return true
 end
 
 ---@param event table
@@ -285,8 +328,10 @@ function ChatModel:unload()
 		self:cancel()
 	end
 	self.active = false
-	if self.auth then
-		self.auth:offChanged(self)
+	if self.auth then self.auth:offChanged(self) end
+	if self.provider_manager then
+		self.provider_manager:unload()
+	elseif self.auth then
 		self.auth:unload()
 	end
 	self:emitChanged()

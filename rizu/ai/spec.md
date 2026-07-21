@@ -7,7 +7,8 @@ Also provide an offline Needle command router that turns one natural-language pa
 ## User Experience
 
 - The player opens AI chat from the global command palette without leaving the current screen.
-- With `provider = "openai_subscription"`, the chat header offers an OpenAI login button. It opens the system browser and completes through a loopback callback; the player returns to the game after authorizing the account.
+- When the selected provider has `type = "openai_subscription"`, the chat header offers an OpenAI login button. It opens the system browser and completes through a loopback callback; the player returns to the game after authorizing the account.
+- The chat header shows the active provider and model. Clicking it opens a scrollable selector containing every configured provider/model pair; selecting one starts a fresh conversation with that backend.
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
@@ -37,8 +38,36 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The subscription connector uses the game-wide `NetworkService` for token and inference requests, so its traffic follows the same proxy policy and non-blocking scheduler as other game network traffic.
 - OAuth credentials are stored in ignored `userdata/ai_auth.lua`. The tracked config contains only an empty credential shape; access and refresh tokens must never be committed or logged.
 - ChatGPT subscription access and API-key access are separate provider contracts. The normal `openai_compatible` client remains available for local Qwen and public API endpoints and never reads subscription credentials.
+- `ProviderManager` flattens named provider entries and their ordered model lists into UI choices, constructs and caches the matching protocol clients, owns shared subscription authentication, and persists `active_provider` plus `active_model` after selection.
 - Game chat allows up to 50 sequential tool-call rounds before the agent returns a tool-limit error.
-- Provider, endpoint, API key, model, timeout, and reasoning effort are overridden in ignored `userdata/ai.lua`. `openai_compatible` remains the tracked default, so subscription login is opt-in.
+- Ignored `userdata/ai.lua` defines a `providers` dictionary. Each named provider has a display name, provider type, ordered `models` list, and its protocol-specific endpoint/auth/generation settings. `active_provider` and `active_model` persist the selector state.
+- Legacy single-provider `provider`, `model`, and transport fields are converted in memory when no provider dictionary exists, preserving existing user configurations without rewriting them on load.
+- A minimal multi-provider `userdata/ai.lua` has this shape:
+
+```lua
+return {
+	active_provider = "local_provider",
+	active_model = "local-model",
+	providers = {
+		local_provider = {
+			name = "Local",
+			type = "openai_compatible",
+			models = {"local-model", "another-model"},
+			base_url = "http://localhost:28080/v1",
+			api_key = "",
+			max_tokens = 4096,
+			timeout = 300,
+		},
+		openai = {
+			name = "OpenAI",
+			type = "openai_subscription",
+			models = {"gpt-model"},
+			reasoning_effort = "medium",
+			timeout = 300,
+		},
+	},
+}
+```
 - The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
 - `AiChatView` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
 - `AiChatView` validates transcript and input strings before passing them to LÖVE text APIs so malformed tool or clipboard bytes cannot crash rendering.
@@ -60,6 +89,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - A failed request preserves its user prompt and every complete assistant tool-call/result group so a later retry or follow-up still has the original context. Only an incomplete trailing protocol group is removed.
 - A request retains the user message, assistant tool-call message, matching tool results, and final assistant response in protocol order.
 - Conversation trimming removes complete old turns and always preserves the system message.
+- Switching provider or model is allowed only while idle and clears both visible and protocol conversation history. Provider-owned Responses reasoning items must never be sent to a different provider or model.
 - Lua bytecode is rejected, output is size-bounded, and syntax/runtime failures are returned as tool results.
 - Source reads remain repository-relative and character-bounded, but have no root, extension, or line-count allowlist. They are a trusted developer capability and may expose ignored runtime configuration.
 - Source search requires an explicit starting path and bounds returned matches, but it does not apply a root or extension allowlist.

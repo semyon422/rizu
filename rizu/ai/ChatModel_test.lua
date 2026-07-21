@@ -192,4 +192,40 @@ function test.subscription_login_gates_requests_and_forwards_status(t)
 	t:eq(unloaded, 1)
 end
 
+---@param t testing.T
+function test.switching_model_replaces_client_and_clears_conversation(t)
+	local selected = 1
+	local client = {}
+	local manager = {
+		selected_index = 1,
+		options = {
+			{provider_id = "local", provider_name = "Local", model = "qwen", label = "Local — qwen"},
+			{provider_id = "openai", provider_name = "OpenAI", model = "gpt", label = "OpenAI — gpt"},
+		},
+		getSelectedOption = function(self) return self.options[self.selected_index] end,
+		getAuth = function() return nil end,
+		select = function(self, index)
+			self.selected_index = index
+			selected = index
+			return client, nil
+		end,
+		unload = function() end,
+	}
+	local agent = makeAgent(function(messages)
+		local reply = {role = "assistant", content = "reply"}
+		table.insert(messages, reply)
+		return reply
+	end)
+	agent.setClient = function(_, value) t:eq(value, client) end
+	local model = ChatModel(agent, "system", {provider_manager = manager --[[@as rizu.ai.ProviderManager]]})
+	model:send("old conversation")
+	t:eq(#model.entries, 2)
+	t:assert(model:selectModel(2))
+	t:eq(selected, 2)
+	t:eq(model:getSelectedModelLabel(), "OpenAI — gpt")
+	t:eq(#model.entries, 0)
+	t:eq(#model.messages, 1)
+	model:unload()
+end
+
 return test
