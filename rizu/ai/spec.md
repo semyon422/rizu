@@ -108,11 +108,18 @@ return {
 
 ## Future Work and Open Questions
 
-- Add explicit approval UI before state-changing tools when the agent is exposed beyond trusted local use.
-- If prompts become untrusted, run Lua evaluation behind a non-bypassable execution timeout or instruction limit, preferably outside the main game thread.
-- If full process access becomes undesirable, replace `__index = _G` with an explicit global allowlist and expose narrower game inspection and command APIs.
+- Validate agent tool arguments against their published schemas before execution, reusing `mcp.JsonSchema`. Prefer strict schemas with complete `required` lists and `additionalProperties = false` where provider capabilities allow it.
+- Add tool risk metadata and explicit approval UI before Lua evaluation, restarts, settings changes, file writes, or other state-changing calls. Keep focused read-only inspection automatic.
+- Replace character-based history limits with token-aware context accounting. Compact old complete turns into summaries while preserving recent tool groups and every provider-owned Responses item required for stateless reasoning continuity.
+- Record request traces containing provider, model, first-token latency, total duration, token usage when reported, tool timings, round count, cancellation, and errors. Make recent traces available to both the UI and diagnostic tools.
+- Build a reproducible agent evaluation suite covering source inspection, network requests, malformed tool calls, context preservation, cancellation, provider switching, and tool-choice/final-answer quality across local and subscription models.
+- Move potentially expensive source search, large reads, serialization, and evaluation away from the render thread or give them cooperative work and time budgets. If prompts become untrusted, Lua evaluation also needs a non-bypassable instruction or process-level limit.
+- Replace unrestricted game-object access with focused tools for screen state, chart and library selection, settings, gameplay state, and approved commands. If full process access becomes undesirable, replace Lua evaluation's `_G` fallback with an explicit allowlist.
+- Improve chat interaction with retry/regenerate, edit-and-resend, copy output, collapsible tool results, a context-usage display, and per-model reasoning controls.
+- Persist conversations with their provider and model identity. Restore only under a compatible selection, and never replay provider-owned reasoning items into another provider or model.
+- Extend provider configuration with explicit capabilities for tools, strict schemas, reasoning, streaming, roles, and image input instead of assuming OpenAI-compatible behavior.
+- Add focused screenshot/image input to the in-game agent so it can inspect the current UI without unrestricted runtime evaluation.
+- Consider optional automatic routing for simple local requests versus difficult or tool-heavy subscription requests, with a visible override and deterministic policy.
 - Consider memory limits and stronger output/result serialization bounds for adversarial evaluations.
-- Add model/provider selection to retained settings.
-- Replace unrestricted game-object access with narrower read and command tools as useful workflows become clear.
 - Continue Needle runtime work by borrowing non-threading Cactus ideas first: blocked attention, FP16 scratch evaluation, fused/layout-aware kernels, and persistent execution metadata. Threading remains a later architectural decision because the embedded runtime currently documents single-threaded ownership.
 - Use `rizu/ai/benchmarks/needle_routing.lua` to check compact routing prompt latency and tool-selection quality before changing routing descriptions or schema shape. By default it runs route selection and then a selected-schema final generation; set `ROUTE_ONLY=1` to measure routing alone. Keep ambiguous phrases such as bare "random chart" or "search camellia" out of the pass/fail set until the model reliably distinguishes selection, search, and option commands for those phrasings. Some final-generation argument values remain quality gaps (for example vague speed changes and autoplay mode), so only stable argument expectations should be hard failures.
