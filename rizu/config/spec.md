@@ -80,7 +80,7 @@ classDiagram
 - **Tree Discovery**: The class is schema-layout agnostic and recursively walks the input `schema` tree to register setting paths (e.g., `"audio.volume.master"`) to setting instances.
 - **Flat Hashmap Lookups**: To optimize access, `Config` maintains a flat `settings_map` of registered settings and path lookup tables (`path_to_setting` and `setting_to_path`).
 - **Serialization and Deserialization**:
-  - `Config:serialize()`: Returns a JSON-serialized string of the current `persistent_values` mapped by setting path.
+  - `Config:serialize()`: Returns a deterministically ordered, tab-indented JSON string of the current `persistent_values` mapped by setting path. The output ends with a newline so saved configuration files remain easy to inspect and edit.
   - `Config:deserialize(json)`: Deserializes setting path-value pairs from a JSON string into `persistent_values`.
 
 #### The `ConfigManager` Class

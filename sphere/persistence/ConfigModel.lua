@@ -125,7 +125,7 @@ end
 ---@param config table
 ---@return boolean
 function ConfigModel:writeFile(path, config)
-	return assert(love.filesystem.write(path, ("return %s\n"):format(stbl.encode(config))))
+	return assert(love.filesystem.write(path, ("return %s\n"):format(stbl.encode_pretty(config))))
 end
 
 return ConfigModel

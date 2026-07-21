@@ -4,6 +4,9 @@
 The `sphere/` tree contains the older client architecture that is still maintained where necessary but is being gradually replaced by `rizu/`. Work here should preserve behavior and avoid introducing new long-term architectural debt unless the task is explicitly legacy-focused.
 
 ## User Experience
+
+User configuration files are written as deterministically ordered, tab-indented Lua tables with trailing commas and a final newline so they remain readable and easy to edit by hand.
+
 - Legacy screens and flows should continue working while the project transitions functionality toward `rizu/`.
 - Bug fixes in `sphere/` should prioritize stability and compatibility with existing save data, UI flows, and integration points.
 

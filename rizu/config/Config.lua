@@ -165,7 +165,7 @@ function Config:serialize()
 			data[path] = value
 		end
 	end
-	return json.encode(data)
+	return json.encode(data, {indent = "\t"}) .. "\n"
 end
 
 ---@param json_str string

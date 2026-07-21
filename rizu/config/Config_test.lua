@@ -136,6 +136,11 @@ function test.serialization_and_deserialization(t)
 
 	local serialized = config:serialize()
 	t:eq(type(serialized), "string")
+	t:eq(serialized, [[{
+	"audio.volume.master": 0.80000000000000004,
+	"gameplay.speed.scroll": 4.5
+}
+]])
 
 	-- Deserialize into a new config
 	local config2 = Config(schema)
