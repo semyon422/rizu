@@ -1,12 +1,13 @@
 ## Goal
 
-Provide an in-game AI chat backed by an OpenAI-compatible local provider, with game-aware tools and state kept separate from the reusable protocol code in `aqua/ai/openai`.
+Provide an in-game AI chat backed by either an OpenAI-compatible local provider or an OpenAI subscription login, with game-aware tools and state kept separate from the reusable protocol code in `aqua/ai/openai`.
 
 Also provide an offline Needle command router that turns one natural-language palette query into one explicitly confirmed, allowlisted game command.
 
 ## User Experience
 
 - The player opens AI chat from the global command palette without leaving the current screen.
+- With `provider = "openai_subscription"`, the chat header offers an OpenAI login button. It opens the system browser and completes through a loopback callback; the player returns to the game after authorizing the account.
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
@@ -31,8 +32,13 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The development MCP surface also provides `RuntimeStateTool` for structured read-only screen, selection, and preview observations, `ScreenshotTool` for asynchronous PNG image content, and `RestartTool` for requesting a LÖVE-managed process restart. These focused tools are preferred over Lua evaluation when they cover the workflow.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
 - The configured provider uses the OpenAI-compatible `/v1/chat/completions` endpoint and streams assistant text through server-sent events.
+- `openai_subscription` is an isolated compatibility connector for the same OAuth and ChatGPT Codex Responses flow used by PI. It uses authorization-code PKCE, validates the callback state, binds the callback server to loopback only, refreshes expired access tokens, and supplies the ChatGPT account ID required by the Responses backend.
+- Subscription Responses are translated by reusable `aqua/ai/openai/SubscriptionClient.lua`: system messages become instructions, existing chat/tool messages become Responses input items, and completed provider output items are retained verbatim. Retaining encrypted reasoning items is required for a valid continuation across tool rounds.
+- The subscription connector uses the game-wide `NetworkService` for token and inference requests, so its traffic follows the same proxy policy and non-blocking scheduler as other game network traffic.
+- OAuth credentials are stored in ignored `userdata/ai_auth.lua`. The tracked config contains only an empty credential shape; access and refresh tokens must never be committed or logged.
+- ChatGPT subscription access and API-key access are separate provider contracts. The normal `openai_compatible` client remains available for local Qwen and public API endpoints and never reads subscription credentials.
 - Game chat allows up to 50 sequential tool-call rounds before the agent returns a tool-limit error.
-- Provider endpoint, API key, and model are configured only in ignored `userdata/ai.lua`. Tracked configuration does not select a provider or model.
+- Provider, endpoint, API key, model, timeout, and reasoning effort are overridden in ignored `userdata/ai.lua`. `openai_compatible` remains the tracked default, so subscription login is opt-in.
 - The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
 - `AiChatView` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
 - `AiChatView` validates transcript and input strings before passing them to LÖVE text APIs so malformed tool or clipboard bytes cannot crash rendering.
@@ -62,6 +68,8 @@ Also provide an offline Needle command router that turns one natural-language pa
 - Lua evaluation reports an explicit MCP execution-error flag in addition to its JSON result, while the OpenAI agent continues to consume the same result text.
 - The Lua tool is a trusted developer capability, not a security sandbox. It exposes the process globals and the `game` object, including state-changing and process-level APIs.
 - The API key must not be committed to the repository or printed in diagnostics.
+- OAuth access tokens, refresh tokens, and callback authorization codes must not be printed, exposed in UI errors, or committed. The callback accepts only the active state value and authorization verifier.
+- The OAuth client and ChatGPT Codex backend are compatibility surfaces rather than the public OpenAI API contract. Keep them in separate `SubscriptionAuth` and `SubscriptionClient` modules so changes do not regress local or API-key providers.
 - Opening AI chat and opening the command palette are mutually exclusive so only one overlay owns keyboard input.
 - Native Needle inference never runs on the render thread, and output from superseded request IDs never becomes executable.
 - Enter executes only a complete proposal produced for the byte-identical current query. Needle has no access to Lua evaluation, arbitrary commands, conversation history, or the `game` object.

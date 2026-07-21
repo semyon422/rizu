@@ -158,4 +158,38 @@ function test.cancel_preserves_partial_transcript_and_discards_protocol_turn(t)
 	t:eq(model:cancel(), false)
 end
 
+---@param t testing.T
+function test.subscription_login_gates_requests_and_forwards_status(t)
+	local observer
+	local started = 0
+	local unloaded = 0
+	local auth = {
+		status = "unauthenticated",
+		onChanged = function(_, value) observer = value end,
+		offChanged = function(_, value) t:eq(value, observer) end,
+		isAuthenticated = function() return false end,
+		startLogin = function()
+			started = started + 1
+			return true
+		end,
+		unload = function() unloaded = unloaded + 1 end,
+	}
+	local model = ChatModel(makeAgent(function() error("not used") end), "system", {
+		auth = auth --[[@as aqua.openai.SubscriptionAuth]],
+	})
+	local changes = 0
+	model:onChanged(function() changes = changes + 1 end)
+
+	t:eq(model:hasAuth(), true)
+	local ok, err = model:send("hello")
+	t:eq(ok, false)
+	t:eq(err, "OpenAI login is required")
+	t:assert(model:startLogin())
+	t:eq(started, 1)
+	observer:receive({type = "ai_auth_changed"})
+	t:eq(changes, 1)
+	model:unload()
+	t:eq(unloaded, 1)
+end
+
 return test

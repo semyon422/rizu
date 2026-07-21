@@ -3,6 +3,7 @@ local stbl = require("stbl")
 
 ---@class sphere.Configs
 ---@field ai sphere.AiConfig
+---@field ai_auth sphere.AiAuthConfig
 ---@field needle sphere.NeedleConfig
 ---@field mcp sphere.McpConfig
 ---@field network sphere.NetworkConfig
@@ -96,7 +97,12 @@ function ConfigModel:_write(name)
 	return self:writeFile(path, config)
 end
 
-function ConfigModel:write()
+---@param specific_name string?
+---@return boolean?
+function ConfigModel:write(specific_name)
+	if specific_name then
+		return self:_write(specific_name)
+	end
 	for name, writable in pairs(self.openedConfigs) do
 		if writable then
 			self:_write(name)

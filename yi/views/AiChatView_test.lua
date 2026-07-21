@@ -85,4 +85,25 @@ function test.validates_transcript_text_before_wrapping(t)
 	end
 end
 
+---@param t testing.T
+function test.centers_in_scaled_window_coordinates(t)
+	local old_love = love
+	love = {graphics = {getDimensions = function() return 1600, 900 end}}
+	local ok, err = xpcall(function()
+		local model = {
+			entries = {},
+			onChanged = function() end,
+		}
+		local view = AiChatView(model --[[@as rizu.ai.ChatModel]], function() end)
+		view.ui_scale = 0.5
+		view:load()
+		view:applyLayout()
+		local center_x, center_y = view.transform:transformPoint(view.width / 2, view.height / 2)
+		t:eq(center_x, 800)
+		t:eq(center_y, 450)
+	end, debug.traceback)
+	love = old_love
+	if not ok then error(err) end
+end
+
 return test

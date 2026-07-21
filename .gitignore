@@ -36,6 +36,7 @@ userdata/avatar.png
 userdata/lasterror.txt
 userdata/settings.json
 userdata/ai.lua
+userdata/ai_auth.lua
 userdata/mcp.lua
 userdata/mcp_sessions.json
 userdata/needle.lua

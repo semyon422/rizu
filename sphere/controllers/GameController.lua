@@ -51,6 +51,8 @@ local McpServer = require("mcp.Server")
 local OpenAiClient = require("ai.openai.Client")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
+local OpenAiSubscriptionAuth = require("ai.openai.SubscriptionAuth")
+local OpenAiSubscriptionClient = require("ai.openai.SubscriptionClient")
 local GetToolFailuresTool = require("rizu.ai.GetToolFailuresTool")
 local InspectRuntimeTool = require("rizu.ai.InspectRuntimeTool")
 local LuaEvalTool = require("rizu.ai.LuaEvalTool")
@@ -289,20 +291,46 @@ function GameController:load()
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai
+	assert(ai_config.provider == "openai_compatible" or ai_config.provider == "openai_subscription", "invalid AI provider")
 	self.aiToolFailureLog = ToolFailureLog()
-	local openai_client = OpenAiClient({
-		base_url = ai_config.base_url,
-		api_key = ai_config.api_key,
-		model = ai_config.model,
-		max_tokens = ai_config.max_tokens,
-		timeout = ai_config.timeout,
-		request = function(url, body, options)
-			return self.network:request(url, body, options)
-		end,
-		open_stream = function(url, options)
-			return self.network:openStream(url, options)
-		end,
-	})
+	---@type aqua.openai.Client|aqua.openai.SubscriptionClient
+	local openai_client
+	---@type aqua.openai.SubscriptionAuth?
+	local subscription_auth
+	if ai_config.provider == "openai_subscription" then
+		subscription_auth = OpenAiSubscriptionAuth({
+			scheduler = self.network.scheduler,
+			credentials = self.persistence.configModel.configs.ai_auth,
+			save_credentials = function() self.persistence.configModel:write("ai_auth") end,
+			open_url = function(url) return love.system.openURL(url) end,
+			request = function(url, body, options)
+				return self.network:request(url, body, options)
+			end,
+		})
+		openai_client = OpenAiSubscriptionClient({
+			auth = subscription_auth,
+			model = ai_config.model,
+			reasoning_effort = ai_config.reasoning_effort,
+			timeout = ai_config.timeout,
+			open_stream = function(url, options)
+				return self.network:openStream(url, options)
+			end,
+		})
+	else
+		openai_client = OpenAiClient({
+			base_url = ai_config.base_url,
+			api_key = ai_config.api_key,
+			model = ai_config.model,
+			max_tokens = ai_config.max_tokens,
+			timeout = ai_config.timeout,
+			request = function(url, body, options)
+				return self.network:request(url, body, options)
+			end,
+			open_stream = function(url, options)
+				return self.network:openStream(url, options)
+			end,
+		})
+	end
 	local ai_tools = {
 		SearchSourceTool(self.fs),
 		InspectRuntimeTool(self),
@@ -318,7 +346,7 @@ function GameController:load()
 			logToolFailure(self.aiToolFailureLog, "agent", name, arguments, err)
 		end,
 	})
-	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt)
+	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt, {auth = subscription_auth})
 	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
 	self.needleGpuProbe = NeedleGpuProbe()
 	self.needleGpuEncoderProbe = NeedleGpuEncoderProbe()

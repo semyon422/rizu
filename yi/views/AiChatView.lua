@@ -20,6 +20,7 @@ local INPUT_HEIGHT = 120
 local LINE_HEIGHT = 24
 local STOP_WIDTH = 72
 local STOP_HEIGHT = 32
+local LOGIN_WIDTH = 142
 
 ---@param model rizu.ai.ChatModel
 ---@param on_close fun()
@@ -38,6 +39,12 @@ function AiChatView:new(model, on_close)
 	self.model:onChanged(self)
 end
 
+function AiChatView:load()
+	local scale = self.ui_scale or 1
+	local width, height = love.graphics.getDimensions()
+	self.box:update(0, 0, width / scale, height / scale)
+end
+
 ---@param event table
 function AiChatView:receive(event)
 	if event.type == "chat_changed" then
@@ -54,6 +61,13 @@ function AiChatView:onMouseClick(e)
 		and y >= 8 and y <= 8 + STOP_HEIGHT
 	then
 		self.model:cancel()
+	elseif self.model:hasAuth() and x >= self.width - PADDING - LOGIN_WIDTH and x <= self.width - PADDING
+		and y >= 8 and y <= 8 + STOP_HEIGHT
+	then
+		local status = self.model:getAuthStatus()
+		if status ~= "logging_in" and status ~= "authenticated" then
+			self.model:startLogin()
+		end
 	end
 	return true
 end
@@ -146,7 +160,10 @@ function AiChatView:draw()
 	love.graphics.setColor(Colors.text_muted)
 	local help = self.model.busy and "Esc stop  •  Ctrl+L clear  •  Shift+Enter newline"
 		or "Esc close  •  Ctrl+L clear  •  Shift+Enter newline"
-	local help_right = self.model.busy and (PADDING * 2 + STOP_WIDTH) or PADDING
+	local auth_status, auth_error = self.model:getAuthStatus()
+	local show_auth = self.model:hasAuth() and not self.model.busy
+	local help_right = self.model.busy and (PADDING * 2 + STOP_WIDTH)
+		or show_auth and (PADDING * 2 + LOGIN_WIDTH) or PADDING
 	love.graphics.printf(help, 0, 15, self.width - help_right, "right")
 	if self.model.busy then
 		local stop_x = self.width - PADDING - STOP_WIDTH
@@ -154,6 +171,24 @@ function AiChatView:draw()
 		love.graphics.rectangle("fill", stop_x, 8, STOP_WIDTH, STOP_HEIGHT)
 		love.graphics.setColor(Colors.text)
 		love.graphics.printf("Stop", stop_x, 15, STOP_WIDTH, "center")
+	elseif show_auth then
+		local login_x = self.width - PADDING - LOGIN_WIDTH
+		local login_text = "Login OpenAI"
+		local login_color = Colors.accent
+		if auth_status == "logging_in" then
+			login_text = "Waiting for login"
+			login_color = Colors.text_muted
+		elseif auth_status == "authenticated" then
+			login_text = "OpenAI connected"
+			login_color = Colors.accent
+		elseif auth_status == "error" then
+			login_text = "Retry OpenAI login"
+			login_color = Colors.back_button
+		end
+		love.graphics.setColor(login_color)
+		love.graphics.rectangle("fill", login_x, 8, LOGIN_WIDTH, STOP_HEIGHT)
+		love.graphics.setColor(Colors.text)
+		love.graphics.printf(login_text, login_x, 15, LOGIN_WIDTH, "center")
 	end
 
 	local lines = self:getLines()
@@ -183,6 +218,10 @@ function AiChatView:draw()
 		love.graphics.setFont(small_font)
 		love.graphics.setColor(Colors.accent)
 		love.graphics.printf("Streaming...", 0, self.height - 24, self.width - PADDING, "right")
+	elseif auth_status == "error" and auth_error then
+		love.graphics.setFont(small_font)
+		love.graphics.setColor(Colors.back_button)
+		love.graphics.printf(utf8validate(auth_error), PADDING, self.height - 24, self.width - PADDING * 2, "right")
 	end
 end
 

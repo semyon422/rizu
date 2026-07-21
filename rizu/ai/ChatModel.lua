@@ -22,6 +22,7 @@ local Observable = require("Observable")
 ---@field streaming_entry rizu.ai.ChatEntry?
 ---@field max_history_chars integer
 ---@field max_entries integer
+---@field auth aqua.openai.SubscriptionAuth?
 local ChatModel = class()
 
 ChatModel.max_history_chars = 200000
@@ -29,13 +30,14 @@ ChatModel.max_entries = 200
 
 ---@param agent aqua.openai.Agent
 ---@param system_prompt string
----@param options {max_history_chars: integer?, max_entries: integer?}?
+---@param options {max_history_chars: integer?, max_entries: integer?, auth: aqua.openai.SubscriptionAuth?}?
 function ChatModel:new(agent, system_prompt, options)
 	options = options or {}
 	self.agent = agent
 	self.system_prompt = system_prompt
 	self.max_history_chars = options.max_history_chars or self.max_history_chars
 	self.max_entries = options.max_entries or self.max_entries
+	self.auth = options.auth
 	self.observable = Observable()
 	self.entries = {}
 	self.messages = {}
@@ -43,6 +45,7 @@ function ChatModel:new(agent, system_prompt, options)
 	self.active = true
 	self.request_id = 0
 	self:resetMessages()
+	if self.auth then self.auth:onChanged(self) end
 
 	agent.on_tool_result = function(tool_call, content)
 		if not self.active then
@@ -50,6 +53,30 @@ function ChatModel:new(agent, system_prompt, options)
 		end
 		self:addEntry("tool", content, tool_call["function"].name)
 	end
+end
+
+---@param event table
+function ChatModel:receive(event)
+	if event.type == "ai_auth_changed" then self:emitChanged() end
+end
+
+---@return boolean
+function ChatModel:hasAuth()
+	return self.auth ~= nil
+end
+
+---@return aqua.openai.SubscriptionAuthStatus?
+---@return string?
+function ChatModel:getAuthStatus()
+	if not self.auth then return end
+	return self.auth.status, self.auth.error
+end
+
+---@return boolean
+---@return string?
+function ChatModel:startLogin()
+	if not self.auth then return false, "OpenAI subscription login is not configured" end
+	return self.auth:startLogin()
 end
 
 ---@param content string
@@ -194,6 +221,9 @@ function ChatModel:send(content)
 	if content:match("^%s*$") then
 		return false, "message is empty"
 	end
+	if self.auth and not self.auth:isAuthenticated() then
+		return false, "OpenAI login is required"
+	end
 
 	self.busy = true
 	self.request_id = self.request_id + 1
@@ -255,6 +285,10 @@ function ChatModel:unload()
 		self:cancel()
 	end
 	self.active = false
+	if self.auth then
+		self.auth:offChanged(self)
+		self.auth:unload()
+	end
 	self:emitChanged()
 end
 
