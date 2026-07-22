@@ -123,7 +123,14 @@ mkdir -p userdata
 test -e userdata/ai_proxy.lua || cp aqua/ai/openai/proxy_config.example.lua userdata/ai_proxy.lua
 ```
 
-Replace `replace-with-a-long-random-token` in `userdata/ai_proxy.lua`. The proxy also reads subscription credentials from `userdata/ai_auth.lua` and SOCKS5 routing from `userdata/network.lua`; copy those files from an already configured game installation when bootstrapping a separate server.
+Replace `replace-with-a-long-random-token` in `userdata/ai_proxy.lua`. The proxy reads SOCKS5 routing from `userdata/network.lua`. Sign in to the ChatGPT subscription directly from the proxy host; this creates or replaces ignored `userdata/ai_auth.lua`:
+
+```bash
+source ./aqua/env/openresty_setenv
+./luajit aqua/ai/openai/proxy.lua login
+```
+
+The default device flow prints a URL and one-time code and works on headless hosts. If device authorization is unavailable, use `login-browser`; on a remote host, first connect with `ssh -L 1455:127.0.0.1:1455 <server>` so the browser's loopback callback reaches the proxy.
 
 Start the loopback-only service with:
 
