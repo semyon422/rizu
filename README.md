@@ -4,6 +4,7 @@ Open-source rhythm game
 - [Website](https://rizu.su)
 - [Download](https://dl.rizu.su/rizu.zip)
 - [Installation guide](https://youtu.be/FvdafJSMx-s)
+- [Developer bootstrap and tooling](BOOTSTRAP.md)
 - [Discord server](https://rizu.su/discord)
 
 ## License
