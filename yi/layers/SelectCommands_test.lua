@@ -1,4 +1,4 @@
-local SelectCommands = require("yi.commands.SelectCommands")
+local SelectCommands = require("ui.commands.SelectCommands")
 
 local test = {}
 
@@ -69,9 +69,9 @@ local function makeGame()
 	return game
 end
 
----@param commands yi.command_palette.Command[]
+---@param commands ui.command_palette.Command[]
 ---@param id string
----@return yi.command_palette.Command?
+---@return ui.command_palette.Command?
 local function findCommand(commands, id)
 	for _, command in ipairs(commands) do
 		if command.id == id then

@@ -15,9 +15,9 @@ local Sounds = require("yi.Sounds")
 local FrameTimeView = require("yi.views.FrameTimeView")
 local delay = require("delay")
 
-local Registry = require("yi.command_palette.Registry")
-local PaletteState = require("yi.command_palette.PaletteState")
-local GlobalCommands = require("yi.command_palette.GlobalCommands")
+local Registry = require("ui.command_palette.Registry")
+local PaletteState = require("ui.command_palette.PaletteState")
+local GlobalCommands = require("ui.command_palette.GlobalCommands")
 
 ---@class yi.UserInterface : sphere.IUserInterface
 ---@overload fun(game: sphere.GameController): yi.UserInterface
@@ -27,8 +27,8 @@ local GlobalCommands = require("yi.command_palette.GlobalCommands")
 ---@field current_screen gui.Screen?
 ---@field previous_screen gui.Screen?
 ---@field screens {[string]: gui.Screen}
----@field command_registry yi.command_palette.Registry
----@field command_palette yi.command_palette.PaletteState
+---@field command_registry ui.command_palette.Registry
+---@field command_palette ui.command_palette.PaletteState
 ---@field frame_time_view yi.views.FrameTimeView
 local UserInterface = IUserInterface + {}
 

@@ -21,7 +21,7 @@ local json = require("web.json")
 
 ---@class rizu.ai.NeedleToolRegistry
 ---@operator call: rizu.ai.NeedleToolRegistry
----@field registry yi.command_palette.Registry
+---@field registry ui.command_palette.Registry
 local NeedleToolRegistry = class()
 
 local function object(properties, required)
@@ -34,12 +34,12 @@ local function stringEnum(values, description)
 	return {type = "string", enum = values, description = description}
 end
 
----@param registry yi.command_palette.Registry
+---@param registry ui.command_palette.Registry
 function NeedleToolRegistry:new(registry)
 	self.registry = registry
 end
 
----@return {[string]: yi.command_palette.Command}
+---@return {[string]: ui.command_palette.Command}
 function NeedleToolRegistry:getActiveCommands()
 	local commands = {}
 	for _, command in ipairs(self.registry:getActiveCommands()) do

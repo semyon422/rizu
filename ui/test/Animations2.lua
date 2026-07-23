@@ -1,16 +1,11 @@
-local Button = require("ui.views.Button")
 local coloredRect = require("ui.test.ColoredRect")
 local Flex = require("gui.layout.Flex")
-
 local n1
 local next_t = 0
 
 local case = {
 	name = "animations2",
 	build = function(root)
-		local b = Button()
-		root:add(b)
-
 		n1 = coloredRect(1, 1, 1, 1)
 		n1.anchor_max = {1, 0}
 		n1.offset_max = {0, 200}

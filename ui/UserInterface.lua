@@ -1,6 +1,7 @@
 local IUserInterface = require("sphere.IUserInterface")
 local Resources = require("ui.Resources")
-local TestScreen = require("ui.test.TestScreen")
+local MainMenu = require("ui.screens.main_menu.MainMenu")
+local SongSelect = require("ui.screens.song_select.SongSelect")
 local Inputs = require("gui.input.Inputs")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
@@ -9,7 +10,7 @@ local TARGET_HEIGHT = 1080
 
 ---@class ui.UserInterface : sphere.IUserInterface
 ---@operator call: ui.UserInterface
----@field private screen ui.test.TestScreen
+---@field private screen gui.Screen
 ---@field private prev_w number
 ---@field private prev_h number
 ---@field private inputs gui.Inputs
@@ -19,18 +20,30 @@ local UserInterface = IUserInterface + {}
 ---@param _directory string
 function UserInterface:new(game, _directory)
 	self.game = game
-	self.screen = TestScreen()
 	self.inputs = Inputs()
 end
 
 function UserInterface:load()
+	Resources.load()
+	self.main_menu = MainMenu(self)
+	self.song_select = SongSelect(self)
+	self:setScreen(self.main_menu)
+
 	local ww, wh = love.graphics.getDimensions()
 	self.prev_w = ww
 	self.prev_h = wh
 	self:applyViewport(ww, wh)
-	self.screen:load()
 	love.keyboard.setTextInput(true)
 	love.keyboard.setKeyRepeat(true)
+end
+
+---@param screen gui.Screen
+function UserInterface:setScreen(screen)
+	self.screen = screen
+	if not self.screen.loaded then
+		self.screen:load()
+		self:applyViewport(love.graphics.getDimensions())
+	end
 end
 
 function UserInterface:unload()
@@ -59,10 +72,10 @@ end
 
 ---@param event {name: string, [integer]: any}
 function UserInterface:receive(event)
-	if event.name == "keypressed" then
-		self.screen:receive(event)
+	if event.name == "keypressed" and event[1] == "f8" then
+		self.screen:printDebugLayout()
+		return
 	end
-
 	self.inputs:receive(event, default_modifiers)
 end
 

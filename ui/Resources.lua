@@ -19,7 +19,7 @@ Resources.ttf_font_paths = {
 	cjk_bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
 }
 
-Resources.images_dir = "resources/ui.batch"
+Resources.images_dir = "resources/yi/batch"
 Resources.fonts = {}
 Resources.font_scale = 1
 Resources.ui_scale = 1

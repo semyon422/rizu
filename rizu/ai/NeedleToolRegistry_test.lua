@@ -1,4 +1,4 @@
-local Registry = require("yi.command_palette.Registry")
+local Registry = require("ui.command_palette.Registry")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 
 local test = {}

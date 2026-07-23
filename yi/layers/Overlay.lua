@@ -1,5 +1,5 @@
 local Screen = require("gui.Screen")
-local CommandPalette = require("yi.views.CommandPalette")
+local CommandPalette = require("ui.views.CommandPalette")
 local AiChatView = require("yi.views.AiChatView")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 
@@ -11,7 +11,7 @@ local Overlay = Screen + {}
 function Overlay:new(yi)
 	Screen.new(self)
 	self.needle_tools = NeedleToolRegistry(yi.command_registry)
-	self.palette = CommandPalette(yi.command_palette, function()
+	self.palette = CommandPalette(ui.command_palette, function()
 		self:detachPalette()
 	end, yi.game.needleModel, self.needle_tools)
 	self.ai_chat = AiChatView(yi.game.aiChatModel, function()
