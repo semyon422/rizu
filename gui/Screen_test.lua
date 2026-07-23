@@ -49,6 +49,28 @@ function test.draw_does_not_error(t)
 end
 
 ---@param t testing.T
+function test.printDebugLayout_does_not_error(t)
+	local s = Screen()
+	local arranged = View()
+	arranged.debug_name = "arranged"
+	local anchored = arranged:add(View())
+	anchored.debug_name = "anchored"
+	s.root:add(arranged)
+	arranged.arrange_strategy = {
+		arrange = function(_, container)
+			container.children[1].arranged = {1, 2, 3, 4}
+		end,
+	}
+
+	s:printDebugLayout()
+	t:eq(arranged.width, 0)
+	t:eq(anchored.x, 1)
+	t:eq(anchored.y, 2)
+	t:eq(anchored.width, 3)
+	t:eq(anchored.height, 4)
+end
+
+---@param t testing.T
 function test.acceptInputs_uses_flat_views_front_to_back(t)
 	local s = Screen()
 	local first = View()

@@ -15,6 +15,7 @@ local Easing = require("gui.anim.Easing")
 ---@field parent gui.View?
 ---@field children gui.View[]
 ---@field screen gui.Screen?
+---@field debug_name string?
 ---
 ---Authored layout inputs (§2.1). Layout owns resolution; never writes these.
 ---@field anchor_min {[1]: number, [2]: number}
@@ -126,6 +127,7 @@ end
 function View:new()
 	self.parent = nil
 	self.screen = nil
+	self.debug_name = nil
 	---@type gui.View[]
 	self.children = {}
 

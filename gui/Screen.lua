@@ -178,6 +178,36 @@ function Screen:update(dt)
 	end
 end
 
+---Print resolved and authored layout data for named views.
+function Screen:printDebugLayout()
+	self:flush()
+	print("GUI layout:")
+	for _, view in ipairs(self.views) do
+		if view.debug_name then
+			local depth = 0
+			local parent = view.parent
+			while parent do
+				depth = depth + 1
+				parent = parent.parent
+			end
+			local arranged = view.arranged
+			local source = arranged and ("arranged={%.1f, %.1f, %.1f, %.1f}"):format(
+				arranged[1], arranged[2], arranged[3], arranged[4]
+			) or "anchors"
+			print(("%s%s: rect={%.1f, %.1f, %.1f, %.1f} source=%s"):format(
+				string.rep("  ", depth), view.debug_name,
+				view.x, view.y, view.width, view.height, source
+			))
+			print(("%sanchors={{%.2f, %.2f}, {%.2f, %.2f}} offsets={{%.1f, %.1f}, {%.1f, %.1f}} modes={%s, %s}"):format(
+				string.rep("  ", depth + 1),
+				view.anchor_min[1], view.anchor_min[2], view.anchor_max[1], view.anchor_max[2],
+				view.offset_min[1], view.offset_min[2], view.offset_max[1], view.offset_max[2],
+				view.size_mode_x, view.size_mode_y
+			))
+		end
+	end
+end
+
 function Screen:draw()
 	self:flush()
 	local views = self.draw_views
