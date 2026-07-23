@@ -3,8 +3,9 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---Size spec for one Flex child on the main axis (§5.1).
 ---* number — pixel size
 ---* "NN%" — percent of inner main size
----* "*" — equal share of remaining space after fixed/percent children
----@alias gui.layout.SizeSpec number|string|"*"
+---* "content" — child's authored size on the main axis
+---* "*" — equal share of remaining space after fixed/percent/content children
+---@alias gui.layout.SizeSpec number|string|"content"|"*"
 
 ---@class gui.layout.Flex.Config
 ---@field direction? ("row"|"column")  default "row"
@@ -105,14 +106,14 @@ function Flex:validateSizeSpec(i, spec)
 		return
 	end
 	if type(spec) == "string" then
-		if spec == "*" then
+		if spec == "*" or spec == "content" then
 			return
 		end
 		local pct = spec:match("^(%d+%.?%d*)%%$")
-		assert(pct, ("sizes[%d] invalid spec %q (want number, \"NN%%\", or \"*\")"):format(i, spec))
+		assert(pct, ("sizes[%d] invalid spec %q (want number, \"NN%%\", \"content\", or \"*\")"):format(i, spec))
 		return
 	end
-	error(("sizes[%d] invalid spec %q (want number, \"NN%%\", or \"*\")"):format(i, tostring(spec)))
+	error(("sizes[%d] invalid spec %q (want number, \"NN%%\", \"content\", or \"*\")"):format(i, tostring(spec)))
 end
 
 ---@return number left
@@ -167,6 +168,13 @@ function Flex:arrange(container)
 			local px
 			if type(spec) == "number" then
 				px = spec
+			elseif spec == "content" then
+				local child = children[i]
+				px = row
+					and (child.offset_max[1] - child.offset_min[1])
+					or (child.offset_max[2] - child.offset_min[2])
+				assert(type(px) == "number" and px == px and px >= 0 and px < math.huge,
+					("Flex child authored main-axis size must be finite and non-negative (got %s)"):format(tostring(px)))
 			else
 				local pct = tonumber(spec:match("^(%d+%.?%d*)%%$"))
 				px = (pct / 100) * main_size
@@ -242,13 +250,14 @@ function Flex:contentSize(container)
 	for i, child in ipairs(container.children) do
 		if not child.layout_ignore then
 			local spec = self.sizes[i] or "*"
-			assert(spec ~= "*" and type(spec) == "number",
-				("contentSize: sizes[%d] must be a fixed number for measure (got %s)"):format(i, tostring(spec)))
-			assert(not (type(spec) == "string"),
-				("contentSize: sizes[%d] percent specs unsupported for measure (got %s)"):format(i, tostring(spec)))
-			total_main = total_main + spec
+			assert(spec ~= "*",
+				("contentSize: sizes[%d] star spec unsupported for measure"):format(i))
+			assert(spec == "content" or type(spec) == "number",
+				("contentSize: sizes[%d] percent spec unsupported for measure (got %s)"):format(i, tostring(spec)))
 			local dw = child.offset_max[1] - child.offset_min[1]
 			local dh = child.offset_max[2] - child.offset_min[2]
+			local child_main = spec == "content" and (row and dw or dh) or spec
+			total_main = total_main + child_main
 			local cross = row and dh or dw
 			if cross > max_cross then
 				max_cross = cross

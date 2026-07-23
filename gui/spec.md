@@ -243,12 +243,12 @@ A container **without** a strategy places children purely by their own anchors �
 | Strategy | Config | Behavior |
 |---|---|---|
 | `Stack` | `padding`, `align_items_x`, `align_items_y` (default `"fill"`) | Every child gets the padded inner rect, or its desired size aligned within it |
-| `Flex` | `direction`, `gap`, `justify`, `padding`, `sizes`, `align_items` (cross axis, default `"fill"`) | Distributes the main axis per `sizes` (number = px, `"NN%"` = percent of inner main size, `"*"` = share of remaining space); cross axis per §5.2 |
+| `Flex` | `direction`, `gap`, `justify`, `padding`, `sizes`, `align_items` (cross axis, default `"fill"`) | Distributes the main axis per `sizes` (number = px, `"NN%"` = percent of inner main size, `"content"` = child's authored size, `"*"` = share of remaining space); cross axis per §5.2 |
 | `Flow` | `direction`, `gap`, `align`, `padding` | Places children in a line at their authored sizes, cross-aligned by `align` ∈ [0, 1] |
 
 All strategies additionally accept `layout_transition = {duration, easing}` (§11.4): when set, children *glide* to new arranged rects instead of snapping. nil (or `duration = 0`) means snap — the default.
 
-Validation is fail-fast: unknown `direction`/`justify`/`align` values, negative gap or padding, and non-number/non-percent/non-star `sizes` entries are errors. `sizes` shorter than the child list pads with `"*"`. Percentages over 100 and fixed totals larger than the container are legal: stars then get 0 and items overflow (subject to `clip`). Multiple `"*"` share remaining space equally.
+Validation is fail-fast: unknown `direction`/`justify`/`align` values, negative gap or padding, and invalid `sizes` entries are errors. `sizes` shorter than the child list pads with `"*"`. A `"content"` entry uses the child's authored size (`offset_max - offset_min`) on the main axis. Percentages over 100 and fixed/content totals larger than the container are legal: stars then get 0 and items overflow (subject to `clip`). Multiple `"*"` share remaining space equally.
 
 A managed child whose **anchors** express placement intent on a managed axis (anything other than the default point anchor `{0,0}→{0,0}`) is a fail-fast error at arrange time — the strategy would silently override that intent, and silent override is how layout bugs hide. The child's authored *size* via offsets is always legal: it is the strategy's input (§5.2).
 

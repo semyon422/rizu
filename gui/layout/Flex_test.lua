@@ -56,6 +56,26 @@ function test.percent_size_of_inner_main(t)
 end
 
 ---@param t testing.T
+function test.content_uses_authored_main_axis_size(t)
+	local a, b = View(), View()
+	a:setSize(70, 20)
+	b:setSize(40, 30)
+	arrangeTree(300, 100, {a, b}, Flex({direction = "row", sizes = {"*", "content"}}))
+	t:eq(a.width, 260)
+	t:eq(b.x, 260)
+	t:eq(b.width, 40)
+end
+
+---@param t testing.T
+function test.content_uses_authored_height_in_column(t)
+	local a = View()
+	a:setSize(20, 35)
+	arrangeTree(100, 100, {a}, Flex({direction = "column", sizes = {"content"}, justify = "end"}))
+	t:eq(a.y, 65)
+	t:eq(a.height, 35)
+end
+
+---@param t testing.T
 function test.sizes_shorter_than_children_pads_with_star(t)
 	local a, b, c = View(), View(), View()
 	arrangeTree(300, 100, {a, b, c}, Flex({direction = "row", sizes = {100}}))
@@ -199,14 +219,14 @@ end
 function test.contentSize_sums_main_axis_max_cross_with_padding(t)
 	local parent = View()
 	local a, b = View(), View()
-	a.offset_max = {0, 30}
+	a.offset_max = {80, 30}
 	b.offset_max = {0, 50}
 	parent:add(a)
 	parent:add(b)
-	local flex = Flex({direction = "row", gap = 4, padding = 5, sizes = {100, 200}})
+	local flex = Flex({direction = "row", gap = 4, padding = 5, sizes = {"content", 200}})
 	local w, h = flex:contentSize(parent)
-	-- main = 100 + 4 + 200 + 5 + 5 = 314, cross = max(30, 50) + 5 + 5 = 60
-	t:eq(w, 314)
+	-- main = 80 + 4 + 200 + 5 + 5 = 294, cross = max(30, 50) + 5 + 5 = 60
+	t:eq(w, 294)
 	t:eq(h, 60)
 end
 
