@@ -1,5 +1,5 @@
 local class = require("class")
-local md5 = require("md5")
+local digest = require("digest")
 
 ---@class rizu.library.ChartmetaGenerator
 ---@operator call: rizu.library.ChartmetaGenerator
@@ -24,7 +24,7 @@ function ChartmetaGenerator:generate(chartfile, content, not_reuse, context)
 	local chartfilesRepo = self.chartfilesRepo
 	local chartsRepo = self.chartsRepo
 
-	local hash = md5.sumhexa(content)
+	local hash = digest.hash("md5", content, true)
 
 	if not not_reuse and chartsRepo:getChartmetaByHashIndex(hash, 1) then
 		chartfile.hash = hash

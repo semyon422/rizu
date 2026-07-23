@@ -1,7 +1,7 @@
 local IComputeDataProvider = require("sea.compute.IComputeDataProvider")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local path_util = require("path_util")
-local md5 = require("md5")
+local digest = require("digest")
 local types = require("sea.shared.types")
 
 ---@class rizu.library.ComputeDataProvider: sea.IComputeDataProvider
@@ -52,7 +52,7 @@ function ComputeDataProvider:getChartData(hash)
 		return nil, "file not found"
 	end
 
-	if md5.sumhexa(data) ~= hash then
+	if digest.hash("md5", data, true) ~= hash then
 		return nil, "hash mismatch"
 	end
 
@@ -80,7 +80,7 @@ function ComputeDataProvider:getReplayData(replay_hash)
 		return nil, "replay file not found"
 	end
 
-	if md5.sumhexa(data) ~= replay_hash then
+	if digest.hash("md5", data, true) ~= replay_hash then
 		return nil, "hash mismatch"
 	end
 

@@ -1,6 +1,6 @@
 local E2EContext = require("bancho.e2e.E2EContext")
 local TestLib = require("bancho.e2e.TestLib")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -34,7 +34,7 @@ function test.register_and_login(t)
 		t:eq(stats.tscore, 0)
 	end
 
-	local client = TestLib.createClient(ctx, username, md5.sumhexa(password))
+	local client = TestLib.createClient(ctx, username, digest.hash("md5", password, true))
 	local result = client:login()
 	t:eq(result.success, true)
 	t:eq(result.user_id, user.id)

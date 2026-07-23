@@ -1,5 +1,5 @@
 local bcrypt = require("bcrypt")
-local md5 = require("md5")
+local digest = require("digest")
 local CustomAccess = require("sea.access.CustomAccess")
 local IPasswordHasher = require("sea.access.IPasswordHasher")
 local UsersRepo = require("sea.access.repos.UsersRepo")
@@ -110,7 +110,7 @@ function test.register_email_password(t)
 	t:eq(su.user.password, nil)
 
 	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(su.user.id))
-	t:assert(bcrypt.verify(md5.sumhexa("password"), bancho_credential.password_md5_bcrypt))
+	t:assert(bcrypt.verify(digest.hash("md5", "password", true), bancho_credential.password_md5_bcrypt))
 
 	---@type any
 	local _
@@ -185,7 +185,7 @@ function test.login_email_password(t)
 	t:eq(su.user.password, nil)
 
 	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(su.user.id))
-	t:assert(bcrypt.verify(md5.sumhexa("password"), bancho_credential.password_md5_bcrypt))
+	t:assert(bcrypt.verify(digest.hash("md5", "password", true), bancho_credential.password_md5_bcrypt))
 
 	---@type any
 	local _
@@ -232,7 +232,7 @@ function test.login_populates_missing_bancho_credential(t)
 	end
 
 	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(created_user.id))
-	t:assert(bcrypt.verify(md5.sumhexa("password"), bancho_credential.password_md5_bcrypt))
+	t:assert(bcrypt.verify(digest.hash("md5", "password", true), bancho_credential.password_md5_bcrypt))
 end
 
 ---@param t testing.T
@@ -425,7 +425,7 @@ function test.update_password(t)
 	t:eq(_user.password, "new_password")
 
 	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(user.id))
-	t:assert(bcrypt.verify(md5.sumhexa("new_password"), bancho_credential.password_md5_bcrypt))
+	t:assert(bcrypt.verify(digest.hash("md5", "new_password", true), bancho_credential.password_md5_bcrypt))
 end
 
 ---@param t testing.T
@@ -479,7 +479,7 @@ function test.reset_password(t)
 	t:eq(user.password, "new_password")
 
 	local bancho_credential = assert(ctx.users_repo:getBanchoCredential(user.id))
-	t:assert(bcrypt.verify(md5.sumhexa("new_password"), bancho_credential.password_md5_bcrypt))
+	t:assert(bcrypt.verify(digest.hash("md5", "new_password", true), bancho_credential.password_md5_bcrypt))
 
 	local _, err = users:updatePasswordUsingCode(0, code, "new_password")
 	t:eq(err, "code used")

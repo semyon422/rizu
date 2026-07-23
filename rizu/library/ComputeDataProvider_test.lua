@@ -4,7 +4,7 @@ local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local LocationsRepo = require("rizu.library.repos.LocationsRepo")
 local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -21,7 +21,7 @@ function test.getChartData(t)
 	local locationsRepo = LocationsRepo(db.models)
 
 	local content = "content"
-	local valid_hash = md5.sumhexa(content)
+	local valid_hash = digest.hash("md5", content, true)
 
 	---@type rizu.library.LocationInsert
 	local loc = {

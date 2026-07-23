@@ -5,7 +5,7 @@
 local IResource = require("web.framework.IResource")
 local http_util = require("web.http.util")
 local json = require("web.json")
-local md5 = require("md5")
+local digest = require("digest")
 local BcryptPasswordHasher = require("sea.access.BcryptPasswordHasher")
 
 local class = require("class")
@@ -176,7 +176,7 @@ function AccountResource:registerAccount(req, res, ctx)
 
 	if check == 0 then
 		local hasher = BcryptPasswordHasher()
-		user_repo:createUser(username, email, hasher:digest(md5.sumhexa(password)), "XX")
+		user_repo:createUser(username, email, hasher:digest(digest.hash("md5", password, true)), "XX")
 	end
 
 	res.status = 200

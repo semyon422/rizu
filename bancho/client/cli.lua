@@ -40,7 +40,7 @@ local HttpClient = require("web.http.HttpClient")
 local LsTcpSocket = require("web.luasocket.LsTcpSocket")
 local http_util = require("web.http.util")
 local json = require("web.json")
-local md5 = require("md5")
+local digest = require("digest")
 local socket_url = require("socket.url")
 
 -- ------------------------------------------------------------------
@@ -577,7 +577,7 @@ local function cmd_login(args)
 
 	local config = build_config(args)
 	config.username = username
-	config.password_md5 = md5.sumhexa(password)
+	config.password_md5 = digest.hash("md5", password, true)
 
 	local client = BanchoClient(config)
 	io.write(string.format("Logging in as %s...\n", username))
@@ -611,7 +611,7 @@ local function cmd_send(args)
 
 	local config = build_config(args)
 	config.username = username
-	config.password_md5 = md5.sumhexa(password)
+	config.password_md5 = digest.hash("md5", password, true)
 
 	local client = BanchoClient(config)
 	local result = client:login()

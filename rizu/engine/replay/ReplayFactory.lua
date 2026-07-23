@@ -1,6 +1,6 @@
 local class = require("class")
 local valid = require("valid")
-local md5 = require("md5")
+local digest = require("digest")
 local Replay = require("sea.replays.Replay")
 local ReplayCoder = require("sea.replays.ReplayCoder")
 
@@ -33,7 +33,7 @@ function ReplayFactory:createReplay(replayBase, chartmetaKey, frames, created_at
 	assert(valid.format(replay:validate()))
 
 	local data = assert(ReplayCoder.encode(replay))
-	local replay_hash = md5.sumhexa(data)
+	local replay_hash = digest.hash("md5", data, true)
 
 	return replay, data, replay_hash
 end

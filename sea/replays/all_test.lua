@@ -1,4 +1,4 @@
-local md5 = require("md5")
+local digest = require("digest")
 local valid = require("valid")
 local Replay = require("sea.replays.Replay")
 local ReplayCoder = require("sea.replays.ReplayCoder")
@@ -40,7 +40,7 @@ function test.all(t)
 		frames = frames,
 		created_at = 0,
 		--
-		hash = md5.sumhexa(chartfile_data),
+		hash = digest.hash("md5", chartfile_data, true),
 		index = 1,
 		modifiers = {},
 		rate = 1,

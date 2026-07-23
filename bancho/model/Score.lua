@@ -7,6 +7,7 @@
 local Grade = require("bancho.constants.Grade")
 local Mods = require("bancho.constants.Mods")
 local osu_pp = require("chart.scoring.osu_pp")
+local digest = require("digest")
 
 local class = require("class")
 
@@ -15,30 +16,6 @@ local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 
 --- Client anticheat flags (placeholder).
 local ClientFlags = {NONE = 0}
-
---- MD5 hash via OpenSSL FFI.
---- Returns hex digest of the input string.
----@param input string
----@return string hex_md5
-local function md5(input)
-	local ffi = require("ffi")
-	local C = ffi.load("crypto")
-
-	ffi.cdef[[
-		int EVP_Digest(const void *data, int count, unsigned char *md, unsigned int *md_len, const void *type, void *impl);
-		const void *EVP_md5();
-	]]
-
-	local md = ffi.new("unsigned char[16]")
-	local md_len = ffi.new("unsigned int[1]", 0)
-	C.EVP_Digest(input, #input, md, md_len, C.EVP_md5(), nil)
-
-	local hex = ""
-	for i = 0, 15 do
-		hex = hex .. string.format("%02x", md[i])
-	end
-	return hex
-end
 
 ---@class bancho.model.Score
 ---@operator call: bancho.model.Score
@@ -242,7 +219,7 @@ function Score:computeOnlineChecksum(username, map_md5, osu_version, client_hash
 		storyboard_md5 or ""
 	)
 
-	return md5(str)
+	return digest.hash("md5", str, true)
 end
 
 return Score

@@ -1,5 +1,5 @@
 local bit = require("bit")
-local md5 = require("md5")
+local digest = require("digest")
 local _7z = require("7z")
 local class = require("class")
 local Osr = require("chart.format.osu.Osr")
@@ -169,7 +169,7 @@ function OsuReplayConverter:fromOsr(replay_data, hash, index, od, inputmode)
 	self:fillReplayFrames(replay, osr:decodeManiaEvents())
 
 	local data = assert(ReplayCoder.encode(replay))
-	return replay, data, md5.sumhexa(data)
+	return replay, data, digest.hash("md5", data, true)
 end
 
 ---@param replay_data string
@@ -216,7 +216,7 @@ function OsuReplayConverter:fromSubmissionReplay(replay_data, hash, index, od, i
 	self:fillReplayFrames(replay, osr:decodeManiaEvents())
 
 	local data = assert(ReplayCoder.encode(replay))
-	return replay, data, md5.sumhexa(data)
+	return replay, data, digest.hash("md5", data, true)
 end
 
 ---@param judges integer[]
@@ -280,7 +280,7 @@ function OsuReplayConverter:toOsr(chartmeta, replay, user_name, score, score_id)
 	local osr = Osr()
 	osr.beatmap_hash = assert(replay.hash)
 	osr.player_name = user_name
-	osr.replay_hash = md5.sumhexa(user_name .. tostring(score_id) .. replay.hash)
+	osr.replay_hash = digest.hash("md5", user_name .. tostring(score_id) .. replay.hash, true)
 
 	local n300, n100, n50, ngeki, nkatu, nmiss = self:getHitCounts(score.judges or replay.judges or {})
 	osr._300 = n300

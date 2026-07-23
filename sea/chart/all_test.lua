@@ -1,5 +1,5 @@
 local table_util = require("table_util")
-local md5 = require("md5")
+local digest = require("digest")
 local Chartplay = require("sea.chart.Chartplay")
 local Chartdiff = require("sea.chart.Chartdiff")
 local Chartplays = require("sea.chart.Chartplays")
@@ -128,7 +128,7 @@ local replay = {
 	frames = frames,
 	created_at = 0,
 	--
-	hash = md5.sumhexa(chartfile_data),
+	hash = digest.hash("md5", chartfile_data, true),
 	index = 1,
 	modifiers = {},
 	rate = 1,
@@ -170,7 +170,7 @@ local _chartplay_values = {
 	rate_type = replay.rate_type,
 	--
 	accuracy = 0.059305293410162315815,
-	replay_hash = md5.sumhexa(_replayfile_data),
+	replay_hash = digest.hash("md5", _replayfile_data, true),
 	judges = {1, 0, 1, 0, 0, 3},
 	max_combo = 2,
 	miss_count = 3,
@@ -184,7 +184,7 @@ setmetatable(_chartplay_values, Chartplay)
 ---@cast _chartplay_values sea.Chartplay
 
 local _chartdiff_values = {
-	hash = md5.sumhexa(chartfile_data),
+	hash = digest.hash("md5", chartfile_data, true),
 	index = 1,
 	modifiers = {},
 	rate = 1,
@@ -228,7 +228,7 @@ function test.submit_valid_score(t)
 
 	local compute_data_provider = FakeComputeDataProvider()
 	compute_data_provider:addChart(replay.hash, chartfile_name, chartfile_data)
-	compute_data_provider:addReplay(md5.sumhexa(replayfile_data), replayfile_data)
+	compute_data_provider:addReplay(digest.hash("md5", replayfile_data, true), replayfile_data)
 	local compute_data_loader = ComputeDataLoader(compute_data_provider)
 
 	local chartplay_values = setmetatable(table_util.copy(_chartplay_values), Chartplay)

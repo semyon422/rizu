@@ -1,5 +1,5 @@
 local bcrypt = require("bcrypt")
-local md5 = require("md5")
+local digest = require("digest")
 local class = require("class")
 local BanchoCredential = require("sea.access.BanchoCredential")
 
@@ -18,7 +18,7 @@ end
 ---@param time integer
 ---@return sea.BanchoCredential
 function BanchoCredentials:syncPassword(user_id, password, time)
-	local password_md5 = md5.sumhexa(password)
+	local password_md5 = digest.hash("md5", password, true)
 	local password_md5_bcrypt = bcrypt.digest(password_md5, 10)
 
 	local credential = self.users_repo:getBanchoCredential(user_id)

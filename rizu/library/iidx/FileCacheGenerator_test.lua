@@ -4,7 +4,7 @@ local ChartfileReader = require("rizu.library.ChartfileReader")
 local FakeTaskContext = require("rizu.library.tasks.FakeTaskContext")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Fixtures = require("chart.format.iidx.TestFixtures")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -270,7 +270,7 @@ function test.virtual_chartfile_reads_extracted_chart_data(t)
 	local data = assert(ChartfileReader.read(fs, "data/sound/01234.ifs/01234/01234.1"))
 
 	t:eq(data, chart_data)
-	t:eq(md5.sumhexa(data), md5.sumhexa(chart_data))
+	t:eq(digest.hash("md5", data, true), digest.hash("md5", chart_data, true))
 	t:assert(ChartfileReader.getInfo(fs, "data/sound/01234.ifs/01234/01234.1"))
 end
 

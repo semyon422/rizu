@@ -1,5 +1,5 @@
 local bit = require("bit")
-local md5 = require("md5")
+local digest = require("digest")
 local bcrypt = require("bcrypt")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
@@ -71,7 +71,7 @@ end
 ---@param t testing.T
 function test.find_user_by_name_and_password_uses_bancho_credentials(t)
 	local ctx = create_ctx()
-	local password_md5 = md5.sumhexa("password")
+	local password_md5 = digest.hash("md5", "password", true)
 	local created_user = create_user(ctx, "BanchoUser", "bancho@example.com", bcrypt.digest("password", 10))
 
 	local credential = BanchoCredential()
@@ -93,7 +93,7 @@ end
 ---@param t testing.T
 function test.find_user_by_name_and_password_falls_back_to_legacy_bridge(t)
 	local ctx = create_ctx()
-	local password_md5 = md5.sumhexa("password")
+	local password_md5 = digest.hash("md5", "password", true)
 	create_user(ctx, "LegacyUser", "legacy@example.com", bcrypt.digest(password_md5, 10))
 
 	local user = ctx.repo:findUserByNameAndPassword("LegacyUser", password_md5)
@@ -106,7 +106,7 @@ end
 ---@param t testing.T
 function test.find_user_by_name_and_password_rejects_plaintext_hashes_without_bancho_credentials(t)
 	local ctx = create_ctx()
-	local password_md5 = md5.sumhexa("password")
+	local password_md5 = digest.hash("md5", "password", true)
 	create_user(ctx, "SeaUser", "sea@example.com", bcrypt.digest("password", 10))
 
 	local user = ctx.repo:findUserByNameAndPassword("SeaUser", password_md5)

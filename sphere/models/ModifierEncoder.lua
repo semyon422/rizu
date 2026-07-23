@@ -3,7 +3,7 @@ local json = require("json")
 local stbl = require("stbl")
 local table_util = require("table_util")
 local string_util = require("string_util")
-local md5 = require("md5")
+local digest = require("digest")
 local int_rates = require("chart.scoring.int_rates")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 
@@ -22,7 +22,7 @@ end
 ---@param config table
 ---@return string
 function ModifierEncoder:hash(config)
-	return md5.sumhexa(stbl.encode(config))
+	return digest.hash("md5", stbl.encode(config), true)
 end
 
 ---@param s string

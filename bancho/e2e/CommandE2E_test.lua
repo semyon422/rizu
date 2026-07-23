@@ -1,16 +1,16 @@
 local E2EContext = require("bancho.e2e.E2EContext")
 local TestLib = require("bancho.e2e.TestLib")
 local ServerPackets = require("bancho.protocol.ServerPackets")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
 ---@param t testing.T
 function test.match_command_start_solo(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
 	t:eq(client_a:login().success, true)
 	TestLib.drain(client_a)
 
@@ -27,11 +27,11 @@ end
 ---@param t testing.T
 function test.match_command_start_force(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -55,11 +55,11 @@ end
 ---@param t testing.T
 function test.match_command_start_requires_host(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -80,11 +80,11 @@ end
 ---@param t testing.T
 function test.match_command_start_requires_ready_or_force(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -105,11 +105,11 @@ end
 ---@param t testing.T
 function test.match_command_transfer_host(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -132,11 +132,11 @@ end
 ---@param t testing.T
 function test.match_command_transfer_host_requires_host(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -156,11 +156,11 @@ end
 ---@param t testing.T
 function test.match_command_transfer_host_invalid_target(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)

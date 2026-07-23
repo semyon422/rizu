@@ -5,7 +5,6 @@ discordRPC: https://github.com/discord/discord-rpc https://github.com/discord/di
 inspect: https://github.com/kikito/inspect.lua  
 json: https://github.com/rxi/json.lua  
 ljsqlite3: https://github.com/stepelu/lua-ljsqlite3 https://www.sqlite.org/index.html  
-md5: https://github.com/kikito/md5.lua  
 serpent: https://github.com/pkulchenko/serpent  
 tinyyaml: https://github.com/peposso/lua-tinyyaml  
 toml: https://github.com/jonstoler/lua-toml  

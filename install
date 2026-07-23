@@ -5,7 +5,6 @@ luarocks install luasocket
 luarocks install luaossl
 luarocks install luasec
 luarocks install bcrypt
-luarocks install md5
 luarocks install utf8
 luarocks install lsqlite3
 luarocks install luacov

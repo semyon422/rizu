@@ -12,7 +12,7 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local OsuReplayConverter = require("sea.replays.OsuReplayConverter")
 local Osr = require("chart.format.osu.Osr")
 local _7z = require("7z")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -84,7 +84,7 @@ local function login_player(ctx, username, password)
 	local login_res_soc = login_soc:split()
 	local login_body = table.concat({
 		username,
-		md5.sumhexa(password),
+		digest.hash("md5", password, true),
 		"b20240101|0|0|hash1:adapters:hash2:hash3:hash4:|0",
 	}, "\n") .. "\n"
 	local login_request = {
@@ -154,7 +154,7 @@ end
 ---@param t testing.T
 function test.score_submission(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	local user_id = ctx:createUser("TestUser", digest.hash("md5", "testpass", true), 0)
 	local repos = ctx.bancho_repos
 	local bmap = ctx:createBeatmap({
 		id = 12345,
@@ -215,7 +215,7 @@ end
 ---@param t testing.T
 function test.stats_persistence(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("StatsUser", md5.sumhexa("testpass"), 0)
+	local user_id = ctx:createUser("StatsUser", digest.hash("md5", "testpass", true), 0)
 	local repos = ctx.bancho_repos
 	local bmap = ctx:createBeatmap({
 		id = 12345,
@@ -276,7 +276,7 @@ function test.stats_persistence(t)
 	local login_res_soc2 = login_soc2:split()
 	local login_body = table.concat({
 		"StatsUser",
-		md5.sumhexa("testpass"),
+		digest.hash("md5", "testpass", true),
 		"b20240101|0|0|hash1:adapters:hash2:hash3:hash4:|0",
 	}, "\n") .. "\n"
 	local login_request = {

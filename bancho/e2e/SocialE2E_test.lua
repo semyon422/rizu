@@ -4,7 +4,7 @@ local erfunc = require("chart.scoring.erfunc")
 local ServerPackets = require("bancho.protocol.ServerPackets")
 local Leaderboard = require("sea.leaderboards.Leaderboard")
 local LeaderboardUser = require("sea.leaderboards.LeaderboardUser")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -36,12 +36,12 @@ end
 ---@param t testing.T
 function test.friend_add_remove(t)
 	local ctx = E2EContext()
-	local user_a = ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	local user_a = ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	local user_b = ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 	local repos = ctx.bancho_repos
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -60,13 +60,13 @@ end
 ---@param t testing.T
 function test.user_stats_and_presence_request(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	local user_b = ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 	local leaderboard = create_osu_pp_leaderboard(ctx, "osu")
 	create_leaderboard_user(ctx, leaderboard.id, user_b, 456.8, 0.985, 0, 123)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -88,11 +88,11 @@ end
 ---@param t testing.T
 function test.join_lobby_receives_existing_matches(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)

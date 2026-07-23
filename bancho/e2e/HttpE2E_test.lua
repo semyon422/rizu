@@ -14,7 +14,7 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local OsuReplayConverter = require("sea.replays.OsuReplayConverter")
 local Osr = require("chart.format.osu.Osr")
 local _7z = require("7z")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -86,7 +86,7 @@ local function login_player(ctx, username, password)
 	local login_res_soc = login_soc:split()
 	local login_body = table.concat({
 		username,
-		md5.sumhexa(password),
+		digest.hash("md5", password, true),
 		"b20240101|0|0|hash1:adapters:hash2:hash3:hash4:|0",
 	}, "\n") .. "\n"
 	local login_request = {
@@ -199,11 +199,11 @@ end
 ---@param t testing.T
 function test.status_online_and_matches_pages(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -264,8 +264,8 @@ end
 ---@param t testing.T
 function test.osu_getscores_includes_personal_best_and_replay_flag(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 	local beatmap = ctx:createBeatmap({
 		id = 12345,
 		set_id = 54321,
@@ -278,7 +278,7 @@ function test.osu_getscores_includes_personal_best_and_replay_flag(t)
 	local personal_id = submit_score(ctx, "PlayerA", "passA", beatmap, 900000, 111, 0)
 	submit_score(ctx, "PlayerB", "passB", beatmap, 950000, 222, 1)
 
-	local client = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
 	t:eq(client:login().success, true)
 	TestLib.drain(client)
 
@@ -286,11 +286,11 @@ function test.osu_getscores_includes_personal_best_and_replay_flag(t)
 	local resource = OsuWebResource(server)
 	local req, res, read_soc = ctx:createHttpRequest(
 		"GET",
-		("/web/osu-osz2-getscores.php?us=%s&ha=%s&c=%s&m=3&mods=0&v=0"):format("PlayerA", md5.sumhexa("passA"), beatmap.md5)
+		("/web/osu-osz2-getscores.php?us=%s&ha=%s&c=%s&m=3&mods=0&v=0"):format("PlayerA", digest.hash("md5", "passA", true), beatmap.md5)
 	)
 	resource:osuGetscores(req, res, {query = {
 		us = "PlayerA",
-		ha = md5.sumhexa("passA"),
+		ha = digest.hash("md5", "passA", true),
 		c = beatmap.md5,
 		m = "3",
 		mods = "0",

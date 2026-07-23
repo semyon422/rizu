@@ -2,7 +2,7 @@ local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Fixtures = require("chart.format.iidx.TestFixtures")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -55,7 +55,7 @@ function test.decode_chart_extracted_from_ifs_fixture(t)
 	}))
 
 	t:eq(#charts, 2)
-	t:eq(charts[1].chartmeta.hash, md5.sumhexa(chart_data))
+	t:eq(charts[1].chartmeta.hash, digest.hash("md5", chart_data, true))
 	t:eq(charts[1].chartmeta.name, "SPN")
 	t:eq(charts[1].chartmeta.title, "Fixture Song")
 	t:eq(charts[1].chartmeta.artist, "Fixture Artist")

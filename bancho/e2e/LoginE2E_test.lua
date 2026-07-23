@@ -5,7 +5,7 @@ local ServerPackets = require("bancho.protocol.ServerPackets")
 local erfunc = require("chart.scoring.erfunc")
 local Leaderboard = require("sea.leaderboards.Leaderboard")
 local LeaderboardUser = require("sea.leaderboards.LeaderboardUser")
-local md5 = require("md5")
+local digest = require("digest")
 
 local test = {}
 
@@ -37,9 +37,9 @@ end
 ---@param t testing.T
 function test.login(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	local user_id = ctx:createUser("TestUser", digest.hash("md5", "testpass", true), 0)
 
-	local client = TestLib.createClient(ctx, "TestUser", md5.sumhexa("testpass"))
+	local client = TestLib.createClient(ctx, "TestUser", digest.hash("md5", "testpass", true))
 	local result = client:login()
 	t:eq(result.success, true)
 	t:ne(result.user_id, -1)
@@ -54,9 +54,9 @@ end
 ---@param t testing.T
 function test.login_wrong_password(t)
 	local ctx = E2EContext()
-	ctx:createUser("TestUser", md5.sumhexa("correct"), 0)
+	ctx:createUser("TestUser", digest.hash("md5", "correct", true), 0)
 
-	local client = TestLib.createClient(ctx, "TestUser", md5.sumhexa("wrong"))
+	local client = TestLib.createClient(ctx, "TestUser", digest.hash("md5", "wrong", true))
 	t:eq(client:login().success, false)
 
 	ctx:close()
@@ -65,11 +65,11 @@ end
 ---@param t testing.T
 function test.login_sends_ranked_presence_and_normalized_stats(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	local user_id = ctx:createUser("TestUser", digest.hash("md5", "testpass", true), 0)
 	local leaderboard = create_osu_pp_leaderboard(ctx, "osu")
 	create_leaderboard_user(ctx, leaderboard.id, user_id, 456.8, 0.9876, 0, 321)
 
-	local client = TestLib.createClient(ctx, "TestUser", md5.sumhexa("testpass"))
+	local client = TestLib.createClient(ctx, "TestUser", digest.hash("md5", "testpass", true))
 	local result = client:login()
 	t:eq(result.success, true)
 
@@ -85,12 +85,12 @@ end
 ---@param t testing.T
 function test.login_sends_friends_list_and_autojoin_packets(t)
 	local ctx = E2EContext()
-	local user_a = ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	local user_b = ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	local user_a = ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	local user_b = ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 	local repos = ctx.bancho_repos
 	repos.friends_repo:addFriend(user_a, user_b)
 
-	local client = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
 	local result = client:login()
 	t:eq(result.success, true)
 
@@ -114,11 +114,11 @@ end
 ---@param t testing.T
 function test.restricted_login_sends_account_restricted_packet(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("RestrictedUser", md5.sumhexa("testpass"), 0)
+	local user_id = ctx:createUser("RestrictedUser", digest.hash("md5", "testpass", true), 0)
 	local repos = ctx.bancho_repos
 	repos.user_repo:partialUpdate(user_id, {is_restricted = true})
 
-	local client = TestLib.createClient(ctx, "RestrictedUser", md5.sumhexa("testpass"))
+	local client = TestLib.createClient(ctx, "RestrictedUser", digest.hash("md5", "testpass", true))
 	local result = client:login()
 	t:eq(result.success, true)
 	t:ne(TestLib.findPacket(result.packets, ServerPackets.ACCOUNT_RESTRICTED), nil)
@@ -129,11 +129,11 @@ end
 ---@param t testing.T
 function test.change_action_sends_updated_stats_to_self(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("TestUser", md5.sumhexa("testpass"), 0)
+	local user_id = ctx:createUser("TestUser", digest.hash("md5", "testpass", true), 0)
 	local leaderboard = create_osu_pp_leaderboard(ctx, "mania")
 	create_leaderboard_user(ctx, leaderboard.id, user_id, 321.0, 0.975, 12, 123)
 
-	local client = TestLib.createClient(ctx, "TestUser", md5.sumhexa("testpass"))
+	local client = TestLib.createClient(ctx, "TestUser", digest.hash("md5", "testpass", true))
 	t:eq(client:login().success, true)
 	TestLib.drain(client)
 
@@ -148,11 +148,11 @@ end
 ---@param t testing.T
 function test.user_presence_request_all_returns_online_users(t)
 	local ctx = E2EContext()
-	ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
-	ctx:createUser("PlayerB", md5.sumhexa("passB"), 0)
+	ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
+	ctx:createUser("PlayerB", digest.hash("md5", "passB", true), 0)
 
-	local client_a = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
-	local client_b = TestLib.createClient(ctx, "PlayerB", md5.sumhexa("passB"))
+	local client_a = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
+	local client_b = TestLib.createClient(ctx, "PlayerB", digest.hash("md5", "passB", true))
 	t:eq(client_a:login().success, true)
 	t:eq(client_b:login().success, true)
 	TestLib.drain(client_a)
@@ -173,10 +173,10 @@ end
 ---@param t testing.T
 function test.receive_updates_persists_preference(t)
 	local ctx = E2EContext()
-	local user_id = ctx:createUser("PlayerA", md5.sumhexa("passA"), 0)
+	local user_id = ctx:createUser("PlayerA", digest.hash("md5", "passA", true), 0)
 	local repos = ctx.bancho_repos
 
-	local client = TestLib.createClient(ctx, "PlayerA", md5.sumhexa("passA"))
+	local client = TestLib.createClient(ctx, "PlayerA", digest.hash("md5", "passA", true))
 	t:eq(client:login().success, true)
 	TestLib.drain(client)
 

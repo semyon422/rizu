@@ -4,7 +4,7 @@ local string_util = require("string_util")
 local table_util = require("table_util")
 local ChartDecoder = require("chart.format.sph.ChartDecoder")
 local base36 = require("chart.format.bms.base36")
-local md5 = require("md5")
+local digest = require("digest")
 
 ---@class rizu.editor.exports.BmsTemplateExporter
 ---@operator call: rizu.editor.exports.BmsTemplateExporter
@@ -56,7 +56,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 		if name:match("^stem.+%.sph$") then
 			local dec = ChartDecoder()
 			local data = assert(love.filesystem.read(path_util.join(real_dir, name)))
-			local chart = dec:decode(data, md5.sumhexa(data))[1]
+			local chart = dec:decode(data, digest.hash("md5", data, true))[1]
 			chart.name = name
 			table.insert(stem_charts, chart)
 		end
