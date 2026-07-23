@@ -1,4 +1,4 @@
-local TextboxModel = require("yi.helpers.TextboxModel")
+local TextboxModel = require("ui.helpers.TextboxModel")
 
 local test = {}
 

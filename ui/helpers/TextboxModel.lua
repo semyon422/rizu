@@ -13,8 +13,8 @@ end
 ---Model holding UTF-8 aware text editing state for textbox views.
 ---The cursor is a 1-based codepoint position: `1` is before the first character
 ---and `getLength() + 1` is after the last character.
----@class yi.helpers.TextboxModel
----@operator call: yi.helpers.TextboxModel
+---@class ui.helpers.TextboxModel
+---@operator call: ui.helpers.TextboxModel
 ---@field text string
 ---@field cursor integer
 local TextboxModel = class()

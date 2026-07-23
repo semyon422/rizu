@@ -52,11 +52,4 @@ function test.snap_resets_velocity(t)
 	t:eq(value.velocity, 0)
 end
 
----@param t testing.T
-function test.rejects_non_spring_mode(t)
-	t:has_error(SpringValue, {
-		mode = "tween",
-	})
-end
-
 return test

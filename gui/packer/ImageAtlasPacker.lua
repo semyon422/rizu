@@ -1,13 +1,13 @@
 local class = require("class")
 
----@class yi.packer.ImageAtlasPacker
----@operator call: yi.packer.ImageAtlasPacker
+---@class gui.packer.ImageAtlasPacker
+---@operator call: gui.packer.ImageAtlasPacker
 local ImageAtlasPacker = class()
 
 ImageAtlasPacker.gap = 0
 ImageAtlasPacker.border = 1
 
----@class yi.packer.ImageAtlasPacker.Entry
+---@class gui.packer.ImageAtlasPacker.Entry
 ---@field name string
 ---@field image_data love.ImageData
 ---@field width integer
@@ -19,10 +19,10 @@ ImageAtlasPacker.border = 1
 
 ---@private
 ---@param sprites {[string]: love.ImageData}
----@return yi.packer.ImageAtlasPacker.Entry[]
+---@return gui.packer.ImageAtlasPacker.Entry[]
 ---@return string?
 function ImageAtlasPacker:buildEntries(sprites)
-	---@type yi.packer.ImageAtlasPacker.Entry[]
+	---@type gui.packer.ImageAtlasPacker.Entry[]
 	local entries = {}
 	local atlas_format = nil ---@type string
 
@@ -62,7 +62,7 @@ function ImageAtlasPacker:buildEntries(sprites)
 end
 
 ---@private
----@param entries yi.packer.ImageAtlasPacker.Entry[]
+---@param entries gui.packer.ImageAtlasPacker.Entry[]
 ---@param atlas_width integer
 ---@return {width: integer, height: integer, area: integer}
 function ImageAtlasPacker:packShelves(entries, atlas_width)
@@ -96,7 +96,7 @@ function ImageAtlasPacker:packShelves(entries, atlas_width)
 end
 
 ---@private
----@param entries yi.packer.ImageAtlasPacker.Entry[]
+---@param entries gui.packer.ImageAtlasPacker.Entry[]
 ---@return {width: integer, height: integer}
 function ImageAtlasPacker:selectLayout(entries)
 	local max_width = 1
@@ -157,7 +157,7 @@ end
 
 ---@private
 ---@param atlas love.ImageData
----@param entry yi.packer.ImageAtlasPacker.Entry
+---@param entry gui.packer.ImageAtlasPacker.Entry
 function ImageAtlasPacker:pasteEntry(atlas, entry)
 	local border = self.border
 	local inner_x = entry.x + border

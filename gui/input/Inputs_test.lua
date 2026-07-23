@@ -1,5 +1,3 @@
-
-local Box = require("gui.Box")
 local View = require("gui.View")
 local Inputs = require("gui.input.Inputs")
 
@@ -12,9 +10,9 @@ local default_modifiers = {control = false, shift = false, alt = false, super = 
 ---@return gui.View
 local function create_view(width, height)
 	local view = View()
-	view.box = Box()
-	view:setSize(width, height)
-	view:updateTransform()
+	view.width = width
+	view.height = height
+	view:relayout()
 	return view
 end
 
@@ -80,11 +78,11 @@ function test.keyboard_focus(t)
 
 	textbox1.onFocus = function() table.insert(events1, "focus") end
 	textbox1.onFocusLost = function() table.insert(events1, "blur") end
-	textbox1.onTextInput = function(_, event) table.insert(events1, "text:" .. event.key) end
+	textbox1.onTextInput = function(_, event) table.insert(events1, "text:" .. event.text) end
 
 	textbox2.onFocus = function() table.insert(events2, "focus") end
 	textbox2.onFocusLost = function() table.insert(events2, "blur") end
-	textbox2.onTextInput = function(_, event) table.insert(events2, "text:" .. event.key) end
+	textbox2.onTextInput = function(_, event) table.insert(events2, "text:" .. event.text) end
 
 	inputs:setKeyboardFocus(textbox1, default_modifiers)
 	t:tdeq(events1, {"focus"})
@@ -439,8 +437,8 @@ function test.processView_traversal_order(t)
 
 	local other = create_view(100, 100)
 	other.handles_mouse_input = true
-	other:setPosition(200, 0)
-	other:updateTransform(0, 0)
+	other.x = 200
+	other:relayout()
 
 	inputs:processView(container)
 	inputs:processView(button)

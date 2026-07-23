@@ -1,10 +1,10 @@
-local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
+local ImageAtlasPacker = require("gui.packer.ImageAtlasPacker")
 local Path = require("Path")
 
----@alias yi.FontName string
----@alias yi.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
+---@alias ui.FontName string
+---@alias ui.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
 
----@class yi.Resources
+---@class ui.Resources
 ---@field atlas love.Image
 ---@field quads {[string]: love.Quad}
 ---@field dpi number
@@ -19,7 +19,7 @@ Resources.ttf_font_paths = {
 	cjk_bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
 }
 
-Resources.images_dir = "resources/yi/batch"
+Resources.images_dir = "resources/ui.batch"
 Resources.fonts = {}
 Resources.font_scale = 1
 Resources.ui_scale = 1
@@ -70,8 +70,8 @@ function Resources.getUIScale()
 	return Resources.ui_scale or 1
 end
 
----@param name yi.FontName
----@param size yi.FontSize|integer
+---@param name ui.FontName
+---@param size ui.FontSize|integer
 ---@return love.Font
 function Resources.getFont(name, size)
 	---@cast name string
@@ -87,16 +87,6 @@ function Resources.getFont(name, size)
 	end
 
 	return Resources.fonts[key]
-end
-
----@param name yi.FontName
----@param size yi.FontSize|integer
----@param scale? number
----@return love.Font
-function Resources.getScaledFont(name, size, scale)
-	scale = scale or Resources.font_scale or 1
-	local scaled_size = math.max(1, math.floor(size * scale))
-	return Resources.getFont(name, scaled_size)
 end
 
 return Resources

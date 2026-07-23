@@ -1,10 +1,10 @@
-local ImageAtlasPacker = require("yi.packer.ImageAtlasPacker")
+local ImageAtlasPacker = require("gui.packer.ImageAtlasPacker")
 
 local test = {}
 
 local old_love = love
 
----@class yi.packer._FakeImageData
+---@class gui.packer._FakeImageData
 ---@field width integer
 ---@field height integer
 ---@field format string?
@@ -15,7 +15,7 @@ FakeImageData.__index = FakeImageData
 ---@param width integer
 ---@param height integer
 ---@param format string?
----@return yi.packer._FakeImageData
+---@return gui.packer._FakeImageData
 function FakeImageData:new(width, height, format)
 	return setmetatable({
 		width = width,

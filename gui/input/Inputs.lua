@@ -169,8 +169,7 @@ function Inputs:handleMouseDown(event, modifiers)
 	if target then
 		target.pressed = true
 	end
-
-	if self.keyboard_focus and target ~= self.keyboard_focus then
+	if target ~= self.keyboard_focus and self.keyboard_focus then
 		self:setKeyboardFocus(nil, modifiers)
 	end
 
@@ -266,6 +265,8 @@ function Inputs:handleMouseMove(modifiers)
 	local e
 	if not self.last_drag_event then
 		e = DragStartEvent(modifiers)
+		e.target = self.last_mouse_down_event.target
+		e.current_target = e.target
 	else
 		e = DragEvent(modifiers)
 		e.target = self.last_drag_event.target
@@ -339,6 +340,9 @@ function Inputs:dispatchMouseEvent(event, modifiers)
 
 	if e.target then
 		self:dispatchMouseEventToTarget(e)
+		if event.name == "mousemoved" and not self.last_drag_event then
+			self.last_drag_event = e
+		end
 		return e
 	end
 
@@ -373,8 +377,12 @@ function Inputs:dispatchKeyboardEvent(event, modifiers)
 	end
 
 	---@cast e -?
-	e.key = event[1]
-	e.is_repeated = event[3] or false
+	if event.name == "textinput" then
+		e.text = event[1]
+	else
+		e.key = event[1]
+		e.is_repeated = event[3] or false
+	end
 
 	if self.keyboard_focus then
 		e.target = self.keyboard_focus

@@ -2,7 +2,7 @@ local class = require("class")
 local table_util = require("table_util")
 
 local FallbackUserInterface = require("sphere.FallbackUserInterface")
-local NewUserInterface = require("yi.UserInterface")
+local NewUserInterface = require("ui.UserInterface")
 
 local Settings = require("rizu.config.schemas.Settings")
 

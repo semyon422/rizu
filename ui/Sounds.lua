@@ -1,9 +1,9 @@
 local Path = require("Path")
 local Sample = require("rizu.engine.audio.bass.Sample")
 
----@class yi.Sounds
+---@class ui.Sounds
 local Sounds = {}
-Sounds.sounds_dir = "resources/yi/sounds"
+Sounds.sounds_dir = "resources/ui.sounds"
 Sounds.sound_volume = 0.2
 Sounds.cache = {} ---@type {[string]: rizu.audio.bass.Sample}
 

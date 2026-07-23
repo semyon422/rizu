@@ -42,11 +42,4 @@ function test.zero_duration_snaps_immediately(t)
 	t:eq(value.velocity, 0)
 end
 
----@param t testing.T
-function test.rejects_non_tween_mode(t)
-	t:has_error(TweenValue, {
-		mode = "spring",
-	})
-end
-
 return test

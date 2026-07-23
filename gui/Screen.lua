@@ -1,122 +1,147 @@
-local Layer = require("gui.Layer")
+local class = require("class")
 local View = require("gui.View")
 
----@class gui.Screen : gui.Layer
+---@class gui.Screen
 ---@operator call: gui.Screen
----@field root gui.Composition.Node?
----@field views gui.View[]
----@field hidden_views gui.View[]
-local Screen = Layer + {}
+---@field root gui.View
+---@field views gui.View[] All attached views in DFS pre-order
+---@field update_views gui.View[] Views overriding View:update
+---@field draw_views gui.View[] Views overriding View:draw
+---@field dirty boolean
+---@field width number Window width in drawable pixels
+---@field height number Window height in drawable pixels
+---@field ui_scale number Logical-per-drawable scale; root size = window / ui_scale
+---@field inputs gui.Inputs?
+local Screen = class()
 
 function Screen:new()
+	self.root = View()
+	self.root:setScreen(self)
+	---@type gui.View[]
+	self.views = {}
+	---@type gui.View[]
+	self.update_views = {}
+	---@type gui.View[]
+	self.draw_views = {}
+	self.dirty = true
+	self.inputs = nil
+	self.width = 0
+	self.height = 0
 	self.ui_scale = 1
-	self.views = {}
-	self.hidden_views = {}
-	self.input_handler = View()
-	self.input_handler.handles_keyboard_input = true
-	self.input_handler.onKeyDown = function(_, e)
-		return self:handleKeyDown(e.key)
-	end
 end
 
-function Screen:load()
-	assert(self.views, "Call Composition.new(self)")
+function Screen:invalidateLayout()
+	self.dirty = true
+end
 
+---@param view gui.View
+local function flatten(view, views, update_views, draw_views)
+	local index = #views + 1
+	view.flat_index = index
+	views[index] = view
+
+	if view.update ~= View.update then
+		update_views[#update_views + 1] = view
+	end
+	if view.draw ~= View.draw then
+		draw_views[#draw_views + 1] = view
+	end
+
+	for i = 1, #view.children do
+		flatten(view.children[i], views, update_views, draw_views)
+	end
+	view.flat_subtree_end = #views
+end
+
+---Rebuild traversal caches after resolving and composing the tree.
+function Screen:relayout()
+	-- Clear first so invalidation triggered during the rebuild survives.
+	self.dirty = false
+	self.root:relayout(self.ui_scale)
+
+	local views = {} ---@type gui.View[]
+	local update_views = {} ---@type gui.View[]
+	local draw_views = {} ---@type gui.View[]
+	flatten(self.root, views, update_views, draw_views)
+	self.views = views
+	self.update_views = update_views
+	self.draw_views = draw_views
+end
+
+---Run at most one pending tree rebuild.
+function Screen:flush()
+	if not self.dirty then
+		return
+	end
+	-- Clear first so invalidation during the rebuild is not lost.
+	self.dirty = false
+	self:relayout()
+end
+
+---@param w number Window width in drawable pixels
+---@param h number Window height in drawable pixels
+function Screen:resize(w, h)
+	self.width = w
+	self.height = h
 	local scale = self.ui_scale
+	local root = self.root
+	root.x = 0
+	root.y = 0
+	root.width = w / scale
+	root.height = h / scale
+	self:invalidateLayout()
+	-- Preserve resize's synchronous geometry contract. Other invalidations are
+	-- coalesced until flush.
+	self:flush()
+end
 
-	if self.root then
-		local w, h = love.graphics.getDimensions()
-		self.root:measure()
-		self.root:grow(w / scale, h / scale)
-		self.root:arrange()
-		self.root:insertViewsInto(self.views)
-	end
-
-	for _, v in ipairs(self.views) do
-		v.ui_scale = scale
-		v:load()
-		v:applyLayout()
-	end
-
-	for _, v in ipairs(self.hidden_views) do
-		v.ui_scale = scale
-		v:load()
-		v:applyLayout()
+---@param scale number Finite positive scale
+function Screen:setUIScale(scale)
+	assert(type(scale) == "number" and scale > 0 and scale < math.huge,
+		"ui_scale must be a positive finite number")
+	self.ui_scale = scale
+	if self.width > 0 and self.height > 0 then
+		self:resize(self.width, self.height)
+	else
+		self:invalidateLayout()
 	end
 end
 
-function Screen:unload()
-	for _, v in ipairs(self.views) do
-		v:unload()
-	end
-
-	for _, v in ipairs(self.hidden_views) do
-		v:unload()
-	end
-
-	self.views = {}
-	self.hidden_views = {}
-end
-
-function Screen:enter() end
-
-function Screen:exit() end
-
-function Screen:acceptInputs(inputs)
-	self.input_handler:acceptInputs(inputs)
-
-	for i = #self.views, 1, -1 do
-		local view = self.views[i]
-		view:acceptInputs(inputs)
-	end
-end
-
+---@param dt number
 function Screen:update(dt)
-	for _, v in ipairs(self.views) do
-		v:update(dt)
+	self:flush()
+	local views = self.update_views
+	for i = 1, #views do
+		views[i]:update(dt)
 	end
 end
 
 function Screen:draw()
-	for _, v in ipairs(self.views) do
-		love.graphics.push("all")
-		love.graphics.applyTransform(v.transform)
-		v:draw()
-		love.graphics.pop()
-	end
-end
-
----@param key string
-function Screen:handleKeyDown(key) end
-
----@param view gui.View
-function Screen:hideView(view)
-	for i, v in ipairs(self.views) do
-		if v == view then
-			table.remove(self.views, i)
-			break
+	self:flush()
+	local views = self.draw_views
+	for i = 1, #views do
+		local view = views[i]
+		if view.effective_visible and view.present then
+			love.graphics.replaceTransform(view.world_transform)
+			love.graphics.setScissor() -- clip_rect support lands with §9.1
+			love.graphics.setColor(1, 1, 1, view.effective_opacity)
+			view:draw()
 		end
 	end
-	for _, hv in ipairs(self.hidden_views) do
-		if hv == view then
-			return
-		end
-	end
-	table.insert(self.hidden_views, view)
+	love.graphics.setScissor()
+	love.graphics.setColor(1, 1, 1, 1)
+	love.graphics.origin()
 end
 
----@param view gui.View
-function Screen:showView(view)
-	for i, v in ipairs(self.hidden_views) do
-		if v == view then
-			table.remove(self.hidden_views, i)
-			for _, ev in ipairs(self.views) do
-				if ev == view then
-					return
-				end
-			end
-			table.insert(self.views, view)
-			return
+---@param inputs gui.Inputs
+function Screen:acceptInputs(inputs)
+	self:flush()
+	self.inputs = inputs
+	local views = self.views
+	for i = #views, 1, -1 do
+		local view = views[i]
+		if view.effective_visible and view.effective_enabled and view.present then
+			inputs:processView(view)
 		end
 	end
 end
