@@ -283,4 +283,42 @@ function test.screen_relayout_preserves_ui_scale(t)
 	t:aeq(wy, 20, 1e-9)
 end
 
+-- ===========================================================================
+-- Lifecycle
+-- ===========================================================================
+
+---@param t testing.T
+function test.load_and_unload_visit_tree_once(t)
+	local s = Screen()
+	local child = View()
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+	s.root:add(child)
+
+	s:load()
+	s:load()
+	t:eq(loads, 1)
+
+	s:unload()
+	s:unload()
+	t:eq(unloads, 1)
+end
+
+---@param t testing.T
+function test.add_to_loaded_screen_loads_and_remove_unloads(t)
+	local s = Screen()
+	s:load()
+	local child = View()
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+
+	s.root:add(child)
+	t:eq(loads, 1)
+	s.root:remove(child)
+	t:eq(unloads, 1)
+	t:eq(child.detached, true)
+end
+
 return test

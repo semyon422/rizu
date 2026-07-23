@@ -12,6 +12,7 @@ local View = require("gui.View")
 ---@field height number Window height in drawable pixels
 ---@field ui_scale number Logical-per-drawable scale; root size = window / ui_scale
 ---@field inputs gui.Inputs?
+---@field loaded boolean
 ---@field private pending_expire {[gui.View]: true}
 local Screen = class()
 
@@ -26,6 +27,7 @@ function Screen:new()
 	self.draw_views = {}
 	self.dirty = true
 	self.inputs = nil
+	self.loaded = false
 	self.pending_expire = {}
 	self.width = 0
 	self.height = 0
@@ -33,6 +35,31 @@ function Screen:new()
 end
 
 function Screen:invalidateLayout()
+	self.dirty = true
+end
+
+function Screen:load()
+	if self.loaded then
+		return
+	end
+	self.loaded = true
+	self.root:loadSubtree()
+	self:flush()
+end
+
+function Screen:unload()
+	if not self.loaded then
+		return
+	end
+	if self.inputs then
+		self.inputs:clearSubtree(self.root)
+	end
+	self.root:unloadSubtree()
+	self.loaded = false
+	self.views = {}
+	self.update_views = {}
+	self.draw_views = {}
+	self.inputs = nil
 	self.dirty = true
 end
 
@@ -137,11 +164,17 @@ function Screen:update(dt)
 	-- views can still own whole-subtree animations.
 	local all_views = self.views
 	for i = 1, #all_views do
-		all_views[i]:stepTransforms(dt)
+		local view = all_views[i]
+		if not view.detached then
+			view:stepTransforms(dt)
+		end
 	end
 	local views = self.update_views
 	for i = 1, #views do
-		views[i]:update(dt)
+		local view = views[i]
+		if not view.detached then
+			view:update(dt)
+		end
 	end
 end
 
@@ -150,7 +183,7 @@ function Screen:draw()
 	local views = self.draw_views
 	for i = 1, #views do
 		local view = views[i]
-		if view.effective_visible and view.present then
+		if not view.detached and view.effective_visible and view.present then
 			love.graphics.replaceTransform(view.world_transform)
 			love.graphics.setScissor() -- clip_rect support lands with §9.1
 			love.graphics.setColor(1, 1, 1, view.effective_opacity)
@@ -169,7 +202,7 @@ function Screen:acceptInputs(inputs)
 	local views = self.views
 	for i = #views, 1, -1 do
 		local view = views[i]
-		if view.effective_visible and view.effective_enabled and view.present then
+		if not view.detached and view.effective_visible and view.effective_enabled and view.present then
 			inputs:processView(view)
 		end
 	end

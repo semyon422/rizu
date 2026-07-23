@@ -73,6 +73,42 @@ function Inputs:beginFrame(mouse_x, mouse_y)
 	self:resetTraversalContext(mouse_x, mouse_y)
 end
 
+---@param root gui.View
+function Inputs:clearSubtree(root)
+	local function contains(view)
+		return view and view.flat_index and root.flat_index
+			and view.screen == root.screen
+			and view.flat_index >= root.flat_index
+			and view.flat_index <= root.flat_subtree_end
+	end
+
+	if contains(self.keyboard_focus) then
+		self.keyboard_focus.focused = false
+		self.keyboard_focus = nil
+	end
+	if contains(self.mouse_target) then
+		self.mouse_target.mouse_over = false
+		self.mouse_target = nil
+	end
+	if self.last_mouse_down_event and contains(self.last_mouse_down_event.target) then
+		self.last_mouse_down_event.target.pressed = false
+		self.last_mouse_down_event = nil
+	end
+	if self.last_drag_event and contains(self.last_drag_event.target) then
+		self.last_drag_event = nil
+	end
+	for i = #self.mouse_hits, 1, -1 do
+		if contains(self.mouse_hits[i]) then
+			table.remove(self.mouse_hits, i)
+		end
+	end
+	for i = #self.focus_requesters, 1, -1 do
+		if contains(self.focus_requesters[i]) then
+			table.remove(self.focus_requesters, i)
+		end
+	end
+end
+
 ---@param view gui.View
 function Inputs:processView(view)
 	if view.handles_mouse_input or view.handles_keyboard_input then

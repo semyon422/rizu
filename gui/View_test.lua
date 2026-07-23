@@ -671,4 +671,98 @@ function test.clear_then_add_again_works(t)
 	t:eq(first.parent, nil)
 end
 
+-- ===========================================================================
+-- Placement and invalidating setters
+-- ===========================================================================
+
+---@param t testing.T
+function test.anchorFixed_sets_absolute_authored_rect(t)
+	local view = View():anchorFixed(10, 20, 30, 40)
+	t:tdeq(view.anchor_min, {0, 0})
+	t:tdeq(view.anchor_max, {0, 0})
+	t:tdeq(view.offset_min, {10, 20})
+	t:tdeq(view.offset_max, {40, 60})
+	t:eq(view.size_mode_x, "fixed")
+	t:eq(view.size_mode_y, "fixed")
+end
+
+---@param t testing.T
+function test.anchorFill_uses_signed_edge_margins(t)
+	local view = View():anchorFill(10, 20, 30, 40)
+	t:tdeq(view.anchor_min, {0, 0})
+	t:tdeq(view.anchor_max, {1, 1})
+	t:tdeq(view.offset_min, {10, 20})
+	t:tdeq(view.offset_max, {-30, -40})
+	t:eq(view.size_mode_x, "fill")
+	t:eq(view.size_mode_y, "fill")
+end
+
+---@param t testing.T
+function test.anchorPercent_resolves_percent_rect(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():anchorPercent(0.25, 0.2, 0.75, 0.8)
+	root:add(view)
+	root:relayout()
+	t:eq(view.x, 50)
+	t:eq(view.y, 20)
+	t:eq(view.width, 100)
+	t:aeq(view.height, 60, 1e-9)
+end
+
+---@param t testing.T
+function test.setPosition_preserves_authored_size(t)
+	local view = View():setSize(30, 40):setPosition(10, 20)
+	t:tdeq(view.offset_min, {10, 20})
+	t:tdeq(view.offset_max, {40, 60})
+end
+
+---@param t testing.T
+function test.setAlignment_survives_setSize(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():setSize(20, 10):setAlignment(0.5, 0.5):setSize(40, 20)
+	root:add(view)
+	root:relayout()
+	t:eq(view.x, 80)
+	t:eq(view.y, 40)
+	t:eq(view.width, 40)
+	t:eq(view.height, 20)
+end
+
+---@param t testing.T
+function test.fixed_operations_reject_fill_axes(t)
+	local view = View():anchorFill(0, 0, 0, 0)
+	t:has_error(function() view:setPosition(1, 2) end)
+	t:has_error(function() view:setSize(1, 2) end)
+end
+
+---@param t testing.T
+function test.layout_setters_invalidate_attached_screen(t)
+	local screen = {dirty = false}
+	function screen:invalidateLayout() self.dirty = true end
+	local view = View()
+	view:setScreen(screen)
+	view:setLayoutIgnore(true)
+	t:eq(screen.dirty, true)
+	screen.dirty = false
+	view:setClip(true)
+	t:eq(screen.dirty, true)
+end
+
+---@param t testing.T
+function test.onLayoutChanged_fires_initially_and_after_geometry_change(t)
+	local root = newSizedRoot(100, 100)
+	local view = View():setSize(10, 20)
+	local changes = {}
+	function view:onLayoutChanged(old_x, old_y, old_width, old_height)
+		changes[#changes + 1] = {old_x, old_y, old_width, old_height}
+	end
+	root:add(view)
+	root:relayout()
+	view:setSize(20, 30)
+	root:relayout()
+	t:eq(#changes, 2)
+	t:tdeq(changes[1], {0, 0, 0, 0})
+	t:tdeq(changes[2], {0, 0, 10, 20})
+end
+
 return test

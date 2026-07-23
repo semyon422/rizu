@@ -28,11 +28,14 @@ function UserInterface:load()
 	self.prev_w = ww
 	self.prev_h = wh
 	self:applyViewport(ww, wh)
+	self.screen:load()
 	love.keyboard.setTextInput(true)
 	love.keyboard.setKeyRepeat(true)
 end
 
-function UserInterface:unload() end
+function UserInterface:unload()
+	self.screen:unload()
+end
 
 ---@type gui.ModifierKeys
 local default_modifiers = {control = false, shift = false, alt = false, super = false}

@@ -32,8 +32,13 @@ local Easing = require("gui.anim.Easing")
 ---@field arrange_strategy gui.ArrangeStrategy?
 ---@field layout_ignore boolean
 ---@field align_self ("fill"|"start"|"center"|"end")?
+---@field align_x number?
+---@field align_y number?
+---@field clip boolean
 ---@field visible boolean
 ---@field enabled boolean
+---@field detached boolean
+---@field loaded boolean
 ---
 ---Resolved rect (§2.1). Written only by layout; read-only everywhere else.
 ---@field x number
@@ -98,6 +103,11 @@ local function getTransformValue(self, target)
 	return self[target]
 end
 
+local function assertFinite(value, name)
+	assert(type(value) == "number" and value == value and math.abs(value) < math.huge,
+		("%s must be a finite number"):format(name))
+end
+
 ---@param self gui.View
 ---@param target string
 ---@param value number
@@ -130,6 +140,9 @@ function View:new()
 	self.arrange_strategy = nil
 	self.layout_ignore = false
 	self.align_self = nil
+	self.align_x = nil
+	self.align_y = nil
+	self.clip = false
 
 	self.x = 0
 	self.y = 0
@@ -161,6 +174,8 @@ function View:new()
 	self.handles_keyboard_input = false
 	self.visible = true
 	self.enabled = true
+	self.detached = false
+	self.loaded = false
 	self.effective_visible = true
 	self.effective_enabled = true
 	self.effective_opacity = 1
@@ -187,9 +202,13 @@ function View:add(child)
 	end
 
 	child.parent = self
+	child:setDetached(false)
 	child:setScreen(self.screen)
 	table.insert(self.children, child)
 	if self.screen then
+		if self.screen.loaded then
+			child:loadSubtree()
+		end
 		self.screen:invalidateLayout()
 	end
 	return child
@@ -199,11 +218,19 @@ end
 function View:remove(child)
 	for i, c in ipairs(self.children) do
 		if c == child then
+			local screen = self.screen
+			child:setDetached(true)
+			if screen and screen.inputs then
+				screen.inputs:clearSubtree(child)
+			end
+			if child.loaded then
+				child:unloadSubtree()
+			end
 			table.remove(self.children, i)
 			child.parent = nil
 			child:setScreen(nil)
-			if self.screen then
-				self.screen:invalidateLayout()
+			if screen then
+				screen:invalidateLayout()
 			end
 			return
 		end
@@ -220,10 +247,230 @@ function View:setScreen(screen)
 	end
 end
 
+---@param detached boolean
+function View:setDetached(detached)
+	self.detached = detached
+	for i = 1, #self.children do
+		self.children[i]:setDetached(detached)
+	end
+end
+
+---Override for resource setup. Geometry is not guaranteed here.
+function View:load() end
+
+---Override for resource teardown.
+function View:unload() end
+
+---@package
+function View:loadSubtree()
+	if not self.loaded then
+		self:load()
+		self.loaded = true
+	end
+	for i = 1, #self.children do
+		self.children[i]:loadSubtree()
+	end
+end
+
+---@package
+function View:unloadSubtree()
+	for i = #self.children, 1, -1 do
+		self.children[i]:unloadSubtree()
+	end
+	if self.loaded then
+		self:unload()
+		self.loaded = false
+	end
+end
+
+---Override for size-dependent resource and geometry updates.
+---@param old_x number
+---@param old_y number
+---@param old_width number
+---@param old_height number
+function View:onLayoutChanged(old_x, old_y, old_width, old_height) end
+
 function View:invalidate()
 	if self.screen then
 		self.screen:invalidateLayout()
 	end
+end
+
+---@param strategy gui.ArrangeStrategy?
+---@return gui.View
+function View:setArrangeStrategy(strategy)
+	assert(strategy == nil or type(strategy.arrange) == "function", "arrange strategy must provide arrange(container)")
+	self.arrange_strategy = strategy
+	self:invalidate()
+	return self
+end
+
+---@param ignored boolean
+---@return gui.View
+function View:setLayoutIgnore(ignored)
+	assert(type(ignored) == "boolean", "layout_ignore must be boolean")
+	self.layout_ignore = ignored
+	self:invalidate()
+	return self
+end
+
+---@param clip boolean
+---@return gui.View
+function View:setClip(clip)
+	assert(type(clip) == "boolean", "clip must be boolean")
+	self.clip = clip
+	self:invalidate()
+	return self
+end
+
+---@param visible boolean
+---@return gui.View
+function View:setVisible(visible)
+	assert(type(visible) == "boolean", "visible must be boolean")
+	self.visible = visible
+	self:composeSubtree()
+	if not visible and self.screen and self.screen.inputs then
+		self.screen.inputs:clearSubtree(self)
+	end
+	return self
+end
+
+---@param enabled boolean
+---@return gui.View
+function View:setEnabled(enabled)
+	assert(type(enabled) == "boolean", "enabled must be boolean")
+	self.enabled = enabled
+	self:composeSubtree()
+	if not enabled and self.screen and self.screen.inputs then
+		self.screen.inputs:clearSubtree(self)
+	end
+	return self
+end
+
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@return gui.View
+function View:anchorFixed(x, y, width, height)
+	assertFinite(x, "x")
+	assertFinite(y, "y")
+	assertFinite(width, "width")
+	assertFinite(height, "height")
+	assert(width >= 0 and height >= 0, "size must be non-negative")
+	self.anchor_min = {0, 0}
+	self.anchor_max = {0, 0}
+	self.offset_min = {x, y}
+	self.offset_max = {x + width, y + height}
+	self.size_mode_x = "fixed"
+	self.size_mode_y = "fixed"
+	self.align_x = nil
+	self.align_y = nil
+	self:invalidate()
+	return self
+end
+
+---@param left number
+---@param top number
+---@param right number
+---@param bottom number
+---@return gui.View
+function View:anchorFill(left, top, right, bottom)
+	assertFinite(left, "left")
+	assertFinite(top, "top")
+	assertFinite(right, "right")
+	assertFinite(bottom, "bottom")
+	self.anchor_min = {0, 0}
+	self.anchor_max = {1, 1}
+	self.offset_min = {left, top}
+	self.offset_max = {-right, -bottom}
+	self.size_mode_x = "fill"
+	self.size_mode_y = "fill"
+	self.align_x = nil
+	self.align_y = nil
+	self:invalidate()
+	return self
+end
+
+---@param min_x number
+---@param min_y number
+---@param max_x number
+---@param max_y number
+---@return gui.View
+function View:anchorPercent(min_x, min_y, max_x, max_y)
+	assertFinite(min_x, "min_x")
+	assertFinite(min_y, "min_y")
+	assertFinite(max_x, "max_x")
+	assertFinite(max_y, "max_y")
+	assert(min_x >= 0 and min_x <= max_x and max_x <= 1, "x anchors must satisfy 0 <= min <= max <= 1")
+	assert(min_y >= 0 and min_y <= max_y and max_y <= 1, "y anchors must satisfy 0 <= min <= max <= 1")
+	self.anchor_min = {min_x, min_y}
+	self.anchor_max = {max_x, max_y}
+	self.offset_min = {0, 0}
+	self.offset_max = {0, 0}
+	self.size_mode_x = min_x == max_x and "fixed" or "fill"
+	self.size_mode_y = min_y == max_y and "fixed" or "fill"
+	self.align_x = nil
+	self.align_y = nil
+	self:invalidate()
+	return self
+end
+
+---@param align_x number
+---@param align_y number
+---@return gui.View
+function View:setAlignment(align_x, align_y)
+	assertFinite(align_x, "align_x")
+	assertFinite(align_y, "align_y")
+	assert(align_x >= 0 and align_x <= 1 and align_y >= 0 and align_y <= 1,
+		"alignment must be between 0 and 1")
+	local width = self.offset_max[1] - self.offset_min[1]
+	local height = self.offset_max[2] - self.offset_min[2]
+	self.anchor_min = {align_x, align_y}
+	self.anchor_max = {align_x, align_y}
+	self.offset_min = {-align_x * width, -align_y * height}
+	self.offset_max = {(1 - align_x) * width, (1 - align_y) * height}
+	self.size_mode_x = "fixed"
+	self.size_mode_y = "fixed"
+	self.align_x = align_x
+	self.align_y = align_y
+	self:invalidate()
+	return self
+end
+
+---@param x number
+---@param y number
+---@return gui.View
+function View:setPosition(x, y)
+	assert(self.size_mode_x == "fixed" and self.size_mode_y == "fixed",
+		"setPosition cannot be used on a fill axis")
+	assertFinite(x, "x")
+	assertFinite(y, "y")
+	local width = self.offset_max[1] - self.offset_min[1]
+	local height = self.offset_max[2] - self.offset_min[2]
+	self.offset_min = {x, y}
+	self.offset_max = {x + width, y + height}
+	self.align_x = nil
+	self.align_y = nil
+	self:invalidate()
+	return self
+end
+
+---@param width number
+---@param height number
+---@return gui.View
+function View:setSize(width, height)
+	assert(self.size_mode_x == "fixed" and self.size_mode_y == "fixed",
+		"setSize cannot be used on a fill axis")
+	assertFinite(width, "width")
+	assertFinite(height, "height")
+	assert(width >= 0 and height >= 0, "size must be non-negative")
+	local min_x = self.align_x and -self.align_x * width or self.offset_min[1]
+	local min_y = self.align_y and -self.align_y * height or self.offset_min[2]
+	self.offset_min = {min_x, min_y}
+	self.offset_max = {min_x + width, min_y + height}
+	self:invalidate()
+	return self
 end
 
 ---Set or clear an instance-level update override. Class-level overrides are
@@ -249,17 +496,10 @@ end
 ---attached to its own parent.
 ---@private
 function View:clear()
-	for _, child in ipairs(self.children) do
+	for i = #self.children, 1, -1 do
+		local child = self.children[i]
 		child:clear()
-	end
-	local children = self.children
-	for i = #children, 1, -1 do
-		children[i].parent = nil
-		children[i]:setScreen(nil)
-		children[i] = nil
-	end
-	if self.screen then
-		self.screen:invalidateLayout()
+		self:remove(child)
 	end
 end
 
@@ -268,14 +508,20 @@ end
 ---@param root_scale number?  ui_scale, only meaningful when called on a screen root; defaults to 1
 function View:relayout(root_scale)
 	root_scale = root_scale or 1
+	local initialized = self.layout_initialized
+	local old_x, old_y = self.x, self.y
+	local old_width, old_height = self.width, self.height
 	if self.parent then
-		local old_x, old_y = self.x, self.y
-		local old_width, old_height = self.width, self.height
 		self:resolve(self.parent)
 		self:applyLayoutTransition(old_x, old_y, old_width, old_height)
 	end
 	self.layout_initialized = true
 	self:compose(root_scale)
+	if not initialized or old_x ~= self.x or old_y ~= self.y
+		or old_width ~= self.width or old_height ~= self.height
+	then
+		self:onLayoutChanged(old_x, old_y, old_width, old_height)
+	end
 	self:arrangeChildren()
 	for _, child in ipairs(self.children) do
 		child:relayout()
