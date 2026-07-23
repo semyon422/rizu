@@ -214,6 +214,13 @@ function View:add(child)
 	return child
 end
 
+---@param children gui.View[]
+function View:addArray(children)
+	for _, v in ipairs(children) do
+		self:add(v)
+	end
+end
+
 ---@param child gui.View
 function View:remove(child)
 	for i, c in ipairs(self.children) do
@@ -609,8 +616,8 @@ function View:compose(root_scale)
 	local px = self.pivot[1] * w
 	local py = self.pivot[2] * h
 	self.transform:setTransformation(
-		self.x + self.offset_x + px,
-		self.y + self.offset_y + py,
+		(self.x + self.offset_x + px) * root_scale,
+		(self.y + self.offset_y + py) * root_scale,
 		self.rotation,
 		sx, sy,
 		px, py

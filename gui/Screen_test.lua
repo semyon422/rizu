@@ -239,6 +239,23 @@ function test.ui_scale_bakes_scale_into_root_world_transform(t)
 end
 
 ---@param t testing.T
+function test.ui_scale_preserves_root_center_pivot(t)
+	local s = Screen()
+	s:setUIScale(2)
+	s:resize(800, 600)
+	s.root:setPivot(0.5, 0.5)
+
+	local x, y = s.root:getWorldPosition()
+	t:aeq(x, 0, 1e-9)
+	t:aeq(y, 0, 1e-9)
+
+	s.root:setScale(0.5, 0.5)
+	x, y = s.root.world_transform:transformPoint(s.root.width / 2, s.root.height / 2)
+	t:aeq(x, 400, 1e-9)
+	t:aeq(y, 300, 1e-9)
+end
+
+---@param t testing.T
 function test.ui_scale_doubles_child_world_position(t)
 	local s = Screen()
 	s:setUIScale(2)
