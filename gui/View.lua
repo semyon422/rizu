@@ -1,4 +1,14 @@
 local IInputHandler = require("gui.input.IInputHandler")
+local Easing = require("gui.anim.Easing")
+
+---@class gui.Transform
+---@field target string
+---@field from number
+---@field to number
+---@field start number
+---@field duration number
+---@field easing gui.anim.Easing
+---@field on_complete (fun(view: gui.View))?
 
 ---@class gui.View : gui.IInputHandler
 ---@operator call: gui.View
@@ -40,6 +50,13 @@ local IInputHandler = require("gui.input.IInputHandler")
 ---@field scale_y number
 ---@field opacity number
 ---
+---Animation state (§11).
+---@field private transforms {[string]: gui.Transform}
+---@field expired boolean
+---@field private animation_time number
+---@field private transform_start number?
+---@field private layout_initialized boolean
+---
 ---Cached transforms and flattened traversal data (§2.1, §6.1).
 ---@field private transform love.Transform
 ---@field world_transform love.Transform
@@ -60,6 +77,41 @@ local IInputHandler = require("gui.input.IInputHandler")
 ---@field handles_mouse_input boolean
 ---@field handles_keyboard_input boolean
 local View = IInputHandler + {}
+
+local transform_targets = {
+	offset_x = true,
+	offset_y = true,
+	pivot_x = true,
+	pivot_y = true,
+	rotation = true,
+	scale_x = true,
+	scale_y = true,
+	opacity = true,
+}
+
+---@param self gui.View
+---@param target string
+---@return number
+local function getTransformValue(self, target)
+	if target == "pivot_x" then return self.pivot[1] end
+	if target == "pivot_y" then return self.pivot[2] end
+	return self[target]
+end
+
+---@param self gui.View
+---@param target string
+---@param value number
+local function setTransformValue(self, target, value)
+	if target == "pivot_x" then
+		self.pivot = {value, self.pivot[2]}
+	elseif target == "pivot_y" then
+		self.pivot = {self.pivot[1], value}
+	elseif target == "opacity" then
+		self.opacity = math.max(0, math.min(1, value))
+	else
+		self[target] = value ---@diagnostic disable-line
+	end
+end
 
 function View:new()
 	self.parent = nil
@@ -91,6 +143,13 @@ function View:new()
 	self.scale_x = 1
 	self.scale_y = 1
 	self.opacity = 1
+
+	---@type {[string]: gui.Transform}
+	self.transforms = {}
+	self.expired = false
+	self.animation_time = 0
+	self.transform_start = nil
+	self.layout_initialized = false
 
 	self.transform = love.math.newTransform()
 	self.world_transform = love.math.newTransform()
@@ -210,8 +269,12 @@ end
 function View:relayout(root_scale)
 	root_scale = root_scale or 1
 	if self.parent then
+		local old_x, old_y = self.x, self.y
+		local old_width, old_height = self.width, self.height
 		self:resolve(self.parent)
+		self:applyLayoutTransition(old_x, old_y, old_width, old_height)
 	end
+	self.layout_initialized = true
 	self:compose(root_scale)
 	self:arrangeChildren()
 	for _, child in ipairs(self.children) do
@@ -239,6 +302,42 @@ function View:resolve(parent)
 	self.y = anchor_min[2] * ph + offset_min[2]
 	self.width = math.max(0, (anchor_max[1] - anchor_min[1]) * pw + (offset_max[1] - offset_min[1]))
 	self.height = math.max(0, (anchor_max[2] - anchor_min[2]) * ph + (offset_max[2] - offset_min[2]))
+end
+
+---@private
+---@param old_x number
+---@param old_y number
+---@param old_width number
+---@param old_height number
+function View:applyLayoutTransition(old_x, old_y, old_width, old_height)
+	local strategy = self.parent and self.parent.arrange_strategy
+	local transition = strategy and strategy.layout_transition
+	if not self.layout_initialized or not transition or transition.duration == 0 then
+		return
+	end
+	if old_x == self.x and old_y == self.y and old_width == self.width and old_height == self.height then
+		return
+	end
+
+	local start = self.animation_time
+	local duration = transition.duration
+	local easing = transition.easing or "OutQuint"
+	if old_x ~= self.x then
+		self.offset_x = self.offset_x + old_x - self.x
+		self:transformToAt("offset_x", 0, duration, easing, start)
+	end
+	if old_y ~= self.y then
+		self.offset_y = self.offset_y + old_y - self.y
+		self:transformToAt("offset_y", 0, duration, easing, start)
+	end
+	if old_width ~= self.width and old_width > 0 and self.width > 0 then
+		self.scale_x = old_width / self.width
+		self:transformToAt("scale_x", 1, duration, easing, start)
+	end
+	if old_height ~= self.height and old_height > 0 and self.height > 0 then
+		self.scale_y = old_height / self.height
+		self:transformToAt("scale_y", 1, duration, easing, start)
+	end
 end
 
 ---Clear every child's `arranged`, then run the strategy if attached (§5).
@@ -286,6 +385,13 @@ function View:compose(root_scale)
 	self.present = self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
 end
 
+local function composeRecursive(view, root_scale)
+	view:compose(root_scale)
+	for i = 1, #view.children do
+		composeRecursive(view.children[i], 1)
+	end
+end
+
 ---Recompose this view and its descendants without running layout.
 function View:composeSubtree()
 	local screen = self.screen
@@ -299,13 +405,229 @@ function View:composeSubtree()
 		return
 	end
 
-	local function composeRecursive(view, root_scale)
-		view:compose(root_scale)
-		for i = 1, #view.children do
-			composeRecursive(view.children[i], 1)
+	composeRecursive(self, self.parent and 1 or (screen and screen.ui_scale or 1))
+end
+
+---@param target string
+---@param to number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@param on_complete (fun(view: gui.View))?
+---@return gui.View
+function View:transformTo(target, to, duration, easing, on_complete)
+	assert(transform_targets[target], ("invalid transform target: %s"):format(tostring(target)))
+	assert(type(to) == "number" and to == to and math.abs(to) < math.huge, "transform target value must be finite")
+	assert(type(duration) == "number" and duration >= 0 and duration < math.huge, "transform duration must be finite and non-negative")
+	assert(on_complete == nil or type(on_complete) == "function", "transform completion must be a function or nil")
+	local start = self.transform_start or self.animation_time
+	local transform = {
+		target = target,
+		from = getTransformValue(self, target),
+		to = to,
+		start = start,
+		duration = duration,
+		easing = Easing.resolve(easing),
+		on_complete = on_complete,
+	}
+	self.transforms[target] = transform
+	if duration == 0 and start <= self.animation_time then
+		setTransformValue(self, target, to)
+		self.transforms[target] = nil
+		self:composeSubtree()
+		if on_complete then on_complete(self) end
+		self:checkExpired()
+	end
+	return self
+end
+
+---@param dt number
+function View:stepTransforms(dt)
+	assert(type(dt) == "number" and dt >= 0, "animation dt must be non-negative")
+	self.animation_time = self.animation_time + dt
+	if self.transform_start and self.animation_time >= self.transform_start then
+		self.transform_start = nil
+	end
+	local changed = false
+	local completions = {} ---@type (fun(view: gui.View))[]
+	for target, transform in pairs(self.transforms) do
+		if self.animation_time >= transform.start then
+			local progress ---@type number
+			if transform.duration == 0 then
+				progress = 1
+			else
+				progress = math.min(1, (self.animation_time - transform.start) / transform.duration)
+			end
+			setTransformValue(self, target, transform.from + (transform.to - transform.from) * transform.easing(progress))
+			changed = true
+			if progress >= 1 then
+				setTransformValue(self, target, transform.to)
+				self.transforms[target] = nil
+				if transform.on_complete then completions[#completions + 1] = transform.on_complete end
+			end
 		end
 	end
-	composeRecursive(self, self.parent and 1 or (screen and screen.ui_scale or 1))
+	if changed then self:composeSubtree() end
+	for i = 1, #completions do completions[i](self) end
+	self:checkExpired()
+end
+
+---@return boolean
+function View:hasTransforms()
+	return next(self.transforms) ~= nil
+end
+
+---@param target string?
+---@return gui.View
+function View:finishTransforms(target)
+	if target ~= nil then assert(transform_targets[target], ("invalid transform target: %s"):format(tostring(target))) end
+	local completions = {} ---@type (fun(view: gui.View))[]
+	local changed = false
+	for transform_target, transform in pairs(self.transforms) do
+		if target == nil or target == transform_target then
+			setTransformValue(self, transform_target, transform.to)
+			self.transforms[transform_target] = nil
+			changed = true
+			if transform.on_complete then completions[#completions + 1] = transform.on_complete end
+		end
+	end
+	if changed then self:composeSubtree() end
+	for i = 1, #completions do completions[i](self) end
+	self:checkExpired()
+	return self
+end
+
+---@param target string?
+---@return gui.View
+function View:clearTransforms(target)
+	if target ~= nil then
+		assert(transform_targets[target], ("invalid transform target: %s"):format(tostring(target)))
+		self.transforms[target] = nil
+	else
+		self.transforms = {}
+	end
+	self:checkExpired()
+	return self
+end
+
+---@param duration number
+---@return gui.View
+function View:delay(duration)
+	assert(type(duration) == "number" and duration >= 0 and duration < math.huge, "delay must be finite and non-negative")
+	local latest = self.animation_time
+	for _, transform in pairs(self.transforms) do
+		latest = math.max(latest, transform.start + transform.duration)
+	end
+	self.transform_start = latest + duration
+	return self
+end
+
+---@param target string
+---@param to number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@param start number
+function View:transformToAt(target, to, duration, easing, start)
+	local saved = self.transform_start
+	self.transform_start = start
+	self:transformTo(target, to, duration, easing)
+	self.transform_start = saved
+end
+
+---@param alpha number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:fadeTo(alpha, duration, easing)
+	assert(alpha >= 0 and alpha <= 1, "opacity must be between 0 and 1")
+	return self:transformTo("opacity", alpha, duration, easing)
+end
+
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:fadeIn(duration, easing)
+	return self:fadeTo(1, duration, easing or "OutQuint")
+end
+
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:fadeOut(duration, easing)
+	return self:fadeTo(0, duration, easing or "OutQuad")
+end
+
+---@param x number
+---@param y number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:moveTo(x, y, duration, easing)
+	local start = self.transform_start or self.animation_time
+	self:transformToAt("offset_x", x, duration, easing, start)
+	self:transformToAt("offset_y", y, duration, easing, start)
+	return self
+end
+
+---@param x number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:moveToX(x, duration, easing)
+	return self:transformTo("offset_x", x, duration, easing)
+end
+
+---@param y number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:moveToY(y, duration, easing)
+	return self:transformTo("offset_y", y, duration, easing)
+end
+
+---@param scale_x number
+---@param scale_y number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:scaleTo(scale_x, scale_y, duration, easing)
+	local start = self.transform_start or self.animation_time
+	self:transformToAt("scale_x", scale_x, duration, easing, start)
+	self:transformToAt("scale_y", scale_y, duration, easing, start)
+	return self
+end
+
+---@param pivot_x number
+---@param pivot_y number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:pivotTo(pivot_x, pivot_y, duration, easing)
+	local start = self.transform_start or self.animation_time
+	self:transformToAt("pivot_x", pivot_x, duration, easing, start)
+	self:transformToAt("pivot_y", pivot_y, duration, easing, start)
+	return self
+end
+
+---@param rotation number
+---@param duration number
+---@param easing gui.anim.EasingName|gui.anim.Easing?
+---@return gui.View
+function View:rotateTo(rotation, duration, easing)
+	return self:transformTo("rotation", rotation, duration, easing)
+end
+
+---@return gui.View
+function View:expire()
+	self.expired = true
+	self:checkExpired()
+	return self
+end
+
+---@private
+function View:checkExpired()
+	if self.expired and not self:hasTransforms() and self.screen then
+		self.screen:queueExpire(self)
+	end
 end
 
 ---@param x number

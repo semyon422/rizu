@@ -12,6 +12,7 @@ local View = require("gui.View")
 ---@field height number Window height in drawable pixels
 ---@field ui_scale number Logical-per-drawable scale; root size = window / ui_scale
 ---@field inputs gui.Inputs?
+---@field private pending_expire {[gui.View]: true}
 local Screen = class()
 
 function Screen:new()
@@ -25,6 +26,7 @@ function Screen:new()
 	self.draw_views = {}
 	self.dirty = true
 	self.inputs = nil
+	self.pending_expire = {}
 	self.width = 0
 	self.height = 0
 	self.ui_scale = 1
@@ -32,6 +34,25 @@ end
 
 function Screen:invalidateLayout()
 	self.dirty = true
+end
+
+---@param view gui.View
+function Screen:queueExpire(view)
+	self.pending_expire[view] = true
+	self.dirty = true
+end
+
+---@private
+function Screen:removeExpiredViews()
+	local pending = self.pending_expire
+	self.pending_expire = {}
+	-- Removing an expired ancestor detaches its whole subtree; descendants are
+	-- revalidated before removal.
+	for view in pairs(pending) do
+		if view.screen == self and view.expired and not view:hasTransforms() and view.parent then
+			view.parent:remove(view)
+		end
+	end
 end
 
 ---@param view gui.View
@@ -70,6 +91,7 @@ end
 
 ---Run at most one pending tree rebuild.
 function Screen:flush()
+	self:removeExpiredViews()
 	if not self.dirty then
 		return
 	end
@@ -110,6 +132,13 @@ end
 ---@param dt number
 function Screen:update(dt)
 	self:flush()
+	-- Animations settle first so view update code always observes this frame's
+	-- visual state (§7.3, §11.1). Use the complete flat cache: inert layout
+	-- views can still own whole-subtree animations.
+	local all_views = self.views
+	for i = 1, #all_views do
+		all_views[i]:stepTransforms(dt)
+	end
 	local views = self.update_views
 	for i = 1, #views do
 		views[i]:update(dt)

@@ -5,6 +5,9 @@ local OrbitOffsetTransform = require("ui.test.OrbitOffsetTransform")
 local Opacity = require("ui.test.Opacity")
 local FlexList = require("ui.test.FlexList")
 local Checkbox = require("ui.test.Checkbox")
+local Animations = require("ui.test.Animations")
+local Animations2 = require("ui.test.Animations2")
+local LayoutTransitions = require("ui.test.LayoutTransitions")
 
 ---@alias ui.test.BuildFn fun(root: gui.View)
 ---@alias ui.test.UpdateFn fun(screen: ui.test.TestScreen, dt: number)
@@ -16,12 +19,15 @@ local Checkbox = require("ui.test.Checkbox")
 
 ---@type ui.test.TestCase[]
 local cases = {
+	Animations2,
 	ThreeColumns,
 	NineAnchors,
 	OrbitOffsetTransform,
 	Opacity,
 	FlexList,
 	Checkbox,
+	Animations,
+	LayoutTransitions,
 }
 
 ---@class ui.test.TestScreen: gui.Screen

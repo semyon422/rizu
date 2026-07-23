@@ -5,6 +5,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field padding? Padding  {left, top, right, bottom} or a single number for all four sides
 ---@field align_items_x? gui.layout.Align  default "fill"
 ---@field align_items_y? gui.layout.Align  default "fill"
+---@field layout_transition? gui.layout.LayoutTransition
 
 ---Padding/margin tuple: {left, top, right, bottom} or a single number.
 ---@alias Padding number|{[1]: number, [2]: number, [3]: number, [4]: number}
@@ -17,6 +18,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field padding Padding
 ---@field align_items_x gui.layout.Align
 ---@field align_items_y gui.layout.Align
+---@field layout_transition gui.layout.LayoutTransition?
 local Stack = ArrangeStrategy + {}
 
 ---@type {[string]: true}
@@ -52,6 +54,7 @@ function Stack:new(config)
 	self.padding = config.padding or 0
 	self.align_items_x = config.align_items_x or "fill"
 	self.align_items_y = config.align_items_y or "fill"
+	self.layout_transition = config.layout_transition
 	self:validate()
 end
 
@@ -59,6 +62,7 @@ function Stack:validate()
 	self:validatePadding(self.padding)
 	self:validateAlign("align_items_x", self.align_items_x)
 	self:validateAlign("align_items_y", self.align_items_y)
+	self:validateLayoutTransition(self.layout_transition)
 end
 
 ---@param p number|{[1]: number, [2]: number, [3]: number, [4]: number}

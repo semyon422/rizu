@@ -13,6 +13,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field sizes? gui.layout.SizeSpec[]  per-child main-axis size; pads with "*"
 ---@field align_items? gui.layout.Align  cross-axis align, default "fill"
 ---@field justify? ("start"|"center"|"end")  default "start"
+---@field layout_transition? gui.layout.LayoutTransition
 
 ---Flex: lays out children on a main axis (`row` = horizontal, `column` =
 ---vertical) per `sizes`, cross-axis per `align_items` (§5.1, §5.2).
@@ -24,6 +25,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field sizes gui.layout.SizeSpec[]
 ---@field align_items gui.layout.Align
 ---@field justify ("start"|"center"|"end")
+---@field layout_transition gui.layout.LayoutTransition?
 local Flex = ArrangeStrategy + {}
 
 local valid_directions = {row = true, column = true}
@@ -62,6 +64,7 @@ function Flex:new(config)
 	self.sizes = config.sizes or {}
 	self.align_items = config.align_items or "fill"
 	self.justify = config.justify or "start"
+	self.layout_transition = config.layout_transition
 	self:validate()
 end
 
@@ -75,6 +78,7 @@ function Flex:validate()
 		("align_items must be fill|start|center|end (got %s)"):format(tostring(self.align_items)))
 	assert(valid_justifies[self.justify],
 		("justify must be start|center|end (got %s)"):format(tostring(self.justify)))
+	self:validateLayoutTransition(self.layout_transition)
 	for i, spec in ipairs(self.sizes) do
 		self:validateSizeSpec(i, spec)
 	end

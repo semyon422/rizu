@@ -1,4 +1,5 @@
 local class = require("class")
+local Easing = require("gui.anim.Easing")
 
 ---Cross/main-axis alignment values used by Stack and Flex (§5.2).
 ---@alias gui.layout.Align "fill"|"start"|"center"|"end"
@@ -9,9 +10,25 @@ local class = require("class")
 ---
 ---Strategies may extend this class for the type, but it is not required —
 ---any table with `arrange` and `contentSize` methods satisfies the contract.
+---@class gui.layout.LayoutTransition
+---@field duration number
+---@field easing? gui.anim.EasingName|gui.anim.Easing
+
 ---@class gui.ArrangeStrategy
 ---@operator call: gui.ArrangeStrategy
+---@field layout_transition gui.layout.LayoutTransition?
 local ArrangeStrategy = class()
+
+---@param transition gui.layout.LayoutTransition?
+function ArrangeStrategy:validateLayoutTransition(transition)
+	if transition == nil then return end
+	assert(type(transition) == "table", "layout_transition must be a table or nil")
+	assert(type(transition.duration) == "number" and transition.duration >= 0 and transition.duration < math.huge,
+		"layout_transition.duration must be finite and non-negative")
+	if transition.easing ~= nil then
+		Easing.resolve(transition.easing)
+	end
+end
 
 ---Write `child.arranged = {x, y, w, h}` for each non-`layout_ignore` child.
 ---Called after the container's own rect is resolved and before children
