@@ -2,6 +2,9 @@ local IUserInterface = require("sphere.IUserInterface")
 local Resources = require("ui.Resources")
 local MainMenu = require("ui.screens.main_menu.MainMenu")
 local SongSelect = require("ui.screens.song_select.SongSelect")
+local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
+local Gameplay = require("ui.screens.gameplay.Gameplay")
+local Result = require("ui.screens.result.Result")
 local Inputs = require("gui.input.Inputs")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
@@ -10,6 +13,11 @@ local TARGET_HEIGHT = 1080
 
 ---@class ui.UserInterface : sphere.IUserInterface
 ---@operator call: ui.UserInterface
+---@field main_menu ui.screens.main_menu.MainMenu
+---@field song_select ui.screens.song_select.SongSelect
+---@field chart_loading ui.screens.chart_loading.ChartLoading
+---@field gameplay ui.screens.gameplay.Gameplay
+---@field result ui.screens.result.Result
 ---@field private screen gui.Screen
 ---@field private prev_w number
 ---@field private prev_h number
@@ -27,6 +35,9 @@ function UserInterface:load()
 	Resources.load()
 	self.main_menu = MainMenu(self)
 	self.song_select = SongSelect(self)
+	self.chart_loading = ChartLoading(self)
+	self.gameplay = Gameplay(self)
+	self.result = Result(self)
 	self:setScreen(self.main_menu)
 
 	local ww, wh = love.graphics.getDimensions()
@@ -39,14 +50,25 @@ end
 
 ---@param screen gui.Screen
 function UserInterface:setScreen(screen)
+	if self.screen and self.screen.exit then
+		self.screen:exit()
+	end
+
 	self.screen = screen
 	if not self.screen.loaded then
 		self.screen:load()
 		self:applyViewport(love.graphics.getDimensions())
 	end
+
+	if self.screen.enter then
+		self.screen:enter()
+	end
 end
 
 function UserInterface:unload()
+	if self.screen.exit then
+		self.screen:exit()
+	end
 	self.screen:unload()
 end
 
@@ -77,6 +99,9 @@ function UserInterface:receive(event)
 		return
 	end
 	self.inputs:receive(event, default_modifiers)
+	if self.screen.receive then
+		self.screen:receive(event)
+	end
 end
 
 ---@private

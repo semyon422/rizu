@@ -1,6 +1,8 @@
 local IInputHandler = require("gui.input.IInputHandler")
 local Easing = require("gui.anim.Easing")
 
+---@alias gui.Color [number, number, number, number]
+
 ---@class gui.Transform
 ---@field target string
 ---@field from number
