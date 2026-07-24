@@ -5,8 +5,9 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field direction? "row"|"column"
 ---@field gap? number
 ---@field align? number
----@field padding? Padding
+---@field padding? gui.layout.Padding
 ---@field layout_transition? gui.layout.LayoutTransition
+---@field [number] gui.View
 
 ---Packs children at their authored sizes along one axis. Unlike
 ---TrackContainer, FlowContainer does not distribute available main-axis space.
@@ -16,7 +17,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field direction "row"|"column"
 ---@field gap number
 ---@field align number
----@field padding Padding
+---@field padding gui.layout.Padding
 ---@field layout_transition gui.layout.LayoutTransition?
 local FlowContainer = View + {}
 
@@ -28,7 +29,7 @@ local function isFiniteNumber(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
----@param padding Padding
+---@param padding gui.layout.Padding
 local function validatePadding(padding)
 	if type(padding) == "number" then
 		assert(isFiniteNumber(padding) and padding >= 0,
@@ -63,6 +64,10 @@ function FlowContainer:new(config)
 	ArrangeStrategy.validateLayoutTransition(self, self.layout_transition)
 
 	self.arrange_strategy = self
+
+	for _, child in ipairs(config) do
+		self:add(child)
+	end
 end
 
 ---@return number left

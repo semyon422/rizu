@@ -1,7 +1,9 @@
 local class = require("class")
 local Easing = require("gui.anim.Easing")
 
----Cross/main-axis alignment values used by Stack and Flex (§5.2).
+---@alias gui.layout.Padding number|{[1]: number, [2]: number, [3]: number, [4]: number}
+
+---Cross/main-axis alignment values used by layout containers (§5).
 ---@alias gui.layout.Align "fill"|"start"|"center"|"end"
 
 ---Contract for layout strategies (§5). A strategy is a duck-typed object that

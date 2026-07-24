@@ -6,7 +6,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@class gui.layout.TrackContainer.Config
 ---@field direction? "row"|"column"
 ---@field gap? number
----@field padding? Padding
+---@field padding? gui.layout.Padding
 ---@field layout_transition? gui.layout.LayoutTransition
 
 ---Divides its main axis into tracks. Children always fill their track on the
@@ -16,7 +16,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@overload fun(config: gui.layout.TrackContainer.Config?): gui.layout.TrackContainer
 ---@field direction "row"|"column"
 ---@field gap number
----@field padding Padding
+---@field padding gui.layout.Padding
 ---@field layout_transition gui.layout.LayoutTransition?
 ---@field private track_sizes {[gui.View]: gui.layout.TrackSize}
 local TrackContainer = View + {}
@@ -45,7 +45,7 @@ local function isTrackSize(size)
 	return percent ~= nil
 end
 
----@param padding Padding
+---@param padding gui.layout.Padding
 local function validatePadding(padding)
 	if type(padding) == "number" then
 		assert(isFiniteNumber(padding) and padding >= 0,

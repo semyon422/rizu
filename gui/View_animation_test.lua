@@ -1,6 +1,6 @@
 local Screen = require("gui.Screen")
 local View = require("gui.View")
-local Stack = require("gui.layout.Stack")
+local StackContainer = require("gui.layout.StackContainer")
 
 local test = {}
 
@@ -125,17 +125,16 @@ end
 function test.layout_transition_keeps_final_rect_and_visual_position(t)
 	local screen = Screen()
 	screen:resize(100, 100)
-	local container = screen.root:add(View())
-	container.anchor_max = {1, 1}
-	container.arrange_strategy = Stack({
+	local container = screen.root:add(StackContainer({
 		padding = 0,
 		layout_transition = {duration = 1, easing = "Linear"},
-	})
+	}))
+	container:anchorFill(0, 0, 0, 0)
 	local child = container:add(View())
 	screen:flush()
 	local old_world_x = child:getWorldPosition()
 
-	container.arrange_strategy.padding = {20, 0, 0, 0}
+	container.padding = {20, 0, 0, 0}
 	container:invalidate()
 	screen:flush()
 	local visual_x = child:getWorldPosition()

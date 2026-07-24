@@ -34,7 +34,6 @@ local Easing = require("gui.anim.Easing")
 ---Behavior/state flags (§2.1).
 ---@field arrange_strategy gui.ArrangeStrategy?
 ---@field layout_ignore boolean
----@field align_self ("fill"|"start"|"center"|"end")?
 ---@field align_x number?
 ---@field align_y number?
 ---@field clip boolean
@@ -143,7 +142,6 @@ function View:new()
 	self.arranged = nil
 	self.arrange_strategy = nil
 	self.layout_ignore = false
-	self.align_self = nil
 	self.align_x = nil
 	self.align_y = nil
 	self.clip = false

@@ -4,9 +4,9 @@ A retained-mode UI library for LÖVE. One node type — `View` — forms a tree 
 
 ## 1. Core principles
 
-- **One type.** Views parent Views. A *container* is a View with children (usually plus an arrange strategy). A *leaf* is a View without children.
-- **Two write channels, strictly separated.** The *layout channel* (anchors, offsets, strategies → resolved rect) is owned by the layout system. The *visual channel* (offset transform, pivot, rotation, scale, opacity) is owned by you and by animations. Neither ever writes the other's state — with exactly one documented exception, the layout-transition compensation (§11.4).
-- **Three kinds of layout data, never mixed.** *Authored inputs* (anchors/offsets — yours), *transient arranged output* (the current strategy pass's rects — cleared and rewritten every pass), and the *resolved rect* (`x/y/width/height` — layout's output, read-only to everyone else).
+- **One tree type.** Every node is a `View`. Layout containers such as `StackContainer`, `TrackContainer`, and `FlowContainer` are specialized Views, so they compose, animate, draw, and receive input like any other View. A plain View with children is the manual-layout container.
+- **Two write channels, strictly separated.** The *layout channel* (anchors, offsets, container policy → resolved rect) is owned by the layout system. The *visual channel* (offset transform, pivot, rotation, scale, opacity) is owned by you and by animations. Neither ever writes the other's state — with exactly one documented exception, the layout-transition compensation (§11.4).
+- **Three kinds of layout data, never mixed.** *Authored inputs* (anchors/offsets and parent-owned track metadata), *transient arranged output* (the current container pass's rects — cleared and rewritten every pass), and the *resolved rect* (`x/y/width/height` — layout's output, read-only to everyone else).
 - **The hot path is flat.** Flatten builds one complete view array for input/subtree ranges plus filtered update and draw arrays. `update` / `draw` / `acceptInputs` never walk the tree, and layout-only container Views cost nothing in update/draw dispatch. Event-driven work (animation recompose, scroll culling) is bounded to a subtree's flat range and happens only when something actually moved — that's the qualified form of "no tree walks per frame."
 - **Layout is cold.** It runs on structural change, window resize, or explicit invalidation — never per frame.
 - **Culling is data, not control flow.** Visibility culling is precomputed into per-view flags at the moments geometry changes, and the per-frame loop checks one boolean. (Under a documented containment guarantee, the loop may also skip a whole subtree by index jump, §9.3.)
@@ -32,13 +32,13 @@ A retained-mode UI library for LÖVE. One node type — `View` — forms a tree 
 | `size_mode_x`, `size_mode_y` | `"fixed"` or `"fill"` — declared intent, used for validation |
 | `align_x`, `align_y` | nil, or the alignment factors recorded by `setAlignment` (§2.2). When set, size changes re-derive the offsets so the view stays aligned |
 
-The *authored size* of a view is `offset_max - offset_min`. It is what self-sizing views update (§13.1) and what strategies read as a child's desired size (§5.2).
+The *authored size* of a view is `offset_max - offset_min`. It is what self-sizing views update (§13.1) and what `FlowContainer` reads as a child's desired size (§5.2).
 
-**Transient arranged output** — written by the parent's strategy, cleared every pass:
+**Transient arranged output** — written by the parent layout container's internal arrange hook, cleared every pass:
 
 | Field | Meaning |
 |---|---|
-| `arranged` | `{x, y, w, h}` in parent content space, or nil. Written only by strategies during `arrange`; cleared by the container before each pass (§5). When present, resolution uses it directly and ignores anchors |
+| `arranged` | `{x, y, w, h}` in parent content space, or nil. Written only by a layout container's internal arrange hook; cleared before each pass (§5). When present, resolution uses it directly and ignores anchors |
 
 **Visual channel** — never read or written by layout (exception: §11.4); free for animation and manual adjustment:
 
@@ -61,10 +61,10 @@ The *authored size* of a view is `offset_max - offset_min`. It is what self-sizi
 
 **Behavior/state flags:**
 
+Layout ownership is expressed by the parent type, not by child flags. A child of a layout container is managed by that container; put overlays or independently anchored children in a sibling or nested plain View.
+
 | Field | Meaning |
 |---|---|
-| `layout_ignore` | The parent's strategy skips this child |
-| `align_self` | nil or `"fill" \| "start" \| "center" \| "end"` — overrides the strategy's alignment for this child (§5.2) |
 | `clip` | Descendants are clipped to this view's rect (§9) |
 | `visible` | Author-controlled visibility (§2.4). Not culling |
 | `enabled` | When false, the subtree is input-inert (§2.4) |
@@ -159,7 +159,7 @@ Percent-of-parent sizing needs no dedicated mode — it falls out of anchor spre
 
 ### 3.4 Coordinate spaces and ui_scale
 
-- **Logical units**: everything in a tree — anchors, offsets, resolved rects, strategy math.
+- **Logical units**: everything in a tree — anchors, offsets, resolved rects, and container layout math.
 - **Window coordinates**: what LÖVE mouse events arrive in. Logical = window / `ui_scale`.
 - **Drawable pixels**: what the scissor and the GPU use. On HiDPI, window ≠ drawable; compute the scissor from `world_transform` (built against drawable space) and never mix the two.
 - `ui_scale` is a finite number > 0, owned by the `Screen`, baked into the root's local transform (§7.4). Changing it is a resize: new root size + `invalidateLayout()`.
@@ -216,67 +216,98 @@ For scissor rects, effects spawned at a view, and popup anchoring (§10). Conver
 
 ### 4.6 Opacity
 
-`opacity` inherits multiplicatively: `effective_opacity = parent.effective_opacity * self.opacity`, composed during flatten and §4.4 walks. The draw loop applies it (§7.5): `love.graphics.setColor(1, 1, 1, effective_opacity)` before `v:draw()`. Views that set their own colors must preserve inherited alpha through the provided helper (`View:color(r, g, b, a)` multiplies `a` by `effective_opacity`) — a view that hardcodes its alpha opts out of inheritance. This is a documented limitation of drawing without per-subtree canvases, and it is the entire contract.
+`opacity` inherits multiplicatively: `effective_opacity = parent.effective_opacity * self.opacity`, composed during flatten and §4.4 walks. The draw loop seeds `gui.Painter` with it (§7.6). Views set RGB and paint-local alpha through Painter rather than calling `love.graphics.setColor` directly, so changing a color cannot accidentally discard inherited opacity. This remains per-view alpha, not group compositing: overlapping descendants are faded independently. True group opacity and subtree shaders require a future explicit compositing container and are outside the v1 contract.
 
-## 5. Containers and arrange strategies
+## 5. Layout containers
 
-A strategy is a config object attached to a container View, invoked during the container's resolve step — after the container's own rect is known, before its children resolve.
+Layout policy is selected by constructing a layout-container View, not by attaching a strategy object to an arbitrary View. This keeps ownership visible in the tree and lets each container expose only operations meaningful to its policy. Application code does not assign `arrange_strategy`.
 
-```lua
----@class gui.ArrangeStrategy   (contract / duck type)
----@field arrange fun(self, container: gui.View)
----@field contentSize fun(self, container: gui.View): number, number  -- intrinsic content size (§13.2)
-```
+A plain View with children remains the manual-layout container: each child resolves from its own anchors and offsets. This is also the stacking primitive—siblings overlap naturally and child order determines draw order.
 
-**The transient-output contract:**
+Layout containers use the same internal transient-output contract as before:
 
-1. At the start of a container's resolve step, every child's `arranged` is cleared.
-2. If the container has a strategy, `strategy:arrange(container)` runs and writes `child.arranged = {x, y, w, h}` (parent content space) for each non-`layout_ignore` child.
-3. Children resolve: `arranged` if present, anchors otherwise (§3.1).
+1. After the container's own rect resolves, clear every child's `arranged` value.
+2. The container computes and writes `child.arranged = {x, y, w, h}` in its content space.
+3. Children resolve from `arranged`; children of a plain View resolve from anchors (§3.1).
 
-A strategy never writes authored state. Consequences: repeated relayouts are idempotent; detaching a strategy, reparenting, or toggling `layout_ignore` cleanly returns the child to its authored anchors on the next pass. On axes the strategy manages, the strategy wins over anchors.
+`arranged` is never authored state and must not survive a pass. Containers never rewrite a child's anchors or offsets. Repeated relayout and reparenting are therefore idempotent, and moving a child from a layout container to a plain View restores its authored anchor behavior on the next pass.
 
-A container **without** a strategy places children purely by their own anchors — fully manual layout.
+Internally, a layout container may implement the existing `ArrangeStrategy` duck type and set its private strategy hook to itself. That is an implementation mechanism and extension point, not the application-facing composition API. A custom policy should normally be a `View` subclass that owns its configuration and implements `arrange(self)`; the resolve/flatten/transition machinery does not need to know its concrete type.
 
-### 5.1 Provided strategies
+### 5.1 `StackContainer`
 
-| Strategy | Config | Behavior |
-|---|---|---|
-| `Stack` | `padding`, `align_items_x`, `align_items_y` (default `"fill"`) | Every child gets the padded inner rect, or its desired size aligned within it |
-| `Flex` | `direction`, `gap`, `justify`, `padding`, `sizes`, `align_items` (cross axis, default `"fill"`) | Distributes the main axis per `sizes` (number = px, `"NN%"` = percent of inner main size, `"content"` = child's authored size, `"*"` = share of remaining space); cross axis per §5.2 |
-| `Flow` | `direction`, `gap`, `align`, `padding` | Places children in a line at their authored sizes, cross-aligned by `align` ∈ [0, 1] |
-
-All strategies additionally accept `layout_transition = {duration, easing}` (§11.4): when set, children *glide* to new arranged rects instead of snapping. nil (or `duration = 0`) means snap — the default.
-
-Validation is fail-fast: unknown `direction`/`justify`/`align` values, negative gap or padding, and invalid `sizes` entries are errors. `sizes` shorter than the child list pads with `"*"`. A `"content"` entry uses the child's authored size (`offset_max - offset_min`) on the main axis. Percentages over 100 and fixed/content totals larger than the container are legal: stars then get 0 and items overflow (subject to `clip`). Multiple `"*"` share remaining space equally.
-
-A managed child whose **anchors** express placement intent on a managed axis (anything other than the default point anchor `{0,0}→{0,0}`) is a fail-fast error at arrange time — the strategy would silently override that intent, and silent override is how layout bugs hide. The child's authored *size* via offsets is always legal: it is the strategy's input (§5.2).
-
-### 5.2 Alignment and desired size (intrinsic content within a slot)
-
-Strategies do not have to stretch children. The container's `align_items` sets the default per axis; a child's `align_self` overrides it:
-
-- `"fill"` — the arranged rect covers the slot on that axis (stretch).
-- `"start" | "center" | "end"` — the arranged rect is the child's **desired size** (`offset_max - offset_min`, its authored size) placed at the start/center/end of the slot on that axis. Desired size 0 with a non-fill alignment is a developer error (fail fast).
-
-Canonical recipes:
+`StackContainer` places every child in the same padded inner rectangle. It is the standard way to add padding around fill content and to overlap several full-slot children.
 
 ```lua
--- Fixed-size button centered in a full-screen Stack
-local stack = Stack{ align_items_x = "center", align_items_y = "center" }
-button:setSize(200, 50)
-
--- Intrinsic-height label vertically centered in a Flex row
-local row = Flex{ direction = "row", align_items = "center" }
--- (label sized itself via setText, §13.1)
-
--- Stretched background behind both: a sibling with anchorFill(),
--- or the same container drawn in its own draw()
+local panel = StackContainer({padding = {16, 12, 16, 12}, background, content})
 ```
 
-Centering a fixed-size view is preferably done with a centering Stack (survives size changes for free) or `setAlignment` (§2.2 — now also survives size changes). Never by hand-computed signed offsets; that arithmetic does not track size changes.
+`align_items_x` and `align_items_y` default to `"fill"`. They may be `"fill"`, `"start"`, `"center"`, or `"end"`; non-fill alignment uses each child's authored size on that axis. A child's existing `setAlignment(x, y)` values override the corresponding container axes, so exceptional placement needs no separate `align_self` state. `getContentSize()` returns the largest authored child width and height plus padding, and `fitContent()` applies it as a one-shot authored size (§13.2). Like the other layout containers, it optionally accepts `layout_transition`.
 
-### 5.3 Padding convention
+### 5.2 `TrackContainer`
+
+`TrackContainer` partitions one main axis and always fills each child's cross axis.
+
+```lua
+local row = TrackContainer({direction = "row", gap = 8, padding = 12})
+local sidebar = row:add(View(), 240)
+local body = row:add(View(), "*")
+local inspector = row:add(View(), "25%")
+row:setTrackSize(sidebar, 280)
+```
+
+Configuration:
+
+| Field | Contract |
+|---|---|
+| `direction` | `"row"` or `"column"`; default `"row"` |
+| `gap` | Non-negative spacing between adjacent tracks |
+| `padding` | A number or `{left, top, right, bottom}` |
+| `layout_transition` | Optional `{duration, easing}` (§11.4) |
+
+`add(child, size)` records parent-owned track metadata and returns the child. `size` is a non-negative logical-unit number, `"NN%"`, or `"*"`; omitted size means `"*"`. Fixed and percentage tracks are resolved first, gaps are subtracted, and all star tracks equally share the non-negative remainder. Percentages use the padded inner main-axis size. Oversubscription is legal: star tracks become zero and fixed/percentage tracks overflow. `setTrackSize(child, size)` changes an attached child's track and invalidates layout; removing a child also removes its track metadata.
+
+Track children fill their complete track. Their authored anchors and sizes remain untouched but do not affect their arranged rect. For intrinsic placement or alignment inside a track, add a plain View or `FlowContainer` as the track child and place content inside it. This explicit nesting replaces Flex's combined distribution-and-alignment policy.
+
+### 5.3 `FlowContainer`
+
+`FlowContainer` packs children once, in child order, using each child's authored width and height (`offset_max - offset_min`). It does not distribute unused main-axis space.
+
+```lua
+local buttons = FlowContainer({
+    direction = "row",
+    gap = 8,
+    align = 0.5,
+    padding = {12, 8, 12, 8},
+    ok_button,
+    cancel_button,
+})
+buttons:fitContent()
+```
+
+Configuration:
+
+| Field | Contract |
+|---|---|
+| `direction` | `"row"` or `"column"`; default `"row"` |
+| `gap` | Non-negative spacing between adjacent children |
+| `align` | Cross-axis factor in `[0, 1]`: 0 = start, 0.5 = center, 1 = end |
+| `padding` | A number or `{left, top, right, bottom}` |
+| `layout_transition` | Optional `{duration, easing}` (§11.4) |
+
+Every child must have finite, non-negative authored dimensions. In a row, authored width advances the cursor and authored height is aligned in the inner height; a column swaps the axes. Authored anchors are not consulted while the child is managed by the FlowContainer, but remain intact for later reparenting.
+
+`getContentSize()` returns the packed intrinsic size: main-axis sum plus gaps and padding, and maximum cross-axis child size plus padding. `fitContent()` immediately writes that result to the container with `setSize()` and returns the container. It is explicit, one-shot sizing—not a persistent fit mode. If children later change size or membership, owning code calls `fitContent()` again.
+
+Both containers accept Views in the array part of their constructor configuration as normal children, equivalent to adding them in order. A TrackContainer gives such children the default `"*"` track; other sizes are assigned through `add(child, size)` or `setTrackSize`.
+
+### 5.4 Validation and extension rules
+
+Unknown directions, non-finite geometry, negative gaps/padding/sizes, malformed percentages, invalid alignment factors, and track metadata for non-children fail fast. Container configuration that changes layout must eventually be exposed through invalidating setters; direct mutation without invalidation is unsupported.
+
+The two initial containers are intentionally orthogonal and small. More policies can be added as View subclasses without changing authored inputs, transient `arranged` output, resolution, flattening, input, clipping, or animation. In particular, future wrapping flow, grids, scroll containers, or compositing containers must preserve the same tree and transient-output contracts rather than adding another layout channel.
+
+### 5.5 Padding convention
 
 Everywhere in the library, padding and margin tuples are `{left, top, right, bottom}`. A number is shorthand for all four sides. One convention, no exceptions.
 
@@ -286,7 +317,7 @@ Everywhere in the library, padding and margin tuples are `{left, top, right, bot
 
 The internal rebuild (`relayout()`) runs, in order:
 
-1. **Resolve** (top-down): resolve own rect from the parent (§3.1) → clear children's `arranged` → run strategy if present → recurse.
+1. **Resolve** (top-down): resolve own rect from the parent (§3.1) → clear children's `arranged` → let a layout container arrange them, if applicable → recurse.
 2. **Compose** (same recursion): rebuild local transforms; `world = parent.world * local`; compose `effective_opacity` and derived presence (§2.4).
 3. **Flatten**: DFS pre-order into `screen.views` (skipping `detached` subtrees), computing per view: `clip_rect` (intersection of ancestor clip rects, §9.1), `effective_visible`/`effective_enabled`, static cull bits (empty clip intersection), `flat_index`/`flat_subtree_end`. During the same pass, append views whose resolved `update` method differs from `View.update` to `screen.update_views`, and views whose resolved `draw` method differs from `View.draw` to `screen.draw_views`. Class-level overrides are discovered automatically. Instance-level callbacks must be installed or removed with `view:setUpdate(callback?)` / `view:setDraw(callback?)`; these setters invalidate the flat caches. Direct instance assignment to `update`/`draw` is unsupported because the screen cannot observe it.
 4. **Geometry hook**: fire `View:onLayoutChanged(old_x, old_y, old_w, old_h)` for every view whose resolved rect changed — including initial resolution — in flat order (parents before children). This is where size-dependent resources (canvases) and derived geometry live; `load()` must not depend on geometry. Layout transitions (§11.4) hook in here. The same sequence applies to a subtree attached to an already-loaded screen.
@@ -302,8 +333,8 @@ All three arrays preserve DFS pre-order (parents before children, siblings in `c
 |---|---|
 | Placement sugar (`anchorFixed`, `anchorFill`, `anchorPercent`, `setAlignment`, `setPosition`, `setSize`) | automatic |
 | Tree mutation (`add`, `insert`, `remove`, `move`, `clear`) | automatic |
-| Attaching/detaching `arrange_strategy`, changing `layout_ignore` or `clip` | automatic (assign through setters) |
-| Strategy config mutation | config fields are private; mutate via strategy setters, which invalidate |
+| Layout-container mutation (`add`, `remove`, `setTrackSize`, `fitContent`, future config setters) or changing `clip` | automatic |
+| Layout-container config mutation | config fields are private after construction; mutate via container setters, which invalidate |
 | `view:invalidate()` | manual escape hatch — content changed in a way that affects layout (§13.1) |
 | `view:setUpdate(callback?)` / `view:setDraw(callback?)` | automatic; instance method participation in filtered flat caches changed |
 | `screen:resize(w, h)` / `screen:invalidateLayout()` | manual; resize is called by `UserInterface` |
@@ -376,7 +407,7 @@ for i = 1, #self.draw_views do
         local r = v.clip_rect
         if r then love.graphics.setScissor(r[1], r[2], r[3], r[4])
         else love.graphics.setScissor() end
-        love.graphics.setColor(1, 1, 1, v.effective_opacity)
+        Painter.begin(v.effective_opacity)
         v:draw()                 -- local space: [0, width] × [0, height]
     end
 end
@@ -387,7 +418,25 @@ love.graphics.origin()
 
 No `push("all")`, anywhere in the hot loop. Because `world_transform` is absolute and applied with `replaceTransform`, the transform stack never accumulates and full state save/restore per view is wasted work. The scissor works in drawable pixels, exactly the space `world_transform` produces (§3.4). Immediate-mode drawing inside `draw()` is fine and expected.
 
-**The graphics-state contract:** a `draw()` that changes shader, canvas, blend mode, line style, font, color, scissor, or transform must restore what it changed before returning. Leaking GPU state is a bug in the view — debug builds may assert it (snapshot after the loop's setup, compare after `draw()`), release builds trust it. Views that legitimately need their own scissor (§9.1) set and clear it inside `draw()`; the loop's per-view scissor applies to the next view regardless.
+**The graphics-state contract:** a `draw()` that changes shader, canvas, blend mode, line style, font, scissor, or transform must restore what it changed before returning. Color is changed through Painter and is reset by `Painter.begin` for every view. Leaking other GPU state is a bug in the view — debug builds may assert it (snapshot after the loop's setup, compare after `draw()`), release builds trust it. Views that legitimately need their own scissor (§9.1) set and clear it inside `draw()`; the loop's per-view scissor applies to the next view regardless.
+
+### 7.6 Painter
+
+`gui.Painter` owns the small amount of draw-local color state that LÖVE combines in `love.graphics.setColor`. It belongs to `gui`, not to an application UI module.
+
+```lua
+Painter.begin(inherited_opacity)       -- called by Screen before every view draw
+Painter.setOpacity(local_opacity)      -- default 1 for each view
+Painter.setColorRgb(r, g, b)           -- preserves both opacity components
+Painter.setColorTable(color)           -- RGB plus optional color alpha
+Painter.snapToPixel()
+```
+
+The alpha sent to LÖVE is `inherited_opacity * local_opacity * color_alpha`, where omitted color alpha is 1. `setColorRgb` changes only RGB; `setOpacity` changes only paint-local opacity and reapplies the current color. `begin` resets RGB to white and local opacity to 1, preventing one view's Painter state from leaking into the next. Inputs are finite, opacity and color channels are in `[0, 1]`, and invalid values fail fast.
+
+Views normally never pass `effective_opacity` themselves—Screen already supplied it to `begin`. For example, a label uses `setColorTable(self.color)`; a temporary highlight uses `setOpacity(highlight_alpha)` followed by a color setter. Direct `love.graphics.setColor` is unsupported in normal View drawing because it bypasses inherited opacity. Low-level rendering code that must call it is responsible for multiplying Painter's effective alpha and restoring the Painter color contract before returning.
+
+Painter is rendering infrastructure only. It does not affect layout, transforms, presence, hit testing, or the cached `effective_opacity` values.
 
 ## 8. Input
 
@@ -429,7 +478,7 @@ Rules:
 
 ```
 ScrollView   (clip = true, handles_mouse_input = true)
-└── content  (e.g. a Flex column; height authored = total content height)
+└── content  (e.g. a FlowContainer column; height authored explicitly or set by `fitContent()`)
 ```
 
 - Wheel/drag input reaches the ScrollView through the hit list. Scrolling is a **visual-channel write** — `content:setOffset(0, -scroll_current)`, one `composeSubtree`, no relayout. The viewport's `clip_rect` doesn't move; content transforms do; hit-testing stays correct.
@@ -535,11 +584,11 @@ The registry is for discrete, time-based animation. Two other tools keep their j
 
 ### 11.4 Layout transitions
 
-When a container's strategy carries `layout_transition = {duration, easing}` (§5.1), children whose arranged rect changed in this rebuild *glide* instead of snapping:
+When a layout container carries `layout_transition = {duration, easing}` (§5), children whose arranged rect changed in this rebuild *glide* instead of snapping:
 
 1. Pass 4 (§6.1) already computes each view's old vs. new resolved rect.
 2. **The single documented exception to the two-channel rule** (§1): the transition hook writes `offset_x += old_x - new_x`, `offset_y += old_y - new_y` — the view visually stays where it was. This is the *only* place layout writes the visual channel.
-3. A registry transform tweens `offset_x/offset_y → 0` with the strategy's easing (house default: `OutQuint` ≈ 0.25 s). One recompose per frame, no relayout.
+3. A registry transform tweens `offset_x/offset_y → 0` with the container's easing (house default: `OutQuint` ≈ 0.25 s). One recompose per frame, no relayout.
 4. Size changes ride the same mechanism: `scale_x = old_w / new_w → 1`, `scale_y = old_h / new_h → 1`, around the view's current pivot. (Known limitation: with a non-origin pivot the compensation is approximate; acceptable for glides.)
 5. The **resolved rect is final immediately** — layout, strategies, and `onLayoutChanged` all see the new geometry at once. During the glide, hit-testing follows the *visual* position (it reads `world_transform`), i.e. you click what you see. That is deliberate.
 
@@ -549,7 +598,7 @@ When a container's strategy carries `layout_transition = {duration, easing}` (§
 
 Animate the subtree root's offset; children follow through composition. Subtree **fade** works the same way through inherited `opacity` (§4.6) — and note §2.4: a subtree faded to zero also stops receiving input, for free. Screen transitions (§7.2) are this, applied to a screen root.
 
-**Layout-affecting changes** (reordering a Flex row, resizing a cell): change layout inputs and let invalidation schedule the rebuild. With `layout_transition` on the container, the visual glide comes for free; without it, the change snaps. Never fake layout changes with the visual channel.
+**Layout-affecting changes** (changing a track size, reordering a FlowContainer child): change layout inputs and let invalidation schedule the rebuild. With `layout_transition` on the container, the visual glide comes for free; without it, the change snaps. Never fake layout changes with the visual channel.
 
 ## 12. Lifecycle
 
@@ -566,7 +615,7 @@ Animate the subtree root's offset; children follow through composition. Subtree 
 
 ## 13. Content sizing without a fit mode
 
-There is no fit-content layout mode — deliberately. Fit inverts layout's data flow (child → parent), forces "indefinite size" semantics for fill/percent/`"*"` children inside fit containers, and turns relayouts into content-driven events that can cascade to the root. Layout in this library stays one-directional: parent rect → child rect, top-down, done. (Reference implementations of fit confirm the cost: mutual-exclusion rules between fit and relative sizing, axis-filtered invalidation propagation, and padding/margin double-counting hacks. We choose not to pay it.)
+There is no fit-content layout mode — deliberately. Fit inverts layout's data flow (child → parent), forces "indefinite size" semantics for fill/percent anchors and `"*"` tracks inside fit containers, and turns relayouts into content-driven events that can cascade to the root. Layout in this library stays one-directional: parent rect → child rect, top-down, done. (Reference implementations of fit confirm the cost: mutual-exclusion rules between fit and relative sizing, axis-filtered invalidation propagation, and padding/margin double-counting hacks. We choose not to pay it.)
 
 The two things fit would have been used for are covered by explicit helpers instead.
 
@@ -581,25 +630,27 @@ function Label:setText(text)
 end
 ```
 
-`setSize` rewrites the authored offsets and invalidates (§2.2) — and, when alignment was recorded via `setAlignment` (§2.2), re-derives the offsets first, so a centered label stays centered as its text changes. This *is* fit-content for leaves — no measure pass, no cascades. Note the consequence: a self-sizing child does **not** resize an ancestor that was sized by `contentSize()` — the owning code recomputes explicitly (§13.2).
+`setSize` rewrites the authored offsets and invalidates (§2.2) — and, when alignment was recorded via `setAlignment` (§2.2), re-derives the offsets first, so a centered label stays centered as its text changes. This *is* fit-content for leaves — no measure pass, no cascades. Note the consequence: a self-sizing child does **not** resize an ancestor previously sized by `fitContent()` — the owning code invokes that helper again explicitly (§13.2).
 
-### 13.2 The `contentSize` strategy helper
+### 13.2 Explicit container fitting
 
-A container that should hug its children is sized at build time by the same math a measure pass would run, exposed as a function on the strategy:
+A `FlowContainer` or `StackContainer` can hug its children at build time using the same packing math as arrangement:
 
 ```lua
-local w, h = flow:contentSize(panel)   -- main-axis sum, cross-axis max, padding, gaps
-panel:setSize(w, h)
+local panel = FlowContainer({direction = "column", gap = 8, label, buttons})
+panel:fitContent()
 ```
 
-`contentSize` measures **intrinsic inputs only**: authored sizes and self-sized content. Encountering a parent-relative spec (Flex `"*"` or `"%"` on the measured axis, fill anchors on the measured axis) is a fail-fast error — that circularity is exactly what §13 rejects; if you need it, pass an explicit available size to the strategy instead. Call once after building children; call again from whatever code later changes the content.
+`getContentSize()` reads **intrinsic authored inputs only** and includes gaps and padding. `fitContent()` calls `setSize()` with that result. Neither method installs a dependency on the children: a later text change, insertion, or removal does not resize the container automatically. The owning code calls `fitContent()` again at the point where it changes that content.
+
+This helper remains compatible with the one-directional layout pass because it runs outside that pass and writes ordinary authored size. A future container may provide an equivalent helper when its content size is well-defined. `TrackContainer` generally cannot infer both axes: numeric tracks determine its main-axis extent, but its fill cross axis has no intrinsic size; star and percentage tracks are parent-relative and cannot be measured without an explicit available size.
 
 ### 13.3 If fit is ever reconsidered
 
 The constraints that make it expensive, kept as a warning label:
 
 - `measure()` must never read resolved `width`/`height` (feedback loop); the default returns the authored size.
-- Fill, percent anchors, and Flex `"*"` inside a fit container are circular — they need a degradation rule (relative parts contribute only their intrinsic part during measure, and apply after the container resolves).
+- Fill/percent anchors and TrackContainer `"*"`/percentage tracks inside an automatic fit container are circular — they need a degradation rule (relative parts contribute only their intrinsic part during measure, and apply after the container resolves).
 - `measure()` takes no size constraint, so height-for-width content (wrapped text, aspect-fit images) stays unsupported regardless.
 - Invalidation needs a short-circuit rule (measured size unchanged → stop propagating), or a deep content change forces a root relayout.
 - Measure ignores the visual channel: scale, rotation, offset, and opacity never affect a view's layout footprint.
@@ -607,17 +658,17 @@ The constraints that make it expensive, kept as a warning label:
 ## 14. Migration from the previous `gui`
 
 - `View.width/height` + `Box` allocation collapse into the resolved rect. Code reading `view.box.x` for screen space moves to `getWorldPosition()`; code reading `box.width` moves to `width`.
-- `setPivot()` used for *slot alignment* migrates to `align_self`/`align_items` (§5.2), `setAlignment` (§2.2), or wrapper views; `pivot` remains for rotation/scale origin only.
+- `setPivot()` used for *slot alignment* migrates to `StackContainer` alignment, `FlowContainer.align`, `setAlignment` (§2.2), or an explicitly nested wrapper View; `pivot` remains for rotation/scale origin only.
 - `transform` becomes local; anything needing screen space moves to `world_transform` / `getWorldPosition()`.
 - `hideView`/`showView` migrate to `visible` (§2.4) or tree attach/detach (modals). Fades migrate to transforms — and note derived presence (§2.4) makes "faded out but still clickable" impossible.
 - Size-dependent work moves from `load()` to `onLayoutChanged` (§6.1 pass 4).
-- Flex with omitted `sizes`: intrinsic (authored-size) children keep their size; children without one receive `"*"`. Unchanged behavior, now specified.
+- `Flex`/`Stack`/`Flow` strategy composition migrates to layout-container Views. Use `StackContainer` for padded stacking/alignment, `TrackContainer:add(child, size)` for fixed/percentage/star partitioning, and `FlowContainer` for authored-size packing. Flex's `"content"` track becomes a numeric size supplied by the owning code or a nested fitted container.
 - Padding tuple order changes from the old `{left, top, bottom, right}` indexing to `{left, top, right, bottom}` — audit every literal.
 - The editor keeps its custom coordinate/hit-test paths through the overridable `isMouseOver` contract (§8.1) and an explicit scale policy (its own root scale, not silent inheritance).
-- Reuse, don't rewrite: the `gui.input` event classes and their tests (with §8.1's payload naming: text events expose `text`), and the Stack/Flex/Flow algorithm tests — strategies change only to emit transient `arranged` rects. Tests move with their source.
+- Reuse, don't rewrite: the `gui.input` event classes and their tests (with §8.1's payload naming: text events expose `text`). Layout algorithm coverage moves to `TrackContainer` and `FlowContainer`; obsolete strategy tests must be migrated rather than left requiring removed modules.
 - Animation split: `SpringValue` stays for continuous retargetable motion (§11.3); discrete property animation (fades, slides, hover) moves to the §11.1 transform registry; scroll moves to §9.2 decay dynamics. `TweenValue` survives only where a freeform tween is genuinely the right tool.
 - Close/remove call sites migrate from manual "remove on completion" bookkeeping to `expire()` (§11.2).
-- Repository conventions: the accepted architecture lands in `gui/spec.md` (starting with `## Goal` and `## User Experience`), with migration notes in the app and editor specs. `Layer` is a base class, `ArrangeStrategy` a duck-typed contract — name them per repo rules (`I` prefix only for true interfaces).
+- Repository conventions: the accepted architecture lands in `gui/spec.md`, with migration notes in the app and editor specs. `Layer` is a base class; `ArrangeStrategy` remains an internal duck-typed layout hook, while public policies are named `*Container` View subclasses. Use the `I` prefix only for true interfaces.
 
 ## 15. Appendix: invariants and conventions
 
@@ -626,7 +677,7 @@ The constraints that make it expensive, kept as a warning label:
 3. `size_mode` is explicit. Never infer layout intent from anchor table identity. `setPosition`/`setSize` on a fill axis fail fast.
 4. Anchor/offset tables are value objects: assign fresh, never mutate in place, never alias.
 5. `x`, `y`, `width`, `height` are read-only outside the layout pass (carve-out: `Screen` owns the root's rect, §7.4).
-6. Layout never writes authored state (`anchor_*`, `offset_*`). Strategies write only the transient `arranged` rect, cleared every pass. Relayouts, attach/detach, and reparenting are idempotent.
+6. Layout never writes a child's authored state (`anchor_*`, `offset_*`). Layout containers write only parent-owned metadata and the transient `arranged` rect, which is cleared every pass. Relayouts, attach/detach, and reparenting are idempotent.
 7. `load` ≠ `relayout`; geometry-dependent work lives in `onLayoutChanged`. Constructors do no resource work.
 8. Every layout-affecting public setter invalidates automatically; `relayout()` is internal; invalidation during a flush is not lost.
 9. Flushes run before input collection; events are queued at poll time and drained after collection, in poll order, with event-time coordinates.
@@ -637,9 +688,9 @@ The constraints that make it expensive, kept as a warning label:
 14. Clip boundaries are axis-aligned (rotation on a clip view is an error); rotated descendants are clipped fine via four-corner AABBs.
 15. Scrolling is a visual-channel write with `(target, current)` exp-decay dynamics; the scroller sleeps at epsilon; scroll clamps and culling refresh after every relayout, resize, or content replacement.
 16. Popups live in the overlay layer, positioned via `getWorldPosition` + inverse root transform; backdrop inserted before the popup; default close-on-scroll; never clip a popup to a viewport.
-17. Content sizing is explicit: self-sizing views plus intrinsic-only `contentSize()`. There is no fit pass.
-18. Zero scale is non-hittable; strategy configs, tree mutations, non-finite geometry, and placement-anchored children inside strategies fail fast with actionable errors.
-19. The draw loop never calls `push("all")`; transforms are absolute and applied with `replaceTransform`. A `draw()` must not leak GPU state (shader/canvas/blend/font/color/scissor/transform) — leaking is a bug in the view.
+17. Content sizing is explicit: self-sizing views plus one-shot helpers such as `FlowContainer:fitContent()`. There is no fit pass or persistent child-to-parent dependency.
+18. Zero scale is non-hittable; container configs, track metadata, tree mutations, and non-finite geometry fail fast with actionable errors.
+19. The draw loop never calls `push("all")`; transforms are absolute and applied with `replaceTransform`. `gui.Painter` resets color state for each view; a `draw()` must not leak shader/canvas/blend/font/scissor/transform state.
 20. Animations step before view `update` code each frame; transforms replace per target; `LatestTransformEndTime` drives `expire()`.
 21. Clicks are distance-gated and suppressed once a drag starts; drags have their own start threshold. Text events expose `text`.
 22. Transform composition reuses cached `love.Transform` objects; steady-state per-frame work allocates nothing worth measuring.
@@ -647,19 +698,23 @@ The constraints that make it expensive, kept as a warning label:
 
 ## 16. Acceptance suite
 
-1. Repeated relayout, strategy attach/detach, reparenting, and `layout_ignore` toggles preserve authored state and produce identical rects.
-2. Odd parent sizes, percent anchors, non-integral `ui_scale`, and adjacent Flex children produce no seams or overlaps.
+1. Repeated relayout and reparenting between plain Views, StackContainers, TrackContainers, and FlowContainers preserve authored state and produce identical rects.
+2. Odd parent sizes, percent anchors, non-integral `ui_scale`, and adjacent TrackContainer children produce no seams or overlaps.
 3. Initial layout, resize, dynamic attach, and detach invoke `load`/`onLayoutChanged`/`unload` exactly once, in the documented order.
 4. Removal from input, update, and draw never touches the removed subtree after unload; focus, hover, press, and capture are cleared — including removal mid-drag.
 5. Multiple queued pointer/key/text events dispatch once, in poll order, on current geometry, with event-time coordinates.
 6. Modal/popup focus is trapped and restored; handled input never reaches a lower blocked layer; `exit()` returning `false` vetoes navigation.
 7. Nested clips and ScrollViews stay correct after relayout at nonzero scroll and after translation/scale animations; no cull cause resurrects another.
 8. Empty/short/resized scroll content clamps to zero; rubber-band overscroll settles back without input; the scroller sleeps (no cull writes) at rest; virtualized drawing cannot escape its viewport.
-9. Cycle, duplicate insertion, removing a non-child, invalid strategy config, non-finite geometry, rotated clip boundary, non-invertible hit tests, placement-anchored children inside strategies, and `setSize`/`setPosition` on fill axes fail with actionable diagnostics.
+9. Cycle, duplicate insertion, removing or sizing a non-child, invalid container config or track size, non-finite geometry, rotated clip boundary, non-invertible hit tests, and `setSize`/`setPosition` on fill axes fail with actionable diagnostics.
 10. Benchmarks record relayout visits, compose visits, cull checks/writes, and steady-state allocations for representative large trees; `load()`/`flush()` over budget are logged with names.
 11. With `layout_transition` enabled, resolved rects are identical to the no-transition run; during a glide, hit tests match the *visual* position; after completion, offsets are exactly zero.
 12. Drag/click contract: a release under `DRAG_START_THRESHOLD` produces click; crossing the threshold produces dragstart/drag/dragend and no click; text events carry `text`, key events carry `key`/`is_repeated`.
 13. `setAlignment` survives size changes: center-aligned views re-derive offsets on `setSize`/self-sizing and remain centered.
+14. StackContainer applies padding, fill/non-fill alignment, overlap, and one-shot content fitting without altering authored child state.
+15. TrackContainer resolves fixed, percentage, and star tracks correctly under padding, gaps, oversubscription, mutation, removal, and odd parent sizes; repeated relayout does not alter authored child state.
+16. FlowContainer packs authored child sizes in both directions, aligns the cross axis, and computes gaps/padding consistently between arrangement and `getContentSize`; `fitContent()` is one-shot and preserves recorded alignment.
+17. Before each View draw, Painter resets RGB/local opacity and applies inherited opacity. RGB changes preserve alpha, color-table alpha multiplies it, paint-local opacity cannot leak between views, and direct color changes are absent from ordinary View drawing.
 
 ## 17. Implementation-driven additions
 
