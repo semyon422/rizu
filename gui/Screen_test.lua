@@ -1,3 +1,4 @@
+local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local View = require("gui.View")
 
@@ -109,6 +110,28 @@ function test.relayout_builds_flat_preorder_and_ranges(t)
 	t:eq(a.flat_subtree_end, 2)
 	t:eq(b.flat_index, 3)
 	t:eq(b.flat_subtree_end, 4)
+end
+
+---@param t testing.T
+function test.acceptInputs_respects_ancestor_clip(t)
+	local s = Screen()
+	s:resize(200, 200)
+	local clip = s.root:add(View():anchorFixed(10, 10, 50, 50))
+	clip:setClip(true)
+	local child = clip:add(View():anchorFixed(40, 40, 50, 50))
+	child.handles_mouse_input = true
+
+	local inputs = Inputs()
+	inputs:beginFrame(75, 75)
+	s:acceptInputs(inputs)
+
+	t:eq(child.clip_rect[1], 10)
+	t:eq(child.clip_rect[3], 50)
+	t:eq(#inputs.mouse_hits, 0)
+
+	inputs:beginFrame(55, 55)
+	s:acceptInputs(inputs)
+	t:tdeq(inputs.mouse_hits, {child})
 end
 
 ---@param t testing.T

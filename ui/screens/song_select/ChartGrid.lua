@@ -53,6 +53,7 @@ function ChartGrid:new(chart_selector)
 	self.scrollbar_bg_color = {Colors.text_muted[1], Colors.text_muted[2], Colors.text_muted[3], 0.15}
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
+	self.clip = true
 
 	self.cap = Resources.quads.grid_item_cap_right
 	self.body = Resources.quads.grid_item_body
@@ -243,16 +244,10 @@ function ChartGrid:drawScrollbar()
 end
 
 function ChartGrid:draw()
-	lg.clear(false, true, false)
-	lg.setStencilMode("draw", 1)
-	lg.rectangle("fill", 0, 0, self.width, self.height)
-	lg.setStencilMode("test")
-
 	lg.setColor(1, 1, 1)
 	lg.draw(self.batch)
 	lg.draw(self.meta_batch)
 	lg.draw(self.names_batch)
-	lg.setStencilMode("off")
 	self:drawScrollbar()
 end
 return ChartGrid

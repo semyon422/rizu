@@ -68,6 +68,7 @@ local Easing = require("gui.anim.Easing")
 ---@field private transform love.Transform
 ---@field world_transform love.Transform
 ---@field effective_opacity number
+---@field clip_rect {[1]: number, [2]: number, [3]: number, [4]: number}?
 ---@field effective_visible boolean
 ---@field effective_enabled boolean
 ---@field present boolean
@@ -181,6 +182,7 @@ function View:new()
 	self.effective_visible = true
 	self.effective_enabled = true
 	self.effective_opacity = 1
+	self.clip_rect = nil
 	self.present = true
 end
 
@@ -609,6 +611,57 @@ function View:arrangeChildren()
 	end
 end
 
+---@param transform love.Transform
+---@param width number
+---@param height number
+---@return number x
+---@return number y
+---@return number rect_width
+---@return number rect_height
+local function getAxisAlignedBounds(transform, width, height)
+	local x0, y0 = transform:transformPoint(0, 0)
+	local xx, yx = transform:transformPoint(width, 0)
+	local xy, yy = transform:transformPoint(0, height)
+	local epsilon = 1e-9
+	assert(math.abs(xx - x0) <= epsilon or math.abs(yx - y0) <= epsilon,
+		"clip view must have an axis-aligned world transform")
+	assert(math.abs(xy - x0) <= epsilon or math.abs(yy - y0) <= epsilon,
+		"clip view must have an axis-aligned world transform")
+	local x1 = math.min(x0, xx, xy)
+	local y1 = math.min(y0, yx, yy)
+	local x2 = math.max(x0, xx, xy)
+	local y2 = math.max(y0, yx, yy)
+	return x1, y1, x2 - x1, y2 - y1
+end
+
+---@param view gui.View
+local function composeClipRect(view)
+	local parent_clip = view.parent and view.parent.clip_rect
+	if not view.clip then
+		if parent_clip then
+			local rect = view.clip_rect or {0, 0, 0, 0}
+			rect[1], rect[2], rect[3], rect[4] = parent_clip[1], parent_clip[2], parent_clip[3], parent_clip[4]
+			view.clip_rect = rect
+		else
+			view.clip_rect = nil
+		end
+		return
+	end
+
+	local x, y, width, height = getAxisAlignedBounds(view.world_transform, view.width, view.height)
+	if parent_clip then
+		local right = math.min(x + width, parent_clip[1] + parent_clip[3])
+		local bottom = math.min(y + height, parent_clip[2] + parent_clip[4])
+		x = math.max(x, parent_clip[1])
+		y = math.max(y, parent_clip[2])
+		width = math.max(0, right - x)
+		height = math.max(0, bottom - y)
+	end
+	local rect = view.clip_rect or {0, 0, 0, 0}
+	rect[1], rect[2], rect[3], rect[4] = x, y, width, height
+	view.clip_rect = rect
+end
+
 ---@private
 ---@param root_scale number  ui_scale baked into the local transform; 1 for non-roots
 function View:compose(root_scale)
@@ -638,6 +691,7 @@ function View:compose(root_scale)
 		self.effective_enabled = self.enabled
 	end
 	world_transform:apply(self.transform)
+	composeClipRect(self)
 	self.present = self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
 end
 

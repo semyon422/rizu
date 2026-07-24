@@ -26,6 +26,7 @@ function ScoreList:new(score_selector, on_score_selected)
 	self.hover_index = nil
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
+	self.clip = true
 	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
@@ -289,14 +290,9 @@ function ScoreList:draw()
 	Painter.setColorRgb(1, 1, 1)
 	Painter.snapToPixel()
 
-	lg.clear(false, true, false)
-	lg.setStencilMode("draw", 1)
-	lg.rectangle("fill", 0, 0, self.width, self.height)
-	lg.setStencilMode("test")
 	lg.draw(self.batch)
 	lg.draw(self.text_batch16)
 	lg.draw(self.text_batch24)
-	lg.setStencilMode("off")
 end
 
 return ScoreList

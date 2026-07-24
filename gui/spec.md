@@ -467,12 +467,12 @@ When a view is detached, or becomes invisible/disabled/culled/not-present, every
 
 ### 9.1 Clip rects
 
-`view.clip = true` clips the view's descendants to its resolved rect. `clip_rect` is the intersection of all ancestor clip rects in drawable pixels (corner-transformed via `world_transform`). It is refreshed at flatten **and** inside `composeSubtree` walks (§4.4), so translating/scaling a clip view or any ancestor never leaves stale clips.
+`view.clip = true` clips the view and its descendants to its resolved rect. `clip_rect` is the intersection of the view's clip boundary and all ancestor clip rects in drawable pixels (corner-transformed via `world_transform`). It is refreshed at flatten **and** inside `composeSubtree` walks (§4.4), so translating/scaling a clip view or any ancestor never leaves stale clips.
 
 Rules:
 
 - The clip boundary's world transform must be axis-aligned (translation/scale fine, rotation rejected — fail fast). Rotated *descendants* are fine; their world AABB uses all four corners and is clipped by the axis-aligned boundary.
-- The clip view's own drawing is not clipped — only descendants. A view that draws content needing clipping (a virtualized list's imgui rows, §9.4) sets its own scissor from its own `world_transform` at the top of its `draw()` (and clears it before returning, §7.5 contract).
+- The clip view's own drawing is clipped together with its descendants. This lets immediate-mode and virtualized views establish their viewport with `self.clip = true` instead of managing graphics scissors inside `draw()`.
 
 ### 9.2 ScrollView = clip + offset transform + decay dynamics
 

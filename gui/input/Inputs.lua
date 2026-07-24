@@ -119,6 +119,13 @@ function Inputs:processView(view)
 		if view.handles_mouse_input then
 			local had_focus = view.mouse_over
 			local is_mouse_over = view:isMouseOver(self.mouse_x, self.mouse_y)
+			local clip_rect = view.clip_rect
+			if is_mouse_over and clip_rect then
+				local x, y = self.mouse_x, self.mouse_y
+				is_mouse_over = clip_rect[3] > 0 and clip_rect[4] > 0
+					and x >= clip_rect[1] and x <= clip_rect[1] + clip_rect[3]
+					and y >= clip_rect[2] and y <= clip_rect[2] + clip_rect[4]
+			end
 
 			if is_mouse_over then
 				table.insert(self.mouse_hits, view)

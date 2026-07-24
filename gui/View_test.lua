@@ -462,6 +462,62 @@ function test.getWorldPosition_matches_transformPoint_zero_zero(t)
 end
 
 -- ===========================================================================
+-- Clipping (§9.1)
+-- ===========================================================================
+
+---@param t testing.T
+function test.clip_applies_to_view_and_descendants(t)
+	local root = newSizedRoot(200, 200)
+	local clip = root:add(View():anchorFixed(10, 20, 100, 80))
+	clip:setClip(true)
+	local child = clip:add(View():anchorFill(0, 0, 0, 0))
+	root:relayout()
+
+	t:tdeq(clip.clip_rect, {10, 20, 100, 80})
+	t:tdeq(child.clip_rect, {10, 20, 100, 80})
+end
+
+---@param t testing.T
+function test.nested_clips_intersect(t)
+	local root = newSizedRoot(200, 200)
+	local outer = root:add(View():anchorFixed(10, 10, 100, 100))
+	outer:setClip(true)
+	local inner = outer:add(View():anchorFixed(50, 50, 100, 100))
+	inner:setClip(true)
+	local child = inner:add(View():anchorFill(0, 0, 0, 0))
+	root:relayout()
+
+	t:tdeq(inner.clip_rect, {60, 60, 50, 50})
+	t:tdeq(child.clip_rect, {60, 60, 50, 50})
+end
+
+---@param t testing.T
+function test.clip_follows_visual_transform_without_layout(t)
+	local root = newSizedRoot(200, 200)
+	local clip = root:add(View():anchorFixed(10, 20, 100, 80))
+	clip:setClip(true)
+	local child = clip:add(View():anchorFill(0, 0, 0, 0))
+	root:relayout()
+
+	clip:setOffset(5, 7)
+
+	t:tdeq(child.clip_rect, {15, 27, 100, 80})
+end
+
+---@param t testing.T
+function test.rotated_clip_errors(t)
+	local root = newSizedRoot(200, 200)
+	local clip = root:add(View():anchorFixed(10, 20, 100, 80))
+	clip:setClip(true)
+	clip.rotation = 0.1
+	clip:add(View():anchorFill(0, 0, 0, 0))
+
+	t:has_error(function()
+		root:relayout()
+	end)
+end
+
+-- ===========================================================================
 -- Visual setters and subtree composition (§4.4)
 -- ===========================================================================
 

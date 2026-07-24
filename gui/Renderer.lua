@@ -48,7 +48,12 @@ function Renderer:draw()
 			---@cast view gui.View
 			if not view.detached and view.effective_visible and view.present then
 				love.graphics.replaceTransform(view.world_transform)
-				love.graphics.setScissor() -- clip_rect support lands with §9.1
+				local clip_rect = view.clip_rect
+				if clip_rect then
+					love.graphics.setScissor(clip_rect[1], clip_rect[2], clip_rect[3], clip_rect[4])
+				else
+					love.graphics.setScissor()
+				end
 				love.graphics.setColor(1, 1, 1, view.effective_opacity)
 				view:draw()
 			end
