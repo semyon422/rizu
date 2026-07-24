@@ -163,9 +163,9 @@ end
 
 function BackgroundPanel:draw()
 	if not self.preview_canvas then return end
-	Painter.setOpacity(self.effective_opacity)
+	Painter.setOpacity(self.render_opacity)
 	self:drawBackground()
-	Painter.setOpacity(self.effective_opacity)
+	Painter.setOpacity(self.render_opacity)
 
 	local screen_x, screen_y = self.world_transform:transformPoint(0, 0)
 	local screen_right, screen_bottom = self.world_transform:transformPoint(self.width, self.height)

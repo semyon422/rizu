@@ -193,7 +193,7 @@ function CommandPalette:updateText()
 end
 
 function CommandPalette:draw()
-	local alpha = self.effective_opacity
+	local alpha = self.render_opacity
 
 	local lg = love.graphics
 	lg.setScissor(0, 0, self.world_transform:transformPoint(self.width, self.height))

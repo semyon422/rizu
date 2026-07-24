@@ -113,11 +113,20 @@ local function flatten(view, views, update_views, draw_views, renderer)
 	end
 	if view.draw ~= View.draw then
 		draw_views[#draw_views + 1] = view
-		renderer:addView(view)
+		if not view.is_composite then
+			renderer:addView(view)
+		end
 	end
 
+	if view.is_composite then
+		---@cast view gui.CompositeView
+		renderer:beginComposite(view)
+	end
 	for i = 1, #view.children do
 		flatten(view.children[i], views, update_views, draw_views, renderer)
+	end
+	if view.is_composite then
+		renderer:endComposite()
 	end
 	view.flat_subtree_end = #views
 end

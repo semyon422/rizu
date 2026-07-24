@@ -34,7 +34,7 @@ local case = {
 		outline:setSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 		outline:setAlignment(0.5, 0.5)
 		function outline:draw()
-			love.graphics.setColor(0.8, 0.85, 0.95, self.effective_opacity)
+			love.graphics.setColor(0.8, 0.85, 0.95, self.render_opacity)
 			love.graphics.setLineWidth(4)
 			love.graphics.rectangle("line", 0, 0, self.width, self.height)
 		end

@@ -14,7 +14,7 @@ end
 
 function Rectangle:draw()
 	local color = self.color
-	love.graphics.setColor(color[1], color[2], color[3], (color[4] or 1) * self.effective_opacity)
+	love.graphics.setColor(color[1], color[2], color[3], (color[4] or 1) * self.render_opacity)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
 end
 

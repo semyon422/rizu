@@ -271,7 +271,7 @@ function ScoreList:draw()
 	if self.no_records then
 		local w = Painter.getQuadWidth(Resources.quads.no_records_set)
 		local h = Painter.getQuadHeight(Resources.quads.no_records_set)
-		Painter.setOpacity(ease_out_cubic(self.no_records_t) * self.effective_opacity)
+		Painter.setOpacity(ease_out_cubic(self.no_records_t) * self.render_opacity)
 		lg.draw(
 			Resources.atlas,
 			Resources.quads.no_records_set,
@@ -286,7 +286,7 @@ function ScoreList:draw()
 		return
 	end
 
-	Painter.setOpacity(self.effective_opacity)
+	Painter.setOpacity(self.render_opacity)
 	Painter.setColorRgb(1, 1, 1)
 	Painter.snapToPixel()
 

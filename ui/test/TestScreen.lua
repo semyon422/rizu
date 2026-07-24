@@ -6,6 +6,7 @@ local Opacity = require("ui.test.Opacity")
 local Checkbox = require("ui.test.Checkbox")
 local Animations = require("ui.test.Animations")
 local Clip = require("ui.test.Clip")
+local Composite = require("ui.test.Composite")
 
 ---@alias ui.test.BuildFn fun(root: gui.View)
 ---@alias ui.test.UpdateFn fun(screen: ui.test.TestScreen, dt: number)
@@ -24,6 +25,7 @@ local cases = {
 	Checkbox,
 	Animations,
 	Clip,
+	Composite,
 }
 
 ---@class ui.test.TestScreen: gui.Screen

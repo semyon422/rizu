@@ -55,7 +55,7 @@ end
 
 function Button:draw()
 	local lg = love.graphics
-	local r, g, b, a = 0.16, 0.18, 0.22, self.effective_opacity
+	local r, g, b, a = 0.16, 0.18, 0.22, self.render_opacity
 
 	if self.mouse_over then
 		r, g, b = 0.25, 0.42, 0.65

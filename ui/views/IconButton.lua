@@ -48,7 +48,7 @@ end
 function IconButton:draw()
 	local bg = self.mouse_over and Colors.accent or Colors.elements
 	Painter.snapToPixel()
-	Painter.setOpacity(self.effective_opacity)
+	Painter.setOpacity(self.render_opacity)
 	Painter.setColorTable(bg)
 	love.graphics.draw(self.atlas, self.background_quad)
 	Painter.setColorTable(Colors.text)

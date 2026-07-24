@@ -216,7 +216,7 @@ For scissor rects, effects spawned at a view, and popup anchoring (§10). Conver
 
 ### 4.6 Opacity
 
-`opacity` inherits multiplicatively: `effective_opacity = parent.effective_opacity * self.opacity`, composed during flatten and §4.4 walks. The draw loop seeds `gui.Painter` with it (§7.6). Views set RGB and paint-local alpha through Painter rather than calling `love.graphics.setColor` directly, so changing a color cannot accidentally discard inherited opacity. This remains per-view alpha, not group compositing: overlapping descendants are faded independently. True group opacity and subtree shaders require a future explicit compositing container and are outside the v1 contract.
+`opacity` inherits multiplicatively: `effective_opacity = parent.effective_opacity * self.opacity`, composed during flatten and §4.4 walks. The draw loop seeds `gui.Painter` with it (§7.6). Views set RGB and paint-local alpha through Painter rather than calling `love.graphics.setColor` directly, so changing a color cannot accidentally discard inherited opacity. Ordinary Views use per-view alpha, so overlapping descendants fade independently. `gui.CompositeView` establishes an explicit render-opacity boundary: its descendants render to a canvas without the composite's opacity, then the completed canvas receives that opacity once. See `gui/composite_view.md`.
 
 ## 5. Layout containers
 

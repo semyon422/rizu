@@ -68,6 +68,8 @@ local Easing = require("gui.anim.Easing")
 ---@field private transform love.Transform
 ---@field world_transform love.Transform
 ---@field effective_opacity number
+---@field render_opacity number Opacity relative to the active composite boundary
+---@field is_composite boolean
 ---@field clip_rect {[1]: number, [2]: number, [3]: number, [4]: number}?
 ---@field effective_visible boolean
 ---@field effective_enabled boolean
@@ -182,6 +184,8 @@ function View:new()
 	self.effective_visible = true
 	self.effective_enabled = true
 	self.effective_opacity = 1
+	self.render_opacity = 1
+	self.is_composite = false
 	self.clip_rect = nil
 	self.present = true
 end
@@ -683,10 +687,16 @@ function View:compose(root_scale)
 	if self.parent then
 		world_transform:apply(self.parent.world_transform)
 		self.effective_opacity = self.parent.effective_opacity * self.opacity
+		if self.parent.is_composite then
+			self.render_opacity = self.opacity
+		else
+			self.render_opacity = self.parent.render_opacity * self.opacity
+		end
 		self.effective_visible = self.parent.effective_visible and self.visible
 		self.effective_enabled = self.parent.effective_enabled and self.enabled
 	else
 		self.effective_opacity = self.opacity
+		self.render_opacity = self.opacity
 		self.effective_visible = self.visible
 		self.effective_enabled = self.enabled
 	end

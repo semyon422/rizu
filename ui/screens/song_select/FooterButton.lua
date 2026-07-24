@@ -67,7 +67,7 @@ function FooterButton:draw()
 	end
 
 	Painter.snapToPixel()
-	Painter.setOpacity(self.effective_opacity)
+	Painter.setOpacity(self.render_opacity)
 	Painter.setColorTable(bg)
 	love.graphics.draw(self.atlas, self.quad)
 
