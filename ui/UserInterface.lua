@@ -8,6 +8,7 @@ local Result = require("ui.screens.result.Result")
 local TestScreen = require("ui.test.TestScreen")
 local Inputs = require("gui.input.Inputs")
 local ScreenManager = require("ui.ScreenManager")
+local Colors = require("ui.Colors")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
 -- scales to fit the actual window height.
@@ -91,6 +92,7 @@ function UserInterface:update(dt)
 end
 
 function UserInterface:draw()
+	love.graphics.clear(Colors.background)
 	self.screen_manager:draw()
 end
 

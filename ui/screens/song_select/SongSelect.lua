@@ -1,5 +1,4 @@
 local Screen = require("gui.Screen")
-local CompositeView = require("gui.CompositeView")
 local View = require("gui.View")
 local TrackContainer = require("gui.layout.TrackContainer")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -48,9 +47,11 @@ function SongSelect:new(ui)
 	self.time_rate = TimeRate(self.ui.game.timeRateModel, self.ui.game.modifierSelectModel)
 	self.gameplay_modifiers = GameplayModifiers()
 
-	self.root = TrackContainer({direction = "row"})
+	self.container = self.root:add(TrackContainer({direction = "row"}))
+	self.container:anchorFill(0, 0, 0, 0)
+
 	self:createContent()
-	self.root:add(Rectangle(Colors.outline), 2)
+	self.container:add(Rectangle(Colors.outline), 2)
 	self:createSidebar()
 
 	self.root:setOpacity(0)
@@ -103,7 +104,7 @@ function SongSelect:exit()
 end
 
 function SongSelect:createContent()
-	self.content = self.root:add(TrackContainer({
+	self.content = self.container:add(TrackContainer({
 		direction = "column"
 	}), "*")
 	self.content:add(self:createHeader(), 70)
@@ -253,7 +254,7 @@ function SongSelect:receive(event)
 end
 
 function SongSelect:createSidebar()
-	self.sidebar = self.root:add(View(), 64)
+	self.sidebar = self.container:add(View(), 64)
 	self.sidebar:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
 
 	local buttons = self.sidebar:add(FlowContainer({
