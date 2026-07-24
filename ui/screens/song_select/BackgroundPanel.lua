@@ -1,6 +1,7 @@
 local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
+local Painter = require("ui.Painter")
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 
 ---@class ui.screens.song_select.BackgroundPanel : gui.View
@@ -141,14 +142,14 @@ function BackgroundPanel:drawBackground()
 
 	for i = 1, 2 do
 		if not images[i] then break end
-		lg.setColor(1, 1, 1, i == 1 and 1 or alpha)
+		love.graphics.setColor(1, 1, 1, i == 1 and 1 or alpha)
 		local image = images[i]
 		local image_width, image_height = image:getDimensions()
 		local scale = math.max(h / image_height, w / image_width)
 		lg.draw(image, (w - image_width * scale) * 0.5, (h - image_height * scale) * 0.5, 0, scale, scale)
 	end
 
-	lg.setColor(1, 1, 1, 1)
+	Painter.setOpacity(1)
 	pushPreviewViewport()
 	self.chart_preview_view:draw()
 	popPreviewViewport()
@@ -162,16 +163,18 @@ end
 
 function BackgroundPanel:draw()
 	if not self.preview_canvas then return end
+	Painter.setOpacity(self.effective_opacity)
 	self:drawBackground()
+	Painter.setOpacity(self.effective_opacity)
 
 	local screen_x, screen_y = self.world_transform:transformPoint(0, 0)
 	local screen_right, screen_bottom = self.world_transform:transformPoint(self.width, self.height)
 	lg.setScissor(screen_x, screen_y, math.abs(screen_right - screen_x), math.abs(screen_bottom - screen_y))
 	lg.setFont(self.artist_font)
-	lg.setColor(Colors.accent2)
+	Painter.setColorTable(Colors.accent2)
 	lg.print(self.artist, 20, self.artist_y)
 	lg.setFont(self.title_font)
-	lg.setColor(Colors.text)
+	Painter.setColorTable(Colors.text)
 	lg.print(self.title, 20, self.title_y)
 	lg.setScissor()
 

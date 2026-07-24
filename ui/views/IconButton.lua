@@ -47,10 +47,11 @@ end
 
 function IconButton:draw()
 	local bg = self.mouse_over and Colors.accent or Colors.elements
-	love.graphics.setColor(bg)
-	love.graphics.draw(self.atlas, self.background_quad)
-	love.graphics.setColor(Colors.text)
 	Painter.snapToPixel()
+	Painter.setOpacity(self.effective_opacity)
+	Painter.setColorTable(bg)
+	love.graphics.draw(self.atlas, self.background_quad)
+	Painter.setColorTable(Colors.text)
 	love.graphics.draw(self.atlas, self.icon_quad, self.icon_x, self.icon_y)
 end
 

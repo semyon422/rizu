@@ -54,20 +54,24 @@ function FooterButton:onMouseClick(e)
 	return true
 end
 
+local hover_bg = {1, 1, 1, 1}
+local hover_text_color = {0, 0, 0, 1}
+
 function FooterButton:draw()
 	local bg = self.bg_color
 	local text_color = self.text_color
 
 	if self.mouse_over then
-		bg = {1, 1, 1, 1}
-		text_color = {0, 0, 0, 1}
+		bg = hover_bg
+		text_color = hover_text_color
 	end
 
-	love.graphics.setColor(bg)
+	Painter.snapToPixel()
+	Painter.setOpacity(self.effective_opacity)
+	Painter.setColorTable(bg)
 	love.graphics.draw(self.atlas, self.quad)
 
-	Painter.snapToPixel()
-	love.graphics.setColor(text_color)
+	Painter.setColorTable(text_color)
 	love.graphics.setFont(self.font)
 	love.graphics.printf(self.text, 0, self.text_y, self.quad_width, "center")
 end

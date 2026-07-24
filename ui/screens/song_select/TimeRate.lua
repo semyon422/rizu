@@ -58,9 +58,10 @@ function TimeRate:draw()
 	local normalized = (value - range[1]) / (range[2] - range[1])
 	local angle = normalized * math.pi * 2
 
-	love.graphics.setColor(Colors.elements)
+	Painter.setOpacity(self.effective_opacity)
+	Painter.setColorTable(Colors.elements)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
-	love.graphics.setColor(1, 1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 	love.graphics.draw(Resources.atlas, self.circle_quad, cx, cy)
 	love.graphics.draw(
 		Resources.atlas,
@@ -75,7 +76,7 @@ function TimeRate:draw()
 	)
 
 	love.graphics.setFont(self.font)
-	love.graphics.setColor(self.text_color)
+	Painter.setColorTable(self.text_color)
 	love.graphics.print(self.text, 15, 11)
 end
 

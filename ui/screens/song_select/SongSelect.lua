@@ -1,8 +1,7 @@
 local Screen = require("gui.Screen")
 local View = require("gui.View")
-local Flex = require("gui.layout.Flex")
-local Flow = require("gui.layout.Flow")
-local Stack = require("gui.layout.Stack")
+local TrackContainer = require("gui.layout.TrackContainer")
+local FlowContainer = require("gui.layout.FlowContainer")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local BackgroundPanel = require("ui.screens.song_select.BackgroundPanel")
@@ -29,165 +28,183 @@ local SIDEBAR_WIDTH = 64
 function SongSelect:new(ui)
 	Screen.new(self)
 	self.ui = ui
-	self.root.arrange_strategy = Flex({direction = "row", sizes = {"*", SIDEBAR_LINE_WIDTH, SIDEBAR_WIDTH}})
+
+	self.background_panel = BackgroundPanel(self.ui.game.backgroundModel, self.ui.game)
+	self.score_list = ScoreList(self.ui.game.scoreSelector, function() end)
+	self.chart_grid = ChartGrid(self.ui.game.chartSelector)
+	self.chart_sets = ChartSets(self.ui.game.chartSelector, function() end)
+
+	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "BACK", function()
+		self.ui:setScreen(self.ui.main_menu, true)
+	end)
+
+	self.play_button = FooterButton(Colors.play_button, {0, 0, 0, 1}, "PLAY", function()
+		if self.ui.game.chartSelector:chartExists() then
+			self.ui:setScreen(self.ui.chart_loading, true)
+		end
+	end)
+
+	self.time_rate = TimeRate(self.ui.game.timeRateModel, self.ui.game.modifierSelectModel)
+	self.gameplay_modifiers = GameplayModifiers()
+
+	self.root = TrackContainer({direction = "row"})
 	self:createContent()
-	self.sidebar_line = self.root:add(Rectangle(Colors.outline))
+	self.root:add(Rectangle(Colors.outline), 2)
 	self:createSidebar()
 
 	self.root:setOpacity(0)
-	self.root:fadeIn(0.4, "OutCubic")
+end
+
+function SongSelect:enter()
+	self.root:fadeIn(0.3, "OutCubic")
+end
+
+function SongSelect:exit()
+	Screen.exit(self)
+	self.root:fadeOut(0.2, "InCubic")
+	return true
 end
 
 function SongSelect:createContent()
-	self.content = self.root:add(View())
-	self.content.arrange_strategy = Flex({direction = "column", sizes = {70, 2, "*", 2, 70}})
-	self.content:add(self:createHeader())
-	self.content:add(Rectangle(Colors.outline)).align_self = "fill"
+	self.content = self.root:add(TrackContainer({
+		direction = "column"
+	}), "*")
+	self.content:add(self:createHeader(), 70)
+	self.content:add(Rectangle(Colors.outline), 2)
 
-	local body = self.content:add(View())
-	body.arrange_strategy = Flex({direction = "row", padding = {0, 20, 0, 20}, sizes = {"*", "44%", "*", "46%", "*"}})
-	body:add(View())
-	body:add(self:createLeftColumn())
-	body:add(View())
-	body:add(self:createRightColumn())
-	body:add(View())
+	local body = self.content:add(TrackContainer({
+		direction = "row",
+		padding = {0, 20, 0, 20}
+	}), "*")
 
-	self.content:add(Rectangle(Colors.outline)).align_self = "fill"
-	self.content:add(self:createFooter())
+	body:add(View(), "*")
+	body:add(self:createLeftColumn(), "44%")
+	body:add(View(), "*")
+	body:add(self:createRightColumn(), "46%")
+	body:add(View(), "*")
+
+	self.content:add(self:createFooter(), 70)
 end
 
 function SongSelect:createLeftColumn()
-	local column = View()
-	column.arrange_strategy = Flex({direction = "column", sizes = {469, "*", 400}})
-	column:add(BackgroundPanel(self.ui.game.backgroundModel, self.ui.game))
+	local column = TrackContainer({
+		direction = "column"
+	})
+	column:add(self.background_panel, 469)
 	column:add(View())
-	self.score_list = column:add(ScoreList(self.ui.game.scoreSelector, function() end))
+	column:add(self.score_list, 400)
 	return column
 end
 
 function SongSelect:createRightColumn()
-	local column = View()
-	column.arrange_strategy = Flex({direction = "column", sizes = {40, "*", 122, "*", 136, "*", 562}})
+	local column = TrackContainer({
+		direction = "column"
+	})
+
 	local heading = View()
-	heading.arrange_strategy = Flex({direction = "row", padding = {10, 0, 0, 10}, sizes = {"*", "*"}})
+
 	heading:add(Label({
 		font_name = "regular",
 		font_size = 24,
 		text = "Displaying the entire library",
 		color = Colors.text_muted,
-	}))
+	})):setAlignment(0, 0.5)
+
 	heading:add(Label({
 		font_name = "regular",
 		font_size = 24,
 		text = "No filters",
 		color = Colors.text_muted,
 		align = "right",
-	}))
-	column:add(heading)
-	column:add(View())
-	column:add(InfoPanel())
-	column:add(View())
-	self.chart_grid = column:add(ChartGrid(self.ui.game.chartSelector))
-	column:add(View())
-	self.chart_sets = column:add(ChartSets(self.ui.game.chartSelector, function() end))
+	})):setAlignment(1, 0.5)
+
+	column:add(heading, 40)
+	column:add(View(), "*")
+	column:add(InfoPanel(), 122)
+	column:add(View(), "*")
+	column:add(self.chart_grid, 136)
+	column:add(View(), "*")
+	column:add(self.chart_sets, 562)
 	return column
 end
 
 function SongSelect:createHeader()
 	local header = View()
-	header.arrange_strategy = Stack()
-	header:add(Rectangle(Colors.panel))
+	header:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
 
-	local row = header:add(View())
-	row.arrange_strategy = Flex({
-		sizes = {"*", "44%", "*", "46%", "*"},
+	local row = header:add(TrackContainer({
 		direction = "row",
-		align = "center",
-	})
+	}))
+	row:anchorFill(0, 0, 0, 0)
 
-	row:add(View())
+	row:add(View(), "*")
 
-	local left = row:add(View())
-	left.arrange_strategy = Flow({
+	local left = row:add(FlowContainer({
 		direction = "row",
 		gap = 32,
 		align = 0.5
-	})
+	}), "44%")
+
 	left:add(Image(Resources.atlas, Resources.quads.rizu_small))
 	left:add(Label({
 		font_name = "regular",
 		font_size = 24,
 		text = "Online: 1",
 	}))
-	row:add(View())
 
-	row:add(View())
-
-	row:add(View())
+	row:add(View(), "*")
+	row:add(View(), "46%")
+	row:add(View(), "*")
 	return header
 end
 
 function SongSelect:createFooter()
-	local back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "BACK", function() end)
-
-	local play_button = FooterButton(Colors.play_button, {0, 0, 0, 1}, "PLAY", function()
-		if self.ui.game.chartSelector:chartExists() then
-			self.ui:setScreen(self.ui.chart_loading)
-		end
-	end)
-	local time_rate = TimeRate(self.ui.game.timeRateModel, self.ui.game.modifierSelectModel)
-	local gameplay_modifiers = GameplayModifiers()
-
 	local footer = View()
-	footer.arrange_strategy = Stack()
-	footer:add(Rectangle(Colors.panel))
+	footer:add(Rectangle(Colors.panel):anchorFill(0, 0, 0, 0))
 
-	-- Left
-	local left = footer:add(View())
-	left.arrange_strategy = Flow({
+	local left = footer:add(FlowContainer({
 		direction = "row",
-		gap = 10
-	})
-	left:add(back_button)
-
-	-- Right
-	local right = footer:add(View())
-	right.arrange_strategy = Flex({
-		direction = "row",
-		sizes = {"content", "content", "content"},
 		gap = 10,
-		justify = "end",
-		align_items = "center",
-	})
-	right:add(gameplay_modifiers)
-	right:add(time_rate)
-	right:add(play_button)
+		align = 0.5
+	}))
+	left:add(self.back_button)
+	left:fitContent()
+	left:setAlignment(0, 0.5)
+
+	local right = footer:add(FlowContainer({
+		direction = "row",
+		gap = 10,
+		align = 0.5
+	}))
+	right:add(self.gameplay_modifiers)
+	right:add(self.time_rate)
+	right:add(self.play_button)
+	right:fitContent()
+	right:setAlignment(1, 0.5)
 
 	return footer
 end
 
 function SongSelect:createSidebar()
-	self.sidebar = self.root:add(View())
-	self.sidebar.arrange_strategy = Stack()
-	self.sidebar:add(Rectangle(Colors.panel))
+	self.sidebar = self.root:add(View(), 64)
+	self.sidebar:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
 
-	local buttons = self.sidebar:add(View())
-	buttons.arrange_strategy = Flow({
+	local buttons = self.sidebar:add(FlowContainer({
 		direction = "column",
 		gap = 10,
 		align = 0.5,
 		padding = {0, 10, 0, 0}
-	})
+	})):anchorFill(0, 0, 0, 0)
 
 	buttons:addArray({
-		buttons:add(IconButton(Resources.quads.icon_folder)),
-		buttons:add(IconButton(Resources.quads.icon_download)),
-		buttons:add(Rectangle(Colors.outline)):setSize(48, 2),
-		buttons:add(IconButton(Resources.quads.icon_gear)),
-		buttons:add(IconButton(Resources.quads.icon_sparkles, function() end)),
-		buttons:add(IconButton(Resources.quads.icon_funnel, function() end)),
-		buttons:add(IconButton(Resources.quads.icon_keyboard, function() end)),
-		buttons:add(IconButton(Resources.quads.icon_palette, function() end))
+		IconButton(Resources.quads.icon_folder),
+		IconButton(Resources.quads.icon_download),
+		Rectangle(Colors.outline):setSize(48, 2),
+		IconButton(Resources.quads.icon_gear),
+		IconButton(Resources.quads.icon_sparkles, function() end),
+		IconButton(Resources.quads.icon_funnel, function() end),
+		IconButton(Resources.quads.icon_keyboard, function() end),
+		IconButton(Resources.quads.icon_palette, function() end)
 	})
 end
 

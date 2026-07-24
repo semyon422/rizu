@@ -266,10 +266,11 @@ end
 local lg = love.graphics
 
 function ScoreList:draw()
+
 	if self.no_records then
 		local w = Painter.getQuadWidth(Resources.quads.no_records_set)
 		local h = Painter.getQuadHeight(Resources.quads.no_records_set)
-		lg.setColor(1, 1, 1, ease_out_cubic(self.no_records_t))
+		Painter.setOpacity(ease_out_cubic(self.no_records_t) * self.effective_opacity)
 		lg.draw(
 			Resources.atlas,
 			Resources.quads.no_records_set,
@@ -284,12 +285,15 @@ function ScoreList:draw()
 		return
 	end
 
+	Painter.setOpacity(self.effective_opacity)
+	Painter.setColorRgb(1, 1, 1)
+	Painter.snapToPixel()
+
 	lg.clear(false, true, false)
 	lg.setStencilMode("draw", 1)
 	lg.rectangle("fill", 0, 0, self.width, self.height)
 	lg.setStencilMode("test")
 	lg.draw(self.batch)
-	Painter.snapToPixel()
 	lg.draw(self.text_batch16)
 	lg.draw(self.text_batch24)
 	lg.setStencilMode("off")

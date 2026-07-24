@@ -29,6 +29,7 @@ function Button:onMouseClick(e)
 	end
 	if self.on_click then
 		self.on_click()
+		self:scaleTo(1, 1, 0.1, "InCubic")
 	end
 	return true
 end
