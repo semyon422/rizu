@@ -186,8 +186,9 @@ function View:new()
 	self.present = true
 end
 
----@param child gui.View
----@return gui.View
+---@generic T: gui.View
+---@param child T
+---@return T
 function View:add(child)
 	if child == self then
 		error("cannot add a view to itself")

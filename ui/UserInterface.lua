@@ -6,6 +6,7 @@ local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
 local Result = require("ui.screens.result.Result")
 local Inputs = require("gui.input.Inputs")
+local ScreenManager = require("ui.ScreenManager")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
 -- scales to fit the actual window height.
@@ -18,7 +19,7 @@ local TARGET_HEIGHT = 1080
 ---@field chart_loading ui.screens.chart_loading.ChartLoading
 ---@field gameplay ui.screens.gameplay.Gameplay
 ---@field result ui.screens.result.Result
----@field private screen gui.Screen
+---@field screen_manager ui.ScreenManager
 ---@field private prev_w number
 ---@field private prev_h number
 ---@field private inputs gui.Inputs
@@ -29,6 +30,7 @@ local UserInterface = IUserInterface + {}
 function UserInterface:new(game, _directory)
 	self.game = game
 	self.inputs = Inputs()
+	self.screen_manager = ScreenManager()
 end
 
 function UserInterface:load()
@@ -38,38 +40,34 @@ function UserInterface:load()
 	self.chart_loading = ChartLoading(self)
 	self.gameplay = Gameplay(self)
 	self.result = Result(self)
-	self:setScreen(self.main_menu)
+	self.screen_manager:registerAll({
+		self.main_menu,
+		self.song_select,
+		self.chart_loading,
+		self.gameplay,
+		self.result,
+	})
 
 	local ww, wh = love.graphics.getDimensions()
 	self.prev_w = ww
 	self.prev_h = wh
 	self:applyViewport(ww, wh)
+	self:setScreen(self.main_menu)
 	love.keyboard.setTextInput(true)
 	love.keyboard.setKeyRepeat(true)
 end
 
+---keep_previous_visible keeps the outgoing screen active for a transition;
+---call screen_manager:hide(outgoing) when its exit animation completes.
 ---@param screen gui.Screen
-function UserInterface:setScreen(screen)
-	if self.screen and self.screen.exit then
-		self.screen:exit()
-	end
-
-	self.screen = screen
-	if not self.screen.loaded then
-		self.screen:load()
-		self:applyViewport(love.graphics.getDimensions())
-	end
-
-	if self.screen.enter then
-		self.screen:enter()
-	end
+---@param keep_previous_visible boolean?
+---@return boolean changed
+function UserInterface:setScreen(screen, keep_previous_visible)
+	return self.screen_manager:setScreen(screen, keep_previous_visible)
 end
 
 function UserInterface:unload()
-	if self.screen.exit then
-		self.screen:exit()
-	end
-	self.screen:unload()
+	self.screen_manager:unload()
 end
 
 ---@type gui.ModifierKeys
@@ -84,23 +82,26 @@ function UserInterface:update(dt)
 
 	local mouse_x, mouse_y = love.mouse.getPosition()
 	self.inputs:beginFrame(mouse_x, mouse_y)
-	self.screen:acceptInputs(self.inputs)
-	self.screen:update(dt)
+	self.screen_manager:acceptInputs(self.inputs)
+	self.screen_manager:update(dt)
 end
 
 function UserInterface:draw()
-	self.screen:draw()
+	self.screen_manager:draw()
 end
 
 ---@param event {name: string, [integer]: any}
 function UserInterface:receive(event)
+	local screen = self.screen_manager.input_screen
 	if event.name == "keypressed" and event[1] == "f8" then
-		self.screen:printDebugLayout()
+		if screen then
+			screen:printDebugLayout()
+		end
 		return
 	end
 	self.inputs:receive(event, default_modifiers)
-	if self.screen.receive then
-		self.screen:receive(event)
+	if screen and screen.receive then
+		screen:receive(event)
 	end
 end
 
@@ -109,8 +110,7 @@ end
 ---@param h number
 function UserInterface:applyViewport(w, h)
 	local scale = h / TARGET_HEIGHT
-	self.screen:setUIScale(h / TARGET_HEIGHT)
-	self.screen:resize(w, h)
+	self.screen_manager:resize(w, h, scale)
 	Resources.setUIScale(scale)
 	Resources.setFontScale(1)
 end

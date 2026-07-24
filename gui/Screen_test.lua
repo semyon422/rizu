@@ -327,6 +327,28 @@ end
 -- ===========================================================================
 
 ---@param t testing.T
+function test.default_enter_and_exit(t)
+	local s = Screen()
+	s:enter()
+	t:eq(s:exit(), true)
+end
+
+---@param t testing.T
+function test.exit_clears_input_state(t)
+	local s = Screen()
+	local cleared
+	s.inputs = {
+		clearSubtree = function(_, root)
+			cleared = root
+		end,
+	}
+
+	t:eq(s:exit(), true)
+	t:eq(cleared, s.root)
+	t:eq(s.inputs, nil)
+end
+
+---@param t testing.T
 function test.load_and_unload_visit_tree_once(t)
 	local s = Screen()
 	local child = View()

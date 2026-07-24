@@ -38,6 +38,21 @@ function Screen:invalidateLayout()
 	self.dirty = true
 end
 
+---Called when this becomes the input screen.
+function Screen:enter()
+end
+
+---Called before another screen becomes the input screen.
+---Returning false vetoes the change.
+---@return boolean can_exit
+function Screen:exit()
+	if self.inputs then
+		self.inputs:clearSubtree(self.root)
+		self.inputs = nil
+	end
+	return true
+end
+
 function Screen:load()
 	if self.loaded then
 		return
