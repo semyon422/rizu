@@ -21,18 +21,18 @@ local Rectangle = require("ui.views.Rectangle")
 ---@operator call: ui.screens.song_select.SongSelect
 local SongSelect = Screen + {}
 
-local SIDEBAR_LINE_WIDTH = 2
-local SIDEBAR_WIDTH = 64
-
 ---@param ui ui.UserInterface
 function SongSelect:new(ui)
 	Screen.new(self)
 	self.ui = ui
 
 	self.background_panel = BackgroundPanel(self.ui.game.backgroundModel, self.ui.game)
-	self.score_list = ScoreList(self.ui.game.scoreSelector, function() end)
+	self.score_list = ScoreList(self.ui.game.scoreSelector, function(index)
+		self:openScore(index)
+	end)
 	self.chart_grid = ChartGrid(self.ui.game.chartSelector)
 	self.chart_sets = ChartSets(self.ui.game.chartSelector, function() end)
+	self.info_panel = InfoPanel()
 
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "BACK", function()
 		self.ui:setScreen(self.ui.main_menu, true)
@@ -53,15 +53,51 @@ function SongSelect:new(ui)
 	self:createSidebar()
 
 	self.root:setOpacity(0)
+	self.root:setPivot(0.5, 0.5)
+	self.root.handles_keyboard_input = true
+	self.root.onKeyDown = function(_, event)
+		if event.key == "return" and self.ui.game.chartSelector:chartExists() then
+			self.ui:setScreen(self.ui.chart_loading, true)
+		end
+	end
+end
+
+---@param index integer
+function SongSelect:openScore(index)
+	local game = self.ui.game
+	game.scoreSelector:scrollScore(nil, index)
+	game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+	self.ui:setScreen(self.ui.result)
 end
 
 function SongSelect:enter()
+	local chart_selector = self.ui.game.chartSelector
+	chart_selector:notifyChartviewChanged()
+	chart_selector:onChanged(self)
+	chart_selector.state:onChanged(self)
+	chart_selector.stores[2]:onChanged(self)
+	self.ui.game.scoreSelector:onChanged(self)
+
+	local chartview = chart_selector.chartview
+	if chartview then
+		self:onChartviewUpdate(chartview)
+		self:updateInfo()
+	end
+
 	self.root:fadeIn(0.3, "OutCubic")
+	self.root:scaleTo(1, 1, 0.3, "OutQuart")
 end
 
 function SongSelect:exit()
+	local chart_selector = self.ui.game.chartSelector
+	chart_selector:offChanged(self)
+	chart_selector.state:offChanged(self)
+	chart_selector.stores[2]:offChanged(self)
+	self.ui.game.scoreSelector:offChanged(self)
+
 	Screen.exit(self)
 	self.root:fadeOut(0.2, "InCubic")
+	self.root:scaleTo(1.01, 1.01, 0.3, "OutQuart")
 	return true
 end
 
@@ -83,6 +119,7 @@ function SongSelect:createContent()
 	body:add(self:createRightColumn(), "46%")
 	body:add(View(), "*")
 
+	self.content:add(Rectangle(Colors.outline), 2)
 	self.content:add(self:createFooter(), 70)
 end
 
@@ -120,7 +157,7 @@ function SongSelect:createRightColumn()
 
 	column:add(heading, 40)
 	column:add(View(), "*")
-	column:add(InfoPanel(), 122)
+	column:add(self.info_panel, 122)
 	column:add(View(), "*")
 	column:add(self.chart_grid, 136)
 	column:add(View(), "*")
@@ -183,6 +220,35 @@ function SongSelect:createFooter()
 	right:setAlignment(1, 0.5)
 
 	return footer
+end
+
+---@param chartview rizu.library.LocatedChartview
+function SongSelect:onChartviewUpdate(chartview)
+	self.background_panel:bind(chartview)
+	self.info_panel:bind(chartview)
+end
+
+function SongSelect:updateInfo()
+	self.score_list:reload()
+	self.chart_grid:reloadItems()
+	self.gameplay_modifiers:bind(self.ui.game.replayBase)
+end
+
+---@param event rizu.select.Event|{name: string, [integer]: any}
+function SongSelect:receive(event)
+	if event.type == "chartview_changed" and event.chartview and event.chartview.hash then
+		self:onChartviewUpdate(event.chartview)
+	end
+
+	if event.type == "selected_set_changed" then
+		self:updateInfo()
+	elseif event.type == "score_items_changed" then
+		self.score_list:reload()
+	elseif event.type == "list_count_changed" or event.type == "list_item_loaded" then
+		self.chart_grid:requestReloadItems()
+	end
+
+	self.background_panel:receive(event)
 end
 
 function SongSelect:createSidebar()
