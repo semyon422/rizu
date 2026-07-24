@@ -67,6 +67,10 @@ function MainMenu:createButtons()
 	buttons:add(Button("Settings", function()
 	end))
 
+	buttons:add(Button("Tests", function()
+		self.ui:setScreen(self.ui.test_screen)
+	end))
+
 	buttons:add(Button("Quit", function()
 		love.event.quit()
 	end))

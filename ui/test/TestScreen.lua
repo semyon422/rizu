@@ -3,11 +3,9 @@ local ThreeColumns = require("ui.test.ThreeColumns")
 local NineAnchors = require("ui.test.NineAnchors")
 local OrbitOffsetTransform = require("ui.test.OrbitOffsetTransform")
 local Opacity = require("ui.test.Opacity")
-local FlexList = require("ui.test.FlexList")
 local Checkbox = require("ui.test.Checkbox")
 local Animations = require("ui.test.Animations")
-local Animations2 = require("ui.test.Animations2")
-local LayoutTransitions = require("ui.test.LayoutTransitions")
+local Clip = require("ui.test.Clip")
 
 ---@alias ui.test.BuildFn fun(root: gui.View)
 ---@alias ui.test.UpdateFn fun(screen: ui.test.TestScreen, dt: number)
@@ -19,25 +17,26 @@ local LayoutTransitions = require("ui.test.LayoutTransitions")
 
 ---@type ui.test.TestCase[]
 local cases = {
-	Animations2,
 	ThreeColumns,
 	NineAnchors,
 	OrbitOffsetTransform,
 	Opacity,
-	FlexList,
 	Checkbox,
 	Animations,
-	LayoutTransitions,
+	Clip,
 }
 
 ---@class ui.test.TestScreen: gui.Screen
 ---@operator call: ui.test.TestScreen
+---@field ui ui.UserInterface
 ---@field private cases ui.test.TestCase[]
 ---@field private current_index integer
 local TestScreen = Screen + {}
 
-function TestScreen:new()
+---@param ui ui.UserInterface
+function TestScreen:new(ui)
 	Screen.new(self)
+	self.ui = ui
 	self.cases = cases
 	self.current_index = 1
 	self:switchTo(1)
@@ -73,6 +72,8 @@ function TestScreen:receive(event)
 		self:setUIScale(self.ui_scale * 1.1)
 	elseif key == "-" then
 		self:setUIScale(self.ui_scale / 1.1)
+	elseif key == "escape" then
+		self.ui:setScreen(self.ui.main_menu)
 	end
 end
 

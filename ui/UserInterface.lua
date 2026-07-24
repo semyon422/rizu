@@ -5,6 +5,7 @@ local SongSelect = require("ui.screens.song_select.SongSelect")
 local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
 local Result = require("ui.screens.result.Result")
+local TestScreen = require("ui.test.TestScreen")
 local Inputs = require("gui.input.Inputs")
 local ScreenManager = require("ui.ScreenManager")
 
@@ -19,6 +20,7 @@ local TARGET_HEIGHT = 1080
 ---@field chart_loading ui.screens.chart_loading.ChartLoading
 ---@field gameplay ui.screens.gameplay.Gameplay
 ---@field result ui.screens.result.Result
+---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
 ---@field private prev_w number
 ---@field private prev_h number
@@ -40,12 +42,14 @@ function UserInterface:load()
 	self.chart_loading = ChartLoading(self)
 	self.gameplay = Gameplay(self)
 	self.result = Result(self)
+	self.test_screen = TestScreen(self)
 	self.screen_manager:registerAll({
 		self.main_menu,
 		self.song_select,
 		self.chart_loading,
 		self.gameplay,
 		self.result,
+		self.test_screen,
 	})
 
 	local ww, wh = love.graphics.getDimensions()
