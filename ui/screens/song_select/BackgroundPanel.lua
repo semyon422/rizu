@@ -1,7 +1,7 @@
 local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
-local Painter = require("ui.Painter")
+local Painter = require("gui.Painter")
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 
 ---@class ui.screens.song_select.BackgroundPanel : gui.View
@@ -163,9 +163,8 @@ end
 
 function BackgroundPanel:draw()
 	if not self.preview_canvas then return end
-	Painter.setOpacity(self.render_opacity)
 	self:drawBackground()
-	Painter.setOpacity(self.render_opacity)
+	Painter.begin(self.render_opacity)
 
 	local screen_x, screen_y = self.world_transform:transformPoint(0, 0)
 	local screen_right, screen_bottom = self.world_transform:transformPoint(self.width, self.height)

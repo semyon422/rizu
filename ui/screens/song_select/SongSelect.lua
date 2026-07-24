@@ -1,4 +1,5 @@
 local Screen = require("gui.Screen")
+local CompositeView = require("gui.CompositeView")
 local View = require("gui.View")
 local TrackContainer = require("gui.layout.TrackContainer")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -96,7 +97,7 @@ function SongSelect:exit()
 	self.ui.game.scoreSelector:offChanged(self)
 
 	Screen.exit(self)
-	self.root:fadeOut(0.2, "InCubic")
+	self.root:fadeOut(0.2, "OutQuad")
 	self.root:scaleTo(1.01, 1.01, 0.3, "OutQuart")
 	return true
 end

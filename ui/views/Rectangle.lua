@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 
 ---@class ui.views.Rectangle : gui.View
@@ -13,8 +14,7 @@ function Rectangle:new(color)
 end
 
 function Rectangle:draw()
-	local color = self.color
-	love.graphics.setColor(color[1], color[2], color[3], (color[4] or 1) * self.render_opacity)
+	Painter.setColorTable(self.color)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
 end
 

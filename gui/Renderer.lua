@@ -1,4 +1,5 @@
 local class = require("class")
+local Painter = require("gui.Painter")
 
 local DRAW_ITEM = 1
 local BEGIN_COMPOSITE = 2
@@ -130,7 +131,7 @@ function Renderer:draw()
 				end
 				setScissor(view.clip_rect, boundary, scale)
 				love.graphics.setBlendMode("alpha")
-				love.graphics.setColor(1, 1, 1, view.render_opacity)
+				Painter.begin(view.render_opacity)
 				view:draw()
 			end
 			index = index + 2

@@ -1,6 +1,6 @@
 local View = require("gui.View")
 local Colors = require("ui.Colors")
-local Painter = require("ui.Painter")
+local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 
@@ -48,7 +48,6 @@ end
 function IconButton:draw()
 	local bg = self.mouse_over and Colors.accent or Colors.elements
 	Painter.snapToPixel()
-	Painter.setOpacity(self.render_opacity)
 	Painter.setColorTable(bg)
 	love.graphics.draw(self.atlas, self.background_quad)
 	Painter.setColorTable(Colors.text)

@@ -1,3 +1,4 @@
+local Painter = require("gui.Painter")
 local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
@@ -44,10 +45,10 @@ function ClearStatus:draw()
 	end
 
 	local height = self.height * progress
-	love.graphics.setColor(Colors.panel)
+	Painter.setColorTable(Colors.panel)
 	love.graphics.rectangle("fill", 0, (self.height - height) / 2, self.width, height)
 	love.graphics.setFont(self.font)
-	love.graphics.setColor(self.color)
+	Painter.setColorTable(self.color)
 	love.graphics.printf(self.text, 0, (self.height - self.font:getHeight()) / 2, self.width, "center")
 end
 

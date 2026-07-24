@@ -1,3 +1,4 @@
+local Painter = require("gui.Painter")
 local View = require("gui.View")
 local Resources = require("ui.Resources")
 
@@ -44,15 +45,15 @@ local lg = love.graphics
 
 function Checkbox:draw()
 	local box_size = self.font:getHeight()
-	lg.setColor(1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 	lg.rectangle("fill", 0, 0, box_size, box_size)
-	lg.setColor(0, 0, 0)
+	Painter.setColorRgb(0, 0, 0)
 	lg.rectangle("line", 0, 0, box_size, box_size)
 	if self.checked then
-		lg.setColor(0, 0, 0)
+		Painter.setColorRgb(0, 0, 0)
 		lg.rectangle("fill", 5, 5, box_size - 10, box_size - 10)
 	end
-	lg.setColor(1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 	lg.setFont(self.font)
 	lg.print(self.label_text, box_size + 8, 0)
 end

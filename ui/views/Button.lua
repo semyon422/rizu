@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local SpringValue = require("gui.anim.SpringValue")
 
@@ -55,7 +56,7 @@ end
 
 function Button:draw()
 	local lg = love.graphics
-	local r, g, b, a = 0.16, 0.18, 0.22, self.render_opacity
+	local r, g, b = 0.16, 0.18, 0.22
 
 	if self.mouse_over then
 		r, g, b = 0.25, 0.42, 0.65
@@ -64,12 +65,12 @@ function Button:draw()
 		r, g, b = 0.12, 0.30, 0.50
 	end
 
-	lg.setColor(r, g, b, 0.96 * a)
+	Painter.setColorRgb(r, g, b, 0.96)
 	lg.rectangle("fill", 0, 0, self.width, self.height, 6, 6)
-	lg.setColor(0.55, 0.70, 0.90, a)
+	Painter.setColorRgb(0.55, 0.70, 0.90)
 	lg.setLineWidth(2)
 	lg.rectangle("line", 1, 1, self.width - 2, self.height - 2, 6, 6)
-	lg.setColor(1, 1, 1, a)
+	Painter.setColorRgb(1, 1, 1)
 	lg.setFont(self.font)
 	lg.printf(self.text, 0, (self.height - self.font:getHeight()) / 2, self.width, "center")
 end

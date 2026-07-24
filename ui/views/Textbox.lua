@@ -1,3 +1,4 @@
+local Painter = require("gui.Painter")
 local View = require("gui.View")
 local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
@@ -96,11 +97,11 @@ end
 local lg = love.graphics
 
 function Textbox:draw()
-	lg.setColor(0.12, 0.12, 0.15)
+	Painter.setColorRgb(0.12, 0.12, 0.15)
 	lg.rectangle("fill", 0, 0, self.width, self.height)
-	lg.setColor(0.8, 0.8, 0.85)
+	Painter.setColorRgb(0.8, 0.8, 0.85)
 	lg.rectangle("line", 0, 0, self.width, self.height)
-	lg.setColor(1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 	lg.setFont(self.font)
 	local text_x = 6
 	local text_y = 6

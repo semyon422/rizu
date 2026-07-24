@@ -1,3 +1,4 @@
+local Painter = require("gui.Painter")
 local View = require("gui.View")
 local coloredRect = require("ui.test.ColoredRect")
 
@@ -34,7 +35,7 @@ local case = {
 		outline:setSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 		outline:setAlignment(0.5, 0.5)
 		function outline:draw()
-			love.graphics.setColor(0.8, 0.85, 0.95, self.render_opacity)
+			Painter.setColorRgb(0.8, 0.85, 0.95)
 			love.graphics.setLineWidth(4)
 			love.graphics.rectangle("line", 0, 0, self.width, self.height)
 		end

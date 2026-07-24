@@ -1,3 +1,4 @@
+local Painter = require("gui.Painter")
 local View = require("gui.View")
 
 ---@class ui.views.Slider : gui.View
@@ -71,9 +72,9 @@ function Slider:draw()
 	local position = (self.value - self.min) / (self.max - self.min)
 	local knob_x = knob_radius + (self.width - knob_radius * 2) * position
 
-	lg.setColor(0.25, 0.25, 0.3)
+	Painter.setColorRgb(0.25, 0.25, 0.3)
 	lg.rectangle("fill", knob_radius, track_y, self.width - knob_radius * 2, track_height)
-	lg.setColor(0.9, 0.9, 0.95)
+	Painter.setColorRgb(0.9, 0.9, 0.95)
 	lg.rectangle("fill", knob_radius, track_y, knob_x - knob_radius, track_height)
 	lg.rectangle("fill", knob_x - knob_radius, 0, knob_radius * 2, self.height)
 end

@@ -2,7 +2,7 @@ local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Color = require("ui.Color")
-local Painter = require("ui.Painter")
+local Painter = require("gui.Painter")
 
 ---@class ui.screens.song_select.InfoPanel : gui.View
 ---@operator call: ui.screens.song_select.InfoPanel
@@ -116,16 +116,16 @@ function InfoPanel:bind(chartview)
 end
 
 function InfoPanel:draw()
-	love.graphics.setColor(Colors.panel)
+	Painter.setColorTable(Colors.panel)
 	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
 	Painter.snapToPixel()
-	love.graphics.setColor(Colors.text_muted)
+	Painter.setColorTable(Colors.text_muted)
 	love.graphics.draw(Resources.atlas, Resources.quads.icon_clock, 308, 15)
 	love.graphics.draw(Resources.atlas, Resources.quads.icon_metronome, 308, 50)
-	love.graphics.setColor(1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 	love.graphics.draw(self.text_batch24)
 	love.graphics.setFont(self.font64)
-	love.graphics.setColor(self.difficulty_color)
+	Painter.setColorTable(self.difficulty_color)
 	love.graphics.print(self.difficulty, 12, 8)
 end
 

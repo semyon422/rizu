@@ -3,7 +3,7 @@ local SpringValue = require("gui.anim.SpringValue")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 local Colors = require("ui.Colors")
-local Painter = require("ui.Painter")
+local Painter = require("gui.Painter")
 local time_util = require("time_util")
 
 ---@class ui.screens.song_select.ScoreList : gui.View
@@ -271,7 +271,7 @@ function ScoreList:draw()
 	if self.no_records then
 		local w = Painter.getQuadWidth(Resources.quads.no_records_set)
 		local h = Painter.getQuadHeight(Resources.quads.no_records_set)
-		Painter.setOpacity(ease_out_cubic(self.no_records_t) * self.render_opacity)
+		Painter.setOpacity(ease_out_cubic(self.no_records_t))
 		lg.draw(
 			Resources.atlas,
 			Resources.quads.no_records_set,
@@ -286,7 +286,6 @@ function ScoreList:draw()
 		return
 	end
 
-	Painter.setOpacity(self.render_opacity)
 	Painter.setColorRgb(1, 1, 1)
 	Painter.snapToPixel()
 

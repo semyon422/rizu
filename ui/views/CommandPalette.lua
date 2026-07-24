@@ -1,3 +1,4 @@
+local Painter = require("gui.Painter")
 local View = require("gui.View")
 local Resources = require("ui.Resources")
 local utf8 = require("utf8")
@@ -193,19 +194,17 @@ function CommandPalette:updateText()
 end
 
 function CommandPalette:draw()
-	local alpha = self.render_opacity
-
 	local lg = love.graphics
 	lg.setScissor(0, 0, self.world_transform:transformPoint(self.width, self.height))
-	lg.setColor(0.08, 0.08, 0.1, alpha)
+	Painter.setColorRgb(0.08, 0.08, 0.1)
 	lg.rectangle("fill", 0, 0, self.width, self.height)
-	lg.setColor(0.2, 0.2, 0.25, alpha)
+	Painter.setColorRgb(0.2, 0.2, 0.25)
 	lg.rectangle("fill", 0, 0, self.width, CELL_HEIGHT)
 	if self.candidates[self.selected_index] then
-		lg.setColor(0.3, 0.3, 0.4, alpha)
+		Painter.setColorRgb(0.3, 0.3, 0.4)
 		lg.rectangle("fill", 0, self.selected_index * CELL_HEIGHT, self.width, CELL_HEIGHT)
 	end
-	lg.setColor(0.9, 0.9, 0.95, alpha)
+	Painter.setColorRgb(0.9, 0.9, 0.95)
 	lg.draw(self.names, 5, 5)
 
 	if self:isNeedleMode() then
@@ -222,12 +221,12 @@ function CommandPalette:draw()
 		end
 		love.graphics.setFont(Resources.getFont("regular", 20))
 		local failed = model.state == "error" or model.state == "unavailable"
-		love.graphics.setColor(failed and {0.9, 0.3, 0.3, alpha} or {0.7, 0.7, 0.75, alpha})
+		Painter.setColorTable(failed and {0.9, 0.3, 0.3, 1} or {0.7, 0.7, 0.75, 1})
 		love.graphics.printf(preview, 12, CELL_HEIGHT * 2, self.width - 24, "left")
 		local telemetry = model:formatTelemetry()
 		if telemetry then
 			love.graphics.setFont(Resources.getFont("regular", 14))
-			love.graphics.setColor(0.7, 0.7, 0.75, alpha)
+			Painter.setColorRgb(0.7, 0.7, 0.75)
 			love.graphics.printf(telemetry, 12, CELL_HEIGHT * 2 + 30, self.width - 24, "left")
 		end
 	end

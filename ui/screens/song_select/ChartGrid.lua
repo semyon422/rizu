@@ -1,7 +1,7 @@
 local View = require("gui.View")
 local SpringValue = require("gui.anim.SpringValue")
 local Resources = require("ui.Resources")
-local Painter = require("ui.Painter")
+local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
 local Color = require("ui.Color")
 local Sounds = require("ui.Sounds")
@@ -229,7 +229,7 @@ function ChartGrid:drawScrollbar()
 	local y = SCROLLBAR_PADDING
 	local h = math.max(0, self.height - SCROLLBAR_PADDING * 2)
 
-	lg.setColor(self.scrollbar_bg_color)
+	Painter.setColorTable(self.scrollbar_bg_color)
 	lg.rectangle("fill", x, y, SCROLLBAR_WIDTH, h)
 
 	local thumb_h = SCROLLBAR_THUMB_HEIGHT
@@ -238,13 +238,13 @@ function ChartGrid:drawScrollbar()
 		thumb_y = y + (h - thumb_h) * (self.scroll_spring:get() / max_scroll)
 	end
 
-	lg.setColor(self.scrollbar_color)
+	Painter.setColorTable(self.scrollbar_color)
 	lg.rectangle("fill", x, thumb_y, SCROLLBAR_WIDTH, thumb_h)
-	lg.setColor(1, 1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 end
 
 function ChartGrid:draw()
-	lg.setColor(1, 1, 1)
+	Painter.setColorRgb(1, 1, 1)
 	lg.draw(self.batch)
 	lg.draw(self.meta_batch)
 	lg.draw(self.names_batch)

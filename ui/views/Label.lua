@@ -1,6 +1,6 @@
 local View = require("gui.View")
 local Colors = require("ui.Colors")
-local Painter = require("ui.Painter")
+local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 
 ---@class ui.views.LabelParams
@@ -43,8 +43,7 @@ end
 
 function Label:draw()
 	Painter.snapToPixel()
-	local color = self.color
-	love.graphics.setColor(color[1], color[2], color[3], (color[4] or 1) * self.render_opacity)
+	Painter.setColorTable(self.color)
 	love.graphics.setFont(self.font)
 	local x = 0
 	if self.align == "center" then
