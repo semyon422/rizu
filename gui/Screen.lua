@@ -1,4 +1,5 @@
 local class = require("class")
+local Renderer = require("gui.Renderer")
 local View = require("gui.View")
 
 ---@class gui.Screen
@@ -7,6 +8,7 @@ local View = require("gui.View")
 ---@field views gui.View[] All attached views in DFS pre-order
 ---@field update_views gui.View[] Views overriding View:update
 ---@field draw_views gui.View[] Views overriding View:draw
+---@field renderer gui.Renderer
 ---@field dirty boolean
 ---@field width number Window width in drawable pixels
 ---@field height number Window height in drawable pixels
@@ -25,6 +27,7 @@ function Screen:new()
 	self.update_views = {}
 	---@type gui.View[]
 	self.draw_views = {}
+	self.renderer = Renderer()
 	self.dirty = true
 	self.inputs = nil
 	self.loaded = false
@@ -74,6 +77,7 @@ function Screen:unload()
 	self.views = {}
 	self.update_views = {}
 	self.draw_views = {}
+	self.renderer:clear()
 	self.inputs = nil
 	self.dirty = true
 end
@@ -98,7 +102,8 @@ function Screen:removeExpiredViews()
 end
 
 ---@param view gui.View
-local function flatten(view, views, update_views, draw_views)
+---@param renderer gui.Renderer
+local function flatten(view, views, update_views, draw_views, renderer)
 	local index = #views + 1
 	view.flat_index = index
 	views[index] = view
@@ -108,10 +113,11 @@ local function flatten(view, views, update_views, draw_views)
 	end
 	if view.draw ~= View.draw then
 		draw_views[#draw_views + 1] = view
+		renderer:addView(view)
 	end
 
 	for i = 1, #view.children do
-		flatten(view.children[i], views, update_views, draw_views)
+		flatten(view.children[i], views, update_views, draw_views, renderer)
 	end
 	view.flat_subtree_end = #views
 end
@@ -125,7 +131,8 @@ function Screen:relayout()
 	local views = {} ---@type gui.View[]
 	local update_views = {} ---@type gui.View[]
 	local draw_views = {} ---@type gui.View[]
-	flatten(self.root, views, update_views, draw_views)
+	self.renderer:beginBuild()
+	flatten(self.root, views, update_views, draw_views, self.renderer)
 	self.views = views
 	self.update_views = update_views
 	self.draw_views = draw_views
@@ -225,19 +232,7 @@ end
 
 function Screen:draw()
 	self:flush()
-	local views = self.draw_views
-	for i = 1, #views do
-		local view = views[i]
-		if not view.detached and view.effective_visible and view.present then
-			love.graphics.replaceTransform(view.world_transform)
-			love.graphics.setScissor() -- clip_rect support lands with §9.1
-			love.graphics.setColor(1, 1, 1, view.effective_opacity)
-			view:draw()
-		end
-	end
-	love.graphics.setScissor()
-	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.origin()
+	self.renderer:draw()
 end
 
 ---@param inputs gui.Inputs

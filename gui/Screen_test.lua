@@ -131,6 +131,12 @@ function test.relayout_builds_specialized_update_and_draw_arrays(t)
 
 	t:tdeq(s.update_views, {updating, both})
 	t:tdeq(s.draw_views, {drawing, both})
+	local commands = s.renderer.commands
+	t:eq(type(commands[1]), "number")
+	t:eq(commands[2], drawing)
+	t:eq(commands[3], commands[1])
+	t:eq(commands[4], both)
+	t:eq(s.renderer.command_count, 4)
 end
 
 ---@param t testing.T
@@ -148,6 +154,8 @@ function test.tree_mutation_invalidates_and_flush_rebuilds_arrays(t)
 	t:eq(s.dirty, false)
 	t:tdeq(s.views, {s.root, child})
 	t:tdeq(s.draw_views, {child})
+	t:eq(type(s.renderer.commands[1]), "number")
+	t:eq(s.renderer.commands[2], child)
 end
 
 ---@param t testing.T
@@ -364,6 +372,8 @@ function test.load_and_unload_visit_tree_once(t)
 	s:unload()
 	s:unload()
 	t:eq(unloads, 1)
+	t:eq(s.renderer.command_count, 0)
+	t:eq(#s.renderer.commands, 0)
 end
 
 ---@param t testing.T
