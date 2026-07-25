@@ -40,11 +40,6 @@ function Overlay:receive(event)
 				return true
 			end
 		end
-
-		if key == "escape" and self.modal_manager.active_view then
-			self.modal_manager:hideModal()
-			return true
-		end
 	end
 
 	return false

@@ -18,6 +18,8 @@ local ModalManager = View + {}
 function ModalManager:new(ui)
 	View.new(self)
 	self:anchorFill(0, 0, 0, 0)
+	self.handles_keyboard_input = true
+	self.keyboard_input_fallback = true
 	self.ui = ui
 
 	for _, command in ipairs(GlobalCommands.get(ui.game, ui)) do
@@ -92,6 +94,14 @@ function ModalManager:modalClosed(view)
 		inputs:popFocusScope(view)
 	end
 	self.bg:hide()
+end
+
+---@param e gui.KeyDownEvent
+---@return boolean? handled
+function ModalManager:onKeyDown(e)
+	if e.key == "escape" and self.active_view then
+		return self:hideModal()
+	end
 end
 
 ---@return boolean attached

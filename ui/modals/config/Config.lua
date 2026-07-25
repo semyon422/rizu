@@ -3,6 +3,8 @@ local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
 local Checkbox = require("ui.views.Checkbox")
+local Dropdown = require("ui.views.Dropdown")
+local DropdownHost = require("ui.views.DropdownHost")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Label = require("ui.views.Label")
 local ScrollView = require("gui.ScrollView")
@@ -39,6 +41,21 @@ local function createSettingView(config, setting, path)
 			end,
 		})
 		return checkbox, checkbox
+	elseif setting.kind == "choice" then
+		local format = type(setting.format) == "function" and setting.format or nil
+		local dropdown = Dropdown({
+			options = setting.options,
+			value = config:get(setting),
+			width = 780,
+			format = format,
+			on_change = function(value)
+				config:set(setting, value)
+			end,
+		})
+		local row = FlowContainer({direction = "column", gap = 6,
+			Label({font_name = "regular", font_size = 20, text = formatPath(path)}), dropdown})
+		row:fitContent()
+		return row, dropdown
 	elseif setting.kind == "textbox" then
 		local textbox = Textbox({
 			text = config:getString(setting),
@@ -83,15 +100,13 @@ function Config:new(config)
 
 	local settings = {} ---@type rizu.config.Setting[]
 	for setting in pairs(config.settings_map) do
-		if setting.kind ~= "choice" then
-			settings[#settings + 1] = setting
-		end
+		settings[#settings + 1] = setting
 	end
 	table.sort(settings, function(a, b)
 		return a.order < b.order
 	end)
 
-	local content = FlowContainer({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
+	local content = DropdownHost({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
 	content:add(Label({font_name = "bold", font_size = 32, text = "Settings"}))
 	for _, setting in ipairs(settings) do
 		local path = assert(config.setting_to_path[setting], "setting has no config path")
@@ -117,6 +132,9 @@ function Config:syncSetting(setting)
 	if setting.kind == "checkbox" then
 		---@cast view ui.views.Checkbox
 		view:setChecked(self.config:getBoolean(setting))
+	elseif setting.kind == "choice" then
+		---@cast view ui.views.Dropdown
+		view:setValue(self.config:get(setting))
 	elseif setting.kind == "textbox" then
 		---@cast view ui.views.Textbox
 		view:setText(self.config:getString(setting))
