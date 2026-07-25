@@ -1,5 +1,5 @@
 local class = require("class")
-local byte = require("byte_old")
+local byte = require("byte")
 local bit = require("bit")
 
 ---@class chart.NanoChart
@@ -75,89 +75,30 @@ local NanoChart = class()
 	1111 0000 1111 1111 -- 6th note
 ]]
 
----@param n number
----@return table
-local function tobits(n) -- order is reversed
-	local t = {}
-	while n > 0 do
-		local rest = n % 2
-		t[#t + 1] = rest
-		n = (n - rest) / 2
-	end
-	return t
-end
-
-assert(table.concat(tobits(1)) == "1")
-assert(table.concat(tobits(2)) == "01")
-assert(table.concat(tobits(1023)) == "1111111111")
-assert(table.concat(tobits(1024)) == "00000000001")
-
----@param input number
----@param type number
----@param sameTime boolean?
----@param noteTime number?
+---@param input integer
+---@param note_type integer
+---@param same_time boolean?
+---@param note_time number?
 ---@return string
-function NanoChart:encodeNote(input, type, sameTime, noteTime)
+function NanoChart:encodeNote(input, note_type, same_time, note_time)
 	local prefix = ""
-	local postfix = ""
-
-	local bits = {}
-
-	bits[5] = type
-	bits[6] = sameTime and 1 or 0
-
 	if input > 12 then
-		postfix = byte.int8_to_string(input)
-		input = 0xff
-
-		if not sameTime then
-			prefix = self:encodeNote(0, 0, false, noteTime)
-			sameTime = true
+		if not same_time then
+			prefix = self:encodeNote(0, 0, false, note_time)
 		end
+		local same_time_bit = same_time and 4 or 0
+		return prefix .. string.char(0xf0 + bit.lshift(note_type, 3) + same_time_bit, input)
 	end
 
-	local inputBits = tobits(input)
-	for i = 1, 4 do
-		bits[i] = inputBits[5 - i] or 0
+	local first_byte = bit.lshift(input, 4) + bit.lshift(note_type, 3)
+	if same_time then
+		return string.char(first_byte + 4)
 	end
 
-	local data
-	if not sameTime then
-		local timeBits = tobits(math.floor(noteTime * 1024))
-		for i = 7, 16 do
-			bits[i] = timeBits[17 - i] or 0
-		end
-
-		data = byte.int16_to_string_be(tonumber(table.concat(bits), 2))
-	else
-		bits[7] = 0
-		bits[8] = 0
-		data = byte.int8_to_string(tonumber(table.concat(bits), 2))
-	end
-
-	return prefix .. data .. postfix
+	local time = math.floor(assert(note_time) * 1024)
+	first_byte = first_byte + bit.rshift(time, 8)
+	return string.char(first_byte, bit.band(time, 0xff))
 end
-
----@param c string
----@return string
-local function hexReplace(c) return ("%02x"):format(c:byte()) end
-
----@param s string
----@return string
-local function tohex(s)
-    return (s:gsub('.', hexReplace))
-end
-
--- print(tohex(NanoChart:encodeNote(1, 0, false, 0.125)))
--- print(tohex(NanoChart:encodeNote(12, 1, true)))
--- print(tohex(NanoChart:encodeNote(128, 0, false, 1/128)))
--- print(tohex(NanoChart:encodeNote(128, 0, true, 1/128)))
-assert(tohex(NanoChart:encodeNote(1, 0, false, 0.125)) == "1080")		-- 0001000010000000
-assert(tohex(NanoChart:encodeNote(12, 1, true)) == "cc")				-- 11001100
-assert(tohex(NanoChart:encodeNote(128, 0, false, 1/128)) == "0008f080")	-- 0000000000001000 1111000010000000
-assert(tohex(NanoChart:encodeNote(128, 0, true, 1/128)) == "f480")		-- 1111010010000000
-
-local sortNotes = function(a, b) return a.time < b.time or a.time == b.time and a.input < b.input end
 
 ---@param hash string
 ---@param inputs number
@@ -167,9 +108,9 @@ function NanoChart:encode(hash, inputs, notes)
 	-- table.sort(notes, sortNotes)
 
 	local objects = {
-		byte.int8_to_string(2),
+		string.char(2),
 		assert(#hash == 16 and hash),
-		byte.int8_to_string(inputs)
+		string.char(inputs)
 	}
 
 	local offset = 0
@@ -185,7 +126,7 @@ function NanoChart:encode(hash, inputs, notes)
 			if delta < 0 then
 				delta = delta + 16
 			end
-			objects[#objects + 1] = byte.int8_to_string(0xe0 + delta)
+			objects[#objects + 1] = string.char(0xe0 + delta)
 		end
 
 		noteTime = note.time - math.floor(note.time)
@@ -213,22 +154,16 @@ function NanoChart:decode(content)
 	local buffer = byte.buffer(#content)
 	buffer:fill(content):seek(0)
 
-	local version = buffer:uint8()
+	local version = buffer:read("u8")
 	local hash = buffer:string(16)
-	local inputs = buffer:uint8()
+	local inputs = buffer:read("u8")
 
 	local notes = {}
 
 	local offset = 0
 	local noteTime = 0
 	while buffer.offset < buffer.size do
-		local cbyte = buffer:uint8()
-
-		local tempBits = tobits(cbyte)
-		local bits = {}
-		for i = 1, 8 do
-			bits[i] = tempBits[9 - i] or 0
-		end
+		local cbyte = buffer:read("u8")
 
 		local input = bit.rshift(bit.band(cbyte, 0xf0), 4)
 		if input == 14 then
@@ -240,20 +175,21 @@ function NanoChart:decode(content)
 		elseif input == 15 then
 			notes[#notes + 1] = {
 				time = offset + noteTime / 1024,
-				type = bits[5],
-				input = buffer:uint8()
+				type = bit.rshift(bit.band(cbyte, 0x08), 3),
+				input = buffer:read("u8")
 			}
 		else
-			local type = bits[5]
+			local note_type = bit.rshift(bit.band(cbyte, 0x08), 3)
+			local same_time = bit.band(cbyte, 0x04) ~= 0
 
-			if bits[6] == 0 then
-				noteTime = bit.lshift(bits[7], 9) + bit.lshift(bits[8], 8) + buffer:uint8()
+			if not same_time then
+				noteTime = bit.lshift(bit.band(cbyte, 0x03), 8) + buffer:read("u8")
 			end
 
 			if input ~= 0 then
 				notes[#notes + 1] = {
 					time = offset + noteTime / 1024,
-					type = type,
+					type = note_type,
 					input = input
 				}
 			end

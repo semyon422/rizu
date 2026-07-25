@@ -37,6 +37,7 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 - **Class naming**: Class annotations drop the old directory prefix. `ncdk2.Chart` → `chart.Chart`, `libchart.NanoChart` → `chart.NanoChart`.
 - **Format separation**: Format-specific decoders live under `chart/format/<format>/`, with shared interfaces in `chart/format/notechart/`.
 - **Scoring vs transform**: `libchart`'s dual responsibilities are split — scoring algorithms go to `chart/scoring/`, chart manipulation utilities go to `chart/transform/`.
+- **NanoChart binary compatibility**: `NanoChart` uses the current `byte` buffer API while preserving the existing version 1 and version 2 wire format. Changes to its packing must be covered by exact-byte fixtures and decode round trips because replay events and exported `.nanochart` files depend on this format.
 
 ## Migration Plan
 
