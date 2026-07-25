@@ -9,7 +9,6 @@ local LoveFilesystem = require("fs.LoveFilesystem")
 ---@field editorModel rizu.editor.EditorModel
 ---@field noteSkinModel sphere.NoteSkinModel
 ---@field configModel sphere.ConfigModel
----@field resourceModel sphere.ResourceModel
 ---@field windowModel rizu.WindowModel
 ---@field library rizu.library
 ---@field fileFinder sphere.FileFinder
@@ -40,7 +39,6 @@ function EditorController:new(deps)
 	self.editorModel = deps.editorModel
 	self.noteSkinModel = deps.noteSkinModel
 	self.configModel = deps.configModel
-	self.resourceModel = deps.resourceModel
 	self.windowModel = deps.windowModel
 	self.library = deps.library
 	self.fileFinder = deps.fileFinder
@@ -77,7 +75,6 @@ function EditorController:createLoadControllerContext()
 		editorModel = self.editorModel,
 		noteSkinModel = self.noteSkinModel,
 		configModel = self.configModel,
-		resourceModel = self.resourceModel,
 		windowModel = self.windowModel,
 		fileFinder = self.fileFinder,
 		previewModel = self.previewModel,

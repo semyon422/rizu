@@ -27,6 +27,7 @@ The engine module provides the low-level runtime systems for rhythm processing, 
 - Current backends:
   - `rizu.audio.bass.*` for the primary BASS implementation, with BASS_FFMPEG plugin decoding
   - `rizu.audio.fake.*` for testing or disabled-audio scenarios
+- Short UI and metronome effects use `rizu.audio.bass.Sample`, a focused one-shot sample wrapper. Keep these effects out of the removed legacy `aqua/audio` playback hierarchy.
 
 ### ADR: Central Audio Engine Coordination
 - `rizu.audio.Engine` coordinates background playback and foreground hitsounds.

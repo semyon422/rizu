@@ -1,4 +1,3 @@
-local audio = require("audio")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Fraction = require("chart.core.Fraction")
 local Metronome = require("rizu.editor.playback.Metronome")
@@ -11,33 +10,18 @@ function test.load_reads_sample_through_filesystem(t)
 	fs:createDirectory("resources")
 	fs:write("resources/metronome.ogg", "sample-data")
 
-	local oldSoundData = audio.SoundData
-	local oldNewSource = audio.newSource
-	local soundData = {
-		release = function() end,
-	}
 	local source = {
 		release = function() end,
 	}
-	local calls = {}
-	audio.SoundData = function(_, size)
-		table.insert(calls, "sound:" .. size)
-		return soundData
-	end
-	audio.newSource = function(loadedSoundData)
-		table.insert(calls, "source")
-		t:eq(loadedSoundData, soundData)
+	local loaded_data
+	local metronome = Metronome(fs, function(data)
+		loaded_data = data
 		return source
-	end
-
-	local metronome = Metronome(fs)
+	end)
 	metronome:load()
-	audio.SoundData = oldSoundData
-	audio.newSource = oldNewSource
 
-	t:eq(metronome.soundData, soundData)
+	t:eq(loaded_data, "sample-data")
 	t:eq(metronome.source, source)
-	t:tdeq(calls, {"sound:11", "source"})
 end
 
 ---@param t testing.T

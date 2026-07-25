@@ -87,13 +87,6 @@ function test.load_wires_chart_skin_resources_and_window(t)
 				},
 			},
 		},
-		resourceModel = {
-			load = function(_, loadedChart, callback)
-				table.insert(calls, "resource-model")
-				t:eq(loadedChart, chart)
-				callback()
-			end,
-		},
 		windowModel = {
 			setVsyncOnSelect = function(_, enabled)
 				table.insert(calls, "vsync:" .. tostring(enabled))
@@ -151,7 +144,6 @@ function test.load_wires_chart_skin_resources_and_window(t)
 		"file-reset",
 		"resource-reset",
 		"resource-load:song.ogg",
-		"resource-model",
 		"editor-resources:yes",
 		"vsync:false",
 	})
@@ -198,12 +190,6 @@ function test.load_resource_failure_propagates_before_vsync_switch(t)
 					},
 				},
 			},
-		},
-		resourceModel = {
-			load = function(_, _, callback)
-				table.insert(calls, "resource-model")
-				callback()
-			end,
 		},
 		windowModel = {
 			setVsyncOnSelect = function(_, enabled)
@@ -254,7 +240,6 @@ function test.load_resource_failure_propagates_before_vsync_switch(t)
 		"file-reset",
 		"resource-reset",
 		"resource-loader",
-		"resource-model",
 		"editor-resources",
 	})
 end
@@ -301,11 +286,6 @@ function test.load_applies_modifiers_when_requested(t)
 					},
 				},
 			},
-		},
-		resourceModel = {
-			load = function(_, _, callback)
-				callback()
-			end,
 		},
 		windowModel = {
 			setVsyncOnSelect = function() end,

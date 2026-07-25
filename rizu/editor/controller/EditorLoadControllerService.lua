@@ -11,7 +11,6 @@ local ModifierModel = require("sphere.models.ModifierModel")
 ---@field editorModel rizu.editor.EditorModel
 ---@field noteSkinModel sphere.NoteSkinModel
 ---@field configModel sphere.ConfigModel
----@field resourceModel sphere.ResourceModel
 ---@field windowModel rizu.WindowModel
 ---@field fileFinder sphere.FileFinder
 ---@field previewModel rizu.preview.PreviewModel
@@ -60,10 +59,7 @@ function EditorLoadControllerService:load(context)
 	self:loadResourcePaths(context.fileFinder, context.resource_finder, paths)
 
 	context.resource_loader:load(chart.resources)
-
-	context.resourceModel:load(chart, function()
-		editorModel:loadResources(context.resource_loader.resources)
-	end)
+	editorModel:loadResources(context.resource_loader.resources)
 
 	context.windowModel:setVsyncOnSelect(false)
 end

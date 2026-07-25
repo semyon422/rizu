@@ -143,7 +143,7 @@ Modifier application on load is driven by an injected predicate so `EditorContro
 
 `EditorController` takes a dependency table rather than a long positional constructor. Keep new controller collaborators in that table to avoid argument-order bugs.
 
-`EditorLoadControllerService` owns chart load orchestration for the controller: chart selection, optional modifier application, note-skin loading, initial editor model population, preview stop, resource path setup, resource loading, and the select-screen vsync switch. `EditorController:load()` should delegate through this service.
+`EditorLoadControllerService` owns chart load orchestration for the controller: chart selection, optional modifier application, note-skin loading, initial editor model population, preview stop, resource path setup, resource loading, and the select-screen vsync switch. It loads resources once through `rizu.files.ResourceLoader` and passes them directly to `EditorModel`; do not restore the obsolete parallel `sphere.ResourceModel` load. `EditorController:load()` should delegate through this service.
 
 `EditorExportService` owns the controller's save/export command delegation. `EditorController` should route `sliceKeysounds`, `exportUBmsC`, `exportBmsTemplate`, `save`, `saveToOsu`, and `saveToNanoChart` through this service instead of constructing exporters inline. BMS exporter internals are intentionally left alone until the parser rewrite, but controller-level delegation is tested with fakes.
 
@@ -231,7 +231,7 @@ Provides a metronome click synced to the current timing data.
 
 `Metronome` receives a narrow `MetronomeContext` from `EditorServices` instead of reading the whole `EditorModel`. It uses the context for current time, current point, next snap lookup, and point interpolation.
 
-Loads its click sample through `fs.IFilesystem` so editor model tests do not depend on `love.filesystem`.
+Loads its click sample through `fs.IFilesystem` and plays it with the focused `rizu.audio.bass.Sample` wrapper, so editor model tests do not depend on `love.filesystem` and the editor does not depend on the removed legacy `aqua/audio` playback stack.
 
 ### `NcbtContext` — Tempo And Offset Detection
 Runs the NCBT algorithm on the audio waveform to detect tempo and offset. Results can be applied to the chart's interval data.

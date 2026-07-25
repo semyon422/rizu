@@ -35,7 +35,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 			},
 		},
 	}
-	local resourceModel = {}
 	local timer = {
 		setGlobalTime = function(_, time)
 			t:eq(time, 0)
@@ -142,7 +141,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 
 	local editorModel = EditorModel({
 		configModel = configModel,
-		resourceModel = resourceModel,
 		input = input,
 		noteChartLoader = services.noteChartLoader,
 		audio_engine = services.audio_engine,
@@ -175,7 +173,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	})
 
 	t:eq(editorModel.configModel, configModel)
-	t:eq(editorModel.resourceModel, resourceModel)
 	t:eq(editorModel.services.noteService, services.noteService)
 	t:eq(editorModel.services.metronome, services.metronome)
 	t:eq(editorModel.services.frameService, services.frameService)
@@ -200,7 +197,6 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(type(services.metronome.context.getPoint), "function")
 	t:eq(services.bmsToolsContext.editorModel, nil)
 	t:eq(configModel.editorModel, nil)
-	t:eq(resourceModel.editorModel, nil)
 	t:eq(input.editorModel, nil)
 	t:eq(services.audio_engine.editorModel, nil)
 	t:eq(services.timer.editorModel, nil)

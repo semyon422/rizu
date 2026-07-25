@@ -1,6 +1,5 @@
 local class = require("class")
-local audio = require("audio")
-local ffi = require("ffi")
+local Sample = require("rizu.engine.audio.bass.Sample")
 local LoveFilesystem = require("fs.LoveFilesystem")
 
 ---@class rizu.editor.Metronome
@@ -24,8 +23,10 @@ local function clampVolume(value)
 end
 
 ---@param fs fs.IFilesystem?
-function Metronome:new(fs)
+---@param sample_factory (fun(data: string): rizu.audio.bass.Sample)?
+function Metronome:new(fs, sample_factory)
 	self.fs = fs or LoveFilesystem()
+	self.sample_factory = sample_factory or Sample
 end
 
 ---@param context rizu.editor.MetronomeContext
@@ -34,11 +35,8 @@ function Metronome:setContext(context)
 end
 
 function Metronome:load()
-	local sampleData = assert(self.fs:read(samplePath))
-	self.sampleBuffer = ffi.new("uint8_t[?]", #sampleData)
-	ffi.copy(self.sampleBuffer, sampleData, #sampleData)
-	self.soundData = assert(audio.SoundData(self.sampleBuffer, #sampleData))
-	self.source = audio.newSource(self.soundData)
+	local sample_data = assert(self.fs:read(samplePath))
+	self.source = self.sample_factory(sample_data)
 
 	self.nextTime = math.huge
 	self.isNextBeat = false
@@ -46,7 +44,6 @@ end
 
 function Metronome:unload()
 	self.source:release()
-	self.soundData:release()
 end
 
 function Metronome:updateNextTime()

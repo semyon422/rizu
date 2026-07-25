@@ -1,5 +1,5 @@
 local class = require("class")
-local audio = require("audio")
+local bass = require("bass")
 
 ---@class rizu.AudioModel
 ---@operator call: rizu.AudioModel
@@ -8,14 +8,14 @@ local AudioModel = class()
 ---@param device table
 function AudioModel:load(device)
 	if device.period == 0 then
-		device.period = audio.default_dev_period
+		device.period = bass.default_dev_period
 	end
 	if device.buffer == 0 then
-		device.buffer = audio.default_dev_buffer
+		device.buffer = bass.default_dev_buffer
 	end
-	audio.setDevicePeriod(device.period)
-	audio.setDeviceBuffer(device.buffer)
-	audio.init()
+	bass.setDevicePeriod(device.period)
+	bass.setDeviceBuffer(device.buffer)
+	bass.init()
 end
 
 return AudioModel

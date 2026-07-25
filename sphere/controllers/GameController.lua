@@ -15,7 +15,6 @@ local EditorInput = require("rizu.editor.EditorInput")
 local EditorModel = require("rizu.editor.EditorModel")
 local SpeedModel = require("sphere.models.SpeedModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
-local ResourceModel = require("sphere.models.ResourceModel")
 local PauseModel = require("sphere.models.PauseModel")
 local JoystickModel = require("sphere.models.JoystickModel")
 local OffsetModel = require("sphere.models.OffsetModel")
@@ -139,15 +138,10 @@ function GameController:new()
 
 	self.noteSkinModel = NoteSkinModel(self.persistence.configModel, self.packageManager)
 	self.inputModel = InputModel(self.persistence.configModel)
-	self.resourceModel = ResourceModel(
-		self.persistence.configModel,
-		self.persistence.fileFinder
-	)
 	self.pauseModel = PauseModel(self.persistence.configModel, self.rhythm_engine)
 	self.editorInput = EditorInput()
 	self.editorModel = EditorModel({
 		configModel = self.persistence.configModel,
-		resourceModel = self.resourceModel,
 		fs = self.fs,
 		input = self.editorInput,
 	})
@@ -262,7 +256,6 @@ function GameController:new()
 		editorModel = self.editorModel,
 		noteSkinModel = self.noteSkinModel,
 		configModel = self.configModel,
-		resourceModel = self.resourceModel,
 		windowModel = self.windowModel,
 		library = self.library,
 		fileFinder = self.fileFinder,

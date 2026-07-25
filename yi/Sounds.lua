@@ -1,24 +1,23 @@
 local Path = require("Path")
-local audio = require("audio")
+local Sample = require("rizu.engine.audio.bass.Sample")
 
 ---@class yi.Sounds
 local Sounds = {}
 Sounds.sounds_dir = "resources/yi/sounds"
 Sounds.sound_volume = 0.2
-Sounds.cache = {} ---@type {[string]: audio.Source}
+Sounds.cache = {} ---@type {[string]: rizu.audio.bass.Sample}
 
 function Sounds.load() end
 
 ---@param name string
----@return audio.Source
+---@return rizu.audio.bass.Sample
 function Sounds:loadSound(name)
 	if Sounds.cache[name] then
 		return Sounds.cache[name]
 	end
 
-	local file_data = love.filesystem.newFileData(tostring(Path(Sounds.sounds_dir) .. name .. ".wav"))
-	local sound_data = audio.SoundData(file_data:getFFIPointer(), file_data:getSize())
-	local source = audio.newSource(sound_data)
+	local data = assert(love.filesystem.read(tostring(Path(Sounds.sounds_dir) .. name .. ".wav")))
+	local source = Sample(data)
 	source:setVolume(Sounds.sound_volume)
 	Sounds.cache[name] = source
 	return source
