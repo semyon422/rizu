@@ -104,7 +104,7 @@ function Config:set(setting, value)
 			return
 		end
 		self.persistent_values[setting] = value
-		self.onChanged:send({type = "config_commit", setting})
+		self.onChanged:send(setting)
 	end
 end
 
@@ -147,7 +147,7 @@ function Config:commit()
 
 	if #updated_settings > 0 then
 		for _, setting in ipairs(updated_settings) do
-			self.onChanged:send({type = "config_commit", setting})
+			self.onChanged:send(setting)
 		end
 	end
 end

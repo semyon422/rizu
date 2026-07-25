@@ -6,10 +6,11 @@ local View = require("gui.View")
 ---@field value number
 ---@field min number
 ---@field max number
+---@field step number?
 ---@field on_change fun(value: number)?
 local Slider = View + {}
 
----@param params {value: number?, min: number?, max: number?, width: number?, on_change: fun(value: number)?}?
+---@param params {value: number?, min: number?, max: number?, step: number?, width: number?, on_change: fun(value: number)?}?
 function Slider:new(params)
 	View.new(self)
 	params = params or {}
@@ -18,6 +19,8 @@ function Slider:new(params)
 	assert(self.max > self.min, "slider max must be greater than min")
 	self.value = params.value or self.min
 	assert(self.value >= self.min and self.value <= self.max, "slider value must be within its range")
+	self.step = params.step
+	assert(not self.step or self.step > 0, "slider step must be positive")
 	self.on_change = params.on_change
 
 	self.width = params.width or 300
@@ -33,11 +36,22 @@ function Slider:setValueAt(screen_x, screen_y)
 	local knob_radius = self.height / 2
 	local position = math.max(0, math.min(1, (local_x - knob_radius) / (self.width - knob_radius * 2)))
 	local value = self.min + (self.max - self.min) * position
+	if self.step then
+		value = self.min + math.floor((value - self.min) / self.step + 0.5) * self.step
+		value = math.max(self.min, math.min(self.max, value))
+	end
+	self:setValue(value, true)
+end
+
+---@param value number
+---@param notify boolean?
+function Slider:setValue(value, notify)
+	assert(value >= self.min and value <= self.max, "slider value must be within its range")
 	if value == self.value then
 		return
 	end
 	self.value = value
-	if self.on_change then
+	if notify and self.on_change then
 		self.on_change(value)
 	end
 end

@@ -31,7 +31,7 @@ function ModalManager:new(ui)
 	self.active_view = nil
 
 	self.bg = self:add(OverlayBackground())
-	self.config = self:addModal(Config())
+	self.config = self:addModal(Config(ui.game.settings))
 	self:addModal(self.palette)
 end
 

@@ -29,15 +29,24 @@ function Checkbox:new(params)
 	self.handles_mouse_input = true
 end
 
+---@param checked boolean
+---@param notify boolean?
+function Checkbox:setChecked(checked, notify)
+	if self.checked == checked then
+		return
+	end
+	self.checked = checked
+	if notify and self.on_change then
+		self.on_change(checked)
+	end
+end
+
 ---@param e gui.MouseClickEvent
 function Checkbox:onMouseClick(e)
 	if e.button ~= 1 then
 		return
 	end
-	self.checked = not self.checked
-	if self.on_change then
-		self.on_change(self.checked)
-	end
+	self:setChecked(not self.checked, true)
 	return true
 end
 

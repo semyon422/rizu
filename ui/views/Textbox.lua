@@ -32,8 +32,12 @@ function Textbox:getText()
 end
 
 ---@param text string
-function Textbox:setText(text)
+---@param notify boolean?
+function Textbox:setText(text, notify)
 	self.model:setText(text)
+	if notify then
+		self:notifyChange()
+	end
 end
 
 function Textbox:notifyChange()

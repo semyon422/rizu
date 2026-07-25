@@ -6,15 +6,74 @@ local Checkbox = require("ui.views.Checkbox")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Label = require("ui.views.Label")
 local ScrollView = require("gui.ScrollView")
+local Slider = require("ui.views.Slider")
 local Textbox = require("ui.views.Textbox")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
+---@field config rizu.config.Config
 ---@field scroll_view gui.ScrollView
+---@field setting_views {[rizu.config.Setting]: gui.View}
+---@field private config_observer util.Observer
 local Config = ModalView + {}
 
-function Config:new()
+---@param path string
+---@return string
+local function formatPath(path)
+	local name = path:gsub("_", " "):gsub("%.", " / ")
+	return name:gsub("^%l", string.upper)
+end
+
+---@param config rizu.config.Config
+---@param setting rizu.config.Setting
+---@param path string
+---@return gui.View? row
+---@return gui.View? control
+local function createSettingView(config, setting, path)
+	if setting.kind == "checkbox" then
+		local checkbox = Checkbox({
+			text = formatPath(path),
+			checked = config:getBoolean(setting),
+			on_change = function(value)
+				config:setBoolean(setting, value)
+			end,
+		})
+		return checkbox, checkbox
+	elseif setting.kind == "textbox" then
+		local textbox = Textbox({
+			text = config:getString(setting),
+			width = 780,
+			on_change = function(value)
+				config:setString(setting, value)
+			end,
+		})
+		local row = FlowContainer({direction = "column", gap = 6,
+			Label({font_name = "regular", font_size = 20, text = formatPath(path)}), textbox})
+		row:fitContent()
+		return row, textbox
+	elseif setting.kind == "range" then
+		local slider = Slider({
+			value = config:getNumber(setting),
+			min = setting.min_value,
+			max = setting.max_value,
+			step = setting.step,
+			width = 780,
+			on_change = function(value)
+				config:setNumber(setting, value)
+			end,
+		})
+		local row = FlowContainer({direction = "column", gap = 6,
+			Label({font_name = "regular", font_size = 20, text = formatPath(path)}), slider})
+		row:fitContent()
+		return row, slider
+	end
+end
+
+---@param config rizu.config.Config
+function Config:new(config)
 	ModalView.new(self)
+	self.config = config
+	self.setting_views = {}
 	self:setSize(890, 600)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
@@ -22,26 +81,59 @@ function Config:new()
 	self:setOpacity(0)
 	self:setVisible(false)
 
+	local settings = {} ---@type rizu.config.Setting[]
+	for setting in pairs(config.settings_map) do
+		if setting.kind ~= "choice" then
+			settings[#settings + 1] = setting
+		end
+	end
+	table.sort(settings, function(a, b)
+		return a.order < b.order
+	end)
+
 	local content = FlowContainer({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
 	content:add(Label({font_name = "bold", font_size = 32, text = "Settings"}))
-	content:add(Checkbox({text = "Enable background animations", checked = true}))
-	content:add(Checkbox({text = "Show gameplay notifications", checked = true}))
-	content:add(Checkbox({text = "Use compact song list"}))
-	content:add(Textbox({text = "Player name", width = 780}))
-	content:add(Textbox({text = "Audio device", width = 780}))
-	content:add(Checkbox({text = "Enable hitsounds", checked = true}))
-	content:add(Checkbox({text = "Dim background during gameplay", checked = true}))
-	content:add(Textbox({text = "Screenshot directory", width = 780}))
-	content:add(Checkbox({text = "Check for updates on startup", checked = true}))
-	content:add(Checkbox({text = "Enable Discord presence", checked = true}))
-	content:add(Textbox({text = "Online server address", width = 780}))
-	content:add(Checkbox({text = "Send anonymous diagnostics"}))
-	content:add(Checkbox({text = "Confirm before quitting", checked = true}))
+	for _, setting in ipairs(settings) do
+		local path = assert(config.setting_to_path[setting], "setting has no config path")
+		local row, control = createSettingView(config, setting, path)
+		if row then
+			content:add(row)
+			self.setting_views[setting] = control
+		end
+	end
 	content:fitContent()
 
 	self.scroll_view = ScrollView(content)
 	self.scroll_view:anchorFixed(35, 40, 820, 520)
 	self:add(self.scroll_view)
+end
+
+---@param setting rizu.config.Setting
+function Config:syncSetting(setting)
+	local view = self.setting_views[setting]
+	if not view then
+		return
+	end
+	if setting.kind == "checkbox" then
+		---@cast view ui.views.Checkbox
+		view:setChecked(self.config:getBoolean(setting))
+	elseif setting.kind == "textbox" then
+		---@cast view ui.views.Textbox
+		view:setText(self.config:getString(setting))
+	elseif setting.kind == "range" then
+		---@cast view ui.views.Slider
+		view:setValue(self.config:getNumber(setting))
+	end
+end
+
+function Config:load()
+	self.config_observer = self.config.onChanged:add(function(setting)
+		self:syncSetting(setting)
+	end)
+end
+
+function Config:unload()
+	self.config.onChanged:remove(self.config_observer)
 end
 
 function Config:show()
