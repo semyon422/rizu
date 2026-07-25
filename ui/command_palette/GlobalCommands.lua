@@ -22,8 +22,8 @@ function M.get(game, ui)
 			title = "AI: Open Chat",
 			description = "Opens the local AI agent chat",
 			callback = function()
-				if ui and ui.overlay then
-					ui.overlay:attachChat()
+				if ui and ui.modal_manager then
+					-- TODO
 				end
 			end,
 		},

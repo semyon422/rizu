@@ -1,14 +1,14 @@
 local Painter = require("gui.Painter")
-local View = require("gui.View")
+local ModalView = require("ui.ModalView")
 local Resources = require("ui.Resources")
 local utf8 = require("utf8")
 
----@class ui.views.CommandPalette : gui.View
----@operator call: ui.views.CommandPalette
+---@class ui.modals.command_palette.CommandPalette : ui.ModalView
+---@operator call: ui.modals.command_palette.CommandPalette
 ---@field prompt string?
 ---@field needle_model rizu.ai.NeedleModel?
 ---@field needle_tools rizu.ai.NeedleToolRegistry?
-local CommandPalette = View + {}
+local CommandPalette = ModalView + {}
 
 local CELL_HEIGHT = 40
 local SCALE_INACTIVE = 0.95
@@ -19,7 +19,7 @@ local Y_INACTIVE = -20
 ---@param needle_model rizu.ai.NeedleModel
 ---@param needle_tools rizu.ai.NeedleToolRegistry
 function CommandPalette:new(state, on_close, needle_model, needle_tools)
-	View.new(self)
+	ModalView.new(self)
 	self.state = state
 	self.on_close = on_close
 	self.needle_model = needle_model

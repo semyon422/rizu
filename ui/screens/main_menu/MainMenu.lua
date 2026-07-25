@@ -52,6 +52,7 @@ function MainMenu:createButtons()
 	end))
 
 	buttons:add(Button("Settings", function()
+		self.ui.modal_manager:attachConfig()
 	end))
 
 	buttons:add(Button("Tests", function()

@@ -26,6 +26,7 @@ local TARGET_HEIGHT = 1080
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
 ---@field overlay ui.Overlay
+---@field modal_manager ui.ModalManager
 ---@field command_registry ui.command_palette.Registry
 ---@field private prev_w number
 ---@field private prev_h number
@@ -50,6 +51,7 @@ function UserInterface:load()
 	self.result = Result(self)
 	self.test_screen = TestScreen(self)
 	self.overlay = Overlay(self)
+	self.modal_manager = self.overlay.modal_manager
 	self.screen_manager:registerAll({
 		self.main_menu,
 		self.song_select,

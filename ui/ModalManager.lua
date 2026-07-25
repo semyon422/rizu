@@ -1,0 +1,118 @@
+local View = require("gui.View")
+local GlobalCommands = require("ui.command_palette.GlobalCommands")
+local PaletteState = require("ui.command_palette.PaletteState")
+local CommandPalette = require("ui.modals.command_palette.CommandPalette")
+local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
+local OverlayBackground = require("ui.views.OverlayBackground")
+local Config = require("ui.modals.config.Config")
+
+---@class ui.ModalManager : gui.View
+---@operator call: ui.ModalManager
+---@field ui ui.UserInterface
+---@field palette ui.modals.command_palette.CommandPalette
+---@field config ui.modals.config.Config
+---@field active_view ui.ModalView?
+local ModalManager = View + {}
+
+---@param ui ui.UserInterface
+function ModalManager:new(ui)
+	View.new(self)
+	self:anchorFill(0, 0, 0, 0)
+	self.ui = ui
+
+	for _, command in ipairs(GlobalCommands.get(ui.game, ui)) do
+		ui.command_registry:registerGlobal(command)
+	end
+
+	local needle_tools = NeedleToolRegistry(ui.command_registry)
+	self.palette = CommandPalette(PaletteState(ui.command_registry), function()
+		self:modalClosed(self.palette)
+	end, ui.game.needleModel, needle_tools)
+	self.active_view = nil
+
+	self.bg = self:add(OverlayBackground())
+	self.config = self:addModal(Config())
+	self:addModal(self.palette)
+end
+
+---@generic T: ui.ModalView
+---@param view T
+---@return T
+function ModalManager:addModal(view)
+	return self:add(view)
+end
+
+---@param view ui.ModalView
+---@return boolean shown
+function ModalManager:showModal(view)
+	if self.active_view == view then
+		return false
+	end
+	if self.active_view then
+		self:hideModal(self.active_view)
+	end
+
+	self.active_view = view
+	view:show()
+	self.bg:show()
+	local inputs = self.screen and self.screen.inputs
+	if inputs and view.handles_keyboard_input then
+		inputs:setKeyboardFocus(view, {control = false, shift = false, alt = false, super = false})
+	end
+	return true
+end
+
+---@param view ui.ModalView?
+---@return boolean hidden
+function ModalManager:hideModal(view)
+	view = view or self.active_view
+	if not view or self.active_view ~= view then
+		return false
+	end
+	if view == self.palette and self.palette.needle_model then
+		self.palette.needle_model:cancel()
+	end
+	view:hide()
+	self:modalClosed(view)
+	return true
+end
+
+---@private
+---@param view ui.ModalView
+function ModalManager:modalClosed(view)
+	if self.active_view ~= view then
+		return
+	end
+	self.active_view = nil
+	local inputs = self.screen and self.screen.inputs
+	if inputs and inputs.keyboard_focus == view then
+		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
+	end
+	self.bg:hide()
+end
+
+---@return boolean attached
+function ModalManager:attachPalette()
+	if self.active_view == self.palette then
+		return false
+	end
+	self.palette:reset()
+	return self:showModal(self.palette)
+end
+
+---@return boolean detached
+function ModalManager:detachPalette()
+	return self:hideModal(self.palette)
+end
+
+---@return boolean attached
+function ModalManager:attachConfig()
+	return self:showModal(self.config)
+end
+
+---@return boolean detached
+function ModalManager:detachConfig()
+	return self:hideModal(self.config)
+end
+
+return ModalManager
