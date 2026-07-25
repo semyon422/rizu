@@ -151,6 +151,12 @@ function Screen:relayout()
 	self.views = views
 	self.update_views = update_views
 	self.draw_views = draw_views
+	for i = 1, #views do
+		local view = views[i]
+		if view.is_scroll_view then
+			view:refreshCulling()
+		end
+	end
 end
 
 ---Run at most one pending tree rebuild.
@@ -257,7 +263,9 @@ function Screen:acceptInputs(inputs)
 	local views = self.views
 	for i = #views, 1, -1 do
 		local view = views[i]
-		if not view.detached and view.effective_visible and view.effective_enabled and view.present then
+		if not view.detached and view.cull_mask == 0
+			and view.effective_visible and view.effective_enabled and view.present
+		then
 			inputs:processView(view)
 		end
 	end

@@ -74,6 +74,8 @@ local Easing = require("gui.anim.Easing")
 ---@field effective_visible boolean
 ---@field effective_enabled boolean
 ---@field present boolean
+---@field cull_mask integer Bitmask of geometry-based cull causes
+---@field viewport_culls {[gui.ScrollView]: true}?
 ---@field flat_index integer?
 ---@field flat_subtree_end integer?
 ---
@@ -87,6 +89,9 @@ local Easing = require("gui.anim.Easing")
 ---@field handles_mouse_input boolean
 ---@field handles_keyboard_input boolean
 local View = IInputHandler + {}
+
+View.CULL_CLIP_EMPTY = 1
+View.CULL_VIEWPORT = 2
 
 local transform_targets = {
 	offset_x = true,
@@ -188,6 +193,8 @@ function View:new()
 	self.is_composite = false
 	self.clip_rect = nil
 	self.present = true
+	self.cull_mask = 0
+	self.viewport_culls = nil
 end
 
 ---@generic T: gui.View
@@ -703,6 +710,30 @@ function View:compose(root_scale)
 	world_transform:apply(self.transform)
 	composeClipRect(self)
 	self.present = self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
+	local clip_rect = self.clip_rect
+	if clip_rect and (clip_rect[3] <= 0 or clip_rect[4] <= 0) then
+		self.cull_mask = bit.bor(self.cull_mask, self.CULL_CLIP_EMPTY)
+	else
+		self.cull_mask = bit.band(self.cull_mask, bit.bnot(self.CULL_CLIP_EMPTY))
+	end
+end
+
+---Returns the screen-space axis-aligned bounds of the transformed view.
+---@return number x
+---@return number y
+---@return number width
+---@return number height
+function View:getWorldBounds()
+	local transform = self.world_transform
+	local x1, y1 = transform:transformPoint(0, 0)
+	local x2, y2 = transform:transformPoint(self.width, 0)
+	local x3, y3 = transform:transformPoint(0, self.height)
+	local x4, y4 = transform:transformPoint(self.width, self.height)
+	local left = math.min(x1, x2, x3, x4)
+	local top = math.min(y1, y2, y3, y4)
+	local right = math.max(x1, x2, x3, x4)
+	local bottom = math.max(y1, y2, y3, y4)
+	return left, top, right - left, bottom - top
 end
 
 local function composeRecursive(view, root_scale)

@@ -64,8 +64,9 @@ function Renderer:clear()
 	self.command_count = 0
 end
 
+---@param self gui.Renderer
 ---@param transform love.Transform
----@param boundary gui.CompositeView?
+---@param boundary gui.CompositeView
 ---@param scale number
 local function replaceRelativeTransform(self, transform, boundary, scale)
 	local relative = self.relative_transform
@@ -120,7 +121,7 @@ function Renderer:draw()
 		if command == DRAW_ITEM then
 			local view = commands[index + 1]
 			---@cast view gui.View
-			if not view.detached and view.effective_visible and view.present then
+			if not view.detached and view.cull_mask == 0 and view.effective_visible and view.present then
 				local boundary = composite_stack[#composite_stack]
 				local scale = 1
 				if boundary then
@@ -138,7 +139,9 @@ function Renderer:draw()
 		elseif command == BEGIN_COMPOSITE then
 			local composite = commands[index + 1]
 			---@cast composite gui.CompositeView
-			if composite.detached or not composite.effective_visible or not composite.present then
+			if composite.detached or composite.cull_mask ~= 0
+				or not composite.effective_visible or not composite.present
+			then
 				local depth = 1
 				index = index + 2
 				while depth > 0 do
@@ -169,7 +172,9 @@ function Renderer:draw()
 			composite_stack[#composite_stack] = nil
 			local parent = composite_stack[#composite_stack]
 			love.graphics.setCanvas(parent and parent.canvas or initial_canvas)
-			if composite.canvas and not composite.detached and composite.effective_visible and composite.present then
+			if composite.canvas and not composite.detached and composite.cull_mask == 0
+				and composite.effective_visible and composite.present
+			then
 				local scale = parent and parent.canvas_scale or 1
 				replaceRelativeTransform(self, composite.world_transform, parent, scale)
 				setScissor(composite.clip_rect, parent, scale)
