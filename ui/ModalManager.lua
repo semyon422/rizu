@@ -56,8 +56,11 @@ function ModalManager:showModal(view)
 	view:show()
 	self.bg:show()
 	local inputs = self.screen and self.screen.inputs
-	if inputs and view.handles_keyboard_input then
-		inputs:setKeyboardFocus(view, {control = false, shift = false, alt = false, super = false})
+	if inputs then
+		inputs:pushFocusScope(view)
+		if view.handles_keyboard_input then
+			inputs:setKeyboardFocus(view, {control = false, shift = false, alt = false, super = false})
+		end
 	end
 	return true
 end
@@ -85,8 +88,8 @@ function ModalManager:modalClosed(view)
 	end
 	self.active_view = nil
 	local inputs = self.screen and self.screen.inputs
-	if inputs and inputs.keyboard_focus == view then
-		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
+	if inputs then
+		inputs:popFocusScope(view)
 	end
 	self.bg:hide()
 end

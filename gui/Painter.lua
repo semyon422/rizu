@@ -49,6 +49,32 @@ function Painter.snapToPixel()
 	lg.translate(math.floor(screen_x + 0.5) - screen_x, math.floor(screen_y + 0.5) - screen_y)
 end
 
+---Draws a transformed rectangle outline with a render-target-space line width.
+---The rectangle follows the active transform, but scaling does not affect its stroke.
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@param line_width number
+function Painter.rectangleLineFixed(x, y, width, height, line_width)
+	assert(type(x) == "number" and type(y) == "number", "rectangle position must be numeric")
+	assert(type(width) == "number" and type(height) == "number", "rectangle size must be numeric")
+	assert(type(line_width) == "number" and line_width > 0, "line width must be positive")
+
+	local x1, y1 = lg.transformPoint(x, y)
+	local x2, y2 = lg.transformPoint(x + width, y)
+	local x3, y3 = lg.transformPoint(x + width, y + height)
+	local x4, y4 = lg.transformPoint(x, y + height)
+	local previous_line_width = lg.getLineWidth()
+
+	lg.push("transform")
+	lg.origin()
+	lg.setLineWidth(line_width)
+	lg.polygon("line", x1, y1, x2, y2, x3, y3, x4, y4)
+	lg.pop()
+	lg.setLineWidth(previous_line_width)
+end
+
 ---@param quad love.Quad
 ---@return number
 function Painter.getQuadWidth(quad)

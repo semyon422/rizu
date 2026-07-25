@@ -14,6 +14,7 @@ local Textbox = View + {}
 function Textbox:new(params)
 	View.new(self)
 	params = params or {}
+	self.clip = true
 	self.model = TextboxModel()
 	self.model:setText(params.text or "")
 	self.font = Resources.getFont("regular", 24)
@@ -97,22 +98,21 @@ end
 local lg = love.graphics
 
 function Textbox:draw()
+	Painter.snapToPixel()
 	Painter.setColorRgb(0.12, 0.12, 0.15)
 	lg.rectangle("fill", 0, 0, self.width, self.height)
 	Painter.setColorRgb(0.8, 0.8, 0.85)
-	lg.rectangle("line", 0, 0, self.width, self.height)
+	Painter.rectangleLineFixed(2, 2, self.width - 4, self.height - 5, 2)
 	Painter.setColorRgb(1, 1, 1)
 	lg.setFont(self.font)
 	local text_x = 6
 	local text_y = 6
-	lg.setScissor(0, 0, self.world_transform:transformPoint(self.width, self.height))
 	lg.print(self.model:getText(), text_x, text_y)
 	if self.focused then
 		local left = self.model:getSplit()
 		local cursor_x = text_x + self.font:getWidth(left)
 		lg.rectangle("fill", cursor_x, text_y, 2, self.font:getHeight())
 	end
-	lg.setScissor()
 end
 
 return Textbox

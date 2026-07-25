@@ -25,6 +25,26 @@ function OverlayBackground:hide()
 	end)
 end
 
+---@return boolean handled
+function OverlayBackground:onMouseDown()
+	return true
+end
+
+---@return boolean handled
+function OverlayBackground:onMouseUp()
+	return true
+end
+
+---@return boolean handled
+function OverlayBackground:onMouseClick()
+	return true
+end
+
+---@return boolean handled
+function OverlayBackground:onScroll()
+	return true
+end
+
 function OverlayBackground:draw()
 	Painter.setColorRgb(1, 0.69, 0.87)
 	love.graphics.setBlendMode("add")
