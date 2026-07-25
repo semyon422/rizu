@@ -278,11 +278,11 @@ function Inputs:handleMouseUp(event, modifiers)
 	e.button = event[3]
 	e.x = self.mouse_x
 	e.y = self.mouse_y
+	e.target = pressed_target
+	e.current_target = pressed_target
 	self.last_mouse_down_event = nil
-	local target, current_target, handled = self:dispatchMouseTargets(e)
-	e.target = target
-	e.current_target = current_target
-	return target, current_target, e, handled
+	local handled = self:dispatchMouseEventToTarget(e)
+	return pressed_target, pressed_target, e, handled
 end
 
 ---@private

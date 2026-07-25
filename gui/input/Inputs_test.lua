@@ -60,6 +60,8 @@ function test.mouse_click(t)
 
 	inputs.mouse_x = 9999999999
 	inputs.mouse_y = 9999999999
+	table.clear(inputs.mouse_hits)
+	inputs.mouse_target = nil
 	inputs:receive({name = "mousemoved", 100, 100, 0, 0}, default_modifiers)
 	inputs:receive({name = "mousereleased", 100, 100, 1}, default_modifiers)
 	t:eq(btn.pressed, false)
