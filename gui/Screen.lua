@@ -41,6 +41,12 @@ function Screen:invalidateLayout()
 	self.dirty = true
 end
 
+---Receives a raw LÖVE or application event while this screen is active.
+---@param event {name: string, [integer]: any}
+---@return boolean? handled
+function Screen:receive(event)
+end
+
 ---Called when this becomes the input screen.
 function Screen:enter()
 end

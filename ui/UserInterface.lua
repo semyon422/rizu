@@ -8,6 +8,8 @@ local Result = require("ui.screens.result.Result")
 local TestScreen = require("ui.test.TestScreen")
 local Inputs = require("gui.input.Inputs")
 local ScreenManager = require("ui.ScreenManager")
+local Overlay = require("ui.Overlay")
+local Registry = require("ui.command_palette.Registry")
 local Colors = require("ui.Colors")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
@@ -23,6 +25,8 @@ local TARGET_HEIGHT = 1080
 ---@field result ui.screens.result.Result
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
+---@field overlay ui.Overlay
+---@field command_registry ui.command_palette.Registry
 ---@field private prev_w number
 ---@field private prev_h number
 ---@field private inputs gui.Inputs
@@ -34,6 +38,7 @@ function UserInterface:new(game, _directory)
 	self.game = game
 	self.inputs = Inputs()
 	self.screen_manager = ScreenManager()
+	self.command_registry = Registry()
 end
 
 function UserInterface:load()
@@ -44,6 +49,7 @@ function UserInterface:load()
 	self.gameplay = Gameplay(self)
 	self.result = Result(self)
 	self.test_screen = TestScreen(self)
+	self.overlay = Overlay(self)
 	self.screen_manager:registerAll({
 		self.main_menu,
 		self.song_select,
@@ -52,6 +58,7 @@ function UserInterface:load()
 		self.result,
 		self.test_screen,
 	})
+	self.screen_manager:setOverlay(self.overlay)
 
 	local ww, wh = love.graphics.getDimensions()
 	self.prev_w = ww
@@ -98,17 +105,10 @@ end
 
 ---@param event {name: string, [integer]: any}
 function UserInterface:receive(event)
-	local screen = self.screen_manager.input_screen
-	if event.name == "keypressed" and event[1] == "f8" then
-		if screen then
-			screen:printDebugLayout()
-		end
+	if self.screen_manager:receive(event) then
 		return
 	end
 	self.inputs:receive(event, default_modifiers)
-	if screen and screen.receive then
-		screen:receive(event)
-	end
 end
 
 ---@private

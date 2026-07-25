@@ -1,11 +1,7 @@
 local Screen = require("gui.Screen")
 local Resources = require("ui.Resources")
-local Registry = require("ui.command_palette.Registry")
-local PaletteState = require("ui.command_palette.PaletteState")
-local GlobalCommands = require("ui.command_palette.GlobalCommands")
 local OnlineCommands = require("ui.commands.OnlineCommands")
 local DatabaseCommands = require("ui.commands.DatabaseCommands")
-local CommandPalette = require("ui.views.CommandPalette")
 local Image = require("ui.views.Image")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -21,34 +17,25 @@ function MainMenu:new(ui)
 	self.ui = ui
 
 	self.root:setPivot(0.5, 0.5)
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(root, e)
-		if e.key == ";" and love.keyboard.isDown("lshift", "rshift") then
-			self.palette:show()
-		end
-	end
 
-	local registry = Registry()
-	for _, command in ipairs(GlobalCommands.get(ui.game, ui)) do
-		registry:registerGlobal(command)
-	end
-
-	registry:pushContext("online", OnlineCommands(ui.game))
-	registry:pushContext("database", DatabaseCommands(ui.game))
-	self.palette = CommandPalette(PaletteState(registry), function() end)
+	self.online_commands = OnlineCommands(ui.game)
+	self.database_commands = DatabaseCommands(ui.game)
 
 	self:createLogo()
 	self:createButtons()
-	self.root:add(self.palette)
 end
 
 function MainMenu:enter()
+	self.ui.command_registry:pushContext("online", self.online_commands)
+	self.ui.command_registry:pushContext("database", self.database_commands)
 	self.root:scaleTo(1, 1, 0.4, "OutQuart")
 	self.root:fadeIn(0.4, "OutQuart")
 end
 
 function MainMenu:exit()
 	Screen.exit(self)
+	self.ui.command_registry:popContext("online")
+	self.ui.command_registry:popContext("database")
 	self.root:scaleTo(0.95, 0.95, 0.2)
 	self.root:fadeOut(0.3, "OutCubic")
 	return true

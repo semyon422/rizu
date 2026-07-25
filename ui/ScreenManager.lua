@@ -4,7 +4,8 @@ local class = require("class")
 ---@class ui.ScreenManager
 ---@operator call: ui.ScreenManager
 ---@field screen_registry gui.Screen[]
----@field visible_screens gui.Screen[] Bottom-to-top draw order
+---@field visible_screens gui.Screen[] Bottom-to-top navigation draw order
+---@field overlay gui.Screen?
 ---@field input_screen gui.Screen?
 ---@field private registered {[gui.Screen]: true}
 local ScreenManager = class()
@@ -14,6 +15,7 @@ function ScreenManager:new()
 	self.screen_registry = {}
 	---@type gui.Screen[]
 	self.visible_screens = {}
+	self.overlay = nil
 	self.input_screen = nil
 	---@type {[gui.Screen]: true}
 	self.registered = {}
@@ -32,6 +34,14 @@ function ScreenManager:registerAll(screens)
 	for i = 1, #screens do
 		self:register(screens[i])
 	end
+end
+
+---Registers the persistent overlay drawn above navigation screens.
+---@param overlay gui.Screen
+function ScreenManager:setOverlay(overlay)
+	assert(not self.overlay, "overlay is already registered")
+	self:register(overlay)
+	self.overlay = overlay
 end
 
 ---@param screen gui.Screen
@@ -107,10 +117,27 @@ function ScreenManager:resize(w, h, ui_scale)
 	end
 end
 
+---Sends events only to the overlay and the active input screen. The overlay
+---receives first and may stop propagation by returning true.
+---@param event {name: string, [integer]: any}
+---@return boolean? handled
+function ScreenManager:receive(event)
+	if self.overlay and self.overlay:receive(event) then
+		return true
+	end
+	if self.input_screen then
+		return self.input_screen:receive(event)
+	end
+end
+
 ---@param inputs gui.Inputs
 function ScreenManager:acceptInputs(inputs)
 	for i = 1, #self.visible_screens do
 		self.visible_screens[i]:flush()
+	end
+	if self.overlay then
+		self.overlay:flush()
+		self.overlay:acceptInputs(inputs)
 	end
 	if self.input_screen then
 		self.input_screen:acceptInputs(inputs)
@@ -122,11 +149,17 @@ function ScreenManager:update(dt)
 	for i = 1, #self.visible_screens do
 		self.visible_screens[i]:update(dt)
 	end
+	if self.overlay then
+		self.overlay:update(dt)
+	end
 end
 
 function ScreenManager:draw()
 	for i = 1, #self.visible_screens do
 		self.visible_screens[i]:draw()
+	end
+	if self.overlay then
+		self.overlay:draw()
 	end
 end
 
@@ -140,6 +173,7 @@ function ScreenManager:unload()
 	end
 	self.input_screen = nil
 	self.visible_screens = {}
+	self.overlay = nil
 	self.screen_registry = {}
 	self.registered = {}
 end

@@ -366,7 +366,7 @@ All three arrays preserve DFS pre-order (parents before children, siblings in `c
 `UserInterface` holds two separate things:
 
 - **`screen_registry`**: all navigation screens, constructed and loaded once. Inactive screens retain their state (scroll positions, entered text) — they simply don't run.
-- **`active_layers`**: the ordered list that actually runs each frame — exactly **one** active navigation screen plus the persistent service layers. Typical stack, bottom → top: active navigation screen, modal layer, overlay layer (§10), notification/tooltip layer, FPS layer.
+- **`active_layers`**: the ordered list that actually runs each frame — exactly **one** active navigation screen plus persistent service layers. The standard stack is the active navigation screen followed by one overlay screen (§10). The overlay combines modals, popups, the command palette, notifications, tooltips, and diagnostics; structural child order within that screen provides their fine z-order.
 
 Navigation replaces the active navigation layer: `exit()` on the old (clearing any input focus inside it), `enter()` on the new. Only active layers are flushed, input-collected, updated, and drawn.
 
@@ -531,7 +531,7 @@ Submenus are more popups appended to the overlay root — later siblings draw on
 
 ### 10.3 What lives where
 
-Overlay layer: dropdowns, context menus, submenus, floating tooltips (§8.2's per-frame-position rule applies — move via `setOffset`, never anchors). Above it: notifications, FPS. Below it: the modal layer (a dropdown opened from a modal draws above the modal).
+The one overlay screen owns modals, the command palette, dropdowns, context menus, submenus, notifications, floating tooltips, and diagnostics such as FPS. There are no separate modal or notification layers. Their hosts are ordered children of the overlay root; later children draw and receive input first. A popup opened from a modal is inserted after the modal host so it draws above the modal. Floating tooltips follow §8.2's per-frame-position rule: move via `setOffset`, never anchors.
 
 ## 11. Animation
 
