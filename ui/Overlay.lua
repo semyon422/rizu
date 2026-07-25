@@ -3,6 +3,8 @@ local GlobalCommands = require("ui.command_palette.GlobalCommands")
 local PaletteState = require("ui.command_palette.PaletteState")
 local CommandPalette = require("ui.views.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
+local View = require("ui.views.Rectangle")
+local OverlayBackground = require("ui.views.OverlayBackground")
 
 ---@class ui.Overlay : gui.Screen
 ---@operator call: ui.Overlay
@@ -27,6 +29,9 @@ function Overlay:new(ui)
 	end, ui.game.needleModel, needle_tools)
 	self.palette_attached = false
 	self.suppress_palette_text_input = false
+
+	self.bg = self.root:add(OverlayBackground())
+
 	self.root:add(self.palette)
 end
 
@@ -37,6 +42,8 @@ function Overlay:paletteClosed()
 	if inputs and inputs.keyboard_focus == self.palette then
 		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
 	end
+
+	self.bg:hide()
 end
 
 ---@return boolean attached
@@ -47,6 +54,8 @@ function Overlay:attachPalette()
 	self.palette:reset()
 	self.palette:show()
 	self.palette_attached = true
+	self.bg:show()
+
 	if self.inputs then
 		self.inputs:setKeyboardFocus(self.palette, {control = false, shift = false, alt = false, super = false})
 	end
@@ -63,6 +72,7 @@ function Overlay:detachPalette()
 	end
 	self.palette:hide()
 	self:paletteClosed()
+
 	return true
 end
 
