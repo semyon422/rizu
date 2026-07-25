@@ -21,8 +21,6 @@ end
 
 pkg.export_lua()
 
-require("preload")
-
 --- Parse -e flag and script path from arg.
 --- Returns (loader, remaining_arg_index).
 --- @return fun() loader

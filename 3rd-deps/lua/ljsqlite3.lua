@@ -19,11 +19,11 @@
 -- TODO: Resultset (and so exec) could be optimized by avoiding loads/stores
 -- TODO: of row table via _step?
 
-local ffi  = require "ffi"
-local bit  = require "bit"
-local xsys = require "xsys"
+local ffi = require "ffi"
+local bit = require "bit"
+local string_util = require "string_util"
 
-local split, trim = xsys.string.split, xsys.string.trim
+local split, trim = string_util.split, string_util.trim
 
 local function err(code, msg)
   error("ljsqlite3["..code.."] "..msg)

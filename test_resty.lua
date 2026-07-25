@@ -34,8 +34,6 @@ end
 
 pkg.export_lua()
 
-require("preload")
-
 local Testing = require("testing.Testing")
 local BaseTestingIO = require("testing.BaseTestingIO")
 

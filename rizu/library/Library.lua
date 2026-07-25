@@ -122,7 +122,6 @@ end
 
 ---@param workingDirectory string
 function Library:createAndLoadWorker(workingDirectory)
-	require("preload")
 	local Worker = require("rizu.library.Worker")
 	local FunctionTimer = require("time.FunctionTimer")
 	local Filesystem

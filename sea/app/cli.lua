@@ -17,7 +17,6 @@ pkg.add("tree/share/lua/5.1")
 pkg.export_lua()
 pcall(pkg.export_love)
 
-require("preload")
 local json = require("web.json")
 local io_util = require("io_util")
 local table_util = require("table_util")

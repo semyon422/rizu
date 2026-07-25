@@ -100,8 +100,6 @@ love.filesystem.unmountCommonPath("appsavedir")
 love.filesystem.unmountFullPath(root)
 assert(love.filesystem.mountFullPath(root, "/", "readwrite", false))
 
-require("preload")
-
 pcall(require, "luamidi")
 
 setmetatable(_G, {__newindex = function(a, b, c)
@@ -177,7 +175,6 @@ local game
 local thread = require("thread")
 thread.setInitFunc(function(packageLoader)
 	print("thread init")
-	require("preload")
 	if not packageLoader then
 		return
 	end
