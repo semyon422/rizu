@@ -42,4 +42,32 @@ function test.omits_needle_gpu_probe_commands(t)
 	end
 end
 
+---@param t testing.T
+function test.opens_editor_screen_in_new_ui(t)
+	local editor = {}
+	local opened
+	local ui = {
+		editor = editor,
+		setScreen = function(_, screen)
+			opened = screen
+		end,
+	}
+	local game = {
+		chartSelector = {
+			chartExists = function()
+				return true
+			end,
+		},
+	}
+
+	for _, command in ipairs(GlobalCommands.get(game, ui)) do
+		if command.id == "global.open_editor" then
+			command.callback()
+			break
+		end
+	end
+
+	t:eq(opened, editor)
+end
+
 return test

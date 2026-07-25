@@ -51,6 +51,14 @@ function MainMenu:createButtons()
 		self.ui:setScreen(self.ui.song_select, true)
 	end))
 
+	buttons:add(Button("Editor", function()
+		if self.ui.game.chartSelector:chartExists() then
+			self.ui:setScreen(self.ui.editor)
+		else
+			self.ui:setScreen(self.ui.song_select, true)
+		end
+	end))
+
 	buttons:add(Button("Settings", function()
 		self.ui.modal_manager:attachConfig()
 	end))

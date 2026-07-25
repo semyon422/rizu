@@ -4,6 +4,7 @@ local MainMenu = require("ui.screens.main_menu.MainMenu")
 local SongSelect = require("ui.screens.song_select.SongSelect")
 local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
+local Editor = require("ui.screens.editor.Editor")
 local Result = require("ui.screens.result.Result")
 local TestScreen = require("ui.test.TestScreen")
 local Inputs = require("gui.input.Inputs")
@@ -22,6 +23,7 @@ local TARGET_HEIGHT = 1080
 ---@field song_select ui.screens.song_select.SongSelect
 ---@field chart_loading ui.screens.chart_loading.ChartLoading
 ---@field gameplay ui.screens.gameplay.Gameplay
+---@field editor ui.screens.editor.Editor
 ---@field result ui.screens.result.Result
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
@@ -48,6 +50,7 @@ function UserInterface:load()
 	self.song_select = SongSelect(self)
 	self.chart_loading = ChartLoading(self)
 	self.gameplay = Gameplay(self)
+	self.editor = Editor(self)
 	self.result = Result(self)
 	self.test_screen = TestScreen(self)
 	self.overlay = Overlay(self)
@@ -57,6 +60,7 @@ function UserInterface:load()
 		self.song_select,
 		self.chart_loading,
 		self.gameplay,
+		self.editor,
 		self.result,
 		self.test_screen,
 	})

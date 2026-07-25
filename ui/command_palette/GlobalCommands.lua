@@ -124,8 +124,8 @@ function M.get(game, ui)
 			title = "Editor: Open",
 			description = "Opens the editor screen",
 			callback = function()
-				if game.chartSelector:chartExists() then
-					game.ui:setScreen("editor")
+				if ui and ui.editor and game.chartSelector:chartExists() then
+					ui:setScreen(ui.editor)
 				end
 			end
 		}
