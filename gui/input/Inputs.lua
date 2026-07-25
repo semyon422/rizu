@@ -28,10 +28,16 @@ local HoverLostEvent = require("gui.input.events.HoverLostEvent")
 ---@field mouse_target gui.View?
 ---@field mouse_hits gui.View[]
 ---@field focus_requesters gui.View[]
----@field last_mouse_down_event gui.MouseDownEvent
+---@field last_mouse_down_event gui.MouseDownEvent?
+---@field focus_scopes gui.FocusScope[]
 local Inputs = class()
 
-Inputs.MOUSE_CLICK_MAX_DISTANCE = 30
+---@class gui.FocusScope
+---@field root gui.View
+---@field previous_focus gui.View?
+
+Inputs.MOUSE_CLICK_MAX_DISTANCE = 6
+Inputs.DRAG_START_THRESHOLD = 4
 
 local mouse_events = {
 	mousepressed = true,
@@ -55,6 +61,7 @@ function Inputs:new()
 	self.mouse_target = nil
 	self.mouse_hits = {}
 	self.focus_requesters = {}
+	self.focus_scopes = {}
 end
 
 ---@param mouse_x number Global Mouse X position
@@ -82,6 +89,11 @@ function Inputs:clearSubtree(root)
 			and view.flat_index <= root.flat_subtree_end
 	end
 
+	for i = #self.focus_scopes, 1, -1 do
+		if contains(self.focus_scopes[i].root) then
+			table.remove(self.focus_scopes, i)
+		end
+	end
 	if contains(self.keyboard_focus) then
 		self.keyboard_focus.focused = false
 		self.keyboard_focus = nil
@@ -112,7 +124,7 @@ end
 ---@param view gui.View
 function Inputs:processView(view)
 	if view.handles_mouse_input or view.handles_keyboard_input then
-		if view.handles_keyboard_input then
+		if view.handles_keyboard_input and self:isInActiveFocusScope(view) then
 			table.insert(self.focus_requesters, view)
 		end
 
@@ -177,14 +189,14 @@ function Inputs:dispatchMouseTargets(e)
 		for _, view in ipairs(self.mouse_hits) do
 			e.current_target = view
 			local handled = self:dispatchEvent(e)
-			if handled then
+			if handled or e.stop then
 				return target, view, handled
 			end
 		end
 	else
 		e.current_target = target
 		local handled = self:dispatchEvent(e)
-		if handled then
+		if handled or e.stop then
 			return target, target, handled
 		end
 	end
@@ -207,7 +219,7 @@ function Inputs:handleMouseDown(event, modifiers)
 
 	local target, current_target, handled = self:dispatchMouseTargets(e)
 	e.target = target
-	e.current_target = current_target
+	e.current_target = target
 	self.last_mouse_down_event = e
 	if target then
 		target.pressed = true
@@ -242,6 +254,10 @@ function Inputs:handleMouseUp(event, modifiers)
 		return
 	end
 
+	if event[3] ~= self.last_mouse_down_event.button then
+		return
+	end
+
 	local pressed_target = self.last_mouse_down_event.target
 	if pressed_target then
 		pressed_target.pressed = false
@@ -250,7 +266,7 @@ function Inputs:handleMouseUp(event, modifiers)
 	local dx = (self.last_mouse_down_event.x - self.mouse_x)
 	local dy = (self.last_mouse_down_event.y - self.mouse_y)
 	local distance = math.sqrt(dx * dx + dy * dy)
-	if distance < self.MOUSE_CLICK_MAX_DISTANCE then
+	if distance < self.MOUSE_CLICK_MAX_DISTANCE and not self.last_drag_event then
 		local ce = MouseClickEvent(modifiers)
 		ce.target = self.last_mouse_down_event.target
 		ce.current_target = ce.target
@@ -307,19 +323,68 @@ function Inputs:handleMouseMove(modifiers)
 	---@type gui.MouseEvent
 	local e
 	if not self.last_drag_event then
+		local dx = self.mouse_x - self.last_mouse_down_event.x
+		local dy = self.mouse_y - self.last_mouse_down_event.y
+		if dx * dx + dy * dy < self.DRAG_START_THRESHOLD * self.DRAG_START_THRESHOLD then
+			return
+		end
 		e = DragStartEvent(modifiers)
 		e.target = self.last_mouse_down_event.target
 		e.current_target = e.target
+		e.button = self.last_mouse_down_event.button
 	else
 		e = DragEvent(modifiers)
 		e.target = self.last_drag_event.target
 		e.current_target = self.last_drag_event.current_target or e.target
+		e.button = self.last_mouse_down_event.button
 	end
 	return e
 end
+
+---@param view gui.View?
+---@param root gui.View
+---@return boolean contained
+function Inputs:isInSubtree(view, root)
+	return not not (view and view.flat_index and root.flat_index
+		and view.screen == root.screen
+		and view.flat_index >= root.flat_index
+		and view.flat_index <= root.flat_subtree_end)
+end
+
+---@param view gui.View
+---@return boolean eligible
+function Inputs:isInActiveFocusScope(view)
+	local scope = self.focus_scopes[#self.focus_scopes]
+	return not scope or self:isInSubtree(view, scope.root)
+end
+
+---@param root gui.View
+function Inputs:pushFocusScope(root)
+	assert(root.screen and root.flat_index, "focus scope root must be attached")
+	self.focus_scopes[#self.focus_scopes + 1] = {root = root, previous_focus = self.keyboard_focus}
+	if self.keyboard_focus and not self:isInSubtree(self.keyboard_focus, root) then
+		self:setKeyboardFocus(nil, default_modifiers)
+	end
+end
+
+---@param root gui.View?
+function Inputs:popFocusScope(root)
+	local scope = self.focus_scopes[#self.focus_scopes]
+	assert(scope, "focus scope stack is empty")
+	assert(not root or scope.root == root, "focus scopes must be popped in stack order")
+	self.focus_scopes[#self.focus_scopes] = nil
+	local previous = scope.previous_focus
+	if previous and previous.screen and previous.flat_index and previous.effective_visible
+		and previous.effective_enabled and previous.present and previous.cull_mask == 0
+	then
+		self:setKeyboardFocus(previous, default_modifiers)
+	end
+end
+
 ---@param node gui.View?
 ---@param modifiers gui.ModifierKeys
 function Inputs:setKeyboardFocus(node, modifiers)
+	assert(not node or self:isInActiveFocusScope(node), "keyboard focus must be inside the active focus scope")
 	if self.keyboard_focus then
 		self.keyboard_focus.focused = false
 		local e = FocusLostEvent(modifiers)
@@ -436,7 +501,7 @@ function Inputs:dispatchKeyboardEvent(event, modifiers)
 	for _, v in ipairs(self.focus_requesters) do
 		e.target = v
 		local handled = self:dispatchEvent(e)
-		if handled then
+		if handled or e.stop then
 			break
 		end
 	end

@@ -1,5 +1,6 @@
 local View = require("gui.View")
 local Inputs = require("gui.input.Inputs")
+local Screen = require("gui.Screen")
 
 local test = {}
 
@@ -160,6 +161,48 @@ function test.dragging(t)
 
 	inputs:receive({name = "mousereleased", 20, 20, 1}, default_modifiers)
 	t:tdeq(events, {"start", "drag", "end"})
+end
+
+---@param t testing.T
+function test.mouse_move_below_drag_threshold_still_clicks(t)
+	local btn = create_view(100, 100)
+	local inputs = Inputs()
+	local events = {}
+	btn.onDragStart = function() table.insert(events, "drag") end
+	btn.onMouseClick = function() table.insert(events, "click") end
+	table.insert(inputs.mouse_hits, btn)
+	inputs.mouse_target = btn
+	inputs.mouse_x = 10
+	inputs.mouse_y = 10
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_x = 12
+	inputs.mouse_y = 12
+	inputs:receive({name = "mousemoved", 12, 12, 2, 2}, default_modifiers)
+	inputs:receive({name = "mousereleased", 12, 12, 1}, default_modifiers)
+
+	t:tdeq(events, {"click"})
+end
+
+---@param t testing.T
+function test.drag_suppresses_click(t)
+	local btn = create_view(100, 100)
+	local inputs = Inputs()
+	local events = {}
+	btn.onDragStart = function() table.insert(events, "drag") end
+	btn.onMouseClick = function() table.insert(events, "click") end
+	table.insert(inputs.mouse_hits, btn)
+	inputs.mouse_target = btn
+	inputs.mouse_x = 10
+	inputs.mouse_y = 10
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_x = 20
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 20, 20, 10, 10}, default_modifiers)
+	inputs:receive({name = "mousereleased", 20, 20, 1}, default_modifiers)
+
+	t:tdeq(events, {"drag"})
 end
 
 ---@param t testing.T
@@ -511,6 +554,49 @@ function test.mouse_events_bubble_through_mouse_hits_until_handled(t)
 	inputs:receive({name = "wheelmoved", 0, 1}, default_modifiers)
 
 	t:tdeq(events, {"top", "bottom"})
+end
+
+---@param t testing.T
+function test.stop_propagation_stops_mouse_hit_dispatch(t)
+	local inputs = Inputs()
+	local top = create_view(100, 100)
+	local bottom = create_view(100, 100)
+	local events = {}
+	top.onScroll = function(_, e)
+		table.insert(events, "top")
+		e:stopPropagation()
+	end
+	bottom.onScroll = function() table.insert(events, "bottom") end
+	table.insert(inputs.mouse_hits, top)
+	table.insert(inputs.mouse_hits, bottom)
+	inputs.mouse_target = top
+
+	inputs:receive({name = "wheelmoved", 0, 1}, default_modifiers)
+
+	t:tdeq(events, {"top"})
+end
+
+---@param t testing.T
+function test.focus_scope_filters_requesters_and_restores_focus(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local outside = screen.root:add(create_view(10, 10))
+	local scope = screen.root:add(create_view(10, 10))
+	local inside = scope:add(create_view(10, 10))
+	outside.handles_keyboard_input = true
+	inside.handles_keyboard_input = true
+	screen:relayout()
+	local inputs = Inputs()
+	inputs:setKeyboardFocus(outside, default_modifiers)
+
+	inputs:pushFocusScope(scope)
+	inputs:processView(outside)
+	inputs:processView(inside)
+
+	t:eq(inputs.keyboard_focus, nil)
+	t:tdeq(inputs.focus_requesters, {inside})
+	inputs:popFocusScope(scope)
+	t:eq(inputs.keyboard_focus, outside)
 end
 
 ---@param t testing.T
