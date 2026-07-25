@@ -138,39 +138,54 @@ function TrackContainer:arrange(container)
 	local is_row = self.direction == "row"
 	local main_size = is_row and inner_width or inner_height
 	local children = container.children
-	local total_gap = self.gap * math.max(0, #children - 1)
+	local layout_count = 0
+	for _, child in ipairs(children) do
+		if not child.layout_ignore then
+			layout_count = layout_count + 1
+		end
+	end
+	local total_gap = self.gap * math.max(0, layout_count - 1)
 	local fixed_size = 0
 	local star_count = 0
 	---@type number[]
 	local resolved_sizes = {}
 
 	for i, child in ipairs(children) do
-		local size = self.track_sizes[child]
-		assert(size ~= nil, "TrackContainer child has no track size")
-		if size == "*" then
-			star_count = star_count + 1
-		elseif type(size) == "number" then
-			resolved_sizes[i] = size
-			fixed_size = fixed_size + size
-		else
-			local percent = assert(tonumber(size:match("^(%d+%.?%d*)%%$")))
-			local resolved = main_size * percent / 100
-			resolved_sizes[i] = resolved
-			fixed_size = fixed_size + resolved
+		if not child.layout_ignore then
+			local size = self.track_sizes[child]
+			assert(size ~= nil, "TrackContainer child has no track size")
+			if size == "*" then
+				star_count = star_count + 1
+			elseif type(size) == "number" then
+				resolved_sizes[i] = size
+				fixed_size = fixed_size + size
+			else
+				local percent = assert(tonumber(size:match("^(%d+%.?%d*)%%$")))
+				local resolved = main_size * percent / 100
+				resolved_sizes[i] = resolved
+				fixed_size = fixed_size + resolved
+			end
 		end
 	end
 
 	local remaining = math.max(0, main_size - fixed_size - total_gap)
 	local star_size = star_count > 0 and remaining / star_count or 0
 	local position = is_row and left or top
+	local arranged_count = 0
 	for i, child in ipairs(children) do
-		local size = resolved_sizes[i] or star_size
-		if is_row then
-			child.arranged = {position, top, size, inner_height}
-		else
-			child.arranged = {left, position, inner_width, size}
+		if not child.layout_ignore then
+			if arranged_count > 0 then
+				position = position + self.gap
+			end
+			local size = resolved_sizes[i] or star_size
+			if is_row then
+				child.arranged = {position, top, size, inner_height}
+			else
+				child.arranged = {left, position, inner_width, size}
+			end
+			position = position + size
+			arranged_count = arranged_count + 1
 		end
-		position = position + size + self.gap
 	end
 end
 
@@ -179,12 +194,16 @@ end
 ---@return number height
 function TrackContainer:contentSize(container)
 	local main_size = 0
+	local measured_count = 0
 	for _, child in ipairs(container.children) do
-		local size = self.track_sizes[child]
-		assert(type(size) == "number", "contentSize requires numeric track sizes")
-		main_size = main_size + size
+		if not child.layout_ignore then
+			local size = self.track_sizes[child]
+			assert(type(size) == "number", "contentSize requires numeric track sizes")
+			main_size = main_size + size
+			measured_count = measured_count + 1
+		end
 	end
-	main_size = main_size + self.gap * math.max(0, #container.children - 1)
+	main_size = main_size + self.gap * math.max(0, measured_count - 1)
 	local left, top, right, bottom = self:normalizePadding()
 	if self.direction == "row" then
 		return main_size + left + right, top + bottom

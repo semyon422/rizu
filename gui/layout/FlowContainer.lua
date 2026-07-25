@@ -102,17 +102,24 @@ function FlowContainer:arrange(container)
 	local inner_height = math.max(0, container.height - top - bottom)
 	local is_row = self.direction == "row"
 	local position = is_row and left or top
+	local arranged_count = 0
 
 	for _, child in ipairs(container.children) do
-		local width, height = desiredSize(child)
-		if is_row then
-			local y = top + (inner_height - height) * self.align
-			child.arranged = {position, y, width, height}
-			position = position + width + self.gap
-		else
-			local x = left + (inner_width - width) * self.align
-			child.arranged = {x, position, width, height}
-			position = position + height + self.gap
+		if not child.layout_ignore then
+			if arranged_count > 0 then
+				position = position + self.gap
+			end
+			local width, height = desiredSize(child)
+			if is_row then
+				local y = top + (inner_height - height) * self.align
+				child.arranged = {position, y, width, height}
+				position = position + width
+			else
+				local x = left + (inner_width - width) * self.align
+				child.arranged = {x, position, width, height}
+				position = position + height
+			end
+			arranged_count = arranged_count + 1
 		end
 	end
 end
@@ -122,12 +129,16 @@ end
 function FlowContainer:getContentSize()
 	local total_main = 0
 	local max_cross = 0
+	local measured_count = 0
 	for _, child in ipairs(self.children) do
-		local width, height = desiredSize(child)
-		total_main = total_main + (self.direction == "row" and width or height)
-		max_cross = math.max(max_cross, self.direction == "row" and height or width)
+		if not child.layout_ignore then
+			local width, height = desiredSize(child)
+			total_main = total_main + (self.direction == "row" and width or height)
+			max_cross = math.max(max_cross, self.direction == "row" and height or width)
+			measured_count = measured_count + 1
+		end
 	end
-	total_main = total_main + self.gap * math.max(0, #self.children - 1)
+	total_main = total_main + self.gap * math.max(0, measured_count - 1)
 	local left, top, right, bottom = self:normalizePadding()
 	if self.direction == "row" then
 		return total_main + left + right, max_cross + top + bottom

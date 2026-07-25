@@ -88,6 +88,7 @@ local Easing = require("gui.anim.Easing")
 ---@field pressed boolean
 ---@field handles_mouse_input boolean
 ---@field handles_keyboard_input boolean
+---@field keyboard_input_fallback boolean Dispatch keyboard events after ordinary requesters
 local View = IInputHandler + {}
 
 View.CULL_CLIP_EMPTY = 1
@@ -182,6 +183,7 @@ function View:new()
 	self.pressed = false
 	self.handles_mouse_input = false
 	self.handles_keyboard_input = false
+	self.keyboard_input_fallback = false
 	self.visible = true
 	self.enabled = true
 	self.detached = false

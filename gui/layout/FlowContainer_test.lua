@@ -67,4 +67,27 @@ function test.fit_content_preserves_recorded_alignment(t)
 	t:tdeq(container.offset_max, {0, 5})
 end
 
+---@param t testing.T
+function test.layout_ignore_excludes_child_from_arrangement_and_measurement(t)
+	local container = FlowContainer({direction = "column", gap = 5})
+	container:setSize(100, 100)
+	local first = View():setSize(20, 10)
+	local ignored = View():setSize(80, 70):setLayoutIgnore(true)
+	local second = View():setSize(20, 10)
+	ignored:anchorFixed(40, 50, 80, 70)
+	container:add(first)
+	container:add(ignored)
+	container:add(second)
+
+	container:relayout()
+	local width, height = container:getContentSize()
+
+	t:eq(first.y, 0)
+	t:eq(second.y, 15)
+	t:eq(ignored.x, 40)
+	t:eq(ignored.y, 50)
+	t:eq(width, 20)
+	t:eq(height, 25)
+end
+
 return test
