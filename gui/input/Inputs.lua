@@ -125,7 +125,18 @@ end
 function Inputs:processView(view)
 	if view.handles_mouse_input or view.handles_keyboard_input then
 		if view.handles_keyboard_input and self:isInActiveFocusScope(view) then
-			table.insert(self.focus_requesters, view)
+			if view.keyboard_input_fallback then
+				self.focus_requesters[#self.focus_requesters + 1] = view
+			else
+				local index = #self.focus_requesters + 1
+				for i, requester in ipairs(self.focus_requesters) do
+					if requester.keyboard_input_fallback then
+						index = i
+						break
+					end
+				end
+				table.insert(self.focus_requesters, index, view)
+			end
 		end
 
 		if view.handles_mouse_input then
@@ -355,7 +366,12 @@ end
 ---@return boolean eligible
 function Inputs:isInActiveFocusScope(view)
 	local scope = self.focus_scopes[#self.focus_scopes]
-	return not scope or self:isInSubtree(view, scope.root)
+	if not scope or self:isInSubtree(view, scope.root) then
+		return true
+	end
+	-- A scope may delegate its final unhandled-key policy to an ancestor host,
+	-- such as ModalManager. Ordinary ancestor requesters remain excluded.
+	return view.keyboard_input_fallback and self:isInSubtree(scope.root, view)
 end
 
 ---@param root gui.View
@@ -384,7 +400,9 @@ end
 ---@param node gui.View?
 ---@param modifiers gui.ModifierKeys
 function Inputs:setKeyboardFocus(node, modifiers)
-	assert(not node or self:isInActiveFocusScope(node), "keyboard focus must be inside the active focus scope")
+	local scope = self.focus_scopes[#self.focus_scopes]
+	assert(not node or not scope or self:isInSubtree(node, scope.root),
+		"keyboard focus must be inside the active focus scope")
 	if self.keyboard_focus then
 		self.keyboard_focus.focused = false
 		local e = FocusLostEvent(modifiers)
@@ -494,15 +512,20 @@ function Inputs:dispatchKeyboardEvent(event, modifiers)
 
 	if self.keyboard_focus then
 		e.target = self.keyboard_focus
-		self:dispatchEvent(e)
-		return
-	end
-
-	for _, v in ipairs(self.focus_requesters) do
-		e.target = v
 		local handled = self:dispatchEvent(e)
 		if handled or e.stop then
-			break
+			return
+		end
+	end
+
+	for _, view in ipairs(self.focus_requesters) do
+		if view ~= self.keyboard_focus then
+			e.target = view
+			e.current_target = view
+			local handled = self:dispatchEvent(e)
+			if handled or e.stop then
+				break
+			end
 		end
 	end
 end

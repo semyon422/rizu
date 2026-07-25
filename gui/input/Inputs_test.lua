@@ -600,6 +600,68 @@ function test.focus_scope_filters_requesters_and_restores_focus(t)
 end
 
 ---@param t testing.T
+function test.focus_scope_allows_ancestor_keyboard_fallback(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local host = screen.root:add(create_view(100, 100))
+	local scope = host:add(create_view(50, 50))
+	local focused = scope:add(create_view(10, 10))
+	host.handles_keyboard_input = true
+	host.keyboard_input_fallback = true
+	focused.handles_keyboard_input = true
+	local events = {}
+	focused.onKeyDown = function() events[#events + 1] = "focused" end
+	host.onKeyDown = function() events[#events + 1] = "host" return true end
+	screen:relayout()
+	local inputs = Inputs()
+	inputs:pushFocusScope(scope)
+	inputs:setKeyboardFocus(focused, default_modifiers)
+	inputs:processView(host)
+	inputs:processView(focused)
+
+	inputs:receive({name = "keypressed", "escape"}, default_modifiers)
+
+	t:tdeq(events, {"focused", "host"})
+end
+
+---@param t testing.T
+function test.keyboard_fallback_runs_after_unhandled_focused_view(t)
+	local inputs = Inputs()
+	local focused = create_view(10, 10)
+	local fallback = create_view(10, 10)
+	focused.handles_keyboard_input = true
+	fallback.handles_keyboard_input = true
+	fallback.keyboard_input_fallback = true
+	local events = {}
+	focused.onKeyDown = function() events[#events + 1] = "focused" end
+	fallback.onKeyDown = function() events[#events + 1] = "fallback" return true end
+	inputs:setKeyboardFocus(focused, default_modifiers)
+	inputs:processView(fallback)
+	inputs:processView(focused)
+
+	inputs:receive({name = "keypressed", "escape"}, default_modifiers)
+
+	t:tdeq(events, {"focused", "fallback"})
+end
+
+---@param t testing.T
+function test.handled_focused_view_blocks_keyboard_fallback(t)
+	local inputs = Inputs()
+	local focused = create_view(10, 10)
+	local fallback = create_view(10, 10)
+	fallback.keyboard_input_fallback = true
+	local events = {}
+	focused.onKeyDown = function() events[#events + 1] = "focused" return true end
+	fallback.onKeyDown = function() events[#events + 1] = "fallback" end
+	inputs:setKeyboardFocus(focused, default_modifiers)
+	inputs:processView(fallback)
+
+	inputs:receive({name = "keypressed", "escape"}, default_modifiers)
+
+	t:tdeq(events, {"focused"})
+end
+
+---@param t testing.T
 function test.mouse_bubbling_preserves_target_and_sets_current_target(t)
 	local inputs = Inputs()
 	local top = create_view(100, 100)
