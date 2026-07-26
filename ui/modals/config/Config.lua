@@ -10,6 +10,7 @@ local Label = require("ui.views.Label")
 local ScrollView = require("gui.ScrollView")
 local Slider = require("ui.views.Slider")
 local Textbox = require("ui.views.Textbox")
+local NineSliceUsage = require("gui.NineSliceUsage")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
@@ -120,6 +121,21 @@ function Config:new(config)
 
 	self.scroll_view = ScrollView(content)
 	self.scroll_view:anchorFixed(35, 40, 820, 520)
+
+	local q = Resources.quads
+
+	self.background = NineSliceUsage(Resources.atlas, {
+		q.nineslice_modal_lt,
+		q.nineslice_modal_t,
+		q.nineslice_modal_rt,
+		q.nineslice_modal_l,
+		q.nineslice_modal_c,
+		q.nineslice_modal_r,
+		q.nineslice_modal_lb,
+		q.nineslice_modal_b,
+		q.nineslice_modal_rb,
+	})
+
 	self:add(self.scroll_view)
 end
 
@@ -169,7 +185,7 @@ end
 
 function Config:draw()
 	Painter.setColorTable(Colors.panel)
-	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
+	self.background:draw(self.width, self.height)
 end
 
 return Config

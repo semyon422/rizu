@@ -1,5 +1,6 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
+local Resources = require("ui.Resources")
 
 ---@class ui.views.OverlayBackground : gui.View
 ---@operator call: ui.views.OverlayBackground
@@ -52,7 +53,7 @@ end
 function OverlayBackground:draw()
 	Painter.setColorRgb(1, 0.69, 0.87)
 	love.graphics.setBlendMode("add")
-	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
 	love.graphics.setBlendMode("alpha")
 end
 
