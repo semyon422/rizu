@@ -89,13 +89,14 @@ function View:setAlignmentX(ax)               -- aligns only the fixed horizonta
 function View:setAlignmentY(ay)               -- aligns only the fixed vertical axis
                                               -- Alignment is recorded so later size changes and
                                               -- self-sizing (§13.1) keep the view aligned.
-function View:setPosition(x, y)               -- fixed mode: moves offsets, preserves size
+function View:setPosition(x, y)               -- fixed mode: replaces position and clears alignment
+function View:addPosition(x, y)               -- translates both offsets; preserves size and alignment
 function View:setWidth(w)                     -- fixed horizontal axis: changes authored width
 function View:setHeight(h)                    -- fixed vertical axis: changes authored height
 function View:setSize(w, h)                   -- fixed axes: changes authored size
 ```
 
-`setPosition`/`setSize` require both axes to be fixed. `setWidth` and `setHeight` require their respective axis to be fixed. Calling one on a fill axis is a fail-fast error (declared intent contradicted, §15.3).
+`setPosition`/`setSize` require both axes to be fixed. `setWidth` and `setHeight` require their respective axis to be fixed. Calling one on a fill axis is a fail-fast error (declared intent contradicted, §15.3). `addPosition` translates the authored rect on either mode by adding to both edge offsets. It preserves recorded alignment, so later size changes remain aligned around the translated anchor point.
 
 Visual-channel setters — `setOffset(x, y)`, `setRotation(r)`, `setScale(sx, sy)`, `setPivot(px, py)`, `setOpacity(a)` — recompose the subtree immediately (§4.4) and never invalidate layout. For anything time-based, prefer the transform API (§11.1) over manual per-frame writes.
 
@@ -334,7 +335,7 @@ All three arrays preserve DFS pre-order (parents before children, siblings in `c
 
 | Trigger | How |
 |---|---|
-| Placement sugar (`anchorFixed`, `anchorFill`, `anchorPercent`, `setAlignment`, `setPosition`, `setSize`) | automatic |
+| Placement sugar (`anchorFixed`, `anchorFill`, `anchorPercent`, `setAlignment`, `setPosition`, `addPosition`, `setSize`) | automatic |
 | Tree mutation (`add`, `insert`, `remove`, `move`, `clear`) | automatic |
 | Layout-container mutation (`add`, `remove`, `setTrackSize`, `fitContent`, future config setters) or changing `clip` | automatic |
 | Layout-container config mutation | config fields are private after construction; mutate via container setters, which invalidate |

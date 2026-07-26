@@ -606,13 +606,30 @@ function View:setPosition(x, y)
 	return self
 end
 
+---Translate the authored rect relative to its current anchored position.
+---Unlike setPosition, this preserves alignment and works on fill axes.
+---@param x number
+---@param y number
+---@return gui.View
+function View:addPosition(x, y)
+	assertFinite(x, "x")
+	assertFinite(y, "y")
+	self.offset_min = {self.offset_min[1] + x, self.offset_min[2] + y}
+	self.offset_max = {self.offset_max[1] + x, self.offset_max[2] + y}
+	self:invalidate()
+	return self
+end
+
 ---@param width number
 ---@return gui.View
 function View:setWidth(width)
 	assert(self.size_mode_x == "fixed", "setWidth cannot be used on a fill axis")
 	assertFinite(width, "width")
 	assert(width >= 0, "size must be non-negative")
-	local min_x = self.align_x and -self.align_x * width or self.offset_min[1]
+	local old_width = self.offset_max[1] - self.offset_min[1]
+	local min_x = self.align_x
+		and self.offset_min[1] + self.align_x * old_width - self.align_x * width
+		or self.offset_min[1]
 	self.offset_min = {min_x, self.offset_min[2]}
 	self.offset_max = {min_x + width, self.offset_max[2]}
 	self:invalidate()
@@ -625,7 +642,10 @@ function View:setHeight(height)
 	assert(self.size_mode_y == "fixed", "setHeight cannot be used on a fill axis")
 	assertFinite(height, "height")
 	assert(height >= 0, "size must be non-negative")
-	local min_y = self.align_y and -self.align_y * height or self.offset_min[2]
+	local old_height = self.offset_max[2] - self.offset_min[2]
+	local min_y = self.align_y
+		and self.offset_min[2] + self.align_y * old_height - self.align_y * height
+		or self.offset_min[2]
 	self.offset_min = {self.offset_min[1], min_y}
 	self.offset_max = {self.offset_max[1], min_y + height}
 	self:invalidate()
@@ -641,8 +661,14 @@ function View:setSize(width, height)
 	assertFinite(width, "width")
 	assertFinite(height, "height")
 	assert(width >= 0 and height >= 0, "size must be non-negative")
-	local min_x = self.align_x and -self.align_x * width or self.offset_min[1]
-	local min_y = self.align_y and -self.align_y * height or self.offset_min[2]
+	local old_width = self.offset_max[1] - self.offset_min[1]
+	local old_height = self.offset_max[2] - self.offset_min[2]
+	local min_x = self.align_x
+		and self.offset_min[1] + self.align_x * old_width - self.align_x * width
+		or self.offset_min[1]
+	local min_y = self.align_y
+		and self.offset_min[2] + self.align_y * old_height - self.align_y * height
+		or self.offset_min[2]
 	self.offset_min = {min_x, min_y}
 	self.offset_max = {min_x + width, min_y + height}
 	self:invalidate()

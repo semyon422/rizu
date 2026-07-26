@@ -919,6 +919,35 @@ function test.setPosition_preserves_authored_size(t)
 end
 
 ---@param t testing.T
+function test.addPosition_offsets_alignment_without_clearing_it(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():setSize(30, 40):setAlignment(0, 1):addPosition(0, -20)
+	root:add(view)
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {0, 40, 30, 40})
+	t:eq(view.align_x, 0)
+	t:eq(view.align_y, 1)
+end
+
+---@param t testing.T
+function test.addPosition_survives_later_size_change(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():setSize(20, 10):setAlignment(0.5, 1):addPosition(5, -20):setSize(40, 20)
+	root:add(view)
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {85, 60, 40, 20})
+end
+
+---@param t testing.T
+function test.addPosition_translates_fill_rect(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():anchorFill(10, 20, 30, 40):addPosition(5, -5)
+	root:add(view)
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {15, 15, 160, 40})
+end
+
+---@param t testing.T
 function test.setAlignment_survives_setSize(t)
 	local root = newSizedRoot(200, 100)
 	local view = View():setSize(20, 10):setAlignment(0.5, 0.5):setSize(40, 20)
