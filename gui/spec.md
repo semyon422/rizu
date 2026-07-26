@@ -299,13 +299,13 @@ Every child must have finite, non-negative authored dimensions. In a row, author
 
 `getContentSize()` returns the packed intrinsic size: main-axis sum plus gaps and padding, and maximum cross-axis child size plus padding. `fitContent()` immediately writes that result to the container with `setSize()` and returns the container. It is explicit, one-shot sizing—not a persistent fit mode. If children later change size or membership, owning code calls `fitContent()` again.
 
-Both containers accept Views in the array part of their constructor configuration as normal children, equivalent to adding them in order. A TrackContainer gives such children the default `"*"` track; other sizes are assigned through `add(child, size)` or `setTrackSize`.
+All three containers accept Views in the array part of their constructor configuration as normal children, equivalent to adding them in order. A TrackContainer gives such children the default `"*"` track; other sizes are assigned through `add(child, size)` or `setTrackSize`.
 
 ### 5.4 Validation and extension rules
 
 Unknown directions, non-finite geometry, negative gaps/padding/sizes, malformed percentages, invalid alignment factors, and track metadata for non-children fail fast. Container configuration that changes layout must eventually be exposed through invalidating setters; direct mutation without invalidation is unsupported.
 
-The two initial containers are intentionally orthogonal and small. More policies can be added as View subclasses without changing authored inputs, transient `arranged` output, resolution, flattening, input, clipping, or animation. In particular, future wrapping flow, grids, scroll containers, or compositing containers must preserve the same tree and transient-output contracts rather than adding another layout channel.
+The three initial containers are intentionally orthogonal and small. More policies can be added as View subclasses without changing authored inputs, transient `arranged` output, resolution, flattening, input, clipping, or animation. In particular, future wrapping flow, grids, scroll containers, or compositing containers must preserve the same tree and transient-output contracts rather than adding another layout channel.
 
 ### 5.5 Padding convention
 
@@ -344,35 +344,34 @@ All three arrays preserve DFS pre-order (parents before children, siblings in `c
 - Every trigger sets `screen.dirty = true` via the view's injected `screen` context. Views not yet attached keep the change locally; attach invalidates anyway.
 - `relayout()` (the rebuild) is internal. Public code never calls it directly.
 - `screen:flush()`: if `dirty`, clear the flag **first**, then rebuild. Anything invalidated *during* the rebuild (e.g. from `onLayoutChanged`) sets the flag again and is picked up by the next flush — invalidation is never lost, and one frame never rebuilds twice.
-- `UserInterface` flushes every active layer before input target collection each frame (§7.3), so new geometry is always active before the next event dispatch.
+- `UserInterface` asks `ScreenManager` to flush every input-participating Screen before target collection each frame (§7.3), so new geometry is always active before the next event dispatch.
 - Visual-channel writes never invalidate; they recompose (§4.4).
 
 **Forward note (non-normative):** the single `dirty` boolean is the v1 contract. If profiling justifies it, dirty tracking may become per-view bits OR-ed up to the root, letting `relayout()` skip clean subtrees by flat-index jump (a parent size change still dirties its whole subtree — relative-anchored descendants legitimately depend on it). Nothing outside §6 may build against the boolean.
 
 ## 7. Screens and the UserInterface
 
-### 7.1 Layer and Screen
+### 7.1 Screen
 
-`Layer` is a base class (default empty implementations): `load`, `unload`, `update`, `draw`, `acceptInputs`, `receive`.
-
-`Screen` is a `Layer` that owns a view tree: `root`, `views` (complete flat cache), `update_views` and `draw_views` (method-filtered flat caches), `dirty`, `pending_unload` (§12), and `input_handler` (keyboard-adapter view forwarding to `screen:handleKeyDown`).
+There is no abstract `gui.Layer`. `gui.Screen` is the complete tree-owning runtime unit. It owns `root`, `views` (complete flat cache), `update_views` and `draw_views` (method-filtered flat caches), `dirty`, `pending_unload` (§12), and `input_handler` (keyboard-adapter view forwarding to `screen:handleKeyDown`). Application-level `ui.ScreenManager` coordinates navigation Screens and the persistent overlay.
 
 - `load()` — recursive `view:load()` over the tree, then the first rebuild. Once per screen lifetime.
 - `flush()` — run deferred unloads, then rebuild if dirty (§6.2).
 - `enter()` / `exit()` — navigation hooks.
 
-### 7.2 Registry and active layers
+### 7.2 Registry and active Screens
 
-`UserInterface` holds two separate things:
+`ui.ScreenManager` owns three related sets:
 
-- **`screen_registry`**: all navigation screens, constructed and loaded once. Inactive screens retain their state (scroll positions, entered text) — they simply don't run.
-- **`active_layers`**: the ordered list that actually runs each frame — exactly **one** active navigation screen plus persistent service layers. The standard stack is the active navigation screen followed by one overlay screen (§10). The overlay combines modals, popups, the command palette, notifications, tooltips, and diagnostics; structural child order within that screen provides their fine z-order.
+- **`screen_registry`**: all navigation Screens plus the overlay, constructed and loaded once. Inactive Screens retain their state (scroll positions, entered text) — they simply don't run.
+- **`visible_screens`**: navigation Screens updated and drawn bottom-to-top. Normally this contains only the active navigation Screen; an outgoing Screen may remain temporarily visible for a transition.
+- **`input_screen` and `overlay`**: exactly one navigation Screen receives input beneath the persistent overlay. The overlay combines modals, popups, the command palette, notifications, tooltips, and diagnostics; structural child order within that Screen provides their fine z-order.
 
-Navigation replaces the active navigation layer: `exit()` on the old (clearing any input focus inside it), `enter()` on the new. Only active layers are flushed, input-collected, updated, and drawn.
+Navigation calls `exit()` on the old input Screen (clearing any input focus inside it), then `enter()` on the new one. Only visible navigation Screens and the overlay update and draw; only the overlay and `input_screen` are flushed and input-collected.
 
 **Blockable exit.** `exit()` may return `false` to veto the navigation ("unsaved changes?") — `UserInterface` then aborts the swap and the outgoing screen stays active. One boolean; no new machinery.
 
-**Screen transitions are transforms.** `enter()`/`exit()` animate the screen root's visual channel (§11) — a whole-screen fade/slide is a subtree transform, free via whole-subtree motion. Exit animations pair naturally with `expire()` for transient layers and popups (§11.2): animate out, removal happens at the last transform's end, through the normal deferred-unload path.
+**Screen transitions are transforms.** `enter()`/`exit()` animate the Screen root's visual channel (§11) — a whole-screen fade/slide is a subtree transform, free via whole-subtree motion. `ScreenManager` may retain the outgoing Screen in `visible_screens` until its exit animation finishes. Transient popup Views pair their exit animation with `expire()` (§11.2), removing through the normal deferred-unload path.
 
 **Heavy screens (non-normative).** If a screen's content is expensive to build, `UserInterface` may keep the outgoing screen active while the incoming one constructs incrementally under a frame budget (§12), calling `enter()` only when the tree is ready — the user sees the old screen's exit crossfade start exactly when the new one can draw.
 
@@ -380,14 +379,16 @@ Navigation replaces the active navigation layer: `exit()` on the old (clearing a
 
 LÖVE polls events before `update`. To keep dispatch on current geometry, event handling is split into queueing and draining:
 
+`rizu/loop/LoopEvents.lua` pumps and sends LÖVE events before the frame's UI `update`. GUI dispatch is nevertheless deferred: dispatching immediately in `UserInterface:receive` would use the previous frame's target collection and potentially stale geometry.
+
 1. **Poll phase** — `UserInterface:receive(event, modifiers)` only *enqueues* `{event, modifiers, x, y}` (pointer events keep their event-time coordinates; queue preserves poll order).
 2. **UI frame start** (first thing in the UI update):
    a. `inputs:beginFrame(current_mouse_x, current_mouse_y)` — seeds hover context only;
-   b. every active layer: `flush()`;
-   c. layers **top → bottom**: `acceptInputs(inputs)` — collect hit/focus targets on current geometry;
-   d. **drain the queue** in poll order, updating pointer coordinates per event before each dispatch.
-3. Every active layer: `update(dt)`. A layer's update **steps its animations first** (transforms §11.1, scroll dynamics §9.2) and only then runs view `update(dt)` code — animation state is always settled before user code reads it. Transform ticks batch their visual-channel writes and recompose once per affected view.
-4. Layers **bottom → top**: `draw()`.
+   b. `ScreenManager` flushes the overlay and input Screen;
+   c. collect targets **top → bottom**: overlay, then input Screen;
+   d. **drain the queue** in poll order, restoring each pointer event's event-time coordinates before dispatch.
+3. Update visible navigation Screens bottom-to-top, then the overlay. Each Screen **steps its animations first** (transforms §11.1, scroll dynamics §9.2) and only then runs view `update(dt)` code — animation state is always settled before user code reads it. Transform ticks batch their visual-channel writes and recompose once per affected view.
+4. Draw visible navigation Screens **bottom → top**, then the overlay.
 
 Events polled in a frame are dispatched in that same frame's UI phase, against the geometry current after that frame's flush.
 
@@ -444,8 +445,8 @@ Per-view contract: `view:acceptInputs(inputs)` → `inputs:processView(view)`, s
 
 ### 8.1 Dispatch contract
 
-- **Collection order is top-most first**: layers top → bottom, flat array in reverse (deepest, front-most first). Because ancestors spatially overlap their descendants, they appear in the hit list naturally — no separate bubbling phase exists or is needed.
-- **Dispatch**: an event is offered to hit views in collection order. A handler returning `true` marks it *handled* and stops dispatch. `event:stopPropagation()` stops without claiming handled-ness semantics beyond it. Unhandled pointer events pass through to lower hits and, ultimately, lower layers.
+- **Collection order is top-most first**: overlay before the input Screen, flat array in reverse (deepest, front-most first). Because ancestors spatially overlap their descendants, they appear in the hit list naturally — no separate bubbling phase exists or is needed.
+- **Dispatch**: an event is offered to hit views in collection order. A handler returning `true` marks it *handled* and stops dispatch. `event:stopPropagation()` stops without claiming handled-ness semantics beyond it. Unhandled pointer events pass through to lower hits and, ultimately, from the overlay to the input Screen.
 - **Routing**: click qualifies when the release lands within `MOUSE_CLICK_MAX_DISTANCE` of the press **and no drag began**; a pressed view **captures** the pointer (drag events go to it until release, regardless of hover); wheel rides the hit list (a ScrollView ancestor receives what its rows don't handle); key/text go to the focused view, else to `focus_requesters` in collection order.
 - **Drag vs. click**: a drag starts only after the pointer moves at least `DRAG_START_THRESHOLD` (≈ 4 px) from the press point. Once a drag has started, the click is suppressed — the release produces `DragEnd` + `MouseUp`, never `MouseClick`. Click dispatches to the *press* target (the release need not be over the same view); this is deliberate, and `MOUSE_CLICK_MAX_DISTANCE` should be small (single-digit px) so sloppy drags don't read as clicks.
 - **Event payloads**: key events expose `key` and `is_repeated`; text events expose `text` (never reuse `key` for text); pointer events expose event-time coordinates (§7.3).
@@ -455,7 +456,7 @@ Per-view contract: `view:acceptInputs(inputs)` → `inputs:processView(view)`, s
 
 `Inputs` owns a **focus scope stack**. Keyboard eligibility is restricted to views inside the top scope's subtree (and that scope's own `focus_requesters`).
 
-- Opening a modal or popup: `pushFocusScope(modal_root)` — saves the current focus, moves focus into the scope (or clears it), and blocks key/gamepad fall-through to lower layers.
+- Opening a modal or popup: `pushFocusScope(modal_root)` — saves the current focus, moves focus into the scope (or clears it), and blocks key/gamepad fall-through to lower Screens.
 - Closing: `popFocusScope()` — restores the saved focus **only if that view is still attached and visible**.
 - The fullscreen backdrop view (below the modal/popup in child order, `handles_mouse_input = true`, handlers return `true`) is the mouse half of the same contract.
 
@@ -474,20 +475,21 @@ Rules:
 - The clip boundary's world transform must be axis-aligned (translation/scale fine, rotation rejected — fail fast). Rotated *descendants* are fine; their world AABB uses all four corners and is clipped by the axis-aligned boundary.
 - The clip view's own drawing is clipped together with its descendants. This lets immediate-mode and virtualized views establish their viewport with `self.clip = true` instead of managing graphics scissors inside `draw()`.
 
-### 9.2 ScrollView = clip + offset transform + decay dynamics
+### 9.2 ScrollView = reusable scrolling core
 
 ```
 ScrollView   (clip = true, handles_mouse_input = true)
 └── content  (e.g. a FlowContainer column; height authored explicitly or set by `fitContent()`)
 ```
 
-- Wheel/drag input reaches the ScrollView through the hit list. Scrolling is a **visual-channel write** — `content:setOffset(0, -scroll_current)`, one `composeSubtree`, no relayout. The viewport's `clip_rect` doesn't move; content transforms do; hit-testing stays correct.
-- **State is `(scroll_target, scroll_current)`, not a tween.** Input (wheel ticks, drag, scrollbar) writes `scroll_target`. Each `update(dt)` while awake: `scroll_current = scroll_target + (scroll_current - scroll_target) * math.exp(-decay * dt_ms)` — frame-rate-independent exponential approach with retargeting for free. When `|scroll_target - scroll_current| < SCROLL_EPSILON` the scroller *sleeps*: current snaps to target and no cull refresh runs until the next input — the event-driven principle (§1) is preserved.
-- Decay rates differ per cause (wheel ≈ 0.01/ms, fling floatier ≈ 0.0035/ms; named, tunable constants).
-- **Rubber-banding**: while dragging past the clamp, only half the overscroll is applied; `scroll_target` may exceed bounds by up to `SCROLL_CLAMP_EXTENSION`, with a stronger decay pulling it back — the elastic edge that makes scrolling feel physical.
-- **Fling**: on drag end, fling distance is integrated from measured pointer velocity decayed per frame, added to `scroll_target`. One cheap formula, no physics sim.
-- There is no fit mode (§13), so content height is authored by the code building the rows. After relayout, resize, or content replacement: re-clamp both scroll values and refresh culling (§6.1 pass 5).
-- Scrollbar: optional child view using drag capture (§8.1), its size/position derived from `scroll_current`.
+The core contract is deliberately small:
+
+- Wheel input and `scrollTo()` write `scroll_target`. Scrolling is a **visual-channel write** — `content:setOffset(0, -scroll_current)`, one `composeSubtree`, no relayout. The viewport's `clip_rect` doesn't move; content transforms do; hit-testing stays correct.
+- **State is `(scroll_target, scroll_current)`, not a tween.** Each `update(dt)` while awake computes `scroll_current = scroll_target + (scroll_current - scroll_target) * math.exp(-decay * dt_ms)` — frame-rate-independent exponential approach with retargeting for free. When `|scroll_target - scroll_current| < SCROLL_EPSILON`, the scroller *sleeps*: current snaps to target and no cull refresh runs until the next input.
+- Target and current are clamped to `[0, max_scroll]`. There is no fit mode (§13), so content height is authored by the code building the rows. After relayout, resize, or content replacement, re-clamp both values and refresh culling (§6.1 pass 5).
+- Viewport culling follows §9.3.
+
+Scrollbar UI is a separate component that observes and writes the core scroll state; it is not a child feature required of `ScrollView`. Drag scrolling, rubber-band overscroll, fling/velocity measurement, and cause-specific decay are optional behavior modules or application policy layered over the core. They must use the same target/current and visual-offset contracts if added. Popup close-on-scroll is application coordination between popup ownership and a scroller notification, not a `ScrollView` acceptance requirement.
 
 ### 9.3 Viewport culling
 
@@ -511,7 +513,7 @@ Rule of thumb: rows-as-views when the count is modest (up to a few hundred) or r
 
 ## 10. Popups and the overlay screen
 
-There is no z-index. Stacking is structural: layers are the coarse z-order, child order within a tree is the fine z-order. Anything floating above its trigger's layer — dropdown items, context menus, submenus, tooltips — lives in the **overlay layer**, not in the trigger's tree (where it would be clipped by the nearest viewport and drawn under later siblings).
+There is no z-index. Stacking is structural: Screens are the coarse z-order, child order within a tree is the fine z-order. Anything floating above its trigger's Screen — dropdown items, context menus, submenus, tooltips — lives in the **overlay Screen**, not in the trigger's tree (where it would be clipped by the nearest viewport and drawn under later siblings).
 
 ### 10.1 Opening a popup (e.g. a dropdown)
 
@@ -525,7 +527,7 @@ Submenus are more popups appended to the overlay root — later siblings draw on
 
 ### 10.2 Popups vs. scrolling triggers
 
-- **Close on scroll** (default): the ScrollView broadcasts a scroll event; popups opened from its subtree close. Sidesteps every degenerate state.
+- **Close on scroll** (recommended application policy): popup ownership subscribes to a scroller notification and closes popups opened from its subtree. The reusable ScrollView core does not own or know about popups.
 - **Follow**: the popup's `update()` re-reads `trigger:getWorldPosition()` and adjusts with `setOffset` — one `transformPoint` per frame, no relayout. Close when the trigger's center leaves the viewport's clip rect.
 - **Never** clip a popup to the trigger's viewport.
 
@@ -551,7 +553,7 @@ Use an overlay popup (§10.1) only when a menu must escape its viewport, modal, 
 
 ### 10.4 What lives where
 
-The one overlay screen owns modals, the command palette, floating dropdowns, context menus, submenus, notifications, floating tooltips, and diagnostics such as FPS. Inline dropdowns (§10.3) remain in their owning scrolling content. There are no separate modal or notification layers. Overlay hosts are ordered children of the overlay root; later children draw and receive input first. A popup opened from a modal is inserted after the modal host so it draws above the modal. Floating tooltips follow §8.2's per-frame-position rule: move via `setOffset`, never anchors.
+The one overlay Screen owns modals, the command palette, floating dropdowns, context menus, submenus, notifications, floating tooltips, and diagnostics such as FPS. Inline dropdowns (§10.3) remain in their owning scrolling content. There are no separate modal or notification Screens. Overlay hosts are ordered children of the overlay root; later children draw and receive input first. A popup opened from a modal is inserted after the modal host so it draws above the modal. Floating tooltips follow §8.2's per-frame-position rule: move via `setOffset`, never anchors.
 
 ## 11. Animation
 
@@ -575,7 +577,7 @@ view:clearTransforms(target?)              -- drop without applying
 Semantics:
 
 - **Per-target replacement.** Starting a transform on a target removes the running one on that target — no two animations ever fight over a field.
-- **Ordering.** Transforms step at the start of the owning layer's `update`, *before* any view's `update(dt)` (§7.3): user code always reads settled animation state.
+- **Ordering.** Transforms step at the start of the owning Screen's `update`, *before* any view's `update(dt)` (§7.3): user code always reads settled animation state.
 - **Completion.** Completed transforms are removed automatically; `on_complete` fires exactly once. `LatestTransformEndTime` per view feeds `expire()` (§11.2).
 - Durations in seconds. `duration = 0` applies immediately (still through the registry, still replacing).
 
@@ -592,7 +594,7 @@ The easing vocabulary is the full standard set (quad/cubic/quart/quint, sine, ex
 
 ### 11.2 `expire()` — declarative removal
 
-`view:expire()` marks the view to be removed — via the normal `remove` + deferred-unload path (§12) — when its last running transform completes (immediately, at the next flush, if none are running). This replaces the manual "animate first, `remove` on completion" dance everywhere: close animations, popups, notifications, transient layers. `view:fadeOut(0.2):expire()` is the canonical close.
+`view:expire()` marks the view to be removed — via the normal `remove` + deferred-unload path (§12) — when its last running transform completes (immediately, at the next flush, if none are running). This replaces the manual "animate first, `remove` on completion" dance for close animations, popups, and notifications. `view:fadeOut(0.2):expire()` is the canonical close.
 
 ### 11.3 Springs and freeform tweens
 
@@ -631,7 +633,7 @@ Animate the subtree root's offset; children follow through composition. Subtree 
 - **Detach** (`remove`, including via `expire()`): the subtree is marked `detached` **immediately** — every loop (update, draw, input) skips it from that moment — and queued in `screen.pending_unload`. At the next flush, before rebuilding: clear all `Inputs` references into the subtree (§8.3), run recursive `unload()` exactly once, drop the references. A view removed inside an input/update callback is therefore never updated or drawn after its resources are released, and never stays in a stale snapshot.
 - Cross-screen reparenting = detach from one screen + attach to the other (unload then load).
 - `Screen:unload()` — recursive `unload`, clears the flat list and pending queue.
-- `enter()`/`exit()` — navigation layers only; `exit()` clears focus inside the leaving screen and may veto (§7.2).
+- `enter()`/`exit()` — navigation Screens only; `exit()` clears focus inside the leaving Screen and may veto (§7.2).
 
 ## 13. Content sizing without a fit mode
 
@@ -688,7 +690,7 @@ The constraints that make it expensive, kept as a warning label:
 - Reuse, don't rewrite: the `gui.input` event classes and their tests (with §8.1's payload naming: text events expose `text`). Layout algorithm coverage moves to `TrackContainer` and `FlowContainer`; obsolete strategy tests must be migrated rather than left requiring removed modules.
 - Animation split: `SpringValue` stays for continuous retargetable motion (§11.3); discrete property animation (fades, slides, hover) moves to the §11.1 transform registry; scroll moves to §9.2 decay dynamics. `TweenValue` survives only where a freeform tween is genuinely the right tool.
 - Close/remove call sites migrate from manual "remove on completion" bookkeeping to `expire()` (§11.2).
-- Repository conventions: the accepted architecture lands in `gui/spec.md`, with migration notes in the app and editor specs. `Layer` is a base class; `ArrangeStrategy` remains an internal duck-typed layout hook, while public policies are named `*Container` View subclasses. Use the `I` prefix only for true interfaces.
+- Repository conventions: the accepted architecture lands in `gui/spec.md`, with migration notes in the app and editor specs. There is no `gui.Layer`; `ArrangeStrategy` remains an internal duck-typed layout hook, while public policies are named `*Container` View subclasses. Use the `I` prefix only for true interfaces.
 
 ## 15. Appendix: invariants and conventions
 
@@ -701,13 +703,13 @@ The constraints that make it expensive, kept as a warning label:
 7. `load` ≠ `relayout`; geometry-dependent work lives in `onLayoutChanged`. Constructors do no resource work.
 8. Every layout-affecting public setter invalidates automatically; `relayout()` is internal; invalidation during a flush is not lost.
 9. Flushes run before input collection; events are queued at poll time and drained after collection, in poll order, with event-time coordinates.
-10. Input traverses top-most layer first, front-most view first; draw traverses bottom-most first.
+10. Input traverses the overlay before the input Screen and each tree front-most View first; drawing traverses visible navigation Screens bottom-to-top, then the overlay.
 11. One shared `Inputs`; focus scopes trap modal/popup keys; detach clears **all** input references into the subtree.
 12. Animate the visual channel, never the resolved rect. The only layout→visual write in the library is the layout-transition compensation (§11.4).
 13. Culling skips draw and input only — never `update`; cull causes are independent bits; author `visible`/`enabled` are separate from culling; derived presence (opacity ≈ 0, zero scale) skips draw and input but not update.
 14. Clip boundaries are axis-aligned (rotation on a clip view is an error); rotated descendants are clipped fine via four-corner AABBs.
 15. Scrolling is a visual-channel write with `(target, current)` exp-decay dynamics; the scroller sleeps at epsilon; scroll clamps and culling refresh after every relayout, resize, or content replacement.
-16. Popups live in the overlay layer, positioned via `getWorldPosition` + inverse root transform; backdrop inserted before the popup; default close-on-scroll; never clip a popup to a viewport.
+16. Popups live in the overlay Screen, positioned via `getWorldPosition` + inverse root transform; backdrop inserted before the popup; application code should normally close them on source scrolling; never clip a popup to a viewport.
 17. Content sizing is explicit: self-sizing views plus one-shot helpers such as `FlowContainer:fitContent()`. There is no fit pass or persistent child-to-parent dependency.
 18. Zero scale is non-hittable; container configs, track metadata, tree mutations, and non-finite geometry fail fast with actionable errors.
 19. The draw loop never calls `push("all")`; transforms are absolute and applied with `replaceTransform`. `gui.Painter` resets color state for each view; a `draw()` must not leak shader/canvas/blend/font/scissor/transform state.
@@ -723,9 +725,9 @@ The constraints that make it expensive, kept as a warning label:
 3. Initial layout, resize, dynamic attach, and detach invoke `load`/`onLayoutChanged`/`unload` exactly once, in the documented order.
 4. Removal from input, update, and draw never touches the removed subtree after unload; focus, hover, press, and capture are cleared — including removal mid-drag.
 5. Multiple queued pointer/key/text events dispatch once, in poll order, on current geometry, with event-time coordinates.
-6. Modal/popup focus is trapped and restored; handled input never reaches a lower blocked layer; `exit()` returning `false` vetoes navigation.
+6. Modal/popup focus is trapped and restored; handled input never reaches a lower blocked Screen; `exit()` returning `false` vetoes navigation.
 7. Nested clips and ScrollViews stay correct after relayout at nonzero scroll and after translation/scale animations; no cull cause resurrects another.
-8. Empty/short/resized scroll content clamps to zero; rubber-band overscroll settles back without input; the scroller sleeps (no cull writes) at rest; virtualized drawing cannot escape its viewport.
+8. Empty/short/resized scroll content clamps to zero; target/current decay is frame-rate independent; the scroller sleeps (no cull writes) at rest; viewport culling remains correct; virtualized drawing cannot escape its viewport.
 9. Cycle, duplicate insertion, removing or sizing a non-child, invalid container config or track size, non-finite geometry, rotated clip boundary, non-invertible hit tests, and `setSize`/`setPosition` on fill axes fail with actionable diagnostics.
 10. Benchmarks record relayout visits, compose visits, cull checks/writes, and steady-state allocations for representative large trees; `load()`/`flush()` over budget are logged with names.
 11. With `layout_transition` enabled, resolved rects are identical to the no-transition run; during a glide, hit tests match the *visual* position; after completion, offsets are exactly zero.
@@ -748,4 +750,16 @@ function View:clear()   -- remove every descendant, keep self attached
 
 Recursively detaches the entire subtree rooted at `self`. After the call, `self.children` is empty and no view in the former subtree retains a `parent` reference. `self` itself stays attached to its own parent (use `self.parent:remove(self)` to detach it too).
 
-This is not a new mutation primitive — it is sugar over `remove`, applied depth-first so that descendants lose their children before being detached themselves. It exists because rebuilding a subtree in place (swapping screen content, replacing a list's rows, re-throwing a test harness) is a common operation that would otherwise be either an O(N²) sequence of `remove` calls or a brittle reach into `children`. Being sugar over `remove`, **`clear()` invalidates layout like any other mutation** (§6.2). When lifecycle (§12) lands, `clear` is the natural place to recursively `unload` before detaching, and that behavior will be specified here.
+This is not a new mutation primitive — it is sugar over `remove`, applied depth-first so that descendants lose their children before being detached themselves. It exists because rebuilding a subtree in place (swapping screen content, replacing a list's rows, re-throwing a test harness) is a common operation that would otherwise be either an O(N²) sequence of `remove` calls or a brittle reach into `children`. Being sugar over `remove`, **`clear()` invalidates layout like any other mutation** (§6.2). Every removed subtree follows §12's immediate-detach and deferred-unload contract; `clear()` must not unload resources synchronously or more than once.
+
+### 17.2 Internal View modules
+
+`gui.View` remains the single authoritative runtime node type and public API. Its implementation may be split into internal typed function modules such as `gui/view/Animation.lua`, `Tree.lua`, `Layout.lua`, `Compose.lua`, and `Lifecycle.lua`. These are implementation units, not mixins, base classes, or additional node types.
+
+Internal functions explicitly accept a `gui.View`; `View.lua` retains thin public methods that delegate to them. Shared implementation fields may use package visibility where cross-module access is intentional. The split must not change construction, method resolution, call sites, tree semantics, or the one-View contract, and must not introduce duplicate partial View types or broad `any` casts.
+
+### 17.3 Developer inspection and benchmarks
+
+Debug tooling is opt-in and must add no traversal, command generation, or allocation to release hot paths when disabled. A developer inspector should be able to visualize View and clip bounds, select from hit order, browse structural/draw order, and display the selected View's authored/arranged/resolved geometry, world bounds, visibility/enabled/presence state, cull causes, flat range, and input state. `Screen:printDebugLayout()` remains the textual baseline; the visual inspector is application overlay tooling, not a second GUI runtime.
+
+Performance work is measurement-driven. Debug counters should cover rebuild and compose visits, cull checks/writes, renderer/cache rebuilds, input/update/draw candidates and dispatches, load/flush duration, memory deltas, and steady-state allocation. Reproducible benchmarks should include 100/1,000/10,000 inert Views, deep transforms, 500 interactive rows, scrolling with culling, simultaneous transforms, and repeated attach/detach/relayout. Optimization claims should include before-and-after snapshots; C/FFI rewrites are not justified without evidence that Lua-level storage and traversal changes are insufficient.
