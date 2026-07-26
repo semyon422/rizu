@@ -13,6 +13,19 @@ local function arrange(width, height, container)
 end
 
 ---@param t testing.T
+function test.constructor_adds_array_children_with_default_tracks(t)
+	local first = View()
+	local second = View()
+	local container = TrackContainer({first, second, direction = "row"})
+	arrange(100, 10, container)
+
+	t:tdeq(container.children, {first, second})
+	t:eq(first.parent, container)
+	t:eq(second.parent, container)
+	t:tdeq({first.x, first.width, second.x, second.width}, {0, 50, 50, 50})
+end
+
+---@param t testing.T
 function test.column_divides_main_axis_and_fills_cross_axis(t)
 	local container = TrackContainer({direction = "column"})
 	local header = container:add(View(), 70)

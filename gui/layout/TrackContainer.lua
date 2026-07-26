@@ -8,6 +8,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field gap? number
 ---@field padding? gui.layout.Padding
 ---@field layout_transition? gui.layout.LayoutTransition
+---@field [number] gui.View
 
 ---Divides its main axis into tracks. Children always fill their track on the
 ---cross axis; alignment and intrinsic sizing are intentionally not supported.
@@ -80,6 +81,10 @@ function TrackContainer:new(config)
 
 	-- Reuse View's strategy hook internally. To callers this remains a container.
 	self.arrange_strategy = self
+
+	for _, child in ipairs(config) do
+		self:add(child)
+	end
 end
 
 ---@param transition gui.layout.LayoutTransition?
