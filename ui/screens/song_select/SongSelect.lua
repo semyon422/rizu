@@ -69,7 +69,7 @@ function SongSelect:openScore(index)
 	local game = self.ui.game
 	game.scoreSelector:scrollScore(nil, index)
 	game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
-	self.ui:setScreen(self.ui.result)
+	self.ui:setScreen(self.ui.result, true)
 end
 
 function SongSelect:enter()
