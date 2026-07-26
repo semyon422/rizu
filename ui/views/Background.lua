@@ -1,5 +1,6 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
+local SpringValue = require("gui.anim.SpringValue")
 
 local lg = love.graphics
 
@@ -27,6 +28,17 @@ function Background:new(model, parallax)
 	self.parallax_y = 0
 	self.target_parallax_x = 0
 	self.target_parallax_y = 0
+	self.brighness_spring = SpringValue({value = 1})
+end
+
+---@param v number
+---@param immediate boolean 
+function Background:setBrightness(v, immediate)
+	if immediate then
+		self.brighness_spring:snap(v)
+	else
+		self.brighness_spring:set(v)
+	end
 end
 
 ---@param dt number
@@ -48,6 +60,8 @@ function Background:update(dt)
 	local smoothing = math.max(0, math.min(self.parallax_smoothing * dt, 1))
 	self.parallax_x = self.parallax_x + (self.target_parallax_x - self.parallax_x) * smoothing
 	self.parallax_y = self.parallax_y + (self.target_parallax_y - self.parallax_y) * smoothing
+
+	self.brighness_spring:update(dt)
 end
 
 function Background:draw()
@@ -64,7 +78,8 @@ function Background:draw()
 		local image_width, image_height = image:getDimensions()
 		local scale = math.max(self.width / image_width, self.height / image_height) * parallax_scale
 		local alpha = i == 1 and 1 or self.model.alpha
-		Painter.setColorRgb(1, 1, 1, alpha)
+		local b = self.brighness_spring:get()
+		Painter.setColorRgb(b, b, b, alpha)
 		lg.draw(
 			image,
 			self.width * 0.5 + offset_x,
