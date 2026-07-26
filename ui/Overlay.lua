@@ -1,15 +1,20 @@
 local Screen = require("gui.Screen")
 local ModalManager = require("ui.ModalManager")
+local FpsView = require("ui.views.FpsView")
 
 ---@class ui.Overlay : gui.Screen
 ---@operator call: ui.Overlay
 ---@field modal_manager ui.ModalManager
+---@field fps_view ui.views.FpsView
 ---@field private suppress_palette_text_input boolean
 local Overlay = Screen + {}
 
 ---@param ui ui.UserInterface
 function Overlay:new(ui)
 	Screen.new(self)
+	self.fps_view = self.root:add(FpsView(ui.game))
+	self.fps_view:setAlignment(1, 1)
+	self.fps_view:setOffset(-16, -16)
 	self.modal_manager = self.root:add(ModalManager(ui))
 	self.suppress_next_text_input = false
 end

@@ -1,3 +1,5 @@
+local Settings = require("rizu.config.schemas.Settings")
+
 local M = {}
 
 -- Returns the list of globally accessible commands.
@@ -88,35 +90,12 @@ function M.get(game, ui)
 			end
 		},
 		{
-			id = "global.frame_time_toggle",
-			title = "Frame Time: Toggle",
-			description = "Toggles the frame time/profiler overlay",
+			id = "global.toggle_fps",
+			title = "FPS: Toggle",
+			description = "Toggles the FPS overlay",
 			callback = function()
-				if ui then
-					game.configModel.configs.settings.miscellaneous.showFPS = true
-					ui.frame_time_view:setVisible(not ui.frame_time_view.visible)
-				end
-			end
-		},
-		{
-			id = "global.frame_time_open",
-			title = "Frame Time: Open",
-			description = "Opens the frame time/profiler overlay",
-			callback = function()
-				if ui then
-					game.configModel.configs.settings.miscellaneous.showFPS = true
-					ui.frame_time_view:setVisible(true)
-				end
-			end
-		},
-		{
-			id = "global.frame_time_close",
-			title = "Frame Time: Close",
-			description = "Closes the frame time/profiler overlay",
-			callback = function()
-				if ui then
-					ui.frame_time_view:setVisible(false)
-				end
+				local show_fps = game.settings:getBoolean(Settings.misc.application.show_fps)
+				game.settings:setBoolean(Settings.misc.application.show_fps, not show_fps)
 			end
 		},
 		{
