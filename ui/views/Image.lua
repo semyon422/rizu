@@ -10,8 +10,8 @@ function Image:new(texture, quad)
 	View.new(self)
 	self.texture = texture
 	self.quad = quad
-	local _, _, w, h = self.quad:getViewport()
-	self.offset_max = {w, h}
+	local _, _, width, height = self.quad:getViewport()
+	self:setSize(width, height)
 end
 
 local lg = love.graphics

@@ -16,7 +16,7 @@ function InfoPanel:new()
 	self.ln_color = {1, 1, 1, 1}
 	self.difficulty = "0.00"
 	self.difficulty_color = {1, 1, 1, 1}
-	self.height = 122
+	self:setSize(0, 122)
 end
 
 function InfoPanel:load() end

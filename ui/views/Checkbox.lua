@@ -23,9 +23,7 @@ function Checkbox:new(params)
 	local box_size = font:getHeight()
 	local padding = 8
 
-	self.width = box_size + padding + font:getWidth(self.label_text)
-	self.height = box_size
-	self.offset_max = {self.width, self.height}
+	self:setSize(box_size + padding + font:getWidth(self.label_text), box_size)
 	self.handles_mouse_input = true
 end
 

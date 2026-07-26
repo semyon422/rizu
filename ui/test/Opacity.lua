@@ -9,14 +9,11 @@ local state = {elapsed = 0, fading_view = nil}
 ---@param opacity number
 local function addSample(parent, x, y, opacity)
 	local backdrop = coloredRect(0.22, 0.22, 0.25)
-	backdrop.offset_min = {x, y}
-	backdrop.offset_max = {x + 120, y + 140}
+	backdrop:anchorFixed(x, y, 120, 140)
 	parent:add(backdrop)
 
 	local sample = coloredRect(0.25, 0.65, 0.95)
-	sample.anchor_max = {1, 1}
-	sample.offset_min = {10, 10}
-	sample.offset_max = {-10, -10}
+	sample:anchorFill(10, 10, 10, 10)
 	sample:setOpacity(opacity)
 	backdrop:add(sample)
 end
@@ -29,7 +26,7 @@ local case = {
 		state.fading_view = nil
 
 		local bg = coloredRect(0.08, 0.08, 0.1)
-		bg.anchor_max = {1, 1}
+		bg:anchorFill(0, 0, 0, 0)
 		root:add(bg)
 
 		local opacities = {1, 0.75, 0.5, 0.25, 0}
@@ -38,21 +35,17 @@ local case = {
 		end
 
 		local inherited = coloredRect(0.95, 0.55, 0.2)
-		inherited.offset_min = {230, 300}
-		inherited.offset_max = {530, 500}
+		inherited:anchorFixed(230, 300, 300, 200)
 		inherited:setOpacity(0.5)
 		root:add(inherited)
 
 		local child = coloredRect(0.25, 0.55, 0.95)
-		child.anchor_max = {1, 1}
-		child.offset_min = {50, 50}
-		child.offset_max = {-50, -50}
+		child:anchorFill(50, 50, 50, 50)
 		child:setOpacity(0.5)
 		inherited:add(child)
 
 		local fading_view = coloredRect(0.85, 0.3, 0.65)
-		fading_view.offset_min = {580, 300}
-		fading_view.offset_max = {780, 500}
+		fading_view:anchorFixed(580, 300, 200, 200)
 		root:add(fading_view)
 		state.fading_view = fading_view
 	end,

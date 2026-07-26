@@ -20,7 +20,7 @@ local case = {
 		local viewport = coloredRect(0.12, 0.14, 0.18)
 		viewport:setSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 		viewport:setAlignment(0.5, 0.5)
-		viewport.clip = true
+		viewport:setClip(true)
 		root:add(viewport)
 
 		local moving = coloredRect(0.2, 0.65, 0.95)

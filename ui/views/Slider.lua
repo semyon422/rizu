@@ -23,9 +23,7 @@ function Slider:new(params)
 	assert(not self.step or self.step > 0, "slider step must be positive")
 	self.on_change = params.on_change
 
-	self.width = params.width or 300
-	self.height = 24
-	self.offset_max = {self.width, self.height}
+	self:setSize(params.width or 300, 24)
 	self.handles_mouse_input = true
 end
 

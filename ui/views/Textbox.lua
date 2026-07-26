@@ -14,13 +14,11 @@ local Textbox = View + {}
 function Textbox:new(params)
 	View.new(self)
 	params = params or {}
-	self.clip = true
+	self:setClip(true)
 	self.model = TextboxModel()
 	self.model:setText(params.text or "")
 	self.font = Resources.getFont("regular", 24)
-	self.width = params.width or 300
-	self.height = self.font:getHeight() + 12
-	self.offset_max = {self.width, self.height}
+	self:setSize(params.width or 300, self.font:getHeight() + 12)
 	self.on_change = params.on_change
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true

@@ -94,7 +94,7 @@ function M.get(game, ui)
 			callback = function()
 				if ui then
 					game.configModel.configs.settings.miscellaneous.showFPS = true
-					ui.frame_time_view.visible = not ui.frame_time_view.visible
+					ui.frame_time_view:setVisible(not ui.frame_time_view.visible)
 				end
 			end
 		},
@@ -105,7 +105,7 @@ function M.get(game, ui)
 			callback = function()
 				if ui then
 					game.configModel.configs.settings.miscellaneous.showFPS = true
-					ui.frame_time_view.visible = true
+					ui.frame_time_view:setVisible(true)
 				end
 			end
 		},
@@ -115,7 +115,7 @@ function M.get(game, ui)
 			description = "Closes the frame time/profiler overlay",
 			callback = function()
 				if ui then
-					ui.frame_time_view.visible = false
+					ui.frame_time_view:setVisible(false)
 				end
 			end
 		},

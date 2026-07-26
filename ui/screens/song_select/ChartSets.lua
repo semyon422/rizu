@@ -28,7 +28,7 @@ function ChartSets:new(chartSelector, on_selected)
 	self.time_since_mouse_over = 0
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
-	self.clip = true
+	self:setClip(true)
 	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self.title_batch = love.graphics.newTextBatch(Resources.getFont("cjk_bold", 24))
 	self.artist_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24))

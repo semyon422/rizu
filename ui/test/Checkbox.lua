@@ -8,17 +8,15 @@ local case = {
 	name = "checkbox",
 	build = function(root)
 		local bg = coloredRect(0.08, 0.08, 0.1)
-		bg.anchor_max = {1, 1}
+		bg:anchorFill(0, 0, 0, 0)
 		root:add(bg)
 
 		local c1 = Checkbox({text = "Enable feature"})
-		c1.offset_min = {200, 200}
-		c1.offset_max = {200 + c1.width, 200 + c1.height}
+		c1:setPosition(200, 200)
 		root:add(c1)
 
 		local c2 = Checkbox({text = "Show notifications", checked = true})
-		c2.offset_min = {200, 250}
-		c2.offset_max = {200 + c2.width, 250 + c2.height}
+		c2:setPosition(200, 250)
 		root:add(c2)
 
 		local slider = Slider({
@@ -27,18 +25,15 @@ local case = {
 				print("slider value", value)
 			end,
 		})
-		slider.offset_min = {200, 300}
-		slider.offset_max = {200 + slider.width, 300 + slider.height}
+		slider:setPosition(200, 300)
 		root:add(slider)
 
 		local textbox = Textbox({text = "Type here"})
-		textbox.offset_min = {200, 350}
-		textbox.offset_max = {200 + textbox.width, 350 + textbox.height}
+		textbox:setPosition(200, 350)
 		root:add(textbox)
 
 		local second_textbox = Textbox({text = "And here"})
-		second_textbox.offset_min = {200, 400}
-		second_textbox.offset_max = {200 + second_textbox.width, 400 + second_textbox.height}
+		second_textbox:setPosition(200, 400)
 		root:add(second_textbox)
 	end,
 }

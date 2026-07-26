@@ -53,7 +53,7 @@ function ChartGrid:new(chart_selector)
 	self.scrollbar_bg_color = {Colors.text_muted[1], Colors.text_muted[2], Colors.text_muted[3], 0.15}
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
-	self.clip = true
+	self:setClip(true)
 
 	self.cap = Resources.quads.grid_item_cap_right
 	self.body = Resources.quads.grid_item_body
@@ -77,7 +77,6 @@ function ChartGrid:onLayoutChanged(old_x, old_y, old_width, old_height)
 	local width_per_col = (w - total_gap_x) / cols
 
 	self.columns = cols
-	self.height = h
 	self.width_per_col = width_per_col
 	self.body_s = (width_per_col - self.cap_w) / self.body_w
 	self.stroke_middle_s = (width_per_col - self.stroke_left_w - self.stroke_right_w) / self.stroke_middle_w

@@ -26,7 +26,7 @@ function ScoreList:new(score_selector, on_score_selected)
 	self.hover_index = nil
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
-	self.clip = true
+	self:setClip(true)
 	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
