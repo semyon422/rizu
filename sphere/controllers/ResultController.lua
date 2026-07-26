@@ -50,6 +50,14 @@ end
 function ResultController:replayNoteChartAsync(mode, chartplay)
 	local game = self.game
 
+	-- A failed result load must not leave the previously computed score visible.
+	-- The fresh engine remains unloaded, so its score sources are nil until a
+	-- replay is successfully loaded below.
+	if mode == "result" then
+		self.replay = nil
+		game:recreateRhythmEngine()
+	end
+
 	if not chartplay or not game.chartSelector:chartExists() then
 		return
 	end
@@ -90,8 +98,6 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 	local chartview = game.chartSelector.chartview
 
 	GameplayChart(game.configModel.configs.settings, game.fs, chartview):load(replayBase, game.computeContext)
-
-	game:recreateRhythmEngine()
 
 	RhythmEngineLoader(
 		replay,

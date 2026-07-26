@@ -57,7 +57,8 @@ function Result:new(ui)
 	bottom_left:fitContent()
 	bottom_left:setAlignment(0, 1)
 
-	self.judge_segments = self.content:add(JudgeSegments()):setAlignment(0.5, 0.5)
+	self.judge_segments = self.content:add(JudgeSegments())
+	self.judge_segments:setAlignment(0.5, 0.5)
 
 	self.no_score_panel = self:createNoScorePanel()
 
@@ -110,9 +111,11 @@ function Result:updateInfo()
 		self.no_score_panel:setVisible(true)
 		self.no_score_panel:setOffset(0, -30)
 		self.no_score_panel:moveToY(0, 0.7, "OutElastic")
+		self.judge_segments:setVisible(false)
 		return
 	else
 		self.no_score_panel:setVisible(false)
+		self.judge_segments:setVisible(true)
 	end
 
 	self.judge_segments:bind(judge_score)

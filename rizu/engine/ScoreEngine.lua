@@ -22,11 +22,11 @@ local ScoreEngineFactory = require("rizu.engine.ScoreEngine.ScoreEngineFactory")
 
 ---@class rizu.ScoreEngine
 ---@operator call: rizu.ScoreEngine
----@field accuracySource rizu.IAccuracySource
----@field comboSource rizu.IComboSource
----@field healthsSource rizu.IHealthsSource
----@field judgesSource rizu.IJudgesSource
----@field scoreSource rizu.IScoreSource
+---@field accuracySource rizu.IAccuracySource?
+---@field comboSource rizu.IComboSource?
+---@field healthsSource rizu.IHealthsSource?
+---@field judgesSource rizu.IJudgesSource?
+---@field scoreSource rizu.IScoreSource?
 ---@field sequence {[string]: table}[]
 local ScoreEngine = class()
 
