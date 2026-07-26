@@ -154,7 +154,6 @@ function SongSelect:createRightColumn()
 		font_size = 24,
 		text = "No filters",
 		color = Colors.text_muted,
-		align = "right",
 	})):setAlignment(1, 0.5)
 
 	column:add(heading, 40)

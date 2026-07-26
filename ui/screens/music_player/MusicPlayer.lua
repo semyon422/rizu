@@ -28,7 +28,6 @@ function MusicPlayer:new(ui)
 		font_name = "cjk_bold",
 		font_size = 48,
 		text = "No song selected",
-		align = "center",
 	}))
 	self.title_label:setAlignment(0.5, 0.1)
 	self.title_label:setPivot(0.5, 0.5)
@@ -38,7 +37,6 @@ function MusicPlayer:new(ui)
 		font_size = 24,
 		text = "",
 		color = Colors.text_muted,
-		align = "center",
 	}))
 	self.artist_label:setAlignment(0.5, 0.17)
 	self.artist_label:setPivot(0.5, 0.5)

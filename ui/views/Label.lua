@@ -27,7 +27,12 @@ function Label:new(params)
 	self.text = params.text or ""
 	self.color = params.color or Colors.text
 	self.align = params.align or "left"
-	self:setSize(self.font:getWidth(self.text), self.font:getHeight())
+	self:updateSize()
+end
+
+function Label:updateSize()
+	local width, lines = self.font:getWrap(self.text, math.huge)
+	self:setSize(width, math.max(#lines, 1) * self.font:getHeight())
 end
 
 ---@return string text
@@ -38,20 +43,14 @@ end
 ---@param text string
 function Label:setText(text)
 	self.text = text
-	self:setSize(self.font:getWidth(text), self.font:getHeight())
+	self:updateSize()
 end
 
 function Label:draw()
 	Painter.snapToPixel()
 	Painter.setColorTable(self.color)
 	love.graphics.setFont(self.font)
-	local x = 0
-	if self.align == "center" then
-		x = (self.width - self.font:getWidth(self.text)) / 2
-	elseif self.align == "right" then
-		x = self.width - self.font:getWidth(self.text)
-	end
-	love.graphics.print(self.text, x, 0)
+	love.graphics.printf(self.text, 0, 0, self.width, self.align)
 end
 
 return Label
