@@ -8,6 +8,7 @@ local Animations = require("ui.test.Animations")
 local Clip = require("ui.test.Clip")
 local ScrollView = require("ui.test.ScrollView")
 local Composite = require("ui.test.Composite")
+local Atlas = require("ui.test.Atlas")
 
 ---@alias ui.test.BuildFn fun(root: gui.View)
 ---@alias ui.test.UpdateFn fun(screen: ui.test.TestScreen, dt: number)
@@ -28,6 +29,7 @@ local cases = {
 	Clip,
 	ScrollView,
 	Composite,
+	Atlas,
 }
 
 ---@class ui.test.TestScreen: gui.Screen
