@@ -59,6 +59,22 @@ function MainMenu:createButtons()
 		end
 	end))
 
+	buttons:add(Button("Lobby List", function()
+		self.ui:setScreen(self.ui.lobby_list)
+	end))
+
+	buttons:add(Button("Lobby", function()
+		self.ui:setScreen(self.ui.lobby)
+	end))
+
+	buttons:add(Button("Music Player", function()
+		self.ui:setScreen(self.ui.music_player)
+	end))
+
+	buttons:add(Button("DLC", function()
+		self.ui:setScreen(self.ui.dlc)
+	end))
+
 	buttons:add(Button("Settings", function()
 		self.ui.modal_manager:attachConfig()
 	end))
@@ -72,8 +88,7 @@ function MainMenu:createButtons()
 	end))
 
 	buttons:fitContent()
-	buttons:setAlignment(0.5, 0.5)
-	buttons:setOffset(0, 170)
+	buttons:setAlignment(0.1, 0.5)
 
 	self.root:add(buttons)
 end
@@ -81,13 +96,12 @@ end
 function MainMenu:createLogo()
 	local logo = Image(Resources.atlas, Resources.quads.rizu)
 	self.logo = logo
-	self.logo:setAlignment(0.5, 0.5)
-	self.logo:setScale(0.7, 0.7)
+	self.logo:setAlignment(0.75, 0.5)
+	self.logo:setScale(0.8, 0.8)
 	self.logo:setPivot(0.5, 0.5)
 	self.logo:setOpacity(0)
-	self.logo:setOffset(0, -170)
 	self.logo:fadeIn(0.9, "OutQuint")
-	self.logo:moveTo(0, -200, 0.5, "OutCubic")
+	self.logo:scaleTo(0.7, 0.7, 0.3, "OutQuart")
 	self.root:add(logo)
 end
 

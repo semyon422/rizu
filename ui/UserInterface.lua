@@ -6,6 +6,10 @@ local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
 local Editor = require("ui.screens.editor.Editor")
 local Result = require("ui.screens.result.Result")
+local LobbyList = require("ui.screens.lobby_list.LobbyList")
+local Lobby = require("ui.screens.lobby.Lobby")
+local MusicPlayer = require("ui.screens.music_player.MusicPlayer")
+local Dlc = require("ui.screens.dlc.Dlc")
 local TestScreen = require("ui.test.TestScreen")
 local Inputs = require("gui.input.Inputs")
 local ScreenManager = require("ui.ScreenManager")
@@ -25,6 +29,10 @@ local TARGET_HEIGHT = 1080
 ---@field gameplay ui.screens.gameplay.Gameplay
 ---@field editor ui.screens.editor.Editor
 ---@field result ui.screens.result.Result
+---@field lobby_list ui.screens.lobby_list.LobbyList
+---@field lobby ui.screens.lobby.Lobby
+---@field music_player ui.screens.music_player.MusicPlayer
+---@field dlc ui.screens.dlc.Dlc
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
 ---@field overlay ui.Overlay
@@ -52,6 +60,10 @@ function UserInterface:load()
 	self.gameplay = Gameplay(self)
 	self.editor = Editor(self)
 	self.result = Result(self)
+	self.lobby_list = LobbyList(self)
+	self.lobby = Lobby(self)
+	self.music_player = MusicPlayer(self)
+	self.dlc = Dlc(self)
 	self.test_screen = TestScreen(self)
 	self.overlay = Overlay(self)
 	self.modal_manager = self.overlay.modal_manager
@@ -62,6 +74,10 @@ function UserInterface:load()
 		self.gameplay,
 		self.editor,
 		self.result,
+		self.lobby_list,
+		self.lobby,
+		self.music_player,
+		self.dlc,
 		self.test_screen,
 	})
 	self.screen_manager:setOverlay(self.overlay)
