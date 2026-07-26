@@ -378,6 +378,34 @@ function test.percent_width_via_anchor_spread(t)
 end
 
 ---@param t testing.T
+function test.resolution_rounds_edges_then_derives_size(t)
+	local root = newSizedRoot(101, 99)
+	local child = View()
+	child.anchor_min = {0.25, 0.25}
+	child.anchor_max = {0.75, 0.75}
+	root:add(child)
+
+	root:relayout()
+
+	t:tdeq({child.x, child.y, child.width, child.height}, {25, 25, 51, 49})
+end
+
+---@param t testing.T
+function test.adjacent_percentage_children_share_rounded_edge(t)
+	local root = newSizedRoot(101, 10)
+	local left = View():anchorPercent(0, 0, 0.5, 1)
+	local right = View():anchorPercent(0.5, 0, 1, 1)
+	root:add(left)
+	root:add(right)
+
+	root:relayout()
+
+	t:tdeq({left.x, left.width}, {0, 51})
+	t:tdeq({right.x, right.width}, {51, 50})
+	t:eq(left.x + left.width, right.x)
+end
+
+---@param t testing.T
 function test.negative_size_clamps_to_zero(t)
 	local root = newSizedRoot(100, 100)
 	local child = View()

@@ -52,6 +52,19 @@ function test.row_supports_percent_star_gap_and_padding(t)
 end
 
 ---@param t testing.T
+function test.odd_star_tracks_share_rounded_edges_without_seams(t)
+	local container = TrackContainer({direction = "row"})
+	local first = container:add(View())
+	local second = container:add(View())
+	arrange(101, 10, container)
+
+	t:tdeq({first.x, first.width}, {0, 51})
+	t:tdeq({second.x, second.width}, {51, 50})
+	t:eq(first.x + first.width, second.x)
+	t:eq(second.x + second.width, 101)
+end
+
+---@param t testing.T
 function test.insert_sets_track_size_and_order(t)
 	local container = TrackContainer({direction = "row"})
 	local second = container:add(View(), 20)

@@ -614,26 +614,40 @@ function View:relayout(root_scale)
 	end
 end
 
+---@param value number
+---@return integer
+local function round(value)
+	return math.floor(value + 0.5)
+end
+
 ---@private
 ---@param parent gui.View
 function View:resolve(parent)
+	local left, top, right, bottom
 	local arranged = self.arranged
 	if arranged then
-		self.x = arranged[1]
-		self.y = arranged[2]
-		self.width = math.max(0, arranged[3])
-		self.height = math.max(0, arranged[4])
-		return
+		left = arranged[1]
+		top = arranged[2]
+		right = left + arranged[3]
+		bottom = top + arranged[4]
+	else
+		local pw, ph = parent.width, parent.height
+		local anchor_min = self.anchor_min
+		local anchor_max = self.anchor_max
+		local offset_min = self.offset_min
+		local offset_max = self.offset_max
+		left = anchor_min[1] * pw + offset_min[1]
+		top = anchor_min[2] * ph + offset_min[2]
+		right = anchor_max[1] * pw + offset_max[1]
+		bottom = anchor_max[2] * ph + offset_max[2]
 	end
-	local pw, ph = parent.width, parent.height
-	local anchor_min = self.anchor_min
-	local anchor_max = self.anchor_max
-	local offset_min = self.offset_min
-	local offset_max = self.offset_max
-	self.x = anchor_min[1] * pw + offset_min[1]
-	self.y = anchor_min[2] * ph + offset_min[2]
-	self.width = math.max(0, (anchor_max[1] - anchor_min[1]) * pw + (offset_max[1] - offset_min[1]))
-	self.height = math.max(0, (anchor_max[2] - anchor_min[2]) * ph + (offset_max[2] - offset_min[2]))
+
+	left, top = round(left), round(top)
+	right, bottom = round(right), round(bottom)
+	self.x = left
+	self.y = top
+	self.width = math.max(0, right - left)
+	self.height = math.max(0, bottom - top)
 end
 
 ---@private
