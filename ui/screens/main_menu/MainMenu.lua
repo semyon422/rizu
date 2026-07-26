@@ -68,7 +68,7 @@ function MainMenu:createButtons()
 	end))
 
 	buttons:add(Button("Music Player", function()
-		self.ui:setScreen(self.ui.music_player)
+		self.ui:setScreen(self.ui.music_player, true)
 	end))
 
 	buttons:add(Button("DLC", function()
