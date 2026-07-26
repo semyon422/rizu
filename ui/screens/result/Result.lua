@@ -23,7 +23,7 @@ function Result:new(ui)
 	self.background:anchorFill(0, 0, 0, 0)
 	self.background:setBrightness(0.7, true)
 
-	self.composite:add(Image(Resources.atlas, Resources.quads.result_gradient, "fit"))
+	self.composite:add(Image(Resources.sprites.result_gradient, "fit"))
 		:fillWidth(0, 0)
 		:setHeight(130)
 		:setAlignmentY(1)
@@ -58,9 +58,60 @@ function Result:new(ui)
 	bottom_left:setAlignment(0, 1)
 
 	self.ring = self.content:add(View()):setSize(500, 500) -- TODO: self.ring:fitContent() please
-	self.ring:add(Image(Resources.atlas, Resources.quads.judge_segments_ring, nil, Colors.outline))
+	self.ring:add(Image(Resources.sprites.judge_segments_bg, nil, Colors.panel))
+		:setOpacity(0.9)
+		:setAlignment(0.5, 0.5)
+	self.ring:add(Image(Resources.sprites.judge_segments_ring, nil, Colors.outline))
 	self.judge_segments = self.ring:add(JudgeSegments()):setAlignment(0.5, 0.5)
 	self.ring:setAlignment(0.5, 0.5)
+
+	self.accuracy = self.ring:add(Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "97.67%",
+		color = Colors.grade_s
+	})):setAlignment(0.5, 0.5)
+
+	local fscale = 64 / 96
+	self.grade = self.ring:add(Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "S",
+		color = Colors.grade_s
+	}))
+	self.grade:setAlignment(0.5, 0.5):setScale(fscale, fscale):setOffset(0, -90)
+
+	local numbers = self.ring:add(FlowContainer({
+		direction = "row",
+		gap = 50,
+	}))
+
+	self.ma_ratio = numbers:add(Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "3:1",
+		color = Colors.grade_x
+	}))
+
+	self.pa_ratio = numbers:add(Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "9:1",
+		color = Colors.grade_s
+	}))
+
+	self.misses = numbers:add(Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "84x",
+		color = Colors.grade_d
+	}))
+
+	numbers:fitContent()
+	numbers:setAlignment(0.5, 0.5)
+	numbers:setOffset(0, 90)
+	numbers:setPivot(0.5, 0.5)
+	numbers:setScale(48 / 96, 48 / 96) -- Have to scale here because we have stupid fixed size fonts
 
 	self.no_score_panel = self:createNoScorePanel()
 
@@ -76,10 +127,10 @@ end
 
 function Result:createNoScorePanel()
 	local scale = 0.7
-	local superellipse = Resources.quads.superellipse
-	local _, _, iw, ih = superellipse:getViewport()
+	local superellipse = Resources.sprites.superellipse
+	local iw, ih = superellipse:getDimensions()
 	local panel = self.content:add(View()):setSize(iw * scale, ih * scale):setAlignment(0.5, 0.5)
-	panel:add(Image(Resources.atlas, Resources.quads.superellipse, nil, Colors.panel)):setScale(scale, scale)
+	panel:add(Image(Resources.sprites.superellipse, nil, Colors.panel)):setScale(scale, scale)
 
 	panel:add(Label({
 		font_size = 48,
