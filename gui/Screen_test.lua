@@ -113,6 +113,54 @@ function test.relayout_builds_flat_preorder_and_ranges(t)
 end
 
 ---@param t testing.T
+function test.move_changes_draw_and_input_order_after_flush(t)
+	local s = Screen()
+	local first = View()
+	local second = View()
+	first:setDraw(function() end)
+	second:setDraw(function() end)
+	first.handles_mouse_input = true
+	second.handles_mouse_input = true
+	first:anchorFixed(0, 0, 10, 10)
+	second:anchorFixed(0, 0, 10, 10)
+	s.root:add(first)
+	s.root:add(second)
+	s:flush()
+
+	s.root:move(first, 2)
+	s:flush()
+	t:tdeq(s.draw_views, {second, first})
+
+	local inputs = Inputs()
+	inputs:beginFrame(5, 5)
+	s:acceptInputs(inputs)
+	t:tdeq(inputs.mouse_hits, {first, second})
+end
+
+---@param t testing.T
+function test.insert_reparents_across_loaded_screens(t)
+	local old_screen = Screen()
+	local new_screen = Screen()
+	local child = View()
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+	old_screen.root:add(child)
+	old_screen:load()
+	new_screen:load()
+
+	new_screen.root:insert(1, child)
+
+	t:eq(child.screen, new_screen)
+	t:eq(child.parent, new_screen.root)
+	t:eq(child.loaded, true)
+	t:eq(unloads, 1)
+	t:eq(loads, 2)
+	t:eq(old_screen.dirty, true)
+	t:eq(new_screen.dirty, true)
+end
+
+---@param t testing.T
 function test.acceptInputs_respects_ancestor_clip(t)
 	local s = Screen()
 	s:resize(200, 200)

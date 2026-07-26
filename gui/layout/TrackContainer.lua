@@ -100,6 +100,20 @@ function TrackContainer:add(child, size)
 	return child
 end
 
+---@generic T: gui.View
+---@param index integer
+---@param child T
+---@param size? gui.layout.TrackSize
+---@return T
+function TrackContainer:insert(index, child, size)
+	size = size or self.track_sizes[child] or "*"
+	assert(isTrackSize(size),
+		("track size must be a non-negative number, \"NN%%\", or \"*\" (got %s)"):format(tostring(size)))
+	View.insert(self, index, child)
+	self.track_sizes[child] = size
+	return child
+end
+
 ---@param child gui.View
 function TrackContainer:remove(child)
 	View.remove(self, child)

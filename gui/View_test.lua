@@ -111,6 +111,93 @@ function test.add_to_same_parent_moves_to_end(t)
 end
 
 ---@param t testing.T
+function test.insert_places_child_at_index(t)
+	local parent = View()
+	local a = parent:add(View())
+	local c = parent:add(View())
+	local b = View()
+
+	local result = parent:insert(2, b)
+
+	t:eq(result, b)
+	t:tdeq(parent.children, {a, b, c})
+	t:eq(b.parent, parent)
+end
+
+---@param t testing.T
+function test.insert_reparents_at_index(t)
+	local old_parent = View()
+	local new_parent = View()
+	local child = old_parent:add(View())
+	local sibling = new_parent:add(View())
+
+	new_parent:insert(1, child)
+
+	t:eq(#old_parent.children, 0)
+	t:tdeq(new_parent.children, {child, sibling})
+	t:eq(child.parent, new_parent)
+end
+
+---@param t testing.T
+function test.insert_rejects_invalid_indices_without_mutation(t)
+	local parent = View()
+	local child = View()
+	local invalid = {0, 2, 1.5, 0 / 0, "1"}
+
+	for _, index in ipairs(invalid) do
+		t:has_error(function()
+			parent:insert(index, child)
+		end)
+	end
+	t:eq(child.parent, nil)
+	t:eq(#parent.children, 0)
+end
+
+---@param t testing.T
+function test.insert_existing_child_moves_without_detaching(t)
+	local parent = View()
+	local a = parent:add(View())
+	local b = parent:add(View())
+	local c = parent:add(View())
+
+	parent:insert(1, c)
+
+	t:tdeq(parent.children, {c, a, b})
+	t:eq(c.parent, parent)
+	t:eq(c.detached, false)
+end
+
+---@param t testing.T
+function test.move_reorders_forward_and_backward(t)
+	local parent = View()
+	local a = parent:add(View())
+	local b = parent:add(View())
+	local c = parent:add(View())
+
+	parent:move(a, 3)
+	t:tdeq(parent.children, {b, c, a})
+	parent:move(a, 1)
+	t:tdeq(parent.children, {a, b, c})
+end
+
+---@param t testing.T
+function test.move_rejects_non_child_and_invalid_indices(t)
+	local parent = View()
+	local child = parent:add(View())
+	local orphan = View()
+
+	t:has_error(function()
+		parent:move(orphan, 1)
+	end)
+	for _, index in ipairs({0, 2, 1.5, "1"}) do
+		t:has_error(function()
+			parent:move(child, index)
+		end)
+	end
+	t:tdeq(parent.children, {child})
+end
+
+---@param t testing.T
 function test.remove_clears_parent_and_removes(t)
 	local parent = View()
 	local child = View()

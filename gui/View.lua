@@ -199,21 +199,34 @@ function View:new()
 	self.viewport_culls = nil
 end
 
----@generic T: gui.View
----@param child T
----@return T
-function View:add(child)
-	if child == self then
+---@param parent gui.View
+---@param child gui.View
+local function assertCanAdopt(parent, child)
+	if child == parent then
 		error("cannot add a view to itself")
 	end
 
-	local ancestor = self.parent
+	local ancestor = parent.parent
 	while ancestor do
 		if ancestor == child then
 			error("cannot add an ancestor view as a child (cycle)")
 		end
 		ancestor = ancestor.parent
 	end
+end
+
+---@param index any
+---@param max_index integer
+local function assertInsertIndex(index, max_index)
+	assert(type(index) == "number" and index == math.floor(index), "index must be an integer")
+	assert(index >= 1 and index <= max_index, "index is out of range")
+end
+
+---@generic T: gui.View
+---@param child T
+---@return T
+function View:add(child)
+	assertCanAdopt(self, child)
 
 	if child.parent then
 		child.parent:remove(child)
@@ -230,6 +243,54 @@ function View:add(child)
 		self.screen:invalidateLayout()
 	end
 	return child
+end
+
+---@generic T: gui.View
+---@param index integer
+---@param child T
+---@return T
+function View:insert(index, child)
+	local max_index = #self.children + (child.parent == self and 0 or 1)
+	assertInsertIndex(index, max_index)
+	assertCanAdopt(self, child)
+
+	if child.parent == self then
+		self:move(child, index)
+		return child
+	end
+	if child.parent then
+		child.parent:remove(child)
+	end
+
+	child.parent = self
+	child:setDetached(false)
+	child:setScreen(self.screen)
+	table.insert(self.children, index, child)
+	if self.screen then
+		if self.screen.loaded then
+			child:loadSubtree()
+		end
+		self.screen:invalidateLayout()
+	end
+	return child
+end
+
+---@param child gui.View
+---@param index integer
+function View:move(child, index)
+	assertInsertIndex(index, #self.children)
+	local old_index ---@type integer?
+	for i = 1, #self.children do
+		if self.children[i] == child then
+			old_index = i
+			break
+		end
+	end
+	assert(old_index, "cannot move a view that is not a child")
+
+	table.remove(self.children, old_index)
+	table.insert(self.children, index, child)
+	self:invalidate()
 end
 
 ---@param children gui.View[]

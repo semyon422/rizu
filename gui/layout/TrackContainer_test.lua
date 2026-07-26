@@ -39,6 +39,17 @@ function test.row_supports_percent_star_gap_and_padding(t)
 end
 
 ---@param t testing.T
+function test.insert_sets_track_size_and_order(t)
+	local container = TrackContainer({direction = "row"})
+	local second = container:add(View(), 20)
+	local first = container:insert(1, View(), 30)
+	arrange(100, 10, container)
+
+	t:tdeq(container.children, {first, second})
+	t:tdeq({first.x, first.width, second.x, second.width}, {0, 30, 30, 20})
+end
+
+---@param t testing.T
 function test.track_size_is_parent_owned_and_mutable(t)
 	local container = TrackContainer({direction = "column"})
 	local child = container:add(View(), 20)
