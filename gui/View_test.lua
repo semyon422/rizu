@@ -881,6 +881,37 @@ function test.anchorPercent_resolves_percent_rect(t)
 end
 
 ---@param t testing.T
+function test.axis_specific_sizing_and_alignment_support_mixed_layout(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():fillWidth(10, 20):setHeight(30):setAlignmentY(1)
+	root:add(view)
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {10, 70, 170, 30})
+	t:eq(view.size_mode_x, "fill")
+	t:eq(view.size_mode_y, "fixed")
+end
+
+---@param t testing.T
+function test.fillHeight_preserves_fixed_horizontal_axis(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():setWidth(40):setAlignmentX(0.5):fillHeight(10, 20)
+	root:add(view)
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {80, 10, 40, 70})
+	t:eq(view.size_mode_x, "fixed")
+	t:eq(view.size_mode_y, "fill")
+end
+
+---@param t testing.T
+function test.axis_size_changes_preserve_recorded_alignment(t)
+	local root = newSizedRoot(200, 100)
+	local view = View():setSize(20, 10):setAlignment(0.5, 1):setWidth(40):setHeight(20)
+	root:add(view)
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {80, 80, 40, 20})
+end
+
+---@param t testing.T
 function test.setPosition_preserves_authored_size(t)
 	local view = View():setSize(30, 40):setPosition(10, 20)
 	t:tdeq(view.offset_min, {10, 20})
@@ -904,6 +935,8 @@ function test.fixed_operations_reject_fill_axes(t)
 	local view = View():anchorFill(0, 0, 0, 0)
 	t:has_error(function() view:setPosition(1, 2) end)
 	t:has_error(function() view:setSize(1, 2) end)
+	t:has_error(function() view:setWidth(1) end)
+	t:has_error(function() view:setHeight(2) end)
 end
 
 ---@param t testing.T

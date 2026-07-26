@@ -82,17 +82,20 @@ Convenience setters over anchors/offsets (they store no extra state beyond `alig
 function View:anchorFixed(x, y, w, h)        -- point anchor (0,0), absolute rect; clears alignment
 function View:anchorFill(l, t, r, b)         -- anchors (0,0)→(1,1), offsets = signed margins; clears alignment
 function View:anchorPercent(minx, miny, maxx, maxy)  -- percent rect, offsets zeroed; clears alignment
-function View:setAlignment(ax, ay)           -- point anchor (ax,ay); offsets derived from
-                                             -- current size, e.g. (0.5, 0.5) = centered.
-                                             -- Records align_x/align_y: later setSize and
-                                             -- self-sizing (§13.1) re-derive the offsets,
-                                             -- so the view stays aligned when its size changes.
-function View:setPosition(x, y)              -- fixed mode: moves offsets, preserves size
-function View:setSize(w, h)                  -- fixed mode: offset_max = offset_min + (w, h);
-                                             -- re-derives offsets first when alignment is recorded
+function View:fillWidth(l, r)                 -- fills the horizontal axis with signed edge margins
+function View:fillHeight(t, b)                -- fills the vertical axis with signed edge margins
+function View:setAlignment(ax, ay)            -- aligns both fixed axes to parent anchor points
+function View:setAlignmentX(ax)               -- aligns only the fixed horizontal axis
+function View:setAlignmentY(ay)               -- aligns only the fixed vertical axis
+                                              -- Alignment is recorded so later size changes and
+                                              -- self-sizing (§13.1) keep the view aligned.
+function View:setPosition(x, y)               -- fixed mode: moves offsets, preserves size
+function View:setWidth(w)                     -- fixed horizontal axis: changes authored width
+function View:setHeight(h)                    -- fixed vertical axis: changes authored height
+function View:setSize(w, h)                   -- fixed axes: changes authored size
 ```
 
-`setPosition`/`setSize` are fixed-mode operations: calling either on an axis whose `size_mode` is `"fill"` is a fail-fast error (declared intent contradicted, §15.3).
+`setPosition`/`setSize` require both axes to be fixed. `setWidth` and `setHeight` require their respective axis to be fixed. Calling one on a fill axis is a fail-fast error (declared intent contradicted, §15.3).
 
 Visual-channel setters — `setOffset(x, y)`, `setRotation(r)`, `setScale(sx, sy)`, `setPivot(px, py)`, `setOpacity(a)` — recompose the subtree immediately (§4.4) and never invalidate layout. For anything time-based, prefer the transform API (§11.1) over manual per-frame writes.
 

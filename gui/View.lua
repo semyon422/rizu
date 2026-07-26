@@ -502,6 +502,38 @@ function View:anchorPercent(min_x, min_y, max_x, max_y)
 	return self
 end
 
+---@param left number
+---@param right number
+---@return gui.View
+function View:fillWidth(left, right)
+	assertFinite(left, "left")
+	assertFinite(right, "right")
+	self.anchor_min = {0, self.anchor_min[2]}
+	self.anchor_max = {1, self.anchor_max[2]}
+	self.offset_min = {left, self.offset_min[2]}
+	self.offset_max = {-right, self.offset_max[2]}
+	self.size_mode_x = "fill"
+	self.align_x = nil
+	self:invalidate()
+	return self
+end
+
+---@param top number
+---@param bottom number
+---@return gui.View
+function View:fillHeight(top, bottom)
+	assertFinite(top, "top")
+	assertFinite(bottom, "bottom")
+	self.anchor_min = {self.anchor_min[1], 0}
+	self.anchor_max = {self.anchor_max[1], 1}
+	self.offset_min = {self.offset_min[1], top}
+	self.offset_max = {self.offset_max[1], -bottom}
+	self.size_mode_y = "fill"
+	self.align_y = nil
+	self:invalidate()
+	return self
+end
+
 ---@param align_x number
 ---@param align_y number
 ---@return gui.View
@@ -524,6 +556,38 @@ function View:setAlignment(align_x, align_y)
 	return self
 end
 
+---@param align_x number
+---@return gui.View
+function View:setAlignmentX(align_x)
+	assertFinite(align_x, "align_x")
+	assert(align_x >= 0 and align_x <= 1, "alignment must be between 0 and 1")
+	local width = self.offset_max[1] - self.offset_min[1]
+	self.anchor_min = {align_x, self.anchor_min[2]}
+	self.anchor_max = {align_x, self.anchor_max[2]}
+	self.offset_min = {-align_x * width, self.offset_min[2]}
+	self.offset_max = {(1 - align_x) * width, self.offset_max[2]}
+	self.size_mode_x = "fixed"
+	self.align_x = align_x
+	self:invalidate()
+	return self
+end
+
+---@param align_y number
+---@return gui.View
+function View:setAlignmentY(align_y)
+	assertFinite(align_y, "align_y")
+	assert(align_y >= 0 and align_y <= 1, "alignment must be between 0 and 1")
+	local height = self.offset_max[2] - self.offset_min[2]
+	self.anchor_min = {self.anchor_min[1], align_y}
+	self.anchor_max = {self.anchor_max[1], align_y}
+	self.offset_min = {self.offset_min[1], -align_y * height}
+	self.offset_max = {self.offset_max[1], (1 - align_y) * height}
+	self.size_mode_y = "fixed"
+	self.align_y = align_y
+	self:invalidate()
+	return self
+end
+
 ---@param x number
 ---@param y number
 ---@return gui.View
@@ -538,6 +602,32 @@ function View:setPosition(x, y)
 	self.offset_max = {x + width, y + height}
 	self.align_x = nil
 	self.align_y = nil
+	self:invalidate()
+	return self
+end
+
+---@param width number
+---@return gui.View
+function View:setWidth(width)
+	assert(self.size_mode_x == "fixed", "setWidth cannot be used on a fill axis")
+	assertFinite(width, "width")
+	assert(width >= 0, "size must be non-negative")
+	local min_x = self.align_x and -self.align_x * width or self.offset_min[1]
+	self.offset_min = {min_x, self.offset_min[2]}
+	self.offset_max = {min_x + width, self.offset_max[2]}
+	self:invalidate()
+	return self
+end
+
+---@param height number
+---@return gui.View
+function View:setHeight(height)
+	assert(self.size_mode_y == "fixed", "setHeight cannot be used on a fill axis")
+	assertFinite(height, "height")
+	assert(height >= 0, "size must be non-negative")
+	local min_y = self.align_y and -self.align_y * height or self.offset_min[2]
+	self.offset_min = {self.offset_min[1], min_y}
+	self.offset_max = {self.offset_max[1], min_y + height}
 	self:invalidate()
 	return self
 end
