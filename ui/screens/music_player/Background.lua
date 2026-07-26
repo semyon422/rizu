@@ -1,5 +1,4 @@
-local View = require("gui.View")
-local Painter = require("gui.Painter")
+local Background = require("ui.views.Background")
 
 local lg = love.graphics
 
@@ -41,22 +40,20 @@ local shader_code = [[
 	}
 ]]
 
----@class ui.screens.music_player.Background : gui.View
+---@class ui.screens.music_player.Background : ui.views.Background
 ---@operator call: ui.screens.music_player.Background
----@field model sphere.BackgroundModel
 ---@field preview_model rizu.preview.PreviewModel
 ---@field fft_size integer
 ---@field shader love.Shader?
 ---@field elapsed number
 ---@field bands number[]
-local Background = View + {}
+local MusicBackground = Background + {}
 
 ---@param model sphere.BackgroundModel
 ---@param preview_model rizu.preview.PreviewModel
 ---@param fft_size integer
-function Background:new(model, preview_model, fft_size)
-	View.new(self)
-	self.model = model
+function MusicBackground:new(model, preview_model, fft_size)
+	Background.new(self, model)
 	self.preview_model = preview_model
 	self.fft_size = fft_size
 	self.elapsed = 0
@@ -67,11 +64,11 @@ function Background:new(model, preview_model, fft_size)
 	end
 end
 
-function Background:load()
+function MusicBackground:load()
 	self.shader = lg.newShader(shader_code)
 end
 
-function Background:unload()
+function MusicBackground:unload()
 	if self.shader then
 		self.shader:release()
 		self.shader = nil
@@ -79,7 +76,8 @@ function Background:unload()
 end
 
 ---@param dt number
-function Background:update(dt)
+function MusicBackground:update(dt)
+	Background.update(self, dt)
 	self.elapsed = self.elapsed + dt
 	local fft = self.preview_model:getFFT()
 	local bin_count = self.fft_size / 2 - 1
@@ -105,16 +103,11 @@ end
 
 ---@param first integer
 ---@return number[]
-function Background:getBandVector(first)
+function MusicBackground:getBandVector(first)
 	return {self.bands[first], self.bands[first + 1], self.bands[first + 2], self.bands[first + 3]}
 end
 
-function Background:draw()
-	local images = self.model.images
-	if not images then
-		return
-	end
-
+function MusicBackground:draw()
 	local shader = self.shader
 	if shader then
 		shader:send("elapsed", self.elapsed)
@@ -124,23 +117,8 @@ function Background:draw()
 		shader:send("fft_air", self:getBandVector(13))
 		lg.setShader(shader)
 	end
-
-	for i = 1, math.min(#images, 2) do
-		local image = images[i]
-		local image_width, image_height = image:getDimensions()
-		local scale = math.max(self.width / image_width, self.height / image_height)
-		local alpha = i == 1 and 1 or self.model.alpha
-		Painter.setColorRgb(1, 1, 1, alpha)
-		lg.draw(
-			image,
-			(self.width - image_width * scale) * 0.5,
-			(self.height - image_height * scale) * 0.5,
-			0,
-			scale,
-			scale
-		)
-	end
+	Background.draw(self)
 	lg.setShader()
 end
 
-return Background
+return MusicBackground
