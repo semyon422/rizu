@@ -70,6 +70,45 @@ function FlowContainer:new(config)
 	end
 end
 
+---@param direction "row"|"column"
+---@return gui.layout.FlowContainer
+function FlowContainer:setDirection(direction)
+	assert(valid_directions[direction],
+		("direction must be row|column (got %s)"):format(tostring(direction)))
+	self.direction = direction
+	self:invalidate()
+	return self
+end
+
+---@param gap number
+---@return gui.layout.FlowContainer
+function FlowContainer:setGap(gap)
+	assert(isFiniteNumber(gap) and gap >= 0,
+		("gap must be a finite non-negative number (got %s)"):format(tostring(gap)))
+	self.gap = gap
+	self:invalidate()
+	return self
+end
+
+---@param padding gui.layout.Padding
+---@return gui.layout.FlowContainer
+function FlowContainer:setPadding(padding)
+	validatePadding(padding)
+	self.padding = padding
+	self:invalidate()
+	return self
+end
+
+---@param align number
+---@return gui.layout.FlowContainer
+function FlowContainer:setAlign(align)
+	assert(isFiniteNumber(align) and align >= 0 and align <= 1,
+		("align must be a finite number in [0, 1] (got %s)"):format(tostring(align)))
+	self.align = align
+	self:invalidate()
+	return self
+end
+
 ---@return number left
 ---@return number top
 ---@return number right

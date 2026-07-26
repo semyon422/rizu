@@ -42,6 +42,38 @@ function test.column_packs_authored_sizes(t)
 end
 
 ---@param t testing.T
+function test.direction_gap_and_padding_setters_validate_invalidate_and_relayout(t)
+	local first = View():setSize(20, 10)
+	local second = View():setSize(20, 10)
+	local container = FlowContainer({first, second})
+	local invalidations = 0
+	container.screen = {
+		invalidateLayout = function()
+			invalidations = invalidations + 1
+		end,
+	}
+
+	t:eq(container:setDirection("column"), container)
+	t:eq(container:setGap(5), container)
+	t:eq(container:setPadding({10, 10, 10, 10}), container)
+	t:eq(container:setAlign(1), container)
+	t:eq(invalidations, 4)
+	arrange(100, 100, container)
+	t:tdeq({first.x, first.y, second.x, second.y}, {70, 10, 70, 25})
+
+	for _, callback in ipairs({
+		function() container:setDirection("diagonal") end,
+		function() container:setGap(-1) end,
+		function() container:setPadding({0, -1, 0, 0}) end,
+		function() container:setAlign(1.1) end,
+		function() container:setAlign(0 / 0) end,
+	}) do
+		t:has_error(callback)
+	end
+	t:eq(invalidations, 4)
+end
+
+---@param t testing.T
 function test.fit_content_sets_authored_size(t)
 	local container = FlowContainer({
 		direction = "row",

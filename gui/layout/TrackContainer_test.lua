@@ -76,6 +76,36 @@ function test.insert_sets_track_size_and_order(t)
 end
 
 ---@param t testing.T
+function test.direction_gap_and_padding_setters_validate_invalidate_and_relayout(t)
+	local first = View()
+	local second = View()
+	local container = TrackContainer({first, second})
+	local invalidations = 0
+	container.screen = {
+		invalidateLayout = function()
+			invalidations = invalidations + 1
+		end,
+	}
+
+	t:eq(container:setDirection("column"), container)
+	t:eq(container:setGap(10), container)
+	t:eq(container:setPadding(5), container)
+	t:eq(invalidations, 3)
+	arrange(100, 100, container)
+	t:tdeq({first.x, first.y, first.width, first.height}, {5, 5, 90, 40})
+	t:tdeq({second.x, second.y, second.width, second.height}, {5, 55, 90, 40})
+
+	for _, callback in ipairs({
+		function() container:setDirection("diagonal") end,
+		function() container:setGap(-1) end,
+		function() container:setPadding({0, 0, -1, 0}) end,
+	}) do
+		t:has_error(callback)
+	end
+	t:eq(invalidations, 3)
+end
+
+---@param t testing.T
 function test.track_size_is_parent_owned_and_mutable(t)
 	local container = TrackContainer({direction = "column"})
 	local child = container:add(View(), 20)

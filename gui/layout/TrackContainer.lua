@@ -92,6 +92,35 @@ function TrackContainer:validateLayoutTransition(transition)
 	ArrangeStrategy.validateLayoutTransition(self, transition)
 end
 
+---@param direction "row"|"column"
+---@return gui.layout.TrackContainer
+function TrackContainer:setDirection(direction)
+	assert(valid_directions[direction],
+		("direction must be row|column (got %s)"):format(tostring(direction)))
+	self.direction = direction
+	self:invalidate()
+	return self
+end
+
+---@param gap number
+---@return gui.layout.TrackContainer
+function TrackContainer:setGap(gap)
+	assert(isFiniteNumber(gap) and gap >= 0,
+		("gap must be a finite non-negative number (got %s)"):format(tostring(gap)))
+	self.gap = gap
+	self:invalidate()
+	return self
+end
+
+---@param padding gui.layout.Padding
+---@return gui.layout.TrackContainer
+function TrackContainer:setPadding(padding)
+	validatePadding(padding)
+	self.padding = padding
+	self:invalidate()
+	return self
+end
+
 ---@generic T: gui.View
 ---@param child T
 ---@param size? gui.layout.TrackSize

@@ -91,6 +91,15 @@ function StackContainer:new(config)
 	end
 end
 
+---@param padding gui.layout.Padding
+---@return gui.layout.StackContainer
+function StackContainer:setPadding(padding)
+	validatePadding(padding)
+	self.padding = padding
+	self:invalidate()
+	return self
+end
+
 ---@return number left
 ---@return number top
 ---@return number right

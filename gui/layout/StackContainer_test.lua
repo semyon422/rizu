@@ -82,6 +82,28 @@ function test.non_fill_alignment_rejects_negative_authored_size(t)
 end
 
 ---@param t testing.T
+function test.padding_setter_validates_invalidates_and_relayouts(t)
+	local child = View()
+	local container = StackContainer({child})
+	local invalidations = 0
+	container.screen = {
+		invalidateLayout = function()
+			invalidations = invalidations + 1
+		end,
+	}
+
+	t:eq(container:setPadding({5, 10, 15, 20}), container)
+	t:eq(invalidations, 1)
+	arrange(100, 80, container)
+	t:tdeq({child.x, child.y, child.width, child.height}, {5, 10, 80, 50})
+
+	t:has_error(function()
+		container:setPadding(-1)
+	end)
+	t:eq(invalidations, 1)
+end
+
+---@param t testing.T
 function test.invalid_configuration_errors(t)
 	t:has_error(function()
 		StackContainer({align_items_x = "middle"})
