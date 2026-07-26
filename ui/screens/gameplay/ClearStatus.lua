@@ -11,10 +11,14 @@ local ClearStatus = View + {}
 function ClearStatus:new()
 	View.new(self)
 	self.font = Resources.getFont("bold", 48)
-	self:setSize(640, 68)
 	self.text = ""
+	self:setHeight(68)
 	self.color = Colors.text
 	self.spring = SpringValue({value = 0})
+end
+
+function ClearStatus:load()
+	self:fillWidth(0, 0)
 end
 
 ---@param text string
