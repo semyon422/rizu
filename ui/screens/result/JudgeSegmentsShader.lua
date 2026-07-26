@@ -4,7 +4,6 @@ extern vec4 u_colors[{{COUNT}}];
 extern float u_innerRadius;
 extern float u_outerRadius;
 extern float u_gapWidth;
-extern float u_bgOffset;
 
 const float PI = 3.14159265359;
 
@@ -16,12 +15,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     float segmentRingMask = smoothstep(u_innerRadius - edgeSoftness, u_innerRadius, dist) *
                             (1.0 - smoothstep(u_outerRadius, u_outerRadius + edgeSoftness, dist));
 
-    float bgInner = u_innerRadius + u_bgOffset;
-    float bgOuter = u_outerRadius - u_bgOffset;
-    float bgRingMask = smoothstep(bgInner - edgeSoftness, bgInner, dist) *
-                       (1.0 - smoothstep(bgOuter, bgOuter + edgeSoftness, dist));
-
-    if (segmentRingMask == 0.0 && bgRingMask == 0.0) {
+    if (segmentRingMask == 0.0) {
         discard;
     }
 
@@ -30,20 +24,12 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     float t = angle / (2.0 * PI);
 
     vec4 segmentColor = u_colors[0];
-    float segStart = 0.0;
-    float segEnd = u_thresholds[0];
 
     for (int i = 0; i < {{COUNT_MINUS_ONE}}; i++) {
         if (t > u_thresholds[i]) {
             segmentColor = u_colors[i + 1];
-            segStart = u_thresholds[i];
-            segEnd = (i + 1 < {{COUNT_MINUS_ONE}}) ? u_thresholds[i + 1] : 1.0;
         }
     }
-
-    float localT = (t - segStart) / (segEnd - segStart);
-    localT = clamp(localT, 0.0, 1.0);
-    segmentColor.rgb *= mix(1.0, 0.8, localT);
 
     float tGap = u_gapWidth / (2.0 * PI);
     float gapMask = 1.0;
@@ -54,16 +40,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
         gapMask *= borderMask;
     }
 
-    vec4 bg = vec4(0.0, 0.0, 0.0, bgRingMask);
-    vec4 fg = vec4(segmentColor.rgb, segmentRingMask * gapMask * segmentColor.a);
-
-    float outAlpha = fg.a + bg.a * (1.0 - fg.a);
-    vec3 outRgb = vec3(0.0);
-    if (outAlpha > 0.0) {
-        outRgb = (fg.rgb * fg.a + bg.rgb * bg.a * (1.0 - fg.a)) / outAlpha;
-    }
-
-    return vec4(outRgb, outAlpha) * color;
+    return vec4(segmentColor.rgb, segmentRingMask * gapMask * segmentColor.a) * color;
 }
 ]]
 

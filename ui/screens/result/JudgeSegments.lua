@@ -19,6 +19,55 @@ local judge_colors = {
 }
 
 local miss_color = {1, 0, 0, 1}
+local minimum_visible_share = 0.01
+
+---@param judges integer[]
+---@param total integer
+---@return number[] shares
+local function calculateShares(judges, total)
+	---@type number[]
+	local shares = {}
+	---@type integer[]
+	local remaining_indices = {}
+	local remaining_total = total
+	local remaining_share = 1
+
+	for i, count in ipairs(judges) do
+		shares[i] = 0
+		if count > 0 then
+			remaining_indices[#remaining_indices + 1] = i
+		end
+	end
+
+	while #remaining_indices > 0 do
+		local constrained_index
+		for _, index in ipairs(remaining_indices) do
+			if judges[index] / remaining_total * remaining_share < minimum_visible_share then
+				constrained_index = index
+				break
+			end
+		end
+
+		if not constrained_index then
+			for _, index in ipairs(remaining_indices) do
+				shares[index] = judges[index] / remaining_total * remaining_share
+			end
+			break
+		end
+
+		shares[constrained_index] = minimum_visible_share
+		remaining_total = remaining_total - judges[constrained_index]
+		remaining_share = remaining_share - minimum_visible_share
+		for i, index in ipairs(remaining_indices) do
+			if index == constrained_index then
+				table.remove(remaining_indices, i)
+				break
+			end
+		end
+	end
+
+	return shares
+end
 
 function JudgeSegments:new()
 	View.new(self)
@@ -29,7 +78,7 @@ function JudgeSegments:new()
 	end
 	---@type {[integer]: love.Shader}
 	self.shaders = {}
-	self:setSize(700, 700)
+	self:setSize(490, 490)
 end
 
 function JudgeSegments:load()
@@ -57,9 +106,10 @@ function JudgeSegments:bind(judges_source)
 	local judge_count = #judges
 	self.judge_count = judge_count
 
+	local shares = calculateShares(judges, total)
 	local current = 0
 	for i = 1, judge_count - 1 do
-		current = current + (judges[i] or 0) / total
+		current = current + shares[i]
 		self.springs[i]:set(current)
 	end
 
@@ -69,10 +119,9 @@ function JudgeSegments:bind(judges_source)
 	end
 
 	local gap = 0.004
-	self.shader:send("u_innerRadius", 0.83)
-	self.shader:send("u_outerRadius", 0.90)
+	self.shader:send("u_innerRadius", 0.92)
+	self.shader:send("u_outerRadius", 1.0)
 	self.shader:send("u_gapWidth", gap)
-	self.shader:send("u_bgOffset", -gap * 2)
 
 	local colors = {}
 	for i = 1, judge_count - 1 do
