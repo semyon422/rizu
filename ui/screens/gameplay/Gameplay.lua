@@ -19,7 +19,7 @@ function Gameplay:new(ui)
 	self.gameplay_interactor = self.game.gameplayInteractor
 	self.is_playing = false
 
-	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
+	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view)):anchorFill(0, 0, 0, 0)
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
