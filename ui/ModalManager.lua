@@ -32,7 +32,9 @@ function ModalManager:new(ui)
 	end, ui.game.needleModel, needle_tools)
 	self.active_view = nil
 
-	self.bg = self:add(OverlayBackground())
+	self.bg = self:add(OverlayBackground(function()
+		self:hideModal()
+	end))
 	self.config = self:addModal(Config(ui.game.settings))
 	self:addModal(self.palette)
 end

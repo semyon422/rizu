@@ -3,10 +3,13 @@ local Painter = require("gui.Painter")
 
 ---@class ui.views.OverlayBackground : gui.View
 ---@operator call: ui.views.OverlayBackground
+---@field on_click fun()
 local OverlayBackground = View + {}
 
-function OverlayBackground:new()
+---@param on_click fun()
+function OverlayBackground:new(on_click)
 	View.new(self)
+	self.on_click = on_click
 	self:anchorFill(0, 0, 0, 0)
 	self:setOpacity(0)
 	self:setVisible(false)
@@ -37,6 +40,7 @@ end
 
 ---@return boolean handled
 function OverlayBackground:onMouseClick()
+	self.on_click()
 	return true
 end
 
