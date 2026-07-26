@@ -59,8 +59,8 @@ local function placeAxis(name, align, position, available, desired)
 	if align == "fill" then
 		return position, available
 	end
-	assert(isFiniteNumber(desired) and desired > 0,
-		("%s non-fill alignment requires a finite authored size > 0 (got %s)"):format(name, tostring(desired)))
+	assert(isFiniteNumber(desired) and desired >= 0,
+		("%s non-fill alignment requires a finite non-negative authored size (got %s)"):format(name, tostring(desired)))
 	if type(align) == "number" then
 		return position + (available - desired) * align, desired
 	elseif align == "start" then

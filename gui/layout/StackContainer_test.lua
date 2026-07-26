@@ -54,8 +54,28 @@ function test.child_set_alignment_overrides_container_alignment(t)
 end
 
 ---@param t testing.T
-function test.non_fill_alignment_requires_authored_size(t)
-	local container = StackContainer({align_items_x = "center", View()})
+function test.non_fill_alignment_permits_zero_authored_size(t)
+	local centered = View()
+	local ended = View()
+	local container = StackContainer({
+		align_items_x = "center",
+		align_items_y = "end",
+		centered,
+	})
+	ended:setAlignment(1, 0)
+	container:add(ended)
+
+	arrange(101, 81, container)
+
+	t:tdeq({centered.x, centered.y, centered.width, centered.height}, {51, 81, 0, 0})
+	t:tdeq({ended.x, ended.y, ended.width, ended.height}, {101, 0, 0, 0})
+end
+
+---@param t testing.T
+function test.non_fill_alignment_rejects_negative_authored_size(t)
+	local child = View()
+	child.offset_max = {-1, 0}
+	local container = StackContainer({align_items_x = "center", child})
 	t:has_error(function()
 		arrange(100, 80, container)
 	end)
