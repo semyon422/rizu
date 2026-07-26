@@ -59,7 +59,7 @@ function TimeRate:draw()
 	local angle = normalized * math.pi * 2
 
 	Painter.setColorTable(Colors.elements)
-	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
+	love.graphics.draw(Resources.atlas, Resources.quads.time_rate_bg)
 	Painter.setColorRgb(1, 1, 1)
 	love.graphics.draw(Resources.atlas, self.circle_quad, cx, cy)
 	love.graphics.draw(
