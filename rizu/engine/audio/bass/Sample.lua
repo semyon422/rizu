@@ -31,7 +31,9 @@ function Sample:play()
 end
 
 function Sample:stop()
-	bass.BASS_ChannelStop(self.channel)
+	-- BASS_ChannelStop frees sample playback channels, so preserve the reusable handle.
+	bass.BASS_ChannelPause(self.channel)
+	bass_assert(bass.BASS_ChannelSetPosition(self.channel, 0, bass_flags.BASS_POS_BYTE) == 1)
 end
 
 ---@param rate number
