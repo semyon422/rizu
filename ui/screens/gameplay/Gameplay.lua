@@ -2,6 +2,7 @@ local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
 local Colors = require("ui.Colors")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
+local SequenceCanvas = require("ui.screens.gameplay.SequenceCanvas")
 local delay = require("delay")
 local thread = require("thread")
 
@@ -18,6 +19,7 @@ function Gameplay:new(ui)
 	self.gameplay_interactor = self.game.gameplayInteractor
 	self.is_playing = false
 
+	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
@@ -26,14 +28,17 @@ function Gameplay:new(ui)
 	self.root.onKeyDown = function(_, event)
 		if event.key == "escape" then
 			if self.gameplay_interactor:hasResult() then
-				self.ui:setScreen(self.ui.result)
+				self.ui:setScreen(self.ui.result, true)
 			else
-				self.ui:setScreen(self.ui.song_select)
+				self.ui:setScreen(self.ui.song_select, true)
 			end
+			self.is_playing = false
 		elseif event.key == "space" then
 			self.gameplay_interactor:skipIntro()
 		end
 	end
+
+	self.root:setOpacity(0)
 end
 
 function Gameplay:enter()
@@ -46,15 +51,21 @@ function Gameplay:enter()
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(false)
 	self.is_playing = true
+	self.sequence_canvas.playing = true
 	self.clear_status:hide()
+
+	self.root:fadeIn(0.4, "OutQuint")
 end
 
 function Gameplay:exit()
 	self.gameplay_interactor:unloadGameplay()
+	self.sequence_canvas.playing = false
 	self.sequence_view:unload()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
 	love.mouse.setVisible(true)
+
+	self.root:fadeOut(1, "OutQuint")
 end
 
 function Gameplay:observeCompletion()
@@ -63,6 +74,7 @@ function Gameplay:observeCompletion()
 	end
 
 	self.is_playing = false
+	self.sequence_canvas.playing = false
 	local base_score = self.game.rhythm_engine.score_engine.scores.base
 	if base_score.missCount == 0 then
 		self.clear_status:bind("FULL COMBO", Colors.grade_s)
@@ -74,30 +86,22 @@ function Gameplay:observeCompletion()
 		delay.sleep(0.16)
 		self.clear_status:show()
 		delay.sleep(1)
-		self.ui:setScreen(self.ui.result)
+		self.ui:setScreen(self.ui.result, true)
 	end)()
 end
 
 ---@param dt number
 function Gameplay:update(dt)
-	self.sequence_view:update(dt)
+	Screen.update(self, dt)
 	if self.is_playing then
 		self:observeCompletion()
 	end
-	Screen.update(self, dt)
-end
-
-function Gameplay:draw()
-	love.graphics.push()
-	self.sequence_view:draw()
-	love.graphics.pop()
-	Screen.draw(self)
 end
 
 ---@param event {name: string, [integer]: any}
 function Gameplay:receive(event)
 	self.gameplay_interactor:receive(event)
-	self.sequence_view:receive(event)
+	self.sequence_canvas:receive(event)
 end
 
 return Gameplay
