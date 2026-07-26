@@ -1,29 +1,14 @@
 local class = require("class")
+local SpriteBatch = require("gui.SpriteBatch")
 
----@alias gui.NineSliceQuads [love.Quad, love.Quad, love.Quad, love.Quad, love.Quad, love.Quad, love.Quad, love.Quad, love.Quad]
+---@alias gui.NineSliceSprites [gui.AtlasImage, gui.AtlasImage, gui.AtlasImage, gui.AtlasImage, gui.AtlasImage, gui.AtlasImage, gui.AtlasImage, gui.AtlasImage, gui.AtlasImage]
 
 ---@class gui.NineSliceUsage
 ---@operator call: gui.NineSliceUsage
----@field texture love.Texture
----@field quads gui.NineSliceQuads
+---@field sprites gui.NineSliceSprites
 ---@field width number
 ---@field height number
----@field private batch love.SpriteBatch
----@field private left_width number
----@field private center_width number
----@field private right_width number
----@field private top_height number
----@field private center_height number
----@field private bottom_height number
 local NineSliceUsage = class()
-
----@param quad love.Quad
----@return number width
----@return number height
-local function getQuadSize(quad)
-	local _, _, width, height = quad:getViewport()
-	return width, height
-end
 
 ---@param actual number
 ---@param expected number
@@ -32,25 +17,21 @@ local function assertEqual(actual, expected, message)
 	assert(actual == expected, message)
 end
 
----@param texture love.Texture
----@param quads gui.NineSliceQuads Quads ordered left-to-right, top-to-bottom.
-function NineSliceUsage:new(texture, quads)
-	assert(texture, "nine-slice texture is required")
-	assert(#quads == 9, "nine-slice requires exactly 9 quads")
+---@param sprites gui.NineSliceSprites Sprites ordered left-to-right, top-to-bottom.
+function NineSliceUsage:new(sprites)
+	assert(#sprites == 9, "nine-slice requires exactly 9 sprites")
+	self.sprites = sprites
+	self.batch = SpriteBatch(sprites[1], 9, "static")
 
-	self.texture = texture
-	self.quads = quads
-	self.batch = love.graphics.newSpriteBatch(texture, 9, "static")
-
-	local left_width, top_height = getQuadSize(quads[1])
-	local center_width, top_center_height = getQuadSize(quads[2])
-	local right_width, top_right_height = getQuadSize(quads[3])
-	local middle_left_width, center_height = getQuadSize(quads[4])
-	local middle_center_width, middle_center_height = getQuadSize(quads[5])
-	local middle_right_width, middle_right_height = getQuadSize(quads[6])
-	local bottom_left_width, bottom_height = getQuadSize(quads[7])
-	local bottom_center_width, bottom_center_height = getQuadSize(quads[8])
-	local bottom_right_width, bottom_right_height = getQuadSize(quads[9])
+	local left_width, top_height = sprites[1]:getDimensions()
+	local center_width, top_center_height = sprites[2]:getDimensions()
+	local right_width, top_right_height = sprites[3]:getDimensions()
+	local middle_left_width, center_height = sprites[4]:getDimensions()
+	local middle_center_width, middle_center_height = sprites[5]:getDimensions()
+	local middle_right_width, middle_right_height = sprites[6]:getDimensions()
+	local bottom_left_width, bottom_height = sprites[7]:getDimensions()
+	local bottom_center_width, bottom_center_height = sprites[8]:getDimensions()
+	local bottom_right_width, bottom_right_height = sprites[9]:getDimensions()
 
 	assertEqual(top_center_height, top_height, "nine-slice top row heights must match")
 	assertEqual(top_right_height, top_height, "nine-slice top row heights must match")
@@ -79,9 +60,7 @@ end
 function NineSliceUsage:resize(width, height)
 	width = math.max(width, self.left_width + self.right_width)
 	height = math.max(height, self.top_height + self.bottom_height)
-
-	self.width = width
-	self.height = height
+	self.width, self.height = width, height
 
 	local center_width = width - self.left_width - self.right_width
 	local center_height = height - self.top_height - self.bottom_height
@@ -89,30 +68,28 @@ function NineSliceUsage:resize(width, height)
 	local center_scale_y = center_height / self.center_height
 	local right_x = self.left_width + center_width
 	local bottom_y = self.top_height + center_height
+	local sprites = self.sprites
 
 	self.batch:clear()
-	self.batch:add(self.quads[1], 0, 0)
-	self.batch:add(self.quads[2], self.left_width, 0, 0, center_scale_x, 1)
-	self.batch:add(self.quads[3], right_x, 0)
-	self.batch:add(self.quads[4], 0, self.top_height, 0, 1, center_scale_y)
-	self.batch:add(self.quads[5], self.left_width, self.top_height, 0, center_scale_x, center_scale_y)
-	self.batch:add(self.quads[6], right_x, self.top_height, 0, 1, center_scale_y)
-	self.batch:add(self.quads[7], 0, bottom_y)
-	self.batch:add(self.quads[8], self.left_width, bottom_y, 0, center_scale_x, 1)
-	self.batch:add(self.quads[9], right_x, bottom_y)
+	self.batch:add(sprites[1], 0, 0)
+	self.batch:add(sprites[2], self.left_width, 0, 0, center_scale_x, 1)
+	self.batch:add(sprites[3], right_x, 0)
+	self.batch:add(sprites[4], 0, self.top_height, 0, 1, center_scale_y)
+	self.batch:add(sprites[5], self.left_width, self.top_height, 0, center_scale_x, center_scale_y)
+	self.batch:add(sprites[6], right_x, self.top_height, 0, 1, center_scale_y)
+	self.batch:add(sprites[7], 0, bottom_y)
+	self.batch:add(sprites[8], self.left_width, bottom_y, 0, center_scale_x, 1)
+	self.batch:add(sprites[9], right_x, bottom_y)
 	self.batch:flush()
 end
 
----Draws at the origin. Supplying a size resizes the cached batch only when needed.
 ---@param width number
 ---@param height number
 function NineSliceUsage:draw(width, height)
 	width = math.max(width, self.left_width + self.right_width)
 	height = math.max(height, self.top_height + self.bottom_height)
-	if width ~= self.width or height ~= self.height then
-		self:resize(width, height)
-	end
-	love.graphics.draw(self.batch)
+	if width ~= self.width or height ~= self.height then self:resize(width, height) end
+	self.batch:draw()
 end
 
 return NineSliceUsage

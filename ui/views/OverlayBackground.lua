@@ -53,7 +53,7 @@ end
 function OverlayBackground:draw()
 	Painter.setColorRgb(1, 0.69, 0.87)
 	love.graphics.setBlendMode("add")
-	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
+	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 	love.graphics.setBlendMode("alpha")
 end
 

@@ -183,7 +183,7 @@ function SongSelect:createHeader()
 		align = 0.5
 	}), "44%")
 
-	left:add(Image(Resources.atlas, Resources.quads.rizu_small))
+	left:add(Image(Resources.sprites.rizu_small))
 	left:add(Label({
 		font_name = "regular",
 		font_size = 24,
@@ -264,14 +264,14 @@ function SongSelect:createSidebar()
 	})):anchorFill(0, 0, 0, 0)
 
 	buttons:addArray({
-		IconButton(Resources.quads.icon_folder),
-		IconButton(Resources.quads.icon_download),
+		IconButton(Resources.sprites.icon_folder),
+		IconButton(Resources.sprites.icon_download),
 		Rectangle(Colors.outline):setSize(48, 2),
-		IconButton(Resources.quads.icon_gear),
-		IconButton(Resources.quads.icon_sparkles, function() end),
-		IconButton(Resources.quads.icon_funnel, function() end),
-		IconButton(Resources.quads.icon_keyboard, function() end),
-		IconButton(Resources.quads.icon_palette, function() end)
+		IconButton(Resources.sprites.icon_gear),
+		IconButton(Resources.sprites.icon_sparkles, function() end),
+		IconButton(Resources.sprites.icon_funnel, function() end),
+		IconButton(Resources.sprites.icon_keyboard, function() end),
+		IconButton(Resources.sprites.icon_palette, function() end)
 	})
 end
 

@@ -97,7 +97,7 @@ function BackgroundPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.artist_y = self.height - self.artist_font:getHeight() - 20
 	self.title_y = self.artist_y - self.title_font:getHeight()
 
-	local _, _, overlay_width, overlay_height = Resources.quads.select_bg_overlay:getViewport()
+	local overlay_width, overlay_height = Resources.sprites.select_bg_overlay:getDimensions()
 	self.bg_overlay_sx = self.width / overlay_width
 	self.bg_overlay_sy = self.height / overlay_height
 
@@ -157,8 +157,8 @@ function BackgroundPanel:drawBackground()
 
 	lg.setShader(self.bg_shader)
 	lg.draw(self.preview_canvas)
-	lg.draw(Resources.atlas, Resources.quads.select_bg_overlay, 0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
 	lg.setShader()
+	Resources.sprites.select_bg_overlay:draw(0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
 end
 
 function BackgroundPanel:draw()
@@ -178,8 +178,8 @@ function BackgroundPanel:draw()
 	lg.setScissor()
 
 	if self.ranked then
-		local _, _, tag_width, tag_height = Resources.quads.tag_ranked:getViewport()
-		lg.draw(Resources.atlas, Resources.quads.tag_ranked, self.width - tag_width - 20, self.height - tag_height - 20)
+		local tag_width, tag_height = Resources.sprites.tag_ranked:getDimensions()
+		Resources.sprites.tag_ranked:draw(self.width - tag_width - 20, self.height - tag_height - 20)
 	end
 end
 

@@ -9,16 +9,14 @@ local SCALE = 0.5
 
 function Loading:new()
 	View.new(self)
-	self.quad = Resources.quads.loading
-	local _, _, width, height = self.quad:getViewport()
+	self.sprite = Resources.sprites.loading
+	local width, height = self.sprite:getDimensions()
 	self:setSize(width * SCALE, height * SCALE)
 end
 
 function Loading:draw()
-	local _, _, width, height = self.quad:getViewport()
-	love.graphics.draw(
-		Resources.atlas,
-		self.quad,
+	local width, height = self.sprite:getDimensions()
+	self.sprite:draw(
 		self.width / 2,
 		self.height / 2,
 		love.timer.getTime(),

@@ -122,9 +122,9 @@ function Config:new(config)
 	self.scroll_view = ScrollView(content)
 	self.scroll_view:anchorFixed(35, 40, 820, 520)
 
-	local q = Resources.quads
+	local q = Resources.sprites
 
-	self.background = NineSliceUsage(Resources.atlas, {
+	self.background = NineSliceUsage({
 		q.nineslice_modal_lt,
 		q.nineslice_modal_t,
 		q.nineslice_modal_rt,

@@ -6,23 +6,21 @@ local Sounds = require("ui.Sounds")
 
 ---@class ui.views.IconButton : gui.View
 ---@operator call: ui.views.IconButton
----@field icon_quad love.Quad
+---@field icon gui.Sprite
 ---@field on_click fun()?
 local IconButton = View + {}
 
----@param icon_quad love.Quad
+---@param icon gui.Sprite
 ---@param on_click fun()?
-function IconButton:new(icon_quad, on_click)
+function IconButton:new(icon, on_click)
 	View.new(self)
-	self.atlas = Resources.atlas
-	self.background_quad = Resources.quads.background_icon_button
-	self.icon_quad = icon_quad
+	self.background = Resources.sprites.background_icon_button
+	self.icon = icon
 	self.on_click = on_click
 
-	local _, _, background_width, background_height = self.background_quad:getViewport()
-	local _, _, icon_width, icon_height = icon_quad:getViewport()
+	local background_width, background_height = self.background:getDimensions()
+	local icon_width, icon_height = icon:getDimensions()
 	self:setSize(background_width, background_height)
-
 	self.icon_x = (background_width - icon_width) / 2
 	self.icon_y = (background_height - icon_height) / 2
 	self.handles_mouse_input = true
@@ -49,9 +47,9 @@ function IconButton:draw()
 	local bg = self.mouse_over and Colors.accent or Colors.elements
 	Painter.snapToPixel()
 	Painter.setColorTable(bg)
-	love.graphics.draw(self.atlas, self.background_quad)
+	self.background:draw()
 	Painter.setColorTable(Colors.text)
-	love.graphics.draw(self.atlas, self.icon_quad, self.icon_x, self.icon_y)
+	self.icon:draw(self.icon_x, self.icon_y)
 end
 
 return IconButton

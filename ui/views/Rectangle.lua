@@ -15,7 +15,7 @@ end
 
 function Rectangle:draw()
 	Painter.setColorTable(self.color)
-	love.graphics.draw(Resources.atlas, Resources.quads.pixel, 0, 0, 0, self.width, self.height)
+	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 end
 
 return Rectangle

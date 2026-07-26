@@ -2,6 +2,7 @@ local View = require("gui.View")
 local SpringValue = require("gui.anim.SpringValue")
 local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
+local SpriteBatch = require("gui.SpriteBatch")
 local Colors = require("ui.Colors")
 local Color = require("ui.Color")
 local Sounds = require("ui.Sounds")
@@ -16,11 +17,11 @@ local Sounds = require("ui.Sounds")
 ---@class ui.screens.song_select.ChartGrid : gui.View
 ---@operator call: ui.screens.song_select.ChartGrid
 ---@field items ui.screens.song_select.ChartGrid.Item[]
----@field cap love.Quad
----@field body love.Quad
----@field stroke_left love.Quad
----@field stroke_middle love.Quad
----@field stroke_right love.Quad
+---@field cap gui.Sprite
+---@field body gui.Sprite
+---@field stroke_left gui.Sprite
+---@field stroke_middle gui.Sprite
+---@field stroke_right gui.Sprite
 ---@field cap_w number
 ---@field body_w number
 ---@field stroke_left_w number
@@ -46,7 +47,7 @@ function ChartGrid:new(chart_selector)
 	self.items = {}
 	self.meta_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
 	self.names_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24)) ---@type love.Text
-	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
+	self.batch = SpriteBatch(Resources.sprites.grid_item_body)
 	self.scroll_spring = SpringValue({stiffness = 480, damping = 48})
 	self.scroll_offset = 0
 	self.scrollbar_color = {Colors.text[1], Colors.text[2], Colors.text[3], 0.25}
@@ -55,16 +56,16 @@ function ChartGrid:new(chart_selector)
 	self.handles_keyboard_input = true
 	self:setClip(true)
 
-	self.cap = Resources.quads.grid_item_cap_right
-	self.body = Resources.quads.grid_item_body
-	self.stroke_left = Resources.quads.grid_item_stroke_left
-	self.stroke_middle = Resources.quads.grid_item_stroke_middle
-	self.stroke_right = Resources.quads.grid_item_stroke_right
-	self.cap_w = Painter.getQuadWidth(self.cap)
-	self.body_w = Painter.getQuadWidth(self.body)
-	self.stroke_left_w = Painter.getQuadWidth(self.stroke_left)
-	self.stroke_middle_w = Painter.getQuadWidth(self.stroke_middle)
-	self.stroke_right_w = Painter.getQuadWidth(self.stroke_right)
+	self.cap = Resources.sprites.grid_item_cap_right
+	self.body = Resources.sprites.grid_item_body
+	self.stroke_left = Resources.sprites.grid_item_stroke_left
+	self.stroke_middle = Resources.sprites.grid_item_stroke_middle
+	self.stroke_right = Resources.sprites.grid_item_stroke_right
+	self.cap_w = self.cap:getWidth()
+	self.body_w = self.body:getWidth()
+	self.stroke_left_w = self.stroke_left:getWidth()
+	self.stroke_middle_w = self.stroke_middle:getWidth()
+	self.stroke_right_w = self.stroke_right:getWidth()
 end
 
 function ChartGrid:load() end
@@ -244,7 +245,7 @@ end
 
 function ChartGrid:draw()
 	Painter.setColorRgb(1, 1, 1)
-	lg.draw(self.batch)
+	self.batch:draw()
 	lg.draw(self.meta_batch)
 	lg.draw(self.names_batch)
 	self:drawScrollbar()

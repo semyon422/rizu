@@ -17,13 +17,11 @@ function TimeRate:new(time_rate_model, modifier_select_model)
 
 	self.time_rate_model = time_rate_model
 	self.modifier_select_model = modifier_select_model
-	self.circle_quad = Resources.quads.rate_circle
-	self.thumb_quad = Resources.quads.rate_thumb
+	self.circle = Resources.sprites.rate_circle
+	self.thumb = Resources.sprites.rate_thumb
 
-	self.circle_w = Painter.getQuadWidth(self.circle_quad)
-	self.circle_h = Painter.getQuadHeight(self.circle_quad)
-	self.thumb_w = Painter.getQuadWidth(self.thumb_quad)
-	self.thumb_h = Painter.getQuadHeight(self.thumb_quad)
+	self.circle_w, self.circle_h = self.circle:getDimensions()
+	self.thumb_w, self.thumb_h = self.thumb:getDimensions()
 	self.font = Resources.getFont("bold", 24)
 
 	self:setSize(140, 50)
@@ -59,12 +57,10 @@ function TimeRate:draw()
 	local angle = normalized * math.pi * 2
 
 	Painter.setColorTable(Colors.elements)
-	love.graphics.draw(Resources.atlas, Resources.quads.time_rate_bg)
+	Resources.sprites.time_rate_bg:draw()
 	Painter.setColorRgb(1, 1, 1)
-	love.graphics.draw(Resources.atlas, self.circle_quad, cx, cy)
-	love.graphics.draw(
-		Resources.atlas,
-		self.thumb_quad,
+	self.circle:draw(cx, cy)
+	self.thumb:draw(
 		cx + math.sin(angle) * self.orbit_r + self.circle_w / 2,
 		cy - math.cos(angle) * self.orbit_r + self.circle_h / 2,
 		0,

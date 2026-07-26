@@ -5,8 +5,8 @@ local Path = require("Path")
 ---@alias ui.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
 
 ---@class ui.Resources
----@field atlas love.Image
----@field quads {[string]: love.Quad}
+---@field atlases love.Image[]
+---@field sprites {[string]: gui.Sprite}
 ---@field dpi number
 ---@field fonts {[string]: love.Font}
 local Resources = {}
@@ -17,6 +17,7 @@ Resources.ttf_font_paths = {
 	bold = "resources/fonts/Rubik/Rubik-Bold.ttf",
 	cjk_regular = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Regular.ttf",
 	cjk_bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
+	outline_regular = "resources/fonts/Rubik/RubikRegularOutline.fnt"
 }
 
 Resources.images_dir = "resources/yi/batch"
@@ -42,14 +43,11 @@ function Resources.load()
 	t.pixel = pixel
 
 	local packer = ImageAtlasPacker()
-	local atlas_image_data, quads = packer:pack(t)
-	Resources.atlas = love.graphics.newImage(atlas_image_data)
-	Resources.atlas:setWrap("clamp", "clamp")
-	Resources.quads = quads
+	Resources.atlases, Resources.sprites = packer:pack(t)
 
-	setmetatable(Resources.quads, {
-		__index = function(_self, k)
-			assert(rawget(_self, k), k)
+	setmetatable(Resources.sprites, {
+		__index = function(_self, key)
+			error(("sprite `%s` does not exist"):format(key), 2)
 		end
 	})
 end
@@ -80,9 +78,14 @@ function Resources.getFont(name, size)
 
 	if not Resources.fonts[key] then
 		local path = Resources.ttf_font_paths[name]
-		local object = love.graphics.newFont(path, size)
-		local fallback = love.graphics.newFont(Resources.ttf_font_fallback_path, size)
-		object:setFallbacks(fallback)
+		local object
+		if name == "outline_regular" then
+			object = love.graphics.newFont(path)
+		else
+			object = love.graphics.newFont(path, size)
+			local fallback = love.graphics.newFont(Resources.ttf_font_fallback_path, size)
+			object:setFallbacks(fallback)
+		end
 		Resources.fonts[key] = object
 	end
 

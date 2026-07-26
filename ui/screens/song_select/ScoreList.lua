@@ -4,6 +4,7 @@ local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
+local SpriteBatch = require("gui.SpriteBatch")
 local time_util = require("time_util")
 
 ---@class ui.screens.song_select.ScoreList : gui.View
@@ -27,7 +28,7 @@ function ScoreList:new(score_selector, on_score_selected)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self:setClip(true)
-	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
+	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
 	self.last_key_press = -math.huge
@@ -40,8 +41,8 @@ function ScoreList:load() end
 
 function ScoreList:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.item_height = 76
-	self.cap_left_width = Painter.getQuadWidth(Resources.quads.list_item_cap_left)
-	self.cap_right_width = Painter.getQuadWidth(Resources.quads.list_item_cap_right)
+	self.cap_left_width = Resources.sprites.list_item_cap_left:getWidth()
+	self.cap_right_width = Resources.sprites.list_item_cap_right:getWidth()
 	self.mid_width = self.width - self.cap_left_width - self.cap_right_width
 end
 
@@ -188,16 +189,16 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	p = ease_out_cubic(p)
 
 	self.batch:setColor(Colors.panel[1], Colors.panel[2], Colors.panel[3], p)
-	self.batch:add(Resources.quads.list_item_cap_left, 0, y, 0)
-	self.batch:add(Resources.quads.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
-	self.batch:add(Resources.quads.list_item_cap_right, self.width - self.cap_right_width, y, 0)
+	self.batch:add(Resources.sprites.list_item_cap_left, 0, y, 0)
+	self.batch:add(Resources.sprites.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
+	self.batch:add(Resources.sprites.list_item_cap_right, self.width - self.cap_right_width, y, 0)
 
 	local a = ((is_selected or is_hovered) and 0.6 or 0.2) * p
 	self.batch:setColor(item.color[1], item.color[2], item.color[3], a)
-	self.batch:add(Resources.quads.score_grade_gradient, 0, y)
+	self.batch:add(Resources.sprites.score_grade_gradient, 0, y)
 
 	self.batch:setColor(1, 1, 1, p)
-	self.batch:add(Resources.quads.avatar, 6, y + 6)
+	self.batch:add(Resources.sprites.avatar, 6, y + 6)
 
 	copy_color_to_cs(Colors.text)
 	set_cs_alpha(p)
@@ -269,12 +270,10 @@ local lg = love.graphics
 function ScoreList:draw()
 
 	if self.no_records then
-		local w = Painter.getQuadWidth(Resources.quads.no_records_set)
-		local h = Painter.getQuadHeight(Resources.quads.no_records_set)
+		local w = Resources.sprites.no_records_set:getWidth()
+		local h = Resources.sprites.no_records_set:getHeight()
 		Painter.setOpacity(ease_out_cubic(self.no_records_t))
-		lg.draw(
-			Resources.atlas,
-			Resources.quads.no_records_set,
+		Resources.sprites.no_records_set:draw(
 			self.width / 2,
 			self.height / 2,
 			0,
@@ -289,7 +288,7 @@ function ScoreList:draw()
 	Painter.setColorRgb(1, 1, 1)
 	Painter.snapToPixel()
 
-	lg.draw(self.batch)
+	self.batch:draw()
 	lg.draw(self.text_batch16)
 	lg.draw(self.text_batch24)
 end

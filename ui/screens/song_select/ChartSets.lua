@@ -3,6 +3,7 @@ local SpringValue = require("gui.anim.SpringValue")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
+local SpriteBatch = require("gui.SpriteBatch")
 local Sounds = require("ui.Sounds")
 
 ---@class ui.screens.song_select.ChartSets : gui.View
@@ -29,7 +30,7 @@ function ChartSets:new(chartSelector, on_selected)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self:setClip(true)
-	self.batch = love.graphics.newSpriteBatch(Resources.atlas)
+	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
 	self.title_batch = love.graphics.newTextBatch(Resources.getFont("cjk_bold", 24))
 	self.artist_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24))
 	self.scrollbar_color = {Colors.text[1], Colors.text[2], Colors.text[3], 0.25}
@@ -40,13 +41,13 @@ function ChartSets:load() end
 
 function ChartSets:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.item_height = ITEM_HEIGHT
-	self.cap_left_width = Painter.getQuadWidth(Resources.quads.list_item_cap_left)
-	self.cap_right_width = Painter.getQuadWidth(Resources.quads.list_item_cap_right)
+	self.cap_left_width = Resources.sprites.list_item_cap_left:getWidth()
+	self.cap_right_width = Resources.sprites.list_item_cap_right:getWidth()
 	self.mid_width = self.width - self.cap_left_width - self.cap_right_width
-	self.stroke_left_width = Painter.getQuadWidth(Resources.quads.list_item_stroke_cap_left)
-	self.stroke_right_width = Painter.getQuadWidth(Resources.quads.list_item_stroke_cap_right)
-	self.stroke_height = Painter.getQuadHeight(Resources.quads.list_item_stroke_cap_left)
-	local stroke_mid_width = Painter.getQuadWidth(Resources.quads.list_item_stroke_cap_middle)
+	self.stroke_left_width = Resources.sprites.list_item_stroke_cap_left:getWidth()
+	self.stroke_right_width = Resources.sprites.list_item_stroke_cap_right:getWidth()
+	self.stroke_height = Resources.sprites.list_item_stroke_cap_left:getHeight()
+	local stroke_mid_width = Resources.sprites.list_item_stroke_cap_middle:getWidth()
 	self.stroke_mid_scale = (self.width - self.stroke_left_width - self.stroke_right_width) / stroke_mid_width
 	self.scroll_spring:snap(self.chartSelector.state:getPrimary().index * ITEM_HEIGHT)
 end
@@ -147,20 +148,20 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	else
 		self.batch:setColor(panel_color)
 	end
-	self.batch:add(Resources.quads.list_item_cap_left, 0, y)
-	self.batch:add(Resources.quads.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
-	self.batch:add(Resources.quads.list_item_cap_right, self.width - self.cap_right_width, y)
+	self.batch:add(Resources.sprites.list_item_cap_left, 0, y)
+	self.batch:add(Resources.sprites.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
+	self.batch:add(Resources.sprites.list_item_cap_right, self.width - self.cap_right_width, y)
 
 	if is_selected then
 		local sy = y
 		self.batch:setColor(Colors.accent)
-		self.batch:add(Resources.quads.list_item_stroke_cap_left, 0, sy)
+		self.batch:add(Resources.sprites.list_item_stroke_cap_left, 0, sy)
 		self.batch:add(
-			Resources.quads.list_item_stroke_cap_middle,
+			Resources.sprites.list_item_stroke_cap_middle,
 			self.stroke_left_width, sy, 0,
 			self.stroke_mid_scale, 1
 		)
-		self.batch:add(Resources.quads.list_item_stroke_cap_right, self.width - self.stroke_right_width, sy)
+		self.batch:add(Resources.sprites.list_item_stroke_cap_right, self.width - self.stroke_right_width, sy)
 	end
 
 	copy_color_to_cs(Colors.text)
@@ -239,7 +240,7 @@ function ChartSets:drawScrollbar()
 end
 
 function ChartSets:draw()
-	lg.draw(self.batch)
+	self.batch:draw()
 	Painter.snapToPixel()
 	lg.draw(self.title_batch)
 	lg.draw(self.artist_batch)

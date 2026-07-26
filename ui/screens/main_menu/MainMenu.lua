@@ -94,7 +94,7 @@ function MainMenu:createButtons()
 end
 
 function MainMenu:createLogo()
-	local logo = Image(Resources.atlas, Resources.quads.rizu)
+	local logo = Image(Resources.sprites.rizu)
 	self.logo = logo
 	self.logo:setAlignment(0.75, 0.5)
 	self.logo:setScale(0.8, 0.8)

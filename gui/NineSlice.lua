@@ -8,12 +8,11 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 ---@field color gui.Color
 local NineSlice = View + {}
 
----@param texture love.Texture
----@param quads gui.NineSliceQuads Quads ordered left-to-right, top-to-bottom.
+---@param sprites gui.NineSliceSprites Sprites ordered left-to-right, top-to-bottom.
 ---@param color gui.Color?
-function NineSlice:new(texture, quads, color)
+function NineSlice:new(sprites, color)
 	View.new(self)
-	self.usage = NineSliceUsage(texture, quads)
+	self.usage = NineSliceUsage(sprites)
 	self.color = color or {1, 1, 1, 1}
 	self:setSize(self.usage.width, self.usage.height)
 end

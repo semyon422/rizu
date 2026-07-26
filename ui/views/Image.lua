@@ -5,42 +5,35 @@ local Painter = require("gui.Painter")
 
 ---@class ui.views.Image : gui.View
 ---@operator call: ui.views.Image
----@field texture love.Texture
----@field quad love.Quad
+---@field sprite gui.Sprite
 ---@field mode ui.views.ImageMode
 ---@field image_width number
 ---@field image_height number
 local Image = View + {}
 
----@param texture love.Texture
----@param quad love.Quad
+---@param sprite gui.Sprite
 ---@param mode ui.views.ImageMode?
 ---@param color gui.Color?
-function Image:new(texture, quad, mode, color)
+function Image:new(sprite, mode, color)
 	View.new(self)
-	self.texture = texture
-	self.quad = quad
+	self.sprite = sprite
 	self.mode = mode or "native"
 	self.color = color or {1, 1, 1, 1}
 	assert(self.mode == "native" or self.mode == "fit", "invalid image mode")
 
-	local _, _, width, height = self.quad:getViewport()
-	self.image_width = width
-	self.image_height = height
+	self.image_width, self.image_height = sprite:getDimensions()
 	if self.mode == "native" then
-		self:setSize(width, height)
+		self:setSize(self.image_width, self.image_height)
 	end
 end
-
-local lg = love.graphics
 
 function Image:draw()
 	Painter.setColorTable(self.color)
 	if self.mode == "fit" then
-		lg.draw(self.texture, self.quad, 0, 0, 0, self.width / self.image_width, self.height / self.image_height)
+		self.sprite:draw(0, 0, 0, self.width / self.image_width, self.height / self.image_height)
 		return
 	end
-	lg.draw(self.texture, self.quad)
+	self.sprite:draw()
 end
 
 return Image
