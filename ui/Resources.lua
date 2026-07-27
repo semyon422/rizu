@@ -2,6 +2,7 @@ local ImageAtlasPacker = require("gui.packer.ImageAtlasPacker")
 local Path = require("Path")
 
 ---@alias ui.FontName string
+---@alias ui.BMFontName string
 ---@alias ui.FontSize 16 | 24 | 36 | 46 | 58 | 72 | 128
 
 ---@class ui.Resources
@@ -9,6 +10,7 @@ local Path = require("Path")
 ---@field sprites {[string]: gui.Sprite}
 ---@field dpi number
 ---@field fonts {[string]: love.Font}
+---@field bmfonts {[string]: love.Font}
 local Resources = {}
 
 Resources.ttf_font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
@@ -17,11 +19,14 @@ Resources.ttf_font_paths = {
 	bold = "resources/fonts/Rubik/Rubik-Bold.ttf",
 	cjk_regular = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Regular.ttf",
 	cjk_bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
+}
+Resources.bmfont_paths = {
 	outline_regular = "resources/fonts/Rubik/RubikRegularOutline.fnt"
 }
 
 Resources.images_dir = "resources/yi/batch"
 Resources.fonts = {}
+Resources.bmfonts = {}
 Resources.font_scale = 1
 Resources.ui_scale = 1
 
@@ -77,19 +82,24 @@ function Resources.getFont(name, size)
 	local key = name .. tostring(size)
 
 	if not Resources.fonts[key] then
-		local path = Resources.ttf_font_paths[name]
-		local object
-		if name == "outline_regular" then
-			object = love.graphics.newFont(path)
-		else
-			object = love.graphics.newFont(path, size)
-			local fallback = love.graphics.newFont(Resources.ttf_font_fallback_path, size)
-			object:setFallbacks(fallback)
-		end
+		local path = assert(Resources.ttf_font_paths[name], ("TTF font `%s` does not exist"):format(name))
+		local object = love.graphics.newFont(path, size)
+		local fallback = love.graphics.newFont(Resources.ttf_font_fallback_path, size)
+		object:setFallbacks(fallback)
 		Resources.fonts[key] = object
 	end
 
 	return Resources.fonts[key]
+end
+
+---@param name ui.BMFontName
+---@return love.Font
+function Resources.getBMFont(name)
+	if not Resources.bmfonts[name] then
+		local path = assert(Resources.bmfont_paths[name], ("BMFont `%s` does not exist"):format(name))
+		Resources.bmfonts[name] = love.graphics.newFont(path)
+	end
+	return Resources.bmfonts[name]
 end
 
 return Resources

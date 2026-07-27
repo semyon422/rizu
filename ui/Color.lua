@@ -129,6 +129,21 @@ function Color.convertDiffToHue(x)
 	end
 end
 
+---@param diff_type "enps_diff" | "osu_diff" | "msd_diff" | "user_diff"
+---@param value number
+---@return gui.Color
+function Color.diffToColor(diff_type, value, out)
+	if diff_type == "enps_diff" then
+		return Color.enpsToColor(value, out)
+	elseif diff_type == "osu_diff" then
+		return Color.osuToColor(value, out)
+	elseif diff_type == "msd_diff" then
+		return Color.msdToColor(value, out)
+	else
+		return out
+	end
+end
+
 ---@param diff number
 ---@param out gui.Color
 ---@return gui.Color

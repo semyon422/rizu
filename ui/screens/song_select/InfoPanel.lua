@@ -3,6 +3,7 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Color = require("ui.Color")
 local Painter = require("gui.Painter")
+local Msd = require("ui.Msd")
 
 ---@class ui.screens.song_select.InfoPanel : gui.View
 ---@operator call: ui.screens.song_select.InfoPanel
@@ -20,37 +21,6 @@ function InfoPanel:new()
 end
 
 function InfoPanel:load() end
-
----@param data {[string]: number}
----@return string
----@return string?
-local function getTopPatterns(data)
-	local max_v = -math.huge
-	local max_k ---@type string
-
-	for k, v in pairs(data) do
-		if k ~= "overall" then
-			if v > max_v then
-				max_v = v
-				max_k = k
-			end
-		end
-	end
-
-	local second_v = -math.huge
-	local second_k ---@type string?
-
-	for k, v in pairs(data) do
-		if k ~= "overall" and k ~= max_k then
-			if v > max_v * 0.93 and v > second_v then
-				second_v = v
-				second_k = k
-			end
-		end
-	end
-
-	return max_k, second_k
-end
 
 local cs = {{1, 1, 1, 1}, ""}
 
@@ -98,7 +68,8 @@ function InfoPanel:bind(chartview)
 	cs[2] = ("%i%%"):format(ln_percent * 100)
 	tb24:add(cs, 355, 84)
 
-	local p1, p2 = getTopPatterns(chartview.msd_diff_data)
+	local msd = Msd(chartview.msd_diff_data, chartview.msd_diff_rates)
+	local p1, p2 = msd:getTopPatterns(chartview.rate)
 
 	cs[1] = Colors.text
 
