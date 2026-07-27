@@ -303,6 +303,7 @@ function Inputs:handleMouseUp(event, modifiers)
 		local de = DragEndEvent(modifiers)
 		de.target = self.last_drag_event.target
 		de.current_target = self.last_drag_event.current_target or de.target
+		de.button = event[3]
 		de.x = self.mouse_x
 		de.y = self.mouse_y
 		de.time = event.time or love.timer.getTime()
@@ -359,7 +360,10 @@ function Inputs:handleMouseMove(modifiers, event_time)
 		if dx * dx + dy * dy < self.DRAG_START_THRESHOLD * self.DRAG_START_THRESHOLD then
 			return
 		end
-		local capture = self.last_mouse_down_event.current_target or self.last_mouse_down_event.target
+		local capture = assert(
+			self.last_mouse_down_event.current_target or self.last_mouse_down_event.target,
+			"mouse-down event must have a capture target"
+		)
 		local wanted_axis = math.abs(dx) > math.abs(dy) and "horizontal" or "vertical"
 		if not capture.drag_axis or capture.drag_axis ~= wanted_axis then
 			local fallback ---@type gui.View?

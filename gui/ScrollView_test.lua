@@ -232,6 +232,24 @@ function test.drag_release_flings(t)
 end
 
 ---@param t testing.T
+function test.drag_release_after_stopping_does_not_fling(t)
+	local screen, scroll_view = createScrollView()
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1, time = 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 25, 20, 0, -20, time = 1.01}, default_modifiers)
+	inputs:receive({name = "mousereleased", 25, 20, 1, time = 1.2}, default_modifiers)
+	local release_position = scroll_view.scroll_current
+	scroll_view:update(0.1)
+
+	t:eq(scroll_view.scroll_current, release_position)
+	t:eq(scroll_view.scroll_velocity, 0)
+end
+
+---@param t testing.T
 function test.drag_distance_uses_scroll_view_local_coordinates(t)
 	local screen, scroll_view = createScrollView()
 	scroll_view:setScale(1, 2)

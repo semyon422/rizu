@@ -21,6 +21,7 @@ ScrollView.SCROLL_DECAY = 0.01
 ScrollView.SCROLL_STEP = 64
 ScrollView.SCROLL_EPSILON = 0.1
 ScrollView.FLING_DECAY = 4
+ScrollView.FLING_IDLE_DECAY = -math.log(0.95) * 1000
 ScrollView.FLING_VELOCITY_EPSILON = 5
 ScrollView.VELOCITY_RESPONSE = 20
 ScrollView.FLING_STALE_TIME = 0.066
@@ -211,7 +212,10 @@ function ScrollView:onDragEnd(e)
 	self.drag_active = false
 	local idle_time = e.time - self.last_drag_time
 	if idle_time > self.FLING_STALE_TIME then
-		self.scroll_velocity = self.scroll_velocity * math.exp(-self.FLING_DECAY * (idle_time - self.FLING_STALE_TIME))
+		self.scroll_velocity = self.scroll_velocity * math.exp(-self.FLING_IDLE_DECAY * (idle_time - self.FLING_STALE_TIME))
+	end
+	if math.abs(self.scroll_velocity) < self.FLING_VELOCITY_EPSILON then
+		self.scroll_velocity = 0
 	end
 	return true
 end
