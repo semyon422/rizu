@@ -1,4 +1,4 @@
-local BaseUserInterface = require("gui.UserInterface")
+local RizuUserInterface = require("rizu.app.UserInterface")
 local Resources = require("ui.Resources")
 local MainMenu = require("ui.screens.main_menu.MainMenu")
 local SongSelect = require("ui.screens.song_select.SongSelect")
@@ -20,7 +20,7 @@ local Colors = require("ui.Colors")
 -- scales to fit the actual window height.
 local TARGET_HEIGHT = 1080
 
----@class ui.UserInterface : gui.UserInterface
+---@class ui.UserInterface : rizu.app.UserInterface
 ---@operator call: ui.UserInterface
 ---@field main_menu ui.screens.main_menu.MainMenu
 ---@field song_select ui.screens.song_select.SongSelect
@@ -39,13 +39,15 @@ local TARGET_HEIGHT = 1080
 ---@field command_registry ui.command_palette.Registry
 ---@field private prev_w number
 ---@field private prev_h number
-local UserInterface = BaseUserInterface + {}
+local UserInterface = RizuUserInterface + {}
+
+UserInterface.name = "default_user_interface_2026"
+UserInterface.display_name = "Default User Interface 2026"
 
 ---@param game sphere.GameController
----@param _directory string
-function UserInterface:new(game, _directory)
-	BaseUserInterface.new(self, ScreenManager())
-	self.game = game
+---@param mount_path string
+function UserInterface:new(game, mount_path)
+	RizuUserInterface.new(self, game, mount_path, ScreenManager())
 	self.command_registry = Registry()
 end
 
@@ -95,12 +97,12 @@ function UserInterface:update(dt)
 		self:applyViewport(ww, wh)
 	end
 
-	BaseUserInterface.update(self, dt)
+	RizuUserInterface.update(self, dt)
 end
 
 function UserInterface:draw()
 	love.graphics.clear(Colors.background)
-	BaseUserInterface.draw(self)
+	RizuUserInterface.draw(self)
 end
 
 ---@private

@@ -39,7 +39,7 @@ local PreviewModel = require("rizu.preview.PreviewModel")
 
 local Persistence = require("sphere.persistence.Persistence")
 local App = require("rizu.app.App")
-local UserInterfaceModel = require("sphere.models.UserInterfaceModel")
+local UserInterfaceManager = require("rizu.app.UserInterfaceManager")
 
 local PackageManager = require("rizu.pkg.PackageManager")
 local SeaClient = require("rizu.online.SeaClient")
@@ -120,7 +120,7 @@ function GameController:new()
 	self.persistence = Persistence()
 	self.settings = assert(self.persistence.configManager:get("settings"))
 	self.app = App(self.persistence)
-	self.uiModel = UserInterfaceModel(self)
+	self.user_interface_manager = UserInterfaceManager(self)
 
 	self.library = self.persistence.library
 	self.dlcManager = DlcManager(self.library, self.network)
@@ -352,7 +352,7 @@ function GameController:load()
 	end
 	self.app:load()
 
-	self.uiModel:load()
+	self.user_interface_manager:load()
 
 	local configModel = self.configModel
 
@@ -439,7 +439,7 @@ function GameController:recreateRhythmEngine()
 	self.pauseModel:setRhythmEngine(self.rhythm_engine)
 end
 
----@param ui sphere.IUserInterface
+---@param ui gui.UserInterface
 function GameController:setUI(ui)
 	if self.ui then
 		self.ui:unload()

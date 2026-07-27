@@ -56,6 +56,8 @@ function UserInterface:setScreen(screen, keep_previous_visible)
 	return self.screen_manager:setScreen(screen, keep_previous_visible)
 end
 
+function UserInterface:load() end
+
 function UserInterface:unload()
 	self.screen_manager:unload()
 end
