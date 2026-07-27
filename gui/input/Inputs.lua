@@ -29,6 +29,7 @@ local HoverLostEvent = require("gui.input.events.HoverLostEvent")
 ---@field mouse_hits gui.View[]
 ---@field focus_requesters gui.View[]
 ---@field last_mouse_down_event gui.MouseDownEvent?
+---@field released_press_target gui.View?
 ---@field focus_scopes gui.FocusScope[]
 local Inputs = class()
 
@@ -62,6 +63,7 @@ function Inputs:new()
 	self.mouse_hits = {}
 	self.focus_requesters = {}
 	self.focus_scopes = {}
+	self.released_press_target = nil
 end
 
 ---@param mouse_x number Global Mouse X position
@@ -108,6 +110,9 @@ function Inputs:clearSubtree(root)
 	end
 	if self.last_drag_event and contains(self.last_drag_event.target) then
 		self.last_drag_event = nil
+	end
+	if contains(self.released_press_target) then
+		self.released_press_target = nil
 	end
 	for i = #self.mouse_hits, 1, -1 do
 		if contains(self.mouse_hits[i]) then
@@ -230,6 +235,7 @@ function Inputs:handleMouseDown(event, modifiers)
 	e.time = event.time or love.timer.getTime()
 
 	local target, current_target, handled = self:dispatchMouseTargets(e)
+	self.released_press_target = nil
 	e.target = target
 	-- The view that handled MouseDown captures a future drag. Keep the
 	-- original hit as target until the drag threshold is crossed so clicks
@@ -317,7 +323,11 @@ function Inputs:handleMouseUp(event, modifiers)
 	e.target = pressed_target
 	e.current_target = pressed_target
 	self.last_mouse_down_event = nil
-	local handled = self:dispatchMouseEventToTarget(e)
+	local handled
+	if pressed_target ~= self.released_press_target then
+		handled = self:dispatchMouseEventToTarget(e)
+	end
+	self.released_press_target = nil
 	return pressed_target, pressed_target, e, handled
 end
 
@@ -334,8 +344,9 @@ end
 
 ---@private
 ---@param modifiers gui.ModifierKeys
+---@param event_time number
 ---@return gui.MouseEvent?
-function Inputs:handleMouseMove(modifiers)
+function Inputs:handleMouseMove(modifiers, event_time)
 	if not self.last_mouse_down_event then
 		return
 	end
@@ -351,17 +362,41 @@ function Inputs:handleMouseMove(modifiers)
 		local capture = self.last_mouse_down_event.current_target or self.last_mouse_down_event.target
 		local wanted_axis = math.abs(dx) > math.abs(dy) and "horizontal" or "vertical"
 		if not capture.drag_axis or capture.drag_axis ~= wanted_axis then
+			local fallback ---@type gui.View?
 			local view = self.last_mouse_down_event.target
 			while view do
-				if view.drag_axis == wanted_axis then
-					capture = view
-					break
+				if view.drag_axis then
+					fallback = fallback or view
+					if view.drag_axis == wanted_axis then
+						capture = view
+						break
+					end
 				end
 				view = view.parent
 			end
+			-- An axis-neutral pressed child does not own drag direction. If no
+			-- ancestor matches the initial movement, let the nearest axis owner
+			-- capture so a later change in direction continues the same drag.
+			if not capture.drag_axis and fallback then
+				capture = fallback
+			end
 		end
-		if self.last_mouse_down_event.target then
-			self.last_mouse_down_event.target.pressed = false
+		local pressed_target = self.last_mouse_down_event.target
+		if pressed_target then
+			pressed_target.pressed = false
+		end
+		-- Release a pressed child when drag arbitration transfers capture to an
+		-- ancestor. The capture owner must keep its normal release lifecycle.
+		if pressed_target and pressed_target ~= capture then
+			local mouse_up = MouseUpEvent(modifiers)
+			mouse_up.target = pressed_target
+			mouse_up.current_target = pressed_target
+			mouse_up.button = self.last_mouse_down_event.button
+			mouse_up.x = self.mouse_x
+			mouse_up.y = self.mouse_y
+			mouse_up.time = event_time
+			self:dispatchMouseEventToTarget(mouse_up)
+			self.released_press_target = pressed_target
 		end
 		-- Once this is a drag, only the capture owner matters. Retargeting the
 		-- stored press also prevents culling the original child during the drag
@@ -483,7 +518,7 @@ function Inputs:dispatchMouseEvent(event, modifiers)
 	elseif event.name == "wheelmoved" then
 		e = self:handleWheel(event, modifiers)
 	elseif event.name == "mousemoved" then
-		e = self:handleMouseMove(modifiers)
+		e = self:handleMouseMove(modifiers, event.time or love.timer.getTime())
 	end
 
 	if not e then

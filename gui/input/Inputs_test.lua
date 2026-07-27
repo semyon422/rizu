@@ -230,6 +230,32 @@ function test.drag_suppresses_click(t)
 end
 
 ---@param t testing.T
+function test.drag_releases_pressed_view_when_drag_starts(t)
+	local icon = create_view(100, 100)
+	local scroller = create_view(100, 100)
+	local inputs = Inputs()
+	local events = {}
+	icon.onMouseDown = function() table.insert(events, "down") end
+	icon.onMouseUp = function() table.insert(events, "up") end
+	scroller.drag_axis = "vertical"
+	scroller.onDragStart = function() table.insert(events, "drag") end
+	icon.parent = scroller
+	table.insert(inputs.mouse_hits, icon)
+	table.insert(inputs.mouse_hits, scroller)
+	inputs.mouse_target = icon
+	inputs.mouse_x = 10
+	inputs.mouse_y = 10
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 10, 20, 0, 10}, default_modifiers)
+	t:tdeq(events, {"down", "up", "drag"})
+
+	inputs:receive({name = "mousereleased", 10, 20, 1}, default_modifiers)
+	t:tdeq(events, {"down", "up", "drag"})
+end
+
+---@param t testing.T
 function test.scrolling(t)
 	local scrollable = create_view(100, 100)
 	local inputs = Inputs()

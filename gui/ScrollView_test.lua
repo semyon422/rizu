@@ -164,6 +164,55 @@ function test.scroll_view_captures_vertical_drag_from_slider(t)
 end
 
 ---@param t testing.T
+function test.scroll_view_captures_vertical_drag_from_interactive_child(t)
+	local screen, scroll_view, rows = createScrollView()
+	local mouse_up_count = 0
+	rows[1].onMouseDown = function()
+		return true
+	end
+	rows[1].onMouseUp = function()
+		mouse_up_count = mouse_up_count + 1
+		return true
+	end
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1, time = 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 25, 20, 0, -20, time = 1.1}, default_modifiers)
+
+	t:eq(mouse_up_count, 1)
+	t:eq(scroll_view.scroll_current, 20)
+	t:assert(scroll_view.drag_active)
+
+	inputs:receive({name = "mousereleased", 25, 20, 1, time = 1.1}, default_modifiers)
+	local release_position = scroll_view.scroll_current
+	scroll_view:update(0.1)
+	t:assert(scroll_view.scroll_current > release_position)
+end
+
+---@param t testing.T
+function test.axis_neutral_child_does_not_block_scroll_after_horizontal_start(t)
+	local screen, scroll_view, rows = createScrollView()
+	rows[1].onMouseDown = function()
+		return true
+	end
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1, time = 1}, default_modifiers)
+	inputs.mouse_x = 35
+	inputs:receive({name = "mousemoved", 35, 40, 10, 0, time = 1.05}, default_modifiers)
+	t:assert(scroll_view.drag_active)
+
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 35, 20, 0, -20, time = 1.1}, default_modifiers)
+	t:eq(scroll_view.scroll_current, 20)
+end
+
+---@param t testing.T
 function test.drag_release_flings(t)
 	local screen, scroll_view = createScrollView()
 	local inputs = Inputs()
@@ -173,6 +222,7 @@ function test.drag_release_flings(t)
 	inputs:receive({name = "mousepressed", 25, 40, 1, time = 1}, default_modifiers)
 	inputs.mouse_y = 20
 	inputs:receive({name = "mousemoved", 25, 20, 0, -20, time = 1.1}, default_modifiers)
+	t:assert(scroll_view.drag_active)
 	inputs:receive({name = "mousereleased", 25, 20, 1, time = 1.1}, default_modifiers)
 	local release_position = scroll_view.scroll_current
 	scroll_view:update(0.1)
