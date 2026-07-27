@@ -66,9 +66,13 @@ function test.creates_atlas_sprite(t)
 	love = old_love
 
 	t:eq(#atlases, 1)
+	t:eq(atlases[1]:getWidth(), 6)
+	t:eq(atlases[1]:getHeight(), 7)
 	t:assert(AtlasImage * sprites.a)
 	t:eq(sprites.a:getWidth(), 4)
 	t:eq(sprites.a:getHeight(), 5)
+	t:eq(sprites.a.quad.texture_width, 6)
+	t:eq(sprites.a.quad.texture_height, 7)
 end
 
 ---@param t testing.T
@@ -84,6 +88,10 @@ function test.creates_multiple_atlases(t)
 	love = old_love
 
 	t:eq(#atlases, 2)
+	for _, atlas in ipairs(atlases) do
+		t:eq(atlas:getWidth(), 8)
+		t:eq(atlas:getHeight(), 8)
+	end
 	t:assert(AtlasImage * sprites.a)
 	t:assert(AtlasImage * sprites.b)
 	t:ne(sprites.a.atlas, sprites.b.atlas)

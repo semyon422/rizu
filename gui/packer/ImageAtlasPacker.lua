@@ -125,10 +125,24 @@ end
 function ImageAtlasPacker:pack(image_datas)
 	local entries, standalone = self:buildEntries(image_datas)
 	local layer_count = self:placeEntries(entries)
+	---@type integer[]
+	local layer_widths = {}
+	---@type integer[]
+	local layer_heights = {}
+	for layer = 1, layer_count do
+		layer_widths[layer] = 0
+		layer_heights[layer] = 0
+	end
+	for _, entry in ipairs(entries) do
+		local layer = entry.layer
+		layer_widths[layer] = math.max(layer_widths[layer], entry.x + entry.width + self.border)
+		layer_heights[layer] = math.max(layer_heights[layer], entry.y + entry.height + self.border)
+	end
+
 	---@type love.ImageData[]
 	local layers = {}
 	for layer = 1, layer_count do
-		layers[layer] = love.image.newImageData(self.max_atlas_width, self.max_atlas_height)
+		layers[layer] = love.image.newImageData(layer_widths[layer], layer_heights[layer])
 	end
 	for _, entry in ipairs(entries) do
 		self:pasteEntry(layers[entry.layer], entry)
@@ -144,9 +158,10 @@ function ImageAtlasPacker:pack(image_datas)
 		atlases[layer] = atlas
 	end
 	for _, entry in ipairs(entries) do
+		local layer = entry.layer
 		local quad = love.graphics.newQuad(entry.x, entry.y, entry.width, entry.height,
-			self.max_atlas_width, self.max_atlas_height)
-		sprites[entry.name] = AtlasImage(atlases[entry.layer], quad)
+			layer_widths[layer], layer_heights[layer])
+		sprites[entry.name] = AtlasImage(atlases[layer], quad)
 	end
 
 	for _, entry in ipairs(standalone) do
