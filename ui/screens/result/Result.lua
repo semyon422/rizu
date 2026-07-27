@@ -1,6 +1,7 @@
 local Screen = require("gui.Screen")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
+local StackContainer = require("gui.layout.StackContainer")
 local Resources = require("ui.Resources")
 local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
@@ -57,12 +58,15 @@ function Result:new(ui)
 	bottom_left:fitContent()
 	bottom_left:setAlignment(0, 1)
 
-	self.ring = self.content:add(View()):setSize(500, 500) -- TODO: self.ring:fitContent() please
+	self.ring = self.content:add(StackContainer())
+
+	self.ring:add(Image(Resources.sprites.judge_segments_ring, nil, Colors.outline))
+		:setAlignment(0.5, 0.5)
 	self.ring:add(Image(Resources.sprites.judge_segments_bg, nil, Colors.panel))
 		:setOpacity(0.9)
-		:setAlignment(0.5, 0.5)
-	self.ring:add(Image(Resources.sprites.judge_segments_ring, nil, Colors.outline))
 	self.judge_segments = self.ring:add(JudgeSegments()):setAlignment(0.5, 0.5)
+
+	self.ring:fitContent()
 	self.ring:setAlignment(0.5, 0.5)
 
 	self.accuracy = self.ring:add(Label({
