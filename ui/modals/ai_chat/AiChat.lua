@@ -1,12 +1,12 @@
-local View = require("gui.View")
+local ModalView = require("ui.ModalView")
 local brand = require("brand")
-local Resources = require("yi.Resources")
-local Colors = require("yi.Colors")
+local Resources = require("ui.Resources")
+local Colors = require("ui.Colors")
 local utf8 = require("utf8")
 local utf8validate = require("utf8validate")
 
----@class yi.views.AiChatView : gui.View
----@operator call: yi.views.AiChatView
+---@class ui.modals.ai_chat.AiChat : ui.ModalView
+---@operator call: ui.modals.ai_chat.AiChat
 ---@field model rizu.ai.ChatModel
 ---@field input string
 ---@field scroll integer
@@ -14,7 +14,7 @@ local utf8validate = require("utf8validate")
 ---@field cached_wrap_width number?
 ---@field model_menu_open boolean
 ---@field model_menu_scroll integer
-local AiChatView = View + {}
+local AiChat = ModalView + {}
 
 local PADDING = 18
 local TITLE_HEIGHT = 48
@@ -29,12 +29,17 @@ local MODEL_ROW_HEIGHT = 30
 
 ---@param model rizu.ai.ChatModel
 ---@param on_close fun()
-function AiChatView:new(model, on_close)
-	View.new(self)
+function AiChat:new(model, on_close)
+	ModalView.new(self)
 	self.model = model
 	self.on_close = on_close
 	self:setSize(1000, 780)
+	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
+	self:setScale(0.95, 0.95)
+	self:setOpacity(0)
+	self:setVisible(false)
+	self:setClip(true)
 	self.handles_keyboard_input = true
 	self.handles_mouse_input = true
 	self.input = ""
@@ -46,14 +51,27 @@ function AiChatView:new(model, on_close)
 	self.model:onChanged(self)
 end
 
-function AiChatView:load()
-	local scale = self.ui_scale or 1
-	local width, height = love.graphics.getDimensions()
-	self.box:update(0, 0, width / scale, height / scale)
+function AiChat:unload()
+	self.model:offChanged(self)
+end
+
+function AiChat:show()
+	self:reset()
+	self:setVisible(true)
+	self:fadeIn(0.2, "OutCubic")
+	self:scaleTo(1, 1, 0.25, "OutQuint")
+end
+
+function AiChat:hide()
+	self.model:cancel()
+	self:scaleTo(0.95, 0.95, 0.18, "InCubic")
+	self:transformTo("opacity", 0, 0.15, "InCubic", function()
+		self:setVisible(false)
+	end)
 end
 
 ---@param event table
-function AiChatView:receive(event)
+function AiChat:receive(event)
 	if event.type == "chat_changed" then
 		self.cached_lines = nil
 		self.cached_wrap_width = nil
@@ -62,8 +80,8 @@ end
 
 ---@param e gui.MouseClickEvent
 ---@return true
-function AiChatView:onMouseClick(e)
-	local x, y = self.transform:inverseTransformPoint(e.x, e.y)
+function AiChat:onMouseClick(e)
+	local x, y = self.world_transform:inverseTransformPoint(e.x, e.y)
 	if self.model_menu_open and x >= MODEL_X and x <= MODEL_X + MODEL_WIDTH and y >= TITLE_HEIGHT then
 		local index = self.model_menu_scroll + math.floor((y - TITLE_HEIGHT) / MODEL_ROW_HEIGHT) + 1
 		if self.model:getModelOptions()[index] then self.model:selectModel(index) end
@@ -94,7 +112,7 @@ end
 
 ---@param e gui.ScrollEvent
 ---@return true
-function AiChatView:onScroll(e)
+function AiChat:onScroll(e)
 	if self.model_menu_open then
 		local max_rows = math.floor((self.height - TITLE_HEIGHT) / MODEL_ROW_HEIGHT)
 		local max_scroll = math.max(0, #self.model:getModelOptions() - max_rows)
@@ -105,7 +123,7 @@ function AiChatView:onScroll(e)
 	return true
 end
 
-function AiChatView:reset()
+function AiChat:reset()
 	self.input = ""
 	self.scroll = 0
 	self.model_menu_open = false
@@ -114,8 +132,14 @@ end
 
 ---@param e gui.KeyDownEvent
 ---@return true
-function AiChatView:onKeyDown(e)
-	if e.key == "backspace" then
+function AiChat:onKeyDown(e)
+	if e.key == "escape" then
+		if self.model.busy then
+			self.model:cancel()
+		else
+			self.on_close()
+		end
+	elseif e.key == "backspace" then
 		local byte_offset = utf8.offset(self.input, -1)
 		if byte_offset then
 			self.input = self.input:sub(1, byte_offset - 1)
@@ -145,13 +169,13 @@ end
 
 ---@param e gui.TextInputEvent
 ---@return true
-function AiChatView:onTextInput(e)
-	self.input = utf8validate(self.input .. e.key)
+function AiChat:onTextInput(e)
+	self.input = utf8validate(self.input .. (e.text or e.key or ""))
 	return true
 end
 
 ---@return {text: string, color: gui.Color}[]
-function AiChatView:getLines()
+function AiChat:getLines()
 	local font = Resources.getFont("regular", 20)
 	local wrap_width = self.width - PADDING * 2
 	if self.cached_lines and self.cached_wrap_width == wrap_width then
@@ -178,7 +202,7 @@ function AiChatView:getLines()
 	return lines
 end
 
-function AiChatView:draw()
+function AiChat:draw()
 	local font = Resources.getFont("regular", 20)
 	local small_font = Resources.getFont("regular", 16)
 	love.graphics.setColor(Colors.panel)
@@ -282,4 +306,4 @@ function AiChatView:draw()
 	end
 end
 
-return AiChatView
+return AiChat

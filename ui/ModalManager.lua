@@ -1,6 +1,7 @@
 local View = require("gui.View")
 local GlobalCommands = require("ui.command_palette.GlobalCommands")
 local PaletteState = require("ui.command_palette.PaletteState")
+local AiChat = require("ui.modals.ai_chat.AiChat")
 local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
@@ -10,6 +11,7 @@ local Config = require("ui.modals.config.Config")
 ---@operator call: ui.ModalManager
 ---@field ui ui.UserInterface
 ---@field palette ui.modals.command_palette.CommandPalette
+---@field ai_chat ui.modals.ai_chat.AiChat
 ---@field config ui.modals.config.Config
 ---@field active_view ui.ModalView?
 local ModalManager = View + {}
@@ -36,6 +38,9 @@ function ModalManager:new(ui)
 		self:hideModal()
 	end))
 	self.config = self:addModal(Config(ui.game.settings))
+	self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
+		self:hideModal(self.ai_chat)
+	end))
 	self:addModal(self.palette)
 end
 
@@ -118,6 +123,16 @@ end
 ---@return boolean detached
 function ModalManager:detachPalette()
 	return self:hideModal(self.palette)
+end
+
+---@return boolean attached
+function ModalManager:attachChat()
+	return self:showModal(self.ai_chat)
+end
+
+---@return boolean detached
+function ModalManager:detachChat()
+	return self:hideModal(self.ai_chat)
 end
 
 ---@return boolean attached

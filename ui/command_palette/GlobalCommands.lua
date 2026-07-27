@@ -25,7 +25,7 @@ function M.get(game, ui)
 			description = "Opens the local AI agent chat",
 			callback = function()
 				if ui and ui.modal_manager then
-					-- TODO
+					ui.modal_manager:attachChat()
 				end
 			end,
 		},
