@@ -12,6 +12,8 @@ local InfoPanel = require("ui.screens.song_select.InfoPanel")
 local GameplayModifiers = require("ui.screens.song_select.GameplayModifiers")
 local TimeRate = require("ui.screens.song_select.TimeRate")
 local FooterButton = require("ui.screens.song_select.FooterButton")
+local PlayerInfo = require("ui.views.PlayerInfo")
+local SessionInfo = require("ui.views.SessionInfo")
 local Image = require("ui.views.Image")
 local IconButton = require("ui.views.IconButton")
 local Label = require("ui.views.Label")
@@ -44,6 +46,8 @@ function SongSelect:new(ui)
 		end
 	end)
 
+	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
+	self.session_info = SessionInfo()
 	self.time_rate = TimeRate(self.ui.game.timeRateModel, self.ui.game.modifierSelectModel)
 	self.gameplay_modifiers = GameplayModifiers()
 
@@ -202,16 +206,18 @@ function SongSelect:createFooter()
 
 	local left = footer:add(FlowContainer({
 		direction = "row",
-		gap = 10,
+		gap = 20,
 		align = 0.5
 	}))
 	left:add(self.back_button)
+	left:add(self.player_info)
+	left:add(self.session_info)
 	left:fitContent()
 	left:setAlignment(0, 0.5)
 
 	local right = footer:add(FlowContainer({
 		direction = "row",
-		gap = 10,
+		gap = 20,
 		align = 0.5
 	}))
 	right:add(self.gameplay_modifiers)
