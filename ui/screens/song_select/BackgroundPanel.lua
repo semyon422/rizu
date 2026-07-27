@@ -3,12 +3,14 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
+local SpringValue = require("gui.anim.SpringValue")
 
 ---@class ui.screens.song_select.BackgroundPanel : gui.View
 ---@operator call: ui.screens.song_select.BackgroundPanel
 ---@field bg_model sphere.BackgroundModel
 ---@field chart_preview_view sphere.ChartPreviewView
 ---@field preview_canvas love.Canvas?
+---@field details_opacity gui.anim.SpringValue
 local BackgroundPanel = View + {}
 
 -- ChartPreviewView is still a legacy renderer and uses the window dimensions as
@@ -74,6 +76,7 @@ function BackgroundPanel:new(bg_model, game)
 	self.title = "Title"
 	self.artist = "Artist"
 	self.ranked = false
+	self.details_opacity = SpringValue({value = 0})
 	self.chart_preview_view = ChartPreviewView(game)
 end
 
@@ -119,10 +122,12 @@ end
 ---@param dt number
 function BackgroundPanel:update(dt)
 	self.chart_preview_view:update(dt)
+	self.details_opacity:update(dt)
 end
 
 ---@param chartview rizu.library.LocatedChartview
 function BackgroundPanel:bind(chartview)
+	self.details_opacity:snap(0):set(1)
 	self.title = chartview.title and not chartview.title:match("^%s*$")
 		and chartview.title or "Unknown title"
 	self.artist = chartview.artist and not chartview.artist:match("^%s*$")
@@ -165,6 +170,7 @@ function BackgroundPanel:draw()
 	if not self.preview_canvas then return end
 	self:drawBackground()
 	Painter.begin(self.render_opacity)
+	Painter.setOpacity(self.details_opacity:get())
 
 	local screen_x, screen_y = self.world_transform:transformPoint(0, 0)
 	local screen_right, screen_bottom = self.world_transform:transformPoint(self.width, self.height)
