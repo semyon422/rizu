@@ -68,9 +68,9 @@ return {
 	},
 }
 ```
-- The retained UI window belongs in `yi`; it observes `ChatModel` and contains no API or evaluation logic.
-- `AiChatView` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
-- `AiChatView` validates transcript and input strings before passing them to LÖVE text APIs so malformed tool or clipboard bytes cannot crash rendering.
+- The retained UI modal belongs in `ui`; it observes `ChatModel` and contains no API or evaluation logic.
+- `ui.modals.ai_chat.AiChat` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
+- `ui.modals.ai_chat.AiChat` validates transcript and input strings before passing them to LÖVE text APIs so malformed tool or clipboard bytes cannot crash rendering.
 - The provider does not advertise developer-role support, so project instructions use a `system` message.
 - `NeedleModel` owns debounce, request generations, streamed proposal text, parsing, and execution gating. `NeedleWorker` owns the native context on a managed LÖVE thread.
 - `NeedleToolRegistry` snapshots only the approved semantic tools for the active command contexts and maps them back to existing command callbacks on the main thread.

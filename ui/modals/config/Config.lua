@@ -14,10 +14,11 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
----@field config rizu.config.Config
+---@field config rizu.config.Config|table
+---@field schema? table
 ---@field scroll_view gui.ScrollView
----@field setting_views {[rizu.config.Setting]: gui.View}
----@field private config_observer util.Observer
+---@field setting_views {[table]: gui.View}
+---@field private config_observer? util.Observer
 local Config = ModalView + {}
 
 ---@param path string
@@ -87,10 +88,129 @@ local function createSettingView(config, setting, path)
 	end
 end
 
----@param config rizu.config.Config
-function Config:new(config)
+---@param root table
+---@param keys (string|integer)[]
+---@return any
+local function getLegacyValue(root, keys)
+	local node = root
+	for _, key in ipairs(keys) do
+		node = node[key]
+	end
+	return node
+end
+
+---@param root table
+---@param keys (string|integer)[]
+---@param value any
+local function setLegacyValue(root, keys, value)
+	local node = root
+	for i = 1, #keys - 1 do
+		node = node[keys[i]]
+	end
+	node[keys[#keys]] = value
+end
+
+---@param root table
+---@param descriptor ui.SettingSchema
+---@param path string
+---@param keys (string|integer)[]
+---@return gui.View? row
+---@return gui.View? control
+local function createLegacySettingView(root, descriptor, path, keys)
+	local value = getLegacyValue(root, keys)
+	local label = formatPath(path) .. (descriptor.deprecated and " (deprecated)" or "")
+	if descriptor.kind == "checkbox" then
+		local checkbox = Checkbox({
+			text = label,
+			checked = value,
+			on_change = function(new_value)
+				setLegacyValue(root, keys, new_value)
+			end,
+		})
+		return checkbox, checkbox
+	elseif descriptor.kind == "choice" then
+		local dropdown = Dropdown({
+			options = descriptor.options,
+			value = value,
+			width = 780,
+			on_change = function(new_value)
+				setLegacyValue(root, keys, new_value)
+			end,
+		})
+		local row = FlowContainer({direction = "column", gap = 6,
+			Label({font_name = "regular", font_size = 20, text = label}), dropdown})
+		row:fitContent()
+		return row, dropdown
+	elseif descriptor.kind == "range" then
+		-- Keep hand-edited legacy values usable even when they exceed the UI's suggested range.
+		local min_value = math.min(descriptor.min_value, value)
+		local max_value = math.max(descriptor.max_value, value)
+		local slider = Slider({
+			value = value,
+			min = min_value,
+			max = max_value,
+			step = descriptor.step,
+			width = 780,
+			on_change = function(new_value)
+				setLegacyValue(root, keys, new_value)
+			end,
+		})
+		local row = FlowContainer({direction = "column", gap = 6,
+			Label({font_name = "regular", font_size = 20, text = label}), slider})
+		row:fitContent()
+		return row, slider
+	elseif descriptor.kind == "textbox" or descriptor.kind == "list" then
+		local text = descriptor.kind == "list" and table.concat(value, ", ") or tostring(value)
+		local textbox = Textbox({
+			text = text,
+			width = 780,
+			on_change = function(new_value)
+				if descriptor.kind == "list" then
+					local values = {}
+					for item in new_value:gmatch("[^,%s]+") do
+						values[#values + 1] = item
+					end
+					setLegacyValue(root, keys, values)
+				else
+					setLegacyValue(root, keys, new_value)
+				end
+			end,
+		})
+		local row = FlowContainer({direction = "column", gap = 6,
+			Label({font_name = "regular", font_size = 20, text = label}), textbox})
+		row:fitContent()
+		return row, textbox
+	end
+end
+
+---@class ui.LegacySettingEntry
+---@field descriptor ui.SettingSchema
+---@field path string
+---@field keys (string|integer)[]
+
+---@param node table
+---@param path string
+---@param keys (string|integer)[]
+---@param entries ui.LegacySettingEntry[]
+local function collectLegacySettings(node, path, keys, entries)
+	for key, child in pairs(node) do
+		local child_keys = {unpack(keys)}
+		child_keys[#child_keys + 1] = key
+		local child_path = path == "" and tostring(key) or path .. "." .. tostring(key)
+		if child.kind then
+			entries[#entries + 1] = {descriptor = child, path = child_path, keys = child_keys}
+		else
+			collectLegacySettings(child, child_path, child_keys, entries)
+		end
+	end
+end
+
+---@param config rizu.config.Config|table
+---@param schema? table Legacy settings schema from ui.Settings.
+function Config:new(config, schema)
 	ModalView.new(self)
 	self.config = config
+	self.schema = schema
 	self.setting_views = {}
 	self:setSize(890, 600)
 	self:setAlignment(0.5, 0.5)
@@ -99,22 +219,37 @@ function Config:new(config)
 	self:setOpacity(0)
 	self:setVisible(false)
 
-	local settings = {} ---@type rizu.config.Setting[]
-	for setting in pairs(config.settings_map) do
-		settings[#settings + 1] = setting
-	end
-	table.sort(settings, function(a, b)
-		return a.order < b.order
-	end)
-
 	local content = DropdownHost({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
 	content:add(Label({font_name = "bold", font_size = 32, text = "Settings"}))
-	for _, setting in ipairs(settings) do
-		local path = assert(config.setting_to_path[setting], "setting has no config path")
-		local row, control = createSettingView(config, setting, path)
-		if row then
-			content:add(row)
-			self.setting_views[setting] = control
+	if schema then
+		local entries = {} ---@type ui.LegacySettingEntry[]
+		collectLegacySettings(schema, "", {}, entries)
+		table.sort(entries, function(a, b)
+			return a.descriptor.order < b.descriptor.order
+		end)
+		for _, entry in ipairs(entries) do
+			local row, control = createLegacySettingView(config, entry.descriptor, entry.path, entry.keys)
+			if row then
+				content:add(row)
+				self.setting_views[entry.descriptor] = control
+			end
+		end
+	else
+		---@cast config rizu.config.Config
+		local settings = {} ---@type rizu.config.Setting[]
+		for setting in pairs(config.settings_map) do
+			settings[#settings + 1] = setting
+		end
+		table.sort(settings, function(a, b)
+			return a.order < b.order
+		end)
+		for _, setting in ipairs(settings) do
+			local path = assert(config.setting_to_path[setting], "setting has no config path")
+			local row, control = createSettingView(config, setting, path)
+			if row then
+				content:add(row)
+				self.setting_views[setting] = control
+			end
 		end
 	end
 	content:fitContent()
@@ -161,13 +296,22 @@ function Config:syncSetting(setting)
 end
 
 function Config:load()
+	if self.schema then
+		return
+	end
+	---@cast self.config rizu.config.Config
 	self.config_observer = self.config.onChanged:add(function(setting)
 		self:syncSetting(setting)
 	end)
 end
 
 function Config:unload()
+	if not self.config_observer then
+		return
+	end
+	---@cast self.config rizu.config.Config
 	self.config.onChanged:remove(self.config_observer)
+	self.config_observer = nil
 end
 
 function Config:show()

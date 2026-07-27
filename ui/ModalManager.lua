@@ -6,6 +6,7 @@ local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.Config")
+local Settings = require("ui.Settings")
 
 ---@class ui.ModalManager : gui.View
 ---@operator call: ui.ModalManager
@@ -37,7 +38,7 @@ function ModalManager:new(ui)
 	self.bg = self:add(OverlayBackground(function()
 		self:hideModal()
 	end))
-	self.config = self:addModal(Config(ui.game.settings))
+	self.config = self:addModal(Config(ui.game.configModel.configs.settings, Settings))
 	self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
 		self:hideModal(self.ai_chat)
 	end))
