@@ -227,6 +227,7 @@ function Inputs:handleMouseDown(event, modifiers)
 	e.button = event[3]
 	e.x = self.mouse_x
 	e.y = self.mouse_y
+	e.time = event.time or love.timer.getTime()
 
 	local target, current_target, handled = self:dispatchMouseTargets(e)
 	e.target = target
@@ -298,6 +299,10 @@ function Inputs:handleMouseUp(event, modifiers)
 		de.current_target = self.last_drag_event.current_target or de.target
 		de.x = self.mouse_x
 		de.y = self.mouse_y
+		de.time = event.time or love.timer.getTime()
+		de.press_x = self.last_mouse_down_event.x
+		de.press_y = self.last_mouse_down_event.y
+		de.press_time = self.last_mouse_down_event.time
 		if de.target then
 			self:dispatchEvent(de)
 		end
@@ -308,6 +313,7 @@ function Inputs:handleMouseUp(event, modifiers)
 	e.button = event[3]
 	e.x = self.mouse_x
 	e.y = self.mouse_y
+	e.time = event.time or love.timer.getTime()
 	e.target = pressed_target
 	e.current_target = pressed_target
 	self.last_mouse_down_event = nil
@@ -343,6 +349,17 @@ function Inputs:handleMouseMove(modifiers)
 			return
 		end
 		local capture = self.last_mouse_down_event.current_target or self.last_mouse_down_event.target
+		local wanted_axis = math.abs(dx) > math.abs(dy) and "horizontal" or "vertical"
+		if not capture.drag_axis or capture.drag_axis ~= wanted_axis then
+			local view = self.last_mouse_down_event.target
+			while view do
+				if view.drag_axis == wanted_axis then
+					capture = view
+					break
+				end
+				view = view.parent
+			end
+		end
 		if self.last_mouse_down_event.target then
 			self.last_mouse_down_event.target.pressed = false
 		end
@@ -475,6 +492,12 @@ function Inputs:dispatchMouseEvent(event, modifiers)
 
 	e.x = self.mouse_x
 	e.y = self.mouse_y
+	e.time = event.time or love.timer.getTime()
+	if self.last_mouse_down_event then
+		e.press_x = self.last_mouse_down_event.x
+		e.press_y = self.last_mouse_down_event.y
+		e.press_time = self.last_mouse_down_event.time
+	end
 
 	if e.target then
 		self:dispatchMouseEventToTarget(e)

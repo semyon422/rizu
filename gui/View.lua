@@ -87,6 +87,7 @@ local Easing = require("gui.anim.Easing")
 ---@field mouse_over boolean
 ---@field pressed boolean
 ---@field handles_mouse_input boolean
+---@field drag_axis "horizontal"|"vertical"? Preferred drag direction for pointer-capture arbitration
 ---@field handles_keyboard_input boolean
 ---@field keyboard_input_fallback boolean Dispatch keyboard events after ordinary requesters
 local View = IInputHandler + {}
@@ -182,6 +183,7 @@ function View:new()
 	self.mouse_over = false
 	self.pressed = false
 	self.handles_mouse_input = false
+	self.drag_axis = nil
 	self.handles_keyboard_input = false
 	self.keyboard_input_fallback = false
 	self.visible = true

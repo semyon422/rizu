@@ -7,25 +7,42 @@ local View = require("gui.View")
 ---@field scroll_current number
 ---@field scroll_decay number Decay rate per millisecond
 ---@field scroll_step number Distance moved by one wheel tick
+---@field scroll_velocity number Current fling velocity in scroll units per second
 ---@field private max_scroll number?
+---@field private drag_active boolean
+---@field private drag_origin_y number
+---@field private drag_origin_scroll number
+---@field private last_drag_y number
+---@field private last_drag_time number
 ---@field is_scroll_view true
 local ScrollView = View + {}
 
 ScrollView.SCROLL_DECAY = 0.01
 ScrollView.SCROLL_STEP = 64
 ScrollView.SCROLL_EPSILON = 0.1
+ScrollView.FLING_DECAY = 4
+ScrollView.FLING_VELOCITY_EPSILON = 5
+ScrollView.VELOCITY_RESPONSE = 20
+ScrollView.FLING_STALE_TIME = 0.066
 
 ---@param content gui.View?
 function ScrollView:new(content)
 	View.new(self)
 	self.clip = true
 	self.handles_mouse_input = true
+	self.drag_axis = "vertical"
 	self.is_scroll_view = true
 	self.scroll_target = 0
 	self.scroll_current = 0
 	self.scroll_decay = self.SCROLL_DECAY
 	self.scroll_step = self.SCROLL_STEP
 	self.max_scroll = nil
+	self.drag_active = false
+	self.drag_origin_y = 0
+	self.drag_origin_scroll = 0
+	self.last_drag_y = 0
+	self.last_drag_time = 0
+	self.scroll_velocity = 0
 	self.content = content or View()
 	self:add(self.content)
 end
@@ -46,6 +63,14 @@ function ScrollView:refreshBounds()
 	self.scroll_current = math.min(math.max(self.scroll_current, 0), max_scroll)
 	self.content:setOffset(0, -self.scroll_current)
 	self:refreshCulling()
+end
+
+---Re-clamp and re-cull after a layout/tree rebuild, even when the extent did
+---not change (descendant geometry may have changed).
+---@package
+function ScrollView:refreshAfterLayout()
+	self.max_scroll = nil
+	self:refreshBounds()
 end
 
 ---@package
@@ -112,9 +137,99 @@ function ScrollView:scrollTo(position, immediate)
 	end
 end
 
+---@param screen_x number
+---@param screen_y number
+---@return number local_y
+function ScrollView:getLocalY(screen_x, screen_y)
+	local _, local_y = self.world_transform:inverseTransformPoint(screen_x, screen_y)
+	return local_y
+end
+
+---@param e gui.MouseDownEvent
+---@return boolean? handled
+function ScrollView:onMouseDown(e)
+	if e.button ~= 1 then
+		return
+	end
+	self.drag_origin_y = self:getLocalY(e.x, e.y)
+	self.drag_origin_scroll = self.scroll_current
+	self.last_drag_y = self.drag_origin_y
+	self.last_drag_time = e.time
+	self.scroll_velocity = 0
+	return true
+end
+
+---@param e gui.DragStartEvent
+---@return boolean? handled
+function ScrollView:onDragStart(e)
+	if e.button ~= 1 then
+		return
+	end
+	self.drag_active = true
+	self.drag_origin_y = self:getLocalY(e.press_x or e.x, e.press_y or e.y)
+	self.drag_origin_scroll = self.scroll_current
+	self.last_drag_y = self.drag_origin_y
+	self.last_drag_time = e.press_time or e.time
+	self.scroll_velocity = 0
+	self:updateDrag(e.x, e.y, e.time)
+	return true
+end
+
+---@private
+---@param screen_x number
+---@param screen_y number
+---@param event_time number
+function ScrollView:updateDrag(screen_x, screen_y, event_time)
+	local local_y = self:getLocalY(screen_x, screen_y)
+	local elapsed = event_time - self.last_drag_time
+	if elapsed > 0 and local_y ~= self.last_drag_y then
+		local measured_velocity = (self.last_drag_y - local_y) / elapsed
+		local response = 1 - math.exp(-self.VELOCITY_RESPONSE * elapsed)
+		self.scroll_velocity = self.scroll_velocity + (measured_velocity - self.scroll_velocity) * response
+		self.last_drag_y = local_y
+		self.last_drag_time = event_time
+	end
+	self:scrollTo(self.drag_origin_scroll - (local_y - self.drag_origin_y), true)
+end
+
+---@param e gui.DragEvent
+---@return boolean? handled
+function ScrollView:onDrag(e)
+	if not self.drag_active or e.button ~= 1 then
+		return
+	end
+	self:updateDrag(e.x, e.y, e.time)
+	return true
+end
+
+---@param e gui.DragEndEvent
+---@return boolean? handled
+function ScrollView:onDragEnd(e)
+	if not self.drag_active or e.button ~= 1 then
+		return
+	end
+	self.drag_active = false
+	local idle_time = e.time - self.last_drag_time
+	if idle_time > self.FLING_STALE_TIME then
+		self.scroll_velocity = self.scroll_velocity * math.exp(-self.FLING_DECAY * (idle_time - self.FLING_STALE_TIME))
+	end
+	return true
+end
+
+---@param e gui.MouseUpEvent
+---@return boolean? handled
+function ScrollView:onMouseUp(e)
+	if e.button ~= 1 then
+		return
+	end
+	self.drag_active = false
+	return true
+end
+
 ---@param e gui.ScrollEvent
 ---@return boolean handled
 function ScrollView:onScroll(e)
+	self.scroll_velocity = 0
 	self:scrollTo(self.scroll_target - e.direction_y * self.scroll_step)
 	return true
 end
@@ -122,6 +237,18 @@ end
 ---@param dt number
 function ScrollView:update(dt)
 	self:refreshBounds()
+	if not self.drag_active and math.abs(self.scroll_velocity) >= self.FLING_VELOCITY_EPSILON then
+		local decay = math.exp(-self.FLING_DECAY * dt)
+		local distance = self.scroll_velocity * (1 - decay) / self.FLING_DECAY
+		local previous = self.scroll_current
+		self:scrollTo(previous + distance, true)
+		self.scroll_velocity = self.scroll_velocity * decay
+		if self.scroll_current == previous or self.scroll_current == 0 or self.scroll_current == self.max_scroll then
+			self.scroll_velocity = 0
+		end
+	elseif math.abs(self.scroll_velocity) < self.FLING_VELOCITY_EPSILON then
+		self.scroll_velocity = 0
+	end
 	local difference = self.scroll_current - self.scroll_target
 	if math.abs(difference) < self.SCROLL_EPSILON then
 		if difference ~= 0 then

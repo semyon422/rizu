@@ -25,6 +25,7 @@ function Slider:new(params)
 
 	self:setSize(params.width or 300, 24)
 	self.handles_mouse_input = true
+	self.drag_axis = "horizontal"
 end
 
 ---@param screen_x number
@@ -59,18 +60,33 @@ function Slider:onMouseDown(e)
 	if e.button ~= 1 then
 		return
 	end
-	self:setValueAt(e.x, e.y)
 	return true
 end
 
 ---@param e gui.DragStartEvent
 function Slider:onDragStart(e)
+	if e.button ~= 1 then
+		return
+	end
 	self:setValueAt(e.x, e.y)
 	return true
 end
 
 ---@param e gui.DragEvent
 function Slider:onDrag(e)
+	if e.button ~= 1 then
+		return
+	end
+	self:setValueAt(e.x, e.y)
+	return true
+end
+
+---@param e gui.MouseClickEvent
+---@return boolean? handled
+function Slider:onMouseClick(e)
+	if e.button ~= 1 then
+		return
+	end
 	self:setValueAt(e.x, e.y)
 	return true
 end

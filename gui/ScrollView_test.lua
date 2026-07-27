@@ -3,8 +3,11 @@ local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local ScrollView = require("gui.ScrollView")
 local View = require("gui.View")
+local Slider = require("ui.views.Slider")
 
 local test = {}
+
+local default_modifiers = {control = false, shift = false, alt = false, super = false}
 
 ---@return gui.Screen
 ---@return gui.ScrollView
@@ -72,6 +75,125 @@ function test.viewport_culling_preserves_other_cull_causes(t)
 
 	t:assert(bit.band(rows[1].cull_mask, other_cause) ~= 0)
 	t:eq(bit.band(rows[1].cull_mask, View.CULL_VIEWPORT), 0)
+end
+
+---@param t testing.T
+function test.relayout_reclamps_unchanged_extent(t)
+	local screen, scroll_view = createScrollView()
+	scroll_view:scrollTo(100, true)
+	scroll_view.scroll_target = 999
+	scroll_view.scroll_current = 999
+	screen:invalidateLayout()
+	screen:flush()
+
+	t:eq(scroll_view.scroll_target, 100)
+	t:eq(scroll_view.scroll_current, 100)
+	t:eq(scroll_view.content.offset_y, -100)
+end
+
+---@param t testing.T
+function test.drag_scrolls_content_and_release_ends_capture(t)
+	local screen, scroll_view = createScrollView()
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1}, default_modifiers)
+	inputs.mouse_y = 30
+	inputs:receive({name = "mousemoved", 25, 30, 0, -10}, default_modifiers)
+
+	t:eq(scroll_view.scroll_target, 10)
+	t:eq(scroll_view.scroll_current, 10)
+	t:eq(scroll_view.content.offset_y, -10)
+
+	inputs.mouse_y = -100
+	inputs:receive({name = "mousemoved", 25, -100, 0, -130}, default_modifiers)
+	t:eq(scroll_view.scroll_current, scroll_view:getMaxScroll())
+
+	inputs:receive({name = "mousereleased", 25, -100, 1}, default_modifiers)
+	t:eq(inputs.last_mouse_down_event, nil)
+	inputs.mouse_y = 40
+	inputs:receive({name = "mousemoved", 25, 40, 0, 140}, default_modifiers)
+	t:eq(scroll_view.scroll_current, scroll_view:getMaxScroll())
+end
+
+---@param t testing.T
+function test.interactive_child_keeps_horizontal_drag_capture(t)
+	local content = View()
+	content:setSize(100, 150)
+	local slider = Slider({value = 0, width = 100})
+	content:add(slider)
+	local scroll_view = ScrollView(content)
+	scroll_view:anchorFixed(0, 0, 100, 50)
+	local screen = Screen()
+	screen.root:add(scroll_view)
+	screen:resize(200, 200)
+	local inputs = Inputs()
+	inputs:beginFrame(10, 12)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 10, 12, 1}, default_modifiers)
+	inputs.mouse_x = 90
+	inputs:receive({name = "mousemoved", 90, 12, 80, 0}, default_modifiers)
+
+	t:assert(slider.value > 0.9)
+	t:eq(scroll_view.scroll_current, 0)
+end
+
+---@param t testing.T
+function test.scroll_view_captures_vertical_drag_from_slider(t)
+	local content = View()
+	content:setSize(100, 150)
+	local slider = Slider({value = 0.5, width = 100})
+	content:add(slider)
+	local scroll_view = ScrollView(content)
+	scroll_view:anchorFixed(0, 0, 100, 50)
+	local screen = Screen()
+	screen.root:add(scroll_view)
+	screen:resize(200, 200)
+	local inputs = Inputs()
+	inputs:beginFrame(50, 12)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 50, 12, 1}, default_modifiers)
+	inputs.mouse_y = 2
+	inputs:receive({name = "mousemoved", 50, 2, 0, -10}, default_modifiers)
+
+	t:eq(slider.value, 0.5)
+	t:eq(scroll_view.scroll_current, 10)
+end
+
+---@param t testing.T
+function test.drag_release_flings(t)
+	local screen, scroll_view = createScrollView()
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1, time = 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 25, 20, 0, -20, time = 1.1}, default_modifiers)
+	inputs:receive({name = "mousereleased", 25, 20, 1, time = 1.1}, default_modifiers)
+	local release_position = scroll_view.scroll_current
+	scroll_view:update(0.1)
+
+	t:assert(scroll_view.scroll_current > release_position)
+	t:assert(scroll_view.scroll_velocity > 0)
+end
+
+---@param t testing.T
+function test.drag_distance_uses_scroll_view_local_coordinates(t)
+	local screen, scroll_view = createScrollView()
+	scroll_view:setScale(1, 2)
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 25, 20, 0, -20}, default_modifiers)
+
+	t:eq(scroll_view.scroll_current, 10)
 end
 
 return test

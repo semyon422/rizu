@@ -6,6 +6,7 @@ local Inputs = require("gui.input.Inputs")
 ---@field modifiers gui.ModifierKeys
 ---@field x number
 ---@field y number
+---@field time number
 
 ---@class gui.UserInterface
 ---@operator call: gui.UserInterface
@@ -71,6 +72,7 @@ function UserInterface:drainInputQueue()
 			self.inputs.mouse_x = queued.x
 			self.inputs.mouse_y = queued.y
 		end
+		queued.event.time = queued.time
 		if not self.screen_manager:receive(queued.event) then
 			self.inputs:receive(queued.event, queued.modifiers)
 		end
@@ -105,6 +107,7 @@ function UserInterface:receive(event, modifiers)
 		modifiers = modifiers or getModifiers(),
 		x = x,
 		y = y,
+		time = love.timer.getTime(),
 	}
 end
 

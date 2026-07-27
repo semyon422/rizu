@@ -154,7 +154,7 @@ function Screen:relayout()
 	for i = 1, #views do
 		local view = views[i]
 		if view.is_scroll_view then
-			view:refreshCulling()
+			view:refreshAfterLayout()
 		end
 	end
 end
