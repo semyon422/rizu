@@ -7,9 +7,11 @@ extern float u_gapWidth;
 
 const float PI = 3.14159265359;
 const float AA_STRENGTH = 2.0;
+const float PADDING = 2.0;
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-    vec2 uv = texture_coords * 2.0 - 1.0;
+    vec2 paddedSize = 1.0 - 2.0 * PADDING * fwidth(texture_coords);
+    vec2 uv = (texture_coords * 2.0 - 1.0) / paddedSize;
     float dist = length(uv);
     float edgeSoftness = fwidth(dist) * AA_STRENGTH;
 

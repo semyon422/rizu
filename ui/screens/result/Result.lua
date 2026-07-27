@@ -102,19 +102,9 @@ function Result:createRingPanel()
 		:setLayoutIgnore(true)
 		:setAlignment(0, 0.5)
 		:addPosition(442, 0)
-		:setOpacity(0.9)
-
-	ring:add(Image(Resources.sprites.result_info_panel_stroke, nil, Colors.outline))
-		:setLayoutIgnore(true)
-		:setAlignment(0, 0.5)
-		:addPosition(442, 0)
-
-	ring:add(Image(Resources.sprites.judge_segments_ring, nil, Colors.outline))
-		:setAlignment(0.5, 0.5)
 
 	ring:add(Image(Resources.sprites.judge_segments_bg, nil, Colors.panel))
 		:setAlignment(0.5, 0.5)
-		:setOpacity(0.9)
 
 	ring:add(self.judge_segments):setAlignment(0.5, 0.5)
 	ring:add(self.stats):setAlignment(0.5, 0.5)
