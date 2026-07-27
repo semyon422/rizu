@@ -355,6 +355,8 @@ All three arrays preserve DFS pre-order (parents before children, siblings in `c
 
 ## 7. Screens and the UserInterface
 
+`gui.UserInterface` is the reusable, dependency-free base class for GUI applications. It owns `Inputs`, queued event dispatch, and delegates screen lifecycle to an injected `gui.IScreenManager`. Application screen managers implement that interface; `ui.ScreenManager` adds navigation and overlay policy. Application `UserInterface` subclasses provide screen construction, viewport policy, and application-specific drawing. Neither GUI base type inherits a legacy UI interface.
+
 ### 7.1 Screen
 
 There is no abstract `gui.Layer`. `gui.Screen` is the complete tree-owning runtime unit. It owns `root`, `views` (complete flat cache), `update_views` and `draw_views` (method-filtered flat caches), `dirty`, `pending_unload` (§12), and `input_handler` (keyboard-adapter view forwarding to `screen:handleKeyDown`). Application-level `ui.ScreenManager` coordinates navigation Screens and the persistent overlay.

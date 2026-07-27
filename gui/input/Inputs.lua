@@ -230,7 +230,10 @@ function Inputs:handleMouseDown(event, modifiers)
 
 	local target, current_target, handled = self:dispatchMouseTargets(e)
 	e.target = target
-	e.current_target = target
+	-- The view that handled MouseDown captures a future drag. Keep the
+	-- original hit as target until the drag threshold is crossed so clicks
+	-- still dispatch to the pressed child.
+	e.current_target = current_target or target
 	self.last_mouse_down_event = e
 	if target then
 		target.pressed = true
@@ -339,9 +342,18 @@ function Inputs:handleMouseMove(modifiers)
 		if dx * dx + dy * dy < self.DRAG_START_THRESHOLD * self.DRAG_START_THRESHOLD then
 			return
 		end
+		local capture = self.last_mouse_down_event.current_target or self.last_mouse_down_event.target
+		if self.last_mouse_down_event.target then
+			self.last_mouse_down_event.target.pressed = false
+		end
+		-- Once this is a drag, only the capture owner matters. Retargeting the
+		-- stored press also prevents culling the original child during the drag
+		-- from cancelling its ancestor's capture.
+		self.last_mouse_down_event.target = capture
+		self.last_mouse_down_event.current_target = capture
 		e = DragStartEvent(modifiers)
-		e.target = self.last_mouse_down_event.target
-		e.current_target = e.target
+		e.target = capture
+		e.current_target = capture
 		e.button = self.last_mouse_down_event.button
 	else
 		e = DragEvent(modifiers)

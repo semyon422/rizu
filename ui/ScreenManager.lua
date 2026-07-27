@@ -1,14 +1,14 @@
-local class = require("class")
+local IScreenManager = require("gui.IScreenManager")
 
 ---Owns loaded screens, their draw order, and the single input screen.
----@class ui.ScreenManager
+---@class ui.ScreenManager : gui.IScreenManager
 ---@operator call: ui.ScreenManager
 ---@field screen_registry gui.Screen[]
 ---@field visible_screens gui.Screen[] Bottom-to-top navigation draw order
 ---@field overlay gui.Screen?
 ---@field input_screen gui.Screen?
 ---@field private registered {[gui.Screen]: true}
-local ScreenManager = class()
+local ScreenManager = IScreenManager + {}
 
 function ScreenManager:new()
 	---@type gui.Screen[]

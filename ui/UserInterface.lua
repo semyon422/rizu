@@ -1,4 +1,4 @@
-local IUserInterface = require("sphere.IUserInterface")
+local BaseUserInterface = require("gui.UserInterface")
 local Resources = require("ui.Resources")
 local MainMenu = require("ui.screens.main_menu.MainMenu")
 local SongSelect = require("ui.screens.song_select.SongSelect")
@@ -11,7 +11,6 @@ local Lobby = require("ui.screens.lobby.Lobby")
 local MusicPlayer = require("ui.screens.music_player.MusicPlayer")
 local Dlc = require("ui.screens.dlc.Dlc")
 local TestScreen = require("ui.test.TestScreen")
-local Inputs = require("gui.input.Inputs")
 local ScreenManager = require("ui.ScreenManager")
 local Overlay = require("ui.Overlay")
 local Registry = require("ui.command_palette.Registry")
@@ -21,7 +20,7 @@ local Colors = require("ui.Colors")
 -- scales to fit the actual window height.
 local TARGET_HEIGHT = 1080
 
----@class ui.UserInterface : sphere.IUserInterface
+---@class ui.UserInterface : gui.UserInterface
 ---@operator call: ui.UserInterface
 ---@field main_menu ui.screens.main_menu.MainMenu
 ---@field song_select ui.screens.song_select.SongSelect
@@ -40,15 +39,13 @@ local TARGET_HEIGHT = 1080
 ---@field command_registry ui.command_palette.Registry
 ---@field private prev_w number
 ---@field private prev_h number
----@field private inputs gui.Inputs
-local UserInterface = IUserInterface + {}
+local UserInterface = BaseUserInterface + {}
 
 ---@param game sphere.GameController
 ---@param _directory string
 function UserInterface:new(game, _directory)
+	BaseUserInterface.new(self, ScreenManager())
 	self.game = game
-	self.inputs = Inputs()
-	self.screen_manager = ScreenManager()
 	self.command_registry = Registry()
 end
 
@@ -91,22 +88,6 @@ function UserInterface:load()
 	love.keyboard.setKeyRepeat(true)
 end
 
----keep_previous_visible keeps the outgoing screen active for a transition;
----call screen_manager:hide(outgoing) when its exit animation completes.
----@param screen gui.Screen
----@param keep_previous_visible boolean?
----@return boolean changed
-function UserInterface:setScreen(screen, keep_previous_visible)
-	return self.screen_manager:setScreen(screen, keep_previous_visible)
-end
-
-function UserInterface:unload()
-	self.screen_manager:unload()
-end
-
----@type gui.ModifierKeys
-local default_modifiers = {control = false, shift = false, alt = false, super = false}
-
 ---@param dt number
 function UserInterface:update(dt)
 	if self:windowDimensionsChanged() then
@@ -114,23 +95,12 @@ function UserInterface:update(dt)
 		self:applyViewport(ww, wh)
 	end
 
-	local mouse_x, mouse_y = love.mouse.getPosition()
-	self.inputs:beginFrame(mouse_x, mouse_y)
-	self.screen_manager:acceptInputs(self.inputs)
-	self.screen_manager:update(dt)
+	BaseUserInterface.update(self, dt)
 end
 
 function UserInterface:draw()
 	love.graphics.clear(Colors.background)
-	self.screen_manager:draw()
-end
-
----@param event {name: string, [integer]: any}
-function UserInterface:receive(event)
-	if self.screen_manager:receive(event) then
-		return
-	end
-	self.inputs:receive(event, default_modifiers)
+	BaseUserInterface.draw(self)
 end
 
 ---@private

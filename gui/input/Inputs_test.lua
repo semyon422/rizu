@@ -164,6 +164,30 @@ function test.dragging(t)
 end
 
 ---@param t testing.T
+function test.drag_is_captured_by_mouse_down_handler(t)
+	local child = create_view(100, 100)
+	local scroller = create_view(100, 100)
+	local inputs = Inputs()
+	local events = {}
+	child.onMouseDown = function() end
+	scroller.onMouseDown = function() table.insert(events, "down") return true end
+	scroller.onDragStart = function() table.insert(events, "start") end
+	scroller.onDragEnd = function() table.insert(events, "end") end
+	table.insert(inputs.mouse_hits, child)
+	table.insert(inputs.mouse_hits, scroller)
+	inputs.mouse_target = child
+	inputs.mouse_x = 10
+	inputs.mouse_y = 10
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_x = 20
+	inputs:receive({name = "mousemoved", 20, 10, 10, 0}, default_modifiers)
+	inputs:receive({name = "mousereleased", 20, 10, 1}, default_modifiers)
+
+	t:tdeq(events, {"down", "start", "end"})
+end
+
+---@param t testing.T
 function test.mouse_move_below_drag_threshold_still_clicks(t)
 	local btn = create_view(100, 100)
 	local inputs = Inputs()
