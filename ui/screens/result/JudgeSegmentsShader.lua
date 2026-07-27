@@ -6,11 +6,12 @@ extern float u_outerRadius;
 extern float u_gapWidth;
 
 const float PI = 3.14159265359;
+const float AA_STRENGTH = 2.0;
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
     vec2 uv = texture_coords * 2.0 - 1.0;
     float dist = length(uv);
-    float edgeSoftness = fwidth(dist);
+    float edgeSoftness = fwidth(dist) * AA_STRENGTH;
 
     float segmentRingMask = smoothstep(u_innerRadius - edgeSoftness, u_innerRadius, dist) *
                             (1.0 - smoothstep(u_outerRadius, u_outerRadius + edgeSoftness, dist));
@@ -36,7 +37,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     for (int i = 0; i < {{COUNT}}; i++) {
         float diff = abs(t - u_thresholds[i]);
         if (diff > 0.5) diff = 1.0 - diff;
-        float borderMask = smoothstep(0.0, fwidth(t), diff - tGap);
+        float borderMask = smoothstep(0.0, fwidth(t) * AA_STRENGTH, diff - tGap);
         gapMask *= borderMask;
     }
 

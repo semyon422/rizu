@@ -9,6 +9,7 @@ local Colors = require("ui.Colors")
 local Background = require("ui.views.Background")
 local JudgeSegments = require("ui.screens.result.JudgeSegments")
 local CompositeView = require("gui.CompositeView")
+local ScoringUtils = require("ui.ScoringUtils")
 
 ---@class ui.screens.result.Result : gui.Screen
 ---@operator call: ui.screens.result.Result
@@ -58,66 +59,91 @@ function Result:new(ui)
 	bottom_left:fitContent()
 	bottom_left:setAlignment(0, 1)
 
-	self.ring = self.content:add(StackContainer())
+	self.judge_segments = JudgeSegments()
 
-	self.ring:add(Image(Resources.sprites.judge_segments_ring, nil, Colors.outline))
-		:setAlignment(0.5, 0.5)
-	self.ring:add(Image(Resources.sprites.judge_segments_bg, nil, Colors.panel))
-		:setOpacity(0.9)
-	self.judge_segments = self.ring:add(JudgeSegments()):setAlignment(0.5, 0.5)
-
-	self.ring:fitContent()
-	self.ring:setAlignment(0.5, 0.5)
-
-	self.accuracy = self.ring:add(Label({
+	self.accuracy = Label({
 		font_name = "outline_regular",
 		font_size = 96,
 		text = "97.67%",
 		color = Colors.grade_s
-	})):setAlignment(0.5, 0.5)
+	})
 
-	local fscale = 64 / 96
-	self.grade = self.ring:add(Label({
+	self.grade = Label({
 		font_name = "outline_regular",
 		font_size = 96,
 		text = "S",
 		color = Colors.grade_s
-	}))
-	self.grade:setAlignment(0.5, 0.5):setScale(fscale, fscale):setOffset(0, -90)
+	})
 
-	local numbers = self.ring:add(FlowContainer({
-		direction = "row",
-		gap = 50,
-	}))
-
-	self.ma_ratio = numbers:add(Label({
+	self.ma_ratio = Label({
 		font_name = "outline_regular",
 		font_size = 96,
 		text = "3:1",
 		color = Colors.grade_x
-	}))
+	})
 
-	self.pa_ratio = numbers:add(Label({
+	self.pa_ratio = Label({
 		font_name = "outline_regular",
 		font_size = 96,
 		text = "9:1",
 		color = Colors.grade_s
-	}))
+	})
 
-	self.misses = numbers:add(Label({
+	self.misses = Label({
 		font_name = "outline_regular",
 		font_size = 96,
 		text = "84x",
 		color = Colors.grade_d
-	}))
+	})
 
-	numbers:fitContent()
-	numbers:setAlignment(0.5, 0.5)
-	numbers:setOffset(0, 90)
-	numbers:setPivot(0.5, 0.5)
-	numbers:setScale(48 / 96, 48 / 96) -- Have to scale here because we have stupid fixed size fonts
+	self.time_rate = Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "1.05x",
+	})
 
-	self.no_score_panel = self:createNoScorePanel()
+	self.difficulty = Label({
+		font_name = "outline_regular",
+		font_size = 96,
+		text = "30.8",
+	})
+
+	self.patterns = Label({
+		font_name = "regular",
+		font_size = 24,
+		text = "ENPS JS STAMINA",
+	})
+
+	self.score_system = Label({
+		font_name = "regular",
+		font_size = 24,
+		text = "osu!mania V1 OD9",
+		color = Colors.text_muted
+	})
+
+	self.duration = Label({
+		font_name = "regular",
+		font_size = 36,
+		text = "7:25",
+		color = Colors.text
+	})
+
+	self.ln_percent = Label({
+		font_name = "regular",
+		font_size = 36,
+		text = "0%",
+		color = Colors.text
+	})
+
+	self.tempo = Label({
+		font_name = "regular",
+		font_size = 36,
+		text = "252",
+		color = Colors.text
+	})
+
+	self.ring = self.content:add(self:createRingPanel())
+	self.no_score_panel = self.content:add(self:createNoScorePanel())
 
 	self.root.handles_keyboard_input = true
 	self.root.onKeyDown = function(_, event)
@@ -133,7 +159,7 @@ function Result:createNoScorePanel()
 	local scale = 0.7
 	local superellipse = Resources.sprites.superellipse
 	local iw, ih = superellipse:getDimensions()
-	local panel = self.content:add(View()):setSize(iw * scale, ih * scale):setAlignment(0.5, 0.5)
+	local panel = View():setSize(iw * scale, ih * scale):setAlignment(0.5, 0.5)
 	panel:add(Image(Resources.sprites.superellipse, nil, Colors.panel)):setScale(scale, scale)
 
 	panel:add(Label({
@@ -146,6 +172,89 @@ function Result:createNoScorePanel()
 
 	panel:setVisible(false)
 	return panel
+end
+
+function Result:createRingPanel()
+	local ring = StackContainer()
+
+	local panel = ring:add(Image(Resources.sprites.result_info_panel, nil, Colors.panel))
+		:setLayoutIgnore(true)
+		:setAlignment(1, 0.5)
+		:addPosition(378, 0)
+		:setOpacity(0.9)
+
+	ring:add(Image(Resources.sprites.result_info_panel_stroke, nil, Colors.outline))
+		:setLayoutIgnore(true)
+		:setAlignment(1, 0.5)
+		:addPosition(378, 0)
+
+	ring:add(Image(Resources.sprites.judge_segments_ring, nil, Colors.outline))
+		:setAlignment(0.5, 0.5)
+	ring:add(Image(Resources.sprites.judge_segments_bg, nil, Colors.panel))
+		:setAlignment(0.5, 0.5)
+		:setOpacity(0.9)
+
+	ring:add(self.judge_segments):setAlignment(0.5, 0.5)
+
+	ring:fitContent()
+	ring:setAlignment(0.5, 0.5)
+	ring:addPosition(-378 / 2, 0) -- it's because setLayoutIgnore(true)
+
+	local row = panel:add(FlowContainer({direction = "row", gap = 30, align = 0.5}))
+
+	local dura_cell = row:add(FlowContainer({direction = "column", align = 0.5, gap = 4}))
+	dura_cell:add(Image(Resources.sprites.icon_clock, nil, Colors.text_muted))
+	dura_cell:add(self.duration)
+	dura_cell:fitContent()
+
+	local ln_cell = row:add(FlowContainer({direction = "column", align = 0.5, gap = 4}))
+	ln_cell:add(Label({
+		font_name = "regular",
+		font_size = 24,
+		text = "LN",
+		color = Colors.text_muted
+	}))
+	ln_cell:add(self.ln_percent)
+	ln_cell:setOffset(0, -2) -- Text is a bit larger than icons
+	ln_cell:fitContent()
+
+	local tempo_cell = row:add(FlowContainer({direction = "column", align = 0.5, gap = 4}))
+	tempo_cell:add(Image(Resources.sprites.icon_metronome, nil, Colors.text_muted))
+	tempo_cell:add(self.tempo)
+	tempo_cell:fitContent()
+
+	row:fitContent():setAlignment(0.5, 0):addPosition(0, 27)
+
+	panel:add(self.time_rate):addPosition(125, 133):setScale(36 / 96, 36 / 96)
+	panel:add(self.difficulty):addPosition(229, 117):setScale(64 / 96, 64 / 96)
+	panel:add(self.patterns)
+		:setAlignment(0.5, 0)
+		:addPosition(0, 201)
+
+	panel:add(self.score_system)
+		:setAlignment(0.5, 0)
+		:addPosition(0, 248)
+
+	ring:add(self.accuracy):setAlignment(0.5, 0.5)
+	ring:add(self.grade)
+		:setAlignment(0.5, 0.5):setScale(64 / 96, 64 / 96):setOffset(0, -90)
+
+	local numbers = ring:add(FlowContainer({
+		direction = "row",
+		gap = 50,
+	}))
+
+	numbers:add(self.ma_ratio)
+	numbers:add(self.pa_ratio)
+	numbers:add(self.misses)
+
+	numbers:fitContent()
+	numbers:setAlignment(0.5, 0.5)
+	numbers:setOffset(0, 90)
+	numbers:setPivot(0.5, 0.5)
+	numbers:setScale(48 / 96, 48 / 96) -- Have to scale here because we have stupid fixed size fonts
+
+	return ring
 end
 
 function Result:updateInfo()
@@ -162,9 +271,11 @@ function Result:updateInfo()
 
 	local game = self.ui.game
 	local score_engine = game.rhythm_engine.score_engine
-	local judge_score = score_engine.judgesSource
+	local judge_source = score_engine.judgesSource
+	local accuracy_source = score_engine.accuracySource
+	local combo_source = score_engine.comboSource ---@cast combo_source rizu.BaseScore
 
-	if not judge_score then
+	if not judge_source or not accuracy_source or not combo_source then
 		self.no_score_panel:setVisible(true)
 		self.no_score_panel:setOffset(0, -30)
 		self.no_score_panel:moveToY(0, 0.7, "OutElastic")
@@ -175,7 +286,47 @@ function Result:updateInfo()
 		self.ring:setVisible(true)
 	end
 
-	self.judge_segments:bind(judge_score)
+	self.accuracy:setText(accuracy_source:getAccuracyString())
+
+	local timings = game.replayBase.timings
+
+	if timings then
+		local grade = ScoringUtils.getGrade(timings.name, accuracy_source:getAccuracy()) or "F"
+		local color = ScoringUtils.getGradeColor(timings.name, grade)
+		self.grade:setText(grade)
+		self.grade.color = color -- TODO: Label:setColor()
+		self.accuracy.color = color
+	else
+		error("TODO: auto timings")
+		-- They should be stored either in chartview or in chartmeta or in chartdiff
+	end
+
+	local judges = judge_source:getJudges()
+	local j1 = judges[1]
+	local j2 = judges[2]
+
+	local marv_perf = j1 + j2
+	local other = 0
+	for _, v in ipairs(judges) do
+		other = other + v
+	end
+	other = other - marv_perf
+
+	if j1 > j2 then
+		self.ma_ratio:setText(("%i:1"):format(j1 / j2))
+	else
+		self.ma_ratio:setText(("1:%i"):format(j2 / j1))
+	end
+
+	if marv_perf > other then
+		self.pa_ratio:setText(("%i:1"):format(marv_perf / other))
+	else
+		self.pa_ratio:setText(("1:%i"):format(other / marv_perf))
+	end
+
+	self.misses:setText(("%ix"):format(combo_source.missCount))
+
+	self.judge_segments:bind(judge_source)
 end
 
 function Result:enter()
