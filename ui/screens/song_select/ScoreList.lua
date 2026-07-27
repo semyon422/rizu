@@ -33,7 +33,6 @@ function ScoreList:new(score_selector, on_score_selected)
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
 	self.last_key_press = -math.huge
 	self.reload_time = 0
-	self.no_records = true
 	self.no_records_t = 0
 end
 
@@ -92,7 +91,6 @@ function ScoreList:reload()
 	end
 
 	self.scroll_spring:snap(self:clampScroll(self.scroll_spring.target))
-	self.no_records = #self.items == 0
 end
 
 function ScoreList:clampScroll(value)
@@ -102,11 +100,10 @@ function ScoreList:clampScroll(value)
 end
 
 function ScoreList:update(dt)
-	if self.no_records then
-		self.no_records_t = math.min(1, self.no_records_t + dt * 3)
-		return
+	if #self.items == 0 then
+		self.no_records_t = math.min(1, self.no_records_t + dt * 6)
 	else
-		self.no_records_t = math.max(0, self.no_records_t - dt * 3)
+		self.no_records_t = math.max(0, self.no_records_t - dt * 6)
 	end
 
 	self.scroll_spring:update(dt)
@@ -142,6 +139,8 @@ function ScoreList:update(dt)
 	local start_row = math.floor(scroll / row_step)
 	local pixel_offset = scroll - start_row * row_step
 
+	self:drawEmptyPanels(-pixel_offset)
+
 	for i, item in ipairs(self.items) do
 		local row = i - 1 - start_row
 		local y = row * row_step - pixel_offset
@@ -176,6 +175,18 @@ local function set_cs_alpha(a)
 	cs[1][4] = a
 end
 
+---@param start_y number
+function ScoreList:drawEmptyPanels(start_y)
+	local row_step = self.item_height + self.gap
+
+	for y = start_y, self.height - 1, row_step do
+		self.batch:setColor(Colors.panel[1], Colors.panel[2], Colors.panel[3], 0.3)
+		self.batch:add(Resources.sprites.list_item_cap_left, 0, y)
+		self.batch:add(Resources.sprites.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
+		self.batch:add(Resources.sprites.list_item_cap_right, self.width - self.cap_right_width, y)
+	end
+end
+
 ---@param item table
 ---@param index integer
 ---@param y number
@@ -187,11 +198,6 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	local t = (elapsed - delay) / FADE_IN_DURATION
 	local p = math.max(0, math.min(1, t))
 	p = ease_out_cubic(p)
-
-	self.batch:setColor(Colors.panel[1], Colors.panel[2], Colors.panel[3], p)
-	self.batch:add(Resources.sprites.list_item_cap_left, 0, y, 0)
-	self.batch:add(Resources.sprites.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
-	self.batch:add(Resources.sprites.list_item_cap_right, self.width - self.cap_right_width, y, 0)
 
 	local a = ((is_selected or is_hovered) and 0.6 or 0.2) * p
 	self.batch:setColor(item.color[1], item.color[2], item.color[3], a)
@@ -268,12 +274,20 @@ end
 local lg = love.graphics
 
 function ScoreList:draw()
+	Painter.setColorRgb(1, 1, 1)
+	Painter.setOpacity(1)
+	Painter.snapToPixel()
 
-	if self.no_records then
-		local w = Resources.sprites.no_records_set:getWidth()
-		local h = Resources.sprites.no_records_set:getHeight()
+	self.batch:draw()
+	lg.draw(self.text_batch16)
+	lg.draw(self.text_batch24)
+
+	if self.no_records_t > 0 then
+		local sprite = Resources.sprites.no_records_set
+		local w = sprite:getWidth()
+		local h = sprite:getHeight()
 		Painter.setOpacity(ease_out_cubic(self.no_records_t))
-		Resources.sprites.no_records_set:draw(
+		sprite:draw(
 			self.width / 2,
 			self.height / 2,
 			0,
@@ -282,15 +296,7 @@ function ScoreList:draw()
 			w / 2,
 			h / 2
 		)
-		return
 	end
-
-	Painter.setColorRgb(1, 1, 1)
-	Painter.snapToPixel()
-
-	self.batch:draw()
-	lg.draw(self.text_batch16)
-	lg.draw(self.text_batch24)
 end
 
 return ScoreList

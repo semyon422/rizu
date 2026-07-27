@@ -76,7 +76,11 @@ function BackgroundPanel:new(bg_model, game)
 	self.title = "Title"
 	self.artist = "Artist"
 	self.ranked = false
-	self.details_opacity = SpringValue({value = 0})
+	self.details_opacity = SpringValue({
+		value = 0,
+		stiffness = 120,
+		damping = 22,
+	})
 	self.chart_preview_view = ChartPreviewView(game)
 end
 
