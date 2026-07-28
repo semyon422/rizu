@@ -18,6 +18,7 @@ local Image = require("ui.views.Image")
 local IconButton = require("ui.views.IconButton")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
+local ChartviewFactory = require("ui.factories.ChartviewFactory")
 
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
@@ -27,6 +28,11 @@ local SongSelect = Screen + {}
 function SongSelect:new(ui)
 	Screen.new(self)
 	self.ui = ui
+
+	self.chartview_factory = ChartviewFactory(
+		ui.game.chartSelector.chartview,
+		ui.game.persistence.configModel.configs.settings
+	)
 
 	self.background_panel = BackgroundPanel(self.ui.game.backgroundModel, self.ui.game)
 	self.score_list = ScoreList(self.ui.game.scoreSelector, function(index)
@@ -231,8 +237,10 @@ end
 
 ---@param chartview rizu.library.LocatedChartview
 function SongSelect:onChartviewUpdate(chartview)
-	self.background_panel:bind(chartview)
-	self.info_panel:bind(chartview)
+	self.chartview_factory:setChartview(chartview)
+	self.chartview_factory:setTimeRate(self.ui.game.timeRateModel:get())
+	self.background_panel:bind(self.chartview_factory)
+	self.info_panel:bind(self.chartview_factory)
 end
 
 function SongSelect:updateInfo()
@@ -274,7 +282,9 @@ function SongSelect:createSidebar()
 		IconButton(Resources.sprites.icon_download),
 		Rectangle(Colors.outline):setSize(48, 2),
 		IconButton(Resources.sprites.icon_gear),
-		IconButton(Resources.sprites.icon_sparkles, function() end),
+		IconButton(Resources.sprites.icon_sparkles, function()
+			self.ui.modal_manager:attachModifier()
+		end),
 		IconButton(Resources.sprites.icon_funnel, function() end),
 		IconButton(Resources.sprites.icon_keyboard, function() end),
 		IconButton(Resources.sprites.icon_palette, function() end)

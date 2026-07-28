@@ -1,14 +1,22 @@
 local class = require("class")
-
 local math_util = require("math_util")
 
----@alias ui.Msd.Pattern "overall" | "stream" | "jumpstream" | "handstream" | "stamina" | "jackspeed" | "chordjack" | "technical"
----@alias ui.Msd.KV { name: ui.Msd.Pattern, difficulty: number }
+---@alias ui.factories.MsdFactory.Pattern 
+---| "overall" 
+---| "stream" 
+---| "jumpstream" 
+---| "handstream" 
+---| "stamina" 
+---| "jackspeed" 
+---| "chordjack" 
+---| "technical"
 
----@class ui.Msd
----@operator call: ui.Msd
----@field patterns ui.Msd.KV[]
-local Msd = class()
+---@alias ui.factories.MsdFactory.KV { name: ui.factories.MsdFactory.Pattern, difficulty: number }
+
+---@class ui.factories.MsdFactory
+---@operator call: ui.factories.MsdFactory
+---@field patterns ui.factories.MsdFactory.KV[]
+local MsdFactory = class()
 
 local MIN_RATE = 7
 local MAX_RATE = 20
@@ -23,9 +31,9 @@ local PATTERN_ORDER = {
 	"technical",
 }
 
----@param pattern_map {[ui.Msd.Pattern]: number}
+---@param pattern_map {[ui.factories.MsdFactory.Pattern]: number}
 ---@param rate_multipliers number[]
-function Msd:new(pattern_map, rate_multipliers)
+function MsdFactory:new(pattern_map, rate_multipliers)
 	self.pattern_map = pattern_map
 	self.patterns = {}
 	self.rate_multipliers = rate_multipliers
@@ -41,7 +49,7 @@ end
 
 ---@param time_rate number
 ---@return number
-function Msd:getApproximateMultiplier(time_rate)
+function MsdFactory:getApproximateMultiplier(time_rate)
 	local floor = math_util.clamp(math.floor(time_rate * 10), MIN_RATE, MAX_RATE) - MIN_RATE + 1
 	local ceil = math_util.clamp(math.ceil(time_rate * 10), MIN_RATE, MAX_RATE) - MIN_RATE + 1
 
@@ -57,7 +65,7 @@ end
 
 ---@param time_rate number
 ---@return number
-function Msd:getOverall(time_rate)
+function MsdFactory:getOverall(time_rate)
 	local multiplier = self:getApproximateMultiplier(time_rate)
 	return self.pattern_map.overall * multiplier
 end
@@ -76,8 +84,8 @@ end
 
 ---@param time_rate number
 ---@param inputmode string
----@return ui.Msd.KV
-function Msd:getPatterns(time_rate, inputmode)
+---@return ui.factories.MsdFactory.KV
+function MsdFactory:getPatterns(time_rate, inputmode)
 	local multiplier = self:getApproximateMultiplier(time_rate)
 	local t = {}
 	for _, v in ipairs(self.patterns) do
@@ -91,8 +99,8 @@ end
 
 ---@param time_rate number
 ---@param inputmode string
----@return ui.Msd.KV
-function Msd:getOrderedByPattern(time_rate, inputmode)
+---@return ui.factories.MsdFactory.KV
+function MsdFactory:getOrderedByPattern(time_rate, inputmode)
 	local multiplier = self:getApproximateMultiplier(time_rate)
 	local t = {}
 	for _, v in ipairs(PATTERN_ORDER) do
@@ -103,11 +111,11 @@ function Msd:getOrderedByPattern(time_rate, inputmode)
 end
 
 ---@param time_rate number
----@return ui.Msd.Pattern
----@return ui.Msd.Pattern?
-function Msd:getTopPatterns(time_rate)
+---@return ui.factories.MsdFactory.Pattern
+---@return ui.factories.MsdFactory.Pattern?
+function MsdFactory:getTopPatterns(time_rate)
 	local multiplier = self:getApproximateMultiplier(time_rate)
-	---@type ui.Msd.KV
+	---@type ui.factories.MsdFactory.KV
 	local top
 
 	for _, pattern in ipairs(self.patterns) do
@@ -130,7 +138,7 @@ end
 
 ---@param pattern string
 ---@return string
-function Msd.simplifyName(pattern)
+function MsdFactory.simplifyName(pattern)
 	if pattern == "stream" then
 		return "STR"
 	elseif pattern == "jumpstream" then
@@ -153,4 +161,4 @@ function Msd.simplifyName(pattern)
 	return "ALL"
 end
 
-return Msd
+return MsdFactory

@@ -59,7 +59,7 @@ local shader_code = [[
 		vec2 local_center_coords = (texture_coords - 0.5) * container_size;
 		float corner_dist = rounded_box_sdf(local_center_coords, container_size * 0.5, corner_radius);
 		float corner_mask = smoothstep(2.0, 0.0, corner_dist);
-		return pixel * color * corner_mask;
+		return pixel * color * corner_mask * color.a;
 	}
 ]]
 
@@ -129,14 +129,12 @@ function BackgroundPanel:update(dt)
 	self.details_opacity:update(dt)
 end
 
----@param chartview rizu.library.LocatedChartview
-function BackgroundPanel:bind(chartview)
+---@param cvf ui.factories.ChartviewFactory
+function BackgroundPanel:bind(cvf)
 	self.details_opacity:snap(0):set(1)
-	self.title = chartview.title and not chartview.title:match("^%s*$")
-		and chartview.title or "Unknown title"
-	self.artist = chartview.artist and not chartview.artist:match("^%s*$")
-		and chartview.artist or "Unknown artist"
-	self.ranked = chartview.difftable_chartmetas and #chartview.difftable_chartmetas > 0 or false
+	self.title = cvf:getTitle()
+	self.artist = cvf:getArtist()
+	self.ranked = cvf:isRanked()
 end
 
 function BackgroundPanel:drawBackground()
@@ -146,7 +144,7 @@ function BackgroundPanel:drawBackground()
 
 	lg.push("all")
 	lg.setCanvas(self.preview_canvas)
-	lg.clear()
+	lg.clear(0, 0, 0, 0)
 	lg.origin()
 
 	for i = 1, 2 do

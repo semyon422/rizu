@@ -4,9 +4,9 @@ local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local BMFontLabel = require("ui.views.BMFontLabel")
 local Colors = require("ui.Colors")
-local Color = require("ui.Color")
 local ScoringUtils = require("ui.ScoringUtils")
-local Msd = require("ui.Msd")
+local ChartviewFactory = require("ui.factories.ChartviewFactory")
+local ChartdiffFactory = require("ui.factories.ChartdiffFactory")
 
 ---@class ui.screens.result.ResultMeta : gui.layout.FlowContainer
 ---@operator call: ui.screens.result.ResultMeta
@@ -96,55 +96,42 @@ function ResultMeta:new()
 	self:fitContent()
 end
 
-local diff_calc = {
-	enps_diff = "ENPS",
-	osu_diff = "osu!SR",
-	msd_diff = "MSD",
-	user_diff = "User"
-}
+---@param cvf ui.factories.ChartviewFactory
+---@param cdf ui.factories.ChartdiffFactory
+function ResultMeta:bind(cvf, cdf)
+	self.duration:setText(cvf:getDuration())
+	self.tempo:setText(cvf:getTempo().avg)
+	--self.score_system:setText(ScoringUtils.formatScoreSystemName(timings, subtimings))
 
----@param chartview rizu.library.LocatedChartview
----@param chartdiff {[string]: any}
----@param rate number
----@param timings sea.Timings
----@param subtimings sea.Subtimings?
----@param settings sphere.SettingsConfig
-function ResultMeta:bind(chartview, chartdiff, rate, timings, subtimings, settings)
-	local duration = (chartview.duration or 0) / rate
-	self.duration:setText(("%i:%02i"):format(duration / 60, duration % 60))
-	self.ln_percent:setText(("%i%%"):format(chartview.long_notes_ratio or 0))
-	self.tempo:setText(("%i"):format(chartview.tempo or 0))
-	self.score_system:setText(ScoringUtils.formatScoreSystemName(timings, subtimings))
+	local ln = cvf:getLongNoteRatio() -- TODO: check if chartdiff has long_note_ratio. We should use it instead.
+	self.ln_percent.color = ln.color
+	self.ln_percent:setText(ln.value)
 
-	local diff = settings.select.diff_column
-	local diff_num = chartdiff[diff] or 0
-	local diff_color = {1, 1, 1, 1}
-	self.difficulty.color = Color.diffToColor(diff, diff_num, diff_color)
-	self.difficulty:setText(("%0.01f"):format(diff_num))
+	local diff = cdf:getDifficulty()
+	self.difficulty.color = diff.color
+	self.difficulty:setText(diff.value)
 
-	local rate_color = {1, 1, 1, 1}
-	self.time_rate.color = Color.linearRateToColor(rate, rate_color)
-	self.time_rate:setText(("%0.02fx"):format(rate))
+	local rate = cvf:getTimeRate()
+	self.time_rate.color = rate.color
+	self.time_rate:setText(rate.value)
 
-	local msd_diff_data = chartview.msd_diff_data
-	local msd_diff_rates = chartview.msd_diff_rates
+	local patterns = cvf:getPatterns()
+	local top = patterns.top_simple
+	local second = patterns.second_simple
 
-	if msd_diff_data and msd_diff_rates then
-		local msd = Msd(msd_diff_data, msd_diff_rates)
-		local first, second = msd:getTopPatterns(rate)
-		if second then
-			self.patterns:setText(("[%s] %s %s"):format(diff_calc[diff], msd.simplifyName(first), msd.simplifyName(second)))
-		else
-			self.patterns:setText(("[%s] %s"):format(diff_calc[diff], msd.simplifyName(first)))
-		end
+	if top and second then
+		self.patterns:setText(("%s %s"):format(top, second))
+	elseif top then
+		self.patterns:setText(top)
 	else
-		self.patterns:setText(diff_calc[diff])
+		self.patterns:setText("None")
 	end
 
 	for _, cell in ipairs(self.chart_meta.children) do
 		---@cast cell gui.layout.FlowContainer
 		cell:fitContent()
 	end
+
 	self.chart_meta:fitContent()
 	self.play_meta:fitContent()
 	self.score_meta:fitContent()

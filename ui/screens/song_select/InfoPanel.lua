@@ -3,7 +3,6 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Color = require("ui.Color")
 local Painter = require("gui.Painter")
-local Msd = require("ui.Msd")
 
 ---@class ui.screens.song_select.InfoPanel : gui.View
 ---@operator call: ui.screens.song_select.InfoPanel
@@ -34,28 +33,22 @@ local pattern_alias_4k = {
 	technical = "TECH"
 }
 
----@param chartview rizu.library.LocatedChartview
-function InfoPanel:bind(chartview)
+---@param cvf ui.factories.ChartviewFactory
+function InfoPanel:bind(cvf)
 	self.text_batch24:clear()
-
 	local tb24 = self.text_batch24
-	local dur = chartview.duration or 0
-	local minutes = dur / 60
-	local seconds = dur % 60
 
 	cs[1] = Colors.text
-	cs[2] = ("%i:%02i"):format(minutes, seconds)
+	cs[2] = cvf:getDuration()
 	tb24:add(cs, 355, 13)
 
-	local tempo = chartview.tempo or 0
-	local tempo_max = chartview.tempo_max
-	local tempo_min = chartview.tempo_min
+	local tempo = cvf:getTempo()
 
-	if tempo_min and tempo_max then
-		cs[2] = ("%i (%i - %i)"):format(tempo, tempo_min, tempo_max)
+	if tempo.min ~= "0" and tempo.min ~= "0" then
+		cs[2] = ("%i (%i - %i)"):format(tempo.avg, tempo.min, tempo.max)
 		tb24:add(cs, 355, 48)
 	else
-		cs[2] = ("%i"):format(tempo)
+		cs[2] = ("%i"):format(tempo.avg)
 		tb24:add(cs, 355, 48)
 	end
 
@@ -63,27 +56,28 @@ function InfoPanel:bind(chartview)
 	cs[2] = "LN"
 	tb24:add(cs, 304, 84)
 
-	local ln_percent = chartview.long_notes_ratio or 0
-	cs[1] = Color.lnPercentToColor(ln_percent, self.ln_color)
-	cs[2] = ("%i%%"):format(ln_percent * 100)
+	local ln_ratio = cvf:getLongNoteRatio()
+	cs[1] = ln_ratio.color
+	cs[2] = ln_ratio.value
 	tb24:add(cs, 355, 84)
 
-	local msd = Msd(chartview.msd_diff_data, chartview.msd_diff_rates)
-	local p1, p2 = msd:getTopPatterns(chartview.rate)
-
+	local patterns = cvf:getPatterns()
+	local top, second = patterns.top_simple, patterns.second_simple
 	cs[1] = Colors.text
 
-	if p2 then
-		cs[2] = ("%s %s"):format(pattern_alias_4k[p1] or "None", pattern_alias_4k[p2] or "None")
+	if top and second then
+		cs[2] = ("%s %s"):format(top, second)
+	elseif top then
+		cs[2] = top
 	else
-		cs[2] = pattern_alias_4k[p1]
+		cs[2] = "None"
 	end
 
 	tb24:add(cs, 12, 84)
 
-	local diff = chartview.enps_diff or 0
-	self.difficulty = ("%0.2f"):format(diff)
-	self.difficulty_color = Color.enpsToColor(diff, self.difficulty_color)
+	local diff = cvf:getDifficulty()
+	self.difficulty = diff.value
+	self.difficulty_color = diff.color
 end
 
 function InfoPanel:draw()
