@@ -1,48 +1,44 @@
 local View = require("gui.View")
-local ModifierEncoder = require("sphere.models.ModifierEncoder")
-local ModifierModel = require("sphere.models.ModifierModel")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 
 ---@class ui.screens.song_select.GameplayModifiers : gui.View
 ---@operator call: ui.screens.song_select.GameplayModifiers
+---@field batch love.Text
 local GameplayModifiers = View + {}
-
----@param mods sea.Modifier[] | string
----@return string
-local function getModifierString(mods)
-	if type(mods) == "string" then
-		mods = ModifierEncoder:decode(mods)
-	end
-
-	local results = {}
-	for _, mod in pairs(mods) do
-		local modifier = ModifierModel:getModifier(mod.id)
-
-		if modifier then
-			local modifierString, modifierSubString = modifier:getString(mod)
-			local fullMod = modifierString .. (modifierSubString or "")
-			table.insert(results, fullMod)
-		end
-	end
-
-	return table.concat(results, " ")
-end
 
 function GameplayModifiers:new()
 	View.new(self)
-	self.font = Resources.getFont("regular", 24)
-	self.mods = ""
-	self:setSize(0, self.font:getHeight())
+	self.batch = love.graphics.newTextBatch(Resources.getFont("regular", 24))
+	self:setSize(0, self.batch:getFont():getHeight())
 end
 
-function GameplayModifiers:bind(replay_base)
-	self.mods = getModifierString(replay_base.modifiers)
+---@param rbf ui.factories.ReplayBaseFactory
+function GameplayModifiers:bind(rbf)
+	local ss = rbf:getScoreSystem()
+	local co = rbf:getColumnOrderType()
+	local cs = {Colors.grade_x, ss}
+
+	if rbf:isConst() then
+		table.insert(cs, Colors.text_muted)
+		table.insert(cs, " CONST")
+	end
+
+	if co ~= "" then
+		table.insert(cs, Colors.text_muted)
+		table.insert(cs, " " .. co)
+	end
+
+	if rbf:isTapOnly() then
+		table.insert(cs, Colors.text_muted)
+		table.insert(cs " " .. "No LN")
+	end
+
+	self.batch:set(cs)
 end
 
 function GameplayModifiers:draw()
-	love.graphics.setFont(self.font)
-	love.graphics.print(self.mods, -self.font:getWidth(self.mods))
+	love.graphics.draw(self.batch, -self.batch:getWidth())
 end
 
 return GameplayModifiers

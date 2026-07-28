@@ -19,6 +19,7 @@ local IconButton = require("ui.views.IconButton")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
 local ChartviewFactory = require("ui.factories.ChartviewFactory")
+local ReplayBaseFactory = require("ui.factories.ReplayBaseFactory")
 
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
@@ -31,6 +32,11 @@ function SongSelect:new(ui)
 
 	self.chartview_factory = ChartviewFactory(
 		ui.game.chartSelector.chartview,
+		ui.game.persistence.configModel.configs.settings
+	)
+
+	self.replay_base_factory = ReplayBaseFactory(
+		ui.game.replayBase,
 		ui.game.persistence.configModel.configs.settings
 	)
 
@@ -244,9 +250,11 @@ function SongSelect:onChartviewUpdate(chartview)
 end
 
 function SongSelect:updateInfo()
+	self.replay_base_factory:setReplayBase(self.ui.game.replayBase)
+
 	self.score_list:reload()
 	self.chart_grid:reloadItems()
-	self.gameplay_modifiers:bind(self.ui.game.replayBase)
+	self.gameplay_modifiers:bind(self.replay_base_factory)
 end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
