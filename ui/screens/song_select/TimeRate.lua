@@ -72,7 +72,7 @@ function TimeRate:draw()
 
 	love.graphics.setFont(self.font)
 	Painter.setColorTable(self.text_color)
-	love.graphics.print(self.text, 15, 11)
+	love.graphics.print(self.text, 22, 10)
 end
 
 return TimeRate
