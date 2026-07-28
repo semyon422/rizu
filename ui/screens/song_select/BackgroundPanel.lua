@@ -129,7 +129,7 @@ function BackgroundPanel:update(dt)
 	self.details_opacity:update(dt)
 end
 
----@param cvf ui.factories.ChartviewFactory
+---@param cvf ui.formatters.ChartviewFormatter
 function BackgroundPanel:bind(cvf)
 	self.details_opacity:snap(0):set(1)
 	self.title = cvf:getTitle()

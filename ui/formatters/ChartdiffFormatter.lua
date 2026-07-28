@@ -4,23 +4,23 @@ local Color = require("ui.Color")
 --- Formats info from chartdiff
 --- You can get it from GameController.computeContext.chartdiff
 --- It can be nil there
----@class ui.factories.ChartdiffFactory
----@overload fun(chartdiff: sea.Chartdiff, settings: sphere.SettingsConfig): ui.factories.ChartdiffFactory
-local ChartdiffFactory = class()
+---@class ui.formatters.ChartdiffFormatter
+---@overload fun(chartdiff: sea.Chartdiff, settings: sphere.SettingsConfig): ui.formatters.ChartdiffFormatter
+local ChartdiffFormatter = class()
 
 ---@param chartdiff sea.Chartdiff?
 ---@param settings sphere.SettingsConfig
-function ChartdiffFactory:new(chartdiff, settings)
+function ChartdiffFormatter:new(chartdiff, settings)
 	self.chartdiff = chartdiff or {}
 	self.settings = settings
 end
 
 ---@param chartdiff sea.Chartdiff?
-function ChartdiffFactory:setChartdiff(chartdiff)
+function ChartdiffFormatter:setChartdiff(chartdiff)
 	self.chartdiff = chartdiff or {}
 end
 
-function ChartdiffFactory:getDifficulty()
+function ChartdiffFormatter:getDifficulty()
 	local diff_column = self.settings.select.diff_column
 	local num = self.chartdiff[diff_column] or 0
 
@@ -31,13 +31,13 @@ function ChartdiffFactory:getDifficulty()
 end
 
 ---@return string
-function ChartdiffFactory:getLongNoteRatio()
+function ChartdiffFormatter:getLongNoteRatio()
 	return ("%i%%"):format(self.chartdiff.long_note_ratio or 0)
 end
 
 ---@return string
-function ChartdiffFactory:getNoteCount()
+function ChartdiffFormatter:getNoteCount()
 	return tostring(self.chartdiff.notes_count or 0)
 end
 
-return ChartdiffFactory
+return ChartdiffFormatter

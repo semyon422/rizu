@@ -11,8 +11,8 @@ local JudgeSegments = require("ui.screens.result.JudgeSegments")
 local ResultStats = require("ui.screens.result.ResultStats")
 local ResultMeta = require("ui.screens.result.ResultMeta")
 local CompositeView = require("gui.CompositeView")
-local ChartviewFactory = require("ui.factories.ChartviewFactory")
-local ChartdiffFactory = require("ui.factories.ChartdiffFactory")
+local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
+local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 
 ---@class ui.screens.result.Result : gui.Screen
 ---@operator call: ui.screens.result.Result
@@ -23,12 +23,12 @@ function Result:new(ui)
 	Screen.new(self)
 	self.ui = ui
 
-	self.chartview_factory = ChartviewFactory(
+	self.chartview_formatter = ChartviewFormatter(
 		ui.game.chartSelector.chartview,
 		ui.game.persistence.configModel.configs.settings
 	)
 
-	self.chartdiff_factory = ChartdiffFactory(
+	self.chartdiff_formatter = ChartdiffFormatter(
 		ui.game.computeContext.chartdiff,
 		ui.game.persistence.configModel.configs.settings
 	)
@@ -167,13 +167,13 @@ function Result:updateInfo()
 	self.stats:bind(accuracy_source, judge_source, combo_source, timings)
 
 	local rate = game.timeRateModel:get()
-	self.chartview_factory:setChartview(game.chartSelector.chartview)
-	self.chartview_factory:setTimeRate(rate)
-	self.chartdiff_factory:setChartdiff(game.computeContext.chartdiff)
+	self.chartview_formatter:setChartview(game.chartSelector.chartview)
+	self.chartview_formatter:setTimeRate(rate)
+	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
 
 	self.meta:bind(
-		self.chartview_factory,
-		self.chartdiff_factory
+		self.chartview_formatter,
+		self.chartdiff_formatter
 	)
 
 	self.judge_segments:bind(judge_source)

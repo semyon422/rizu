@@ -13,7 +13,7 @@ function GameplayModifiers:new()
 	self:setSize(0, self.batch:getFont():getHeight())
 end
 
----@param rbf ui.factories.ReplayBaseFactory
+---@param rbf ui.formatters.ReplayBaseFormatter
 function GameplayModifiers:bind(rbf)
 	local ss = rbf:getScoreSystem()
 	local co = rbf:getColumnOrderType()

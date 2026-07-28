@@ -33,7 +33,7 @@ local pattern_alias_4k = {
 	technical = "TECH"
 }
 
----@param cvf ui.factories.ChartviewFactory
+---@param cvf ui.formatters.ChartviewFormatter
 function InfoPanel:bind(cvf)
 	self.text_batch24:clear()
 	local tb24 = self.text_batch24

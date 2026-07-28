@@ -8,7 +8,7 @@ User interface module for Rizu. Uses "gui" module. Exists on it's own, but goes 
 - `/`: A dump for everything
 - `views/`: Generic views that can be used everywhere. Add views here if not sure where to put them.
 - `screens/`: Screens together with their views.
-- `factories/`: Factories for formatting info from the game. Works only with this UI, you can copy paste it into your UI and slightly change it to make it work.
+- `formatters/`: Formatting info from the game. Works only with this UI, you can copy paste it into your UI and slightly change it to make it work.
 - `test/`: A collection of test views used to test "gui" module and views from this module.
 
 ### Userful files

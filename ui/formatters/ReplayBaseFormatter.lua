@@ -1,24 +1,24 @@
 local class = require("class")
 
----@class ui.factories.ReplayBaseFactory
----@operator call: ui.factories.ReplayBaseFactory
-local ReplayBaseFactory = class()
+---@class ui.formatters.ReplayBaseFormatter
+---@operator call: ui.formatters.ReplayBaseFormatter
+local ReplayBaseFormatter = class()
 
 ---@param replay_base sea.ReplayBase?
 ---@param settings sphere.SettingsConfig
-function ReplayBaseFactory:new(replay_base, settings)
+function ReplayBaseFormatter:new(replay_base, settings)
 	self.replay_base = replay_base
 	self.settings = settings
 end
 
 ---@param replay_base sea.ReplayBase?
-function ReplayBaseFactory:setReplayBase(replay_base)
+function ReplayBaseFormatter:setReplayBase(replay_base)
 	self.replay_base = replay_base
 end
 
 local bms_alias = {"Easy", "Normal", "Hard", "Very hard"}
 
-function ReplayBaseFactory:getScoreSystem()
+function ReplayBaseFormatter:getScoreSystem()
 	local timings = self.replay_base.timings
 	local subtimings = self.replay_base.subtimings
 
@@ -47,12 +47,12 @@ function ReplayBaseFactory:getScoreSystem()
 end
 
 ---@return boolean
-function ReplayBaseFactory:isConst()
+function ReplayBaseFormatter:isConst()
 	return self.replay_base.const
 end
 
 ---@return string
-function ReplayBaseFactory:getColumnOrderType()
+function ReplayBaseFormatter:getColumnOrderType()
 	local co = self.replay_base.columns_order
 
 	if not co then
@@ -73,8 +73,8 @@ function ReplayBaseFactory:getColumnOrderType()
 end
 
 ---@return boolean
-function ReplayBaseFactory:isTapOnly()
+function ReplayBaseFormatter:isTapOnly()
 	return self.replay_base.tap_only
 end
 
-return ReplayBaseFactory
+return ReplayBaseFormatter

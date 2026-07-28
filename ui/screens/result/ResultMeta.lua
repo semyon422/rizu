@@ -5,8 +5,8 @@ local Label = require("ui.views.Label")
 local BMFontLabel = require("ui.views.BMFontLabel")
 local Colors = require("ui.Colors")
 local ScoringUtils = require("ui.ScoringUtils")
-local ChartviewFactory = require("ui.factories.ChartviewFactory")
-local ChartdiffFactory = require("ui.factories.ChartdiffFactory")
+local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
+local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 
 ---@class ui.screens.result.ResultMeta : gui.layout.FlowContainer
 ---@operator call: ui.screens.result.ResultMeta
@@ -96,8 +96,8 @@ function ResultMeta:new()
 	self:fitContent()
 end
 
----@param cvf ui.factories.ChartviewFactory
----@param cdf ui.factories.ChartdiffFactory
+---@param cvf ui.formatters.ChartviewFormatter
+---@param cdf ui.formatters.ChartdiffFormatter
 function ResultMeta:bind(cvf, cdf)
 	self.duration:setText(cvf:getDuration())
 	self.tempo:setText(cvf:getTempo().avg)

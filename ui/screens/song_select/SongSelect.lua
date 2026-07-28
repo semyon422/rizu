@@ -18,8 +18,8 @@ local Image = require("ui.views.Image")
 local IconButton = require("ui.views.IconButton")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
-local ChartviewFactory = require("ui.factories.ChartviewFactory")
-local ReplayBaseFactory = require("ui.factories.ReplayBaseFactory")
+local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
+local ReplayBaseFormatter = require("ui.formatters.ReplayBaseFormatter")
 
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
@@ -30,12 +30,12 @@ function SongSelect:new(ui)
 	Screen.new(self)
 	self.ui = ui
 
-	self.chartview_factory = ChartviewFactory(
+	self.chartview_formatter = ChartviewFormatter(
 		ui.game.chartSelector.chartview,
 		ui.game.persistence.configModel.configs.settings
 	)
 
-	self.replay_base_factory = ReplayBaseFactory(
+	self.replay_base_formatter = ReplayBaseFormatter(
 		ui.game.replayBase,
 		ui.game.persistence.configModel.configs.settings
 	)
@@ -243,18 +243,18 @@ end
 
 ---@param chartview rizu.library.LocatedChartview
 function SongSelect:onChartviewUpdate(chartview)
-	self.chartview_factory:setChartview(chartview)
-	self.chartview_factory:setTimeRate(self.ui.game.timeRateModel:get())
-	self.background_panel:bind(self.chartview_factory)
-	self.info_panel:bind(self.chartview_factory)
+	self.chartview_formatter:setChartview(chartview)
+	self.chartview_formatter:setTimeRate(self.ui.game.timeRateModel:get())
+	self.background_panel:bind(self.chartview_formatter)
+	self.info_panel:bind(self.chartview_formatter)
 end
 
 function SongSelect:updateInfo()
-	self.replay_base_factory:setReplayBase(self.ui.game.replayBase)
+	self.replay_base_formatter:setReplayBase(self.ui.game.replayBase)
 
 	self.score_list:reload()
 	self.chart_grid:reloadItems()
-	self.gameplay_modifiers:bind(self.replay_base_factory)
+	self.gameplay_modifiers:bind(self.replay_base_formatter)
 end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
