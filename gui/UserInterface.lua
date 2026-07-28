@@ -2,7 +2,7 @@ local class = require("class")
 local Inputs = require("gui.input.Inputs")
 
 ---@class gui.QueuedInput
----@field event {name: string, [integer]: any}
+---@field event {name: string, time: number?, [integer]: any}
 ---@field modifiers gui.ModifierKeys
 ---@field x number
 ---@field y number
@@ -28,12 +28,12 @@ local function getModifiers()
 		control = love.keyboard.isDown("lctrl", "rctrl"),
 		shift = love.keyboard.isDown("lshift", "rshift"),
 		alt = love.keyboard.isDown("lalt", "ralt"),
-		super = love.keyboard.isDown("lgui", "rgui"),
+		super = love.keyboard.isDown("lgui", "rgui"), ---@diagnostic disable-line
 	}
 end
 
----@param event {name: string, [integer]: any}
----@return {name: string, [integer]: any} copy
+---@param event {name: string, time: number?, [integer]: any}
+---@return {name: string, time: number?, [integer]: any} copy
 local function copyEvent(event)
 	local copy = {}
 	for key, value in pairs(event) do
@@ -93,10 +93,10 @@ function UserInterface:draw()
 	self.screen_manager:draw()
 end
 
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number?, [integer]: any}
 ---@param modifiers gui.ModifierKeys?
 function UserInterface:receive(event, modifiers)
-	local x, y
+	local x, y = 0, 0
 	if event.name == "mousepressed" or event.name == "mousereleased" or event.name == "mousemoved" then
 		x, y = event[1], event[2]
 	else

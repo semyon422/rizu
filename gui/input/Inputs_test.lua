@@ -256,6 +256,93 @@ function test.drag_releases_pressed_view_when_drag_starts(t)
 end
 
 ---@param t testing.T
+function test.drag_survives_pressed_child_removal_during_synthetic_mouse_up(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local scroller = screen.root:add(create_view(100, 100))
+	local child = scroller:add(create_view(100, 100))
+	scroller.drag_axis = "vertical"
+	scroller.handles_mouse_input = true
+	child.handles_mouse_input = true
+	local events = {}
+	child.onMouseUp = function()
+		events[#events + 1] = "up"
+		scroller:remove(child)
+	end
+	scroller.onDragStart = function() events[#events + 1] = "start" end
+	scroller.onDragEnd = function() events[#events + 1] = "end" end
+	screen:relayout()
+	local inputs = Inputs()
+	screen.inputs = inputs
+	inputs:resetTraversalContext(10, 10)
+	inputs.mouse_hits = {child, scroller}
+	inputs.mouse_target = child
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 10, 20, 0, 10}, default_modifiers)
+	inputs:receive({name = "mousereleased", 10, 20, 1}, default_modifiers)
+
+	t:tdeq(events, {"up", "start", "end"})
+end
+
+---@param t testing.T
+function test.drag_is_cancelled_when_capture_is_removed_during_synthetic_mouse_up(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local scroller = screen.root:add(create_view(100, 100))
+	local child = scroller:add(create_view(100, 100))
+	scroller.drag_axis = "vertical"
+	scroller.handles_mouse_input = true
+	child.handles_mouse_input = true
+	local events = {}
+	child.onMouseUp = function()
+		events[#events + 1] = "up"
+		screen.root:remove(scroller)
+	end
+	scroller.onDragStart = function() events[#events + 1] = "start" end
+	screen:relayout()
+	local inputs = Inputs()
+	screen.inputs = inputs
+	inputs:resetTraversalContext(10, 10)
+	inputs.mouse_hits = {child, scroller}
+	inputs.mouse_target = child
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousemoved", 10, 20, 0, 10}, default_modifiers)
+
+	t:tdeq(events, {"up"})
+	t:eq(inputs.pointer_gesture, nil)
+end
+
+---@param t testing.T
+function test.mouse_hit_dispatch_survives_current_target_removal(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local bottom = screen.root:add(create_view(100, 100))
+	local top = screen.root:add(create_view(100, 100))
+	bottom.handles_mouse_input = true
+	top.handles_mouse_input = true
+	local events = {}
+	top.onScroll = function()
+		events[#events + 1] = "top"
+		screen.root:remove(top)
+	end
+	bottom.onScroll = function() events[#events + 1] = "bottom" end
+	screen:relayout()
+	local inputs = Inputs()
+	screen.inputs = inputs
+	inputs:resetTraversalContext(10, 10)
+	inputs.mouse_hits = {top, bottom}
+	inputs.mouse_target = top
+
+	inputs:receive({name = "wheelmoved", 0, 1}, default_modifiers)
+
+	t:tdeq(events, {"top", "bottom"})
+end
+
+---@param t testing.T
 function test.scrolling(t)
 	local scrollable = create_view(100, 100)
 	local inputs = Inputs()

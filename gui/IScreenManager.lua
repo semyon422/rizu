@@ -16,7 +16,7 @@ end
 ---@param inputs gui.Inputs
 function IScreenManager:acceptInputs(inputs) end
 
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 ---@return boolean? handled
 function IScreenManager:receive(event) end
 

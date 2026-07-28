@@ -42,7 +42,7 @@ function Screen:invalidateLayout()
 end
 
 ---Receives a raw LÖVE or application event while this screen is active.
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 ---@return boolean? handled
 function Screen:receive(event)
 end
