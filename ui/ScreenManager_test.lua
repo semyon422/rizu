@@ -26,6 +26,7 @@ local function newScreen()
 	function screen:acceptInputs() self.accepted = self.accepted + 1 end
 	function screen:receive() self.received = (self.received or 0) + 1 end
 	function screen:update() self.updated = self.updated + 1 end
+	function screen:isTransitionActive() return self.transforming or false end
 	function screen:draw() self.drawn = self.drawn + 1 end
 	function screen:setUIScale(scale) self.scale = scale end
 	function screen:resize(w, h) self.width, self.height = w, h end
@@ -49,6 +50,7 @@ function test.multiple_visible_screens_run_but_only_one_accepts_input(t)
 	local manager = ScreenManager()
 	local first = newScreen()
 	local second = newScreen()
+	first.transforming = true
 	manager:registerAll({first, second})
 	manager:setScreen(first)
 	manager:setScreen(second, true)
@@ -152,6 +154,24 @@ function test.hide_removes_transition_screen(t)
 	manager:setScreen(second, true)
 	manager:hide(first)
 
+	t:tdeq(manager.visible_screens, {second})
+end
+
+---@param t testing.T
+function test.transition_screen_hides_when_its_transforms_finish(t)
+	local manager = ScreenManager()
+	local first = newScreen()
+	local second = newScreen()
+	first.transforming = true
+	manager:registerAll({first, second})
+	manager:setScreen(first)
+	manager:setScreen(second, true)
+
+	manager:update(0.1)
+	t:tdeq(manager.visible_screens, {first, second})
+
+	first.transforming = false
+	manager:update(0.1)
 	t:tdeq(manager.visible_screens, {second})
 end
 

@@ -98,7 +98,7 @@ function Gameplay:update(dt)
 	end
 end
 
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 function Gameplay:receive(event)
 	self.gameplay_interactor:receive(event)
 	self.sequence_canvas:receive(event)

@@ -15,6 +15,7 @@ local View = require("gui.View")
 ---@field ui_scale number Logical-per-drawable scale; root size = window / ui_scale
 ---@field inputs gui.Inputs?
 ---@field loaded boolean
+---@field pending_unload {[gui.View]: true}
 ---@field private pending_expire {[gui.View]: true}
 local Screen = class()
 
@@ -31,6 +32,7 @@ function Screen:new()
 	self.dirty = true
 	self.inputs = nil
 	self.loaded = false
+	self.pending_unload = {}
 	self.pending_expire = {}
 	self.width = 0
 	self.height = 0
@@ -78,6 +80,7 @@ function Screen:unload()
 	if self.inputs then
 		self.inputs:clearSubtree(self.root)
 	end
+	self:flushPendingUnload()
 	self.root:unloadSubtree()
 	self.loaded = false
 	self.views = {}
@@ -85,7 +88,53 @@ function Screen:unload()
 	self.draw_views = {}
 	self.renderer:clear()
 	self.inputs = nil
+	self.pending_unload = {}
+	self.pending_expire = {}
 	self.dirty = true
+end
+
+---@param view gui.View
+function Screen:queueUnload(view)
+	assert(not view.pending_unload_screen, "view is already pending unload")
+	view.pending_unload_screen = self
+	self.pending_unload[view] = true
+end
+
+---@param view gui.View
+function Screen:cancelUnload(view)
+	assert(view.pending_unload_screen == self and self.pending_unload[view],
+		"view is not pending unload from this screen")
+	self.pending_unload[view] = nil
+	view.pending_unload_screen = nil
+end
+
+---Unload one queued subtree immediately, or all queued subtrees when omitted.
+---The single-view form is used to preserve unload-before-load ordering during
+---cross-screen moves.
+---@param only_view gui.View?
+function Screen:flushPendingUnload(only_view)
+	local pending = self.pending_unload
+	if only_view then
+		if not pending[only_view] then
+			return
+		end
+		pending[only_view] = nil
+		if self.inputs then
+			self.inputs:clearSubtree(only_view)
+		end
+		only_view:unloadSubtree()
+		only_view.pending_unload_screen = nil
+		return
+	end
+
+	self.pending_unload = {}
+	for view in pairs(pending) do
+		if self.inputs then
+			self.inputs:clearSubtree(view)
+		end
+		view:unloadSubtree()
+		view.pending_unload_screen = nil
+	end
 end
 
 ---@param view gui.View
@@ -162,6 +211,7 @@ end
 ---Run at most one pending tree rebuild.
 function Screen:flush()
 	self:removeExpiredViews()
+	self:flushPendingUnload()
 	if not self.dirty then
 		return
 	end
@@ -197,6 +247,19 @@ function Screen:setUIScale(scale)
 	else
 		self:invalidateLayout()
 	end
+end
+
+---@return boolean active
+function Screen:isTransitionActive()
+	if not self.root.present then
+		return false
+	end
+	for i = 1, #self.views do
+		if self.views[i]:hasTransforms() then
+			return true
+		end
+	end
+	return false
 end
 
 ---@param dt number

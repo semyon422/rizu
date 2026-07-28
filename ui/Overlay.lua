@@ -19,7 +19,7 @@ function Overlay:new(ui)
 	self.suppress_next_text_input = false
 end
 
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 ---@return boolean handled
 function Overlay:receive(event)
 	if self.suppress_next_text_input and event.name == "textinput" then

@@ -8,6 +8,7 @@ local IScreenManager = require("gui.IScreenManager")
 ---@field overlay gui.Screen?
 ---@field input_screen gui.Screen?
 ---@field private registered {[gui.Screen]: true}
+---@field private transition_screens {[gui.Screen]: true}
 local ScreenManager = IScreenManager + {}
 
 function ScreenManager:new()
@@ -19,6 +20,8 @@ function ScreenManager:new()
 	self.input_screen = nil
 	---@type {[gui.Screen]: true}
 	self.registered = {}
+	---@type {[gui.Screen]: true}
+	self.transition_screens = {}
 end
 
 ---@param screen gui.Screen
@@ -65,6 +68,7 @@ end
 ---@param screen gui.Screen
 function ScreenManager:hide(screen)
 	assert(screen ~= self.input_screen, "cannot hide the input screen")
+	self.transition_screens[screen] = nil
 	local index = self:getVisibleIndex(screen)
 	if index then
 		table.remove(self.visible_screens, index)
@@ -90,11 +94,18 @@ function ScreenManager:setScreen(screen, keep_previous_visible)
 		previous.inputs:clearSubtree(previous.root)
 		previous.inputs = nil
 	end
-	if previous and not keep_previous_visible then
-		self.input_screen = nil
-		self:hide(previous)
+	if previous then
+		if keep_previous_visible then
+			self.transition_screens[previous] = true
+		else
+			self.input_screen = nil
+			self:hide(previous)
+		end
 	end
 
+	-- The entering screen is no longer an outgoing transition, even when it is
+	-- revisited before its previous exit animation finished.
+	self.transition_screens[screen] = nil
 	-- The entering screen is always the top-most visible navigation screen.
 	local index = self:getVisibleIndex(screen)
 	if index then
@@ -119,7 +130,7 @@ end
 
 ---Sends events only to the overlay and the active input screen. The overlay
 ---receives first and may stop propagation by returning true.
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 ---@return boolean? handled
 function ScreenManager:receive(event)
 	if self.overlay and self.overlay:receive(event) then
@@ -149,6 +160,11 @@ function ScreenManager:update(dt)
 	for i = 1, #self.visible_screens do
 		self.visible_screens[i]:update(dt)
 	end
+	for screen in pairs(self.transition_screens) do
+		if not screen:isTransitionActive() then
+			self:hide(screen)
+		end
+	end
 	if self.overlay then
 		self.overlay:update(dt)
 	end
@@ -176,6 +192,7 @@ function ScreenManager:unload()
 	self.overlay = nil
 	self.screen_registry = {}
 	self.registered = {}
+	self.transition_screens = {}
 end
 
 return ScreenManager

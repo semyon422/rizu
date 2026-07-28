@@ -145,7 +145,7 @@ function Editor:draw()
 	end
 end
 
----@param event {name: string, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 function Editor:receive(event)
 	if not self.editor_loaded then
 		return

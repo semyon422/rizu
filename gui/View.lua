@@ -17,6 +17,7 @@ local Easing = require("gui.anim.Easing")
 ---@field parent gui.View?
 ---@field children gui.View[]
 ---@field screen gui.Screen?
+---@field pending_unload_screen gui.Screen?
 ---@field debug_name string?
 ---
 ---Authored layout inputs (§2.1). Layout owns resolution; never writes these.
@@ -190,6 +191,7 @@ function View:new()
 	self.enabled = true
 	self.detached = false
 	self.loaded = false
+	self.pending_unload_screen = nil
 	self.effective_visible = true
 	self.effective_enabled = true
 	self.effective_opacity = 1
@@ -229,20 +231,31 @@ end
 ---@return T
 function View:add(child)
 	assertCanAdopt(self, child)
+	---@cast child gui.View
 
 	if child.parent then
 		child.parent:remove(child)
 	end
 
+	local screen = self.screen
+	local pending_screen = child.pending_unload_screen
+	if pending_screen then
+		if pending_screen == screen then
+			pending_screen:cancelUnload(child)
+		else
+			pending_screen:flushPendingUnload(child)
+		end
+	end
+
 	child.parent = self
 	child:setDetached(false)
-	child:setScreen(self.screen)
+	child:setScreen(screen)
 	table.insert(self.children, child)
-	if self.screen then
-		if self.screen.loaded then
+	if screen then
+		if screen.loaded then
 			child:loadSubtree()
 		end
-		self.screen:invalidateLayout()
+		screen:invalidateLayout()
 	end
 	return child
 end
@@ -255,6 +268,7 @@ function View:insert(index, child)
 	local max_index = #self.children + (child.parent == self and 0 or 1)
 	assertInsertIndex(index, max_index)
 	assertCanAdopt(self, child)
+	---@cast child gui.View
 
 	if child.parent == self then
 		self:move(child, index)
@@ -264,15 +278,25 @@ function View:insert(index, child)
 		child.parent:remove(child)
 	end
 
+	local screen = self.screen
+	local pending_screen = child.pending_unload_screen
+	if pending_screen then
+		if pending_screen == screen then
+			pending_screen:cancelUnload(child)
+		else
+			pending_screen:flushPendingUnload(child)
+		end
+	end
+
 	child.parent = self
 	child:setDetached(false)
-	child:setScreen(self.screen)
+	child:setScreen(screen)
 	table.insert(self.children, index, child)
-	if self.screen then
-		if self.screen.loaded then
+	if screen then
+		if screen.loaded then
 			child:loadSubtree()
 		end
-		self.screen:invalidateLayout()
+		screen:invalidateLayout()
 	end
 	return child
 end
@@ -311,14 +335,14 @@ function View:remove(child)
 			if screen and screen.inputs then
 				screen.inputs:clearSubtree(child)
 			end
-			if child.loaded then
-				child:unloadSubtree()
-			end
 			table.remove(self.children, i)
 			child.parent = nil
 			child:setScreen(nil)
 			if screen then
+				screen:queueUnload(child)
 				screen:invalidateLayout()
+			elseif child.loaded then
+				child:unloadSubtree()
 			end
 			return
 		end
@@ -417,9 +441,6 @@ function View:setVisible(visible)
 	assert(type(visible) == "boolean", "visible must be boolean")
 	self.visible = visible
 	self:composeSubtree()
-	if not visible and self.screen and self.screen.inputs then
-		self.screen.inputs:clearSubtree(self)
-	end
 	return self
 end
 
@@ -429,9 +450,6 @@ function View:setEnabled(enabled)
 	assert(type(enabled) == "boolean", "enabled must be boolean")
 	self.enabled = enabled
 	self:composeSubtree()
-	if not enabled and self.screen and self.screen.inputs then
-		self.screen.inputs:clearSubtree(self)
-	end
 	return self
 end
 
@@ -698,7 +716,6 @@ end
 ---Recursively detach every descendant. After this call `self.children` is empty
 ---and no view in the former subtree retains a parent reference. `self` stays
 ---attached to its own parent.
----@private
 function View:clear()
 	for i = #self.children, 1, -1 do
 		local child = self.children[i]
@@ -741,7 +758,7 @@ end
 ---@private
 ---@param parent gui.View
 function View:resolve(parent)
-	local left, top, right, bottom
+	local left, top, right, bottom = 0, 0, 0, 0
 	local arranged = self.arranged
 	if arranged then
 		left = arranged[1]
@@ -871,6 +888,8 @@ end
 ---@private
 ---@param root_scale number  ui_scale baked into the local transform; 1 for non-roots
 function View:compose(root_scale)
+	local was_input_present = self.effective_visible and self.effective_enabled
+		and self.present and self.cull_mask == 0
 	local sx = self.scale_x * root_scale
 	local sy = self.scale_y * root_scale
 	local w = self.width
@@ -904,12 +923,22 @@ function View:compose(root_scale)
 	end
 	world_transform:apply(self.transform)
 	composeClipRect(self)
-	self.present = self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
+	self.present = (not self.parent or self.parent.present)
+		and self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
 	local clip_rect = self.clip_rect
 	if clip_rect and (clip_rect[3] <= 0 or clip_rect[4] <= 0) then
 		self.cull_mask = bit.bor(self.cull_mask, self.CULL_CLIP_EMPTY)
 	else
 		self.cull_mask = bit.band(self.cull_mask, bit.bnot(self.CULL_CLIP_EMPTY))
+	end
+	local input_present = self.effective_visible and self.effective_enabled
+		and self.present and self.cull_mask == 0
+	local parent_input_present = not self.parent or (self.parent.effective_visible
+		and self.parent.effective_enabled and self.parent.present and self.parent.cull_mask == 0)
+	if was_input_present and not input_present and parent_input_present
+		and self.screen and self.screen.inputs
+	then
+		self.screen.inputs:clearSubtree(self)
 	end
 end
 

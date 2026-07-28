@@ -377,7 +377,7 @@ Navigation calls `exit()` on the old input Screen (clearing any input focus insi
 
 **Blockable exit.** `exit()` may return `false` to veto the navigation ("unsaved changes?") — `UserInterface` then aborts the swap and the outgoing screen stays active. One boolean; no new machinery.
 
-**Screen transitions are transforms.** `enter()`/`exit()` animate the Screen root's visual channel (§11) — a whole-screen fade/slide is a subtree transform, free via whole-subtree motion. `ScreenManager` may retain the outgoing Screen in `visible_screens` until its exit animation finishes. Transient popup Views pair their exit animation with `expire()` (§11.2), removing through the normal deferred-unload path.
+**Screen transitions are transforms.** `enter()`/`exit()` animate the Screen root's visual channel (§11) — a whole-screen fade/slide is a subtree transform, free via whole-subtree motion. `ScreenManager` retains an outgoing Screen requested with `keep_previous_visible` in `visible_screens` while its exit transforms are active, and removes it automatically once the root is no longer present (including opacity reaching the presence threshold) or no transforms remain. Transient popup Views pair their exit animation with `expire()` (§11.2), removing through the normal deferred-unload path.
 
 **Heavy screens (non-normative).** If a screen's content is expensive to build, `UserInterface` may keep the outgoing screen active while the incoming one constructs incrementally under a frame budget (§12), calling `enter()` only when the tree is ready — the user sees the old screen's exit crossfade start exactly when the new one can draw.
 

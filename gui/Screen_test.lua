@@ -448,7 +448,7 @@ function test.load_and_unload_visit_tree_once(t)
 end
 
 ---@param t testing.T
-function test.add_to_loaded_screen_loads_and_remove_unloads(t)
+function test.add_to_loaded_screen_loads_and_remove_unloads_at_flush(t)
 	local s = Screen()
 	s:load()
 	local child = View()
@@ -459,8 +459,112 @@ function test.add_to_loaded_screen_loads_and_remove_unloads(t)
 	s.root:add(child)
 	t:eq(loads, 1)
 	s.root:remove(child)
-	t:eq(unloads, 1)
+	t:eq(unloads, 0)
 	t:eq(child.detached, true)
+	t:eq(child.loaded, true)
+
+	s:flush()
+	t:eq(unloads, 1)
+	t:eq(child.loaded, false)
+	t:eq(child.pending_unload_screen, nil)
+end
+
+---@param t testing.T
+function test.remove_skips_cached_update_and_draw_before_flush(t)
+	local s = Screen()
+	local child = View()
+	local updates, draws = 0, 0
+	child:setUpdate(function() updates = updates + 1 end)
+	child:setDraw(function() draws = draws + 1 end)
+	s.root:add(child)
+	s:load()
+
+	s.root:remove(child)
+	-- Exercise the stale caches directly: normal update/draw starts with flush.
+	for _, view in ipairs(s.update_views) do
+		if not view.detached then view:update(0) end
+	end
+	s.renderer:draw()
+
+	t:eq(updates, 0)
+	t:eq(draws, 0)
+end
+
+---@param t testing.T
+function test.same_screen_reparent_cancels_pending_unload(t)
+	local s = Screen()
+	local left = s.root:add(View())
+	local right = s.root:add(View())
+	local child = left:add(View())
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+	s:load()
+
+	right:add(child)
+	s:flush()
+
+	t:eq(child.parent, right)
+	t:eq(child.detached, false)
+	t:eq(loads, 1)
+	t:eq(unloads, 0)
+end
+
+---@param t testing.T
+function test.cross_screen_reparent_unloads_before_loading(t)
+	local old_screen = Screen()
+	local new_screen = Screen()
+	local child = View()
+	local calls = {}
+	function child:load() calls[#calls + 1] = "load" end
+	function child:unload() calls[#calls + 1] = "unload" end
+	old_screen.root:add(child)
+	old_screen:load()
+	new_screen:load()
+
+	new_screen.root:add(child)
+
+	t:tdeq(calls, {"load", "unload", "load"})
+	t:eq(child.screen, new_screen)
+	t:eq(child.loaded, true)
+end
+
+---@param t testing.T
+function test.presence_loss_clears_input_once(t)
+	local s = Screen()
+	local child = s.root:add(View())
+	s:load()
+	local clears = 0
+	s.inputs = {
+		clearSubtree = function(_, root)
+			t:eq(root, child)
+			clears = clears + 1
+		end,
+	}
+
+	child:setOpacity(0)
+	child:setOpacity(0)
+
+	t:eq(clears, 1)
+end
+
+---@param t testing.T
+function test.visibility_and_enabled_loss_clear_input(t)
+	local s = Screen()
+	local child = s.root:add(View())
+	s:load()
+	local clears = 0
+	s.inputs = {
+		clearSubtree = function()
+			clears = clears + 1
+		end,
+	}
+
+	child:setVisible(false)
+	child:setVisible(true)
+	child:setEnabled(false)
+
+	t:eq(clears, 2)
 end
 
 return test
