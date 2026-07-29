@@ -43,10 +43,6 @@ function Loop:init()
 	self.mem_count = collectgarbage("count")
 	self.mem_delta = 0
 
-	collectgarbage("setpause", 100)
-	collectgarbage("setstepmul", 200)
-	self.gc_step_size = 2
-
 	self.ema_dt = 0
 	self.ema_jitter = 0
 	self.prev_frame_dt = 0
@@ -160,9 +156,6 @@ function Loop:run()
 		self.graphics:present()
 		t.present = measure_time()
 
-		if self.gc_step_size > 0 then
-			collectgarbage("step", self.gc_step_size)
-		end
 		t.gc = measure_time()
 
 		local target_time, to_sleep = self.limiter:limit(time_1)
