@@ -1,5 +1,4 @@
-local View = require("gui.View")
-local SpringValue = require("gui.anim.SpringValue")
+local VirtualizedList = require("gui.VirtualizedList")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 local Colors = require("ui.Colors")
@@ -7,9 +6,9 @@ local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
 local time_util = require("time_util")
 
----@class ui.screens.song_select.ScoreList : gui.View
+---@class ui.screens.song_select.ScoreList : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ScoreList
-local ScoreList = View + {}
+local ScoreList = VirtualizedList + {}
 
 local FADE_IN_DURATION = 0.4
 local FADE_IN_STAGGER = 0.02
@@ -17,17 +16,14 @@ local FADE_IN_STAGGER = 0.02
 ---@param score_selector rizu.select.ScoreSelector
 ---@param on_score_selected fun(index: integer)
 function ScoreList:new(score_selector, on_score_selected)
-	View.new(self)
+	VirtualizedList.new(self)
 	self.score_selector = score_selector
 	self.on_score_selected = on_score_selected
 	self.items = {}
 	self.gap = 5
-	self.scroll_spring = SpringValue({stiffness = 480, damping = 48})
 	self.selected_index = nil
 	self.hover_index = nil
-	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
-	self:setClip(true)
 	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
@@ -90,23 +86,21 @@ function ScoreList:reload()
 		})
 	end
 
-	self.scroll_spring:snap(self:clampScroll(self.scroll_spring.target))
+	self:scrollTo(self.scroll_target, true)
 end
 
-function ScoreList:clampScroll(value)
-	local row_step = self.item_height + self.gap
-	local max_scroll = math.max(0, (#self.items - 1) * row_step)
-	return math.max(0, math.min(value, max_scroll))
+---@return integer count
+function ScoreList:getItemCount()
+	return #self.items
 end
 
 function ScoreList:update(dt)
+	VirtualizedList.update(self, dt)
 	if #self.items == 0 then
 		self.no_records_t = math.min(1, self.no_records_t + dt * 6)
 	else
 		self.no_records_t = math.max(0, self.no_records_t - dt * 6)
 	end
-
-	self.scroll_spring:update(dt)
 
 	if self.last_key_press - (love.timer.getTime() - 2) < 0 then
 		self.selected_index = nil
@@ -118,7 +112,7 @@ function ScoreList:update(dt)
 		local _, my = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
 		if my >= 0 and my < self.height then
 			local row_step = self.item_height + self.gap
-			local scroll = self.scroll_spring:get()
+			local scroll = self:getVisualScrollPosition()
 			local idx = math.floor((my + scroll) / row_step) + 1
 			if idx >= 1 and idx <= #self.items then
 				self.hover_index = idx
@@ -135,22 +129,14 @@ function ScoreList:update(dt)
 	self.text_batch16:clear()
 
 	local row_step = self.item_height + self.gap
-	local scroll = self.scroll_spring:get()
-	local start_row = math.floor(scroll / row_step)
-	local pixel_offset = scroll - start_row * row_step
+	local scroll = self:getVisualScrollPosition()
+	local first_row, last_row = self:getVisibleRowRange()
 
-	self:drawEmptyPanels(-pixel_offset)
+	self:drawEmptyPanels(-(scroll % row_step))
 
-	for i, item in ipairs(self.items) do
-		local row = i - 1 - start_row
-		local y = row * row_step - pixel_offset
-
-		if y > self.height or y + self.item_height < 0 then
-			goto continue
-		end
-
-		self:drawItem(item, i, y, i == self.selected_index, i == self.hover_index)
-		::continue::
+	for i = first_row, last_row do
+		local y = (i - 1) * row_step - scroll
+		self:drawItem(self.items[i], i, y, i == self.selected_index, i == self.hover_index)
 	end
 end
 
@@ -227,12 +213,6 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	self.text_batch16:addf(cs, self.width - 100, "right", -17, y + 43)
 end
 
-function ScoreList:onScroll(e)
-	local row_step = self.item_height + self.gap
-	local new_target = self.scroll_spring.target - e.direction_y * row_step
-	self.scroll_spring:set(self:clampScroll(new_target))
-end
-
 function ScoreList:onKeyDown(e)
 	if e.key == "down" then
 		self.selected_index = math.min(#self.items, (self.selected_index or 0) + 1)
@@ -256,11 +236,11 @@ end
 function ScoreList:scrollToIndex(index)
 	local row_step = self.item_height + self.gap
 	local target = (index - 1) * row_step
-	local scroll = self.scroll_spring:get()
+	local scroll = self:getScrollPosition()
 	if target < scroll then
-		self.scroll_spring:snap(self:clampScroll(target))
+		self:scrollTo(target, true)
 	elseif target + row_step > scroll + self.height then
-		self.scroll_spring:snap(self:clampScroll(target + row_step - self.height))
+		self:scrollTo(target + row_step - self.height, true)
 	end
 end
 

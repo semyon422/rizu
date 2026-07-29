@@ -516,6 +516,8 @@ For huge lists (thousands of rows), don't create row views at all:
 - Input is manual hit math on that view: inverse-transform event coordinates, `row = floor(local_y / row_height)`. Click, hover highlight, and keyboard navigation live on the list view.
 - Scrollbar: imgui-drawn, or one small child view for free drag events.
 
+`gui.VirtualizedList` supplies fixed-height row geometry, wheel/drag/fling scrolling, bounded rubber-band overscroll, visible-row range calculation, and the `gui.IScrollModel` contract. Subclasses still own item storage, hit testing, and batched rendering; grid subclasses report their column count so content extent and visible rows remain correct.
+
 Rule of thumb: rows-as-views when the count is modest (up to a few hundred) or rows are interactive; imgui rows when the count is huge and rows are simple. A middle point — pooled row views over a virtualized range — is viable when rows are uniform-height and interactive; build it only when a concrete list needs it. All three share §9's clipping, scrolling, and culling machinery.
 
 ## 10. Popups and the overlay screen

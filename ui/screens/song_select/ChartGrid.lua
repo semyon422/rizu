@@ -1,5 +1,4 @@
-local View = require("gui.View")
-local SpringValue = require("gui.anim.SpringValue")
+local VirtualizedList = require("gui.VirtualizedList")
 local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
@@ -14,7 +13,7 @@ local Sounds = require("ui.Sounds")
 ---@field inputmode string
 ---@field name string
 
----@class ui.screens.song_select.ChartGrid : gui.View
+---@class ui.screens.song_select.ChartGrid : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ChartGrid
 ---@field items ui.screens.song_select.ChartGrid.Item[]
 ---@field cap gui.Sprite
@@ -30,31 +29,25 @@ local Sounds = require("ui.Sounds")
 ---@field body_s number
 ---@field stroke_middle_s number
 ---@field hover_id integer?
-local ChartGrid = View + {}
+local ChartGrid = VirtualizedList + {}
 
 local COL_WIDTH = 345
 local COL_X_GAP = 5
 local COL_Y_GAP = 5
-local ROW_HEIGHT = 42 + COL_Y_GAP
-local SCROLLBAR_PADDING = 0
-local SCROLLBAR_WIDTH = 8
-local SCROLLBAR_THUMB_HEIGHT = 24
+local ITEM_HEIGHT = 42
+local ROW_HEIGHT = ITEM_HEIGHT + COL_Y_GAP
 
 ---@param chart_selector rizu.select.ChartSelector
 function ChartGrid:new(chart_selector)
-	View.new(self)
+	VirtualizedList.new(self)
 	self.chart_selector = chart_selector
 	self.items = {}
 	self.meta_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
 	self.names_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24)) ---@type love.Text
 	self.batch = SpriteBatch(Resources.sprites.grid_item_body)
-	self.scroll_spring = SpringValue({stiffness = 480, damping = 48})
-	self.scroll_offset = 0
-	self.scrollbar_color = {Colors.text[1], Colors.text[2], Colors.text[3], 0.25}
-	self.scrollbar_bg_color = {Colors.text_muted[1], Colors.text_muted[2], Colors.text_muted[3], 0.15}
-	self.handles_mouse_input = true
+	self.item_height = ITEM_HEIGHT
+	self.gap = COL_Y_GAP
 	self.handles_keyboard_input = true
-	self:setClip(true)
 
 	self.cap = Resources.sprites.grid_item_cap_right
 	self.body = Resources.sprites.grid_item_body
@@ -83,11 +76,14 @@ function ChartGrid:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.stroke_middle_s = (width_per_col - self.stroke_left_w - self.stroke_right_w) / self.stroke_middle_w
 end
 
-function ChartGrid:clampScroll(value)
-	local total_rows = math.max(1, math.ceil(#self.items / self.columns))
-	local visible_rows = math.max(1, math.ceil(self.height / ROW_HEIGHT))
-	local max_scroll = math.max(0, (total_rows - visible_rows) * ROW_HEIGHT)
-	return math.max(0, math.min(value, max_scroll))
+---@return integer count
+function ChartGrid:getItemCount()
+	return #self.items
+end
+
+---@return integer columns
+function ChartGrid:getColumnCount()
+	return self.columns or 1
 end
 
 function ChartGrid:reloadItems()
@@ -114,15 +110,10 @@ function ChartGrid:requestReloadItems()
 	self.reload_items_needed = true
 end
 
-function ChartGrid:onScroll(e)
-	self.scroll_offset = self:clampScroll(self.scroll_offset - e.direction_y * ROW_HEIGHT)
-	return true
-end
-
 function ChartGrid:scrollToSelected()
 	local selected_index = self.chart_selector.state:getSecondary().index
 	local selected_row = math.max(0, math.floor((selected_index - 1) / self.columns))
-	self.scroll_offset = self:clampScroll(selected_row * ROW_HEIGHT - (self.height / 2) + (ROW_HEIGHT / 2) - COL_Y_GAP)
+	self:scrollTo(selected_row * ROW_HEIGHT - (self.height / 2) + (ROW_HEIGHT / 2) - COL_Y_GAP)
 end
 
 function ChartGrid:onKeyDown(e)
@@ -150,20 +141,18 @@ end
 local cs = {{1, 1, 1, 1}, ""}
 
 function ChartGrid:update(dt)
+	VirtualizedList.update(self, dt)
 	if self.reload_items_needed then
 		self.reload_items_needed = false
 		self:reloadItems()
 	end
-
-	self.scroll_spring:update(dt)
-	self.scroll_spring:set(self:clampScroll(self.scroll_offset))
 
 	local last_hover = self.hover_id
 	self.hover_id = nil
 	if self.mouse_over then
 		local mx, my = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
 		if mx >= 0 and mx < self.width and my >= 0 and my < self.height then
-			local scroll = self.scroll_spring:get()
+			local scroll = self:getVisualScrollPosition()
 			local col = math.floor(mx / (self.width_per_col + COL_X_GAP))
 			local row = math.floor((my + scroll) / ROW_HEIGHT)
 			local idx = (row * self.columns + col) + 1
@@ -183,10 +172,14 @@ function ChartGrid:update(dt)
 
 	local batch = self.batch
 
-	local scroll = self.scroll_spring:get()
+	local scroll = self:getVisualScrollPosition()
 	local selected_index = self.chart_selector.state:getSecondary().index
+	local first_row, last_row = self:getVisibleRowRange()
+	local first_index = (first_row - 1) * self.columns + 1
+	local last_index = math.min(#self.items, last_row * self.columns)
 
-	for i, v in ipairs(self.items) do
+	for i = first_index, last_index do
+		local v = self.items[i]
 		local col = (i - 1) % self.columns
 		local row = math.floor((i - 1) / self.columns)
 		local x = col * (self.width_per_col + COL_X_GAP)
@@ -216,38 +209,10 @@ end
 
 local lg = love.graphics
 
-function ChartGrid:drawScrollbar()
-	local total_rows = math.max(1, math.ceil(#self.items / self.columns))
-	if total_rows <= 3 then
-		return
-	end
-
-	local visible_rows = math.max(1, math.ceil(self.height / ROW_HEIGHT))
-	local max_scroll = math.max(0, (total_rows - visible_rows) * ROW_HEIGHT)
-
-	local x = self.width - SCROLLBAR_PADDING - SCROLLBAR_WIDTH
-	local y = SCROLLBAR_PADDING
-	local h = math.max(0, self.height - SCROLLBAR_PADDING * 2)
-
-	Painter.setColorTable(self.scrollbar_bg_color)
-	lg.rectangle("fill", x, y, SCROLLBAR_WIDTH, h)
-
-	local thumb_h = SCROLLBAR_THUMB_HEIGHT
-	local thumb_y = y
-	if max_scroll > 0 then
-		thumb_y = y + (h - thumb_h) * (self.scroll_spring:get() / max_scroll)
-	end
-
-	Painter.setColorTable(self.scrollbar_color)
-	lg.rectangle("fill", x, thumb_y, SCROLLBAR_WIDTH, thumb_h)
-	Painter.setColorRgb(1, 1, 1)
-end
-
 function ChartGrid:draw()
 	Painter.setColorRgb(1, 1, 1)
 	self.batch:draw()
 	lg.draw(self.meta_batch)
 	lg.draw(self.names_batch)
-	self:drawScrollbar()
 end
 return ChartGrid
