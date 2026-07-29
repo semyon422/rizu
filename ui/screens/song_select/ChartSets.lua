@@ -90,12 +90,15 @@ function ChartSets:update(dt)
 		self:scrollToIndex(selected_index)
 	end
 
+	if self.mouse_over then
+		self:markScrollActivity()
+	end
+
 	if self.mouse_over and love.mouse.isDown(2) then
 		local _, mouse_y = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
 		local scroll_normal = math.min(math.max(mouse_y / self.height, 0), 1)
-		self:markScrollActivity()
 		self:stopScrollMotion()
-		self:scrollTo(self:getMaxScroll() * scroll_normal, true)
+		self:scrollTo(self:getMaxScroll() * scroll_normal)
 	elseif self.scroll_return_pending and not self.drag_active then
 		self.scroll_return_elapsed = self.scroll_return_elapsed + dt
 		if self.scroll_return_elapsed >= SCROLL_RETURN_DELAY then
