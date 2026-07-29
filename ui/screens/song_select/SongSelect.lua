@@ -89,6 +89,8 @@ function SongSelect:openScore(index)
 end
 
 function SongSelect:enter()
+	self.time_rate:updateText()
+
 	local chart_selector = self.ui.game.chartSelector
 	chart_selector:notifyChartviewChanged()
 	chart_selector:onChanged(self)
