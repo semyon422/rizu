@@ -269,13 +269,13 @@ Additive counters must not be incremented again when a job or side effect is red
 
 ## SQLite Safety Prerequisite
 
-`sea.ServerSqliteDatabase` enables WAL, `synchronous = NORMAL`, and a 10-second busy timeout. The SQLite library observed during the July 2026 investigation was version 3.49.1.
+`sea.ServerSqliteDatabase` enables WAL, `synchronous = NORMAL`, and a 10-second busy timeout. The SQLite library observed at the start of the July 2026 investigation was version 3.49.1. The dependency manifest now pins SQLite 3.53.4 for every target.
 
 SQLite documents a rare WAL-reset corruption bug affecting upstream versions 3.7.0 through 3.51.2 when separate connections in multiple threads or processes write or checkpoint at the same time. The fix is in 3.51.3 and selected backports:
 
 https://www.sqlite.org/wal.html#wal_reset_bug
 
-Before a compute worker or finalizer becomes an additional writer to `server.db`, deployment must upgrade to SQLite 3.51.3 or another officially fixed release and verify the version through the same `ljsqlite3` library used by the application.
+Before a compute worker or finalizer becomes an additional writer to `server.db`, deployment must build and deploy the pinned SQLite library, then verify version 3.51.3 or later through the same `ljsqlite3` library used by the application. Updating only a system SQLite command-line program does not verify the library selected by the runtime.
 
 Until that prerequisite is met, the external process must remain compute-only and the existing server process must perform database finalization. WAL still permits concurrent readers and one writer, but write transactions must remain short:
 

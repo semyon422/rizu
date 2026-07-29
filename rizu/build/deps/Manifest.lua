@@ -79,9 +79,9 @@ local Manifest = {
 		macos = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_macos"},
 	},
 	sqlite_source = {
-		linux = {url = "https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz", archive = "sqlite-autoconf-3490100.tar.gz", dir = "sqlite_linux"},
-		windows = {url = "https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz", archive = "sqlite-autoconf-3490100.tar.gz", dir = "sqlite_windows"},
-		macos = {url = "https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz", archive = "sqlite-autoconf-3490100.tar.gz", dir = "sqlite_macos"},
+		linux = {url = "https://www.sqlite.org/2026/sqlite-autoconf-3530400.tar.gz", archive = "sqlite-autoconf-3530400.tar.gz", dir = "sqlite_linux"},
+		windows = {url = "https://www.sqlite.org/2026/sqlite-autoconf-3530400.tar.gz", archive = "sqlite-autoconf-3530400.tar.gz", dir = "sqlite_windows"},
+		macos = {url = "https://www.sqlite.org/2026/sqlite-autoconf-3530400.tar.gz", archive = "sqlite-autoconf-3530400.tar.gz", dir = "sqlite_macos"},
 	},
 	discord_rpc = {
 		windows = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-win.zip", archive = "discord-rpc-win.zip"},
