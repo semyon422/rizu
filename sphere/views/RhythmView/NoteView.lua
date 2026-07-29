@@ -7,6 +7,8 @@ local NotePartView = require("sphere.views.RhythmView.NotePartView")
 ---@field graphicalNote rizu.VisualNote
 ---@field column number
 ---@field chords table
+---@field start_time_state {dt: number}
+---@field end_time_state {dt: number}
 local NoteView = class()
 
 ---@param noteType string
@@ -15,6 +17,20 @@ function NoteView:new(noteType)
 	self.startChord = {}
 	self.endChord = {}
 	self.middleChord = {}
+	self.start_time_state = {dt = 0}
+	self.end_time_state = {dt = 0}
+end
+
+---@return {dt: number}
+function NoteView:getStartTimeState()
+	self.start_time_state.dt = self.graphicalNote.start_dt
+	return self.start_time_state
+end
+
+---@return {dt: number}
+function NoteView:getEndTimeState()
+	self.end_time_state.dt = self.graphicalNote.end_dt
+	return self.end_time_state
 end
 
 local noteParts = {}

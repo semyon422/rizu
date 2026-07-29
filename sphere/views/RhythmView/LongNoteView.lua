@@ -89,7 +89,7 @@ LongNoteView.getHeadTransformParams = LongNoteView.getTransformParams
 ---@return number?...
 function LongNoteView:getTailTransformParams()
 	local tw = self:getNotePart("Tail")
-	local ets = {dt = self.graphicalNote.end_dt}
+	local ets = self:getEndTimeState()
 	local w, h = tw:getDimensions()
 	local nw, nh = tw:get("w", ets), tw:get("h", ets)
 	local sx = nw and nw / w or tw:get("sx", ets) or 1
@@ -112,8 +112,8 @@ function LongNoteView:getBodyTransformParams()
 	local tw = self:getNotePart("Tail")
 	local bw = self:getNotePart("Body")
 
-	local sts = {dt = self.graphicalNote.start_dt}
-	local ets = {dt = self.graphicalNote.end_dt}
+	local sts = self:getStartTimeState()
+	local ets = self:getEndTimeState()
 
 	local dx = hw:get("x", sts) - tw:get("x", ets)
 	local dy = hw:get("y", sts) - tw:get("y", ets)

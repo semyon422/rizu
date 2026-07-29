@@ -4,9 +4,9 @@ local class = require("class")
 ---@operator call: sphere.NotePartView
 local NotePartView = class()
 
----@return table
+---@return {dt: number}
 function NotePartView:getTimeState()
-	return {dt = self.noteView.graphicalNote.start_dt}
+	return self.noteView:getStartTimeState()
 end
 
 ---@param key string
