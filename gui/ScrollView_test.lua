@@ -78,6 +78,16 @@ function test.viewport_culling_preserves_other_cull_causes(t)
 end
 
 ---@param t testing.T
+function test.exposes_scrollbar_model(t)
+	local _, scroll_view = createScrollView()
+	scroll_view:scrollTo(40, true)
+
+	t:eq(scroll_view:getScrollPosition(), 40)
+	t:eq(scroll_view:getScrollContentSize(), 150)
+	t:eq(scroll_view:getScrollViewportSize(), 50)
+end
+
+---@param t testing.T
 function test.relayout_reclamps_unchanged_extent(t)
 	local screen, scroll_view = createScrollView()
 	scroll_view:scrollTo(100, true)
@@ -115,6 +125,34 @@ function test.drag_scrolls_content_and_release_ends_capture(t)
 	inputs.mouse_y = 40
 	inputs:receive({name = "mousemoved", 25, 40, 0, 140}, default_modifiers)
 	t:eq(scroll_view.scroll_current, scroll_view:getMaxScroll())
+end
+
+---@param t testing.T
+function test.drag_rubber_bands_past_boundary_and_recovers(t)
+	local screen, scroll_view = createScrollView()
+	local inputs = Inputs()
+	inputs:beginFrame(25, 40)
+	screen:acceptInputs(inputs)
+
+	inputs:receive({name = "mousepressed", 25, 40, 1, time = 1}, default_modifiers)
+	inputs.mouse_y = 80
+	inputs:receive({name = "mousemoved", 25, 80, 0, 40, time = 1.1}, default_modifiers)
+
+	t:eq(scroll_view.scroll_current, 0)
+	t:assert(scroll_view.overscroll < 0)
+	t:assert(scroll_view.overscroll > -scroll_view.height * scroll_view.OVERSCROLL_LIMIT_RATIO)
+	t:assert(scroll_view.content.offset_y > 0)
+	t:eq(scroll_view:getScrollPosition(), 0)
+
+	inputs:receive({name = "mousereleased", 25, 80, 1, time = 1.1}, default_modifiers)
+	local released_overscroll = math.abs(scroll_view.overscroll)
+	scroll_view:update(0.1)
+	t:assert(math.abs(scroll_view.overscroll) < released_overscroll)
+	for _ = 1, 20 do
+		scroll_view:update(0.1)
+	end
+	t:eq(scroll_view.overscroll, 0)
+	t:eq(scroll_view.content.offset_y, 0)
 end
 
 ---@param t testing.T

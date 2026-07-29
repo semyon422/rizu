@@ -493,9 +493,10 @@ The core contract is deliberately small:
 - Wheel input and `scrollTo()` write `scroll_target`. Scrolling is a **visual-channel write** — `content:setOffset(0, -scroll_current)`, one `composeSubtree`, no relayout. The viewport's `clip_rect` doesn't move; content transforms do; hit-testing stays correct.
 - **State is `(scroll_target, scroll_current)`, not a tween.** Each `update(dt)` while awake computes `scroll_current = scroll_target + (scroll_current - scroll_target) * math.exp(-decay * dt_ms)` — frame-rate-independent exponential approach with retargeting for free. When `|scroll_target - scroll_current| < SCROLL_EPSILON`, the scroller *sleeps*: current snaps to target and no cull refresh runs until the next input.
 - Target and current are clamped to `[0, max_scroll]`. There is no fit mode (§13), so content height is authored by the code building the rows. After relayout, resize, or content replacement, re-clamp both values and refresh culling (§6.1 pass 5).
+- Dragging beyond either bound adds a bounded, resisted `overscroll` visual offset. The logical target/current remain bounded; on release the offset exponentially recovers to zero and an overscrolled release does not fling farther out of bounds.
 - Viewport culling follows §9.3.
 
-Scrollbar UI is a separate component that observes and writes the core scroll state; it is not a child feature required of `ScrollView`. Drag scrolling, rubber-band overscroll, fling/velocity measurement, and cause-specific decay are optional behavior modules or application policy layered over the core. They must use the same target/current and visual-offset contracts if added. Popup close-on-scroll is application coordination between popup ownership and a scroller notification, not a `ScrollView` acceptance requirement.
+Scrollbar UI is a separate component that observes and writes the core scroll state; it is not a child feature required of `ScrollView`. It consumes `gui.IScrollModel`: bounded position, content size, viewport size, and `scrollTo()`. The bounded position deliberately excludes transient rubber-band offset so scrollbar thumbs stay on their tracks. Popup close-on-scroll is application coordination between popup ownership and a scroller notification, not a `ScrollView` acceptance requirement.
 
 ### 9.3 Viewport culling
 
