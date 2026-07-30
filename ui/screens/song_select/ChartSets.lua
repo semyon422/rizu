@@ -4,6 +4,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
 local Sounds = require("ui.Sounds")
+local Color = require("ui.Color")
 
 ---@class ui.screens.song_select.ChartSets : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ChartSets
@@ -13,10 +14,12 @@ local ITEM_HEIGHT = 76
 local SCROLL_RETURN_DELAY = 2
 
 ---@param chartSelector rizu.select.ChartSelector
+---@param settings sphere.SettingsConfig
 ---@param on_selected fun(index: integer)
-function ChartSets:new(chartSelector, on_selected)
+function ChartSets:new(chartSelector, settings, on_selected)
 	VirtualizedList.new(self)
 	self.chartSelector = chartSelector
+	self.settings = settings
 	self.on_selected = on_selected
 	self.gap = 5
 	self.item_height = ITEM_HEIGHT
@@ -27,6 +30,7 @@ function ChartSets:new(chartSelector, on_selected)
 	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
 	self.title_batch = love.graphics.newTextBatch(Resources.getFont("cjk_bold", 24))
 	self.artist_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24))
+
 end
 
 function ChartSets:load() end
@@ -120,6 +124,7 @@ function ChartSets:update(dt)
 end
 
 local cs = {{1, 1, 1, 1}, ""}
+local diff_color = {0, 0, 0, 0}
 
 ---@param color gui.Color
 local function copy_color_to_cs(color)
@@ -157,6 +162,19 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 		self.batch:add(Resources.sprites.list_item_stroke_cap_right, self.width - self.stroke_right_width, sy)
 	end
 
+	local diff_column = self.settings.select.diff_column
+	local diff = cv[diff_column] ---@type number?
+
+	if diff then
+		Color.diffToColor(diff_column, diff, diff_color)
+		diff_color[4] = 1
+	else
+		diff_color[4] = 0
+	end
+
+	self.batch:setColor(diff_color)
+	self.batch:add(Resources.sprites.chart_sets_difficulty, 0, y)
+
 	copy_color_to_cs(Colors.text)
 	cs[2] = cv.title or ""
 	self.title_batch:add(cs, 24, y + 4)
@@ -164,6 +182,19 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	copy_color_to_cs(Colors.text_muted)
 	cs[2] = cv.artist or ""
 	self.artist_batch:add(cs, 24, y + 36)
+
+	self.batch:setColor(1, 1, 1)
+
+	-- TODO: Dans
+	if cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
+		self.batch:add(Resources.sprites.chart_sets_ranked, self.width - 45, y + 23)
+	else
+		self.batch:add(Resources.sprites.chart_sets_unranked, self.width - 45, y + 23)
+	end
+
+	if cv.lamp then
+		self.batch:add(Resources.sprites.chart_sets_lamp, -80, y + 26)
+	end
 end
 
 ---@param e gui.ScrollEvent

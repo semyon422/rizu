@@ -75,7 +75,6 @@ function BackgroundPanel:new(bg_model, game)
 	self.bg_shader = lg.newShader(shader_code)
 	self.title = "Title"
 	self.artist = "Artist"
-	self.ranked = false
 	self.details_opacity = SpringValue({
 		value = 0,
 		stiffness = 120,
@@ -134,7 +133,6 @@ function BackgroundPanel:bind(cvf)
 	self.details_opacity:snap(0):set(1)
 	self.title = cvf:getTitle()
 	self.artist = cvf:getArtist()
-	self.ranked = cvf:isRanked()
 end
 
 function BackgroundPanel:drawBackground()
@@ -188,11 +186,6 @@ function BackgroundPanel:draw()
 	Painter.setColorTable(Colors.text)
 	lg.print(self.title, 20, self.title_y)
 	lg.setScissor()
-
-	if self.ranked then
-		local tag_width, tag_height = Resources.sprites.tag_ranked:getDimensions()
-		Resources.sprites.tag_ranked:draw(self.width - tag_width - 20, self.height - tag_height - 20)
-	end
 end
 
 ---@param event table

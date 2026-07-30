@@ -46,7 +46,11 @@ function SongSelect:new(ui)
 		self:openScore(index)
 	end)
 	self.chart_grid = ChartGrid(self.ui.game.chartSelector)
-	self.chart_sets = ChartSets(self.ui.game.chartSelector, function() end)
+	self.chart_sets = ChartSets(
+		self.ui.game.chartSelector,
+		self.ui.game.persistence.configModel.configs.settings,
+		function() end
+	)
 	self.difficulty_panel = DifficultyPanel()
 	self.info_panel = InfoPanel()
 
