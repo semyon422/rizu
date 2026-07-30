@@ -45,7 +45,6 @@ end
 ---@param params ui.views.form.DropdownParams
 function Dropdown:new(params)
 	FormControl.new(self)
-	assert(#params.options > 0, "dropdown requires at least one option")
 	self.options = params.options
 	self.value = params.value
 	self.label_text = params.label
@@ -62,7 +61,6 @@ function Dropdown:new(params)
 	self.opened = false
 	self.handles_mouse_input = true
 	self:setSize(params.width or 300, HEIGHT)
-	self:validateValue(self.value)
 end
 
 ---@return ui.views.form.Form form
@@ -76,20 +74,14 @@ function Dropdown:getForm()
 	return parent
 end
 
----@param value any
-function Dropdown:validateValue(value)
-	for _, option in ipairs(self.options) do
-		if option == value then
-			return
-		end
-	end
-	error("dropdown value must be one of its options")
+---@return boolean selectable
+function Dropdown:canBeSelected()
+	return FormControl.canBeSelected(self) and #self.options > 0
 end
 
 ---@param value any
 ---@param notify boolean?
 function Dropdown:setValue(value, notify)
-	self:validateValue(value)
 	if self.value == value then
 		return
 	end
@@ -104,7 +96,7 @@ end
 
 ---@return boolean opened
 function Dropdown:open()
-	if self.opened then
+	if self.opened or #self.options == 0 then
 		return false
 	end
 	local form = self:getForm()
@@ -215,7 +207,8 @@ function Dropdown:draw()
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.font)
 	love.graphics.print(self.label_text, 0, 0)
-	love.graphics.print(self.format(self.value), 9, BODY_Y + (BODY_HEIGHT - self.font:getHeight()) / 2)
+	local value_text = self.value == nil and "" or self.format(self.value)
+	love.graphics.print(value_text, 9, BODY_Y + (BODY_HEIGHT - self.font:getHeight()) / 2)
 	self.chevron:draw(
 		self.width - self.chevron:getWidth() - 8,
 		BODY_Y + BODY_HEIGHT - self.chevron:getHeight() - 8

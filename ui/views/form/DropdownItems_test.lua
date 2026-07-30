@@ -25,4 +25,16 @@ function test.keyboard_focus_wraps_and_selects_displayed_option(t)
 	t:eq(selected_value, "c")
 end
 
+---@param t testing.T
+function test.invalid_value_keeps_original_option_order(t)
+	local items = {
+		options = {"a", "b", "c"},
+		selected_index = nil,
+	}
+
+	local value, index = DropdownItems.getDisplayOption(items, 2)
+	t:eq(value, "b")
+	t:eq(index, 2)
+end
+
 return test

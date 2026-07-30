@@ -43,7 +43,7 @@ function DropdownItems:new(dropdown, options, format, width, row_height, on_sele
 end
 
 function DropdownItems:open()
-	self.focused_display_index = 1
+	self.focused_display_index = #self.options > 0 and 1 or nil
 	self:setEnabled(true)
 end
 
@@ -70,7 +70,10 @@ end
 ---@return any value
 ---@return integer option_index
 function DropdownItems:getDisplayOption(display_index)
-	local selected_index = assert(self.selected_index, "dropdown value must be one of its options")
+	local selected_index = self.selected_index
+	if not selected_index then
+		return self.options[display_index], display_index
+	end
 	if display_index == 1 then
 		return self.options[selected_index], selected_index
 	end
@@ -83,6 +86,10 @@ end
 
 ---@param display_index integer
 function DropdownItems:focusDisplayIndex(display_index)
+	if #self.options == 0 then
+		self.focused_display_index = nil
+		return
+	end
 	self.focused_display_index = ((display_index - 1) % #self.options) + 1
 	self.dropdown:getForm():centerView(
 		self,
