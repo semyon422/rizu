@@ -3,7 +3,32 @@ local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local ScrollView = require("gui.ScrollView")
 local View = require("gui.View")
-local Slider = require("ui.views.Slider")
+
+---@class gui.test.HorizontalDragControl : gui.View
+---@operator call: gui.test.HorizontalDragControl
+---@field value number
+local HorizontalDragControl = View + {}
+
+---@param value number
+---@param width number
+function HorizontalDragControl:new(value, width)
+	View.new(self)
+	self.value = value
+	self:setSize(width, 24)
+	self.handles_mouse_input = true
+	self.drag_axis = "horizontal"
+end
+
+---@param e gui.DragStartEvent|gui.DragEvent
+---@return boolean handled
+function HorizontalDragControl:updateDrag(e)
+	local local_x = self.world_transform:inverseTransformPoint(e.x, e.y)
+	self.value = math.max(0, math.min(1, local_x / self.width))
+	return true
+end
+
+HorizontalDragControl.onDragStart = HorizontalDragControl.updateDrag
+HorizontalDragControl.onDrag = HorizontalDragControl.updateDrag
 
 local test = {}
 
@@ -159,7 +184,7 @@ end
 function test.interactive_child_keeps_horizontal_drag_capture(t)
 	local content = View()
 	content:setSize(100, 150)
-	local slider = Slider({value = 0, width = 100})
+	local slider = HorizontalDragControl(0, 100)
 	content:add(slider)
 	local scroll_view = ScrollView(content)
 	scroll_view:anchorFixed(0, 0, 100, 50)
@@ -174,7 +199,7 @@ function test.interactive_child_keeps_horizontal_drag_capture(t)
 	inputs.mouse_x = 90
 	inputs:receive({name = "mousemoved", 90, 12, 80, 0}, default_modifiers)
 
-	t:assert(slider.value > 0.9)
+	t:eq(slider.value, 0.9)
 	t:eq(scroll_view.scroll_current, 0)
 end
 
@@ -182,7 +207,7 @@ end
 function test.scroll_view_captures_vertical_drag_from_slider(t)
 	local content = View()
 	content:setSize(100, 150)
-	local slider = Slider({value = 0.5, width = 100})
+	local slider = HorizontalDragControl(0.5, 100)
 	content:add(slider)
 	local scroll_view = ScrollView(content)
 	scroll_view:anchorFixed(0, 0, 100, 50)
