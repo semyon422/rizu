@@ -1,4 +1,9 @@
 COMPOSE ?= docker compose
+RIZU_UID ?= $(shell id -u)
+RIZU_GID ?= $(shell id -g)
+
+export RIZU_UID
+export RIZU_GID
 
 .DEFAULT_GOAL := help
 
@@ -55,6 +60,8 @@ preflight: nginx-conf
 	@test -f bin/linux64/libminacalc.so || { echo "missing bin/linux64/libminacalc.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/bcrypt.so || { echo "missing tree/lib/lua/5.1/bcrypt.so" >&2; exit 1; }
 	@test -f tree/share/lua/5.1/resty/nats/client.lua || { echo "missing tree/share/lua/5.1/resty/nats/client.lua" >&2; exit 1; }
+	@test -w . || { echo "checkout must be writable for SQLite WAL files and runtime logs" >&2; exit 1; }
+	@test ! -e server.db || test -w server.db || { echo "server.db is not writable" >&2; exit 1; }
 	@echo "Prebuilt runtime artifacts are ready"
 
 validate:

@@ -25,6 +25,7 @@ services:
   openresty:
     image: openresty/openresty:1.31.1.1-2-noble
     pull_policy: missing
+    user: "${RIZU_UID:-1000}:${RIZU_GID:-1000}"
     working_dir: /app
     entrypoint:
       - /bin/sh

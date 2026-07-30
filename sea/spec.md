@@ -50,6 +50,8 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 - Configuration, SQLite, and content-addressed chart and replay storage remain in their existing ignored checkout paths.
 - Docker does not compile or download application dependencies. The checkout must contain compatible prebuilt `tree/` Lua modules and `bin/linux64/` native libraries, including the repository-pinned SQLite and Minacalc builds. Compose may pull the pinned OpenResty and NATS images when they are missing locally.
 - The container exposes only Rizu's server-specific 7z, iconv, Minacalc, and SQLite libraries through `LD_LIBRARY_PATH`. OpenResty and Lua SSL modules use the container image's OpenSSL instead of the game runtime's bundled OpenSSL.
+- The OpenResty container runs as the invoking host UID and GID so its worker can update the mounted SQLite database, create WAL files, and write runtime logs without changing checkout ownership. `make` exports these IDs; direct Compose usage defaults both to `1000`.
+- Server replay computation uses the fake audio provider. The server module graph must not load BASS or require game audio libraries; the BASS provider is loaded lazily only when audio is explicitly enabled.
 
 ### ADR: NATS Broadcast Transport
 - Cross-worker and cross-connection fan-out uses NATS pub/sub via `icc.BroadcastingPeer`.

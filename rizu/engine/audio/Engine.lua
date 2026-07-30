@@ -4,7 +4,6 @@ local ChartAudio = require("rizu.engine.audio.ChartAudio")
 local ISource = require("rizu.engine.audio.ISource")
 local SoftwareMixer = require("rizu.engine.audio.SoftwareMixer")
 local FakeProvider = require("rizu.engine.audio.fake.Provider")
-local BassProvider = require("rizu.engine.audio.bass.Provider")
 
 ---@class rizu.audio.Engine
 ---@operator call: rizu.audio.Engine
@@ -33,6 +32,7 @@ end
 ---@param enabled boolean
 function Engine:setEnabled(enabled)
 	if enabled then
+		local BassProvider = require("rizu.engine.audio.bass.Provider")
 		self.provider = BassProvider()
 	else
 		self.provider = FakeProvider()

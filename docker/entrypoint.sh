@@ -23,6 +23,15 @@ do
 	fi
 done
 
+if [ ! -w /app ]; then
+	echo "checkout is not writable by container user $(id -u):$(id -g): /app" >&2
+	exit 1
+fi
+if [ -e server.db ] && [ ! -w server.db ]; then
+	echo "SQLite database is not writable by container user $(id -u):$(id -g): /app/server.db" >&2
+	exit 1
+fi
+
 runtime_lib_dir="/tmp/rizu-libs"
 mkdir -p "$runtime_lib_dir"
 for name in lib7z.so libiconv.so libminacalc.so libsqlite3.so
