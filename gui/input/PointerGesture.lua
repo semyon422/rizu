@@ -79,6 +79,9 @@ function PointerGesture:handleMouseDown(event, modifiers)
 	e.y = self.inputs.mouse_y
 	e.time = event.time
 	local target, current_target = self.targeting:dispatch(e)
+	if target ~= self.inputs.keyboard_focus and self.inputs.keyboard_focus then
+		self.inputs:setKeyboardFocus(nil, modifiers)
+	end
 	if not target then
 		self.inputs.pointer_gesture = nil
 		self:syncLegacyGestureState()
@@ -99,9 +102,6 @@ function PointerGesture:handleMouseDown(event, modifiers)
 	self.inputs.last_drag_event = nil
 	self.inputs.released_press_target = nil
 	target.pressed = true
-	if target ~= self.inputs.keyboard_focus and self.inputs.keyboard_focus then
-		self.inputs:setKeyboardFocus(nil, modifiers)
-	end
 	return e
 end
 
