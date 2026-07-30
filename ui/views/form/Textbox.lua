@@ -1,4 +1,4 @@
-local View = require("gui.View")
+local FormControl = require("ui.views.form.FormControl")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -11,7 +11,7 @@ local TextboxModel = require("ui.helpers.TextboxModel")
 ---@field width number?
 ---@field on_change fun(text: string)?
 
----@class ui.views.form.Textbox : gui.View
+---@class ui.views.form.Textbox : ui.views.form.FormControl
 ---@operator call: ui.views.form.Textbox
 ---@field model ui.helpers.TextboxModel
 ---@field font love.Font
@@ -21,7 +21,7 @@ local TextboxModel = require("ui.helpers.TextboxModel")
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
 ---@field cap_right gui.Sprite
-local Textbox = View + {}
+local Textbox = FormControl + {}
 
 local HEIGHT = 65
 local BODY_Y = 25
@@ -30,7 +30,7 @@ local TEXT_Y = 35
 
 ---@param params ui.views.form.TextboxParams
 function Textbox:new(params)
-	View.new(self)
+	FormControl.new(self)
 	self.model = TextboxModel()
 	self.model:setText(params.text or "")
 	self.font = Resources.getFont("medium", 16)

@@ -1,9 +1,9 @@
 local DropdownItems = require("ui.views.form.DropdownItems")
 local Form = require("ui.views.form.Form")
+local FormControl = require("ui.views.form.FormControl")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
-local View = require("gui.View")
 
 ---@class ui.views.form.DropdownParams
 ---@field label string
@@ -14,7 +14,7 @@ local View = require("gui.View")
 ---@field format? ui.views.form.DropdownFormat
 ---@field on_change? fun(value: any)
 
----@class ui.views.form.Dropdown : gui.View
+---@class ui.views.form.Dropdown : ui.views.form.FormControl
 ---@operator call: ui.views.form.Dropdown
 ---@field options any[]
 ---@field value any
@@ -29,7 +29,7 @@ local View = require("gui.View")
 ---@field chevron gui.Sprite
 ---@field items ui.views.form.DropdownItems?
 ---@field opened boolean
-local Dropdown = View + {}
+local Dropdown = FormControl + {}
 
 local HEIGHT = 65
 local BODY_Y = 25
@@ -43,7 +43,7 @@ end
 
 ---@param params ui.views.form.DropdownParams
 function Dropdown:new(params)
-	View.new(self)
+	FormControl.new(self)
 	assert(#params.options > 0, "dropdown requires at least one option")
 	self.options = params.options
 	self.value = params.value

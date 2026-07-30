@@ -1,4 +1,4 @@
-local View = require("gui.View")
+local FormControl = require("ui.views.form.FormControl")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -8,7 +8,7 @@ local Resources = require("ui.Resources")
 ---@field on_change fun(checked: boolean)?
 ---@field checked boolean?
 
----@class ui.views.form.Checkbox : gui.View
+---@class ui.views.form.Checkbox : ui.views.form.FormControl
 ---@operator call: ui.views.form.Checkbox
 ---@field checked boolean
 ---@field on_change fun(checked: boolean)?
@@ -16,14 +16,14 @@ local Resources = require("ui.Resources")
 ---@field label_text string
 ---@field body gui.Sprite
 ---@field mark gui.Sprite
-local Checkbox = View + {}
+local Checkbox = FormControl + {}
 
 local HEIGHT = 30
 local TEXT_GAP = 8
 
 ---@param params ui.views.form.CheckboxParams
 function Checkbox:new(params)
-	View.new(self)
+	FormControl.new(self)
 	self.checked = params.checked == true
 	self.on_change = params.on_change
 	self.font = Resources.getFont("medium", 16)

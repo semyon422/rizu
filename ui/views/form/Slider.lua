@@ -1,4 +1,4 @@
-local View = require("gui.View")
+local FormControl = require("ui.views.form.FormControl")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -12,7 +12,7 @@ local Resources = require("ui.Resources")
 ---@field width number?
 ---@field on_change fun(value: number)?
 
----@class ui.views.form.Slider : gui.View
+---@class ui.views.form.Slider : ui.views.form.FormControl
 ---@operator call: ui.views.form.Slider
 ---@field value number
 ---@field min number
@@ -25,7 +25,7 @@ local Resources = require("ui.Resources")
 ---@field line_middle gui.Sprite
 ---@field line_right gui.Sprite
 ---@field thumb gui.Sprite
-local Slider = View + {}
+local Slider = FormControl + {}
 
 local HEIGHT = 46
 local LINE_Y = 31
@@ -33,7 +33,7 @@ local THUMB_Y = 23
 
 ---@param params ui.views.form.SliderParams
 function Slider:new(params)
-	View.new(self)
+	FormControl.new(self)
 	self.min = params.min or 0
 	self.max = params.max or 1
 	assert(self.max > self.min, "slider max must be greater than min")
