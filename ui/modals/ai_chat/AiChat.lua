@@ -17,6 +17,8 @@ local utf8validate = require("utf8validate")
 ---@field expanded_tools {[string]: boolean}
 ---@field model_menu_open boolean
 ---@field model_menu_scroll integer
+---@field scrollbar_drag_active boolean
+---@field scrollbar_drag_offset number
 ---@class ui.ai_chat.TranscriptLine
 ---@field text string
 ---@field color gui.Color
@@ -34,6 +36,7 @@ local MODEL_X = 170
 local MODEL_WIDTH = 300
 local MODEL_ROW_HEIGHT = 30
 local TOOL_PREVIEW_LINES = 5
+local TOOL_PREVIEW_RENDERED_LINES = 5
 local TOOL_PREVIEW_CHARS = 1200
 local TOOL_ARGUMENT_CHARS = 240
 local SCROLLBAR_WIDTH = 8
@@ -63,6 +66,8 @@ function AiChat:new(model, on_close)
 	self.expanded_tools = {}
 	self.model_menu_open = false
 	self.model_menu_scroll = 0
+	self.scrollbar_drag_active = false
+	self.scrollbar_drag_offset = 0
 	self.model:onChanged(self)
 end
 
@@ -123,6 +128,39 @@ function AiChat:getVisibleRange(lines)
 	return first, last
 end
 
+---@param lines ui.ai_chat.TranscriptLine[]
+---@return number? x
+---@return number? track_y
+---@return number? track_height
+---@return number? thumb_y
+---@return number? thumb_height
+function AiChat:getScrollbarMetrics(lines)
+	local max_scroll = self:getMaxScroll(lines)
+	if max_scroll == 0 then
+		return
+	end
+	local track_y = TITLE_HEIGHT + PADDING
+	local track_height = self.height - TITLE_HEIGHT - INPUT_HEIGHT - PADDING * 2
+	local thumb_height = math.max(28, track_height * self:getVisibleLineCount() / #lines)
+	local scroll_from_top = max_scroll - self.scroll
+	local thumb_y = track_y + (track_height - thumb_height) * scroll_from_top / max_scroll
+	return self.width - PADDING - SCROLLBAR_WIDTH, track_y, track_height, thumb_y, thumb_height
+end
+
+---@param screen_y number
+---@param lines ui.ai_chat.TranscriptLine[]
+function AiChat:updateScrollbarDrag(screen_y, lines)
+	local _, local_y = self.world_transform:inverseTransformPoint(0, screen_y)
+	local _, track_y, track_height, _, thumb_height = self:getScrollbarMetrics(lines)
+	if not track_y then
+		return
+	end
+	local travel = track_height - thumb_height
+	local thumb_y = math.max(track_y, math.min(track_y + travel, local_y - self.scrollbar_drag_offset))
+	local position_from_top = travel > 0 and (thumb_y - track_y) / travel or 1
+	self.scroll = math.floor(self:getMaxScroll(lines) * (1 - position_from_top) + 0.5)
+end
+
 ---@param tool_call_id string
 function AiChat:toggleTool(tool_call_id)
 	if self.scroll > 0 and self.cached_lines then
@@ -142,6 +180,15 @@ function AiChat:onMouseClick(e)
 		if self.model:getModelOptions()[index] then self.model:selectModel(index) end
 		self.model_menu_open = false
 		return true
+	end
+	if e.button == 1 and x >= self.width - PADDING - SCROLLBAR_WIDTH and x <= self.width - PADDING then
+		local lines = self:getLines()
+		local scrollbar_x, track_y, track_height, _, thumb_height = self:getScrollbarMetrics(lines)
+		if scrollbar_x and y >= track_y and y <= track_y + track_height then
+			self.scrollbar_drag_offset = thumb_height / 2
+			self:updateScrollbarDrag(e.y, lines)
+			return true
+		end
 	end
 	if self.scroll > 0 and x >= self.width - PADDING - JUMP_WIDTH and x <= self.width - PADDING
 		and y >= self.height - INPUT_HEIGHT - PADDING - JUMP_HEIGHT
@@ -182,6 +229,57 @@ function AiChat:onMouseClick(e)
 	return true
 end
 
+---@param e gui.DragStartEvent
+---@return boolean?
+function AiChat:onDragStart(e)
+	if e.button ~= 1 then
+		return
+	end
+	local x, y = self.world_transform:inverseTransformPoint(e.x, e.y)
+	local lines = self:getLines()
+	local scrollbar_x, track_y, track_height, thumb_y, thumb_height = self:getScrollbarMetrics(lines)
+	if not scrollbar_x or x < scrollbar_x or x > scrollbar_x + SCROLLBAR_WIDTH
+		or y < track_y or y > track_y + track_height
+	then
+		return
+	end
+	self.scrollbar_drag_active = true
+	if y >= thumb_y and y <= thumb_y + thumb_height then
+		self.scrollbar_drag_offset = y - thumb_y
+	else
+		self.scrollbar_drag_offset = thumb_height / 2
+	end
+	self:updateScrollbarDrag(e.y, lines)
+	return true
+end
+
+---@param e gui.DragEvent
+---@return boolean?
+function AiChat:onDrag(e)
+	if not self.scrollbar_drag_active or e.button ~= 1 then
+		return
+	end
+	self:updateScrollbarDrag(e.y, self:getLines())
+	return true
+end
+
+---@param e gui.DragEndEvent
+---@return boolean?
+function AiChat:onDragEnd(e)
+	if not self.scrollbar_drag_active or e.button ~= 1 then
+		return
+	end
+	self.scrollbar_drag_active = false
+	return true
+end
+
+---@param e gui.MouseUpEvent
+function AiChat:onMouseUp(e)
+	if e.button == 1 then
+		self.scrollbar_drag_active = false
+	end
+end
+
 ---@param e gui.ScrollEvent
 ---@return true
 function AiChat:onScroll(e)
@@ -203,6 +301,8 @@ function AiChat:reset()
 	self.expanded_tools = {}
 	self.model_menu_open = false
 	self.model_menu_scroll = 0
+	self.scrollbar_drag_active = false
+	self.scrollbar_drag_offset = 0
 end
 
 ---@param e gui.KeyDownEvent
@@ -261,11 +361,15 @@ end
 ---@param wrap_width number
 ---@param color gui.Color
 ---@param tool_call_id string?
-local function addWrapped(lines, font, text, wrap_width, color, tool_call_id)
+---@param max_lines integer?
+---@return boolean truncated
+local function addWrapped(lines, font, text, wrap_width, color, tool_call_id, max_lines)
 	local _, wrapped = font:getWrap(utf8validate(text), wrap_width)
-	for _, line in ipairs(wrapped) do
-		table.insert(lines, {text = line, color = color, tool_call_id = tool_call_id})
+	local visible_count = max_lines and math.min(#wrapped, max_lines) or #wrapped
+	for index = 1, visible_count do
+		table.insert(lines, {text = wrapped[index], color = color, tool_call_id = tool_call_id})
 	end
+	return visible_count < #wrapped
 end
 
 ---@param arguments string?
@@ -341,7 +445,16 @@ function AiChat:getLines()
 				if expanded then
 					output = entry.content
 				end
-				addWrapped(lines, font, output, wrap_width, Colors.text_muted, entry.tool_call_id)
+				local wrapped_truncated = addWrapped(
+					lines,
+					font,
+					output,
+					wrap_width,
+					Colors.text_muted,
+					entry.tool_call_id,
+					expanded and nil or TOOL_PREVIEW_RENDERED_LINES
+				)
+				truncated = truncated or wrapped_truncated
 				if expanded then
 					table.insert(lines, {
 						text = "Click to collapse",
@@ -349,8 +462,13 @@ function AiChat:getLines()
 						tool_call_id = entry.tool_call_id,
 					})
 				elseif truncated then
+					local line_label = total_lines == 1 and "line" or "lines"
 					table.insert(lines, {
-						text = ("… %d lines, %d bytes total — click to expand"):format(total_lines, #entry.content),
+						text = ("… %d %s, %d bytes total — click to expand"):format(
+							total_lines,
+							line_label,
+							#entry.content
+						),
 						color = Colors.accent,
 						tool_call_id = entry.tool_call_id,
 					})
@@ -440,15 +558,11 @@ function AiChat:draw()
 	end
 	local max_scroll = self:getMaxScroll(lines)
 	if max_scroll > 0 then
-		local track_y = TITLE_HEIGHT + PADDING
-		local track_height = self.height - TITLE_HEIGHT - INPUT_HEIGHT - PADDING * 2
-		local thumb_height = math.max(28, track_height * self:getVisibleLineCount() / #lines)
-		local scroll_from_top = max_scroll - self.scroll
-		local thumb_y = track_y + (track_height - thumb_height) * scroll_from_top / max_scroll
+		local scrollbar_x, track_y, track_height, thumb_y, thumb_height = self:getScrollbarMetrics(lines)
 		love.graphics.setColor(Colors.outline)
-		love.graphics.rectangle("fill", self.width - PADDING - SCROLLBAR_WIDTH, track_y, SCROLLBAR_WIDTH, track_height)
+		love.graphics.rectangle("fill", scrollbar_x, track_y, SCROLLBAR_WIDTH, track_height)
 		love.graphics.setColor(Colors.text_muted)
-		love.graphics.rectangle("fill", self.width - PADDING - SCROLLBAR_WIDTH, thumb_y, SCROLLBAR_WIDTH, thumb_height)
+		love.graphics.rectangle("fill", scrollbar_x, thumb_y, SCROLLBAR_WIDTH, thumb_height)
 	end
 	if self.scroll > 0 then
 		local jump_x = self.width - PADDING - JUMP_WIDTH

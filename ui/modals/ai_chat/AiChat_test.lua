@@ -195,6 +195,48 @@ function test.tool_results_are_collapsed_and_expandable(t)
 end
 
 ---@param t testing.T
+function test.tool_preview_is_limited_by_rendered_lines(t)
+	local old_get_font = Resources.getFont
+	local old_love = love
+	love = {math = old_love.math, graphics = {getDimensions = function() return 1920, 1080 end}}
+	Resources.getFont = function()
+		return {
+			getWrap = function(_, text)
+				if text == "long tool output" then
+					return 0, {"row 1", "row 2", "row 3", "row 4", "row 5", "row 6", "row 7"}
+				end
+				return 0, {text}
+			end,
+		}
+	end
+
+	local ok, err = xpcall(function()
+		local model = {
+			entries = {{
+				role = "tool",
+				content = "long tool output",
+				name = "inspect_runtime",
+				tool_call_id = "call_1",
+				arguments = "{}",
+				status = "success",
+			}},
+			onChanged = function() end,
+		}
+		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
+		local collapsed = view:getLines()
+		t:eq(collapsed[2].text, "row 1")
+		t:eq(collapsed[6].text, "row 5")
+		t:assert(collapsed[7].text:find("click to expand", 1, true))
+		t:eq(#collapsed, 8)
+	end, debug.traceback)
+	Resources.getFont = old_get_font
+	love = old_love
+	if not ok then
+		error(err)
+	end
+end
+
+---@param t testing.T
 function test.detached_scroll_preserves_viewport_and_clamps(t)
 	local old_get_font = Resources.getFont
 	local old_love = love
@@ -240,6 +282,50 @@ function test.detached_scroll_preserves_viewport_and_clamps(t)
 	Resources.getFont = old_get_font
 	love = old_love
 	if not ok then error(err) end
+end
+
+---@param t testing.T
+function test.scrollbar_drag_moves_between_history_ends(t)
+	local old_get_font = Resources.getFont
+	local old_love = love
+	love = {math = old_love.math, graphics = {getDimensions = function() return 1920, 1080 end}}
+	Resources.getFont = function()
+		return {
+			getWrap = function(_, text)
+				return 0, {text}
+			end,
+		}
+	end
+
+	local ok, err = xpcall(function()
+		local entries = {}
+		for index = 1, 40 do
+			table.insert(entries, {role = "assistant", content = "message " .. index})
+		end
+		local model = {
+			entries = entries,
+			onChanged = function() end,
+		}
+		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
+		local screen = Screen()
+		screen.root:add(view)
+		screen:resize(1920, 1080)
+		local lines = view:getLines()
+		local scrollbar_x, track_y, track_height = view:getScrollbarMetrics(lines)
+		local drag_x, drag_y = view.world_transform:transformPoint(scrollbar_x + 2, track_y + track_height - 2)
+		t:assert(view:onDragStart({button = 1, x = drag_x, y = drag_y} --[[@as gui.DragStartEvent]]))
+		t:eq(view.scroll, 0)
+
+		drag_x, drag_y = view.world_transform:transformPoint(scrollbar_x + 2, track_y)
+		t:assert(view:onDrag({button = 1, x = drag_x, y = drag_y} --[[@as gui.DragEvent]]))
+		t:eq(view.scroll, view:getMaxScroll(lines))
+		t:assert(view:onDragEnd({button = 1} --[[@as gui.DragEndEvent]]))
+	end, debug.traceback)
+	Resources.getFont = old_get_font
+	love = old_love
+	if not ok then
+		error(err)
+	end
 end
 
 return test
