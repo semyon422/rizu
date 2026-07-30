@@ -66,6 +66,27 @@ function test.selection_tracks_selected_control(t)
 end
 
 ---@param t testing.T
+function test.keyboard_navigation_starts_at_visible_control(t)
+	local form = Form({direction = "column"})
+	for _ = 1, 5 do
+		form:add(FormControl():setSize(100, 30))
+	end
+	form:fitContent()
+
+	local scroll_view = ScrollView(form)
+	scroll_view:anchorFixed(0, 0, 100, 50)
+	local screen = Screen()
+	screen.root:add(scroll_view)
+	screen:resize(100, 50)
+	scroll_view:scrollTo(60, true)
+
+	form:moveSelection(1)
+
+	t:eq(form.selected_index, 3)
+	t:eq(scroll_view.scroll_target, 60)
+end
+
+---@param t testing.T
 function test.keyboard_movement_centers_control_outside_scroll_view(t)
 	local form = Form({direction = "column"})
 	form:add(FormControl():setSize(100, 30))
@@ -80,6 +101,7 @@ function test.keyboard_movement_centers_control_outside_scroll_view(t)
 	screen:resize(100, 50)
 
 	form:moveSelection(1)
+	t:eq(form.selected_index, 1)
 	t:eq(scroll_view.scroll_target, 0)
 	form:moveSelection(1)
 	t:eq(scroll_view.scroll_target, 20)
@@ -115,6 +137,19 @@ function test.removing_last_control_selects_previous_control(t)
 	form:remove(second)
 	t:eq(form.selected_control, first)
 	t:eq(form.selected_index, 1)
+end
+
+---@param t testing.T
+function test.mouse_input_clears_keyboard_selection(t)
+	local form = Form()
+	local control = form:add(FormControl())
+	form:selectControl(control)
+
+	control:onMouseDown({button = 1})
+
+	t:eq(form.selected_control, nil)
+	t:eq(form.selected_index, nil)
+	t:eq(form.selection.visible, false)
 end
 
 ---@param t testing.T
@@ -154,6 +189,24 @@ function test.keyboard_movement_clears_keyboard_focus(t)
 end
 
 ---@param t testing.T
+function test.keyboard_movement_is_ignored_during_drag(t)
+	local form = Form()
+	local control = form:add(FormControl())
+	local screen = Screen()
+	local inputs = Inputs()
+	screen:acceptInputs(inputs)
+	screen.root:add(form)
+	screen:resize(100, 100)
+	inputs.pointer_gesture = {dragging = true}
+
+	local handled = form:onKeyDown({key = "down"})
+
+	t:eq(handled, false)
+	t:eq(form.selected_control, nil)
+	t:eq(control.parent, form.rows)
+end
+
+---@param t testing.T
 function test.keyboard_movement_without_controls_is_not_handled(t)
 	local form = Form()
 	form:add(View())
@@ -171,6 +224,38 @@ function test.direct_child_overlay_can_remove_itself(t)
 
 	t:eq(overlay.parent, nil)
 	t:eq(#form.children, 2)
+end
+
+---@param t testing.T
+function test.update_repairs_selection_when_selected_control_is_disabled(t)
+	local form = Form()
+	local first = form:add(FormControl())
+	local second = form:add(FormControl())
+	form:selectControl(first)
+	first:setEnabled(false)
+
+	form:update(0)
+
+	t:eq(form.selected_control, second)
+end
+
+---@param t testing.T
+function test.update_closes_disabled_active_dropdown(t)
+	local form = Form()
+	local closed = false
+	local dropdown = form:add(FormControl())
+	function dropdown:close()
+		closed = true
+		form:deactivateDropdown(self)
+		return true
+	end
+	form:activateDropdown(dropdown)
+	dropdown:setEnabled(false)
+
+	form:update(0)
+
+	t:eq(closed, true)
+	t:eq(form.active_dropdown, nil)
 end
 
 ---@param t testing.T

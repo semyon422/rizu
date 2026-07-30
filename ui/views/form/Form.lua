@@ -1,4 +1,5 @@
 local FlowContainer = require("gui.layout.FlowContainer")
+local ScrollView = require("gui.ScrollView")
 local FormSelection = require("ui.views.form.FormSelection")
 local FormControl = require("ui.views.form.FormControl")
 local View = require("gui.View")
@@ -140,7 +141,11 @@ end
 ---@param row gui.View
 ---@return boolean selectable
 local function canSelect(row)
-	return FormControl * row and row:canBeSelected()
+	if FormControl * row then
+		---@cast row ui.views.form.FormControl
+		return row:canBeSelected()
+	end
+	return false
 end
 
 ---@param control gui.View
@@ -159,6 +164,12 @@ function Form:selectControl(control)
 	return false
 end
 
+function Form:clearSelection()
+	self.selected_index = nil
+	self.selected_control = nil
+	self.selection:hide()
+end
+
 ---@param e gui.MouseDownEvent
 ---@return boolean? handled
 function Form:onMouseDown(e)
@@ -169,13 +180,7 @@ function Form:onMouseDown(e)
 		return
 	end
 
-	local row = e.target
-	while row and row.parent ~= self.rows do
-		row = row.parent
-	end
-	if row then
-		self:selectControl(row)
-	end
+	self:clearSelection()
 
 	local closed = self:closeActiveDropdown()
 	if closed and e.target == self then
@@ -225,6 +230,52 @@ function Form:syncSelection()
 	return false
 end
 
+---@return gui.ScrollView? scroll_view
+function Form:getScrollView()
+	local parent = self.parent
+	while parent and not (ScrollView * parent) do
+		parent = parent.parent
+	end
+	---@cast parent gui.ScrollView?
+	return parent
+end
+
+---@param control gui.View
+---@param scroll_view gui.ScrollView
+---@return boolean visible
+local function isFullyVisibleInScrollView(control, scroll_view)
+	local top_x, top_y = control.world_transform:transformPoint(0, 0)
+	local bottom_x, bottom_y = control.world_transform:transformPoint(0, control.height)
+	local _, local_top = scroll_view.world_transform:inverseTransformPoint(top_x, top_y)
+	local _, local_bottom = scroll_view.world_transform:inverseTransformPoint(bottom_x, bottom_y)
+	local top = math.min(local_top, local_bottom)
+	local bottom = math.max(local_top, local_bottom)
+	return top >= 0 and bottom <= scroll_view.height
+end
+
+---@param offset integer
+---@return boolean selected
+function Form:selectVisibleControl(offset)
+	local scroll_view = self:getScrollView()
+	if not scroll_view then
+		return false
+	end
+
+	local rows = self.rows.children
+	local index = offset > 0 and 1 or #rows
+	local limit = offset > 0 and #rows or 1
+	while offset > 0 and index <= limit or offset < 0 and index >= limit do
+		local row = rows[index]
+		if canSelect(row) and isFullyVisibleInScrollView(row, scroll_view) then
+			self.selected_index = index
+			self.selected_control = row
+			return true
+		end
+		index = index + offset
+	end
+	return false
+end
+
 ---Centers the selected control when it falls outside an ancestor scroll viewport.
 ---@return boolean scrolled
 function Form:centerSelectedControl()
@@ -233,14 +284,10 @@ function Form:centerSelectedControl()
 		return false
 	end
 
-	local parent = self.parent
-	while parent and not parent.is_scroll_view do
-		parent = parent.parent
-	end
+	local parent = self:getScrollView()
 	if not parent then
 		return false
 	end
-	---@cast parent gui.ScrollView
 
 	local top_x, top_y = selected.world_transform:transformPoint(0, 0)
 	local bottom_x, bottom_y = selected.world_transform:transformPoint(0, selected.height)
@@ -267,6 +314,9 @@ function Form:moveSelection(offset)
 	if row_count == 0 then
 		return false
 	end
+	if not had_selection and self:selectVisibleControl(offset) then
+		return true
+	end
 
 	local index = had_selection and self.selected_index or (offset > 0 and 0 or row_count + 1)
 	---@cast index integer
@@ -290,11 +340,18 @@ function Form:onKeyDown(e)
 	end
 
 	local offset = e.key == "down" and 1 or e.key == "up" and -1 or nil
-	if not offset or not self:moveSelection(offset) then
+	if not offset then
 		return false
 	end
-	if self.screen and self.screen.inputs and self.screen.inputs.keyboard_focus then
-		self.screen.inputs:setKeyboardFocus(nil, {
+	local inputs = self.screen and self.screen.inputs
+	if inputs and inputs.pointer_gesture and inputs.pointer_gesture.dragging then
+		return false
+	end
+	if not self:moveSelection(offset) then
+		return false
+	end
+	if inputs and inputs.keyboard_focus then
+		inputs:setKeyboardFocus(nil, {
 			control = e.control_pressed,
 			shift = e.shift_pressed,
 			alt = e.alt_pressed,
@@ -305,8 +362,9 @@ function Form:onKeyDown(e)
 end
 
 function Form:updateSelection()
+	self:syncSelection()
 	local selected = self.selected_control
-	if not selected or not canSelect(selected) then
+	if not selected then
 		self.selection:hide()
 		return
 	end
@@ -328,7 +386,12 @@ function Form:updateSelection()
 	self.selection:moveToRect(min_x, min_y, max_x - min_x, max_y - min_y)
 end
 
-function Form:draw()
+---@param dt number
+function Form:update(dt)
+	local dropdown = self.active_dropdown
+	if dropdown and (dropdown.parent ~= self.rows or not dropdown:canBeSelected()) then
+		self:closeActiveDropdown()
+	end
 	self:updateSelection()
 end
 

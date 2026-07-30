@@ -28,6 +28,7 @@ local Resources = require("ui.Resources")
 ---@field cap_right gui.Sprite
 ---@field chevron gui.Sprite
 ---@field items ui.views.form.DropdownItems?
+---@field active_form ui.views.form.Form?
 ---@field opened boolean
 local Dropdown = FormControl + {}
 
@@ -57,6 +58,7 @@ function Dropdown:new(params)
 	self.cap_right = Resources.sprites.form_element_cap_right
 	self.chevron = Resources.sprites.icon_chevron
 	self.items = nil
+	self.active_form = nil
 	self.opened = false
 	self.handles_mouse_input = true
 	self:setSize(params.width or 300, HEIGHT)
@@ -107,6 +109,7 @@ function Dropdown:open()
 	end
 	local form = self:getForm()
 	form:activateDropdown(self)
+	self.active_form = form
 
 	local items = DropdownItems(
 		self,
@@ -138,9 +141,10 @@ function Dropdown:close()
 	if not self.opened then
 		return false
 	end
-	local form = self:getForm()
+	local form = assert(self.active_form, "open dropdown has no active form")
 	local items = self.items
 	self.items = nil
+	self.active_form = nil
 	self.opened = false
 	form:deactivateDropdown(self)
 	if items then

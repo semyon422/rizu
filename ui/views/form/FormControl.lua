@@ -10,4 +10,24 @@ function FormControl:canBeSelected()
 	return self.effective_visible and self.effective_enabled
 end
 
+function FormControl:disableFormNavigation()
+	-- Inline to break the Form -> FormControl dependency cycle.
+	local Form = require("ui.views.form.Form")
+	local parent = self.parent
+	while parent and not (Form * parent) do
+		parent = parent.parent
+	end
+	if parent then
+		---@cast parent ui.views.form.Form
+		parent:clearSelection()
+	end
+end
+
+---@param e gui.MouseDownEvent
+function FormControl:onMouseDown(e)
+	if e.button == 1 then
+		self:disableFormNavigation()
+	end
+end
+
 return FormControl

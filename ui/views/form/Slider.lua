@@ -83,14 +83,6 @@ function Slider:setValueAt(screen_x, screen_y)
 	self:setValue(value, true)
 end
 
----@param e gui.MouseDownEvent
----@return boolean?
-function Slider:onMouseDown(e)
-	if e.button == 1 then
-		return true
-	end
-end
-
 ---@param e gui.DragStartEvent
 ---@return boolean?
 function Slider:onDragStart(e)

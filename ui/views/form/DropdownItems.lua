@@ -83,6 +83,7 @@ function DropdownItems:onMouseDown(e)
 	if e.button ~= 1 then
 		return
 	end
+	self.dropdown:disableFormNavigation()
 	local _, y = self.world_transform:inverseTransformPoint(e.x, e.y)
 	local display_index = math.floor((y - BODY_Y) / self.row_height) + 1
 	if y >= BODY_Y and display_index <= #self.options then
