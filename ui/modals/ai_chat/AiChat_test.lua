@@ -73,12 +73,20 @@ function test.validates_transcript_text_before_wrapping(t)
 
 	local ok, err = xpcall(function()
 		local model = {
-			entries = {{role = "tool", content = "bad\255text", name = "read_file"}},
+			entries = {{
+				role = "tool",
+				content = "bad\255text",
+				name = "read_file",
+				tool_call_id = "call_1",
+				arguments = "{}",
+				status = "success",
+			}},
 			onChanged = function() end,
 		}
 		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
-		view:getLines()
-		t:eq(wrapped_text, "[tool read_file] bad?text")
+		local lines = view:getLines()
+		t:eq(lines[1].text, "[ok] read_file  {}")
+		t:eq(wrapped_text, "bad?text")
 	end, debug.traceback)
 	Resources.getFont = old_get_font
 	love = old_love
@@ -139,6 +147,97 @@ function test.model_selector_chooses_an_option(t)
 		t:eq(selected, 2)
 		t:eq(view.model_menu_open, false)
 	end, debug.traceback)
+	love = old_love
+	if not ok then error(err) end
+end
+
+---@param t testing.T
+function test.tool_results_are_collapsed_and_expandable(t)
+	local old_get_font = Resources.getFont
+	local old_love = love
+	love = {math = old_love.math, graphics = {getDimensions = function() return 1920, 1080 end}}
+	Resources.getFont = function()
+		return {
+			getWrap = function(_, text)
+				return 0, {text}
+			end,
+		}
+	end
+
+	local ok, err = xpcall(function()
+		local output = {}
+		for index = 1, 12 do table.insert(output, "line " .. index) end
+		local model = {
+			entries = {{
+				role = "tool",
+				content = table.concat(output, "\n"),
+				name = "read_file",
+				tool_call_id = "call_1",
+				arguments = [[{"line_end":12,"line_start":1}]],
+				status = "success",
+			}},
+			onChanged = function() end,
+		}
+		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
+		local collapsed = view:getLines()
+		t:eq(collapsed[2].text, "line 1\nline 2\nline 3\nline 4\nline 5")
+		t:assert(collapsed[3].text:find("12 lines", 1, true))
+		t:eq(#collapsed, 4)
+
+		view:toggleTool("call_1")
+		local expanded = view:getLines()
+		t:eq(expanded[2].text, table.concat(output, "\n"))
+		t:eq(expanded[3].text, "Click to collapse")
+	end, debug.traceback)
+	Resources.getFont = old_get_font
+	love = old_love
+	if not ok then error(err) end
+end
+
+---@param t testing.T
+function test.detached_scroll_preserves_viewport_and_clamps(t)
+	local old_get_font = Resources.getFont
+	local old_love = love
+	love = {math = old_love.math, graphics = {getDimensions = function() return 1920, 1080 end}}
+	Resources.getFont = function()
+		return {
+			getWrap = function(_, text)
+				return 0, {text}
+			end,
+		}
+	end
+
+	local ok, err = xpcall(function()
+		local entries = {}
+		for index = 1, 30 do
+			table.insert(entries, {role = "assistant", content = "message " .. index})
+		end
+		local model = {
+			entries = entries,
+			onChanged = function() end,
+		}
+		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
+		local lines = view:getLines()
+		view.scroll = 10
+		local first = view:getVisibleRange(lines)
+		local first_text = lines[first].text
+
+		table.insert(entries, {role = "assistant", content = "new message"})
+		view:receive({type = "chat_changed"})
+		lines = view:getLines()
+		first = view:getVisibleRange(lines)
+		t:eq(lines[first].text, first_text)
+
+		view.scroll = 100000
+		view:clampScroll(lines)
+		t:eq(view.scroll, view:getMaxScroll(lines))
+		view.scroll = 0
+		table.insert(entries, {role = "assistant", content = "latest"})
+		view:receive({type = "chat_changed"})
+		view:getLines()
+		t:eq(view.scroll, 0)
+	end, debug.traceback)
+	Resources.getFont = old_get_font
 	love = old_love
 	if not ok then error(err) end
 end

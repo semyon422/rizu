@@ -2,11 +2,15 @@ local class = require("class")
 local Observable = require("Observable")
 
 ---@alias rizu.ai.ChatEntryRole "user"|"assistant"|"tool"|"error"
+---@alias rizu.ai.ToolEntryStatus "running"|"success"|"error"|"canceled"
 
 ---@class rizu.ai.ChatEntry
 ---@field role rizu.ai.ChatEntryRole
 ---@field content string
 ---@field name string?
+---@field tool_call_id string?
+---@field arguments string?
+---@field status rizu.ai.ToolEntryStatus?
 
 ---@class rizu.ai.ChatModel
 ---@operator call: rizu.ai.ChatModel
@@ -20,6 +24,7 @@ local Observable = require("Observable")
 ---@field request_id integer
 ---@field request_start integer?
 ---@field streaming_entry rizu.ai.ChatEntry?
+---@field tool_entries {[string]: rizu.ai.ChatEntry}
 ---@field max_history_chars integer
 ---@field max_entries integer
 ---@field auth aqua.openai.SubscriptionAuth?
@@ -42,6 +47,7 @@ function ChatModel:new(agent, system_prompt, options)
 	self.auth = options.auth or (self.provider_manager and self.provider_manager:getAuth())
 	self.observable = Observable()
 	self.entries = {}
+	self.tool_entries = {}
 	self.messages = {}
 	self.busy = false
 	self.active = true
@@ -49,11 +55,43 @@ function ChatModel:new(agent, system_prompt, options)
 	self:resetMessages()
 	if self.auth then self.auth:onChanged(self) end
 
-	agent.on_tool_result = function(tool_call, content)
+	agent.on_tool_call = function(tool_call)
 		if not self.active then
 			return
 		end
-		self:addEntry("tool", content, tool_call["function"].name)
+		local call_function = tool_call["function"]
+		---@type rizu.ai.ChatEntry
+		local entry = {
+			role = "tool",
+			content = "",
+			name = call_function.name,
+			tool_call_id = tool_call.id,
+			arguments = call_function.arguments,
+			status = "running",
+		}
+		self.tool_entries[tool_call.id] = entry
+		self:addEntryObject(entry)
+	end
+	agent.on_tool_result = function(tool_call, content, is_error)
+		if not self.active then
+			return
+		end
+		local entry = self.tool_entries[tool_call.id]
+		if not entry then
+			local call_function = tool_call["function"]
+			entry = {
+				role = "tool",
+				content = "",
+				name = call_function.name,
+				tool_call_id = tool_call.id,
+				arguments = call_function.arguments,
+			}
+			self.tool_entries[tool_call.id] = entry
+			self:addEntryObject(entry)
+		end
+		entry.content = content
+		entry.status = is_error and "error" or "success"
+		self:emitChanged()
 	end
 end
 
@@ -93,6 +131,7 @@ function ChatModel:selectModel(index)
 	self.agent:setClient(client)
 	self:setAuth(auth)
 	self.entries = {}
+	self.tool_entries = {}
 	self:resetMessages()
 	self:emitChanged()
 	return true
@@ -128,10 +167,7 @@ function ChatModel:appendAssistantDelta(content)
 		---@type rizu.ai.ChatEntry
 		local entry = {role = "assistant", content = ""}
 		self.streaming_entry = entry
-		table.insert(self.entries, entry)
-		while #self.entries > self.max_entries do
-			table.remove(self.entries, 1)
-		end
+		self:insertEntry(entry)
 	end
 	self.streaming_entry.content = self.streaming_entry.content .. content
 	self:emitChanged()
@@ -219,10 +255,23 @@ end
 ---@param content string
 ---@param name string?
 function ChatModel:addEntry(role, content, name)
-	table.insert(self.entries, {role = role, content = content, name = name})
+	self:addEntryObject({role = role, content = content, name = name})
+end
+
+---@param entry rizu.ai.ChatEntry
+function ChatModel:insertEntry(entry)
+	table.insert(self.entries, entry)
 	while #self.entries > self.max_entries do
-		table.remove(self.entries, 1)
+		local removed = table.remove(self.entries, 1)
+		if removed.tool_call_id then
+			self.tool_entries[removed.tool_call_id] = nil
+		end
 	end
+end
+
+---@param entry rizu.ai.ChatEntry
+function ChatModel:addEntryObject(entry)
+	self:insertEntry(entry)
 	self:emitChanged()
 end
 
@@ -249,6 +298,7 @@ function ChatModel:clear()
 		return false
 	end
 	self.entries = {}
+	self.tool_entries = {}
 	self:resetMessages()
 	self:emitChanged()
 	return true
@@ -317,6 +367,11 @@ function ChatModel:cancel()
 	self.request_id = self.request_id + 1
 	self.busy = false
 	self.agent:cancel()
+	for _, entry in pairs(self.tool_entries) do
+		if entry.status == "running" then
+			entry.status = "canceled"
+		end
+	end
 	self:removeActiveProtocolMessages()
 	self.streaming_entry = nil
 	self:emitChanged()

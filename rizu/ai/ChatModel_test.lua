@@ -109,7 +109,7 @@ end
 function test.tool_events_are_visible(t)
 	local agent
 	agent = makeAgent(function(messages)
-		agent.on_tool_result({["function"] = {name = "lua_eval"}}, "result")
+		agent.on_tool_result({id = "call_1", ["function"] = {name = "lua_eval"}}, "result", false)
 		local reply = {role = "assistant", content = "done"}
 		table.insert(messages, reply)
 		return reply
@@ -118,6 +118,38 @@ function test.tool_events_are_visible(t)
 	model:send("inspect")
 	t:eq(model.entries[2].role, "tool")
 	t:eq(model.entries[2].name, "lua_eval")
+end
+
+---@param t testing.T
+function test.tool_call_and_result_share_structured_entry(t)
+	---@type rizu.ai.ChatModel
+	local model
+	local agent
+	agent = makeAgent(function(messages)
+		local tool_call = {
+			id = "call_1",
+			type = "function",
+			["function"] = {name = "read_file", arguments = [[{"path":"rizu/ai/ChatModel.lua"}]]},
+		}
+		agent.on_tool_call(tool_call)
+		t:eq(#model.entries, 2)
+		t:eq(model.entries[2].status, "running")
+		agent.on_tool_result(tool_call, "file contents", false)
+		local reply = {role = "assistant", content = "done"}
+		table.insert(messages, reply)
+		return reply
+	end)
+	model = ChatModel(agent, "system")
+
+	model:send("inspect")
+	t:eq(#model.entries, 3)
+	local tool_entry = model.entries[2]
+	t:eq(tool_entry.role, "tool")
+	t:eq(tool_entry.name, "read_file")
+	t:eq(tool_entry.tool_call_id, "call_1")
+	t:eq(tool_entry.arguments, [[{"path":"rizu/ai/ChatModel.lua"}]])
+	t:eq(tool_entry.content, "file contents")
+	t:eq(tool_entry.status, "success")
 end
 
 ---@param t testing.T

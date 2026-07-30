@@ -11,6 +11,8 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The chat header shows the active provider and model. Clicking it opens a scrollable selector containing every configured provider/model pair; selecting one starts a fresh conversation with that backend.
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
+- Tool activity appears as a structured transcript block containing the tool name, compact arguments, execution state, duration when available, and a bounded result preview. Tool results are collapsed by default and can be expanded without changing the result sent back to the model.
+- The transcript follows new output while the player is at the bottom. Scrolling upward detaches it from the live tail until the player returns to the bottom, so streamed text never moves an older viewport unexpectedly.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
 - The assistant can map runtime functions to repository source locations and read source ranges without using arbitrary Lua evaluation.
 - The assistant can search mounted source files, inspect structured runtime values, and review recent failed tool calls without arbitrary Lua evaluation.
@@ -20,6 +22,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 ## Architecture Decisions
 
 - `ChatModel` owns conversation state, busy/error state, history limits, and asynchronous calls into the common agent loop.
+- Tool calls use one mutable transcript entry for their lifecycle. The agent reports a call before execution and completes that same entry with its result and error state instead of appending an unstructured result-only line.
 - The system prompt is stored in `SystemPrompt.md` and loaded as a runtime asset so prompt changes do not require editing Lua source. Its `{{brand_name}}` placeholder resolves from `brand.lua`.
 - The game-wide `rizu.net.NetworkService` supplies the HTTP request function. AI traffic does not create another scheduler and must not block frame updates while waiting for the configured provider.
 - `LuaEvalTool` is project-specific because its evaluation environment exposes the current `sphere.GameController` as `game`.
@@ -33,6 +36,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The development MCP surface also provides `RuntimeStateTool` for structured read-only screen, selection, and preview observations, `ScreenshotTool` for asynchronous PNG image content, and `RestartTool` for requesting a LÖVE-managed process restart. These focused tools are preferred over Lua evaluation when they cover the workflow.
 - Lua evaluation inherits the process-wide globals through `__index = _G`. Per-call `game`, `_G`, and captured `print` entries override that fallback, while ordinary global assignments remain local to the evaluation environment.
 - The configured provider uses the OpenAI-compatible `/v1/chat/completions` endpoint and streams assistant text through server-sent events.
+- SSE consumers read currently available response bytes rather than waiting to fill the ordinary buffered-download chunk size. This is required for visible token streaming on responses smaller than the default HTTP buffer.
 - `openai_subscription` is an isolated compatibility connector for the same OAuth and ChatGPT Codex Responses flow used by PI. It uses authorization-code PKCE, validates the callback state, binds the callback server to loopback only, refreshes expired access tokens, and supplies the ChatGPT account ID required by the Responses backend.
 - Subscription Responses are translated by reusable `aqua/ai/openai/SubscriptionClient.lua`: system messages become instructions, existing chat/tool messages become Responses input items, and completed provider output items are retained verbatim. Retaining encrypted reasoning items is required for a valid continuation across tool rounds.
 - The subscription connector uses the game-wide `NetworkService` for token and inference requests, so its traffic follows the same proxy policy and non-blocking scheduler as other game network traffic.
@@ -69,7 +73,9 @@ return {
 }
 ```
 - The retained UI modal belongs in `ui`; it observes `ChatModel` and contains no API or evaluation logic.
-- `ui.modals.ai_chat.AiChat` caches wrapped transcript lines and invalidates them only on `chat_changed` or width changes. Long tool results must not be rewrapped every rendered frame.
+- `ui.modals.ai_chat.AiChat` caches wrapped transcript lines and invalidates them on `chat_changed`, width changes, or tool expansion changes. Long tool results must not be rewrapped every rendered frame.
+- Collapsed tool previews are bounded independently from protocol tool results. Collapsing or expanding is presentation state and must never alter conversation history or the content returned to the provider.
+- Transcript scrolling is bounded after content, viewport, or expansion changes. New content preserves an older viewport while detached from the bottom and follows the latest line only while attached.
 - `ui.modals.ai_chat.AiChat` validates transcript and input strings before passing them to LÖVE text APIs so malformed tool or clipboard bytes cannot crash rendering.
 - The provider does not advertise developer-role support, so project instructions use a `system` message.
 - `NeedleModel` owns debounce, request generations, streamed proposal text, parsing, and execution gating. `NeedleWorker` owns the native context on a managed LÖVE thread.
@@ -85,6 +91,7 @@ return {
 
 - Only one chat request may be in flight at a time.
 - Streaming text updates one in-progress assistant transcript entry rather than creating one entry per token.
+- A tool call and its result share one visible transcript entry, while the assistant tool-call message and matching tool result remain separate protocol messages.
 - Canceling closes the active HTTP stream, removes incomplete protocol messages from API history, preserves partial text in the visible transcript, and returns the model to idle state.
 - A failed request preserves its user prompt and every complete assistant tool-call/result group so a later retry or follow-up still has the original context. Only an incomplete trailing protocol group is removed.
 - A request retains the user message, assistant tool-call message, matching tool results, and final assistant response in protocol order.
@@ -115,7 +122,7 @@ return {
 - Build a reproducible agent evaluation suite covering source inspection, network requests, malformed tool calls, context preservation, cancellation, provider switching, and tool-choice/final-answer quality across local and subscription models.
 - Move potentially expensive source search, large reads, serialization, and evaluation away from the render thread or give them cooperative work and time budgets. If prompts become untrusted, Lua evaluation also needs a non-bypassable instruction or process-level limit.
 - Replace unrestricted game-object access with focused tools for screen state, chart and library selection, settings, gameplay state, and approved commands. If full process access becomes undesirable, replace Lua evaluation's `_G` fallback with an explicit allowlist.
-- Improve chat interaction with retry/regenerate, edit-and-resend, copy output, collapsible tool results, a context-usage display, and per-model reasoning controls.
+- Improve chat interaction with retry/regenerate, edit-and-resend, copy output, Markdown rendering, a context-usage display, and per-model reasoning controls.
 - Persist conversations with their provider and model identity. Restore only under a compatible selection, and never replay provider-owned reasoning items into another provider or model.
 - Extend provider configuration with explicit capabilities for tools, strict schemas, reasoning, streaming, roles, and image input instead of assuming OpenAI-compatible behavior.
 - Add focused screenshot/image input to the in-game agent so it can inspect the current UI without unrestricted runtime evaluation.
@@ -123,3 +130,11 @@ return {
 - Consider memory limits and stronger output/result serialization bounds for adversarial evaluations.
 - Continue Needle runtime work by borrowing non-threading Cactus ideas first: blocked attention, FP16 scratch evaluation, fused/layout-aware kernels, and persistent execution metadata. Threading remains a later architectural decision because the embedded runtime currently documents single-threaded ownership.
 - Use `rizu/ai/benchmarks/needle_routing.lua` to check compact routing prompt latency and tool-selection quality before changing routing descriptions or schema shape. By default it runs route selection and then a selected-schema final generation; set `ROUTE_ONLY=1` to measure routing alone. Keep ambiguous phrases such as bare "random chart" or "search camellia" out of the pass/fail set until the model reliably distinguishes selection, search, and option commands for those phrasings. Some final-generation argument values remain quality gaps (for example vague speed changes and autoplay mode), so only stable argument expectations should be hard failures.
+
+## Transcript V2 Rollout
+
+1. Make SSE reads incremental at the HTTP transport boundary and cover scheduler-separated fragments with regression tests.
+2. Expose tool start and result lifecycle callbacks from the common agent and retain structured tool entries in `ChatModel`.
+3. Render compact tool headers and collapsed result previews, with per-entry expansion that does not rewrap hidden output.
+4. Add bounded transcript scrolling with live-tail following, detached viewport preservation, and a visible return-to-latest affordance.
+5. Add richer PI-style interaction incrementally: Markdown assistant blocks, copy actions, request timing and context usage, retry/edit flows, and a cursor-aware multiline composer.
