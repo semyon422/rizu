@@ -190,7 +190,7 @@ function test.sevenzip_sdk_uses_host_tar_extractor(t)
 	t:assert(step)
 	---@cast step -?
 
-	t:eq(step.actions[1].dest, "${downloads_dir}/7z2501-src.tar.xz")
+	t:eq(step.actions[1].dest, "${downloads_dir}/7z2602-src.tar.xz")
 	t:eq(step.actions[2].format, "tar.xz")
 	t:eq(step.actions[2].strip_components, 0)
 	t:tdeq(step.outputs, {

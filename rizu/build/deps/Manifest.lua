@@ -16,14 +16,14 @@ local Manifest = {
 	},
 	ffmpeg_source = {
 		macos = {
-			url = "https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.1.tar.gz",
-			archive = "ffmpeg-7.1.1.tar.gz",
+			url = "https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n8.1.2.tar.gz",
+			archive = "ffmpeg-8.1.2.tar.gz",
 			dir = "ffmpeg_macos",
 		},
 	},
 	sevenzip = {
-		url = "https://www.7-zip.org/a/7z2501-src.tar.xz",
-		archive = "7z2501-src.tar.xz",
+		url = "https://www.7-zip.org/a/7z2602-src.tar.xz",
+		archive = "7z2602-src.tar.xz",
 		dir = "7zsdk",
 	},
 	love_macos = {
@@ -59,19 +59,19 @@ local Manifest = {
 		macos = {url = "https://www.fftw.org/fftw-3.3.10.tar.gz", archive = "fftw-3.3.10.tar.gz", dir = "fftw_macos"},
 	},
 	zlib_source = {
-		linux = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_linux"},
-		windows = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_windows"},
-		macos = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.tar.gz", archive = "zlib-1.3.1.tar.gz", dir = "zlib_macos"},
+		linux = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.2.tar.gz", archive = "zlib-1.3.2.tar.gz", dir = "zlib_linux"},
+		windows = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.2.tar.gz", archive = "zlib-1.3.2.tar.gz", dir = "zlib_windows"},
+		macos = {url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.2.tar.gz", archive = "zlib-1.3.2.tar.gz", dir = "zlib_macos"},
 	},
 	iconv_source = {
-		linux = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_linux"},
-		windows = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_windows"},
-		macos = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz", archive = "libiconv-1.18.tar.gz", dir = "iconv_macos"},
+		linux = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.19.tar.gz", archive = "libiconv-1.19.tar.gz", dir = "iconv_linux"},
+		windows = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.19.tar.gz", archive = "libiconv-1.19.tar.gz", dir = "iconv_windows"},
+		macos = {url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.19.tar.gz", archive = "libiconv-1.19.tar.gz", dir = "iconv_macos"},
 	},
 	openssl_source = {
-		linux = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_linux"},
-		windows = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_windows"},
-		macos = {url = "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.3.2.tar.gz", archive = "openssl-3.3.2.tar.gz", dir = "openssl_macos"},
+		linux = {url = "https://github.com/openssl/openssl/releases/download/openssl-3.5.7/openssl-3.5.7.tar.gz", archive = "openssl-3.5.7.tar.gz", dir = "openssl_linux"},
+		windows = {url = "https://github.com/openssl/openssl/releases/download/openssl-3.5.7/openssl-3.5.7.tar.gz", archive = "openssl-3.5.7.tar.gz", dir = "openssl_windows"},
+		macos = {url = "https://github.com/openssl/openssl/releases/download/openssl-3.5.7/openssl-3.5.7.tar.gz", archive = "openssl-3.5.7.tar.gz", dir = "openssl_macos"},
 	},
 	luasec_source = {
 		linux = {url = "https://github.com/lunarmodules/luasec/archive/refs/tags/v1.3.2.tar.gz", archive = "luasec-1.3.2.tar.gz", dir = "luasec_linux"},
