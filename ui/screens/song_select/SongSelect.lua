@@ -13,10 +13,10 @@ local DifficultyPanel = require("ui.screens.song_select.DifficultyPanel")
 local GameplayModifiers = require("ui.screens.song_select.GameplayModifiers")
 local TimeRate = require("ui.screens.song_select.TimeRate")
 local FooterButton = require("ui.screens.song_select.FooterButton")
+local FooterSmallButton = require("ui.screens.song_select.FooterSmallButton")
 local PlayerInfo = require("ui.views.PlayerInfo")
 local SessionInfo = require("ui.views.SessionInfo")
 local Image = require("ui.views.Image")
-local IconButton = require("ui.views.IconButton")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
@@ -69,12 +69,10 @@ function SongSelect:new(ui)
 	self.time_rate = TimeRate(self.ui.game.timeRateModel, self.ui.game.modifierSelectModel)
 	self.gameplay_modifiers = GameplayModifiers()
 
-	self.container = self.root:add(TrackContainer({direction = "row"}))
+	self.container = self.root:add(TrackContainer({direction = "column"}))
 	self.container:anchorFill(0, 0, 0, 0)
 
 	self:createContent()
-	self.container:add(Rectangle(Colors.outline), 2)
-	self:createSidebar()
 
 	self.root:setOpacity(0)
 	self.root:setPivot(0.5, 0.5)
@@ -128,13 +126,9 @@ function SongSelect:exit()
 end
 
 function SongSelect:createContent()
-	self.content = self.container:add(TrackContainer({
-		direction = "column"
-	}), "*")
-	self.content:add(self:createHeader(), 70)
-	self.content:add(Rectangle(Colors.outline), 2)
+	self.container:add(self:createHeader(), 100)
 
-	local body = self.content:add(TrackContainer({
+	local body = self.container:add(TrackContainer({
 		direction = "row",
 		padding = {0, 20, 0, 20}
 	}), "*")
@@ -144,9 +138,7 @@ function SongSelect:createContent()
 	body:add(View(), "*")
 	body:add(self:createRightColumn(), "46%")
 	body:add(View(), "*")
-
-	self.content:add(Rectangle(Colors.outline), 2)
-	self.content:add(self:createFooter(), 70)
+	self.container:add(self:createFooter(), 56)
 end
 
 function SongSelect:createLeftColumn()
@@ -201,56 +193,36 @@ function SongSelect:createRightColumn()
 end
 
 function SongSelect:createHeader()
-	local header = View()
-	header:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
+	local header = TrackContainer()
 
-	local row = header:add(TrackContainer({
-		direction = "row",
-	}))
-	row:anchorFill(0, 0, 0, 0)
+	header:add(View(), "*")
+	local left = header:add(View(), "44%")
+	header:add(View(), "*")
+	local right = header:add(View(), "46%")
+	header:add(View(), "*")
 
-	row:add(View(), "*")
+	left:add(Image(Resources.sprites.fake_header_left)):setAlignment(0, 0.5)
+	right:add(Image(Resources.sprites.fake_header_right)):setAlignment(1, 0.5)
 
-	local left = row:add(FlowContainer({
-		direction = "row",
-		gap = 32,
-		align = 0.5
-	}), "44%")
-
-	left:add(Image(Resources.sprites.rizu_small))
-	left:add(Label({
-		font_name = "regular",
-		font_size = 24,
-		text = "Online: 1",
-	}))
-
-	row:add(View(), "*")
-	row:add(View(), "46%")
-	row:add(View(), "*")
 	return header
 end
 
 function SongSelect:createFooter()
 	local footer = View()
-	footer:add(Rectangle(Colors.panel):anchorFill(0, 0, 0, 0))
 
-	local left = footer:add(FlowContainer({
-		direction = "row",
-		gap = 20,
-		align = 0.5
-	}))
+	footer:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
+
+	local left = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10, padding = {5, 0, 0, 0}}))
 	left:add(self.back_button)
-	left:add(self.player_info)
-	left:add(self.session_info)
+	left:add(FooterSmallButton(Resources.sprites.icon_puzzle, Colors.green))
+	left:add(FooterSmallButton(Resources.sprites.icon_brush, Colors.blue))
+	left:add(FooterSmallButton(Resources.sprites.icon_keyboard, Colors.elements))
+	left:add(FooterSmallButton(Resources.sprites.icon_funnel, Colors.elements))
+	left:add(FooterSmallButton(Resources.sprites.icon_download, Colors.elements))
 	left:fitContent()
 	left:setAlignment(0, 0.5)
 
-	local right = footer:add(FlowContainer({
-		direction = "row",
-		gap = 20,
-		align = 0.5
-	}))
-	right:add(self.gameplay_modifiers)
+	local right = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10, padding = {0, 0, 5, 0}}))
 	right:add(self.time_rate)
 	right:add(self.play_button)
 	right:fitContent()
@@ -291,31 +263,6 @@ function SongSelect:receive(event)
 	end
 
 	self.background_panel:receive(event)
-end
-
-function SongSelect:createSidebar()
-	self.sidebar = self.container:add(View(), 64)
-	self.sidebar:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
-
-	local buttons = self.sidebar:add(FlowContainer({
-		direction = "column",
-		gap = 10,
-		align = 0.5,
-		padding = {0, 10, 0, 0}
-	})):anchorFill(0, 0, 0, 0)
-
-	buttons:addArray({
-		IconButton(Resources.sprites.icon_folder),
-		IconButton(Resources.sprites.icon_download),
-		Rectangle(Colors.outline):setSize(48, 2),
-		IconButton(Resources.sprites.icon_gear),
-		IconButton(Resources.sprites.icon_sparkles, function()
-			self.ui.modal_manager:attachModifier()
-		end),
-		IconButton(Resources.sprites.icon_funnel, function() end),
-		IconButton(Resources.sprites.icon_keyboard, function() end),
-		IconButton(Resources.sprites.icon_palette, function() end)
-	})
 end
 
 return SongSelect

@@ -24,7 +24,7 @@ function TimeRate:new(time_rate_model, modifier_select_model)
 	self.thumb_w, self.thumb_h = self.thumb:getDimensions()
 	self.font = Resources.getFont("bold", 24)
 
-	self:setSize(140, 50)
+	self:setSize(Resources.sprites.time_rate_bg:getDimensions())
 	self.orbit_r = math.floor(self.circle_w / 2) - 2
 	self.handles_mouse_input = true
 	self.text_color = {1, 1, 1, 1}
@@ -48,7 +48,7 @@ function TimeRate:updateText()
 end
 
 function TimeRate:draw()
-	local cx, cy = self.width - self.circle_w - 10, (self.height - self.circle_h) / 2
+	local cx, cy = self.width - self.circle_w - 6, (self.height - self.circle_h) / 2
 
 	local model = self.time_rate_model
 	local value = model:get()
@@ -72,7 +72,10 @@ function TimeRate:draw()
 
 	love.graphics.setFont(self.font)
 	Painter.setColorTable(self.text_color)
-	love.graphics.print(self.text, 22, 10)
+	local text_x = (cx - self.font:getWidth(self.text)) / 2
+	local text_y = (self.height - self.font:getHeight()) / 2
+	Painter.snapToPixel()
+	love.graphics.print(self.text, text_x, text_y)
 end
 
 return TimeRate
