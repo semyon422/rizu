@@ -30,8 +30,8 @@ end
 local Colors = {
 	text = hex("F2F2FF"),
 	text_muted = hex("A6B2CC"),
-	panel = hex("181520"),
-	panel_alt = hex("211C2B"),
+	panel = hex("211C2B"),
+	panel_alt = hex("2A2336"),
 	hover = hex("403854"),
 	outline = hex("4A4460"),
 	background = hex("0D0C0F"),

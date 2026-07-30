@@ -16,6 +16,7 @@ local Resources = {}
 Resources.ttf_font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
 Resources.ttf_font_paths = {
 	regular = "resources/fonts/Rubik/Rubik-Regular.ttf",
+	medium = "resources/fonts/Rubik/Rubik-Medium.ttf",
 	bold = "resources/fonts/Rubik/Rubik-Bold.ttf",
 	cjk_regular = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Regular.ttf",
 	cjk_bold = "resources/fonts/ZenMaruGothic/ZenMaruGothic-Bold.ttf",
