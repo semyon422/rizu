@@ -85,7 +85,7 @@ The environment change only affects the current shell. Shell scripts such as `./
 Create the ignored runtime configuration files without overwriting existing ones:
 
 ```bash
-test -e nginx_config.lua || cp aqua/web/nginx/nginx_config.lua nginx_config.lua
+test -e nginx_config.lua || cp nginx_config.example.lua nginx_config.lua
 test -e app_config.lua || cp sea/app/AppConfig.lua app_config.lua
 test -e my.cnf || cp my.cnf.example my.cnf
 ```
@@ -102,6 +102,57 @@ Compile and control the server with:
 ```
 
 The `./openresty` wrapper compiles `nginx.conf` before every operation, so the explicit compile command is mainly useful for validation.
+
+### Containerized web server and NATS
+
+For a single-host Linux deployment, Docker Compose runs OpenResty together with
+NATS while mounting the current checkout:
+
+```bash
+make config
+# Review app_config.lua and replace any placeholder secrets.
+make up
+```
+
+Both services use host networking to preserve the server's loopback assumptions.
+NATS binds only to `127.0.0.1:4222`; its monitoring endpoint binds to
+`127.0.0.1:8222`. OpenResty listens on port `8180` and accepts application
+requests only from a reverse proxy on the same host. The reverse proxy must set
+`X-Real-IP`, because the container Nginx configuration enables `proxied`.
+
+Application state remains in the checkout's existing ignored runtime paths:
+
+- `server.db`
+- `storages/charts/`
+- `storages/replays/`
+
+Docker does not compile or download application dependencies. The checkout must
+already contain the compatible Linux runtime produced by the normal artifact
+pipeline, including `bin/linux64/libsqlite3.so`,
+`bin/linux64/libminacalc.so`, and the server Lua modules under `tree/`.
+`make preflight` verifies that these artifacts are present, and the container
+entrypoint verifies the pinned SQLite version before starting OpenResty. The
+host-side `make nginx-conf` command renders the ignored `nginx.conf`; the
+container does not generate or compile application files.
+
+Compose pulls the pinned OpenResty and NATS images when they are missing locally.
+Use `make pull` to refresh them explicitly before a deployment.
+
+After pulling a new revision, recreate the service:
+
+```bash
+make deploy
+```
+
+Inspect status and logs with:
+
+```bash
+make ps
+make logs
+```
+
+Run `make help` for the full set of deployment commands. Set `COMPOSE` to
+override the Compose command when necessary.
 
 ### Standalone OpenAI subscription proxy
 

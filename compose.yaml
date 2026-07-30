@@ -1,0 +1,46 @@
+name: rizu
+
+services:
+  nats:
+    image: nats:2.12.11-alpine3.22
+    pull_policy: missing
+    command:
+      - --addr
+      - 127.0.0.1
+      - --port
+      - "4222"
+      - --http_port
+      - "8222"
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget --quiet --output-document=/dev/null http://127.0.0.1:8222/healthz
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  openresty:
+    image: openresty/openresty:1.31.1.1-2-noble
+    pull_policy: missing
+    working_dir: /app
+    entrypoint:
+      - /bin/sh
+      - /app/docker/entrypoint.sh
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      nats:
+        condition: service_healthy
+    volumes:
+      - ".:/app"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -s /app/logs/nginx.pid && kill -0 $$(cat /app/logs/nginx.pid)
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
