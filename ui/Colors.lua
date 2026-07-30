@@ -46,8 +46,11 @@ local Colors = {
 	grade_c = hex("f96baf"),
 	grade_d = hex("ff6a78"),
 
+	green = hex("639B3D"),
+	blue = hex("435FA7"),
+
 	back_button = hex("F64949"),
-	play_button = hex("49F69D")
+	play_button = hex("49F69D"),
 }
 
 return Colors

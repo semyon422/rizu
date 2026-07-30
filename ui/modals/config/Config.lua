@@ -2,14 +2,13 @@ local ModalView = require("ui.ModalView")
 local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
-local Checkbox = require("ui.views.Checkbox")
-local Dropdown = require("ui.views.Dropdown")
-local DropdownHost = require("ui.views.DropdownHost")
-local FlowContainer = require("gui.layout.FlowContainer")
+local Checkbox = require("ui.views.form.Checkbox")
+local Dropdown = require("ui.views.form.Dropdown")
+local Form = require("ui.views.form.Form")
 local Label = require("ui.views.Label")
 local ScrollView = require("gui.ScrollView")
-local Slider = require("ui.views.Slider")
-local Textbox = require("ui.views.Textbox")
+local Slider = require("ui.views.form.Slider")
+local Textbox = require("ui.views.form.Textbox")
 local NineSliceUsage = require("gui.NineSliceUsage")
 
 ---@class ui.modals.config.Config : ui.ModalView
@@ -46,6 +45,7 @@ local function createSettingView(config, setting, path)
 	elseif setting.kind == "choice" then
 		local format = type(setting.format) == "function" and setting.format or nil
 		local dropdown = Dropdown({
+			label = formatPath(path),
 			options = setting.options,
 			value = config:get(setting),
 			width = 780,
@@ -54,24 +54,20 @@ local function createSettingView(config, setting, path)
 				config:set(setting, value)
 			end,
 		})
-		local row = FlowContainer({direction = "column", gap = 6,
-			Label({font_name = "regular", font_size = 20, text = formatPath(path)}), dropdown})
-		row:fitContent()
-		return row, dropdown
+		return dropdown, dropdown
 	elseif setting.kind == "textbox" then
 		local textbox = Textbox({
+			label = formatPath(path),
 			text = config:getString(setting),
 			width = 780,
 			on_change = function(value)
 				config:setString(setting, value)
 			end,
 		})
-		local row = FlowContainer({direction = "column", gap = 6,
-			Label({font_name = "regular", font_size = 20, text = formatPath(path)}), textbox})
-		row:fitContent()
-		return row, textbox
+		return textbox, textbox
 	elseif setting.kind == "range" then
 		local slider = Slider({
+			label = formatPath(path),
 			value = config:getNumber(setting),
 			min = setting.min_value,
 			max = setting.max_value,
@@ -81,10 +77,7 @@ local function createSettingView(config, setting, path)
 				config:setNumber(setting, value)
 			end,
 		})
-		local row = FlowContainer({direction = "column", gap = 6,
-			Label({font_name = "regular", font_size = 20, text = formatPath(path)}), slider})
-		row:fitContent()
-		return row, slider
+		return slider, slider
 	end
 end
 
@@ -130,6 +123,7 @@ local function createLegacySettingView(root, descriptor, path, keys)
 		return checkbox, checkbox
 	elseif descriptor.kind == "choice" then
 		local dropdown = Dropdown({
+			label = label,
 			options = descriptor.options,
 			value = value,
 			width = 780,
@@ -137,15 +131,13 @@ local function createLegacySettingView(root, descriptor, path, keys)
 				setLegacyValue(root, keys, new_value)
 			end,
 		})
-		local row = FlowContainer({direction = "column", gap = 6,
-			Label({font_name = "regular", font_size = 20, text = label}), dropdown})
-		row:fitContent()
-		return row, dropdown
+		return dropdown, dropdown
 	elseif descriptor.kind == "range" then
 		-- Keep hand-edited legacy values usable even when they exceed the UI's suggested range.
 		local min_value = math.min(descriptor.min_value, value)
 		local max_value = math.max(descriptor.max_value, value)
 		local slider = Slider({
+			label = label,
 			value = value,
 			min = min_value,
 			max = max_value,
@@ -155,13 +147,11 @@ local function createLegacySettingView(root, descriptor, path, keys)
 				setLegacyValue(root, keys, new_value)
 			end,
 		})
-		local row = FlowContainer({direction = "column", gap = 6,
-			Label({font_name = "regular", font_size = 20, text = label}), slider})
-		row:fitContent()
-		return row, slider
+		return slider, slider
 	elseif descriptor.kind == "textbox" or descriptor.kind == "list" then
 		local text = descriptor.kind == "list" and table.concat(value, ", ") or tostring(value)
 		local textbox = Textbox({
+			label = label,
 			text = text,
 			width = 780,
 			on_change = function(new_value)
@@ -176,10 +166,7 @@ local function createLegacySettingView(root, descriptor, path, keys)
 				end
 			end,
 		})
-		local row = FlowContainer({direction = "column", gap = 6,
-			Label({font_name = "regular", font_size = 20, text = label}), textbox})
-		row:fitContent()
-		return row, textbox
+		return textbox, textbox
 	end
 end
 
@@ -219,7 +206,7 @@ function Config:new(config, schema)
 	self:setOpacity(0)
 	self:setVisible(false)
 
-	local content = DropdownHost({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
+	local content = Form({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
 	content:add(Label({font_name = "bold", font_size = 32, text = "Settings"}))
 	if schema then
 		local entries = {} ---@type ui.LegacySettingEntry[]
@@ -281,16 +268,16 @@ function Config:syncSetting(setting)
 		return
 	end
 	if setting.kind == "checkbox" then
-		---@cast view ui.views.Checkbox
+		---@cast view ui.views.form.Checkbox
 		view:setChecked(self.config:getBoolean(setting))
 	elseif setting.kind == "choice" then
-		---@cast view ui.views.Dropdown
+		---@cast view ui.views.form.Dropdown
 		view:setValue(self.config:get(setting))
 	elseif setting.kind == "textbox" then
-		---@cast view ui.views.Textbox
+		---@cast view ui.views.form.Textbox
 		view:setText(self.config:getString(setting))
 	elseif setting.kind == "range" then
-		---@cast view ui.views.Slider
+		---@cast view ui.views.form.Slider
 		view:setValue(self.config:getNumber(setting))
 	end
 end

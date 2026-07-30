@@ -3,7 +3,6 @@ local ThreeColumns = require("ui.test.ThreeColumns")
 local NineAnchors = require("ui.test.NineAnchors")
 local OrbitOffsetTransform = require("ui.test.OrbitOffsetTransform")
 local Opacity = require("ui.test.Opacity")
-local Checkbox = require("ui.test.Checkbox")
 local Animations = require("ui.test.Animations")
 local Clip = require("ui.test.Clip")
 local ScrollView = require("ui.test.ScrollView")
@@ -20,7 +19,6 @@ local Atlas = require("ui.test.Atlas")
 
 ---@type ui.test.TestCase[]
 local cases = {
-	Checkbox,
 	ThreeColumns,
 	NineAnchors,
 	OrbitOffsetTransform,
