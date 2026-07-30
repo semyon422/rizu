@@ -9,6 +9,7 @@ local ScoreList = require("ui.screens.song_select.ScoreList")
 local ChartSets = require("ui.screens.song_select.ChartSets")
 local ChartGrid = require("ui.screens.song_select.ChartGrid")
 local InfoPanel = require("ui.screens.song_select.InfoPanel")
+local DifficultyPanel = require("ui.screens.song_select.DifficultyPanel")
 local GameplayModifiers = require("ui.screens.song_select.GameplayModifiers")
 local TimeRate = require("ui.screens.song_select.TimeRate")
 local FooterButton = require("ui.screens.song_select.FooterButton")
@@ -46,6 +47,7 @@ function SongSelect:new(ui)
 	end)
 	self.chart_grid = ChartGrid(self.ui.game.chartSelector)
 	self.chart_sets = ChartSets(self.ui.game.chartSelector, function() end)
+	self.difficulty_panel = DifficultyPanel()
 	self.info_panel = InfoPanel()
 
 	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "BACK", function()
@@ -174,13 +176,23 @@ function SongSelect:createRightColumn()
 		color = Colors.text_muted,
 	})):setAlignment(1, 0.5)
 
-	column:add(heading, 40)
+	column:add(heading, 28)
 	column:add(View(), "*")
-	column:add(self.info_panel, 122)
-	column:add(View(), "*")
-	column:add(self.chart_grid, 136)
+	column:add(Rectangle(Colors.panel), 44)
 	column:add(View(), "*")
 	column:add(self.chart_sets, 562)
+	column:add(View(), "*")
+
+	local info = column:add(TrackContainer({
+		gap = 6,
+		direction = "row",
+	}), 80)
+
+	info:add(self.difficulty_panel, 214) -- TODO: DifficultyPanel should be able to scale freely
+	info:add(self.info_panel, "*")
+
+	column:add(View(), "*")
+	column:add(self.chart_grid, 136)
 	return column
 end
 
@@ -248,6 +260,7 @@ function SongSelect:onChartviewUpdate(chartview)
 	self.chartview_formatter:setChartview(chartview)
 	self.chartview_formatter:setTimeRate(self.ui.game.timeRateModel:get())
 	self.background_panel:bind(self.chartview_formatter)
+	self.difficulty_panel:bind(self.chartview_formatter)
 	self.info_panel:bind(self.chartview_formatter)
 end
 

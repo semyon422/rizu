@@ -11,6 +11,7 @@ local Path = require("Path")
 ---@field dpi number
 ---@field fonts {[string]: love.Font}
 ---@field bmfonts {[string]: love.Font}
+---@field nine_slices {[string]: gui.NineSliceSprites}
 local Resources = {}
 
 Resources.ttf_font_fallback_path = "resources/fonts/NotoSansCJK-Regular.ttc"
@@ -56,6 +57,18 @@ function Resources.load()
 			error(("sprite `%s` does not exist"):format(key), 2)
 		end
 	})
+
+	local s = Resources.sprites
+
+	---@diagnostic disable
+	Resources.nine_slices = {
+		ns_rect = {
+			s.ns_rect_lt, s.ns_rect_t, s.ns_rect_rt,
+			s.ns_rect_l, s.ns_rect_c, s.ns_rect_r,
+			s.ns_rect_lb, s.ns_rect_b, s.ns_rect_rb
+		}
+	}
+	---@diagnostic enable
 end
 
 ---@param v number

@@ -34,13 +34,24 @@ function ChartviewFormatter:getTimeRate()
 	}
 end
 
----@return {value: string, color: gui.Color}
+---@return {value: string, postfix: string, color: gui.Color}
 function ChartviewFormatter:getDifficulty()
 	local diff_column = self.settings.select.diff_column
 	local num = self.chartview[diff_column] or 0
 
+	local postfix = "ENPS"
+
+	if diff_column == "osu_diff" then
+		postfix = "*"
+	elseif diff_column == "msd_diff" then
+		postfix = "MSD"
+	else
+		postfix = "?"
+	end
+
 	return {
 		value = ("%0.01f"):format(num),
+		postfix = postfix,
 		color = Color.diffToColor(diff_column, num, {1, 1, 1, 1})
 	}
 end
