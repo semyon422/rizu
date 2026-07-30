@@ -13,6 +13,7 @@ local View = require("gui.View")
 ---@field font love.Font
 ---@field chevron gui.Sprite
 ---@field selected_index integer?
+---@field focused_display_index integer?
 ---@field on_select fun(value: any, index: integer)
 ---@field dropdown ui.views.form.Dropdown
 local DropdownItems = View + {}
@@ -35,16 +36,19 @@ function DropdownItems:new(dropdown, options, format, width, row_height, on_sele
 	self.font = Resources.getFont("medium", 16)
 	self.chevron = Resources.sprites.icon_chevron
 	self.selected_index = nil
+	self.focused_display_index = nil
 	self.handles_mouse_input = true
 	self:setSize(width, BODY_Y + row_height * #options)
 	self:setLayoutIgnore(true)
 end
 
 function DropdownItems:open()
+	self.focused_display_index = 1
 	self:setEnabled(true)
 end
 
 function DropdownItems:close()
+	self.focused_display_index = nil
 	self:setEnabled(false)
 	if self.parent then
 		self.parent:remove(self)
@@ -77,6 +81,34 @@ function DropdownItems:getDisplayOption(display_index)
 	return self.options[option_index], option_index
 end
 
+---@param display_index integer
+function DropdownItems:focusDisplayIndex(display_index)
+	self.focused_display_index = ((display_index - 1) % #self.options) + 1
+	self.dropdown:getForm():centerView(
+		self,
+		BODY_Y + (self.focused_display_index - 1) * self.row_height,
+		self.row_height
+	)
+end
+
+---@param offset integer
+---@return boolean moved
+function DropdownItems:moveFocus(offset)
+	self:focusDisplayIndex((self.focused_display_index or 1) + offset)
+	return true
+end
+
+---@return boolean selected
+function DropdownItems:selectFocused()
+	local display_index = self.focused_display_index
+	if not display_index then
+		return false
+	end
+	local value, option_index = self:getDisplayOption(display_index)
+	self.on_select(value, option_index)
+	return true
+end
+
 ---@param e gui.MouseDownEvent
 ---@return boolean? handled
 function DropdownItems:onMouseDown(e)
@@ -87,8 +119,8 @@ function DropdownItems:onMouseDown(e)
 	local _, y = self.world_transform:inverseTransformPoint(e.x, e.y)
 	local display_index = math.floor((y - BODY_Y) / self.row_height) + 1
 	if y >= BODY_Y and display_index <= #self.options then
-		local value, option_index = self:getDisplayOption(display_index)
-		self.on_select(value, option_index)
+		self:focusDisplayIndex(display_index)
+		self:selectFocused()
 	end
 	return true
 end
@@ -109,7 +141,7 @@ function DropdownItems:draw()
 	for display_index = 1, #self.options do
 		local value = self:getDisplayOption(display_index)
 		local y = BODY_Y + (display_index - 1) * self.row_height
-		if display_index == hover_index then
+		if display_index == hover_index or display_index == self.focused_display_index then
 			lg.setColor(Colors.hover)
 			lg.rectangle("fill", 1, y, self.width - 1, self.row_height)
 		end

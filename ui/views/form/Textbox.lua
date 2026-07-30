@@ -69,19 +69,26 @@ function Textbox:notifyChange()
 	end
 end
 
+---@param modifiers gui.UIEvent
+---@return boolean activated
+function Textbox:activate(modifiers)
+	assert(self.screen and self.screen.inputs, "textbox is not attached to an input-enabled screen")
+	self.screen.inputs:setKeyboardFocus(self, {
+		control = modifiers.control_pressed,
+		shift = modifiers.shift_pressed,
+		alt = modifiers.alt_pressed,
+		super = modifiers.super_pressed,
+	})
+	return true
+end
+
 ---@param e gui.MouseClickEvent
 ---@return boolean
 function Textbox:onMouseClick(e)
 	if e.button == 1 then
-		assert(self.screen and self.screen.inputs, "textbox is not attached to an input-enabled screen")
-		self.screen.inputs:setKeyboardFocus(self, {
-			control = e.control_pressed,
-			shift = e.shift_pressed,
-			alt = e.alt_pressed,
-			super = e.super_pressed,
-		})
+		return self:activate(e)
 	end
-	return true
+	return false
 end
 
 ---@param e gui.TextInputEvent
@@ -102,6 +109,17 @@ function Textbox:onKeyDown(e)
 	if not self.focused then
 		return
 	end
+	if e.key == "escape" then
+		assert(self.screen and self.screen.inputs, "focused textbox is not attached to an input-enabled screen")
+		self.screen.inputs:setKeyboardFocus(nil, {
+			control = e.control_pressed,
+			shift = e.shift_pressed,
+			alt = e.alt_pressed,
+			super = e.super_pressed,
+		})
+		return true
+	end
+
 	local changed = false
 	if e.key == "backspace" then
 		changed = self.model:backspace()

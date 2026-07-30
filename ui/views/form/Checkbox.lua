@@ -48,14 +48,20 @@ function Checkbox:setChecked(checked, notify)
 	end
 end
 
+---@param e gui.KeyDownEvent?
+---@return boolean activated
+function Checkbox:activate(e)
+	self:setChecked(not self.checked, true)
+	return true
+end
+
 ---@param e gui.MouseClickEvent
 ---@return boolean?
 function Checkbox:onMouseClick(e)
 	if e.button ~= 1 then
 		return
 	end
-	self:setChecked(not self.checked, true)
-	return true
+	return self:activate()
 end
 
 function Checkbox:draw()

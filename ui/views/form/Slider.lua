@@ -83,6 +83,19 @@ function Slider:setValueAt(screen_x, screen_y)
 	self:setValue(value, true)
 end
 
+---@param e gui.KeyDownEvent
+---@return boolean handled
+function Slider:onFormKeyDown(e)
+	local direction = e.key == "left" and -1 or e.key == "right" and 1 or nil
+	if not direction then
+		return false
+	end
+	local step = self.step or (self.max - self.min) / 100
+	local value = math.max(self.min, math.min(self.max, self.value + step * direction))
+	self:setValue(value, true)
+	return true
+end
+
 ---@param e gui.DragStartEvent
 ---@return boolean?
 function Slider:onDragStart(e)

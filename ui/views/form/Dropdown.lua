@@ -120,6 +120,7 @@ function Dropdown:open()
 		function(value)
 			self:setValue(value, true)
 			self:close()
+			form:centerView(self)
 		end
 	)
 	items:setValue(self.value)
@@ -152,6 +153,31 @@ function Dropdown:close()
 	end
 	self:onClosed()
 	return true
+end
+
+---@param e gui.KeyDownEvent
+---@return boolean activated
+function Dropdown:activate(e)
+	if self.opened then
+		local items = assert(self.items, "open dropdown has no items")
+		return items:selectFocused()
+	end
+	return self:open()
+end
+
+---@param e gui.KeyDownEvent
+---@return boolean handled
+function Dropdown:onFormKeyDown(e)
+	local items = self.items
+	if not items then
+		return false
+	end
+	if e.key == "down" then
+		return items:moveFocus(1)
+	elseif e.key == "up" then
+		return items:moveFocus(-1)
+	end
+	return false
 end
 
 ---Animation hook for the dropdown trigger.

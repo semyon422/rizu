@@ -10,6 +10,18 @@ function FormControl:canBeSelected()
 	return self.effective_visible and self.effective_enabled
 end
 
+---@param e gui.KeyDownEvent
+---@return boolean activated
+function FormControl:activate(e)
+	return false
+end
+
+---@param e gui.KeyDownEvent
+---@return boolean handled
+function FormControl:onFormKeyDown(e)
+	return false
+end
+
 function FormControl:disableFormNavigation()
 	-- Inline to break the Form -> FormControl dependency cycle.
 	local Form = require("ui.views.form.Form")

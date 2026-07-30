@@ -189,6 +189,35 @@ function test.keyboard_movement_clears_keyboard_focus(t)
 end
 
 ---@param t testing.T
+function test.keyboard_activation_calls_selected_control(t)
+	local form = Form()
+	local activation_count = 0
+	local control = form:add(FormControl())
+	function control:activate()
+		activation_count = activation_count + 1
+		return true
+	end
+	form:selectControl(control)
+
+	t:eq(form:onKeyDown({key = "space"}), true)
+	t:eq(form:onKeyDown({key = "return"}), true)
+	t:eq(activation_count, 2)
+end
+
+---@param t testing.T
+function test.selected_control_handles_keys_before_navigation(t)
+	local form = Form()
+	local control = form:add(FormControl())
+	function control:onFormKeyDown(e)
+		return e.key == "right"
+	end
+	form:selectControl(control)
+
+	t:eq(form:onKeyDown({key = "right"}), true)
+	t:eq(form.selected_control, control)
+end
+
+---@param t testing.T
 function test.keyboard_movement_is_ignored_during_drag(t)
 	local form = Form()
 	local control = form:add(FormControl())
@@ -224,6 +253,18 @@ function test.direct_child_overlay_can_remove_itself(t)
 
 	t:eq(overlay.parent, nil)
 	t:eq(#form.children, 2)
+end
+
+---@param t testing.T
+function test.overlay_expands_and_restores_form_scroll_extent(t)
+	local form = Form():setSize(100, 100)
+	local overlay = View():anchorFixed(0, 80, 100, 200)
+
+	form:addOverlay(overlay)
+	t:eq(form.offset_max[2] - form.offset_min[2], 280)
+
+	overlay.parent:remove(overlay)
+	t:eq(form.offset_max[2] - form.offset_min[2], 100)
 end
 
 ---@param t testing.T

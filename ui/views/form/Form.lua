@@ -13,8 +13,11 @@ local View = require("gui.View")
 ---@field rows gui.layout.FlowContainer
 ---@field selection ui.views.form.FormSelection
 ---@field active_dropdown ui.views.form.Dropdown?
+---@field overlay gui.View?
+---@field overlay_base_width number?
+---@field overlay_base_height number?
 ---@field selected_index integer? Index into rows.children
----@field selected_control gui.View?
+---@field selected_control ui.views.form.FormControl?
 local Form = View + {}
 
 ---@param config ui.views.form.Form.Config?
@@ -26,6 +29,9 @@ function Form:new(config)
 	self.rows = FlowContainer(config)
 	View.add(self, self.rows)
 	self.active_dropdown = nil
+	self.overlay = nil
+	self.overlay_base_width = nil
+	self.overlay_base_height = nil
 	self.selected_index = nil
 	self.selected_control = nil
 	self.handles_mouse_input = true
@@ -61,6 +67,15 @@ end
 function Form:remove(row)
 	if row.parent == self then
 		View.remove(self, row)
+		if row == self.overlay then
+			self.overlay = nil
+			self:setSize(
+				assert(self.overlay_base_width, "overlay has no base width"),
+				assert(self.overlay_base_height, "overlay has no base height")
+			)
+			self.overlay_base_width = nil
+			self.overlay_base_height = nil
+		end
 		return
 	end
 
@@ -93,6 +108,14 @@ end
 ---@param overlay T
 ---@return T
 function Form:addOverlay(overlay)
+	assert(not self.overlay, "form already has an overlay")
+	self.overlay = overlay
+	self.overlay_base_width = self.offset_max[1] - self.offset_min[1]
+	self.overlay_base_height = self.offset_max[2] - self.offset_min[2]
+	self:setSize(
+		math.max(self.overlay_base_width, overlay.offset_max[1]),
+		math.max(self.overlay_base_height, overlay.offset_max[2])
+	)
 	return View.add(self, overlay)
 end
 
@@ -148,16 +171,16 @@ local function canSelect(row)
 	return false
 end
 
----@param control gui.View
+---@param control ui.views.form.FormControl
 ---@return boolean selected
 function Form:selectControl(control)
 	for index, row in ipairs(self.rows.children) do
 		if row == control then
-			if not canSelect(row) then
+			if not canSelect(control) then
 				return false
 			end
 			self.selected_index = index
-			self.selected_control = row
+			self.selected_control = control
 			return true
 		end
 	end
@@ -188,11 +211,6 @@ function Form:onMouseDown(e)
 	end
 end
 
----@param e gui.ScrollEvent
-function Form:onScroll(e)
-	self:closeActiveDropdown()
-end
-
 ---Keeps selection attached to the same control across row mutations. If the
 ---selected control became unavailable, selects the next control or the previous one.
 ---@return boolean has_selection
@@ -212,16 +230,20 @@ function Form:syncSelection()
 
 	local start = math.min(self.selected_index or 1, #rows)
 	for index = start, #rows do
-		if canSelect(rows[index]) then
+		local view = rows[index]
+		if canSelect(view) then
+			---@cast view ui.views.form.FormControl
 			self.selected_index = index
-			self.selected_control = rows[index]
+			self.selected_control = view
 			return true
 		end
 	end
 	for index = start - 1, 1, -1 do
-		if canSelect(rows[index]) then
+		local view = rows[index]
+		if canSelect(view) then
+			---@cast view ui.views.form.FormControl
 			self.selected_index = index
-			self.selected_control = rows[index]
+			self.selected_control = view
 			return true
 		end
 	end
@@ -267,6 +289,7 @@ function Form:selectVisibleControl(offset)
 	while offset > 0 and index <= limit or offset < 0 and index >= limit do
 		local row = rows[index]
 		if canSelect(row) and isFullyVisibleInScrollView(row, scroll_view) then
+			---@cast row ui.views.form.FormControl
 			self.selected_index = index
 			self.selected_control = row
 			return true
@@ -276,6 +299,33 @@ function Form:selectVisibleControl(offset)
 	return false
 end
 
+---@param view gui.View
+---@param local_y number?
+---@param height number?
+---@return boolean scrolled
+function Form:centerView(view, local_y, height)
+	local scroll_view = self:getScrollView()
+	if not scroll_view then
+		return false
+	end
+
+	local_y = local_y or 0
+	height = height or view.height
+	local top_x, top_y = view.world_transform:transformPoint(0, local_y)
+	local bottom_x, bottom_y = view.world_transform:transformPoint(0, local_y + height)
+	local _, local_top = scroll_view.world_transform:inverseTransformPoint(top_x, top_y)
+	local _, local_bottom = scroll_view.world_transform:inverseTransformPoint(bottom_x, bottom_y)
+	local top = math.min(local_top, local_bottom)
+	local bottom = math.max(local_top, local_bottom)
+	if top >= 0 and bottom <= scroll_view.height then
+		return false
+	end
+
+	local center = (top + bottom) / 2
+	scroll_view:scrollTo(scroll_view:getScrollPosition() + center - scroll_view.height / 2)
+	return true
+end
+
 ---Centers the selected control when it falls outside an ancestor scroll viewport.
 ---@return boolean scrolled
 function Form:centerSelectedControl()
@@ -283,25 +333,7 @@ function Form:centerSelectedControl()
 	if not selected then
 		return false
 	end
-
-	local parent = self:getScrollView()
-	if not parent then
-		return false
-	end
-
-	local top_x, top_y = selected.world_transform:transformPoint(0, 0)
-	local bottom_x, bottom_y = selected.world_transform:transformPoint(0, selected.height)
-	local _, local_top = parent.world_transform:inverseTransformPoint(top_x, top_y)
-	local _, local_bottom = parent.world_transform:inverseTransformPoint(bottom_x, bottom_y)
-	local top = math.min(local_top, local_bottom)
-	local bottom = math.max(local_top, local_bottom)
-	if top >= 0 and bottom <= parent.height then
-		return false
-	end
-
-	local center = (top + bottom) / 2
-	parent:scrollTo(parent:getScrollPosition() + center - parent.height / 2)
-	return true
+	return self:centerView(selected)
 end
 
 ---@param offset integer
@@ -322,9 +354,11 @@ function Form:moveSelection(offset)
 	---@cast index integer
 	for _ = 1, row_count do
 		index = ((index - 1 + offset) % row_count) + 1
+		local view = rows[index]
 		if canSelect(rows[index]) then
+			---@cast view ui.views.form.FormControl
 			self.selected_index = index
-			self.selected_control = rows[index]
+			self.selected_control = view
 			self:centerSelectedControl()
 			return self.selected_control ~= previous
 		end
@@ -339,15 +373,21 @@ function Form:onKeyDown(e)
 		return self:closeActiveDropdown()
 	end
 
-	local offset = e.key == "down" and 1 or e.key == "up" and -1 or nil
-	if not offset then
-		return false
-	end
 	local inputs = self.screen and self.screen.inputs
 	if inputs and inputs.pointer_gesture and inputs.pointer_gesture.dragging then
 		return false
 	end
-	if not self:moveSelection(offset) then
+
+	local selected = self.selected_control
+	if e.key == "return" or e.key == "kpenter" or e.key == "space" then
+		return selected and selected:activate(e) or false
+	end
+	if selected and selected:onFormKeyDown(e) then
+		return true
+	end
+
+	local offset = e.key == "down" and 1 or e.key == "up" and -1 or nil
+	if not offset or not self:moveSelection(offset) then
 		return false
 	end
 	if inputs and inputs.keyboard_focus then
