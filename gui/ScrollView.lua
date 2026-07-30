@@ -15,7 +15,6 @@ local View = require("gui.View")
 ---@field private drag_origin_scroll number
 ---@field private last_drag_y number
 ---@field private last_drag_time number
----@field is_scroll_view true
 local ScrollView = View + {}
 
 ScrollView.SCROLL_DECAY = 0.01
@@ -37,7 +36,6 @@ function ScrollView:new(content)
 	self.clip = true
 	self.handles_mouse_input = true
 	self.drag_axis = "vertical"
-	self.is_scroll_view = true
 	self.scroll_target = 0
 	self.scroll_current = 0
 	self.scroll_decay = self.SCROLL_DECAY

@@ -1,5 +1,6 @@
 local class = require("class")
 local Renderer = require("gui.Renderer")
+local ScrollView = require("gui.ScrollView")
 local View = require("gui.View")
 
 ---@class gui.Screen
@@ -202,7 +203,7 @@ function Screen:relayout()
 	self.draw_views = draw_views
 	for i = 1, #views do
 		local view = views[i]
-		if view.is_scroll_view then
+		if ScrollView * view then
 			view:refreshAfterLayout()
 		end
 	end
