@@ -20,11 +20,11 @@ local Atlas = require("ui.test.Atlas")
 
 ---@type ui.test.TestCase[]
 local cases = {
+	Checkbox,
 	ThreeColumns,
 	NineAnchors,
 	OrbitOffsetTransform,
 	Opacity,
-	Checkbox,
 	Animations,
 	Clip,
 	ScrollView,
