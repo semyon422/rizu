@@ -2,7 +2,7 @@ local ModalView = require("ui.ModalView")
 local brand = require("brand")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
-local json = require("web.json")
+local ToolPresentation = require("ui.modals.ai_chat.ToolPresentation")
 local utf8 = require("utf8")
 local utf8validate = require("utf8validate")
 
@@ -38,7 +38,8 @@ local MODEL_ROW_HEIGHT = 30
 local TOOL_PREVIEW_LINES = 5
 local TOOL_PREVIEW_RENDERED_LINES = 5
 local TOOL_PREVIEW_CHARS = 1200
-local TOOL_ARGUMENT_CHARS = 240
+local TOOL_ARGUMENT_RENDERED_LINES = 4
+local TOOL_ARGUMENT_CHARS = 600
 local SCROLLBAR_WIDTH = 8
 local JUMP_WIDTH = 128
 local JUMP_HEIGHT = 28
@@ -171,6 +172,26 @@ function AiChat:toggleTool(tool_call_id)
 	self.cached_wrap_width = nil
 end
 
+---@param screen_x number
+---@param screen_y number
+---@return ui.ai_chat.TranscriptLine?
+function AiChat:getTranscriptLineAt(screen_x, screen_y)
+	local x, y = self.world_transform:inverseTransformPoint(screen_x, screen_y)
+	if x < PADDING or x >= self.width - PADDING - SCROLLBAR_WIDTH
+		or y < TITLE_HEIGHT + PADDING or y >= self.height - INPUT_HEIGHT - PADDING
+	then
+		return
+	end
+	local lines = self:getLines()
+	local first, last = self:getVisibleRange(lines)
+	local row = math.floor((y - TITLE_HEIGHT - PADDING) / LINE_HEIGHT)
+	local index = first + row
+	if index > last then
+		return
+	end
+	return lines[index]
+end
+
 ---@param e gui.MouseClickEvent
 ---@return true
 function AiChat:onMouseClick(e)
@@ -198,11 +219,8 @@ function AiChat:onMouseClick(e)
 		return true
 	end
 	if y >= TITLE_HEIGHT + PADDING and y < self.height - INPUT_HEIGHT - PADDING then
-		local lines = self:getLines()
-		local first, last = self:getVisibleRange(lines)
-		local row = math.floor((y - TITLE_HEIGHT - PADDING) / LINE_HEIGHT)
-		local line = lines[first + row]
-		if line and first + row <= last and line.tool_call_id then
+		local line = self:getTranscriptLineAt(e.x, e.y)
+		if line and line.tool_call_id then
 			self:toggleTool(line.tool_call_id)
 			return true
 		end
@@ -372,17 +390,15 @@ local function addWrapped(lines, font, text, wrap_width, color, tool_call_id, ma
 	return visible_count < #wrapped
 end
 
----@param arguments string?
+---@param text string
+---@param limit integer
 ---@return string
-local function compactArguments(arguments)
-	if type(arguments) ~= "string" or arguments == "" then return "" end
-	local decoded = json.decode_safe(arguments)
-	local compact = decoded and json.encode(decoded) or arguments
-	compact = utf8validate(compact:gsub("%s+", " "))
-	if #compact > TOOL_ARGUMENT_CHARS then
-		compact = utf8validate(compact:sub(1, TOOL_ARGUMENT_CHARS)) .. "…"
+---@return boolean truncated
+local function truncateText(text, limit)
+	if #text <= limit then
+		return text, false
 	end
-	return compact
+	return utf8validate(text:sub(1, limit)) .. "…", true
 end
 
 ---@param content string
@@ -433,17 +449,55 @@ function AiChat:getLines()
 	}
 	for _, entry in ipairs(self.model.entries) do
 		if entry.role == "tool" and entry.tool_call_id then
-			local arguments = compactArguments(entry.arguments)
+			local expanded = self.expanded_tools[entry.tool_call_id] == true
 			local header = ("[%s] %s"):format(toolStatusLabel(entry), entry.name or "tool")
-			if arguments ~= "" then header = header .. "  " .. arguments end
 			local status_color = entry.status == "error" and Colors.back_button
 				or entry.status == "running" and Colors.accent or Colors.play_button
 			addWrapped(lines, font, header, wrap_width, status_color, entry.tool_call_id)
+
+			local arguments = ToolPresentation.formatArguments(entry.arguments)
+			local arguments_truncated = false
+			if arguments ~= "" then
+				table.insert(lines, {
+					text = "input",
+					color = Colors.text_muted,
+					tool_call_id = entry.tool_call_id,
+				})
+				if not expanded then
+					arguments, arguments_truncated = truncateText(arguments, TOOL_ARGUMENT_CHARS)
+				end
+				local argument_line_limit
+				if not expanded then
+					argument_line_limit = TOOL_ARGUMENT_RENDERED_LINES
+				end
+				arguments_truncated = addWrapped(
+					lines,
+					font,
+					arguments,
+					wrap_width,
+					Colors.text,
+					entry.tool_call_id,
+					argument_line_limit
+				) or arguments_truncated
+			end
+
+			local result_truncated = false
+			local total_lines = 0
 			if entry.content ~= "" then
-				local expanded = self.expanded_tools[entry.tool_call_id]
-				local output, truncated, total_lines = previewToolResult(entry.content)
+				table.insert(lines, {
+					text = entry.status == "error" and "error" or "output",
+					color = Colors.text_muted,
+					tool_call_id = entry.tool_call_id,
+				})
+				local formatted_result = ToolPresentation.formatResult(entry.name, entry.content)
+				local output
+				output, result_truncated, total_lines = previewToolResult(formatted_result)
 				if expanded then
-					output = entry.content
+					output = formatted_result
+				end
+				local result_line_limit
+				if not expanded then
+					result_line_limit = TOOL_PREVIEW_RENDERED_LINES
 				end
 				local wrapped_truncated = addWrapped(
 					lines,
@@ -452,27 +506,33 @@ function AiChat:getLines()
 					wrap_width,
 					Colors.text_muted,
 					entry.tool_call_id,
-					expanded and nil or TOOL_PREVIEW_RENDERED_LINES
+					result_line_limit
 				)
-				truncated = truncated or wrapped_truncated
-				if expanded then
-					table.insert(lines, {
-						text = "Click to collapse",
-						color = Colors.accent,
-						tool_call_id = entry.tool_call_id,
-					})
-				elseif truncated then
-					local line_label = total_lines == 1 and "line" or "lines"
-					table.insert(lines, {
-						text = ("… %d %s, %d bytes total — click to expand"):format(
-							total_lines,
-							line_label,
-							#entry.content
-						),
-						color = Colors.accent,
-						tool_call_id = entry.tool_call_id,
-					})
-				end
+				result_truncated = result_truncated or wrapped_truncated
+			end
+			if expanded and (arguments ~= "" or entry.content ~= "") then
+				table.insert(lines, {
+					text = "Click to collapse",
+					color = Colors.accent,
+					tool_call_id = entry.tool_call_id,
+				})
+			elseif result_truncated then
+				local line_label = total_lines == 1 and "line" or "lines"
+				table.insert(lines, {
+					text = ("… %d %s, %d bytes total — click to expand"):format(
+						total_lines,
+						line_label,
+						#entry.content
+					),
+					color = Colors.accent,
+					tool_call_id = entry.tool_call_id,
+				})
+			elseif arguments_truncated then
+				table.insert(lines, {
+					text = "… input truncated — click to expand",
+					color = Colors.accent,
+					tool_call_id = entry.tool_call_id,
+				})
 			end
 		else
 			local label = entry.name and (entry.role .. " " .. entry.name) or entry.role
@@ -552,8 +612,21 @@ function AiChat:draw()
 	love.graphics.setFont(font)
 	local y = TITLE_HEIGHT + PADDING
 	for i = first, last do
-		love.graphics.setColor(lines[i].color)
-		love.graphics.print(lines[i].text, PADDING, y)
+		local line = lines[i]
+		local text_x = PADDING
+		if line.tool_call_id then
+			love.graphics.setColor(Colors.panel_alt)
+			love.graphics.rectangle(
+				"fill",
+				PADDING - 6,
+				y - 2,
+				self.width - PADDING * 2 - SCROLLBAR_WIDTH - 2,
+				LINE_HEIGHT
+			)
+			text_x = PADDING + 8
+		end
+		love.graphics.setColor(line.color)
+		love.graphics.print(line.text, text_x, y)
 		y = y + LINE_HEIGHT
 	end
 	local max_scroll = self:getMaxScroll(lines)

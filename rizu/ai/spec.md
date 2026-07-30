@@ -11,7 +11,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The chat header shows the active provider and model. Clicking it opens a scrollable selector containing every configured provider/model pair; selecting one starts a fresh conversation with that backend.
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
 - Assistant text appears as it is generated. While a request is active, the player can click Stop or press Escape to cancel it without losing already displayed text.
-- Tool activity appears as a structured transcript block containing the tool name, compact arguments, execution state, duration when available, and a bounded result preview. Tool results are collapsed to at most five source lines, 1,200 characters, and five rendered rows by default, and can be expanded without changing the result sent back to the model.
+- Tool activity appears as a structured transcript card containing the tool name, execution state, readable input, and a bounded result preview. JSON arguments and results are decoded into indented fields instead of displaying protocol escapes. Lua evaluation results also hide transient table addresses and render escaped dump newlines and quotes as text. Tool results are collapsed to at most five source lines, 1,200 characters, and five rendered rows by default, and can be expanded without changing the result sent back to the model.
 - The transcript follows new output while the player is at the bottom. Scrolling upward detaches it from the live tail until the player returns to the bottom, so streamed text never moves an older viewport unexpectedly. The proportional scrollbar supports both track clicks and thumb dragging.
 - The assistant can use one Lua evaluation tool to inspect or operate on the running game when answering a request.
 - The assistant can map runtime functions to repository source locations and read source ranges without using arbitrary Lua evaluation.
@@ -73,6 +73,7 @@ return {
 }
 ```
 - The retained UI modal belongs in `ui`; it observes `ChatModel` and contains no API or evaluation logic.
+- `ui.modals.ai_chat.ToolPresentation` converts protocol payloads into display-only text. It never mutates the original tool arguments, result, or provider conversation history.
 - `ui.modals.ai_chat.AiChat` caches wrapped transcript lines and invalidates them on `chat_changed`, width changes, or tool expansion changes. Long tool results must not be rewrapped every rendered frame.
 - Collapsed tool previews are bounded independently from protocol tool results, including after text wrapping. Collapsing or expanding is presentation state and must never alter conversation history or the content returned to the provider.
 - Transcript scrolling is bounded after content, viewport, or expansion changes. New content preserves an older viewport while detached from the bottom and follows the latest line only while attached.

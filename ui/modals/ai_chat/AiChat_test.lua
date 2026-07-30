@@ -1,4 +1,5 @@
 local AiChat = require("ui.modals.ai_chat.AiChat")
+local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local Resources = require("ui.Resources")
 
@@ -85,7 +86,7 @@ function test.validates_transcript_text_before_wrapping(t)
 		}
 		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
 		local lines = view:getLines()
-		t:eq(lines[1].text, "[ok] read_file  {}")
+		t:eq(lines[1].text, "[ok] read_file")
 		t:eq(wrapped_text, "bad?text")
 	end, debug.traceback)
 	Resources.getFont = old_get_font
@@ -180,14 +181,18 @@ function test.tool_results_are_collapsed_and_expandable(t)
 		}
 		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
 		local collapsed = view:getLines()
-		t:eq(collapsed[2].text, "line 1\nline 2\nline 3\nline 4\nline 5")
-		t:assert(collapsed[3].text:find("12 lines", 1, true))
-		t:eq(#collapsed, 4)
+		t:eq(collapsed[2].text, "input")
+		t:eq(collapsed[3].text, "line_end: 12\nline_start: 1")
+		t:eq(collapsed[4].text, "output")
+		t:eq(collapsed[5].text, "line 1\nline 2\nline 3\nline 4\nline 5")
+		t:assert(collapsed[6].text:find("12 lines", 1, true))
+		t:eq(#collapsed, 7)
 
 		view:toggleTool("call_1")
 		local expanded = view:getLines()
-		t:eq(expanded[2].text, table.concat(output, "\n"))
-		t:eq(expanded[3].text, "Click to collapse")
+		t:eq(expanded[3].text, "line_end: 12\nline_start: 1")
+		t:eq(expanded[5].text, table.concat(output, "\n"))
+		t:eq(expanded[6].text, "Click to collapse")
 	end, debug.traceback)
 	Resources.getFont = old_get_font
 	love = old_love
@@ -224,10 +229,86 @@ function test.tool_preview_is_limited_by_rendered_lines(t)
 		}
 		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
 		local collapsed = view:getLines()
-		t:eq(collapsed[2].text, "row 1")
-		t:eq(collapsed[6].text, "row 5")
-		t:assert(collapsed[7].text:find("click to expand", 1, true))
-		t:eq(#collapsed, 8)
+		t:eq(collapsed[2].text, "output")
+		t:eq(collapsed[3].text, "row 1")
+		t:eq(collapsed[7].text, "row 5")
+		t:assert(collapsed[8].text:find("click to expand", 1, true))
+		t:eq(#collapsed, 9)
+
+		view:toggleTool("call_1")
+		local expanded = view:getLines()
+		t:eq(expanded[3].text, "row 1")
+		t:eq(expanded[9].text, "row 7")
+		t:eq(expanded[10].text, "Click to collapse")
+		t:eq(#expanded, 11)
+	end, debug.traceback)
+	Resources.getFont = old_get_font
+	love = old_love
+	if not ok then
+		error(err)
+	end
+end
+
+---@param t testing.T
+function test.clicking_tool_footer_expands_result(t)
+	local old_get_font = Resources.getFont
+	local old_love = love
+	love = {
+		math = old_love.math,
+		graphics = {getDimensions = function() return 1920, 1080 end},
+		timer = old_love.timer,
+	}
+	Resources.getFont = function()
+		return {
+			getWrap = function(_, text)
+				return 0, {text}
+			end,
+		}
+	end
+
+	local ok, err = xpcall(function()
+		local output = {}
+		for index = 1, 12 do table.insert(output, "line " .. index) end
+		local model = {
+			entries = {{
+				role = "tool",
+				content = table.concat(output, "\n"),
+				name = "read_file",
+				tool_call_id = "call_1",
+				arguments = "{}",
+				status = "success",
+			}},
+			onChanged = function() end,
+		}
+		local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
+		view:setVisible(true)
+		view:setOpacity(1)
+		view:setScale(1, 1)
+		local screen = Screen()
+		screen.root:add(view)
+		screen:resize(1920, 1080)
+
+		local lines = view:getLines()
+		local first, last = view:getVisibleRange(lines)
+		local footer_index
+		for index = first, last do
+			if lines[index].text:find("click to expand", 1, true) then
+				footer_index = index
+				break
+			end
+		end
+		t:assert(footer_index)
+		local local_y = 48 + 18 + (footer_index - first) * 24 + 12
+		local screen_x, screen_y = view.world_transform:transformPoint(100, local_y)
+		local inputs = Inputs()
+		inputs:beginFrame(screen_x, screen_y)
+		screen:acceptInputs(inputs)
+		local modifiers = {control = false, shift = false, alt = false, super = false}
+		inputs:receive({name = "mousepressed", screen_x, screen_y, 1}, modifiers)
+		inputs:receive({name = "mousereleased", screen_x, screen_y, 1}, modifiers)
+
+		t:eq(view.expanded_tools.call_1, true)
+		t:eq(view:getLines()[#view:getLines() - 1].text, "Click to collapse")
 	end, debug.traceback)
 	Resources.getFont = old_get_font
 	love = old_love
