@@ -13,10 +13,8 @@ local DifficultyPanel = require("ui.screens.song_select.DifficultyPanel")
 local GameplayModifiers = require("ui.screens.song_select.GameplayModifiers")
 local TimeRate = require("ui.screens.song_select.TimeRate")
 local FooterButton = require("ui.screens.song_select.FooterButton")
-local FooterSmallButton = require("ui.screens.song_select.FooterSmallButton")
 local PlayerInfo = require("ui.views.PlayerInfo")
 local SessionInfo = require("ui.views.SessionInfo")
-local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
@@ -54,15 +52,62 @@ function SongSelect:new(ui)
 	self.difficulty_panel = DifficultyPanel()
 	self.info_panel = InfoPanel()
 
-	self.back_button = FooterButton(Colors.back_button, {1, 1, 1, 1}, "BACK", function()
-		self.ui:setScreen(self.ui.main_menu, true)
-	end)
-
-	self.play_button = FooterButton(Colors.play_button, {0, 0, 0, 1}, "PLAY", function()
-		if self.ui.game.chartSelector:chartExists() then
-			self.ui:setScreen(self.ui.chart_loading, true)
+	self.back_button = FooterButton(
+		Colors.back_button,
+		Resources.sprites.footer_button_left,
+		Colors.text,
+		"BACK",
+		function()
+			self.ui:setScreen(self.ui.main_menu, true)
 		end
-	end)
+	)
+
+	self.play_button = FooterButton(
+		Colors.play_button,
+		Resources.sprites.footer_button_right,
+		{0, 0, 0, 1},
+		"PLAY",
+		function()
+			if self.ui.game.chartSelector:chartExists() then
+				self.ui:setScreen(self.ui.chart_loading, true)
+			end
+		end
+	)
+
+	self.mods_button = FooterButton(
+		Colors.green,
+		Resources.sprites.footer_button_small,
+		Colors.text,
+		Resources.sprites.icon_puzzle
+	)
+
+	self.skins_button = FooterButton(
+		Colors.blue,
+		Resources.sprites.footer_button_small,
+		Colors.text,
+		Resources.sprites.icon_brush
+	)
+
+	self.inputs_button = FooterButton(
+		Colors.elements,
+		Resources.sprites.footer_button_small,
+		Colors.text,
+		Resources.sprites.icon_keyboard
+	)
+
+	self.filters_button = FooterButton(
+		Colors.elements,
+		Resources.sprites.footer_button_small,
+		Colors.text,
+		Resources.sprites.icon_funnel
+	)
+
+	self.download_button = FooterButton(
+		Colors.elements,
+		Resources.sprites.footer_button_small,
+		Colors.text,
+		Resources.sprites.icon_download
+	)
 
 	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
 	self.session_info = SessionInfo()
@@ -126,7 +171,8 @@ function SongSelect:exit()
 end
 
 function SongSelect:createContent()
-	self.container:add(self:createHeader(), 100)
+	self.container:add(self:createHeader(), 56)
+	self.container:add(View(), 20)
 
 	local body = self.container:add(TrackContainer({
 		direction = "row",
@@ -138,6 +184,8 @@ function SongSelect:createContent()
 	body:add(View(), "*")
 	body:add(self:createRightColumn(), "46%")
 	body:add(View(), "*")
+
+	self.container:add(View(), 20)
 	self.container:add(self:createFooter(), 56)
 end
 
@@ -193,17 +241,13 @@ function SongSelect:createRightColumn()
 end
 
 function SongSelect:createHeader()
-	local header = TrackContainer()
-
-	header:add(View(), "*")
-	local left = header:add(View(), "44%")
-	header:add(View(), "*")
-	local right = header:add(View(), "46%")
-	header:add(View(), "*")
-
-	left:add(Image(Resources.sprites.fake_header_left)):setAlignment(0, 0.5)
-	right:add(Image(Resources.sprites.fake_header_right)):setAlignment(1, 0.5)
-
+	local header = Rectangle(Colors.panel)
+	header:add(Label({
+		font_name = "regular",
+		font_size = 24,
+		color = Colors.text_muted,
+		text = "Session time"
+	})):setAlignment(0.5, 0.5)
 	return header
 end
 
@@ -212,21 +256,21 @@ function SongSelect:createFooter()
 
 	footer:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
 
-	local left = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10, padding = {5, 0, 0, 0}}))
+	local left = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10}))
 	left:add(self.back_button)
-	left:add(FooterSmallButton(Resources.sprites.icon_puzzle, Colors.green))
-	left:add(FooterSmallButton(Resources.sprites.icon_brush, Colors.blue))
-	left:add(FooterSmallButton(Resources.sprites.icon_keyboard, Colors.elements))
-	left:add(FooterSmallButton(Resources.sprites.icon_funnel, Colors.elements))
-	left:add(FooterSmallButton(Resources.sprites.icon_download, Colors.elements))
+	left:add(self.mods_button)
+	left:add(self.skins_button)
+	left:add(self.inputs_button)
+	left:add(self.filters_button)
+	left:add(self.download_button)
 	left:fitContent()
-	left:setAlignment(0, 0.5)
+	left:setAlignment(0, 1)
 
-	local right = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10, padding = {0, 0, 5, 0}}))
+	local right = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10}))
 	right:add(self.time_rate)
 	right:add(self.play_button)
 	right:fitContent()
-	right:setAlignment(1, 0.5)
+	right:setAlignment(1, 1)
 
 	return footer
 end

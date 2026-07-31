@@ -174,9 +174,10 @@ function ChartGrid:update(dt)
 
 	local scroll = self:getVisualScrollPosition()
 	local selected_index = self.chart_selector.state:getSecondary().index
-	local first_row, last_row = self:getVisibleRowRange()
+	local first_row = math.max(1, math.floor(scroll / ROW_HEIGHT) + 1)
+	local last_row = math.floor((scroll + self.height) / ROW_HEIGHT) + 1
 	local first_index = (first_row - 1) * self.columns + 1
-	local last_index = math.min(#self.items, last_row * self.columns)
+	local last_index = last_row * self.columns
 
 	for i = first_index, last_index do
 		local v = self.items[i]
@@ -184,26 +185,33 @@ function ChartGrid:update(dt)
 		local row = math.floor((i - 1) / self.columns)
 		local x = col * (self.width_per_col + COL_X_GAP)
 		local y = row * ROW_HEIGHT - scroll
-		local c = v.difficulty_color
-		local is_selected = selected_index == v.id
-		local is_hovered = self.hover_id == v.id
 
-		batch:setColor(c[1], c[2], c[3], (is_selected or is_hovered) and 0.4 or 0.2)
-		batch:add(self.body, x, y, 0, self.body_s, 1)
-		batch:add(self.cap, x + (self.body_w * self.body_s), y)
+		if v then
+			local c = v.difficulty_color
+			local is_selected = selected_index == v.id
+			local is_hovered = self.hover_id == v.id
 
-		if is_selected then
-			batch:setColor(Colors.accent)
-			batch:add(self.stroke_left, x, y)
-			batch:add(self.stroke_middle, x + self.stroke_left_w, y, 0, self.stroke_middle_s, 1)
-			batch:add(self.stroke_right, x + self.width_per_col - self.stroke_right_w, y)
+			batch:setColor(c[1], c[2], c[3], (is_selected or is_hovered) and 0.4 or 0.2)
+			batch:add(self.body, x, y, 0, self.body_s, 1)
+			batch:add(self.cap, x + (self.body_w * self.body_s), y)
+
+			if is_selected then
+				batch:setColor(Colors.accent)
+				batch:add(self.stroke_left, x, y)
+				batch:add(self.stroke_middle, x + self.stroke_left_w, y, 0, self.stroke_middle_s, 1)
+				batch:add(self.stroke_right, x + self.width_per_col - self.stroke_right_w, y)
+			end
+
+			cs[1] = v.difficulty_color
+			cs[2] = v.difficulty
+			self.meta_batch:add(cs, x + 12, y + 7)
+			self.meta_batch:add(v.inputmode, x + 86, y + 7)
+			self.names_batch:add(v.name, x + 134, y + 1)
+		else
+			batch:setColor(Colors.panel[1], Colors.panel[2], Colors.panel[3], 0.4)
+			batch:add(self.body, x, y, 0, self.body_s, 1)
+			batch:add(self.cap, x + (self.body_w * self.body_s), y)
 		end
-
-		cs[1] = v.difficulty_color
-		cs[2] = v.difficulty
-		self.meta_batch:add(cs, x + 12, y + 7)
-		self.meta_batch:add(v.inputmode, x + 86, y + 7)
-		self.names_batch:add(v.name, x + 134, y + 1)
 	end
 end
 
