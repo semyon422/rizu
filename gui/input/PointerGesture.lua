@@ -23,7 +23,7 @@ local DragEndEvent = require("gui.input.events.DragEndEvent")
 ---@field private targeting gui.PointerTargeting
 local PointerGesture = class()
 
-PointerGesture.MOUSE_CLICK_MAX_DISTANCE = 6
+PointerGesture.MOUSE_CLICK_MAX_DISTANCE = 20
 PointerGesture.DRAG_START_THRESHOLD = 4
 
 ---@param inputs gui.Inputs
