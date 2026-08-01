@@ -4,7 +4,7 @@ Provide a section-based settings modal for the modern `ui.UiConfig` store.
 
 ## User Experience
 
-Settings are grouped under named, illustrated sections and use the shared form controls. Changes to checkboxes, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
+Settings are grouped under named, illustrated sections and use the shared form controls. A padded section list on the left shows each section's icon and name, highlights hovered items, and displays the selected section on the right. Changes to checkboxes, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
 
 ## Architecture Decisions
 

@@ -57,7 +57,6 @@ function FormSelection:hide()
 end
 
 function FormSelection:draw()
-	Painter.snapToPixel()
 	Painter.setColorTable(Colors.hover)
 	love.graphics.rectangle("fill", -10, -10, self.width + 20, self.height + 20)
 end

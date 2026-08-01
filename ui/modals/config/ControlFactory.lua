@@ -13,7 +13,6 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field min number
 ---@field max number
 ---@field step number?
----@field width number?
 ---@field value_format (fun(value: number): string)?
 ---@field from_storage (fun(value: number): number)?
 ---@field to_storage (fun(value: number): number)?
@@ -25,6 +24,8 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field on_change (fun(value: any))?
 
 local ControlFactory = {}
+
+local WIDTH = 635
 
 ---@param control ui.views.form.FormControl
 ---@param metadata ui.modals.config.ControlMetadata
@@ -61,7 +62,7 @@ function ControlFactory.number(config, key, metadata)
 		min = metadata.min,
 		max = metadata.max,
 		step = metadata.step,
-		width = metadata.width,
+		width = WIDTH,
 		value_format = metadata.value_format,
 		on_change = function(value)
 			config:setNumber(key, value)
@@ -79,7 +80,7 @@ function ControlFactory.choice(config, key, metadata)
 		label = metadata.name,
 		options = config:getChoices(key),
 		value = config:getChoice(key),
-		width = 780,
+		width = WIDTH,
 		on_change = function(value)
 			config:setChoice(key, value)
 		end,
@@ -95,7 +96,7 @@ function ControlFactory.string(config, key, metadata)
 	local control = Textbox({
 		label = metadata.name,
 		text = config:getString(key),
-		width = 780,
+		width = WIDTH,
 		on_change = function(value)
 			config:setString(key, value)
 		end,
@@ -121,7 +122,7 @@ function ControlFactory.legacyNumber(settings, path, metadata)
 		min = metadata.min,
 		max = metadata.max,
 		step = metadata.step,
-		width = metadata.width,
+		width = WIDTH,
 		value_format = metadata.value_format,
 		on_change = function(new_value)
 			parent[key] = metadata.to_storage and metadata.to_storage(new_value) or new_value
@@ -146,7 +147,7 @@ function ControlFactory.legacyChoice(settings, path, metadata)
 		label = metadata.name,
 		options = assert(metadata.options, "legacy choice options are required"),
 		value = value,
-		width = metadata.width or 780,
+		width = WIDTH,
 		on_change = function(new_value)
 			parent[key] = new_value
 			if metadata.on_change then

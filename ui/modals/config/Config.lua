@@ -8,6 +8,8 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
+local Section = require("ui.modals.config.Section")
+local SectionItem = require("ui.modals.config.SectionItem")
 local AudioSection = require("ui.modals.config.sections.Audio")
 local InterfaceSection = require("ui.modals.config.sections.Interface")
 
@@ -16,10 +18,20 @@ local InterfaceSection = require("ui.modals.config.sections.Interface")
 ---@field ui_config ui.UiConfig
 ---@field legacy_settings sphere.SettingsConfig
 ---@field sections ui.modals.config.Section[]
+---@field all_section ui.modals.config.Section
+---@field selected_section ui.modals.config.Section
+---@field section_list gui.layout.FlowContainer
 ---@field form ui.views.form.Form
 ---@field scroll_view gui.ScrollView
+---@field background gui.NineSliceUsage
+---@field list_background gui.NineSliceUsage
 ---@field private settings_invalidated boolean
 local Config = ModalView + {}
+
+local MODAL_WIDTH = 1060
+local MODAL_HEIGHT = 740
+local LIST_PANEL_WIDTH = 740
+local LIST_WIDTH = 635
 
 ---@param ui_config ui.UiConfig
 ---@param legacy_settings sphere.SettingsConfig
@@ -28,21 +40,46 @@ function Config:new(ui_config, legacy_settings)
 	self.ui_config = ui_config
 	self.legacy_settings = legacy_settings
 	self.sections = self:createSections()
+	self.all_section = Section({
+		name = "All",
+		icon = Resources.sprites.icon_gear,
+		build = function() return {} end,
+	})
+	self.selected_section = self.all_section
 	self.settings_invalidated = false
 
-	self:setSize(890, 600)
+	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
 	self:setScale(0.9, 0.9)
 	self:setOpacity(0)
 	self:setVisible(false)
 
-	self.form = Form({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
+	self.section_list = FlowContainer({direction = "column", gap = 4, padding = 20})
+	self.section_list:add(SectionItem(self.all_section, function(selected_section)
+		self.selected_section = selected_section
+		self:invalidateSettings()
+	end))
+	for _, section in ipairs(self.sections) do
+		self.section_list:add(SectionItem(section, function(selected_section)
+			self.selected_section = selected_section
+			self:invalidateSettings()
+		end))
+	end
+	self.section_list:fitContent()
+	self.section_list:setOffset(0, 20)
+
+	self.form = Form({direction = "column", gap = 18, padding = {0, 16, 0, 16}})
 	self.scroll_view = ScrollView(self.form)
-	self.scroll_view:anchorFixed(35, 40, 820, 520)
+	self.scroll_view:anchorFixed(
+		MODAL_WIDTH - LIST_PANEL_WIDTH + (LIST_PANEL_WIDTH - LIST_WIDTH) / 2,
+		0,
+		LIST_WIDTH,
+		MODAL_HEIGHT
+	)
 
 	local sprites = Resources.sprites
-	self.background = NineSliceUsage({
+	local modal_sprites = {
 		sprites.nineslice_modal_lt,
 		sprites.nineslice_modal_t,
 		sprites.nineslice_modal_rt,
@@ -52,8 +89,11 @@ function Config:new(ui_config, legacy_settings)
 		sprites.nineslice_modal_lb,
 		sprites.nineslice_modal_b,
 		sprites.nineslice_modal_rb,
-	})
+	}
+	self.background = NineSliceUsage(modal_sprites)
+	self.list_background = NineSliceUsage(modal_sprites)
 
+	self:add(self.section_list)
 	self:add(self.scroll_view)
 	for _, section in ipairs(self.sections) do
 		section:setInvalidator(function()
@@ -78,7 +118,7 @@ end
 ---@param section ui.modals.config.Section
 ---@return gui.layout.FlowContainer header
 local function createSectionHeader(section)
-	local header = FlowContainer({direction = "row", gap = 12, align = 0.5})
+	local header = FlowContainer({direction = "row", gap = 12, align = 0.5, padding = {0, 20, 0, 0}})
 	header:add(Image(section.icon, nil, Colors.text))
 	header:add(Label({font_name = "bold", font_size = 32, text = section.name}))
 	header:fitContent()
@@ -91,7 +131,15 @@ function Config:rebuildSettings()
 	self.form:clearSelection()
 	self.form.rows:clear()
 
-	for _, section in ipairs(self.sections) do
+	if self.selected_section == self.all_section then
+		for _, section in ipairs(self.sections) do
+			self.form:add(createSectionHeader(section))
+			for _, control in ipairs(section:build()) do
+				self.form:add(control)
+			end
+		end
+	else
+		local section = self.selected_section
 		self.form:add(createSectionHeader(section))
 		for _, control in ipairs(section:build()) do
 			self.form:add(control)
@@ -119,8 +167,14 @@ function Config:hide()
 end
 
 function Config:draw()
-	Painter.setColorTable(Colors.panel)
+	Painter.setColorTable(Colors.panel_alt)
 	self.background:draw(self.width, self.height)
+
+	Painter.setColorTable(Colors.panel)
+	love.graphics.push()
+	love.graphics.translate(MODAL_WIDTH - LIST_PANEL_WIDTH, 0)
+	self.list_background:draw(LIST_PANEL_WIDTH, MODAL_HEIGHT)
+	love.graphics.pop()
 end
 
 return Config
