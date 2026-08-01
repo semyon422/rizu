@@ -196,7 +196,7 @@ function ChartGrid:update(dt)
 			batch:add(self.cap, x + (self.body_w * self.body_s), y)
 
 			if is_selected then
-				batch:setColor(Colors.accent)
+				batch:setColor(c)
 				batch:add(self.stroke_left, x, y)
 				batch:add(self.stroke_middle, x + self.stroke_left_w, y, 0, self.stroke_middle_s, 1)
 				batch:add(self.stroke_right, x + self.width_per_col - self.stroke_right_w, y)
