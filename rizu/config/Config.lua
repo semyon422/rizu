@@ -1,188 +1,350 @@
 local class = require("class")
-local Observable = require("Observable")
 local json = require("json")
+
+---@alias rizu.config.Kind "number"|"choice"|"boolean"|"string"
+---@alias rizu.config.Value number|string|boolean
+---@alias rizu.config.ChangeCallback fun(value: rizu.config.Value, old_value: rizu.config.Value, key: string)
+---@alias rizu.config.NumberChangeCallback fun(value: number, old_value: number, key: string)
+---@alias rizu.config.StringChangeCallback fun(value: string, old_value: string, key: string)
+---@alias rizu.config.BooleanChangeCallback fun(value: boolean, old_value: boolean, key: string)
+
+---@class rizu.config.Definition
+---@field kind rizu.config.Kind
+---@field default rizu.config.Value
+---@field choices string[]?
 
 ---@class rizu.config.Config
 ---@operator call: rizu.config.Config
----@field persistent_values {[rizu.config.Setting]: any}
----@field transient_values {[rizu.config.Setting]: any}
----@field settings_map {[rizu.config.Setting]: boolean}
----@field path_to_setting {[string]: rizu.config.Setting}
----@field setting_to_path {[rizu.config.Setting]: string}
----@field onChanged util.Observable
+---@field fs fs.IFilesystem
+---@field path string
+---@field values {[string]: rizu.config.Value}
+---@field definitions {[string]: rizu.config.Definition}
+---@field private subscriptions {[string]: {[rizu.config.ChangeCallback]: boolean}}
+---@field private all_subscriptions {[rizu.config.ChangeCallback]: boolean}
 local Config = class()
 
----@param node rizu.config.Setting | {[string]: rizu.config.Setting}
+---@param filesystem fs.IFilesystem
 ---@param path string
----@param settings_map {[rizu.config.Setting]: boolean}
----@param path_to_setting {[string]: rizu.config.Setting}
----@param setting_to_path {[rizu.config.Setting]: string}
-local function walk_schema(node, path, settings_map, path_to_setting, setting_to_path)
-	for key, child in pairs(node) do
-		local current_path = path == "" and key or (path .. "." .. key)
-		if type(child) == "table" then
-			if child.kind then
-				settings_map[child] = true
-				path_to_setting[current_path] = child
-				setting_to_path[child] = current_path
-			else
-				walk_schema(child, current_path, settings_map, path_to_setting, setting_to_path)
+function Config:new(filesystem, path)
+	self.fs = assert(filesystem, "filesystem is required")
+	self.path = assert(path, "path is required")
+	self.values = {}
+	self.definitions = {}
+	self.subscriptions = {}
+	self.all_subscriptions = {}
+end
+
+---@param kind rizu.config.Kind
+---@return "number"|"string"|"boolean"
+local function lua_type(kind)
+	if kind == "choice" then
+		return "string"
+	else
+		---@cast kind "number"|"string"|"boolean"
+		return kind
+	end
+end
+
+---@param key string
+---@param definition rizu.config.Definition
+local function validate_default(key, definition)
+	assert(type(key) == "string" and key ~= "", "key must be a non-empty string")
+	assert(type(definition.default) == lua_type(definition.kind), "default has the wrong type")
+	if definition.kind == "choice" then
+		assert(definition.choices and #definition.choices > 0, "choices must not be empty")
+		local found = false
+		for _, choice in ipairs(definition.choices) do
+			assert(type(choice) == "string", "choices must contain strings")
+			found = found or choice == definition.default
+		end
+		assert(found, "default must be one of the choices")
+	end
+end
+
+---@param key string
+---@param definition rizu.config.Definition
+function Config:setDefault(key, definition)
+	assert(not self.definitions[key], "default is already defined for " .. key)
+	validate_default(key, definition)
+	self.definitions[key] = definition
+end
+
+---@param key string
+---@param default number
+function Config:setDefaultNumber(key, default)
+	self:setDefault(key, {kind = "number", default = default})
+end
+
+---@param key string
+---@param default string
+---@param choices string[]
+function Config:setDefaultChoice(key, default, choices)
+	self:setDefault(key, {kind = "choice", default = default, choices = choices})
+end
+
+---@param key string
+---@param default boolean
+function Config:setDefaultBoolean(key, default)
+	self:setDefault(key, {kind = "boolean", default = default})
+end
+
+---@param key string
+---@param default string
+function Config:setDefaultString(key, default)
+	self:setDefault(key, {kind = "string", default = default})
+end
+
+---@param key string
+---@return rizu.config.Definition
+function Config:getDefinition(key)
+	return assert(self.definitions[key], "unknown config key: " .. tostring(key))
+end
+
+---@param key string
+---@return rizu.config.Value
+function Config:get(key)
+	local definition = self:getDefinition(key)
+	local value = self.values[key]
+	if value ~= nil then
+		return value
+	end
+	return definition.default
+end
+
+---@param self rizu.config.Config
+---@param key string
+---@param kind rizu.config.Kind
+---@return rizu.config.Definition
+local function assert_kind(self, key, kind)
+	local definition = self:getDefinition(key)
+	assert(definition.kind == kind, ("config key %s is %s, not %s"):format(key, definition.kind, kind))
+	return definition
+end
+
+---@param key string
+---@return number
+function Config:getNumber(key)
+	assert_kind(self, key, "number")
+	return self:get(key) --[[@as number]]
+end
+
+---@param key string
+---@return string
+function Config:getChoice(key)
+	assert_kind(self, key, "choice")
+	return self:get(key) --[[@as string]]
+end
+
+---@param key string
+---@return string[]
+function Config:getChoices(key)
+	local definition = assert_kind(self, key, "choice")
+	return definition.choices
+end
+
+---@param key string
+---@return boolean
+function Config:getBoolean(key)
+	assert_kind(self, key, "boolean")
+	return self:get(key) --[[@as boolean]]
+end
+
+---@param key string
+---@return string
+function Config:getString(key)
+	assert_kind(self, key, "string")
+	return self:get(key) --[[@as string]]
+end
+
+---@param key string
+---@param value rizu.config.Value
+---@param old_value rizu.config.Value
+function Config:notify(key, value, old_value)
+	local callbacks = {} ---@type rizu.config.ChangeCallback[]
+	for callback in pairs(self.subscriptions[key] or {}) do
+		callbacks[#callbacks + 1] = callback
+	end
+	for callback in pairs(self.all_subscriptions) do
+		callbacks[#callbacks + 1] = callback
+	end
+	for _, callback in ipairs(callbacks) do
+		callback(value, old_value, key)
+	end
+end
+
+---@param key string
+---@param value rizu.config.Value
+function Config:set(key, value)
+	local definition = self:getDefinition(key)
+	assert(type(value) == lua_type(definition.kind), "value has the wrong type")
+	if definition.kind == "choice" then
+		local found = false
+		for _, choice in ipairs(definition.choices) do
+			found = found or choice == value
+		end
+		assert(found, "value must be one of the choices")
+	end
+
+	local old_value = self:get(key)
+	if old_value == value then
+		return
+	end
+	self.values[key] = value == definition.default and nil or value
+	self:notify(key, value, old_value)
+end
+
+---@param key string
+---@param value number
+function Config:setNumber(key, value)
+	assert_kind(self, key, "number")
+	self:set(key, value)
+end
+
+---@param key string
+---@param value string
+function Config:setChoice(key, value)
+	assert_kind(self, key, "choice")
+	self:set(key, value)
+end
+
+---@param key string
+---@param value boolean
+function Config:setBoolean(key, value)
+	assert_kind(self, key, "boolean")
+	self:set(key, value)
+end
+
+---@param key string
+---@param value string
+function Config:setString(key, value)
+	assert_kind(self, key, "string")
+	self:set(key, value)
+end
+
+---@param key string
+---@param callback rizu.config.ChangeCallback
+---@return function unsubscribe
+function Config:subscribe(key, callback)
+	self:getDefinition(key)
+	assert(type(callback) == "function", "callback must be a function")
+	local subscriptions = self.subscriptions[key]
+	if not subscriptions then
+		subscriptions = {}
+		self.subscriptions[key] = subscriptions
+	end
+	subscriptions[callback] = true
+	return function()
+		subscriptions[callback] = nil
+	end
+end
+
+---@param key string
+---@param callback rizu.config.NumberChangeCallback
+---@return function unsubscribe
+function Config:subscribeNumber(key, callback)
+	assert_kind(self, key, "number")
+	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
+end
+
+---@param key string
+---@param callback rizu.config.StringChangeCallback
+---@return function unsubscribe
+function Config:subscribeChoice(key, callback)
+	assert_kind(self, key, "choice")
+	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
+end
+
+---@param key string
+---@param callback rizu.config.BooleanChangeCallback
+---@return function unsubscribe
+function Config:subscribeBoolean(key, callback)
+	assert_kind(self, key, "boolean")
+	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
+end
+
+---@param key string
+---@param callback rizu.config.StringChangeCallback
+---@return function unsubscribe
+function Config:subscribeString(key, callback)
+	assert_kind(self, key, "string")
+	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
+end
+
+---@param callback rizu.config.ChangeCallback
+---@return function unsubscribe
+function Config:subscribeAll(callback)
+	assert(type(callback) == "function", "callback must be a function")
+	self.all_subscriptions[callback] = true
+	return function()
+		self.all_subscriptions[callback] = nil
+	end
+end
+
+---@return string json_string
+function Config:serialize()
+	return json.encode(json.object(self.values), {indent = "\t"}) .. "\n"
+end
+
+---@param json_string string
+---@return boolean success
+function Config:deserialize(json_string)
+	local ok, decoded = pcall(json.decode, json_string)
+	if not ok or type(decoded) ~= "table" then
+		return false
+	end
+	---@cast decoded {[string]: rizu.config.Value}
+
+	local values = {} ---@type {[string]: rizu.config.Value}
+	for key, value in pairs(decoded) do
+		local definition = self.definitions[key]
+		if definition then
+			if type(value) ~= lua_type(definition.kind) then
+				return false
+			end
+			if definition.kind == "choice" then
+				local found = false
+				for _, choice in ipairs(definition.choices) do
+					found = found or choice == value
+				end
+				if not found then
+					return false
+				end
+			end
+			if value ~= definition.default then
+				values[key] = value
 			end
 		end
 	end
-end
 
----@param schema table
-function Config:new(schema)
-	assert(schema, "Schema is required")
-	self.persistent_values = {}
-	self.transient_values = {}
-	self.settings_map = {}
-	self.path_to_setting = {}
-	self.setting_to_path = {}
-	self.onChanged = Observable()
-
-	walk_schema(schema, "", self.settings_map, self.path_to_setting, self.setting_to_path)
-end
-
----@param setting rizu.config.Setting
----@return any
-function Config:get(setting)
-	local val = self.transient_values[setting]
-	if val ~= nil then
-		return val
-	end
-	val = self.persistent_values[setting]
-	if val ~= nil then
-		return val
-	end
-	return setting.default_value
-end
-
----@param setting rizu.config.Setting
----@return boolean?
-function Config:getBoolean(setting)
-	assert(setting and setting.kind == "checkbox", "getBoolean only accepts Checkbox settings")
-	local v = self:get(setting)
-	if v == nil then return nil end
-	return not not v
-end
-
----@param setting rizu.config.Setting
----@return string?
-function Config:getString(setting)
-	assert(
-		setting and (setting.kind == "textbox" or setting.kind == "choice"),
-		"getString only accepts Textbox and Choice settings"
-	)
-	local v = self:get(setting)
-	if v == nil then return nil end
-	return tostring(v)
-end
-
----@param setting rizu.config.Setting
----@return number?
-function Config:getNumber(setting)
-	assert(setting and setting.kind == "range", "getNumber only accepts Range settings")
-	local v = self:get(setting)
-	if v == nil then return nil end
-	return tonumber(v)
-end
-
----@param setting rizu.config.Setting
----@param value any
-function Config:set(setting, value)
-	local is_deferred = setting.is_deferred
-
-	if is_deferred then
-		if self.transient_values[setting] == value then
-			return
-		end
-		self.transient_values[setting] = value
-	else
-		if self.persistent_values[setting] == value then
-			return
-		end
-		self.persistent_values[setting] = value
-		self.onChanged:send(setting)
-	end
-end
-
----@param setting rizu.config.Setting
----@param value boolean
-function Config:setBoolean(setting, value)
-	assert(setting and setting.kind == "checkbox", "setBoolean only accepts Checkbox settings")
-	assert(type(value) == "boolean", "value must be a boolean")
-	self:set(setting, value)
-end
-
----@param setting rizu.config.Setting
----@param value string
-function Config:setString(setting, value)
-	assert(
-		setting and (setting.kind == "textbox" or setting.kind == "choice"),
-		"setString only accepts Textbox and Choice settings"
-	)
-	assert(type(value) == "string", "value must be a string")
-	self:set(setting, value)
-end
-
----@param setting rizu.config.Setting
----@param value number
-function Config:setNumber(setting, value)
-	assert(setting and setting.kind == "range", "setNumber only accepts Range settings")
-	assert(type(value) == "number", "value must be a number")
-	self:set(setting, value)
-end
-
-function Config:commit()
-	local updated_settings = {} ---@type rizu.config.Setting[]
-	for setting, value in pairs(self.transient_values) do
-		if self.persistent_values[setting] ~= value then
-			self.persistent_values[setting] = value
-			table.insert(updated_settings, setting)
-		end
-	end
-	self.transient_values = {}
-
-	if #updated_settings > 0 then
-		for _, setting in ipairs(updated_settings) do
-			self.onChanged:send(setting)
-		end
-	end
-end
-
-function Config:discard()
-	self.transient_values = {}
-end
-
----@return string json
-function Config:serialize()
-	local data = {} ---@type {[string]: any}
-	for setting, value in pairs(self.persistent_values) do
-		local path = self.setting_to_path[setting]
-		if path then
-			data[path] = value
-		end
-	end
-	return json.encode(data, {indent = "\t"}) .. "\n"
-end
-
----@param json_str string
----@return boolean success
-function Config:deserialize(json_str)
-	---@type boolean, {[string]: any}
-	local ok, data = pcall(json.decode, json_str)
-	if not ok or type(data) ~= "table" then
-		return false
-	end
-	for path, value in pairs(data) do
-		local setting = self.path_to_setting[path]
-		if setting then
-			self.persistent_values[setting] = value
+	local old_values = self.values
+	self.values = values
+	for key in pairs(self.definitions) do
+		local definition = self.definitions[key]
+		local old_value = old_values[key] == nil and definition.default or old_values[key]
+		local value = values[key] == nil and definition.default or values[key]
+		if old_value ~= value then
+			self:notify(key, value, old_value)
 		end
 	end
 	return true
+end
+
+---@return boolean success
+function Config:load()
+	if not self.fs:getInfo(self.path) then
+		return false
+	end
+	local content = self.fs:read(self.path)
+	if not content then
+		return false
+	end
+	return self:deserialize(content)
+end
+
+---@return boolean success
+function Config:save()
+	local ok = self.fs:write(self.path, self:serialize())
+	return not not ok
 end
 
 return Config

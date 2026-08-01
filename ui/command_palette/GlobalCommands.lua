@@ -1,4 +1,4 @@
-local Settings = require("rizu.config.schemas.Settings")
+local Settings = require("rizu.config.Settings")
 
 local M = {}
 
@@ -94,8 +94,8 @@ function M.get(game, ui)
 			title = "FPS: Toggle",
 			description = "Toggles the FPS overlay",
 			callback = function()
-				local show_fps = game.settings:getBoolean(Settings.misc.application.show_fps)
-				game.settings:setBoolean(Settings.misc.application.show_fps, not show_fps)
+				local show_fps = game.settings:getBoolean(Settings.show_fps)
+				game.settings:setBoolean(Settings.show_fps, not show_fps)
 			end
 		},
 		{

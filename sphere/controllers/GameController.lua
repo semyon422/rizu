@@ -118,7 +118,7 @@ function GameController:new()
 	self.packageManager = PackageManager(self.network)
 
 	self.persistence = Persistence()
-	self.settings = assert(self.persistence.configManager:get("settings"))
+	self.settings = self.persistence.settings
 	self.app = App(self.persistence)
 	self.user_interface_manager = UserInterfaceManager(self)
 

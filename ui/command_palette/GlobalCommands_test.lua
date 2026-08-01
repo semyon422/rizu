@@ -1,6 +1,4 @@
 local GlobalCommands = require("ui.command_palette.GlobalCommands")
-local Settings = require("rizu.config.schemas.Settings")
-
 local test = {}
 
 ---@param t testing.T

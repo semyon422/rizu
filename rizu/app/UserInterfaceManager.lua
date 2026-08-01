@@ -4,7 +4,7 @@ local table_util = require("table_util")
 local UserInterface = require("rizu.app.UserInterface")
 local DefaultUserInterface = require("ui.UserInterface")
 
-local Settings = require("rizu.config.schemas.Settings")
+local Settings = require("rizu.config.Settings")
 
 ---Discovers UI packages and activates the UI selected in settings.
 ---@class rizu.app.UserInterfaceManager
@@ -62,11 +62,11 @@ end
 
 ---@param name string
 function UserInterfaceManager:setUserInterface(name)
-	self.settings:setString(Settings.graphics.appearance.user_interface, name)
+	self.settings:setString(Settings.user_interface, name)
 end
 
 function UserInterfaceManager:loadSelected()
-	local name = self.settings:getString(Settings.graphics.appearance.user_interface)
+	local name = self.settings:getString(Settings.user_interface)
 	local ui_class = table_util.find(self.items, function(item)
 		return item.name == name
 	end) or self.default_user_interface

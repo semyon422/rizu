@@ -1,274 +1,126 @@
 local Config = require("rizu.config.Config")
-local Checkbox = require("rizu.config.kinds.Checkbox")
-local Choice = require("rizu.config.kinds.Choice")
-local Range = require("rizu.config.kinds.Range")
-local Textbox = require("rizu.config.kinds.Textbox")
-local ConfigManager = require("rizu.config.ConfigManager")
 local FakeFilesystem = require("fs.FakeFilesystem")
-local Settings = require("rizu.config.schemas.Settings")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
+---@return rizu.config.Config, fs.FakeFilesystem
+local function createConfig()
+	local fs = FakeFilesystem()
+	local config = Config(fs, "settings.json")
+	config:setDefaultNumber("volume", 0.5)
+	config:setDefaultChoice("interface", "new", {"old", "new"})
+	config:setDefaultBoolean("show_fps", false)
+	config:setDefaultString("name", "")
+	return config, fs
+end
+
 ---@param t testing.T
-function test.settings_schema_defaults_to_new_ui(t)
-	local config = Config(Settings)
-	t:eq(config:getString(Settings.graphics.appearance.user_interface), "new")
+function test.settings_defaults(t)
+	local config = Settings.createConfig(FakeFilesystem())
+	t:eq(config:getString(Settings.user_interface), "new")
+	t:eq(config:getBoolean(Settings.show_fps), false)
 end
 
-function test.automatic_discovery(t)
-	local schema = {
-		audio = {
-			levels = {
-				master = Range(0.5, 0, 1, 0.01),
-			}
-		},
-		graphics = {
-			modes = {
-				fullscreen = Checkbox(false),
-			}
-		}
-	}
+---@param t testing.T
+function test.typed_access(t)
+	local config = createConfig()
+	t:eq(config:getNumber("volume"), 0.5)
+	t:eq(config:getChoice("interface"), "new")
+	t:eq(config:getBoolean("show_fps"), false)
+	t:eq(config:getString("name"), "")
+	t:tdeq(config:getChoices("interface"), {"old", "new"})
 
-	local config = Config(schema)
-	t:eq(config.settings_map[schema.audio.levels.master], true)
-	t:eq(config.settings_map[schema.graphics.modes.fullscreen], true)
-	t:eq(config.setting_to_path[schema.audio.levels.master], "audio.levels.master")
-	t:eq(config.setting_to_path[schema.graphics.modes.fullscreen], "graphics.modes.fullscreen")
+	config:setNumber("volume", 0.8)
+	config:setChoice("interface", "old")
+	config:setBoolean("show_fps", true)
+	config:setString("name", "player")
+	t:eq(config:getNumber("volume"), 0.8)
+	t:eq(config:getChoice("interface"), "old")
+	t:eq(config:getBoolean("show_fps"), true)
+	t:eq(config:getString("name"), "player")
 end
 
-function test.immediate_settings(t)
-	local schema = {
-		audio = {
-			options = {
-				sound_enabled = Checkbox(false)
-			}
-		}
-	}
-	local config = Config(schema)
-	local sound_enabled = schema.audio.options.sound_enabled
-
-	t:eq(config:get(sound_enabled), false)
-
-	local event_fired = false
-	local updated_setting = nil
-	config.onChanged:add({
-		receive = function(self, setting)
-			event_fired = true
-			updated_setting = setting
-		end
-	})
-
-	config:set(sound_enabled, true)
-	t:eq(config:get(sound_enabled), true)
-	t:eq(event_fired, true)
-	t:eq(updated_setting, sound_enabled)
-
-	event_fired = false
-	config:set(sound_enabled, true)
-	t:eq(event_fired, false)
+---@param t testing.T
+function test.rejects_invalid_access(t)
+	local config = createConfig()
+	t:has_error(function() config:getNumber("missing") end)
+	t:has_error(function() config:getBoolean("volume") end)
+	t:has_error(function() config:setNumber("volume", "loud") end) ---@diagnostic disable-line
+	t:has_error(function() config:setChoice("interface", "missing") end)
+	t:has_error(function() config:setDefaultBoolean("show_fps", true) end)
 end
 
-function test.deferred_settings(t)
-	local schema = {
-		graphics = {
-			options = {
-				resolution = Choice("1920x1080", {"1920x1080", "1280x720"}):setDeferred(true)
-			}
-		}
-	}
-	local config = Config(schema)
-	local resolution = schema.graphics.options.resolution
+---@param t testing.T
+function test.subscriptions(t)
+	local config = createConfig()
+	local changes = {}
+	local unsubscribe = config:subscribe("show_fps", function(value, old_value, key)
+		changes[#changes + 1] = {value, old_value, key} ---@diagnostic disable-line
+	end)
 
-	t:eq(config:get(resolution), "1920x1080")
-
-	local event_fired = false
-	config.onChanged:add({
-		receive = function(self, setting)
-			event_fired = true
-		end
-	})
-
-	config:set(resolution, "1280x720")
-	t:eq(config:get(resolution), "1280x720")
-	t:eq(config.persistent_values[resolution], nil)
-	t:eq(event_fired, false)
-
-	config:commit()
-	t:eq(config:get(resolution), "1280x720")
-	t:eq(config.persistent_values[resolution], "1280x720")
-	t:eq(event_fired, true)
+	config:setBoolean("show_fps", true)
+	config:setBoolean("show_fps", true)
+	unsubscribe()
+	config:setBoolean("show_fps", false)
+	t:tdeq(changes, {{true, false, "show_fps"}})
 end
 
-function test.discard_deferred(t)
-	local schema = {
-		graphics = {
-			options = {
-				resolution = Choice("1920x1080", {"1920x1080", "1280x720"}):setDeferred(true)
-			}
-		}
-	}
-	local config = Config(schema)
-	local resolution = schema.graphics.options.resolution
+---@param t testing.T
+function test.typed_subscriptions(t)
+	local config = createConfig()
+	local number_value ---@type number?
+	local choice_value ---@type string?
+	local boolean_value ---@type boolean?
+	local string_value ---@type string?
+	config:subscribeNumber("volume", function(value) number_value = value end)
+	config:subscribeChoice("interface", function(value) choice_value = value end)
+	config:subscribeBoolean("show_fps", function(value) boolean_value = value end)
+	config:subscribeString("name", function(value) string_value = value end)
 
-	config:set(resolution, "1280x720")
-	t:eq(config:get(resolution), "1280x720")
-
-	config:discard()
-	t:eq(config:get(resolution), "1920x1080")
+	config:setNumber("volume", 0.7)
+	config:setChoice("interface", "old")
+	config:setBoolean("show_fps", true)
+	config:setString("name", "player")
+	t:eq(number_value, 0.7)
+	t:eq(choice_value, "old")
+	t:eq(boolean_value, true)
+	t:eq(string_value, "player")
+	t:has_error(function() config:subscribeBoolean("volume", function() end) end)
 end
 
-function test.serialization_and_deserialization(t)
-	local schema = {
-		audio = {
-			volume = {
-				master = Range(0.5, 0, 1, 0.1),
-			}
-		},
-		gameplay = {
-			speed = {
-				scroll = Range(5.0, 1, 10, 0.5),
-			}
-		}
-	}
-	local config = Config(schema)
-	config:set(schema.audio.volume.master, 0.8)
-	config:set(schema.gameplay.speed.scroll, 4.5)
-
-	local serialized = config:serialize()
-	t:eq(type(serialized), "string")
-	t:eq(serialized, [[{
-	"audio.volume.master": 0.80000000000000004,
-	"gameplay.speed.scroll": 4.5
-}
-]])
-
-	-- Deserialize into a new config
-	local config2 = Config(schema)
-	local success = config2:deserialize(serialized)
-	t:eq(success, true)
-	t:eq(config2:get(schema.audio.volume.master), 0.8)
-	t:eq(config2:get(schema.gameplay.speed.scroll), 4.5)
+---@param t testing.T
+function test.subscribe_all(t)
+	local config = createConfig()
+	local changed_key ---@type string?
+	config:subscribeAll(function(_, _, key) changed_key = key end)
+	config:setNumber("volume", 0.7)
+	t:eq(changed_key, "volume")
 end
 
-function test.config_manager(t)
-	local schema = {
-		audio = {
-			volume = {
-				master = Range(0.5, 0, 1, 0.1),
-			}
-		}
-	}
-	local config = Config(schema)
-	config:set(schema.audio.volume.master, 0.5)
+---@param t testing.T
+function test.persistence(t)
+	local config, fs = createConfig()
+	config:setNumber("volume", 0.8)
+	config:setBoolean("show_fps", true)
+	t:eq(config:save(), true)
 
-	local temp_filepath = "tmp_config_test.json"
-	local manager = ConfigManager(FakeFilesystem())
-	local save_ok = manager:save(temp_filepath, config)
-	t:eq(save_ok, true)
-
-	local config2 = Config(schema)
-	local load_ok = manager:load(temp_filepath, config2)
-	t:eq(load_ok, true)
-	t:eq(config2:get(schema.audio.volume.master), 0.5)
-
-	local registered = manager:register("test", schema, temp_filepath)
-	registered:set(schema.audio.volume.master, 0.8)
-	manager:saveById("test")
-	
-	local registered2 = manager:register("test2", schema, temp_filepath)
-	manager:loadById("test2")
-	t:eq(registered2:get(schema.audio.volume.master), 0.8)
-
-	manager.fs:remove(temp_filepath)
+	local loaded = Config(fs, "settings.json")
+	loaded:setDefaultNumber("volume", 0.5)
+	loaded:setDefaultChoice("interface", "new", {"old", "new"})
+	loaded:setDefaultBoolean("show_fps", false)
+	loaded:setDefaultString("name", "")
+	t:eq(loaded:load(), true)
+	t:eq(loaded:getNumber("volume"), 0.8)
+	t:eq(loaded:getBoolean("show_fps"), true)
+	t:eq(loaded:getChoice("interface"), "new")
 end
 
-function test.type_validation(t)
-	local schema = {
-		audio = {
-			volume = {
-				master = Range(0.5, 0, 1, 0.1),
-			}
-		},
-		graphics = {
-			mode = {
-				fullscreen = Checkbox(false),
-			}
-		},
-		misc = {
-			user = {
-				username = Textbox(""),
-			},
-			style = {
-				theme = Choice("New", {"Old", "New"}),
-			}
-		}
-	}
-	local config = Config(schema)
-
-	-- Valid calls
-	config:set(schema.audio.volume.master, 0.7)
-	config:set(schema.graphics.mode.fullscreen, true)
-	config:set(schema.misc.user.username, "Antigravity")
-	config:set(schema.misc.style.theme, "New")
-
-	t:eq(config:getNumber(schema.audio.volume.master), 0.7)
-	t:eq(config:getBoolean(schema.graphics.mode.fullscreen), true)
-	t:eq(config:getString(schema.misc.user.username), "Antigravity")
-	t:eq(config:getString(schema.misc.style.theme), "New")
-
-	-- Invalid getNumber (only accepts ranges)
-	t:has_error(function()
-		config:getNumber(schema.graphics.mode.fullscreen)
-	end)
-	t:has_error(function()
-		config:getNumber(schema.misc.user.username)
-	end)
-
-	-- Invalid getBoolean (only accepts checkboxes)
-	t:has_error(function()
-		config:getBoolean(schema.audio.volume.master)
-	end)
-	t:has_error(function()
-		config:getBoolean(schema.misc.style.theme)
-	end)
-
-	-- Invalid getString (only accepts textboxes and choices)
-	t:has_error(function()
-		config:getString(schema.audio.volume.master)
-	end)
-	t:has_error(function()
-		config:getString(schema.graphics.mode.fullscreen)
-	end)
-
-	-- Valid setters
-	config:setNumber(schema.audio.volume.master, 0.9)
-	config:setBoolean(schema.graphics.mode.fullscreen, false)
-	config:setString(schema.misc.user.username, "Foo")
-
-	t:eq(config:getNumber(schema.audio.volume.master), 0.9)
-	t:eq(config:getBoolean(schema.graphics.mode.fullscreen), false)
-	t:eq(config:getString(schema.misc.user.username), "Foo")
-
-	-- Invalid setters
-	t:has_error(function()
-		config:setNumber(schema.audio.volume.master, "0.9") -- Wrong type
-	end)
-	t:has_error(function()
-		config:setNumber(schema.graphics.mode.fullscreen, 1) -- Wrong setting
-	end)
-
-	t:has_error(function()
-		config:setBoolean(schema.graphics.mode.fullscreen, "false") -- Wrong type
-	end)
-	t:has_error(function()
-		config:setBoolean(schema.audio.volume.master, true) -- Wrong setting
-	end)
-
-	t:has_error(function()
-		config:setString(schema.misc.user.username, 123) -- Wrong type
-	end)
-	t:has_error(function()
-		config:setString(schema.audio.volume.master, "hello") -- Wrong setting
-	end)
+---@param t testing.T
+function test.deserialize_ignores_unknown_keys(t)
+	local config = createConfig()
+	t:eq(config:deserialize([[{"unknown": 1, "show_fps": true}]]), true)
+	t:eq(config:getBoolean("show_fps"), true)
 end
+
 return test

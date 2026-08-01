@@ -5,8 +5,7 @@ local ConfigModel = require("sphere.persistence.ConfigModel")
 local FileFinder = require("sphere.persistence.FileFinder")
 local DifficultyModel = require("chart.difficulty.DifficultyModel")
 local LoveTimer = require("time.LoveTimer")
-local ConfigManager = require("rizu.config.ConfigManager")
-local Settings = require("rizu.config.schemas.Settings")
+local Settings = require("rizu.config.Settings")
 
 local dirs = require("sphere.persistence.dirs")
 
@@ -24,14 +23,13 @@ function Persistence:new()
 	)
 	self.configModel = ConfigModel()
 	self.fileFinder = FileFinder()
-	self.configManager = ConfigManager(LoveFilesystem())
-	self.configManager:register("settings", Settings, "userdata/settings.json")
+	self.settings = Settings.createConfig(LoveFilesystem())
 end
 
 function Persistence:load()
 	dirs.create()
 
-	self.configManager:loadById("settings")
+	self.settings:load()
 
 	local configModel = self.configModel
 	configModel:open("ai", true)
@@ -64,7 +62,7 @@ end
 
 function Persistence:unload()
 	self.configModel:write()
-	self.configManager:saveAll()
+	self.settings:save()
 end
 
 return Persistence
