@@ -52,6 +52,7 @@ function UserInterface:new(game, mount_path)
 	RizuUserInterface.new(self, game, mount_path, ScreenManager())
 	self.command_registry = Registry()
 	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
+	self.config:load()
 end
 
 function UserInterface:load()
@@ -106,6 +107,11 @@ end
 function UserInterface:draw()
 	love.graphics.clear(Colors.background)
 	RizuUserInterface.draw(self)
+end
+
+function UserInterface:unload()
+	self.config:save()
+	RizuUserInterface.unload(self)
 end
 
 ---@private

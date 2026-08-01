@@ -6,7 +6,6 @@ local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.Config")
-local Settings = require("ui.Settings")
 
 ---@class ui.ModalManager : gui.View
 ---@operator call: ui.ModalManager
@@ -38,7 +37,7 @@ function ModalManager:new(ui)
 	self.bg = self:add(OverlayBackground(function()
 		self:hideModal()
 	end))
-	self.config = self:addModal(Config(ui.game.configModel.configs.settings, Settings))
+	self.config = self:addModal(Config(ui.config))
 	self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
 		self:hideModal(self.ai_chat)
 	end))
@@ -99,6 +98,7 @@ function ModalManager:modalClosed(view)
 	self.active_view = nil
 	local inputs = self.screen and self.screen.inputs
 	if inputs then
+		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
 		inputs:popFocusScope(view)
 	end
 	self.bg:hide()

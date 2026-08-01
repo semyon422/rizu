@@ -26,6 +26,27 @@ function test.activation_requests_keyboard_focus(t)
 end
 
 ---@param t testing.T
+function test.commits_changes_on_focus_lost(t)
+	local committed ---@type string?
+	local textbox = {
+		model = {
+			getText = function() return "changed" end,
+		},
+		committed_text = "initial",
+		on_change = function(text) committed = text end,
+		notifyChange = Textbox.notifyChange,
+	}
+
+	Textbox.onFocusLost(textbox, {})
+	t:eq(committed, "changed")
+	t:eq(textbox.committed_text, "changed")
+
+	committed = nil
+	Textbox.onFocusLost(textbox, {})
+	t:eq(committed, nil)
+end
+
+---@param t testing.T
 function test.escape_clears_keyboard_focus(t)
 	local textbox = View()
 	textbox.onKeyDown = Textbox.onKeyDown

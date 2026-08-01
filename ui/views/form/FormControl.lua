@@ -3,7 +3,32 @@ local View = require("gui.View")
 ---Base class for controls eligible for Form keyboard navigation.
 ---@class ui.views.form.FormControl : gui.View
 ---@operator call: ui.views.form.FormControl
+---@field setting_name string?
+---@field setting_keywords string[]
+---@field tip string?
+---@field setting_key string?
 local FormControl = View + {}
+
+function FormControl:new()
+	View.new(self)
+	self.setting_name = nil
+	self.setting_keywords = {}
+	self.tip = nil
+	self.setting_key = nil
+end
+
+---@param name string
+---@param keywords string[]?
+---@param tip string?
+---@param key string?
+---@return ui.views.form.FormControl
+function FormControl:setSettingMetadata(name, keywords, tip, key)
+	self.setting_name = name
+	self.setting_keywords = keywords or {}
+	self.tip = tip
+	self.setting_key = key
+	return self
+end
 
 ---@return boolean selectable
 function FormControl:canBeSelected()

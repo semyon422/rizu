@@ -21,6 +21,7 @@ local TextboxModel = require("ui.helpers.TextboxModel")
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
 ---@field cap_right gui.Sprite
+---@field private committed_text string
 local Textbox = FormControl + {}
 
 local HEIGHT = 65
@@ -33,6 +34,7 @@ function Textbox:new(params)
 	FormControl.new(self)
 	self.model = TextboxModel()
 	self.model:setText(params.text or "")
+	self.committed_text = self.model:getText()
 	self.font = Resources.getFont("medium", 16)
 	self.label_text = params.label
 	self.placeholder = params.placeholder or ""
@@ -60,13 +62,25 @@ function Textbox:setText(text, notify)
 	self.model:setText(text)
 	if notify then
 		self:notifyChange()
+	else
+		self.committed_text = text
 	end
 end
 
 function Textbox:notifyChange()
-	if self.on_change then
-		self.on_change(self.model:getText())
+	local text = self.model:getText()
+	if text == self.committed_text then
+		return
 	end
+	self.committed_text = text
+	if self.on_change then
+		self.on_change(text)
+	end
+end
+
+---@param e gui.FocusLostEvent
+function Textbox:onFocusLost(e)
+	self:notifyChange()
 end
 
 ---@param modifiers gui.UIEvent
@@ -97,9 +111,7 @@ function Textbox:onTextInput(e)
 	if not self.focused then
 		return
 	end
-	if self.model:insert(e.text or "") then
-		self:notifyChange()
-	end
+	self.model:insert(e.text or "")
 	return true
 end
 
@@ -120,11 +132,10 @@ function Textbox:onKeyDown(e)
 		return true
 	end
 
-	local changed = false
 	if e.key == "backspace" then
-		changed = self.model:backspace()
+		self.model:backspace()
 	elseif e.key == "delete" then
-		changed = self.model:delete()
+		self.model:delete()
 	elseif e.key == "left" then
 		self.model:moveLeft()
 	elseif e.key == "right" then
@@ -135,9 +146,6 @@ function Textbox:onKeyDown(e)
 		self.model:moveToEnd()
 	else
 		return
-	end
-	if changed then
-		self:notifyChange()
 	end
 	return true
 end

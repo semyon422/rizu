@@ -1,23 +1,31 @@
-local Checkbox = require("ui.views.form.Checkbox")
 local Colors = require("ui.Colors")
-local Dropdown = require("ui.views.form.Dropdown")
+local FlowContainer = require("gui.layout.FlowContainer")
 local Form = require("ui.views.form.Form")
+local Image = require("ui.views.Image")
+local Label = require("ui.views.Label")
 local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
-local Slider = require("ui.views.form.Slider")
-local Textbox = require("ui.views.form.Textbox")
-local Label = require("ui.views.Label")
+local InterfaceSection = require("ui.modals.config.sections.Interface")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
+---@field ui_config ui.UiConfig
+---@field sections ui.modals.config.Section[]
+---@field form ui.views.form.Form
 ---@field scroll_view gui.ScrollView
+---@field private settings_invalidated boolean
 local Config = ModalView + {}
 
-function Config:new()
+---@param ui_config ui.UiConfig
+function Config:new(ui_config)
 	ModalView.new(self)
+	self.ui_config = ui_config
+	self.sections = self:createSections()
+	self.settings_invalidated = false
+
 	self:setSize(890, 600)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
@@ -25,38 +33,8 @@ function Config:new()
 	self:setOpacity(0)
 	self:setVisible(false)
 
-	local content = Form({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
-	content:add(Label({font_name = "bold", font_size = 32, text = "Form controls test"}))
-	content:add(Checkbox({text = "Checkbox", checked = false}):setSize(780, 30))
-	content:add(Slider({label = "Stepped slider", value = 5, min = 0, max = 10, step = 1, width = 780}))
-	content:add(Slider({label = "Continuous slider", value = 0.5, min = 0, max = 1, width = 780}))
-	content:add(Textbox({label = "Textbox", text = "Edit me", width = 780}))
-	content:add(Textbox({label = "Empty textbox", placeholder = "Type something", width = 780}))
-
-	---@type string[]
-	local dropdown_options = {}
-	for index = 1, 100 do
-		dropdown_options[index] = ("Dropdown item %03d"):format(index)
-	end
-	content:add(Dropdown({
-		label = "Dropdown with 100 items",
-		options = dropdown_options,
-		value = dropdown_options[50],
-		width = 780,
-	}))
-
-	content:add(Checkbox({text = "Checkbox after dropdown", checked = true}):setSize(780, 30))
-	content:add(Dropdown({
-		label = "Second dropdown",
-		options = {"Alpha", "Beta", "Gamma", "Delta"},
-		value = "Beta",
-		width = 780,
-	}))
-	content:add(Slider({label = "Slider after dropdown", value = 25, min = 0, max = 100, step = 5, width = 780}))
-	content:add(Textbox({label = "Textbox after dropdown", text = "Last control", width = 780}))
-	content:fitContent()
-
-	self.scroll_view = ScrollView(content)
+	self.form = Form({direction = "column", gap = 18, padding = {20, 16, 20, 16}})
+	self.scroll_view = ScrollView(self.form)
 	self.scroll_view:anchorFixed(35, 40, 820, 520)
 
 	local sprites = Resources.sprites
@@ -73,16 +51,63 @@ function Config:new()
 	})
 
 	self:add(self.scroll_view)
+	for _, section in ipairs(self.sections) do
+		section:setInvalidator(function()
+			self:invalidateSettings()
+		end)
+	end
+	self:rebuildSettings()
+end
+
+---@return ui.modals.config.Section[] sections
+function Config:createSections()
+	return {
+		InterfaceSection(self.ui_config),
+	}
+end
+
+function Config:invalidateSettings()
+	self.settings_invalidated = true
+end
+
+---@param section ui.modals.config.Section
+---@return gui.layout.FlowContainer header
+local function createSectionHeader(section)
+	local header = FlowContainer({direction = "row", gap = 12, align = 0.5})
+	header:add(Image(section.icon, "fit", Colors.text):setSize(28, 28))
+	header:add(Label({font_name = "bold", font_size = 32, text = section.name}))
+	header:fitContent()
+	return header
+end
+
+function Config:rebuildSettings()
+	self.settings_invalidated = false
+	self.form:closeActiveDropdown()
+	self.form:clearSelection()
+	self.form.rows:clear()
+
+	for _, section in ipairs(self.sections) do
+		self.form:add(createSectionHeader(section))
+		for _, control in ipairs(section:build()) do
+			self.form:add(control)
+		end
+	end
+	self.form:fitContent()
+end
+
+---@param dt number
+function Config:update(dt)
+	if self.settings_invalidated then
+		self:rebuildSettings()
+	end
 end
 
 function Config:show()
 	self:setVisible(true)
 	self:fadeIn(0.3, "OutCubic")
-	self:scaleTo(1, 1, 0.4, "OutQuart")
 end
 
 function Config:hide()
-	self:scaleTo(0.9, 0.9, 0.24, "InQuart")
 	self:transformTo("opacity", 0, 0.2, "InCubic", function()
 		self:setVisible(false)
 	end)
