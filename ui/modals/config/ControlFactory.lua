@@ -1,5 +1,6 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Dropdown = require("ui.views.form.Dropdown")
+local LegacyBinding = require("ui.modals.config.LegacyBinding")
 local Slider = require("ui.views.form.Slider")
 local Textbox = require("ui.views.form.Textbox")
 
@@ -13,6 +14,15 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field max number
 ---@field step number?
 ---@field width number?
+---@field value_format (fun(value: number): string)?
+---@field from_storage (fun(value: number): number)?
+---@field to_storage (fun(value: number): number)?
+---@field on_change (fun(value: number))?
+
+---@class ui.modals.config.ChoiceControl : ui.modals.config.ControlMetadata
+---@field options any[]?
+---@field width number?
+---@field on_change (fun(value: any))?
 
 local ControlFactory = {}
 
@@ -52,6 +62,7 @@ function ControlFactory.number(config, key, metadata)
 		max = metadata.max,
 		step = metadata.step,
 		width = metadata.width,
+		value_format = metadata.value_format,
 		on_change = function(value)
 			config:setNumber(key, value)
 		end,
@@ -90,6 +101,60 @@ function ControlFactory.string(config, key, metadata)
 		end,
 	})
 	return configure(control, metadata, key) --[[@as ui.views.form.Textbox]]
+end
+
+---@param settings table
+---@param path string[]
+---@param metadata ui.modals.config.NumberControl
+---@return ui.views.form.Slider
+function ControlFactory.legacyNumber(settings, path, metadata)
+	local parent, key = LegacyBinding.resolve(settings, path)
+	local setting_key = LegacyBinding.key(path)
+	local value = assert(parent[key], "unknown legacy setting: " .. setting_key)
+	assert(type(value) == "number", "legacy setting must be a number: " .. setting_key)
+	if metadata.from_storage then
+		value = metadata.from_storage(value)
+	end
+	local control = Slider({
+		label = metadata.name,
+		value = value,
+		min = metadata.min,
+		max = metadata.max,
+		step = metadata.step,
+		width = metadata.width,
+		value_format = metadata.value_format,
+		on_change = function(new_value)
+			parent[key] = metadata.to_storage and metadata.to_storage(new_value) or new_value
+			if metadata.on_change then
+				metadata.on_change(new_value)
+			end
+		end,
+	})
+	return configure(control, metadata, setting_key) --[[@as ui.views.form.Slider]]
+end
+
+---@param settings table
+---@param path string[]
+---@param metadata ui.modals.config.ChoiceControl
+---@return ui.views.form.Dropdown
+function ControlFactory.legacyChoice(settings, path, metadata)
+	local parent, key = LegacyBinding.resolve(settings, path)
+	local setting_key = LegacyBinding.key(path)
+	local value = parent[key]
+	assert(value ~= nil, "unknown legacy setting: " .. setting_key)
+	local control = Dropdown({
+		label = metadata.name,
+		options = assert(metadata.options, "legacy choice options are required"),
+		value = value,
+		width = metadata.width or 780,
+		on_change = function(new_value)
+			parent[key] = new_value
+			if metadata.on_change then
+				metadata.on_change(new_value)
+			end
+		end,
+	})
+	return configure(control, metadata, setting_key) --[[@as ui.views.form.Dropdown]]
 end
 
 return ControlFactory

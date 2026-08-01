@@ -10,6 +10,7 @@ local Resources = require("ui.Resources")
 ---@field max number?
 ---@field step number?
 ---@field width number?
+---@field value_format? fun(value: number): string
 ---@field on_change fun(value: number)?
 
 ---@class ui.views.form.Slider : ui.views.form.FormControl
@@ -21,6 +22,7 @@ local Resources = require("ui.Resources")
 ---@field label_text string
 ---@field font love.Font
 ---@field on_change fun(value: number)?
+---@field value_format? fun(value: number): string
 ---@field line_left gui.Sprite
 ---@field line_middle gui.Sprite
 ---@field line_right gui.Sprite
@@ -44,6 +46,7 @@ function Slider:new(params)
 	self.label_text = params.label
 	self.font = Resources.getFont("medium", 16)
 	self.on_change = params.on_change
+	self.value_format = params.value_format
 	self.line_left = Resources.sprites.slider_line_left
 	self.line_middle = Resources.sprites.slider_line_middle
 	self.line_right = Resources.sprites.slider_line_right
@@ -141,7 +144,11 @@ function Slider:draw()
 	Painter.snapToPixel()
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.font)
-	love.graphics.print(self.label_text, 0, 0)
+	local label = self.label_text
+	if self.value_format then
+		label = label .. "  " .. self.value_format(self.value)
+	end
+	love.graphics.print(label, 0, 0)
 
 	Painter.setColorTable(Colors.background)
 	drawLine(self, self.width)

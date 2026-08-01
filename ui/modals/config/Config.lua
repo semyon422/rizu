@@ -8,11 +8,13 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
+local AudioSection = require("ui.modals.config.sections.Audio")
 local InterfaceSection = require("ui.modals.config.sections.Interface")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
 ---@field ui_config ui.UiConfig
+---@field legacy_settings sphere.SettingsConfig
 ---@field sections ui.modals.config.Section[]
 ---@field form ui.views.form.Form
 ---@field scroll_view gui.ScrollView
@@ -20,9 +22,11 @@ local InterfaceSection = require("ui.modals.config.sections.Interface")
 local Config = ModalView + {}
 
 ---@param ui_config ui.UiConfig
-function Config:new(ui_config)
+---@param legacy_settings sphere.SettingsConfig
+function Config:new(ui_config, legacy_settings)
 	ModalView.new(self)
 	self.ui_config = ui_config
+	self.legacy_settings = legacy_settings
 	self.sections = self:createSections()
 	self.settings_invalidated = false
 
@@ -62,6 +66,7 @@ end
 ---@return ui.modals.config.Section[] sections
 function Config:createSections()
 	return {
+		AudioSection(self.legacy_settings),
 		InterfaceSection(self.ui_config),
 	}
 end
@@ -74,7 +79,7 @@ end
 ---@return gui.layout.FlowContainer header
 local function createSectionHeader(section)
 	local header = FlowContainer({direction = "row", gap = 12, align = 0.5})
-	header:add(Image(section.icon, "fit", Colors.text):setSize(28, 28))
+	header:add(Image(section.icon, nil, Colors.text))
 	header:add(Label({font_name = "bold", font_size = 32, text = section.name}))
 	header:fitContent()
 	return header

@@ -7,7 +7,19 @@
 ---@field locations_in_collections boolean
 ---@field chart_preview boolean
 
+---@class sphere.SettingsAudioVolumeConfig
+---@field master number
+---@field music number
+---@field keysounds number
+---@field metronome number
+---@field keysounds_format {[string]: number}
+
+---@class sphere.SettingsAudioConfig
+---@field volumeType "linear"|"logarithmic"
+---@field volume sphere.SettingsAudioVolumeConfig
+
 ---@class sphere.SettingsConfig
+---@field audio sphere.SettingsAudioConfig
 ---@field select sphere.SettingsSelectConfig
 local settings = {
 	audio = {

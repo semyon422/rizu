@@ -10,7 +10,7 @@ local Interface = Section + {}
 function Interface:new(ui_config)
 	Section.new(self, {
 		name = "Interface",
-		icon = Resources.sprites.icon_gear,
+		icon = Resources.sprites.icon_image,
 		build = function()
 			return {
 				ControlFactory.boolean(ui_config, ui_config.keys.show_fps, {
