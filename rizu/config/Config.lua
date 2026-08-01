@@ -64,7 +64,9 @@ end
 ---@param key string
 ---@param definition rizu.config.Definition
 function Config:setDefault(key, definition)
-	assert(not self.definitions[key], "default is already defined for " .. key)
+	if self.definitions[key] then
+		error("default is already defined for " .. key)
+	end
 	validate_default(key, definition)
 	self.definitions[key] = definition
 end
@@ -97,7 +99,11 @@ end
 ---@param key string
 ---@return rizu.config.Definition
 function Config:getDefinition(key)
-	return assert(self.definitions[key], "unknown config key: " .. tostring(key))
+	local definition = self.definitions[key]
+	if not definition then
+		error("unknown config key: " .. tostring(key))
+	end
+	return definition
 end
 
 ---@param key string
@@ -117,7 +123,9 @@ end
 ---@return rizu.config.Definition
 local function assert_kind(self, key, kind)
 	local definition = self:getDefinition(key)
-	assert(definition.kind == kind, ("config key %s is %s, not %s"):format(key, definition.kind, kind))
+	if definition.kind ~= kind then
+		error(("config key %s is %s, not %s"):format(key, definition.kind, kind))
+	end
 	return definition
 end
 
