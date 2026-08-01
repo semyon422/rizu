@@ -146,21 +146,10 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	else
 		self.batch:setColor(pc[1], pc[2], pc[3], 0.7)
 	end
+
 	self.batch:add(Resources.sprites.list_item_cap_left, 0, y)
 	self.batch:add(Resources.sprites.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
 	self.batch:add(Resources.sprites.list_item_cap_right, self.width - self.cap_right_width, y)
-
-	if is_selected then
-		local sy = y
-		self.batch:setColor(Colors.accent)
-		self.batch:add(Resources.sprites.list_item_stroke_cap_left, 0, sy)
-		self.batch:add(
-			Resources.sprites.list_item_stroke_cap_middle,
-			self.stroke_left_width, sy, 0,
-			self.stroke_mid_scale, 1
-		)
-		self.batch:add(Resources.sprites.list_item_stroke_cap_right, self.width - self.stroke_right_width, sy)
-	end
 
 	local diff_column = self.settings.select.diff_column
 	local diff = cv[diff_column] ---@type number?
@@ -171,6 +160,19 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	else
 		diff_color[4] = 0
 	end
+
+	if is_selected then
+		local sy = y
+		self.batch:setColor(diff_color)
+		self.batch:add(Resources.sprites.list_item_stroke_cap_left, 0, sy)
+		self.batch:add(
+			Resources.sprites.list_item_stroke_cap_middle,
+			self.stroke_left_width, sy, 0,
+			self.stroke_mid_scale, 1
+		)
+		self.batch:add(Resources.sprites.list_item_stroke_cap_right, self.width - self.stroke_right_width, sy)
+	end
+
 
 	self.batch:setColor(diff_color)
 	self.batch:add(Resources.sprites.chart_sets_difficulty, 0, y)
