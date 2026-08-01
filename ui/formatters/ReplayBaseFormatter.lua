@@ -18,6 +18,7 @@ end
 
 local bms_alias = {"Easy", "Normal", "Hard", "Very hard"}
 
+---@return string
 function ReplayBaseFormatter:getScoreSystem()
 	local timings = self.replay_base.timings
 	local subtimings = self.replay_base.subtimings
@@ -34,11 +35,11 @@ function ReplayBaseFormatter:getScoreSystem()
 		return "Rizu"
 	elseif timings.name == "osuod" then
 		---@cast subtimings -?
-		return ("osu!mania V%i OD%i"):format(subtimings.data, timings.data)
+		return ("osu! V%i OD%i"):format(subtimings.data, timings.data)
 	elseif timings.name == "etternaj" then
 		return ("Etterna J%i"):format(timings.data)
 	elseif timings.name == "quaver" then
-		return "Quaver Standard"
+		return "Quaver"
 	elseif timings.name == "bmsrank" then
 		return ("LR2 %s"):format(bms_alias[timings.data])
 	end

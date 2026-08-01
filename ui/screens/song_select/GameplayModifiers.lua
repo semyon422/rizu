@@ -35,10 +35,11 @@ function GameplayModifiers:bind(rbf)
 	end
 
 	self.batch:set(cs)
+	self:setSize(self.batch:getDimensions())
 end
 
 function GameplayModifiers:draw()
-	love.graphics.draw(self.batch, -self.batch:getWidth())
+	love.graphics.draw(self.batch)
 end
 
 return GameplayModifiers

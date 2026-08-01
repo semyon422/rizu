@@ -1,7 +1,6 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
-local Colors = require("ui.Colors")
 local Color = require("ui.Color")
 
 ---@class ui.screens.song_select.TimeRate : gui.View
@@ -24,7 +23,7 @@ function TimeRate:new(time_rate_model, modifier_select_model)
 	self.thumb_w, self.thumb_h = self.thumb:getDimensions()
 	self.font = Resources.getFont("bold", 24)
 
-	self:setSize(Resources.sprites.time_rate_bg:getDimensions())
+	self:setSize(110, self.circle_h)
 	self.orbit_r = math.floor(self.circle_w / 2) - 2
 	self.handles_mouse_input = true
 	self.text_color = {1, 1, 1, 1}
@@ -48,7 +47,7 @@ function TimeRate:updateText()
 end
 
 function TimeRate:draw()
-	local cx, cy = self.width - self.circle_w - 6, (self.height - self.circle_h) / 2
+	local cx, cy = self.width - self.circle_w, (self.height - self.circle_h) / 2
 
 	local model = self.time_rate_model
 	local value = model:get()
@@ -56,8 +55,6 @@ function TimeRate:draw()
 	local normalized = (value - range[1]) / (range[2] - range[1])
 	local angle = normalized * math.pi * 2
 
-	Painter.setColorTable(Colors.elements)
-	Resources.sprites.time_rate_bg:draw()
 	Painter.setColorRgb(1, 1, 1)
 	self.circle:draw(cx, cy)
 	self.thumb:draw(
@@ -72,10 +69,9 @@ function TimeRate:draw()
 
 	love.graphics.setFont(self.font)
 	Painter.setColorTable(self.text_color)
-	local text_x = (cx - self.font:getWidth(self.text)) / 2
 	local text_y = (self.height - self.font:getHeight()) / 2
 	Painter.snapToPixel()
-	love.graphics.print(self.text, text_x, text_y)
+	love.graphics.print(self.text, 0, text_y)
 end
 
 return TimeRate

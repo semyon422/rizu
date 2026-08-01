@@ -13,6 +13,7 @@ local DifficultyPanel = require("ui.screens.song_select.DifficultyPanel")
 local GameplayModifiers = require("ui.screens.song_select.GameplayModifiers")
 local TimeRate = require("ui.screens.song_select.TimeRate")
 local FooterButton = require("ui.screens.song_select.FooterButton")
+local FooterCell = require("ui.screens.song_select.FooterCell")
 local PlayerInfo = require("ui.views.PlayerInfo")
 local SessionInfo = require("ui.views.SessionInfo")
 local Label = require("ui.views.Label")
@@ -108,6 +109,12 @@ function SongSelect:new(ui)
 		Colors.text,
 		Resources.sprites.icon_download
 	)
+
+	self.footer_right = FlowContainer({
+		direction = "row",
+		align = 1,
+		gap = 10,
+	})
 
 	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
 	self.session_info = SessionInfo()
@@ -241,7 +248,7 @@ function SongSelect:createRightColumn()
 end
 
 function SongSelect:createHeader()
-	local header = Rectangle(Colors.panel)
+	local header = View()
 	header:add(Label({
 		font_name = "regular",
 		font_size = 24,
@@ -254,9 +261,7 @@ end
 function SongSelect:createFooter()
 	local footer = View()
 
-	footer:add(Rectangle(Colors.panel)):anchorFill(0, 0, 0, 0)
-
-	local left = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10}))
+	local left = footer:add(FlowContainer({direction = "row", align = 1, gap = 10}))
 	left:add(self.back_button)
 	left:add(self.mods_button)
 	left:add(self.skins_button)
@@ -266,11 +271,12 @@ function SongSelect:createFooter()
 	left:fitContent()
 	left:setAlignment(0, 1)
 
-	local right = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10}))
-	right:add(self.time_rate)
-	right:add(self.play_button)
-	right:fitContent()
-	right:setAlignment(1, 1)
+	footer:add(self.footer_right)
+	self.gameplay_modifiers_cell = self.footer_right:add(FooterCell(self.gameplay_modifiers))
+	self.time_rate_cell = self.footer_right:add(FooterCell(self.time_rate))
+	self.footer_right:add(self.play_button)
+	self.footer_right:fitContent()
+	self.footer_right:setAlignment(1, 1)
 
 	return footer
 end
@@ -290,6 +296,11 @@ function SongSelect:updateInfo()
 	self.score_list:reload()
 	self.chart_grid:reloadItems()
 	self.gameplay_modifiers:bind(self.replay_base_formatter)
+
+	-- TODO: Make Right panel container as a separate view
+	self.gameplay_modifiers_cell:fitContent()
+	self.time_rate_cell:fitContent()
+	self.footer_right:fitContent()
 end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
