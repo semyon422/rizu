@@ -1,6 +1,5 @@
 local View = require("gui.View")
 local loop = require("rizu.loop.Loop")
-local Settings = require("rizu.config.Settings")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -15,7 +14,6 @@ local BASELINE_ALPHA = 0.05
 
 ---@class ui.views.FpsView : gui.View
 ---@operator call: ui.views.FpsView
----@field game sphere.GameController
 ---@field font love.Font
 ---@field fps integer
 ---@field frame_time_baseline number
@@ -23,17 +21,16 @@ local BASELINE_ALPHA = 0.05
 ---@field private unsubscribe_show_fps function
 local FpsView = View + {}
 
----@param game sphere.GameController
-function FpsView:new(game)
+---@param ui_config ui.UiConfig
+function FpsView:new(ui_config)
 	View.new(self)
-	self.game = game
 	self.font = Resources.getFont("regular", 20)
 	self.fps = 0
 	self.frame_time_baseline = 0
 	self.hitch_highlight_remaining = 0
 	self:setSize(WIDTH, HEIGHT)
-	self:setVisible(game.settings:getBoolean(Settings.show_fps))
-	self.unsubscribe_show_fps = game.settings:subscribeBoolean(Settings.show_fps, function(value)
+	self:setVisible(ui_config:getBoolean("show_fps"))
+	self.unsubscribe_show_fps = ui_config:subscribeBoolean("show_fps", function(value)
 		self:setVisible(value)
 	end)
 end

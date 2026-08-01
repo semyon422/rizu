@@ -15,6 +15,8 @@ local ScreenManager = require("ui.ScreenManager")
 local Overlay = require("ui.Overlay")
 local Registry = require("ui.command_palette.Registry")
 local Colors = require("ui.Colors")
+local LoveFilesystem = require("fs.LoveFilesystem")
+local UiConfig = require("ui.UiConfig")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
 -- scales to fit the actual window height.
@@ -49,6 +51,7 @@ UserInterface.display_name = "Default User Interface 2026"
 function UserInterface:new(game, mount_path)
 	RizuUserInterface.new(self, game, mount_path, ScreenManager())
 	self.command_registry = Registry()
+	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
 end
 
 function UserInterface:load()

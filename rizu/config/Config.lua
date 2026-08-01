@@ -14,7 +14,7 @@ local json = require("json")
 ---@field choices string[]?
 
 ---@class rizu.config.Config
----@operator call: rizu.config.Config
+---@overload fun(fs: fs.IFilesystem, path: string): rizu.config.Config
 ---@field fs fs.IFilesystem
 ---@field path string
 ---@field values {[string]: rizu.config.Value}

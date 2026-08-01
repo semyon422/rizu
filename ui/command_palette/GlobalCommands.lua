@@ -1,10 +1,8 @@
-local Settings = require("rizu.config.Settings")
-
 local M = {}
 
 -- Returns the list of globally accessible commands.
 ---@param game sphere.GameController
----@param ui ui.UserInterface?
+---@param ui ui.UserInterface
 ---@return ui.command_palette.Command[]
 function M.get(game, ui)
 	return {
@@ -24,9 +22,7 @@ function M.get(game, ui)
 			title = "AI: Open Chat",
 			description = "Opens the local AI agent chat",
 			callback = function()
-				if ui and ui.modal_manager then
-					ui.modal_manager:attachChat()
-				end
+				ui.modal_manager:attachChat()
 			end,
 		},
 		{
@@ -67,10 +63,8 @@ function M.get(game, ui)
 				}
 			},
 			callback = function(args)
-				if game.timeRateModel then
-					game.timeRateModel:set(args.rate)
-					game.modifierSelectModel:change()
-				end
+				game.timeRateModel:set(args.rate)
+				game.modifierSelectModel:change()
 			end
 		},
 		{
@@ -94,8 +88,8 @@ function M.get(game, ui)
 			title = "FPS: Toggle",
 			description = "Toggles the FPS overlay",
 			callback = function()
-				local show_fps = game.settings:getBoolean(Settings.show_fps)
-				game.settings:setBoolean(Settings.show_fps, not show_fps)
+				local show_fps = ui.config:getBoolean("show_fps")
+				ui.config:setBoolean("show_fps", not show_fps)
 			end
 		},
 		{
@@ -103,7 +97,7 @@ function M.get(game, ui)
 			title = "Editor: Open",
 			description = "Opens the editor screen",
 			callback = function()
-				if ui and ui.editor and game.chartSelector:chartExists() then
+				if game.chartSelector:chartExists() then
 					ui:setScreen(ui.editor)
 				end
 			end

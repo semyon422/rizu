@@ -11,7 +11,7 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 ## Core Components
 
 - `rizu.GameplaySession`: coordinates `RhythmEngine`, manual or automated players, and replay recording for one attempt.
-- `rizu.gameplay.GameplayInteractor`: bridges the gameplay session to the surrounding UI or controller layer and handles peripheral integrations such as notifications and presence updates.
+- `rizu.gameplay.GameplayInteractor`: bridges the gameplay session to the surrounding UI or controller layer and handles peripheral integrations such as presence updates.
 
 ## Architecture Decisions
 

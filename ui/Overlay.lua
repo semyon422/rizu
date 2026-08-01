@@ -12,7 +12,7 @@ local Overlay = Screen + {}
 ---@param ui ui.UserInterface
 function Overlay:new(ui)
 	Screen.new(self)
-	self.fps_view = self.root:add(FpsView(ui.game))
+	self.fps_view = self.root:add(FpsView(ui.config))
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
 	self.modal_manager = self.root:add(ModalManager(ui))
