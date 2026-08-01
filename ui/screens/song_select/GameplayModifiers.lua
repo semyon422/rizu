@@ -9,7 +9,7 @@ local GameplayModifiers = View + {}
 
 function GameplayModifiers:new()
 	View.new(self)
-	self.batch = love.graphics.newTextBatch(Resources.getFont("regular", 24))
+	self.batch = love.graphics.newTextBatch(Resources.getFont("bold", 16))
 	self:setSize(0, self.batch:getFont():getHeight())
 end
 

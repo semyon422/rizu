@@ -183,7 +183,8 @@ function SongSelect:createContent()
 
 	local body = self.container:add(TrackContainer({
 		direction = "row",
-		padding = {0, 20, 0, 20}
+		padding = {0, 20, 0, 20},
+		align = 0.5
 	}), "*")
 
 	body:add(View(), "*")
@@ -198,17 +199,18 @@ end
 
 function SongSelect:createLeftColumn()
 	local column = TrackContainer({
-		direction = "column"
+		direction = "column",
+		gap = 10
 	})
 	column:add(self.background_panel, 469)
-	column:add(View())
 	column:add(self.score_list, 400)
 	return column
 end
 
 function SongSelect:createRightColumn()
 	local column = TrackContainer({
-		direction = "column"
+		direction = "column",
+		gap = 10,
 	})
 
 	local heading = View()
@@ -228,21 +230,16 @@ function SongSelect:createRightColumn()
 	})):setAlignment(1, 0.5)
 
 	column:add(heading, 28)
-	column:add(View(), "*")
 	column:add(Rectangle(Colors.panel), 44)
-	column:add(View(), "*")
 	column:add(self.chart_sets, 562)
-	column:add(View(), "*")
 
 	local info = column:add(TrackContainer({
-		gap = 6,
+		gap = 10,
 		direction = "row",
 	}), 80)
 
 	info:add(self.difficulty_panel, 214) -- TODO: DifficultyPanel should be able to scale freely
 	info:add(self.info_panel, "*")
-
-	column:add(View(), "*")
 	column:add(self.chart_grid, 136)
 	return column
 end
