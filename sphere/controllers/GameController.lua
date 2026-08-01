@@ -33,7 +33,6 @@ local EditorController = require("rizu.editor.EditorController")
 
 local OffsetController = require("sphere.controllers.gameplay.OffsetController")
 
-local NotificationModel = require("sphere.ui.NotificationModel")
 local BackgroundModel = require("sphere.ui.BackgroundModel")
 local PreviewModel = require("rizu.preview.PreviewModel")
 
@@ -200,7 +199,6 @@ function GameController:new()
 	self.windowModel = self.app.windowModel
 
 	self.backgroundModel = BackgroundModel(self.network)
-	self.notificationModel = NotificationModel()
 	self.previewModel = PreviewModel(
 		self.persistence.configModel,
 		self.replayBase,
@@ -244,8 +242,7 @@ function GameController:new()
 		self.library,
 		self.computeContext,
 		self.offsetModel,
-		self.rhythm_engine,
-		self.notificationModel
+		self.rhythm_engine
 	)
 
 	self.resource_finder = ResourceFinder(self.fs)
@@ -428,7 +425,6 @@ function GameController:update(dt)
 	self.backgroundModel:update()
 	self.previewModel:update()
 	self.ui:update(dt)
-	self.notificationModel:update()
 end
 
 function GameController:recreateRhythmEngine()

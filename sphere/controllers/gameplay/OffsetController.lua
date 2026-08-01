@@ -10,19 +10,16 @@ local OffsetController = class()
 ---@param computeContext sea.ComputeContext
 ---@param offsetModel sphere.OffsetModel
 ---@param rhythm_engine rizu.RhythmEngine
----@param notificationModel sphere.NotificationModel
 function OffsetController:new(
 	library,
 	computeContext,
 	offsetModel,
-	rhythm_engine,
-	notificationModel
+	rhythm_engine
 )
 	self.library = library
 	self.computeContext = computeContext
 	self.offsetModel = offsetModel
 	self.rhythm_engine = rhythm_engine
-	self.notificationModel = notificationModel
 end
 
 function OffsetController:updateOffsets()
@@ -50,7 +47,6 @@ function OffsetController:increaseLocalOffset(delta)
 	chartmeta_user_data.local_offset = math_util.round((chartmeta_user_data.local_offset or 0) + delta, delta)
 	chartsRepo:updateChartmetaUserData(chartmeta_user_data)
 
-	self.notificationModel:notify("local offset: " .. chartmeta_user_data.local_offset * 1000 .. "ms")
 	self:updateOffsets()
 end
 
@@ -65,8 +61,6 @@ function OffsetController:resetLocalOffset()
 
 	chartmeta_user_data.local_offset = nil
 	chartsRepo:updateChartmetaUserDataFull(chartmeta_user_data)
-
-	self.notificationModel:notify("local offset reseted")
 
 	self:updateOffsets()
 end
