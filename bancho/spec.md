@@ -150,7 +150,7 @@ These collections store runtime/session objects and packet queues, not durable p
 
 ## Configuration
 
-Configuration is centered on `bancho.config.BanchoConfig` and local `bancho/config.lua` overrides.
+Configuration is centered on `bancho.config.BanchoConfig` and local `server-state/bancho_config.lua` overrides.
 
 Important config areas:
 

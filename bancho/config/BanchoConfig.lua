@@ -24,7 +24,7 @@ local function copyTable(src, dst)
 end
 
 --- Default configuration values.
---- Modified by `bancho/config.lua` at runtime.
+--- Modified by `server-state/bancho_config.lua` at runtime.
 ---@class bancho.config.BanchoConfig
 ---@field domain string Server domain (e.g. "rizu.su")
 ---@field bot_name string Bot player name

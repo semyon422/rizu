@@ -36,6 +36,12 @@ config:
 	else \
 		echo "server-state/app_config.lua already exists"; \
 	fi
+	@if [ ! -e server-state/bancho_config.lua ]; then \
+		cp bancho/config.example.lua server-state/bancho_config.lua; \
+		echo "Created server-state/bancho_config.lua"; \
+	else \
+		echo "server-state/bancho_config.lua already exists"; \
+	fi
 	@if [ ! -e server-state/nginx_config.lua ]; then \
 		cp nginx_config.example.lua server-state/nginx_config.lua; \
 		echo "Created server-state/nginx_config.lua"; \
@@ -59,6 +65,7 @@ nginx-conf: config
 
 preflight: nginx-conf
 	@test -f server-state/app_config.lua || { echo "missing server-state/app_config.lua; run make config" >&2; exit 1; }
+	@test -f server-state/bancho_config.lua || { echo "missing server-state/bancho_config.lua; run make config" >&2; exit 1; }
 	@test -f server-state/nginx.conf || { echo "missing server-state/nginx.conf; run make nginx-conf" >&2; exit 1; }
 	@test -f server-state/nginx_config.lua || { echo "missing server-state/nginx_config.lua; run make config" >&2; exit 1; }
 	@test -f bin/linux64/lib7z.so || { echo "missing bin/linux64/lib7z.so" >&2; exit 1; }

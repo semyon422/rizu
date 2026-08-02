@@ -52,6 +52,10 @@ typecheck
 lapis/*
 tree
 server-state/
+/releases/
+/public/
+/current
+/previous
 logs
 storages
 nginx.conf.compiled

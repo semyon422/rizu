@@ -1,7 +1,7 @@
 --- Example bancho server configuration.
 ---
---- Copy this file to `bancho/config.lua` and edit for your server.
---- `bancho/config.lua` is gitignored; this file is not.
+--- Copy this file to `server-state/bancho_config.lua` and edit for your server.
+--- `server-state/` is gitignored; this file is not.
 ---
 --- Only the fields you want to change need to be present.
 --- Missing fields fall back to defaults in `bancho/config/BanchoConfig.lua`.

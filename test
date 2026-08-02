@@ -6,4 +6,4 @@ rm -f luacov.stats.out
 cd "$(dirname "$0")"
 source ./aqua/env/luajit_setenv
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/usr/lib:$PWD/bin/linux64"
-luajit test_resty.lua $@
+luajit test_resty.lua "$@"

@@ -37,10 +37,10 @@ services:
         condition: service_healthy
     environment:
       RIZU_APP_DIR: "${RIZU_APP_DIR:-.}"
-      RIZU_SERVER_STATE_DIR: "${RIZU_SERVER_STATE_DIR:-server-state}"
+      RIZU_SERVER_STATE_DIR: server-state
     volumes:
       - "${RIZU_APP_DIR:-.}:/app"
-      - "${RIZU_SERVER_STATE_DIR:-./server-state}:/app/server-state"
+      - "${RIZU_SERVER_STATE_PATH:-./server-state}:/app/server-state"
     healthcheck:
       test:
         - CMD-SHELL

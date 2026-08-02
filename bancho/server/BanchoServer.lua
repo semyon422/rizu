@@ -70,7 +70,7 @@ local class = require("class")
 ---@field getReplay fun(self: bancho.server.IReplayRepo, score_id: integer): string?
 
 --- Server configuration.
---- Loaded from `bancho/config.lua` via `bancho.config.BanchoConfig`.
+--- Loaded from `server-state/bancho_config.lua` via `bancho.config.BanchoConfig`.
 --- See `bancho/config.example.lua` for all available options.
 ---@alias bancho.config bancho.config.BanchoConfig
 
@@ -97,7 +97,7 @@ local class = require("class")
 local BanchoServer = class()
 
 ---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
----@param overrides? table? Runtime overrides merged on top of bancho/config.lua
+---@param overrides? table? Runtime overrides merged on top of server-state/bancho_config.lua
 function BanchoServer:new(shared_memory, overrides)
 	-- Handle positional argument ambiguity: if first arg is a table without
 	-- the `get` method of SharedMemory, treat it as overrides.
@@ -106,8 +106,8 @@ function BanchoServer:new(shared_memory, overrides)
 		shared_memory = nil
 	end
 
-	-- Load production config (bancho/config.lua) which returns a BanchoConfig instance
-	local file_config = require("bancho.config")
+	-- Load production config, which returns a BanchoConfig instance.
+	local file_config = require("server-state.bancho_config")
 
 	-- Merge runtime overrides on top of file config
 	if overrides then

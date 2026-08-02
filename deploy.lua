@@ -12,9 +12,10 @@ local function usage()
 	print([[Usage:
   ./deploy.lua deploy <commit|release-directory>
   ./deploy.lua rollback [commit]
+  ./deploy.lua status
 
 Environment:
-  RIZU_DEPLOY_ROOT       Deployment root (default: deploy-data)
+  RIZU_DEPLOY_ROOT       Deployment root (default: repository root)
   RIZU_ARTIFACT_ROOT     Release artifact root (default: build/release)
   RIZU_COMPOSE_FILE      Compose file (default: compose.yaml)
   RIZU_COMPOSE           Compose command (default: docker compose)
@@ -30,7 +31,7 @@ local function positiveInteger(name, default)
 end
 
 local command = args[1]
-if command ~= "deploy" and command ~= "rollback" then
+if command ~= "deploy" and command ~= "rollback" and command ~= "status" then
 	usage()
 	os.exit(command == "help" or command == "--help" and 0 or 2)
 end
@@ -40,7 +41,7 @@ if command == "deploy" and not args[2] then
 end
 
 local deployment = Deployment(Shell(), {
-	root = os.getenv("RIZU_DEPLOY_ROOT") or "deploy-data",
+	root = os.getenv("RIZU_DEPLOY_ROOT") or ".",
 	artifact_root = os.getenv("RIZU_ARTIFACT_ROOT") or "build/release",
 	compose_file = os.getenv("RIZU_COMPOSE_FILE") or "compose.yaml",
 	compose_command = os.getenv("RIZU_COMPOSE") or "docker compose",
@@ -55,6 +56,8 @@ deployment.config.compose_file = deployment:absolute(deployment.config.compose_f
 
 if command == "deploy" then
 	deployment:deploy(args[2])
-else
+elseif command == "rollback" then
 	deployment:rollback(args[2])
+else
+	deployment:status()
 end

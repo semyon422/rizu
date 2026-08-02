@@ -53,6 +53,9 @@ function Deployment:absolute(path)
 		return path
 	end
 	local cwd = assert(io.popen("pwd -P")):read("*l")
+	if path == "." then
+		return cwd
+	end
 	return cwd .. "/" .. path
 end
 
@@ -97,7 +100,7 @@ function Deployment:prepareRoot()
 		quote(root .. "/server-state/temp"),
 		quote(root .. "/public/releases"),
 	}, " "))
-	for _, name in ipairs({"app_config.lua", "nginx.conf", "nginx_config.lua"}) do
+	for _, name in ipairs({"app_config.lua", "bancho_config.lua", "nginx.conf", "nginx_config.lua"}) do
 		self.shell:execute("test -f " .. quote(root .. "/server-state/" .. name))
 	end
 end
@@ -120,8 +123,9 @@ end
 ---@param path string
 ---@return string?
 function Deployment:readLink(path)
-	local output = self.shell:popen("readlink -f " .. quote(path))
-	return output and output:match("^%s*(.-)%s*$") or nil
+	local output = self.shell:popen("test -L " .. quote(path) .. " && readlink -f " .. quote(path))
+	local target = output and output:match("^%s*(.-)%s*$") or nil
+	return target ~= "" and target or nil
 end
 
 ---@param app_dir string
@@ -130,7 +134,7 @@ function Deployment:composeCommand(app_dir)
 	local root = self.config.root
 	return table.concat({
 		"RIZU_APP_DIR=" .. quote(app_dir),
-		"RIZU_SERVER_STATE_DIR=" .. quote(root .. "/server-state"),
+		"RIZU_SERVER_STATE_PATH=" .. quote(root .. "/server-state"),
 		"RIZU_UID=" .. quote(assert(self.shell:popen("id -u")):match("%d+")),
 		"RIZU_GID=" .. quote(assert(self.shell:popen("id -g")):match("%d+")),
 		self.config.compose_command .. " -p rizu -f " .. quote(self.config.compose_file),
@@ -209,6 +213,47 @@ function Deployment:recordActivation(current, previous)
 		self:switchLink(root .. "/previous", previous)
 	end
 	self:switchLink(root .. "/current", current)
+end
+
+---@param output string?
+---@return string?
+local function cleanOutput(output)
+	local value = output and output:match("^%s*(.-)%s*$") or nil
+	return value ~= "" and value or nil
+end
+
+---@return string mode
+---@return string? app_path
+---@return string? state_path
+---@return string? health
+function Deployment:getStatus()
+	local container = cleanOutput(self.shell:popen("docker inspect rizu-openresty-1 --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}'"))
+	if container then
+		local app_path = cleanOutput(self.shell:popen("docker inspect rizu-openresty-1 --format '{{range .Mounts}}{{if eq .Destination \"/app\"}}{{.Source}}{{end}}{{end}}'"))
+		local state_path = cleanOutput(self.shell:popen("docker inspect rizu-openresty-1 --format '{{range .Mounts}}{{if eq .Destination \"/app/server-state\"}}{{.Source}}{{end}}{{end}}'"))
+		local _, health = container:match("^([^|]+)|(.*)$")
+		local releases_prefix = self.config.root .. "/releases/"
+		local mode = app_path and app_path:sub(1, #releases_prefix) == releases_prefix and "release" or "checkout"
+		return mode, app_path, state_path, health ~= "" and health or nil
+	end
+	local host_pid = cleanOutput(self.shell:popen("test -s " .. quote(self.config.root .. "/server-state/logs/nginx.pid") .. " && kill -0 $(cat " .. quote(self.config.root .. "/server-state/logs/nginx.pid") .. ") 2>/dev/null && echo running"))
+	return host_pid and "host" or "stopped"
+end
+
+function Deployment:status()
+	local mode, app_path, state_path, health = self:getStatus()
+	print("Mode: " .. mode)
+	if app_path then print("Application: " .. app_path) end
+	if state_path then print("Server state: " .. state_path) end
+	if health then print("Health: " .. health) end
+	local current = self:readLink(self.config.root .. "/current")
+	local public = self:readLink(self.config.root .. "/public/current")
+	if current then
+		print("Current: " .. current)
+		local commit = current:match("/releases/([0-9a-f]+)$")
+		if commit then print("Commit: " .. commit) end
+	end
+	if public then print("Public: " .. public) end
 end
 
 function Deployment:prune()

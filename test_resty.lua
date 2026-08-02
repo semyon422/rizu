@@ -44,6 +44,9 @@ tio.blacklist = {
 	"tree",
 	"userdata",
 	"build/deps",
+	"releases",
+	"current",
+	"previous",
 }
 
 local testing = Testing(tio)

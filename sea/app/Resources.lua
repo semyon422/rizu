@@ -85,7 +85,7 @@ function Resources:new(domain, server_remote, views, sessions, app_config, share
 
 	self.websocket = WebsocketResource(domain, views)
 
-	-- Bancho server state (config loaded from bancho/config.lua)
+	-- Bancho server state (config loaded from server-state/bancho_config.lua)
 	self.bancho = BanchoServer(shared_memory)
 	BanchoAdapter.setupSeaRepos(
 		self.bancho,

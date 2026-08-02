@@ -126,7 +126,7 @@ See `deploy/spec.md` for layout, invariants, setup, and operational commands.
 ## Immediate Next Steps
 
 1. Push the Needle portability fix in the `aqua` repository and the main repository deployment changes.
-2. Initialize `/srv/rizu/server-state` on the VDS with reviewed production configuration and existing state, moving SQLite WAL/SHM sidecars together with the database while OpenResty is stopped.
+2. In the normal `/home/semyon422/rizu` clone, initialize `server-state/` with reviewed production configuration and existing state, moving SQLite WAL/SHM sidecars together with the database while OpenResty is stopped.
 3. Copy or build a release artifact on the VDS and perform a real `deploy` plus `rollback` drill.
-4. Configure the download server to serve `/srv/rizu/public/current`.
+4. Configure the download server to serve `/home/semyon422/rizu/public/current`.
 5. Add artifact transfer/storage and CI triggering after the manual VDS path is verified.

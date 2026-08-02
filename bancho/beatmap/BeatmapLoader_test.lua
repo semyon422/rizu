@@ -260,7 +260,7 @@ end
 
 function test.api_fallback(t)
 	-- Read API key from prod config; skip if not configured
-	local prod_config = require("bancho.config")
+	local prod_config = require("server-state.bancho_config")
 	if not prod_config.osu_api_key then
 		return
 	end

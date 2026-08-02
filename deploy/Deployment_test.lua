@@ -79,7 +79,7 @@ function test.persistent_state_is_mounted_separately(t)
 	shell.outputs["id -g"] = "1000\n"
 	local command = deployment:composeCommand("/srv/rizu/releases/new")
 	t:assert(command:find('RIZU_APP_DIR="/srv/rizu/releases/new"', 1, true))
-	t:assert(command:find('RIZU_SERVER_STATE_DIR="/srv/rizu/server-state"', 1, true))
+	t:assert(command:find('RIZU_SERVER_STATE_PATH="/srv/rizu/server-state"', 1, true))
 end
 
 ---@param t testing.T
@@ -93,10 +93,39 @@ function test.publication_switches_only_after_copy(t)
 end
 
 ---@param t testing.T
+function test.status_identifies_release_mount(t)
+	local deployment, shell = createDeployment()
+	shell.outputs["docker inspect rizu-openresty-1 --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}'"] = "running|healthy\n"
+	shell.outputs["docker inspect rizu-openresty-1 --format '{{range .Mounts}}{{if eq .Destination \"/app\"}}{{.Source}}{{end}}{{end}}'"] = "/srv/rizu/releases/" .. string.rep("a", 40) .. "\n"
+	shell.outputs["docker inspect rizu-openresty-1 --format '{{range .Mounts}}{{if eq .Destination \"/app/server-state\"}}{{.Source}}{{end}}{{end}}'"] = "/srv/rizu/server-state\n"
+	local mode, app_path, state_path, health = deployment:getStatus()
+	t:eq(mode, "release")
+	t:eq(app_path, "/srv/rizu/releases/" .. string.rep("a", 40))
+	t:eq(state_path, "/srv/rizu/server-state")
+	t:eq(health, "healthy")
+end
+
+---@param t testing.T
+function test.status_identifies_checkout_mount(t)
+	local deployment, shell = createDeployment()
+	shell.outputs["docker inspect rizu-openresty-1 --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}'"] = "running|healthy\n"
+	shell.outputs["docker inspect rizu-openresty-1 --format '{{range .Mounts}}{{if eq .Destination \"/app\"}}{{.Source}}{{end}}{{end}}'"] = "/srv/rizu\n"
+	local mode = deployment:getStatus()
+	t:eq(mode, "checkout")
+end
+
+---@param t testing.T
+function test.status_identifies_stopped_server(t)
+	local deployment = createDeployment()
+	local mode = deployment:getStatus()
+	t:eq(mode, "stopped")
+end
+
+---@param t testing.T
 function test.rollback_restarts_target_before_switching_links(t)
 	local deployment, shell = createDeployment()
 	local commit = string.rep("d", 40)
-	shell.outputs['readlink -f "/srv/rizu/current"'] = "/srv/rizu/releases/current\n"
+	shell.outputs['test -L "/srv/rizu/current" && readlink -f "/srv/rizu/current"'] = "/srv/rizu/releases/current\n"
 	deployment.prepareRoot = function() end
 	deployment.ensureNats = function() end
 	deployment.activateServer = function(self, target, current)
