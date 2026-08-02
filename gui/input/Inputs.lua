@@ -27,7 +27,6 @@ local KeyboardInputs = require("gui.input.KeyboardInputs")
 ---@field private keyboard_inputs gui.KeyboardInputs
 local Inputs = class()
 
-Inputs.MOUSE_CLICK_MAX_DISTANCE = PointerGesture.MOUSE_CLICK_MAX_DISTANCE
 Inputs.DRAG_START_THRESHOLD = PointerGesture.DRAG_START_THRESHOLD
 
 local mouse_events = {

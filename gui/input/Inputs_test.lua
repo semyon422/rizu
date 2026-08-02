@@ -188,11 +188,10 @@ function test.drag_is_captured_by_mouse_down_handler(t)
 end
 
 ---@param t testing.T
-function test.mouse_move_below_drag_threshold_still_clicks(t)
+function test.movement_within_pressed_view_still_clicks(t)
 	local btn = create_view(100, 100)
 	local inputs = Inputs()
 	local events = {}
-	btn.onDragStart = function() table.insert(events, "drag") end
 	btn.onMouseClick = function() table.insert(events, "click") end
 	table.insert(inputs.mouse_hits, btn)
 	inputs.mouse_target = btn
@@ -200,12 +199,34 @@ function test.mouse_move_below_drag_threshold_still_clicks(t)
 	inputs.mouse_y = 10
 
 	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
-	inputs.mouse_x = 12
-	inputs.mouse_y = 12
-	inputs:receive({name = "mousemoved", 12, 12, 2, 2}, default_modifiers)
-	inputs:receive({name = "mousereleased", 12, 12, 1}, default_modifiers)
+	inputs.mouse_x = 80
+	inputs.mouse_y = 80
+	inputs:receive({name = "mousemoved", 80, 80, 70, 70}, default_modifiers)
+	inputs:receive({name = "mousereleased", 80, 80, 1}, default_modifiers)
 
 	t:tdeq(events, {"click"})
+end
+
+---@param t testing.T
+function test.release_over_different_view_does_not_click(t)
+	local btn = create_view(100, 100)
+	local other = create_view(100, 100)
+	local inputs = Inputs()
+	local events = {}
+	btn.onMouseClick = function() table.insert(events, "click") end
+	inputs.mouse_hits = {btn}
+	inputs.mouse_target = btn
+	inputs.mouse_x = 10
+	inputs.mouse_y = 10
+
+	inputs:receive({name = "mousepressed", 10, 10, 1}, default_modifiers)
+	inputs.mouse_hits = {other}
+	inputs.mouse_target = other
+	inputs.mouse_x = 20
+	inputs.mouse_y = 20
+	inputs:receive({name = "mousereleased", 20, 20, 1}, default_modifiers)
+
+	t:tdeq(events, {})
 end
 
 ---@param t testing.T

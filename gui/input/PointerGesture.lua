@@ -1,4 +1,5 @@
 local class = require("class")
+local IInputHandler = require("gui.input.IInputHandler")
 local MouseDownEvent = require("gui.input.events.MouseDownEvent")
 local MouseUpEvent = require("gui.input.events.MouseUpEvent")
 local MouseClickEvent = require("gui.input.events.MouseClickEvent")
@@ -23,7 +24,6 @@ local DragEndEvent = require("gui.input.events.DragEndEvent")
 ---@field private targeting gui.PointerTargeting
 local PointerGesture = class()
 
-PointerGesture.MOUSE_CLICK_MAX_DISTANCE = 20
 PointerGesture.DRAG_START_THRESHOLD = 4
 
 ---@param inputs gui.Inputs
@@ -156,6 +156,9 @@ function PointerGesture:handleMouseMove(modifiers, event_time)
 		return
 	end
 	local capture = self:chooseDragCapture(gesture, dx, dy)
+	if capture.onDragStart == IInputHandler.onDragStart then
+		return
+	end
 	local pressed_target = gesture.press_target
 	pressed_target.pressed = false
 	gesture.capture_target = capture
@@ -199,9 +202,8 @@ function PointerGesture:handleMouseUp(event, modifiers)
 	end
 	gesture.press_target.pressed = false
 	if not gesture.dragging then
-		local dx = gesture.x - self.inputs.mouse_x
-		local dy = gesture.y - self.inputs.mouse_y
-		if math.sqrt(dx * dx + dy * dy) < self.MOUSE_CLICK_MAX_DISTANCE then
+		local release_target = self.inputs.mouse_hits[1] or self.inputs.mouse_target
+		if release_target == gesture.press_target then
 			local click = MouseClickEvent(modifiers)
 			click.target = gesture.press_target
 			click.current_target = gesture.press_target
