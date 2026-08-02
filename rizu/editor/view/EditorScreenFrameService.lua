@@ -1,6 +1,5 @@
 local class = require("class")
 local Screen = require("gui.Screen")
-local EditorLayout = require("yi.views.editor.EditorLayout")
 local gfx_util = require("gfx_util")
 
 ---@class rizu.editor.EditorScreenFrameServiceDeps
@@ -13,10 +12,9 @@ local gfx_util = require("gfx_util")
 ---@operator call: rizu.editor.EditorScreenFrameService
 local EditorScreenFrameService = class()
 
----@param deps rizu.editor.EditorScreenFrameServiceDeps?
+---@param deps rizu.editor.EditorScreenFrameServiceDeps
 function EditorScreenFrameService:new(deps)
-	deps = deps or {}
-	self.layout = deps.layout or EditorLayout
+	self.layout = assert(deps.layout, "editor layout dependency is required")
 	self.transform = deps.transform or gfx_util.transform
 	self.graphics = deps.graphics or love.graphics
 	self.baseScreen = deps.baseScreen or Screen

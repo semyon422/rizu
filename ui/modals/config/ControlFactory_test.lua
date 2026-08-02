@@ -1,8 +1,14 @@
 local ControlFactory = require("ui.modals.config.ControlFactory")
 local Config = require("rizu.config.Config")
 local FakeFilesystem = require("fs.FakeFilesystem")
+local Resources = require("ui.Resources")
 
 local test = {}
+
+Resources.sprites = {
+	checkbox_body = {getHeight = function() return 20 end},
+	checkbox_mark = {},
+}
 
 ---@param t testing.T
 function test.boolean_binds_ui_config_and_metadata(t)

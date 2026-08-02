@@ -49,6 +49,8 @@ tio.blacklist = {
 	"previous",
 }
 
+require("testing.FakeLove").install()
+
 local testing = Testing(tio)
 
 -- Parse flags: --json enables structured JSON output

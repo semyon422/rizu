@@ -2,7 +2,6 @@ local class = require("class")
 local table_util = require("table_util")
 
 local UserInterface = require("rizu.app.UserInterface")
-local DefaultUserInterface = require("ui.UserInterface")
 
 local Settings = require("rizu.config.Settings")
 
@@ -17,12 +16,13 @@ local Settings = require("rizu.config.Settings")
 local UserInterfaceManager = class()
 
 ---@param game sphere.GameController
-function UserInterfaceManager:new(game)
+---@param default_user_interface rizu.app.UserInterface?
+function UserInterfaceManager:new(game, default_user_interface)
 	self.game = game
 	self.settings = game.settings
 	self.items = {}
 	self.mount_paths = {}
-	self.default_user_interface = DefaultUserInterface
+	self.default_user_interface = default_user_interface or require("ui.UserInterface")
 
 	self:register(self.default_user_interface, "")
 end

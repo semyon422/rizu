@@ -160,6 +160,8 @@ Run tests with:
 ./test [file_pattern] [method_pattern]
 ```
 
+Run benchmarks separately with `./bench [benchmark_path ...]`; benchmark files use the `_bench.lua` suffix and must not use `_test.lua`.
+
 Examples:
 
 ```bash

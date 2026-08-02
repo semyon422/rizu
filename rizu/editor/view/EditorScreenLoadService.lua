@@ -1,6 +1,5 @@
 local class = require("class")
 local EditorViewServices = require("rizu.editor.view.EditorViewServices")
-local EditorViews = require("yi.views.editor.EditorViews")
 
 ---@class rizu.editor.EditorScreenLoadServiceDeps
 ---@field viewServicesFactory (fun(): rizu.editor.EditorViewServices)?
@@ -12,13 +11,12 @@ local EditorViews = require("yi.views.editor.EditorViews")
 ---@field retainedViewsFactory fun(screen: table): gui.View[]
 local EditorScreenLoadService = class()
 
----@param deps rizu.editor.EditorScreenLoadServiceDeps?
+---@param deps rizu.editor.EditorScreenLoadServiceDeps
 function EditorScreenLoadService:new(deps)
-	deps = deps or {}
 	self.viewServicesFactory = deps.viewServicesFactory or function()
 		return EditorViewServices()
 	end
-	self.retainedViewsFactory = deps.retainedViewsFactory or EditorViews
+	self.retainedViewsFactory = assert(deps.retainedViewsFactory, "retained editor views dependency is required")
 end
 
 ---@param screen table

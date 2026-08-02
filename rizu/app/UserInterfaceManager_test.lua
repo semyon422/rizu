@@ -62,10 +62,7 @@ end
 ---@param default_ui rizu.app.UserInterface
 ---@return rizu.app.UserInterfaceManager
 local function createManager(game, default_ui)
-	local manager = UserInterfaceManager(game)
-	manager.items = {}
-	manager.mount_paths = {}
-	manager.default_user_interface = default_ui
+	local manager = UserInterfaceManager(game, default_ui)
 	manager:register(default_ui, "")
 	return manager
 end

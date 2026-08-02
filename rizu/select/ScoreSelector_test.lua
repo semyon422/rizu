@@ -6,6 +6,11 @@ local ScoreStore = require("rizu.select.stores.ScoreStore")
 
 local test = {}
 
+function test.__check()
+	delay.reset()
+	return true
+end
+
 local function createConfigModel(secondary_mode)
 	return {
 		configs = {

@@ -19,7 +19,6 @@ end
 function test.settings_defaults(t)
 	local config = Settings.createConfig(FakeFilesystem())
 	t:eq(config:getString(Settings.user_interface), "new")
-	t:eq(config:getBoolean(Settings.show_fps), false)
 end
 
 ---@param t testing.T

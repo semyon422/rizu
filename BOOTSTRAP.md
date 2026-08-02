@@ -213,10 +213,13 @@ Run tests with an optional file and method pattern:
 ./test
 ./test rizu/build
 ./test path/to/Module_test.lua method_pattern
+./bench
+./bench gui/Gui_bench.lua
 ```
 
 Other test entry points are specialized:
 
+- `./bench` runs benchmarks separately from the correctness test suite.
 - `./test-love` runs tests inside the bundled Linux LÖVE AppImage.
 - `./test-macos` runs tests with `/Applications/love.app`.
 - `./test-resty` runs tests through OpenResty's `resty` executable.

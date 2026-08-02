@@ -7,7 +7,10 @@ local utf8 = require("utf8")
 ---@param cursor integer
 ---@return integer byte_offset
 local function byteOffset(text, cursor)
-	return utf8.offset(text, cursor) or 1
+	if utf8.offset then
+		return utf8.offset(text, cursor) or (#text + 1)
+	end
+	return utf8.charpos(text, cursor) or (#text + 1)
 end
 
 ---Model holding UTF-8 aware text editing state for textbox views.

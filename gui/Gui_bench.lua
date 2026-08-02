@@ -136,36 +136,33 @@ local function measureTree(view, depth)
 end
 
 ---Pure worst-case layout without Screen cache or renderer work.
----@param t testing.T
-function test.dense_1000_view_layout(t)
+function test.dense_1000_view_layout()
 	local screen = makeDenseScreen()
 	local count, max_depth = measureTree(screen.root, 0)
 	benchmark("dense layout", count, ITERATIONS, function()
 		screen.root:relayout()
 	end)
-	t:eq(count, VIEW_COUNT)
-	t:eq(max_depth, MAX_DEPTH)
+	assert(count == VIEW_COUNT)
+	assert(max_depth == MAX_DEPTH)
 end
 
 ---Full CPU-side rebuild: layout, flatten/update/draw caches, and renderer command
 ---generation. Renderer:draw is deliberately never called.
----@param t testing.T
-function test.dense_1000_view_screen_rebuild(t)
+function test.dense_1000_view_screen_rebuild()
 	local screen = makeDenseScreen()
 	screen:relayout()
 	local count = #screen.views
 	benchmark("layout+flatten+renderer", count, ITERATIONS, function()
 		screen:relayout()
 	end)
-	t:eq(count, VIEW_COUNT)
-	t:eq(#screen.draw_views, 902)
-	t:eq(screen.renderer.command_count, #screen.draw_views * 2)
+	assert(count == VIEW_COUNT)
+	assert(#screen.draw_views == 902)
+	assert(screen.renderer.command_count == #screen.draw_views * 2)
 end
 
 ---Simulates a layout-affecting style change every frame, including invalidation
 ---and Screen:flush coalescing rather than calling the internal rebuild directly.
----@param t testing.T
-function test.dense_1000_view_mutating_layout(t)
+function test.dense_1000_view_mutating_layout()
 	local screen, body = makeDenseScreen()
 	screen:flush()
 	local gap = 1
@@ -174,8 +171,8 @@ function test.dense_1000_view_mutating_layout(t)
 		body:setGap(gap)
 		screen:flush()
 	end)
-	t:eq(#screen.views, VIEW_COUNT)
-	t:eq(screen.dirty, false)
+	assert(#screen.views == VIEW_COUNT)
+	assert(screen.dirty == false)
 end
 
 return test

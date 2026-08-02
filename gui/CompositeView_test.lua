@@ -4,15 +4,8 @@ local View = require("gui.View")
 
 local test = {}
 
-local function ensureWindow()
-	if not love.window.isOpen() then
-		love.window.setMode(1, 1)
-	end
-end
-
 ---@param t testing.T
 function test.canvas_follows_resolved_size_and_ui_scale(t)
-	ensureWindow()
 	local screen = Screen()
 	screen:setUIScale(2)
 	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 100, 50))
@@ -26,7 +19,6 @@ end
 
 ---@param t testing.T
 function test.resize_replaces_and_releases_canvas(t)
-	ensureWindow()
 	local screen = Screen()
 	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 100, 50))
 	screen:resize(800, 600)
@@ -42,7 +34,6 @@ end
 
 ---@param t testing.T
 function test.unload_releases_canvas(t)
-	ensureWindow()
 	local screen = Screen()
 	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 100, 50))
 	screen:resize(800, 600)
@@ -57,7 +48,6 @@ end
 
 ---@param t testing.T
 function test.render_opacity_restarts_inside_composite(t)
-	ensureWindow()
 	local screen = Screen()
 	screen.root:setOpacity(0.8)
 	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 100, 50))
@@ -74,7 +64,6 @@ end
 
 ---@param t testing.T
 function test.renderer_draws_nested_composites(t)
-	ensureWindow()
 	local screen = Screen()
 	local outer = screen.root:add(CompositeView():anchorFixed(10, 20, 200, 100))
 	local inner = outer:add(CompositeView():anchorFixed(20, 10, 100, 50))
