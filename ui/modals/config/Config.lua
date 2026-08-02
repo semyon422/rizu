@@ -30,9 +30,9 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@field scroll_view gui.ScrollView
 ---@field background gui.NineSliceUsage
 ---@field list_background gui.NineSliceUsage
----@field selection_x gui.anim.SpringValue
+---@field selection_x number
 ---@field selection_y gui.anim.SpringValue
----@field selection_width gui.anim.SpringValue
+---@field selection_width number
 ---@field selection_height gui.anim.SpringValue
 ---@field private selection_visible boolean
 ---@field private settings_invalidated boolean
@@ -60,9 +60,9 @@ function Config:new(ui_config, legacy_settings)
 	self.selected_section = self.all_section
 	self.settings_invalidated = false
 	self.selection_visible = false
-	self.selection_x = SpringValue()
+	self.selection_x = 0
 	self.selection_y = SpringValue({stiffness = 360, damping = 34})
-	self.selection_width = SpringValue()
+	self.selection_width = 0
 	self.selection_height = SpringValue()
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -148,6 +148,7 @@ end
 
 function Config:rebuildSettings()
 	self.settings_invalidated = false
+	local selected_index = self.form.selected_index
 	self.form:closeActiveDropdown()
 	self.form:clearSelection()
 	self.form.rows:clear()
@@ -167,6 +168,10 @@ function Config:rebuildSettings()
 		end
 	end
 	self.form:fitContent()
+	if selected_index then
+		self.form.selected_index = selected_index
+		self.form:syncSelection()
+	end
 end
 
 function Config:updateSelection()
@@ -184,15 +189,13 @@ function Config:updateSelection()
 
 	-- Animate in form-local space. The form's world transform contains the
 	-- current scroll offset, which is applied later without spring lag.
+	self.selection_x = target_x
+	self.selection_width = target_width
 	if self.selection_visible then
-		self.selection_x:set(target_x)
 		self.selection_y:set(target_y)
-		self.selection_width:set(target_width)
 		self.selection_height:set(target_height)
 	else
-		self.selection_x:snap(target_x)
 		self.selection_y:snap(target_y)
-		self.selection_width:snap(target_width)
 		self.selection_height:snap(target_height)
 		self.selection_visible = true
 	end
@@ -200,13 +203,13 @@ end
 
 ---@param dt number
 function Config:update(dt)
-	if self.settings_invalidated then
+	local rebuilt = self.settings_invalidated
+	if rebuilt then
 		self:rebuildSettings()
+	else
+		self:updateSelection()
 	end
-	self:updateSelection()
-	self.selection_x:update(dt)
 	self.selection_y:update(dt)
-	self.selection_width:update(dt)
 	self.selection_height:update(dt)
 end
 
@@ -233,9 +236,9 @@ function Config:draw()
 
 	if self.selection_visible then
 		local form = self.form
-		local selection_x = self.selection_x:get()
+		local selection_x = self.selection_x
 		local selection_y = self.selection_y:get()
-		local selection_width = self.selection_width:get()
+		local selection_width = self.selection_width
 		local selection_height = self.selection_height:get()
 		local min_x, min_y = math.huge, math.huge
 		local max_y = -math.huge
