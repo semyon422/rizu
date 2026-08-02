@@ -1,51 +1,51 @@
-local FormControl = require("ui.views.form.FormControl")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
+local View = require("gui.View")
 
----@class ui.views.form.TextboxParams
----@field label string
+---@class ui.views.TextboxParams
 ---@field text string?
 ---@field placeholder string?
----@field width number?
+---@field icon gui.Sprite?
 ---@field on_change fun(text: string)?
 
----@class ui.views.form.Textbox : ui.views.form.FormControl
----@operator call: ui.views.form.Textbox
+---A standalone, single-line text input.
+---@class ui.views.Textbox : gui.View
+---@operator call: ui.views.Textbox
 ---@field model ui.helpers.TextboxModel
 ---@field font love.Font
----@field label_text string
 ---@field placeholder string
+---@field icon gui.Sprite?
 ---@field on_change fun(text: string)?
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
 ---@field cap_right gui.Sprite
 ---@field private committed_text string
-local Textbox = FormControl + {}
+local Textbox = View + {}
 
-local HEIGHT = 65
-local BODY_Y = 25
+local WIDTH = 100
+local HEIGHT = 40
 local TEXT_X = 9
-local TEXT_Y = 35
+local TEXT_Y = 10
+local ICON_RIGHT = 9
 
----@param params ui.views.form.TextboxParams
+---@param params ui.views.TextboxParams?
 function Textbox:new(params)
-	FormControl.new(self)
+	View.new(self)
+	params = params or {}
 	self.model = TextboxModel()
 	self.model:setText(params.text or "")
 	self.committed_text = self.model:getText()
 	self.font = Resources.getFont("medium", 16)
-	self.label_text = params.label
 	self.placeholder = params.placeholder or ""
+	self.icon = params.icon
 	self.on_change = params.on_change
 	self.cap_left = Resources.sprites.form_element_cap_left
 	self.cap_middle = Resources.sprites.form_element_cap_middle
 	self.cap_right = Resources.sprites.form_element_cap_right
 
-	local width = params.width or 300
-	assert(width >= self.cap_left:getWidth() + self.cap_right:getWidth(), "textbox width is too small")
-	self:setSize(width, HEIGHT)
+	self:setSize(WIDTH, HEIGHT)
 	self:setClip(true)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
@@ -65,6 +65,13 @@ function Textbox:setText(text, notify)
 	else
 		self.committed_text = text
 	end
+end
+
+---@param icon gui.Sprite?
+---@return ui.views.Textbox
+function Textbox:setIcon(icon)
+	self.icon = icon
+	return self
 end
 
 function Textbox:notifyChange()
@@ -112,6 +119,7 @@ function Textbox:onTextInput(e)
 		return
 	end
 	self.model:insert(e.text or "")
+	self:notifyChange()
 	return true
 end
 
@@ -121,7 +129,7 @@ function Textbox:onKeyDown(e)
 	if not self.focused then
 		return
 	end
-	if e.key == "escape" then
+	if e.key == "escape" or e.key == "return" or e.key == "kpenter" then
 		assert(self.screen and self.screen.inputs, "focused textbox is not attached to an input-enabled screen")
 		self.screen.inputs:setKeyboardFocus(nil, {
 			control = e.control_pressed,
@@ -132,10 +140,13 @@ function Textbox:onKeyDown(e)
 		return true
 	end
 
+	local changed = false
 	if e.key == "backspace" then
 		self.model:backspace()
+		changed = true
 	elseif e.key == "delete" then
 		self.model:delete()
+		changed = true
 	elseif e.key == "left" then
 		self.model:moveLeft()
 	elseif e.key == "right" then
@@ -147,31 +158,38 @@ function Textbox:onKeyDown(e)
 	else
 		return
 	end
+	if changed then
+		self:notifyChange()
+	end
 	return true
 end
 
 function Textbox:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(Colors.text)
-	love.graphics.setFont(self.font)
-	love.graphics.print(self.label_text, 0, 0)
 
 	local left_width = self.cap_left:getWidth()
 	local right_width = self.cap_right:getWidth()
 	local middle_width = self.width - left_width - right_width
-	Painter.setColorTable(Colors.panel)
-	self.cap_left:draw(0, BODY_Y)
-	self.cap_middle:draw(left_width, BODY_Y, 0, middle_width / self.cap_middle:getWidth(), 1)
-	self.cap_right:draw(self.width - right_width, BODY_Y)
+	Painter.setColorTable(Colors.elements)
+	self.cap_left:draw(0, 0)
+	self.cap_middle:draw(left_width, 0, 0, middle_width / self.cap_middle:getWidth(), 1)
+	self.cap_right:draw(self.width - right_width, 0)
 
 	local text = self.model:getText()
 	Painter.setColorTable(text == "" and Colors.text_muted or Colors.text)
+	love.graphics.setFont(self.font)
 	love.graphics.print(text == "" and self.placeholder or text, TEXT_X, TEXT_Y)
 
 	if self.focused then
 		local left = self.model:getSplit()
 		Painter.setColorTable(Colors.text)
 		Resources.sprites.pixel:draw(TEXT_X + self.font:getWidth(left), TEXT_Y, 0, 2, self.font:getHeight())
+	end
+
+	if self.icon then
+		local icon_width, icon_height = self.icon:getDimensions()
+		Painter.setColorTable(Colors.text)
+		self.icon:draw(self.width - ICON_RIGHT - icon_width, (HEIGHT - icon_height) / 2)
 	end
 end
 

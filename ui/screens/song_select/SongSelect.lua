@@ -20,6 +20,7 @@ local PlayerInfo = require("ui.views.PlayerInfo")
 local SessionInfo = require("ui.views.SessionInfo")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
+local Textbox = require("ui.views.Textbox")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ReplayBaseFormatter = require("ui.formatters.ReplayBaseFormatter")
 
@@ -111,6 +112,17 @@ function SongSelect:new(ui)
 		direction = "row",
 		align = 0.5,
 		gap = 10,
+	})
+
+	local select_config = self.ui.game.persistence.configModel.configs.select
+	self.search = Textbox({
+		text = select_config.filterString,
+		placeholder = "Search...",
+		icon = Resources.sprites.icon_search,
+		on_change = function(text)
+			select_config.filterString = text
+			self.ui.game.chartSelector:debounceRefresh()
+		end,
 	})
 
 	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
@@ -225,7 +237,16 @@ function SongSelect:createRightColumn()
 	})):setAlignment(1, 0.5)
 
 	column:add(heading, 28)
-	column:add(Rectangle(Colors.panel), 44)
+
+	local row = TrackContainer({
+		direction = "row",
+		gap = 6,
+		align = 0.5
+	})
+
+	row:add(self.search, "*")
+
+	column:add(row, 40)
 	column:add(self.chart_sets, 562)
 
 	local info = column:add(TrackContainer({
