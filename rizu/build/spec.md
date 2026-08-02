@@ -15,6 +15,7 @@ The system is optimized for local development and CI usage on Linux hosts while 
 - Clear packaging separation:
   - `repo` assembles repository content and update metadata.
   - `package` builds archives from the assembled repository.
+  - `release` builds a commit-addressed deployment artifact containing the server archive and client downloads.
 - Incremental behavior: already-satisfied steps are skipped through output checks.
 
 ## Architecture Decisions
@@ -52,11 +53,13 @@ This avoids duplicated side effects and makes task dependencies explicit.
 3. `build_target_<target>` (pulls `setup_luajit_linux` for every target; `setup_luajit_windows` for Windows)
 4. `assemble_repo` (depends on all `build_target_*`)
 5. `zip_repo`, `package_macos` (depend on `assemble_repo`)
+6. `package_release` (depends on both client package tasks)
 
 CLI mapping:
 - `luajit` -> `setup_luajit_<linux|windows>`
 - `repo` -> `assemble_repo`
 - `package` -> `zip_repo` + `package_macos`
+- `release` -> `package_release`
 
 ## Key Components
 - `DependencySpec`: public dependency-step spec entrypoint; resolves target builders, composes native module steps, normalizes, and validates target specs. Prefetch uses the same spec but only runs download and git actions.
@@ -70,6 +73,13 @@ CLI mapping:
 - `Executor`: executes actions using shared step-state skip checks.
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
 - `RepoAssembler`, `UpdateIndexWriter`, `ZipPackager`, and `MacOSPackager`: package-stage implementations called directly by package tasks.
+- `ReleasePackager`: creates `build/release/<commit>/` with `server.tar.gz`, the assembled client repository, client ZIPs, `files.json`, and a checksummed `release.json`.
+
+## Release Artifact
+
+`release` exports the current Git-tracked application files from the working tree into the server archive, excluding `userdata/` and `temp/`. Dirty tracked files are allowed so the complete release workflow can be tested before committing; the release directory and manifest remain keyed by `HEAD`, so such artifacts are development snapshots and must not be treated as immutable commit builds. It adds the Linux native modules required by the Compose server and the Lua 5.1 runtime module trees. Ignored local configuration, databases, storage, logs, and user data are never copied into the artifact.
+
+The server archive contains its own release metadata. The outer `release.json` records the format version, exact Git commit, UTC build time, byte size, and SHA-256 checksum of each deployable file. Packaging validates required server entrypoints and native modules and rejects runtime state or production configuration in the archive.
 
 Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. When an extract action runs, it recreates the destination directory before unpacking. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
 

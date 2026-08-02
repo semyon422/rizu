@@ -147,7 +147,7 @@ local function printStatus(ctx, runner, target_arg)
 	for _, t in ipairs(targets) do
 		printTaskStatus(ctx, runner, "build_target_" .. t)
 	end
-	local global_tasks = {"assemble_repo", "zip_repo", "package_macos"}
+	local global_tasks = {"assemble_repo", "zip_repo", "package_macos", "package_release"}
 	for _, task_name in ipairs(global_tasks) do
 		printTaskStatus(ctx, runner, task_name)
 	end
@@ -160,7 +160,7 @@ local function help(commands)
 	print("Usage: ./rizu/build/make.lua <command> [arg]")
 	print("")
 	print("Commands:")
-	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "prefetch", "repo", "package", "status", "clean", "help"}
+	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "prefetch", "repo", "package", "release", "status", "clean", "help"}
 	for _, name in ipairs(order) do
 		if name == "help" then
 			print("  help                   Show this help")
@@ -225,6 +225,12 @@ local function createCommands(ctx, runner, target_arg, scope_arg)
 			run = function()
 				runner:run("zip_repo")
 				runner:run("package_macos")
+			end,
+		},
+		release = {
+			help = "Build immutable server and client release artifacts",
+			run = function()
+				runner:run("package_release")
 			end,
 		},
 		status = {

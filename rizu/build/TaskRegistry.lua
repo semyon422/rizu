@@ -13,6 +13,7 @@ local PrefetchDepsTask = require("rizu.build.tasks.PrefetchDepsTask")
 local AssembleRepoTask = require("rizu.build.tasks.AssembleRepoTask")
 local ZipRepoTask = require("rizu.build.tasks.ZipRepoTask")
 local PackageMacOSTask = require("rizu.build.tasks.PackageMacOSTask")
+local PackageReleaseTask = require("rizu.build.tasks.PackageReleaseTask")
 
 ---@class rizu.build.TaskRegistry
 local TaskRegistry = {}
@@ -42,6 +43,7 @@ function TaskRegistry.registerTasks(runner)
 	runner:register(AssembleRepoTask())
 	runner:register(ZipRepoTask())
 	runner:register(PackageMacOSTask())
+	runner:register(PackageReleaseTask())
 end
 
 ---@return rizu.build.Context
