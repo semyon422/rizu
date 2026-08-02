@@ -11,7 +11,10 @@ local ScrollView = require("gui.ScrollView")
 local Section = require("ui.modals.config.Section")
 local SectionItem = require("ui.modals.config.SectionItem")
 local AudioSection = require("ui.modals.config.sections.Audio")
-local InterfaceSection = require("ui.modals.config.sections.Interface")
+local LayoutSection = require("ui.modals.config.sections.Layout")
+local OffsetSection = require("ui.modals.config.sections.Offset")
+local RendererSection = require("ui.modals.config.sections.Renderer")
+local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
@@ -107,7 +110,10 @@ end
 function Config:createSections()
 	return {
 		AudioSection(self.legacy_settings),
-		InterfaceSection(self.ui_config),
+		OffsetSection(self.legacy_settings),
+		LayoutSection(self.legacy_settings),
+		RendererSection(self.legacy_settings, self.ui_config),
+		UserInterfaceSection(self.legacy_settings),
 	}
 end
 

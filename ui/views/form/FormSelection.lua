@@ -11,7 +11,7 @@ local View = require("gui.View")
 ---@field target_height number?
 local FormSelection = View + {}
 
-FormSelection.MOVE_DURATION = 0.15
+FormSelection.MOVE_DURATION = 0.27
 
 function FormSelection:new()
 	View.new(self)

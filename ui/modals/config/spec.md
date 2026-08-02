@@ -14,6 +14,14 @@ Each concrete section lives in its own module under `ui/modals/config/sections/`
 
 The audio section exposes master, music, keysound, and metronome volume. Stored volumes remain linear values in `[0, 1]`. The logarithmic presentation converts them to and from decibels and changing the presentation mode invalidates the section.
 
+The renderer section binds the legacy renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.
+
+The layout section exposes the legacy fullscreen window setting.
+
+The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`.
+
+The User Interface section controls whether Song Select displays a chart preview and which difficulty rating type menus display.
+
 ## Invariants
 
 - A section never owns or draws views.

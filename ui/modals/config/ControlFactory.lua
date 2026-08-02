@@ -9,6 +9,9 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field keywords string[]?
 ---@field tip string?
 
+---@class ui.modals.config.BooleanControl : ui.modals.config.ControlMetadata
+---@field on_change (fun(value: boolean))?
+
 ---@class ui.modals.config.NumberControl : ui.modals.config.ControlMetadata
 ---@field min number
 ---@field max number
@@ -21,6 +24,7 @@ local Textbox = require("ui.views.form.Textbox")
 ---@class ui.modals.config.ChoiceControl : ui.modals.config.ControlMetadata
 ---@field options any[]?
 ---@field width number?
+---@field format (fun(value: any): string)?
 ---@field on_change (fun(value: any))?
 
 local ControlFactory = {}
@@ -106,6 +110,28 @@ end
 
 ---@param settings table
 ---@param path string[]
+---@param metadata ui.modals.config.BooleanControl
+---@return ui.views.form.Checkbox
+function ControlFactory.legacyBoolean(settings, path, metadata)
+	local parent, key = LegacyBinding.resolve(settings, path)
+	local setting_key = LegacyBinding.key(path)
+	local value = parent[key]
+	assert(type(value) == "boolean", "legacy setting must be a boolean: " .. setting_key)
+	local control = Checkbox({
+		text = metadata.name,
+		checked = value,
+		on_change = function(new_value)
+			parent[key] = new_value
+			if metadata.on_change then
+				metadata.on_change(new_value)
+			end
+		end,
+	})
+	return configure(control, metadata, setting_key) --[[@as ui.views.form.Checkbox]]
+end
+
+---@param settings table
+---@param path string[]
 ---@param metadata ui.modals.config.NumberControl
 ---@return ui.views.form.Slider
 function ControlFactory.legacyNumber(settings, path, metadata)
@@ -147,7 +173,8 @@ function ControlFactory.legacyChoice(settings, path, metadata)
 		label = metadata.name,
 		options = assert(metadata.options, "legacy choice options are required"),
 		value = value,
-		width = WIDTH,
+		width = metadata.width or WIDTH,
+		format = metadata.format,
 		on_change = function(new_value)
 			parent[key] = new_value
 			if metadata.on_change then

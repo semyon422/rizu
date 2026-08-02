@@ -22,4 +22,21 @@ function test.boolean_binds_ui_config_and_metadata(t)
 	t:eq(config:getBoolean("show_fps"), true)
 end
 
+---@param t testing.T
+function test.boolean_binds_legacy_setting(t)
+	local settings = {graphics = {unlimited_fps = false}}
+	local changed
+	local control = ControlFactory.legacyBoolean(settings, {"graphics", "unlimited_fps"}, {
+		name = "Unlimited FPS",
+		on_change = function(value)
+			changed = value
+		end,
+	})
+
+	t:eq(control.setting_key, "graphics.unlimited_fps")
+	control:activate()
+	t:eq(settings.graphics.unlimited_fps, true)
+	t:eq(changed, true)
+end
+
 return test
