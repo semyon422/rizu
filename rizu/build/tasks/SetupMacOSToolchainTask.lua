@@ -76,11 +76,7 @@ function SetupMacOSToolchainTask:run(ctx)
 			error("Failed to generate SDK package.")
 		end
 
-		-- The script might leave multiple versions if Xcode contains them (e.g. 13 and 13.1)
-		print("Ensuring SDK is in tarballs/...")
-		ctx.shell:execute(string.format("mv %s/MacOSX*.sdk.tar.xz %s/tarballs/ 2>/dev/null", osxcross_dir, osxcross_dir))
-
-		-- If multiple SDKs found, build.sh fails. Keep only the requested version.
+		-- If multiple SDKs exist, build.sh fails. Keep only the requested version.
 		local items = ctx.fs:getDirectoryItems(osxcross_dir .. "/tarballs") or {}
 		for _, item in ipairs(items) do
 			if item:match("^MacOSX.*%.sdk%.tar%.xz$") and not item:match("MacOSX" .. sdk_version) then

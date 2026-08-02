@@ -38,6 +38,9 @@ function test.packages_only_required_sdk_files(t)
 	t:assert(package_command ~= nil)
 	t:assert(package_command:find("/repo/build/downloads/Xcode_14.2.xip", 1, true) ~= nil)
 	t:assert(package_command:find("/repo/build/deps/osxcross/tarballs/MacOSX13.1.sdk.tar.xz", 1, true) ~= nil)
+	for _, command in ipairs(commands) do
+		t:assert(command:find("mv build/deps/osxcross/MacOSX", 1, true) == nil)
+	end
 end
 
 return test
