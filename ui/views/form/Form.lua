@@ -1,7 +1,7 @@
 local FlowContainer = require("gui.layout.FlowContainer")
 local ScrollView = require("gui.ScrollView")
-local FormSelection = require("ui.views.form.FormSelection")
 local FormControl = require("ui.views.form.FormControl")
+local FormNavigation = require("ui.views.form.FormNavigation")
 local View = require("gui.View")
 
 ---@class ui.views.form.Form.Config : gui.layout.FlowContainer.Config
@@ -11,21 +11,31 @@ local View = require("gui.View")
 ---@operator call: ui.views.form.Form
 ---@overload fun(config: ui.views.form.Form.Config?): ui.views.form.Form
 ---@field rows gui.layout.FlowContainer
----@field selection ui.views.form.FormSelection
+---@field selection_visible boolean
+---@field selection_target_x number?
+---@field selection_target_y number?
+---@field selection_target_width number?
+---@field selection_target_height number?
 ---@field active_dropdown ui.views.form.Dropdown?
 ---@field overlay gui.View?
 ---@field overlay_base_width number?
 ---@field overlay_base_height number?
 ---@field selected_index integer? Index into rows.children
 ---@field selected_control ui.views.form.FormControl?
+---@field navigation ui.views.form.FormNavigation
+---@field private navigation_mouse_x number?
+---@field private navigation_mouse_y number?
 local Form = View + {}
 
 ---@param config ui.views.form.Form.Config?
 function Form:new(config)
 	View.new(self)
 	config = config or {}
-	self.selection = FormSelection()
-	View.add(self, self.selection)
+	self.selection_visible = false
+	self.selection_target_x = nil
+	self.selection_target_y = nil
+	self.selection_target_width = nil
+	self.selection_target_height = nil
 	self.rows = FlowContainer(config)
 	View.add(self, self.rows)
 	self.active_dropdown = nil
@@ -34,6 +44,9 @@ function Form:new(config)
 	self.overlay_base_height = nil
 	self.selected_index = nil
 	self.selected_control = nil
+	self.navigation = FormNavigation.Mouse
+	self.navigation_mouse_x = nil
+	self.navigation_mouse_y = nil
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self.keyboard_input_fallback = true
@@ -142,6 +155,7 @@ function Form:activateDropdown(dropdown)
 		previous:close()
 	end
 	self.active_dropdown = dropdown
+	self:selectControl(dropdown)
 	return true
 end
 
@@ -190,20 +204,29 @@ end
 function Form:clearSelection()
 	self.selected_index = nil
 	self.selected_control = nil
-	self.selection:hide()
+	self.selection_visible = false
+end
+
+---@param navigation ui.views.form.FormNavigation
+function Form:setNavigation(navigation)
+	self.navigation = navigation
+	local inputs = self.screen and self.screen.inputs
+	if inputs then
+		self.navigation_mouse_x = inputs.mouse_x
+		self.navigation_mouse_y = inputs.mouse_y
+	end
 end
 
 ---@param e gui.MouseDownEvent
 ---@return boolean? handled
 function Form:onMouseDown(e)
+	self:setNavigation(FormNavigation.Mouse)
 	if e.button ~= 1 then
 		return
 	end
 	if self.active_dropdown and self.active_dropdown:isMouseOver(e.x, e.y) then
 		return
 	end
-
-	self:clearSelection()
 
 	local closed = self:closeActiveDropdown()
 	if closed and e.target == self then
@@ -273,6 +296,80 @@ local function isFullyVisibleInScrollView(control, scroll_view)
 	local top = math.min(local_top, local_bottom)
 	local bottom = math.max(local_top, local_bottom)
 	return top >= 0 and bottom <= scroll_view.height
+end
+
+---@return boolean selected
+function Form:selectMiddleControl()
+	local scroll_view = self:getScrollView()
+	local center_y = self.screen and self.screen.height / 2 or self.height / 2
+	if scroll_view then
+		local _, top = scroll_view.world_transform:transformPoint(0, 0)
+		local _, bottom = scroll_view.world_transform:transformPoint(0, scroll_view.height)
+		center_y = (top + bottom) / 2
+	end
+
+	local best_index ---@type integer?
+	local best_distance = math.huge
+	for index, row in ipairs(self.rows.children) do
+		if canSelect(row) and (not scroll_view or isFullyVisibleInScrollView(row, scroll_view)) then
+			local _, top = row.world_transform:transformPoint(0, 0)
+			local _, bottom = row.world_transform:transformPoint(0, row.height)
+			local distance = math.abs((top + bottom) / 2 - center_y)
+			if distance < best_distance then
+				best_index = index
+				best_distance = distance
+			end
+		end
+	end
+	if not best_index then
+		return false
+	end
+	local selected = self.rows.children[best_index]
+	---@cast selected ui.views.form.FormControl
+	self.selected_index = best_index
+	self.selected_control = selected
+	return true
+end
+
+---@param mouse_x number
+---@param mouse_y number
+---@return boolean selected
+function Form:selectHoveredControl(mouse_x, mouse_y)
+	local dropdown = self.active_dropdown
+	if dropdown then
+		if dropdown.items then
+			dropdown.items:focusMousePosition(mouse_x, mouse_y)
+		end
+		return self:selectControl(dropdown)
+	end
+	for index, row in ipairs(self.rows.children) do
+		if canSelect(row) and row:isMouseOver(mouse_x, mouse_y) then
+			local clip = row.clip_rect
+			if not clip or clip[3] > 0 and clip[4] > 0
+				and mouse_x >= clip[1] and mouse_x <= clip[1] + clip[3]
+				and mouse_y >= clip[2] and mouse_y <= clip[2] + clip[4]
+			then
+				---@cast row ui.views.form.FormControl
+				self.selected_index = index
+				self.selected_control = row
+				return true
+			end
+		end
+	end
+	return false
+end
+
+---@return boolean entered
+function Form:startKeyboardNavigation()
+	if self.navigation == FormNavigation.Keyboard then
+		return false
+	end
+	self:setNavigation(FormNavigation.Keyboard)
+	local inputs = self.screen and self.screen.inputs
+	if not inputs or not self:selectHoveredControl(inputs.mouse_x, inputs.mouse_y) then
+		self:selectMiddleControl()
+	end
+	return true
 end
 
 ---@param offset integer
@@ -369,13 +466,14 @@ end
 ---@param e gui.KeyDownEvent
 ---@return boolean? handled
 function Form:onKeyDown(e)
-	if e.key == "escape" then
-		return self:closeActiveDropdown()
-	end
-
 	local inputs = self.screen and self.screen.inputs
 	if inputs and inputs.pointer_gesture and inputs.pointer_gesture.dragging then
 		return false
+	end
+	local entered_keyboard_navigation = self:startKeyboardNavigation()
+
+	if e.key == "escape" then
+		return self:closeActiveDropdown()
 	end
 
 	local selected = self.selected_control
@@ -387,7 +485,14 @@ function Form:onKeyDown(e)
 	end
 
 	local offset = e.key == "down" and 1 or e.key == "up" and -1 or nil
-	if not offset or not self:moveSelection(offset) then
+	if not offset then
+		return false
+	end
+	if entered_keyboard_navigation then
+		if not self.selected_control then
+			return false
+		end
+	elseif not self:moveSelection(offset) then
 		return false
 	end
 	if inputs and inputs.keyboard_focus then
@@ -403,9 +508,16 @@ end
 
 function Form:updateSelection()
 	self:syncSelection()
+	local inputs = self.screen and self.screen.inputs
+	if self.navigation == FormNavigation.Mouse and inputs then
+		self:selectHoveredControl(inputs.mouse_x, inputs.mouse_y)
+	end
+	if not self.selected_control then
+		self:selectMiddleControl()
+	end
 	local selected = self.selected_control
 	if not selected then
-		self.selection:hide()
+		self.selection_visible = false
 		return
 	end
 
@@ -423,11 +535,28 @@ function Form:updateSelection()
 		min_x, min_y = math.min(min_x, x), math.min(min_y, y)
 		max_x, max_y = math.max(max_x, x), math.max(max_y, y)
 	end
-	self.selection:moveToRect(min_x, min_y, max_x - min_x, max_y - min_y)
+
+	self.selection_target_x = min_x
+	self.selection_target_y = min_y
+	self.selection_target_width = max_x - min_x
+	self.selection_target_height = max_y - min_y
+	self.selection_visible = true
 end
 
 ---@param dt number
 function Form:update(dt)
+	local inputs = self.screen and self.screen.inputs
+	if inputs then
+		local mouse_x, mouse_y = inputs.mouse_x, inputs.mouse_y
+		if self.navigation_mouse_x ~= nil
+			and (mouse_x ~= self.navigation_mouse_x or mouse_y ~= self.navigation_mouse_y)
+		then
+			self:setNavigation(FormNavigation.Mouse)
+		end
+		self.navigation_mouse_x = mouse_x
+		self.navigation_mouse_y = mouse_y
+	end
+
 	local dropdown = self.active_dropdown
 	if dropdown and (dropdown.parent ~= self.rows or not dropdown:canBeSelected()) then
 		self:closeActiveDropdown()

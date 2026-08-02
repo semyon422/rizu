@@ -1,3 +1,4 @@
+local FormNavigation = require("ui.views.form.FormNavigation")
 local View = require("gui.View")
 
 ---Base class for controls eligible for Form keyboard navigation.
@@ -56,7 +57,7 @@ function FormControl:disableFormNavigation()
 	end
 	if parent then
 		---@cast parent ui.views.form.Form
-		parent:clearSelection()
+		parent:setNavigation(FormNavigation.Mouse)
 	end
 end
 

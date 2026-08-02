@@ -1,5 +1,6 @@
 local Form = require("ui.views.form.Form")
 local FormControl = require("ui.views.form.FormControl")
+local FormNavigation = require("ui.views.form.FormNavigation")
 local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local ScrollView = require("gui.ScrollView")
@@ -50,19 +51,20 @@ function test.selection_tracks_selected_control(t)
 	form:anchorFixed(0, 0, 100, 50)
 	form:relayout()
 
+	form:setNavigation(FormNavigation.Keyboard)
 	form:moveSelection(1)
 	form:updateSelection()
-	t:eq(form.selection.visible, true)
-	t:eq(form.selection.offset_y, 0)
-	t:eq(form.selection.offset_max[1] - form.selection.offset_min[1], 100)
+	t:eq(form.selection_visible, true)
+	t:eq(form.selection_target_x, 0)
+	t:eq(form.selection_target_y, 0)
+	t:eq(form.selection_target_width, 100)
+	t:eq(form.selection_target_height, 20)
 
 	form:moveSelection(1)
 	form:updateSelection()
-	t:eq(form.selection.offset_min[2], 0)
-	t:eq(form.selection.offset_max[1] - form.selection.offset_min[1], 80)
-	t:eq(form.selection.offset_y, 0)
-	form.selection:finishTransforms()
-	t:eq(form.selection.offset_y, 20)
+	t:eq(form.selection_target_y, 20)
+	t:eq(form.selection_target_width, 80)
+	t:eq(form.selection_target_height, 30)
 end
 
 ---@param t testing.T
@@ -140,16 +142,61 @@ function test.removing_last_control_selects_previous_control(t)
 end
 
 ---@param t testing.T
-function test.mouse_input_clears_keyboard_selection(t)
+function test.mouse_input_switches_mode_and_keeps_selection_visible(t)
 	local form = Form()
-	local control = form:add(FormControl())
+	local control = form:add(FormControl():setSize(100, 20))
+	form:setNavigation(FormNavigation.Keyboard)
 	form:selectControl(control)
+	form:updateSelection()
 
 	control:onMouseDown({button = 1})
 
-	t:eq(form.selected_control, nil)
-	t:eq(form.selected_index, nil)
-	t:eq(form.selection.visible, false)
+	t:eq(form.navigation, FormNavigation.Mouse)
+	t:eq(form.selected_control, control)
+	t:eq(form.selection_visible, true)
+end
+
+---@param t testing.T
+function test.mouse_navigation_tracks_hovered_control(t)
+	local form = Form({direction = "column"})
+	local first = form:add(FormControl():setSize(100, 20))
+	local second = form:add(FormControl():setSize(100, 20))
+	local screen = Screen()
+	local inputs = Inputs()
+	screen:acceptInputs(inputs)
+	screen.root:add(form)
+	screen:resize(100, 40)
+	inputs.mouse_x = 50
+	inputs.mouse_y = 30
+
+	form:updateSelection()
+
+	t:eq(form.navigation, FormNavigation.Mouse)
+	t:eq(form.selected_control, second)
+	t:eq(form.selection_target_y, 20)
+	t:eq(first.parent, form.rows)
+end
+
+---@param t testing.T
+function test.keyboard_navigation_starts_at_hovered_control(t)
+	local form = Form({direction = "column"})
+	local first = form:add(FormControl():setSize(100, 20))
+	local second = form:add(FormControl():setSize(100, 20))
+	local screen = Screen()
+	local inputs = Inputs()
+	screen:acceptInputs(inputs)
+	screen.root:add(form)
+	screen:resize(100, 40)
+	inputs.mouse_x = 50
+	inputs.mouse_y = 30
+
+	form:onKeyDown({key = "right"})
+	form:updateSelection()
+
+	t:eq(form.navigation, FormNavigation.Keyboard)
+	t:eq(form.selected_control, second)
+	t:eq(form.selection_visible, true)
+	t:eq(first.parent, form.rows)
 end
 
 ---@param t testing.T
@@ -174,6 +221,7 @@ function test.keyboard_movement_clears_keyboard_focus(t)
 	screen.root:add(form)
 	screen:resize(100, 100)
 	form:selectControl(first)
+	form:setNavigation(FormNavigation.Keyboard)
 	inputs:setKeyboardFocus(first, {control = false, shift = false, alt = false, super = false})
 
 	form:onKeyDown({
@@ -252,7 +300,7 @@ function test.direct_child_overlay_can_remove_itself(t)
 	overlay.parent:remove(overlay)
 
 	t:eq(overlay.parent, nil)
-	t:eq(#form.children, 2)
+	t:eq(#form.children, 1)
 end
 
 ---@param t testing.T

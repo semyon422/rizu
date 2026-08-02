@@ -105,6 +105,22 @@ function DropdownItems:moveFocus(offset)
 	return true
 end
 
+---@param mouse_x number
+---@param mouse_y number
+---@return boolean focused
+function DropdownItems:focusMousePosition(mouse_x, mouse_y)
+	if not self:isMouseOver(mouse_x, mouse_y) then
+		return false
+	end
+	local _, y = self.world_transform:inverseTransformPoint(mouse_x, mouse_y)
+	local display_index = math.floor((y - BODY_Y) / self.row_height) + 1
+	if y < BODY_Y or display_index > #self.options then
+		return false
+	end
+	self:focusDisplayIndex(display_index)
+	return true
+end
+
 ---@return boolean selected
 function DropdownItems:selectFocused()
 	local display_index = self.focused_display_index
