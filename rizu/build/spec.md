@@ -26,7 +26,7 @@ Each platform build uses `BuildTargetTask` and a validated declarative step spec
 `Executor` dispatches actions to modules under `deps/actions/` instead of owning all action logic in one file. This reduces coupling and makes new action types straightforward to add.
 
 ### ADR-3: Native Modules As Declarative Steps
-Native runtime modules are modeled as ordinary deps-engine steps with explicit inputs, outputs, and bin publication. This keeps the pipeline declarative end to end and avoids executor/evaluator special cases.
+Native runtime modules are modeled as ordinary deps-engine steps with explicit inputs, outputs, and bin publication. This keeps the pipeline declarative end to end and avoids executor/evaluator special cases. For macOS, source-built prefix dependencies are ordered before shared binary and module steps because the BASS FFmpeg plugin and video module consume the locally built FFmpeg headers and libraries.
 
 ### ADR-4: Atomic Packaging Tasks
 Packaging is split into independent tasks:
@@ -83,7 +83,7 @@ The server archive contains its own release metadata. The outer `release.json` r
 
 Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. When an extract action runs, it recreates the destination directory before unpacking. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
 
-Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
+Temporary extraction directories belong under `build/deps` unless they are final runtime outputs. macOS toolchain setup selectively streams only the requested SDK and libc++ headers out of the Xcode payload; it must not unpack the complete Xcode application because that requires substantially more temporary disk space than the release inputs.
 
 FFTW 3.3.10 declares an obsolete CMake minimum that CMake 4 rejects before configuration. Its Linux configure action sets `CMAKE_POLICY_VERSION_MINIMUM=4.0`, explicitly opting the pinned source into CMake 4 policy behavior. CMake 4 is therefore the supported host baseline for this recipe.
 

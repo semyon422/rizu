@@ -111,6 +111,18 @@ function test.includes_local_bass_ffmpeg_source_build_for_all_targets(t)
 end
 
 ---@param t testing.T
+function test.macos_source_dependencies_precede_consumers(t)
+	local spec = DependencySpec.load("macos")
+	local positions = {}
+	for i, step in ipairs(spec.steps) do
+		positions[step.id] = i
+	end
+	t:assert(positions.macos_ffmpeg_source < positions.dep_bass_ffmpeg)
+	t:assert(positions.macos_ffmpeg_source < positions.module_video_artifact)
+	t:assert(positions.macos_prepare_prefix < positions.macos_ffmpeg_source)
+end
+
+---@param t testing.T
 function test.macos_native_steps_use_osxcross_and_track_ffmpeg_inputs(t)
 	local spec = DependencySpec.load("macos")
 	local video = findStep(spec, "module_video_artifact")

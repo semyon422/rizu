@@ -48,7 +48,7 @@ function SetupMacOSToolchainTask:run(ctx)
 	-- Ensure osxcross submodules are present (needed for build/xar/xar and pbzx sources).
 	ctx.shell:execute(string.format("git -C %s submodule update --init --recursive", osxcross_dir))
 
-	-- 2.1 osxcross manages helper tool builds internally (xar/pbzx) via tools/gen_sdk_package_pbzx.sh.
+	-- osxcross manages the xar and pbzx helper builds internally.
 
 	-- 3. Generate the SDK package
 	local sdk_tarball = osxcross_dir .. "/tarballs/MacOSX" .. sdk_version .. ".sdk.tar.xz"
@@ -60,7 +60,18 @@ function SetupMacOSToolchainTask:run(ctx)
 
 		-- Use our built tools
 		local env = string.format("PATH=%s/target/bin:$PATH", full_osxcross_dir)
-		local ok = ctx.shell:execute(string.format("%s cd %s && ./tools/gen_sdk_package_pbzx.sh %q", env, osxcross_dir, xip_abs))
+		ctx.shell:execute(string.format(
+			"%s bash -lc 'cd %q && source tools/tools.sh && mkdir -p \"$BUILD_DIR\" && cd \"$BUILD_DIR\" && build_xar && build_pbxz'",
+			env,
+			osxcross_dir
+		))
+		local ok = ctx.shell:execute(string.format(
+			"./rizu/build/scripts/package_macos_sdk.sh %q %q %q %q",
+			full_osxcross_dir,
+			xip_abs,
+			sdk_version,
+			root_abs .. "/" .. sdk_tarball
+		))
 		if not ok then
 			error("Failed to generate SDK package.")
 		end

@@ -22,7 +22,10 @@ local Macos = {}
 ---@return rizu.build.deps.Spec
 function Macos.build()
 	local target = "macos"
-	local spec = Common.buildShared(target)
+	local spec = {
+		target = target,
+		steps = {},
+	}
 	local prefix = "${deps_dir}/" .. BuildConfig.getLocalPrefixDir("macos")
 	local prefix_abs = "${root_abs}/" .. BuildConfig.ROOT_DIRS.deps .. "/" .. BuildConfig.getLocalPrefixDir("macos")
 	local tc_bin = MacOSCross.TOOLCHAIN_BIN
@@ -36,6 +39,8 @@ function Macos.build()
 	FFTWSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 	SQLiteSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 
+	-- Shared binary/module prerequisites consume the source-built macOS prefix.
+	Common.addShared(target, spec)
 	ModuleDirsSpec.add(target, spec)
 	SevenZipModuleSpec.add(target, spec)
 	VideoModuleSpec.add(target, spec)
