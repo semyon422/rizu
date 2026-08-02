@@ -130,9 +130,11 @@ function Deployment:prepareRoot()
 		quote(root .. "/server-state/temp"),
 		quote(root .. "/public/releases"),
 	}, " "))
-	for _, name in ipairs({"app_config.lua", "bancho_config.lua", "nginx.conf", "nginx_config.lua"}) do
+	for _, name in ipairs({"app_config.lua", "bancho_config.lua", "nginx_config.lua"}) do
 		self.shell:execute("test -f " .. quote(root .. "/server-state/" .. name))
 	end
+	self.shell:execute("make nginx-conf")
+	self.shell:execute("test -f " .. quote(root .. "/server-state/nginx.conf"))
 end
 
 ---@param release_dir string

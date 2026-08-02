@@ -66,6 +66,19 @@ function test.build_deploy_tests_builds_and_deploys(t)
 end
 
 ---@param t testing.T
+function test.prepare_root_renders_generated_nginx_config(t)
+	local deployment, shell = createDeployment()
+	deployment:prepareRoot()
+	local commands = joinedCommands(shell)
+	t:assert(commands:find('test -f "/srv/rizu/server-state/app_config.lua"', 1, true))
+	t:assert(commands:find('test -f "/srv/rizu/server-state/bancho_config.lua"', 1, true))
+	t:assert(commands:find('test -f "/srv/rizu/server-state/nginx_config.lua"', 1, true))
+	local render_at = assert(commands:find("make nginx-conf", 1, true))
+	local check_at = assert(commands:find('test -f "/srv/rizu/server-state/nginx.conf"', 1, true))
+	t:assert(render_at < check_at)
+end
+
+---@param t testing.T
 function test.verifies_all_manifest_artifacts(t)
 	local deployment, shell = createDeployment()
 	local artifact = {path = "artifact", sha256 = string.rep("a", 64), size = 12}
