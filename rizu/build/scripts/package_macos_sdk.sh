@@ -16,6 +16,7 @@ payload_dir="$work_dir/payload"
 sdk_name="MacOSX$sdk_version.sdk"
 sdk_source_name="MacOSX.sdk"
 sdk_path="Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/$sdk_source_name"
+all_sdks_path="Xcode.app/Contents/Developer/Platforms/*.platform/Developer/SDKs/*"
 libcxx_path="Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"
 
 cleanup() {
@@ -31,7 +32,7 @@ mkdir -p "$payload_dir" "$(dirname "$output")"
 cd "$payload_dir"
 "$osxcross_dir/target/SDK/tools/bin/pbzx" -n "$content" |
 	cpio -idm --quiet \
-		"./$sdk_path/*" \
+		"./$all_sdks_path" \
 		"./$libcxx_path/*"
 
 mv "$sdk_path" "$sdk_name"

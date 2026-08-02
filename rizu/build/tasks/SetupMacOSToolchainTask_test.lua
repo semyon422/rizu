@@ -24,13 +24,17 @@ function test.packages_only_required_sdk_files(t)
 
 	SetupMacOSToolchainTask():run({fs = fs, shell = shell})
 
+	local bootstrap_command
 	local package_command
 	for _, command in ipairs(commands) do
-		if command:find("package_macos_sdk.sh", 1, true) then
+		if command:find("gen_sdk_package_pbzx.sh", 1, true) then
+			bootstrap_command = command
+		elseif command:find("package_macos_sdk.sh", 1, true) then
 			package_command = command
-			break
 		end
 	end
+	t:assert(bootstrap_command ~= nil)
+	t:assert(bootstrap_command:find("build_xar && build_pbxz", 1, true) ~= nil)
 	t:assert(package_command ~= nil)
 	t:assert(package_command:find("/repo/build/downloads/Xcode_14.2.xip", 1, true) ~= nil)
 	t:assert(package_command:find("/repo/build/deps/osxcross/tarballs/MacOSX13.1.sdk.tar.xz", 1, true) ~= nil)

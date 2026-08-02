@@ -61,7 +61,7 @@ function SetupMacOSToolchainTask:run(ctx)
 		-- Use our built tools
 		local env = string.format("PATH=%s/target/bin:$PATH", full_osxcross_dir)
 		ctx.shell:execute(string.format(
-			"%s bash -lc 'cd %q && source tools/tools.sh && mkdir -p \"$BUILD_DIR\" && cd \"$BUILD_DIR\" && build_xar && build_pbxz'",
+			"%s bash -c 'cd %q && source tools/tools.sh && mkdir -p \"$BUILD_DIR\" && build_xar && build_pbxz' gen_sdk_package_pbzx.sh",
 			env,
 			osxcross_dir
 		))
