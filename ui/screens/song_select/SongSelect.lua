@@ -2,6 +2,7 @@ local Screen = require("gui.Screen")
 local View = require("gui.View")
 local TrackContainer = require("gui.layout.TrackContainer")
 local FlowContainer = require("gui.layout.FlowContainer")
+local StackContainer = require("gui.layout.StackContainer")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local BackgroundPanel = require("ui.screens.song_select.BackgroundPanel")
@@ -12,6 +13,7 @@ local InfoPanel = require("ui.screens.song_select.InfoPanel")
 local DifficultyPanel = require("ui.screens.song_select.DifficultyPanel")
 local GameplayModifiers = require("ui.screens.song_select.GameplayModifiers")
 local TimeRate = require("ui.screens.song_select.TimeRate")
+local Footer = require("ui.screens.song_select.Footer")
 local FooterButton = require("ui.screens.song_select.FooterButton")
 local FooterCell = require("ui.screens.song_select.FooterCell")
 local PlayerInfo = require("ui.views.PlayerInfo")
@@ -24,6 +26,9 @@ local ReplayBaseFormatter = require("ui.formatters.ReplayBaseFormatter")
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
 local SongSelect = Screen + {}
+
+local HEADER_HEIGHT = 50
+local FOOTER_HEIGHT = 80
 
 ---@param ui ui.UserInterface
 function SongSelect:new(ui)
@@ -55,9 +60,12 @@ function SongSelect:new(ui)
 
 	self.back_button = FooterButton(
 		Colors.back_button,
-		Resources.sprites.footer_button_left,
+		true,
 		Colors.text,
-		"BACK",
+		{
+			icon = Resources.sprites.icon_chevron_left,
+			text = "BACK",
+		},
 		function()
 			self.ui:setScreen(self.ui.main_menu, true)
 		end
@@ -65,9 +73,13 @@ function SongSelect:new(ui)
 
 	self.play_button = FooterButton(
 		Colors.play_button,
-		Resources.sprites.footer_button_right,
-		{0, 0, 0, 1},
-		"PLAY",
+		true,
+		Colors.text,
+		{
+			icon = Resources.sprites.icon_play,
+			text = "PLAY",
+			reverse = true,
+		},
 		function()
 			if self.ui.game.chartSelector:chartExists() then
 				self.ui:setScreen(self.ui.chart_loading, true)
@@ -77,42 +89,27 @@ function SongSelect:new(ui)
 
 	self.mods_button = FooterButton(
 		Colors.green,
-		Resources.sprites.footer_button_small,
+		false,
 		Colors.text,
-		Resources.sprites.icon_puzzle
+		{
+			icon = Resources.sprites.icon_puzzle,
+			text = "MODS"
+		}
 	)
 
 	self.skins_button = FooterButton(
 		Colors.blue,
-		Resources.sprites.footer_button_small,
+		false,
 		Colors.text,
-		Resources.sprites.icon_brush
-	)
-
-	self.inputs_button = FooterButton(
-		Colors.elements,
-		Resources.sprites.footer_button_small,
-		Colors.text,
-		Resources.sprites.icon_keyboard
-	)
-
-	self.filters_button = FooterButton(
-		Colors.elements,
-		Resources.sprites.footer_button_small,
-		Colors.text,
-		Resources.sprites.icon_funnel
-	)
-
-	self.download_button = FooterButton(
-		Colors.elements,
-		Resources.sprites.footer_button_small,
-		Colors.text,
-		Resources.sprites.icon_download
+		{
+			icon = Resources.sprites.icon_brush,
+			text = "SKINS"
+		}
 	)
 
 	self.footer_right = FlowContainer({
 		direction = "row",
-		align = 1,
+		align = 0.5,
 		gap = 10,
 	})
 
@@ -178,13 +175,12 @@ function SongSelect:exit()
 end
 
 function SongSelect:createContent()
-	self.container:add(self:createHeader(), 56)
-	self.container:add(View(), 20)
+	self.container:add(self:createHeader(), HEADER_HEIGHT)
 
 	local body = self.container:add(TrackContainer({
 		direction = "row",
-		padding = {0, 20, 0, 20},
-		align = 0.5
+		padding = {0, 43, 0, 0},
+		align = 0.5,
 	}), "*")
 
 	body:add(View(), "*")
@@ -193,8 +189,7 @@ function SongSelect:createContent()
 	body:add(self:createRightColumn(), "46%")
 	body:add(View(), "*")
 
-	self.container:add(View(), 20)
-	self.container:add(self:createFooter(), 56)
+	self.container:add(self:createFooter(), FOOTER_HEIGHT)
 end
 
 function SongSelect:createLeftColumn()
@@ -245,28 +240,22 @@ function SongSelect:createRightColumn()
 end
 
 function SongSelect:createHeader()
-	local header = View()
-	header:add(Label({
-		font_name = "regular",
-		font_size = 24,
-		color = Colors.text_muted,
-		text = "Session time"
-	})):setAlignment(0.5, 0.5)
+	local header = Rectangle(Colors.panel)
 	return header
 end
 
 function SongSelect:createFooter()
-	local footer = View()
+	local container = StackContainer({padding = {20, 0, 20, 0}, align_items_y = "center"})
+	local footer = container:add(Footer())
 
-	local left = footer:add(FlowContainer({direction = "row", align = 1, gap = 10}))
+	local left = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10}))
 	left:add(self.back_button)
 	left:add(self.mods_button)
 	left:add(self.skins_button)
-	left:add(self.inputs_button)
-	left:add(self.filters_button)
-	left:add(self.download_button)
 	left:fitContent()
 	left:setAlignment(0, 1)
+
+	footer:add(self.session_info):setAlignment(0.5, 0.5)
 
 	footer:add(self.footer_right)
 	self.gameplay_modifiers_cell = self.footer_right:add(FooterCell(self.gameplay_modifiers))
@@ -275,7 +264,7 @@ function SongSelect:createFooter()
 	self.footer_right:fitContent()
 	self.footer_right:setAlignment(1, 1)
 
-	return footer
+	return container
 end
 
 ---@param chartview rizu.library.LocatedChartview

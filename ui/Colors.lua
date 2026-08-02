@@ -50,7 +50,7 @@ local Colors = {
 	blue = hex("435FA7"),
 
 	back_button = hex("F64949"),
-	play_button = hex("49F69D"),
+	play_button = hex("7DB435"),
 }
 
 return Colors

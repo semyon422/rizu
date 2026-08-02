@@ -72,6 +72,7 @@ function Config:new(ui_config, legacy_settings)
 	self:setOpacity(0)
 	self:setVisible(false)
 	self:setClip(true)
+	self.handles_mouse_input = true
 
 	self.section_list = FlowContainer({direction = "column", gap = 4, padding = 20})
 	self.section_list:add(SectionItem(self.all_section, function(selected_section)
