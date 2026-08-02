@@ -36,10 +36,14 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           REQUESTED_COMMIT: ${{ inputs.commit || github.sha }}
         run: |
-          case "$REQUESTED_COMMIT" in
-            [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
-            *) echo "commit must be a full lowercase SHA" >&2; exit 2 ;;
-          esac
+          if [[ ! "$REQUESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit must be a full lowercase SHA" >&2
+            exit 2
+          fi
+          if [[ -z "$DEPLOY_HOST" || -z "$DEPLOY_USER" ]]; then
+            echo "DEPLOY_HOST and DEPLOY_USER production secrets must be configured" >&2
+            exit 2
+          fi
           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd /home/semyon422/rizu && ./deploy.lua build-deploy '$REQUESTED_COMMIT'"
 
