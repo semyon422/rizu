@@ -114,6 +114,13 @@ function SongSelect:new(ui)
 		gap = 10,
 	})
 
+	self.selected_location = Label({
+		font_name = "regular",
+		font_size = 24,
+		text = "Displaying the entire library",
+		color = Colors.text_muted,
+	})
+
 	local select_config = self.ui.game.persistence.configModel.configs.select
 	self.search = Textbox({
 		text = select_config.filterString,
@@ -164,6 +171,7 @@ function SongSelect:enter()
 	self.ui.game.scoreSelector:onChanged(self)
 
 	local chartview = chart_selector.chartview
+	self:updateSelectedLocation(chartview)
 	if chartview then
 		self:onChartviewUpdate(chartview)
 		self:updateInfo()
@@ -222,12 +230,7 @@ function SongSelect:createRightColumn()
 
 	local heading = View()
 
-	heading:add(Label({
-		font_name = "regular",
-		font_size = 24,
-		text = "Displaying the entire library",
-		color = Colors.text_muted,
-	})):setAlignment(0, 0.5)
+	heading:add(self.selected_location):setAlignment(0, 0.5)
 
 	heading:add(Label({
 		font_name = "regular",
@@ -288,6 +291,12 @@ function SongSelect:createFooter()
 	return container
 end
 
+---@param chartview rizu.library.LocatedChartview?
+function SongSelect:updateSelectedLocation(chartview)
+	local location = chartview and self.ui.game.library.locations.locationsById[chartview.location_id]
+	self.selected_location:setText(location and location.name or "Displaying the entire library")
+end
+
 ---@param chartview rizu.library.LocatedChartview
 function SongSelect:onChartviewUpdate(chartview)
 	self.chartview_formatter:setChartview(chartview)
@@ -312,8 +321,11 @@ end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
 function SongSelect:receive(event)
-	if event.type == "chartview_changed" and event.chartview and event.chartview.hash then
-		self:onChartviewUpdate(event.chartview)
+	if event.type == "chartview_changed" and event.chartview.hash then
+		self:updateSelectedLocation(event.chartview)
+		if event.chartview and event.chartview.hash then
+			self:onChartviewUpdate(event.chartview)
+		end
 	end
 
 	if event.type == "selected_set_changed" then
