@@ -4,7 +4,7 @@ pprint.export()
 
 local App = require("sea.app.App")
 
-local app_config = require("app_config")
+local app_config = require("server-state.app_config")
 
 ---@type sea.App
 local app

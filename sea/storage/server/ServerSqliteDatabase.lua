@@ -10,7 +10,7 @@ local io_util = require("io_util")
 ---@operator call: sea.ServerSqliteDatabase
 local ServerSqliteDatabase = class()
 
-ServerSqliteDatabase.path = "server.db"
+ServerSqliteDatabase.path = "server-state/server.db"
 
 local user_version = 8
 

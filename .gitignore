@@ -51,6 +51,7 @@ reqprof
 typecheck
 lapis/*
 tree
+server-state/
 logs
 storages
 nginx.conf.compiled

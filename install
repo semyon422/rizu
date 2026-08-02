@@ -13,7 +13,7 @@ luarocks install nginx-lua-prometheus
 luarocks install enet
 luarocks install lua-resty-nats-next
 
-mkdir -p logs
-mkdir -p temp
-mkdir -p storages/charts
-mkdir -p storages/replays
+mkdir -p server-state/logs
+mkdir -p server-state/temp
+mkdir -p server-state/storages/charts
+mkdir -p server-state/storages/replays

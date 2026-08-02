@@ -28,9 +28,9 @@ return BanchoConfig:new({
 	mirror_download_endpoint = "",  -- e.g. "https://quasibit.nebelwelt.net/d"
 
 	--- File storage directories
-	beatmaps_path = "storages/charts",
-	replays_path = "storages/replays",
-	screenshots_path = "storages/screenshots",
+	beatmaps_path = "server-state/storages/charts",
+	replays_path = "server-state/storages/replays",
+	screenshots_path = "server-state/storages/screenshots",
 
 	--- Maximum number of concurrent multiplayer rooms
 	max_matches = 64,

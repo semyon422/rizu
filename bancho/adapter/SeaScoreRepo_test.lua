@@ -176,8 +176,8 @@ function test.submit_score_creates_canonical_chartplay(t)
 	t:eq(#scores, 1)
 	t:eq(decoded.hash, hash)
 	t:eq(#decoded.frames, #replay.frames)
-	t:eq(ctx.fs:read("storages/charts/" .. hash), sample_osu)
-	t:ne(ctx.fs:getInfo("storages/replays"), nil)
+	t:eq(ctx.fs:read("server-state/storages/charts/" .. hash), sample_osu)
+	t:ne(ctx.fs:getInfo("server-state/storages/replays"), nil)
 end
 
 ---@param t testing.T
@@ -277,7 +277,7 @@ function test.submit_score_hydrates_missing_chart_data(t)
 	ctx.db:close()
 
 	t:eq(score_id > 0, true)
-	t:eq(ctx.fs:read("storages/charts/" .. hash), sample_osu)
+	t:eq(ctx.fs:read("server-state/storages/charts/" .. hash), sample_osu)
 end
 
 return test

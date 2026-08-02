@@ -9,8 +9,8 @@ function test.load_local_osu_file(t)
 
 	-- Create a fake filesystem with a sample .osu file
 	local fs = FakeFilesystem()
-	fs:createDirectory("storages/charts")
-	fs:write("storages/charts/169f143ffb944145fafc9250371162c9", [[
+	fs:createDirectory("server-state/storages/charts")
+	fs:write("server-state/storages/charts/169f143ffb944145fafc9250371162c9", [[
 osu file format v14
 
 [General]

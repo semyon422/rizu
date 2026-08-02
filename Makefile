@@ -29,39 +29,47 @@ help:
 	@echo "  make deploy          Update and start the deployment"
 
 config:
-	@if [ ! -e app_config.lua ]; then \
-		cp sea/app/AppConfig.lua app_config.lua; \
-		echo "Created app_config.lua"; \
+	@mkdir -p server-state
+	@if [ ! -e server-state/app_config.lua ]; then \
+		cp sea/app/AppConfig.lua server-state/app_config.lua; \
+		echo "Created server-state/app_config.lua"; \
 		echo "Replace its placeholder session secret before starting the server."; \
 	else \
-		echo "app_config.lua already exists"; \
+		echo "server-state/app_config.lua already exists"; \
 	fi
-	@if [ ! -e nginx_config.lua ]; then \
-		cp nginx_config.example.lua nginx_config.lua; \
-		echo "Created nginx_config.lua"; \
+	@if [ ! -e server-state/nginx_config.lua ]; then \
+		cp nginx_config.example.lua server-state/nginx_config.lua; \
+		echo "Created server-state/nginx_config.lua"; \
 	else \
-		echo "nginx_config.lua already exists"; \
+		echo "server-state/nginx_config.lua already exists"; \
 	fi
 
 nginx-conf: config
 	@OR_ROOT=/usr/local/openresty \
 		LJ_ROOT=/usr/local/openresty/luajit \
+		NGINX_CONFIG_PATH=server-state/nginx_config.lua \
+		NGINX_OUTPUT_PATH=server-state/nginx.conf \
+		NGINX_MIME_TYPES_PATH=/app/aqua/web/nginx/mime.types \
+		NGINX_ERROR_LOG_PATH=/app/server-state/logs/error.log \
+		NGINX_ACCESS_LOG_PATH=/app/server-state/logs/access.log \
+		NGINX_PID_PATH=/app/server-state/logs/nginx.pid \
+		NGINX_TEMP_PATH=/app/server-state/temp \
 		PATH="$$PWD/tree/bin:$$PATH" \
 		./luajit aqua/web/nginx/compile.lua
-	@echo "Rendered nginx.conf"
+	@echo "Rendered server-state/nginx.conf"
 
 preflight: nginx-conf
-	@test -f app_config.lua || { echo "missing app_config.lua; run make config" >&2; exit 1; }
-	@test -f nginx.conf || { echo "missing nginx.conf; run make nginx-conf" >&2; exit 1; }
-	@test -f nginx_config.lua || { echo "missing nginx_config.lua; run make config" >&2; exit 1; }
+	@test -f server-state/app_config.lua || { echo "missing server-state/app_config.lua; run make config" >&2; exit 1; }
+	@test -f server-state/nginx.conf || { echo "missing server-state/nginx.conf; run make nginx-conf" >&2; exit 1; }
+	@test -f server-state/nginx_config.lua || { echo "missing server-state/nginx_config.lua; run make config" >&2; exit 1; }
 	@test -f bin/linux64/lib7z.so || { echo "missing bin/linux64/lib7z.so" >&2; exit 1; }
 	@test -f bin/linux64/libiconv.so || { echo "missing bin/linux64/libiconv.so" >&2; exit 1; }
 	@test -f bin/linux64/libsqlite3.so || { echo "missing bin/linux64/libsqlite3.so" >&2; exit 1; }
 	@test -f bin/linux64/libminacalc.so || { echo "missing bin/linux64/libminacalc.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/bcrypt.so || { echo "missing tree/lib/lua/5.1/bcrypt.so" >&2; exit 1; }
 	@test -f tree/share/lua/5.1/resty/nats/client.lua || { echo "missing tree/share/lua/5.1/resty/nats/client.lua" >&2; exit 1; }
-	@test -w . || { echo "checkout must be writable for SQLite WAL files and runtime logs" >&2; exit 1; }
-	@test ! -e server.db || test -w server.db || { echo "server.db is not writable" >&2; exit 1; }
+	@test -w server-state || { echo "server-state must be writable for SQLite WAL files and runtime logs" >&2; exit 1; }
+	@test ! -e server-state/server.db || test -w server-state/server.db || { echo "server-state/server.db is not writable" >&2; exit 1; }
 	@echo "Prebuilt runtime artifacts are ready"
 
 validate:

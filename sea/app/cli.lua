@@ -30,7 +30,7 @@ local ActivityTimezones = require("sea.activity.ActivityTimezones")
 coroutine.wrap = require("icc.co").wrap
 
 local App = require("sea.app.App")
-local app_config = require("app_config")
+local app_config = require("server-state.app_config")
 local app = App(app_config)
 
 local domain = app.domain
@@ -354,7 +354,7 @@ function cmds.migrate()
 	src_db:open("backend", "username", "password", "127.0.0.1", 3306)
 
 	local dst_db = ServerSqliteDatabase(LjsqliteDatabase())
-	dst_db.path = "server.db"
+	dst_db.path = "server-state/server.db"
 	dst_db:open()
 
 	dst_db.db:exec("BEGIN")

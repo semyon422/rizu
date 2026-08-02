@@ -4,6 +4,10 @@ local config = {
 	client_max_body_size = "10M",
 	handler = "sea.app.handler",
 	proxied = true,
+	mime_types_path = "/app/aqua/web/nginx/mime.types",
+	error_log_path = "/app/server-state/logs/error.log",
+	pid_path = "/app/server-state/logs/nginx.pid",
+	temp_path = "/app/server-state/temp",
 	package_path = {
 		"libchart",
 		"3rd-deps/lua",

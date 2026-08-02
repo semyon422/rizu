@@ -7,7 +7,7 @@ local class = require("class")
 local RawOsu = require("chart.format.osu.RawOsu")
 local RankedStatus = require("bancho.constants.RankedStatus")
 
-local CHARTS_DIR = "storages/charts"
+local CHARTS_DIR = "server-state/storages/charts"
 
 ---@class bancho.beatmap.BeatmapLoader
 ---@operator call: bancho.beatmap.BeatmapLoader

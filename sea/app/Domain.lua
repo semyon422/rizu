@@ -43,8 +43,8 @@ function Domain:new(repos, app_config, fs)
 	self.users_repo = repos.users_repo
 	self.charts_repo = repos.charts_repo
 
-	self.charts_storage = FolderStorage(fs, "storages/charts")
-	self.replays_storage = FolderStorage(fs, "storages/replays")
+	self.charts_storage = FolderStorage(fs, "server-state/storages/charts")
+	self.replays_storage = FolderStorage(fs, "server-state/storages/replays")
 	self.compute_data_provider = ComputeDataProvider(repos.chartfiles_repo, self.charts_storage, self.replays_storage)
 	self.compute_data_loader = ComputeDataLoader(self.compute_data_provider)
 

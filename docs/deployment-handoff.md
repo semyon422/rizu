@@ -117,16 +117,16 @@ git -C aqua status --short --branch
 
 Known correctness gap: freshness is currently based primarily on input/output timestamps. A build recipe, compiler flag, or toolchain change may not invalidate a native output if source timestamps remain older. Before relying on persistent build caches for automated production deployment, add a normalized build-step/toolchain fingerprint to step freshness state, or deliberately force native rebuilds for releases.
 
+## Atomic VDS Deployment Implemented
+
+`./deploy.lua deploy <commit|release-directory>` and `./deploy.lua rollback [commit]` implement the manual VDS path. The deployment root separates commit-specific server releases, persistent configuration/state, and atomically published client files. Artifact checksums are validated before extraction; only OpenResty is recreated, health failure restores the prior server, and client pointers switch only after server health succeeds.
+
+See `deploy/spec.md` for layout, invariants, setup, and operational commands.
+
 ## Immediate Next Steps
 
-1. Push the Needle portability fix in the `aqua` repository.
-2. Push the main repository's updated `aqua` pointer and release artifact implementation.
-3. Reconcile the two upstream `refactor2025` commits without losing local work.
-4. On the VDS, update the main repository and submodules, then run:
-
-   ```bash
-   ./rizu/build/make.lua release
-   ```
-
-5. Inspect `build/release/<commit>/release.json` and list `server.tar.gz`; verify no configuration or state exists in it.
-6. Next implementation phase: separate VDS state/configuration from release directories and create a manual atomic `deploy <commit>`/`rollback` command. Add CI triggering only after the manual deployment path is reliable.
+1. Push the Needle portability fix in the `aqua` repository and the main repository deployment changes.
+2. Initialize `/srv/rizu/server-state` on the VDS with reviewed production configuration and existing state, moving SQLite WAL/SHM sidecars together with the database while OpenResty is stopped.
+3. Copy or build a release artifact on the VDS and perform a real `deploy` plus `rollback` drill.
+4. Configure the download server to serve `/srv/rizu/public/current`.
+5. Add artifact transfer/storage and CI triggering after the manual VDS path is verified.

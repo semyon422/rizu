@@ -1,15 +1,22 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 source ./aqua/env/openresty_setenv
+NGINX_CONFIG_PATH=server-state/nginx_config.lua \
+NGINX_OUTPUT_PATH=server-state/nginx.conf \
+NGINX_MIME_TYPES_PATH=$(pwd)/aqua/web/nginx/mime.types \
+NGINX_ERROR_LOG_PATH=$(pwd)/server-state/logs/error.log \
+NGINX_ACCESS_LOG_PATH=$(pwd)/server-state/logs/access.log \
+NGINX_PID_PATH=$(pwd)/server-state/logs/nginx.pid \
+NGINX_TEMP_PATH=$(pwd)/server-state/temp \
 luajit aqua/web/nginx/compile.lua
 
 export DYLD_FALLBACK_LIBRARY_PATH=$PWD/bin/mac64
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/bin/linux64
 
 if [[ $1 == "start" ]]; then
-	openresty -p $(pwd) -c nginx.conf
+	openresty -p $(pwd) -c server-state/nginx.conf
 elif [[ $1 == "stop" ]]; then
-	openresty -p $(pwd) -c nginx.conf -s stop
+	openresty -p $(pwd) -c server-state/nginx.conf -s stop
 elif [[ $1 == "reload" ]]; then
-	openresty -p $(pwd) -c nginx.conf -s reload
+	openresty -p $(pwd) -c server-state/nginx.conf -s reload
 fi

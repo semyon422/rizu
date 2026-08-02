@@ -89,7 +89,7 @@ Existing feature specs worth checking early:
 
 All server configuration lives at the repository root. Edit the source files and recompile before restarting.
 
-### `nginx_config.lua` — OpenResty configuration source
+### `server-state/nginx_config.lua` — OpenResty configuration source
 
 Single source of truth for the OpenResty server. See `aqua/web/nginx/nginx_config.lua` for the base example. Controls:
 - **`listen`** — port the server binds to (default `8180`)
@@ -98,13 +98,15 @@ Single source of truth for the OpenResty server. See `aqua/web/nginx/nginx_confi
 - **`require`** — modules pre-loaded at server init
 - **`handler`** — entry point module for request handling (`sea.app.handler`)
 
-Edits are compiled into `nginx.conf` via:
+Edits are compiled into `server-state/nginx.conf` via:
 ```bash
+NGINX_CONFIG_PATH=server-state/nginx_config.lua \
+NGINX_OUTPUT_PATH=server-state/nginx.conf \
 ./luajit aqua/web/nginx/compile.lua
 ```
-This reads `nginx_config.lua` and processes `aqua/web/nginx/nginx.conf.template` (etlua) to produce `nginx.conf`. **Never edit `nginx.conf` directly** — it will be overwritten on the next compile.
+This reads `server-state/nginx_config.lua` and processes `aqua/web/nginx/nginx.conf.template` (etlua) to produce `server-state/nginx.conf`. **Never edit `server-state/nginx.conf` directly** — it will be overwritten on the next compile.
 
-### `app_config.lua` — Application runtime configuration
+### `server-state/app_config.lua` — Application runtime configuration
 
 Runtime settings loaded by `sea.app.AppConfig` at startup. Controls:
 - **`sessions_secret`** — session cookie signing key
@@ -114,7 +116,7 @@ Runtime settings loaded by `sea.app.AppConfig` at startup. Controls:
 - **`multiplayer`** — multiplayer server address and port
 - **`responsible_person`** — legal contact information
 
-`sea/app/AppConfig.lua` ships the default shape with placeholder values. `app_config.lua` overrides it at runtime.
+`sea/app/AppConfig.lua` ships the default shape with placeholder values. `server-state/app_config.lua` overrides it at runtime.
 
 ### `conf.lua` — LÖVE Framework configuration
 

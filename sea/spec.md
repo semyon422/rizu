@@ -43,11 +43,11 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 ## Architecture Decisions
 
 ### ADR: Single-host container deployment
-- The baseline container deployment is one Docker Compose project containing OpenResty and NATS.
-- Docker Compose mounts the local Git checkout into the official OpenResty image; it does not build an application image.
+- The baseline container deployment is one Docker Compose project containing OpenResty and NATS. Atomic release layout and operational details are defined in `deploy/spec.md`.
+- Docker Compose mounts the selected application release into the official OpenResty image and mounts persistent configuration/state separately; it does not build an application image.
 - OpenResty and NATS use host networking on Linux to preserve the existing loopback-only reverse-proxy and NATS contracts.
 - NATS binds its client and monitoring ports to loopback and is not exposed publicly.
-- Configuration, SQLite, and content-addressed chart and replay storage remain in their existing ignored checkout paths.
+- Configuration, SQLite (including WAL/SHM sidecars), and content-addressed chart and replay storage live under the single `server-state/` directory, which is mounted separately from immutable application releases.
 - Docker does not compile or download application dependencies. The checkout must contain compatible prebuilt `tree/` Lua modules and `bin/linux64/` native libraries, including the repository-pinned SQLite and Minacalc builds. Compose may pull the pinned OpenResty and NATS images when they are missing locally.
 - The container exposes only Rizu's server-specific 7z, iconv, Minacalc, and SQLite libraries through `LD_LIBRARY_PATH`. OpenResty and Lua SSL modules use the container image's OpenSSL instead of the game runtime's bundled OpenSSL.
 - The OpenResty container runs as the invoking host UID and GID so its worker can update the mounted SQLite database, create WAL files, and write runtime logs without changing checkout ownership. `make` exports these IDs; direct Compose usage defaults both to `1000`.

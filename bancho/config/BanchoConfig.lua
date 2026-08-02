@@ -69,9 +69,9 @@ BanchoConfig.defaults = {
 	mirror_search_endpoint = "",
 	mirror_download_endpoint = "",
 
-	beatmaps_path = "storages/charts",
-	replays_path = "storages/replays",
-	screenshots_path = "storages/screenshots",
+	beatmaps_path = "server-state/storages/charts",
+	replays_path = "server-state/storages/replays",
+	screenshots_path = "server-state/storages/screenshots",
 
 	max_matches = 64,
 

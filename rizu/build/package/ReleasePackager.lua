@@ -51,6 +51,7 @@ ReleasePackager.SERVER_FORBIDDEN_PATHS = {
 	"logs",
 	"temp",
 	"userdata",
+	"server-state",
 }
 
 ---@param ctx rizu.build.Context

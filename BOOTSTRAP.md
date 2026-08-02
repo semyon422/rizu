@@ -72,7 +72,7 @@ Install OpenResty system-wide first. Then install LuaRocks into the ignored repo
 ./install
 ```
 
-`aqua/env/install_luarocks` downloads and builds the pinned LuaRocks release against OpenResty's LuaJIT. `./install` installs the Lua modules used by the web server and tools, then creates `logs/`, `temp/`, and storage directories. If `./install` reports `luarocks: command not found`, run `./aqua/env/install_luarocks` first.
+`aqua/env/install_luarocks` downloads and builds the pinned LuaRocks release against OpenResty's LuaJIT. `./install` installs the Lua modules used by the web server and tools, then creates runtime directories under `server-state/`. If `./install` reports `luarocks: command not found`, run `./aqua/env/install_luarocks` first.
 
 To use OpenResty's LuaJIT and the local rock tree directly in the current shell:
 
@@ -85,12 +85,13 @@ The environment change only affects the current shell. Shell scripts such as `./
 Create the ignored runtime configuration files without overwriting existing ones:
 
 ```bash
-test -e nginx_config.lua || cp nginx_config.example.lua nginx_config.lua
-test -e app_config.lua || cp sea/app/AppConfig.lua app_config.lua
+mkdir -p server-state
+test -e server-state/nginx_config.lua || cp nginx_config.example.lua server-state/nginx_config.lua
+test -e server-state/app_config.lua || cp sea/app/AppConfig.lua server-state/app_config.lua
 test -e my.cnf || cp my.cnf.example my.cnf
 ```
 
-Edit the copies for the deployment. `nginx_config.lua` is the source of truth for the generated OpenResty config; never edit `nginx.conf` directly.
+Edit the copies for the deployment. `server-state/nginx_config.lua` is the source of truth for the generated OpenResty config; never edit `server-state/nginx.conf` directly.
 
 Compile and control the server with:
 
@@ -101,7 +102,7 @@ Compile and control the server with:
 ./openresty stop
 ```
 
-The `./openresty` wrapper compiles `nginx.conf` before every operation, so the explicit compile command is mainly useful for validation.
+The `./openresty` wrapper compiles `server-state/nginx.conf` before every operation, so the explicit compile command is mainly useful for validation.
 
 ### Containerized web server and NATS
 
@@ -110,7 +111,7 @@ NATS while mounting the current checkout:
 
 ```bash
 make config
-# Review app_config.lua and replace any placeholder secrets.
+# Review server-state/app_config.lua and replace any placeholder secrets.
 make up
 ```
 
@@ -122,9 +123,9 @@ requests only from a reverse proxy on the same host. The reverse proxy must set
 
 Application state remains in the checkout's existing ignored runtime paths:
 
-- `server.db`
-- `storages/charts/`
-- `storages/replays/`
+- `server-state/server.db` (with its WAL/SHM sidecars)
+- `server-state/storages/charts/`
+- `server-state/storages/replays/`
 
 Docker does not compile or download application dependencies. The checkout must
 already contain the compatible Linux runtime produced by the normal artifact
@@ -132,7 +133,7 @@ pipeline, including `bin/linux64/libsqlite3.so`,
 `bin/linux64/libminacalc.so`, and the server Lua modules under `tree/`.
 `make preflight` verifies that these artifacts are present, and the container
 entrypoint verifies the pinned SQLite version before starting OpenResty. The
-host-side `make nginx-conf` command renders the ignored `nginx.conf`; the
+host-side `make nginx-conf` command renders the ignored `server-state/nginx.conf`; the
 container does not generate or compile application files.
 
 Compose pulls the pinned OpenResty and NATS images when they are missing locally.
@@ -229,9 +230,9 @@ Other test entry points are specialized:
 | `luajit` / `luajit.lua` | Runs repository Lua tools with project Lua and native module paths | LuaJIT in `PATH` |
 | `openresty` | Compiles the root Nginx config and starts, reloads, or stops OpenResty | OpenResty and runtime configs |
 | `aqua/env/openresty` | Base/reference copy of the OpenResty control script; use the root `openresty` wrapper in this checkout | OpenResty and runtime configs |
-| `aqua/web/nginx/compile.lua` | Generates `nginx.conf` from `nginx_config.lua` | OpenResty Lua environment |
-| `sea-cli` | Runs server maintenance commands with LuaJIT | OpenResty, rocks, `app_config.lua` |
-| `sea-cli-resty` | Runs the same maintenance CLI through `resty` | OpenResty, rocks, `app_config.lua` |
+| `aqua/web/nginx/compile.lua` | Generates `server-state/nginx.conf` from `server-state/nginx_config.lua` | OpenResty Lua environment |
+| `sea-cli` | Runs server maintenance commands with LuaJIT | OpenResty, rocks, `server-state/app_config.lua` |
+| `sea-cli-resty` | Runs the same maintenance CLI through `resty` | OpenResty, rocks, `server-state/app_config.lua` |
 | `sea-cli-love` | Runs the same maintenance CLI through LÖVE | LÖVE plus server dependencies |
 | `game-appimage` | Starts the bundled Linux game | Built/downloaded Linux binaries |
 | `game-macos` | Starts the game with the system LÖVE app | `/Applications/love.app` |
@@ -252,9 +253,9 @@ These paths are expected to remain local or generated:
 
 - `tree/`: local LuaJIT/LuaRocks installation.
 - `build/`: downloaded sources, intermediate files, assembled repositories, and packages.
-- `nginx.conf`: generated from `nginx_config.lua`.
-- `nginx_config.lua`, `app_config.lua`, and `my.cnf`: ignored server configuration.
+- `server-state/nginx.conf`: generated from `server-state/nginx_config.lua`.
+- `server-state/nginx_config.lua`, `server-state/app_config.lua`, and `my.cnf`: ignored server configuration.
 - `userdata/`: ignored game and AI credentials/configuration.
-- `logs/`, `temp/`, and `storages/`: server runtime data.
+- `server-state/logs/`, `server-state/temp/`, and `server-state/storages/`: server runtime data.
 
 Do not copy secrets into tracked examples or documentation.

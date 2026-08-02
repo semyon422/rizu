@@ -35,12 +35,16 @@ services:
     depends_on:
       nats:
         condition: service_healthy
+    environment:
+      RIZU_APP_DIR: "${RIZU_APP_DIR:-.}"
+      RIZU_SERVER_STATE_DIR: "${RIZU_SERVER_STATE_DIR:-server-state}"
     volumes:
-      - ".:/app"
+      - "${RIZU_APP_DIR:-.}:/app"
+      - "${RIZU_SERVER_STATE_DIR:-./server-state}:/app/server-state"
     healthcheck:
       test:
         - CMD-SHELL
-        - test -s /app/logs/nginx.pid && kill -0 $$(cat /app/logs/nginx.pid)
+        - test -s /app/server-state/logs/nginx.pid && kill -0 $$(cat /app/server-state/logs/nginx.pid)
       interval: 10s
       timeout: 3s
       retries: 5
