@@ -64,7 +64,7 @@ local function videoRequires(target)
 	return {
 		"tree/include/luajit-2.1/lua.h",
 		BuildConfig.getFfmpegDepsDir(target) .. "/include/libavcodec/avcodec.h",
-		BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.so.62",
+		BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.so.63",
 	}
 end
 

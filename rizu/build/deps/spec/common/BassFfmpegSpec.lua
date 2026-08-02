@@ -25,7 +25,7 @@ local function ffmpegLibInput(target)
 	if target == "macos" then
 		return BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.dylib"
 	end
-	return BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.so.62"
+	return BuildConfig.getFfmpegDepsDir(target) .. "/lib/libavcodec.so.63"
 end
 
 ---@param target rizu.build.Target

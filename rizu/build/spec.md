@@ -85,7 +85,7 @@ Archive extraction defaults to stripping one leading path component for source r
 
 Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
 
-`video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build.
+`video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build. BtbN's rolling `latest` master archives are version-coupled to the declared FFmpeg library names; update the Linux/Windows artifact maps and Aqua FFI loader together when upstream increments its shared-library majors.
 
 ## Verification
 - Unit tests cover config mapping, task behavior, spec validation, executor/evaluator behavior, and packaging logic.
