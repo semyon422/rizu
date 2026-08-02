@@ -139,11 +139,14 @@ container does not generate or compile application files.
 Compose pulls the pinned OpenResty and NATS images when they are missing locally.
 Use `make pull` to refresh them explicitly before a deployment.
 
-After pulling a new revision, recreate the service:
+For current-checkout development, update explicitly and then recreate the services:
 
 ```bash
-make deploy
+make update
+make up
 ```
+
+Production deployments use verified release artifacts through `./deploy.lua deploy`; see `deploy/spec.md`.
 
 Inspect status and logs with:
 

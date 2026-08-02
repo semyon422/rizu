@@ -7,7 +7,7 @@ export RIZU_GID
 
 .DEFAULT_GOAL := help
 
-.PHONY: help config nginx-conf preflight validate pull up down restart ps logs openresty-logs nats-logs shell update deploy
+.PHONY: help config nginx-conf preflight validate pull up down restart ps logs openresty-logs nats-logs shell update
 
 help:
 	@echo "Rizu server deployment"
@@ -26,7 +26,6 @@ help:
 	@echo "  make nats-logs       Follow NATS logs"
 	@echo "  make shell           Open a shell in the OpenResty container"
 	@echo "  make update          Pull Git and submodule changes"
-	@echo "  make deploy          Update and start the deployment"
 
 config:
 	@mkdir -p server-state
@@ -105,6 +104,3 @@ shell:
 update:
 	git pull --ff-only
 	git submodule update --init --recursive
-
-deploy: update
-	$(MAKE) up
