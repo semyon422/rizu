@@ -7,12 +7,13 @@ Deploy immutable Soundsphere release artifacts on one VDS without mixing applica
 Operators can deploy an artifact and roll back over SSH with the same commands later used by CI:
 
 ```bash
+./deploy.lua build-deploy <commit>
 ./deploy.lua deploy <commit|release-directory>
 ./deploy.lua rollback [commit]
 ./deploy.lua status
 ```
 
-A deployment verifies all artifact checksums, stages the server, starts or preserves NATS, recreates only OpenResty, waits for health, and publishes client downloads only after server success. A failed candidate restores the previous OpenResty release automatically. `status` reports whether OpenResty is using an immutable release, the checkout, a host process, or is stopped, together with mounts, health, commit, and active pointers.
+`build-deploy` fetches and checks out the exact requested commit in detached-HEAD state, updates recursive submodules, runs tests, builds the release locally on the VDS, and deploys it. A deployment verifies all artifact checksums, stages the server, starts or preserves NATS, recreates only OpenResty, waits for health, and publishes client downloads only after server success. A failed candidate restores the previous OpenResty release automatically. `status` reports whether OpenResty is using an immutable release, the checkout, a host process, or is stopped, together with mounts, health, commit, and active pointers.
 
 ## VDS Layout
 
@@ -57,6 +58,8 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - Failed health restores the previous OpenResty release. With no previous release, the failed OpenResty service is stopped.
 - Explicit and implicit rollback use the same health gate before switching server and public pointers.
 - Five server releases are retained by default; `current` and `previous` are never pruned.
+- `build-deploy`, `deploy`, and `rollback` acquire the same nonblocking `flock` lock. Concurrent automation or operators fail immediately instead of racing state and service changes.
+- Automated builds fetch and checkout the full pushed SHA rather than deploying a moving branch name. Tracked changes are rejected before and after checkout/submodule synchronization.
 
 ## Invariants
 
@@ -78,6 +81,14 @@ cp /old/deployment/server-state/bancho_config.lua server-state/
 cp /old/deployment/server-state/nginx.conf server-state/
 cp /old/deployment/server-state/nginx_config.lua server-state/
 ```
+
+Build, test, and deploy an exact commit on the VDS:
+
+```bash
+./deploy.lua build-deploy <full-commit-sha>
+```
+
+`RIZU_DEPLOY_TEST_COMMAND` may select a different VDS test command; its default is the complete `./test` suite.
 
 Deploy a locally available release:
 
@@ -106,8 +117,18 @@ Rollback to the recorded previous release or a retained commit:
 
 Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE`, `RIZU_COMPOSE_FILE`, `RIZU_ARTIFACT_ROOT`, `RIZU_RELEASE_RETAIN`, `RIZU_HEALTH_ATTEMPTS`, and `RIZU_HEALTH_INTERVAL` to override other operational defaults. The container entrypoint exposes the mounted configuration to Aqua through the generic `NGINX_CONFIG_PATH` environment variable.
 
+## GitHub Actions
+
+`.github/workflows/deploy.yml` triggers `build-deploy` over SSH for pushes to `refactor2025` and supports a manually supplied full SHA. Configure the production environment secrets:
+
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY` — private key used only for deployment
+- `DEPLOY_HOST_KEY` — pinned known-hosts line, not an unverified runtime scan
+
+The VDS clone must be `/home/semyon422/rizu`, have its build toolchains and ignored `server-state/`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs, while the VDS lock also protects manual operations.
+
 ## Future Work and Open Questions
 
-- Add artifact transfer/fetching so `deploy <commit>` can retrieve a release from CI storage rather than requiring it to exist under `RIZU_ARTIFACT_ROOT`.
-- Add an inter-process lock to reject overlapping deploy and rollback commands.
-- Point CI at this command only after a real VDS deployment and rollback drill succeeds.
+- Perform a real push-triggered deployment and rollback drill before treating automation as production-ready.
+- Restrict the SSH key at the server after the command contract stabilizes.

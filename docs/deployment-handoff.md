@@ -129,4 +129,4 @@ See `deploy/spec.md` for layout, invariants, setup, and operational commands.
 2. In the normal `/home/semyon422/rizu` clone, initialize `server-state/` with reviewed production configuration and existing state, moving SQLite WAL/SHM sidecars together with the database while OpenResty is stopped.
 3. Copy or build a release artifact on the VDS and perform a real `deploy` plus `rollback` drill.
 4. Configure the download server to serve `/home/semyon422/rizu/public/current`.
-5. Add artifact transfer/storage and CI triggering after the manual VDS path is verified.
+5. Configure the GitHub production environment SSH secrets and perform a real push-triggered `build-deploy` plus rollback drill. Builds now run directly on the VDS, so no artifact transfer service is required.

@@ -91,6 +91,36 @@ function Deployment:verifyRelease(release_dir, manifest)
 	end
 end
 
+---@param command "deploy"|"rollback"|"build-deploy"
+---@param argument? string
+function Deployment:runLocked(command, argument)
+	local args = {quote(self.config.root .. "/deploy.lua"), quote(command)}
+	if argument then table.insert(args, quote(argument)) end
+	self.shell:execute("mkdir -p " .. quote(self.config.root) .. " && RIZU_DEPLOY_LOCKED=1 flock --nonblock " .. quote(self.config.root .. "/.deploy.lock") .. " " .. table.concat(args, " "))
+end
+
+---@param commit string
+function Deployment:prepareCommit(commit)
+	assert(commit:match("^[0-9a-f]+$") and #commit == 40, "commit must be a full lowercase SHA")
+	self.shell:execute("test -z \"$(git status --porcelain --untracked-files=no)\"")
+	self.shell:execute("git fetch --no-tags origin " .. quote(commit))
+	self.shell:execute("git cat-file -e " .. quote(commit .. "^{commit}"))
+	self.shell:execute("git checkout --detach " .. quote(commit))
+	self.shell:execute("git submodule update --init --recursive")
+	self.shell:execute("test -z \"$(git status --porcelain --untracked-files=no)\"")
+	local head_output = self.shell:popen("git rev-parse HEAD")
+	local head = head_output and head_output:match("^%s*([0-9a-f]+)")
+	assert(head == commit, "checked out commit does not match requested commit")
+end
+
+---@param commit string
+function Deployment:buildDeploy(commit)
+	self:prepareCommit(commit)
+	self.shell:execute(os.getenv("RIZU_DEPLOY_TEST_COMMAND") or "./test")
+	self.shell:execute("./rizu/build/make.lua release")
+	self:deploy(commit)
+end
+
 function Deployment:prepareRoot()
 	local root = self.config.root
 	self.shell:execute("mkdir -p " .. table.concat({

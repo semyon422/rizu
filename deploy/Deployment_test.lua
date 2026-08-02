@@ -29,6 +29,43 @@ local function joinedCommands(shell)
 end
 
 ---@param t testing.T
+function test.lock_wraps_mutating_command(t)
+	local deployment, shell = createDeployment()
+	deployment:runLocked("build-deploy", string.rep("a", 40))
+	local command = shell.commands[1]
+	t:assert(command:find("flock --nonblock", 1, true))
+	t:assert(command:find('RIZU_DEPLOY_LOCKED=1', 1, true))
+	t:assert(command:find('"/srv/rizu/deploy.lua" "build-deploy"', 1, true))
+end
+
+---@param t testing.T
+function test.prepare_commit_checks_out_exact_revision(t)
+	local deployment, shell = createDeployment()
+	local commit = string.rep("a", 40)
+	shell.outputs["git rev-parse HEAD"] = commit .. "\n"
+	deployment:prepareCommit(commit)
+	local commands = joinedCommands(shell)
+	t:assert(commands:find('git fetch --no-tags origin "' .. commit .. '"', 1, true))
+	t:assert(commands:find('git checkout --detach "' .. commit .. '"', 1, true))
+	t:assert(commands:find("git submodule update --init --recursive", 1, true))
+end
+
+---@param t testing.T
+function test.build_deploy_tests_builds_and_deploys(t)
+	local deployment, shell = createDeployment()
+	local commit = string.rep("b", 40)
+	local prepared
+	local deployed
+	deployment.prepareCommit = function(_, value) prepared = value end
+	deployment.deploy = function(_, value) deployed = value end
+	deployment:buildDeploy(commit)
+	t:eq(prepared, commit)
+	t:eq(deployed, commit)
+	t:eq(shell.commands[1], "./test")
+	t:eq(shell.commands[2], "./rizu/build/make.lua release")
+end
+
+---@param t testing.T
 function test.verifies_all_manifest_artifacts(t)
 	local deployment, shell = createDeployment()
 	local artifact = {path = "artifact", sha256 = string.rep("a", 64), size = 12}
