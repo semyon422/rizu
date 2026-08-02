@@ -7,6 +7,7 @@
 local SharedMemory = require("web.nginx.SharedMemory")
 local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
+local BanchoConfig = require("bancho.config.BanchoConfig")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
 local SeaRepos = require("sea.app.Repos")
 local Domain = require("sea.app.Domain")
@@ -63,7 +64,7 @@ local E2EContext = class()
 ---@param overrides? table
 ---@return bancho.server.BanchoServer
 function E2EContext:createServer(overrides)
-	local server = BanchoServer(self.shared_memory, overrides)
+	local server = BanchoServer(BanchoConfig(overrides), self.shared_memory)
 	BanchoAdapter.setupSeaRepos(
 		server,
 		self.repos.users_repo,

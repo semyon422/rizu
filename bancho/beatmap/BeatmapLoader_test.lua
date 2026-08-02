@@ -259,16 +259,15 @@ HPDrainRate:5
 end
 
 function test.api_fallback(t)
-	-- Read API key from prod config; skip if not configured
-	local prod_config = require("server-state.bancho_config")
-	if not prod_config.osu_api_key then
+	local osu_api_key = os.getenv("OSU_API_KEY")
+	if not osu_api_key then
 		return
 	end
 
 	local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
 
 	-- Empty filesystem forces API fallback
-	local loader = BeatmapLoader(FakeFilesystem(), prod_config.osu_api_key)
+	local loader = BeatmapLoader(FakeFilesystem(), osu_api_key)
 
 	-- Fetch a real beatmap from osu! API v1
 	local bmap, err = loader:load("1cf5b2c2edfafd055536d2cefcb89c0e")

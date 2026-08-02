@@ -125,7 +125,7 @@ function Library:createAndLoadWorker(workingDirectory)
 	local Worker = require("rizu.library.Worker")
 	local FunctionTimer = require("time.FunctionTimer")
 	local Filesystem
-	if love and love.filesystem then
+	if love and love.filesystem and love.filesystem.getWorkingDirectory then
 		Filesystem = require("fs.LoveFilesystem")
 	else
 		Filesystem = require("fs.LinuxFilesystem")

@@ -150,7 +150,7 @@ These collections store runtime/session objects and packet queues, not durable p
 
 ## Configuration
 
-Configuration is centered on `bancho.config.BanchoConfig` and local `server-state/bancho_config.lua` overrides.
+Configuration is centered on `bancho.config.BanchoConfig`. The application composition root loads local `server-state/bancho_config.lua` and injects the resulting config into `BanchoServer`.
 
 Important config areas:
 
@@ -166,7 +166,7 @@ Important config areas:
 - default channels
 - mirror endpoints
 
-Runtime overrides may be passed into `BanchoServer:new(...)` for tests or special setups.
+Tests construct `BanchoConfig` directly and inject it into `BanchoServer`; they do not depend on production configuration.
 
 ## HTTP Resources
 

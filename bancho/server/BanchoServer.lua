@@ -15,7 +15,6 @@ local ScoreSubmitter = require("bancho.score.Submitter")
 local PacketRouter = require("bancho.handler.PacketRouter")
 local CommandDispatcher = require("bancho.command.CommandDispatcher")
 local BeatmapLoader = require("bancho.beatmap.BeatmapLoader")
-local BanchoConfig = require("bancho.config.BanchoConfig")
 
 local class = require("class")
 
@@ -69,10 +68,8 @@ local class = require("class")
 ---@operator call: bancho.server.IReplayRepo
 ---@field getReplay fun(self: bancho.server.IReplayRepo, score_id: integer): string?
 
---- Server configuration.
---- Loaded from `server-state/bancho_config.lua` via `bancho.config.BanchoConfig`.
+--- Server configuration is injected by the application composition root.
 --- See `bancho/config.example.lua` for all available options.
----@alias bancho.config bancho.config.BanchoConfig
 
 ---@class bancho.server.BanchoServer
 ---@operator call: bancho.server.BanchoServer
@@ -85,7 +82,7 @@ local class = require("class")
 ---@field score_submitter bancho.score.Submitter
 ---@field router bancho.handler.PacketRouter
 ---@field commands bancho.command.CommandDispatcher
----@field config bancho.server.BanchoConfig
+---@field config bancho.config.BanchoConfig
 ---@field user_repo? bancho.server.IUserRepo
 ---@field score_repo? bancho.server.IScoreRepo
 ---@field beatmap_repo? bancho.server.IBeatmapRepo
@@ -96,25 +93,10 @@ local class = require("class")
 ---@field beatmap_loader? bancho.beatmap.BeatmapLoader
 local BanchoServer = class()
 
+---@param config bancho.config.BanchoConfig
 ---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
----@param overrides? table? Runtime overrides merged on top of server-state/bancho_config.lua
-function BanchoServer:new(shared_memory, overrides)
-	-- Handle positional argument ambiguity: if first arg is a table without
-	-- the `get` method of SharedMemory, treat it as overrides.
-	if shared_memory and type(shared_memory.get) ~= "function" then
-		overrides = shared_memory
-		shared_memory = nil
-	end
-
-	-- Load production config, which returns a BanchoConfig instance.
-	local file_config = require("server-state.bancho_config")
-
-	-- Merge runtime overrides on top of file config
-	if overrides then
-		self.config = BanchoConfig:merge(file_config, overrides)
-	else
-		self.config = file_config
-	end
+function BanchoServer:new(config, shared_memory)
+	self.config = config
 
 	-- Create collections with shared dict backends (or in-memory for tests)
 	local player_dict = shared_memory and shared_memory:get("bancho_players")

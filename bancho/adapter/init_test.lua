@@ -6,6 +6,7 @@ local Repos = require("sea.app.Repos")
 local Domain = require("sea.app.Domain")
 local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
+local BanchoConfig = require("bancho.config.BanchoConfig")
 
 local test = {}
 
@@ -21,7 +22,7 @@ function test.setup_sea_repos(t)
 	local domain = Domain(repos, {
 		osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"},
 	}, FakeFilesystem())
-	local server = BanchoServer(shared_memory)
+	local server = BanchoServer(BanchoConfig(), shared_memory)
 
 	BanchoAdapter.setupSeaRepos(
 		server,

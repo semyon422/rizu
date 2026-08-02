@@ -50,8 +50,9 @@ local Resources = class()
 ---@param views web.Views
 ---@param sessions web.Sessions
 ---@param app_config sea.AppConfig
+---@param bancho_config bancho.config.BanchoConfig
 ---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
-function Resources:new(domain, server_remote, views, sessions, app_config, shared_memory)
+function Resources:new(domain, server_remote, views, sessions, app_config, bancho_config, shared_memory)
 	self.index = IndexResource(views)
 	self.style = StyleResource()
 	self.download = DownloadResource(views)
@@ -85,8 +86,7 @@ function Resources:new(domain, server_remote, views, sessions, app_config, share
 
 	self.websocket = WebsocketResource(domain, views)
 
-	-- Bancho server state (config loaded from server-state/bancho_config.lua)
-	self.bancho = BanchoServer(shared_memory)
+	self.bancho = BanchoServer(bancho_config, shared_memory)
 	BanchoAdapter.setupSeaRepos(
 		self.bancho,
 		domain.users_repo,
