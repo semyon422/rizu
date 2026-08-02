@@ -25,7 +25,7 @@ function FFTWSourceSpec.add(target, spec, prefix, prefix_abs, tc_bin)
 			actions = {
 				{type = "download", url = fftw.url, dest = archive},
 				{type = "extract", format = "tar.gz", archive = archive, dest = extract},
-				{type = "cmake_configure", src_dir = extract, build_dir = extract .. "/build-cmake", args = {"-DBUILD_SHARED_LIBS=ON"}},
+				{type = "cmake_configure", src_dir = extract, build_dir = extract .. "/build-cmake", args = {"-DBUILD_SHARED_LIBS=ON", "-DCMAKE_POLICY_VERSION_MINIMUM=4.0"}},
 				{type = "cmake_build", build_dir = extract .. "/build-cmake", args = {"-j$(nproc)"}},
 				{type = "assert_file", path = extract .. "/build-cmake/libfftw3.so"},
 				{type = "copy_exact", src = extract .. "/build-cmake/libfftw3.so", dst = "${bin_dir}/libfftw3.so", flags = "-L"},

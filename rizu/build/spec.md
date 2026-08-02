@@ -85,6 +85,8 @@ Archive extraction defaults to stripping one leading path component for source r
 
 Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
 
+FFTW 3.3.10 declares an obsolete CMake minimum that CMake 4 rejects before configuration. Its Linux configure action sets `CMAKE_POLICY_VERSION_MINIMUM=4.0`, explicitly opting the pinned source into CMake 4 policy behavior. CMake 4 is therefore the supported host baseline for this recipe.
+
 `video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build. Linux and Windows use immutable BtbN FFmpeg 8.1.2 autobuild assets rather than the rolling `latest` aliases. Updating FFmpeg requires selecting one dated BtbN release, pinning its full asset names in `Manifest.lua`, and updating the artifact maps and Aqua FFI loader together if shared-library majors change.
 
 ## Verification

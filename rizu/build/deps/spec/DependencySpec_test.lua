@@ -134,6 +134,14 @@ function test.macos_native_steps_use_osxcross_and_track_ffmpeg_inputs(t)
 end
 
 ---@param t testing.T
+function test.linux_fftw_uses_cmake_4_policies(t)
+	local spec = DependencySpec.load("linux")
+	local step = findStep(spec, "linux_fftw")
+	t:assert(step ~= nil)
+	t:tdeq(step.actions[3].args, {"-DBUILD_SHARED_LIBS=ON", "-DCMAKE_POLICY_VERSION_MINIMUM=4.0"})
+end
+
+---@param t testing.T
 function test.ffmpeg_binary_reruns_extract_when_output_missing(t)
 	local fs = FakeFilesystem()
 	fs:setWorkingDirectory("/repo")
