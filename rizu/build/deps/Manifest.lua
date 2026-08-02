@@ -4,13 +4,13 @@
 local Manifest = {
 	ffmpeg = {
 		linux = {
-			url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz",
-			archive = "ffmpeg-linux.tar.xz",
+			url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-01-13-21/ffmpeg-n8.1.2-34-g9b6c8969e0-linux64-gpl-shared-8.1.tar.xz",
+			archive = "ffmpeg-n8.1.2-34-g9b6c8969e0-linux64.tar.xz",
 			dir = "ffmpeg-linux",
 		},
 		windows = {
-			url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip",
-			archive = "ffmpeg-win.zip",
+			url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-01-13-21/ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-shared-8.1.zip",
+			archive = "ffmpeg-n8.1.2-34-g9b6c8969e0-win64.zip",
 			dir = "ffmpeg-win",
 		},
 	},

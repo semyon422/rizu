@@ -70,7 +70,7 @@ function test.includes_local_bass_ffmpeg_source_build_for_all_targets(t)
 			inputs = {
 				"aqua/bass/ffmpeg_plugin.c",
 				"build/deps/ffmpeg-linux/include/libavcodec/avcodec.h",
-				"build/deps/ffmpeg-linux/lib/libavcodec.so.63",
+				"build/deps/ffmpeg-linux/lib/libavcodec.so.62",
 				"${bin_dir}/libbass.so",
 			},
 		},
@@ -146,13 +146,13 @@ function test.ffmpeg_binary_reruns_extract_when_output_missing(t)
 		if cmd:find("tar %-%-touch %-xf") then
 			fs:createDirectory("build/deps/ffmpeg-linux/lib")
 			for _, name in ipairs({
-				"libavcodec.so.63",
-				"libavdevice.so.63",
-				"libavfilter.so.12",
-				"libavformat.so.63",
-				"libavutil.so.61",
-				"libswresample.so.7",
-				"libswscale.so.10",
+				"libavcodec.so.62",
+				"libavdevice.so.62",
+				"libavfilter.so.11",
+				"libavformat.so.62",
+				"libavutil.so.60",
+				"libswresample.so.6",
+				"libswscale.so.9",
 			}) do
 				fs:write("build/deps/ffmpeg-linux/lib/" .. name, "x")
 			end

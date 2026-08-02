@@ -85,7 +85,7 @@ Archive extraction defaults to stripping one leading path component for source r
 
 Temporary extraction directories belong under `build/deps` unless they are final runtime outputs.
 
-`video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build. BtbN's rolling `latest` master archives are version-coupled to the declared FFmpeg library names; update the Linux/Windows artifact maps and Aqua FFI loader together when upstream increments its shared-library majors.
+`video` tracks FFmpeg headers and libraries as inputs on every target. Missing FFmpeg prerequisites keep the target non-up-to-date instead of silently skipping the module build. Linux and Windows use immutable BtbN FFmpeg 8.1.2 autobuild assets rather than the rolling `latest` aliases. Updating FFmpeg requires selecting one dated BtbN release, pinning its full asset names in `Manifest.lua`, and updating the artifact maps and Aqua FFI loader together if shared-library majors change.
 
 ## Verification
 - Unit tests cover config mapping, task behavior, spec validation, executor/evaluator behavior, and packaging logic.
