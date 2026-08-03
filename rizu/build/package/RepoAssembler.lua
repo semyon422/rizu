@@ -30,6 +30,8 @@ function RepoAssembler:validate(gamerepo)
 
 	local game_zip_listing = ArchiveUtil.getZipListing(self.ctx, game_love)
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "rizu/game/GameInteractor.lua"), "game.love is missing rizu/game/GameInteractor.lua")
+	assert(ArchiveUtil.hasEntry(game_zip_listing, "chart/model/notes/Notes.lua"), "game.love is missing chart/model/notes/Notes.lua")
+	assert(ArchiveUtil.hasEntry(game_zip_listing, "gui/Screen.lua"), "game.love is missing gui/Screen.lua")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "rizu/ai/SystemPrompt.md"), "game.love is missing rizu/ai/SystemPrompt.md")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "conf.lua"), "game.love is missing conf.lua")
 	assert(ArchiveUtil.hasEntry(game_zip_listing, "main.lua"), "game.love is missing main.lua")

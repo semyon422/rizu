@@ -1,4 +1,5 @@
 local ReleasePackager = require("rizu.build.package.ReleasePackager")
+local package_config = require("rizu.build.package.config")
 
 local test = {}
 
@@ -39,6 +40,13 @@ function test.similarly_named_examples_are_allowed(t)
 	t:has_not_error(function()
 		ReleasePackager.validateServerListing(listingWithRequiredPaths() .. "\n./nginx_config.example.lua")
 	end)
+end
+
+---@param t testing.T
+function test.client_source_directories_exist(t)
+	for _, path in ipairs(package_config.repo.include) do
+		t:assert(io.open(path) ~= nil, "missing client source directory: " .. path)
+	end
 end
 
 return test
