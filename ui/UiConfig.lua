@@ -13,6 +13,8 @@ local keys = {
 	cancel_bindings = "cancel_bindings",
 	left_bindings = "left_bindings",
 	right_bindings = "right_bindings",
+	up_bindings = "up_bindings",
+	down_bindings = "down_bindings",
 	gameplay_skip_intro_bindings = "gameplay_skip_intro_bindings",
 	editor_toggle_playback_bindings = "editor_toggle_playback_bindings",
 }
@@ -36,8 +38,10 @@ function UiConfig:new(fs, path)
 	self:setDefaultKeyBindings(keys.open_config_bindings, {{key = "o", control = true}})
 	self:setDefaultKeyBindings(keys.accept_bindings, {{key = "return"}, {key = "kpenter"}})
 	self:setDefaultKeyBindings(keys.cancel_bindings, {{key = "escape"}})
-	self:setDefaultKeyBindings(keys.left_bindings, {{key = "left"}})
-	self:setDefaultKeyBindings(keys.right_bindings, {{key = "right"}})
+	self:setDefaultKeyBindings(keys.left_bindings, {{key = "left", allow_repeat = true}})
+	self:setDefaultKeyBindings(keys.right_bindings, {{key = "right", allow_repeat = true}})
+	self:setDefaultKeyBindings(keys.up_bindings, {{key = "up", allow_repeat = true}})
+	self:setDefaultKeyBindings(keys.down_bindings, {{key = "down", allow_repeat = true}})
 	self:setDefaultKeyBindings(keys.gameplay_skip_intro_bindings, {{key = "space"}})
 	self:setDefaultKeyBindings(keys.editor_toggle_playback_bindings, {{key = "space"}})
 end

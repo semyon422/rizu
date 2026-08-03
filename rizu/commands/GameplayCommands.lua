@@ -1,7 +1,6 @@
----@param ui ui.UserInterface
----@return ui.command_palette.Command[]
-return function(ui)
-	local game = ui.game
+---@param game sphere.GameController
+---@return rizu.command.Command[]
+return function(game)
 
 	return {
 		{
@@ -26,20 +25,6 @@ return function(ui)
 			description = "Restarts the current chart",
 			callback = function()
 				game.gameplayInteractor:changePlayState("retry")
-			end,
-		},
-		{
-			id = "gameplay.quit",
-			title = "Gameplay: Quit",
-			description = "Leaves gameplay and opens the appropriate screen",
-			callback = function()
-				if game.gameplayInteractor:hasResult() then
-					ui:setScreen("result")
-				elseif game.multiplayerModel.client:isInRoom() then
-					ui:setScreen("select")
-				else
-					ui:setScreen("select")
-				end
 			end,
 		},
 		{

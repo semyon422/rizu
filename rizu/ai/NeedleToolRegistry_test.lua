@@ -1,4 +1,4 @@
-local Registry = require("ui.command_palette.Registry")
+local Registry = require("rizu.command.Registry")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 
 local test = {}
@@ -36,7 +36,7 @@ function test.context_allowlist(t)
 
 	registry:pushContext("gameplay", {
 		command("gameplay.pause"), command("gameplay.resume"), command("gameplay.retry"),
-		command("gameplay.quit"), command("gameplay.skip_intro"), command("gameplay.offset_decrease"),
+		command("gameplay.skip_intro"), command("gameplay.offset_decrease"),
 		command("gameplay.offset_increase"), command("gameplay.offset_reset"),
 	})
 	present = names(NeedleToolRegistry(registry):snapshot())

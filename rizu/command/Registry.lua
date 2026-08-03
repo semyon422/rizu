@@ -1,10 +1,10 @@
 local class = require("class")
 
 -- Manages global and contextual screen-specific commands.
----@class ui.command_palette.Registry
----@operator call: ui.command_palette.Registry
----@field global_commands ui.command_palette.Command[]
----@field contextual_commands {[string]: ui.command_palette.Command[]}
+---@class rizu.command.Registry
+---@operator call: rizu.command.Registry
+---@field global_commands rizu.command.Command[]
+---@field contextual_commands {[string]: rizu.command.Command[]}
 ---@field active_contexts string[]
 local Registry = class()
 
@@ -15,14 +15,14 @@ function Registry:new()
 end
 
 --- Registers a command globally.
----@param command ui.command_palette.Command
+---@param command rizu.command.Command
 function Registry:registerGlobal(command)
 	table.insert(self.global_commands, command)
 end
 
 --- Push a screen context and its associated commands.
 ---@param context_name string
----@param commands ui.command_palette.Command[]
+---@param commands rizu.command.Command[]
 function Registry:pushContext(context_name, commands)
 	self.contextual_commands[context_name] = commands
 	for _, name in ipairs(self.active_contexts) do
@@ -44,9 +44,9 @@ function Registry:popContext(context_name)
 end
 
 --- Gets all currently active commands (Global + Active Contexts).
----@return ui.command_palette.Command[] active_commands
+---@return rizu.command.Command[] active_commands
 function Registry:getActiveCommands()
-	---@type ui.command_palette.Command[]
+	---@type rizu.command.Command[]
 	local list = {}
 	for _, cmd in ipairs(self.global_commands) do
 		table.insert(list, cmd)

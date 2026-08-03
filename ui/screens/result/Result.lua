@@ -181,11 +181,15 @@ function Result:updateInfo()
 end
 
 function Result:enter()
+	self.ui.command_registry:pushContext("result_commands", self.ui.result_commands)
+	self.ui.command_registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
 	self:updateInfo()
 	self.composite:fadeIn(0.6, "OutQuint")
 end
 
 function Result:exit()
+	self.ui.command_registry:popContext("result_commands")
+	self.ui.command_registry:popContext("ui_result_commands")
 	Screen.exit(self)
 	self.composite:fadeOut(0.3, "OutQuint")
 end

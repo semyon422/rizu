@@ -1,32 +1,32 @@
 local class = require("class")
-local Fuzzy = require("ui.command_palette.Fuzzy")
+local Fuzzy = require("rizu.command.Fuzzy")
 
----@class ui.command_palette.Argument
+---@class rizu.command.Argument
 ---@field name string
 ---@field type "string"|"number"|"boolean"
 ---@field prompt string?
 ---@field default any?
----@field choices ui.command_palette.Fuzzy.Candidate[]|fun(): ui.command_palette.Fuzzy.Candidate[]?
+---@field choices rizu.command.Fuzzy.Candidate[]|fun(): rizu.command.Fuzzy.Candidate[]?
 ---@field validate (fun(val: string): boolean, string?)?
 
----@class ui.command_palette.Command
+---@class rizu.command.Command
 ---@field id string
 ---@field title string
 ---@field description string?
----@field arguments ui.command_palette.Argument[]?
+---@field arguments rizu.command.Argument[]?
 ---@field callback fun(args: {[string]: any})
 
 -- State machine handling command filtering, argument collection, and execution.
----@class ui.command_palette.PaletteState
----@operator call: ui.command_palette.PaletteState
----@field registry ui.command_palette.Registry
+---@class rizu.command.PaletteState
+---@operator call: rizu.command.PaletteState
+---@field registry rizu.command.Registry
 ---@field query string
----@field active_command ui.command_palette.Command?
+---@field active_command rizu.command.Command?
 ---@field current_arg_idx integer
 ---@field collected_args {[string]: any}
 local PaletteState = class()
 
----@param registry ui.command_palette.Registry
+---@param registry rizu.command.Registry
 function PaletteState:new(registry)
 	self.registry = registry
 	self.query = ""
@@ -67,7 +67,7 @@ function PaletteState:getPromptText()
 end
 
 --- Returns the list of matching candidates (commands or choice options) based on query.
----@return (ui.command_palette.Command|ui.command_palette.Fuzzy.Candidate)[] candidates
+---@return (rizu.command.Command|rizu.command.Fuzzy.Candidate)[] candidates
 function PaletteState:getCandidates()
 
 	if not self.active_command then

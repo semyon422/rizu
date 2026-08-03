@@ -21,7 +21,7 @@ local json = require("web.json")
 
 ---@class rizu.ai.NeedleToolRegistry
 ---@operator call: rizu.ai.NeedleToolRegistry
----@field registry ui.command_palette.Registry
+---@field registry rizu.command.Registry
 local NeedleToolRegistry = class()
 
 local function object(properties, required)
@@ -34,12 +34,12 @@ local function stringEnum(values, description)
 	return {type = "string", enum = values, description = description}
 end
 
----@param registry ui.command_palette.Registry
+---@param registry rizu.command.Registry
 function NeedleToolRegistry:new(registry)
 	self.registry = registry
 end
 
----@return {[string]: ui.command_palette.Command}
+---@return {[string]: rizu.command.Command}
 function NeedleToolRegistry:getActiveCommands()
 	local commands = {}
 	for _, command in ipairs(self.registry:getActiveCommands()) do
@@ -155,8 +155,8 @@ function NeedleToolRegistry:snapshot()
 		})
 	end
 
-	local play = commands["select.play"]
-	local autoplay = commands["select.autoplay"]
+	local play = commands["ui.select.play"]
+	local autoplay = commands["ui.select.autoplay"]
 	if play and autoplay then
 		addTool(tools, by_name, {
 			name = "start_selected_chart",
@@ -213,9 +213,9 @@ function NeedleToolRegistry:snapshot()
 	end
 
 	local panel_commands = {
-		modifiers = commands["select.open_modifiers"], filters = commands["select.open_filters"],
-		input = commands["select.open_input"], note_skins = commands["select.open_noteskins"],
-		editor = commands["global.open_editor"],
+		modifiers = commands["ui.select.open_modifiers"], filters = commands["ui.select.open_filters"],
+		input = commands["ui.select.open_input"], note_skins = commands["ui.select.open_noteskins"],
+		editor = commands["ui.global.open_editor"],
 	}
 	if panel_commands.modifiers then
 		addTool(tools, by_name, {
@@ -230,15 +230,14 @@ function NeedleToolRegistry:snapshot()
 
 	local gameplay_commands = {
 		pause = commands["gameplay.pause"], resume = commands["gameplay.resume"],
-		retry = commands["gameplay.retry"], quit = commands["gameplay.quit"],
-		skip_intro = commands["gameplay.skip_intro"],
+		retry = commands["gameplay.retry"], skip_intro = commands["gameplay.skip_intro"],
 	}
 	if gameplay_commands.pause then
 		addTool(tools, by_name, {
 			name = "control_gameplay",
-			description = "Pause, resume, retry, quit, or skip the intro of gameplay.",
-			routing_description = "pause resume retry quit gameplay",
-			parameters = object({action = stringEnum({"pause", "resume", "retry", "quit", "skip_intro"}, "Gameplay action to perform.")}, {"action"}),
+			description = "Pause, resume, retry, or skip the intro of gameplay.",
+			routing_description = "pause resume retry gameplay",
+			parameters = object({action = stringEnum({"pause", "resume", "retry", "skip_intro"}, "Gameplay action to perform.")}, {"action"}),
 			argument_order = {"action"},
 			execute = function(args) assert(gameplay_commands[args.action]).callback({}) end,
 		})

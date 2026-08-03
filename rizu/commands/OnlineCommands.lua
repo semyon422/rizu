@@ -9,7 +9,7 @@ local function validateNotEmpty(value)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	return {
 		{

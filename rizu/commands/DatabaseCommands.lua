@@ -12,7 +12,7 @@ local function validateDeleteConfirm(value)
 	return true
 end
 
----@return ui.command_palette.Argument confirm_arg
+---@return rizu.command.Argument confirm_arg
 local function getConfirmArgument()
 	return {
 		name = "confirm",
@@ -28,9 +28,9 @@ local function refreshSelect(game)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getDiffcalcFieldChoices(game)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, field in ipairs(game.difficultyModel.registry.fields) do
 		table.insert(choices, {
@@ -41,9 +41,9 @@ local function getDiffcalcFieldChoices(game)
 	return choices
 end
 
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getFormatChoices()
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, format in ipairs(formats) do
 		table.insert(choices, {
@@ -55,7 +55,7 @@ local function getFormatChoices()
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	local library = game.library
 

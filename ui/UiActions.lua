@@ -9,6 +9,8 @@ UiActions.accept = "ui.accept"
 UiActions.cancel = "ui.cancel"
 UiActions.left = "ui.left"
 UiActions.right = "ui.right"
+UiActions.up = "ui.up"
+UiActions.down = "ui.down"
 UiActions.gameplay_skip_intro = "gameplay.skip_intro"
 UiActions.editor_toggle_playback = "editor.toggle_playback"
 
@@ -24,6 +26,8 @@ function UiActions.createMap(config)
 		[UiActions.cancel] = keys.cancel_bindings,
 		[UiActions.left] = keys.left_bindings,
 		[UiActions.right] = keys.right_bindings,
+		[UiActions.up] = keys.up_bindings,
+		[UiActions.down] = keys.down_bindings,
 		[UiActions.gameplay_skip_intro] = keys.gameplay_skip_intro_bindings,
 		[UiActions.editor_toggle_playback] = keys.editor_toggle_playback_bindings,
 	}

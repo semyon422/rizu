@@ -1,5 +1,3 @@
-local M = {}
-
 ---@param location rizu.library.Location
 ---@return string title
 local function getLocationTitle(location)
@@ -9,12 +7,12 @@ end
 
 ---@param game sphere.GameController
 ---@param include_internal boolean?
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getLocationChoices(game, include_internal)
 	local locations = game.library.locations
 	locations:selectLocations()
 
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, location in ipairs(locations.locations) do
 		if include_internal or not location.is_internal then
@@ -51,7 +49,7 @@ local function validateNotEmpty(value)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	return {
 		{

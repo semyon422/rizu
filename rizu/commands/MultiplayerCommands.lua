@@ -25,9 +25,9 @@ local function getSelectedChartmetaKey(game)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getRoomChoices(game)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, room in ipairs(game.multiplayerModel.client.rooms) do
 		local title = room.name
@@ -43,7 +43,7 @@ local function getRoomChoices(game)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	local multiplayerModel = game.multiplayerModel
 	local client = multiplayerModel.client

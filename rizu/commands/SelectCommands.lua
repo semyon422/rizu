@@ -8,13 +8,13 @@ local mode_names = {
 	chartplays = "plays",
 }
 
----@class ui.layers.CollectionChoiceValue
+---@class rizu.commands.CollectionChoiceValue
 ---@field path string?
 ---@field location_id integer?
 
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getModeChoices()
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, mode in ipairs(modes) do
 		table.insert(choices, {
@@ -26,7 +26,7 @@ local function getModeChoices()
 end
 
 ---@param node rizu.library.Collections.TreeNode
----@param choices ui.command_palette.Fuzzy.Candidate[]
+---@param choices rizu.command.Fuzzy.Candidate[]
 ---@param prefix string
 local function addCollectionChoices(node, choices, prefix)
 	for _, item in ipairs(node.items) do
@@ -46,11 +46,11 @@ local function addCollectionChoices(node, choices, prefix)
 end
 
 ---@param collectionSelector rizu.select.CollectionSelector
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getCollectionChoices(collectionSelector)
 	local tree = collectionSelector.store.root_tree
 
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {
 		{
 			title = ("All collections (%s)"):format(tree.count),
@@ -64,7 +64,7 @@ local function getCollectionChoices(collectionSelector)
 	return choices
 end
 
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getBooleanChoices()
 	return {
 		{
@@ -79,9 +79,9 @@ local function getBooleanChoices()
 end
 
 ---@param sortModel rizu.select.SortModel
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getSortChoices(sortModel)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, name in ipairs(sortModel.names) do
 		table.insert(choices, {
@@ -93,9 +93,9 @@ local function getSortChoices(sortModel)
 end
 
 ---@param scoreSelector rizu.select.ScoreSelector
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getScoreSourceChoices(scoreSelector)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, name in ipairs(scoreSelector.store.scoreSources) do
 		table.insert(choices, {
@@ -107,9 +107,9 @@ local function getScoreSourceChoices(scoreSelector)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getScoreFilterChoices(game)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, filter in ipairs(game.configModel.configs.filters.score) do
 		table.insert(choices, {
@@ -137,42 +137,9 @@ local function setSearchString(game, key, value)
 end
 
 ---@param game sphere.GameController
----@param ui ui.UserInterface?
----@return ui.command_palette.Command[]
-return function(game, ui)
+---@return rizu.command.Command[]
+return function(game)
 	local commands = {
-		{
-			id = "select.play",
-			title = "Select: Play",
-			description = "Starts the selected chart",
-			callback = function()
-				if ui and game.chartSelector:chartExists() then
-					ui:setScreen("chart_loading")
-				end
-			end
-		},
-		{
-			id = "select.autoplay",
-			title = "Select: Autoplay",
-			description = "Starts the selected chart with autoplay enabled",
-			callback = function()
-				if ui and game.chartSelector:chartExists() then
-					game.gameplayInteractor.autoplay = true
-					ui:setScreen("chart_loading")
-				end
-			end
-		},
-		{
-			id = "select.open_result",
-			title = "Select: Open Result",
-			description = "Opens the selected score result",
-			callback = function()
-				if ui and game.chartSelector:chartExists() and game.scoreSelector.chartplay then
-					game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
-					ui:setScreen("result")
-				end
-			end
-		},
 		{
 			id = "select.random_chart",
 			title = "Select: Random Chart",
@@ -290,7 +257,7 @@ return function(game, ui)
 				}
 			},
 			callback = function(args)
-				---@type ui.layers.CollectionChoiceValue
+				---@type rizu.commands.CollectionChoiceValue
 				local collection = args.collection
 				game.collectionSelector:selectCollection(collection.path, collection.location_id)
 			end
@@ -403,46 +370,6 @@ return function(game, ui)
 			description = "Opens the folder of the selected location in the file manager",
 			callback = function()
 				game.selectionActions:openSelectedLocationDirectory()
-			end
-		},
-		{
-			id = "select.open_modifiers",
-			title = "Modal: Open Modifiers",
-			description = "Opens gameplay modifiers",
-			callback = function()
-				if ui then
-					ui.modals:open("modifiers")
-				end
-			end
-		},
-		{
-			id = "select.open_filters",
-			title = "Modal: Open Filters",
-			description = "Opens select filters",
-			callback = function()
-				if ui then
-					ui.modals:open("filters")
-				end
-			end
-		},
-		{
-			id = "select.open_input",
-			title = "Modal: Open Input",
-			description = "Opens input bindings",
-			callback = function()
-				if ui then
-					ui.modals:open("input")
-				end
-			end
-		},
-		{
-			id = "select.open_noteskins",
-			title = "Modal: Open Note Skins",
-			description = "Opens note skin selection",
-			callback = function()
-				if ui then
-					ui.modals:open("noteskins")
-				end
 			end
 		},
 	}

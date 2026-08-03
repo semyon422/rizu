@@ -1,6 +1,7 @@
 local Painter = require("gui.Painter")
 local ModalView = require("ui.ModalView")
 local Resources = require("ui.Resources")
+local UiActions = require("ui.UiActions")
 local utf8 = require("utf8")
 
 ---@class ui.modals.command_palette.CommandPalette : ui.ModalView
@@ -14,7 +15,7 @@ local CELL_HEIGHT = 40
 local SCALE_INACTIVE = 0.95
 local Y_INACTIVE = -20
 
----@param state ui.command_palette.PaletteState
+---@param state rizu.command.PaletteState
 ---@param on_close function
 ---@param needle_model rizu.ai.NeedleModel
 ---@param needle_tools rizu.ai.NeedleToolRegistry
@@ -108,21 +109,12 @@ function CommandPalette:moveSelection(offset)
 	self:updateText()
 end
 
-function CommandPalette:onKeyDown(e)
-	if e.key == "backspace" then
-		if #self.query > 0 then
-			local byte_offset = utf8.offset(self.query, -1)
-			if byte_offset then
-				self.query = self.query:sub(1, byte_offset - 1)
-			end
-			self.selected_index = 1
-			self:queryChanged()
-		end
-	elseif e.key == "down" then
+function CommandPalette:onHandleInputs(inputs)
+	if inputs:isActionJustPressed(UiActions.down) then
 		self:moveSelection(1)
-	elseif e.key == "up" then
+	elseif inputs:isActionJustPressed(UiActions.up) then
 		self:moveSelection(-1)
-	elseif e.key == "return" or e.key == "kpenter" then
+	elseif inputs:consumeActionJustPressed(UiActions.accept) then
 		if self:isNeedleMode() then
 			if not self.needle_model then return true end
 			local executed, err = self.needle_model:execute()
@@ -156,9 +148,22 @@ function CommandPalette:onKeyDown(e)
 			end
 			self:updateText()
 		end
-	elseif e.key == "escape" then
+	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.on_close()
 		self:hide()
+	end
+end
+
+function CommandPalette:onKeyDown(e)
+	if e.key == "backspace" then
+		if #self.query > 0 then
+			local byte_offset = utf8.offset(self.query, -1)
+			if byte_offset then
+				self.query = self.query:sub(1, byte_offset - 1)
+			end
+			self.selected_index = 1
+			self:queryChanged()
+		end
 	end
 	return true
 end

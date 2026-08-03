@@ -1,8 +1,8 @@
 ---@param game sphere.GameController
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getNoteSkinChoices(game)
 	local inputMode = tostring(game.modifierCoordinator.state.inputMode)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 
 	if inputMode == "" then
@@ -20,7 +20,7 @@ local function getNoteSkinChoices(game)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	return {
 		{

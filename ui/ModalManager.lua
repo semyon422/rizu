@@ -1,6 +1,5 @@
 local View = require("gui.View")
-local GlobalCommands = require("ui.command_palette.GlobalCommands")
-local PaletteState = require("ui.command_palette.PaletteState")
+local PaletteState = require("rizu.command.PaletteState")
 local AiChat = require("ui.modals.ai_chat.AiChat")
 local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
@@ -24,10 +23,6 @@ function ModalManager:new(ui)
 	self.handles_keyboard_input = true
 	self.keyboard_input_fallback = true
 	self.ui = ui
-
-	for _, command in ipairs(GlobalCommands.get(ui.game, ui)) do
-		ui.command_registry:registerGlobal(command)
-	end
 
 	local needle_tools = NeedleToolRegistry(ui.command_registry)
 	self.palette = CommandPalette(PaletteState(ui.command_registry), function()

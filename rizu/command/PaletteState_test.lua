@@ -1,5 +1,5 @@
-local Registry = require("ui.command_palette.Registry")
-local PaletteState = require("ui.command_palette.PaletteState")
+local Registry = require("rizu.command.Registry")
+local PaletteState = require("rizu.command.PaletteState")
 
 local test = {}
 

@@ -3,7 +3,7 @@ local Subtimings = require("sea.chart.Subtimings")
 local Timings = require("sea.chart.Timings")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getBooleanChoices()
 	return {
 		{title = "Enabled", value = true},
@@ -30,9 +30,9 @@ local function applyTimingValues(game, timings, subtimings)
 	updateReplayBase(game)
 end
 
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getTimingChoices()
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, name in ipairs(Timings.names) do
 		table.insert(choices, {
@@ -44,9 +44,9 @@ local function getTimingChoices()
 end
 
 ---@param timeRateModel sphere.TimeRateModel
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getRateTypeChoices(timeRateModel)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, rate_type in ipairs(timeRateModel.types) do
 		table.insert(choices, {
@@ -73,9 +73,37 @@ local function setColumnsOrder(game, columns_order)
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	return {
+		{
+			id = "global.rate",
+			title = "Gameplay: Set Playback Rate",
+			description = "Sets the playback rate of the music",
+			arguments = {
+				{
+					name = "rate",
+					type = "number",
+					prompt = "Enter Playback Rate:",
+					validate = function(val)
+						local num = tonumber(val)
+						if not num then
+							return false, "Must be a valid number"
+						end
+
+						local range = game.timeRateModel.range[game.replayBase.rate_type]
+						if range and (num < range[1] or num > range[2]) then
+							return false, ("Rate must be between %s and %s"):format(range[1], range[2])
+						end
+						return true
+					end,
+				},
+			},
+			callback = function(args)
+				game.timeRateModel:set(args.rate)
+				game.modifierSelectModel:change()
+			end,
+		},
 		{
 			id = "play_config.set_auto_timings",
 			title = "Play Config: Set Auto Timings",

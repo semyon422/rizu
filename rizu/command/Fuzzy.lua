@@ -1,8 +1,8 @@
----@class ui.command_palette.Fuzzy.Candidate
+---@class rizu.command.Fuzzy.Candidate
 ---@field [string] any
 
----@class ui.command_palette.Fuzzy.MatchResult
----@field candidate ui.command_palette.Fuzzy.Candidate
+---@class rizu.command.Fuzzy.MatchResult
+---@field candidate rizu.command.Fuzzy.Candidate
 ---@field score number
 
 local M = {}
@@ -72,15 +72,15 @@ end
 
 --- Filters and sorts candidates list using the fuzzy match score.
 ---@param query string
----@param candidates ui.command_palette.Fuzzy.Candidate[]
+---@param candidates rizu.command.Fuzzy.Candidate[]
 ---@param key_name string Field to match on
----@return ui.command_palette.Fuzzy.Candidate[] filtered_candidates
+---@return rizu.command.Fuzzy.Candidate[] filtered_candidates
 function M.filter(query, candidates, key_name)
 	if #query == 0 then
 		return candidates
 	end
 
-	---@type ui.command_palette.Fuzzy.MatchResult[]
+	---@type rizu.command.Fuzzy.MatchResult[]
 	local results = {}
 	for _, candidate in ipairs(candidates) do
 		local val = candidate[key_name]
@@ -99,7 +99,7 @@ function M.filter(query, candidates, key_name)
 		return a.score > b.score
 	end)
 
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local final_list = {}
 	for i, v in ipairs(results) do
 		final_list[i] = v.candidate

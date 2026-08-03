@@ -13,11 +13,25 @@ local Dlc = require("ui.screens.dlc.Dlc")
 local TestScreen = require("ui.test.TestScreen")
 local ScreenManager = require("ui.ScreenManager")
 local Overlay = require("ui.Overlay")
-local Registry = require("ui.command_palette.Registry")
+local Registry = require("rizu.command.Registry")
 local Colors = require("ui.Colors")
 local LoveFilesystem = require("fs.LoveFilesystem")
 local UiConfig = require("ui.UiConfig")
 local UiActions = require("ui.UiActions")
+local GlobalCommands = require("rizu.commands.GlobalCommands")
+local DatabaseCommands = require("rizu.commands.DatabaseCommands")
+local GameplayCommands = require("rizu.commands.GameplayCommands")
+local LocationCommands = require("rizu.commands.LocationCommands")
+local MultiplayerCommands = require("rizu.commands.MultiplayerCommands")
+local NoteSkinCommands = require("rizu.commands.NoteSkinCommands")
+local OnlineCommands = require("rizu.commands.OnlineCommands")
+local PackageCommands = require("rizu.commands.PackageCommands")
+local PlayConfigCommands = require("rizu.commands.PlayConfigCommands")
+local ResultCommands = require("rizu.commands.ResultCommands")
+local SelectCommands = require("rizu.commands.SelectCommands")
+local UiGlobalCommands = require("ui.commands.UiGlobalCommands")
+local UiResultCommands = require("ui.commands.UiResultCommands")
+local UiSelectCommands = require("ui.commands.UiSelectCommands")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
 -- scales to fit the actual window height.
@@ -39,7 +53,7 @@ local TARGET_HEIGHT = 1080
 ---@field screen_manager ui.ScreenManager
 ---@field overlay ui.Overlay
 ---@field modal_manager ui.ModalManager
----@field command_registry ui.command_palette.Registry
+---@field command_registry rizu.command.Registry
 ---@field actions gui.input.ActionMap
 ---@field private prev_w number
 ---@field private prev_h number
@@ -53,6 +67,20 @@ UserInterface.display_name = "Default User Interface 2026"
 function UserInterface:new(game, mount_path)
 	RizuUserInterface.new(self, game, mount_path, ScreenManager())
 	self.command_registry = Registry()
+	self.global_commands = GlobalCommands(game)
+	self.database_commands = DatabaseCommands(game)
+	self.gameplay_commands = GameplayCommands(game)
+	self.location_commands = LocationCommands(game)
+	self.multiplayer_commands = MultiplayerCommands(game)
+	self.note_skin_commands = NoteSkinCommands(game)
+	self.online_commands = OnlineCommands(game)
+	self.package_commands = PackageCommands(game)
+	self.play_config_commands = PlayConfigCommands(game)
+	self.result_commands = ResultCommands(game)
+	self.select_commands = SelectCommands(game)
+	self.ui_global_commands = UiGlobalCommands(game, self)
+	self.ui_result_commands = UiResultCommands(self)
+	self.ui_select_commands = UiSelectCommands(game, self)
 	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
 	self.config:load()
 	self.actions = UiActions.createMap(self.config)
@@ -88,6 +116,12 @@ function UserInterface:load()
 		self.test_screen,
 	})
 	self.screen_manager:setOverlay(self.overlay)
+
+	for _, command_set in ipairs({self.global_commands, self.ui_global_commands}) do
+		for _, command in ipairs(command_set) do
+			self.command_registry:registerGlobal(command)
+		end
+	end
 
 	local ww, wh = love.graphics.getDimensions()
 	self.prev_w = ww

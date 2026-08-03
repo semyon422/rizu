@@ -1,9 +1,9 @@
 local repo = require("rizu.pkg.repo")
 
 ---@param game sphere.GameController
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getInstalledPackageChoices(game)
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, pkg in ipairs(game.packageManager:getPackages()) do
 		table.insert(choices, {
@@ -14,9 +14,9 @@ local function getInstalledPackageChoices(game)
 	return choices
 end
 
----@return ui.command_palette.Fuzzy.Candidate[] choices
+---@return rizu.command.Fuzzy.Candidate[] choices
 local function getRemotePackageChoices()
-	---@type ui.command_palette.Fuzzy.Candidate[]
+	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
 	for _, pkg_info in ipairs(repo) do
 		table.insert(choices, {
@@ -28,7 +28,7 @@ local function getRemotePackageChoices()
 end
 
 ---@param game sphere.GameController
----@return ui.command_palette.Command[]
+---@return rizu.command.Command[]
 return function(game)
 	return {
 		{

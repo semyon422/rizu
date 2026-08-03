@@ -30,6 +30,7 @@ function Gameplay:new(ui)
 end
 
 function Gameplay:enter()
+	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	local sequence_view = self.sequence_view
 	sequence_view.game = self.game
 	sequence_view.subscreen = "gameplay"
@@ -55,6 +56,7 @@ function Gameplay:enter()
 end
 
 function Gameplay:exit()
+	self.ui.command_registry:popContext("gameplay_commands")
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_canvas.playing = false
 	self.sequence_view:unload()

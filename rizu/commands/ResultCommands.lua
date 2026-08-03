@@ -2,44 +2,19 @@ local thread = require("thread")
 local pprint = require("pprint")
 local stbl = require("stbl")
 
----@param ui ui.UserInterface
----@return ui.command_palette.Command[]
-return function(ui)
-	local game = ui.game
-
-	---@param mode "retry"|"replay"|"result"
-	local play = thread.coro(function(mode)
-		game.resultController:replayNoteChartAsync(mode, game.scoreSelector.chartplay)
-		if mode == "result" then
-			return
-		end
-		ui:setScreen("gameplay")
+---@param game sphere.GameController
+---@return rizu.command.Command[]
+return function(game)
+	local reload_result = thread.coro(function()
+		game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
 	end)
 
 	return {
 		{
-			id = "result.retry",
-			title = "Result: Retry",
-			description = "Retries the result chart",
-			callback = function()
-				play("retry")
-			end,
-		},
-		{
-			id = "result.watch_replay",
-			title = "Result: Watch Replay",
-			description = "Watches the selected score replay",
-			callback = function()
-				play("replay")
-			end,
-		},
-		{
 			id = "result.reload_result",
 			title = "Result: Reload",
 			description = "Reloads the selected score result",
-			callback = function()
-				play("result")
-			end,
+			callback = reload_result,
 		},
 		{
 			id = "result.load_score",
@@ -65,15 +40,6 @@ return function(ui)
 				if chartplay and chartplay.replay_hash then
 					game.onlineModel.onlineScoreManager:submit(game.chartSelector.chartview, chartplay.replay_hash)
 				end
-			end,
-		},
-		{
-			id = "result.back",
-			title = "Result: Back to Select",
-			description = "Returns to chart selection",
-			callback = function()
-				game.resultController:unload()
-				ui:setScreen("select")
 			end,
 		},
 		{
