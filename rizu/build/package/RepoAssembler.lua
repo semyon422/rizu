@@ -7,6 +7,32 @@ local RepoConfigWriter = require("rizu.build.package.RepoConfigWriter")
 
 local _name = config.repo.name
 
+local EXPECTED_FFMPEG_FILES = {
+	linux64 = {
+		"libavcodec.so.62",
+		"libavdevice.so.62",
+		"libavfilter.so.11",
+		"libavformat.so.62",
+		"libavutil.so.60",
+		"libswresample.so.6",
+		"libswscale.so.9",
+	},
+	win64 = {
+		"avcodec-62.dll",
+		"avdevice-62.dll",
+		"avfilter-11.dll",
+		"avformat-62.dll",
+		"avutil-60.dll",
+		"swresample-6.dll",
+		"swscale-9.dll",
+	},
+}
+
+local FFMPEG_FILE_PATTERNS = {
+	linux64 = {"^libav[^/]+%.so%.%d+$", "^libsw[^/]+%.so%.%d+$"},
+	win64 = {"^av[^/]+%-%d+%.dll$", "^sw[^/]+%-%d+%.dll$"},
+}
+
 ---@class rizu.build.package.RepoAssembler
 ---@operator call: rizu.build.package.RepoAssembler
 ---@field ctx rizu.build.Context
@@ -20,6 +46,26 @@ function RepoAssembler:new(ctx, src_fs)
 	self.ctx = ctx
 	self.src_fs = src_fs or ctx.fs
 	self.config_writer = RepoConfigWriter(ctx)
+end
+
+---@param gamerepo string
+---@param bin_root string
+function RepoAssembler:removeStaleFfmpeg(bin_root)
+	for platform, patterns in pairs(FFMPEG_FILE_PATTERNS) do
+		local expected = {}
+		for _, name in ipairs(EXPECTED_FFMPEG_FILES[platform]) do expected[name] = true end
+		local platform_dir = bin_root .. "/" .. platform
+		if self.ctx.fs:getInfo(platform_dir) then
+			for _, name in ipairs(self.ctx.fs:getDirectoryItems(platform_dir)) do
+				for _, pattern in ipairs(patterns) do
+					if name:match(pattern) and not expected[name] then
+						self.ctx.fs:remove(platform_dir .. "/" .. name)
+						break
+					end
+				end
+			end
+		end
+	end
 end
 
 ---@param gamerepo string
@@ -96,6 +142,7 @@ function RepoAssembler:build()
 			fs_util.copy(dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
 		end
 	end
+	self:removeStaleFfmpeg(gamerepo .. "/bin")
 
 	if self.src_fs:getInfo("3rd-deps/lib") then
 		local libs = self.src_fs:getDirectoryItems("3rd-deps/lib")

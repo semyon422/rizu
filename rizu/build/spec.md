@@ -74,6 +74,7 @@ CLI mapping:
 - `Evaluator`: reports per-step and aggregate target status using shared step-state checks.
 - `RepoAssembler`, `UpdateIndexWriter`, `ZipPackager`, and `MacOSPackager`: package-stage implementations called directly by package tasks.
 - `ReleasePackager`: creates `build/release/<commit>/` with `server.tar.gz`, the assembled client repository, client ZIPs, `files.json`, and a checksummed `release.json`.
+- Repository assembly copies platform output directories, then removes FFmpeg shared libraries outside the pinned ABI set so stale files from earlier builds cannot enter releases.
 - `server-state/package_config.lua`: ignored deployment input that supplies the client update repository and WebSocket endpoints embedded during packaging.
 
 ## Release Artifact
