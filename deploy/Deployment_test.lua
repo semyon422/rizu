@@ -33,7 +33,7 @@ function test.lock_wraps_mutating_command(t)
 	local deployment, shell = createDeployment()
 	deployment:runLocked("build-deploy", string.rep("a", 40))
 	local command = shell.commands[1]
-	t:assert(command:find("flock --nonblock", 1, true))
+	t:assert(command:find("flock --wait 7200", 1, true))
 	t:assert(command:find('RIZU_DEPLOY_LOCKED=1', 1, true))
 	t:assert(command:find('"/srv/rizu/deploy.lua" "build-deploy"', 1, true))
 end

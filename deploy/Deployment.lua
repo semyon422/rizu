@@ -96,7 +96,7 @@ end
 function Deployment:runLocked(command, argument)
 	local args = {quote(self.config.root .. "/deploy.lua"), quote(command)}
 	if argument then table.insert(args, quote(argument)) end
-	self.shell:execute("mkdir -p " .. quote(self.config.root) .. " && RIZU_DEPLOY_LOCKED=1 flock --nonblock " .. quote(self.config.root .. "/.deploy.lock") .. " " .. table.concat(args, " "))
+	self.shell:execute("mkdir -p " .. quote(self.config.root) .. " && RIZU_DEPLOY_LOCKED=1 flock --wait 7200 " .. quote(self.config.root .. "/.deploy.lock") .. " " .. table.concat(args, " "))
 end
 
 ---@param commit string

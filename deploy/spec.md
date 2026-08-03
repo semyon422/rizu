@@ -128,7 +128,7 @@ Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE
 - `DEPLOY_SSH_KEY` — private key used only for deployment
 - `DEPLOY_HOST_KEY` — pinned known-hosts line, not an unverified runtime scan
 
-The VDS clone must be `/home/semyon422/rizu`, have its build toolchains and ignored `server-state/`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs, while the VDS lock also protects manual operations.
+The VDS clone must be `/home/semyon422/rizu`, have its build toolchains and ignored `server-state/`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs. The VDS lock also protects manual operations; an overlapping deployment waits for the active deployment for up to two hours instead of failing immediately.
 
 ## Future Work and Open Questions
 
