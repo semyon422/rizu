@@ -1,12 +1,22 @@
 local class = require("class")
 local json = require("json")
 
----@alias rizu.config.Kind "number"|"choice"|"boolean"|"string"
----@alias rizu.config.Value number|string|boolean
+---@class rizu.config.KeyBinding
+---@field key string
+---@field control boolean?
+---@field shift boolean?
+---@field alt boolean?
+---@field super boolean?
+---@field allow_repeat boolean?
+
+---@alias rizu.config.KeyBindings rizu.config.KeyBinding[]
+---@alias rizu.config.Kind "number"|"choice"|"boolean"|"string"|"key_bindings"
+---@alias rizu.config.Value number|string|boolean|rizu.config.KeyBindings
 ---@alias rizu.config.ChangeCallback fun(value: rizu.config.Value, old_value: rizu.config.Value, key: string)
 ---@alias rizu.config.NumberChangeCallback fun(value: number, old_value: number, key: string)
 ---@alias rizu.config.StringChangeCallback fun(value: string, old_value: string, key: string)
 ---@alias rizu.config.BooleanChangeCallback fun(value: boolean, old_value: boolean, key: string)
+---@alias rizu.config.KeyBindingsChangeCallback fun(value: rizu.config.KeyBindings, old_value: rizu.config.KeyBindings, key: string)
 
 ---@class rizu.config.Definition
 ---@field kind rizu.config.Kind
@@ -39,10 +49,58 @@ end
 local function lua_type(kind)
 	if kind == "choice" then
 		return "string"
+	elseif kind == "key_bindings" then
+		return "table"
 	else
 		---@cast kind "number"|"string"|"boolean"
 		return kind
 	end
+end
+
+---@param bindings rizu.config.KeyBindings
+---@return rizu.config.KeyBindings
+local function copy_key_bindings(bindings)
+	local copy = {}
+	for i, binding in ipairs(bindings) do
+		copy[i] = {
+			key = binding.key,
+			control = binding.control,
+			shift = binding.shift,
+			alt = binding.alt,
+			super = binding.super,
+			allow_repeat = binding.allow_repeat,
+		}
+	end
+	return copy
+end
+
+---@param bindings rizu.config.KeyBindings
+local function validate_key_bindings(bindings)
+	for index, binding in ipairs(bindings) do
+		assert(type(binding) == "table", "key binding must be a table at index " .. index)
+		assert(type(binding.key) == "string" and binding.key ~= "", "key binding key must be a non-empty string")
+		for _, modifier in ipairs({"control", "shift", "alt", "super", "allow_repeat"}) do
+			assert(binding[modifier] == nil or type(binding[modifier]) == "boolean", modifier .. " must be a boolean")
+		end
+	end
+end
+
+---@param a rizu.config.KeyBindings
+---@param b rizu.config.KeyBindings
+---@return boolean
+local function key_bindings_equal(a, b)
+	if #a ~= #b then return false end
+	for i, binding in ipairs(a) do
+		local other = b[i]
+		if not other or binding.key ~= other.key
+			or (binding.control == true) ~= (other.control == true)
+			or (binding.shift == true) ~= (other.shift == true)
+			or (binding.alt == true) ~= (other.alt == true)
+			or (binding.super == true) ~= (other.super == true)
+			or (binding.allow_repeat == true) ~= (other.allow_repeat == true)
+		then return false end
+	end
+	return true
 end
 
 ---@param key string
@@ -50,7 +108,9 @@ end
 local function validate_default(key, definition)
 	assert(type(key) == "string" and key ~= "", "key must be a non-empty string")
 	assert(type(definition.default) == lua_type(definition.kind), "default has the wrong type")
-	if definition.kind == "choice" then
+	if definition.kind == "key_bindings" then
+		validate_key_bindings(definition.default --[[@as rizu.config.KeyBindings]])
+	elseif definition.kind == "choice" then
 		assert(definition.choices and #definition.choices > 0, "choices must not be empty")
 		local found = false
 		for _, choice in ipairs(definition.choices) do
@@ -94,6 +154,13 @@ end
 ---@param default string
 function Config:setDefaultString(key, default)
 	self:setDefault(key, {kind = "string", default = default})
+end
+
+---@param key string
+---@param default rizu.config.KeyBindings
+function Config:setDefaultKeyBindings(key, default)
+	validate_key_bindings(default)
+	self:setDefault(key, {kind = "key_bindings", default = copy_key_bindings(default)})
 end
 
 ---@param key string
@@ -165,6 +232,13 @@ function Config:getString(key)
 end
 
 ---@param key string
+---@return rizu.config.KeyBindings
+function Config:getKeyBindings(key)
+	assert_kind(self, key, "key_bindings")
+	return copy_key_bindings(self:get(key) --[[@as rizu.config.KeyBindings]])
+end
+
+---@param key string
 ---@param value rizu.config.Value
 ---@param old_value rizu.config.Value
 function Config:notify(key, value, old_value)
@@ -175,8 +249,17 @@ function Config:notify(key, value, old_value)
 	for callback in pairs(self.all_subscriptions) do
 		callbacks[#callbacks + 1] = callback
 	end
+	local key_bindings = self.definitions[key].kind == "key_bindings"
 	for _, callback in ipairs(callbacks) do
-		callback(value, old_value, key)
+		if key_bindings then
+			callback(
+				copy_key_bindings(value --[[@as rizu.config.KeyBindings]]),
+				copy_key_bindings(old_value --[[@as rizu.config.KeyBindings]]),
+				key
+			)
+		else
+			callback(value, old_value, key)
+		end
 	end
 end
 
@@ -191,13 +274,19 @@ function Config:set(key, value)
 			found = found or choice == value
 		end
 		assert(found, "value must be one of the choices")
+	elseif definition.kind == "key_bindings" then
+		validate_key_bindings(value --[[@as rizu.config.KeyBindings]])
 	end
 
 	local old_value = self:get(key)
-	if old_value == value then
-		return
+	local equal = old_value == value
+	local is_default = value == definition.default
+	if definition.kind == "key_bindings" then
+		equal = key_bindings_equal(old_value --[[@as rizu.config.KeyBindings]], value --[[@as rizu.config.KeyBindings]])
+		is_default = key_bindings_equal(value --[[@as rizu.config.KeyBindings]], definition.default --[[@as rizu.config.KeyBindings]])
 	end
-	self.values[key] = value == definition.default and nil or value
+	if equal then return end
+	self.values[key] = is_default and nil or value
 	self:notify(key, value, old_value)
 end
 
@@ -227,6 +316,14 @@ end
 function Config:setString(key, value)
 	assert_kind(self, key, "string")
 	self:set(key, value)
+end
+
+---@param key string
+---@param value rizu.config.KeyBindings
+function Config:setKeyBindings(key, value)
+	assert_kind(self, key, "key_bindings")
+	validate_key_bindings(value)
+	self:set(key, copy_key_bindings(value))
 end
 
 ---@param key string
@@ -278,6 +375,14 @@ function Config:subscribeString(key, callback)
 	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
 end
 
+---@param key string
+---@param callback rizu.config.KeyBindingsChangeCallback
+---@return function unsubscribe
+function Config:subscribeKeyBindings(key, callback)
+	assert_kind(self, key, "key_bindings")
+	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
+end
+
 ---@param callback rizu.config.ChangeCallback
 ---@return function unsubscribe
 function Config:subscribeAll(callback)
@@ -314,9 +419,10 @@ function Config:deserialize(json_string)
 				for _, choice in ipairs(definition.choices) do
 					found = found or choice == value
 				end
-				if not found then
-					return false
-				end
+				if not found then return false end
+			elseif definition.kind == "key_bindings" then
+				local valid = pcall(validate_key_bindings, value)
+				if not valid then return false end
 			end
 			if value ~= definition.default then
 				values[key] = value
@@ -330,9 +436,11 @@ function Config:deserialize(json_string)
 		local definition = self.definitions[key]
 		local old_value = old_values[key] == nil and definition.default or old_values[key]
 		local value = values[key] == nil and definition.default or values[key]
-		if old_value ~= value then
-			self:notify(key, value, old_value)
+		local equal = old_value == value
+		if definition.kind == "key_bindings" then
+			equal = key_bindings_equal(old_value --[[@as rizu.config.KeyBindings]], value --[[@as rizu.config.KeyBindings]])
 		end
+		if not equal then self:notify(key, value, old_value) end
 	end
 	return true
 end

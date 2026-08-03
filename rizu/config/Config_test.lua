@@ -12,6 +12,7 @@ local function createConfig()
 	config:setDefaultChoice("interface", "new", {"old", "new"})
 	config:setDefaultBoolean("show_fps", false)
 	config:setDefaultString("name", "")
+	config:setDefaultKeyBindings("cancel", {{key = "escape"}})
 	return config, fs
 end
 
@@ -28,16 +29,22 @@ function test.typed_access(t)
 	t:eq(config:getChoice("interface"), "new")
 	t:eq(config:getBoolean("show_fps"), false)
 	t:eq(config:getString("name"), "")
+	t:tdeq(config:getKeyBindings("cancel"), {{key = "escape"}})
 	t:tdeq(config:getChoices("interface"), {"old", "new"})
 
 	config:setNumber("volume", 0.8)
 	config:setChoice("interface", "old")
 	config:setBoolean("show_fps", true)
 	config:setString("name", "player")
+	config:setKeyBindings("cancel", {{key = "q", control = true}})
 	t:eq(config:getNumber("volume"), 0.8)
 	t:eq(config:getChoice("interface"), "old")
 	t:eq(config:getBoolean("show_fps"), true)
 	t:eq(config:getString("name"), "player")
+	t:tdeq(config:getKeyBindings("cancel"), {{key = "q", control = true}})
+	local bindings = config:getKeyBindings("cancel")
+	bindings[1].key = "mutated"
+	t:eq(config:getKeyBindings("cancel")[1].key, "q")
 end
 
 ---@param t testing.T
@@ -72,19 +79,23 @@ function test.typed_subscriptions(t)
 	local choice_value ---@type string?
 	local boolean_value ---@type boolean?
 	local string_value ---@type string?
+	local binding_key ---@type string?
 	config:subscribeNumber("volume", function(value) number_value = value end)
 	config:subscribeChoice("interface", function(value) choice_value = value end)
 	config:subscribeBoolean("show_fps", function(value) boolean_value = value end)
 	config:subscribeString("name", function(value) string_value = value end)
+	config:subscribeKeyBindings("cancel", function(value) binding_key = value[1].key end)
 
 	config:setNumber("volume", 0.7)
 	config:setChoice("interface", "old")
 	config:setBoolean("show_fps", true)
 	config:setString("name", "player")
+	config:setKeyBindings("cancel", {{key = "q"}})
 	t:eq(number_value, 0.7)
 	t:eq(choice_value, "old")
 	t:eq(boolean_value, true)
 	t:eq(string_value, "player")
+	t:eq(binding_key, "q")
 	t:has_error(function() config:subscribeBoolean("volume", function() end) end)
 end
 
@@ -102,6 +113,7 @@ function test.persistence(t)
 	local config, fs = createConfig()
 	config:setNumber("volume", 0.8)
 	config:setBoolean("show_fps", true)
+	config:setKeyBindings("cancel", {{key = "q", control = true}})
 	t:eq(config:save(), true)
 
 	local loaded = Config(fs, "settings.json")
@@ -109,10 +121,12 @@ function test.persistence(t)
 	loaded:setDefaultChoice("interface", "new", {"old", "new"})
 	loaded:setDefaultBoolean("show_fps", false)
 	loaded:setDefaultString("name", "")
+	loaded:setDefaultKeyBindings("cancel", {{key = "escape"}})
 	t:eq(loaded:load(), true)
 	t:eq(loaded:getNumber("volume"), 0.8)
 	t:eq(loaded:getBoolean("show_fps"), true)
 	t:eq(loaded:getChoice("interface"), "new")
+	t:tdeq(loaded:getKeyBindings("cancel"), {{key = "q", control = true}})
 end
 
 ---@param t testing.T
