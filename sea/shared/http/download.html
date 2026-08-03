@@ -84,15 +84,15 @@ function setDownloadButton(os) {
 	const button = document.getElementById("download-button")
 	if (os == "windows") {
 		button.innerText = "Download for Windows"
-		button.setAttribute("href", "<%= brand.repo_url %>/<%= brand.repo_zip %>");
+		button.setAttribute("href", "<%= repo_url %>/<%= brand.repo_zip %>");
 	}
 	else if (os == "linux") {
 		button.innerText = "Download for Linux"
-		button.setAttribute("href", "<%= brand.repo_url %>/<%= brand.repo_zip %>");
+		button.setAttribute("href", "<%= repo_url %>/<%= brand.repo_zip %>");
 	}
 	else if (os == "macos") {
 		button.innerText = "Download for macOS"
-		button.setAttribute("href", "<%= brand.repo_url %>/<%= brand.repo_macos_zip %>");
+		button.setAttribute("href", "<%= repo_url %>/<%= brand.repo_macos_zip %>");
 	}
 }
 

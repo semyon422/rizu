@@ -11,8 +11,10 @@ local fs_util = require("fs.util")
 local UpdateIndexWriter = class()
 
 ---@param ctx rizu.build.Context
-function UpdateIndexWriter:new(ctx)
+---@param package_config table?
+function UpdateIndexWriter:new(ctx, package_config)
 	self.ctx = ctx
+	self.config = package_config or config
 end
 
 local function serialize(t)
@@ -22,13 +24,14 @@ end
 ---@param gamerepo string
 function UpdateIndexWriter:write(gamerepo)
 	local files = {}
+	local repo_url = self.config.game.repo .. "/" .. self.config.repo.name
 	fs_util.find(gamerepo, self.ctx.fs, function(path)
 		local content = self.ctx.fs:read(path)
 		if content then
 			local rel_path = path:sub(#gamerepo + 2)
 			table.insert(files, {
 				path = rel_path,
-				url = config.game.repo .. "/" .. rel_path,
+				url = repo_url .. "/" .. rel_path,
 				hash = zlib.crc32(0, content),
 			})
 		end

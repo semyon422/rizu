@@ -29,6 +29,7 @@ The deployment root defaults to the repository root. For the normal production c
 │   ├── bancho_config.lua
 │   ├── nginx.conf
 │   ├── nginx_config.lua
+│   ├── package_config.lua
 │   ├── server.db
 │   ├── server.db-wal
 │   ├── server.db-shm
@@ -44,7 +45,7 @@ The deployment root defaults to the repository root. For the normal production c
         └── rizu_macos.zip
 ```
 
-The operator must create the configuration files under `server-state/` before the first deployment. SQLite creates `server.db` for a new installation; an existing deployment must move the database together with any `server.db-wal` and `server.db-shm` sidecars while OpenResty is stopped.
+The operator must create the configuration files under `server-state/` before the first deployment. `package_config.lua` defines the client update repository and WebSocket endpoints embedded into release packages. SQLite creates `server.db` for a new installation; an existing deployment must move the database together with any `server.db-wal` and `server.db-shm` sidecars while OpenResty is stopped.
 
 The reverse proxy or download server should serve `/home/semyon422/rizu/public/current`. Switching this symlink atomically publishes one matching set of client files and ZIPs.
 
@@ -78,6 +79,7 @@ cd /home/semyon422/rizu
 mkdir -p server-state
 cp /old/deployment/server-state/app_config.lua server-state/
 cp /old/deployment/server-state/bancho_config.lua server-state/
+cp /old/deployment/server-state/package_config.lua server-state/
 cp /old/deployment/server-state/nginx.conf server-state/
 cp /old/deployment/server-state/nginx_config.lua server-state/
 ```

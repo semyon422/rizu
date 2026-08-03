@@ -3,7 +3,6 @@ local brand = {
 	name = "Rizu",
 	location_name = "Rizu",
 	url = "https://rizu.su",
-	repo_url = "https://dl.rizu.su",
 	repo_zip = "rizu.zip",
 	repo_macos_zip = "rizu_macos.zip",
 	macos_app = "rizu.app",

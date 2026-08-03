@@ -88,10 +88,12 @@ Create the ignored runtime configuration files without overwriting existing ones
 mkdir -p server-state
 test -e server-state/nginx_config.lua || cp nginx_config.example.lua server-state/nginx_config.lua
 test -e server-state/app_config.lua || cp sea/app/AppConfig.lua server-state/app_config.lua
+test -e server-state/bancho_config.lua || cp bancho/config.example.lua server-state/bancho_config.lua
+test -e server-state/package_config.lua || cp package_config.example.lua server-state/package_config.lua
 test -e my.cnf || cp my.cnf.example my.cnf
 ```
 
-Edit the copies for the deployment. `server-state/nginx_config.lua` is the source of truth for the generated OpenResty config; never edit `server-state/nginx.conf` directly.
+Edit the copies for the deployment. `server-state/package_config.lua` controls the client update repository and WebSocket endpoint. `server-state/nginx_config.lua` is the source of truth for the generated OpenResty config; never edit `server-state/nginx.conf` directly.
 
 Compile and control the server with:
 
@@ -260,7 +262,7 @@ These paths are expected to remain local or generated:
 - `tree/`: local LuaJIT/LuaRocks installation.
 - `build/`: downloaded sources, intermediate files, assembled repositories, and packages.
 - `server-state/nginx.conf`: generated from `server-state/nginx_config.lua`.
-- `server-state/nginx_config.lua`, `server-state/app_config.lua`, and `my.cnf`: ignored server configuration.
+- `server-state/nginx_config.lua`, `server-state/app_config.lua`, `server-state/bancho_config.lua`, `server-state/package_config.lua`, and `my.cnf`: ignored server configuration.
 - `userdata/`: ignored game and AI credentials/configuration.
 - `server-state/logs/`, `server-state/temp/`, and `server-state/storages/`: server runtime data.
 

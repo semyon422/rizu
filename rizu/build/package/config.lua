@@ -1,7 +1,12 @@
+local endpoints = require("server-state.package_config")
+
+assert(type(endpoints.repo_url) == "string" and endpoints.repo_url ~= "", "package repo_url is required")
+assert(type(endpoints.websocket_url) == "string" and endpoints.websocket_url ~= "", "package websocket_url is required")
+
 return {
 	game = {
-		repo = "https://dl.rizu.su",
-		websocket = "wss://rizu.su/ws",
+		repo = endpoints.repo_url,
+		websocket = endpoints.websocket_url,
 	},
 	repo = {
 		name = "rizu",

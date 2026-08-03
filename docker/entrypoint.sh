@@ -12,6 +12,7 @@ export NGINX_CONFIG_PATH="/app/$state_dir/nginx_config.lua"
 for path in \
 	"$state_dir/app_config.lua" \
 	"$state_dir/bancho_config.lua" \
+	"$state_dir/package_config.lua" \
 	"$state_dir/nginx.conf" \
 	"$state_dir/nginx_config.lua" \
 	bin/linux64/lib7z.so \

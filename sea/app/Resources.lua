@@ -50,12 +50,13 @@ local Resources = class()
 ---@param views web.Views
 ---@param sessions web.Sessions
 ---@param app_config sea.AppConfig
+---@param package_config {repo_url: string, websocket_url: string}
 ---@param bancho_config bancho.config.BanchoConfig
 ---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
-function Resources:new(domain, server_remote, views, sessions, app_config, bancho_config, shared_memory)
+function Resources:new(domain, server_remote, views, sessions, app_config, package_config, bancho_config, shared_memory)
 	self.index = IndexResource(views)
 	self.style = StyleResource()
-	self.download = DownloadResource(views)
+	self.download = DownloadResource(views, package_config.repo_url)
 	self.policy = PolicyResource(views, app_config.responsible_person)
 	self.wiki = WikiResource(views)
 	self.donate = DonateResource(views)

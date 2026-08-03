@@ -18,6 +18,7 @@ local brand = require("brand")
 local SharedMemory = require("web.nginx.SharedMemory")
 local RestyNats = require("icc.nats.RestyNats")
 local bancho_config = require("server-state.bancho_config")
+local package_config = require("server-state.package_config")
 
 ---@class sea.RequestContext
 ---@field [any] any
@@ -58,7 +59,7 @@ function App:new(app_config)
 	self.domain.user_connections:setup(self.server_remote, whitelist, client_whitelist, nats)
 
 	local views = Views(etlua.autoload(), "sea/shared/http/layout.etlua")
-	self.resources = Resources(self.domain, self.server_remote, views, self.sessions, app_config, bancho_config, self.shared_memory)
+	self.resources = Resources(self.domain, self.server_remote, views, self.sessions, app_config, package_config, bancho_config, self.shared_memory)
 
 	local router = Router()
 	self.router = router
