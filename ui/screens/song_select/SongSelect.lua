@@ -23,6 +23,13 @@ local Rectangle = require("ui.views.Rectangle")
 local Textbox = require("ui.views.Textbox")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ReplayBaseFormatter = require("ui.formatters.ReplayBaseFormatter")
+local SelectCommands = require("ui.commands.SelectCommands")
+local LocationCommands = require("ui.commands.LocationCommands")
+local DatabaseCommands = require("ui.commands.DatabaseCommands")
+local NoteSkinCommands = require("ui.commands.NoteSkinCommands")
+local PlayConfigCommands = require("ui.commands.PlayConfigCommands")
+local OnlineCommands = require("ui.commands.OnlineCommands")
+local PackageCommands = require("ui.commands.PackageCommands")
 
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
@@ -150,6 +157,14 @@ function SongSelect:new(ui)
 			self.ui:setScreen(self.ui.chart_loading, true)
 		end
 	end
+
+	self.select_commands = SelectCommands(ui.game, ui)
+	self.location_commands = LocationCommands(ui.game)
+	self.database_commands = DatabaseCommands(ui.game)
+	self.note_skin_commands = NoteSkinCommands(ui.game)
+	self.play_config_commands = PlayConfigCommands(ui.game)
+	self.online_commands = OnlineCommands(ui.game)
+	self.package_commands = PackageCommands(ui.game)
 end
 
 ---@param index integer
@@ -177,6 +192,13 @@ function SongSelect:enter()
 		self:updateInfo()
 	end
 
+	self.ui.command_registry:pushContext("select_commands", self.select_commands)
+	self.ui.command_registry:pushContext("location_commands", self.location_commands)
+	self.ui.command_registry:pushContext("database_commands", self.database_commands)
+	self.ui.command_registry:pushContext("note_skin_commands", self.note_skin_commands)
+	self.ui.command_registry:pushContext("play_config_commands", self.play_config_commands)
+	self.ui.command_registry:pushContext("online_commands", self.online_commands)
+	self.ui.command_registry:pushContext("package_commands", self.package_commands)
 	self.root:fadeIn(0.3, "OutCubic")
 	self.root:scaleTo(1, 1, 0.3, "OutQuart")
 end
@@ -187,6 +209,14 @@ function SongSelect:exit()
 	chart_selector.state:offChanged(self)
 	chart_selector.stores[2]:offChanged(self)
 	self.ui.game.scoreSelector:offChanged(self)
+
+	self.ui.command_registry:popContext("select_commands")
+	self.ui.command_registry:popContext("location_commands")
+	self.ui.command_registry:popContext("database_commands")
+	self.ui.command_registry:popContext("note_skin_commands")
+	self.ui.command_registry:popContext("play_config_commands")
+	self.ui.command_registry:popContext("online_commands")
+	self.ui.command_registry:popContext("package_commands")
 
 	Screen.exit(self)
 	self.root:fadeOut(0.2, "OutQuad")
