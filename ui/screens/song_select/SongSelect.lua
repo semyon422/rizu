@@ -16,6 +16,7 @@ local TimeRate = require("ui.screens.song_select.TimeRate")
 local Footer = require("ui.screens.song_select.Footer")
 local FooterButton = require("ui.screens.song_select.FooterButton")
 local FooterCell = require("ui.screens.song_select.FooterCell")
+local HeaderButton = require("ui.screens.song_select.HeaderButton")
 local PlayerInfo = require("ui.views.PlayerInfo")
 local SessionInfo = require("ui.views.SessionInfo")
 local Label = require("ui.views.Label")
@@ -133,7 +134,15 @@ function SongSelect:new(ui)
 		end,
 	})
 
-	self.player_info = PlayerInfo("Username", 1, 20.00, 95.05)
+	self.settings_button = HeaderButton(Resources.sprites.icon_gear, function()
+		self.ui.modal_manager:attachConfig()
+	end)
+
+	self.palette_button = HeaderButton(Resources.sprites.icon_terminal, function()
+		self.ui.modal_manager:attachPalette()
+	end)
+
+	self.player_info = PlayerInfo("Username")
 	self.session_info = SessionInfo()
 	self.time_rate = TimeRate(self.ui.game.timeRateModel, self.ui.game.modifierSelectModel)
 	self.gameplay_modifiers = GameplayModifiers()
@@ -278,6 +287,24 @@ end
 
 function SongSelect:createHeader()
 	local header = Rectangle(Colors.panel)
+
+	local right = header:add(FlowContainer({
+		direction = "row",
+		gap = 30,
+		align = 0.5,
+		padding = {0, 0, 100, 0}
+	}))
+
+	local buttons = right:add(FlowContainer({direction = "row"}))
+	buttons:add(self.settings_button)
+	buttons:add(self.palette_button)
+	buttons:fitContent()
+
+	right:add(self.player_info)
+
+	right:fitContent()
+	right:setAlignment(1, 0)
+
 	return header
 end
 

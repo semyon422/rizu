@@ -5,70 +5,44 @@ local Resources = require("ui.Resources")
 
 ---@class ui.views.PlayerInfo : gui.View
 ---@operator call: ui.views.PlayerInfo
----@field font24 love.Font
+---@field font16_medium love.Font
 ---@field font16 love.Font
 ---@field username string
----@field rank integer
----@field performance_points number
----@field accuracy number
----@field upper_label string
----@field lower_label string
+---@field text_y number
 local PlayerInfo = View + {}
 
-local AVATAR_SIZE = 50
-local LABEL_X = 58
+local AVATAR_SIZE = 40
+local LABEL_X = 48
 
 ---@param username string
----@param rank integer
----@return string label
-local function formatUpperLabel(username, rank)
-	return ("#%i %s"):format(rank, username)
-end
-
----@param performance_points number
----@param accuracy number
----@return string label
-local function formatLowerLabel(performance_points, accuracy)
-	return ("%0.02f ENPS • %0.02f%%"):format(performance_points, accuracy)
-end
-
----@param username string
----@param rank integer
----@param performance_points number
----@param accuracy number
-function PlayerInfo:new(username, rank, performance_points, accuracy)
+function PlayerInfo:new(username)
 	View.new(self)
-	self.font24 = Resources.getFont("regular", 24)
-	self.font16 = Resources.getFont("regular", 16)
-	self:updateText(username, rank, performance_points, accuracy)
+	self.font16_medium = Resources.getFont("medium", 16)
+	self:updateText(username)
 end
 
 ---@param username string
----@param rank integer
----@param performance_points number
----@param accuracy number
-function PlayerInfo:updateText(username, rank, performance_points, accuracy)
+function PlayerInfo:updateText(username)
 	self.username = username
-	self.rank = rank
-	self.performance_points = performance_points
-	self.accuracy = accuracy
-	self.upper_label = formatUpperLabel(username, rank)
-	self.lower_label = formatLowerLabel(performance_points, accuracy)
-	self:setSize(LABEL_X + self.font24:getWidth(self.upper_label), AVATAR_SIZE)
+	self:setSize(LABEL_X + self.font16_medium:getWidth(username), AVATAR_SIZE)
+end
+
+---@param old_x number
+---@param old_y number
+---@param old_width number
+---@param old_height number
+function PlayerInfo:onLayoutChanged(old_x, old_y, old_width, old_height)
+	self.text_y = (self.height - self.font16_medium:getHeight()) / 2
 end
 
 function PlayerInfo:draw()
 	Painter.snapToPixel()
 	Painter.setColorRgb(0.2, 0.2, 0.4)
-	Resources.sprites.pixel:draw(0, 0, 0, AVATAR_SIZE, AVATAR_SIZE)
+	Resources.sprites.pixel:draw(self.width - AVATAR_SIZE, 0, 0, AVATAR_SIZE, AVATAR_SIZE)
 
 	Painter.setColorTable(Colors.text)
-	love.graphics.setFont(self.font24)
-	love.graphics.print(self.upper_label, LABEL_X, 2)
-
-	Painter.setColorTable(Colors.text_muted)
-	love.graphics.setFont(self.font16)
-	love.graphics.print(self.lower_label, LABEL_X, 30)
+	love.graphics.setFont(self.font16_medium)
+	love.graphics.print(self.username, 0, self.text_y)
 end
 
 return PlayerInfo
