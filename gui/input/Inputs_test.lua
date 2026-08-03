@@ -78,6 +78,23 @@ function test.action_state_uses_modifiers_and_ignores_repeat(t)
 end
 
 ---@param t testing.T
+function test.action_repeat_creates_new_pressed_edges_when_allowed(t)
+	local actions = ActionMap()
+	actions:defineAction("ui.down", {{key = "down", allow_repeat = true}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+
+	inputs:receive({name = "keypressed", "down"}, default_modifiers)
+	t:eq(inputs:consumeActionJustPressed("ui.down"), true)
+	t:eq(inputs:isActionPressed("ui.down"), true)
+
+	inputs:beginFrame(0, 0)
+	inputs:receive({name = "keypressed", "down", nil, true}, default_modifiers)
+	t:eq(inputs:isActionJustPressed("ui.down"), true)
+	t:eq(inputs:isActionPressed("ui.down"), true)
+end
+
+---@param t testing.T
 function test.no_bubbling(t)
 	local inputs = Inputs()
 	local view = create_view(100, 100)

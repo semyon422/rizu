@@ -128,7 +128,10 @@ function Inputs:updateActions(event, modifiers)
 		for _, binding in ipairs(bindings) do
 			if event[1] == binding.key then
 				if event.name == "keypressed" and action_map:bindingMatchesModifiers(binding, modifiers) then
-					if (not event[3] or binding.allow_repeat) and not self.action_pressed[action] then
+					local is_repeat = event[3] == true
+					if (is_repeat and binding.allow_repeat)
+						or (not is_repeat and not self.action_pressed[action])
+					then
 						self.action_pressed[action] = true
 						self.action_just_pressed[action] = true
 					end
