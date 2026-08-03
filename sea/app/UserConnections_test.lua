@@ -6,11 +6,25 @@ local Message = require("icc.Message")
 local StringBufferPeer = require("icc.StringBufferPeer")
 local User = require("sea.access.User")
 
+local TestNats = require("icc.nats.TestNats")
+
 local buffer_peer = StringBufferPeer()
 
 local test = {}
 
-local TestNats = require("icc.nats.TestNats")
+---@param t testing.T
+function test.gets_request_scoped_nats(t)
+	local dict = FakeSharedDict()
+	local uc = UserConnections(UserConnectionsRepo(dict), {})
+	local created = 0
+	uc:setup({}, {}, {}, function()
+		created = created + 1
+		return TestNats()
+	end)
+
+	t:ne(uc:getNats(), uc:getNats())
+	t:eq(created, 2)
+end
 
 --- Simulate the full two-way call flow:
 --- 1. Connection 1 calls peer2.remote:getRandomNumber() via NATS
@@ -38,7 +52,7 @@ function test.full_call(t)
 	}
 	local whitelist = {getRandomNumber = true}
 	local nc = TestNats()
-	uc:setup(tbl, whitelist, whitelist, nc)
+	uc:setup(tbl, whitelist, whitelist, function() return nc end)
 
 	local sid1 = "1.1.1.1:1"
 	local sid2 = "2.2.2.2:2"
@@ -120,7 +134,7 @@ function test.get_peer(t)
 	}
 	local whitelist = {getRandomNumber = true}
 	local nc = TestNats()
-	uc:setup(tbl, whitelist, whitelist, nc)
+	uc:setup(tbl, whitelist, whitelist, function() return nc end)
 
 	local sid1 = "1.1.1.1:1"
 	local sid2 = "2.2.2.2:2"
@@ -153,7 +167,7 @@ function test.get_peers(t)
 	local tbl = {}
 	local whitelist = {}
 	local nc = TestNats()
-	uc:setup(tbl, whitelist, whitelist, nc)
+	uc:setup(tbl, whitelist, whitelist, function() return nc end)
 
 	uc:onConnect("1.1.1.1:1", 1)
 	uc:onConnect("2.2.2.2:2", 2)

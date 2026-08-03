@@ -51,12 +51,15 @@ function App:new(app_config)
 	self.domain = Domain(self.repos, app_config, LinuxFilesystem())
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
 
-	-- Initialize NATS connection (shared across all WebSocket handlers in this worker)
-	local nats = RestyNats.instance()
-
 	local whitelist = require("sea.app.remotes.whitelist")
 	local client_whitelist = require("sea.app.remotes.client_whitelist")
-	self.domain.user_connections:setup(self.server_remote, whitelist, client_whitelist, nats)
+	self.domain.user_connections:setup(self.server_remote, whitelist, client_whitelist, function()
+		local request_context = ngx.ctx
+		if not request_context.rizu_nats then
+			request_context.rizu_nats = RestyNats()
+		end
+		return request_context.rizu_nats
+	end)
 
 	local views = Views(etlua.autoload(), "sea/shared/http/layout.etlua")
 	self.resources = Resources(self.domain, self.server_remote, views, self.sessions, app_config, package_config, bancho_config, self.shared_memory)

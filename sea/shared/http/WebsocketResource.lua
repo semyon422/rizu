@@ -38,7 +38,7 @@ function WebsocketResource:server(req, res, ctx)
 	ws.max_payload_len = 1e7
 	task_handler.timeout = 60
 
-	local nats = user_connections.nats
+	local nats = user_connections:getNats()
 	local inbox = "icc.inbox." .. ctx.peer_id
 
 	-- Subscribe to our inbox for two-way call responses

@@ -13,7 +13,7 @@ local EMPTY_USER = User()
 ---@operator call: sea.UserConnections
 ---@field task_handler icc.TaskHandler
 ---@field remote_handler icc.RemoteHandler
----@field nats nats.INats NATS client connection
+---@field nats_factory fun(): nats.INats NATS connection factory scoped to the current request
 local UserConnections = class()
 
 UserConnections.ttl = 90
@@ -28,12 +28,17 @@ end
 ---@param server_remote sea.ServerRemote
 ---@param whitelist icc.RemoteHandlerWhitelist
 ---@param client_whitelist icc.RemoteHandlerWhitelist
----@param nats nats.INats NATS client connection
-function UserConnections:setup(server_remote, whitelist, client_whitelist, nats)
+---@param nats_factory fun(): nats.INats NATS connection factory scoped to the current request
+function UserConnections:setup(server_remote, whitelist, client_whitelist, nats_factory)
 	self.remote_handler = RemoteHandler(server_remote, whitelist)
 	self.task_handler = TaskHandler(self.remote_handler, "server")
 	self.client_whitelist = client_whitelist
-	self.nats = nats
+	self.nats_factory = nats_factory
+end
+
+---@return nats.INats
+function UserConnections:getNats()
+	return self.nats_factory()
 end
 
 ---@param peer_id string
@@ -130,7 +135,7 @@ end
 --- No-return broadcast remote for all connected peers.
 ---@return sea.ClientRemoteValidation
 function UserConnections:broadcastAll()
-	local peer = BroadcastingPeer(self.nats, "icc.broadcast.all")
+	local peer = BroadcastingPeer(self:getNats(), "icc.broadcast.all")
 	return ClientRemoteValidation(-Remote(self.task_handler, peer))
 end
 
@@ -138,7 +143,7 @@ end
 ---@param room_id integer
 ---@return sea.ClientRemoteValidation
 function UserConnections:broadcastRoom(room_id)
-	local peer = BroadcastingPeer(self.nats, "icc.broadcast.room." .. room_id)
+	local peer = BroadcastingPeer(self:getNats(), "icc.broadcast.room." .. room_id)
 	return ClientRemoteValidation(-Remote(self.task_handler, peer))
 end
 
@@ -146,7 +151,7 @@ end
 ---@param user_id integer
 ---@return sea.ClientRemoteValidation
 function UserConnections:broadcastUser(user_id)
-	local peer = BroadcastingPeer(self.nats, "icc.broadcast.user." .. user_id)
+	local peer = BroadcastingPeer(self:getNats(), "icc.broadcast.user." .. user_id)
 	return ClientRemoteValidation(-Remote(self.task_handler, peer))
 end
 
