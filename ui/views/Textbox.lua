@@ -10,6 +10,10 @@ local View = require("gui.View")
 ---@field placeholder string?
 ---@field icon gui.Sprite?
 ---@field on_change fun(text: string)?
+---@field blur_on_accept boolean?
+---@field blur_on_cancel boolean?
+---@field handle_clear_field boolean?
+---@field background boolean? Use Colors.background instead of Colors.elements.
 
 ---A standalone, single-line text input.
 ---@class ui.views.Textbox : gui.View
@@ -19,6 +23,10 @@ local View = require("gui.View")
 ---@field placeholder string
 ---@field icon gui.Sprite?
 ---@field on_change fun(text: string)?
+---@field blur_on_accept boolean
+---@field blur_on_cancel boolean
+---@field handle_clear_field boolean
+---@field background boolean
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
 ---@field cap_right gui.Sprite
@@ -42,6 +50,10 @@ function Textbox:new(params)
 	self.placeholder = params.placeholder or ""
 	self.icon = params.icon
 	self.on_change = params.on_change
+	self.blur_on_accept = params.blur_on_accept ~= false
+	self.blur_on_cancel = params.blur_on_cancel ~= false
+	self.handle_clear_field = params.handle_clear_field ~= false
+	self.background = params.background == true
 	self.cap_left = Resources.sprites.form_element_cap_left
 	self.cap_middle = Resources.sprites.form_element_cap_middle
 	self.cap_right = Resources.sprites.form_element_cap_right
@@ -131,11 +143,11 @@ function Textbox:onHandleInputs(inputs)
 	end
 
 	local changed = false
-	if inputs:consumeActionJustPressed(UiActions.cancel)
-		or inputs:consumeActionJustPressed(UiActions.accept)
-	then
+	if self.blur_on_cancel and inputs:consumeActionJustPressed(UiActions.cancel) then
 		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
-	elseif inputs:consumeActionJustPressed(UiActions.clear_field) then
+	elseif self.blur_on_accept and inputs:consumeActionJustPressed(UiActions.accept) then
+		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
+	elseif self.handle_clear_field and inputs:consumeActionJustPressed(UiActions.clear_field) then
 		self.model:setText("")
 		changed = true
 	elseif inputs:consumeActionJustPressed(UiActions.delete_backward) then
@@ -164,7 +176,7 @@ function Textbox:draw()
 	local left_width = self.cap_left:getWidth()
 	local right_width = self.cap_right:getWidth()
 	local middle_width = self.width - left_width - right_width
-	Painter.setColorTable(Colors.elements)
+	Painter.setColorTable(self.background and Colors.background or Colors.elements)
 	self.cap_left:draw(0, 0)
 	self.cap_middle:draw(left_width, 0, 0, middle_width / self.cap_middle:getWidth(), 1)
 	self.cap_right:draw(self.width - right_width, 0)
