@@ -2,6 +2,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
+local UiActions = require("ui.UiActions")
 local View = require("gui.View")
 
 ---@class ui.views.TextboxParams
@@ -123,45 +124,38 @@ function Textbox:onTextInput(e)
 	return true
 end
 
----@param e gui.KeyDownEvent
----@return boolean?
-function Textbox:onKeyDown(e)
+---@param inputs gui.Inputs
+function Textbox:onHandleInputs(inputs)
 	if not self.focused then
 		return
 	end
-	if e.key == "escape" or e.key == "return" or e.key == "kpenter" then
-		assert(self.screen and self.screen.inputs, "focused textbox is not attached to an input-enabled screen")
-		self.screen.inputs:setKeyboardFocus(nil, {
-			control = e.control_pressed,
-			shift = e.shift_pressed,
-			alt = e.alt_pressed,
-			super = e.super_pressed,
-		})
-		return true
-	end
 
 	local changed = false
-	if e.key == "backspace" then
+	if inputs:consumeActionJustPressed(UiActions.cancel)
+		or inputs:consumeActionJustPressed(UiActions.accept)
+	then
+		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
+	elseif inputs:consumeActionJustPressed(UiActions.clear_field) then
+		self.model:setText("")
+		changed = true
+	elseif inputs:consumeActionJustPressed(UiActions.delete_backward) then
 		self.model:backspace()
 		changed = true
-	elseif e.key == "delete" then
+	elseif inputs:consumeActionJustPressed(UiActions.delete_forward) then
 		self.model:delete()
 		changed = true
-	elseif e.key == "left" then
+	elseif inputs:consumeActionJustPressed(UiActions.left) then
 		self.model:moveLeft()
-	elseif e.key == "right" then
+	elseif inputs:consumeActionJustPressed(UiActions.right) then
 		self.model:moveRight()
-	elseif e.key == "home" then
+	elseif inputs:consumeActionJustPressed(UiActions.move_to_start) then
 		self.model:moveToStart()
-	elseif e.key == "end" then
+	elseif inputs:consumeActionJustPressed(UiActions.move_to_end) then
 		self.model:moveToEnd()
-	else
-		return
 	end
 	if changed then
 		self:notifyChange()
 	end
-	return true
 end
 
 function Textbox:draw()

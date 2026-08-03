@@ -114,6 +114,17 @@ function CommandPalette:onHandleInputs(inputs)
 		self:moveSelection(1)
 	elseif inputs:isActionJustPressed(UiActions.up) then
 		self:moveSelection(-1)
+	elseif inputs:isActionJustPressed(UiActions.delete_backward) then
+		if #self.query > 0 then
+			local byte_offset = utf8.offset(self.query, -1)
+			if byte_offset then
+				self.query = self.query:sub(1, byte_offset - 1)
+			end
+			self.selected_index = 1
+			self:queryChanged()
+		end
+	elseif inputs:isActionJustPressed(UiActions.clear_field) then
+		self:reset()
 	elseif inputs:consumeActionJustPressed(UiActions.accept) then
 		if self:isNeedleMode() then
 			if not self.needle_model then return true end
@@ -152,20 +163,6 @@ function CommandPalette:onHandleInputs(inputs)
 		self.on_close()
 		self:hide()
 	end
-end
-
-function CommandPalette:onKeyDown(e)
-	if e.key == "backspace" then
-		if #self.query > 0 then
-			local byte_offset = utf8.offset(self.query, -1)
-			if byte_offset then
-				self.query = self.query:sub(1, byte_offset - 1)
-			end
-			self.selected_index = 1
-			self:queryChanged()
-		end
-	end
-	return true
 end
 
 function CommandPalette:onTextInput(e)

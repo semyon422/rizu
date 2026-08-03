@@ -11,6 +11,11 @@ UiActions.left = "ui.left"
 UiActions.right = "ui.right"
 UiActions.up = "ui.up"
 UiActions.down = "ui.down"
+UiActions.delete_backward = "ui.delete_backward"
+UiActions.delete_forward = "ui.delete_forward"
+UiActions.move_to_start = "ui.move_to_start"
+UiActions.move_to_end = "ui.move_to_end"
+UiActions.clear_field = "ui.clear_field"
 UiActions.gameplay_skip_intro = "gameplay.skip_intro"
 UiActions.editor_toggle_playback = "editor.toggle_playback"
 
@@ -37,6 +42,12 @@ function UiActions.createMap(config)
 			actions:defineAction(action, bindings)
 		end)
 	end
+
+	actions:defineAction(UiActions.delete_backward, {{key = "backspace", allow_repeat = true}})
+	actions:defineAction(UiActions.delete_forward, {{key = "delete", allow_repeat = true}})
+	actions:defineAction(UiActions.move_to_start, {{key = "home", allow_repeat = true}})
+	actions:defineAction(UiActions.move_to_end, {{key = "end", allow_repeat = true}})
+	actions:defineAction(UiActions.clear_field, {{control = true, key = "backspace"}})
 	return actions
 end
 

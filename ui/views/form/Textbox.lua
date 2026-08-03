@@ -3,6 +3,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.views.form.TextboxParams
 ---@field label string
@@ -115,39 +116,29 @@ function Textbox:onTextInput(e)
 	return true
 end
 
----@param e gui.KeyDownEvent
----@return boolean?
-function Textbox:onKeyDown(e)
+---@param inputs gui.Inputs
+function Textbox:onHandleInputs(inputs)
 	if not self.focused then
 		return
 	end
-	if e.key == "escape" then
-		assert(self.screen and self.screen.inputs, "focused textbox is not attached to an input-enabled screen")
-		self.screen.inputs:setKeyboardFocus(nil, {
-			control = e.control_pressed,
-			shift = e.shift_pressed,
-			alt = e.alt_pressed,
-			super = e.super_pressed,
-		})
-		return true
-	end
 
-	if e.key == "backspace" then
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
+	elseif inputs:consumeActionJustPressed(UiActions.clear_field) then
+		self.model:setText("")
+	elseif inputs:consumeActionJustPressed(UiActions.delete_backward) then
 		self.model:backspace()
-	elseif e.key == "delete" then
+	elseif inputs:consumeActionJustPressed(UiActions.delete_forward) then
 		self.model:delete()
-	elseif e.key == "left" then
+	elseif inputs:consumeActionJustPressed(UiActions.left) then
 		self.model:moveLeft()
-	elseif e.key == "right" then
+	elseif inputs:consumeActionJustPressed(UiActions.right) then
 		self.model:moveRight()
-	elseif e.key == "home" then
+	elseif inputs:consumeActionJustPressed(UiActions.move_to_start) then
 		self.model:moveToStart()
-	elseif e.key == "end" then
+	elseif inputs:consumeActionJustPressed(UiActions.move_to_end) then
 		self.model:moveToEnd()
-	else
-		return
 	end
-	return true
 end
 
 function Textbox:draw()
