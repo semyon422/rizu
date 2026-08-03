@@ -20,7 +20,6 @@ Environment:
   RIZU_ARTIFACT_ROOT     Release artifact root (default: build/release)
   RIZU_COMPOSE_FILE      Compose file (default: compose.yaml)
   RIZU_COMPOSE           Compose command (default: docker compose)
-  RIZU_RELEASE_RETAIN    Number of server releases to retain (default: 5)
   RIZU_HEALTH_ATTEMPTS   Health polling attempts (default: 30)
   RIZU_HEALTH_INTERVAL   Seconds between health checks (default: 2)
   RIZU_DEPLOY_TEST_COMMAND  VDS test command (default: ./test)]])
@@ -47,7 +46,6 @@ local deployment = Deployment(Shell(), {
 	artifact_root = os.getenv("RIZU_ARTIFACT_ROOT") or "build/release",
 	compose_file = os.getenv("RIZU_COMPOSE_FILE") or "compose.yaml",
 	compose_command = os.getenv("RIZU_COMPOSE") or "docker compose",
-	retain = positiveInteger("RIZU_RELEASE_RETAIN", "5"),
 	health_attempts = positiveInteger("RIZU_HEALTH_ATTEMPTS", "30"),
 	health_interval = positiveInteger("RIZU_HEALTH_INTERVAL", "2"),
 })

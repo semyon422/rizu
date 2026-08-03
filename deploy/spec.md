@@ -58,8 +58,8 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - The candidate must become Compose-healthcheck healthy before `current` or public client files switch.
 - Failed health restores the previous OpenResty release. With no previous release, the failed OpenResty service is stopped.
 - Explicit and implicit rollback use the same health gate before switching server and public pointers.
-- Five server releases are retained by default; `current` and `previous` are never pruned.
-- `build-deploy`, `deploy`, and `rollback` acquire the same nonblocking `flock` lock. Concurrent automation or operators fail immediately instead of racing state and service changes.
+- Only the current and previous server and published client releases are retained. After successful publication, all `build/release/` copies and stale staging directories are removed because deployed immutable directories are the durable rollback copies.
+- `build-deploy`, `deploy`, and `rollback` acquire the same `flock` lock. Concurrent automation or operators wait up to two hours instead of racing state and service changes.
 - Automated builds fetch and checkout the full pushed SHA rather than deploying a moving branch name. Tracked changes are rejected before and after checkout/submodule synchronization.
 
 ## Invariants
@@ -117,7 +117,7 @@ Rollback to the recorded previous release or a retained commit:
 ./deploy.lua rollback <commit>
 ```
 
-Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE`, `RIZU_COMPOSE_FILE`, `RIZU_ARTIFACT_ROOT`, `RIZU_RELEASE_RETAIN`, `RIZU_HEALTH_ATTEMPTS`, and `RIZU_HEALTH_INTERVAL` to override other operational defaults. The container entrypoint exposes the mounted configuration to Aqua through the generic `NGINX_CONFIG_PATH` environment variable.
+Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE`, `RIZU_COMPOSE_FILE`, `RIZU_ARTIFACT_ROOT`, `RIZU_HEALTH_ATTEMPTS`, and `RIZU_HEALTH_INTERVAL` to override other operational defaults. The container entrypoint exposes the mounted configuration to Aqua through the generic `NGINX_CONFIG_PATH` environment variable.
 
 ## GitHub Actions
 

@@ -6,7 +6,6 @@ local json = require("json")
 ---@field artifact_root string
 ---@field compose_file string
 ---@field compose_command string
----@field retain integer
 ---@field health_attempts integer
 ---@field health_interval integer
 
@@ -290,9 +289,19 @@ end
 
 function Deployment:prune()
 	local root = self.config.root
-	local command = "ls -1dt " .. quote(root .. "/releases/") .. "[0-9a-f]* 2>/dev/null | tail -n +" .. tostring(self.config.retain + 1) .. " | while IFS= read -r path; do " ..
-		"test \"$path\" = \"$(readlink -f " .. quote(root .. "/current") .. ")\" || " ..
-		"test \"$path\" = \"$(readlink -f " .. quote(root .. "/previous") .. " 2>/dev/null)\" || rm -rf \"$path\"; done"
+	local current = "$(readlink -f " .. quote(root .. "/current") .. ")"
+	local previous = "$(readlink -f " .. quote(root .. "/previous") .. " 2>/dev/null)"
+	local command = "find " .. quote(root .. "/releases") .. " -mindepth 1 -maxdepth 1 -type d -name '[0-9a-f]*' | while IFS= read -r path; do " ..
+		"resolved=$(readlink -f \"$path\"); test \"$resolved\" = \"" .. current .. "\" || test \"$resolved\" = \"" .. previous .. "\" || rm -rf \"$path\"; done"
+	self.shell:execute(command)
+
+	command = "find " .. quote(root .. "/public/releases") .. " -mindepth 1 -maxdepth 1 -type d | while IFS= read -r path; do " ..
+		"resolved=$(readlink -f \"$path\"); test \"$resolved\" = \"$(readlink -f " .. quote(root .. "/public/current") .. ")\" || " ..
+		"test \"$(basename \"$path\")\" = \"$(basename \"" .. previous .. "\")\" || rm -rf \"$path\"; done"
+	self.shell:execute(command)
+
+	command = "find " .. quote(self.config.artifact_root) .. " -mindepth 1 -maxdepth 1 -type d " ..
+		"\\( -name '[0-9a-f]*' -o -name '.[0-9a-f]*.tmp' \\) -exec rm -rf -- {} +"
 	self.shell:execute(command)
 end
 

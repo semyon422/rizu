@@ -17,7 +17,6 @@ local function createDeployment()
 		artifact_root = "/artifacts",
 		compose_file = "/repo/compose.yaml",
 		compose_command = "docker compose",
-		retain = 5,
 		health_attempts = 2,
 		health_interval = 1,
 	})
@@ -170,6 +169,20 @@ function test.status_identifies_stopped_server(t)
 	local deployment = createDeployment()
 	local mode = deployment:getStatus()
 	t:eq(mode, "stopped")
+end
+
+---@param t testing.T
+function test.prune_keeps_only_current_and_previous_deployments(t)
+	local deployment, shell = createDeployment()
+	deployment:prune()
+	local commands = joinedCommands(shell)
+	t:assert(commands:find('find "/srv/rizu/releases"', 1, true))
+	t:assert(commands:find('readlink -f "/srv/rizu/current"', 1, true))
+	t:assert(commands:find('readlink -f "/srv/rizu/previous"', 1, true))
+	t:assert(commands:find('find "/srv/rizu/public/releases"', 1, true))
+	t:assert(commands:find('readlink -f "/srv/rizu/public/current"', 1, true))
+	t:assert(commands:find('find "/artifacts"', 1, true))
+	t:assert(commands:find(".[0-9a-f]*.tmp", 1, true))
 end
 
 ---@param t testing.T
