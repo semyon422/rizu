@@ -13,6 +13,22 @@ function test.registers_needle_live_argument(t)
 end
 
 ---@param t testing.T
+function test.omits_ai_chat_without_configured_model(t)
+	for _, command in ipairs(GlobalCommands.get({}, nil)) do
+		t:ne(command.id, "global.ai_chat")
+	end
+end
+
+---@param t testing.T
+function test.includes_ai_chat_with_configured_model(t)
+	local found = false
+	for _, command in ipairs(GlobalCommands.get({aiChatModel = {}}, {})) do
+		found = found or command.id == "global.ai_chat"
+	end
+	t:assert(found)
+end
+
+---@param t testing.T
 function test.omits_needle_gpu_probe_commands(t)
 	for _, command in ipairs(GlobalCommands.get({}, nil)) do
 		t:eq(command.id:find("global.needle_gpu", 1, true), nil)

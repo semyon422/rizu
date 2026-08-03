@@ -302,14 +302,16 @@ function GameController:load()
 		ReadFileTool(self.fs),
 		LuaEvalTool(self),
 	}
-	local ai_agent = OpenAiAgent(self.aiProviderManager:getClient(), ai_tools, {
-		streaming = true,
-		max_tool_rounds = 50,
-		on_tool_failure = function(name, arguments, err)
-			logToolFailure(self.aiToolFailureLog, "agent", name, arguments, err)
-		end,
-	})
-	self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt, {provider_manager = self.aiProviderManager})
+	if self.aiProviderManager:hasModels() then
+		local ai_agent = OpenAiAgent(self.aiProviderManager:getClient(), ai_tools, {
+			streaming = true,
+			max_tool_rounds = 50,
+			on_tool_failure = function(name, arguments, err)
+				logToolFailure(self.aiToolFailureLog, "agent", name, arguments, err)
+			end,
+		})
+		self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt, {provider_manager = self.aiProviderManager})
+	end
 	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
 	self.needleGpuProbe = NeedleGpuProbe()
 	self.needleGpuEncoderProbe = NeedleGpuEncoderProbe()

@@ -6,7 +6,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 
 ## User Experience
 
-- The player opens AI chat from the global command palette without leaving the current screen.
+- When at least one AI model is configured, the player opens AI chat from the global command palette without leaving the current screen. With no configured models, the game starts normally and omits the AI chat command.
 - When the selected provider has `type = "openai_subscription"`, the chat header offers an OpenAI login button. It opens the system browser and completes through a loopback callback; the player returns to the game after authorizing the account.
 - The chat header shows the active provider and model. Clicking it opens a scrollable selector containing every configured provider/model pair; selecting one starts a fresh conversation with that backend.
 - The chat shows user messages, assistant replies, tool activity, request status, and recoverable errors.
@@ -42,7 +42,7 @@ Also provide an offline Needle command router that turns one natural-language pa
 - The subscription connector uses the game-wide `NetworkService` for token and inference requests, so its traffic follows the same proxy policy and non-blocking scheduler as other game network traffic.
 - OAuth credentials are stored in ignored `userdata/ai_auth.lua`. The tracked config contains only an empty credential shape; access and refresh tokens must never be committed or logged.
 - ChatGPT subscription access and API-key access are separate provider contracts. The normal `openai_compatible` client remains available for local Qwen and public API endpoints and never reads subscription credentials.
-- `ProviderManager` flattens named provider entries and their ordered model lists into UI choices, constructs and caches the matching protocol clients, owns shared subscription authentication, and persists `active_provider` plus `active_model` after selection.
+- `ProviderManager` flattens named provider entries and their ordered model lists into UI choices, constructs and caches the matching protocol clients, owns shared subscription authentication, and persists `active_provider` plus `active_model` after selection. An empty provider list is valid and disables in-game AI chat without disabling other game features.
 - Game chat allows up to 50 sequential tool-call rounds before the agent returns a tool-limit error.
 - Ignored `userdata/ai.lua` defines a `providers` dictionary. Each named provider has a display name, provider type, ordered `models` list, and its protocol-specific endpoint/auth/generation settings. `active_provider` and `active_model` persist the selector state.
 - Legacy single-provider `provider`, `model`, and transport fields are converted in memory when no provider dictionary exists, preserving existing user configurations without rewriting them on load.

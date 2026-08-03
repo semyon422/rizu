@@ -50,6 +50,18 @@ function test.flattens_providers_and_persists_selection(t)
 end
 
 ---@param t testing.T
+function test.allows_no_configured_models(t)
+	local manager = ProviderManager(makeOptions({
+		active_provider = "",
+		active_model = "",
+		providers = {},
+		model = "",
+	}))
+	t:eq(manager:hasModels(), false)
+	t:has_error(function() manager:getClient() end)
+end
+
+---@param t testing.T
 function test.supports_legacy_single_provider_config(t)
 	local config = {
 		active_provider = "",

@@ -5,7 +5,7 @@ local M = {}
 ---@param ui ui.UserInterface
 ---@return ui.command_palette.Command[]
 function M.get(game, ui)
-	return {
+	local commands = {
 		{
 			id = "global.needle",
 			title = "Needle",
@@ -16,14 +16,6 @@ function M.get(game, ui)
 				prompt = "Needle:",
 			}},
 			callback = function() end,
-		},
-		{
-			id = "global.ai_chat",
-			title = "AI: Open Chat",
-			description = "Opens the local AI agent chat",
-			callback = function()
-				ui.modal_manager:attachChat()
-			end,
 		},
 		{
 			id = "global.exit",
@@ -103,7 +95,17 @@ function M.get(game, ui)
 			end
 		}
 	}
+	if game.aiChatModel then
+		table.insert(commands, 2, {
+			id = "global.ai_chat",
+			title = "AI: Open Chat",
+			description = "Opens the local AI agent chat",
+			callback = function()
+				ui.modal_manager:attachChat()
+			end,
+		})
+	end
+	return commands
 end
-
 
 return M

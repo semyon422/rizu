@@ -81,7 +81,6 @@ function ProviderManager:new(options)
 			})
 		end
 	end
-	assert(#self.options > 0, "no AI models configured")
 	self.selected_index = 1
 	for index, model_option in ipairs(self.options) do
 		if model_option.provider_id == self.config.active_provider and model_option.model == self.config.active_model then
@@ -132,9 +131,14 @@ function ProviderManager:createClient(model_option)
 	})
 end
 
+---@return boolean
+function ProviderManager:hasModels()
+	return #self.options > 0
+end
+
 ---@return rizu.ai.ModelOption
 function ProviderManager:getSelectedOption()
-	return self.options[self.selected_index]
+	return assert(self.options[self.selected_index], "no AI models configured")
 end
 
 ---@return aqua.openai.Client|aqua.openai.SubscriptionClient
