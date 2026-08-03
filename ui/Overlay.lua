@@ -1,12 +1,12 @@
 local Screen = require("gui.Screen")
 local ModalManager = require("ui.ModalManager")
 local FpsView = require("ui.views.FpsView")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.Overlay : gui.Screen
 ---@operator call: ui.Overlay
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
----@field private suppress_palette_text_input boolean
 local Overlay = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -16,38 +16,28 @@ function Overlay:new(ui)
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
 	self.modal_manager = self.root:add(ModalManager(ui))
-	self.suppress_next_text_input = false
 end
 
 ---@param event {name: string, time: number, [integer]: any}
+---@param modifiers gui.ModifierKeys?
 ---@return boolean handled
-function Overlay:receive(event)
-	if self.suppress_next_text_input and event.name == "textinput" then
-		self.suppress_next_text_input = false
-		return true
+function Overlay:receive(event, modifiers)
+	local inputs = self.inputs
+	if not inputs then return false end
+	local global_action = inputs:isActionJustPressed(UiActions.command_palette)
+		or inputs:isActionJustPressed(UiActions.open_config)
+	-- Consume both the shortcut key and the text event it may produce. The
+	-- action itself is applied during update, after the input queue is drained.
+	return global_action and (event.name == "keypressed" or event.name == "textinput")
+end
+
+---@param inputs gui.Inputs
+function Overlay:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.command_palette) then
+		self.modal_manager:attachPalette()
+	elseif inputs:consumeActionJustPressed(UiActions.open_config) then
+		self.modal_manager:attachConfig()
 	end
-
-	if event.name == "keypressed" then
-		local key = event[1]
-
-		if love.keyboard.isDown("lshift", "rshift") then
-			if key == ";" then
-				self.modal_manager:attachPalette()
-				self.suppress_next_text_input = true
-				return true
-			end
-		end
-
-		if love.keyboard.isDown("lctrl", "rctrl") then
-			if key == "o" then
-				self.modal_manager:attachConfig()
-				self.suppress_next_text_input = true
-				return true
-			end
-		end
-	end
-
-	return false
 end
 
 return Overlay

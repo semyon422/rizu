@@ -6,6 +6,7 @@ local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.Config")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.ModalManager : gui.View
 ---@operator call: ui.ModalManager
@@ -100,17 +101,20 @@ function ModalManager:modalClosed(view)
 	self.active_view = nil
 	local inputs = self.screen and self.screen.inputs
 	if inputs then
+		-- The focused modal may have closed itself while raw key events were
+		-- dispatched. Consume cancel here so the later action phase cannot also
+		-- close the navigation screen.
+		inputs:consumeActionJustPressed(UiActions.cancel)
 		inputs:setKeyboardFocus(nil, {control = false, shift = false, alt = false, super = false})
 		inputs:popFocusScope(view)
 	end
 	self.bg:hide()
 end
 
----@param e gui.KeyDownEvent
----@return boolean? handled
-function ModalManager:onKeyDown(e)
-	if e.key == "escape" and self.active_view then
-		return self:hideModal()
+---@param inputs gui.Inputs
+function ModalManager:onHandleInputs(inputs)
+	if self.active_view and inputs:consumeActionJustPressed(UiActions.cancel) then
+		self:hideModal()
 	end
 end
 

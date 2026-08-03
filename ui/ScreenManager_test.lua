@@ -13,6 +13,7 @@ local function newScreen()
 		updated = 0,
 		drawn = 0,
 		accepted = 0,
+		handled_inputs = 0,
 		flushed = 0,
 	}
 	function screen:load() self.loaded = self.loaded + 1 end
@@ -24,6 +25,7 @@ local function newScreen()
 	end
 	function screen:flush() self.flushed = self.flushed + 1 end
 	function screen:acceptInputs() self.accepted = self.accepted + 1 end
+	function screen:handleInputs() self.handled_inputs = self.handled_inputs + 1 end
 	function screen:receive() self.received = (self.received or 0) + 1 end
 	function screen:update() self.updated = self.updated + 1 end
 	function screen:isTransitionActive() return self.transforming or false end
@@ -91,6 +93,28 @@ function test.service_layer_draws_above_navigation_and_collects_input_first(t)
 		"navigation draw",
 		"overlay draw",
 	})
+end
+
+---@param t testing.T
+function test.handleInputs_targets_overlay_then_captured_input_screen(t)
+	local manager = ScreenManager()
+	local navigation = newScreen()
+	local replacement = newScreen()
+	local overlay = newScreen()
+	local order = {}
+	function overlay:handleInputs()
+		order[#order + 1] = "overlay"
+		manager:setScreen(replacement)
+	end
+	function navigation:handleInputs() order[#order + 1] = "navigation" end
+	function replacement:handleInputs() order[#order + 1] = "replacement" end
+	manager:registerAll({navigation, replacement})
+	manager:setOverlay(overlay)
+	manager:setScreen(navigation)
+
+	manager:handleInputs({})
+
+	t:tdeq(order, {"overlay", "navigation"})
 end
 
 ---@param t testing.T

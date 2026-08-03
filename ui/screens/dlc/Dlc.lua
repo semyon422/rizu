@@ -1,5 +1,6 @@
 local Screen = require("gui.Screen")
 local Label = require("ui.views.Label")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.screens.dlc.Dlc : gui.Screen
 ---@operator call: ui.screens.dlc.Dlc
@@ -18,12 +19,12 @@ function Dlc:new(ui)
 	label:setAlignment(0.5, 0.5)
 	label:setPivot(0.5, 0.5)
 
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(_, event)
-		if event.key == "escape" then
-			self.ui:setScreen(self.ui.main_menu)
-			return true
-		end
+end
+
+---@param inputs gui.Inputs
+function Dlc:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		self.ui:setScreen(self.ui.main_menu)
 	end
 end
 

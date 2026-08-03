@@ -2,16 +2,15 @@ local class = require("class")
 local Inputs = require("gui.input.Inputs")
 
 ---@class gui.QueuedInput
----@field event {name: string, time: number?, [integer]: any}
+---@field event {name: string, time: number, [integer]: any}
 ---@field modifiers gui.ModifierKeys
 ---@field x number
 ---@field y number
----@field time number
 
 ---@class gui.UserInterface
 ---@operator call: gui.UserInterface
 ---@field screen_manager gui.IScreenManager
----@field private inputs gui.Inputs
+---@field inputs gui.Inputs
 ---@field private input_queue gui.QueuedInput[]
 local UserInterface = class()
 
@@ -32,10 +31,10 @@ local function getModifiers()
 	}
 end
 
----@param event {name: string, time: number?, [integer]: any}
----@return {name: string, time: number?, [integer]: any} copy
+---@param event {name: string, time: number, [integer]: any}
+---@return {name: string, time: number, [integer]: any} copy
 local function copyEvent(event)
-	local copy = {}
+	local copy = {} ---@type {name: string, time: number, [integer]: any}
 	for key, value in pairs(event) do
 		copy[key] = value
 	end
@@ -72,9 +71,9 @@ function UserInterface:drainInputQueue()
 			self.inputs.mouse_x = queued.x
 			self.inputs.mouse_y = queued.y
 		end
-		queued.event.time = queued.time
-		if not self.screen_manager:receive(queued.event) then
-			self.inputs:receive(queued.event, queued.modifiers)
+		self.inputs:updateActions(queued.event, queued.modifiers)
+		if not self.screen_manager:receive(queued.event, queued.modifiers) then
+			self.inputs:dispatch(queued.event, queued.modifiers)
 		end
 		queue[i] = nil
 	end
@@ -86,6 +85,7 @@ function UserInterface:update(dt)
 	self.inputs:beginFrame(mouse_x, mouse_y)
 	self.screen_manager:acceptInputs(self.inputs)
 	self:drainInputQueue()
+	self.screen_manager:handleInputs(self.inputs)
 	self.screen_manager:update(dt)
 end
 
@@ -93,7 +93,7 @@ function UserInterface:draw()
 	self.screen_manager:draw()
 end
 
----@param event {name: string, time: number?, [integer]: any}
+---@param event {name: string, time: number, [integer]: any}
 ---@param modifiers gui.ModifierKeys?
 function UserInterface:receive(event, modifiers)
 	local x, y = 0, 0
@@ -107,7 +107,6 @@ function UserInterface:receive(event, modifiers)
 		modifiers = modifiers or getModifiers(),
 		x = x,
 		y = y,
-		time = love.timer.getTime(),
 	}
 end
 

@@ -7,7 +7,7 @@ A retained-mode UI library for LÖVE. One node type — `View` — forms a tree 
 - **One tree type.** Every node is a `View`. Layout containers such as `StackContainer`, `TrackContainer`, and `FlowContainer` are specialized Views, so they compose, animate, draw, and receive input like any other View. A plain View with children is the manual-layout container.
 - **Two write channels, strictly separated.** The *layout channel* (anchors, offsets, container policy → resolved rect) is owned by the layout system. The *visual channel* (offset transform, pivot, rotation, scale, opacity) is owned by you and by animations. Neither ever writes the other's state — with exactly one documented exception, the layout-transition compensation (§11.4).
 - **Three kinds of layout data, never mixed.** *Authored inputs* (anchors/offsets and parent-owned track metadata), *transient arranged output* (the current container pass's rects — cleared and rewritten every pass), and the *resolved rect* (`x/y/width/height` — layout's output, read-only to everyone else).
-- **The hot path is flat.** Flatten builds one complete view array for input/subtree ranges plus filtered update and draw arrays. `update` / `draw` / `acceptInputs` never walk the tree, and layout-only container Views cost nothing in update/draw dispatch. Event-driven work (animation recompose, scroll culling) is bounded to a subtree's flat range and happens only when something actually moved — that's the qualified form of "no tree walks per frame."
+- **The hot path is flat.** Flatten builds one complete view array for input/subtree ranges plus filtered semantic-input, update, and draw arrays. `handleInputs` / `update` / `draw` / `acceptInputs` never walk the tree, and layout-only container Views cost nothing in their dispatch. Event-driven work (animation recompose, scroll culling) is bounded to a subtree's flat range and happens only when something actually moved — that's the qualified form of "no tree walks per frame."
 - **Layout is cold.** It runs on structural change, window resize, or explicit invalidation — never per frame.
 - **Culling is data, not control flow.** Visibility culling is precomputed into per-view flags at the moments geometry changes, and the per-frame loop checks one boolean. (Under a documented containment guarantee, the loop may also skip a whole subtree by index jump, §9.3.)
 - **One animation system, everything funnels through it.** Entrances, exits, hovers, layout transitions, and screen transitions are all *transforms* on the visual channel (§11). Feel comes from uniformity plus consistent house defaults, not from per-widget ad-hoc tweens.
@@ -392,7 +392,8 @@ LÖVE polls events before `update`. To keep dispatch on current geometry, event 
    a. `inputs:beginFrame(current_mouse_x, current_mouse_y)` — seeds hover context only;
    b. `ScreenManager` flushes the overlay and input Screen;
    c. collect targets **top → bottom**: overlay, then input Screen;
-   d. **drain the queue** in poll order, restoring each pointer event's event-time coordinates before dispatch.
+   d. **drain the queue** in poll order, restoring each pointer event's event-time coordinates before dispatch;
+   e. dispatch semantic actions top-to-bottom: overlay, then the input Screen. Each Screen invokes overridden `View:onHandleInputs(inputs)` hooks front-most first, then `Screen:onHandleInputs(inputs)`. Handlers consume discrete edges to stop lower-priority action handling.
 3. Update visible navigation Screens bottom-to-top, then the overlay. Each Screen **steps its animations first** (transforms §11.1, scroll dynamics §9.2) and only then runs view `update(dt)` code — animation state is always settled before user code reads it. Transform ticks batch their visual-channel writes and recompose once per affected view.
 4. Draw visible navigation Screens **bottom → top**, then the overlay.
 
@@ -447,7 +448,7 @@ Painter is rendering infrastructure only. It does not affect layout, transforms,
 
 ## 8. Input
 
-Per-view contract: `view:acceptInputs(inputs)` → `inputs:processView(view)`, skipped when `detached`, `cull_mask ~= 0`, not `present`, or not `effective_visible`/`effective_enabled`.
+Per-view target-collection contract: `view:acceptInputs(inputs)` → `inputs:processView(view)`, skipped when `detached`, `cull_mask ~= 0`, not `present`, or not `effective_visible`/`effective_enabled`. Semantic action handling uses `View:onHandleInputs(inputs)` with the same eligibility checks and front-most-first order. `consumeActionJustPressed` and `consumeActionJustReleased` claim an edge for the current frame; held state remains observable.
 
 ### 8.1 Dispatch contract
 

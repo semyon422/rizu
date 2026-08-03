@@ -18,6 +18,20 @@ User interface module for Rizu. Uses "gui" module. Exists on it's own, but goes 
 - `Color.lua`: Utils for working with colors
 - `Sounds.lua`: Singleton that can play sounds
 
+## UI actions and key bindings
+
+`gui.input.ActionMap` maps semantic action names to one or more keyboard bindings. UI code asks whether an input event matches an action instead of checking LÖVE keys directly:
+
+```lua
+if inputs:consumeActionJustPressed(UiActions.cancel) then
+	closeModal()
+end
+```
+
+`ui.UiActions` owns UI-specific action names and maps the key-binding settings in `ui.UiConfig` into the generic action map. `gui.Inputs` exposes `isActionPressed`, `isActionJustPressed`, and `isActionJustReleased`; `consumeActionJustPressed` / `consumeActionJustReleased` remove an edge after a higher-priority handler claims it, and all remaining `just` states reset at the start of each frame. `defineAction` replaces an action's bindings, `addBinding` adds an alternative, `getBindings` supports settings UI, and `getBindingLabel` provides display text. Bindings use exact modifiers and ignore key-repeat unless `allow_repeat = true`.
+
+Queued events update action state before raw event routing, including events consumed by screen-level handlers. Gameplay input remains separate.
+
 ## Guidelines
 
 We use sprites for most things. Try to batch as much as we can using love's automatic batching or sometimes use TextBatch and SpriteBatch. Spamming a lot of views should be okay, but you can always make a single view which can for example display a lot of info using TextBatch or SpriteBatch or even automatic batching works okay here.

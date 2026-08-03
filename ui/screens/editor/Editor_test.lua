@@ -1,5 +1,7 @@
 local Editor = require("ui.screens.editor.Editor")
 local EditorRhythmView = require("ui.screens.editor.EditorRhythmView")
+local Inputs = require("gui.input.Inputs")
+local ActionMap = require("gui.input.ActionMap")
 local RhythmView = require("sphere.views.RhythmView")
 
 local test = {}
@@ -56,8 +58,18 @@ function test.space_toggles_editor_playback(t)
 	local editor = Editor({game = game})
 	editor.editor_loaded = true
 
-	t:eq(editor.root.onKeyDown(editor.root, {key = "space"}), true)
-	t:eq(editor.root.onKeyDown(editor.root, {key = "space"}), true)
+	local actions = ActionMap()
+	actions:defineAction("editor.toggle_playback", {{key = "space"}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+	local modifiers = {control = false, shift = false, alt = false, super = false}
+
+	inputs:receive({name = "keypressed", "space"}, modifiers)
+	editor:onHandleInputs(inputs)
+	inputs:receive({name = "keyreleased", "space"}, modifiers)
+	inputs:beginFrame(0, 0)
+	inputs:receive({name = "keypressed", "space"}, modifiers)
+	editor:onHandleInputs(inputs)
 	t:tdeq(calls, {"play", "pause"})
 end
 

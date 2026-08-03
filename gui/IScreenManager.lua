@@ -16,9 +16,14 @@ end
 ---@param inputs gui.Inputs
 function IScreenManager:acceptInputs(inputs) end
 
+---Dispatches semantic actions after queued raw events have updated action state.
+---@param inputs gui.Inputs
+function IScreenManager:handleInputs(inputs) end
+
 ---@param event {name: string, time: number, [integer]: any}
+---@param modifiers gui.ModifierKeys?
 ---@return boolean? handled
-function IScreenManager:receive(event) end
+function IScreenManager:receive(event, modifiers) end
 
 ---@param dt number
 function IScreenManager:update(dt) end

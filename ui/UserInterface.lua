@@ -17,6 +17,7 @@ local Registry = require("ui.command_palette.Registry")
 local Colors = require("ui.Colors")
 local LoveFilesystem = require("fs.LoveFilesystem")
 local UiConfig = require("ui.UiConfig")
+local UiActions = require("ui.UiActions")
 
 -- The tree always works in a 1080-logical-tall coordinate system; the screen
 -- scales to fit the actual window height.
@@ -39,6 +40,7 @@ local TARGET_HEIGHT = 1080
 ---@field overlay ui.Overlay
 ---@field modal_manager ui.ModalManager
 ---@field command_registry ui.command_palette.Registry
+---@field actions gui.input.ActionMap
 ---@field private prev_w number
 ---@field private prev_h number
 local UserInterface = RizuUserInterface + {}
@@ -53,6 +55,8 @@ function UserInterface:new(game, mount_path)
 	self.command_registry = Registry()
 	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
 	self.config:load()
+	self.actions = UiActions.createMap(self.config)
+	self.inputs:setActionMap(self.actions)
 end
 
 function UserInterface:load()

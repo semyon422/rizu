@@ -373,7 +373,6 @@ function View:load() end
 ---Override for resource teardown.
 function View:unload() end
 
----@package
 function View:loadSubtree()
 	if not self.loaded then
 		self:load()
@@ -384,7 +383,6 @@ function View:loadSubtree()
 	end
 end
 
----@package
 function View:unloadSubtree()
 	for i = #self.children, 1, -1 do
 		self.children[i]:unloadSubtree()
@@ -1274,6 +1272,11 @@ function View:acceptInputs(inputs)
 	end
 	inputs:processView(self)
 end
+
+---Override. Handles semantic input actions. Front-most views run first and
+---may consume action edges before lower-priority views observe them.
+---@param inputs gui.Inputs
+function View:onHandleInputs(inputs) end
 
 ---Override. Draws in local space: [0, width] x [0, height].
 function View:draw() end

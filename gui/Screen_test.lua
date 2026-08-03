@@ -1,4 +1,5 @@
 local Inputs = require("gui.input.Inputs")
+local ActionMap = require("gui.input.ActionMap")
 local Screen = require("gui.Screen")
 local View = require("gui.View")
 
@@ -89,6 +90,41 @@ function test.acceptInputs_uses_flat_views_front_to_back(t)
 	})
 
 	t:tdeq(seen, {child, last, first, s.root})
+end
+
+---@param t testing.T
+function test.handleInputs_uses_specialized_views_front_to_back(t)
+	local s = Screen()
+	local first = View()
+	local last = View()
+	local child = View()
+	local inert = View()
+	local seen = {}
+	function first:onHandleInputs(inputs)
+		seen[#seen + 1] = "first:" .. tostring(inputs:consumeActionJustPressed("test"))
+	end
+	function last:onHandleInputs(inputs)
+		seen[#seen + 1] = "last:" .. tostring(inputs:consumeActionJustPressed("test"))
+	end
+	function child:onHandleInputs(inputs)
+		seen[#seen + 1] = "child:" .. tostring(inputs:consumeActionJustPressed("test"))
+	end
+	s.root:add(first)
+	s.root:add(last)
+	last:add(child)
+	s.root:add(inert)
+
+	local inputs = Inputs()
+	local actions = ActionMap()
+	actions:defineAction("test", {{key = "return"}})
+	inputs:setActionMap(actions)
+	inputs:updateActions({name = "keypressed", "return"}, {
+		control = false, shift = false, alt = false, super = false,
+	})
+	s:handleInputs(inputs)
+
+	t:tdeq(seen, {"child:true", "last:false", "first:false"})
+	t:tdeq(s.input_views, {first, last, child})
 end
 
 ---@param t testing.T

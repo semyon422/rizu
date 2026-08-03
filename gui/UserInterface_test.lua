@@ -24,6 +24,7 @@ local function createInterface()
 			inputs.mouse_target = target
 		end,
 		receive = function() end,
+		handleInputs = function() order[#order + 1] = "actions" end,
 		update = function() order[#order + 1] = "update" end,
 	}
 	return UserInterface(screen_manager), order
@@ -32,24 +33,24 @@ end
 ---@param t testing.T
 function test.receive_queues_copied_events_until_update(t)
 	local ui, order = createInterface()
-	local event = {name = "mousepressed", 10, 20, 1}
+	local event = {name = "mousepressed", time = 1, 10, 20, 1}
 	ui:receive(event, modifiers)
 	event[1] = 999
 
 	t:tdeq(order, {})
 	ui:update(0)
-	t:tdeq(order, {"down:10:20:true", "update"})
+	t:tdeq(order, {"down:10:20:true", "actions", "update"})
 end
 
 ---@param t testing.T
 function test.queued_pointer_events_keep_order_and_event_coordinates(t)
 	local ui, order = createInterface()
-	ui:receive({name = "mousepressed", 10, 20, 1}, modifiers)
-	ui:receive({name = "mousereleased", 30, 40, 1}, modifiers)
+	ui:receive({name = "mousepressed", time = 1, 10, 20, 1}, modifiers)
+	ui:receive({name = "mousereleased", time = 2, 30, 40, 1}, modifiers)
 
 	ui:update(0)
 
-	t:tdeq(order, {"down:10:20:true", "up:30:40", "update"})
+	t:tdeq(order, {"down:10:20:true", "up:30:40", "actions", "update"})
 end
 
 return test

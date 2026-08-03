@@ -5,6 +5,7 @@ local Spectrum = require("ui.screens.music_player.Spectrum")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.screens.music_player.MusicPlayer : gui.Screen
 ---@operator call: ui.screens.music_player.MusicPlayer
@@ -43,21 +44,19 @@ function MusicPlayer:new(ui)
 
 	self.root:add(ProgressBar(preview_model)):anchorFill(120, 900, 120, 115)
 
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(_, event)
-		if event.key == "escape" then
-			self.ui:setScreen(self.ui.main_menu, true)
-			return true
-		elseif event.key == "left" then
-			preview_model:setPosition(preview_model:getTime() - 5)
-			return true
-		elseif event.key == "right" then
-			preview_model:setPosition(preview_model:getTime() + 5)
-			return true
-		end
-	end
-
 	self.root:setOpacity(0)
+end
+
+---@param inputs gui.Inputs
+function MusicPlayer:onHandleInputs(inputs)
+	local preview_model = self.ui.game.previewModel
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		self.ui:setScreen(self.ui.main_menu, true)
+	elseif inputs:consumeActionJustPressed(UiActions.left) then
+		preview_model:setPosition(preview_model:getTime() - 5)
+	elseif inputs:consumeActionJustPressed(UiActions.right) then
+		preview_model:setPosition(preview_model:getTime() + 5)
+	end
 end
 
 ---@param chartview rizu.library.LocatedChartview?

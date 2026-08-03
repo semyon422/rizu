@@ -7,6 +7,14 @@ local keys = {
 	gameplay_viewport_y = "gameplay_viewport_y",
 	gameplay_viewport_sx = "gameplay_viewport_sx",
 	gameplay_viewport_sy = "gameplay_viewport_sy",
+	command_palette_bindings = "command_palette_bindings",
+	open_config_bindings = "open_config_bindings",
+	accept_bindings = "accept_bindings",
+	cancel_bindings = "cancel_bindings",
+	left_bindings = "left_bindings",
+	right_bindings = "right_bindings",
+	gameplay_skip_intro_bindings = "gameplay_skip_intro_bindings",
+	editor_toggle_playback_bindings = "editor_toggle_playback_bindings",
 }
 
 ---@class ui.UiConfig : rizu.config.Config
@@ -24,6 +32,14 @@ function UiConfig:new(fs, path)
 	self:setDefaultNumber(keys.gameplay_viewport_sx, 1)
 	self:setDefaultNumber(keys.gameplay_viewport_sy, 1)
 	self:setDefaultBoolean(keys.show_fps, false)
+	self:setDefaultKeyBindings(keys.command_palette_bindings, {{key = ";", shift = true}})
+	self:setDefaultKeyBindings(keys.open_config_bindings, {{key = "o", control = true}})
+	self:setDefaultKeyBindings(keys.accept_bindings, {{key = "return"}, {key = "kpenter"}})
+	self:setDefaultKeyBindings(keys.cancel_bindings, {{key = "escape"}})
+	self:setDefaultKeyBindings(keys.left_bindings, {{key = "left"}})
+	self:setDefaultKeyBindings(keys.right_bindings, {{key = "right"}})
+	self:setDefaultKeyBindings(keys.gameplay_skip_intro_bindings, {{key = "space"}})
+	self:setDefaultKeyBindings(keys.editor_toggle_playback_bindings, {{key = "space"}})
 end
 
 return UiConfig

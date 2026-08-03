@@ -30,6 +30,7 @@ local NoteSkinCommands = require("ui.commands.NoteSkinCommands")
 local PlayConfigCommands = require("ui.commands.PlayConfigCommands")
 local OnlineCommands = require("ui.commands.OnlineCommands")
 local PackageCommands = require("ui.commands.PackageCommands")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
@@ -151,13 +152,6 @@ function SongSelect:new(ui)
 
 	self.root:setOpacity(0)
 	self.root:setPivot(0.5, 0.5)
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(_, event)
-		if event.key == "return" and self.ui.game.chartSelector:chartExists() then
-			self.ui:setScreen(self.ui.chart_loading, true)
-		end
-	end
-
 	self.select_commands = SelectCommands(ui.game, ui)
 	self.location_commands = LocationCommands(ui.game)
 	self.database_commands = DatabaseCommands(ui.game)
@@ -349,6 +343,17 @@ function SongSelect:updateInfo()
 	self.footer_right:fitContent()
 end
 
+---@param inputs gui.Inputs
+function SongSelect:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		self.ui:setScreen(self.ui.main_menu, true)
+	elseif self.ui.game.chartSelector:chartExists()
+		and inputs:consumeActionJustPressed(UiActions.accept)
+	then
+		self.ui:setScreen(self.ui.chart_loading, true)
+	end
+end
+
 ---@param event rizu.select.Event|{name: string, [integer]: any}
 function SongSelect:receive(event)
 	if event.type == "chartview_changed" and event.chartview.hash then
@@ -365,6 +370,7 @@ function SongSelect:receive(event)
 	elseif event.type == "list_count_changed" or event.type == "list_item_loaded" then
 		self.chart_grid:requestReloadItems()
 	end
+
 
 	self.background_panel:receive(event)
 end

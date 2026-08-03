@@ -13,6 +13,7 @@ local ResultMeta = require("ui.screens.result.ResultMeta")
 local CompositeView = require("gui.CompositeView")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.screens.result.Result : gui.Screen
 ---@operator call: ui.screens.result.Result
@@ -78,14 +79,14 @@ function Result:new(ui)
 	self.ring = self.content:add(self:createRingPanel())
 	self.no_score_panel = self.content:add(self:createNoScorePanel())
 
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(_, event)
-		if event.key == "escape" then
-			self.ui:setScreen(self.ui.song_select, true)
-		end
-	end
-
 	self.composite:setOpacity(0)
+end
+
+---@param inputs gui.Inputs
+function Result:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		self.ui:setScreen(self.ui.song_select, true)
+	end
 end
 
 function Result:createNoScorePanel()

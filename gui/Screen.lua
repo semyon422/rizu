@@ -7,6 +7,7 @@ local View = require("gui.View")
 ---@operator call: gui.Screen
 ---@field root gui.View
 ---@field views gui.View[] All attached views in DFS pre-order
+---@field input_views gui.View[] Views overriding View:onHandleInputs
 ---@field update_views gui.View[] Views overriding View:update
 ---@field draw_views gui.View[] Views overriding View:draw
 ---@field renderer gui.Renderer
@@ -25,6 +26,8 @@ function Screen:new()
 	self.root:setScreen(self)
 	---@type gui.View[]
 	self.views = {}
+	---@type gui.View[]
+	self.input_views = {}
 	---@type gui.View[]
 	self.update_views = {}
 	---@type gui.View[]
@@ -85,6 +88,7 @@ function Screen:unload()
 	self.root:unloadSubtree()
 	self.loaded = false
 	self.views = {}
+	self.input_views = {}
 	self.update_views = {}
 	self.draw_views = {}
 	self.renderer:clear()
@@ -157,13 +161,20 @@ function Screen:removeExpiredViews()
 	end
 end
 
+---@param views gui.View[]
+---@param input_views gui.View[]
+---@param update_views gui.View[]
+---@param draw_views gui.View[]
 ---@param view gui.View
 ---@param renderer gui.Renderer
-local function flatten(view, views, update_views, draw_views, renderer)
+local function flatten(view, views, input_views, update_views, draw_views, renderer)
 	local index = #views + 1
 	view.flat_index = index
 	views[index] = view
 
+	if view.onHandleInputs ~= View.onHandleInputs then
+		input_views[#input_views + 1] = view
+	end
 	if view.update ~= View.update then
 		update_views[#update_views + 1] = view
 	end
@@ -179,7 +190,7 @@ local function flatten(view, views, update_views, draw_views, renderer)
 		renderer:beginComposite(view)
 	end
 	for i = 1, #view.children do
-		flatten(view.children[i], views, update_views, draw_views, renderer)
+		flatten(view.children[i], views, input_views, update_views, draw_views, renderer)
 	end
 	if view.is_composite then
 		renderer:endComposite()
@@ -194,16 +205,19 @@ function Screen:relayout()
 	self.root:relayout(self.ui_scale)
 
 	local views = {} ---@type gui.View[]
+	local input_views = {} ---@type gui.View[]
 	local update_views = {} ---@type gui.View[]
 	local draw_views = {} ---@type gui.View[]
 	self.renderer:beginBuild()
-	flatten(self.root, views, update_views, draw_views, self.renderer)
+	flatten(self.root, views, input_views, update_views, draw_views, self.renderer)
 	self.views = views
+	self.input_views = input_views
 	self.update_views = update_views
 	self.draw_views = draw_views
 	for i = 1, #views do
 		local view = views[i]
 		if ScrollView * view then
+			---@cast view gui.ScrollView
 			view:refreshAfterLayout()
 		end
 	end
@@ -261,6 +275,27 @@ function Screen:isTransitionActive()
 		end
 	end
 	return false
+end
+
+---Override for screen-level semantic actions. Views run first.
+---@param inputs gui.Inputs
+function Screen:onHandleInputs(inputs) end
+
+---Internal semantic-input dispatch. ScreenManager controls which Screens run it.
+---@private
+---@param inputs gui.Inputs
+function Screen:handleInputs(inputs)
+	self:flush()
+	local views = self.input_views
+	for i = #views, 1, -1 do
+		local view = views[i]
+		if not view.detached and view.cull_mask == 0
+			and view.effective_visible and view.effective_enabled and view.present
+		then
+			view:onHandleInputs(inputs)
+		end
+	end
+	self:onHandleInputs(inputs)
 end
 
 ---@param dt number

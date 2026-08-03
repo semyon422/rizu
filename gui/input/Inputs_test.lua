@@ -1,6 +1,8 @@
 local View = require("gui.View")
 local Inputs = require("gui.input.Inputs")
+local ActionMap = require("gui.input.ActionMap")
 local Screen = require("gui.Screen")
+local table_util = require("table_util")
 
 local test = {}
 
@@ -15,6 +17,64 @@ local function create_view(width, height)
 	view.height = height
 	view:relayout()
 	return view
+end
+
+---@param t testing.T
+function test.action_state(t)
+	local actions = ActionMap()
+	actions:defineAction("ui.accept", {{key = "return"}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+
+	inputs:beginFrame(0, 0)
+	inputs:receive({name = "keypressed", "return"}, default_modifiers)
+	t:eq(inputs:isActionPressed("ui.accept"), true)
+	t:eq(inputs:isActionJustPressed("ui.accept"), true)
+	t:eq(inputs:isActionJustReleased("ui.accept"), false)
+
+	inputs:beginFrame(0, 0)
+	t:eq(inputs:isActionPressed("ui.accept"), true)
+	t:eq(inputs:isActionJustPressed("ui.accept"), false)
+	inputs:receive({name = "keyreleased", "return"}, default_modifiers)
+	t:eq(inputs:isActionPressed("ui.accept"), false)
+	t:eq(inputs:isActionJustReleased("ui.accept"), true)
+end
+
+---@param t testing.T
+function test.action_edges_can_be_consumed_once(t)
+	local actions = ActionMap()
+	actions:defineAction("ui.accept", {{key = "return"}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+
+	inputs:receive({name = "keypressed", "return"}, default_modifiers)
+	t:eq(inputs:consumeActionJustPressed("ui.accept"), true)
+	t:eq(inputs:isActionJustPressed("ui.accept"), false)
+	t:eq(inputs:consumeActionJustPressed("ui.accept"), false)
+	t:eq(inputs:isActionPressed("ui.accept"), true)
+
+	inputs:receive({name = "keyreleased", "return"}, default_modifiers)
+	t:eq(inputs:consumeActionJustReleased("ui.accept"), true)
+	t:eq(inputs:isActionJustReleased("ui.accept"), false)
+	t:eq(inputs:consumeActionJustReleased("ui.accept"), false)
+end
+
+---@param t testing.T
+function test.action_state_uses_modifiers_and_ignores_repeat(t)
+	local actions = ActionMap()
+	actions:defineAction("ui.config", {{key = "o", control = true}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+
+	inputs:receive({name = "keypressed", "o"}, default_modifiers)
+	t:eq(inputs:isActionPressed("ui.config"), false)
+	inputs:receive({name = "keypressed", "o"}, {control = true, shift = false, alt = false, super = false})
+	t:eq(inputs:isActionJustPressed("ui.config"), true)
+	inputs:beginFrame(0, 0)
+	inputs:receive({name = "keypressed", "o", nil, true}, {control = true, shift = false, alt = false, super = false})
+	t:eq(inputs:isActionJustPressed("ui.config"), false)
+	inputs:receive({name = "keyreleased", "o"}, default_modifiers)
+	t:eq(inputs:isActionPressed("ui.config"), false)
 end
 
 ---@param t testing.T
@@ -61,7 +121,7 @@ function test.mouse_click(t)
 
 	inputs.mouse_x = 9999999999
 	inputs.mouse_y = 9999999999
-	table.clear(inputs.mouse_hits)
+	table_util.clear(inputs.mouse_hits)
 	inputs.mouse_target = nil
 	inputs:receive({name = "mousemoved", 100, 100, 0, 0}, default_modifiers)
 	inputs:receive({name = "mousereleased", 100, 100, 1}, default_modifiers)
@@ -124,7 +184,7 @@ function test.mousepressed_clears_keyboard_focus_if_outside(t)
 	inputs:receive({name = "mousepressed", 0, 0, 1}, default_modifiers)
 	t:eq(inputs.keyboard_focus, view1)
 
-	table.clear(inputs.mouse_hits)
+	table_util.clear(inputs.mouse_hits)
 	table.insert(inputs.mouse_hits, view2)
 	inputs.mouse_target = view2
 	inputs:receive({name = "mousepressed", 0, 0, 1}, default_modifiers)
@@ -285,7 +345,7 @@ function test.drag_survives_pressed_child_removal_during_synthetic_mouse_up(t)
 	scroller.drag_axis = "vertical"
 	scroller.handles_mouse_input = true
 	child.handles_mouse_input = true
-	local events = {}
+	local events = {} ---@type string[]
 	child.onMouseUp = function()
 		events[#events + 1] = "up"
 		scroller:remove(child)
@@ -316,7 +376,7 @@ function test.drag_is_cancelled_when_capture_is_removed_during_synthetic_mouse_u
 	scroller.drag_axis = "vertical"
 	scroller.handles_mouse_input = true
 	child.handles_mouse_input = true
-	local events = {}
+	local events = {} ---@type string[]
 	child.onMouseUp = function()
 		events[#events + 1] = "up"
 		screen.root:remove(scroller)
@@ -345,7 +405,7 @@ function test.mouse_hit_dispatch_survives_current_target_removal(t)
 	local top = screen.root:add(create_view(100, 100))
 	bottom.handles_mouse_input = true
 	top.handles_mouse_input = true
-	local events = {}
+	local events = {} ---@type string[]
 	top.onScroll = function()
 		events[#events + 1] = "top"
 		screen.root:remove(top)
@@ -767,7 +827,7 @@ function test.focus_scope_allows_ancestor_keyboard_fallback(t)
 	host.handles_keyboard_input = true
 	host.keyboard_input_fallback = true
 	focused.handles_keyboard_input = true
-	local events = {}
+	local events = {} ---@type string[]
 	focused.onKeyDown = function() events[#events + 1] = "focused" end
 	host.onKeyDown = function() events[#events + 1] = "host" return true end
 	screen:relayout()
@@ -790,7 +850,7 @@ function test.keyboard_fallback_runs_after_unhandled_focused_view(t)
 	focused.handles_keyboard_input = true
 	fallback.handles_keyboard_input = true
 	fallback.keyboard_input_fallback = true
-	local events = {}
+	local events = {} ---@type string[]
 	focused.onKeyDown = function() events[#events + 1] = "focused" end
 	fallback.onKeyDown = function() events[#events + 1] = "fallback" return true end
 	inputs:setKeyboardFocus(focused, default_modifiers)
@@ -808,7 +868,7 @@ function test.handled_focused_view_blocks_keyboard_fallback(t)
 	local focused = create_view(10, 10)
 	local fallback = create_view(10, 10)
 	fallback.keyboard_input_fallback = true
-	local events = {}
+	local events = {} ---@type string[]
 	focused.onKeyDown = function() events[#events + 1] = "focused" return true end
 	fallback.onKeyDown = function() events[#events + 1] = "fallback" end
 	inputs:setKeyboardFocus(focused, default_modifiers)

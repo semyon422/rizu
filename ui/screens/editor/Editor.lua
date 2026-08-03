@@ -5,6 +5,7 @@ local EditorRhythmBox = require("ui.screens.editor.EditorRhythmBox")
 local Label = require("ui.views.Label")
 local Colors = require("ui.Colors")
 local EditorFooterService = require("rizu.editor.view.EditorFooterService")
+local UiActions = require("ui.UiActions")
 local thread = require("thread")
 
 ---@class ui.screens.editor.Editor : gui.Screen
@@ -24,15 +25,14 @@ function Editor:new(ui)
 	self.footer_service = EditorFooterService()
 	self.rhythm_box = self.root:add(EditorRhythmBox(self.game))
 
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(_, event)
-		if event.key == "escape" then
-			self.ui:setScreen(self.ui.song_select)
-			return true
-		elseif event.key == "space" and self.editor_loaded then
-			self:togglePlayback()
-			return true
-		end
+end
+
+---@param inputs gui.Inputs
+function Editor:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		self.ui:setScreen(self.ui.song_select)
+	elseif self.editor_loaded and inputs:consumeActionJustPressed(UiActions.editor_toggle_playback) then
+		self:togglePlayback()
 	end
 end
 

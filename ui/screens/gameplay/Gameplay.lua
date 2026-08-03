@@ -3,6 +3,7 @@ local SequenceView = require("sphere.views.SequenceView")
 local Colors = require("ui.Colors")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
 local SequenceCanvas = require("ui.screens.gameplay.SequenceCanvas")
+local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
 
@@ -24,20 +25,6 @@ function Gameplay:new(ui)
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
-
-	self.root.handles_keyboard_input = true
-	self.root.onKeyDown = function(_, event)
-		if event.key == "escape" then
-			if self.gameplay_interactor:hasResult() then
-				self.ui:setScreen(self.ui.result, true)
-			else
-				self.ui:setScreen(self.ui.song_select, true)
-			end
-			self.is_playing = false
-		elseif event.key == "space" then
-			self.gameplay_interactor:skipIntro()
-		end
-	end
 
 	self.root:setOpacity(0)
 end
@@ -76,6 +63,20 @@ function Gameplay:exit()
 	love.mouse.setVisible(true)
 
 	self.root:fadeOut(1, "OutQuint")
+end
+
+---@param inputs gui.Inputs
+function Gameplay:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.cancel) then
+		if self.gameplay_interactor:hasResult() then
+			self.ui:setScreen(self.ui.result, true)
+		else
+			self.ui:setScreen(self.ui.song_select, true)
+		end
+		self.is_playing = false
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_skip_intro) then
+		self.gameplay_interactor:skipIntro()
+	end
 end
 
 function Gameplay:observeCompletion()

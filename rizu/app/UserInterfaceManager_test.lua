@@ -6,6 +6,7 @@ local test = {}
 local screen_manager = {
 	setScreen = function() return false end,
 	acceptInputs = function() end,
+	handleInputs = function() end,
 	receive = function() end,
 	update = function() end,
 	draw = function() end,

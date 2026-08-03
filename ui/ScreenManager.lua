@@ -131,13 +131,14 @@ end
 ---Sends events only to the overlay and the active input screen. The overlay
 ---receives first and may stop propagation by returning true.
 ---@param event {name: string, time: number, [integer]: any}
+---@param modifiers gui.ModifierKeys?
 ---@return boolean? handled
-function ScreenManager:receive(event)
-	if self.overlay and self.overlay:receive(event) then
+function ScreenManager:receive(event, modifiers)
+	if self.overlay and self.overlay:receive(event, modifiers) then
 		return true
 	end
 	if self.input_screen then
-		return self.input_screen:receive(event)
+		return self.input_screen:receive(event, modifiers)
 	end
 end
 
@@ -152,6 +153,19 @@ function ScreenManager:acceptInputs(inputs)
 	end
 	if self.input_screen then
 		self.input_screen:acceptInputs(inputs)
+	end
+end
+
+---@param inputs gui.Inputs
+function ScreenManager:handleInputs(inputs)
+	-- Snapshot the navigation target: changing screens while handling an action
+	-- must not deliver that same action to the newly entered screen.
+	local input_screen = self.input_screen
+	if self.overlay then
+		self.overlay:handleInputs(inputs)
+	end
+	if input_screen then
+		input_screen:handleInputs(inputs)
 	end
 end
 
