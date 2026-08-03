@@ -19,7 +19,8 @@ function Gameplay:new(ui)
 	self.gameplay_interactor = self.game.gameplayInteractor
 	self.is_playing = false
 
-	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view)):anchorFill(0, 0, 0, 0)
+	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
+
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
@@ -53,6 +54,15 @@ function Gameplay:enter()
 	self.is_playing = true
 	self.sequence_canvas.playing = true
 	self.clear_status:hide()
+
+	local cfg = self.ui.config
+	local width = cfg:getNumber(cfg.keys.gameplay_viewport_sx)
+	local height = cfg:getNumber(cfg.keys.gameplay_viewport_sy)
+	local align_x = cfg:getNumber(cfg.keys.gameplay_viewport_x)
+	local align_y = cfg:getNumber(cfg.keys.gameplay_viewport_y)
+	local min_x = align_x * (1 - width)
+	local min_y = align_y * (1 - height)
+	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + width, min_y + height)
 
 	self.root:fadeIn(0.4, "OutQuint")
 end

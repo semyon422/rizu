@@ -13,6 +13,7 @@ local ScrollView = require("gui.ScrollView")
 local Section = require("ui.modals.config.Section")
 local SectionItem = require("ui.modals.config.SectionItem")
 local AudioSection = require("ui.modals.config.sections.Audio")
+local GameplayViewportSection = require("ui.modals.config.sections.GameplayViewport")
 local LayoutSection = require("ui.modals.config.sections.Layout")
 local OffsetSection = require("ui.modals.config.sections.Offset")
 local RendererSection = require("ui.modals.config.sections.Renderer")
@@ -129,6 +130,7 @@ function Config:createSections()
 		OffsetSection(self.legacy_settings),
 		LayoutSection(self.legacy_settings),
 		RendererSection(self.legacy_settings, self.ui_config),
+		GameplayViewportSection(self.ui_config),
 		UserInterfaceSection(self.legacy_settings),
 	}
 end
