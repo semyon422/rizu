@@ -130,6 +130,31 @@ Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE
 
 The VDS clone must be `/home/semyon422/rizu`, have its build toolchains and ignored `server-state/`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs. The VDS lock also protects manual operations; an overlapping deployment waits for the active deployment for up to two hours instead of failing immediately.
 
+## Backups
+
+Persistent data is backed up daily to a home PC reachable over Tailscale. `scripts/backup` reads ignored `server-state/backup.env`, creates a transactionally consistent SQLite snapshot with `VACUUM INTO`, verifies it with `PRAGMA integrity_check`, and transfers it atomically over pinned-host-key SSH. Seven dated database snapshots are retained.
+
+Chart and replay storages are content-addressed and immutable after creation. They are synchronized with `rsync --ignore-existing`, so daily runs transfer only new objects and never rewrite existing backup objects. Runtime configuration, secrets, logs, temporary files, releases, and build outputs are excluded.
+
+Install the timer on the VDS after copying `scripts/backup.example.env` to `server-state/backup.env`, creating a dedicated SSH key, pinning the home PC host key, and authorizing that key on the home PC:
+
+```bash
+sudo install -m 0644 scripts/systemd/rizu-backup.service /etc/systemd/system/
+sudo install -m 0644 scripts/systemd/rizu-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now rizu-backup.timer
+```
+
+The timer runs at 14:00 Asia/Yekaterinburg regardless of the VDS system timezone. `Persistent=true` runs a missed backup after the VDS restarts, but the home PC must be online when the transfer is attempted. Inspect runs with `systemctl status rizu-backup.service` and `journalctl -u rizu-backup.service`.
+
+Restore into a staging directory first. Verify a restored database before replacing live state:
+
+```bash
+./luajit -e 'local db = require("ljsqlite3").open("/path/to/restored/server.db"); assert(db:rowexec("PRAGMA integrity_check") == "ok"); db:close()'
+```
+
+Stop OpenResty before replacing `server-state/server.db`; remove obsolete WAL/SHM sidecars, install the verified database, restore required storage objects, and start OpenResty again. Perform a test restore periodically.
+
 ## Future Work and Open Questions
 
 - Perform a real push-triggered deployment and rollback drill before treating automation as production-ready.

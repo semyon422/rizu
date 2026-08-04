@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the daily Rizu backup at 14:00 local time
+
+[Timer]
+OnCalendar=*-*-* 14:00:00 Asia/Yekaterinburg
+Persistent=true
+RandomizedDelaySec=5m
+Unit=rizu-backup.service
+
+[Install]
+WantedBy=timers.target

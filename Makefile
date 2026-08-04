@@ -7,7 +7,7 @@ export RIZU_GID
 
 .DEFAULT_GOAL := help
 
-.PHONY: help config nginx-conf preflight validate pull up down restart ps logs openresty-logs nats-logs shell update
+.PHONY: help config nginx-conf preflight validate pull up down restart ps logs openresty-logs nats-logs shell update backup
 
 help:
 	@echo "Rizu server deployment"
@@ -26,6 +26,7 @@ help:
 	@echo "  make nats-logs       Follow NATS logs"
 	@echo "  make shell           Open a shell in the OpenResty container"
 	@echo "  make update          Pull Git and submodule changes"
+	@echo "  make backup          Run the configured off-host backup"
 
 config:
 	@mkdir -p server-state
@@ -118,3 +119,6 @@ shell:
 update:
 	git pull --ff-only
 	git submodule update --init --recursive
+
+backup:
+	./scripts/backup
