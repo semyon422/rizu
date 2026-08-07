@@ -14,6 +14,7 @@ local SeaReplayRepo = require("bancho.adapter.SeaReplayRepo")
 local SeaBeatmapRepo = require("bancho.adapter.SeaBeatmapRepo")
 local OsuReplayConverter = require("sea.replays.OsuReplayConverter")
 local ComputeContext = require("sea.compute.ComputeContext")
+local ReplayComputer = require("sea.compute.ReplayComputer")
 local ReplayBase = require("sea.replays.ReplayBase")
 local Osr = require("chart.format.osu.Osr")
 local _7z = require("7z")
@@ -73,7 +74,13 @@ local function create_ctx()
 
 	local repos = Repos(db.models, SharedMemory())
 	local fs = FakeFilesystem()
-	local domain = Domain(repos, {osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"}}, fs)
+	local domain = Domain(
+		repos,
+		{osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"}},
+		fs,
+		ReplayComputer(),
+		"test"
+	)
 
 	local user = User()
 	user.id = 1
@@ -162,6 +169,7 @@ function test.submit_score_creates_canonical_chartplay(t)
 		id = 777,
 		set_id = 888,
 		status = 2,
+		cs = 4,
 		od = 8,
 	}, replay_data))
 
@@ -272,6 +280,7 @@ function test.submit_score_hydrates_missing_chart_data(t)
 		id = 777,
 		set_id = 888,
 		status = 2,
+		cs = 4,
 		od = 8,
 	}, replay_data))
 	ctx.db:close()

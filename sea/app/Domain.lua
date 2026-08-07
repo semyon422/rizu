@@ -16,6 +16,7 @@ local Difftables = require("sea.difftables.Difftables")
 local Chartplays = require("sea.chart.Chartplays")
 local ChartplaySubmission = require("sea.chart.ChartplaySubmission")
 local FolderStorage = require("sea.chart.storage.FolderStorage")
+local ContentAddressedStorage = require("sea.chart.storage.ContentAddressedStorage")
 
 local ComputeDataProvider = require("sea.compute.ComputeDataProvider")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
@@ -38,13 +39,17 @@ local Domain = class()
 ---@param repos sea.Repos
 ---@param app_config sea.AppConfig
 ---@param fs fs.IFilesystem
-function Domain:new(repos, app_config, fs)
+---@param replay_computer sea.IReplayComputer
+---@param compute_version string
+function Domain:new(repos, app_config, fs, replay_computer, compute_version)
+	assert(replay_computer)
+	assert(compute_version)
 	self.repos = repos
 	self.users_repo = repos.users_repo
 	self.charts_repo = repos.charts_repo
 
-	self.charts_storage = FolderStorage(fs, "server-state/storages/charts")
-	self.replays_storage = FolderStorage(fs, "server-state/storages/replays")
+	self.charts_storage = ContentAddressedStorage(FolderStorage(fs, "server-state/storages/charts"))
+	self.replays_storage = ContentAddressedStorage(FolderStorage(fs, "server-state/storages/replays"))
 	self.compute_data_provider = ComputeDataProvider(repos.chartfiles_repo, self.charts_storage, self.replays_storage)
 	self.compute_data_loader = ComputeDataLoader(self.compute_data_provider)
 
@@ -57,9 +62,11 @@ function Domain:new(repos, app_config, fs)
 	self.chartplays = Chartplays(
 		repos.charts_repo,
 		repos.chartfiles_repo,
-		self.compute_data_loader,
+		self.compute_data_provider,
 		self.charts_storage,
-		self.replays_storage
+		self.replays_storage,
+		replay_computer,
+		compute_version
 	)
 	self.dans = Dans(repos.charts_repo, repos.dan_clears_repo)
 	self.user_activity_graph = UserActivityGraph(repos.activity_repo)
@@ -76,7 +83,12 @@ function Domain:new(repos, app_config, fs)
 		self.external_ranked
 	)
 
-	self.charts_computer = ChartsComputer(self.compute_data_loader, repos.charts_repo)
+	self.charts_computer = ChartsComputer(
+		self.compute_data_loader,
+		repos.charts_repo,
+		replay_computer,
+		compute_version
+	)
 	self.compute_tasks = ComputeTasks(repos.compute_tasks_repo)
 
 	self.user_connections = UserConnections(repos.user_connections_repo, repos.users_repo)

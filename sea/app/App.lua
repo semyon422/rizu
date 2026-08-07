@@ -14,6 +14,9 @@ local Sessions = require("web.framework.Sessions")
 local Recaptcha = require("web.framework.Recaptcha")
 local etlua = require("web.etlua")
 local ServerRemoteValidation = require("sea.app.remotes.ServerRemoteValidation")
+local ComputeClient = require("sea.compute.ComputeClient")
+local ComputeVersion = require("sea.compute.ComputeVersion")
+local NginxTcpSocket = require("web.nginx.NginxTcpSocket")
 local brand = require("brand")
 local SharedMemory = require("web.nginx.SharedMemory")
 local RestyNats = require("icc.nats.RestyNats")
@@ -48,7 +51,19 @@ function App:new(app_config)
 	self.shared_memory = SharedMemory()
 
 	self.repos = Repos(self.app_db.models, self.shared_memory)
-	self.domain = Domain(self.repos, app_config, LinuxFilesystem())
+	local compute_config = app_config.compute
+	local compute_version = ComputeVersion.current()
+	local replay_computer = ComputeClient({
+		host = compute_config.host,
+		port = compute_config.port,
+		timeout = compute_config.timeout,
+		max_payload_size = compute_config.max_payload_size,
+		version = compute_version,
+		socket_factory = function()
+			return NginxTcpSocket()
+		end,
+	})
+	self.domain = Domain(self.repos, app_config, LinuxFilesystem(), replay_computer, compute_version)
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
 
 	local whitelist = require("sea.app.remotes.whitelist")

@@ -5,6 +5,7 @@ local FakeClient = require("sea.compute.FakeClient")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
 local ChartsComputer = require("sea.compute.ChartsComputer")
+local ReplayComputer = require("sea.compute.ReplayComputer")
 local Chartplays = require("sea.chart.Chartplays")
 local User = require("sea.access.User")
 
@@ -32,14 +33,17 @@ local function create_test_ctx()
 
 	local compute_data_provider = ComputeDataProvider(chartfiles_repo, charts_storage, replays_storage)
 	local compute_data_loader = ComputeDataLoader(compute_data_provider)
-	local charts_computer = ChartsComputer(compute_data_loader, charts_repo)
+	local replay_computer = ReplayComputer()
+	local charts_computer = ChartsComputer(compute_data_loader, charts_repo, replay_computer, "test")
 
 	local chartplays = Chartplays(
 		charts_repo,
 		chartfiles_repo,
-		compute_data_loader,
+		compute_data_provider,
 		charts_storage,
-		replays_storage
+		replays_storage,
+		replay_computer,
+		"test"
 	)
 
 	local user = User()
@@ -68,7 +72,7 @@ function test.chartplays_full(t)
 	for i = 1, count do
 		local time = i * ctx.chartplays.chartplays_access.submit_interval
 		local play = client:play(sample.name, sample.data, 1, time, 0)
-		local c, err = ctx.chartplays:submit(ctx.user, time, client.compute_data_loader, play.chartplay, play.chartdiff)
+		local c, err = ctx.chartplays:submit(ctx.user, time, client.compute_data_provider, play.chartplay, play.chartdiff)
 		t:assert(c, err)
 	end
 

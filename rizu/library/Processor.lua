@@ -15,6 +15,8 @@ local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
 local ChartsComputer = require("sea.compute.ChartsComputer")
+local ReplayComputer = require("sea.compute.ReplayComputer")
+local ComputeVersion = require("sea.compute.ComputeVersion")
 local HashingTask = require("rizu.library.tasks.HashingTask")
 local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
@@ -80,7 +82,12 @@ function Processor:new(db, fs, workingDirectory, timer)
 	)
 	self.computeDataLoader = ComputeDataLoader(self.computeDataProvider)
 
-	self.chartsComputer = ChartsComputer(self.computeDataLoader, self.chartsRepo)
+	self.chartsComputer = ChartsComputer(
+		self.computeDataLoader,
+		self.chartsRepo,
+		ReplayComputer(),
+		ComputeVersion.current()
+	)
 	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, self.taskContext, timer)
 	self.timer = timer
 end

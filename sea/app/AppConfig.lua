@@ -1,4 +1,5 @@
 ---@class sea.AppConfig
+---@field compute {host: string, port: integer, timeout: number, max_payload_size: integer}
 local AppConfig = {
 	sessions_secret = "secret",
 
@@ -21,6 +22,13 @@ local AppConfig = {
 	multiplayer = {
 		address = "*",
 		port = 9000,
+	},
+
+	compute = {
+		host = "127.0.0.1",
+		port = 8191,
+		timeout = 120,
+		max_payload_size = 64 * 1024 * 1024,
 	},
 
 	-- Bancho (osu! server) configuration

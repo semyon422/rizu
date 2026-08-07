@@ -33,7 +33,19 @@ function FolderStorage:set(key, value)
 			return nil, "create directory failed"
 		end
 	end
-	return self.fs:write(path, value)
+
+	local temporary_path = path .. (".tmp.%d.%d"):format(os.time(), math.random(0, 0x7fffffff))
+	local ok, err = self.fs:write(temporary_path, value)
+	if not ok then
+		return nil, err
+	end
+
+	ok, err = self.fs:move(temporary_path, path)
+	if not ok then
+		self.fs:remove(temporary_path)
+		return nil, err
+	end
+	return true
 end
 
 return FolderStorage

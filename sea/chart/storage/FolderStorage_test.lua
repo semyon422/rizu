@@ -15,6 +15,12 @@ function test.read_write_with_injected_fs(t)
 	t:eq(err, nil)
 	t:eq(fs:read("server-state/storages/charts/abc"), "hello")
 	t:eq(storage:get("abc"), "hello")
+
+	t:assert(storage:set("abc", "replacement"))
+	t:eq(storage:get("abc"), "replacement")
+	for _, name in ipairs(fs:getDirectoryItems("server-state/storages/charts")) do
+		t:eq(name:find(".tmp.", 1, true), nil)
+	end
 end
 
 ---@param t testing.T

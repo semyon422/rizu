@@ -13,6 +13,17 @@ local RankedStatus = require("bancho.constants.RankedStatus")
 ---@field fetch_osu_file? fun(self: bancho.adapter.SeaBeatmapRepo, beatmap_id: integer): string?, string?
 local SeaBeatmapRepo = class()
 
+---@param inputmode string?
+---@return integer
+local function get_key_count(inputmode)
+	if not inputmode then
+		return 0
+	end
+	local key_count = tonumber(inputmode:match("^(%d+)key$"))
+	assert(key_count and key_count > 0, "invalid mania input mode: " .. inputmode)
+	return key_count
+end
+
 ---@param charts_repo sea.ChartsRepo
 ---@param osu_repo sea.OsuRepo
 ---@param osu_beatmaps? sea.OsuBeatmaps
@@ -140,7 +151,7 @@ function SeaBeatmapRepo:toBanchoBeatmap(chartmeta, osu_beatmap)
 		status = self:getRankedStatus(chartmeta, osu_beatmap),
 		mode = 3,
 		bpm = chartmeta and chartmeta.tempo or 0,
-		cs = 0,
+		cs = get_key_count(chartmeta and chartmeta.inputmode or chartdiff and chartdiff.inputmode),
 		od = 0,
 		ar = 0,
 		hp = 0,

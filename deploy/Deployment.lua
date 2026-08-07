@@ -1,5 +1,6 @@
 local class = require("class")
 local json = require("json")
+local ComputeVersion = require("sea.compute.ComputeVersion")
 
 ---@class deploy.Config
 ---@field root string
@@ -163,9 +164,11 @@ end
 ---@return string
 function Deployment:composeCommand(app_dir)
 	local root = self.config.root
+	local compute_version = app_dir:match("/([0-9a-f]+)$") or ComputeVersion.development
 	return table.concat({
 		"RIZU_APP_DIR=" .. quote(app_dir),
 		"RIZU_SERVER_STATE_PATH=" .. quote(root .. "/server-state"),
+		"RIZU_COMPUTE_VERSION=" .. quote(compute_version),
 		"RIZU_UID=" .. quote(assert(self.shell:popen("id -u")):match("%d+")),
 		"RIZU_GID=" .. quote(assert(self.shell:popen("id -g")):match("%d+")),
 		self.config.compose_command .. " -p rizu -f " .. quote(self.config.compose_file),
@@ -179,7 +182,7 @@ end
 
 ---@param app_dir string
 function Deployment:startOpenResty(app_dir)
-	self.shell:execute(self:composeCommand(app_dir) .. " up --detach --force-recreate --pull missing --no-build --no-deps openresty")
+	self.shell:execute(self:composeCommand(app_dir) .. " up --detach --force-recreate --pull missing --no-build --no-deps compute openresty")
 end
 
 ---@param app_dir string
@@ -187,8 +190,11 @@ end
 function Deployment:waitHealthy(app_dir)
 	local compose = self:composeCommand(app_dir)
 	for _ = 1, self.config.health_attempts do
-		local status = self.shell:popen(compose .. " ps --format json openresty | grep -q '\"Health\":\"healthy\"' && echo healthy || true")
-		if status and status:find("healthy", 1, true) then
+		local openresty_status = self.shell:popen(compose .. " ps --format json openresty | grep -q '\"Health\":\"healthy\"' && echo healthy || true")
+		local compute_status = self.shell:popen(compose .. " ps --format json compute | grep -q '\"Health\":\"healthy\"' && echo healthy || true")
+		if openresty_status and openresty_status:find("healthy", 1, true)
+			and compute_status and compute_status:find("healthy", 1, true)
+		then
 			return true
 		end
 		self.shell:execute("sleep " .. tostring(self.config.health_interval))
@@ -207,7 +213,7 @@ function Deployment:activateServer(candidate, previous)
 		self:startOpenResty(previous)
 		assert(self:waitHealthy(previous), "candidate failed health check and previous release could not be restored")
 	else
-		self.shell:execute(self:composeCommand(candidate) .. " stop openresty")
+		self.shell:execute(self:composeCommand(candidate) .. " stop openresty compute")
 	end
 	error("candidate failed OpenResty health check")
 end

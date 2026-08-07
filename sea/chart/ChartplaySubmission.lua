@@ -1,5 +1,4 @@
 local class = require("class")
-local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
 
 ---@class sea.ChartplaySubmission
 ---@operator call: sea.ChartplaySubmission
@@ -28,9 +27,8 @@ end
 function ChartplaySubmission:submitChartplay(peer, chartplay_values, chartdiff_values)
 	local user, remote = peer.user, peer.remote
 	local time = os.time()
-	local compute_data_loader = ComputeDataLoader(remote.compute_data_provider)
 
-	local ctx, err = self.chartplays:submit(user, time, compute_data_loader, chartplay_values, chartdiff_values)
+	local ctx, err = self.chartplays:submit(user, time, remote.compute_data_provider, chartplay_values, chartdiff_values)
 	if not ctx then
 		return nil, err
 	end
@@ -49,9 +47,9 @@ function ChartplaySubmission:submitChartplay(peer, chartplay_values, chartdiff_v
 	user = self.users:getUser(user.id)
 
 	user.latest_activity = time
-	user.play_time = user.play_time + chartdiff_values.duration
-	user.chartplays_upload_size = user.chartplays_upload_size + compute_data_loader.replays_size
-	user.chartfiles_upload_size = user.chartfiles_upload_size + compute_data_loader.charts_size
+	user.play_time = user.play_time + ctx.chartdiff.duration
+	user.chartplays_upload_size = user.chartplays_upload_size + ctx.replays_size
+	user.chartfiles_upload_size = user.chartfiles_upload_size + ctx.charts_size
 	user.chartplays_count = self.chartplays.charts_repo:getUserChartplaysCount(user.id)
 	user.chartmetas_count = self.chartplays.charts_repo:getUserChartmetasCount(user.id)
 	user.chartdiffs_count = self.chartplays.charts_repo:getUserChartdiffsCount(user.id)

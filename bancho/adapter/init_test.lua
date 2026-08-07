@@ -4,6 +4,7 @@ local FakeFilesystem = require("fs.FakeFilesystem")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
 local Repos = require("sea.app.Repos")
 local Domain = require("sea.app.Domain")
+local ReplayComputer = require("sea.compute.ReplayComputer")
 local BanchoAdapter = require("bancho.adapter")
 local BanchoServer = require("bancho.server.BanchoServer")
 local BanchoConfig = require("bancho.config.BanchoConfig")
@@ -21,7 +22,7 @@ function test.setup_sea_repos(t)
 	local repos = Repos(db.models, shared_memory)
 	local domain = Domain(repos, {
 		osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"},
-	}, FakeFilesystem())
+	}, FakeFilesystem(), ReplayComputer(), "test")
 	local server = BanchoServer(BanchoConfig(), shared_memory)
 
 	BanchoAdapter.setupSeaRepos(

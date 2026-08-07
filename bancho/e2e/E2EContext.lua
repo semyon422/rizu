@@ -14,6 +14,7 @@ local Domain = require("sea.app.Domain")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ComputeContext = require("sea.compute.ComputeContext")
+local ReplayComputer = require("sea.compute.ReplayComputer")
 local ReplayBase = require("sea.replays.ReplayBase")
 local digest = require("digest")
 local bcrypt = require("bcrypt")
@@ -89,7 +90,7 @@ function E2EContext:new()
 	self.repos = SeaRepos(self.db.models, self.shared_memory)
 	self.domain = Domain(self.repos, {
 		osu_api = {client_id = "x", client_secret = "y", redirect_uri = "z"},
-	}, self.fs)
+	}, self.fs, ReplayComputer(), "test")
 	self.bancho_repos = BanchoAdapter.createSeaRepos(
 		self.repos.users_repo,
 		self.repos.leaderboards_repo,

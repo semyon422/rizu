@@ -22,6 +22,31 @@ services:
       retries: 5
       start_period: 5s
 
+  compute:
+    image: openresty/openresty:1.31.1.1-2-noble
+    pull_policy: missing
+    user: "${RIZU_UID:-1000}:${RIZU_GID:-1000}"
+    working_dir: /app
+    entrypoint:
+      - /bin/sh
+      - /app/docker/compute-entrypoint.sh
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      RIZU_COMPUTE_HOST: 127.0.0.1
+      RIZU_COMPUTE_PORT: "8191"
+      RIZU_COMPUTE_VERSION: "${RIZU_COMPUTE_VERSION:-development}"
+    volumes:
+      - "${RIZU_APP_DIR:-.}:/app:ro"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /app/luajit -e 'local s = assert(require("socket").tcp()); s:settimeout(1); assert(s:connect("127.0.0.1", 8191)); s:close()'
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
   openresty:
     image: openresty/openresty:1.31.1.1-2-noble
     pull_policy: missing
@@ -35,9 +60,12 @@ services:
     depends_on:
       nats:
         condition: service_healthy
+      compute:
+        condition: service_healthy
     environment:
       RIZU_APP_DIR: "${RIZU_APP_DIR:-.}"
       RIZU_SERVER_STATE_DIR: server-state
+      RIZU_COMPUTE_VERSION: "${RIZU_COMPUTE_VERSION:-development}"
     volumes:
       - "${RIZU_APP_DIR:-.}:/app"
       - "${RIZU_SERVER_STATE_PATH:-./server-state}:/app/server-state"

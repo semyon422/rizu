@@ -1,10 +1,10 @@
 local class = require("class")
-local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local table_util = require("table_util")
 local Chartfile = require("sea.chart.Chartfile")
+local Chartplay = require("sea.chart.Chartplay")
+local Chartdiff = require("sea.chart.Chartdiff")
 local ChartplaysAccess = require("sea.chart.access.ChartplaysAccess")
-local ChartdiffKey = require("sea.chart.ChartdiffKey")
-local ComputeContext = require("sea.compute.ComputeContext")
-local ReplayBase = require("sea.replays.ReplayBase")
+local ComputeInputLoader = require("sea.compute.ComputeInputLoader")
 
 ---@class sea.Chartplays
 ---@operator call: sea.Chartplays
@@ -12,21 +12,27 @@ local Chartplays = class()
 
 ---@param charts_repo sea.ChartsRepo
 ---@param chartfiles_repo sea.ChartfilesRepo
----@param compute_data_loader sea.ComputeDataLoader
+---@param compute_data_provider sea.IComputeDataProvider
 ---@param charts_storage sea.IKeyValueStorage
 ---@param replays_storage sea.IKeyValueStorage
+---@param replay_computer sea.IReplayComputer
+---@param compute_version string
 function Chartplays:new(
 	charts_repo,
 	chartfiles_repo,
-	compute_data_loader,
+	compute_data_provider,
 	charts_storage,
-	replays_storage
+	replays_storage,
+	replay_computer,
+	compute_version
 )
 	self.charts_repo = charts_repo
 	self.chartfiles_repo = chartfiles_repo
-	self.compute_data_loader = compute_data_loader
 	self.charts_storage = charts_storage
 	self.replays_storage = replays_storage
+	self.compute_input_loader = ComputeInputLoader(compute_data_provider, charts_storage, replays_storage)
+	self.replay_computer = assert(replay_computer)
+	self.compute_version = assert(compute_version)
 	self.chartplays_access = ChartplaysAccess()
 end
 
@@ -94,7 +100,6 @@ end
 ---@return sea.Chartplay
 function Chartplays:getCreateChartplay(user_id, time, chartplay_values)
 	local charts_repo = self.charts_repo
-
 	local chartplay = charts_repo:getChartplayByReplayHash(chartplay_values.replay_hash)
 	if not chartplay then
 		assert(not chartplay_values.id)
@@ -102,242 +107,104 @@ function Chartplays:getCreateChartplay(user_id, time, chartplay_values)
 		chartplay_values.submitted_at = time
 		chartplay_values.computed_at = time
 		chartplay_values.compute_state = "new"
-
 		chartplay = charts_repo:createChartplay(chartplay_values)
 	end
-
-	-- db check
 	assert(chartplay_values:equalsChartplay(chartplay))
-
 	return chartplay
-end
-
----@param compute_data_loader sea.ComputeDataLoader
----@param chartplay sea.Chartplay
----@return sea.Replay?
----@return string?
-function Chartplays:loadReplay(compute_data_loader, chartplay)
-	local save_replay = false
-
-	local replay_and_data, err = self.compute_data_loader:requireReplay(chartplay.replay_hash)
-	if not replay_and_data then
-		replay_and_data, err = compute_data_loader:requireReplay(chartplay.replay_hash)
-		if not replay_and_data then
-			return nil, "require replay: " .. err
-		end
-		save_replay = true
-	end
-
-	local replay = replay_and_data.replay
-	local replay_data = replay_and_data.data
-
-	local eq, err = replay:equalsChartplayBase(chartplay)
-	if not eq then
-		return nil, "chartplay base of replay differs: " .. err
-	end
-
-	local eq, err = replay:equalsChartmetaKey(chartplay)
-	if not eq then
-		return nil, "chartmeta key of replay differs: " .. err
-	end
-
-	if save_replay then
-		local ok, err = self.replays_storage:set(chartplay.replay_hash, replay_data)
-		if not ok then
-			return nil, "replays storage set: " .. err
-		end
-	end
-
-	return replay
-end
-
----@param user_id integer
----@param time integer
----@param compute_data_loader sea.ComputeDataLoader
----@param hash string
-function Chartplays:loadChart(user_id, time, compute_data_loader, hash)
-	local chartfiles_repo = self.chartfiles_repo
-
-	local save_chart = false
-
-	local chart_file_data, err = self.compute_data_loader:requireChart(hash)
-	if not chart_file_data then
-		chart_file_data, err = compute_data_loader:requireChart(hash)
-		if not chart_file_data then
-			return nil, "require chart: " .. err
-		end
-		save_chart = true
-	end
-
-	local chartfile_name = chart_file_data.name
-	local chartfile_data = chart_file_data.data
-
-	if save_chart then
-		local ok, err = self.charts_storage:set(hash, chartfile_data)
-		if not ok then
-			return nil, "charts storage set: " .. err
-		end
-	end
-
-	local chartfile = chartfiles_repo:getChartfileByHash(hash)
-	if not chartfile then
-		local chartfile_values = Chartfile()
-		chartfile_values.hash = hash
-		chartfile_values.creator_id = user_id
-		chartfile_values.compute_state = "new"
-		chartfile_values.computed_at = time
-		chartfile_values.submitted_at = time
-		chartfile_values.name = chartfile_name
-		chartfile_values.size = #chartfile_data
-		chartfile = chartfiles_repo:createChartfile(chartfile_values)
-	end
-
-	return chart_file_data
 end
 
 ---@param user sea.User
 ---@param time integer
----@param compute_data_loader sea.ComputeDataLoader
+---@param compute_data_provider sea.IComputeDataProvider
 ---@param chartplay_values sea.Chartplay
 ---@param chartdiff_values sea.Chartdiff
----@return sea.ComputeContext?
+---@return {chartplay: sea.Chartplay, chartmeta: sea.Chartmeta, chartdiff: sea.Chartdiff, result: sea.ComputeResult, charts_size: integer, replays_size: integer}?
 ---@return string?
-function Chartplays:submit(user, time, compute_data_loader, chartplay_values, chartdiff_values)
+function Chartplays:submit(user, time, compute_data_provider, chartplay_values, chartdiff_values)
 	if user:isAnon() then
 		return nil, "anon user"
 	end
 
 	local charts_repo = self.charts_repo
-
 	local last_chartplay = charts_repo:getRecentChartplays(user.id, 1)
-
 	local can, err = self.chartplays_access:canSubmit(user, time, last_chartplay[1])
 	if not can then
 		return nil, "can submit: " .. err
 	end
 
-	-- It is important to save the submitted chartplay early, even before 
-	-- validation/processing. This ensures we have a record of the player's 
-	-- attempt and result, which can be re-processed or recovered later 
-	-- if subsequent steps (like chart retrieval or rank calculation) fail.
 	local chartplay = self:getCreateChartplay(user.id, time, chartplay_values)
+	local input_loader = self.compute_input_loader
+	local replay_data, replay_uploaded
+	replay_data, replay_uploaded, err = input_loader:loadReplay(compute_data_provider, chartplay.replay_hash)
+	if not replay_data then
+		chartplay.compute_state = "invalid"
+		charts_repo:updateChartplay(chartplay)
+		return nil, "load replay: " .. err
+	end
 
-	local ctx, err = self:processSubmit(user, time, compute_data_loader, chartplay, chartdiff_values)
-	if not ctx then
+	local chart_file, chart_uploaded
+	chart_file, chart_uploaded, err = input_loader:loadChart(compute_data_provider, chartplay.hash)
+	if not chart_file then
+		chartplay.compute_state = "invalid"
+		charts_repo:updateChartplay(chartplay)
+		return nil, "load chart: " .. err
+	end
+
+	local chartfile = self.chartfiles_repo:getChartfileByHash(chartplay.hash)
+	if not chartfile then
+		local chartfile_values = Chartfile()
+		chartfile_values.hash = chartplay.hash
+		chartfile_values.creator_id = user.id
+		chartfile_values.compute_state = "new"
+		chartfile_values.computed_at = time
+		chartfile_values.submitted_at = time
+		chartfile_values.name = chart_file.name
+		chartfile_values.size = #chart_file.data
+		self.chartfiles_repo:createChartfile(chartfile_values)
+	end
+
+	local compute_chartplay = setmetatable(table_util.sub(chartplay, table_util.keys(Chartplay.struct)), Chartplay)
+	local compute_chartdiff = setmetatable(table_util.sub(chartdiff_values, table_util.keys(Chartdiff.struct)), Chartdiff)
+	---@type sea.ComputeRequest
+	local request = {
+		version = self.compute_version,
+		chartplay = compute_chartplay,
+		chartdiff = compute_chartdiff,
+		chart_name = chart_file.name,
+		chart_data = chart_file.data,
+		replay_data = replay_data,
+	}
+	local result
+	result, err = self.replay_computer:compute(request)
+	if not result then
 		chartplay.compute_state = "invalid"
 		chartplay.computed_at = time
 		charts_repo:updateChartplay(chartplay)
 		return nil, err
 	end
 
+	local chartmeta = charts_repo:createUpdateChartmeta(result.chartmeta, time)
+	if result.default_chartdiff then
+		charts_repo:createUpdateChartdiff(result.default_chartdiff, time)
+	end
+	if chartplay.custom then
+		result.chartdiff.custom_user_id = user.id
+	else
+		chartplay:importChartplayComputed(assert(result.chartplay_computed))
+	end
+	local chartdiff = charts_repo:createUpdateChartdiff(result.chartdiff, time)
 	chartplay.compute_state = "valid"
 	chartplay.computed_at = time
 	charts_repo:updateChartplay(chartplay)
 
-	return ctx
-end
-
----@param user sea.User
----@param time integer
----@param compute_data_loader sea.ComputeDataLoader
----@param chartplay sea.Chartplay
----@param chartdiff_values sea.Chartdiff
----@return sea.ComputeContext?
----@return string?
-function Chartplays:processSubmit(user, time, compute_data_loader, chartplay, chartdiff_values)
-	local charts_repo = self.charts_repo
-
-	local replay, err = self:loadReplay(compute_data_loader, chartplay)
-	if not replay then
-		return nil, "load replay: " .. err
-	end
-
-	local chart_file_data, err = self:loadChart(user.id, time, compute_data_loader, chartplay.hash)
-	if not chart_file_data then
-		return nil, "load chart: " .. err
-	end
-
-	local ctx = ComputeContext()
-	ctx.chartplay = chartplay
-
-	local chart_chartmeta, err = ctx:fromFileData(
-		chart_file_data.name,
-		chart_file_data.data,
-		chartplay.index
-	)
-
-	if not chart_chartmeta then
-		return nil, "from file data: " .. err
-	end
-
-	local chartmeta = charts_repo:createUpdateChartmeta(chart_chartmeta.chartmeta, time)
-
-	local timings = chartplay.timings or chartmeta.timings
-	if not timings then
-		return nil, "missing timings"
-	end
-
-	if timings.name ~= "arbitrary" then
-		local timing_values = TimingValuesFactory:get(timings, chartplay.subtimings)
-		if not timing_values then
-			return nil, "invalid timings-subtimings pair"
-		elseif not timing_values:equals(replay.timing_values) then
-			return nil, "timing values differs"
-		end
-	end
-
-	if #chartplay.modifiers > 0 or chartplay.rate ~= 1 then
-		-- create default chartdiff
-		local default_chartdiff_key = ChartdiffKey()
-		default_chartdiff_key.hash = chartplay.hash
-		default_chartdiff_key.index = chartplay.index
-		default_chartdiff_key.rate = 1
-		default_chartdiff_key.modifiers = {}
-		default_chartdiff_key.mode = "mania"
-
-		local default_chartdiff = charts_repo:getChartdiffByChartdiffKey(default_chartdiff_key)
-		if not default_chartdiff then
-			local chartdiff = ctx:computeBase(ReplayBase())
-			chartdiff = charts_repo:createUpdateChartdiff(chartdiff, time)
-		end
-	end
-
-	---@type sea.Chartdiff
-	local computed_chartdiff
-
-	if chartplay.custom then
-		computed_chartdiff = chartdiff_values
-		computed_chartdiff.custom_user_id = user.id
-	else
-		ctx:applyModifierReorder(replay)
-
-		computed_chartdiff = ctx:computeBase(replay)
-
-		-- MSD is inconsistent for some reason
-		-- Remove it from compare keys
-
-		local eq, err = chartdiff_values:equalsComputed(computed_chartdiff, true)
-		if not eq then
-			-- return nil, "computed chartdiff differs: " .. err
-		end
-
-		local chartplay_computed, err = ctx:computeReplay(replay)
-		if not chartplay_computed then
-			return nil, "compute: " .. err
-		end
-
-		local eq, err = chartplay:equalsComputed(chartplay_computed, true)
-		if not eq then
-			-- return nil, "computed chartplay differs: " .. err
-		end
-
-		-- Use computed MSD
-		chartplay:importChartplayComputed(chartplay_computed)
-	end
-
-	charts_repo:createUpdateChartdiff(computed_chartdiff, time)
-
-	return ctx
+	return {
+		chartplay = chartplay,
+		chartmeta = chartmeta,
+		chartdiff = chartdiff,
+		result = result,
+		charts_size = chart_uploaded and #chart_file.data or 0,
+		replays_size = replay_uploaded and #replay_data or 0,
+	}
 end
 
 return Chartplays

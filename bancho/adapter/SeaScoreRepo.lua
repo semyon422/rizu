@@ -1,9 +1,9 @@
 local class = require("class")
 local valid = require("valid")
 local Chartplay = require("sea.chart.Chartplay")
+local Chartdiff = require("sea.chart.Chartdiff")
 local FakeComputeDataProvider = require("sea.compute.FakeComputeDataProvider")
 local OsuReplayConverter = require("sea.replays.OsuReplayConverter")
-local ComputeContext = require("sea.compute.ComputeContext")
 local Grade = require("bancho.constants.Grade")
 local SubmissionStatus = require("bancho.constants.SubmissionStatus")
 
@@ -176,6 +176,67 @@ function SeaScoreRepo:ensureChartData(map_md5)
 	return nil, err or "missing chart data"
 end
 
+---@param replay sea.Replay
+---@param inputmode string
+---@return sea.Chartdiff
+local function create_chartdiff_values(replay, inputmode)
+	local chartdiff = Chartdiff()
+	chartdiff.hash = replay.hash
+	chartdiff.index = replay.index
+	chartdiff.modifiers = replay.modifiers
+	chartdiff.rate = replay.rate
+	chartdiff.mode = replay.mode
+	chartdiff.inputmode = inputmode
+	chartdiff.duration = 0
+	chartdiff.start_time = 0
+	chartdiff.notes_count = 0
+	chartdiff.judges_count = 0
+	chartdiff.note_types_count = {}
+	chartdiff.density_data = {}
+	chartdiff.sv_data = {}
+	chartdiff.enps_diff = 0
+	chartdiff.osu_diff = 0
+	chartdiff.msd_diff = 0
+	chartdiff.msd_diff_data = {
+		overall = 0,
+		stream = 0,
+		jumpstream = 0,
+		handstream = 0,
+		stamina = 0,
+		jackspeed = 0,
+		chordjack = 0,
+		technical = 0,
+	}
+	chartdiff.msd_diff_rates = {}
+	chartdiff.user_diff = 0
+	chartdiff.user_diff_data = ""
+	chartdiff.notes_preview = ""
+	return chartdiff
+end
+
+---@param replay sea.Replay
+---@param replay_hash string
+---@return sea.Chartplay
+local function create_chartplay_values(replay, replay_hash)
+	local chartplay = Chartplay()
+	chartplay:importChartplayBase(replay)
+	chartplay.judges = {}
+	chartplay.accuracy = 0
+	chartplay.max_combo = 0
+	chartplay.miss_count = 0
+	chartplay.not_perfect_count = 0
+	chartplay.pass = false
+	chartplay.rating = 0
+	chartplay.rating_pp = 0
+	chartplay.rating_msd = 0
+	chartplay.hash = replay.hash
+	chartplay.index = replay.index
+	chartplay.replay_hash = replay_hash
+	chartplay.pause_count = replay.pause_count
+	chartplay.created_at = replay.created_at
+	return chartplay
+end
+
 ---@param score table
 ---@param beatmap table
 ---@param replay_data string
@@ -187,18 +248,18 @@ function SeaScoreRepo:submitScore(score, beatmap, replay_data)
 		return nil, err
 	end
 
-	local compute_ctx = ComputeContext()
-	local chart_chartmeta, ferr = compute_ctx:fromFileData((beatmap.id or 0) .. ".osu", chart_data, 1)
-	if not chart_chartmeta then
-		return nil, "load chart: " .. ferr
+	local key_count = beatmap.cs
+	if type(key_count) ~= "number" or key_count <= 0 or key_count ~= math.floor(key_count) then
+		return nil, "invalid mania key count"
 	end
+	local inputmode = tostring(key_count) .. "key"
 
 	local replay, replay_file_data, replay_hash = self.osu_replay_converter:fromSubmissionReplay(
 		replay_data,
 		score.map_md5,
 		1,
 		beatmap.od or 0,
-		chart_chartmeta.chartmeta.inputmode,
+		inputmode,
 		score.mods or 0,
 		score.play_time or score.created_at or os.time()
 	)
@@ -206,22 +267,11 @@ function SeaScoreRepo:submitScore(score, beatmap, replay_data)
 		return nil, "convert replay: " .. tostring(replay_file_data)
 	end
 
-	local chartdiff_values = compute_ctx:computeBase(replay)
-	local chartplay_computed, cerr = compute_ctx:computeReplay(replay)
-	if not chartplay_computed then
-		return nil, "compute replay: " .. cerr
-	end
-
-	local chartplay_values = Chartplay()
-	chartplay_values:importChartplayBase(replay)
-	chartplay_values:importChartplayComputed(chartplay_computed)
-	chartplay_values.hash = replay.hash
-	chartplay_values.index = replay.index
-	chartplay_values.replay_hash = replay_hash
-	chartplay_values.pause_count = replay.pause_count
-	chartplay_values.created_at = replay.created_at
+	local chartdiff_values = create_chartdiff_values(replay, inputmode)
+	local chartplay_values = create_chartplay_values(replay, replay_hash)
 
 	assert(valid.format(chartplay_values:validate()))
+	assert(valid.format(chartdiff_values:validate()))
 
 	local provider = FakeComputeDataProvider()
 	provider:addChart(score.map_md5, (beatmap.id or 0) .. ".osu", chart_data)

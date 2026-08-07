@@ -12,6 +12,7 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local FakeComputeDataProvider = require("sea.compute.FakeComputeDataProvider")
 local ComputeDataProvider = require("sea.compute.ComputeDataProvider")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
+local ReplayComputer = require("sea.compute.ReplayComputer")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
 local Users = require("sea.access.Users")
@@ -64,9 +65,11 @@ local function create_test_ctx()
 	local chartplays = Chartplays(
 		charts_repo,
 		chartfiles_repo,
-		compute_data_loader,
+		compute_data_provider,
 		charts_storage,
-		replays_storage
+		replays_storage,
+		ReplayComputer(),
+		"test"
 	)
 
 	local leaderboards = Leaderboards(leaderboards_repo)
@@ -243,7 +246,7 @@ function test.submit_valid_score(t)
 	local user = User()
 	user.id = 1
 
-	local c, err = ctx.chartplays:submit(user, 0, compute_data_loader, chartplay_values, chartdiff_values)
+	local c, err = ctx.chartplays:submit(user, 0, compute_data_provider, chartplay_values, chartdiff_values)
 
 	if t:assert(c, err) then
 		---@cast c -?
@@ -251,12 +254,12 @@ function test.submit_valid_score(t)
 		t:assert(c.chartplay.compute_state == "valid")
 	end
 
-	c, err = ctx.chartplays:submit(user, 0, compute_data_loader, chartplay_values, chartdiff_values)
+	c, err = ctx.chartplays:submit(user, 0, compute_data_provider, chartplay_values, chartdiff_values)
 	t:eq(c, nil)
 	t:eq(err, "can submit: rate limit")
 
 	local interval = ctx.chartplays.chartplays_access.submit_interval
-	c, err = ctx.chartplays:submit(user, interval, compute_data_loader, chartplay_values, chartdiff_values)
+	c, err = ctx.chartplays:submit(user, interval, compute_data_provider, chartplay_values, chartdiff_values)
 	t:assert(c, err)
 end
 

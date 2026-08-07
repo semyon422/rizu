@@ -58,6 +58,20 @@ A read-only local benchmark ran the pure load, parse, difficulty, and replay sta
 
 The slowest measured play took 370 ms: 193 ms parsing, 85 ms calculating difficulty, and 89 ms replaying frames. The sample is small and affected by local filesystem caches. It excludes database finalization, leaderboard recalculation, external API access, notifications, and adversarial or unusually large charts, so it is evidence of the blocking problem rather than a capacity forecast.
 
+## Implemented Baseline (Phase 2)
+
+The first production boundary is implemented as synchronous external computation:
+
+- Compose supervises one `compute` service running `sea/compute/worker.lua` in a separate persistent LuaJIT process.
+- OpenResty connects to `127.0.0.1:8191` with a yielding Nginx cosocket. The HTTP/WebSocket coroutine remains pending, but chart parsing, difficulty calculation, and replay playback execute only in the compute process.
+- IPC uses one length-prefixed STBL request and response per TCP connection. Both peers enforce a 64 MiB framed-payload limit (while ingestion limits each chart and replay to 16 MiB), a 120-second timeout, and exact compute-version equality. The service accepts at most one active client, which is the initial hard concurrency bound and backpressure mechanism.
+- `sea.compute.ReplayComputer` owns the repository-independent request/result computation boundary. `sea.compute.ComputeRequest` and `ComputeResult` validate the records and restore concrete metatables after deserialization.
+- OpenResty still retrieves client inputs, verifies hashes, publishes immutable chart/replay files with temporary-write plus atomic rename, and performs all database finalization and secondary effects.
+- Native and Bancho contracts remain synchronous in this baseline. Bancho now only converts its protocol replay and constructs base records; it no longer parses, calculates difficulty, and replays the score before submitting it for the canonical computation.
+- Manual stored-chartplay recomputation also uses the same replay-computer abstraction, so production can keep expensive recomputation out of OpenResty while tests and CLI contexts may inject the in-process implementation.
+
+The process is deliberately compute-only: it has no database or persistent-state mount and cannot finalize submissions. Durable asynchronous native acceptance, leases, and an idempotent side-effect outbox remain the next phases; the synchronous baseline does not claim disconnect or restart recovery after the IPC request begins.
+
 ## Target Architecture
 
 The target separates input ingestion, pure computation, canonical finalization, and secondary side effects:
@@ -283,7 +297,7 @@ https://www.sqlite.org/wal.html#concurrency
 
 ## Rollout Plan
 
-### Phase 1: Measurement and pure boundary
+### Phase 1: Measurement and pure boundary (implemented)
 
 - Add stage timings for input load, replay decode, chart parse, difficulty, replay playback, finalization, and secondary effects.
 - Add Nginx event-loop-lag and submission-latency measurements.
@@ -291,7 +305,7 @@ https://www.sqlite.org/wal.html#concurrency
 - Verify that the extracted path produces the same canonical results as the current synchronous path.
 - Remove the duplicate Bancho computation.
 
-### Phase 2: Synchronous external computation
+### Phase 2: Synchronous external computation (implemented)
 
 - Start one supervised persistent LuaJIT compute process.
 - Add bounded local request/reply IPC with payload limits, timeouts, and structured errors.
@@ -344,8 +358,8 @@ Representative replay compatibility fixtures should continue to follow the verif
 
 ## Future Work and Open Questions
 
-- Decide the first local IPC framing and supervision mechanism.
-- Decide whether Bancho should always use a durable job or initially use direct compute request/reply followed by synchronous finalization.
+- Replace the implemented loopback TCP endpoint with a Unix socket if OpenResty's and LuaSocket's deployment support makes that operationally simpler; framing and payload limits remain unchanged.
+- Decide whether Bancho should move from the implemented direct compute request/reply plus synchronous finalization to a durable job while preserving its protocol response.
 - Define the public native submission-status query and notification contract.
 - Decide the exact boundary between canonical finalization and leaderboard visibility.
 - Determine which user statistics should be recomputed from canonical rows rather than incremented.

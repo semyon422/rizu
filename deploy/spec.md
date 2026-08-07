@@ -13,7 +13,7 @@ Operators can deploy an artifact and roll back over SSH with the same commands l
 ./deploy.lua status
 ```
 
-`build-deploy` fetches and checks out the exact requested commit in detached-HEAD state, updates recursive submodules, runs tests, builds the release locally on the VDS, and deploys it. A deployment verifies all artifact checksums, stages the server, starts or preserves NATS, recreates only OpenResty, waits for health, and publishes client downloads only after server success. A failed candidate restores the previous OpenResty release automatically. `status` reports whether OpenResty is using an immutable release, the checkout, a host process, or is stopped, together with mounts, health, commit, and active pointers.
+`build-deploy` fetches and checks out the exact requested commit in detached-HEAD state, updates recursive submodules, runs tests, builds the release locally on the VDS, and deploys it. A deployment verifies all artifact checksums, stages the server, starts or preserves NATS, recreates the compute worker and OpenResty, waits for health, and publishes client downloads only after server success. A failed candidate restores the previous OpenResty release automatically. `status` reports whether OpenResty is using an immutable release, the checkout, a host process, or is stopped, together with mounts, health, commit, and active pointers.
 
 ## VDS Layout
 
@@ -54,8 +54,9 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - `release.json` format version, commit, file size, and SHA-256 values are validated before extraction or service changes.
 - Server releases are extracted to a temporary directory and renamed into their commit path.
 - Compose mounts the immutable candidate at `/app` and mounts the single persistent directory directly at `/app/server-state`. Application paths explicitly use `server-state/...`, so SQLite's database, WAL, and shared-memory sidecars always share one filesystem directory.
-- NATS is started if absent but is not recreated for application deployments. OpenResty is recreated with `--no-deps`.
-- The candidate must become Compose-healthcheck healthy before `current` or public client files switch.
+- NATS is started if absent but is not recreated for application deployments. The compute worker and OpenResty are recreated together with `--no-deps`; OpenResty depends on the compute health check during normal Compose startup.
+- The compute service is a single persistent LuaJIT process bound to loopback. It mounts the immutable release read-only and has no `server-state` mount, so SQLite ingestion/finalization remains owned by OpenResty.
+- The candidate OpenResty and compute processes must both become Compose-healthcheck healthy before `current` or public client files switch.
 - Failed health restores the previous OpenResty release. With no previous release, the failed OpenResty service is stopped.
 - Explicit and implicit rollback use the same health gate before switching server and public pointers.
 - Only the current and previous server and published client releases are retained. After successful publication, all `build/release/` copies and stale staging directories are removed because deployed immutable directories are the durable rollback copies.
@@ -68,6 +69,7 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - Server and client pointers only identify a release that passed the OpenResty health check.
 - Client publication happens after server activation, never before it.
 - The deployment command does not restart NATS for each application commit.
+- OpenResty and its compute worker run the same immutable release and receive the same `RIZU_COMPUTE_VERSION`; mismatched code cannot finalize a compute response.
 - Release artifacts built from a dirty tree are development snapshots even though their directory is keyed by `HEAD`; production automation must consume artifacts built and tested from an exact committed revision.
 
 ## Operation
