@@ -224,6 +224,7 @@ Other test entry points are specialized:
 - `./bench` runs benchmarks separately from the correctness test suite.
 - `./test-love` runs tests inside the bundled Linux LÖVE AppImage.
 - `./test-macos` runs tests with `/Applications/love.app`.
+- `./game-macos` runs the project-local app produced by `./rizu/build/make.lua package` with auto-update disabled for checkout safety.
 - `./test-resty` runs tests through OpenResty's `resty` executable.
 
 ## Script Reference
@@ -243,7 +244,7 @@ Other test entry points are specialized:
 | `sea-cli-resty` | Runs the same maintenance CLI through `resty` | OpenResty, rocks, `server-state/app_config.lua` |
 | `sea-cli-love` | Runs the same maintenance CLI through LÖVE | LÖVE plus server dependencies |
 | `game-appimage` | Starts the bundled Linux game | Built/downloaded Linux binaries |
-| `game-macos` | Starts the game with the system LÖVE app | `/Applications/love.app` |
+| `game-macos` | Starts the game with the project-local packaged LÖVE runtime | `build/repo/macos/rizu.app` |
 | `game-win64.bat` | Starts the Windows game at high priority | Built/downloaded Windows binaries |
 | `test` | Runs the normal LuaJIT test suite with a 2 GB memory limit | LuaJIT and relevant dependencies |
 | `test-love`, `test-macos`, `test-resty` | Run tests in alternate runtimes | Matching runtime |

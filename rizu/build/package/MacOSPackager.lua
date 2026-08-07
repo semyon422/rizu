@@ -12,11 +12,74 @@ local _name = config.repo.name
 ---@field src_fs fs.IFilesystem
 local MacOSPackager = class()
 
+local function quote(s)
+	return string.format("%q", s)
+end
+
+---@param path string
+---@return string
+function MacOSPackager.getPortableLibraryName(path)
+	local name = assert(path:match("([^/]+)$"))
+	return (name:gsub("%.[0-9][0-9%.]*%.dylib$", ".dylib"))
+end
+
 ---@param ctx rizu.build.Context
 ---@param src_fs? fs.IFilesystem
 function MacOSPackager:new(ctx, src_fs)
 	self.ctx = ctx
 	self.src_fs = src_fs or ctx.fs
+end
+
+---@param name string
+---@return string
+function MacOSPackager:findMacOSTool(name)
+	local tool = self.ctx.shell:popen("command -v " .. name)
+	if tool and tool:match("%S") then
+		return assert(tool:match("^%s*(.-)%s*$"))
+	end
+
+	tool = self.ctx.shell:popen("find build/deps/osxcross/target/bin -type f -name '*-" .. name .. "' | head -n 1")
+	assert(tool and tool:match("%S"), "missing macOS packaging tool: " .. name)
+	return assert(tool:match("^%s*(.-)%s*$"))
+end
+
+---@param Frameworks string
+function MacOSPackager:makeLibrariesPortable(Frameworks)
+	local install_name_tool = self:findMacOSTool("install_name_tool")
+	local otool = self:findMacOSTool("otool")
+	local files = assert(self.ctx.shell:popen("find " .. quote(Frameworks) .. " -type f"))
+
+	---@type {[string]: string}
+	local libraries = {}
+	for path in files:gmatch("[^\n]+") do
+		local name = path:match("([^/]+)$")
+		if name and name:match("%.dylib$") then
+			libraries[name] = path
+		end
+	end
+
+	for binary in files:gmatch("[^\n]+") do
+		local dependencies = self.ctx.shell:popen(quote(otool) .. " -L " .. quote(binary))
+		if dependencies and dependencies:match("build/deps/") then
+			for dependency in dependencies:gmatch("([^%s]+build/deps/[^%s]+)") do
+				local name = self.getPortableLibraryName(dependency)
+				assert(libraries[name], "missing bundled macOS dependency: " .. name)
+				self.ctx.shell:execute(quote(install_name_tool) .. " -change " .. quote(dependency) .. " " .. quote("@loader_path/" .. name) .. " " .. quote(binary))
+			end
+		end
+
+		local install_id = self.ctx.shell:popen(quote(otool) .. " -D " .. quote(binary))
+		local id = install_id and install_id:match("\n([^\n]+)")
+		if id and id:match("build/deps/") then
+			local name = assert(binary:match("([^/]+)$"))
+			self.ctx.shell:execute(quote(install_name_tool) .. " -id " .. quote("@loader_path/" .. name) .. " " .. quote(binary))
+		end
+	end
+
+	for binary in files:gmatch("[^\n]+") do
+		local dependencies = self.ctx.shell:popen(quote(otool) .. " -L " .. quote(binary))
+		assert(not dependencies or not dependencies:match("build/deps/"), "macOS binary contains a build-host dependency: " .. binary)
+	end
 end
 
 function MacOSPackager:build()
@@ -71,6 +134,8 @@ function MacOSPackager:build()
 			self.ctx.fs:remove(path)
 		end
 	end
+
+	self:makeLibrariesPortable(Frameworks)
 
 	fs_util.remove(Resources .. "/bin/win64", self.ctx.fs)
 	fs_util.remove(Resources .. "/bin/linux64", self.ctx.fs)

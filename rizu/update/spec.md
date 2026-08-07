@@ -15,5 +15,5 @@ The `rizu/update/` module owns startup-time file update checks and update IO.
 
 ## Invariants
 
-- Auto-update is skipped when disabled, when the update URL is empty, or when running from a git checkout.
+- Auto-update is skipped when disabled, when the update URL is empty, when `RIZU_DISABLE_UPDATE=1`, or when running from a git checkout. Development launchers set the environment flag because an external LÖVE app cannot see the checkout's `.git` directory through its virtual filesystem.
 - The updater writes the refreshed files config only after a successful update pass.
