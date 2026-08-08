@@ -6,6 +6,7 @@ local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
 local ChartsComputer = require("sea.compute.ChartsComputer")
 local ReplayComputer = require("sea.compute.ReplayComputer")
+local ComputeFailure = require("sea.compute.ComputeFailure")
 local Chartplays = require("sea.chart.Chartplays")
 local User = require("sea.access.User")
 
@@ -100,6 +101,58 @@ function test.chartplays_full(t)
 	t:assert(chartplays[2].rating > 0)
 	t:assert(chartplays[3].rating == 0)
 	t:assert(chartplays[4].rating == 0)
+end
+
+---@param t testing.T
+function test.transient_compute_failure_remains_new(t)
+	local ctx = create_test_ctx()
+	local client = FakeClient(0.02, 100)
+	local sample = chart_samples[1]
+	local play = client:play(sample.name, sample.data, 1, 1, 0)
+	ctx.chartplays.replay_computer = {
+		compute = function()
+			return nil, ComputeFailure.transient("worker_unavailable", "worker unavailable")
+		end,
+	}
+
+	local result, err, failure = ctx.chartplays:submit(
+		ctx.user,
+		1,
+		client.compute_data_provider,
+		play.chartplay,
+		play.chartdiff
+	)
+	local chartplay = ctx.chartplays:getChartplays()[1]
+	t:eq(result, nil)
+	t:eq(err, "worker_unavailable: worker unavailable")
+	t:eq(failure.kind, "transient")
+	t:eq(chartplay.compute_state, "new")
+end
+
+---@param t testing.T
+function test.permanent_compute_failure_is_invalid(t)
+	local ctx = create_test_ctx()
+	local client = FakeClient(0.02, 100)
+	local sample = chart_samples[1]
+	local play = client:play(sample.name, sample.data, 1, 1, 0)
+	ctx.chartplays.replay_computer = {
+		compute = function()
+			return nil, ComputeFailure.permanent("invalid_replay", "bad replay")
+		end,
+	}
+
+	local result, err, failure = ctx.chartplays:submit(
+		ctx.user,
+		1,
+		client.compute_data_provider,
+		play.chartplay,
+		play.chartdiff
+	)
+	local chartplay = ctx.chartplays:getChartplays()[1]
+	t:eq(result, nil)
+	t:eq(err, "invalid_replay: bad replay")
+	t:eq(failure.kind, "permanent")
+	t:eq(chartplay.compute_state, "invalid")
 end
 
 ---@param t testing.T

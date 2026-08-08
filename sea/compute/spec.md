@@ -66,11 +66,14 @@ The first production boundary is implemented as synchronous external computation
 - OpenResty connects to `127.0.0.1:8191` with a yielding Nginx cosocket. The HTTP/WebSocket coroutine remains pending, but chart parsing, difficulty calculation, and replay playback execute only in the compute process.
 - IPC uses one length-prefixed STBL request and response per TCP connection. Both peers enforce a 64 MiB framed-payload limit (while ingestion limits each chart and replay to 16 MiB), a 120-second timeout, and exact compute-version equality. The service accepts at most one active client, which is the initial hard concurrency bound and backpressure mechanism.
 - `sea.compute.ReplayComputer` owns the repository-independent request/result computation boundary. `sea.compute.ComputeRequest` and `ComputeResult` validate the records and restore concrete metatables after deserialization.
+- Failures cross the boundary as `ComputeFailure {kind, code, message}` records. Deterministic malformed input and validation rejection are `permanent`; worker availability, IPC, storage, version mismatch, invalid worker results, and unexpected internal errors are `transient`.
 - OpenResty still retrieves client inputs, verifies hashes, publishes immutable chart/replay files with temporary-write plus atomic rename, and performs all database finalization and secondary effects.
 - Native and Bancho contracts remain synchronous in this baseline. Bancho now only converts its protocol replay and constructs base records; it no longer parses, calculates difficulty, and replays the score before submitting it for the canonical computation.
 - Manual stored-chartplay recomputation also uses the same replay-computer abstraction, so production can keep expensive recomputation out of OpenResty while tests and CLI contexts may inject the in-process implementation.
 
 The process is deliberately compute-only: it has no database or persistent-state mount and cannot finalize submissions. Durable asynchronous native acceptance, leases, and an idempotent side-effect outbox remain the next phases; the synchronous baseline does not claim disconnect or restart recovery after the IPC request begins.
+
+Until durable jobs exist, a permanent failure changes the persisted chartplay from `new` to `invalid`. A transient ingestion or compute failure leaves it `new`, preserving it for explicit resubmission/recomputation rather than incorrectly declaring the score invalid. The current synchronous response still reports the failure to the caller; automatic retry and operator-visible persisted failure details belong to Phase 3.
 
 ## Target Architecture
 

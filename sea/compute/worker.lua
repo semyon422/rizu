@@ -3,6 +3,7 @@ local CosocketScheduler = require("web.luasocket.CosocketScheduler")
 local CosocketServer = require("web.luasocket.CosocketServer")
 local ComputeProtocol = require("sea.compute.ComputeProtocol")
 local ComputeRequest = require("sea.compute.ComputeRequest")
+local ComputeFailure = require("sea.compute.ComputeFailure")
 local ComputeVersion = require("sea.compute.ComputeVersion")
 local ReplayComputer = require("sea.compute.ReplayComputer")
 
@@ -22,11 +23,17 @@ local computer = ReplayComputer()
 local function handle(client)
 	local request, err = ComputeProtocol.receive(client, max_payload_size)
 	if not request then
-		ComputeProtocol.send(client, {ok = false, error = err}, max_payload_size)
+		ComputeProtocol.send(client, {
+			ok = false,
+			failure = ComputeFailure.transient("invalid_protocol", err),
+		}, max_payload_size)
 		return
 	end
 	if request.version ~= version then
-		ComputeProtocol.send(client, {ok = false, error = "compute version mismatch"}, max_payload_size)
+		ComputeProtocol.send(client, {
+			ok = false,
+			failure = ComputeFailure.transient("version_mismatch", "compute version mismatch"),
+		}, max_payload_size)
 		return
 	end
 
@@ -34,18 +41,24 @@ local function handle(client)
 	local ok
 	ok, err = valid.format(ComputeRequest.validate(request))
 	if not ok then
-		ComputeProtocol.send(client, {ok = false, error = "invalid compute request: " .. err}, max_payload_size)
+		ComputeProtocol.send(client, {
+			ok = false,
+			failure = ComputeFailure.permanent("invalid_request", err),
+		}, max_payload_size)
 		return
 	end
 
 	local result
 	ok, result, err = xpcall(computer.compute, debug.traceback, computer, request)
 	if not ok then
-		ComputeProtocol.send(client, {ok = false, error = "internal compute error: " .. tostring(result)}, max_payload_size)
+		ComputeProtocol.send(client, {
+			ok = false,
+			failure = ComputeFailure.transient("internal_error", "internal compute error: " .. tostring(result)),
+		}, max_payload_size)
 		return
 	end
 	if not result then
-		ComputeProtocol.send(client, {ok = false, error = err}, max_payload_size)
+		ComputeProtocol.send(client, {ok = false, failure = err}, max_payload_size)
 		return
 	end
 	ComputeProtocol.send(client, {ok = true, result = result}, max_payload_size)

@@ -4,6 +4,7 @@ local ReplayBase = require("sea.replays.ReplayBase")
 local Chartplay = require("sea.chart.Chartplay")
 local ChartdiffKey = require("sea.chart.ChartdiffKey")
 local ComputeContext = require("sea.compute.ComputeContext")
+local ComputeFailure = require("sea.compute.ComputeFailure")
 
 ---@class sea.ChartsComputer
 ---@operator call: sea.ChartsComputer
@@ -42,16 +43,19 @@ function ChartsComputer:computeChartplay(chartplay)
 	local charts_repo = self.charts_repo
 	local time = os.time()
 
-	local ok, ret, err = xpcall(self.computeChartplayNoUpdate, debug.traceback, self, chartplay, time)
+	local ok, ret, err, failure = xpcall(self.computeChartplayNoUpdate, debug.traceback, self, chartplay, time)
 	if not ok then
-		ret, err = ok, ret
-		---@cast err string
+		failure = ComputeFailure.transient("internal_error", tostring(ret))
+		ret = nil
+		err = ComputeFailure.format(failure)
 	end
 
 	if not ret then
-		chartplay.compute_state = "invalid"
-		chartplay.computed_at = time
-		charts_repo:updateChartplay(chartplay)
+		if failure and failure.kind == "permanent" then
+			chartplay.compute_state = "invalid"
+			chartplay.computed_at = time
+			charts_repo:updateChartplay(chartplay)
+		end
 		return nil, err
 	end
 
@@ -66,6 +70,7 @@ end
 ---@param time integer
 ---@return {chartplay_computed: sea.ChartplayComputed, chartdiff: sea.Chartdiff, chartmeta: sea.Chartmeta}?
 ---@return string?
+---@return sea.ComputeFailure?
 function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
 	local charts_repo = self.charts_repo
 	local compute_data_loader = self.compute_data_loader
@@ -91,9 +96,11 @@ function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
 		replay_data = replay_and_data.data,
 	}
 	local result
-	result, err = self.replay_computer:compute(request)
+	local failure
+	result, failure = self.replay_computer:compute(request)
 	if not result then
-		return nil, err
+		failure = failure or ComputeFailure.transient("compute_failed", "compute failed without a classified error")
+		return nil, ComputeFailure.format(failure), failure
 	end
 	local chartmeta = charts_repo:createUpdateChartmeta(result.chartmeta, time)
 	if result.default_chartdiff then

@@ -6,7 +6,7 @@ local IReplayComputer = class()
 
 ---@param request sea.ComputeRequest
 ---@return sea.ComputeResult?
----@return string?
+---@return sea.ComputeFailure?
 function IReplayComputer:compute(request)
 	error("not implemented")
 end

@@ -40,9 +40,11 @@ end
 function test.rejects_hash_mismatch(t)
 	local request = create_request()
 	request.chart_data = request.chart_data .. "\n"
-	local result, err = ReplayComputer():compute(request)
+	local result, failure = ReplayComputer():compute(request)
 	t:eq(result, nil)
-	t:eq(err, "chart hash mismatch")
+	t:eq(failure.kind, "permanent")
+	t:eq(failure.code, "chart_hash_mismatch")
+	t:eq(failure.message, "chart hash mismatch")
 end
 
 return test

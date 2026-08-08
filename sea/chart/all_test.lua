@@ -297,7 +297,7 @@ function test.submit_chartplay_save_on_retrieval_failure(t)
 
 	local chartplay = ctx.charts_repo:getRecentChartplays(user.id, 1)[1]
 	t:assert(chartplay, "Chartplay record should exist")
-	t:eq(chartplay.compute_state, "invalid", "Chartplay state should be 'invalid' due to processing failure")
+	t:eq(chartplay.compute_state, "new", "Transient retrieval failure should remain retryable")
 end
 
 return test

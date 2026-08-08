@@ -5,6 +5,7 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local ComputeContext = require("sea.compute.ComputeContext")
 local ComputeRequest = require("sea.compute.ComputeRequest")
 local ComputeResult = require("sea.compute.ComputeResult")
+local ComputeFailure = require("sea.compute.ComputeFailure")
 local ReplayBase = require("sea.replays.ReplayBase")
 local ReplayLoader = require("sea.replays.ReplayLoader")
 
@@ -15,17 +16,17 @@ local ReplayComputer = class()
 ---@param request sea.ComputeRequest
 ---@param clock (fun(): number)?
 ---@return sea.ComputeResult?
----@return string?
-function ReplayComputer:compute(request, clock)
+---@return sea.ComputeFailure?
+function ReplayComputer:computeNoCatch(request, clock)
 	local ok, err = valid.format(ComputeRequest.validate(request))
 	if not ok then
-		return nil, "invalid request: " .. err
+		return nil, ComputeFailure.permanent("invalid_request", err)
 	end
 	if digest.hash("md5", request.chart_data, true) ~= request.chartplay.hash then
-		return nil, "chart hash mismatch"
+		return nil, ComputeFailure.permanent("chart_hash_mismatch", "chart hash mismatch")
 	end
 	if digest.hash("md5", request.replay_data, true) ~= request.chartplay.replay_hash then
-		return nil, "replay hash mismatch"
+		return nil, ComputeFailure.permanent("replay_hash_mismatch", "replay hash mismatch")
 	end
 
 	clock = clock or os.clock
@@ -33,7 +34,7 @@ function ReplayComputer:compute(request, clock)
 	local replay
 	replay, err = ReplayLoader.load(request.replay_data)
 	if not replay then
-		return nil, "load replay: " .. err
+		return nil, ComputeFailure.permanent("invalid_replay", "load replay: " .. err)
 	end
 	local replay_load = clock() - started
 
@@ -41,11 +42,11 @@ function ReplayComputer:compute(request, clock)
 	local equal
 	equal, err = replay:equalsChartplayBase(chartplay)
 	if not equal then
-		return nil, "chartplay base of replay differs: " .. err
+		return nil, ComputeFailure.permanent("replay_base_mismatch", "chartplay base of replay differs: " .. err)
 	end
 	equal, err = replay:equalsChartmetaKey(chartplay)
 	if not equal then
-		return nil, "chartmeta key of replay differs: " .. err
+		return nil, ComputeFailure.permanent("replay_chart_mismatch", "chartmeta key of replay differs: " .. err)
 	end
 
 	local ctx = ComputeContext()
@@ -53,21 +54,21 @@ function ReplayComputer:compute(request, clock)
 	local chart_chartmeta
 	chart_chartmeta, err = ctx:fromFileData(request.chart_name, request.chart_data, chartplay.index)
 	if not chart_chartmeta then
-		return nil, "from file data: " .. err
+		return nil, ComputeFailure.permanent("invalid_chart", "from file data: " .. err)
 	end
 	local chart_parse = clock() - started
 	local chartmeta = chart_chartmeta.chartmeta
 
 	local timings = chartplay.timings or chartmeta.timings
 	if not timings then
-		return nil, "missing timings"
+		return nil, ComputeFailure.permanent("missing_timings", "missing timings")
 	end
 	if timings.name ~= "arbitrary" then
 		local timing_values = TimingValuesFactory:get(timings, chartplay.subtimings)
 		if not timing_values then
-			return nil, "invalid timings-subtimings pair"
+			return nil, ComputeFailure.permanent("invalid_timings", "invalid timings-subtimings pair")
 		elseif not timing_values:equals(replay.timing_values) then
-			return nil, "timing values differs"
+			return nil, ComputeFailure.permanent("timing_values_mismatch", "timing values differs")
 		end
 	end
 
@@ -92,7 +93,7 @@ function ReplayComputer:compute(request, clock)
 		started = clock()
 		chartplay_computed, err = ctx:computeReplay(replay)
 		if not chartplay_computed then
-			return nil, "compute replay: " .. err
+			return nil, ComputeFailure.permanent("invalid_replay_result", "compute replay: " .. err)
 		end
 		replay_time = clock() - started
 	end
@@ -114,9 +115,21 @@ function ReplayComputer:compute(request, clock)
 
 	ok, err = valid.format(ComputeResult.validate(result))
 	if not ok then
-		return nil, "invalid result: " .. err
+		return nil, ComputeFailure.transient("invalid_result", err)
 	end
 	return result
+end
+
+---@param request sea.ComputeRequest
+---@param clock (fun(): number)?
+---@return sea.ComputeResult?
+---@return sea.ComputeFailure?
+function ReplayComputer:compute(request, clock)
+	local ok, result, failure = xpcall(self.computeNoCatch, debug.traceback, self, request, clock)
+	if not ok then
+		return nil, ComputeFailure.transient("internal_error", tostring(result))
+	end
+	return result, failure
 end
 
 return ReplayComputer

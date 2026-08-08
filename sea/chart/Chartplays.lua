@@ -5,6 +5,7 @@ local Chartplay = require("sea.chart.Chartplay")
 local Chartdiff = require("sea.chart.Chartdiff")
 local ChartplaysAccess = require("sea.chart.access.ChartplaysAccess")
 local ComputeInputLoader = require("sea.compute.ComputeInputLoader")
+local ComputeFailure = require("sea.compute.ComputeFailure")
 
 ---@class sea.Chartplays
 ---@operator call: sea.Chartplays
@@ -120,6 +121,7 @@ end
 ---@param chartdiff_values sea.Chartdiff
 ---@return {chartplay: sea.Chartplay, chartmeta: sea.Chartmeta, chartdiff: sea.Chartdiff, result: sea.ComputeResult, charts_size: integer, replays_size: integer}?
 ---@return string?
+---@return sea.ComputeFailure?
 function Chartplays:submit(user, time, compute_data_provider, chartplay_values, chartdiff_values)
 	if user:isAnon() then
 		return nil, "anon user"
@@ -137,17 +139,25 @@ function Chartplays:submit(user, time, compute_data_provider, chartplay_values, 
 	local replay_data, replay_uploaded
 	replay_data, replay_uploaded, err = input_loader:loadReplay(compute_data_provider, chartplay.replay_hash)
 	if not replay_data then
-		chartplay.compute_state = "invalid"
-		charts_repo:updateChartplay(chartplay)
-		return nil, "load replay: " .. err
+		---@cast err sea.ComputeFailure
+		if err.kind == "permanent" then
+			chartplay.compute_state = "invalid"
+			chartplay.computed_at = time
+			charts_repo:updateChartplay(chartplay)
+		end
+		return nil, "load replay: " .. err.message, err
 	end
 
 	local chart_file, chart_uploaded
 	chart_file, chart_uploaded, err = input_loader:loadChart(compute_data_provider, chartplay.hash)
 	if not chart_file then
-		chartplay.compute_state = "invalid"
-		charts_repo:updateChartplay(chartplay)
-		return nil, "load chart: " .. err
+		---@cast err sea.ComputeFailure
+		if err.kind == "permanent" then
+			chartplay.compute_state = "invalid"
+			chartplay.computed_at = time
+			charts_repo:updateChartplay(chartplay)
+		end
+		return nil, "load chart: " .. err.message, err
 	end
 
 	local chartfile = self.chartfiles_repo:getChartfileByHash(chartplay.hash)
@@ -175,12 +185,16 @@ function Chartplays:submit(user, time, compute_data_provider, chartplay_values, 
 		replay_data = replay_data,
 	}
 	local result
-	result, err = self.replay_computer:compute(request)
+	local failure
+	result, failure = self.replay_computer:compute(request)
 	if not result then
-		chartplay.compute_state = "invalid"
-		chartplay.computed_at = time
-		charts_repo:updateChartplay(chartplay)
-		return nil, err
+		failure = failure or ComputeFailure.transient("compute_failed", "compute failed without a classified error")
+		if failure.kind == "permanent" then
+			chartplay.compute_state = "invalid"
+			chartplay.computed_at = time
+			charts_repo:updateChartplay(chartplay)
+		end
+		return nil, ComputeFailure.format(failure), failure
 	end
 
 	local chartmeta = charts_repo:createUpdateChartmeta(result.chartmeta, time)
