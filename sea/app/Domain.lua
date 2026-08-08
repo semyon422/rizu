@@ -21,6 +21,7 @@ local ContentAddressedStorage = require("sea.chart.storage.ContentAddressedStora
 local ComputeDataProvider = require("sea.compute.ComputeDataProvider")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
 local ComputeTasks = require("sea.compute.ComputeTasks")
+local ComputeJobs = require("sea.compute.ComputeJobs")
 local ChartsComputer = require("sea.compute.ChartsComputer")
 
 local UserActivityGraph = require("sea.activity.UserActivityGraph")
@@ -59,14 +60,24 @@ function Domain:new(repos, app_config, fs, replay_computer, compute_version)
 	self.leaderboards = Leaderboards(repos.leaderboards_repo)
 	self.teams = Teams(repos.teams_repo)
 	self.difftables = Difftables(repos.difftables_repo)
+	self.compute_jobs = ComputeJobs(
+		repos.compute_jobs_repo,
+		repos.charts_repo,
+		repos.chartfiles_repo,
+		self.compute_data_provider,
+		replay_computer,
+		compute_version,
+		function(f, ...)
+			return self:transaction(f, ...)
+		end
+	)
 	self.chartplays = Chartplays(
 		repos.charts_repo,
 		repos.chartfiles_repo,
 		self.compute_data_provider,
 		self.charts_storage,
 		self.replays_storage,
-		replay_computer,
-		compute_version
+		self.compute_jobs
 	)
 	self.dans = Dans(repos.charts_repo, repos.dan_clears_repo)
 	self.user_activity_graph = UserActivityGraph(repos.activity_repo)

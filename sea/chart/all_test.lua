@@ -13,6 +13,8 @@ local FakeComputeDataProvider = require("sea.compute.FakeComputeDataProvider")
 local ComputeDataProvider = require("sea.compute.ComputeDataProvider")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
 local ReplayComputer = require("sea.compute.ReplayComputer")
+local ComputeJobs = require("sea.compute.ComputeJobs")
+local ComputeJobsRepo = require("sea.compute.repos.ComputeJobsRepo")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
 local Users = require("sea.access.Users")
@@ -61,6 +63,15 @@ local function create_test_ctx()
 
 	local compute_data_provider = ComputeDataProvider(chartfiles_repo, charts_storage, replays_storage)
 	local compute_data_loader = ComputeDataLoader(compute_data_provider)
+	local compute_jobs = ComputeJobs(
+		ComputeJobsRepo(models),
+		charts_repo,
+		chartfiles_repo,
+		compute_data_provider,
+		ReplayComputer(),
+		"test",
+		function(f, ...) return f(...) end
+	)
 
 	local chartplays = Chartplays(
 		charts_repo,
@@ -68,8 +79,7 @@ local function create_test_ctx()
 		compute_data_provider,
 		charts_storage,
 		replays_storage,
-		ReplayComputer(),
-		"test"
+		compute_jobs
 	)
 
 	local leaderboards = Leaderboards(leaderboards_repo)
@@ -255,12 +265,13 @@ function test.submit_valid_score(t)
 	end
 
 	c, err = ctx.chartplays:submit(user, 0, compute_data_provider, chartplay_values, chartdiff_values)
-	t:eq(c, nil)
-	t:eq(err, "can submit: rate limit")
+	t:assert(c, err)
+	t:eq(ctx.charts_repo:countChartplays(), 1)
 
 	local interval = ctx.chartplays.chartplays_access.submit_interval
 	c, err = ctx.chartplays:submit(user, interval, compute_data_provider, chartplay_values, chartdiff_values)
 	t:assert(c, err)
+	t:eq(ctx.charts_repo:countChartplays(), 1)
 end
 
 ---@param t testing.T
@@ -291,13 +302,9 @@ function test.submit_chartplay_save_on_retrieval_failure(t)
 	t:eq(res, nil, "Submission should have failed due to retrieval error")
 	t:assert(err:find("not found"), "Error message should reflect retrieval failure, got: " .. tostring(err))
 
-	-- Verify partial save: chartplays table should contain the record
+	-- Durable acceptance happens only after all required inputs are stored.
 	local count = ctx.charts_repo:countChartplays()
-	t:eq(count, 1, "Chartplay should be saved even if retrieval fails")
-
-	local chartplay = ctx.charts_repo:getRecentChartplays(user.id, 1)[1]
-	t:assert(chartplay, "Chartplay record should exist")
-	t:eq(chartplay.compute_state, "new", "Transient retrieval failure should remain retryable")
+	t:eq(count, 0, "Chartplay should not be accepted before input retrieval succeeds")
 end
 
 return test

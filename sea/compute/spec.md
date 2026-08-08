@@ -186,7 +186,7 @@ Before the durable flow is complete, Bancho can use synchronous request/reply to
 
 ## Job Model
 
-Runtime job state should be separate from the public chartplay compute state. `Chartplay.compute_state` can retain the existing `new`, `valid`, and `invalid` meanings while a dedicated job record carries delivery and retry details.
+Runtime job state is separate from the public chartplay compute state. `Chartplay.compute_state` retains the existing `new`, `valid`, and `invalid` meanings while `compute_jobs` carries delivery and retry details. `chartplays.replay_hash`, `compute_jobs.chartplay_id`, and the job idempotency key are unique.
 
 Proposed job states:
 
@@ -316,12 +316,12 @@ https://www.sqlite.org/wal.html#concurrency
 - Keep database writes in the current server process until the SQLite safety prerequisite is satisfied.
 - Measure event-loop responsiveness and worker capacity under concurrent submissions.
 
-### Phase 3: Durable native submissions
+### Phase 3: Durable native submissions (foundation implemented)
 
-- Add the compute-job schema, atomic claim, leases, retry policy, and operator-visible failure details.
-- Make replay and chart storage publication atomic.
-- Change the native remote response to return a queued submission.
-- Recover queued and expired jobs after restarts.
+- The `compute_jobs` schema, atomic conditional claim, 180-second leases, three-attempt retry budget, retry/dead transitions, structured bounded diagnostics, and stage timings are implemented.
+- Replay and chart storage publication is atomic and content-addressed. Chartfile, chartplay, and one job per chartplay are then created in one database transaction.
+- Change the native remote response to return a queued submission. This remains pending: native and Bancho callers currently enqueue, claim, and synchronously await the same durable job.
+- Add a supervised database queue loop to recover queued and expired jobs after restarts. The repository and processor can already claim expired leases, but processing is currently triggered by submission or explicit `ComputeJobs:process(id)` calls.
 - Notify connected users after finalization without making notification part of correctness.
 
 ### Phase 4: Idempotent side effects

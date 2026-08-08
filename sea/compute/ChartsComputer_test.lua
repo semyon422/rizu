@@ -7,6 +7,8 @@ local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
 local ChartsComputer = require("sea.compute.ChartsComputer")
 local ReplayComputer = require("sea.compute.ReplayComputer")
 local ComputeFailure = require("sea.compute.ComputeFailure")
+local ComputeJobs = require("sea.compute.ComputeJobs")
+local ComputeJobsRepo = require("sea.compute.repos.ComputeJobsRepo")
 local Chartplays = require("sea.chart.Chartplays")
 local User = require("sea.access.User")
 
@@ -36,6 +38,15 @@ local function create_test_ctx()
 	local compute_data_loader = ComputeDataLoader(compute_data_provider)
 	local replay_computer = ReplayComputer()
 	local charts_computer = ChartsComputer(compute_data_loader, charts_repo, replay_computer, "test")
+	local compute_jobs = ComputeJobs(
+		ComputeJobsRepo(models),
+		charts_repo,
+		chartfiles_repo,
+		compute_data_provider,
+		replay_computer,
+		"test",
+		function(f, ...) return f(...) end
+	)
 
 	local chartplays = Chartplays(
 		charts_repo,
@@ -43,8 +54,7 @@ local function create_test_ctx()
 		compute_data_provider,
 		charts_storage,
 		replays_storage,
-		replay_computer,
-		"test"
+		compute_jobs
 	)
 
 	local user = User()
@@ -109,7 +119,7 @@ function test.transient_compute_failure_remains_new(t)
 	local client = FakeClient(0.02, 100)
 	local sample = chart_samples[1]
 	local play = client:play(sample.name, sample.data, 1, 1, 0)
-	ctx.chartplays.replay_computer = {
+	ctx.chartplays.compute_jobs.replay_computer = {
 		compute = function()
 			return nil, ComputeFailure.transient("worker_unavailable", "worker unavailable")
 		end,
@@ -135,7 +145,7 @@ function test.permanent_compute_failure_is_invalid(t)
 	local client = FakeClient(0.02, 100)
 	local sample = chart_samples[1]
 	local play = client:play(sample.name, sample.data, 1, 1, 0)
-	ctx.chartplays.replay_computer = {
+	ctx.chartplays.compute_jobs.replay_computer = {
 		compute = function()
 			return nil, ComputeFailure.permanent("invalid_replay", "bad replay")
 		end,

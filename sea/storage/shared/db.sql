@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS `chartplays` (
 	`rating_msd` REAL NOT NULL
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS chartplays_replay_hash_idx ON chartplays (`replay_hash`);
 CREATE INDEX IF NOT EXISTS chartplays_user_id_idx ON chartplays (`user_id`);
 CREATE INDEX IF NOT EXISTS chartplays_himr_idx ON chartplays (`hash`, `index`, `modifiers`, `rate`);
 CREATE INDEX IF NOT EXISTS chartplays_himrm_idx ON chartplays (`hash`, `index`, `modifiers`, `rate`, `mode`);
