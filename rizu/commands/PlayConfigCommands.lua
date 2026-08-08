@@ -1,6 +1,7 @@
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 local Subtimings = require("sea.chart.Subtimings")
 local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 ---@return rizu.command.Fuzzy.Candidate[] choices
@@ -226,10 +227,26 @@ return function(game)
 					default = 0,
 				},
 			},
+			---@param args {timings: string, data: number}
 			callback = function(args)
 				local timings = Timings(args.timings, args.data)
-				game.configModel.configs.settings.timings[args.timings] = args.data
-				applyTimingValues(game, timings, nil)
+				local subtimings ---@type sea.Subtimings?
+				local settings = game.configModel.configs.settings
+				settings.timings[args.timings] = args.data
+
+				-- TODO: I don't like that we do it here.
+				if args.timings == "osuod" then
+					subtimings = Subtimings("scorev", 1)
+				end
+
+				if subtimings then
+					settings.subtimings[args.timings] = {
+						subtimings.name,
+						[subtimings.name] = subtimings.data
+					}
+				end
+
+				applyTimingValues(game, timings, subtimings)
 			end,
 		},
 		{
