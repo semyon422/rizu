@@ -2,6 +2,7 @@ local FlowContainer = require("gui.layout.FlowContainer")
 local ScrollView = require("gui.ScrollView")
 local FormControl = require("ui.views.form.FormControl")
 local FormNavigation = require("ui.views.form.FormNavigation")
+local UiActions = require("ui.UiActions")
 local View = require("gui.View")
 
 ---@class ui.views.form.Form.Config : gui.layout.FlowContainer.Config
@@ -491,9 +492,6 @@ function Form:onKeyDown(e)
 	end
 
 	local selected = self.selected_control
-	if e.key == "return" or e.key == "kpenter" or e.key == "space" then
-		return selected and selected:activate(e) or false
-	end
 	if selected and selected:onFormKeyDown(e) then
 		return true
 	end
@@ -518,6 +516,20 @@ function Form:onKeyDown(e)
 		})
 	end
 	return true
+end
+
+---@param inputs gui.Inputs
+function Form:onHandleInputs(inputs)
+	local selected = self.selected_control
+	if not selected or not inputs:consumeActionJustPressed(UiActions.accept) then
+		return
+	end
+	selected:activate({
+		control_pressed = false,
+		shift_pressed = false,
+		alt_pressed = false,
+		super_pressed = false,
+	})
 end
 
 function Form:updateSelection()

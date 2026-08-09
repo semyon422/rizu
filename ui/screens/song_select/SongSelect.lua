@@ -397,7 +397,6 @@ function SongSelect:receive(event)
 		self.chart_grid:requestReloadItems()
 	end
 
-
 	self.background_panel:receive(event)
 end
 

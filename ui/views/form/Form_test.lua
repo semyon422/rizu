@@ -1,10 +1,12 @@
 local Form = require("ui.views.form.Form")
 local FormControl = require("ui.views.form.FormControl")
 local FormNavigation = require("ui.views.form.FormNavigation")
+local ActionMap = require("gui.input.ActionMap")
 local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local ScrollView = require("gui.ScrollView")
 local View = require("gui.View")
+local UiActions = require("ui.UiActions")
 
 local test = {}
 
@@ -237,7 +239,7 @@ function test.keyboard_movement_clears_keyboard_focus(t)
 end
 
 ---@param t testing.T
-function test.keyboard_activation_calls_selected_control(t)
+function test.accept_action_activates_selected_control_and_is_consumed(t)
 	local form = Form()
 	local activation_count = 0
 	local control = form:add(FormControl())
@@ -247,9 +249,21 @@ function test.keyboard_activation_calls_selected_control(t)
 	end
 	form:selectControl(control)
 
-	t:eq(form:onKeyDown({key = "space"}), true)
-	t:eq(form:onKeyDown({key = "return"}), true)
-	t:eq(activation_count, 2)
+	local screen = Screen()
+	screen.root:add(form)
+	screen:resize(100, 100)
+	local actions = ActionMap()
+	actions:defineAction(UiActions.accept, {{key = "return"}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+	inputs:updateActions({name = "keypressed", "return"}, {
+		control = false, shift = false, alt = false, super = false,
+	})
+
+	screen:handleInputs(inputs)
+
+	t:eq(activation_count, 1)
+	t:eq(inputs:isActionJustPressed(UiActions.accept), false)
 end
 
 ---@param t testing.T
