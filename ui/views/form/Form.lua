@@ -23,6 +23,7 @@ local View = require("gui.View")
 ---@field selected_index integer? Index into rows.children
 ---@field selected_control ui.views.form.FormControl?
 ---@field navigation ui.views.form.FormNavigation
+---@field items_revision integer Incremented whenever form rows change.
 ---@field private navigation_mouse_x number?
 ---@field private navigation_mouse_y number?
 local Form = View + {}
@@ -45,6 +46,7 @@ function Form:new(config)
 	self.selected_index = nil
 	self.selected_control = nil
 	self.navigation = FormNavigation.Mouse
+	self.items_revision = 0
 	self.navigation_mouse_x = nil
 	self.navigation_mouse_y = nil
 	self.handles_mouse_input = true
@@ -58,6 +60,7 @@ end
 ---@return T
 function Form:add(row)
 	local added = self.rows:add(row)
+	self.items_revision = self.items_revision + 1
 	if self.selected_control then
 		self:syncSelection()
 	end
@@ -70,6 +73,7 @@ end
 ---@return T
 function Form:insert(index, row)
 	local inserted = self.rows:insert(index, row)
+	self.items_revision = self.items_revision + 1
 	if self.selected_control then
 		self:syncSelection()
 	end
@@ -107,6 +111,7 @@ function Form:remove(row)
 		self:closeActiveDropdown()
 	end
 	self.rows:remove(row)
+	self.items_revision = self.items_revision + 1
 	if was_selected then
 		self.selected_control = nil
 		self.selected_index = removed_index
@@ -114,6 +119,15 @@ function Form:remove(row)
 	if had_selection then
 		self:syncSelection()
 	end
+end
+
+---Removes all form rows and invalidates selection geometry.
+function Form:clearRows()
+	if #self.rows.children == 0 then
+		return
+	end
+	self.rows:clear()
+	self.items_revision = self.items_revision + 1
 end
 
 ---Adds an overlay such as a dropdown item panel above the rows.

@@ -31,7 +31,7 @@ function GameplayModifiers:bind(rbf)
 
 	if rbf:isTapOnly() then
 		table.insert(cs, Colors.text_muted)
-		table.insert(cs " " .. "No LN")
+		table.insert(cs, " " .. "No LN")
 	end
 
 	self.batch:set(cs)

@@ -97,7 +97,10 @@ function SongSelect:new(ui)
 		{
 			icon = Resources.sprites.icon_puzzle,
 			text = "MODS"
-		}
+		},
+		function()
+			self.ui.modal_manager:attachModifiers()
+		end
 	)
 
 	self.skins_button = FooterButton(
@@ -141,6 +144,8 @@ function SongSelect:new(ui)
 	self.palette_button = HeaderButton(Resources.sprites.icon_terminal, function()
 		self.ui.modal_manager:attachPalette()
 	end)
+
+	self.dlc_button = HeaderButton(Resources.sprites.icon_download, function() end)
 
 	self.player_info = PlayerInfo("Username")
 	self.session_info = SessionInfo()
@@ -297,6 +302,7 @@ function SongSelect:createHeader()
 
 	local buttons = right:add(FlowContainer({direction = "row"}))
 	buttons:add(self.settings_button)
+	buttons:add(self.dlc_button)
 	buttons:add(self.palette_button)
 	buttons:fitContent()
 
@@ -346,17 +352,21 @@ function SongSelect:onChartviewUpdate(chartview)
 	self.info_panel:bind(self.chartview_formatter)
 end
 
-function SongSelect:updateInfo()
+function SongSelect:updateModifiers()
 	self.replay_base_formatter:setReplayBase(self.ui.game.replayBase)
-
-	self.score_list:reload()
-	self.chart_grid:reloadItems()
 	self.gameplay_modifiers:bind(self.replay_base_formatter)
+	self.time_rate:updateText()
 
 	-- TODO: Make Right panel container as a separate view
 	self.gameplay_modifiers_cell:fitContent()
 	self.time_rate_cell:fitContent()
 	self.footer_right:fitContent()
+end
+
+function SongSelect:updateInfo()
+	self.score_list:reload()
+	self.chart_grid:reloadItems()
+	self:updateModifiers()
 end
 
 ---@param inputs gui.Inputs

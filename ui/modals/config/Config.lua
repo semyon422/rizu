@@ -1,8 +1,7 @@
 local Colors = require("ui.Colors")
 local FlowContainer = require("gui.layout.FlowContainer")
-local SpringValue = require("gui.anim.SpringValue")
 local Form = require("ui.views.form.Form")
-local FormNavigation = require("ui.views.form.FormNavigation")
+local FormSelection = require("ui.views.form.FormSelection")
 local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local ModalView = require("ui.ModalView")
@@ -28,14 +27,10 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@field selected_section ui.modals.config.Section
 ---@field section_list gui.layout.FlowContainer
 ---@field form ui.views.form.Form
+---@field form_selection ui.views.form.FormSelection
 ---@field scroll_view gui.ScrollView
 ---@field background gui.NineSliceUsage
 ---@field list_background gui.NineSliceUsage
----@field selection_x number
----@field selection_y gui.anim.SpringValue
----@field selection_width number
----@field selection_height gui.anim.SpringValue
----@field private selection_visible boolean
 ---@field private settings_invalidated boolean
 local Config = ModalView + {}
 
@@ -43,8 +38,6 @@ local MODAL_WIDTH = 1060
 local MODAL_HEIGHT = 740
 local LIST_PANEL_WIDTH = 740
 local LIST_WIDTH = 635
-local SELECTION_WIDTH = 4
-local SELECTION_GAP = 10
 
 ---@param ui_config ui.UiConfig
 ---@param legacy_settings sphere.SettingsConfig
@@ -60,11 +53,6 @@ function Config:new(ui_config, legacy_settings)
 	})
 	self.selected_section = self.all_section
 	self.settings_invalidated = false
-	self.selection_visible = false
-	self.selection_x = 0
-	self.selection_y = SpringValue({stiffness = 360, damping = 34})
-	self.selection_width = 0
-	self.selection_height = SpringValue()
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
@@ -115,6 +103,7 @@ function Config:new(ui_config, legacy_settings)
 
 	self:add(self.section_list)
 	self:add(self.scroll_view)
+	self.form_selection = self:add(FormSelection(self.form))
 	for _, section in ipairs(self.sections) do
 		section:setInvalidator(function()
 			self:invalidateSettings()
@@ -154,7 +143,7 @@ function Config:rebuildSettings()
 	local selected_index = self.form.selected_index
 	self.form:closeActiveDropdown()
 	self.form:clearSelection()
-	self.form.rows:clear()
+	self.form:clearRows()
 
 	if self.selected_section == self.all_section then
 		for _, section in ipairs(self.sections) do
@@ -177,43 +166,11 @@ function Config:rebuildSettings()
 	end
 end
 
-function Config:updateSelection()
-	local form = self.form
-	form:updateSelection()
-	if not form.selection_visible then
-		self.selection_visible = false
-		return
-	end
-
-	local target_x = assert(form.selection_target_x)
-	local target_y = assert(form.selection_target_y)
-	local target_width = assert(form.selection_target_width)
-	local target_height = assert(form.selection_target_height)
-
-	-- Animate in form-local space. The form's world transform contains the
-	-- current scroll offset, which is applied later without spring lag.
-	self.selection_x = target_x
-	self.selection_width = target_width
-	if self.selection_visible then
-		self.selection_y:set(target_y)
-		self.selection_height:set(target_height)
-	else
-		self.selection_y:snap(target_y)
-		self.selection_height:snap(target_height)
-		self.selection_visible = true
-	end
-end
-
 ---@param dt number
 function Config:update(dt)
-	local rebuilt = self.settings_invalidated
-	if rebuilt then
+	if self.settings_invalidated then
 		self:rebuildSettings()
-	else
-		self:updateSelection()
 	end
-	self.selection_y:update(dt)
-	self.selection_height:update(dt)
 end
 
 function Config:show()
@@ -236,38 +193,6 @@ function Config:draw()
 	love.graphics.translate(MODAL_WIDTH - LIST_PANEL_WIDTH, 0)
 	self.list_background:draw(LIST_PANEL_WIDTH, MODAL_HEIGHT)
 	love.graphics.pop()
-
-	if self.selection_visible then
-		local form = self.form
-		local selection_x = self.selection_x
-		local selection_y = self.selection_y:get()
-		local selection_width = self.selection_width
-		local selection_height = self.selection_height:get()
-		local min_x, min_y = math.huge, math.huge
-		local max_y = -math.huge
-		local corners = {
-			{selection_x, selection_y},
-			{selection_x + selection_width, selection_y},
-			{selection_x, selection_y + selection_height},
-			{selection_x + selection_width, selection_y + selection_height},
-		}
-		for _, corner in ipairs(corners) do
-			local world_x, world_y = form.world_transform:transformPoint(corner[1], corner[2])
-			local x, y = self.world_transform:inverseTransformPoint(world_x, world_y)
-			min_x, min_y = math.min(min_x, x), math.min(min_y, y)
-			max_y = math.max(max_y, y)
-		end
-
-		Painter.setColorTable(Colors.text_muted)
-		Painter.setOpacity(form.navigation == FormNavigation.Keyboard and 1 or 0.5)
-		love.graphics.rectangle(
-			"fill",
-			min_x - SELECTION_GAP - SELECTION_WIDTH,
-			min_y,
-			SELECTION_WIDTH,
-			max_y - min_y
-		)
-	end
 end
 
 return Config
