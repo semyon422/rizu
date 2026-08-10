@@ -30,6 +30,16 @@ function ActivityRepo:getUserActivityDays(user_id, timezone, start_date, end_dat
 end
 
 ---@param user_id integer
+function ActivityRepo:recomputeUserActivity(user_id)
+	assert(user_id)
+	self.models._orm.db:query("DELETE FROM user_activity_days WHERE user_id = ?", {user_id})
+	local chartplays = self.models.chartplays:select({user_id = user_id, compute_state = "valid"})
+	for _, chartplay in ipairs(chartplays) do
+		self:increaseUserActivity(user_id, chartplay.submitted_at)
+	end
+end
+
+---@param user_id integer
 ---@param time integer
 function ActivityRepo:increaseUserActivity(user_id, time)
 	assert(user_id)

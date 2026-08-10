@@ -17,6 +17,7 @@ local Chartplay = require("sea.chart.Chartplay")
 ---@field last_error_code string?
 ---@field last_error_message string?
 ---@field chartplay sea.Chartplay?
+---@field effects_complete boolean
 local ComputeJobStatus = {}
 
 local validate_status = valid.struct({
@@ -31,6 +32,7 @@ local validate_status = valid.struct({
 	last_error_kind = valid.optional(valid.one_of({"permanent", "transient"})),
 	last_error_code = valid.optional(types.name),
 	last_error_message = valid.optional(types.string),
+	effects_complete = types.boolean,
 	chartplay = valid.optional(function(chartplay)
 		if type(chartplay) ~= "table" then
 			return nil, "not a table"
@@ -42,8 +44,9 @@ local validate_status = valid.struct({
 
 ---@param job sea.ComputeJob
 ---@param chartplay sea.Chartplay?
+---@param effects_complete boolean?
 ---@return sea.ComputeJobStatus
-function ComputeJobStatus.create(job, chartplay)
+function ComputeJobStatus.create(job, chartplay, effects_complete)
 	return {
 		job_id = assert(job.id),
 		chartplay_id = job.chartplay_id,
@@ -56,6 +59,7 @@ function ComputeJobStatus.create(job, chartplay)
 		last_error_kind = job.last_error_kind,
 		last_error_code = job.last_error_code,
 		last_error_message = job.last_error_message,
+		effects_complete = effects_complete or false,
 		chartplay = chartplay,
 	}
 end

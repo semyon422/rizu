@@ -396,6 +396,50 @@ end
 
 --------------------------------------------------------------------------------
 
+---@param user_id integer
+function UsersRepo:updateUserSubmissionAggregates(user_id)
+	self.models._orm.db:query([[
+		UPDATE users SET
+			latest_activity = COALESCE((
+				SELECT MAX(submitted_at) FROM chartplays WHERE user_id = ? AND compute_state = 1
+			), latest_activity),
+			chartplays_count = (SELECT COUNT(*) FROM chartplays WHERE user_id = ? AND compute_state = 1),
+			chartmetas_count = (SELECT COUNT(*) FROM (
+				SELECT hash, `index` FROM chartplays WHERE user_id = ? AND compute_state = 1 GROUP BY hash, `index`
+			)),
+			chartdiffs_count = (SELECT COUNT(*) FROM (
+				SELECT hash, `index`, modifiers, rate, mode FROM chartplays
+				WHERE user_id = ? AND compute_state = 1 GROUP BY hash, `index`, modifiers, rate, mode
+			)),
+			play_time = COALESCE((
+				SELECT SUM(chartdiffs.duration) FROM chartplays
+				INNER JOIN chartdiffs ON
+					chartplays.hash = chartdiffs.hash AND chartplays.`index` = chartdiffs.`index` AND
+					chartplays.modifiers = chartdiffs.modifiers AND chartplays.rate = chartdiffs.rate AND
+					chartplays.mode = chartdiffs.mode
+				WHERE chartplays.user_id = ? AND chartplays.compute_state = 1
+			), 0),
+			chartfiles_upload_size = COALESCE((
+				SELECT SUM(size) FROM chartfiles WHERE creator_id = ?
+			), 0),
+			chartplays_upload_size = COALESCE((
+				SELECT SUM(compute_jobs.replay_upload_size) FROM compute_jobs
+				INNER JOIN chartplays ON chartplays.id = compute_jobs.chartplay_id
+				WHERE chartplays.user_id = ? AND chartplays.compute_state = 1
+			), 0)
+		WHERE id = ?
+	]], {
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+	})
+end
+
 ---@param reset_before boolean?
 function UsersRepo:updateChartmetasCount(reset_before)
 	if reset_before then

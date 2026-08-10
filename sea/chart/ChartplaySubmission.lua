@@ -32,7 +32,12 @@ function ChartplaySubmission:enqueueChartplay(peer, chartplay_values, chartdiff_
 		return nil, err
 	end
 	return {
-		status = ComputeJobStatus.create(submission.job, submission.job.state == "succeeded" and submission.chartplay or nil),
+		status = ComputeJobStatus.create(
+			submission.job,
+			submission.job.state == "succeeded" and submission.chartplay or nil,
+			self.chartplays.compute_jobs.chartplay_effects
+				and self.chartplays.compute_jobs.chartplay_effects:isComplete(assert(submission.chartplay.id))
+		),
 		duplicate = submission.duplicate,
 	}
 end
@@ -43,47 +48,24 @@ end
 ---@return sea.Chartplay?
 ---@return string?
 function ChartplaySubmission:submitChartplay(peer, chartplay_values, chartdiff_values)
-	local user, remote = peer.user, peer.remote
+	local user = peer.user
 	local time = os.time()
 
-	local ctx, err = self.chartplays:submit(user, time, remote.compute_data_provider, chartplay_values, chartdiff_values)
+	local ctx, err = self.chartplays:submit(user, time, peer.remote.compute_data_provider, chartplay_values, chartdiff_values)
 	if not ctx then
 		return nil, err
 	end
 
 	local chartplay = assert(ctx.chartplay)
-	local chartmeta = assert(ctx.chartmeta)
-
-	self.external_ranked:submit(chartmeta, time)
-
-	if not chartplay.custom then
-		self.leaderboards:addChartplay(chartplay)
+	local effects = self.chartplays.compute_jobs.chartplay_effects
+	if effects then
+		while not effects:isComplete(assert(chartplay.id)) do
+			local effect, failure = effects:process()
+			if not effect then
+				return nil, failure and failure.message or "chartplay effects did not complete"
+			end
+		end
 	end
-
-	self.user_activity_graph:increaseUserActivity(user.id, time)
-
-	user = self.users:getUser(user.id)
-
-	user.latest_activity = time
-	user.play_time = user.play_time + ctx.chartdiff.duration
-	user.chartplays_upload_size = user.chartplays_upload_size + ctx.replays_size
-	user.chartfiles_upload_size = user.chartfiles_upload_size + ctx.charts_size
-	user.chartplays_count = self.chartplays.charts_repo:getUserChartplaysCount(user.id)
-	user.chartmetas_count = self.chartplays.charts_repo:getUserChartmetasCount(user.id)
-	user.chartdiffs_count = self.chartplays.charts_repo:getUserChartdiffsCount(user.id)
-
-	self.users.users_repo:updateUser(user)
-
-	if self.dans:isDan(chartdiff_values) then
-		local dan_clear, err = self.dans:submit(user, chartplay, chartdiff_values, time)
-		remote:print(dan_clear and "dan cleared" or err)
-	end
-
-	local leaderboard_users = self.leaderboards:getUserLeaderboardUsers(user)
-	if leaderboard_users then
-		remote.client:setLeaderboardUsers(leaderboard_users)
-	end
-
 	return chartplay
 end
 

@@ -7,7 +7,7 @@ local ComputeJobWorker = class()
 ComputeJobWorker.idle_interval = 1
 ComputeJobWorker.error_interval = 5
 
----@param compute_jobs sea.ComputeJobs
+---@param compute_jobs sea.ComputeJobs|sea.ChartplayEffects
 ---@param schedule fun(delay: number, callback: fun(premature: boolean)): true?, string?
 ---@param log fun(level: "error"|"notice", message: string)
 function ComputeJobWorker:new(compute_jobs, schedule, log)
@@ -61,7 +61,7 @@ function ComputeJobWorker:tick(premature)
 	if not ok then
 		self.log("error", "compute job worker crashed: " .. tostring(result))
 		delay = self.error_interval
-	elseif failure and failure.code == "job_not_claimable" then
+	elseif failure and (failure.code == "job_not_claimable" or failure.code == "effect_not_claimable") then
 		delay = self.idle_interval
 	elseif failure then
 		self.log("error", ("compute job attempt failed: %s: %s"):format(failure.code, failure.message))

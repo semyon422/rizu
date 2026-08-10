@@ -10,6 +10,7 @@ local OnlineClient = class()
 function OnlineClient:new()
 	self.leaderboards = {}
 	self.leaderboards_users = {}
+	self.completed_chartplay_ids = {}
 end
 
 ---@param user sea.User?
@@ -30,6 +31,11 @@ end
 ---@param leaderboards_users sea.LeaderboardUser[]
 function OnlineClient:setLeaderboardUsers(leaderboards_users)
 	self.leaderboards_users = leaderboards_users
+end
+
+---@param chartplay_id integer
+function OnlineClient:chartplaySubmissionCompleted(chartplay_id)
+	table.insert(self.completed_chartplay_ids, chartplay_id)
 end
 
 ---@param lb_id integer

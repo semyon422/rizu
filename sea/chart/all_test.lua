@@ -298,6 +298,7 @@ function test.async_submission_status(t)
 	))
 	t:eq(result.status.state, "queued")
 	t:eq(result.status.chartplay, nil)
+	t:eq(result.status.effects_complete, false)
 	t:eq(result.duplicate, false)
 	local duplicate = assert(remote:submitChartplay(
 		setmetatable(table_util.copy(_chartplay_values), Chartplay),
@@ -313,6 +314,15 @@ function test.async_submission_status(t)
 	status = assert(remote:getChartplaySubmission(result.status.job_id))
 	t:eq(status.state, "succeeded")
 	t:eq(status.chartplay.compute_state, "valid")
+	t:eq(status.effects_complete, false)
+	local effects = ctx.chartplays.compute_jobs.chartplay_effects
+	if effects then
+		while not effects:isComplete(status.chartplay_id) do
+			assert(effects:process())
+		end
+		status = assert(remote:getChartplaySubmission(result.status.job_id))
+		t:eq(status.effects_complete, true)
+	end
 	local _, err = ctx.chartplays.compute_jobs:getStatus(2, result.status.job_id)
 	t:eq(err, "compute job not found")
 end

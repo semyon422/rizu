@@ -326,12 +326,14 @@ https://www.sqlite.org/wal.html#concurrency
 - Operators can inspect bounded state-filtered job lists and requeue failed/dead jobs through `sea/app/cli.lua`.
 - Notify connected users after finalization without making notification part of correctness. This remains pending until Phase 4's idempotent side effects own completion notifications.
 
-### Phase 4: Idempotent side effects
+### Phase 4: Idempotent side effects (implemented)
 
-- Add short canonical finalization transactions.
-- Add unique side-effect keys or an outbox.
-- Move external ranking lookup, leaderboard work, user aggregates, activity, Dan handling, and notifications out of the compute transaction.
-- Add safe replay/reprocessing commands for failed jobs and side effects.
+- Canonical finalization creates six `chartplay_effects` outbox rows and marks the compute job succeeded in the same short transaction.
+- Unique `(chartplay_id, effect)` keys prevent duplicate outbox delivery. Effects use conditional claims, 60-second leases, five-attempt retry budgets, bounded diagnostics, dead state, and restart recovery.
+- External ranking, leaderboard recomputation, activity rebuilding, user aggregate/upload recomputation, Dan handling, and notification run outside the compute transaction.
+- Leaderboards, activity, and user values are derived from canonical valid rows when redelivered. Dan handling retains its existing semantic duplicate guard. External ranking already checks for an existing row. Notification is best-effort and becomes claimable only after every durable business effect succeeds.
+- Native status exposes `effects_complete`; Bancho drains the same durable effects synchronously before returning.
+- Operators can inspect and requeue effects with `chartplay_effects [state] [limit]` and `requeue_chartplay_effect <id>`.
 
 ### Phase 5: Scale and optimize
 

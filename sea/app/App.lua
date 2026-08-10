@@ -70,6 +70,11 @@ function App:new(app_config)
 	end, function(level, message)
 		ngx.log(level == "error" and ngx.ERR or ngx.NOTICE, message)
 	end)
+	self.chartplay_effect_worker = ComputeJobWorker(self.domain.chartplay_effects, function(delay, callback)
+		return ngx.timer.at(delay, callback)
+	end, function(level, message)
+		ngx.log(level == "error" and ngx.ERR or ngx.NOTICE, message)
+	end)
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
 
 	local whitelist = require("sea.app.remotes.whitelist")
@@ -106,11 +111,16 @@ end
 ---@return true?
 ---@return string?
 function App:startComputeJobWorker()
-	return self.compute_job_worker:start()
+	local ok, err = self.compute_job_worker:start()
+	if not ok then
+		return nil, err
+	end
+	return self.chartplay_effect_worker:start()
 end
 
 function App:unload()
 	self.compute_job_worker:stop()
+	self.chartplay_effect_worker:stop()
 	self.app_db:close()
 end
 

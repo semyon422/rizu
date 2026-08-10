@@ -1,10 +1,10 @@
 local class = require("class")
 
----@class sea.ComputeJob
----@operator call: sea.ComputeJob
+---@class sea.ChartplayEffect
+---@operator call: sea.ChartplayEffect
 ---@field id integer
 ---@field chartplay_id integer
----@field idempotency_key string
+---@field effect sea.ChartplayEffectType
 ---@field state sea.ComputeJobState
 ---@field attempt_count integer
 ---@field max_attempts integer
@@ -13,17 +13,11 @@ local class = require("class")
 ---@field next_attempt_at integer
 ---@field lease_owner string?
 ---@field lease_expires_at integer?
----@field compute_version string
----@field chartdiff sea.Chartdiff
 ---@field chart_upload_size integer
 ---@field replay_upload_size integer
 ---@field last_error_kind sea.ComputeFailureKind?
 ---@field last_error_code string?
 ---@field last_error_message string?
----@field replay_load_time number?
----@field chart_parse_time number?
----@field difficulty_time number?
----@field replay_time number?
-local ComputeJob = class()
+local ChartplayEffect = class()
 
-return ComputeJob
+return ChartplayEffect

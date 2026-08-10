@@ -34,6 +34,15 @@ function ComputeJobsRepo:createComputeJob(compute_job)
 	return self.models.compute_jobs:create(compute_job)
 end
 
+---@param job sea.ComputeJob
+---@return sea.ComputeJob?
+function ComputeJobsRepo:updateUploadSizes(job)
+	return self.models.compute_jobs:update({
+		chart_upload_size = job.chart_upload_size,
+		replay_upload_size = job.replay_upload_size,
+	}, {id = assert(job.id), state = "queued"})[1]
+end
+
 ---@param state sea.ComputeJobState?
 ---@param limit integer?
 ---@return sea.ComputeJob[]

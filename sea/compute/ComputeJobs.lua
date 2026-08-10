@@ -22,6 +22,7 @@ ComputeJobs.max_attempts = 3
 ---@param replay_computer sea.IReplayComputer
 ---@param compute_version string
 ---@param transaction fun(f: function, ...: any): ...any
+---@param chartplay_effects sea.ChartplayEffects?
 function ComputeJobs:new(
 	compute_jobs_repo,
 	charts_repo,
@@ -29,7 +30,8 @@ function ComputeJobs:new(
 	compute_data_provider,
 	replay_computer,
 	compute_version,
-	transaction
+	transaction,
+	chartplay_effects
 )
 	self.compute_jobs_repo = compute_jobs_repo
 	self.charts_repo = charts_repo
@@ -38,6 +40,7 @@ function ComputeJobs:new(
 	self.replay_computer = replay_computer
 	self.compute_version = compute_version
 	self.transaction = transaction
+	self.chartplay_effects = chartplay_effects
 	self.worker_id = ("server:%d:%s"):format(os.time(), tostring({}):match("0x(.+)") or "worker")
 	self.claim_index = 0
 end
@@ -67,6 +70,8 @@ function ComputeJobs:getOrCreateJob(chartplay, chartdiff, time)
 	job.next_attempt_at = time
 	job.compute_version = self.compute_version
 	job.chartdiff = chartdiff
+	job.chart_upload_size = 0
+	job.replay_upload_size = 0
 	return repo:createComputeJob(job)
 end
 
@@ -76,10 +81,21 @@ end
 ---@param chartdiff sea.Chartdiff
 ---@param chart_name string
 ---@param chart_size integer
+---@param chart_upload_size integer?
+---@param replay_upload_size integer?
 ---@return sea.Chartplay
 ---@return sea.ComputeJob
 ---@return boolean duplicate
-function ComputeJobs:createSubmission(user_id, time, chartplay_values, chartdiff, chart_name, chart_size)
+function ComputeJobs:createSubmission(
+	user_id,
+	time,
+	chartplay_values,
+	chartdiff,
+	chart_name,
+	chart_size,
+	chart_upload_size,
+	replay_upload_size
+)
 	return self.transaction(function()
 		local chartfile = self.chartfiles_repo:getChartfileByHash(chartplay_values.hash)
 		if not chartfile then
@@ -106,6 +122,11 @@ function ComputeJobs:createSubmission(user_id, time, chartplay_values, chartdiff
 		end
 		assert(chartplay_values:equalsChartplay(chartplay))
 		local job = self:getOrCreateJob(chartplay, chartdiff, time)
+		if not duplicate and (chart_upload_size or replay_upload_size) then
+			job.chart_upload_size = chart_upload_size or 0
+			job.replay_upload_size = replay_upload_size or 0
+			job = assert(self.compute_jobs_repo:updateUploadSizes(job))
+		end
 		return chartplay, job, duplicate
 	end)
 end
@@ -178,6 +199,14 @@ function ComputeJobs:finalize(job, chartplay, result, lease_owner, time)
 		chartplay.compute_state = "valid"
 		chartplay.computed_at = time
 		charts_repo:updateChartplay(chartplay)
+		if self.chartplay_effects then
+			self.chartplay_effects:createForChartplay(
+				assert(chartplay.id),
+				time,
+				job.chart_upload_size,
+				job.replay_upload_size
+			)
+		end
 		assert(self.compute_jobs_repo:succeedComputeJob(job, lease_owner, time, result.timings), "compute job lease lost")
 	end)
 	if not ok then
@@ -218,7 +247,8 @@ function ComputeJobs:getStatus(user_id, id)
 	if not chartplay or chartplay.user_id ~= user_id then
 		return nil, "compute job not found"
 	end
-	return ComputeJobStatus.create(job, job.state == "succeeded" and chartplay or nil)
+	local effects_complete = self.chartplay_effects and self.chartplay_effects:isComplete(job.chartplay_id) or false
+	return ComputeJobStatus.create(job, job.state == "succeeded" and chartplay or nil, effects_complete)
 end
 
 ---@param state sea.ComputeJobState?

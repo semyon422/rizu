@@ -19,6 +19,11 @@ function UserActivityGraph:getUserActivityDays(user_id, timezone, start_date, en
 end
 
 ---@param user_id integer
+function UserActivityGraph:recomputeUserActivity(user_id)
+	self.activity_repo:recomputeUserActivity(user_id)
+end
+
+---@param user_id integer
 ---@param time integer
 function UserActivityGraph:increaseUserActivity(user_id, time)
 	self.activity_repo:increaseUserActivity(user_id, time)

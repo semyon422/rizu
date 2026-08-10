@@ -25,6 +25,12 @@ function OnlineClientRemoteValidation:setLeaderboards(leaderboards)
 	self.remote:setLeaderboards(leaderboards)
 end
 
+---@param chartplay_id integer
+function OnlineClientRemoteValidation:chartplaySubmissionCompleted(chartplay_id)
+	assert(type(chartplay_id) == "number" and chartplay_id >= 1 and chartplay_id == math.floor(chartplay_id))
+	self.remote:chartplaySubmissionCompleted(chartplay_id)
+end
+
 ---@param leaderboards_users sea.LeaderboardUser[]
 function OnlineClientRemoteValidation:setLeaderboardUsers(leaderboards_users)
 	assert(type(leaderboards_users) == "table")

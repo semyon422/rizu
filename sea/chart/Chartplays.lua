@@ -145,7 +145,9 @@ function Chartplays:enqueue(user, time, compute_data_provider, chartplay_values,
 		chartplay_values,
 		compute_chartdiff,
 		chart_file.name,
-		#chart_file.data
+		#chart_file.data,
+		chart_uploaded and #chart_file.data or 0,
+		replay_uploaded and #replay_data or 0
 	)
 	return {
 		chartplay = chartplay,

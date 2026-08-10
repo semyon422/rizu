@@ -58,7 +58,7 @@ local function new_chartplay(hash, index, time)
 		created_at = time,
 		rate_type = "linear",
 		accuracy = 0,
-		replay_hash = "",
+		replay_hash = ("%032x"):format(math.floor(time * 1000) + index),
 		judges = {},
 		modifiers = {},
 		max_combo = 0,

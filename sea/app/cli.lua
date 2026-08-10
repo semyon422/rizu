@@ -124,6 +124,20 @@ function cmds.requeue_compute_job(id)
 	print(stbl.encode(job))
 end
 
+function cmds.chartplay_effects(state, limit)
+	limit = limit and assert(tonumber(limit)) or 100
+	for _, effect in ipairs(domain.chartplay_effects:getEffects(state, limit)) do
+		print(stbl.encode(effect))
+	end
+end
+
+function cmds.requeue_chartplay_effect(id)
+	id = assert(tonumber(id))
+	local effect, err = domain.chartplay_effects:requeue(id)
+	assert(effect, err)
+	print(stbl.encode(effect))
+end
+
 function cmds.compute_chartplay(id)
 	id = assert(tonumber(id))
 

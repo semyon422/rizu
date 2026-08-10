@@ -72,7 +72,7 @@ local function create_chartplay(ctx, values)
 	chartplay.computed_at = values.computed_at or 0
 	chartplay.created_at = values.created_at or 0
 	chartplay.compute_state = "valid"
-	chartplay.replay_hash = "00000000000000000000000000000000"
+	chartplay.replay_hash = ("%032x"):format(ctx.db.models.chartplays:count() + 1)
 	chartplay.pause_count = chartplay.pause_count or 0
 	chartplay.nearest = not not chartplay.nearest
 	chartplay.tap_only = not not chartplay.tap_only

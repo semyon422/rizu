@@ -24,4 +24,9 @@ function OnlineClientRemote:setLeaderboardUsers(leaderboards_users)
 	self.online_client:setLeaderboardUsers(leaderboards_users)
 end
 
+---@param chartplay_id integer
+function OnlineClientRemote:chartplaySubmissionCompleted(chartplay_id)
+	self.online_client:chartplaySubmissionCompleted(chartplay_id)
+end
+
 return OnlineClientRemote

@@ -22,6 +22,7 @@ local ComputeDataProvider = require("sea.compute.ComputeDataProvider")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
 local ComputeTasks = require("sea.compute.ComputeTasks")
 local ComputeJobs = require("sea.compute.ComputeJobs")
+local ChartplayEffects = require("sea.compute.ChartplayEffects")
 local ChartsComputer = require("sea.compute.ChartsComputer")
 
 local UserActivityGraph = require("sea.activity.UserActivityGraph")
@@ -60,6 +61,29 @@ function Domain:new(repos, app_config, fs, replay_computer, compute_version)
 	self.leaderboards = Leaderboards(repos.leaderboards_repo)
 	self.teams = Teams(repos.teams_repo)
 	self.difftables = Difftables(repos.difftables_repo)
+	self.dans = Dans(repos.charts_repo, repos.dan_clears_repo)
+	self.user_activity_graph = UserActivityGraph(repos.activity_repo)
+
+	self.osu_api = OsuApi(app_config.osu_api, "client_credentials")
+	self.osu_beatmaps = OsuBeatmaps(self.osu_api, repos.osu_repo)
+	self.external_ranked = ExternalRanked(self.osu_beatmaps, repos.difftables_repo)
+	self.chartplay_effects = ChartplayEffects(
+		repos.chartplay_effects_repo,
+		repos.charts_repo,
+		repos.users_repo,
+		self.leaderboards,
+		self.user_activity_graph,
+		self.dans,
+		self.external_ranked,
+		function(f, ...)
+			return self:transaction(f, ...)
+		end,
+		function(chartplay)
+			if self.user_connections.nats_factory then
+				self.user_connections:broadcastUser(chartplay.user_id).client:chartplaySubmissionCompleted(chartplay.id)
+			end
+		end
+	)
 	self.compute_jobs = ComputeJobs(
 		repos.compute_jobs_repo,
 		repos.charts_repo,
@@ -69,7 +93,8 @@ function Domain:new(repos, app_config, fs, replay_computer, compute_version)
 		compute_version,
 		function(f, ...)
 			return self:transaction(f, ...)
-		end
+		end,
+		self.chartplay_effects
 	)
 	self.chartplays = Chartplays(
 		repos.charts_repo,
@@ -79,12 +104,6 @@ function Domain:new(repos, app_config, fs, replay_computer, compute_version)
 		self.replays_storage,
 		self.compute_jobs
 	)
-	self.dans = Dans(repos.charts_repo, repos.dan_clears_repo)
-	self.user_activity_graph = UserActivityGraph(repos.activity_repo)
-
-	self.osu_api = OsuApi(app_config.osu_api, "client_credentials")
-	self.osu_beatmaps = OsuBeatmaps(self.osu_api, repos.osu_repo)
-	self.external_ranked = ExternalRanked(self.osu_beatmaps, repos.difftables_repo)
 	self.chartplay_submission = ChartplaySubmission(
 		self.chartplays,
 		self.leaderboards,

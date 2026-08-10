@@ -32,6 +32,8 @@ local function create_ctx()
 	job.next_attempt_at = 0
 	job.compute_version = "test"
 	job.chartdiff = chartdiff
+	job.chart_upload_size = 0
+	job.replay_upload_size = 0
 	local repo = ComputeJobsRepo(db.models)
 	job = repo:createComputeJob(job)
 	return {db = db, repo = repo, job = job, chartplay = chartplay}

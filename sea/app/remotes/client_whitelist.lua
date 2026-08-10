@@ -4,6 +4,7 @@ local whitelist = {
 		setUser = true,
 		setLeaderboards = true,
 		setLeaderboardUsers = true,
+		chartplaySubmissionCompleted = true,
 	},
 	multiplayer = {
 		setRooms = true,
