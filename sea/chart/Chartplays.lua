@@ -90,21 +90,31 @@ function Chartplays:getBestChartplaysForChartdiff(user, chartdiff_key)
 	return self.charts_repo:getBestChartplaysForChartdiff(chartdiff_key)
 end
 
+---@class sea.ComputeSubmission
+---@field chartplay sea.Chartplay
+---@field job sea.ComputeJob
+---@field charts_size integer
+---@field replays_size integer
+---@field duplicate boolean
+
 ---@param user sea.User
 ---@param time integer
 ---@param compute_data_provider sea.IComputeDataProvider
 ---@param chartplay_values sea.Chartplay
 ---@param chartdiff_values sea.Chartdiff
----@return {chartplay: sea.Chartplay, chartmeta: sea.Chartmeta, chartdiff: sea.Chartdiff, result: sea.ComputeResult?, charts_size: integer, replays_size: integer}?
+---@return sea.ComputeSubmission?
 ---@return string?
 ---@return sea.ComputeFailure?
-function Chartplays:submit(user, time, compute_data_provider, chartplay_values, chartdiff_values)
+function Chartplays:enqueue(user, time, compute_data_provider, chartplay_values, chartdiff_values)
 	if user:isAnon() then
 		return nil, "anon user"
 	end
 
 	local charts_repo = self.charts_repo
 	local existing_chartplay = charts_repo:getChartplayByReplayHash(chartplay_values.replay_hash)
+	if existing_chartplay and existing_chartplay.user_id ~= user.id then
+		return nil, "replay already submitted"
+	end
 	if not existing_chartplay then
 		local last_chartplay = charts_repo:getRecentChartplays(user.id, 1)
 		local can, err = self.chartplays_access:canSubmit(user, time, last_chartplay[1])
@@ -129,7 +139,7 @@ function Chartplays:submit(user, time, compute_data_provider, chartplay_values, 
 	end
 
 	local compute_chartdiff = setmetatable(table_util.sub(chartdiff_values, table_util.keys(Chartdiff.struct)), Chartdiff)
-	local chartplay, job = self.compute_jobs:createSubmission(
+	local chartplay, job, duplicate = self.compute_jobs:createSubmission(
 		user.id,
 		time,
 		chartplay_values,
@@ -137,21 +147,45 @@ function Chartplays:submit(user, time, compute_data_provider, chartplay_values, 
 		chart_file.name,
 		#chart_file.data
 	)
+	return {
+		chartplay = chartplay,
+		job = job,
+		charts_size = chart_uploaded and #chart_file.data or 0,
+		replays_size = replay_uploaded and #replay_data or 0,
+		duplicate = duplicate,
+	}
+end
+
+---@param user sea.User
+---@param time integer
+---@param compute_data_provider sea.IComputeDataProvider
+---@param chartplay_values sea.Chartplay
+---@param chartdiff_values sea.Chartdiff
+---@return {chartplay: sea.Chartplay, chartmeta: sea.Chartmeta, chartdiff: sea.Chartdiff, result: sea.ComputeResult?, charts_size: integer, replays_size: integer}?
+---@return string?
+---@return sea.ComputeFailure?
+function Chartplays:submit(user, time, compute_data_provider, chartplay_values, chartdiff_values)
+	local submission, err, enqueue_failure = self:enqueue(user, time, compute_data_provider, chartplay_values, chartdiff_values)
+	if not submission then
+		return nil, err, enqueue_failure
+	end
+
+	local charts_repo = self.charts_repo
+	local chartplay = submission.chartplay
+	local job = submission.job
 	if job.state == "succeeded" then
 		chartplay = assert(charts_repo:getChartplay(assert(chartplay.id)))
-		local chartmeta = assert(charts_repo:getChartmetaByHashIndex(chartplay.hash, chartplay.index))
-		local chartdiff = assert(charts_repo:getChartdiffByChartdiffKey(chartplay))
 		return {
 			chartplay = chartplay,
-			chartmeta = chartmeta,
-			chartdiff = chartdiff,
+			chartmeta = assert(charts_repo:getChartmetaByHashIndex(chartplay.hash, chartplay.index)),
+			chartdiff = assert(charts_repo:getChartdiffByChartdiffKey(chartplay)),
 			result = nil,
 			charts_size = 0,
 			replays_size = 0,
 		}
 	end
 
-	local result, failure = self.compute_jobs:process(assert(job.id), time)
+	local result, failure = self.compute_jobs:process(assert(job.id))
 	if not result then
 		---@cast failure sea.ComputeFailure
 		return nil, ComputeFailure.format(failure), failure
@@ -166,8 +200,8 @@ function Chartplays:submit(user, time, compute_data_provider, chartplay_values, 
 		chartmeta = chartmeta,
 		chartdiff = chartdiff,
 		result = result,
-		charts_size = chart_uploaded and #chart_file.data or 0,
-		replays_size = replay_uploaded and #replay_data or 0,
+		charts_size = submission.charts_size,
+		replays_size = submission.replays_size,
 	}
 end
 

@@ -16,6 +16,7 @@ local etlua = require("web.etlua")
 local ServerRemoteValidation = require("sea.app.remotes.ServerRemoteValidation")
 local ComputeClient = require("sea.compute.ComputeClient")
 local ComputeVersion = require("sea.compute.ComputeVersion")
+local ComputeJobWorker = require("sea.compute.ComputeJobWorker")
 local NginxTcpSocket = require("web.nginx.NginxTcpSocket")
 local brand = require("brand")
 local SharedMemory = require("web.nginx.SharedMemory")
@@ -64,6 +65,11 @@ function App:new(app_config)
 		end,
 	})
 	self.domain = Domain(self.repos, app_config, LinuxFilesystem(), replay_computer, compute_version)
+	self.compute_job_worker = ComputeJobWorker(self.domain.compute_jobs, function(delay, callback)
+		return ngx.timer.at(delay, callback)
+	end, function(level, message)
+		ngx.log(level == "error" and ngx.ERR or ngx.NOTICE, message)
+	end)
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
 
 	local whitelist = require("sea.app.remotes.whitelist")
@@ -97,7 +103,14 @@ function App:load()
 	self.app_db:open()
 end
 
+---@return true?
+---@return string?
+function App:startComputeJobWorker()
+	return self.compute_job_worker:start()
+end
+
 function App:unload()
+	self.compute_job_worker:stop()
 	self.app_db:close()
 end
 

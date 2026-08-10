@@ -97,10 +97,10 @@ function ScoreSaver:saveScore(gameplay_session)
 		end
 
 		print("submit")
-		local ok, err = self.seaClient.remote.submission:submitChartplay(chartplay_copy, chartdiff_copy)
-		print("got", ok, err)
-		if ok then
-			print(require("stbl").encode(ok))
+		local submission, err = self.seaClient.remote.submission:submitChartplay(chartplay_copy, chartdiff_copy)
+		print("got", submission, err)
+		if submission then
+			print(require("stbl").encode(submission))
 		else
 			print("dumping events")
 			local data = require("string.buffer").encode(rhythm_engine.score_engine.events)

@@ -316,13 +316,15 @@ https://www.sqlite.org/wal.html#concurrency
 - Keep database writes in the current server process until the SQLite safety prerequisite is satisfied.
 - Measure event-loop responsiveness and worker capacity under concurrent submissions.
 
-### Phase 3: Durable native submissions (foundation implemented)
+### Phase 3: Durable native submissions (implemented)
 
 - The `compute_jobs` schema, atomic conditional claim, 180-second leases, three-attempt retry budget, retry/dead transitions, structured bounded diagnostics, and stage timings are implemented.
 - Replay and chart storage publication is atomic and content-addressed. Chartfile, chartplay, and one job per chartplay are then created in one database transaction.
-- Change the native remote response to return a queued submission. This remains pending: native and Bancho callers currently enqueue, claim, and synchronously await the same durable job.
-- Add a supervised database queue loop to recover queued and expired jobs after restarts. The repository and processor can already claim expired leases, but processing is currently triggered by submission or explicit `ComputeJobs:process(id)` calls.
-- Notify connected users after finalization without making notification part of correctness.
+- Native `submitChartplay` returns a typed durable status immediately after ingestion. `getChartplaySubmission(job_id)` is ownership-scoped and returns persisted queue/failure state, including the canonical chartplay only after successful finalization.
+- Bancho retains synchronous submission by using the same durable job and explicitly awaiting its processing path.
+- An OpenResty init-worker timer runs only in Nginx worker 0, drains eligible jobs sequentially through the external compute service, polls once per second while idle, backs off after errors, and stops scheduling during worker shutdown. Database polling remains authoritative and recovers missed wake-ups, queued jobs, expired leases, and graceful-reload overlap.
+- Operators can inspect bounded state-filtered job lists and requeue failed/dead jobs through `sea/app/cli.lua`.
+- Notify connected users after finalization without making notification part of correctness. This remains pending until Phase 4's idempotent side effects own completion notifications.
 
 ### Phase 4: Idempotent side effects
 
@@ -363,7 +365,7 @@ Representative replay compatibility fixtures should continue to follow the verif
 
 - Replace the implemented loopback TCP endpoint with a Unix socket if OpenResty's and LuaSocket's deployment support makes that operationally simpler; framing and payload limits remain unchanged.
 - Decide whether Bancho should move from the implemented direct compute request/reply plus synchronous finalization to a durable job while preserving its protocol response.
-- Define the public native submission-status query and notification contract.
+- Define whether the native client should actively poll submission status for UI feedback or rely on the planned best-effort completion notification; persisted remote polling is already available.
 - Decide the exact boundary between canonical finalization and leaderboard visibility.
 - Determine which user statistics should be recomputed from canonical rows rather than incremented.
 - Define worker memory and CPU limits, maximum chart/replay complexity, and queue admission limits.

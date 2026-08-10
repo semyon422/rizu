@@ -5,6 +5,8 @@ local ChartdiffKey = require("sea.chart.ChartdiffKey")
 local ChartmetaKey = require("sea.chart.ChartmetaKey")
 local Chartplay = require("sea.chart.Chartplay")
 local Chartdiff = require("sea.chart.Chartdiff")
+local ChartplaySubmissionResult = require("sea.chart.ChartplaySubmissionResult")
+local ComputeJobStatus = require("sea.compute.ComputeJobStatus")
 
 ---@class sea.SubmissionServerRemoteValidation: sea.SubmissionServerRemote
 ---@operator call: sea.SubmissionServerRemoteValidation
@@ -17,7 +19,7 @@ end
 
 ---@param chartplay_values sea.Chartplay
 ---@param chartdiff_values sea.Chartdiff
----@return sea.Chartplay?
+---@return sea.ChartplaySubmissionResult?
 ---@return string?
 function SubmissionServerRemoteValidation:submitChartplay(chartplay_values, chartdiff_values)
 	assert(valid.format(Chartplay.validate(chartplay_values)))
@@ -26,7 +28,29 @@ function SubmissionServerRemoteValidation:submitChartplay(chartplay_values, char
 	setmetatable(chartplay_values, Chartplay)
 	setmetatable(chartdiff_values, Chartdiff)
 
-	return self.remote:submitChartplay(chartplay_values, chartdiff_values)
+	local result, err = self.remote:submitChartplay(chartplay_values, chartdiff_values)
+	if result then
+		assert(valid.format(ChartplaySubmissionResult.validate(result)))
+		if result.status.chartplay then
+			setmetatable(result.status.chartplay, Chartplay)
+		end
+	end
+	return result, err
+end
+
+---@param job_id integer
+---@return sea.ComputeJobStatus?
+---@return string?
+function SubmissionServerRemoteValidation:getChartplaySubmission(job_id)
+	assert(valid.index(job_id))
+	local status, err = self.remote:getChartplaySubmission(job_id)
+	if status then
+		assert(valid.format(ComputeJobStatus.validate(status)))
+		if status.chartplay then
+			setmetatable(status.chartplay, Chartplay)
+		end
+	end
+	return status, err
 end
 
 ---@param chartmeta_key sea.ChartmetaKey

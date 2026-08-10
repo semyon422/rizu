@@ -11,6 +11,7 @@ local whitelist = {
 	},
 	submission = {
 		submitChartplay = true,
+		getChartplaySubmission = true,
 		getBestChartplaysForChartmeta = true,
 		getBestChartplaysForChartdiff = true,
 		getReplayFile = true,

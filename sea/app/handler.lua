@@ -14,6 +14,16 @@ local function init()
 	app:load()
 end
 
+local function init_worker()
+	if ngx.worker.id() ~= 0 then
+		return
+	end
+	if not app then
+		init()
+	end
+	assert(app:startComputeJobWorker())
+end
+
 ---@param req web.IRequest
 ---@param res web.IResponse
 ---@param ip string
@@ -25,4 +35,7 @@ local function handler(req, res, ip, port)
 	app:handle(req, res, ip, port)
 end
 
-return handler
+return {
+	handle = handler,
+	init_worker = init_worker,
+}

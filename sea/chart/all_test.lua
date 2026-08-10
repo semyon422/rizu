@@ -4,6 +4,8 @@ local Chartplay = require("sea.chart.Chartplay")
 local Chartdiff = require("sea.chart.Chartdiff")
 local Chartplays = require("sea.chart.Chartplays")
 local ChartplaySubmission = require("sea.chart.ChartplaySubmission")
+local SubmissionServerRemote = require("sea.chart.remotes.SubmissionServerRemote")
+local SubmissionServerRemoteValidation = require("sea.chart.remotes.SubmissionServerRemoteValidation")
 local TableStorage = require("sea.chart.storage.TableStorage")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
@@ -272,6 +274,47 @@ function test.submit_valid_score(t)
 	c, err = ctx.chartplays:submit(user, interval, compute_data_provider, chartplay_values, chartdiff_values)
 	t:assert(c, err)
 	t:eq(ctx.charts_repo:countChartplays(), 1)
+end
+
+---@param t testing.T
+function test.async_submission_status(t)
+	local ctx = create_test_ctx()
+	local replayfile_data = _replayfile_data
+	local provider = FakeComputeDataProvider()
+	provider:addChart(replay.hash, chartfile_name, chartfile_data)
+	provider:addReplay(digest.hash("md5", replayfile_data, true), replayfile_data)
+	local peer = {
+		user = ctx.user,
+		remote = {compute_data_provider = provider},
+	}
+	local server_remote = SubmissionServerRemote(ctx.submission, ctx.chartplays)
+	server_remote.peer = peer
+	server_remote.user = ctx.user
+	local remote = SubmissionServerRemoteValidation(server_remote)
+
+	local result = assert(remote:submitChartplay(
+		setmetatable(table_util.copy(_chartplay_values), Chartplay),
+		setmetatable(table_util.copy(_chartdiff_values), Chartdiff)
+	))
+	t:eq(result.status.state, "queued")
+	t:eq(result.status.chartplay, nil)
+	t:eq(result.duplicate, false)
+	local duplicate = assert(remote:submitChartplay(
+		setmetatable(table_util.copy(_chartplay_values), Chartplay),
+		setmetatable(table_util.copy(_chartdiff_values), Chartdiff)
+	))
+	t:eq(duplicate.status.job_id, result.status.job_id)
+	t:eq(duplicate.duplicate, true)
+
+	local status = assert(remote:getChartplaySubmission(result.status.job_id))
+	t:eq(status.state, "queued")
+	t:eq(status.chartplay, nil)
+	assert(ctx.chartplays.compute_jobs:process(result.status.job_id, os.time()))
+	status = assert(remote:getChartplaySubmission(result.status.job_id))
+	t:eq(status.state, "succeeded")
+	t:eq(status.chartplay.compute_state, "valid")
+	local _, err = ctx.chartplays.compute_jobs:getStatus(2, result.status.job_id)
+	t:eq(err, "compute job not found")
 end
 
 ---@param t testing.T

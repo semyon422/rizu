@@ -1,4 +1,5 @@
 local class = require("class")
+local ComputeJobStatus = require("sea.compute.ComputeJobStatus")
 
 ---@class sea.ChartplaySubmission
 ---@operator call: sea.ChartplaySubmission
@@ -17,6 +18,23 @@ function ChartplaySubmission:new(chartplays, leaderboards, users, dans, user_act
 	self.dans = dans
 	self.user_activity_graph = user_activity_graph
 	self.external_ranked = external_ranked
+end
+
+---@param peer sea.Peer
+---@param chartplay_values sea.Chartplay
+---@param chartdiff_values sea.Chartdiff
+---@return sea.ChartplaySubmissionResult?
+---@return string?
+function ChartplaySubmission:enqueueChartplay(peer, chartplay_values, chartdiff_values)
+	local user, remote = peer.user, peer.remote
+	local submission, err = self.chartplays:enqueue(user, os.time(), remote.compute_data_provider, chartplay_values, chartdiff_values)
+	if not submission then
+		return nil, err
+	end
+	return {
+		status = ComputeJobStatus.create(submission.job, submission.job.state == "succeeded" and submission.chartplay or nil),
+		duplicate = submission.duplicate,
+	}
 end
 
 ---@param peer sea.Peer

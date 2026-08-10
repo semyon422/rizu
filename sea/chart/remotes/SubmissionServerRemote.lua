@@ -13,10 +13,17 @@ end
 
 ---@param chartplay sea.Chartplay
 ---@param chartdiff sea.Chartdiff
----@return sea.Chartplay?
+---@return sea.ChartplaySubmissionResult?
 ---@return string?
 function SubmissionServerRemote:submitChartplay(chartplay, chartdiff)
-	return self.chartplay_submission:submitChartplay(self.peer, chartplay, chartdiff)
+	return self.chartplay_submission:enqueueChartplay(self.peer, chartplay, chartdiff)
+end
+
+---@param job_id integer
+---@return sea.ComputeJobStatus?
+---@return string?
+function SubmissionServerRemote:getChartplaySubmission(job_id)
+	return self.chartplays.compute_jobs:getStatus(self.user.id, job_id)
 end
 
 ---@param chartmeta_key sea.ChartmetaKey

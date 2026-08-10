@@ -52,6 +52,15 @@ function test.claim_and_lease_recovery(t)
 end
 
 ---@param t testing.T
+function test.only_one_worker_claims(t)
+	local ctx = create_ctx()
+	local first = assert(ctx.repo:claimComputeJob(0, "worker-a", 10))
+	t:eq(first.id, ctx.job.id)
+	t:eq(ctx.repo:claimComputeJob(0, "worker-b", 10), nil)
+	ctx.db:close()
+end
+
+---@param t testing.T
 function test.retry_and_dead(t)
 	local ctx = create_ctx()
 	local failure = ComputeFailure.transient("worker_unavailable", "offline")
@@ -80,6 +89,19 @@ function test.unique_replay_hash(t)
 	values.id = nil
 	values.user_id = 2
 	t:has_error(ctx.db.models.chartplays.create, ctx.db.models.chartplays, values)
+	ctx.db:close()
+end
+
+---@param t testing.T
+function test.requeue_terminal_job(t)
+	local ctx = create_ctx()
+	local job = assert(ctx.repo:claimComputeJob(0, "worker", 10, ctx.job.id))
+	job = assert(ctx.repo:failComputeJob(job, "worker", 0, ComputeFailure.permanent("invalid_replay", "bad")))
+	job = assert(ctx.repo:requeueComputeJob(job.id, 20))
+	t:eq(job.state, "queued")
+	t:eq(job.attempt_count, 0)
+	t:eq(job.next_attempt_at, 20)
+	t:eq(job.last_error_code, nil)
 	ctx.db:close()
 end
 

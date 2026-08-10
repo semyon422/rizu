@@ -34,6 +34,40 @@ function ComputeJobsRepo:createComputeJob(compute_job)
 	return self.models.compute_jobs:create(compute_job)
 end
 
+---@param state sea.ComputeJobState?
+---@param limit integer?
+---@return sea.ComputeJob[]
+function ComputeJobsRepo:getComputeJobs(state, limit)
+	local conditions = state and {state = state} or nil
+	limit = math.min(math.max(limit or 100, 1), 1000)
+	local jobs = self.models.compute_jobs:select(conditions, {
+		order = {"updated_at DESC", "id DESC"},
+		limit = limit,
+	})
+	---@cast jobs sea.ComputeJob[]
+	return jobs
+end
+
+---@param id integer
+---@param time integer
+---@return sea.ComputeJob?
+function ComputeJobsRepo:requeueComputeJob(id, time)
+	return self.models.compute_jobs:update({
+		state = "queued",
+		attempt_count = 0,
+		updated_at = time,
+		next_attempt_at = time,
+		lease_owner = sql_util.NULL,
+		lease_expires_at = sql_util.NULL,
+		last_error_kind = sql_util.NULL,
+		last_error_code = sql_util.NULL,
+		last_error_message = sql_util.NULL,
+	}, {
+		id = assert(id),
+		state__in = {"failed", "dead"},
+	})[1]
+end
+
 ---@param now integer
 ---@param lease_owner string
 ---@param lease_duration integer

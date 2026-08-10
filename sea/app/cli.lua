@@ -110,6 +110,20 @@ function cmds.start_total_rating()
 	cmds.list()
 end
 
+function cmds.compute_jobs(state, limit)
+	limit = limit and assert(tonumber(limit)) or 100
+	for _, job in ipairs(domain.compute_jobs:getJobs(state, limit)) do
+		print(stbl.encode(job))
+	end
+end
+
+function cmds.requeue_compute_job(id)
+	id = assert(tonumber(id))
+	local job, err = domain.compute_jobs:requeue(id)
+	assert(job, err)
+	print(stbl.encode(job))
+end
+
 function cmds.compute_chartplay(id)
 	id = assert(tonumber(id))
 

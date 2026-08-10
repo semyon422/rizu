@@ -3,6 +3,7 @@ local table_util = require("table_util")
 local ComputeFailure = require("sea.compute.ComputeFailure")
 local ComputeJob = require("sea.compute.ComputeJob")
 local ComputeRequest = require("sea.compute.ComputeRequest")
+local ComputeJobStatus = require("sea.compute.ComputeJobStatus")
 local Chartplay = require("sea.chart.Chartplay")
 local Chartfile = require("sea.chart.Chartfile")
 
@@ -38,6 +39,7 @@ function ComputeJobs:new(
 	self.compute_version = compute_version
 	self.transaction = transaction
 	self.worker_id = ("server:%d:%s"):format(os.time(), tostring({}):match("0x(.+)") or "worker")
+	self.claim_index = 0
 end
 
 ---@param chartplay sea.Chartplay
@@ -148,14 +150,19 @@ end
 ---@param job sea.ComputeJob
 ---@param chartplay sea.Chartplay
 ---@param result sea.ComputeResult
+---@param lease_owner string
 ---@param time integer
 ---@return true?
 ---@return sea.ComputeFailure?
-function ComputeJobs:finalize(job, chartplay, result, time)
+function ComputeJobs:finalize(job, chartplay, result, lease_owner, time)
+	local now = os.time()
+	if job.lease_expires_at and job.lease_expires_at <= now then
+		return nil, ComputeFailure.transient("lease_expired", "compute job lease expired before finalization")
+	end
 	local ok, err = xpcall(self.transaction, debug.traceback, function()
 		local claimed_job = self.compute_jobs_repo:getComputeJob(assert(job.id))
-		assert(claimed_job and claimed_job.state == "running" and claimed_job.lease_owner == self.worker_id
-			and claimed_job.lease_expires_at and claimed_job.lease_expires_at > time, "compute job lease lost")
+		assert(claimed_job and claimed_job.state == "running" and claimed_job.lease_owner == lease_owner,
+			"compute job lease lost")
 
 		local charts_repo = self.charts_repo
 		charts_repo:createUpdateChartmeta(result.chartmeta, time)
@@ -171,7 +178,7 @@ function ComputeJobs:finalize(job, chartplay, result, time)
 		chartplay.compute_state = "valid"
 		chartplay.computed_at = time
 		charts_repo:updateChartplay(chartplay)
-		assert(self.compute_jobs_repo:succeedComputeJob(job, self.worker_id, time, result.timings), "compute job lease lost")
+		assert(self.compute_jobs_repo:succeedComputeJob(job, lease_owner, time, result.timings), "compute job lease lost")
 	end)
 	if not ok then
 		return nil, ComputeFailure.transient("finalization_failed", tostring(err))
@@ -182,19 +189,57 @@ end
 ---@param job sea.ComputeJob
 ---@param chartplay sea.Chartplay
 ---@param failure sea.ComputeFailure
+---@param lease_owner string
 ---@param time integer
-function ComputeJobs:recordFailure(job, chartplay, failure, time)
+function ComputeJobs:recordFailure(job, chartplay, failure, lease_owner, time)
 	if failure.kind == "permanent" then
 		self.transaction(function()
 			chartplay.compute_state = "invalid"
 			chartplay.computed_at = time
 			self.charts_repo:updateChartplay(chartplay)
-			assert(self.compute_jobs_repo:failComputeJob(job, self.worker_id, time, failure), "compute job lease lost")
+			assert(self.compute_jobs_repo:failComputeJob(job, lease_owner, time, failure), "compute job lease lost")
 		end)
 		return
 	end
-	assert(self.compute_jobs_repo:retryComputeJob(job, self.worker_id, time, failure, self.retry_delay),
+	assert(self.compute_jobs_repo:retryComputeJob(job, lease_owner, time, failure, self.retry_delay),
 		"compute job lease lost")
+end
+
+---@param user_id integer
+---@param id integer
+---@return sea.ComputeJobStatus?
+---@return string?
+function ComputeJobs:getStatus(user_id, id)
+	local job = self.compute_jobs_repo:getComputeJob(id)
+	if not job then
+		return nil, "compute job not found"
+	end
+	local chartplay = self.charts_repo:getChartplay(job.chartplay_id)
+	if not chartplay or chartplay.user_id ~= user_id then
+		return nil, "compute job not found"
+	end
+	return ComputeJobStatus.create(job, job.state == "succeeded" and chartplay or nil)
+end
+
+---@param state sea.ComputeJobState?
+---@param limit integer?
+---@return sea.ComputeJob[]
+function ComputeJobs:getJobs(state, limit)
+	return self.compute_jobs_repo:getComputeJobs(state, limit)
+end
+
+---@param id integer
+---@param time integer?
+---@return sea.ComputeJob?
+---@return string?
+function ComputeJobs:requeue(id, time)
+	local job = self.compute_jobs_repo:getComputeJob(id)
+	if not job then
+		return nil, "compute job not found"
+	elseif job.state ~= "failed" and job.state ~= "dead" then
+		return nil, "compute job is not failed or dead"
+	end
+	return assert(self.compute_jobs_repo:requeueComputeJob(id, time or os.time()))
 end
 
 ---@param id integer?
@@ -214,39 +259,43 @@ function ComputeJobs:process(id, time)
 		end
 	end
 
-	local job = self.compute_jobs_repo:claimComputeJob(time, self.worker_id, self.lease_duration, id)
+	self.claim_index = self.claim_index + 1
+	local lease_owner = ("%s:%d"):format(self.worker_id, self.claim_index)
+	local job = self.compute_jobs_repo:claimComputeJob(time, lease_owner, self.lease_duration, id)
 	if not job then
 		return nil, ComputeFailure.transient("job_not_claimable", "no compute job is eligible for claim")
 	end
 	local chartplay = self.charts_repo:getChartplay(job.chartplay_id)
 	if not chartplay then
 		local failure = ComputeFailure.permanent("chartplay_missing", "chartplay not found")
-		assert(self.compute_jobs_repo:failComputeJob(job, self.worker_id, time, failure), "compute job lease lost")
+		assert(self.compute_jobs_repo:failComputeJob(job, lease_owner, time, failure), "compute job lease lost")
 		return nil, failure
 	end
 
 	local request, failure = self:createRequest(job, chartplay)
 	if not request then
 		---@cast failure sea.ComputeFailure
-		self:recordFailure(job, chartplay, failure, time)
+		self:recordFailure(job, chartplay, failure, lease_owner, os.time())
 		return nil, failure
 	end
 	local result
 	result, failure = self.replay_computer:compute(request)
 	if not result then
 		failure = failure or ComputeFailure.transient("compute_failed", "compute failed without a classified error")
-		self:recordFailure(job, chartplay, failure, time)
+		self:recordFailure(job, chartplay, failure, lease_owner, os.time())
 		return nil, failure
 	end
 	if result.version ~= job.compute_version then
 		failure = ComputeFailure.transient("version_mismatch", "compute result version mismatch")
-		self:recordFailure(job, chartplay, failure, time)
+		self:recordFailure(job, chartplay, failure, lease_owner, os.time())
 		return nil, failure
 	end
 	local finalized
-	finalized, failure = self:finalize(job, chartplay, result, time)
+	finalized, failure = self:finalize(job, chartplay, result, lease_owner, os.time())
 	if not finalized then
-		self:recordFailure(job, chartplay, failure, time)
+		if failure.code ~= "lease_expired" then
+			self:recordFailure(job, chartplay, failure, lease_owner, os.time())
+		end
 		return nil, failure
 	end
 	return result
