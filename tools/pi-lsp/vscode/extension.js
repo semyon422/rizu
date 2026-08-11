@@ -14,7 +14,7 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 const cache = new Map();
 /** @type {Map<string, {server: import('node:net').Server, socketPath: string}>} */
 const servers = new Map();
-/** @type {Map<string, {startedAt: number, lastChangeAt: number, changeEvents: number, changedUris: Set<string>}>} */
+/** @type {Map<string, {startedAt: number, lastChangeAt: number, changeEvents: number, changedUris: Set<string>, fingerprints: Map<string, string>}>} */
 const diagnosticTrackers = new Map();
 
 function cacheValue(value) {
@@ -75,13 +75,31 @@ function workspaceContainsUri(folder, uri) {
 	return !relative.startsWith('..') && !path.isAbsolute(relative);
 }
 
+function diagnosticFingerprint(values) {
+	return values.map((value) => [
+		value.severity,
+		value.source,
+		diagnosticCode(value),
+		value.range.start.line,
+		value.range.start.character,
+		value.range.end.line,
+		value.range.end.character,
+		value.message,
+	].join('\u0000')).join('\u0001');
+}
+
 function resetDiagnosticTracker(folder) {
 	const now = Date.now();
+	const fingerprints = new Map();
+	for (const [uri, values] of vscode.languages.getDiagnostics()) {
+		if (workspaceContainsUri(folder, uri)) fingerprints.set(uri.toString(), diagnosticFingerprint(values));
+	}
 	diagnosticTrackers.set(folder.uri.fsPath, {
 		startedAt: now,
 		lastChangeAt: now,
 		changeEvents: 0,
 		changedUris: new Set(),
+		fingerprints,
 	});
 }
 
@@ -545,13 +563,22 @@ function activate(context) {
 	context.subscriptions.push(vscode.languages.onDidChangeDiagnostics((event) => {
 		const now = Date.now();
 		for (const folder of vscode.workspace.workspaceFolders || []) {
-			const changed = event.uris.filter((uri) => workspaceContainsUri(folder, uri));
-			if (!changed.length) continue;
 			const tracker = diagnosticTrackers.get(folder.uri.fsPath);
 			if (!tracker) continue;
-			tracker.lastChangeAt = now;
-			tracker.changeEvents++;
-			for (const uri of changed) tracker.changedUris.add(uri.toString());
+			let hasChange = false;
+			for (const uri of event.uris) {
+				if (!workspaceContainsUri(folder, uri)) continue;
+				const uriKey = uri.toString();
+				const fingerprint = diagnosticFingerprint(vscode.languages.getDiagnostics(uri));
+				if (tracker.fingerprints.get(uriKey) === fingerprint) continue;
+				tracker.fingerprints.set(uriKey, fingerprint);
+				tracker.changedUris.add(uriKey);
+				hasChange = true;
+			}
+			if (hasChange) {
+				tracker.lastChangeAt = now;
+				tracker.changeEvents++;
+			}
 		}
 	}));
 	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders((event) => {

@@ -1,13 +1,25 @@
 local class = require("class")
 local json = require("web.json")
 
+---@alias rizu.ai.NeedleArgumentValue string|number|boolean
+
+---@class rizu.ai.NeedleParameter
+---@field type "string"|"number"|"boolean"
+---@field description string?
+---@field enum rizu.ai.NeedleArgumentValue[]?
+
+---@class rizu.ai.NeedleParameters
+---@field type "object"
+---@field properties {[string]: rizu.ai.NeedleParameter}
+---@field required string[]?
+
 ---@class rizu.ai.NeedleTool
 ---@field name string
 ---@field description string
 ---@field routing_description string?
----@field parameters table
+---@field parameters rizu.ai.NeedleParameters
 ---@field argument_order string[]
----@field execute fun(arguments: {[string]: any})
+---@field execute fun(arguments: {[string]: rizu.ai.NeedleArgumentValue})
 
 ---@class rizu.ai.NeedleToolSet
 ---@field tools rizu.ai.NeedleTool[]
@@ -17,19 +29,32 @@ local json = require("web.json")
 
 ---@class rizu.ai.NeedleCall
 ---@field name string
----@field arguments {[string]: any}
+---@field arguments {[string]: rizu.ai.NeedleArgumentValue}
+
+-- Untrusted JSON before structural validation.
+---@class rizu.ai.NeedleDecodedCall
+---@field name any?
+---@field arguments any?
+---@field [any] any
 
 ---@class rizu.ai.NeedleToolRegistry
 ---@operator call: rizu.ai.NeedleToolRegistry
 ---@field registry rizu.command.Registry
 local NeedleToolRegistry = class()
 
+---@param properties {[string]: rizu.ai.NeedleParameter}
+---@param required string[]
+---@return rizu.ai.NeedleParameters
 local function object(properties, required)
+	---@type rizu.ai.NeedleParameters
 	local schema = {type = "object", properties = properties}
 	if #required > 0 then schema.required = required end
 	return schema
 end
 
+---@param values string[]
+---@param description string
+---@return rizu.ai.NeedleParameter
 local function stringEnum(values, description)
 	return {type = "string", enum = values, description = description}
 end
@@ -41,6 +66,7 @@ end
 
 ---@return {[string]: rizu.command.Command}
 function NeedleToolRegistry:getActiveCommands()
+	---@type {[string]: rizu.command.Command}
 	local commands = {}
 	for _, command in ipairs(self.registry:getActiveCommands()) do
 		commands[command.id] = command
@@ -48,21 +74,31 @@ function NeedleToolRegistry:getActiveCommands()
 	return commands
 end
 
+---@param tools rizu.ai.NeedleTool[]
+---@param by_name {[string]: rizu.ai.NeedleTool}
+---@param tool rizu.ai.NeedleTool
 local function addTool(tools, by_name, tool)
 	tools[#tools + 1] = tool
 	by_name[tool.name] = tool
 end
 
+---@param tool rizu.ai.NeedleTool
+---@return {[string]: boolean}
 local function requiredSet(tool)
+	---@type {[string]: boolean}
 	local required = {}
 	for _, key in ipairs(tool.parameters.required or {}) do required[key] = true end
 	return required
 end
 
+---@param tools rizu.ai.NeedleTool[]
+---@return string
 local function encodeModelTools(tools)
+	---@type string[]
 	local encoded_tools = {}
 	for _, tool in ipairs(tools) do
 		local required = requiredSet(tool)
+		---@type string[]
 		local encoded_parameters = {}
 		for _, key in ipairs(tool.argument_order) do
 			local schema = tool.parameters.properties[key]
@@ -80,7 +116,10 @@ local function encodeModelTools(tools)
 	return "[" .. table.concat(encoded_tools, ",") .. "]"
 end
 
+---@param tools rizu.ai.NeedleTool[]
+---@return string
 local function encodeRoutingTools(tools)
+	---@type string[]
 	local encoded_tools = {}
 	for _, tool in ipairs(tools) do
 		encoded_tools[#encoded_tools + 1] = ("{\"name\":%s,\"description\":%s}")
@@ -168,6 +207,7 @@ function NeedleToolRegistry:snapshot()
 		})
 	end
 
+	---@type {[string]: rizu.command.Command?}
 	local column_commands = {
 		reset = commands["play_config.columns_reset"],
 		mirror = commands["play_config.columns_mirror"],
@@ -184,13 +224,19 @@ function NeedleToolRegistry:snapshot()
 			parameters = object({layout = stringEnum({"reset", "mirror", "bracketswap", "random_all", "random_left", "random_right"}, "Column layout operation to apply.")}, {"layout"}),
 			argument_order = {"layout"},
 			execute = function(args)
-				local command = assert(column_commands[args.layout])
-				local mode = ({random_left = "left", random_right = "right", random_all = ""})[args.layout]
+				local layout = assert(args.layout)
+				assert(type(layout) == "string")
+				---@type rizu.command.Command
+				local command = assert(column_commands[layout])
+				---@type {[string]: string}
+				local modes = {random_left = "left", random_right = "right", random_all = ""}
+				local mode = modes[layout]
 				command.callback(mode and {mode = mode} or {})
 			end,
 		})
 	end
 
+	---@type {[string]: rizu.command.Command?}
 	local option_commands = {
 		auto_timings = commands["play_config.set_auto_timings"],
 		nearest = commands["play_config.set_nearest"],
@@ -212,6 +258,7 @@ function NeedleToolRegistry:snapshot()
 		})
 	end
 
+	---@type {[string]: rizu.command.Command?}
 	local panel_commands = {
 		modifiers = commands["ui.select.open_modifiers"], filters = commands["ui.select.open_filters"],
 		input = commands["ui.select.open_input"], note_skins = commands["ui.select.open_noteskins"],
@@ -228,6 +275,7 @@ function NeedleToolRegistry:snapshot()
 		})
 	end
 
+	---@type {[string]: rizu.command.Command?}
 	local gameplay_commands = {
 		pause = commands["gameplay.pause"], resume = commands["gameplay.resume"],
 		retry = commands["gameplay.retry"], skip_intro = commands["gameplay.skip_intro"],
@@ -243,6 +291,7 @@ function NeedleToolRegistry:snapshot()
 		})
 	end
 
+	---@type {[string]: rizu.command.Command?}
 	local offset_commands = {
 		decrease = commands["gameplay.offset_decrease"], increase = commands["gameplay.offset_increase"],
 		reset = commands["gameplay.offset_reset"],
@@ -266,8 +315,13 @@ function NeedleToolRegistry:snapshot()
 	}
 end
 
+---@param tool rizu.ai.NeedleTool
+---@param arguments any
+---@return boolean? valid
+---@return string? error_message
 local function validateArguments(tool, arguments)
 	if type(arguments) ~= "table" then return nil, "arguments must be an object" end
+	---@cast arguments {[string]: rizu.ai.NeedleArgumentValue}
 	local properties = tool.parameters.properties
 	for key in pairs(arguments) do
 		if properties[key] == nil then return nil, "unexpected argument: " .. tostring(key) end
@@ -302,16 +356,24 @@ function NeedleToolRegistry.parse(tool_set, text)
 	if type(decoded) ~= "table" or #decoded ~= 1 or next(decoded, 1) ~= nil then
 		return nil, "Needle must produce exactly one tool call"
 	end
+	---@cast decoded rizu.ai.NeedleDecodedCall[]
+	---@type rizu.ai.NeedleDecodedCall
 	local call = decoded[1]
 	if type(call) ~= "table" or type(call.name) ~= "string" then return nil, "tool call has no name" end
+	-- LuaLS 3.19 keeps generic table keys unknown despite the open index annotation.
+	---@diagnostic disable-next-line: no-unknown
 	for key in pairs(call) do
+		---@cast key string
 		if key ~= "name" and key ~= "arguments" then return nil, "unexpected tool-call field: " .. tostring(key) end
 	end
+	---@type rizu.ai.NeedleTool?
 	local tool = tool_set.by_name[call.name]
 	if not tool then return nil, "unknown tool: " .. call.name end
 	local valid, validation_error = validateArguments(tool, call.arguments)
 	if not valid then return nil, validation_error end
-	return {name = call.name, arguments = call.arguments}
+	---@type {[string]: rizu.ai.NeedleArgumentValue}
+	local arguments = call.arguments
+	return {name = call.name, arguments = arguments}
 end
 
 ---@param tool_set rizu.ai.NeedleToolSet
@@ -325,6 +387,7 @@ end
 ---@return string
 function NeedleToolRegistry.format(tool_set, call)
 	local tool = assert(tool_set.by_name[call.name])
+	---@type string[]
 	local parts = {}
 	for _, key in ipairs(tool.argument_order) do
 		parts[#parts + 1] = key .. " = " .. json.encode(call.arguments[key])
