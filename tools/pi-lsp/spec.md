@@ -8,6 +8,7 @@ With the `rizu.rizu-pi-lsp-bridge` VS Code extension installed and this workspac
 
 - list VS Code diagnostics for the workspace or one file,
 - aggregate diagnostics by code, source, top-level directory, and file,
+- inspect or wait for heuristic diagnostic stability based on VS Code diagnostic-change events,
 - preview document formatting edits and apply them through the workspace-edit operation,
 - inspect and apply code actions,
 - request hover, definitions, references, and symbols,
@@ -48,6 +49,7 @@ The bridge activates `sumneko.lua` and invokes its public `lua.stopServer` and `
 - Paths supplied by Pi cannot escape the workspace folder.
 - Protocol positions are one-based for agent readability; VS Code positions are converted at the boundary.
 - Diagnostic and navigation responses are bounded before entering model context.
+- Diagnostic stability means no workspace diagnostic-change event occurred during the requested quiet interval; it is a heuristic, not LuaLS work-done progress.
 - Cached code actions and workspace edits expire and cannot be applied more than once.
 - Bridge shutdown removes only the socket created by that bridge instance.
 

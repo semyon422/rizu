@@ -14,6 +14,8 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 const cache = new Map();
 /** @type {Map<string, {server: import('node:net').Server, socketPath: string}>} */
 const servers = new Map();
+/** @type {Map<string, {startedAt: number, lastChangeAt: number, changeEvents: number, changedUris: Set<string>}>} */
+const diagnosticTrackers = new Map();
 
 function cacheValue(value) {
 	const id = crypto.randomUUID();
@@ -65,6 +67,66 @@ function resolveUri(folder, filePath) {
 function relativePath(folder, uri) {
 	const relative = path.relative(folder.uri.fsPath, uri.fsPath);
 	return relative || path.basename(uri.fsPath);
+}
+
+function workspaceContainsUri(folder, uri) {
+	if (uri.scheme !== 'file') return false;
+	const relative = path.relative(folder.uri.fsPath, uri.fsPath);
+	return !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+function resetDiagnosticTracker(folder) {
+	const now = Date.now();
+	diagnosticTrackers.set(folder.uri.fsPath, {
+		startedAt: now,
+		lastChangeAt: now,
+		changeEvents: 0,
+		changedUris: new Set(),
+	});
+}
+
+function diagnosticCount(folder) {
+	let count = 0;
+	for (const [uri, values] of vscode.languages.getDiagnostics()) {
+		if (workspaceContainsUri(folder, uri)) count += values.length;
+	}
+	return count;
+}
+
+function diagnosticStabilitySnapshot(folder, stableMs) {
+	const tracker = diagnosticTrackers.get(folder.uri.fsPath);
+	if (!tracker) resetDiagnosticTracker(folder);
+	const current = diagnosticTrackers.get(folder.uri.fsPath);
+	const now = Date.now();
+	const quietMs = now - current.lastChangeAt;
+	return {
+		stable: quietMs >= stableMs,
+		heuristic: true,
+		stableMs,
+		quietMs,
+		trackingMs: now - current.startedAt,
+		lastChangeAt: new Date(current.lastChangeAt).toISOString(),
+		changeEvents: current.changeEvents,
+		changedFiles: current.changedUris.size,
+		diagnosticCount: diagnosticCount(folder),
+	};
+}
+
+async function diagnosticStability(folder, params) {
+	const stableMs = Math.min(Math.max((params.stableSeconds || 5) * 1000, 1000), 30_000);
+	const wait = params.wait === true;
+	const timeoutMs = Math.min(Math.max((params.timeoutSeconds || 20) * 1000, 1000), 25_000);
+	const startedAt = Date.now();
+	let snapshot = diagnosticStabilitySnapshot(folder, stableMs);
+	while (wait && !snapshot.stable && Date.now() - startedAt < timeoutMs) {
+		await new Promise((resolve) => setTimeout(resolve, Math.min(250, timeoutMs - (Date.now() - startedAt))));
+		snapshot = diagnosticStabilitySnapshot(folder, stableMs);
+	}
+	return {
+		...snapshot,
+		waitedMs: Date.now() - startedAt,
+		timedOut: wait && !snapshot.stable,
+	};
 }
 
 function position(line, character) {
@@ -389,7 +451,7 @@ async function status(folder) {
 		bridge: 'ready',
 		luaExtension: lua ? { installed: true, active: lua.isActive, version: lua.packageJSON.version } : { installed: false },
 		lifecycleCommands: { start: commands.has('lua.startServer'), stop: commands.has('lua.stopServer') },
-		diagnosticCount: vscode.languages.getDiagnostics().reduce((count, [, values]) => count + values.length, 0),
+		diagnosticStability: diagnosticStabilitySnapshot(folder, 5000),
 	};
 }
 
@@ -401,6 +463,7 @@ async function restartLuaServer(folder) {
 	if (!commands.has('lua.stopServer') || !commands.has('lua.startServer')) {
 		throw rpcError('lifecycle_unavailable', 'The Lua extension does not expose lua.stopServer and lua.startServer');
 	}
+	resetDiagnosticTracker(folder);
 	await vscode.commands.executeCommand('lua.stopServer');
 	await vscode.commands.executeCommand('lua.startServer');
 	return { restarted: true, workspace: folder.uri.fsPath };
@@ -415,6 +478,7 @@ async function dispatch(request) {
 	switch (request.method) {
 		case 'diagnostics': return diagnostics(folder, params);
 		case 'diagnosticSummary': return diagnosticSummary(folder, params);
+		case 'diagnosticStability': return diagnosticStability(folder, params);
 		case 'formatDocument': return formatDocument(folder, params);
 		case 'codeActions': return codeActions(folder, params);
 		case 'applyCodeAction': return applyCodeAction(folder, params);
@@ -432,6 +496,7 @@ async function dispatch(request) {
 
 function startServer(folder, context) {
 	const socketPath = path.join(folder.uri.fsPath, '.pi', 'lsp-bridge.sock');
+	if (!diagnosticTrackers.has(folder.uri.fsPath)) resetDiagnosticTracker(folder);
 	fs.mkdirSync(path.dirname(socketPath), { recursive: true });
 	try { fs.unlinkSync(socketPath); } catch (error) { if (error.code !== 'ENOENT') throw error; }
 	const server = net.createServer((connection) => {
@@ -470,12 +535,25 @@ function stopServer(workspacePath) {
 	const entry = servers.get(workspacePath);
 	if (!entry) return;
 	servers.delete(workspacePath);
+	diagnosticTrackers.delete(workspacePath);
 	entry.server.close();
 	try { fs.unlinkSync(entry.socketPath); } catch (error) { if (error.code !== 'ENOENT') console.error(error); }
 }
 
 function activate(context) {
 	for (const folder of vscode.workspace.workspaceFolders || []) startServer(folder, context);
+	context.subscriptions.push(vscode.languages.onDidChangeDiagnostics((event) => {
+		const now = Date.now();
+		for (const folder of vscode.workspace.workspaceFolders || []) {
+			const changed = event.uris.filter((uri) => workspaceContainsUri(folder, uri));
+			if (!changed.length) continue;
+			const tracker = diagnosticTrackers.get(folder.uri.fsPath);
+			if (!tracker) continue;
+			tracker.lastChangeAt = now;
+			tracker.changeEvents++;
+			for (const uri of changed) tracker.changedUris.add(uri.toString());
+		}
+	}));
 	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders((event) => {
 		for (const folder of event.removed) stopServer(folder.uri.fsPath);
 		for (const folder of event.added) startServer(folder, context);

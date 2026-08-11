@@ -14,6 +14,7 @@ import { Type } from "typebox";
 const operations = [
 	"diagnostics",
 	"diagnostic_summary",
+	"diagnostic_stability",
 	"format_document",
 	"code_actions",
 	"apply_code_action",
@@ -139,12 +140,16 @@ export default function (pi: ExtensionAPI) {
 			newName: Type.Optional(Type.String({ description: "New symbol name for prepare_rename" })),
 			tabSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 16, description: "Formatting tab width" })),
 			insertSpaces: Type.Optional(Type.Boolean({ description: "Use spaces instead of tabs when formatting" })),
+			wait: Type.Optional(Type.Boolean({ description: "Wait until diagnostics have been quiet long enough" })),
+			stableSeconds: Type.Optional(Type.Integer({ minimum: 1, maximum: 30, description: "Required quiet interval" })),
+			timeoutSeconds: Type.Optional(Type.Integer({ minimum: 1, maximum: 25, description: "Maximum wait duration" })),
 			id: Type.Optional(Type.String({ description: "Opaque preview ID to apply" })),
 		}),
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			const methodByOperation: Record<(typeof operations)[number], string> = {
 				diagnostics: "diagnostics",
 				diagnostic_summary: "diagnosticSummary",
+				diagnostic_stability: "diagnosticStability",
 				format_document: "formatDocument",
 				code_actions: "codeActions",
 				apply_code_action: "applyCodeAction",

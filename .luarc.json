@@ -13,7 +13,8 @@
 	"workspace.maxPreload": 10000,
 	"workspace.ignoreDir": [
 		".vscode",
-		"userdata/skins/ignore"
+		"userdata/skins/ignore",
+		"3rd-deps/lua/luacheck"
 	],
 	"workspace.library": [
 		"${3rd}/love2d/library",
@@ -28,6 +29,7 @@
 	"workspace.checkThirdParty": false,
 	"completion.autoRequire": false,
 	"diagnostics.disable": [],
+	"diagnostics.ignoredFiles": "Disable",
 	"diagnostics.globals": [
 		"love",
 		"newproxy"
