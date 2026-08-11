@@ -1,0 +1,26 @@
+{
+  "name": "rizu-pi-lsp-bridge",
+  "displayName": "Rizu Pi LSP Bridge",
+  "description": "Expose VS Code language services to the project-local Pi agent.",
+  "version": "0.1.0",
+  "publisher": "rizu",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "piLspBridge.restart",
+        "title": "Pi LSP Bridge: Restart Bridge"
+      }
+    ]
+  }
+}

@@ -88,3 +88,5 @@ backups
 .codex
 tmp/
 security/
+
+.pi/lsp-bridge.sock
