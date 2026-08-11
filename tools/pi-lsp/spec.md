@@ -7,6 +7,8 @@ Expose the language services already running in VS Code to a project-local Pi ag
 With the `rizu.rizu-pi-lsp-bridge` VS Code extension installed and this workspace open, Pi gets an `lsp` tool. The agent can:
 
 - list VS Code diagnostics for the workspace or one file,
+- aggregate diagnostics by code, source, top-level directory, and file,
+- preview document formatting edits and apply them through the workspace-edit operation,
 - inspect and apply code actions,
 - request hover, definitions, references, and symbols,
 - preview and apply rename edits,

@@ -105,8 +105,14 @@ function diagnosticSeverity(value) {
 	return ['error', 'warning', 'information', 'hint'][value] || 'unknown';
 }
 
+function diagnosticCode(value) {
+	return value.code === undefined
+		? '(no code)'
+		: String(typeof value.code === 'object' ? value.code.value : value.code);
+}
+
 function diagnosticKey(value) {
-	return `${value.source || ''}:${value.code || ''}:${value.range.start.line}:${value.range.start.character}:${value.message}`;
+	return `${value.source || ''}:${diagnosticCode(value)}:${value.range.start.line}:${value.range.start.character}:${value.message}`;
 }
 
 function serializeDiagnostic(value) {
@@ -115,7 +121,7 @@ function serializeDiagnostic(value) {
 		message: value.message,
 		range: serializeRange(value.range),
 		source: value.source,
-		code: typeof value.code === 'object' ? value.code.value : value.code,
+		code: diagnosticCode(value),
 		tags: value.tags,
 	};
 }
@@ -161,6 +167,7 @@ async function diagnostics(folder, params) {
 	const requestedUri = params.path ? resolveUri(folder, params.path) : undefined;
 	const severity = params.severity ? new Set([].concat(params.severity)) : undefined;
 	const source = typeof params.source === 'string' ? params.source : undefined;
+	const code = typeof params.code === 'string' ? params.code : undefined;
 	const limit = Math.min(Math.max(params.limit || DEFAULT_LIMIT, 1), 2000);
 	const groups = [];
 	let matched = 0;
@@ -172,7 +179,9 @@ async function diagnostics(folder, params) {
 		const relative = path.relative(folder.uri.fsPath, uri.fsPath);
 		if (relative.startsWith('..') || path.isAbsolute(relative)) continue;
 		const selected = values.filter((value) => {
-			return (!severity || severity.has(diagnosticSeverity(value.severity))) && (!source || value.source === source);
+			return (!severity || severity.has(diagnosticSeverity(value.severity)))
+				&& (!source || value.source === source)
+				&& (!code || diagnosticCode(value) === code);
 		});
 		if (!selected.length) continue;
 		const remaining = Math.max(limit - matched, 0);
@@ -181,6 +190,81 @@ async function diagnostics(folder, params) {
 		if (items.length) groups.push({ path: relativePath(folder, uri), diagnostics: items });
 	}
 	return { workspace: folder.uri.fsPath, total: Math.min(matched, limit), matched, truncated: matched > limit, files: groups };
+}
+
+function incrementCount(counts, key, message) {
+	const entry = counts.get(key) || { count: 0, example: message };
+	entry.count++;
+	counts.set(key, entry);
+}
+
+function sortedCounts(counts, limit) {
+	return [...counts.entries()]
+		.map(([name, entry]) => ({ name, count: entry.count, example: entry.example }))
+		.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+		.slice(0, limit);
+}
+
+async function diagnosticSummary(folder, params) {
+	const severity = params.severity ? new Set([].concat(params.severity)) : undefined;
+	const source = typeof params.source === 'string' ? params.source : undefined;
+	const code = typeof params.code === 'string' ? params.code : undefined;
+	const pathPrefix = typeof params.path === 'string' ? params.path.replace(/^@/, '').replace(/[/\\]+$/, '') : undefined;
+	const limit = Math.min(Math.max(params.limit || 30, 1), 200);
+	const byCode = new Map();
+	const bySource = new Map();
+	const byDirectory = new Map();
+	const byFile = new Map();
+	let total = 0;
+	for (const [uri, values] of vscode.languages.getDiagnostics()) {
+		if (uri.scheme !== 'file') continue;
+		const relative = path.relative(folder.uri.fsPath, uri.fsPath);
+		if (relative.startsWith('..') || path.isAbsolute(relative)) continue;
+		if (pathPrefix && relative !== pathPrefix && !relative.startsWith(`${pathPrefix}${path.sep}`)) continue;
+		for (const value of values) {
+			const severityName = diagnosticSeverity(value.severity);
+			if ((severity && !severity.has(severityName))
+				|| (source && value.source !== source)
+				|| (code && diagnosticCode(value) !== code)) continue;
+			total++;
+			const message = value.message.replace(/\s+/g, ' ').slice(0, 300);
+			incrementCount(byCode, diagnosticCode(value), message);
+			incrementCount(bySource, value.source || '(no source)', message);
+			incrementCount(byDirectory, relative.includes(path.sep) ? relative.split(path.sep)[0] : '(root)', message);
+			incrementCount(byFile, relativePath(folder, uri), message);
+		}
+	}
+	return {
+		workspace: folder.uri.fsPath,
+		total,
+		limit,
+		byCode: sortedCounts(byCode, limit),
+		bySource: sortedCounts(bySource, limit),
+		byDirectory: sortedCounts(byDirectory, limit),
+		byFile: sortedCounts(byFile, limit),
+	};
+}
+
+async function formatDocument(folder, params) {
+	const uri = resolveUri(folder, params.path);
+	const document = await vscode.workspace.openTextDocument(uri);
+	const options = {
+		tabSize: Number.isInteger(params.tabSize) ? params.tabSize : 4,
+		insertSpaces: params.insertSpaces === true,
+		insertFinalNewline: true,
+		trimFinalNewlines: false,
+		trimTrailingWhitespace: true,
+	};
+	const edits = await vscode.commands.executeCommand('vscode.executeFormatDocumentProvider', uri, options) || [];
+	const edit = new vscode.WorkspaceEdit();
+	edit.set(uri, edits);
+	const id = cacheValue({ kind: 'workspaceEdit', folder: folder.uri.fsPath, edit });
+	return {
+		id,
+		path: relativePath(folder, uri),
+		languageId: document.languageId,
+		edits: edits.map((item) => ({ range: serializeRange(item.range), newText: item.newText })),
+	};
 }
 
 async function codeActions(folder, params) {
@@ -330,6 +414,8 @@ async function dispatch(request) {
 	const folder = workspaceForRequest(params);
 	switch (request.method) {
 		case 'diagnostics': return diagnostics(folder, params);
+		case 'diagnosticSummary': return diagnosticSummary(folder, params);
+		case 'formatDocument': return formatDocument(folder, params);
 		case 'codeActions': return codeActions(folder, params);
 		case 'applyCodeAction': return applyCodeAction(folder, params);
 		case 'hover': return hover(folder, params);

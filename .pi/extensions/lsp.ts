@@ -13,6 +13,8 @@ import { Type } from "typebox";
 
 const operations = [
 	"diagnostics",
+	"diagnostic_summary",
+	"format_document",
 	"code_actions",
 	"apply_code_action",
 	"hover",
@@ -130,15 +132,20 @@ export default function (pi: ExtensionAPI) {
 			endCharacter: Type.Optional(Type.Integer({ minimum: 1, description: "One-based end character for a range" })),
 			severity: Type.Optional(Type.Array(StringEnum(["error", "warning", "information", "hint"] as const))),
 			source: Type.Optional(Type.String({ description: "Diagnostic source filter, such as Lua Diagnostics" })),
+			code: Type.Optional(Type.String({ description: "Diagnostic code filter, such as codestyle-check" })),
 			query: Type.Optional(Type.String({ description: "Workspace symbol query" })),
 			limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 2000 })),
 			includeDeclaration: Type.Optional(Type.Boolean()),
 			newName: Type.Optional(Type.String({ description: "New symbol name for prepare_rename" })),
+			tabSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 16, description: "Formatting tab width" })),
+			insertSpaces: Type.Optional(Type.Boolean({ description: "Use spaces instead of tabs when formatting" })),
 			id: Type.Optional(Type.String({ description: "Opaque preview ID to apply" })),
 		}),
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			const methodByOperation: Record<(typeof operations)[number], string> = {
 				diagnostics: "diagnostics",
+				diagnostic_summary: "diagnosticSummary",
+				format_document: "formatDocument",
 				code_actions: "codeActions",
 				apply_code_action: "applyCodeAction",
 				hover: "hover",
@@ -150,7 +157,7 @@ export default function (pi: ExtensionAPI) {
 				status: "status",
 				restart: "restartLuaServer",
 			};
-			const needsPath = ["code_actions", "hover", "definition", "references", "prepare_rename"];
+			const needsPath = ["format_document", "code_actions", "hover", "definition", "references", "prepare_rename"];
 			const needsPosition = ["code_actions", "hover", "definition", "references", "prepare_rename"];
 			if (needsPath.includes(params.operation)) requiredString(params.path, "path");
 			if (needsPosition.includes(params.operation)) requiredPosition(params.line, params.character);
