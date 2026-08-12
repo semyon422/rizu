@@ -45,6 +45,10 @@ local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
 ---@field runtimeState rizu.editor.EditorRuntimeState
 ---@field viewState rizu.editor.EditorViewState
 ---@field frameService rizu.editor.EditorModelFrameService
+---@field intervalManager rizu.editor.IntervalManager
+---@field editorChanges rizu.editor.EditorChanges
+---@field notes chartedit.Notes
+---@field visual chartedit.Visual
 ---@field context rizu.editor.EditorModelContext
 ---@field services rizu.editor.EditorServices
 local EditorModel = class()

@@ -32,7 +32,7 @@ local function containsPointAt(editorModel, absolute_time)
 		if math.abs(point.absoluteTime - absolute_time) < 1e-9 then
 			return true
 		end
-		point = point.next
+		point = point.next --[[@as chartedit.Point?]]
 	end
 	return false
 end
