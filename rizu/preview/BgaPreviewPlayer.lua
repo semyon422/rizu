@@ -134,7 +134,7 @@ end
 
 ---@param preview_path string
 ---@param chart_dirs string|string[]
----@param fs fs.IFilesystem
+---@param _fs fs.IFilesystem
 function BgaPreviewPlayer:load(preview_path, chart_dirs, _fs)
 	self:stop()
 	self.load_generation = self.load_generation + 1
@@ -162,9 +162,11 @@ function BgaPreviewPlayer:update(time)
 	self.video_engine:update()
 	if not self.preview then return end
 
+	---@type rizu.sprite.BgaEvent[]
 	local active_notes = {}
 	---@type {[string]: integer}
 	local active_video_indexes = {}
+	---@type integer[]
 	local columns = {}
 	for column in pairs(self.events_by_column) do
 		table.insert(columns, column)
@@ -180,6 +182,7 @@ function BgaPreviewPlayer:update(time)
 			local _, ext = path_util.name_ext(name)
 			local _type = ResourceFinder:getFormat(ext) == "video" and "VideoNote" or "ImageNote"
 
+			---@type rizu.sprite.BgaEvent
 			local bga_event = {
 				time = event.time,
 				column = event.column,
