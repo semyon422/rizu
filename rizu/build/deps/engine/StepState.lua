@@ -4,16 +4,9 @@ local BuildEnv = require("rizu.build.deps.engine.BuildEnv")
 local StepState = {}
 
 ---@param env rizu.build.deps.Env
----@param value any
----@return any
+---@param value string
+---@return string
 function StepState.resolve(env, value)
-	if type(value) == "table" then
-		local out = {}
-		for k, v in pairs(value) do
-			out[k] = StepState.resolve(env, v)
-		end
-		return out
-	end
 	return BuildEnv.interpolate(env, value)
 end
 
@@ -44,6 +37,7 @@ end
 ---@param list string[]?
 ---@return number?
 local function oldestModtime(env, list)
+	---@type number?
 	local oldest
 	for _, path in ipairs(StepState.resolveList(env, list)) do
 		local info = env.ctx.fs:getInfo(path)
