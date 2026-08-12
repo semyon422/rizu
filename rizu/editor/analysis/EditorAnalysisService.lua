@@ -2,10 +2,10 @@ local class = require("class")
 
 ---@class rizu.editor.EditorAnalysisContext
 ---@field getNcbtContext fun(self: rizu.editor.EditorAnalysisContext): rizu.editor.NcbtContext
----@field getAudioEngine fun(self: rizu.editor.EditorAnalysisContext): rizu.engine.audio.Engine
+---@field getAudioEngine fun(self: rizu.editor.EditorAnalysisContext): rizu.audio.Engine
 ---@field getLayer fun(self: rizu.editor.EditorAnalysisContext): chartedit.Layer
----@field getWave fun(self: rizu.editor.EditorAnalysisContext): table?
----@field setWave fun(self: rizu.editor.EditorAnalysisContext, wave: table?)
+---@field getWave fun(self: rizu.editor.EditorAnalysisContext): audio.Wave?
+---@field setWave fun(self: rizu.editor.EditorAnalysisContext, wave: audio.Wave?)
 ---@field getGraphsGenerator fun(self: rizu.editor.EditorAnalysisContext): rizu.editor.GraphsGenerator
 ---@field getChart fun(self: rizu.editor.EditorAnalysisContext): chart.Chart
 
@@ -14,7 +14,7 @@ local class = require("class")
 local EditorAnalysisService = class()
 
 ---@param layer chartedit.Layer|chart.Layer
----@return table
+---@return chart.IPoint[]
 local function getLayerPointList(layer)
 	if layer.getPointList then
 		return layer:getPointList()
@@ -26,6 +26,7 @@ local function getLayerPointList(layer)
 	end
 
 	local point = points:getFirstPoint()
+	---@type chart.IPoint[]
 	local list = {}
 	while point do
 		table.insert(list, point)
@@ -56,12 +57,11 @@ function EditorAnalysisService:getFirstLastTime(context)
 	local layer = context:getLayer()
 	local audioStartTime = context:getAudioEngine():getStartTime()
 	local wave = context.getWave and context:getWave()
+	local first_point = assert(layer.points:getFirstPoint())
+	local last_point = assert(layer.points:getLastPoint())
 
-	local firstTime = math.min(
-		audioStartTime,
-		layer.points:getFirstPoint():tonumber()
-	)
-	local lastTime = layer.points:getLastPoint():tonumber()
+	local firstTime = math.min(audioStartTime, first_point:tonumber())
+	local lastTime = last_point:tonumber()
 	if wave then
 		lastTime = math.max(lastTime, audioStartTime + wave:getDuration())
 	end
@@ -82,8 +82,10 @@ end
 function EditorAnalysisService:getTotalBeats(context)
 	local layer = context:getLayer()
 	local points = getLayerPointList(layer)
-	local firstPoint = points[1]
-	local lastPoint = points[#points]
+	local firstPoint = assert(points[1])
+	local lastPoint = assert(points[#points])
+	---@cast firstPoint chartedit.Point
+	---@cast lastPoint chartedit.Point
 	local totalBeats = (lastPoint.time - firstPoint.time):tonumber()
 	local avgBeatDuration = (lastPoint.absoluteTime - firstPoint.absoluteTime) / totalBeats
 
