@@ -13,10 +13,13 @@ function RepoConfigWriter:new(ctx)
 	self.ctx = ctx
 end
 
+---@param t table
+---@return string
 local function serialize(t)
 	return ("return %s\n"):format(stbl.encode(t))
 end
 
+---@param gamedir string
 function RepoConfigWriter:write(gamedir)
 	local format = '{"commit":"%H","date":"%cd"}'
 	local res = self.ctx.shell:popen("git log -1 --format='" .. format .. "'")
@@ -38,6 +41,7 @@ function RepoConfigWriter:write(gamedir)
 	local urls_path = gamedir .. "/sphere/persistence/ConfigModel/urls.lua"
 	local content = self.ctx.fs:read(urls_path)
 	if content then
+		---@type (fun(): sphere.UrlsConfig)?
 		local chunk = loadstring(content)
 		if chunk then
 			local urls = chunk()
