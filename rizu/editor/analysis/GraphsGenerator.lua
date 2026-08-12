@@ -1,8 +1,15 @@
 local class = require("class")
 local math_util = require("math_util")
 
+---@class rizu.editor.DensityGraph: {[integer]: number}
+
+---@class rizu.editor.VertexDatasGraph: {[integer]: true}
+---@field n integer
+
 ---@class rizu.editor.GraphsGenerator
 ---@operator call: rizu.editor.GraphsGenerator
+---@field densityGraph rizu.editor.DensityGraph
+---@field vertexDatasGraph rizu.editor.VertexDatasGraph
 local GraphsGenerator = class()
 
 function GraphsGenerator:load()
@@ -14,6 +21,7 @@ end
 ---@param firstTime number
 ---@param lastTime number
 function GraphsGenerator:genDensityGraph(chart, firstTime, lastTime)
+	---@type number[]
 	local notes = {}
 	for _, note in chart.notes:iter() do
 		local offset = note:getTime()
@@ -56,8 +64,10 @@ end
 ---@param firstTime number
 ---@param lastTime number
 function GraphsGenerator:genVerticesGraph(layer, firstTime, lastTime)
-	local vertex = layer.points:getFirstPoint().vertex
+	local first_point = assert(layer.points:getFirstPoint())
+	local vertex = first_point.vertex
 
+	---@type number[]
 	local offsets = {}
 	while vertex do
 		table.insert(offsets, vertex.point.absoluteTime)
