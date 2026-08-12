@@ -2,9 +2,22 @@ local NeedleModel = require("rizu.ai.NeedleModel")
 
 local test = {}
 
+---@class rizu.ai.FakeNeedleTransport
+---@field sent rizu.ai.NeedleWorkerEvent[]
+---@field output rizu.ai.NeedleWorkerOutput[]
+---@field config sphere.NeedleConfig?
+---@field stopped boolean?
+
+---@class rizu.ai.ExecutionCounter
+---@field count integer
+
+---@return rizu.ai.FakeNeedleTransport
 local function makeTransport()
+	---@type rizu.ai.FakeNeedleTransport
 	local transport = {sent = {}, output = {}}
+	---@param config sphere.NeedleConfig
 	function transport:start(config) self.config = config end
+	---@param event rizu.ai.NeedleWorkerEvent
 	function transport:send(event) self.sent[#self.sent + 1] = event end
 	function transport:pop() return table.remove(self.output, 1) end
 	function transport:checkError() end
@@ -12,7 +25,10 @@ local function makeTransport()
 	return transport
 end
 
+---@param executed rizu.ai.ExecutionCounter
+---@return rizu.ai.NeedleToolSet
 local function makeToolSet(executed)
+	---@type rizu.ai.NeedleTool
 	local tool = {
 		name = "select_random_chart",
 		description = "Select a random chart.",
@@ -27,6 +43,7 @@ end
 function test.debounce_and_execute(t)
 	local now = 10
 	local transport = makeTransport()
+	---@type rizu.ai.ExecutionCounter
 	local executed = {count = 0}
 	local model = NeedleModel({model_path = "model", debounce_seconds = 0.25, max_new_tokens = 64}, transport, function() return now end)
 	model:activate(makeToolSet(executed))
