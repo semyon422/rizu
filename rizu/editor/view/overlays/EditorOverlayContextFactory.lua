@@ -1,10 +1,18 @@
 local class = require("class")
 
+---@class rizu.editor.EditorOverlayFactoryGame
+---@field editorModel rizu.editor.EditorModel
+---@field editorController rizu.editor.EditorController
+
+---@class rizu.editor.EditorOverlayFactoryScreen
+---@field game rizu.editor.EditorOverlayFactoryGame
+---@field editorViewServices rizu.editor.EditorViewServices
+
 ---@class rizu.editor.EditorOverlayContextFactory
 ---@operator call: rizu.editor.EditorOverlayContextFactory
 local EditorOverlayContextFactory = class()
 
----@param screen table
+---@param screen rizu.editor.EditorOverlayFactoryScreen
 ---@param overlayContext rizu.editor.EditorViewContext
 ---@return rizu.editor.EditorInfoOverlayContext
 function EditorOverlayContextFactory:createInfoOverlayContext(screen, overlayContext)
@@ -30,7 +38,7 @@ function EditorOverlayContextFactory:createInfoOverlayContext(screen, overlayCon
 	}
 end
 
----@param screen table
+---@param screen rizu.editor.EditorOverlayFactoryScreen
 ---@param overlayContext rizu.editor.EditorViewContext
 ---@return rizu.editor.EditorBmsOverlayContext
 function EditorOverlayContextFactory:createBmsOverlayContext(screen, overlayContext)
