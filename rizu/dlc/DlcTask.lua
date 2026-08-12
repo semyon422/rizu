@@ -2,6 +2,16 @@ local class = require("class")
 
 ---@class rizu.dlc.DlcTask
 ---@operator call: rizu.dlc.DlcTask
+---@field id string|number
+---@field provider string
+---@field type rizu.dlc.DlcType
+---@field metadata table?
+---@field status string
+---@field progress number
+---@field speed number
+---@field total number
+---@field size number
+---@field error string?
 local DlcTask = class()
 
 ---@param id string|number

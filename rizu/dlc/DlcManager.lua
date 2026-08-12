@@ -3,6 +3,17 @@ local DlcWorker = require("rizu.dlc.DlcWorker")
 local DlcTask = require("rizu.dlc.DlcTask")
 local Observable = require("Observable")
 
+---@class rizu.dlc.DlcMetadata
+---@field dest_dir string?
+
+---@class rizu.dlc.DlcTaskUpdates
+---@field status string?
+---@field progress number?
+---@field speed number?
+---@field total number?
+---@field size number?
+---@field error string?
+
 ---@class rizu.dlc.DlcManager
 ---@operator call: rizu.dlc.DlcManager
 ---@field network rizu.NetworkService
@@ -60,7 +71,7 @@ end
 ---@param id string|number
 ---@param _type rizu.dlc.DlcType
 ---@param provider_name string?
----@param metadata table?
+---@param metadata rizu.dlc.DlcMetadata?
 function DlcManager:download(id, _type, provider_name, metadata)
 	provider_name = provider_name or "mino"
 	if self.tasks[id] then return end
@@ -75,23 +86,26 @@ function DlcManager:download(id, _type, provider_name, metadata)
 end
 
 ---@param id string|number
----@param updates table
+---@param updates rizu.dlc.DlcTaskUpdates
 function DlcManager:updateTask(id, updates)
 	local task = self.tasks[id]
 	if not task then return end
 
-	for k, v in pairs(updates) do
-		task[k] = v
-	end
+	if updates.status ~= nil then task.status = updates.status end
+	if updates.progress ~= nil then task.progress = updates.progress end
+	if updates.speed ~= nil then task.speed = updates.speed end
+	if updates.total ~= nil then task.total = updates.total end
+	if updates.size ~= nil then task.size = updates.size end
+	if updates.error ~= nil then task.error = updates.error end
 	self.onTaskUpdated:send({task = task})
 end
 
 ---@param id string|number
 ---@param _type rizu.dlc.DlcType
----@param metadata table?
+---@param metadata rizu.dlc.DlcMetadata?
 function DlcManager:onDlcCompleted(id, _type, metadata)
 	self.onDlcCompletedSignal:send({id = id, type = _type, metadata = metadata})
-	
+
 	if _type == "pack" then
 		-- Trigger library import for packs
 		self.library:computeLocation("packs", 1)
