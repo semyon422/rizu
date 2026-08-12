@@ -1,5 +1,11 @@
 local class = require("class")
-local socket_url = require("socket.url")
+---@class socket.Url
+---@field host string?
+
+---@class socket.UrlModule
+---@field parse fun(url: string): socket.Url?, string?
+
+local socket_url = require("socket.url") --[[@as socket.UrlModule]]
 local table_util = require("table_util")
 local thread = require("thread")
 
@@ -68,11 +74,23 @@ NetworkService.tls_verify = true
 NetworkService.tls_cafile = "resources/certs/cacert.pem"
 
 local resolve_host_async = thread.async(function(host)
+	---@type {dns: {toip: fun(host: string): string?, string?}}
 	local socket = require("socket")
 	return socket.dns.toip(host)
 end)
 
----@param options {scheduler: web.CosocketScheduler?, timeout: number?, websocket_read_timeout: number?, tls_verify: boolean?, tls_cafile: string?, proxy: rizu.Socks5ProxyConfig?, request_func: function?, stream_factory: function?, resolve_host_func: function?}?
+---@class rizu.NetworkServiceOptions
+---@field scheduler web.CosocketScheduler?
+---@field timeout number?
+---@field websocket_read_timeout number?
+---@field tls_verify boolean?
+---@field tls_cafile string?
+---@field proxy rizu.Socks5ProxyConfig?
+---@field request_func (fun(url: string, body: table|string?, options: web.HttpRequestOptions?): {status: integer, headers: web.Headers, body: string}?, string?)?
+---@field stream_factory (fun(options: web.HttpStreamOptions?): web.HttpStream)?
+---@field resolve_host_func (fun(host: string): string?, string?)?
+
+---@param options rizu.NetworkServiceOptions?
 function NetworkService:new(options)
 	options = options or {}
 	self.scheduler = options.scheduler or CosocketScheduler()
@@ -127,7 +145,8 @@ local function matches_domain(host, domain)
 	elseif domain:sub(1, 1) == "." then
 		domain = domain:sub(2)
 	end
-	return host == domain or host:sub(-#domain - 1) == "." .. domain
+	local suffix_start = -#domain - 1
+	return host == domain or host:sub(suffix_start) == "." .. domain
 end
 
 ---@param host string
