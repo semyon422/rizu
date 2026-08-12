@@ -1,8 +1,13 @@
 local ScoreSystem = require("rizu.engine.ScoreEngine.ScoreSystem")
 local IHealthsSource = require("rizu.engine.ScoreEngine.IHealthsSource")
 
+---@class rizu.HpCounter
+---@field notes integer
+---@field value number
+
 ---@class rizu.HpScore: rizu.ScoreSystem, rizu.IHealthsSource
 ---@operator call: rizu.HpScore
+---@field [integer] rizu.HpCounter
 local HpScore = ScoreSystem + IHealthsSource
 
 HpScore.max = 1000
@@ -54,6 +59,8 @@ function HpScore:getSlice()
 	-- end
 	-- return slice
 	---@class rizu.HpScore.Slice
+	---@field healths number
+	---@field max_healths number
 	local t = {
 		healths = self:getHealths(),
 		max_healths = self:getMaxHealths(),
@@ -84,6 +91,7 @@ end
 
 ---@return boolean
 function HpScore:isFailed()
+	---@type rizu.HpCounter?
 	local _h
 	for _, h in ipairs(self) do
 		if h.value > 0 then
