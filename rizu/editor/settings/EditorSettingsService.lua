@@ -3,6 +3,7 @@ local class = require("class")
 ---@class rizu.editor.EditorSettings
 ---@field speed number
 ---@field snap integer
+---@field showTimings boolean
 
 ---@class rizu.editor.EditorSettingsService
 ---@operator call: rizu.editor.EditorSettingsService

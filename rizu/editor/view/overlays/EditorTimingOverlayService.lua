@@ -36,7 +36,7 @@ local class = require("class")
 
 ---@class rizu.editor.EditorTimingOverlayContext
 ---@field getPoint fun(self: rizu.editor.EditorTimingOverlayContext): chartedit.Point
----@field getEditorSettings fun(self: rizu.editor.EditorTimingOverlayContext): table
+---@field getEditorSettings fun(self: rizu.editor.EditorTimingOverlayContext): rizu.editor.EditorSettings
 ---@field getIntervalManager fun(self: rizu.editor.EditorTimingOverlayContext): rizu.editor.IntervalManager
 ---@field getVisualPointFor fun(self: rizu.editor.EditorTimingOverlayContext, point: chartedit.Point): chartedit.VisualPoint
 ---@field scrollTimePoint fun(self: rizu.editor.EditorTimingOverlayContext, point: chartedit.Point)
@@ -53,6 +53,7 @@ function EditorTimingOverlayService:getState(context)
 	local vertex = point._vertex
 	local isGrabbed = self:isGrabbed(context)
 	local hasVertex = vertex ~= nil
+	---@type string?
 	local tempoLabel
 	if point.vertex then
 		tempoLabel = "Tempo: " .. point.vertex:getTempo() .. " bpm"
@@ -226,6 +227,7 @@ end
 ---@param point chartedit.Point
 ---@return chartedit.VisualPoint?
 function EditorTimingOverlayService:getCommentVisualPoint(context, point)
+	---@type chartedit.Point?
 	local commentPoint
 	if point.next then
 		commentPoint = point.next.prev
