@@ -9,9 +9,10 @@ local function mergeHandlers(...)
 	---@type rizu.build.deps.Actions
 	local out = {}
 	for i = 1, select("#", ...) do
+		---@type rizu.build.deps.Actions
 		local src = select(i, ...)
-		for k, v in pairs(src) do
-			out[k] = v
+		for action_type, handler in pairs(src) do
+			out[action_type] = handler
 		end
 	end
 	return out
@@ -27,10 +28,15 @@ local handlers = mergeHandlers(
 	require("rizu.build.deps.actions.assertions")
 )
 
+---@param action rizu.build.deps.Action
+---@return string
 local function summarizeAction(action)
 	local fields = {"type", "dir", "src_dir", "build_dir", "path", "src", "dst", "url", "archive", "command"}
+	---@type string[]
 	local parts = {}
 	for _, key in ipairs(fields) do
+		-- Summary keys intentionally index the heterogeneous action shape dynamically.
+		---@diagnostic disable-next-line: no-unknown
 		local val = action[key]
 		if val ~= nil then
 			if type(val) == "string" then
