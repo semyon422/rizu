@@ -10,6 +10,11 @@ local ShortEditorNote = require("rizu.editor.notes.ShortEditorNote")
 ---@field getLayer fun(self: rizu.editor.EditorNoteOpsContext): chartedit.Layer
 ---@field getVisual fun(self: rizu.editor.EditorNoteOpsContext): chartedit.Visual
 
+---@class rizu.editor.EditorNoteOpsNoteSkin
+---@field columnsCount integer
+---@field getInputColumn fun(self: rizu.editor.EditorNoteOpsNoteSkin, column: chart.Column): integer?
+---@field getFirstColumnInput fun(self: rizu.editor.EditorNoteOpsNoteSkin, column: integer): chart.Column
+
 ---@class rizu.editor.EditorNoteOps
 ---@operator call: rizu.editor.EditorNoteOps
 ---@field context rizu.editor.EditorNoteOpsContext
@@ -86,7 +91,7 @@ function EditorNoteOps:deleteSelected(selectedNotes)
 	return count
 end
 
----@param noteSkin table
+---@param noteSkin rizu.editor.EditorNoteOpsNoteSkin
 ---@param note rizu.editor.EditorNote
 ---@return rizu.editor.EditorNote
 function EditorNoteOps:flipNote(noteSkin, note)
@@ -96,7 +101,7 @@ function EditorNoteOps:flipNote(noteSkin, note)
 	flippedNote:cloneLinkedNotes()
 
 	local columns = noteSkin.columnsCount
-	local column = columns - noteSkin:getInputColumn(note.column) + 1
+	local column = columns - assert(noteSkin:getInputColumn(note.column)) + 1
 	flippedNote:setColumn(noteSkin:getFirstColumnInput(column))
 	self:addNotes(flippedNote:getNotes())
 
@@ -104,11 +109,12 @@ function EditorNoteOps:flipNote(noteSkin, note)
 end
 
 ---@param selectedNotes {[chart.Note]: rizu.editor.EditorNote}
----@param noteSkin table
+---@param noteSkin rizu.editor.EditorNoteOpsNoteSkin
 function EditorNoteOps:flipSelected(selectedNotes, noteSkin)
 	local editorChanges = self.context:getEditorChanges()
 	editorChanges:reset()
 
+	---@type rizu.editor.EditorNote[]
 	local notes = {}
 	for _, note in pairs(selectedNotes) do
 		table.insert(notes, note)

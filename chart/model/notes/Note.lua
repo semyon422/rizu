@@ -6,6 +6,8 @@ local table_util = require("table_util")
 
 ---@class chart.Note
 ---@operator call: chart.Note
+---@field startNote chart.Note?
+---@field endNote chart.Note?
 local Note = class()
 
 Note.weight = 0
