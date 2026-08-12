@@ -36,8 +36,10 @@ function AuthManager:checkSessionAsync()
 	local server_remote = self.sea_client.remote
 	local config = self.configModel.configs.online
 	local urls = self.configModel.configs.urls
+	---@type {[string]: string}
+	local tokens = config.tokens
 
-	local token = config.tokens[urls.websocket]
+	local token = tokens[urls.websocket]
 	if not token then
 		print("no token for current server")
 		return
@@ -66,7 +68,11 @@ function AuthManager:loginAsync(email, password)
 	local config = self.configModel.configs.online
 	local urls = self.configModel.configs.urls
 
-	local ret, err = server_remote.auth:login(email, password)
+	---@type {session: sea.Session, user: sea.User, token: string}?
+	local ret
+	---@type string?
+	local err
+	ret, err = server_remote.auth:login(email, password)
 	if not ret then
 		print(err)
 		return
@@ -74,7 +80,9 @@ function AuthManager:loginAsync(email, password)
 
 	config.session = ret.session
 	config.user = ret.user
-	config.tokens[urls.websocket] = ret.token
+	---@type {[string]: string}
+	local tokens = config.tokens
+	tokens[urls.websocket] = ret.token
 
 	self:checkSessionAsync()
 end
@@ -92,7 +100,9 @@ function AuthManager:logoutAsync()
 
 	config.session = {}
 	config.user = {}
-	config.tokens[urls.websocket] = nil
+	---@type {[string]: string?}
+	local tokens = config.tokens
+	tokens[urls.websocket] = nil
 
 	sea_client.client:setUser()
 end
