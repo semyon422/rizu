@@ -32,7 +32,7 @@ local ChartviewsRepo = class()
 ---@param models rdb.Models
 function ChartviewsRepo:new(models)
 	self.models = models
-	self.params = {}
+	self.params = {where = {}}
 	self.is_sync = false
 end
 
@@ -42,6 +42,16 @@ function ChartviewsRepo:setSync(is_sync)
 end
 
 ----------------------------------------------------------------
+
+---@class rizu.library.ChartviewStruct
+---@field chartfile_id integer
+---@field chartfile_set_id integer
+---@field chartmeta_id integer
+---@field chartdiff_id integer
+---@field chartplay_id integer
+---@field lamp boolean
+
+---@alias rizu.library.ChartviewStructArray {[integer]: rizu.library.ChartviewStruct}
 
 ffi.cdef [[
 	typedef struct {
@@ -56,7 +66,7 @@ ffi.cdef [[
 
 ChartviewsRepo.chartview_struct = ffi.typeof("chartview_struct")
 
----@param struct_array cdata
+---@param struct_array rizu.library.ChartviewStructArray
 ---@param count integer
 ---@param maps rizu.library.ChartviewsRepo.IndexMaps
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult
@@ -69,17 +79,18 @@ function ChartviewsRepo:packResult(struct_array, count, maps)
 end
 
 ---@param t rizu.library.ChartviewsRepo.PackedQueryResult
----@return cdata struct_array
+---@return rizu.library.ChartviewStructArray struct_array
 ---@return integer count
 ---@return rizu.library.ChartviewsRepo.IndexMaps maps
 function ChartviewsRepo:unpackResult(t)
 	local count = t.count
+	---@type rizu.library.ChartviewStructArray
 	local items = ffi.new("chartview_struct[?]", count)
 	ffi.copy(items, t.items, #t.items)
 	return items, count, t.maps
 end
 
----@param struct cdata
+---@param struct rizu.library.ChartviewStruct
 ---@return rizu.library.IChartviewBase
 function ChartviewsRepo:structToTable(struct)
 	return {
@@ -110,15 +121,24 @@ function ChartviewsRepo:_fetchResult(model, where, options)
 	}
 	local count = model:count(where, count_options)
 
+	---@type rizu.library.ChartviewStructArray
 	local struct_array = ffi.new("chartview_struct[?]", count)
+	---@type {[integer]: integer}
 	local chartfile_id_to_global_index = {}
+	---@type {[integer]: integer}
 	local chartmeta_id_to_global_index = {}
+	---@type {[integer]: integer}
 	local chartdiff_id_to_global_index = {}
+	---@type {[integer]: integer}
 	local chartplay_id_to_global_index = {}
+	---@type {[integer]: integer}
 	local set_id_to_global_index = {}
+	---@type {[string]: integer}
 	local chartfile_chartmeta_id_to_global_index = {}
+	---@type {[string]: integer}
 	local chartfile_chartdiff_id_to_global_index = {}
 
+	---@type integer
 	local c = 0
 	for i, row in model:select_iter(where, options) do
 		local entry = struct_array[c]
