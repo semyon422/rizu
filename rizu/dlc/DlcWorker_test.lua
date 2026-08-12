@@ -42,8 +42,11 @@ end
 ---@param t testing.T
 function test.download_uses_injected_download_func(t)
 	local manager = new_manager()
+	---@type string
 	local requested_url
+	---@type rizu.NetworkStatusHttpOptions
 	local requested_options
+	---@type {id: string|number, type: rizu.dlc.DlcType, data: string, filename: string, metadata: rizu.dlc.DlcMetadata?}
 	local processed
 	local worker = DlcWorker(manager, "/game", new_request(), function(url, options)
 		requested_url = url
