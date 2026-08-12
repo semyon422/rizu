@@ -1,14 +1,43 @@
 local class = require("class")
 local EditorViewServices = require("rizu.editor.view.EditorViewServices")
 
+---@class rizu.editor.EditorScreenController
+---@field load fun(self: rizu.editor.EditorScreenController)
+---@field unload fun(self: rizu.editor.EditorScreenController)
+
+---@class rizu.editor.EditorScreenPlayfield
+---@field newNoteskinTransform fun(self: rizu.editor.EditorScreenPlayfield): table
+
+---@class rizu.editor.EditorScreenGame
+---@field editorController rizu.editor.EditorScreenController
+---@field noteSkinModel {noteSkin: {playField: rizu.editor.EditorScreenPlayfield}}
+
+---@class rizu.editor.EditorRetainedView
+---@field load fun(self: rizu.editor.EditorRetainedView)
+---@field unload (fun(self: rizu.editor.EditorRetainedView))?
+---@field updateTransform fun(self: rizu.editor.EditorRetainedView)
+
+---@class rizu.editor.EditorScreen
+---@field game rizu.editor.EditorScreenGame
+---@field loading boolean
+---@field editor_loaded boolean
+---@field editorViewServices rizu.editor.EditorViewServices?
+---@field editor_retained_views rizu.editor.EditorRetainedView[]?
+---@field views rizu.editor.EditorRetainedView[]
+---@field snap_grid_transform table?
+---@field transform table?
+---@field editor_sequence_view gui.View?
+---@field editor_snap_grid_view gui.View?
+---@field editor_playfield_view gui.View?
+
 ---@class rizu.editor.EditorScreenLoadServiceDeps
 ---@field viewServicesFactory (fun(): rizu.editor.EditorViewServices)?
----@field retainedViewsFactory (fun(screen: table): gui.View[])?
+---@field retainedViewsFactory (fun(screen: rizu.editor.EditorScreen): rizu.editor.EditorRetainedView[])?
 
 ---@class rizu.editor.EditorScreenLoadService
 ---@operator call: rizu.editor.EditorScreenLoadService
 ---@field viewServicesFactory fun(): rizu.editor.EditorViewServices
----@field retainedViewsFactory fun(screen: table): gui.View[]
+---@field retainedViewsFactory fun(screen: rizu.editor.EditorScreen): rizu.editor.EditorRetainedView[]
 local EditorScreenLoadService = class()
 
 ---@param deps rizu.editor.EditorScreenLoadServiceDeps
@@ -19,7 +48,7 @@ function EditorScreenLoadService:new(deps)
 	self.retainedViewsFactory = assert(deps.retainedViewsFactory, "retained editor views dependency is required")
 end
 
----@param screen table
+---@param screen rizu.editor.EditorScreen
 ---@return boolean started
 function EditorScreenLoadService:enter(screen)
 	if screen.loading or screen.editor_loaded then
@@ -45,7 +74,7 @@ function EditorScreenLoadService:enter(screen)
 	return true
 end
 
----@param screen table
+---@param screen rizu.editor.EditorScreen
 function EditorScreenLoadService:load(screen)
 	local game = screen.game
 	game.editorController:load()
@@ -61,7 +90,7 @@ function EditorScreenLoadService:load(screen)
 	self:attachRetainedViews(screen)
 end
 
----@param screen table
+---@param screen rizu.editor.EditorScreen
 function EditorScreenLoadService:attachRetainedViews(screen)
 	local views = self.retainedViewsFactory(screen)
 	screen.editor_retained_views = views
@@ -74,7 +103,7 @@ function EditorScreenLoadService:attachRetainedViews(screen)
 	end
 end
 
----@param screen table
+---@param screen rizu.editor.EditorScreen
 function EditorScreenLoadService:detachRetainedViews(screen)
 	local views = screen.editor_retained_views
 	if not views then
@@ -98,7 +127,7 @@ function EditorScreenLoadService:detachRetainedViews(screen)
 	screen.editor_playfield_view = nil
 end
 
----@param screen table
+---@param screen rizu.editor.EditorScreen
 ---@return boolean unloaded
 function EditorScreenLoadService:exit(screen)
 	if not screen.editor_loaded then
