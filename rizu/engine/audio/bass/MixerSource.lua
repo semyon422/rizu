@@ -35,7 +35,7 @@ function MixerSource:new(use_tempo)
 
 	bass.BASS_ChannelPlay(self.channel, false)
 
-	---@type {decoder: rizu.audio.IDecoder}[]
+	---@type {decoder: rizu.audio.bass.Decoder}[]
 	self.active_sounds = {}
 
 	self.gc_proxy = newproxy(true)
@@ -61,7 +61,7 @@ function MixerSource:release()
 	self.active_sounds = {}
 end
 
----@param decoder rizu.audio.IDecoder
+---@param decoder rizu.audio.bass.Decoder
 ---@param volume number?
 function MixerSource:addSound(decoder, volume)
 	-- Use the resample_channel from Decoder (it's a decoding mixer)
@@ -87,7 +87,9 @@ function MixerSource:update()
 		local sound = self.active_sounds[i]
 		local channel = sound.decoder.resample_channel
 
+		---@type integer
 		local pos = bass_mix.BASS_Mixer_ChannelGetPosition(channel, bass_flags.BASS_POS_BYTE)
+		---@type integer
 		local len = bass.BASS_ChannelGetLength(channel, bass_flags.BASS_POS_BYTE)
 
 		-- BASS_ACTIVE_STOPPED = 0

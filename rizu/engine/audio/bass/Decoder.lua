@@ -7,6 +7,7 @@ local bass_flags = require("bass.flags")
 
 ---@class rizu.audio.bass.Decoder: rizu.audio.IDecoder
 ---@operator call: rizu.audio.bass.Decoder
+---@field resample_channel integer
 local Decoder = IDecoder + {}
 
 Decoder.sample_rate = 44100
