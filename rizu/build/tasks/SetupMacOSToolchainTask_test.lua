@@ -11,6 +11,7 @@ function test.packages_only_required_sdk_files(t)
 	fs:createDirectory("build/downloads")
 	fs:write("build/downloads/Xcode_14.2.xip", "x")
 
+	---@type string[]
 	local commands = {}
 	---@type rizu.build.IShell
 	local shell = {}
@@ -24,7 +25,9 @@ function test.packages_only_required_sdk_files(t)
 
 	SetupMacOSToolchainTask():run({fs = fs, shell = shell})
 
+	---@type string?
 	local bootstrap_command
+	---@type string?
 	local package_command
 	for _, command in ipairs(commands) do
 		if command:find("gen_sdk_package_pbzx.sh", 1, true) then
