@@ -12,10 +12,17 @@ end
 
 Updater.status = ""
 
----@param server table
----@param client table
----@return table
+---@class rizu.UpdateFile
+---@field path string
+---@field hash integer?
+---@field hash_old integer?
+---@field url string?
+
+---@param server sphere.FilesConfig
+---@param client sphere.FilesConfig
+---@return rizu.UpdateFile[]
 function Updater:mergeLists(server, client)
+	---@type {[string]: rizu.UpdateFile}
 	local map = {}
 	for _, file in ipairs(server) do
 		local path = file.path
@@ -31,6 +38,7 @@ function Updater:mergeLists(server, client)
 		map[path].path = path
 	end
 
+	---@type rizu.UpdateFile[]
 	local list = {}
 	for _, file in pairs(map) do
 		table.insert(list, file)
@@ -42,11 +50,19 @@ function Updater:mergeLists(server, client)
 	return list
 end
 
+---@param server_filelist sphere.FilesConfig
+---@param client_filelist sphere.FilesConfig
+---@return rizu.UpdateFile[] download
+---@return rizu.UpdateFile[] remove
+---@return rizu.UpdateFile[] found
 function Updater:getActionLists(server_filelist, client_filelist)
 	local filelist = self:mergeLists(server_filelist, client_filelist)
 
+	---@type rizu.UpdateFile[]
 	local download = {}
+	---@type rizu.UpdateFile[]
 	local remove = {}
+	---@type rizu.UpdateFile[]
 	local found = {}
 
 	for _, file in ipairs(filelist) do
@@ -90,13 +106,13 @@ function Updater:updateFilesAsync(update_url, client_filelist)
 		return
 	end
 
+	---@cast server_filelist sphere.FilesConfig
 	local download, remove, found = self:getActionLists(server_filelist, client_filelist)
 
 	for _, file in ipairs(found) do
 		self:setStatus("found: " .. file.path)
 	end
 
-	local count = 0
 	for _, file in ipairs(download) do
 		self:setStatus("download: " .. file.path)
 		local ok, err = self.updater_io:downloadAsync(file.url, file.path)
@@ -104,14 +120,13 @@ function Updater:updateFilesAsync(update_url, client_filelist)
 			self:setStatus(err)
 			return
 		end
-		count = count + 1
 	end
 	for _, file in ipairs(remove) do
 		self:setStatus("remove: " .. file.path)
 		self.updater_io:removeAsync(file.path)
-		count = count + 1
 	end
 
+	local count = #download + #remove
 	self:setStatus("files updated: " .. count)
 
 	return count > 0, server_filelist
