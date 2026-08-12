@@ -110,9 +110,9 @@ local function detectAudioExtension(data)
 	elseif data:sub(1, 3) == "ID3" or data:sub(1, 2) == string.char(0xff, 0xfb) then
 		return "mp3"
 	elseif data:sub(1, 16) == string.char(
-		0x30, 0x26, 0xb2, 0x75, 0x8e, 0x66, 0xcf, 0x11,
-		0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c
-	) then
+			0x30, 0x26, 0xb2, 0x75, 0x8e, 0x66, 0xcf, 0x11,
+			0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c
+		) then
 		return "wma"
 	end
 	return "bin"
@@ -172,7 +172,9 @@ local function addReferencedSounds(writer, entries, loader, chart)
 	---@type {[string]: string}
 	local renamed_sounds = {}
 	for _, note in chart.notes:iter() do
-		local sounds = note.data.sounds
+		---@type {sounds: {[1]: string, [2]: number}[]?}
+		local note_data = note.data
+		local sounds = note_data.sounds
 		if sounds then
 			for _, sound in ipairs(sounds) do
 				local name = sound[1]
