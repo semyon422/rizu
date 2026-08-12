@@ -69,14 +69,24 @@ end
 ---@param case_sensitive boolean
 ---@return boolean
 local function matches(value, query, case_sensitive)
+	local match_value = value
+	local match_query = query
 	if not case_sensitive then
-		value = value:lower()
-		query = query:lower()
+		match_value = value:lower()
+		match_query = query:lower()
 	end
-	return value:find(query, 1, true) ~= nil
+	return match_value:find(match_query, 1, true) ~= nil
 end
 
----@param args {[string]: any}
+---@class rizu.ai.SearchSourceArgs
+---@field query string
+---@field path string
+---@field mode "content"|"filename"
+---@field case_sensitive boolean
+---@field max_results integer
+---@field max_files integer
+
+---@param args rizu.ai.SearchSourceArgs
 ---@return string
 ---@return boolean? is_error
 function SearchSourceTool:execute(args)
@@ -101,9 +111,11 @@ function SearchSourceTool:execute(args)
 		return fail("path not found")
 	end
 
+	---@type string[]
 	local queue = {root}
 	local queue_index = 1
 	local files = 0
+	---@type string[]
 	local results = {}
 	while queue_index <= #queue and #results < args.max_results and files < args.max_files do
 		local path = queue[queue_index]
@@ -125,12 +137,12 @@ function SearchSourceTool:execute(args)
 				local content = self.fs:read(path)
 				if content then
 					local line_number = 0
-					for line in (content .. "\n"):gmatch("(.-)\n") do
+					for line in (content .. "\n"):gmatch("(.-)\n") --[[@as fun(): string]] do
 						line_number = line_number + 1
 						if matches(line, args.query, args.case_sensitive) then
 							local text = utf8validate((line:gsub("\r$", "")))
-							if #text > 500 then text = text:sub(1, 500) .. "...[truncated]" end
-							table.insert(results, ("%s:%d: %s"):format(path, line_number, text))
+							local displayed_text = #text > 500 and text:sub(1, 500) .. "...[truncated]" or text
+							table.insert(results, ("%s:%d: %s"):format(path, line_number, displayed_text))
 							if #results >= args.max_results then break end
 						end
 					end
@@ -140,6 +152,7 @@ function SearchSourceTool:execute(args)
 	end
 
 	local truncated = queue_index <= #queue and (#results >= args.max_results or files >= args.max_files)
+	---@type string[]
 	local output = {("search_source: %d matches in %d files%s"):format(#results, files, truncated and " (truncated)" or "")}
 	for _, result in ipairs(results) do table.insert(output, result) end
 	return utf8validate(table.concat(output, "\n"))

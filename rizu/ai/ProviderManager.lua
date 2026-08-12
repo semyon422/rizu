@@ -58,6 +58,7 @@ function ProviderManager:new(options)
 	self.clients = {}
 	addLegacyProvider(self.config)
 
+	---@type string[]
 	local provider_ids = {}
 	for provider_id in pairs(self.config.providers) do table.insert(provider_ids, provider_id) end
 	table.sort(provider_ids, function(a, b)
@@ -65,6 +66,7 @@ function ProviderManager:new(options)
 		return (pa.order or math.huge) < (pb.order or math.huge)
 			or (pa.order == pb.order and a < b)
 	end)
+	---@type rizu.ai.ModelOption[]
 	self.options = {}
 	for _, provider_id in ipairs(provider_ids) do
 		local provider = self.config.providers[provider_id]

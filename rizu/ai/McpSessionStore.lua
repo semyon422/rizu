@@ -68,6 +68,7 @@ function McpSessionStore:load()
 		return nil, "invalid MCP session store: " .. tostring(decode_err)
 	end
 
+	---@cast decoded {[string]: number}
 	local now = self.get_time()
 	---@type {id: string, updated_at: number}[]
 	local records = {}
@@ -100,6 +101,7 @@ end
 
 ---@return string
 function McpSessionStore:generateId()
+	---@type string
 	local id
 	repeat
 		self.session_index = self.session_index + 1
@@ -115,7 +117,9 @@ function McpSessionStore:add(id)
 	self.sessions[id] = self.get_time()
 
 	local count = 0
+	---@type string?
 	local oldest_id
+	---@type number?
 	local oldest_time
 	for session_id, updated_at in pairs(self.sessions) do
 		count = count + 1

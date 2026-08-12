@@ -68,6 +68,7 @@ end
 ---@return table
 local function describeFunction(value)
 	local info = assert(debug.getinfo(value, "Sln"))
+	---@type string?
 	local path
 	if info.source:sub(1, 1) == "@" then
 		path = info.source:sub(2):gsub("\\", "/")
@@ -86,11 +87,20 @@ end
 ---@field remaining integer
 ---@field seen {[table]: string}
 
+---@class rizu.ai.RuntimeInspection
+---@field type string
+---@field value any?
+---@field bytes integer?
+---@field reference string?
+---@field items {key: string, key_type: string, value: rizu.ai.RuntimeInspection}[]?
+---@field truncated boolean?
+---@field metatable rizu.ai.RuntimeInspection?
+
 ---@param value any
 ---@param depth integer
 ---@param path string
 ---@param state rizu.ai.RuntimeInspectionState
----@return table
+---@return rizu.ai.RuntimeInspection
 local function describeValue(value, depth, path, state)
 	local value_type = type(value)
 	if value_type == "nil" then
@@ -110,13 +120,16 @@ local function describeValue(value, depth, path, state)
 		return {type = "table", reference = previous_path}
 	end
 	state.seen[value] = path
+	---@type rizu.ai.RuntimeInspection
 	local result = {type = "table", items = {}}
 	if depth <= 0 then
 		result.truncated = true
 		return result
 	end
 
+	---@type any[]
 	local keys = {}
+	---@diagnostic disable-next-line: no-unknown -- LuaLS 3.19 cannot type generic-for values from `next` over a narrowed runtime table.
 	for key in next, value do table.insert(keys, key) end
 	table.sort(keys, function(a, b)
 		local type_a, type_b = type(a), type(b)
@@ -143,7 +156,12 @@ local function describeValue(value, depth, path, state)
 	return result
 end
 
----@param args {[string]: any}
+---@class rizu.ai.InspectRuntimeArgs
+---@field target string
+---@field depth integer
+---@field max_items integer
+
+---@param args rizu.ai.InspectRuntimeArgs
 ---@return string
 ---@return boolean? is_error
 function InspectRuntimeTool:execute(args)
@@ -156,16 +174,18 @@ function InspectRuntimeTool:execute(args)
 		return fail("max_items must be an integer from 1 to 100")
 	end
 
+	---@type any
 	local value = self.game
 	local first = true
-	for part in target:gmatch("[^.]+") do
+	for part in target:gmatch("[^.]+") --[[@as fun(): string]] do
 		if first then
 			first = false
 			if part ~= "game" then return fail("target must be rooted at game") end
 		elseif type(value) ~= "table" then
 			return fail("cannot traverse through " .. part)
 		else
-			value = value[part]
+			local value_table = value --[[@as {[string]: any}]]
+			value = value_table[part]
 			if value == nil then return fail("target does not exist") end
 		end
 	end
