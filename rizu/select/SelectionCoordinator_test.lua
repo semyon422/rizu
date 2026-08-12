@@ -2,7 +2,15 @@ local SelectionCoordinator = require("rizu.select.SelectionCoordinator")
 
 local test = {}
 
+---@class rizu.select.FakeSelectionObserver
+---@field receive (fun(self: rizu.select.FakeSelectionObserver, event: table))?
+
+---@alias rizu.select.FakeSelectionEventReceiver rizu.select.FakeSelectionObserver|fun(event: table)
+
+---@param calls string[]
+---@return rizu.select.SelectionCoordinator
 local function newCoordinator(calls)
+	---@type rizu.select.FakeSelectionEventReceiver[]
 	local chart_observers = {}
 	local chartSelector = {
 		state = {
