@@ -41,10 +41,15 @@ function test.export_writes_nanochart_and_previews(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("charts")
 
+	---@type string
 	local capturedHash
+	---@type integer
 	local capturedInputs
+	---@type {time: number, type: integer, input: integer}[]
 	local capturedNotes
+	---@type chart.Chart
 	local chartEncoderChart
+	---@type sea.Chartmeta
 	local chartEncoderChartmeta
 	local chart = createChart({
 		createNote("key2", "tap", 0, 2),
