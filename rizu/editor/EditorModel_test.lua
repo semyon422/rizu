@@ -12,7 +12,9 @@ local EditorViewState = require("rizu.editor.state.EditorViewState")
 local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
 
 local test = {}
+---@type fun(): rizu.editor.EditorModel
 local createEditorModel
+---@type fun(editorModel: rizu.editor.EditorModel): rizu.editor.EditorModel
 local attachEditorModel
 
 ---@param editorModel rizu.editor.EditorModel
@@ -245,6 +247,7 @@ end
 
 ---@param t testing.T
 function test.save_delegates_to_save_service_context(t)
+	---@type rizu.editor.EditorSaveContext
 	local savedContext
 	local editorModel = {
 		metadata = {
@@ -498,11 +501,17 @@ function test.get_settings_normalizes_speed_and_snap(t)
 	t:eq(editor.snap, EditorModel.max_snap)
 end
 
+---@class rizu.editor.FakeEditorPoint
+---@field absoluteTime number
+---@field cloned boolean?
+
 ---@param t testing.T
 function test.set_session_point_clones_point(t)
 	local editorModel = createEditorModel()
 	local point = {
 		absoluteTime = 1.25,
+		---@param self rizu.editor.FakeEditorPoint
+		---@param target rizu.editor.FakeEditorPoint
 		clone = function(self, target)
 			target.absoluteTime = self.absoluteTime
 			target.cloned = true
@@ -583,7 +592,9 @@ function test.select_note_uses_injected_multi_select_predicate(t)
 	local note = {
 		id = "note",
 	}
+	---@type {id: string}
 	local selectedNote
+	---@type boolean
 	local keepOthers
 	---@type rizu.editor.EditorModel
 	local editorModel = {
@@ -824,6 +835,7 @@ function test.interval_manager_context_reads_current_model_state(t)
 	}
 	attachEditorModel(editorModel)
 
+	---@type rizu.editor.IntervalManagerContext
 	local context = editorModel.context:getIntervalManagerContext()
 	t:eq(context:getLayer(), editorModel.layer)
 	t:eq(context:getNotes(), editorModel.notes)
@@ -876,6 +888,7 @@ function test.editor_note_service_context_reads_current_model_state(t)
 	}
 	attachEditorModel(editorModel)
 
+	---@type rizu.editor.EditorNoteServiceContext
 	local context = editorModel.context:getNoteServiceContext()
 
 	t:eq(context:getNoteSkin(), "noteSkin")
@@ -904,7 +917,7 @@ function test.graph_generation_uses_analysis_context(t)
 		analysisService = {
 			genGraphs = function(_, context)
 				table.insert(calls, "graphs")
-					t:eq(context:getGraphsGenerator(), editorModel.graphsGenerator)
+				t:eq(context:getGraphsGenerator(), editorModel.graphsGenerator)
 			end,
 		},
 	}
