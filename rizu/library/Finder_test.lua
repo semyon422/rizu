@@ -3,7 +3,19 @@ local path_util = require("path_util")
 
 local test = {}
 
+---@class rizu.library.FinderTestItem
+---@field type "directory"|"file"
+---@field cached boolean?
+---@field [integer] string
+
+---@alias rizu.library.FinderTestItems {[string]: rizu.library.FinderTestItem}
+
+---@param prefix string?
+---@param dir string?
+---@return rizu.library.FinderTestItems
+---@return rizu.library.FinderIterator
 local function get_files(prefix, dir)
+	---@type rizu.library.FinderTestItems
 	local items = {
 		["root"] = {
 			type = "directory",
@@ -29,6 +41,7 @@ local function get_files(prefix, dir)
 			type = "file",
 		},
 	}
+	---@type fs.IFilesystem
 	local fs = {}
 	function fs:getDirectoryItems(path)
 		return items[path]
@@ -43,8 +56,15 @@ local function get_files(prefix, dir)
 	return items, iterator
 end
 
+---@param items rizu.library.FinderTestItems
+---@param iterator rizu.library.FinderIterator
+---@param prefix string?
+---@return string[] chartfile_sets
+---@return string[] chartfiles
 local function iter(items, iterator, prefix)
+	---@type string[]
 	local chartfile_sets = {}
+	---@type string[]
 	local chartfiles = {}
 
 	local typ, dir, item, modtime = iterator()
@@ -55,19 +75,20 @@ local function iter(items, iterator, prefix)
 			path = path_util.join(prefix, dir, item)
 			path_np = path_util.join(dir, item)
 		end
-		local not_cached = not items[path].cached
+		local not_cached = not assert(items[path]).cached
+		---@type boolean?
 		local res
 		if typ == "related_dir" then
-			table.insert(chartfile_sets, path_np)
+			table.insert(chartfile_sets, assert(path_np))
 		elseif typ == "related" then
 			if not_cached then
-				table.insert(chartfiles, path_np)
+				table.insert(chartfiles, assert(path_np))
 			end
 		elseif typ == "unrelated_dir" then
 		elseif typ == "unrelated" then
 			if not_cached then
-				table.insert(chartfile_sets, path_np)
-				table.insert(chartfiles, path_np)
+				table.insert(chartfile_sets, assert(path_np))
+				table.insert(chartfiles, assert(path_np))
 			end
 		elseif typ == "directory_dir" then
 		elseif typ == "directory" then
@@ -80,6 +101,7 @@ local function iter(items, iterator, prefix)
 	return chartfile_sets, chartfiles
 end
 
+---@param t testing.T
 function test.not_cached(t)
 	local items, iterator = get_files(nil, "root")
 	local chartfile_sets, chartfiles = iter(items, iterator, nil)
@@ -94,6 +116,7 @@ function test.not_cached(t)
 	})
 end
 
+---@param t testing.T
 function test.chartsets_cached(t)
 	local items, iterator = get_files(nil, "root")
 	items["root/rel_charts/chartset"].cached = true
@@ -105,6 +128,7 @@ function test.chartsets_cached(t)
 	t:teq(chartfiles, {})
 end
 
+---@param t testing.T
 function test.new_charts(t)
 	local items, iterator = get_files(nil, "root")
 	items["root/rel_charts/chartset/chart.osu"].cached = true
@@ -128,6 +152,7 @@ function test.new_charts(t)
 	})
 end
 
+---@param t testing.T
 function test.not_cached_prefixed(t)
 	local items, iterator = get_files("root", nil)
 	local chartfile_sets, chartfiles = iter(items, iterator, "root")
@@ -143,6 +168,7 @@ function test.not_cached_prefixed(t)
 	})
 end
 
+---@param t testing.T
 function test.not_cached_prefixed_string(t)
 	local items, iterator = get_files("root", "rel_charts")
 	local chartfile_sets, chartfiles = iter(items, iterator, "root")
