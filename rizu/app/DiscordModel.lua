@@ -2,6 +2,23 @@ local discordrpc = require("discordRPC")
 local class = require("class")
 local brand = require("brand")
 
+---@class rizu.DiscordPresence
+---@field state string?
+---@field details string?
+---@field startTimestamp integer?
+---@field endTimestamp integer?
+---@field largeImageKey string?
+---@field largeImageText string?
+---@field smallImageKey string?
+---@field smallImageText string?
+---@field partyId string?
+---@field partySize integer?
+---@field partyMax integer?
+---@field matchSecret string?
+---@field joinSecret string?
+---@field spectateSecret string?
+---@field instance integer?
+
 ---@class rizu.DiscordModel
 ---@operator call: rizu.DiscordModel
 local DiscordModel = class()
@@ -49,7 +66,7 @@ function DiscordModel:updateEnabled()
 	end
 end
 
----@param presence table
+---@param presence rizu.DiscordPresence
 function DiscordModel:setPresence(presence)
 	if not self.enabled then
 		return
@@ -57,8 +74,8 @@ function DiscordModel:setPresence(presence)
 	self.presence = self:validatePresence(presence)
 end
 
----@param presence table
----@return table
+---@param presence rizu.DiscordPresence
+---@return rizu.DiscordPresence
 function DiscordModel:validatePresence(presence)
 	presence.state = presence.state and presence.state:sub(1, 127)
 	presence.details = presence.details and presence.details:sub(1, 127)
