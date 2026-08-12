@@ -2,6 +2,13 @@ local EditorInfoOverlayService = require("rizu.editor.view.overlays.EditorInfoOv
 
 local test = {}
 
+---@class rizu.editor.FakeEditorInfoOverlayFields
+---@field calls string[]
+---@field metadata {[string]: string}
+---@field keys string[]
+
+---@param fields rizu.editor.FakeEditorInfoOverlayFields
+---@return rizu.editor.EditorInfoOverlayContext
 local function createContext(fields)
 	return {
 		iterMetadata = function()
