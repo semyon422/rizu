@@ -13,6 +13,7 @@ local screen_manager = {
 	unload = function() end,
 }
 
+---@class rizu.app.DefaultUserInterface: rizu.app.UserInterface
 local DefaultUserInterface = RizuUserInterface + {}
 DefaultUserInterface.name = "default"
 DefaultUserInterface.display_name = "Default"
@@ -20,6 +21,7 @@ function DefaultUserInterface:new(game, mount_path)
 	RizuUserInterface.new(self, game, mount_path, screen_manager)
 end
 
+---@class rizu.app.PluginUserInterface: rizu.app.UserInterface
 local PluginUserInterface = RizuUserInterface + {}
 PluginUserInterface.name = "plugin"
 PluginUserInterface.display_name = "Plugin"
@@ -27,6 +29,7 @@ function PluginUserInterface:new(game, mount_path)
 	RizuUserInterface.new(self, game, mount_path, screen_manager)
 end
 
+---@class rizu.app.CrashingUserInterface: rizu.app.UserInterface
 local CrashingUserInterface = RizuUserInterface + {}
 CrashingUserInterface.name = "crashing"
 CrashingUserInterface.display_name = "Crashing"
@@ -34,6 +37,7 @@ function CrashingUserInterface:new()
 	error("plugin constructor failed")
 end
 
+---@class rizu.app.CrashingDefaultUserInterface: rizu.app.UserInterface
 local CrashingDefaultUserInterface = RizuUserInterface + {}
 CrashingDefaultUserInterface.name = "crashing_default"
 CrashingDefaultUserInterface.display_name = "Crashing Default"
@@ -89,7 +93,7 @@ function test.plugin_constructor_failure_falls_back_to_default(t)
 	manager:loadSelected()
 
 	t:assert(DefaultUserInterface * game.ui)
-	t:eq(game.settings:getString(), "default")
+	t:eq(game.settings:getString("user_interface"), "default")
 end
 
 ---@param t testing.T
@@ -110,6 +114,7 @@ function test.discovers_ui_package_class(t)
 	game.packageManager.getPackagesByType = function()
 		return {{name = "plugin", types = {ui = "test.user_interface"}}}
 	end
+	---@param name string
 	game.packageManager.getPackageDir = function(_, name)
 		t:eq(name, "plugin")
 		return "/packages/plugin"
