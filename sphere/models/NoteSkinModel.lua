@@ -142,13 +142,14 @@ function NoteSkinModel:loadSkins()
 end
 
 ---@param inputMode string
----@return table
+---@return sphere.SkinInfo[]
 function NoteSkinModel:getSkinInfos(inputMode)
 	if self.inputMode == inputMode then
 		return self.items
 	end
 	self.inputMode = inputMode
 
+	---@type sphere.SkinInfo[]
 	local items = {}
 	self.items = items
 

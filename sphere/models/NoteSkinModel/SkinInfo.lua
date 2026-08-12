@@ -2,6 +2,9 @@ local class = require("class")
 
 ---@class sphere.SkinInfo
 ---@operator call: sphere.SkinInfo
+---@field name string
+---@field dir string
+---@field file_name string
 local SkinInfo = class()
 
 ---@param inputMode string
