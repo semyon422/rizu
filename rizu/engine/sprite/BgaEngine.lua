@@ -81,7 +81,9 @@ function BgaEngine:load(chart, resources)
 			if not tostring(column):find("^bmsbga") or bms_bga_whitelist[tostring(column)] then
 				self.bga_notes[visual][column] = self.bga_notes[visual][column] or {}
 
-				local images = linked_note.startNote.data.images
+				---@type {images: {[1]: string}[]?}
+				local note_data = linked_note.startNote.data
+				local images = note_data.images
 				---@type string?
 				local name = images and images[1] and images[1][1]
 				local _type = "ImageNote"
@@ -130,6 +132,7 @@ end
 
 function BgaEngine:update()
 	local time = self.visual_info:getTime()
+	---@type rizu.sprite.BgaEvent[]
 	local active_notes = {}
 
 	for visual, columns in pairs(self.bga_notes) do
