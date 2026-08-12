@@ -197,6 +197,7 @@ function ChatModel:removeIncompleteActiveProtocolMessages()
 			break
 		end
 
+		---@type aqua.openai.ToolCall[]?
 		local tool_calls = message.tool_calls
 		if type(tool_calls) ~= "table" or #tool_calls == 0 then
 			if type(message.content) == "string" then
@@ -207,13 +208,14 @@ function ChatModel:removeIncompleteActiveProtocolMessages()
 			end
 		else
 			local group_complete = true
+			---@cast tool_calls aqua.openai.ToolCall[]
 			for offset, tool_call in ipairs(tool_calls) do
 				local tool_message = self.messages[index + offset]
 				if
-				type(tool_call.id) ~= "string" or
-				not tool_message or
-				tool_message.role ~= "tool" or
-				tool_message.tool_call_id ~= tool_call.id
+					type(tool_call.id) ~= "string" or
+					not tool_message or
+					tool_message.role ~= "tool" or
+					tool_message.tool_call_id ~= tool_call.id
 				then
 					group_complete = false
 					break
