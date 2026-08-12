@@ -8,6 +8,61 @@ local HEADS = 8
 local KV_HEADS = 4
 local HEAD_DIM = 64
 
+---@class rizu.ai.GpuEncoderSupport
+---@field glsl4 boolean
+
+---@class rizu.ai.GpuEncoderByteData
+---@field getFFIPointer fun(self: rizu.ai.GpuEncoderByteData): ffi.cdata*
+---@field getFloat fun(self: rizu.ai.GpuEncoderByteData, offset: integer): number
+
+---@class rizu.ai.GpuEncoderData
+---@field newByteData fun(size: integer): rizu.ai.GpuEncoderByteData
+
+---@class rizu.ai.GpuEncoderShader
+---@field send fun(self: rizu.ai.GpuEncoderShader, name: string, value: rizu.ai.GpuEncoderBuffer|integer)
+
+---@class rizu.ai.GpuEncoderBuffer
+
+---@class rizu.ai.GpuEncoderReadback
+---@field isComplete fun(self: rizu.ai.GpuEncoderReadback): boolean
+---@field hasError fun(self: rizu.ai.GpuEncoderReadback): boolean
+---@field getBufferData fun(self: rizu.ai.GpuEncoderReadback): rizu.ai.GpuEncoderByteData
+
+---@class rizu.ai.GpuEncoderGraphics
+---@field getSupported fun(): rizu.ai.GpuEncoderSupport
+---@field newComputeShader fun(source: string, options: {debugname: string}): rizu.ai.GpuEncoderShader
+---@field newBuffer fun(format: string, data: rizu.ai.GpuEncoderByteData|integer, options: {shaderstorage: boolean, usage: string?, debugname: string}): rizu.ai.GpuEncoderBuffer
+---@field dispatchThreadgroups fun(shader: rizu.ai.GpuEncoderShader, groups: integer)
+---@field readbackBufferAsync fun(buffer: rizu.ai.GpuEncoderBuffer, offset: integer, size: integer): rizu.ai.GpuEncoderReadback
+
+---@class rizu.ai.GpuEncoderInt8Ptr: ffi.cdata*
+---@field [integer] integer
+
+---@class rizu.ai.GpuEncoderUint16Ptr: ffi.cdata*
+---@field [integer] integer
+
+---@class rizu.ai.GpuEncoderFloatPtr: ffi.cdata*
+---@field [integer] number
+
+---@class rizu.ai.GpuEncoderBuffers
+---@field input rizu.ai.GpuEncoderBuffer
+---@field q_weights rizu.ai.GpuEncoderBuffer
+---@field q_scales rizu.ai.GpuEncoderBuffer
+---@field k_weights rizu.ai.GpuEncoderBuffer
+---@field k_scales rizu.ai.GpuEncoderBuffer
+---@field v_weights rizu.ai.GpuEncoderBuffer
+---@field v_scales rizu.ai.GpuEncoderBuffer
+---@field out_weights rizu.ai.GpuEncoderBuffer
+---@field out_scales rizu.ai.GpuEncoderBuffer
+---@field q_norm rizu.ai.GpuEncoderBuffer
+---@field k_norm rizu.ai.GpuEncoderBuffer
+---@field q rizu.ai.GpuEncoderBuffer
+---@field k rizu.ai.GpuEncoderBuffer
+---@field v rizu.ai.GpuEncoderBuffer
+---@field scores rizu.ai.GpuEncoderBuffer
+---@field context rizu.ai.GpuEncoderBuffer
+---@field output rizu.ai.GpuEncoderBuffer
+
 local DENSE_SOURCE = [[
 #pragma language glsl4
 layout(local_size_x = 64) in;
@@ -86,15 +141,25 @@ void computemain() {
 
 ---@class rizu.ai.NeedleGpuEncoderProbe
 ---@operator call: rizu.ai.NeedleGpuEncoderProbe
----@field graphics love.Graphics
----@field data love.Data
+---@field graphics rizu.ai.GpuEncoderGraphics
+---@field data rizu.ai.GpuEncoderData
 ---@field now fun(): number
 ---@field state "idle"|"unsupported"|"waiting"|"ready"|"error"
----@field readback love.GraphicsReadback?
+---@field readback rizu.ai.GpuEncoderReadback?
+---@field dense_shader rizu.ai.GpuEncoderShader?
+---@field norm_rope_shader rizu.ai.GpuEncoderShader?
+---@field score_shader rizu.ai.GpuEncoderShader?
+---@field context_shader rizu.ai.GpuEncoderShader?
+---@field buffers rizu.ai.GpuEncoderBuffers?
+---@field seq_len integer
+---@field expected number[]
+---@field error string?
+---@field preparation_seconds number
+---@field dispatch_started_at number
 local NeedleGpuEncoderProbe = class()
 
----@param graphics? love.Graphics
----@param data? love.Data
+---@param graphics? rizu.ai.GpuEncoderGraphics
+---@param data? rizu.ai.GpuEncoderData
 ---@param now? fun(): number
 function NeedleGpuEncoderProbe:new(graphics, data, now)
 	self.graphics = graphics or love.graphics
@@ -103,12 +168,15 @@ function NeedleGpuEncoderProbe:new(graphics, data, now)
 	self.state = "idle"
 end
 
+---@param message string
 local function log(message)
 	local line = "[Needle GPU encoder] " .. message
 	print(line)
 	if love and love.filesystem then pcall(love.filesystem.append, "needle_gpu_probe.log", line .. "\n") end
 end
 
+---@param value integer
+---@return number
 local function f16(value)
 	local sign = value >= 0x8000 and -1 or 1
 	local exponent = math.floor(value / 1024) % 32
@@ -128,10 +196,11 @@ function NeedleGpuEncoderProbe:release()
 	if self.state == "waiting" then self.state = "idle" end
 end
 
----@param bytes love.ByteData
+---@param bytes rizu.ai.GpuEncoderByteData
 ---@param count integer
 ---@return number[]
 local function read_floats(bytes, count)
+	---@type number[]
 	local values = {}
 	for i = 0, count - 1 do values[i + 1] = bytes:getFloat(i * 4) end
 	return values
@@ -142,16 +211,16 @@ end
 ---@param layer integer
 ---@param width integer
 ---@param output_width integer
----@return love.ByteData weights
----@return love.ByteData scales
+---@return rizu.ai.GpuEncoderByteData weights
+---@return rizu.ai.GpuEncoderByteData scales
 function NeedleGpuEncoderProbe:load_projection(context, name, layer, width, output_width)
 	local q8_index = assert(context:find_tensor(name .. ".q8"))
 	local scale_index = assert(context:find_tensor(name .. ".q8_scale"))
 	local q8_pointer = assert(context:tensor_data(q8_index))
 	local scale_pointer = assert(context:tensor_data(scale_index))
-	local source = ffi.cast("const signed char *", q8_pointer) + layer * width * output_width
+	local source = ffi.cast("const signed char *", q8_pointer + layer * width * output_width) --[[@as rizu.ai.GpuEncoderInt8Ptr]]
 	local weights_data = self.data.newByteData(width * output_width)
-	local weights = ffi.cast("signed char *", weights_data:getFFIPointer())
+	local weights = ffi.cast("signed char *", weights_data:getFFIPointer()) --[[@as rizu.ai.GpuEncoderInt8Ptr]]
 	for output = 0, output_width - 1 do for input = 0, width - 1 do weights[output * width + input] = source[input * output_width + output] end end
 	local scales_data = self.data.newByteData(output_width * 4)
 	ffi.copy(scales_data:getFFIPointer(), ffi.cast("const unsigned char *", scale_pointer) + layer * output_width * 4, output_width * 4)
@@ -161,24 +230,23 @@ end
 ---@param context needle.Context
 ---@param name string
 ---@param layer integer
----@return love.ByteData
+---@return rizu.ai.GpuEncoderByteData
 function NeedleGpuEncoderProbe:load_f16_scales(context, name, layer)
 	local index = assert(context:find_tensor(name))
-	local pointer = ffi.cast("const uint16_t *", assert(context:tensor_data(index)))
+	local pointer = ffi.cast("const uint16_t *", assert(context:tensor_data(index))) --[[@as rizu.ai.GpuEncoderUint16Ptr]]
 	local data = self.data.newByteData(HEAD_DIM * 4)
-	local out = ffi.cast("float *", data:getFFIPointer())
+	local out = ffi.cast("float *", data:getFFIPointer()) --[[@as rizu.ai.GpuEncoderFloatPtr]]
 	for i = 0, HEAD_DIM - 1 do out[i] = f16(pointer[layer * HEAD_DIM + i]) end
 	return data
 end
 
----@param shader love.Shader
----@param input love.Buffer
----@param weights love.Buffer
----@param scales love.Buffer
----@param output love.Buffer
+---@param shader rizu.ai.GpuEncoderShader
+---@param input rizu.ai.GpuEncoderBuffer
+---@param weights rizu.ai.GpuEncoderBuffer
+---@param scales rizu.ai.GpuEncoderBuffer
+---@param output rizu.ai.GpuEncoderBuffer
 ---@param input_width integer
 ---@param output_width integer
----@param rows integer
 function NeedleGpuEncoderProbe:project(shader, input, weights, scales, output, input_width, output_width)
 	shader:send("Input", input)
 	shader:send("Weights", weights)
@@ -204,14 +272,16 @@ function NeedleGpuEncoderProbe:start(model_path, seq_len)
 		return false
 	end
 	local started_at = self.now()
+	---@type needle.Context?
 	local context
 	local ok, err = pcall(function()
 		context = assert(needle.load(model_path))
+		---@type number[]
 		local input_values = {}
 		for i = 0, self.seq_len * D_MODEL - 1 do input_values[i + 1] = math.sin(i * 0.017) * 0.5 + math.cos(i * 0.001) * 0.25 end
 		self.expected = assert(context:encoder_self_attention(0, input_values, self.seq_len))
 		local input_data = self.data.newByteData(self.seq_len * D_MODEL * 4)
-		local input = ffi.cast("float *", input_data:getFFIPointer())
+		local input = ffi.cast("float *", input_data:getFFIPointer()) --[[@as rizu.ai.GpuEncoderFloatPtr]]
 		for i = 0, #input_values - 1 do input[i] = input_values[i + 1] end
 		local q_weights, q_scales = self:load_projection(context, "encoder/layers/EncoderBlock_0/self_attn/q_proj/kernel", 0, D_MODEL, D_MODEL)
 		local k_weights, k_scales = self:load_projection(context, "encoder/layers/EncoderBlock_0/self_attn/k_proj/kernel", 0, D_MODEL, KV_HEADS * HEAD_DIM)
@@ -221,7 +291,13 @@ function NeedleGpuEncoderProbe:start(model_path, seq_len)
 		self.norm_rope_shader = self.graphics.newComputeShader(NORM_ROPE_SOURCE, {debugname = "Needle GPU Encoder Norm RoPE"})
 		self.score_shader = self.graphics.newComputeShader(SCORES_SOURCE, {debugname = "Needle GPU Encoder Scores"})
 		self.context_shader = self.graphics.newComputeShader(CONTEXT_SOURCE, {debugname = "Needle GPU Encoder Context"})
-		local function buffer(format, data, name) return self.graphics.newBuffer(format, data, {shaderstorage = true, usage = "static", debugname = name}) end
+		---@param format string
+		---@param data rizu.ai.GpuEncoderByteData
+		---@param name string
+		---@return rizu.ai.GpuEncoderBuffer
+		local function buffer(format, data, name)
+			return self.graphics.newBuffer(format, data, {shaderstorage = true, usage = "static", debugname = name})
+		end
 		self.buffers = {
 			input = buffer("float", input_data, "Needle GPU Encoder Input"),
 			q_weights = buffer("uint32", q_weights, "Needle GPU Encoder Q Weights"), q_scales = buffer("float", q_scales, "Needle GPU Encoder Q Scales"),
@@ -240,7 +316,7 @@ function NeedleGpuEncoderProbe:start(model_path, seq_len)
 	end)
 	if context then context:close() end
 	if not ok then self.state = "error"; self.error = tostring(err); log("error: " .. self.error); self:release(); return false end
-	local b = self.buffers
+	local b = assert(self.buffers)
 	self:project(self.dense_shader, b.input, b.q_weights, b.q_scales, b.q, D_MODEL, D_MODEL)
 	self:project(self.dense_shader, b.input, b.k_weights, b.k_scales, b.k, D_MODEL, KV_HEADS * HEAD_DIM)
 	self:project(self.dense_shader, b.input, b.v_weights, b.v_scales, b.v, D_MODEL, KV_HEADS * HEAD_DIM)

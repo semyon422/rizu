@@ -8,6 +8,44 @@ local BATCH_ROWS = 461
 local THREADS_PER_GROUP = 64
 local ITERATIONS = 3
 
+---@class rizu.ai.GpuProbeSupport
+---@field glsl4 boolean
+
+---@class rizu.ai.GpuProbeLimits
+---@field shaderstoragebuffersize number
+
+---@class rizu.ai.GpuProbeByteData
+---@field getFFIPointer fun(self: rizu.ai.GpuProbeByteData): ffi.cdata*
+---@field getFloat fun(self: rizu.ai.GpuProbeByteData, offset: integer): number
+
+---@class rizu.ai.GpuProbeData
+---@field newByteData fun(value: string|integer): rizu.ai.GpuProbeByteData
+
+---@class rizu.ai.GpuProbeShader
+---@field send fun(self: rizu.ai.GpuProbeShader, name: string, value: rizu.ai.GpuProbeBuffer|integer)
+
+---@class rizu.ai.GpuProbeBuffer
+
+---@class rizu.ai.GpuProbeReadback
+---@field isComplete fun(self: rizu.ai.GpuProbeReadback): boolean
+---@field hasError fun(self: rizu.ai.GpuProbeReadback): boolean
+---@field getBufferData fun(self: rizu.ai.GpuProbeReadback): rizu.ai.GpuProbeByteData
+
+---@class rizu.ai.GpuProbeGraphics
+---@field getSupported fun(): rizu.ai.GpuProbeSupport
+---@field getSystemLimits fun(): rizu.ai.GpuProbeLimits
+---@field getRendererInfo fun(): string, string, string, string
+---@field newComputeShader fun(source: string, options: {debugname: string}): rizu.ai.GpuProbeShader
+---@field newBuffer fun(format: string, data: rizu.ai.GpuProbeByteData|integer, options: {shaderstorage: boolean, usage: string?, debugname: string}): rizu.ai.GpuProbeBuffer
+---@field dispatchThreadgroups fun(shader: rizu.ai.GpuProbeShader, groups: integer)
+---@field readbackBufferAsync fun(buffer: rizu.ai.GpuProbeBuffer, offset: integer, size: integer): rizu.ai.GpuProbeReadback
+
+---@class rizu.ai.GpuProbeInt8Ptr: ffi.cdata*
+---@field [integer] integer
+
+---@class rizu.ai.GpuProbeFloatPtr: ffi.cdata*
+---@field [integer] number
+
 local COMPUTE_SOURCE = [[
 #pragma language glsl4
 layout(local_size_x = 64) in;
@@ -61,15 +99,25 @@ void computemain() {
 
 ---@class rizu.ai.NeedleGpuProbe
 ---@operator call: rizu.ai.NeedleGpuProbe
----@field graphics love.Graphics
----@field data love.Data
+---@field graphics rizu.ai.GpuProbeGraphics
+---@field data rizu.ai.GpuProbeData
 ---@field now fun(): number
 ---@field state "idle"|"unsupported"|"waiting"|"ready"|"error"
----@field readback love.GraphicsReadback?
+---@field readback rizu.ai.GpuProbeReadback?
+---@field shader rizu.ai.GpuProbeShader?
+---@field input rizu.ai.GpuProbeBuffer?
+---@field weights rizu.ai.GpuProbeBuffer?
+---@field output rizu.ai.GpuProbeBuffer?
+---@field scales rizu.ai.GpuProbeBuffer?
+---@field expected_result number?
+---@field error string?
+---@field dispatch_started_at number
+---@field upload_seconds number
+---@field iteration integer
 local NeedleGpuProbe = class()
 
----@param graphics? love.Graphics
----@param data? love.Data
+---@param graphics? rizu.ai.GpuProbeGraphics
+---@param data? rizu.ai.GpuProbeData
 ---@param now? fun(): number
 function NeedleGpuProbe:new(graphics, data, now)
 	self.graphics = graphics or love.graphics
@@ -78,6 +126,7 @@ function NeedleGpuProbe:new(graphics, data, now)
 	self.state = "idle"
 end
 
+---@param message string
 local function log(message)
 	local line = "[Needle GPU] " .. message
 	print(line)
@@ -97,15 +146,18 @@ function NeedleGpuProbe:release()
 	if self.state == "waiting" then self.state = "idle" end
 end
 
----@param message string
+---@param message string?
 ---@return boolean supported
 function NeedleGpuProbe:checkSupported(message)
 	local supported = self.graphics.getSupported()
 	local limits = self.graphics.getSystemLimits()
-	local renderer_values = {pcall(self.graphics.getRendererInfo)}
-	local renderer_ok = table.remove(renderer_values, 1)
+	local renderer_ok, renderer_name, renderer_version, renderer_vendor, renderer_device = pcall(self.graphics.getRendererInfo)
+	local renderer = "unknown"
+	if renderer_ok then
+		renderer = table.concat({renderer_name, renderer_version, renderer_vendor, renderer_device}, " / ")
+	end
 	log(("renderer=%s glsl4=%s shaderstoragebuffersize=%s"):format(
-		renderer_ok and table.concat(renderer_values, " / ") or "unknown",
+		renderer,
 		tostring(supported.glsl4),
 		tostring(limits.shaderstoragebuffersize)
 	))
@@ -177,6 +229,7 @@ function NeedleGpuProbe:startModel(model_path)
 	self:release()
 	if not self:checkSupported() then return false end
 	local started_at = self.now()
+	---@type needle.Context?
 	local context
 	local ok, err = pcall(function()
 		context = assert(needle.load(model_path))
@@ -188,9 +241,9 @@ function NeedleGpuProbe:startModel(model_path)
 		assert(scales.dtype_name == "f32" and scales.shape[1] >= 1 and scales.shape[2] == OUTPUT_WIDTH)
 		local q8_pointer = assert(context:tensor_data(q8_index))
 		local scale_pointer = assert(context:tensor_data(scale_index))
-		local source = ffi.cast("const signed char *", q8_pointer)
+		local source = ffi.cast("const signed char *", q8_pointer) --[[@as rizu.ai.GpuProbeInt8Ptr]]
 		local weights_data = self.data.newByteData(INPUT_WIDTH * OUTPUT_WIDTH)
-		local weights = ffi.cast("signed char *", weights_data:getFFIPointer())
+		local weights = ffi.cast("signed char *", weights_data:getFFIPointer()) --[[@as rizu.ai.GpuProbeInt8Ptr]]
 		local expected_sum = 0
 		for output = 0, OUTPUT_WIDTH - 1 do
 			for input = 0, INPUT_WIDTH - 1 do
@@ -201,7 +254,8 @@ function NeedleGpuProbe:startModel(model_path)
 		end
 		local scales_data = self.data.newByteData(OUTPUT_WIDTH * 4)
 		ffi.copy(scales_data:getFFIPointer(), scale_pointer, OUTPUT_WIDTH * 4)
-		self.expected_result = expected_sum * ffi.cast("const float *", scale_pointer)[0]
+		local scale_values = ffi.cast("const float *", scale_pointer) --[[@as rizu.ai.GpuProbeFloatPtr]]
+		self.expected_result = expected_sum * scale_values[0]
 
 		self.shader = self.graphics.newComputeShader(COMPUTE_SOURCE, {debugname = "Needle Model Q8 Projection"})
 		self.input = self.graphics.newBuffer(

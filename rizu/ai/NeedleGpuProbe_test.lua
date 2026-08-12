@@ -17,6 +17,7 @@ end
 ---@param t testing.T
 function test.reads_async_q8_result(t)
 	local complete = false
+	---@type {[string]: boolean|integer}
 	local sent = {}
 	local readback = {
 		isComplete = function() return complete end,
@@ -30,7 +31,7 @@ function test.reads_async_q8_result(t)
 		getSystemLimits = function() return {shaderstoragebuffersize = 1024 * 1024} end,
 		getRendererInfo = function() return "test", "gpu", "driver" end,
 		newComputeShader = function()
-			return {send = function(_, name) sent[name] = true end}
+			return {send = function(_, name) sent[name] = true end} --[[@as rizu.ai.GpuProbeShader]]
 		end,
 		newBuffer = function() return {} end,
 		dispatchThreadgroups = function(_, groups) sent.groups = groups end,
