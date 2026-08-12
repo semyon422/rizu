@@ -6,11 +6,36 @@ local ScoreStore = require("rizu.select.stores.ScoreStore")
 
 local test = {}
 
+---@class rizu.select.TestChartplay
+---@field id integer
+---@field accuracy number
+
+---@class rizu.select.TestScoreStore
+---@field items rizu.select.TestChartplay[]?
+---@field clear fun(self: rizu.select.TestScoreStore)?
+---@field updateItems fun(self: rizu.select.TestScoreStore, chartview: table, scope: rizu.select.ScoreScope?, generation: integer)?
+
+---@class rizu.select.TestReplayBaseApplier
+---@field buildSelectionReplayBase fun(self: rizu.select.TestReplayBaseApplier, chartview: table): sea.ReplayBase, boolean
+
+---@class rizu.select.TestScoreSelector
+---@field configModel table
+---@field store rizu.select.TestScoreStore
+---@field replayBaseApplier rizu.select.TestReplayBaseApplier
+---@field chartview table?
+---@field chartplay rizu.select.TestChartplay?
+---@field state rizu.select.SelectionState
+---@field setChart fun(self: rizu.select.TestScoreSelector, chartview: table?)
+---@field receive fun(self: rizu.select.TestScoreSelector, event: rizu.select.Event)
+---@field onChanged fun(self: rizu.select.TestScoreSelector, observer: rizu.select.ScoreSelectorEventReceiver): util.Observer
+---@field buildSelectionReplayBase fun(self: rizu.select.TestScoreSelector, chartview: table): sea.ReplayBase, boolean
+
 function test.__check()
 	delay.reset()
 	return true
 end
 
+---@param secondary_mode rizu.library.ChartviewsRepo.Mode
 local function createConfigModel(secondary_mode)
 	return {
 		configs = {
@@ -30,6 +55,9 @@ local function createConfigModel(secondary_mode)
 	}
 end
 
+---@param secondary_mode rizu.library.ChartviewsRepo.Mode
+---@param replayBase sea.ReplayBase
+---@return rizu.select.TestScoreSelector
 local function createSelector(secondary_mode, replayBase)
 	local onlineModel = {
 		authManager = {
@@ -38,7 +66,7 @@ local function createSelector(secondary_mode, replayBase)
 			},
 		},
 	}
-	return ScoreSelector(createConfigModel(secondary_mode), {}, onlineModel, replayBase, SelectionState())
+	return ScoreSelector(createConfigModel(secondary_mode), {}, onlineModel, replayBase, SelectionState()) --[[@as rizu.select.TestScoreSelector]]
 end
 
 ---@param t testing.T
@@ -63,9 +91,12 @@ end
 
 ---@param t testing.T
 function test.coarse_modes_load_chartmeta_scores(t)
-	for _, mode in ipairs({"chartfile_sets", "chartfiles", "chartmetas"}) do
+	---@type rizu.library.ChartviewsRepo.Mode[]
+	local modes = {"chartfile_sets", "chartfiles", "chartmetas"}
+	for _, mode in ipairs(modes) do
 		local replayBase = ReplayBase()
 		local selector = createSelector(mode, replayBase)
+		---@type rizu.select.ScoreScope?
 		local scope
 		selector.store = {
 			updateItems = function(_, _, score_scope)
@@ -81,9 +112,12 @@ end
 
 ---@param t testing.T
 function test.chartdiff_and_chartplay_modes_load_exact_chartdiff_scores(t)
-	for _, mode in ipairs({"chartdiffs", "chartplays"}) do
+	---@type rizu.library.ChartviewsRepo.Mode[]
+	local modes = {"chartdiffs", "chartplays"}
+	for _, mode in ipairs(modes) do
 		local replayBase = ReplayBase()
 		local selector = createSelector(mode, replayBase)
+		---@type rizu.select.ScoreScope?
 		local scope
 		selector.store = {
 			updateItems = function(_, _, score_scope)
@@ -108,6 +142,7 @@ end
 function test.chartdiff_score_visibility_requires_actual_chartdiff(t)
 	local replayBase = ReplayBase()
 	local selector = createSelector("chartdiffs", replayBase)
+	---@type rizu.select.ScoreScope|false
 	local scope = false
 	selector.store = {
 		updateItems = function(_, _, score_scope)
@@ -135,6 +170,7 @@ function test.score_store_clears_incomplete_chartdiff_key(t)
 		end,
 	}
 	local store = ScoreStore(configModel, provider, provider)
+	---@diagnostic disable-next-line: missing-fields
 	store.items = {{id = 1, accuracy = 1}}
 
 	store:updateItemsAsync({hash = "h", index = 1, chartdiff_id = 7}, "chartdiff", 1)
@@ -260,6 +296,7 @@ function test.score_items_event_is_forwarded_to_ui_observers(t)
 	local selector = createSelector("chartmetas", replayBase)
 	selector.store.items = {{id = 12, accuracy = 1}}
 
+	---@type rizu.select.ScoreSelectorEvent?
 	local received
 	selector:onChanged(function(event)
 		received = event
@@ -276,6 +313,7 @@ end
 ---@param t testing.T
 function test.score_store_ignores_stale_provider_result(t)
 	local configModel = createConfigModel("chartmetas")
+	---@type rizu.select.stores.ScoreStore
 	local store
 	local localProvider = {
 		getChartplaysForChartmeta = function()
