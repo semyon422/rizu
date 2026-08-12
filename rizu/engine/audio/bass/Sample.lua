@@ -6,18 +6,27 @@ local bass_flags = require("bass.flags")
 
 ---@class rizu.audio.bass.Sample
 ---@operator call: rizu.audio.bass.Sample
+---@field sample integer
+---@field sample_rate integer
+---@field channel integer
 local Sample = class()
 
+---@class bass.SampleInfoNative
+---@field freq integer
+
+---@type {[0]: bass.SampleInfoNative}
 local sample_info = ffi.new("BASS_SAMPLE[1]")
 
 ---@param data string
 function Sample:new(data)
+	---@type integer
 	self.sample = bass.BASS_SampleLoad(true, data, 0, #data, 1, 0)
 	bass_assert(self.sample ~= 0)
 
 	bass_assert(bass.BASS_SampleGetInfo(self.sample, sample_info) == 1)
 	self.sample_rate = sample_info[0].freq
 
+	---@type integer
 	self.channel = bass.BASS_SampleGetChannel(self.sample, bass_flags.BASS_SAMCHAN_NEW)
 	bass_assert(self.channel ~= 0)
 end
