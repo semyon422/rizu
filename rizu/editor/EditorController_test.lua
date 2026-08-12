@@ -246,7 +246,9 @@ end
 
 ---@param t testing.T
 function test.load_applies_modifiers_when_requested(t)
+	---@type string[]
 	local appliedModifiers
+	---@type {inputMode: table, resources: table}
 	local appliedChart
 
 	local chart = {
@@ -360,8 +362,11 @@ function test.save_delegates_to_sph_saver(t)
 	local library = {
 		id = "library",
 	}
+	---@type {location_path: string, dir: string, location_id: integer}
 	local savedChartview
+	---@type {id: string}
 	local savedEditorModel
+	---@type {id: string}
 	local savedLibrary
 	local controller = createController({
 		chartSelector = {
@@ -393,7 +398,9 @@ function test.save_to_osu_delegates_to_exporter(t)
 	local editorModel = {
 		id = "editor",
 	}
+	---@type {location_path: string}
 	local exportedChartview
+	---@type {id: string}
 	local exportedEditorModel
 	local controller = createController({
 		chartSelector = {
@@ -422,7 +429,9 @@ function test.save_to_nanochart_delegates_to_exporter(t)
 	local editorModel = {
 		id = "editor",
 	}
+	---@type {real_path: string}
 	local exportedChartview
+	---@type {id: string}
 	local exportedEditorModel
 	local controller = createController({
 		chartSelector = {
