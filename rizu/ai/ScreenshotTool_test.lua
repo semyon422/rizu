@@ -7,6 +7,7 @@ local test = {}
 ---@param t testing.T
 function test.captures_png_content(t)
 	local scheduler = CosocketScheduler()
+	---@type fun(image_data: love.ImageData)
 	local capture_callback
 	local tool = ScreenshotTool({network = {scheduler = scheduler}} --[[@as sphere.GameController]], {
 		capture = function(callback)
@@ -17,6 +18,7 @@ function test.captures_png_content(t)
 			return "aGVsbG8="
 		end,
 	})
+	---@type mcp.ToolResult
 	local result
 	local co = coroutine.create(function()
 		result = tool:execute({}, RequestContext(1))
@@ -33,6 +35,7 @@ end
 ---@param t testing.T
 function test.cancels_capture(t)
 	local scheduler = CosocketScheduler()
+	---@type fun(image_data: love.ImageData)
 	local capture_callback
 	local tool = ScreenshotTool({network = {scheduler = scheduler}} --[[@as sphere.GameController]], {
 		capture = function(callback)
@@ -43,6 +46,7 @@ function test.cancels_capture(t)
 		end,
 	})
 	local context = RequestContext(1)
+	---@type mcp.ToolResult
 	local result
 	local co = coroutine.create(function()
 		result = tool:execute({}, context)
