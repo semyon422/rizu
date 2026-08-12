@@ -8,6 +8,11 @@
 ---@field chartplay_id integer?
 ---@field selected_chartplay_id integer?
 ---@field selected_filters sphere.SelectedFilters
+---@field searchMode string
+---@field chartfile_set_id integer?
+---@field chartfile_id integer?
+---@field chartmeta_id integer?
+---@field chartdiff_id integer?
 
 ---@alias sphere.SelectedFilters {[string]: {[string]: boolean?}}
 
