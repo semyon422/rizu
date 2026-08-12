@@ -45,6 +45,7 @@ function AutoplayPlayer:update(engine, next_time)
 
 	-- 2. Sort current active notes by start_time.
 	-- This only sorts the ACTIVE list (usually small).
+	---@type rizu.LogicNote[]
 	local notes_to_check = {}
 	for _, note in ipairs(active_notes) do
 		-- Only consider notes that haven't been "started" yet by autoplay
