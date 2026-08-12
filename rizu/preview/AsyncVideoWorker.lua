@@ -7,17 +7,26 @@ local AsyncVideoConfig = require("rizu.preview.AsyncVideoConfig")
 require("rizu.preview.AsyncVideoProtocol")
 local AsyncVideoReadPolicy = require("rizu.preview.AsyncVideoReadPolicy")
 local BgaPreviewDebug = require("rizu.preview.BgaPreviewDebug")
-local video_module = require("video")
 
+---@class rizu.preview.AsyncVideoBackend
+---@field openPath fun(path: string): video.Decoder?, string?
+
+local video_module = require("video") --[[@as rizu.preview.AsyncVideoBackend]]
+
+---@type string, string
 local input_channel_name, output_channel_name = ...
+---@type love.Channel
 local input_channel = love.thread.getChannel(input_channel_name)
+---@type love.Channel
 local output_channel = love.thread.getChannel(output_channel_name)
 
+---@type {[string]: rizu.preview.AsyncVideoWorkerItem}
 local videos = {}
+---@type {[string]: string}
 local video_paths = {}
 
 ---@class rizu.preview.AsyncVideoWorkerItem
----@field video table
+---@field video video.Decoder
 ---@field width integer
 ---@field height integer
 ---@field frame_rate number?
@@ -147,6 +156,7 @@ local function readFrame(event)
 
 	local count = event.count or AsyncVideoConfig.buffer_target
 	local start_time = event.time
+	---@type integer
 	local sent = 0
 	if isPastEnd(item, start_time) then
 		if sendFinalFrame(event, item) then
@@ -163,11 +173,13 @@ local function readFrame(event)
 		return
 	end
 
+	---@type rizu.preview.AsyncVideoInputEvent?
 	local next_event
 	for i = 1, count do
 		local requested_time = i == 1 and start_time or nil
 		local t0 = love.timer.getTime()
 		local image_data = love.image.newImageData(item.width, item.height, "rgba8")
+		---@type number?
 		local frame_time
 		-- Use readAt only for the first frame of a batch after an actual seek/jump.
 		-- Sequential frames must use read() so FFmpeg keeps decoder state warm.
@@ -202,7 +214,7 @@ local function readFrame(event)
 			frame_rate = item.frame_rate,
 			image_data = image_data,
 		})
-		next_event = input_channel:pop()
+		next_event = input_channel:pop() --[[@as rizu.preview.AsyncVideoInputEvent?]]
 		if next_event then
 			break
 		end
@@ -213,15 +225,15 @@ local function readFrame(event)
 		video_name = event.video_name,
 		request_id = event.request_id,
 		requested_time = event.time,
-		sent = sent,
+		sent = sent --[[@as integer]],
 	})
 	return next_event
 end
 
+---@type rizu.preview.AsyncVideoInputEvent?
 local next_event
 while true do
-	---@type rizu.preview.AsyncVideoInputEvent
-	local event = next_event or input_channel:demand()
+	local event = next_event or input_channel:demand() --[[@as rizu.preview.AsyncVideoInputEvent]]
 	next_event = nil
 	if event.type == "stop" then
 		closeVideos()
