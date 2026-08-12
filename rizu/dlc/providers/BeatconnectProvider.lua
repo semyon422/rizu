@@ -2,6 +2,18 @@ local class = require("class")
 local http_util = require("web.http.util")
 local json = require("json")
 
+---@class rizu.dlc.providers.BeatconnectSet
+---@field id integer
+---@field title string
+---@field artist string
+---@field creator string
+---@field status string?
+---@field beatmaps table[]?
+
+---@class rizu.dlc.providers.BeatconnectResponse
+---@field beatmaps rizu.dlc.providers.BeatconnectSet[]?
+---@field [integer] rizu.dlc.providers.BeatconnectSet
+
 ---@class rizu.dlc.providers.BeatconnectProvider: rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.BeatconnectProvider
 ---@field request fun(url: string): {status: integer, body: string}?, string?
@@ -43,12 +55,14 @@ function BeatconnectProvider:search(query, filters)
 		return nil, "Failed to decode JSON response"
 	end
 
+	---@cast data rizu.dlc.providers.BeatconnectResponse
 	-- Beatconnect returns an array of mapsets or an object with 'beatmaps' (which are mapsets in their terms)
 	local mapsets = data
 	if type(data) == "table" and data.beatmaps then
 		mapsets = data.beatmaps
 	end
 
+	---@type table[]
 	local results = {}
 	for _, set in ipairs(mapsets) do
 		-- Normalize to common result format

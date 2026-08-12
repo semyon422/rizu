@@ -2,6 +2,16 @@ local class = require("class")
 local http_util = require("web.http.util")
 local osudirect = require("chart.transform.osudirect")
 
+---@class osudirect.Beatmapset
+---@field setId integer
+---@field title string
+---@field artist string
+---@field creator string
+---@field submissionStatus string
+---@field difficulties string[]?
+---@field hasVideo boolean
+---@field hasStoryboard boolean
+
 ---@class rizu.dlc.providers.OsuDirectProvider : rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.OsuDirectProvider
 ---@field request fun(url: string): {status: integer, body: string}?, string?
@@ -44,6 +54,8 @@ function OsuDirectProvider:search(query, filters)
 		return nil, parse_err or "Failed to parse osudirect response"
 	end
 
+	---@cast beatmaps osudirect.Beatmapset[]
+	---@type table[]
 	local results = {}
 	for _, b in ipairs(beatmaps) do
 		table.insert(results, {
@@ -71,7 +83,7 @@ end
 ---@param id string|number
 ---@return string? url, string? error
 function OsuDirectProvider:getThumbnailUrl(id)
-	return "https://assets.ppy.sh" .. osudirect.card(id)
+	return "https://assets.ppy.sh" .. osudirect.card(tonumber(id) or 0)
 end
 
 return OsuDirectProvider

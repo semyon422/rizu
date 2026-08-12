@@ -1,7 +1,26 @@
 local class = require("class")
 local http_util = require("web.http.util")
 local json = require("json")
-local socket_url = require("socket.url")
+local socket_url = require("socket.url") --[[@as {escape: fun(value: string|number): string}]]
+
+---@class rizu.dlc.providers.EtternaPack
+---@field name string
+---@field author string?
+---@field size number?
+---@field date string?
+---@field average_diff number?
+---@field total_songs integer?
+
+---@class rizu.dlc.providers.EtternaResponse
+---@field data rizu.dlc.providers.EtternaPack[]?
+---@field [integer] rizu.dlc.providers.EtternaPack
+
+---@class rizu.dlc.providers.EtternaFilters
+---@field page integer?
+---@field limit integer?
+---@field sort string?
+---@field key_count integer?
+---@field tags string?
 
 ---@class rizu.dlc.providers.EtternaPackProvider: rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.providers.EtternaPackProvider
@@ -16,7 +35,7 @@ function EtternaPackProvider:new(config)
 end
 
 ---@param query string
----@param filters table?
+---@param filters rizu.dlc.providers.EtternaFilters?
 ---@return table[]? results, string? error
 function EtternaPackProvider:search(query, filters)
 	filters = filters or {}
@@ -24,6 +43,7 @@ function EtternaPackProvider:search(query, filters)
 	local limit = filters.limit or 36
 	local sort = filters.sort or "name"
 	
+	---@type {[string]: string|number}
 	local queryParams = {
 		page = page,
 		limit = limit,
@@ -52,6 +72,7 @@ function EtternaPackProvider:search(query, filters)
 		return nil, "Failed to decode JSON response"
 	end
 
+	---@cast data rizu.dlc.providers.EtternaResponse
 	local results = {}
 	-- The API might return an object with a 'data' field or just an array.
 	-- Assuming 'data' based on typical modern APIs or the structure of the search endpoint.
@@ -76,7 +97,8 @@ end
 ---@return string? url, string? error
 function EtternaPackProvider:getDownloadUrl(id)
 	-- Etterna packs use their name in the download URL
-	return self.downloadUrlPattern:format(socket_url.escape(id))
+	local escape = socket_url.escape --[[@as fun(value: string|number): string]]
+	return self.downloadUrlPattern:format(escape(id))
 end
 
 return EtternaPackProvider

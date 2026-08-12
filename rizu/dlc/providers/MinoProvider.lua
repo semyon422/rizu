@@ -2,6 +2,18 @@ local class = require("class")
 local http_util = require("web.http.util")
 local json = require("json")
 
+---@class rizu.dlc.MinoBeatmapset
+---@field id integer
+---@field title string
+---@field artist string
+---@field creator string
+---@field source string?
+---@field tags string?
+---@field status string?
+---@field beatmaps table[]?
+---@field video boolean?
+---@field storyboard boolean?
+
 ---@class rizu.dlc.MinoProvider: rizu.dlc.IDlcProvider
 ---@operator call: rizu.dlc.MinoProvider
 ---@field request fun(url: string): {status: integer, body: string}?, string?
@@ -50,13 +62,12 @@ function MinoProvider:search(query, filters)
 		return nil, err or "HTTP request failed"
 	end
 
-	---@type boolean, any
 	local ok, data = pcall(json.decode, res.body)
 	if not ok then
 		return nil, "Failed to decode JSON response"
 	end
 
-	---@cast data table[]
+	---@cast data rizu.dlc.MinoBeatmapset[]
 
 	local results = {}
 	for _, set in ipairs(data) do
