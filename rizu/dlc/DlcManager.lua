@@ -5,6 +5,7 @@ local Observable = require("Observable")
 
 ---@class rizu.dlc.DlcMetadata
 ---@field dest_dir string?
+---@field mirror "beatconnect"|"mino"?
 
 ---@class rizu.dlc.DlcTaskUpdates
 ---@field status string?

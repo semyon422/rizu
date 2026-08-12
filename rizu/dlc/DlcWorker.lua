@@ -7,10 +7,11 @@ local BeatconnectProvider = require("rizu.dlc.providers.BeatconnectProvider")
 local AsyncDlcInstaller = require("rizu.dlc.AsyncDlcInstaller")
 local path_util = require("path_util")
 local http_util = require("web.http.util")
+---@type {unescape: fun(value: string): string}
 local socket_url = require("socket.url")
 
 ---@alias rizu.dlc.DownloadFunc fun(url: string, options: rizu.NetworkStatusHttpOptions?): {status: integer, headers: web.Headers, body: string}?, string?
----@alias rizu.dlc.InstallFunc fun(self: rizu.dlc.IDlcInstaller, id: string|number, _type: rizu.dlc.DlcType, data: string, filename: string, metadata: table?): boolean?, string?
+---@alias rizu.dlc.InstallFunc fun(self: rizu.dlc.IDlcInstaller, id: string|number, _type: rizu.dlc.DlcType, data: string, filename: string, metadata: rizu.dlc.DlcMetadata?): boolean?, string?
 
 ---@class rizu.dlc.IDlcInstaller
 ---@field install rizu.dlc.InstallFunc
@@ -91,7 +92,7 @@ end
 ---@param id string|number
 ---@param _type rizu.dlc.DlcType
 ---@param provider_name string?
----@param metadata table?
+---@param metadata rizu.dlc.DlcMetadata?
 ---@return boolean? success, string? error
 function DlcWorker:download(id, _type, provider_name, metadata)
 	provider_name = provider_name or "mino"
@@ -101,9 +102,12 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 		return nil, "Provider not found"
 	end
 
-	local url, err
+	---@type string?
+	local url
+	---@type string?
+	local err
 	local mirror = metadata and metadata.mirror
-	
+
 	if mirror == "beatconnect" then
 		url = "https://beatconnect.io/b/" .. id
 	elseif mirror == "mino" then
@@ -174,7 +178,7 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 	local body = res.body
 
 	-- Determine filename
-	local filename = url:match("^.+/(.-)$")
+	local filename = assert(url:match("^.+/(.-)$"))
 	local cd_header = res.headers:get("Content-Disposition")
 	if cd_header then
 		local cd = http_util.parse_content_disposition(cd_header)
@@ -185,7 +189,7 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 
 	-- Save and extract
 	self.manager:updateTask(id, {status = "extracting"})
-	
+
 	local success, extract_err = self.installer:install(id, _type, body, filename, metadata)
 	if not success then
 		print("[DlcWorker] Processing error for " .. tostring(id) .. ": " .. tostring(extract_err))
