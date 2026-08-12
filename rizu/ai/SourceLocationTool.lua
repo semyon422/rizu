@@ -68,9 +68,10 @@ function SourceLocationTool:execute(args)
 	if type(target) ~= "string" or not target:match("^game[%w_.]*$") then
 		return fail("target must be a dot-separated path rooted at game")
 	end
+	---@type table|function
 	local value = self.game
 	local first = true
-	for part in target:gmatch("[^.]+") do
+	for part in target:gmatch("[^.]+") --[[@as fun(): string]] do
 		if first then
 			first = false
 			if part ~= "game" then
@@ -79,6 +80,8 @@ function SourceLocationTool:execute(args)
 		elseif type(value) ~= "table" then
 			return fail("cannot traverse through " .. part)
 		else
+			-- Runtime source paths intentionally traverse dynamically keyed game objects.
+			---@diagnostic disable-next-line: no-unknown
 			value = value[part]
 			if value == nil then
 				return fail("target does not exist")
@@ -90,6 +93,7 @@ function SourceLocationTool:execute(args)
 	end
 
 	local info = assert(debug.getinfo(value, "Sln"))
+	---@type string?
 	local path
 	if info.source:sub(1, 1) == "@" then
 		path = info.source:sub(2):gsub("\\", "/")
