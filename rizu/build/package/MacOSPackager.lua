@@ -99,6 +99,7 @@ function MacOSPackager:build()
 	end
 	self.ctx.shell:execute(string.format("unzip -oq %q -d %q", love_zip_path, "build/repo/macos"))
 	if not self.ctx.fs:getInfo("build/repo/macos/love.app") then
+		---@type string?
 		local nested_zip
 		for _, item in ipairs(self.ctx.fs:getDirectoryItems("build/repo/macos")) do
 			if item:match("%.zip$") then
@@ -126,10 +127,11 @@ function MacOSPackager:build()
 	fs_util.copy("build/repo/" .. _name, Resources, self.ctx.fs, self.ctx.fs)
 
 	if self.ctx.fs:getInfo(Resources .. "/bin/mac64") then
+		---@type string[]
 		local mac64_files = {}
 		fs_util.find(Resources .. "/bin/mac64", self.ctx.fs, function(p) table.insert(mac64_files, p) end)
 		for _, path in ipairs(mac64_files) do
-			local name = path:match("([^/]+)$")
+			local name = assert(path:match("([^/]+)$"))
 			fs_util.copy(path, Frameworks .. "/" .. name, self.ctx.fs, self.ctx.fs)
 			self.ctx.fs:remove(path)
 		end
