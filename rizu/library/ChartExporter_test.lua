@@ -74,6 +74,7 @@ function test.exports_set_charts_and_audio_to_osz(t)
 	t:eq(path, "userdata/export/Test Set.osz")
 
 	local reader = zip.Reader(assert(fs:read(path)))
+	---@type {[string]: true}
 	local names = {}
 	for _, entry in ipairs(reader.entries) do
 		names[entry.name] = true
@@ -94,7 +95,9 @@ function test.compiles_chart_audio_to_one_wave(t)
 	t:eq(path, "userdata/export/Test Set-compiled.osz")
 
 	local reader = zip.Reader(assert(fs:read(path)))
+	---@type {[string]: true}
 	local names = {}
+	---@type string?
 	local osu_name
 	for _, entry in ipairs(reader.entries) do
 		names[entry.name] = true
@@ -154,7 +157,9 @@ function test.exports_iidx_s3p_keysounds_as_referenced_files(t)
 	t:eq(path, "userdata/export/01234.ifs.osz")
 
 	local reader = zip.Reader(assert(fs:read(path)))
+	---@type {[string]: true}
 	local names = {}
+	---@type string?
 	local osu_name
 	for _, entry in ipairs(reader.entries) do
 		names[entry.name] = true
