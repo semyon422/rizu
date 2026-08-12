@@ -7,6 +7,7 @@ local RepoConfigWriter = require("rizu.build.package.RepoConfigWriter")
 
 local _name = config.repo.name
 
+---@type {["linux64"|"win64"]: string[]}
 local EXPECTED_FFMPEG_FILES = {
 	linux64 = {
 		"libavcodec.so.62",
@@ -28,6 +29,7 @@ local EXPECTED_FFMPEG_FILES = {
 	},
 }
 
+---@type {["linux64"|"win64"]: string[]}
 local FFMPEG_FILE_PATTERNS = {
 	linux64 = {"^libav[^/]+%.so%.%d+$", "^libsw[^/]+%.so%.%d+$"},
 	win64 = {"^av[^/]+%-%d+%.dll$", "^sw[^/]+%-%d+%.dll$"},
@@ -48,10 +50,10 @@ function RepoAssembler:new(ctx, src_fs)
 	self.config_writer = RepoConfigWriter(ctx)
 end
 
----@param gamerepo string
 ---@param bin_root string
 function RepoAssembler:removeStaleFfmpeg(bin_root)
 	for platform, patterns in pairs(FFMPEG_FILE_PATTERNS) do
+		---@type {[string]: true}
 		local expected = {}
 		for _, name in ipairs(EXPECTED_FFMPEG_FILES[platform]) do expected[name] = true end
 		local platform_dir = bin_root .. "/" .. platform
@@ -148,6 +150,7 @@ function RepoAssembler:build()
 		local libs = self.src_fs:getDirectoryItems("3rd-deps/lib")
 		for _, lib in ipairs(libs) do
 			local ext = lib:match("%.([^.]+)$")
+			---@type "linux64"|"win64"|"mac64"?
 			local subdir
 			if ext == "so" then
 				subdir = "linux64"
@@ -166,10 +169,12 @@ function RepoAssembler:build()
 	end
 
 	print("Cleaning up unnecessary files...")
+	---@type {[string]: true}
 	local runtime_assets = {}
 	for _, path in ipairs(config.repo.runtime_assets) do
 		runtime_assets[gamedir .. "/" .. path] = true
 	end
+	---@type string[]
 	local to_delete = {}
 	fs_util.find(gamedir, self.ctx.fs, function(path)
 		if not path:match("%.lua$") and not path:match("%.c$") and not path:match("%.sql$") and not runtime_assets[path] then
