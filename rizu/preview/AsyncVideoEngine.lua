@@ -111,7 +111,7 @@ end
 
 ---@param state rizu.preview.AsyncVideoState
 local function ensureStateDefaults(state)
-	state.frame_duration = state.frame_duration or 1 / 30
+	state.frame_duration = state.frame_duration or (1 / 30)
 	state.queue = state.queue or {}
 end
 
@@ -252,6 +252,7 @@ function AsyncVideoEngine:presentFrame(name, time)
 	ensureStateDefaults(state)
 
 	local queue = state.queue
+	---@type integer?
 	local selected_index
 	for i, frame in ipairs(queue) do
 		-- Pick the latest frame within half a frame of the playback clock.
@@ -272,7 +273,7 @@ function AsyncVideoEngine:presentFrame(name, time)
 		releaseFrame(frame)
 	end
 
-	local frame = table.remove(queue, 1)
+	local frame = assert(table.remove(queue, 1))
 	local video = state.video
 	if not video.image or video.width ~= frame.width or video.height ~= frame.height then
 		if video.image then
@@ -286,6 +287,7 @@ function AsyncVideoEngine:presentFrame(name, time)
 	end
 	state.displayed_frame_time = frame.frame_time
 	state.ended = frame.ended or nil
+	---@type number
 	local lateness = time - frame.frame_time
 	releaseFrame(frame)
 	if dropped_frames > 1 or lateness > state.frame_duration * 1.5 then
@@ -358,7 +360,7 @@ end
 ---@param name string|integer
 ---@return rizu.preview.AsyncVideo?
 function AsyncVideoEngine:get(name)
-	local state = self.videos[name]
+	local state = self.videos[tostring(name)]
 	return state and state.video
 end
 
