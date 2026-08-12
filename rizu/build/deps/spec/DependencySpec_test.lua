@@ -113,6 +113,7 @@ end
 ---@param t testing.T
 function test.macos_source_dependencies_precede_consumers(t)
 	local spec = DependencySpec.load("macos")
+	---@type {[string]: integer}
 	local positions = {}
 	for i, step in ipairs(spec.steps) do
 		positions[step.id] = i
@@ -159,6 +160,7 @@ function test.ffmpeg_binary_reruns_extract_when_output_missing(t)
 	fs:setWorkingDirectory("/repo")
 	fs:createDirectory("build/deps/ffmpeg-linux")
 
+	---@type string[]
 	local exec = {}
 	local shell = {}
 	function shell:execute(cmd)
@@ -243,6 +245,7 @@ function test.love_windows_uses_deps_scratch_dirs(t)
 	local saw_finish_cleanup = false
 	for _, action in ipairs(step.actions) do
 		for _, key in ipairs({"dest", "path", "pattern", "src"}) do
+			---@type string?
 			local value = action[key]
 			if type(value) == "string" then
 				t:assert(value:find("bin/win64%-tmp") == nil, value)
