@@ -1,3 +1,6 @@
+local sql_util = require("rdb.sql_util")
+local table_util = require("table_util")
+
 local QueryFragments = {}
 
 QueryFragments.FIELDS_IDS = [[
@@ -147,15 +150,13 @@ QueryFragments.COND_CHARTPLAY_BY_MODE = QueryFragments.COND_CHARTPLAY_BY_MODS ..
 AND chartdiffs.mode = chartplays.mode
 ]]
 
----@param conditions table
+---@param conditions rdb.Conditions
 ---@param aggregate boolean?
 ---@return string
 function QueryFragments.getLampField(conditions, aggregate)
-	local sql_util = require("rdb.sql_util")
-	local conds = { [ { "chartplays.id IS NOT NULL" } ] = true }
-	for k, v in pairs(conditions) do
-		conds[k] = v
-	end
+	---@type rdb.Conditions
+	local conds = {[{"chartplays.id IS NOT NULL"}] = true}
+	table_util.copy(conditions, conds)
 	local cond_str, vals = sql_util.conditions(conds)
 	local fragment = sql_util.bind(cond_str, vals)
 	local field = ("COALESCE(CASE WHEN %s THEN 1 ELSE 0 END, 0)"):format(fragment)
