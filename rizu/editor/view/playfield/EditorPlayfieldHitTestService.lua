@@ -55,8 +55,16 @@ function EditorPlayfieldHitTestService:getNoteInput(note, mouseTime, inputState)
 	end
 end
 
----@param noteSkin table
----@param head table
+---@class rizu.editor.EditorPlayfieldNoteSkin
+---@field unit number
+---@field getValue fun(self: rizu.editor.EditorPlayfieldNoteSkin, value: number, columnIndex: integer): number
+
+---@class rizu.editor.EditorPlayfieldHead
+---@field x number
+---@field w number
+
+---@param noteSkin rizu.editor.EditorPlayfieldNoteSkin
+---@param head rizu.editor.EditorPlayfieldHead
 ---@param columnIndex integer
 ---@param time number
 ---@param inputState rizu.editor.EditorPlayfieldInputState

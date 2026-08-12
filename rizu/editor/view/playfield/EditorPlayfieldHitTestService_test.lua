@@ -2,6 +2,15 @@ local EditorPlayfieldHitTestService = require("rizu.editor.view.playfield.Editor
 
 local test = {}
 
+---@alias rizu.editor.HitTestResults {[any]: boolean}
+
+---@class rizu.editor.TestEditorNote
+---@field noteType string
+---@field getInteractionState fun(): rizu.editor.EditorNoteInteractionState
+
+---@param calls string[]
+---@param results rizu.editor.HitTestResults
+---@return rizu.editor.EditorPlayfieldHitTestService
 local function createService(calls, results)
 	return EditorPlayfieldHitTestService({
 		mouseOver = function(id, over, layer)
@@ -18,6 +27,8 @@ local function createService(calls, results)
 	})
 end
 
+---@param state {bodyOver: boolean}
+---@return rizu.editor.TestEditorNote
 local function createShortNote(state)
 	return {
 		noteType = "ShortNote",
@@ -27,6 +38,8 @@ local function createShortNote(state)
 	}
 end
 
+---@param state {bodyOver: boolean, headOver: boolean, tailOver: boolean}
+---@return rizu.editor.TestEditorNote
 local function createLongNote(state)
 	return {
 		noteType = "LongNote",
@@ -98,6 +111,7 @@ function test.unknown_note_type_is_ignored(t)
 	local calls = {}
 	local service = createService(calls, {})
 
+	---@diagnostic disable-next-line: missing-fields
 	local input = service:getNoteInput({
 		noteType = "Unsupported",
 	}, 1.5, {
