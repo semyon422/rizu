@@ -62,6 +62,7 @@ function test.request_preserves_explicit_options(t)
 		resolve_host_func = function()
 			return "203.0.113.10"
 		end,
+		---@param options web.HttpRequestOptions
 		request_func = function(_url, _body, options)
 			return {
 				status = 200,
@@ -84,6 +85,7 @@ end
 ---@param t testing.T
 function test.proxy_resolves_only_proxy_and_routes_target_hostname(t)
 	local resolved_hosts = {}
+	---@type rizu.NetworkStatusHttpOptions
 	local request_options
 	local network = NetworkService({
 		proxy = {
@@ -121,6 +123,7 @@ function test.disabled_proxy_uses_direct_connection(t)
 		resolve_host_func = function(host)
 			return host .. ".resolved"
 		end,
+		---@param options web.HttpRequestOptions
 		request_func = function(_url, _body, options)
 			return {status = 200, headers = {}, body = options.connect_host}
 		end,
@@ -134,6 +137,7 @@ end
 ---@param t testing.T
 function test.proxy_blacklist_bypasses_proxy_for_domain_and_subdomains(t)
 	local resolved_hosts = {}
+	---@type rizu.NetworkStatusHttpOptions
 	local request_options
 	local network = NetworkService({
 		proxy = {
@@ -529,6 +533,7 @@ end
 
 ---@param t testing.T
 function test.open_stream_resolves_host_and_sets_defaults(t)
+	---@type rizu.FakeHttpStreamForNetworkService
 	local created_stream
 	local network = NetworkService({
 		timeout = 7,
@@ -622,6 +627,7 @@ end
 
 ---@param t testing.T
 function test.open_stream_preserves_on_close(t)
+	---@type web.HttpStream
 	local closed_stream
 	local network = NetworkService({
 		resolve_host_func = function()
@@ -646,6 +652,7 @@ end
 
 ---@param t testing.T
 function test.cancel_streams_cancels_active_streams(t)
+	---@type rizu.FakeHttpStreamForNetworkService
 	local created_stream
 	local network = NetworkService({
 		resolve_host_func = function()
@@ -670,6 +677,7 @@ end
 
 ---@param t testing.T
 function test.download_uses_stream_and_closes_it(t)
+	---@type rizu.FakeHttpStreamForNetworkService
 	local created_stream
 	local network = NetworkService({
 		resolve_host_func = function()
@@ -692,6 +700,7 @@ end
 
 ---@param t testing.T
 function test.diagnostics_track_download_failures(t)
+	---@type rizu.FakeHttpStreamForNetworkService
 	local created_stream
 	local network = NetworkService({
 		resolve_host_func = function()

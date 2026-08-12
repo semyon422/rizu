@@ -145,7 +145,7 @@ local function matches_domain(host, domain)
 	elseif domain:sub(1, 1) == "." then
 		domain = domain:sub(2)
 	end
-	local suffix_start = -#domain - 1
+	local suffix_start = -(#domain) - 1
 	return host == domain or host:sub(suffix_start) == "." .. domain
 end
 
