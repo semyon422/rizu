@@ -21,7 +21,10 @@ end
 ---@param location_prefix string?
 function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 	local iterator = self.finder:iter(location_prefix, root_dir)
-	local chartfile_set, chartfile
+	---@type sea.ClientChartfileSet?
+	local chartfile_set
+	---@type sea.ClientChartfile?
+	local chartfile
 	local discovered_count = 0
 	local iterations = 0
 
@@ -30,6 +33,7 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 		iterations = iterations + 1
 		if iterations % 1000 == 0 and self.taskContext:shouldStop() then break end
 
+		---@type boolean?
 		local res
 		if name and typ == "related_dir" then
 			chartfile_set = self:processChartfileSet({
