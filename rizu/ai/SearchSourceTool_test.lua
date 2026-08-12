@@ -3,6 +3,7 @@ local SearchSourceTool = require("rizu.ai.SearchSourceTool")
 
 local test = {}
 
+---@return rizu.ai.SearchSourceTool
 local function makeTool()
 	local fs = FakeFilesystem()
 	fs:createDirectory("rizu/sub")
@@ -42,10 +43,10 @@ end
 
 ---@param t testing.T
 function test.reports_invalid_inputs(t)
-	local _, is_error = makeTool():execute({query = "", path = "rizu", mode = "content", case_sensitive = true, max_results = 1, max_files = 10})
-	t:eq(is_error, true)
-	_, is_error = makeTool():execute({query = "x", path = "missing", mode = "content", case_sensitive = true, max_results = 1, max_files = 10})
-	t:eq(is_error, true)
+	local _, empty_query_error = makeTool():execute({query = "", path = "rizu", mode = "content", case_sensitive = true, max_results = 1, max_files = 10})
+	t:eq(empty_query_error, true)
+	local _, missing_path_error = makeTool():execute({query = "x", path = "missing", mode = "content", case_sensitive = true, max_results = 1, max_files = 10})
+	t:eq(missing_path_error, true)
 end
 
 return test
