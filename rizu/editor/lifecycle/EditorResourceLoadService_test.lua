@@ -8,6 +8,7 @@ function test.load_runs_resource_steps_in_order(t)
 	local resources = {
 		audio = "song.ogg",
 	}
+	---@type boolean?
 	local resourcesLoaded
 	local context = {
 		getPlaybackService = function()
@@ -47,6 +48,7 @@ end
 ---@param t testing.T
 function test.load_fails_fast_on_audio_error(t)
 	local calls = {}
+	---@type boolean?
 	local resourcesLoaded
 	local context = {
 		getPlaybackService = function()
@@ -89,6 +91,7 @@ end
 ---@param t testing.T
 function test.load_does_not_mark_loaded_when_graphs_fail(t)
 	local calls = {}
+	---@type boolean?
 	local resourcesLoaded
 	local context = {
 		getPlaybackService = function()
