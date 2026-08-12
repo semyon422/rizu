@@ -7,6 +7,26 @@ local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
 
+---@alias rizu.preview.PreviewMode "absolute"|"relative"
+
+---@class rizu.preview.PreviewChartview
+---@field hash string
+---@field duration number?
+---@field location_path string
+---@field location_prefix string
+---@field location_dir string
+---@field chartfile_name string
+---@field index integer
+
+---@class rizu.preview.PreviewGenerationData
+---@field hash string
+---@field location_path string
+---@field location_prefix string
+---@field location_dir string
+---@field preview_resource_dir string?
+---@field chartfile_name string
+---@field index integer
+
 ---@class rizu.preview.PreviewModel
 ---@operator call: rizu.preview.PreviewModel
 local PreviewModel = class()
@@ -16,17 +36,18 @@ PreviewModel.position = 0
 PreviewModel.mode = "absolute"
 PreviewModel.manual_time = 0
 
----@param chartview table
+---@param chartview rizu.preview.PreviewChartview
 ---@return string?
 local function get_preview_resource_dir(chartview)
 	local archive_path = chartview.location_path and ChartfileReader.splitArchivePath(chartview.location_path)
 	return archive_path or chartview.location_dir
 end
 
----@param chartview table
+---@param chartview rizu.preview.PreviewChartview
 ---@param fs fs.IFilesystem
 ---@return string[]
 local function get_bga_preview_resource_paths(chartview, fs)
+	---@type string[]
 	local paths = {}
 	local resource_dir = get_preview_resource_dir(chartview)
 	if resource_dir then
@@ -79,8 +100,8 @@ end
 
 ---@param audio_path string?
 ---@param preview_time number?
----@param mode string?
----@param chartview table?
+---@param mode rizu.preview.PreviewMode?
+---@param chartview rizu.preview.PreviewChartview?
 function PreviewModel:setAudioPathPreview(audio_path, preview_time, mode, chartview)
 	if not self.active then
 		return
@@ -320,6 +341,7 @@ function PreviewModel:loadPreview()
 end
 
 local generatePreviewAsync = thread.async(function(chartview_data)
+	---@cast chartview_data rizu.preview.PreviewGenerationData
 	print("Preview: generating " .. chartview_data.hash)
 	local AudioPreviewGenerator = require("rizu.preview.AudioPreviewGenerator")
 	local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
@@ -375,7 +397,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	return true
 end)
 
----@param chartview table
+---@param chartview rizu.preview.PreviewChartview
 function PreviewModel:generatePreview(chartview)
 	local hash = chartview.hash
 	if self.generating_hashes[hash] then
@@ -383,6 +405,7 @@ function PreviewModel:generatePreview(chartview)
 	end
 	self.generating_hashes[hash] = true
 
+	---@type rizu.preview.PreviewGenerationData
 	local chartview_data = {
 		location_path = chartview.location_path,
 		location_prefix = chartview.location_prefix,
