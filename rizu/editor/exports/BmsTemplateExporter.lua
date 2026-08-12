@@ -6,10 +6,15 @@ local ChartDecoder = require("chart.format.sph.ChartDecoder")
 local base36 = require("chart.format.bms.base36")
 local digest = require("digest")
 
+---@class rizu.editor.exports.BmsTemplateChart: chart.Chart
+---@field chartmeta sea.Chartmeta
+---@field name string
+
 ---@class rizu.editor.exports.BmsTemplateExporter
 ---@operator call: rizu.editor.exports.BmsTemplateExporter
 local BmsTemplateExporter = class()
 
+---@type {[5|7|10]: integer[]}
 local bms_columns = {
 	[5] = {11, 12, 13, 14, 15},
 	[7] = {11, 12, 13, 14, 15, 18, 19},
@@ -32,7 +37,9 @@ local function getPatternNotes(notes, sounds_map)
 			local p = note.visualPoint.point
 			---@cast p chartedit.Point
 
-			local sound = note.data.sounds and note.data.sounds[1] and note.data.sounds[1][1]
+			---@type {sounds: {[1]: string, [2]: number}[]}
+			local note_data = note.data
+			local sound = note_data.sounds and note_data.sounds[1] and note_data.sounds[1][1]
 			local time = p:getGlobalTime():tonumber()
 			pattern_notes[time] = pattern_notes[time] or {}
 			table.insert(pattern_notes[time], {key, sounds_map[sound]})
@@ -44,21 +51,23 @@ end
 
 ---@param chartSelector rizu.select.ChartSelector
 ---@param editorModel rizu.editor.EditorModel
----@param columns_out number
+---@param columns_out 5|7|10
 function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 	local chartview = chartSelector.chartview
 	local real_dir = chartview.real_dir
 
-	---@type chart.Chart[]
+	---@type rizu.editor.exports.BmsTemplateChart[]
 	local stem_charts = {}
 
 	for _, name in ipairs(love.filesystem.getDirectoryItems(real_dir) --[=[@as string[]]=]) do
 		if name:match("^stem.+%.sph$") then
 			local dec = ChartDecoder()
 			local data = assert(love.filesystem.read(path_util.join(real_dir, name)))
-			local chart = dec:decode(data, digest.hash("md5", data, true))[1]
+			local decoded = dec:decode(data, digest.hash("md5", data, true))[1]
+			local chart = decoded.chart
+			chart.chartmeta = decoded.chartmeta
 			chart.name = name
-			table.insert(stem_charts, chart)
+			table.insert(stem_charts, chart --[[@as rizu.editor.exports.BmsTemplateChart]])
 		end
 	end
 
@@ -79,7 +88,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 
 	---@type number
 	local tempo
-	---@type {time: chart.Fraction, column: integer, sound: integer}[]
+	---@type {time: chart.Fraction, column: integer, sound: integer, chart_name: string}[]
 	local notes = {}
 	---@type chart.Fraction
 	local max_time
@@ -87,7 +96,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 	local beat_offset = editorModel.bmsToolsContext.beat_offset
 
 	for column, chart in ipairs(stem_charts) do
-		local dir = chart.chartmeta.name
+		local dir = assert(chart.chartmeta.name)
 		local linkedNotes = chart.notes:getLinkedNotes()
 
 		local ks_index = 1
@@ -124,7 +133,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 					time = time,
 					column = column,
 					sound = get_sound_index(path),
-					chart_name = chart.name,
+					chart_name = assert(chart.name),
 				})
 
 				if not max_time or time > max_time then
@@ -154,6 +163,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 		if not keys then
 			return
 		end
+		---@type integer?
 		local i
 		for j, key_sound in ipairs(keys) do
 			if key_sound[2] == sound then
@@ -171,6 +181,7 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 		return key_sound[1]
 	end
 
+	---@type {[string]: true}
 	local always_bgm = {}
 	do
 		local data = love.filesystem.read(path_util.join(real_dir, "bgm.txt"))
@@ -184,12 +195,16 @@ function BmsTemplateExporter:export(chartSelector, editorModel, columns_out)
 
 	for _, note in ipairs(notes) do
 		local measure = (note.time / 4):floor()
+		---@type integer?
 		local key
 		if not always_bgm[note.chart_name] then
 			key = getPatternKey(note.time, note.sound)
 		end
 
-		local t, k
+		---@type {[integer]: {[integer]: {time: chart.Fraction, sound: integer}[]}}
+		local t
+		---@type integer
+		local k
 		if not key then
 			t = notes_grouped
 			k = note.column
