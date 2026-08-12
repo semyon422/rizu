@@ -3,10 +3,16 @@ local path_util = require("path_util")
 local decibel = require("decibel")
 local Wave = require("audio.Wave")
 
+---@class rizu.editor.exports.BmsKeysoundChartview
+---@field real_dir string
+---@field name string
+
 ---@class rizu.editor.exports.BmsKeysoundSlicer
 ---@operator call: rizu.editor.exports.BmsKeysoundSlicer
 local BmsKeysoundSlicer = class()
 
+---@param chartSelector {chartview: rizu.editor.exports.BmsKeysoundChartview}
+---@param editorModel rizu.editor.EditorModel
 function BmsKeysoundSlicer:slice(chartSelector, editorModel)
 	local chartview = chartSelector.chartview
 	local real_dir = chartview.real_dir
@@ -16,9 +22,10 @@ function BmsKeysoundSlicer:slice(chartSelector, editorModel)
 		return
 	end
 
-	local volume = editorModel.metadata:get("volume") or "1"
-	local mulVolume = tonumber(volume)
-	local dbVolume = tonumber(volume:lower():match("^(.+)%s*db$"))
+	local volume_string = editorModel.metadata:get("volume") or "1"
+	local mulVolume = tonumber(volume_string)
+	local dbVolume = tonumber(volume_string:lower():match("^(.+)%s*db$"))
+	local volume = 1
 	if mulVolume then
 		volume = mulVolume
 	elseif dbVolume then
@@ -70,8 +77,8 @@ function BmsKeysoundSlicer:slice(chartSelector, editorModel)
 				a, b = n_a:getStartTime(), n_a:getEndTime()
 			end
 
-			local sample_offset = math.floor(a * sample_rate)
-			local sample_count = math.floor((b - a) * sample_rate)
+			local sample_offset = math.floor(assert(a) * sample_rate)
+			local sample_count = math.floor((assert(b) - a) * sample_rate)
 
 			local wave = Wave()
 			wave.sample_rate = sample_rate
@@ -102,10 +109,9 @@ function BmsKeysoundSlicer:slice(chartSelector, editorModel)
 			end
 
 			local note = n_a.startNote
-			local p = note.visualPoint.point
-			---@cast p chartedit.Point
-
-			note.data.sounds = {{path_util.join(chartview.name, file_name), 1}}
+			---@type {sounds: {[1]: string, [2]: number}[]}
+			local note_data = note.data
+			note_data.sounds = {{path_util.join(chartview.name, file_name), 1}}
 
 			local path = path_util.join(dir, file_name)
 			love.filesystem.write(path, wave:encode())

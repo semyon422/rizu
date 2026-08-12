@@ -31,7 +31,7 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@class rizu.editor.EditorServicesDeps
 ---@field fs fs.IFilesystem?
 ---@field noteChartLoader rizu.editor.NoteChartLoader?
----@field audio_engine rizu.engine.audio.Engine?
+---@field audio_engine rizu.audio.Engine?
 ---@field ncbtContext rizu.editor.NcbtContext?
 ---@field intervalManager rizu.editor.IntervalManager?
 ---@field graphsGenerator rizu.editor.GraphsGenerator?
@@ -62,7 +62,7 @@ local Metadata = require("chart.format.sph.Metadata")
 ---@class rizu.editor.EditorServices
 ---@operator call: rizu.editor.EditorServices
 ---@field noteChartLoader rizu.editor.NoteChartLoader
----@field audio_engine rizu.engine.audio.Engine
+---@field audio_engine rizu.audio.Engine
 ---@field ncbtContext rizu.editor.NcbtContext
 ---@field intervalManager rizu.editor.IntervalManager
 ---@field graphsGenerator rizu.editor.GraphsGenerator
