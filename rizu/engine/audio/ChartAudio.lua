@@ -42,9 +42,10 @@ function ChartAudio:load(chart, with_playable)
 	local sounds = self.sounds
 
 	for _, note in chart.notes:iter() do
-		---@cast note notechart.Note
-		if note.data.sounds and (with_playable or not playable_types[note.type]) then
-			for _, sound in ipairs(note.data.sounds) do
+		---@type {sounds: {[1]: string, [2]: number?}[]?}
+		local note_data = note.data
+		if note_data.sounds and (with_playable or not playable_types[note.type]) then
+			for _, sound in ipairs(note_data.sounds) do
 				table.insert(sounds, {
 					time = note.visualPoint.point.absoluteTime,
 					name = sound[1],
