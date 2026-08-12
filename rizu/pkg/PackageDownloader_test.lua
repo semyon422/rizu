@@ -22,7 +22,9 @@ end
 ---@param t testing.T
 function test.download_uses_network_service(t)
 	local old_love = love
+	---@type string
 	local written_path
+	---@type {data: string, filename: string}
 	local written_data
 	love = {
 		filesystem = {
@@ -37,7 +39,9 @@ function test.download_uses_network_service(t)
 		},
 	}
 
+	---@type string
 	local requested_url
+	---@type rizu.NetworkStatusHttpOptions
 	local requested_options
 	local network = {
 		download = function(_, url, options)
