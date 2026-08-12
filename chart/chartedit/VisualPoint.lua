@@ -7,6 +7,7 @@ local IVisualPoint = require("chart.model.visual.IVisualPoint")
 ---@field _expand chart.Expand?
 ---@field _velocity chart.Velocity?
 ---@field comment string?
+---@field temp_comment string?
 local VisualPoint = IVisualPoint + {}
 
 ---@param point chartedit.Point

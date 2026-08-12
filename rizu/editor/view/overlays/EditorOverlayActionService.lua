@@ -24,7 +24,7 @@ local class = require("class")
 ---@field comment string?
 
 ---@class rizu.editor.EditorOverlayActionContext
----@field getChartmeta fun(self: rizu.editor.EditorOverlayActionContext): table
+---@field getChartmeta fun(self: rizu.editor.EditorOverlayActionContext): sea.Chartmeta
 ---@field getSessionTime fun(self: rizu.editor.EditorOverlayActionContext): number
 ---@field getNoteService fun(self: rizu.editor.EditorOverlayActionContext): rizu.editor.EditorNoteService
 ---@field getSelectedNotes fun(self: rizu.editor.EditorOverlayActionContext): {[chart.Note]: rizu.editor.EditorNote}
@@ -111,14 +111,16 @@ function EditorOverlayActionService:setSelectedNotesComment(context, comment)
 		comment = nil
 	end
 	for _, note in pairs(context:getSelectedNotes()) do
-		note.startNote.visualPoint.comment = comment
+		local visual_point = note.startNote.visualPoint --[[@as chartedit.VisualPoint]]
+		visual_point.comment = comment
 	end
 end
 
 ---@param context rizu.editor.EditorOverlayActionContext
 function EditorOverlayActionService:resetSelectedNotesComment(context)
 	for _, note in pairs(context:getSelectedNotes()) do
-		note.startNote.visualPoint.comment = nil
+		local visual_point = note.startNote.visualPoint --[[@as chartedit.VisualPoint]]
+		visual_point.comment = nil
 	end
 end
 
