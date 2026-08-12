@@ -3,6 +3,13 @@ local class = require("class")
 local json = require("json")
 local table_util = require("table_util")
 
+---@class rizu.update.FakeUIO
+---@operator call: rizu.update.FakeUIO
+---@field downloaded {[1]: string, [2]: string}[]
+---@field removed string[]
+---@field hashed string[]
+---@field crc32_by_path {[string]: integer}
+---@field data_by_url {[string]: string}
 local FakeUIO = class()
 
 function FakeUIO:new()
@@ -33,6 +40,7 @@ end
 
 local test = {}
 
+---@param t testing.T
 function test.clean_download(t)
 	local uio = FakeUIO()
 
@@ -58,6 +66,7 @@ function test.clean_download(t)
 	})
 end
 
+---@param t testing.T
 function test.no_update(t)
 	local uio = FakeUIO()
 
@@ -83,6 +92,7 @@ function test.no_update(t)
 	t:eq(#uio.hashed, 0)
 end
 
+---@param t testing.T
 function test.add_remove_keep(t)
 	local uio = FakeUIO()
 
@@ -113,6 +123,7 @@ function test.add_remove_keep(t)
 	})
 end
 
+---@param t testing.T
 function test.empty_local_list(t)
 	local uio = FakeUIO()
 
@@ -139,6 +150,7 @@ function test.empty_local_list(t)
 	})
 end
 
+---@param t testing.T
 function test.empty_local_list_wrong_hash(t)
 	local uio = FakeUIO()
 
@@ -148,7 +160,7 @@ function test.empty_local_list_wrong_hash(t)
 	}
 	uio.data_by_url["/files.json"] = json.encode(server_files)
 	uio.crc32_by_path = {
-		b = 2,  -- <--
+		b = 2, -- <--
 	}
 
 	local updater = Updater(uio)
