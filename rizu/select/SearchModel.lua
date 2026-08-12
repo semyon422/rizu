@@ -2,6 +2,15 @@ local class = require("class")
 local string_util = require("string_util")
 local erfunc = require("chart.scoring.erfunc")
 
+---@alias rizu.select.SearchOperator "eq"|"ne"|"gt"|"lt"|"gte"|"lte"
+
+---@class rizu.select.NumberFieldConfig
+---@field keys string[]
+---@field field string
+---@field inverse boolean?
+---@field flip boolean?
+---@field transform (fun(self: rizu.select.SearchModel, value: string): number?)?
+
 ---@class rizu.select.SearchModel
 ---@operator call: rizu.select.SearchModel
 local SearchModel = class()
@@ -11,6 +20,7 @@ function SearchModel:new(configModel)
 	self.configModel = configModel
 end
 
+---@type rizu.select.NumberFieldConfig[]
 local number_fields = {
 	{
 		keys = {"difficulty", "diff", "d"},
@@ -20,12 +30,13 @@ local number_fields = {
 		keys = {"duration", "dur", "len", "l"},
 		field = "duration",
 		transform = function(self, v)
-			if tonumber(v) then
-				return tonumber(v)
+			local value = tonumber(v)
+			if value then
+				return value
 			end
 			local n, s = v:match("(%d+)(%a+)")
-			if s == "m" then
-				return n * 60
+			if n and s == "m" then
+				return tonumber(n) * 60
 			end
 		end,
 	},
@@ -45,11 +56,11 @@ local number_fields = {
 		keys = {"ln"},
 		field = "long_notes_ratio",
 		transform = function(self, v)
-			if not tonumber(v) then
+			local value = tonumber(v)
+			if not value then
 				return
 			end
-			v = tonumber(v)
-			return v / 100
+			return value / 100
 		end,
 	},
 	{
@@ -60,11 +71,11 @@ local number_fields = {
 		keys = {"accuracy", "acc", "a"},
 		field = "accuracy",
 		transform = function(self, v)
-			if not tonumber(v) then
+			local value = tonumber(v)
+			if not value then
 				return
 			end
-			v = tonumber(v)
-			return v / 1000
+			return value / 1000
 		end,
 	},
 	{
@@ -72,14 +83,14 @@ local number_fields = {
 		field = "accuracy",
 		flip = true,
 		transform = function(self, v)
-			if not tonumber(v) then
+			local value = tonumber(v)
+			if not value then
 				return
 			end
-			v = tonumber(v)
-			if v <= 0 then return 1000 end
-			if v >= 10000 then return 0 end
+			if value <= 0 then return 1000 end
+			if value >= 10000 then return 0 end
 			local window = self.configModel.configs.settings.gameplay.ratingHitTimingWindow
-			local accuracy = window / (erfunc.erfinv(v / 10000) * math.sqrt(2))
+			local accuracy = window / (erfunc.erfinv(value / 10000) * math.sqrt(2))
 			if accuracy ~= accuracy or math.abs(accuracy) == math.huge then
 				return 0
 			end
@@ -88,6 +99,7 @@ local number_fields = {
 	},
 }
 
+---@type {[string]: rizu.select.NumberFieldConfig}
 local fields_map = {}
 for _, config in ipairs(number_fields) do
 	for _, k in ipairs(config.keys) do
@@ -108,6 +120,7 @@ local textFields = {
 	"inputmode",
 }
 
+---@type {[string]: rizu.select.SearchOperator}
 local operators = {
 	["="] = "eq",
 	["~="] = "ne",
@@ -118,6 +131,7 @@ local operators = {
 	["<="] = "lte",
 }
 
+---@type {[rizu.select.SearchOperator]: rizu.select.SearchOperator}
 local inverse_operators = {
 	eq = "ne",
 	ne = "eq",
@@ -127,6 +141,7 @@ local inverse_operators = {
 	lte = "gt",
 }
 
+---@type {[rizu.select.SearchOperator]: rizu.select.SearchOperator}
 local flip_operators = {
 	gt = "lt",
 	lt = "gt",
@@ -164,6 +179,7 @@ function SearchModel:transformSearchString(s, cond)
 				end
 			end
 		elseif not key and _s ~= "" then
+			---@type rdb.Conditions
 			local _cond = {"or"}
 			for _, k in ipairs(textFields) do
 				_cond[k .. "__contains"] = _s
