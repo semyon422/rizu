@@ -61,6 +61,12 @@ local full_tools = {
 	},
 }
 
+---@class rizu.ai.NeedleRoutingCase
+---@field query string
+---@field expected string
+---@field arguments {[string]: string|number|boolean}?
+
+---@type rizu.ai.NeedleRoutingCase[]
 local cases = {
 	{query = "rate 1", expected = "set_playback_rate", arguments = {rate = 1}},
 	{query = "make song faster", expected = "set_playback_rate"},
@@ -76,6 +82,9 @@ local cases = {
 	{query = "disable const", expected = "set_play_option", arguments = {option = "const", enabled = false}},
 }
 
+---@param actual {[string]: unknown}?
+---@param expected {[string]: string|number|boolean}?
+---@return boolean
 local function expected_arguments_match(actual, expected)
 	if expected == nil then return true end
 	if type(actual) ~= "table" then return false end
@@ -85,9 +94,16 @@ local function expected_arguments_match(actual, expected)
 	return true
 end
 
+---@class rizu.ai.NeedleRoutingCall
+---@field name string
+---@field arguments {[string]: unknown}?
+
+---@param text string
+---@return rizu.ai.NeedleRoutingCall?
 local function parse_call(text)
 	local decoded = json.decode_safe(text)
 	if type(decoded) ~= "table" or #decoded ~= 1 then return nil end
+	---@diagnostic disable-next-line: no-unknown -- JSON values are intentionally dynamic until the checks below.
 	local call = decoded[1]
 	if type(call) ~= "table" or type(call.name) ~= "string" then return nil end
 	return call
