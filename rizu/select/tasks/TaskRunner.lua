@@ -1,8 +1,14 @@
 local class = require("class")
 local thread = require("thread")
 
+---@alias rizu.select.tasks.TaskFunc fun()
+
 ---@class rizu.select.tasks.TaskRunner
 ---@operator call: rizu.select.tasks.TaskRunner
+---@field current_task_func rizu.select.tasks.TaskFunc?
+---@field pending_task_func rizu.select.tasks.TaskFunc?
+---@field pending_level integer?
+---@field is_running boolean
 local TaskRunner = class()
 
 TaskRunner.priority = {
@@ -11,16 +17,16 @@ TaskRunner.priority = {
 }
 
 function TaskRunner:new()
-	---@type function?
+	---@type rizu.select.tasks.TaskFunc?
 	self.current_task_func = nil
-	---@type function?
+	---@type rizu.select.tasks.TaskFunc?
 	self.pending_task_func = nil
 	---@type integer?
 	self.pending_level = nil
 	self.is_running = false
 end
 
----@param task_func function
+---@param task_func rizu.select.tasks.TaskFunc
 ---@param level integer? Lower is higher priority. Use `TaskRunner.priority`.
 function TaskRunner:push(task_func, level)
 	level = level or TaskRunner.priority.high
@@ -36,9 +42,10 @@ function TaskRunner:push(task_func, level)
 end
 
 ---@private
----@param task_func function
+---@param self rizu.select.tasks.TaskRunner
+---@param task_func rizu.select.tasks.TaskFunc
 ---@param level integer
-TaskRunner._run = thread.coro(function(self, task_func, level)
+local function run(self, task_func, level)
 	self.is_running = true
 	self.current_task_func = task_func
 
@@ -57,8 +64,10 @@ TaskRunner._run = thread.coro(function(self, task_func, level)
 		local next_level = self.pending_level
 		self.pending_task_func = nil
 		self.pending_level = nil
-		self:_run(next_task, next_level)
+		self:_run(next_task, assert(next_level))
 	end
-end)
+end
+
+TaskRunner._run = thread.coro(run)
 
 return TaskRunner
