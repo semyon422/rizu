@@ -1,5 +1,19 @@
 local class = require("class")
 
+---@class rizu.editor.EditorNoteSettings
+---@field snap integer
+---@field lockSnap boolean
+---@field tool string
+
+---@class rizu.editor.EditorNoteSound
+---@field [1] string
+
+---@class rizu.editor.EditorNoteWithSounds
+---@field sounds rizu.editor.EditorNoteSound[]?
+
+---@class rizu.editor.SelectedEditorNote
+---@field startNote rizu.editor.EditorNoteWithSounds
+
 ---@class rizu.editor.EditorNotesOverlayState
 ---@field logSpeed number
 ---@field snap integer
@@ -24,10 +38,10 @@ local class = require("class")
 ---@class rizu.editor.EditorNotesOverlayContext
 ---@field getLogSpeed fun(self: rizu.editor.EditorNotesOverlayContext): number
 ---@field setLogSpeed fun(self: rizu.editor.EditorNotesOverlayContext, logSpeed: number)
----@field getEditorSettings fun(self: rizu.editor.EditorNotesOverlayContext): table
+---@field getEditorSettings fun(self: rizu.editor.EditorNotesOverlayContext): rizu.editor.EditorNoteSettings
 ---@field getMaxSnap fun(self: rizu.editor.EditorNotesOverlayContext): integer
 ---@field getTools fun(self: rizu.editor.EditorNotesOverlayContext): string[]
----@field getSelectedNotes fun(self: rizu.editor.EditorNotesOverlayContext): {[chart.Note]: rizu.editor.EditorNote}
+---@field getSelectedNotes fun(self: rizu.editor.EditorNotesOverlayContext): {[chart.Note]: rizu.editor.SelectedEditorNote}
 
 ---@class rizu.editor.EditorNotesOverlayService
 ---@operator call: rizu.editor.EditorNotesOverlayService
@@ -40,6 +54,7 @@ EditorNotesOverlayService.toolHotkeys = {"q", "w", "e", "r", "t", "y"}
 function EditorNotesOverlayService:getState(context)
 	local editor = context:getEditorSettings()
 	local _, selectedNote = next(context:getSelectedNotes())
+	---@type string?
 	local selectedNoteSound
 	if selectedNote then
 		local sounds = selectedNote.startNote.sounds
@@ -67,6 +82,7 @@ end
 ---@param tools string[]
 ---@return string[]
 function EditorNotesOverlayService:getToolHotkeys(tools)
+	---@type string[]
 	local hotkeys = {}
 	local max = math.min(#tools, #self.toolHotkeys)
 	for i = 1, max do
@@ -78,6 +94,7 @@ end
 ---@param tools string[]
 ---@return string
 function EditorNotesOverlayService:getToolHotkeyLabel(tools)
+	---@type string[]
 	local labels = {}
 	for i, key in ipairs(self:getToolHotkeys(tools)) do
 		labels[i] = ("%s:%s"):format(key, tools[i])
@@ -132,6 +149,7 @@ end
 ---@param key string
 ---@return string?
 function EditorNotesOverlayService:getToolForHotkey(tools, key)
+	---@type integer?
 	local index
 	for i, toolKey in ipairs(self.toolHotkeys) do
 		if toolKey == key then
