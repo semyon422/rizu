@@ -1,4 +1,5 @@
 local class = require("class")
+local table_util = require("table_util")
 local Point = require("chart.chartedit.Point")
 
 ---@class rizu.editor.EditorCursorState
@@ -27,9 +28,7 @@ function EditorCursorState:setPoint(point)
 		return
 	end
 
-	for key, value in pairs(point) do
-		self.point[key] = value
-	end
+	table_util.copy(point, self.point)
 end
 
 ---@param point chartedit.Point
