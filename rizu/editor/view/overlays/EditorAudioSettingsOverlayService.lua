@@ -1,10 +1,35 @@
 local class = require("class")
 local decibel = require("decibel")
 
+---@class rizu.editor.EditorAudioVolumeSettings
+---@field master number
+---@field music number
+---@field keysounds number
+---@field metronome number
+---@field [string] number
+
+---@class rizu.editor.EditorAudioModeSettings
+---@field primary string
+---@field secondary string
+
+---@class rizu.editor.EditorAudioSettings
+---@field volume rizu.editor.EditorAudioVolumeSettings
+---@field volumeType string
+---@field mode rizu.editor.EditorAudioModeSettings
+
+---@class rizu.editor.EditorWaveformSettings
+---@field opacity number
+---@field scale number
+
+---@class rizu.editor.EditorAudioEditorSettings
+---@field audioOffset number
+---@field waveformOffset number
+---@field waveform rizu.editor.EditorWaveformSettings
+
 ---@class rizu.editor.EditorAudioSettingsOverlayState
----@field audio table
----@field editor table
----@field waveform table
+---@field audio rizu.editor.EditorAudioSettings
+---@field editor rizu.editor.EditorAudioEditorSettings
+---@field waveform rizu.editor.EditorWaveformSettings
 ---@field volumeSliders rizu.editor.EditorAudioSettingsSlider[]
 ---@field audioOffsetSlider rizu.editor.EditorAudioSettingsSlider
 ---@field waveformOffsetSlider rizu.editor.EditorAudioSettingsSlider
@@ -29,8 +54,8 @@ local decibel = require("decibel")
 ---@field waveformScale number
 
 ---@class rizu.editor.EditorAudioSettingsOverlayContext
----@field getAudioSettings fun(self: rizu.editor.EditorAudioSettingsOverlayContext): table
----@field getEditorSettings fun(self: rizu.editor.EditorAudioSettingsOverlayContext): table
+---@field getAudioSettings fun(self: rizu.editor.EditorAudioSettingsOverlayContext): rizu.editor.EditorAudioSettings
+---@field getEditorSettings fun(self: rizu.editor.EditorAudioSettingsOverlayContext): rizu.editor.EditorAudioEditorSettings
 
 ---@class rizu.editor.EditorAudioSettingsOverlayService
 ---@operator call: rizu.editor.EditorAudioSettingsOverlayService
@@ -62,13 +87,18 @@ function EditorAudioSettingsOverlayService:getState(context)
 	}
 end
 
----@param audio table
+---@param audio rizu.editor.EditorAudioSettings
 ---@return rizu.editor.EditorAudioSettingsSlider[]
 function EditorAudioSettingsOverlayService:getVolumeSliders(audio)
+	---@type rizu.editor.EditorAudioSettingsSlider[]
 	local sliders = {}
+	---@type number
 	local min
+	---@type number
 	local max
+	---@type number
 	local step
+	---@type string
 	local labelFormat
 	if audio.volumeType == "linear" then
 		min = 0
