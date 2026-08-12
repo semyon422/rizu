@@ -174,10 +174,13 @@ function ResourceLoader:applySnapshot(snapshot)
 	self.file_pendings = {}
 end
 
+---@param entries rizu.ResourceEntry[]
+---@param paths string[]
+---@return rizu.ResourceLoaderSnapshot
 local function loadAsyncWorker(entries, paths)
 	local LoveFilesystem = require("fs.LoveFilesystem")
 	local ResourceFinder = require("rizu.files.ResourceFinder")
-	local WorkerResourceLoader = require("rizu.files.ResourceLoader")
+	local WorkerResourceLoader = require("rizu.files.ResourceLoader") --[[@as rizu.ResourceLoader]]
 
 	local fs = LoveFilesystem()
 	local resource_finder = ResourceFinder(fs)
