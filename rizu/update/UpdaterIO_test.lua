@@ -8,6 +8,7 @@ end
 
 ---@param t testing.T
 function test.download_file_uses_network_and_writer(t)
+	---@type string
 	local requested_url
 	local network = {
 		download = function(_, url)
@@ -19,6 +20,7 @@ function test.download_file_uses_network_and_writer(t)
 			}
 		end,
 	}
+	---@type {path: string, body: string}
 	local written
 	local io = UpdaterIO(network --[[@as any]], function(path, body)
 		written = {path = path, body = body}
@@ -87,7 +89,9 @@ end
 
 ---@param t testing.T
 function test.remove_and_crc32_use_injected_functions(t)
+	---@type string
 	local removed
+	---@type string
 	local hashed
 	local io = UpdaterIO({download = function() end} --[[@as any]], nil, function(path)
 		removed = path
