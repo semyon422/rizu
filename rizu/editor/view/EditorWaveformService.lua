@@ -1,22 +1,34 @@
 local class = require("class")
 local math_util = require("math_util")
 
+---@alias rizu.editor.EditorWaveformPoint number[]
+---@alias rizu.editor.EditorWaveformPointList {[integer]: rizu.editor.EditorWaveformPoint}
+---@alias rizu.editor.EditorWaveformLines {[integer]: number[]}
+
+---@class rizu.editor.EditorWaveformNoteSkin
+---@field unit number
+---@field fullWidth number
+
+---@class rizu.editor.EditorWaveformSettings
+---@field speed number
+---@field waveformOffset number
+
 ---@class rizu.editor.EditorWaveformState
----@field lines table[]
+---@field lines rizu.editor.EditorWaveformLines
 ---@field pointDrawDelta number
 ---@field channelCount integer
 
 ---@class rizu.editor.EditorWaveformContext
----@field getWave fun(self: rizu.editor.EditorWaveformContext): table?
+---@field getWave fun(self: rizu.editor.EditorWaveformContext): audio.Wave?
 ---@field getSessionTime fun(self: rizu.editor.EditorWaveformContext): number
 ---@field getAudioStartTime fun(self: rizu.editor.EditorWaveformContext): number
 
 ---@class rizu.editor.EditorWaveformService
 ---@operator call: rizu.editor.EditorWaveformService
----@field lines table[]
----@field points table[]
+---@field lines rizu.editor.EditorWaveformLines
+---@field points {[integer]: rizu.editor.EditorWaveformPointList}
 ---@field key string?
----@field wave table?
+---@field wave audio.Wave?
 ---@field waveSignature string?
 ---@field prevSamplesPerPoint number
 ---@field renderedPointOffset number|false?
@@ -30,21 +42,23 @@ function EditorWaveformService:new()
 	self.pointDrawDelta = 0
 end
 
----@param wave table
+---@param wave audio.Wave
 ---@param points integer
 ---@param pointOffset number
 ---@param samplesPerPoint number
 ---@param channel integer
----@return table
+---@return rizu.editor.EditorWaveformPointList
 function EditorWaveformService:getPointList(wave, points, pointOffset, samplesPerPoint, channel)
 	local sampleCount = wave.samples_count
 	local j = channel + 1
+	---@type rizu.editor.EditorWaveformPointList
 	local list = {}
 
 	for k = 0, points - 1 do
 		local sampleStart = math.floor((pointOffset + k) * samplesPerPoint)
 		local sampleEnd = math.floor((pointOffset + k + 1) * samplesPerPoint)
 
+		---@type number?, number?
 		local max, min
 		for i = sampleStart, sampleEnd do
 			if i >= 0 and i < sampleCount then
@@ -70,15 +84,16 @@ function EditorWaveformService:getPointList(wave, points, pointOffset, samplesPe
 	return list
 end
 
----@param wave table
----@param pointStart number
----@param newPointStart number
+---@param wave audio.Wave
+---@param pointStart integer
+---@param newPointStart integer
 ---@param points integer
 ---@param samplesPerPoint number
 ---@param channelCount integer
 function EditorWaveformService:adjustPoints(wave, pointStart, newPointStart, points, samplesPerPoint, channelCount)
 	for j = 0, channelCount - 1 do
 		local count = math.abs(pointStart - newPointStart)
+		---@type rizu.editor.EditorWaveformPointList
 		local newPoints = {}
 		if newPointStart > pointStart then
 			for i = count, points - 1 do
@@ -103,10 +118,10 @@ function EditorWaveformService:adjustPoints(wave, pointStart, newPointStart, poi
 	end
 end
 
----@param wave table
+---@param wave audio.Wave
 ---@param width number
 ---@param height number
----@param pointOffset number
+---@param pointOffset integer
 ---@param samplesPerPoint number
 ---@param channelCount integer
 function EditorWaveformService:updateLines(wave, width, height, pointOffset, samplesPerPoint, channelCount)
@@ -146,8 +161,8 @@ function EditorWaveformService:updateLines(wave, width, height, pointOffset, sam
 end
 
 ---@param context rizu.editor.EditorWaveformContext
----@param noteSkin table
----@param editor table
+---@param noteSkin rizu.editor.EditorWaveformNoteSkin
+---@param editor rizu.editor.EditorWaveformSettings
 ---@param height number?
 ---@return rizu.editor.EditorWaveformState?
 function EditorWaveformService:update(context, noteSkin, editor, height)
