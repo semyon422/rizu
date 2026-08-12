@@ -27,11 +27,18 @@ function LibraryDropManager:directorydropped(path)
 	-- self.library.locations:updateLocationPath(path)
 end
 
+---@alias rizu.library.FileDroppedHandler fun(self: rizu.library.LibraryDropManager, path: string, data: string)
+
+---@type {[string]: rizu.library.FileDroppedHandler}
 local filedropped_handlers = {}
 
+---@param self rizu.library.LibraryDropManager
+---@param path string
+---@param data string
 function filedropped_handlers.new_chart(self, path, data)
-	local _name, ext = path:match("^(.+)%.(.-)$")
-	local audioName = _name:match("^.+/(.-)$")
+	local _name, ext = path_util.name_ext(path)
+	assert(ext)
+	local audioName = _name:match("^.+/(.-)$") or _name
 	local location_path = path_util.join("editor", os.time() .. " " .. audioName)
 	local chartSetPath = path_util.join("userdata/charts", location_path)
 
@@ -44,13 +51,16 @@ function filedropped_handlers.new_chart(self, path, data)
 	self.library:computeLocation(location_path, 1)
 end
 
+---@param self rizu.library.LibraryDropManager
+---@param path string
+---@param data string
 function filedropped_handlers.add_zip(self, path, data)
 	local location_path = path_util.join("dropped", path:match("^.+/(.-)%.osz$"))
 	local extractPath = path_util.join("userdata/charts", location_path)
 
 	print(("Extracting to: %s"):format(extractPath))
 	print(path, extractPath)
-	local extracted = fs_util.extractAsync(path, extractPath, false)
+	local extracted = fs_util.extractAsync(path, extractPath)
 	if not extracted then
 		print("Failed to extract")
 		return
