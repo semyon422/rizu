@@ -3,18 +3,50 @@ local Cursor = require("rizu.app.Cursor")
 local loop = require("rizu.loop.Loop")
 local brand = require("brand")
 
+---@class rizu.WindowFlags
+---@field display integer?
+---@field displayindex integer?
+---@field fullscreen boolean
+---@field fullscreentype love.FullscreenType
+---@field highdpi boolean?
+---@field vsync integer
+
+---@class rizu.WindowDimensions
+---@field width number
+---@field height number
+
+---@class rizu.WindowMode
+---@field flags rizu.WindowFlags
+---@field window rizu.WindowDimensions
+---@field fullscreen rizu.WindowDimensions
+
+---@class rizu.GraphicsConfig
+---@field asynckey boolean
+---@field busy_loop_ratio number
+---@field cursor string
+---@field dwmflush boolean
+---@field fps number
+---@field mode rizu.WindowMode
+---@field sleep_function string
+---@field unlimited_fps boolean
+---@field vsyncOnSelect boolean
+
+---@class rizu.WindowEvent
+---@field name string
+---@field [1] string?
+
 ---@class rizu.WindowModel
 ---@operator call: rizu.WindowModel
 local WindowModel = class()
 
 function WindowModel:new()
-	self.cursor = Cursor()
+	self.cursor = Cursor() --[[@as rizu.Cursor]]
 end
 
 WindowModel.baseVsync = 1
 
----@param flags table
----@return table
+---@param flags rizu.WindowFlags
+---@return rizu.WindowFlags
 local function normalizeWindowFlags(flags)
 	if flags.display ~= nil and flags.displayindex == nil then
 		flags.displayindex = flags.display
@@ -26,7 +58,7 @@ local function normalizeWindowFlags(flags)
 	return flags
 end
 
----@param mode table
+---@param mode rizu.WindowMode
 ---@return number
 ---@return number
 local function getDimensions(mode)
@@ -38,7 +70,7 @@ local function getDimensions(mode)
 	end
 end
 
----@param graphics table
+---@param graphics rizu.GraphicsConfig
 function WindowModel:load(graphics)
 	self.graphics = graphics
 	self.mode = self.graphics.mode
@@ -93,7 +125,7 @@ function WindowModel:updateWindowState()
 	end
 end
 
----@param event table
+---@param event rizu.WindowEvent
 function WindowModel:receive(event)
 	if event.name == "keypressed" and event[1] == "f10" then
 		local mode = self.mode
@@ -109,14 +141,13 @@ function WindowModel:receive(event)
 end
 
 ---@param fullscreen boolean
----@param fullscreentype string
+---@param fullscreentype love.FullscreenType
 function WindowModel:setFullscreen(fullscreen, fullscreentype)
 	local mode = self.mode
-	local width, height
+	local width = mode.window.width
+	local height = mode.window.height
 	if self.fullscreen then
 		width, height = love.window.getDesktopDimensions()
-	else
-		width, height = mode.window.width, mode.window.height
 	end
 	love.window.updateMode(width, height, {
 		fullscreen = fullscreen,
