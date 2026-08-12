@@ -2,18 +2,38 @@ local class = require("class")
 local delay = require("delay")
 local icc_co = require("icc.co")
 
+---@class rizu.MultiplayerChartSetStore
+---@field get fun(self: rizu.MultiplayerChartSetStore, index: integer): rizu.library.LocatedChartview?
+
+---@class rizu.MultiplayerChartSelector: rizu.select.ChartSelector
+---@field chartSetStore rizu.MultiplayerChartSetStore
+
+---@class rizu.MultiplayerRoom: sea.Room
+---@field notechart {osuSetId: integer?}
+
+---@class rizu.MultiplayerClient: sea.MultiplayerClient
+---@field getMyRoom fun(self: rizu.MultiplayerClient): rizu.MultiplayerRoom?
+
+---@class rizu.MultiplayerDownload
+---@field id integer
+---@field status string
+
 ---@class rizu.MultiplayerModel
 ---@operator call: rizu.MultiplayerModel
+---@field chartSelector rizu.MultiplayerChartSelector
+---@field client rizu.MultiplayerClient
+---@field chartview rizu.library.LocatedChartview?
+---@field downloadingBeatmap rizu.MultiplayerDownload?
 local MultiplayerModel = class()
 
 ---@param library rizu.library.Library
 ---@param rhythm_engine rizu.RhythmEngine
 ---@param configModel sphere.ConfigModel
----@param chartSelector rizu.select.ChartSelector
+---@param chartSelector rizu.MultiplayerChartSelector
 ---@param onlineModel rizu.OnlineModel
 ---@param dlcManager rizu.dlc.DlcManager
 ---@param replayBase sea.ReplayBase
----@param multiplayer_client sea.MultiplayerClient
+---@param multiplayer_client rizu.MultiplayerClient
 function MultiplayerModel:new(library, rhythm_engine, configModel, chartSelector, onlineModel, dlcManager, replayBase, multiplayer_client)
 	self.library = library
 	self.rhythm_engine = rhythm_engine
@@ -101,13 +121,16 @@ function MultiplayerModel:selectChart()
 		chartfile_set_id = 0,
 		chartfile_id = 0,
 		chartmeta_id = 0,
+		chartdiff_id = 0,
+		chartplay_id = 0,
 	})
 	self.chartview = nil
 	chartSelector:refresh(true)
 	self.remote.multiplayer:setChartFound(false)
 end
 
-MultiplayerModel.downloadNoteChart = icc_co.callwrap(function(self)
+---@param self rizu.MultiplayerModel
+local function download_note_chart(self)
 	local room = self.client:getMyRoom()
 	if not room then return end
 
@@ -126,6 +149,8 @@ MultiplayerModel.downloadNoteChart = icc_co.callwrap(function(self)
 
 	self.library:computeLocationAsync("downloads", 1)
 	self:selectChart()
-end)
+end
+
+MultiplayerModel.downloadNoteChart = icc_co.callwrap(download_note_chart)
 
 return MultiplayerModel
