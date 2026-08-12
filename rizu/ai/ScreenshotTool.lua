@@ -37,6 +37,7 @@ function ScreenshotTool:new(game, options)
 		love.graphics.captureScreenshot(callback)
 	end
 	self.encode = options.encode or function(image_data)
+		---@cast image_data love.ImageData
 		local file_data = image_data:encode("png")
 		return love.data.encode("string", "base64", file_data:getString())
 	end
@@ -58,9 +59,13 @@ function ScreenshotTool:execute(args, context)
 	local co = assert(coroutine.running(), "capture_screenshot must run in a coroutine")
 	local waiting = false
 	local ready = false
+	---@type string?
 	local encoded
+	---@type string?
 	local capture_error
 
+	---@param data string?
+	---@param err string?
 	local function complete(data, err)
 		if ready then
 			return
