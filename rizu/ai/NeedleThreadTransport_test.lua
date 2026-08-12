@@ -3,7 +3,14 @@ local ThreadPool = require("thread.ThreadPool")
 
 local test = {}
 
+---@class rizu.ai.FakeNeedleChannel
+---@field clear fun(self: rizu.ai.FakeNeedleChannel)
+---@field push fun(self: rizu.ai.FakeNeedleChannel, value: table)
+---@field pop fun(self: rizu.ai.FakeNeedleChannel): table?
+
+---@return rizu.ai.FakeNeedleChannel
 local function makeChannel()
+	---@type table[]
 	local values = {}
 	return {
 		clear = function() values = {} end,
@@ -22,6 +29,7 @@ function test.managed_lifecycle(t)
 	local input = makeChannel()
 	local output = makeChannel()
 	local running = true
+	---@type unknown[]?
 	local started_args
 	love.thread = {
 		getChannel = function(name) return name == "needle_input" and input or output end,
@@ -36,7 +44,7 @@ function test.managed_lifecycle(t)
 	}
 
 	local transport = NeedleThreadTransport()
-	transport:start({model_path = "model.bin", max_new_tokens = 64})
+	transport:start({model_path = "model.bin", max_new_tokens = 64, debounce_seconds = 0})
 	t:tdeq(started_args, {"needle_input", "needle_output", "model.bin", 64})
 	t:ne(ThreadPool.managedThreads[transport], nil)
 	running = false
