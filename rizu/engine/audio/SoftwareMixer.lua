@@ -130,14 +130,18 @@ function SoftwareMixer:new(sounds, decoders)
 end
 
 ---@param tree rbtree.Tree
----@param key table
+---@param key rizu.audio.SoftwareMixer.NodeWrap
 ---@return rbtree.Node?
 local function find_lower_bound(tree, key)
+	---@type rbtree.Node?
 	local x = tree.root
-	local res = nil
+	---@type rbtree.Node?
+	local res
 	while x do
 		if not (x.key < key) then
 			res = x
+			-- LuaLS 3.19 loses the optional node type on branch reassignment.
+			---@diagnostic disable-next-line: no-unknown
 			x = x.left
 		else
 			x = x.right
@@ -162,11 +166,13 @@ function SoftwareMixer:resetActiveSet()
 	if not self.empty then
 		local search_seek = StartNodeWrap({start_pos = pos - self.max_duration_bytes}, true)
 		local node = find_lower_bound(self.tree_start, search_seek) or self.tree_start:min()
-		while node and node.key.entry.start_pos < pos do
-			local entry = node.key.entry
+		while node and (node.key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry.start_pos < pos do
+			local entry = (node.key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry
 			if entry.end_pos >= pos then
 				self.active_sounds[entry] = true
 			end
+			-- LuaLS 3.19 loses the optional node type on loop reassignment.
+			---@diagnostic disable-next-line: no-unknown
 			node = node:next()
 		end
 	end
@@ -238,8 +244,8 @@ function SoftwareMixer:recalculateBounds()
 	self.end_pos = -math.huge
 	self.max_duration_bytes = 0
 
-	for node in self.tree_start:iter() do
-		local entry = node.key.entry
+	for _, key in self.tree_start:iter() do
+		local entry = (key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry
 		self.start_pos = math.min(self.start_pos, entry.start_pos)
 		self.end_pos = math.max(self.end_pos, entry.end_pos)
 		self.max_duration_bytes = math.max(self.max_duration_bytes, entry.end_pos - entry.start_pos)
