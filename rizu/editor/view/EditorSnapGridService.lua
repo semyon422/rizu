@@ -21,7 +21,8 @@ local function formatNumber(value)
 	if value % 1 == 0 then
 		return tostring(value)
 	end
-	return ("%.3f"):format(value):gsub("0+$", ""):gsub("%.$", "")
+	local formatted = ("%.3f"):format(value):gsub("0+$", "")
+	return (formatted:gsub("%.$", ""))
 end
 
 ---@param point chartedit.Point
@@ -38,10 +39,13 @@ end
 ---@param showTimings boolean
 ---@return rizu.editor.EditorSnapGridLabel[]
 function EditorSnapGridService:getLabels(context, showTimings)
+	---@type rizu.editor.EditorSnapGridLabel[]
 	local labels = {}
 	local layer = context:getLayer()
+	---@type string?
 	local lastTimingText
-	for point in layer:iter(context:getIterRange()) do
+	local first_time, last_time = context:getIterRange()
+	for point in layer:iter(first_time, last_time) do
 		local timingText = showTimings and self:getTimingText(point)
 		if timingText and timingText ~= lastTimingText then
 			labels[#labels + 1] = {
