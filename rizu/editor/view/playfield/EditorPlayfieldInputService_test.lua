@@ -2,6 +2,15 @@ local EditorPlayfieldInputService = require("rizu.editor.view.playfield.EditorPl
 
 local test = {}
 
+---@class rizu.editor.FakePlayfieldContext
+---@field notesActive boolean?
+---@field note table?
+---@field columnIndex integer?
+---@field dropResult boolean?
+---@field selectEndResult boolean?
+
+---@param calls string[]
+---@return rizu.editor.EditorPlayfieldInputService
 local function createService(calls)
 	return EditorPlayfieldInputService({
 		playfieldService = {
@@ -38,6 +47,7 @@ end
 ---@param t testing.T
 function test.note_left_press_grabs_first_hovered_part(t)
 	local calls = {}
+	---@type rizu.editor.FakePlayfieldContext
 	local context = {}
 	local note = {}
 	local service = createService(calls)
@@ -58,6 +68,7 @@ end
 ---@param t testing.T
 function test.note_right_press_removes_hovered_note(t)
 	local calls = {}
+	---@type rizu.editor.FakePlayfieldContext
 	local context = {}
 	local note = {}
 	local service = createService(calls)
@@ -90,6 +101,7 @@ end
 ---@param t testing.T
 function test.column_input_adds_note_when_hovered_and_pressed(t)
 	local calls = {}
+	---@type rizu.editor.FakePlayfieldContext
 	local context = {}
 	local service = createService(calls)
 
@@ -153,6 +165,7 @@ end
 function test.input_is_ignored_when_notes_tab_is_inactive(t)
 	local calls = {}
 	local service = createService(calls)
+	---@type rizu.editor.FakePlayfieldContext
 	local context = {
 		notesActive = false,
 		dropResult = true,
