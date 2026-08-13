@@ -23,13 +23,13 @@ end
 function EditorDropImport:import(file)
 	local sourcePath = file:getFilename():gsub("\\", "/")
 	local sourceName, ext = sourcePath:match("^(.+)%.(.-)$")
-	if not supportedExtensions[ext] then
+	if not sourceName or not ext or not supportedExtensions[ext] then
 		return
 	end
 
 	local audioName = sourceName:match("^.+/(.-)$") or sourceName
-	local chartSetPath = "userdata/charts/editor/" .. self.getTime() .. " " .. audioName
-	local path = chartSetPath .. "/" .. audioName .. "." .. ext
+	local chartSetPath = ("userdata/charts/editor/%d %s"):format(self.getTime(), audioName)
+	local path = ("%s/%s.%s"):format(chartSetPath, audioName, ext)
 
 	self.fs:createDirectory(chartSetPath)
 	assert(self.fs:write(path, file:read()))
