@@ -82,6 +82,7 @@ function LuaEvalTool:createEnvironment(printed)
 	local env = {
 		game = self.game,
 		print = function(...)
+			---@type string[]
 			local values = {}
 			for i = 1, select("#", ...) do
 				values[i] = tostring(select(i, ...))
