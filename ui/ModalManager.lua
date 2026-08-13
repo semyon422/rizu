@@ -5,6 +5,7 @@ local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.Config")
+local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
 local UiActions = require("ui.UiActions")
 
@@ -14,6 +15,7 @@ local UiActions = require("ui.UiActions")
 ---@field palette ui.modals.command_palette.CommandPalette
 ---@field ai_chat ui.modals.ai_chat.AiChat?
 ---@field config ui.modals.config.Config
+---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field active_view ui.ModalView?
 local ModalManager = View + {}
@@ -36,6 +38,8 @@ function ModalManager:new(ui)
 		self:hideModal()
 	end))
 	self.config = self:addModal(Config(ui.config, ui.game.configModel.configs.settings))
+	self.input = self:addModal(Input(ui.game))
+	ui.game.chartSelector:onChanged(self.input)
 	self.modifiers = self:addModal(Modifiers(ui.game, function()
 		-- TODO: The game should emit events like this.
 		ui.song_select:updateModifiers()
@@ -151,6 +155,16 @@ end
 ---@return boolean detached
 function ModalManager:detachConfig()
 	return self:hideModal(self.config)
+end
+
+---@return boolean attached
+function ModalManager:attachInput()
+	return self:showModal(self.input)
+end
+
+---@return boolean detached
+function ModalManager:detachInput()
+	return self:hideModal(self.input)
 end
 
 ---@return boolean attached

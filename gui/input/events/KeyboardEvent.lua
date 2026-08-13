@@ -5,6 +5,8 @@ local UIEvent = require("gui.input.UIEvent")
 ---@field key love.KeyConstant?
 ---@field text string?
 ---@field is_repeated boolean?
+---@field device "keyboard"?
+---@field device_id integer?
 local KeyboardEvent = UIEvent + {}
 
 return KeyboardEvent

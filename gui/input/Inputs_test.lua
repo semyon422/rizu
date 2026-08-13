@@ -622,6 +622,21 @@ function test.processView_no_hover_lost_event_when_staying_outside(t)
 end
 
 ---@param t testing.T
+function test.keyboard_event_has_normalized_device_id(t)
+	local inputs = Inputs()
+	local view = create_view(100, 100)
+	view.handles_keyboard_input = true
+	view.onKeyDown = function(_, event)
+		t:eq(event.device, "keyboard")
+		t:eq(event.device_id, 1)
+		return true
+	end
+
+	inputs:processView(view)
+	inputs:receive({name = "keypressed", "a"}, default_modifiers)
+end
+
+---@param t testing.T
 function test.processView_adds_focus_requester(t)
 	local inputs = Inputs()
 	inputs:resetTraversalContext(50, 50)

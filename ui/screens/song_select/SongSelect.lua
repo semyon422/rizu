@@ -141,6 +141,10 @@ function SongSelect:new(ui)
 		self.ui.modal_manager:attachConfig()
 	end)
 
+	self.input_button = HeaderButton(Resources.sprites.icon_keyboard, function()
+		self.ui.modal_manager:attachInput()
+	end)
+
 	self.palette_button = HeaderButton(Resources.sprites.icon_terminal, function()
 		self.ui.modal_manager:attachPalette()
 	end)
@@ -302,6 +306,7 @@ function SongSelect:createHeader()
 
 	local buttons = right:add(FlowContainer({direction = "row"}))
 	buttons:add(self.settings_button)
+	buttons:add(self.input_button)
 	buttons:add(self.dlc_button)
 	buttons:add(self.palette_button)
 	buttons:fitContent()

@@ -149,6 +149,9 @@ function KeyboardInputs:dispatch(event, modifiers)
 	else
 		e.key = event[1]
 		e.is_repeated = event[3] or false
+		-- LoopEvents normalizes all LÖVE keyboard events to keyboard device 1.
+		e.device = "keyboard"
+		e.device_id = 1
 	end
 
 	local inputs = self.inputs

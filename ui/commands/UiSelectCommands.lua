@@ -35,6 +35,14 @@ return function(game, ui)
 				end
 			end,
 		},
+		{
+			id = "ui.select.open_input",
+			title = "Modal: Open Input",
+			description = "Opens input bindings",
+			callback = function()
+				ui.modal_manager:attachInput()
+			end,
+		},
 		--[[{
 			id = "ui.select.open_modifiers",
 			title = "Modal: Open Modifiers",
