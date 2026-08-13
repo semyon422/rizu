@@ -12,6 +12,7 @@ local ScrollView = require("gui.ScrollView")
 local Section = require("ui.modals.config.Section")
 local SectionItem = require("ui.modals.config.SectionItem")
 local AudioSection = require("ui.modals.config.sections.Audio")
+local GameplaySection = require("ui.modals.config.sections.Gameplay")
 local GameplayViewportSection = require("ui.modals.config.sections.GameplayViewport")
 local LayoutSection = require("ui.modals.config.sections.Layout")
 local OffsetSection = require("ui.modals.config.sections.Offset")
@@ -22,6 +23,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@operator call: ui.modals.config.Config
 ---@field ui_config ui.UiConfig
 ---@field legacy_settings sphere.SettingsConfig
+---@field speed_model sphere.SpeedModel
 ---@field sections ui.modals.config.Section[]
 ---@field all_section ui.modals.config.Section
 ---@field selected_section ui.modals.config.Section
@@ -41,10 +43,12 @@ local LIST_WIDTH = 635
 
 ---@param ui_config ui.UiConfig
 ---@param legacy_settings sphere.SettingsConfig
-function Config:new(ui_config, legacy_settings)
+---@param speed_model sphere.SpeedModel
+function Config:new(ui_config, legacy_settings, speed_model)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.legacy_settings = legacy_settings
+	self.speed_model = speed_model
 	self.sections = self:createSections()
 	self.all_section = Section({
 		name = "All",
@@ -116,6 +120,7 @@ end
 function Config:createSections()
 	return {
 		AudioSection(self.legacy_settings),
+		GameplaySection(self.legacy_settings, self.speed_model),
 		OffsetSection(self.legacy_settings),
 		LayoutSection(self.legacy_settings),
 		RendererSection(self.legacy_settings, self.ui_config),
