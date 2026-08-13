@@ -11,6 +11,7 @@ local function videoCompileAction(target, artifact)
 	local compiler = "gcc"
 	local cflags = {"-shared", "-fPIC", "-Wl,-rpath,'$ORIGIN'"}
 	local lib_dirs = {BuildConfig.getFfmpegDepsDir(target) .. "/lib"}
+	---@type {[string]: string}?
 	local env
 	if target == "windows" then
 		compiler = ModuleUtil.CC_BY_TARGET.windows
