@@ -1,6 +1,7 @@
 local EditorServices = require("rizu.editor.EditorServices")
 
 local test = {}
+---@type fun(): rizu.editor.EditorServicesDeps
 local createDeps
 
 ---@param t testing.T
