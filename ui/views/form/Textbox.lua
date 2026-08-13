@@ -4,6 +4,7 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
 local UiActions = require("ui.UiActions")
+local utf8validate = require("utf8validate")
 
 ---@class ui.views.form.TextboxParams
 ---@field label string
@@ -114,6 +115,18 @@ function Textbox:onTextInput(e)
 	end
 	self.model:insert(e.text or "")
 	return true
+end
+
+---@param e gui.KeyDownEvent
+---@return boolean?
+function Textbox:onKeyDown(e)
+	if not self.focused then
+		return
+	end
+	if e.control_pressed and e.key == "v" then
+		self.model:insert(utf8validate(love.system.getClipboardText()))
+		return true
+	end
 end
 
 ---@param inputs gui.Inputs
