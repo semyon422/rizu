@@ -64,6 +64,22 @@ local function fail(message)
 	return "read_file error: " .. message, true
 end
 
+---@param path string
+---@return string
+local function normalizePath(path)
+	return (path:gsub("\\", "/"))
+end
+
+---@param output string
+---@param max_chars integer
+---@return string
+local function truncate(output, max_chars)
+	if #output <= max_chars then
+		return output
+	end
+	return output:sub(1, max_chars) .. "\n...[truncated]"
+end
+
 ---@param args {[string]: any}
 ---@return string
 ---@return boolean? is_error
@@ -71,7 +87,7 @@ function ReadFileTool:execute(args)
 	if type(args.path) ~= "string" then
 		return fail("path must be a string")
 	end
-	local path = args.path:gsub("\\", "/")
+	local path = normalizePath(args.path)
 	if path == "" or path:find("\0", 1, true) then
 		return fail("path must be a non-empty filesystem path")
 	end
@@ -87,6 +103,7 @@ function ReadFileTool:execute(args)
 	if not content then
 		return fail(err or "file not found")
 	end
+	---@type string[]
 	local lines = {}
 	for line in (content .. "\n"):gmatch("(.-)\n") do
 		local clean_line = line:gsub("\r$", "")
@@ -100,10 +117,7 @@ function ReadFileTool:execute(args)
 	for line_number = line_start, line_end do
 		table.insert(output, ("%d: %s"):format(line_number, lines[line_number]))
 	end
-	local result = table.concat(output, "\n")
-	if #result > self.max_chars then
-		result = result:sub(1, self.max_chars) .. "\n...[truncated]"
-	end
+	local result = truncate(table.concat(output, "\n"), self.max_chars)
 	return utf8validate(result)
 end
 
