@@ -26,7 +26,15 @@ function ChartfileReader.readArchive(fs, archive_path)
 	if not archive_data then
 		return nil, err
 	end
-	return Ifs.parse(archive_data)
+
+	local ok, archive = pcall(Ifs.parse, archive_data)
+	if not ok then
+		local message = ("failed to read IFS archive %s: %s"):format(archive_path, tostring(archive))
+		print(message)
+		return nil, message
+	end
+	---@cast archive chart.iidx.IfsArchive
+	return archive
 end
 
 ---@param fs fs.IFilesystem
