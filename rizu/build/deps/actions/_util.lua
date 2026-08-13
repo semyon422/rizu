@@ -11,6 +11,7 @@ function Util.resolve(env, value)
 	if type(value) == "table" then
 		---@type {[any]: any}
 		local out = {}
+		---@diagnostic disable-next-line: no-unknown -- LuaLS 3.19 cannot infer generic-for values for this recursively generic table.
 		for k, v in pairs(value) do
 			out[k] = Util.resolve(env, v)
 		end
