@@ -1,11 +1,13 @@
 local class = require("class")
 local Fuzzy = require("rizu.command.Fuzzy")
 
+---@alias rizu.command.ArgumentValue string|number|boolean
+
 ---@class rizu.command.Argument
 ---@field name string
 ---@field type "string"|"number"|"boolean"
 ---@field prompt string?
----@field default any?
+---@field default rizu.command.ArgumentValue?
 ---@field choices rizu.command.Fuzzy.Candidate[]|fun(): rizu.command.Fuzzy.Candidate[]?
 ---@field validate (fun(val: string): boolean, string?)?
 
@@ -14,7 +16,7 @@ local Fuzzy = require("rizu.command.Fuzzy")
 ---@field title string
 ---@field description string?
 ---@field arguments rizu.command.Argument[]?
----@field callback fun(args: {[string]: any})
+---@field callback fun(args: {[string]: rizu.command.ArgumentValue})
 
 -- State machine handling command filtering, argument collection, and execution.
 ---@class rizu.command.PaletteState
@@ -23,7 +25,7 @@ local Fuzzy = require("rizu.command.Fuzzy")
 ---@field query string
 ---@field active_command rizu.command.Command?
 ---@field current_arg_idx integer
----@field collected_args {[string]: any}
+---@field collected_args {[string]: rizu.command.ArgumentValue}
 local PaletteState = class()
 
 ---@param registry rizu.command.Registry
@@ -80,7 +82,11 @@ function PaletteState:getCandidates()
 		if arg_def.choices then
 			local choices = arg_def.choices
 			if type(choices) == "function" then
-				choices = choices()
+				local get_choices = choices
+				---@type rizu.command.Fuzzy.Candidate[]
+				local resolved_choices = get_choices()
+				---@type rizu.command.Fuzzy.Candidate[]
+				choices = resolved_choices
 			end
 			return Fuzzy.filter(self.query, choices, "title")
 		end
@@ -141,6 +147,7 @@ function PaletteState:confirmSelection(selected_item)
 	else
 		-- Resolving argument
 		local arg_def = self.active_command.arguments[self.current_arg_idx]
+		---@type rizu.command.ArgumentValue
 		local val
 
 		if arg_def.choices then
