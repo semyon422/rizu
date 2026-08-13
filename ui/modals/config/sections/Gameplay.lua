@@ -46,6 +46,16 @@ function Gameplay:new(settings, speed_model)
 						return format:format(value)
 					end,
 				}),
+				ControlFactory.legacyBoolean(settings, {"gameplay", "bga", "image"}, {
+					name = "Background images",
+					keywords = {"gameplay", "background", "animation", "bga", "image"},
+					tip = "Display BGA images in the gameplay background.",
+				}),
+				ControlFactory.legacyBoolean(settings, {"gameplay", "bga", "video"}, {
+					name = "Background videos",
+					keywords = {"gameplay", "background", "animation", "bga", "video"},
+					tip = "Display BGA videos in the gameplay background.",
+				}),
 			}
 		end,
 	})
