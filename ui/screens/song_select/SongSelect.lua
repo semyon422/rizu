@@ -387,7 +387,7 @@ end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
 function SongSelect:receive(event)
-	if event.type == "chartview_changed" and event.chartview.hash then
+	if event.type == "chartview_changed" then
 		self:updateSelectedLocation(event.chartview)
 		if event.chartview and event.chartview.hash then
 			self:onChartviewUpdate(event.chartview)
