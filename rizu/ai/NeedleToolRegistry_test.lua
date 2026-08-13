@@ -3,11 +3,18 @@ local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 
 local test = {}
 
+---@param id string
+---@param callback fun(args: {[string]: unknown})?
+---@param arguments rizu.command.Argument[]?
+---@return rizu.command.Command
 local function command(id, callback, arguments)
 	return {id = id, title = id, description = id, arguments = arguments, callback = callback or function() end}
 end
 
+---@param tool_set rizu.ai.NeedleToolSet
+---@return {[string]: true}
 local function names(tool_set)
+	---@type {[string]: true}
 	local result = {}
 	for _, tool in ipairs(tool_set.tools) do result[tool.name] = true end
 	return result
@@ -16,7 +23,12 @@ end
 ---@param t testing.T
 function test.context_allowlist(t)
 	local registry = Registry()
-	registry:registerGlobal(command("global.rate", nil, {{validate = function() return true end}}))
+	registry:registerGlobal(command("global.rate", nil, {{
+		name = "rate",
+		type = "number",
+		choices = {},
+		validate = function() return true end,
+	}}))
 	registry:registerGlobal(command("global.screenshot"))
 	registry:registerGlobal(command("global.screenshot_open"))
 	registry:registerGlobal(command("global.exit"))
