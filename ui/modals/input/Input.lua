@@ -28,6 +28,17 @@ local MAX_COLUMN_WIDTH = 88
 local COLUMN_HEIGHT = 118
 local COLUMN_Y = (MODAL_HEIGHT - COLUMN_HEIGHT) / 2
 
+local MODIFIER_KEYS = {
+	lalt = true,
+	ralt = true,
+	lctrl = true,
+	rctrl = true,
+	lgui = true,
+	rgui = true,
+	lshift = true,
+	rshift = true,
+}
+
 ---@param game sphere.GameController
 function Input:new(game)
 	ModalView.new(self)
@@ -138,13 +149,14 @@ end
 
 ---@param e gui.KeyDownEvent
 function Input:onKeyDown(e)
-	if e.key == "escape"
-		or e.control_pressed
-		or e.shift_pressed
-		or e.alt_pressed
-		or e.super_pressed
+	if e.key == "escape" then
+		-- Leave cancel available for ModalManager.
+		return
+	end
+	if not MODIFIER_KEYS[e.key]
+		and (e.control_pressed or e.shift_pressed or e.alt_pressed or e.super_pressed)
 	then
-		-- Leave cancel available for ModalManager and ignore modified bindings.
+		-- Input bindings do not support key combinations.
 		return
 	end
 	if not self.waiting_column or e.is_repeated then
