@@ -48,6 +48,35 @@ local function setup()
 	return db, repo, factory
 end
 
+local function setup_root_set()
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+
+	local factory = TestChartFactory()
+	db.models.locations:create({
+		id = 1, name = "Test", path = "/test", is_relative = 0, is_internal = 0,
+	})
+	db.models.chartfile_sets:create({
+		id = 1, location_id = 1, name = "Root Set", modified_at = 0, is_file = false,
+	})
+	db.models.chartfiles:create({
+		id = 1, set_id = 1, name = "root.osu", hash = "root", modified_at = 0,
+	})
+	db.models.chartmetas:create(factory:createChartmeta({
+		id = 1, hash = "root", index = 1, inputmode = "4key",
+	}))
+
+	local repo = ChartviewsRepo(db.models)
+	repo:setSync(true)
+	repo.params = {
+		primary_mode = "chartmetas",
+		secondary_mode = "chartmetas",
+		difficulty = "enps_diff",
+		where = {},
+	}
+	return db, repo
+end
+
 local function setup_partial_cache()
 	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
@@ -67,6 +96,21 @@ local function setup_partial_cache()
 	repo.params = {difficulty = "enps_diff", where = {}}
 
 	return db, repo
+end
+
+---@param t testing.T
+function test.root_set_path(t)
+	local db, repo = setup_root_set()
+	local chartview = repo:getChartview({
+		chartfile_id = 1,
+		chartmeta_id = 1,
+	})
+	---@cast chartview -?
+
+	t:eq(chartview.dir, "Root Set")
+	t:eq(chartview.path, "Root Set/root.osu")
+
+	db:unload()
 end
 
 ---@param t testing.T

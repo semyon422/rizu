@@ -45,14 +45,13 @@ chartview_base.types = {
 }
 
 function chartview_base:from_db()
+	---@type string?
 	local dir = self.set_dir
-	if dir then
-		if not self.set_is_file then
-			dir = path_util.join(dir, self.set_name)
-		end
-		self.dir = dir
-		self.path = path_util.join(dir, self.chartfile_name)
+	if not self.set_is_file then
+		dir = path_util.join(dir, self.set_name)
 	end
+	self.dir = dir
+	self.path = path_util.join(dir, self.chartfile_name)
 end
 
 return chartview_base

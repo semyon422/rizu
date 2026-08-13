@@ -18,7 +18,7 @@ The library is structured around a 5-level hierarchy, where each level represent
   - **External**: Arbitrary folders (e.g., an existing osu! installation) that are **mounted** into the game's virtual filesystem at a specific prefix.
   - The `rizu.library.Locations` service resolves absolute "real" paths for assets by combining the location's base path with the chart's relative directory.
 - **Chartfile Set** (`chartfile_sets`): The primary storage unit. It tracks the `dir` (relative path from Location) and `location_id`. Higher-level organizational folders (like Etterna Packs or the osu! `Songs` folder) are not separate entities; they are simply represented as part of the `dir` string.
-  - **Folder**: Used for "Related" charts that share assets (e.g., a specific folder for an osu! beatmapset or an Etterna song).
+  - **Folder**: Used for "Related" charts that share assets (e.g., a specific folder for an osu! beatmapset or an Etterna song). Sets directly under the location root have a `NULL` `dir`; rich chart paths must still include the set name and chartfile name.
   - **Single File**: Used for "Unrelated" self-contained charts (e.g., `.ojn`, `.mid`).
 - **Chartfile** (`chartfiles`): A single physical file containing chart data (e.g., `.osu`, `.sm`, `.bms`). It is identified by a content `hash` and linked to a set via `set_id`.
 - **Chartmeta** (`chartmetas`): The logical identity of a song. It is identified by a `ChartmetaKey` (content `hash` + `index` within the file). It contains high-level metadata like `title`, `artist`, `audio_path`, and `preview_time`.
