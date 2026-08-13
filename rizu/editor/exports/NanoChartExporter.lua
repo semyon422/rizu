@@ -85,7 +85,7 @@ function NanoChartExporter:writePreviews(basePath, chart, chartmeta)
 	self:write(basePath .. ".preview1", content1)
 end
 
----@param chartview table
+---@param chartview rizu.library.LocatedChartview
 ---@param editorModel rizu.editor.EditorModel
 function NanoChartExporter:export(chartview, editorModel)
 	editorModel:save()

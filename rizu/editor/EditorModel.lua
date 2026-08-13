@@ -25,6 +25,8 @@ local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
 ---@class rizu.editor.EditorModel
 ---@operator call: rizu.editor.EditorModel
 ---@field layer chartedit.Layer
+---@field chart chart.Chart
+---@field chartmeta sea.Chartmeta
 ---@field isMultiSelectRequested fun(): boolean
 ---@field getMousePosition fun(): number, number
 ---@field selectRegion fun(x1: number, y1: number, x2: number, y2: number)
