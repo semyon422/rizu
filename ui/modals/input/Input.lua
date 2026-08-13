@@ -177,9 +177,15 @@ function Input:onKeyDown(e)
 	return true
 end
 
+---@param chartview rizu.library.LocatedChartview?
+---@return string? inputMode
+function Input.getInputMode(chartview)
+	return chartview and (chartview.chartdiff_inputmode or chartview.inputmode)
+end
+
 function Input:show()
 	local chartview = self.game.chartSelector.chartview
-	self:setInputMode(chartview and chartview.inputmode)
+	self:setInputMode(Input.getInputMode(chartview))
 	self:setVisible(true)
 	self:fadeIn(0.3, "OutCubic")
 end
@@ -197,7 +203,7 @@ end
 ---@param event rizu.select.Event
 function Input:receive(event)
 	if event.type == "chartview_changed" then
-		self:setInputMode(event.chartview and event.chartview.inputmode)
+		self:setInputMode(Input.getInputMode(event.chartview))
 	end
 end
 
