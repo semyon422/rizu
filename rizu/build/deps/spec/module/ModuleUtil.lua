@@ -26,6 +26,9 @@ function ModuleUtil.addStep(spec, step)
 	table.insert(spec.steps, step)
 end
 
+---@param key string
+---@return string artifact_id
+---@return string publish_id
 function ModuleUtil.makeStepIds(key)
 	return "module_" .. key .. "_artifact", "module_" .. key .. "_bin"
 end
