@@ -4,7 +4,15 @@ local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
+---@class rizu.build.FakeExecutorState
+---@field fs fs.FakeFilesystem
+---@field exec string[]
+---@field downloads {url: string, dest: string}[]
+
+---@return rizu.build.Context
+---@return rizu.build.FakeExecutorState
 local function makeCtx()
+	---@type rizu.build.FakeExecutorState
 	local state = {fs = FakeFilesystem(), exec = {}, downloads = {}}
 	state.fs:setWorkingDirectory("/repo")
 
@@ -16,6 +24,8 @@ local function makeCtx()
 	function shell:popen() return "" end
 
 	local downloader = {}
+	---@param url string
+	---@param dest string
 	function downloader:download(url, dest)
 		table.insert(state.downloads, {url = url, dest = dest})
 		local parent = dest:match("(.+)/[^/]+$")
