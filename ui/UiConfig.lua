@@ -17,6 +17,7 @@ local keys = {
 	down_bindings = "down_bindings",
 	gameplay_skip_intro_bindings = "gameplay_skip_intro_bindings",
 	editor_toggle_playback_bindings = "editor_toggle_playback_bindings",
+	toggle_audio_preview_bindings = "toggle_audio_preview_bindings",
 }
 
 ---@class ui.UiConfig : rizu.config.Config
@@ -44,6 +45,7 @@ function UiConfig:new(fs, path)
 	self:setDefaultKeyBindings(keys.down_bindings, {{key = "down", allow_repeat = true}})
 	self:setDefaultKeyBindings(keys.gameplay_skip_intro_bindings, {{key = "space"}})
 	self:setDefaultKeyBindings(keys.editor_toggle_playback_bindings, {{key = "space"}})
+	self:setDefaultKeyBindings(keys.toggle_audio_preview_bindings, {{key = "p", control = true}})
 end
 
 return UiConfig

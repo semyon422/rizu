@@ -159,6 +159,14 @@ return function(game)
 			end
 		},
 		{
+			id = "select.pause_preview",
+			title = "Select: Pause/Resume Preview",
+			description = "Pauses or resumes the current preview audio",
+			callback = function()
+				game.previewModel:togglePause()
+			end
+		},
+		{
 			id = "select.stop_preview",
 			title = "Select: Stop Preview",
 			description = "Stops the current preview audio",

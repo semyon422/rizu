@@ -18,6 +18,7 @@ UiActions.move_to_end = "ui.move_to_end"
 UiActions.clear_field = "ui.clear_field"
 UiActions.gameplay_skip_intro = "gameplay.skip_intro"
 UiActions.editor_toggle_playback = "editor.toggle_playback"
+UiActions.toggle_audio_preview = "toggle_audio_preview"
 
 ---@param config ui.UiConfig
 ---@return gui.input.ActionMap
@@ -35,6 +36,7 @@ function UiActions.createMap(config)
 		[UiActions.down] = keys.down_bindings,
 		[UiActions.gameplay_skip_intro] = keys.gameplay_skip_intro_bindings,
 		[UiActions.editor_toggle_playback] = keys.editor_toggle_playback_bindings,
+		[UiActions.toggle_audio_preview] = keys.toggle_audio_preview_bindings,
 	}
 	for action, key in pairs(definitions) do
 		actions:defineAction(action, config:getKeyBindings(key))

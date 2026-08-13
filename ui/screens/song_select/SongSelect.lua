@@ -376,7 +376,9 @@ end
 
 ---@param inputs gui.Inputs
 function SongSelect:onHandleInputs(inputs)
-	if inputs:consumeActionJustPressed(UiActions.cancel) then
+	if inputs:consumeActionJustPressed(UiActions.toggle_audio_preview) then
+		self.ui.game.previewModel:togglePause()
+	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif self.ui.game.chartSelector:chartExists()
 		and inputs:consumeActionJustPressed(UiActions.accept)

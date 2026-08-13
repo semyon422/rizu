@@ -92,6 +92,7 @@ end
 function PreviewModel:load()
 	self.active = true
 	self.released = false
+	self.paused = false
 	self.audio_path = ""
 	self.volume = 0
 	self.rate = 1
@@ -151,7 +152,11 @@ function PreviewModel:update()
 				self.audioPreviewPlayer:seek(self.manual_time)
 				self.bgaPreviewPlayer:seek(self.manual_time)
 			end
-			self.audioPreviewPlayer:resume()
+			if self.paused then
+				self.audioPreviewPlayer:pause()
+			else
+				self.audioPreviewPlayer:resume()
+			end
 		else
 			self.audioPreviewPlayer:pause()
 		end
@@ -180,6 +185,24 @@ end
 ---@param rate number
 function PreviewModel:setRate(rate)
 	self.target_rate = rate
+end
+
+function PreviewModel:pause()
+	self.paused = true
+	self.audioPreviewPlayer:pause()
+end
+
+function PreviewModel:resume()
+	self.paused = false
+	self.audioPreviewPlayer:resume()
+end
+
+function PreviewModel:togglePause()
+	if self.paused then
+		self:resume()
+	else
+		self:pause()
+	end
 end
 
 function PreviewModel:getTime()
