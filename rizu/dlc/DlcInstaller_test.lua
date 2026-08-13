@@ -2,9 +2,18 @@ local DlcInstaller = require("rizu.dlc.DlcInstaller")
 
 local test = {}
 
----@return table
+---@class rizu.dlc.FakeDlcInstallFilesystem: rizu.dlc.IDlcInstallFilesystem
+---@field dirs {[string]: true}
+---@field files {[string]: string}
+
+---@class rizu.dlc.FakeDlcExtractor: rizu.dlc.IDlcExtractor
+---@field calls {archive: string, path: string}[]
+
+---@return rizu.dlc.FakeDlcInstallFilesystem
 local function new_fs()
+	---@type {[string]: true}
 	local dirs = {}
+	---@type {[string]: string}
 	local files = {}
 	return {
 		dirs = dirs,
@@ -23,8 +32,9 @@ local function new_fs()
 	}
 end
 
----@return table
+---@return rizu.dlc.FakeDlcExtractor
 local function new_extractor()
+	---@type {archive: string, path: string}[]
 	local calls = {}
 	return {
 		calls = calls,
