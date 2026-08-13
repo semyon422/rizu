@@ -30,6 +30,12 @@ function GameplayInteractor:new(game)
 	)
 end
 
+---@param chart chart.Chart
+---@return string inputMode
+function GameplayInteractor.getInputMode(chart)
+	return tostring(chart.inputMode)
+end
+
 ---@param noteSkin table
 ---@param chartview table
 ---@return string[]
@@ -86,7 +92,8 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 		GameplayTimings(game.configModel.configs.settings, chartmeta):apply(game.replayBase)
 	end
 
-	local noteSkin = game.noteSkinModel:loadNoteSkin(tostring(chart.inputMode))
+	local input_mode = GameplayInteractor.getInputMode(chart)
+	local noteSkin = game.noteSkinModel:loadNoteSkin(input_mode)
 	noteSkin:loadData()
 	self.noteSkin = noteSkin
 
@@ -103,7 +110,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	self:load(self.autoplay)
 
-	local input_binder = InputBinder(game.configModel.configs.input, chartmeta.inputmode)
+	local input_binder = InputBinder(game.configModel.configs.input, input_mode)
 	self.input_binder = input_binder
 
 	game.pauseModel:load()

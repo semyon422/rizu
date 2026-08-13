@@ -7,6 +7,7 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 - Starting a song should create a fresh gameplay session with deterministic timing and clean state.
 - Retrying a chart should behave like a brand-new attempt rather than reusing mutable state from the previous play.
 - Manual play, autoplay, and replay should all feel like the same session flow from the player's perspective, differing only in the source of input events.
+- Gameplay input bindings follow the computed chart input mode after modifiers, so converted charts use bindings for their effective key count.
 
 ## Core Components
 
