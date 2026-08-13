@@ -10,7 +10,10 @@ function test.delete_remove_and_undo(t)
 	local editorModel = createEditorModel()
 	EditorTestFactory.addCommittedSelectedNote(editorModel, "tap", 0.25, "key1")
 
-	local deleted = editorModel.noteService.commandService:deleteSelected()
+	---@type rizu.editor.EditorNoteCommandService
+	local commandService = editorModel.noteService.commandService
+	---@type number
+	local deleted = commandService:deleteSelected()
 
 	t:eq(deleted, 1)
 	t:eq(#getNotes(editorModel), 0)
@@ -44,7 +47,10 @@ function test.mixed_ops_transaction_undo_redo(t)
 	local editorModel = createEditorModel()
 	local noteToRemove = EditorTestFactory.createNote(editorModel, "tap", 0.25, "key1")
 	local noteToAdd = EditorTestFactory.createNote(editorModel, "tap", 0.75, "key2")
-	local noteOps = editorModel.noteService.commandService:getNoteOps()
+	---@type rizu.editor.EditorNoteCommandService
+	local commandService = editorModel.noteService.commandService
+	---@type rizu.editor.EditorNoteOps
+	local noteOps = commandService:getNoteOps()
 	t:eq(noteOps.context:getNotes(), editorModel.notes)
 	t:eq(noteOps.context:getEditorChanges(), editorModel.editorChanges)
 
