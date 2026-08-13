@@ -37,6 +37,32 @@ function test.basic_preloading(t)
 end
 
 ---@param t testing.T
+function test.preload_request_fills_buffer(t)
+	local sample_rate = 44100
+	local channels = 2
+	local bytes_per_sample = 2
+	local buffer_seconds = 1
+	local requested_len
+	local underlying = {
+		getSampleRate = function() return sample_rate end,
+		getChannelCount = function() return channels end,
+		getBytesPerSample = function() return bytes_per_sample end,
+		getDuration = function() return 10 end,
+		getBytesPosition = function() return 0 end,
+		getDataString = function(_, len)
+			requested_len = len
+			return string.rep("a", len)
+		end,
+	}
+	local buffered = BufferedDecoder(underlying, buffer_seconds)
+	local read_buf = ffi.new("int8_t[1024]")
+
+	buffered:getData(read_buf, 1024)
+
+	t:eq(requested_len, sample_rate * channels * bytes_per_sample * buffer_seconds)
+end
+
+---@param t testing.T
 function test.non_blocking_yield(t)
 	local sample_rate = 44100
 	local channels = 2
@@ -141,8 +167,7 @@ function test.seek(t)
 	local read_buf = ffi.new("int8_t[?]", read_len)
 
 	-- Since FakeDecoder doesn't yield, setBytesPosition already triggered
-	-- the preloader to seek AND fetch one chunk (chunk_size=4096).
-	-- So the data should be available IMMEDIATELY.
+	-- the preloader to seek and fill the buffer, so data is available immediately.
 	buffered:getData(read_buf, read_len)
 
 	t:eq(read_buf[0], 50000 % 120 + 1, "Data should match after seek")

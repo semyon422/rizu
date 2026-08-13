@@ -39,6 +39,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 
 ### Invariants
 - **Preview clock ownership**: `PreviewModel` owns the master preview time. Audio, notes, and BGA players are driven from that clock and should not advance their own independent playback time.
+- **Audio decode buffering**: preview decoder requests must fill the configured buffer rather than use frame-sized chunks. Thread-remote responses are serviced by the main update loop, so decode throughput must not depend on rendering frame rate.
 - **Preview activation source**: select preview loading is triggered only from a non-empty `chartview_changed` event. Select screen entry may re-announce the currently loaded chartview, but `SelectionCoordinator:load()` must not start preview directly.
 - **Async video queue order**: `AsyncVideoEngine` expects queued video frames to be monotonic by `frame_time`. Non-monotonic frames are logged because they can cause visible skips or stale presentation.
 - **Async video frame ownership**: decoded `ImageData` is owned by the main thread after it is received from the worker. The main thread must either upload it to the `Image` or release it when it is stale, dropped, or superseded.

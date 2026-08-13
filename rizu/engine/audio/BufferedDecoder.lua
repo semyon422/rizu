@@ -46,7 +46,9 @@ function BufferedDecoder:new(decoder, buffer_seconds)
 	end
 
 	self.buffer_limit_bytes = self:secondsToBytes(self.buffer_limit_seconds)
-	self.chunk_size = 4096 -- bytes
+	-- Thread-remote decoder responses are serviced by the main update loop.
+	-- Request a full buffer at once so low frame rates do not limit audio throughput.
+	self.chunk_size = self.buffer_limit_bytes
 
 	self.chunks = {}
 	self.total_buffered_bytes = 0
@@ -69,8 +71,9 @@ function BufferedDecoder:new(decoder, buffer_seconds)
 
 			-- Fill buffer if not full and not at EOF
 			if not self.eof and self.total_buffered_bytes < self.buffer_limit_bytes then
+				local read_len = math.min(self.chunk_size, self.buffer_limit_bytes - self.total_buffered_bytes)
 				self.is_preloading = true
-				local _ok, data = pcall(self.decoder.getDataString, self.decoder, self.chunk_size)
+				local _ok, data = pcall(self.decoder.getDataString, self.decoder, read_len)
 				self.is_preloading = false
 
 				if _ok then
