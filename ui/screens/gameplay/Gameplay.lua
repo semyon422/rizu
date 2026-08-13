@@ -69,15 +69,27 @@ end
 
 ---@param inputs gui.Inputs
 function Gameplay:onHandleInputs(inputs)
-	if inputs:consumeActionJustPressed(UiActions.cancel) then
-		if self.gameplay_interactor:hasResult() then
-			self.ui:setScreen(self.ui.result, true)
-		else
-			self.ui:setScreen(self.ui.song_select, true)
-		end
+	local interactor = self.gameplay_interactor
+	if inputs:consumeActionJustPressed(UiActions.gameplay_quit) then
+		self.ui:setScreen(self.ui.song_select, true)
 		self.is_playing = false
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_pause) then
+		local state = self.game.pauseModel.state
+		interactor:changePlayState(state == "pause" and "play" or "pause")
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_retry) then
+		interactor:changePlayState("retry")
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_skip_intro) then
-		self.gameplay_interactor:skipIntro()
+		interactor:skipIntro()
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_decrease) then
+		self.game.offsetController:increaseLocalOffset(-0.001)
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_increase) then
+		self.game.offsetController:increaseLocalOffset(0.001)
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_reset) then
+		self.game.offsetController:resetLocalOffset()
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_decrease) then
+		interactor:increasePlaySpeed(-1)
+	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_increase) then
+		interactor:increasePlaySpeed(1)
 	end
 end
 

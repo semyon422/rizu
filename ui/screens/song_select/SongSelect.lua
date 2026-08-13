@@ -376,8 +376,19 @@ end
 
 ---@param inputs gui.Inputs
 function SongSelect:onHandleInputs(inputs)
+	local game = self.ui.game
 	if inputs:consumeActionJustPressed(UiActions.toggle_audio_preview) then
-		self.ui.game.previewModel:togglePause()
+		game.previewModel:togglePause()
+	elseif inputs:consumeActionJustPressed(UiActions.select_random) then
+		game.chartSelector:scrollRandom()
+	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then
+		game.timeRateModel:increase(-1)
+		game.modifierSelectModel:change()
+		self:updateModifiers()
+	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_increase) then
+		game.timeRateModel:increase(1)
+		game.modifierSelectModel:change()
+		self:updateModifiers()
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif self.ui.game.chartSelector:chartExists()

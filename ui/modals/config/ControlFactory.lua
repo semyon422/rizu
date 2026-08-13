@@ -1,5 +1,6 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Dropdown = require("ui.views.form.Dropdown")
+local KeyBindings = require("ui.helpers.KeyBindings")
 local LegacyBinding = require("ui.modals.config.LegacyBinding")
 local Slider = require("ui.views.form.Slider")
 local Textbox = require("ui.views.form.Textbox")
@@ -103,6 +104,22 @@ function ControlFactory.string(config, key, metadata)
 		width = WIDTH,
 		on_change = function(value)
 			config:setString(key, value)
+		end,
+	})
+	return configure(control, metadata, key) --[[@as ui.views.form.Textbox]]
+end
+
+---@param config rizu.config.Config
+---@param key string
+---@param metadata ui.modals.config.ControlMetadata
+---@return ui.views.form.Textbox
+function ControlFactory.keyBindings(config, key, metadata)
+	local control = Textbox({
+		label = metadata.name,
+		text = KeyBindings.format(config:getKeyBindings(key)),
+		width = WIDTH,
+		on_change = function(value)
+			config:setKeyBindings(key, KeyBindings.parse(value))
 		end,
 	})
 	return configure(control, metadata, key) --[[@as ui.views.form.Textbox]]

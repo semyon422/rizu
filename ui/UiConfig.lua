@@ -15,7 +15,20 @@ local keys = {
 	right_bindings = "right_bindings",
 	up_bindings = "up_bindings",
 	down_bindings = "down_bindings",
+	gameplay_pause_bindings = "gameplay_pause_bindings",
+	gameplay_quit_bindings = "gameplay_quit_bindings",
+	gameplay_retry_bindings = "gameplay_retry_bindings",
 	gameplay_skip_intro_bindings = "gameplay_skip_intro_bindings",
+	gameplay_offset_decrease_bindings = "gameplay_offset_decrease_bindings",
+	gameplay_offset_increase_bindings = "gameplay_offset_increase_bindings",
+	gameplay_offset_reset_bindings = "gameplay_offset_reset_bindings",
+	gameplay_play_speed_decrease_bindings = "gameplay_play_speed_decrease_bindings",
+	gameplay_play_speed_increase_bindings = "gameplay_play_speed_increase_bindings",
+	select_random_bindings = "select_random_bindings",
+	select_time_rate_decrease_bindings = "select_time_rate_decrease_bindings",
+	select_time_rate_increase_bindings = "select_time_rate_increase_bindings",
+	global_screenshot_bindings = "global_screenshot_bindings",
+	global_screenshot_open_bindings = "global_screenshot_open_bindings",
 	editor_toggle_playback_bindings = "editor_toggle_playback_bindings",
 	toggle_audio_preview_bindings = "toggle_audio_preview_bindings",
 }
@@ -43,7 +56,20 @@ function UiConfig:new(fs, path)
 	self:setDefaultKeyBindings(keys.right_bindings, {{key = "right", allow_repeat = true}})
 	self:setDefaultKeyBindings(keys.up_bindings, {{key = "up", allow_repeat = true}})
 	self:setDefaultKeyBindings(keys.down_bindings, {{key = "down", allow_repeat = true}})
+	self:setDefaultKeyBindings(keys.gameplay_pause_bindings, {{key = "escape"}})
+	self:setDefaultKeyBindings(keys.gameplay_quit_bindings, {{key = "escape", shift = true}})
+	self:setDefaultKeyBindings(keys.gameplay_retry_bindings, {{key = "`"}})
 	self:setDefaultKeyBindings(keys.gameplay_skip_intro_bindings, {{key = "space"}})
+	self:setDefaultKeyBindings(keys.gameplay_offset_decrease_bindings, {{key = "-"}})
+	self:setDefaultKeyBindings(keys.gameplay_offset_increase_bindings, {{key = "="}})
+	self:setDefaultKeyBindings(keys.gameplay_offset_reset_bindings, {{key = "delete"}})
+	self:setDefaultKeyBindings(keys.gameplay_play_speed_decrease_bindings, {{key = "f3"}})
+	self:setDefaultKeyBindings(keys.gameplay_play_speed_increase_bindings, {{key = "f4"}})
+	self:setDefaultKeyBindings(keys.select_random_bindings, {{key = "f2"}})
+	self:setDefaultKeyBindings(keys.select_time_rate_decrease_bindings, {{key = "f5"}})
+	self:setDefaultKeyBindings(keys.select_time_rate_increase_bindings, {{key = "f6"}})
+	self:setDefaultKeyBindings(keys.global_screenshot_bindings, {{key = "f12"}})
+	self:setDefaultKeyBindings(keys.global_screenshot_open_bindings, {{key = "f12", shift = true}})
 	self:setDefaultKeyBindings(keys.editor_toggle_playback_bindings, {{key = "space"}})
 	self:setDefaultKeyBindings(keys.toggle_audio_preview_bindings, {{key = "p", control = true}})
 end

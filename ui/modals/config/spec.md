@@ -22,6 +22,8 @@ The offset section exposes a Universal offset slider. It uses the `bass_sample` 
 
 The User Interface section controls whether Song Select displays a chart preview and which difficulty rating type menus display.
 
+The Bindings section exposes modern UI, Song Select, gameplay, editor, and screenshot shortcuts. Each textbox accepts comma-separated alternatives and `+`-separated modifiers, for example `Ctrl+O` or `return, kpenter`. Empty text disables an action. Changes update the active action map immediately and persist in `userdata/ui.json`. The defaults preserve the legacy shortcuts from the previous game UI: F2 random chart, F3/F4 play speed, F5/F6 time rate, backtick retry, Space skip intro, Shift+Escape gameplay quit, minus/equal/Delete local offset, and F12 screenshots.
+
 ## Invariants
 
 - A section never owns or draws views.
@@ -29,4 +31,5 @@ The User Interface section controls whether Song Select displays a chart preview
 - Rebuilding closes dropdown overlays and clears form selection before replacing rows.
 - Every setting control may carry a localized name, search keywords, a stable config key, and an optional `tip` for a future tip view.
 - Textboxes notify their change callback only on focus loss and only when their value changed since the previous commit.
+- Key-binding text uses canonical `Ctrl`, `Shift`, `Alt`, and `Super` modifier labels and lowercase LÖVE key names.
 - Audio volume storage is always linear even when sliders display decibels.

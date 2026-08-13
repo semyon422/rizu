@@ -7,11 +7,13 @@ local UiActions = require("ui.UiActions")
 ---@operator call: ui.Overlay
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
+---@field ui ui.UserInterface
 local Overlay = Screen + {}
 
 ---@param ui ui.UserInterface
 function Overlay:new(ui)
 	Screen.new(self)
+	self.ui = ui
 	self.fps_view = self.root:add(FpsView(ui.config))
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
@@ -37,6 +39,10 @@ function Overlay:onHandleInputs(inputs)
 		self.modal_manager:attachPalette()
 	elseif inputs:consumeActionJustPressed(UiActions.open_config) then
 		self.modal_manager:attachConfig()
+	elseif inputs:consumeActionJustPressed(UiActions.global_screenshot_open) then
+		self.ui.game.app.screenshotModel:capture(true)
+	elseif inputs:consumeActionJustPressed(UiActions.global_screenshot) then
+		self.ui.game.app.screenshotModel:capture(false)
 	end
 end
 
