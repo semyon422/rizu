@@ -161,11 +161,9 @@ function Result:updateInfo()
 	end
 
 	local timings = game.replayBase.timings
-	if not timings then
-		error("TODO: auto timings")
-		-- They should be stored either in chartview or in chartmeta or in chartdiff
+	if timings then
+		self.stats:bind(accuracy_source, judge_source, combo_source, timings)
 	end
-	self.stats:bind(accuracy_source, judge_source, combo_source, timings)
 
 	local rate = game.timeRateModel:get()
 	self.chartview_formatter:setChartview(game.chartSelector.chartview)
