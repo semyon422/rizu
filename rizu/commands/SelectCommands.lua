@@ -124,7 +124,12 @@ end
 ---@param key "primary_mode"|"secondary_mode"
 ---@param mode string
 local function setSelectionMode(game, key, mode)
-	game.configModel.configs.settings.select[key] = mode
+	local select_config = game.configModel.configs.settings.select
+	if key == "primary_mode" then
+		select_config.primary_mode = mode
+	else
+		select_config.secondary_mode = mode
+	end
 	game.chartSelector:noDebounceRefresh()
 end
 
@@ -132,7 +137,12 @@ end
 ---@param key "filterString"|"lampString"
 ---@param value string
 local function setSearchString(game, key, value)
-	game.configModel.configs.select[key] = value
+	local select_config = game.configModel.configs.select
+	if key == "filterString" then
+		select_config.filterString = value
+	else
+		select_config.lampString = value
+	end
 	game.chartSelector:noDebounceRefresh()
 end
 
