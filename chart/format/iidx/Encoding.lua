@@ -51,7 +51,6 @@ end
 ---@param s string
 ---@return string
 function Encoding.utf16le_to_utf8(s)
-	s = Encoding.strip_nul(s)
 	local out = {}
 	for i = 1, #s - 1, 2 do
 		local cp = s:byte(i) + s:byte(i + 1) * 256
