@@ -59,6 +59,11 @@ function Renderer:new(settings, ui_config)
 				options = {-1, 0, 1},
 				format = formatVsync,
 			})
+			controls[#controls + 1] = ControlFactory.legacyBoolean(settings, {"graphics", "vsyncOnSelect"}, {
+				name = "VSync outside gameplay",
+				keywords = {"vsync", "vertical sync", "selection", "tearing"},
+				tip = "Enable VSync while outside gameplay and disable it during gameplay.",
+			})
 			controls[#controls + 1] = ControlFactory.boolean(ui_config, ui_config.keys.show_fps, {
 				name = "Show FPS",
 				keywords = {"performance", "frame rate"},

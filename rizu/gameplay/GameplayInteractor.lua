@@ -111,6 +111,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	game.multiplayerModel.client:setPlaying(true)
 	game.offsetController:updateOffsets()
 
+	game.windowModel:setVsyncOnSelect(false)
 	self:play()
 
 	self.loaded = true
@@ -164,6 +165,7 @@ function GameplayInteractor:unloadGameplay()
 	self.autoplay = false
 	local game = self.game
 
+	game.windowModel:setVsyncOnSelect(true)
 	game.discordModel:setPresence({})
 	self:skip()
 

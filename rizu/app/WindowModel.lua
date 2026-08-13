@@ -41,9 +41,8 @@ local WindowModel = class()
 
 function WindowModel:new()
 	self.cursor = Cursor() --[[@as rizu.Cursor]]
+	self.outsideGameplay = true
 end
-
-WindowModel.baseVsync = 1
 
 ---@param flags rizu.WindowFlags
 ---@return rizu.WindowFlags
@@ -110,8 +109,12 @@ end
 function WindowModel:updateWindowState()
 	local flags = self.mode.flags
 	local graphics = self.graphics
-	if self.vsync ~= flags.vsync then
-		self.vsync = flags.vsync
+	local vsync = flags.vsync
+	if self.outsideGameplay and graphics.vsyncOnSelect and vsync == 0 then
+		vsync = 1
+	end
+	if self.vsync ~= vsync then
+		self.vsync = vsync
 		love.window.setVSync(self.vsync)
 	end
 	if self.fullscreen ~= flags.fullscreen or (self.fullscreen and self.fullscreentype ~= flags.fullscreentype) then
@@ -174,17 +177,7 @@ end
 
 ---@param enabled boolean
 function WindowModel:setVsyncOnSelect(enabled)
-	local graphics = self.graphics
-	if not graphics.vsyncOnSelect then
-		return
-	end
-	local flags = graphics.mode.flags
-	if not enabled then
-		self.baseVsync = flags.vsync ~= 0 and flags.vsync or 1
-		flags.vsync = 0
-	elseif flags.vsync == 0 then
-		flags.vsync = self.baseVsync
-	end
+	self.outsideGameplay = enabled
 end
 
 ---@param visible boolean

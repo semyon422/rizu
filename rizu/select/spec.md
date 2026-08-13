@@ -103,16 +103,12 @@ All select events must include a `type` field. Event type names should describe 
 
 `ChartMediaService` resolves background and preview-audio paths from the selected `LocatedChartview`. `ChartLoader` owns chartfile reading, notechart decoding, and absolute-layer conversion. Keeping these separate prevents preview/media path rules from being coupled to chart loading and replay/export workflows.
 
-### Window Sync
-`SelectionCoordinator:update()` triggers `SelectionWindowSync:update()` while the select screen is active. `SelectionWindowSync` owns the concrete `WindowModel:setVsyncOnSelect(true)` call so selection coordination does not depend directly on window-model details.
-
 ### Modifier Config Persistence
 `ModifierConfigPersistence` owns loading and saving the play config around modifier coordination. `ModifierCoordinator` requests replay-base load/save through this adapter instead of calling `ConfigModel:write()` or reading `configs.play` directly.
 
 ### Service Interfaces
 Select coordinators depend on selection-domain service interfaces instead of concrete application models where a boundary has already been isolated. The current interfaces are:
 
-- `ISelectionWindowSync` for select-screen window synchronization.
 - `IModifierConfigPersistence` for play-config load/save around modifier coordination.
 - `ISelectionReplayBaseApplier` for building selection-derived `ReplayBase` candidates.
 - `ILocationDirectoryOpener` for opening local chart and location directories.

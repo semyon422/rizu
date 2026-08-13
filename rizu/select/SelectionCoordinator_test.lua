@@ -52,11 +52,6 @@ local function newCoordinator(calls)
 			load = function()
 				table.insert(calls, "preview-load")
 			end,
-		},
-		{
-			update = function()
-				table.insert(calls, "window-sync")
-			end,
 		}
 	)
 end
@@ -147,7 +142,6 @@ function test.update_clears_preview_for_provisional_chartview(t)
 	end)
 
 	t:tdeq(calls, {
-		"window-sync",
 		"background:nil",
 		"preview:nil:1",
 	})
@@ -155,7 +149,7 @@ function test.update_clears_preview_for_provisional_chartview(t)
 end
 
 ---@param t testing.T
-function test.update_syncs_window_even_without_selection_change(t)
+function test.update_without_selection_change_does_nothing(t)
 	local calls = {}
 	local coordinator = newCoordinator(calls)
 	coordinator.chartSelector.isChanged = function()
@@ -164,9 +158,7 @@ function test.update_syncs_window_even_without_selection_change(t)
 
 	coordinator:update()
 
-	t:tdeq(calls, {
-		"window-sync",
-	})
+	t:tdeq(calls, {})
 end
 
 return test
