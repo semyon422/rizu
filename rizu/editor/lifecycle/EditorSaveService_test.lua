@@ -8,6 +8,7 @@ function test.save_updates_chartmeta_before_saving_chart_data(t)
 	local chartmeta = {
 		title = "Title",
 	}
+	---@type table?
 	local savedChartmeta
 	local context = {
 		getMetadata = function()
@@ -42,6 +43,7 @@ function test.chartmeta_is_updated_when_note_save_fails(t)
 	local chartmeta = {
 		title = "Title",
 	}
+	---@type table?
 	local savedChartmeta
 	local context = {
 		getMetadata = function()
