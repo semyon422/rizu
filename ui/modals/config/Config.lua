@@ -23,8 +23,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
 ---@field ui_config ui.UiConfig
----@field legacy_settings sphere.SettingsConfig
----@field speed_model sphere.SpeedModel
+---@field settings rizu.config.Config
 ---@field sections ui.modals.config.Section[]
 ---@field all_section ui.modals.config.Section
 ---@field selected_section ui.modals.config.Section
@@ -43,13 +42,11 @@ local LIST_PANEL_WIDTH = 740
 local LIST_WIDTH = 635
 
 ---@param ui_config ui.UiConfig
----@param legacy_settings sphere.SettingsConfig
----@param speed_model sphere.SpeedModel
-function Config:new(ui_config, legacy_settings, speed_model)
+---@param settings rizu.config.Config
+function Config:new(ui_config, settings)
 	ModalView.new(self)
 	self.ui_config = ui_config
-	self.legacy_settings = legacy_settings
-	self.speed_model = speed_model
+	self.settings = settings
 	self.sections = self:createSections()
 	self.all_section = Section({
 		name = "All",
@@ -120,13 +117,13 @@ end
 ---@return ui.modals.config.Section[] sections
 function Config:createSections()
 	return {
-		AudioSection(self.legacy_settings),
-		GameplaySection(self.legacy_settings, self.speed_model),
-		OffsetSection(self.legacy_settings),
-		LayoutSection(self.legacy_settings),
-		RendererSection(self.legacy_settings, self.ui_config),
+		AudioSection(self.settings),
+		GameplaySection(self.settings),
+		OffsetSection(self.settings),
+		LayoutSection(self.settings),
+		RendererSection(self.settings, self.ui_config),
 		GameplayViewportSection(self.ui_config),
-		UserInterfaceSection(self.legacy_settings),
+		UserInterfaceSection(self.settings),
 		BindingsSection(self.ui_config),
 	}
 end

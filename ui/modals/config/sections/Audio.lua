@@ -2,6 +2,7 @@ local decibel = require("decibel")
 local ControlFactory = require("ui.modals.config.ControlFactory")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.modals.config.sections.Audio : ui.modals.config.Section
 ---@operator call: ui.modals.config.sections.Audio
@@ -33,39 +34,37 @@ local function formatDecibels(value)
 	return ("%d dB"):format(value)
 end
 
----@param settings sphere.SettingsConfig
+---@param settings rizu.config.Config
 function Audio:new(settings)
 	Section.new(self, {
 		name = "Audio Volume",
 		icon = Resources.sprites.icon_volume_1,
 		build = function(section)
-			local audio = settings.audio
-			local logarithmic = audio.volumeType == "logarithmic"
+			local keys = Settings.keys.audio
+			local logarithmic = settings:getChoice(keys.volume_type) == "logarithmic"
 			local controls = {
-				ControlFactory.legacyChoice(settings, {"audio", "volumeType"}, {
+				ControlFactory.choice(settings, keys.volume_type, {
 					name = "Volume scale",
-					options = {"linear", "logarithmic"},
 					tip = "Choose whether volume sliders use percentages or decibels.",
 					on_change = function()
 						section:invalidate()
 					end,
 				}),
 			}
-			local names = {
-				master = "Master volume",
-				music = "Music volume",
-				keysounds = "Keysound volume",
-				metronome = "Metronome volume",
+			local volumes = {
+				{key = keys.volume_master, name = "Master volume", keyword = "master"},
+				{key = keys.volume_music, name = "Music volume", keyword = "music"},
+				{key = keys.volume_keysounds, name = "Keysound volume", keyword = "keysounds"},
+				{key = keys.volume_metronome, name = "Metronome volume", keyword = "metronome"},
 			}
-			for _, key in ipairs({"master", "music", "keysounds", "metronome"}) do
-				controls[#controls + 1] = ControlFactory.legacyNumber(settings, {"audio", "volume", key}, {
-					name = names[key],
-					keywords = {"audio", "sound", key},
-					tip = "Adjust the " .. key .. " output level.",
-					min = logarithmic and MIN_DECIBELS or 0,
-					max = logarithmic and 0 or 1,
-					step = logarithmic and 1 or 0.01,
-					width = 780,
+			for _, volume in ipairs(volumes) do
+				controls[#controls + 1] = ControlFactory.number(settings, volume.key, {
+					name = volume.name,
+					keywords = {"audio", "sound", volume.keyword},
+					tip = "Adjust the " .. volume.keyword .. " output level.",
+					min = logarithmic and MIN_DECIBELS or nil,
+					max = logarithmic and 0 or nil,
+					step = logarithmic and 1 or nil,
 					from_storage = logarithmic and toDecibels or nil,
 					to_storage = logarithmic and toLinear or nil,
 					value_format = logarithmic and formatDecibels or formatLinear,

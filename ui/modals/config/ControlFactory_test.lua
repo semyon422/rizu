@@ -36,6 +36,24 @@ function test.boolean_binds_ui_config_and_metadata(t)
 end
 
 ---@param t testing.T
+function test.number_uses_definition_metadata_and_conversions(t)
+	local config = Config(FakeFilesystem(), "settings.json")
+	config:setDefaultNumber("volume", 0.5, 0, 1, 0.01)
+	local control = ControlFactory.number(config, "volume", {
+		name = "Volume",
+		from_storage = function(value) return value * 100 end,
+		to_storage = function(value) return value / 100 end,
+		min = 0,
+		max = 100,
+		step = 1,
+	})
+
+	t:eq(control.value, 50)
+	control:setValue(75, true)
+	t:eq(config:getNumber("volume"), 0.75)
+end
+
+---@param t testing.T
 function test.key_bindings_bind_ui_config(t)
 	local config = Config(FakeFilesystem(), "ui.json")
 	config:setDefaultKeyBindings("open_config", {{key = "o", control = true}})
@@ -46,23 +64,6 @@ function test.key_bindings_bind_ui_config(t)
 	t:eq(control:getText(), "Ctrl+o")
 	control:setText("Shift+p", true)
 	t:tdeq(config:getKeyBindings("open_config"), {{key = "p", shift = true}})
-end
-
----@param t testing.T
-function test.boolean_binds_legacy_setting(t)
-	local settings = {graphics = {unlimited_fps = false}}
-	local changed
-	local control = ControlFactory.legacyBoolean(settings, {"graphics", "unlimited_fps"}, {
-		name = "Unlimited FPS",
-		on_change = function(value)
-			changed = value
-		end,
-	})
-
-	t:eq(control.setting_key, "graphics.unlimited_fps")
-	control:activate()
-	t:eq(settings.graphics.unlimited_fps, true)
-	t:eq(changed, true)
 end
 
 return test

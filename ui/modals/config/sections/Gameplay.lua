@@ -2,56 +2,57 @@ local ControlFactory = require("ui.modals.config.ControlFactory")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")
 local SpeedModel = require("sphere.models.SpeedModel")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.modals.config.sections.Gameplay : ui.modals.config.Section
 ---@operator call: ui.modals.config.sections.Gameplay
 local Gameplay = Section + {}
 
----@param settings sphere.SettingsConfig
----@param speed_model sphere.SpeedModel
-function Gameplay:new(settings, speed_model)
+local OSU_FACTOR = 7 / 96
+
+---@param settings rizu.config.Config
+function Gameplay:new(settings)
 	Section.new(self, {
 		name = "Gameplay",
 		icon = Resources.sprites.icon_play,
 		build = function(section)
-			local speed_type = settings.gameplay.speedType
+			local keys = Settings.keys.gameplay
+			local speed_type = settings:getChoice(keys.speed_type)
 			local range = assert(SpeedModel.range[speed_type])
 			local format = assert(SpeedModel.format[speed_type])
 
 			return {
-				ControlFactory.legacyChoice(settings, {"gameplay", "speedType"}, {
+				ControlFactory.choice(settings, keys.speed_type, {
 					name = "Scroll speed type",
 					keywords = {"gameplay", "scroll", "speed", "osu"},
 					tip = "Choose the scale used by the scroll speed slider.",
-					options = SpeedModel.types,
 					on_change = function()
 						section:invalidate()
 					end,
 				}),
-				ControlFactory.legacyNumber(settings, {"gameplay", "speed"}, {
+				ControlFactory.number(settings, keys.speed, {
 					name = "Scroll speed",
 					keywords = {"gameplay", "scroll", "speed"},
 					tip = "Adjust how quickly notes move through the playfield.",
 					min = range[1],
 					max = range[2],
 					step = range[3],
-					from_storage = function()
-						return speed_model:get()
-					end,
-					to_storage = function(value)
-						speed_model:set(value)
-						return settings.gameplay.speed
-					end,
+					from_storage = speed_type == "osu" and function(value)
+						return math.max(range[1], math.min(range[2], math.floor(value / OSU_FACTOR + 0.5)))
+					end or nil,
+					to_storage = speed_type == "osu" and function(value)
+						return value * OSU_FACTOR
+					end or nil,
 					value_format = function(value)
 						return format:format(value)
 					end,
 				}),
-				ControlFactory.legacyBoolean(settings, {"gameplay", "bga", "image"}, {
+				ControlFactory.boolean(settings, keys.bga_image, {
 					name = "Background images",
 					keywords = {"gameplay", "background", "animation", "bga", "image"},
 					tip = "Display BGA images in the gameplay background.",
 				}),
-				ControlFactory.legacyBoolean(settings, {"gameplay", "bga", "video"}, {
+				ControlFactory.boolean(settings, keys.bga_video, {
 					name = "Background videos",
 					keywords = {"gameplay", "background", "animation", "bga", "video"},
 					tip = "Display BGA videos in the gameplay background.",
