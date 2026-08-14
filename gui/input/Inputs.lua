@@ -123,7 +123,27 @@ end
 ---@param modifiers gui.ModifierKeys
 function Inputs:updateActions(event, modifiers)
 	local action_map = self.action_map
-	if not action_map or (event.name ~= "keypressed" and event.name ~= "keyreleased") then return end
+	if not action_map then return end
+
+	if event.name == "wheelmoved" then
+		local wheel_keys = {} ---@type {[string]: boolean}
+		if event[1] > 0 then wheel_keys.wheelright = true end
+		if event[1] < 0 then wheel_keys.wheelleft = true end
+		if event[2] > 0 then wheel_keys.wheelup = true end
+		if event[2] < 0 then wheel_keys.wheeldown = true end
+		for action, bindings in action_map:iterate() do
+			for _, binding in ipairs(bindings) do
+				if wheel_keys[binding.key] and action_map:bindingMatchesModifiers(binding, modifiers) then
+					-- A wheel movement is a pulse rather than a held input.
+					self.action_just_pressed[action] = true
+					break
+				end
+			end
+		end
+		return
+	end
+
+	if event.name ~= "keypressed" and event.name ~= "keyreleased" then return end
 	for action, bindings in action_map:iterate() do
 		for _, binding in ipairs(bindings) do
 			if event[1] == binding.key then

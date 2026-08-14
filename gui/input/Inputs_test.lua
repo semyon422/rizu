@@ -95,6 +95,40 @@ function test.action_repeat_creates_new_pressed_edges_when_allowed(t)
 end
 
 ---@param t testing.T
+function test.mouse_wheel_actions_are_modifier_aware_pulses(t)
+	local actions = ActionMap()
+	actions:defineAction("ui.zoom_in", {{key = "wheelup", control = true}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+
+	inputs:receive({name = "wheelmoved", 0, 1}, default_modifiers)
+	t:eq(inputs:isActionJustPressed("ui.zoom_in"), false)
+	inputs:receive({name = "wheelmoved", 0, 1}, {
+		control = true, shift = false, alt = false, super = false,
+	})
+	t:eq(inputs:isActionJustPressed("ui.zoom_in"), true)
+	t:eq(inputs:isActionPressed("ui.zoom_in"), false)
+	t:eq(inputs:isActionJustReleased("ui.zoom_in"), false)
+end
+
+---@param t testing.T
+function test.mouse_wheel_action_directions(t)
+	local actions = ActionMap()
+	actions:defineAction("up", {{key = "wheelup"}})
+	actions:defineAction("down", {{key = "wheeldown"}})
+	actions:defineAction("left", {{key = "wheelleft"}})
+	actions:defineAction("right", {{key = "wheelright"}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+
+	inputs:receive({name = "wheelmoved", 1, -1}, default_modifiers)
+	t:eq(inputs:isActionJustPressed("right"), true)
+	t:eq(inputs:isActionJustPressed("down"), true)
+	t:eq(inputs:isActionJustPressed("left"), false)
+	t:eq(inputs:isActionJustPressed("up"), false)
+end
+
+---@param t testing.T
 function test.no_bubbling(t)
 	local inputs = Inputs()
 	local view = create_view(100, 100)
