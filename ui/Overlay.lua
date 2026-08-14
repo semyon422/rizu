@@ -1,6 +1,7 @@
 local Screen = require("gui.Screen")
 local ModalManager = require("ui.ModalManager")
 local FpsView = require("ui.views.FpsView")
+local CacheProgressView = require("ui.views.CacheProgressView")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.Overlay : gui.Screen
@@ -8,6 +9,7 @@ local UiActions = require("ui.UiActions")
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
 ---@field ui ui.UserInterface
+---@field cache_progress_view ui.views.CacheProgressView
 local Overlay = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -17,6 +19,8 @@ function Overlay:new(ui)
 	self.fps_view = self.root:add(FpsView(ui.config))
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
+	self.cache_progress_view = self.root:add(CacheProgressView(ui.game.library))
+	self.cache_progress_view:setOffset(16, 16)
 	self.modal_manager = self.root:add(ModalManager(ui))
 end
 

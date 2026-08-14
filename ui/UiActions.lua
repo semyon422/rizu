@@ -32,6 +32,7 @@ UiActions.global_screenshot = "global.screenshot"
 UiActions.global_screenshot_open = "global.screenshot_open"
 UiActions.editor_toggle_playback = "editor.toggle_playback"
 UiActions.toggle_audio_preview = "toggle_audio_preview"
+UiActions.refresh_song_select = "ui.refresh_song_select"
 
 ---@param config ui.UiConfig
 ---@return gui.input.ActionMap
@@ -76,6 +77,7 @@ function UiActions.createMap(config)
 	actions:defineAction(UiActions.move_to_start, {{key = "home", allow_repeat = true}})
 	actions:defineAction(UiActions.move_to_end, {{key = "end", allow_repeat = true}})
 	actions:defineAction(UiActions.clear_field, {{control = true, key = "backspace"}})
+	actions:defineAction(UiActions.refresh_song_select, {{key = "f5"}})
 	return actions
 end
 

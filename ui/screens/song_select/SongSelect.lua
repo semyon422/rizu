@@ -389,6 +389,10 @@ function SongSelect:onHandleInputs(inputs)
 		game.timeRateModel:increase(1)
 		game.modifierSelectModel:change()
 		self:updateModifiers()
+	elseif inputs:consumeActionJustPressed(UiActions.refresh_song_select) then
+		self.ui.game.chartSelector:noDebounceRefresh()
+	elseif inputs:consumeActionJustPressed(UiActions.toggle_audio_preview) then
+		self.ui.game.previewModel:togglePause()
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif self.ui.game.chartSelector:chartExists()
