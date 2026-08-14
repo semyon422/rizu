@@ -9,14 +9,14 @@ Configuration keys are plain strings. `rizu.config.Settings` contains optional c
 Defaults are registered directly on a config:
 
 ```lua
-config:setDefaultNumber("audio.volume.master", 0.5)
+config:setDefaultNumber("audio.volume.master", 0.5, 0, 1, 0.01)
 config:setDefaultChoice("graphics.interface", "new", {"old", "new"})
 config:setDefaultBoolean("misc.show_fps", false)
 config:setDefaultString("profile.name", "")
 config:setDefaultKeyBindings("ui.cancel", {{key = "escape"}})
 ```
 
-Key bindings are arrays of `{key, control?, shift?, alt?, super?, allow_repeat?}` records. Typed getters and setters fail for unknown keys, incorrect types, invalid bindings, and invalid choices. Duplicate defaults also fail. There are no setting objects, nested schema discovery, transient state, commits, or a config registry.
+Number definitions include minimum, maximum, and step metadata. Number setters reject values outside the configured range. Key bindings are arrays of `{key, control?, shift?, alt?, super?, allow_repeat?}` records. Typed getters and setters fail for unknown keys, incorrect types, invalid bindings, and invalid choices. Duplicate defaults also fail. There are no setting objects, nested schema discovery, transient state, commits, or a config registry.
 
 ## Changes
 

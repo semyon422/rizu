@@ -8,7 +8,7 @@ local test = {}
 local function createConfig()
 	local fs = FakeFilesystem()
 	local config = Config(fs, "settings.json")
-	config:setDefaultNumber("volume", 0.5)
+	config:setDefaultNumber("volume", 0.5, 0, 1, 0.01)
 	config:setDefaultChoice("interface", "new", {"old", "new"})
 	config:setDefaultBoolean("show_fps", false)
 	config:setDefaultString("name", "")
@@ -19,7 +19,23 @@ end
 ---@param t testing.T
 function test.settings_defaults(t)
 	local config = Settings.createConfig(FakeFilesystem())
-	t:eq(config:getString(Settings.user_interface), "new")
+	t:eq(config:getString(Settings.keys.user_interface), "new")
+	local volume = config:getDefinition(Settings.keys.audio.volume_master)
+	t:eq(volume.min, 0)
+	t:eq(volume.max, 1)
+	t:eq(volume.step, 0.01)
+end
+
+---@param t testing.T
+function test.number_defaults_and_bounds(t)
+	local config = Config(FakeFilesystem(), "settings.json")
+	config:setDefaultNumber("bounded", 5, 0, 10, 0.5)
+	local definition = config:getDefinition("bounded")
+	t:eq(definition.min, 0)
+	t:eq(definition.max, 10)
+	t:eq(definition.step, 0.5)
+	t:has_error(function() config:setNumber("bounded", 11) end)
+	t:has_error(function() config:setDefault("invalid", {kind = "number", default = 0}) end)
 end
 
 ---@param t testing.T
@@ -117,7 +133,7 @@ function test.persistence(t)
 	t:eq(config:save(), true)
 
 	local loaded = Config(fs, "settings.json")
-	loaded:setDefaultNumber("volume", 0.5)
+	loaded:setDefaultNumber("volume", 0.5, 0, 1, 0.01)
 	loaded:setDefaultChoice("interface", "new", {"old", "new"})
 	loaded:setDefaultBoolean("show_fps", false)
 	loaded:setDefaultString("name", "")

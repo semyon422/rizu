@@ -22,6 +22,9 @@ local json = require("json")
 ---@field kind rizu.config.Kind
 ---@field default rizu.config.Value
 ---@field choices string[]?
+---@field min number? Minimum value for number definitions.
+---@field max number? Maximum value for number definitions.
+---@field step number? Increment used when editing number definitions.
 
 ---@class rizu.config.Config
 ---@overload fun(fs: fs.IFilesystem, path: string): rizu.config.Config
@@ -108,7 +111,13 @@ end
 local function validate_default(key, definition)
 	assert(type(key) == "string" and key ~= "", "key must be a non-empty string")
 	assert(type(definition.default) == lua_type(definition.kind), "default has the wrong type")
-	if definition.kind == "key_bindings" then
+	if definition.kind == "number" then
+		assert(type(definition.min) == "number", "number min is required")
+		assert(type(definition.max) == "number", "number max is required")
+		assert(type(definition.step) == "number" and definition.step > 0, "number step must be positive")
+		assert(definition.min <= definition.max, "number min must not exceed max")
+		assert(definition.default >= definition.min and definition.default <= definition.max, "number default is out of range")
+	elseif definition.kind == "key_bindings" then
 		validate_key_bindings(definition.default --[[@as rizu.config.KeyBindings]])
 	elseif definition.kind == "choice" then
 		assert(definition.choices and #definition.choices > 0, "choices must not be empty")
@@ -133,8 +142,17 @@ end
 
 ---@param key string
 ---@param default number
-function Config:setDefaultNumber(key, default)
-	self:setDefault(key, {kind = "number", default = default})
+---@param min? number
+---@param max? number
+---@param step? number
+function Config:setDefaultNumber(key, default, min, max, step)
+	self:setDefault(key, {
+		kind = "number",
+		default = default,
+		min = min or -math.huge,
+		max = max or math.huge,
+		step = step or 1,
+	})
 end
 
 ---@param key string
@@ -268,7 +286,9 @@ end
 function Config:set(key, value)
 	local definition = self:getDefinition(key)
 	assert(type(value) == lua_type(definition.kind), "value has the wrong type")
-	if definition.kind == "choice" then
+	if definition.kind == "number" then
+		assert(value >= definition.min and value <= definition.max, "value is out of range")
+	elseif definition.kind == "choice" then
 		local found = false
 		for _, choice in ipairs(definition.choices) do
 			found = found or choice == value
@@ -414,7 +434,9 @@ function Config:deserialize(json_string)
 			if type(value) ~= lua_type(definition.kind) then
 				return false
 			end
-			if definition.kind == "choice" then
+			if definition.kind == "number" then
+				if value < definition.min or value > definition.max then return false end
+			elseif definition.kind == "choice" then
 				local found = false
 				for _, choice in ipairs(definition.choices) do
 					found = found or choice == value
