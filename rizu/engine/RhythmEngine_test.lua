@@ -102,6 +102,8 @@ end
 ---@param t testing.T
 function test.loader_order(t)
 	local RhythmEngineLoader = require("rizu.gameplay.RhythmEngineLoader")
+local Settings = require("rizu.config.Settings")
+local FakeFilesystem = require("fs.FakeFilesystem")
 	local TimingValues = require("sea.chart.TimingValues")
 	local re = RhythmEngine()
 
@@ -112,26 +114,14 @@ function test.loader_order(t)
 	res.chartdiff.start_time = 10
 	res.chartdiff.duration = 2
 
-	local config = {
-		gameplay = {
-			time = {prepare = 2},
-			longNoteShortening = 0,
-			speed = 1,
-			scaleSpeed = false,
-		},
-		audio = {
-			adjustRate = 0.1,
-			volume = {master = 1, music = 1, keysounds = 1, keysounds_format = {}},
-			mode = {primary = "a", secondary = "b"},
-		},
-	}
+	local settings = Settings.createConfig(FakeFilesystem())
 
 	re.audio_engine.getStartTime = function() return 100 end
 
 	local loader = RhythmEngineLoader(
 		{rate = 1, timings = {name = "sphere"}, subtimings = nil, timing_values = TimingValues(), nearest = false, const = false},
 		{chart = res.chart, chartmeta = res.chartmeta, chartdiff = res.chartdiff, state = {}},
-		config,
+		settings,
 		{}
 	)
 

@@ -7,6 +7,7 @@ local Chartmeta = require("sea.chart.Chartmeta")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local ReplayBase = require("sea.replays.ReplayBase")
 local Restorer = require("chart.refchart.Restorer")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.GameplayChartviewData
 ---@field location_path string
@@ -39,11 +40,11 @@ local Restorer = require("chart.refchart.Restorer")
 ---@field chartview rizu.GameplayChartview
 local GameplayChart = class()
 
----@param config sphere.SettingsConfig
+---@param settings rizu.config.Config
 ---@param fs fs.IFilesystem
 ---@param chartview rizu.GameplayChartview
-function GameplayChart:new(config, fs, chartview)
-	self.config = config
+function GameplayChart:new(settings, fs, chartview)
+	self.settings = settings
 	self.fs = fs
 	self.chartview = chartview
 end
@@ -134,17 +135,20 @@ local compute_async = thread.async(compute)
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
-	local config = self.config
+	local keys = Settings.keys.gameplay
 
 	ctx:applyModifierReorder(replayBase)
 
 	ctx:computeBase(replayBase)
 
-	ctx:applyTempo(config.gameplay.tempoFactor, config.gameplay.primaryTempo)
-	if config.gameplay.autoKeySound then
+	ctx:applyTempo(
+		self.settings:getChoice(keys.tempo_factor),
+		self.settings:getNumber(keys.primary_tempo)
+	)
+	if self.settings:getBoolean(keys.auto_key_sound) then
 		ctx:applyAutoKeysound()
 	end
-	if config.gameplay.swapVelocityType then
+	if self.settings:getBoolean(keys.swap_velocity_type) then
 		ctx:swapVelocityType()
 	end
 end
@@ -194,12 +198,12 @@ end
 ---@param context table?
 ---@return rizu.GameplayChartComputeResult
 function GameplayChart:computeAsync(replayBase, data, context)
-	local gameplay = self.config.gameplay
+	local keys = Settings.keys.gameplay
 	local gameplay_config = {
-		tempoFactor = gameplay.tempoFactor,
-		primaryTempo = gameplay.primaryTempo,
-		autoKeySound = gameplay.autoKeySound,
-		swapVelocityType = gameplay.swapVelocityType,
+		tempoFactor = self.settings:getChoice(keys.tempo_factor),
+		primaryTempo = self.settings:getNumber(keys.primary_tempo),
+		autoKeySound = self.settings:getBoolean(keys.auto_key_sound),
+		swapVelocityType = self.settings:getBoolean(keys.swap_velocity_type),
 	}
 
 	return compute_async(

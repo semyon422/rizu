@@ -3,6 +3,7 @@ local simplify_notechart = require("chart.transform.simplify_notechart")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local ReplayLoader = require("sea.replays.ReplayLoader")
 local RhythmEngineLoader = require("rizu.gameplay.RhythmEngineLoader")
+local Settings = require("rizu.config.Settings")
 
 ---@class sphere.ResultController
 ---@operator call: sphere.ResultController
@@ -97,18 +98,18 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 
 	local chartview = game.chartSelector.chartview
 
-	GameplayChart(game.configModel.configs.settings, game.fs, chartview):load(replayBase, game.computeContext)
+	GameplayChart(game.settings, game.fs, chartview):load(replayBase, game.computeContext)
 
 	RhythmEngineLoader(
 		replay,
 		game.computeContext,
-		game.configModel.configs.settings,
+		game.settings,
 		game.resource_loader.resources
 	):load(game.rhythm_engine)
 
 	game.computeContext:computePlay(game.rhythm_engine, replay.frames)
 
-	if self.game.configModel.configs.settings.miscellaneous.generateGifResult then
+	if game.settings:getBoolean(Settings.keys.misc.generate_gif_result) then
 		local chart = assert(game.computeContext.chart)
 		local GifResult = require("chart.transform.GifResult")
 		local gif_result = GifResult()

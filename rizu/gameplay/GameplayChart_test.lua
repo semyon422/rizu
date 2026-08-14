@@ -1,6 +1,5 @@
-local table_util = require("table_util")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
-local SettingsConfig = require("sphere.persistence.ConfigModel.settings")
+local Settings = require("rizu.config.Settings")
 local ReplayBase = require("sea.replays.ReplayBase")
 local ComputeContext = require("sea.compute.ComputeContext")
 local FakeFilesystem = require("fs.FakeFilesystem")
@@ -28,7 +27,7 @@ input 4key
 ---@param t testing.T
 function test.all(t)
 	local fs = FakeFilesystem()
-	local config = table_util.copy(SettingsConfig)
+	local settings = Settings.createConfig(fs)
 
 	local dir = "chart_set"
 	local chartview = {
@@ -41,7 +40,7 @@ function test.all(t)
 	fs:createDirectory(dir)
 	fs:write(chartview.location_path, chartfile_data)
 
-	local gl = GameplayChart(config, fs, chartview)
+	local gl = GameplayChart(settings, fs, chartview)
 
 	gl:load(ReplayBase(), ComputeContext())
 end

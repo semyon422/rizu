@@ -1,14 +1,12 @@
 local ControlFactory = require("ui.modals.config.ControlFactory")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")
-local SpeedModel = require("sphere.models.SpeedModel")
+local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 local Settings = require("rizu.config.Settings")
 
 ---@class ui.modals.config.sections.Gameplay : ui.modals.config.Section
 ---@operator call: ui.modals.config.sections.Gameplay
 local Gameplay = Section + {}
-
-local OSU_FACTOR = 7 / 96
 
 ---@param settings rizu.config.Config
 function Gameplay:new(settings)
@@ -18,8 +16,8 @@ function Gameplay:new(settings)
 		build = function(section)
 			local keys = Settings.keys.gameplay
 			local speed_type = settings:getChoice(keys.speed_type)
-			local range = assert(SpeedModel.range[speed_type])
-			local format = assert(SpeedModel.format[speed_type])
+			local range = assert(ScrollSpeed.ranges[speed_type])
+			local format = assert(ScrollSpeed.formats[speed_type])
 
 			return {
 				ControlFactory.choice(settings, keys.speed_type, {
@@ -37,12 +35,12 @@ function Gameplay:new(settings)
 					min = range[1],
 					max = range[2],
 					step = range[3],
-					from_storage = speed_type == "osu" and function(value)
-						return math.max(range[1], math.min(range[2], math.floor(value / OSU_FACTOR + 0.5)))
-					end or nil,
-					to_storage = speed_type == "osu" and function(value)
-						return value * OSU_FACTOR
-					end or nil,
+					from_storage = function(value)
+						return ScrollSpeed.toDisplay(speed_type, value)
+					end,
+					to_storage = function(value)
+						return ScrollSpeed.toCanonical(speed_type, value)
+					end,
 					value_format = function(value)
 						return format:format(value)
 					end,

@@ -7,6 +7,8 @@ local KeyPhysicInputEvent = require("rizu.input.KeyPhysicInputEvent")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ScoreSaver = require("rizu.gameplay.ScoreSaver")
 local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
+local Settings = require("rizu.config.Settings")
+local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 
 ---@class rizu.GameplayInteractor
 ---@operator call: rizu.GameplayInteractor
@@ -41,7 +43,7 @@ end
 ---@return string[]
 function GameplayInteractor:getResourcePaths(noteSkin, chartview)
 	local paths = {}
-	if self.game.configModel.configs.settings.gameplay.skin_resources_top_priority then
+	if self.game.settings:getBoolean(Settings.keys.gameplay.skin_resources_top_priority) then
 		table.insert(paths, noteSkin.directoryPath)
 		table.insert(paths, chartview.location_dir)
 	else
@@ -76,7 +78,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	game.previewModel:stop()
 
-	local gameplay_chart = GameplayChart(game.configModel.configs.settings, game.fs, chartview)
+	local gameplay_chart = GameplayChart(game.settings, game.fs, chartview)
 	local data, context = gameplay_chart:prepareAsync()
 
 	local compute_result = gameplay_chart:computeAsync(game.replayBase, data, context)
@@ -89,7 +91,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	local chartmeta = assert(game.computeContext.chartmeta)
 
 	if not self.replaying then
-		GameplayTimings(game.configModel.configs.settings, chartmeta):apply(game.replayBase)
+		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
 	end
 
 	local input_mode = GameplayInteractor.getInputMode(chart)
@@ -134,7 +136,7 @@ function GameplayInteractor:load(autoplay)
 	local loader = RhythmEngineLoader(
 		game.replayBase,
 		game.computeContext,
-		game.configModel.configs.settings,
+		game.settings,
 		game.resource_loader.resources
 	)
 	loader:setAudioEnabled(not self.audio_disabled)
@@ -204,11 +206,11 @@ end
 function GameplayInteractor:increasePlaySpeed(delta)
 	local game = self.game
 
-	local speedModel = game.speedModel
-	speedModel:increase(delta)
-
-	local gameplay = game.configModel.configs.settings.gameplay
-	game.rhythm_engine:setVisualRate(gameplay.speed, gameplay.scaleSpeed)
+	local keys = Settings.keys.gameplay
+	local speed_type = game.settings:getChoice(keys.speed_type)
+	local speed = ScrollSpeed.increase(speed_type, game.settings:getNumber(keys.speed), delta)
+	game.settings:setNumber(keys.speed, speed)
+	game.rhythm_engine:setVisualRate(speed, game.settings:getBoolean(keys.scale_speed))
 end
 
 ---@return boolean

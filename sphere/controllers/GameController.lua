@@ -13,7 +13,6 @@ local CollectionSelector = require("rizu.select.CollectionSelector")
 local MultiplayerModel = require("rizu.online.MultiplayerModel")
 local EditorInput = require("rizu.editor.EditorInput")
 local EditorModel = require("rizu.editor.EditorModel")
-local SpeedModel = require("sphere.models.SpeedModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local PauseModel = require("sphere.models.PauseModel")
 local JoystickModel = require("sphere.models.JoystickModel")
@@ -143,7 +142,6 @@ function GameController:new()
 		fs = self.fs,
 		input = self.editorInput,
 	})
-	self.speedModel = SpeedModel(self.persistence.configModel)
 	self.computeContext = ComputeContext()
 	self.replayBase = ReplayBase()
 

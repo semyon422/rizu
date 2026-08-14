@@ -1,4 +1,5 @@
 local Config = require("rizu.config.Config")
+local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 
 ---@class rizu.config.Settings.Keys
 local keys = {
@@ -107,6 +108,7 @@ local keys = {
 		volume_music = "audio.volume.music",
 		volume_keysounds = "audio.volume.keysounds",
 		volume_metronome = "audio.volume.metronome",
+		volume_keysounds_format = {},
 		sample_gain = "audio.sample_gain",
 		adjust_rate = "audio.adjust_rate",
 		mode_primary = "audio.mode.primary",
@@ -127,6 +129,9 @@ local keys = {
 	},
 }
 
+for _, format in ipairs({"sphere", "osu", "o2jam", "bms", "stepmania", "quaver", "midi", "ksm"}) do
+	keys.audio.volume_keysounds_format[format] = "audio.volume.keysounds_format." .. format
+end
 for _, format in ipairs({"osu", "qua", "sm", "ksh"}) do
 	keys.gameplay.offset_format[format] = "gameplay.offset.format." .. format
 end
@@ -149,8 +154,14 @@ function Settings.createConfig(filesystem)
 
 	config:setDefaultString(keys.user_interface, "new")
 
-	config:setDefaultNumber(g.speed, 1, 0.05, 40, 0.01)
-	config:setDefaultChoice(g.speed_type, "default", {"default", "osu"})
+	config:setDefaultNumber(
+		g.speed,
+		1,
+		ScrollSpeed.canonical_min,
+		ScrollSpeed.canonical_max,
+		ScrollSpeed.ranges.default[3]
+	)
+	config:setDefaultChoice(g.speed_type, "default", ScrollSpeed.types)
 	config:setDefaultChoice(g.action_on_fail, "none", {"none", "pause", "quit"}) -- Should go to UI
 	config:setDefaultBoolean(g.scale_speed, false) -- Nobody uses it
 	config:setDefaultNumber(g.long_note_shortening, 0, -0.3, 0, 0.01)
@@ -246,6 +257,9 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(a.volume_music, 1, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_keysounds, 1, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_metronome, 1, 0, 1, 0.01)
+	for _, key in pairs(a.volume_keysounds_format) do
+		config:setDefaultNumber(key, 1, 0, 1, 0.01)
+	end
 	config:setDefaultNumber(a.sample_gain, 0, 0, 100, 1) -- Not needed
 	config:setDefaultNumber(a.adjust_rate, 0.1, 0, 1, 0.01)
 	config:setDefaultChoice(a.mode_primary, "bass_fx_tempo", {"bass_sample", "bass_fx_tempo"})

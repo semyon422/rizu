@@ -1,4 +1,5 @@
 local class = require("class")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.RhythmEngineLoader
 ---@operator call: rizu.RhythmEngineLoader
@@ -6,12 +7,12 @@ local RhythmEngineLoader = class()
 
 ---@param replayBase sea.ReplayBase
 ---@param computeContext sea.ComputeContext
----@param config sphere.SettingsConfig
+---@param settings rizu.config.Config
 ---@param resources {[string]: string}
-function RhythmEngineLoader:new(replayBase, computeContext, config, resources)
+function RhythmEngineLoader:new(replayBase, computeContext, settings, resources)
 	self.replayBase = replayBase
 	self.computeContext = computeContext
-	self.config = config
+	self.settings = settings
 	self.resources = resources
 end
 
@@ -24,45 +25,47 @@ end
 function RhythmEngineLoader:load(rhythm_engine)
 	local computeContext = self.computeContext
 	local replayBase = self.replayBase
-	local config = self.config
+	local settings = self.settings
+	local keys = Settings.keys
 
 	local chart = assert(computeContext.chart)
 	local chartmeta = assert(computeContext.chartmeta)
 	local chartdiff = assert(computeContext.chartdiff)
-	local state = computeContext.state
 
 	rhythm_engine:setChart(chart, chartmeta, chartdiff)
-	rhythm_engine:setAutoKeySound(config.gameplay.autoKeySound)
+	rhythm_engine:setAutoKeySound(settings:getBoolean(keys.gameplay.auto_key_sound))
 	rhythm_engine:setAudioEnabled(self.audioEnabled)
 	rhythm_engine:load()
-	rhythm_engine:setAudioMode(config.audio.mode)
+	rhythm_engine:setAudioMode({
+		primary = settings:getChoice(keys.audio.mode_primary),
+		secondary = settings:getChoice(keys.audio.mode_secondary),
+	})
 	rhythm_engine:loadAudio(self.resources)
 	rhythm_engine:loadVisuals(self.resources)
 
-	-- variable unranked
-	-- rhythm_engine:setWindUp(state.windUp)
 	rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings)
 	rhythm_engine:setTimingValues(replayBase.timing_values)
 	rhythm_engine:setRate(replayBase.rate)
 	rhythm_engine:setNearest(replayBase.nearest)
 	rhythm_engine:setConst(replayBase.const)
 
-	-- constant
 	rhythm_engine:setPlayTime(chartdiff.start_time, chartdiff.duration)
-	rhythm_engine:setTimeToPrepare(config.gameplay.time.prepare)
+	rhythm_engine:setTimeToPrepare(settings:getNumber(keys.gameplay.time_prepare))
+	rhythm_engine:setAdjustFactor(settings:getNumber(keys.audio.adjust_rate))
 
-	-- variable ranked
-	rhythm_engine:setAdjustFactor(config.audio.adjustRate)
+	local format_key = keys.audio.volume_keysounds_format[chartmeta.format]
+	local format_volume = format_key and settings:getNumber(format_key) or 1
+	rhythm_engine:setVolume({
+		master = settings:getNumber(keys.audio.volume_master),
+		music = settings:getNumber(keys.audio.volume_music),
+		keysounds = settings:getNumber(keys.audio.volume_keysounds) * format_volume,
+	})
 
-	local volume = {
-		master = config.audio.volume.master,
-		music = config.audio.volume.music,
-		keysounds = config.audio.volume.keysounds * (config.audio.volume.keysounds_format[chartmeta.format] or 1),
-	}
-	rhythm_engine:setVolume(volume)
-
-	rhythm_engine:setLongNoteShortening(config.gameplay.longNoteShortening)
-	rhythm_engine:setVisualRate(config.gameplay.speed, config.gameplay.scaleSpeed)
+	rhythm_engine:setLongNoteShortening(settings:getNumber(keys.gameplay.long_note_shortening))
+	rhythm_engine:setVisualRate(
+		settings:getNumber(keys.gameplay.speed),
+		settings:getBoolean(keys.gameplay.scale_speed)
+	)
 end
 
 return RhythmEngineLoader
