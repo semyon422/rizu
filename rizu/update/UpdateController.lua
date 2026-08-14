@@ -4,6 +4,7 @@ local UpdaterIO = require("rizu.update.UpdaterIO")
 local NetworkService = require("rizu.net.NetworkService")
 local ConfigModel = require("sphere.persistence.ConfigModel")
 local WindowModel = require("rizu.app.WindowModel")
+local Settings = require("rizu.config.Settings")
 local thread = require("thread")
 local delay = require("delay")
 
@@ -17,7 +18,9 @@ function UpdateController:new(network)
 	self.network = network or NetworkService()
 	self.updater = Updater(UpdaterIO(self.network))
 	self.configModel = ConfigModel()
-	self.windowModel = WindowModel()
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	self.settings = Settings.createConfig(LoveFilesystem())
+	self.windowModel = WindowModel(self.settings)
 end
 
 ---@return boolean?
@@ -25,17 +28,16 @@ function UpdateController:updateAsync()
 	local updater = self.updater
 	local configModel = self.configModel
 
-	configModel:open("settings")
 	configModel:open("urls")
 	configModel:open("files", true)
 	configModel:open("network")
 	configModel:read()
+	self.settings:load()
 
 	local configs = configModel.configs
 	self.network:setProxy(configs.network.socks5)
 
 	if
-		not configs.settings.miscellaneous.autoUpdate or
 		configs.urls.update == "" or
 		os.getenv("RIZU_DISABLE_UPDATE") == "1" or
 		love.filesystem.getInfo(".git")
@@ -43,7 +45,7 @@ function UpdateController:updateAsync()
 		return
 	end
 
-	self.windowModel:load(configs.settings.graphics)
+	self.windowModel:load()
 
 	function love.update(dt)
 		thread.update()

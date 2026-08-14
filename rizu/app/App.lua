@@ -14,7 +14,7 @@ function App:new(persistence)
 	self.audioModel = AudioModel()
 	self.discordModel = DiscordModel(persistence.configModel)
 	self.screenshotModel = ScreenshotModel()
-	self.windowModel = WindowModel()
+	self.windowModel = WindowModel(persistence.settings)
 
 	self.persistence = persistence
 end
@@ -22,9 +22,13 @@ end
 function App:load()
 	self.discordModel:load()
 
-	local configModel = self.persistence.configModel
-	self.audioModel:load(configModel.configs.settings.audio.device)
-	self.windowModel:load(configModel.configs.settings.graphics)
+	local Settings = require("rizu.config.Settings")
+	local keys = Settings.keys.audio
+	self.audioModel:load({
+		period = self.persistence.settings:getNumber(keys.device_period),
+		buffer = self.persistence.settings:getNumber(keys.device_buffer),
+	})
+	self.windowModel:load()
 end
 
 function App:unload()

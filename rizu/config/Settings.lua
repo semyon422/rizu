@@ -86,8 +86,15 @@ local keys = {
 		vsync = "graphics.mode.vsync",
 		vsync_on_select = "graphics.vsync_on_select",
 		msaa = "graphics.mode.msaa",
+		borderless = "graphics.mode.borderless",
+		centered = "graphics.mode.centered",
+		display = "graphics.mode.display",
+		resizable = "graphics.mode.resizable",
+		usedpiscale = "graphics.mode.usedpiscale",
 		dwmflush = "graphics.dwmflush",
 		asynckey = "graphics.asynckey",
+		busy_loop_ratio = "graphics.busy_loop_ratio",
+		sleep_function = "graphics.sleep_function",
 		window_width = "graphics.mode.window.width",
 		window_height = "graphics.mode.window.height",
 		cursor = "graphics.cursor",
@@ -233,8 +240,15 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(gr.vsync, 0, -1, 1, 1)
 	config:setDefaultBoolean(gr.vsync_on_select, true)
 	config:setDefaultNumber(gr.msaa, 0, 0, 16, 1) -- We don't need it
+	config:setDefaultBoolean(gr.borderless, false)
+	config:setDefaultBoolean(gr.centered, true)
+	config:setDefaultNumber(gr.display, 1, 1, 16, 1)
+	config:setDefaultBoolean(gr.resizable, true)
+	config:setDefaultBoolean(gr.usedpiscale, true)
 	config:setDefaultBoolean(gr.dwmflush, false) -- Windows only
 	config:setDefaultBoolean(gr.asynckey, false) -- Windows only
+	config:setDefaultNumber(gr.busy_loop_ratio, 0, 0, 1, 0.01)
+	config:setDefaultChoice(gr.sleep_function, "love", {"love", "ffi"})
 	config:setDefaultNumber(gr.window_width, 1280, 320, 7680, 1)
 	config:setDefaultNumber(gr.window_height, 720, 240, 4320, 1)
 	config:setDefaultChoice(gr.cursor, "circle", {"circle", "arrow", "system"}) -- Should go to UI
