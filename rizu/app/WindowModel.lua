@@ -158,6 +158,17 @@ function WindowModel:setFullscreen(fullscreen, fullscreentype)
 	})
 end
 
+--- Sets the window resolution and applies it immediately.
+---@param width number
+---@param height number
+function WindowModel:setResolution(width, height)
+	local mode = self.mode
+	mode.window.width = width
+	mode.window.height = height
+	local flags = normalizeWindowFlags(mode.flags)
+	love.window.updateMode(width, height, flags)
+end
+
 local icon_path = "resources/logo.png"
 function WindowModel:setIcon()
 	local info = love.filesystem.getInfo(icon_path)
