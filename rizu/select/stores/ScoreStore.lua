@@ -2,6 +2,7 @@ local thread = require("thread")
 local erfunc = require("chart.scoring.erfunc")
 local class = require("class")
 local Observable = require("Observable")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.stores.ScoreStore
 ---@operator call: rizu.select.stores.ScoreStore
@@ -17,10 +18,12 @@ ScoreStore.scoreSources = {
 }
 
 ---@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param localProvider rizu.select.IScoreProvider
 ---@param onlineProvider rizu.select.IScoreProvider
-function ScoreStore:new(configModel, localProvider, onlineProvider)
+function ScoreStore:new(configModel, settings, localProvider, onlineProvider)
 	self.configModel = configModel
+	self.settings = settings
 	self.localProvider = localProvider
 	self.onlineProvider = onlineProvider
 	self.items = {}
@@ -74,10 +77,10 @@ function ScoreStore:filterScores(scores)
 
 	---@type sphere.ScoreFilter[]
 	local filters = self.configModel.configs.filters.score
-	local select = self.configModel.configs.select
+	local score_filter = self.settings:getString(Settings.keys.select.score_filter)
 	local index
 	for i, filter in ipairs(filters) do
-		if filter.name == select.scoreFilterName then
+		if filter.name == score_filter then
 			index = i
 			break
 		end
@@ -117,8 +120,8 @@ function ScoreStore:updateItemsAsync(chartview, score_scope, request_id)
 
 	self.items = {}
 
-	local select = self.configModel.configs.select
-	local provider = select.scoreSourceName == "online" and self.onlineProvider or self.localProvider
+	local score_source = self.settings:getChoice(Settings.keys.select.score_source)
+	local provider = score_source == "online" and self.onlineProvider or self.localProvider
 
 	---@type sea.Chartplay[]
 	local chartplays

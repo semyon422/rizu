@@ -5,6 +5,7 @@ local ScoreStore = require("rizu.select.stores.ScoreStore")
 local LocalScoreProvider = require("rizu.select.providers.LocalScoreProvider")
 local OnlineScoreProvider = require("rizu.select.providers.OnlineScoreProvider")
 local SelectionReplayBaseApplier = require("rizu.select.services.SelectionReplayBaseApplier")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.ScoreSelector
 ---@operator call: rizu.select.ScoreSelector
@@ -15,12 +16,14 @@ local SelectionReplayBaseApplier = require("rizu.select.services.SelectionReplay
 local ScoreSelector = class()
 
 ---@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param library rizu.library.Library
 ---@param onlineModel rizu.OnlineModel
 ---@param replayBase sea.ReplayBase
 ---@param state rizu.select.SelectionState
-function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
+function ScoreSelector:new(configModel, settings, library, onlineModel, replayBase, state)
 	self.configModel = configModel
+	self.settings = settings
 	self.library = library
 	self.onlineModel = onlineModel
 	self.replayBase = replayBase
@@ -28,9 +31,9 @@ function ScoreSelector:new(configModel, library, onlineModel, replayBase, state)
 
 	local localProvider = LocalScoreProvider(library)
 	local onlineProvider = OnlineScoreProvider(onlineModel)
-	self.store = ScoreStore(configModel, localProvider, onlineProvider)
+	self.store = ScoreStore(configModel, settings, localProvider, onlineProvider)
 	self.store:onChanged(self)
-	self.replayBaseApplier = SelectionReplayBaseApplier(configModel, replayBase)
+	self.replayBaseApplier = SelectionReplayBaseApplier(settings, replayBase)
 
 	self.observable = Observable()
 	self.debounceTime = 0.5
@@ -93,6 +96,15 @@ function ScoreSelector:clear()
 	self.store:clear()
 end
 
+---@return string[]
+function ScoreSelector:getScoreFilterNames()
+	local names = {}
+	for _, filter in ipairs(self.configModel.configs.filters.score) do
+		names[#names + 1] = filter.name
+	end
+	return names
+end
+
 function ScoreSelector:findScore()
 	local config = self.configModel.configs.select
 	local chartplays = self.store.items
@@ -120,8 +132,7 @@ function ScoreSelector:pullScore(noUpdate)
 	self.generation = self.generation + 1
 	local generation = self.generation
 
-	local select = self.configModel.configs.select
-	if select.scoreSourceName == "online" then
+	if self.settings:getChoice(Settings.keys.select.score_source) == "online" then
 		self.store:clear()
 		if not chartview.hash or not chartview.index then
 			return
@@ -178,8 +189,7 @@ function ScoreSelector:getScoreScope(chartview)
 		return nil
 	end
 
-	local config = self.configModel.configs.settings.select
-	local secondary_mode = config.secondary_mode or "chartmetas"
+	local secondary_mode = self.settings:getChoice(Settings.keys.select.secondary_mode)
 	if secondary_mode == "chartdiffs" or secondary_mode == "chartplays" then
 		if chartview.chartdiff_id and chartview.chartdiff_id ~= 0 then
 			return "chartdiff"

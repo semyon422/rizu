@@ -153,10 +153,12 @@ function GameController:new()
 	self.modifierSelectModel = ModifierSelectModel(self.replayBase)
 	self.collectionSelector = CollectionSelector(
 		self.persistence.configModel,
+		self.settings,
 		self.persistence.library
 	)
 	self.chartSelector = ChartSelector(
 		self.persistence.configModel,
+		self.settings,
 		self.persistence.library,
 		self.fs,
 		self.collectionSelector,
@@ -164,6 +166,7 @@ function GameController:new()
 	)
 	self.scoreSelector = ScoreSelector(
 		self.persistence.configModel,
+		self.settings,
 		self.persistence.library,
 		self.onlineModel,
 		self.replayBase,

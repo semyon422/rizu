@@ -1,5 +1,6 @@
 local class = require("class")
 local ReplayBase = require("sea.replays.ReplayBase")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.ISelectionReplayBaseApplier
 ---@field copySelectionFields fun(self: rizu.select.ISelectionReplayBaseApplier, chartview: rizu.library.LocatedChartview, targetReplayBase: sea.ReplayBase): boolean
@@ -10,10 +11,10 @@ local ReplayBase = require("sea.replays.ReplayBase")
 ---@operator call: rizu.select.services.SelectionReplayBaseApplier
 local SelectionReplayBaseApplier = class()
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param replayBase sea.ReplayBase
-function SelectionReplayBaseApplier:new(configModel, replayBase)
-	self.configModel = configModel
+function SelectionReplayBaseApplier:new(settings, replayBase)
+	self.settings = settings
 	self.replayBase = replayBase
 end
 
@@ -21,8 +22,7 @@ end
 ---@param targetReplayBase sea.ReplayBase
 ---@return boolean applied
 function SelectionReplayBaseApplier:copySelectionFields(chartview, targetReplayBase)
-	local config = self.configModel.configs.settings.select
-	local secondary_mode = config.secondary_mode or "chartmetas"
+	local secondary_mode = self.settings:getChoice(Settings.keys.select.secondary_mode)
 	if secondary_mode == "chartfile_sets" or secondary_mode == "chartfiles" or secondary_mode == "chartmetas" then
 		return false
 	end

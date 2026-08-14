@@ -1,3 +1,5 @@
+local Settings = require("rizu.config.Settings")
+
 local modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
 
 local mode_names = {
@@ -106,16 +108,13 @@ local function getScoreSourceChoices(scoreSelector)
 	return choices
 end
 
----@param game sphere.GameController
+---@param score_selector rizu.select.ScoreSelector
 ---@return rizu.command.Fuzzy.Candidate[] choices
-local function getScoreFilterChoices(game)
+local function getScoreFilterChoices(score_selector)
 	---@type rizu.command.Fuzzy.Candidate[]
 	local choices = {}
-	for _, filter in ipairs(game.configModel.configs.filters.score) do
-		table.insert(choices, {
-			title = filter.name,
-			value = filter.name,
-		})
+	for _, name in ipairs(score_selector:getScoreFilterNames()) do
+		table.insert(choices, {title = name, value = name})
 	end
 	return choices
 end
@@ -124,12 +123,7 @@ end
 ---@param key "primary_mode"|"secondary_mode"
 ---@param mode string
 local function setSelectionMode(game, key, mode)
-	local select_config = game.configModel.configs.settings.select
-	if key == "primary_mode" then
-		select_config.primary_mode = mode
-	else
-		select_config.secondary_mode = mode
-	end
+	game.settings:setChoice(Settings.keys.select[key], mode)
 	game.chartSelector:noDebounceRefresh()
 end
 
@@ -137,12 +131,10 @@ end
 ---@param key "filterString"|"lampString"
 ---@param value string
 local function setSearchString(game, key, value)
-	local select_config = game.configModel.configs.select
-	if key == "filterString" then
-		select_config.filterString = value
-	else
-		select_config.lampString = value
-	end
+	local setting_key = key == "filterString"
+		and Settings.keys.select.filter_string
+		or Settings.keys.select.lamp_string
+	game.settings:setString(setting_key, value)
 	game.chartSelector:noDebounceRefresh()
 end
 
@@ -327,7 +319,7 @@ return function(game)
 				}
 			},
 			callback = function(args)
-				game.configModel.configs.select.scoreSourceName = args.source
+				game.settings:setChoice(Settings.keys.select.score_source, args.source)
 				game.scoreSelector:pullScore()
 			end
 		},
@@ -341,12 +333,12 @@ return function(game)
 					type = "string",
 					prompt = "Select score filter:",
 					choices = function()
-						return getScoreFilterChoices(game)
+						return getScoreFilterChoices(game.scoreSelector)
 					end,
 				}
 			},
 			callback = function(args)
-				game.configModel.configs.select.scoreFilterName = args.filter
+				game.settings:setString(Settings.keys.select.score_filter, args.filter)
 				game.scoreSelector:pullScore()
 			end
 		},

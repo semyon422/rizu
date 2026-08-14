@@ -2,6 +2,8 @@ local ChartSelector = require("rizu.select.ChartSelector")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local TestLibraryFactory = require("rizu.select.TestLibraryFactory")
 local FunctionTimer = require("time.FunctionTimer")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
@@ -9,6 +11,17 @@ local tlf = TestLibraryFactory()
 local timer = FunctionTimer(function()
 	return 0
 end)
+
+local function createSettings()
+	local settings = Settings.createConfig(FakeFilesystem())
+	local keys = Settings.keys
+	settings:setChoice(keys.select.primary_mode, "chartfile_sets")
+	settings:setChoice(keys.select.secondary_mode, "chartmetas")
+	settings:setChoice(keys.select.diff_column, "msd_diff")
+	settings:setBoolean(keys.misc.show_non_mania_charts, true)
+	settings:setNumber(keys.gameplay.rating_hit_timing_window, 0.05)
+	return settings
+end
 
 local function createMockConfigModel()
 	return {
@@ -59,7 +72,7 @@ function test.scrolling(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 	chartSelector:load()
 
 	t:eq(chartSelector.state.levels[1].index, 1)
@@ -95,7 +108,7 @@ function test.chart_navigation(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 	chartSelector:load()
 
 	t:eq(chartSelector.state.levels[2].index, 1)
@@ -156,7 +169,7 @@ function test.duplicate_chartmeta_restores_by_chartfile(t)
 
 	local fs = {read = function() end, getInfo = function() end}
 
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 	chartSelector:load()
 
 	t:eq(chartSelector.stores[2]:count(), 3)
@@ -184,7 +197,7 @@ function test.chartview_event(t)
 	
 	local fs = {read = function() end, getInfo = function() end}
 
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 	
 	local chartviewEvents = 0
 	chartSelector:onChanged(function(event)
@@ -212,7 +225,7 @@ function test.playable_chartview_requires_metadata_and_location(t)
 	local configModel = createMockConfigModel()
 	local library = tlf:create()
 	local fs = {read = function() end, getInfo = function() end}
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 
 	t:eq(chartSelector:isPlayableChartview({chartfile_id = 1, chartmeta_id = 0}), false)
 	t:eq(chartSelector:isPlayableChartview({
@@ -239,7 +252,7 @@ function test.chart_exists_checks_chartfile_reader(t)
 			return path == "charts/a.osu" and {type = "file"} or nil
 		end,
 	}
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 
 	chartSelector.chartview = {location_path = "charts/a.osu"}
 	t:eq(chartSelector:chartExists(), true)
@@ -256,7 +269,7 @@ function test.provisional_chartview_does_not_load_chart(t)
 	local configModel = createMockConfigModel()
 	local library = tlf:create()
 	local fs = {read = function() end, getInfo = function() end}
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 	local load_called = false
 	chartSelector.chartLoader = {
 		loadChart = function()
@@ -278,13 +291,14 @@ function test.find_chartmeta_ignores_current_selection_modes(t)
 		{chartfile_set_id = 2, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "target", index = 1},
 	}
 	local configModel = createMockConfigModel()
-	configModel.configs.settings.select.primary_mode = "chartdiffs"
-	configModel.configs.settings.select.secondary_mode = "chartplays"
+	local settings = createSettings()
+	settings:setChoice(Settings.keys.select.primary_mode, "chartdiffs")
+	settings:setChoice(Settings.keys.select.secondary_mode, "chartplays")
 	local library = tlf:create()
 	tlf:populate(library, charts)
 
 	local fs = {read = function() end, getInfo = function() end}
-	local chartSelector = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
+	local chartSelector = ChartSelector(configModel, settings, library, fs, {getSelectedItem = function() end}, timer)
 	chartSelector.config = configModel.configs.select
 
 	local found
@@ -323,8 +337,8 @@ function test.score_navigation(t)
 	local onlineModel = {authManager = {sea_client = {connected = false}}}
 	local replayBase = {}
 
-	local chartModel = ChartSelector(configModel, library, fs, {getSelectedItem = function() end}, timer)
-	local scoreSelector = ScoreSelector(configModel, library, onlineModel, replayBase, chartModel.state)
+	local chartModel = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
+	local scoreSelector = ScoreSelector(configModel, createSettings(), library, onlineModel, replayBase, chartModel.state)
 	
 	-- Wire them up like SelectionCoordinator would
 	chartModel.state:onChanged(function(event)

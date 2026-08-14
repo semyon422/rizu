@@ -1,5 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.SelectionQueryBuilder
 ---@operator call: rizu.select.SelectionQueryBuilder
@@ -7,12 +8,12 @@ local SelectionQueryBuilder = class()
 
 ---@alias rizu.select.SelectionQueryParams rizu.library.ChartviewsRepo.QueryParams
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param sortModel rizu.select.SortModel
 ---@param searchModel rizu.select.SearchModel
 ---@param filterModel rizu.select.FilterModel
-function SelectionQueryBuilder:new(configModel, sortModel, searchModel, filterModel)
-	self.configModel = configModel
+function SelectionQueryBuilder:new(settings, sortModel, searchModel, filterModel)
+	self.settings = settings
 	self.sortModel = sortModel
 	self.searchModel = searchModel
 	self.filterModel = filterModel
@@ -22,17 +23,17 @@ end
 ---@param collectionItem rizu.library.Collections.TreeNode? Current collection item
 ---@return rizu.select.SelectionQueryParams params
 function SelectionQueryBuilder:build(config, collectionItem)
-	local settings_select = self.configModel.configs.settings.select
+	local keys = Settings.keys.select
 	---@type rizu.select.SelectionQueryParams
 	local params = {}
 
 	---@type rizu.library.ChartviewsRepo.Mode
-	local primary_mode = settings_select.primary_mode or "chartmetas"
+	local primary_mode = self.settings:getChoice(keys.primary_mode)
 	---@type rizu.library.ChartviewsRepo.Mode
-	local secondary_mode = settings_select.secondary_mode or "chartmetas"
+	local secondary_mode = self.settings:getChoice(keys.secondary_mode)
 
 	-- Sorting
-	local order = self.sortModel:getOrder(config.sortFunction)
+	local order = self.sortModel:getOrder(self.settings:getString(keys.sort_function))
 
 	params.order = table_util.copy(order)
 	table.insert(params.order, "chartmeta_id")
@@ -52,7 +53,7 @@ function SelectionQueryBuilder:build(config, collectionItem)
 
 	params.where = where
 	params.lamp = lamp
-	params.difficulty = settings_select.diff_column
+	params.difficulty = self.settings:getChoice(keys.diff_column)
 	params.primary_mode = primary_mode
 	params.secondary_mode = secondary_mode
 

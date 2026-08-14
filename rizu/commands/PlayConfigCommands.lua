@@ -1,3 +1,4 @@
+local Settings = require("rizu.config.Settings")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 local Subtimings = require("sea.chart.Subtimings")
 local Timings = require("sea.chart.Timings")
@@ -118,7 +119,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.configModel.configs.settings.replay_base.auto_timings = args.enabled
+				game.settings:setBoolean(Settings.keys.replay_base.auto_timings, args.enabled)
 				updateReplayBase(game)
 			end,
 		},
@@ -231,8 +232,10 @@ return function(game)
 			callback = function(args)
 				local timings = Timings(args.timings, args.data)
 				local subtimings ---@type sea.Subtimings?
-				local settings = game.configModel.configs.settings
-				settings.timings[args.timings] = args.data
+				local timing_key = Settings.keys.timings[args.timings]
+				if timing_key then
+					game.settings:setNumber(timing_key, args.data)
+				end
 
 				-- TODO: I don't like that we do it here.
 				if args.timings == "osuod" then
@@ -240,10 +243,7 @@ return function(game)
 				end
 
 				if subtimings then
-					settings.subtimings[args.timings] = {
-						subtimings.name,
-						[subtimings.name] = subtimings.data
-					}
+					game.settings:setNumber(Settings.keys.timings.osu_score_version, subtimings.data)
 				end
 
 				applyTimingValues(game, timings, subtimings)
@@ -266,9 +266,9 @@ return function(game)
 			},
 			callback = function(args)
 				local replayBase = game.replayBase
-				local timings = replayBase.timings or Timings("osuod", game.configModel.configs.settings.timings.osuod)
+				local timings = replayBase.timings or Timings("osuod", game.settings:getNumber(Settings.keys.timings.osuod))
 				local subtimings = Subtimings("scorev", args.version)
-				game.configModel.configs.settings.subtimings.osuod.scorev = args.version
+				game.settings:setNumber(Settings.keys.timings.osu_score_version, args.version)
 				applyTimingValues(game, timings, subtimings)
 			end,
 		},

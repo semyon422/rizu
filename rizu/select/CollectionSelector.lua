@@ -1,6 +1,7 @@
 local class = require("class")
 local Observable = require("Observable")
 local CollectionStore = require("rizu.select.stores.CollectionStore")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.CollectionSelector
 ---@operator call: rizu.select.CollectionSelector
@@ -8,9 +9,11 @@ local CollectionStore = require("rizu.select.stores.CollectionStore")
 local CollectionSelector = class()
 
 ---@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param library rizu.library.Library
-function CollectionSelector:new(configModel, library)
+function CollectionSelector:new(configModel, settings, library)
 	self.configModel = configModel
+	self.settings = settings
 	self.library = library
 	self.store = CollectionStore(library)
 	self.observable = Observable()
@@ -35,9 +38,8 @@ function CollectionSelector:emitChanged(event)
 end
 
 function CollectionSelector:load()
-	local settings = self.configModel.configs.settings
 	local config = self.configModel.configs.select
-	self.store:load(settings.select.locations_in_collections)
+	self.store:load(self.settings:getBoolean(Settings.keys.select.locations_in_collections))
 	self.store:setPath(config.collection, config.location_id)
 end
 
@@ -61,11 +63,10 @@ end
 
 ---@param enabled boolean
 function CollectionSelector:setLocationsInCollections(enabled)
-	local settings = self.configModel.configs.settings
 	local config = self.configModel.configs.select
 	local old_item = self:getSelectedItem()
 
-	settings.select.locations_in_collections = enabled
+	self.settings:setBoolean(Settings.keys.select.locations_in_collections, enabled)
 	self.store:load(enabled)
 	self.store:setPath(config.collection, config.location_id)
 

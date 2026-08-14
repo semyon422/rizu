@@ -3,6 +3,8 @@ local ReplayBase = require("sea.replays.ReplayBase")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local SelectionState = require("rizu.select.SelectionState")
 local ScoreStore = require("rizu.select.stores.ScoreStore")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
@@ -66,7 +68,9 @@ local function createSelector(secondary_mode, replayBase)
 			},
 		},
 	}
-	return ScoreSelector(createConfigModel(secondary_mode), {}, onlineModel, replayBase, SelectionState()) --[[@as rizu.select.TestScoreSelector]]
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setChoice(Settings.keys.select.secondary_mode, secondary_mode)
+	return ScoreSelector(createConfigModel(secondary_mode), settings, {}, onlineModel, replayBase, SelectionState()) --[[@as rizu.select.TestScoreSelector]]
 end
 
 ---@param t testing.T
@@ -169,7 +173,7 @@ function test.score_store_clears_incomplete_chartdiff_key(t)
 			return {}
 		end,
 	}
-	local store = ScoreStore(configModel, provider, provider)
+	local store = ScoreStore(configModel, Settings.createConfig(FakeFilesystem()), provider, provider)
 	---@diagnostic disable-next-line: missing-fields
 	store.items = {{id = 1, accuracy = 1}}
 
@@ -186,7 +190,7 @@ function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart
 
 	local replayBase = ReplayBase()
 	local selector = createSelector("chartmetas", replayBase)
-	selector.configModel.configs.select.scoreSourceName = "online"
+	selector.settings:setChoice(Settings.keys.select.score_source, "online")
 
 	---@type string[]
 	local updated_hashes = {}
@@ -227,7 +231,7 @@ function test.online_missing_chart_key_does_not_start_throttle(t)
 
 	local replayBase = ReplayBase()
 	local selector = createSelector("chartmetas", replayBase)
-	selector.configModel.configs.select.scoreSourceName = "online"
+	selector.settings:setChoice(Settings.keys.select.score_source, "online")
 
 	---@type string[]
 	local updated_hashes = {}
@@ -260,7 +264,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 
 	local replayBase = ReplayBase()
 	local selector = createSelector("chartmetas", replayBase)
-	selector.configModel.configs.select.scoreSourceName = "online"
+	selector.settings:setChoice(Settings.keys.select.score_source, "online")
 	selector.chartview = {hash = "selected", index = 1}
 
 	---@type string[]
@@ -332,7 +336,7 @@ function test.score_store_ignores_stale_provider_result(t)
 			return {}
 		end,
 	}
-	store = ScoreStore(configModel, localProvider, onlineProvider)
+	store = ScoreStore(configModel, Settings.createConfig(FakeFilesystem()), localProvider, onlineProvider)
 
 	local changed_count = 0
 	store:onChanged(function()

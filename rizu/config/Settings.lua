@@ -52,9 +52,30 @@ local keys = {
 		offset_reset = "input.offset.reset",
 	},
 	select = {
+		primary_mode = "select.primary_mode",
+		secondary_mode = "select.secondary_mode",
 		diff_column = "select.diff_column",
+		locations_in_collections = "select.locations_in_collections",
 		collapse = "select.collapse",
 		chart_preview = "select.chart_preview",
+		filter_string = "select.filter_string",
+		lamp_string = "select.lamp_string",
+		sort_function = "select.sort_function",
+		score_source = "select.score_source",
+		score_filter = "select.score_filter",
+	},
+	timings = {
+		arbitrary = "timings.arbitrary",
+		sphere = "timings.sphere",
+		simple = "timings.simple",
+		osuod = "timings.osuod",
+		etternaj = "timings.etternaj",
+		quaver = "timings.quaver",
+		bmsrank = "timings.bmsrank",
+		osu_score_version = "timings.osu_score_version",
+	},
+	replay_base = {
+		auto_timings = "replay_base.auto_timings",
 	},
 	graphics = {
 		fps = "graphics.fps",
@@ -166,9 +187,33 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(g.offset_audio_mode.bass_sample, 0, -0.5, 0.5, 0.001)
 	config:setDefaultNumber(g.offset_audio_mode.bass_fx_tempo, -0.02, -0.5, 0.5, 0.001)
 
+	local chartview_modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
+	config:setDefaultChoice(s.primary_mode, "chartfile_sets", chartview_modes)
+	config:setDefaultChoice(s.secondary_mode, "chartmetas", chartview_modes)
 	config:setDefaultChoice(s.diff_column, "enps_diff", {"enps_diff", "osu_diff", "msd_diff", "user_diff"})
+	config:setDefaultBoolean(s.locations_in_collections, false)
 	config:setDefaultBoolean(s.collapse, true) -- Deprecated?
 	config:setDefaultBoolean(s.chart_preview, true)
+	config:setDefaultString(s.filter_string, "")
+	config:setDefaultString(s.lamp_string, "")
+	config:setDefaultString(s.sort_function, "title")
+	config:setDefaultChoice(s.score_source, "local", {"local", "online"})
+	config:setDefaultString(s.score_filter, "No filter")
+
+	local timing_defaults = {
+		arbitrary = 0,
+		sphere = 0,
+		simple = 0.160,
+		osuod = 10,
+		etternaj = 4,
+		quaver = 0,
+		bmsrank = 3,
+	}
+	for name, default in pairs(timing_defaults) do
+		config:setDefaultNumber(keys.timings[name], default, 0, 10, 0.01)
+	end
+	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
+	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
 
 	config:setDefaultNumber(gr.fps, 240, 30, 1024, 2)
 	config:setDefaultBoolean(gr.unlimited_fps, false)

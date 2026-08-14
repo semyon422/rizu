@@ -11,6 +11,7 @@ local ChartMediaService = require("rizu.select.services.ChartMediaService")
 local ChartLoader = require("rizu.select.services.ChartLoader")
 local TaskRunner = require("rizu.select.tasks.TaskRunner")
 local ChartfileReader = require("rizu.library.ChartfileReader")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.ChartSelector
 ---@operator call: rizu.select.ChartSelector
@@ -30,13 +31,15 @@ local LEVELS = {
 }
 
 ---@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param library rizu.library.Library
 ---@param fs fs.IFilesystem
 ---@param collectionSelector rizu.select.CollectionSelector
 ---@param timer time.ITimer
 ---@param state? rizu.select.SelectionState
-function ChartSelector:new(configModel, library, fs, collectionSelector, timer, state)
+function ChartSelector:new(configModel, settings, library, fs, collectionSelector, timer, state)
 	self.configModel = configModel
+	self.settings = settings
 	self.library = library
 	self.fs = fs
 	self.collectionSelector = collectionSelector
@@ -48,10 +51,10 @@ function ChartSelector:new(configModel, library, fs, collectionSelector, timer, 
 		ListStore(library, timer), -- Secondary
 	}
 
-	self.searchModel = SearchModel(configModel)
+	self.searchModel = SearchModel(configModel, settings)
 	self.filterModel = FilterModel(configModel)
 	self.sortModel = SortModel()
-	self.queryBuilder = SelectionQueryBuilder(configModel, self.sortModel, self.searchModel, self.filterModel)
+	self.queryBuilder = SelectionQueryBuilder(settings, self.sortModel, self.searchModel, self.filterModel)
 	self.chartMediaService = ChartMediaService()
 	self.chartLoader = ChartLoader(fs)
 	self.taskRunner = TaskRunner()
@@ -163,10 +166,9 @@ end
 ---@param hash string
 ---@param index integer
 function ChartSelector:findChartmeta(hash, index)
-	local config = self.configModel.configs.settings.select
 	local params = {
 		where = {hash = hash, index = index},
-		difficulty = config.diff_column,
+		difficulty = self.settings:getChoice(Settings.keys.select.diff_column),
 		primary_mode = "chartmetas",
 		secondary_mode = "chartmetas",
 	}
@@ -266,7 +268,7 @@ end
 
 ---@param sortFunctionName string
 function ChartSelector:setSortFunction(sortFunctionName)
-	self.config.sortFunction = sortFunctionName
+	self.settings:setString(Settings.keys.select.sort_function, sortFunctionName)
 	self:noDebounceRefresh()
 end
 
@@ -277,15 +279,14 @@ end
 
 ---@return string
 function ChartSelector:getPrimaryMode()
-	local select_config = self.configModel.configs.settings.select
-	return select_config.primary_mode or "chartmetas"
+	return self.settings:getChoice(Settings.keys.select.primary_mode)
 end
 
 ---@return string
 function ChartSelector:getSecondaryResultMode()
-	local select_config = self.configModel.configs.settings.select
-	local primary_mode = select_config.primary_mode or "chartmetas"
-	local secondary_mode = select_config.secondary_mode or "chartmetas"
+	local keys = Settings.keys.select
+	local primary_mode = self.settings:getChoice(keys.primary_mode)
+	local secondary_mode = self.settings:getChoice(keys.secondary_mode)
 
 	if LEVELS[secondary_mode] >= LEVELS[primary_mode] then
 		return secondary_mode

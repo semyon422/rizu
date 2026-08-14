@@ -25,6 +25,7 @@ local Textbox = require("ui.views.Textbox")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ReplayBaseFormatter = require("ui.formatters.ReplayBaseFormatter")
 local UiActions = require("ui.UiActions")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
@@ -126,16 +127,22 @@ function SongSelect:new(ui)
 		color = Colors.text_muted,
 	})
 
-	local select_config = self.ui.game.persistence.configModel.configs.select
+	local settings = self.ui.game.settings
+	local search_key = Settings.keys.select.filter_string
 	self.search = Textbox({
-		text = select_config.filterString,
+		text = settings:getString(search_key),
 		placeholder = "Search...",
 		icon = Resources.sprites.icon_search,
 		on_change = function(text)
-			select_config.filterString = text
+			settings:setString(search_key, text)
 			self.ui.game.chartSelector:debounceRefresh()
 		end,
 	})
+	settings:subscribeString(search_key, function(value)
+		if self.search:getText() ~= value then
+			self.search:setText(value)
+		end
+	end)
 
 	self.settings_button = HeaderButton(Resources.sprites.icon_gear, function()
 		self.ui.modal_manager:attachConfig()

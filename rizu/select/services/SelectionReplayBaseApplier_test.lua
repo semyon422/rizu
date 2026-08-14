@@ -3,19 +3,15 @@ local ReplayBase = require("sea.replays.ReplayBase")
 local SelectionReplayBaseApplier = require("rizu.select.services.SelectionReplayBaseApplier")
 local Subtimings = require("sea.chart.Subtimings")
 local Timings = require("sea.chart.Timings")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
-local function createConfigModel(secondary_mode)
-	return {
-		configs = {
-			settings = {
-				select = {
-					secondary_mode = secondary_mode,
-				},
-			},
-		},
-	}
+local function createSettings(secondary_mode)
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setChoice(Settings.keys.select.secondary_mode, secondary_mode)
+	return settings
 end
 
 local function createChartview()
@@ -41,7 +37,7 @@ function test.coarse_modes_do_not_update_replay_base(t)
 		local replayBase = ReplayBase()
 		replayBase.rate = 0.75
 
-		SelectionReplayBaseApplier(createConfigModel(mode), replayBase):apply(createChartview())
+		SelectionReplayBaseApplier(createSettings(mode), replayBase):apply(createChartview())
 
 		t:eq(replayBase.rate, 0.75, mode)
 		t:tdeq(replayBase.modifiers, {}, mode)
@@ -53,7 +49,7 @@ end
 function test.chartdiff_mode_updates_only_diff_key_fields(t)
 	local replayBase = ReplayBase()
 
-	SelectionReplayBaseApplier(createConfigModel("chartdiffs"), replayBase):apply(createChartview())
+	SelectionReplayBaseApplier(createSettings("chartdiffs"), replayBase):apply(createChartview())
 
 	t:tdeq(replayBase.modifiers, {{id = 1, value = 2}})
 	t:eq(replayBase.rate, 1.5)
@@ -74,7 +70,7 @@ end
 function test.chartplays_mode_updates_chartplay_base_fields(t)
 	local replayBase = ReplayBase()
 
-	SelectionReplayBaseApplier(createConfigModel("chartplays"), replayBase):apply(createChartview())
+	SelectionReplayBaseApplier(createSettings("chartplays"), replayBase):apply(createChartview())
 
 	t:tdeq(replayBase.modifiers, {{id = 1, value = 2}})
 	t:eq(replayBase.rate, 1.5)
@@ -97,7 +93,7 @@ function test.build_selection_replay_base_does_not_mutate_current_replay_base(t)
 	replayBase.modifiers = {{id = 9, value = 1}}
 
 	local selectionReplayBase, applied = SelectionReplayBaseApplier(
-		createConfigModel("chartdiffs"),
+		createSettings("chartdiffs"),
 		replayBase
 	):buildSelectionReplayBase(createChartview())
 
@@ -115,7 +111,7 @@ function test.build_selection_replay_base_preserves_manual_fields_outside_select
 	replayBase.columns_order = {1, 2, 3, 4}
 
 	local selectionReplayBase = SelectionReplayBaseApplier(
-		createConfigModel("chartdiffs"),
+		createSettings("chartdiffs"),
 		replayBase
 	):buildSelectionReplayBase(createChartview())
 

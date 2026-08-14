@@ -1,6 +1,7 @@
 local class = require("class")
 local string_util = require("string_util")
 local erfunc = require("chart.scoring.erfunc")
+local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.select.SearchOperator "eq"|"ne"|"gt"|"lt"|"gte"|"lte"
 
@@ -16,8 +17,10 @@ local erfunc = require("chart.scoring.erfunc")
 local SearchModel = class()
 
 ---@param configModel sphere.ConfigModel
-function SearchModel:new(configModel)
+---@param settings rizu.config.Config
+function SearchModel:new(configModel, settings)
 	self.configModel = configModel
+	self.settings = settings
 end
 
 ---@type rizu.select.NumberFieldConfig[]
@@ -89,7 +92,7 @@ local number_fields = {
 			end
 			if value <= 0 then return 1000 end
 			if value >= 10000 then return 0 end
-			local window = self.configModel.configs.settings.gameplay.ratingHitTimingWindow
+			local window = self.settings:getNumber(Settings.keys.gameplay.rating_hit_timing_window)
 			local accuracy = window / (erfunc.erfinv(value / 10000) * math.sqrt(2))
 			if accuracy ~= accuracy or math.abs(accuracy) == math.huge then
 				return 0
@@ -208,15 +211,16 @@ end
 ---@return rdb.Conditions?
 function SearchModel:getConditions()
 	local configs = self.configModel.configs
-	local settings = configs.settings
 	local _select = configs.select
 
-	local filterString, lampString = _select.filterString, _select.lampString
+	local keys = Settings.keys.select
+	local filterString = self.settings:getString(keys.filter_string)
+	local lampString = self.settings:getString(keys.lamp_string)
 
 	---@type rdb.Conditions
 	local cond = {}
 
-	if not settings.miscellaneous.showNonManiaCharts then
+	if not self.settings:getBoolean(Settings.keys.misc.show_non_mania_charts) then
 		table.insert(cond, {
 			"or",
 			inputmode__notin = {"1osu", "1taiko", "1fruits"},
