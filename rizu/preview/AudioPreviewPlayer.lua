@@ -4,6 +4,7 @@ local ThreadRemote = require("threadremote.ThreadRemote")
 local BufferedDecoder = require("rizu.engine.audio.BufferedDecoder")
 local Source = require("rizu.engine.audio.bass.Source")
 local thread = require("thread")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.preview.AudioPreviewPlayer
 ---@operator call: rizu.preview.AudioPreviewPlayer
@@ -16,8 +17,9 @@ AudioPreviewPlayer.rate = 1
 AudioPreviewPlayer.is_playing = false
 AudioPreviewPlayer.load_generation = 0
 
-function AudioPreviewPlayer:new(configModel)
-	self.configModel = configModel
+---@param settings rizu.config.Config
+function AudioPreviewPlayer:new(settings)
+	self.settings = settings
 	self.onChanged = Observable()
 end
 
@@ -96,7 +98,7 @@ function AudioPreviewPlayer:load(preview_path, chart_dir)
 
 		self.buffered_decoder = buffered
 
-		local use_tempo = self.configModel.configs.settings.audio.mode.primary == "bass_fx_tempo"
+		local use_tempo = self.settings:getChoice(Settings.keys.audio.mode_primary) == "bass_fx_tempo"
 		self.audio_source = Source(buffered, use_tempo)
 		self.audio_source:setVolume(self.volume)
 		self.audio_source:setRate(self.rate)

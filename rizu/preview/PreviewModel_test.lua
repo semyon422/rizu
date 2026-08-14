@@ -1,4 +1,6 @@
 local PreviewModel = require("rizu.preview.PreviewModel")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
@@ -16,37 +18,10 @@ local test = {}
 ---@field chartview string|rizu.preview.PreviewChartview?
 ---@field setChartview fun(self: rizu.preview.FakeChartPreview, chartview: rizu.preview.PreviewChartview?)
 
-local function createConfigModel()
-	return {
-		configs = {
-			settings = {
-				audio = {
-					mode = {
-						primary = "",
-					},
-					volume = {
-						master = 1,
-						music = 1,
-					},
-				},
-				gameplay = {
-					scaleSpeed = true,
-					speed = 1,
-				},
-				miscellaneous = {
-					muteOnUnfocus = false,
-				},
-				select = {
-					chart_preview = true,
-				},
-			},
-		},
-	}
-end
-
 ---@return rizu.preview.PreviewModel
 local function createPreviewModel()
-	local previewModel = PreviewModel(createConfigModel(), {}, {})
+	local settings = Settings.createConfig(FakeFilesystem())
+	local previewModel = PreviewModel(settings, {}, {})
 	---@type rizu.preview.FakeAudioPreviewPlayer
 	previewModel.audioPreviewPlayer = {
 		pauseCount = 0,

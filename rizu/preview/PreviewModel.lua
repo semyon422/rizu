@@ -6,6 +6,7 @@ local BgaPreviewPlayer = require("rizu.preview.BgaPreviewPlayer")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
+local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.preview.PreviewMode "absolute"|"relative"
 
@@ -66,16 +67,16 @@ local function get_audio_preview_path(hash)
 	return "userdata/audio_previews/" .. hash .. ".audio_preview"
 end
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param replayBase sea.ReplayBase
 ---@param game table
-function PreviewModel:new(configModel, replayBase, game)
-	self.configModel = configModel
+function PreviewModel:new(settings, replayBase, game)
+	self.settings = settings
 	self.replayBase = replayBase
 	self.game = game
-	self.audioPreviewPlayer = AudioPreviewPlayer(configModel)
+	self.audioPreviewPlayer = AudioPreviewPlayer(settings)
 	self.bgaPreviewPlayer = BgaPreviewPlayer()
-	self.chartPreview = NotesPreviewPlayer(configModel, self, replayBase, game)
+	self.chartPreview = NotesPreviewPlayer(settings, self, replayBase, game)
 	---@type {[string]: boolean?}
 	self.generating_hashes = {}
 	---@type {[string]: boolean?}
@@ -123,11 +124,11 @@ function PreviewModel:update()
 		return
 	end
 
-	local settings = self.configModel.configs.settings
-	local muteOnUnfocus = settings.miscellaneous.muteOnUnfocus
+	local keys = Settings.keys
+	local mute_on_unfocus = self.settings:getBoolean(keys.misc.mute_on_unfocus)
 	local hasFocus = love.window.hasFocus()
 
-	if hasFocus or not muteOnUnfocus then
+	if hasFocus or not mute_on_unfocus then
 		local min_time, max_time = self.audioPreviewPlayer:getRange()
 		local duration = max_time - min_time
 
@@ -168,8 +169,8 @@ function PreviewModel:update()
 	self.bgaPreviewPlayer:update(self:getTime())
 	self.chartPreview:update()
 
-	local volumeConfig = settings.audio.volume
-	local volume = volumeConfig.master * volumeConfig.music
+	local volume = self.settings:getNumber(keys.audio.volume_master)
+		* self.settings:getNumber(keys.audio.volume_music)
 	if self.volume ~= volume then
 		self.audioPreviewPlayer:setVolume(volume)
 		self.volume = volume
@@ -308,8 +309,9 @@ function PreviewModel:loadPreview()
 		return
 	end
 
-	local volumeConfig = self.configModel.configs.settings.audio.volume
-	local volume = volumeConfig.master * volumeConfig.music
+	local keys = Settings.keys
+	local volume = self.settings:getNumber(keys.audio.volume_master)
+		* self.settings:getNumber(keys.audio.volume_music)
 
 	local position = preview_time or 0
 	if mode == "relative" then

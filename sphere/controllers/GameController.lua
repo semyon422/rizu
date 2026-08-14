@@ -199,7 +199,7 @@ function GameController:new()
 
 	self.backgroundModel = BackgroundModel(self.network)
 	self.previewModel = PreviewModel(
-		self.persistence.configModel,
+		self.settings,
 		self.replayBase,
 		self
 	)

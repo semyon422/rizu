@@ -6,17 +6,18 @@ local SphPreview = require("chart.format.sph.SphPreview")
 local Sph = require("chart.format.sph.Sph")
 local BaseSkinInfo = require("sphere.models.NoteSkinModel.BaseSkinInfo")
 local ComputeContext = require("sea.compute.ComputeContext")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.preview.NotesPreviewPlayer
 ---@operator call: rizu.preview.NotesPreviewPlayer
 local NotesPreviewPlayer = class()
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param previewModel rizu.preview.PreviewModel
 ---@param replayBase sea.ReplayBase
 ---@param game table
-function NotesPreviewPlayer:new(configModel, previewModel, replayBase, game)
-	self.configModel = configModel
+function NotesPreviewPlayer:new(settings, previewModel, replayBase, game)
+	self.settings = settings
 	self.previewModel = previewModel
 	self.replayBase = replayBase
 	self.game = game
@@ -49,7 +50,7 @@ local empty_lines = SphPreview:previewLinesToLines({
 
 ---@param chartview rizu.library.Chartview
 function NotesPreviewPlayer:setChartview(chartview)
-	if not self.configModel.configs.settings.select.chart_preview or not chartview then
+	if not self.settings:getBoolean(Settings.keys.select.chart_preview) or not chartview then
 		self.chart = nil
 		return
 	end
@@ -87,10 +88,9 @@ function NotesPreviewPlayer:setChartview(chartview)
 	self.playField = noteSkin.playField
 	self.noteSkin = noteSkin
 
-	local config = self.configModel.configs.settings
-
-	local visual_rate = config.gameplay.speed
-	if not config.gameplay.scaleSpeed then
+	local keys = Settings.keys.gameplay
+	local visual_rate = self.settings:getNumber(keys.speed)
+	if not self.settings:getBoolean(keys.scale_speed) then
 		visual_rate = visual_rate / self.previewModel.rate
 	end
 	self.visual_info.rate = visual_rate
@@ -105,9 +105,9 @@ function NotesPreviewPlayer:update()
 		return
 	end
 
-	local config = self.configModel.configs.settings
-	local visual_rate = config.gameplay.speed
-	if not config.gameplay.scaleSpeed then
+	local keys = Settings.keys.gameplay
+	local visual_rate = self.settings:getNumber(keys.speed)
+	if not self.settings:getBoolean(keys.scale_speed) then
 		visual_rate = visual_rate / self.previewModel.rate
 	end
 	self.visual_info.rate = visual_rate
