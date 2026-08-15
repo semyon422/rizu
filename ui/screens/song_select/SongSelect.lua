@@ -41,12 +41,12 @@ function SongSelect:new(ui)
 
 	self.chartview_formatter = ChartviewFormatter(
 		ui.game.chartSelector.chartview,
-		ui.game.persistence.configModel.configs.settings
+		ui.game.settings
 	)
 
 	self.replay_base_formatter = ReplayBaseFormatter(
 		ui.game.replayBase,
-		ui.game.persistence.configModel.configs.settings
+		ui.game.settings
 	)
 
 	self.background_panel = BackgroundPanel(self.ui.game.backgroundModel, self.ui.game)
@@ -56,7 +56,7 @@ function SongSelect:new(ui)
 	self.chart_grid = ChartGrid(self.ui.game.chartSelector)
 	self.chart_sets = ChartSets(
 		self.ui.game.chartSelector,
-		self.ui.game.persistence.configModel.configs.settings,
+		self.ui.game.settings,
 		function() end
 	)
 	self.difficulty_panel = DifficultyPanel()

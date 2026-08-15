@@ -26,12 +26,12 @@ function Result:new(ui)
 
 	self.chartview_formatter = ChartviewFormatter(
 		ui.game.chartSelector.chartview,
-		ui.game.persistence.configModel.configs.settings
+		ui.game.settings
 	)
 
 	self.chartdiff_formatter = ChartdiffFormatter(
 		ui.game.computeContext.chartdiff,
-		ui.game.persistence.configModel.configs.settings
+		ui.game.settings
 	)
 
 	self.composite = self.root:add(CompositeView()):anchorFill(0, 0, 0, 0)

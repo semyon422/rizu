@@ -1,11 +1,12 @@
 local class = require("class")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.formatters.ReplayBaseFormatter
 ---@operator call: ui.formatters.ReplayBaseFormatter
 local ReplayBaseFormatter = class()
 
 ---@param replay_base sea.ReplayBase?
----@param settings sphere.SettingsConfig
+---@param settings rizu.config.Config
 function ReplayBaseFormatter:new(replay_base, settings)
 	self.replay_base = replay_base
 	self.settings = settings
@@ -23,7 +24,7 @@ function ReplayBaseFormatter:getScoreSystem()
 	local timings = self.replay_base.timings
 	local subtimings = self.replay_base.subtimings
 
-	if self.settings.replay_base.auto_timings then
+	if self.settings:getBoolean(Settings.keys.replay_base.auto_timings) then
 		return "Auto Timings"
 	end
 

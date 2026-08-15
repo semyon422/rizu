@@ -1,15 +1,16 @@
 local class = require("class")
 local Color = require("ui.Color")
 local MsdFormatter = require("ui.formatters.MsdFormatter")
+local Settings = require("rizu.config.Settings")
 
 --- Formats info from chartview
 --- You can get it from GameController.chartSelector.chartview
 ---@class ui.formatters.ChartviewFormatter
----@overload fun(chartview: rizu.library.LocatedChartview, settings: sphere.SettingsConfig): ui.formatters.ChartviewFormatter
+---@overload fun(chartview: rizu.library.LocatedChartview, settings: rizu.config.Config): ui.formatters.ChartviewFormatter
 local ChartviewFormatter = class()
 
 ---@param chartview rizu.library.LocatedChartview?
----@param settings sphere.SettingsConfig
+---@param settings rizu.config.Config
 function ChartviewFormatter:new(chartview, settings)
 	self.chartview = chartview or {}
 	self.settings = settings
@@ -36,17 +37,17 @@ end
 
 ---@return {value: string, postfix: string, color: gui.Color}
 function ChartviewFormatter:getDifficulty()
-	local diff_column = self.settings.select.diff_column
+	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local num = self.chartview[diff_column] or 0
 
-	local postfix = "ENPS"
+	local postfix = "?"
 
 	if diff_column == "osu_diff" then
 		postfix = "*"
 	elseif diff_column == "msd_diff" then
 		postfix = "MSD"
-	else
-		postfix = "?"
+	elseif diff_column == "enps_diff" then
+		postfix = "ENPS"
 	end
 
 	return {

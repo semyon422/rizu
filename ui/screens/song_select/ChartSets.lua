@@ -5,6 +5,7 @@ local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
 local Sounds = require("ui.Sounds")
 local Color = require("ui.Color")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.screens.song_select.ChartSets : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ChartSets
@@ -14,7 +15,7 @@ local ITEM_HEIGHT = 76
 local SCROLL_RETURN_DELAY = 2
 
 ---@param chartSelector rizu.select.ChartSelector
----@param settings sphere.SettingsConfig
+---@param settings rizu.config.Config
 ---@param on_selected fun(index: integer)
 function ChartSets:new(chartSelector, settings, on_selected)
 	VirtualizedList.new(self)
@@ -151,7 +152,7 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	self.batch:add(Resources.sprites.pixel, self.cap_left_width, y, 0, self.mid_width, self.item_height)
 	self.batch:add(Resources.sprites.list_item_cap_right, self.width - self.cap_right_width, y)
 
-	local diff_column = self.settings.select.diff_column
+	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local diff = cv[diff_column] ---@type number?
 
 	if diff then

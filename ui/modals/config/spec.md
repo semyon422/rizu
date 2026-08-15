@@ -1,6 +1,6 @@
 ## Goal
 
-Provide a section-based settings modal for the modern `ui.UiConfig` store.
+Provide a section-based settings modal for `rizu.config.Settings` and the UI-specific `ui.UiConfig` store.
 
 ## User Experience
 
@@ -10,13 +10,13 @@ Settings are grouped under named, illustrated sections and use the shared form c
 
 `Section` is a stateful definition rather than a view. It owns a name, icon, arbitrary presentation state, and a builder that returns the controls currently applicable to that state. Calling `Section:invalidate()` schedules the modal to rebuild its rows on the next update.
 
-Each concrete section lives in its own module under `ui/modals/config/sections/`. All generated `FormControl` instances are direct rows of the modal's single `Form`. Section headings are non-selectable rows in the same form. `ControlFactory` binds modern flat config keys and nested legacy setting paths to controls. Legacy bindings mutate the loaded settings table without writing it immediately.
+Each concrete section lives in its own module under `ui/modals/config/sections/`. All generated `FormControl` instances are direct rows of the modal's single `Form`. Section headings are non-selectable rows in the same form. `ControlFactory` binds flat config keys from `rizu.config.Settings` and `ui.UiConfig` to controls; changes update their config stores immediately.
 
 The audio section exposes master, music, keysound, and metronome volume. Stored volumes remain linear values in `[0, 1]`. The logarithmic presentation converts them to and from decibels and changing the presentation mode invalidates the section.
 
-The renderer section binds the legacy renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.
+The renderer section binds the renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.
 
-The layout section exposes the legacy fullscreen window setting.
+The layout section exposes the fullscreen window setting.
 
 The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`.
 

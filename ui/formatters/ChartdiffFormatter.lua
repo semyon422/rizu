@@ -1,15 +1,16 @@
 local class = require("class")
 local Color = require("ui.Color")
+local Settings = require("rizu.config.Settings")
 
 --- Formats info from chartdiff
 --- You can get it from GameController.computeContext.chartdiff
 --- It can be nil there
 ---@class ui.formatters.ChartdiffFormatter
----@overload fun(chartdiff: sea.Chartdiff, settings: sphere.SettingsConfig): ui.formatters.ChartdiffFormatter
+---@overload fun(chartdiff: sea.Chartdiff, settings: rizu.config.Config): ui.formatters.ChartdiffFormatter
 local ChartdiffFormatter = class()
 
 ---@param chartdiff sea.Chartdiff?
----@param settings sphere.SettingsConfig
+---@param settings rizu.config.Config
 function ChartdiffFormatter:new(chartdiff, settings)
 	self.chartdiff = chartdiff or {}
 	self.settings = settings
@@ -21,7 +22,7 @@ function ChartdiffFormatter:setChartdiff(chartdiff)
 end
 
 function ChartdiffFormatter:getDifficulty()
-	local diff_column = self.settings.select.diff_column
+	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local num = self.chartdiff[diff_column] or 0
 
 	return {
