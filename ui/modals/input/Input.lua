@@ -16,6 +16,7 @@ local UiActions = require("ui.UiActions")
 ---@field binder rizu.InputBinder?
 ---@field columns ui.modals.input.BindingColumn[]
 ---@field waiting_column ui.modals.input.BindingColumn?
+---@field waiting_binding_index integer?
 ---@field background gui.NineSliceUsage
 local Input = ModalView + {}
 
@@ -88,6 +89,7 @@ end
 ---@param input_mode string?
 function Input:setInputMode(input_mode)
 	self.waiting_column = nil
+	self.waiting_binding_index = nil
 	self.column_list:clear()
 	self.columns = {}
 
@@ -115,8 +117,8 @@ function Input:setInputMode(input_mode)
 	local width = math.min(MAX_COLUMN_WIDTH,
 		(content_width - COLUMN_GAP * math.max(0, count - 1)) / math.max(1, count))
 	for _, column in ipairs(self.binder.columns) do
-		local view = BindingColumn(column, self.binder, width, function(selected)
-			self:waitForKey(selected)
+		local view = BindingColumn(column, self.binder, width, function(selected, binding_index)
+			self:waitForKey(selected, binding_index)
 		end, function()
 			self:save()
 		end)
@@ -127,12 +129,14 @@ function Input:setInputMode(input_mode)
 end
 
 ---@param column ui.modals.input.BindingColumn
-function Input:waitForKey(column)
+---@param binding_index integer?
+function Input:waitForKey(column, binding_index)
 	if self.waiting_column then
 		self.waiting_column:setWaiting(false)
 	end
 	self.waiting_column = column
-	column:setWaiting(true)
+	self.waiting_binding_index = binding_index or 1
+	column:setWaiting(true, self.waiting_binding_index)
 end
 
 function Input:save()
@@ -144,6 +148,7 @@ function Input:onHandleInputs(inputs)
 	if self.waiting_column and inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.waiting_column:setWaiting(false)
 		self.waiting_column = nil
+		self.waiting_binding_index = nil
 	end
 end
 
@@ -163,9 +168,11 @@ function Input:onKeyDown(e)
 		return
 	end
 	local column = self.waiting_column
+	local binding_index = self.waiting_binding_index or 1
 	self.waiting_column = nil
+	self.waiting_binding_index = nil
 	column:setWaiting(false)
-	column.binder:setKey(column.column, 1, e.key, InputDevice(e.device or "keyboard", e.device_id or 1))
+	column.binder:setKey(column.column, binding_index, e.key, InputDevice(e.device or "keyboard", e.device_id or 1))
 	self:save()
 
 	for index, candidate in ipairs(self.columns) do
@@ -194,6 +201,7 @@ function Input:hide()
 	if self.waiting_column then
 		self.waiting_column:setWaiting(false)
 		self.waiting_column = nil
+		self.waiting_binding_index = nil
 	end
 	self:transformTo("opacity", 0, 0.2, "InCubic", function()
 		self:setVisible(false)
