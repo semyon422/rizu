@@ -12,7 +12,6 @@ local class = require("class")
 ---@field getTimer fun(self: rizu.editor.EditorLoadContext): rizu.editor.TimeManager
 ---@field getAudioEngine fun(self: rizu.editor.EditorLoadContext): rizu.engine.audio.Engine
 ---@field getAudioSettings fun(self: rizu.editor.EditorLoadContext): table
----@field getConfigModel fun(self: rizu.editor.EditorLoadContext): sphere.ConfigModel
 ---@field getMetronome fun(self: rizu.editor.EditorLoadContext): rizu.editor.Metronome
 ---@field getScroller fun(self: rizu.editor.EditorLoadContext): rizu.editor.Scroller
 ---@field getBmsToolsContext fun(self: rizu.editor.EditorLoadContext): rizu.editor.BmsToolsContext
@@ -38,9 +37,8 @@ function EditorLoadService:load(context)
 	playbackService:loadTimer(context:getTimer(), editor)
 	playbackService:loadAudio(context:getAudioEngine(), context:getAudioSettings())
 
-	local volume = context:getConfigModel().configs.settings.audio.volume
 	local metronome = context:getMetronome()
-	metronome.volume = volume
+	metronome.volume = context:getAudioSettings().volume
 	metronome:load()
 
 	local timer = context:getTimer()

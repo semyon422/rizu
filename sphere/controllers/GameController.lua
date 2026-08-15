@@ -138,7 +138,7 @@ function GameController:new()
 	self.pauseModel = PauseModel(self.persistence.configModel, self.rhythm_engine)
 	self.editorInput = EditorInput()
 	self.editorModel = EditorModel({
-		configModel = self.persistence.configModel,
+		settings = self.settings,
 		fs = self.fs,
 		input = self.editorInput,
 	})
@@ -251,7 +251,7 @@ function GameController:new()
 		chartSelector = self.chartSelector,
 		editorModel = self.editorModel,
 		noteSkinModel = self.noteSkinModel,
-		configModel = self.configModel,
+		settings = self.settings,
 		windowModel = self.windowModel,
 		library = self.library,
 		fileFinder = self.fileFinder,

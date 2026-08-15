@@ -2,6 +2,7 @@ local class = require("class")
 
 local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
 local ModifierModel = require("sphere.models.ModifierModel")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.editor.EditorLoadControllerServiceDeps
 ---@field modifierModel sphere.ModifierModel?
@@ -10,7 +11,7 @@ local ModifierModel = require("sphere.models.ModifierModel")
 ---@field chartSelector rizu.select.ChartSelector
 ---@field editorModel rizu.editor.EditorModel
 ---@field noteSkinModel sphere.NoteSkinModel
----@field configModel sphere.ConfigModel
+---@field settings rizu.config.Config
 ---@field windowModel rizu.WindowModel
 ---@field fileFinder sphere.FileFinder
 ---@field previewModel rizu.preview.PreviewModel
@@ -55,7 +56,7 @@ function EditorLoadControllerService:load(context)
 
 	context.previewModel:stop()
 
-	local paths = self:getResourcePaths(context.configModel, chartview, noteSkin, context.fs)
+	local paths = self:getResourcePaths(context.settings, chartview, noteSkin, context.fs)
 	self:loadResourcePaths(context.fileFinder, context.resource_finder, paths)
 
 	context.resource_loader:load(chart.resources)
@@ -64,14 +65,14 @@ function EditorLoadControllerService:load(context)
 	context.windowModel:setVsyncOnSelect(false)
 end
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param chartview table
 ---@param noteSkin table
 ---@param fs fs.IFilesystem?
 ---@return string[]
-function EditorLoadControllerService:getResourcePaths(configModel, chartview, noteSkin, fs)
+function EditorLoadControllerService:getResourcePaths(settings, chartview, noteSkin, fs)
 	local paths = {}
-	if configModel.configs.settings.gameplay.skin_resources_top_priority then
+	if settings:getBoolean(Settings.keys.gameplay.skin_resources_top_priority) then
 		table.insert(paths, noteSkin.directoryPath)
 		table.insert(paths, chartview.location_dir)
 	else

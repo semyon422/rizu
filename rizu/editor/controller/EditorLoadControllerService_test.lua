@@ -1,20 +1,15 @@
 local EditorLoadControllerService = require("rizu.editor.controller.EditorLoadControllerService")
 local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
----@param topPriority boolean
----@return sphere.ConfigModel
-local function createConfigModel(topPriority)
-	return {
-		configs = {
-			settings = {
-				gameplay = {
-					skin_resources_top_priority = topPriority,
-				},
-			},
-		},
-	}
+---@param top_priority boolean
+---@return rizu.config.Config
+local function createSettings(top_priority)
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setBoolean(Settings.keys.gameplay.skin_resources_top_priority, top_priority)
+	return settings
 end
 
 ---@param t testing.T
@@ -27,13 +22,13 @@ function test.resource_paths_follow_priority_setting(t)
 		directoryPath = "skin/path",
 	}
 
-	t:tdeq(service:getResourcePaths(createConfigModel(true), chartview, noteSkin), {
+	t:tdeq(service:getResourcePaths(createSettings(true), chartview, noteSkin), {
 		"skin/path",
 		"chart/path",
 		"userdata/hitsounds",
 		"userdata/hitsounds/midi",
 	})
-	t:tdeq(service:getResourcePaths(createConfigModel(false), chartview, noteSkin), {
+	t:tdeq(service:getResourcePaths(createSettings(false), chartview, noteSkin), {
 		"chart/path",
 		"skin/path",
 		"userdata/hitsounds",
@@ -56,7 +51,7 @@ function test.iidx_resource_paths_include_movie_directory(t)
 		directoryPath = "skin/path",
 	}
 
-	t:tdeq(service:getResourcePaths(createConfigModel(false), chartview, noteSkin, fs), {
+	t:tdeq(service:getResourcePaths(createSettings(false), chartview, noteSkin, fs), {
 		"data/sound/01234.ifs",
 		"skin/path",
 		"data/movie",

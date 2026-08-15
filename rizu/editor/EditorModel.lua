@@ -10,7 +10,7 @@ local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
 
 ---@class rizu.editor.EditorModelDeps: rizu.editor.EditorServicesDeps
 ---@field services rizu.editor.EditorServices?
----@field configModel sphere.ConfigModel
+---@field settings rizu.config.Config
 ---@field input rizu.editor.EditorInput?
 ---@field isMultiSelectRequested (fun(): boolean)?
 ---@field getMousePosition (fun(): number, number)?
@@ -66,7 +66,7 @@ EditorModel.max_snap = 192
 
 ---@param deps rizu.editor.EditorModelDeps
 function EditorModel:new(deps)
-	self.configModel = deps.configModel
+	self.settings = assert(deps.settings, "settings are required")
 	self:setInput(deps.input or EditorInput(), deps)
 
 	local services = deps.services or EditorServices(deps)

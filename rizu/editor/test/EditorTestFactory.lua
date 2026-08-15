@@ -172,7 +172,7 @@ function EditorTestFactory.createVisualEngineContext(editorModel)
 			return editorModel:getSessionTime()
 		end,
 		getEditorSettings = function()
-			return editorModel.configModel.configs.settings.editor
+			return editorModel:getSettings()
 		end,
 		getVisualPoint = function()
 			return editorModel.visualPoint

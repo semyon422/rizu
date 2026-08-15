@@ -4,6 +4,18 @@ local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 ---@class rizu.config.Settings.Keys
 local keys = {
 	user_interface = "graphics.appearance.user_interface",
+	editor = {
+		audio_offset = "editor.audio_offset",
+		waveform_offset = "editor.waveform_offset",
+		speed = "editor.speed",
+		snap = "editor.snap",
+		lock_snap = "editor.lock_snap",
+		show_timings = "editor.show_timings",
+		time = "editor.time",
+		tool = "editor.tool",
+		waveform_opacity = "editor.waveform.opacity",
+		waveform_scale = "editor.waveform.scale",
+	},
 	gameplay = {
 		speed = "gameplay.speed",
 		speed_type = "gameplay.speed_type",
@@ -160,6 +172,18 @@ function Settings.createConfig(filesystem)
 	local g, i, s, gr, a, m = keys.gameplay, keys.input, keys.select, keys.graphics, keys.audio, keys.misc
 
 	config:setDefaultString(keys.user_interface, "new")
+
+	local e = keys.editor
+	config:setDefaultNumber(e.audio_offset, 0, -1, 1, 0.001)
+	config:setDefaultNumber(e.waveform_offset, 0, -1, 1, 0.001)
+	config:setDefaultNumber(e.speed, 1, 0.05, 10, 0.05)
+	config:setDefaultNumber(e.snap, 1, 1, 192, 1)
+	config:setDefaultBoolean(e.lock_snap, true)
+	config:setDefaultBoolean(e.show_timings, true)
+	config:setDefaultNumber(e.time, 0, 0, 86400, 0.001)
+	config:setDefaultChoice(e.tool, "Select", {"Select", "ShortNote", "LongNote", "SoundNote"})
+	config:setDefaultNumber(e.waveform_opacity, 0.5, 0, 1, 0.01)
+	config:setDefaultNumber(e.waveform_scale, 0.5, 0, 2, 0.01)
 
 	config:setDefaultNumber(
 		g.speed,

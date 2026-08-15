@@ -1,6 +1,7 @@
 local discordrpc = require("discordRPC")
 local class = require("class")
 local brand = require("brand")
+local Settings = require("rizu.config.Settings")
 
 ---@class rizu.DiscordPresence
 ---@field state string?
@@ -23,9 +24,9 @@ local brand = require("brand")
 ---@operator call: rizu.DiscordModel
 local DiscordModel = class()
 
----@param configModel sphere.ConfigModel
-function DiscordModel:new(configModel)
-	self.configModel = configModel
+---@param settings rizu.config.Config
+function DiscordModel:new(settings)
+	self.settings = assert(settings, "settings are required")
 	self.enabled = false
 end
 
@@ -55,11 +56,11 @@ function DiscordModel:load()
 end
 
 function DiscordModel:updateEnabled()
-	local discordPresence = self.configModel.configs.settings.miscellaneous.discordPresence
-	if discordPresence and not self.enabled then
+	local discord_presence = self.settings:getBoolean(Settings.keys.misc.discord_presence)
+	if discord_presence and not self.enabled then
 		discordrpc.initialize(brand.discord_app_id, true)
 		self.enabled = true
-	elseif not discordPresence and self.enabled then
+	elseif not discord_presence and self.enabled then
 		discordrpc.clearPresence()
 		discordrpc.shutdown()
 		self.enabled = false

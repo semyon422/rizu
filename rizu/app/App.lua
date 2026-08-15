@@ -12,7 +12,7 @@ local App = class()
 ---@param persistence sphere.Persistence
 function App:new(persistence)
 	self.audioModel = AudioModel()
-	self.discordModel = DiscordModel(persistence.configModel)
+	self.discordModel = DiscordModel(persistence.settings)
 	self.screenshotModel = ScreenshotModel()
 	self.windowModel = WindowModel(persistence.settings)
 

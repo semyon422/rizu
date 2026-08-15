@@ -65,12 +65,12 @@ end
 
 ---@return table
 function EditorViewContext:getEditorSettings()
-	return self.model.configModel.configs.settings.editor
+	return self.model:getSettings()
 end
 
 ---@return table
 function EditorViewContext:getAudioSettings()
-	return self.model.configModel.configs.settings.audio
+	return self.model:getAudioSettings()
 end
 
 ---@return table?
@@ -164,9 +164,9 @@ function EditorViewContext:getSelectedNotes()
 	return self.model.visualEngine.selectedNotes
 end
 
----@return sphere.ConfigModel
-function EditorViewContext:getConfigModel()
-	return self.model.configModel
+---@return rizu.config.Config
+function EditorViewContext:getConfig()
+	return self.model.settings
 end
 
 ---@return integer

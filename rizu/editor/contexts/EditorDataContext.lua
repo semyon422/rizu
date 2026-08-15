@@ -117,9 +117,9 @@ function EditorDataContext:getAudioSettings()
 	return self.model:getAudioSettings()
 end
 
----@return sphere.ConfigModel
-function EditorDataContext:getConfigModel()
-	return self.model.configModel
+---@return rizu.config.Config
+function EditorDataContext:getConfig()
+	return self.model.settings
 end
 
 ---@return rizu.editor.Metronome
