@@ -3,6 +3,7 @@ local brand = require("brand")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local ToolPresentation = require("ui.modals.ai_chat.ToolPresentation")
+local UiActions = require("ui.UiActions")
 local utf8 = require("utf8")
 local utf8validate = require("utf8validate")
 
@@ -364,6 +365,13 @@ function AiChat:onKeyDown(e)
 		self.scroll = 0
 	end
 	return true
+end
+
+---@param inputs gui.Inputs
+function AiChat:onHandleInputs(inputs)
+	-- onKeyDown owns Enter while the modal is focused. Consume its semantic
+	-- action so the underlying screen cannot also accept the selected chart.
+	inputs:consumeActionJustPressed(UiActions.accept)
 end
 
 ---@param e gui.TextInputEvent

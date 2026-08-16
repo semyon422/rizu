@@ -2,6 +2,7 @@ local AiChat = require("ui.modals.ai_chat.AiChat")
 local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local Resources = require("ui.Resources")
+local UiActions = require("ui.UiActions")
 
 local test = {}
 
@@ -407,6 +408,23 @@ function test.scrollbar_drag_moves_between_history_ends(t)
 	if not ok then
 		error(err)
 	end
+end
+
+---@param t testing.T
+function test.consumes_accept_action_while_open(t)
+	local model = {onChanged = function() end}
+	local view = AiChat(model --[[@as rizu.ai.ChatModel]], function() end)
+	local consumed_action
+	local inputs = {
+		consumeActionJustPressed = function(_, action)
+			consumed_action = action
+			return true
+		end,
+	}
+
+	view:onHandleInputs(inputs --[[@as gui.Inputs]])
+
+	t:eq(consumed_action, UiActions.accept)
 end
 
 return test
