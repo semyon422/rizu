@@ -4,6 +4,7 @@ local Sounds = require("ui.Sounds")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
+local UiActions = require("ui.UiActions")
 local time_util = require("time_util")
 
 ---@class ui.screens.song_select.ScoreList : gui.VirtualizedList
@@ -23,7 +24,6 @@ function ScoreList:new(score_selector, on_score_selected)
 	self.gap = 5
 	self.selected_index = nil
 	self.hover_index = nil
-	self.handles_keyboard_input = true
 	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
@@ -213,24 +213,19 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	self.text_batch16:addf(cs, self.width - 100, "right", -17, y + 43)
 end
 
-function ScoreList:onKeyDown(e)
-	if e.key == "down" then
+---@param inputs gui.Inputs
+function ScoreList:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.down) then
 		self.selected_index = math.min(#self.items, (self.selected_index or 0) + 1)
 		self:scrollToIndex(self.selected_index)
 		self.last_key_press = love.timer.getTime()
-	elseif e.key == "up" then
+	elseif inputs:consumeActionJustPressed(UiActions.up) then
 		self.selected_index = math.max(1, (self.selected_index or #self.items) - 1)
 		self:scrollToIndex(self.selected_index)
 		self.last_key_press = love.timer.getTime()
-	elseif e.key == "right" then
-		if self.selected_index then
-			self.on_score_selected(self.selected_index)
-		end
-	else
-		return false
+	elseif inputs:consumeActionJustPressed(UiActions.right) and self.selected_index then
+		self.on_score_selected(self.selected_index)
 	end
-
-	return true
 end
 
 function ScoreList:scrollToIndex(index)
