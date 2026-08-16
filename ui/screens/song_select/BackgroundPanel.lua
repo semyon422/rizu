@@ -3,12 +3,15 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
+local BgaRenderer = require("ui.views.BgaRenderer")
 local SpringValue = require("gui.anim.SpringValue")
 
 ---@class ui.screens.song_select.BackgroundPanel : gui.View
 ---@operator call: ui.screens.song_select.BackgroundPanel
 ---@field bg_model sphere.BackgroundModel
 ---@field chart_preview_view sphere.ChartPreviewView
+---@field bga_renderer ui.views.BgaRenderer
+---@field game sphere.GameController
 ---@field preview_canvas love.Canvas?
 ---@field details_opacity gui.anim.SpringValue
 local BackgroundPanel = View + {}
@@ -70,6 +73,8 @@ local lg = love.graphics
 function BackgroundPanel:new(bg_model, game)
 	View.new(self)
 	self.bg_model = bg_model
+	self.game = game
+	self.bga_renderer = BgaRenderer()
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
 	self.bg_shader = lg.newShader(shader_code)
@@ -154,7 +159,14 @@ function BackgroundPanel:drawBackground()
 		lg.draw(image, (w - image_width * scale) * 0.5, (h - image_height * scale) * 0.5, 0, scale, scale)
 	end
 
+	Painter.setColorRgb(1, 1, 1)
 	Painter.setOpacity(1)
+	local preview_model = self.game.previewModel
+	local bga_engine = preview_model and preview_model.bgaPreviewPlayer
+	if bga_engine then
+		self.bga_renderer:draw(bga_engine, preview_model:getTime(), w, h)
+	end
+
 	pushPreviewViewport()
 	self.chart_preview_view:draw()
 	popPreviewViewport()

@@ -118,7 +118,7 @@ end
 function Config:createSections()
 	return {
 		AudioSection(self.settings),
-		GameplaySection(self.settings),
+		GameplaySection(self.settings, self.ui_config),
 		OffsetSection(self.settings),
 		LayoutSection(self.settings),
 		RendererSection(self.settings, self.ui_config),

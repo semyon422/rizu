@@ -3,6 +3,7 @@ local SequenceView = require("sphere.views.SequenceView")
 local Colors = require("ui.Colors")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
 local SequenceCanvas = require("ui.screens.gameplay.SequenceCanvas")
+local BgaView = require("ui.screens.gameplay.BgaView")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
@@ -20,6 +21,8 @@ function Gameplay:new(ui)
 	self.gameplay_interactor = self.game.gameplayInteractor
 	self.is_playing = false
 
+	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
+	self.bga_view:anchorPercent(0, 0, 1, 1)
 	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
 
 	self.clear_status = self.root:add(ClearStatus())

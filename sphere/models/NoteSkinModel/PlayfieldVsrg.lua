@@ -16,7 +16,6 @@ local InputAnimationView = require("sphere.views.GameplayView.InputAnimationView
 local JudgementView = require("sphere.views.GameplayView.JudgementView")
 local DeltaTimeJudgementView = require("sphere.views.GameplayView.DeltaTimeJudgementView")
 local MatchPlayersView = require("sphere.views.GameplayView.MatchPlayersView")
-local BgaView = require("sphere.views.BgaView")
 
 ---@class sphere.PlayfieldVsrg
 ---@operator call: sphere.PlayfieldVsrg
@@ -150,9 +149,8 @@ end
 ---@param object table?
 ---@return table
 function PlayfieldVsrg:addBga(object)
-	object = object or {}
-	object.subscreen = "gameplay"
-	return self:add(BgaView(object))
+	-- Kept for legacy noteskin compatibility. BGA is rendered by the UI.
+	return object or {}
 end
 
 ---@param object table?

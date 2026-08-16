@@ -8,8 +8,15 @@ local Settings = require("rizu.config.Settings")
 ---@operator call: ui.modals.config.sections.Gameplay
 local Gameplay = Section + {}
 
+---@param value number
+---@return string formatted
+local function formatPercent(value)
+	return ("%d%%"):format(math.floor(value * 100 + 0.5))
+end
+
 ---@param settings rizu.config.Config
-function Gameplay:new(settings)
+---@param ui_config ui.UiConfig
+function Gameplay:new(settings, ui_config)
 	Section.new(self, {
 		name = "Gameplay",
 		icon = Resources.sprites.icon_play,
@@ -54,6 +61,12 @@ function Gameplay:new(settings)
 					name = "Background videos",
 					keywords = {"gameplay", "background", "animation", "bga", "video"},
 					tip = "Display BGA videos in the gameplay background.",
+				}),
+				ControlFactory.number(ui_config, ui_config.keys.gameplay_bga_brightness, {
+					name = "BGA brightness",
+					keywords = {"gameplay", "background", "animation", "bga", "brightness", "dim"},
+					tip = "Adjust the brightness of gameplay BGA images and videos.",
+					value_format = formatPercent,
 				}),
 			}
 		end,
