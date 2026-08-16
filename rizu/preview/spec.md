@@ -64,7 +64,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 ## Future Work and Open Questions
 
 ### BGA Video Playback
-Async video playback is currently scoped to select preview. Gameplay BGA still uses its existing path. Reusing the async preview pipeline for gameplay may be useful later, but it should be treated as a separate design task because gameplay has stricter timing, lifetime, and failure-mode expectations.
+Select preview and gameplay now share the low-level `AsyncVideoEngine` decode and presentation pipeline. Their BGA event ownership remains separate: `BgaPreviewPlayer` owns preview events, while gameplay keeps `BgaEngine` and its session timing/lifetime.
 
 Some imported libraries can contain unusual or stale `preview_time` metadata. The async video pipeline now handles video times beyond EOF by holding the final frame, but metadata normalization may still be worth revisiting if a format consistently stores preview offsets in unexpected units.
 

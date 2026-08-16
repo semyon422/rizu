@@ -1,5 +1,5 @@
 local class = require("class")
-local VideoEngine = require("rizu.engine.sprite.VideoEngine")
+local AsyncVideoEngine = require("rizu.preview.AsyncVideoEngine")
 local SpriteEngine = require("rizu.engine.sprite.SpriteEngine")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local path_util = require("path_util")
@@ -21,9 +21,10 @@ local bms_bga_whitelist = {
 local BgaEngine = class()
 
 ---@param visual_info rizu.VisualInfo
-function BgaEngine:new(visual_info)
+---@param video_engine rizu.preview.AsyncVideoEngine?
+function BgaEngine:new(visual_info, video_engine)
 	self.visual_info = visual_info
-	self.video_engine = VideoEngine()
+	self.video_engine = video_engine or AsyncVideoEngine()
 	self.sprite_engine = SpriteEngine()
 
 	---@type {[chart.Visual]: {[chart.Column]: rizu.sprite.BgaEvent[]}}
@@ -54,7 +55,8 @@ end
 
 ---@param chart chart.Chart
 ---@param resources {[string]: string}
-function BgaEngine:load(chart, resources)
+---@param resource_paths {[string|integer]: string}?
+function BgaEngine:load(chart, resources, resource_paths)
 	self.video_engine:unload()
 	self.sprite_engine:unload()
 
@@ -127,10 +129,13 @@ function BgaEngine:load(chart, resources)
 	end
 
 	self.sprite_engine:load(image_names, resources)
-	self.video_engine:load(video_names, resources)
+	if #video_names > 0 then
+		self.video_engine:load(video_names, resource_paths or {})
+	end
 end
 
 function BgaEngine:update()
+	self.video_engine:update()
 	local time = self.visual_info:getTime()
 	---@type rizu.sprite.BgaEvent[]
 	local active_notes = {}

@@ -5,6 +5,9 @@ local AbsoluteLayer = require("chart.model.layers.AbsoluteLayer")
 local Visual = require("chart.model.visual.Visual")
 local InputMode = require("chart.core.InputMode")
 local Note = require("chart.format.notechart.Note")
+local FakeAsyncVideoTransport = require("rizu.preview.FakeAsyncVideoTransport")
+local AsyncVideoEngine = require("rizu.preview.AsyncVideoEngine")
+local FakeBgaPreviewDebug = require("rizu.preview.FakeBgaPreviewDebug")
 
 local test = {}
 
@@ -104,6 +107,48 @@ function test.bga_multiple_columns(t)
 	visual_info.time = 0
 	bga_engine:update()
 	t:eq(#bga_engine.active_notes, 2)
+end
+
+---@param t testing.T
+function test.video_uses_async_resource_path(t)
+	local visual_info = VisualInfo()
+	local transport = FakeAsyncVideoTransport()
+	local video_engine = AsyncVideoEngine(transport, FakeBgaPreviewDebug())
+	local bga_engine = BgaEngine(visual_info, video_engine)
+
+	local chart = Chart()
+	local layer = AbsoluteLayer()
+	chart.layers.main = layer
+
+	local visual_bga = Visual()
+	visual_bga.bga = true
+	layer.visuals.bga = visual_bga
+
+	local note = Note(visual_bga:getPoint(layer:getPoint(0)), "bmsbga4", "sprite", 0)
+	note.data.images = {{"movie.mp4"}}
+	chart.notes:insert(note)
+	chart:compute()
+
+	bga_engine:load(chart, {}, {["movie.mp4"] = "mounted/movie.mp4"})
+
+	t:eq(transport.started, true)
+	t:eq(transport.sent[1].type, "load")
+	t:eq(transport.sent[1].video_paths["movie.mp4"], "mounted/movie.mp4")
+	t:ne(video_engine:get("movie.mp4"), nil)
+end
+
+---@param t testing.T
+function test.no_video_does_not_start_async_worker(t)
+	local visual_info = VisualInfo()
+	local transport = FakeAsyncVideoTransport()
+	local video_engine = AsyncVideoEngine(transport, FakeBgaPreviewDebug())
+	local bga_engine = BgaEngine(visual_info, video_engine)
+	local chart = Chart()
+	chart:compute()
+
+	bga_engine:load(chart, {}, {})
+
+	t:eq(transport.started, false)
 end
 
 return test

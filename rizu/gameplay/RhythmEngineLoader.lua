@@ -9,11 +9,13 @@ local RhythmEngineLoader = class()
 ---@param computeContext sea.ComputeContext
 ---@param settings rizu.config.Config
 ---@param resources {[string]: string}
-function RhythmEngineLoader:new(replayBase, computeContext, settings, resources)
+---@param resource_paths {[string|integer]: string}?
+function RhythmEngineLoader:new(replayBase, computeContext, settings, resources, resource_paths)
 	self.replayBase = replayBase
 	self.computeContext = computeContext
 	self.settings = settings
 	self.resources = resources
+	self.resource_paths = resource_paths
 end
 
 ---@param enabled boolean
@@ -41,7 +43,7 @@ function RhythmEngineLoader:load(rhythm_engine)
 		secondary = settings:getChoice(keys.audio.mode_secondary),
 	})
 	rhythm_engine:loadAudio(self.resources)
-	rhythm_engine:loadVisuals(self.resources)
+	rhythm_engine:loadVisuals(self.resources, self.resource_paths)
 
 	rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings)
 	rhythm_engine:setTimingValues(replayBase.timing_values)

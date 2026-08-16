@@ -82,6 +82,25 @@ function test.apply_snapshot(t)
 end
 
 ---@param t testing.T
+function test.video_keeps_path_without_loading_content(t)
+	local fs = FakeFilesystem()
+	local rf = ResourceFinder(fs)
+	local rl = ResourceLoader(fs, rf)
+	local res = Resources()
+
+	fs:createDirectory("dir")
+	fs:write("dir/movie.mp4", "video")
+	rf:addPath("dir")
+	res:add("video", "movie.mp4")
+
+	rl:load(res)
+
+	t:eq(rl.file_paths["movie.mp4"], "dir/movie.mp4")
+	t:eq(rl.file_contents["dir/movie.mp4"], nil)
+	t:eq(rl:getResource("movie.mp4"), nil)
+end
+
+---@param t testing.T
 function test.iidx_s3p_inside_ifs(t)
 	local fs = FakeFilesystem()
 	local rf = ResourceFinder(fs)

@@ -137,7 +137,8 @@ function GameplayInteractor:load(autoplay)
 		game.replayBase,
 		game.computeContext,
 		game.settings,
-		game.resource_loader.resources
+		game.resource_loader.resources,
+		game.resource_loader.file_paths
 	)
 	loader:setAudioEnabled(not self.audio_disabled)
 	loader:load(game.rhythm_engine)

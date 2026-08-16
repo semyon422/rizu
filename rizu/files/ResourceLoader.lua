@@ -114,7 +114,7 @@ function ResourceLoader:loadEntries(entries)
 							end
 						end
 					end
-				else
+				elseif _type ~= "video" then
 					table.insert(new_paths, found_path)
 				end
 				if _type ~= "2dx" then

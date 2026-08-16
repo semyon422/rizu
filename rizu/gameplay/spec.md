@@ -30,7 +30,8 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 - Session code may coordinate around this, but should not replace or bypass the engine's result validity rules.
 
 ### ADR: Gameplay Resource Loading Is Threaded
-- Gameplay startup loads chart audio, image, video, and packed sample resources through `ResourceLoader:loadAsync()` so the chart-loading screen can continue updating while filesystem reads and archive unpacking run in a worker thread.
+- Gameplay startup loads chart audio, images, and packed sample resources through `ResourceLoader:loadAsync()` so the chart-loading screen can continue updating while filesystem reads and archive unpacking run in a worker thread.
+- Video resources keep their resolved virtual paths instead of being copied into the resource snapshot. Gameplay BGA opens and decodes them through `AsyncVideoEngine` in a dedicated LÖVE thread, using the same bounded frame queue and main-thread GPU upload path as select preview.
 - The async path returns a resource snapshot that is applied to the main-thread `ResourceLoader`; rhythm engine setup and `play()` happen only after that snapshot is installed.
 - Editor resource loading stays synchronous for now, because editor startup has different UI/state expectations and was not part of the gameplay-start lag fix.
 
@@ -51,6 +52,11 @@ local res = tcf:create("4key", {
 	{time = 4, velocity = {0.5}},
 })
 ```
+
+## Invariants
+
+- Gameplay video decoding must not run from `BgaView:draw()` or any other main-thread render path. The draw path may request/present an already decoded frame and upload it to the GPU.
+- Gameplay resource snapshots retain resolved video paths but not full video file contents, so large BGA files are not duplicated across the resource-loading thread boundary.
 
 ## Implementation Notes
 

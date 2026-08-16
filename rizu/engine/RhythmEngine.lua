@@ -76,8 +76,9 @@ function RhythmEngine:loadAudio(resources)
 end
 
 ---@param resources {[string]: string}
-function RhythmEngine:loadVisuals(resources)
-	self.bga_engine:load(self.chart, resources)
+---@param resource_paths {[string|integer]: string}?
+function RhythmEngine:loadVisuals(resources, resource_paths)
+	self.bga_engine:load(self.chart, resources, resource_paths)
 end
 
 ---@param enabled boolean
