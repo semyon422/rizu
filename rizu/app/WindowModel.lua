@@ -136,11 +136,10 @@ end
 ---@param width number
 ---@param height number
 function WindowModel:setResolution(width, height)
-	local mode = self.mode
-	mode.window.width = width
-	mode.window.height = height
-	local flags = normalizeWindowFlags(mode.flags)
-	love.window.updateMode(width, height, flags)
+	local keys = Settings.keys.graphics
+	self.settings:setNumber(keys.window_width, width)
+	self.settings:setNumber(keys.window_height, height)
+	love.window.updateMode(width, height, self:getFlags())
 end
 
 local icon_path = "resources/logo.png"
