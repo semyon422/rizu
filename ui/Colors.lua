@@ -48,6 +48,9 @@ local Colors = {
 
 	green = hex("639B3D"),
 	blue = hex("435FA7"),
+	yellow = hex("E2C044"),
+	purple = hex("8C64BD"),
+	cyan = hex("3EAECB"),
 
 	back_button = hex("F64949"),
 	play_button = hex("7DB435"),

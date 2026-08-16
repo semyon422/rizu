@@ -114,6 +114,19 @@ function SongSelect:new(ui)
 		}
 	)
 
+	self.inputs_button = FooterButton(
+		Colors.purple,
+		false,
+		Colors.text,
+		{
+			icon = Resources.sprites.icon_keyboard,
+			text = "INPUTS"
+		},
+		function()
+			self.ui.modal_manager:attachInput()
+		end
+	)
+
 	self.footer_right = FlowContainer({
 		direction = "row",
 		align = 0.5,
@@ -146,10 +159,6 @@ function SongSelect:new(ui)
 
 	self.settings_button = HeaderButton(Resources.sprites.icon_gear, function()
 		self.ui.modal_manager:attachConfig()
-	end)
-
-	self.input_button = HeaderButton(Resources.sprites.icon_keyboard, function()
-		self.ui.modal_manager:attachInput()
 	end)
 
 	self.palette_button = HeaderButton(Resources.sprites.icon_terminal, function()
@@ -313,7 +322,6 @@ function SongSelect:createHeader()
 
 	local buttons = right:add(FlowContainer({direction = "row"}))
 	buttons:add(self.settings_button)
-	buttons:add(self.input_button)
 	buttons:add(self.dlc_button)
 	buttons:add(self.palette_button)
 	buttons:fitContent()
@@ -334,6 +342,7 @@ function SongSelect:createFooter()
 	left:add(self.back_button)
 	left:add(self.mods_button)
 	left:add(self.skins_button)
+	left:add(self.inputs_button)
 	left:fitContent()
 	left:setAlignment(0, 1)
 
