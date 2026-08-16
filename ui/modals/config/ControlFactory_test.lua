@@ -51,6 +51,9 @@ function test.number_uses_definition_metadata_and_conversions(t)
 	t:eq(control.value, 50)
 	control:setValue(75, true)
 	t:eq(config:getNumber("volume"), 0.75)
+
+	config:setNumber("volume", 0.25)
+	t:eq(control.value, 25)
 end
 
 ---@param t testing.T

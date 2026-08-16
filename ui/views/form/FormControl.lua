@@ -8,6 +8,7 @@ local View = require("gui.View")
 ---@field setting_keywords string[]
 ---@field tip string?
 ---@field setting_key string?
+---@field private unsubscribe_setting function?
 local FormControl = View + {}
 
 function FormControl:new()
@@ -16,6 +17,19 @@ function FormControl:new()
 	self.setting_keywords = {}
 	self.tip = nil
 	self.setting_key = nil
+	self.unsubscribe_setting = nil
+end
+
+---@param unsubscribe function
+function FormControl:setSettingSubscription(unsubscribe)
+	self.unsubscribe_setting = unsubscribe
+end
+
+function FormControl:unload()
+	if self.unsubscribe_setting then
+		self.unsubscribe_setting()
+		self.unsubscribe_setting = nil
+	end
 end
 
 ---@param name string

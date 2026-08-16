@@ -80,6 +80,9 @@ function ControlFactory.number(config, key, metadata)
 			end
 		end,
 	})
+	control:setSettingSubscription(config:subscribeNumber(key, function(new_value)
+		control:setValue(metadata.from_storage and metadata.from_storage(new_value) or new_value)
+	end))
 	return configure(control, metadata, key) --[[@as ui.views.form.Slider]]
 end
 

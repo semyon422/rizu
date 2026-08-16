@@ -3,6 +3,7 @@ local ModalManager = require("ui.ModalManager")
 local FpsView = require("ui.views.FpsView")
 local CacheProgressView = require("ui.views.CacheProgressView")
 local UiActions = require("ui.UiActions")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.Overlay : gui.Screen
 ---@operator call: ui.Overlay
@@ -11,6 +12,8 @@ local UiActions = require("ui.UiActions")
 ---@field ui ui.UserInterface
 ---@field cache_progress_view ui.views.CacheProgressView
 local Overlay = Screen + {}
+
+local MASTER_VOLUME_STEP = 0.05
 
 ---@param ui ui.UserInterface
 function Overlay:new(ui)
@@ -30,16 +33,24 @@ end
 function Overlay:receive(event, modifiers)
 	local inputs = self.inputs
 	if not inputs then return false end
-	local global_action = inputs:isActionJustPressed(UiActions.command_palette)
+	local keyboard_action = inputs:isActionJustPressed(UiActions.command_palette)
 		or inputs:isActionJustPressed(UiActions.open_config)
-	-- Consume both the shortcut key and the text event it may produce. The
-	-- action itself is applied during update, after the input queue is drained.
-	return global_action and (event.name == "keypressed" or event.name == "textinput")
+	local volume_action = inputs:isActionJustPressed(UiActions.master_volume_increase)
+		or inputs:isActionJustPressed(UiActions.master_volume_decrease)
+	-- Actions are applied during update, after the input queue is drained.
+	return keyboard_action and (event.name == "keypressed" or event.name == "textinput")
+		or volume_action and event.name == "wheelmoved"
 end
 
 ---@param inputs gui.Inputs
 function Overlay:onHandleInputs(inputs)
-	if inputs:consumeActionJustPressed(UiActions.command_palette) then
+	local settings = self.ui.game.settings
+	local volume_key = Settings.keys.audio.volume_master
+	if inputs:consumeActionJustPressed(UiActions.master_volume_increase) then
+		settings:setNumber(volume_key, math.min(1, settings:getNumber(volume_key) + MASTER_VOLUME_STEP))
+	elseif inputs:consumeActionJustPressed(UiActions.master_volume_decrease) then
+		settings:setNumber(volume_key, math.max(0, settings:getNumber(volume_key) - MASTER_VOLUME_STEP))
+	elseif inputs:consumeActionJustPressed(UiActions.command_palette) then
 		self.modal_manager:attachPalette()
 	elseif inputs:consumeActionJustPressed(UiActions.open_config) then
 		self.modal_manager:attachConfig()

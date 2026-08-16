@@ -29,6 +29,8 @@ local keys = {
 	select_time_rate_increase_bindings = "select_time_rate_increase_bindings",
 	global_screenshot_bindings = "global_screenshot_bindings",
 	global_screenshot_open_bindings = "global_screenshot_open_bindings",
+	master_volume_increase_bindings = "master_volume_increase_bindings",
+	master_volume_decrease_bindings = "master_volume_decrease_bindings",
 	editor_toggle_playback_bindings = "editor_toggle_playback_bindings",
 	toggle_audio_preview_bindings = "toggle_audio_preview_bindings",
 }
@@ -70,6 +72,8 @@ function UiConfig:new(fs, path)
 	self:setDefaultKeyBindings(keys.select_time_rate_increase_bindings, {{key = "]"}})
 	self:setDefaultKeyBindings(keys.global_screenshot_bindings, {{key = "f12"}})
 	self:setDefaultKeyBindings(keys.global_screenshot_open_bindings, {{key = "f12", shift = true}})
+	self:setDefaultKeyBindings(keys.master_volume_increase_bindings, {{key = "wheelup", alt = true}})
+	self:setDefaultKeyBindings(keys.master_volume_decrease_bindings, {{key = "wheeldown", alt = true}})
 	self:setDefaultKeyBindings(keys.editor_toggle_playback_bindings, {{key = "space"}})
 	self:setDefaultKeyBindings(keys.toggle_audio_preview_bindings, {{key = "p", control = true}})
 end

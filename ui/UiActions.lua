@@ -30,6 +30,8 @@ UiActions.select_time_rate_decrease = "select.time_rate_decrease"
 UiActions.select_time_rate_increase = "select.time_rate_increase"
 UiActions.global_screenshot = "global.screenshot"
 UiActions.global_screenshot_open = "global.screenshot_open"
+UiActions.master_volume_increase = "global.master_volume_increase"
+UiActions.master_volume_decrease = "global.master_volume_decrease"
 UiActions.editor_toggle_playback = "editor.toggle_playback"
 UiActions.toggle_audio_preview = "toggle_audio_preview"
 UiActions.refresh_song_select = "ui.refresh_song_select"
@@ -62,6 +64,8 @@ function UiActions.createMap(config)
 		[UiActions.select_time_rate_increase] = keys.select_time_rate_increase_bindings,
 		[UiActions.global_screenshot] = keys.global_screenshot_bindings,
 		[UiActions.global_screenshot_open] = keys.global_screenshot_open_bindings,
+		[UiActions.master_volume_increase] = keys.master_volume_increase_bindings,
+		[UiActions.master_volume_decrease] = keys.master_volume_decrease_bindings,
 		[UiActions.editor_toggle_playback] = keys.editor_toggle_playback_bindings,
 		[UiActions.toggle_audio_preview] = keys.toggle_audio_preview_bindings,
 	}

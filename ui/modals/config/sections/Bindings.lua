@@ -40,6 +40,8 @@ function Bindings:new(ui_config)
 		{key = keys.editor_toggle_playback_bindings, name = "Editor playback", keywords = {"editor", "play", "pause"}, tip = "Toggle editor playback."},
 		{key = keys.global_screenshot_bindings, name = "Capture screenshot", keywords = {"global", "screenshot", "f12"}, tip = "Save a screenshot."},
 		{key = keys.global_screenshot_open_bindings, name = "Capture and open screenshot", keywords = {"global", "screenshot", "open"}, tip = "Save a screenshot and open it in the file manager."},
+		{key = keys.master_volume_increase_bindings, name = "Increase master volume", keywords = {"global", "audio", "volume", "master"}, tip = "Increase the master audio volume."},
+		{key = keys.master_volume_decrease_bindings, name = "Decrease master volume", keywords = {"global", "audio", "volume", "master"}, tip = "Decrease the master audio volume."},
 	} ---@type ui.modals.config.sections.BindingDefinition[]
 
 	Section.new(self, {
