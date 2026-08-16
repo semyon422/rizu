@@ -76,7 +76,8 @@ local function add_audio_resources(song_id, chart, song, variation)
 
 	local two_dx_path = get_2dx_paths(song_id, song and song.idents and song.idents[variation.name] or nil)
 	if two_dx_path then
-		chart.resources:add("2dx", two_dx_path)
+		local two_dx_name = two_dx_path:match("([^/]+)$")
+		chart.resources:add("2dx", two_dx_path, assert(two_dx_name))
 	end
 end
 

@@ -5,6 +5,7 @@ local FakeTaskContext = require("rizu.library.tasks.FakeTaskContext")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Fixtures = require("chart.format.iidx.TestFixtures")
 local digest = require("digest")
+local sql_util = require("rdb.sql_util")
 
 local test = {}
 
@@ -117,9 +118,10 @@ function FakeChartfilesRepo:deleteChartfiles(conds)
 		local chartfile = self.chartfiles[i]
 		local should_delete = chartfile.set_id == conds.set_id
 		if conds.name__notin then
+			---@type {[string]: true}
 			local keep = {}
-			for _, name in ipairs(conds.name__notin) do
-				keep[name] = true
+			for index = 1, #conds.name__notin do
+				keep[conds.name__notin[index]] = true
 			end
 			should_delete = should_delete and not keep[chartfile.name]
 		end
@@ -165,6 +167,39 @@ function test.scans_metadata_listed_ifs_files(t)
 	t:eq(#repo.chartfiles, 1)
 	t:eq(repo.chartfiles[1].name, "01234/01234.1")
 	t:eq(generator:getSongByChartfileName("01234/01234.1").song_id, 1234)
+end
+
+---@param t testing.T
+function test.scans_extracted_song_folder(t)
+	local fs = create_fs()
+	local chart_data = Fixtures.sampleChart()
+	fs:remove("data/sound/01234.ifs")
+	fs:createDirectory("data/sound/01234")
+	fs:write("data/sound/01234/01234.1", chart_data)
+	local repo = FakeChartfilesRepo:new()
+	local generator = FileCacheGenerator(repo, fs, FakeTaskContext())
+
+	assert(generator:scan(nil, 1, "data"))
+
+	t:eq(repo.sets[1].name, "01234")
+	t:eq(repo.sets[1].is_file, false)
+	t:eq(repo.chartfiles[1].name, "01234.1")
+	t:eq(generator:getSongByChartfileName("01234.1").song_id, 1234)
+	t:eq(assert(ChartfileReader.read(fs, "data/sound/01234/01234.1")), chart_data)
+end
+
+---@param t testing.T
+function test.ifs_takes_priority_over_extracted_folder(t)
+	local fs = create_fs()
+	fs:createDirectory("data/sound/01234")
+	fs:write("data/sound/01234/01234.1", Fixtures.sampleChart())
+	local repo = FakeChartfilesRepo:new()
+	local generator = FileCacheGenerator(repo, fs, FakeTaskContext())
+
+	assert(generator:scan(nil, 1, "data"))
+
+	t:eq(repo.sets[1].name, "01234.ifs")
+	t:eq(repo.chartfiles[1].name, "01234/01234.1")
 end
 
 ---@param t testing.T
@@ -232,6 +267,38 @@ function test.cleanup_stale_ifs_chartfile_inside_current_set(t)
 	t:eq(repo.sets[1].is_file, false)
 	t:eq(#repo.chartfiles, 1)
 	t:eq(repo.chartfiles[1].name, "01234/01234.1")
+end
+
+---@param t testing.T
+function test.invalidates_extracted_chart_hash_when_chart_changes(t)
+	local fs = create_fs()
+	fs:remove("data/sound/01234.ifs")
+	fs:createDirectory("data/sound/01234")
+	fs:write("data/sound/01234/01234.1", Fixtures.sampleChart())
+	local repo = FakeChartfilesRepo:new()
+	table.insert(repo.sets, {
+		id = repo.nextSetId,
+		dir = "sound",
+		name = "01234",
+		location_id = 1,
+		modified_at = 0,
+		is_file = false,
+	})
+	repo.nextSetId = repo.nextSetId + 1
+	table.insert(repo.chartfiles, {
+		id = repo.nextChartfileId,
+		name = "01234.1",
+		set_id = 1,
+		modified_at = -1,
+		hash = "cached",
+	})
+	repo.nextChartfileId = repo.nextChartfileId + 1
+	local generator = FileCacheGenerator(repo, fs, FakeTaskContext())
+
+	assert(generator:scan(nil, 1, "data"))
+
+	t:eq(repo.chartfiles[1].hash, sql_util.NULL)
+	t:eq(repo.chartfiles[1].modified_at, 0)
 end
 
 ---@param t testing.T

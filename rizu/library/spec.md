@@ -29,8 +29,8 @@ The library is structured around a 5-level hierarchy, where each level represent
 
 ### ADR: Metadata-Driven IIDX Locations
 - **Context**: beatmania IIDX game data stores song metadata globally in `info/*/music_data.bin` and chart payloads in `sound/*.ifs`, so recursively treating every file as a normal chart folder is both slow and semantically wrong.
-- **Decision**: Locations that contain `info/*/music_data.bin` and `sound/` are auto-detected as IIDX data roots during cache updates. They use a metadata-driven scanner that imports only metadata-listed `.ifs` archives present on disk.
-- **Consequence**: Users can add an IIDX `contents/data` folder as a regular location while the library avoids regular recursive scanning for that root. Each `.ifs` archive is stored as a chartfile set, and the internal `<song_id>/<song_id>.1` chart payload is stored as the chartfile and hash identity. IIDX gameplay loads `.s3p` keysounds from the same `.ifs`; preview audio and BGA assets are also resolved through the container structure.
+- **Decision**: Locations that contain `info/*/music_data.bin` and `sound/` are auto-detected as IIDX data roots during cache updates. They use a metadata-driven scanner that imports only metadata-listed `.ifs` archives or extracted song folders present on disk.
+- **Consequence**: Users can add an IIDX `contents/data` folder as a regular location while the library avoids regular recursive scanning for that root. Each `.ifs` archive or extracted song folder is stored as a chartfile set, and its `.1` payload is stored as the chartfile and hash identity. IIDX gameplay loads `.s3p`/`.2dx` keysounds from the same set; preview audio and BGA assets are resolved through the same resource paths.
 
 ### ADR: Unified FFI Indexing
 - **Context**: Transferring thousands of rich Lua tables between the database thread and the UI thread causes massive garbage collection pressure and "stuttering."
@@ -113,11 +113,12 @@ For metadata-driven IIDX locations:
 
 - The scanned location root is the IIDX `contents/data` directory.
 - Song metadata is loaded from `info/*/music_data.bin`.
-- Present chart archives are discovered under `sound/`.
+- Present chart archives and extracted song folders are discovered under `sound/`.
 - Each archive, such as `sound/01234.ifs` or `sound/01234-p0.ifs`, is stored as one `chartfile_set` with `dir = "sound"` and `name` equal to the archive filename.
-- The playable payload inside that archive is stored as a `chartfile` named `<song_id>/<song_id>.1`, for example `01234/01234.1`.
-- Runtime reads combine the location prefix, set directory, archive name, and internal chartfile name into a path such as `mounted_charts/2/sound/01234.ifs/01234/01234.1`.
-- IIDX preview audio, BGA, and keysounds are resolved relative to the same location and archive conventions; chart loading creates an IIDX decode context from the location prefix and archive name.
+- An extracted directory named `sound/01234` or `sound/01234-p0` is stored identically as a non-file chartfile set. Its chartfile is the flat `01234.1` file directly inside the folder. Archives take priority if both packed and extracted forms exist.
+- The playable payload inside an archive is stored as a `chartfile` named `<song_id>/<song_id>.1`, for example `01234/01234.1`; an extracted folder stores `<song_id>.1`.
+- Runtime reads combine the location prefix, set directory, set name, and chartfile name into paths such as `mounted_charts/2/sound/01234.ifs/01234/01234.1` or `mounted_charts/2/sound/01234/01234.1`.
+- IIDX preview audio, BGA, and keysounds are resolved relative to the same set conventions; chart loading creates an IIDX decode context from the location prefix and chartfile name.
 
 ### Partial Cache States
 Cache updates move chart data through several valid intermediate states. The rest of the system must treat these as normal data, not as corruption:

@@ -84,8 +84,8 @@ function test.uses_metadata_ident_for_2dx_bank(t)
 		},
 	}))
 
-	t:tdeq(charts[1].chart.resources["2dx"]["01234/01234a.2dx"], {"01234/01234a.2dx"})
-	t:tdeq(charts[2].chart.resources["2dx"]["01234/012342.2dx"], {"01234/012342.2dx"})
+	t:tdeq(charts[1].chart.resources["2dx"]["01234/01234a.2dx"], {"01234/01234a.2dx", "01234a.2dx"})
+	t:tdeq(charts[2].chart.resources["2dx"]["01234/012342.2dx"], {"01234/012342.2dx", "012342.2dx"})
 end
 
 ---@param t testing.T
@@ -101,7 +101,7 @@ function test.uses_base_2dx_bank_for_zero_ident(t)
 		},
 	}))
 
-	t:tdeq(charts[1].chart.resources["2dx"]["01234/01234.2dx"], {"01234/01234.2dx"})
+	t:tdeq(charts[1].chart.resources["2dx"]["01234/01234.2dx"], {"01234/01234.2dx", "01234.2dx"})
 end
 
 ---@param t testing.T

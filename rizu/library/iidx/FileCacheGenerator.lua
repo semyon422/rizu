@@ -12,6 +12,13 @@ local sql_util = require("rdb.sql_util")
 ---@field songsByChartfileName {[string]: chart.iidx.MusicDbEntry}
 local FileCacheGenerator = class()
 
+---@class rizu.library.iidx.SongStorage
+---@field name string
+---@field chartfile_name string
+---@field set_modified_at integer
+---@field chart_modified_at integer
+---@field invalidate_hash boolean
+
 ---@param chartfilesRepo rizu.library.ChartfilesRepo
 ---@param fs fs.IFilesystem
 ---@param taskContext rizu.library.ITaskContext
@@ -40,22 +47,25 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 	print(("iidx scan: loaded catalog, %d metadata songs"):format(#catalog.songs))
 	self.taskContext:startStage("scanning", #catalog.songs)
 
+	---@type {[string]: true}
 	local current_names = {}
 	local discovered_count = 0
-	for i, song in ipairs(catalog.songs) do
-		local archive_name = self:getArchiveName(location_prefix, song.song_id)
-		if archive_name then
+	---@type chart.iidx.MusicDbEntry
+	local song
+	for i = 1, #catalog.songs do
+		song = catalog.songs[i]
+		local storage = self:getSongStorage(location_prefix, song.song_id)
+		if storage then
 			discovered_count = discovered_count + 1
-			local chartfile_name = self:getChartfileName(song.song_id)
-			current_names[archive_name] = true
-			self.songsByChartfileName[chartfile_name] = song
+			current_names[storage.name] = true
+			self.songsByChartfileName[storage.chartfile_name] = song
 			self:processChartfileSet({
 				dir = "sound",
-				name = archive_name,
-				modified_at = self:getModifiedAt(location_prefix, archive_name),
+				name = storage.name,
+				modified_at = storage.set_modified_at,
 				is_file = false,
 				location_id = location_id,
-			}, chartfile_name)
+			}, storage.chartfile_name, storage.chart_modified_at, storage.invalidate_hash)
 			self.taskContext:advance(1)
 		end
 		if i % 250 == 0 then
@@ -68,7 +78,7 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 			self.taskContext:dbBegin()
 		end
 	end
-	print(("iidx scan: discovered %d present chart archives"):format(discovered_count))
+	print(("iidx scan: discovered %d present chart sets"):format(discovered_count))
 	self.taskContext:report(("%d/%d metadata songs"):format(#catalog.songs, #catalog.songs))
 
 	local names_to_delete = {}
@@ -91,37 +101,49 @@ end
 
 ---@param location_prefix string
 ---@param song_id integer
----@return string?
-function FileCacheGenerator:getArchiveName(location_prefix, song_id)
-	local base = ("%05d.ifs"):format(song_id)
-	if self.fs:getInfo(path_util.join(location_prefix, "sound", base)) then
-		return base
+---@return rizu.library.iidx.SongStorage?
+function FileCacheGenerator:getSongStorage(location_prefix, song_id)
+	local song_dir = ("%05d"):format(song_id)
+	local archive_names = {song_dir .. ".ifs", song_dir .. "-p0.ifs"}
+	for _, name in ipairs(archive_names) do
+		local info = self.fs:getInfo(path_util.join(location_prefix, "sound", name))
+		if info and info.type == "file" then
+			return {
+				name = name,
+				chartfile_name = path_util.join(song_dir, song_dir .. ".1"),
+				set_modified_at = info.modtime,
+				chart_modified_at = info.modtime,
+				invalidate_hash = false,
+			}
+		end
 	end
-	local p0 = ("%05d-p0.ifs"):format(song_id)
-	if self.fs:getInfo(path_util.join(location_prefix, "sound", p0)) then
-		return p0
+
+	local folder_names = {song_dir, song_dir .. "-p0"}
+	for _, name in ipairs(folder_names) do
+		local folder_path = path_util.join(location_prefix, "sound", name)
+		local folder_info = self.fs:getInfo(folder_path)
+		if folder_info and folder_info.type == "directory" then
+			local chartfile_name = song_dir .. ".1"
+			local chart_info = self.fs:getInfo(path_util.join(folder_path, chartfile_name))
+			if chart_info and chart_info.type == "file" then
+				return {
+					name = name,
+					chartfile_name = chartfile_name,
+					set_modified_at = folder_info.modtime,
+					chart_modified_at = chart_info.modtime,
+					invalidate_hash = true,
+				}
+			end
+		end
 	end
-end
-
----@param song_id integer
----@return string
-function FileCacheGenerator:getChartfileName(song_id)
-	local dir = ("%05d"):format(song_id)
-	return path_util.join(dir, dir .. ".1")
-end
-
----@param location_prefix string
----@param name string
----@return integer
-function FileCacheGenerator:getModifiedAt(location_prefix, name)
-	local info = assert(self.fs:getInfo(path_util.join(location_prefix, "sound", name)))
-	return info.modtime
 end
 
 ---@param chartfile_set sea.ClientChartfileSetInsert
 ---@param chartfile_name string
+---@param chart_modified_at integer
+---@param invalidate_hash boolean
 ---@return sea.ClientChartfileSet
-function FileCacheGenerator:processChartfileSet(chartfile_set, chartfile_name)
+function FileCacheGenerator:processChartfileSet(chartfile_set, chartfile_name, chart_modified_at, invalidate_hash)
 	local existing = self.chartfilesRepo:selectChartfileSet(
 		chartfile_set.dir,
 		chartfile_set.name,
@@ -134,20 +156,21 @@ function FileCacheGenerator:processChartfileSet(chartfile_set, chartfile_name)
 			existing.is_file = chartfile_set.is_file
 			self.chartfilesRepo:updateChartfileSet(existing)
 		end
-		self:processChartfile(existing.id, chartfile_name, chartfile_set.modified_at)
+		self:processChartfile(existing.id, chartfile_name, chart_modified_at, invalidate_hash)
 		self.chartfilesRepo:deleteChartfiles({set_id = existing.id, name__notin = {chartfile_name}})
 		return existing
 	end
 
 	local set = self.chartfilesRepo:insertChartfileSet(chartfile_set)
-	self:processChartfile(set.id, chartfile_name, set.modified_at)
+	self:processChartfile(set.id, chartfile_name, chart_modified_at, invalidate_hash)
 	return set
 end
 
 ---@param set_id integer
 ---@param name string
 ---@param modified_at integer
-function FileCacheGenerator:processChartfile(set_id, name, modified_at)
+---@param invalidate_hash boolean
+function FileCacheGenerator:processChartfile(set_id, name, modified_at, invalidate_hash)
 	local chartfile = self.chartfilesRepo:selectChartfile(set_id, name)
 	if not chartfile then
 		self.chartfilesRepo:insertChartfile({
@@ -157,7 +180,7 @@ function FileCacheGenerator:processChartfile(set_id, name, modified_at)
 		})
 	elseif chartfile.modified_at ~= modified_at then
 		chartfile.modified_at = modified_at
-		if not chartfile.hash then
+		if invalidate_hash or not chartfile.hash then
 			chartfile.hash = sql_util.NULL
 		end
 		self.chartfilesRepo:updateChartfile(chartfile)
