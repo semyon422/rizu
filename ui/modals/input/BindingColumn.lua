@@ -122,8 +122,15 @@ function BindingColumn:draw()
 		local key = self.binder:getKey(self.column, binding_index)
 		local text = self.waiting_index == binding_index and "..." or (key and tostring(key):upper() or "")
 		Painter.setColorTable(is_scratch and Colors.accent2 or Colors.text)
-		lg.printf(text, 4, cell_y + (cell_height - self.key_font:getHeight()) / 2,
-			self.width - 8, "center")
+		local text_width = self.key_font:getWidth(text)
+		local available_width = self.width - 8
+		local text_scale = text_width > available_width and available_width / text_width or 1
+		lg.push()
+		lg.translate(self.width / 2, cell_y + cell_height / 2)
+		lg.scale(text_scale)
+		lg.printf(text, -available_width / text_scale / 2, -self.key_font:getHeight() / 2,
+			available_width / text_scale, "center")
+		lg.pop()
 	end
 end
 
