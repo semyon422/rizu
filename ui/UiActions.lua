@@ -69,10 +69,38 @@ function UiActions.createMap(config)
 		[UiActions.editor_toggle_playback] = keys.editor_toggle_playback_bindings,
 		[UiActions.toggle_audio_preview] = keys.toggle_audio_preview_bindings,
 	}
+	local repeating_actions = {
+		[UiActions.left] = true,
+		[UiActions.right] = true,
+		[UiActions.up] = true,
+		[UiActions.down] = true,
+	}
+
+	---@param action string
+	---@param bindings gui.input.KeyBinding[]
+	---@return gui.input.KeyBinding[]
+	local function prepareBindings(action, bindings)
+		if not repeating_actions[action] then
+			return bindings
+		end
+		local prepared = {} ---@type gui.input.KeyBinding[]
+		for index, binding in ipairs(bindings) do
+			prepared[index] = {
+				key = binding.key,
+				control = binding.control,
+				shift = binding.shift,
+				alt = binding.alt,
+				super = binding.super,
+				allow_repeat = true,
+			}
+		end
+		return prepared
+	end
+
 	for action, key in pairs(definitions) do
-		actions:defineAction(action, config:getKeyBindings(key))
+		actions:defineAction(action, prepareBindings(action, config:getKeyBindings(key)))
 		config:subscribeKeyBindings(key, function(bindings)
-			actions:defineAction(action, bindings)
+			actions:defineAction(action, prepareBindings(action, bindings))
 		end)
 	end
 

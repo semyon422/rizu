@@ -104,6 +104,19 @@ function SongSelect:new(ui)
 		end
 	)
 
+	self.mutators_button = FooterButton(
+		Colors.pink,
+		false,
+		Colors.text,
+		{
+			icon = Resources.sprites.icon_zap,
+			text = "MUTATORS"
+		},
+		function()
+			self.ui.modal_manager:attachChartMutators()
+		end
+	)
+
 	self.skins_button = FooterButton(
 		Colors.blue,
 		false,
@@ -341,8 +354,9 @@ function SongSelect:createFooter()
 	local left = footer:add(FlowContainer({direction = "row", align = 0.5, gap = 10}))
 	left:add(self.back_button)
 	left:add(self.mods_button)
-	left:add(self.skins_button)
+	left:add(self.mutators_button)
 	left:add(self.inputs_button)
+	left:add(self.skins_button)
 	left:fitContent()
 	left:setAlignment(0, 1)
 

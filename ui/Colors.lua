@@ -48,8 +48,10 @@ local Colors = {
 
 	green = hex("639B3D"),
 	blue = hex("435FA7"),
-	yellow = hex("E2C044"),
-	purple = hex("8C64BD"),
+	purple = hex("8838CE"),
+	pink = hex("BE4CC0"),
+	orange = hex("D4873E"),
+	yellow = hex("C8BE3A"),
 	cyan = hex("3EAECB"),
 
 	back_button = hex("F64949"),
