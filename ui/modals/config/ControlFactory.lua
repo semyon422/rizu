@@ -1,6 +1,6 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Dropdown = require("ui.views.form.Dropdown")
-local KeyBindings = require("ui.helpers.KeyBindings")
+local Keybind = require("ui.views.form.Keybind")
 local Slider = require("ui.views.form.Slider")
 local Textbox = require("ui.views.form.Textbox")
 
@@ -123,17 +123,18 @@ end
 ---@param config rizu.config.Config
 ---@param key string
 ---@param metadata ui.modals.config.ControlMetadata
----@return ui.views.form.Textbox
+---@return ui.views.form.Keybind
 function ControlFactory.keyBindings(config, key, metadata)
-	local control = Textbox({
+	local bindings = config:getKeyBindings(key)
+	local control = Keybind({
 		label = metadata.name,
-		text = KeyBindings.format(config:getKeyBindings(key)),
+		binding = assert(bindings[1], "key binding setting must contain a binding"),
 		width = WIDTH,
 		on_change = function(value)
-			config:setKeyBindings(key, KeyBindings.parse(value))
+			config:setKeyBindings(key, {value})
 		end,
 	})
-	return configure(control, metadata, key) --[[@as ui.views.form.Textbox]]
+	return configure(control, metadata, key) --[[@as ui.views.form.Keybind]]
 end
 
 return ControlFactory

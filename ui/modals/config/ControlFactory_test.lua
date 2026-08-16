@@ -61,9 +61,21 @@ function test.key_bindings_bind_ui_config(t)
 		name = "Open settings",
 	})
 
-	t:eq(control:getText(), "Ctrl+o")
-	control:setText("Shift+p", true)
-	t:tdeq(config:getKeyBindings("open_config"), {{key = "p", shift = true}})
+	t:tdeq(control:getBinding(), {
+		key = "o",
+		control = true,
+		shift = false,
+		alt = false,
+		super = false,
+	})
+	control:setBinding({key = "p", shift = true}, true)
+	t:tdeq(config:getKeyBindings("open_config"), {{
+		key = "p",
+		control = false,
+		shift = true,
+		alt = false,
+		super = false,
+	}})
 end
 
 return test
