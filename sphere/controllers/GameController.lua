@@ -422,6 +422,7 @@ function GameController:update(dt)
 	self.dlcManager:update()
 
 	self.library:update()
+	self.seaClient:update()
 
 	self.backgroundModel:update()
 	self.previewModel:update()

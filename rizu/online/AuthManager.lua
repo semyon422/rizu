@@ -8,10 +8,37 @@ local pprint = require("pprint")
 local AuthManager = class()
 
 ---@param sea_client rizu.SeaClient
+---@param operation string
+---@param f fun(...: any)
+---@return function
+local function backgroundAuthCall(sea_client, operation, f)
+	return thread.coro(function(...)
+		local ok, err = xpcall(f, debug.traceback, ...)
+		if ok then
+			return
+		end
+		print(("online %s failed: %s"):format(operation, tostring(err)))
+		sea_client:closeWebsocket(operation .. " failed")
+	end)
+end
+
+---@param sea_client rizu.SeaClient
 ---@param configModel sphere.ConfigModel
 function AuthManager:new(sea_client, configModel)
 	self.sea_client = sea_client
 	self.configModel = configModel
+	self.checkUser = backgroundAuthCall(sea_client, "user refresh", function(_)
+		self:checkUserAsync()
+	end)
+	self.checkSession = backgroundAuthCall(sea_client, "session check", function(_)
+		self:checkSessionAsync()
+	end)
+	self.login = backgroundAuthCall(sea_client, "login", function(_, email, password)
+		self:loginAsync(email, password)
+	end)
+	self.logout = backgroundAuthCall(sea_client, "logout", function(_)
+		self:logoutAsync()
+	end)
 end
 
 function AuthManager:checkUserAsync()
@@ -28,7 +55,6 @@ function AuthManager:checkUserAsync()
 	print("random numbers from all clients:")
 	pprint(nums)
 end
-AuthManager.checkUser = thread.coro(AuthManager.checkUserAsync)
 
 function AuthManager:checkSessionAsync()
 	print("check session")
@@ -56,7 +82,6 @@ function AuthManager:checkSessionAsync()
 
 	self:checkUserAsync()
 end
-AuthManager.checkSession = thread.coro(AuthManager.checkSessionAsync)
 
 ---@param email string
 ---@param password string
@@ -86,7 +111,6 @@ function AuthManager:loginAsync(email, password)
 
 	self:checkSessionAsync()
 end
-AuthManager.login = thread.coro(AuthManager.loginAsync)
 
 function AuthManager:logoutAsync()
 	print("logout")
@@ -106,6 +130,5 @@ function AuthManager:logoutAsync()
 
 	sea_client.client:setUser()
 end
-AuthManager.logout = thread.coro(AuthManager.logoutAsync)
 
 return AuthManager

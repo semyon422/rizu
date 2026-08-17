@@ -14,6 +14,7 @@ local client_whitelist = require("sea.app.remotes.client_whitelist")
 ---@class rizu.SeaClient
 ---@operator call: rizu.SeaClient
 ---@field network rizu.NetworkService
+---@field pending_returns icc.Message[]
 local SeaClient = class()
 
 SeaClient.reconnect_interval = 10
@@ -26,6 +27,7 @@ SeaClient.log = print
 function SeaClient:new(client, client_remote, network)
 	self.client = client
 	self.network = assert(network, "network is required")
+	self.pending_returns = {}
 
 	self.protocol = Subprotocol()
 	self.remote_handler = RemoteHandler(client_remote, client_whitelist)
@@ -44,6 +46,7 @@ function SeaClient:new(client, client_remote, network)
 	self.remote = remote
 
 	local remote_context = {remote = remote}
+	local sea_client = self
 
 	function self.protocol:text(payload, fin)
 		if not fin then return end
@@ -51,7 +54,11 @@ function SeaClient:new(client, client_remote, network)
 		local msg = server_peer:decode(payload)
 		if not msg then return end
 
-		task_handler:handle(server_peer, remote_context, msg)
+		if msg.ret then
+			table.insert(sea_client.pending_returns, msg)
+		else
+			task_handler:handle(server_peer, remote_context, msg)
+		end
 	end
 
 	self.connected = false
@@ -160,6 +167,15 @@ function SeaClient:load(url, on_connect)
 		end
 	end)
 	assert(coroutine.resume(self.ping_thread))
+end
+
+function SeaClient:update()
+	local pending_returns = self.pending_returns
+	self.pending_returns = {}
+	for _, msg in ipairs(pending_returns) do
+		self.task_handler:handleReturn(msg)
+	end
+	self.task_handler:update()
 end
 
 function SeaClient:unload()
