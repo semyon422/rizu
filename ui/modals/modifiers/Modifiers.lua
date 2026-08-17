@@ -21,7 +21,7 @@ local Slider = require("ui.views.form.Slider")
 local Modifiers = ModalView + {}
 
 local MODAL_WIDTH = 700
-local MODAL_HEIGHT = 390
+local MODAL_HEIGHT = 340
 local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 80
