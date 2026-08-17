@@ -13,7 +13,6 @@ local View = require("gui.View")
 local BindingColumn = View + {}
 
 local LABEL_HEIGHT = 34
-local CELL_GAP = 2
 
 ---@param column chart.Column
 ---@param binder rizu.InputBinder
@@ -65,13 +64,8 @@ function BindingColumn:getBindingIndexAt(screen_x, screen_y)
 		return
 	end
 	local binding_count = self:getBindingCount()
-	local cell_height = (self.height - LABEL_HEIGHT - CELL_GAP * (binding_count - 1)) / binding_count
-	local relative_y = y - LABEL_HEIGHT
-	local binding_index = math.floor(relative_y / (cell_height + CELL_GAP)) + 1
-	if binding_index > binding_count or relative_y - (binding_index - 1) * (cell_height + CELL_GAP) > cell_height then
-		return
-	end
-	return binding_index
+	local cell_height = (self.height - LABEL_HEIGHT) / binding_count
+	return math.min(binding_count, math.floor((y - LABEL_HEIGHT) / cell_height) + 1)
 end
 
 ---@param e gui.MouseClickEvent
@@ -100,25 +94,29 @@ function BindingColumn:draw()
 	lg.printf(self:getColumnLabel(), 0, 0, self.width, "center")
 
 	local binding_count = self:getBindingCount()
-	local cell_height = (self.height - LABEL_HEIGHT - CELL_GAP * (binding_count - 1)) / binding_count
+	local cell_height = (self.height - LABEL_HEIGHT) / binding_count
 	local hovered_index ---@type integer?
 	if self.mouse_over then
 		hovered_index = self:getBindingIndexAt(love.mouse.getPosition())
 	end
 
 	lg.setLineWidth(2)
+	if self.waiting_index then
+		Painter.setColorTable(Colors.accent)
+	elseif hovered_index then
+		Painter.setColorTable(Colors.text)
+	else
+		Painter.setColorTable(is_scratch and Colors.accent2 or Colors.outline)
+	end
+	lg.rectangle("line", 1, LABEL_HEIGHT + 1, self.width - 2, self.height - LABEL_HEIGHT - 2, 5, 5)
+	if is_scratch then
+		local divider_y = LABEL_HEIGHT + cell_height
+		lg.line(1, divider_y, self.width - 1, divider_y)
+	end
+
 	lg.setFont(self.key_font)
 	for binding_index = 1, binding_count do
-		if self.waiting_index == binding_index then
-			Painter.setColorTable(Colors.accent)
-		elseif hovered_index == binding_index then
-			Painter.setColorTable(Colors.text)
-		else
-			Painter.setColorTable(is_scratch and Colors.accent2 or Colors.outline)
-		end
-		local cell_y = LABEL_HEIGHT + (binding_index - 1) * (cell_height + CELL_GAP)
-		lg.rectangle("line", 1, cell_y + 1, self.width - 2, cell_height - 2, 5, 5)
-
+		local cell_y = LABEL_HEIGHT + (binding_index - 1) * cell_height
 		local key = self.binder:getKey(self.column, binding_index)
 		local text = self.waiting_index == binding_index and "..." or (key and tostring(key):upper() or "")
 		Painter.setColorTable(is_scratch and Colors.accent2 or Colors.text)
