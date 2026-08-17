@@ -4,7 +4,36 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
 local BgaRenderer = require("ui.views.BgaRenderer")
+local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
+
+local lg = love.graphics
+
+---@class ui.screens.song_select.BackgroundPanel.Details : gui.View
+---@operator call: ui.screens.song_select.BackgroundPanel.Details
+---@field panel ui.screens.song_select.BackgroundPanel
+local Details = View + {}
+
+---@param panel ui.screens.song_select.BackgroundPanel
+function Details:new(panel)
+	View.new(self)
+	self.panel = panel
+end
+
+function Details:draw()
+	local panel = self.panel
+	Painter.setOpacity(panel.details_opacity:get())
+	lg.setFont(panel.title_font)
+	Painter.setColorRgb(0, 0, 0, 0.25)
+	lg.print(panel.title, 22, 2)
+	Painter.setColorTable(Colors.text)
+	lg.print(panel.title, 20, 0)
+	lg.setFont(panel.artist_font)
+	Painter.setColorRgb(0, 0, 0, 0.25)
+	lg.print(panel.artist, 22, panel.title_font:getHeight() + 2)
+	Painter.setColorTable(Colors.accent2)
+	lg.print(panel.artist, 20, panel.title_font:getHeight())
+end
 
 ---@class ui.screens.song_select.BackgroundPanel : gui.View
 ---@operator call: ui.screens.song_select.BackgroundPanel
@@ -13,7 +42,11 @@ local SpringValue = require("gui.anim.SpringValue")
 ---@field bga_renderer ui.views.BgaRenderer
 ---@field game sphere.GameController
 ---@field preview_canvas love.Canvas?
+---@field details_container ui.screens.song_select.BackgroundPanel.Details
+---@field progress_bar ui.screens.music_player.ProgressBar
 ---@field details_opacity gui.anim.SpringValue
+---@field details_reveal gui.anim.SpringValue
+---@field details_hidden_offset number
 local BackgroundPanel = View + {}
 
 -- ChartPreviewView is still a legacy renderer and uses the window dimensions as
@@ -66,7 +99,12 @@ local shader_code = [[
 	}
 ]]
 
-local lg = love.graphics
+local DETAILS_PADDING = 20
+local PROGRESS_HEIGHT = 54
+local PROGRESS_BOTTOM = 10
+local DETAILS_GAP = 12
+-- Downward offset while idle. Keep it low enough for the title and artist to remain visible.
+local DETAILS_IDLE_Y = 56
 
 ---@param bg_model sphere.BackgroundModel
 ---@param game sphere.GameController
@@ -85,7 +123,17 @@ function BackgroundPanel:new(bg_model, game)
 		stiffness = 120,
 		damping = 22,
 	})
+	self.details_reveal = SpringValue({
+		value = 0,
+		stiffness = 220,
+		damping = 26,
+	})
+	self.details_hidden_offset = 0
+	self.handles_mouse_input = true
+	self:setClip(true)
 	self.chart_preview_view = ChartPreviewView(game)
+	self.details_container = self:add(Details(self))
+	self.progress_bar = self.details_container:add(ProgressBar(game.previewModel))
 end
 
 function BackgroundPanel:load()
@@ -105,8 +153,19 @@ end
 ---@param old_width number
 ---@param old_height number
 function BackgroundPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
-	self.artist_y = self.height - self.artist_font:getHeight() - 20
-	self.title_y = self.artist_y - self.title_font:getHeight()
+	local title_height = self.title_font:getHeight()
+	local artist_height = self.artist_font:getHeight()
+	local details_height = title_height + artist_height + DETAILS_GAP + PROGRESS_HEIGHT
+	local details_y = self.height - details_height - PROGRESS_BOTTOM
+	self.details_container:anchorFixed(0, details_y, self.width, details_height)
+	self.progress_bar:anchorFixed(
+		DETAILS_PADDING,
+		title_height + artist_height + DETAILS_GAP,
+		math.max(0, self.width - DETAILS_PADDING * 2),
+		PROGRESS_HEIGHT
+	)
+	self.details_hidden_offset = DETAILS_IDLE_Y
+	self.details_container:setOffset(0, self.details_hidden_offset * (1 - self.details_reveal:get()))
 
 	local overlay_width, overlay_height = Resources.sprites.select_bg_overlay:getDimensions()
 	self.bg_overlay_sx = self.width / overlay_width
@@ -131,6 +190,10 @@ end
 function BackgroundPanel:update(dt)
 	self.chart_preview_view:update(dt)
 	self.details_opacity:update(dt)
+	local inputs = self.screen and self.screen.inputs
+	local hovered = inputs and self:isMouseOver(inputs.mouse_x, inputs.mouse_y) or false
+	self.details_reveal:set(hovered and 1 or 0):update(dt)
+	self.details_container:setOffset(0, self.details_hidden_offset * (1 - self.details_reveal:get()))
 end
 
 ---@param cvf ui.formatters.ChartviewFormatter
@@ -149,6 +212,9 @@ function BackgroundPanel:drawBackground()
 	lg.setCanvas(self.preview_canvas)
 	lg.clear(0, 0, 0, 0)
 	lg.origin()
+	-- The panel's screen-space clip does not apply to its local preview canvas.
+	-- Keeping it here offsets/clips the background, BGA, and legacy chart preview.
+	lg.setScissor()
 
 	for i = 1, 2 do
 		if not images[i] then break end
@@ -181,23 +247,6 @@ end
 function BackgroundPanel:draw()
 	if not self.preview_canvas then return end
 	self:drawBackground()
-	Painter.begin(self.render_opacity)
-	Painter.setOpacity(self.details_opacity:get())
-
-	local screen_x, screen_y = self.world_transform:transformPoint(0, 0)
-	local screen_right, screen_bottom = self.world_transform:transformPoint(self.width, self.height)
-	lg.setScissor(screen_x, screen_y, math.abs(screen_right - screen_x), math.abs(screen_bottom - screen_y))
-	lg.setFont(self.artist_font)
-	Painter.setColorRgb(0, 0, 0, 0.25)
-	lg.print(self.artist, 22, self.artist_y + 2)
-	Painter.setColorTable(Colors.accent2)
-	lg.print(self.artist, 20, self.artist_y)
-	lg.setFont(self.title_font)
-	Painter.setColorRgb(0, 0, 0, 0.25)
-	lg.print(self.title, 22, self.title_y + 2)
-	Painter.setColorTable(Colors.text)
-	lg.print(self.title, 20, self.title_y)
-	lg.setScissor()
 end
 
 ---@param event table
