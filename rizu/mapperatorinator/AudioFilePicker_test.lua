@@ -4,36 +4,33 @@ local test = {}
 
 ---@param t testing.T
 function test.returns_selected_path(t)
-	local command
-	local picker = AudioFilePicker(function(value)
-		command = value
-		return {
-			read = function() return "/music/song.ogg" end,
-			close = function() end,
-		}
+	local dialog_type, settings
+	local picker = AudioFilePicker(function(value, callback, options)
+		dialog_type = value
+		settings = options
+		callback({"/music/song.ogg"}, "Audio files", nil)
 	end)
-	local path, err = picker:pick()
-	if jit.os == "Linux" then
-		t:eq(path, "/music/song.ogg")
-		t:eq(err, nil)
-		t:assert(command:find("zenity --file-selection", 1, true))
-		t:assert(command:find("*.mp3 *.wav *.ogg *.m4a *.flac", 1, true))
-	else
-		t:eq(path, nil)
-		t:assert(err:find("Linux", 1, true))
-	end
+	local selected, selected_err
+	picker:pick(function(path, err)
+		selected, selected_err = path, err
+	end)
+	t:eq(selected, "/music/song.ogg")
+	t:eq(selected_err, nil)
+	t:eq(dialog_type, "openfile")
+	t:eq(settings.title, "Select audio for Mapperatorinator")
+	t:eq(settings.filters["Audio files"], "mp3;wav;ogg;m4a;flac")
+	t:eq(settings.filters["All files"], "*")
+	t:eq(settings.attachtowindow, true)
 end
 
 ---@param t testing.T
 function test.cancel_returns_nil(t)
-	local picker = AudioFilePicker(function()
-		return {
-			read = function() return nil end,
-			close = function() end,
-		}
+	local picker = AudioFilePicker(function(_, callback)
+		callback({}, nil, nil)
 	end)
-	local path = picker:pick()
-	t:eq(path, nil)
+	local selected = false
+	picker:pick(function(path) selected = path end)
+	t:eq(selected, nil)
 end
 
 return test

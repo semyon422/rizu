@@ -1,72 +1,71 @@
 local class = require("class")
 
+---@alias rizu.mapperatorinator.FileDialogCallback fun(path: string?, error_message: string?)
+
 ---@class rizu.mapperatorinator.FilePicker
 ---@operator call: rizu.mapperatorinator.FilePicker
 local FilePicker = class()
 
----@param popen? fun(command: string): file*?
-function FilePicker:new(popen)
-	self.popen = popen or io.popen
+---@param show_file_dialog? fun(dialog_type: string, callback: function, settings: table)
+function FilePicker:new(show_file_dialog)
+	self.show_file_dialog = show_file_dialog or (love.window and love.window.showFileDialog)
 end
 
----@param value string
----@return string
-local function shellQuote(value)
-	return "'" .. value:gsub("'", "'\\''") .. "'"
+---@param filters {[string]: string}?
+---@return {[string]: string}
+local function withAllFiles(filters)
+	local result = {}
+	for name, pattern in pairs(filters or {}) do
+		result[name] = pattern
+	end
+	result["All files"] = "*"
+	return result
 end
 
----@param command string
----@return string? path
----@return string? error_message
-function FilePicker:run(command)
-	if jit.os ~= "Linux" then
-		return nil, "Mapperatorinator file dialogs currently support Linux only."
+---@param dialog_type "openfile"|"savefile"
+---@param settings table
+---@param callback rizu.mapperatorinator.FileDialogCallback
+function FilePicker:show(dialog_type, settings, callback)
+	if not self.show_file_dialog then
+		callback(nil, "This LÖVE build does not support native file dialogs.")
+		return
 	end
-	local pipe = self.popen(command .. " 2>/dev/null")
-	if not pipe then
-		return nil, "Could not launch zenity."
-	end
-	local path = pipe:read("*l")
-	local ok, _, code = pipe:close()
-	if not path or path == "" then
-		if ok == nil and code == 127 then
-			return nil, "zenity is required for Mapperatorinator file dialogs."
+	local ok, err = pcall(self.show_file_dialog, dialog_type, function(files, _, dialog_err)
+		if dialog_err then
+			callback(nil, dialog_err)
+		else
+			callback(files and files[1] or nil, nil)
 		end
-		return nil
+	end, settings)
+	if not ok then
+		callback(nil, "Could not open the native file dialog: " .. tostring(err))
 	end
-	return path
 end
 
 ---@param title string
----@param filters string[]?
----@return string? path
----@return string? error_message
-function FilePicker:open(title, filters)
-	local parts = {"zenity --file-selection", "--title=" .. shellQuote(title)}
-	for _, filter in ipairs(filters or {}) do
-		parts[#parts + 1] = "--file-filter=" .. shellQuote(filter)
-	end
-	parts[#parts + 1] = "--file-filter=" .. shellQuote("All files | *")
-	return self:run(table.concat(parts, " "))
+---@param filters {[string]: string}?
+---@param callback rizu.mapperatorinator.FileDialogCallback
+function FilePicker:open(title, filters, callback)
+	self:show("openfile", {
+		title = title,
+		filters = withAllFiles(filters),
+		multiselect = false,
+		attachtowindow = true,
+	}, callback)
 end
 
 ---@param title string
 ---@param filename string?
----@param filters string[]?
----@return string? path
----@return string? error_message
-function FilePicker:save(title, filename, filters)
-	local parts = {
-		"zenity --file-selection --save --confirm-overwrite",
-		"--title=" .. shellQuote(title),
-	}
-	if filename and filename ~= "" then
-		parts[#parts + 1] = "--filename=" .. shellQuote(filename)
-	end
-	for _, filter in ipairs(filters or {}) do
-		parts[#parts + 1] = "--file-filter=" .. shellQuote(filter)
-	end
-	return self:run(table.concat(parts, " "))
+---@param filters {[string]: string}?
+---@param callback rizu.mapperatorinator.FileDialogCallback
+function FilePicker:save(title, filename, filters, callback)
+	self:show("savefile", {
+		title = title,
+		defaultname = filename,
+		filters = filters or {},
+		multiselect = false,
+		attachtowindow = true,
+	}, callback)
 end
 
 return FilePicker

@@ -186,13 +186,13 @@ function Mapperatorinator:createSections()
 		makeSection("Paths", sprites.icon_folder, function()
 			local choose_row = FlowContainer({direction = "row", gap = 12})
 			choose_row:add(smallButton("Reference .osu", function()
-				self:choosePath(keys.reference_path, "Select reference beatmap", {"osu! beatmaps | *.osu"})
+				self:choosePath(keys.reference_path, "Select reference beatmap", {['osu! beatmaps'] = "osu"})
 			end, 210))
 			choose_row:add(smallButton("LoRA", function()
 				self:choosePath(keys.lora_path, "Select LoRA weights")
 			end, 150))
 			choose_row:add(smallButton("Background", function()
-				self:choosePath(keys.background_path, "Select background image", {"Images | *.png *.jpg *.jpeg *.webp"})
+				self:choosePath(keys.background_path, "Select background image", {Images = "png;jpg;jpeg;webp"})
 			end, 190))
 			choose_row:fitContent()
 			return {
@@ -317,47 +317,51 @@ end
 
 ---@param key string
 ---@param title string
----@param filters string[]?
+---@param filters {[string]: string}?
 function Mapperatorinator:choosePath(key, title, filters)
-	local path, err = self.file_picker:open(title, filters)
-	if path then
-		self.config:setString(key, path)
-		self:invalidateSettings()
-	elseif err then
-		self.workflow.status = err
-	end
+	self.file_picker:open(title, filters, function(path, err)
+		if path then
+			self.config:setString(key, path)
+			self:invalidateSettings()
+		elseif err then
+			self.workflow.status = err
+		end
+	end)
 end
 
 function Mapperatorinator:importPreset()
 	self.form:closeActiveDropdown()
-	local path, picker_err = self.file_picker:open("Import Mapperatorinator preset", {"JSON presets | *.json"})
-	if not path then
-		if picker_err then self.workflow.status = picker_err end
-		return
-	end
-	local content, read_err = self.host_fs:read(path)
-	if not content then
-		self.workflow.status = "Could not read preset: " .. tostring(read_err)
-	elseif not self.config:deserialize(content) then
-		self.workflow.status = "The selected preset is invalid or incompatible."
-	else
-		self.config:save()
-		self.workflow.status = "Imported Mapperatorinator preset."
-		self:invalidateSettings()
-	end
+	self.file_picker:open("Import Mapperatorinator preset", {['JSON presets'] = "json"}, function(path, picker_err)
+		if not path then
+			if picker_err then self.workflow.status = picker_err end
+			return
+		end
+		local content, read_err = self.host_fs:read(path)
+		if not content then
+			self.workflow.status = "Could not read preset: " .. tostring(read_err)
+		elseif not self.config:deserialize(content) then
+			self.workflow.status = "The selected preset is invalid or incompatible."
+		else
+			self.config:save()
+			self.workflow.status = "Imported Mapperatorinator preset."
+			self:invalidateSettings()
+		end
+	end)
 end
 
 function Mapperatorinator:exportPreset()
-	local path, picker_err = self.file_picker:save(
-		"Export Mapperatorinator preset", "mapperatorinator-preset.json", {"JSON presets | *.json"}
+	self.file_picker:save(
+		"Export Mapperatorinator preset", "mapperatorinator-preset.json", {['JSON presets'] = "json"},
+		function(path, picker_err)
+			if not path then
+				if picker_err then self.workflow.status = picker_err end
+				return
+			end
+			if not path:lower():match("%.json$") then path = path .. ".json" end
+			local ok, err = self.host_fs:write(path, self.config:serialize())
+			self.workflow.status = ok and "Exported Mapperatorinator preset." or "Could not export preset: " .. tostring(err)
+		end
 	)
-	if not path then
-		if picker_err then self.workflow.status = picker_err end
-		return
-	end
-	if not path:lower():match("%.json$") then path = path .. ".json" end
-	local ok, err = self.host_fs:write(path, self.config:serialize())
-	self.workflow.status = ok and "Exported Mapperatorinator preset." or "Could not export preset: " .. tostring(err)
 end
 
 function Mapperatorinator:resetPreset()

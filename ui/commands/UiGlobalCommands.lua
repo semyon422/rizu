@@ -13,14 +13,15 @@ return function(game, ui)
 			title = "Mapperatorinator: Generate Chart",
 			description = "Selects audio and opens AI beatmap generation settings",
 			callback = function()
-				local path, err = audio_file_picker:pick()
-				if err then
-					ui.mapperatorinator_workflow.status = err
-					ui.modal_manager:attachMapperatorinator()
-				elseif path then
-					ui.modal_manager.mapperatorinator:setAudioPath(path)
-					ui.modal_manager:attachMapperatorinator()
-				end
+				audio_file_picker:pick(function(path, err)
+					if err then
+						ui.mapperatorinator_workflow.status = err
+						ui.modal_manager:attachMapperatorinator()
+					elseif path then
+						ui.modal_manager.mapperatorinator:setAudioPath(path)
+						ui.modal_manager:attachMapperatorinator()
+					end
+				end)
 			end,
 		},
 		{
