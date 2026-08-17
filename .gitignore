@@ -35,6 +35,8 @@ userdata/play.lua
 userdata/avatar.png
 userdata/lasterror.txt
 userdata/settings.json
+userdata/ui.json
+userdata/mapperatorinator.json
 userdata/ai.lua
 userdata/ai_auth.lua
 userdata/ai_proxy.lua
