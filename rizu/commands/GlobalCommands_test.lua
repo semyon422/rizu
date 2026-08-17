@@ -21,6 +21,35 @@ function test.omits_needle_gpu_probe_commands(t)
 	end
 end
 
+---@param id string
+---@return rizu.command.Command
+local function findCommand(id)
+	for _, command in ipairs(GlobalCommands({})) do
+		if command.id == id then
+			return command
+		end
+	end
+	error("command not found: " .. id)
+end
+
+---@param t testing.T
+function test.registers_restart_command(t)
+	local old_love = love
+	local quit_code
+	_G.love = {
+		event = {
+			quit = function(code)
+				quit_code = code
+			end,
+		},
+	}
+
+	findCommand("global.restart").callback({})
+	_G.love = old_love
+
+	t:eq(quit_code, "restart")
+end
+
 ---@param t testing.T
 function test.registers_set_resolution_command(t)
 	---@type rizu.command.Command?

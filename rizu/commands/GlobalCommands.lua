@@ -47,6 +47,14 @@ return function(game)
 			callback = function() end,
 		},
 		{
+			id = "global.restart",
+			title = "Restart Game",
+			description = "Restarts the game",
+			callback = function()
+				love.event.quit("restart")
+			end,
+		},
+		{
 			id = "global.exit",
 			title = "Quit/Exit Game",
 			description = "Exits the game immediately",
