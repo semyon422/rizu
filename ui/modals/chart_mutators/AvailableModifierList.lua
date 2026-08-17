@@ -9,6 +9,7 @@ local VirtualizedList = require("gui.VirtualizedList")
 ---@operator call: ui.modals.chart_mutators.AvailableModifierList
 ---@field model sphere.ModifierSelectModel
 ---@field active boolean
+---@field selection_visible boolean
 ---@field background gui.NineSliceUsage
 ---@field on_add fun()?
 local AvailableModifierList = VirtualizedList + {}
@@ -34,6 +35,7 @@ function AvailableModifierList:new(model, on_add)
 	self.model = model
 	self.on_add = on_add
 	self.active = true
+	self.selection_visible = true
 	self.item_height = ROW_HEIGHT
 	self.background = createBackground()
 	self.header_font = Resources.getFont("bold", 24)
@@ -67,6 +69,11 @@ end
 ---@param active boolean
 function AvailableModifierList:setActive(active)
 	self.active = active
+end
+
+---@param visible boolean
+function AvailableModifierList:setSelectionVisible(visible)
+	self.selection_visible = visible
 end
 
 ---@param direction integer
@@ -136,7 +143,7 @@ function AvailableModifierList:draw()
 	local first_index, last_index = self:getVisibleRowRange()
 	for index = first_index, last_index do
 		local y = HEADER_HEIGHT + (index - 1) * self:getRowStep() - scroll
-		if index == self.model.availableModifierIndex then
+		if self.selection_visible and index == self.model.availableModifierIndex then
 			Painter.setColorTable(self.active and Colors.hover or Colors.elements)
 			love.graphics.rectangle("fill", HORIZONTAL_PADDING, y, self.width - HORIZONTAL_PADDING * 2, self.item_height)
 		end

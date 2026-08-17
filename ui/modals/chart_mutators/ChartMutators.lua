@@ -43,6 +43,8 @@ function ChartMutators:new(game, on_change)
 
 	local model = game.modifierSelectModel
 	self.available_list = self:add(AvailableModifierList(model, function()
+		self.selected_list:refreshItems()
+		self.selected_list:scrollToSelection()
 		self:setActiveList(1)
 		self:changed()
 	end))
@@ -86,7 +88,6 @@ function ChartMutators:selectHoveredItem(mouse_x, mouse_y)
 
 	index = self.selected_list:getIndexAt(mouse_x, mouse_y)
 	if index then
-		self.game.modifierSelectModel.modifierIndex = index
 		self:setActiveList(2)
 		return true
 	end
@@ -118,14 +119,10 @@ function ChartMutators:onHandleInputs(inputs)
 	if inputs:consumeActionJustPressed(UiActions.left) then
 		if self.active_list == 2 then
 			self.selected_list:changeValue(-1)
-		else
-			self:setActiveList(1)
 		end
 	elseif inputs:consumeActionJustPressed(UiActions.right) then
 		if self.active_list == 2 then
 			self.selected_list:changeValue(1)
-		else
-			self:setActiveList(2)
 		end
 	elseif inputs:consumeActionJustPressed(UiActions.down) then
 		if self.active_list == 1 then
@@ -165,7 +162,10 @@ function ChartMutators:update(dt)
 	self.navigation_mouse_y = mouse_y
 
 	if self.navigation == FormNavigation.Mouse then
-		self:selectHoveredItem(mouse_x, mouse_y)
+		local hovered = self:selectHoveredItem(mouse_x, mouse_y)
+		self.available_list:setSelectionVisible(hovered and self.active_list == 1)
+	else
+		self.available_list:setSelectionVisible(true)
 	end
 end
 
@@ -173,6 +173,7 @@ function ChartMutators:show()
 	local model = self.game.modifierSelectModel
 	model:updateAdded()
 	model.modifierIndex = math.max(1, math.min(model.modifierIndex, #model.replayBase.modifiers + 1))
+	self.selected_list:refreshItems()
 	self:setNavigation(FormNavigation.Mouse)
 	self:setVisible(true)
 	self:fadeIn(0.3, "OutCubic")
