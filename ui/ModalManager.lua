@@ -6,6 +6,7 @@ local ChartMutators = require("ui.modals.chart_mutators.ChartMutators")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.Config")
+local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
 local UiActions = require("ui.UiActions")
@@ -16,6 +17,7 @@ local UiActions = require("ui.UiActions")
 ---@field palette ui.modals.command_palette.CommandPalette
 ---@field ai_chat ui.modals.ai_chat.AiChat?
 ---@field config ui.modals.config.Config
+---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
@@ -40,6 +42,11 @@ function ModalManager:new(ui)
 		self:hideModal()
 	end))
 	self.config = self:addModal(Config(ui.config, ui.game.settings))
+	self.mapperatorinator = self:addModal(Mapperatorinator(
+		ui.mapperatorinator_workflow,
+		ui.mapperatorinator_config,
+		function() self:detachMapperatorinator() end
+	))
 	self.input = self:addModal(Input(ui.game))
 	ui.game.chartSelector:onChanged(self.input)
 	local function modifiers_changed()
@@ -159,6 +166,16 @@ end
 ---@return boolean detached
 function ModalManager:detachConfig()
 	return self:hideModal(self.config)
+end
+
+---@return boolean attached
+function ModalManager:attachMapperatorinator()
+	return self:showModal(self.mapperatorinator)
+end
+
+---@return boolean detached
+function ModalManager:detachMapperatorinator()
+	return self:hideModal(self.mapperatorinator)
 end
 
 ---@return boolean attached

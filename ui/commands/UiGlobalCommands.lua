@@ -1,9 +1,28 @@
+local AudioFilePicker = require("rizu.mapperatorinator.AudioFilePicker")
+
+local audio_file_picker = AudioFilePicker()
+
 -- Returns commands specific to this user interface.
 ---@param game sphere.GameController
 ---@param ui ui.UserInterface
 ---@return rizu.command.Command[]
 return function(game, ui)
 	local commands = {
+		{
+			id = "ui.global.mapperatorinator",
+			title = "Mapperatorinator: Generate Chart",
+			description = "Selects audio and opens AI beatmap generation settings",
+			callback = function()
+				local path, err = audio_file_picker:pick()
+				if err then
+					ui.mapperatorinator_workflow.status = err
+					ui.modal_manager:attachMapperatorinator()
+				elseif path then
+					ui.modal_manager.mapperatorinator:setAudioPath(path)
+					ui.modal_manager:attachMapperatorinator()
+				end
+			end,
+		},
 		{
 			id = "ui.global.toggle_fps",
 			title = "FPS: Toggle",

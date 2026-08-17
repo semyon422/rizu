@@ -6,6 +6,7 @@ local dirs_list = {
 	"userdata/skins",
 	"userdata/charts",
 	"userdata/charts/downloads",
+	"userdata/charts/mapperatorinator",
 	"userdata/export",
 	"userdata/hitsounds",
 	"userdata/replays",
