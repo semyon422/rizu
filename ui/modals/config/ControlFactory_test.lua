@@ -15,6 +15,10 @@ Resources.sprites = {
 	form_element_cap_left = textbox_cap,
 	form_element_cap_middle = textbox_cap,
 	form_element_cap_right = textbox_cap,
+	slider_line_left = textbox_cap,
+	slider_line_middle = textbox_cap,
+	slider_line_right = textbox_cap,
+	slider_thumb = textbox_cap,
 }
 
 ---@param t testing.T

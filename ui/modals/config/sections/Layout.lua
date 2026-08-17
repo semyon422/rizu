@@ -7,17 +7,35 @@ local Settings = require("rizu.config.Settings")
 ---@operator call: ui.modals.config.sections.Layout
 local Layout = Section + {}
 
+local fullscreen_type_names = {
+	desktop = "Borderless desktop",
+	exclusive = "Exclusive fullscreen",
+}
+
+---@param value string
+---@return string
+local function formatFullscreenType(value)
+	return assert(fullscreen_type_names[value], "unknown fullscreen type: " .. value)
+end
+
 ---@param settings rizu.config.Config
 function Layout:new(settings)
 	Section.new(self, {
 		name = "Layout",
 		icon = Resources.sprites.icon_monitor,
 		build = function()
+			local keys = Settings.keys.graphics
 			return {
-				ControlFactory.boolean(settings, Settings.keys.graphics.fullscreen, {
+				ControlFactory.boolean(settings, keys.fullscreen, {
 					name = "Fullscreen",
 					keywords = {"display", "window", "layout"},
 					tip = "Display the game in fullscreen mode.",
+				}),
+				ControlFactory.choice(settings, keys.fullscreen_type, {
+					name = "Fullscreen mode",
+					keywords = {"display", "window", "layout", "borderless", "exclusive"},
+					tip = "Choose borderless desktop or exclusive fullscreen mode.",
+					format = formatFullscreenType,
 				}),
 			}
 		end,

@@ -16,7 +16,7 @@ The audio section exposes master, music, keysound, and metronome volume. Stored 
 
 The renderer section binds the renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.
 
-The layout section exposes the fullscreen window setting.
+The layout section exposes the fullscreen toggle and fullscreen mode selector. The mode selector maps LÖVE's stored `desktop` and `exclusive` values to user-facing borderless desktop and exclusive fullscreen labels; changes apply through `WindowModel` immediately.
 
 The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`.
 
