@@ -102,9 +102,10 @@ local shader_code = [[
 local DETAILS_PADDING = 20
 local PROGRESS_HEIGHT = 54
 local PROGRESS_BOTTOM = 10
+local DETAILS_BOTTOM_PADDING = 8
 local DETAILS_GAP = 12
 -- Downward offset while idle. Keep it low enough for the title and artist to remain visible.
-local DETAILS_IDLE_Y = 56
+local DETAILS_IDLE_Y = 56 + DETAILS_BOTTOM_PADDING
 
 ---@param bg_model sphere.BackgroundModel
 ---@param game sphere.GameController
@@ -155,7 +156,8 @@ end
 function BackgroundPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 	local title_height = self.title_font:getHeight()
 	local artist_height = self.artist_font:getHeight()
-	local details_height = title_height + artist_height + DETAILS_GAP + PROGRESS_HEIGHT
+	local details_height = title_height + artist_height + DETAILS_GAP
+		+ PROGRESS_HEIGHT + DETAILS_BOTTOM_PADDING
 	local details_y = self.height - details_height - PROGRESS_BOTTOM
 	self.details_container:anchorFixed(0, details_y, self.width, details_height)
 	self.progress_bar:anchorFixed(
