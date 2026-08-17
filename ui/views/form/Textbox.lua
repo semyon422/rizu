@@ -163,7 +163,7 @@ function Textbox:draw()
 	local left_width = self.cap_left:getWidth()
 	local right_width = self.cap_right:getWidth()
 	local middle_width = self.width - left_width - right_width
-	Painter.setColorTable(Colors.panel)
+	Painter.setColorTable(Colors.background)
 	self.cap_left:draw(0, BODY_Y)
 	self.cap_middle:draw(left_width, BODY_Y, 0, middle_width / self.cap_middle:getWidth(), 1)
 	self.cap_right:draw(self.width - right_width, BODY_Y)
