@@ -29,6 +29,7 @@ end
 ---@class yi.Colors
 local Colors = {
 	text = hex("F2F2FF"),
+	text_inverted = hex("211C2B"),
 	text_muted = hex("A6B2CC"),
 	panel = hex("211C2B"),
 	panel_alt = hex("2A2336"),

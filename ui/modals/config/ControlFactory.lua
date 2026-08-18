@@ -1,6 +1,7 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Dropdown = require("ui.views.form.Dropdown")
 local Keybind = require("ui.views.form.Keybind")
+local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Slider = require("ui.views.form.Slider")
 local Textbox = require("ui.views.form.Textbox")
 
@@ -105,6 +106,26 @@ function ControlFactory.choice(config, key, metadata)
 		end,
 	})
 	return configure(control, metadata, key) --[[@as ui.views.form.Dropdown]]
+end
+
+---@param config rizu.config.Config
+---@param key string
+---@param metadata ui.modals.config.ChoiceControl
+---@return ui.views.form.SegmentedControl
+function ControlFactory.segmentedChoice(config, key, metadata)
+	local control = SegmentedControl({
+		label = metadata.name,
+		options = config:getChoices(key),
+		value = config:getChoice(key),
+		format = metadata.format,
+		on_change = function(value)
+			config:setChoice(key, value)
+			if metadata.on_change then
+				metadata.on_change(value)
+			end
+		end,
+	})
+	return configure(control, metadata, key) --[[@as ui.views.form.SegmentedControl]]
 end
 
 ---@param config rizu.config.Config

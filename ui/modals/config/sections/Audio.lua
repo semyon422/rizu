@@ -10,6 +10,12 @@ local Audio = Section + {}
 
 local MIN_DECIBELS = -60
 
+---@param value string
+---@return string formatted
+local function formatVolumeScale(value)
+	return value:sub(1, 1):upper() .. value:sub(2)
+end
+
 ---@param value number
 ---@return number decibels
 local function toDecibels(value)
@@ -43,9 +49,10 @@ function Audio:new(settings)
 			local keys = Settings.keys.audio
 			local logarithmic = settings:getChoice(keys.volume_type) == "logarithmic"
 			local controls = {
-				ControlFactory.choice(settings, keys.volume_type, {
+				ControlFactory.segmentedChoice(settings, keys.volume_type, {
 					name = "Volume scale",
 					tip = "Choose whether volume sliders use percentages or decibels.",
+					format = formatVolumeScale,
 					on_change = function()
 						section:invalidate()
 					end,

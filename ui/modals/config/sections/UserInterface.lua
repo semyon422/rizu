@@ -31,7 +31,7 @@ function UserInterface:new(settings)
 					keywords = {"song select", "chart", "preview"},
 					tip = "Show a preview of the selected chart in Song Select.",
 				}),
-				ControlFactory.choice(settings, keys.diff_column, {
+				ControlFactory.segmentedChoice(settings, keys.diff_column, {
 					name = "Displayed difficulty type",
 					keywords = {"difficulty", "rating", "menus"},
 					tip = "Choose the difficulty rating displayed in menus.",

@@ -19,6 +19,9 @@ Resources.sprites = {
 	slider_line_middle = textbox_cap,
 	slider_line_right = textbox_cap,
 	slider_thumb = textbox_cap,
+	segmented_bg_left = textbox_cap,
+	segmented_bg_middle = textbox_cap,
+	segmented_bg_right = textbox_cap,
 }
 
 ---@param t testing.T
@@ -58,6 +61,21 @@ function test.number_uses_definition_metadata_and_conversions(t)
 
 	config:setNumber("volume", 0.25)
 	t:eq(control.value, 25)
+end
+
+---@param t testing.T
+function test.segmented_choice_binds_config_and_metadata(t)
+	local config = Config(FakeFilesystem(), "settings.json")
+	config:setDefaultChoice("difficulty", "enps", {"enps", "osu"})
+	local control = ControlFactory.segmentedChoice(config, "difficulty", {
+		name = "Displayed difficulty type",
+		keywords = {"difficulty"},
+	})
+
+	t:eq(control.setting_name, "Displayed difficulty type")
+	t:eq(control.value, "enps")
+	control:setValue("osu", true)
+	t:eq(config:getChoice("difficulty"), "osu")
 end
 
 ---@param t testing.T

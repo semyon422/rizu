@@ -8,6 +8,15 @@ local Settings = require("rizu.config.Settings")
 ---@operator call: ui.modals.config.sections.Gameplay
 local Gameplay = Section + {}
 
+---@param value string
+---@return string formatted
+local function formatScrollSpeedType(value)
+	return ({
+		default = "Rizu",
+		osu = "osu!",
+	})[value]
+end
+
 ---@param value number
 ---@return string formatted
 local function formatPercent(value)
@@ -27,9 +36,10 @@ function Gameplay:new(settings, ui_config)
 			local format = assert(ScrollSpeed.formats[speed_type])
 
 			return {
-				ControlFactory.choice(settings, keys.speed_type, {
+				ControlFactory.segmentedChoice(settings, keys.speed_type, {
 					name = "Scroll speed type",
 					keywords = {"gameplay", "scroll", "speed", "osu"},
+					format = formatScrollSpeedType,
 					tip = "Choose the scale used by the scroll speed slider.",
 					on_change = function()
 						section:invalidate()
