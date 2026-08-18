@@ -45,11 +45,26 @@ function InfoPanel:bind(cvf)
 	cs[1] = Colors.text
 	if tempo.min ~= "0" and tempo.min ~= "0" then
 		cs[2] = ("%i (%i - %i)"):format(tempo.avg, tempo.min, tempo.max)
-		tb24:add(cs, 212, 9)
+		tb24:add(cs, 407, 9)
 	else
 		cs[2] = ("%i"):format(tempo.avg)
-		tb24:add(cs, 212, 9)
+		tb24:add(cs, 407, 9)
 	end
+
+	cs[1] = Colors.text
+	cs[2] = cvf:getNoteCount()
+	tb24:add(cs, 212, 9)
+
+	cs[1] = Colors.text_muted
+	cs[2] = "LV"
+	tb24:add(cs, 165, 43)
+
+	cs[1] = Colors.text
+	cs[2] = cvf:getLevel()
+	tb24:add(cs, 212, 43)
+
+	cs[2] = cvf:getFormat()
+	tb24:add(cs, 407, 43)
 end
 
 function InfoPanel:draw()
@@ -58,7 +73,9 @@ function InfoPanel:draw()
 	Painter.snapToPixel()
 	Painter.setColorTable(Colors.text_muted)
 	Resources.sprites.icon_clock:draw(18, 11)
-	Resources.sprites.icon_metronome:draw(165, 11)
+	Resources.sprites.icon_music:draw(165, 11)
+	Resources.sprites.icon_metronome:draw(360, 11)
+	Resources.sprites.icon_file:draw(360, 45)
 	Painter.setColorRgb(1, 1, 1)
 	love.graphics.draw(self.text_batch24)
 	love.graphics.setFont(self.font64)

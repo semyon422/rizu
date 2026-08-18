@@ -541,29 +541,15 @@ Submenus are more popups appended to the overlay root — later siblings draw on
 - **Follow**: the popup's `update()` re-reads `trigger:getWorldPosition()` and adjusts with `setOffset` — one `transformPoint` per frame, no relayout. Close when the trigger's center leaves the viewport's clip rect.
 - **Never** clip a popup to the trigger's viewport.
 
-### 10.3 Inline dropdowns
+### 10.3 Popup container
 
-Rhythm-game settings and option lists use **inline dropdowns** by default. Unlike floating popups, their item panels belong to the same scrolling content as their trigger, move with that content, and are clipped by the nearest ScrollView. This is intentional: these dropdowns behave like ordinary retained UI inside the modal rather than OS-level menus.
+Views that create floating content use the fullscreen `PopupContainer` owned by `ui.Overlay` after the modal host. Popups therefore escape viewport clipping and draw above modal contents. Opening converts the source view's world transform into container space, preserving ancestor scale and rotation, and attaches the popup there. The container permits one active popup globally; opening another closes the previous owner, while a background press or scroll closes and consumes input for the active popup.
 
-The item panel is appended as the last child of the trigger's layout container and sets `layout_ignore = true`. Layout containers must neither arrange nor include ignored children in `getContentSize()`; the panel therefore overlays later rows without changing their resolved positions or the scroll extent. Appending it last gives it the required structural draw and input priority. Position it below the trigger by converting the trigger's bottom edge into the layout container's local space:
-
-```lua
-local sx, sy = trigger.world_transform:transformPoint(0, trigger.height)
-local x, y = container.world_transform:inverseTransformPoint(sx, sy)
-panel:anchorFixed(x, y, width, height)
-panel:setLayoutIgnore(true)
-container:add(panel)
-```
-
-The panel remains a descendant of the ScrollView content, so scrolling moves it without per-frame repositioning and the existing clip/cull/input rules apply. It may open upward when the available clipped space below is insufficient. Outside-click and Escape close it; only one dropdown in a modal is open at a time. An inline panel does not need an overlay focus scope unless it introduces keyboard focus beyond the modal's existing scope.
-
-A dropdown may instead **expand the layout** by inserting its items as non-ignored children or resizing its row/container. This pushes later rows and changes the scroll extent, requiring layout invalidation, a complete relayout/flatten pass, clip recomposition, and ScrollView re-clamping/culling. It is supported as an explicit alternative, not the default: repeatedly opening or animating a large dropdown this way can make a large settings tree expensive. Never resize the container every animation frame; perform one layout change when opening and one when closing, and animate only the visual channel between those states if animation is needed.
-
-Use an overlay popup (§10.1) only when a menu must escape its viewport, modal, or structural stacking context. Overlay dropdowns close on scroll by default; inline dropdowns move and clip with their ScrollView.
+Forms still own dropdown selection and keyboard navigation state, but they do not own popup views or alter their scroll extent. Closing a dropdown removes its item panel from the popup container.
 
 ### 10.4 What lives where
 
-The one overlay Screen owns modals, the command palette, floating dropdowns, context menus, submenus, notifications, floating tooltips, and diagnostics such as FPS. Inline dropdowns (§10.3) remain in their owning scrolling content. There are no separate modal or notification Screens. Overlay hosts are ordered children of the overlay root; later children draw and receive input first. A popup opened from a modal is inserted after the modal host so it draws above the modal. Floating tooltips follow §8.2's per-frame-position rule: move via `setOffset`, never anchors.
+The one overlay Screen owns modals, the command palette, floating dropdowns, context menus, submenus, notifications, floating tooltips, and diagnostics such as FPS. There are no separate modal or notification Screens. Overlay hosts are ordered children of the overlay root; later children draw and receive input first. A popup opened from a modal is inserted after the modal host so it draws above the modal. Floating tooltips follow §8.2's per-frame-position rule: move via `setOffset`, never anchors.
 
 ## 11. Animation
 

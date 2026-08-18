@@ -115,6 +115,16 @@ function ChartviewFormatter:getNoteCount()
 end
 
 ---@return string
+function ChartviewFormatter:getLevel()
+	return tostring(self.chartview.level or 0)
+end
+
+---@return string
+function ChartviewFormatter:getFormat()
+	return (self.chartview.format or "unknown"):upper()
+end
+
+---@return string
 function ChartviewFormatter:getTitle()
 	local cv = self.chartview
 	return cv.title and not cv.title:match("^%s*$") and cv.title or "Unknown title"
