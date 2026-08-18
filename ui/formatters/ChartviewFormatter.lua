@@ -95,7 +95,7 @@ end
 function ChartviewFormatter:getLongNoteRatio()
 	local ratio = self.chartview.long_notes_ratio or 0
 	return {
-		value = ("%i%%"):format(ratio),
+		value = ("%i%%"):format(math.floor(ratio * 100 + 0.5)),
 		color = Color.lnPercentToColor(ratio, {1, 1, 1, 1})
 	}
 end
