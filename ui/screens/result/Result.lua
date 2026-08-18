@@ -165,9 +165,8 @@ function Result:updateInfo()
 		self.stats:bind(accuracy_source, judge_source, combo_source, timings)
 	end
 
-	local rate = game.timeRateModel:get()
 	self.chartview_formatter:setChartview(game.chartSelector.chartview)
-	self.chartview_formatter:setTimeRate(rate)
+	self.chartview_formatter:setTimeRate(game.replayBase.rate)
 	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
 
 	self.meta:bind(

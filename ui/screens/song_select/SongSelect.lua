@@ -381,7 +381,7 @@ end
 ---@param chartview rizu.library.LocatedChartview
 function SongSelect:onChartviewUpdate(chartview)
 	self.chartview_formatter:setChartview(chartview)
-	self.chartview_formatter:setTimeRate(self.ui.game.timeRateModel:get())
+	self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
 	self.background_panel:bind(self.chartview_formatter)
 	self.difficulty_panel:bind(self.chartview_formatter)
 	self.info_panel:bind(self.chartview_formatter)
