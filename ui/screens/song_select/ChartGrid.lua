@@ -3,8 +3,9 @@ local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
 local Colors = require("ui.Colors")
-local Color = require("ui.Color")
 local Sounds = require("ui.Sounds")
+local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.screens.song_select.ChartGrid.Item
 ---@field id integer
@@ -32,6 +33,7 @@ local Sounds = require("ui.Sounds")
 ---@field max_difficulty_width number
 ---@field max_inputmode_width number
 ---@field names_font love.Font
+---@field chartview_formatter ui.formatters.ChartviewFormatter
 local ChartGrid = VirtualizedList + {}
 
 local COL_WIDTH = 345
@@ -44,6 +46,7 @@ local ROW_HEIGHT = ITEM_HEIGHT + COL_Y_GAP
 function ChartGrid:new(chart_selector)
 	VirtualizedList.new(self)
 	self.chart_selector = chart_selector
+	self.chartview_formatter = ChartviewFormatter(nil, chart_selector.settings)
 	self.items = {}
 	self.max_difficulty_width = 0
 	self.max_inputmode_width = 0
@@ -64,6 +67,10 @@ function ChartGrid:new(chart_selector)
 	self.stroke_left_w = self.stroke_left:getWidth()
 	self.stroke_middle_w = self.stroke_middle:getWidth()
 	self.stroke_right_w = self.stroke_right:getWidth()
+
+	chart_selector.settings:subscribeChoice(Settings.keys.select.diff_column, function()
+		self:requestReloadItems()
+	end)
 end
 
 function ChartGrid:load() end
@@ -99,12 +106,13 @@ function ChartGrid:reloadItems()
 	for i = 1, count do
 		local item = secondary:get(i)
 		if item then
-			local enps = item.enps_diff or 0
+			self.chartview_formatter:setChartview(item)
+			local difficulty = self.chartview_formatter:getDifficulty()
 			table.insert(self.items, {
 				id = i,
 				name = item.name or "Unknown",
-				difficulty = ("%0.01f"):format(enps),
-				difficulty_color = Color.enpsToColor(enps, {1, 1, 1, 1}),
+				difficulty = difficulty.value,
+				difficulty_color = difficulty.color,
 				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S")
 			})
 		end
