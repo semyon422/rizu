@@ -29,6 +29,9 @@ local Sounds = require("ui.Sounds")
 ---@field body_s number
 ---@field stroke_middle_s number
 ---@field hover_id integer?
+---@field max_difficulty_width number
+---@field max_inputmode_width number
+---@field names_font love.Font
 local ChartGrid = VirtualizedList + {}
 
 local COL_WIDTH = 345
@@ -42,8 +45,10 @@ function ChartGrid:new(chart_selector)
 	VirtualizedList.new(self)
 	self.chart_selector = chart_selector
 	self.items = {}
+	self.max_difficulty_width = 0
+	self.max_inputmode_width = 0
 	self.meta_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
-	self.names_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24)) ---@type love.Text
+	self.names_font = Resources.getFont("cjk_regular", 24)
 	self.batch = SpriteBatch(Resources.sprites.grid_item_body)
 	self.item_height = ITEM_HEIGHT
 	self.gap = COL_Y_GAP
@@ -103,6 +108,14 @@ function ChartGrid:reloadItems()
 				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S")
 			})
 		end
+	end
+
+	local font = self.meta_batch:getFont()
+	self.max_difficulty_width = 0
+	self.max_inputmode_width = 0
+	for _, item in ipairs(self.items) do
+		self.max_difficulty_width = math.max(self.max_difficulty_width, font:getWidth(item.difficulty))
+		self.max_inputmode_width = math.max(self.max_inputmode_width, font:getWidth(item.inputmode))
 	end
 end
 
@@ -167,7 +180,6 @@ function ChartGrid:update(dt)
 	end
 
 	self.meta_batch:clear()
-	self.names_batch:clear()
 	self.batch:clear()
 
 	local batch = self.batch
@@ -204,9 +216,10 @@ function ChartGrid:update(dt)
 
 			cs[1] = v.difficulty_color
 			cs[2] = v.difficulty
-			self.meta_batch:add(cs, x + 12, y + 7)
-			self.meta_batch:add(v.inputmode, x + 86, y + 7)
-			self.names_batch:add(v.name, x + 134, y + 1)
+			local difficulty_x = x + 12
+			local inputmode_x = difficulty_x + self.max_difficulty_width + 8
+			self.meta_batch:add(cs, difficulty_x, y + 7)
+			self.meta_batch:add(v.inputmode, inputmode_x, y + 7)
 		else
 			batch:setColor(Colors.panel[1], Colors.panel[2], Colors.panel[3], 0.4)
 			batch:add(self.body, x, y, 0, self.body_s, 1)
@@ -221,6 +234,32 @@ function ChartGrid:draw()
 	Painter.setColorRgb(1, 1, 1)
 	self.batch:draw()
 	lg.draw(self.meta_batch)
-	lg.draw(self.names_batch)
+
+	local previous_font = lg.getFont()
+	lg.setFont(self.names_font)
+	local scroll = self:getVisualScrollPosition()
+	local first_row = math.max(1, math.floor(scroll / ROW_HEIGHT) + 1)
+	local last_row = math.floor((scroll + self.height) / ROW_HEIGHT) + 1
+	local first_index = (first_row - 1) * self.columns + 1
+	local last_index = last_row * self.columns
+	local name_offset = 12 + self.max_difficulty_width + 8 + self.max_inputmode_width + 8
+
+	for i = first_index, last_index do
+		local item = self.items[i]
+		if item then
+			local col = (i - 1) % self.columns
+			local row = math.floor((i - 1) / self.columns)
+			local x = col * (self.width_per_col + COL_X_GAP)
+			local y = row * ROW_HEIGHT - scroll
+			local name_x = x + name_offset
+			local name_width = x + self.width_per_col - 12 - name_x
+			if name_width > 0 then
+				local sx, sy, sw, sh = Painter.addScissor(name_x, y, name_width, ITEM_HEIGHT)
+				lg.print(item.name, name_x, y + 1)
+				Painter.restoreScissor(sx, sy, sw, sh)
+			end
+		end
+	end
+	lg.setFont(previous_font)
 end
 return ChartGrid

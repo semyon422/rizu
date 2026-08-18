@@ -49,6 +49,42 @@ function Painter.snapToPixel()
 	lg.translate(math.floor(screen_x + 0.5) - screen_x, math.floor(screen_y + 0.5) - screen_y)
 end
 
+---Intersects the current scissor with a rectangle in the active local coordinate space.
+---The returned scissor must be passed to restoreScissor after drawing.
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@return number? previous_x
+---@return number? previous_y
+---@return number? previous_width
+---@return number? previous_height
+function Painter.addScissor(x, y, width, height)
+	local previous_x, previous_y, previous_width, previous_height = lg.getScissor()
+	local x1, y1 = lg.transformPoint(x, y)
+	local x2, y2 = lg.transformPoint(x + width, y)
+	local x3, y3 = lg.transformPoint(x + width, y + height)
+	local x4, y4 = lg.transformPoint(x, y + height)
+	local left = math.min(x1, x2, x3, x4)
+	local top = math.min(y1, y2, y3, y4)
+	local right = math.max(x1, x2, x3, x4)
+	local bottom = math.max(y1, y2, y3, y4)
+	lg.intersectScissor(left, top, right - left, bottom - top)
+	return previous_x, previous_y, previous_width, previous_height
+end
+
+---@param x number?
+---@param y number?
+---@param width number?
+---@param height number?
+function Painter.restoreScissor(x, y, width, height)
+	if x then
+		lg.setScissor(x, y, width, height)
+	else
+		lg.setScissor()
+	end
+end
+
 ---Draws a transformed rectangle outline with a render-target-space line width.
 ---The rectangle follows the active transform, but scaling does not affect its stroke.
 ---@param x number
