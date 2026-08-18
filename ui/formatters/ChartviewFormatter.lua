@@ -43,7 +43,7 @@ function ChartviewFormatter:getDifficulty()
 	local postfix = "?"
 
 	if diff_column == "osu_diff" then
-		postfix = "*"
+		postfix = "OSU!SR"
 	elseif diff_column == "msd_diff" then
 		postfix = "MSD"
 	elseif diff_column == "enps_diff" then

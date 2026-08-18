@@ -59,7 +59,7 @@ function SongSelect:new(ui)
 		self.ui.game.settings,
 		function() end
 	)
-	self.difficulty_panel = DifficultyPanel()
+	self.difficulty_panel = DifficultyPanel(self.chartview_formatter)
 	self.info_panel = InfoPanel()
 
 	self.back_button = FooterButton(
@@ -317,7 +317,7 @@ function SongSelect:createRightColumn()
 		direction = "row",
 	}), 80)
 
-	info:add(self.difficulty_panel, 214) -- TODO: DifficultyPanel should be able to scale freely
+	info:add(self.difficulty_panel, 148) -- TODO: DifficultyPanel should be able to scale freely
 	info:add(self.info_panel, "*")
 	column:add(self.chart_grid, 136)
 	return column
@@ -383,7 +383,7 @@ function SongSelect:onChartviewUpdate(chartview)
 	self.chartview_formatter:setChartview(chartview)
 	self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
 	self.background_panel:bind(self.chartview_formatter)
-	self.difficulty_panel:bind(self.chartview_formatter)
+	self.difficulty_panel:bind()
 	self.info_panel:bind(self.chartview_formatter)
 end
 
