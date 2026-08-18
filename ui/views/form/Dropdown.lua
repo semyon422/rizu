@@ -116,11 +116,13 @@ function Dropdown:open()
 		end
 	)
 	items:setValue(self.value)
-	local sx, sy = self.world_transform:transformPoint(0, 0)
-	local x, y = form.world_transform:inverseTransformPoint(sx, sy)
+	local screen = assert(form.screen, "Dropdown requires an attached Form")
+	local popup_container = screen.popup_container
+		or screen.ui and screen.ui.overlay.popup_container
+	assert(popup_container, "Dropdown requires a popup container")
 	local items_height = items.offset_max[2] - items.offset_min[2]
-	items:anchorFixed(x, y, self.width, items_height)
-	form:addOverlay(items)
+	items:setSize(self.width, items_height)
+	popup_container:open(self, items, self)
 
 	self.items = items
 	self.opened = true

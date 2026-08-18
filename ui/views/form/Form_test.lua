@@ -307,29 +307,6 @@ function test.keyboard_movement_without_controls_is_not_handled(t)
 end
 
 ---@param t testing.T
-function test.direct_child_overlay_can_remove_itself(t)
-	local form = Form()
-	local overlay = form:addOverlay(View())
-
-	overlay.parent:remove(overlay)
-
-	t:eq(overlay.parent, nil)
-	t:eq(#form.children, 1)
-end
-
----@param t testing.T
-function test.overlay_expands_and_restores_form_scroll_extent(t)
-	local form = Form():setSize(100, 100)
-	local overlay = View():anchorFixed(0, 80, 100, 200)
-
-	form:addOverlay(overlay)
-	t:eq(form.offset_max[2] - form.offset_min[2], 280)
-
-	overlay.parent:remove(overlay)
-	t:eq(form.offset_max[2] - form.offset_min[2], 100)
-end
-
----@param t testing.T
 function test.update_repairs_selection_when_selected_control_is_disabled(t)
 	local form = Form()
 	local first = form:add(FormControl())

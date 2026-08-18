@@ -2,6 +2,7 @@ local Screen = require("gui.Screen")
 local ModalManager = require("ui.ModalManager")
 local FpsView = require("ui.views.FpsView")
 local CacheProgressView = require("ui.views.CacheProgressView")
+local PopupContainer = require("ui.views.PopupContainer")
 local UiActions = require("ui.UiActions")
 local Settings = require("rizu.config.Settings")
 
@@ -9,6 +10,7 @@ local Settings = require("rizu.config.Settings")
 ---@operator call: ui.Overlay
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
+---@field popup_container ui.views.PopupContainer
 ---@field ui ui.UserInterface
 ---@field cache_progress_view ui.views.CacheProgressView
 local Overlay = Screen + {}
@@ -25,6 +27,8 @@ function Overlay:new(ui)
 	self.cache_progress_view = self.root:add(CacheProgressView(ui.game.library))
 	self.cache_progress_view:setOffset(16, 16)
 	self.modal_manager = self.root:add(ModalManager(ui))
+	-- Popups are last so they draw and receive input above modal contents.
+	self.popup_container = self.root:add(PopupContainer())
 end
 
 ---@param event {name: string, time: number, [integer]: any}

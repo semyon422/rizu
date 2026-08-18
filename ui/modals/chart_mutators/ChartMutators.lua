@@ -35,7 +35,6 @@ function ChartMutators:new(game, on_change)
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
-	self:setScale(0.9, 0.9)
 	self:setOpacity(0)
 	self:setVisible(false)
 	self.handles_mouse_input = true

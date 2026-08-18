@@ -22,7 +22,6 @@ local MODAL_HEIGHT = 500
 local PADDING = 20
 local TEXTBOX_HEIGHT = 40
 local LIST_TOP = 72
-local SCALE_INACTIVE = 0.95
 local Y_INACTIVE = -20
 
 ---@param state rizu.command.PaletteState
@@ -38,7 +37,6 @@ function CommandPalette:new(state, on_close, needle_model, needle_tools)
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
-	self:setScale(SCALE_INACTIVE, SCALE_INACTIVE)
 	self:setOpacity(0)
 	self:setOffset(0, Y_INACTIVE)
 	self:setVisible(false)
@@ -113,13 +111,11 @@ function CommandPalette:show()
 	self:setVisible(true)
 	self:fadeIn(0.2, "OutCubic")
 	self:moveToY(0, 0.25, "OutQuint")
-	self:scaleTo(1, 1, 0.25, "OutQuint")
 	self:focusTextbox()
 end
 
 function CommandPalette:hide()
 	self:moveToY(Y_INACTIVE, 0.18, "InCubic")
-	self:scaleTo(SCALE_INACTIVE, SCALE_INACTIVE, 0.18, "InCubic")
 	self:transformTo("opacity", 0, 0.15, "InCubic", function()
 		self:setVisible(false)
 	end)

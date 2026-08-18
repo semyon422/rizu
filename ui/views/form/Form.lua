@@ -18,9 +18,6 @@ local View = require("gui.View")
 ---@field selection_target_width number?
 ---@field selection_target_height number?
 ---@field active_dropdown ui.views.form.Dropdown?
----@field overlay gui.View?
----@field overlay_base_width number?
----@field overlay_base_height number?
 ---@field selected_index integer? Index into rows.children
 ---@field selected_control ui.views.form.FormControl?
 ---@field navigation ui.views.form.FormNavigation
@@ -41,9 +38,6 @@ function Form:new(config)
 	self.rows = FlowContainer(config)
 	View.add(self, self.rows)
 	self.active_dropdown = nil
-	self.overlay = nil
-	self.overlay_base_width = nil
-	self.overlay_base_height = nil
 	self.selected_index = nil
 	self.selected_control = nil
 	self.navigation = FormNavigation.Mouse
@@ -83,20 +77,6 @@ end
 
 ---@param row gui.View
 function Form:remove(row)
-	if row.parent == self then
-		View.remove(self, row)
-		if row == self.overlay then
-			self.overlay = nil
-			self:setSize(
-				assert(self.overlay_base_width, "overlay has no base width"),
-				assert(self.overlay_base_height, "overlay has no base height")
-			)
-			self.overlay_base_width = nil
-			self.overlay_base_height = nil
-		end
-		return
-	end
-
 	local removed_index ---@type integer?
 	for index, child in ipairs(self.rows.children) do
 		if child == row then
@@ -129,22 +109,6 @@ function Form:clearRows()
 	end
 	self.rows:clear()
 	self.items_revision = self.items_revision + 1
-end
-
----Adds an overlay such as a dropdown item panel above the rows.
----@generic T: gui.View
----@param overlay T
----@return T
-function Form:addOverlay(overlay)
-	assert(not self.overlay, "form already has an overlay")
-	self.overlay = overlay
-	self.overlay_base_width = self.offset_max[1] - self.offset_min[1]
-	self.overlay_base_height = self.offset_max[2] - self.offset_min[2]
-	self:setSize(
-		math.max(self.overlay_base_width, overlay.offset_max[1]),
-		math.max(self.overlay_base_height, overlay.offset_max[2])
-	)
-	return View.add(self, overlay)
 end
 
 ---@return ui.views.form.Form

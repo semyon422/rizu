@@ -91,11 +91,6 @@ function DropdownItems:focusDisplayIndex(display_index)
 		return
 	end
 	self.focused_display_index = ((display_index - 1) % #self.options) + 1
-	self.dropdown:getForm():centerView(
-		self,
-		BODY_Y + (self.focused_display_index - 1) * self.row_height,
-		self.row_height
-	)
 end
 
 ---@param offset integer
