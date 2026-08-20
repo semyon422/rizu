@@ -26,9 +26,10 @@ function Overlay:new(ui)
 	self.fps_view:setOffset(-16, -16)
 	self.cache_progress_view = self.root:add(CacheProgressView(ui.game.library))
 	self.cache_progress_view:setOffset(16, 16)
-	self.modal_manager = self.root:add(ModalManager(ui))
+	self.popup_container = PopupContainer()
+	self.modal_manager = self.root:add(ModalManager(ui, self.popup_container))
 	-- Popups are last so they draw and receive input above modal contents.
-	self.popup_container = self.root:add(PopupContainer())
+	self.root:add(self.popup_container)
 end
 
 ---@param event {name: string, time: number, [integer]: any}

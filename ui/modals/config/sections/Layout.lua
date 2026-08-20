@@ -19,7 +19,9 @@ local function formatFullscreenType(value)
 end
 
 ---@param settings rizu.config.Config
-function Layout:new(settings)
+---@param form ui.views.form.Form
+---@param popup_container ui.views.PopupContainer
+function Layout:new(settings, form, popup_container)
 	Section.new(self, {
 		name = "Layout",
 		icon = Resources.sprites.icon_monitor,
@@ -32,6 +34,8 @@ function Layout:new(settings)
 					tip = "Display the game in fullscreen mode.",
 				}),
 				ControlFactory.choice(settings, keys.fullscreen_type, {
+					form = form,
+					popup_container = popup_container,
 					name = "Fullscreen mode",
 					keywords = {"display", "window", "layout", "borderless", "exclusive"},
 					tip = "Choose borderless desktop or exclusive fullscreen mode.",

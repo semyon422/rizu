@@ -24,6 +24,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@operator call: ui.modals.config.Config
 ---@field ui_config ui.UiConfig
 ---@field settings rizu.config.Config
+---@field popup_container ui.views.PopupContainer
 ---@field sections ui.modals.config.Section[]
 ---@field all_section ui.modals.config.Section
 ---@field selected_section ui.modals.config.Section
@@ -43,10 +44,17 @@ local LIST_WIDTH = 635
 
 ---@param ui_config ui.UiConfig
 ---@param settings rizu.config.Config
-function Config:new(ui_config, settings)
+---@param popup_container ui.views.PopupContainer
+function Config:new(ui_config, settings, popup_container)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
+	self.popup_container = popup_container
+	self.form = Form({
+		direction = "column",
+		gap = 18,
+		padding = {0, 16, 0, 16},
+	})
 	self.sections = self:createSections()
 	self.all_section = Section({
 		name = "All",
@@ -78,7 +86,6 @@ function Config:new(ui_config, settings)
 	self.section_list:fitContent()
 	self.section_list:setOffset(0, 20)
 
-	self.form = Form({direction = "column", gap = 18, padding = {0, 16, 0, 16}})
 	self.scroll_view = ScrollView(self.form)
 	self.scroll_view:anchorFixed(
 		MODAL_WIDTH - LIST_PANEL_WIDTH + (LIST_PANEL_WIDTH - LIST_WIDTH) / 2,
@@ -119,7 +126,7 @@ function Config:createSections()
 		AudioSection(self.settings),
 		GameplaySection(self.settings, self.ui_config),
 		OffsetSection(self.settings),
-		LayoutSection(self.settings),
+		LayoutSection(self.settings, self.form, self.popup_container),
 		RendererSection(self.settings, self.ui_config),
 		GameplayViewportSection(self.ui_config),
 		UserInterfaceSection(self.settings),

@@ -41,7 +41,7 @@ function test.opening_another_popup_closes_the_active_one(t)
 end
 
 ---@param t testing.T
-function test.popup_inherits_source_visual_scale(t)
+function test.popup_does_not_inherit_source_visual_scale(t)
 	local screen = Screen()
 	local scaled_parent = screen.root:add(View():anchorFixed(100, 50, 400, 400))
 	scaled_parent:setScale(0.9, 0.9)
@@ -57,8 +57,8 @@ function test.popup_inherits_source_visual_scale(t)
 	local popup_x, popup_y = popup.world_transform:transformPoint(0, 0)
 	t:aeq(popup_x, source_x, 1e-4)
 	t:aeq(popup_y, source_y, 1e-4)
-	t:aeq(popup.scale_x, 0.9, 1e-4)
-	t:aeq(popup.scale_y, 0.9, 1e-4)
+	t:aeq(popup.scale_x, 1, 1e-4)
+	t:aeq(popup.scale_y, 1, 1e-4)
 end
 
 ---@param t testing.T

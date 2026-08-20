@@ -27,6 +27,8 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field width number?
 ---@field format (fun(value: any): string)?
 ---@field on_change (fun(value: any))?
+---@field form? ui.views.form.Form
+---@field popup_container ui.views.PopupContainer
 
 local ControlFactory = {}
 
@@ -93,6 +95,8 @@ end
 ---@return ui.views.form.Dropdown
 function ControlFactory.choice(config, key, metadata)
 	local control = Dropdown({
+		form = metadata.form,
+		popup_container = metadata.popup_container,
 		label = metadata.name,
 		options = config:getChoices(key),
 		value = config:getChoice(key),

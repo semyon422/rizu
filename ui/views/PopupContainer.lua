@@ -1,5 +1,6 @@
 local View = require("gui.View")
 
+---Interface implemented by views which own content in a PopupContainer.
 ---@class ui.views.PopupOwner
 ---@field close fun(self: ui.views.PopupOwner): boolean
 
@@ -17,29 +18,19 @@ function PopupContainer:new()
 	self.handles_mouse_input = false
 end
 
----Positions a popup at a source view while preserving the source's visual scale
----and rotation relative to this container.
+---Positions a popup at a source view while preserving the source's rotation
+---relative to this container.
 ---@param popup gui.View
 ---@param source gui.View
 function PopupContainer:placeAtSource(popup, source)
 	local source_transform = source.world_transform
 	local container_transform = self.world_transform
-	local sx, sy = source_transform:transformPoint(0, 0)
-	local sxx, sxy = source_transform:transformPoint(1, 0)
-	local syx, syy = source_transform:transformPoint(0, 1)
-	local x, y = container_transform:inverseTransformPoint(sx, sy)
-	local xx, xy = container_transform:inverseTransformPoint(sxx, sxy)
-	local yx, yy = container_transform:inverseTransformPoint(syx, syy)
-	local axis_x_x, axis_x_y = xx - x, xy - y
-	local axis_y_x, axis_y_y = yx - x, yy - y
-	local scale_x = math.sqrt(axis_x_x ^ 2 + axis_x_y ^ 2)
-	local scale_y = math.sqrt(axis_y_x ^ 2 + axis_y_y ^ 2)
-	if axis_x_x * axis_y_y - axis_x_y * axis_y_x < 0 then
-		scale_y = -scale_y
-	end
+	local source_x, source_y = source_transform:transformPoint(0, 0)
+	local source_axis_x, source_axis_y = source_transform:transformPoint(1, 0)
+	local x, y = container_transform:inverseTransformPoint(source_x, source_y)
+	local axis_x, axis_y = container_transform:inverseTransformPoint(source_axis_x, source_axis_y)
 	popup:setPosition(x, y)
-	popup:setScale(scale_x, scale_y)
-	popup:setRotation(math.atan2(axis_x_y, axis_x_x))
+	popup:setRotation(math.atan2(axis_y - y, axis_x - x))
 end
 
 ---@param owner ui.views.PopupOwner

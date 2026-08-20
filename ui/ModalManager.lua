@@ -25,7 +25,8 @@ local UiActions = require("ui.UiActions")
 local ModalManager = View + {}
 
 ---@param ui ui.UserInterface
-function ModalManager:new(ui)
+---@param popup_container ui.views.PopupContainer
+function ModalManager:new(ui, popup_container)
 	View.new(self)
 	self:anchorFill(0, 0, 0, 0)
 	self.handles_keyboard_input = true
@@ -41,11 +42,12 @@ function ModalManager:new(ui)
 	self.bg = self:add(OverlayBackground(function()
 		self:hideModal()
 	end))
-	self.config = self:addModal(Config(ui.config, ui.game.settings))
+	self.config = self:addModal(Config(ui.config, ui.game.settings, popup_container))
 	self.mapperatorinator = self:addModal(Mapperatorinator(
 		ui.mapperatorinator_workflow,
 		ui.mapperatorinator_config,
-		function() self:detachMapperatorinator() end
+		function() self:detachMapperatorinator() end,
+		popup_container
 	))
 	self.input = self:addModal(Input(ui.game))
 	ui.game.chartSelector:onChanged(self.input)
@@ -53,7 +55,7 @@ function ModalManager:new(ui)
 		-- TODO: The game should emit events like this.
 		ui.song_select:updateModifiers()
 	end
-	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
+	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed, popup_container))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
 	if ui.game.aiChatModel then
 		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()

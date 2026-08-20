@@ -1,5 +1,4 @@
 local DropdownItems = require("ui.views.form.DropdownItems")
-local Form = require("ui.views.form.Form")
 local FormControl = require("ui.views.form.FormControl")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
@@ -13,8 +12,10 @@ local Resources = require("ui.Resources")
 ---@field row_height? number
 ---@field format? ui.views.form.DropdownFormat
 ---@field on_change? fun(value: any)
+---@field form? ui.views.form.Form
+---@field popup_container ui.views.PopupContainer
 
----@class ui.views.form.Dropdown : ui.views.form.FormControl
+---@class ui.views.form.Dropdown : ui.views.form.FormControl, ui.views.PopupOwner
 ---@operator call: ui.views.form.Dropdown
 ---@field options any[]
 ---@field value any
@@ -28,7 +29,8 @@ local Resources = require("ui.Resources")
 ---@field cap_right gui.Sprite
 ---@field chevron gui.Sprite
 ---@field items ui.views.form.DropdownItems?
----@field active_form ui.views.form.Form?
+---@field form ui.views.form.Form?
+---@field popup_container ui.views.PopupContainer
 ---@field opened boolean
 local Dropdown = FormControl + {}
 
@@ -45,6 +47,7 @@ end
 ---@param params ui.views.form.DropdownParams
 function Dropdown:new(params)
 	FormControl.new(self)
+	assert(params.popup_container, "Dropdown requires a popup container")
 	self.options = params.options
 	self.value = params.value
 	self.label_text = params.label
@@ -57,21 +60,11 @@ function Dropdown:new(params)
 	self.cap_right = Resources.sprites.form_element_cap_right
 	self.chevron = Resources.sprites.icon_chevron
 	self.items = nil
-	self.active_form = nil
+	self.form = params.form
+	self.popup_container = params.popup_container
 	self.opened = false
 	self.handles_mouse_input = true
 	self:setSize(params.width or 300, HEIGHT)
-end
-
----@return ui.views.form.Form form
-function Dropdown:getForm()
-	local parent = self.parent
-	while parent and not (Form * parent) do
-		parent = parent.parent
-	end
-	parent = assert(parent, "Dropdown requires a Form ancestor")
-	---@cast parent ui.views.form.Form
-	return parent
 end
 
 ---@return boolean selectable
@@ -99,9 +92,10 @@ function Dropdown:open()
 	if self.opened or #self.options == 0 then
 		return false
 	end
-	local form = self:getForm()
-	form:activateDropdown(self)
-	self.active_form = form
+	local form = self.form
+	if form then
+		form:activateDropdown(self)
+	end
 
 	local items = DropdownItems(
 		self,
@@ -112,17 +106,15 @@ function Dropdown:open()
 		function(value)
 			self:setValue(value, true)
 			self:close()
-			form:centerView(self)
+			if form then
+				form:centerView(self)
+			end
 		end
 	)
 	items:setValue(self.value)
-	local screen = assert(form.screen, "Dropdown requires an attached Form")
-	local popup_container = screen.popup_container
-		or screen.ui and screen.ui.overlay.popup_container
-	assert(popup_container, "Dropdown requires a popup container")
 	local items_height = items.offset_max[2] - items.offset_min[2]
 	items:setSize(self.width, items_height)
-	popup_container:open(self, items, self)
+	self.popup_container:open(self, items, self)
 
 	self.items = items
 	self.opened = true
@@ -136,12 +128,13 @@ function Dropdown:close()
 	if not self.opened then
 		return false
 	end
-	local form = assert(self.active_form, "open dropdown has no active form")
+	local form = self.form
 	local items = self.items
 	self.items = nil
-	self.active_form = nil
 	self.opened = false
-	form:deactivateDropdown(self)
+	if form then
+		form:deactivateDropdown(self)
+	end
 	if items then
 		items:close()
 	end

@@ -107,7 +107,8 @@ end
 ---@param workflow rizu.mapperatorinator.Workflow
 ---@param config rizu.config.Config
 ---@param on_close fun()
-function Mapperatorinator:new(workflow, config, on_close)
+---@param popup_container ui.views.PopupContainer
+function Mapperatorinator:new(workflow, config, on_close, popup_container)
 	ModalView.new(self)
 	self.workflow = workflow
 	self.config = config
@@ -125,6 +126,12 @@ function Mapperatorinator:new(workflow, config, on_close)
 	self:setClip(true)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
+	self.popup_container = popup_container
+	self.form = Form({
+		direction = "column",
+		gap = 18,
+		padding = {0, 10, 0, 20},
+	})
 
 	local sprites = Resources.sprites
 	local modal_sprites = {
@@ -157,7 +164,6 @@ function Mapperatorinator:new(workflow, config, on_close)
 	self.section_list:setOffset(14, CONTENT_Y)
 	self:add(self.section_list)
 
-	self.form = Form({direction = "column", gap = 18, padding = {0, 10, 0, 20}})
 	self.scroll_view = self:add(ScrollView(self.form))
 	self.scroll_view:anchorFixed(CONTENT_X, CONTENT_Y, FORM_WIDTH + 2, CONTENT_HEIGHT)
 	self.form_selection = self.scroll_view:add(FormSelection(self.form))
@@ -206,8 +212,12 @@ function Mapperatorinator:createSections()
 		end),
 		makeSection("Basic", sprites.icon_play, function()
 			return {
-				ControlFactory.choice(config, keys.model, {name = "Model", width = FORM_WIDTH}),
-				ControlFactory.choice(config, keys.gamemode, {name = "Game mode", width = FORM_WIDTH}),
+				ControlFactory.choice(config, keys.model, {
+					form = self.form, popup_container = self.popup_container, name = "Model", width = FORM_WIDTH,
+				}),
+				ControlFactory.choice(config, keys.gamemode, {
+					form = self.form, popup_container = self.popup_container, name = "Game mode", width = FORM_WIDTH,
+				}),
 				numberControl(config, keys.difficulty, "Target difficulty", function(value) return ("%.1f★"):format(value) end),
 			}
 		end),
@@ -256,9 +266,15 @@ function Mapperatorinator:createSections()
 		end),
 		makeSection("Runtime", sprites.icon_gear, function()
 			return {
-				ControlFactory.choice(config, keys.device, {name = "Device", width = FORM_WIDTH}),
-				ControlFactory.choice(config, keys.precision, {name = "Precision", width = FORM_WIDTH}),
-				ControlFactory.choice(config, keys.attn_implementation, {name = "Attention implementation", width = FORM_WIDTH}),
+				ControlFactory.choice(config, keys.device, {
+					form = self.form, popup_container = self.popup_container, name = "Device", width = FORM_WIDTH,
+				}),
+				ControlFactory.choice(config, keys.precision, {
+					form = self.form, popup_container = self.popup_container, name = "Precision", width = FORM_WIDTH,
+				}),
+				ControlFactory.choice(config, keys.attn_implementation, {
+					form = self.form, popup_container = self.popup_container, name = "Attention implementation", width = FORM_WIDTH,
+				}),
 				booleanControl(config, keys.hitsounded, "Add hitsounds"),
 				booleanControl(config, keys.super_timing, "Use super timing"),
 				booleanControl(config, keys.generate_positions, "Generate standard/catch positions with diffusion"),

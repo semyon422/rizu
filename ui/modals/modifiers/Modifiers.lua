@@ -13,6 +13,7 @@ local Slider = require("ui.views.form.Slider")
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
 ---@field game sphere.GameController
+---@field popup_container ui.views.PopupContainer
 ---@field form ui.views.form.Form
 ---@field form_selection ui.views.form.FormSelection
 ---@field background gui.NineSliceUsage
@@ -28,9 +29,11 @@ local FORM_Y = 80
 
 ---@param game sphere.GameController
 ---@param on_change fun()?
-function Modifiers:new(game, on_change)
+---@param popup_container ui.views.PopupContainer
+function Modifiers:new(game, on_change, popup_container)
 	ModalView.new(self)
 	self.game = game
+	self.popup_container = popup_container
 	self.on_change = on_change
 	self.form_invalidated = false
 
@@ -93,6 +96,8 @@ function Modifiers:rebuildForm()
 	local range = assert(time_rate_model.range[rate_type], "unknown time rate type")
 
 	self.form:add(Dropdown({
+		form = self.form,
+		popup_container = self.popup_container,
 		label = "Time Rate Type",
 		options = time_rate_model.types,
 		value = rate_type,
