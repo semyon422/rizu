@@ -4,7 +4,6 @@ local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local BMFontLabel = require("ui.views.BMFontLabel")
 local Colors = require("ui.Colors")
-local ScoringUtils = require("ui.ScoringUtils")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 
@@ -98,10 +97,11 @@ end
 
 ---@param cvf ui.formatters.ChartviewFormatter
 ---@param cdf ui.formatters.ChartdiffFormatter
-function ResultMeta:bind(cvf, cdf)
+---@param ssf ui.formatters.ScoreSystemFormatter
+function ResultMeta:bind(cvf, cdf, ssf)
 	self.duration:setText(cvf:getDuration())
 	self.tempo:setText(cvf:getTempo().avg)
-	--self.score_system:setText(ScoringUtils.formatScoreSystemName(timings, subtimings))
+	self.score_system:setText(ssf:getName())
 
 	local ln = cvf:getLongNoteRatio() -- TODO: check if chartdiff has long_note_ratio. We should use it instead.
 	self.ln_percent.color = ln.color

@@ -13,6 +13,7 @@ local ResultMeta = require("ui.screens.result.ResultMeta")
 local CompositeView = require("gui.CompositeView")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
+local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.screens.result.Result : gui.Screen
@@ -160,10 +161,13 @@ function Result:updateInfo()
 		self.ring:setVisible(true)
 	end
 
-	local timings = game.replayBase.timings
-	if timings then
-		self.stats:bind(accuracy_source, judge_source, combo_source, timings)
-	end
+	-- Auto timings sourced from chart metadata are intentionally absent from
+	-- replayBase. The selected judge system is created from the resolved timings,
+	-- so it is authoritative for both manual and automatic timing selection.
+	---@cast judge_source +rizu.ScoreSystem
+	assert(judge_source.timings)
+	local score_system_formatter = ScoreSystemFormatter(judge_source)
+	self.stats:bind(accuracy_source, judge_source, combo_source, score_system_formatter)
 
 	self.chartview_formatter:setChartview(game.chartSelector.chartview)
 	self.chartview_formatter:setTimeRate(game.replayBase.rate)
@@ -171,7 +175,8 @@ function Result:updateInfo()
 
 	self.meta:bind(
 		self.chartview_formatter,
-		self.chartdiff_formatter
+		self.chartdiff_formatter,
+		score_system_formatter
 	)
 
 	self.judge_segments:bind(judge_source)

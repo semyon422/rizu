@@ -1,7 +1,6 @@
 local FlowContainer = require("gui.layout.FlowContainer")
 local BMFontLabel = require("ui.views.BMFontLabel")
 local Colors = require("ui.Colors")
-local ScoringUtils = require("ui.ScoringUtils")
 
 ---@class ui.screens.result.ResultStats : gui.layout.FlowContainer
 ---@operator call: ui.screens.result.ResultStats
@@ -65,12 +64,12 @@ end
 ---@param accuracy_source rizu.IAccuracySource
 ---@param judges_source rizu.IJudgesSource
 ---@param combo_source rizu.BaseScore
----@param timings sea.Timings
-function ResultStats:bind(accuracy_source, judges_source, combo_source, timings)
+---@param ssf ui.formatters.ScoreSystemFormatter
+function ResultStats:bind(accuracy_source, judges_source, combo_source, ssf)
 	self.accuracy:setText(accuracy_source:getAccuracyString())
 
-	local grade = ScoringUtils.getGrade(timings.name, accuracy_source:getAccuracy()) or "F"
-	local color = ScoringUtils.getGradeColor(timings.name, grade)
+	local grade = ssf:getGrade(accuracy_source:getAccuracy())
+	local color = ssf:getGradeColor(grade)
 	self.grade:setText(grade)
 	self.grade.color = color -- TODO: Label:setColor()
 	self.accuracy.color = color
