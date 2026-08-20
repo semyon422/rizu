@@ -55,7 +55,7 @@ function ModalManager:new(ui, popup_container)
 		-- TODO: The game should emit events like this.
 		ui.song_select:updateModifiers()
 	end
-	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed, popup_container))
+	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
 	if ui.game.aiChatModel then
 		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
