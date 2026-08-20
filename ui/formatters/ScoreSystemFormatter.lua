@@ -69,7 +69,7 @@ function ScoreSystemFormatter:getName()
 		return "soundsphere"
 	elseif timings.name == "osuod" then
 		---@cast subtimings -?
-		return ("osu!mania V%i OD%i"):format(subtimings.data, timings.data)
+		return ("osu!mania V%i OD%g"):format(subtimings.data, timings.data)
 	elseif timings.name == "etternaj" then
 		return ("Etterna J%i"):format(timings.data)
 	elseif timings.name == "quaver" then
