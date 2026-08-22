@@ -118,6 +118,17 @@ Runtime settings loaded by `sea.app.AppConfig` at startup. Controls:
 
 `sea/app/AppConfig.lua` ships the default shape with placeholder values. `server-state/app_config.lua` overrides it at runtime.
 
+### Production Configuration And Deployment
+
+Production configuration is environment-specific and usually ignored by Git. Repository deployments do not automatically migrate existing production files such as `server-state/app_config.lua`, `server-state/nginx_config.lua`, or `server-state/package_config.lua`.
+
+- When a change adds, removes, renames, or changes a required configuration field, explicitly tell the user which production configuration files and values must be updated. Do this in the change summary even if the repository defaults and examples were updated.
+- Do not assume a successful code build means production configuration is compatible. Before a requested deployment, compare the production configuration shape with current defaults/examples and validate required fields.
+- The user must push the repository changes before asking an agent to update or deploy production. Do not deploy unpushed local commits.
+- Production access and deployment require a separate explicit user request made after the push. The user should provide the production host, SSH user if needed, and path to the SSH keys. Never infer authorization to access production from an ordinary coding request.
+- Before modifying production configuration, inspect it remotely and create a timestamped backup. Preserve secrets and unrelated environment-specific values; apply only the required migration.
+- After updating production configuration, use the documented deployment workflow, then verify service health and any affected public protocol endpoint (for example, perform a real WebSocket upgrade rather than checking only the website root).
+
 ### `conf.lua` — LÖVE Framework configuration
 
 Standard LÖVE `love.conf()` entry point. Configures:
