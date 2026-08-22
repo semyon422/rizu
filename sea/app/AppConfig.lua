@@ -19,23 +19,12 @@ local AppConfig = {
 		redirect_uri = "",
 	},
 
-	multiplayer = {
-		address = "*",
-		port = 9000,
-	},
-
 	compute = {
 		host = "127.0.0.1",
 		port = 8191,
 		timeout = 120,
 		max_payload_size = 64 * 1024 * 1024,
 	},
-
-	-- Bancho (osu! server) configuration
-	bancho_domain = "rizu.su",
-	bancho_bot_name = "bot",
-	bancho_bot_id = 1,
-	bancho_max_matches = 64,
 
 	responsible_person = {
 		name = "Name",
