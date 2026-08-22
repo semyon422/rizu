@@ -33,6 +33,20 @@ function test.worker_file_compiles(t)
 end
 
 ---@param t testing.T
+function test.update_uses_headless_clock(t)
+	local transport = FakeAsyncVideoTransport()
+	local clock_calls = 0
+	local engine = AsyncVideoEngine(transport, FakeBgaPreviewDebug(), function()
+		clock_calls = clock_calls + 1
+		return 0
+	end)
+
+	engine:update()
+
+	t:eq(clock_calls, 2)
+end
+
+---@param t testing.T
 function test.load_starts_transport_and_sends_load_event(t)
 	local transport = FakeAsyncVideoTransport()
 	local engine = AsyncVideoEngine(transport, FakeBgaPreviewDebug())

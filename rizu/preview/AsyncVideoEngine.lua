@@ -49,15 +49,26 @@ end
 ---@operator call: rizu.preview.AsyncVideoEngine
 ---@field transport rizu.preview.IAsyncVideoTransport
 ---@field logger rizu.preview.IAsyncVideoLogger
+---@field clock fun(): number
 local AsyncVideoEngine = class()
+
+---@return number
+local function getTime()
+	if love and love.timer then
+		return love.timer.getTime()
+	end
+	return os.clock()
+end
 
 ---@param transport rizu.preview.IAsyncVideoTransport?
 ---@param logger rizu.preview.IAsyncVideoLogger?
-function AsyncVideoEngine:new(transport, logger)
+---@param clock (fun(): number)?
+function AsyncVideoEngine:new(transport, logger, clock)
 	self.generation = 0
 	self.request_id = 0
 	self.transport = transport or AsyncVideoThreadTransport()
 	self.logger = logger or BgaPreviewDebug
+	self.clock = clock or getTime
 	---@type {[string]: rizu.preview.AsyncVideoState}
 	self.videos = {}
 end
@@ -244,7 +255,7 @@ end
 ---@param name string
 ---@param time number
 function AsyncVideoEngine:presentFrame(name, time)
-	local t0 = love.timer.getTime()
+	local t0 = self.clock()
 	local state = self.videos[name]
 	if not state then
 		return
@@ -299,14 +310,14 @@ function AsyncVideoEngine:presentFrame(name, time)
 			"dropped=" .. tostring(dropped_frames) .. " lateness=" .. ("%.3f"):format(lateness)
 		)
 	end
-	local elapsed = love.timer.getTime() - t0
+	local elapsed = self.clock() - t0
 	if elapsed >= AsyncVideoConfig.slow_main_seconds then
 		self.logger:warnSlowPresent(name, #queue, frame.frame_time, elapsed)
 	end
 end
 
 function AsyncVideoEngine:update()
-	local t0 = love.timer.getTime()
+	local t0 = self.clock()
 	self.transport:checkError()
 
 	local event = self.transport:pop()
@@ -325,7 +336,7 @@ function AsyncVideoEngine:update()
 		end
 		event = self.transport:pop()
 	end
-	local elapsed = love.timer.getTime() - t0
+	local elapsed = self.clock() - t0
 	if elapsed >= AsyncVideoConfig.slow_main_seconds then
 		self.logger:warnSlowUpdate(frame_events, control_events, elapsed)
 	end
