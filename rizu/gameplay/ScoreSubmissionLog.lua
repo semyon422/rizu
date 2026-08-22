@@ -41,6 +41,7 @@ function ScoreSubmissionLog:write(event, fields)
 		table.insert(parts, formatValue(key) .. "=" .. formatValue(entry_fields[key]))
 	end
 	local line = table.concat(parts, "\t") .. "\n"
+	print("score submission", line:sub(1, -2))
 
 	local content = self.fs:read(self.path) or ""
 	local keep_size = self.max_size - #line

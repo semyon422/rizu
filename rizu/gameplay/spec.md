@@ -36,7 +36,7 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 - Editor resource loading stays synchronous for now, because editor startup has different UI/state expectations and was not part of the gameplay-start lag fix.
 
 ### ADR: Durable Score Submission Diagnostics
-- Every manual submission attempt writes a bounded structured entry to `userdata/logs/score_submissions.log`, including the replay/chart identity and whether submission was skipped, accepted, rejected, or raised an exception.
+- Every manual submission attempt writes a bounded structured entry to `userdata/logs/score_submissions.log` and mirrors the same entry to the console, including the replay/chart identity and whether submission was skipped, accepted, rejected, or raised an exception.
 - Accepted entries include the durable server job and chartplay identifiers plus the initial compute state so reports can be correlated with server queue records. While connected, the client polls accepted jobs for up to ten minutes and logs state/attempt changes, terminal failures, and successful side-effect completion.
 - Rejected submissions retain the score-engine event dump under `userdata/logs/score_submission_<replay_hash>.events`; event data is not dumped for accepted asynchronous jobs.
 - The diagnostic log is capped at 1 MiB and retains its newest complete entries.

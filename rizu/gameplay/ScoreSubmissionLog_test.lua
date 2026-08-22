@@ -19,6 +19,23 @@ function test.writes_structured_entries(t)
 end
 
 ---@param t testing.T
+function test.mirrors_entries_to_console(t)
+	local fs = FakeFilesystem()
+	local log = ScoreSubmissionLog(fs)
+	local old_print = print
+	local printed
+	_G.print = function(...)
+		printed = table.concat({...}, " ")
+	end
+	log:write("accepted", {job_id = 42})
+	_G.print = old_print
+
+	t:assert(printed:find("score submission", 1, true))
+	t:assert(printed:find("\taccepted\t", 1, true))
+	t:assert(printed:find("job_id=42", 1, true))
+end
+
+---@param t testing.T
 function test.preserves_recent_entries_within_size_limit(t)
 	local fs = FakeFilesystem()
 	local log = ScoreSubmissionLog(fs)
