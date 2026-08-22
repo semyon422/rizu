@@ -76,7 +76,7 @@ CLI mapping:
 - `ReleasePackager`: creates `build/release/<commit>/` with `server.tar.gz`, the assembled client repository, client ZIPs, `files.json`, and a checksummed `release.json`.
 - Repository assembly copies platform output directories, then removes FFmpeg shared libraries outside the pinned ABI set so stale files from earlier builds cannot enter releases.
 - macOS packaging rewrites build-host Mach-O dependency paths and install IDs to `@loader_path` references, then rejects any remaining `build/deps/` dependency before creating the archive.
-- `server-state/package_config.lua`: ignored deployment input that supplies the client update repository and WebSocket endpoints embedded during packaging.
+- `server-state/package_config.lua`: ignored deployment input that supplies the client update repository and named WebSocket server list embedded during packaging.
 
 ## Release Artifact
 

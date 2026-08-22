@@ -50,7 +50,7 @@ local Resources = class()
 ---@param views web.Views
 ---@param sessions web.Sessions
 ---@param app_config sea.AppConfig
----@param package_config {repo_url: string, websocket_url: string}
+---@param package_config {repo_url: string, servers: sphere.ServerConfig[]}
 ---@param bancho_config bancho.config.BanchoConfig
 ---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
 function Resources:new(domain, server_remote, views, sessions, app_config, package_config, bancho_config, shared_memory)

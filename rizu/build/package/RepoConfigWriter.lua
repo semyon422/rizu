@@ -45,9 +45,21 @@ function RepoConfigWriter:write(gamedir)
 		local chunk = loadstring(content)
 		if chunk then
 			local urls = chunk()
-			urls.websocket = config.game.websocket
+			urls.servers = config.game.servers
 			urls.update = config.game.repo .. "/files.json"
 			self.ctx.fs:write(urls_path, serialize(urls))
+		end
+	end
+
+	local online_path = gamedir .. "/sphere/persistence/ConfigModel/online.lua"
+	content = self.ctx.fs:read(online_path)
+	if content then
+		---@type (fun(): sphere.OnlineConfig)?
+		local chunk = loadstring(content)
+		if chunk then
+			local online = chunk()
+			online.url = config.game.servers[1].url
+			self.ctx.fs:write(online_path, serialize(online))
 		end
 	end
 end

@@ -3,5 +3,7 @@
 
 return {
 	repo_url = "https://dl.rizu.su",
-	websocket_url = "wss://rizu.su/ws",
+	servers = {
+		{name = "Rizu", url = "wss://rizu.su/ws"},
+	},
 }

@@ -357,7 +357,8 @@ function GameController:load()
 	self.replayBase:importReplayBase(configModel.configs.play)
 	self.modifierSelectModel:updateAdded()
 
-	self.seaClient:load(self.persistence.configModel.configs.urls.websocket, function()
+	local server_url = self.onlineModel:getServerUrl()
+	self.seaClient:load(server_url, function()
 		self.onlineModel.authManager:checkSession()
 		self.online_wrapper:updateLeaderboards()
 		if not love.filesystem.read("disable_difftables_sync.txt") then

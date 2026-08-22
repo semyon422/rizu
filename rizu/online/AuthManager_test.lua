@@ -14,8 +14,8 @@ local function makeManager()
 	}
 	local config_model = {
 		configs = {
-			online = {tokens = {}, user = {}},
-			urls = {websocket = "ws://test"},
+			online = {url = "ws://test", tokens = {}, user = {}},
+			urls = {servers = {{name = "Test", url = "ws://test"}}},
 		},
 	}
 	local manager = AuthManager(sea_client, config_model) ---@diagnostic disable-line

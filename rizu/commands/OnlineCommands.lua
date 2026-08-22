@@ -9,9 +9,43 @@ local function validateNotEmpty(value)
 end
 
 ---@param game sphere.GameController
+---@return rizu.command.Fuzzy.Candidate[] choices
+local function getServerChoices(game)
+	---@type rizu.command.Fuzzy.Candidate[]
+	local choices = {}
+	for _, server in ipairs(game.persistence.configModel.configs.urls.servers) do
+		table.insert(choices, {
+			title = server.name,
+			value = server.url,
+		})
+	end
+	return choices
+end
+
+---@param game sphere.GameController
 ---@return rizu.command.Command[]
 return function(game)
 	return {
+		{
+			id = "online.switch_server",
+			title = "Online: Switch Server",
+			description = "Changes the online server and restarts the game",
+			arguments = {
+				{
+					name = "url",
+					type = "string",
+					prompt = "Select server:",
+					choices = function()
+						return getServerChoices(game)
+					end,
+				},
+			},
+			callback = function(args)
+				game.persistence.configModel.configs.online.url = args.url
+				game.persistence.configModel:write("online")
+				love.event.quit("restart")
+			end,
+		},
 		{
 			id = "online.login",
 			title = "Online: Login",

@@ -7,6 +7,19 @@ local pprint = require("pprint")
 ---@field configModel sphere.ConfigModel
 local AuthManager = class()
 
+---@param config_model sphere.ConfigModel
+---@return string url
+local function getServerUrl(config_model)
+	local configs = config_model.configs
+	local selected_url = configs.online.url
+	for _, server in ipairs(configs.urls.servers) do
+		if server.url == selected_url then
+			return selected_url
+		end
+	end
+	error("selected online server does not exist: " .. selected_url)
+end
+
 ---@param sea_client rizu.SeaClient
 ---@param operation string
 ---@param f fun(...: any)
@@ -61,11 +74,11 @@ function AuthManager:checkSessionAsync()
 
 	local server_remote = self.sea_client.remote
 	local config = self.configModel.configs.online
-	local urls = self.configModel.configs.urls
+	local server_url = getServerUrl(self.configModel)
 	---@type {[string]: string}
 	local tokens = config.tokens
 
-	local token = tokens[urls.websocket]
+	local token = tokens[server_url]
 	if not token then
 		print("no token for current server")
 		return
@@ -91,7 +104,7 @@ function AuthManager:loginAsync(email, password)
 	local sea_client = self.sea_client
 	local server_remote = sea_client.remote
 	local config = self.configModel.configs.online
-	local urls = self.configModel.configs.urls
+	local server_url = getServerUrl(self.configModel)
 
 	---@type {session: sea.Session, user: sea.User, token: string}?
 	local ret
@@ -107,7 +120,7 @@ function AuthManager:loginAsync(email, password)
 	config.user = ret.user
 	---@type {[string]: string}
 	local tokens = config.tokens
-	tokens[urls.websocket] = ret.token
+	tokens[server_url] = ret.token
 
 	self:checkSessionAsync()
 end
@@ -118,7 +131,7 @@ function AuthManager:logoutAsync()
 	local sea_client = self.sea_client
 	local server_remote = sea_client.remote
 	local config = self.configModel.configs.online
-	local urls = self.configModel.configs.urls
+	local server_url = getServerUrl(self.configModel)
 
 	pcall(server_remote.auth.logout, server_remote.auth)
 
@@ -126,7 +139,7 @@ function AuthManager:logoutAsync()
 	config.user = {}
 	---@type {[string]: string?}
 	local tokens = config.tokens
-	tokens[urls.websocket] = nil
+	tokens[server_url] = nil
 
 	sea_client.client:setUser()
 end
