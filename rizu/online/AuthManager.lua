@@ -121,6 +121,7 @@ function AuthManager:loginAsync(email, password)
 	---@type {[string]: string}
 	local tokens = config.tokens
 	tokens[server_url] = ret.token
+	self.configModel:write("online")
 
 	self:checkSessionAsync()
 end
@@ -140,6 +141,7 @@ function AuthManager:logoutAsync()
 	---@type {[string]: string?}
 	local tokens = config.tokens
 	tokens[server_url] = nil
+	self.configModel:write("online")
 
 	sea_client.client:setUser()
 end

@@ -13,7 +13,7 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - `OnlineModel` owns online session/auth workflows backed by persisted online config.
 - Packaged and end-user-maintained server definitions live in the read-only `urls.servers` array. Server switching persists only the selected URL in `online.lua` and restarts the game so every online subsystem is recreated against one consistent endpoint; per-server login tokens remain keyed by WebSocket URL.
 - If the persisted URL is no longer present after a package or user configuration change, startup selects and persists the first configured server. An empty server list remains a configuration error.
-- `AuthManager` performs login, logout, session restoration, and user refresh through `SeaClient`.
+- `AuthManager` performs login, logout, session restoration, and user refresh through `SeaClient`. Login and logout persist `online.lua` immediately so a crash or forced restart cannot lose the per-server token change.
 - `OnlineClient` stores client-observed online state such as the current user and leaderboard data.
 - `MultiplayerModel` tracks client-side multiplayer state and coordinates room chart selection/download actions.
 - `SeaClient` bridges websocket transport, ICC remotes, and validated server remotes.

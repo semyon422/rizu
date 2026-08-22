@@ -124,10 +124,10 @@ Production configuration is environment-specific and usually ignored by Git. Rep
 
 - When a change adds, removes, renames, or changes a required configuration field, explicitly tell the user which production configuration files and values must be updated. Do this in the change summary even if the repository defaults and examples were updated.
 - Do not assume a successful code build means production configuration is compatible. Before a requested deployment, compare the production configuration shape with current defaults/examples and validate required fields.
-- The user must push the repository changes before asking an agent to update or deploy production. Do not deploy unpushed local commits.
-- Production access and deployment require a separate explicit user request made after the push. The user should provide the production host, SSH user if needed, and path to the SSH keys. Never infer authorization to access production from an ordinary coding request.
-- Before modifying production configuration, inspect it remotely and create a timestamped backup. Preserve secrets and unrelated environment-specific values; apply only the required migration.
-- After updating production configuration, use the documented deployment workflow, then verify service health and any affected public protocol endpoint (for example, perform a real WebSocket upgrade rather than checking only the website root).
+- Pushed changes on the deployment branch are deployed automatically by GitHub Actions. For code-only changes, tell the user to push and let CI deploy; do not SSH to production or run the deployment workflow manually.
+- Manual production access is only needed when ignored environment configuration cannot be updated by the automated deployment. It requires a separate explicit user request made after the code is pushed. The user should provide the production host, SSH user if needed, and path to the SSH keys. Never infer authorization to access production from an ordinary coding request.
+- Before manually modifying production configuration, inspect it remotely and create a timestamped backup. Preserve secrets and unrelated environment-specific values; apply only the required migration.
+- After a manual production configuration update, restart or redeploy only as needed, then verify service health and any affected public protocol endpoint (for example, perform a real WebSocket upgrade rather than checking only the website root).
 
 ### `conf.lua` — LÖVE Framework configuration
 

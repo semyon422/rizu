@@ -30,6 +30,7 @@ function OnlineModel:getServerUrl()
 
 	local fallback = assert(servers[1], "no online servers configured")
 	configs.online.url = fallback.url
+	self.configModel:write("online")
 	return fallback.url
 end
 

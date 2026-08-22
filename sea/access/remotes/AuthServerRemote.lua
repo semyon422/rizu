@@ -44,6 +44,9 @@ function AuthServerRemote:loginByToken(token)
 		return nil, err
 	end
 
+	-- Web session signing adds this field, but it is not part of sea.Session.
+	---@cast session_data {[string]: any}
+	session_data.csrf_token = nil
 	local ok, err = Session.validate(session_data)
 	if not ok then
 		return nil, err
