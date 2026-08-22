@@ -84,9 +84,9 @@ function AuthManager:checkSessionAsync()
 		return
 	end
 
-	local ok = server_remote.auth:loginByToken(token)
+	local ok, err = server_remote.auth:loginByToken(token)
 	if not ok then
-		print("invalid token")
+		print("invalid token", err)
 		return
 	end
 
