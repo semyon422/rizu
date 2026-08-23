@@ -35,9 +35,17 @@ local function convert_iconv(s, from, to)
 		return Encoding._cache[key]
 	end
 
+	---@type util.Iconv
 	local cd = assert(iconv:open(to, from))
-	local out = assert(cd:convert(s))
+	local out, err = cd:convert(s)
+	if not out and from == "CP932" then
+		-- Fixed-width IIDX fields can cut the final multibyte character.
+		cd:close()
+		cd = assert(iconv:open(to, from))
+		out, err = cd:convert(s:sub(1, -2))
+	end
 	cd:close()
+	assert(out, err)
 	Encoding._cache[key] = out
 	return out
 end

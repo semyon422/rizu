@@ -112,7 +112,7 @@ Most chartfiles are ordinary filesystem files, but IIDX `.ifs` archives are repr
 For metadata-driven IIDX locations:
 
 - The scanned location root is the IIDX `contents/data` directory.
-- Song metadata is loaded from `info/*/music_data.bin`.
+- Song metadata is loaded from standard `info/*/music_data.bin` files and omnimix `info/*/music_omni.bin` files. Omnimix metadata uses the same database layout after decoding its obfuscated 64-byte header. When standard and omnimix databases have the same version, omnimix entries take priority while the standard database fills IDs absent from the overlay.
 - Present chart archives and extracted song folders are discovered under `sound/`.
 - Each archive, such as `sound/01234.ifs` or `sound/01234-p0.ifs`, is stored as one `chartfile_set` with `dir = "sound"` and `name` equal to the archive filename.
 - An extracted directory named `sound/01234` or `sound/01234-p0` is stored identically as a non-file chartfile set. Its chartfile is the flat `01234.1` file directly inside the folder. Archives take priority if both packed and extracted forms exist.

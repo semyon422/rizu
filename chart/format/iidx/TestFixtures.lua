@@ -1,5 +1,6 @@
 local Ifs = require("chart.format.iidx.Ifs")
 local byte = require("byte")
+local bit = require("bit")
 
 ---@class chart.iidx.TestFixtures
 local TestFixtures = {}
@@ -287,6 +288,17 @@ function TestFixtures.musicdb(songs, version)
 		out[#out + 1] = music_entry(song)
 	end
 	return table.concat(out)
+end
+
+---@param data string
+---@return string
+function TestFixtures.omnimixMusicDb(data)
+	local key = "subnimix"
+	local header = {}
+	for i = 1, math.min(64, #data) do
+		header[i] = string.char(bit.bxor(data:byte(i), key:byte((i - 1) % #key + 1)))
+	end
+	return table.concat(header) .. data:sub(65)
 end
 
 ---@return string

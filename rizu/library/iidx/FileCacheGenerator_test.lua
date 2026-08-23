@@ -153,6 +153,44 @@ function test.detects_iidx_location(t)
 end
 
 ---@param t testing.T
+function test.detects_and_scans_omnimix_metadata(t)
+	local fs = create_fs()
+	fs:remove("data/info/0/music_data.bin")
+	fs:write("data/info/0/music_omni.bin", Fixtures.omnimixMusicDb(Fixtures.sampleMusicDb()))
+	local repo = FakeChartfilesRepo:new()
+	local generator = FileCacheGenerator(repo, fs, FakeTaskContext())
+
+	local catalog = assert(generator:scan(nil, 1, "data"))
+
+	t:eq(Catalog.isLocation(fs, "data"), true)
+	t:eq(catalog.dbs[1].source_name, "music_omni.bin")
+	t:eq(catalog.by_id[1234].title, "Fixture Song")
+	t:eq(#repo.sets, 1)
+	t:eq(repo.sets[1].name, "01234.ifs")
+end
+
+---@param t testing.T
+function test.prefers_omnimix_metadata_at_same_version(t)
+	local fs = create_fs()
+	local omni_data = Fixtures.musicdb({
+		{
+			song_id = 1234,
+			title = "Omnimix Song",
+			artist = "Omnimix Artist",
+			genre = "Omnimix Genre",
+		},
+	}, 30)
+	fs:write("data/info/0/music_omni.bin", Fixtures.omnimixMusicDb(omni_data))
+
+	local catalog = assert(Catalog.load(fs, "data"))
+
+	t:eq(#catalog.dbs, 2)
+	t:eq(catalog.dbs[1].source_name, "music_omni.bin")
+	t:eq(catalog.by_id[1234].title, "Omnimix Song")
+	t:eq(catalog.by_id[2222].title, "Missing Archive")
+end
+
+---@param t testing.T
 function test.scans_metadata_listed_ifs_files(t)
 	local fs = create_fs()
 	local repo = FakeChartfilesRepo:new()

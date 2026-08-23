@@ -1,4 +1,5 @@
 local Encoding = require("chart.format.iidx.Encoding")
+local bit = require("bit")
 
 ---@alias chart.iidx.VariationName
 ---| "SPB"
@@ -43,10 +44,35 @@ local Encoding = require("chart.format.iidx.Encoding")
 ---@field index {[integer]: integer}
 ---@field songs chart.iidx.MusicDbEntry[]
 ---@field by_id {[integer]: chart.iidx.MusicDbEntry}
----@field info_dir string?
 
 ---@class chart.iidx.MusicDbModule
 local MusicDb = {}
+
+local omni_header_key = "subnimix"
+local omni_header_size = 64
+
+---@param data string
+---@return string
+local function decode_omni_header(data)
+	if data:sub(1, 4) == "IIDX" then
+		return data
+	end
+	if #data < omni_header_size then
+		return data
+	end
+
+	---@type string[]
+	local header = {}
+	for i = 1, omni_header_size do
+		local key_byte = omni_header_key:byte((i - 1) % #omni_header_key + 1)
+		header[i] = string.char(bit.bxor(data:byte(i), key_byte))
+	end
+	local decoded = table.concat(header) .. data:sub(omni_header_size + 1)
+	if decoded:sub(1, 4) == "IIDX" then
+		return decoded
+	end
+	return data
+end
 
 ---@param s string
 ---@param o integer
@@ -226,6 +252,7 @@ end
 ---@param data string
 ---@return chart.iidx.MusicDb
 function MusicDb.parse(data)
+	data = decode_omni_header(data)
 	assert(data:sub(1, 4) == "IIDX", "not an IIDX music database")
 	local version = le32(data, 5)
 	local song_count = le16u(data, 9)

@@ -5,7 +5,7 @@ Provide read-only beatmania IIDX chart support for game `data` folders by parsin
 ## User Experience
 
 - Players can add an IIDX `contents/data` folder as a normal library location.
-- Library scanning discovers songs from `info/*/music_data.bin` and chart data from either `sound/*.ifs` archives or extracted `sound/<song_id>/` folders.
+- Library scanning discovers songs from standard `info/*/music_data.bin` metadata or omnimix `info/*/music_omni.bin` metadata, and chart data from either `sound/*.ifs` archives or extracted `sound/<song_id>/` folders.
 - Imported IIDX entries are playable notecharts for available SP/DP variations.
 
 ## Architecture Decisions
@@ -24,4 +24,5 @@ Provide read-only beatmania IIDX chart support for game `data` folders by parsin
 - Metadata `bga_filename` entries are imported as BMS-style BGA sprite notes on a dedicated `bga` visual at chart load. IIDX filenames are usually extensionless movie stems, so the decoder stores them as `.mp4` image resources; the resource finder may still resolve another video extension such as `.wmv` by stem.
 - Metadata `bga_delay` is interpreted as a 60 fps frame offset. Negative values place the BGA note before chart time zero so video playback starts already advanced at song start.
 - IIDX gameplay/editor/preview resource loading includes the content-level `movie` directory in addition to the song `sound/*.ifs` archive when a chart comes from an IIDX location.
-- Metadata from the newest/highest-version `music_data.bin` is preferred, with older metadata folders filling missing song IDs.
+- Metadata from the newest/highest-version database is preferred, with older metadata folders filling missing song IDs. When `music_data.bin` and `music_omni.bin` have the same version, omnimix metadata takes priority and standard metadata fills missing IDs.
+- Omnimix `music_omni.bin` files preserve the standard IIDX database body and obfuscate only the first 64 bytes with the repeating `subnimix` XOR key. `MusicDb.parse` decodes this header in memory; source files are never modified.
