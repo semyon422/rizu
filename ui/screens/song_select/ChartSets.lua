@@ -141,11 +141,10 @@ end
 ---@param is_selected boolean
 ---@param is_hovered boolean
 function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
-	local pc = Colors.panel
 	if is_hovered then
 		self.batch:setColor(Colors.surface_raised)
 	else
-		self.batch:setColor(pc[1], pc[2], pc[3], 0.7)
+		self.batch:setColor(Colors.surface)
 	end
 
 	self.batch:add(Resources.sprites.list_item_cap_left, 0, y)

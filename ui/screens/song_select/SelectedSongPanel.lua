@@ -9,12 +9,12 @@ local SpringValue = require("gui.anim.SpringValue")
 
 local lg = love.graphics
 
----@class ui.screens.song_select.BackgroundPanel.Details : gui.View
----@operator call: ui.screens.song_select.BackgroundPanel.Details
----@field panel ui.screens.song_select.BackgroundPanel
+---@class ui.screens.song_select.SelectedSongPanel.Details : gui.View
+---@operator call: ui.screens.song_select.SelectedSongPanel.Details
+---@field panel ui.screens.song_select.SelectedSongPanel
 local Details = View + {}
 
----@param panel ui.screens.song_select.BackgroundPanel
+---@param panel ui.screens.song_select.SelectedSongPanel
 function Details:new(panel)
 	View.new(self)
 	self.panel = panel
@@ -35,19 +35,19 @@ function Details:draw()
 	lg.print(panel.artist, 20, panel.title_font:getHeight())
 end
 
----@class ui.screens.song_select.BackgroundPanel : gui.View
----@operator call: ui.screens.song_select.BackgroundPanel
+---@class ui.screens.song_select.SelectedSongPanel : gui.View
+---@operator call: ui.screens.song_select.SelectedSongPanel
 ---@field bg_model sphere.BackgroundModel
 ---@field chart_preview_view sphere.ChartPreviewView
 ---@field bga_renderer ui.views.BgaRenderer
 ---@field game sphere.GameController
 ---@field preview_canvas love.Canvas?
----@field details_container ui.screens.song_select.BackgroundPanel.Details
+---@field details_container ui.screens.song_select.SelectedSongPanel.Details
 ---@field progress_bar ui.screens.music_player.ProgressBar
 ---@field details_opacity gui.anim.SpringValue
 ---@field details_reveal gui.anim.SpringValue
 ---@field details_hidden_offset number
-local BackgroundPanel = View + {}
+local SelectedSongPanel = View + {}
 
 -- ChartPreviewView is still a legacy renderer and uses the window dimensions as
 -- its viewport.  Keep the compatibility shim local to this view while it is
@@ -82,23 +82,6 @@ local function popPreviewViewport()
 	love.graphics.getDimensions = base_get_dimensions
 end
 
-local shader_code = [[
-	extern vec2 container_size;
-	extern float corner_radius;
-
-	float rounded_box_sdf(vec2 center_pos, vec2 size, float radius) {
-		return length(max(abs(center_pos) - size + radius, 0.0)) - radius;
-	}
-
-	vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-		vec4 pixel = Texel(texture, texture_coords);
-		vec2 local_center_coords = (texture_coords - 0.5) * container_size;
-		float corner_dist = rounded_box_sdf(local_center_coords, container_size * 0.5, corner_radius);
-		float corner_mask = smoothstep(2.0, 0.0, corner_dist);
-		return pixel * color * corner_mask * color.a;
-	}
-]]
-
 local DETAILS_PADDING = 20
 local PROGRESS_HEIGHT = 54
 local PROGRESS_BOTTOM = 10
@@ -109,14 +92,13 @@ local DETAILS_IDLE_Y = 56 + DETAILS_BOTTOM_PADDING
 
 ---@param bg_model sphere.BackgroundModel
 ---@param game sphere.GameController
-function BackgroundPanel:new(bg_model, game)
+function SelectedSongPanel:new(bg_model, game)
 	View.new(self)
 	self.bg_model = bg_model
 	self.game = game
 	self.bga_renderer = BgaRenderer()
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
-	self.bg_shader = lg.newShader(shader_code)
 	self.title = "Title"
 	self.artist = "Artist"
 	self.details_opacity = SpringValue({
@@ -137,11 +119,11 @@ function BackgroundPanel:new(bg_model, game)
 	self.progress_bar = self.details_container:add(ProgressBar(game.previewModel))
 end
 
-function BackgroundPanel:load()
+function SelectedSongPanel:load()
 	self.chart_preview_view:load()
 end
 
-function BackgroundPanel:unload()
+function SelectedSongPanel:unload()
 	if self.preview_canvas then
 		self.preview_canvas:release()
 		self.preview_canvas = nil
@@ -153,7 +135,7 @@ end
 ---@param old_y number
 ---@param old_width number
 ---@param old_height number
-function BackgroundPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
+function SelectedSongPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 	local title_height = self.title_font:getHeight()
 	local artist_height = self.artist_font:getHeight()
 	local details_height = title_height + artist_height + DETAILS_GAP
@@ -184,12 +166,10 @@ function BackgroundPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 	end
 	self.preview_canvas = lg.newCanvas(canvas_width, canvas_height)
 	preview_width, preview_height = canvas_width, canvas_height
-	self.bg_shader:send("container_size", {canvas_width, canvas_height})
-	self.bg_shader:send("corner_radius", 8)
 end
 
 ---@param dt number
-function BackgroundPanel:update(dt)
+function SelectedSongPanel:update(dt)
 	self.chart_preview_view:update(dt)
 	self.details_opacity:update(dt)
 	local inputs = self.screen and self.screen.inputs
@@ -199,13 +179,13 @@ function BackgroundPanel:update(dt)
 end
 
 ---@param cvf ui.formatters.ChartviewFormatter
-function BackgroundPanel:bind(cvf)
+function SelectedSongPanel:bind(cvf)
 	self.details_opacity:snap(0):set(1)
 	self.title = cvf:getTitle()
 	self.artist = cvf:getArtist()
 end
 
-function BackgroundPanel:drawBackground()
+function SelectedSongPanel:drawBackground()
 	local images = self.bg_model.images
 	local alpha = self.bg_model.alpha
 	local w, h = self.preview_canvas:getDimensions()
@@ -240,20 +220,18 @@ function BackgroundPanel:drawBackground()
 	popPreviewViewport()
 	lg.pop()
 
-	lg.setShader(self.bg_shader)
 	lg.draw(self.preview_canvas)
-	lg.setShader()
 	Resources.sprites.select_bg_overlay:draw(0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
 end
 
-function BackgroundPanel:draw()
+function SelectedSongPanel:draw()
 	if not self.preview_canvas then return end
 	self:drawBackground()
 end
 
 ---@param event table
-function BackgroundPanel:receive(event)
+function SelectedSongPanel:receive(event)
 	self.chart_preview_view:receive(event)
 end
 
-return BackgroundPanel
+return SelectedSongPanel
