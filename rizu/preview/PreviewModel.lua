@@ -17,6 +17,7 @@ local Settings = require("rizu.config.Settings")
 ---@field location_prefix string
 ---@field location_dir string
 ---@field chartfile_name string
+---@field format sea.ChartFormat
 ---@field index integer
 
 ---@class rizu.preview.PreviewGenerationData
@@ -26,6 +27,7 @@ local Settings = require("rizu.config.Settings")
 ---@field location_dir string
 ---@field preview_resource_dir string?
 ---@field chartfile_name string
+---@field format sea.ChartFormat
 ---@field index integer
 
 ---@class rizu.preview.PreviewModel
@@ -389,12 +391,20 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 		print("Preview: could not read " .. tostring(chartview_data.location_path))
 		return false
 	end
+	local decode_context
+	if chartview_data.format == "iidx" then
+		decode_context = IidxDecodeContext.fromLocation(
+			fs,
+			chartview_data.location_prefix,
+			chartview_data.chartfile_name
+		)
+	end
 
 	local chart_chartmetas = ChartFactory:getCharts(
 		chartview_data.chartfile_name,
 		content,
-		nil,
-		IidxDecodeContext.fromLocation(fs, chartview_data.location_prefix, chartview_data.chartfile_name)
+		chartview_data.hash,
+		decode_context
 	)
 	if not chart_chartmetas then
 		print("Preview: chart parsing failed for " .. tostring(chartview_data.chartfile_name))
@@ -437,6 +447,7 @@ function PreviewModel:generatePreview(chartview)
 		location_dir = chartview.location_dir,
 		preview_resource_dir = get_preview_resource_dir(chartview),
 		chartfile_name = chartview.chartfile_name,
+		format = chartview.format,
 		index = chartview.index,
 		hash = hash,
 	}
