@@ -31,7 +31,7 @@ function InfoPanel:bind(cvf)
 	cs[2] = cvf:getDuration()
 	tb24:add(cs, 65, 9)
 
-	cs[1] = Colors.text_muted
+	cs[1] = Colors.muted
 	cs[2] = "LN"
 	tb24:add(cs, 14, 43)
 
@@ -55,7 +55,7 @@ function InfoPanel:bind(cvf)
 	cs[2] = cvf:getNoteCount()
 	tb24:add(cs, 212, 9)
 
-	cs[1] = Colors.text_muted
+	cs[1] = Colors.muted
 	cs[2] = "LV"
 	tb24:add(cs, 165, 43)
 
@@ -71,7 +71,7 @@ function InfoPanel:draw()
 	Painter.setColorTable(Colors.panel)
 	self.bg:draw(self.width, self.height)
 	Painter.snapToPixel()
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	Resources.sprites.icon_clock:draw(18, 11)
 	Resources.sprites.icon_music:draw(165, 11)
 	Resources.sprites.icon_metronome:draw(360, 11)

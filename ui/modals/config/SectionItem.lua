@@ -46,7 +46,7 @@ function SectionItem:draw()
 	if not self.mouse_over then
 		return
 	end
-	Painter.setColorTable(Colors.hover)
+	Painter.setColorTable(Colors.surface_raised)
 	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 end
 

@@ -123,7 +123,7 @@ function FpsView:draw()
 	love.graphics.rectangle("fill", 0, 0, WIDTH, HEIGHT)
 	local graph_right = GRAPH_WIDTH - PADDING
 	local graph_bottom = GRAPH_Y + GRAPH_HEIGHT
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	love.graphics.setFont(self.font)
 	love.graphics.print(("%s  %.1f ms"):format(
 		TIMING_KEYS[self.timing_index], self.graph_max_dt * 1000
@@ -143,7 +143,7 @@ function FpsView:draw()
 			points[#points + 1] = x
 			points[#points + 1] = graph_bottom - normalized_dt * GRAPH_HEIGHT
 		end
-		Painter.setColorTable(Colors.accent2)
+		Painter.setColorTable(Colors.accent)
 		love.graphics.line(points)
 	end
 

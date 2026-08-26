@@ -449,15 +449,15 @@ function AiChat:getLines()
 	local role_colors = {
 		user = Colors.accent,
 		assistant = Colors.text,
-		tool = Colors.text_muted,
-		error = Colors.back_button,
+		tool = Colors.muted,
+		error = Colors.danger,
 	}
 	for _, entry in ipairs(self.model.entries) do
 		if entry.role == "tool" and entry.tool_call_id then
 			local expanded = self.expanded_tools[entry.tool_call_id] == true
 			local header = ("[%s] %s"):format(toolStatusLabel(entry), entry.name or "tool")
-			local status_color = entry.status == "error" and Colors.back_button
-				or entry.status == "running" and Colors.accent or Colors.play_button
+			local status_color = entry.status == "error" and Colors.danger
+				or entry.status == "running" and Colors.accent or Colors.success
 			addWrapped(lines, font, header, wrap_width, status_color, entry.tool_call_id)
 
 			local arguments = ToolPresentation.formatArguments(entry.arguments)
@@ -465,7 +465,7 @@ function AiChat:getLines()
 			if arguments ~= "" then
 				table.insert(lines, {
 					text = "input",
-					color = Colors.text_muted,
+					color = Colors.muted,
 					tool_call_id = entry.tool_call_id,
 				})
 				if not expanded then
@@ -491,7 +491,7 @@ function AiChat:getLines()
 			if entry.content ~= "" then
 				table.insert(lines, {
 					text = entry.status == "error" and "error" or "output",
-					color = Colors.text_muted,
+					color = Colors.muted,
 					tool_call_id = entry.tool_call_id,
 				})
 				local formatted_result = ToolPresentation.formatResult(entry.name, entry.content)
@@ -509,7 +509,7 @@ function AiChat:getLines()
 					font,
 					output,
 					wrap_width,
-					Colors.text_muted,
+					Colors.muted,
 					entry.tool_call_id,
 					result_line_limit
 				)
@@ -570,14 +570,14 @@ function AiChat:draw()
 	love.graphics.setColor(Colors.text)
 	love.graphics.print(brand.name .. " AI", PADDING, 12)
 	love.graphics.setFont(small_font)
-	love.graphics.setColor(Colors.text_muted)
+	love.graphics.setColor(Colors.muted)
 	local model_options = self.model:getModelOptions()
 	if #model_options > 0 then
-		love.graphics.setColor(Colors.panel_alt)
+		love.graphics.setColor(Colors.surface)
 		love.graphics.rectangle("fill", MODEL_X, 8, MODEL_WIDTH, STOP_HEIGHT)
 		love.graphics.setColor(Colors.text)
 		love.graphics.printf(utf8validate(self.model:getSelectedModelLabel()), MODEL_X + 8, 15, MODEL_WIDTH - 16, "left")
-		love.graphics.setColor(Colors.text_muted)
+		love.graphics.setColor(Colors.muted)
 	end
 	local help = self.model.busy and "Esc stop  •  Ctrl+L clear  •  Shift+Enter newline"
 		or "Esc close  •  Ctrl+L clear  •  Shift+Enter newline"
@@ -588,7 +588,7 @@ function AiChat:draw()
 	love.graphics.printf(help, 0, 15, self.width - help_right, "right")
 	if self.model.busy then
 		local stop_x = self.width - PADDING - STOP_WIDTH
-		love.graphics.setColor(Colors.back_button)
+		love.graphics.setColor(Colors.danger)
 		love.graphics.rectangle("fill", stop_x, 8, STOP_WIDTH, STOP_HEIGHT)
 		love.graphics.setColor(Colors.text)
 		love.graphics.printf("Stop", stop_x, 15, STOP_WIDTH, "center")
@@ -598,13 +598,13 @@ function AiChat:draw()
 		local login_color = Colors.accent
 		if auth_status == "logging_in" then
 			login_text = "Waiting for login"
-			login_color = Colors.text_muted
+			login_color = Colors.muted
 		elseif auth_status == "authenticated" then
 			login_text = "OpenAI connected"
 			login_color = Colors.accent
 		elseif auth_status == "error" then
 			login_text = "Retry OpenAI login"
-			login_color = Colors.back_button
+			login_color = Colors.danger
 		end
 		love.graphics.setColor(login_color)
 		love.graphics.rectangle("fill", login_x, 8, LOGIN_WIDTH, STOP_HEIGHT)
@@ -620,7 +620,7 @@ function AiChat:draw()
 		local line = lines[i]
 		local text_x = PADDING
 		if line.tool_call_id then
-			love.graphics.setColor(Colors.panel_alt)
+			love.graphics.setColor(Colors.surface)
 			love.graphics.rectangle(
 				"fill",
 				PADDING - 6,
@@ -639,13 +639,13 @@ function AiChat:draw()
 		local scrollbar_x, track_y, track_height, thumb_y, thumb_height = self:getScrollbarMetrics(lines)
 		love.graphics.setColor(Colors.outline)
 		love.graphics.rectangle("fill", scrollbar_x, track_y, SCROLLBAR_WIDTH, track_height)
-		love.graphics.setColor(Colors.text_muted)
+		love.graphics.setColor(Colors.muted)
 		love.graphics.rectangle("fill", scrollbar_x, thumb_y, SCROLLBAR_WIDTH, thumb_height)
 	end
 	if self.scroll > 0 then
 		local jump_x = self.width - PADDING - JUMP_WIDTH
 		local jump_y = self.height - INPUT_HEIGHT - PADDING - JUMP_HEIGHT
-		love.graphics.setColor(Colors.hover)
+		love.graphics.setColor(Colors.surface_raised)
 		love.graphics.rectangle("fill", jump_x, jump_y, JUMP_WIDTH, JUMP_HEIGHT)
 		love.graphics.setFont(small_font)
 		love.graphics.setColor(Colors.text)
@@ -653,13 +653,13 @@ function AiChat:draw()
 	end
 
 	local input_y = self.height - INPUT_HEIGHT
-	love.graphics.setColor(Colors.panel_alt)
+	love.graphics.setColor(Colors.surface)
 	love.graphics.rectangle("fill", 0, input_y, self.width, INPUT_HEIGHT)
 	love.graphics.setFont(font)
 	love.graphics.setColor(Colors.text)
 	local prompt = utf8validate(self.input)
 	if prompt == "" then
-		love.graphics.setColor(Colors.text_muted)
+		love.graphics.setColor(Colors.muted)
 		prompt = "Type a message and press Enter..."
 	end
 	love.graphics.printf(prompt, PADDING, input_y + PADDING, self.width - PADDING * 2, "left")
@@ -669,7 +669,7 @@ function AiChat:draw()
 		love.graphics.printf("Streaming...", 0, self.height - 24, self.width - PADDING, "right")
 	elseif auth_status == "error" and auth_error then
 		love.graphics.setFont(small_font)
-		love.graphics.setColor(Colors.back_button)
+		love.graphics.setColor(Colors.danger)
 		love.graphics.printf(utf8validate(auth_error), PADDING, self.height - 24, self.width - PADDING * 2, "right")
 	end
 
@@ -680,7 +680,7 @@ function AiChat:draw()
 		for index = self.model_menu_scroll + 1, last_index do
 			local model_option = model_options[index]
 			local y = TITLE_HEIGHT + (index - self.model_menu_scroll - 1) * MODEL_ROW_HEIGHT
-			love.graphics.setColor(index == self.model:getSelectedModelIndex() and Colors.accent or Colors.panel_alt)
+			love.graphics.setColor(index == self.model:getSelectedModelIndex() and Colors.accent or Colors.surface)
 			love.graphics.rectangle("fill", MODEL_X, y, MODEL_WIDTH, MODEL_ROW_HEIGHT)
 			love.graphics.setColor(Colors.text)
 			love.graphics.printf(utf8validate(model_option.label), MODEL_X + 8, y + 7, MODEL_WIDTH - 16, "left")

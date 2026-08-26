@@ -99,10 +99,10 @@ function CommandList:draw()
 		local candidate = self.candidates[index]
 		local y = (index - 1) * self:getRowStep() - scroll
 		if index == self.selected_index then
-			Painter.setColorTable(Colors.hover)
+			Painter.setColorTable(Colors.surface_raised)
 			love.graphics.rectangle("fill", 0, y, self.width, self.item_height)
 		elseif index == self.hover_index then
-			Painter.setColorTable(Colors.elements)
+			Painter.setColorTable(Colors.surface)
 			love.graphics.rectangle("fill", 0, y, self.width, self.item_height)
 		end
 
@@ -110,7 +110,7 @@ function CommandList:draw()
 		love.graphics.setFont(self.title_font)
 		love.graphics.print(candidate.title or "", TEXT_X, y + 7)
 		if candidate.description and candidate.description ~= "" then
-			Painter.setColorTable(Colors.text_muted)
+			Painter.setColorTable(Colors.muted)
 			love.graphics.setFont(self.description_font)
 			love.graphics.print(candidate.description, TEXT_X, y + 32)
 		end

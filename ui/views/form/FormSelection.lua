@@ -106,7 +106,7 @@ function FormSelection:draw()
 		max_y = math.max(max_y, y)
 	end
 
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	Painter.setOpacity(self.form.navigation == FormNavigation.Keyboard and 1 or 0.5)
 	love.graphics.rectangle(
 		"fill",

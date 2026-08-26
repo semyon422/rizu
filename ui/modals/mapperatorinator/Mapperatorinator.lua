@@ -45,7 +45,7 @@ end
 ---@param text string
 ---@return ui.views.Label
 local function note(text)
-	local label = Label({font_name = "regular", font_size = 16, text = text, color = Colors.text_muted})
+	local label = Label({font_name = "regular", font_size = 16, text = text, color = Colors.muted})
 	label:setSize(FORM_WIDTH, math.max(label.offset_max[2] - label.offset_min[2], 24))
 	return label
 end
@@ -147,7 +147,7 @@ function Mapperatorinator:new(workflow, config, on_close, popup_container)
 	local subtitle = self:add(Label({
 		font_name = "regular", font_size = 16,
 		text = "Native controls for Mapperatorinator generation — review AI output before publishing.",
-		color = Colors.text_muted,
+		color = Colors.muted,
 	}))
 	subtitle:setOffset(32, 68)
 
@@ -171,7 +171,7 @@ function Mapperatorinator:new(workflow, config, on_close, popup_container)
 
 	self.status_label = self:add(Label({
 		font_name = "regular", font_size = 16, text = workflow.status,
-		color = Colors.text_muted, align = "center",
+		color = Colors.muted, align = "center",
 	}))
 	self.status_label:anchorFixed(CONTENT_X, 675, FORM_WIDTH, 44)
 
@@ -425,7 +425,7 @@ function Mapperatorinator:hide()
 end
 
 function Mapperatorinator:draw()
-	Painter.setColorTable(Colors.panel_alt)
+	Painter.setColorTable(Colors.surface)
 	self.background:draw(self.width, self.height)
 	Painter.setColorTable(Colors.panel)
 	love.graphics.push()

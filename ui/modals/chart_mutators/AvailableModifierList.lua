@@ -144,13 +144,13 @@ function AvailableModifierList:draw()
 	for index = first_index, last_index do
 		local y = HEADER_HEIGHT + (index - 1) * self:getRowStep() - scroll
 		if self.selection_visible and index == self.model.availableModifierIndex then
-			Painter.setColorTable(self.active and Colors.hover or Colors.elements)
+			Painter.setColorTable(self.active and Colors.surface_raised or Colors.surface)
 			love.graphics.rectangle("fill", HORIZONTAL_PADDING, y, self.width - HORIZONTAL_PADDING * 2, self.item_height)
 		end
 
 		local name = ModifierRegistry.list[index]
 		local unavailable = self.model:isOneUse(name) and self.model:isAdded(name)
-		Painter.setColorTable(unavailable and Colors.text_muted or Colors.text)
+		Painter.setColorTable(unavailable and Colors.muted or Colors.text)
 		love.graphics.setFont(self.item_font)
 		love.graphics.print(name, HORIZONTAL_PADDING * 2, y + 8)
 	end

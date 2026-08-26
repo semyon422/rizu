@@ -57,7 +57,7 @@ end
 function Spectrum:draw()
 	local gap = 5
 	local bar_width = math.max((self.width - gap * (BAR_COUNT - 1)) / BAR_COUNT, 1)
-	Painter.setColorTable(Colors.accent2)
+	Painter.setColorTable(Colors.accent)
 	for i = 1, BAR_COUNT do
 		local height = self.levels[i] * self.height
 		local x = (i - 1) * (bar_width + gap)

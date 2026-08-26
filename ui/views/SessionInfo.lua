@@ -51,7 +51,7 @@ end
 
 function SessionInfo:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	love.graphics.setFont(self.font16)
 	love.graphics.printf(self.date_text, 0, 0, self.width, "center")
 

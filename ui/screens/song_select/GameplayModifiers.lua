@@ -20,17 +20,17 @@ function GameplayModifiers:bind(rbf)
 	local cs = {Colors.grade_x, ss}
 
 	if rbf:isConst() then
-		table.insert(cs, Colors.text_muted)
+		table.insert(cs, Colors.muted)
 		table.insert(cs, " CONST")
 	end
 
 	if co ~= "" then
-		table.insert(cs, Colors.text_muted)
+		table.insert(cs, Colors.muted)
 		table.insert(cs, " " .. co)
 	end
 
 	if rbf:isTapOnly() then
-		table.insert(cs, Colors.text_muted)
+		table.insert(cs, Colors.muted)
 		table.insert(cs, " " .. "No LN")
 	end
 

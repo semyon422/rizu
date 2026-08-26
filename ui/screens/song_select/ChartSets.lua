@@ -143,7 +143,7 @@ end
 function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	local pc = Colors.panel
 	if is_hovered then
-		self.batch:setColor(Colors.hover)
+		self.batch:setColor(Colors.surface_raised)
 	else
 		self.batch:setColor(pc[1], pc[2], pc[3], 0.7)
 	end
@@ -182,7 +182,7 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	cs[2] = cv.title or ""
 	self.title_batch:add(cs, 24, y + 4)
 
-	copy_color_to_cs(Colors.text_muted)
+	copy_color_to_cs(Colors.muted)
 	cs[2] = cv.artist or ""
 	self.artist_batch:add(cs, 24, y + 36)
 

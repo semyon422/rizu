@@ -33,7 +33,7 @@ end
 function HeaderButton:draw()
 	Painter.snapToPixel()
 	if self.mouse_over then
-		Painter.setColorTable(Colors.hover)
+		Painter.setColorTable(Colors.surface_raised)
 		Resources.sprites.pixel:draw(0, 0, 0, SIZE, SIZE)
 	end
 

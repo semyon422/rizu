@@ -202,7 +202,7 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	cs[2] = item.accuracy
 	self.text_batch24:addf(cs, self.width, "right", -17, y + 12)
 
-	copy_color_to_cs(Colors.text_muted)
+	copy_color_to_cs(Colors.muted)
 	set_cs_alpha(p)
 	cs[2] = item.time_ago
 	self.text_batch16:addf(cs, self.width, "right", -17, y + 43)

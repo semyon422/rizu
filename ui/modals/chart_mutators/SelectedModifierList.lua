@@ -67,7 +67,7 @@ end
 
 function SelectedModifierRow:draw()
 	if self.mouse_over then
-		Painter.setColorTable(Colors.elements)
+		Painter.setColorTable(Colors.surface)
 		love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 	end
 
@@ -78,7 +78,7 @@ function SelectedModifierRow:draw()
 
 	local modifier = ModifierModel:getModifier(self.config.id)
 	if modifier and modifier.values then
-		Painter.setColorTable(Colors.text_muted)
+		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.list.value_font)
 		love.graphics.printf(tostring(self.config.value), 0, 10, self.width - HORIZONTAL_PADDING, "right")
 	end
@@ -106,9 +106,9 @@ function ModifierInsertionCell:onMouseClick(e)
 end
 
 function ModifierInsertionCell:draw()
-	Painter.setColorTable(self.list.active and Colors.hover or Colors.elements)
+	Painter.setColorTable(self.list.active and Colors.surface_raised or Colors.surface)
 	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
-	Painter.setColorTable(self.list.active and Colors.accent or Colors.text_muted)
+	Painter.setColorTable(self.list.active and Colors.accent or Colors.muted)
 	love.graphics.setLineWidth(1)
 	love.graphics.rectangle("line", 0.5, 0.5, self.width - 1, self.height - 1)
 	love.graphics.setFont(self.list.value_font)

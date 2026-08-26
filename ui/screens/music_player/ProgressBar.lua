@@ -64,9 +64,9 @@ function ProgressBar:draw()
 	local duration = math.max(max_time - min_time, 0)
 	local track_y = 10
 
-	Painter.setColorTable(Colors.elements)
+	Painter.setColorTable(Colors.surface)
 	lg.rectangle("fill", 0, track_y, self.width, 12, 6, 6)
-	Painter.setColorTable(Colors.accent2)
+	Painter.setColorTable(Colors.accent)
 	lg.rectangle("fill", 0, track_y, self.width * progress, 12, 6, 6)
 
 	Painter.setColorTable(Colors.text)

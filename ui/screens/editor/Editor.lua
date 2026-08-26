@@ -51,7 +51,7 @@ function Editor:load()
 		font_name = "regular",
 		font_size = 20,
 		text = "Press ESCAPE to exit",
-		color = Colors.text_muted,
+		color = Colors.muted,
 	}))
 	exitHint:setAlignment(0.5, 0)
 	exitHint:setPivot(0.5, 0)

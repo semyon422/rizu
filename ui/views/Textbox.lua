@@ -14,7 +14,7 @@ local utf8validate = require("utf8validate")
 ---@field blur_on_accept boolean?
 ---@field blur_on_cancel boolean?
 ---@field handle_clear_field boolean?
----@field background boolean? Use Colors.background instead of Colors.elements.
+---@field background boolean? Use Colors.background instead of Colors.surface.
 
 ---A standalone, single-line text input.
 ---@class ui.views.Textbox : gui.View
@@ -190,13 +190,13 @@ function Textbox:draw()
 	local left_width = self.cap_left:getWidth()
 	local right_width = self.cap_right:getWidth()
 	local middle_width = self.width - left_width - right_width
-	Painter.setColorTable(self.background and Colors.background or Colors.elements)
+	Painter.setColorTable(self.background and Colors.background or Colors.surface)
 	self.cap_left:draw(0, 0)
 	self.cap_middle:draw(left_width, 0, 0, middle_width / self.cap_middle:getWidth(), 1)
 	self.cap_right:draw(self.width - right_width, 0)
 
 	local text = self.model:getText()
-	Painter.setColorTable(text == "" and Colors.text_muted or Colors.text)
+	Painter.setColorTable(text == "" and Colors.muted or Colors.text)
 	love.graphics.setFont(self.font)
 	love.graphics.print(text == "" and self.placeholder or text, TEXT_X, TEXT_Y)
 

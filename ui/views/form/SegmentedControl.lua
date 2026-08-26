@@ -175,7 +175,7 @@ local function drawBackground(self, x, width)
 end
 
 function SegmentedControl:draw()
-	Painter.setColorTable(Colors.elements)
+	Painter.setColorTable(Colors.surface)
 	drawBackground(self, 0, self.width)
 
 	local selected_index = self:getSelectedIndex()
@@ -196,7 +196,7 @@ function SegmentedControl:draw()
 	local text_y = BODY_Y + (BODY_HEIGHT - self.font:getHeight()) / 2
 	for index, option in ipairs(self.options) do
 		local width = self.cell_widths[index]
-		Painter.setColorTable(index == selected_index and Colors.text_inverted or Colors.text)
+		Painter.setColorTable(index == selected_index and Colors.panel or Colors.text)
 		love.graphics.printf(self.format(option), x, text_y, width, "center")
 		x = x + width
 	end

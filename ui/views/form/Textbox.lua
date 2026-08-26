@@ -169,7 +169,7 @@ function Textbox:draw()
 	self.cap_right:draw(self.width - right_width, BODY_Y)
 
 	local text = self.model:getText()
-	Painter.setColorTable(text == "" and Colors.text_muted or Colors.text)
+	Painter.setColorTable(text == "" and Colors.muted or Colors.text)
 	love.graphics.print(text == "" and self.placeholder or text, TEXT_X, TEXT_Y)
 
 	if self.focused then

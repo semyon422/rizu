@@ -160,7 +160,7 @@ function DropdownItems:draw()
 		local value = self:getDisplayOption(display_index)
 		local y = BODY_Y + (display_index - 1) * self.row_height
 		if display_index == hover_index or display_index == self.focused_display_index then
-			lg.setColor(Colors.hover)
+			lg.setColor(Colors.surface_raised)
 			lg.rectangle("fill", 1, y, self.width - 1, self.row_height)
 		end
 		lg.setColor(Colors.text)

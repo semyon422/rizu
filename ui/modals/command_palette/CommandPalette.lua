@@ -236,12 +236,12 @@ function CommandPalette:draw()
 	end
 	love.graphics.setFont(Resources.getFont("regular", 18))
 	local failed = model.state == "error" or model.state == "unavailable"
-	Painter.setColorTable(failed and {0.9, 0.3, 0.3, 1} or Colors.text_muted)
+	Painter.setColorTable(failed and {0.9, 0.3, 0.3, 1} or Colors.muted)
 	love.graphics.printf(preview, PADDING, LIST_TOP + 12, self.width - PADDING * 2, "left")
 	local telemetry = model:formatTelemetry()
 	if telemetry then
 		love.graphics.setFont(Resources.getFont("regular", 14))
-		Painter.setColorTable(Colors.text_muted)
+		Painter.setColorTable(Colors.muted)
 		love.graphics.printf(telemetry, PADDING, LIST_TOP + 46, self.width - PADDING * 2, "left")
 	end
 end

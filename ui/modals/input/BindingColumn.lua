@@ -89,7 +89,7 @@ function BindingColumn:draw()
 	local lg = love.graphics
 	Painter.snapToPixel()
 	local is_scratch = self:isScratch()
-	Painter.setColorTable(is_scratch and Colors.accent2 or Colors.text_muted)
+	Painter.setColorTable(is_scratch and Colors.accent or Colors.muted)
 	lg.setFont(self.font)
 	lg.printf(self:getColumnLabel(), 0, 0, self.width, "center")
 
@@ -106,7 +106,7 @@ function BindingColumn:draw()
 	elseif hovered_index then
 		Painter.setColorTable(Colors.text)
 	else
-		Painter.setColorTable(is_scratch and Colors.accent2 or Colors.outline)
+		Painter.setColorTable(is_scratch and Colors.accent or Colors.outline)
 	end
 	lg.rectangle("line", 1, LABEL_HEIGHT + 1, self.width - 2, self.height - LABEL_HEIGHT - 2, 5, 5)
 	if is_scratch then
@@ -119,7 +119,7 @@ function BindingColumn:draw()
 		local cell_y = LABEL_HEIGHT + (binding_index - 1) * cell_height
 		local key = self.binder:getKey(self.column, binding_index)
 		local text = self.waiting_index == binding_index and "..." or (key and tostring(key):upper() or "")
-		Painter.setColorTable(is_scratch and Colors.accent2 or Colors.text)
+		Painter.setColorTable(is_scratch and Colors.accent or Colors.text)
 		local text_width = self.key_font:getWidth(text)
 		local available_width = self.width - 8
 		local text_scale = text_width > available_width and available_width / text_width or 1

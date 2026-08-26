@@ -71,7 +71,7 @@ function CacheProgressView:draw()
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.font)
 	love.graphics.print("Updating cache: " .. self.status.stage, PADDING, PADDING)
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	love.graphics.print(self:getProgressText(), PADDING, PADDING + self.font:getHeight())
 end
 

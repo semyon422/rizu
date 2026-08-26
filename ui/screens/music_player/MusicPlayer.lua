@@ -37,7 +37,7 @@ function MusicPlayer:new(ui)
 		font_name = "cjk_bold",
 		font_size = 24,
 		text = "",
-		color = Colors.text_muted,
+		color = Colors.muted,
 	}))
 	self.artist_label:setAlignment(0.5, 0.17)
 	self.artist_label:setPivot(0.5, 0.5)

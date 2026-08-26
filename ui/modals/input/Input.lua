@@ -78,7 +78,7 @@ function Input:new(game)
 		font_name = "regular",
 		font_size = 18,
 		text = "Left click a frame, then press a key. Right click removes its binding.",
-		color = Colors.text_muted,
+		color = Colors.muted,
 		align = "center",
 	}))
 	self.tip_label:anchorFixed(HORIZONTAL_PADDING, 355, MODAL_MAX_WIDTH - HORIZONTAL_PADDING * 2, 28)

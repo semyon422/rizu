@@ -31,7 +31,7 @@ function Details:draw()
 	lg.setFont(panel.artist_font)
 	Painter.setColorRgb(0, 0, 0, 0.25)
 	lg.print(panel.artist, 22, panel.title_font:getHeight() + 2)
-	Painter.setColorTable(Colors.accent2)
+	Painter.setColorTable(Colors.accent)
 	lg.print(panel.artist, 20, panel.title_font:getHeight())
 end
 

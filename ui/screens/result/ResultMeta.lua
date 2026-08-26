@@ -39,7 +39,7 @@ function ResultMeta:new()
 
 	self.chart_meta = self:add(FlowContainer({direction = "row", gap = 30, align = 0.5}))
 	local duration_cell = self.chart_meta:add(FlowContainer({direction = "column", align = 0.5, gap = 4}))
-	duration_cell:add(Image(Resources.sprites.icon_clock, nil, Colors.text_muted))
+	duration_cell:add(Image(Resources.sprites.icon_clock, nil, Colors.muted))
 	duration_cell:add(self.duration)
 	duration_cell:fitContent()
 
@@ -48,14 +48,14 @@ function ResultMeta:new()
 		font_name = "regular",
 		font_size = 24,
 		text = "LN",
-		color = Colors.text_muted
+		color = Colors.muted
 	}))
 	ln_cell:add(self.ln_percent)
 	ln_cell:setOffset(0, -2) -- Text is a bit larger than icons
 	ln_cell:fitContent()
 
 	local tempo_cell = self.chart_meta:add(FlowContainer({direction = "column", align = 0.5, gap = 4}))
-	tempo_cell:add(Image(Resources.sprites.icon_metronome, nil, Colors.text_muted))
+	tempo_cell:add(Image(Resources.sprites.icon_metronome, nil, Colors.muted))
 	tempo_cell:add(self.tempo)
 	tempo_cell:fitContent()
 	self.chart_meta:fitContent()
@@ -82,7 +82,7 @@ function ResultMeta:new()
 		font_name = "regular",
 		font_size = 24,
 		text = "Rizu",
-		color = Colors.text_muted
+		color = Colors.muted
 	})
 	self.score_meta = self:add(FlowContainer({
 		direction = "column",

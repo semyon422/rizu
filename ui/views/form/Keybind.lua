@@ -187,7 +187,7 @@ function Keybind:draw()
 	if self.focused and preview then
 		if preview.key == "" and not (preview.control or preview.shift or preview.alt or preview.super) then
 			text = "Press any button..."
-			Painter.setColorTable(Colors.text_muted)
+			Painter.setColorTable(Colors.muted)
 		else
 			local parts = {} ---@type string[]
 			if preview.control then parts[#parts + 1] = "Ctrl" end

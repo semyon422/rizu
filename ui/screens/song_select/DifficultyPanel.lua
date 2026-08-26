@@ -57,7 +57,7 @@ function DifficultyPanel:draw()
 	lg.setFont(self.difficulty_font)
 	lg.printf(self.difficulty, 0, content_y, self.width, "center")
 
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	lg.setFont(self.postfix_font)
 	lg.printf(self.postfix, 0, content_y + difficulty_height - 4, self.width, "center")
 	lg.setFont(previous_font)

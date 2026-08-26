@@ -195,7 +195,7 @@ function Config:hide()
 end
 
 function Config:draw()
-	Painter.setColorTable(Colors.panel_alt)
+	Painter.setColorTable(Colors.surface)
 	self.background:draw(self.width, self.height)
 
 	Painter.setColorTable(Colors.panel)

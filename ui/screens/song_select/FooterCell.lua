@@ -37,7 +37,7 @@ end
 
 function FooterCell:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(Colors.elements)
+	Painter.setColorTable(Colors.surface)
 
 	local left_width = self.left:getWidth()
 	local right_width = self.right:getWidth()

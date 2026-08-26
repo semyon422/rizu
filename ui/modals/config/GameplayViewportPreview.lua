@@ -51,7 +51,7 @@ function GameplayViewportPreview:draw()
 	local viewport_x = outer_x + align_x * (outer_width - viewport_width)
 	local viewport_y = outer_y + align_y * (outer_height - viewport_height)
 
-	Painter.setColorTable(Colors.elements)
+	Painter.setColorTable(Colors.surface)
 	lg.rectangle("fill", outer_x, outer_y, outer_width, outer_height)
 	Painter.setColorTable(Colors.outline)
 	Painter.rectangleLineFixed(outer_x, outer_y, outer_width, outer_height, 2)
@@ -62,7 +62,7 @@ function GameplayViewportPreview:draw()
 	Painter.setOpacity(1)
 	Painter.rectangleLineFixed(viewport_x, viewport_y, viewport_width, viewport_height, 2)
 
-	Painter.setColorTable(Colors.text_muted)
+	Painter.setColorTable(Colors.muted)
 	lg.setFont(self.label_font)
 	lg.printf("Final resolution", DETAILS_X, 96, WIDTH - DETAILS_X, "left")
 
