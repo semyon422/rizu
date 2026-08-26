@@ -2,6 +2,7 @@ local Screen = require("gui.Screen")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
+local SongSelectHeader = require("ui.screens.song_select.SongSelectHeader")
 local LibraryToolbar = require("ui.screens.song_select.LibraryToolbar")
 local SelectedSongPanel = require("ui.screens.song_select.SelectedSongPanel")
 local ScoreListPanel = require("ui.screens.song_select.ScoreListPanel")
@@ -35,7 +36,7 @@ function SongSelect:new(ui)
 	local layout = self.root:add(TrackContainer({direction = "column"}))
 	layout:anchorFill(0, 0, 0, 0)
 
-	layout:add(Panel({color = Colors.panel}), HEADER_HEIGHT)
+	layout:add(SongSelectHeader(ui), HEADER_HEIGHT)
 	layout:add(LibraryToolbar(), TOOLBAR_HEIGHT)
 
 	local content = layout:add(TrackContainer({

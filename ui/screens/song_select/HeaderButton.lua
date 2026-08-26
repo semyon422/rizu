@@ -3,13 +3,15 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 
----@class ui.views.HeaderButton : gui.View
----@operator call: ui.views.HeaderButton
+---@class ui.screens.song_select.HeaderButton : gui.View
+---@operator call: ui.screens.song_select.HeaderButton
 ---@field icon gui.Sprite
 ---@field on_click fun()?
 local HeaderButton = View + {}
 
-local SIZE = 50
+local WIDTH = 42
+local HEIGHT = 50
+local ICON_SIZE = 20
 
 ---@param icon gui.Sprite
 ---@param on_click fun()?
@@ -18,7 +20,7 @@ function HeaderButton:new(icon, on_click)
 	self.icon = icon
 	self.on_click = on_click
 	self.handles_mouse_input = true
-	self:setSize(SIZE, SIZE)
+	self:setSize(WIDTH, HEIGHT)
 end
 
 ---@param e gui.MouseClickEvent
@@ -34,12 +36,17 @@ function HeaderButton:draw()
 	Painter.snapToPixel()
 	if self.mouse_over then
 		Painter.setColorTable(Colors.surface_raised)
-		Resources.sprites.pixel:draw(0, 0, 0, SIZE, SIZE)
+		Resources.sprites.pixel:draw(0, 0, 0, WIDTH, HEIGHT)
 	end
 
-	Painter.setColorTable(Colors.text)
+	Painter.setColorTable(self.mouse_over and Colors.text or Colors.muted)
 	local icon_width, icon_height = self.icon:getDimensions()
-	self.icon:draw((SIZE - icon_width) / 2, (SIZE - icon_height) / 2)
+	local scale = math.min(ICON_SIZE / icon_width, ICON_SIZE / icon_height)
+	self.icon:draw(
+		(WIDTH - icon_width * scale) / 2,
+		(HEIGHT - icon_height * scale) / 2,
+		0, scale, scale
+	)
 end
 
 return HeaderButton
