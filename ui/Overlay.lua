@@ -1,3 +1,4 @@
+local decibel = require("decibel")
 local Screen = require("gui.Screen")
 local ModalManager = require("ui.ModalManager")
 local FpsView = require("ui.views.FpsView")
@@ -16,6 +17,26 @@ local Settings = require("rizu.config.Settings")
 local Overlay = Screen + {}
 
 local MASTER_VOLUME_STEP = 0.05
+local MASTER_VOLUME_DECIBEL_STEP = 1
+local MIN_VOLUME_DECIBELS = -60
+
+---@param settings rizu.config.Config
+---@param direction -1|1
+local function adjustMasterVolume(settings, direction)
+	local keys = Settings.keys.audio
+	local volume = settings:getNumber(keys.volume_master)
+	if settings:getChoice(keys.volume_type) == "logarithmic" then
+		if volume == 0 and direction < 0 then
+			return
+		end
+		local decibels = math.max(MIN_VOLUME_DECIBELS, decibel.f_to_lf(volume))
+		local adjusted = math.max(MIN_VOLUME_DECIBELS, math.min(0, decibels + direction * MASTER_VOLUME_DECIBEL_STEP))
+		volume = decibel.lf_to_f(adjusted)
+	else
+		volume = math.max(0, math.min(1, volume + direction * MASTER_VOLUME_STEP))
+	end
+	settings:setNumber(keys.volume_master, volume)
+end
 
 ---@param ui ui.UserInterface
 function Overlay:new(ui)
@@ -50,11 +71,10 @@ end
 ---@param inputs gui.Inputs
 function Overlay:onHandleInputs(inputs)
 	local settings = self.ui.game.settings
-	local volume_key = Settings.keys.audio.volume_master
 	if inputs:consumeActionJustPressed(UiActions.master_volume_increase) then
-		settings:setNumber(volume_key, math.min(1, settings:getNumber(volume_key) + MASTER_VOLUME_STEP))
+		adjustMasterVolume(settings, 1)
 	elseif inputs:consumeActionJustPressed(UiActions.master_volume_decrease) then
-		settings:setNumber(volume_key, math.max(0, settings:getNumber(volume_key) - MASTER_VOLUME_STEP))
+		adjustMasterVolume(settings, -1)
 	elseif inputs:consumeActionJustPressed(UiActions.command_palette) then
 		self.modal_manager:attachPalette()
 	elseif inputs:consumeActionJustPressed(UiActions.open_config) then

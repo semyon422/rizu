@@ -30,7 +30,7 @@ end
 
 `ui.UiActions` owns UI-specific action names and maps the key-binding settings in `ui.UiConfig` into the generic action map. `gui.Inputs` exposes `isActionPressed`, `isActionJustPressed`, and `isActionJustReleased`; `consumeActionJustPressed` / `consumeActionJustReleased` remove an edge after a higher-priority handler claims it, and all remaining `just` states reset at the start of each frame. `defineAction` replaces an action's bindings, `addBinding` adds an alternative, `getBindings` supports settings UI, and `getBindingLabel` provides display text. Bindings use exact modifiers and ignore key-repeat unless `allow_repeat = true`. Mouse wheel bindings use the keys `wheelup`, `wheeldown`, `wheelleft`, and `wheelright`; they produce a pressed edge only, since wheel input is not held.
 
-Queued events update action state before raw event routing, including events consumed by screen-level handlers. Gameplay input remains separate.
+Queued events update action state before raw event routing, including events consumed by screen-level handlers. Gameplay input remains separate. Alt+mouse-wheel adjusts master volume by 5 percentage points in linear mode and by 1 dB in logarithmic mode.
 
 ## Guidelines
 
