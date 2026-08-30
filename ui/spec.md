@@ -32,6 +32,8 @@ end
 
 Queued events update action state before raw event routing, including events consumed by screen-level handlers. Gameplay input remains separate. Alt+mouse-wheel adjusts master volume by 5 percentage points in linear mode and by 1 dB in logarithmic mode.
 
+The song-select footer displays linear playback rates as multipliers such as `1.25x`. Exponential rates display their signed exponent value directly, such as `-1`, `0`, or `+1`.
+
 ## Guidelines
 
 We use sprites for most things. Try to batch as much as we can using love's automatic batching or sometimes use TextBatch and SpriteBatch. Spamming a lot of views should be okay, but you can always make a single view which can for example display a lot of info using TextBatch or SpriteBatch or even automatic batching works okay here.

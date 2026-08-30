@@ -42,8 +42,14 @@ function TimeRate:onScroll(e)
 end
 
 function TimeRate:updateText()
-	Color.linearRateToColor(self.time_rate_model:get(), self.text_color)
-	self.text = ("%0.02fx"):format(self.time_rate_model:get())
+	local model = self.time_rate_model
+	local value = model:get()
+	Color.linearRateToColor(model.replayBase.rate, self.text_color)
+	if model.replayBase.rate_type == "exp" then
+		self.text = value > 0 and "+" .. value or tostring(value)
+	else
+		self.text = ("%0.02fx"):format(value)
+	end
 end
 
 function TimeRate:draw()
