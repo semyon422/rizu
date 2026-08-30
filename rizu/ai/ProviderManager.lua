@@ -13,8 +13,8 @@ local SubscriptionClient = require("ai.openai.SubscriptionClient")
 ---@field config sphere.AiConfig
 ---@field credentials sphere.AiAuthConfig
 ---@field scheduler web.CosocketScheduler
----@field request aqua.openai.RequestFunc
----@field open_stream aqua.openai.OpenStreamFunc
+---@field request openai.RequestFunc
+---@field open_stream openai.OpenStreamFunc
 ---@field open_url fun(url: string): boolean
 ---@field save_config fun()
 ---@field save_credentials fun()
@@ -24,8 +24,8 @@ local SubscriptionClient = require("ai.openai.SubscriptionClient")
 ---@field config sphere.AiConfig
 ---@field options rizu.ai.ModelOption[]
 ---@field selected_index integer
----@field clients {[string]: aqua.openai.Client|aqua.openai.SubscriptionClient}
----@field auth aqua.openai.SubscriptionAuth?
+---@field clients {[string]: openai.Client|openai.SubscriptionClient}
+---@field auth openai.SubscriptionAuth?
 local ProviderManager = class()
 
 ---@param config sphere.AiConfig
@@ -93,7 +93,7 @@ function ProviderManager:new(options)
 end
 
 ---@param model_option rizu.ai.ModelOption
----@return aqua.openai.SubscriptionAuth?
+---@return openai.SubscriptionAuth?
 function ProviderManager:getOptionAuth(model_option)
 	local provider = self.config.providers[model_option.provider_id]
 	if provider.type ~= "openai_subscription" then return end
@@ -110,7 +110,7 @@ function ProviderManager:getOptionAuth(model_option)
 end
 
 ---@param model_option rizu.ai.ModelOption
----@return aqua.openai.Client|aqua.openai.SubscriptionClient
+---@return openai.Client|openai.SubscriptionClient
 function ProviderManager:createClient(model_option)
 	local provider = self.config.providers[model_option.provider_id]
 	if provider.type == "openai_subscription" then
@@ -143,7 +143,7 @@ function ProviderManager:getSelectedOption()
 	return assert(self.options[self.selected_index], "no AI models configured")
 end
 
----@return aqua.openai.Client|aqua.openai.SubscriptionClient
+---@return openai.Client|openai.SubscriptionClient
 function ProviderManager:getClient()
 	local model_option = self:getSelectedOption()
 	local key = model_option.provider_id .. "\0" .. model_option.model
@@ -151,14 +151,14 @@ function ProviderManager:getClient()
 	return self.clients[key]
 end
 
----@return aqua.openai.SubscriptionAuth?
+---@return openai.SubscriptionAuth?
 function ProviderManager:getAuth()
 	return self:getOptionAuth(self:getSelectedOption())
 end
 
 ---@param index integer
----@return aqua.openai.Client|aqua.openai.SubscriptionClient
----@return aqua.openai.SubscriptionAuth?
+---@return openai.Client|openai.SubscriptionClient
+---@return openai.SubscriptionAuth?
 function ProviderManager:select(index)
 	assert(self.options[index], "invalid AI model index")
 	self.selected_index = index

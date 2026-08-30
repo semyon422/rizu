@@ -8,7 +8,7 @@ local utf8validate = require("utf8validate")
 ---@field description string
 ---@field input_schema table
 ---@field annotations mcp.ToolAnnotations
----@field schema aqua.openai.ToolSchema
+---@field schema openai.ToolSchema
 ---@field game sphere.GameController
 local InspectRuntimeTool = class()
 

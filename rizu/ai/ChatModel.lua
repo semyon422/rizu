@@ -14,9 +14,9 @@ local Observable = require("Observable")
 
 ---@class rizu.ai.ChatModel
 ---@operator call: rizu.ai.ChatModel
----@field agent aqua.openai.Agent
+---@field agent openai.Agent
 ---@field system_prompt string
----@field messages aqua.openai.Message[]
+---@field messages openai.Message[]
 ---@field entries rizu.ai.ChatEntry[]
 ---@field observable util.Observable
 ---@field busy boolean
@@ -27,16 +27,16 @@ local Observable = require("Observable")
 ---@field tool_entries {[string]: rizu.ai.ChatEntry}
 ---@field max_history_chars integer
 ---@field max_entries integer
----@field auth aqua.openai.SubscriptionAuth?
+---@field auth openai.SubscriptionAuth?
 ---@field provider_manager rizu.ai.ProviderManager?
 local ChatModel = class()
 
 ChatModel.max_history_chars = 200000
 ChatModel.max_entries = 200
 
----@param agent aqua.openai.Agent
+---@param agent openai.Agent
 ---@param system_prompt string
----@param options {max_history_chars: integer?, max_entries: integer?, auth: aqua.openai.SubscriptionAuth?, provider_manager: rizu.ai.ProviderManager?}?
+---@param options {max_history_chars: integer?, max_entries: integer?, auth: openai.SubscriptionAuth?, provider_manager: rizu.ai.ProviderManager?}?
 function ChatModel:new(agent, system_prompt, options)
 	options = options or {}
 	self.agent = agent
@@ -95,7 +95,7 @@ function ChatModel:new(agent, system_prompt, options)
 	end
 end
 
----@param auth aqua.openai.SubscriptionAuth?
+---@param auth openai.SubscriptionAuth?
 function ChatModel:setAuth(auth)
 	if self.auth == auth then return end
 	if self.auth then self.auth:offChanged(self) end
@@ -147,7 +147,7 @@ function ChatModel:hasAuth()
 	return self.auth ~= nil
 end
 
----@return aqua.openai.SubscriptionAuthStatus?
+---@return openai.SubscriptionAuthStatus?
 ---@return string?
 function ChatModel:getAuthStatus()
 	if not self.auth then return end
@@ -197,7 +197,7 @@ function ChatModel:removeIncompleteActiveProtocolMessages()
 			break
 		end
 
-		---@type aqua.openai.ToolCall[]?
+		---@type openai.ToolCall[]?
 		local tool_calls = message.tool_calls
 		if type(tool_calls) ~= "table" or #tool_calls == 0 then
 			if type(message.content) == "string" then
@@ -208,7 +208,7 @@ function ChatModel:removeIncompleteActiveProtocolMessages()
 			end
 		else
 			local group_complete = true
-			---@cast tool_calls aqua.openai.ToolCall[]
+			---@cast tool_calls openai.ToolCall[]
 			for offset, tool_call in ipairs(tool_calls) do
 				local tool_message = self.messages[index + offset]
 				if

@@ -2,8 +2,8 @@ local ChatModel = require("rizu.ai.ChatModel")
 
 local test = {}
 
----@param run fun(messages: aqua.openai.Message[], on_text_delta: fun(content: string)?): aqua.openai.Message?, string?
----@return aqua.openai.Agent
+---@param run fun(messages: openai.Message[], on_text_delta: fun(content: string)?): openai.Message?, string?
+---@return openai.Agent
 local function makeAgent(run)
 	return {
 		run = function(_, messages, on_text_delta) return run(messages, on_text_delta) end,
@@ -207,7 +207,7 @@ function test.subscription_login_gates_requests_and_forwards_status(t)
 		unload = function() unloaded = unloaded + 1 end,
 	}
 	local model = ChatModel(makeAgent(function() error("not used") end), "system", {
-		auth = auth --[[@as aqua.openai.SubscriptionAuth]],
+		auth = auth --[[@as openai.SubscriptionAuth]],
 	})
 	local changes = 0
 	model:onChanged(function() changes = changes + 1 end)

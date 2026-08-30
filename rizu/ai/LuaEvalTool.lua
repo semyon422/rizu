@@ -11,7 +11,7 @@ local table_util = require("table_util")
 ---@field description string
 ---@field input_schema table
 ---@field annotations mcp.ToolAnnotations
----@field schema aqua.openai.ToolSchema
+---@field schema openai.ToolSchema
 ---@field game sphere.GameController
 ---@field output_limit integer
 local LuaEvalTool = class()
