@@ -19,7 +19,28 @@ local SeaClient = class()
 
 SeaClient.reconnect_interval = 10
 SeaClient.reconnect_initial_interval = 1
-SeaClient.log = print
+SeaClient.log = function(_, ...)
+	print("[online websocket]", ...)
+end
+
+---@param url string
+---@return string
+local function safeUrl(url)
+	return (url:gsub("[?#].*$", ""))
+end
+
+---@param status rizu.NetworkStatus
+function SeaClient:onNetworkStatus(status)
+	if status.state == "dns" then
+		self:log(("dns host=%s cached=%s%s"):format(
+			status.host or "?",
+			tostring(status.cached == true),
+			status.ip and " ip=" .. status.ip or ""
+		))
+	elseif status.state == "connecting" then
+		self:log(("transport connecting ip=%s"):format(status.ip or "?"))
+	end
+end
 
 ---@param client rizu.OnlineClient
 ---@param client_remote sea.ClientRemote
@@ -67,6 +88,9 @@ end
 ---@return web.WebsocketConnection
 function SeaClient:createWebsocketConnection()
 	return self.network:createWebsocketConnection({
+		on_status = function(status)
+			self:onNetworkStatus(status)
+		end,
 		on_connected = function(connection)
 			self.connected = true
 			self.server_peer.ws = connection
@@ -124,23 +148,28 @@ function SeaClient:load(url, on_connect)
 
 	self.reconnect_thread = coroutine.create(function()
 		local reconnect_delay = self.reconnect_initial_interval
+		local attempt = 0
 		while not self.stopped do
 			local state = self.ws_con:getState()
 			if state ~= "open" then
 				self:closeWebsocket("reconnecting")
-				self:log("connecting to websocket")
+				attempt = attempt + 1
+				self:log(("connecting url=%s attempt=%d"):format(safeUrl(url), attempt))
 				local ok, err
 				ok, err = self.network:connectWebsocket(self.ws_con, url)
 				if self.stopped then
 					break
 				end
 				if not ok then
-					self:log("connection failed", err)
+					self:log(("connection failed url=%s attempt=%d error=%s retry_in=%gs"):format(
+						safeUrl(url), attempt, tostring(err), reconnect_delay
+					))
 					delay.sleep(reconnect_delay)
 					reconnect_delay = math.min(reconnect_delay * 2, self.reconnect_interval)
 				else
 					reconnect_delay = self.reconnect_initial_interval
-					self:log("connected")
+					attempt = 0
+					self:log(("connected url=%s"):format(safeUrl(url)))
 					on_connect()
 					if self.stopped then
 						break

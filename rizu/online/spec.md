@@ -7,6 +7,7 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - Online login state and leaderboards should stay synchronized with the server while the game is running.
 - Players can use **Online: Switch Server** from the command palette on online-capable screens, choose one of the servers provided by the package, and restart directly into that server.
 - Connection loss should clear local user state and reconnect in the background without blocking the UI loop.
+- WebSocket connection logs include the endpoint without query parameters, attempt number, retry delay, DNS cache and route details, and handshake HTTP status plus selected safe response headers when available.
 
 ## Architecture Decisions
 
@@ -37,4 +38,5 @@ The `rizu/online/` module owns client-side online state, websocket connection ma
 - Reconnect retries use exponential backoff from `reconnect_initial_interval` up to `reconnect_interval`, and successful connects reset the delay.
 - After yielding operations such as DNS resolution, websocket connect, and initial user fetch, `SeaClient` must re-check `stopped` before running follow-up connection side effects.
 - Remote whitelist and validation stay owned by `sea.app.remotes`.
+- Reconnect logs must not expose URL query parameters or sensitive response headers such as cookies and authorization values.
 - Server remote errors are intentionally allowed to surface loudly on the client instead of being hidden behind generic websocket recovery. Online protocol and server failures should fail early and visibly so they can be fixed while test coverage keeps these paths rare.

@@ -250,6 +250,29 @@ function test.failed_dns_does_not_connect(t)
 end
 
 ---@param t testing.T
+function test.failed_reconnect_logs_context_without_url_query(t)
+	local connection = new_connection(true)
+	local client = new_client()
+	local network = new_network()
+	network.connect_error = "bad websocket status: HTTP 503, server=edge.test"
+	local sea_client = SeaClient(client, {}, network --[[@as any]])
+	local logs = {}
+	sea_client.log = function(_, message)
+		table.insert(logs, message)
+	end
+	function sea_client:createWebsocketConnection()
+		return connection --[[@as any]]
+	end
+
+	sea_client:load("wss://example.test/ws?token=secret", function() end)
+
+	t:tdeq(logs, {
+		"connecting url=wss://example.test/ws attempt=1",
+		"connection failed url=wss://example.test/ws attempt=1 error=bad websocket status: HTTP 503, server=edge.test retry_in=1s",
+	})
+end
+
+---@param t testing.T
 function test.stopped_after_dns_does_not_connect(t)
 	local connection = new_connection(true)
 	local client = new_client()
@@ -382,6 +405,24 @@ function test.create_websocket_connection_passes_transport_policy(t)
 
 	t:eq(connection.options.timeout, 3)
 	t:eq(connection.options.ssl_params.verify, "none")
+	t:eq(type(connection.options.on_status), "function")
+end
+
+---@param t testing.T
+function test.network_status_logs_dns_and_connect_route(t)
+	local logs = {}
+	local sea_client = SeaClient(new_client(), {}, new_network() --[[@as any]])
+	sea_client.log = function(_, message)
+		table.insert(logs, message)
+	end
+
+	sea_client:onNetworkStatus({state = "dns", host = "example.test", cached = true, ip = "203.0.113.10"})
+	sea_client:onNetworkStatus({state = "connecting", ip = "203.0.113.10"})
+
+	t:tdeq(logs, {
+		"dns host=example.test cached=true ip=203.0.113.10",
+		"transport connecting ip=203.0.113.10",
+	})
 end
 
 ---@param t testing.T
