@@ -1,7 +1,6 @@
 local VirtualizedList = require("gui.VirtualizedList")
 local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
-local SpriteBatch = require("gui.SpriteBatch")
 local Colors = require("ui.Colors")
 local Sounds = require("ui.Sounds")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
@@ -12,35 +11,17 @@ local Settings = require("rizu.config.Settings")
 ---@field difficulty string
 ---@field difficulty_color gui.Color
 ---@field inputmode string
----@field name string
 
 ---@class ui.screens.song_select.ChartGrid : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ChartGrid
 ---@field items ui.screens.song_select.ChartGrid.Item[]
----@field cap gui.Sprite
----@field body gui.Sprite
----@field stroke_left gui.Sprite
----@field stroke_middle gui.Sprite
----@field stroke_right gui.Sprite
----@field cap_w number
----@field body_w number
----@field stroke_left_w number
----@field stroke_middle_w number
----@field stroke_right_w number
----@field body_s number
----@field stroke_middle_s number
 ---@field hover_id integer?
----@field max_difficulty_width number
----@field max_inputmode_width number
----@field names_font love.Font
 ---@field chartview_formatter ui.formatters.ChartviewFormatter
 local ChartGrid = VirtualizedList + {}
 
-local COL_WIDTH = 345
-local COL_X_GAP = 5
-local COL_Y_GAP = 5
-local ITEM_HEIGHT = 42
-local ROW_HEIGHT = ITEM_HEIGHT + COL_Y_GAP
+local ITEM_WIDTH = 110
+local ITEM_GAP = 5
+local ITEM_HEIGHT = 66
 
 ---@param chart_selector rizu.select.ChartSelector
 function ChartGrid:new(chart_selector)
@@ -48,27 +29,18 @@ function ChartGrid:new(chart_selector)
 	self.chart_selector = chart_selector
 	self.chartview_formatter = ChartviewFormatter(nil, chart_selector.settings)
 	self.items = {}
-	self.max_difficulty_width = 0
-	self.max_inputmode_width = 0
 	self.meta_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
-	self.names_font = Resources.getFont("cjk_regular", 24)
-	self.batch = SpriteBatch(Resources.sprites.grid_item_body)
+	self.inputmode_batch = love.graphics.newTextBatch(Resources.getFont("regular", 16)) ---@type love.Text
 	self.item_height = ITEM_HEIGHT
-	self.gap = COL_Y_GAP
+	self.gap = ITEM_GAP
+	self.drag_axis = "horizontal"
 	self.handles_keyboard_input = true
-
-	self.cap = Resources.sprites.grid_item_cap_right
-	self.body = Resources.sprites.grid_item_body
-	self.stroke_left = Resources.sprites.grid_item_stroke_left
-	self.stroke_middle = Resources.sprites.grid_item_stroke_middle
-	self.stroke_right = Resources.sprites.grid_item_stroke_right
-	self.cap_w = self.cap:getWidth()
-	self.body_w = self.body:getWidth()
-	self.stroke_left_w = self.stroke_left:getWidth()
-	self.stroke_middle_w = self.stroke_middle:getWidth()
-	self.stroke_right_w = self.stroke_right:getWidth()
+	self.reload_items_needed = true
 
 	chart_selector.settings:subscribeChoice(Settings.keys.select.diff_column, function()
+		self:requestReloadItems()
+	end)
+	chart_selector.stores[2]:onChanged(function()
 		self:requestReloadItems()
 	end)
 end
@@ -76,16 +48,7 @@ end
 function ChartGrid:load() end
 
 function ChartGrid:onLayoutChanged(old_x, old_y, old_width, old_height)
-	local w, h = self.width, self.height
-
-	local cols = math.max(1, math.floor(w / COL_WIDTH))
-	local total_gap_x = COL_X_GAP * (cols - 1)
-	local width_per_col = (w - total_gap_x) / cols
-
-	self.columns = cols
-	self.width_per_col = width_per_col
-	self.body_s = (width_per_col - self.cap_w) / self.body_w
-	self.stroke_middle_s = (width_per_col - self.stroke_left_w - self.stroke_right_w) / self.stroke_middle_w
+	self:scrollToSelected(true)
 end
 
 ---@return integer count
@@ -93,9 +56,22 @@ function ChartGrid:getItemCount()
 	return #self.items
 end
 
----@return integer columns
-function ChartGrid:getColumnCount()
-	return self.columns or 1
+---@return number size
+function ChartGrid:getScrollContentSize()
+	if #self.items == 0 then
+		return 0
+	end
+	return #self.items * ITEM_WIDTH + (#self.items - 1) * ITEM_GAP
+end
+
+---@return number size
+function ChartGrid:getScrollViewportSize()
+	return self.width
+end
+
+function ChartGrid:getLocalY(screen_x, screen_y)
+	local local_x = self.world_transform:inverseTransformPoint(screen_x, screen_y)
+	return local_x
 end
 
 function ChartGrid:reloadItems()
@@ -110,20 +86,11 @@ function ChartGrid:reloadItems()
 			local difficulty = self.chartview_formatter:getDifficulty()
 			table.insert(self.items, {
 				id = i,
-				name = item.name or "Unknown",
 				difficulty = difficulty.value,
 				difficulty_color = difficulty.color,
 				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S")
 			})
 		end
-	end
-
-	local font = self.meta_batch:getFont()
-	self.max_difficulty_width = 0
-	self.max_inputmode_width = 0
-	for _, item in ipairs(self.items) do
-		self.max_difficulty_width = math.max(self.max_difficulty_width, font:getWidth(item.difficulty))
-		self.max_inputmode_width = math.max(self.max_inputmode_width, font:getWidth(item.inputmode))
 	end
 end
 
@@ -131,10 +98,16 @@ function ChartGrid:requestReloadItems()
 	self.reload_items_needed = true
 end
 
-function ChartGrid:scrollToSelected()
+---@param immediate boolean?
+function ChartGrid:scrollToSelected(immediate)
 	local selected_index = self.chart_selector.state:getSecondary().index
-	local selected_row = math.max(0, math.floor((selected_index - 1) / self.columns))
-	self:scrollTo(selected_row * ROW_HEIGHT - (self.height / 2) + (ROW_HEIGHT / 2) - COL_Y_GAP)
+	local selected_x = math.max(0, (selected_index - 1) * (ITEM_WIDTH + ITEM_GAP))
+	self:scrollTo(selected_x - (self.width - ITEM_WIDTH) / 2, immediate)
+end
+
+function ChartGrid:onScroll(e)
+	self:scrollTo(self.scroll_target - e.direction_y * (ITEM_WIDTH + ITEM_GAP))
+	return true
 end
 
 function ChartGrid:onKeyDown(e)
@@ -174,10 +147,11 @@ function ChartGrid:update(dt)
 		local mx, my = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
 		if mx >= 0 and mx < self.width and my >= 0 and my < self.height then
 			local scroll = self:getVisualScrollPosition()
-			local col = math.floor(mx / (self.width_per_col + COL_X_GAP))
-			local row = math.floor((my + scroll) / ROW_HEIGHT)
-			local idx = (row * self.columns + col) + 1
-			if idx >= 1 and idx <= #self.items then
+			local item_x = mx + scroll
+			local idx = math.floor(item_x / (ITEM_WIDTH + ITEM_GAP)) + 1
+			if idx >= 1 and idx <= #self.items
+				and item_x % (ITEM_WIDTH + ITEM_GAP) < ITEM_WIDTH
+			then
 				self.hover_id = self.items[idx].id
 			end
 		end
@@ -188,50 +162,27 @@ function ChartGrid:update(dt)
 	end
 
 	self.meta_batch:clear()
-	self.batch:clear()
-
-	local batch = self.batch
+	self.inputmode_batch:clear()
 
 	local scroll = self:getVisualScrollPosition()
-	local selected_index = self.chart_selector.state:getSecondary().index
-	local first_row = math.max(1, math.floor(scroll / ROW_HEIGHT) + 1)
-	local last_row = math.floor((scroll + self.height) / ROW_HEIGHT) + 1
-	local first_index = (first_row - 1) * self.columns + 1
-	local last_index = last_row * self.columns
+	local item_step = ITEM_WIDTH + ITEM_GAP
+	local first_index = math.max(1, math.floor(scroll / item_step) + 1)
+	local last_index = math.min(#self.items, math.floor((scroll + self.width) / item_step) + 1)
 
 	for i = first_index, last_index do
 		local v = self.items[i]
-		local col = (i - 1) % self.columns
-		local row = math.floor((i - 1) / self.columns)
-		local x = col * (self.width_per_col + COL_X_GAP)
-		local y = row * ROW_HEIGHT - scroll
+		local x = (i - 1) * item_step - scroll
 
 		if v then
-			local c = v.difficulty_color
-			local is_selected = selected_index == v.id
-			local is_hovered = self.hover_id == v.id
-
-			batch:setColor(c[1], c[2], c[3], (is_selected or is_hovered) and 0.4 or 0.2)
-			batch:add(self.body, x, y, 0, self.body_s, 1)
-			batch:add(self.cap, x + (self.body_w * self.body_s), y)
-
-			if is_selected then
-				batch:setColor(c)
-				batch:add(self.stroke_left, x, y)
-				batch:add(self.stroke_middle, x + self.stroke_left_w, y, 0, self.stroke_middle_s, 1)
-				batch:add(self.stroke_right, x + self.width_per_col - self.stroke_right_w, y)
-			end
-
 			cs[1] = v.difficulty_color
 			cs[2] = v.difficulty
-			local difficulty_x = x + 12
-			local inputmode_x = difficulty_x + self.max_difficulty_width + 8
-			self.meta_batch:add(cs, difficulty_x, y + 7)
-			self.meta_batch:add(v.inputmode, inputmode_x, y + 7)
-		else
-			batch:setColor(Colors.panel[1], Colors.panel[2], Colors.panel[3], 0.4)
-			batch:add(self.body, x, y, 0, self.body_s, 1)
-			batch:add(self.cap, x + (self.body_w * self.body_s), y)
+			local difficulty_font = self.meta_batch:getFont()
+			local inputmode_font = self.inputmode_batch:getFont()
+			local gap = 8
+			local content_width = difficulty_font:getWidth(v.difficulty) + gap + inputmode_font:getWidth(v.inputmode)
+			local difficulty_x = x + (ITEM_WIDTH - content_width) / 2
+			self.meta_batch:add(cs, difficulty_x, 18)
+			self.inputmode_batch:add(v.inputmode, difficulty_x + difficulty_font:getWidth(v.difficulty) + gap, 23)
 		end
 	end
 end
@@ -239,35 +190,28 @@ end
 local lg = love.graphics
 
 function ChartGrid:draw()
-	Painter.setColorRgb(1, 1, 1)
-	self.batch:draw()
-	lg.draw(self.meta_batch)
-
-	local previous_font = lg.getFont()
-	lg.setFont(self.names_font)
 	local scroll = self:getVisualScrollPosition()
-	local first_row = math.max(1, math.floor(scroll / ROW_HEIGHT) + 1)
-	local last_row = math.floor((scroll + self.height) / ROW_HEIGHT) + 1
-	local first_index = (first_row - 1) * self.columns + 1
-	local last_index = last_row * self.columns
-	local name_offset = 12 + self.max_difficulty_width + 8 + self.max_inputmode_width + 8
+	local item_step = ITEM_WIDTH + ITEM_GAP
+	local first_index = math.max(1, math.floor(scroll / item_step) + 1)
+	local last_index = math.min(#self.items, math.floor((scroll + self.width) / item_step) + 1)
+	local selected_index = self.chart_selector.state:getSecondary().index
 
 	for i = first_index, last_index do
 		local item = self.items[i]
 		if item then
-			local col = (i - 1) % self.columns
-			local row = math.floor((i - 1) / self.columns)
-			local x = col * (self.width_per_col + COL_X_GAP)
-			local y = row * ROW_HEIGHT - scroll
-			local name_x = x + name_offset
-			local name_width = x + self.width_per_col - 12 - name_x
-			if name_width > 0 then
-				local sx, sy, sw, sh = Painter.addScissor(name_x, y, name_width, ITEM_HEIGHT)
-				lg.print(item.name, name_x, y + 1)
-				Painter.restoreScissor(sx, sy, sw, sh)
+			local x = (i - 1) * item_step - scroll
+			local selected = selected_index == item.id
+			Painter.setColorTable((selected or self.hover_id == item.id) and Colors.surface_raised or Colors.surface)
+			Resources.sprites.pixel:draw(x, 0, 0, ITEM_WIDTH, ITEM_HEIGHT)
+			if selected then
+				Painter.setColorTable(item.difficulty_color)
+				Resources.sprites.pixel:draw(x, ITEM_HEIGHT - 3, 0, ITEM_WIDTH, 3)
 			end
 		end
 	end
-	lg.setFont(previous_font)
+
+	Painter.setColorRgb(1, 1, 1)
+	lg.draw(self.meta_batch)
+	lg.draw(self.inputmode_batch)
 end
 return ChartGrid

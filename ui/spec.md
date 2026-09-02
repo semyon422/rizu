@@ -41,3 +41,7 @@ We use sprites for most things. Try to batch as much as we can using love's auto
 Do not use love.graphics.rectangle() if you draw visible rectangles. Use love.graphics.draw(Resources.sprites.pixel, 0, 0, 0, width, height). love.graphics.rectangle() is okay for stencils. And don't even thing about using love.graphics.rectangle() to make rounded rectangles, they look horrible.
 
 Do not reference any class from this UI in "rizu" or "gui" or any other modules. If you need to, then something is wrong and it is time to start complain and refactor. This is frontend, it's completely separate from the backend.
+
+## Song Select Footer
+
+The built-in song-select screen uses a 64-unit footer matching the webclient layout: Back, loadout controls, music speed, and Play. Its Lucide icons render at their native 24-pixel size to preserve crisp edges. The music-speed knob artwork is currently represented by colored pixel-sprite rectangles so final sprites can replace that placeholder without changing layout or interactions.
