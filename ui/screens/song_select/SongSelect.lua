@@ -15,6 +15,7 @@ local UiActions = require("ui.UiActions")
 ---@class ui.screens.song_select.SongSelect : gui.Screen
 ---@operator call: ui.screens.song_select.SongSelect
 ---@field selected_song_panel ui.screens.song_select.SelectedSongPanel
+---@field score_list_panel ui.screens.song_select.ScoreListPanel
 ---@field chart_browser ui.screens.song_select.ChartBrowser
 ---@field library_toolbar ui.screens.song_select.LibraryToolbar
 ---@field footer ui.screens.song_select.Footer
@@ -33,6 +34,9 @@ function SongSelect:new(ui)
 		ui.game.settings
 	)
 	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game)
+	self.score_list_panel = ScoreListPanel(ui.game.scoreSelector, function(index)
+		self:openScore(index)
+	end)
 	self.chart_browser = ChartBrowser(ui.game.chartSelector, ui.game.settings)
 	self.popup_container = PopupContainer()
 
@@ -52,7 +56,7 @@ function SongSelect:new(ui)
 
 	local left = content:add(TrackContainer({direction = "column", gap = 10}), "46%")
 	left:add(self.selected_song_panel, "52%")
-	left:add(ScoreListPanel(), "*")
+	left:add(self.score_list_panel, "*")
 
 	local right = content:add(TrackContainer({direction = "column", gap = 10}), "*")
 	right:add(Panel({
@@ -68,10 +72,22 @@ function SongSelect:new(ui)
 	self.root:setPivot(0.5, 0.5)
 end
 
+---@param index integer
+function SongSelect:openScore(index)
+	local game = self.ui.game
+	game.scoreSelector:scrollScore(nil, index)
+	if game.scoreSelector.chartplay then
+		game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+		self.ui:setScreen(self.ui.result)
+	end
+end
+
 function SongSelect:enter()
 	local chart_selector = self.ui.game.chartSelector
 	chart_selector:onChanged(self)
+	self.ui.game.scoreSelector:onChanged(self)
 	self.ui.game.collectionSelector:onChanged(self)
+	self.score_list_panel.score_list:reload()
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
 	local chartview = chart_selector.chartview
@@ -96,6 +112,7 @@ end
 
 function SongSelect:exit()
 	self.ui.game.chartSelector:offChanged(self)
+	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.game.collectionSelector:offChanged(self)
 
 	self.ui.command_registry:popContext("select_commands")
@@ -125,6 +142,9 @@ function SongSelect:receive(event)
 	end
 	if event.type == "chartview_changed" then
 		self.footer:updateState()
+	end
+	if event.type == "score_items_changed" then
+		self.score_list_panel.score_list:reload()
 	end
 	self.selected_song_panel:receive(event)
 end
