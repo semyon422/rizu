@@ -37,6 +37,7 @@ userdata/lasterror.txt
 userdata/settings.json
 userdata/ui.json
 userdata/mapperatorinator.json
+userdata/llm_chart.lua
 userdata/ai.lua
 userdata/ai_auth.lua
 userdata/ai_proxy.lua
@@ -89,6 +90,7 @@ backups
 
 .codex
 tmp/
+/experiments/
 security/
 
 .pi/lsp-bridge.sock
