@@ -2,11 +2,13 @@ local Screen = require("gui.Screen")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
+local PopupContainer = require("ui.views.PopupContainer")
 local SongSelectHeader = require("ui.screens.song_select.SongSelectHeader")
 local LibraryToolbar = require("ui.screens.song_select.LibraryToolbar")
 local SelectedSongPanel = require("ui.screens.song_select.SelectedSongPanel")
 local ScoreListPanel = require("ui.screens.song_select.ScoreListPanel")
 local ChartBrowser = require("ui.screens.song_select.ChartBrowser")
+local Footer = require("ui.screens.song_select.Footer")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local UiActions = require("ui.UiActions")
 
@@ -14,6 +16,8 @@ local UiActions = require("ui.UiActions")
 ---@operator call: ui.screens.song_select.SongSelect
 ---@field selected_song_panel ui.screens.song_select.SelectedSongPanel
 ---@field chart_browser ui.screens.song_select.ChartBrowser
+---@field library_toolbar ui.screens.song_select.LibraryToolbar
+---@field footer ui.screens.song_select.Footer
 local SongSelect = Screen + {}
 
 local HEADER_HEIGHT = 50
@@ -30,6 +34,7 @@ function SongSelect:new(ui)
 	)
 	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game)
 	self.chart_browser = ChartBrowser(ui.game.chartSelector, ui.game.settings)
+	self.popup_container = PopupContainer()
 
 	self.root:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
 
@@ -37,7 +42,7 @@ function SongSelect:new(ui)
 	layout:anchorFill(0, 0, 0, 0)
 
 	layout:add(SongSelectHeader(ui), HEADER_HEIGHT)
-	layout:add(LibraryToolbar(), TOOLBAR_HEIGHT)
+	self.library_toolbar = layout:add(LibraryToolbar(ui, self.popup_container), TOOLBAR_HEIGHT)
 
 	local content = layout:add(TrackContainer({
 		direction = "row",
@@ -56,7 +61,8 @@ function SongSelect:new(ui)
 	}), 78)
 	right:add(self.chart_browser, "*")
 
-	layout:add(Panel({color = Colors.panel}), FOOTER_HEIGHT)
+	self.footer = layout:add(Footer(ui), FOOTER_HEIGHT)
+	self.root:add(self.popup_container)
 
 	self.root:setOpacity(0)
 	self.root:setPivot(0.5, 0.5)
@@ -65,6 +71,9 @@ end
 function SongSelect:enter()
 	local chart_selector = self.ui.game.chartSelector
 	chart_selector:onChanged(self)
+	self.ui.game.collectionSelector:onChanged(self)
+	self.library_toolbar:updateCollections()
+	self.footer:updateState()
 	local chartview = chart_selector.chartview
 	if chartview and chartview.hash then
 		self.chartview_formatter:setChartview(chartview)
@@ -87,6 +96,7 @@ end
 
 function SongSelect:exit()
 	self.ui.game.chartSelector:offChanged(self)
+	self.ui.game.collectionSelector:offChanged(self)
 
 	self.ui.command_registry:popContext("select_commands")
 	self.ui.command_registry:popContext("ui_select_commands")
@@ -105,17 +115,23 @@ end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
 function SongSelect:receive(event)
+	if event.type == "collection_selection_changed" then
+		self.library_toolbar:updateCollections()
+	end
 	if event.type == "chartview_changed" and event.chartview and event.chartview.hash then
 		self.chartview_formatter:setChartview(event.chartview)
 		self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
 		self.selected_song_panel:bind(self.chartview_formatter)
 	end
+	if event.type == "chartview_changed" then
+		self.footer:updateState()
+	end
 	self.selected_song_panel:receive(event)
 end
 
--- ModalManager calls this after modifier dialogs close. The scaffold has no
--- modifier widgets to refresh yet.
-function SongSelect:updateModifiers() end
+function SongSelect:updateModifiers()
+	self.footer:updateState()
+end
 
 ---@param inputs gui.Inputs
 function SongSelect:onHandleInputs(inputs)
@@ -127,9 +143,11 @@ function SongSelect:onHandleInputs(inputs)
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then
 		game.timeRateModel:increase(-1)
 		game.modifierSelectModel:change()
+		self.footer:updateState()
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_increase) then
 		game.timeRateModel:increase(1)
 		game.modifierSelectModel:change()
+		self.footer:updateState()
 	elseif inputs:consumeActionJustPressed(UiActions.refresh_song_select) then
 		game.chartSelector:noDebounceRefresh()
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then

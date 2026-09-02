@@ -52,7 +52,7 @@ function ModalManager:new(ui, popup_container)
 	self.input = self:addModal(Input(ui.game))
 	ui.game.chartSelector:onChanged(self.input)
 	local function modifiers_changed()
-		-- TODO: The game should emit events like this.
+		-- TODO: This callback chain stinks. The game core should emit modifier-change events.
 		ui.song_select:updateModifiers()
 	end
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
