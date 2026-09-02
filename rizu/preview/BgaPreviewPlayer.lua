@@ -123,7 +123,9 @@ function BgaPreviewPlayer:applyLoadedPreview(result)
 	end
 
 	self.sprite_engine:load(result.image_names, result.resources)
-	self.video_engine:load(result.video_names, result.video_paths)
+	if #result.video_names > 0 then
+		self.video_engine:load(result.video_names, result.video_paths)
+	end
 
 	if self.pending_seek then
 		local pending_seek = self.pending_seek
@@ -244,6 +246,7 @@ end
 
 function BgaPreviewPlayer:release()
 	self:stop()
+	self.video_engine:release()
 end
 
 return BgaPreviewPlayer

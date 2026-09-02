@@ -13,6 +13,10 @@ local AsyncVideoThreadTransport = class()
 
 ---@param id string
 function AsyncVideoThreadTransport:start(id)
+	if self:isRunning() then
+		return
+	end
+
 	local input_channel_name = "async_video_input_" .. id
 	local output_channel_name = "async_video_output_" .. id
 	self.input_channel = love.thread.getChannel(input_channel_name)
@@ -60,8 +64,6 @@ function AsyncVideoThreadTransport:stop()
 	if not self:isRunning() then
 		ThreadPool:unregisterManagedThread(self)
 	end
-	self.input_channel = nil
-	self.output_channel = nil
 end
 
 return AsyncVideoThreadTransport

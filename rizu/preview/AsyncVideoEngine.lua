@@ -44,6 +44,7 @@ end
 ---@field frame_duration number
 ---@field queue rizu.preview.AsyncVideoFrame[]
 ---@field ended boolean?
+---@field decode_failed boolean?
 
 ---@class rizu.preview.AsyncVideoEngine
 ---@operator call: rizu.preview.AsyncVideoEngine
@@ -74,6 +75,9 @@ function AsyncVideoEngine:new(transport, logger, clock)
 end
 
 function AsyncVideoEngine:startThread()
+	if self.transport:isRunning() then
+		return
+	end
 	local id = tostring(self):gsub("[^%w_]", "_")
 	self.transport:start(id)
 end
@@ -82,11 +86,12 @@ end
 ---@param video_paths {[string]: string}
 function AsyncVideoEngine:load(video_names, video_paths)
 	self:unload()
-	self:startThread()
 
-	self.generation = self.generation + 1
+	---@type string[]
+	local load_names = {}
 	for _, name in ipairs(video_names) do
 		if video_paths[name] then
+			load_names[#load_names + 1] = name
 			self.videos[name] = {
 				video = AsyncVideo(self, name),
 				pending = false,
@@ -97,10 +102,15 @@ function AsyncVideoEngine:load(video_names, video_paths)
 		end
 	end
 
+	if #load_names == 0 then
+		return
+	end
+
+	self:startThread()
 	self.transport:send({
 		type = "load",
 		generation = self.generation,
-		video_names = video_names,
+		video_names = load_names,
 		video_paths = video_paths,
 	})
 end
@@ -159,7 +169,7 @@ function AsyncVideoEngine:requestFrame(name, time)
 	ensureStateDefaults(state)
 
 	state.desired_time = time
-	if state.pending then
+	if state.pending or state.decode_failed then
 		return
 	end
 
@@ -194,6 +204,9 @@ end
 ---@param event rizu.preview.AsyncVideoFrameEvent
 function AsyncVideoEngine:applyFrame(event)
 	if event.generation ~= self.generation then
+		if event.image_data then
+			releaseFrame(event)
+		end
 		return
 	end
 
@@ -246,6 +259,13 @@ function AsyncVideoEngine:applyBatchDone(event)
 	ensureStateDefaults(state)
 
 	state.pending = false
+	if event.sent == 0 then
+		if #state.queue == 0 then
+			state.decode_failed = true
+		end
+		return
+	end
+
 	local desired_time = state.desired_time
 	if desired_time and desired_time ~= event.requested_time then
 		self:requestFrame(event.video_name, desired_time)
@@ -318,6 +338,10 @@ end
 
 function AsyncVideoEngine:update()
 	local t0 = self.clock()
+	if not self.transport:isRunning() then
+		self.transport:stop()
+		return
+	end
 	self.transport:checkError()
 
 	local event = self.transport:pop()
@@ -350,6 +374,13 @@ function AsyncVideoEngine:unload()
 	self.videos = {}
 	self.generation = self.generation + 1
 
+	if self.transport:isRunning() then
+		self.transport:send({type = "unload"})
+	end
+end
+
+function AsyncVideoEngine:release()
+	self:unload()
 	self.transport:stop()
 end
 
@@ -365,6 +396,10 @@ end
 ---@param name string
 ---@param time number
 function AsyncVideoEngine:seek(name, time)
+	local state = self.videos[name]
+	if state then
+		state.decode_failed = nil
+	end
 	self:requestFrame(name, time)
 end
 

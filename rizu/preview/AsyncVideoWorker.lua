@@ -151,6 +151,14 @@ local function readFrame(event)
 	local item = openVideo(event.video_name)
 	if not item then
 		sendMiss(event)
+		output_channel:push({
+			type = "batch_done",
+			generation = event.generation,
+			video_name = event.video_name,
+			request_id = event.request_id,
+			requested_time = event.time,
+			sent = 0,
+		})
 		return
 	end
 

@@ -111,7 +111,7 @@ function RhythmEngine:unload()
 	self.audio_engine = nil
 
 	if self.bga_engine then
-		self.bga_engine:unload()
+		self.bga_engine:release()
 	end
 	self.bga_engine = nil
 

@@ -83,6 +83,10 @@ function PreviewModel:new(settings, replayBase, game)
 	self.generating_hashes = {}
 	---@type {[string]: boolean?}
 	self.attempted_hashes = {}
+	---@type string?
+	self.active_generation_hash = nil
+	---@type rizu.preview.PreviewGenerationData?
+	self.pending_generation = nil
 
 	self.loaded_audio_path = nil
 	self.loaded_preview_time = nil
@@ -432,13 +436,39 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	return true
 end)
 
+---@param chartview_data rizu.preview.PreviewGenerationData
+function PreviewModel:startPreviewGeneration(chartview_data)
+	local hash = chartview_data.hash
+	self.active_generation_hash = hash
+	self.generating_hashes[hash] = true
+
+	thread.coro(function()
+		local ok, result = pcall(generatePreviewAsync, chartview_data)
+		self.generating_hashes[hash] = nil
+		self.attempted_hashes[hash] = true
+		self.active_generation_hash = nil
+		if ok and result then
+			if self.chartview and self.chartview.hash == hash then
+				self:loadPreview()
+			end
+		else
+			print("Preview: generation failed for " .. hash .. " error: " .. tostring(result))
+		end
+
+		local pending = self.pending_generation
+		self.pending_generation = nil
+		if pending then
+			self:startPreviewGeneration(pending)
+		end
+	end)()
+end
+
 ---@param chartview rizu.preview.PreviewChartview
 function PreviewModel:generatePreview(chartview)
 	local hash = chartview.hash
 	if self.generating_hashes[hash] then
 		return
 	end
-	self.generating_hashes[hash] = true
 
 	---@type rizu.preview.PreviewGenerationData
 	local chartview_data = {
@@ -452,22 +482,26 @@ function PreviewModel:generatePreview(chartview)
 		hash = hash,
 	}
 
-	thread.coro(function()
-		local ok, result = pcall(generatePreviewAsync, chartview_data)
-		self.generating_hashes[hash] = nil
-		self.attempted_hashes[hash] = true
-		if ok and result then
-			if self.chartview and self.chartview.hash == hash then
-				self:loadPreview()
-			end
-		else
-			print("Preview: generation failed for " .. hash .. " error: " .. tostring(result))
+	if self.active_generation_hash then
+		local pending = self.pending_generation
+		if pending then
+			self.generating_hashes[pending.hash] = nil
 		end
-	end)()
+		self.pending_generation = chartview_data
+		self.generating_hashes[hash] = true
+		return
+	end
+
+	self:startPreviewGeneration(chartview_data)
 end
 
 function PreviewModel:stop()
 	self.active = false
+	local pending_generation = self.pending_generation
+	if pending_generation then
+		self.generating_hashes[pending_generation.hash] = nil
+	end
+	self.pending_generation = nil
 	self.audioPreviewPlayer:stop()
 	self.bgaPreviewPlayer:stop()
 	self.chartPreview:setChartview(nil)

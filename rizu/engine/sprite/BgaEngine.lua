@@ -194,4 +194,9 @@ function BgaEngine:unload()
 	self.active_notes = {}
 end
 
+function BgaEngine:release()
+	self:unload()
+	self.video_engine:release()
+end
+
 return BgaEngine

@@ -4,6 +4,7 @@ require("rizu.preview.AsyncVideoProtocol")
 ---@class rizu.preview.FakeAsyncVideoTransport: rizu.preview.IAsyncVideoTransport
 ---@operator call: rizu.preview.FakeAsyncVideoTransport
 ---@field started boolean
+---@field start_count integer
 ---@field stopped boolean
 ---@field id string?
 ---@field sent rizu.preview.AsyncVideoInputEvent[]
@@ -13,6 +14,7 @@ local FakeAsyncVideoTransport = class()
 
 function FakeAsyncVideoTransport:new()
 	self.started = false
+	self.start_count = 0
 	self.stopped = false
 	---@type rizu.preview.AsyncVideoInputEvent[]
 	self.sent = {}
@@ -23,6 +25,7 @@ end
 ---@param id string
 function FakeAsyncVideoTransport:start(id)
 	self.started = true
+	self.start_count = self.start_count + 1
 	self.stopped = false
 	self.id = id
 end

@@ -23,6 +23,7 @@ local function installFakeLoveThread()
 	local old_love = love
 	local input_channel = makeChannel()
 	local output_channel = makeChannel()
+	local new_thread_count = 0
 	local fake_thread = {
 		running = false,
 		start_args = nil,
@@ -47,6 +48,7 @@ local function installFakeLoveThread()
 			return output_channel
 		end,
 		newThread = function()
+			new_thread_count = new_thread_count + 1
 			return fake_thread
 		end,
 	}
@@ -56,6 +58,9 @@ local function installFakeLoveThread()
 		input_channel = input_channel,
 		output_channel = output_channel,
 		fake_thread = fake_thread,
+		getNewThreadCount = function()
+			return new_thread_count
+		end,
 		restore = function(self)
 			_G.love = self.old_love
 		end,
@@ -83,6 +88,23 @@ function test.registers_managed_thread_until_worker_stops(t)
 	t:tdeq(ThreadPool:getRunningThreadNames(), {})
 	t:eq(ThreadPool.managedThreads[transport], nil)
 
+	fake:restore()
+	ThreadPool.managedThreads = old_managed_threads
+end
+
+---@param t testing.T
+function test.start_reuses_running_worker(t)
+	local old_managed_threads = ThreadPool.managedThreads
+	ThreadPool.managedThreads = {}
+	local fake = installFakeLoveThread()
+
+	local transport = AsyncVideoThreadTransport()
+	transport:start("test")
+	transport:start("test")
+
+	t:eq(fake:getNewThreadCount(), 1)
+
+	transport:stop()
 	fake:restore()
 	ThreadPool.managedThreads = old_managed_threads
 end
