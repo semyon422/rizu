@@ -1,18 +1,15 @@
 local class = require("class")
 local AtlasImage = require("gui.AtlasImage")
-local ImageSprite = require("gui.ImageSprite")
 
 ---@class gui.packer.ImageAtlasPacker
 ---@operator call: gui.packer.ImageAtlasPacker
 ---@field max_atlas_width integer
 ---@field max_atlas_height integer
----@field image_size_constraint integer
 ---@field border integer
 local ImageAtlasPacker = class()
 
 ImageAtlasPacker.max_atlas_width = 4096
 ImageAtlasPacker.max_atlas_height = 4096
-ImageAtlasPacker.image_size_constraint = 1536
 ImageAtlasPacker.border = 1
 
 ---@class gui.packer.ImageAtlasPacker.Entry
@@ -25,17 +22,13 @@ ImageAtlasPacker.border = 1
 ---@field layer integer
 
 ---@param image_datas {[string]: love.ImageData}
----@return gui.packer.ImageAtlasPacker.Entry[] packed
----@return gui.packer.ImageAtlasPacker.Entry[] standalone
+---@return gui.packer.ImageAtlasPacker.Entry[]
 function ImageAtlasPacker:buildEntries(image_datas)
-	---@type gui.packer.ImageAtlasPacker.Entry[]
-	local packed = {}
-	---@type gui.packer.ImageAtlasPacker.Entry[]
-	local standalone = {}
+	local entries = {} ---@type gui.packer.ImageAtlasPacker.Entry[]
 
 	for name, image_data in pairs(image_datas) do
 		local width, height = image_data:getDimensions()
-		local entry = {
+		entries[#entries + 1] = {
 			name = name,
 			image_data = image_data,
 			width = width,
@@ -44,11 +37,6 @@ function ImageAtlasPacker:buildEntries(image_datas)
 			y = 0,
 			layer = 0,
 		}
-		if width > self.image_size_constraint or height > self.image_size_constraint then
-			standalone[#standalone + 1] = entry
-		else
-			packed[#packed + 1] = entry
-		end
 	end
 
 	local function sort_entries(a, b)
@@ -60,9 +48,8 @@ function ImageAtlasPacker:buildEntries(image_datas)
 		end
 		return a.name < b.name
 	end
-	table.sort(packed, sort_entries)
-	table.sort(standalone, sort_entries)
-	return packed, standalone
+	table.sort(entries, sort_entries)
+	return entries
 end
 
 ---@param entries gui.packer.ImageAtlasPacker.Entry[]
@@ -121,9 +108,9 @@ end
 
 ---@param image_datas {[string]: love.ImageData}
 ---@return love.Image[] atlases
----@return {[string]: gui.Sprite} sprites
+---@return {[string]: gui.AtlasImage} sprites
 function ImageAtlasPacker:pack(image_datas)
-	local entries, standalone = self:buildEntries(image_datas)
+	local entries = self:buildEntries(image_datas)
 	local layer_count = self:placeEntries(entries)
 	---@type integer[]
 	local layer_widths = {}
@@ -150,7 +137,7 @@ function ImageAtlasPacker:pack(image_datas)
 
 	---@type love.Image[]
 	local atlases = {}
-	---@type {[string]: gui.Sprite}
+	---@type {[string]: gui.AtlasImage}
 	local sprites = {}
 	for layer, image_data in ipairs(layers) do
 		local atlas = love.graphics.newImage(image_data)
@@ -162,12 +149,6 @@ function ImageAtlasPacker:pack(image_datas)
 		local quad = love.graphics.newQuad(entry.x, entry.y, entry.width, entry.height,
 			layer_widths[layer], layer_heights[layer])
 		sprites[entry.name] = AtlasImage(atlases[layer], quad)
-	end
-
-	for _, entry in ipairs(standalone) do
-		local image = love.graphics.newImage(entry.image_data)
-		image:setWrap("clamp", "clamp")
-		sprites[entry.name] = ImageSprite(image)
 	end
 
 	return atlases, sprites

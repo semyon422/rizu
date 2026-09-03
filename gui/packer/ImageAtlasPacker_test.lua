@@ -1,6 +1,5 @@
 local ImageAtlasPacker = require("gui.packer.ImageAtlasPacker")
 local AtlasImage = require("gui.AtlasImage")
-local ImageSprite = require("gui.ImageSprite")
 
 local test = {}
 local old_love = love
@@ -98,16 +97,31 @@ function test.creates_multiple_atlases(t)
 end
 
 ---@param t testing.T
-function test.large_image_is_standalone(t)
+function test.large_image_is_packed(t)
 	stubLove()
 	local packer = ImageAtlasPacker()
 	local large = FakeImageData:new(1537, 2)
 	local atlases, sprites = packer:pack({large = large})
 	love = old_love
 
-	t:eq(#atlases, 0)
-	t:assert(ImageSprite * sprites.large)
-	t:eq(sprites.large:getDimensions(), 1537)
+	t:eq(#atlases, 1)
+	t:assert(AtlasImage * sprites.large)
+	t:eq(sprites.large:getWidth(), 1537)
+	t:eq(sprites.large:getHeight(), 2)
+end
+
+---@param t testing.T
+function test.image_larger_than_atlas_fails(t)
+	stubLove()
+	local packer = ImageAtlasPacker()
+	packer.max_atlas_width = 16
+	packer.max_atlas_height = 16
+	local err = t:has_error(function()
+		packer:pack({large = FakeImageData:new(15, 2)})
+	end)
+	love = old_love
+
+	t:eq(err, "sprite `large` does not fit in an atlas")
 end
 
 return test

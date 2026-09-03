@@ -7,7 +7,7 @@ local Path = require("Path")
 
 ---@class ui.Resources
 ---@field atlases love.Image[]
----@field sprites {[string]: gui.Sprite}
+---@field sprites {[string]: gui.AtlasImage}
 ---@field dpi number
 ---@field fonts {[string]: love.Font}
 ---@field bmfonts {[string]: love.Font}
