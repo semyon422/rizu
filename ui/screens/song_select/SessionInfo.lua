@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local NineSliceUsage = require("gui.NineSliceUsage")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
@@ -46,6 +47,7 @@ function SessionInfo:new()
 	self.session_text = ""
 	self.status_text = "OFFLINE"
 	self.text_timer = 0
+	self.background = NineSliceUsage(Resources.nine_slices.song_select_session)
 	self:updateText()
 	self.first_separator = self:add(Line({color = Colors.outline, direction = "vertical"}))
 	self.second_separator = self:add(Line({color = Colors.outline, direction = "vertical"}))
@@ -93,7 +95,7 @@ end
 function SessionInfo:draw()
 	Painter.snapToPixel()
 	Painter.setColorTable(panel_color)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
 
 	local date_y = (HEIGHT - self.date_font:getHeight()) / 2
 	local session_y = (HEIGHT - self.session_font:getHeight()) / 2

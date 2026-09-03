@@ -35,6 +35,7 @@ extern vec4 u_start_color;
 extern vec4 u_end_color;
 extern vec4 u_stroke_width;
 extern vec4 u_stroke_color;
+extern float u_uniform_stroke;
 
 float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, float radius) {
     vec2 rounded = abs(point - center) - (half_size - vec2(radius));
@@ -53,7 +54,15 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     float top_stroke = 1.0 - smoothstep(u_stroke_width.y - 0.5, u_stroke_width.y + 0.5, point.y);
     float right_stroke = smoothstep(u_size.x - u_stroke_width.z - 0.5, u_size.x - u_stroke_width.z + 0.5, point.x);
     float bottom_stroke = smoothstep(u_size.y - u_stroke_width.w - 0.5, u_size.y - u_stroke_width.w + 0.5, point.y);
-    float stroke_alpha = max(max(left_stroke, top_stroke), max(right_stroke, bottom_stroke)) * outer_alpha;
+    float side_stroke_alpha = max(max(left_stroke, top_stroke), max(right_stroke, bottom_stroke)) * outer_alpha;
+
+    float uniform_width = u_stroke_width.x;
+    vec2 inner_half_size = max(center - vec2(uniform_width), vec2(0.0));
+    float inner_radius = max(u_radius - uniform_width, 0.0);
+    float inner_distance = roundedRectangleDistance(point, center, inner_half_size, inner_radius);
+    float inner_alpha = 1.0 - smoothstep(-0.5, 0.5, inner_distance);
+    float uniform_stroke_alpha = max(outer_alpha - inner_alpha, 0.0);
+    float stroke_alpha = mix(side_stroke_alpha, uniform_stroke_alpha, u_uniform_stroke);
 
     float span = dot(abs(u_gradient_direction), u_size);
     float gradient = clamp(dot(point - center, u_gradient_direction) / span + 0.5, 0.0, 1.0);
@@ -169,6 +178,22 @@ local function normalizeStrokeWidths(stroke)
 	}
 end
 
+---@param stroke gui.SpriteGenerator.Stroke?
+---@return number
+local function isUniformStroke(stroke)
+	if not stroke then
+		return 0
+	end
+	if type(stroke.width) == "number" then
+		return 1
+	end
+	local left = stroke.width.left or 0
+	return left == (stroke.width.top or 0)
+		and left == (stroke.width.right or 0)
+		and left == (stroke.width.bottom or 0)
+		and 1 or 0
+end
+
 ---@param definitions {[string]: gui.SpriteGenerator.Definition}
 ---@return love.Image[] atlases
 ---@return {[string]: gui.AtlasImage} sprites
@@ -204,6 +229,7 @@ function SpriteGenerator.generate(definitions)
 			shader:send("u_end_color", normalizeColor(definition.linear_gradient.colors[2]))
 			shader:send("u_stroke_width", normalizeStrokeWidths(definition.stroke))
 			shader:send("u_stroke_color", normalizeColor(definition.stroke and definition.stroke.color or {0, 0, 0, 0}))
+			shader:send("u_uniform_stroke", isUniformStroke(definition.stroke))
 			love.graphics.rectangle("fill", 0, 0, definition.width, definition.height)
 			love.graphics.setCanvas()
 			image_datas[name] = love.graphics.readbackTexture(active_canvas)

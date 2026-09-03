@@ -92,4 +92,17 @@ function NineSliceUsage:draw(width, height)
 	self.batch:draw()
 end
 
+---Draws texture pixels at 1:1 while filling dimensions expressed in logical units.
+---@param width number
+---@param height number
+---@param ui_scale number
+function NineSliceUsage:drawFixedScale(width, height, ui_scale)
+	assert(type(ui_scale) == "number" and ui_scale > 0 and ui_scale < math.huge,
+		"ui_scale must be a positive finite number")
+	love.graphics.push("transform")
+	love.graphics.scale(1 / ui_scale, 1 / ui_scale)
+	self:draw(width * ui_scale, height * ui_scale)
+	love.graphics.pop()
+end
+
 return NineSliceUsage

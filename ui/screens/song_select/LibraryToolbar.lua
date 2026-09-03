@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
@@ -83,7 +84,7 @@ function LibraryToolbar:new(ui, popup_container)
 		end,
 	}), 150)
 
-	controls:add(Panel({color = Colors.surface}), 225)
+	controls:add(NineSlice(Resources.nine_slices.song_select_toolbar_control, Colors.surface, true), 225)
 
 	local search_key = Settings.keys.select.filter_string
 	self.search = controls:add(SearchField({

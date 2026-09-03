@@ -1,7 +1,8 @@
 local View = require("gui.View")
+local NineSlice = require("gui.NineSlice")
+local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Line = require("ui.views.Line")
-local Panel = require("ui.views.Panel")
 local ScoreList = require("ui.screens.song_select.ScoreList")
 
 ---@class ui.screens.song_select.ScoreListPanel : gui.View
@@ -13,10 +14,7 @@ local ScoreListPanel = View + {}
 ---@param on_score_selected fun(index: integer)
 function ScoreListPanel:new(score_selector, on_score_selected)
 	View.new(self)
-	self:add(Panel({
-		color = Colors.panel,
-		line_color = Colors.outline,
-	})):anchorFill(0, 0, 0, 0)
+	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
 	self.score_list = self:add(ScoreList(score_selector, on_score_selected))
 	self.score_list:anchorFill(5, 60, 5, 5)
 

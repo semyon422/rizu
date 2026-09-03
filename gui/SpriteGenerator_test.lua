@@ -103,6 +103,7 @@ function test.generates_atlas_images(t)
 	t:eq(sends.u_rounding_power[1], 4)
 	t:tdeq(sends.u_stroke_width[1], {1, 2, 3, 4})
 	t:tdeq(sends.u_stroke_color[1], {0.5, 0.5, 0.5, 0.75})
+	t:eq(sends.u_uniform_stroke[1], 0)
 	t:aeq(sends.u_gradient_direction[1][1], 0, 1e-9)
 	t:aeq(sends.u_gradient_direction[1][2], 1, 1e-9)
 	t:eq(#nine_slices.button, 9)
@@ -150,6 +151,23 @@ function test.rejects_slice_smaller_than_radius(t)
 	love = old_love
 
 	t:eq(err, "sprite `panel` slice must be at least border_radius")
+end
+
+---@param t testing.T
+function test.marks_uniform_stroke_for_curved_corner_rendering(t)
+	local sends = stubLove()
+	SpriteGenerator({
+		panel = {
+			width = 20,
+			height = 20,
+			border_radius = 5,
+			linear_gradient = {angle = 0, colors = {{1, 1, 1}, {1, 1, 1}}},
+			stroke = {width = 1, color = {1, 1, 1}},
+		},
+	})
+	love = old_love
+
+	t:eq(sends.u_uniform_stroke[1], 1)
 end
 
 return test

@@ -1,11 +1,11 @@
 local View = require("gui.View")
+local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
 local Sounds = require("ui.Sounds")
 local Line = require("ui.views.Line")
-local Panel = require("ui.views.Panel")
 local ChartSets = require("ui.screens.song_select.ChartSets")
 local ChartGrid = require("ui.screens.song_select.ChartGrid")
 
@@ -31,7 +31,7 @@ end
 
 function ChevronButton:draw()
 	Painter.setColorTable(self.mouse_over and Colors.surface_raised or Colors.surface)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	Resources.sprites.song_select_chevron:draw(0, 0)
 	local icon_width, icon_height = self.sprite:getDimensions()
 	Painter.setColorTable(Colors.muted)
 	self.sprite:draw((self.width - icon_width) / 2, (self.height - icon_height) / 2)
@@ -48,10 +48,7 @@ local ChartBrowser = View + {}
 function ChartBrowser:new(chart_selector, settings)
 	View.new(self)
 
-	self:add(Panel({
-		color = Colors.panel,
-		line_color = Colors.outline,
-	})):anchorFill(0, 0, 0, 0)
+	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
 
 	local content = self:add(TrackContainer({
 		direction = "column",

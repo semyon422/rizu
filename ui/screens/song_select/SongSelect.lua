@@ -1,5 +1,7 @@
 local Screen = require("gui.Screen")
+local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
+local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
 local PopupContainer = require("ui.views.PopupContainer")
@@ -59,10 +61,7 @@ function SongSelect:new(ui)
 	left:add(self.score_list_panel, "*")
 
 	local right = content:add(TrackContainer({direction = "column", gap = 10}), "*")
-	right:add(Panel({
-		color = Colors.panel,
-		line_color = Colors.outline,
-	}), 78)
+	right:add(NineSlice(Resources.nine_slices.song_select_summary, nil, true), 78)
 	right:add(self.chart_browser, "*")
 
 	self.footer = layout:add(Footer(ui), FOOTER_HEIGHT)

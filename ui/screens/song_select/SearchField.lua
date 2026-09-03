@@ -1,4 +1,5 @@
 local Textbox = require("ui.views.Textbox")
+local NineSliceUsage = require("gui.NineSliceUsage")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
@@ -15,12 +16,13 @@ local TEXT_X = 48
 function SearchField:new(params)
 	Textbox.new(self, params)
 	self.font = Resources.getFont("medium", 16)
+	self.background = NineSliceUsage(Resources.nine_slices.song_select_search)
 end
 
 function SearchField:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(Colors.surface)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	Painter.setColorRgb(1, 1, 1)
+	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
 
 	local icon = Resources.sprites.icon_search
 	local icon_width, icon_height = icon:getDimensions()
