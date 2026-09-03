@@ -203,7 +203,7 @@ function ChartGrid:draw()
 			local x = (i - 1) * item_step - scroll
 			local selected = selected_index == item.id
 			Painter.setColorTable((selected or self.hover_id == item.id) and Colors.surface_raised or Colors.surface)
-			Resources.sprites.pixel:draw(x, 0, 0, ITEM_WIDTH, ITEM_HEIGHT)
+			Resources.sprites.chart_grid_item:draw(x, 0)
 			Painter.setColorRgb(
 				item.difficulty_color[1],
 				item.difficulty_color[2],
@@ -213,7 +213,7 @@ function ChartGrid:draw()
 			Resources.sprites.chart_grid_item_gradient:draw(x, 0)
 			if selected then
 				Painter.setColorTable(item.difficulty_color)
-				Resources.sprites.pixel:draw(x, ITEM_HEIGHT - 3, 0, ITEM_WIDTH, 3)
+				Resources.sprites.chart_grid_item_selected:draw(x, 0)
 			end
 		end
 	end

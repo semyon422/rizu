@@ -53,7 +53,7 @@ function Resources.load()
 
 	local packer = ImageAtlasPacker()
 	Resources.atlases, Resources.sprites = packer:pack(t)
-	local generated_atlases, generated_sprites = SpriteGenerator(SpriteDefinitions)
+	local generated_atlases, generated_sprites, generated_nine_slices = SpriteGenerator(SpriteDefinitions)
 	for _, atlas in ipairs(generated_atlases) do
 		Resources.atlases[#Resources.atlases + 1] = atlas
 	end
@@ -77,6 +77,9 @@ function Resources.load()
 			s.ns_rect_lb, s.ns_rect_b, s.ns_rect_rb
 		}
 	}
+	for name, sprites in pairs(generated_nine_slices) do
+		Resources.nine_slices[name] = sprites
+	end
 	---@diagnostic enable
 end
 
