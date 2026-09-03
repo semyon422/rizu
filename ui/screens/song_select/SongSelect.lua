@@ -1,7 +1,5 @@
 local Screen = require("gui.Screen")
-local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
-local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
 local PopupContainer = require("ui.views.PopupContainer")
@@ -10,6 +8,7 @@ local LibraryToolbar = require("ui.screens.song_select.LibraryToolbar")
 local SelectedSongPanel = require("ui.screens.song_select.SelectedSongPanel")
 local ScoreListPanel = require("ui.screens.song_select.ScoreListPanel")
 local ChartBrowser = require("ui.screens.song_select.ChartBrowser")
+local ChartSummary = require("ui.screens.song_select.ChartSummary")
 local Footer = require("ui.screens.song_select.Footer")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local UiActions = require("ui.UiActions")
@@ -19,6 +18,7 @@ local UiActions = require("ui.UiActions")
 ---@field selected_song_panel ui.screens.song_select.SelectedSongPanel
 ---@field score_list_panel ui.screens.song_select.ScoreListPanel
 ---@field chart_browser ui.screens.song_select.ChartBrowser
+---@field chart_summary ui.screens.song_select.ChartSummary
 ---@field library_toolbar ui.screens.song_select.LibraryToolbar
 ---@field footer ui.screens.song_select.Footer
 local SongSelect = Screen + {}
@@ -40,6 +40,7 @@ function SongSelect:new(ui)
 		self:openScore(index)
 	end)
 	self.chart_browser = ChartBrowser(ui.game.chartSelector, ui.game.settings)
+	self.chart_summary = ChartSummary(self.chartview_formatter)
 	self.popup_container = PopupContainer()
 
 	self.root:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
@@ -61,7 +62,7 @@ function SongSelect:new(ui)
 	left:add(self.score_list_panel, "*")
 
 	local right = content:add(TrackContainer({direction = "column", gap = 10}), "*")
-	right:add(NineSlice(Resources.nine_slices.song_select_summary, nil, true), 78)
+	right:add(self.chart_summary, 78)
 	right:add(self.chart_browser, "*")
 
 	self.footer = layout:add(Footer(ui), FOOTER_HEIGHT)
@@ -94,6 +95,7 @@ function SongSelect:enter()
 		self.chartview_formatter:setChartview(chartview)
 		self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
 		self.selected_song_panel:bind(self.chartview_formatter)
+		self.chart_summary:bind()
 	end
 
 	self.ui.command_registry:pushContext("select_commands", self.ui.select_commands)
@@ -134,10 +136,13 @@ function SongSelect:receive(event)
 	if event.type == "collection_selection_changed" then
 		self.library_toolbar:updateCollections()
 	end
-	if event.type == "chartview_changed" and event.chartview and event.chartview.hash then
+	if event.type == "chartview_changed" then
 		self.chartview_formatter:setChartview(event.chartview)
 		self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
-		self.selected_song_panel:bind(self.chartview_formatter)
+		if event.chartview and event.chartview.hash then
+			self.selected_song_panel:bind(self.chartview_formatter)
+		end
+		self.chart_summary:bind()
 	end
 	if event.type == "chartview_changed" then
 		self.footer:updateState()

@@ -115,6 +115,19 @@ function ChartviewFormatter:getNoteCount()
 end
 
 ---@return string
+function ChartviewFormatter:getMode()
+	local chartview = self.chartview
+	local inputmode = chartview.chartdiff_inputmode or chartview.inputmode
+	if inputmode and inputmode ~= "" then
+		return inputmode:gsub("key", "K"):gsub("scratch", "S"):upper()
+	end
+	if chartview.mode and chartview.mode ~= "" then
+		return chartview.mode:upper()
+	end
+	return "NO CHART"
+end
+
+---@return string
 function ChartviewFormatter:getLevel()
 	return tostring(self.chartview.level or 0)
 end

@@ -46,6 +46,17 @@ local SpriteDefinitions = {
 		border_radius = 4,
 		linear_gradient = {angle = 0, colors = {{1, 1, 1, 1}, {1, 1, 1, 1}}},
 	},
+	chart_summary_difficulty_gradient = {
+		width = 285,
+		height = 66,
+		linear_gradient = {
+			angle = 0,
+			colors = {
+				{1, 1, 1, 1},
+				{1, 1, 1, 0},
+			},
+		},
+	},
 	chart_grid_item = {
 		width = 110,
 		height = 66,
