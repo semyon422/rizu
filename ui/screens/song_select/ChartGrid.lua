@@ -22,6 +22,7 @@ local ChartGrid = VirtualizedList + {}
 local ITEM_WIDTH = 110
 local ITEM_GAP = 5
 local ITEM_HEIGHT = 66
+local ITEM_GRADIENT_OPACITY = 0.32
 
 ---@param chart_selector rizu.select.ChartSelector
 function ChartGrid:new(chart_selector)
@@ -203,6 +204,13 @@ function ChartGrid:draw()
 			local selected = selected_index == item.id
 			Painter.setColorTable((selected or self.hover_id == item.id) and Colors.surface_raised or Colors.surface)
 			Resources.sprites.pixel:draw(x, 0, 0, ITEM_WIDTH, ITEM_HEIGHT)
+			Painter.setColorRgb(
+				item.difficulty_color[1],
+				item.difficulty_color[2],
+				item.difficulty_color[3],
+				ITEM_GRADIENT_OPACITY
+			)
+			Resources.sprites.chart_grid_item_gradient:draw(x, 0)
 			if selected then
 				Painter.setColorTable(item.difficulty_color)
 				Resources.sprites.pixel:draw(x, ITEM_HEIGHT - 3, 0, ITEM_WIDTH, 3)

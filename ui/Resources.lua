@@ -1,4 +1,6 @@
 local ImageAtlasPacker = require("gui.packer.ImageAtlasPacker")
+local SpriteGenerator = require("gui.SpriteGenerator")
+local SpriteDefinitions = require("ui.SpriteDefinitions")
 local Path = require("Path")
 
 ---@alias ui.FontName string
@@ -51,6 +53,13 @@ function Resources.load()
 
 	local packer = ImageAtlasPacker()
 	Resources.atlases, Resources.sprites = packer:pack(t)
+	local generated_atlases, generated_sprites = SpriteGenerator(SpriteDefinitions)
+	for _, atlas in ipairs(generated_atlases) do
+		Resources.atlases[#Resources.atlases + 1] = atlas
+	end
+	for name, sprite in pairs(generated_sprites) do
+		Resources.sprites[name] = sprite
+	end
 
 	setmetatable(Resources.sprites, {
 		__index = function(_self, key)
