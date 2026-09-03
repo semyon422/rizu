@@ -12,7 +12,8 @@ local AtlasImage = require("gui.AtlasImage")
 ---@field height integer
 ---@field border_radius number?
 ---@field rounding_power number? 2 is circular; larger values produce squarer corners.
----@field linear_gradient gui.SpriteGenerator.LinearGradient
+---@field background_color gui.SpriteGenerator.Color?
+---@field linear_gradient gui.SpriteGenerator.LinearGradient?
 ---@field slice number? Insets used to create a nine-slice.
 ---@field stroke gui.SpriteGenerator.Stroke?
 
@@ -146,13 +147,20 @@ local function validateDefinition(name, definition)
 		validateColor(stroke.color, prefix .. " stroke.color")
 	end
 
+	local background_color = definition.background_color
 	local gradient = definition.linear_gradient
-	assert(type(gradient) == "table", prefix .. " linear_gradient must be a table")
-	assert(isFinite(gradient.angle), prefix .. " linear_gradient.angle must be finite")
-	assert(type(gradient.colors) == "table" and #gradient.colors == 2,
-		prefix .. " linear_gradient.colors must contain exactly 2 colors")
-	validateColor(gradient.colors[1], prefix .. " linear_gradient.colors[1]")
-	validateColor(gradient.colors[2], prefix .. " linear_gradient.colors[2]")
+	assert((background_color ~= nil) ~= (gradient ~= nil),
+		prefix .. " requires exactly one of background_color or linear_gradient")
+	if background_color then
+		validateColor(background_color, prefix .. " background_color")
+	else
+		assert(type(gradient) == "table", prefix .. " linear_gradient must be a table")
+		assert(isFinite(gradient.angle), prefix .. " linear_gradient.angle must be finite")
+		assert(type(gradient.colors) == "table" and #gradient.colors == 2,
+			prefix .. " linear_gradient.colors must contain exactly 2 colors")
+		validateColor(gradient.colors[1], prefix .. " linear_gradient.colors[1]")
+		validateColor(gradient.colors[2], prefix .. " linear_gradient.colors[2]")
+	end
 end
 
 ---@param color gui.SpriteGenerator.Color
@@ -220,13 +228,16 @@ function SpriteGenerator.generate(definitions)
 			love.graphics.setCanvas(active_canvas)
 			love.graphics.clear(0, 0, 0, 0)
 
-			local angle = math.rad(definition.linear_gradient.angle)
+			local gradient = definition.linear_gradient
+			local start_color = definition.background_color or gradient.colors[1]
+			local end_color = definition.background_color or gradient.colors[2]
+			local angle = math.rad(gradient and gradient.angle or 0)
 			shader:send("u_size", {definition.width, definition.height})
 			shader:send("u_radius", definition.border_radius or 0)
 			shader:send("u_rounding_power", definition.rounding_power or 2)
 			shader:send("u_gradient_direction", {math.cos(angle), math.sin(angle)})
-			shader:send("u_start_color", normalizeColor(definition.linear_gradient.colors[1]))
-			shader:send("u_end_color", normalizeColor(definition.linear_gradient.colors[2]))
+			shader:send("u_start_color", normalizeColor(start_color))
+			shader:send("u_end_color", normalizeColor(end_color))
 			shader:send("u_stroke_width", normalizeStrokeWidths(definition.stroke))
 			shader:send("u_stroke_color", normalizeColor(definition.stroke and definition.stroke.color or {0, 0, 0, 0}))
 			shader:send("u_uniform_stroke", isUniformStroke(definition.stroke))

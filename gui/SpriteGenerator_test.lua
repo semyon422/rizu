@@ -144,7 +144,7 @@ function test.rejects_slice_smaller_than_radius(t)
 				height = 20,
 				border_radius = 5,
 				slice = 4,
-				linear_gradient = {angle = 0, colors = {{1, 1, 1}, {1, 1, 1}}},
+				background_color = {1, 1, 1},
 			},
 		})
 	end)
@@ -161,7 +161,7 @@ function test.marks_uniform_stroke_for_curved_corner_rendering(t)
 			width = 20,
 			height = 20,
 			border_radius = 5,
-			linear_gradient = {angle = 0, colors = {{1, 1, 1}, {1, 1, 1}}},
+			background_color = {1, 1, 1},
 			stroke = {width = 1, color = {1, 1, 1}},
 		},
 	})

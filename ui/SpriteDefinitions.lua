@@ -7,7 +7,7 @@ local SpriteDefinitions = {
 		height = 17,
 		border_radius = 7,
 		slice = 8,
-		linear_gradient = {angle = 0, colors = {Colors.panel, Colors.panel}},
+		background_color = Colors.panel,
 		stroke = {width = 1, color = Colors.outline},
 	},
 	song_select_summary = {
@@ -15,7 +15,7 @@ local SpriteDefinitions = {
 		height = 15,
 		border_radius = 6,
 		slice = 7,
-		linear_gradient = {angle = 0, colors = {Colors.panel, Colors.panel}},
+		background_color = Colors.panel,
 		stroke = {width = 1, color = Colors.outline},
 	},
 	song_select_toolbar_control = {
@@ -23,14 +23,14 @@ local SpriteDefinitions = {
 		height = 13,
 		border_radius = 5,
 		slice = 6,
-		linear_gradient = {angle = 0, colors = {{1, 1, 1, 1}, {1, 1, 1, 1}}},
+		background_color = {1, 1, 1, 1},
 	},
 	song_select_search = {
 		width = 13,
 		height = 13,
 		border_radius = 5,
 		slice = 6,
-		linear_gradient = {angle = 0, colors = {Colors.surface, Colors.surface}},
+		background_color = Colors.surface,
 		stroke = {width = 1, color = Colors.outline},
 	},
 	song_select_session = {
@@ -38,13 +38,13 @@ local SpriteDefinitions = {
 		height = 11,
 		border_radius = 4,
 		slice = 5,
-		linear_gradient = {angle = 0, colors = {{1, 1, 1, 1}, {1, 1, 1, 1}}},
+		background_color = {1, 1, 1, 1},
 	},
 	song_select_chevron = {
 		width = 38,
 		height = 66,
 		border_radius = 4,
-		linear_gradient = {angle = 0, colors = {{1, 1, 1, 1}, {1, 1, 1, 1}}},
+		background_color = {1, 1, 1, 1},
 	},
 	chart_summary_difficulty_gradient = {
 		width = 285,
@@ -62,26 +62,14 @@ local SpriteDefinitions = {
 		height = 66,
 		border_radius = 8,
 		rounding_power = 4,
-		linear_gradient = {
-			angle = 0,
-			colors = {
-				{1, 1, 1, 1},
-				{1, 1, 1, 1},
-			},
-		},
+		background_color = {1, 1, 1, 1},
 	},
 	chart_grid_item_selected = {
 		width = 110,
 		height = 66,
 		border_radius = 8,
 		rounding_power = 4,
-		linear_gradient = {
-			angle = 0,
-			colors = {
-				{1, 1, 1, 0},
-				{1, 1, 1, 0},
-			},
-		},
+		background_color = {1, 1, 1, 0},
 		stroke = {
 			width = {bottom = 3},
 			color = {1, 1, 1, 1},
