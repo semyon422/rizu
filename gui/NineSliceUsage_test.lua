@@ -31,4 +31,21 @@ function test.fixed_scale_cancels_ui_scale_and_expands_target(t)
 	})
 end
 
+---@param t testing.T
+function test.fixed_scale_at_one_draws_without_transform_changes(t)
+	local calls = {}
+	love = {graphics = {
+		push = function() calls[#calls + 1] = "push" end,
+		scale = function() calls[#calls + 1] = "scale" end,
+		pop = function() calls[#calls + 1] = "pop" end,
+	}}
+	local usage = {draw = function(_, width, height) calls[#calls + 1] = {width, height} end}
+	setmetatable(usage, {__index = NineSliceUsage})
+
+	usage:drawFixedScale(100, 50, 1)
+	love = old_love
+
+	t:tdeq(calls, {{100, 50}})
+end
+
 return test

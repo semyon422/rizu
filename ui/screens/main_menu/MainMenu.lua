@@ -72,6 +72,10 @@ function MainMenu:createButtons()
 		self.ui:setScreen(self.ui.dlc)
 	end))
 
+	buttons:add(Button("Remote Catalog", function()
+		self.ui:setScreen(self.ui.remote_catalog)
+	end))
+
 	buttons:add(Button("Settings", function()
 		self.ui.modal_manager:attachConfig()
 	end))

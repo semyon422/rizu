@@ -25,6 +25,14 @@ return function(game, ui)
 			end,
 		},
 		{
+			id = "ui.global.remote_catalog",
+			title = "Remote Catalog: Open Prototype",
+			description = "Downloads and browses the webclient chart catalog",
+			callback = function()
+				ui:setScreen(ui.remote_catalog)
+			end,
+		},
+		{
 			id = "ui.global.toggle_fps",
 			title = "FPS: Toggle",
 			description = "Toggles the FPS overlay",
