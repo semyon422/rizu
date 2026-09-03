@@ -103,6 +103,8 @@ All select events must include a `type` field. Event type names should describe 
 
 `ChartMediaService` resolves background and preview-audio paths from the selected `LocatedChartview`. `ChartLoader` owns chartfile reading, notechart decoding, and absolute-layer conversion. Keeping these separate prevents preview/media path rules from being coupled to chart loading and replay/export workflows.
 
+`ChartSelector:chartExists()` caches its result for the current chartview and invalidates that cache in `setChartview()`. It uses `ChartfileReader.exists()`, which checks an ordinary chart path directly and checks only the outer archive for an internal IFS path. Thus neither the first check nor repeated per-frame input handling parses a large archive.
+
 ### Modifier Config Persistence
 `ModifierConfigPersistence` owns loading and saving the play config around modifier coordination. `ModifierCoordinator` requests replay-base load/save through this adapter instead of calling `ConfigModel:write()` or reading `configs.play` directly.
 

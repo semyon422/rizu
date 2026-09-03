@@ -241,25 +241,40 @@ function test.playable_chartview_requires_metadata_and_location(t)
 end
 
 ---@param t testing.T
-function test.chart_exists_checks_chartfile_reader(t)
+function test.chart_exists_caches_result_until_chartview_changes(t)
 	local configModel = createMockConfigModel()
 	local library = tlf:create()
-	local checked_path
+	local checked_paths = {}
 	local fs = {
-		read = function() end,
+		read = function()
+			error("chartExists must not read chart contents")
+		end,
 		getInfo = function(_, path)
-			checked_path = path
-			return path == "charts/a.osu" and {type = "file"} or nil
+			checked_paths[#checked_paths + 1] = path
+			return (path == "charts/a.osu" or path == "charts/song.ifs") and {type = "file"} or nil
 		end,
 	}
 	local chartSelector = ChartSelector(configModel, createSettings(), library, fs, {getSelectedItem = function() end}, timer)
 
-	chartSelector.chartview = {location_path = "charts/a.osu"}
+	---@diagnostic disable-next-line: missing-fields
+	chartSelector:setChartview({location_path = "charts/a.osu"})
 	t:eq(chartSelector:chartExists(), true)
-	t:eq(checked_path, "charts/a.osu")
+	t:eq(chartSelector:chartExists(), true)
+	t:tdeq(checked_paths, {"charts/a.osu"})
 
-	chartSelector.chartview = {location_path = "charts/missing.osu"}
+	checked_paths = {}
+	---@diagnostic disable-next-line: missing-fields
+	chartSelector:setChartview({location_path = "charts/song.ifs/29078/29078.1"})
+	t:eq(chartSelector:chartExists(), true)
+	t:eq(chartSelector:chartExists(), true)
+	t:tdeq(checked_paths, {"charts/song.ifs"})
+
+	checked_paths = {}
+	---@diagnostic disable-next-line: missing-fields
+	chartSelector:setChartview({location_path = "charts/missing.osu"})
 	t:eq(chartSelector:chartExists(), false)
+	t:eq(chartSelector:chartExists(), false)
+	t:tdeq(checked_paths, {"charts/missing.osu"})
 
 	library:unload()
 end

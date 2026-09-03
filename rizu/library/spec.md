@@ -107,7 +107,7 @@ Current `.osz` import handling is extraction-based: DLC and drag-and-drop expand
 Chart-set export converts every chart in the selected physical set to `.osu` and writes one `.osz` under `userdata/export`. The normal mode copies ordinary chart resources into the archive, extracts referenced virtual keysounds from packed formats such as IIDX `.s3p`/`.2dx`, and rewrites exported `.osu` sample references to those extracted archive files. Packed keysound banks are not copied into the `.osz` when their referenced samples have been extracted. The compiled-audio mode renders each chart's backing audio and playable keysounds to one WAV, removes keysound references from the exported chart, and uses that WAV as its audio track. Compilation intentionally produces one audio file per chart because keysound timing can differ between variations in the same set.
 
 ### Container Chart Paths
-Most chartfiles are ordinary filesystem files, but IIDX `.ifs` archives are represented as container paths. `ChartfileReader` treats any path matching `*.ifs/<internal path>` as an archive read: the `.ifs` prefix is read from the filesystem, then the remaining path is looked up inside the parsed archive.
+Most chartfiles are ordinary filesystem files, but IIDX `.ifs` archives are represented as container paths. `ChartfileReader` treats any path matching `*.ifs/<internal path>` as an archive read: the `.ifs` prefix is read from the filesystem, then the remaining path is looked up inside the parsed archive. `ChartfileReader.exists()` is intentionally a fast backing-file check: for a container path it verifies only the outer `.ifs` file and does not validate or parse the internal entry.
 
 For metadata-driven IIDX locations:
 

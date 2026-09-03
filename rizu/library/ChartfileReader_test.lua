@@ -16,4 +16,14 @@ function test.invalid_ifs_returns_filename_error(t)
 	t:eq(ChartfileReader.getInfo(fs, "data/broken.ifs/1234/1234.1"), nil)
 end
 
+---@param t testing.T
+function test.exists_checks_ifs_archive_without_parsing_it(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("data")
+	fs:write("data/broken.ifs", "not an IFS archive")
+
+	t:eq(ChartfileReader.exists(fs, "data/broken.ifs/1234/1234.1"), true)
+	t:eq(ChartfileReader.exists(fs, "data/missing.ifs/1234/1234.1"), false)
+end
+
 return test

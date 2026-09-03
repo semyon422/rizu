@@ -102,6 +102,7 @@ end
 ---@param chartview rizu.library.LocatedChartview?
 function ChartSelector:setChartview(chartview)
 	self.chartview = chartview
+	self.chart_exists = nil
 	self.changed = true
 	self:emitChanged({type = "chartview_changed", chartview = chartview})
 end
@@ -245,11 +246,17 @@ end
 
 ---@return boolean
 function ChartSelector:chartExists()
-	local chartview = self.chartview
-	if chartview and chartview.location_path then
-		return ChartfileReader.getInfo(self.fs, chartview.location_path) ~= nil
+	if self.chart_exists ~= nil then
+		return self.chart_exists
 	end
-	return false
+
+	local chartview = self.chartview
+	if not chartview or not chartview.location_path then
+		return false
+	end
+
+	self.chart_exists = ChartfileReader.exists(self.fs, chartview.location_path)
+	return self.chart_exists
 end
 
 function ChartSelector:debounceRefresh(...)

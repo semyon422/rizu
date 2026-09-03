@@ -17,6 +17,16 @@ function ChartfileReader.isArchivePath(path)
 	return ChartfileReader.splitArchivePath(path) ~= nil
 end
 
+---Checks the backing filesystem entry without opening a container.
+---For an internal IFS path, this only verifies that the outer archive exists.
+---@param fs fs.IFilesystem
+---@param path string
+---@return boolean
+function ChartfileReader.exists(fs, path)
+	local archive_path = ChartfileReader.splitArchivePath(path)
+	return fs:getInfo(archive_path or path) ~= nil
+end
+
 ---@param fs fs.IFilesystem
 ---@param archive_path string
 ---@return chart.iidx.IfsArchive?
