@@ -1,4 +1,4 @@
-local FilePicker = require("rizu.mapperatorinator.FilePicker")
+local FilePicker = require("rizu.files.FilePicker")
 
 local test = {}
 
@@ -37,6 +37,23 @@ function test.builds_save_dialog(t)
 	t:eq(dialog_type, "savefile")
 	t:eq(settings.defaultname, "mapperatorinator-preset.json")
 	t:eq(settings.filters["JSON presets"], "json")
+end
+
+---@param t testing.T
+function test.builds_open_folder_dialog(t)
+	local dialog_type, settings
+	local picker = FilePicker(function(value, callback, options)
+		dialog_type = value
+		settings = options
+		callback({"/maps"}, nil, nil)
+	end)
+	local selected
+	picker:openFolder("Select chart folder", function(path) selected = path end)
+	t:eq(selected, "/maps")
+	t:eq(dialog_type, "openfolder")
+	t:eq(settings.title, "Select chart folder")
+	t:eq(settings.multiselect, false)
+	t:eq(settings.attachtowindow, true)
 end
 
 ---@param t testing.T

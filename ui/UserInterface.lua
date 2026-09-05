@@ -11,6 +11,7 @@ local Lobby = require("ui.screens.lobby.Lobby")
 local MusicPlayer = require("ui.screens.music_player.MusicPlayer")
 local Dlc = require("ui.screens.dlc.Dlc")
 local RemoteCatalog = require("ui.screens.remote_catalog.RemoteCatalog")
+local Locations = require("ui.screens.locations.Locations")
 local TestScreen = require("ui.test.TestScreen")
 local ScreenManager = require("ui.ScreenManager")
 local Overlay = require("ui.Overlay")
@@ -53,6 +54,7 @@ local TARGET_HEIGHT = 1080
 ---@field music_player ui.screens.music_player.MusicPlayer
 ---@field dlc ui.screens.dlc.Dlc
 ---@field remote_catalog ui.screens.remote_catalog.RemoteCatalog
+---@field locations ui.screens.locations.Locations
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
 ---@field overlay ui.Overlay
@@ -109,6 +111,7 @@ function UserInterface:load()
 	self.music_player = MusicPlayer(self)
 	self.dlc = Dlc(self)
 	self.remote_catalog = RemoteCatalog(self)
+	self.locations = Locations(self)
 	self.test_screen = TestScreen(self)
 	self.overlay = Overlay(self)
 	self.modal_manager = self.overlay.modal_manager
@@ -124,6 +127,7 @@ function UserInterface:load()
 		self.music_player,
 		self.dlc,
 		self.remote_catalog,
+		self.locations,
 		self.test_screen,
 	})
 	self.screen_manager:setOverlay(self.overlay)

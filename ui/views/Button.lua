@@ -1,26 +1,63 @@
 local View = require("gui.View")
+local Colors = require("ui.Colors")
+local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local SpringValue = require("gui.anim.SpringValue")
+
+---@alias ui.views.ButtonVariant "primary"|"secondary"|"danger"|"success"
+---@alias ui.views.ButtonShape "default"|"capsule"
+
+---@class ui.views.ButtonConfig
+---@field variant? ui.views.ButtonVariant
+---@field shape? ui.views.ButtonShape
+---@field font_name? ui.FontName
+---@field font_size? integer
 
 ---@class ui.views.Button : gui.View
 ---@operator call: ui.views.Button
 ---@field text string
 ---@field on_click fun()?
 ---@field font love.Font
+---@field background gui.NineSliceUsage
+---@field hover_background gui.NineSliceUsage
+---@field pressed_background gui.NineSliceUsage
+---@field shape ui.views.ButtonShape
 local Button = View + {}
+
+local HOVER_ENTER_SPRING = {stiffness = 700, damping = 46}
+local HOVER_EXIT_SPRING = {stiffness = 90, damping = 20}
 
 ---@param text string
 ---@param on_click fun()?
-function Button:new(text, on_click)
+---@param config ui.views.ButtonConfig?
+function Button:new(text, on_click, config)
 	View.new(self)
+	config = config or {}
+	local variant = config.variant or "secondary"
+	local shape = config.shape or "default"
+	assert(variant == "primary" or variant == "secondary" or variant == "danger" or variant == "success",
+		"invalid button variant")
+	assert(shape == "default" or shape == "capsule", "invalid button shape")
 	self.text = text
 	self.on_click = on_click
-	self.font = Resources.getFont("bold", 24)
+	self.font = Resources.getFont(config.font_name or "bold", config.font_size or 24)
+	self.shape = shape
+	self:setVariant(variant)
 	self:setSize(320, 64)
 	self:setPivot(0.5, 0.5)
 	self.handles_mouse_input = true
-	self.hover = SpringValue()
+	self.hover = SpringValue({stiffness = 300, damping = 30})
+end
+
+---@param variant ui.views.ButtonVariant
+function Button:setVariant(variant)
+	assert(variant == "primary" or variant == "secondary" or variant == "danger" or variant == "success",
+		"invalid button variant")
+	local sprite_name = "button_" .. variant .. (self.shape == "capsule" and "_capsule" or "")
+	self.background = NineSliceUsage(Resources.nine_slices[sprite_name])
+	self.hover_background = NineSliceUsage(Resources.nine_slices[sprite_name .. "_hover"])
+	self.pressed_background = NineSliceUsage(Resources.nine_slices[sprite_name .. "_pressed"])
 end
 
 ---@param e gui.MouseClickEvent
@@ -30,49 +67,53 @@ function Button:onMouseClick(e)
 	end
 	if self.on_click then
 		self.on_click()
-		self:scaleTo(1, 1, 0.1, "InCubic")
+		self:scaleTo(1, 1, 0.12, "OutCubic")
 	end
 	return true
 end
 
 function Button:onMouseDown(e)
 	if e.button == 1 then
-		self:scaleTo(1.1, 1.1, 0.2, "OutSine")
+		self:scaleTo(0.975, 0.975, 0.08, "OutQuad")
 		return true
 	end
 end
 
 function Button:onMouseUp(e)
 	if e.button == 1 then
-		self:scaleTo(1, 1, 0.1, "InCubic")
+		self:scaleTo(1, 1, 0.12, "OutCubic")
 		return true
 	end
 end
 
 function Button:update(dt)
-	self.hover:update(dt)
+	self.hover:configure(self.mouse_over and HOVER_ENTER_SPRING or HOVER_EXIT_SPRING)
 	self.hover:set(self.mouse_over and 1 or 0)
+	self.hover:update(dt)
 end
 
 function Button:draw()
 	local lg = love.graphics
-	local r, g, b = 0.16, 0.18, 0.22
-
-	if self.mouse_over then
-		r, g, b = 0.25, 0.42, 0.65
-	end
+	local ui_scale = assert(self.screen).ui_scale
+	local hover = math.max(0, math.min(1, self.hover:get()))
+	Painter.snapToPixel()
 	if self.pressed then
-		r, g, b = 0.12, 0.30, 0.50
+		Painter.setColorRgb(1, 1, 1)
+		self.pressed_background:drawFixedScale(self.width, self.height, ui_scale)
+	else
+		Painter.setColorRgb(1, 1, 1)
+		self.background:drawFixedScale(self.width, self.height, ui_scale)
+		if hover > 0.001 then
+			Painter.setOpacity(hover)
+			self.hover_background:drawFixedScale(self.width, self.height, ui_scale)
+		end
 	end
 
-	Painter.setColorRgb(r, g, b, 0.96)
-	lg.rectangle("fill", 0, 0, self.width, self.height, 6, 6)
-	Painter.setColorRgb(0.55, 0.70, 0.90)
-	lg.setLineWidth(2)
-	lg.rectangle("line", 1, 1, self.width - 2, self.height - 2, 6, 6)
-	Painter.setColorRgb(1, 1, 1)
+	Painter.setOpacity(1)
+	Painter.setColorTable(Colors.text)
 	lg.setFont(self.font)
-	lg.printf(self.text, 0, (self.height - self.font:getHeight()) / 2, self.width, "center")
+	local text_y = (self.height - self.font:getHeight()) / 2 + (self.pressed and 1 or 0)
+	lg.printf(self.text, 0, text_y, self.width, "center")
 end
 
 return Button

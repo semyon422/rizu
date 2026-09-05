@@ -1,9 +1,9 @@
 local class = require("class")
 
----@alias rizu.mapperatorinator.FileDialogCallback fun(path: string?, error_message: string?)
+---@alias rizu.files.FileDialogCallback fun(path: string?, error_message: string?)
 
----@class rizu.mapperatorinator.FilePicker
----@operator call: rizu.mapperatorinator.FilePicker
+---@class rizu.files.FilePicker
+---@operator call: rizu.files.FilePicker
 local FilePicker = class()
 
 ---@param show_file_dialog? fun(dialog_type: string, callback: function, settings: table)
@@ -22,9 +22,9 @@ local function withAllFiles(filters)
 	return result
 end
 
----@param dialog_type "openfile"|"savefile"
+---@param dialog_type "openfile"|"openfolder"|"savefile"
 ---@param settings table
----@param callback rizu.mapperatorinator.FileDialogCallback
+---@param callback rizu.files.FileDialogCallback
 function FilePicker:show(dialog_type, settings, callback)
 	if not self.show_file_dialog then
 		callback(nil, "This LÖVE build does not support native file dialogs.")
@@ -44,7 +44,7 @@ end
 
 ---@param title string
 ---@param filters {[string]: string}?
----@param callback rizu.mapperatorinator.FileDialogCallback
+---@param callback rizu.files.FileDialogCallback
 function FilePicker:open(title, filters, callback)
 	self:show("openfile", {
 		title = title,
@@ -55,9 +55,19 @@ function FilePicker:open(title, filters, callback)
 end
 
 ---@param title string
+---@param callback rizu.files.FileDialogCallback
+function FilePicker:openFolder(title, callback)
+	self:show("openfolder", {
+		title = title,
+		multiselect = false,
+		attachtowindow = true,
+	}, callback)
+end
+
+---@param title string
 ---@param filename string?
 ---@param filters {[string]: string}?
----@param callback rizu.mapperatorinator.FileDialogCallback
+---@param callback rizu.files.FileDialogCallback
 function FilePicker:save(title, filename, filters, callback)
 	self:show("savefile", {
 		title = title,

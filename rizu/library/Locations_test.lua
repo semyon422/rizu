@@ -68,6 +68,18 @@ function test.mounting(t)
 	t:eq(updated_loc2.path, "my_charts")
 	t:eq(updated_loc2.is_relative, true)
 	t:eq(lm:getPrefix(updated_loc2), "my_charts")
+	lm:updateLocationPath(updated_loc2, "/game-backup/charts")
+	updated_loc2 = locationsRepo:selectLocationById(loc2.id)
+	---@cast updated_loc2 -?
+	t:eq(updated_loc2.path, "/game-backup/charts")
+	t:eq(updated_loc2.is_relative, false)
+
+	-- Deleting an external location unmounts it, while the internal location is protected.
+	t:eq(lm:deleteLocation(loc2.id), true)
+	t:eq(locationsRepo:selectLocationById(loc2.id), nil)
+	t:eq(mounts["prefix/" .. loc2.id], nil)
+	t:eq(lm:deleteLocation(locations[1].id), false)
+	t:assert(locationsRepo:selectLocationById(locations[1].id))
 
 	db:unload()
 end

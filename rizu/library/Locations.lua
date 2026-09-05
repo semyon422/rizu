@@ -153,8 +153,9 @@ function Locations:updateLocationPath(loc, path)
 	loc.path = path_util.fix_separators(path)
 	loc.is_relative = false
 
-	local a, b = path:find(self.root)
-	if a == 1 then
+	local a, b = loc.path:find(self.root, 1, true)
+	local separator = loc.path:sub((b or 0) + 1, (b or 0) + 1)
+	if a == 1 and separator == "/" then
 		loc.path = loc.path:sub(b + 2)
 		loc.is_relative = true
 	end
@@ -171,8 +172,18 @@ function Locations:deleteCharts(location_id)
 end
 
 ---@param location_id integer
+---@return boolean deleted
 function Locations:deleteLocation(location_id)
+	local location = self.locationsRepo:selectLocationById(location_id)
+	if not location or location.is_internal then
+		return false
+	end
+	self:unmountLocation(location)
 	self.locationsRepo:deleteLocation(location_id)
+	self.locationsById[location_id] = nil
+	self.status[location_id] = nil
+	self.info[location_id] = nil
+	return true
 end
 
 return Locations

@@ -10,6 +10,7 @@ local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
 local Filters = require("ui.modals.filters.Filters")
+local LocationEditor = require("ui.modals.locations.LocationEditor")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.ModalManager : gui.View
@@ -23,6 +24,7 @@ local UiActions = require("ui.UiActions")
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field filters ui.modals.filters.Filters
+---@field location_editor ui.modals.locations.LocationEditor
 ---@field active_view ui.ModalView?
 local ModalManager = View + {}
 
@@ -60,6 +62,7 @@ function ModalManager:new(ui, popup_container)
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
 	self.filters = self:addModal(Filters(ui.game, popup_container))
+	self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
 	if ui.game.aiChatModel then
 		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
 			self:hideModal(self.ai_chat)
@@ -216,6 +219,16 @@ end
 ---@return boolean attached
 function ModalManager:attachFilters()
 	return self:showModal(self.filters)
+end
+
+---@param location rizu.library.Location?
+---@return boolean attached
+function ModalManager:attachLocationEditor(location)
+	if self.active_view == self.location_editor then
+		return false
+	end
+	self.location_editor:open(location)
+	return true
 end
 
 ---@return boolean detached
