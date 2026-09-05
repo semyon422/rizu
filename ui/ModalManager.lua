@@ -9,6 +9,7 @@ local Config = require("ui.modals.config.Config")
 local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
+local Filters = require("ui.modals.filters.Filters")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.ModalManager : gui.View
@@ -21,6 +22,7 @@ local UiActions = require("ui.UiActions")
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
+---@field filters ui.modals.filters.Filters
 ---@field active_view ui.ModalView?
 local ModalManager = View + {}
 
@@ -57,6 +59,7 @@ function ModalManager:new(ui, popup_container)
 	end
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
+	self.filters = self:addModal(Filters(ui.game, popup_container))
 	if ui.game.aiChatModel then
 		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
 			self:hideModal(self.ai_chat)
@@ -208,6 +211,16 @@ end
 ---@return boolean detached
 function ModalManager:detachChartMutators()
 	return self:hideModal(self.chart_mutators)
+end
+
+---@return boolean attached
+function ModalManager:attachFilters()
+	return self:showModal(self.filters)
+end
+
+---@return boolean detached
+function ModalManager:detachFilters()
+	return self:hideModal(self.filters)
 end
 
 return ModalManager

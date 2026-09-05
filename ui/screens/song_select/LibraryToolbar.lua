@@ -1,11 +1,11 @@
 local View = require("gui.View")
-local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
 local Image = require("ui.views.Image")
 local Dropdown = require("ui.screens.song_select.Dropdown")
+local FiltersButton = require("ui.screens.song_select.FiltersButton")
 local SearchField = require("ui.screens.song_select.SearchField")
 local Settings = require("rizu.config.Settings")
 
@@ -84,7 +84,7 @@ function LibraryToolbar:new(ui, popup_container)
 		end,
 	}), 150)
 
-	controls:add(NineSlice(Resources.nine_slices.song_select_toolbar_control, Colors.surface, true), 225)
+	controls:add(FiltersButton(ui), 225)
 
 	local search_key = Settings.keys.select.filter_string
 	self.search = controls:add(SearchField({
