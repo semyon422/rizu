@@ -59,6 +59,12 @@ function LibraryToolbar:new(ui, popup_container)
 		options = {},
 		value = nil,
 		popup_container = popup_container,
+		show_chevron = false,
+		on_open = function(dropdown)
+			return ui.modal_manager:attachCollectionSelector(dropdown.options, dropdown.value, function(value)
+				dropdown:selectOption({label = "", value = value})
+			end)
+		end,
 		on_change = function(item)
 			---@cast item rizu.library.Collections.TreeNode
 			collection_selector:selectCollection(item.path, item.location_id)

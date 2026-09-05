@@ -4,6 +4,7 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local DropdownItems = require("ui.screens.song_select.DropdownItems")
+local Sounds = require("ui.Sounds")
 
 local lg = love.graphics
 
@@ -13,7 +14,9 @@ local lg = love.graphics
 ---@field value any
 ---@field popup_container ui.views.PopupContainer
 ---@field icon? gui.Sprite
+---@field show_chevron? boolean
 ---@field on_change? fun(value: any)
+---@field on_open? fun(dropdown: ui.screens.song_select.Dropdown): boolean?
 
 ---@class ui.screens.song_select.Dropdown : gui.View, ui.views.PopupOwner
 ---@operator call: ui.screens.song_select.Dropdown
@@ -29,7 +32,9 @@ function Dropdown:new(config)
 	self.value = config.value
 	self.popup_container = config.popup_container
 	self.icon = config.icon
+	self.show_chevron = config.show_chevron ~= false
 	self.on_change = config.on_change
+	self.on_open = config.on_open
 	self.label_font = Resources.getFont("bold", 9)
 	self.value_font = Resources.getFont("bold", 14)
 	self.handles_mouse_input = true
@@ -60,6 +65,9 @@ end
 
 function Dropdown:open()
 	if self.opened or #self.options == 0 then return false end
+	if self.on_open then
+		return self.on_open(self) ~= false
+	end
 	local items = DropdownItems(self, self.options)
 	self.popup_container:open(self, items, self)
 	items:setOffset(0, self.height)
@@ -84,17 +92,25 @@ function Dropdown:selectOption(option)
 	if self.on_change then self.on_change(option.value) end
 end
 
+---@param e gui.HoverEvent
+function Dropdown:onHover(e)
+	if self.effective_enabled then
+		Sounds.play("hover")
+	end
+end
+
 ---@param e gui.MouseClickEvent
 ---@return boolean?
 function Dropdown:onMouseClick(e)
-	if e.button ~= 1 then return end
+	if e.button ~= 1 or not self.effective_enabled then return end
 	if not self:close() then self:open() end
+	Sounds.play("click")
 	return true
 end
 
 function Dropdown:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(Colors.surface)
+	Painter.setColorTable(self.mouse_over and Colors.surface_raised or Colors.surface)
 	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
 	local text_x = self.icon and 45 or 14
 	if self.icon then
@@ -111,10 +127,12 @@ function Dropdown:draw()
 	lg.setFont(self.value_font)
 	lg.print(self:getValueLabel(), text_x, 21)
 
-	Painter.setColorTable(Colors.muted)
-	local chevron = Resources.sprites.icon_chevron
-	local width, height = chevron:getDimensions()
-	chevron:draw(self.width - width - 12, (self.height - height) / 2)
+	if self.show_chevron then
+		Painter.setColorTable(Colors.muted)
+		local chevron = Resources.sprites.icon_chevron
+		local width, height = chevron:getDimensions()
+		chevron:draw(self.width - width - 12, (self.height - height) / 2)
+	end
 end
 
 return Dropdown

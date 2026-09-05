@@ -3,6 +3,7 @@ local PaletteState = require("rizu.command.PaletteState")
 local AiChat = require("ui.modals.ai_chat.AiChat")
 local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local ChartMutators = require("ui.modals.chart_mutators.ChartMutators")
+local CollectionSelector = require("ui.modals.collections.CollectionSelector")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.Config")
@@ -23,6 +24,7 @@ local UiActions = require("ui.UiActions")
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
+---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
 ---@field location_editor ui.modals.locations.LocationEditor
 ---@field active_view ui.ModalView?
@@ -61,6 +63,9 @@ function ModalManager:new(ui, popup_container)
 	end
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
+	self.collection_selector = self:addModal(CollectionSelector(function()
+		self:hideModal(self.collection_selector)
+	end))
 	self.filters = self:addModal(Filters(ui.game, popup_container))
 	self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
 	if ui.game.aiChatModel then
@@ -214,6 +219,16 @@ end
 ---@return boolean detached
 function ModalManager:detachChartMutators()
 	return self:hideModal(self.chart_mutators)
+end
+
+---@param options ui.screens.song_select.DropdownOption[]
+---@param value any
+---@param on_change fun(value: any)
+---@return boolean attached
+function ModalManager:attachCollectionSelector(options, value, on_change)
+	if self.active_view == self.collection_selector then return false end
+	self.collection_selector:open(options, value, on_change)
+	return self:showModal(self.collection_selector)
 end
 
 ---@return boolean attached
