@@ -11,10 +11,19 @@ local JudgeSegments = require("ui.screens.result.JudgeSegments")
 local ResultStats = require("ui.screens.result.ResultStats")
 local ResultMeta = require("ui.screens.result.ResultMeta")
 local CompositeView = require("gui.CompositeView")
+local ScrollView = require("gui.ScrollView")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local UiActions = require("ui.UiActions")
+local ResultDetails = require("ui.screens.result.ResultDetails")
+
+---@class ui.screens.result.ResultScrollView : gui.ScrollView
+local ResultScrollView = ScrollView + {}
+
+function ResultScrollView:onLayoutChanged()
+	self.content:anchorFixed(0, 0, self.width, self.height * 2)
+end
 
 ---@class ui.screens.result.Result : gui.Screen
 ---@operator call: ui.screens.result.Result
@@ -35,7 +44,12 @@ function Result:new(ui)
 		ui.game.settings
 	)
 
-	self.composite = self.root:add(CompositeView()):anchorFill(0, 0, 0, 0)
+	self.pages = View()
+	self.scroll_view = self.root:add(ResultScrollView(self.pages)):anchorFill(0, 0, 0, 0)
+	self.first_page = self.pages:add(View()):anchorPercent(0, 0, 1, 0.5)
+	self.second_page = self.pages:add(View()):anchorPercent(0, 0.5, 1, 1)
+
+	self.composite = self.first_page:add(CompositeView()):anchorFill(0, 0, 0, 0)
 	self.background = self.composite:add(Background(ui.game.backgroundModel, true))
 	self.background:anchorFill(0, 0, 0, 0)
 	self.background:setBrightness(0.7, true)
@@ -79,6 +93,7 @@ function Result:new(ui)
 	self.meta = ResultMeta()
 	self.ring = self.content:add(self:createRingPanel())
 	self.no_score_panel = self.content:add(self:createNoScorePanel())
+	self.details = self.second_page:add(ResultDetails()):anchorFill(0, 0, 0, 0)
 
 	self.composite:setOpacity(0)
 end
@@ -87,6 +102,10 @@ end
 function Result:onHandleInputs(inputs)
 	if inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.song_select, true)
+	elseif inputs:consumeActionJustPressed(UiActions.down) then
+		self.scroll_view:scrollTo(self.scroll_view.scroll_target + 128)
+	elseif inputs:consumeActionJustPressed(UiActions.up) then
+		self.scroll_view:scrollTo(self.scroll_view.scroll_target - 128)
 	end
 end
 
@@ -145,6 +164,7 @@ function Result:updateInfo()
 	self.chart_name:setText(chartview.name)
 
 	local game = self.ui.game
+	self.details:bind(game)
 	local score_engine = game.rhythm_engine.score_engine
 	local judge_source = score_engine.judgesSource
 	local accuracy_source = score_engine.accuracySource
@@ -186,6 +206,7 @@ function Result:enter()
 	self.ui.command_registry:pushContext("result_commands", self.ui.result_commands)
 	self.ui.command_registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
 	self:updateInfo()
+	self.scroll_view:scrollTo(0, true)
 	self.composite:fadeIn(0.6, "OutQuint")
 end
 
