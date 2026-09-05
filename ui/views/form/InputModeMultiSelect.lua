@@ -62,6 +62,11 @@ function EntryPopup:onHandleInputs(inputs)
 	end
 end
 
+---@return boolean
+function EntryPopup:onMouseDown()
+	return true
+end
+
 ---@param e gui.MouseClickEvent
 ---@return boolean?
 function EntryPopup:onMouseClick(e)
@@ -76,7 +81,7 @@ function EntryPopup:onMouseClick(e)
 end
 
 function EntryPopup:draw()
-	Painter.setColorTable(Colors.panel)
+	--Painter.setColorTable(Colors.surface)
 	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
 	Painter.setColorTable(self.mouse_over and Colors.surface_raised or Colors.surface)
 	love.graphics.push("transform")
