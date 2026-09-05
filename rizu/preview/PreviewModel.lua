@@ -385,9 +385,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	require("love.filesystem")
 
 	local fs = LoveFilesystem()
-	local audio_generator = AudioPreviewGenerator(fs, function(data)
-		return Decoder(data)
-	end)
+	local audio_generator = AudioPreviewGenerator(fs, Decoder.probeDuration)
 	local bga_generator = BgaPreviewGenerator(fs)
 
 	local content = ChartfileReader.read(fs, chartview_data.location_path)

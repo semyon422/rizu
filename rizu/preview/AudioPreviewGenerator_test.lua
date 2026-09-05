@@ -8,12 +8,16 @@ local Fixtures = require("chart.format.iidx.TestFixtures")
 
 local test = {}
 
+---@param data string
+---@return number
+local function probeDuration(data)
+	return WaveDecoder(data):getDuration()
+end
+
 ---@param t testing.T
 function test.generate(t)
 	local fs = FakeFilesystem()
-	local generator = AudioPreviewGenerator(fs, function(data)
-		return WaveDecoder(data)
-	end)
+	local generator = AudioPreviewGenerator(fs, probeDuration)
 
 	-- Create a fake wav file (1 second)
 	local wave = Wave()
@@ -64,9 +68,7 @@ end
 ---@param t testing.T
 function test.generate_main_audio(t)
 	local fs = FakeFilesystem()
-	local generator = AudioPreviewGenerator(fs, function(data)
-		return WaveDecoder(data)
-	end)
+	local generator = AudioPreviewGenerator(fs, probeDuration)
 
 	-- Create a fake wav file (1 second)
 	local wave = Wave()
@@ -120,9 +122,7 @@ end
 ---@param t testing.T
 function test.generate_iidx_s3p(t)
 	local fs = FakeFilesystem()
-	local generator = AudioPreviewGenerator(fs, function(data)
-		return WaveDecoder(data)
-	end)
+	local generator = AudioPreviewGenerator(fs, probeDuration)
 
 	local wave = Wave()
 	wave.sample_rate = 44100
@@ -162,9 +162,7 @@ end
 ---@param t testing.T
 function test.generate_iidx_2dx_fallback(t)
 	local fs = FakeFilesystem()
-	local generator = AudioPreviewGenerator(fs, function(data)
-		return WaveDecoder(data)
-	end)
+	local generator = AudioPreviewGenerator(fs, probeDuration)
 
 	local wave = Wave()
 	wave.sample_rate = 44100

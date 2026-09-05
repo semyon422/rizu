@@ -12,10 +12,10 @@ local ChartfileReader = require("rizu.library.ChartfileReader")
 local AudioPreviewGenerator = class()
 
 ---@param fs fs.IFilesystem
----@param decoder_factory fun(data: string): rizu.audio.IDecoder
-function AudioPreviewGenerator:new(fs, decoder_factory)
+---@param duration_probe fun(data: string): number
+function AudioPreviewGenerator:new(fs, duration_probe)
 	self.fs = assert(fs, "missing fs")
-	self.decoder_factory = assert(decoder_factory, "missing decoder_factory")
+	self.duration_probe = assert(duration_probe, "missing duration_probe")
 end
 
 ---@param finder rizu.ResourceFinder
@@ -304,21 +304,17 @@ function AudioPreviewGenerator:getSampleDuration(data, key, durs, label)
 		return durs[key]
 	end
 
-	local ok, decoder = pcall(self.decoder_factory, data)
-	if not ok or not decoder then
-		print("AudioPreviewGenerator: decoder_factory failed for " .. label .. " sample " .. key .. ": " .. tostring(decoder))
+	local ok, duration = pcall(self.duration_probe, data)
+	if not ok then
+		print("AudioPreviewGenerator: duration probe failed for " .. label .. " sample " .. key .. ": " .. tostring(duration))
 		durs[key] = 0
 		return 0
 	end
-
-	local duration = decoder:getDuration()
 	if duration <= 0 then
 		print("AudioPreviewGenerator: zero duration for " .. label .. " sample " .. key)
 	end
 
 	durs[key] = duration
-	decoder:release()
-
 	return duration
 end
 
@@ -345,21 +341,17 @@ function AudioPreviewGenerator:getDuration(path, finder, durs)
 		return 0
 	end
 
-	local ok, decoder = pcall(self.decoder_factory, data)
-	if not ok or not decoder then
-		print("AudioPreviewGenerator: decoder_factory failed for " .. tostring(path) .. ": " .. tostring(decoder))
+	local ok, duration = pcall(self.duration_probe, data)
+	if not ok then
+		print("AudioPreviewGenerator: duration probe failed for " .. tostring(path) .. ": " .. tostring(duration))
 		durs[path] = 0
 		return 0
 	end
-
-	local duration = decoder:getDuration()
 	if duration <= 0 then
 		print("AudioPreviewGenerator: zero duration for " .. tostring(path))
 	end
 
 	durs[path] = duration
-	decoder:release()
-
 	return duration
 end
 

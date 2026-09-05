@@ -24,6 +24,30 @@ local function get_length(channel)
 end
 
 ---@param data string
+---@return number
+function Decoder.probeDuration(data)
+	---@type integer
+	local channel = bass.BASS_StreamCreateFile(true, data, 0, #data, bit.bor(bass_flags.BASS_STREAM_DECODE, bass_flags.BASS_STREAM_PRESCAN))
+	bass_assert(channel ~= 0)
+
+	---@type boolean, number
+	local ok, duration = pcall(function()
+		local length = get_length(channel)
+		---@type number
+		local seconds = bass.BASS_ChannelBytes2Seconds(channel, length)
+		bass_assert(seconds >= 0)
+		return seconds
+	end)
+	---@diagnostic disable-next-line: no-unknown
+	local freed = bass.BASS_StreamFree(channel)
+	if not ok then
+		error(duration, 0)
+	end
+	bass_assert(freed == 1)
+	return duration
+end
+
+---@param data string
 function Decoder:new(data)
 	self.data = data
 
