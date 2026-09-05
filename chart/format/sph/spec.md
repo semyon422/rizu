@@ -23,6 +23,7 @@ This spec is intentionally incomplete. It records the parts of SPH that are most
 - The engine requires at least two note lines to determine timing and average beat duration.
 - SPH does not support explicit tempo declarations.
 - Tempo is inferred from the time difference between note lines, so parser or engine changes must preserve that assumption.
+- The encoder must preserve interval vertices and measure markers even when no visual point exists at that timing point. Dropping a standalone vertex can make the decoder extrapolate the rest of the chart from a short auxiliary interval and visibly compress the preview.
 
 ## Verification
 

@@ -1,5 +1,10 @@
 local ChartDecoder = require("chart.format.sph.ChartDecoder")
 local ChartEncoder = require("chart.format.sph.ChartEncoder")
+local Chart = require("chart.model.Chart")
+local Fraction = require("chart.core.Fraction")
+local IntervalLayer = require("chart.model.layers.IntervalLayer")
+local Vertex = require("chart.model.to.Interval")
+local Visual = require("chart.model.visual.Visual")
 
 local test = {}
 
@@ -178,6 +183,47 @@ input 4key
 	local enc = ChartEncoder()
 
 	t:eq(enc:encode(dec:decode(s_in)), s_out)
+end
+
+---@param t testing.T
+function test.timing_vertex_without_visual_point(t)
+	local chart = Chart()
+	chart.inputMode:set("4key")
+
+	local layer = IntervalLayer()
+	chart.layers.main = layer
+	local visual = Visual()
+	layer.visuals[""] = visual
+
+	local first = layer:getPoint(Fraction(0))
+	first._vertex = Vertex(0)
+	visual:newPoint(first)
+
+	local middle = layer:getPoint(Fraction(4))
+	middle._vertex = Vertex(2)
+
+	local last = layer:getPoint(Fraction(8))
+	last._vertex = Vertex(6)
+	visual:newPoint(last)
+
+	layer:compute()
+
+	local sph = ChartEncoder():encodeSph(chart)
+	local lines = sph.sphLines.protoLines
+	local first_line = lines[1]
+	local middle_line = lines[2]
+	local last_line = lines[3]
+	---@cast first_line {globalTime: chart.Fraction, offset: number}
+	---@cast middle_line {globalTime: chart.Fraction, offset: number}
+	---@cast last_line {globalTime: chart.Fraction, offset: number}
+
+	t:eq(#lines, 3)
+	t:eq(first_line.globalTime, Fraction(0))
+	t:eq(first_line.offset, 0)
+	t:eq(middle_line.globalTime, Fraction(4))
+	t:eq(middle_line.offset, 2)
+	t:eq(last_line.globalTime, Fraction(8))
+	t:eq(last_line.offset, 6)
 end
 
 return test

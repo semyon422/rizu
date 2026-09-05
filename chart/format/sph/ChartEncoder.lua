@@ -231,6 +231,15 @@ function ChartEncoder:encodeSph(chart, chartmeta)
 				end
 			end
 		end
+
+		if not same and (t._vertex or t._measure) then
+			local line = {
+				globalTime = t.time,
+				offset = t._vertex and t._vertex.offset or nil,
+				measure = t._measure and t._measure.offset or nil,
+			}
+			table.insert(sphLines.protoLines, line)
+		end
 	end
 
 	return sph
