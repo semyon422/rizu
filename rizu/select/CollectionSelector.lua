@@ -8,6 +8,15 @@ local Settings = require("rizu.config.Settings")
 ---@field store rizu.select.stores.CollectionStore
 local CollectionSelector = class()
 
+---@param old_item rizu.library.Collections.TreeNode?
+---@param item rizu.library.Collections.TreeNode?
+---@return boolean
+local function queryScopeChanged(old_item, item)
+	return not old_item
+		or old_item.path ~= (item and item.path)
+		or old_item.location_id ~= (item and item.location_id)
+end
+
 ---@param configModel sphere.ConfigModel
 ---@param settings rizu.config.Config
 ---@param library rizu.library.Library
@@ -57,7 +66,7 @@ function CollectionSelector:selectCollection(path, location_id)
 	self:emitChanged({
 		type = "collection_selection_changed",
 		item = item,
-		path_changed = not old_item or old_item.path ~= (item and item.path)
+		query_scope_changed = queryScopeChanged(old_item, item),
 	})
 end
 
@@ -77,7 +86,7 @@ function CollectionSelector:setLocationsInCollections(enabled)
 	self:emitChanged({
 		type = "collection_selection_changed",
 		item = item,
-		path_changed = not old_item or old_item.path ~= (item and item.path)
+		query_scope_changed = queryScopeChanged(old_item, item),
 	})
 end
 
@@ -104,7 +113,7 @@ function CollectionSelector:scrollCollection(direction, destination, force)
 	self:emitChanged({
 		type = "collection_selection_changed",
 		item = item,
-		path_changed = not old_item or old_item.path ~= item.path
+		query_scope_changed = queryScopeChanged(old_item, item),
 	})
 end
 

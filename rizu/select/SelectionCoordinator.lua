@@ -37,7 +37,7 @@ function SelectionCoordinator:new(
 
 	self.collectionSelector:onChanged(function(event)
 		if event.type == "collection_selection_changed" then
-			self.chartSelector:noDebounceRefresh(not event.path_changed)
+			self.chartSelector:noDebounceRefresh(not event.query_scope_changed)
 		end
 	end)
 end
