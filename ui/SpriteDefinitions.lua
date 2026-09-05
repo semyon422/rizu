@@ -1,5 +1,9 @@
 local Colors = require("ui.Colors")
 
+local function fills(color)
+	return {{type = "color", color = color}}
+end
+
 local function button(background_color, capsule)
 	local size = capsule and 39 or 23
 	return {
@@ -8,7 +12,7 @@ local function button(background_color, capsule)
 		border_radius = capsule and 19 or 6,
 		rounding_power = capsule and 2 or 3,
 		slice = capsule and 19 or 11,
-		background_color = background_color,
+		fills = fills(background_color),
 	}
 end
 
@@ -43,7 +47,7 @@ local SpriteDefinitions = {
 		height = 17,
 		border_radius = 7,
 		slice = 8,
-		background_color = Colors.panel,
+		fills = fills(Colors.panel),
 		stroke = {width = 1, color = Colors.outline},
 	},
 	song_select_summary = {
@@ -51,7 +55,7 @@ local SpriteDefinitions = {
 		height = 15,
 		border_radius = 6,
 		slice = 7,
-		background_color = Colors.panel,
+		fills = fills(Colors.panel),
 		stroke = {width = 1, color = Colors.outline},
 	},
 	song_select_toolbar_control = {
@@ -59,14 +63,14 @@ local SpriteDefinitions = {
 		height = 13,
 		border_radius = 5,
 		slice = 6,
-		background_color = {1, 1, 1, 1},
+		fills = fills({1, 1, 1, 1}),
 	},
 	song_select_search = {
 		width = 13,
 		height = 13,
 		border_radius = 5,
 		slice = 6,
-		background_color = Colors.surface,
+		fills = fills(Colors.surface),
 		stroke = {width = 1, color = Colors.outline},
 	},
 	song_select_session = {
@@ -74,38 +78,39 @@ local SpriteDefinitions = {
 		height = 11,
 		border_radius = 4,
 		slice = 5,
-		background_color = {1, 1, 1, 1},
+		fills = fills({1, 1, 1, 1}),
 	},
 	song_select_chevron = {
 		width = 38,
 		height = 66,
 		border_radius = 4,
-		background_color = {1, 1, 1, 1},
+		fills = fills({1, 1, 1, 1}),
 	},
 	chart_summary_difficulty_gradient = {
 		width = 285,
 		height = 66,
-		linear_gradient = {
+		fills = {{
+			type = "linear_gradient",
 			angle = 0,
-			colors = {
-				{1, 1, 1, 1},
-				{1, 1, 1, 0},
+			stops = {
+				{offset = 0, color = {1, 1, 1, 1}},
+				{offset = 1, color = {1, 1, 1, 0}},
 			},
-		},
+		}},
 	},
 	chart_grid_item = {
 		width = 110,
 		height = 66,
 		border_radius = 8,
 		rounding_power = 4,
-		background_color = {1, 1, 1, 1},
+		fills = fills({1, 1, 1, 1}),
 	},
 	chart_grid_item_selected = {
 		width = 110,
 		height = 66,
 		border_radius = 8,
 		rounding_power = 4,
-		background_color = {1, 1, 1, 0},
+		fills = fills({1, 1, 1, 0}),
 		stroke = {
 			width = {bottom = 3},
 			color = {1, 1, 1, 1},
@@ -116,13 +121,14 @@ local SpriteDefinitions = {
 		height = 66,
 		border_radius = 8,
 		rounding_power = 4,
-		linear_gradient = {
+		fills = {{
+			type = "linear_gradient",
 			angle = -90,
-			colors = {
-				{1, 1, 1, 1},
-				{1, 1, 1, 0},
+			stops = {
+				{offset = 0, color = {1, 1, 1, 1}},
+				{offset = 1, color = {1, 1, 1, 0}},
 			},
-		},
+		}},
 	},
 }
 

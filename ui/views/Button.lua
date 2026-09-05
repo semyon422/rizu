@@ -99,13 +99,13 @@ function Button:draw()
 	Painter.snapToPixel()
 	if self.pressed then
 		Painter.setColorRgb(1, 1, 1)
-		self.pressed_background:drawFixedScale(self.width, self.height, ui_scale)
+		self.pressed_background:draw(self.width, self.height)
 	else
 		Painter.setColorRgb(1, 1, 1)
-		self.background:drawFixedScale(self.width, self.height, ui_scale)
+		self.background:draw(self.width, self.height)
 		if hover > 0.001 then
 			Painter.setOpacity(hover)
-			self.hover_background:drawFixedScale(self.width, self.height, ui_scale)
+			self.hover_background:draw(self.width, self.height)
 		end
 	end
 

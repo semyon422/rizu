@@ -1,5 +1,5 @@
 local ImageAtlasPacker = require("gui.packer.ImageAtlasPacker")
-local SpriteGenerator = require("gui.SpriteGenerator")
+local SpriteGenerator = require("gui.SpriteGenerator.SpriteGenerator")
 local SpriteDefinitions = require("ui.SpriteDefinitions")
 local Path = require("Path")
 

@@ -209,12 +209,14 @@ card = {
 	border_radius = 7,
 	rounding_power = 4,
 	slice = 8,
-	background_color = Colors.panel,
+	fills = {
+		{type = "color", color = Colors.panel},
+	},
 	stroke = {width = 1, color = Colors.outline},
 }
 ```
 
-Definitions need positive integer dimensions and exactly one of `background_color` or `linear_gradient = {angle = degrees, colors = {start, finish}}`. Colors have 3 or 4 channels in `[0, 1]`; stroke width is a number or side table. `slice` creates nine-slice output and must leave a non-empty center.
+Definitions need positive integer dimensions and a non-empty ordered `fills` array. A fill is either `{type = "color", color = color}` or `{type = "linear_gradient", angle = degrees, stops = {{offset = 0, color = color}, ...}}`; gradients need at least two stops ordered by offsets in `[0, 1]`. Colors have 3 or 4 channels in `[0, 1]`; stroke width is a number or side table. `slice` creates nine-slice output and must leave a non-empty center.
 
 Prefer generated sprites/nine-slices for visible rectangles, especially rounded rectangles. Use `Resources.sprites.pixel` scaled to the target size for simple solid rectangles rather than `love.graphics.rectangle`.
 

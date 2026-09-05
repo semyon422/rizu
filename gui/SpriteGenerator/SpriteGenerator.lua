@@ -3,17 +3,27 @@ local AtlasImage = require("gui.AtlasImage")
 
 ---@alias gui.SpriteGenerator.Color [number, number, number, number?]
 
----@class gui.SpriteGenerator.LinearGradient
+---@class gui.SpriteGenerator.ColorFill
+---@field type "color"
+---@field color gui.SpriteGenerator.Color
+
+---@class gui.SpriteGenerator.GradientStop
+---@field offset number Position from 0 to 1.
+---@field color gui.SpriteGenerator.Color
+
+---@class gui.SpriteGenerator.LinearGradientFill
+---@field type "linear_gradient"
 ---@field angle number 0 is left-to-right; 90 is top-to-bottom.
----@field colors [gui.SpriteGenerator.Color, gui.SpriteGenerator.Color]
+---@field stops gui.SpriteGenerator.GradientStop[]
+
+---@alias gui.SpriteGenerator.Fill gui.SpriteGenerator.ColorFill|gui.SpriteGenerator.LinearGradientFill
 
 ---@class gui.SpriteGenerator.Definition
 ---@field width integer
 ---@field height integer
 ---@field border_radius number?
 ---@field rounding_power number? 2 is circular; larger values produce squarer corners.
----@field background_color gui.SpriteGenerator.Color?
----@field linear_gradient gui.SpriteGenerator.LinearGradient?
+---@field fills gui.SpriteGenerator.Fill[]
 ---@field slice number? Insets used to create a nine-slice.
 ---@field stroke gui.SpriteGenerator.Stroke?
 
@@ -27,13 +37,47 @@ local AtlasImage = require("gui.AtlasImage")
 ---@field width number|gui.SpriteGenerator.StrokeWidths
 ---@field color gui.SpriteGenerator.Color
 
-local shader_code = [[
+local fill_shader_code = [[
 extern vec2 u_size;
 extern float u_radius;
 extern float u_rounding_power;
 extern vec2 u_gradient_direction;
-extern vec4 u_start_color;
-extern vec4 u_end_color;
+extern Image u_gradient_texture;
+extern float u_gradient_width;
+extern vec4 u_fill_color;
+extern float u_use_gradient;
+
+float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, float radius) {
+    vec2 rounded = abs(point - center) - (half_size - vec2(radius));
+    vec2 outside = max(rounded, vec2(0.0));
+    float corner_distance = pow(pow(outside.x, u_rounding_power) + pow(outside.y, u_rounding_power), 1.0 / u_rounding_power);
+    return corner_distance + min(max(rounded.x, rounded.y), 0.0) - radius;
+}
+
+vec4 sourceOver(vec4 destination, vec4 source_premultiplied) {
+    float alpha = source_premultiplied.a + destination.a * (1.0 - source_premultiplied.a);
+    vec3 rgb = (source_premultiplied.rgb + destination.rgb * destination.a * (1.0 - source_premultiplied.a)) / max(alpha, 0.0001);
+    return vec4(rgb, alpha);
+}
+
+vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+    vec2 center = u_size * 0.5;
+    float distance = roundedRectangleDistance(screen_coords, center, center, u_radius);
+    float mask = 1.0 - smoothstep(-0.5, 0.5, distance);
+
+    float span = max(dot(abs(u_gradient_direction), u_size), 0.0001);
+    float gradient = clamp(dot(screen_coords - center, u_gradient_direction) / span + 0.5, 0.0, 1.0);
+    float gradient_u = (gradient * (u_gradient_width - 1.0) + 0.5) / u_gradient_width;
+    vec4 fill = mix(u_fill_color, Texel(u_gradient_texture, vec2(gradient_u, 0.5)), u_use_gradient);
+    fill *= mask;
+    return sourceOver(Texel(texture, texture_coords), fill) * color;
+}
+]]
+
+local stroke_shader_code = [[
+extern vec2 u_size;
+extern float u_radius;
+extern float u_rounding_power;
 extern vec4 u_stroke_width;
 extern vec4 u_stroke_color;
 extern float u_uniform_stroke;
@@ -43,6 +87,12 @@ float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, float ra
     vec2 outside = max(rounded, vec2(0.0));
     float corner_distance = pow(pow(outside.x, u_rounding_power) + pow(outside.y, u_rounding_power), 1.0 / u_rounding_power);
     return corner_distance + min(max(rounded.x, rounded.y), 0.0) - radius;
+}
+
+vec4 sourceOver(vec4 destination, vec4 source) {
+    float alpha = source.a + destination.a * (1.0 - source.a);
+    vec3 rgb = (source.rgb * source.a + destination.rgb * destination.a * (1.0 - source.a)) / max(alpha, 0.0001);
+    return vec4(rgb, alpha);
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
@@ -65,14 +115,8 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     float uniform_stroke_alpha = max(outer_alpha - inner_alpha, 0.0);
     float stroke_alpha = mix(side_stroke_alpha, uniform_stroke_alpha, u_uniform_stroke);
 
-    float span = dot(abs(u_gradient_direction), u_size);
-    float gradient = clamp(dot(point - center, u_gradient_direction) / span + 0.5, 0.0, 1.0);
-    vec4 gradient_color = mix(u_start_color, u_end_color, gradient);
-    float fill_alpha = gradient_color.a * outer_alpha;
-    float border_alpha = u_stroke_color.a * stroke_alpha;
-    float alpha = border_alpha + fill_alpha * (1.0 - border_alpha);
-    vec3 rgb = (u_stroke_color.rgb * border_alpha + gradient_color.rgb * fill_alpha * (1.0 - border_alpha)) / max(alpha, 0.0001);
-    return vec4(rgb, alpha) * color;
+    vec4 stroke = vec4(u_stroke_color.rgb, u_stroke_color.a * stroke_alpha);
+    return sourceOver(Texel(texture, texture_coords), stroke) * color;
 }
 ]]
 
@@ -147,19 +191,30 @@ local function validateDefinition(name, definition)
 		validateColor(stroke.color, prefix .. " stroke.color")
 	end
 
-	local background_color = definition.background_color
-	local gradient = definition.linear_gradient
-	assert((background_color ~= nil) ~= (gradient ~= nil),
-		prefix .. " requires exactly one of background_color or linear_gradient")
-	if background_color then
-		validateColor(background_color, prefix .. " background_color")
-	else
-		assert(type(gradient) == "table", prefix .. " linear_gradient must be a table")
-		assert(isFinite(gradient.angle), prefix .. " linear_gradient.angle must be finite")
-		assert(type(gradient.colors) == "table" and #gradient.colors == 2,
-			prefix .. " linear_gradient.colors must contain exactly 2 colors")
-		validateColor(gradient.colors[1], prefix .. " linear_gradient.colors[1]")
-		validateColor(gradient.colors[2], prefix .. " linear_gradient.colors[2]")
+	assert(type(definition.fills) == "table" and #definition.fills > 0,
+		prefix .. " fills must contain at least one fill")
+	for index, fill in ipairs(definition.fills) do
+		local fill_prefix = ("%s fills[%d]"):format(prefix, index)
+		assert(type(fill) == "table", fill_prefix .. " must be a table")
+		if fill.type == "color" then
+			validateColor(fill.color, fill_prefix .. ".color")
+		elseif fill.type == "linear_gradient" then
+			assert(isFinite(fill.angle), fill_prefix .. ".angle must be finite")
+			assert(type(fill.stops) == "table" and #fill.stops >= 2,
+				fill_prefix .. ".stops must contain at least 2 stops")
+			local previous_offset = -math.huge
+			for stop_index, stop in ipairs(fill.stops) do
+				local stop_prefix = ("%s.stops[%d]"):format(fill_prefix, stop_index)
+				assert(type(stop) == "table", stop_prefix .. " must be a table")
+				assert(isFinite(stop.offset) and stop.offset >= 0 and stop.offset <= 1,
+					stop_prefix .. ".offset must be between 0 and 1")
+				assert(stop.offset >= previous_offset, fill_prefix .. ".stops must be ordered by offset")
+				validateColor(stop.color, stop_prefix .. ".color")
+				previous_offset = stop.offset
+			end
+		else
+			error(fill_prefix .. ".type must be `color` or `linear_gradient`", 0)
+		end
 	end
 end
 
@@ -202,6 +257,43 @@ local function isUniformStroke(stroke)
 		and 1 or 0
 end
 
+---@param stops gui.SpriteGenerator.GradientStop[]
+---@param width integer
+---@return love.Image
+local function createGradientTexture(stops, width)
+	local image_data = love.image.newImageData(width, 1)
+	local stop_index = 1
+	for x = 0, width - 1 do
+		local offset = x / (width - 1)
+		while stop_index < #stops - 1 and offset > stops[stop_index + 1].offset do
+			stop_index = stop_index + 1
+		end
+		local first = stops[stop_index]
+		local second = stops[stop_index + 1]
+		local span = second.offset - first.offset
+		local amount = span > 0 and math.max(0, math.min(1, (offset - first.offset) / span)) or 1
+		local first_color = normalizeColor(first.color)
+		local second_color = normalizeColor(second.color)
+		local alpha = first_color[4] + (second_color[4] - first_color[4]) * amount
+		local red = first_color[1] * first_color[4] + (second_color[1] * second_color[4] - first_color[1] * first_color[4]) * amount
+		local green = first_color[2] * first_color[4] + (second_color[2] * second_color[4] - first_color[2] * first_color[4]) * amount
+		local blue = first_color[3] * first_color[4] + (second_color[3] * second_color[4] - first_color[3] * first_color[4]) * amount
+		image_data:setPixel(x, 0, red, green, blue, alpha)
+	end
+	local image = love.graphics.newImage(image_data)
+	image:setFilter("linear", "linear")
+	image:setWrap("clamp", "clamp")
+	return image
+end
+
+---@param shader love.Shader
+---@param definition gui.SpriteGenerator.Definition
+local function sendShape(shader, definition)
+	shader:send("u_size", {definition.width, definition.height})
+	shader:send("u_radius", definition.border_radius or 0)
+	shader:send("u_rounding_power", definition.rounding_power or 2)
+end
+
 ---@param definitions {[string]: gui.SpriteGenerator.Definition}
 ---@return love.Image[] atlases
 ---@return {[string]: gui.AtlasImage} sprites
@@ -213,46 +305,90 @@ function SpriteGenerator.generate(definitions)
 		validateDefinition(name, definition)
 	end
 
-	local shader = love.graphics.newShader(shader_code)
+	local fill_shader = love.graphics.newShader(fill_shader_code)
+	local stroke_shader = love.graphics.newShader(stroke_shader_code)
 	local image_datas = {} ---@type {[string]: love.ImageData}
 	local active_canvas ---@type love.Canvas?
+	local other_canvas ---@type love.Canvas?
+	local gradient_texture ---@type love.Image?
+	local fallback_gradient_texture = createGradientTexture({
+		{offset = 0, color = {0, 0, 0, 0}},
+		{offset = 1, color = {0, 0, 0, 0}},
+	}, 2)
 	love.graphics.push("all")
 	local ok, err = xpcall(function()
 		love.graphics.origin()
 		love.graphics.setColor(1, 1, 1, 1)
 		love.graphics.setBlendMode("replace")
-		love.graphics.setShader(shader)
 
 		for name, definition in pairs(definitions) do
 			active_canvas = love.graphics.newCanvas(definition.width, definition.height)
+			other_canvas = love.graphics.newCanvas(definition.width, definition.height)
 			love.graphics.setCanvas(active_canvas)
 			love.graphics.clear(0, 0, 0, 0)
+			love.graphics.setShader(fill_shader)
+			sendShape(fill_shader, definition)
+			fill_shader:send("u_gradient_texture", fallback_gradient_texture)
+			fill_shader:send("u_gradient_width", 2)
 
-			local gradient = definition.linear_gradient
-			local start_color = definition.background_color or gradient.colors[1]
-			local end_color = definition.background_color or gradient.colors[2]
-			local angle = math.rad(gradient and gradient.angle or 0)
-			shader:send("u_size", {definition.width, definition.height})
-			shader:send("u_radius", definition.border_radius or 0)
-			shader:send("u_rounding_power", definition.rounding_power or 2)
-			shader:send("u_gradient_direction", {math.cos(angle), math.sin(angle)})
-			shader:send("u_start_color", normalizeColor(start_color))
-			shader:send("u_end_color", normalizeColor(end_color))
-			shader:send("u_stroke_width", normalizeStrokeWidths(definition.stroke))
-			shader:send("u_stroke_color", normalizeColor(definition.stroke and definition.stroke.color or {0, 0, 0, 0}))
-			shader:send("u_uniform_stroke", isUniformStroke(definition.stroke))
-			love.graphics.rectangle("fill", 0, 0, definition.width, definition.height)
+			for _, fill in ipairs(definition.fills) do
+				local ramp_width = math.max(256, definition.width, definition.height)
+				if fill.type == "linear_gradient" then
+					gradient_texture = createGradientTexture(fill.stops, ramp_width)
+					local angle = math.rad(fill.angle)
+					fill_shader:send("u_gradient_direction", {math.cos(angle), math.sin(angle)})
+					fill_shader:send("u_gradient_texture", gradient_texture)
+					fill_shader:send("u_gradient_width", ramp_width)
+					fill_shader:send("u_fill_color", {0, 0, 0, 0})
+					fill_shader:send("u_use_gradient", 1)
+				else
+					local color = normalizeColor(fill.color)
+					fill_shader:send("u_fill_color", {color[1] * color[4], color[2] * color[4], color[3] * color[4], color[4]})
+					fill_shader:send("u_use_gradient", 0)
+				end
+
+				love.graphics.setCanvas(other_canvas)
+				love.graphics.clear(0, 0, 0, 0)
+				love.graphics.draw(active_canvas)
+				active_canvas, other_canvas = other_canvas, active_canvas
+				if gradient_texture then
+					gradient_texture:release()
+					gradient_texture = nil
+				end
+			end
+
+			if definition.stroke then
+				love.graphics.setShader(stroke_shader)
+				sendShape(stroke_shader, definition)
+				stroke_shader:send("u_stroke_width", normalizeStrokeWidths(definition.stroke))
+				stroke_shader:send("u_stroke_color", normalizeColor(definition.stroke.color))
+				stroke_shader:send("u_uniform_stroke", isUniformStroke(definition.stroke))
+				love.graphics.setCanvas(other_canvas)
+				love.graphics.clear(0, 0, 0, 0)
+				love.graphics.draw(active_canvas)
+				active_canvas, other_canvas = other_canvas, active_canvas
+			end
+
 			love.graphics.setCanvas()
 			image_datas[name] = love.graphics.readbackTexture(active_canvas)
 			active_canvas:release()
-			active_canvas = nil
+			other_canvas:release()
+			active_canvas, other_canvas = nil, nil
 		end
 	end, debug.traceback)
 	love.graphics.pop()
+	if gradient_texture then
+		gradient_texture:release()
+	end
 	if active_canvas then
 		active_canvas:release()
 	end
-	shader:release()
+	if other_canvas then
+		other_canvas:release()
+	end
+	fill_shader:release()
+	stroke_shader:release()
+	fallback_gradient_texture:release()
 	if not ok then
 		error(err, 0)
 	end
