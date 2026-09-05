@@ -54,4 +54,6 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 
 ## Future Work and Open Questions
 
+- **Point and VisualPoint relationship**: Define and enforce the intended relationship between layer `Point` objects and `VisualPoint` objects. Timing-only points are currently valid and are created by converters, but ordinary points can also affect visual interpolation and scrolling without having a corresponding visual point. Decide whether every relevant point must be represented in each affected visual, or whether visuals and serializers must explicitly account for unreferenced points, then add model-level validation and regression tests for the chosen contract.
+- **Chart model invariants**: Document the invariants of the chart module in nearby specs. Many assumptions about point ownership, timing propagation, visual interpolation, layer conversion, note references, ordering, and object lifetimes currently exist only implicitly in implementation code and tests.
 - **Tempo range metadata**: `Chartmeta.tempo_min` and `Chartmeta.tempo_max` are currently populated only by the osu! and Quaver decoders. Add shared tempo-range extraction for other chart formats that can represent tempo changes, so library views can show a consistent BPM range instead of only a single `tempo` value.
