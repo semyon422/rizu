@@ -13,9 +13,9 @@ Provide read-only beatmania IIDX chart support for game `data` folders by parsin
 - IIDX locations are auto-detected by the library scanner instead of stored as a manual location type.
 - The v1 library scanner treats `.ifs` archives as chartfile sets and hashes the internal `<song_id>/<song_id>.1` chart payload, so scores are tied to stable chart data rather than archive wrapper bytes.
 - Metadata-listed extracted folders named `<song_id>` or `<song_id>-p0` are also chartfile sets. Their chart payload is the flat `<song_id>.1` file found directly in that folder; an `.ifs` archive takes priority when both forms exist.
-- The decoder reads `.1` chart data and imports type-0/type-1 playable note timing/lanes plus type-7 autoplay sample events.
+- The decoder reads `.1` chart data and imports type-0/type-1 playable notes plus type-7 autoplay sample events. For playable events, `value` is a duration in ticks: zero creates a tap, while a positive value creates paired `hold` notes at `tick` and `tick + value`.
 - Type-5 meter events set chart signatures as `value/raw_lane`, converted into quarter-note measure length for the shared timing model. For example, `value=3, raw_lane=4` is `3/4` and has a signature length of `3`.
-- Type-2/type-3 events are treated as P1/P2 note keysound assignments. They are queued by side/lane and attached to the next playable note on that side/lane instead of becoming separate playable notes.
+- Type-2/type-3 events are treated as P1/P2 note keysound assignments. They are queued by side/lane and attached to the next playable note on that side/lane instead of becoming separate playable notes. The playable event's `value` must not be interpreted as a sample ID because that field stores long-note duration.
 - `.s3p` and `.2dx` packs inside the song `.ifs` are exposed as chart sound resources. Chart sample id `0` is empty; positive ids map to one-based pack entries.
 - S3P samples that wrap ASF/WMA payloads stay encoded in the chart resource layer and are decoded later by the BASS_FFMPEG-backed audio pipeline.
 - `.2dx` gameplay keysound banks are selected from `music_data.bin` variation ident bytes when metadata is available. Ident byte `"0"` maps to `<song_id>.2dx`; other ident bytes map to `<song_id><ident>.2dx`, for example `"a"` maps to `<song_id>a.2dx`.

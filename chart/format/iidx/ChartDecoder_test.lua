@@ -202,13 +202,70 @@ function test.tap_note_counts(t)
 end
 
 ---@param t testing.T
+function test.positive_note_duration_creates_hold(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
+		SPN = {
+			{tick = 0, type = 4, lane = 0, value = 150},
+			{tick = 0, type = 12, lane = 0, value = 0},
+			{tick = 1500, type = 12, lane = 0, value = 0},
+			{tick = 3000, type = 12, lane = 0, value = 0},
+			{tick = 600, type = 2, lane = 3, value = 42},
+			{tick = 750, type = 0, lane = 3, value = 1125},
+		},
+	}), nil, {song_id = 1234}))
+
+	local linked_notes = charts[1].chart.notes:getLinkedNotes()
+	local hold
+	for _, note in ipairs(linked_notes) do
+		if note:isLong() then
+			hold = note
+			break
+		end
+	end
+	assert(hold)
+	assert(hold.endNote)
+	t:eq(hold.startNote.type, "hold")
+	t:eq(hold.startNote.weight, 1)
+	t:eq(hold.endNote.type, "hold")
+	t:eq(hold.endNote.weight, -1)
+	t:eq(hold.startNote.column, "key4")
+	t:eq(assert(hold.startNote.data.sounds)[1][1], "42")
+	t:eq(hold.endNote.data.sounds, nil)
+	t:aeq(hold.startNote:getTime(), 0.8, 0.0001)
+	t:aeq(hold.endNote:getTime(), 2, 0.0001)
+end
+
+---@param t testing.T
+function test.note_duration_is_not_a_keysound_id(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
+		SPN = {
+			{tick = 0, type = 4, lane = 0, value = 150},
+			{tick = 0, type = 12, lane = 0, value = 0},
+			{tick = 1500, type = 12, lane = 0, value = 0},
+			{tick = 300, type = 0, lane = 1, value = 300},
+		},
+	}), nil, {song_id = 1234}))
+
+	local hold
+	for _, note in ipairs(charts[1].chart.notes:getLinkedNotes()) do
+		if note:isLong() then
+			hold = note
+			break
+		end
+	end
+	assert(hold)
+	t:eq(hold.startNote.data.sounds, nil)
+end
+
+---@param t testing.T
 function test.off_grid_ticks_stay_inside_measure(t)
 	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
 		SPN = {
 			{tick = 0, type = 4, lane = 0, value = 150},
 			{tick = 0, type = 12, lane = 0, value = 0},
 			{tick = 1500, type = 12, lane = 0, value = 0},
-			{tick = 1499, type = 0, lane = 0, value = 1},
+			{tick = 1499, type = 2, lane = 0, value = 1},
+			{tick = 1499, type = 0, lane = 0, value = 0},
 		},
 	}), nil, {song_id = 1234}))
 
@@ -228,8 +285,10 @@ function test.meter_events_change_measure_duration(t)
 			{tick = 1125, type = 12, lane = 0, value = 0},
 			{tick = 1125, type = 5, lane = 4, value = 4},
 			{tick = 2725, type = 12, lane = 0, value = 0},
-			{tick = 1125, type = 0, lane = 0, value = 1},
-			{tick = 2725, type = 0, lane = 1, value = 2},
+			{tick = 1125, type = 2, lane = 0, value = 1},
+			{tick = 1125, type = 0, lane = 0, value = 0},
+			{tick = 2725, type = 2, lane = 1, value = 2},
+			{tick = 2725, type = 0, lane = 1, value = 0},
 		},
 	}), nil, {song_id = 1234}))
 

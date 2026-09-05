@@ -11,12 +11,12 @@ function test.parse_sections_and_events(t)
 
 	t:eq(spn.name, "SPN")
 	t:eq(dpn.name, "DPN")
-	t:eq(#spn.events, 7)
+	t:eq(#spn.events, 9)
 	t:eq(spn.events[1].tick, 0)
 	t:eq(spn.events[1].type, 4)
-	t:eq(spn.events[6].tick, 750)
-	t:eq(spn.events[6].raw_lane, 7)
-	t:eq(#dpn.events, 6)
+	t:eq(spn.events[7].tick, 750)
+	t:eq(spn.events[7].raw_lane, 7)
+	t:eq(#dpn.events, 8)
 end
 
 ---@param t testing.T

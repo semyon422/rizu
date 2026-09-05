@@ -352,13 +352,16 @@ function ChartDecoder:decodeSection(section, variation, song)
 			point._signature = Signature(get_signature(event))
 			visual:getPoint(point)
 		elseif is_playable_note(event) then
-			local point = layer:getPoint(tick_to_measure(ticks, event.tick))
-			local column = get_column(get_side(event), event.raw_lane)
-			local note = Note(visualColumns:getPoint(point, column), column, "tap")
-			local queued_sounds = note_sounds[get_lane_sound_key(get_side(event), event.raw_lane)]
+			local side = get_side(event)
+			local start_measure = tick_to_measure(ticks, event.tick)
+			local point = layer:getPoint(start_measure)
+			local column = get_column(side, event.raw_lane)
+			local note_type = event.value > 0 and "hold" or "tap"
+			local note = Note(visualColumns:getPoint(point, column), column, note_type, event.value > 0 and 1 or 0)
+			local queued_sounds = note_sounds[get_lane_sound_key(side, event.raw_lane)]
 			---@type [string, number][]?
 			local sounds
-			local inherited_key = get_lane_sound_key(get_side(event), event.raw_lane)
+			local inherited_key = get_lane_sound_key(side, event.raw_lane)
 			while queued_sounds and queued_sounds[1] and queued_sounds[1].tick <= event.tick do
 				local sound_event = table.remove(queued_sounds, 1)
 				sounds = sounds or {}
@@ -367,17 +370,19 @@ function ChartDecoder:decodeSection(section, variation, song)
 			end
 			if sounds then
 				note.data.sounds = sounds
-			elseif event.value > 0 then
-				note.data.sounds = {{tostring(event.value), 1}}
-				inherited_sounds[inherited_key] = event.value
 			elseif inherited_sounds[inherited_key] then
 				note.data.sounds = {{tostring(inherited_sounds[inherited_key]), 1}}
 			end
 			chart.notes:insert(note)
-			local measure = tick_to_measure(ticks, event.tick):tonumber()
-			if measure > max_measure then
-				max_measure = measure
+
+			local end_measure = start_measure
+			if event.value > 0 then
+				end_measure = tick_to_measure(ticks, event.tick + event.value)
+				local end_point = layer:getPoint(end_measure)
+				local end_note = Note(visualColumns:getPoint(end_point, column), column, "hold", -1)
+				chart.notes:insert(end_note)
 			end
+			max_measure = math.max(max_measure, end_measure:tonumber())
 		elseif is_bgm_note(event) then
 			local point = layer:getPoint(tick_to_measure(ticks, event.tick))
 			local note = Note(visualColumns:getPoint(point, "auto"), "auto", "sample")
