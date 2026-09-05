@@ -53,19 +53,17 @@ function Locations:refresh()
 	self.content:clear()
 	local displayed = 0
 	for _, location in ipairs(locations.locations) do
-		if not location.is_internal then
-			displayed = displayed + 1
-			self.content:add(LocationRow(location, LIST_WIDTH, function(selected)
-				self.ui.game.selectionActions:updateCacheLocation(selected.id)
-			end, function(selected)
-				self.ui.modal_manager:attachLocationEditor(selected)
-			end, function(selected)
-				if locations:deleteLocation(selected.id) then
-					self.ui.game.chartSelector:noDebounceRefresh()
-					self:refresh()
-				end
-			end))
-		end
+		displayed = displayed + 1
+		self.content:add(LocationRow(location, LIST_WIDTH, function(selected)
+			self.ui.game.selectionActions:updateCacheLocation(selected.id)
+		end, function(selected)
+			self.ui.modal_manager:attachLocationEditor(selected)
+		end, function(selected)
+			if locations:deleteLocation(selected.id) then
+				self.ui.game.chartSelector:noDebounceRefresh()
+				self:refresh()
+			end
+		end))
 	end
 	self.content:fitContent()
 	self.empty:setVisible(displayed == 0)

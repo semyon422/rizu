@@ -26,7 +26,12 @@ function LocationRow:new(location, width, on_update_cache, on_edit, on_delete)
 	local update_cache = self:add(Button("Update cache", function() on_update_cache(location) end, {
 		variant = "primary", shape = "capsule", font_name = "medium", font_size = 16,
 	}))
-	update_cache:setSize(150, 40):setAlignment(1, 0.5):setOffset(-284, 0)
+	local update_offset = location.is_internal and -24 or -284
+	update_cache:setSize(150, 40):setAlignment(1, 0.5):setOffset(update_offset, 0)
+	if location.is_internal then
+		return
+	end
+
 	local edit = self:add(Button("Edit", function() on_edit(location) end, {
 		variant = "secondary", shape = "capsule", font_name = "medium", font_size = 16,
 	}))
