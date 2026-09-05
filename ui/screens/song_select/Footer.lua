@@ -11,6 +11,7 @@ local MusicSpeedControl = require("ui.screens.song_select.MusicSpeedControl")
 ---@field mods_button ui.screens.song_select.FooterButton
 ---@field mutators_button ui.screens.song_select.FooterButton
 ---@field inputs_button ui.screens.song_select.FooterButton
+---@field skins_button ui.screens.song_select.FooterButton
 ---@field play_button ui.screens.song_select.FooterButton
 local Footer = View + {}
 
@@ -71,7 +72,7 @@ function Footer:new(ui)
 		icon = Resources.sprites.icon_keyboard,
 		on_click = function() ui.modal_manager:attachInput() end,
 	}), 110)
-	loadout:add(FooterButton({
+	self.skins_button = loadout:add(FooterButton({
 		width = 105,
 		height = 46,
 		color = Colors.blue,
@@ -109,7 +110,10 @@ function Footer:updateState()
 	self.mutators_button:setBadge(tostring(mutator_count))
 	self.mutators_button:setActive(mutator_count > 0)
 	local chart_exists = game.chartSelector:chartExists()
+	self.mods_button:setEnabled(chart_exists)
+	self.mutators_button:setEnabled(chart_exists)
 	self.inputs_button:setEnabled(chart_exists)
+	self.skins_button:setEnabled(chart_exists)
 	self.play_button:setEnabled(chart_exists)
 end
 
