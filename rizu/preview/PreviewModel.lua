@@ -383,6 +383,8 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 	local LoveFilesystem = require("fs.LoveFilesystem")
 
 	require("love.filesystem")
+	local bass = require("bass")
+	assert(bass.initNoSound(), "Preview: could not initialize worker BASS device")
 
 	local fs = LoveFilesystem()
 	local audio_generator = AudioPreviewGenerator(fs, Decoder.probeDuration)
