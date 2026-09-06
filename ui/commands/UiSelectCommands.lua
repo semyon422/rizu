@@ -32,7 +32,6 @@ return function(game, ui)
 			description = "Opens the selected score result",
 			callback = function()
 				if game.chartSelector:chartExists() and game.scoreSelector.chartplay then
-					ui:setScreen(ui.chart_loading)
 					local chartplay = game.scoreSelector.chartplay
 					thread.coro(function()
 						local ok, err = pcall(function()

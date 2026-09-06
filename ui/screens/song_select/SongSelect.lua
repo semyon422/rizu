@@ -79,7 +79,6 @@ function SongSelect:openScore(index)
 	local game = self.ui.game
 	game.scoreSelector:scrollScore(nil, index)
 	if game.scoreSelector.chartplay then
-		self.ui:setScreen(self.ui.chart_loading, true)
 		local chartplay = game.scoreSelector.chartplay
 		thread.coro(function()
 			local ok, err = pcall(function()
