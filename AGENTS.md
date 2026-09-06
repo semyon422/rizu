@@ -33,6 +33,16 @@ After editing:
 - For cross-worker, websocket, or ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
 - If the worktree is already dirty, do not revert unrelated user changes.
 
+### Commit Conventions
+
+Use imperative mood in commit messages, describing the change as a direct action:
+- `Fix compressed chart previews`
+- `Add IIDX long note decoding`
+- `Preserve selected chart difficulty across game restarts`
+- `Remove atlas size limit`
+
+Do not use conventional commit prefixes (`fix:`, `feat:`, `chore:`). Keep the message on one line (under 72 characters), summarizing the primary change. Multi-line bodies are allowed for complex changes that require additional context.
+
 ### Temporary Scripts
 
 - Place all temporary scripts (Lua, bash, etc.) inside the repository — use `tmp/` or the repo root. Never create them outside the repo directory.
