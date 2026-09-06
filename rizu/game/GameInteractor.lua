@@ -1,4 +1,5 @@
 local class = require("class")
+local thread = require("thread")
 
 ---@class rizu.GameInteractor
 ---@operator call: rizu.GameInteractor
@@ -24,7 +25,9 @@ function GameInteractor:loadScoreAsync(itemIndex)
 		scoreEntry = game.scoreSelector.store.items[itemIndex]
 	end
 
-	game.resultController:replayNoteChartAsync("result", scoreEntry)
+	thread.coro(function()
+		game.resultController:replayNoteChartAsync("result", scoreEntry)
+	end)()
 
 	if itemIndex then
 		game.scoreSelector:scrollScore(nil, itemIndex)

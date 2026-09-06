@@ -1,3 +1,5 @@
+local thread = require("thread")
+
 ---@param game sphere.GameController
 ---@param ui ui.UserInterface
 ---@return rizu.command.Command[]
@@ -30,7 +32,9 @@ return function(game, ui)
 			description = "Opens the selected score result",
 			callback = function()
 				if game.chartSelector:chartExists() and game.scoreSelector.chartplay then
-					game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+					thread.coro(function()
+						game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+					end)()
 					ui:setScreen(ui.result)
 				end
 			end,

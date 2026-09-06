@@ -21,6 +21,8 @@ local UiActions = require("ui.UiActions")
 ---@field chart_summary ui.screens.song_select.ChartSummary
 ---@field library_toolbar ui.screens.song_select.LibraryToolbar
 ---@field footer ui.screens.song_select.Footer
+local thread = require("thread")
+
 local SongSelect = Screen + {}
 
 local HEADER_HEIGHT = 50
@@ -77,7 +79,9 @@ function SongSelect:openScore(index)
 	local game = self.ui.game
 	game.scoreSelector:scrollScore(nil, index)
 	if game.scoreSelector.chartplay then
-		game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+		thread.coro(function()
+			game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+		end)()
 		self.ui:setScreen(self.ui.result)
 	end
 end
