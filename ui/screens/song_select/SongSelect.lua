@@ -79,10 +79,19 @@ function SongSelect:openScore(index)
 	local game = self.ui.game
 	game.scoreSelector:scrollScore(nil, index)
 	if game.scoreSelector.chartplay then
+		self.ui:setScreen(self.ui.chart_loading, true)
+		local chartplay = game.scoreSelector.chartplay
 		thread.coro(function()
-			game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+			local ok, err = pcall(function()
+				game.resultController:replayNoteChartAsync("result", chartplay)
+			end)
+			if ok then
+				self.ui:setScreen(self.ui.result)
+			else
+				print("failed to load score:", err)
+				self.ui:setScreen(self.ui.song_select)
+			end
 		end)()
-		self.ui:setScreen(self.ui.result)
 	end
 end
 
