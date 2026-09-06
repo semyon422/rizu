@@ -32,6 +32,7 @@ function NoScratch:apply(config, chart)
 		new_notes:insert(note)
 	end
 	chart.notes = new_notes
+	chart:compute()
 end
 
 return NoScratch

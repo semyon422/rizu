@@ -354,6 +354,7 @@ function PlayfieldVsrg:addKeyImages(object)
 		end
 		local key = InputView({
 			column = i,
+			input_mode = noteskin.inputMode,
 			inputs = noteskin:getColumnInputs(i),
 			pressed = pressed,
 			released = released,
@@ -446,6 +447,7 @@ function PlayfieldVsrg:addKeyImageAnimations(object)
 		end
 		local key = InputAnimationView({
 			column = i,
+			input_mode = noteskin.inputMode,
 			inputs = noteskin:getColumnInputs(i),
 			pressed = pressed,
 			hold = hold,
