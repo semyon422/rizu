@@ -32,6 +32,7 @@ After editing:
 - Do not silently change public interfaces, persistence formats, or remote method contracts without documenting the change.
 - For cross-worker, websocket, or ICC changes, verify queue encoding, whitelist entries, and context injection assumptions.
 - If the worktree is already dirty, do not revert unrelated user changes.
+- Do not commit changes unless explicitly requested or permitted. For large tasks requiring multiple commits, ask the user first.
 
 ### Commit Conventions
 
