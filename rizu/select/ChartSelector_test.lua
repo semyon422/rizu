@@ -49,7 +49,11 @@ local function createMockConfigModel()
 				filterString = "",
 				lampString = "",
 				scoreSourceName = "local",
-				scoreFilterName = "all"
+				scoreFilterName = "all",
+				chartfile_set_id = 1,
+				chartfile_id = 1,
+				chartmeta_id = 1,
+				chartdiff_id = 1
 			},
 			filters = {
 				notechart = {},

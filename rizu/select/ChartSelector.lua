@@ -358,7 +358,9 @@ function ChartSelector:refresh(noUpdate, noPullNext)
 	local item = self.stores[1]:get(index)
 
 	if item and item.chartfile_set_id and item.chartfile_set_id ~= 0 then
-		self:setConfig(item)
+		-- Only update the set ID; preserve finer-grained selection IDs that
+		-- may have been loaded from config or set by previous navigation.
+		self.config.chartfile_set_id = item.chartfile_set_id
 	else
 		self.config.chartfile_set_id = nil
 		self.config.chartfile_id = nil
