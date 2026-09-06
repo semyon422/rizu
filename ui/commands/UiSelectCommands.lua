@@ -32,10 +32,19 @@ return function(game, ui)
 			description = "Opens the selected score result",
 			callback = function()
 				if game.chartSelector:chartExists() and game.scoreSelector.chartplay then
+					ui:setScreen(ui.chart_loading)
+					local chartplay = game.scoreSelector.chartplay
 					thread.coro(function()
-						game.resultController:replayNoteChartAsync("result", game.scoreSelector.chartplay)
+						local ok, err = pcall(function()
+							game.resultController:replayNoteChartAsync("result", chartplay)
+						end)
+						if ok then
+							ui:setScreen(ui.result)
+						else
+							print("failed to load score:", err)
+							ui:setScreen(ui.song_select)
+						end
 					end)()
-					ui:setScreen(ui.result)
 				end
 			end,
 		},
