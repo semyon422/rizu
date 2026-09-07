@@ -1,6 +1,7 @@
 local PreviewModel = require("rizu.preview.PreviewModel")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
+local TwoDx = require("chart.format.iidx.TwoDx")
 
 local test = {}
 
@@ -80,6 +81,39 @@ function test.stop_disables_preview_until_loaded_again(t)
 
 	t:eq(previewModel.active, true)
 	t:eq(previewModel.audio_path, "song.ogg")
+end
+
+---@param f function
+---@param name string
+---@return function
+local function get_upvalue(f, name)
+	local i = 1
+	while true do
+		local key, value = debug.getupvalue(f, i)
+		assert(key, "missing upvalue: " .. name)
+		if key == name then
+			return value
+		end
+		i = i + 1
+	end
+end
+
+---@param t testing.T
+function test.worker_returns_parse_errors_instead_of_throwing(t)
+	local async = get_upvalue(PreviewModel.startPreviewGeneration, "generatePreviewAsync")
+	local worker = assert(loadstring(string.dump(get_upvalue(async, "f"))))
+	setfenv(worker, setmetatable({
+		print = function() end,
+		require = function()
+			TwoDx.parse(string.rep("\0", 76))
+		end,
+	}, {__index = _G}))
+
+	local ok, result, err = pcall(worker, {hash = "broken-2dx"})
+	t:eq(ok, true)
+	t:eq(result, false)
+	t:eq(type(err), "string")
+	t:ne(err:find("unrecognized 2dx header size", 1, true), nil)
 end
 
 return test

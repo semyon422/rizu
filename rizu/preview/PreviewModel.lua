@@ -372,68 +372,78 @@ function PreviewModel:loadPreview()
 end
 
 local generatePreviewAsync = thread.async(function(chartview_data)
-	---@cast chartview_data rizu.preview.PreviewGenerationData
-	print("Preview: generating " .. chartview_data.hash)
-	local AudioPreviewGenerator = require("rizu.preview.AudioPreviewGenerator")
-	local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
-	local Decoder = require("rizu.engine.audio.bass.Decoder")
-	local ChartFactory = require("chart.format.notechart.ChartFactory")
-	local ChartfileReader = require("rizu.library.ChartfileReader")
-	local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
-	local LoveFilesystem = require("fs.LoveFilesystem")
+	---@param chartview_data rizu.preview.PreviewGenerationData
+	---@return boolean
+	local function generate(chartview_data)
+		print("Preview: generating " .. chartview_data.hash)
+		local AudioPreviewGenerator = require("rizu.preview.AudioPreviewGenerator")
+		local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
+		local Decoder = require("rizu.engine.audio.bass.Decoder")
+		local ChartFactory = require("chart.format.notechart.ChartFactory")
+		local ChartfileReader = require("rizu.library.ChartfileReader")
+		local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
+		local LoveFilesystem = require("fs.LoveFilesystem")
 
-	require("love.filesystem")
-	local bass = require("bass")
-	assert(bass.initNoSound(), "Preview: could not initialize worker BASS device")
+		require("love.filesystem")
+		local bass = require("bass")
+		assert(bass.initNoSound(), "Preview: could not initialize worker BASS device")
 
-	local fs = LoveFilesystem()
-	local audio_generator = AudioPreviewGenerator(fs, Decoder.probeDuration)
-	local bga_generator = BgaPreviewGenerator(fs)
+		local fs = LoveFilesystem()
+		local audio_generator = AudioPreviewGenerator(fs, Decoder.probeDuration)
+		local bga_generator = BgaPreviewGenerator(fs)
 
-	local content = ChartfileReader.read(fs, chartview_data.location_path)
-	if not content then
-		print("Preview: could not read " .. tostring(chartview_data.location_path))
-		return false
-	end
-	local decode_context
-	if chartview_data.format == "iidx" then
-		decode_context = IidxDecodeContext.fromLocation(
-			fs,
-			chartview_data.location_prefix,
-			chartview_data.chartfile_name
+		local content = ChartfileReader.read(fs, chartview_data.location_path)
+		if not content then
+			print("Preview: could not read " .. tostring(chartview_data.location_path))
+			return false
+		end
+		---@type chart.iidx.DecodeContext?
+		local decode_context
+		if chartview_data.format == "iidx" then
+			decode_context = IidxDecodeContext.fromLocation(
+				fs,
+				chartview_data.location_prefix,
+				chartview_data.chartfile_name
+			)
+		end
+
+		local chart_chartmetas = ChartFactory:getCharts(
+			chartview_data.chartfile_name,
+			content,
+			chartview_data.hash,
+			decode_context
 		)
+		if not chart_chartmetas then
+			print("Preview: chart parsing failed for " .. tostring(chartview_data.chartfile_name))
+			return false
+		end
+
+		local t = chart_chartmetas[chartview_data.index]
+		if not t then
+			print("Preview: chart index " .. tostring(chartview_data.index) .. " not found")
+			return false
+		end
+
+		t.chart.layers.main:toAbsolute()
+
+		local audio_preview_path = "userdata/audio_previews/" .. chartview_data.hash .. ".audio_preview"
+		if not fs:getInfo(audio_preview_path) then
+			audio_generator:generate(t.chart, chartview_data.preview_resource_dir, chartview_data.hash)
+		end
+
+		local bga_preview_path = "userdata/bga_previews/" .. chartview_data.hash .. ".bga_preview"
+		if not fs:getInfo(bga_preview_path) then
+			bga_generator:generate(t.chart, chartview_data.hash)
+		end
+
+		return true
 	end
 
-	local chart_chartmetas = ChartFactory:getCharts(
-		chartview_data.chartfile_name,
-		content,
-		chartview_data.hash,
-		decode_context
-	)
-	if not chart_chartmetas then
-		print("Preview: chart parsing failed for " .. tostring(chartview_data.chartfile_name))
-		return false
+	local ok, result = xpcall(generate, debug.traceback, chartview_data)
+	if not ok then
+		return false, tostring(result)
 	end
-
-	local t = chart_chartmetas[chartview_data.index]
-	if not t then
-		print("Preview: chart index " .. tostring(chartview_data.index) .. " not found")
-		return false
-	end
-
-	t.chart.layers.main:toAbsolute()
-
-	local audio_preview_path = "userdata/audio_previews/" .. chartview_data.hash .. ".audio_preview"
-	if not fs:getInfo(audio_preview_path) then
-		audio_generator:generate(t.chart, chartview_data.preview_resource_dir, chartview_data.hash)
-	end
-
-	local bga_preview_path = "userdata/bga_previews/" .. chartview_data.hash .. ".bga_preview"
-	if not fs:getInfo(bga_preview_path) then
-		bga_generator:generate(t.chart, chartview_data.hash)
-	end
-
-	return true
+	return result
 end)
 
 ---@param chartview_data rizu.preview.PreviewGenerationData
@@ -443,7 +453,7 @@ function PreviewModel:startPreviewGeneration(chartview_data)
 	self.generating_hashes[hash] = true
 
 	thread.coro(function()
-		local ok, result = pcall(generatePreviewAsync, chartview_data)
+		local ok, result, generation_error = pcall(generatePreviewAsync, chartview_data)
 		self.generating_hashes[hash] = nil
 		self.attempted_hashes[hash] = true
 		self.active_generation_hash = nil
@@ -452,7 +462,7 @@ function PreviewModel:startPreviewGeneration(chartview_data)
 				self:loadPreview()
 			end
 		else
-			print("Preview: generation failed for " .. hash .. " error: " .. tostring(result))
+			print("Preview: generation failed for " .. hash .. " error: " .. tostring(generation_error or result))
 		end
 
 		local pending = self.pending_generation
