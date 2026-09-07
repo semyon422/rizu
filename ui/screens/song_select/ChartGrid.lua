@@ -11,12 +11,15 @@ local Settings = require("rizu.config.Settings")
 ---@field difficulty string
 ---@field difficulty_color gui.Color
 ---@field inputmode string
+---@field name string
 
 ---@class ui.screens.song_select.ChartGrid : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ChartGrid
 ---@field items ui.screens.song_select.ChartGrid.Item[]
 ---@field hover_id integer?
+---@field hover_name string?
 ---@field chartview_formatter ui.formatters.ChartviewFormatter
+---@field tooltip ui.views.Tooltip?
 local ChartGrid = VirtualizedList + {}
 
 local ITEM_WIDTH = 110
@@ -25,9 +28,11 @@ local ITEM_HEIGHT = 66
 local ITEM_GRADIENT_OPACITY = 0.32
 
 ---@param chart_selector rizu.select.ChartSelector
-function ChartGrid:new(chart_selector)
+---@param tooltip ui.views.Tooltip?
+function ChartGrid:new(chart_selector, tooltip)
 	VirtualizedList.new(self)
 	self.chart_selector = chart_selector
+	self.tooltip = tooltip
 	self.chartview_formatter = ChartviewFormatter(nil, chart_selector.settings)
 	self.items = {}
 	self.meta_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
@@ -89,7 +94,8 @@ function ChartGrid:reloadItems()
 				id = i,
 				difficulty = difficulty.value,
 				difficulty_color = difficulty.color,
-				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S")
+				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S"),
+				name = item.name or "Unknown difficulty",
 			})
 		end
 	end
@@ -144,6 +150,7 @@ function ChartGrid:update(dt)
 
 	local last_hover = self.hover_id
 	self.hover_id = nil
+	self.hover_name = nil
 	if self.mouse_over then
 		local mx, my = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
 		if mx >= 0 and mx < self.width and my >= 0 and my < self.height then
@@ -154,12 +161,19 @@ function ChartGrid:update(dt)
 				and item_x % (ITEM_WIDTH + ITEM_GAP) < ITEM_WIDTH
 			then
 				self.hover_id = self.items[idx].id
+				self.hover_name = self.items[idx].name
 			end
 		end
 	end
 
 	if last_hover ~= self.hover_id then
 		Sounds.play("hover")
+		if self.tooltip then
+			self.tooltip:setText(self.hover_name)
+		end
+	end
+	if self.hover_id and self.tooltip then
+		self.tooltip:followCursor(love.mouse.getPosition())
 	end
 
 	self.meta_batch:clear()

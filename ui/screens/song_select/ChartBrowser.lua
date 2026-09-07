@@ -45,7 +45,8 @@ local ChartBrowser = View + {}
 
 ---@param chart_selector rizu.select.ChartSelector
 ---@param settings rizu.config.Config
-function ChartBrowser:new(chart_selector, settings)
+---@param tooltip ui.views.Tooltip?
+function ChartBrowser:new(chart_selector, settings, tooltip)
 	View.new(self)
 
 	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
@@ -68,7 +69,7 @@ function ChartBrowser:new(chart_selector, settings)
 	difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_left, function()
 		moveDifficulty(-1)
 	end), 38)
-	self.chart_grid = difficulty_strip:add(ChartGrid(chart_selector), "*")
+	self.chart_grid = difficulty_strip:add(ChartGrid(chart_selector, tooltip), "*")
 	difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_right, function()
 		moveDifficulty(1)
 	end), 38)

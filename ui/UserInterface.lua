@@ -15,6 +15,7 @@ local Locations = require("ui.screens.locations.Locations")
 local TestScreen = require("ui.test.TestScreen")
 local ScreenManager = require("ui.ScreenManager")
 local Overlay = require("ui.Overlay")
+local Tooltip = require("ui.views.Tooltip")
 local Registry = require("rizu.command.Registry")
 local Colors = require("ui.Colors")
 local LoveFilesystem = require("fs.LoveFilesystem")
@@ -58,6 +59,7 @@ local TARGET_HEIGHT = 1080
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
 ---@field overlay ui.Overlay
+---@field tooltip ui.views.Tooltip
 ---@field modal_manager ui.ModalManager
 ---@field command_registry rizu.command.Registry
 ---@field actions gui.input.ActionMap
@@ -100,6 +102,7 @@ end
 
 function UserInterface:load()
 	Resources.load()
+	self.tooltip = Tooltip()
 	self.main_menu = MainMenu(self)
 	self.song_select = SongSelect(self)
 	self.chart_loading = ChartLoading(self)

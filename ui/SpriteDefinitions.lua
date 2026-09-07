@@ -64,6 +64,14 @@ local SpriteDefinitions = {
 		slice = 6,
 		fills = fills({1, 1, 1, 1}),
 	},
+	tooltip = {
+		width = 11,
+		height = 11,
+		border_radius = 4,
+		slice = 5,
+		fills = fills(Colors.surface_raised),
+		stroke = {width = 1, color = Colors.outline},
+	},
 	song_select_toolbar_control = {
 		width = 13,
 		height = 13,

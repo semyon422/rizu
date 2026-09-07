@@ -12,6 +12,7 @@ local Settings = require("rizu.config.Settings")
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
 ---@field popup_container ui.views.PopupContainer
+---@field tooltip ui.views.Tooltip
 ---@field ui ui.UserInterface
 ---@field cache_progress_view ui.views.CacheProgressView
 local Overlay = Screen + {}
@@ -49,8 +50,9 @@ function Overlay:new(ui)
 	self.cache_progress_view:setOffset(16, 16)
 	self.popup_container = PopupContainer()
 	self.modal_manager = self.root:add(ModalManager(ui, self.popup_container))
-	-- Popups are last so they draw and receive input above modal contents.
+	-- Tooltips are last so they draw above navigation screens, modals, and popups.
 	self.root:add(self.popup_container)
+	self.tooltip = self.root:add(ui.tooltip)
 end
 
 ---@param event {name: string, time: number, [integer]: any}
