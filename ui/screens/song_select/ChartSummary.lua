@@ -38,6 +38,7 @@ function ChartSummary:new(cvf)
 	self.has_chart = false
 	self.rating = "0.0"
 	self.difficulty_postfix = "USER"
+	self.level = nil
 	self.mode = "NO CHART"
 	self.duration = "0:00"
 	self.note_count = "0"
@@ -57,6 +58,7 @@ function ChartSummary:bind()
 	if not self.has_chart then
 		self.rating = "0.0"
 		self.difficulty_postfix = "USER"
+		self.level = nil
 		self.difficulty_color = Colors.text
 		self.mode = "NO CHART"
 		self.duration = "0:00"
@@ -69,6 +71,8 @@ function ChartSummary:bind()
 	local difficulty = cvf:getDifficulty()
 	self.rating = difficulty.value
 	self.difficulty_postfix = difficulty.postfix
+	local level = cvf:getLevel()
+	self.level = tonumber(level) ~= 0 and level or nil
 	self.difficulty_color = difficulty.color
 	self.mode = cvf:getMode()
 	self.duration = cvf:getDuration()
@@ -96,23 +100,32 @@ function ChartSummary:rebuild()
 	local chip_padding = 12
 	local inline_gap = 7
 	local difficulty_postfix = self.difficulty_postfix
+	local level_label = "LV"
 	local ln_label = "LN"
 	local rating_width = chip_padding * 2
 		+ self.rating_font:getWidth(self.rating)
 		+ inline_gap
 		+ self.challenge_font:getWidth(difficulty_postfix)
+	local level_width = self.level and chip_padding * 2
+		+ self.label_font:getWidth(level_label)
+		+ inline_gap
+		+ self.challenge_font:getWidth(self.level) or 0
 	local mode_width = chip_padding * 2 + self.challenge_font:getWidth(self.mode)
 	local ln_width = chip_padding * 2
 		+ self.label_font:getWidth(ln_label)
 		+ inline_gap
 		+ self.challenge_font:getWidth(self.ln_ratio)
 	local rating_x = OUTER_PADDING + 6
-	local mode_x = rating_x + rating_width + CHALLENGE_GAP
+	local level_x = rating_x + rating_width + CHALLENGE_GAP
+	local mode_x = level_x + (self.level and level_width + CHALLENGE_GAP or 0)
 	local ln_x = mode_x + mode_width + CHALLENGE_GAP
 	self.chips = {
 		{rating_x, chip_y, rating_width, self.rating_background_color},
 	}
 	if self.has_chart then
+		if self.level then
+			self.chips[#self.chips + 1] = {level_x, chip_y, level_width, Colors.surface}
+		end
 		self.chips[#self.chips + 1] = {mode_x, chip_y, mode_width, Colors.surface}
 		self.chips[#self.chips + 1] = {ln_x, chip_y, ln_width, Colors.surface}
 	end
@@ -124,6 +137,11 @@ function ChartSummary:rebuild()
 		rating_x + rating_width - chip_padding - self.challenge_font:getWidth(difficulty_postfix), chip_y + 8)
 	self.label_text:clear()
 	if self.has_chart then
+		if self.level then
+			self.label_text:add({Colors.muted, level_label}, level_x + chip_padding, chip_y + 12)
+			self.challenge_text:add({Colors.text, self.level},
+				level_x + chip_padding + self.label_font:getWidth(level_label) + inline_gap, chip_y + 7)
+		end
 		self.challenge_text:add({Colors.text, self.mode}, mode_x + chip_padding, chip_y + 7)
 		self.label_text:add({Colors.muted, ln_label}, ln_x + chip_padding, chip_y + 12)
 		self.challenge_text:add({Colors.text, self.ln_ratio},
