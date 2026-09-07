@@ -56,7 +56,13 @@ local SpriteDefinitions = {
 		border_radius = 6,
 		slice = 7,
 		fills = fills(Colors.panel),
-		stroke = {width = 1, color = Colors.outline},
+	},
+	chart_summary_chip = {
+		width = 13,
+		height = 13,
+		border_radius = 5,
+		slice = 6,
+		fills = fills({1, 1, 1, 1}),
 	},
 	song_select_toolbar_control = {
 		width = 13,
@@ -85,18 +91,6 @@ local SpriteDefinitions = {
 		height = 66,
 		border_radius = 4,
 		fills = fills({1, 1, 1, 1}),
-	},
-	chart_summary_difficulty_gradient = {
-		width = 285,
-		height = 66,
-		fills = {{
-			type = "linear_gradient",
-			angle = 0,
-			stops = {
-				{offset = 0, color = {1, 1, 1, 1}},
-				{offset = 1, color = {1, 1, 1, 0}},
-			},
-		}},
 	},
 	chart_grid_item = {
 		width = 110,

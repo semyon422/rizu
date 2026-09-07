@@ -40,10 +40,10 @@ function ChartviewFormatter:getDifficulty()
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local num = self.chartview[diff_column] or 0
 
-	local postfix = "?"
+	local postfix = "USER"
 
 	if diff_column == "osu_diff" then
-		postfix = "OSU!SR"
+		postfix = "★"
 	elseif diff_column == "msd_diff" then
 		postfix = "MSD"
 	elseif diff_column == "enps_diff" then

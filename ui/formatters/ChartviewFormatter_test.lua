@@ -14,4 +14,30 @@ function test.formats_chart_mode(t)
 	t:eq(formatter:getMode(), "NO CHART")
 end
 
+function test.formats_difficulty_postfix(t)
+	local diff_column = "osu_diff"
+	local settings = {
+		getChoice = function()
+			return diff_column
+		end,
+	}
+	local formatter = ChartviewFormatter({
+		osu_diff = 1,
+		msd_diff = 2,
+		enps_diff = 3,
+		user_diff = 4,
+	}, settings)
+
+	local postfixes = {
+		osu_diff = "★",
+		msd_diff = "MSD",
+		enps_diff = "ENPS",
+		user_diff = "USER",
+	}
+	for column, postfix in pairs(postfixes) do
+		diff_column = column
+		t:eq(formatter:getDifficulty().postfix, postfix)
+	end
+end
+
 return test
