@@ -12,6 +12,8 @@ Settings are grouped under named, illustrated sections and use the shared form c
 
 Each concrete section lives in its own module under `ui/modals/config/sections/`. All generated `FormControl` instances are direct rows of the modal's single `Form`. Section headings are non-selectable rows in the same form. `ControlFactory` binds flat config keys from `rizu.config.Settings` and `ui.UiConfig` to controls; changes update their config stores immediately.
 
+The Gameplay section exposes Auto keysound (`gameplay.auto_key_sound`, off by default). When enabled, keysounds play automatically independently of key presses. The stored value updates immediately and is used on the next chart load.
+
 The audio section exposes master, music, keysound, and metronome volume. Stored volumes remain linear values in `[0, 1]`. The logarithmic presentation converts them to and from decibels and changing the presentation mode invalidates the section.
 
 The renderer section binds the renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.

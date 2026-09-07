@@ -62,6 +62,11 @@ function Gameplay:new(settings, ui_config)
 						return format:format(value)
 					end,
 				}),
+				ControlFactory.boolean(settings, keys.auto_key_sound, {
+					name = "Auto keysound",
+					keywords = {"gameplay", "audio", "auto", "keysound"},
+					tip = "Play keysounds automatically, independently of key presses. Applies on the next chart load.",
+				}),
 				ControlFactory.boolean(settings, keys.bga_image, {
 					name = "Background images",
 					keywords = {"gameplay", "background", "animation", "bga", "image"},
