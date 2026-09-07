@@ -12,6 +12,9 @@ local Settings = require("rizu.config.Settings")
 
 ---@class rizu.preview.PreviewChartview
 ---@field hash string
+---@field notes_preview string?
+---@field chartdiff_id integer?
+---@field modifiers sea.Modifier[]?
 ---@field duration number?
 ---@field location_path string
 ---@field location_prefix string
@@ -29,6 +32,10 @@ local Settings = require("rizu.config.Settings")
 ---@field chartfile_name string
 ---@field format sea.ChartFormat
 ---@field index integer
+---@field regenerate_notes boolean?
+---@field chartdiff_id integer?
+---@field previous_notes_preview string?
+---@field modifiers sea.Modifier[]?
 
 ---@class rizu.preview.PreviewModel
 ---@operator call: rizu.preview.PreviewModel
@@ -63,6 +70,12 @@ local function get_bga_preview_resource_paths(chartview, fs)
 	return paths
 end
 
+---@param chartview rizu.preview.PreviewChartview|rizu.preview.PreviewGenerationData
+---@return string
+local function get_notes_key(chartview)
+	return chartview.hash .. ":" .. chartview.index .. ":" .. tostring(chartview.chartdiff_id)
+end
+
 ---@param hash string
 ---@return string
 local function get_audio_preview_path(hash)
@@ -83,6 +96,8 @@ function PreviewModel:new(settings, replayBase, game)
 	self.generating_hashes = {}
 	---@type {[string]: boolean?}
 	self.attempted_hashes = {}
+	---@type {[string]: string}
+	self.repaired_notes = {}
 	---@type string?
 	self.active_generation_hash = nil
 	---@type rizu.preview.PreviewGenerationData?
@@ -291,7 +306,10 @@ function PreviewModel:loadPreview()
 		return
 	end
 
-	self.chartPreview:setChartview(self.chartview)
+	if self.chartview and self.repaired_notes[get_notes_key(self.chartview)] then
+		self.chartview.notes_preview = self.repaired_notes[get_notes_key(self.chartview)]
+	end
+	local notes_valid = self.chartPreview:setChartview(self.chartview)
 
 	local audio_needs_reload = (self.loaded_audio_path ~= path)
 		or (self.loaded_preview_time ~= preview_time)
@@ -359,9 +377,9 @@ function PreviewModel:loadPreview()
 			self.bgaPreviewPlayer:seek(self:getTime())
 		end
 
-		if not audio_exists or not bga_exists then
+		if not audio_exists or not bga_exists or notes_valid == false then
 			if not self.attempted_hashes[hash] then
-				self:generatePreview(self.chartview)
+				self:generatePreview(self.chartview, notes_valid == false)
 			end
 		end
 	end
@@ -374,6 +392,7 @@ end
 local generatePreviewAsync = thread.async(function(chartview_data)
 	---@param chartview_data rizu.preview.PreviewGenerationData
 	---@return boolean
+	---@return string? notes_preview
 	local function generate(chartview_data)
 		print("Preview: generating " .. chartview_data.hash)
 		local AudioPreviewGenerator = require("rizu.preview.AudioPreviewGenerator")
@@ -436,14 +455,37 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 			bga_generator:generate(t.chart, chartview_data.hash)
 		end
 
-		return true
+		---@type string?
+		local notes_preview
+		if chartview_data.regenerate_notes then
+			local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
+			local ModifierModel = require("sphere.models.ModifierModel")
+			if chartview_data.modifiers then
+				ModifierModel:apply(chartview_data.modifiers, t.chart)
+			end
+			local ctx = {chart = t.chart, chartdiff = {}}
+			PreviewDiffcalc():compute(ctx)
+			notes_preview = ctx.chartdiff.notes_preview
+			assert(notes_preview and notes_preview ~= "", "Preview: notes regeneration failed")
+			local Sph = require("chart.format.sph.Sph")
+			local SphPreview = require("chart.format.sph.SphPreview")
+			local ChartDecoder = require("chart.format.sph.ChartDecoder")
+			local sph = Sph()
+			sph.metadata:set("title", "")
+			sph.metadata:set("artist", "")
+			sph.metadata:set("input", tostring(t.chart.inputMode))
+			sph.sphLines:decode(SphPreview:decodeLines(notes_preview))
+			ChartDecoder():decodeSph(sph)
+		end
+
+		return true, notes_preview
 	end
 
-	local ok, result = xpcall(generate, debug.traceback, chartview_data)
+	local ok, result, notes_preview = xpcall(generate, debug.traceback, chartview_data)
 	if not ok then
 		return false, tostring(result)
 	end
-	return result
+	return result, notes_preview
 end)
 
 ---@param chartview_data rizu.preview.PreviewGenerationData
@@ -453,16 +495,31 @@ function PreviewModel:startPreviewGeneration(chartview_data)
 	self.generating_hashes[hash] = true
 
 	thread.coro(function()
-		local ok, result, generation_error = pcall(generatePreviewAsync, chartview_data)
+		local ok, result, detail = pcall(generatePreviewAsync, chartview_data)
 		self.generating_hashes[hash] = nil
 		self.attempted_hashes[hash] = true
 		self.active_generation_hash = nil
 		if ok and result then
+			if detail and detail ~= "" then
+				self.repaired_notes[get_notes_key(chartview_data)] = detail
+				if chartview_data.chartdiff_id and chartview_data.chartdiff_id > 0 then
+					local saved, save_error = pcall(
+						self.game.persistence.library.chartsRepo.repairNotesPreview,
+						self.game.persistence.library.chartsRepo,
+						chartview_data.chartdiff_id,
+						chartview_data.previous_notes_preview,
+						detail
+					)
+					if not saved then
+						print("Preview: could not save repaired notes for " .. hash .. ": " .. tostring(save_error))
+					end
+				end
+			end
 			if self.chartview and self.chartview.hash == hash then
 				self:loadPreview()
 			end
 		else
-			print("Preview: generation failed for " .. hash .. " error: " .. tostring(generation_error or result))
+			print("Preview: generation failed for " .. hash .. " error: " .. tostring(detail or result))
 		end
 
 		local pending = self.pending_generation
@@ -474,7 +531,8 @@ function PreviewModel:startPreviewGeneration(chartview_data)
 end
 
 ---@param chartview rizu.preview.PreviewChartview
-function PreviewModel:generatePreview(chartview)
+---@param regenerate_notes boolean?
+function PreviewModel:generatePreview(chartview, regenerate_notes)
 	local hash = chartview.hash
 	if self.generating_hashes[hash] then
 		return
@@ -490,6 +548,10 @@ function PreviewModel:generatePreview(chartview)
 		format = chartview.format,
 		index = chartview.index,
 		hash = hash,
+		regenerate_notes = regenerate_notes,
+		chartdiff_id = chartview.chartdiff_id,
+		previous_notes_preview = chartview.notes_preview,
+		modifiers = chartview.modifiers,
 	}
 
 	if self.active_generation_hash then

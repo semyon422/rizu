@@ -49,6 +49,17 @@ function ChartsRepo:updateChartdiff(chartdiff)
 	return self.models.chartdiffs:update(chartdiff, {id = assert(chartdiff.id)})[1]
 end
 
+---@param id integer
+---@param previous string
+---@param preview string
+function ChartsRepo:repairNotesPreview(id, previous, preview)
+	assert(preview ~= "", "repaired notes preview must not be empty")
+	self.models.chartdiffs:update({notes_preview = preview}, {
+		id = id,
+		notes_preview = previous,
+	})
+end
+
 ---@param hash string
 ---@param index number
 ---@return sea.Chartdiff?

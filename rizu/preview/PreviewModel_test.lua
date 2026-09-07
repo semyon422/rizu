@@ -2,6 +2,9 @@ local PreviewModel = require("rizu.preview.PreviewModel")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
 local TwoDx = require("chart.format.iidx.TwoDx")
+local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
+local SphPreview = require("chart.format.sph.SphPreview")
+local Fraction = require("chart.core.Fraction")
 
 local test = {}
 
@@ -114,6 +117,61 @@ function test.worker_returns_parse_errors_instead_of_throwing(t)
 	t:eq(result, false)
 	t:eq(type(err), "string")
 	t:ne(err:find("unrecognized 2dx header size", 1, true), nil)
+end
+
+---@param t testing.T
+function test.broken_notes_preview_requests_repair(t)
+	local settings = Settings.createConfig(FakeFilesystem())
+	local player = NotesPreviewPlayer(settings, {}, {}, {})
+	local preview = SphPreview:encode({
+		{offset = 0.724609375, notes = {true}},
+		{time = Fraction(1, 4), notes = {true}},
+	}, 1)
+	t:eq(player:setChartview({notes_preview = preview, chartdiff_inputmode = "7key"}), false)
+	t:eq(player.chart, nil)
+	t:eq(player:setChartview(nil), nil)
+end
+
+---@param t testing.T
+function test.worker_returns_repaired_notes(t)
+	local async = get_upvalue(PreviewModel.startPreviewGeneration, "generatePreviewAsync")
+	local worker = assert(loadstring(string.dump(get_upvalue(async, "f"))))
+	local fake_chart = {layers = {main = {toAbsolute = function() end}}}
+	local modules = {
+		["bass"] = {initNoSound = function() return true end},
+		["fs.LoveFilesystem"] = function()
+			return {getInfo = function() return {} end}
+		end,
+		["rizu.preview.AudioPreviewGenerator"] = function() return {} end,
+		["rizu.preview.BgaPreviewGenerator"] = function() return {} end,
+		["rizu.library.ChartfileReader"] = {read = function() return "content" end},
+		["chart.format.notechart.ChartFactory"] = {
+			getCharts = function() return {{chart = fake_chart}} end,
+		},
+		["chart.format.sph.Sph"] = function()
+			return {metadata = {set = function() end}, sphLines = {decode = function() end}}
+		end,
+		["chart.format.sph.SphPreview"] = {decodeLines = function() return {} end},
+		["chart.format.sph.ChartDecoder"] = function()
+			return {decodeSph = function() end}
+		end,
+		["chart.difficulty.PreviewDiffcalc"] = function()
+			return {compute = function(_, ctx)
+				t:eq(ctx.chart, fake_chart)
+				ctx.chartdiff.notes_preview = "repaired"
+			end}
+		end,
+	}
+	setfenv(worker, setmetatable({
+		print = function() end,
+		require = function(name) return modules[name] or {} end,
+	}, {__index = _G}))
+	local ok, preview = worker({hash = "hash", index = 1, regenerate_notes = true})
+	t:eq(ok, true)
+	t:eq(preview, "repaired")
+	local unchanged, no_preview = worker({hash = "hash", index = 1})
+	t:eq(unchanged, true)
+	t:eq(no_preview, nil)
 end
 
 return test

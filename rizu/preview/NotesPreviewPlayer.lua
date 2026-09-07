@@ -10,6 +10,7 @@ local Settings = require("rizu.config.Settings")
 
 ---@class rizu.preview.NotesPreviewPlayer
 ---@operator call: rizu.preview.NotesPreviewPlayer
+---@field chart chart.Chart?
 local NotesPreviewPlayer = class()
 
 ---@param settings rizu.config.Config
@@ -49,31 +50,33 @@ local empty_lines = SphPreview:previewLinesToLines({
 })
 
 ---@param chartview rizu.library.Chartview
+---@return chart.Chart
+local function decode_preview(chartview)
+	local lines = empty_lines
+	local notes_preview = chartview.notes_preview
+	if notes_preview and notes_preview ~= "" then
+		lines = SphPreview:decodeLines(notes_preview)
+	end
+	local sph = Sph()
+	sph.metadata:set("title", "")
+	sph.metadata:set("artist", "")
+	sph.metadata:set("input", assert(chartview.chartdiff_inputmode))
+	sph.sphLines:decode(lines)
+	return ChartDecoder():decodeSph(sph)
+end
+
+---@param chartview rizu.library.Chartview?
+---@return boolean? valid
 function NotesPreviewPlayer:setChartview(chartview)
 	if not self.settings:getBoolean(Settings.keys.select.chart_preview) or not chartview then
 		self.chart = nil
 		return
 	end
 
-	local notes_preview = chartview.notes_preview
-
-	local lines = empty_lines
-	if notes_preview and notes_preview ~= "" then
-		lines = SphPreview:decodeLines(notes_preview)
-	end
-
-	local sph = Sph()
-	sph.metadata:set("title", "")
-	sph.metadata:set("artist", "")
-	sph.metadata:set("input", assert(chartview.chartdiff_inputmode))
-	sph.sphLines:decode(lines)
-
-	local decoder = ChartDecoder()
-
-	local ok, chart = pcall(decoder.decodeSph, decoder, sph)
+	local ok, chart = pcall(decode_preview, chartview)
 	if not ok then
 		self.chart = nil
-		return
+		return false
 	end
 
 	local ctx = ComputeContext()
