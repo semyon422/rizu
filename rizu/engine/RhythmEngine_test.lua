@@ -27,6 +27,29 @@ function test.time_to_prepare(t)
 end
 
 ---@param t testing.T
+function test.pending_resync_waits_for_fresh_frame(t)
+	local re = RhythmEngine()
+	re:setGlobalTime(10)
+	re.time_engine:setTime(-1)
+	re:play(true)
+
+	-- Loading can finish and update gameplay within the same frame.
+	re:setGlobalTime(10)
+	t:eq(re.pending_resync, true)
+	t:eq(re:getTime(), -1)
+
+	-- The next frame includes the loading delay, not gameplay time.
+	re:setGlobalTime(14)
+	t:eq(re.pending_resync, false)
+	t:eq(re:getTime(), -1)
+	t:eq(re:getTime(true), -1)
+
+	re:setGlobalTime(14.25)
+	t:eq(re:getTime(), -0.75)
+	t:eq(re:getTime(true), -0.75)
+end
+
+---@param t testing.T
 function test.skip_intro(t)
 	local re = RhythmEngine()
 

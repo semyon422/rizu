@@ -234,6 +234,10 @@ function RhythmEngine:setGlobalTime(time)
 		return
 	end
 
+	if time == self.time_engine.timer:getGlobalTime() then
+		return
+	end
+
 	self.pending_resync = false
 	self.time_engine:pause()
 	self.time_engine:setGlobalTime(time)
