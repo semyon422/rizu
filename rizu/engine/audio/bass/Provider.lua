@@ -7,16 +7,16 @@ local MixerSource = require("rizu.engine.audio.bass.MixerSource")
 ---@operator call: rizu.audio.bass.Provider
 local Provider = IProvider + {}
 
-function Provider:createDecoder(data)
-	return Decoder(data)
+function Provider:createDecoder(data, float_output)
+	return Decoder(data, float_output)
 end
 
 function Provider:createChartSource(decoder, use_tempo)
 	return Source(decoder, use_tempo)
 end
 
-function Provider:createMixerSource(use_tempo)
-	return MixerSource(use_tempo)
+function Provider:createMixerSource(use_tempo, float_output)
+	return MixerSource(use_tempo, float_output)
 end
 
 return Provider

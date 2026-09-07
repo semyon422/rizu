@@ -4,13 +4,16 @@ local ISource = require("rizu.engine.audio.ISource")
 ---@operator call: rizu.audio.fake.MixerSource
 local MixerSource = ISource + {}
 
-function MixerSource:new()
+---@param float_output boolean?
+function MixerSource:new(float_output)
 	self.active_sounds = {}
+	self.bytes_per_sample = float_output and 4 or 2
 	self.volume = 1
 	self.rate = 1
 end
 
 function MixerSource:addSound(decoder, volume)
+	assert(decoder:getBytesPerSample() == self.bytes_per_sample, "Decoder sample format must match MixerSource format")
 	table.insert(self.active_sounds, {
 		decoder = decoder,
 		volume = volume or 1,

@@ -48,7 +48,8 @@ function Decoder.probeDuration(data)
 end
 
 ---@param data string
-function Decoder:new(data)
+---@param float_output boolean? true forces normalized float output; otherwise output is int16
+function Decoder:new(data, float_output)
 	self.data = data
 
 	---@type integer
@@ -56,8 +57,16 @@ function Decoder:new(data)
 	bass_assert(self.decode_channel ~= 0)
 	self.length = get_length(self.decode_channel)
 
+	local flags = bass_flags.BASS_STREAM_DECODE
+	if float_output then
+		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
+		self.bytes_per_sample = 4
+	else
+		self.bytes_per_sample = 2
+	end
+
 	---@type integer
-	self.resample_channel = bass_mix.BASS_Mixer_StreamCreate(self.sample_rate, self.channels_count, bass_flags.BASS_STREAM_DECODE)
+	self.resample_channel = bass_mix.BASS_Mixer_StreamCreate(self.sample_rate, self.channels_count, flags)
 	bass_assert(self.resample_channel ~= 0)
 
 	---@type integer

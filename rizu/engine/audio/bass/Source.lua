@@ -28,8 +28,11 @@ function Source:new(decoder, use_tempo)
 	self.use_tempo = use_tempo
 
 	local flags = 0
+	if decoder:getBytesPerSample() == 4 then
+		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
+	end
 	if use_tempo then
-		flags = bass_flags.BASS_STREAM_DECODE
+		flags = flags + bass_flags.BASS_STREAM_DECODE
 	end
 
 	---@type integer

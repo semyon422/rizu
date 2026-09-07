@@ -228,4 +228,78 @@ function test.two_dx_inside_ifs(t)
 	decoder:release()
 end
 
+---@return fun(data: string): rizu.audio.IDecoder
+local function constant_tone_factory()
+	return function(_data)
+		local dec = FakeDecoder(44100, 44100, 2)
+		for i = 0, 44099 do
+			dec.wave:setSampleInt(i, 1, 1000)
+			dec.wave:setSampleInt(i, 2, 1000)
+		end
+		return dec
+	end
+end
+
+---@param float_output boolean?
+---@return rizu.audio.PreviewDecoder
+local function tone_preview_decoder(float_output)
+	local fs = FakeFilesystem()
+	fs:write("tone.wav", "tone_data")
+
+	local preview = AudioPreview()
+	preview.samples = {"tone.wav"}
+	preview.events = {
+		{time = 0, sample_index = 1, duration = 1.0, volume = 0.5},
+	}
+
+	return PreviewDecoder(fs, "", preview, constant_tone_factory(), float_output)
+end
+
+--- 1.5s buffer: tone occupies frames 0..44099 (88200 interleaved samples),
+--- silence starts at sample 88200.
+---@param t testing.T
+function test.int16_output(t)
+	local decoder = tone_preview_decoder()
+
+	t:eq(decoder:getBytesPerSample(), 2, "int16 mode reports 2 bytes per sample")
+
+	local samples = 44100 * 2 * 3
+	local buf = ffi.new("int16_t[?]", samples)
+	t:eq(decoder:getData(buf, samples * 2), samples * 2, "reads 1.5s of int16 data")
+
+	-- 1000 * 0.5 volume = 500
+	t:eq(buf[0], 500, "first L sample")
+	t:eq(buf[1], 500, "first R sample")
+	t:eq(buf[88198], 500, "last L sample of the tone")
+	t:eq(buf[88199], 500, "last R sample of the tone")
+	t:eq(buf[88200], 0, "silence after the tone ends")
+
+	decoder:release()
+end
+
+---@param t testing.T
+function test.float_output(t)
+	local decoder = tone_preview_decoder(true)
+
+	t:eq(decoder:getBytesPerSample(), 4, "float mode reports 4 bytes per sample")
+
+	local samples = 44100 * 2 * 3
+	local buf = ffi.new("float[?]", samples)
+	t:eq(decoder:getData(buf, samples * 4), samples * 4, "reads 1.5s of float data")
+
+	-- 1000 * 0.5 volume = 500 -> 500/32768 in [-1, 1] range
+	t:aeq(buf[0], 500 / 32768, 1e-9, "first L sample")
+	t:aeq(buf[1], 500 / 32768, 1e-9, "first R sample")
+	t:aeq(buf[88198], 500 / 32768, 1e-9, "last L sample of the tone")
+	t:aeq(buf[88199], 500 / 32768, 1e-9, "last R sample of the tone")
+	t:aeq(buf[88200], 0, 1e-9, "silence after the tone ends")
+
+	decoder:setPosition(0.5)
+	t:aeq(decoder:getPosition(), 0.5, 1e-9, "float byte positions preserve time")
+	t:eq(decoder:getData(buf, 8), 8, "reads one stereo float frame after seeking")
+	t:aeq(buf[0], 500 / 32768, 1e-9, "seeked L sample")
+
+	decoder:release()
+end
+
 return test

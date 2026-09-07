@@ -90,7 +90,8 @@ local SoftwareMixer = IDecoder + {}
 
 ---@param sounds rizu.ChartAudioSound[]
 ---@param decoders {[integer]: rizu.audio.IDecoder}
-function SoftwareMixer:new(sounds, decoders)
+---@param float_output boolean? If true, convert the mixed int16 samples to normalized floats
+function SoftwareMixer:new(sounds, decoders, float_output)
 	self.tree_start = rbtree.new()
 	self.tree_end = rbtree.new()
 	---@type {[rizu.audio.IDecoder]: rizu.audio.SoftwareMixer.Entry}
@@ -101,6 +102,7 @@ function SoftwareMixer:new(sounds, decoders)
 	self.max_duration_bytes = 0
 
 	self.position = 0
+	self.float_output = float_output == true
 	---@type {[rizu.audio.SoftwareMixer.Entry]: boolean}
 	self.active_sounds = {}
 	self.next_to_add = nil
@@ -197,7 +199,13 @@ function SoftwareMixer:addSound(sound, decoder)
 			self.dummy_decoder:release()
 			self.dummy_decoder = nil
 		end
+	else
+		assert(decoder:getSampleRate() == self.sample_rate, "Decoder sample rate must match mixer format")
+		assert(decoder:getChannelCount() == self.channels, "Decoder channel count must match mixer format")
+		assert(decoder:getBytesPerSample() == self.bytes_per_sample, "Decoder sample format must match mixer format")
 	end
+
+	assert(self.bytes_per_sample == 2, "SoftwareMixer only accepts int16 decoders")
 
 	local entry = Entry(decoder, sound.time)
 	self.decoder_to_entry[decoder] = entry
@@ -260,7 +268,8 @@ end
 ---@return number
 ---@return number
 function SoftwareMixer:getTimeBounds()
-	return self:bytesToSeconds(self.start_pos), self:bytesToSeconds(self.end_pos)
+	local bytes_per_second = self.sample_rate * self.channels * self.bytes_per_sample
+	return self.start_pos / bytes_per_second, self.end_pos / bytes_per_second
 end
 
 function SoftwareMixer:release()
@@ -280,7 +289,7 @@ local function add_buffer_float(dst, src, size)
 	local src_ptr = ffi.cast("int16_t*", src)
 
 	for i = 0, size - 1 do
-		dst[i] = dst[i] + src_ptr[i]
+		dst[i] = dst[i] + src_ptr[i] / 32768
 	end
 end
 
@@ -292,7 +301,7 @@ local function apply_mix(dst, src, size)
 	local dst_ptr = ffi.cast("int16_t*", dst)
 
 	for i = 0, size - 1 do
-		local val = src[i]
+		local val = src[i] * 32768
 		if val > 32767 then
 			dst_ptr[i] = 32767
 		elseif val < -32768 then
@@ -308,11 +317,15 @@ end
 ---@return integer
 function SoftwareMixer:getData(buf, len)
 	len = self:floorBytes(len)
+	local output_len = len
+	if self.float_output then
+		len = len / 2
+	end
 
 	if self.empty then
-		ffi.fill(buf, len, 0)
+		ffi.fill(buf, output_len, 0)
 		self.position = self.position + len
-		return len
+		return output_len
 	end
 
 	local samples = len / 2
@@ -368,28 +381,50 @@ function SoftwareMixer:getData(buf, len)
 		end
 	end
 
-	apply_mix(buf, mix_buf, samples)
+	if self.float_output then
+		ffi.copy(buf, mix_buf, output_len)
+	else
+		apply_mix(buf, mix_buf, samples)
+	end
 
 	self.position = self.position + len
 
-	return len
+	return output_len
 end
 
 ---@param bytes integer
 ---@return integer
 function SoftwareMixer:floorBytes(bytes)
-	local mul = self.channels * self.bytes_per_sample
+	local mul = self.channels * self:getBytesPerSample()
 	return math.floor(bytes / mul) * mul
+end
+
+---@param bytes integer
+---@return integer
+function SoftwareMixer:outputToInternalBytes(bytes)
+	if self.float_output then
+		return bytes / 2
+	end
+	return bytes
+end
+
+---@param bytes integer
+---@return integer
+function SoftwareMixer:internalToOutputBytes(bytes)
+	if self.float_output then
+		return bytes * 2
+	end
+	return bytes
 end
 
 ---@return number
 function SoftwareMixer:getPosition()
-	return self:bytesToSeconds(self.position)
+	return self.position / (self.sample_rate * self.channels * self.bytes_per_sample)
 end
 
 ---@return integer
 function SoftwareMixer:getBytesPosition()
-	return self.position
+	return self:internalToOutputBytes(self.position)
 end
 
 ---@param pos number
@@ -399,6 +434,7 @@ end
 
 ---@param pos integer
 function SoftwareMixer:setBytesPosition(pos)
+	pos = self:outputToInternalBytes(self:floorBytes(pos))
 	if pos ~= self.position then
 		self.position = pos
 		self:resetActiveSet()
@@ -407,25 +443,27 @@ end
 
 ---@return integer
 function SoftwareMixer:getBytesDuration()
-	return self.end_pos - self.start_pos
+	return self:internalToOutputBytes(self.end_pos - self.start_pos)
 end
 
 ---@return integer
 function SoftwareMixer:getSamplesDuration()
 	local mul = self.channels * self.bytes_per_sample
-	return self:getBytesDuration() / mul
+	return (self.end_pos - self.start_pos) / mul
 end
 
 ---@param pos integer
 ---@return number
 function SoftwareMixer:bytesToSeconds(pos)
+	pos = self:outputToInternalBytes(pos)
 	return pos / (self.sample_rate * self.channels * self.bytes_per_sample)
 end
 
 ---@param pos number
 ---@return integer
 function SoftwareMixer:secondsToBytes(pos)
-	return math.floor(pos * self.sample_rate) * self.channels * self.bytes_per_sample
+	local bytes = math.floor(pos * self.sample_rate) * self.channels * self.bytes_per_sample
+	return self:internalToOutputBytes(bytes)
 end
 
 ---@return integer
@@ -440,6 +478,9 @@ end
 
 ---@return integer
 function SoftwareMixer:getBytesPerSample()
+	if self.float_output then
+		return 4
+	end
 	return self.bytes_per_sample
 end
 

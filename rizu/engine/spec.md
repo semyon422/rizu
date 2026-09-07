@@ -36,6 +36,8 @@ The engine module provides the low-level runtime systems for rhythm processing, 
 ### ADR: Streaming Decode Stays In BASS Channels
 - Runtime playback uses BASS streams so encoded files are decoded on demand instead of fully decoded before playback.
 - The BASS_FFMPEG plugin lets BASS streams decode through FFmpeg while preserving BASS mixer, tempo, seeking, and keysound behavior.
+- `SoftwareMixer` accepts int16 decoders internally. Runtime preview and gameplay background playback request normalized float output from the mixer; byte positions, durations, and read lengths then use the exposed float format consistently. Offline `Engine:renderWave()` explicitly converts that float output back to the int16 `Wave` format.
+- `MixerSource` requires all added decoders to match its configured int16 or float sample format. Gameplay configures both the foreground mixer and its one-shot keysound decoders for float output.
 
 ### ADR: Session-Level Policy Outside Core Timing
 - Flags such as autoplay or promode should be coordinated by higher-level gameplay/session code where possible, even if legacy paths still exist elsewhere.

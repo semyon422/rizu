@@ -1,4 +1,5 @@
 local class = require("class")
+local ffi = require("ffi")
 local Wave = require("audio.Wave")
 local ChartAudio = require("rizu.engine.audio.ChartAudio")
 local ISource = require("rizu.engine.audio.ISource")
@@ -46,7 +47,7 @@ function Engine:load(chart, resources, auto_key_sound)
 	self.resources = resources or {}
 
 	local use_tempo_secondary = self.mode.secondary == "bass_fx_tempo"
-	self.foregroundSource = self.provider:createMixerSource(use_tempo_secondary)
+	self.foregroundSource = self.provider:createMixerSource(use_tempo_secondary, true)
 	self.foregroundSource:setVolume(self.keysounds_volume)
 
 	local chart_audio = ChartAudio()
@@ -63,7 +64,7 @@ function Engine:load(chart, resources, auto_key_sound)
 		end
 	end
 
-	self.mixer = SoftwareMixer(chart_audio.sounds, decoders)
+	self.mixer = SoftwareMixer(chart_audio.sounds, decoders, true)
 	if not self.mixer.empty then
 		local use_tempo = self.mode.primary == "bass_fx_tempo"
 		self.source = self.provider:createChartSource(self.mixer, use_tempo)
@@ -83,7 +84,7 @@ function Engine:playSample(name, volume, offset)
 		return
 	end
 
-	local decoder = self.provider:createDecoder(data)
+	local decoder = self.provider:createDecoder(data, true)
 	if offset and offset > 0 then
 		decoder:setPosition(offset)
 	end
@@ -136,7 +137,19 @@ function Engine:renderWave()
 
 	local wave = Wave()
 	wave:initBuffer(mixer:getChannelCount(), samples_duration)
-	mixer:getData(wave.byte_ptr, mixer:getBytesDuration())
+	local bytes_per_sample = mixer:getBytesPerSample()
+	if bytes_per_sample == 2 then
+		mixer:getData(wave.byte_ptr, mixer:getBytesDuration())
+	else
+		assert(bytes_per_sample == 4, "Unsupported mixer sample format")
+		local samples_count = samples_duration * mixer:getChannelCount()
+		local float_buf = ffi.new("float[?]", samples_count)
+		mixer:getData(float_buf, mixer:getBytesDuration())
+		for i = 0, samples_count - 1 do
+			local sample = float_buf[i] * 32768
+			wave.data_buf[i] = math.min(math.max(sample, -32768), 32767)
+		end
+	end
 	mixer:setPosition(position)
 	return wave
 end

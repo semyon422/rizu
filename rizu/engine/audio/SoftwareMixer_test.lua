@@ -522,4 +522,33 @@ function test.negative_start(t)
 	end
 end
 
+---@param t testing.T
+function test.float_output(t)
+	---@type rizu.ChartAudioSound[]
+	local sounds = {
+		{time = 0, name = "a"},
+	}
+
+	local decoders = {
+		FakeDecoder(4),
+	}
+	fill_wave(decoders[1].wave, 10)
+
+	local mixer = SoftwareMixer(sounds, decoders, true)
+	local buf = ffi.new("float[?]", 20)
+
+	t:eq(mixer:getBytesPerSample(), 4)
+	t:eq(mixer:getBytesDuration(), 32)
+	t:eq(mixer:getData(buf, 8), 8)
+	t:aeq(buf[0], 10 / 32768, 0.000001)
+	t:aeq(buf[1], 10 / 32768, 0.000001)
+	t:eq(mixer:getBytesPosition(), 8)
+	t:aeq(mixer:getPosition(), 1 / 44100, 1e-9)
+
+	mixer:setBytesPosition(16)
+	t:eq(mixer:getBytesPosition(), 16)
+	t:eq(mixer:getData(buf, 8), 8)
+	t:aeq(buf[0], 12 / 32768, 0.000001)
+end
+
 return test

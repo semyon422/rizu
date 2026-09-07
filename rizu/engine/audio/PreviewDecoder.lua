@@ -18,7 +18,9 @@ local PreviewDecoder = IDecoder + {}
 ---@param dir string
 ---@param preview rizu.preview.AudioPreview
 ---@param decoder_factory fun(data: string): rizu.audio.IDecoder
-function PreviewDecoder:new(fs, dir, preview, decoder_factory)
+---@param float_output boolean?
+function PreviewDecoder:new(fs, dir, preview, decoder_factory, float_output)
+	self.float_output = float_output == true
 	local rf = ResourceFinder(fs)
 	rf:addPath(dir)
 
@@ -57,7 +59,7 @@ function PreviewDecoder:newOjm(fs, rf, preview, decoder_factory)
 
 	if not ojm then
 		print("PreviewDecoder: could not load OJM " .. tostring(ojm_filename))
-		self.mixer = SoftwareMixer({}, {})
+		self.mixer = SoftwareMixer({}, {}, self.float_output)
 		return
 	end
 
@@ -89,7 +91,7 @@ function PreviewDecoder:newOjm(fs, rf, preview, decoder_factory)
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders)
+	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
 end
 
 ---@param fs fs.IFilesystem
@@ -111,7 +113,7 @@ function PreviewDecoder:newS3p(fs, rf, preview, decoder_factory)
 
 	if not pack then
 		print("PreviewDecoder: could not load S3P " .. tostring(s3p_filename))
-		self.mixer = SoftwareMixer({}, {})
+		self.mixer = SoftwareMixer({}, {}, self.float_output)
 		return
 	end
 
@@ -128,7 +130,7 @@ function PreviewDecoder:newS3p(fs, rf, preview, decoder_factory)
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders)
+	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
 end
 
 ---@param fs fs.IFilesystem
@@ -150,7 +152,7 @@ function PreviewDecoder:newTwoDx(fs, rf, preview, decoder_factory)
 
 	if not archive then
 		print("PreviewDecoder: could not load 2DX " .. tostring(two_dx_filename))
-		self.mixer = SoftwareMixer({}, {})
+		self.mixer = SoftwareMixer({}, {}, self.float_output)
 		return
 	end
 
@@ -181,7 +183,7 @@ function PreviewDecoder:newTwoDx(fs, rf, preview, decoder_factory)
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders)
+	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
 end
 
 ---@param fs fs.IFilesystem
@@ -229,7 +231,7 @@ function PreviewDecoder:newFiles(fs, rf, preview, decoder_factory)
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders)
+	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
 end
 
 function PreviewDecoder:getData(buf, len) return self.mixer:getData(buf, len) end
