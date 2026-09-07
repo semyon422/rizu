@@ -5,9 +5,9 @@ local class = require("class")
 local IProvider = class()
 
 ---@param data string
----@param float_output boolean?
+---@param sample_format rizu.audio.SampleFormat?
 ---@return rizu.audio.IDecoder
-function IProvider:createDecoder(data, float_output)
+function IProvider:createDecoder(data, sample_format)
 	error("not implemented")
 end
 
@@ -19,9 +19,9 @@ function IProvider:createChartSource(decoder, use_tempo)
 end
 
 ---@param use_tempo boolean?
----@param float_output boolean?
+---@param sample_format rizu.audio.SampleFormat?
 ---@return rizu.audio.ISource
-function IProvider:createMixerSource(use_tempo, float_output)
+function IProvider:createMixerSource(use_tempo, sample_format)
 	error("not implemented")
 end
 

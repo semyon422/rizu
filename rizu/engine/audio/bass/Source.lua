@@ -28,7 +28,7 @@ function Source:new(decoder, use_tempo)
 	self.use_tempo = use_tempo
 
 	local flags = 0
-	if decoder:getBytesPerSample() == 4 then
+	if decoder:getSampleFormat() == "float32" then
 		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
 	end
 	if use_tempo then
@@ -173,10 +173,11 @@ function Source:update()
 		return
 	end
 
-	local read = self.decoder:getData(self.buf, need_bytes)
-	if read > 0 then
+	local frame_count = math.floor(need_bytes / self.frame_size)
+	local frames = self.decoder:getFrames(self.buf, frame_count)
+	if frames > 0 then
 		---@type integer
-		local bytes = bass.BASS_StreamPutData(self.source_channel, self.buf, read)
+		local bytes = bass.BASS_StreamPutData(self.source_channel, self.buf, frames * self.frame_size)
 		bass_assert(bytes ~= -1)
 	end
 end

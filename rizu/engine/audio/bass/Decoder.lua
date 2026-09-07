@@ -1,5 +1,6 @@
 local IDecoder = require("rizu.engine.audio.IDecoder")
 local bit = require("bit")
+local ffi = require("ffi")
 local bass = require("bass")
 local bass_assert = require("bass.assert")
 local bass_mix = require("bass.mix")
@@ -12,7 +13,6 @@ local Decoder = IDecoder + {}
 
 Decoder.sample_rate = 44100
 Decoder.channels_count = 2
-Decoder.bytes_per_sample = 2
 
 ---@param channel integer
 ---@return integer
@@ -48,21 +48,24 @@ function Decoder.probeDuration(data)
 end
 
 ---@param data string
----@param float_output boolean? true forces normalized float output; otherwise output is int16
-function Decoder:new(data, float_output)
+---@param sample_format rizu.audio.SampleFormat?
+function Decoder:new(data, sample_format)
 	self.data = data
+	self.sample_format = sample_format or "int16"
+	assert(self.sample_format == "int16" or self.sample_format == "float32")
 
 	---@type integer
 	self.decode_channel = bass.BASS_StreamCreateFile(true, data, 0, #data, bit.bor(bass_flags.BASS_STREAM_DECODE, bass_flags.BASS_STREAM_PRESCAN))
 	bass_assert(self.decode_channel ~= 0)
-	self.length = get_length(self.decode_channel)
+	local source_length = get_length(self.decode_channel)
+	---@type number
+	local duration = bass.BASS_ChannelBytes2Seconds(self.decode_channel, source_length)
+	bass_assert(duration >= 0)
+	self.frame_duration = math.floor(duration * self.sample_rate)
 
 	local flags = bass_flags.BASS_STREAM_DECODE
-	if float_output then
+	if self.sample_format == "float32" then
 		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
-		self.bytes_per_sample = 4
-	else
-		self.bytes_per_sample = 2
 	end
 
 	---@type integer
@@ -73,8 +76,7 @@ function Decoder:new(data, float_output)
 	local ok = bass_mix.BASS_Mixer_StreamAddChannel(self.resample_channel, self.decode_channel, bass_flags.BASS_MIXER_CHAN_NORAMPIN)
 	bass_assert(ok == 1)
 
-	self.position = 0
-	self.resample_offset = 0
+	self.frame_position = 0
 
 	self.gc_proxy = newproxy(true)
 	local mt = getmetatable(self.gc_proxy)
@@ -95,65 +97,42 @@ function Decoder:release()
 end
 
 ---@param buf ffi.cdata*
----@param len integer
+---@param frame_count integer
 ---@return integer
-function Decoder:getData(buf, len)
+function Decoder:getFrames(buf, frame_count)
+	local bytes_per_frame = self.channels_count * self:getBytesPerSample()
 	---@type integer
-	local data_bytes = bass.BASS_ChannelGetData(self.resample_channel, buf, len)
+	local data_bytes = bass.BASS_ChannelGetData(self.resample_channel, buf, frame_count * bytes_per_frame)
 	bass_assert(data_bytes ~= -1)
-	self.position = self.position + data_bytes
-	return data_bytes
+	local frames = data_bytes / bytes_per_frame
+	self.frame_position = self.frame_position + frames
+	return frames
 end
 
----@param pos integer
----@return number
-function Decoder:bytesToSeconds(pos)
-	---@type number
-	pos = bass.BASS_ChannelBytes2Seconds(self.resample_channel, pos)
-	bass_assert(pos >= 0)
-	return pos
-end
-
----@param pos number
 ---@return integer
-function Decoder:secondsToBytes(pos)
+function Decoder:getFramePosition()
+	return self.frame_position
+end
+
+---@param frame integer
+function Decoder:setFramePosition(frame)
+	self.frame_position = frame
+	local seconds = frame / self.sample_rate
 	---@type integer
-	pos = bass.BASS_ChannelSeconds2Bytes(self.resample_channel, pos)
-	bass_assert(pos ~= -1)
-	return tonumber(pos) ---@diagnostic disable-line: return-type-mismatch
-end
-
----@return integer
-function Decoder:getBytesPosition()
-	return self.position
-end
-
----@param pos integer
-function Decoder:setBytesPosition(pos)
-	self.position = pos
+	local byte_position = bass.BASS_ChannelSeconds2Bytes(self.decode_channel, seconds)
+	bass_assert(byte_position ~= -1)
 	---@type integer
-	pos = bass_mix.BASS_Mixer_ChannelSetPosition(self.decode_channel, pos, bass_flags.BASS_POS_BYTE)
-	bass_assert(pos >= 0)
+	local result = bass_mix.BASS_Mixer_ChannelSetPosition(self.decode_channel, byte_position, bass_flags.BASS_POS_BYTE)
+	bass_assert(result >= 0)
 end
 
 ---@return integer
-function Decoder:getBytesDuration()
-	return self.length
+function Decoder:getFrameDuration()
+	return self.frame_duration
 end
 
----@return integer
-function Decoder:getSampleRate()
-	return self.sample_rate
-end
-
----@return integer
-function Decoder:getChannelCount()
-	return self.channels_count
-end
-
----@return integer
-function Decoder:getBytesPerSample()
-	return self.bytes_per_sample
-end
+function Decoder:getSampleRate() return self.sample_rate end
+function Decoder:getChannelCount() return self.channels_count end
+function Decoder:getSampleFormat() return self.sample_format end
 
 return Decoder

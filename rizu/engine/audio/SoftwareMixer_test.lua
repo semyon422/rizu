@@ -534,7 +534,7 @@ function test.float_output(t)
 	}
 	fill_wave(decoders[1].wave, 10)
 
-	local mixer = SoftwareMixer(sounds, decoders, true)
+	local mixer = SoftwareMixer(sounds, decoders, "float32")
 	local buf = ffi.new("float[?]", 20)
 
 	t:eq(mixer:getBytesPerSample(), 4)

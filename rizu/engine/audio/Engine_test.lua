@@ -30,8 +30,8 @@ function test.load_and_play(t)
 
 	t:assert(engine.source ~= nil)
 	t:assert(engine.foregroundSource ~= nil)
-	t:eq(engine.mixer:getBytesPerSample(), 4)
-	t:eq(engine.source.decoder:getBytesPerSample(), 4)
+	t:eq(engine.mixer:getSampleFormat(), "float32")
+	t:eq(engine.source.decoder:getSampleFormat(), "float32")
 	t:eq(engine:getStartTime(), 1)
 
 	engine:play()
@@ -42,8 +42,8 @@ function test.load_and_play(t)
 
 	engine:playSample("bg", 0.5)
 	t:eq(#engine.foregroundSource.active_sounds, 1)
-	t:eq(engine.foregroundSource.bytes_per_sample, 4)
-	t:eq(engine.foregroundSource.active_sounds[1].decoder:getBytesPerSample(), 4)
+	t:eq(engine.foregroundSource.sample_format, "float32")
+	t:eq(engine.foregroundSource.active_sounds[1].decoder:getSampleFormat(), "float32")
 	t:eq(engine.foregroundSource.active_sounds[1].volume, 0.5)
 
 	engine:unload()
@@ -72,25 +72,25 @@ function test.render_wave_renders_from_start_and_restores_mixer_position(t)
 		getSamplesDuration = function()
 			return 4
 		end,
-		getBytesDuration = function()
-			return 16
-		end,
-		getBytesPerSample = function()
+		getFrameDuration = function()
 			return 4
+		end,
+		getSampleFormat = function()
+			return "float32"
 		end,
 		---@param self {position: number}
 		---@param byte_ptr ffi.cdata*
 		---@param len integer
 		---@return integer
-		getData = function(self, byte_ptr, len)
+		getFrames = function(self, byte_ptr, frame_count)
 			t:eq(self.position, 1)
-			t:eq(len, 16)
+			t:eq(frame_count, 4)
 			---@type {[integer]: number}
 			local samples = ffi.cast("float*", byte_ptr)
 			for i = 0, 3 do
 				samples[i] = (100 + i) / 32768
 			end
-			return len
+			return frame_count
 		end,
 	}
 

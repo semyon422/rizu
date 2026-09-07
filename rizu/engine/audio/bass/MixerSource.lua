@@ -10,14 +10,15 @@ local bass_assert = require("bass.assert")
 local MixerSource = ISource + {}
 
 ---@param use_tempo boolean?
----@param float_output boolean?
-function MixerSource:new(use_tempo, float_output)
+---@param sample_format rizu.audio.SampleFormat?
+function MixerSource:new(use_tempo, sample_format)
 	self.use_tempo = use_tempo
 	self.sample_rate = 44100
-	self.bytes_per_sample = float_output and 4 or 2
+	self.sample_format = sample_format or "int16"
+	assert(self.sample_format == "int16" or self.sample_format == "float32")
 
 	local flags = bass_flags.BASS_MIXER_NONSTOP
-	if float_output then
+	if self.sample_format == "float32" then
 		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
 	end
 	if use_tempo then
@@ -69,7 +70,7 @@ end
 ---@param decoder rizu.audio.bass.Decoder
 ---@param volume number?
 function MixerSource:addSound(decoder, volume)
-	assert(decoder:getBytesPerSample() == self.bytes_per_sample, "Decoder sample format must match MixerSource format")
+	assert(decoder:getSampleFormat() == self.sample_format, "Decoder sample format must match MixerSource format")
 
 	-- Use the resample_channel from Decoder (it's a decoding mixer)
 	local source_channel = decoder.resample_channel

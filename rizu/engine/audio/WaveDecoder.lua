@@ -1,5 +1,4 @@
 local IDecoder = require("rizu.engine.audio.IDecoder")
-local Wave = require("audio.Wave")
 local ffi = require("ffi")
 
 ---@class rizu.audio.WaveDecoder: rizu.audio.IDecoder
@@ -8,54 +7,29 @@ local WaveDecoder = IDecoder + {}
 
 ---@param data string
 function WaveDecoder:new(data)
+	local Wave = require("audio.Wave")
 	self.wave = Wave()
 	self.wave:decode(data)
-	self.position = 0
+	self.frame_position = 0
 end
 
-function WaveDecoder:getData(buf, len)
-	local data_size = self.wave:getDataSize()
-	local remaining = data_size - self.position
-	local to_read = math.min(len, remaining)
-
-	if to_read > 0 then
-		ffi.copy(buf, self.wave.byte_ptr + self.position, to_read)
-		self.position = self.position + to_read
-	end
-
-	return to_read
+---@param buf ffi.cdata*
+---@param frame_count integer
+---@return integer
+function WaveDecoder:getFrames(buf, frame_count)
+	local frames = math.min(self.wave.samples_count - self.frame_position, frame_count)
+	if frames <= 0 then return 0 end
+	local bytes_per_frame = self.wave.channels_count * self.wave.bytes_per_sample
+	ffi.copy(buf, self.wave.byte_ptr + self.frame_position * bytes_per_frame, frames * bytes_per_frame)
+	self.frame_position = self.frame_position + frames
+	return frames
 end
 
-function WaveDecoder:bytesToSeconds(pos)
-	return self.wave:bytesToSeconds(pos)
-end
-
-function WaveDecoder:secondsToBytes(pos)
-	return self.wave:secondsToBytes(pos)
-end
-
-function WaveDecoder:getBytesPosition()
-	return self.position
-end
-
-function WaveDecoder:setBytesPosition(pos)
-	self.position = math.min(math.max(pos, 0), self.wave:getDataSize())
-end
-
-function WaveDecoder:getBytesDuration()
-	return self.wave:getDataSize()
-end
-
-function WaveDecoder:getSampleRate()
-	return self.wave.sample_rate
-end
-
-function WaveDecoder:getChannelCount()
-	return self.wave.channels_count
-end
-
-function WaveDecoder:getBytesPerSample()
-	return self.wave.bytes_per_sample
-end
+function WaveDecoder:getFramePosition() return self.frame_position end
+function WaveDecoder:setFramePosition(frame) self.frame_position = frame end
+function WaveDecoder:getFrameDuration() return self.wave.samples_count end
+function WaveDecoder:getSampleRate() return self.wave.sample_rate end
+function WaveDecoder:getChannelCount() return self.wave.channels_count end
+function WaveDecoder:getSampleFormat() return "int16" end
 
 return WaveDecoder

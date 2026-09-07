@@ -10,34 +10,24 @@ function YieldingDecoder:new(decoder)
 	self.decoder = decoder
 end
 
-function YieldingDecoder:getData(...)
+function YieldingDecoder:getFrames(...)
 	coroutine.yield()
-	return self.decoder:getData(...)
+	return self.decoder:getFrames(...)
 end
 
-function YieldingDecoder:bytesToSeconds(...)
+function YieldingDecoder:getFramePosition(...)
 	coroutine.yield()
-	return self.decoder:bytesToSeconds(...)
+	return self.decoder:getFramePosition(...)
 end
 
-function YieldingDecoder:secondsToBytes(...)
+function YieldingDecoder:setFramePosition(...)
 	coroutine.yield()
-	return self.decoder:secondsToBytes(...)
+	return self.decoder:setFramePosition(...)
 end
 
-function YieldingDecoder:getBytesPosition(...)
+function YieldingDecoder:getFrameDuration(...)
 	coroutine.yield()
-	return self.decoder:getBytesPosition(...)
-end
-
-function YieldingDecoder:setBytesPosition(...)
-	coroutine.yield()
-	return self.decoder:setBytesPosition(...)
-end
-
-function YieldingDecoder:getBytesDuration(...)
-	coroutine.yield()
-	return self.decoder:getBytesDuration(...)
+	return self.decoder:getFrameDuration(...)
 end
 
 function YieldingDecoder:getSampleRate(...)
@@ -50,9 +40,9 @@ function YieldingDecoder:getChannelCount(...)
 	return self.decoder:getChannelCount(...)
 end
 
-function YieldingDecoder:getBytesPerSample(...)
+function YieldingDecoder:getSampleFormat(...)
 	coroutine.yield()
-	return self.decoder:getBytesPerSample(...)
+	return self.decoder:getSampleFormat(...)
 end
 
 function YieldingDecoder:release()

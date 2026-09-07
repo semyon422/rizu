@@ -39,8 +39,8 @@ end
 local StartNodeWrap = NodeWrap + {}
 
 function StartNodeWrap:__lt(other)
-	if self.entry.start_pos ~= other.entry.start_pos then
-		return self.entry.start_pos < other.entry.start_pos
+	if self.entry.start_frame ~= other.entry.start_frame then
+		return self.entry.start_frame < other.entry.start_frame
 	end
 	return self:tie_breaker(other)
 end
@@ -50,8 +50,8 @@ end
 local EndNodeWrap = NodeWrap + {}
 
 function EndNodeWrap:__lt(other)
-	if self.entry.end_pos ~= other.entry.end_pos then
-		return self.entry.end_pos < other.entry.end_pos
+	if self.entry.end_frame ~= other.entry.end_frame then
+		return self.entry.end_frame < other.entry.end_frame
 	end
 	return self:tie_breaker(other)
 end
@@ -62,8 +62,8 @@ end
 ---@field decoder rizu.audio.IDecoder
 ---@field time number
 ---@field duration number
----@field start_pos integer
----@field end_pos integer
+---@field start_frame integer
+---@field end_frame integer
 ---@field start_wrap rizu.audio.SoftwareMixer.StartNodeWrap
 ---@field end_wrap rizu.audio.SoftwareMixer.EndNodeWrap
 local Entry = class()
@@ -74,8 +74,8 @@ function Entry:new(decoder, time)
 	self.decoder = decoder
 	self.time = time
 	self.duration = decoder:getDuration()
-	self.start_pos = decoder:secondsToBytes(time)
-	self.end_pos = self.start_pos + decoder:getBytesDuration()
+	self.start_frame = math.floor(time * decoder:getSampleRate())
+	self.end_frame = self.start_frame + decoder:getFrameDuration()
 
 	self.id = next_entry_id
 	next_entry_id = next_entry_id + 1
@@ -90,19 +90,20 @@ local SoftwareMixer = IDecoder + {}
 
 ---@param sounds rizu.ChartAudioSound[]
 ---@param decoders {[integer]: rizu.audio.IDecoder}
----@param float_output boolean? If true, convert the mixed int16 samples to normalized floats
-function SoftwareMixer:new(sounds, decoders, float_output)
+---@param output_format rizu.audio.SampleFormat?
+function SoftwareMixer:new(sounds, decoders, output_format)
 	self.tree_start = rbtree.new()
 	self.tree_end = rbtree.new()
 	---@type {[rizu.audio.IDecoder]: rizu.audio.SoftwareMixer.Entry}
 	self.decoder_to_entry = {}
 
-	self.start_pos = math.huge
-	self.end_pos = -math.huge
-	self.max_duration_bytes = 0
+	self.start_frame = math.huge
+	self.end_frame = -math.huge
+	self.max_duration_frames = 0
 
-	self.position = 0
-	self.float_output = float_output == true
+	self.frame_position = 0
+	self.output_format = output_format or "int16"
+	assert(self.output_format == "int16" or self.output_format == "float32")
 	---@type {[rizu.audio.SoftwareMixer.Entry]: boolean}
 	self.active_sounds = {}
 	self.next_to_add = nil
@@ -114,7 +115,7 @@ function SoftwareMixer:new(sounds, decoders, float_output)
 
 	self.sample_rate = 44100
 	self.channels = 2
-	self.bytes_per_sample = 2
+	self.sample_format = "int16"
 
 	for i, sound in ipairs(sounds) do
 		self:addSound(sound, decoders[i])
@@ -122,12 +123,12 @@ function SoftwareMixer:new(sounds, decoders, float_output)
 
 	if self.tree_start.size == 0 then
 		self.empty = true
-		self.start_pos = 0
-		self.end_pos = 0
+		self.start_frame = 0
+		self.end_frame = 0
 		self.dummy_decoder = FakeDecoder(1, 44100, 2)
 	end
 
-	self.position = self.start_pos
+	self.frame_position = self.start_frame
 	self:resetActiveSet()
 end
 
@@ -155,22 +156,22 @@ end
 ---@private
 function SoftwareMixer:resetActiveSet()
 	self.active_sounds = {}
-	local pos = self.position
+	local pos = self.frame_position
 
 	-- Pointers for incremental updates
-	local search_start = StartNodeWrap({start_pos = pos}, true)
+	local search_start = StartNodeWrap({start_frame = pos}, true)
 	self.next_to_add = find_lower_bound(self.tree_start, search_start)
 
-	local search_end = EndNodeWrap({end_pos = pos}, true)
+	local search_end = EndNodeWrap({end_frame = pos}, true)
 	self.next_to_remove = find_lower_bound(self.tree_end, search_end)
 
 	-- Initial active set: sounds that started before pos and end at or after pos
 	if not self.empty then
-		local search_seek = StartNodeWrap({start_pos = pos - self.max_duration_bytes}, true)
+		local search_seek = StartNodeWrap({start_frame = pos - self.max_duration_frames}, true)
 		local node = find_lower_bound(self.tree_start, search_seek) or self.tree_start:min()
-		while node and (node.key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry.start_pos < pos do
+		while node and (node.key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry.start_frame < pos do
 			local entry = (node.key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry
-			if entry.end_pos >= pos then
+			if entry.end_frame >= pos then
 				self.active_sounds[entry] = true
 			end
 			-- LuaLS 3.19 loses the optional node type on loop reassignment.
@@ -190,11 +191,11 @@ function SoftwareMixer:addSound(sound, decoder)
 	if self.empty or self.tree_start.size == 0 then
 		self.sample_rate = decoder:getSampleRate()
 		self.channels = decoder:getChannelCount()
-		self.bytes_per_sample = decoder:getBytesPerSample()
+		self.sample_format = decoder:getSampleFormat()
 		self.empty = false
-		self.start_pos = math.huge
-		self.end_pos = -math.huge
-		self.max_duration_bytes = 0
+		self.start_frame = math.huge
+		self.end_frame = -math.huge
+		self.max_duration_frames = 0
 		if self.dummy_decoder then
 			self.dummy_decoder:release()
 			self.dummy_decoder = nil
@@ -202,10 +203,10 @@ function SoftwareMixer:addSound(sound, decoder)
 	else
 		assert(decoder:getSampleRate() == self.sample_rate, "Decoder sample rate must match mixer format")
 		assert(decoder:getChannelCount() == self.channels, "Decoder channel count must match mixer format")
-		assert(decoder:getBytesPerSample() == self.bytes_per_sample, "Decoder sample format must match mixer format")
+		assert(decoder:getSampleFormat() == self.sample_format, "Decoder sample format must match mixer format")
 	end
 
-	assert(self.bytes_per_sample == 2, "SoftwareMixer only accepts int16 decoders")
+	assert(self.sample_format == "int16", "SoftwareMixer only accepts int16 decoders")
 
 	local entry = Entry(decoder, sound.time)
 	self.decoder_to_entry[decoder] = entry
@@ -213,9 +214,9 @@ function SoftwareMixer:addSound(sound, decoder)
 	self.tree_start:insert(entry.start_wrap)
 	self.tree_end:insert(entry.end_wrap)
 
-	self.start_pos = math.min(self.start_pos, entry.start_pos)
-	self.end_pos = math.max(self.end_pos, entry.end_pos)
-	self.max_duration_bytes = math.max(self.max_duration_bytes, entry.end_pos - entry.start_pos)
+	self.start_frame = math.min(self.start_frame, entry.start_frame)
+	self.end_frame = math.max(self.end_frame, entry.end_frame)
+	self.max_duration_frames = math.max(self.max_duration_frames, entry.end_frame - entry.start_frame)
 
 	self:resetActiveSet()
 end
@@ -232,15 +233,15 @@ function SoftwareMixer:removeSound(decoder)
 
 	self.decoder_to_entry[decoder] = nil
 
-	if entry.start_pos == self.start_pos or entry.end_pos == self.end_pos or (entry.end_pos - entry.start_pos) == self.max_duration_bytes then
+	if entry.start_frame == self.start_frame or entry.end_frame == self.end_frame or (entry.end_frame - entry.start_frame) == self.max_duration_frames then
 		self:recalculateBounds()
 	end
 
 	if self.tree_start.size == 0 then
 		self.empty = true
-		self.start_pos = 0
-		self.end_pos = 0
-		self.max_duration_bytes = 0
+		self.start_frame = 0
+		self.end_frame = 0
+		self.max_duration_frames = 0
 		self.dummy_decoder = FakeDecoder(1, 44100, 2)
 	end
 
@@ -248,28 +249,27 @@ function SoftwareMixer:removeSound(decoder)
 end
 
 function SoftwareMixer:recalculateBounds()
-	self.start_pos = math.huge
-	self.end_pos = -math.huge
-	self.max_duration_bytes = 0
+	self.start_frame = math.huge
+	self.end_frame = -math.huge
+	self.max_duration_frames = 0
 
 	for _, key in self.tree_start:iter() do
 		local entry = (key --[[@as rizu.audio.SoftwareMixer.NodeWrap]]).entry
-		self.start_pos = math.min(self.start_pos, entry.start_pos)
-		self.end_pos = math.max(self.end_pos, entry.end_pos)
-		self.max_duration_bytes = math.max(self.max_duration_bytes, entry.end_pos - entry.start_pos)
+		self.start_frame = math.min(self.start_frame, entry.start_frame)
+		self.end_frame = math.max(self.end_frame, entry.end_frame)
+		self.max_duration_frames = math.max(self.max_duration_frames, entry.end_frame - entry.start_frame)
 	end
 
 	if self.tree_start.size == 0 then
-		self.start_pos = 0
-		self.end_pos = 0
+		self.start_frame = 0
+		self.end_frame = 0
 	end
 end
 
 ---@return number
 ---@return number
 function SoftwareMixer:getTimeBounds()
-	local bytes_per_second = self.sample_rate * self.channels * self.bytes_per_sample
-	return self.start_pos / bytes_per_second, self.end_pos / bytes_per_second
+	return self.start_frame / self.sample_rate, self.end_frame / self.sample_rate
 end
 
 function SoftwareMixer:release()
@@ -313,25 +313,22 @@ local function apply_mix(dst, src, size)
 end
 
 ---@param buf ffi.cdata*
----@param len integer
+---@param frame_count integer
 ---@return integer
-function SoftwareMixer:getData(buf, len)
-	len = self:floorBytes(len)
-	local output_len = len
-	if self.float_output then
-		len = len / 2
-	end
+function SoftwareMixer:getFrames(buf, frame_count)
+	frame_count = math.max(math.floor(frame_count), 0)
 
 	if self.empty then
-		ffi.fill(buf, output_len, 0)
-		self.position = self.position + len
-		return output_len
+		ffi.fill(buf, frame_count * self.channels * self:getBytesPerSample(), 0)
+		self.frame_position = self.frame_position + frame_count
+		return frame_count
 	end
 
-	local samples = len / 2
+	local samples = frame_count * self.channels
+	local int16_bytes = samples * 2
 
-	if self.dec_buf_len < len then
-		self.dec_buf_len = len
+	if self.dec_buf_len < int16_bytes then
+		self.dec_buf_len = int16_bytes
 		self.dec_buf = ffi.new("int16_t[?]", samples)
 		self.mix_buf = ffi.new("float[?]", samples)
 	end
@@ -341,147 +338,92 @@ function SoftwareMixer:getData(buf, len)
 
 	ffi.fill(mix_buf, samples * 4, 0)
 
-	local pos = self.position
+	local pos = self.frame_position
 
 	-- 1. Remove sounds that ended before the current buffer
-	while self.next_to_remove and self.next_to_remove.key.entry.end_pos < pos do
+	while self.next_to_remove and self.next_to_remove.key.entry.end_frame < pos do
 		self.active_sounds[self.next_to_remove.key.entry] = nil
 		self.next_to_remove = self.next_to_remove:next()
 	end
 
 	-- 2. Add sounds that start before the end of the current buffer
-	while self.next_to_add and self.next_to_add.key.entry.start_pos < pos + len do
+	while self.next_to_add and self.next_to_add.key.entry.start_frame < pos + frame_count do
 		self.active_sounds[self.next_to_add.key.entry] = true
 		self.next_to_add = self.next_to_add:next()
 	end
 
 	-- 3. Mix all active sounds
 	for entry in pairs(self.active_sounds) do
-		local start_pos = entry.start_pos
-		local end_pos = entry.end_pos
+		local start_frame = entry.start_frame
+		local end_frame = entry.end_frame
 
-		-- Double check if the sound is indeed active in this buffer
-		if end_pos < pos then
-			-- It should have been removed by step 1, but might be here due to setPosition or timing
+		if end_frame < pos then
 			self.active_sounds[entry] = nil
 		else
-			local need_bytes = math.min(pos + len, end_pos) - math.max(pos, start_pos)
-			local offset = math.max(start_pos - pos, 0)
-			offset = offset / 2
+			local need_frames = math.min(pos + frame_count, end_frame) - math.max(pos, start_frame)
+			local offset_samples = math.max(start_frame - pos, 0) * self.channels
 
-			if need_bytes > 0 then
-				local sound_pos = math.max(pos - start_pos, 0)
-				if sound_pos ~= entry.decoder:getBytesPosition() then
-					entry.decoder:setBytesPosition(sound_pos)
+			if need_frames > 0 then
+				local sound_frame = math.max(pos - start_frame, 0)
+				if sound_frame ~= entry.decoder:getFramePosition() then
+					entry.decoder:setFramePosition(sound_frame)
 				end
 
-				local bytes = entry.decoder:getData(dec_buf, need_bytes)
-				add_buffer_float(mix_buf + offset, dec_buf, bytes / 2)
+				local frames = entry.decoder:getFrames(dec_buf, need_frames)
+				add_buffer_float(mix_buf + offset_samples, dec_buf, frames * self.channels)
 			end
 		end
 	end
 
-	if self.float_output then
-		ffi.copy(buf, mix_buf, output_len)
+	if self.output_format == "float32" then
+		ffi.copy(buf, mix_buf, samples * 4)
 	else
 		apply_mix(buf, mix_buf, samples)
 	end
 
-	self.position = self.position + len
-
-	return output_len
-end
-
----@param bytes integer
----@return integer
-function SoftwareMixer:floorBytes(bytes)
-	local mul = self.channels * self:getBytesPerSample()
-	return math.floor(bytes / mul) * mul
-end
-
----@param bytes integer
----@return integer
-function SoftwareMixer:outputToInternalBytes(bytes)
-	if self.float_output then
-		return bytes / 2
-	end
-	return bytes
-end
-
----@param bytes integer
----@return integer
-function SoftwareMixer:internalToOutputBytes(bytes)
-	if self.float_output then
-		return bytes * 2
-	end
-	return bytes
+	self.frame_position = self.frame_position + frame_count
+	return frame_count
 end
 
 ---@return number
 function SoftwareMixer:getPosition()
-	return self.position / (self.sample_rate * self.channels * self.bytes_per_sample)
+	return self.frame_position / self.sample_rate
 end
 
 ---@return integer
-function SoftwareMixer:getBytesPosition()
-	return self:internalToOutputBytes(self.position)
+function SoftwareMixer:getFramePosition()
+	return self.frame_position
 end
 
 ---@param pos number
 function SoftwareMixer:setPosition(pos)
-	self:setBytesPosition(self:secondsToBytes(pos))
+	self:setFramePosition(math.floor(pos * self.sample_rate))
 end
 
----@param pos integer
-function SoftwareMixer:setBytesPosition(pos)
-	pos = self:outputToInternalBytes(self:floorBytes(pos))
-	if pos ~= self.position then
-		self.position = pos
+---@param frame integer
+function SoftwareMixer:setFramePosition(frame)
+	if frame ~= self.frame_position then
+		self.frame_position = frame
 		self:resetActiveSet()
 	end
 end
 
 ---@return integer
-function SoftwareMixer:getBytesDuration()
-	return self:internalToOutputBytes(self.end_pos - self.start_pos)
+function SoftwareMixer:getFrameDuration()
+	return self.end_frame - self.start_frame
 end
 
 ---@return integer
 function SoftwareMixer:getSamplesDuration()
-	local mul = self.channels * self.bytes_per_sample
-	return (self.end_pos - self.start_pos) / mul
+	return self:getFrameDuration()
 end
 
----@param pos integer
----@return number
-function SoftwareMixer:bytesToSeconds(pos)
-	pos = self:outputToInternalBytes(pos)
-	return pos / (self.sample_rate * self.channels * self.bytes_per_sample)
-end
+function SoftwareMixer:getSampleRate() return self.sample_rate end
+function SoftwareMixer:getChannelCount() return self.channels end
 
----@param pos number
----@return integer
-function SoftwareMixer:secondsToBytes(pos)
-	local bytes = math.floor(pos * self.sample_rate) * self.channels * self.bytes_per_sample
-	return self:internalToOutputBytes(bytes)
-end
-
----@return integer
-function SoftwareMixer:getSampleRate()
-	return self.sample_rate
-end
-
----@return integer
-function SoftwareMixer:getChannelCount()
-	return self.channels
-end
-
----@return integer
-function SoftwareMixer:getBytesPerSample()
-	if self.float_output then
-		return 4
-	end
-	return self.bytes_per_sample
+---@return rizu.audio.SampleFormat
+function SoftwareMixer:getSampleFormat()
+	return self.output_format
 end
 
 return SoftwareMixer

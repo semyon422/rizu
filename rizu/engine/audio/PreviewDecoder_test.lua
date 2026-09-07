@@ -240,9 +240,9 @@ local function constant_tone_factory()
 	end
 end
 
----@param float_output boolean?
+---@param output_format rizu.audio.SampleFormat?
 ---@return rizu.audio.PreviewDecoder
-local function tone_preview_decoder(float_output)
+local function tone_preview_decoder(output_format)
 	local fs = FakeFilesystem()
 	fs:write("tone.wav", "tone_data")
 
@@ -252,7 +252,7 @@ local function tone_preview_decoder(float_output)
 		{time = 0, sample_index = 1, duration = 1.0, volume = 0.5},
 	}
 
-	return PreviewDecoder(fs, "", preview, constant_tone_factory(), float_output)
+	return PreviewDecoder(fs, "", preview, constant_tone_factory(), output_format)
 end
 
 --- 1.5s buffer: tone occupies frames 0..44099 (88200 interleaved samples),
@@ -279,7 +279,7 @@ end
 
 ---@param t testing.T
 function test.float_output(t)
-	local decoder = tone_preview_decoder(true)
+	local decoder = tone_preview_decoder("float32")
 
 	t:eq(decoder:getBytesPerSample(), 4, "float mode reports 4 bytes per sample")
 

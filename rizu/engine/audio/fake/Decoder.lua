@@ -9,110 +9,62 @@ local Decoder = IDecoder + {}
 ---@param samples_count integer
 ---@param sample_rate integer?
 ---@param channels_count integer?
----@param float boolean? If true, decodes float samples (4 bytes each) from the int16 wave
-function Decoder:new(samples_count, sample_rate, channels_count, float)
+---@param sample_format rizu.audio.SampleFormat?
+function Decoder:new(samples_count, sample_rate, channels_count, sample_format)
 	local wave = Wave()
 	self.wave = wave
 
 	wave.sample_rate = sample_rate or wave.sample_rate
 	wave:initBuffer(channels_count or 2, assert(samples_count))
 
-	self.float = float or false
-	self.position = 0
+	self.sample_format = sample_format or "int16"
+	self.frame_position = 0
 end
 
 ---@param buf ffi.cdata*
----@param len integer
+---@param frame_count integer
 ---@return integer
-function Decoder:getData(buf, len)
+function Decoder:getFrames(buf, frame_count)
 	local wave = self.wave
-	if self.float then
-		local bps = 4
-		local mul = wave.channels_count * bps
-		len = math.floor(len / mul) * mul
-
-		local bytes = math.min(wave:getDataSize() * 2 - self.position, len)
-		if bytes == 0 then
-			return 0
-		end
-
-		local samples = bytes / bps
-		local src = ffi.cast("int16_t*", wave.byte_ptr + self.position / 2)
-		---@type {[integer]: number}
-		local dst = ffi.cast("float*", buf)
-		for i = 0, samples - 1 do
-			dst[i] = src[i] / 32768.0
-		end
-		self.position = self.position + bytes
-
-		return bytes
-	end
-
-	len = wave:floorBytes(len)
-
-	local bytes = math.min(wave:getDataSize() - self.position, len)
-	if bytes == 0 then
+	local frames = math.min(wave.samples_count - self.frame_position, math.max(frame_count, 0))
+	if frames == 0 then
 		return 0
 	end
 
-	ffi.copy(buf, wave.byte_ptr + self.position, bytes)
-	self.position = self.position + bytes
-
-	return bytes
-end
-
----@param pos integer
----@return number
-function Decoder:bytesToSeconds(pos)
-	if self.float then
-		return self.wave:bytesToSeconds(pos / 2)
+	local channels = wave.channels_count
+	local sample_count = frames * channels
+	local src = wave.data_buf + self.frame_position * channels
+	if self.sample_format == "float32" then
+		---@type {[integer]: number}
+		local dst = ffi.cast("float*", buf)
+		for i = 0, sample_count - 1 do
+			dst[i] = src[i] / 32768
+		end
+	else
+		ffi.copy(buf, src, sample_count * 2)
 	end
-	return self.wave:bytesToSeconds(pos)
-end
-
----@param pos number
----@return integer
-function Decoder:secondsToBytes(pos)
-	if self.float then
-		return self.wave:secondsToBytes(pos) * 2
-	end
-	return self.wave:secondsToBytes(pos)
+	self.frame_position = self.frame_position + frames
+	return frames
 end
 
 ---@return integer
-function Decoder:getBytesPosition()
-	return self.position
+function Decoder:getFramePosition()
+	return self.frame_position
 end
 
----@param pos integer
-function Decoder:setBytesPosition(pos)
-	self.position = pos
-end
-
----@return integer
-function Decoder:getBytesDuration()
-	if self.float then
-		return self.wave:getDataSize() * 2
-	end
-	return self.wave:getDataSize()
+---@param frame integer
+function Decoder:setFramePosition(frame)
+	self.frame_position = frame
 end
 
 ---@return integer
-function Decoder:getSampleRate()
-	return self.wave.sample_rate
+function Decoder:getFrameDuration()
+	return self.wave.samples_count
 end
 
----@return integer
-function Decoder:getChannelCount()
-	return self.wave.channels_count
-end
-
----@return integer
-function Decoder:getBytesPerSample()
-	if self.float then
-		return 4
-	end
-	return self.wave.bytes_per_sample
-end
+function Decoder:getSampleRate() return self.wave.sample_rate end
+function Decoder:getChannelCount() return self.wave.channels_count end
+function Decoder:getSampleFormat() return self.sample_format end
+function Decoder:release() end
 
 return Decoder

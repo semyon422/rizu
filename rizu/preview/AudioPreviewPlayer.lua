@@ -56,8 +56,8 @@ function AudioPreviewPlayer:load(preview_path, chart_dir)
 		preview:decode(preview_data)
 
 		local decoder = PreviewDecoder(fs, dir, preview, function(data)
-			return Decoder(data, false)
-		end, true)
+			return Decoder(data, "int16")
+		end, "float32")
 
 		return {
 			preview = preview,

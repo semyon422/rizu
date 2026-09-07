@@ -47,7 +47,7 @@ function Engine:load(chart, resources, auto_key_sound)
 	self.resources = resources or {}
 
 	local use_tempo_secondary = self.mode.secondary == "bass_fx_tempo"
-	self.foregroundSource = self.provider:createMixerSource(use_tempo_secondary, true)
+	self.foregroundSource = self.provider:createMixerSource(use_tempo_secondary, "float32")
 	self.foregroundSource:setVolume(self.keysounds_volume)
 
 	local chart_audio = ChartAudio()
@@ -64,7 +64,7 @@ function Engine:load(chart, resources, auto_key_sound)
 		end
 	end
 
-	self.mixer = SoftwareMixer(chart_audio.sounds, decoders, true)
+	self.mixer = SoftwareMixer(chart_audio.sounds, decoders, "float32")
 	if not self.mixer.empty then
 		local use_tempo = self.mode.primary == "bass_fx_tempo"
 		self.source = self.provider:createChartSource(self.mixer, use_tempo)
@@ -84,7 +84,7 @@ function Engine:playSample(name, volume, offset)
 		return
 	end
 
-	local decoder = self.provider:createDecoder(data, true)
+	local decoder = self.provider:createDecoder(data, "float32")
 	if offset and offset > 0 then
 		decoder:setPosition(offset)
 	end
@@ -137,14 +137,14 @@ function Engine:renderWave()
 
 	local wave = Wave()
 	wave:initBuffer(mixer:getChannelCount(), samples_duration)
-	local bytes_per_sample = mixer:getBytesPerSample()
-	if bytes_per_sample == 2 then
-		mixer:getData(wave.byte_ptr, mixer:getBytesDuration())
+	local sample_format = mixer:getSampleFormat()
+	if sample_format == "int16" then
+		mixer:getFrames(wave.byte_ptr, samples_duration)
 	else
-		assert(bytes_per_sample == 4, "Unsupported mixer sample format")
+		assert(sample_format == "float32", "Unsupported mixer sample format")
 		local samples_count = samples_duration * mixer:getChannelCount()
 		local float_buf = ffi.new("float[?]", samples_count)
-		mixer:getData(float_buf, mixer:getBytesDuration())
+		mixer:getFrames(float_buf, samples_duration)
 		for i = 0, samples_count - 1 do
 			local sample = float_buf[i] * 32768
 			wave.data_buf[i] = math.min(math.max(sample, -32768), 32767)

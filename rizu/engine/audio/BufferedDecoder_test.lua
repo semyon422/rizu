@@ -46,12 +46,12 @@ function test.preload_request_fills_buffer(t)
 	local underlying = {
 		getSampleRate = function() return sample_rate end,
 		getChannelCount = function() return channels end,
-		getBytesPerSample = function() return bytes_per_sample end,
+		getSampleFormat = function() return "int16" end,
 		getDuration = function() return 10 end,
-		getBytesPosition = function() return 0 end,
-		getDataString = function(_, len)
-			requested_len = len
-			return string.rep("a", len)
+		getFramePosition = function() return 0 end,
+		getFramesString = function(_, frame_count)
+			requested_len = frame_count
+			return string.rep("a", frame_count * channels * bytes_per_sample)
 		end,
 	}
 	local buffered = BufferedDecoder(underlying, buffer_seconds)
@@ -59,7 +59,7 @@ function test.preload_request_fills_buffer(t)
 
 	buffered:getData(read_buf, 1024)
 
-	t:eq(requested_len, sample_rate * channels * bytes_per_sample * buffer_seconds)
+	t:eq(requested_len, sample_rate * buffer_seconds)
 end
 
 ---@param t testing.T
@@ -98,19 +98,21 @@ function test.non_blocking_yield(t)
 	local read_len = 1024
 	local read_buf = ffi.new("int8_t[?]", read_len)
 
-	-- First getData will resume the preloader.
-	-- The preloader will call underlying:getData which will yield.
-	-- BufferedDecoder:getData should then return 0 (stall).
-	local read = buffered:getData(read_buf, read_len)
+	-- First getFrames will resume the preloader.
+	-- The preloader will call underlying:getFrames and yield.
+	local frame_count = read_len / (channels * bytes_per_sample)
+	local read = buffered:getFrames(read_buf, frame_count)
 
 	t:eq(read, 0, "Should return 0 (stall)")
 
-	-- Manually resume the preloader since we are in a mock test with no external driver
-	coroutine.resume(buffered.preloader_co)
+	-- Resume until the yielding decoder response has been buffered.
+	while buffered.total_buffered_frames == 0 do
+		coroutine.resume(buffered.preloader_co)
+	end
 
 	-- Second getData call will now read from the chunk added by the previous preloader step.
-	local read2 = buffered:getData(read_buf, read_len)
-	t:eq(read2, read_len, "Should return full length (real data now)")
+	local read2 = buffered:getFrames(read_buf, frame_count)
+	t:eq(read2, frame_count, "Should return all frames (real data now)")
 	t:eq(read_buf[0], 7, "Should have read real data (7)")
 end
 
@@ -119,7 +121,7 @@ function test.metadata_pcall(t)
 	local underlying = {
 		getSampleRate = function() error("Metadata failed") end,
 		getChannelCount = function() return 2 end,
-		getBytesPerSample = function() return 2 end,
+		getSampleFormat = function() return "int16" end,
 		getDuration = function() return 10 end,
 		secondsToBytes = function(_, s) return math.floor(s * 44100) * 2 * 2 end,
 	}
@@ -135,10 +137,10 @@ function test.reset_signal(t)
 	local underlying = {
 		getSampleRate = function() return 44100 end,
 		getChannelCount = function() return 2 end,
-		getBytesPerSample = function() return 2 end,
+		getSampleFormat = function() return "int16" end,
 		getDuration = function() return 10 end,
 		secondsToBytes = function(_, s) return math.floor(s * 44100) * 2 * 2 end,
-		getDataString = function() error("ThreadRemote reset") end,
+		getFramesString = function() error("ThreadRemote reset") end,
 	}
 
 	local buffered = BufferedDecoder(underlying, 1.0)

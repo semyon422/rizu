@@ -70,7 +70,7 @@ end
 ---@param t testing.T
 function test.float_mode(t)
 	local samples_count = 2
-	local dec = Decoder(samples_count, 44100, 2, true)
+	local dec = Decoder(samples_count, 44100, 2, "float32")
 
 	t:eq(dec:getBytesPerSample(), 4, "float mode reports 4 bytes per sample")
 

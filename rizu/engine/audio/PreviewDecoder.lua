@@ -18,9 +18,9 @@ local PreviewDecoder = IDecoder + {}
 ---@param dir string
 ---@param preview rizu.preview.AudioPreview
 ---@param decoder_factory fun(data: string): rizu.audio.IDecoder
----@param float_output boolean?
-function PreviewDecoder:new(fs, dir, preview, decoder_factory, float_output)
-	self.float_output = float_output == true
+---@param output_format boolean?
+function PreviewDecoder:new(fs, dir, preview, decoder_factory, output_format)
+	self.output_format = output_format or "int16"
 	local rf = ResourceFinder(fs)
 	rf:addPath(dir)
 
@@ -59,19 +59,19 @@ function PreviewDecoder:newOjm(fs, rf, preview, decoder_factory)
 
 	if not ojm then
 		print("PreviewDecoder: could not load OJM " .. tostring(ojm_filename))
-		self.mixer = SoftwareMixer({}, {}, self.float_output)
+		self.mixer = SoftwareMixer({}, {}, self.output_format)
 		return
 	end
 
 	-- Probe first sound to determine output format
-	local sample_rate, channels, bytes_per_sample = 44100, 2, 2
+	local sample_rate, channels, sample_format = 44100, 2, "int16"
 	for i, event in ipairs(preview.events) do
 		local sample_data = ojm.samples[event.sample_index - 1]
 		if sample_data then
 			local dec = decoder_factory(sample_data)
 			sample_rate = dec:getSampleRate()
 			channels = dec:getChannelCount()
-			bytes_per_sample = dec:getBytesPerSample()
+			sample_format = dec:getSampleFormat()
 			dec:release()
 			break
 		end
@@ -85,13 +85,13 @@ function PreviewDecoder:newOjm(fs, rf, preview, decoder_factory)
 			table.insert(sounds, {time = event.time})
 			table.insert(decoders, LazyDataDecoder(
 				sample_data, decoder_factory,
-				event.duration, sample_rate, channels, bytes_per_sample,
+				event.duration, sample_rate, channels, sample_format,
 				event.volume
 			))
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
+	self.mixer = SoftwareMixer(sounds, decoders, self.output_format)
 end
 
 ---@param fs fs.IFilesystem
@@ -113,7 +113,7 @@ function PreviewDecoder:newS3p(fs, rf, preview, decoder_factory)
 
 	if not pack then
 		print("PreviewDecoder: could not load S3P " .. tostring(s3p_filename))
-		self.mixer = SoftwareMixer({}, {}, self.float_output)
+		self.mixer = SoftwareMixer({}, {}, self.output_format)
 		return
 	end
 
@@ -124,13 +124,13 @@ function PreviewDecoder:newS3p(fs, rf, preview, decoder_factory)
 			table.insert(sounds, {time = event.time})
 			table.insert(decoders, LazyS3PDecoder(
 				pack, event.sample_index, decoder_factory,
-				event.duration, 44100, 2, 2,
+				event.duration, 44100, 2, "int16",
 				event.volume
 			))
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
+	self.mixer = SoftwareMixer(sounds, decoders, self.output_format)
 end
 
 ---@param fs fs.IFilesystem
@@ -152,18 +152,18 @@ function PreviewDecoder:newTwoDx(fs, rf, preview, decoder_factory)
 
 	if not archive then
 		print("PreviewDecoder: could not load 2DX " .. tostring(two_dx_filename))
-		self.mixer = SoftwareMixer({}, {}, self.float_output)
+		self.mixer = SoftwareMixer({}, {}, self.output_format)
 		return
 	end
 
-	local sample_rate, channels, bytes_per_sample = 44100, 2, 2
+	local sample_rate, channels, sample_format = 44100, 2, "int16"
 	for _, event in ipairs(preview.events) do
 		local sample_data = TwoDx.payload(archive, event.sample_index)
 		if sample_data then
 			local dec = decoder_factory(sample_data)
 			sample_rate = dec:getSampleRate()
 			channels = dec:getChannelCount()
-			bytes_per_sample = dec:getBytesPerSample()
+			sample_format = dec:getSampleFormat()
 			dec:release()
 			break
 		end
@@ -177,13 +177,13 @@ function PreviewDecoder:newTwoDx(fs, rf, preview, decoder_factory)
 			table.insert(sounds, {time = event.time})
 			table.insert(decoders, LazyDataDecoder(
 				sample_data, decoder_factory,
-				event.duration, sample_rate, channels, bytes_per_sample,
+				event.duration, sample_rate, channels, sample_format,
 				event.volume
 			))
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
+	self.mixer = SoftwareMixer(sounds, decoders, self.output_format)
 end
 
 ---@param fs fs.IFilesystem
@@ -192,7 +192,7 @@ end
 ---@param decoder_factory fun(data: string): rizu.audio.IDecoder
 function PreviewDecoder:newFiles(fs, rf, preview, decoder_factory)
 	-- Default format, will be updated if at least one sound is found
-	local sample_rate, channels, bytes_per_sample = 44100, 2, 2
+	local sample_rate, channels, sample_format = 44100, 2, "int16"
 
 	-- Pre-find actual paths to avoid repeated searches
 	---@type {[integer]: string}
@@ -210,7 +210,7 @@ function PreviewDecoder:newFiles(fs, rf, preview, decoder_factory)
 				local dec = decoder_factory(data)
 				sample_rate = dec:getSampleRate()
 				channels = dec:getChannelCount()
-				bytes_per_sample = dec:getBytesPerSample()
+				sample_format = dec:getSampleFormat()
 				dec:release()
 				break
 			end
@@ -225,34 +225,32 @@ function PreviewDecoder:newFiles(fs, rf, preview, decoder_factory)
 			table.insert(sounds, {time = event.time})
 			table.insert(decoders, LazyDecoder(
 				fs, actual_path, decoder_factory,
-				event.duration, sample_rate, channels, bytes_per_sample,
+				event.duration, sample_rate, channels, sample_format,
 				event.volume
 			))
 		end
 	end
 
-	self.mixer = SoftwareMixer(sounds, decoders, self.float_output)
+	self.mixer = SoftwareMixer(sounds, decoders, self.output_format)
 end
 
-function PreviewDecoder:getData(buf, len) return self.mixer:getData(buf, len) end
+function PreviewDecoder:getFrames(buf, frame_count) return self.mixer:getFrames(buf, frame_count) end
 function PreviewDecoder:getSampleRate() return self.mixer:getSampleRate() end
 function PreviewDecoder:getChannelCount() return self.mixer:getChannelCount() end
-function PreviewDecoder:getBytesPerSample() return self.mixer:getBytesPerSample() end
+function PreviewDecoder:getSampleFormat() return self.mixer:getSampleFormat() end
 function PreviewDecoder:getDuration() return self.mixer:getDuration() end
-function PreviewDecoder:getBytesDuration() return self.mixer:getBytesDuration() end
-function PreviewDecoder:getBytesPosition() return self.mixer:getBytesPosition() end
+function PreviewDecoder:getFrameDuration() return self.mixer:getFrameDuration() end
+function PreviewDecoder:getFramePosition() return self.mixer:getFramePosition() end
 function PreviewDecoder:getPosition() return self.mixer:getPosition() end
 
-function PreviewDecoder:setBytesPosition(pos)
-	self.mixer:setBytesPosition(pos)
+function PreviewDecoder:setFramePosition(frame)
+	self.mixer:setFramePosition(frame)
 end
 
 function PreviewDecoder:setPosition(pos)
 	self.mixer:setPosition(pos)
 end
 
-function PreviewDecoder:secondsToBytes(s) return self.mixer:secondsToBytes(s) end
-function PreviewDecoder:bytesToSeconds(b) return self.mixer:bytesToSeconds(b) end
 
 function PreviewDecoder:release()
 	self.mixer:release()
