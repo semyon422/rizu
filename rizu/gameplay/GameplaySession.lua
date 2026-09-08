@@ -55,6 +55,11 @@ function GameplaySession:pause()
 end
 
 ---@return boolean
+function GameplaySession:isPaused()
+	return not not self.rhythm_engine.input_engine.input_pauser.paused
+end
+
+---@return boolean
 function GameplaySession:hasResult()
 	return
 		self.play_type == "manual" and

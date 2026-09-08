@@ -61,6 +61,10 @@ local res = tcf:create("4key", {
 
 ## Invariants
 
+- Input binding stays in `GameplayInteractor`. Paused input continues to update engine captures, button state, and replay frames at frozen chart time; note input is deferred by `InputPauser` until resume.
+- While paused, a press first tries to recapture an unmatched note held at pause time, before normal note priorities. Otherwise a following clear note can steal the press from the held LN, causing a false release on resume. Recapture must also work when rebinding assigns a new event ID.
+- Resume reconciles final button state: newly held buttons press notes, released buttons release notes, and a released/repressed LN remains held without an extra note input.
+
 - Deferred play/resume clock resynchronization must wait for a fresh global frame timestamp. A gameplay update in the same frame as loading must not consume it: the next frame includes loading time, which must not advance chart time or its monotonic floor.
 - Gameplay video decoding must not run from `BgaView:draw()` or any other main-thread render path. The draw path may request/present an already decoded frame and upload it to the GPU.
 - Gameplay resource snapshots retain resolved video paths but not full video file contents, so large BGA files are not duplicated across the resource-loading thread boundary.

@@ -93,6 +93,14 @@ function InputEngine:receive_catched(event)
 		return
 	end
 
+	if self.input_pauser.paused then
+		for _, note in ipairs(notes) do
+			if self.input_pauser.paused_notes[note] ~= nil and not catched_notes[note] and note:match(event) then
+				return note, true
+			end
+		end
+	end
+
 	local priority = self:getNotesMaxPriority(event)
 
 	if not self.nearest then

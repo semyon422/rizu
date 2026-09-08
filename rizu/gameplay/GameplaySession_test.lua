@@ -2,6 +2,7 @@ local GameplaySession = require("rizu.gameplay.GameplaySession")
 local RhythmEngine = require("rizu.engine.RhythmEngine")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local TimingValues = require("sea.chart.TimingValues")
+local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 local tcf = TestChartFactory()
 
@@ -82,11 +83,12 @@ function test.input_recording(t)
 	re:load()
 	re:setAudioEnabled(false)
 
-	local event = {id = 1, value = true}
+	local event = VirtualInputEvent(1, true, 1)
 	gc:receive(event, 0)
 
 	t:eq(#gc.replay_recorder.frames, 1)
-	t:eq(gc.replay_recorder.frames[1].event, event)
+	t:eq(gc.replay_recorder.frames[1].event.value, true)
+	t:eq(gc.replay_recorder.frames[1].event.column, 1)
 end
 
 ---@param t testing.T
@@ -120,6 +122,46 @@ function test.has_result(t)
 	-- Should NOT have result if autoplay
 	gc:setPlayType("auto")
 	t:assert(not gc:hasResult())
+end
+
+---@param t testing.T
+function test.pause_defers_input_and_preserves_long_note(t)
+	local re = RhythmEngine()
+	local gc = GameplaySession(re)
+	local res = tcf:create("4key", {
+		{time = 2, column = 1, end_time = 5},
+	})
+	re:setChart(res.chart, res.chartmeta, res.chartdiff)
+	re:setTimingValues(TimingValues())
+	re:load()
+	re:setAudioEnabled(false)
+	gc:update(0)
+	re:setPlayTime(0, 10)
+	gc:play()
+	re:setTime(0)
+	gc:update(2)
+	gc:receive(VirtualInputEvent(1, true, 1), 2)
+	local id = gc.replay_recorder.frames[1].event.id
+	local note = re.input_engine.event_catches[id]
+	t:assert(note)
+
+	gc:pause()
+	gc:receive(VirtualInputEvent(1, false, 1), 3)
+	gc:receive(VirtualInputEvent(1, true, 1), 4)
+	gc:receive(VirtualInputEvent(2, true, 2), 4)
+	t:eq(#gc.replay_recorder.frames, 4)
+	t:eq(re:isColumnPressed(1), true)
+	t:eq(re:isColumnPressed(2), true)
+
+	gc:update(4)
+	gc:play()
+	t:eq(re.input_engine.event_catches[id], note)
+	gc:update(5)
+	gc:receive(VirtualInputEvent(1, false, 1), 5)
+	t:eq(#gc.replay_recorder.frames, 5)
+	t:eq(gc.replay_recorder.frames[5].event.id, id)
+	t:eq(re.input_engine.event_catches[id], nil)
+	t:eq(re:isColumnPressed(1), false)
 end
 
 return test

@@ -272,4 +272,62 @@ end
 	pause (unmatch / rematch) x (top / bottom)
 ]]
 
+---@param t testing.T
+function test.paused_press_is_applied_on_resume(t)
+	---@type boolean[]
+	local events = {}
+	local note = TestInputNote()
+	note.time = 0
+	function note:match()
+		return true
+	end
+	function note:input(value)
+		table.insert(events, value)
+	end
+	local ie = InputEngine(FakeActiveInputNotes({note}))
+	set_time({note}, 0)
+
+	ie:pause()
+	ie:receive({id = 1, value = true})
+	t:tdeq(events, {})
+	t:eq(ie.event_catches[1], note)
+	t:eq(ie.input_pauser.event_values[1], true)
+
+	ie:resume()
+	t:tdeq(events, {true})
+	ie:receive({id = 1, value = false})
+	t:tdeq(events, {true, false})
+end
+
+---@param t testing.T
+function test.paused_repress_prefers_held_note_over_next_note(t)
+	---@type boolean[]
+	local events = {}
+	local held = TestInputNote()
+	held.time = 0
+	held.priority = -1
+	function held:match() return true end
+	function held:input(value)
+		table.insert(events, value)
+	end
+	local next_note = TestInputNote()
+	next_note.time = 1
+	next_note.priority = 0
+	function next_note:match() return true end
+	local notes = {held}
+	local ie = InputEngine(FakeActiveInputNotes(notes))
+	set_time({held, next_note}, 0)
+	ie:receive({id = 1, value = true})
+	notes[2] = next_note
+	ie:pause()
+	ie:receive({id = 1, value = false})
+	ie:receive({id = 2, value = true})
+	t:eq(ie.event_catches[2], held)
+	t:tdeq(events, {true})
+	ie:resume()
+	t:tdeq(events, {true})
+	ie:receive({id = 2, value = false})
+	t:tdeq(events, {true, false})
+end
+
 return test
