@@ -121,7 +121,7 @@ function test.generates_layered_atlas_images(t)
 	t:assert(AtlasImage * sprites.button)
 	t:eq(sprites.button:getWidth(), 40)
 	t:eq(sprites.button:getHeight(), 20)
-	t:eq(sends.u_radius[1], 5)
+	t:tdeq(sends.u_corner_radii[1], {5, 5, 5, 5})
 	t:eq(sends.u_rounding_power[1], 4)
 	t:tdeq(sends.u_stroke_width[1], {1, 2, 3, 4})
 	t:tdeq(sends.u_stroke_color[1], {0.5, 0.5, 0.5, 0.75})
@@ -167,6 +167,22 @@ function test.interpolates_gradient_stops_with_premultiplied_color(t)
 end
 
 ---@param t testing.T
+function test.supports_per_corner_radii(t)
+	local sends = stubLove()
+	SpriteGenerator({
+		panel = {
+			width = 40,
+			height = 40,
+			border_radius = 2,
+			corner_radii = {top_left = 8, bottom_right = 6},
+			fills = {{type = "color", color = {1, 1, 1, 1}}},
+		},
+	})
+	love = old_love
+
+	t:tdeq(sends.u_corner_radii[1], {8, 2, 6, 2})
+end
+
 function test.rejects_invalid_definition_before_allocating_graphics(t)
 	local shader_created = false
 	love = {graphics = {newShader = function() shader_created = true end}}

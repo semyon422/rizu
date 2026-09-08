@@ -48,20 +48,22 @@ function ModalManager:new(ui, popup_container)
 	self.bg = self:add(OverlayBackground(function()
 		self:hideModal()
 	end))
-	self.config = self:addModal(Config(ui.config, ui.game.settings, popup_container))
+	self.config = self:addModal(Config(ui.config, ui.game.settings, popup_container,
+		function() self:hideModal(self.config) end))
 	self.mapperatorinator = self:addModal(Mapperatorinator(
 		ui.mapperatorinator_workflow,
 		ui.mapperatorinator_config,
 		function() self:detachMapperatorinator() end,
 		popup_container
 	))
-	self.input = self:addModal(Input(ui.game))
+	self.input = self:addModal(Input(ui.game, function() self:hideModal(self.input) end))
 	ui.game.chartSelector:onChanged(self.input)
 	local function modifiers_changed()
 		-- TODO: This callback chain stinks. The game core should emit modifier-change events.
 		ui.song_select:updateModifiers()
 	end
-	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed))
+	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed,
+		function() self:hideModal(self.modifiers) end))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)

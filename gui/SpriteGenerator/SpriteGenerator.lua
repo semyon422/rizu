@@ -22,6 +22,7 @@ local AtlasImage = require("gui.AtlasImage")
 ---@field width integer
 ---@field height integer
 ---@field border_radius number?
+---@field corner_radii? {top_left?: number, top_right?: number, bottom_right?: number, bottom_left?: number}
 ---@field rounding_power number? 2 is circular; larger values produce squarer corners.
 ---@field fills gui.SpriteGenerator.Fill[]
 ---@field slice number? Insets used to create a nine-slice.
@@ -39,7 +40,7 @@ local AtlasImage = require("gui.AtlasImage")
 
 local fill_shader_code = [[
 extern vec2 u_size;
-extern float u_radius;
+extern vec4 u_corner_radii;
 extern float u_rounding_power;
 extern vec2 u_gradient_direction;
 extern Image u_gradient_texture;
@@ -47,7 +48,10 @@ extern float u_gradient_width;
 extern vec4 u_fill_color;
 extern float u_use_gradient;
 
-float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, float radius) {
+float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, vec4 corner_radii) {
+    float radius = point.y < center.y
+        ? (point.x < center.x ? corner_radii.x : corner_radii.y)
+        : (point.x < center.x ? corner_radii.w : corner_radii.z);
     vec2 rounded = abs(point - center) - (half_size - vec2(radius));
     vec2 outside = max(rounded, vec2(0.0));
     float corner_distance = pow(pow(outside.x, u_rounding_power) + pow(outside.y, u_rounding_power), 1.0 / u_rounding_power);
@@ -62,7 +66,7 @@ vec4 sourceOver(vec4 destination, vec4 source_premultiplied) {
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
     vec2 center = u_size * 0.5;
-    float distance = roundedRectangleDistance(screen_coords, center, center, u_radius);
+    float distance = roundedRectangleDistance(screen_coords, center, center, u_corner_radii);
     float mask = 1.0 - smoothstep(-0.5, 0.5, distance);
 
     float span = max(dot(abs(u_gradient_direction), u_size), 0.0001);
@@ -76,13 +80,16 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
 
 local stroke_shader_code = [[
 extern vec2 u_size;
-extern float u_radius;
+extern vec4 u_corner_radii;
 extern float u_rounding_power;
 extern vec4 u_stroke_width;
 extern vec4 u_stroke_color;
 extern float u_uniform_stroke;
 
-float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, float radius) {
+float roundedRectangleDistance(vec2 point, vec2 center, vec2 half_size, vec4 corner_radii) {
+    float radius = point.y < center.y
+        ? (point.x < center.x ? corner_radii.x : corner_radii.y)
+        : (point.x < center.x ? corner_radii.w : corner_radii.z);
     vec2 rounded = abs(point - center) - (half_size - vec2(radius));
     vec2 outside = max(rounded, vec2(0.0));
     float corner_distance = pow(pow(outside.x, u_rounding_power) + pow(outside.y, u_rounding_power), 1.0 / u_rounding_power);
@@ -98,7 +105,7 @@ vec4 sourceOver(vec4 destination, vec4 source) {
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
     vec2 center = u_size * 0.5;
     vec2 point = screen_coords;
-    float outer_distance = roundedRectangleDistance(point, center, center, u_radius);
+    float outer_distance = roundedRectangleDistance(point, center, center, u_corner_radii);
     float outer_alpha = 1.0 - smoothstep(-0.5, 0.5, outer_distance);
 
     float left_stroke = 1.0 - smoothstep(u_stroke_width.x - 0.5, u_stroke_width.x + 0.5, point.x);
@@ -109,8 +116,8 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
 
     float uniform_width = u_stroke_width.x;
     vec2 inner_half_size = max(center - vec2(uniform_width), vec2(0.0));
-    float inner_radius = max(u_radius - uniform_width, 0.0);
-    float inner_distance = roundedRectangleDistance(point, center, inner_half_size, inner_radius);
+    vec4 inner_corner_radii = max(u_corner_radii - vec4(uniform_width), vec4(0.0));
+    float inner_distance = roundedRectangleDistance(point, center, inner_half_size, inner_corner_radii);
     float inner_alpha = 1.0 - smoothstep(-0.5, 0.5, inner_distance);
     float uniform_stroke_alpha = max(outer_alpha - inner_alpha, 0.0);
     float stroke_alpha = mix(side_stroke_alpha, uniform_stroke_alpha, u_uniform_stroke);
@@ -151,7 +158,16 @@ local function validateDefinition(name, definition)
 
 	local radius = definition.border_radius or 0
 	assert(isFinite(radius) and radius >= 0, prefix .. " border_radius must be non-negative")
-	assert(radius <= math.min(definition.width, definition.height) / 2,
+	local corner_radii = definition.corner_radii or {}
+	assert(type(corner_radii) == "table", prefix .. " corner_radii must be a table")
+	local max_radius = radius
+	for _, corner in ipairs({"top_left", "top_right", "bottom_right", "bottom_left"}) do
+		local corner_radius = corner_radii[corner] or radius
+		assert(isFinite(corner_radius) and corner_radius >= 0,
+			prefix .. " corner_radii." .. corner .. " must be non-negative")
+		max_radius = math.max(max_radius, corner_radius)
+	end
+	assert(max_radius <= math.min(definition.width, definition.height) / 2,
 		prefix .. " border_radius cannot exceed half the shortest side")
 	local rounding_power = definition.rounding_power or 2
 	assert(isFinite(rounding_power) and rounding_power >= 1,
@@ -160,7 +176,7 @@ local function validateDefinition(name, definition)
 	if definition.slice ~= nil then
 		assert(isFinite(definition.slice) and definition.slice > 0 and definition.slice % 1 == 0,
 			prefix .. " slice must be a positive integer")
-		assert(definition.slice >= radius, prefix .. " slice must be at least border_radius")
+		assert(definition.slice >= max_radius, prefix .. " slice must be at least border_radius")
 		assert(definition.slice * 2 < definition.width and definition.slice * 2 < definition.height,
 			prefix .. " slice must leave a non-empty center")
 	end
@@ -289,8 +305,15 @@ end
 ---@param shader love.Shader
 ---@param definition gui.SpriteGenerator.Definition
 local function sendShape(shader, definition)
+	local radius = definition.border_radius or 0
+	local corner_radii = definition.corner_radii or {}
 	shader:send("u_size", {definition.width, definition.height})
-	shader:send("u_radius", definition.border_radius or 0)
+	shader:send("u_corner_radii", {
+		corner_radii.top_left or radius,
+		corner_radii.top_right or radius,
+		corner_radii.bottom_right or radius,
+		corner_radii.bottom_left or radius,
+	})
 	shader:send("u_rounding_power", definition.rounding_power or 2)
 end
 

@@ -3,7 +3,8 @@ local Colors = require("ui.Colors")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Form = require("ui.views.form.Form")
 local FormSelection = require("ui.views.form.FormSelection")
-local Label = require("ui.views.Label")
+local ModalFooter = require("ui.views.ModalFooter")
+local ModalHeader = require("ui.views.ModalHeader")
 local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
@@ -21,14 +22,15 @@ local Slider = require("ui.views.form.Slider")
 local Modifiers = ModalView + {}
 
 local MODAL_WIDTH = 700
-local MODAL_HEIGHT = 340
+local MODAL_HEIGHT = 500
 local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
-local FORM_Y = 80
+local FORM_Y = 142
 
 ---@param game sphere.GameController
 ---@param on_change fun()?
-function Modifiers:new(game, on_change)
+---@param on_close fun()
+function Modifiers:new(game, on_change, on_close)
 	ModalView.new(self)
 	self.game = game
 	self.on_change = on_change
@@ -55,11 +57,8 @@ function Modifiers:new(game, on_change)
 		sprites.nineslice_modal_rb,
 	})
 
-	self:add(Label({
-		font_name = "bold",
-		font_size = 32,
-		text = "Gameplay Modifiers",
-	})):anchorFixed(FORM_X, 28, FORM_WIDTH, 40)
+	self:add(ModalHeader("Gameplay Modifiers", "Customize gameplay for the selected Chart."))
+	self:add(ModalFooter(on_close))
 
 	self.form = Form({direction = "column", gap = 18})
 	self.form:setOffset(FORM_X, FORM_Y)

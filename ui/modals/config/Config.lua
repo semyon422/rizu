@@ -4,6 +4,7 @@ local Form = require("ui.views.form.Form")
 local FormSelection = require("ui.views.form.FormSelection")
 local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
+local ModalCloseButton = require("ui.views.ModalCloseButton")
 local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
@@ -45,7 +46,8 @@ local LIST_WIDTH = 635
 ---@param ui_config ui.UiConfig
 ---@param settings rizu.config.Config
 ---@param popup_container ui.views.PopupContainer
-function Config:new(ui_config, settings, popup_container)
+---@param on_close fun()
+function Config:new(ui_config, settings, popup_container, on_close)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
@@ -110,6 +112,8 @@ function Config:new(ui_config, settings, popup_container)
 	self.list_background = NineSliceUsage(modal_sprites)
 
 	self:add(self.section_list)
+	self.close_button = self:add(ModalCloseButton(on_close))
+	self.close_button:anchorFixed(20, 0, 280, 48):setAlignmentY(1):addPosition(0, -20)
 	self:add(self.scroll_view)
 	self.form_selection = self:add(FormSelection(self.form))
 	for _, section in ipairs(self.sections) do

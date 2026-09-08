@@ -220,6 +220,35 @@ Definitions need positive integer dimensions and a non-empty ordered `fills` arr
 
 Prefer generated sprites/nine-slices for visible rectangles, especially rounded rectangles. Use `Resources.sprites.pixel` scaled to the target size for simple solid rectangles rather than `love.graphics.rectangle`.
 
+### Rasterizing Simple Line Icons
+
+Before adding an icon, check `resources/yi/batch/` and reuse an existing asset when possible. For simple SVG-style line icons that must join the atlas, Python and Pillow can rasterize the path at high resolution and downsample it cleanly. Supersampling preserves antialiased rounded strokes better than drawing directly at 24×24.
+
+```python
+from PIL import Image, ImageDraw
+
+scale = 4
+size = 24
+stroke = 2 * scale
+image = Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
+draw = ImageDraw.Draw(image)
+
+# Example: an X using 24-unit SVG coordinates.
+for points in [((18, 6), (6, 18)), ((6, 6), (18, 18))]:
+    scaled = tuple((x * scale, y * scale) for x, y in points)
+    draw.line(scaled, fill=(255, 255, 255, 255), width=stroke)
+    radius = stroke / 2
+    for x, y in scaled:
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius),
+                     fill=(255, 255, 255, 255))
+
+image.resize((size, size), Image.Resampling.LANCZOS).save(
+    "resources/yi/batch/icon_x.png", optimize=True
+)
+```
+
+Use white RGBA artwork so `Painter.setColorTable(...)` can tint the atlas sprite. Keep the source icon's view box, stroke width, line caps, and geometry accurate; do not describe a recreated icon as copied from another project. Confirm licensing and attribution requirements before reproducing third-party icon geometry.
+
 ## Useful ui Modules
 
 | Module | Use |

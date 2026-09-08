@@ -5,6 +5,8 @@ local InputBinder = require("rizu.input.InputBinder")
 local InputDevice = require("rizu.input.InputDevice")
 local Label = require("ui.views.Label")
 local ModalView = require("ui.ModalView")
+local ModalFooter = require("ui.views.ModalFooter")
+local ModalHeader = require("ui.views.ModalHeader")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -22,12 +24,12 @@ local Input = ModalView + {}
 
 local MODAL_MAX_WIDTH = 1200
 local MODAL_MIN_WIDTH = 700
-local MODAL_HEIGHT = 400
+local MODAL_HEIGHT = 470
 local HORIZONTAL_PADDING = 50
 local COLUMN_GAP = 10
 local MAX_COLUMN_WIDTH = 88
 local COLUMN_HEIGHT = 118
-local COLUMN_Y = (MODAL_HEIGHT - COLUMN_HEIGHT) / 2
+local COLUMN_Y = 176
 
 local MODIFIER_KEYS = {
 	lalt = true,
@@ -41,7 +43,8 @@ local MODIFIER_KEYS = {
 }
 
 ---@param game sphere.GameController
-function Input:new(game)
+---@param on_close fun()
+function Input:new(game, on_close)
 	ModalView.new(self)
 	self.game = game
 	self.columns = {}
@@ -62,27 +65,20 @@ function Input:new(game)
 		sprites.nineslice_modal_lb, sprites.nineslice_modal_b, sprites.nineslice_modal_rb,
 	})
 
-	self.header_label = self:add(Label({
-		font_name = "bold",
-		font_size = 32,
-		text = "Input Bindings",
-		align = "center",
-	}))
-	self.header_label:anchorFixed(HORIZONTAL_PADDING, 35, MODAL_MAX_WIDTH - HORIZONTAL_PADDING * 2, 40)
-	self.header_label:setAlignmentX(0.5)
+	self.header = self:add(ModalHeader("Input Bindings", "Configure controls for the selected key mode."))
 
 	self.column_list = self:add(FlowContainer({direction = "row", gap = COLUMN_GAP, align = 0.5}))
 	self.column_list:setOffset(50, COLUMN_Y)
 
-	self.tip_label = self:add(Label({
+	self.footer = self:add(ModalFooter(on_close))
+	self.tip_label = self.footer:add(Label({
 		font_name = "regular",
 		font_size = 18,
 		text = "Left click a frame, then press a key. Right click removes its binding.",
 		color = Colors.muted,
 		align = "center",
 	}))
-	self.tip_label:anchorFixed(HORIZONTAL_PADDING, 355, MODAL_MAX_WIDTH - HORIZONTAL_PADDING * 2, 28)
-	self.tip_label:setAlignmentX(0.5)
+	self.tip_label:anchorFixed(190, 32, MODAL_MAX_WIDTH - 238, 28)
 end
 
 ---@param input_mode string?
@@ -95,24 +91,24 @@ function Input:setInputMode(input_mode)
 	if not input_mode or input_mode == "" then
 		self.binder = nil
 		self:setWidth(MODAL_MIN_WIDTH)
-		self.header_label:setWidth(MODAL_MIN_WIDTH - HORIZONTAL_PADDING * 2)
-		self.tip_label:setWidth(MODAL_MIN_WIDTH - HORIZONTAL_PADDING * 2)
-		self.header_label:setText("Input Bindings")
+		self.tip_label:setWidth(MODAL_MIN_WIDTH - 238)
+		self.header.title:setText("Input Bindings")
+		self.header.subtitle:setText("Configure controls for the selected key mode.")
 		self.column_list:fitContent()
 		return
 	end
 
 	self.binder = InputBinder(self.game.configModel.configs.input, input_mode)
 	local mode_text = input_mode:gsub("key", "K"):gsub("scratch", "S")
-	self.header_label:setText("Input Bindings — " .. mode_text)
+	self.header.title:setText("Input Bindings")
+	self.header.subtitle:setText("Configure controls for " .. mode_text .. ".")
 	local count = #self.binder.columns
 	local natural_content_width = count * MAX_COLUMN_WIDTH + math.max(0, count - 1) * COLUMN_GAP
 	local modal_width = math.min(MODAL_MAX_WIDTH, math.max(MODAL_MIN_WIDTH,
 		natural_content_width + HORIZONTAL_PADDING * 2))
 	local content_width = modal_width - HORIZONTAL_PADDING * 2
 	self:setWidth(modal_width)
-	self.header_label:setWidth(content_width)
-	self.tip_label:setWidth(content_width)
+	self.tip_label:setWidth(modal_width - 238)
 	local width = math.min(MAX_COLUMN_WIDTH,
 		(content_width - COLUMN_GAP * math.max(0, count - 1)) / math.max(1, count))
 	for _, column in ipairs(self.binder.columns) do
