@@ -90,6 +90,7 @@ function Footer:new(ui)
 		gradient = Resources.sprites.song_select_loadout_blue,
 		hover_gradient = Resources.sprites.song_select_loadout_blue_hover,
 		padding_x = 17,
+		on_click = function() ui.modal_manager:attachNoteSkins() end,
 	}), 104)
 
 	local play_controls = layout:add(TrackContainer({direction = "row", gap = 8}), 310)

@@ -10,6 +10,7 @@ local Config = require("ui.modals.config.Config")
 local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
+local NoteSkins = require("ui.modals.note_skins.NoteSkins")
 local Filters = require("ui.modals.filters.Filters")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local UiActions = require("ui.UiActions")
@@ -23,6 +24,7 @@ local UiActions = require("ui.UiActions")
 ---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
+---@field note_skins ui.modals.note_skins.NoteSkins
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
@@ -64,6 +66,8 @@ function ModalManager:new(ui, popup_container)
 	end
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed,
 		function() self:hideModal(self.modifiers) end))
+	self.note_skins = self:addModal(NoteSkins(ui.game,
+		function() self:hideModal(self.note_skins) end))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)
@@ -211,6 +215,16 @@ end
 ---@return boolean detached
 function ModalManager:detachModifiers()
 	return self:hideModal(self.modifiers)
+end
+
+---@return boolean attached
+function ModalManager:attachNoteSkins()
+	return self:showModal(self.note_skins)
+end
+
+---@return boolean detached
+function ModalManager:detachNoteSkins()
+	return self:hideModal(self.note_skins)
 end
 
 ---@return boolean attached
