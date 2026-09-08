@@ -16,6 +16,46 @@ local function button(background_color, capsule)
 	}
 end
 
+local function mix(a, b, amount)
+	return {
+		a[1] + (b[1] - a[1]) * amount,
+		a[2] + (b[2] - a[2]) * amount,
+		a[3] + (b[3] - a[3]) * amount,
+		(a[4] or 1) + ((b[4] or 1) - (a[4] or 1)) * amount,
+	}
+end
+
+local function loadoutGradient(control_color, active, hovered)
+	local top_mix = hovered and 0.48 or 0.34
+	local bottom_mix = hovered and 0.26 or 0.16
+	local top = active and mix(control_color, Colors.text, hovered and 0.28 or 0.15)
+		or mix(Colors.surface, control_color, top_mix)
+	local bottom = active and mix(Colors.background, control_color, hovered and 0.72 or 0.60)
+		or mix(Colors.surface, control_color, bottom_mix)
+	local stops = {
+		{offset = 0, color = top},
+		{offset = 1, color = bottom},
+	}
+	if active then
+		-- Preserve the webclient's distinct base-color midpoint instead of
+		-- reducing the active treatment to an almost uniform color wash.
+		stops = {
+			{offset = 0, color = top},
+			{offset = 0.42, color = control_color},
+			{offset = 1, color = bottom},
+		}
+	end
+	return {
+		width = 2,
+		height = 46,
+		fills = {{
+			type = "linear_gradient",
+			angle = 90,
+			stops = stops,
+		}},
+	}
+end
+
 ---@type {[string]: gui.SpriteGenerator.Definition}
 local SpriteDefinitions = {
 	button_primary = button(Colors.blue),
@@ -42,6 +82,18 @@ local SpriteDefinitions = {
 	button_success_capsule = button(Colors.success, true),
 	button_success_capsule_hover = button({0.55, 0.76, 0.28, 1}, true),
 	button_success_capsule_pressed = button({0.39, 0.56, 0.16, 1}, true),
+	song_select_loadout_success = loadoutGradient(Colors.success),
+	song_select_loadout_success_hover = loadoutGradient(Colors.success, false, true),
+	song_select_loadout_success_active = loadoutGradient(Colors.success, true),
+	song_select_loadout_success_active_hover = loadoutGradient(Colors.success, true, true),
+	song_select_loadout_magenta = loadoutGradient(Colors.magenta),
+	song_select_loadout_magenta_hover = loadoutGradient(Colors.magenta, false, true),
+	song_select_loadout_magenta_active = loadoutGradient(Colors.magenta, true),
+	song_select_loadout_magenta_active_hover = loadoutGradient(Colors.magenta, true, true),
+	song_select_loadout_purple = loadoutGradient(Colors.purple),
+	song_select_loadout_purple_hover = loadoutGradient(Colors.purple, false, true),
+	song_select_loadout_blue = loadoutGradient(Colors.blue),
+	song_select_loadout_blue_hover = loadoutGradient(Colors.blue, false, true),
 	song_select_panel = {
 		width = 17,
 		height = 17,

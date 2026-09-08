@@ -6,7 +6,7 @@ local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 
 ---@class ui.screens.song_select.FooterButton.Config
----@field width number
+---@field width? number
 ---@field height number
 ---@field color gui.Color
 ---@field text string
@@ -14,6 +14,11 @@ local Sounds = require("ui.Sounds")
 ---@field icon_after? boolean
 ---@field badge? string
 ---@field large? boolean
+---@field gradient? gui.Sprite
+---@field hover_gradient? gui.Sprite
+---@field active_gradient? gui.Sprite
+---@field active_hover_gradient? gui.Sprite
+---@field padding_x? number
 ---@field on_click? fun()
 
 ---@class ui.screens.song_select.FooterButton : gui.View
@@ -38,10 +43,20 @@ function FooterButton:new(config)
 	self.badge = config.badge
 	self.icon_after = config.icon_after or false
 	self.large = config.large or false
+	self.gradient = config.gradient
+	self.hover_gradient = config.hover_gradient
+	self.active_gradient = config.active_gradient
+	self.active_hover_gradient = config.active_hover_gradient
+	self.padding_x = config.padding_x or 0
 	self.on_click = config.on_click
 	self.font = Resources.getFont("bold", self.large and 16 or 12)
 	self.handles_mouse_input = true
-	self:setSize(config.width, config.height)
+
+	local badge_width = self.badge and math.max(18, self.font:getWidth(self.badge) + 10) or 0
+	local badge_gap = self.badge and GAP or 0
+	local gap = self.large and LARGE_GAP or GAP
+	local content_width = ICON_SIZE + gap + self.font:getWidth(self.text) + badge_gap + badge_width
+	self:setSize(config.width or content_width + self.padding_x * 2, config.height)
 end
 
 ---@param badge string?
@@ -73,6 +88,7 @@ function FooterButton:onMouseClick(e)
 	return true
 end
 
+local white = {1, 1, 1, 1}
 local background = {0, 0, 0, 1}
 local highlight = {0, 0, 0, 1}
 local icon_color = {0, 0, 0, 1}
@@ -93,8 +109,19 @@ function FooterButton:draw()
 	if not self.effective_enabled then
 		Painter.setOpacity(0.55)
 	end
-	Painter.setColorTable(background)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	local gradient
+	if self.active then
+		gradient = hovered and self.active_hover_gradient or self.active_gradient
+	else
+		gradient = hovered and self.hover_gradient or self.gradient
+	end
+	if gradient then
+		Painter.setColorTable(white)
+		gradient:draw(0, 0, 0, self.width / gradient:getWidth(), self.height / gradient:getHeight())
+	else
+		Painter.setColorTable(background)
+		Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	end
 	if not self.large then
 		Painter.setColorTable(highlight)
 		Resources.sprites.pixel:draw(0, 0, 0, self.width, 3)
@@ -107,7 +134,7 @@ function FooterButton:draw()
 	local badge_width = self.badge and math.max(18, self.font:getWidth(self.badge) + 10) or 0
 	local badge_gap = self.badge and GAP or 0
 	local content_width = icon_width + gap + text_width + badge_gap + badge_width
-	local x = (self.width - content_width) / 2
+	local x = self.padding_x > 0 and self.padding_x or (self.width - content_width) / 2
 	local text_x
 	local icon_x
 	if self.icon_after then

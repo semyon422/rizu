@@ -47,38 +47,50 @@ function Footer:new(ui)
 		padding = {14, 9, 0, 9},
 	}), "*")
 	self.mods_button = loadout:add(FooterButton({
-		width = 112,
 		height = 46,
 		color = Colors.success,
 		text = "MODS",
 		icon = Resources.sprites.icon_puzzle,
 		badge = "0",
+		gradient = Resources.sprites.song_select_loadout_success,
+		hover_gradient = Resources.sprites.song_select_loadout_success_hover,
+		active_gradient = Resources.sprites.song_select_loadout_success_active,
+		active_hover_gradient = Resources.sprites.song_select_loadout_success_active_hover,
+		padding_x = 17,
 		on_click = function() ui.modal_manager:attachModifiers() end,
-	}), 112)
+	}), 124)
 	self.mutators_button = loadout:add(FooterButton({
-		width = 135,
 		height = 46,
 		color = Colors.magenta,
 		text = "MUTATORS",
 		icon = Resources.sprites.icon_zap,
 		badge = "0",
+		gradient = Resources.sprites.song_select_loadout_magenta,
+		hover_gradient = Resources.sprites.song_select_loadout_magenta_hover,
+		active_gradient = Resources.sprites.song_select_loadout_magenta_active,
+		active_hover_gradient = Resources.sprites.song_select_loadout_magenta_active_hover,
+		padding_x = 17,
 		on_click = function() ui.modal_manager:attachChartMutators() end,
-	}), 135)
+	}), 153)
 	self.inputs_button = loadout:add(FooterButton({
-		width = 110,
 		height = 46,
 		color = Colors.purple,
 		text = "INPUTS",
 		icon = Resources.sprites.icon_keyboard,
+		gradient = Resources.sprites.song_select_loadout_purple,
+		hover_gradient = Resources.sprites.song_select_loadout_purple_hover,
+		padding_x = 17,
 		on_click = function() ui.modal_manager:attachInput() end,
-	}), 110)
+	}), 111)
 	self.skins_button = loadout:add(FooterButton({
-		width = 105,
 		height = 46,
 		color = Colors.blue,
 		text = "SKINS",
 		icon = Resources.sprites.icon_paintbrush,
-	}), 105)
+		gradient = Resources.sprites.song_select_loadout_blue,
+		hover_gradient = Resources.sprites.song_select_loadout_blue_hover,
+		padding_x = 17,
+	}), 104)
 
 	local play_controls = layout:add(TrackContainer({direction = "row", gap = 8}), 310)
 	self.music_speed = play_controls:add(MusicSpeedControl(game.timeRateModel, game.modifierSelectModel), 148)
