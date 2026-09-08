@@ -184,6 +184,18 @@ local SpriteDefinitions = {
 			},
 		}},
 	},
+	result_judge_gradient = {
+		width = 64,
+		height = 1,
+		fills = {{
+			type = "linear_gradient",
+			angle = 0,
+			stops = {
+				{offset = 0, color = {1, 1, 1, 0.7}},
+				{offset = 1, color = {1, 1, 1, 0}},
+			},
+		}},
+	},
 }
 
 return SpriteDefinitions

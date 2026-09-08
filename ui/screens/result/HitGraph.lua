@@ -4,6 +4,7 @@ local SpriteBatch = require("gui.SpriteBatch")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 
 ---@class ui.screens.result.HitGraph : gui.View
 ---@operator call: ui.screens.result.HitGraph
@@ -14,14 +15,6 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 ---@field sprite_batch gui.SpriteBatch?
 ---@field tooltip ui.views.Tooltip?
 local HitGraph = View + {}
-
-local judge_colors = {
-	{0.6, 0.8, 1, 1},
-	{0.95, 0.796, 0.188, 1},
-	{0.07, 0.8, 0.56, 1},
-	{0.1, 0.7, 1, 1},
-	{1, 0.1, 0.7, 1},
-}
 
 ---@param tooltip ui.views.Tooltip?
 function HitGraph:new(tooltip)
@@ -138,6 +131,7 @@ function HitGraph:rebuild()
 	local plot_height = self.height - hit_height * scale
 	local system = judges_source ---@cast system +rizu.ScoreSystem
 	local system_key = system:getKey()
+	local formatter = ScoreSystemFormatter(system)
 	local batch = SpriteBatch(hit, math.max(#sequence, 1))
 
 	for _, slice in ipairs(sequence) do
@@ -152,8 +146,8 @@ function HitGraph:rebuild()
 				local x = math.min(math.max(base.currentTime / max_time, 0), 1) * plot_width
 				local y = (delta - delta_min) / delta_range * plot_height
 				local judge_slice = slice[system_key]
-				local color = judge_colors[judge_slice and judge_slice.last_judge] or Colors.text
-				batch:setColor(color)
+				local judge_index = judge_slice and judge_slice.last_judge
+				batch:setColor(judge_index and formatter:getJudgeColor(judge_index) or Colors.text)
 				batch:add(hit, x, y, 0, scale, scale)
 			end
 		end

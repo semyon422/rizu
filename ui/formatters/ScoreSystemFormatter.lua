@@ -6,6 +6,16 @@ local ScoreSystemFormatter = class()
 
 local bms_alias = {"Easy", "Normal", "Hard", "Very hard"}
 local fallback_grade_color = {0.51, 0.37, 0, 1}
+local fallback_judge_color = {0.65, 0.7, 0.8, 1}
+local miss_color = {1, 0.1, 0.18, 1}
+
+local judge_colors = {
+	{0, 0.7, 1, 1},
+	{1, 0.82, 0, 1},
+	{0, 0.9, 0.5, 1},
+	{0.3, 0.55, 1, 1},
+	{0.85, 0, 0.85, 1},
+}
 
 local grade_colors = {
 	osuod = {
@@ -161,6 +171,27 @@ function ScoreSystemFormatter:getGradeColor(grade)
 	local timings = self.score_system.timings
 	local colors = timings and grade_colors[timings.name]
 	return colors and colors[grade] or fallback_grade_color
+end
+
+---@param index integer
+---@return string
+function ScoreSystemFormatter:getJudgeName(index)
+	---@cast self.score_system +rizu.IJudgesSource
+	local name = self.score_system:getJudgeNames()[index]
+	if not name then
+		return ("Judge %d"):format(index)
+	end
+	return name:sub(1, 1):upper() .. name:sub(2)
+end
+
+---@param index integer
+---@return gui.Color
+function ScoreSystemFormatter:getJudgeColor(index)
+	---@cast self.score_system +rizu.IJudgesSource
+	if index == #self.score_system:getJudgeNames() then
+		return miss_color
+	end
+	return judge_colors[index] or fallback_judge_color
 end
 
 return ScoreSystemFormatter
