@@ -36,9 +36,9 @@ function FiltersButton:getValueLabel()
 		active = active + 1
 	end
 	if active == 0 then
-		return "None"
+		return self.ui.localization:get("song_select.filters_none")
 	end
-	return active == 1 and "1 active" or (active .. " active")
+	return self.ui.localization:get("song_select.filters_active", {count = active})
 end
 
 ---@param e gui.HoverEvent
@@ -72,7 +72,7 @@ function FiltersButton:draw()
 
 	Painter.setColorTable(Colors.muted)
 	love.graphics.setFont(self.label_font)
-	love.graphics.print("FILTERS", 45, 7)
+	love.graphics.print(self.ui.localization:get("song_select.filters"), 45, 7)
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.value_font)
 	love.graphics.print(self:getValueLabel(), 45, 21)

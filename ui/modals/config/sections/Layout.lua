@@ -7,38 +7,31 @@ local Settings = require("rizu.config.Settings")
 ---@operator call: ui.modals.config.sections.Layout
 local Layout = Section + {}
 
-local fullscreen_type_names = {
-	desktop = "Borderless desktop",
-	exclusive = "Exclusive fullscreen",
-}
-
----@param value string
----@return string
-local function formatFullscreenType(value)
-	return assert(fullscreen_type_names[value], "unknown fullscreen type: " .. value)
-end
-
 ---@param settings rizu.config.Config
 ---@param form ui.views.form.Form
 ---@param popup_container ui.views.PopupContainer
-function Layout:new(settings, form, popup_container)
+---@param localization ui.localization.Localization
+function Layout:new(settings, form, popup_container, localization)
+		local function formatFullscreenType(value)
+		return localization:get("settings.fullscreen_type_" .. value)
+	end
 	Section.new(self, {
-		name = "Layout",
+		name = localization:get("settings.layout"),
 		icon = Resources.sprites.icon_monitor,
 		build = function()
 			local keys = Settings.keys.graphics
 			return {
 				ControlFactory.boolean(settings, keys.fullscreen, {
-					name = "Fullscreen",
+					name = localization:get("settings.fullscreen"),
 					keywords = {"display", "window", "layout"},
-					tip = "Display the game in fullscreen mode.",
+					tip = localization:get("settings.fullscreen_tip"),
 				}),
 				ControlFactory.choice(settings, keys.fullscreen_type, {
 					form = form,
 					popup_container = popup_container,
-					name = "Fullscreen mode",
+					name = localization:get("settings.fullscreen_mode"),
 					keywords = {"display", "window", "layout", "borderless", "exclusive"},
-					tip = "Choose borderless desktop or exclusive fullscreen mode.",
+					tip = localization:get("settings.fullscreen_mode_tip"),
 					format = formatFullscreenType,
 				}),
 			}

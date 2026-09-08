@@ -44,8 +44,10 @@ local MODIFIER_KEYS = {
 
 ---@param game sphere.GameController
 ---@param on_close fun()
-function Input:new(game, on_close)
+---@param localization ui.localization.Localization
+function Input:new(game, on_close, localization)
 	ModalView.new(self)
+	self.localization = localization
 	self.game = game
 	self.columns = {}
 
@@ -65,16 +67,17 @@ function Input:new(game, on_close)
 		sprites.nineslice_modal_lb, sprites.nineslice_modal_b, sprites.nineslice_modal_rb,
 	})
 
-	self.header = self:add(ModalHeader("Input Bindings", "Configure controls for the selected key mode."))
+	self.header = self:add(ModalHeader(self.localization:get("song_select.input_bindings"),
+		self.localization:get("song_select.input_bindings_subtitle")))
 
 	self.column_list = self:add(FlowContainer({direction = "row", gap = COLUMN_GAP, align = 0.5}))
 	self.column_list:setOffset(50, COLUMN_Y)
 
-	self.footer = self:add(ModalFooter(on_close))
+	self.footer = self:add(ModalFooter(on_close, self.localization:get("settings.close")))
 	self.tip_label = self.footer:add(Label({
 		font_name = "regular",
 		font_size = 18,
-		text = "Left click a frame, then press a key. Right click removes its binding.",
+		text = self.localization:get("song_select.input_bindings_tip"),
 		color = Colors.muted,
 		align = "center",
 	}))
@@ -92,16 +95,16 @@ function Input:setInputMode(input_mode)
 		self.binder = nil
 		self:setWidth(MODAL_MIN_WIDTH)
 		self.tip_label:setWidth(MODAL_MIN_WIDTH - 238)
-		self.header.title:setText("Input Bindings")
-		self.header.subtitle:setText("Configure controls for the selected key mode.")
+		self.header.title:setText(self.localization:get("song_select.input_bindings"))
+		self.header.subtitle:setText(self.localization:get("song_select.input_bindings_subtitle"))
 		self.column_list:fitContent()
 		return
 	end
 
 	self.binder = InputBinder(self.game.configModel.configs.input, input_mode)
 	local mode_text = input_mode:gsub("key", "K"):gsub("scratch", "S")
-	self.header.title:setText("Input Bindings")
-	self.header.subtitle:setText("Configure controls for " .. mode_text .. ".")
+	self.header.title:setText(self.localization:get("song_select.input_bindings"))
+	self.header.subtitle:setText(self.localization:get("song_select.input_bindings_for") .. mode_text .. ".")
 	local count = #self.binder.columns
 	local natural_content_width = count * MAX_COLUMN_WIDTH + math.max(0, count - 1) * COLUMN_GAP
 	local modal_width = math.min(MODAL_MAX_WIDTH, math.max(MODAL_MIN_WIDTH,

@@ -14,7 +14,8 @@ local RADIO_X = 20
 local TEXT_X = 58
 
 ---@param on_select fun(index: integer)
-function NoteSkinList:new(on_select)
+---@param empty_text string?
+function NoteSkinList:new(on_select, empty_text)
 	VirtualizedList.new(self)
 	self.item_height = ITEM_HEIGHT
 	self.gap = GAP
@@ -22,6 +23,7 @@ function NoteSkinList:new(on_select)
 	self.selected_path = nil
 	self.hover_index = nil
 	self.on_select = on_select
+	self.empty_text = empty_text or "No compatible note skins"
 	self.font = Resources.getFont("medium", 21)
 	self.background = NineSliceUsage(Resources.nine_slices.note_skin_item)
 	self.hover_background = NineSliceUsage(Resources.nine_slices.note_skin_item_hover)
@@ -70,7 +72,7 @@ function NoteSkinList:draw()
 	if #self.items == 0 then
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.font)
-		love.graphics.printf("No compatible note skins", 0, 60, self.width, "center")
+		love.graphics.printf(self.empty_text, 0, 60, self.width, "center")
 		return
 	end
 

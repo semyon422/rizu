@@ -14,45 +14,46 @@ local function formatPercent(value)
 end
 
 ---@param ui_config ui.UiConfig
-function GameplayViewport:new(ui_config)
+---@param localization ui.localization.Localization
+function GameplayViewport:new(ui_config, localization)
 	local keys = ui_config.keys
-	Section.new(self, {
-		name = "Gameplay Viewport",
+		Section.new(self, {
+		name = localization:get("settings.gameplay_viewport"),
 		icon = Resources.sprites.icon_camera,
 		build = function()
 			return {
-				GameplayViewportPreview(ui_config),
+				GameplayViewportPreview(ui_config, localization:get("settings.final_resolution")),
 				ControlFactory.number(ui_config, keys.gameplay_viewport_x, {
-					name = "Horizontal position",
+					name = localization:get("settings.horizontal_position"),
 					keywords = {"gameplay", "viewport", "alignment", "accessibility"},
-					tip = "Position the gameplay area horizontally within the screen.",
+					tip = localization:get("settings.horizontal_position_tip"),
 					min = 0,
 					max = 1,
 					step = 0.01,
 					value_format = formatPercent,
 				}),
 				ControlFactory.number(ui_config, keys.gameplay_viewport_y, {
-					name = "Vertical position",
+					name = localization:get("settings.vertical_position"),
 					keywords = {"gameplay", "viewport", "alignment", "accessibility"},
-					tip = "Position the gameplay area vertically within the screen.",
+					tip = localization:get("settings.vertical_position_tip"),
 					min = 0,
 					max = 1,
 					step = 0.01,
 					value_format = formatPercent,
 				}),
 				ControlFactory.number(ui_config, keys.gameplay_viewport_sx, {
-					name = "Width",
+					name = localization:get("settings.width"),
 					keywords = {"gameplay", "viewport", "scale", "size", "accessibility"},
-					tip = "Scale down the gameplay area's width to make notes easier to see.",
+					tip = localization:get("settings.width_tip"),
 					min = 0.25,
 					max = 1,
 					step = 0.01,
 					value_format = formatPercent,
 				}),
 				ControlFactory.number(ui_config, keys.gameplay_viewport_sy, {
-					name = "Height",
+					name = localization:get("settings.height"),
 					keywords = {"gameplay", "viewport", "scale", "size", "accessibility"},
-					tip = "Scale down the gameplay area's height to make notes easier to see.",
+					tip = localization:get("settings.height_tip"),
 					min = 0.25,
 					max = 1,
 					step = 0.01,

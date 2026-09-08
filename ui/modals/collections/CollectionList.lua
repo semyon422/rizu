@@ -15,7 +15,8 @@ local TEXT_X = 16
 
 ---@param on_select fun(index: integer)
 ---@param on_confirm fun(index: integer)
-function CollectionList:new(on_select, on_confirm)
+---@param localization ui.localization.Localization
+function CollectionList:new(on_select, on_confirm, localization)
 	VirtualizedList.new(self)
 	self.item_height = ITEM_HEIGHT
 	self.options = {}
@@ -23,6 +24,7 @@ function CollectionList:new(on_select, on_confirm)
 	self.hover_index = nil
 	self.on_select = on_select
 	self.on_confirm = on_confirm
+	self.localization = localization
 	self.title_font = Resources.getFont("medium", 17)
 	self.detail_font = Resources.getFont("regular", 13)
 end
@@ -85,7 +87,7 @@ function CollectionList:draw()
 	if #self.options == 0 then
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.title_font)
-		love.graphics.printf("No matching collections or locations", 0, 24, self.width, "center")
+		love.graphics.printf(self.localization:get("song_select.no_matching_collections"), 0, 24, self.width, "center")
 		return
 	end
 	local scroll = self:getVisualScrollPosition()
@@ -107,8 +109,12 @@ function CollectionList:draw()
 		love.graphics.print(option.label, TEXT_X, y + 7)
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.detail_font)
-		local kind = node.depth == 0 and "Library" or (node.path == nil and "Location" or "Collection")
-		love.graphics.print(("%s - %d charts"):format(kind, node.count), TEXT_X, y + 32)
+		local kind_key = node.depth == 0 and "library" or (node.path == nil and "location" or "collection_kind")
+		local kind = self.localization:get("song_select." .. kind_key)
+		love.graphics.print(self.localization:get("song_select.collection_chart_count", {
+			kind = kind,
+			count = node.count,
+		}), TEXT_X, y + 32)
 	end
 end
 

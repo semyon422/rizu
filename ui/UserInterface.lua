@@ -20,6 +20,7 @@ local Registry = require("rizu.command.Registry")
 local Colors = require("ui.Colors")
 local LoveFilesystem = require("fs.LoveFilesystem")
 local UiConfig = require("ui.UiConfig")
+local Localization = require("ui.localization.Localization")
 local UiActions = require("ui.UiActions")
 local MapperatorinatorConfig = require("rizu.mapperatorinator.Config")
 local MapperatorinatorWorkflow = require("rizu.mapperatorinator.Workflow")
@@ -65,6 +66,7 @@ local TARGET_HEIGHT = 1080
 ---@field actions gui.input.ActionMap
 ---@field mapperatorinator_config rizu.config.Config
 ---@field mapperatorinator_workflow rizu.mapperatorinator.Workflow
+---@field localization ui.localization.Localization
 ---@field private prev_w number
 ---@field private prev_h number
 local UserInterface = RizuUserInterface + {}
@@ -93,6 +95,7 @@ function UserInterface:new(game, mount_path)
 	self.ui_select_commands = UiSelectCommands(game, self)
 	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
 	self.config:load()
+	self.localization = Localization(game.settings:getString(require("rizu.config.Settings").keys.misc.language))
 	self.mapperatorinator_config = MapperatorinatorConfig.create(LoveFilesystem())
 	self.mapperatorinator_config:load()
 	self.mapperatorinator_workflow = MapperatorinatorWorkflow(game, self)

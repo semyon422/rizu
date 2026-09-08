@@ -27,11 +27,11 @@ function SongSelectHeader:new(ui)
 	brand:fitContent()
 	brand:anchorFixed(16, 0, brand.width, 50)
 
-	local session_info = self:add(SessionInfo())
+	local session_info = self:add(SessionInfo(ui.localization:get("song_select.offline")))
 	session_info:setAlignment(0.5, 0.5)
 
 	local actions = self:add(FlowContainer({direction = "row", align = 0.5}))
-	actions:add(PlayerInfo("Username"))
+	actions:add(PlayerInfo(ui.localization:get("song_select.username")))
 
 	local dock = actions:add(View())
 	dock:setSize(126, 50)

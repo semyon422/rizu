@@ -14,7 +14,7 @@ function Dlc:new(ui)
 	local label = self.root:add(Label({
 		font_name = "bold",
 		font_size = 32,
-		text = "Downloadable content: TODO",
+		text = ui.localization:get("dlc.title"),
 	}))
 	label:setAlignment(0.5, 0.5)
 	label:setPivot(0.5, 0.5)

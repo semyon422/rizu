@@ -41,17 +41,18 @@ local function formatDecibels(value)
 end
 
 ---@param settings rizu.config.Config
-function Audio:new(settings)
-	Section.new(self, {
-		name = "Audio Volume",
+---@param localization ui.localization.Localization
+function Audio:new(settings, localization)
+		Section.new(self, {
+		name = localization:get("settings.audio"),
 		icon = Resources.sprites.icon_volume_1,
 		build = function(section)
 			local keys = Settings.keys.audio
 			local logarithmic = settings:getChoice(keys.volume_type) == "logarithmic"
 			local controls = {
 				ControlFactory.segmentedChoice(settings, keys.volume_type, {
-					name = "Volume scale",
-					tip = "Choose whether volume sliders use percentages or decibels.",
+					name = localization:get("settings.volume_scale"),
+					tip = localization:get("settings.volume_scale_tip"),
 					format = formatVolumeScale,
 					on_change = function()
 						section:invalidate()
@@ -59,16 +60,16 @@ function Audio:new(settings)
 				}),
 			}
 			local volumes = {
-				{key = keys.volume_master, name = "Master volume", keyword = "master"},
-				{key = keys.volume_music, name = "Music volume", keyword = "music"},
-				{key = keys.volume_keysounds, name = "Keysound volume", keyword = "keysounds"},
-				{key = keys.volume_metronome, name = "Metronome volume", keyword = "metronome"},
+				{key = keys.volume_master, name = localization:get("settings.master_volume"), keyword = "master"},
+				{key = keys.volume_music, name = localization:get("settings.music_volume"), keyword = "music"},
+				{key = keys.volume_keysounds, name = localization:get("settings.keysound_volume"), keyword = "keysounds"},
+				{key = keys.volume_metronome, name = localization:get("settings.metronome_volume"), keyword = "metronome"},
 			}
 			for _, volume in ipairs(volumes) do
 				controls[#controls + 1] = ControlFactory.number(settings, volume.key, {
 					name = volume.name,
 					keywords = {"audio", "sound", volume.keyword},
-					tip = "Adjust the " .. volume.keyword .. " output level.",
+					tip = localization:get("settings.volume_tip", {kind = volume.keyword}),
 					min = logarithmic and MIN_DECIBELS or nil,
 					max = logarithmic and 0 or nil,
 					step = logarithmic and 1 or nil,

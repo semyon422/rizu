@@ -12,10 +12,11 @@ local ScoreListPanel = View + {}
 
 ---@param score_selector rizu.select.ScoreSelector
 ---@param on_score_selected fun(index: integer)
-function ScoreListPanel:new(score_selector, on_score_selected)
+---@param localization ui.localization.Localization
+function ScoreListPanel:new(score_selector, on_score_selected, localization)
 	View.new(self)
 	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
-	self.score_list = self:add(ScoreList(score_selector, on_score_selected))
+	self.score_list = self:add(ScoreList(score_selector, on_score_selected, localization))
 	self.score_list:anchorFill(5, 60, 5, 5)
 
 	local divider = self:add(Line({color = Colors.divider}))

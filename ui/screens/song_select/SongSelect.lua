@@ -37,12 +37,12 @@ function SongSelect:new(ui)
 		ui.game.chartSelector.chartview,
 		ui.game.settings
 	)
-	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game)
+	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game, ui.localization)
 	self.score_list_panel = ScoreListPanel(ui.game.scoreSelector, function(index)
 		self:openScore(index)
-	end)
-	self.chart_browser = ChartBrowser(ui.game.chartSelector, ui.game.settings, ui.tooltip)
-	self.chart_summary = ChartSummary(self.chartview_formatter)
+	end, ui.localization)
+	self.chart_browser = ChartBrowser(ui.game.chartSelector, ui.game.settings, ui.tooltip, ui.localization)
+	self.chart_summary = ChartSummary(self.chartview_formatter, ui.localization)
 	self.popup_container = PopupContainer()
 
 	self.root:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)

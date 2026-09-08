@@ -23,7 +23,7 @@ function ChartLoading:new(ui)
 	content:add(Label({
 		font_name = "bold",
 		font_size = 36,
-		text = "Loading...",
+		text = ui.localization:get("chart_loading.loading"),
 	}))
 	content:add(Loading())
 	content:fitContent()

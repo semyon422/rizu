@@ -51,28 +51,30 @@ function ModalManager:new(ui, popup_container)
 		self:hideModal()
 	end))
 	self.config = self:addModal(Config(ui.config, ui.game.settings, popup_container,
-		function() self:hideModal(self.config) end))
+		function() self:hideModal(self.config) end,
+		ui.localization))
 	self.mapperatorinator = self:addModal(Mapperatorinator(
 		ui.mapperatorinator_workflow,
 		ui.mapperatorinator_config,
 		function() self:detachMapperatorinator() end,
 		popup_container
 	))
-	self.input = self:addModal(Input(ui.game, function() self:hideModal(self.input) end))
+	local localization = ui.localization
+	self.input = self:addModal(Input(ui.game, function() self:hideModal(self.input) end, localization))
 	ui.game.chartSelector:onChanged(self.input)
 	local function modifiers_changed()
 		-- TODO: This callback chain stinks. The game core should emit modifier-change events.
 		ui.song_select:updateModifiers()
 	end
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed,
-		function() self:hideModal(self.modifiers) end))
+		function() self:hideModal(self.modifiers) end, localization))
 	self.note_skins = self:addModal(NoteSkins(ui.game,
-		function() self:hideModal(self.note_skins) end))
-	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed))
+		function() self:hideModal(self.note_skins) end, localization))
+	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed, localization))
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)
-	end))
-	self.filters = self:addModal(Filters(ui.game, popup_container))
+	end, localization))
+	self.filters = self:addModal(Filters(ui.game, popup_container, localization))
 	self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
 	if ui.game.aiChatModel then
 		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()

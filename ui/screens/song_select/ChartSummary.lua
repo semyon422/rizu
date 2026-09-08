@@ -19,9 +19,11 @@ local METADATA_MAX_WIDTH = 520
 local METADATA_GAP = 24
 
 ---@param cvf ui.formatters.ChartviewFormatter
-function ChartSummary:new(cvf)
+---@param localization ui.localization.Localization
+function ChartSummary:new(cvf, localization)
 	View.new(self)
 	self.cvf = cvf
+	self.localization = localization
 	self:setClip(true)
 	self.background = NineSliceUsage(Resources.nine_slices.song_select_summary)
 	self.chip = NineSliceUsage(Resources.nine_slices.chart_summary_chip)
@@ -39,7 +41,7 @@ function ChartSummary:new(cvf)
 	self.rating = "0.0"
 	self.difficulty_postfix = "USER"
 	self.level = nil
-	self.mode = "NO CHART"
+	self.mode = localization:get("song_select.no_chart")
 	self.duration = "0:00"
 	self.note_count = "0"
 	self.tempo = "0"
@@ -60,7 +62,7 @@ function ChartSummary:bind()
 		self.difficulty_postfix = "USER"
 		self.level = nil
 		self.difficulty_color = Colors.text
-		self.mode = "NO CHART"
+		self.mode = self.localization:get("song_select.no_chart")
 		self.duration = "0:00"
 		self.note_count = "0"
 		self.tempo = "0"
@@ -158,9 +160,9 @@ function ChartSummary:rebuild()
 	self.value_text:clear()
 	self.icons:clear()
 	if show_metadata then
-		self.label_text:add({Colors.muted, "LENGTH"}, metadata_x + 39, center_y - 17)
-		self.label_text:add({Colors.muted, "NOTES"}, metadata_x + column_width + 39, center_y - 17)
-		self.label_text:add({Colors.muted, "TEMPO"}, metadata_x + column_width * 2 + 39, center_y - 17)
+		self.label_text:add({Colors.muted, self.localization:get("song_select.length")}, metadata_x + 39, center_y - 17)
+		self.label_text:add({Colors.muted, self.localization:get("song_select.notes")}, metadata_x + column_width + 39, center_y - 17)
+		self.label_text:add({Colors.muted, self.localization:get("song_select.tempo")}, metadata_x + column_width * 2 + 39, center_y - 17)
 		local value_y = math.floor(center_y - 5 + 0.5)
 		self.value_text:add({Colors.text, self.duration}, math.floor(metadata_x + 39 + 0.5), value_y)
 		self.value_text:add({Colors.text, self.note_count}, math.floor(metadata_x + column_width + 39 + 0.5), value_y)

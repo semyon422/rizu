@@ -25,9 +25,10 @@ end
 
 ---@param settings rizu.config.Config
 ---@param ui_config ui.UiConfig
-function Gameplay:new(settings, ui_config)
-	Section.new(self, {
-		name = "Gameplay",
+---@param localization ui.localization.Localization
+function Gameplay:new(settings, ui_config, localization)
+		Section.new(self, {
+		name = localization:get("settings.gameplay"),
 		icon = Resources.sprites.icon_play,
 		build = function(section)
 			local keys = Settings.keys.gameplay
@@ -37,18 +38,18 @@ function Gameplay:new(settings, ui_config)
 
 			return {
 				ControlFactory.segmentedChoice(settings, keys.speed_type, {
-					name = "Scroll speed type",
+					name = localization:get("settings.scroll_speed_type"),
 					keywords = {"gameplay", "scroll", "speed", "osu"},
 					format = formatScrollSpeedType,
-					tip = "Choose the scale used by the scroll speed slider.",
+					tip = localization:get("settings.scroll_speed_type_tip"),
 					on_change = function()
 						section:invalidate()
 					end,
 				}),
 				ControlFactory.number(settings, keys.speed, {
-					name = "Scroll speed",
+					name = localization:get("settings.scroll_speed"),
 					keywords = {"gameplay", "scroll", "speed"},
-					tip = "Adjust how quickly notes move through the playfield.",
+					tip = localization:get("settings.scroll_speed_tip"),
 					min = range[1],
 					max = range[2],
 					step = range[3],
@@ -63,24 +64,24 @@ function Gameplay:new(settings, ui_config)
 					end,
 				}),
 				ControlFactory.boolean(settings, keys.auto_key_sound, {
-					name = "Auto keysound",
+					name = localization:get("settings.auto_keysound"),
 					keywords = {"gameplay", "audio", "auto", "keysound"},
-					tip = "Play keysounds automatically, independently of key presses. Applies on the next chart load.",
+					tip = localization:get("settings.auto_keysound_tip"),
 				}),
 				ControlFactory.boolean(settings, keys.bga_image, {
-					name = "Background images",
+					name = localization:get("settings.background_images"),
 					keywords = {"gameplay", "background", "animation", "bga", "image"},
-					tip = "Display BGA images in the gameplay background.",
+					tip = localization:get("settings.background_images_tip"),
 				}),
 				ControlFactory.boolean(settings, keys.bga_video, {
-					name = "Background videos",
+					name = localization:get("settings.background_videos"),
 					keywords = {"gameplay", "background", "animation", "bga", "video"},
-					tip = "Display BGA videos in the gameplay background.",
+					tip = localization:get("settings.background_videos_tip"),
 				}),
 				ControlFactory.number(ui_config, ui_config.keys.gameplay_bga_brightness, {
-					name = "BGA brightness",
+					name = localization:get("settings.bga_brightness"),
 					keywords = {"gameplay", "background", "animation", "bga", "brightness", "dim"},
-					tip = "Adjust the brightness of gameplay BGA images and videos.",
+					tip = localization:get("settings.bga_brightness_tip"),
 					value_format = formatPercent,
 				}),
 			}

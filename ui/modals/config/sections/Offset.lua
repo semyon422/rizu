@@ -8,17 +8,18 @@ local Settings = require("rizu.config.Settings")
 local Offset = Section + {}
 
 ---@param settings rizu.config.Config
-function Offset:new(settings)
-	Section.new(self, {
-		name = "Offset",
+---@param localization ui.localization.Localization
+function Offset:new(settings, localization)
+		Section.new(self, {
+		name = localization:get("settings.offset"),
 		icon = Resources.sprites.icon_metronome,
 		build = function()
 			local keys = Settings.keys.gameplay.offset_audio_mode
 			return {
 				ControlFactory.number(settings, keys.bass_sample, {
-					name = "Universal offset",
+					name = localization:get("settings.universal_offset"),
 					keywords = {"audio", "timing", "latency", "sync"},
-					tip = "Apply the same audio offset to all playback modes.",
+					tip = localization:get("settings.universal_offset_tip"),
 					min = -0.5,
 					max = 0.5,
 					step = 0.001,

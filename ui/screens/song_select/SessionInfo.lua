@@ -38,14 +38,15 @@ local function maxNumericWidth(font, template)
 	return font:getWidth(template:gsub("%%d", widest_digit))
 end
 
-function SessionInfo:new()
+---@param status_text string?
+function SessionInfo:new(status_text)
 	View.new(self)
 	self.date_font = Resources.getFont("regular", 16)
 	self.session_font = Resources.getFont("bold", 16)
 	self.status_font = Resources.getFont("medium", 16)
 	self.date_text = ""
 	self.session_text = ""
-	self.status_text = "OFFLINE"
+	self.status_text = status_text or "OFFLINE"
 	self.text_timer = 0
 	self.background = NineSliceUsage(Resources.nine_slices.song_select_session)
 	self:updateText()

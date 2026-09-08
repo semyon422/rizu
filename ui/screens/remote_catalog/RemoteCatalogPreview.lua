@@ -9,10 +9,12 @@ local View = require("gui.View")
 ---@field text string
 local RemoteCatalogPreview = View + {}
 
-function RemoteCatalogPreview:new()
+---@param ui ui.UserInterface
+function RemoteCatalogPreview:new(ui)
 	View.new(self)
+	self.ui = ui
 	self.image = nil
-	self.text = "Select a chart with a background"
+	self.text = ui.localization:get("remote_catalog.select_background")
 	self.font = Resources.getFont("regular", 16)
 	self:setClip(true)
 end

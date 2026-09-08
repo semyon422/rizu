@@ -21,8 +21,10 @@ local LIST_PADDING_Y = 20
 
 ---@param game sphere.GameController
 ---@param on_close fun()
-function NoteSkins:new(game, on_close)
+---@param localization ui.localization.Localization
+function NoteSkins:new(game, on_close, localization)
 	ModalView.new(self)
+	self.localization = localization
 	self.game = game
 	self.input_mode = ""
 	self.items = {}
@@ -40,11 +42,13 @@ function NoteSkins:new(game, on_close)
 		sprites.nineslice_modal_lb, sprites.nineslice_modal_b, sprites.nineslice_modal_rb,
 	})
 
-	self.header = self:add(ModalHeader("Note Skins", "Choose a skin for the selected Chart."))
-	self.list = self:add(NoteSkinList(function(index) self:select(index) end))
+	self.header = self:add(ModalHeader(self.localization:get("song_select.note_skins_title"),
+		self.localization:get("song_select.note_skins_subtitle")))
+	self.list = self:add(NoteSkinList(function(index) self:select(index) end,
+		self.localization:get("song_select.no_compatible_skins")))
 	self.list:anchorFixed(CONTENT_X, HEADER_HEIGHT + LIST_PADDING_Y,
 		WIDTH - CONTENT_X * 2, HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - LIST_PADDING_Y * 2)
-	self:add(ModalFooter(on_close))
+	self:add(ModalFooter(on_close, self.localization:get("settings.close")))
 end
 
 function NoteSkins:refresh()
@@ -53,7 +57,7 @@ function NoteSkins:refresh()
 	if input_mode == "" then
 		self.items = {}
 		self.selected_index = 1
-		self.header.subtitle:setText("Select a Chart to choose a compatible skin.")
+		self.header.subtitle:setText(self.localization:get("song_select.select_chart_for_skin"))
 		self.list:setItems({}, nil)
 		return
 	end
@@ -62,7 +66,7 @@ function NoteSkins:refresh()
 	self.items = model:getSkinInfos(input_mode)
 	local selected = model:getSkinInfo(input_mode)
 	local selected_path = selected and selected:getPath() or nil
-	self.header.subtitle:setText("Choose a skin for " .. input_mode .. ".")
+	self.header.subtitle:setText(self.localization:get("song_select.choose_skin_for") .. input_mode .. ".")
 	for index, item in ipairs(self.items) do
 		if item:getPath() == selected_path then
 			self.selected_index = index

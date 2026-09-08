@@ -112,7 +112,7 @@ function ModifierInsertionCell:draw()
 	love.graphics.setLineWidth(1)
 	love.graphics.rectangle("line", 0.5, 0.5, self.width - 1, self.height - 1)
 	love.graphics.setFont(self.list.value_font)
-	love.graphics.printf("Will be inserted here", 0, 10, self.width, "center")
+	love.graphics.printf(self.list.insertion_text, 0, 10, self.width, "center")
 end
 
 ---@class ui.modals.chart_mutators.SelectedModifierListChrome : gui.View
@@ -140,7 +140,7 @@ function SelectedModifierListChrome:draw()
 	if self.draw_title then
 		Painter.setColorTable(Colors.text)
 		love.graphics.setFont(self.list.header_font)
-		love.graphics.print("Selected modifiers", HORIZONTAL_PADDING, 17)
+		love.graphics.print(self.list.title, HORIZONTAL_PADDING, 17)
 	end
 end
 
@@ -166,7 +166,8 @@ end
 
 ---@param model sphere.ModifierSelectModel
 ---@param on_change fun()?
-function SelectedModifierList:new(model, on_change)
+---@param localization ui.localization.Localization
+function SelectedModifierList:new(model, on_change, localization)
 	local content = FlowContainer({
 		direction = "column",
 		padding = {HORIZONTAL_PADDING, HEADER_HEIGHT, HORIZONTAL_PADDING, VERTICAL_PADDING},
@@ -175,6 +176,8 @@ function SelectedModifierList:new(model, on_change)
 	ScrollView.new(self, content)
 	self.model = model
 	self.on_change = on_change
+	self.title = localization:get("song_select.selected_mutators")
+	self.insertion_text = localization:get("song_select.mutator_insertion")
 	self.active = false
 	self.background = createBackground()
 	self.header_font = Resources.getFont("bold", 24)

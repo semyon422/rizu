@@ -28,7 +28,7 @@ function MusicPlayer:new(ui)
 	self.title_label = self.root:add(Label({
 		font_name = "cjk_bold",
 		font_size = 48,
-		text = "No song selected",
+		text = ui.localization:get("music_player.no_song"),
 	}))
 	self.title_label:setAlignment(0.5, 0.1)
 	self.title_label:setPivot(0.5, 0.5)
@@ -62,12 +62,12 @@ end
 ---@param chartview rizu.library.LocatedChartview?
 function MusicPlayer:bind(chartview)
 	if not chartview then
-		self.title_label:setText("No song selected")
+		self.title_label:setText(self.ui.localization:get("music_player.no_song"))
 		self.artist_label:setText("")
 		return
 	end
-	self.title_label:setText(chartview.title and chartview.title ~= "" and chartview.title or "Unknown title")
-	self.artist_label:setText(chartview.artist and chartview.artist ~= "" and chartview.artist or "Unknown artist")
+	self.title_label:setText(chartview.title and chartview.title ~= "" and chartview.title or self.ui.localization:get("music_player.unknown_title"))
+	self.artist_label:setText(chartview.artist and chartview.artist ~= "" and chartview.artist or self.ui.localization:get("music_player.unknown_artist"))
 end
 
 function MusicPlayer:enter()

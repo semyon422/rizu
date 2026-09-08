@@ -44,11 +44,11 @@ function MainMenu:createButtons()
 		gap = 16
 	})
 
-	buttons:add(Button("Play", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.play"), function()
 		self.ui:setScreen(self.ui.song_select, true)
 	end))
 
-	buttons:add(Button("Editor", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.editor"), function()
 		if self.ui.game.chartSelector:chartExists() then
 			self.ui:setScreen(self.ui.editor)
 		else
@@ -56,39 +56,39 @@ function MainMenu:createButtons()
 		end
 	end))
 
-	buttons:add(Button("Lobby List", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.lobby_list"), function()
 		self.ui:setScreen(self.ui.lobby_list)
 	end))
 
-	buttons:add(Button("Lobby", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.lobby"), function()
 		self.ui:setScreen(self.ui.lobby)
 	end))
 
-	buttons:add(Button("Music Player", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.music_player"), function()
 		self.ui:setScreen(self.ui.music_player, true)
 	end))
 
-	buttons:add(Button("DLC", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.dlc"), function()
 		self.ui:setScreen(self.ui.dlc)
 	end))
 
-	buttons:add(Button("Remote Catalog", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.remote_catalog"), function()
 		self.ui:setScreen(self.ui.remote_catalog)
 	end))
 
-	buttons:add(Button("Locations", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.locations"), function()
 		self.ui:setScreen(self.ui.locations, true)
 	end))
 
-	buttons:add(Button("Settings", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.settings"), function()
 		self.ui.modal_manager:attachConfig()
 	end))
 
-	buttons:add(Button("Tests", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.tests"), function()
 		self.ui:setScreen(self.ui.test_screen)
 	end))
 
-	buttons:add(Button("Quit", function()
+	buttons:add(Button(self.ui.localization:get("main_menu.quit"), function()
 		love.event.quit()
 	end))
 

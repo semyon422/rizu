@@ -10,10 +10,11 @@ local LocationRow = View + {}
 
 ---@param location rizu.library.Location
 ---@param width number
+---@param ui ui.UserInterface
 ---@param on_update_cache fun(location: rizu.library.Location)
 ---@param on_edit fun(location: rizu.library.Location)
 ---@param on_delete fun(location: rizu.library.Location)
-function LocationRow:new(location, width, on_update_cache, on_edit, on_delete)
+function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delete)
 	View.new(self)
 	self:setSize(width, 100)
 	self:add(Panel({color = Colors.panel, line_color = Colors.outline})):anchorFill(0, 0, 0, 0)
@@ -23,7 +24,7 @@ function LocationRow:new(location, width, on_update_cache, on_edit, on_delete)
 	local path = self:add(Label({font_name = "regular", font_size = 16, text = location.path, color = Colors.muted}))
 	path:setPosition(24, 58):setSize(width - 540, 24)
 
-	local update_cache = self:add(Button("Update cache", function() on_update_cache(location) end, {
+	local update_cache = self:add(Button(ui.localization:get("locations.update_cache"), function() on_update_cache(location) end, {
 		variant = "primary", shape = "capsule", font_name = "medium", font_size = 16,
 	}))
 	local update_offset = location.is_internal and -24 or -284
@@ -32,11 +33,11 @@ function LocationRow:new(location, width, on_update_cache, on_edit, on_delete)
 		return
 	end
 
-	local edit = self:add(Button("Edit", function() on_edit(location) end, {
+	local edit = self:add(Button(ui.localization:get("locations.edit"), function() on_edit(location) end, {
 		variant = "secondary", shape = "capsule", font_name = "medium", font_size = 16,
 	}))
 	edit:setSize(110, 40):setAlignment(1, 0.5):setOffset(-154, 0)
-	local delete = self:add(Button("Delete", function() on_delete(location) end, {
+	local delete = self:add(Button(ui.localization:get("locations.delete"), function() on_delete(location) end, {
 		variant = "danger", shape = "capsule", font_name = "medium", font_size = 16,
 	}))
 	delete:setSize(110, 40):setAlignment(1, 0.5):setOffset(-24, 0)

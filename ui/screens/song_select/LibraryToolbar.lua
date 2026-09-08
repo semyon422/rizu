@@ -55,7 +55,7 @@ function LibraryToolbar:new(ui, popup_container)
 	controls:anchorFill(0, 0, 0, 0)
 
 	self.collection_dropdown = controls:add(Dropdown({
-		label = "COLLECTION",
+		label = ui.localization:get("song_select.collection"),
 		options = {},
 		value = nil,
 		popup_container = popup_container,
@@ -74,11 +74,11 @@ function LibraryToolbar:new(ui, popup_container)
 	---@type ui.screens.song_select.DropdownOption[]
 	local sort_options = {}
 	for _, name in ipairs(chart_selector.sortModel.names) do
-		sort_options[#sort_options + 1] = {label = name:gsub("^%l", string.upper), value = name}
+		sort_options[#sort_options + 1] = {label = ui.localization:get("song_select.sort_" .. name), value = name}
 	end
 	local sort_key = Settings.keys.select.sort_function
 	self.sort_dropdown = controls:add(Dropdown({
-		label = "SORT",
+		label = ui.localization:get("song_select.sort"),
 		options = sort_options,
 		value = settings:getString(sort_key),
 		popup_container = popup_container,
@@ -95,7 +95,7 @@ function LibraryToolbar:new(ui, popup_container)
 	local search_key = Settings.keys.select.filter_string
 	self.search = controls:add(SearchField({
 		text = settings:getString(search_key),
-		placeholder = "Search songs, artists, or creators",
+		placeholder = ui.localization:get("song_select.search_placeholder"),
 		on_change = function(text)
 			settings:setString(search_key, text)
 			chart_selector:debounceRefresh()
@@ -108,7 +108,7 @@ function LibraryToolbar:updateCollections()
 	local root = selector.store.root_tree
 	if not root then return end
 	---@type ui.screens.song_select.DropdownOption[]
-	local options = {{label = "All songs", value = root}}
+	local options = {{label = self.ui.localization:get("song_select.all_songs"), value = root}}
 	addCollectionOptions(root, options, "")
 	self.collection_dropdown:setOptions(options, selector:getSelectedItem() or root)
 end

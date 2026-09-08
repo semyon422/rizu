@@ -21,9 +21,10 @@ local SEARCH_HEIGHT = 40
 local LIST_TOP = 80
 
 ---@param on_close function
-function CollectionSelector:new(on_close)
+---@param localization ui.localization.Localization
+function CollectionSelector:new(on_close, localization)
 	ModalView.new(self)
-	self.on_close = on_close
+		self.on_close = on_close
 	self.options = {}
 	self.filtered_options = {}
 	self.selected_value = nil
@@ -45,7 +46,7 @@ function CollectionSelector:new(on_close)
 	})
 
 	self.search = self:add(Textbox({
-		placeholder = "Search collections and locations...",
+		placeholder = localization:get("song_select.search_collections"),
 		icon = sprites.icon_search,
 		blur_on_accept = false,
 		blur_on_cancel = false,
@@ -57,7 +58,8 @@ function CollectionSelector:new(on_close)
 
 	self.list = self:add(CollectionList(
 		function(index) self.list:setSelectedIndex(index) end,
-		function(index) self:select(index) end
+		function(index) self:select(index) end,
+		localization
 	))
 	self.list:anchorFixed(PADDING, LIST_TOP, MODAL_WIDTH - PADDING * 2, MODAL_HEIGHT - LIST_TOP - PADDING)
 end

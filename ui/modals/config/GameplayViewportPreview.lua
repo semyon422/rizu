@@ -17,11 +17,13 @@ local PREVIEW_PADDING = 12
 local DETAILS_X = 458
 
 ---@param ui_config ui.UiConfig
-function GameplayViewportPreview:new(ui_config)
+---@param label string?
+function GameplayViewportPreview:new(ui_config, label)
 	FormControl.new(self)
 	self.ui_config = ui_config
 	self.label_font = Resources.getFont("medium", 16)
 	self.resolution_font = Resources.getFont("bold", 24)
+	self.label = label or "Final resolution"
 	self:setSize(WIDTH, HEIGHT)
 end
 
@@ -64,7 +66,7 @@ function GameplayViewportPreview:draw()
 
 	Painter.setColorTable(Colors.muted)
 	lg.setFont(self.label_font)
-	lg.printf("Final resolution", DETAILS_X, 96, WIDTH - DETAILS_X, "left")
+	lg.printf(self.label, DETAILS_X, 96, WIDTH - DETAILS_X, "left")
 
 	local final_width = math.floor(screen_width * scale_x + 0.5)
 	local final_height = math.floor(screen_height * scale_y + 0.5)

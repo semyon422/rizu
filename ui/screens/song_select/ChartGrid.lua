@@ -29,10 +29,12 @@ local ITEM_GRADIENT_OPACITY = 0.32
 
 ---@param chart_selector rizu.select.ChartSelector
 ---@param tooltip ui.views.Tooltip?
-function ChartGrid:new(chart_selector, tooltip)
+---@param localization ui.localization.Localization
+function ChartGrid:new(chart_selector, tooltip, localization)
 	VirtualizedList.new(self)
 	self.chart_selector = chart_selector
 	self.tooltip = tooltip
+	self.localization = localization
 	self.chartview_formatter = ChartviewFormatter(nil, chart_selector.settings)
 	self.items = {}
 	self.meta_batch = love.graphics.newTextBatch(Resources.getFont("regular", 24)) ---@type love.Text
@@ -95,7 +97,7 @@ function ChartGrid:reloadItems()
 				difficulty = difficulty.value,
 				difficulty_color = difficulty.color,
 				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S"),
-				name = item.name or "Unknown difficulty",
+				name = item.name or (self.localization:get("song_select.unknown_difficulty")),
 			})
 		end
 	end

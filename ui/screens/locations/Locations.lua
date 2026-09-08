@@ -19,11 +19,11 @@ function Locations:new(ui)
 	self.ui = ui
 	self.root:setPivot(0.5, 0.5)
 
-	local title = self.root:add(Label({font_name = "bold", font_size = 46, text = "Local locations"}))
+	local title = self.root:add(Label({font_name = "bold", font_size = 46, text = ui.localization:get("locations.title")}))
 	title:setSize(LIST_WIDTH, 58):setAlignment(0.5, 0):setOffset(0, 42)
 	local subtitle = self.root:add(Label({
 		font_name = "regular", font_size = 18,
-		text = "Manage folders Rizu scans for Charts.", color = Colors.muted,
+		text = ui.localization:get("locations.subtitle"), color = Colors.muted,
 	}))
 	subtitle:setSize(LIST_WIDTH, 28):setAlignment(0.5, 0):setOffset(0, 102)
 
@@ -32,16 +32,16 @@ function Locations:new(ui)
 	self.scroll:setSize(LIST_WIDTH, 760):setAlignment(0.5, 0.5):setOffset(0, 28)
 
 	self.empty = self.root:add(Label({
-		font_name = "regular", font_size = 20, text = "No local locations configured.",
+		font_name = "regular", font_size = 20, text = ui.localization:get("locations.empty"),
 		color = Colors.muted, align = "center",
 	}))
 	self.empty:setSize(LIST_WIDTH, 30):setAlignment(0.5, 0.5)
 
-	self.back = self.root:add(Button("Back", function() ui:setScreen(ui.main_menu, true) end, {
+	self.back = self.root:add(Button(ui.localization:get("locations.back"), function() ui:setScreen(ui.main_menu, true) end, {
 		variant = "secondary", font_name = "medium", font_size = 18,
 	}))
 	self.back:setSize(150, 44):setAlignment(0, 1):setOffset(48, -28)
-	self.add_button = self.root:add(Button("Add location", function()
+	self.add_button = self.root:add(Button(ui.localization:get("locations.add"), function()
 		ui.modal_manager:attachLocationEditor()
 	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
 	self.add_button:setSize(190, 44):setAlignment(1, 1):setOffset(-48, -28)
@@ -54,7 +54,7 @@ function Locations:refresh()
 	local displayed = 0
 	for _, location in ipairs(locations.locations) do
 		displayed = displayed + 1
-		self.content:add(LocationRow(location, LIST_WIDTH, function(selected)
+		self.content:add(LocationRow(location, LIST_WIDTH, self.ui, function(selected)
 			self.ui.game.selectionActions:updateCacheLocation(selected.id)
 		end, function(selected)
 			self.ui.modal_manager:attachLocationEditor(selected)

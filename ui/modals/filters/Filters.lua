@@ -29,10 +29,6 @@ local OPTIONS = {"any", "yes", "no"}
 
 ---@param value ui.modals.filters.Filters.Value
 ---@return string
-local function formatValue(value)
-	return value:gsub("^%l", string.upper)
-end
-
 ---@param filter_model rizu.select.FilterModel
 ---@param group string
 ---@param positive string
@@ -49,8 +45,10 @@ end
 
 ---@param game sphere.GameController
 ---@param popup_container ui.views.PopupContainer
-function Filters:new(game, popup_container)
+---@param localization ui.localization.Localization
+function Filters:new(game, popup_container, localization)
 	ModalView.new(self)
+		local function formatValue(value) return localization:get("song_select.filter_" .. value) end
 	self.game = game
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
@@ -76,7 +74,7 @@ function Filters:new(game, popup_container)
 	self:add(Label({
 		font_name = "bold",
 		font_size = 32,
-		text = "Filters",
+		text = localization:get("song_select.filters_title"),
 	})):anchorFixed(CONTENT_X, 28, MODAL_WIDTH - CONTENT_X * 2, 40)
 
 	self.form = Form({direction = "column", gap = 18})
@@ -85,7 +83,7 @@ function Filters:new(game, popup_container)
 	self.form_selection = self:add(FormSelection(self.form))
 
 	self.played = self.form:add(SegmentedControl({
-		label = "Played",
+		label = localization:get("song_select.played"),
 		options = OPTIONS,
 		value = "any",
 		format = formatValue,
@@ -94,7 +92,7 @@ function Filters:new(game, popup_container)
 		end,
 	}))
 	self.scratch = self.form:add(SegmentedControl({
-		label = "Scratch",
+		label = localization:get("song_select.scratch"),
 		options = OPTIONS,
 		value = "any",
 		format = formatValue,
@@ -103,14 +101,14 @@ function Filters:new(game, popup_container)
 		end,
 	}))
 	self.original_input_modes = self.form:add(InputModeMultiSelect({
-		label = "Original input mode",
+		label = localization:get("song_select.original_input_mode"),
 		popup_container = popup_container,
 		on_change = function(values)
 			self:setInputModes("original input mode", values)
 		end,
 	}))
 	self.actual_input_modes = self.form:add(InputModeMultiSelect({
-		label = "Actual input mode",
+		label = localization:get("song_select.actual_input_mode"),
 		popup_container = popup_container,
 		on_change = function(values)
 			self:setInputModes("actual input mode", values)

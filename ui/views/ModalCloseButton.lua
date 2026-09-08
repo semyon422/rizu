@@ -13,8 +13,9 @@ local PADDING = 12
 local PRESSED_OFFSET = 1
 
 ---@param on_click fun()?
-function ModalCloseButton:new(on_click)
-	Button.new(self, "Close", on_click, {font_name = "medium", font_size = 16})
+---@param text string?
+function ModalCloseButton:new(on_click, text)
+	Button.new(self, text or "Close", on_click, {font_name = "medium", font_size = 16})
 	self:setSize(120, 48)
 	self.content_color = {0, 0, 0, 1}
 end

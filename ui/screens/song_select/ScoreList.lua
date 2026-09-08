@@ -16,10 +16,12 @@ local FADE_IN_STAGGER = 0.02
 
 ---@param score_selector rizu.select.ScoreSelector
 ---@param on_score_selected fun(index: integer)
-function ScoreList:new(score_selector, on_score_selected)
+---@param localization ui.localization.Localization
+function ScoreList:new(score_selector, on_score_selected, localization)
 	VirtualizedList.new(self)
 	self.score_selector = score_selector
 	self.on_score_selected = on_score_selected
+	self.localization = localization
 	self.items = {}
 	self.gap = 5
 	self.selected_index = nil
@@ -66,7 +68,7 @@ function ScoreList:reload()
 		local mods_sb = {}
 
 		if v.const then
-			table.insert(mods_sb, "Const")
+			table.insert(mods_sb, self.localization:get("song_select.const"))
 		end
 
 		if v.rate and v.rate ~= 1 then
@@ -74,11 +76,11 @@ function ScoreList:reload()
 		end
 
 		if v.pause_count and v.pause_count > 0 then
-			table.insert(mods_sb, "Pauses")
+			table.insert(mods_sb, self.localization:get("song_select.pauses"))
 		end
 
 		table.insert(self.items, {
-			label = ("#%i Username"):format(i),
+			label = self.localization:get("song_select.score_username", {index = i}),
 			accuracy = ("%0.02f%%"):format((v.score or 0) / 100),
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),

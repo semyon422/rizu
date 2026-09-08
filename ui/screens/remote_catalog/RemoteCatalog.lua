@@ -31,10 +31,10 @@ function RemoteCatalog:new(ui)
 	self.loading = false
 	self.preview_generation = 0
 
-	self.title = self.root:add(Label({font_name = "bold", font_size = 36, text = "Remote catalog prototype"}))
+	self.title = self.root:add(Label({font_name = "bold", font_size = 36, text = ui.localization:get("remote_catalog.title")}))
 	self.title:setPosition(48, 32)
 
-	self.status = self.root:add(Label({font_name = "regular", font_size = 18, text = "Not loaded"}))
+	self.status = self.root:add(Label({font_name = "regular", font_size = 18, text = ui.localization:get("remote_catalog.not_loaded")}))
 	self.status:setPosition(48, 86)
 
 	self.list = self.root:add(RemoteCatalogList(function(item)
@@ -42,17 +42,17 @@ function RemoteCatalog:new(ui)
 	end))
 	self.list:anchorFill(48, 128, 508, 96)
 
-	self.preview = self.root:add(RemoteCatalogPreview())
+	self.preview = self.root:add(RemoteCatalogPreview(ui))
 	self.preview:setSize(412, 260):setAlignment(1, 0):setOffset(-48, 128)
-	self.audio_status = self.root:add(Label({font_name = "regular", font_size = 16, text = "Audio preview idle"}))
+	self.audio_status = self.root:add(Label({font_name = "regular", font_size = 16, text = ui.localization:get("remote_catalog.audio_idle")}))
 	self.audio_status:setPosition(48, 400):setAlignmentX(1):setOffset(-48, 0)
 
-	self.back = self.root:add(Button("Back", function()
+	self.back = self.root:add(Button(ui.localization:get("remote_catalog.back"), function()
 		self.ui:setScreen(self.ui.main_menu)
 	end))
 	self.back:setSize(180, 52):setAlignment(0, 1):setOffset(48, -24)
 
-	self.reload = self.root:add(Button("Reload", function()
+	self.reload = self.root:add(Button(ui.localization:get("remote_catalog.reload"), function()
 		self:startDownload()
 	end))
 	self.reload:setSize(180, 52):setAlignment(1, 1):setOffset(-48, -24)
@@ -63,33 +63,33 @@ function RemoteCatalog:selectItem(item)
 	self.preview_generation = self.preview_generation + 1
 	local generation = self.preview_generation
 	self.audio_player:stop()
-	self.audio_status:setText("Downloading audio preview...")
+	self.audio_status:setText(self.ui.localization:get("remote_catalog.downloading_audio"))
 	thread.coro(function()
 		local res, err = self.ui.game.network:download(item.preview_audio_url, {chunk_size = 64 * 1024})
 		if generation ~= self.preview_generation then
 			return
 		end
 		if not res then
-			self.audio_status:setText("Audio error: " .. tostring(err))
+			self.audio_status:setText(self.ui.localization:get("remote_catalog.audio_error", {error = tostring(err)}))
 			return
 		end
 		if res.status >= 400 then
-			self.audio_status:setText("Audio error: HTTP " .. res.status)
+			self.audio_status:setText(self.ui.localization:get("remote_catalog.audio_http_error", {status = res.status}))
 			return
 		end
 		local played, play_err = self.audio_player:load(res.body)
 		if not played then
-			self.audio_status:setText("Audio decode error: " .. tostring(play_err))
+			self.audio_status:setText(self.ui.localization:get("remote_catalog.audio_decode_error", {error = tostring(play_err)}))
 			return
 		end
-		self.audio_status:setText(("Playing audio preview (%.0f KiB)"):format(#res.body / 1024))
+		self.audio_status:setText(self.ui.localization:get("remote_catalog.playing_audio", {size = ("%.0f"):format(#res.body / 1024)}))
 	end)()
 
 	if not item.background_url then
-		self.preview:setImage(nil, "No background for this chart")
+		self.preview:setImage(nil, self.ui.localization:get("remote_catalog.no_background"))
 		return
 	end
-	self.preview:setImage(nil, "Loading background...")
+	self.preview:setImage(nil, self.ui.localization:get("remote_catalog.loading_background"))
 	thread.coro(function()
 		local image = self.ui.game.backgroundModel:loadImage(item.background_url, "http")
 		if generation ~= self.preview_generation then
@@ -99,7 +99,7 @@ function RemoteCatalog:selectItem(item)
 			return
 		end
 		if not image then
-			self.preview:setImage(nil, "Could not load background")
+			self.preview:setImage(nil, self.ui.localization:get("remote_catalog.background_error"))
 			return
 		end
 		self.preview:setImage(image)
@@ -137,9 +137,9 @@ function RemoteCatalog:startDownload()
 	self.loading = true
 	self.preview_generation = self.preview_generation + 1
 	self.audio_player:stop()
-	self.audio_status:setText("Audio preview idle")
-	self.preview:setImage(nil, "Loading catalog...")
-	self.status:setText("Connecting to " .. self.loader.url)
+	self.audio_status:setText(self.ui.localization:get("remote_catalog.audio_idle"))
+	self.preview:setImage(nil, self.ui.localization:get("remote_catalog.loading_catalog"))
+	self.status:setText(self.ui.localization:get("remote_catalog.connecting", {url = self.loader.url}))
 
 	thread.coro(function()
 		local items, err = self.loader:download(function(status)
@@ -147,17 +147,18 @@ function RemoteCatalog:startDownload()
 				local downloaded = status.downloaded or 0
 				local total = status.total
 				if total and total > 0 then
-					self.status:setText(("Downloading catalog: %s / %s (%.0f%%)"):format(
-						formatBytes(downloaded), formatBytes(total), downloaded / total * 100
-					))
+					self.status:setText(self.ui.localization:get("remote_catalog.downloading_catalog", {
+						downloaded = formatBytes(downloaded), total = formatBytes(total),
+						percent = ("%.0f"):format(downloaded / total * 100),
+					}))
 				else
-					self.status:setText("Downloading catalog: " .. formatBytes(downloaded))
+					self.status:setText(self.ui.localization:get("remote_catalog.downloading_catalog_short", {downloaded = formatBytes(downloaded)}))
 				end
 			end
 		end)
 		self.loading = false
 		if not items then
-			self.status:setText("Catalog error: " .. tostring(err))
+			self.status:setText(self.ui.localization:get("remote_catalog.catalog_error", {error = tostring(err)}))
 			return
 		end
 		self.list:setItems(items)
@@ -165,9 +166,9 @@ function RemoteCatalog:startDownload()
 			self.list.selected_index = 1
 			self:selectItem(items[1])
 		else
-			self.preview:setImage(nil, "Catalog is empty")
+			self.preview:setImage(nil, self.ui.localization:get("remote_catalog.catalog_empty"))
 		end
-		self.status:setText(("%d charts loaded from %s"):format(#items, self.loader.url))
+		self.status:setText(self.ui.localization:get("remote_catalog.charts_loaded", {count = #items, url = self.loader.url}))
 	end)()
 end
 

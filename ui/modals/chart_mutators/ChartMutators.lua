@@ -23,7 +23,8 @@ local LIST_WIDTH = (MODAL_WIDTH - LIST_GAP) / 2
 
 ---@param game sphere.GameController
 ---@param on_change fun()?
-function ChartMutators:new(game, on_change)
+---@param localization ui.localization.Localization
+function ChartMutators:new(game, on_change, localization)
 	ModalView.new(self)
 	self.game = game
 	self.on_change = on_change
@@ -46,13 +47,13 @@ function ChartMutators:new(game, on_change)
 		self.selected_list:scrollToSelection()
 		self:setActiveList(1)
 		self:changed()
-	end))
+	end, localization))
 	self.available_list:anchorFixed(0, 0, LIST_WIDTH, MODAL_HEIGHT)
 
 	self.selected_list = self:add(SelectedModifierList(model, function()
 		self:setActiveList(2)
 		self:changed()
-	end))
+	end, localization))
 	self.selected_list:anchorFixed(LIST_WIDTH + LIST_GAP, 0, LIST_WIDTH, MODAL_HEIGHT)
 	self:setActiveList(1)
 end

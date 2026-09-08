@@ -35,7 +35,7 @@ function Footer:new(ui)
 		width = 154,
 		height = HEIGHT,
 		color = Colors.danger,
-		text = "BACK",
+		text = ui.localization:get("song_select.back"),
 		icon = Resources.sprites.icon_undo_2,
 		large = true,
 		on_click = function() ui:setScreen(ui.main_menu, true) end,
@@ -49,7 +49,7 @@ function Footer:new(ui)
 	self.mods_button = loadout:add(FooterButton({
 		height = 46,
 		color = Colors.success,
-		text = "MODS",
+		text = ui.localization:get("song_select.mods"),
 		icon = Resources.sprites.icon_puzzle,
 		badge = "0",
 		gradient = Resources.sprites.song_select_loadout_success,
@@ -62,7 +62,7 @@ function Footer:new(ui)
 	self.mutators_button = loadout:add(FooterButton({
 		height = 46,
 		color = Colors.magenta,
-		text = "MUTATORS",
+		text = ui.localization:get("song_select.mutators"),
 		icon = Resources.sprites.icon_zap,
 		badge = "0",
 		gradient = Resources.sprites.song_select_loadout_magenta,
@@ -75,7 +75,7 @@ function Footer:new(ui)
 	self.inputs_button = loadout:add(FooterButton({
 		height = 46,
 		color = Colors.purple,
-		text = "INPUTS",
+		text = ui.localization:get("song_select.inputs"),
 		icon = Resources.sprites.icon_keyboard,
 		gradient = Resources.sprites.song_select_loadout_purple,
 		hover_gradient = Resources.sprites.song_select_loadout_purple_hover,
@@ -85,7 +85,7 @@ function Footer:new(ui)
 	self.skins_button = loadout:add(FooterButton({
 		height = 46,
 		color = Colors.blue,
-		text = "SKINS",
+		text = ui.localization:get("song_select.skins"),
 		icon = Resources.sprites.icon_paintbrush,
 		gradient = Resources.sprites.song_select_loadout_blue,
 		hover_gradient = Resources.sprites.song_select_loadout_blue_hover,
@@ -99,7 +99,7 @@ function Footer:new(ui)
 		width = 154,
 		height = HEIGHT,
 		color = Colors.success,
-		text = "PLAY",
+		text = ui.localization:get("song_select.play"),
 		icon = Resources.sprites.icon_play,
 		large = true,
 		icon_after = true,

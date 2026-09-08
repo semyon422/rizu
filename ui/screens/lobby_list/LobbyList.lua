@@ -14,7 +14,7 @@ function LobbyList:new(ui)
 	local label = self.root:add(Label({
 		font_name = "bold",
 		font_size = 32,
-		text = "Multiplayer room list: TODO",
+		text = ui.localization:get("lobby_list.title"),
 	}))
 	label:setAlignment(0.5, 0.5)
 	label:setPivot(0.5, 0.5)

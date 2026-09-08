@@ -13,39 +13,48 @@ local Bindings = Section + {}
 ---@field tip string
 
 ---@param ui_config ui.UiConfig
-function Bindings:new(ui_config)
+---@param localization ui.localization.Localization
+function Bindings:new(ui_config, localization)
 	local keys = ui_config.keys
+		local function binding(id, key, keywords)
+		return {
+			key = key,
+			name = localization:get("settings.binding_" .. id),
+			keywords = keywords,
+			tip = localization:get("settings.binding_" .. id .. "_tip"),
+		}
+	end
 	local definitions = {
-		{key = keys.command_palette_bindings, name = "Command palette", keywords = {"global", "command", "palette"}, tip = "Open the command palette."},
-		{key = keys.open_config_bindings, name = "Open settings", keywords = {"global", "config", "settings"}, tip = "Open this settings window."},
-		{key = keys.accept_bindings, name = "Accept", keywords = {"ui", "confirm", "enter"}, tip = "Confirm the selected UI item."},
-		{key = keys.cancel_bindings, name = "Cancel / Back", keywords = {"ui", "escape", "back"}, tip = "Close a modal or return to the previous screen."},
-		{key = keys.left_bindings, name = "Navigate left", keywords = {"ui", "navigation", "left"}, tip = "Move left in UI controls."},
-		{key = keys.right_bindings, name = "Navigate right", keywords = {"ui", "navigation", "right"}, tip = "Move right in UI controls."},
-		{key = keys.up_bindings, name = "Navigate up", keywords = {"ui", "navigation", "up"}, tip = "Move up in UI controls."},
-		{key = keys.down_bindings, name = "Navigate down", keywords = {"ui", "navigation", "down"}, tip = "Move down in UI controls."},
-		{key = keys.select_random_bindings, name = "Select random chart", keywords = {"song select", "random", "f2"}, tip = "Move to a random chart on Song Select."},
-		{key = keys.toggle_audio_preview_bindings, name = "Pause / resume preview", keywords = {"song select", "audio", "preview"}, tip = "Pause or resume Song Select preview audio."},
-		{key = keys.select_time_rate_decrease_bindings, name = "Decrease time rate", keywords = {"song select", "rate", "f5"}, tip = "Decrease the selected playback rate."},
-		{key = keys.select_time_rate_increase_bindings, name = "Increase time rate", keywords = {"song select", "rate", "f6"}, tip = "Increase the selected playback rate."},
-		{key = keys.gameplay_pause_bindings, name = "Pause gameplay", keywords = {"gameplay", "pause", "escape"}, tip = "Pause or resume gameplay."},
-		{key = keys.gameplay_quit_bindings, name = "Quit gameplay", keywords = {"gameplay", "quit", "shift", "escape"}, tip = "Return to Song Select during gameplay."},
-		{key = keys.gameplay_retry_bindings, name = "Retry gameplay", keywords = {"gameplay", "restart", "retry"}, tip = "Restart the current chart."},
-		{key = keys.gameplay_skip_intro_bindings, name = "Skip intro", keywords = {"gameplay", "intro", "space"}, tip = "Skip silence before the first note."},
-		{key = keys.gameplay_offset_decrease_bindings, name = "Decrease local offset", keywords = {"gameplay", "offset", "timing"}, tip = "Decrease the current chart's local offset by 1 ms."},
-		{key = keys.gameplay_offset_increase_bindings, name = "Increase local offset", keywords = {"gameplay", "offset", "timing"}, tip = "Increase the current chart's local offset by 1 ms."},
-		{key = keys.gameplay_offset_reset_bindings, name = "Reset local offset", keywords = {"gameplay", "offset", "timing"}, tip = "Reset the current chart's local offset."},
-		{key = keys.gameplay_play_speed_decrease_bindings, name = "Decrease play speed", keywords = {"gameplay", "scroll", "speed", "f3"}, tip = "Decrease gameplay scroll speed."},
-		{key = keys.gameplay_play_speed_increase_bindings, name = "Increase play speed", keywords = {"gameplay", "scroll", "speed", "f4"}, tip = "Increase gameplay scroll speed."},
-		{key = keys.editor_toggle_playback_bindings, name = "Editor playback", keywords = {"editor", "play", "pause"}, tip = "Toggle editor playback."},
-		{key = keys.global_screenshot_bindings, name = "Capture screenshot", keywords = {"global", "screenshot", "f12"}, tip = "Save a screenshot."},
-		{key = keys.global_screenshot_open_bindings, name = "Capture and open screenshot", keywords = {"global", "screenshot", "open"}, tip = "Save a screenshot and open it in the file manager."},
-		{key = keys.master_volume_increase_bindings, name = "Increase master volume", keywords = {"global", "audio", "volume", "master"}, tip = "Increase the master audio volume."},
-		{key = keys.master_volume_decrease_bindings, name = "Decrease master volume", keywords = {"global", "audio", "volume", "master"}, tip = "Decrease the master audio volume."},
+		binding("command_palette", keys.command_palette_bindings, {"global", "command", "palette"}),
+		binding("open_settings", keys.open_config_bindings, {"global", "config", "settings"}),
+		binding("accept", keys.accept_bindings, {"ui", "confirm", "enter"}),
+		binding("cancel", keys.cancel_bindings, {"ui", "escape", "back"}),
+		binding("left", keys.left_bindings, {"ui", "navigation", "left"}),
+		binding("right", keys.right_bindings, {"ui", "navigation", "right"}),
+		binding("up", keys.up_bindings, {"ui", "navigation", "up"}),
+		binding("down", keys.down_bindings, {"ui", "navigation", "down"}),
+		binding("random_chart", keys.select_random_bindings, {"song select", "random", "f2"}),
+		binding("audio_preview", keys.toggle_audio_preview_bindings, {"song select", "audio", "preview"}),
+		binding("rate_decrease", keys.select_time_rate_decrease_bindings, {"song select", "rate", "f5"}),
+		binding("rate_increase", keys.select_time_rate_increase_bindings, {"song select", "rate", "f6"}),
+		binding("pause", keys.gameplay_pause_bindings, {"gameplay", "pause", "escape"}),
+		binding("quit", keys.gameplay_quit_bindings, {"gameplay", "quit", "shift", "escape"}),
+		binding("retry", keys.gameplay_retry_bindings, {"gameplay", "restart", "retry"}),
+		binding("skip_intro", keys.gameplay_skip_intro_bindings, {"gameplay", "intro", "space"}),
+		binding("offset_decrease", keys.gameplay_offset_decrease_bindings, {"gameplay", "offset", "timing"}),
+		binding("offset_increase", keys.gameplay_offset_increase_bindings, {"gameplay", "offset", "timing"}),
+		binding("offset_reset", keys.gameplay_offset_reset_bindings, {"gameplay", "offset", "timing"}),
+		binding("speed_decrease", keys.gameplay_play_speed_decrease_bindings, {"gameplay", "scroll", "speed", "f3"}),
+		binding("speed_increase", keys.gameplay_play_speed_increase_bindings, {"gameplay", "scroll", "speed", "f4"}),
+		binding("editor_playback", keys.editor_toggle_playback_bindings, {"editor", "play", "pause"}),
+		binding("screenshot", keys.global_screenshot_bindings, {"global", "screenshot", "f12"}),
+		binding("screenshot_open", keys.global_screenshot_open_bindings, {"global", "screenshot", "open"}),
+		binding("volume_increase", keys.master_volume_increase_bindings, {"global", "audio", "volume", "master"}),
+		binding("volume_decrease", keys.master_volume_decrease_bindings, {"global", "audio", "volume", "master"}),
 	} ---@type ui.modals.config.sections.BindingDefinition[]
 
 	Section.new(self, {
-		name = "Bindings",
+		name = localization:get("settings.bindings"),
 		icon = Resources.sprites.icon_keyboard,
 		build = function()
 			local controls = {} ---@type ui.views.form.FormControl[]

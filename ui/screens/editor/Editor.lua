@@ -40,7 +40,7 @@ function Editor:load()
 	local notice = self.root:add(Label({
 		font_name = "bold",
 		font_size = 24,
-		text = "EDITOR WORK IN PROGRESS!!! Please wait for the editor and skins update",
+		text = self.ui.localization:get("editor.notice"),
 		color = Colors.text,
 	}))
 	notice:setAlignment(0.5, 0)
@@ -50,7 +50,7 @@ function Editor:load()
 	local exitHint = self.root:add(Label({
 		font_name = "regular",
 		font_size = 20,
-		text = "Press ESCAPE to exit",
+		text = self.ui.localization:get("editor.exit_hint"),
 		color = Colors.muted,
 	}))
 	exitHint:setAlignment(0.5, 0)

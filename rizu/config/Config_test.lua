@@ -20,6 +20,7 @@ end
 function test.settings_defaults(t)
 	local config = Settings.createConfig(FakeFilesystem())
 	t:eq(config:getString(Settings.keys.user_interface), "new")
+	t:eq(config:getString(Settings.keys.misc.language), "en")
 	local volume = config:getDefinition(Settings.keys.audio.volume_master)
 	t:eq(volume.min, 0)
 	t:eq(volume.max, 1)

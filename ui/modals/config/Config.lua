@@ -47,11 +47,13 @@ local LIST_WIDTH = 635
 ---@param settings rizu.config.Config
 ---@param popup_container ui.views.PopupContainer
 ---@param on_close fun()
-function Config:new(ui_config, settings, popup_container, on_close)
+---@param localization ui.localization.Localization
+function Config:new(ui_config, settings, popup_container, on_close, localization)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
 	self.popup_container = popup_container
+	self.localization = localization
 	self.form = Form({
 		direction = "column",
 		gap = 18,
@@ -59,7 +61,7 @@ function Config:new(ui_config, settings, popup_container, on_close)
 	})
 	self.sections = self:createSections()
 	self.all_section = Section({
-		name = "All",
+		name = localization:get("settings.all"),
 		icon = Resources.sprites.icon_gear,
 		build = function() return {} end,
 	})
@@ -112,7 +114,7 @@ function Config:new(ui_config, settings, popup_container, on_close)
 	self.list_background = NineSliceUsage(modal_sprites)
 
 	self:add(self.section_list)
-	self.close_button = self:add(ModalCloseButton(on_close))
+	self.close_button = self:add(ModalCloseButton(on_close, localization:get("settings.close")))
 	self.close_button:anchorFixed(20, 0, 280, 48):setAlignmentY(1):addPosition(0, -20)
 	self:add(self.scroll_view)
 	self.form_selection = self:add(FormSelection(self.form))
@@ -127,14 +129,14 @@ end
 ---@return ui.modals.config.Section[] sections
 function Config:createSections()
 	return {
-		AudioSection(self.settings),
-		GameplaySection(self.settings, self.ui_config),
-		OffsetSection(self.settings),
-		LayoutSection(self.settings, self.form, self.popup_container),
-		RendererSection(self.settings, self.ui_config),
-		GameplayViewportSection(self.ui_config),
-		UserInterfaceSection(self.settings),
-		BindingsSection(self.ui_config),
+		AudioSection(self.settings, self.localization),
+		GameplaySection(self.settings, self.ui_config, self.localization),
+		OffsetSection(self.settings, self.localization),
+		LayoutSection(self.settings, self.form, self.popup_container, self.localization),
+		RendererSection(self.settings, self.ui_config, self.localization),
+		GameplayViewportSection(self.ui_config, self.localization),
+		UserInterfaceSection(self.settings, self.localization),
+		BindingsSection(self.ui_config, self.localization),
 	}
 end
 

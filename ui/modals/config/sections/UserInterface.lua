@@ -19,22 +19,23 @@ local function formatDifficulty(value)
 end
 
 ---@param settings rizu.config.Config
-function UserInterface:new(settings)
-	Section.new(self, {
-		name = "User Interface",
+---@param localization ui.localization.Localization
+function UserInterface:new(settings, localization)
+		Section.new(self, {
+		name = localization:get("settings.user_interface"),
 		icon = Resources.sprites.icon_layers,
 		build = function()
 			local keys = Settings.keys.select
 			return {
 				ControlFactory.boolean(settings, keys.chart_preview, {
-					name = "Chart preview in Song Select",
+					name = localization:get("settings.chart_preview"),
 					keywords = {"song select", "chart", "preview"},
-					tip = "Show a preview of the selected chart in Song Select.",
+					tip = localization:get("settings.chart_preview_tip"),
 				}),
 				ControlFactory.segmentedChoice(settings, keys.diff_column, {
-					name = "Displayed difficulty type",
+					name = localization:get("settings.difficulty_type"),
 					keywords = {"difficulty", "rating", "menus"},
-					tip = "Choose the difficulty rating displayed in menus.",
+					tip = localization:get("settings.difficulty_type_tip"),
 					format = formatDifficulty,
 				}),
 			}

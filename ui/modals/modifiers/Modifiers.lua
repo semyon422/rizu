@@ -30,8 +30,10 @@ local FORM_Y = 142
 ---@param game sphere.GameController
 ---@param on_change fun()?
 ---@param on_close fun()
-function Modifiers:new(game, on_change, on_close)
+---@param localization ui.localization.Localization
+function Modifiers:new(game, on_change, on_close, localization)
 	ModalView.new(self)
+	self.localization = localization
 	self.game = game
 	self.on_change = on_change
 	self.form_invalidated = false
@@ -57,8 +59,9 @@ function Modifiers:new(game, on_change, on_close)
 		sprites.nineslice_modal_rb,
 	})
 
-	self:add(ModalHeader("Gameplay Modifiers", "Customize gameplay for the selected Chart."))
-	self:add(ModalFooter(on_close))
+	self:add(ModalHeader(self.localization:get("song_select.modifiers_title"),
+		self.localization:get("song_select.modifiers_subtitle")))
+	self:add(ModalFooter(on_close, self.localization:get("settings.close")))
 
 	self.form = Form({direction = "column", gap = 18})
 	self.form:setOffset(FORM_X, FORM_Y)
@@ -92,7 +95,7 @@ function Modifiers:rebuildForm()
 	local range = assert(time_rate_model.range[rate_type], "unknown time rate type")
 
 	self.form:add(SegmentedControl({
-		label = "Time Rate Type",
+		label = self.localization:get("song_select.time_rate_type"),
 		options = time_rate_model.types,
 		value = rate_type,
 		width = FORM_WIDTH,
@@ -106,7 +109,7 @@ function Modifiers:rebuildForm()
 		end,
 	}))
 	self.form:add(Slider({
-		label = "Time Rate",
+		label = self.localization:get("song_select.time_rate"),
 		value = time_rate_model:get(),
 		min = range[1],
 		max = range[2],
@@ -124,7 +127,7 @@ function Modifiers:rebuildForm()
 		end,
 	}))
 	self.form:add(Checkbox({
-		text = "Constant scroll speed",
+		text = self.localization:get("song_select.constant_scroll_speed"),
 		checked = replay_base.const,
 		on_change = function(value)
 			replay_base.const = value
@@ -132,7 +135,7 @@ function Modifiers:rebuildForm()
 		end,
 	}))
 	self.form:add(Checkbox({
-		text = "No Long Notes",
+		text = self.localization:get("song_select.no_long_notes"),
 		checked = replay_base.tap_only,
 		on_change = function(value)
 			replay_base.tap_only = value

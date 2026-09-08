@@ -30,10 +30,12 @@ end
 
 ---@param model sphere.ModifierSelectModel
 ---@param on_add fun()?
-function AvailableModifierList:new(model, on_add)
+---@param localization ui.localization.Localization
+function AvailableModifierList:new(model, on_add, localization)
 	VirtualizedList.new(self)
 	self.model = model
 	self.on_add = on_add
+	self.title = localization:get("song_select.available_mutators")
 	self.active = true
 	self.selection_visible = true
 	self.item_height = ROW_HEIGHT
@@ -162,7 +164,7 @@ function AvailableModifierList:draw()
 	love.graphics.rectangle("fill", HORIZONTAL_PADDING, self.height - VERTICAL_PADDING, self.width - HORIZONTAL_PADDING * 2, VERTICAL_PADDING)
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.header_font)
-	love.graphics.print("Available modifiers", HORIZONTAL_PADDING, 17)
+	love.graphics.print(self.title, HORIZONTAL_PADDING, 17)
 end
 
 return AvailableModifierList

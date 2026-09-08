@@ -92,15 +92,16 @@ local DETAILS_IDLE_Y = 56 + DETAILS_BOTTOM_PADDING
 
 ---@param bg_model sphere.BackgroundModel
 ---@param game sphere.GameController
-function SelectedSongPanel:new(bg_model, game)
+---@param localization ui.localization.Localization
+function SelectedSongPanel:new(bg_model, game, localization)
 	View.new(self)
 	self.bg_model = bg_model
 	self.game = game
 	self.bga_renderer = BgaRenderer()
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
-	self.title = "Title"
-	self.artist = "Artist"
+	self.title = localization:get("song_select.title")
+	self.artist = localization:get("song_select.artist")
 	self.details_opacity = SpringValue({
 		value = 0,
 		stiffness = 120,
