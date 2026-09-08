@@ -32,11 +32,15 @@ function Tooltip:setText(text)
 		return
 	end
 	if text ~= self.text then
+		local was_hidden = not self.text
 		self.text = text
 		self.text_batch:clear()
 		self.text_batch:add({Colors.text, text}, PADDING_X, PADDING_Y)
-		self:setSize(self.font:getWidth(text) + PADDING_X * 2, self.font:getHeight() + PADDING_Y * 2)
-		self:setOpacity(0)
+		local text_width, text_height = self.text_batch:getDimensions()
+		self:setSize(text_width + PADDING_X * 2, text_height + PADDING_Y * 2)
+		if was_hidden then
+			self:setOpacity(0)
+		end
 	end
 	self:fadeIn(0.18, "OutQuint")
 end

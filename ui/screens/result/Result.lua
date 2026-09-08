@@ -93,7 +93,7 @@ function Result:new(ui)
 	self.meta = ResultMeta()
 	self.ring = self.content:add(self:createRingPanel())
 	self.no_score_panel = self.content:add(self:createNoScorePanel())
-	self.details = self.second_page:add(ResultDetails()):anchorFill(0, 0, 0, 0)
+	self.details = self.second_page:add(ResultDetails(ui.tooltip)):anchorFill(0, 0, 0, 0)
 
 	self.composite:setOpacity(0)
 end
@@ -211,6 +211,7 @@ function Result:enter()
 end
 
 function Result:exit()
+	self.ui.tooltip:setText(nil)
 	self.ui.command_registry:popContext("result_commands")
 	self.ui.command_registry:popContext("ui_result_commands")
 	Screen.exit(self)

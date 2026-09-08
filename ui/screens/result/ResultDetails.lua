@@ -13,12 +13,13 @@ local HitGraph = require("ui.screens.result.HitGraph")
 ---@field rows ui.screens.result.ResultDetails.Row[]
 local ResultDetails = View + {}
 
-function ResultDetails:new()
+---@param tooltip ui.views.Tooltip?
+function ResultDetails:new(tooltip)
 	View.new(self)
 	self.font = Resources.getFont("regular", 20)
 	self.title_font = Resources.getFont("bold", 32)
 	self.rows = {}
-	self.hit_graph = self:add(HitGraph()):anchorPercent(0.38, 0.08, 0.97, 0.92)
+	self.hit_graph = self:add(HitGraph(tooltip)):anchorPercent(0.38, 0.08, 0.97, 0.92)
 end
 
 ---@param name string

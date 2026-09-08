@@ -7,7 +7,7 @@ local RingBuffer = require("RingBuffer")
 local BaseScore = ScoreSystem + IComboSource
 
 function BaseScore:new()
-	self.meanRingBuffer = RingBuffer(10)
+	self.meanRingBuffer = RingBuffer(40)
 
 	self.hitCount = 0
 	self.missCount = 0
@@ -92,6 +92,7 @@ end
 ---@return rizu.BaseScore.Slice
 function BaseScore:getSlice()
 	---@class rizu.BaseScore.Slice
+	---@field lastMean number
 	local t = {
 		hitCount = self.hitCount,
 		missCount = self.missCount,
@@ -103,6 +104,7 @@ function BaseScore:getSlice()
 		isMiss = self.isMiss,
 		isEarlyHit = self.isEarlyHit,
 		isLongNoteComboBreak = self.isLongNoteComboBreak,
+		lastMean = self.lastMean,
 	}
 	return t
 end

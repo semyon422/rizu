@@ -12,6 +12,7 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 ---@field timing_values sea.TimingValues?
 ---@field error_message string?
 ---@field sprite_batch gui.SpriteBatch?
+---@field tooltip ui.views.Tooltip?
 local HitGraph = View + {}
 
 local judge_colors = {
@@ -22,10 +23,13 @@ local judge_colors = {
 	{1, 0.1, 0.7, 1},
 }
 
-function HitGraph:new()
+---@param tooltip ui.views.Tooltip?
+function HitGraph:new(tooltip)
 	View.new(self)
 	self.sequence = {}
+	self.tooltip = tooltip
 	self.font = Resources.getFont("regular", 14)
+	self.handles_mouse_input = true
 end
 
 ---@param score_engine rizu.ScoreEngine
@@ -50,6 +54,61 @@ end
 
 function HitGraph:onLayoutChanged()
 	self:rebuild()
+end
+
+---@param time number
+---@return table?
+function HitGraph:getSliceAt(time)
+	local sequence = self.sequence
+	local low, high = 1, #sequence
+	local found
+	while low <= high do
+		local middle = math.floor((low + high) / 2)
+		if sequence[middle].base.currentTime <= time then
+			found = sequence[middle]
+			low = middle + 1
+		else
+			high = middle - 1
+		end
+	end
+	return found or sequence[1]
+end
+
+function HitGraph:update()
+	local tooltip = self.tooltip
+	if not tooltip then return end
+
+	if not self.mouse_over or #self.sequence == 0 or self.width <= 0 then
+		if self.tooltip_visible then
+			self.tooltip_visible = false
+			tooltip:setText(nil)
+		end
+		return
+	end
+
+	local mouse_x, mouse_y = love.mouse.getPosition()
+	local x = self.world_transform:inverseTransformPoint(mouse_x, mouse_y)
+	local max_time = self.sequence[#self.sequence].base.currentTime
+	local time = math.min(math.max(x / self.width, 0), 1) * max_time
+	local slice = self:getSliceAt(time)
+	local ns = slice and slice.normalscore
+	local base = slice and slice.base
+	if not ns or not base then
+		if self.tooltip_visible then
+			self.tooltip_visible = false
+			tooltip:setText(nil)
+		end
+		return
+	end
+
+	self.tooltip_visible = true
+	tooltip:setText(("Time: %.3f s\nAccuracy: %.2f ms\nMean: %+.2f ms\nNormalscore: %d"):format(
+		time,
+		(ns.accuracyAdjusted or 0) * 1000,
+		(base.lastMean or 0) * 1000,
+		(ns.score or 0) * 10000
+	))
+	tooltip:followCursor(mouse_x, mouse_y)
 end
 
 function HitGraph:rebuild()
