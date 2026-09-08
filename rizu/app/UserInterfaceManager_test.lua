@@ -107,6 +107,19 @@ function test.default_constructor_failure_propagates(t)
 end
 
 ---@param t testing.T
+function test.reload_is_deferred_until_update(t)
+	local game = createGame("default")
+	local manager = createManager(game, DefaultUserInterface)
+	manager:loadSelected()
+	local first = game.ui
+
+	manager:requestReload()
+	t:eq(game.ui, first)
+	manager:update()
+	t:assert(game.ui ~= first)
+end
+
+---@param t testing.T
 function test.discovers_ui_package_class(t)
 	local game = createGame("plugin")
 	local manager = createManager(game, DefaultUserInterface)

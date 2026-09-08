@@ -76,6 +76,8 @@ return {
 	["settings.gameplay_viewport"] = "Gameplay Viewport",
 	["settings.user_interface"] = "User Interface",
 	["settings.bindings"] = "Bindings",
+	["settings.language"] = "Language",
+	["settings.language_tip"] = "Change the interface language.",
 	["settings.volume_scale"] = "Volume scale",
 	["settings.master_volume"] = "Master volume",
 	["settings.music_volume"] = "Music volume",

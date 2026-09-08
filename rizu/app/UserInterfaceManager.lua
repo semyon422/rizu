@@ -13,6 +13,7 @@ local Settings = require("rizu.config.Settings")
 ---@field private settings rizu.config.Config
 ---@field private default_user_interface rizu.app.UserInterface
 ---@field mount_paths {[rizu.app.UserInterface]: string}
+---@field private reload_requested boolean
 local UserInterfaceManager = class()
 
 ---@param game sphere.GameController
@@ -22,6 +23,7 @@ function UserInterfaceManager:new(game, default_user_interface)
 	self.settings = game.settings
 	self.items = {}
 	self.mount_paths = {}
+	self.reload_requested = false
 	self.default_user_interface = default_user_interface or require("ui.UserInterface")
 
 	self:register(self.default_user_interface, "")
@@ -63,6 +65,18 @@ end
 ---@param name string
 function UserInterfaceManager:setUserInterface(name)
 	self.settings:setString(Settings.user_interface, name)
+end
+
+function UserInterfaceManager:requestReload()
+	self.reload_requested = true
+end
+
+function UserInterfaceManager:update()
+	if not self.reload_requested then
+		return
+	end
+	self.reload_requested = false
+	self:loadSelected()
 end
 
 function UserInterfaceManager:loadSelected()

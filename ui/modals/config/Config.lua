@@ -36,6 +36,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@field background gui.NineSliceUsage
 ---@field list_background gui.NineSliceUsage
 ---@field private settings_invalidated boolean
+---@field private on_language_change fun()
 local Config = ModalView + {}
 
 local MODAL_WIDTH = 1060
@@ -48,12 +49,14 @@ local LIST_WIDTH = 635
 ---@param popup_container ui.views.PopupContainer
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
-function Config:new(ui_config, settings, popup_container, on_close, localization)
+---@param on_language_change fun()
+function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
 	self.popup_container = popup_container
 	self.localization = localization
+	self.on_language_change = on_language_change
 	self.form = Form({
 		direction = "column",
 		gap = 18,
@@ -135,7 +138,14 @@ function Config:createSections()
 		LayoutSection(self.settings, self.form, self.popup_container, self.localization),
 		RendererSection(self.settings, self.ui_config, self.localization),
 		GameplayViewportSection(self.ui_config, self.localization),
-		UserInterfaceSection(self.settings, self.localization),
+		UserInterfaceSection(
+			self.settings,
+			self.ui_config,
+			self.localization,
+			self.form,
+			self.popup_container,
+			self.on_language_change
+		),
 		BindingsSection(self.ui_config, self.localization),
 	}
 end

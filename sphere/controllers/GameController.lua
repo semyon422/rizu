@@ -407,6 +407,7 @@ end
 
 ---@param dt number
 function GameController:update(dt)
+	self.user_interface_manager:update()
 	self.app:update()
 	self.network:update()
 	if self.needleModel then self.needleModel:update() end

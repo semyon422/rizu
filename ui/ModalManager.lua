@@ -52,7 +52,11 @@ function ModalManager:new(ui, popup_container)
 	end))
 	self.config = self:addModal(Config(ui.config, ui.game.settings, popup_container,
 		function() self:hideModal(self.config) end,
-		ui.localization))
+		ui.localization,
+		function()
+			ui.config:save()
+			ui.game.user_interface_manager:requestReload()
+		end))
 	self.mapperatorinator = self:addModal(Mapperatorinator(
 		ui.mapperatorinator_workflow,
 		ui.mapperatorinator_config,

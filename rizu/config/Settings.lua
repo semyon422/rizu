@@ -137,7 +137,6 @@ local keys = {
 		device_buffer = "audio.device.buffer",
 	},
 	misc = {
-		language = "misc.language",
 		auto_update = "misc.auto_update",
 		mute_on_unfocus = "misc.mute_on_unfocus",
 		show_non_mania_charts = "misc.show_non_mania_charts",
@@ -307,7 +306,6 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(a.device_period, 0, 0, 50, 1)
 	config:setDefaultNumber(a.device_buffer, 0, 0, 500, 1)
 
-	config:setDefaultString(m.language, "en")
 	config:setDefaultBoolean(m.auto_update, true)
 	config:setDefaultBoolean(m.mute_on_unfocus, false)
 	config:setDefaultBoolean(m.show_non_mania_charts, false)

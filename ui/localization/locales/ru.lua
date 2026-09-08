@@ -76,6 +76,8 @@ return {
 	["settings.gameplay_viewport"] = "Игровая область",
 	["settings.user_interface"] = "Интерфейс",
 	["settings.bindings"] = "Бинды",
+	["settings.language"] = "Язык",
+	["settings.language_tip"] = "Изменить язык интерфейса.",
 	["settings.volume_scale"] = "Шкала громкости",
 	["settings.volume_scale_tip"] = "Проценты или децибелы.",
 	["settings.volume_tip"] = "Настройка громкости: {kind}.",
