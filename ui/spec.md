@@ -32,7 +32,7 @@ end
 
 Queued events update action state before raw event routing, including events consumed by screen-level handlers. Gameplay input remains separate. Alt+mouse-wheel adjusts master volume by 5 percentage points in linear mode and by 1 dB in logarithmic mode.
 
-The song-select footer displays linear playback rates as multipliers such as `1.25x`. Exponential rates display their signed exponent value directly, such as `-1`, `0`, or `+1`.
+The song-select footer displays linear playback rates as multipliers such as `1.25x`. Exponential rates display their signed exponent value directly, such as `-1`, `0`, or `+1`. Left-clicking the music-speed control toggles linear/exponential mode without changing the playback multiplier. Wheel and horizontal drag use the selected mode's range and step (linear: 0.25–4, step 0.05; exponential: -20–20, step 1). The knob position uses that same range; its color always represents the actual playback multiplier. A drag does not toggle the mode.
 
 ## Guidelines
 
