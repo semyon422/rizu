@@ -1,3 +1,4 @@
+local TaikoChart = require("chart.format.osu.TaikoChart")
 local CatchChart = require("chart.format.osu.CatchChart")
 local AimChart = require("chart.format.osu.AimChart")
 local IChartDecoder = require("chart.format.notechart.IChartDecoder")
@@ -75,7 +76,8 @@ function ChartDecoder:decodeOsu(osu)
 		chart.inputMode = InputMode({osu = 1})
 		chart.aim = AimChart(osu)
 	elseif mode == 1 then
-		chart.inputMode = InputMode({key = 2})
+		chart.inputMode = InputMode({taiko = 1})
+		chart.taiko = TaikoChart(osu)
 	elseif mode == 2 then
 		chart.inputMode = InputMode({fruits = 1})
 		chart.catch = CatchChart(osu)

@@ -1,3 +1,4 @@
+local TaikoRules = require("rizu.gameplay.taiko.Rules")
 local CatchRules = require("rizu.gameplay.catch.Rules")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local class = require("class")
@@ -25,6 +26,7 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 ---@operator call: rizu.RhythmEngine
 ---@field aim_tracking boolean? False for checkpoint-only legacy replays.
 ---@field aim_stacking boolean? False for legacy diagnostic replay geometry.
+---@field taiko_rules rizu.taiko.Rules?
 ---@field catch_rules rizu.catch.Rules?
 ---@field aim_rules rizu.aim.CircleRules?
 local RhythmEngine = class()
@@ -62,6 +64,11 @@ end
 function RhythmEngine:load()
 	local chart = self.chart
 
+	if chart.taiko then
+		self.taiko_rules = TaikoRules(chart.taiko)
+		self.taiko_sound_index = 0
+		return
+	end
 	if chart.catch then
 		self.catch_rules = CatchRules(chart.catch)
 		self.catch_sound_index = 0
@@ -105,7 +112,7 @@ end
 
 ---@return boolean
 function RhythmEngine:hasResult()
-	if self.aim_rules or self.catch_rules then
+	if self.aim_rules or self.catch_rules or self.taiko_rules then
 		return false
 	end
 	local time_engine = self.time_engine
@@ -145,7 +152,14 @@ end
 function RhythmEngine:update()
 	self:syncTime()
 
-	if self.catch_rules then
+	if self.taiko_rules then
+		self.taiko_rules:update(self.logic_info.time)
+		for i = self.taiko_sound_index + 1, #self.taiko_rules.sounds do
+			local object = self.taiko_rules.chart.objects[self.taiko_rules.sounds[i]]
+			for _, sample in ipairs(object.sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
+		end
+		self.taiko_sound_index = #self.taiko_rules.sounds
+	elseif self.catch_rules then
 		self.catch_rules:update(self.logic_info.time)
 		for i = self.catch_sound_index + 1, #self.catch_rules.events do
 			local event = self.catch_rules.events[i]
@@ -212,6 +226,10 @@ end
 ---@param event rizu.VirtualInputEvent
 function RhythmEngine:receive(event)
 	self:syncTime()
+	if self.taiko_rules then
+		self.taiko_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
+		return
+	end
 	if self.catch_rules then
 		self.catch_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
 		return
@@ -263,7 +281,7 @@ end
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
 function RhythmEngine:setTimings(timings, subtimings)
-	if self.aim_rules or self.catch_rules then
+	if self.aim_rules or self.catch_rules or self.taiko_rules then
 		return
 	end
 	timings = assert(timings or self.chartmeta.timings)

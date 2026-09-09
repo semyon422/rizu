@@ -55,4 +55,11 @@ function test.catch_hides_legacy_difficulty(t)
 	t:eq(formatter:getDifficulty().value, "—")
 end
 
+---@param t testing.T
+function test.taiko_has_native_mode_label(t)
+	local formatter = ChartviewFormatter({inputmode = "1taiko", chartdiff_inputmode = "2key", osu_diff = 12}, {})
+	t:eq(formatter:getMode(), "TAIKO (EXPERIMENTAL)")
+	t:eq(formatter:getDifficulty().value, "—")
+end
+
 return test

@@ -21,6 +21,7 @@ function Restorer:restore(refchart)
 	local chart = Chart()
 
 	chart.inputMode = InputMode(refchart.inputmode)
+	chart.taiko = refchart.taiko and table_util.deepcopy(refchart.taiko)
 	chart.catch = refchart.catch and table_util.deepcopy(refchart.catch)
 	chart.aim = refchart.aim and table_util.deepcopy(refchart.aim)
 

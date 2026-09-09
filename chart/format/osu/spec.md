@@ -19,6 +19,10 @@ Circles, sliders, and spinners can be played through ordinary Aim loading, with 
 
 - `AimChart` additionally retains timing sample banks/volume, General SampleSet (`None` and numeric zero select the normal default bank), slider edge masks/sets, and object sample additions. `SliderSamples` resolves head/edge/tick samples during gameplay preparation and registers resources before async loading; derived checkpoint samples survive the refchart snapshot. This is additive in-memory data, not a persisted chart-format change.
 
+## Native Taiko
+
+Native Mode=1 decoding attaches `chart.taiko` and uses `1taiko` instead of the old `2key` metadata identifier. It preserves source-order colors, large-note flags and interval types through refchart workers. Existing library rows and competitive replays are not automatically migrated. See [../../../rizu/gameplay/taiko/spec.md](../../../rizu/gameplay/taiko/spec.md) for rules, limits, replay semantics and reindex implications.
+
 ## Invariants
 
 - Geometry and checkpoint generation are independent of rendering and frame rate.

@@ -1,3 +1,4 @@
+local TaikoRules = require("rizu.gameplay.taiko.Rules")
 local CatchRules = require("rizu.gameplay.catch.Rules")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
@@ -24,7 +25,9 @@ end
 ---@param play_type "manual"|"auto"|"replay"
 function GameplaySession:setPlayType(play_type)
 	self.play_type = play_type
-	if play_type == "auto" and self.rhythm_engine.catch_rules then
+	if play_type == "auto" and self.rhythm_engine.taiko_rules then
+		self.replay_player = ReplayPlayer(TaikoRules.autoplay(self.rhythm_engine.taiko_rules.chart))
+	elseif play_type == "auto" and self.rhythm_engine.catch_rules then
 		self.replay_player = ReplayPlayer(CatchRules.autoplay(self.rhythm_engine.catch_rules.chart))
 	elseif play_type == "auto" and self.rhythm_engine.aim_rules then
 		self.replay_player = ReplayPlayer(CircleRules.autoplay(self.rhythm_engine.aim_rules.chart, false))
@@ -44,7 +47,7 @@ function GameplaySession:update(current_time)
 
 	local next_time = re:getTime(true)
 
-	if self.play_type == "auto" and (re.aim_rules or re.catch_rules) then
+	if self.play_type == "auto" and (re.aim_rules or re.catch_rules or re.taiko_rules) then
 		self.replay_player:update(re, next_time)
 	elseif self.play_type == "auto" then
 		self.autoplay_player:update(re, next_time)
@@ -96,7 +99,7 @@ function GameplaySession:receive(event, current_time)
 	local re = self.rhythm_engine
 	re:setGlobalTime(current_time)
 	re:receive(event)
-	if re.aim_rules or re.catch_rules then
+	if re.aim_rules or re.catch_rules or re.taiko_rules then
 		-- Paused transitions update button state but must never become hits on playback.
 		if self:isPaused() then
 			event = VirtualInputEvent(event.id, event.value, 2, event.pos)

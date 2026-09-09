@@ -163,6 +163,10 @@ If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a so
 
 Native `1fruits` charts now skip mania difficulty generation like Aim; historical cache rows are retained and the formatter masks their difficulty. See [../gameplay/catch/spec.md](../gameplay/catch/spec.md).
 
+## Native Taiko Metadata
+
+New native Mode=1 decoding uses `1taiko`, not the legacy `2key`, and skips mania difficulty generation. Existing cached chartmeta rows are not rewritten; they remain searchable as `2key` until reimport/reindex. Ordinary gameplay re-decodes these files as Taiko; old competitive 2K replays are not migrated. Do not classify every `2key` osu! file as Taiko, since native osu!mania can also be 2K. See [../gameplay/taiko/spec.md](../gameplay/taiko/spec.md).
+
 ## Future Work and Open Questions
 
 ### Caching and Performance
