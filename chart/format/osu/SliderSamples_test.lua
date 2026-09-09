@@ -95,4 +95,16 @@ function test.engine_dispatches_each_successful_sample_once(t)
 	t:eq(#played, 8)
 end
 
+---@param t testing.T
+function test.general_none_sample_set_uses_normal_bank(t)
+	local source = header:gsub("SampleSet:Normal", "SampleSet: None")
+	local chart = ChartDecoder():decode(source .. "100,100,1000,2,0,L|300:100,1,200")[1].chart
+	t:eq(chart.aim.sample_set, 1)
+	-- No timing-point set: fall through to the General default.
+	for _, point in ipairs(chart.aim.timing_points) do point.sampleSet = 0 end
+	SliderSamples.prepare(chart.aim, Sliders.prepare(chart.aim), chart.resources)
+	t:eq(chart.aim.objects[1].sounds[1][1], "normal-hitnormal")
+	t:eq(chart.aim.objects[1].slider.checkpoint_sounds[1][1][1], "normal-slidertick2")
+end
+
 return test

@@ -17,7 +17,7 @@ Circles, sliders, and spinners can be played through ordinary Aim loading, with 
 - Velocity is `100 * SliderMultiplier * SV / beatLengthSeconds`. The stored osu! repeatCount is the total number of spans. Duration uses path distance, not the legacy raw `HitObject.endTime` placeholder.
 - Tick spacing is `100 * SliderMultiplier * SV / SliderTickRate`; pre-v8 tick spacing omits SV. Ticks within 10 ms of the far endpoint are excluded. Reverse spans revisit the same path tick locations in reverse chronological order. Repeat and tail checkpoints are generated at exact span endpoints; current gameplay moves its runtime tail checkpoint earlier according to the Aim tracking spec. The source timing helper remains unchanged for legacy replays.
 
-- `AimChart` additionally retains timing sample banks/volume, General SampleSet, slider edge masks/sets, and object sample additions. `SliderSamples` resolves head/edge/tick samples during gameplay preparation and registers resources before async loading; derived checkpoint samples survive the refchart snapshot. This is additive in-memory data, not a persisted chart-format change.
+- `AimChart` additionally retains timing sample banks/volume, General SampleSet (`None` and numeric zero select the normal default bank), slider edge masks/sets, and object sample additions. `SliderSamples` resolves head/edge/tick samples during gameplay preparation and registers resources before async loading; derived checkpoint samples survive the refchart snapshot. This is additive in-memory data, not a persisted chart-format change.
 
 ## Invariants
 

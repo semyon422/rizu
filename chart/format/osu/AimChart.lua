@@ -40,7 +40,7 @@ local AimChart = class()
 
 ---@param osu chart.osu.Osu
 function AimChart:new(osu)
-	local sample_sets = {Normal = 1, Soft = 2, Drum = 3, ["0"] = 1, ["1"] = 1, ["2"] = 2, ["3"] = 3}
+	local sample_sets = {None = 1, Normal = 1, Soft = 2, Drum = 3, ["0"] = 1, ["1"] = 1, ["2"] = 2, ["3"] = 3}
 	self.sample_set = assert(sample_sets[osu.rawOsu.General.SampleSet], "Aim prototype: invalid general sample set.")
 	local difficulty = osu.rawOsu.Difficulty
 	local leniency = rawget(osu.rawOsu.General, "StackLeniency")

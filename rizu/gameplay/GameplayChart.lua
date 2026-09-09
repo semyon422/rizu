@@ -90,7 +90,7 @@ local prepare_async = thread.async(prepare)
 ---@param replay_base_data sea.ReplayBase
 ---@param gameplay_config rizu.GameplayChartConfig
 ---@return rizu.GameplayChartComputeResult|{error: string}
-local function compute(chartview_data, data, context, replay_base_data, gameplay_config)
+function GameplayChart.compute(chartview_data, data, context, replay_base_data, gameplay_config)
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local RefChartAsync = require("chart.refchart.RefChart")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
@@ -100,14 +100,19 @@ local function compute(chartview_data, data, context, replay_base_data, gameplay
 	replay_base:importReplayBase(replay_base_data)
 
 	local compute_context = ComputeContext()
-	assert(compute_context:fromFileData(
+	local ok, decoded, decode_error = pcall(compute_context.fromFileData, compute_context,
 		chartview_data.chartfile_name,
 		data,
 		chartview_data.index,
 		context,
 		nil,
 		true
-	))
+	)
+	if not ok then
+		return {error = tostring(decoded)}
+	elseif not decoded then
+		return {error = assert(decode_error)}
+	end
 
 	if compute_context.chart.aim then
 		local ok, err = pcall(AimPreparationAsync.compute, compute_context, replay_base)
@@ -139,7 +144,7 @@ local function compute(chartview_data, data, context, replay_base_data, gameplay
 	}
 end
 
-local compute_async = thread.async(compute)
+local compute_async = thread.async(GameplayChart.compute)
 
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext

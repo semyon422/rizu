@@ -130,4 +130,32 @@ OverallDifficulty:5
 	t:has_error(function() Preparation.compute(ctx, base) end)
 end
 
+---@param t testing.T
+function test.worker_decode_errors_are_returned_not_thrown(t)
+	local data = [[osu file format v14
+[General]
+Mode:0
+SampleSet:Invalid
+[Difficulty]
+CircleSize:4
+OverallDifficulty:5
+[TimingPoints]
+0,500,4,1,0,100,1,0
+[HitObjects]
+100,100,1000,1,0,0:0:0:0:
+]]
+	-- Exercise the same dumped, upvalue-free entry point used by thread.async.
+	local compute = assert(loadstring(string.dump(GameplayChart.compute)))
+	local config = {tempoFactor = "primary", primaryTempo = 120, autoKeySound = false, swapVelocityType = false}
+	local view = {chartfile_name = "test.osu", index = 1}
+	local result = compute(view, data, nil, ReplayBase(), config)
+	t:assert(result.error:find("invalid general sample set", 1, true))
+	local valid = compute(view, data:gsub("SampleSet:Invalid", "SampleSet: None"), nil, ReplayBase(), config)
+	t:eq(valid.error, nil)
+	t:eq(valid.refchart.aim.sample_set, 1)
+	view.index = 999
+	local invalid_index = compute(view, data:gsub("SampleSet:Invalid", "SampleSet: None"), nil, ReplayBase(), config)
+	t:eq(type(invalid_index.error), "string")
+end
+
 return test
