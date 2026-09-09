@@ -75,6 +75,19 @@ return function(game, ui)
 			end,
 		},
 		{
+			id = "ui.select.sdvx_replay",
+			title = "Select: Watch Local SDVX Replay",
+			description = "Plays the latest native KSH attempt",
+			callback = function()
+				local view = game.chartSelector.chartview
+				if view and view.format == "ksm" then
+					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, "sdvx")
+					if not ok then ui.chart_loading:showError(err) end
+					ui:setScreen(ui.chart_loading)
+				end
+			end,
+		},
+		{
 			id = "ui.select.open_result",
 			title = "Select: Open Result",
 			description = "Opens the selected score result",

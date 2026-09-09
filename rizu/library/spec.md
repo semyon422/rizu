@@ -167,6 +167,10 @@ Native `1fruits` charts now skip mania difficulty generation like Aim; historica
 
 New native Mode=1 decoding uses `1taiko`, not the legacy `2key`, and skips mania difficulty generation. Existing cached chartmeta rows are not rewritten; they remain searchable as `2key` until reimport/reindex. Ordinary gameplay re-decodes these files as Taiko; old competitive 2K replays are not migrated. Do not classify every `2key` osu! file as Taiko, since native osu!mania can also be 2K. See [../gameplay/taiko/spec.md](../gameplay/taiko/spec.md).
 
+## Native SDVX
+
+Ordinary KSH decoding now preserves native BT/FX and laser geometry for experimental gameplay. The existing `4bt2fx2laserleft2laserright` cache identifier stays unchanged; `format=ksm` selects the experimental label and suppresses cached mania difficulty. New difficulty generation is skipped. Existing chartmeta titles/preview offsets are not rewritten automatically; reimport is needed to refresh them. Old directional-column KSH replays cannot be interpreted as native laser input and are explicitly rejected. See [../gameplay/sdvx/spec.md](../gameplay/sdvx/spec.md).
+
 ## Future Work and Open Questions
 
 ### Caching and Performance

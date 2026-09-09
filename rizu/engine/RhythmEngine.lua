@@ -1,3 +1,4 @@
+local SdvxRules = require("rizu.gameplay.sdvx.Rules")
 local TaikoRules = require("rizu.gameplay.taiko.Rules")
 local CatchRules = require("rizu.gameplay.catch.Rules")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
@@ -26,6 +27,7 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 ---@operator call: rizu.RhythmEngine
 ---@field aim_tracking boolean? False for checkpoint-only legacy replays.
 ---@field aim_stacking boolean? False for legacy diagnostic replay geometry.
+---@field sdvx_rules rizu.sdvx.Rules?
 ---@field taiko_rules rizu.taiko.Rules?
 ---@field catch_rules rizu.catch.Rules?
 ---@field aim_rules rizu.aim.CircleRules?
@@ -64,6 +66,10 @@ end
 function RhythmEngine:load()
 	local chart = self.chart
 
+	if chart.sdvx then
+		self.sdvx_rules = SdvxRules(chart.sdvx)
+		return
+	end
 	if chart.taiko then
 		self.taiko_rules = TaikoRules(chart.taiko)
 		self.taiko_sound_index = 0
@@ -112,7 +118,7 @@ end
 
 ---@return boolean
 function RhythmEngine:hasResult()
-	if self.aim_rules or self.catch_rules or self.taiko_rules then
+	if self.aim_rules or self.catch_rules or self.taiko_rules or self.sdvx_rules then
 		return false
 	end
 	local time_engine = self.time_engine
@@ -152,7 +158,9 @@ end
 function RhythmEngine:update()
 	self:syncTime()
 
-	if self.taiko_rules then
+	if self.sdvx_rules then
+		self.sdvx_rules:update(self.logic_info.time)
+	elseif self.taiko_rules then
 		self.taiko_rules:update(self.logic_info.time)
 		for i = self.taiko_sound_index + 1, #self.taiko_rules.sounds do
 			local object = self.taiko_rules.chart.objects[self.taiko_rules.sounds[i]]
@@ -226,6 +234,10 @@ end
 ---@param event rizu.VirtualInputEvent
 function RhythmEngine:receive(event)
 	self:syncTime()
+	if self.sdvx_rules then
+		self.sdvx_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
+		return
+	end
 	if self.taiko_rules then
 		self.taiko_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
 		return
@@ -281,7 +293,7 @@ end
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
 function RhythmEngine:setTimings(timings, subtimings)
-	if self.aim_rules or self.catch_rules or self.taiko_rules then
+	if self.aim_rules or self.catch_rules or self.taiko_rules or self.sdvx_rules then
 		return
 	end
 	timings = assert(timings or self.chartmeta.timings)

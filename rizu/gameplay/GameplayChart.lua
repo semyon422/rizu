@@ -1,3 +1,4 @@
+local SdvxPreparation = require("rizu.gameplay.sdvx.Preparation")
 local TaikoPreparation = require("rizu.gameplay.taiko.Preparation")
 local CatchPreparation = require("rizu.gameplay.catch.Preparation")
 local AimPreparation = require("rizu.gameplay.aim.Preparation")
@@ -96,6 +97,7 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local RefChartAsync = require("chart.refchart.RefChart")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
+	local SdvxPreparationAsync = require("rizu.gameplay.sdvx.Preparation")
 	local TaikoPreparationAsync = require("rizu.gameplay.taiko.Preparation")
 	local CatchPreparationAsync = require("rizu.gameplay.catch.Preparation")
 	local AimPreparationAsync = require("rizu.gameplay.aim.Preparation")
@@ -118,7 +120,10 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 		return {error = assert(decode_error)}
 	end
 
-	if compute_context.chart.taiko then
+	if compute_context.chart.sdvx then
+		local prepared, err = pcall(SdvxPreparationAsync.compute, compute_context, replay_base)
+		if not prepared then return {error = tostring(err)} end
+	elseif compute_context.chart.taiko then
 		local prepared, err = pcall(TaikoPreparationAsync.compute, compute_context, replay_base)
 		if not prepared then return {error = tostring(err)} end
 	elseif compute_context.chart.catch then
@@ -159,6 +164,10 @@ local compute_async = thread.async(GameplayChart.compute)
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
+	if ctx.chart.sdvx then
+		SdvxPreparation.compute(ctx, replayBase)
+		return
+	end
 	if ctx.chart.taiko then
 		TaikoPreparation.compute(ctx, replayBase)
 		return

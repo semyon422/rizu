@@ -1,5 +1,6 @@
 local ReplayBase = require("sea.replays.ReplayBase")
 local table_util = require("table_util")
+local SdvxInput = require("rizu.gameplay.sdvx.Input")
 local TaikoInput = require("rizu.gameplay.taiko.Input")
 local CatchInput = require("rizu.gameplay.catch.Input")
 local AimInput = require("rizu.gameplay.aim.Input")
@@ -27,6 +28,7 @@ function GameplayInteractor:new(game)
 	self.autoplay = false
 	self.audio_disabled = false
 	self.load_generation = 0
+	self.sdvx_replay_store = AimReplayStore(game.fs, "sdvx")
 	self.taiko_replay_store = AimReplayStore(game.fs, "taiko")
 	self.catch_replay_store = AimReplayStore(game.fs, "catch")
 	self.aim_replay_store = AimReplayStore(game.fs)
@@ -114,6 +116,8 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
+	assert(not chart.sdvx or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-sdvx-1",
+		"Legacy KSH column replays cannot be played with native SDVX rules.")
 	assert(not chart.taiko or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-taiko-1",
 		"Legacy 2K replays cannot be played with native Taiko rules.")
 	if self.aim_replay then
@@ -127,20 +131,21 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")
 			end
 		end
-		assert((chart.aim or chart.catch or chart.taiko) and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
+		assert((chart.aim or chart.catch or chart.taiko or chart.sdvx) and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
 			"Aim replay does not match the selected chart.")
+		assert((self.aim_replay.format == "rizu-sdvx-1") == (chart.sdvx ~= nil), "Replay mode does not match chart.")
 		assert((self.aim_replay.format == "rizu-taiko-1") == (chart.taiko ~= nil), "Replay mode does not match chart.")
 		assert((self.aim_replay.format == "rizu-catch-1") == (chart.catch ~= nil), "Replay mode does not match chart.")
 	end
 
-	if not self.replaying and not chart.aim and not chart.catch and not chart.taiko then
+	if not self.replaying and not chart.aim and not chart.catch and not chart.taiko and not chart.sdvx then
 		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
 	end
 
 	local input_mode = GameplayInteractor.getInputMode(chart)
 	---@type string[]
 	local paths
-	if chart.aim or chart.catch or chart.taiko then
+	if chart.aim or chart.catch or chart.taiko or chart.sdvx then
 		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
 		self.noteSkin = nil
@@ -167,8 +172,8 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	game.pauseModel:load()
 
-	game.multiplayerModel.client:setPlaying(not chart.aim and not chart.catch and not chart.taiko)
-	if not chart.aim and not chart.catch and not chart.taiko then
+	game.multiplayerModel.client:setPlaying(not chart.aim and not chart.catch and not chart.taiko and not chart.sdvx)
+	if not chart.aim and not chart.catch and not chart.taiko and not chart.sdvx then
 		game.offsetController:updateOffsets()
 	end
 
@@ -203,6 +208,7 @@ function GameplayInteractor:load(autoplay)
 	loader:load(game.rhythm_engine)
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
+	self.sdvx_input = game.rhythm_engine.sdvx_rules and SdvxInput() or nil
 	self.taiko_input = game.rhythm_engine.taiko_rules ~= nil
 	self.catch_input = game.rhythm_engine.catch_rules ~= nil
 	self.aim_input = game.rhythm_engine.aim_rules and AimInput() or nil
@@ -210,7 +216,7 @@ function GameplayInteractor:load(autoplay)
 	self.aim_status = nil
 	self.aim_complete = false
 	game.offsetController.rhythm_engine = game.rhythm_engine
-	if game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules or game.rhythm_engine.taiko_rules then
+	if game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules or game.rhythm_engine.taiko_rules or game.rhythm_engine.sdvx_rules then
 		game.offsetController:updateOffsets()
 		if self.aim_replay then
 			game.rhythm_engine:setInputOffset(self.aim_replay.input_offset)
@@ -243,7 +249,7 @@ end
 
 function GameplayInteractor:unloadGameplay()
 	local re = self.game.rhythm_engine
-	if re and (re.aim_rules or re.catch_rules or re.taiko_rules) and self.loaded then
+	if re and (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) and self.loaded then
 		self:saveAimReplay()
 	end
 	self.aim_replay = nil
@@ -279,7 +285,7 @@ function GameplayInteractor:update(after_inputs)
 
 	local game = self.game
 	-- Experimental input is timestamped and queued by the UI. Resolve it before deadlines.
-	if game.rhythm_engine and (game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules or game.rhythm_engine.taiko_rules) and not after_inputs then
+	if game.rhythm_engine and (game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules or game.rhythm_engine.taiko_rules or game.rhythm_engine.sdvx_rules) and not after_inputs then
 		return
 	end
 	self.gameplay_session:update(game.global_timer:getTime())
@@ -306,7 +312,7 @@ function GameplayInteractor:hasResult()
 end
 
 function GameplayInteractor:saveScore()
-	assert(not self.game.rhythm_engine.aim_rules and not self.game.rhythm_engine.catch_rules and not self.game.rhythm_engine.taiko_rules, "Experimental modes cannot save or submit scores")
+	assert(not self.game.rhythm_engine.aim_rules and not self.game.rhythm_engine.catch_rules and not self.game.rhythm_engine.taiko_rules and not self.game.rhythm_engine.sdvx_rules, "Experimental modes cannot save or submit scores")
 	self.score_saver:saveScore(self.gameplay_session)
 end
 
@@ -362,6 +368,12 @@ end
 function GameplayInteractor:receive(event)
 	local game = self.game
 	local physic_event = KeyPhysicInputEvent.fromInputChangedEvent(event)
+	if self.sdvx_input then
+		if self.aim_complete then return end
+		local virtual_event = self.sdvx_input:transform(event)
+		if virtual_event then self.gameplay_session:receive(virtual_event, event.time) end
+		return
+	end
 	if self.taiko_input then
 		if self.aim_complete then return end
 		local virtual_event = TaikoInput.transform(event)
@@ -402,10 +414,10 @@ end
 ---@return string?
 function GameplayInteractor:saveAimReplay()
 	local session = self.gameplay_session
-	if not session or not (session.rhythm_engine.aim_rules or session.rhythm_engine.catch_rules or session.rhythm_engine.taiko_rules) or session.play_type ~= "manual" or self.aim_saved then
+	if not session or not (session.rhythm_engine.aim_rules or session.rhythm_engine.catch_rules or session.rhythm_engine.taiko_rules or session.rhythm_engine.sdvx_rules) or session.play_type ~= "manual" or self.aim_saved then
 		return
 	end
-	local store = session.rhythm_engine.taiko_rules and self.taiko_replay_store or session.rhythm_engine.catch_rules and self.catch_replay_store or self.aim_replay_store
+	local store = session.rhythm_engine.sdvx_rules and self.sdvx_replay_store or session.rhythm_engine.taiko_rules and self.taiko_replay_store or session.rhythm_engine.catch_rules and self.catch_replay_store or self.aim_replay_store
 	local ok, path = pcall(store.save, store, session)
 	self.aim_saved = ok
 	self.aim_status = ok and ("Replay saved: " .. path) or ("Replay save failed: " .. tostring(path))
@@ -414,11 +426,11 @@ end
 
 ---@param hash string
 ---@param index integer
----@param catch boolean|"taiko"? Legacy true selects Catch; "taiko" selects Taiko.
+---@param catch boolean|"taiko"|"sdvx"? Legacy true selects Catch; strings select another experimental mode.
 ---@return boolean
 ---@return string?
 function GameplayInteractor:loadAimReplay(hash, index, catch)
-	local store = catch == "taiko" and self.taiko_replay_store or catch and self.catch_replay_store or self.aim_replay_store
+	local store = catch == "sdvx" and self.sdvx_replay_store or catch == "taiko" and self.taiko_replay_store or catch and self.catch_replay_store or self.aim_replay_store
 	local ok, replay, frames = pcall(store.load, store, hash, index)
 	if not ok then
 		return false, tostring(replay)

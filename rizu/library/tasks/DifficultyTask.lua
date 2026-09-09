@@ -49,7 +49,7 @@ function DifficultyTask:computeMissing()
 		end
 		
 		local chart = charts_data[data.index]
-		if chart.aim or chart.catch or chart.taiko then
+		if chart.aim or chart.catch or chart.taiko or chart.sdvx then
 			return data.hash
 		end
 		chart.layers.main:toAbsolute()
@@ -79,7 +79,7 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 	local chartdiffs = self.chartsRepo:getIncompleteChartdiffs()
 	
 	self.batchProcessor:process(chartdiffs, "difficulty", #chartdiffs, function(chartdiff)
-		if chartdiff.inputmode == "1osu" or chartdiff.inputmode == "1fruits" or chartdiff.inputmode == "1taiko" then
+		if chartdiff.inputmode == "4bt2fx2laserleft2laserright" or chartdiff.inputmode == "1osu" or chartdiff.inputmode == "1fruits" or chartdiff.inputmode == "1taiko" then
 			return chartdiff.hash
 		end
 		---@type chart.Chart

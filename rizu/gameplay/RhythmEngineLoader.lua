@@ -42,7 +42,7 @@ function RhythmEngineLoader:load(rhythm_engine)
 		primary = settings:getChoice(keys.audio.mode_primary),
 		secondary = settings:getChoice(keys.audio.mode_secondary),
 	})
-	if chart.aim or chart.catch or chart.taiko then
+	if chart.aim or chart.catch or chart.taiko or chart.sdvx then
 		rhythm_engine:setAutoKeySound(false)
 	end
 	rhythm_engine:loadAudio(self.resources)
@@ -55,8 +55,8 @@ function RhythmEngineLoader:load(rhythm_engine)
 	rhythm_engine:setConst(replayBase.const)
 
 	local duration = chartdiff.duration
-	if rhythm_engine.aim_rules or rhythm_engine.catch_rules or rhythm_engine.taiko_rules then
-		local rules = rhythm_engine.aim_rules or rhythm_engine.catch_rules or rhythm_engine.taiko_rules
+	if rhythm_engine.aim_rules or rhythm_engine.catch_rules or rhythm_engine.taiko_rules or rhythm_engine.sdvx_rules then
+		local rules = rhythm_engine.aim_rules or rhythm_engine.catch_rules or rhythm_engine.taiko_rules or rhythm_engine.sdvx_rules
 		duration = duration + rules.window + 0.5
 	end
 	rhythm_engine:setPlayTime(chartdiff.start_time, duration)

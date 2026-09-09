@@ -62,4 +62,11 @@ function test.taiko_has_native_mode_label(t)
 	t:eq(formatter:getDifficulty().value, "—")
 end
 
+---@param t testing.T
+function test.sdvx_masks_cached_directional_difficulty(t)
+	local formatter = ChartviewFormatter({format = "ksm", inputmode = "4bt2fx2laserleft2laserright", osu_diff = 12}, {})
+	t:eq(formatter:getMode(), "SDVX (EXPERIMENTAL)")
+	t:eq(formatter:getDifficulty().value, "—")
+end
+
 return test

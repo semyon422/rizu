@@ -1,3 +1,4 @@
+local SdvxDecoder = require("chart.format.ksm.SdvxDecoder")
 local string_util = require("string_util")
 local IChartDecoder = require("chart.format.notechart.IChartDecoder")
 local Chart = require("chart.model.Chart")
@@ -37,11 +38,9 @@ end
 ---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}[]
 function ChartDecoder:decode(s, hash)
 	self.hash = hash
-	local ksh = Ksh(s)
 	local content = s:gsub("\r\n", "\n")
 	content = self.conv:convert(content)
-	ksh:import(content)
-	local chart, chartmeta = self:decodeKsh(ksh)
+	local chart, chartmeta = SdvxDecoder.decode(content, hash)
 	return {{
 		chart = chart,
 		chartmeta = chartmeta,
