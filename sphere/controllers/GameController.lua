@@ -135,7 +135,7 @@ function GameController:new()
 
 	self.noteSkinModel = NoteSkinModel(self.persistence.configModel, self.packageManager)
 	self.inputModel = InputModel(self.persistence.configModel)
-	self.pauseModel = PauseModel(self.persistence.configModel, self.rhythm_engine)
+	self.pauseModel = PauseModel(self.settings, self.rhythm_engine)
 	self.editorInput = EditorInput()
 	self.editorModel = EditorModel({
 		settings = self.settings,

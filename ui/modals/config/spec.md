@@ -14,6 +14,8 @@ Each concrete section lives in its own module under `ui/modals/config/sections/`
 
 The Gameplay section exposes Auto keysound (`gameplay.auto_key_sound`, off by default). When enabled, keysounds play automatically independently of key presses. The stored value updates immediately and is used on the next chart load.
 
+The Gameplay section also exposes preparation time (0.5–3 seconds) and four transition durations (0–2 seconds, step 0.1): hold to pause, resume delay, hold to retry during play, and hold to retry while paused. These bind the existing modern `gameplay.time.*` settings; pause defaults to 0 seconds, resume and both retries to 0.5 seconds. Early release cancels pause/retry, while resume is a countdown cancelled by a second pause press. Labels and tips distinguish those behaviors.
+
 The audio section exposes master, music, keysound, and metronome volume. Stored volumes remain linear values in `[0, 1]`. The logarithmic presentation converts them to and from decibels and changing the presentation mode invalidates the section.
 
 The renderer section binds the renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.

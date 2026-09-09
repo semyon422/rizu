@@ -1,14 +1,17 @@
 local class = require("class")
 local flux = require("flux")
+local Settings = require("rizu.config.Settings")
 
 ---@class sphere.PauseModel
+---@field state string
+---@field progress number
 ---@operator call: sphere.PauseModel
 local PauseModel = class()
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param rhythm_engine rizu.RhythmEngine
-function PauseModel:new(configModel, rhythm_engine)
-	self.configModel = configModel
+function PauseModel:new(settings, rhythm_engine)
+	self.settings = settings
 	self.rhythm_engine = rhythm_engine
 end
 
@@ -18,17 +21,20 @@ function PauseModel:setRhythmEngine(rhythm_engine)
 end
 
 function PauseModel:load()
+	self:startProgress()
 	self.state = "play"
 	self.progress = 0
 	self.needRetry = false
 end
 
+---@param state string
+---@return number?
 function PauseModel:getProgressTime(state)
-	local config = self.configModel.configs.settings.gameplay.time
-	if state == "play-pause" then return config.playPause end
-	if state == "pause-play" then return config.pausePlay end
-	if state == "play-retry" then return config.playRetry end
-	if state == "pause-retry" then return config.pauseRetry end
+	local keys = Settings.keys.gameplay
+	if state == "play-pause" then return self.settings:getNumber(keys.time_play_pause) end
+	if state == "pause-play" then return self.settings:getNumber(keys.time_pause_play) end
+	if state == "play-retry" then return self.settings:getNumber(keys.time_play_retry) end
+	if state == "pause-retry" then return self.settings:getNumber(keys.time_pause_retry) end
 end
 
 function PauseModel:update()

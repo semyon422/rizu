@@ -6,6 +6,8 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 ## User Experience
 - Starting a song should create a fresh gameplay session with deterministic timing and clean state.
 - Retrying a chart should behave like a brand-new attempt rather than reusing mutable state from the previous play.
+- The retry binding defaults to the backtick/tilde (`~`) key. Retry and play-to-pause require holding the key for their configured duration; early release cancels the transition. Resume uses a countdown (no hold required), cancelled by pressing pause again, matching the legacy UI. Zero duration executes immediately. `GameplayInteractor:update()` consumes `PauseModel.needRetry` by starting a fresh attempt; reloading the pause model clears the request and stops its tween. Multiplayer rooms continue to disallow local transitions.
+- The Gameplay settings section exposes preparation time and separate play-to-pause, pause-to-play, play-to-retry, and pause-to-retry durations. `PauseModel` now receives the modern settings store and reads `gameplay.time.*`, not legacy `settings.gameplay.time`; legacy Lua values are not automatically migrated.
 - Manual play, autoplay, and replay should all feel like the same session flow from the player's perspective, differing only in the source of input events.
 - Gameplay input bindings follow the computed chart input mode after modifiers, so converted charts use bindings for their effective key count.
 

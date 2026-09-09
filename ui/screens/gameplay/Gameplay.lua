@@ -78,9 +78,18 @@ function Gameplay:onHandleInputs(inputs)
 		self.is_playing = false
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_pause) then
 		local state = self.game.pauseModel.state
-		interactor:changePlayState(state == "pause" and "play" or "pause")
+		if state == "play" then
+			interactor:changePlayState("pause")
+		elseif state == "pause" then
+			interactor:changePlayState("play")
+		elseif state == "pause-play" then
+			interactor:changePlayState("pause")
+		end
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_retry) then
-		interactor:changePlayState("retry")
+		local state = self.game.pauseModel.state
+		if state == "play" or state == "pause" then
+			interactor:changePlayState("retry")
+		end
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_skip_intro) then
 		interactor:skipIntro()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_decrease) then
@@ -93,6 +102,18 @@ function Gameplay:onHandleInputs(inputs)
 		interactor:increasePlaySpeed(-1)
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_increase) then
 		interactor:increasePlaySpeed(1)
+	end
+
+	local state = self.game.pauseModel.state
+	if inputs:consumeActionJustReleased(UiActions.gameplay_pause) and state == "play-pause" then
+		interactor:changePlayState("play")
+	end
+	if inputs:consumeActionJustReleased(UiActions.gameplay_retry) then
+		if state == "play-retry" then
+			interactor:changePlayState("play")
+		elseif state == "pause-retry" then
+			interactor:changePlayState("pause")
+		end
 	end
 end
 

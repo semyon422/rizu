@@ -36,7 +36,7 @@ function Gameplay:new(settings, ui_config, localization)
 			local range = assert(ScrollSpeed.ranges[speed_type])
 			local format = assert(ScrollSpeed.formats[speed_type])
 
-			return {
+			local controls = {
 				ControlFactory.segmentedChoice(settings, keys.speed_type, {
 					name = localization:get("settings.scroll_speed_type"),
 					keywords = {"gameplay", "scroll", "speed", "osu"},
@@ -85,6 +85,17 @@ function Gameplay:new(settings, ui_config, localization)
 					value_format = formatPercent,
 				}),
 			}
+			for _, name in ipairs({"prepare", "play_pause", "pause_play", "play_retry", "pause_retry"}) do
+				controls[#controls + 1] = ControlFactory.number(settings, keys["time_" .. name], {
+					name = localization:get("settings.time_" .. name),
+					keywords = {"gameplay", "time", "hold", "pause", "resume", "retry", "restart", "prepare"},
+					tip = localization:get("settings.time_" .. name .. "_tip"),
+					value_format = function(value)
+						return localization:get("settings.time_seconds", {value = ("%.1f"):format(value)})
+					end,
+				})
+			end
+			return controls
 		end,
 	})
 end

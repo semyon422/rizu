@@ -201,6 +201,9 @@ function GameplayInteractor:update()
 	local game = self.game
 	self.gameplay_session:update(game.global_timer:getTime())
 	game.pauseModel:update()
+	if game.pauseModel.needRetry then
+		self:retry()
+	end
 end
 
 ---@param delta number

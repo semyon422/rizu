@@ -5,6 +5,9 @@ local RhythmEngine = require("rizu.engine.RhythmEngine")
 local InputBinder = require("rizu.input.InputBinder")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local TimingValues = require("sea.chart.TimingValues")
+local PauseModel = require("sphere.models.PauseModel")
+local Settings = require("rizu.config.Settings")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
@@ -86,6 +89,55 @@ function test.direct_engine_pause_preserves_long_note_and_binding(t)
 	t:eq(session.replay_recorder.frames[5].event.id, id)
 	t:eq(re.input_engine.event_catches[id], nil)
 	t:eq(re:isColumnPressed(1), false)
+end
+
+---@param t testing.T
+function test.retry_request_starts_one_fresh_attempt(t)
+	for _, state in ipairs({"play", "pause"}) do
+		local settings = Settings.createConfig(FakeFilesystem())
+		settings:setNumber(Settings.keys.gameplay.time_play_retry, 0)
+		settings:setNumber(Settings.keys.gameplay.time_pause_retry, 0)
+		local pause_model = PauseModel(settings, {})
+		pause_model:load()
+		pause_model.state = state
+		local attempts = 0
+		local plays = 0
+		local session = {update = function() end}
+		local interactor = setmetatable({
+			loaded = true,
+			autoplay = true,
+			gameplay_session = session,
+			game = {
+				pauseModel = pause_model,
+				global_timer = {getTime = function() return 10 end},
+				multiplayerModel = {client = {isInRoom = function() return false end}},
+				replayBase = {timings = "simple", subtimings = "normal"},
+				rhythm_engine = {setTimings = function(_, timings, subtimings)
+					t:eq(timings, "simple")
+					t:eq(subtimings, "normal")
+				end},
+			},
+			load = function(self, autoplay)
+				t:eq(autoplay, true)
+				attempts = attempts + 1
+				self.gameplay_session = {update = function() end, play = function()
+					plays = plays + 1
+				end}
+			end,
+		}, {__index = GameplayInteractor})
+		---@cast interactor rizu.GameplayInteractor
+
+		interactor:changePlayState("retry")
+		t:eq(pause_model.needRetry, true)
+		interactor:update()
+		t:ne(interactor.gameplay_session, session)
+		t:eq(attempts, 1)
+		t:eq(plays, 1)
+		t:eq(pause_model.needRetry, false)
+		t:eq(pause_model.state, "play")
+		interactor:update()
+		t:eq(attempts, 1)
+	end
 end
 
 return test

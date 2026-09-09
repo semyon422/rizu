@@ -3,6 +3,7 @@ local Gameplay = require("ui.modals.config.sections.Gameplay")
 local Resources = require("ui.Resources")
 local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
+local Localization = require("ui.localization.Localization")
 
 local test = {}
 
@@ -36,9 +37,21 @@ function test.auto_keysound_binds_gameplay_setting(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata")
 	local settings = Settings.createConfig(fs)
-	local controls = Gameplay(settings, UiConfig(fs, "userdata/ui.json")):build()
+	local controls = Gameplay(settings, UiConfig(fs, "userdata/ui.json"), Localization()):build()
 	Resources.sprites = old_sprites
 	Resources.getFont = old_get_font
+
+	for _, name in ipairs({"prepare", "play_pause", "pause_play", "play_retry", "pause_retry"}) do
+		local time_key = Settings.keys.gameplay["time_" .. name]
+		local found = false
+		for _, control in ipairs(controls) do
+			if control.setting_key == time_key then
+				found = true
+				t:eq(control.setting_name, Localization():get("settings.time_" .. name))
+			end
+		end
+		t:eq(found, true)
+	end
 
 	local key = Settings.keys.gameplay.auto_key_sound
 	---@type ui.views.form.Checkbox?
