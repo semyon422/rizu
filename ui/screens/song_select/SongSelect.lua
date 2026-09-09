@@ -102,6 +102,7 @@ function SongSelect:enter()
 	self.score_list_panel.score_list:reload()
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
+	chart_selector:notifyChartviewChanged()
 	local chartview = chart_selector.chartview
 	if chartview and chartview.hash then
 		self.chartview_formatter:setChartview(chartview)
