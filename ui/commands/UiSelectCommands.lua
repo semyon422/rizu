@@ -49,6 +49,19 @@ return function(game, ui)
 			end,
 		},
 		{
+			id = "ui.select.catch_replay",
+			title = "Select: Watch Local Catch Replay",
+			description = "Plays the latest local Catch attempt",
+			callback = function()
+				local view = game.chartSelector.chartview
+				if view and view.inputmode == "1fruits" then
+					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, true)
+					if not ok then ui.chart_loading:showError(err) end
+					ui:setScreen(ui.chart_loading)
+				end
+			end,
+		},
+		{
 			id = "ui.select.open_result",
 			title = "Select: Open Result",
 			description = "Opens the selected score result",

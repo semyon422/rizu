@@ -44,7 +44,7 @@ function HashingTask:processChartfile(chartfile, location_prefix, context)
 
 	for j, t in ipairs(chart_chartmetas) do
 		-- Experimental Aim charts have metadata but no mania difficulty/result contract.
-		if t.chart.aim then
+		if t.chart.aim or t.chart.catch then
 			goto continue
 		end
 		local ok, err = xpcall(t.chart.layers.main.toAbsolute, debug.traceback, t.chart.layers.main)

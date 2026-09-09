@@ -1,3 +1,4 @@
+local CatchPlayfield = require("ui.screens.gameplay.CatchPlayfield")
 local Label = require("ui.views.Label")
 local AimPlayfield = require("ui.screens.gameplay.AimPlayfield")
 local Screen = require("gui.Screen")
@@ -29,6 +30,8 @@ function Gameplay:new(ui)
 	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
 	self.aim_playfield = self.root:add(AimPlayfield(self.game)):anchorFill(0, 0, 0, 0)
 	self.aim_playfield:setVisible(false)
+	self.catch_playfield = self.root:add(CatchPlayfield(self.game)):anchorFill(0, 0, 0, 0)
+	self.catch_playfield:setVisible(false)
 	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
 	self.aim_summary:setAlignment(0.5, 0.5)
 	self.aim_summary:setVisible(false)
@@ -43,9 +46,11 @@ end
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	local sequence_view = self.sequence_view
-	self.is_aim = self.game.rhythm_engine.aim_rules ~= nil
+	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
+	self.is_aim = self.game.rhythm_engine.aim_rules ~= nil or self.is_catch
+	self.catch_playfield:setVisible(self.is_catch)
 	self.aim_summary:setVisible(false)
-	self.aim_playfield:setVisible(self.is_aim)
+	self.aim_playfield:setVisible(self.is_aim and not self.is_catch)
 	self.sequence_canvas:setVisible(not self.is_aim)
 	if not self.is_aim then
 		sequence_view.game = self.game
@@ -70,7 +75,7 @@ function Gameplay:enter()
 	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + width, min_y + height)
 
 	self.root:fadeIn(0.4, "OutQuint")
-	if self.is_aim then
+	if self.is_aim and not self.is_catch then
 		self:flush()
 		local x, y = love.mouse.getPosition()
 		x, y = self.aim_playfield:toChart(x, y)
@@ -151,7 +156,7 @@ function Gameplay:observeCompletion()
 		self.gameplay_interactor:saveAimReplay()
 		self.gameplay_interactor.aim_complete = true
 		self.gameplay_interactor:pause()
-		local rules = self.game.rhythm_engine.aim_rules
+		local rules = self.game.rhythm_engine.aim_rules or self.game.rhythm_engine.catch_rules
 		self.aim_summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
 			rules.hits, rules.misses, self.gameplay_interactor.aim_status or "Autoplay / replay — no score saved"))
 		self.aim_summary:setVisible(true)
@@ -197,7 +202,7 @@ function Gameplay:receive(event)
 				return true
 			elseif event[1] == "r" then
 				local meta = self.game.rhythm_engine.chartmeta
-				local ok, err = self.gameplay_interactor:loadAimReplay(meta.hash, meta.index)
+				local ok, err = self.gameplay_interactor:loadAimReplay(meta.hash, meta.index, self.is_catch)
 				if ok then
 					self.gameplay_interactor:retry()
 					self.is_playing = true
@@ -208,7 +213,7 @@ function Gameplay:receive(event)
 				return true
 			end
 		end
-		if event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased" then
+		if not self.is_catch and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
 			local x, y = self.aim_playfield:toChart(event[1], event[2])
 			self.gameplay_interactor:aimPointer(x, y, event.time)
 		end

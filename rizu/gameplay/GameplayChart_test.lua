@@ -158,4 +158,27 @@ OverallDifficulty:5
 	t:eq(type(invalid_index.error), "string")
 end
 
+---@param t testing.T
+function test.catch_worker_preparation_skips_mania_scoring(t)
+	local data = [[osu file format v14
+[General]
+Mode:2
+[Difficulty]
+CircleSize:5
+OverallDifficulty:5
+[TimingPoints]
+0,500,4,1,0,100,1,0
+[HitObjects]
+100,100,1000,1,0,0:0:0:0:
+100,100,2000,2,0,L|300:100,1,200
+]]
+	local compute = assert(loadstring(string.dump(GameplayChart.compute)))
+	local result = compute({chartfile_name = "catch.osu", index = 1}, data, nil, ReplayBase(), {})
+	t:eq(result.error, nil)
+	t:eq(result.chartdiff.inputmode, "1fruits")
+	t:eq(result.chartdiff.osu_diff, nil)
+	t:aeq(result.chartdiff.duration, 1 + 200 / 280, 1e-9)
+	t:assert(result.refchart.catch)
+end
+
 return test

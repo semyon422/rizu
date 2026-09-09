@@ -1,3 +1,4 @@
+local CatchRules = require("rizu.gameplay.catch.Rules")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local class = require("class")
 
@@ -24,6 +25,7 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 ---@operator call: rizu.RhythmEngine
 ---@field aim_tracking boolean? False for checkpoint-only legacy replays.
 ---@field aim_stacking boolean? False for legacy diagnostic replay geometry.
+---@field catch_rules rizu.catch.Rules?
 ---@field aim_rules rizu.aim.CircleRules?
 local RhythmEngine = class()
 
@@ -60,6 +62,11 @@ end
 function RhythmEngine:load()
 	local chart = self.chart
 
+	if chart.catch then
+		self.catch_rules = CatchRules(chart.catch)
+		self.catch_sound_index = 0
+		return
+	end
 	if chart.aim then
 		self.aim_rules = CircleRules(chart.aim, self.aim_stacking, self.aim_tracking)
 		self.aim_sound_index = 0
@@ -98,7 +105,7 @@ end
 
 ---@return boolean
 function RhythmEngine:hasResult()
-	if self.aim_rules then
+	if self.aim_rules or self.catch_rules then
 		return false
 	end
 	local time_engine = self.time_engine
@@ -138,7 +145,16 @@ end
 function RhythmEngine:update()
 	self:syncTime()
 
-	if self.aim_rules then
+	if self.catch_rules then
+		self.catch_rules:update(self.logic_info.time)
+		for i = self.catch_sound_index + 1, #self.catch_rules.events do
+			local event = self.catch_rules.events[i]
+			if event.hit then
+				for _, sample in ipairs(self.catch_rules.chart.objects[event.index].sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
+			end
+		end
+		self.catch_sound_index = #self.catch_rules.events
+	elseif self.aim_rules then
 		self.aim_rules:update(self.logic_info.time)
 	else
 		self.input_engine:update()
@@ -196,6 +212,10 @@ end
 ---@param event rizu.VirtualInputEvent
 function RhythmEngine:receive(event)
 	self:syncTime()
+	if self.catch_rules then
+		self.catch_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
+		return
+	end
 	if self.aim_rules then
 		local index = self.aim_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
 		if index then
@@ -243,7 +263,7 @@ end
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
 function RhythmEngine:setTimings(timings, subtimings)
-	if self.aim_rules then
+	if self.aim_rules or self.catch_rules then
 		return
 	end
 	timings = assert(timings or self.chartmeta.timings)

@@ -70,6 +70,10 @@ end
 ---@param decoder rizu.audio.bass.Decoder
 ---@param volume number?
 function MixerSource:addSound(decoder, volume)
+	if decoder:getFrameDuration() == 0 then
+		decoder:release()
+		return
+	end
 	assert(decoder:getSampleFormat() == self.sample_format, "Decoder sample format must match MixerSource format")
 
 	-- Use the resample_channel from Decoder (it's a decoding mixer)

@@ -4,7 +4,7 @@ Provide minimal but playable support for four modes: **Aim (osu!standard), Catch
 
 This phase evaluates whether the existing engine can support different mechanics and gathers concrete requirements for a subsequent skinning rewrite. It does not aim for competitive compatibility with the original games.
 
-**Status:** requirements document for the complete four-mode phase. The Aim implementation is tracked separately in [../aim/spec.md](../aim/spec.md), including its verification status and limitations; the full phase is not complete. Current-state sections below capture the initial source investigation rather than an updated implementation inventory. Other sections describe target behavior. Proposals and unresolved questions are marked separately.
+**Status:** requirements document for the complete four-mode phase. The Aim implementation is tracked separately in [../aim/spec.md](../aim/spec.md), and the native Catch prototype in [../catch/spec.md](../catch/spec.md), including its verification status and limitations; the full phase is not complete. Current-state sections below capture the initial source investigation rather than an updated implementation inventory. Other sections describe target behavior. Proposals and unresolved questions are marked separately.
 
 Agreed scope:
 - Core mechanics and object types, not just a basic input demonstration.

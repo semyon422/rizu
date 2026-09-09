@@ -42,7 +42,7 @@ function RhythmEngineLoader:load(rhythm_engine)
 		primary = settings:getChoice(keys.audio.mode_primary),
 		secondary = settings:getChoice(keys.audio.mode_secondary),
 	})
-	if chart.aim then
+	if chart.aim or chart.catch then
 		rhythm_engine:setAutoKeySound(false)
 	end
 	rhythm_engine:loadAudio(self.resources)
@@ -55,8 +55,8 @@ function RhythmEngineLoader:load(rhythm_engine)
 	rhythm_engine:setConst(replayBase.const)
 
 	local duration = chartdiff.duration
-	if rhythm_engine.aim_rules then
-		duration = duration + rhythm_engine.aim_rules.window + 0.5
+	if rhythm_engine.aim_rules or rhythm_engine.catch_rules then
+		duration = duration + (rhythm_engine.aim_rules and rhythm_engine.aim_rules.window or 0) + 0.5
 	end
 	rhythm_engine:setPlayTime(chartdiff.start_time, duration)
 	rhythm_engine:setTimeToPrepare(settings:getNumber(keys.gameplay.time_prepare))

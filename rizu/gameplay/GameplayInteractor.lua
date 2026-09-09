@@ -1,5 +1,6 @@
 local ReplayBase = require("sea.replays.ReplayBase")
 local table_util = require("table_util")
+local CatchInput = require("rizu.gameplay.catch.Input")
 local AimInput = require("rizu.gameplay.aim.Input")
 local AimReplayStore = require("rizu.gameplay.aim.ReplayStore")
 local class = require("class")
@@ -25,6 +26,7 @@ function GameplayInteractor:new(game)
 	self.autoplay = false
 	self.audio_disabled = false
 	self.load_generation = 0
+	self.catch_replay_store = AimReplayStore(game.fs, "catch")
 	self.aim_replay_store = AimReplayStore(game.fs)
 
 	self.score_saver = ScoreSaver(
@@ -121,19 +123,20 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")
 			end
 		end
-		assert(chart.aim and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
+		assert((chart.aim or chart.catch) and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
 			"Aim replay does not match the selected chart.")
+		assert((self.aim_replay.format == "rizu-catch-1") == (chart.catch ~= nil), "Replay mode does not match chart.")
 	end
 
-	if not self.replaying and not chart.aim then
+	if not self.replaying and not chart.aim and not chart.catch then
 		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
 	end
 
 	local input_mode = GameplayInteractor.getInputMode(chart)
 	---@type string[]
 	local paths
-	if chart.aim then
-		assert(not game.multiplayerModel.client:isInRoom(), "Aim prototype is not available in multiplayer.")
+	if chart.aim or chart.catch then
+		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
 		self.noteSkin = nil
 	else
@@ -159,8 +162,8 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	game.pauseModel:load()
 
-	game.multiplayerModel.client:setPlaying(not chart.aim)
-	if not chart.aim then
+	game.multiplayerModel.client:setPlaying(not chart.aim and not chart.catch)
+	if not chart.aim and not chart.catch then
 		game.offsetController:updateOffsets()
 	end
 
@@ -195,12 +198,13 @@ function GameplayInteractor:load(autoplay)
 	loader:load(game.rhythm_engine)
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
+	self.catch_input = game.rhythm_engine.catch_rules ~= nil
 	self.aim_input = game.rhythm_engine.aim_rules and AimInput() or nil
 	self.aim_saved = false
 	self.aim_status = nil
 	self.aim_complete = false
 	game.offsetController.rhythm_engine = game.rhythm_engine
-	if game.rhythm_engine.aim_rules then
+	if game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules then
 		game.offsetController:updateOffsets()
 		if self.aim_replay then
 			game.rhythm_engine:setInputOffset(self.aim_replay.input_offset)
@@ -233,7 +237,7 @@ end
 
 function GameplayInteractor:unloadGameplay()
 	local re = self.game.rhythm_engine
-	if re and re.aim_rules and self.loaded then
+	if re and (re.aim_rules or re.catch_rules) and self.loaded then
 		self:saveAimReplay()
 	end
 	self.aim_replay = nil
@@ -268,8 +272,8 @@ function GameplayInteractor:update(after_inputs)
 	end
 
 	local game = self.game
-	-- Aim input is timestamped and queued by the UI. Resolve it before deadlines.
-	if game.rhythm_engine and game.rhythm_engine.aim_rules and not after_inputs then
+	-- Experimental input is timestamped and queued by the UI. Resolve it before deadlines.
+	if game.rhythm_engine and (game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules) and not after_inputs then
 		return
 	end
 	self.gameplay_session:update(game.global_timer:getTime())
@@ -296,7 +300,7 @@ function GameplayInteractor:hasResult()
 end
 
 function GameplayInteractor:saveScore()
-	assert(not self.game.rhythm_engine.aim_rules, "Aim prototype cannot save or submit scores")
+	assert(not self.game.rhythm_engine.aim_rules and not self.game.rhythm_engine.catch_rules, "Experimental modes cannot save or submit scores")
 	self.score_saver:saveScore(self.gameplay_session)
 end
 
@@ -352,6 +356,12 @@ end
 function GameplayInteractor:receive(event)
 	local game = self.game
 	local physic_event = KeyPhysicInputEvent.fromInputChangedEvent(event)
+	if self.catch_input then
+		if self.aim_complete then return end
+		local virtual_event = CatchInput.transform(event)
+		if virtual_event then self.gameplay_session:receive(virtual_event, event.time) end
+		return
+	end
 	if self.aim_input then
 		if self.aim_complete then return end
 		local virtual_event = self.aim_input:transform(event)
@@ -380,10 +390,11 @@ end
 ---@return string?
 function GameplayInteractor:saveAimReplay()
 	local session = self.gameplay_session
-	if not session or not session.rhythm_engine.aim_rules or session.play_type ~= "manual" or self.aim_saved then
+	if not session or not (session.rhythm_engine.aim_rules or session.rhythm_engine.catch_rules) or session.play_type ~= "manual" or self.aim_saved then
 		return
 	end
-	local ok, path = pcall(self.aim_replay_store.save, self.aim_replay_store, session)
+	local store = session.rhythm_engine.catch_rules and self.catch_replay_store or self.aim_replay_store
+	local ok, path = pcall(store.save, store, session)
 	self.aim_saved = ok
 	self.aim_status = ok and ("Replay saved: " .. path) or ("Replay save failed: " .. tostring(path))
 	return self.aim_status
@@ -391,10 +402,12 @@ end
 
 ---@param hash string
 ---@param index integer
+---@param catch boolean?
 ---@return boolean
 ---@return string?
-function GameplayInteractor:loadAimReplay(hash, index)
-	local ok, replay, frames = pcall(self.aim_replay_store.load, self.aim_replay_store, hash, index)
+function GameplayInteractor:loadAimReplay(hash, index, catch)
+	local store = catch and self.catch_replay_store or self.aim_replay_store
+	local ok, replay, frames = pcall(store.load, store, hash, index)
 	if not ok then
 		return false, tostring(replay)
 	end

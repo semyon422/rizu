@@ -1,3 +1,4 @@
+local CatchChart = require("chart.format.osu.CatchChart")
 local AimChart = require("chart.format.osu.AimChart")
 local IChartDecoder = require("chart.format.notechart.IChartDecoder")
 local ChartBuilder = require("chart.format.notechart.ChartBuilder")
@@ -77,6 +78,7 @@ function ChartDecoder:decodeOsu(osu)
 		chart.inputMode = InputMode({key = 2})
 	elseif mode == 2 then
 		chart.inputMode = InputMode({fruits = 1})
+		chart.catch = CatchChart(osu)
 	elseif mode == 3 then
 		chart.inputMode = InputMode({key = osu.keymode})
 	end

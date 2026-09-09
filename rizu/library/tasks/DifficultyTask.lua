@@ -79,7 +79,7 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 	local chartdiffs = self.chartsRepo:getIncompleteChartdiffs()
 	
 	self.batchProcessor:process(chartdiffs, "difficulty", #chartdiffs, function(chartdiff)
-		if chartdiff.inputmode == "1osu" then
+		if chartdiff.inputmode == "1osu" or chartdiff.inputmode == "1fruits" then
 			return chartdiff.hash
 		end
 		---@type chart.Chart

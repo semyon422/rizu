@@ -48,4 +48,11 @@ function test.aim_hides_legacy_mania_difficulty(t)
 	t:eq(formatter:getDifficulty().postfix, "EXPERIMENTAL")
 end
 
+---@param t testing.T
+function test.catch_hides_legacy_difficulty(t)
+	local formatter = ChartviewFormatter({inputmode = "1fruits", chartdiff_inputmode = "4key", osu_diff = 12}, {})
+	t:eq(formatter:getMode(), "CATCH (EXPERIMENTAL)")
+	t:eq(formatter:getDifficulty().value, "—")
+end
+
 return test

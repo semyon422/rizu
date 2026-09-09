@@ -1,3 +1,4 @@
+local EmptyWave = require("rizu.engine.audio.EmptyWave")
 local IDecoder = require("rizu.engine.audio.IDecoder")
 local bit = require("bit")
 local ffi = require("ffi")
@@ -26,6 +27,7 @@ end
 ---@param data string
 ---@return number
 function Decoder.probeDuration(data)
+	if EmptyWave.isEmpty(data) then return 0 end
 	---@type integer
 	local channel = bass.BASS_StreamCreateFile(true, data, 0, #data, bit.bor(bass_flags.BASS_STREAM_DECODE, bass_flags.BASS_STREAM_PRESCAN))
 	bass_assert(channel ~= 0)
@@ -53,6 +55,11 @@ function Decoder:new(data, sample_format)
 	self.data = data
 	self.sample_format = sample_format or "int16"
 	assert(self.sample_format == "int16" or self.sample_format == "float32")
+	self.empty = EmptyWave.isEmpty(data)
+	if self.empty then
+		self.frame_duration, self.frame_position = 0, 0
+		return
+	end
 
 	---@type integer
 	self.decode_channel = bass.BASS_StreamCreateFile(true, data, 0, #data, bit.bor(bass_flags.BASS_STREAM_DECODE, bass_flags.BASS_STREAM_PRESCAN))
@@ -92,6 +99,7 @@ function Decoder:release()
 		return
 	end
 	self.released = true
+	if self.empty then return end
 	bass_assert(bass.BASS_StreamFree(self.resample_channel) == 1)
 	bass_assert(bass.BASS_StreamFree(self.decode_channel) == 1)
 end
@@ -100,6 +108,7 @@ end
 ---@param frame_count integer
 ---@return integer
 function Decoder:getFrames(buf, frame_count)
+	if self.empty then return 0 end
 	local bytes_per_frame = self.channels_count * self:getBytesPerSample()
 	---@type integer
 	local data_bytes = bass.BASS_ChannelGetData(self.resample_channel, buf, frame_count * bytes_per_frame)
@@ -116,6 +125,7 @@ end
 
 ---@param frame integer
 function Decoder:setFramePosition(frame)
+	if self.empty then self.frame_position = 0; return end
 	self.frame_position = frame
 	local seconds = frame / self.sample_rate
 	---@type integer

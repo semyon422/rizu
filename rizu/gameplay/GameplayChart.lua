@@ -1,3 +1,4 @@
+local CatchPreparation = require("rizu.gameplay.catch.Preparation")
 local AimPreparation = require("rizu.gameplay.aim.Preparation")
 local class = require("class")
 local thread = require("thread")
@@ -94,6 +95,7 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local RefChartAsync = require("chart.refchart.RefChart")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
+	local CatchPreparationAsync = require("rizu.gameplay.catch.Preparation")
 	local AimPreparationAsync = require("rizu.gameplay.aim.Preparation")
 
 	local replay_base = ReplayBaseAsync()
@@ -114,7 +116,10 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 		return {error = assert(decode_error)}
 	end
 
-	if compute_context.chart.aim then
+	if compute_context.chart.catch then
+		local prepared, err = pcall(CatchPreparationAsync.compute, compute_context, replay_base)
+		if not prepared then return {error = tostring(err)} end
+	elseif compute_context.chart.aim then
 		local ok, err = pcall(AimPreparationAsync.compute, compute_context, replay_base)
 		if not ok then
 			return {error = tostring(err)}
@@ -149,6 +154,10 @@ local compute_async = thread.async(GameplayChart.compute)
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
+	if ctx.chart.catch then
+		CatchPreparation.compute(ctx, replayBase)
+		return
+	end
 	if ctx.chart.aim then
 		AimPreparation.compute(ctx, replayBase)
 		return

@@ -44,6 +44,10 @@ The engine module provides the low-level runtime systems for rhythm processing, 
 ### ADR: Session-Level Policy Outside Core Timing
 - Flags such as autoplay or promode should be coordinated by higher-level gameplay/session code where possible, even if legacy paths still exist elsewhere.
 
+### Empty WAV Hitsounds
+
+Some charts intentionally ship header-only RIFF/WAVE files with an empty data chunk as silent samples. `EmptyWave` recognizes a complete bounded chunk structure; BASS decoders expose zero frames/duration without opening a stream, and `MixerSource` releases these without attaching a nonexistent channel. Nonempty/truncated files still use normal decoder validation; this is not a blanket audio-error suppression.
+
 ## Performance Notes
 
 - Treat gameplay and audio code as performance-sensitive by default.

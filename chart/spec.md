@@ -43,6 +43,10 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 
 Native osu! Mode=0 decoding now carries a `chart.Chart.aim` DTO with source-order object positions/times/types/sounds and CS/AR/OD. `RefChart` and `Restorer` copy this data independently of column notes, preserving simultaneous objects. This is an additive in-memory/thread-snapshot contract, not a change to SPH or other persistent chart formats. The gameplay implementation accepts circles, sliders, and spinners; spinner end times and slider source geometry/timing inputs are preserved, with separate path/timing helpers described in [format/osu/spec.md](format/osu/spec.md). See [../rizu/gameplay/aim/spec.md](../rizu/gameplay/aim/spec.md).
 
+## Experimental Catch Data
+
+Native Mode=2 charts additionally carry `chart.catch` with deterministic fruits, droplets, tiny droplets and bananas. It survives refchart worker snapshots independently of column notes. See [../rizu/gameplay/catch/spec.md](../rizu/gameplay/catch/spec.md) for prototype generation, input and replay contracts.
+
 ## Migration Plan
 
 1. Create `chart/` directory and spec (this file).

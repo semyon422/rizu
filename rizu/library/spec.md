@@ -159,6 +159,10 @@ If `primary_mode = chartdiffs` and `secondary_mode = chartmetas`, selecting a pl
 
 If `primary_mode = chartmetas` and `secondary_mode = chartplays`, selecting a song scopes the secondary list to score history for that song identity. This can include plays across multiple playable variations when the query groups by chartmeta first; exact score visibility in the select UI is further constrained by `rizu.select` score-loading rules.
 
+## Experimental Catch
+
+Native `1fruits` charts now skip mania difficulty generation like Aim; historical cache rows are retained and the formatter masks their difficulty. See [../gameplay/catch/spec.md](../gameplay/catch/spec.md).
+
 ## Future Work and Open Questions
 
 ### Caching and Performance
