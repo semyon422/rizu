@@ -69,7 +69,7 @@ function Audio:new(settings, localization)
 				controls[#controls + 1] = ControlFactory.number(settings, volume.key, {
 					name = volume.name,
 					keywords = {"audio", "sound", volume.keyword},
-					tip = localization:get("settings.volume_tip", {kind = volume.keyword}),
+					tip = localization:get("settings.volume_tip", {kind = volume.name:lower()}),
 					min = logarithmic and MIN_DECIBELS or nil,
 					max = logarithmic and 0 or nil,
 					step = logarithmic and 1 or nil,

@@ -25,6 +25,7 @@ local function formatLanguage(value)
 	return ({
 		en = "English",
 		ru = "Русский",
+		es = "Español (AI translation)",
 	})[value]
 end
 
