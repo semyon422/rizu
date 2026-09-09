@@ -60,6 +60,7 @@ function RhythmEngine:load()
 
 	if chart.aim then
 		self.aim_rules = CircleRules(chart.aim)
+		self.aim_sound_index = 0
 		return
 	end
 	self.active_input_notes:setInputMap(chart.inputMode:getInputMap())
@@ -140,6 +141,18 @@ function RhythmEngine:update()
 		self.input_engine:update()
 		self.logic_engine:update()
 		self.visual_engine:update()
+	end
+	local sound = self.aim_sound_index or 0
+	if self.aim_rules then
+		for i = sound + 1, #self.aim_rules.checkpoint_events do
+			local event = self.aim_rules.checkpoint_events[i]
+			if event.hit then
+				for _, sample in ipairs(self.aim_rules.chart.objects[event.index].sounds) do
+					self.audio_engine:playSample(sample[1], sample[2])
+				end
+			end
+		end
+		self.aim_sound_index = #self.aim_rules.checkpoint_events
 	end
 	self.bga_engine:update()
 	self.audio_engine:update()

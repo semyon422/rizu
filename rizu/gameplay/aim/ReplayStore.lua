@@ -5,7 +5,7 @@ local mime = require("mime")
 local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 
 ---@class rizu.aim.ReplayData
----@field format "rizu-aim-circles-1"
+---@field format "rizu-aim-circles-1"|"rizu-aim-sliders-1"
 ---@field hash string
 ---@field index integer
 ---@field rate number
@@ -40,7 +40,7 @@ function ReplayStore:save(session)
 	local path = self:path(meta.hash, meta.index)
 	---@type rizu.aim.ReplayData
 	local data = {
-		format = "rizu-aim-circles-1", hash = meta.hash, index = meta.index,
+		format = "rizu-aim-sliders-1", hash = meta.hash, index = meta.index,
 		rate = re.time_engine.timer.rate, input_offset = re.logic_offset,
 		frames = mime.b64(ReplayFrames.encode(session.replay_recorder:getFrames())),
 	}
@@ -56,7 +56,7 @@ end
 function ReplayStore:load(hash, index)
 	local data = assert(self.fs:read(self:path(hash, index)), "No local Aim replay for this chart.")
 	local replay = assert(json.decode(data))
-	assert(replay.format == "rizu-aim-circles-1" and replay.hash == hash and replay.index == index, "Incompatible Aim replay.")
+	assert((replay.format == "rizu-aim-circles-1" or replay.format == "rizu-aim-sliders-1") and replay.hash == hash and replay.index == index, "Incompatible Aim replay.")
 	assert(type(replay.rate) == "number" and replay.rate >= 0.25 and replay.rate <= 4, "Invalid replay rate.")
 	assert(type(replay.input_offset) == "number" and replay.input_offset == replay.input_offset and math.abs(replay.input_offset) < math.huge, "Invalid replay offset.")
 	local frames = ReplayFrames.decode(assert(mime.unb64(replay.frames)))

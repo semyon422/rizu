@@ -1,3 +1,4 @@
+local Sliders = require("rizu.gameplay.aim.Sliders")
 local Chartdiff = require("sea.chart.Chartdiff")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
@@ -22,7 +23,13 @@ function Preparation.compute(ctx, replay_base)
 	bounds.rate = replay_base.rate
 	bounds.inputmode = "1osu"
 	bounds.start_time = aim.objects[1].time
-	bounds.duration = aim.objects[#aim.objects].time - bounds.start_time
+	local end_time = aim.objects[#aim.objects].time
+	local prepared, sliders = pcall(Sliders.prepare, aim)
+	assert(prepared, "Aim prototype: invalid slider geometry/timing: " .. tostring(sliders))
+	for _, slider in pairs(sliders) do
+		end_time = math.max(end_time, slider.timing.end_time)
+	end
+	bounds.duration = end_time - bounds.start_time
 	ctx.chartdiff = bounds
 	ctx.state = ModifiersMetaState(chart.inputMode)
 	ctx.diffcalc_context = DiffcalcContext(bounds, chart, replay_base.rate)

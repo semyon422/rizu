@@ -44,10 +44,37 @@ function AimPlayfield:draw()
 	love.graphics.setFont(Resources.getFont("regular", 18))
 	love.graphics.setLineWidth(2)
 	local objects = rules.chart.objects
-	for i = rules.next_index, #objects do
+	for i = 1, #objects do
 		local object = objects[i]
 		if object.time - time > rules.preempt then break end
-		if not rules.states[i] then
+		local slider = rules.sliders[i]
+		if slider and not rules.states[i] then
+			local points = slider.path.points
+			love.graphics.setLineWidth(rules.radius * 2)
+			Painter.setColorRgb(0.16, 0.33, 0.46)
+			for j = 2, #points do
+				love.graphics.line(points[j - 1][1], points[j - 1][2], points[j][1], points[j][2])
+			end
+			for _, p in ipairs(points) do love.graphics.circle("fill", p[1], p[2], rules.radius) end
+			love.graphics.setLineWidth(2)
+			Painter.setColorRgb(0.85, 0.95, 1)
+			for _, checkpoint in ipairs(slider.timing.checkpoints) do
+				if checkpoint.time >= time then
+					local x, y = slider.path:position(checkpoint.progress)
+					if checkpoint.kind == "tick" then love.graphics.circle("fill", x, y, 4)
+					elseif checkpoint.kind == "repeat" then love.graphics.circle("line", x, y, rules.radius * 0.6) end
+				end
+			end
+			if time >= object.time then
+				local x, y = slider.path:position(slider.timing:progress(time))
+				Painter.setColorRgb(1, 0.75, 0.2)
+				love.graphics.circle("line", x, y, rules.radius)
+				love.graphics.circle("fill", x, y, 6)
+				Painter.setColorRgb(1, 0.85, 0.5, 0.3)
+				love.graphics.circle("line", x, y, rules.radius * 2.4)
+			end
+		end
+		if not rules.heads[i] then
 			Painter.setColorRgb(0.2, 0.65, 0.95, 0.45)
 			love.graphics.circle("fill", object.x, object.y, rules.radius)
 			Painter.setColorRgb(0.8, 0.92, 1)
@@ -70,7 +97,7 @@ function AimPlayfield:draw()
 	love.graphics.circle("line", rules.x, rules.y, 9)
 	love.graphics.circle("fill", rules.x, rules.y, 3)
 	Painter.setColorRgb(1, 1, 1)
-	love.graphics.print(("Aim — experimental circles | Hit %d / Miss %d"):format(rules.hits, rules.misses), 0, -36)
+	love.graphics.print(("Aim — experimental | Hit %d / Miss %d | Ticks %d / %d"):format(rules.hits, rules.misses, rules.checkpoint_hits, rules.checkpoint_misses), 0, -36)
 	local state = self.game.pauseModel.state
 	love.graphics.print("Z / X or mouse buttons | " .. state, 0, 400)
 	love.graphics.pop()

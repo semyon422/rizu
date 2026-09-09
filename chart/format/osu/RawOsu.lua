@@ -12,6 +12,8 @@ local HitObjects = require("chart.format.osu.sections.HitObjects")
 ---@operator call: chart.osu.RawOsu
 local RawOsu = class()
 
+RawOsu.format_version = 14
+
 --[[
 	this class should behave as follows:
 	1) take any chart X
@@ -41,6 +43,7 @@ end
 
 ---@param s string
 function RawOsu:decode(s)
+	self.format_version = tonumber(s:match("osu file format v(%d+)")) or 14
 	for _, line in string_util.isplit(s:gsub("\r\n?", "\n"), "\n") do
 		self:decodeLine(line)
 	end

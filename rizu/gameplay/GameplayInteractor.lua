@@ -111,6 +111,11 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
 	if self.aim_replay then
+		if self.aim_replay.format == "rizu-aim-circles-1" then
+			for _, object in ipairs(assert(chart.aim).objects) do
+				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")
+			end
+		end
 		assert(chart.aim and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
 			"Aim replay does not match the selected chart.")
 	end

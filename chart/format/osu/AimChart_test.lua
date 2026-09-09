@@ -1,6 +1,8 @@
 local ChartDecoder = require("chart.format.osu.ChartDecoder")
 local AimChart = require("chart.format.osu.AimChart")
 local RefChart = require("chart.refchart.RefChart")
+local SliderPath = require("chart.format.osu.SliderPath")
+local SliderTiming = require("chart.format.osu.SliderTiming")
 local Restorer = require("chart.refchart.Restorer")
 
 local test = {}
@@ -35,15 +37,38 @@ end
 ---@param t testing.T
 function test.unsupported_objects_are_preserved_and_rejected(t)
 	for _, line in ipairs({
-		"100,192,1000,2,0,L|300:192,1,200",
 		"256,192,1000,8,0,2000,0:0:0:0:",
 	}) do
 		local chart = ChartDecoder():decode(header .. line)[1].chart
 		t:eq(#chart.aim.objects, 1)
 		local ok, err = AimChart.isSupported(chart.aim)
 		t:eq(ok, false)
-		t:assert(err:find("circles only", 1, true))
+		t:assert(err:find("circles and sliders only", 1, true))
 	end
+end
+
+---@param t testing.T
+function test.slider_source_data_survives_refchart_without_placeholder_duration(t)
+	local source = header:gsub("ApproachRate:7", "ApproachRate:7\nSliderMultiplier:1\nSliderTickRate:1")
+	local chart = ChartDecoder():decode(source .. "100,192,1000,2,0,L|400:192,2,300")[1].chart
+	local aim = Restorer():restore(RefChart(chart)).aim
+	t:tdeq(aim, chart.aim)
+	local slider = aim.objects[1].slider
+	t:tdeq(slider.controls, {{100, 192}, {400, 192}})
+	local path = SliderPath(slider.curve_type, slider.controls, slider.length)
+	local timing = SliderTiming(aim.objects[1].time, path.length, slider.spans,
+		aim.slider_multiplier, aim.slider_tick_rate, aim.timing_points, aim.format_version)
+	t:eq(timing.end_time, 4)
+	t:tdeq({path:position(timing:progress(2.5))}, {400, 192})
+	t:tdeq({path:position(timing:progress(4))}, {100, 192})
+	t:eq(AimChart.isSupported(aim), true)
+end
+
+---@param t testing.T
+function test.legacy_format_version_is_preserved(t)
+	local source = header:gsub("format v14", "format v7")
+	local chart = ChartDecoder():decode(source .. "100,192,1000,1,0,0:0:0:0:")[1].chart
+	t:eq(chart.aim.format_version, 7)
 end
 
 return test

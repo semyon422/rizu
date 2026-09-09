@@ -41,7 +41,7 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 
 ## Experimental Aim Data
 
-Native osu! Mode=0 decoding now carries a `chart.Chart.aim` DTO with source-order object positions/times/types/sounds and CS/AR/OD. `RefChart` and `Restorer` copy this data independently of column notes, preserving simultaneous objects. This is an additive in-memory/thread-snapshot contract, not a change to SPH or other persistent chart formats. The first gameplay implementation accepts circles only and explicitly rejects compound objects; full slider geometry is not represented by this initial DTO. See [../rizu/gameplay/aim/spec.md](../rizu/gameplay/aim/spec.md).
+Native osu! Mode=0 decoding now carries a `chart.Chart.aim` DTO with source-order object positions/times/types/sounds and CS/AR/OD. `RefChart` and `Restorer` copy this data independently of column notes, preserving simultaneous objects. This is an additive in-memory/thread-snapshot contract, not a change to SPH or other persistent chart formats. The gameplay implementation accepts circles and sliders and explicitly rejects spinners; slider source geometry and timing inputs are preserved, with separate path/timing helpers described in [format/osu/spec.md](format/osu/spec.md). See [../rizu/gameplay/aim/spec.md](../rizu/gameplay/aim/spec.md).
 
 ## Migration Plan
 

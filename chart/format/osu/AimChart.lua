@@ -1,11 +1,18 @@
 local class = require("class")
 local bit = require("bit")
 
+---@class chart.osu.AimSlider
+---@field curve_type string
+---@field controls chart.osu.PathPoint[] Includes the head.
+---@field length number
+---@field spans integer
+
 ---@class chart.osu.AimObject
 ---@field time number
 ---@field x number
 ---@field y number
 ---@field kind "circle"|"slider"|"spinner"|"unsupported"
+---@field slider chart.osu.AimSlider?
 ---@field sounds {[1]: string, [2]: number}[]
 
 ---@class chart.osu.AimChart
@@ -14,6 +21,10 @@ local bit = require("bit")
 ---@field approach_rate number
 ---@field overall_difficulty number
 ---@field objects chart.osu.AimObject[]
+---@field timing_points chart.osu.SliderControlPoint[]
+---@field format_version integer
+---@field slider_multiplier number
+---@field slider_tick_rate number
 local AimChart = class()
 
 ---@param osu chart.osu.Osu
@@ -22,6 +33,13 @@ function AimChart:new(osu)
 	self.circle_size = assert(tonumber(difficulty.CircleSize))
 	self.overall_difficulty = assert(tonumber(difficulty.OverallDifficulty))
 	self.approach_rate = tonumber(rawget(difficulty, "ApproachRate")) or self.overall_difficulty
+	self.format_version = osu.rawOsu.format_version
+	self.slider_multiplier = assert(tonumber(difficulty.SliderMultiplier))
+	self.slider_tick_rate = assert(tonumber(difficulty.SliderTickRate))
+	self.timing_points = {}
+	for i, point in ipairs(osu.rawOsu.TimingPoints) do
+		self.timing_points[i] = {offset = point.offset, beatLength = point.beatLength}
+	end
 	self.objects = {}
 	for i, object in ipairs(osu.rawOsu.HitObjects) do
 		local kind = "unsupported"
@@ -41,6 +59,16 @@ function AimChart:new(osu)
 			end
 		end
 		self.objects[i] = {time = object.time / 1000, x = object.x, y = object.y, kind = kind, sounds = sounds}
+		if kind == "slider" then
+			local controls = {{object.x, object.y}}
+			for _, point in ipairs(assert(object.points)) do
+				controls[#controls + 1] = {point[1], point[2]}
+			end
+			self.objects[i].slider = {
+				curve_type = assert(object.curveType), controls = controls,
+				length = assert(object.length), spans = assert(object.repeatCount),
+			}
+		end
 	end
 end
 
@@ -58,8 +86,8 @@ function AimChart.isSupported(chart)
 	end
 	local previous_time = -math.huge
 	for _, object in ipairs(chart.objects) do
-		if object.kind ~= "circle" then
-			return false, "Aim prototype supports circles only; this chart contains " .. object.kind .. " objects."
+		if object.kind ~= "circle" and object.kind ~= "slider" then
+			return false, "Aim prototype supports circles and sliders only; this chart contains " .. object.kind .. " objects."
 		end
 		if object.time ~= object.time or math.abs(object.time) == math.huge or object.time < previous_time then
 			return false, "Aim prototype: invalid or unordered object times."

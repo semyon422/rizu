@@ -1,3 +1,4 @@
+local Preparation = require("rizu.gameplay.aim.Preparation")
 local RefChart = require("chart.refchart.RefChart")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local Settings = require("rizu.config.Settings")
@@ -78,6 +79,32 @@ ApproachRate:7
 	})
 	t:tdeq(restored.chart.aim, ctx.chart.aim)
 	t:eq(#restored.chart.aim.objects, 2)
+end
+
+---@param t testing.T
+function test.slider_bounds_include_tail_and_invalid_geometry_is_rejected(t)
+	local base, ctx = ReplayBase(), ComputeContext()
+	local fs = FakeFilesystem()
+	local loader = GameplayChart(Settings.createConfig(fs), fs, {chartfile_name = "sliders.osu", index = 1})
+	loader:loadPrepared(base, ctx, [[osu file format v14
+[General]
+Mode:0
+[Difficulty]
+CircleSize:4
+OverallDifficulty:5
+SliderMultiplier:1
+SliderTickRate:1
+[TimingPoints]
+0,500,4,2,0,70,1,0
+[HitObjects]
+100,100,1000,2,0,L|400:100,2,300
+200,200,2000,1,0,0:0:0:0:
+]])
+	t:eq(ctx.chartdiff.start_time, 1)
+	t:eq(ctx.chartdiff.duration, 3)
+	t:eq(ctx.chartdiff.osu_diff, nil)
+	ctx.chart.aim.objects[1].slider.length = 0
+	t:has_error(function() Preparation.compute(ctx, base) end)
 end
 
 return test

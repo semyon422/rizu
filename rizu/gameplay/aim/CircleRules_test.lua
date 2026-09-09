@@ -53,9 +53,10 @@ end
 ---@param rate number
 ---@return rizu.RhythmEngine
 ---@return rizu.GameplaySession
-local function session(offset, rate)
+---@param aim chart.osu.AimChart?
+local function session(offset, rate, aim)
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
-	res.chart.aim = chart()
+	res.chart.aim = aim or chart()
 	local re = RhythmEngine()
 	re:setChart(res.chart, res.chartmeta, res.chartdiff)
 	re:load()
@@ -123,6 +124,90 @@ function test.pause_recording_replays_without_spurious_hits(t)
 	replay:update(5)
 	t:tdeq(replay_re.aim_rules.events, re.aim_rules.events)
 	t:eq(re.aim_rules.hits, 1)
+end
+
+---@return chart.osu.AimChart
+local function sliderChart()
+	local aim = chart()
+	aim.format_version, aim.slider_multiplier, aim.slider_tick_rate = 14, 1, 1
+	aim.timing_points = {{offset = 0, beatLength = 500}}
+	aim.objects = {{time = 1, x = 100, y = 100, kind = "slider", sounds = {},
+		slider = {curve_type = "L", controls = {{100, 100}, {400, 100}}, length = 300, spans = 2}},
+		{time = 5, x = 100, y = 100, kind = "circle", sounds = {}}}
+	return aim
+end
+
+---@param t testing.T
+function test.slider_autoplay_manual_and_binary_replay_match(t)
+	local aim = sliderChart()
+	for _, rate in ipairs({0.75, 1, 1.5}) do
+		local offset = 0.031
+		local re, manual = session(offset, rate, aim)
+		for _, frame in ipairs(CircleRules.autoplay(aim)) do
+			manual:receive(frame.event, (frame.time + offset) / rate)
+		end
+		manual:update(10)
+		t:eq(re.aim_rules.hits, 2)
+		t:eq(re.aim_rules.checkpoint_hits, 6)
+		t:eq(re.aim_rules.checkpoint_misses, 0)
+		local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
+		for _, step in ipairs({1 / 30, 1 / 144, 0.37, 10}) do
+			local engine, replay = session(offset, rate, aim)
+			replay:setPlayType("replay")
+			replay:setReplayFrames(frames)
+			for time = step, 10 + step, step do replay:update(time) end
+			t:tdeq(engine.aim_rules.events, re.aim_rules.events)
+			t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
+		end
+	end
+end
+
+---@param t testing.T
+function test.slider_can_recover_checkpoints_but_not_full_object_hit(t)
+	local rules = CircleRules(sliderChart())
+	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
+	rules:receive(VirtualInputEvent(1, false, 1), 1.4)
+	rules:update(1.6)
+	t:eq(rules.checkpoint_misses, 1)
+	rules:receive(VirtualInputEvent(2, true, 1, {300, 100}), 2)
+	rules:receive(VirtualInputEvent(0, nil, 1, {400, 100}), 2.5)
+	rules:receive(VirtualInputEvent(0, nil, 1, {300, 100}), 3)
+	rules:receive(VirtualInputEvent(0, nil, 1, {200, 100}), 3.5)
+	rules:receive(VirtualInputEvent(0, nil, 1, {100, 100}), 4)
+	rules:update(4.1)
+	t:eq(rules.misses, 1)
+	t:eq(rules.checkpoint_hits, 5)
+end
+
+---@param t testing.T
+function test.slider_body_does_not_lock_later_heads(t)
+	local aim = sliderChart()
+	aim.objects[2].time = 2
+	local rules = CircleRules(aim)
+	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
+	rules:receive(VirtualInputEvent(2, true, 1, {100, 100}), 2)
+	t:eq(rules.heads[2], "hit")
+	t:eq(rules.states[1], nil)
+	t:eq(rules.states[2], "hit")
+end
+
+---@param t testing.T
+function test.slider_pause_release_round_trip(t)
+	local aim = sliderChart()
+	local re, manual = session(0, 1, aim)
+	manual:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
+	manual:update(1.5)
+	manual:pause()
+	manual:receive(VirtualInputEvent(1, false, 1, {200, 100}), 2)
+	manual:play()
+	manual:update(6)
+	local engine, replay = session(0, 1, aim)
+	replay:setPlayType("replay")
+	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
+	replay:update(10)
+	t:tdeq(engine.aim_rules.events, re.aim_rules.events)
+	t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
+	t:eq(re.aim_rules.checkpoint_hits, 0)
 end
 
 return test
