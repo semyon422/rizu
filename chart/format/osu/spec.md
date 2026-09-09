@@ -4,7 +4,7 @@ Preserve native osu! source data and provide deterministic, bounded slider geome
 
 ## User Experience
 
-Circles and sliders can be played through ordinary Aim loading, with hold/checkpoint rules, primitive rendering, autoplay, and local replay. Spinners remain explicitly unsupported. See [../../../rizu/gameplay/aim/spec.md](../../../rizu/gameplay/aim/spec.md) for gameplay rules.
+Circles, sliders, and spinners can be played through ordinary Aim loading, with hold/checkpoint and rotation rules, primitive rendering, autoplay, and local replay. See [../../../rizu/gameplay/aim/spec.md](../../../rizu/gameplay/aim/spec.md) for gameplay rules.
 
 ## Architecture Decisions
 
@@ -21,7 +21,7 @@ Circles and sliders can be played through ordinary Aim loading, with hold/checkp
 
 - Geometry and checkpoint generation are independent of rendering and frame rate.
 - Checkpoint lists are chronological and capped at 16384 entries per slider before allocation.
-- Old circle-only replay files retain their circle semantics; new attempts use the slider-versioned diagnostic envelope.
+- Old circle-only replay files retain their circle semantics; new attempts use the spinner-versioned diagnostic envelope.
 - Source data survives refchart snapshots without losing repeated anchors or simultaneous objects.
 
 ## Verification

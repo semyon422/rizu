@@ -210,4 +210,71 @@ function test.slider_pause_release_round_trip(t)
 	t:eq(re.aim_rules.checkpoint_hits, 0)
 end
 
+---@return chart.osu.AimChart
+local function spinnerChart()
+	local aim = chart()
+	aim.objects = {
+		{time = 1, end_time = 3, x = 256, y = 192, kind = "spinner", sounds = {}},
+		{time = 3, x = 100, y = 100, kind = "circle", sounds = {}},
+	}
+	return aim
+end
+
+---@param t testing.T
+function test.spinner_autoplay_and_manual_binary_replay(t)
+	local aim = spinnerChart()
+	for _, rate in ipairs({0.75, 1, 1.5}) do
+		local offset = 0.031
+		local re, manual = session(offset, rate, aim)
+		for _, frame in ipairs(CircleRules.autoplay(aim)) do manual:receive(frame.event, (frame.time + offset) / rate) end
+		manual:update(10)
+		t:eq(re.aim_rules.hits, 2)
+		local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
+		for _, step in ipairs({1 / 30, 1 / 144, 0.37, 10}) do
+			local engine, replay = session(offset, rate, aim)
+			replay:setPlayType("replay")
+			replay:setReplayFrames(frames)
+			for time = step, 10 + step, step do replay:update(time) end
+			t:tdeq(engine.aim_rules.events, re.aim_rules.events)
+			t:eq(engine.aim_rules.spinners[1].angle_sum, re.aim_rules.spinners[1].angle_sum)
+		end
+	end
+	local engine, auto = session(0, 1, aim)
+	auto:setPlayType("auto")
+	auto:update(10)
+	t:eq(engine.aim_rules.hits, 2)
+end
+
+---@param t testing.T
+function test.spinner_no_input_misses_and_expiry_is_inclusive(t)
+	local rules = CircleRules(spinnerChart())
+	rules:update(3)
+	t:eq(rules.states[1], nil)
+	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 3)
+	t:eq(rules.states[2], "hit")
+	rules:update(4)
+	t:eq(rules.states[1], "miss")
+	t:eq(rules.events[2].time, 3)
+end
+
+---@param t testing.T
+function test.spinner_pause_without_motion_resets_replay_baseline(t)
+	local aim = spinnerChart()
+	local re, manual = session(0, 1, aim)
+	manual:receive(VirtualInputEvent(1, true, 1, {356, 192}), 1)
+	manual:receive(VirtualInputEvent(0, nil, 1, {256, 292}), 1.1)
+	manual:pause()
+	t:eq(re.aim_rules.spinners[1].last_angle, nil)
+	manual:play()
+	manual:receive(VirtualInputEvent(0, nil, 1, {156, 192}), 1.2)
+	t:aeq(re.aim_rules.spinners[1]:getTurns(), 0.25, 1e-9)
+	manual:update(10)
+	local engine, replay = session(0, 1, aim)
+	replay:setPlayType("replay")
+	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
+	replay:update(10)
+	t:tdeq(engine.aim_rules.events, re.aim_rules.events)
+	t:eq(engine.aim_rules.spinners[1].angle_sum, re.aim_rules.spinners[1].angle_sum)
+end
+
 return test

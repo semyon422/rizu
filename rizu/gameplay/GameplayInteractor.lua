@@ -111,6 +111,11 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
 	if self.aim_replay then
+		if self.aim_replay.format == "rizu-aim-sliders-1" then
+			for _, object in ipairs(assert(chart.aim).objects) do
+				assert(object.kind ~= "spinner", "Incompatible pre-spinner Aim replay.")
+			end
+		end
 		if self.aim_replay.format == "rizu-aim-circles-1" then
 			for _, object in ipairs(assert(chart.aim).objects) do
 				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")

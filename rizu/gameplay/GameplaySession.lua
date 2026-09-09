@@ -58,7 +58,13 @@ function GameplaySession:play(pending_resync)
 end
 
 function GameplaySession:pause()
-	self.rhythm_engine:pause()
+	local re = self.rhythm_engine
+	re:pause()
+	if self.play_type == "manual" and re.aim_rules and next(re.aim_rules.spinners) then
+		local event = VirtualInputEvent(0, nil, 2)
+		re:receive(event)
+		self.replay_recorder:record(re.logic_info.time, event)
+	end
 end
 
 ---@return boolean

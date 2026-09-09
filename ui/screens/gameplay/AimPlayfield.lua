@@ -1,3 +1,4 @@
+local Spinner = require("rizu.gameplay.aim.Spinner")
 local View = require("gui.View")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -47,6 +48,24 @@ function AimPlayfield:draw()
 	for i = 1, #objects do
 		local object = objects[i]
 		if object.time - time > rules.preempt then break end
+		local spinner = rules.spinners[i]
+		if spinner and not rules.states[i] then
+			local x, y = Spinner.center_x, Spinner.center_y
+			local progress = math.min(1, spinner:getTurns() / spinner.required_turns)
+			Painter.setColorRgb(0.12, 0.2, 0.3)
+			love.graphics.circle("fill", x, y, 150)
+			Painter.setColorRgb(0.8, 0.9, 1)
+			love.graphics.circle("line", x, y, 150)
+			local remaining = math.max(0, math.min(1, (spinner.end_time - time) / (spinner.end_time - spinner.start_time)))
+			love.graphics.circle("line", x, y, 40 + 100 * remaining)
+			Painter.setColorRgb(0.3, 1, 0.6)
+			if progress > 0 then love.graphics.arc("line", "open", x, y, 155, -math.pi / 2, -math.pi / 2 + 2 * math.pi * progress) end
+			love.graphics.printf(("SPIN — hold + rotate\n%.1f / %.1f turns"):format(spinner:getTurns(), spinner.required_turns), x - 140, y - 20, 280, "center")
+			Painter.setColorRgb(1, 0.8, 0.3)
+			love.graphics.circle("line", x, y, Spinner.dead_radius)
+			local angle = spinner.last_angle or 0
+			love.graphics.line(x, y, x + 100 * math.cos(angle), y + 100 * math.sin(angle))
+		end
 		local slider = rules.sliders[i]
 		if slider and not rules.states[i] then
 			local points = slider.path.points
@@ -74,7 +93,7 @@ function AimPlayfield:draw()
 				love.graphics.circle("line", x, y, rules.radius * 2.4)
 			end
 		end
-		if not rules.heads[i] then
+		if not spinner and not rules.heads[i] then
 			Painter.setColorRgb(0.2, 0.65, 0.95, 0.45)
 			love.graphics.circle("fill", object.x, object.y, rules.radius)
 			Painter.setColorRgb(0.8, 0.92, 1)
@@ -89,9 +108,11 @@ function AimPlayfield:draw()
 		local age = re.logic_info.time - event.time
 		if age > 0.4 then break end
 		local object = objects[event.index]
+		local x, y = object.x, object.y
+		if object.kind == "spinner" then x, y = Spinner.center_x, Spinner.center_y end
 		if event.hit then Painter.setColorRgb(0.3, 1, 0.5, 1 - age / 0.4)
 		else Painter.setColorRgb(1, 0.3, 0.3, 1 - age / 0.4) end
-		love.graphics.printf(event.hit and "HIT" or "MISS", object.x - 40, object.y - 10, 80, "center")
+		love.graphics.printf(event.hit and "HIT" or "MISS", x - 40, y - 10, 80, "center")
 	end
 	Painter.setColorRgb(1, 0.85, 0.2)
 	love.graphics.circle("line", rules.x, rules.y, 9)

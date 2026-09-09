@@ -37,13 +37,13 @@ end
 ---@param t testing.T
 function test.unsupported_objects_are_preserved_and_rejected(t)
 	for _, line in ipairs({
-		"256,192,1000,8,0,2000,0:0:0:0:",
+		"256,192,1000,128,0,2000:0:0:0:0:",
 	}) do
 		local chart = ChartDecoder():decode(header .. line)[1].chart
 		t:eq(#chart.aim.objects, 1)
 		local ok, err = AimChart.isSupported(chart.aim)
 		t:eq(ok, false)
-		t:assert(err:find("circles and sliders only", 1, true))
+		t:assert(err:find("unsupported object type", 1, true))
 	end
 end
 
@@ -69,6 +69,20 @@ function test.legacy_format_version_is_preserved(t)
 	local source = header:gsub("format v14", "format v7")
 	local chart = ChartDecoder():decode(source .. "100,192,1000,1,0,0:0:0:0:")[1].chart
 	t:eq(chart.aim.format_version, 7)
+end
+
+---@param t testing.T
+function test.spinner_end_time_survives_refchart_and_is_validated(t)
+	local chart = ChartDecoder():decode(header .. "256,192,1000,8,0,2500,0:0:0:0:")[1].chart
+	local aim = Restorer():restore(RefChart(chart)).aim
+	t:eq(aim.objects[1].end_time, 2.5)
+	t:eq(AimChart.isSupported(aim), true)
+	for _, ending in ipairs({1, 0, math.huge, 0 / 0}) do
+		aim.objects[1].end_time = ending
+		t:eq(AimChart.isSupported(aim), false)
+	end
+	aim.objects[1].end_time = nil
+	t:eq(AimChart.isSupported(aim), false)
 end
 
 return test

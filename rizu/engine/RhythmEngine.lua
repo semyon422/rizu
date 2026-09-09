@@ -61,6 +61,7 @@ function RhythmEngine:load()
 	if chart.aim then
 		self.aim_rules = CircleRules(chart.aim)
 		self.aim_sound_index = 0
+		self.aim_result_sound_index = 0
 		return
 	end
 	self.active_input_notes:setInputMap(chart.inputMode:getInputMap())
@@ -153,6 +154,16 @@ function RhythmEngine:update()
 			end
 		end
 		self.aim_sound_index = #self.aim_rules.checkpoint_events
+		for i = self.aim_result_sound_index + 1, #self.aim_rules.events do
+			local event = self.aim_rules.events[i]
+			local object = self.aim_rules.chart.objects[event.index]
+			if event.hit and object.kind == "spinner" then
+				for _, sample in ipairs(object.sounds) do
+					self.audio_engine:playSample(sample[1], sample[2])
+				end
+			end
+		end
+		self.aim_result_sound_index = #self.aim_rules.events
 	end
 	self.bga_engine:update()
 	self.audio_engine:update()

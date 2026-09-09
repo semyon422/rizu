@@ -24,6 +24,9 @@ function Preparation.compute(ctx, replay_base)
 	bounds.inputmode = "1osu"
 	bounds.start_time = aim.objects[1].time
 	local end_time = aim.objects[#aim.objects].time
+	for _, object in ipairs(aim.objects) do
+		if object.kind == "spinner" then end_time = math.max(end_time, assert(object.end_time)) end
+	end
 	local prepared, sliders = pcall(Sliders.prepare, aim)
 	assert(prepared, "Aim prototype: invalid slider geometry/timing: " .. tostring(sliders))
 	for _, slider in pairs(sliders) do

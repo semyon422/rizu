@@ -12,6 +12,7 @@ local bit = require("bit")
 ---@field x number
 ---@field y number
 ---@field kind "circle"|"slider"|"spinner"|"unsupported"
+---@field end_time number? Spinner end time in seconds.
 ---@field slider chart.osu.AimSlider?
 ---@field sounds {[1]: string, [2]: number}[]
 
@@ -59,7 +60,9 @@ function AimChart:new(osu)
 			end
 		end
 		self.objects[i] = {time = object.time / 1000, x = object.x, y = object.y, kind = kind, sounds = sounds}
-		if kind == "slider" then
+		if kind == "spinner" then
+			self.objects[i].end_time = object.endTime and object.endTime / 1000
+		elseif kind == "slider" then
 			local controls = {{object.x, object.y}}
 			for _, point in ipairs(assert(object.points)) do
 				controls[#controls + 1] = {point[1], point[2]}
@@ -77,7 +80,7 @@ end
 ---@return string?
 function AimChart.isSupported(chart)
 	if #chart.objects == 0 then
-		return false, "Aim prototype: this chart has no circles."
+		return false, "Aim prototype: this chart has no objects."
 	end
 	for _, value in ipairs({chart.circle_size, chart.approach_rate, chart.overall_difficulty}) do
 		if type(value) ~= "number" or value ~= value or value < 0 or value > 10 then
@@ -86,8 +89,11 @@ function AimChart.isSupported(chart)
 	end
 	local previous_time = -math.huge
 	for _, object in ipairs(chart.objects) do
-		if object.kind ~= "circle" and object.kind ~= "slider" then
-			return false, "Aim prototype supports circles and sliders only; this chart contains " .. object.kind .. " objects."
+		if object.kind ~= "circle" and object.kind ~= "slider" and object.kind ~= "spinner" then
+			return false, "Aim prototype: unsupported object type " .. object.kind .. "."
+		end
+		if object.kind == "spinner" and (not object.end_time or object.end_time ~= object.end_time or object.end_time == math.huge or object.end_time <= object.time) then
+			return false, "Aim prototype: invalid spinner duration."
 		end
 		if object.time ~= object.time or math.abs(object.time) == math.huge or object.time < previous_time then
 			return false, "Aim prototype: invalid or unordered object times."

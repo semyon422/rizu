@@ -107,4 +107,27 @@ SliderTickRate:1
 	t:has_error(function() Preparation.compute(ctx, base) end)
 end
 
+---@param t testing.T
+function test.spinner_bounds_include_end_and_invalid_duration_is_rejected(t)
+	local base, ctx = ReplayBase(), ComputeContext()
+	local fs = FakeFilesystem()
+	local loader = GameplayChart(Settings.createConfig(fs), fs, {chartfile_name = "spinner.osu", index = 1})
+	loader:loadPrepared(base, ctx, [[osu file format v14
+[General]
+Mode:0
+[Difficulty]
+CircleSize:4
+OverallDifficulty:5
+[TimingPoints]
+0,500,4,2,0,70,1,0
+[HitObjects]
+256,192,1000,8,0,5000,0:0:0:0:
+]])
+	t:eq(ctx.chartdiff.start_time, 1)
+	t:eq(ctx.chartdiff.duration, 4)
+	t:eq(ctx.chartdiff.osu_diff, nil)
+	ctx.chart.aim.objects[1].end_time = 0
+	t:has_error(function() Preparation.compute(ctx, base) end)
+end
+
 return test

@@ -1,5 +1,6 @@
 local class = require("class")
 local AimChart = require("chart.format.osu.AimChart")
+local Spinner = require("rizu.gameplay.aim.Spinner")
 local Sliders = require("rizu.gameplay.aim.Sliders")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
@@ -19,6 +20,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@field time number
 ---@field priority integer
 ---@field checkpoint chart.osu.SliderCheckpoint?
+---@field spinner boolean?
 ---@field finish boolean?
 
 ---@class rizu.aim.CircleRules
@@ -30,6 +32,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@field checkpoint_events rizu.aim.CheckpointJudgement[]
 ---@field buttons {[integer]: boolean}
 ---@field scheduled rizu.aim.ScheduledEvent[]
+---@field spinners {[integer]: rizu.aim.Spinner}
 ---@field sliders {[integer]: rizu.aim.Slider}
 local CircleRules = class()
 
@@ -48,11 +51,17 @@ function CircleRules:new(chart)
 	self.next_index = 1
 	self.hits, self.misses = 0, 0
 	self.checkpoint_hits, self.checkpoint_misses = 0, 0
+	self.spinners = {}
 	self.sliders = Sliders.prepare(chart)
 	self.scheduled, self.schedule_index = {}, 1
 	for i, object in ipairs(chart.objects) do
 		local deadline = object.time + self.window
-		self.scheduled[#self.scheduled + 1] = {index = i, time = deadline, priority = 1}
+		if object.kind == "spinner" then
+			self.spinners[i] = Spinner(object, chart.overall_difficulty)
+			self.scheduled[#self.scheduled + 1] = {index = i, time = assert(object.end_time), priority = 3, spinner = true}
+		else
+			self.scheduled[#self.scheduled + 1] = {index = i, time = deadline, priority = 1}
+		end
 		local slider = self.sliders[i]
 		if slider then
 			for _, checkpoint in ipairs(slider.timing.checkpoints) do
@@ -66,6 +75,7 @@ function CircleRules:new(chart)
 		if a.priority ~= b.priority then return a.priority < b.priority end
 		return a.index < b.index
 	end)
+	self:advanceHead()
 end
 
 ---@param index integer
@@ -78,7 +88,7 @@ function CircleRules:judge(index, time, hit)
 end
 
 function CircleRules:advanceHead()
-	while self.heads[self.next_index] do self.next_index = self.next_index + 1 end
+	while self.heads[self.next_index] or self.spinners[self.next_index] do self.next_index = self.next_index + 1 end
 end
 
 ---@param index integer
@@ -122,7 +132,10 @@ function CircleRules:update(time)
 		local i = scheduled.index
 		local slider = self.sliders[i]
 		local checkpoint = scheduled.checkpoint
-		if checkpoint then
+		if scheduled.spinner then
+			local spinner = self.spinners[i]
+			self:judge(i, scheduled.time, spinner:getTurns() >= spinner.required_turns)
+		elseif checkpoint then
 			local x, y = slider.path:position(checkpoint.progress)
 			local hit = self:isHeld() and self:inside(x, y, self.radius * 2.4)
 			slider.intact = slider.intact and hit
@@ -146,10 +159,18 @@ end
 ---@return integer? hit_index
 function CircleRules:receive(event, time, paused)
 	self:update(time)
+	local held_before = self:isHeld()
 	if event.pos then self.x, self.y = event.pos[1], event.pos[2] end
-	if event.value == nil then return end
 	local was_pressed = self.buttons[event.id]
-	self.buttons[event.id] = event.value == true
+	if event.value ~= nil then self.buttons[event.id] = event.value == true end
+	local held = self:isHeld()
+	for i, spinner in pairs(self.spinners) do
+		if not self.states[i] then
+			if not held_before then spinner:resetSample() end
+			spinner:receive(time, self.x, self.y, held, not not (paused or event.column == 2))
+		end
+	end
+	if event.value == nil then return end
 	if paused or event.column == 2 or event.value ~= true or was_pressed then return end
 	-- Note lock concerns heads, not already-started slider bodies.
 	local i = self.next_index
@@ -175,6 +196,20 @@ function CircleRules.autoplay(chart)
 	for i, object in ipairs(chart.objects) do
 		-- An alternating head key avoids suppressing a fresh press while a slider is held.
 		local id = (i - 1) % 2 + 1
+		if object.kind == "spinner" then
+			local duration = assert(object.end_time) - object.time
+			local count = math.ceil(duration * 120)
+			assert(count < 2000000, "Aim prototype: autoplay duration budget exceeded.")
+			add(object.time, VirtualInputEvent(id, true, 1, {Spinner.center_x + 100, Spinner.center_y}))
+			for sample = 1, count do
+				local elapsed = duration * sample / count
+				local angle = elapsed * 4 * 2 * math.pi
+				add(object.time + elapsed, VirtualInputEvent(0, nil, 1,
+					{Spinner.center_x + 100 * math.cos(angle), Spinner.center_y + 100 * math.sin(angle)}))
+			end
+			add(assert(object.end_time) + 1e-7, VirtualInputEvent(id, false, 1))
+			goto continue
+		end
 		add(object.time, VirtualInputEvent(id, true, 1, {object.x, object.y}))
 		local slider = sliders[i]
 		if slider then
@@ -194,6 +229,7 @@ function CircleRules.autoplay(chart)
 		else
 			add(object.time, VirtualInputEvent(id, false, 1))
 		end
+		::continue::
 	end
 	table.sort(frames, function(a, b)
 		if a.time ~= b.time then return a.time < b.time end
