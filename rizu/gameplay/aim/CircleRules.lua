@@ -1,5 +1,6 @@
 local class = require("class")
 local AimChart = require("chart.format.osu.AimChart")
+local Stacking = require("rizu.gameplay.aim.Stacking")
 local Spinner = require("rizu.gameplay.aim.Spinner")
 local Sliders = require("rizu.gameplay.aim.Sliders")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
@@ -37,7 +38,8 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local CircleRules = class()
 
 ---@param chart chart.osu.AimChart
-function CircleRules:new(chart)
+---@param stacking boolean? False for pre-stacking replays.
+function CircleRules:new(chart, stacking)
 	assert(AimChart.isSupported(chart))
 	self.chart = chart
 	self.radius = 54.4 - 4.48 * chart.circle_size
@@ -53,6 +55,11 @@ function CircleRules:new(chart)
 	self.checkpoint_hits, self.checkpoint_misses = 0, 0
 	self.spinners = {}
 	self.sliders = Sliders.prepare(chart)
+	self.stacking_enabled = stacking ~= false and chart.stack_leniency ~= nil
+	if self.stacking_enabled then
+		chart = Stacking.apply(chart, self.sliders, self.preempt, self.radius)
+		self.chart = chart
+	end
 	self.scheduled, self.schedule_index = {}, 1
 	for i, object in ipairs(chart.objects) do
 		local deadline = object.time + self.window
@@ -182,9 +189,15 @@ function CircleRules:receive(event, time, paused)
 end
 
 ---@param chart chart.osu.AimChart
+---@param stacking boolean? False when chart already contains runtime offsets.
 ---@return rizu.ReplayFrame[]
-function CircleRules.autoplay(chart)
+function CircleRules.autoplay(chart, stacking)
 	local sliders = Sliders.prepare(chart)
+	if stacking ~= false and chart.stack_leniency ~= nil then
+		local ar = chart.approach_rate
+		local preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
+		chart = Stacking.apply(chart, sliders, preempt, 54.4 - 4.48 * chart.circle_size)
+	end
 	---@type {time: number, event: rizu.VirtualInputEvent, order: integer}[]
 	local frames = {}
 	---@param time number

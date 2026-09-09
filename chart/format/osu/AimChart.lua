@@ -12,12 +12,14 @@ local bit = require("bit")
 ---@field x number
 ---@field y number
 ---@field kind "circle"|"slider"|"spinner"|"unsupported"
+---@field stack_height integer? Runtime-only stacking height.
 ---@field end_time number? Spinner end time in seconds.
 ---@field slider chart.osu.AimSlider?
 ---@field sounds {[1]: string, [2]: number}[]
 
 ---@class chart.osu.AimChart
 ---@operator call: chart.osu.AimChart
+---@field stack_leniency number
 ---@field circle_size number
 ---@field approach_rate number
 ---@field overall_difficulty number
@@ -31,6 +33,8 @@ local AimChart = class()
 ---@param osu chart.osu.Osu
 function AimChart:new(osu)
 	local difficulty = osu.rawOsu.Difficulty
+	local leniency = rawget(osu.rawOsu.General, "StackLeniency")
+	self.stack_leniency = leniency == nil and 0.7 or assert(tonumber(leniency))
 	self.circle_size = assert(tonumber(difficulty.CircleSize))
 	self.overall_difficulty = assert(tonumber(difficulty.OverallDifficulty))
 	self.approach_rate = tonumber(rawget(difficulty, "ApproachRate")) or self.overall_difficulty
@@ -86,6 +90,9 @@ function AimChart.isSupported(chart)
 		if type(value) ~= "number" or value ~= value or value < 0 or value > 10 then
 			return false, "Aim prototype: unsupported difficulty settings."
 		end
+	end
+	if chart.stack_leniency ~= nil and (chart.stack_leniency ~= chart.stack_leniency or chart.stack_leniency < 0 or chart.stack_leniency > 1) then
+		return false, "Aim prototype: invalid stack leniency."
 	end
 	local previous_time = -math.huge
 	for _, object in ipairs(chart.objects) do

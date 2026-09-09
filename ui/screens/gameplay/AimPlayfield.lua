@@ -45,9 +45,14 @@ function AimPlayfield:draw()
 	love.graphics.setFont(Resources.getFont("regular", 18))
 	love.graphics.setLineWidth(2)
 	local objects = rules.chart.objects
-	for i = 1, #objects do
-		local object = objects[i]
+	local last_visible = 0
+	for i, object in ipairs(objects) do
 		if object.time - time > rules.preempt then break end
+		last_visible = i
+	end
+	-- Earlier heads must remain on top of later members of a stack.
+	for i = last_visible, 1, -1 do
+		local object = objects[i]
 		local spinner = rules.spinners[i]
 		if spinner and not rules.states[i] then
 			local x, y = Spinner.center_x, Spinner.center_y
@@ -94,7 +99,7 @@ function AimPlayfield:draw()
 			end
 		end
 		if not spinner and not rules.heads[i] then
-			Painter.setColorRgb(0.2, 0.65, 0.95, 0.45)
+			Painter.setColorRgb(0.16, 0.4, 0.58)
 			love.graphics.circle("fill", object.x, object.y, rules.radius)
 			Painter.setColorRgb(0.8, 0.92, 1)
 			love.graphics.circle("line", object.x, object.y, rules.radius)

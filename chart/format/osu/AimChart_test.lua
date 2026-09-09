@@ -85,4 +85,15 @@ function test.spinner_end_time_survives_refchart_and_is_validated(t)
 	t:eq(AimChart.isSupported(aim), false)
 end
 
+---@param t testing.T
+function test.stack_leniency_default_and_explicit_zero(t)
+	local line = "100,192,1000,1,0,0:0:0:0:"
+	local aim = ChartDecoder():decode(header .. line)[1].chart.aim
+	t:eq(aim.stack_leniency, 0.7)
+	local explicit = header:gsub("Mode:0", "Mode:0\nStackLeniency:0")
+	t:eq(ChartDecoder():decode(explicit .. line)[1].chart.aim.stack_leniency, 0)
+	aim.stack_leniency = 2
+	t:eq(AimChart.isSupported(aim), false)
+end
+
 return test

@@ -24,7 +24,7 @@ end
 function GameplaySession:setPlayType(play_type)
 	self.play_type = play_type
 	if play_type == "auto" and self.rhythm_engine.aim_rules then
-		self.replay_player = ReplayPlayer(CircleRules.autoplay(self.rhythm_engine.aim_rules.chart))
+		self.replay_player = ReplayPlayer(CircleRules.autoplay(self.rhythm_engine.aim_rules.chart, false))
 	end
 end
 

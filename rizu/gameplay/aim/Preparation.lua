@@ -1,3 +1,4 @@
+local Stacking = require("rizu.gameplay.aim.Stacking")
 local Sliders = require("rizu.gameplay.aim.Sliders")
 local Chartdiff = require("sea.chart.Chartdiff")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
@@ -31,6 +32,11 @@ function Preparation.compute(ctx, replay_base)
 	assert(prepared, "Aim prototype: invalid slider geometry/timing: " .. tostring(sliders))
 	for _, slider in pairs(sliders) do
 		end_time = math.max(end_time, slider.timing.end_time)
+	end
+	if aim.stack_leniency ~= nil then
+		local ar = aim.approach_rate
+		local preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
+		Stacking.apply(aim, sliders, preempt, 54.4 - 4.48 * aim.circle_size)
 	end
 	bounds.duration = end_time - bounds.start_time
 	ctx.chartdiff = bounds

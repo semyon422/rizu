@@ -277,4 +277,27 @@ function test.spinner_pause_without_motion_resets_replay_baseline(t)
 	t:eq(engine.aim_rules.spinners[1].angle_sum, re.aim_rules.spinners[1].angle_sum)
 end
 
+---@param t testing.T
+function test.stacked_slider_autoplay_and_replay_share_geometry(t)
+	local aim = sliderChart()
+	aim.stack_leniency = 0.7
+	aim.objects[2].time = 4.1
+	local re, manual = session(0.031, 1.5, aim)
+	t:eq(re.aim_rules.chart.objects[2].stack_height, -1)
+	for _, frame in ipairs(CircleRules.autoplay(aim)) do manual:receive(frame.event, (frame.time + 0.031) / 1.5) end
+	manual:update(10)
+	t:eq(re.aim_rules.hits, 2)
+	local engine, replay = session(0.031, 1.5, aim)
+	replay:setPlayType("replay")
+	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
+	replay:update(10)
+	t:tdeq(engine.aim_rules.events, re.aim_rules.events)
+	t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
+	local auto_engine, auto = session(0, 1, aim)
+	auto:setPlayType("auto")
+	auto:update(10)
+	t:eq(auto_engine.aim_rules.hits, 2)
+	t:eq(auto_engine.aim_rules.chart.objects[2].x, re.aim_rules.chart.objects[2].x)
+end
+
 return test

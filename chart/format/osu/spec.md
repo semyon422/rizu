@@ -8,7 +8,7 @@ Circles, sliders, and spinners can be played through ordinary Aim loading, with 
 
 ## Architecture Decisions
 
-- `AimChart` carries source-order slider control points (including the head), curve type, declared pixel length, span count, timing points, SliderMultiplier, SliderTickRate, and format version. `RefChart` carries this plain data across workers; runtime path objects are constructed separately.
+- `AimChart` carries source-order slider control points (including the head), curve type, declared pixel length, span count, timing points, SliderMultiplier, SliderTickRate, and format version, plus StackLeniency (default 0.7 when absent). `RefChart` carries this plain data across workers; runtime path objects are constructed separately.
 - `RawOsu.format_version` preserves the decoded header for consumers. Encoding still uses the existing normalized v14 header; this is not a lossless legacy file writer.
 - `SliderPath` flattens L (polyline), B (piecewise Bezier split at duplicate anchors), P (three-point circular arc, otherwise Bezier), and C (Catmull-Rom) curves. It trims or extends the final tangent to the declared pixel length, then samples by cumulative distance using binary search.
 - Bezier subdivision uses a 0.5-unit second-difference tolerance and smoothed subdivided polygons; circular arcs use a 0.1-unit sagitta tolerance; Catmull-Rom uses 50 subdivisions per segment. Historical v6/v9 curve approximation quirks are not reproduced yet. These are prototype geometry rules, not a claim of exact stable compatibility.
@@ -21,7 +21,7 @@ Circles, sliders, and spinners can be played through ordinary Aim loading, with 
 
 - Geometry and checkpoint generation are independent of rendering and frame rate.
 - Checkpoint lists are chronological and capped at 16384 entries per slider before allocation.
-- Old circle-only replay files retain their circle semantics; new attempts use the spinner-versioned diagnostic envelope.
+- Old circle-only replay files retain their circle semantics; new attempts use the stacking-versioned diagnostic envelope. Stacking shifts only runtime copies, not decoded/refchart source geometry.
 - Source data survives refchart snapshots without losing repeated anchors or simultaneous objects.
 
 ## Verification
