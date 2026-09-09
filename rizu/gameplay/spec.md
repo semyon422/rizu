@@ -11,6 +11,10 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 - Manual play, autoplay, and replay should all feel like the same session flow from the player's perspective, differing only in the source of input events.
 - Gameplay input bindings follow the computed chart input mode after modifiers, so converted charts use bindings for their effective key count.
 
+## Experimental Game Modes
+
+Requirements for the Aim, Catch, Taiko, and SDVX prototypes are tracked in [modes/spec.md](modes/spec.md). This is a planning document, not a declaration of implemented support; it covers core mechanics, ordinary chart selection, autoplay/replays, and investigation for future skinning work without mode-specific scoring or score submission.
+
 ## Core Components
 
 - `rizu.GameplaySession`: coordinates `RhythmEngine`, manual or automated players, and replay recording for one attempt.
