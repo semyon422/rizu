@@ -64,4 +64,22 @@ function test.http_image_ignores_http_errors(t)
 	t:eq(model:loadImage("https://example.test/missing.jpg", "http"), nil)
 end
 
+---@param t testing.T
+function test.stale_background_search_is_ignored(t)
+	local model = BackgroundModel({} --[[@as any]])
+	model.path = "old"
+	model.background_finder = function()
+		coroutine.yield()
+		return "old/bg.jpg"
+	end
+	model.loadImage = function() error("obsolete image must not be loaded") end
+	local co = coroutine.create(function() model:loadBackground() end)
+	t:assert(coroutine.resume(co))
+	model.path = "new"
+	model.generation = model.generation + 1
+	t:assert(coroutine.resume(co))
+	t:eq(coroutine.status(co), "dead")
+	t:eq(model.path, "new")
+end
+
 return test

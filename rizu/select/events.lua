@@ -59,7 +59,11 @@
 ---| rizu.select.SelectionChangedEvent
 ---| rizu.select.ChartplaySelectionChangedEvent
 
+---@class rizu.select.ChartAvailabilityChangedEvent
+---@field type "chart_availability_changed"
+
 ---@alias rizu.select.ChartSelectorEvent
+---| rizu.select.ChartAvailabilityChangedEvent
 ---| rizu.select.ChartviewChangedEvent
 ---| rizu.select.PrimaryItemsUpdatedEvent
 ---| rizu.select.ChartmetaFoundEvent

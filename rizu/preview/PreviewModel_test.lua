@@ -174,4 +174,23 @@ function test.worker_returns_repaired_notes(t)
 	t:eq(no_preview, nil)
 end
 
+---@param t testing.T
+function test.stale_media_probe_does_not_activate(t)
+	local model = createPreviewModel()
+	model:load()
+	model.chartview = {hash = "old"}
+	model.probe_media = function()
+		coroutine.yield()
+		return {audio_exists = true, bga_exists = true, bga_paths = {}}
+	end
+	local co = coroutine.create(function() model:loadPreview() end)
+	t:assert(coroutine.resume(co))
+	model:stop()
+	model:load()
+	t:assert(coroutine.resume(co))
+	t:eq(coroutine.status(co), "dead")
+	t:eq(model.loaded_audio_hash, nil)
+	t:eq(model.loaded_hash, nil)
+end
+
 return test

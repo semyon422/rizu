@@ -248,6 +248,7 @@ end
 function test.chart_exists_caches_result_until_chartview_changes(t)
 	local configModel = createMockConfigModel()
 	local library = tlf:create()
+	library:setSync(true)
 	local checked_paths = {}
 	local fs = {
 		read = function()
@@ -387,6 +388,28 @@ function test.score_navigation(t)
 	scoreSelector:scrollScore(1)
 	t:eq(chartModel.state.chartplayId, 102)
 
+	library:unload()
+end
+
+---@param t testing.T
+function test.chart_exists_async_ignores_old_selection(t)
+	local library = tlf:create()
+	local selector = ChartSelector(createMockConfigModel(), createSettings(), library, {}, {getSelectedItem = function() end}, timer)
+	local waiting = {}
+	selector.check_chart_exists = function()
+		waiting[#waiting + 1] = coroutine.running()
+		return coroutine.yield()
+	end
+	selector:setChartview({location_path = "old"})
+	t:eq(selector:chartExists(), false)
+	t:eq(selector:chartExists(), false)
+	t:eq(#waiting, 1)
+	selector:setChartview({location_path = "new"})
+	t:eq(selector:chartExists(), false)
+	t:assert(coroutine.resume(waiting[1], true))
+	t:eq(selector:chartExists(), false)
+	t:assert(coroutine.resume(waiting[2], true))
+	t:eq(selector:chartExists(), true)
 	library:unload()
 end
 

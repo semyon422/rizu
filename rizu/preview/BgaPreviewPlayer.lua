@@ -136,8 +136,7 @@ end
 
 ---@param preview_path string
 ---@param chart_dirs string|string[]
----@param _fs fs.IFilesystem
-function BgaPreviewPlayer:load(preview_path, chart_dirs, _fs)
+function BgaPreviewPlayer:load(preview_path, chart_dirs)
 	self:stop()
 	self.load_generation = self.load_generation + 1
 	local generation = self.load_generation

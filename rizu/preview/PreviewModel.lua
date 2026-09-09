@@ -5,7 +5,6 @@ local AudioPreviewPlayer = require("rizu.preview.AudioPreviewPlayer")
 local BgaPreviewPlayer = require("rizu.preview.BgaPreviewPlayer")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
 local ChartfileReader = require("rizu.library.ChartfileReader")
-local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
 local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.preview.PreviewMode "absolute"|"relative"
@@ -53,22 +52,12 @@ local function get_preview_resource_dir(chartview)
 	return archive_path or chartview.location_dir
 end
 
----@param chartview rizu.preview.PreviewChartview
----@param fs fs.IFilesystem
----@return string[]
-local function get_bga_preview_resource_paths(chartview, fs)
-	---@type string[]
-	local paths = {}
-	local resource_dir = get_preview_resource_dir(chartview)
-	if resource_dir then
-		paths[#paths + 1] = resource_dir
-	end
-	local movie_path = IidxResourcePaths.getMoviePath(chartview, fs)
-	if movie_path then
-		paths[#paths + 1] = movie_path
-	end
-	return paths
-end
+local probeMedia = thread.async(function(chartview)
+	require("love.filesystem")
+	local PreviewMediaProbe = require("rizu.preview.PreviewMediaProbe")
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	return PreviewMediaProbe(LoveFilesystem()):probe(chartview)
+end)
 
 ---@param chartview rizu.preview.PreviewChartview|rizu.preview.PreviewGenerationData
 ---@return string
@@ -87,6 +76,8 @@ end
 ---@param game table
 function PreviewModel:new(settings, replayBase, game)
 	self.settings = settings
+	self.probe_media = probeMedia
+	self.media_generation = 0
 	self.replayBase = replayBase
 	self.game = game
 	self.audioPreviewPlayer = AudioPreviewPlayer(settings)
@@ -286,6 +277,7 @@ function PreviewModel:getFFT()
 end
 
 function PreviewModel:loadPreviewDebounce()
+	self.media_generation = self.media_generation + 1
 	delay.debounce(self, "loadDebounce", 0.1, self.loadPreview, self)
 end
 
@@ -293,6 +285,15 @@ local loadingPreview = false
 function PreviewModel:loadPreview()
 	if loadingPreview then
 		return
+	end
+	local generation = self.media_generation
+	local chartview = self.chartview
+	local media
+	if chartview and chartview.hash then
+		media = self.probe_media(chartview)
+		if generation ~= self.media_generation or chartview ~= self.chartview or not self.active then
+			return
+		end
 	end
 	loadingPreview = true
 
@@ -354,8 +355,8 @@ function PreviewModel:loadPreview()
 		local audio_preview_path = get_audio_preview_path(hash)
 		local bga_preview_path = "userdata/bga_previews/" .. hash .. ".bga_preview"
 
-		local audio_exists = love.filesystem.getInfo(audio_preview_path)
-		local bga_exists = love.filesystem.getInfo(bga_preview_path)
+		local audio_exists = media.audio_exists
+		local bga_exists = media.bga_exists
 
 		if audio_exists and self.loaded_audio_hash ~= hash then
 			self.loaded_audio_hash = hash
@@ -367,13 +368,7 @@ function PreviewModel:loadPreview()
 
 		if bga_exists and self.loaded_hash ~= hash then
 			self.loaded_hash = hash
-			local LoveFilesystem = require("fs.LoveFilesystem")
-			local fs = LoveFilesystem()
-			self.bgaPreviewPlayer:load(
-				bga_preview_path,
-				get_bga_preview_resource_paths(self.chartview, fs),
-				fs
-			)
+			self.bgaPreviewPlayer:load(bga_preview_path, media.bga_paths)
 			self.bgaPreviewPlayer:seek(self:getTime())
 		end
 
@@ -568,6 +563,7 @@ function PreviewModel:generatePreview(chartview, regenerate_notes)
 end
 
 function PreviewModel:stop()
+	self.media_generation = self.media_generation + 1
 	self.active = false
 	local pending_generation = self.pending_generation
 	if pending_generation then

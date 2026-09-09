@@ -157,7 +157,7 @@ function SongSelect:receive(event)
 		end
 		self.chart_summary:bind()
 	end
-	if event.type == "chartview_changed" then
+	if event.type == "chartview_changed" or event.type == "chart_availability_changed" then
 		self.footer:updateState()
 	end
 	if event.type == "score_items_changed" then

@@ -10,6 +10,7 @@ local SelectionQueryBuilder = require("rizu.select.SelectionQueryBuilder")
 local ChartMediaService = require("rizu.select.services.ChartMediaService")
 local ChartLoader = require("rizu.select.services.ChartLoader")
 local TaskRunner = require("rizu.select.tasks.TaskRunner")
+local thread = require("thread")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local Settings = require("rizu.config.Settings")
 
@@ -21,6 +22,13 @@ local Settings = require("rizu.config.Settings")
 local ChartSelector = class()
 
 ChartSelector.debounceTime = 0.5
+
+local chartExistsAsync = thread.async(function(path)
+	require("love.filesystem")
+	local ChartfileReader = require("rizu.library.ChartfileReader")
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	return ChartfileReader.exists(LoveFilesystem(), path)
+end)
 
 local LEVELS = {
 	chartfile_sets = 1,
@@ -42,6 +50,7 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 	self.settings = settings
 	self.library = library
 	self.fs = fs
+	self.check_chart_exists = chartExistsAsync
 	self.collectionSelector = collectionSelector
 	self.state = state or SelectionState()
 
@@ -103,6 +112,7 @@ end
 function ChartSelector:setChartview(chartview)
 	self.chartview = chartview
 	self.chart_exists = nil
+	self.chart_exists_pending = nil
 	self.changed = true
 	self:emitChanged({type = "chartview_changed", chartview = chartview})
 end
@@ -255,8 +265,21 @@ function ChartSelector:chartExists()
 		return false
 	end
 
-	self.chart_exists = ChartfileReader.exists(self.fs, chartview.location_path)
-	return self.chart_exists
+	if self.library.is_sync then
+		self.chart_exists = ChartfileReader.exists(self.fs, chartview.location_path)
+		return self.chart_exists
+	end
+	if self.chart_exists_pending then return false end
+	local token = {}
+	self.chart_exists_pending = token
+	thread.coro(function()
+		local exists = self.check_chart_exists(chartview.location_path)
+		if self.chart_exists_pending ~= token or self.chartview ~= chartview then return end
+		self.chart_exists_pending = nil
+		self.chart_exists = exists
+		self:emitChanged({type = "chart_availability_changed"})
+	end)()
+	return false
 end
 
 function ChartSelector:debounceRefresh(...)
