@@ -2,7 +2,7 @@ local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
-local ChartPreviewView = require("sphere.views.SelectView.ChartPreviewView")
+local NotesPreviewRenderer = require("ui.views.NotesPreviewRenderer")
 local BgaRenderer = require("ui.views.BgaRenderer")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
@@ -38,7 +38,7 @@ end
 ---@class ui.screens.song_select.SelectedSongPanel : gui.View
 ---@operator call: ui.screens.song_select.SelectedSongPanel
 ---@field bg_model sphere.BackgroundModel
----@field chart_preview_view sphere.ChartPreviewView
+---@field notes_renderer ui.views.NotesPreviewRenderer
 ---@field bga_renderer ui.views.BgaRenderer
 ---@field game sphere.GameController
 ---@field preview_canvas love.Canvas?
@@ -49,38 +49,6 @@ end
 ---@field details_hidden_offset number
 local SelectedSongPanel = View + {}
 
--- ChartPreviewView is still a legacy renderer and uses the window dimensions as
--- its viewport.  Keep the compatibility shim local to this view while it is
--- rendered into the panel canvas.
-local preview_width = 0
-local preview_height = 0
-local base_get_width = love.graphics.getWidth
-local base_get_height = love.graphics.getHeight
-local base_get_dimensions = love.graphics.getDimensions
-
-local function getPreviewWidth()
-	return preview_width
-end
-
-local function getPreviewHeight()
-	return preview_height
-end
-
-local function getPreviewDimensions()
-	return preview_width, preview_height
-end
-
-local function pushPreviewViewport()
-	love.graphics.getWidth = getPreviewWidth
-	love.graphics.getHeight = getPreviewHeight
-	love.graphics.getDimensions = getPreviewDimensions
-end
-
-local function popPreviewViewport()
-	love.graphics.getWidth = base_get_width
-	love.graphics.getHeight = base_get_height
-	love.graphics.getDimensions = base_get_dimensions
-end
 
 local DETAILS_PADDING = 20
 local PROGRESS_HEIGHT = 54
@@ -115,13 +83,9 @@ function SelectedSongPanel:new(bg_model, game, localization)
 	self.details_hidden_offset = 0
 	self.handles_mouse_input = true
 	self:setClip(true)
-	self.chart_preview_view = ChartPreviewView(game)
+	self.notes_renderer = NotesPreviewRenderer()
 	self.details_container = self:add(Details(self))
 	self.progress_bar = self.details_container:add(ProgressBar(game.previewModel))
-end
-
-function SelectedSongPanel:load()
-	self.chart_preview_view:load()
 end
 
 function SelectedSongPanel:unload()
@@ -129,7 +93,6 @@ function SelectedSongPanel:unload()
 		self.preview_canvas:release()
 		self.preview_canvas = nil
 	end
-	self.chart_preview_view:unload()
 end
 
 ---@param old_x number
@@ -166,12 +129,10 @@ function SelectedSongPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 		self.preview_canvas:release()
 	end
 	self.preview_canvas = lg.newCanvas(canvas_width, canvas_height)
-	preview_width, preview_height = canvas_width, canvas_height
 end
 
 ---@param dt number
 function SelectedSongPanel:update(dt)
-	self.chart_preview_view:update(dt)
 	self.details_opacity:update(dt)
 	local inputs = self.screen and self.screen.inputs
 	local hovered = inputs and self:isMouseOver(inputs.mouse_x, inputs.mouse_y) or false
@@ -216,9 +177,7 @@ function SelectedSongPanel:drawBackground()
 		self.bga_renderer:draw(bga_engine, preview_model:getTime(), w, h)
 	end
 
-	pushPreviewViewport()
-	self.chart_preview_view:draw()
-	popPreviewViewport()
+	self.notes_renderer:draw(self.game.previewModel.chartPreview, w, h)
 	lg.pop()
 
 	lg.draw(self.preview_canvas)
@@ -228,11 +187,6 @@ end
 function SelectedSongPanel:draw()
 	if not self.preview_canvas then return end
 	self:drawBackground()
-end
-
----@param event table
-function SelectedSongPanel:receive(event)
-	self.chart_preview_view:receive(event)
 end
 
 return SelectedSongPanel

@@ -163,7 +163,6 @@ function SongSelect:receive(event)
 	if event.type == "score_items_changed" then
 		self.score_list_panel.score_list:reload()
 	end
-	self.selected_song_panel:receive(event)
 end
 
 function SongSelect:updateModifiers()

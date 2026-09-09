@@ -62,6 +62,14 @@ The preview system provides players with an immediate sensory snapshot of a song
 - **End Behavior**: When the master clock reaches the audio end time, it restarts exactly from the audio start time.
 - **Audio Constraints**: If the audio preview is missing or its total duration is 0, the preview playback is automatically paused to prevent invalid state.
 
+### Specialized Notes Preview
+
+Song select renders notes through `ui.views.NotesPreviewRenderer`, with white tap heads and translucent white hold bodies only: no field background, dividers, or judgement line. The hit position is at the bottom edge and the visible field uses the full panel height. Lane width and note-head thickness follow the base skin's default proportions (48 and 24 units per 480 units of viewport height), centered horizontally. Heads and hold bodies fill the entire lane width without gaps. It intentionally does not use gameplay noteskins. `NotesPreviewPlayer` owns a compact `NotesPreview` instead of a full `Chart`/`VisualEngine`; consumers use `notes`, `column_map`, `time`, and `rate`. The former skin/visual-engine fields and `iterNotes` are no longer part of the active select preview contract. Legacy noteskin preview views are not used by the built-in select screen.
+
+`NotesPreview` reads the existing version 0/1 SPH preview cache without changing persistence. Fractional line positions are interpolated between absolute timing vertices, with first/last segments extrapolated outside the vertex range. At least two vertices are required for non-empty data; invalid data returns `false` from `setChartview` and uses the existing background repair flow. Empty previews remain valid and contain no notes.
+
+Each column stores ordered tap/hold intervals and cumulative maximum end times. Binary searches select a visible interval range, preserving crossing holds on forward and backward seeks. Rendering filters expired intervals, so update/draw do not construct gameplay notes or scan the entire chart. Column order uses the same destination-to-source permutation as `ColumnsOrder`; playback time and speed/scale-speed settings come from the preview clock. The renderer receives explicit canvas dimensions and does not override global graphics viewport functions.
+
 ### Preview Types
 - **Audio**: Scans for all hitsounds and background music events across all formats to create a flattened event sequence.
 - **BGA**: Scans for layer changes and video triggers.

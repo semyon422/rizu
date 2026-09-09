@@ -91,7 +91,7 @@ function PreviewModel:new(settings, replayBase, game)
 	self.game = game
 	self.audioPreviewPlayer = AudioPreviewPlayer(settings)
 	self.bgaPreviewPlayer = BgaPreviewPlayer()
-	self.chartPreview = NotesPreviewPlayer(settings, self, replayBase, game)
+	self.chartPreview = NotesPreviewPlayer(settings, self, replayBase)
 	---@type {[string]: boolean?}
 	self.generating_hashes = {}
 	---@type {[string]: boolean?}
