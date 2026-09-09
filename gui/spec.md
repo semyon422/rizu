@@ -394,7 +394,7 @@ LÖVE polls events before `update`. To keep dispatch on current geometry, event 
    c. collect targets **top → bottom**: overlay, then input Screen;
    d. **drain the queue** in poll order, restoring each pointer event's event-time coordinates before dispatch;
    e. dispatch semantic actions top-to-bottom: overlay, then the input Screen. Each Screen invokes overridden `View:onHandleInputs(inputs)` hooks front-most first, then `Screen:onHandleInputs(inputs)`. Handlers consume discrete edges to stop lower-priority action handling.
-3. Update visible navigation Screens bottom-to-top, then the overlay. Each Screen **steps its animations first** (transforms §11.1, scroll dynamics §9.2) and only then runs view `update(dt)` code — animation state is always settled before user code reads it. Transform ticks batch their visual-channel writes and recompose once per affected view.
+3. Update visible navigation Screens bottom-to-top, then the overlay. Each Screen **steps its animations first** (transforms §11.1, scroll dynamics §9.2) and only then runs `update(dt)` on effectively visible views — animation state is always settled before user code reads it. Transform ticks batch their visual-channel writes and recompose once per affected view.
 4. Draw visible navigation Screens **bottom → top**, then the overlay.
 
 Events polled in a frame are dispatched in that same frame's UI phase, against the geometry current after that frame's flush.
@@ -506,7 +506,7 @@ Culling is a **bitmask** of independent causes (`cull_mask`): bit `CLIP_EMPTY` (
 - **Static**: at flatten, empty clip intersection sets `CLIP_EMPTY`.
 - **Dynamic**: after a scroll change (inside the same `composeSubtree` pass), the ScrollView tests **each content-subtree view's own world AABB** against the viewport and sets/clears its `VIEWPORT` bit — per-view tests, no assumption that descendants stay inside their row's rect. Only changed views are written.
 - After any relayout, pass 5 (§6.1) re-runs the clamp and the cull refresh, so a rebuild at nonzero scroll is correct.
-- Draw and input check `cull_mask == 0`. `update` is never culled.
+- Draw and input check `cull_mask == 0`. Geometry culling does not skip `update`, but explicitly invisible subtrees do not receive user updates.
 - Optimization, allowed only under a documented containment guarantee (a container that guarantees its descendants' bounds stay within its own): the flat loop may skip a culled subtree by jumping to `flat_subtree_end + 1` instead of checking each descendant.
 
 ### 9.4 Virtualized lists
@@ -702,7 +702,7 @@ The constraints that make it expensive, kept as a warning label:
 10. Input traverses the overlay before the input Screen and each tree front-most View first; drawing traverses visible navigation Screens bottom-to-top, then the overlay.
 11. One shared `Inputs`; focus scopes trap modal/popup keys; detach clears **all** input references into the subtree.
 12. Animate the visual channel, never the resolved rect. The only layout→visual write in the library is the layout-transition compensation (§11.4).
-13. Culling skips draw and input only — never `update`; cull causes are independent bits; author `visible`/`enabled` are separate from culling; derived presence (opacity ≈ 0, zero scale) skips draw and input but not update.
+13. Geometry culling skips draw and input only; explicit visibility also skips user `update`; cull causes are independent bits; author `visible`/`enabled` are separate from culling; derived presence (opacity ≈ 0, zero scale) skips draw and input but not update or transform stepping.
 14. Clip boundaries are axis-aligned (rotation on a clip view is an error); rotated descendants are clipped fine via four-corner AABBs.
 15. Scrolling is a visual-channel write with `(target, current)` exp-decay dynamics; the scroller sleeps at epsilon; scroll clamps and culling refresh after every relayout, resize, or content replacement.
 16. Popups live in the overlay Screen, positioned via `getWorldPosition` + inverse root transform; backdrop inserted before the popup; application code should normally close them on source scrolling; never clip a popup to a viewport.

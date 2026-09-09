@@ -314,7 +314,7 @@ function Screen:update(dt)
 	local views = self.update_views
 	for i = 1, #views do
 		local view = views[i]
-		if not view.detached then
+		if not view.detached and view.effective_visible then
 			view:update(dt)
 		end
 	end

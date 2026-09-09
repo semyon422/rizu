@@ -289,6 +289,30 @@ function test.update_and_draw_skip_base_noop_views(t)
 end
 
 ---@param t testing.T
+function test.update_skips_invisible_subtrees(t)
+	local s = Screen()
+	local parent = View()
+	local child = View()
+	local updates = 0
+	child:setUpdate(function()
+		updates = updates + 1
+	end)
+	parent:add(child)
+	s.root:add(parent)
+
+	s:update(0.25)
+	t:eq(updates, 1)
+
+	parent:setVisible(false)
+	s:update(0.25)
+	t:eq(updates, 1)
+
+	parent:setVisible(true)
+	s:update(0.25)
+	t:eq(updates, 2)
+end
+
+---@param t testing.T
 function test.resize_sets_root_size_and_screen_size(t)
 	local s = Screen()
 	s:resize(800, 600)

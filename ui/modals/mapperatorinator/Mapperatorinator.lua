@@ -174,6 +174,7 @@ function Mapperatorinator:new(workflow, config, on_close, popup_container)
 		color = Colors.muted, align = "center",
 	}))
 	self.status_label:anchorFixed(CONTENT_X, 675, FORM_WIDTH, 44)
+	self.displayed_status = workflow.status
 
 	self.generate_button = self:add(Button("Generate", function() self:generate() end))
 	self.generate_button:setSize(250, 58)
@@ -406,8 +407,12 @@ end
 ---@param dt number
 function Mapperatorinator:update(dt)
 	if self.settings_invalidated then self:rebuildSettings() end
-	self.status_label:setText(self.workflow.status)
-	self.status_label:setSize(FORM_WIDTH, 44)
+	local status = self.workflow.status
+	if status ~= self.displayed_status then
+		self.displayed_status = status
+		self.status_label:setText(status)
+		self.status_label:setSize(FORM_WIDTH, 44)
+	end
 	self.generate_button.text = self.workflow:isBusy() and "Working…" or "Generate"
 end
 
