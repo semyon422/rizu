@@ -150,7 +150,7 @@ function RhythmEngine:update()
 		for i = sound + 1, #self.aim_rules.checkpoint_events do
 			local event = self.aim_rules.checkpoint_events[i]
 			if event.hit then
-				for _, sample in ipairs(self.aim_rules.chart.objects[event.index].sounds) do
+				for _, sample in ipairs(event.sounds) do
 					self.audio_engine:playSample(sample[1], sample[2])
 				end
 			end

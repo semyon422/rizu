@@ -52,7 +52,9 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 - Tail judgement occurs 36 ms before the visual endpoint, but never before the final span midpoint or the last real tick/repeat. It samples the ball at that time. Release after this point is allowed; visual completion and session bounds still use the true endpoint. This is explicit prototype leniency, not exact stable compatibility.
 - Tracking events use the same strict timestamp ordering as checkpoints. Paused state-only input is exempt from immediate tracking failures; the resumed held/cursor state is used by subsequent grid samples. Same-time physical key transfers require the new key to be pressed before the old one is released.
 - The schedule is bounded to fewer than 250000 tracking/checkpoint entries at preparation; no render-frame duration enters tracking judgement. Older replay formats keep checkpoint-only judgement and exact-end tails.
-- Checkpoint sounds still reuse head samples as temporary feedback. Edge-specific samples and looping slide sounds remain future work.
+- Slider head, repeat and tail samples use source edge masks/sets, with hitnormal included alongside clap/whistle/finish. Zero edge sets inherit object/timing/general sets. Object sample index/volume override timing values; bank 0/1 uses unsuffixed filenames and higher banks retain an unsuffixed fallback. Custom sample filenames apply only to the head. Tick samples use `normal|soft|drum-slidertick` at the tick's timing-point sample set/index/volume, not the head hitsound.
+- `SliderSamples.prepare` resolves audio during gameplay preparation before resource lookup and refchart transfer. Sample selection for tails uses the real endpoint's timing point; playback occurs at the successful early tail judgement. Failed checkpoints are silent and successful events dispatch once. This improves audio for older replays too, without changing their judgement rules or envelope version.
+- Missing tick files fall back to a project-generated 50 ms click in `resources/aim/hitsounds`; chart and user sounds remain higher priority. Looping slide/whistle sounds and exact stable audio-envelope parity remain future work.
 
 ## Spinner Rules
 
@@ -96,6 +98,8 @@ Stacking runtime checks: **China Dress [Hard]** contains a visible two-level sta
 
 Tracking runtime checks: China Dress autoplay retained 346/0 objects and 192/0 checkpoints with no tracking breaks. The previous stacked replay loaded with tracking disabled and preserved 3/343. An injected mouse-follow attempt released the first slider roughly 33 ms before its endpoint and still hit it, saving 1/345 with no tracking breaks. The `rizu-aim-tracking-1` replay reproduced that result after restarting the game.
 
+Sample runtime checks: China Dress still completes with autoplay 346/0. Tick events now carry `normal-slidertick` rather than hitnormal, and the resource loader resolves the missing chart/user tick to `resources/aim/hitsounds/aim-slidertick.wav`. Headless tests cover per-edge sets/masks, changing timing-point banks/volume, first-bank naming, custom filenames, snapshot preservation, and exactly-once engine dispatch. Subjective sound balance remains unverified.
+
 Pointer transforms at multiple sizes/UI scales are covered by headless tests; runtime screenshots were checked at 1920×1080. Audio channels loaded and advanced, but subjective audio synchronization and physical-device feel still need a human playtest. No third-party chart/audio assets were added to the repository.
 
 The engine regression suite passes (119 tests). The broader gameplay suite also exposes two pre-existing failures in untouched `GameplayTimings_test.auto_timings_from_chart` and `ScrollSpeed_test.clamps_to_canonical_range`; both were reproduced using source/test files from HEAD. They are not fixed by this prototype.
@@ -105,5 +109,5 @@ The engine regression suite passes (119 tests). The broader gameplay suite also 
 - Review overlap/note-lock, slider tracking tolerance, spinner compatibility, and exact historical stacking rounding.
 - Replace fixed bindings and the latest-only diagnostic replay UI when broader mode input/replay requirements are settled.
 - Bound local replay decoding and recording memory for very long attempts; the current diagnostic store is a trusted local developer facility, not an untrusted replay import endpoint.
-- Provide guaranteed built-in hitsound fallback when chart/default samples are unavailable.
+- Provide guaranteed built-in non-tick hitsound fallback when chart/default samples are unavailable.
 - Remove or migrate historical mania-derived Aim library data only through an explicit migration; current display masks the irrelevant difficulty value.

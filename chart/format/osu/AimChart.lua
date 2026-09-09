@@ -1,3 +1,4 @@
+local table_util = require("table_util")
 local class = require("class")
 local bit = require("bit")
 
@@ -5,6 +6,12 @@ local bit = require("bit")
 ---@field curve_type string
 ---@field controls chart.osu.PathPoint[] Includes the head.
 ---@field length number
+---@field sample_addition chart.osu.Addition?
+---@field sound_type number
+---@field edge_sounds number[]
+---@field edge_sets number[]
+---@field edge_add_sets number[]
+---@field checkpoint_sounds {[1]: string, [2]: number}[][]?
 ---@field spans integer
 
 ---@class chart.osu.AimObject
@@ -19,12 +26,13 @@ local bit = require("bit")
 
 ---@class chart.osu.AimChart
 ---@operator call: chart.osu.AimChart
+---@field sample_set integer
 ---@field stack_leniency number
 ---@field circle_size number
 ---@field approach_rate number
 ---@field overall_difficulty number
 ---@field objects chart.osu.AimObject[]
----@field timing_points chart.osu.SliderControlPoint[]
+---@field timing_points chart.osu.ControlPoint[]
 ---@field format_version integer
 ---@field slider_multiplier number
 ---@field slider_tick_rate number
@@ -32,6 +40,8 @@ local AimChart = class()
 
 ---@param osu chart.osu.Osu
 function AimChart:new(osu)
+	local sample_sets = {Normal = 1, Soft = 2, Drum = 3, ["0"] = 1, ["1"] = 1, ["2"] = 2, ["3"] = 3}
+	self.sample_set = assert(sample_sets[osu.rawOsu.General.SampleSet], "Aim prototype: invalid general sample set.")
 	local difficulty = osu.rawOsu.Difficulty
 	local leniency = rawget(osu.rawOsu.General, "StackLeniency")
 	self.stack_leniency = leniency == nil and 0.7 or assert(tonumber(leniency))
@@ -43,7 +53,7 @@ function AimChart:new(osu)
 	self.slider_tick_rate = assert(tonumber(difficulty.SliderTickRate))
 	self.timing_points = {}
 	for i, point in ipairs(osu.rawOsu.TimingPoints) do
-		self.timing_points[i] = {offset = point.offset, beatLength = point.beatLength}
+		self.timing_points[i] = table_util.copy(point)
 	end
 	self.objects = {}
 	for i, object in ipairs(osu.rawOsu.HitObjects) do
@@ -74,6 +84,15 @@ function AimChart:new(osu)
 			self.objects[i].slider = {
 				curve_type = assert(object.curveType), controls = controls,
 				length = assert(object.length), spans = assert(object.repeatCount),
+				sample_addition = {
+					sampleSet = object.addition.sampleSet, addSampleSet = object.addition.addSampleSet,
+					customSample = object.addition.customSample, volume = object.addition.volume,
+					sampleFile = object.addition.sampleFile,
+				},
+				sound_type = object.soundType,
+				edge_sounds = table_util.copy(object.sounds or {}),
+				edge_sets = table_util.copy(object.ss or {}),
+				edge_add_sets = table_util.copy(object.ssa or {}),
 			}
 		end
 	end

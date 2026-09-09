@@ -1,3 +1,4 @@
+local SliderSamples = require("chart.format.osu.SliderSamples")
 local Tracking = require("rizu.gameplay.aim.Tracking")
 local Stacking = require("rizu.gameplay.aim.Stacking")
 local Sliders = require("rizu.gameplay.aim.Sliders")
@@ -31,6 +32,7 @@ function Preparation.compute(ctx, replay_base)
 	end
 	local prepared, sliders = pcall(Sliders.prepare, aim)
 	assert(prepared, "Aim prototype: invalid slider geometry/timing: " .. tostring(sliders))
+	SliderSamples.prepare(aim, sliders, chart.resources)
 	Tracking.validateBudget(sliders)
 	for _, slider in pairs(sliders) do
 		end_time = math.max(end_time, slider.timing.end_time)

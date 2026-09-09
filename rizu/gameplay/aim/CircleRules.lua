@@ -13,6 +13,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@field delta number
 
 ---@class rizu.aim.CheckpointJudgement: rizu.aim.Judgement
+---@field sounds {[1]: string, [2]: number}[]
 ---@field kind "tick"|"repeat"|"tail"
 ---@field x number
 ---@field y number
@@ -21,6 +22,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@field index integer
 ---@field time number
 ---@field priority number
+---@field sounds {[1]: string, [2]: number}[]?
 ---@field checkpoint chart.osu.SliderCheckpoint?
 ---@field spinner boolean?
 ---@field tracking boolean?
@@ -84,12 +86,14 @@ function CircleRules:new(chart, stacking, tracking)
 					self.scheduled[#self.scheduled + 1] = {index = i, time = object.time + tick * Tracking.step, priority = 1.5, tracking = true}
 				end
 			end
-			for _, checkpoint in ipairs(slider.timing.checkpoints) do
+			for j, checkpoint in ipairs(slider.timing.checkpoints) do
 				if checkpoint.kind == "tail" and self.tracking_enabled then
 					checkpoint.time = slider.tail_time
 					checkpoint.progress = slider.timing:progress(slider.tail_time)
 				end
-				self.scheduled[#self.scheduled + 1] = {index = i, time = checkpoint.time, checkpoint = checkpoint, priority = 2}
+				local samples = assert(object.slider).checkpoint_sounds
+				self.scheduled[#self.scheduled + 1] = {index = i, time = checkpoint.time, checkpoint = checkpoint, priority = 2,
+					sounds = samples and samples[j] or object.sounds}
 			end
 			self.scheduled[#self.scheduled + 1] = {index = i, time = math.max(deadline, slider.timing.end_time), finish = true, priority = 3}
 		end
@@ -180,7 +184,7 @@ function CircleRules:update(time)
 			slider.intact = slider.intact and hit
 			self.checkpoint_events[#self.checkpoint_events + 1] = {
 				index = i, time = scheduled.time, hit = hit, delta = 0,
-				kind = checkpoint.kind, x = x, y = y,
+				kind = checkpoint.kind, x = x, y = y, sounds = assert(scheduled.sounds),
 			}
 			if hit then self.checkpoint_hits = self.checkpoint_hits + 1
 			else self.checkpoint_misses = self.checkpoint_misses + 1 end

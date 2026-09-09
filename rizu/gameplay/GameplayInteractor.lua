@@ -134,7 +134,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	local paths
 	if chart.aim then
 		assert(not game.multiplayerModel.client:isInRoom(), "Aim prototype is not available in multiplayer.")
-		paths = {chartview.location_dir, "userdata/hitsounds"}
+		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
 		self.noteSkin = nil
 	else
 		local noteSkin = game.noteSkinModel:loadNoteSkin(input_mode)
