@@ -164,7 +164,7 @@ end
 
 ---@param t testing.T
 function test.slider_can_recover_checkpoints_but_not_full_object_hit(t)
-	local rules = CircleRules(sliderChart())
+	local rules = CircleRules(sliderChart(), nil, false)
 	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
 	rules:receive(VirtualInputEvent(1, false, 1), 1.4)
 	rules:update(1.6)
@@ -298,6 +298,85 @@ function test.stacked_slider_autoplay_and_replay_share_geometry(t)
 	auto:update(10)
 	t:eq(auto_engine.aim_rules.hits, 2)
 	t:eq(auto_engine.aim_rules.chart.objects[2].x, re.aim_rules.chart.objects[2].x)
+end
+
+---@param t testing.T
+function test.tracking_detects_short_release_and_motion_between_ticks(t)
+	local aim = sliderChart()
+	for _, motion in ipairs({false, true}) do
+		local rules = CircleRules(aim)
+		local old = CircleRules(aim, nil, false)
+		for _, frame in ipairs(CircleRules.autoplay(aim)) do
+			if frame.time > 1.25 and not rules.sliders[1].tracking_broken then
+				local bad = motion and VirtualInputEvent(0, nil, 1, {500, 300}) or VirtualInputEvent(1, false, 1)
+				local good = motion and VirtualInputEvent(0, nil, 1, {150, 100}) or VirtualInputEvent(1, true, 1)
+				rules:receive(bad, 1.25001); old:receive(bad, 1.25001)
+				rules:receive(good, 1.25002); old:receive(good, 1.25002)
+			end
+			rules:receive(frame.event, frame.time)
+			old:receive(frame.event, frame.time)
+		end
+		rules:update(10); old:update(10)
+		t:eq(rules.tracking_breaks, 1)
+		t:eq(rules.states[1], "miss")
+		t:eq(old.states[1], "hit")
+	end
+end
+
+---@param t testing.T
+function test.tail_release_after_early_checkpoint_is_accepted(t)
+	local aim = sliderChart()
+	local rules = CircleRules(aim)
+	local old = CircleRules(aim, nil, false)
+	for _, frame in ipairs(CircleRules.autoplay(aim)) do
+		if frame.time <= 3.97 then
+			rules:receive(frame.event, frame.time)
+			old:receive(frame.event, frame.time)
+		end
+	end
+	rules:receive(VirtualInputEvent(1, false, 1), 3.97)
+	old:receive(VirtualInputEvent(1, false, 1), 3.97)
+	rules:update(4.1); old:update(4.1)
+	t:aeq(rules.sliders[1].tail_time, 3.964, 1e-9)
+	t:eq(rules.states[1], "hit")
+	t:eq(old.states[1], "miss")
+end
+
+---@param t testing.T
+function test.stationary_cursor_breaks_between_matching_endpoints(t)
+	local aim = sliderChart()
+	aim.objects[1].slider.length = 100
+	aim.objects[1].slider.controls = {{100, 100}, {200, 100}}
+	local rules = CircleRules(aim)
+	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
+	rules:update(1.49)
+	t:eq(rules.tracking_breaks, 1)
+end
+
+---@param t testing.T
+function test.tracking_break_and_early_tail_replay_across_frame_rates(t)
+	local aim = sliderChart()
+	local re, manual = session(0.031, 1.5, aim)
+	local interrupted = false
+	for _, frame in ipairs(CircleRules.autoplay(aim)) do
+		if frame.time > 1.25 and not interrupted then
+			manual:receive(VirtualInputEvent(1, false, 1), (1.25001 + 0.031) / 1.5)
+			manual:receive(VirtualInputEvent(1, true, 1), (1.25002 + 0.031) / 1.5)
+			interrupted = true
+		end
+		manual:receive(frame.event, (frame.time + 0.031) / 1.5)
+	end
+	manual:update(10)
+	local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
+	for _, step in ipairs({1 / 30, 1 / 144, 0.37, 10}) do
+		local engine, replay = session(0.031, 1.5, aim)
+		replay:setPlayType("replay")
+		replay:setReplayFrames(frames)
+		for time = step, 10 + step, step do replay:update(time) end
+		t:tdeq(engine.aim_rules.events, re.aim_rules.events)
+		t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
+		t:eq(engine.aim_rules.tracking_breaks, 1)
+	end
 end
 
 return test

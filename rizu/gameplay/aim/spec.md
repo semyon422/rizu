@@ -37,7 +37,7 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 - Every delivered pointer sample is recorded without throttling. Button events include the last chart-space cursor position. `ReplayRecorder` snapshots events and coordinate tables instead of retaining mutable references.
 - Frames contain judgement-clock time (`engine time - input offset`). Playback advances to `frame time + offset`, then applies the event. Manual play and playback use identical discrete position samples; visual interpolation is not implemented.
 - Paused input updates state at frozen chart time and is recorded as state-only input, so a press during pause does not become a replay hit. Autoplay generates ordinary press/release frames, including deterministic same-time ordering.
-- Local files: `userdata/replays/aim/<chart-md5>_<index>.json`, format `rizu-aim-stacking-1`. All earlier formats use unshifted source geometry. Old `rizu-aim-circles-1` files are accepted only for circle-only charts; `rizu-aim-sliders-1` files require charts without spinners. The envelope stores chart identity, rate, input offset, and base64-encoded existing compressed frames. Chart geometry/settings come from the matching chart hash. It is not an external osu! replay or a server-submittable score envelope.
+- Local files: `userdata/replays/aim/<chart-md5>_<index>.json`, format `rizu-aim-tracking-1`. This enables sampled slider tracking and early tail judgement; `rizu-aim-stacking-1` retains checkpoint-only slider rules. Formats before stacking use unshifted source geometry. Old `rizu-aim-circles-1` files are accepted only for circle-only charts; `rizu-aim-sliders-1` files require charts without spinners. The envelope stores chart identity, rate, input offset, and base64-encoded existing compressed frames. Chart geometry/settings come from the matching chart hash. It is not an external osu! replay or a server-submittable score envelope.
 - The envelope is intentionally separate from the competitive replay persistence path; no existing score/replay format is silently redefined. Rule changes that invalidate playback require a new diagnostic format identifier.
 - Playback restores recorded rate/offset independently of current user settings. Supported playback multipliers are 0.25x–4x; the select UI's linear/exponential adjustment scale does not change the constant-rate simulation. Seek backwards within an attempt is not supported; retry constructs fresh state.
 
@@ -48,7 +48,11 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 - Checkpoints are processed strictly after their timestamp, after all input at that timestamp. Cursor/button state is held between recorded samples; no render-frame interpolation enters judgement. Paused state-only transitions cannot hit heads but determine held state on resume.
 - Final object result occurs after both head expiry and tail. Short sliders therefore cannot finalize before a legal late head press. Session bounds include the latest tail, even if a later head occurs before it.
 - Autoplay emits 120 Hz path motion plus exact checkpoint samples and ordinary alternating-key transitions. Unusual overlapping bodies with incompatible cursor positions are not guaranteed perfect autoplay; no judgement bypass is used.
-- Checkpoint sounds currently reuse head samples as temporary feedback. Edge-specific samples, looping slide sounds, continuous tracking breaks between checkpoints, and stable's early tail leniency are not implemented.
+- Current attempts additionally check held state and follow-circle distance on every non-paused input event and on a chart-time 240 Hz grid anchored to each slider head. This detects releases/excursions between checkpoints and motion of the slider away from a stationary pointer. These are bounded deterministic samples, not mathematical continuous collision detection. The first tracking failure after a successful head permanently invalidates the binary object result; later checkpoints remain recoverable. Tracking does not run before head judgement or after the early tail.
+- Tail judgement occurs 36 ms before the visual endpoint, but never before the final span midpoint or the last real tick/repeat. It samples the ball at that time. Release after this point is allowed; visual completion and session bounds still use the true endpoint. This is explicit prototype leniency, not exact stable compatibility.
+- Tracking events use the same strict timestamp ordering as checkpoints. Paused state-only input is exempt from immediate tracking failures; the resumed held/cursor state is used by subsequent grid samples. Same-time physical key transfers require the new key to be pressed before the old one is released.
+- The schedule is bounded to fewer than 250000 tracking/checkpoint entries at preparation; no render-frame duration enters tracking judgement. Older replay formats keep checkpoint-only judgement and exact-end tails.
+- Checkpoint sounds still reuse head samples as temporary feedback. Edge-specific samples and looping slide sounds remain future work.
 
 ## Spinner Rules
 
@@ -66,7 +70,7 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 - `Stacking` computes modern reverse-pass heights for format versions above 5 and a legacy forward pass for earlier charts. Heads within strictly 3 chart units can stack within `preempt * StackLeniency`; circle stacks consider preceding slider end times. Slider-tail overlaps produce negative heights, and modern slider endpoints respect repeat parity. Spinners are excluded.
 - Runtime displacement is `-height * circleRadius / 10` on both axes. The head, complete slider path, and copied control points move together. Source DTOs/refcharts remain unchanged; retry always recomputes from source, never from shifted data.
 - Rules, rendering, checkpoint positions, and autoplay share runtime geometry. Earlier heads are drawn above later stack members. Autoplay from an already-prepared rules chart explicitly skips a second stacking pass.
-- Replay format `rizu-aim-stacking-1` selects stacked geometry. Earlier diagnostic formats explicitly disable stacking in the engine, retaining their original positions and outcomes.
+- Replay formats `rizu-aim-stacking-1` and `rizu-aim-tracking-1` select stacked geometry. Earlier diagnostic formats explicitly disable stacking in the engine, retaining their original positions and outcomes.
 - Preparation validates the bounded stacking pass before loading gameplay resources. Work is capped at two million candidate comparisons. Full-chart algorithms are adapted from osu! lazer; attribution and MIT notice are in `Stacking.LICENSE`. Exact stable integer/float rounding quirks are not emulated.
 
 ## Invariants
@@ -90,13 +94,15 @@ Spinner runtime checks used **Zero Centimeters (TV Size) [Easy]**, hash `b63dbea
 
 Stacking runtime checks: **China Dress [Hard]** contains a visible two-level stack at objects 43–45; object 43 moved from x=444 to x=436.256 while source geometry remained unchanged. Accelerated autoplay remained 346/0 with 192/0 checkpoints. The old `rizu-aim-spinners-1` Zero Centimeters replay loaded with stacking disabled and preserved both its 1/91 result and exact rotation count. A screen-space injected attempt hit the three stacked circles; the new `rizu-aim-stacking-1` replay retained its 3/343 result after restarting the game.
 
+Tracking runtime checks: China Dress autoplay retained 346/0 objects and 192/0 checkpoints with no tracking breaks. The previous stacked replay loaded with tracking disabled and preserved 3/343. An injected mouse-follow attempt released the first slider roughly 33 ms before its endpoint and still hit it, saving 1/345 with no tracking breaks. The `rizu-aim-tracking-1` replay reproduced that result after restarting the game.
+
 Pointer transforms at multiple sizes/UI scales are covered by headless tests; runtime screenshots were checked at 1920×1080. Audio channels loaded and advanced, but subjective audio synchronization and physical-device feel still need a human playtest. No third-party chart/audio assets were added to the repository.
 
 The engine regression suite passes (119 tests). The broader gameplay suite also exposes two pre-existing failures in untouched `GameplayTimings_test.auto_timings_from_chart` and `ScrollSpeed_test.clamps_to_canonical_range`; both were reproduced using source/test files from HEAD. They are not fixed by this prototype.
 
 ## Future Work and Open Questions
 
-- Review overlap/note-lock, continuous slider tracking, spinner compatibility, and exact historical stacking rounding.
+- Review overlap/note-lock, slider tracking tolerance, spinner compatibility, and exact historical stacking rounding.
 - Replace fixed bindings and the latest-only diagnostic replay UI when broader mode input/replay requirements are settled.
 - Bound local replay decoding and recording memory for very long attempts; the current diagnostic store is a trusted local developer facility, not an untrusted replay import endpoint.
 - Provide guaranteed built-in hitsound fallback when chart/default samples are unavailable.

@@ -176,7 +176,8 @@ function GameplayInteractor:load(autoplay)
 	local game = self.game
 
 	game:recreateRhythmEngine()
-	game.rhythm_engine.aim_stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1"
+	game.rhythm_engine.aim_stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
+	game.rhythm_engine.aim_tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
 
 	local replay_base = game.replayBase
 	if self.aim_replay then

@@ -15,13 +15,13 @@ Circles, sliders, and spinners can be played through ordinary Aim loading, with 
 - Paths reject non-finite coordinates, invalid lengths/types, more than 1024 controls, 16384 output points, 250000 Bezier work units, or depth beyond 32. They never silently fall back to a different curve when a budget is exceeded. A fully degenerate path has zero effective length.
 - `SliderTiming` samples BPM and inherited velocity at the head. Red points reset velocity; negative beat lengths select velocity clamped to 0.1–10. With no preceding timing point it uses 500 ms and 1x velocity. Later timing points do not stretch an active slider.
 - Velocity is `100 * SliderMultiplier * SV / beatLengthSeconds`. The stored osu! repeatCount is the total number of spans. Duration uses path distance, not the legacy raw `HitObject.endTime` placeholder.
-- Tick spacing is `100 * SliderMultiplier * SV / SliderTickRate`; pre-v8 tick spacing omits SV. Ticks within 10 ms of the far endpoint are excluded. Reverse spans revisit the same path tick locations in reverse chronological order. Repeat and tail checkpoints occur at exact span endpoints. Stable's early legacy last-tick judgement is not implemented.
+- Tick spacing is `100 * SliderMultiplier * SV / SliderTickRate`; pre-v8 tick spacing omits SV. Ticks within 10 ms of the far endpoint are excluded. Reverse spans revisit the same path tick locations in reverse chronological order. Repeat and tail checkpoints are generated at exact span endpoints; current gameplay moves its runtime tail checkpoint earlier according to the Aim tracking spec. The source timing helper remains unchanged for legacy replays.
 
 ## Invariants
 
 - Geometry and checkpoint generation are independent of rendering and frame rate.
 - Checkpoint lists are chronological and capped at 16384 entries per slider before allocation.
-- Old circle-only replay files retain their circle semantics; new attempts use the stacking-versioned diagnostic envelope. Stacking shifts only runtime copies, not decoded/refchart source geometry.
+- Old circle-only replay files retain their circle semantics; new attempts use the tracking-versioned diagnostic envelope. Stacking shifts only runtime copies, not decoded/refchart source geometry.
 - Source data survives refchart snapshots without losing repeated anchors or simultaneous objects.
 
 ## Verification

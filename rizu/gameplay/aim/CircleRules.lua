@@ -2,6 +2,7 @@ local class = require("class")
 local AimChart = require("chart.format.osu.AimChart")
 local Stacking = require("rizu.gameplay.aim.Stacking")
 local Spinner = require("rizu.gameplay.aim.Spinner")
+local Tracking = require("rizu.gameplay.aim.Tracking")
 local Sliders = require("rizu.gameplay.aim.Sliders")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
@@ -19,9 +20,10 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@class rizu.aim.ScheduledEvent
 ---@field index integer
 ---@field time number
----@field priority integer
+---@field priority number
 ---@field checkpoint chart.osu.SliderCheckpoint?
 ---@field spinner boolean?
+---@field tracking boolean?
 ---@field finish boolean?
 
 ---@class rizu.aim.CircleRules
@@ -39,7 +41,8 @@ local CircleRules = class()
 
 ---@param chart chart.osu.AimChart
 ---@param stacking boolean? False for pre-stacking replays.
-function CircleRules:new(chart, stacking)
+---@param tracking boolean? False for checkpoint-only diagnostic replays.
+function CircleRules:new(chart, stacking, tracking)
 	assert(AimChart.isSupported(chart))
 	self.chart = chart
 	self.radius = 54.4 - 4.48 * chart.circle_size
@@ -53,6 +56,8 @@ function CircleRules:new(chart, stacking)
 	self.next_index = 1
 	self.hits, self.misses = 0, 0
 	self.checkpoint_hits, self.checkpoint_misses = 0, 0
+	self.tracking_enabled = tracking ~= false
+	self.tracking_breaks = 0
 	self.spinners = {}
 	self.sliders = Sliders.prepare(chart)
 	self.stacking_enabled = stacking ~= false and chart.stack_leniency ~= nil
@@ -71,7 +76,19 @@ function CircleRules:new(chart, stacking)
 		end
 		local slider = self.sliders[i]
 		if slider then
+			slider.tail_time = self.tracking_enabled and Tracking.tailTime(slider.timing) or slider.timing.end_time
+			if self.tracking_enabled then
+				local count = math.ceil((slider.tail_time - object.time) / Tracking.step)
+				assert(count + #self.scheduled < 250000, "Aim prototype: slider tracking budget exceeded.")
+				for tick = 0, count - 1 do
+					self.scheduled[#self.scheduled + 1] = {index = i, time = object.time + tick * Tracking.step, priority = 1.5, tracking = true}
+				end
+			end
 			for _, checkpoint in ipairs(slider.timing.checkpoints) do
+				if checkpoint.kind == "tail" and self.tracking_enabled then
+					checkpoint.time = slider.tail_time
+					checkpoint.progress = slider.timing:progress(slider.tail_time)
+				end
 				self.scheduled[#self.scheduled + 1] = {index = i, time = checkpoint.time, checkpoint = checkpoint, priority = 2}
 			end
 			self.scheduled[#self.scheduled + 1] = {index = i, time = math.max(deadline, slider.timing.end_time), finish = true, priority = 3}
@@ -128,6 +145,19 @@ function CircleRules:isHeld()
 	return false
 end
 
+---@param index integer
+---@param time number
+function CircleRules:checkTracking(index, time)
+	local slider = self.sliders[index]
+	if not slider.intact or self.heads[index] ~= "hit" or time < slider.timing.start_time or time >= slider.tail_time then return end
+	local x, y = slider.path:position(slider.timing:progress(time))
+	if not self:isHeld() or not self:inside(x, y, self.radius * 2.4) then
+		slider.intact = false
+		slider.tracking_broken = true
+		self.tracking_breaks = self.tracking_breaks + 1
+	end
+end
+
 ---@param time number
 function CircleRules:update(time)
 	-- Strict expiry gives all events at the checkpoint timestamp the same ordering,
@@ -142,6 +172,8 @@ function CircleRules:update(time)
 		if scheduled.spinner then
 			local spinner = self.spinners[i]
 			self:judge(i, scheduled.time, spinner:getTurns() >= spinner.required_turns)
+		elseif scheduled.tracking then
+			self:checkTracking(i, scheduled.time)
 		elseif checkpoint then
 			local x, y = slider.path:position(checkpoint.progress)
 			local hit = self:isHeld() and self:inside(x, y, self.radius * 2.4)
@@ -176,6 +208,9 @@ function CircleRules:receive(event, time, paused)
 			if not held_before then spinner:resetSample() end
 			spinner:receive(time, self.x, self.y, held, not not (paused or event.column == 2))
 		end
+	end
+	if self.tracking_enabled and not paused and event.column ~= 2 then
+		for i in pairs(self.sliders) do self:checkTracking(i, time) end
 	end
 	if event.value == nil then return end
 	if paused or event.column == 2 or event.value ~= true or was_pressed then return end

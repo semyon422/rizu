@@ -6,6 +6,8 @@ local Sliders = {}
 ---@class rizu.aim.Slider
 ---@field path chart.osu.SliderPath
 ---@field timing chart.osu.SliderTiming
+---@field tail_time number
+---@field tracking_broken boolean?
 ---@field intact boolean
 
 ---@param chart chart.osu.AimChart
@@ -19,7 +21,7 @@ function Sliders.prepare(chart)
 			local path = SliderPath(source.curve_type, source.controls, source.length)
 			local timing = SliderTiming(object.time, path.length, source.spans,
 				chart.slider_multiplier, chart.slider_tick_rate, chart.timing_points, chart.format_version)
-			sliders[i] = {path = path, timing = timing, intact = true}
+			sliders[i] = {path = path, timing = timing, intact = true, tail_time = timing.end_time}
 		end
 	end
 	return sliders

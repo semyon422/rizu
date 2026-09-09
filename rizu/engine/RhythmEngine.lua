@@ -22,6 +22,7 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 
 ---@class rizu.RhythmEngine
 ---@operator call: rizu.RhythmEngine
+---@field aim_tracking boolean? False for checkpoint-only legacy replays.
 ---@field aim_stacking boolean? False for legacy diagnostic replay geometry.
 ---@field aim_rules rizu.aim.CircleRules?
 local RhythmEngine = class()
@@ -60,7 +61,7 @@ function RhythmEngine:load()
 	local chart = self.chart
 
 	if chart.aim then
-		self.aim_rules = CircleRules(chart.aim, self.aim_stacking)
+		self.aim_rules = CircleRules(chart.aim, self.aim_stacking, self.aim_tracking)
 		self.aim_sound_index = 0
 		self.aim_result_sound_index = 0
 		return
