@@ -43,6 +43,10 @@ function HashingTask:processChartfile(chartfile, location_prefix, context)
 	---@cast chart_chartmetas -string
 
 	for j, t in ipairs(chart_chartmetas) do
+		-- Experimental Aim charts have metadata but no mania difficulty/result contract.
+		if t.chart.aim then
+			goto continue
+		end
 		local ok, err = xpcall(t.chart.layers.main.toAbsolute, debug.traceback, t.chart.layers.main)
 		if not ok then
 			self.taskContext:addError("HashingTask: toAbsolute error (" .. chartfile.path .. "): " .. tostring(err))

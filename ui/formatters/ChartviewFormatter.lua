@@ -37,6 +37,9 @@ end
 
 ---@return {value: string, postfix: string, color: gui.Color}
 function ChartviewFormatter:getDifficulty()
+	if self.chartview.inputmode == "1osu" then
+		return {value = "—", postfix = "EXPERIMENTAL", color = {0.6, 0.8, 1, 1}}
+	end
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local num = self.chartview[diff_column] or 0
 
@@ -117,6 +120,9 @@ end
 ---@return string
 function ChartviewFormatter:getMode()
 	local chartview = self.chartview
+	if chartview.inputmode == "1osu" then
+		return "AIM (EXPERIMENTAL)"
+	end
 	local inputmode = chartview.chartdiff_inputmode or chartview.inputmode
 	if inputmode and inputmode ~= "" then
 		return inputmode:gsub("key", "K"):gsub("scratch", "S"):upper()

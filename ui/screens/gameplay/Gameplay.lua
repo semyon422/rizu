@@ -1,3 +1,5 @@
+local Label = require("ui.views.Label")
+local AimPlayfield = require("ui.screens.gameplay.AimPlayfield")
 local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
 local Colors = require("ui.Colors")
@@ -9,6 +11,7 @@ local delay = require("delay")
 local thread = require("thread")
 
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
+---@field aim_playfield ui.screens.gameplay.AimPlayfield
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -24,6 +27,11 @@ function Gameplay:new(ui)
 	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
 	self.bga_view:anchorPercent(0, 0, 1, 1)
 	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
+	self.aim_playfield = self.root:add(AimPlayfield(self.game)):anchorFill(0, 0, 0, 0)
+	self.aim_playfield:setVisible(false)
+	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
+	self.aim_summary:setAlignment(0.5, 0.5)
+	self.aim_summary:setVisible(false)
 
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
@@ -35,15 +43,21 @@ end
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	local sequence_view = self.sequence_view
-	sequence_view.game = self.game
-	sequence_view.subscreen = "gameplay"
-	sequence_view:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
-	sequence_view:load()
+	self.is_aim = self.game.rhythm_engine.aim_rules ~= nil
+	self.aim_summary:setVisible(false)
+	self.aim_playfield:setVisible(self.is_aim)
+	self.sequence_canvas:setVisible(not self.is_aim)
+	if not self.is_aim then
+		sequence_view.game = self.game
+		sequence_view.subscreen = "gameplay"
+		sequence_view:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
+		sequence_view:load()
+	end
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(false)
 	self.is_playing = true
-	self.sequence_canvas.playing = true
+	self.sequence_canvas.playing = not self.is_aim
 	self.clear_status:hide()
 
 	local cfg = self.ui.config
@@ -56,13 +70,22 @@ function Gameplay:enter()
 	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + width, min_y + height)
 
 	self.root:fadeIn(0.4, "OutQuint")
+	if self.is_aim then
+		self:flush()
+		local x, y = love.mouse.getPosition()
+		x, y = self.aim_playfield:toChart(x, y)
+		self.gameplay_interactor:aimPointer(x, y, self.game.global_timer:getTime())
+	end
 end
 
 function Gameplay:exit()
+	self.is_playing = false
 	self.ui.command_registry:popContext("gameplay_commands")
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_canvas.playing = false
-	self.sequence_view:unload()
+	if not self.is_aim then
+		self.sequence_view:unload()
+	end
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
 	love.mouse.setVisible(true)
@@ -124,6 +147,16 @@ function Gameplay:observeCompletion()
 
 	self.is_playing = false
 	self.sequence_canvas.playing = false
+	if self.is_aim then
+		self.gameplay_interactor:saveAimReplay()
+		self.gameplay_interactor.aim_complete = true
+		self.gameplay_interactor:pause()
+		local rules = self.game.rhythm_engine.aim_rules
+		self.aim_summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
+			rules.hits, rules.misses, self.gameplay_interactor.aim_status or "Autoplay / replay — no score saved"))
+		self.aim_summary:setVisible(true)
+		return
+	end
 	local base_score = self.game.rhythm_engine.score_engine.scores.base
 	if base_score.missCount == 0 then
 		self.clear_status:bind("FULL COMBO", Colors.grade_s)
@@ -142,6 +175,14 @@ end
 ---@param dt number
 function Gameplay:update(dt)
 	Screen.update(self, dt)
+	if self.is_aim and self.gameplay_interactor.loaded then
+		self.gameplay_interactor:update(true)
+		if not self.is_playing and self.game.rhythm_engine:getProgress() < 1 then
+			self.is_playing = true
+			self.aim_summary:setVisible(false)
+			self.clear_status:hide()
+		end
+	end
 	if self.is_playing then
 		self:observeCompletion()
 	end
@@ -149,6 +190,31 @@ end
 
 ---@param event {name: string, time: number, [integer]: any}
 function Gameplay:receive(event)
+	if self.is_aim then
+		if not self.is_playing and event.name == "keypressed" then
+			if event[1] == "return" then
+				self.ui:setScreen(self.ui.song_select)
+				return true
+			elseif event[1] == "r" then
+				local meta = self.game.rhythm_engine.chartmeta
+				local ok, err = self.gameplay_interactor:loadAimReplay(meta.hash, meta.index)
+				if ok then
+					self.gameplay_interactor:retry()
+					self.is_playing = true
+					self.aim_summary:setVisible(false)
+				else
+					self.aim_summary:setText(err .. "\nEnter: back")
+				end
+				return true
+			end
+		end
+		if event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased" then
+			local x, y = self.aim_playfield:toChart(event[1], event[2])
+			self.gameplay_interactor:aimPointer(x, y, event.time)
+		end
+		self.gameplay_interactor:receive(event)
+		return
+	end
 	self.gameplay_interactor:receive(event)
 	self.sequence_canvas:receive(event)
 end

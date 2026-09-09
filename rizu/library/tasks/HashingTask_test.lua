@@ -134,4 +134,19 @@ function test.malformed_chart(t)
 	db:unload()
 end
 
+---@param t testing.T
+function test.aim_import_does_not_create_mania_difficulty(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("charts")
+	fs:write("charts/circles.osu", "fixture")
+	local context = FakeTaskContext()
+	local task = HashingTask(fs, {
+		generate = function() return true, {{chart = {aim = {}}}} end,
+	}, {
+		create = function() error("Aim must not create a mania chartdiff") end,
+	}, context)
+	t:eq(task:processChartfile({path = "charts/circles.osu"}, nil), true)
+	t:eq(#context.actions, 0)
+end
+
 return test

@@ -139,7 +139,6 @@ local keys = {
 	misc = {
 		auto_update = "misc.auto_update",
 		mute_on_unfocus = "misc.mute_on_unfocus",
-		show_non_mania_charts = "misc.show_non_mania_charts",
 		show_fps = "misc.show_fps",
 		show_tasks = "misc.show_tasks",
 		show_debug_menu = "misc.show_debug_menu",
@@ -308,7 +307,6 @@ function Settings.createConfig(filesystem)
 
 	config:setDefaultBoolean(m.auto_update, true)
 	config:setDefaultBoolean(m.mute_on_unfocus, false)
-	config:setDefaultBoolean(m.show_non_mania_charts, false)
 	config:setDefaultBoolean(m.show_fps, false)
 	config:setDefaultBoolean(m.show_tasks, false)
 	config:setDefaultBoolean(m.show_debug_menu, false)

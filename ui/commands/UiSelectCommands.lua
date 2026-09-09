@@ -11,6 +11,9 @@ return function(game, ui)
 			description = "Starts the selected chart",
 			callback = function()
 				if game.chartSelector:chartExists() then
+					game.gameplayInteractor.replaying = false
+					game.gameplayInteractor.aim_replay = nil
+					game.gameplayInteractor.autoplay = false
 					ui:setScreen(ui.chart_loading)
 				end
 			end,
@@ -21,8 +24,27 @@ return function(game, ui)
 			description = "Starts the selected chart with autoplay enabled",
 			callback = function()
 				if game.chartSelector:chartExists() then
+					game.gameplayInteractor.replaying = false
+					game.gameplayInteractor.aim_replay = nil
 					game.gameplayInteractor.autoplay = true
 					ui:setScreen(ui.chart_loading)
+				end
+			end,
+		},
+		{
+			id = "ui.select.aim_replay",
+			title = "Select: Watch Local Aim Replay",
+			description = "Plays the latest diagnostic circle-only Aim replay for the selected chart",
+			callback = function()
+				local view = game.chartSelector.chartview
+				if view and view.inputmode == "1osu" then
+					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index)
+					if ok then
+						ui:setScreen(ui.chart_loading)
+					else
+						ui.chart_loading:showError(err)
+						ui:setScreen(ui.chart_loading)
+					end
 				end
 			end,
 		},

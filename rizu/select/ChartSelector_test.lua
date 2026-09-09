@@ -18,7 +18,6 @@ local function createSettings()
 	settings:setChoice(keys.select.primary_mode, "chartfile_sets")
 	settings:setChoice(keys.select.secondary_mode, "chartmetas")
 	settings:setChoice(keys.select.diff_column, "msd_diff")
-	settings:setBoolean(keys.misc.show_non_mania_charts, true)
 	settings:setNumber(keys.gameplay.rating_hit_timing_window, 0.05)
 	return settings
 end

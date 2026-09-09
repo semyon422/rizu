@@ -40,6 +40,7 @@ end
 ---@param gameplay_session rizu.GameplaySession
 function ScoreSaver:saveScore(gameplay_session)
 	local rhythm_engine = gameplay_session.rhythm_engine
+	assert(not rhythm_engine.aim_rules, "Aim prototype cannot save or submit scores")
 	local pause_counter = rhythm_engine.pause_counter
 	local scoreEngine = rhythm_engine.score_engine
 	local replayBase = self.replayBase

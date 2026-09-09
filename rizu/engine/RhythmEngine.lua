@@ -1,3 +1,4 @@
+local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local class = require("class")
 
 local InputEngine = require("rizu.engine.input.InputEngine")
@@ -21,6 +22,7 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 
 ---@class rizu.RhythmEngine
 ---@operator call: rizu.RhythmEngine
+---@field aim_rules rizu.aim.CircleRules?
 local RhythmEngine = class()
 
 RhythmEngine.logic_offset = 0
@@ -56,6 +58,10 @@ end
 function RhythmEngine:load()
 	local chart = self.chart
 
+	if chart.aim then
+		self.aim_rules = CircleRules(chart.aim)
+		return
+	end
 	self.active_input_notes:setInputMap(chart.inputMode:getInputMap())
 	self.logic_engine:load(chart)
 	self.visual_engine:load(chart)
@@ -88,6 +94,9 @@ end
 
 ---@return boolean
 function RhythmEngine:hasResult()
+	if self.aim_rules then
+		return false
+	end
 	local time_engine = self.time_engine
 	local base = self.score_engine.scores.base
 	local accuracy = self.score_engine.scores.normalscore.accuracyAdjusted
@@ -125,9 +134,13 @@ end
 function RhythmEngine:update()
 	self:syncTime()
 
-	self.input_engine:update()
-	self.logic_engine:update()
-	self.visual_engine:update()
+	if self.aim_rules then
+		self.aim_rules:update(self.logic_info.time)
+	else
+		self.input_engine:update()
+		self.logic_engine:update()
+		self.visual_engine:update()
+	end
 	self.bga_engine:update()
 	self.audio_engine:update()
 end
@@ -157,6 +170,15 @@ end
 ---@param event rizu.VirtualInputEvent
 function RhythmEngine:receive(event)
 	self:syncTime()
+	if self.aim_rules then
+		local index = self.aim_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
+		if index then
+			for _, sound in ipairs(self.aim_rules.chart.objects[index].sounds) do
+				self.audio_engine:playSample(sound[1], sound[2])
+			end
+		end
+		return
+	end
 	local input_note, catched = self.input_engine:receive(event)
 
 	if not self.auto_key_sound and event.value == true and catched then
@@ -195,6 +217,9 @@ end
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
 function RhythmEngine:setTimings(timings, subtimings)
+	if self.aim_rules then
+		return
+	end
 	timings = assert(timings or self.chartmeta.timings)
 	self.score_engine:createByTimings(timings, subtimings, true)
 end

@@ -1,3 +1,4 @@
+local AimChart = require("chart.format.osu.AimChart")
 local IChartDecoder = require("chart.format.notechart.IChartDecoder")
 local ChartBuilder = require("chart.format.notechart.ChartBuilder")
 local Chart = require("chart.model.Chart")
@@ -71,6 +72,7 @@ function ChartDecoder:decodeOsu(osu)
 	local mode = tonumber(self.osu.rawOsu.General.Mode)
 	if mode == 0 then
 		chart.inputMode = InputMode({osu = 1})
+		chart.aim = AimChart(osu)
 	elseif mode == 1 then
 		chart.inputMode = InputMode({key = 2})
 	elseif mode == 2 then

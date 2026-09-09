@@ -1,3 +1,4 @@
+local ReplayBase = require("sea.replays.ReplayBase")
 local InputMode = require("chart.core.InputMode")
 local GameplayInteractor = require("rizu.gameplay.GameplayInteractor")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
@@ -138,6 +139,46 @@ function test.retry_request_starts_one_fresh_attempt(t)
 		interactor:update()
 		t:eq(attempts, 1)
 	end
+end
+
+---@param t testing.T
+function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
+	local updates, saves = 0, 0
+	local re = {aim_rules = {}, unloadAudio = function() end, setTime = function() end}
+	local session = {
+		rhythm_engine = re, play_type = "manual",
+		update = function() updates = updates + 1 end,
+		hasResult = function() return false end,
+	}
+	local interactor = setmetatable({
+		loaded = true, load_generation = 0, gameplay_session = session,
+		game = {
+			rhythm_engine = re, global_timer = {getTime = function() return 10 end},
+			pauseModel = {update = function() end}, windowModel = {setVsyncOnSelect = function() end},
+			discordModel = {setPresence = function() end}, multiplayerModel = {client = {setPlaying = function() end}},
+		},
+		aim_replay_store = {save = function() saves = saves + 1 return "local.json" end},
+		score_saver = {saveScore = function() error("must not save/submit an Aim score") end},
+	}, {__index = GameplayInteractor})
+	interactor:update()
+	t:eq(updates, 0)
+	interactor:update(true)
+	t:eq(updates, 1)
+	interactor:unloadGameplay()
+	t:eq(saves, 1)
+	t:eq(interactor.loaded, false)
+end
+
+---@param t testing.T
+function test.aim_replay_preparation_keeps_replay_base_contract(t)
+	local source = ReplayBase()
+	source.rate = 2
+	local interactor = setmetatable({game = {replayBase = source}, aim_replay = {rate = 1.5}}, {__index = GameplayInteractor})
+	local copy = interactor:getPreparationBase()
+	local exported = ReplayBase()
+	t:has_not_error(function() copy:exportReplayBase(exported) end)
+	t:eq(source.rate, 2)
+	t:eq(exported.rate, 1.5)
 end
 
 return test

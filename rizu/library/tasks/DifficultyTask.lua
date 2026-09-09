@@ -49,6 +49,9 @@ function DifficultyTask:computeMissing()
 		end
 		
 		local chart = charts_data[data.index]
+		if chart.aim then
+			return data.hash
+		end
 		chart.layers.main:toAbsolute()
 
 		local time = os.time()
@@ -76,6 +79,9 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 	local chartdiffs = self.chartsRepo:getIncompleteChartdiffs()
 	
 	self.batchProcessor:process(chartdiffs, "difficulty", #chartdiffs, function(chartdiff)
+		if chartdiff.inputmode == "1osu" then
+			return chartdiff.hash
+		end
 		---@type chart.Chart
 		local chart
 

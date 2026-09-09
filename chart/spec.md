@@ -39,6 +39,10 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 - **Scoring vs transform**: `libchart`'s dual responsibilities are split — scoring algorithms go to `chart/scoring/`, chart manipulation utilities go to `chart/transform/`.
 - **NanoChart binary compatibility**: `NanoChart` uses the current `byte` buffer API while preserving the existing version 1 and version 2 wire format. Changes to its packing must be covered by exact-byte fixtures and decode round trips because replay events and exported `.nanochart` files depend on this format.
 
+## Experimental Aim Data
+
+Native osu! Mode=0 decoding now carries a `chart.Chart.aim` DTO with source-order object positions/times/types/sounds and CS/AR/OD. `RefChart` and `Restorer` copy this data independently of column notes, preserving simultaneous objects. This is an additive in-memory/thread-snapshot contract, not a change to SPH or other persistent chart formats. The first gameplay implementation accepts circles only and explicitly rejects compound objects; full slider geometry is not represented by this initial DTO. See [../rizu/gameplay/aim/spec.md](../rizu/gameplay/aim/spec.md).
+
 ## Migration Plan
 
 1. Create `chart/` directory and spec (this file).

@@ -5,6 +5,7 @@ local Note = require("chart.refchart.Note")
 
 ---@class refchart.RefChart
 ---@operator call: refchart.RefChart
+---@field aim chart.osu.AimChart?
 ---@field inputmode {[string]: integer}
 ---@field layers {[string]: refchart.Layer}
 ---@field notes refchart.Note[]
@@ -14,6 +15,7 @@ local RefChart = class()
 ---@param chart chart.Chart
 function RefChart:new(chart)
 	self.inputmode = table_util.copy(chart.inputMode)
+	self.aim = chart.aim and table_util.deepcopy(chart.aim)
 
 	---@type {[chart.VisualPoint]: refchart.VisualPointReference}
 	local vp_ref = {}

@@ -1,3 +1,7 @@
+local ReplayBase = require("sea.replays.ReplayBase")
+local table_util = require("table_util")
+local AimInput = require("rizu.gameplay.aim.Input")
+local AimReplayStore = require("rizu.gameplay.aim.ReplayStore")
 local class = require("class")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
@@ -21,6 +25,7 @@ function GameplayInteractor:new(game)
 	self.autoplay = false
 	self.audio_disabled = false
 	self.load_generation = 0
+	self.aim_replay_store = AimReplayStore(game.fs)
 
 	self.score_saver = ScoreSaver(
 		game.fs,
@@ -68,6 +73,21 @@ function GameplayInteractor:loadFileFinderPaths(paths)
 	end
 end
 
+---@return sea.ReplayBase
+function GameplayInteractor:getPreparationBase()
+	if not self.aim_replay then
+		return self.game.replayBase
+	end
+	local base = ReplayBase()
+	base:importReplayBase(self.game.replayBase)
+	base.rate = self.aim_replay.rate
+	base.rate_type = "linear"
+	base.modifiers = {}
+	base.columns_order = nil
+	base.tap_only = false
+	return base
+end
+
 ---@param chartview table
 ---@return boolean loaded
 function GameplayInteractor:loadGameplayAsync(chartview)
@@ -81,25 +101,37 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	local gameplay_chart = GameplayChart(game.settings, game.fs, chartview)
 	local data, context = gameplay_chart:prepareAsync()
 
-	local compute_result = gameplay_chart:computeAsync(game.replayBase, data, context)
+	local preparation_base = self:getPreparationBase()
+	local compute_result = gameplay_chart:computeAsync(preparation_base, data, context)
 	if load_generation ~= self.load_generation then
 		return false
 	end
-	gameplay_chart:applyComputed(game.replayBase, game.computeContext, compute_result)
+	gameplay_chart:applyComputed(preparation_base, game.computeContext, compute_result)
 
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
+	if self.aim_replay then
+		assert(chart.aim and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
+			"Aim replay does not match the selected chart.")
+	end
 
-	if not self.replaying then
+	if not self.replaying and not chart.aim then
 		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
 	end
 
 	local input_mode = GameplayInteractor.getInputMode(chart)
-	local noteSkin = game.noteSkinModel:loadNoteSkin(input_mode)
-	noteSkin:loadData()
-	self.noteSkin = noteSkin
-
-	local paths = self:getResourcePaths(noteSkin, chartview)
+	---@type string[]
+	local paths
+	if chart.aim then
+		assert(not game.multiplayerModel.client:isInRoom(), "Aim prototype is not available in multiplayer.")
+		paths = {chartview.location_dir, "userdata/hitsounds"}
+		self.noteSkin = nil
+	else
+		local noteSkin = game.noteSkinModel:loadNoteSkin(input_mode)
+		noteSkin:loadData()
+		self.noteSkin = noteSkin
+		paths = self:getResourcePaths(noteSkin, chartview)
+	end
 	self:loadFileFinderPaths(paths)
 
 	local resource_future = game.resource_loader:startLoadAsync(chart.resources, paths)
@@ -117,8 +149,10 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	game.pauseModel:load()
 
-	game.multiplayerModel.client:setPlaying(true)
-	game.offsetController:updateOffsets()
+	game.multiplayerModel.client:setPlaying(not chart.aim)
+	if not chart.aim then
+		game.offsetController:updateOffsets()
+	end
 
 	game.windowModel:setVsyncOnSelect(false)
 	self:play()
@@ -133,8 +167,13 @@ function GameplayInteractor:load(autoplay)
 
 	game:recreateRhythmEngine()
 
+	local replay_base = game.replayBase
+	if self.aim_replay then
+		replay_base = table_util.copy(replay_base)
+		replay_base.rate = self.aim_replay.rate
+	end
 	local loader = RhythmEngineLoader(
-		game.replayBase,
+		replay_base,
 		game.computeContext,
 		game.settings,
 		game.resource_loader.resources,
@@ -144,6 +183,18 @@ function GameplayInteractor:load(autoplay)
 	loader:load(game.rhythm_engine)
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
+	self.aim_input = game.rhythm_engine.aim_rules and AimInput() or nil
+	self.aim_saved = false
+	self.aim_status = nil
+	self.aim_complete = false
+	game.offsetController.rhythm_engine = game.rhythm_engine
+	if game.rhythm_engine.aim_rules then
+		game.offsetController:updateOffsets()
+		if self.aim_replay then
+			game.rhythm_engine:setInputOffset(self.aim_replay.input_offset)
+			game.rhythm_engine:setRate(self.aim_replay.rate)
+		end
+	end
 	
 	local play_type = "manual"
 	if self.replaying then
@@ -169,6 +220,11 @@ function GameplayInteractor:setReplayFrames(frames)
 end
 
 function GameplayInteractor:unloadGameplay()
+	local re = self.game.rhythm_engine
+	if re and re.aim_rules and self.loaded then
+		self:saveAimReplay()
+	end
+	self.aim_replay = nil
 	self.load_generation = self.load_generation + 1
 	self.loaded = false
 	self.replaying = false
@@ -193,12 +249,17 @@ function GameplayInteractor:unloadGameplay()
 	game.multiplayerModel.client:setPlaying(false)
 end
 
-function GameplayInteractor:update()
+---@param after_inputs boolean?
+function GameplayInteractor:update(after_inputs)
 	if not self.loaded then
 		return
 	end
 
 	local game = self.game
+	-- Aim input is timestamped and queued by the UI. Resolve it before deadlines.
+	if game.rhythm_engine and game.rhythm_engine.aim_rules and not after_inputs then
+		return
+	end
 	self.gameplay_session:update(game.global_timer:getTime())
 	game.pauseModel:update()
 	if game.pauseModel.needRetry then
@@ -223,6 +284,7 @@ function GameplayInteractor:hasResult()
 end
 
 function GameplayInteractor:saveScore()
+	assert(not self.game.rhythm_engine.aim_rules, "Aim prototype cannot save or submit scores")
 	self.score_saver:saveScore(self.gameplay_session)
 end
 
@@ -278,12 +340,57 @@ end
 function GameplayInteractor:receive(event)
 	local game = self.game
 	local physic_event = KeyPhysicInputEvent.fromInputChangedEvent(event)
+	if self.aim_input then
+		if self.aim_complete then return end
+		local virtual_event = self.aim_input:transform(event)
+		if virtual_event then
+			self.gameplay_session:receive(virtual_event, event.time or game.global_timer:getTime())
+		end
+		return
+	end
 	if physic_event then
 		local virtual_event = self.input_binder:transform(physic_event)
 		if virtual_event then
 			self.gameplay_session:receive(virtual_event, game.global_timer:getTime())
 		end
 	end
+end
+
+---@param x number
+---@param y number
+---@param time number
+function GameplayInteractor:aimPointer(x, y, time)
+	if self.aim_input and self.loaded and not self.aim_complete then
+		self.gameplay_session:receive(self.aim_input:move(x, y), time)
+	end
+end
+
+---@return string?
+function GameplayInteractor:saveAimReplay()
+	local session = self.gameplay_session
+	if not session or not session.rhythm_engine.aim_rules or session.play_type ~= "manual" or self.aim_saved then
+		return
+	end
+	local ok, path = pcall(self.aim_replay_store.save, self.aim_replay_store, session)
+	self.aim_saved = ok
+	self.aim_status = ok and ("Replay saved: " .. path) or ("Replay save failed: " .. tostring(path))
+	return self.aim_status
+end
+
+---@param hash string
+---@param index integer
+---@return boolean
+---@return string?
+function GameplayInteractor:loadAimReplay(hash, index)
+	local ok, replay, frames = pcall(self.aim_replay_store.load, self.aim_replay_store, hash, index)
+	if not ok then
+		return false, tostring(replay)
+	end
+	self.aim_replay = replay
+	self.replay_frames = frames
+	self.replaying = true
+	self.autoplay = false
+	return true
 end
 
 return GameplayInteractor

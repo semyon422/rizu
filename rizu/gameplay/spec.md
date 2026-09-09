@@ -13,7 +13,7 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 
 ## Experimental Game Modes
 
-Requirements for the Aim, Catch, Taiko, and SDVX prototypes are tracked in [modes/spec.md](modes/spec.md). This is a planning document, not a declaration of implemented support; it covers core mechanics, ordinary chart selection, autoplay/replays, and investigation for future skinning work without mode-specific scoring or score submission.
+Requirements for the Aim, Catch, Taiko, and SDVX prototypes are tracked in [modes/spec.md](modes/spec.md). The first circle-only Aim implementation and its limitations are documented in [aim/spec.md](aim/spec.md); the remaining modes and compound Aim objects are still planned. The work covers core mechanics, ordinary chart selection, autoplay/replays, and investigation for future skinning work without mode-specific scoring or score submission.
 
 ## Core Components
 

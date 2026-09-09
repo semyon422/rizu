@@ -10,6 +10,10 @@ The library system is designed to provide a fast, flexible, and deeply hierarchi
 - **Instant Scrolling**: Even with 50,000+ charts, the song list remains responsive thanks to lazy loading and zero-copy memory management.
 - **External Imports**: Players can add local folders from other games as library locations, download packs through DLC, or drop supported files into the client. The library normalizes those sources into the same location/set/file/meta/diff hierarchy.
 
+## Experimental Aim Charts
+
+Native Mode=0 osu! charts retain `inputmode = "1osu"` metadata and can be launched without a competitive chartdiff. Hashing and difficulty tasks skip mania difficulty generation for these charts. Existing cached difficulty rows are preserved, not migrated or deleted; the built-in UI labels Aim experimental and does not present those values as Aim difficulty. No database schema or production configuration migration is required. See [../gameplay/aim/spec.md](../gameplay/aim/spec.md) for circle-only support and local diagnostic replay policy.
+
 ## Data Entities
 The library is structured around a 5-level hierarchy, where each level represents a more specific view of the content:
 

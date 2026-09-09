@@ -220,14 +220,6 @@ function SearchModel:getConditions()
 	---@type rdb.Conditions
 	local cond = {}
 
-	if not self.settings:getBoolean(Settings.keys.misc.show_non_mania_charts) then
-		table.insert(cond, {
-			"or",
-			inputmode__notin = {"1osu", "1taiko", "1fruits"},
-			inputmode__isnull = true,
-		})
-	end
-
 	local filter = self:getFilter()
 	if filter then
 		if filter.string then

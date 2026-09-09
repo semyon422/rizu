@@ -6,6 +6,7 @@ local Notes = require("chart.model.notes.Notes")
 ---@class chart.Chart
 ---@operator call: chart.Chart
 ---@field layers {[string]: chart.Layer}
+---@field aim chart.osu.AimChart? Native Aim objects, independent of column-note identity
 local Chart = class()
 
 function Chart:new()

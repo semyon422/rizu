@@ -4,7 +4,7 @@ Provide minimal but playable support for four modes: **Aim (osu!standard), Catch
 
 This phase evaluates whether the existing engine can support different mechanics and gathers concrete requirements for a subsequent skinning rewrite. It does not aim for competitive compatibility with the original games.
 
-**Status:** requirements document; implementation is not complete. Current-state sections are based on source inspection; other sections describe target behavior. Proposals and unresolved questions are marked separately.
+**Status:** requirements document for the complete four-mode phase. The first circle-only Aim implementation is tracked separately in [../aim/spec.md](../aim/spec.md), including its verification status and limitations; the full phase is not complete. Current-state sections below capture the initial source investigation rather than an updated implementation inventory. Other sections describe target behavior. Proposals and unresolved questions are marked separately.
 
 Agreed scope:
 - Core mechanics and object types, not just a basic input demonstration.
@@ -63,7 +63,7 @@ Proposal for the first phase: no-fail and a simple local summary of hits, misses
 | Spatial input | `VirtualInputEvent` already has `pos`; `AimInputNote` and `CatchInputNote` scaffolding exists in `rizu/engine/input/notes/` | These types do not establish a complete device → mechanic pipeline; the current `InputBinder` transforms buttons and creates events without `pos` |
 | Visuals | `VisualNoteFactory.lua` selects `ShortVisualNote`/`LongVisualNote` | Evaluate visibility scheduling for 2D objects, paths, and independent playfield state |
 | Results | `RhythmEngine:hasResult()` depends on base/Normalscore; `ScoreSaver.lua` saves a replay, creates a chartplay, and initiates submission together | Replays and diagnostic attempt completion must work separately from this pipeline; do not bypass the existing validity check for ordinary results |
-| Library | `rizu/select/SearchModel.lua` hides `1osu`, `1taiko`, and `1fruits` when `show_non_mania_charts` is disabled | Align experimental-mode visibility with actual Taiko identification; check previously imported charts and reindexing |
+| Library | Selection no longer implicitly hides non-mania input modes | Visibility does not imply gameplay support; unsupported charts must report a loading diagnostic |
 | Loading | `GameplayChart.lua` passes through compute/refchart; `RhythmEngineLoader.lua` requires chartdiff and applies existing timing/scoring settings | Verify that new data survives the entire path, not just decoding; do not replace unavailable difficulty with a fabricated mania value |
 
 These observations do not prove that the engine needs replacement. Prototypes should reveal which shared parts can be reused and which need extraction or changes.

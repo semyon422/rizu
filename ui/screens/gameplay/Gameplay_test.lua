@@ -127,4 +127,26 @@ function test.completed_pause_and_resume(t)
 	t:eq(model.state, "play")
 end
 
+---@param t testing.T
+function test.aim_completion_saves_diagnostic_replay_without_score_screen(t)
+	local saved, paused = 0, 0
+	local text, visible
+	local screen = setmetatable({
+		is_aim = true, is_playing = true, sequence_canvas = {},
+		game = {rhythm_engine = {getProgress = function() return 1 end, aim_rules = {hits = 2, misses = 1}}},
+		gameplay_interactor = {
+			saveAimReplay = function() saved = saved + 1 end,
+			pause = function() paused = paused + 1 end,
+		},
+		aim_summary = {setText = function(_, value) text = value end, setVisible = function(_, value) visible = value end},
+	}, {__index = Gameplay})
+	screen:observeCompletion()
+	t:eq(saved, 1)
+	t:eq(paused, 1)
+	t:eq(screen.gameplay_interactor.aim_complete, true)
+	t:eq(screen.is_playing, false)
+	t:eq(visible, true)
+	t:assert(text:find("Hit 2 / Miss 1", 1, true))
+end
+
 return test

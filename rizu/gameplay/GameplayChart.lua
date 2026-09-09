@@ -1,3 +1,4 @@
+local AimPreparation = require("rizu.gameplay.aim.Preparation")
 local class = require("class")
 local thread = require("thread")
 local ChartfileReader = require("rizu.library.ChartfileReader")
@@ -88,11 +89,12 @@ local prepare_async = thread.async(prepare)
 ---@param context table?
 ---@param replay_base_data sea.ReplayBase
 ---@param gameplay_config rizu.GameplayChartConfig
----@return rizu.GameplayChartComputeResult
+---@return rizu.GameplayChartComputeResult|{error: string}
 local function compute(chartview_data, data, context, replay_base_data, gameplay_config)
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local RefChartAsync = require("chart.refchart.RefChart")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
+	local AimPreparationAsync = require("rizu.gameplay.aim.Preparation")
 
 	local replay_base = ReplayBaseAsync()
 	replay_base:importReplayBase(replay_base_data)
@@ -107,14 +109,21 @@ local function compute(chartview_data, data, context, replay_base_data, gameplay
 		true
 	))
 
-	compute_context:applyModifierReorder(replay_base)
-	compute_context:computeBase(replay_base)
-	compute_context:applyTempo(gameplay_config.tempoFactor, gameplay_config.primaryTempo)
-	if gameplay_config.autoKeySound then
-		compute_context:applyAutoKeysound()
-	end
-	if gameplay_config.swapVelocityType then
-		compute_context:swapVelocityType()
+	if compute_context.chart.aim then
+		local ok, err = pcall(AimPreparationAsync.compute, compute_context, replay_base)
+		if not ok then
+			return {error = tostring(err)}
+		end
+	else
+		compute_context:applyModifierReorder(replay_base)
+		compute_context:computeBase(replay_base)
+		compute_context:applyTempo(gameplay_config.tempoFactor, gameplay_config.primaryTempo)
+		if gameplay_config.autoKeySound then
+			compute_context:applyAutoKeysound()
+		end
+		if gameplay_config.swapVelocityType then
+			compute_context:swapVelocityType()
+		end
 	end
 
 	return {
@@ -135,6 +144,10 @@ local compute_async = thread.async(compute)
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
+	if ctx.chart.aim then
+		AimPreparation.compute(ctx, replayBase)
+		return
+	end
 	local keys = Settings.keys.gameplay
 
 	ctx:applyModifierReorder(replayBase)
@@ -206,13 +219,16 @@ function GameplayChart:computeAsync(replayBase, data, context)
 		swapVelocityType = self.settings:getBoolean(keys.swap_velocity_type),
 	}
 
-	return compute_async(
+	---@type rizu.GameplayChartComputeResult|{error: string}
+	local result = compute_async(
 		self:getChartviewData(),
 		data,
 		context,
 		getReplayBaseData(replayBase),
 		gameplay_config
 	)
+	assert(not result.error, result.error)
+	return result
 end
 
 ---@param replayBase sea.ReplayBase

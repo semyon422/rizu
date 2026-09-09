@@ -8,6 +8,7 @@ The player interacts with two main lists: the **Primary List** (the main navigat
 - **Navigation**: Choosing an item in the Primary List (e.g., a Song) automatically updates the Secondary List to show its related content (e.g., all available playable variations).
 - **Smooth Browsing**: Scrolling through thousands of items is instantaneous. The system only loads the heavy metadata for items currently visible on the screen.
 - **Search & Filter**: Any changes to search queries, sorting, or filters trigger a background library query. The UI maintains the current selection by ID even as the list content changes.
+- **Mode visibility**: Non-mania charts are not implicitly hidden. Only explicit search/filter conditions restrict input modes. The former `misc.show_non_mania_charts` setting is removed; persisted copies of that key are ignored.
 - **Instant Preview**: Selecting a playable variation immediately prepares the game settings (modifiers, rates) and triggers the audio/visual preview system.
 
 ## Architecture Decisions (ADR)
