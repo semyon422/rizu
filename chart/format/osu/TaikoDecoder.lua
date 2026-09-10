@@ -1,4 +1,4 @@
-local class = require("class")
+local Objects = require("chart.format.osu.Objects")
 local bit = require("bit")
 local SliderTiming = require("chart.format.osu.SliderTiming")
 
@@ -11,19 +11,18 @@ local SliderTiming = require("chart.format.osu.SliderTiming")
 ---@field target integer
 ---@field sounds {[1]: string, [2]: number}[]
 
----@class chart.osu.TaikoChart
----@operator call: chart.osu.TaikoChart
----@field objects chart.osu.TaikoObject[]
-local TaikoChart = class()
+local TaikoDecoder = {}
 
 ---@param osu chart.osu.Osu
-function TaikoChart:new(osu)
+---@param chart chart.Chart
+---@param layer chart.AbsoluteLayer
+---@param visual chart.Visual
+function TaikoDecoder.decode(osu, chart, layer, visual)
 	local raw = osu.rawOsu
 	assert(tonumber(raw.General.Mode) == 1, "Taiko prototype: only native Mode=1 charts are supported.")
-	self.overall_difficulty = assert(tonumber(raw.Difficulty.OverallDifficulty))
-	assert(self.overall_difficulty >= 0 and self.overall_difficulty <= 10, "Taiko prototype: invalid OD.")
+	chart.data.overall_difficulty = assert(tonumber(raw.Difficulty.OverallDifficulty))
+	assert(chart.data.overall_difficulty >= 0 and chart.data.overall_difficulty <= 10, "Taiko prototype: invalid OD.")
 	assert(#raw.HitObjects > 0 and #raw.HitObjects <= 100000, "Taiko prototype: invalid object count.")
-	self.objects = {}
 	local previous = -math.huge
 	local action_budget = 0
 	for i, object in ipairs(raw.HitObjects) do
@@ -51,7 +50,7 @@ function TaikoChart:new(osu)
 		if result.kind ~= "note" then
 			local duration = result.end_time - time
 			assert(duration > 0 and duration < math.huge, "Taiko prototype: invalid interval duration.")
-			local density = result.kind == "roll" and 4 or 3 + 0.3 * self.overall_difficulty
+			local density = result.kind == "roll" and 4 or 3 + 0.3 * chart.data.overall_difficulty
 			result.target = math.max(1, math.ceil(duration * density))
 			assert(result.target <= 10000, "Taiko prototype: interval hit budget exceeded.")
 		end
@@ -63,8 +62,8 @@ function TaikoChart:new(osu)
 				result.sounds[#result.sounds + 1] = {sound.name, sound.volume / 100}
 			end
 		end
-		self.objects[i] = result
+		Objects.insert(chart, layer, visual, "taiko", result)
 	end
 end
 
-return TaikoChart
+return TaikoDecoder

@@ -1,4 +1,4 @@
-local ModeNotes = require("chart.model.ModeNotes")
+local Objects = require("chart.format.osu.Objects")
 local ReplayBase = require("sea.replays.ReplayBase")
 local table_util = require("table_util")
 local SdvxInput = require("rizu.gameplay.sdvx.Input")
@@ -123,12 +123,12 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 		"Legacy 2K replays cannot be played with native Taiko rules.")
 	if self.aim_replay then
 		if self.aim_replay.format == "rizu-aim-sliders-1" then
-			for _, object in ipairs(ModeNotes.read(chart, "osu").objects) do
+			for _, object in ipairs(Objects.get(chart, "osu")) do
 				assert(object.kind ~= "spinner", "Incompatible pre-spinner Aim replay.")
 			end
 		end
 		if self.aim_replay.format == "rizu-aim-circles-1" then
-			for _, object in ipairs(ModeNotes.read(chart, "osu").objects) do
+			for _, object in ipairs(Objects.get(chart, "osu")) do
 				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")
 			end
 		end

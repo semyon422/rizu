@@ -1,5 +1,7 @@
+local Objects = require("chart.format.osu.Objects")
 -- Adapted from osu! lazer's full-chart stacking passes; see Stacking.LICENSE.
-local table_util = require("table_util")
+local RefChart = require("chart.refchart.RefChart")
+local Restorer = require("chart.refchart.Restorer")
 
 local Stacking = {}
 
@@ -12,18 +14,17 @@ local function near(ax, ay, bx, by)
 	return (ax - bx) ^ 2 + (ay - by) ^ 2 < 9
 end
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param sliders {[integer]: rizu.aim.Slider} Fresh runtime paths, translated in place.
 ---@param preempt number
 ---@param radius number
----@return chart.osu.AimChart
+---@return chart.Chart
 function Stacking.apply(chart, sliders, preempt, radius)
-	local result = table_util.copy(chart)
-	result.objects = table_util.deepcopy(chart.objects)
-	local objects = result.objects
+	local result = Restorer():restore(RefChart(chart))
+	local objects = Objects.get(result, "osu")
 	---@type number[], number[], number[], number[]
 	local heights, ends, end_x, end_y = {}, {}, {}, {}
-	local threshold = preempt * assert(chart.stack_leniency)
+	local threshold = preempt * assert(chart.data.stack_leniency)
 	for i, object in ipairs(objects) do
 		heights[i] = 0
 		ends[i], end_x[i], end_y[i] = object.time, object.x, object.y
@@ -38,7 +39,7 @@ function Stacking.apply(chart, sliders, preempt, radius)
 		work = work + 1
 		assert(work <= 2000000, "Aim prototype: stacking work budget exceeded.")
 	end
-	if chart.format_version > 5 then
+	if chart.data.format_version > 5 then
 		for i = #objects, 2, -1 do
 			if heights[i] == 0 and objects[i].kind ~= "spinner" then
 				local current = i

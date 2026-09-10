@@ -4,7 +4,8 @@ local ReplayBase = require("sea.replays.ReplayBase")
 local Restorer = require("chart.refchart.Restorer")
 local RawOsu = require("chart.format.osu.RawOsu")
 local Osu = require("chart.format.osu.Osu")
-local TaikoChart = require("chart.format.osu.TaikoChart")
+local TaikoDecoder = require("chart.format.osu.TaikoDecoder")
+local ChartBuilder = require("chart.format.notechart.ChartBuilder")
 local test = {}
 
 local data = [[osu file format v14
@@ -26,13 +27,15 @@ SliderTickRate:1
 ]]
 
 ---@param source string
----@return chart.osu.TaikoChart
+---@return table
 local function decode(source)
 	local raw = RawOsu()
 	raw:decode(source)
 	local osu = Osu(raw)
 	osu:decode()
-	return TaikoChart(osu)
+	local builder = ChartBuilder()
+	TaikoDecoder.decode(osu, builder.chart, builder:createAbsoluteLayer(), builder:getVisual("main"))
+	return ModeNotes.read(builder.chart, "taiko")
 end
 
 ---@param t testing.T

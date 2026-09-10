@@ -1,3 +1,4 @@
+local Objects = require("chart.format.osu.Objects")
 local class = require("class")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
@@ -9,7 +10,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 ---@class rizu.catch.Rules
 ---@operator call: rizu.catch.Rules
----@field chart chart.osu.CatchChart
+---@field chart chart.Chart
 ---@field buttons {[integer]: boolean}
 ---@field states ("hit"|"miss")[]
 ---@field events rizu.catch.Judgement[]
@@ -19,14 +20,15 @@ Rules.walk_speed = 500
 Rules.dash_speed = 1000
 Rules.window = 0
 
----@param chart chart.osu.CatchChart
+---@param chart chart.Chart
 function Rules:new(chart)
-	assert(#chart.objects > 0, "Catch prototype: empty chart.")
+	assert(#Objects.get(chart, "catch") > 0, "Catch prototype: empty chart.")
 	self.chart = chart
-	self.half_width = (54.4 - 4.48 * chart.circle_size) * 0.8
-	local ar = chart.approach_rate
+	self.objects = Objects.get(chart, "catch")
+	self.half_width = (54.4 - 4.48 * chart.data.circle_size) * 0.8
+	local ar = chart.data.approach_rate
 	self.preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
-	self.x, self.time = 256, math.min(0, chart.objects[1].time - self.preempt)
+	self.x, self.time = 256, math.min(0, self.objects[1].time - self.preempt)
 	self.motion_x, self.motion_time = self.x, self.time
 	self.buttons, self.states, self.events, self.hyper_targets = {}, {}, {}, {}
 	self.next_index, self.hits, self.misses = 1, 0, 0
@@ -34,10 +36,10 @@ function Rules:new(chart)
 	self.hyper_until, self.hyper_speed = -math.huge, self.dash_speed
 	---@type integer?
 	local previous
-	for i, object in ipairs(chart.objects) do
+	for i, object in ipairs(Objects.get(chart, "catch")) do
 		if object.kind == "fruit" or object.kind == "droplet" then
 			if previous then
-				local from = chart.objects[previous]
+				local from = self.objects[previous]
 				if math.abs(object.x - from.x) > self.dash_speed * (object.time - from.time) + self.half_width then
 					self.hyper_targets[previous] = i
 				end
@@ -81,9 +83,9 @@ function Rules:update(time)
 	if time < self.time and not self.input_started and self.next_index == 1 then
 		self.time, self.motion_time = time, time
 	end
-	while self.next_index <= #self.chart.objects do
+	while self.next_index <= #self.objects do
 		local i = self.next_index
-		local object = self.chart.objects[i]
+		local object = self.objects[i]
 		if object.time >= time then break end
 		self:moveTo(object.time)
 		local hit = math.abs(object.x - self.x) <= self.half_width + 1e-7
@@ -96,7 +98,7 @@ function Rules:update(time)
 		end
 		local target_index = self.hyper_targets[i]
 		if hit and target_index then
-			local target = self.chart.objects[target_index]
+			local target = self.objects[target_index]
 			self.motion_x, self.motion_time = self.x, self.time
 			self.hyper_until = target.time
 			self.hyper_speed = math.max(self.dash_speed, math.abs(target.x - self.x) / math.max(0.001, target.time - object.time))
@@ -116,7 +118,7 @@ function Rules:receive(event, time, paused)
 	if event.value ~= nil then self.buttons[event.id] = event.value == true end
 end
 
----@param chart chart.osu.CatchChart
+---@param chart chart.Chart
 ---@return rizu.ReplayFrame[]
 function Rules.autoplay(chart)
 	local rules = Rules(chart)
@@ -131,7 +133,7 @@ function Rules.autoplay(chart)
 		rules:receive(event, time)
 	end
 	add(rules.time, 3, true)
-	for _, object in ipairs(chart.objects) do
+	for _, object in ipairs(Objects.get(chart, "catch")) do
 		if object.time >= rules.time then
 			local start = rules.time
 			local direction = object.x > rules.x and 2 or 1

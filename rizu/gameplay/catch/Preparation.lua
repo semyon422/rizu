@@ -1,4 +1,4 @@
-local ModeNotes = require("chart.model.ModeNotes")
+local Objects = require("chart.format.osu.Objects")
 local Chartdiff = require("sea.chart.Chartdiff")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
@@ -11,8 +11,8 @@ function Preparation.compute(ctx, base)
 	assert(base.rate >= 0.25 and base.rate <= 4, "Catch prototype: supported rates are 0.25x–4x.")
 	assert(#base.modifiers == 0 and not base.tap_only and not base.columns_order, "Catch prototype: modifiers/reordering are unsupported.")
 	local chart = assert(ctx.chart)
-	local catch = ModeNotes.read(chart, "catch")
-	local objects = catch.objects
+	local catch = chart
+	local objects = Objects.get(catch, "catch")
 	assert(#objects > 0, "Catch prototype: empty chart.")
 	local bounds = Chartdiff()
 	local chartmeta = assert(ctx.chartmeta)

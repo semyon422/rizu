@@ -1,3 +1,4 @@
+local TestChart = require("rizu.gameplay.modes.TestChart")
 local ModeNotes = require("chart.model.ModeNotes")
 local Rules = require("rizu.gameplay.taiko.Rules")
 local Input = require("rizu.gameplay.taiko.Input")
@@ -10,7 +11,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local ScoreSaver = require("rizu.gameplay.ScoreSaver")
 local test = {}
 
----@return chart.osu.TaikoChart
+---@return table
 local function chart()
 	return {overall_difficulty = 5, objects = {
 		{time = 1, end_time = 1, kind = "note", color = "don", big = true, target = 1, sounds = {}},
@@ -37,7 +38,7 @@ end
 ---@param t testing.T
 function test.manual_actions_persist_and_replay_with_offset_and_rate(t)
 	local engine, manual = session()
-	for _, frame in ipairs(Rules.autoplay(chart())) do
+	for _, frame in ipairs(Rules.autoplay(TestChart.create(chart(), "taiko"))) do
 		manual:receive(frame.event, (frame.time + 1 + 0.031) / 1.5)
 	end
 	manual:update(5)

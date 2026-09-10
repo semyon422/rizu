@@ -1,3 +1,4 @@
+local TestChart = require("rizu.gameplay.modes.TestChart")
 local ModeNotes = require("chart.model.ModeNotes")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
@@ -8,7 +9,7 @@ local TestChartFactory = require("sea.chart.TestChartFactory")
 
 local test = {}
 
----@return chart.osu.AimChart
+---@return table
 local function chart()
 	return {
 		circle_size = 5, approach_rate = 5, overall_difficulty = 5,
@@ -22,7 +23,7 @@ end
 
 ---@param t testing.T
 function test.spatial_hits_note_lock_and_deadlines(t)
-	local rules = CircleRules(chart())
+	local rules = CircleRules(TestChart.create(chart(), "osu"))
 	rules:receive(VirtualInputEvent(1, true, 1, {300, 100}), 1)
 	t:eq(rules.hits, 0)
 	rules:receive(VirtualInputEvent(1, false, 1), 1)
@@ -41,7 +42,7 @@ end
 
 ---@param t testing.T
 function test.paused_state_does_not_hit_or_press_again_on_resume(t)
-	local rules = CircleRules(chart())
+	local rules = CircleRules(TestChart.create(chart(), "osu"))
 	rules:receive(VirtualInputEvent(1, true, 2, {100, 100}), 1)
 	rules:receive(VirtualInputEvent(1, true, 1), 1)
 	t:eq(rules.hits, 0)
@@ -54,7 +55,7 @@ end
 ---@param rate number
 ---@return rizu.RhythmEngine
 ---@return rizu.GameplaySession
----@param aim chart.osu.AimChart?
+---@param aim table?
 local function session(offset, rate, aim)
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
 	ModeNotes.write(res.chart, res.chart.layers.main, res.chart.layers.main.visuals[""], "osu", aim or chart())
@@ -76,7 +77,7 @@ function test.manual_recording_and_replay_match_at_different_rates_and_frames(t)
 	for _, rate in ipairs({0.75, 1, 1.5}) do
 		local offset = 0.031
 		local re, manual = session(offset, rate)
-		for _, frame in ipairs(CircleRules.autoplay(chart())) do
+		for _, frame in ipairs(CircleRules.autoplay(TestChart.create(chart(), "osu"))) do
 			manual:receive(frame.event, (frame.time + offset) / rate)
 		end
 		manual:update(5)
@@ -129,7 +130,7 @@ function test.pause_recording_replays_without_spurious_hits(t)
 	t:eq(re.aim_rules.hits, 1)
 end
 
----@return chart.osu.AimChart
+---@return table
 local function sliderChart()
 	local aim = chart()
 	aim.format_version, aim.slider_multiplier, aim.slider_tick_rate = 14, 1, 1
@@ -146,7 +147,7 @@ function test.slider_autoplay_manual_and_binary_replay_match(t)
 	for _, rate in ipairs({0.75, 1, 1.5}) do
 		local offset = 0.031
 		local re, manual = session(offset, rate, aim)
-		for _, frame in ipairs(CircleRules.autoplay(aim)) do
+		for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do
 			manual:receive(frame.event, (frame.time + offset) / rate)
 		end
 		manual:update(10)
@@ -167,7 +168,7 @@ end
 
 ---@param t testing.T
 function test.slider_can_recover_checkpoints_but_not_full_object_hit(t)
-	local rules = CircleRules(sliderChart(), nil, false)
+	local rules = CircleRules(TestChart.create(sliderChart(), "osu"), nil, false)
 	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
 	rules:receive(VirtualInputEvent(1, false, 1), 1.4)
 	rules:update(1.6)
@@ -186,7 +187,7 @@ end
 function test.slider_body_does_not_lock_later_heads(t)
 	local aim = sliderChart()
 	aim.objects[2].time = 2
-	local rules = CircleRules(aim)
+	local rules = CircleRules(TestChart.create(aim, "osu"))
 	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
 	rules:receive(VirtualInputEvent(2, true, 1, {100, 100}), 2)
 	t:eq(rules.heads[2], "hit")
@@ -213,7 +214,7 @@ function test.slider_pause_release_round_trip(t)
 	t:eq(re.aim_rules.checkpoint_hits, 0)
 end
 
----@return chart.osu.AimChart
+---@return table
 local function spinnerChart()
 	local aim = chart()
 	aim.objects = {
@@ -229,7 +230,7 @@ function test.spinner_autoplay_and_manual_binary_replay(t)
 	for _, rate in ipairs({0.75, 1, 1.5}) do
 		local offset = 0.031
 		local re, manual = session(offset, rate, aim)
-		for _, frame in ipairs(CircleRules.autoplay(aim)) do manual:receive(frame.event, (frame.time + offset) / rate) end
+		for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do manual:receive(frame.event, (frame.time + offset) / rate) end
 		manual:update(10)
 		t:eq(re.aim_rules.hits, 2)
 		local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
@@ -250,7 +251,7 @@ end
 
 ---@param t testing.T
 function test.spinner_no_input_misses_and_expiry_is_inclusive(t)
-	local rules = CircleRules(spinnerChart())
+	local rules = CircleRules(TestChart.create(spinnerChart(), "osu"))
 	rules:update(3)
 	t:eq(rules.states[1], nil)
 	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 3)
@@ -286,8 +287,8 @@ function test.stacked_slider_autoplay_and_replay_share_geometry(t)
 	aim.stack_leniency = 0.7
 	aim.objects[2].time = 4.1
 	local re, manual = session(0.031, 1.5, aim)
-	t:eq(re.aim_rules.chart.objects[2].stack_height, -1)
-	for _, frame in ipairs(CircleRules.autoplay(aim)) do manual:receive(frame.event, (frame.time + 0.031) / 1.5) end
+	t:eq(re.aim_rules.objects[2].stack_height, -1)
+	for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do manual:receive(frame.event, (frame.time + 0.031) / 1.5) end
 	manual:update(10)
 	t:eq(re.aim_rules.hits, 2)
 	local engine, replay = session(0.031, 1.5, aim)
@@ -300,16 +301,16 @@ function test.stacked_slider_autoplay_and_replay_share_geometry(t)
 	auto:setPlayType("auto")
 	auto:update(10)
 	t:eq(auto_engine.aim_rules.hits, 2)
-	t:eq(auto_engine.aim_rules.chart.objects[2].x, re.aim_rules.chart.objects[2].x)
+	t:eq(auto_engine.aim_rules.objects[2].x, re.aim_rules.objects[2].x)
 end
 
 ---@param t testing.T
 function test.tracking_detects_short_release_and_motion_between_ticks(t)
 	local aim = sliderChart()
 	for _, motion in ipairs({false, true}) do
-		local rules = CircleRules(aim)
-		local old = CircleRules(aim, nil, false)
-		for _, frame in ipairs(CircleRules.autoplay(aim)) do
+		local rules = CircleRules(TestChart.create(aim, "osu"))
+		local old = CircleRules(TestChart.create(aim, "osu"), nil, false)
+		for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do
 			if frame.time > 1.25 and not rules.sliders[1].tracking_broken then
 				local bad = motion and VirtualInputEvent(0, nil, 1, {500, 300}) or VirtualInputEvent(1, false, 1)
 				local good = motion and VirtualInputEvent(0, nil, 1, {150, 100}) or VirtualInputEvent(1, true, 1)
@@ -329,9 +330,9 @@ end
 ---@param t testing.T
 function test.tail_release_after_early_checkpoint_is_accepted(t)
 	local aim = sliderChart()
-	local rules = CircleRules(aim)
-	local old = CircleRules(aim, nil, false)
-	for _, frame in ipairs(CircleRules.autoplay(aim)) do
+	local rules = CircleRules(TestChart.create(aim, "osu"))
+	local old = CircleRules(TestChart.create(aim, "osu"), nil, false)
+	for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do
 		if frame.time <= 3.97 then
 			rules:receive(frame.event, frame.time)
 			old:receive(frame.event, frame.time)
@@ -350,7 +351,7 @@ function test.stationary_cursor_breaks_between_matching_endpoints(t)
 	local aim = sliderChart()
 	aim.objects[1].slider.length = 100
 	aim.objects[1].slider.controls = {{100, 100}, {200, 100}}
-	local rules = CircleRules(aim)
+	local rules = CircleRules(TestChart.create(aim, "osu"))
 	rules:receive(VirtualInputEvent(1, true, 1, {100, 100}), 1)
 	rules:update(1.49)
 	t:eq(rules.tracking_breaks, 1)
@@ -361,7 +362,7 @@ function test.tracking_break_and_early_tail_replay_across_frame_rates(t)
 	local aim = sliderChart()
 	local re, manual = session(0.031, 1.5, aim)
 	local interrupted = false
-	for _, frame in ipairs(CircleRules.autoplay(aim)) do
+	for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do
 		if frame.time > 1.25 and not interrupted then
 			manual:receive(VirtualInputEvent(1, false, 1), (1.25001 + 0.031) / 1.5)
 			manual:receive(VirtualInputEvent(1, true, 1), (1.25002 + 0.031) / 1.5)

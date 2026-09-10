@@ -44,7 +44,7 @@ function AimPlayfield:draw()
 	love.graphics.scale(scale)
 	love.graphics.setFont(Resources.getFont("regular", 18))
 	love.graphics.setLineWidth(2)
-	local objects = rules.chart.objects
+	local objects = rules.objects
 	local last_visible = 0
 	for i, object in ipairs(objects) do
 		if object.time - time > rules.preempt then break end

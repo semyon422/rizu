@@ -26,8 +26,8 @@ function CatchPlayfield:draw()
 	love.graphics.setLineWidth(2)
 	Painter.setColorRgb(0.7, 0.8, 1)
 	love.graphics.line(0, 360, 512, 360)
-	for i = rules.next_index, #rules.chart.objects do
-		local object = rules.chart.objects[i]
+	for i = rules.next_index, #rules.objects do
+		local object = rules.objects[i]
 		local left = object.time - re.visual_info.time
 		if left > rules.preempt then break end
 		local y = 360 - left / rules.preempt * 340

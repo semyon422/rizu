@@ -14,7 +14,7 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 
 ## Architecture Decisions
 
-- `chart.osu.AimChart` is a parser DTO. Decoding stores each object in `Note.data` and chart parameters in `Chart.data`. Distinct `Visual:newPoint` instances preserve coincident objects through the common RefChart/Restorer path.
+- `chart.osu.AimDecoder` writes directly into the common chart. Decoding stores each object in `Note.data` and chart parameters in `Chart.data`. Distinct `Visual:newPoint` instances preserve coincident objects through the common RefChart/Restorer path.
 - The object DTO preserves circle position/time/type/sounds plus slider source geometry/timing inputs and spinner end times. Separate bounded `SliderPath` and `SliderTiming` helpers feed both gameplay and rendering. See [../../../chart/format/osu/spec.md](../../../chart/format/osu/spec.md). Missing AR uses OD. Settings outside 0–10 are rejected for this prototype.
 - Gameplay worker decoding returns both parser failures and thrown decode/index errors as `{error = string}`. The caller raises the diagnostic on the main coroutine so ChartLoading can display it; decode errors must not escape as fatal thread errors.
 - `Preparation` computes session bounds without running mania modifiers/difficulty. These bounds are not a persisted/validated competitive chartdiff. Library hashing and difficulty tasks skip mania difficulty creation for native Aim. Existing cached mania-derived values are not migrated or deleted.
@@ -69,7 +69,7 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 
 ## Stacking
 
-- `AimChart` preserves StackLeniency; a missing value uses osu!'s 0.7 default, explicit zero is retained, and values outside 0–1 are rejected.
+- `AimDecoder` preserves StackLeniency; a missing value uses osu!'s 0.7 default, explicit zero is retained, and values outside 0–1 are rejected.
 - `Stacking` computes modern reverse-pass heights for format versions above 5 and a legacy forward pass for earlier charts. Heads within strictly 3 chart units can stack within `preempt * StackLeniency`; circle stacks consider preceding slider end times. Slider-tail overlaps produce negative heights, and modern slider endpoints respect repeat parity. Spinners are excluded.
 - Runtime displacement is `-height * circleRadius / 10` on both axes. The head, complete slider path, and copied control points move together. Source DTOs/refcharts remain unchanged; retry always recomputes from source, never from shifted data.
 - Rules, rendering, checkpoint positions, and autoplay share runtime geometry. Earlier heads are drawn above later stack members. Autoplay from an already-prepared rules chart explicitly skips a second stacking pass.

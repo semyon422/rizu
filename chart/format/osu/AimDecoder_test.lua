@@ -1,6 +1,7 @@
+local TestChart = require("rizu.gameplay.modes.TestChart")
 local ModeNotes = require("chart.model.ModeNotes")
 local ChartDecoder = require("chart.format.osu.ChartDecoder")
-local AimChart = require("chart.format.osu.AimChart")
+local AimDecoder = require("chart.format.osu.AimDecoder")
 local RefChart = require("chart.refchart.RefChart")
 local SliderPath = require("chart.format.osu.SliderPath")
 local SliderTiming = require("chart.format.osu.SliderTiming")
@@ -32,7 +33,7 @@ function test.positions_settings_and_same_time_objects_survive_refchart(t)
 	t:eq(ModeNotes.read(restored, "osu").circle_size, 4)
 	t:eq(ModeNotes.read(restored, "osu").approach_rate, 7)
 	t:eq(ModeNotes.read(restored, "osu").overall_difficulty, 6)
-	t:eq(AimChart.isSupported(ModeNotes.read(restored, "osu")), true)
+	t:eq(AimDecoder.isSupported(restored), true)
 end
 
 ---@param t testing.T
@@ -42,7 +43,7 @@ function test.unsupported_objects_are_preserved_and_rejected(t)
 	}) do
 		local chart = ChartDecoder():decode(header .. line)[1].chart
 		t:eq(#ModeNotes.read(chart, "osu").objects, 1)
-		local ok, err = AimChart.isSupported(ModeNotes.read(chart, "osu"))
+		local ok, err = AimDecoder.isSupported(chart)
 		t:eq(ok, false)
 		t:assert(err:find("unsupported object type", 1, true))
 	end
@@ -62,7 +63,7 @@ function test.slider_source_data_survives_refchart_without_placeholder_duration(
 	t:eq(timing.end_time, 4)
 	t:tdeq({path:position(timing:progress(2.5))}, {400, 192})
 	t:tdeq({path:position(timing:progress(4))}, {100, 192})
-	t:eq(AimChart.isSupported(aim), true)
+	t:eq(AimDecoder.isSupported(TestChart.create(aim, "osu")), true)
 end
 
 ---@param t testing.T
@@ -77,13 +78,13 @@ function test.spinner_end_time_survives_refchart_and_is_validated(t)
 	local chart = ChartDecoder():decode(header .. "256,192,1000,8,0,2500,0:0:0:0:")[1].chart
 	local aim = ModeNotes.read(Restorer():restore(RefChart(chart)), "osu")
 	t:eq(aim.objects[1].end_time, 2.5)
-	t:eq(AimChart.isSupported(aim), true)
+	t:eq(AimDecoder.isSupported(TestChart.create(aim, "osu")), true)
 	for _, ending in ipairs({1, 0, math.huge, 0 / 0}) do
 		aim.objects[1].end_time = ending
-		t:eq(AimChart.isSupported(aim), false)
+		t:eq(AimDecoder.isSupported(TestChart.create(aim, "osu")), false)
 	end
 	aim.objects[1].end_time = nil
-	t:eq(AimChart.isSupported(aim), false)
+	t:eq(AimDecoder.isSupported(TestChart.create(aim, "osu")), false)
 end
 
 ---@param t testing.T
@@ -94,7 +95,7 @@ function test.stack_leniency_default_and_explicit_zero(t)
 	local explicit = header:gsub("Mode:0", "Mode:0\nStackLeniency:0")
 	t:eq(ModeNotes.read(ChartDecoder():decode(explicit .. line)[1].chart, "osu").stack_leniency, 0)
 	aim.stack_leniency = 2
-	t:eq(AimChart.isSupported(aim), false)
+	t:eq(AimDecoder.isSupported(TestChart.create(aim, "osu")), false)
 end
 
 return test

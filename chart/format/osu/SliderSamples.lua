@@ -1,19 +1,20 @@
+local Objects = require("chart.format.osu.Objects")
 local Sounds = require("chart.format.osu.Sounds")
 local Addition = require("chart.format.osu.sections.Addition")
 local bit = require("bit")
 
 local SliderSamples = {}
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param time number Seconds.
 ---@return chart.osu.ControlPoint
 local function pointAt(chart, time)
-	local selected = {offset = 0, beatLength = 500, sampleSet = chart.sample_set, customSamples = 0, volume = 100}
-	local low, high = 1, #chart.timing_points
+	local selected = {offset = 0, beatLength = 500, sampleSet = chart.data.sample_set, customSamples = 0, volume = 100}
+	local low, high = 1, #chart.data.timing_points
 	while low <= high do
 		local mid = math.floor((low + high) / 2)
-		if chart.timing_points[mid].offset <= time * 1000 then
-			selected = chart.timing_points[mid]
+		if chart.data.timing_points[mid].offset <= time * 1000 then
+			selected = chart.data.timing_points[mid]
 			low = mid + 1
 		else high = mid - 1 end
 	end
@@ -21,7 +22,7 @@ local function pointAt(chart, time)
 		customSamples = selected.customSamples, volume = selected.volume}
 end
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param slider chart.osu.AimSlider
 ---@param edge integer
 ---@param time number
@@ -37,7 +38,7 @@ function SliderSamples.edge(chart, slider, edge, time)
 	-- Custom filenames belong to the head, not every repeat/tail.
 	addition.sampleFile = edge == 1 and source.sampleFile or ""
 	local point = pointAt(chart, time)
-	if addition.sampleSet == 0 and point.sampleSet == 0 then addition.sampleSet = chart.sample_set end
+	if addition.sampleSet == 0 and point.sampleSet == 0 then addition.sampleSet = chart.data.sample_set end
 	local index = addition.customSample
 	if index == 0 then index = point.customSamples end
 	-- osu!'s first sample bank uses the unsuffixed filename.
@@ -52,7 +53,7 @@ function SliderSamples.edge(chart, slider, edge, time)
 	return samples
 end
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param slider chart.osu.AimSlider
 ---@param time number
 ---@return chart.osu.Sound[]
@@ -61,7 +62,7 @@ function SliderSamples.tick(chart, slider, time)
 	local point = pointAt(chart, time)
 	local set = source.sampleSet
 	if set == 0 then set = point.sampleSet end
-	if set == 0 then set = chart.sample_set end
+	if set == 0 then set = chart.data.sample_set end
 	local names = {[1] = "normal", [2] = "soft", [3] = "drum"}
 	local name = assert(names[set], "Aim prototype: invalid slider sample set.") .. "-slidertick"
 	local index = source.customSample
@@ -87,12 +88,13 @@ local function register(samples, resources, tick)
 	return result
 end
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param sliders {[integer]: rizu.aim.Slider}
 ---@param resources chart.Resources
 function SliderSamples.prepare(chart, sliders, resources)
+	local objects = Objects.get(chart, "osu")
 	for i, runtime in pairs(sliders) do
-		local object = chart.objects[i]
+		local object = objects[i]
 		local source = assert(object.slider)
 		-- Hand-authored headless fixtures may intentionally omit sound metadata.
 		if source.sample_addition then

@@ -1,7 +1,6 @@
-local ModeNotes = require("chart.model.ModeNotes")
-local TaikoChart = require("chart.format.osu.TaikoChart")
-local CatchChart = require("chart.format.osu.CatchChart")
-local AimChart = require("chart.format.osu.AimChart")
+local TaikoDecoder = require("chart.format.osu.TaikoDecoder")
+local CatchDecoder = require("chart.format.osu.CatchDecoder")
+local AimDecoder = require("chart.format.osu.AimDecoder")
 local IChartDecoder = require("chart.format.notechart.IChartDecoder")
 local ChartBuilder = require("chart.format.notechart.ChartBuilder")
 local Chart = require("chart.model.Chart")
@@ -80,13 +79,13 @@ function ChartDecoder:decodeOsu(osu)
 	local mode = tonumber(self.osu.rawOsu.General.Mode)
 	if mode == 0 then
 		chart.inputMode = InputMode({osu = 1})
-		ModeNotes.write(chart, layer, visual, "osu", AimChart(osu))
+		AimDecoder.decode(osu, chart, layer, visual)
 	elseif mode == 1 then
 		chart.inputMode = InputMode({taiko = 1})
-		ModeNotes.write(chart, layer, visual, "taiko", TaikoChart(osu))
+		TaikoDecoder.decode(osu, chart, layer, visual)
 	elseif mode == 2 then
 		chart.inputMode = InputMode({fruits = 1})
-		ModeNotes.write(chart, layer, visual, "catch", CatchChart(osu))
+		CatchDecoder.decode(osu, chart, layer, visual)
 	elseif mode == 3 then
 		chart.inputMode = InputMode({key = osu.keymode})
 	end

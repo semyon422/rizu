@@ -73,17 +73,17 @@ function RhythmEngine:load()
 		return
 	end
 	if self.mode == "taiko" then
-		self.taiko_rules = TaikoRules(ModeNotes.read(chart, "taiko"))
+		self.taiko_rules = TaikoRules(chart)
 		self.taiko_sound_index = 0
 		return
 	end
 	if self.mode == "catch" then
-		self.catch_rules = CatchRules(ModeNotes.read(chart, "catch"))
+		self.catch_rules = CatchRules(chart)
 		self.catch_sound_index = 0
 		return
 	end
 	if self.mode == "osu" then
-		self.aim_rules = CircleRules(ModeNotes.read(chart, "osu"), self.aim_stacking, self.aim_tracking)
+		self.aim_rules = CircleRules(chart, self.aim_stacking, self.aim_tracking)
 		self.aim_sound_index = 0
 		self.aim_result_sound_index = 0
 		return
@@ -165,7 +165,7 @@ function RhythmEngine:update()
 	elseif self.taiko_rules then
 		self.taiko_rules:update(self.logic_info.time)
 		for i = self.taiko_sound_index + 1, #self.taiko_rules.sounds do
-			local object = self.taiko_rules.chart.objects[self.taiko_rules.sounds[i]]
+			local object = self.taiko_rules.objects[self.taiko_rules.sounds[i]]
 			for _, sample in ipairs(object.sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
 		end
 		self.taiko_sound_index = #self.taiko_rules.sounds
@@ -174,7 +174,7 @@ function RhythmEngine:update()
 		for i = self.catch_sound_index + 1, #self.catch_rules.events do
 			local event = self.catch_rules.events[i]
 			if event.hit then
-				for _, sample in ipairs(self.catch_rules.chart.objects[event.index].sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
+				for _, sample in ipairs(self.catch_rules.objects[event.index].sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
 			end
 		end
 		self.catch_sound_index = #self.catch_rules.events
@@ -198,7 +198,7 @@ function RhythmEngine:update()
 		self.aim_sound_index = #self.aim_rules.checkpoint_events
 		for i = self.aim_result_sound_index + 1, #self.aim_rules.events do
 			local event = self.aim_rules.events[i]
-			local object = self.aim_rules.chart.objects[event.index]
+			local object = self.aim_rules.objects[event.index]
 			if event.hit and object.kind == "spinner" then
 				for _, sample in ipairs(object.sounds) do
 					self.audio_engine:playSample(sample[1], sample[2])
@@ -251,7 +251,7 @@ function RhythmEngine:receive(event)
 	if self.aim_rules then
 		local index = self.aim_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
 		if index then
-			for _, sound in ipairs(self.aim_rules.chart.objects[index].sounds) do
+			for _, sound in ipairs(self.aim_rules.objects[index].sounds) do
 				self.audio_engine:playSample(sound[1], sound[2])
 			end
 		end

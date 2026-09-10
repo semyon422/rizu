@@ -75,7 +75,7 @@ Gameplay reads `chartmeta.mode` directly. Preparation calls `ModeNotes.validate`
 ## Native Objects In The Common Note Model
 
 - `Chart.data` holds chart-wide parameters, never the playable object collections. `Note.data` holds each object's geometry, interval/checkpoint data and sounds. This is an in-memory/worker contract; SPH persistence and binary replay formats are unchanged.
-- `ModeNotes` bridges parser/rules DTOs to notes without storing parallel object arrays on Chart. Rule input arrays are ephemeral views of note data. Existing independent simulations are retained.
+- osu Aim/Catch/Taiko decoders write notes directly and their rules/autoplay accept `Chart`. `Objects.get` selects note payload references for runtime iteration without reconstructing a chart DTO. Aim stacking clones the common chart through RefChart/Restorer before changing geometry. `ModeNotes` remains for SDVX and synthetic test fixtures.
 - Native note types are mode-qualified (`osu:circle`, `taiko:roll`, `sdvx:button`, `sdvx:laser`, etc.), with weight zero. A compound object's complete interval belongs to its data, not an implicit column hold pair.
 - Every native object gets a fresh `Visual:newPoint`; coincident objects retain insertion order via `compare_index`, including after refchart restoration. No change to note identity or collection collision rules is needed.
 - Automatic chart audio excludes native playable notes when playable sounds are disabled, just as it excludes tap/hold sounds. Rules dispatch their hit feedback; ordinary sample notes still play automatically.

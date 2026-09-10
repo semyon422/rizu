@@ -1,3 +1,4 @@
+local Objects = require("chart.format.osu.Objects")
 local class = require("class")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
@@ -15,7 +16,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 ---@class rizu.taiko.Rules
 ---@operator call: rizu.taiko.Rules
----@field chart chart.osu.TaikoChart
+---@field chart chart.Chart
 ---@field states rizu.taiko.State[]
 ---@field buttons {[integer]: boolean}
 ---@field events rizu.taiko.Judgement[]
@@ -24,14 +25,15 @@ local Rules = class()
 Rules.second_window = 0.03
 Rules.preempt = 1.5
 
----@param chart chart.osu.TaikoChart
+---@param chart chart.Chart
 function Rules:new(chart)
 	self.chart = chart
-	self.window = (120 - 8 * chart.overall_difficulty) / 1000
+	self.objects = Objects.get(chart, "taiko")
+	self.window = (120 - 8 * chart.data.overall_difficulty) / 1000
 	self.buttons, self.states, self.events, self.sounds = {}, {}, {}, {}
 	self.hits, self.misses, self.doubles, self.singles = 0, 0, 0, 0
 	self.first_index = 1
-	for i in ipairs(chart.objects) do self.states[i] = {count = 0} end
+	for i in ipairs(Objects.get(chart, "taiko")) do self.states[i] = {count = 0} end
 end
 
 ---@param index integer
@@ -54,8 +56,8 @@ function Rules:update(time)
 		---@type integer?
 		local due
 		local deadline = math.huge
-		for i = self.first_index, #self.chart.objects do
-			local object, state = self.chart.objects[i], self.states[i]
+		for i = self.first_index, #self.objects do
+			local object, state = self.objects[i], self.states[i]
 			if object.time > time + self.window then break end
 			if not state.result then
 				local ending = object.kind == "note" and (state.first_time and state.first_time + self.second_window or object.time + self.window) or object.end_time
@@ -88,8 +90,8 @@ function Rules:receive(event, time, paused)
 	if paused or event.column == 2 or not event.value or held then return end
 	local hit_color = color(event.id)
 	-- Pending second hands take priority, followed by ordinary notes, then intervals.
-	for i = self.first_index, #self.chart.objects do
-		local object, state = self.chart.objects[i], self.states[i]
+	for i = self.first_index, #self.objects do
+		local object, state = self.objects[i], self.states[i]
 		if object.time > time + self.window then break end
 		if not state.result and state.first_time and time >= state.first_time and time <= state.first_time + self.second_window
 			and object.color == hit_color and event.id ~= state.first_id and self.buttons[state.first_id] then
@@ -98,8 +100,8 @@ function Rules:receive(event, time, paused)
 			return
 		end
 	end
-	for i = self.first_index, #self.chart.objects do
-		local object, state = self.chart.objects[i], self.states[i]
+	for i = self.first_index, #self.objects do
+		local object, state = self.objects[i], self.states[i]
 		if object.time > time + self.window then break end
 		if object.kind == "note" and not state.result and not state.first_time and math.abs(time - object.time) <= self.window then
 			if object.color ~= hit_color then
@@ -114,8 +116,8 @@ function Rules:receive(event, time, paused)
 			return
 		end
 	end
-	for i = self.first_index, #self.chart.objects do
-		local object, state = self.chart.objects[i], self.states[i]
+	for i = self.first_index, #self.objects do
+		local object, state = self.objects[i], self.states[i]
 		if object.time > time then break end
 		if object.kind ~= "note" and not state.result and time <= object.end_time then
 			if object.kind == "spinner" and state.last_color == hit_color then return end
@@ -127,7 +129,7 @@ function Rules:receive(event, time, paused)
 	end
 end
 
----@param chart chart.osu.TaikoChart
+---@param chart chart.Chart
 ---@return rizu.ReplayFrame[]
 function Rules.autoplay(chart)
 	---@type {time: number, id: integer, pressed: boolean, order: integer}[]
@@ -138,7 +140,7 @@ function Rules.autoplay(chart)
 	local function add(time, id, pressed)
 		actions[#actions + 1] = {time = time, id = id, pressed = pressed, order = #actions + 1}
 	end
-	for _, object in ipairs(chart.objects) do
+	for _, object in ipairs(Objects.get(chart, "taiko")) do
 		if object.kind == "note" then
 			local id = object.color == "don" and 1 or 3
 			add(object.time, id, true)

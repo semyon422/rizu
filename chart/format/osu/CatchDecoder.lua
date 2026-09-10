@@ -1,5 +1,6 @@
-local class = require("class")
-local AimChart = require("chart.format.osu.AimChart")
+local ChartBuilder = require("chart.format.notechart.ChartBuilder")
+local Objects = require("chart.format.osu.Objects")
+local AimDecoder = require("chart.format.osu.AimDecoder")
 local SliderPath = require("chart.format.osu.SliderPath")
 local SliderTiming = require("chart.format.osu.SliderTiming")
 
@@ -10,19 +11,21 @@ local SliderTiming = require("chart.format.osu.SliderTiming")
 ---@field kind "fruit"|"droplet"|"tiny"|"banana"
 ---@field sounds {[1]: string, [2]: number}[]
 
----@class chart.osu.CatchChart
----@operator call: chart.osu.CatchChart
----@field objects chart.osu.CatchObject[]
-local CatchChart = class()
+local CatchDecoder = {}
 
 ---@param osu chart.osu.Osu
-function CatchChart:new(osu)
+---@param chart chart.Chart
+---@param layer chart.AbsoluteLayer
+---@param visual chart.Visual
+function CatchDecoder.decode(osu, chart, layer, visual)
 	-- Share the native osu source reader, not an Aim-to-Catch gameplay conversion.
-	local source = AimChart(osu)
-	local ok, err = AimChart.isSupported(source)
+	local builder = ChartBuilder()
+	local source = builder.chart
+	AimDecoder.decode(osu, source, builder:createAbsoluteLayer(), builder:getVisual("main"))
+	local ok, err = AimDecoder.isSupported(source)
 	assert(ok, err)
-	self.circle_size, self.approach_rate = source.circle_size, source.approach_rate
-	self.objects = {}
+	chart.data.circle_size, chart.data.approach_rate = source.data.circle_size, source.data.approach_rate
+	local objects = {}
 	local seed = 1337
 	local order = 0
 	---@param time number
@@ -30,18 +33,18 @@ function CatchChart:new(osu)
 	---@param kind "fruit"|"droplet"|"tiny"|"banana"
 	---@param sounds {[1]: string, [2]: number}[]
 	local function add(time, x, kind, sounds)
-		assert(#self.objects < 100000, "Catch prototype: object budget exceeded.")
+		assert(#objects < 100000, "Catch prototype: object budget exceeded.")
 		order = order + 1
-		self.objects[#self.objects + 1] = {time = time, x = math.max(0, math.min(512, x)), kind = kind, sounds = sounds, order = order}
+		objects[#objects + 1] = {time = time, x = math.max(0, math.min(512, x)), kind = kind, sounds = sounds, order = order}
 	end
-	for _, object in ipairs(source.objects) do
+	for _, object in ipairs(Objects.get(source, "osu")) do
 		if object.kind == "circle" then
 			add(object.time, object.x, "fruit", object.sounds)
 		elseif object.kind == "slider" then
 			local slider = assert(object.slider)
 			local path = SliderPath(slider.curve_type, slider.controls, slider.length)
-			local timing = SliderTiming(object.time, path.length, slider.spans, source.slider_multiplier,
-				source.slider_tick_rate, source.timing_points, source.format_version)
+			local timing = SliderTiming(object.time, path.length, slider.spans, source.data.slider_multiplier,
+				source.data.slider_tick_rate, source.data.timing_points, source.data.format_version)
 			add(object.time, object.x, "fruit", object.sounds)
 			local previous = object.time
 			for _, checkpoint in ipairs(timing.checkpoints) do
@@ -69,11 +72,14 @@ function CatchChart:new(osu)
 			end
 		end
 	end
-	table.sort(self.objects, function(a, b)
+	table.sort(objects, function(a, b)
 		if a.time ~= b.time then return a.time < b.time end
 		return a.order < b.order
 	end)
-	for _, object in ipairs(self.objects) do object.order = nil end
+	for _, object in ipairs(objects) do
+		object.order = nil
+		Objects.insert(chart, layer, visual, "catch", object)
+	end
 end
 
-return CatchChart
+return CatchDecoder

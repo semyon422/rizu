@@ -1,3 +1,4 @@
+local TestChart = require("rizu.gameplay.modes.TestChart")
 local ModeNotes = require("chart.model.ModeNotes")
 local Rules = require("rizu.gameplay.catch.Rules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
@@ -7,7 +8,7 @@ local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local test = {}
 
----@return chart.osu.CatchChart
+---@return table
 local function chart()
 	return {circle_size = 5, approach_rate = 5, objects = {
 		{time = 1, x = 100, kind = "fruit", sounds = {}},
@@ -20,9 +21,9 @@ end
 ---@param t testing.T
 function test.autoplay_earns_hyperdash_without_position_teleport(t)
 	local c = chart()
-	local rules = Rules(c)
+	local rules = Rules(TestChart.create(c, "catch"))
 	t:eq(rules.hyper_targets[1], 2)
-	for _, frame in ipairs(Rules.autoplay(c)) do
+	for _, frame in ipairs(Rules.autoplay(TestChart.create(c, "catch"))) do
 		t:eq(frame.event.pos, nil)
 		rules:receive(frame.event, frame.time)
 	end
@@ -34,7 +35,7 @@ end
 
 ---@param t testing.T
 function test.movement_boundaries_dash_and_independent_sources(t)
-	local rules = Rules(chart())
+	local rules = Rules(TestChart.create(chart(), "catch"))
 	rules:receive(VirtualInputEvent(1, true, 1), 0)
 	rules:receive(VirtualInputEvent(4, true, 1), 0)
 	rules:receive(VirtualInputEvent(1, false, 1), 0)
@@ -63,7 +64,7 @@ function test.recorded_actions_replay_at_different_frame_rates(t)
 		return re, GameplaySession(re)
 	end
 	local re, manual = session()
-	for _, frame in ipairs(Rules.autoplay(chart())) do manual:receive(frame.event, (frame.time + 1 + 0.031) / 1.5) end
+	for _, frame in ipairs(Rules.autoplay(TestChart.create(chart(), "catch"))) do manual:receive(frame.event, (frame.time + 1 + 0.031) / 1.5) end
 	manual:update(5)
 	t:eq(re.catch_rules.hits, 3)
 	t:eq(manual:hasResult(), false)
@@ -83,7 +84,7 @@ end
 
 ---@param t testing.T
 function test.backward_clock_correction_does_not_integrate_movement_twice(t)
-	local rules = Rules(chart())
+	local rules = Rules(TestChart.create(chart(), "catch"))
 	rules:update(-2)
 	rules:receive(VirtualInputEvent(2, true, 2), -2)
 	rules:receive(VirtualInputEvent(3, true, 2), -2)
@@ -98,8 +99,8 @@ function test.motion_is_independent_of_update_partition(t)
 	---@param step number
 	---@return rizu.catch.Judgement[]
 	local function simulate(step)
-		local rules = Rules(chart())
-		local frames = Rules.autoplay(chart())
+		local rules = Rules(TestChart.create(chart(), "catch"))
+		local frames = Rules.autoplay(TestChart.create(chart(), "catch"))
 		local now = frames[1].time
 		for _, frame in ipairs(frames) do
 			while now + step < frame.time do
@@ -122,9 +123,9 @@ end
 function test.equal_time_objects_keep_autoplay_frames_ordered(t)
 	local c = chart()
 	table.insert(c.objects, 2, {time = 1, x = 100, kind = "tiny", sounds = {}})
-	local rules = Rules(c)
+	local rules = Rules(TestChart.create(c, "catch"))
 	local previous = -math.huge
-	for _, frame in ipairs(Rules.autoplay(c)) do
+	for _, frame in ipairs(Rules.autoplay(TestChart.create(c, "catch"))) do
 		t:assert(frame.time >= previous)
 		previous = frame.time
 		rules:receive(frame.event, frame.time)

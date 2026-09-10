@@ -1,5 +1,6 @@
+local Objects = require("chart.format.osu.Objects")
 local class = require("class")
-local AimChart = require("chart.format.osu.AimChart")
+local AimDecoder = require("chart.format.osu.AimDecoder")
 local Stacking = require("rizu.gameplay.aim.Stacking")
 local Spinner = require("rizu.gameplay.aim.Spinner")
 local Tracking = require("rizu.gameplay.aim.Tracking")
@@ -30,7 +31,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 ---@class rizu.aim.CircleRules
 ---@operator call: rizu.aim.CircleRules
----@field chart chart.osu.AimChart
+---@field chart chart.Chart
 ---@field states ("hit"|"miss")[]
 ---@field heads ("hit"|"miss")[]
 ---@field events rizu.aim.Judgement[]
@@ -41,16 +42,17 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@field sliders {[integer]: rizu.aim.Slider}
 local CircleRules = class()
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param stacking boolean? False for pre-stacking replays.
 ---@param tracking boolean? False for checkpoint-only diagnostic replays.
 function CircleRules:new(chart, stacking, tracking)
-	assert(AimChart.isSupported(chart))
+	assert(AimDecoder.isSupported(chart))
 	self.chart = chart
-	self.radius = 54.4 - 4.48 * chart.circle_size
-	local ar = chart.approach_rate
+	self.objects = Objects.get(chart, "osu")
+	self.radius = 54.4 - 4.48 * chart.data.circle_size
+	local ar = chart.data.approach_rate
 	self.preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
-	self.window = (200 - 10 * chart.overall_difficulty) / 1000
+	self.window = (200 - 10 * chart.data.overall_difficulty) / 1000
 	self.states, self.heads = {}, {}
 	self.events, self.checkpoint_events = {}, {}
 	self.buttons = {}
@@ -62,16 +64,17 @@ function CircleRules:new(chart, stacking, tracking)
 	self.tracking_breaks = 0
 	self.spinners = {}
 	self.sliders = Sliders.prepare(chart)
-	self.stacking_enabled = stacking ~= false and chart.stack_leniency ~= nil
+	self.stacking_enabled = stacking ~= false and chart.data.stack_leniency ~= nil
 	if self.stacking_enabled then
 		chart = Stacking.apply(chart, self.sliders, self.preempt, self.radius)
 		self.chart = chart
+	self.objects = Objects.get(chart, "osu")
 	end
 	self.scheduled, self.schedule_index = {}, 1
-	for i, object in ipairs(chart.objects) do
+	for i, object in ipairs(Objects.get(chart, "osu")) do
 		local deadline = object.time + self.window
 		if object.kind == "spinner" then
-			self.spinners[i] = Spinner(object, chart.overall_difficulty)
+			self.spinners[i] = Spinner(object, chart.data.overall_difficulty)
 			self.scheduled[#self.scheduled + 1] = {index = i, time = assert(object.end_time), priority = 3, spinner = true}
 		else
 			self.scheduled[#self.scheduled + 1] = {index = i, time = deadline, priority = 1}
@@ -111,7 +114,7 @@ end
 ---@param hit boolean
 function CircleRules:judge(index, time, hit)
 	self.states[index] = hit and "hit" or "miss"
-	self.events[#self.events + 1] = {index = index, time = time, hit = hit, delta = time - self.chart.objects[index].time}
+	self.events[#self.events + 1] = {index = index, time = time, hit = hit, delta = time - self.objects[index].time}
 	if hit then self.hits = self.hits + 1 else self.misses = self.misses + 1 end
 end
 
@@ -220,22 +223,22 @@ function CircleRules:receive(event, time, paused)
 	if paused or event.column == 2 or event.value ~= true or was_pressed then return end
 	-- Note lock concerns heads, not already-started slider bodies.
 	local i = self.next_index
-	local object = self.chart.objects[i]
+	local object = self.objects[i]
 	if not object or time < object.time - self.preempt or math.abs(time - object.time) > self.window then return end
 	if not self:inside(object.x, object.y, self.radius) then return end
 	self:judgeHead(i, time, true)
 	return i
 end
 
----@param chart chart.osu.AimChart
+---@param chart chart.Chart
 ---@param stacking boolean? False when chart already contains runtime offsets.
 ---@return rizu.ReplayFrame[]
 function CircleRules.autoplay(chart, stacking)
 	local sliders = Sliders.prepare(chart)
-	if stacking ~= false and chart.stack_leniency ~= nil then
-		local ar = chart.approach_rate
+	if stacking ~= false and chart.data.stack_leniency ~= nil then
+		local ar = chart.data.approach_rate
 		local preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
-		chart = Stacking.apply(chart, sliders, preempt, 54.4 - 4.48 * chart.circle_size)
+		chart = Stacking.apply(chart, sliders, preempt, 54.4 - 4.48 * chart.data.circle_size)
 	end
 	---@type {time: number, event: rizu.VirtualInputEvent, order: integer}[]
 	local frames = {}
@@ -245,7 +248,7 @@ function CircleRules.autoplay(chart, stacking)
 		assert(#frames < 2000000, "Aim prototype: autoplay frame budget exceeded.")
 		frames[#frames + 1] = {time = time, event = event, order = #frames + 1}
 	end
-	for i, object in ipairs(chart.objects) do
+	for i, object in ipairs(Objects.get(chart, "osu")) do
 		-- An alternating head key avoids suppressing a fresh press while a slider is held.
 		local id = (i - 1) % 2 + 1
 		if object.kind == "spinner" then

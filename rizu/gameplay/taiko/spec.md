@@ -8,7 +8,7 @@ Controls: F/J for left/right don and D/K for left/right kat. A horizontal primit
 
 ## Architecture Decisions
 
-- `chart.osu.TaikoChart` reads native Mode=1 data directly. It retains simultaneous source-order notes, sound-mask color (whistle/clap = kat), finish-mask size, rolls and spinners. No Mode=0 conversion.
+- `chart.osu.TaikoDecoder` reads native Mode=1 data directly. It retains simultaneous source-order notes, sound-mask color (whistle/clap = kat), finish-mask size, rolls and spinners. No Mode=0 conversion.
 - Roll duration uses declared slider length, spans and head-time BPM/SV from `SliderTiming`; spatial curves are irrelevant. Target counts are prototype-only: roll `ceil(duration * 4)`, spinner `ceil(duration * (3 + 0.3 * OD))`, minimum one. No claim of exact stable/lazer roll tick or spinner requirement compatibility.
 - Ordinary hit window is ±(120 - 8 * OD) ms. Wrong color consumes the earliest eligible note as a miss. No accuracy score is generated.
 - Large notes accept a same-color second hand within 30 ms of the first hit, while the first remains held. Repeated keydown is not a second hand. A lone correct hit becomes `single`, not a miss; a paired hit becomes `double`. Endpoint inclusion is explicit and need not match stable's strict inequality.

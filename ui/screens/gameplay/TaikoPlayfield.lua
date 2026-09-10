@@ -28,8 +28,8 @@ function TaikoPlayfield:draw()
 	love.graphics.line(80, 210, 760, 210)
 	love.graphics.circle("line", 100, 210, 28)
 	local time = re.visual_info.time
-	for i = rules.first_index, #rules.chart.objects do
-		local object, state = rules.chart.objects[i], rules.states[i]
+	for i = rules.first_index, #rules.objects do
+		local object, state = rules.objects[i], rules.states[i]
 		if object.time > time + rules.preempt then break end
 		if not state.result then
 			local x = 100 + (object.time - time) / rules.preempt * 640
