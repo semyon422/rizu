@@ -1,3 +1,5 @@
+local Restorer = require("chart.refchart.Restorer")
+local ModeNotes = require("chart.model.ModeNotes")
 local Preparation = require("rizu.gameplay.aim.Preparation")
 local RefChart = require("chart.refchart.RefChart")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
@@ -77,8 +79,8 @@ ApproachRate:7
 		refchart = RefChart(ctx.chart), chartmeta = ctx.chartmeta, chartdiff = ctx.chartdiff,
 		state = ctx.state, simplified_notes = {}, replay_base = {modifiers = {}},
 	})
-	t:tdeq(restored.chart.aim, ctx.chart.aim)
-	t:eq(#restored.chart.aim.objects, 2)
+	t:tdeq(ModeNotes.read(restored.chart, "osu"), ModeNotes.read(ctx.chart, "osu"))
+	t:eq(#ModeNotes.read(restored.chart, "osu").objects, 2)
 end
 
 ---@param t testing.T
@@ -103,7 +105,7 @@ SliderTickRate:1
 	t:eq(ctx.chartdiff.start_time, 1)
 	t:eq(ctx.chartdiff.duration, 3)
 	t:eq(ctx.chartdiff.osu_diff, nil)
-	ctx.chart.aim.objects[1].slider.length = 0
+	ModeNotes.read(ctx.chart, "osu").objects[1].slider.length = 0
 	t:has_error(function() Preparation.compute(ctx, base) end)
 end
 
@@ -126,7 +128,7 @@ OverallDifficulty:5
 	t:eq(ctx.chartdiff.start_time, 1)
 	t:eq(ctx.chartdiff.duration, 4)
 	t:eq(ctx.chartdiff.osu_diff, nil)
-	ctx.chart.aim.objects[1].end_time = 0
+	ModeNotes.read(ctx.chart, "osu").objects[1].end_time = 0
 	t:has_error(function() Preparation.compute(ctx, base) end)
 end
 
@@ -152,7 +154,7 @@ OverallDifficulty:5
 	t:assert(result.error:find("invalid general sample set", 1, true))
 	local valid = compute(view, data:gsub("SampleSet:Invalid", "SampleSet: None"), nil, ReplayBase(), config)
 	t:eq(valid.error, nil)
-	t:eq(valid.refchart.aim.sample_set, 1)
+	t:eq(valid.refchart.data.sample_set, 1)
 	view.index = 999
 	local invalid_index = compute(view, data:gsub("SampleSet:Invalid", "SampleSet: None"), nil, ReplayBase(), config)
 	t:eq(type(invalid_index.error), "string")
@@ -178,7 +180,7 @@ OverallDifficulty:5
 	t:eq(result.chartdiff.inputmode, "1fruits")
 	t:eq(result.chartdiff.osu_diff, nil)
 	t:aeq(result.chartdiff.duration, 1 + 200 / 280, 1e-9)
-	t:assert(result.refchart.catch)
+	t:assert(ModeNotes.read(Restorer():restore(result.refchart), "catch"))
 end
 
 return test

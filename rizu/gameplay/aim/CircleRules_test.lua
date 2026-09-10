@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local RhythmEngine = require("rizu.engine.RhythmEngine")
@@ -56,7 +57,8 @@ end
 ---@param aim chart.osu.AimChart?
 local function session(offset, rate, aim)
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
-	res.chart.aim = aim or chart()
+	ModeNotes.write(res.chart, res.chart.layers.main, res.chart.layers.main.visuals[""], "osu", aim or chart())
+	res.chart:compute()
 	res.chartmeta.mode = "osu"
 	local re = RhythmEngine()
 	re:setChart(res.chart, res.chartmeta, res.chartdiff)

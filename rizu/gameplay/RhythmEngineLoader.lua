@@ -42,7 +42,7 @@ function RhythmEngineLoader:load(rhythm_engine)
 		primary = settings:getChoice(keys.audio.mode_primary),
 		secondary = settings:getChoice(keys.audio.mode_secondary),
 	})
-	if chart.aim or chart.catch or chart.taiko or chart.sdvx then
+	if chartmeta.mode ~= "mania" then
 		rhythm_engine:setAutoKeySound(false)
 	end
 	rhythm_engine:loadAudio(self.resources)

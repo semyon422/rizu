@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local ReplayBase = require("sea.replays.ReplayBase")
 local Restorer = require("chart.refchart.Restorer")
@@ -32,8 +33,8 @@ function test.worker_preserves_native_geometry_and_audio(t)
 	t:eq(result.chartdiff.osu_diff, nil)
 	local restored = Restorer():restore(result.refchart)
 	local direct = ChartDecoder():decode(source, ("a"):rep(32))[1].chart
-	t:tdeq(restored.sdvx, direct.sdvx)
-	t:eq(#restored.sdvx.lasers, 2)
+	t:tdeq(ModeNotes.read(restored, "sdvx"), ModeNotes.read(direct, "sdvx"))
+	t:eq(#ModeNotes.read(restored, "sdvx").lasers, 2)
 	local audio = restored.layers.audio:getPointList()[1]
 	t:eq(audio.absoluteTime, -0.125)
 end

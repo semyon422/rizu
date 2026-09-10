@@ -6,13 +6,11 @@ local Notes = require("chart.model.notes.Notes")
 ---@class chart.Chart
 ---@operator call: chart.Chart
 ---@field layers {[string]: chart.Layer}
----@field sdvx chart.ksm.SdvxChart?
----@field taiko chart.osu.TaikoChart?
----@field catch chart.osu.CatchChart? Native Catch objects
----@field aim chart.osu.AimChart? Native Aim objects, independent of column-note identity
+---@field data table Chart-wide mechanic parameters, without object collections.
 local Chart = class()
 
 function Chart:new()
+	self.data = {}
 	self.layers = {}
 	self.notes = Notes()
 	self.inputMode = InputMode()

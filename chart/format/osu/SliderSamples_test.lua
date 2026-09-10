@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local RhythmEngine = require("rizu.engine.RhythmEngine")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local Chartdiff = require("sea.chart.Chartdiff")
@@ -28,9 +29,9 @@ SliderTickRate:1
 ---@param t testing.T
 function test.edge_masks_sets_tick_samples_and_timing_changes(t)
 	local chart = ChartDecoder():decode(header .. "100,100,1000,2,0,L|300:100,2,200,2|8|4,1:2|3:1|2:3,0:0:0:0:")[1].chart
-	SliderSamples.prepare(chart.aim, Sliders.prepare(chart.aim), chart.resources)
-	local source = chart.aim.objects[1].slider
-	local head = chart.aim.objects[1].sounds
+	SliderSamples.prepare(ModeNotes.read(chart, "osu"), Sliders.prepare(ModeNotes.read(chart, "osu")), chart.resources)
+	local source = ModeNotes.read(chart, "osu").objects[1].slider
+	local head = ModeNotes.read(chart, "osu").objects[1].sounds
 	t:eq(head[1][1], "normal-hitnormal")
 	t:eq(head[2][1], "soft-hitwhistle")
 	t:aeq(head[1][2], 0.48, 1e-9)
@@ -43,9 +44,9 @@ function test.edge_masks_sets_tick_samples_and_timing_changes(t)
 	t:eq(samples[4][2][1], "drum-hitfinish3")
 	t:tdeq(chart.resources.sound["soft-slidertick2"], {"soft-slidertick2", "soft-slidertick", "aim-slidertick"})
 	local restored = Restorer():restore(RefChart(chart))
-	t:tdeq(restored.aim, chart.aim)
-	local rules = CircleRules(restored.aim)
-	for _, frame in ipairs(CircleRules.autoplay(restored.aim)) do rules:receive(frame.event, frame.time) end
+	t:tdeq(ModeNotes.read(restored, "osu"), ModeNotes.read(chart, "osu"))
+	local rules = CircleRules(ModeNotes.read(restored, "osu"))
+	for _, frame in ipairs(CircleRules.autoplay(ModeNotes.read(restored, "osu"))) do rules:receive(frame.event, frame.time) end
 	rules:update(4)
 	t:eq(rules.hits, 1)
 	for i, event in ipairs(rules.checkpoint_events) do t:tdeq(event.sounds, samples[i]) end
@@ -54,9 +55,9 @@ end
 ---@param t testing.T
 function test.custom_file_only_on_head_and_explicit_volume(t)
 	local chart = ChartDecoder():decode(header .. "100,100,1000,2,0,L|300:100,1,200,0|8,0:0|0:0,3:2:4:50:custom.wav")[1].chart
-	SliderSamples.prepare(chart.aim, Sliders.prepare(chart.aim), chart.resources)
-	t:tdeq(chart.aim.objects[1].sounds, {{"custom.wav", 0.5}})
-	local samples = chart.aim.objects[1].slider.checkpoint_sounds
+	SliderSamples.prepare(ModeNotes.read(chart, "osu"), Sliders.prepare(ModeNotes.read(chart, "osu")), chart.resources)
+	t:tdeq(ModeNotes.read(chart, "osu").objects[1].sounds, {{"custom.wav", 0.5}})
+	local samples = ModeNotes.read(chart, "osu").objects[1].slider.checkpoint_sounds
 	t:tdeq(samples[1], {{"drum-slidertick4", 0.5}})
 	t:eq(samples[2][1][1], "drum-hitnormal4")
 	t:eq(samples[2][2][1], "soft-hitclap4")
@@ -66,17 +67,17 @@ end
 function test.first_sample_bank_and_zero_volume(t)
 	local source = header:gsub("0,500,4,1,0,60", "0,500,4,1,1,0")
 	local chart = ChartDecoder():decode(source .. "100,100,1000,2,8,L|300:100,1,200")[1].chart
-	SliderSamples.prepare(chart.aim, Sliders.prepare(chart.aim), chart.resources)
-	t:eq(chart.aim.objects[1].sounds[1][1], "normal-hitnormal")
-	t:eq(chart.aim.objects[1].sounds[1][2], 0)
-	t:eq(chart.aim.objects[1].sounds[2][2], 0)
+	SliderSamples.prepare(ModeNotes.read(chart, "osu"), Sliders.prepare(ModeNotes.read(chart, "osu")), chart.resources)
+	t:eq(ModeNotes.read(chart, "osu").objects[1].sounds[1][1], "normal-hitnormal")
+	t:eq(ModeNotes.read(chart, "osu").objects[1].sounds[1][2], 0)
+	t:eq(ModeNotes.read(chart, "osu").objects[1].sounds[2][2], 0)
 end
 
 ---@param t testing.T
 function test.engine_dispatches_each_successful_sample_once(t)
 	local decoded = ChartDecoder():decode(header .. "100,100,1000,2,0,L|300:100,2,200,2|8|4,1:2|3:1|2:3,0:0:0:0:")[1]
 	local chart = decoded.chart
-	SliderSamples.prepare(chart.aim, Sliders.prepare(chart.aim), chart.resources)
+	SliderSamples.prepare(ModeNotes.read(chart, "osu"), Sliders.prepare(ModeNotes.read(chart, "osu")), chart.resources)
 	local re = RhythmEngine()
 	re:setChart(chart, decoded.chartmeta, Chartdiff())
 	re:load()
@@ -99,12 +100,12 @@ end
 function test.general_none_sample_set_uses_normal_bank(t)
 	local source = header:gsub("SampleSet:Normal", "SampleSet: None")
 	local chart = ChartDecoder():decode(source .. "100,100,1000,2,0,L|300:100,1,200")[1].chart
-	t:eq(chart.aim.sample_set, 1)
+	t:eq(ModeNotes.read(chart, "osu").sample_set, 1)
 	-- No timing-point set: fall through to the General default.
-	for _, point in ipairs(chart.aim.timing_points) do point.sampleSet = 0 end
-	SliderSamples.prepare(chart.aim, Sliders.prepare(chart.aim), chart.resources)
-	t:eq(chart.aim.objects[1].sounds[1][1], "normal-hitnormal")
-	t:eq(chart.aim.objects[1].slider.checkpoint_sounds[1][1][1], "normal-slidertick2")
+	for _, point in ipairs(ModeNotes.read(chart, "osu").timing_points) do point.sampleSet = 0 end
+	SliderSamples.prepare(ModeNotes.read(chart, "osu"), Sliders.prepare(ModeNotes.read(chart, "osu")), chart.resources)
+	t:eq(ModeNotes.read(chart, "osu").objects[1].sounds[1][1], "normal-hitnormal")
+	t:eq(ModeNotes.read(chart, "osu").objects[1].slider.checkpoint_sounds[1][1][1], "normal-slidertick2")
 end
 
 return test

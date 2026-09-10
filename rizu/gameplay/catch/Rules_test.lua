@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local Rules = require("rizu.gameplay.catch.Rules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local RhythmEngine = require("rizu.engine.RhythmEngine")
@@ -53,7 +54,8 @@ function test.recorded_actions_replay_at_different_frame_rates(t)
 	---@return rizu.GameplaySession
 	local function session()
 		local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
-		res.chart.catch = chart()
+		ModeNotes.write(res.chart, res.chart.layers.main, res.chart.layers.main.visuals[""], "catch", chart())
+		res.chart:compute()
 		res.chartmeta.mode = "catch"
 		local re = RhythmEngine()
 		re:setChart(res.chart, res.chartmeta, res.chartdiff)

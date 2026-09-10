@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local ReplayBase = require("sea.replays.ReplayBase")
 local Restorer = require("chart.refchart.Restorer")
@@ -66,7 +67,7 @@ function test.worker_snapshot_keeps_native_mode_and_bounds(t)
 	t:eq(result.chartdiff.duration, 4)
 	t:eq(result.chartdiff.osu_diff, nil)
 	local restored = Restorer():restore(result.refchart)
-	t:tdeq(restored.taiko, decode(data))
+	t:tdeq(ModeNotes.read(restored, "taiko"), decode(data))
 	local base = ReplayBase()
 	base.tap_only = true
 	t:assert(compute({chartfile_name = "native.osu", index = 1}, data, nil, base, {}).error)

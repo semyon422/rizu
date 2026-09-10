@@ -72,6 +72,7 @@ function test.basic(t)
 	chart:compute()
 
 	local test_refchart = {
+		data = {},
 		inputmode = {key = 4},
 		layers = {
 			main = {

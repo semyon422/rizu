@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local ReplayBase = require("sea.replays.ReplayBase")
 local table_util = require("table_util")
 local SdvxInput = require("rizu.gameplay.sdvx.Input")
@@ -116,36 +117,36 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
-	assert(not chart.sdvx or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-sdvx-1",
+	assert(chartmeta.mode ~= "sdvx" or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-sdvx-1",
 		"Legacy KSH column replays cannot be played with native SDVX rules.")
-	assert(not chart.taiko or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-taiko-1",
+	assert(chartmeta.mode ~= "taiko" or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-taiko-1",
 		"Legacy 2K replays cannot be played with native Taiko rules.")
 	if self.aim_replay then
 		if self.aim_replay.format == "rizu-aim-sliders-1" then
-			for _, object in ipairs(assert(chart.aim).objects) do
+			for _, object in ipairs(ModeNotes.read(chart, "osu").objects) do
 				assert(object.kind ~= "spinner", "Incompatible pre-spinner Aim replay.")
 			end
 		end
 		if self.aim_replay.format == "rizu-aim-circles-1" then
-			for _, object in ipairs(assert(chart.aim).objects) do
+			for _, object in ipairs(ModeNotes.read(chart, "osu").objects) do
 				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")
 			end
 		end
-		assert((chart.aim or chart.catch or chart.taiko or chart.sdvx) and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
+		assert((chartmeta.mode ~= "mania") and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
 			"Aim replay does not match the selected chart.")
-		assert((self.aim_replay.format == "rizu-sdvx-1") == (chart.sdvx ~= nil), "Replay mode does not match chart.")
-		assert((self.aim_replay.format == "rizu-taiko-1") == (chart.taiko ~= nil), "Replay mode does not match chart.")
-		assert((self.aim_replay.format == "rizu-catch-1") == (chart.catch ~= nil), "Replay mode does not match chart.")
+		assert((self.aim_replay.format == "rizu-sdvx-1") == (chartmeta.mode == "sdvx"), "Replay mode does not match chart.")
+		assert((self.aim_replay.format == "rizu-taiko-1") == (chartmeta.mode == "taiko"), "Replay mode does not match chart.")
+		assert((self.aim_replay.format == "rizu-catch-1") == (chartmeta.mode == "catch"), "Replay mode does not match chart.")
 	end
 
-	if not self.replaying and not chart.aim and not chart.catch and not chart.taiko and not chart.sdvx then
+	if not self.replaying and chartmeta.mode == "mania" then
 		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
 	end
 
 	local input_mode = GameplayInteractor.getInputMode(chart)
 	---@type string[]
 	local paths
-	if chart.aim or chart.catch or chart.taiko or chart.sdvx then
+	if chartmeta.mode ~= "mania" then
 		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
 		self.noteSkin = nil
@@ -172,8 +173,8 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 
 	game.pauseModel:load()
 
-	game.multiplayerModel.client:setPlaying(not chart.aim and not chart.catch and not chart.taiko and not chart.sdvx)
-	if not chart.aim and not chart.catch and not chart.taiko and not chart.sdvx then
+	game.multiplayerModel.client:setPlaying(chartmeta.mode == "mania")
+	if chartmeta.mode == "mania" then
 		game.offsetController:updateOffsets()
 	end
 

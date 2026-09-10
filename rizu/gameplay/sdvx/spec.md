@@ -8,7 +8,7 @@ Native KSH charts launch through ordinary Play/Autoplay with primitive vertical 
 
 ## Architecture Decisions
 
-- Source data is described in [../../../chart/format/ksm/spec.md](../../../chart/format/ksm/spec.md): preserve every laser anchor, beat/time, slam and extended range independently of column-note storage.
+- Source data is described in [../../../chart/format/ksm/spec.md](../../../chart/format/ksm/spec.md): preserve every laser anchor, beat/time, slam and extended range in ordinary note data (one note per button object or laser chain).
 - `Laser` runs on a chain-anchored 240 Hz chart-time grid, with 16 Hz capture checkpoints (every 15 samples). Calls at render times do not insert extra samples. Inputs process earlier samples first; the sample exactly at an input timestamp runs after that input.
 - Keyboard direction drives a normalized cursor at 2 units per chart second. Matching direction close to the target (tolerance 0.08) snaps to it, so the task is following direction rather than reproducing its exact slope speed. Wrong direction/no movement can lose tracking; moving toward the target can recover. Straight roots align automatically; captured straights stay locked without input. This is simpler than USC's time-limited assist and direction-change punishment.
 - Slams require a signed turn within ±75 ms in the correct direction. Merely holding a direction before the window is not a hit. A hit moves the cursor to the destination; absent turns expire to misses. Paused turns are ignored. Exact late-slam-to-next-segment interactions remain to be tested during integration.

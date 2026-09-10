@@ -3,7 +3,7 @@ local SdvxChart = require("chart.format.ksm.SdvxChart")
 local InputMode = require("chart.core.InputMode")
 local Chartmeta = require("sea.chart.Chartmeta")
 local Tempo = require("chart.model.to.Tempo")
-local Note = require("chart.model.notes.Note")
+local ModeNotes = require("chart.model.ModeNotes")
 
 local SdvxDecoder = {}
 
@@ -15,7 +15,6 @@ function SdvxDecoder.decode(source, hash)
 	local sdvx = SdvxChart(source)
 	local builder = ChartBuilder()
 	local chart = builder.chart
-	chart.sdvx = sdvx
 	-- Keep the existing library identifier, but never use its directional columns for gameplay.
 	chart.inputMode = InputMode("4bt2fx2laserleft2laserright")
 	local layer = builder:createAbsoluteLayer()
@@ -25,17 +24,7 @@ function SdvxDecoder.decode(source, hash)
 		point._tempo = Tempo(tempo.bpm)
 		visual:getPoint(point)
 	end
-	for _, object in ipairs(sdvx.buttons) do
-		local column = object.lane <= 4 and "bt" .. object.lane or "fx" .. (object.lane - 4)
-		local note = Note(visual:getPoint(layer:getPoint(object.time)), column, object.kind == "chip" and "tap" or "hold")
-		note.weight = object.kind == "hold" and 1 or 0
-		chart.notes:insert(note)
-		if object.kind == "hold" then
-			local tail = Note(visual:getPoint(layer:getPoint(object.end_time)), column, "hold")
-			tail.weight = -1
-			chart.notes:insert(tail)
-		end
-	end
+	ModeNotes.write(chart, layer, visual, "sdvx", sdvx)
 	if sdvx.audio_path then
 		local volume = sdvx.options.mvol and assert(tonumber(sdvx.options.mvol)) / 100 or 1
 		assert(volume >= 0 and volume <= 10, "SDVX prototype: invalid music volume.")

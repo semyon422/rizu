@@ -41,11 +41,11 @@ Consolidate chart-related infrastructure — data model, format parsers, scoring
 
 ## Experimental Aim Data
 
-Native osu! Mode=0 decoding now carries a `chart.Chart.aim` DTO with source-order object positions/times/types/sounds and CS/AR/OD. `RefChart` and `Restorer` copy this data independently of column notes, preserving simultaneous objects. This is an additive in-memory/thread-snapshot contract, not a change to SPH or other persistent chart formats. The gameplay implementation accepts circles, sliders, and spinners; spinner end times and slider source geometry/timing inputs are preserved, with separate path/timing helpers described in [format/osu/spec.md](format/osu/spec.md). See [../rizu/gameplay/aim/spec.md](../rizu/gameplay/aim/spec.md).
+Native osu! Mode=0 decoding stores objects in ordinary chart notes, with geometry and sounds in `Note.data` and CS/AR/OD in `Chart.data`. `RefChart` and `Restorer` deeply copy both data fields. Separate visual points preserve simultaneous objects and their ordering. This is an additive in-memory/thread-snapshot contract, not a change to SPH or other persistent chart formats. The gameplay implementation accepts circles, sliders, and spinners; spinner end times and slider source geometry/timing inputs are preserved, with separate path/timing helpers described in [format/osu/spec.md](format/osu/spec.md). See [../rizu/gameplay/aim/spec.md](../rizu/gameplay/aim/spec.md).
 
 ## Experimental Catch Data
 
-Native Mode=2 charts additionally carry `chart.catch` with deterministic fruits, droplets, tiny droplets and bananas. It survives refchart worker snapshots independently of column notes. See [../rizu/gameplay/catch/spec.md](../rizu/gameplay/catch/spec.md) for prototype generation, input and replay contracts.
+Native Mode=2 charts store deterministic fruits, droplets, tiny droplets and bananas as ordinary notes with object-specific data, preserved by the common refchart path. See [../rizu/gameplay/catch/spec.md](../rizu/gameplay/catch/spec.md) for prototype generation, input and replay contracts.
 
 ## Migration Plan
 
@@ -70,4 +70,12 @@ Native Mode=2 charts additionally carry `chart.catch` with deterministic fruits,
 
 `sea.Chartmeta.mode` identifies decoded native mechanics: `mania` (column charts), `osu` (Aim), `taiko`, `catch`, or `sdvx`. File `format` and `inputmode` are independent. Existing Gamemode IDs 0/1/2 remain unchanged; Catch and SDVX append IDs 3/4. Decoders emit the field, including worker metadata snapshots. The explicit legacy KSH column decoder emits mania because it produces converted column data.
 
-`chart.model.NativeMode.get` selects from metadata and validates exactly the corresponding native DTO (or none for mania). Gameplay preparation and engine loading reject missing modes or mismatched DTOs rather than guessing. Attempt/difficulty mode remains separate; this change does not introduce cross-mode conversion or change replay formats.
+`chart.model.NativeMode.get` selects from metadata and validates native note types against that mode. Gameplay preparation and engine loading reject missing modes or mismatched note types rather than guessing. Attempt/difficulty mode remains separate; this change does not introduce cross-mode conversion or change replay formats.
+
+## Native Objects In The Common Note Model
+
+- `Chart.data` holds chart-wide parameters, never the playable object collections. `Note.data` holds each object's geometry, interval/checkpoint data and sounds. This is an in-memory/worker contract; SPH persistence and binary replay formats are unchanged.
+- `ModeNotes` bridges parser/rules DTOs to notes without storing parallel object arrays on Chart. Rule input arrays are ephemeral views of note data. Existing independent simulations are retained.
+- Native note types are mode-qualified (`osu:circle`, `taiko:roll`, `sdvx:button`, `sdvx:laser`, etc.), with weight zero. A compound object's complete interval belongs to its data, not an implicit column hold pair.
+- Every native object gets a fresh `Visual:newPoint`; coincident objects retain insertion order via `compare_index`, including after refchart restoration. No change to note identity or collection collision rules is needed.
+- Automatic chart audio excludes native playable notes when playable sounds are disabled, just as it excludes tap/hold sounds. Rules dispatch their hit feedback; ordinary sample notes still play automatically.

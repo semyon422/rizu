@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local Rules = require("rizu.gameplay.sdvx.Rules")
 local SdvxChart = require("chart.format.ksm.SdvxChart")
@@ -22,7 +23,8 @@ local source = [[t=120
 ---@return rizu.GameplaySession
 local function session()
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
-	res.chart.sdvx = SdvxChart(source)
+	ModeNotes.write(res.chart, res.chart.layers.main, res.chart.layers.main.visuals[""], "sdvx", SdvxChart(source))
+	res.chart:compute()
 	res.chartmeta.mode = "sdvx"
 	res.chartmeta.hash, res.chartmeta.index = ("a"):rep(32), 1
 	local re = RhythmEngine()

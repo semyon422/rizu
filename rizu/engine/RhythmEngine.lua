@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local NativeMode = require("chart.model.NativeMode")
 local SdvxRules = require("rizu.gameplay.sdvx.Rules")
 local TaikoRules = require("rizu.gameplay.taiko.Rules")
@@ -69,21 +70,21 @@ function RhythmEngine:load()
 	self.mode = NativeMode.get(chart, self.chartmeta)
 
 	if self.mode == "sdvx" then
-		self.sdvx_rules = SdvxRules(chart.sdvx)
+		self.sdvx_rules = SdvxRules(ModeNotes.read(chart, "sdvx"))
 		return
 	end
 	if self.mode == "taiko" then
-		self.taiko_rules = TaikoRules(chart.taiko)
+		self.taiko_rules = TaikoRules(ModeNotes.read(chart, "taiko"))
 		self.taiko_sound_index = 0
 		return
 	end
 	if self.mode == "catch" then
-		self.catch_rules = CatchRules(chart.catch)
+		self.catch_rules = CatchRules(ModeNotes.read(chart, "catch"))
 		self.catch_sound_index = 0
 		return
 	end
 	if self.mode == "osu" then
-		self.aim_rules = CircleRules(chart.aim, self.aim_stacking, self.aim_tracking)
+		self.aim_rules = CircleRules(ModeNotes.read(chart, "osu"), self.aim_stacking, self.aim_tracking)
 		self.aim_sound_index = 0
 		self.aim_result_sound_index = 0
 		return

@@ -21,7 +21,7 @@ Circles, sliders, and spinners can be played through ordinary Aim loading, with 
 
 ## Native Taiko
 
-Native Mode=1 decoding attaches `chart.taiko` and uses `1taiko` instead of the old `2key` metadata identifier. It preserves source-order colors, large-note flags and interval types through refchart workers. Existing library rows and competitive replays are not automatically migrated. See [../../../rizu/gameplay/taiko/spec.md](../../../rizu/gameplay/taiko/spec.md) for rules, limits, replay semantics and reindex implications.
+Native Mode=1 decoding stores Taiko objects as ordinary notes and uses `1taiko` instead of the old `2key` metadata identifier. It preserves source-order colors, large-note flags and interval types through refchart workers. Existing library rows and competitive replays are not automatically migrated. See [../../../rizu/gameplay/taiko/spec.md](../../../rizu/gameplay/taiko/spec.md) for rules, limits, replay semantics and reindex implications.
 
 ## Invariants
 

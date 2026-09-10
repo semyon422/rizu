@@ -316,6 +316,192 @@ The additional references were investigated through source code and selected tes
 
 Use external projects to study behavior. Before transferring code or resources, separately verify their license and provenance; this document does not assume implementation copying.
 
+## Implementation Review Checklist
+
+This inventory covers **12 commits and 131 unique files**, from `d537e024` through `c1d7a4ae` inclusive (base: `d537e024^`). It is the union of files touched by each commit, not just the final diff. It includes tests, specs, assets, compatibility fixes, and native-mode metadata/storage integration. Unrelated preceding commits, ignored research fixtures, and manual edits to `userdata/data.db` are excluded.
+
+The checklist records committed implementation, not proof that every requirement above is complete. All four prototypes exist; physical SDVX controller integration/verification remains outstanding. Earlier “Current Implementation And Gaps” observations describe the initial investigation.
+
+Review shared contracts and lifecycle first, then each decoder/mechanic/playfield together with its nearby tests. Check a box after reviewing the file; add questions or proposed corrections underneath its entry. `A` means added in this range; `M` means an existing file was modified. There are no deleted or renamed files in this range.
+
+### Files By Subsystem
+
+#### Shared chart model and worker transport (6)
+
+- [ ] chart/model/Chart.lua — **M**
+- [ ] chart/model/NativeMode.lua — **A**
+- [ ] chart/model/NativeMode_test.lua — **A**
+- [ ] chart/refchart/RefChart.lua — **M**
+- [ ] chart/refchart/Restorer.lua — **M**
+- [ ] chart/spec.md — **M**
+
+#### osu! decoding and shared geometry (15)
+
+- [ ] chart/format/osu/AimChart.lua — **A**
+- [ ] chart/format/osu/AimChart_test.lua — **A**
+- [ ] chart/format/osu/CatchChart.lua — **A**
+- [ ] chart/format/osu/CatchChart_test.lua — **A**
+- [ ] chart/format/osu/ChartDecoder.lua — **M**
+- [ ] chart/format/osu/RawOsu.lua — **M**
+- [ ] chart/format/osu/SliderPath.lua — **A**
+- [ ] chart/format/osu/SliderPath_test.lua — **A**
+- [ ] chart/format/osu/SliderSamples.lua — **A**
+- [ ] chart/format/osu/SliderSamples_test.lua — **A**
+- [ ] chart/format/osu/SliderTiming.lua — **A**
+- [ ] chart/format/osu/SliderTiming_test.lua — **A**
+- [ ] chart/format/osu/TaikoChart.lua — **A**
+- [ ] chart/format/osu/TaikoChart_test.lua — **A**
+- [ ] chart/format/osu/spec.md — **A**
+
+#### KSH decoding (6)
+
+- [ ] chart/format/ksm/ChartDecoder.lua — **M**
+- [ ] chart/format/ksm/SdvxChart.lua — **A**
+- [ ] chart/format/ksm/SdvxChart_test.lua — **A**
+- [ ] chart/format/ksm/SdvxDecoder.lua — **A**
+- [ ] chart/format/ksm/SdvxDecoder_test.lua — **A**
+- [ ] chart/format/ksm/spec.md — **A**
+
+#### Other decoders: native mode metadata (7)
+
+- [ ] chart/format/bms/ChartDecoder.lua — **M**
+- [ ] chart/format/iidx/ChartDecoder.lua — **M**
+- [ ] chart/format/midi/ChartDecoder.lua — **M**
+- [ ] chart/format/o2jam/ChartDecoder.lua — **M**
+- [ ] chart/format/quaver/ChartDecoder.lua — **M**
+- [ ] chart/format/sph/Metadata.lua — **M**
+- [ ] chart/format/stepmania/ChartDecoder.lua — **M**
+
+#### Aim mechanics and local replay storage (16)
+
+- [ ] rizu/gameplay/aim/CircleRules.lua — **A**
+- [ ] rizu/gameplay/aim/CircleRules_test.lua — **A**
+- [ ] rizu/gameplay/aim/Input.lua — **A**
+- [ ] rizu/gameplay/aim/Input_test.lua — **A**
+- [ ] rizu/gameplay/aim/Preparation.lua — **A**
+- [ ] rizu/gameplay/aim/ReplayStore.lua — **A**
+- [ ] rizu/gameplay/aim/ReplayStore_test.lua — **A**
+- [ ] rizu/gameplay/aim/Sliders.lua — **A**
+- [ ] rizu/gameplay/aim/Spinner.lua — **A**
+- [ ] rizu/gameplay/aim/Spinner_test.lua — **A**
+- [ ] rizu/gameplay/aim/Stacking.LICENSE — **A**
+- [ ] rizu/gameplay/aim/Stacking.lua — **A**
+- [ ] rizu/gameplay/aim/Stacking_test.lua — **A**
+- [ ] rizu/gameplay/aim/Tracking.lua — **A**
+- [ ] rizu/gameplay/aim/Tracking_test.lua — **A**
+- [ ] rizu/gameplay/aim/spec.md — **A**
+
+#### Catch mechanics (6)
+
+- [ ] rizu/gameplay/catch/Input.lua — **A**
+- [ ] rizu/gameplay/catch/Preparation.lua — **A**
+- [ ] rizu/gameplay/catch/Replay_test.lua — **A**
+- [ ] rizu/gameplay/catch/Rules.lua — **A**
+- [ ] rizu/gameplay/catch/Rules_test.lua — **A**
+- [ ] rizu/gameplay/catch/spec.md — **A**
+
+#### Taiko mechanics (6)
+
+- [ ] rizu/gameplay/taiko/Input.lua — **A**
+- [ ] rizu/gameplay/taiko/Preparation.lua — **A**
+- [ ] rizu/gameplay/taiko/Replay_test.lua — **A**
+- [ ] rizu/gameplay/taiko/Rules.lua — **A**
+- [ ] rizu/gameplay/taiko/Rules_test.lua — **A**
+- [ ] rizu/gameplay/taiko/spec.md — **A**
+
+#### SDVX mechanics and knob input (11)
+
+- [ ] rizu/gameplay/sdvx/ButtonRules.lua — **A**
+- [ ] rizu/gameplay/sdvx/ButtonRules_test.lua — **A**
+- [ ] rizu/gameplay/sdvx/Input.lua — **A**
+- [ ] rizu/gameplay/sdvx/Knob.lua — **A**
+- [ ] rizu/gameplay/sdvx/Laser.lua — **A**
+- [ ] rizu/gameplay/sdvx/Laser_test.lua — **A**
+- [ ] rizu/gameplay/sdvx/Preparation.lua — **A**
+- [ ] rizu/gameplay/sdvx/Replay_test.lua — **A**
+- [ ] rizu/gameplay/sdvx/Rules.lua — **A**
+- [ ] rizu/gameplay/sdvx/Rules_test.lua — **A**
+- [ ] rizu/gameplay/sdvx/spec.md — **A**
+
+#### Shared gameplay preparation, lifecycle, and result policy (9)
+
+- [ ] rizu/gameplay/GameplayChart.lua — **M**
+- [ ] rizu/gameplay/GameplayChart_test.lua — **M**
+- [ ] rizu/gameplay/GameplayInteractor.lua — **M**
+- [ ] rizu/gameplay/GameplayInteractor_test.lua — **M**
+- [ ] rizu/gameplay/GameplaySession.lua — **M**
+- [ ] rizu/gameplay/RhythmEngineLoader.lua — **M**
+- [ ] rizu/gameplay/ScoreSaver.lua — **M**
+- [ ] rizu/gameplay/modes/spec.md — **A**
+- [ ] rizu/gameplay/spec.md — **M**
+
+#### Engine, audio, and replay recording (7)
+
+- [ ] rizu/engine/RhythmEngine.lua — **M**
+- [ ] rizu/engine/audio/EmptyWave.lua — **A**
+- [ ] rizu/engine/audio/EmptyWave_test.lua — **A**
+- [ ] rizu/engine/audio/bass/Decoder.lua — **M**
+- [ ] rizu/engine/audio/bass/MixerSource.lua — **M**
+- [ ] rizu/engine/replay/ReplayRecorder.lua — **M**
+- [ ] rizu/engine/spec.md — **M**
+
+#### Library, import, and client migration (15)
+
+- [ ] rizu/library/Database.lua — **M**
+- [ ] rizu/library/NativeMode_test.lua — **A**
+- [ ] rizu/library/generators/ChartmetaGenerator.lua — **M**
+- [ ] rizu/library/generators/ChartmetaGenerator_test.lua — **M**
+- [ ] rizu/library/models/chartview_base.lua — **M**
+- [ ] rizu/library/models/located_chartfiles.lua — **M**
+- [ ] rizu/library/repos/ChartfilesRepo.lua — **M**
+- [ ] rizu/library/repos/ChartviewsRepo.lua — **M**
+- [ ] rizu/library/spec.md — **M**
+- [ ] rizu/library/sql/QueryFragments.lua — **M**
+- [ ] rizu/library/sql/migrate8.sql — **A**
+- [ ] rizu/library/tasks/DifficultyTask.lua — **M**
+- [ ] rizu/library/tasks/HashingTask.lua — **M**
+- [ ] rizu/library/tasks/HashingTask_test.lua — **M**
+- [ ] rizu/library/views.lua — **M**
+
+#### Selection and settings (5)
+
+- [ ] rizu/config/Settings.lua — **M**
+- [ ] rizu/select/ChartSelector_test.lua — **M**
+- [ ] rizu/select/SearchModel.lua — **M**
+- [ ] rizu/select/SearchModel_test.lua — **A**
+- [ ] rizu/select/spec.md — **M**
+
+#### Metadata contracts and server migration (7)
+
+- [ ] sea/chart/Chartmeta.lua — **M**
+- [ ] sea/chart/Gamemode.lua — **M**
+- [ ] sea/chart/TestChartFactory.lua — **M**
+- [ ] sea/storage/server/ServerSqliteDatabase.lua — **M**
+- [ ] sea/storage/server/migrations/11.sql — **A**
+- [ ] sea/storage/server/models/chartmetas.lua — **M**
+- [ ] sea/storage/shared/db.sql — **M**
+
+#### UI commands, labels, loading, and playfields (13)
+
+- [ ] ui/commands/UiSelectCommands.lua — **M**
+- [ ] ui/formatters/ChartviewFormatter.lua — **M**
+- [ ] ui/formatters/ChartviewFormatter_test.lua — **M**
+- [ ] ui/screens/chart_loading/ChartLoading.lua — **M**
+- [ ] ui/screens/chart_loading/LoadError.lua — **A**
+- [ ] ui/screens/chart_loading/LoadError_test.lua — **A**
+- [ ] ui/screens/gameplay/AimPlayfield.lua — **A**
+- [ ] ui/screens/gameplay/AimPlayfield_test.lua — **A**
+- [ ] ui/screens/gameplay/CatchPlayfield.lua — **A**
+- [ ] ui/screens/gameplay/Gameplay.lua — **M**
+- [ ] ui/screens/gameplay/Gameplay_test.lua — **M**
+- [ ] ui/screens/gameplay/SdvxPlayfield.lua — **A**
+- [ ] ui/screens/gameplay/TaikoPlayfield.lua — **A**
+
+#### Assets and provenance (2)
+
+- [ ] resources/aim/hitsounds/aim-slidertick.wav — **A**
+- [ ] resources/aim/spec.md — **A**
+
 ## Future Work and Open Questions
 
 - Approve the no-fail and local diagnostic summary proposal without chartplay; define minimal replay saving/playback UI.

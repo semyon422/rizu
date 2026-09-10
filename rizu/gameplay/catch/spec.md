@@ -11,7 +11,7 @@ Provide a playable native osu!catch prototype with deterministic derived objects
 
 ## Architecture Decisions
 
-- Native Mode=2 decoding attaches `chart.catch`, a plain source-order-derived DTO preserved through RefChart/Restorer. The existing native osu source reader and bounded slider path/timing helpers are reused; Mode=0 charts are not converted into Catch.
+- Native Mode=2 decoding stores each derived object as a note, with mechanic parameters in `Chart.data`; both use common RefChart/Restorer transport. The existing native osu source reader and bounded slider path/timing helpers are reused; Mode=0 charts are not converted into Catch.
 - Circles become fruits. Slider heads/repeats/tails become fruits, ticks become droplets; gaps are subdivided in powers of two until <=100 ms, yielding tiny droplets. Spinners generate banana showers at a similarly subdivided interval, with deterministic Park–Miller positions seeded at 1337 per chart. Generation is capped at 100000 objects. This is a prototype, not exact stable/lazer RNG/jitter compatibility.
 - Catch rules are independent of Aim scoring/rules, while reusing shared clock/audio/session and queued-input-before-update scheduling. UI and interactor currently reuse the experimental summary/replay helpers with their historical Aim names; explicit Catch flags select mechanics and persistence.
 - Walk/dash speeds are 500/1000 chart units per chart second. Catch half-width is `(54.4 - 4.48 * CS) * 0.8`; fall preempt follows AR. A catch tests object centre within that horizontal width at its timestamp.

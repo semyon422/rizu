@@ -53,4 +53,21 @@ function test.basic(t)
 	})
 end
 
+---@param t testing.T
+function test.type_punctuation_does_not_determine_playability(t)
+	local chart = get_chart("1000 =0 :01 .50\n0100 =1 :01 .50\n")
+	chart.notes.notes[2].data.sounds = nil
+	local note = chart.notes.notes[1]
+	note.type = "custom:sample"
+	local audio = ChartAudio()
+	audio:load(chart)
+	t:eq(#audio.sounds, 1)
+	note.type = "osu:circle"
+	audio = ChartAudio()
+	audio:load(chart)
+	t:eq(#audio.sounds, 0)
+	audio:load(chart, true)
+	t:eq(#audio.sounds, 1)
+end
+
 return test

@@ -5,10 +5,7 @@ local Note = require("chart.refchart.Note")
 
 ---@class refchart.RefChart
 ---@operator call: refchart.RefChart
----@field sdvx chart.ksm.SdvxChart?
----@field taiko chart.osu.TaikoChart?
----@field catch chart.osu.CatchChart?
----@field aim chart.osu.AimChart?
+---@field data table Chart-wide mechanic parameters, without object collections.
 ---@field inputmode {[string]: integer}
 ---@field layers {[string]: refchart.Layer}
 ---@field notes refchart.Note[]
@@ -18,10 +15,7 @@ local RefChart = class()
 ---@param chart chart.Chart
 function RefChart:new(chart)
 	self.inputmode = table_util.copy(chart.inputMode)
-	self.sdvx = chart.sdvx and table_util.deepcopy(chart.sdvx)
-	self.taiko = chart.taiko and table_util.deepcopy(chart.taiko)
-	self.catch = chart.catch and table_util.deepcopy(chart.catch)
-	self.aim = chart.aim and table_util.deepcopy(chart.aim)
+	self.data = table_util.deepcopy(chart.data)
 
 	---@type {[chart.VisualPoint]: refchart.VisualPointReference}
 	local vp_ref = {}

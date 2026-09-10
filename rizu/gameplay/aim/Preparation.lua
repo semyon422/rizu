@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local SliderSamples = require("chart.format.osu.SliderSamples")
 local Tracking = require("rizu.gameplay.aim.Tracking")
 local Stacking = require("rizu.gameplay.aim.Stacking")
@@ -15,7 +16,7 @@ function Preparation.compute(ctx, replay_base)
 	assert(replay_base.rate >= 0.25 and replay_base.rate <= 4,
 		"Aim prototype supports playback rates from 0.25x to 4x only.")
 	local chart = assert(ctx.chart)
-	local aim = assert(chart.aim)
+	local aim = ModeNotes.read(chart, "osu")
 	local ok, err = AimChart.isSupported(aim)
 	assert(ok, err)
 	assert(#replay_base.modifiers == 0 and not replay_base.tap_only, "Aim prototype does not support chart modifiers.")

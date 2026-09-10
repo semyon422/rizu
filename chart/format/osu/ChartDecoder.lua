@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local TaikoChart = require("chart.format.osu.TaikoChart")
 local CatchChart = require("chart.format.osu.CatchChart")
 local AimChart = require("chart.format.osu.AimChart")
@@ -65,7 +66,12 @@ function ChartDecoder:decodeOsu(osu)
 
 	self:decodeTempos()
 	self:decodeVelocities()
-	self:decodeNotes()
+	if tonumber(osu.rawOsu.General.Mode) == 3 then self:decodeNotes() end
+	for _, proto in ipairs(osu.protoNotes) do
+		for _, sound in ipairs(proto.sounds) do
+			chart.resources:add("sound", sound.name, sound.fallback_name)
+		end
+	end
 	self:decodeSamples()
 	self:decodeBarlines()
 
@@ -74,13 +80,13 @@ function ChartDecoder:decodeOsu(osu)
 	local mode = tonumber(self.osu.rawOsu.General.Mode)
 	if mode == 0 then
 		chart.inputMode = InputMode({osu = 1})
-		chart.aim = AimChart(osu)
+		ModeNotes.write(chart, layer, visual, "osu", AimChart(osu))
 	elseif mode == 1 then
 		chart.inputMode = InputMode({taiko = 1})
-		chart.taiko = TaikoChart(osu)
+		ModeNotes.write(chart, layer, visual, "taiko", TaikoChart(osu))
 	elseif mode == 2 then
 		chart.inputMode = InputMode({fruits = 1})
-		chart.catch = CatchChart(osu)
+		ModeNotes.write(chart, layer, visual, "catch", CatchChart(osu))
 	elseif mode == 3 then
 		chart.inputMode = InputMode({key = osu.keymode})
 	end

@@ -14,7 +14,7 @@ Implement native osu! circles, sliders, and spinners, manual input, autoplay, an
 
 ## Architecture Decisions
 
-- `chart.osu.AimChart` preserves source-order objects and CS/AR/OD alongside `chart.Chart.aim`. It is copied through `RefChart`/`Restorer`, independently of column-note identity, so simultaneous circles cannot overwrite each other.
+- `chart.osu.AimChart` is a parser DTO. Decoding stores each object in `Note.data` and chart parameters in `Chart.data`. Distinct `Visual:newPoint` instances preserve coincident objects through the common RefChart/Restorer path.
 - The object DTO preserves circle position/time/type/sounds plus slider source geometry/timing inputs and spinner end times. Separate bounded `SliderPath` and `SliderTiming` helpers feed both gameplay and rendering. See [../../../chart/format/osu/spec.md](../../../chart/format/osu/spec.md). Missing AR uses OD. Settings outside 0–10 are rejected for this prototype.
 - Gameplay worker decoding returns both parser failures and thrown decode/index errors as `{error = string}`. The caller raises the diagnostic on the main coroutine so ChartLoading can display it; decode errors must not escape as fatal thread errors.
 - `Preparation` computes session bounds without running mania modifiers/difficulty. These bounds are not a persisted/validated competitive chartdiff. Library hashing and difficulty tasks skip mania difficulty creation for native Aim. Existing cached mania-derived values are not migrated or deleted.

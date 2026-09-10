@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local Rules = require("rizu.gameplay.taiko.Rules")
 local Input = require("rizu.gameplay.taiko.Input")
 local RhythmEngine = require("rizu.engine.RhythmEngine")
@@ -22,7 +23,8 @@ end
 ---@return rizu.GameplaySession
 local function session()
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
-	res.chart.taiko = chart()
+	ModeNotes.write(res.chart, res.chart.layers.main, res.chart.layers.main.visuals[""], "taiko", chart())
+	res.chart:compute()
 	res.chartmeta.mode = "taiko"
 	res.chartmeta.hash, res.chartmeta.index = ("a"):rep(32), 1
 	local engine = RhythmEngine()

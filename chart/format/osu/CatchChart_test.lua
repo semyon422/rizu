@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local ChartDecoder = require("chart.format.osu.ChartDecoder")
 local RefChart = require("chart.refchart.RefChart")
 local Restorer = require("chart.refchart.Restorer")
@@ -22,12 +23,12 @@ SliderTickRate:1
 ---@param t testing.T
 function test.native_objects_and_deterministic_showers_survive_snapshot(t)
 	local chart = ChartDecoder():decode(data)[1].chart
-	t:eq(chart.aim, nil)
+	t:eq(#ModeNotes.read(chart, "osu").objects, 0)
 	t:eq(tostring(chart.inputMode), "1fruits")
-	t:tdeq(chart.catch, ChartDecoder():decode(data)[1].chart.catch)
+	t:tdeq(ModeNotes.read(chart, "catch"), ModeNotes.read(ChartDecoder():decode(data)[1].chart, "catch"))
 	local counts = {fruit = 0, droplet = 0, tiny = 0, banana = 0}
 	local time = -math.huge
-	for _, object in ipairs(chart.catch.objects) do
+	for _, object in ipairs(ModeNotes.read(chart, "catch").objects) do
 		counts[object.kind] = counts[object.kind] + 1
 		t:assert(object.time >= time)
 		t:assert(object.x >= 0 and object.x <= 512)
@@ -37,7 +38,7 @@ function test.native_objects_and_deterministic_showers_survive_snapshot(t)
 	t:eq(counts.droplet, 2)
 	t:eq(counts.tiny, 28)
 	t:eq(counts.banana, 17)
-	t:tdeq(Restorer():restore(RefChart(chart)).catch, chart.catch)
+	t:tdeq(ModeNotes.read(Restorer():restore(RefChart(chart)), "catch"), ModeNotes.read(chart, "catch"))
 end
 
 return test

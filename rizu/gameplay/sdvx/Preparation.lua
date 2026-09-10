@@ -1,3 +1,4 @@
+local ModeNotes = require("chart.model.ModeNotes")
 local Chartdiff = require("sea.chart.Chartdiff")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
@@ -11,7 +12,7 @@ function Preparation.compute(ctx, base)
 	assert(base.rate >= 0.25 and base.rate <= 4, "SDVX prototype: supported rates are 0.25x–4x.")
 	assert(#base.modifiers == 0 and not base.tap_only and not base.columns_order, "SDVX prototype: modifiers/reordering are unsupported.")
 	local chart = assert(ctx.chart)
-	local sdvx = assert(chart.sdvx)
+	local sdvx = ModeNotes.read(chart, "sdvx")
 	Rules(sdvx) -- Validate bounded simulation before entering gameplay.
 	local bounds = Chartdiff()
 	bounds.mode, bounds.rate, bounds.inputmode = "sdvx", base.rate, tostring(chart.inputMode)

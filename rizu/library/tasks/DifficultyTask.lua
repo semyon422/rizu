@@ -49,7 +49,8 @@ function DifficultyTask:computeMissing()
 		end
 		
 		local chart = charts_data[data.index]
-		if chart.aim or chart.catch or chart.taiko or chart.sdvx then
+		local chartmeta = assert(self.chartsRepo:getChartmetaByHashIndex(data.hash, data.index))
+		if chartmeta.mode ~= "mania" then
 			return data.hash
 		end
 		chart.layers.main:toAbsolute()

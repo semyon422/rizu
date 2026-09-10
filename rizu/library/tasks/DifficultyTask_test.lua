@@ -106,7 +106,7 @@ function test.cancellation(t)
 	end
 
 	context.getChartsByHash = function()
-		return {{index = 1, layers = {main = {toAbsolute = function() end}}, inputMode = "4key"}}
+		return {tcf:create("4key", {{time = 0, column = 1}}).chart}
 	end
 
 	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
