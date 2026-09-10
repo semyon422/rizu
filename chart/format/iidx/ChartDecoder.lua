@@ -410,6 +410,7 @@ end
 ---@return sea.Chartmeta
 function ChartDecoder:getChartmeta(index, song_id, song, variation, chart)
 	local chartmeta = {
+		mode = "mania",
 		hash = self.hash,
 		index = index,
 		format = "iidx",

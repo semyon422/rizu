@@ -14,7 +14,9 @@ function Preparation.compute(ctx, base)
 	local objects = catch.objects
 	assert(#objects > 0, "Catch prototype: empty chart.")
 	local bounds = Chartdiff()
-	bounds.mode, bounds.rate, bounds.inputmode = "fruits", base.rate, "1fruits"
+	local chartmeta = assert(ctx.chartmeta)
+	assert(chartmeta.mode == "catch", "Catch preparation requires native Catch metadata.")
+	bounds.mode, bounds.rate, bounds.inputmode = chartmeta.mode, base.rate, "1fruits"
 	bounds.start_time = objects[1].time
 	bounds.duration = objects[#objects].time - bounds.start_time
 	ctx.chartdiff = bounds

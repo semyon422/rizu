@@ -103,6 +103,7 @@ function ChartDecoder:getChartmeta()
 	local options = ksh.options
 
 	local chartmeta = {
+		mode = "mania", -- Explicit legacy directional-column conversion.
 		hash = self.hash,
 		index = 1,
 		format = "ksm",

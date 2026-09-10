@@ -105,7 +105,7 @@ end
 function ChartfilesRepo:selectUnhashedChartfiles(path, location_id, set_id)
 	assert(not (path and set_id))
 	return self.models.located_chartfiles:select({
-		{"or", hash__isnull = true, chartmeta_id__isnull = true},
+		{"or", hash__isnull = true, chartmeta_id__isnull = true, chartmeta_mode__isnull = true},
 		set_id = set_id,
 		set_dir__startswith = path,
 		location_id = assert(location_id),

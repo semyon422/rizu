@@ -106,6 +106,7 @@ function ChartDecoder:getChartmeta()
 	end
 
 	local chartmeta = {
+		mode = assert(({[0] = "osu", [1] = "taiko", [2] = "catch", [3] = "mania"})[tonumber(general.Mode)], "Invalid osu mode"),
 		hash = self.hash,
 		index = 1,
 		format = "osu",

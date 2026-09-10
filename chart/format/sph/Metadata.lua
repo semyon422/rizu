@@ -101,6 +101,7 @@ end
 ---@return table
 function Metadata:toChartmeta()
 	local chartmeta = {
+		mode = "mania",
 		format = "sphere",
 		title = self.data.title,
 		artist = self.data.artist,

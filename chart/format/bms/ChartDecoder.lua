@@ -165,6 +165,7 @@ function ChartDecoder:getChartmeta()
 	local title, name = splitTitle(header["TITLE"])
 
 	local chartmeta = {
+		mode = "mania",
 		hash = self.hash,
 		index = 1,
 		format = "bms",

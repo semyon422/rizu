@@ -26,7 +26,8 @@ function ChartmetaGenerator:generate(chartfile, content, not_reuse, context)
 
 	local hash = digest.hash("md5", content, true)
 
-	if not not_reuse and chartsRepo:getChartmetaByHashIndex(hash, 1) then
+	local existing = chartsRepo:getChartmetaByHashIndex(hash, 1)
+	if not not_reuse and existing and existing.mode then
 		chartfile.hash = hash
 		chartfilesRepo:updateChartfile(chartfile)
 		return "reused"

@@ -1,3 +1,4 @@
+local NativeMode = require("chart.model.NativeMode")
 local SdvxPreparation = require("rizu.gameplay.sdvx.Preparation")
 local TaikoPreparation = require("rizu.gameplay.taiko.Preparation")
 local CatchPreparation = require("rizu.gameplay.catch.Preparation")
@@ -94,6 +95,7 @@ local prepare_async = thread.async(prepare)
 ---@param gameplay_config rizu.GameplayChartConfig
 ---@return rizu.GameplayChartComputeResult|{error: string}
 function GameplayChart.compute(chartview_data, data, context, replay_base_data, gameplay_config)
+	local NativeModeAsync = require("chart.model.NativeMode")
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local RefChartAsync = require("chart.refchart.RefChart")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
@@ -120,16 +122,18 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 		return {error = assert(decode_error)}
 	end
 
-	if compute_context.chart.sdvx then
+	local mode_ok, mode = pcall(NativeModeAsync.get, compute_context.chart, compute_context.chartmeta)
+	if not mode_ok then return {error = tostring(mode)} end
+	if mode == "sdvx" then
 		local prepared, err = pcall(SdvxPreparationAsync.compute, compute_context, replay_base)
 		if not prepared then return {error = tostring(err)} end
-	elseif compute_context.chart.taiko then
+	elseif mode == "taiko" then
 		local prepared, err = pcall(TaikoPreparationAsync.compute, compute_context, replay_base)
 		if not prepared then return {error = tostring(err)} end
-	elseif compute_context.chart.catch then
+	elseif mode == "catch" then
 		local prepared, err = pcall(CatchPreparationAsync.compute, compute_context, replay_base)
 		if not prepared then return {error = tostring(err)} end
-	elseif compute_context.chart.aim then
+	elseif mode == "osu" then
 		local ok, err = pcall(AimPreparationAsync.compute, compute_context, replay_base)
 		if not ok then
 			return {error = tostring(err)}
@@ -164,19 +168,20 @@ local compute_async = thread.async(GameplayChart.compute)
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
-	if ctx.chart.sdvx then
+	local mode = NativeMode.get(ctx.chart, ctx.chartmeta)
+	if mode == "sdvx" then
 		SdvxPreparation.compute(ctx, replayBase)
 		return
 	end
-	if ctx.chart.taiko then
+	if mode == "taiko" then
 		TaikoPreparation.compute(ctx, replayBase)
 		return
 	end
-	if ctx.chart.catch then
+	if mode == "catch" then
 		CatchPreparation.compute(ctx, replayBase)
 		return
 	end
-	if ctx.chart.aim then
+	if mode == "osu" then
 		AimPreparation.compute(ctx, replayBase)
 		return
 	end

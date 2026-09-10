@@ -5,7 +5,7 @@ local QueryFragments = require("rizu.library.sql.QueryFragments")
 local located_chartfiles = {}
 
 located_chartfiles.subquery = "SELECT "
-	.. "chartmetas.id AS chartmeta_id, "
+	.. "chartmetas.id AS chartmeta_id, chartmetas.mode AS chartmeta_mode, "
 	.. QueryFragments.FIELDS_CHARTFILE_SET .. ", "
 	.. "chartfiles.name AS chartfile_name, "
 	.. [[

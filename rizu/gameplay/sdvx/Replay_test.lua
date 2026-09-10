@@ -23,6 +23,7 @@ local source = [[t=120
 local function session()
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
 	res.chart.sdvx = SdvxChart(source)
+	res.chartmeta.mode = "sdvx"
 	res.chartmeta.hash, res.chartmeta.index = ("a"):rep(32), 1
 	local re = RhythmEngine()
 	re:setChart(res.chart, res.chartmeta, res.chartdiff)

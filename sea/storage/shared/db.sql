@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `chartmetas` (
 	`index` INTEGER NOT NULL,
 
 	`inputmode` TEXT NOT NULL,
+	`mode` INTEGER,
 	`format` INTEGER NOT NULL,
 	`timings` INTEGER,
 	`healths` INTEGER,
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS `chartmetas` (
 CREATE INDEX IF NOT EXISTS chartmetas_hash_idx ON chartmetas (`hash`);
 CREATE UNIQUE INDEX IF NOT EXISTS chartmetas_hash_index_idx ON chartmetas (`hash`, `index`);
 CREATE INDEX IF NOT EXISTS chartmetas_inputmode_idx ON chartmetas (`inputmode`);
+CREATE INDEX IF NOT EXISTS chartmetas_mode_idx ON chartmetas (`mode`);
 CREATE INDEX IF NOT EXISTS chartmetas_title_idx ON chartmetas (`title`);
 CREATE INDEX IF NOT EXISTS chartmetas_artist_idx ON chartmetas (`artist`);
 CREATE INDEX IF NOT EXISTS chartmetas_level_idx ON chartmetas (`level`);

@@ -87,6 +87,7 @@ function ChartDecoder:getChartmeta(index)
 	local ojn = self.ojn
 
 	local chartmeta = {
+		mode = "mania",
 		hash = self.hash,
 		index = index,
 		format = "o2jam",

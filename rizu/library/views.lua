@@ -52,6 +52,7 @@
 
 ---@class rizu.library.ChartviewMetaFields
 ---@field index integer
+---@field chartmeta_mode sea.Gamemode? Native chart mode; nil for unresolved legacy cache rows.
 ---@field inputmode string
 ---@field format sea.ChartFormat
 ---@field chartmeta_timings sea.Timings?

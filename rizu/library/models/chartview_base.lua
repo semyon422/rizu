@@ -25,6 +25,7 @@ chartview_base.types = {
 	nearest = "boolean",
 	pass = "boolean",
 	mode = Gamemode,
+	chartmeta_mode = Gamemode,
 	custom = "boolean",
 	columns_order = IntegerArrayOptional,
 	modifiers = Modifiers,

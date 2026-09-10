@@ -74,6 +74,7 @@ function ChartDecoder:getChartmeta()
 	local mid = self.mid
 
 	local chartmeta = {
+		mode = "mania",
 		hash = self.hash,
 		index = 1,
 		format = "midi",

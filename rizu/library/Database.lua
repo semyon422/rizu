@@ -10,7 +10,7 @@ local autoload = require("autoload")
 ---@operator call: rizu.library.Database
 local Database = class()
 
-local user_version = 7
+local user_version = 8
 
 ---@param fs fs.IFilesystem
 ---@param migrations table?

@@ -18,6 +18,7 @@ local TestChartFactory = class()
 ---@return sea.Chartmeta
 function TestChartFactory:createChartmeta(data)
 	local chartmeta = Chartmeta()
+	chartmeta.mode = data and data.mode or "mania"
 	chartmeta.id = data and (data.id or data.chartmeta_id)
 	chartmeta.hash = data and data.hash or ""
 	chartmeta.index = data and data.index or 1

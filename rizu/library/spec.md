@@ -191,3 +191,9 @@ Ordinary KSH decoding now preserves native BT/FX and laser geometry for experime
 
 ### Types and Coroutines
 - **Model typing**: Add stronger annotations for library models where LuaLS currently sees broad or unknown shapes.
+
+## Native Mode Migration
+
+Client schema 8 and server schema 11 add nullable `chartmetas.mode`. New decoded metadata always supplies it. Chart views expose native identity as `chartmeta_mode`; existing `mode` still belongs to chartdiff/attempt data. UI labels and local replay selection use native identity.
+
+Migrations backfill known input identifiers and KSH format without changing hashes, scores, or replay data. Historical osu 2key rows remain NULL because they can be native mania or legacy Taiko. Normal scanning selects unresolved rows and re-reads source files instead of reusing their metadata. Missing sources stay unresolved; server rows require source recomputation to resolve them. No production configuration fields change; database migrations must run before querying the new column.

@@ -2,6 +2,7 @@ local table_util = require("table_util")
 local valid = require("valid")
 local types = require("sea.shared.types")
 local chart_types = require("sea.chart.types")
+local Gamemode = require("sea.chart.Gamemode")
 local ChartFormat = require("sea.chart.ChartFormat")
 local ChartmetaKey = require("sea.chart.ChartmetaKey")
 
@@ -16,6 +17,7 @@ local ChartmetaKey = require("sea.chart.ChartmetaKey")
 ---@field offset number
 --- ChartmetaKey
 --- COMPUTED
+---@field mode sea.Gamemode? Native mechanics; nil only for legacy metadata awaiting source re-read.
 ---@field inputmode string
 ---@field format sea.ChartFormat
 ---@field timings sea.Timings?
@@ -44,6 +46,7 @@ local Chartmeta = ChartmetaKey + {}
 local text = types.description
 
 Chartmeta.struct = {
+	mode = valid.optional(types.new_enum(Gamemode)),
 	format = types.new_enum(ChartFormat),
 	inputmode = chart_types.inputmode,
 	timings = valid.optional(chart_types.timings),
@@ -70,7 +73,7 @@ Chartmeta.struct = {
 }
 table_util.copy(ChartmetaKey.struct, Chartmeta.struct)
 
-assert(#table_util.keys(Chartmeta.struct) == 25)
+assert(#table_util.keys(Chartmeta.struct) == 26)
 
 local validate_chartmeta = valid.struct(Chartmeta.struct)
 

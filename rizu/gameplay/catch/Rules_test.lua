@@ -54,6 +54,7 @@ function test.recorded_actions_replay_at_different_frame_rates(t)
 	local function session()
 		local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
 		res.chart.catch = chart()
+		res.chartmeta.mode = "catch"
 		local re = RhythmEngine()
 		re:setChart(res.chart, res.chartmeta, res.chartdiff)
 		re:load(); re:setInputOffset(0.031); re:setRate(1.5); re:setPlayTime(0, 4); re:setGlobalTime(0); re:setTime(-1); re:play()

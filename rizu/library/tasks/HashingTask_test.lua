@@ -141,7 +141,7 @@ function test.aim_import_does_not_create_mania_difficulty(t)
 	fs:write("charts/circles.osu", "fixture")
 	local context = FakeTaskContext()
 	local task = HashingTask(fs, {
-		generate = function() return true, {{chart = {aim = {}}}} end,
+		generate = function() return true, {{chart = {aim = {}}, chartmeta = {mode = "osu"}}} end,
 	}, {
 		create = function() error("Aim must not create a mania chartdiff") end,
 	}, context)

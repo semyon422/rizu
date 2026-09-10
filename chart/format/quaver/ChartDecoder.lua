@@ -80,6 +80,7 @@ function ChartDecoder:getChartmeta()
 	local qua = self.qua
 
 	local chartmeta = {
+		mode = "mania",
 		hash = self.hash,
 		index = 1,
 		format = "quaver",

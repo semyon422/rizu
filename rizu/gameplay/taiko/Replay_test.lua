@@ -23,6 +23,7 @@ end
 local function session()
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
 	res.chart.taiko = chart()
+	res.chartmeta.mode = "taiko"
 	res.chartmeta.hash, res.chartmeta.index = ("a"):rep(32), 1
 	local engine = RhythmEngine()
 	engine:setChart(res.chart, res.chartmeta, res.chartdiff)

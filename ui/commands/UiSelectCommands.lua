@@ -37,7 +37,7 @@ return function(game, ui)
 			description = "Plays the latest diagnostic circle-only Aim replay for the selected chart",
 			callback = function()
 				local view = game.chartSelector.chartview
-				if view and view.inputmode == "1osu" then
+				if view and view.chartmeta_mode == "osu" then
 					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index)
 					if ok then
 						ui:setScreen(ui.chart_loading)
@@ -54,7 +54,7 @@ return function(game, ui)
 			description = "Plays the latest local Catch attempt",
 			callback = function()
 				local view = game.chartSelector.chartview
-				if view and view.inputmode == "1fruits" then
+				if view and view.chartmeta_mode == "catch" then
 					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, true)
 					if not ok then ui.chart_loading:showError(err) end
 					ui:setScreen(ui.chart_loading)
@@ -67,7 +67,7 @@ return function(game, ui)
 			description = "Plays the latest local native Taiko attempt",
 			callback = function()
 				local view = game.chartSelector.chartview
-				if view and (view.inputmode == "1taiko" or view.inputmode == "2key" and view.format == "osu") then
+				if view and view.chartmeta_mode == "taiko" then
 					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, "taiko")
 					if not ok then ui.chart_loading:showError(err) end
 					ui:setScreen(ui.chart_loading)
@@ -80,7 +80,7 @@ return function(game, ui)
 			description = "Plays the latest native KSH attempt",
 			callback = function()
 				local view = game.chartSelector.chartview
-				if view and view.format == "ksm" then
+				if view and view.chartmeta_mode == "sdvx" then
 					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, "sdvx")
 					if not ok then ui.chart_loading:showError(err) end
 					ui:setScreen(ui.chart_loading)

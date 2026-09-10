@@ -42,6 +42,7 @@ function test.all(t)
 		local meta = {
 			hash = hash, 
 			index = 1,
+			mode = "mania",
 			inputmode = "4key",
 			format = "sphere",
 			title = "test",

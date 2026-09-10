@@ -279,7 +279,7 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 	local base_columns = {
 		"location_id", "set_is_file", "set_dir", "set_name", "set_modified_at",
 		"chartfile_name", "modified_at", "hash",
-		"`index`", "inputmode", "format", "chartmeta_timings", "chartmeta_healths",
+		"`index`", "inputmode", "format", "chartmeta_mode", "chartmeta_timings", "chartmeta_healths",
 		"title", "title_unicode", "artist", "artist_unicode", "name", "creator",
 		"level", "source", "tags", "audio_path", "audio_offset", "background_path",
 		"preview_time", "osu_beatmap_id", "osu_beatmapset_id",
@@ -306,7 +306,7 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 			"chartfile_name",
 			level >= LEVELS.chartfiles and "modified_at" or "MAX(modified_at) AS modified_at",
 			"hash",
-			"`index`", "inputmode", "format", "chartmeta_timings", "chartmeta_healths",
+			"`index`", "inputmode", "format", "chartmeta_mode", "chartmeta_timings", "chartmeta_healths",
 			"title", "title_unicode", "artist", "artist_unicode", "name", "creator",
 			level >= LEVELS.chartmetas and "level" or "MAX(level) AS level",
 			"source", "tags", "audio_path", "audio_offset", "background_path",

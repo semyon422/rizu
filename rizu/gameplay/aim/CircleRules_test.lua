@@ -57,6 +57,7 @@ end
 local function session(offset, rate, aim)
 	local res = TestChartFactory():create("4key", {{time = 1, column = 1}})
 	res.chart.aim = aim or chart()
+	res.chartmeta.mode = "osu"
 	local re = RhythmEngine()
 	re:setChart(res.chart, res.chartmeta, res.chartdiff)
 	re:load()

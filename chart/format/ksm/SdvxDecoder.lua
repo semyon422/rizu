@@ -43,6 +43,7 @@ function SdvxDecoder.decode(source, hash)
 	end
 	chart:compute()
 	local meta = Chartmeta()
+	meta.mode = "sdvx"
 	meta.hash, meta.index, meta.format = hash, 1, "ksm"
 	meta.title, meta.artist, meta.creator = sdvx.options.title, sdvx.options.artist, sdvx.options.effect
 	meta.name, meta.level = sdvx.options.difficulty, tonumber(sdvx.options.level)

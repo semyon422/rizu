@@ -109,6 +109,7 @@ function ChartDecoder:getChartmeta(index)
 	local header = sm.header
 
 	local chartmeta = {
+		mode = "mania",
 		hash = self.hash,
 		index = index,
 		format = "stepmania",

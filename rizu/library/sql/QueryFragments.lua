@@ -33,6 +33,7 @@ chartfiles.hash
 
 QueryFragments.FIELDS_CHARTMETA = [[
 chartmetas.`index`,
+chartmetas.mode AS chartmeta_mode,
 chartmetas.inputmode,
 chartmetas.format,
 chartmetas.timings AS chartmeta_timings,
