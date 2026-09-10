@@ -1,5 +1,4 @@
 local ModeNotes = require("chart.model.ModeNotes")
-local NativeMode = require("chart.model.NativeMode")
 local SdvxRules = require("rizu.gameplay.sdvx.Rules")
 local TaikoRules = require("rizu.gameplay.taiko.Rules")
 local CatchRules = require("rizu.gameplay.catch.Rules")
@@ -67,7 +66,7 @@ end
 
 function RhythmEngine:load()
 	local chart = self.chart
-	self.mode = NativeMode.get(chart, self.chartmeta)
+	self.mode = self.chartmeta.mode
 
 	if self.mode == "sdvx" then
 		self.sdvx_rules = SdvxRules(ModeNotes.read(chart, "sdvx"))

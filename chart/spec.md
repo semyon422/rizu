@@ -70,7 +70,7 @@ Native Mode=2 charts store deterministic fruits, droplets, tiny droplets and ban
 
 `sea.Chartmeta.mode` identifies decoded native mechanics: `mania` (column charts), `osu` (Aim), `taiko`, `catch`, or `sdvx`. File `format` and `inputmode` are independent. Existing Gamemode IDs 0/1/2 remain unchanged; Catch and SDVX append IDs 3/4. Decoders emit the field, including worker metadata snapshots. The explicit legacy KSH column decoder emits mania because it produces converted column data.
 
-`chart.model.NativeMode.get` selects from metadata and validates native note types against that mode. Gameplay preparation and engine loading reject missing modes or mismatched note types rather than guessing. Attempt/difficulty mode remains separate; this change does not introduce cross-mode conversion or change replay formats.
+Gameplay reads `chartmeta.mode` directly. Preparation calls `ModeNotes.validate` to reject missing modes or mismatched native note types rather than guessing. Attempt/difficulty mode remains separate; this change does not introduce cross-mode conversion or change replay formats.
 
 ## Native Objects In The Common Note Model
 

@@ -1,4 +1,4 @@
-local NativeMode = require("chart.model.NativeMode")
+local ModeNotes = require("chart.model.ModeNotes")
 local SdvxPreparation = require("rizu.gameplay.sdvx.Preparation")
 local TaikoPreparation = require("rizu.gameplay.taiko.Preparation")
 local CatchPreparation = require("rizu.gameplay.catch.Preparation")
@@ -95,7 +95,7 @@ local prepare_async = thread.async(prepare)
 ---@param gameplay_config rizu.GameplayChartConfig
 ---@return rizu.GameplayChartComputeResult|{error: string}
 function GameplayChart.compute(chartview_data, data, context, replay_base_data, gameplay_config)
-	local NativeModeAsync = require("chart.model.NativeMode")
+	local ModeNotesAsync = require("chart.model.ModeNotes")
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local RefChartAsync = require("chart.refchart.RefChart")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
@@ -122,8 +122,9 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 		return {error = assert(decode_error)}
 	end
 
-	local mode_ok, mode = pcall(NativeModeAsync.get, compute_context.chart, compute_context.chartmeta)
-	if not mode_ok then return {error = tostring(mode)} end
+	local mode = compute_context.chartmeta.mode
+	local mode_ok, mode_error = pcall(ModeNotesAsync.validate, compute_context.chart, mode)
+	if not mode_ok then return {error = tostring(mode_error)} end
 	if mode == "sdvx" then
 		local prepared, err = pcall(SdvxPreparationAsync.compute, compute_context, replay_base)
 		if not prepared then return {error = tostring(err)} end
@@ -168,7 +169,8 @@ local compute_async = thread.async(GameplayChart.compute)
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
-	local mode = NativeMode.get(ctx.chart, ctx.chartmeta)
+	local mode = ctx.chartmeta.mode
+	ModeNotes.validate(ctx.chart, mode)
 	if mode == "sdvx" then
 		SdvxPreparation.compute(ctx, replayBase)
 		return

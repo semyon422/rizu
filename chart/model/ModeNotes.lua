@@ -1,3 +1,4 @@
+local Gamemode = require("sea.chart.Gamemode")
 local NativeNoteTypes = require("chart.model.NativeNoteTypes")
 local Note = require("chart.model.notes.Note")
 local table_util = require("table_util")
@@ -54,6 +55,16 @@ function ModeNotes.read(chart, mode)
 		end
 	end
 	return result
+end
+
+---@param chart chart.Chart
+---@param mode sea.Gamemode
+function ModeNotes.validate(chart, mode)
+	assert(mode and Gamemode:encode_safe(mode) ~= nil, "Missing or invalid native chart mode; re-read the chart source.")
+	for _, note in chart.notes:iter() do
+		local native = NativeNoteTypes[note.type]
+		assert(not native or native == mode, "Native mode does not match note data")
+	end
 end
 
 return ModeNotes

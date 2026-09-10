@@ -1,3 +1,4 @@
+local Gamemode = require("sea.chart.Gamemode")
 local ChartBuilder = require("chart.format.notechart.ChartBuilder")
 local ModeNotes = require("chart.model.ModeNotes")
 local RefChart = require("chart.refchart.RefChart")
@@ -32,6 +33,27 @@ function test.coincident_objects_and_nested_data_survive_snapshot(t)
 	t:eq(objects[2].slider.controls[1].y, 40)
 	t:eq(ref.aim, nil)
 	t:eq(restored.aim, nil)
+end
+
+---@param t testing.T
+function test.metadata_selects_and_data_only_validates(t)
+	local builder = ChartBuilder()
+	local chart = builder.chart
+	ModeNotes.validate(chart, "mania")
+	ModeNotes.write(chart, builder:createAbsoluteLayer(), builder:getVisual("main"), "osu", {objects = {{time = 1, kind = "circle"}}})
+	ModeNotes.validate(chart, "osu")
+	t:has_error(function() ModeNotes.validate(chart, "mania") end)
+	t:has_error(function() ModeNotes.validate(chart, "catch") end)
+	t:has_error(function() ModeNotes.validate(chart, nil) end)
+	t:has_error(function() ModeNotes.validate(chart, "bad") end)
+end
+
+---@param t testing.T
+function test.enum_preserves_persisted_ids(t)
+	for index, mode in ipairs({"mania", "taiko", "osu", "catch", "sdvx"}) do
+		t:eq(Gamemode:encode(mode), index - 1)
+		t:eq(Gamemode:decode(index - 1), mode)
+	end
 end
 
 return test
