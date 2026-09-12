@@ -15,9 +15,16 @@ function EncodingConverter:new(encs)
 	local cds = {}
 	self.cds = cds
 
-	for i, from in ipairs(encs) do
-		cds[i] = iconv:open(self.to_enc, from)
-    end
+	for _, from in ipairs(encs) do
+		local cd, err = iconv:open(self.to_enc, from)
+		if cd then
+			cds[#cds + 1] = cd
+		else
+			print(("EncodingConverter: could not open %s -> %s: %s"):format(
+				from, self.to_enc, tostring(err)
+			))
+		end
+	end
 	-- cds[#cds + 1] = iconv:open(self.to_enc .. "//IGNORE", encs[1])
 end
 
@@ -38,13 +45,18 @@ function EncodingConverter:convert(s)
 		return s
 	end
 
-	local valid
+	local converted
 	for _, cd in ipairs(self.cds) do
-		valid = cd:convert(s)
-		if valid then break end
+		converted = cd:convert(s)
+		if converted then
+			local valid = utf8validate(converted)
+			if valid == converted then
+				return converted
+			end
+		end
 	end
 
-	return utf8validate(valid or s)
+	return utf8validate(s)
 end
 
 return EncodingConverter

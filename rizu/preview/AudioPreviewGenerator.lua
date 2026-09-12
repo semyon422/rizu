@@ -11,12 +11,6 @@ local ChartfileReader = require("rizu.library.ChartfileReader")
 ---@operator call: rizu.preview.AudioPreviewGenerator
 local AudioPreviewGenerator = class()
 
----@param hash string
----@param message string
-local function trace(hash, message)
-	print("AudioPreviewGenerator[" .. tostring(hash) .. "]: " .. message)
-end
-
 ---@param fs fs.IFilesystem
 ---@param duration_probe fun(data: string): number
 function AudioPreviewGenerator:new(fs, duration_probe)
@@ -30,31 +24,24 @@ end
 ---@return string? requested_path
 ---@return string? found_path
 local function find_resource_path(finder, paths, format)
-	print("AudioPreviewGenerator: searching " .. tostring(format) .. " resource across " .. #paths .. " candidate(s)")
 	for _, path in ipairs(paths) do
-		print("AudioPreviewGenerator: checking " .. tostring(format) .. " resource " .. tostring(path))
 		local found_path = finder:findFile(path, format)
 		if found_path then
-			print("AudioPreviewGenerator: found " .. tostring(format) .. " resource at " .. tostring(found_path))
 			return path, found_path
 		end
 	end
-	print("AudioPreviewGenerator: no " .. tostring(format) .. " resource found")
 end
 
 ---@param chart chart.Chart
 ---@param chart_dir string
 ---@param hash string
 function AudioPreviewGenerator:generate(chart, chart_dir, hash)
-	trace(hash, "generate start; chart_dir=" .. tostring(chart_dir) .. ", notes=" .. #chart.notes.notes)
 	local finder = ResourceFinder(self.fs)
 	finder:addPath(chart_dir)
-	trace(hash, "resource finder initialized")
 
 	---@type {[string]: string[]}
 	local ojm_res = chart.resources.ojm
 	if ojm_res then
-		trace(hash, "OJM resources detected")
 		local ojm_filename = next(ojm_res)
 		---@cast ojm_filename -?
 		local ojm_path = finder:findFile(ojm_filename, "ojm")
@@ -73,7 +60,6 @@ function AudioPreviewGenerator:generate(chart, chart_dir, hash)
 	local s3p_res = chart.resources.s3p
 	local missing_s3p_filename
 	if s3p_res then
-		trace(hash, "S3P resources detected")
 		local _, s3p_paths = next(s3p_res)
 		---@cast s3p_paths string[]
 		local s3p_filename, s3p_path = find_resource_path(finder, s3p_paths, "s3p")
@@ -91,7 +77,6 @@ function AudioPreviewGenerator:generate(chart, chart_dir, hash)
 	---@type {[string]: string[]}
 	local two_dx_res = chart.resources["2dx"]
 	if two_dx_res then
-		trace(hash, "2DX resources detected")
 		local _, two_dx_paths = next(two_dx_res)
 		---@cast two_dx_paths string[]
 		local two_dx_filename, two_dx_path = find_resource_path(finder, two_dx_paths, "2dx")
@@ -115,7 +100,6 @@ function AudioPreviewGenerator:generate(chart, chart_dir, hash)
 		return self:writePreview(AudioPreview(), hash)
 	end
 
-	trace(hash, "no packed audio resources detected; using ordinary audio files")
 	return self:generateFromFiles(chart, finder, hash)
 end
 
@@ -124,7 +108,6 @@ end
 ---@param ojm_filename string
 ---@param hash string
 function AudioPreviewGenerator:generateFromOjm(chart, ojm, ojm_filename, hash)
-	trace(hash, "generateFromOjm start; file=" .. tostring(ojm_filename))
 	local preview = AudioPreview()
 	preview.samples = {ojm_filename}
 	local sample_durations = {}
@@ -158,7 +141,6 @@ end
 ---@param s3p_filename string
 ---@param hash string
 function AudioPreviewGenerator:generateFromS3p(chart, pack, s3p_filename, hash)
-	trace(hash, "generateFromS3p start; file=" .. tostring(s3p_filename))
 	local preview = AudioPreview()
 	preview.samples = {s3p_filename}
 	local sample_durations = {}
@@ -193,7 +175,6 @@ end
 ---@param two_dx_filename string
 ---@param hash string
 function AudioPreviewGenerator:generateFromTwoDx(chart, archive, two_dx_filename, hash)
-	trace(hash, "generateFromTwoDx start; file=" .. tostring(two_dx_filename))
 	local preview = AudioPreview()
 	preview.samples = {two_dx_filename}
 	local sample_durations = {}
@@ -227,7 +208,6 @@ end
 ---@param finder rizu.ResourceFinder
 ---@param hash string
 function AudioPreviewGenerator:generateFromFiles(chart, finder, hash)
-	trace(hash, "generateFromFiles start")
 	local preview = AudioPreview()
 	---@type {[string]: integer}
 	local samples_map = {}
@@ -253,10 +233,7 @@ function AudioPreviewGenerator:generateFromFiles(chart, finder, hash)
 	end
 
 	if #audio_notes > 0 then
-		trace(hash, "found " .. #audio_notes .. " dedicated audio-column note(s); ignoring gameplay-note sounds")
 		notes = audio_notes
-	else
-		trace(hash, "no dedicated audio-column notes; scanning all " .. #notes .. " note(s)")
 	end
 
 	for _, note in ipairs(notes) do
@@ -289,9 +266,8 @@ end
 ---@param preview rizu.preview.AudioPreview
 ---@param hash string
 function AudioPreviewGenerator:writePreview(preview, hash)
-	trace(hash, "writePreview called; samples=" .. #preview.samples .. ", events=" .. #preview.events)
 	if #preview.events == 0 then
-		trace(hash, "no events generated; no cache file will be written")
+		print("AudioPreviewGenerator: no events generated for " .. hash)
 		return
 	end
 
@@ -305,11 +281,9 @@ function AudioPreviewGenerator:writePreview(preview, hash)
 	end
 
 	local output_path = output_dir .. "/" .. hash .. ".audio_preview"
-	trace(hash, "encoding " .. #preview.events .. " event(s) for " .. output_path)
-	local encoded = preview:encode()
-	trace(hash, "writing " .. #encoded .. " encoded byte(s)")
-	local result, err = self.fs:write(output_path, encoded)
-	trace(hash, "write finished; result=" .. tostring(result) .. ", error=" .. tostring(err))
+	print("AudioPreviewGenerator: writing " .. #preview.events .. " events to " .. output_path)
+
+	self.fs:write(output_path, preview:encode())
 end
 
 ---@param data string
@@ -327,11 +301,9 @@ end
 ---@return number
 function AudioPreviewGenerator:getSampleDuration(data, key, durs, label)
 	if durs[key] then
-		print("AudioPreviewGenerator: reusing " .. label .. " duration for sample " .. tostring(key) .. ": " .. durs[key])
 		return durs[key]
 	end
 
-	print("AudioPreviewGenerator: probing " .. label .. " sample " .. tostring(key) .. "; bytes=" .. #data)
 	local ok, duration = pcall(self.duration_probe, data)
 	if not ok then
 		print("AudioPreviewGenerator: duration probe failed for " .. label .. " sample " .. key .. ": " .. tostring(duration))
@@ -342,7 +314,6 @@ function AudioPreviewGenerator:getSampleDuration(data, key, durs, label)
 		print("AudioPreviewGenerator: zero duration for " .. label .. " sample " .. key)
 	end
 
-	print("AudioPreviewGenerator: " .. label .. " sample " .. tostring(key) .. " duration=" .. tostring(duration))
 	durs[key] = duration
 	return duration
 end
@@ -353,11 +324,9 @@ end
 ---@return number
 function AudioPreviewGenerator:getDuration(path, finder, durs)
 	if durs[path] then
-		print("AudioPreviewGenerator: reusing file duration for " .. tostring(path) .. ": " .. durs[path])
 		return durs[path]
 	end
 
-	print("AudioPreviewGenerator: resolving audio file " .. tostring(path))
 	local full_path = finder:findFile(path, "audio")
 	if not full_path then
 		print("AudioPreviewGenerator: could not find file " .. tostring(path))
@@ -365,7 +334,6 @@ function AudioPreviewGenerator:getDuration(path, finder, durs)
 		return 0
 	end
 
-	print("AudioPreviewGenerator: reading audio file " .. tostring(full_path))
 	local data = self.fs:read(full_path)
 	if not data then
 		print("AudioPreviewGenerator: could not read file " .. tostring(full_path))
@@ -373,7 +341,6 @@ function AudioPreviewGenerator:getDuration(path, finder, durs)
 		return 0
 	end
 
-	print("AudioPreviewGenerator: probing audio file " .. tostring(path) .. "; bytes=" .. #data)
 	local ok, duration = pcall(self.duration_probe, data)
 	if not ok then
 		print("AudioPreviewGenerator: duration probe failed for " .. tostring(path) .. ": " .. tostring(duration))
@@ -384,7 +351,6 @@ function AudioPreviewGenerator:getDuration(path, finder, durs)
 		print("AudioPreviewGenerator: zero duration for " .. tostring(path))
 	end
 
-	print("AudioPreviewGenerator: audio file " .. tostring(path) .. " duration=" .. tostring(duration))
 	durs[path] = duration
 	return duration
 end

@@ -421,7 +421,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 			)
 		end
 
-		local chart_chartmetas = ChartFactory:getCharts(
+		local chart_chartmetas, chart_error = ChartFactory:getCharts(
 			chartview_data.chartfile_name,
 			content,
 			chartview_data.hash,
@@ -429,7 +429,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 		)
 		if not chart_chartmetas then
 			print("Preview: chart parsing failed for " .. tostring(chartview_data.chartfile_name))
-			return false
+			return false, chart_error
 		end
 
 		local t = chart_chartmetas[chartview_data.index]
@@ -438,7 +438,19 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 			return false
 		end
 
-		t.chart.layers.main:toAbsolute()
+		-- Segfault here LuaJIT 2.1.1785606157
+		-- The conversion triggers a LuaJIT miscompilation in this worker. Disabling
+		-- only toAbsolute is insufficient because its callees compile separately.
+		jit.off()
+		local converted, conversion_error = xpcall(
+			t.chart.layers.main.toAbsolute,
+			debug.traceback,
+			t.chart.layers.main
+		)
+		jit.on()
+		if not converted then
+			error(conversion_error, 0)
+		end
 
 		local audio_preview_path = "userdata/audio_previews/" .. chartview_data.hash .. ".audio_preview"
 		if not fs:getInfo(audio_preview_path) then
