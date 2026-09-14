@@ -1,12 +1,16 @@
-local SdvxChart = require("chart.format.ksm.SdvxChart")
+local SdvxDecoder = require("chart.format.ksm.SdvxDecoder")
 local Rules = require("rizu.gameplay.sdvx.Rules")
 local Input = require("rizu.gameplay.sdvx.Input")
 local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 local test = {}
 
+local function decode(source)
+	return SdvxDecoder.decode(source, ("a"):rep(32))
+end
+
 ---@param t testing.T
 function test.dual_lasers_and_buttons_replay_across_update_partitions(t)
-	local chart = SdvxChart([[t=120
+	local chart = decode([[t=120
 --
 2222|11|0o
 2222|11|::
@@ -49,7 +53,7 @@ end
 function test.autoplay_uses_keyboard_edges_for_slam_and_both_lasers(t)
 	local rows = {"1000|20|0o", "0000|00|o0", "0000|00|::", "0000|00|::", "0000|00|0o", "0000|00|--"}
 	for _ = 7, 32 do rows[#rows + 1] = "0000|00|--" end
-	local chart = SdvxChart("t=120\n--\n" .. table.concat(rows, "\n"))
+	local chart = decode("t=120\n--\n" .. table.concat(rows, "\n"))
 	local rules = Rules(chart)
 	local previous = -math.huge
 	for _, frame in ipairs(Rules.autoplay(chart)) do

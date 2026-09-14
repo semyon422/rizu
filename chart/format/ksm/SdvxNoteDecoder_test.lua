@@ -1,9 +1,14 @@
-local SdvxChart = require("chart.format.ksm.SdvxChart")
+local SdvxDecoder = require("chart.format.ksm.SdvxDecoder")
+local ModeNotes = require("chart.model.ModeNotes")
+
+local function decode(source)
+	return ModeNotes.read(SdvxDecoder.decode(source, ("a"):rep(32)), "sdvx")
+end
 local test = {}
 
 ---@param t testing.T
 function test.options_do_not_count_as_rows_and_tempo_changes_keep_time(t)
-	local chart = SdvxChart([[title=fixture
+	local chart = decode([[title=fixture
 t=120
 o=125
 m=music.ogg;effect.ogg
@@ -37,7 +42,7 @@ end
 
 ---@param t testing.T
 function test.laser_anchors_straights_and_reversals_are_not_collapsed(t)
-	local chart = SdvxChart([[t=120
+	local chart = decode([[t=120
 --
 laserrange_l=2x
 0000|00|0o
@@ -63,7 +68,7 @@ end
 function test.slams_use_beat_threshold_and_remove_one_row_delay(t)
 	local rows = {"0000|00|0-", "0000|00|o-", "0000|00|:-", "0000|00|:-", "0000|00|0-", "0000|00|--"}
 	for _ = 7, 32 do rows[#rows + 1] = "0000|00|--" end
-	local chart = SdvxChart("t=120\n--\n" .. table.concat(rows, "\n") .. "\n--\n")
+	local chart = decode("t=120\n--\n" .. table.concat(rows, "\n") .. "\n--\n")
 	local segments = chart.lasers[1].segments
 	t:eq(#segments, 2)
 	t:eq(segments[1].slam, true)
@@ -76,7 +81,7 @@ end
 
 ---@param t testing.T
 function test.holds_end_at_next_chip_or_eof_and_final_newline_is_optional(t)
-	local chart = SdvxChart("t=120\r\n--\r\n2000|A0|--\r\n1000|20|--\r\n0200|00|--")
+	local chart = decode("t=120\r\n--\r\n2000|A0|--\r\n1000|20|--\r\n0200|00|--")
 	t:eq(#chart.buttons, 5)
 	t:aeq(chart.buttons[1].end_time, 2 / 3, 1e-9)
 	t:aeq(chart.buttons[2].end_time, 2 / 3, 1e-9)
@@ -90,14 +95,14 @@ function test.reject_invalid_data_instead_of_dropping_it(t)
 		"t=120\n--\n0000|00|:-", "t=120\n--\n0000|00|0-\n0000|00|--",
 		"t=120\n--\n3000|00|--", "t=120\n--\n1000|00|--\nbeat=3/4\n0000|00|--",
 		"t=120\n--\n1000|00|--\nt=200",
-	}) do t:has_error(function() SdvxChart(source) end) end
+	}) do t:has_error(function() decode(source) end) end
 end
 
 ---@param t testing.T
 function test.consecutive_slams_keep_the_between_slam_span(t)
 	local rows = {"0000|00|0-", "0000|00|o-", "0000|00|0-", "0000|00|--"}
 	for _ = 5, 32 do rows[#rows + 1] = "0000|00|--" end
-	local chart = SdvxChart("t=120\n--\n" .. table.concat(rows, "\n"))
+	local chart = decode("t=120\n--\n" .. table.concat(rows, "\n"))
 	local segments = chart.lasers[1].segments
 	t:eq(#segments, 3)
 	t:eq(segments[1].slam, true)
@@ -112,7 +117,7 @@ end
 
 ---@param t testing.T
 function test.real_chart_extreme_meter_and_bpm_do_not_shift_following_notes(t)
-	local chart = SdvxChart([[t=100-265
+	local chart = decode([[t=100-265
 --
 beat=1/192
 t=16960
@@ -130,11 +135,11 @@ end
 
 ---@param t testing.T
 function test.stray_header_text_is_reported_but_note_rows_remain_strict(t)
-	local chart = SdvxChart("t=120\n.jpg\n--\n1000|00|--")
+	local chart = decode("t=120\n.jpg\n--\n1000|00|--")
 	t:eq(#chart.warnings, 1)
 	t:assert(chart.warnings[1]:find("line 2: .jpg", 1, true))
 	t:eq(chart.buttons[1].time, 0)
-	t:has_error(function() SdvxChart("t=120\n--\n.jpg\n1000|00|--") end)
+	t:has_error(function() decode("t=120\n--\n.jpg\n1000|00|--") end)
 end
 
 return test

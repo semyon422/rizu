@@ -4,7 +4,7 @@ Preserve native KSH button and laser geometry for the experimental SDVX implemen
 
 ## User Experience
 
-`ChartDecoder:decode` now uses `SdvxDecoder` and the source-preserving `SdvxChart`. Ordinary KSH gameplay uses the experimental native SDVX rules. The legacy `decodeKsh` method remains available to explicit callers, but is no longer the normal file-decoding path. Invalid timing, symbols and incomplete laser chains produce explicit prototype diagnostics.
+`ChartDecoder:decode` now uses `SdvxDecoder` and the direct-to-notes `SdvxNoteDecoder`. Ordinary KSH gameplay uses the experimental native SDVX rules. The legacy `decodeKsh` method remains available to explicit callers, but is no longer the normal file-decoding path. Invalid timing, symbols and incomplete laser chains produce explicit prototype diagnostics.
 
 ## Architecture Decisions
 
@@ -30,3 +30,9 @@ Preserve native KSH button and laser geometry for the experimental SDVX implemen
 Nearby tests cover BPM/meter/offset, option-row counting, BT/FX chips and holds, straight/reversing dual lasers, extended range, consecutive slams, EOF, malformed inputs, extreme real-chart timing and malformed-header warnings.
 
 The reader successfully decoded all 90 `.ksh` files under `/home/semyon422/rhythm/charts` (B.B.K. mini vol.3, sdvx, ksm). One Vanaheimr file has a stray `.jpg` header line, retained as a warning. This proves acceptance, not exact USC object/timing parity. The selected cached **405nm(Shu※mix) [challenge]**, hash `60d0a68390bc26d361a4d6eb0db809ea`, index 1, is available through `mounted_charts/2/ksm/4/ADV.ksh`; live filesystem decoding yielded 392 button objects, 13 laser chains, 38 segments and 5 slams, with `music.ogg` available. Worker/refchart tests preserve source geometry, audio offset, preview start and gain above 100%. Runtime integration is tracked in [../../../rizu/gameplay/sdvx/spec.md](../../../rizu/gameplay/sdvx/spec.md).
+
+## Direct Chart Contract
+
+`SdvxNoteDecoder` writes BT/FX objects and laser chains directly to ordinary notes. Open holds/chains reference their note payloads until parsing completes; no parallel SdvxChart collections are constructed. Chart-wide options, warnings, tempo metadata, offset and end time reside in `Chart.data`. Every object receives a distinct visual point, preserving simultaneous objects.
+
+Rules, autoplay and preparation accept `Chart`. `Objects.get` selects button/laser payload references by explicit note types; no runtime `ModeNotes.read/write` adaptation remains. ButtonRules and Laser retain their focused object-level contracts. Replay formats and controller semantics are unchanged.

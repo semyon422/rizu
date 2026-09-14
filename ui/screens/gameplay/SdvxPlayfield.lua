@@ -31,8 +31,8 @@ function SdvxPlayfield:draw()
 	love.graphics.setLineWidth(2)
 	for lane = 0, 4 do love.graphics.line(240 + lane * 80, 80, 240 + lane * 80, 480) end
 	for pass = 1, 2 do
-		for i = rules.button_rules.first_index, #rules.chart.buttons do
-			local object, state = rules.chart.buttons[i], rules.button_rules.states[i]
+		for i = rules.button_rules.first_index, #rules.button_rules.objects do
+			local object, state = rules.button_rules.objects[i], rules.button_rules.states[i]
 			if object.time > time + rules.preempt then break end
 			if not state.result and (object.lane > 4) == (pass == 1) then
 				local lane = object.lane
@@ -84,7 +84,7 @@ function SdvxPlayfield:draw()
 	end
 	Painter.setColorRgb(1, 1, 1)
 	love.graphics.print("BT: D F J K | FX: C M | Lasers: W E / O P", 160, 530)
-	local warnings = rules.chart.warnings
+	local warnings = rules.chart.data.warnings
 	if #warnings > 0 then love.graphics.printf(table.concat(warnings, "\n"), 40, 560, 720) end
 	love.graphics.pop()
 end

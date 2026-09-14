@@ -1,3 +1,4 @@
+local Objects = require("chart.format.ksm.Objects")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local class = require("class")
 local ButtonRules = require("rizu.gameplay.sdvx.ButtonRules")
@@ -13,13 +14,14 @@ Rules.preempt = 1.5
 Rules.hits = 0
 Rules.misses = 0
 
----@param chart chart.ksm.SdvxChart
+---@param chart chart.Chart
 function Rules:new(chart)
 	self.chart = chart
-	self.button_rules = ButtonRules(chart.buttons)
+	local buttons, lasers = Objects.get(chart)
+	self.button_rules = ButtonRules(buttons)
 	self.lasers, self.buttons = {}, {}
 	local samples = 0
-	for _, chain in ipairs(chart.lasers) do
+	for _, chain in ipairs(lasers) do
 		local first, last = chain.segments[1], chain.segments[#chain.segments]
 		samples = samples + math.ceil((last.end_time - first.time) / Laser.step) + 1
 		assert(samples <= 2000000, "SDVX prototype: laser simulation budget exceeded.")
@@ -78,9 +80,10 @@ function Rules:receive(event, time, paused)
 	end
 end
 
----@param chart chart.ksm.SdvxChart
+---@param chart chart.Chart
 ---@return rizu.ReplayFrame[]
 function Rules.autoplay(chart)
+	local buttons, lasers = Objects.get(chart)
 	---@type {time: number, id: integer, pressed: boolean, order: integer}[]
 	local actions = {}
 	---@param time number
@@ -90,11 +93,11 @@ function Rules.autoplay(chart)
 		assert(#actions < 400000, "SDVX prototype: autoplay action budget exceeded.")
 		actions[#actions + 1] = {time = time, id = id, pressed = pressed, order = #actions + 1}
 	end
-	for _, object in ipairs(chart.buttons) do
+	for _, object in ipairs(buttons) do
 		add(object.time, object.lane, true)
 		add(object.end_time, object.lane, false)
 	end
-	for _, chain in ipairs(chart.lasers) do
+	for _, chain in ipairs(lasers) do
 		---@type integer?
 		local held
 		for _, segment in ipairs(chain.segments) do

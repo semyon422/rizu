@@ -1,4 +1,4 @@
-local class = require("class")
+local Note = require("chart.model.notes.Note")
 
 ---@class chart.ksm.SdvxButton
 ---@field time number Seconds relative to chart zero; audio starts at -offset.
@@ -24,14 +24,7 @@ local class = require("class")
 ---@field data string
 ---@field options {[string]: string}
 
----@class chart.ksm.SdvxChart
----@operator call: chart.ksm.SdvxChart
----@field buttons chart.ksm.SdvxButton[]
----@field lasers chart.ksm.SdvxLaser[]
----@field options {[string]: string}
----@field warnings string[] Ignored malformed header lines; note rows remain strict.
----@field tempos {time: number, beat: number, bpm: number}[]
-local SdvxChart = class()
+local SdvxNoteDecoder = {}
 local positions = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno"
 
 ---@param value string?
@@ -44,10 +37,15 @@ local function number(value, label)
 end
 
 ---@param source string Normalized UTF-8 KSH source.
-function SdvxChart:new(source)
+---@param chart chart.Chart
+---@param layer chart.AbsoluteLayer
+---@param visual chart.Visual
+function SdvxNoteDecoder.decode(source, chart, layer, visual)
+	local data = chart.data
+	local note_count = 0
 	assert(#source <= 16 * 1024 * 1024, "SDVX prototype: source budget exceeded.")
-	self.buttons, self.lasers, self.options, self.tempos = {}, {}, {}, {}
-	self.warnings = {}
+	data.options, data.tempos = {}, {}
+	data.warnings = {}
 	---@type chart.ksm.SdvxRow[][]
 	local measures = {}
 	---@type chart.ksm.SdvxRow[]
@@ -69,9 +67,9 @@ function SdvxChart:new(source)
 			---@type string?, string?
 			local key, value = line:match("^([^=]+)=(.*)$")
 			if key then
-				if body then pending[key] = value else self.options[key] = value end
+				if body then pending[key] = value else data.options[key] = value end
 			elseif not body then
-				self.warnings[#self.warnings + 1] = ("Ignored malformed KSH header line %d: %s"):format(line_number, line)
+				data.warnings[#data.warnings + 1] = ("Ignored malformed KSH header line %d: %s"):format(line_number, line)
 			else
 				assert(line:match("^....|..|.."), "SDVX prototype: malformed note row.")
 				count = count + 1
@@ -84,11 +82,11 @@ function SdvxChart:new(source)
 	if #rows > 0 then measures[#measures + 1] = rows end
 	assert(body and #measures > 0, "SDVX prototype: no measures.")
 	assert(not next(pending), "SDVX prototype: trailing options without a row.")
-	self.offset = self.options.o and number(self.options.o, "offset") / 1000 or 0
-	self.audio_path = self.options.m and self.options.m:match("^([^;]+)")
-	local bpm = number(measures[1][1].options.t or self.options.t, "initial BPM")
+	data.offset = data.options.o and number(data.options.o, "offset") / 1000 or 0
+	data.audio_path = data.options.m and data.options.m:match("^([^;]+)")
+	local bpm = number(measures[1][1].options.t or data.options.t, "initial BPM")
 	assert(bpm > 0 and bpm <= 1000000, "SDVX prototype: unsupported BPM.")
-	local signature = self.options.beat or "4/4"
+	local signature = data.options.beat or "4/4"
 	local time, beat = 0, 0
 	---@type {[integer]: chart.ksm.SdvxButton}
 	local holds = {}
@@ -119,8 +117,8 @@ function SdvxChart:new(source)
 			assert(row_index == 1 or not row.options.beat, "SDVX prototype: mid-measure signature change.")
 			if row.options.t then bpm = number(row.options.t, "BPM") end
 			assert(bpm > 0 and bpm <= 1000000, "SDVX prototype: unsupported BPM.")
-			if #self.tempos == 0 or self.tempos[#self.tempos].bpm ~= bpm then
-				self.tempos[#self.tempos + 1] = {time = time, beat = beat, bpm = bpm}
+			if #data.tempos == 0 or data.tempos[#data.tempos].bpm ~= bpm then
+				data.tempos[#data.tempos + 1] = {time = time, beat = beat, bpm = bpm}
 			end
 			assert(not row.options.o, "SDVX prototype: mid-chart audio offset change.")
 			for lane = 1, 6 do
@@ -135,7 +133,9 @@ function SdvxChart:new(source)
 				if c == chip or is_hold and not holds[lane] then
 					budget()
 					local object = {time = time, end_time = time, lane = lane, kind = c == chip and "chip" or "hold"}
-					self.buttons[#self.buttons + 1] = object
+					local column = lane <= 4 and "bt" .. lane or "fx" .. (lane - 4)
+					chart.notes:insert(Note(visual:newPoint(layer:getPoint(time)), column, "sdvx:button", 0, object))
+					note_count = note_count + 1
 					if is_hold then holds[lane] = object end
 				end
 			end
@@ -175,7 +175,8 @@ function SdvxChart:new(source)
 						if slam then next_time, next_beat = start_time, start_beat end
 					else
 						local chain = {lane = lane, extended = extended[lane], segments = {}}
-						self.lasers[#self.lasers + 1] = chain
+						chart.notes:insert(Note(visual:newPoint(layer:getPoint(time)), "laser" .. lane, "sdvx:laser", 0, chain))
+						note_count = note_count + 1
 						state = {chain = chain, time = time, beat = beat, source_time = time, source_beat = beat, pos = pos}
 						active[lane] = state
 					end
@@ -188,8 +189,8 @@ function SdvxChart:new(source)
 	end
 	for _, hold in pairs(holds) do hold.end_time = time end
 	closeLaser(1); closeLaser(2)
-	self.end_time = time
-	assert(#self.buttons + #self.lasers > 0, "SDVX prototype: chart has no playable objects.")
+	data.end_time = time
+	assert(note_count > 0, "SDVX prototype: chart has no playable objects.")
 end
 
-return SdvxChart
+return SdvxNoteDecoder

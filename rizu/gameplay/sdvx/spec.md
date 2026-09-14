@@ -37,3 +37,7 @@ Eight KSH-reader tests cover timing/geometry, including consecutive slams and ex
 - Configure joystick devices/axes explicitly, test pause/resume and real encoder behavior before claiming controller support.
 - Profile large charts and compare dense slam chains/extended geometry against USC. The 90-file parser corpus is acceptance coverage, not exact compatibility proof.
 - Physical-device feel and broader manual laser tracking checks remain open.
+
+## Common Chart Refactor Verification
+
+The direct-to-notes decoder and Chart-based rules pass all 10 KSH tests, 14 SDVX tests, 122 engine tests and 8 gameplay UI tests. Full decoding passes the 90-file local KSH corpus. Earlier live results above predate this refactor; this refactor has not yet been verified in the running game.
