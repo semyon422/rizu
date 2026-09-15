@@ -23,6 +23,7 @@ function MainMenu:new(ui)
 	self.root:setPivot(0.5, 0.5)
 
 	self:createOnlineStatus()
+	self:createAccountButtons()
 	self:createContent()
 	self:createLogo()
 	self:createButtons()
@@ -123,6 +124,23 @@ function MainMenu:createFooter()
 	links:fitContent()
 	links:setAlignment(0.5, 0.5)
 	self.root:add(footer)
+end
+
+function MainMenu:createAccountButtons()
+	local buttons = self.root:add(FlowContainer({direction = "row", gap = 10, align = 0.5}))
+	local register = buttons:add(MainMenuButton(self.ui.localization:get("main_menu.register"), function()
+		self.ui.modal_manager:attachExternalLink(
+			self.ui.localization:get("external_link.register_title"),
+			"https://rizu.su/register"
+		)
+	end, {font_size = 15, icon = Resources.sprites.icon_user_plus}))
+	register:setSize(150, 44)
+	local login = buttons:add(MainMenuButton(self.ui.localization:get("main_menu.login"), function() end, {
+		variant = "primary", font_size = 15, icon = Resources.sprites.icon_log_in,
+	}))
+	login:setSize(150, 44)
+	buttons:fitContent()
+	buttons:setAlignment(1, 0):addPosition(-24, 16)
 end
 
 function MainMenu:createOnlineStatus()

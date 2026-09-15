@@ -2,6 +2,7 @@ local View = require("gui.View")
 local PaletteState = require("rizu.command.PaletteState")
 local AiChat = require("ui.modals.ai_chat.AiChat")
 local CommandPalette = require("ui.modals.command_palette.CommandPalette")
+local ExternalLink = require("ui.modals.ExternalLink")
 local ChartMutators = require("ui.modals.chart_mutators.ChartMutators")
 local CollectionSelector = require("ui.modals.collections.CollectionSelector")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
@@ -21,6 +22,7 @@ local UiActions = require("ui.UiActions")
 ---@field palette ui.modals.command_palette.CommandPalette
 ---@field ai_chat ui.modals.ai_chat.AiChat?
 ---@field config ui.modals.config.Config
+---@field external_link ui.modals.ExternalLink
 ---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
@@ -57,6 +59,9 @@ function ModalManager:new(ui, popup_container)
 			ui.config:save()
 			ui.game.user_interface_manager:requestReload()
 		end))
+	self.external_link = self:addModal(ExternalLink(ui.localization, function()
+		self:hideModal(self.external_link)
+	end))
 	self.mapperatorinator = self:addModal(Mapperatorinator(
 		ui.mapperatorinator_workflow,
 		ui.mapperatorinator_config,
@@ -191,6 +196,19 @@ end
 ---@return boolean detached
 function ModalManager:detachConfig()
 	return self:hideModal(self.config)
+end
+
+---@param title string
+---@param url string
+---@return boolean attached
+function ModalManager:attachExternalLink(title, url)
+	self.external_link:open(title, url)
+	return self:showModal(self.external_link)
+end
+
+---@return boolean detached
+function ModalManager:detachExternalLink()
+	return self:hideModal(self.external_link)
 end
 
 ---@return boolean attached
