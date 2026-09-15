@@ -4,8 +4,8 @@ local Image = require("ui.views.Image")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
 local MainMenuButton = require("ui.screens.main_menu.MainMenuButton")
+local MainMenuBackground = require("ui.screens.main_menu.MainMenuBackground")
 local Label = require("ui.views.Label")
-local Panel = require("ui.views.Panel")
 local Colors = require("ui.Colors")
 
 ---@class ui.screens.main_menu.MainMenu : gui.Screen
@@ -25,6 +25,7 @@ function MainMenu:new(ui)
 
 	self.root:setPivot(0.5, 0.5)
 
+	self.root:add(MainMenuBackground(Resources.images.main_menu_bg)):anchorFill(0, 0, 0, 0)
 	self:createOnlineStatus()
 	self:createAccountButtons()
 	self:createContent()
@@ -98,11 +99,6 @@ end
 function MainMenu:createFooter()
 	local footer = View()
 	footer:setSize(0, 72):fillWidth(0, 0):setAlignmentY(1)
-	footer:add(Panel({
-		color = Colors.panel,
-		line_color = Colors.outline,
-		lines = {top = true},
-	})):anchorFill(0, 0, 0, 0)
 
 	local links = footer:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
 	local editor = links:add(MainMenuButton(self.ui.localization:get("main_menu.editor"), function()

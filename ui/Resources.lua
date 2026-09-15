@@ -10,6 +10,7 @@ local Path = require("Path")
 ---@class ui.Resources
 ---@field atlases love.Image[]
 ---@field sprites {[string]: gui.AtlasImage}
+---@field images {[string]: love.Image}
 ---@field dpi number
 ---@field fonts {[string]: love.Font}
 ---@field bmfonts {[string]: love.Font}
@@ -50,6 +51,10 @@ function Resources.load()
 	local pixel = love.image.newImageData(1, 1)
 	pixel:setPixel(0, 0, 1, 1, 1, 1)
 	t.pixel = pixel
+
+	Resources.images = {
+		main_menu_bg = love.graphics.newImage(Resources.images_dir .. "/main_menu_bg.jpg"),
+	}
 
 	local packer = ImageAtlasPacker()
 	Resources.atlases, Resources.sprites = packer:pack(t)
