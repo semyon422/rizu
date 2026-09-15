@@ -39,7 +39,12 @@ return {
 	["editor.notice"] = "РЕДАКТОР ЕЩЁ В РАЗРАБОТКЕ! Ждите апдейт редактора и скинов",
 	["editor.exit_hint"] = "ESCAPE — выйти",
 	["lobby.title"] = "Лобби: TODO",
-	["lobby_list.title"] = "Список лобби: TODO",
+	["lobby_list.title"] = "Список лобби",
+	["lobby_list.select_room"] = "Выберите лобби, чтобы присоединиться.",
+	["lobby_list.empty"] = "Пока нет доступных лобби.",
+	["lobby_list.joining"] = "Подключение к {room}...",
+	["lobby_list.join_failed"] = "Не удалось подключиться: {error}",
+	["lobby_list.back"] = "Назад",
 	["dlc.title"] = "DLC: TODO",
 
 	["music_player.no_song"] = "Трек не выбран",

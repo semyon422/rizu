@@ -3,9 +3,33 @@ local table_util = require("table_util")
 local icc_co = require("icc.co")
 local Room = require("sea.multi.Room")
 local RoomUpdate = require("sea.multi.RoomUpdate")
+local Observable = require("Observable")
+
+---@class sea.multi.MultiplayerClient.RoomsChangedEvent
+---@field type "rooms_changed"
+---@field rooms sea.Room[]
+
+---@class sea.multi.MultiplayerClient.RoomUsersChangedEvent
+---@field type "room_users_changed"
+---@field room_users sea.RoomUser[]
+---@field room_id integer?
+
+---@class sea.multi.MultiplayerClient.UsersChangedEvent
+---@field type "users_changed"
+---@field users sea.User[]
+
+---@class sea.multi.MultiplayerClient.JoinFailedEvent
+---@field type "join_failed"
+---@field room_id integer
+---@field error string
+
+---@alias sea.multi.MultiplayerClient.Event sea.multi.MultiplayerClient.RoomsChangedEvent|sea.multi.MultiplayerClient.RoomUsersChangedEvent|sea.multi.MultiplayerClient.UsersChangedEvent|sea.multi.MultiplayerClient.JoinFailedEvent
+---@alias sea.multi.MultiplayerClient.EventObserver {receive: fun(self: table, event: sea.multi.MultiplayerClient.Event)}
+---@alias sea.multi.MultiplayerClient.EventReceiver fun(event: sea.multi.MultiplayerClient.Event)
 
 ---@class sea.MultiplayerClient
 ---@operator call: sea.MultiplayerClient
+---@field observable util.Observable
 local MultiplayerClient = class()
 
 ---@param server_remote sea.ServerRemote
@@ -15,6 +39,7 @@ function MultiplayerClient:new(server_remote, replay_base, chart_selector)
 	self.server_remote = server_remote
 	self.replay_base = replay_base
 	self.chart_selector = chart_selector
+	self.observable = Observable()
 
 	---@type sea.User[]
 	self.users = {}
@@ -35,6 +60,20 @@ end
 ---@param rooms sea.Room[]
 function MultiplayerClient:setRooms(rooms)
 	self.rooms = rooms
+	self.observable:send({type = "rooms_changed", rooms = rooms})
+end
+
+---@param observer sea.multi.MultiplayerClient.EventObserver|sea.multi.MultiplayerClient.EventReceiver
+---@return util.Observer
+function MultiplayerClient:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function MultiplayerClient:offChanged(observer)
+	return self.observable:remove(observer)
 end
 
 ---@param room_users sea.RoomUser[]
@@ -42,14 +81,16 @@ function MultiplayerClient:setRoomUsers(room_users)
 	self.room_users = room_users
 	if #room_users == 0 then
 		self.room_id = nil
-		return
+	else
+		self.room_id = room_users[1].room_id
 	end
-	self.room_id = room_users[1].room_id
+	self.observable:send({type = "room_users_changed", room_users = room_users, room_id = self.room_id})
 end
 
 ---@param users sea.User[]
 function MultiplayerClient:setUsers(users)
 	self.users = users
+	self.observable:send({type = "users_changed", users = users})
 end
 
 ---@param msg string
@@ -317,7 +358,9 @@ end
 function MultiplayerClient:joinRoomAsync(id, password)
 	local ok, err = self.server_remote.multiplayer:joinRoom(id, password)
 	if not ok then
-		print("joinRoomAsync", err)
+		local message = tostring(err or "unknown error")
+		print("joinRoomAsync", message)
+		self.observable:send({type = "join_failed", room_id = id, error = message})
 	end
 end
 

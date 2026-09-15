@@ -78,6 +78,11 @@ function MainMenu:createButtons()
 	end, {variant = "play", font_size = 30, icon = Resources.sprites.icon_play}))
 	play:setSize(380, 88)
 
+	local multiplayer = actions:add(MainMenuButton(self.ui.localization:get("main_menu.lobby_list"), function()
+		self.ui:setScreen(self.ui.lobby_list, true)
+	end, {variant = "primary", font_size = 20, icon = Resources.sprites.icon_user_plus}))
+	multiplayer:setSize(380, 58)
+
 	local utility = actions:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
 	local settings = utility:add(MainMenuButton(self.ui.localization:get("main_menu.settings"), function()
 		self.ui.modal_manager:attachConfig()

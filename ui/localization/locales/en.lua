@@ -55,7 +55,12 @@ return {
 	["editor.notice"] = "EDITOR WORK IN PROGRESS!!! Please wait for the editor and skins update",
 	["editor.exit_hint"] = "Press ESCAPE to exit",
 	["lobby.title"] = "Multiplayer room: TODO",
-	["lobby_list.title"] = "Multiplayer room list: TODO",
+	["lobby_list.title"] = "Multiplayer rooms",
+	["lobby_list.select_room"] = "Select a room to join.",
+	["lobby_list.empty"] = "There are no rooms yet.",
+	["lobby_list.joining"] = "Joining {room}...",
+	["lobby_list.join_failed"] = "Could not join room: {error}",
+	["lobby_list.back"] = "Back",
 	["dlc.title"] = "Downloadable content: TODO",
 
 	["music_player.no_song"] = "No song selected",

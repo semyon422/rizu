@@ -39,7 +39,12 @@ return {
 	["editor.notice"] = "¡¡¡EDITOR EN DESARROLLO!!! Espera a que se actualicen el editor y las apariencias",
 	["editor.exit_hint"] = "Pulsa ESCAPE para salir",
 	["lobby.title"] = "Sala multijugador: TODO",
-	["lobby_list.title"] = "Lista de salas multijugador: TODO",
+	["lobby_list.title"] = "Salas multijugador",
+	["lobby_list.select_room"] = "Selecciona una sala para unirte.",
+	["lobby_list.empty"] = "Todavía no hay salas.",
+	["lobby_list.joining"] = "Uniéndose a {room}...",
+	["lobby_list.join_failed"] = "No se pudo entrar: {error}",
+	["lobby_list.back"] = "Atrás",
 	["dlc.title"] = "Contenido descargable: TODO",
 
 	["music_player.no_song"] = "No hay ninguna canción seleccionada",
