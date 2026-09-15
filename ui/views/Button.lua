@@ -5,7 +5,7 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local SpringValue = require("gui.anim.SpringValue")
 
----@alias ui.views.ButtonVariant "primary"|"secondary"|"danger"|"success"|"play"
+---@alias ui.views.ButtonVariant "primary"|"secondary"|"danger"|"success"
 ---@alias ui.views.ButtonShape "default"|"capsule"
 
 ---@class ui.views.ButtonConfig
@@ -36,7 +36,7 @@ function Button:new(text, on_click, config)
 	config = config or {}
 	local variant = config.variant or "secondary"
 	local shape = config.shape or "default"
-	assert(variant == "primary" or variant == "secondary" or variant == "danger" or variant == "success" or variant == "play",
+	assert(variant == "primary" or variant == "secondary" or variant == "danger" or variant == "success",
 		"invalid button variant")
 	assert(shape == "default" or shape == "capsule", "invalid button shape")
 	self.text = text
@@ -52,9 +52,8 @@ end
 
 ---@param variant ui.views.ButtonVariant
 function Button:setVariant(variant)
-	assert(variant == "primary" or variant == "secondary" or variant == "danger" or variant == "success" or variant == "play",
+	assert(variant == "primary" or variant == "secondary" or variant == "danger" or variant == "success",
 		"invalid button variant")
-	assert(variant ~= "play" or self.shape == "default", "play button does not support capsule shape")
 	local sprite_name = "button_" .. variant .. (self.shape == "capsule" and "_capsule" or "")
 	self.background = NineSliceUsage(Resources.nine_slices[sprite_name])
 	self.hover_background = NineSliceUsage(Resources.nine_slices[sprite_name .. "_hover"])

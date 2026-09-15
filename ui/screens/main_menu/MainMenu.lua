@@ -3,7 +3,7 @@ local Resources = require("ui.Resources")
 local Image = require("ui.views.Image")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
-local Button = require("ui.views.Button")
+local MainMenuButton = require("ui.screens.main_menu.MainMenuButton")
 local Label = require("ui.views.Label")
 local Panel = require("ui.views.Panel")
 local Colors = require("ui.Colors")
@@ -26,6 +26,7 @@ function MainMenu:new(ui)
 	self:createContent()
 	self:createLogo()
 	self:createButtons()
+	self:createWipNotice()
 end
 
 function MainMenu:load()
@@ -67,19 +68,19 @@ end
 function MainMenu:createButtons()
 	local actions = FlowContainer({direction = "column", gap = 14, align = 0.5})
 
-	local play = actions:add(Button(self.ui.localization:get("main_menu.play"), function()
+	local play = actions:add(MainMenuButton(self.ui.localization:get("main_menu.play"), function()
 		self.ui:setScreen(self.ui.song_select, true)
-	end, {variant = "play", font_size = 30}))
+	end, {variant = "play", font_size = 30, icon = Resources.sprites.icon_play}))
 	play:setSize(380, 88)
 
 	local utility = actions:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
-	local settings = utility:add(Button(self.ui.localization:get("main_menu.settings"), function()
+	local settings = utility:add(MainMenuButton(self.ui.localization:get("main_menu.settings"), function()
 		self.ui.modal_manager:attachConfig()
-	end, {variant = "primary", font_size = 18}))
+	end, {variant = "primary", font_size = 18, icon = Resources.sprites.icon_gear}))
 	settings:setSize(184, 54)
-	local quit = utility:add(Button(self.ui.localization:get("main_menu.quit"), function()
+	local quit = utility:add(MainMenuButton(self.ui.localization:get("main_menu.quit"), function()
 		love.event.quit()
-	end, {variant = "danger", font_size = 18}))
+	end, {variant = "danger", font_size = 18, icon = Resources.sprites.icon_x}))
 	quit:setSize(184, 54)
 	utility:fitContent()
 
@@ -100,23 +101,23 @@ function MainMenu:createFooter()
 	})):anchorFill(0, 0, 0, 0)
 
 	local links = footer:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
-	local editor = links:add(Button(self.ui.localization:get("main_menu.editor"), function()
+	local editor = links:add(MainMenuButton(self.ui.localization:get("main_menu.editor"), function()
 		if self.ui.game.chartSelector:chartExists() then
 			self.ui:setScreen(self.ui.editor)
 		else
 			self.ui:setScreen(self.ui.song_select, true)
 		end
-	end, {font_size = 16}))
+	end, {font_size = 16, icon = Resources.sprites.icon_brush}))
 	editor:setSize(180, 44)
 
-	local music_player = links:add(Button(self.ui.localization:get("main_menu.music_player"), function()
+	local music_player = links:add(MainMenuButton(self.ui.localization:get("main_menu.music_player"), function()
 		self.ui:setScreen(self.ui.music_player, true)
-	end, {font_size = 16}))
+	end, {font_size = 16, icon = Resources.sprites.icon_music}))
 	music_player:setSize(180, 44)
 
-	local locations = links:add(Button(self.ui.localization:get("main_menu.locations"), function()
+	local locations = links:add(MainMenuButton(self.ui.localization:get("main_menu.locations"), function()
 		self.ui:setScreen(self.ui.locations, true)
-	end, {font_size = 16}))
+	end, {font_size = 16, icon = Resources.sprites.icon_folder}))
 	locations:setSize(180, 44)
 
 	links:fitContent()
@@ -142,6 +143,16 @@ function MainMenu:updateOnlineStatus()
 	else
 		self.online_status:setText(self.ui.localization:get("main_menu.not_connected"))
 	end
+end
+
+function MainMenu:createWipNotice()
+	local notice = self.root:add(Label({
+		font_name = "medium",
+		font_size = 16,
+		text = self.ui.localization:get("main_menu.wip_notice"),
+		color = Colors.danger,
+	}))
+	notice:setAlignment(0.5, 1):addPosition(0, -88)
 end
 
 function MainMenu:createContent()
