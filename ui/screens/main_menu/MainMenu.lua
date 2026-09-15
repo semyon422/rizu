@@ -4,9 +4,12 @@ local Image = require("ui.views.Image")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Button = require("ui.views.Button")
+local Panel = require("ui.views.Panel")
+local Colors = require("ui.Colors")
 
 ---@class ui.screens.main_menu.MainMenu : gui.Screen
 ---@operator call: ui.screens.main_menu.MainMenu
+---@field content gui.layout.FlowContainer
 local MainMenu = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -16,6 +19,7 @@ function MainMenu:new(ui)
 
 	self.root:setPivot(0.5, 0.5)
 
+	self:createContent()
 	self:createLogo()
 	self:createButtons()
 end
@@ -39,55 +43,80 @@ function MainMenu:exit()
 end
 
 function MainMenu:createButtons()
-	local buttons = FlowContainer({
-		direction = "column",
-		gap = 16
-	})
+	local actions = FlowContainer({direction = "column", gap = 14, align = 0.5})
 
-	buttons:add(Button(self.ui.localization:get("main_menu.play"), function()
+	local play = actions:add(Button(self.ui.localization:get("main_menu.play"), function()
 		self.ui:setScreen(self.ui.song_select, true)
-	end))
+	end, {variant = "play", font_size = 30}))
+	play:setSize(380, 88)
 
-	buttons:add(Button(self.ui.localization:get("main_menu.editor"), function()
+	local utility = actions:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
+	local settings = utility:add(Button(self.ui.localization:get("main_menu.settings"), function()
+		self.ui.modal_manager:attachConfig()
+	end, {variant = "primary", font_size = 18}))
+	settings:setSize(184, 54)
+	local quit = utility:add(Button(self.ui.localization:get("main_menu.quit"), function()
+		love.event.quit()
+	end, {variant = "danger", font_size = 18}))
+	quit:setSize(184, 54)
+	utility:fitContent()
+
+	actions:fitContent()
+	self.content:add(actions)
+	self.content:fitContent()
+
+	self:createFooter()
+end
+
+function MainMenu:createFooter()
+	local footer = View()
+	footer:setSize(0, 72):fillWidth(0, 0):setAlignmentY(1)
+	footer:add(Panel({
+		color = Colors.panel,
+		line_color = Colors.outline,
+		lines = {top = true},
+	})):anchorFill(0, 0, 0, 0)
+
+	local links = footer:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
+	local editor = links:add(Button(self.ui.localization:get("main_menu.editor"), function()
 		if self.ui.game.chartSelector:chartExists() then
 			self.ui:setScreen(self.ui.editor)
 		else
 			self.ui:setScreen(self.ui.song_select, true)
 		end
-	end))
+	end, {font_size = 16}))
+	editor:setSize(180, 44)
 
-	buttons:add(Button(self.ui.localization:get("main_menu.music_player"), function()
+	local music_player = links:add(Button(self.ui.localization:get("main_menu.music_player"), function()
 		self.ui:setScreen(self.ui.music_player, true)
-	end))
+	end, {font_size = 16}))
+	music_player:setSize(180, 44)
 
-	buttons:add(Button(self.ui.localization:get("main_menu.locations"), function()
+	local locations = links:add(Button(self.ui.localization:get("main_menu.locations"), function()
 		self.ui:setScreen(self.ui.locations, true)
-	end))
+	end, {font_size = 16}))
+	locations:setSize(180, 44)
 
-	buttons:add(Button(self.ui.localization:get("main_menu.settings"), function()
-		self.ui.modal_manager:attachConfig()
-	end))
+	links:fitContent()
+	links:setAlignment(0.5, 0.5)
+	self.root:add(footer)
+end
 
-	buttons:add(Button(self.ui.localization:get("main_menu.quit"), function()
-		love.event.quit()
-	end))
-
-	buttons:fitContent()
-	buttons:setAlignment(0.1, 0.5)
-
-	self.root:add(buttons)
+function MainMenu:createContent()
+	self.content = self.root:add(FlowContainer({direction = "column", gap = 28, align = 0.5}))
+	self.content:setAlignment(0.5, 0.45)
 end
 
 function MainMenu:createLogo()
-	local logo = Image(Resources.sprites.rizu)
+	local logo = Image(Resources.sprites.rizu, "fit")
 	self.logo = logo
-	self.logo:setAlignment(0.75, 0.5)
-	self.logo:setScale(0.8, 0.8)
+	self.logo:setSize(420, 161)
 	self.logo:setPivot(0.5, 0.5)
+	self.logo:setScale(1.08, 1.08)
 	self.logo:setOpacity(0)
 	self.logo:fadeIn(0.9, "OutQuint")
-	self.logo:scaleTo(0.7, 0.7, 0.3, "OutQuart")
-	self.root:add(logo)
+	self.logo:scaleTo(1, 1, 0.3, "OutQuart")
+	self.content:add(logo)
 end
 
 return MainMenu

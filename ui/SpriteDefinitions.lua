@@ -16,6 +16,25 @@ local function button(background_color, capsule)
 	}
 end
 
+local function playButton(dark, light)
+	return {
+		width = 380,
+		height = 88,
+		border_radius = 14,
+		rounding_power = 3,
+		slice = 14,
+		fills = {{
+			type = "linear_gradient",
+			angle = 0,
+			stops = {
+				{offset = 0, color = dark},
+				{offset = 1, color = light},
+			},
+		}},
+		stroke = {width = 3, color = {1, 1, 1, 1}},
+	}
+end
+
 local function mix(a, b, amount)
 	return {
 		a[1] + (b[1] - a[1]) * amount,
@@ -58,6 +77,9 @@ end
 
 ---@type {[string]: gui.SpriteGenerator.Definition}
 local SpriteDefinitions = {
+	button_play = playButton({0.29, 0.48, 0.10, 1}, {0.61, 0.82, 0.31, 1}),
+	button_play_hover = playButton({0.35, 0.57, 0.13, 1}, {0.69, 0.9, 0.38, 1}),
+	button_play_pressed = playButton({0.24, 0.4, 0.08, 1}, {0.48, 0.7, 0.22, 1}),
 	button_primary = button(Colors.blue),
 	button_primary_hover = button({0.30, 0.43, 0.75, 1}),
 	button_primary_pressed = button({0.24, 0.34, 0.59, 1}),
