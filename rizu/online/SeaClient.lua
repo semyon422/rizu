@@ -93,6 +93,7 @@ function SeaClient:createWebsocketConnection()
 		end,
 		on_connected = function(connection)
 			self.connected = true
+			self.client:setConnected(true)
 			self.server_peer.ws = connection
 		end,
 	})
@@ -100,6 +101,7 @@ end
 
 function SeaClient:setDisconnected()
 	self.connected = false
+	self.client:setConnected(false)
 	self.server_peer.ws = self.disconnected_ws
 	self.client:setUser()
 end

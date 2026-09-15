@@ -10,6 +10,8 @@ return {
 	["main_menu.settings"] = "Settings",
 	["main_menu.tests"] = "Tests",
 	["main_menu.quit"] = "Quit",
+	["main_menu.logged_in_as"] = "Logged in as {username}",
+	["main_menu.not_connected"] = "Not connected to the server",
 
 	["locations.title"] = "Local locations",
 	["locations.subtitle"] = "Manage folders Rizu scans for Charts.",

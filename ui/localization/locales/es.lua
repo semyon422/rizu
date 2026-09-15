@@ -10,6 +10,8 @@ return {
 	["main_menu.settings"] = "Opciones",
 	["main_menu.tests"] = "Pruebas",
 	["main_menu.quit"] = "Salir",
+	["main_menu.logged_in_as"] = "Sesión iniciada como {username}",
+	["main_menu.not_connected"] = "Sin conexión al servidor",
 
 	["locations.title"] = "Ubicaciones locales",
 	["locations.subtitle"] = "Gestiona las carpetas en las que Rizu busca Charts.",

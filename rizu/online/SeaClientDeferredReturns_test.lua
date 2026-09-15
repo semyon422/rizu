@@ -4,7 +4,7 @@ local SeaClient = require("rizu.online.SeaClient")
 local test = {}
 
 local function newClient()
-	return SeaClient({setUser = function() end}, {}, {
+	return SeaClient({setUser = function() end, setConnected = function() end}, {}, {
 		createWebsocketConnection = function() return {} end,
 		resolveUrl = function() end,
 	})

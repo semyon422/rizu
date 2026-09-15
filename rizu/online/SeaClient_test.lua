@@ -6,12 +6,13 @@ local test = {}
 
 ---@class rizu.FakeOnlineClient
 ---@field users any[]
+---@field connections boolean[]
 local FakeOnlineClient = {}
 FakeOnlineClient.__index = FakeOnlineClient
 
 ---@return rizu.FakeOnlineClient
 local function new_client()
-	return setmetatable({users = {n = 0}}, FakeOnlineClient)
+	return setmetatable({users = {n = 0}, connections = {}}, FakeOnlineClient)
 end
 
 ---@param user any?
@@ -19,6 +20,11 @@ function FakeOnlineClient:setUser(user)
 	local users = self.users
 	users.n = users.n + 1
 	users[users.n] = user
+end
+
+---@param connected boolean
+function FakeOnlineClient:setConnected(connected)
+	table.insert(self.connections, connected)
 end
 
 ---@class rizu.FakeWebsocketConnection

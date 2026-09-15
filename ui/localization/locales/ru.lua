@@ -10,6 +10,8 @@ return {
 	["main_menu.settings"] = "Настройки",
 	["main_menu.tests"] = "Тесты",
 	["main_menu.quit"] = "Выйти",
+	["main_menu.logged_in_as"] = "Вы вошли как {username}",
+	["main_menu.not_connected"] = "Нет подключения к серверу",
 
 	["locations.title"] = "Папки с картами",
 	["locations.subtitle"] = "Папки, в которых Rizu ищет карты.",

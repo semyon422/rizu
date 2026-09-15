@@ -4,12 +4,15 @@ local Image = require("ui.views.Image")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Button = require("ui.views.Button")
+local Label = require("ui.views.Label")
 local Panel = require("ui.views.Panel")
 local Colors = require("ui.Colors")
 
 ---@class ui.screens.main_menu.MainMenu : gui.Screen
 ---@operator call: ui.screens.main_menu.MainMenu
 ---@field content gui.layout.FlowContainer
+---@field online_status ui.views.Label
+---@field online_observer util.Observer?
 local MainMenu = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -19,9 +22,28 @@ function MainMenu:new(ui)
 
 	self.root:setPivot(0.5, 0.5)
 
+	self:createOnlineStatus()
 	self:createContent()
 	self:createLogo()
 	self:createButtons()
+end
+
+function MainMenu:load()
+	Screen.load(self)
+	self.online_observer = self.ui.game.online_client:onChanged(function(event)
+		if event.type == "user_changed" or event.type == "connection_changed" then
+			self:updateOnlineStatus()
+		end
+	end)
+	self:updateOnlineStatus()
+end
+
+function MainMenu:unload()
+	if self.online_observer then
+		self.ui.game.online_client:offChanged(self.online_observer)
+		self.online_observer = nil
+	end
+	Screen.unload(self)
 end
 
 function MainMenu:enter()
@@ -100,6 +122,26 @@ function MainMenu:createFooter()
 	links:fitContent()
 	links:setAlignment(0.5, 0.5)
 	self.root:add(footer)
+end
+
+function MainMenu:createOnlineStatus()
+	self.online_status = self.root:add(Label({
+		font_name = "medium",
+		font_size = 16,
+		color = Colors.muted,
+	}))
+	self.online_status:setAlignment(0, 0):addPosition(24, 20)
+	self:updateOnlineStatus()
+end
+
+function MainMenu:updateOnlineStatus()
+	local online_client = self.ui.game.online_client
+	local user = online_client:getUser()
+	if online_client:isConnected() and user then
+		self.online_status:setText(self.ui.localization:get("main_menu.logged_in_as", {username = user.name}))
+	else
+		self.online_status:setText(self.ui.localization:get("main_menu.not_connected"))
+	end
 end
 
 function MainMenu:createContent()
