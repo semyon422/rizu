@@ -254,4 +254,6 @@ return {
 	["song_select.const"] = "Const",
 	["song_select.pauses"] = "Pausas",
 	["song_select.score_username"] = "#{index} Nombre de usuario",
+	["song_select.score_source_local"] = "Local",
+	["song_select.score_source_online"] = "En línea",
 }

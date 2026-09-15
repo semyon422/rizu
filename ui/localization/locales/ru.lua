@@ -265,4 +265,6 @@ return {
 	["song_select.const"] = "Const",
 	["song_select.pauses"] = "Паузы",
 	["song_select.score_username"] = "#{index} Игрок",
+	["song_select.score_source_local"] = "Локальные",
+	["song_select.score_source_online"] = "Онлайн",
 }

@@ -9,6 +9,7 @@ local Resources = require("ui.Resources")
 ---@field value any
 ---@field format? fun(value: any): string
 ---@field on_change? fun(value: any)
+---@field compact? boolean Omit the label and use only the segmented body.
 
 ---A compact choice control which displays every option in one row.
 ---@class ui.views.form.SegmentedControl : ui.views.form.FormControl
@@ -45,6 +46,7 @@ function SegmentedControl:new(params)
 	self.format = params.format or defaultFormat
 	self.on_change = params.on_change
 	self.font = Resources.getFont("medium", 16)
+	self.body_y = params.compact and 0 or BODY_Y
 	self.background_left = Resources.sprites.segmented_bg_left
 	self.background_middle = Resources.sprites.segmented_bg_middle
 	self.background_right = Resources.sprites.segmented_bg_right
@@ -56,7 +58,7 @@ function SegmentedControl:new(params)
 		self.cell_widths[index] = cell_width
 		width = width + cell_width
 	end
-	self:setSize(width, HEIGHT)
+	self:setSize(width, params.compact and BODY_HEIGHT or HEIGHT)
 	self.handles_mouse_input = true
 end
 
@@ -161,17 +163,17 @@ local function drawBackground(self, x, width)
 	local left_width = self.background_left:getWidth()
 	local right_width = self.background_right:getWidth()
 	local middle_width = width - left_width - right_width
-	self.background_left:draw(x, BODY_Y)
+	self.background_left:draw(x, self.body_y)
 	if middle_width > 0 then
 		self.background_middle:draw(
 			x + left_width,
-			BODY_Y,
+			self.body_y,
 			0,
 			middle_width / self.background_middle:getWidth(),
 			1
 		)
 	end
-	self.background_right:draw(x + width - right_width, BODY_Y)
+	self.background_right:draw(x + width - right_width, self.body_y)
 end
 
 function SegmentedControl:draw()
@@ -191,9 +193,11 @@ function SegmentedControl:draw()
 	Painter.setColorTable(Colors.text)
 	Painter.snapToPixel()
 	love.graphics.setFont(self.font)
-	love.graphics.print(self.label_text, 0, 0)
+	if self.body_y > 0 then
+		love.graphics.print(self.label_text, 0, 0)
+	end
 	x = 0
-	local text_y = BODY_Y + (BODY_HEIGHT - self.font:getHeight()) / 2
+	local text_y = self.body_y + (BODY_HEIGHT - self.font:getHeight()) / 2
 	for index, option in ipairs(self.options) do
 		local width = self.cell_widths[index]
 		Painter.setColorTable(index == selected_index and Colors.panel or Colors.text)
