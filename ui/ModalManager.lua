@@ -14,6 +14,7 @@ local Modifiers = require("ui.modals.modifiers.Modifiers")
 local NoteSkins = require("ui.modals.note_skins.NoteSkins")
 local Filters = require("ui.modals.filters.Filters")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
+local Login = require("ui.modals.login.Login")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.ModalManager : gui.View
@@ -31,6 +32,7 @@ local UiActions = require("ui.UiActions")
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
 ---@field location_editor ui.modals.locations.LocationEditor
+---@field login ui.modals.login.Login
 ---@field active_view ui.ModalView?
 local ModalManager = View + {}
 
@@ -85,6 +87,7 @@ function ModalManager:new(ui, popup_container)
 	end, localization))
 	self.filters = self:addModal(Filters(ui.game, popup_container, localization))
 	self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
+	self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
 	if ui.game.aiChatModel then
 		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
 			self:hideModal(self.ai_chat)
@@ -209,6 +212,16 @@ end
 ---@return boolean detached
 function ModalManager:detachExternalLink()
 	return self:hideModal(self.external_link)
+end
+
+---@return boolean attached
+function ModalManager:attachLogin()
+	return self:showModal(self.login)
+end
+
+---@return boolean detached
+function ModalManager:detachLogin()
+	return self:hideModal(self.login)
 end
 
 ---@return boolean attached

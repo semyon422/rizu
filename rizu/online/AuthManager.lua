@@ -23,14 +23,17 @@ end
 ---@param sea_client rizu.SeaClient
 ---@param operation string
 ---@param f fun(...: any)
+---@param on_error? fun(err: string)
 ---@return function
-local function backgroundAuthCall(sea_client, operation, f)
+local function backgroundAuthCall(sea_client, operation, f, on_error)
 	return thread.coro(function(...)
 		local ok, err = xpcall(f, debug.traceback, ...)
 		if ok then
 			return
 		end
-		print(("online %s failed: %s"):format(operation, tostring(err)))
+		err = tostring(err)
+		print(("online %s failed: %s"):format(operation, err))
+		if on_error then on_error(err) end
 		sea_client:closeWebsocket(operation .. " failed")
 	end)
 end
@@ -48,6 +51,8 @@ function AuthManager:new(sea_client, configModel)
 	end)
 	self.login = backgroundAuthCall(sea_client, "login", function(_, email, password)
 		self:loginAsync(email, password)
+	end, function(err)
+		sea_client.client:loginFailed(err)
 	end)
 	self.logout = backgroundAuthCall(sea_client, "logout", function(_)
 		self:logoutAsync()
@@ -81,12 +86,14 @@ function AuthManager:checkSessionAsync()
 	local token = tokens[server_url]
 	if not token then
 		print("no token for current server")
+		self.sea_client.client:authenticationResolved()
 		return
 	end
 
 	local ok, err = server_remote.auth:loginByToken(token)
 	if not ok then
 		print("invalid token", err)
+		self.sea_client.client:authenticationResolved()
 		return
 	end
 
@@ -94,6 +101,7 @@ function AuthManager:checkSessionAsync()
 	print("session = " .. pprint.dump(config.session))
 
 	self:checkUserAsync()
+	self.sea_client.client:authenticationResolved()
 end
 
 ---@param email string
@@ -102,6 +110,7 @@ function AuthManager:loginAsync(email, password)
 	print("login")
 
 	local sea_client = self.sea_client
+	sea_client.client:loginStarted()
 	local server_remote = sea_client.remote
 	local config = self.configModel.configs.online
 	local server_url = getServerUrl(self.configModel)
@@ -112,7 +121,9 @@ function AuthManager:loginAsync(email, password)
 	local err
 	ret, err = server_remote.auth:login(email, password)
 	if not ret then
+		err = err or "Login failed"
 		print(err)
+		sea_client.client:loginFailed(err)
 		return
 	end
 
@@ -122,6 +133,8 @@ function AuthManager:loginAsync(email, password)
 	local tokens = config.tokens
 	tokens[server_url] = ret.token
 	self.configModel:write("online")
+	sea_client.client:setUser(ret.user)
+	sea_client.client:loginSucceeded(ret.user)
 
 	self:checkSessionAsync()
 end

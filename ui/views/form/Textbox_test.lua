@@ -47,6 +47,19 @@ function test.commits_changes_on_focus_lost(t)
 end
 
 ---@param t testing.T
+function test.secret_field_masks_display_but_preserves_actual_text(t)
+	local textbox = {
+		secret = true,
+		model = {getText = function() return "secret" end},
+		getText = Textbox.getText,
+		getDisplayText = Textbox.getDisplayText,
+	}
+	t:eq(textbox:getText(), "secret")
+	t:eq(textbox:getDisplayText("secret"), "••••••")
+	t:eq(textbox:getDisplayText("päss"), "••••")
+end
+
+---@param t testing.T
 function test.escape_clears_keyboard_focus(t)
 	local textbox = View()
 	textbox.onKeyDown = Textbox.onKeyDown

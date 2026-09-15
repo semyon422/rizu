@@ -9,7 +9,21 @@ local Observable = require("Observable")
 ---@field type "connection_changed"
 ---@field connected boolean
 
----@alias rizu.online.Event rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent
+---@class rizu.online.AuthenticationResolvedEvent
+---@field type "authentication_resolved"
+
+---@class rizu.online.LoginStartedEvent
+---@field type "login_started"
+
+---@class rizu.online.LoginSucceededEvent
+---@field type "login_succeeded"
+---@field user sea.User
+
+---@class rizu.online.LoginFailedEvent
+---@field type "login_failed"
+---@field error string
+
+---@alias rizu.online.Event rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
 ---@alias rizu.online.EventObserver {receive: fun(self: table, event: rizu.online.Event)}
 ---@alias rizu.online.EventReceiver fun(event: rizu.online.Event)
 
@@ -17,6 +31,7 @@ local Observable = require("Observable")
 ---@operator call: rizu.OnlineClient
 ---@field user sea.User?
 ---@field connected boolean
+---@field authentication_resolved boolean
 ---@field observable util.Observable
 ---@field leaderboards sea.Leaderboard[]
 ---@field leaderboard_users sea.LeaderboardUser[]
@@ -24,6 +39,7 @@ local OnlineClient = class()
 
 function OnlineClient:new()
 	self.connected = false
+	self.authentication_resolved = false
 	self.observable = Observable()
 	self.leaderboards = {}
 	self.leaderboards_users = {}
@@ -50,12 +66,38 @@ function OnlineClient:setConnected(connected)
 		return
 	end
 	self.connected = connected
+	self.authentication_resolved = false
 	self.observable:send({type = "connection_changed", connected = connected})
 end
 
 ---@return boolean
 function OnlineClient:isConnected()
 	return self.connected
+end
+
+function OnlineClient:authenticationResolved()
+	if self.authentication_resolved then return end
+	self.authentication_resolved = true
+	self.observable:send({type = "authentication_resolved"})
+end
+
+---@return boolean
+function OnlineClient:isAuthenticationResolved()
+	return self.authentication_resolved
+end
+
+function OnlineClient:loginStarted()
+	self.observable:send({type = "login_started"})
+end
+
+---@param user sea.User
+function OnlineClient:loginSucceeded(user)
+	self.observable:send({type = "login_succeeded", user = user})
+end
+
+---@param err string
+function OnlineClient:loginFailed(err)
+	self.observable:send({type = "login_failed", error = err})
 end
 
 ---@param observer rizu.online.EventObserver|rizu.online.EventReceiver

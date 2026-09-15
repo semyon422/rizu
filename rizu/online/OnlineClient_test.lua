@@ -27,6 +27,23 @@ function test.emits_user_changes(t)
 end
 
 ---@param t testing.T
+function test.emits_login_states(t)
+	local client = OnlineClient()
+	local events = {}
+	client:onChanged(function(event) table.insert(events, event) end)
+	local user = {id = 1, name = "player"}
+
+	client:loginStarted()
+	client:loginFailed("Invalid credentials")
+	client:loginSucceeded(user --[[@as sea.User]])
+
+	t:tdeq(events[1], {type = "login_started"})
+	t:tdeq(events[2], {type = "login_failed", error = "Invalid credentials"})
+	t:eq(events[3].type, "login_succeeded")
+	t:eq(events[3].user, user)
+end
+
+---@param t testing.T
 function test.emits_connection_changes(t)
 	local client = OnlineClient()
 	local events = {}
@@ -35,12 +52,18 @@ function test.emits_connection_changes(t)
 	end)
 
 	client:setConnected(true)
+	t:eq(client:isAuthenticationResolved(), false)
+	client:authenticationResolved()
+	client:authenticationResolved()
+	t:eq(client:isAuthenticationResolved(), true)
 	client:setConnected(true)
 	client:setConnected(false)
+	t:eq(client:isAuthenticationResolved(), false)
 
-	t:eq(#events, 2)
+	t:eq(#events, 3)
 	t:tdeq(events[1], {type = "connection_changed", connected = true})
-	t:tdeq(events[2], {type = "connection_changed", connected = false})
+	t:tdeq(events[2], {type = "authentication_resolved"})
+	t:tdeq(events[3], {type = "connection_changed", connected = false})
 end
 
 return test

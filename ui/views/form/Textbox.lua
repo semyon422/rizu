@@ -4,6 +4,7 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
 local UiActions = require("ui.UiActions")
+local utf8 = require("utf8")
 local utf8validate = require("utf8validate")
 
 ---@class ui.views.form.TextboxParams
@@ -11,6 +12,7 @@ local utf8validate = require("utf8validate")
 ---@field text string?
 ---@field placeholder string?
 ---@field width number?
+---@field secret? boolean Replace entered characters with dots while preserving the actual value.
 ---@field on_change fun(text: string)?
 
 ---@class ui.views.form.Textbox : ui.views.form.FormControl
@@ -19,6 +21,7 @@ local utf8validate = require("utf8validate")
 ---@field font love.Font
 ---@field label_text string
 ---@field placeholder string
+---@field secret boolean
 ---@field on_change fun(text: string)?
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
@@ -40,6 +43,7 @@ function Textbox:new(params)
 	self.font = Resources.getFont("medium", 16)
 	self.label_text = params.label
 	self.placeholder = params.placeholder or ""
+	self.secret = params.secret == true
 	self.on_change = params.on_change
 	self.cap_left = Resources.sprites.form_element_cap_left
 	self.cap_middle = Resources.sprites.form_element_cap_middle
@@ -56,6 +60,12 @@ end
 ---@return string text
 function Textbox:getText()
 	return self.model:getText()
+end
+
+---@param text string
+---@return string
+function Textbox:getDisplayText(text)
+	return self.secret and string.rep("•", utf8.len(text)) or text
 end
 
 ---@param text string
@@ -169,13 +179,15 @@ function Textbox:draw()
 	self.cap_right:draw(self.width - right_width, BODY_Y)
 
 	local text = self.model:getText()
+	local display_text = self:getDisplayText(text)
 	Painter.setColorTable(text == "" and Colors.muted or Colors.text)
-	love.graphics.print(text == "" and self.placeholder or text, TEXT_X, TEXT_Y)
+	love.graphics.print(text == "" and self.placeholder or display_text, TEXT_X, TEXT_Y)
 
 	if self.focused then
 		local left = self.model:getSplit()
+		local display_left = self:getDisplayText(left)
 		Painter.setColorTable(Colors.text)
-		Resources.sprites.pixel:draw(TEXT_X + self.font:getWidth(left), TEXT_Y, 0, 2, self.font:getHeight())
+		Resources.sprites.pixel:draw(TEXT_X + self.font:getWidth(display_left), TEXT_Y, 0, 2, self.font:getHeight())
 	end
 end
 

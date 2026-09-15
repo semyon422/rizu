@@ -13,6 +13,9 @@ local Colors = require("ui.Colors")
 ---@field content gui.layout.FlowContainer
 ---@field online_status ui.views.Label
 ---@field online_observer util.Observer?
+---@field account_buttons gui.layout.FlowContainer
+---@field register_button ui.screens.main_menu.MainMenuButton
+---@field login_button ui.screens.main_menu.MainMenuButton
 local MainMenu = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -33,7 +36,7 @@ end
 function MainMenu:load()
 	Screen.load(self)
 	self.online_observer = self.ui.game.online_client:onChanged(function(event)
-		if event.type == "user_changed" or event.type == "connection_changed" then
+		if event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
 			self:updateOnlineStatus()
 		end
 	end)
@@ -128,19 +131,23 @@ end
 
 function MainMenu:createAccountButtons()
 	local buttons = self.root:add(FlowContainer({direction = "row", gap = 10, align = 0.5}))
-	local register = buttons:add(MainMenuButton(self.ui.localization:get("main_menu.register"), function()
+	self.account_buttons = buttons
+	self.register_button = buttons:add(MainMenuButton(self.ui.localization:get("main_menu.register"), function()
 		self.ui.modal_manager:attachExternalLink(
 			self.ui.localization:get("external_link.register_title"),
 			"https://rizu.su/register"
 		)
 	end, {font_size = 15, icon = Resources.sprites.icon_user_plus}))
-	register:setSize(150, 44)
-	local login = buttons:add(MainMenuButton(self.ui.localization:get("main_menu.login"), function() end, {
+	self.register_button:setSize(150, 44)
+	self.login_button = buttons:add(MainMenuButton(self.ui.localization:get("main_menu.login"), function()
+		self.ui.modal_manager:attachLogin()
+	end, {
 		variant = "primary", font_size = 15, icon = Resources.sprites.icon_log_in,
 	}))
-	login:setSize(150, 44)
+	self.login_button:setSize(150, 44)
 	buttons:fitContent()
 	buttons:setAlignment(1, 0):addPosition(-24, 16)
+	self:updateAccountButtons()
 end
 
 function MainMenu:createOnlineStatus()
@@ -156,11 +163,28 @@ end
 function MainMenu:updateOnlineStatus()
 	local online_client = self.ui.game.online_client
 	local user = online_client:getUser()
-	if online_client:isConnected() and user then
+	if online_client:isConnected() and user and type(user.name) == "string" and user.name ~= "" then
 		self.online_status:setText(self.ui.localization:get("main_menu.logged_in_as", {username = user.name}))
 	else
 		self.online_status:setText(self.ui.localization:get("main_menu.not_connected"))
 	end
+	self:updateAccountButtons()
+end
+
+function MainMenu:updateAccountButtons()
+	if not self.account_buttons or not self.register_button or not self.login_button then return end
+	local online_client = self.ui.game.online_client
+	local user = online_client:getUser()
+	local logged_in = user ~= nil and user.id ~= nil
+	local show_buttons = online_client:isConnected() and online_client:isAuthenticationResolved() and not logged_in
+	if not show_buttons then
+		if self.register_button.parent then self.account_buttons:remove(self.register_button) end
+		if self.login_button.parent then self.account_buttons:remove(self.login_button) end
+	elseif not self.register_button.parent then
+		self.account_buttons:add(self.register_button)
+		self.account_buttons:add(self.login_button)
+	end
+	self.account_buttons:fitContent()
 end
 
 function MainMenu:createWipNotice()

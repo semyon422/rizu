@@ -6,9 +6,14 @@ local function makeManager()
 	local closed_with
 	local written
 	local users = {}
+	local auth_events = {}
 	local sea_client = {
 		client = {
 			setUser = function(_, user) table.insert(users, user) end,
+			loginStarted = function() table.insert(auth_events, {type = "login_started"}) end,
+			loginSucceeded = function(_, user) table.insert(auth_events, {type = "login_succeeded", user = user}) end,
+			loginFailed = function(_, err) table.insert(auth_events, {type = "login_failed", error = err}) end,
+			authenticationResolved = function() table.insert(auth_events, {type = "authentication_resolved"}) end,
 		},
 		remote = {},
 		closeWebsocket = function(_, err) closed_with = err end,
@@ -21,7 +26,7 @@ local function makeManager()
 		write = function(_, name) written = name end,
 	}
 	local manager = AuthManager(sea_client, config_model) ---@diagnostic disable-line
-	return manager, sea_client, config_model, function() return closed_with, users, written end
+	return manager, sea_client, config_model, function() return closed_with, users, written, auth_events end
 end
 
 ---@param t testing.T
@@ -57,9 +62,26 @@ function test.login_persists_server_token(t)
 	}
 
 	manager:loginAsync("user@example.com", "password")
-	local _, _, written = getValues()
+	local _, users, written, auth_events = getValues()
 	t:eq(config_model.configs.online.tokens["ws://test"], "token")
 	t:eq(written, "online")
+	t:eq(users[1].id, 2)
+	t:eq(auth_events[1].type, "login_started")
+	t:eq(auth_events[2].type, "login_succeeded")
+	t:eq(auth_events[2].user.id, 2)
+end
+
+---@param t testing.T
+function test.login_failure_emits_error(t)
+	local manager, sea_client, _, getValues = makeManager()
+	sea_client.remote = {auth = {login = function() return nil, "Invalid credentials" end}}
+
+	manager:loginAsync("user@example.com", "bad password")
+	local _, _, _, auth_events = getValues()
+	t:tdeq(auth_events, {
+		{type = "login_started"},
+		{type = "login_failed", error = "Invalid credentials"},
+	})
 end
 
 ---@param t testing.T

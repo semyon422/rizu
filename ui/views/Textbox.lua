@@ -4,6 +4,7 @@ local Resources = require("ui.Resources")
 local TextboxModel = require("ui.helpers.TextboxModel")
 local UiActions = require("ui.UiActions")
 local View = require("gui.View")
+local utf8 = require("utf8")
 local utf8validate = require("utf8validate")
 
 ---@class ui.views.TextboxParams
@@ -15,6 +16,7 @@ local utf8validate = require("utf8validate")
 ---@field blur_on_cancel boolean?
 ---@field handle_clear_field boolean?
 ---@field background boolean? Use Colors.background instead of Colors.surface.
+---@field secret? boolean Replace entered characters with dots while preserving the actual value.
 
 ---A standalone, single-line text input.
 ---@class ui.views.Textbox : gui.View
@@ -28,6 +30,7 @@ local utf8validate = require("utf8validate")
 ---@field blur_on_cancel boolean
 ---@field handle_clear_field boolean
 ---@field background boolean
+---@field secret boolean
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
 ---@field cap_right gui.Sprite
@@ -55,6 +58,7 @@ function Textbox:new(params)
 	self.blur_on_cancel = params.blur_on_cancel ~= false
 	self.handle_clear_field = params.handle_clear_field ~= false
 	self.background = params.background == true
+	self.secret = params.secret == true
 	self.cap_left = Resources.sprites.form_element_cap_left
 	self.cap_middle = Resources.sprites.form_element_cap_middle
 	self.cap_right = Resources.sprites.form_element_cap_right
@@ -68,6 +72,12 @@ end
 ---@return string text
 function Textbox:getText()
 	return self.model:getText()
+end
+
+---@param text string
+---@return string
+function Textbox:getDisplayText(text)
+	return self.secret and string.rep("•", utf8.len(text)) or text
 end
 
 ---@param text string
@@ -196,14 +206,16 @@ function Textbox:draw()
 	self.cap_right:draw(self.width - right_width, 0)
 
 	local text = self.model:getText()
+	local display_text = self:getDisplayText(text)
 	Painter.setColorTable(text == "" and Colors.muted or Colors.text)
 	love.graphics.setFont(self.font)
-	love.graphics.print(text == "" and self.placeholder or text, TEXT_X, TEXT_Y)
+	love.graphics.print(text == "" and self.placeholder or display_text, TEXT_X, TEXT_Y)
 
 	if self.focused then
 		local left = self.model:getSplit()
+		local display_left = self:getDisplayText(left)
 		Painter.setColorTable(Colors.text)
-		Resources.sprites.pixel:draw(TEXT_X + self.font:getWidth(left), TEXT_Y, 0, 2, self.font:getHeight())
+		Resources.sprites.pixel:draw(TEXT_X + self.font:getWidth(display_left), TEXT_Y, 0, 2, self.font:getHeight())
 	end
 
 	if self.icon then
