@@ -50,7 +50,12 @@ function LobbyList:new(ui)
 	local back = self.root:add(Button(ui.localization:get("lobby_list.back"), function()
 		ui:setScreen(ui.main_menu, true)
 	end, {variant = "secondary", shape = "capsule", font_name = "medium", font_size = 18}))
-	back:setSize(160, 46):setAlignment(0, 1):setOffset(48, -24)
+	back:setSize(160, 46):setAlignment(0, 1):addPosition(48, -24)
+
+	local create = self.root:add(Button(ui.localization:get("lobby_list.create"), function()
+		ui.modal_manager:attachCreateRoom()
+	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
+	create:setSize(190, 46):setAlignment(1, 1):addPosition(-48, -24)
 end
 
 function LobbyList:load()

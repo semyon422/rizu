@@ -219,7 +219,17 @@ function Multiplayer:kickUser(peer, room_id, target_user_id)
 	end
 
 	for _, target_peer in ipairs(self:getPeersByUserId(target_user_id, peer)) do
-		target_peer.remote_no_return.multiplayer:setRoomUsers({})
+		-- The connection handling this request can be notified directly over its
+		-- WebSocket. Routing that same notification through NATS makes a normal
+		-- leave fail when NATS is unavailable, even though the database update
+		-- has already succeeded.
+		local remote = target_peer.peer_id == peer.peer_id
+			and peer.remote_no_return or target_peer.remote_no_return
+		-- Notification delivery to another connection is best-effort and must
+		-- not turn an already-completed kick/leave into an RPC failure.
+		pcall(function()
+			remote.multiplayer:setRoomUsers({})
+		end)
 	end
 
 	return true
