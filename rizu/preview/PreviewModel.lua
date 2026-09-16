@@ -438,19 +438,7 @@ local generatePreviewAsync = thread.async(function(chartview_data)
 			return false
 		end
 
-		-- Segfault here LuaJIT 2.1.1785606157
-		-- The conversion triggers a LuaJIT miscompilation in this worker. Disabling
-		-- only toAbsolute is insufficient because its callees compile separately.
-		jit.off()
-		local converted, conversion_error = xpcall(
-			t.chart.layers.main.toAbsolute,
-			debug.traceback,
-			t.chart.layers.main
-		)
-		jit.on()
-		if not converted then
-			error(conversion_error, 0)
-		end
+		t.chart.layers.main:toAbsolute()
 
 		local audio_preview_path = "userdata/audio_previews/" .. chartview_data.hash .. ".audio_preview"
 		if not fs:getInfo(audio_preview_path) then
