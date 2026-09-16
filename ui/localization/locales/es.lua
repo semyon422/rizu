@@ -281,4 +281,10 @@ return {
 	["song_select.score_username"] = "#{index} Nombre de usuario",
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "En línea",
+
+	["gameplay.pause.title"] = "Pausa",
+	["gameplay.pause.continue"] = "Continuar",
+	["gameplay.pause.restart"] = "Reiniciar",
+	["gameplay.pause.leave"] = "Salir",
+	["gameplay.pause.hold"] = "Mantén pulsado para pausar...",
 }

@@ -9,6 +9,8 @@ local Colors = require("ui.Colors")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
 local SequenceCanvas = require("ui.screens.gameplay.SequenceCanvas")
 local BgaView = require("ui.screens.gameplay.BgaView")
+local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
+local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
@@ -46,6 +48,17 @@ function Gameplay:new(ui)
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
 
+	self.pause_overlay = self.root:add(PauseOverlay(
+		ui.localization,
+		function() self.gameplay_interactor:changePlayState("play") end,
+		function() self.gameplay_interactor:changePlayState("retry") end,
+		function()
+			self.ui:setScreen(self.ui.song_select, true)
+			self.is_playing = false
+		end
+	))
+	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
+
 	self.root:setOpacity(0)
 end
 
@@ -74,6 +87,8 @@ function Gameplay:enter()
 	self.is_playing = true
 	self.sequence_canvas.playing = not self.is_aim
 	self.clear_status:hide()
+	self.pause_overlay:hide()
+	self.pause_hold_overlay:setProgress(0)
 
 	local cfg = self.ui.config
 	local width = cfg:getNumber(cfg.keys.gameplay_viewport_sx)
@@ -95,6 +110,8 @@ end
 
 function Gameplay:exit()
 	self.is_playing = false
+	self.pause_overlay:hide()
+	self.pause_hold_overlay:setProgress(0)
 	self.ui.command_registry:popContext("gameplay_commands")
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_canvas.playing = false
@@ -190,6 +207,21 @@ end
 ---@param dt number
 function Gameplay:update(dt)
 	Screen.update(self, dt)
+	local pause_model = self.game.pauseModel
+	local state = pause_model.state
+	if state == "play-pause" then
+		self.pause_hold_overlay:setProgress(pause_model.progress)
+		self.pause_overlay:setReveal(0)
+	elseif state == "pause-play" then
+		self.pause_hold_overlay:setProgress(0)
+		self.pause_overlay:setReveal(1 - pause_model.progress)
+	elseif state:sub(1, 5) == "pause" then
+		self.pause_hold_overlay:setProgress(0)
+		self.pause_overlay:setReveal(1)
+	else
+		self.pause_hold_overlay:setProgress(0)
+		self.pause_overlay:setReveal(0)
+	end
 	if self.is_aim and self.gameplay_interactor.loaded then
 		self.gameplay_interactor:update(true)
 		if not self.is_playing and self.game.rhythm_engine:getProgress() < 1 then

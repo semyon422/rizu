@@ -308,4 +308,10 @@ return {
 	["song_select.score_username"] = "#{index} Username",
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "Online",
+
+	["gameplay.pause.title"] = "Paused",
+	["gameplay.pause.continue"] = "Continue",
+	["gameplay.pause.restart"] = "Restart",
+	["gameplay.pause.leave"] = "Leave",
+	["gameplay.pause.hold"] = "Continue holding to pause...",
 }

@@ -292,4 +292,10 @@ return {
 	["song_select.score_username"] = "#{index} Игрок",
 	["song_select.score_source_local"] = "Локальные",
 	["song_select.score_source_online"] = "Онлайн",
+
+	["gameplay.pause.title"] = "Пауза",
+	["gameplay.pause.continue"] = "Продолжить",
+	["gameplay.pause.restart"] = "Начать заново",
+	["gameplay.pause.leave"] = "Выйти",
+	["gameplay.pause.hold"] = "Продолжайте удерживать для паузы...",
 }

@@ -35,6 +35,25 @@ local function playButton(dark, light)
 	}
 end
 
+local function pauseButton(top, bottom, stroke)
+	return {
+		width = 29,
+		height = 29,
+		border_radius = 13,
+		rounding_power = 3,
+		slice = 14,
+		fills = {{
+			type = "linear_gradient",
+			angle = 90,
+			stops = {
+				{offset = 0, color = top},
+				{offset = 1, color = bottom},
+			},
+		}},
+		stroke = {width = 2, color = stroke},
+	}
+end
+
 local function mix(a, b, amount)
 	return {
 		a[1] + (b[1] - a[1]) * amount,
@@ -77,6 +96,38 @@ end
 
 ---@type {[string]: gui.SpriteGenerator.Definition}
 local SpriteDefinitions = {
+	gameplay_pause_hold = {
+		width = 49,
+		height = 49,
+		border_radius = 23,
+		rounding_power = 4,
+		slice = 24,
+		fills = fills({0.035, 0.075, 0.15, 0.94}),
+		stroke = {width = 2, color = {0.32, 0.56, 0.86, 0.9}},
+	},
+	gameplay_pause_hold_track = {
+		width = 13,
+		height = 13,
+		border_radius = 6,
+		slice = 6,
+		fills = fills({0.08, 0.13, 0.22, 1}),
+	},
+	gameplay_pause_hold_fill = {
+		width = 13,
+		height = 13,
+		border_radius = 6,
+		slice = 6,
+		fills = fills(Colors.blue),
+	},
+	gameplay_pause_button_continue = pauseButton({0, 0, 0, 0}, {0, 0, 0, 0}, {0.49, 0.71, 0.21, 0.9}),
+	gameplay_pause_button_continue_hover = pauseButton(Colors.success, Colors.success, {0.75, 0.91, 0.49, 1}),
+	gameplay_pause_button_continue_pressed = pauseButton({0.31, 0.44, 0.13, 1}, {0.31, 0.44, 0.13, 1}, {0.40, 0.57, 0.18, 0.9}),
+	gameplay_pause_button_restart = pauseButton({0, 0, 0, 0}, {0, 0, 0, 0}, {0.44, 0.57, 0.82, 0.8}),
+	gameplay_pause_button_restart_hover = pauseButton({0.22, 0.28, 0.46, 1}, {0.22, 0.28, 0.46, 1}, {0.63, 0.76, 1, 0.95}),
+	gameplay_pause_button_restart_pressed = pauseButton({0.12, 0.15, 0.27, 1}, {0.12, 0.15, 0.27, 1}, {0.35, 0.46, 0.68, 0.8}),
+	gameplay_pause_button_leave = pauseButton({0, 0, 0, 0}, {0, 0, 0, 0}, {0.76, 0.36, 0.62, 0.85}),
+	gameplay_pause_button_leave_hover = pauseButton({0.42, 0.15, 0.34, 1}, {0.42, 0.15, 0.34, 1}, {1, 0.53, 0.78, 1}),
+	gameplay_pause_button_leave_pressed = pauseButton({0.24, 0.08, 0.20, 1}, {0.24, 0.08, 0.20, 1}, {0.62, 0.27, 0.50, 0.85}),
 	button_play = playButton({0.29, 0.48, 0.10, 1}, {0.61, 0.82, 0.31, 1}),
 	button_play_hover = playButton({0.35, 0.57, 0.13, 1}, {0.69, 0.9, 0.38, 1}),
 	button_play_pressed = playButton({0.24, 0.4, 0.08, 1}, {0.48, 0.7, 0.22, 1}),
