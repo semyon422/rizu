@@ -14,11 +14,79 @@ local ROW_HEIGHT = 38
 local HORIZONTAL_PADDING = 24
 local VERTICAL_PADDING = 14
 local TRANSITION_DURATION = 0.2
+local OPTION_BUTTON_SIZE = 28
+local OPTION_BUTTON_GAP = 6
+local OPTION_VALUE_WIDTH = 64
+
+---@class ui.modals.chart_mutators.ModifierOptionButton : gui.View
+---@operator call: ui.modals.chart_mutators.ModifierOptionButton
+---@field row ui.modals.chart_mutators.SelectedModifierRow
+---@field direction integer
+---@field text string
+local ModifierOptionButton = View + {}
+
+---@param row ui.modals.chart_mutators.SelectedModifierRow
+---@param direction integer
+function ModifierOptionButton:new(row, direction)
+	View.new(self)
+	self.row = row
+	self.direction = direction
+	self.text = direction < 0 and "<" or ">"
+	self.handles_mouse_input = true
+	self:setSize(OPTION_BUTTON_SIZE, OPTION_BUTTON_SIZE)
+	self:setAlignment(1, 0.5)
+end
+
+---@param e gui.MouseClickEvent
+---@return boolean?
+function ModifierOptionButton:onMouseClick(e)
+	if e.button ~= 1 or self.row.list.drag_active then
+		return
+	end
+	local index = self.row.list:getModifierIndex(self.row.config)
+	if not index then
+		return
+	end
+	self.row.list:changeConfigValue(self.row.config, self.direction)
+	return true
+end
+
+---@param e gui.MouseDownEvent
+---@return boolean?
+function ModifierOptionButton:onMouseDown(e)
+	if e.button == 1 then
+		return true
+	end
+end
+
+---@param e gui.MouseUpEvent
+---@return boolean?
+function ModifierOptionButton:onMouseUp(e)
+	if e.button == 1 then
+		return true
+	end
+end
+
+function ModifierOptionButton:draw()
+	if self.pressed then
+		Painter.setColorTable(Colors.surface_raised)
+	elseif self.mouse_over then
+		Painter.setColorTable(Colors.surface)
+	else
+		Painter.setColorTable(Colors.panel)
+	end
+	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	Painter.setColorTable(self.mouse_over and Colors.accent or Colors.text)
+	love.graphics.setFont(self.row.list.item_font)
+	love.graphics.printf(self.text, 0, 3, self.width, "center")
+end
 
 ---@class ui.modals.chart_mutators.SelectedModifierRow : gui.View
 ---@operator call: ui.modals.chart_mutators.SelectedModifierRow
 ---@field list ui.modals.chart_mutators.SelectedModifierList
 ---@field config table
+---@field decrease_button? ui.modals.chart_mutators.ModifierOptionButton
+---@field increase_button? ui.modals.chart_mutators.ModifierOptionButton
 local SelectedModifierRow = View + {}
 
 ---@param list ui.modals.chart_mutators.SelectedModifierList
@@ -30,6 +98,16 @@ function SelectedModifierRow:new(list, config)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 	self:setSize(0, ROW_HEIGHT)
+
+	local modifier = ModifierModel:getModifier(config.id)
+	if modifier and modifier.values and #modifier.values > 0 then
+		self.decrease_button = self:add(ModifierOptionButton(self, -1))
+		self.decrease_button:addPosition(-(
+			HORIZONTAL_PADDING + OPTION_BUTTON_SIZE + OPTION_BUTTON_GAP * 2 + OPTION_VALUE_WIDTH
+		), 0)
+		self.increase_button = self:add(ModifierOptionButton(self, 1))
+		self.increase_button:addPosition(-HORIZONTAL_PADDING, 0)
+	end
 end
 
 ---@param inputs gui.Inputs
@@ -68,7 +146,7 @@ end
 function SelectedModifierRow:draw()
 	if self.mouse_over then
 		Painter.setColorTable(Colors.surface)
-		love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+		Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 	end
 
 	local name = ModifierRegistry:getName(self.config.id)
@@ -77,10 +155,12 @@ function SelectedModifierRow:draw()
 	love.graphics.print(name, HORIZONTAL_PADDING, 8)
 
 	local modifier = ModifierModel:getModifier(self.config.id)
-	if modifier and modifier.values then
+	if modifier and modifier.values and #modifier.values > 0 then
+		local right_button_x = self.width - HORIZONTAL_PADDING - OPTION_BUTTON_SIZE
+		local value_x = right_button_x - OPTION_BUTTON_GAP - OPTION_VALUE_WIDTH
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.list.value_font)
-		love.graphics.printf(tostring(self.config.value), 0, 10, self.width - HORIZONTAL_PADDING, "right")
+		love.graphics.printf(tostring(self.config.value), value_x, 10, OPTION_VALUE_WIDTH, "center")
 	end
 end
 
@@ -106,11 +186,14 @@ function ModifierInsertionCell:onMouseClick(e)
 end
 
 function ModifierInsertionCell:draw()
+	local pixel = Resources.sprites.pixel
 	Painter.setColorTable(self.list.active and Colors.surface_raised or Colors.surface)
-	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+	pixel:draw(0, 0, 0, self.width, self.height)
 	Painter.setColorTable(self.list.active and Colors.accent or Colors.muted)
-	love.graphics.setLineWidth(1)
-	love.graphics.rectangle("line", 0.5, 0.5, self.width - 1, self.height - 1)
+	pixel:draw(0, 0, 0, self.width, 1)
+	pixel:draw(0, self.height - 1, 0, self.width, 1)
+	pixel:draw(0, 1, 0, 1, math.max(0, self.height - 2))
+	pixel:draw(self.width - 1, 1, 0, 1, math.max(0, self.height - 2))
 	love.graphics.setFont(self.list.value_font)
 	love.graphics.printf(self.list.insertion_text, 0, 10, self.width, "center")
 end
@@ -135,7 +218,7 @@ function SelectedModifierListChrome:draw()
 	-- nine-slice frame drawn by the list itself.
 	Painter.setColorTable(Colors.panel)
 	local top = self.draw_title and VERTICAL_PADDING or 0
-	love.graphics.rectangle("fill", HORIZONTAL_PADDING, top,
+	Resources.sprites.pixel:draw(HORIZONTAL_PADDING, top, 0,
 		math.max(0, self.width - HORIZONTAL_PADDING * 2), self.height - top)
 	if self.draw_title then
 		Painter.setColorTable(Colors.text)
@@ -298,13 +381,10 @@ function SelectedModifierList:activate()
 	end
 end
 
+---@param config table
 ---@param direction integer
 ---@return boolean changed
-function SelectedModifierList:changeValue(direction)
-	local config = self.model.replayBase.modifiers[self.model.modifierIndex]
-	if not config then
-		return false
-	end
+function SelectedModifierList:changeConfigValue(config, direction)
 	local modifier = ModifierModel:getModifier(config.id)
 	if not modifier or not modifier.values or #modifier.values == 0 then
 		return false
@@ -320,6 +400,16 @@ function SelectedModifierList:changeValue(direction)
 		self.on_change()
 	end
 	return true
+end
+
+---@param direction integer
+---@return boolean changed
+function SelectedModifierList:changeValue(direction)
+	local config = self.model.replayBase.modifiers[self.model.modifierIndex]
+	if not config then
+		return false
+	end
+	return self:changeConfigValue(config, direction)
 end
 
 ---@param screen_x number
