@@ -4,6 +4,7 @@ local ModalManager = require("ui.ModalManager")
 local FpsView = require("ui.views.FpsView")
 local CacheProgressView = require("ui.views.CacheProgressView")
 local PopupContainer = require("ui.views.PopupContainer")
+local VolumeOverlay = require("ui.views.VolumeOverlay")
 local UiActions = require("ui.UiActions")
 local Settings = require("rizu.config.Settings")
 
@@ -12,6 +13,7 @@ local Settings = require("rizu.config.Settings")
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
 ---@field popup_container ui.views.PopupContainer
+---@field volume_overlay ui.views.VolumeOverlay
 ---@field tooltip ui.views.Tooltip
 ---@field ui ui.UserInterface
 ---@field cache_progress_view ui.views.CacheProgressView
@@ -50,8 +52,10 @@ function Overlay:new(ui)
 	self.cache_progress_view:setOffset(16, 16)
 	self.popup_container = PopupContainer()
 	self.modal_manager = self.root:add(ModalManager(ui, self.popup_container))
-	-- Tooltips are last so they draw above navigation screens, modals, and popups.
 	self.root:add(self.popup_container)
+	self.volume_overlay = self.root:add(VolumeOverlay(ui.game.settings))
+	self.volume_overlay:setAlignment(0, 0.5):addPosition(24, 0)
+	-- Tooltips are last so they draw above navigation screens, modals, popups, and notifications.
 	self.tooltip = self.root:add(ui.tooltip)
 end
 

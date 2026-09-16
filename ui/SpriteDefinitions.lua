@@ -96,6 +96,14 @@ end
 
 ---@type {[string]: gui.SpriteGenerator.Definition}
 local SpriteDefinitions = {
+	volume_overlay = {
+		width = 17,
+		height = 17,
+		border_radius = 7,
+		slice = 8,
+		fills = fills(Colors.panel),
+		stroke = {width = 1, color = Colors.outline},
+	},
 	gameplay_pause_hold = {
 		width = 49,
 		height = 49,
