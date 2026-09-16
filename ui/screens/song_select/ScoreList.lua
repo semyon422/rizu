@@ -5,6 +5,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
 local UiActions = require("ui.UiActions")
+local Settings = require("rizu.config.Settings")
 local time_util = require("time_util")
 
 ---@class ui.screens.song_select.ScoreList : gui.VirtualizedList
@@ -17,11 +18,13 @@ local FADE_IN_STAGGER = 0.02
 ---@param score_selector rizu.select.ScoreSelector
 ---@param on_score_selected fun(index: integer)
 ---@param localization ui.localization.Localization
-function ScoreList:new(score_selector, on_score_selected, localization)
+---@param online_client rizu.OnlineClient
+function ScoreList:new(score_selector, on_score_selected, localization, online_client)
 	VirtualizedList.new(self)
 	self.score_selector = score_selector
 	self.on_score_selected = on_score_selected
 	self.localization = localization
+	self.online_client = online_client
 	self.items = {}
 	self.gap = 5
 	self.selected_index = nil
@@ -34,7 +37,20 @@ function ScoreList:new(score_selector, on_score_selected, localization)
 	self.no_records_t = 0
 end
 
-function ScoreList:load() end
+function ScoreList:load()
+	self.online_observer = self.online_client:onChanged(function(event)
+		if event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
+			self:reload()
+		end
+	end)
+end
+
+function ScoreList:unload()
+	if self.online_observer then
+		self.online_client:offChanged(self.online_observer)
+		self.online_observer = nil
+	end
+end
 
 function ScoreList:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.item_height = 76
@@ -64,6 +80,14 @@ function ScoreList:reload()
 	self.selected_index = nil
 	self.reload_time = love.timer.getTime()
 
+	local fallback_username = self.localization:get("song_select.username")
+	local local_username = fallback_username
+	local user = self.online_client:getUser()
+	if self.online_client:isConnected() and user and type(user.name) == "string" and user.name ~= "" then
+		local_username = user.name
+	end
+	local is_local = self.score_selector.settings:getChoice(Settings.keys.select.score_source) == "local"
+
 	for i, v in ipairs(self.score_selector.store.items) do
 		local mods_sb = {}
 
@@ -79,8 +103,10 @@ function ScoreList:reload()
 			table.insert(mods_sb, self.localization:get("song_select.pauses"))
 		end
 
+		local username = type(v.user_name) == "string" and v.user_name ~= "" and v.user_name
+			or (is_local and local_username or fallback_username)
 		table.insert(self.items, {
-			label = self.localization:get("song_select.score_username", {index = i}),
+			label = self.localization:get("song_select.score_username", {index = i, username = username}),
 			accuracy = ("%0.02f%%"):format((v.score or 0) / 100),
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),

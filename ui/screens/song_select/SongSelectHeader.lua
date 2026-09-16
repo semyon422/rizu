@@ -13,11 +13,16 @@ local HeaderButton = require("ui.screens.song_select.HeaderButton")
 
 ---@class ui.screens.song_select.SongSelectHeader : gui.View
 ---@operator call: ui.screens.song_select.SongSelectHeader
+---@field ui ui.UserInterface
+---@field actions gui.layout.FlowContainer
+---@field player_info ui.views.PlayerInfo
+---@field online_observer util.Observer?
 local SongSelectHeader = View + {}
 
 ---@param ui ui.UserInterface
 function SongSelectHeader:new(ui)
 	View.new(self)
+	self.ui = ui
 	self:add(Panel({color = Colors.panel})):anchorFill(0, 0, 0, 0)
 
 	local brand = self:add(FlowContainer({direction = "row", gap = 10, align = 0.5}))
@@ -31,7 +36,8 @@ function SongSelectHeader:new(ui)
 	session_info:setAlignment(0.5, 0.5)
 
 	local actions = self:add(FlowContainer({direction = "row", align = 0.5}))
-	actions:add(PlayerInfo(ui.localization:get("song_select.username")))
+	self.actions = actions
+	self.player_info = actions:add(PlayerInfo(ui.localization:get("song_select.username")))
 
 	local dock = actions:add(View())
 	dock:setSize(126, 50)
@@ -52,6 +58,34 @@ function SongSelectHeader:new(ui)
 	end), 42)
 	actions:fitContent()
 	actions:setAlignmentX(1)
+	self:updatePlayerInfo()
+end
+
+function SongSelectHeader:load()
+	self.online_observer = self.ui.game.online_client:onChanged(function(event)
+		if event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
+			self:updatePlayerInfo()
+		end
+	end)
+	self:updatePlayerInfo()
+end
+
+function SongSelectHeader:unload()
+	if self.online_observer then
+		self.ui.game.online_client:offChanged(self.online_observer)
+		self.online_observer = nil
+	end
+end
+
+function SongSelectHeader:updatePlayerInfo()
+	local online_client = self.ui.game.online_client
+	local user = online_client:getUser()
+	local username = self.ui.localization:get("song_select.username")
+	if online_client:isConnected() and user and type(user.name) == "string" and user.name ~= "" then
+		username = user.name
+	end
+	self.player_info:updateText(username)
+	self.actions:fitContent()
 end
 
 return SongSelectHeader

@@ -305,7 +305,7 @@ return {
 	["song_select.offline"] = "OFFLINE",
 	["song_select.const"] = "Const",
 	["song_select.pauses"] = "Pauses",
-	["song_select.score_username"] = "#{index} Username",
+	["song_select.score_username"] = "#{index} {username}",
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "Online",
 
