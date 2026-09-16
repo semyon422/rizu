@@ -2,7 +2,21 @@ local class = require("class")
 
 ---@class gui.Sprite
 ---@operator call: gui.Sprite
+---@field pixel_ratio number Source pixels per logical pixel
 local Sprite = class()
+
+---@param pixel_ratio number?
+function Sprite:new(pixel_ratio)
+	pixel_ratio = pixel_ratio or 1
+	assert(type(pixel_ratio) == "number" and pixel_ratio > 0 and pixel_ratio < math.huge,
+		"pixel ratio must be a positive finite number")
+	self.pixel_ratio = pixel_ratio
+end
+
+---@return number
+function Sprite:getPixelRatio()
+	return self.pixel_ratio
+end
 
 ---@param x number?
 ---@param y number?

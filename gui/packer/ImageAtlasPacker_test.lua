@@ -75,6 +75,24 @@ function test.creates_atlas_sprite(t)
 end
 
 ---@param t testing.T
+function test.applies_per_sprite_pixel_ratios(t)
+	stubLove()
+	local packer = ImageAtlasPacker()
+	local _, sprites = packer:pack({
+		normal = FakeImageData:new(4, 5),
+		dense = FakeImageData:new(8, 10),
+	}, {normal = 1, dense = 2})
+	love = old_love
+
+	t:eq(sprites.normal:getWidth(), 4)
+	t:eq(sprites.normal:getHeight(), 5)
+	t:eq(sprites.normal:getPixelRatio(), 1)
+	t:eq(sprites.dense:getWidth(), 4)
+	t:eq(sprites.dense:getHeight(), 5)
+	t:eq(sprites.dense:getPixelRatio(), 2)
+end
+
+---@param t testing.T
 function test.creates_multiple_atlases(t)
 	stubLove()
 	local packer = ImageAtlasPacker()

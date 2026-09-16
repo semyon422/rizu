@@ -107,9 +107,10 @@ function ImageAtlasPacker:pasteEntry(atlas, entry)
 end
 
 ---@param image_datas {[string]: love.ImageData}
+---@param pixel_ratios {[string]: number}? Source pixels per logical pixel, keyed like image_datas
 ---@return love.Image[] atlases
 ---@return {[string]: gui.AtlasImage} sprites
-function ImageAtlasPacker:pack(image_datas)
+function ImageAtlasPacker:pack(image_datas, pixel_ratios)
 	local entries = self:buildEntries(image_datas)
 	local layer_count = self:placeEntries(entries)
 	---@type integer[]
@@ -148,7 +149,7 @@ function ImageAtlasPacker:pack(image_datas)
 		local layer = entry.layer
 		local quad = love.graphics.newQuad(entry.x, entry.y, entry.width, entry.height,
 			layer_widths[layer], layer_heights[layer])
-		sprites[entry.name] = AtlasImage(atlases[layer], quad)
+		sprites[entry.name] = AtlasImage(atlases[layer], quad, pixel_ratios and pixel_ratios[entry.name])
 	end
 
 	return atlases, sprites

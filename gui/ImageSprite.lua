@@ -6,7 +6,9 @@ local Sprite = require("gui.Sprite")
 local ImageSprite = Sprite + {}
 
 ---@param image love.Image
-function ImageSprite:new(image)
+---@param pixel_ratio number?
+function ImageSprite:new(image, pixel_ratio)
+	Sprite.new(self, pixel_ratio)
 	self.image = image
 end
 
@@ -20,23 +22,31 @@ end
 ---@param kx number?
 ---@param ky number?
 function ImageSprite:draw(x, y, r, sx, sy, ox, oy, kx, ky)
-	love.graphics.draw(self.image, x, y, r, sx, sy, ox, oy, kx, ky)
+	local ratio = self.pixel_ratio
+	love.graphics.draw(
+		self.image, x, y, r,
+		(sx or 1) / ratio,
+		(sy or sx or 1) / ratio,
+		ox and ox * ratio,
+		oy and oy * ratio,
+		kx, ky
+	)
 end
 
 ---@return number
 function ImageSprite:getWidth()
-	return self.image:getWidth()
+	return self.image:getWidth() / self.pixel_ratio
 end
 
 ---@return number
 function ImageSprite:getHeight()
-	return self.image:getHeight()
+	return self.image:getHeight() / self.pixel_ratio
 end
 
 ---@return number
 ---@return number
 function ImageSprite:getDimensions()
-	return self.image:getDimensions()
+	return self:getWidth(), self:getHeight()
 end
 
 function ImageSprite:release()
