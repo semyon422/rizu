@@ -314,4 +314,5 @@ return {
 	["gameplay.pause.restart"] = "Restart",
 	["gameplay.pause.leave"] = "Leave",
 	["gameplay.pause.hold"] = "Continue holding to pause...",
+	["gameplay.retry.hold"] = "Continue holding to restart...",
 }

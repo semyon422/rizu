@@ -287,4 +287,5 @@ return {
 	["gameplay.pause.restart"] = "Reiniciar",
 	["gameplay.pause.leave"] = "Salir",
 	["gameplay.pause.hold"] = "Mantén pulsado para pausar...",
+	["gameplay.retry.hold"] = "Mantén pulsado para reiniciar...",
 }

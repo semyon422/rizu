@@ -210,8 +210,13 @@ function Gameplay:update(dt)
 	local pause_model = self.game.pauseModel
 	local state = pause_model.state
 	if state == "play-pause" then
+		self.pause_hold_overlay:setPrompt("pause")
 		self.pause_hold_overlay:setProgress(pause_model.progress)
 		self.pause_overlay:setReveal(0)
+	elseif state == "play-retry" or state == "pause-retry" then
+		self.pause_hold_overlay:setPrompt("restart")
+		self.pause_hold_overlay:setProgress(pause_model.progress)
+		self.pause_overlay:setReveal(state == "pause-retry" and 1 or 0)
 	elseif state == "pause-play" then
 		self.pause_hold_overlay:setProgress(0)
 		self.pause_overlay:setReveal(1 - pause_model.progress)

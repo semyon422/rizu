@@ -298,4 +298,5 @@ return {
 	["gameplay.pause.restart"] = "Начать заново",
 	["gameplay.pause.leave"] = "Выйти",
 	["gameplay.pause.hold"] = "Продолжайте удерживать для паузы...",
+	["gameplay.retry.hold"] = "Продолжайте удерживать, чтобы начать заново...",
 }
