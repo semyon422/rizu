@@ -17,7 +17,13 @@ function ReplayBaseFormatter:setReplayBase(replay_base)
 	self.replay_base = replay_base
 end
 
-local bms_alias = {"Easy", "Normal", "Hard", "Very hard"}
+local bms_alias = {
+	[0] = "Insane",
+	[1] = "Hard",
+	[2] = "Normal",
+	[3] = "Easy",
+	[4] = "Invalid",
+}
 
 ---@return string
 function ReplayBaseFormatter:getScoreSystem()

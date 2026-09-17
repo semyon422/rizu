@@ -4,7 +4,13 @@ local class = require("class")
 ---@operator call: ui.formatters.ScoreSystemFormatter
 local ScoreSystemFormatter = class()
 
-local bms_alias = {"Easy", "Normal", "Hard", "Very hard"}
+local bms_alias = {
+	[0] = "Insane",
+	[1] = "Hard",
+	[2] = "Normal",
+	[3] = "Easy",
+	[4] = "Invalid",
+}
 local fallback_grade_color = {0.51, 0.37, 0, 1}
 local fallback_judge_color = {0.65, 0.7, 0.8, 1}
 local miss_color = {1, 0.1, 0.18, 1}
@@ -76,7 +82,7 @@ function ScoreSystemFormatter:getName()
 	end
 
 	if timings.name == "sphere" then
-		return "soundsphere"
+		return "Rizu"
 	elseif timings.name == "osuod" then
 		---@cast subtimings -?
 		return ("osu!mania V%i OD%g"):format(subtimings.data, timings.data)
