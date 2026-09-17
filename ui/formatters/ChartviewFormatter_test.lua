@@ -14,6 +14,22 @@ function test.formats_chart_mode(t)
 	t:eq(formatter:getMode(), "NO CHART")
 end
 
+function test.applies_time_rate_to_duration_and_tempo(t)
+	local formatter = ChartviewFormatter({
+		duration = 150,
+		tempo = 120,
+		tempo_min = 100,
+		tempo_max = 140,
+	}, {})
+	formatter:setTimeRate(1.5)
+
+	t:eq(formatter:getDuration(), "1:40")
+	local tempo = formatter:getTempo()
+	t:eq(tempo.avg, "180")
+	t:eq(tempo.min, "150")
+	t:eq(tempo.max, "210")
+end
+
 function test.formats_difficulty_postfix(t)
 	local diff_column = "osu_diff"
 	local settings = {

@@ -22,7 +22,7 @@ function test.formats_both_modes(t)
 	local view = newControl()
 	view:setRate(1.25)
 	t:eq(view:getText(), "1.25x")
-	view.time_rate_model.replayBase.rate_type = "exp"
+	view.time_rate_model:setType("exp")
 	for _, value in ipairs({-20, -1, 0, 1, 20}) do
 		view:setRate(value)
 		t:eq(view:getText(), value > 0 and "+" .. value or tostring(value))
@@ -49,7 +49,7 @@ function test.scroll_uses_mode_steps(t)
 	local view, changes = newControl()
 	view:onScroll({direction_y = 1} --[[@as gui.ScrollEvent]])
 	t:eq(view:getText(), "1.05x")
-	view.time_rate_model.replayBase.rate_type = "exp"
+	view.time_rate_model:setType("exp")
 	view:setRate(0)
 	view:onScroll({direction_y = 1} --[[@as gui.ScrollEvent]])
 	t:eq(view:getText(), "+1")
@@ -63,7 +63,7 @@ end
 ---@param t testing.T
 function test.drag_uses_mode_range_and_clamps(t)
 	local view = newControl()
-	view.time_rate_model.replayBase.rate_type = "exp"
+	view.time_rate_model:setType("exp")
 	view:onDragStart({button = 1, press_x = 100, x = 104} --[[@as gui.DragStartEvent]])
 	view:onDrag({button = 1, x = 109} --[[@as gui.DragEvent]])
 	t:eq(view:getText(), "+1")
@@ -71,7 +71,7 @@ function test.drag_uses_mode_range_and_clamps(t)
 	t:eq(view:getText(), "+20")
 	view:onDrag({button = 1, x = -1000} --[[@as gui.DragEvent]])
 	t:eq(view:getText(), "-20")
-	view.time_rate_model.replayBase.rate_type = "linear"
+	view.time_rate_model:setType("linear")
 	view:setRate(1)
 	view:onDragStart({button = 1, press_x = 100, x = 104} --[[@as gui.DragStartEvent]])
 	view:onDrag({button = 1, x = 124} --[[@as gui.DragEvent]])

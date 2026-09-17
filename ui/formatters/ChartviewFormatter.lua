@@ -106,10 +106,11 @@ end
 
 ---@return {min: string, max: string, avg: string}
 function ChartviewFormatter:getTempo()
+	local time_rate = self.time_rate
 	return {
-		avg = ("%i"):format(self.chartview.tempo or 0), -- SHOULD USE chartview.tempo_avg, but it's always 0
-		min = ("%i"):format(self.chartview.tempo_min or 0),
-		max = ("%i"):format(self.chartview.tempo_max or 0)
+		avg = ("%i"):format((self.chartview.tempo or 0) * time_rate), -- SHOULD USE chartview.tempo_avg, but it's always 0
+		min = ("%i"):format((self.chartview.tempo_min or 0) * time_rate),
+		max = ("%i"):format((self.chartview.tempo_max or 0) * time_rate)
 	}
 end
 

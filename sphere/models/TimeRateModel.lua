@@ -1,5 +1,6 @@
 local class = require("class")
 local math_util = require("math_util")
+local Observable = require("Observable")
 local int_rates = require("chart.scoring.int_rates")
 
 ---@class sphere.TimeRateModel
@@ -24,6 +25,36 @@ TimeRateModel.format = {
 ---@param replayBase sea.ReplayBase
 function TimeRateModel:new(replayBase)
 	self.replayBase = replayBase
+	self.observable = Observable()
+end
+
+---@param observer sphere.TimeRateModel.EventObserver|sphere.TimeRateModel.EventReceiver
+---@return util.Observer
+function TimeRateModel:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function TimeRateModel:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
+---@class sphere.TimeRateModel.Event
+---@field type "time_rate_changed"
+---@field rate number Actual playback multiplier.
+---@field rate_type sea.RateType
+
+---@alias sphere.TimeRateModel.EventObserver {receive: fun(self: table, event: sphere.TimeRateModel.Event)}
+---@alias sphere.TimeRateModel.EventReceiver fun(event: sphere.TimeRateModel.Event)
+
+function TimeRateModel:notifyChanged()
+	self.observable:send({
+		type = "time_rate_changed",
+		rate = self.replayBase.rate,
+		rate_type = self.replayBase.rate_type,
+	})
 end
 
 ---@return number
@@ -54,7 +85,22 @@ function TimeRateModel:set(newRate)
 		rate = 2 ^ (rate / 10)
 	end
 
-	replayBase.rate = int_rates.round(rate)
+	rate = int_rates.round(rate)
+	if replayBase.rate == rate then
+		return
+	end
+	replayBase.rate = rate
+	self:notifyChanged()
+end
+
+---@param rate_type sea.RateType
+function TimeRateModel:setType(rate_type)
+	assert(self.range[rate_type], "unknown time rate type")
+	if self.replayBase.rate_type == rate_type then
+		return
+	end
+	self.replayBase.rate_type = rate_type
+	self:notifyChanged()
 end
 
 ---@param delta number

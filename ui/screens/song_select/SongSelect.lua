@@ -99,6 +99,7 @@ function SongSelect:enter()
 	chart_selector:onChanged(self)
 	self.ui.game.scoreSelector:onChanged(self)
 	self.ui.game.collectionSelector:onChanged(self)
+	self.ui.game.timeRateModel:onChanged(self)
 	self.score_list_panel.score_list:reload()
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
@@ -129,6 +130,7 @@ function SongSelect:exit()
 	self.ui.game.chartSelector:offChanged(self)
 	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.game.collectionSelector:offChanged(self)
+	self.ui.game.timeRateModel:offChanged(self)
 
 	self.ui.command_registry:popContext("select_commands")
 	self.ui.command_registry:popContext("ui_select_commands")
@@ -164,6 +166,14 @@ function SongSelect:receive(event)
 	if event.type == "score_items_changed" then
 		self.score_list_panel.score_list:reload()
 	end
+	if event.type == "time_rate_changed" then
+		self:updateRateMetadata()
+	end
+end
+
+function SongSelect:updateRateMetadata()
+	self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
+	self.chart_summary:bind()
 end
 
 function SongSelect:updateModifiers()

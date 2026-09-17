@@ -103,7 +103,7 @@ function Modifiers:rebuildForm()
 			return value == "exp" and "Exp" or "Linear"
 		end,
 		on_change = function(value)
-			replay_base.rate_type = value
+			time_rate_model:setType(value)
 			self:changed()
 			self:invalidateForm()
 		end,

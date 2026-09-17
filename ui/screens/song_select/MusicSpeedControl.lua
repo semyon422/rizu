@@ -54,8 +54,9 @@ end
 ---@param e gui.MouseClickEvent
 function MusicSpeedControl:onMouseClick(e)
 	if e.button ~= 1 then return end
-	local replay_base = self.time_rate_model.replayBase
-	replay_base.rate_type = replay_base.rate_type == "exp" and "linear" or "exp"
+	local model = self.time_rate_model
+	local rate_type = model.replayBase.rate_type
+	model:setType(rate_type == "exp" and "linear" or "exp")
 	self.modifier_select_model:change()
 	return true
 end

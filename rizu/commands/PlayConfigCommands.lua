@@ -138,7 +138,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.rate_type = args.rate_type
+				game.timeRateModel:setType(args.rate_type)
 				updateReplayBase(game)
 			end,
 		},
