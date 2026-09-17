@@ -14,15 +14,17 @@ function Point:new(absoluteTime)
 	self.absoluteTime = absoluteTime
 end
 
-local uint64_ptr = ffi.new("int64_t[1]")
-
----@type {[0]: number}
-local double_ptr = ffi.cast("double*", uint64_ptr)
+local DoubleBits = ffi.typeof("union { double value; uint32_t words[2]; }")
+local low_word = ffi.abi("le") and 0 or 1
+local high_word = ffi.abi("le") and 1 or 0
 
 ---@return string
 function Point:getAbsoluteTimeKey()
-	double_ptr[0] = self.absoluteTime
-	return bit.tohex(uint64_ptr[0])
+	-- Keep the type pun explicit and local. A shared int64_t buffer cast to a
+	-- double pointer is miscompiled by LuaJIT in hot conversion loops.
+	local bits = DoubleBits()
+	bits.value = self.absoluteTime
+	return bit.tohex(tonumber(bits.words[high_word])) .. bit.tohex(tonumber(bits.words[low_word]))
 end
 
 ---@param point chart.Point
