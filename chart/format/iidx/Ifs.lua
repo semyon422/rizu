@@ -20,7 +20,8 @@ local rshift = bit.rshift
 ---@field node chart.iidx.IfsNode
 
 ---@class chart.iidx.IfsArchive
----@field data string
+---@field data string?
+---@field read_at fun(offset: integer, size: integer): string? optional bounded source reader
 ---@field version integer
 ---@field timestamp integer
 ---@field tree_size integer
@@ -628,27 +629,36 @@ local function walk_manifest(n, parent, files)
 	end
 end
 
+---@param header string
+---@param manifest_raw string
+---@return chart.iidx.IfsArchive
+function Ifs.parse_manifest(header, manifest_raw)
+	assert(u32be(header, 1) == 0x6CAD8F89, "invalid IFS signature")
+	local version = u16be(header, 5)
+	assert(bxor(version, u16be(header, 7)) == 0xffff, "bad IFS version complement")
+
+	local archive = {
+		version = version,
+		timestamp = u32be(header, 9),
+		tree_size = u32be(header, 13),
+		data_offset = u32be(header, 17),
+		manifest_raw = manifest_raw,
+		manifest = decode_binary_xml(manifest_raw),
+		files = {},
+	}
+	---@cast archive chart.iidx.IfsArchive
+	walk_manifest(archive.manifest, "", archive.files)
+	return archive
+end
+
 ---@param data string
 ---@return chart.iidx.IfsArchive
 function Ifs.parse(data)
-	assert(u32be(data, 1) == 0x6CAD8F89, "invalid IFS signature")
 	local version = u16be(data, 5)
-	assert(bxor(version, u16be(data, 7)) == 0xffff, "bad IFS version complement")
-
-	local archive = {
-		data = data,
-		version = version,
-		timestamp = u32be(data, 9),
-		tree_size = u32be(data, 13),
-		data_offset = u32be(data, 17),
-	}
-	---@cast archive chart.iidx.IfsArchive
-	local mstart = version > 1 and 37 or 21
-	archive.manifest_raw = data:sub(mstart, archive.data_offset)
-	archive.manifest = decode_binary_xml(archive.manifest_raw)
-	archive.files = {}
-	walk_manifest(archive.manifest, "", archive.files)
-
+	local data_offset = u32be(data, 17)
+	local manifest_start = version > 1 and 37 or 21
+	local archive = Ifs.parse_manifest(data, data:sub(manifest_start, data_offset))
+	archive.data = data
 	return archive
 end
 
@@ -664,10 +674,12 @@ end
 function Ifs.read_file(archive, file_path)
 	for _, file in ipairs(archive.files) do
 		if file.path == file_path then
-			return archive.data:sub(
-				archive.data_offset + file.offset + 1,
-				archive.data_offset + file.offset + file.size
-			)
+			local offset = archive.data_offset + file.offset
+			if archive.read_at then
+				return archive.read_at(offset, file.size)
+			end
+			assert(archive.data, "IFS archive has no data source")
+			return archive.data:sub(offset + 1, offset + file.size)
 		end
 	end
 end

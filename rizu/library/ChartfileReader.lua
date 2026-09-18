@@ -29,15 +29,44 @@ end
 
 ---@param fs fs.IFilesystem
 ---@param archive_path string
+---@param header string
+---@return chart.iidx.IfsArchive
+local function parseArchive(fs, archive_path, header)
+	assert(header:sub(1, 4) == "\108\173\143\137", "invalid IFS signature")
+	assert(#header >= 20, "truncated IFS header")
+	local version = assert(header:byte(5)) * 256 + assert(header:byte(6))
+	local version_complement = assert(header:byte(7)) * 256 + assert(header:byte(8))
+	assert(version + version_complement == 0xffff, "bad IFS version complement")
+	local data_offset = assert(header:byte(17)) * 0x1000000
+		+ assert(header:byte(18)) * 0x10000
+		+ assert(header:byte(19)) * 0x100
+		+ assert(header:byte(20))
+	local manifest_start = version > 1 and 36 or 20
+	assert(data_offset >= manifest_start, "invalid IFS data offset")
+	local manifest, manifest_err = fs:readAt(
+		archive_path,
+		manifest_start,
+		data_offset - manifest_start
+	)
+	assert(manifest, manifest_err)
+	local parsed = Ifs.parse_manifest(header, manifest)
+	parsed.read_at = function(offset, size)
+		return fs:readAt(archive_path, offset, size)
+	end
+	return parsed
+end
+
+---@param fs fs.IFilesystem
+---@param archive_path string
 ---@return chart.iidx.IfsArchive?
 ---@return string?
 function ChartfileReader.readArchive(fs, archive_path)
-	local archive_data, err = fs:read(archive_path)
-	if not archive_data then
+	local header, err = fs:readAt(archive_path, 0, 37)
+	if not header then
 		return nil, err
 	end
 
-	local ok, archive = pcall(Ifs.parse, archive_data)
+	local ok, archive = pcall(parseArchive, fs, archive_path, header)
 	if not ok then
 		local message = ("failed to read IFS archive %s: %s"):format(archive_path, tostring(archive))
 		print(message)
@@ -101,16 +130,21 @@ function ChartfileReader.getInfo(fs, path)
 		return nil
 	end
 
-	local data = ChartfileReader.read(fs, path)
-	if not data then
+	local archive = ChartfileReader.readArchive(fs, archive_path)
+	if not archive then
 		return nil
 	end
-
-	return {
-		type = "file",
-		size = #data,
-		modtime = archive_info.modtime,
-	}
+	local _, internal_path = ChartfileReader.splitArchivePath(path)
+	for _, file in ipairs(Ifs.list(archive)) do
+		if file.path == internal_path then
+			return {
+				type = "file",
+				size = file.size,
+				modtime = archive_info.modtime,
+			}
+		end
+	end
+	return nil
 end
 
 return ChartfileReader
