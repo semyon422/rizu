@@ -48,4 +48,27 @@ function test.master_volume_scroll_uses_decibel_step_for_logarithmic_volume(t)
 	t:aeq(settings:getNumber(keys.volume_master), decibel.lf_to_f(-20), 0.000001)
 end
 
+---@param t testing.T
+function test.command_palette_is_not_opened_during_gameplay(t)
+	local gameplay = {}
+	local palette_opened = false
+	local overlay = {
+		ui = {
+			game = {settings = Settings.createConfig(FakeFilesystem())},
+			gameplay = gameplay,
+			screen_manager = {input_screen = gameplay},
+		},
+		modal_manager = {
+			attachPalette = function()
+				palette_opened = true
+			end,
+		},
+	}
+	setmetatable(overlay, {__index = Overlay})
+
+	overlay:onHandleInputs(createInputs(UiActions.command_palette))
+
+	t:eq(palette_opened, false)
+end
+
 return test

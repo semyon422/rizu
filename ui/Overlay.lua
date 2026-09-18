@@ -65,13 +65,19 @@ end
 function Overlay:receive(event, modifiers)
 	local inputs = self.inputs
 	if not inputs then return false end
-	local keyboard_action = inputs:isActionJustPressed(UiActions.command_palette)
+	local keyboard_action = self:isCommandPaletteAllowed()
+		and inputs:isActionJustPressed(UiActions.command_palette)
 		or inputs:isActionJustPressed(UiActions.open_config)
 	local volume_action = inputs:isActionJustPressed(UiActions.master_volume_increase)
 		or inputs:isActionJustPressed(UiActions.master_volume_decrease)
 	-- Actions are applied during update, after the input queue is drained.
 	return keyboard_action and (event.name == "keypressed" or event.name == "textinput")
 		or volume_action and event.name == "wheelmoved"
+end
+
+---@return boolean
+function Overlay:isCommandPaletteAllowed()
+	return self.ui.screen_manager.input_screen ~= self.ui.gameplay
 end
 
 ---@param inputs gui.Inputs
@@ -81,7 +87,8 @@ function Overlay:onHandleInputs(inputs)
 		adjustMasterVolume(settings, 1)
 	elseif inputs:consumeActionJustPressed(UiActions.master_volume_decrease) then
 		adjustMasterVolume(settings, -1)
-	elseif inputs:consumeActionJustPressed(UiActions.command_palette) then
+	elseif self:isCommandPaletteAllowed()
+		and inputs:consumeActionJustPressed(UiActions.command_palette) then
 		self.modal_manager:attachPalette()
 	elseif inputs:consumeActionJustPressed(UiActions.open_config) then
 		self.modal_manager:attachConfig()
