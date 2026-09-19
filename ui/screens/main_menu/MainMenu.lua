@@ -120,6 +120,11 @@ function MainMenu:createFooter()
 	end, {font_size = 16, icon = Resources.sprites.icon_music}))
 	music_player:setSize(180, 44)
 
+	local dlc = links:add(MainMenuButton(self.ui.localization:get("main_menu.dlc"), function()
+		self.ui:setScreen(self.ui.dlc, true)
+	end, {font_size = 16, icon = Resources.sprites.icon_download}))
+	dlc:setSize(180, 44)
+
 	local locations = links:add(MainMenuButton(self.ui.localization:get("main_menu.locations"), function()
 		self.ui:setScreen(self.ui.locations, true)
 	end, {font_size = 16, icon = Resources.sprites.icon_folder}))

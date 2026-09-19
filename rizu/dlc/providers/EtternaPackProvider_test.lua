@@ -28,7 +28,9 @@ function test.search_url_construction(t)
 							"size": 123,
 							"date": "2026-01-01",
 							"average_diff": 10,
-							"total_songs": 20
+							"total_songs": 20,
+							"banner_path": "https://storage.etternaonline.com/images/1012157/conversions/bn-optimized.webp",
+							"contains_nsfw": true
 						}]
 					}
 				]],
@@ -44,6 +46,8 @@ function test.search_url_construction(t)
 	t:assert(requested_url:find("limit=12", 1, true))
 	t:eq(results[1].id, "Pack")
 	t:eq(results[1].total_songs, 20)
+	t:eq(results[1].thumbnail_url, "https://storage.etternaonline.com/images/1012157/conversions/bn-optimized.webp")
+	t:eq(results[1].contains_nsfw, true)
 end
 
 ---@param t testing.T

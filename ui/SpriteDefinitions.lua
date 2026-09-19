@@ -314,6 +314,23 @@ local SpriteDefinitions = {
 			},
 		}},
 	},
+	dlc_panel = {
+		width = 21,
+		height = 21,
+		border_radius = 10,
+		rounding_power = 4,
+		slice = 10,
+		fills = fills({1, 1, 1, 1}),
+		stroke = {width = 1, color = {1, 1, 1, 1}},
+	},
+	dlc_list_item = {
+		width = 17,
+		height = 17,
+		border_radius = 8,
+		rounding_power = 4,
+		slice = 8,
+		fills = fills({1, 1, 1, 1}),
+	},
 	result_judge_gradient = {
 		width = 64,
 		height = 1,

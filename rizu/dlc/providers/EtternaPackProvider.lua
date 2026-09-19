@@ -10,6 +10,8 @@ local socket_url = require("socket.url") --[[@as {escape: fun(value: string|numb
 ---@field date string?
 ---@field average_diff number?
 ---@field total_songs integer?
+---@field banner_path string?
+---@field contains_nsfw boolean?
 
 ---@class rizu.dlc.providers.EtternaResponse
 ---@field data rizu.dlc.providers.EtternaPack[]?
@@ -87,6 +89,8 @@ function EtternaPackProvider:search(query, filters)
 			date = pack.date,
 			average_diff = pack.average_diff,
 			total_songs = pack.total_songs,
+			thumbnail_url = pack.banner_path,
+			contains_nsfw = pack.contains_nsfw,
 		})
 	end
 
