@@ -7,6 +7,7 @@ local SpriteBatch = require("gui.SpriteBatch")
 local UiActions = require("ui.UiActions")
 local Settings = require("rizu.config.Settings")
 local ModifierModel = require("sphere.models.ModifierModel")
+local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local time_util = require("time_util")
 
 ---@class ui.screens.song_select.ScoreList : gui.VirtualizedList
@@ -32,7 +33,8 @@ function ScoreList:new(score_selector, on_score_selected, localization, online_c
 	self.hover_index = nil
 	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
-	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
+	self.font16 = Resources.getFont("regular", 16)
+	self.text_batch16 = love.graphics.newTextBatch(self.font16)
 	self.last_key_press = -math.huge
 	self.reload_time = 0
 	self.no_records_t = 0
@@ -107,6 +109,10 @@ function ScoreList:reload()
 		local mutators = ModifierModel:getString(v.modifiers or {})
 		if mutators ~= "" then
 			table.insert(mods_sb, mutators)
+		end
+
+		if v.timings then
+			table.insert(mods_sb, ScoreSystemFormatter(v):getName())
 		end
 
 		local username = type(v.user_name) == "string" and v.user_name ~= "" and v.user_name
@@ -229,7 +235,7 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	copy_color_to_cs(Colors.text)
 	set_cs_alpha(p)
 	cs[2] = item.label
-	self.text_batch24:add(cs, 87, y + 23)
+	self.text_batch24:add(cs, 87, y + (item.mods == "" and 23 or 12))
 
 	copy_color_to_cs(item.color)
 	set_cs_alpha(p)
@@ -241,10 +247,10 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	cs[2] = item.time_ago
 	self.text_batch16:addf(cs, self.width, "right", -17, y + 43)
 
-	copy_color_to_cs(Colors.text)
+	copy_color_to_cs(Colors.muted)
 	set_cs_alpha(p)
 	cs[2] = item.mods
-	self.text_batch16:addf(cs, self.width - 100, "right", -17, y + 43)
+	self.text_batch16:add(cs, 87, y + 43)
 end
 
 ---@param inputs gui.Inputs

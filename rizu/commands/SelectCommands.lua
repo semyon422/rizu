@@ -338,7 +338,7 @@ return function(game)
 				}
 			},
 			callback = function(args)
-				game.settings:setString(Settings.keys.select.score_filter, args.filter)
+				game.settings:setChoice(Settings.keys.select.score_filter, args.filter)
 				game.scoreSelector:pullScore()
 			end
 		},

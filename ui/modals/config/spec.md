@@ -28,7 +28,7 @@ The layout section exposes the fullscreen toggle and fullscreen mode selector. T
 
 The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`. It also exposes independent format-offset sliders for osu!, Quaver, StepMania, and KSH Charts.
 
-The User Interface section controls whether Song Select displays a chart preview and which difficulty rating type menus display.
+The User Interface section controls whether Song Select displays a chart preview, filters scores to unmodified automatic-timing plays, and selects which difficulty rating type menus display.
 
 The Bindings section exposes modern UI, Song Select, gameplay, editor, and screenshot shortcuts. Each keybind control captures one key together with its held modifiers and displays combinations with `+`, for example `Ctrl+O`. Changes update the active action map immediately and persist in `userdata/ui.json`. The defaults preserve the legacy shortcuts from the previous game UI: F2 random chart, F3/F4 play speed, F5/F6 time rate, backtick retry, Space skip intro, Shift+Escape gameplay quit, minus/equal/Delete local offset, and F12 screenshots.
 

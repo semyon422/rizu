@@ -34,6 +34,9 @@ function ScoreSelector:new(configModel, settings, library, onlineModel, replayBa
 	self.store = ScoreStore(configModel, settings, localProvider, onlineProvider)
 	self.store:onChanged(self)
 	self.replayBaseApplier = SelectionReplayBaseApplier(settings, replayBase)
+	self.scoreFilterSubscription = settings:subscribeChoice(Settings.keys.select.score_filter, function()
+		self:pullScore()
+	end)
 
 	self.observable = Observable()
 	self.debounceTime = 0.5

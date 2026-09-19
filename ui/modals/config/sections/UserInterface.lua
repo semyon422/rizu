@@ -56,6 +56,18 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					keywords = {"song select", "chart", "preview"},
 					tip = localization:get("settings.chart_preview_tip"),
 				}),
+				ControlFactory.choice(settings, select_keys.score_filter, {
+					name = localization:get("settings.score_filter"),
+					keywords = {"song select", "scores", "mutators", "timings"},
+					tip = localization:get("settings.score_filter_tip"),
+					format = function(value)
+						return localization:get(value == "No filter"
+							and "settings.score_filter_all"
+							or "settings.score_filter_unmodified")
+					end,
+					form = form,
+					popup_container = popup_container,
+				}),
 				ControlFactory.segmentedChoice(settings, select_keys.diff_column, {
 					name = localization:get("settings.difficulty_type"),
 					keywords = {"difficulty", "rating", "menus"},

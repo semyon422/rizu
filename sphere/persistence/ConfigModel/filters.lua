@@ -94,6 +94,12 @@ local filters = {
 	score = {
 		{name = "No filter"},
 		{
+			name = "Unmodified",
+			check = function(score)
+				return (not score.modifiers or not next(score.modifiers)) and score.timings == nil
+			end,
+		},
+		{
 			name = "FC",
 			check = function(score)
 				return score.missCount == 0

@@ -242,7 +242,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultString(s.lamp_string, "")
 	config:setDefaultString(s.sort_function, "title")
 	config:setDefaultChoice(s.score_source, "local", {"local", "online"})
-	config:setDefaultString(s.score_filter, "No filter")
+	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
 
 	local timing_defaults = {
 		arbitrary = 0,

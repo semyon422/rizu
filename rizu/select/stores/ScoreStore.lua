@@ -77,7 +77,7 @@ function ScoreStore:filterScores(scores)
 
 	---@type sphere.ScoreFilter[]
 	local filters = self.configModel.configs.filters.score
-	local score_filter = self.settings:getString(Settings.keys.select.score_filter)
+	local score_filter = self.settings:getChoice(Settings.keys.select.score_filter)
 	local index
 	for i, filter in ipairs(filters) do
 		if filter.name == score_filter then

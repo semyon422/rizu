@@ -160,6 +160,31 @@ function test.chartdiff_score_visibility_requires_actual_chartdiff(t)
 end
 
 ---@param t testing.T
+function test.score_store_filters_to_unmodified_auto_timing_scores(t)
+	local configModel = createConfigModel("chartmetas")
+	configModel.configs.filters.score = {
+		{
+			name = "Unmodified",
+			check = function(score)
+				return (not score.modifiers or not next(score.modifiers)) and score.timings == nil
+			end,
+		},
+	}
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setChoice(Settings.keys.select.score_filter, "Unmodified")
+	local store = ScoreStore(configModel, settings, {}, {})
+
+	local scores = store:filterScores({
+		{id = 1, accuracy = 1, modifiers = {}, timings = nil},
+		{id = 2, accuracy = 1, modifiers = {{id = 1}}, timings = nil},
+		{id = 3, accuracy = 1, modifiers = {}, timings = {name = "sphere"}},
+	})
+
+	t:eq(#scores, 1)
+	t:eq(scores[1].id, 1)
+end
+
+---@param t testing.T
 function test.score_store_clears_incomplete_chartdiff_key(t)
 	local configModel = createConfigModel("chartdiffs")
 	local provider_called = false
