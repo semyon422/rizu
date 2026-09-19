@@ -5,6 +5,7 @@ local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
 local Resources = require("ui.Resources")
 local Settings = require("rizu.config.Settings")
+local SpringValue = require("gui.anim.SpringValue")
 
 local WIDTH = 72
 local HEIGHT = 320
@@ -19,6 +20,7 @@ local FADE_DURATION = 0.25
 ---@operator call: ui.views.VolumeOverlay
 ---@field label ui.views.Label
 ---@field fill ui.views.Rectangle
+---@field private volume gui.anim.SpringValue
 ---@field private unsubscribe_volume function
 local VolumeOverlay = View + {}
 
@@ -33,7 +35,15 @@ function VolumeOverlay:new(settings)
 	bar:anchorFixed(BAR_X, BAR_Y, BAR_WIDTH, BAR_HEIGHT)
 	bar:add(Rectangle(Colors.surface_raised)):anchorFill(0, 0, 0, 0)
 	self.fill = bar:add(Rectangle(Colors.accent))
-	self.fill:setSize(BAR_WIDTH, 0):setAlignment(0, 1)
+	self.fill:setSize(BAR_WIDTH, BAR_HEIGHT):setAlignment(0, 1)
+	self.fill:setPivot(0.5, 1)
+	local volume_key = Settings.keys.audio.volume_master
+	self.volume = SpringValue({
+		value = settings:getNumber(volume_key),
+		stiffness = 700,
+		damping = 46,
+	})
+	self.fill:setScale(1, self.volume:get())
 
 	self.label = self:add(Label({
 		font_name = "medium",
@@ -43,7 +53,6 @@ function VolumeOverlay:new(settings)
 	}))
 	self.label:setAlignmentX(0.5):addPosition(0, 10)
 
-	local volume_key = Settings.keys.audio.volume_master
 	self.unsubscribe_volume = settings:subscribeNumber(volume_key, function(volume)
 		self:showVolume(volume)
 	end)
@@ -53,11 +62,16 @@ end
 function VolumeOverlay:showVolume(volume)
 	volume = math.max(0, math.min(1, volume))
 	self.label:setText(("%d%%"):format(math.floor(volume * 100 + 0.5)))
-	self.fill:setHeight(BAR_HEIGHT * volume)
+	self.volume:set(volume)
 
 	self:clearTransforms("opacity")
 	self:setOpacity(1)
 	self:delay(DISPLAY_DURATION):fadeOut(FADE_DURATION)
+end
+
+---@param dt number
+function VolumeOverlay:update(dt)
+	self.fill:setScale(1, self.volume:update(dt))
 end
 
 function VolumeOverlay:unload()
