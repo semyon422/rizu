@@ -22,6 +22,7 @@ function test.timings(t)
 	Timings("etternaj", 4)
 	Timings("quaver")
 	Timings("bmsrank")
+	Timings("iidx")
 
 	t:eq(t:has_error(Timings, "unknown", 0.1), "invalid")
 	t:eq(t:has_error(Timings, "arbitrary", 1), "invalid")
@@ -31,6 +32,7 @@ function test.timings(t)
 	t:eq(t:has_error(Timings, "etternaj", 0), "invalid")
 	t:eq(t:has_error(Timings, "quaver", 1), "invalid")
 	t:eq(t:has_error(Timings, "bmsrank", 5), "invalid")
+	t:eq(t:has_error(Timings, "iidx", 1), "invalid")
 end
 
 ---@param t testing.T
@@ -63,12 +65,14 @@ function test.values(t)
 	t:assert(factory:get(Timings("etternaj", 4)))
 	t:assert(factory:get(Timings("quaver")))
 	t:assert(factory:get(Timings("bmsrank", 3)))
+	t:assert(factory:get(Timings("iidx")))
 
 	t:assert(not factory:get(Timings("sphere"), Subtimings("scorev", 1)))
 	t:assert(not factory:get(Timings("simple", 0.100), Subtimings("scorev", 1)))
 	t:assert(not factory:get(Timings("etternaj", 4), Subtimings("scorev", 1)))
 	t:assert(not factory:get(Timings("quaver"), Subtimings("scorev", 1)))
 	t:assert(not factory:get(Timings("bmsrank"), Subtimings("scorev", 1)))
+	t:assert(not factory:get(Timings("iidx"), Subtimings("scorev", 1)))
 end
 
 return test

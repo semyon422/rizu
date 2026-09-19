@@ -17,7 +17,7 @@ local format_timings = {
 	quaver = {"quaver"},
 	midi = {"sphere"},
 	ksm = {"sphere"},
-	iidx = {"sphere"},
+	iidx = {"iidx"},
 }
 
 ---@param settings rizu.config.Config
@@ -44,7 +44,11 @@ function GameplayTimings:apply(replayBase)
 		timings = Timings(name, timing_key and settings:getNumber(timing_key) or nil)
 	end
 
-	replayBase.timings = chartmeta.timings and nil or timings
+	if chartmeta.timings then
+		replayBase.timings = nil
+	else
+		replayBase.timings = timings
+	end
 
 	---@type sea.Subtimings?
 	local subtimings

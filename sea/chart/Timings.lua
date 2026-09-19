@@ -9,6 +9,7 @@ local class = require("class")
 ---| "etternaj"
 ---| "quaver"
 ---| "bmsrank"
+---| "iidx"
 
 ---@class sea.Timings
 ---@operator call: sea.Timings
@@ -24,6 +25,7 @@ Timings.names = {
 	"etternaj",
 	"quaver",
 	"bmsrank",
+	"iidx",
 }
 
 ---@param name sea.TimingsName
@@ -57,6 +59,8 @@ function Timings:validate()
 		return v == 0
 	elseif n == "bmsrank" then
 		return v >= 0 and v <= 4 and v == math.floor(v)
+	elseif n == "iidx" then
+		return v == 0
 	elseif n == "unknown" then
 		return v == math.floor(v)
 	end
@@ -83,6 +87,8 @@ function Timings.decode(v)
 		return Timings("quaver")
 	elseif v >= 2500 and v <= 2504 then
 		return Timings("bmsrank", v - 2500) -- #RANK
+	elseif v == 2600 then
+		return Timings("iidx")
 	end
 
 	return Timings("unknown", v)
@@ -108,6 +114,8 @@ function Timings.encode(t)
 		return 2400
 	elseif n == "bmsrank" then
 		return 2500 + v
+	elseif n == "iidx" then
+		return 2600
 	end
 
 	return v

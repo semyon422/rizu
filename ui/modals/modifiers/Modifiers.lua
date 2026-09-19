@@ -31,13 +31,14 @@ local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 112
 
-local TIMING_SYSTEMS = {"sphere", "osuod", "etternaj", "quaver", "bmsrank"}
+local TIMING_SYSTEMS = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"}
 local TIMING_SYSTEM_LABELS = {
 	sphere = "Rizu",
 	osuod = "osu!mania",
 	etternaj = "Etterna",
 	quaver = "Quaver",
 	bmsrank = "LR2",
+	iidx = "IIDX",
 }
 local ETTERNA_JUDGES = {1, 2, 3, 4, 5, 6, 7, 8, 9}
 local BMS_RANKS = {3, 2, 1, 0, 4}

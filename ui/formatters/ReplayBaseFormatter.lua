@@ -49,6 +49,8 @@ function ReplayBaseFormatter:getScoreSystem()
 		return "Quaver"
 	elseif timings.name == "bmsrank" then
 		return ("LR2 %s"):format(bms_alias[timings.data])
+	elseif timings.name == "iidx" then
+		return "IIDX"
 	end
 
 	return timings.name or "Unknown"

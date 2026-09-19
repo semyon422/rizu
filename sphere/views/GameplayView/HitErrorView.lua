@@ -39,6 +39,12 @@ HitErrorView.colors = {
 		{1, 0.69, 0.24, 1},
 		{1, 0.5, 0.24, 1},
 	},
+	iidx = {
+		{0.6, 0.8, 1, 1},
+		{0.95, 0.796, 0.188, 1},
+		{1, 0.69, 0.24, 1},
+		{1, 0.5, 0.24, 1},
+	},
 }
 
 function HitErrorView:load()
@@ -74,7 +80,8 @@ function HitErrorView.color(value, unit, judgesSource, slice)
 	if not index then
 		return
 	end
-	return HitErrorView.colors[judgesSource.timings.name][index] or miss
+	local colors = HitErrorView.colors[judgesSource.timings.name]
+	return colors and colors[index] or miss
 end
 
 function HitErrorView:draw()

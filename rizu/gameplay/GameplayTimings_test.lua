@@ -41,6 +41,28 @@ function test.auto_timings_from_chart(t)
 end
 
 ---@param t testing.T
+function test.iidx_format_uses_iidx_timings(t)
+	local replayBase = ReplayBase()
+	local chartmeta = Chartmeta()
+	local settings = Settings.createConfig(FakeFilesystem())
+
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, true)
+	chartmeta.format = "iidx"
+
+	GameplayTimings(settings, chartmeta):apply(replayBase)
+
+	t:eq(replayBase.timings, Timings("iidx"))
+	t:eq(replayBase.subtimings, nil)
+	local timing_values = replayBase.timing_values
+	t:eq(timing_values.ShortNote.hit[1], -0.25)
+	t:eq(timing_values.ShortNote.hit[2], 0.25)
+	t:eq(timing_values.LongNoteStart.hit[1], -0.25)
+	t:eq(timing_values.LongNoteStart.hit[2], 0.25)
+	t:eq(timing_values.LongNoteEnd.hit[1], -0.25)
+	t:eq(timing_values.LongNoteEnd.hit[2], 0.25)
+end
+
+---@param t testing.T
 function test.auto_timings_from_format(t)
 	local replayBase = ReplayBase()
 	local chartmeta = Chartmeta()

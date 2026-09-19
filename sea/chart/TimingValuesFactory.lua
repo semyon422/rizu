@@ -6,6 +6,7 @@ local OsuManiaV2Timings = require("sea.timings.osumania.OsuManiaV2Timings_v2")
 local SoundsphereTimings = require("sea.timings.sphere.SoundsphereTimings_v1")
 local QuaverTimings = require("sea.timings.quaver.QuaverTimings_v1")
 local LunaticRaveTimings = require("sea.timings.bmsrank.LunaticRaveTimings_v2")
+local IidxTimings = require("sea.timings.iidx.IidxTimings_v1")
 local EtternaTimings = require("sea.timings.stepmania.EtternaTimings_v2")
 
 ---@class sea.TimingValuesFactory
@@ -62,6 +63,11 @@ function TimingValuesFactory:get(t, st)
 	elseif tn == "bmsrank" then
 		if not st then
 			return LunaticRaveTimings:getTimingValues()
+		end
+		return nil, err_msg
+	elseif tn == "iidx" then
+		if not st then
+			return IidxTimings:getTimingValues()
 		end
 		return nil, err_msg
 	elseif tn == "unknown" then

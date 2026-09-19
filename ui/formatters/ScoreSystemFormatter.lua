@@ -60,6 +60,16 @@ local grade_colors = {
 		E = {1, 0.1, 0.7, 1},
 		F = fallback_grade_color,
 	},
+	iidx = {
+		AAA = {0.95, 0.796, 0.188, 1},
+		AA = {0.07, 0.8, 0.56, 1},
+		A = {0, 0.7, 0.32, 1},
+		B = {0.1, 0.7, 1, 1},
+		C = {1, 0.1, 0.7, 1},
+		D = fallback_grade_color,
+		E = {1, 0.1, 0.7, 1},
+		F = fallback_grade_color,
+	},
 }
 
 ---@param score_system rizu.ScoreSystem
@@ -92,6 +102,8 @@ function ScoreSystemFormatter:getName()
 		return "Quaver standard"
 	elseif timings.name == "bmsrank" then
 		return ("LR2 %s"):format(bms_alias[timings.data])
+	elseif timings.name == "iidx" then
+		return "IIDX"
 	end
 
 	return timings.name or "Unknown"
@@ -150,7 +162,7 @@ function ScoreSystemFormatter:getGrade(accuracy)
 			return "D"
 		end
 		return "F"
-	elseif name == "bmsrank" then
+	elseif name == "bmsrank" or name == "iidx" then
 		local rank = math.floor(accuracy * 9)
 		if rank >= 8 then
 			return "AAA"

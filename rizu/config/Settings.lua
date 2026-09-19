@@ -85,6 +85,7 @@ local keys = {
 		etternaj = "timings.etternaj",
 		quaver = "timings.quaver",
 		bmsrank = "timings.bmsrank",
+		iidx = "timings.iidx",
 		osu_score_version = "timings.osu_score_version",
 	},
 	replay_base = {
@@ -249,6 +250,7 @@ function Settings.createConfig(filesystem)
 		etternaj = 4,
 		quaver = 0,
 		bmsrank = 3,
+		iidx = 0,
 	}
 	for name, default in pairs(timing_defaults) do
 		config:setDefaultNumber(keys.timings[name], default, 0, 10, 0.01)

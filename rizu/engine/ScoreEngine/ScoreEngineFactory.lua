@@ -11,6 +11,7 @@ local QuaverScore = require("rizu.engine.ScoreEngine.scores.QuaverScore")
 local EtternaAccuracy = require("rizu.engine.ScoreEngine.scores.EtternaAccuracy")
 local EtternaJudges = require("rizu.engine.ScoreEngine.scores.EtternaJudges")
 local LunaticRaveScore = require("rizu.engine.ScoreEngine.scores.LunaticRaveScore")
+local IidxScore = require("rizu.engine.ScoreEngine.scores.IidxScore")
 
 ---@class rizu.ScoreEngineFactory
 ---@operator call: rizu.ScoreEngineFactory
@@ -67,6 +68,11 @@ function ScoreEngineFactory:get(t, st)
 	elseif tn == "bmsrank" then
 		if not st then
 			return {LunaticRaveScore(tv)}
+		end
+		return nil, err_msg
+	elseif tn == "iidx" then
+		if not st then
+			return {IidxScore()}
 		end
 		return nil, err_msg
 	elseif tn == "unknown" then
