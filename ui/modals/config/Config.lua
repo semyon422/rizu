@@ -50,12 +50,14 @@ local LIST_WIDTH = 635
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
 ---@param on_language_change fun()
-function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change)
+---@param audio_model rizu.AudioModel
+function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, audio_model)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
 	self.popup_container = popup_container
 	self.localization = localization
+	self.audio_model = audio_model
 	self.on_language_change = on_language_change
 	self.form = Form({
 		direction = "column",
@@ -132,7 +134,7 @@ end
 ---@return ui.modals.config.Section[] sections
 function Config:createSections()
 	return {
-		AudioSection(self.settings, self.localization),
+		AudioSection(self.settings, self.localization, self.audio_model, self.form, self.popup_container),
 		GameplaySection(self.settings, self.ui_config, self.localization),
 		OffsetSection(self.settings, self.localization),
 		LayoutSection(self.settings, self.form, self.popup_container, self.localization),

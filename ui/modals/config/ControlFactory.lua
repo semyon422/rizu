@@ -28,7 +28,7 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field format (fun(value: any): string)?
 ---@field on_change (fun(value: any))?
 ---@field form? ui.views.form.Form
----@field popup_container ui.views.PopupContainer
+---@field popup_container? ui.views.PopupContainer
 
 local ControlFactory = {}
 
@@ -119,7 +119,7 @@ end
 function ControlFactory.segmentedChoice(config, key, metadata)
 	local control = SegmentedControl({
 		label = metadata.name,
-		options = config:getChoices(key),
+		options = metadata.options or config:getChoices(key),
 		value = config:getChoice(key),
 		format = metadata.format,
 		on_change = function(value)

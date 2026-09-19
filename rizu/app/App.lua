@@ -24,10 +24,18 @@ function App:load()
 
 	local Settings = require("rizu.config.Settings")
 	local keys = Settings.keys.audio
-	self.audioModel:load({
-		period = self.persistence.settings:getNumber(keys.device_period),
-		buffer = self.persistence.settings:getNumber(keys.device_buffer),
-	})
+	local settings = self.persistence.settings
+	local backend = settings:getChoice(keys.backend) --[[@as rizu.AudioBackend]]
+	local device_id, device_warning = self.audioModel:findDeviceId(backend)
+	if device_warning then
+		print("AudioModel: " .. device_warning)
+	end
+	local device = AudioModel.getDeviceConfig(
+		settings:getChoice(keys.device_preset),
+		settings:getNumber(keys.device_period),
+		settings:getNumber(keys.device_buffer)
+	)
+	self.audioModel:load(device, device_id, backend)
 	self.windowModel:load()
 end
 

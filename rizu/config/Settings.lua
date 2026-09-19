@@ -134,6 +134,8 @@ local keys = {
 		mode_primary = "audio.mode.primary",
 		mode_secondary = "audio.mode.secondary",
 		midi_constant_volume = "audio.midi.constant_volume",
+		backend = "audio.backend",
+		device_preset = "audio.device.preset",
 		device_period = "audio.device.period",
 		device_buffer = "audio.device.buffer",
 	},
@@ -304,6 +306,12 @@ function Settings.createConfig(filesystem)
 	config:setDefaultChoice(a.mode_primary, "bass_fx_tempo", {"bass_sample", "bass_fx_tempo"})
 	config:setDefaultChoice(a.mode_secondary, "bass_sample", {"bass_sample", "bass_fx_tempo"})
 	config:setDefaultBoolean(a.midi_constant_volume, false)
+	config:setDefaultChoice(a.backend, "bass_default", {
+		"bass_default", "pipewire_low_latency",
+	})
+	config:setDefaultChoice(a.device_preset, "system", {
+		"system", "safe", "balanced", "low_latency", "experimental", "custom",
+	})
 	config:setDefaultNumber(a.device_period, 0, 0, 50, 1)
 	config:setDefaultNumber(a.device_buffer, 0, 0, 500, 1)
 

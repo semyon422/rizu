@@ -70,8 +70,10 @@ function test.segmented_choice_binds_config_and_metadata(t)
 	local control = ControlFactory.segmentedChoice(config, "difficulty", {
 		name = "Displayed difficulty type",
 		keywords = {"difficulty"},
+		options = {"osu", "enps"},
 	})
 
+	t:tdeq(control.options, {"osu", "enps"})
 	t:eq(control.setting_name, "Displayed difficulty type")
 	t:eq(control.value, "enps")
 	control:setValue("osu", true)

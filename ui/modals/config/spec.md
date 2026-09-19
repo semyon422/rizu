@@ -18,6 +18,10 @@ The Gameplay section also exposes preparation time (0.5–3 seconds) and four tr
 
 The audio section exposes master, music, keysound, and metronome volume, plus independent keysound-volume controls for the applicable Chart formats. Stored volumes remain linear values in `[0, 1]`. The logarithmic presentation converts them to and from decibels and changing the presentation mode invalidates the section.
 
+It also exposes restart-applied audio latency presets. `System` preserves the existing platform defaults or advanced numeric device period/buffer values; `Safe`, `Balanced`, `Low`, and `Experimental` select 40, 20, 10, and 5 ms device buffers respectively, with update periods chosen for those buffers. `Custom` exposes the raw BASS device period and buffer controls. Lower values reduce the delay of keysounds triggered by live input but can produce crackling on devices that cannot sustain them. The section reports the active BASS device, driver, configured period/buffer, actual device latency, and minimum buffer.
+
+On Linux, the section selects between the default BASS output and PipeWire Low Latency. PipeWire Low Latency selects BASS's PipeWire ALSA endpoint and requests a graph quantum derived from the selected device buffer through `PIPEWIRE_LATENCY`; this is not the future native PipeWire transport. Changes apply after restart. Missing or failed endpoints fall back to the default output and display the startup fallback in the settings diagnostics.
+
 The renderer section binds the renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.
 
 The layout section exposes the fullscreen toggle and fullscreen mode selector. The mode selector maps LÖVE's stored `desktop` and `exclusive` values to user-facing borderless desktop and exclusive fullscreen labels; changes apply through `WindowModel` immediately.
