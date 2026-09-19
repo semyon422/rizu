@@ -22,6 +22,8 @@ The `rizu/app/` module owns runtime application wrappers around LÖVE window, au
 - Cursor creation depends on an active LÖVE graphics context.
 - The built-in UI is always registered as the fallback when a configured package is unavailable.
 - Audio backend selection must preserve `rizu.audio.Engine` and its background/foreground mixer split; output transport changes must not reintroduce direct sample playback as a separate keysound architecture.
+- `love.audio` is disabled in `conf.lua`; runtime playback is owned by BASS, so LÖVE must not initialize a second OpenAL output stream. The prebuilt LÖVE runtime still links and packages OpenAL Soft and cannot drop that binary dependency without a custom LÖVE build.
+- LÖVE 12 ships SDL3. The bundled Linux SDL3 exposes native `pipewire`, `pulseaudio`, `alsa`, `sndio`, and `jack` audio drivers, but Rizu does not yet route PCM through SDL Audio.
 
 ## Future Work and Open Questions
 

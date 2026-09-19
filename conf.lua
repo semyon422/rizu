@@ -8,7 +8,7 @@ function love.conf(t)
 
 	t.window = nil
 
-	t.modules.audio = true
+	t.modules.audio = false
 	t.modules.event = true
 	t.modules.graphics = true
 	t.modules.image = true
