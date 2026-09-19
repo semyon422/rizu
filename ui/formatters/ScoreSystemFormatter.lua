@@ -151,19 +151,20 @@ function ScoreSystemFormatter:getGrade(accuracy)
 		end
 		return "F"
 	elseif name == "bmsrank" then
-		if accuracy > 0.8888 then
+		local rank = math.floor(accuracy * 9)
+		if rank >= 8 then
 			return "AAA"
-		elseif accuracy > 0.7777 then
+		elseif rank == 7 then
 			return "AA"
-		elseif accuracy > 0.6666 then
+		elseif rank == 6 then
 			return "A"
-		elseif accuracy > 0.5555 then
+		elseif rank == 5 then
 			return "B"
-		elseif accuracy > 0.4444 then
+		elseif rank == 4 then
 			return "C"
-		elseif accuracy > 0.3333 then
+		elseif rank == 3 then
 			return "D"
-		elseif accuracy > 0.2222 then
+		elseif rank == 2 then
 			return "E"
 		end
 	end

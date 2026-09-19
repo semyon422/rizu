@@ -63,9 +63,8 @@ end
 
 ---@param accuracy_source rizu.IAccuracySource
 ---@param judges_source rizu.IJudgesSource
----@param combo_source rizu.BaseScore
 ---@param ssf ui.formatters.ScoreSystemFormatter
-function ResultStats:bind(accuracy_source, judges_source, combo_source, ssf)
+function ResultStats:bind(accuracy_source, judges_source, ssf)
 	self.accuracy:setText(accuracy_source:getAccuracyString())
 
 	local grade = ssf:getGrade(accuracy_source:getAccuracy())
@@ -100,7 +99,7 @@ function ResultStats:bind(accuracy_source, judges_source, combo_source, ssf)
 		self.pa_ratio:setText(("1:%i"):format(other / marv_perf))
 	end
 
-	self.misses:setText(("%ix"):format(combo_source.missCount))
+	self.misses:setText(("%ix"):format(judges[#judges]))
 	self.numbers:fitContent()
 	self:fitContent()
 end

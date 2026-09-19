@@ -168,7 +168,7 @@ function Result:updateInfo()
 	local score_engine = game.rhythm_engine.score_engine
 	local judge_source = score_engine.judgesSource
 	local accuracy_source = score_engine.accuracySource
-	local combo_source = score_engine.comboSource ---@cast combo_source rizu.BaseScore
+	local combo_source = score_engine.comboSource
 
 	if not judge_source or not accuracy_source or not combo_source then
 		self.no_score_panel:setVisible(true)
@@ -187,7 +187,7 @@ function Result:updateInfo()
 	---@cast judge_source +rizu.ScoreSystem
 	assert(judge_source.timings)
 	local score_system_formatter = ScoreSystemFormatter(judge_source)
-	self.stats:bind(accuracy_source, judge_source, combo_source, score_system_formatter)
+	self.stats:bind(accuracy_source, judge_source, score_system_formatter)
 
 	self.chartview_formatter:setChartview(game.chartSelector.chartview)
 	self.chartview_formatter:setTimeRate(game.replayBase.rate)
