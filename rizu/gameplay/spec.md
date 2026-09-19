@@ -38,7 +38,8 @@ Requirements for the Aim, Catch, Taiko, and SDVX prototypes are tracked in [mode
 ### ADR: Gameplay Resource Loading Is Threaded
 - Gameplay startup loads chart audio, images, and packed sample resources through `ResourceLoader:loadAsync()` so the chart-loading screen can continue updating while filesystem reads and archive unpacking run in a worker thread.
 - Video resources keep their resolved virtual paths instead of being copied into the resource snapshot. Gameplay BGA opens and decodes them through `AsyncVideoEngine` in a dedicated LÖVE thread, using the same bounded frame queue and main-thread GPU upload path as select preview.
-- The async path returns a resource snapshot that is applied to the main-thread `ResourceLoader`; rhythm engine setup and `play()` happen only after that snapshot is installed.
+- The async path returns resource and chart snapshots that are applied on the main thread. Chart snapshots use packed primitive arrays, interned note columns/types, numeric visual-point references, and sparse dynamic note data instead of one transfer table per note or visual point. This keeps LÖVE Channel result handling bounded for dense charts. The main thread restores ordinary runtime chart objects incrementally with a 4 ms work budget and yields between chunks, so dense charts do not monopolize one frame.
+- Rhythm engine setup and `play()` happen only after both snapshots are installed.
 - Editor resource loading stays synchronous for now, because editor startup has different UI/state expectations and was not part of the gameplay-start lag fix.
 
 ### ADR: Durable Score Submission Diagnostics
@@ -73,6 +74,9 @@ local res = tcf:create("4key", {
 
 - Deferred play/resume clock resynchronization must wait for a fresh global frame timestamp. A gameplay update in the same frame as loading must not consume it: the next frame includes loading time, which must not advance chart time or its monotonic floor.
 - Gameplay video decoding must not run from `BgaView:draw()` or any other main-thread render path. The draw path may request/present an already decoded frame and upload it to the GPU.
+- Gameplay chart worker results must remain channel-friendly: do not reintroduce per-note or per-visual-point transfer tables into `ChartSnapshot`. Optional data belongs in sparse arrays/maps, and repeated strings should stay interned.
+- Restored charts must remain ordinary mutable `chart.Chart` instances; the packed snapshot is only a worker-transfer representation and must preserve chart data, resources, timing points, visual properties, note data, and mode-specific payloads. Snapshot construction accepts only an already computed and validated chart. Restoration may therefore copy derived point/visual state and rebuild note links without re-sorting and re-validating the same arrays on the main thread.
+- Incremental restoration must abort before publishing its chart when `GameplayInteractor.load_generation` changes. An obsolete load must never overwrite `ComputeContext` after a newer load or unload starts.
 - Gameplay resource snapshots retain resolved video paths but not full video file contents, so large BGA files are not duplicated across the resource-loading thread boundary.
 
 ## Implementation Notes

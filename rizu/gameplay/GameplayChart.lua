@@ -4,6 +4,7 @@ local TaikoPreparation = require("rizu.gameplay.taiko.Preparation")
 local CatchPreparation = require("rizu.gameplay.catch.Preparation")
 local AimPreparation = require("rizu.gameplay.aim.Preparation")
 local class = require("class")
+local delay = require("delay")
 local thread = require("thread")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
@@ -11,7 +12,7 @@ local Chartdiff = require("sea.chart.Chartdiff")
 local Chartmeta = require("sea.chart.Chartmeta")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local ReplayBase = require("sea.replays.ReplayBase")
-local Restorer = require("chart.refchart.Restorer")
+local SnapshotRestorer = require("chart.refchart.SnapshotRestorer")
 local Settings = require("rizu.config.Settings")
 
 ---@class rizu.GameplayChartviewData
@@ -33,11 +34,10 @@ local Settings = require("rizu.config.Settings")
 ---@field columns_order integer[]?
 
 ---@class rizu.GameplayChartComputeResult
----@field refchart refchart.RefChart
+---@field snapshot refchart.ChartSnapshot
 ---@field chartmeta sea.Chartmeta
 ---@field chartdiff sea.Chartdiff
 ---@field state sea.ModifiersMetaState
----@field simplified_notes table
 ---@field replay_base rizu.GameplayChartReplayBaseData
 
 ---@class rizu.GameplayChart
@@ -97,7 +97,7 @@ local prepare_async = thread.async(prepare)
 function GameplayChart.compute(chartview_data, data, context, replay_base_data, gameplay_config)
 	local ModeNotesAsync = require("chart.model.ModeNotes")
 	local ComputeContext = require("sea.compute.ComputeContext")
-	local RefChartAsync = require("chart.refchart.RefChart")
+	local ChartSnapshotAsync = require("chart.refchart.ChartSnapshot")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
 	local SdvxPreparationAsync = require("rizu.gameplay.sdvx.Preparation")
 	local TaikoPreparationAsync = require("rizu.gameplay.taiko.Preparation")
@@ -152,11 +152,10 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	end
 
 	return {
-		refchart = RefChartAsync(assert(compute_context.chart)),
+		snapshot = ChartSnapshotAsync(assert(compute_context.chart)),
 		chartmeta = compute_context.chartmeta,
 		chartdiff = compute_context.chartdiff,
 		state = compute_context.state,
-		simplified_notes = compute_context.diffcalc_context:getSimplifiedNotes(),
 		replay_base = {
 			modifiers = replay_base.modifiers,
 			columns_order = replay_base.columns_order,
@@ -273,9 +272,9 @@ end
 ---@param replayBase sea.ReplayBase
 ---@param ctx sea.ComputeContext
 ---@param result rizu.GameplayChartComputeResult
-function GameplayChart:applyComputed(replayBase, ctx, result)
-	ctx.chart = Restorer():restore(result.refchart)
-
+---@param chart chart.Chart
+local function apply_computed(replayBase, ctx, result, chart)
+	ctx.chart = chart
 	ctx.chartmeta = setmetatable(result.chartmeta, Chartmeta)
 	ctx.chartdiff = setmetatable(result.chartdiff, Chartdiff)
 	ctx.state = result.state
@@ -283,11 +282,43 @@ function GameplayChart:applyComputed(replayBase, ctx, result)
 
 	local diffcalc_context = DiffcalcContext()
 	diffcalc_context:new(ctx.chartdiff, ctx.chart, replayBase.rate)
-	diffcalc_context.notes = result.simplified_notes
 	ctx.diffcalc_context = diffcalc_context
 
 	replayBase.modifiers = result.replay_base.modifiers
 	replayBase.columns_order = result.replay_base.columns_order
+end
+
+---@param replayBase sea.ReplayBase
+---@param ctx sea.ComputeContext
+---@param result rizu.GameplayChartComputeResult
+function GameplayChart:applyComputed(replayBase, ctx, result)
+	local chart = assert(SnapshotRestorer():restore(result.snapshot))
+	apply_computed(replayBase, ctx, result, chart)
+end
+
+---@param replayBase sea.ReplayBase
+---@param ctx sea.ComputeContext
+---@param result rizu.GameplayChartComputeResult
+---@param is_cancelled fun(): boolean
+---@return boolean applied
+function GameplayChart:applyComputedAsync(replayBase, ctx, result, is_cancelled)
+	local get_time = love.timer.getTime
+	local deadline = get_time() + 0.004
+	local chart = SnapshotRestorer():restore(result.snapshot, function()
+		if is_cancelled() then
+			return false
+		end
+		if get_time() >= deadline then
+			delay.sleep(1 / 240)
+			deadline = get_time() + 0.004
+		end
+		return not is_cancelled()
+	end)
+	if not chart or is_cancelled() then
+		return false
+	end
+	apply_computed(replayBase, ctx, result, chart)
+	return true
 end
 
 ---@return string data

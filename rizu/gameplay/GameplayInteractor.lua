@@ -113,7 +113,11 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	if load_generation ~= self.load_generation then
 		return false
 	end
-	gameplay_chart:applyComputed(preparation_base, game.computeContext, compute_result)
+	if not gameplay_chart:applyComputedAsync(preparation_base, game.computeContext, compute_result, function()
+			return load_generation ~= self.load_generation
+		end) then
+		return false
+	end
 
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)

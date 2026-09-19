@@ -1,7 +1,7 @@
-local Restorer = require("chart.refchart.Restorer")
+local SnapshotRestorer = require("chart.refchart.SnapshotRestorer")
+local ChartSnapshot = require("chart.refchart.ChartSnapshot")
 local ModeNotes = require("chart.model.ModeNotes")
 local Preparation = require("rizu.gameplay.aim.Preparation")
-local RefChart = require("chart.refchart.RefChart")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local Settings = require("rizu.config.Settings")
 local ReplayBase = require("sea.replays.ReplayBase")
@@ -76,7 +76,7 @@ ApproachRate:7
 	t:eq(ctx.chartdiff.osu_diff, nil)
 	local restored = ComputeContext()
 	loader:applyComputed(base, restored, {
-		refchart = RefChart(ctx.chart), chartmeta = ctx.chartmeta, chartdiff = ctx.chartdiff,
+		snapshot = ChartSnapshot(ctx.chart), chartmeta = ctx.chartmeta, chartdiff = ctx.chartdiff,
 		state = ctx.state, simplified_notes = {}, replay_base = {modifiers = {}},
 	})
 	t:tdeq(ModeNotes.read(restored.chart, "osu"), ModeNotes.read(ctx.chart, "osu"))
@@ -154,7 +154,7 @@ OverallDifficulty:5
 	t:assert(result.error:find("invalid general sample set", 1, true))
 	local valid = compute(view, data:gsub("SampleSet:Invalid", "SampleSet: None"), nil, ReplayBase(), config)
 	t:eq(valid.error, nil)
-	t:eq(valid.refchart.data.sample_set, 1)
+	t:eq(valid.snapshot.data.sample_set, 1)
 	view.index = 999
 	local invalid_index = compute(view, data:gsub("SampleSet:Invalid", "SampleSet: None"), nil, ReplayBase(), config)
 	t:eq(type(invalid_index.error), "string")
@@ -180,7 +180,7 @@ OverallDifficulty:5
 	t:eq(result.chartdiff.inputmode, "1fruits")
 	t:eq(result.chartdiff.osu_diff, nil)
 	t:aeq(result.chartdiff.duration, 1 + 200 / 280, 1e-9)
-	t:assert(ModeNotes.read(Restorer():restore(result.refchart), "catch"))
+	t:assert(ModeNotes.read(SnapshotRestorer():restore(result.snapshot), "catch"))
 end
 
 return test
