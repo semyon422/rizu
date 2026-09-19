@@ -45,7 +45,7 @@ function JudgementView:getJudge()
 	end
 
 	local slice = sequence[sequence_len][self.judgesSource:getKey()]
-	return slice.last_judge
+	return slice.visual_judge or slice.last_judge
 end
 
 function JudgementView:startAnimation()

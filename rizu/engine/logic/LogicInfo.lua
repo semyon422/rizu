@@ -6,6 +6,7 @@ local TimingValues = require("sea.chart.TimingValues")
 ---@field type "tap"|"hold"
 ---@field time number
 ---@field delta_time number
+---@field press_delta_time number? -- head/re-press offset for a hold press
 ---@field old_state string
 ---@field new_state string
 

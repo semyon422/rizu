@@ -138,11 +138,17 @@ function HoldLogicNote:switchState(state)
 		delta_time = math.min(self:getEndDeltaTime(), end_last_time)
 	end
 
+	local press_delta_time
+	if state == "startPassedPressed" or state == "startMissedPressed" then
+		press_delta_time = self.logic_info:sub(self.linked_note:getStartTime())
+	end
+
 	self.logic_info:addNoteChange({
 		index = self.index,
 		type = "hold",
 		time = current_time,
 		delta_time = delta_time,
+		press_delta_time = press_delta_time,
 		old_state = old_state,
 		new_state = state,
 	})

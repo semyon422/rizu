@@ -42,11 +42,24 @@ HitErrorView.colors = {
 }
 
 function HitErrorView:load()
-	---@type rizu.ScoreEngine
-	local score_engine = self.game.rhythm_engine.score_engine
+	self:refreshScoreEngine()
+end
+
+--- Rebind after a chart restart, which replaces RhythmEngine's score engine
+--- while keeping the loaded playfield views alive.
+---@return boolean
+function HitErrorView:refreshScoreEngine()
+	local rhythm_engine = self.game.rhythm_engine
+	local score_engine = rhythm_engine and rhythm_engine.score_engine
+	if not score_engine then
+		self.judgesSource = nil
+		self.sequence = nil
+		return false
+	end
 
 	self.judgesSource = score_engine.judgesSource
 	self.sequence = score_engine.sequence
+	return true
 end
 
 local miss = {1, 0, 0, 1}
@@ -57,12 +70,18 @@ local miss = {1, 0, 0, 1}
 ---@param slice table
 ---@return table
 function HitErrorView.color(value, unit, judgesSource, slice)
-	local index = slice.last_judge
+	local index = slice.visual_judge or slice.last_judge
+	if not index then
+		return
+	end
 	return HitErrorView.colors[judgesSource.timings.name][index] or miss
 end
 
 function HitErrorView:draw()
 	if self.show and not self.show(self) then
+		return
+	end
+	if not self:refreshScoreEngine() then
 		return
 	end
 
@@ -133,6 +152,9 @@ function HitErrorView:drawPoint(point, fade)
 		local slice = point[scoreSystem:getKey()]
 
 		color = color(value, unit, self.judgesSource, slice)
+	end
+	if not color then
+		return
 	end
 	local alpha = color[4]
 	color[4] = color[4] * map(fade, 0, self.count, 1, 0)

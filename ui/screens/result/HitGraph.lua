@@ -146,7 +146,7 @@ function HitGraph:rebuild()
 				local x = math.min(math.max(base.currentTime / max_time, 0), 1) * plot_width
 				local y = (delta - delta_min) / delta_range * plot_height
 				local judge_slice = slice[system_key]
-				local judge_index = judge_slice and judge_slice.last_judge
+				local judge_index = judge_slice and (judge_slice.visual_judge or judge_slice.last_judge)
 				batch:setColor(judge_index and formatter:getJudgeColor(judge_index) or Colors.text)
 				batch:add(hit, x, y, 0, scale, scale)
 			end
