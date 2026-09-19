@@ -22,7 +22,7 @@ The renderer section binds the renderer settings for unlimited FPS, the FPS limi
 
 The layout section exposes the fullscreen toggle and fullscreen mode selector. The mode selector maps LÖVE's stored `desktop` and `exclusive` values to user-facing borderless desktop and exclusive fullscreen labels; changes apply through `WindowModel` immediately.
 
-The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`.
+The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`. It also exposes independent format-offset sliders for osu!, Quaver, StepMania, and KSH Charts.
 
 The User Interface section controls whether Song Select displays a chart preview and which difficulty rating type menus display.
 

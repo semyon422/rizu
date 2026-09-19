@@ -137,6 +137,8 @@ return {
 	["settings.bga_brightness_tip"] = "Яркость фоновых картинок и видео.",
 	["settings.universal_offset"] = "Общий оффсет",
 	["settings.universal_offset_tip"] = "Один аудио-оффсет для всех режимов.",
+	["settings.format_offset"] = "Оффсет {format}",
+	["settings.format_offset_tip"] = "Аудио-оффсет для чартов {format}.",
 	["settings.fullscreen"] = "Полноэкранный режим",
 	["settings.fullscreen_tip"] = "Полноэкранный режим.",
 	["settings.fullscreen_mode"] = "Режим фуллскрина",
