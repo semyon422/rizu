@@ -6,6 +6,7 @@ local Painter = require("gui.Painter")
 local SpriteBatch = require("gui.SpriteBatch")
 local UiActions = require("ui.UiActions")
 local Settings = require("rizu.config.Settings")
+local ModifierModel = require("sphere.models.ModifierModel")
 local time_util = require("time_util")
 
 ---@class ui.screens.song_select.ScoreList : gui.VirtualizedList
@@ -101,6 +102,11 @@ function ScoreList:reload()
 
 		if v.pause_count and v.pause_count > 0 then
 			table.insert(mods_sb, self.localization:get("song_select.pauses"))
+		end
+
+		local mutators = ModifierModel:getString(v.modifiers or {})
+		if mutators ~= "" then
+			table.insert(mods_sb, mutators)
 		end
 
 		local username = type(v.user_name) == "string" and v.user_name ~= "" and v.user_name
