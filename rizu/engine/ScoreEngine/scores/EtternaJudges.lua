@@ -42,6 +42,9 @@ function EtternaJudges:new(j)
 
 	self.judge_windows = JudgeWindows(windows)
 	self.judge_counter = JudgeCounter(6)
+	self.holds_held = 0
+	self.holds_let_go = 0
+	self.holds_missed = 0
 end
 
 ---@return string
@@ -59,9 +62,24 @@ function EtternaJudges:miss()
 	self.judge_counter:add(-1)
 end
 
+function EtternaJudges:holdHeld()
+	self.holds_held = self.holds_held + 1
+end
+
+function EtternaJudges:holdLetGo()
+	self.holds_let_go = self.holds_let_go + 1
+end
+
+function EtternaJudges:holdMissed()
+	self.holds_missed = self.holds_missed + 1
+end
+
 function EtternaJudges:getSlice()
 	return {
 		last_judge = self:getLastJudge(),
+		holds_held = self.holds_held,
+		holds_let_go = self.holds_let_go,
+		holds_missed = self.holds_missed,
 	}
 end
 
@@ -82,17 +100,17 @@ EtternaJudges.events = {
 		},
 		startPassedPressed = {
 			startMissed = nil,
-			endMissed = nil,
-			endPassed = nil,
+			endMissed = "holdLetGo",
+			endPassed = "holdHeld",
 		},
 		startMissedPressed = {
-			endMissedPassed = nil,
+			endMissedPassed = "holdMissed",
 			startMissed = nil,
-			endMissed = nil,
+			endMissed = "holdMissed",
 		},
 		startMissed = {
 			startMissedPressed = nil,
-			endMissed = nil,
+			endMissed = "holdMissed",
 		},
 	},
 }

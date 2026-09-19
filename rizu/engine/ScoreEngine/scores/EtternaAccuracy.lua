@@ -26,6 +26,7 @@ function EtternaAccuracy:new(j)
 
 	self.maxPoints = 2
 	self.missWeight = -5.5
+	self.holdDropWeight = -4.5
 	self.jPow = 0.75
 	self.maxBooWeight = 0.180 * self.difficulty
 	self.ridic = 0.005 * self.difficulty
@@ -33,6 +34,9 @@ function EtternaAccuracy:new(j)
 	self.points = 0
 	self.miss_count = 0
 	self.notes = 0
+	self.holds_held = 0
+	self.holds_let_go = 0
+	self.holds_missed = 0
 end
 
 ---@return string
@@ -78,6 +82,23 @@ function EtternaAccuracy:miss()
 	self.notes = self.notes + 1
 end
 
+-- Wife3 scores a hold head as a tap. A completed hold adds no points, while
+-- a dropped or fully missed hold applies this fixed penalty; tail timing is
+-- not evaluated by the Wife3 curve.
+function EtternaAccuracy:holdHeld()
+	self.holds_held = self.holds_held + 1
+end
+
+function EtternaAccuracy:holdLetGo()
+	self.holds_let_go = self.holds_let_go + 1
+	self.points = self.points + self.holdDropWeight
+end
+
+function EtternaAccuracy:holdMissed()
+	self.holds_missed = self.holds_missed + 1
+	self.points = self.points + self.holdDropWeight
+end
+
 function EtternaAccuracy:getAccuracy()
 	return math.max(self.points / (self.notes * self.maxPoints), 0)
 end
@@ -87,7 +108,12 @@ function EtternaAccuracy:getAccuracyString()
 end
 
 function EtternaAccuracy:getSlice()
-	return {accuracy = self:getAccuracy()}
+	return {
+		accuracy = self:getAccuracy(),
+		holds_held = self.holds_held,
+		holds_let_go = self.holds_let_go,
+		holds_missed = self.holds_missed,
+	}
 end
 
 EtternaAccuracy.events = {
@@ -107,17 +133,17 @@ EtternaAccuracy.events = {
 		},
 		startPassedPressed = {
 			startMissed = nil,
-			endMissed = nil,
-			endPassed = nil,
+			endMissed = "holdLetGo",
+			endPassed = "holdHeld",
 		},
 		startMissedPressed = {
-			endMissedPassed = nil,
+			endMissedPassed = "holdMissed",
 			startMissed = nil,
-			endMissed = nil,
+			endMissed = "holdMissed",
 		},
 		startMissed = {
 			startMissedPressed = nil,
-			endMissed = nil,
+			endMissed = "holdMissed",
 		},
 	},
 }
