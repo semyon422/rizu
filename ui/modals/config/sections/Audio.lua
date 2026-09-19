@@ -43,7 +43,7 @@ end
 ---@param settings rizu.config.Config
 ---@param localization ui.localization.Localization
 function Audio:new(settings, localization)
-		Section.new(self, {
+	Section.new(self, {
 		name = localization:get("settings.audio"),
 		icon = Resources.sprites.icon_volume_1,
 		build = function(section)
@@ -65,11 +65,11 @@ function Audio:new(settings, localization)
 				{key = keys.volume_keysounds, name = localization:get("settings.keysound_volume"), keyword = "keysounds"},
 				{key = keys.volume_metronome, name = localization:get("settings.metronome_volume"), keyword = "metronome"},
 			}
-			for _, volume in ipairs(volumes) do
-				controls[#controls + 1] = ControlFactory.number(settings, volume.key, {
-					name = volume.name,
-					keywords = {"audio", "sound", volume.keyword},
-					tip = localization:get("settings.volume_tip", {kind = volume.name:lower()}),
+			local function addVolume(key, name, keywords, tip)
+				controls[#controls + 1] = ControlFactory.number(settings, key, {
+					name = name,
+					keywords = keywords,
+					tip = tip,
 					min = logarithmic and MIN_DECIBELS or nil,
 					max = logarithmic and 0 or nil,
 					step = logarithmic and 1 or nil,
@@ -77,6 +77,32 @@ function Audio:new(settings, localization)
 					to_storage = logarithmic and toLinear or nil,
 					value_format = logarithmic and formatDecibels or formatLinear,
 				})
+			end
+			for _, volume in ipairs(volumes) do
+				addVolume(
+					volume.key,
+					volume.name,
+					{"audio", "sound", volume.keyword},
+					localization:get("settings.volume_tip", {kind = volume.name:lower()})
+				)
+			end
+
+			local format_names = {
+				sphere = "Sphere",
+				osu = "osu!",
+				o2jam = "O2Jam",
+				stepmania = "StepMania",
+				quaver = "Quaver",
+				ksm = "KSH",
+			}
+			for _, format in ipairs({"sphere", "osu", "o2jam", "stepmania", "quaver", "ksm"}) do
+				local name = format_names[format]
+				addVolume(
+					keys.volume_keysounds_format[format],
+					localization:get("settings.format_keysound_volume", {format = name}),
+					{"audio", "sound", "keysound", "format", format, name},
+					localization:get("settings.format_keysound_volume_tip", {format = name})
+				)
 			end
 			return controls
 		end,
