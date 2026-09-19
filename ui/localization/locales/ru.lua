@@ -291,6 +291,7 @@ return {
 	["song_select.time_rate_type"] = "Тип скорости музыки",
 	["song_select.time_rate"] = "Скорость музыки",
 	["song_select.auto_timings"] = "Автоматическая система счёта",
+	["song_select.nearest_input"] = "Считать попадания по ближайшей ноте",
 	["song_select.score_system"] = "Система счёта",
 	["song_select.osu_score_version"] = "Версия счёта osu!mania",
 	["song_select.overall_difficulty"] = "Общая сложность",

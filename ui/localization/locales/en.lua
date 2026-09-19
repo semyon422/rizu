@@ -307,6 +307,7 @@ return {
 	["song_select.time_rate_type"] = "Time Rate Type",
 	["song_select.time_rate"] = "Time Rate",
 	["song_select.auto_timings"] = "Automatic score system",
+	["song_select.nearest_input"] = "Nearest input",
 	["song_select.score_system"] = "Score System",
 	["song_select.osu_score_version"] = "osu!mania Score Version",
 	["song_select.overall_difficulty"] = "Overall Difficulty",

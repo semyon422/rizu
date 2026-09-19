@@ -280,6 +280,7 @@ return {
 	["song_select.time_rate_type"] = "Tipo de velocidad de reproducción",
 	["song_select.time_rate"] = "Velocidad de reproducción",
 	["song_select.auto_timings"] = "Sistema de puntuación automático",
+	["song_select.nearest_input"] = "Contar los aciertos según la nota más cercana",
 	["song_select.score_system"] = "Sistema de puntuación",
 	["song_select.osu_score_version"] = "Versión de puntuación de osu!mania",
 	["song_select.overall_difficulty"] = "Dificultad general",

@@ -245,6 +245,15 @@ function Modifiers:rebuildForm()
 	}))
 
 	if not auto_timings then
+		self.form:add(Checkbox({
+			text = self.localization:get("song_select.nearest_input"),
+			checked = replay_base.nearest,
+			on_change = function(value)
+				replay_base.nearest = value
+				self:changed()
+			end,
+		}))
+
 		local timing_system = self:getTimingSystem()
 		self.form:add(SegmentedControl({
 			label = self.localization:get("song_select.score_system"),
