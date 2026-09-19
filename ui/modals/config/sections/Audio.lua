@@ -77,7 +77,7 @@ function Audio:new(settings, localization, audio_model, form, popup_container)
 					name = localization:get("settings.audio_backend"),
 					keywords = {"audio", "backend", "pipewire", "device"},
 					tip = localization:get("settings.audio_backend_tip"),
-					options = {"bass_default", "pipewire_low_latency"},
+					options = {"bass_default", "pipewire_low_latency", "sdl3_pipewire"},
 					format = function(backend)
 						return localization:get("settings.audio_backend_" .. backend)
 					end,
@@ -117,13 +117,26 @@ function Audio:new(settings, localization, audio_model, form, popup_container)
 				controls[#controls + 1] = Label({
 					font_name = "medium",
 					font_size = 16,
-					text = localization:get("settings.audio_latency_status", {
-						latency = status.latency,
-						minimum = status.min_buffer,
-						period = status.period,
-						buffer = status.buffer,
-					}),
+					text = localization:get(
+						status.transport == "SDL3" and "settings.audio_latency_estimate_status" or "settings.audio_latency_status",
+						{
+							latency = status.latency,
+							minimum = status.min_buffer,
+							period = status.period,
+							buffer = status.buffer,
+						}
+					),
 				})
+				if status.transport == "SDL3" then
+					controls[#controls + 1] = Label({
+						font_name = "medium",
+						font_size = 16,
+						text = localization:get("settings.audio_sdl_status", {
+							queued = math.floor((status.queued_ms or 0) * 10 + 0.5) / 10,
+							underruns = status.underruns or 0,
+						}),
+					})
+				end
 				if status.warning then
 					controls[#controls + 1] = Label({
 						font_name = "medium",

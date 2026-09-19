@@ -307,7 +307,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultChoice(a.mode_secondary, "bass_sample", {"bass_sample", "bass_fx_tempo"})
 	config:setDefaultBoolean(a.midi_constant_volume, false)
 	config:setDefaultChoice(a.backend, "bass_default", {
-		"bass_default", "pipewire_low_latency",
+		"bass_default", "pipewire_low_latency", "sdl3_pipewire",
 	})
 	config:setDefaultChoice(a.device_preset, "system", {
 		"system", "safe", "balanced", "low_latency", "experimental", "custom",

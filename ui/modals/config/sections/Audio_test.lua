@@ -126,10 +126,44 @@ function test.shows_runtime_audio_status_and_backends(t)
 		end
 	end
 	assert(backend_control)
-	t:tdeq(backend_control.options, {"bass_default", "pipewire_low_latency"})
+	t:tdeq(backend_control.options, {"bass_default", "pipewire_low_latency", "sdl3_pipewire"})
 	t:tdeq(texts, {
 		"Active device: PipeWire Sound Server (pipewire)",
 		"Actual: 8 ms · minimum: 5 ms · period: 5 ms · buffer: 10 ms",
+	})
+end
+
+---@param t testing.T
+function test.shows_sdl_queue_diagnostics(t)
+	local audio_model = {
+		getStatus = function()
+			return {
+				latency = 15.8,
+				min_buffer = 5.8,
+				period = 5.8,
+				buffer = 10,
+				device_id = 15,
+				device_name = "Built-in Audio Analog Stereo",
+				device_driver = "pipewire",
+				transport = "SDL3",
+				queued_ms = 9.9,
+				underruns = 2,
+			}
+		end,
+	} --[[@as rizu.AudioModel]]
+	local _, _, controls = createAudioControls(nil, audio_model)
+	---@type string[]
+	local texts = {}
+	for _, control in ipairs(controls) do
+		if Label * control then
+			local label = control --[[@as ui.views.Label]]
+			texts[#texts + 1] = label.text
+		end
+	end
+	t:tdeq(texts, {
+		"Active device: Built-in Audio Analog Stereo (pipewire)",
+		"Target: 15.8 ms · period: 5.8 ms · queue: 10 ms",
+		"SDL queue now: 9.9 ms · observed underruns: 2",
 	})
 end
 

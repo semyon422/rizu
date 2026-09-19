@@ -33,8 +33,15 @@ The engine module provides the low-level runtime systems for rhythm processing, 
 - `rizu.audio.Engine` coordinates background playback and foreground hitsounds.
 - `rizu.audio.SoftwareMixer` is used when multiple streams need software-level combination, such as waveform rendering or preview workflows.
 
+### ADR: SDL3 Native Output
+- LÖVE 12 already loads SDL3, so LuaJIT FFI accesses SDL symbols through `ffi.C` without packaging another library.
+- The `sdl3_pipewire` backend initializes SDL's native `pipewire` audio driver and opens a float32 stereo `SDL_AudioStream`. Lua pushes bounded PCM blocks; no Lua callback runs on SDL's audio thread.
+- Gameplay background audio and foreground keysounds remain separate BASS decode sources, then feed one non-stop BASS decode mixer. Only that master stream is submitted to SDL.
+- The selected buffer preset is the target combined SDL queue plus one device period. SDL device sample frames come from the period preset; at least one period is kept queued. Runtime timing subtracts queued stream frames and one device period from the decoded source position.
+- The push prototype depends on regular engine updates. It counts empty-queue observations as underruns; a future native ring-buffer bridge is required if render stalls make Experimental settings unstable.
+
 ### ADR: Streaming Decode Stays In BASS Channels
-- Runtime playback uses BASS streams so encoded files are decoded on demand instead of fully decoded before playback.
+- Runtime playback uses BASS streams so encoded files are decoded on demand instead of fully decoded before playback. BASS output backends play these streams directly; SDL3 output configures them as decode-only children of the master mixer.
 - The BASS_FFMPEG plugin lets BASS streams decode through FFmpeg while preserving BASS mixer, tempo, seeking, and keysound behavior.
 - `IDecoder` positions, durations, and reads are frame-based (`getFrames`, `getFramePosition`, `setFramePosition`, `getFrameDuration`). A frame contains one sample per channel and is independent of channel count and sample representation. Byte-oriented helpers remain compatibility boundary methods and must not be used as internal timeline state.
 - Decoder buffer representation is explicit through `rizu.audio.SampleFormat` (`"int16"` or `"float32"`) rather than boolean flags.

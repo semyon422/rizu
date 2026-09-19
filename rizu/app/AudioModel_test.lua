@@ -19,6 +19,7 @@ function test.resolves_latency_presets(t)
 		{id = 4, enabled = true, name = "PipeWire", driver = "pipewire"},
 	}
 	t:eq(AudioModel.resolveDeviceId("bass_default", devices), nil)
+	t:eq(AudioModel.resolveDeviceId("sdl3_pipewire", devices), nil)
 	local pipewire_id, pipewire_warning = AudioModel.resolveDeviceId("pipewire_low_latency", devices)
 	t:eq(pipewire_id, 4)
 	t:eq(pipewire_warning, nil)

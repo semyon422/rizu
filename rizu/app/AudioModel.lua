@@ -2,9 +2,10 @@ local class = require("class")
 local ffi = require("ffi")
 local bass = require("bass")
 local bass_config = require("bass.config")
+local OutputConfig = require("rizu.engine.audio.OutputConfig")
+local SdlNative = require("rizu.engine.audio.sdl.Native")
 
 ---@alias rizu.AudioDevicePreset "system"|"safe"|"balanced"|"low_latency"|"experimental"|"custom"
----@alias rizu.AudioBackend "bass_default"|"pipewire_low_latency"
 
 ---@class rizu.AudioDeviceConfig
 ---@field period number
@@ -23,6 +24,9 @@ local bass_config = require("bass.config")
 ---@field device_name string
 ---@field device_driver string
 ---@field warning string?
+---@field queued_ms number?
+---@field underruns integer?
+---@field transport string?
 
 ---@class rizu.AudioModel
 ---@operator call: rizu.AudioModel
@@ -54,7 +58,10 @@ end
 ---@return integer? device_id
 ---@return string? warning
 function AudioModel.resolveDeviceId(backend, devices)
-	if backend == "bass_default" then
+	if backend == "bass_default" or backend == "sdl3_pipewire" then
+		if backend == "sdl3_pipewire" and jit.os ~= "Linux" then
+			return nil, "SDL3 PipeWire is only available on Linux; using the default output device."
+		end
 		return nil
 	end
 	assert(backend == "pipewire_low_latency", "Unknown audio backend: " .. tostring(backend))
@@ -92,6 +99,25 @@ end
 
 ---@return rizu.AudioDeviceStatus
 function AudioModel:getStatus()
+	if self.sdl_status then
+		local status = self.sdl_status
+		local runtime = OutputConfig.getRuntimeStatus()
+		local period = runtime and runtime.period_ms or status.sample_frames / status.sample_rate * 1000
+		local queue = runtime and runtime.target_queue_ms or math.max(self.device.buffer - period, period)
+		return {
+			latency = math.floor((queue + period) * 10 + 0.5) / 10,
+			min_buffer = math.floor(period * 10 + 0.5) / 10,
+			period = math.floor(period * 10 + 0.5) / 10,
+			buffer = math.floor(queue * 10 + 0.5) / 10,
+			device_id = status.id,
+			device_name = status.name,
+			device_driver = status.driver,
+			warning = self.startup_warning,
+			queued_ms = runtime and runtime.queued_ms or 0,
+			underruns = runtime and runtime.underruns or 0,
+			transport = "SDL3",
+		}
+	end
 	local info = bass.getInfo()
 	---@cast info rizu.BassDeviceInfo
 	local device_id = tonumber(bass.BASS_GetDevice())
@@ -113,7 +139,16 @@ function AudioModel:getStatus()
 		device_name = device_name,
 		device_driver = device_driver,
 		warning = self.startup_warning,
+		transport = "BASS",
 	}
+end
+
+---@param milliseconds number
+---@return integer frames
+local function getSdlSampleFrames(milliseconds)
+	local target = math.max(1, milliseconds / 1000 * 44100)
+	local exponent = math.floor(math.log(target) / math.log(2))
+	return math.max(32, math.min(2048, 2 ^ exponent))
 end
 
 ---@param device rizu.AudioDeviceConfig
@@ -126,6 +161,21 @@ function AudioModel:load(device, device_id, backend)
 	if device.buffer == 0 then
 		device.buffer = bass.default_dev_buffer
 	end
+	self.device = device
+	self.sdl_status = nil
+	OutputConfig.set({backend = "bass_default", period = device.period, buffer = device.buffer})
+
+	if backend == "sdl3_pipewire" then
+		local status, sdl_error = SdlNative.initPipeWire(getSdlSampleFrames(device.period))
+		if status then
+			self.sdl_status = status
+			OutputConfig.set({backend = backend, period = device.period, buffer = device.buffer})
+		else
+			self.startup_warning = "SDL3 PipeWire failed to initialize (" .. tostring(sdl_error) .. "); using BASS default."
+			print("AudioModel: " .. self.startup_warning)
+		end
+	end
+
 	bass.setDevicePeriod(device.period)
 	bass.setDeviceBuffer(device.buffer)
 	if backend == "pipewire_low_latency" then
@@ -136,6 +186,8 @@ function AudioModel:load(device, device_id, backend)
 		return
 	end
 	assert(device_id, "Could not initialize the default BASS output device")
+	self.sdl_status = nil
+	OutputConfig.set({backend = "bass_default", period = device.period, buffer = device.buffer})
 	self.startup_warning = "The selected audio device failed to initialize; using the default output device."
 	print("AudioModel: " .. self.startup_warning)
 	bass.init()

@@ -23,15 +23,18 @@ local Source = ISource + {}
 
 ---@param decoder rizu.audio.IDecoder
 ---@param use_tempo boolean?
-function Source:new(decoder, use_tempo)
+---@param decode_output boolean?
+function Source:new(decoder, use_tempo, decode_output)
 	self.decoder = decoder
 	self.use_tempo = use_tempo
+	self.decode_output = decode_output == true
+	self.playing = false
 
 	local flags = 0
 	if decoder:getSampleFormat() == "float32" then
 		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
 	end
-	if use_tempo then
+	if use_tempo or self.decode_output then
 		flags = flags + bass_flags.BASS_STREAM_DECODE
 	end
 
@@ -41,7 +44,11 @@ function Source:new(decoder, use_tempo)
 	bass_assert(source_channel ~= 0)
 
 	if use_tempo then
-		self.channel = bass_fx.BASS_FX_TempoCreate(source_channel, bass_flags.BASS_FX_FREESOURCE)
+		local tempo_flags = bass_flags.BASS_FX_FREESOURCE
+		if self.decode_output then
+			tempo_flags = tempo_flags + bass_flags.BASS_STREAM_DECODE
+		end
+		self.channel = bass_fx.BASS_FX_TempoCreate(source_channel, tempo_flags)
 		bass_assert(self.channel ~= 0)
 	else
 		self.channel = source_channel
@@ -71,15 +78,24 @@ function Source:release()
 end
 
 function Source:play()
-	bass_assert(bass.BASS_ChannelPlay(self.channel, false) == 1)
+	self.playing = true
+	if not self.decode_output then
+		bass_assert(bass.BASS_ChannelPlay(self.channel, false) == 1)
+	end
 end
 
 function Source:pause()
-	bass.BASS_ChannelPause(self.channel)
+	self.playing = false
+	if not self.decode_output then
+		bass.BASS_ChannelPause(self.channel)
+	end
 end
 
 ---@return boolean
 function Source:isPlaying()
+	if self.decode_output then
+		return self.playing
+	end
 	return bass.BASS_ChannelIsActive(self.channel) == bass_flags.BASS_ACTIVE_PLAYING
 end
 

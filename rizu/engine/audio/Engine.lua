@@ -2,7 +2,9 @@ local class = require("class")
 local ffi = require("ffi")
 local Wave = require("audio.Wave")
 local ChartAudio = require("rizu.engine.audio.ChartAudio")
+local IOutput = require("rizu.engine.audio.IOutput")
 local ISource = require("rizu.engine.audio.ISource")
+local OutputConfig = require("rizu.engine.audio.OutputConfig")
 local SoftwareMixer = require("rizu.engine.audio.SoftwareMixer")
 local FakeProvider = require("rizu.engine.audio.fake.Provider")
 
@@ -11,6 +13,7 @@ local FakeProvider = require("rizu.engine.audio.fake.Provider")
 ---@field source rizu.audio.ISource
 ---@field foregroundSource rizu.audio.ISource
 ---@field provider rizu.audio.IProvider
+---@field output rizu.audio.IOutput
 local Engine = class()
 
 Engine.music_volume = 1
@@ -22,6 +25,7 @@ function Engine:new()
 	self.mode = {primary = "bass_sample", secondary = "bass_sample"}
 	self.source = ISource()
 	self.foregroundSource = ISource()
+	self.output = IOutput()
 	self.provider = FakeProvider()
 end
 
@@ -34,7 +38,7 @@ end
 function Engine:setEnabled(enabled)
 	if enabled then
 		local BassProvider = require("rizu.engine.audio.bass.Provider")
-		self.provider = BassProvider()
+		self.provider = BassProvider(OutputConfig.get().backend == "sdl3_pipewire")
 	else
 		self.provider = FakeProvider()
 	end
@@ -70,6 +74,7 @@ function Engine:load(chart, resources, auto_key_sound)
 		self.source = self.provider:createChartSource(self.mixer, use_tempo)
 		self.source:setVolume(self.music_volume)
 	end
+	self.output = self.provider:createOutput({self.source, self.foregroundSource})
 end
 
 ---@param name string
@@ -92,6 +97,11 @@ function Engine:playSample(name, volume, offset)
 end
 
 function Engine:unload()
+	if self.output then
+		self.output:release()
+		self.output = IOutput()
+	end
+
 	if self.source then
 		self.source:release()
 		self.source = ISource()
@@ -143,6 +153,7 @@ function Engine:renderWave()
 	else
 		assert(sample_format == "float32", "Unsupported mixer sample format")
 		local samples_count = samples_duration * mixer:getChannelCount()
+		---@type {[integer]: number}
 		local float_buf = ffi.new("float[?]", samples_count)
 		mixer:getFrames(float_buf, samples_duration)
 		for i = 0, samples_count - 1 do
@@ -156,20 +167,23 @@ end
 
 ---@return number?
 function Engine:getPosition()
-	return self.source:getPosition()
+	return self.output:getPosition(self.source:getPosition())
 end
 
 function Engine:update()
 	self.source:update()
 	self.foregroundSource:update()
+	self.output:update()
 end
 
 function Engine:play()
 	self.source:play()
 	self.foregroundSource:play()
+	self.output:play()
 end
 
 function Engine:pause()
+	self.output:pause()
 	self.source:pause()
 	self.foregroundSource:pause()
 end
@@ -192,6 +206,8 @@ end
 ---@param position number
 function Engine:setPosition(position)
 	self.source:setPosition(position)
+	self.output:clear()
+	self.output:update()
 	-- Hitsounds usually don't seek with the song position,
 	-- but we can reset the foreground mixer if needed.
 	-- Currently we just let it be.

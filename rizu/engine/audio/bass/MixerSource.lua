@@ -11,8 +11,10 @@ local MixerSource = ISource + {}
 
 ---@param use_tempo boolean?
 ---@param sample_format rizu.audio.SampleFormat?
-function MixerSource:new(use_tempo, sample_format)
+---@param decode_output boolean?
+function MixerSource:new(use_tempo, sample_format, decode_output)
 	self.use_tempo = use_tempo
+	self.decode_output = decode_output == true
 	self.sample_rate = 44100
 	self.sample_format = sample_format or "int16"
 	assert(self.sample_format == "int16" or self.sample_format == "float32")
@@ -21,7 +23,7 @@ function MixerSource:new(use_tempo, sample_format)
 	if self.sample_format == "float32" then
 		flags = flags + bass_flags.BASS_SAMPLE_FLOAT
 	end
-	if use_tempo then
+	if use_tempo or self.decode_output then
 		flags = flags + bass_flags.BASS_STREAM_DECODE
 	end
 
@@ -30,7 +32,11 @@ function MixerSource:new(use_tempo, sample_format)
 	bass_assert(self.mixer_channel ~= 0)
 
 	if use_tempo then
-		self.channel = bass_fx.BASS_FX_TempoCreate(self.mixer_channel, bass_flags.BASS_FX_FREESOURCE)
+		local tempo_flags = bass_flags.BASS_FX_FREESOURCE
+		if self.decode_output then
+			tempo_flags = tempo_flags + bass_flags.BASS_STREAM_DECODE
+		end
+		self.channel = bass_fx.BASS_FX_TempoCreate(self.mixer_channel, tempo_flags)
 		bass_assert(self.channel ~= 0)
 	else
 		self.channel = self.mixer_channel
@@ -39,7 +45,9 @@ function MixerSource:new(use_tempo, sample_format)
 	-- Reduce playback buffer to minimum for lowest latency
 	bass.BASS_ChannelSetAttribute(self.channel, bass_flags.BASS_ATTRIB_BUFFER, 0)
 
-	bass.BASS_ChannelPlay(self.channel, false)
+	if not self.decode_output then
+		bass.BASS_ChannelPlay(self.channel, false)
+	end
 
 	---@type {decoder: rizu.audio.bass.Decoder}[]
 	self.active_sounds = {}
@@ -115,11 +123,15 @@ function MixerSource:update()
 end
 
 function MixerSource:play()
-	bass.BASS_ChannelPlay(self.channel, false)
+	if not self.decode_output then
+		bass.BASS_ChannelPlay(self.channel, false)
+	end
 end
 
 function MixerSource:pause()
-	bass.BASS_ChannelPause(self.channel)
+	if not self.decode_output then
+		bass.BASS_ChannelPause(self.channel)
+	end
 end
 
 ---@param rate number
