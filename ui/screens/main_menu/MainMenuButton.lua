@@ -21,8 +21,12 @@ local SpringValue = require("gui.anim.SpringValue")
 ---@field background gui.NineSliceUsage
 ---@field hover_background gui.NineSliceUsage
 ---@field pressed_background gui.NineSliceUsage
+---@field pulse_outline gui.NineSliceUsage?
+---@field pulse_time number
 local MainMenuButton = View + {}
 
+local PLAY_PULSE_DURATION = 1
+local PLAY_PULSE_SCALE = 1.12
 local HOVER_ENTER_SPRING = {stiffness = 700, damping = 46}
 local HOVER_EXIT_SPRING = {stiffness = 90, damping = 20}
 local HORIZONTAL_PADDING = 20
@@ -44,6 +48,10 @@ function MainMenuButton:new(text, on_click, config)
 	self.background = NineSliceUsage(Resources.nine_slices[sprite_name])
 	self.hover_background = NineSliceUsage(Resources.nine_slices[sprite_name .. "_hover"])
 	self.pressed_background = NineSliceUsage(Resources.nine_slices[sprite_name .. "_pressed"])
+	if variant == "play" then
+		self.pulse_outline = NineSliceUsage(Resources.nine_slices.button_play_pulse)
+	end
+	self.pulse_time = 0
 	self:setSize(320, 64)
 	self:setPivot(0.5, 0.5)
 	self.handles_mouse_input = true
@@ -80,10 +88,29 @@ function MainMenuButton:update(dt)
 	self.hover:configure(self.mouse_over and HOVER_ENTER_SPRING or HOVER_EXIT_SPRING)
 	self.hover:set(self.mouse_over and 1 or 0)
 	self.hover:update(dt)
+	self.pulse_time = (self.pulse_time + dt) % PLAY_PULSE_DURATION
+end
+
+function MainMenuButton:drawPulseOutline()
+	if not self.pulse_outline then return end
+
+	local progress = self.pulse_time / PLAY_PULSE_DURATION
+	local scale = 1 + (PLAY_PULSE_SCALE - 1) * progress
+	local alpha = 1 - progress
+	local width = self.width * scale
+	local height = self.height * scale
+
+	love.graphics.push("transform")
+	love.graphics.translate((self.width - width) / 2, (self.height - height) / 2)
+	Painter.setOpacity(alpha)
+	self.pulse_outline:draw(width, height)
+	Painter.setOpacity(1)
+	love.graphics.pop()
 end
 
 function MainMenuButton:draw()
 	local hover = math.max(0, math.min(1, self.hover:get()))
+	self:drawPulseOutline()
 	Painter.snapToPixel()
 	Painter.setColorRgb(1, 1, 1)
 	if self.pressed then
