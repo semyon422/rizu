@@ -17,6 +17,7 @@ local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local UiActions = require("ui.UiActions")
 local ResultDetails = require("ui.screens.result.ResultDetails")
+local BgaPreview = require("ui.views.BgaPreview")
 
 ---@class ui.screens.result.ResultScrollView : gui.ScrollView
 local ResultScrollView = ScrollView + {}
@@ -53,6 +54,7 @@ function Result:new(ui)
 	self.background = self.composite:add(Background(ui.game.backgroundModel, true))
 	self.background:anchorFill(0, 0, 0, 0)
 	self.background:setBrightness(0.7, true)
+	self.bga_preview = self.composite:add(BgaPreview(ui.game.previewModel)):anchorFill(0, 0, 0, 0)
 
 	self.composite:add(Image(Resources.sprites.result_gradient, "fit"))
 		:fillWidth(0, 0)
@@ -203,6 +205,9 @@ function Result:updateInfo()
 end
 
 function Result:enter()
+	-- Gameplay stops previews; resume the selected Chart's synchronized audio and BGA.
+	self.ui.game.selectionCoordinator:activatePreview()
+
 	self.ui.command_registry:pushContext("result_commands", self.ui.result_commands)
 	self.ui.command_registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
 	self:updateInfo()

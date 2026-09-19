@@ -6,6 +6,7 @@ local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local Label = require("ui.views.Label")
 local Rectangle = require("ui.views.Rectangle")
 local UiActions = require("ui.UiActions")
+local BgaPreview = require("ui.views.BgaPreview")
 
 ---@class ui.screens.music_player.MusicPlayer : gui.Screen
 ---@operator call: ui.screens.music_player.MusicPlayer
@@ -22,6 +23,7 @@ function MusicPlayer:new(ui)
 	preview_model:setFFTSize(Spectrum.fft_size)
 
 	self.background = self.root:add(Background(ui.game.backgroundModel, preview_model, Spectrum.fft_size)):anchorFill(0, 0, 0, 0)
+	self.root:add(BgaPreview(preview_model)):anchorFill(0, 0, 0, 0)
 	self.root:add(Rectangle({0.035, 0.025, 0.06, 0.62})):anchorFill(0, 0, 0, 0)
 	self.root:add(Spectrum(preview_model)):anchorFill(100, 210, 100, 270)
 
