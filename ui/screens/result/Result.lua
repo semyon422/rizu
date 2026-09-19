@@ -161,11 +161,13 @@ function Result:updateInfo()
 		return
 	end
 
+	local game = self.ui.game
+	self.chartview_formatter:setChartview(chartview)
+
 	self.title:setText(chartview.title)
 	self.artist:setText(chartview.artist)
-	self.chart_name:setText(chartview.name)
+	self.chart_name:setText(self.chartview_formatter:getName() or "")
 
-	local game = self.ui.game
 	self.details:bind(game)
 	local score_engine = game.rhythm_engine.score_engine
 	local judge_source = score_engine.judgesSource
@@ -191,7 +193,6 @@ function Result:updateInfo()
 	local score_system_formatter = ScoreSystemFormatter(judge_source)
 	self.stats:bind(accuracy_source, judge_source, score_system_formatter)
 
-	self.chartview_formatter:setChartview(game.chartSelector.chartview)
 	self.chartview_formatter:setTimeRate(game.replayBase.rate)
 	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
 

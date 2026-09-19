@@ -97,7 +97,7 @@ function ChartGrid:reloadItems()
 				difficulty = difficulty.value,
 				difficulty_color = difficulty.color,
 				inputmode = (item.inputmode or "?"):gsub("key", "K"):gsub("scratch", "S"),
-				name = item.name or (self.localization:get("song_select.unknown_difficulty")),
+				name = self.chartview_formatter:getName() or (self.localization:get("song_select.unknown_difficulty")),
 			})
 		end
 	end

@@ -14,6 +14,33 @@ function test.formats_chart_mode(t)
 	t:eq(formatter:getMode(), "NO CHART")
 end
 
+---@param t testing.T
+function test.formats_iidx_difficulty_names(t)
+	local formatter = ChartviewFormatter(nil, {})
+	local names = {
+		SPB = "Beginner SP",
+		SPN = "Normal SP",
+		SPH = "Hyper SP",
+		SPA = "Another SP",
+		SPL = "Leggendaria SP",
+		DPB = "Beginner DP",
+		DPN = "Normal DP",
+		DPH = "Hyper DP",
+		DPA = "Another DP",
+		DPL = "Leggendaria DP",
+	}
+
+	for name, expected in pairs(names) do
+		formatter:setChartview({format = "iidx", name = name})
+		t:eq(formatter:getName(), expected)
+	end
+
+	formatter:setChartview({format = "osu", name = "SPN"})
+	t:eq(formatter:getName(), "SPN")
+	formatter:setChartview({format = "iidx", name = "Custom"})
+	t:eq(formatter:getName(), "Custom")
+end
+
 function test.applies_time_rate_to_duration_and_tempo(t)
 	local formatter = ChartviewFormatter({
 		duration = 150,

@@ -9,6 +9,14 @@ local Settings = require("rizu.config.Settings")
 ---@overload fun(chartview: rizu.library.LocatedChartview, settings: rizu.config.Config): ui.formatters.ChartviewFormatter
 local ChartviewFormatter = class()
 
+local iidx_difficulty_names = {
+	B = "Beginner",
+	N = "Normal",
+	H = "Hyper",
+	A = "Another",
+	L = "Leggendaria",
+}
+
 ---@param chartview rizu.library.LocatedChartview?
 ---@param settings rizu.config.Config
 function ChartviewFormatter:new(chartview, settings)
@@ -143,6 +151,24 @@ end
 ---@return string
 function ChartviewFormatter:getFormat()
 	return (self.chartview.format or "unknown"):upper()
+end
+
+---@return string?
+function ChartviewFormatter:getName()
+	local name = self.chartview.name
+	if self.chartview.format ~= "iidx" or not name then
+		return name
+	end
+
+	local play_style, difficulty = name:match("^(SP)([BNHAL])$")
+	if not play_style then
+		play_style, difficulty = name:match("^(DP)([BNHAL])$")
+	end
+	if not play_style then
+		return name
+	end
+
+	return ("%s %s"):format(iidx_difficulty_names[difficulty], play_style)
 end
 
 ---@return string
