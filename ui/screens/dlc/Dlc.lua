@@ -27,8 +27,8 @@ local Dlc = Screen + {}
 local SEARCH_DEBOUNCE = 0.35
 
 local content_types = {
-	{key = "set", label = "Chart Sets"},
-	{key = "pack", label = "Chart Packs"},
+	{key = "set", label = "osu! beatmaps"},
+	{key = "pack", label = "Etterna packs"},
 	{key = "skin", label = "Skins"},
 }
 

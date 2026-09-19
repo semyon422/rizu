@@ -7,6 +7,8 @@ local View = require("gui.View")
 ---@operator call: ui.screens.dlc.ContentTypeTab
 local ContentTypeTab = View + {}
 
+local HORIZONTAL_PADDING = 20
+
 ---@param text string
 ---@param on_click fun()
 function ContentTypeTab:new(text, on_click)
@@ -16,7 +18,7 @@ function ContentTypeTab:new(text, on_click)
 	self.selected = false
 	self.font = Resources.getFont("medium", 17)
 	self.handles_mouse_input = true
-	self:setSize(128, 44)
+	self:setSize(self.font:getWidth(text) + HORIZONTAL_PADDING * 2, 44)
 end
 
 ---@param selected boolean
