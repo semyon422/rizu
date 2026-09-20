@@ -66,7 +66,8 @@ function Overlay:receive(event, modifiers)
 	local inputs = self.inputs
 	if not inputs then return false end
 	local keyboard_action = self:isCommandPaletteAllowed()
-		and inputs:isActionJustPressed(UiActions.command_palette)
+		and (inputs:isActionJustPressed(UiActions.command_palette)
+			or inputs:isActionJustPressed(UiActions.toggle_audio_preview))
 		or inputs:isActionJustPressed(UiActions.open_config)
 	local volume_action = inputs:isActionJustPressed(UiActions.master_volume_increase)
 		or inputs:isActionJustPressed(UiActions.master_volume_decrease)
@@ -83,7 +84,10 @@ end
 ---@param inputs gui.Inputs
 function Overlay:onHandleInputs(inputs)
 	local settings = self.ui.game.settings
-	if inputs:consumeActionJustPressed(UiActions.master_volume_increase) then
+	if self:isCommandPaletteAllowed()
+		and inputs:consumeActionJustPressed(UiActions.toggle_audio_preview) then
+		self.ui.game.previewModel:togglePause()
+	elseif inputs:consumeActionJustPressed(UiActions.master_volume_increase) then
 		adjustMasterVolume(settings, 1)
 	elseif inputs:consumeActionJustPressed(UiActions.master_volume_decrease) then
 		adjustMasterVolume(settings, -1)
