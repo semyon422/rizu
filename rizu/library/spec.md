@@ -125,7 +125,7 @@ For metadata-driven IIDX locations:
 - IIDX preview audio, BGA, and keysounds are resolved relative to the same set conventions; chart loading creates an IIDX decode context from the location prefix and chartfile name.
 
 ### Partial Cache States
-Cache updates use short write transactions so online synchronization and UI-side database work can continue through SQLite WAL while scanning and parsing charts. The scanner releases its write transaction periodically, and hashing commits each chart independently. A failed SQL statement must be finalized before transaction cleanup; otherwise SQLite rejects the following commit with `SQL statements in progress`.
+Cache updates use short write transactions so online synchronization and UI-side database work can continue through SQLite WAL while scanning and parsing charts. The scanner releases its write transaction periodically. Hashing reads, parses, and calculates chart data without a write transaction, then persists up to 10 prepared results in one transaction. A failed SQL statement must be finalized before transaction cleanup; otherwise SQLite rejects the following commit with `SQL statements in progress`.
 
 Cache updates move chart data through several valid intermediate states. The rest of the system must treat these as normal data, not as corruption:
 

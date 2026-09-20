@@ -167,9 +167,9 @@ function Processor:computeLocation(path, location_id)
 	local chartfiles = self.chartfilesRepo:selectUnhashedChartfiles(unhashed_path, location_id, set_id)
 	print(("hashing: %d chartfiles queued"):format(#chartfiles))
 
-	local batchProcessor = BatchProcessor(self.taskContext, self.timer, is_iidx_location and 1 or 100)
+	local batchProcessor = BatchProcessor(self.taskContext, self.timer, 10)
 	local hashed_count = 0
-	batchProcessor:process(chartfiles, "hashing", #chartfiles, function(chartfile)
+	batchProcessor:processPrepared(chartfiles, "hashing", function(chartfile)
 		local context
 		if is_iidx_location then
 			local song = self.iidxFileCacheGenerator:getSongByChartfileName(chartfile.name)
@@ -179,7 +179,10 @@ function Processor:computeLocation(path, location_id)
 			}
 		end
 		local start_time = self.timer:getTime()
-		self.hashingTask:processChartfile(chartfile, location_prefix, context)
+		local prepared, err = self.hashingTask:prepareChartfile(chartfile, location_prefix, context)
+		if not prepared then
+			return nil, err
+		end
 		hashed_count = hashed_count + 1
 		if is_iidx_location then
 			print(("iidx hashing: done %d/%d %s %.2fs"):format(
@@ -189,7 +192,9 @@ function Processor:computeLocation(path, location_id)
 				self.timer:getTime() - start_time
 			))
 		end
-		return chartfile.name
+		return prepared
+	end, function(prepared)
+		self.hashingTask:applyPrepared(prepared)
 	end)
 	print("caching complete", path, location_id)
 

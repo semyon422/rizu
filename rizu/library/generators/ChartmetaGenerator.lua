@@ -14,23 +14,24 @@ function ChartmetaGenerator:new(chartsRepo, chartfilesRepo, chartFactory)
 	self.chartFactory = chartFactory
 end
 
+---@class rizu.library.PreparedChartmetas
+---@field chartfile sea.ClientChartfile
+---@field hash string
+---@field status "reused"|"cached"
+---@field chart_chartmetas {chart: chart.Chart, chartmeta: sea.Chartmeta}[]?
+
 ---@param chartfile sea.ClientChartfile
 ---@param content string
 ---@param not_reuse boolean?
 ---@param context table?
+---@return rizu.library.PreparedChartmetas?
 ---@return string?
----@return {chart: chart.Chart, chartmeta: sea.Chartmeta}[]|string?
-function ChartmetaGenerator:generate(chartfile, content, not_reuse, context)
-	local chartfilesRepo = self.chartfilesRepo
-	local chartsRepo = self.chartsRepo
-
+function ChartmetaGenerator:prepare(chartfile, content, not_reuse, context)
 	local hash = digest.hash("md5", content, true)
 
-	local existing = chartsRepo:getChartmetaByHashIndex(hash, 1)
+	local existing = self.chartsRepo:getChartmetaByHashIndex(hash, 1)
 	if not not_reuse and existing and existing.mode then
-		chartfile.hash = hash
-		chartfilesRepo:updateChartfile(chartfile)
-		return "reused"
+		return {chartfile = chartfile, hash = hash, status = "reused"}
 	end
 
 	local chart_chartmetas, err = self.chartFactory:getCharts(chartfile.name, content, hash, context)
@@ -38,15 +39,38 @@ function ChartmetaGenerator:generate(chartfile, content, not_reuse, context)
 		return nil, err
 	end
 
+	return {
+		chartfile = chartfile,
+		hash = hash,
+		status = "cached",
+		chart_chartmetas = chart_chartmetas,
+	}
+end
+
+---@param prepared rizu.library.PreparedChartmetas
+function ChartmetaGenerator:apply(prepared)
 	local time = os.time()
-	for _, t in ipairs(chart_chartmetas) do
-		chartsRepo:createUpdateChartmeta(t.chartmeta, time)
+	for _, t in ipairs(prepared.chart_chartmetas or {}) do
+		self.chartsRepo:createUpdateChartmeta(t.chartmeta, time)
 	end
 
-	chartfile.hash = hash
-	chartfilesRepo:updateChartfile(chartfile)
+	prepared.chartfile.hash = prepared.hash
+	self.chartfilesRepo:updateChartfile(prepared.chartfile)
+end
 
-	return "cached", chart_chartmetas
+---@param chartfile sea.ClientChartfile
+---@param content string
+---@param not_reuse boolean?
+---@param context table?
+---@return string?
+---@return {chart: chart.Chart, chartmeta: sea.Chartmeta}[]|string?
+function ChartmetaGenerator:generate(chartfile, content, not_reuse, context)
+	local prepared, err = self:prepare(chartfile, content, not_reuse, context)
+	if not prepared then
+		return nil, err
+	end
+	self:apply(prepared)
+	return prepared.status, prepared.chart_chartmetas
 end
 
 return ChartmetaGenerator

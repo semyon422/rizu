@@ -92,4 +92,67 @@ function BatchProcessor:process(items, stage, total, processorFunc)
 	return result
 end
 
+---@generic T
+---@generic R
+---@param items T[]
+---@param stage rizu.library.TaskStage
+---@param prepareFunc fun(item: T): R?, string?
+---@param applyFunc fun(result: R)
+---@return rizu.library.TaskResult
+function BatchProcessor:processPrepared(items, stage, prepareFunc, applyFunc)
+	self.taskContext:startStage(stage, #items)
+
+	---@type rizu.library.TaskResult
+	local result = {processed = 0, errors = 0, failures = {}}
+	---@type any[]
+	local pending = {}
+	local lastReportAt = self.timer:getTime()
+
+	local function flush()
+		if #pending == 0 then
+			return
+		end
+		self.taskContext:dbBegin()
+		for _, prepared in ipairs(pending) do
+			applyFunc(prepared)
+		end
+		self.taskContext:dbCommit()
+		pending = {}
+	end
+
+	for _, item in ipairs(items) do
+		---@cast item any
+		if self.taskContext:shouldStop() then
+			break
+		end
+
+		---@type boolean, any?, string?
+		local ok, prepared, err = xpcall(prepareFunc, debug.traceback, item)
+		if ok and prepared then
+			table.insert(pending, prepared)
+			result.processed = result.processed + 1
+		else
+			local failure = tostring(ok and err or prepared)
+			self.taskContext:addError(failure)
+			table.insert(result.failures, {item = tostring(item), error = failure})
+			result.errors = result.errors + 1
+		end
+
+		self.taskContext:advance(1)
+		if #pending >= self.batchSize then
+			flush()
+		end
+
+		local now = self.timer:getTime()
+		if now - lastReportAt > self.reportInterval then
+			self.taskContext:report()
+			lastReportAt = now
+		end
+	end
+
+	flush()
+	self.taskContext:finish()
+	return result
+end
+
 return BatchProcessor
