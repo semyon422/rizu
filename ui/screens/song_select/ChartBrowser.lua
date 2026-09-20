@@ -100,10 +100,10 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 		ui:setScreen(ui.dlc, true)
 	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
 	self.download:setSize(200, 44):setAlignment(0.5, 0.5):addPosition(0, 78):setVisible(false)
-	self:refreshEmptyState(chart_selector.library)
+	self:refreshEmptyState(chart_selector)
 	chart_selector.library.onStatusChanged:add(function(status)
 		if status.stage == "idle" then
-			self:refreshEmptyState(chart_selector.library)
+			self:refreshEmptyState(chart_selector)
 		end
 	end)
 
@@ -118,6 +118,7 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 			self.chart_sets:fadeIn(0.1, "OutQuad")
 			self.chart_grid:fadeIn(0.1, "OutQuad")
 			self.loading:fadeOut(0.1, "OutQuad")
+			self:refreshEmptyState(chart_selector)
 		end
 	end)
 
@@ -126,12 +127,18 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 	divider:fillWidth(6, 6)
 end
 
----@param library rizu.library.Library
-function ChartBrowser:refreshEmptyState(library)
+---@param chart_selector rizu.select.ChartSelector
+function ChartBrowser:refreshEmptyState(chart_selector)
 	self.empty_check_generation = self.empty_check_generation + 1
 	local generation = self.empty_check_generation
+	if chart_selector.stores[1]:count() > 0 then
+		self.empty:setVisible(false)
+		self.download:setVisible(false)
+		return
+	end
+
 	thread.coro(function()
-		local has_chartfiles = library:hasChartfilesAsync()
+		local has_chartfiles = chart_selector.library:hasChartfilesAsync()
 		if generation ~= self.empty_check_generation then return end
 		self.empty:setVisible(not has_chartfiles)
 		self.download:setVisible(not has_chartfiles)
