@@ -2,6 +2,7 @@ local class = require("class")
 
 ---@class rizu.library.tasks.BatchProcessor
 ---@operator call: rizu.library.tasks.BatchProcessor
+---@field onBatchCommitted fun(items: any[])?
 local BatchProcessor = class()
 
 ---@param taskContext rizu.library.ITaskContext
@@ -117,6 +118,9 @@ function BatchProcessor:processPrepared(items, stage, prepareFunc, applyFunc)
 			applyFunc(prepared)
 		end
 		self.taskContext:dbCommit()
+		if self.onBatchCommitted then
+			self.onBatchCommitted(pending)
+		end
 		pending = {}
 	end
 

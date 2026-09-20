@@ -314,6 +314,8 @@ return {
 	["song_select.mutator_insertion"] = "Se insertará aquí",
 	["song_select.no_matching_collections"] = "No hay colecciones ni ubicaciones que coincidan",
 	["song_select.library"] = "Biblioteca",
+	["song_select.new_songs"] = "Se añadieron canciones nuevas",
+	["song_select.refresh"] = "Actualizar",
 	["song_select.location"] = "Ubicación",
 	["song_select.collection_kind"] = "Colección",
 	["song_select.collection_chart_count"] = "{kind} - Charts: {count}",

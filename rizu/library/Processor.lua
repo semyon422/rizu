@@ -27,13 +27,16 @@ local path_util = require("path_util")
 
 ---@class rizu.library.Processor
 ---@operator call: rizu.library.Processor
+---@field onChartsChanged fun()
 local Processor = class()
 
+---@param onChartsChanged fun()
 ---@param db rizu.library.Database
 ---@param fs fs.IFilesystem
 ---@param workingDirectory string
 ---@param timer time.ITimer
-function Processor:new(db, fs, workingDirectory, timer)
+function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
+	self.onChartsChanged = onChartsChanged
 	self.needStop = false
 	---@type rizu.library.TaskStage
 	self.stage = "idle"
@@ -166,6 +169,7 @@ function Processor:computeLocation(path, location_id)
 	print(("hashing: %d chartfiles queued"):format(#chartfiles))
 
 	local batchProcessor = BatchProcessor(self.taskContext, self.timer, 10)
+	batchProcessor.onBatchCommitted = self.onChartsChanged
 	local hashed_count = 0
 	batchProcessor:processPrepared(chartfiles, "hashing", function(chartfile)
 		local context

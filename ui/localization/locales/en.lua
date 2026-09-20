@@ -341,6 +341,8 @@ return {
 	["song_select.mutator_insertion"] = "Will be inserted here",
 	["song_select.no_matching_collections"] = "No matching collections or locations",
 	["song_select.library"] = "Library",
+	["song_select.new_songs"] = "New songs added",
+	["song_select.refresh"] = "Refresh",
 	["song_select.location"] = "Location",
 	["song_select.collection_kind"] = "Collection",
 	["song_select.collection_chart_count"] = "{kind} - {count} charts",

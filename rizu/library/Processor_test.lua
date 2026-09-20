@@ -9,6 +9,7 @@ local test = {}
 local timer = FunctionTimer(function()
 	return 0
 end)
+local onChartsChanged = function() end
 
 function test.computeLocation_sph(t)
 	local fs = FakeFilesystem()
@@ -31,7 +32,7 @@ input 4key
 	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 
-	local processor = Processor(db, fs, "/fake/root", timer)
+	local processor = Processor(onChartsChanged, db, fs, "/fake/root", timer)
 
 	-- Use location 1 which is created by Locations:load() internally
 	processor.locations:load()
@@ -64,7 +65,7 @@ function test.getChartsByHash(t)
 	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
 
-	local processor = Processor(db, fs, "/fake/root", timer)
+	local processor = Processor(onChartsChanged, db, fs, "/fake/root", timer)
 	processor.locations:load()
 
 	local loc = processor.locationsRepo:selectLocationById(1)

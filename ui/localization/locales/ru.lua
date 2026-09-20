@@ -325,6 +325,8 @@ return {
 	["song_select.mutator_insertion"] = "Будет вставлен сюда",
 	["song_select.no_matching_collections"] = "Ничего не найдено",
 	["song_select.library"] = "Библиотека",
+	["song_select.new_songs"] = "Добавлены новые песни",
+	["song_select.refresh"] = "Обновить",
 	["song_select.location"] = "Папка",
 	["song_select.collection_kind"] = "Коллекция",
 	["song_select.collection_chart_count"] = "{kind} — карт: {count}",

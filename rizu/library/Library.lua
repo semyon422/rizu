@@ -35,6 +35,8 @@ end
 
 ---@class rizu.library.Library
 ---@operator call: rizu.library.Library
+---@field onStatusChanged util.Observable
+---@field onChartsChanged util.Observable
 local Library = class()
 
 ---@param fs fs.IFilesystem
@@ -53,6 +55,8 @@ function Library:new(fs, workingDirectory, timer)
 	self.timer = assert(timer, "timer is required")
 
 	self.onStatusChanged = Observable()
+	-- Emitted after chart-processing batches commit queryable data.
+	self.onChartsChanged = Observable()
 
 	---@type rizu.library.TaskStatus
 	self.status = {
@@ -164,6 +168,10 @@ end
 
 ---@param status rizu.library.TaskStatus
 ---@param errors string[]
+function Library:notifyChartsChanged()
+	self.onChartsChanged:send()
+end
+
 function Library:updateProgress(status, errors)
 	local now = self.timer:getTime()
 	if self.status.stage ~= status.stage then

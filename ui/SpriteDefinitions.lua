@@ -241,6 +241,14 @@ local SpriteDefinitions = {
 		fills = fills(Colors.panel),
 		stroke = {width = 1, color = Colors.outline},
 	},
+	song_select_refresh_notice = {
+		width = 17,
+		height = 17,
+		corner_radii = {top_left = 7, bottom_right = 7},
+		slice = 8,
+		fills = fills(Colors.panel),
+		stroke = {width = 1, color = Colors.outline},
+	},
 	song_select_summary = {
 		width = 15,
 		height = 15,

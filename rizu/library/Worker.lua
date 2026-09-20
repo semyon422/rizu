@@ -20,7 +20,9 @@ local Worker = class()
 function Worker:new(library, fs, workingDirectory, timer)
 	self.library = library
 	self.db = Database(fs)
-	self.processor = Processor(self.db, fs, workingDirectory, timer)
+	self.processor = Processor(function()
+		library:notifyChartsChanged()
+	end, self.db, fs, workingDirectory, timer)
 	self.errors = {}
 end
 

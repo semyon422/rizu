@@ -1,6 +1,7 @@
 local View = require("gui.View")
 local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
+local FlowContainer = require("gui.layout.FlowContainer")
 local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
@@ -50,6 +51,7 @@ end
 ---@field no_results ui.views.Label
 ---@field download ui.views.Button
 ---@field empty_check_generation integer
+---@field refresh_notice gui.layout.FlowContainer
 local ChartBrowser = View + {}
 
 ---@param ui ui.UserInterface
@@ -109,6 +111,33 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 		ui:setScreen(ui.dlc, true)
 	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
 	self.download:setSize(200, 44):setAlignment(0.5, 0.5):addPosition(0, 78):setVisible(false)
+
+	local refresh_button = Button(localization:get("song_select.refresh"), function()
+		self.refresh_notice:setVisible(false)
+		chart_selector:noDebounceRefresh()
+	end, {variant = "success", shape = "capsule", font_name = "medium", font_size = 16})
+	refresh_button:setSize(100, 34)
+	self.refresh_notice = self:add(FlowContainer({
+		direction = "row",
+		gap = 10,
+		align = 0.5,
+		padding = {14, 10, 10, 10},
+	}))
+	local refresh_background = self.refresh_notice:add(NineSlice(Resources.nine_slices.song_select_refresh_notice, nil, true))
+	refresh_background:setLayoutIgnore(true):anchorFill(0, 0, 0, 0)
+	self.refresh_notice:add(Label({
+		text = localization:get("song_select.new_songs"),
+		font_name = "regular",
+		font_size = 16,
+		color = Colors.muted,
+	}))
+	self.refresh_notice:add(refresh_button)
+	self.refresh_notice:anchorFixed(0, 0, 0, 0):setAlignment(1, 1)
+	self.refresh_notice:fitContent():setVisible(false)
+	chart_selector.library.onChartsChanged:add(function()
+		self.refresh_notice:setVisible(true)
+	end)
+
 	self:refreshEmptyState(chart_selector)
 	chart_selector.library.onStatusChanged:add(function(status)
 		if status.stage == "idle" then
@@ -120,6 +149,7 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 	self.loading:setAlignment(0.5, 0.5):addPosition(0, 60):setOpacity(0)
 	chart_selector:onChanged(function(event)
 		if event.type == "primary_items_loading" then
+			self.refresh_notice:setVisible(false)
 			self.chart_sets:fadeOut(0.1, "OutQuad")
 			self.chart_grid:fadeOut(0.1, "OutQuad")
 			self.loading:fadeIn(0.1, "OutQuad")
