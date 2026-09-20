@@ -98,12 +98,16 @@ function ControlFactory.choice(config, key, metadata)
 		form = metadata.form,
 		popup_container = metadata.popup_container,
 		label = metadata.name,
-		options = config:getChoices(key),
-		value = config:getChoice(key),
+		options = metadata.options or config:getChoices(key),
+		value = metadata.options and config:getString(key) or config:getChoice(key),
 		width = metadata.width or WIDTH,
 		format = metadata.format,
 		on_change = function(value)
-			config:setChoice(key, value)
+			if metadata.options then
+				config:setString(key, value)
+			else
+				config:setChoice(key, value)
+			end
 			if metadata.on_change then
 				metadata.on_change(value)
 			end

@@ -25,6 +25,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@operator call: ui.modals.config.Config
 ---@field ui_config ui.UiConfig
 ---@field settings rizu.config.Config
+---@field user_interface_manager rizu.app.UserInterfaceManager
 ---@field popup_container ui.views.PopupContainer
 ---@field sections ui.modals.config.Section[]
 ---@field all_section ui.modals.config.Section
@@ -51,10 +52,12 @@ local LIST_WIDTH = 635
 ---@param localization ui.localization.Localization
 ---@param on_language_change fun()
 ---@param audio_model rizu.AudioModel
-function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, audio_model)
+---@param user_interface_manager rizu.app.UserInterfaceManager
+function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, audio_model, user_interface_manager)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
+	self.user_interface_manager = user_interface_manager
 	self.popup_container = popup_container
 	self.localization = localization
 	self.audio_model = audio_model
@@ -146,7 +149,8 @@ function Config:createSections()
 			self.localization,
 			self.form,
 			self.popup_container,
-			self.on_language_change
+			self.on_language_change,
+			self.user_interface_manager
 		),
 		BindingsSection(self.ui_config, self.localization),
 	}

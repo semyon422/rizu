@@ -62,8 +62,23 @@ function UserInterfaceManager:load()
 	self:loadSelected()
 end
 
+---@return rizu.app.UserInterface[]
+function UserInterfaceManager:getUserInterfaces()
+	return self.items
+end
+
+---@param name string
+---@return string?
+function UserInterfaceManager:getUserInterfaceDisplayName(name)
+	local ui_class = table_util.find(self.items, function(item)
+		return item.name == name
+	end)
+	return ui_class and ui_class.display_name
+end
+
 ---@param name string
 function UserInterfaceManager:setUserInterface(name)
+	assert(self:getUserInterfaceDisplayName(name), "unknown user interface: " .. name)
 	self.settings:setString(Settings.user_interface, name)
 end
 

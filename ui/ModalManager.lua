@@ -63,7 +63,8 @@ function ModalManager:new(ui, popup_container)
 			ui.config:save()
 			ui.game.user_interface_manager:requestReload()
 		end,
-		ui.game.app.audioModel))
+		ui.game.app.audioModel,
+		ui.game.user_interface_manager))
 	self.external_link = self:addModal(ExternalLink(ui.localization, function()
 		self:hideModal(self.external_link)
 	end))
