@@ -10,6 +10,7 @@ SELECT
 	chartplays.*,
 	MAX(chartplays.rating) AS rating,
 	users.name AS user_name,
+	users.avatar AS user_avatar,
 	chartdiffs.enps_diff AS difficulty,
 	chartdiffs.inputmode
 FROM chartplays

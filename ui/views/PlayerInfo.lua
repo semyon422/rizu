@@ -9,6 +9,8 @@ local Panel = require("ui.views.Panel")
 ---@field font love.Font
 ---@field username string
 ---@field text_y number
+---@field avatar_url string?
+---@field avatar_image love.Image?
 local PlayerInfo = View + {}
 
 local HEIGHT = 50
@@ -25,6 +27,10 @@ function PlayerInfo:new(username)
 		color = Colors.surface_raised,
 		line_color = Colors.outline,
 	}))
+	self.avatar_display = self:add(View())
+	self.avatar_display:setDraw(function()
+		self:drawAvatar()
+	end)
 	self:updateText(username)
 end
 
@@ -33,8 +39,19 @@ function PlayerInfo:updateText(username)
 	self.username = username
 	local text_width = self.font:getWidth(username)
 	local avatar_x = LEFT_PADDING + text_width + GAP
+	self.avatar_x = avatar_x
 	self:setSize(avatar_x + AVATAR_SIZE + RIGHT_PADDING, HEIGHT)
 	self.avatar:anchorFixed(avatar_x, (HEIGHT - AVATAR_SIZE) / 2, AVATAR_SIZE, AVATAR_SIZE)
+	self.avatar_display:anchorFixed(avatar_x, (HEIGHT - AVATAR_SIZE) / 2, AVATAR_SIZE, AVATAR_SIZE)
+end
+
+---@param avatar_url string?
+---@param avatar_cache rizu.online.AvatarCache?
+function PlayerInfo:updateAvatar(avatar_url, avatar_cache)
+	self.avatar_url = avatar_url
+	self.avatar_cache = avatar_cache
+	self.avatar_image = nil
+	self.logged_avatar_image = nil
 end
 
 ---@param old_x number
@@ -43,6 +60,22 @@ end
 ---@param old_height number
 function PlayerInfo:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.text_y = (self.height - self.font:getHeight()) / 2
+end
+
+function PlayerInfo:drawAvatar()
+	if self.avatar_cache then
+		self.avatar_image = self.avatar_cache:get(self.avatar_url)
+	end
+	if self.avatar_image and self.logged_avatar_image ~= self.avatar_image then
+		self.logged_avatar_image = self.avatar_image
+	end
+	if not self.avatar_image then return end
+
+	local image_width, image_height = self.avatar_image:getDimensions()
+	local scale = math.max(AVATAR_SIZE / image_width, AVATAR_SIZE / image_height)
+	local width, height = image_width * scale, image_height * scale
+	Painter.setColorRgb(1, 1, 1)
+	love.graphics.draw(self.avatar_image, (AVATAR_SIZE - width) / 2, (AVATAR_SIZE - height) / 2, 0, scale)
 end
 
 function PlayerInfo:draw()

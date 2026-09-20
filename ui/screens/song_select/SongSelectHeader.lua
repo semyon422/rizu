@@ -88,6 +88,7 @@ function SongSelectHeader:updatePlayerInfo()
 		username = user.name
 	end
 	self.player_info:updateText(username)
+	self.player_info:updateAvatar(user and user.avatar, self.ui.game.avatar_cache)
 	self.actions:fitContent()
 end
 

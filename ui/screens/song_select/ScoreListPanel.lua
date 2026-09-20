@@ -16,10 +16,11 @@ local ScoreListPanel = View + {}
 ---@param on_score_selected fun(index: integer)
 ---@param localization ui.localization.Localization
 ---@param online_client rizu.OnlineClient
-function ScoreListPanel:new(score_selector, on_score_selected, localization, online_client)
+---@param avatar_cache rizu.online.AvatarCache?
+function ScoreListPanel:new(score_selector, on_score_selected, localization, online_client, avatar_cache)
 	View.new(self)
 	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
-	self.score_list = self:add(ScoreList(score_selector, on_score_selected, localization, online_client))
+	self.score_list = self:add(ScoreList(score_selector, on_score_selected, localization, online_client, avatar_cache))
 	self.score_list:anchorFill(5, 60, 5, 5)
 
 	self.score_source_switcher = self:add(SegmentedControl({

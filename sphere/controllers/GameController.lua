@@ -43,6 +43,7 @@ local SeaClient = require("rizu.online.SeaClient")
 local OnlineClient = require("rizu.online.OnlineClient")
 local OnlineWrapper = require("rizu.online.OnlineWrapper")
 local NetworkService = require("rizu.net.NetworkService")
+local AvatarCache = require("rizu.online.AvatarCache")
 local McpServer = require("mcp.Server")
 local OpenAiAgent = require("ai.openai.Agent")
 local AiChatModel = require("rizu.ai.ChatModel")
@@ -111,6 +112,7 @@ function GameController:new()
 
 	self.rhythm_engine = RhythmEngine(self.fs)
 	self.network = NetworkService()
+	self.avatar_cache = AvatarCache(self.network)
 
 	self.packageManager = PackageManager(self.network)
 

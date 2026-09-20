@@ -21,13 +21,16 @@ local FADE_IN_STAGGER = 0.02
 ---@param on_score_selected fun(index: integer)
 ---@param localization ui.localization.Localization
 ---@param online_client rizu.OnlineClient
-function ScoreList:new(score_selector, on_score_selected, localization, online_client)
+---@param avatar_cache rizu.online.AvatarCache?
+function ScoreList:new(score_selector, on_score_selected, localization, online_client, avatar_cache)
 	VirtualizedList.new(self)
 	self.score_selector = score_selector
 	self.on_score_selected = on_score_selected
 	self.localization = localization
 	self.online_client = online_client
+	self.avatar_cache = avatar_cache
 	self.items = {}
+	self.avatar_items = {}
 	self.gap = 5
 	self.selected_index = nil
 	self.hover_index = nil
@@ -123,6 +126,7 @@ function ScoreList:reload()
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),
 			color = getColorFromScore(v.score or 0),
+			avatar_url = v.user_avatar,
 		})
 	end
 
@@ -165,6 +169,7 @@ function ScoreList:update(dt)
 	end
 
 	self.batch:clear()
+	self.avatar_items = {}
 	self.text_batch24:clear()
 	self.text_batch16:clear()
 
@@ -229,8 +234,13 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	self.batch:setColor(item.color[1], item.color[2], item.color[3], a)
 	self.batch:add(Resources.sprites.score_grade_gradient, 0, y)
 
-	self.batch:setColor(1, 1, 1, p)
-	self.batch:add(Resources.sprites.avatar, 6, y + 6)
+	local avatar_image = self.avatar_cache and self.avatar_cache:get(item.avatar_url)
+	if avatar_image then
+		table.insert(self.avatar_items, {image = avatar_image, y = y, opacity = p})
+	else
+		self.batch:setColor(1, 1, 1, p)
+		self.batch:add(Resources.sprites.avatar, 6, y + 6)
+	end
 
 	copy_color_to_cs(Colors.text)
 	set_cs_alpha(p)
@@ -294,6 +304,14 @@ function ScoreList:draw()
 	Painter.snapToPixel()
 
 	self.batch:draw()
+	for _, avatar in ipairs(self.avatar_items) do
+		local image_width, image_height = avatar.image:getDimensions()
+		local scale = math.max(64 / image_width, 64 / image_height)
+		local width, height = image_width * scale, image_height * scale
+		Painter.setColorRgb(1, 1, 1)
+		Painter.setOpacity(avatar.opacity)
+		lg.draw(avatar.image, 6 + (64 - width) / 2, avatar.y + 6 + (64 - height) / 2, 0, scale)
+	end
 	lg.draw(self.text_batch16)
 	lg.draw(self.text_batch24)
 
