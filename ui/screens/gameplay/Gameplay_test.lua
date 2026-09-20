@@ -18,6 +18,13 @@ local function create(state)
 	model.state = state
 	local screen = setmetatable({
 		game = {pauseModel = model},
+		was_retrying = false,
+		restart_overlay = {
+			progress = 0,
+			setProgress = function(self, progress) self.progress = progress end,
+			retract = function() end,
+			reset = function(self) self.progress = 0 end,
+		},
 		gameplay_interactor = {changePlayState = function(_, target)
 			model:changePlayState(target)
 		end},

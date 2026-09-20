@@ -8,6 +8,7 @@ local SequenceCanvas = require("ui.screens.gameplay.SequenceCanvas")
 local BgaView = require("ui.screens.gameplay.BgaView")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
+local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
@@ -25,6 +26,7 @@ function Gameplay:new(ui)
 	self.sequence_view = SequenceView()
 	self.gameplay_interactor = self.game.gameplayInteractor
 	self.is_playing = false
+	self.was_retrying = false
 
 	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
 	self.bga_view:anchorPercent(0, 0, 1, 1)
@@ -48,6 +50,7 @@ function Gameplay:new(ui)
 		end
 	))
 	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
+	self.restart_overlay = self.root:add(RestartOverlay())
 
 	self.root:setOpacity(0)
 end
@@ -76,6 +79,8 @@ function Gameplay:enter()
 	self.clear_status:hide()
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
+	self.was_retrying = false
+	self.restart_overlay:reset()
 
 	local cfg = self.ui.config
 	local width = cfg:getNumber(cfg.keys.gameplay_viewport_sx)
@@ -99,6 +104,8 @@ function Gameplay:exit()
 	self.is_playing = false
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
+	self.was_retrying = false
+	self.restart_overlay:reset()
 	self.ui.command_registry:popContext("gameplay_commands")
 	self.gameplay_interactor:unloadGameplay()
 	self.sequence_canvas.playing = false
@@ -201,8 +208,7 @@ function Gameplay:update(dt)
 		self.pause_hold_overlay:setProgress(pause_model.progress)
 		self.pause_overlay:setReveal(0)
 	elseif state == "play-retry" or state == "pause-retry" then
-		self.pause_hold_overlay:setPrompt("restart")
-		self.pause_hold_overlay:setProgress(pause_model.progress)
+		self.pause_hold_overlay:setProgress(0)
 		self.pause_overlay:setReveal(state == "pause-retry" and 1 or 0)
 	elseif state == "pause-play" then
 		self.pause_hold_overlay:setProgress(0)
@@ -214,6 +220,15 @@ function Gameplay:update(dt)
 		self.pause_hold_overlay:setProgress(0)
 		self.pause_overlay:setReveal(0)
 	end
+
+	local retrying = state == "play-retry" or state == "pause-retry"
+	if retrying then
+		self.restart_overlay:setProgress(pause_model.progress)
+	elseif self.was_retrying then
+		self.restart_overlay:retract()
+	end
+	self.was_retrying = retrying
+
 	if self.is_aim and self.gameplay_interactor.loaded then
 		self.gameplay_interactor:update(true)
 		if not self.is_playing and self.game.rhythm_engine:getProgress() < 1 then
