@@ -13,6 +13,9 @@
 ---@field type "chartview_changed"
 ---@field chartview rizu.library.LocatedChartview?
 
+---@class rizu.select.PrimaryItemsLoadingEvent
+---@field type "primary_items_loading"
+
 ---@class rizu.select.PrimaryItemsUpdatedEvent
 ---@field type "primary_items_updated"
 
@@ -65,6 +68,7 @@
 ---@alias rizu.select.ChartSelectorEvent
 ---| rizu.select.ChartAvailabilityChangedEvent
 ---| rizu.select.ChartviewChangedEvent
+---| rizu.select.PrimaryItemsLoadingEvent
 ---| rizu.select.PrimaryItemsUpdatedEvent
 ---| rizu.select.ChartmetaFoundEvent
 ---| rizu.select.SelectedSetChangedEvent

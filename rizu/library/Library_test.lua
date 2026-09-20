@@ -3,6 +3,29 @@ local LibraryTestContext = require("rizu.library.LibraryTestContext")
 local test = {}
 
 ---@param t testing.T
+function test.empty_library_has_no_chartfiles(t)
+	local ctx = LibraryTestContext()
+
+	t:eq(ctx.lib:hasChartfilesAsync(), false)
+	ctx:cleanup()
+end
+
+---@param t testing.T
+function test.library_with_chartfile_has_chartfiles(t)
+	local ctx = LibraryTestContext()
+	ctx.lib.database.models.locations:create({
+		id = 1, name = "Test", path = "/test", is_relative = 0, is_internal = 0,
+	})
+	ctx.lib.database.models.chartfile_sets:create({
+		id = 1, location_id = 1, name = "Set", modified_at = 0, is_file = 0,
+	})
+	ctx.lib.database.models.chartfiles:create({set_id = 1, name = "chart.osu", modified_at = 0})
+
+	t:eq(ctx.lib:hasChartfilesAsync(), true)
+	ctx:cleanup()
+end
+
+---@param t testing.T
 function test.happy_path(t)
 	local ctx = LibraryTestContext()
 

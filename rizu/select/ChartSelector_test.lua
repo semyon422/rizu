@@ -189,6 +189,19 @@ function test.duplicate_chartmeta_restores_by_chartfile(t)
 	library:unload()
 end
 
+function test.primary_items_loading_event(t)
+	local library = tlf:create()
+	local chartSelector = ChartSelector(createMockConfigModel(), createSettings(), library, {}, {getSelectedItem = function() end}, timer)
+	local events = {}
+	chartSelector:onChanged(function(event)
+		events[#events + 1] = event.type
+	end)
+
+	chartSelector:load()
+
+	t:teq(events, {"primary_items_loading", "primary_items_updated", "chartview_changed"})
+end
+
 function test.chartview_event(t)
 	local charts = {
 		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h1", index = 1},

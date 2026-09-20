@@ -136,6 +136,11 @@ function ChartfilesRepo:selectChartfileByHash(hash)
 	return self.models.located_chartfiles:find({hash = assert(hash)})
 end
 
+---@return boolean
+function ChartfilesRepo:hasChartfiles()
+	return self.models.chartfiles:count() > 0
+end
+
 ---@param conds rdb.Conditions?
 ---@return integer
 function ChartfilesRepo:countChartfiles(conds)

@@ -8,6 +8,10 @@ local Sounds = require("ui.Sounds")
 local Line = require("ui.views.Line")
 local ChartSets = require("ui.screens.song_select.ChartSets")
 local ChartGrid = require("ui.screens.song_select.ChartGrid")
+local Loading = require("ui.screens.chart_loading.Loading")
+local Label = require("ui.views.Label")
+local Button = require("ui.views.Button")
+local thread = require("thread")
 
 ---@class ui.screens.song_select.ChartBrowser.ChevronButton : gui.View
 ---@operator call: ui.screens.song_select.ChartBrowser.ChevronButton
@@ -41,13 +45,18 @@ end
 ---@operator call: ui.screens.song_select.ChartBrowser
 ---@field chart_sets ui.screens.song_select.ChartSets
 ---@field chart_grid ui.screens.song_select.ChartGrid
+---@field loading ui.screens.chart_loading.Loading
+---@field empty ui.views.Label
+---@field download ui.views.Button
+---@field empty_check_generation integer
 local ChartBrowser = View + {}
 
+---@param ui ui.UserInterface
 ---@param chart_selector rizu.select.ChartSelector
 ---@param settings rizu.config.Config
 ---@param tooltip ui.views.Tooltip?
 ---@param localization ui.localization.Localization
-function ChartBrowser:new(chart_selector, settings, tooltip, localization)
+function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 	View.new(self)
 
 	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
@@ -78,9 +87,55 @@ function ChartBrowser:new(chart_selector, settings, tooltip, localization)
 	self.chart_sets = ChartSets(chart_selector, settings, function() end)
 	content:add(self.chart_sets, "*")
 
+	self.empty_check_generation = 0
+	self.empty = self:add(Label({
+		font_name = "regular",
+		font_size = 20,
+		text = "You don't have any charts installed.",
+		color = Colors.muted,
+		align = "center",
+	}))
+	self.empty:setSize(500, 30):setAlignment(0.5, 0.5):addPosition(0, 30):setVisible(false)
+	self.download = self:add(Button("Download charts", function()
+		ui:setScreen(ui.dlc, true)
+	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
+	self.download:setSize(200, 44):setAlignment(0.5, 0.5):addPosition(0, 78):setVisible(false)
+	self:refreshEmptyState(chart_selector.library)
+	chart_selector.library.onStatusChanged:add(function(status)
+		if status.stage == "idle" then
+			self:refreshEmptyState(chart_selector.library)
+		end
+	end)
+
+	self.loading = self:add(Loading())
+	self.loading:setAlignment(0.5, 0.5):addPosition(0, 60):setOpacity(0)
+	chart_selector:onChanged(function(event)
+		if event.type == "primary_items_loading" then
+			self.chart_sets:fadeOut(0.1, "OutQuad")
+			self.chart_grid:fadeOut(0.1, "OutQuad")
+			self.loading:fadeIn(0.1, "OutQuad")
+		elseif event.type == "primary_items_updated" then
+			self.chart_sets:fadeIn(0.1, "OutQuad")
+			self.chart_grid:fadeIn(0.1, "OutQuad")
+			self.loading:fadeOut(0.1, "OutQuad")
+		end
+	end)
+
 	local divider = self:add(Line({color = Colors.divider}))
 	divider:anchorFixed(6, 84, 0, 0)
 	divider:fillWidth(6, 6)
+end
+
+---@param library rizu.library.Library
+function ChartBrowser:refreshEmptyState(library)
+	self.empty_check_generation = self.empty_check_generation + 1
+	local generation = self.empty_check_generation
+	thread.coro(function()
+		local has_chartfiles = library:hasChartfilesAsync()
+		if generation ~= self.empty_check_generation then return end
+		self.empty:setVisible(not has_chartfiles)
+		self.download:setVisible(not has_chartfiles)
+	end)()
 end
 
 return ChartBrowser

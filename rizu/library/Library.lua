@@ -253,6 +253,19 @@ end
 
 Library.stopTask = thread.coro(Library.stopTask)
 
+---@return boolean
+function Library:hasChartfilesAsync()
+	if self.is_sync or not self.worker then
+		return self.chartfilesRepo:hasChartfiles()
+	end
+
+	local has_chartfiles
+	self:addTask(function()
+		has_chartfiles = self.worker:hasChartfiles()
+	end, true)
+	return has_chartfiles
+end
+
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:queryAsync(params)

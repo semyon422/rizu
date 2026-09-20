@@ -41,7 +41,7 @@ function SongSelect:new(ui)
 	self.score_list_panel = ScoreListPanel(ui.game.scoreSelector, function(index)
 		self:openScore(index)
 	end, ui.localization, ui.game.online_client)
-	self.chart_browser = ChartBrowser(ui.game.chartSelector, ui.game.settings, ui.tooltip, ui.localization)
+	self.chart_browser = ChartBrowser(ui, ui.game.chartSelector, ui.game.settings, ui.tooltip, ui.localization)
 	self.chart_summary = ChartSummary(self.chartview_formatter, ui.localization)
 	self.popup_container = PopupContainer()
 

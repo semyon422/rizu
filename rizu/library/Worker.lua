@@ -78,6 +78,11 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
+---@return boolean
+function Worker:hasChartfiles()
+	return self.processor.chartfilesRepo:hasChartfiles()
+end
+
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function Worker:query(params)

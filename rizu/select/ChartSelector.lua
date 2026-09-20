@@ -168,6 +168,7 @@ function ChartSelector:updatePrimaryItems()
 	local collectionItem = self.collectionSelector:getSelectedItem()
 	local params = self.queryBuilder:build(self.config, collectionItem)
 
+	self:emitChanged({type = "primary_items_loading"})
 	local result = self.library:queryAsync(params)
 	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
 	self.stores[1]:setResult(result, self:getPrimaryMode())
