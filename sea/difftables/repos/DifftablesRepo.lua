@@ -8,8 +8,10 @@ local Difftable = require("sea.difftables.Difftable")
 local DifftablesRepo = class()
 
 ---@param models rdb.Models
-function DifftablesRepo:new(models)
+---@param transaction_mode rdb.TransactionMode?
+function DifftablesRepo:new(models, transaction_mode)
 	self.models = models
+	self.transaction_mode = transaction_mode
 end
 
 ---@return sea.Difftable[]
@@ -143,7 +145,7 @@ function DifftablesRepo:insertDifftableChartmetas(difftable_chartmetas)
 		return {}
 	end
 
-	self.models._orm.db:query("BEGIN")
+	self.models._orm:begin(self.transaction_mode)
 
 	local change_index = self:getNextChangeIndex(difftable_chartmetas[1].difftable_id)
 
@@ -152,31 +154,31 @@ function DifftablesRepo:insertDifftableChartmetas(difftable_chartmetas)
 	end
 	local dt_cms = self.models.difftable_chartmetas:insert(difftable_chartmetas, "replace")
 
-	self.models._orm.db:query("COMMIT")
+	self.models._orm:commit()
 	return dt_cms
 end
 
 ---@param difftable_chartmeta sea.DifftableChartmeta
 ---@return sea.DifftableChartmeta
 function DifftablesRepo:createDifftableChartmeta(difftable_chartmeta)
-	self.models._orm.db:query("BEGIN")
+	self.models._orm:begin(self.transaction_mode)
 
 	difftable_chartmeta.change_index = self:getNextChangeIndex(difftable_chartmeta.difftable_id)
 	local dt_cm = self.models.difftable_chartmetas:create(difftable_chartmeta)
 
-	self.models._orm.db:query("COMMIT")
+	self.models._orm:commit()
 	return dt_cm
 end
 
 ---@param difftable_chartmeta sea.DifftableChartmeta
 ---@return sea.DifftableChartmeta
 function DifftablesRepo:updateDifftableChartmeta(difftable_chartmeta)
-	self.models._orm.db:query("BEGIN")
+	self.models._orm:begin(self.transaction_mode)
 
 	difftable_chartmeta.change_index = self:getNextChangeIndex(difftable_chartmeta.difftable_id)
 	local dt_cm = self.models.difftable_chartmetas:update(difftable_chartmeta, {id = assert(difftable_chartmeta.id)})[1]
 
-	self.models._orm.db:query("COMMIT")
+	self.models._orm:commit()
 	return dt_cm
 end
 

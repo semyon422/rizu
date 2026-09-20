@@ -93,7 +93,7 @@ function Processor:new(db, fs, workingDirectory, timer)
 end
 
 function Processor:begin()
-	self.db.orm:begin()
+	self.db.orm:begin("immediate")
 end
 
 function Processor:commit()
@@ -138,14 +138,12 @@ function Processor:computeLocation(path, location_id)
 
 	self.taskContext:startStage("scanning", 0)
 
-	self:begin()
 	print("fileCacheGenerator.scan", path, location_id, location_prefix)
 	if is_iidx_location then
 		self.iidxFileCacheGenerator:scan(path, location_id, location_prefix)
 	else
 		self.fileCacheGenerator:scan(path, location_id, location_prefix)
 	end
-	self:commit()
 
 	self.stage = "hashing"
 	self:checkProgress()

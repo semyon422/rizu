@@ -124,8 +124,40 @@ For metadata-driven IIDX locations:
 - Runtime reads combine the location prefix, set directory, set name, and chartfile name into paths such as `mounted_charts/2/sound/01234.ifs/01234/01234.1` or `mounted_charts/2/sound/01234/01234.1`.
 - IIDX preview audio, BGA, and keysounds are resolved relative to the same set conventions; chart loading creates an IIDX decode context from the location prefix and chartfile name.
 
+### SQLite Transaction Rules
+
+The client opens the same SQLite database from the main thread and the library worker. WAL permits concurrent readers, but SQLite still permits only one writer. Code using either connection must follow these rules:
+
+- Never perform filesystem IO, chart decoding, difficulty calculation, replay calculation, network requests, or other potentially long work inside a write transaction. Compute first, retain the prepared result in memory, and open a transaction only to persist it.
+- Use `BEGIN IMMEDIATE` when an operation reads database state and then writes based on that state. A deferred `BEGIN` followed by `SELECT` creates a read snapshot; if the other connection writes before the later `INSERT` or `UPDATE`, SQLite cannot safely upgrade that stale snapshot and can return `SQLITE_BUSY` immediately even with `busy_timeout` configured.
+- Keep `BEGIN IMMEDIATE` sections short. It acquires SQLite's single writer slot at the start, so all reads and writes inside it must be limited to the atomic database operation.
+- Read-only operations do not need `BEGIN IMMEDIATE`. Independent scanner writes may use autocommit when partial cache states are valid and no multi-statement invariant needs protection.
+- Batch prepared writes only when this reduces transaction overhead without making writer lock duration significant. Library hashing currently writes at most 10 prepared chart results per transaction.
+- Finalize failed SQL statements before committing or rolling back. An unfinished statement can make SQLite reject transaction cleanup with `SQL statements in progress`.
+
+The preferred shape is:
+
+```text
+read files / fetch network data / decode / calculate
+prepare database rows in memory
+BEGIN IMMEDIATE
+read any state that must be atomic with the write
+insert or update the prepared rows
+COMMIT
+```
+
+Do not use this shape:
+
+```text
+BEGIN or BEGIN IMMEDIATE
+read database state
+perform slow external work
+insert or update rows
+COMMIT
+```
+
 ### Partial Cache States
-Cache updates use short write transactions so online synchronization and UI-side database work can continue through SQLite WAL while scanning and parsing charts. The scanner releases its write transaction periodically. Hashing reads, parses, and calculates chart data without a write transaction, then persists up to 10 prepared results in one transaction. A failed SQL statement must be finalized before transaction cleanup; otherwise SQLite rejects the following commit with `SQL statements in progress`.
+Cache updates minimize write-lock duration so online synchronization and UI-side database work can continue through SQLite WAL while scanning and parsing charts. Worker batch writes and client difftable updates start with `BEGIN IMMEDIATE`, acquiring the writer slot before reading and avoiding deferred-transaction snapshot upgrade failures. Filesystem scanning does not open an explicit transaction: each short database statement commits independently, and filesystem traversal never holds a write lock. Hashing reads, parses, and calculates chart data without a write transaction, then persists up to 10 prepared results in one transaction. A failed SQL statement must be finalized before transaction cleanup; otherwise SQLite rejects the following commit with `SQL statements in progress`.
 
 Cache updates move chart data through several valid intermediate states. The rest of the system must treat these as normal data, not as corruption:
 

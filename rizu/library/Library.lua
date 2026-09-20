@@ -75,7 +75,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.database = Database(fs, migrations)
 
 	self.chartsRepo = ChartsRepo(self.database.models)
-	self.difftablesRepo = DifftablesRepo(self.database.models)
+	self.difftablesRepo = DifftablesRepo(self.database.models, "immediate")
 	self.chartviewsRepo = ChartviewsRepo(self.database.models)
 	self.locationsRepo = LocationsRepo(self.database.models)
 	self.chartfilesRepo = ChartfilesRepo(self.database.models)
