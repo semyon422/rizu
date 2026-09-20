@@ -134,7 +134,17 @@ function OsuNoteSkin:load()
 		assert(#inputs_array == keysCount, "invalid size of Inputs")
 		self:setInput(inputs_array)
 	else
-		self:setInput(inputMode:getInputs())
+		local inputs_array = inputMode:getInputs()
+		if tonumber(mania.ScratchOnLeft) == 1 then
+			for i, input in ipairs(inputs_array) do
+				if input:match("^scratch%d+$") then
+				table.remove(inputs_array, i)
+				table.insert(inputs_array, 1, input)
+				break
+				end
+			end
+		end
+		self:setInput(inputs_array)
 	end
 
 	local SplitStages = mania.SplitStages == 1 and keysCount > 1
@@ -960,6 +970,7 @@ function OsuNoteSkin:getDefaultManiaSection(keys, SpecialStyle)
 	mania.JudgementLine = 0
 	mania.LightFramePerSecond = 60
 	mania.SpecialStyle = 0
+	mania.ScratchOnLeft = 0
 	mania.ComboBurstStyle = 1
 	mania.SplitStages = keys >= 10 and 1 or 0
 	mania.StageSeparation = 40
