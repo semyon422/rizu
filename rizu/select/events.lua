@@ -57,6 +57,7 @@
 ---@class rizu.select.ScoreStoreItemsChangedEvent
 ---@field type "score_items_changed"
 ---@field items sea.Chartplay[]
+---@field loading boolean?
 
 ---@class rizu.select.CollectionStoreTreeChangedEvent
 ---@field type "collection_tree_changed"

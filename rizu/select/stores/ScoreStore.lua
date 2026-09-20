@@ -60,6 +60,15 @@ function ScoreStore:clear()
 	self:emitChanged({type = "score_items_changed", items = self.items})
 end
 
+---@param request_id integer
+function ScoreStore:beginLoading(request_id)
+	self.requestId = request_id
+	self.items = {}
+	-- Loading is an explicit state transition, including when the previous
+	-- chart had no scores. The UI keeps its rendered rows and shows a spinner.
+	self:emitChanged({type = "score_items_changed", items = self.items, loading = true})
+end
+
 ---@return integer
 function ScoreStore:count()
 	return #self.items
@@ -107,18 +116,14 @@ function ScoreStore:updateItemsAsync(chartview, score_scope, request_id)
 	self.requestId = request_id
 
 	if not score_scope or not chartview.hash or not chartview.index then
-		self.items = {}
-		self:emitChanged({type = "score_items_changed", items = self.items})
+		self:clear()
 		return
 	end
 
 	if score_scope == "chartdiff" and (not chartview.modifiers or not chartview.rate or not chartview.mode) then
-		self.items = {}
-		self:emitChanged({type = "score_items_changed", items = self.items})
+		self:clear()
 		return
 	end
-
-	self.items = {}
 
 	local score_source = self.settings:getChoice(Settings.keys.select.score_source)
 	local provider = score_source == "online" and self.onlineProvider or self.localProvider

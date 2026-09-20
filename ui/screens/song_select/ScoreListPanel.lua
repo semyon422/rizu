@@ -4,12 +4,14 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Line = require("ui.views.Line")
 local ScoreList = require("ui.screens.song_select.ScoreList")
+local Loading = require("ui.screens.chart_loading.Loading")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Settings = require("rizu.config.Settings")
 
 ---@class ui.screens.song_select.ScoreListPanel : gui.View
 ---@operator call: ui.screens.song_select.ScoreListPanel
 ---@field score_list ui.screens.song_select.ScoreList
+---@field loading ui.screens.chart_loading.Loading
 local ScoreListPanel = View + {}
 
 ---@param score_selector rizu.select.ScoreSelector
@@ -22,6 +24,8 @@ function ScoreListPanel:new(score_selector, on_score_selected, localization, onl
 	self:add(NineSlice(Resources.nine_slices.song_select_panel, nil, true)):anchorFill(0, 0, 0, 0)
 	self.score_list = self:add(ScoreList(score_selector, on_score_selected, localization, online_client, avatar_cache))
 	self.score_list:anchorFill(5, 60, 5, 5)
+	self.loading = self:add(Loading(0.35))
+	self.loading:setAlignment(0.5, 0.5):addPosition(0, 28):setOpacity(0)
 
 	self.score_source_switcher = self:add(SegmentedControl({
 		label = "",
@@ -41,6 +45,14 @@ function ScoreListPanel:new(score_selector, on_score_selected, localization, onl
 	local divider = self:add(Line({color = Colors.divider}))
 	divider:anchorFixed(5, 54, 0, 0)
 	divider:fillWidth(5, 5)
+end
+
+function ScoreListPanel:setScoresLoading(loading)
+	if loading then
+		self.loading:fadeIn(0.1, "OutQuad")
+	else
+		self.loading:fadeOut(0.1, "OutQuad")
+	end
 end
 
 return ScoreListPanel

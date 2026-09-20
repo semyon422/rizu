@@ -12,6 +12,8 @@ local Settings = require("rizu.config.Settings")
 ---@field onlineScoreCooldownActive boolean
 ---@field pendingOnlineScoreChartview rizu.library.LocatedChartview?
 ---@field pendingOnlineScoreGeneration integer?
+---@field chartviewLoaded boolean
+---@field scoresLoading boolean
 ---@field replayBaseApplier rizu.select.ISelectionReplayBaseApplier
 local ScoreSelector = class()
 
@@ -44,6 +46,8 @@ function ScoreSelector:new(configModel, settings, library, onlineModel, replayBa
 	self.onlineScoreCooldownActive = false
 	self.pendingOnlineScoreChartview = nil
 	self.pendingOnlineScoreGeneration = nil
+	self.chartviewLoaded = false
+	self.scoresLoading = false
 end
 
 ---@param observer rizu.select.ScoreSelectorEventObserver|rizu.select.ScoreSelectorEventReceiver
@@ -67,12 +71,17 @@ end
 ---@param event rizu.select.Event
 function ScoreSelector:receive(event)
 	if event.type == "score_items_changed" then
+		if not event.loading then
+			self.scoresLoading = false
+		end
 		self:findScore()
 		self:emitChanged(event)
 		return
 	end
 
-	if event.type == "selection_changed" and event.level == 2 then
+	if event.type == "chartview_changed" then
+		self:setChart(event.chartview)
+	elseif event.type == "selection_changed" and event.level == 2 then
 		self:setChart(self.chartview)
 	elseif event.type == "chartmeta_found" or event.type == "selected_set_changed" then
 		self:setChart(self.chartview)
@@ -81,13 +90,24 @@ end
 
 ---@param chartview rizu.library.LocatedChartview?
 function ScoreSelector:setChart(chartview)
+	-- Chartviews are first announced without their loaded key. The same table
+	-- may later be populated in place, so table identity alone cannot tell us
+	-- that it was already loaded.
+	if chartview == self.chartview and self.chartviewLoaded then
+		return
+	end
 	self.chartview = chartview
+	self.chartviewLoaded = chartview ~= nil and chartview.hash ~= nil
 	self.chartplay = nil
 
 	if not chartview then
 		self.generation = self.generation + 1
 		self:clear()
 		self.state:setChartplay(1, nil)
+		return
+	end
+
+	if not chartview.hash then
 		return
 	end
 
@@ -136,10 +156,11 @@ function ScoreSelector:pullScore(noUpdate)
 	local generation = self.generation
 
 	if self.settings:getChoice(Settings.keys.select.score_source) == "online" then
-		self.store:clear()
 		if not chartview.hash or not chartview.index then
 			return
 		end
+		self.scoresLoading = true
+		self.store:beginLoading(generation)
 		self:updateOnlineScoreItems(chartview, generation)
 		return
 	end

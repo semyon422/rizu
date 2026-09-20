@@ -97,10 +97,16 @@ end
 function SongSelect:enter()
 	local chart_selector = self.ui.game.chartSelector
 	chart_selector:onChanged(self)
-	self.ui.game.scoreSelector:onChanged(self)
+	local score_selector = self.ui.game.scoreSelector
+	score_selector:onChanged(self)
 	self.ui.game.collectionSelector:onChanged(self)
 	self.ui.game.timeRateModel:onChanged(self)
-	self.score_list_panel.score_list:reload()
+	-- Score loading may have started before this screen subscribed.
+	score_selector:pullScore()
+	local score_list = self.score_list_panel.score_list
+	score_list:setScoresLoading(score_selector.scoresLoading)
+	score_list:reload()
+	self.score_list_panel:setScoresLoading(score_selector.scoresLoading)
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
 	chart_selector:notifyChartviewChanged()
@@ -164,7 +170,18 @@ function SongSelect:receive(event)
 		self.footer:updateState()
 	end
 	if event.type == "score_items_changed" then
-		self.score_list_panel.score_list:reload()
+		local score_list = self.score_list_panel.score_list
+		-- A loading clear is transient: fade the old rows while the provider
+		-- works. A completed empty result still replaces them with no records.
+		if event.loading then
+			score_list:fadeOutItems()
+			score_list:setScoresLoading(true)
+			self.score_list_panel:setScoresLoading(true)
+		else
+			score_list:setScoresLoading(false)
+			self.score_list_panel:setScoresLoading(false)
+			score_list:reload()
+		end
 	end
 	if event.type == "time_rate_changed" then
 		self:updateRateMetadata()

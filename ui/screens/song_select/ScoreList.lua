@@ -42,6 +42,8 @@ function ScoreList:new(score_selector, on_score_selected, localization, online_c
 	self.text_batch16 = love.graphics.newTextBatch(self.font16)
 	self.last_key_press = -math.huge
 	self.reload_time = 0
+	self.fade_out_time = nil
+	self.scores_loaded = false
 	self.no_records_t = 0
 end
 
@@ -86,6 +88,7 @@ end
 function ScoreList:reload()
 	self.items = {}
 	self.selected_index = nil
+	self.fade_out_time = nil
 	self.reload_time = love.timer.getTime()
 
 	local fallback_username = self.localization:get("song_select.username")
@@ -135,6 +138,17 @@ function ScoreList:reload()
 	self:scrollTo(self.scroll_target, true)
 end
 
+---@param loading boolean
+function ScoreList:setScoresLoading(loading)
+	self.scores_loaded = not loading
+end
+
+function ScoreList:fadeOutItems()
+	if #self.items > 0 and not self.fade_out_time then
+		self.fade_out_time = love.timer.getTime()
+	end
+end
+
 ---@return integer count
 function ScoreList:getItemCount()
 	return #self.items
@@ -142,10 +156,10 @@ end
 
 function ScoreList:update(dt)
 	VirtualizedList.update(self, dt)
-	if #self.items == 0 then
+	if self.scores_loaded and #self.items == 0 then
 		self.no_records_t = math.min(1, self.no_records_t + dt * 6)
 	else
-		self.no_records_t = math.max(0, self.no_records_t - dt * 6)
+		self.no_records_t = math.max(0, self.no_records_t - dt * 15)
 	end
 
 	if self.last_key_press - (love.timer.getTime() - 2) < 0 then
@@ -231,6 +245,10 @@ function ScoreList:drawItem(item, index, y, is_selected, is_hovered)
 	local t = (elapsed - delay) / FADE_IN_DURATION
 	local p = math.max(0, math.min(1, t))
 	p = ease_out_cubic(p)
+	if self.fade_out_time then
+		local fade_out = (love.timer.getTime() - self.fade_out_time) / FADE_IN_DURATION
+		p = p * (1 - ease_out_cubic(math.max(0, math.min(1, fade_out))))
+	end
 
 	local a = ((is_selected or is_hovered) and 0.6 or 0.2) * p
 	self.batch:setColor(item.color[1], item.color[2], item.color[3], a)

@@ -94,6 +94,22 @@ function test.build_selection_replay_base_delegates_to_applier(t)
 end
 
 ---@param t testing.T
+function test.chartview_changed_loads_scores(t)
+	local selector = createSelector("chartmetas", ReplayBase())
+	local chartview = {hash = "h", index = 1, chartdiff_id = 0}
+	local loaded_chartview
+	selector.store = {
+		updateItems = function(_, received_chartview)
+			loaded_chartview = received_chartview
+		end,
+	}
+
+	selector:receive({type = "chartview_changed", chartview = chartview})
+
+	t:eq(loaded_chartview, chartview)
+end
+
+---@param t testing.T
 function test.coarse_modes_load_chartmeta_scores(t)
 	---@type rizu.library.ChartviewsRepo.Mode[]
 	local modes = {"chartfile_sets", "chartfiles", "chartmetas"}
@@ -182,6 +198,19 @@ function test.score_store_filters_to_unmodified_auto_timing_scores(t)
 
 	t:eq(#scores, 1)
 	t:eq(scores[1].id, 1)
+end
+
+---@param t testing.T
+function test.score_store_emits_when_already_empty(t)
+	local store = ScoreStore(createConfigModel("chartmetas"), Settings.createConfig(FakeFilesystem()), {}, {})
+	local changed_count = 0
+	store:onChanged(function()
+		changed_count = changed_count + 1
+	end)
+
+	store:clear()
+
+	t:eq(changed_count, 1)
 end
 
 ---@param t testing.T
