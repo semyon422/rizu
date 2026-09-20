@@ -47,6 +47,7 @@ end
 ---@field chart_grid ui.screens.song_select.ChartGrid
 ---@field loading ui.screens.chart_loading.Loading
 ---@field empty ui.views.Label
+---@field no_results ui.views.Label
 ---@field download ui.views.Button
 ---@field empty_check_generation integer
 local ChartBrowser = View + {}
@@ -96,6 +97,14 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 		align = "center",
 	}))
 	self.empty:setSize(500, 30):setAlignment(0.5, 0.5):addPosition(0, 30):setVisible(false)
+	self.no_results = self:add(Label({
+		font_name = "regular",
+		font_size = 20,
+		text = "No charts found. Check your search and filters.",
+		color = Colors.muted,
+		align = "center",
+	}))
+	self.no_results:setSize(500, 30):setAlignment(0.5, 0.5):addPosition(0, 30):setVisible(false)
 	self.download = self:add(Button("Download charts", function()
 		ui:setScreen(ui.dlc, true)
 	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
@@ -133,6 +142,7 @@ function ChartBrowser:refreshEmptyState(chart_selector)
 	local generation = self.empty_check_generation
 	if chart_selector.stores[1]:count() > 0 then
 		self.empty:setVisible(false)
+		self.no_results:setVisible(false)
 		self.download:setVisible(false)
 		return
 	end
@@ -141,6 +151,7 @@ function ChartBrowser:refreshEmptyState(chart_selector)
 		local has_chartfiles = chart_selector.library:hasChartfilesAsync()
 		if generation ~= self.empty_check_generation then return end
 		self.empty:setVisible(not has_chartfiles)
+		self.no_results:setVisible(has_chartfiles)
 		self.download:setVisible(not has_chartfiles)
 	end)()
 end
