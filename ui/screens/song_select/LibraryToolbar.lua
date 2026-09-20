@@ -92,13 +92,11 @@ function LibraryToolbar:new(ui, popup_container)
 
 	controls:add(FiltersButton(ui), 225)
 
-	local search_key = Settings.keys.select.filter_string
 	self.search = controls:add(SearchField({
-		text = settings:getString(search_key),
+		text = chart_selector.searchModel:getSearchString(),
 		placeholder = ui.localization:get("song_select.search_placeholder"),
 		on_change = function(text)
-			settings:setString(search_key, text)
-			chart_selector:debounceRefresh()
+			chart_selector.searchModel:setSearchString(text)
 		end,
 	}), "*")
 end

@@ -63,6 +63,11 @@ function FilterModel:setInputModes(group_name, values)
 	self.configModel.configs.select.selected_filters[group_name] = selected
 end
 
+function FilterModel:clearFilters()
+	self.configModel.configs.select.selected_filters = {}
+	self:apply()
+end
+
 ---@param group_name string
 ---@return boolean
 function FilterModel:hasActiveFilters(group_name)

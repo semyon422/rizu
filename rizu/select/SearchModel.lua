@@ -1,4 +1,5 @@
 local class = require("class")
+local Observable = require("Observable")
 local string_util = require("string_util")
 local erfunc = require("chart.scoring.erfunc")
 local Settings = require("rizu.config.Settings")
@@ -21,6 +22,34 @@ local SearchModel = class()
 function SearchModel:new(configModel, settings)
 	self.configModel = configModel
 	self.settings = settings
+	self.observable = Observable()
+end
+
+---@param observer rizu.select.SearchModelEventObserver|rizu.select.SearchModelEventReceiver
+---@return util.Observer
+function SearchModel:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function SearchModel:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
+---@return string
+function SearchModel:getSearchString()
+	return self.settings:getString(Settings.keys.select.filter_string)
+end
+
+---@param search_string string
+function SearchModel:setSearchString(search_string)
+	if search_string == self:getSearchString() then
+		return
+	end
+	self.settings:setString(Settings.keys.select.filter_string, search_string)
+	self.observable:send({type = "search_string_changed", search_string = search_string})
 end
 
 ---@type rizu.select.NumberFieldConfig[]
@@ -214,7 +243,7 @@ function SearchModel:getConditions()
 	local _select = configs.select
 
 	local keys = Settings.keys.select
-	local filterString = self.settings:getString(keys.filter_string)
+	local filterString = self:getSearchString()
 	local lampString = self.settings:getString(keys.lamp_string)
 
 	---@type rdb.Conditions

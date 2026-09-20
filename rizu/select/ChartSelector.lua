@@ -61,6 +61,9 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 	}
 
 	self.searchModel = SearchModel(configModel, settings)
+	self.searchModel:onChanged(function()
+		self:debounceRefresh()
+	end)
 	self.filterModel = FilterModel(configModel)
 	self.sortModel = SortModel()
 	self.queryBuilder = SelectionQueryBuilder(settings, self.sortModel, self.searchModel, self.filterModel)

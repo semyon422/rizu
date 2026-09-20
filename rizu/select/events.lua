@@ -36,6 +36,10 @@
 ---@field type "chartplay_scrolled"
 ---@field chartplay sea.Chartplay
 
+---@class rizu.select.SearchStringChangedEvent
+---@field type "search_string_changed"
+---@field search_string string
+
 ---@class rizu.select.CollectionSelectionChangedEvent
 ---@field type "collection_selection_changed"
 ---@field item rizu.library.Collections.TreeNode?
@@ -78,6 +82,9 @@
 ---| rizu.select.ChartplayScrolledEvent
 ---| rizu.select.ScoreStoreItemsChangedEvent
 
+---@alias rizu.select.SearchModelEvent
+---| rizu.select.SearchStringChangedEvent
+
 ---@alias rizu.select.CollectionSelectorEvent
 ---| rizu.select.CollectionSelectionChangedEvent
 
@@ -93,6 +100,7 @@
 
 ---@alias rizu.select.Event
 ---| rizu.select.SelectionStateEvent
+---| rizu.select.SearchModelEvent
 ---| rizu.select.ChartSelectorEvent
 ---| rizu.select.ScoreSelectorEvent
 ---| rizu.select.CollectionSelectorEvent
@@ -108,6 +116,9 @@
 
 ---@alias rizu.select.ScoreSelectorEventReceiver fun(event: rizu.select.ScoreSelectorEvent)
 ---@alias rizu.select.ScoreSelectorEventObserver {receive: fun(self: table, event: rizu.select.ScoreSelectorEvent)}
+
+---@alias rizu.select.SearchModelEventReceiver fun(event: rizu.select.SearchModelEvent)
+---@alias rizu.select.SearchModelEventObserver {receive: fun(self: table, event: rizu.select.SearchModelEvent)}
 
 ---@alias rizu.select.CollectionSelectorEventReceiver fun(event: rizu.select.CollectionSelectorEvent)
 ---@alias rizu.select.CollectionSelectorEventObserver {receive: fun(self: table, event: rizu.select.CollectionSelectorEvent)}

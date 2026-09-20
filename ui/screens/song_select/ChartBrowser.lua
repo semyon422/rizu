@@ -49,8 +49,13 @@ end
 ---@field loading ui.screens.chart_loading.Loading
 ---@field empty ui.views.Label
 ---@field no_results ui.views.Label
+---@field clear_filters ui.views.Button
 ---@field download ui.views.Button
----@field empty_check_generation integer
+---@field chart_selector rizu.select.ChartSelector
+---@field has_chartfiles boolean?
+---@field has_chartfiles_checking boolean
+---@field primary_items_loading boolean
+---@field empty_state_dirty boolean
 ---@field refresh_notice gui.layout.FlowContainer
 local ChartBrowser = View + {}
 
@@ -90,7 +95,11 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 	self.chart_sets = ChartSets(chart_selector, settings, function() end)
 	content:add(self.chart_sets, "*")
 
-	self.empty_check_generation = 0
+	self.chart_selector = chart_selector
+	self.has_chartfiles = nil
+	self.has_chartfiles_checking = false
+	self.primary_items_loading = false
+	self.empty_state_dirty = true
 	self.empty = self:add(Label({
 		font_name = "regular",
 		font_size = 20,
@@ -107,6 +116,13 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 		align = "center",
 	}))
 	self.no_results:setSize(500, 30):setAlignment(0.5, 0.5):addPosition(0, 30):setVisible(false)
+	self.clear_filters = self:add(Button("Clear search and filters", function()
+		chart_selector.searchModel:setSearchString("")
+		chart_selector.filterModel:clearFilters()
+		ui.song_select.library_toolbar.search:setText("")
+		ui.game.collectionSelector:selectCollection(nil, nil)
+	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
+	self.clear_filters:setSize(260, 44):setAlignment(0.5, 0.5):addPosition(0, 78):setVisible(false)
 	self.download = self:add(Button("Download charts", function()
 		ui:setScreen(ui.dlc, true)
 	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
@@ -135,29 +151,26 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 	self.refresh_notice:anchorFixed(0, 0, 0, 0):setAlignment(1, 1)
 	self.refresh_notice:fitContent():setVisible(false)
 	chart_selector.library.onChartsChanged:add(function()
+		self.has_chartfiles = true
+		self.empty_state_dirty = true
 		self.refresh_notice:setVisible(true)
-	end)
-
-	self:refreshEmptyState(chart_selector)
-	chart_selector.library.onStatusChanged:add(function(status)
-		if status.stage == "idle" then
-			self:refreshEmptyState(chart_selector)
-		end
 	end)
 
 	self.loading = self:add(Loading())
 	self.loading:setAlignment(0.5, 0.5):addPosition(0, 60):setOpacity(0)
 	chart_selector:onChanged(function(event)
 		if event.type == "primary_items_loading" then
-			self.refresh_notice:setVisible(false)
+			self.primary_items_loading = true
+			self.empty_state_dirty = true
 			self.chart_sets:fadeOut(0.1, "OutQuad")
 			self.chart_grid:fadeOut(0.1, "OutQuad")
 			self.loading:fadeIn(0.1, "OutQuad")
 		elseif event.type == "primary_items_updated" then
+			self.primary_items_loading = false
+			self.empty_state_dirty = true
 			self.chart_sets:fadeIn(0.1, "OutQuad")
 			self.chart_grid:fadeIn(0.1, "OutQuad")
 			self.loading:fadeOut(0.1, "OutQuad")
-			self:refreshEmptyState(chart_selector)
 		end
 	end)
 
@@ -166,24 +179,26 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization)
 	divider:fillWidth(6, 6)
 end
 
----@param chart_selector rizu.select.ChartSelector
-function ChartBrowser:refreshEmptyState(chart_selector)
-	self.empty_check_generation = self.empty_check_generation + 1
-	local generation = self.empty_check_generation
-	if chart_selector.stores[1]:count() > 0 then
-		self.empty:setVisible(false)
-		self.no_results:setVisible(false)
-		self.download:setVisible(false)
-		return
+function ChartBrowser:update()
+	if not self.empty_state_dirty then return end
+	self.empty_state_dirty = false
+
+	local has_items = self.chart_selector.stores[1]:count() > 0
+	local show_empty_state = not self.primary_items_loading and not has_items
+	if self.has_chartfiles == nil and show_empty_state and not self.has_chartfiles_checking then
+		self.has_chartfiles_checking = true
+		thread.coro(function()
+			self.has_chartfiles = self.chart_selector.library:hasChartfilesAsync()
+			self.has_chartfiles_checking = false
+			self.empty_state_dirty = true
+		end)()
 	end
 
-	thread.coro(function()
-		local has_chartfiles = chart_selector.library:hasChartfilesAsync()
-		if generation ~= self.empty_check_generation then return end
-		self.empty:setVisible(not has_chartfiles)
-		self.no_results:setVisible(has_chartfiles)
-		self.download:setVisible(not has_chartfiles)
-	end)()
+	local has_chartfiles = self.has_chartfiles == true
+	self.empty:setVisible(show_empty_state and self.has_chartfiles == false)
+	self.no_results:setVisible(show_empty_state and has_chartfiles)
+	self.clear_filters:setVisible(show_empty_state and has_chartfiles)
+	self.download:setVisible(show_empty_state and self.has_chartfiles == false)
 end
 
 return ChartBrowser
