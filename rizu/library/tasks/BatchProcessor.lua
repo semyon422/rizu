@@ -10,7 +10,7 @@ local BatchProcessor = class()
 function BatchProcessor:new(taskContext, timer, batchSize)
 	self.taskContext = taskContext
 	self.timer = timer
-	self.batchSize = batchSize or 100
+	self.batchSize = batchSize or 1
 	self.reportInterval = 0.1 -- 10 updates per second
 end
 

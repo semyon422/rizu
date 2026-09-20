@@ -31,6 +31,10 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 	local typ, dir, name, modtime = iterator()
 	while typ do
 		iterations = iterations + 1
+		if iterations % 100 == 0 then
+			self.taskContext:dbCommit()
+			self.taskContext:dbBegin()
+		end
 		if iterations % 1000 == 0 and self.taskContext:shouldStop() then break end
 
 		---@type boolean?
