@@ -9,6 +9,7 @@ local Settings = require("rizu.config.Settings")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local time_util = require("time_util")
+local AvatarShader = require("ui.views.AvatarShader")
 
 ---@class ui.screens.song_select.ScoreList : gui.VirtualizedList
 ---@operator call: ui.screens.song_select.ScoreList
@@ -35,6 +36,7 @@ function ScoreList:new(score_selector, on_score_selected, localization, online_c
 	self.selected_index = nil
 	self.hover_index = nil
 	self.batch = SpriteBatch(Resources.sprites.list_item_cap_left)
+	self.avatar_shader = AvatarShader.new()
 	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
 	self.font16 = Resources.getFont("regular", 16)
 	self.text_batch16 = love.graphics.newTextBatch(self.font16)
@@ -308,9 +310,15 @@ function ScoreList:draw()
 		local image_width, image_height = avatar.image:getDimensions()
 		local scale = math.max(64 / image_width, 64 / image_height)
 		local width, height = image_width * scale, image_height * scale
+		local x, y = self.world_transform:transformPoint(6, avatar.y + 6)
+		self.avatar_shader:send("u_position", {x, y})
+		self.avatar_shader:send("u_size", {64, 64})
+		self.avatar_shader:send("u_radius", 5)
 		Painter.setColorRgb(1, 1, 1)
 		Painter.setOpacity(avatar.opacity)
+		lg.setShader(self.avatar_shader)
 		lg.draw(avatar.image, 6 + (64 - width) / 2, avatar.y + 6 + (64 - height) / 2, 0, scale)
+		lg.setShader()
 	end
 	lg.draw(self.text_batch16)
 	lg.draw(self.text_batch24)

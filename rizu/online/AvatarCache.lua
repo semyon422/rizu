@@ -34,7 +34,9 @@ function AvatarCache:download(url)
 	local file_data = love.filesystem.newFileData(res.body, url)
 	local image_data = ImageDataDecoder.decodeFileData(file_data, url)
 	if image_data then
-		return love.graphics.newImage(image_data)
+		local image = love.graphics.newImage(image_data, {mipmaps = true})
+		image:setFilter("linear", "linear", 1)
+		return image
 	end
 end
 

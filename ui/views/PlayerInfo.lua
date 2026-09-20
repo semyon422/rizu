@@ -3,6 +3,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local Panel = require("ui.views.Panel")
+local AvatarShader = require("ui.views.AvatarShader")
 
 ---@class ui.views.PlayerInfo : gui.View
 ---@operator call: ui.views.PlayerInfo
@@ -23,6 +24,7 @@ local RIGHT_PADDING = 12
 function PlayerInfo:new(username)
 	View.new(self)
 	self.font = Resources.getFont("bold", 13)
+	self.avatar_shader = AvatarShader.new()
 	self.avatar = self:add(Panel({
 		color = Colors.surface_raised,
 		line_color = Colors.outline,
@@ -74,8 +76,15 @@ function PlayerInfo:drawAvatar()
 	local image_width, image_height = self.avatar_image:getDimensions()
 	local scale = math.max(AVATAR_SIZE / image_width, AVATAR_SIZE / image_height)
 	local width, height = image_width * scale, image_height * scale
+	local graphics = love.graphics
+	local x, y = self.avatar_display.world_transform:transformPoint(0, 0)
+	self.avatar_shader:send("u_position", {x, y})
+	self.avatar_shader:send("u_size", {AVATAR_SIZE, AVATAR_SIZE})
+	self.avatar_shader:send("u_radius", 5)
 	Painter.setColorRgb(1, 1, 1)
-	love.graphics.draw(self.avatar_image, (AVATAR_SIZE - width) / 2, (AVATAR_SIZE - height) / 2, 0, scale)
+	graphics.setShader(self.avatar_shader)
+	graphics.draw(self.avatar_image, (AVATAR_SIZE - width) / 2, (AVATAR_SIZE - height) / 2, 0, scale)
+	graphics.setShader()
 end
 
 function PlayerInfo:draw()
