@@ -1,8 +1,5 @@
-local SdvxPlayfield = require("ui.screens.gameplay.SdvxPlayfield")
-local TaikoPlayfield = require("ui.screens.gameplay.TaikoPlayfield")
-local CatchPlayfield = require("ui.screens.gameplay.CatchPlayfield")
+local GameplayPlayfield = require("rizu.gameplay.Playfield")
 local Label = require("ui.views.Label")
-local AimPlayfield = require("ui.screens.gameplay.AimPlayfield")
 local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
 local Colors = require("ui.Colors")
@@ -16,7 +13,7 @@ local delay = require("delay")
 local thread = require("thread")
 
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
----@field aim_playfield ui.screens.gameplay.AimPlayfield
+---@field gameplay_playfield rizu.gameplay.Playfield
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -32,14 +29,7 @@ function Gameplay:new(ui)
 	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
 	self.bga_view:anchorPercent(0, 0, 1, 1)
 	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
-	self.aim_playfield = self.root:add(AimPlayfield(self.game)):anchorFill(0, 0, 0, 0)
-	self.aim_playfield:setVisible(false)
-	self.sdvx_playfield = self.root:add(SdvxPlayfield(self.game)):anchorFill(0, 0, 0, 0)
-	self.sdvx_playfield:setVisible(false)
-	self.taiko_playfield = self.root:add(TaikoPlayfield(self.game)):anchorFill(0, 0, 0, 0)
-	self.taiko_playfield:setVisible(false)
-	self.catch_playfield = self.root:add(CatchPlayfield(self.game)):anchorFill(0, 0, 0, 0)
-	self.catch_playfield:setVisible(false)
+	self.gameplay_playfield = self.root:add(GameplayPlayfield(self.game)):anchorFill(0, 0, 0, 0)
 	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
 	self.aim_summary:setAlignment(0.5, 0.5)
 	self.aim_summary:setVisible(false)
@@ -66,14 +56,11 @@ function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	local sequence_view = self.sequence_view
 	self.is_sdvx = self.game.rhythm_engine.sdvx_rules ~= nil
-	self.sdvx_playfield:setVisible(self.is_sdvx)
 	self.is_taiko = self.game.rhythm_engine.taiko_rules ~= nil
-	self.taiko_playfield:setVisible(self.is_taiko)
 	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
-	self.is_aim = self.game.rhythm_engine.aim_rules ~= nil or self.is_catch or self.is_taiko or self.is_sdvx
-	self.catch_playfield:setVisible(self.is_catch)
+	self.is_aim = self.gameplay_playfield:isExperimental()
+	self.gameplay_playfield:refresh()
 	self.aim_summary:setVisible(false)
-	self.aim_playfield:setVisible(self.is_aim and not self.is_catch and not self.is_taiko and not self.is_sdvx)
 	self.sequence_canvas:setVisible(not self.is_aim)
 	if not self.is_aim then
 		sequence_view.game = self.game
@@ -100,10 +87,10 @@ function Gameplay:enter()
 	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + width, min_y + height)
 
 	self.root:fadeIn(0.4, "OutQuint")
-	if self.is_aim and not self.is_catch and not self.is_taiko and not self.is_sdvx then
+	if self.gameplay_playfield:usesPointer() then
 		self:flush()
 		local x, y = love.mouse.getPosition()
-		x, y = self.aim_playfield:toChart(x, y)
+		x, y = self.gameplay_playfield:toChart(x, y)
 		self.gameplay_interactor:aimPointer(x, y, self.game.global_timer:getTime())
 	end
 end
@@ -260,8 +247,8 @@ function Gameplay:receive(event)
 				return true
 			end
 		end
-		if not self.is_catch and not self.is_taiko and not self.is_sdvx and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
-			local x, y = self.aim_playfield:toChart(event[1], event[2])
+		if self.gameplay_playfield:usesPointer() and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
+			local x, y = self.gameplay_playfield:toChart(event[1], event[2])
 			self.gameplay_interactor:aimPointer(x, y, event.time)
 		end
 		self.gameplay_interactor:receive(event)

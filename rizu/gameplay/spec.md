@@ -15,6 +15,8 @@ The gameplay module owns the orchestration of a single play attempt. It should c
 
 Requirements for the Aim, Catch, Taiko, and SDVX prototypes are tracked in [modes/spec.md](modes/spec.md). The Aim implementation and its limitations are documented in [aim/spec.md](aim/spec.md), and the native prototypes in [catch/spec.md](catch/spec.md), [taiko/spec.md](taiko/spec.md) and [sdvx/spec.md](sdvx/spec.md). The work covers core mechanics, ordinary chart selection, autoplay/replays, and investigation for future skinning work without mode-specific scoring or score submission.
 
+- Experimental mode playfields live in `rizu.gameplay`: `rizu.gameplay.Playfield` is the generic `gui.View` host and selects the Aim, Catch, Taiko, or SDVX renderer from the loaded engine. The application UI only places this host; it does not construct or select mode-specific renderers. Renderers use only `gui` and Love2D drawing primitives, so they do not depend on `ui.Resources` or screen implementation details.
+
 ## Core Components
 
 - `rizu.GameplaySession`: coordinates `RhythmEngine`, manual or automated players, and replay recording for one attempt.

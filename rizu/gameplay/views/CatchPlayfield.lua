@@ -1,9 +1,8 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
-local Resources = require("ui.Resources")
 
----@class ui.screens.gameplay.CatchPlayfield: gui.View
----@operator call: ui.screens.gameplay.CatchPlayfield
+---@class rizu.gameplay.views.CatchPlayfield: gui.View
+---@operator call: rizu.gameplay.views.CatchPlayfield
 local CatchPlayfield = View + {}
 
 ---@param game sphere.GameController
@@ -18,11 +17,11 @@ function CatchPlayfield:draw()
 	if not rules then return end
 	love.graphics.push("all")
 	Painter.setColorRgb(0.04, 0.05, 0.08)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 	local scale = math.min(self.width / 640, self.height / 480)
 	love.graphics.translate((self.width - 512 * scale) / 2, (self.height - 400 * scale) / 2)
 	love.graphics.scale(scale)
-	love.graphics.setFont(Resources.getFont("regular", 16))
+	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	love.graphics.setLineWidth(2)
 	Painter.setColorRgb(0.7, 0.8, 1)
 	love.graphics.line(0, 360, 512, 360)

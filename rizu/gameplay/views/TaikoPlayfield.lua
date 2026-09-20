@@ -1,9 +1,8 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
-local Resources = require("ui.Resources")
 
----@class ui.screens.gameplay.TaikoPlayfield: gui.View
----@operator call: ui.screens.gameplay.TaikoPlayfield
+---@class rizu.gameplay.views.TaikoPlayfield: gui.View
+---@operator call: rizu.gameplay.views.TaikoPlayfield
 local TaikoPlayfield = View + {}
 
 ---@param game sphere.GameController
@@ -18,11 +17,11 @@ function TaikoPlayfield:draw()
 	if not rules then return end
 	love.graphics.push("all")
 	Painter.setColorRgb(0.04, 0.05, 0.08)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 	local scale = math.min(self.width / 800, self.height / 450)
 	love.graphics.translate((self.width - 800 * scale) / 2, (self.height - 450 * scale) / 2)
 	love.graphics.scale(scale)
-	love.graphics.setFont(Resources.getFont("regular", 16))
+	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	Painter.setColorRgb(0.7, 0.8, 1)
 	love.graphics.setLineWidth(2)
 	love.graphics.line(80, 210, 760, 210)

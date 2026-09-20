@@ -1,9 +1,8 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
-local Resources = require("ui.Resources")
 
----@class ui.screens.gameplay.SdvxPlayfield: gui.View
----@operator call: ui.screens.gameplay.SdvxPlayfield
+---@class rizu.gameplay.views.SdvxPlayfield: gui.View
+---@operator call: rizu.gameplay.views.SdvxPlayfield
 local SdvxPlayfield = View + {}
 
 ---@param game sphere.GameController
@@ -18,11 +17,11 @@ function SdvxPlayfield:draw()
 	if not rules then return end
 	love.graphics.push("all")
 	Painter.setColorRgb(0.04, 0.05, 0.08)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 	local scale = math.min(self.width / 800, self.height / 600)
 	love.graphics.translate((self.width - 800 * scale) / 2, (self.height - 600 * scale) / 2)
 	love.graphics.scale(scale)
-	love.graphics.setFont(Resources.getFont("regular", 16))
+	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	local time = re.visual_info.time
 	---@param t number
 	---@return number
@@ -42,7 +41,7 @@ function SdvxPlayfield:draw()
 				elseif lane <= 4 then Painter.setColorRgb(0.9, 0.95, 1) else Painter.setColorRgb(1, 0.65, 0.2) end
 				local bottom, top = math.min(480, y(object.time)), math.max(80, y(object.end_time))
 				if object.kind == "chip" then top = bottom - 8 end
-				if bottom >= 80 then Resources.sprites.pixel:draw(x + 4, top, 0, width, math.max(5, bottom - top)) end
+				if bottom >= 80 then love.graphics.rectangle("fill", x + 4, top, width, math.max(5, bottom - top)) end
 			end
 		end
 	end

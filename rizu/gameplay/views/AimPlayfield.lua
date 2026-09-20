@@ -1,10 +1,9 @@
 local Spinner = require("rizu.gameplay.aim.Spinner")
 local View = require("gui.View")
 local Painter = require("gui.Painter")
-local Resources = require("ui.Resources")
 
----@class ui.screens.gameplay.AimPlayfield: gui.View
----@operator call: ui.screens.gameplay.AimPlayfield
+---@class rizu.gameplay.views.AimPlayfield: gui.View
+---@operator call: rizu.gameplay.views.AimPlayfield
 local AimPlayfield = View + {}
 
 ---@param game sphere.GameController
@@ -39,10 +38,10 @@ function AimPlayfield:draw()
 	local time = re.visual_info.time
 	love.graphics.push("all")
 	Painter.setColorRgb(0.04, 0.05, 0.08, 0.95)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 	love.graphics.translate(ox, oy)
 	love.graphics.scale(scale)
-	love.graphics.setFont(Resources.getFont("regular", 18))
+	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	love.graphics.setLineWidth(2)
 	local objects = rules.objects
 	local last_visible = 0

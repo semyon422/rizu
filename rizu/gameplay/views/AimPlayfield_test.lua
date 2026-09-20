@@ -1,4 +1,4 @@
-local AimPlayfield = require("ui.screens.gameplay.AimPlayfield")
+local AimPlayfield = require("rizu.gameplay.views.AimPlayfield")
 local test = {}
 
 ---@param t testing.T
