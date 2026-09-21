@@ -6,6 +6,7 @@ local DlcExtractor = require("rizu.dlc.DlcExtractor")
 ---@field getInfo fun(path: string): table?
 ---@field createDirectory fun(path: string): boolean?
 ---@field write fun(path: string, data: string): boolean?
+---@field remove fun(path: string): boolean?, string?
 
 ---@class rizu.dlc.IDlcExtractor
 ---@field extract fun(archive_path: string, extract_path: string): boolean?, string?
@@ -44,6 +45,11 @@ function DlcInstaller:extract(archive_path, extract_path)
 	local ok, err = self.extractor.extract(archive_path, extract_path)
 	if not ok then
 		return nil, "Extraction failed: " .. (err or "unknown error")
+	end
+
+	local removed, remove_err = self.fs.remove(archive_path)
+	if not removed then
+		return nil, "Failed to remove archive: " .. (remove_err or archive_path)
 	end
 
 	return true

@@ -29,6 +29,10 @@ local function new_fs()
 			files[path] = data
 			return true
 		end,
+		remove = function(path)
+			files[path] = nil
+			return true
+		end,
 	}
 end
 
@@ -56,7 +60,7 @@ function test.installs_osz_set_to_downloads(t)
 	t:eq(err, nil)
 	t:eq(ok, true)
 	t:eq(fs.dirs["userdata/charts/downloads"], true)
-	t:eq(fs.files["userdata/charts/downloads/song.osz"], "data")
+	t:eq(fs.files["userdata/charts/downloads/song.osz"], nil)
 	t:tdeq(extractor.calls[1], {
 		archive = "userdata/charts/downloads/song.osz",
 		path = "userdata/charts/downloads/song",
@@ -74,7 +78,7 @@ function test.installs_zip_pack_to_packs(t)
 	t:eq(err, nil)
 	t:eq(ok, true)
 	t:eq(fs.dirs["userdata/charts/packs"], true)
-	t:eq(fs.files["userdata/charts/packs/pack.zip"], "zipdata")
+	t:eq(fs.files["userdata/charts/packs/pack.zip"], nil)
 	t:tdeq(extractor.calls[1], {
 		archive = "userdata/charts/packs/pack.zip",
 		path = "userdata/charts/packs/pack",
@@ -99,7 +103,7 @@ function test.installs_file_to_metadata_destination(t)
 end
 
 ---@param t testing.T
-function test.reports_extraction_error(t)
+function test.keeps_archive_when_extraction_fails(t)
 	local fs = new_fs()
 	local extractor = {
 		extract = function()
@@ -112,6 +116,21 @@ function test.reports_extraction_error(t)
 
 	t:eq(ok, nil)
 	t:eq(err, "Extraction failed: boom")
+	t:eq(fs.files["userdata/charts/downloads/song.osz"], "data")
+end
+
+---@param t testing.T
+function test.reports_archive_removal_error(t)
+	local fs = new_fs()
+	fs.remove = function()
+		return nil, "permission denied"
+	end
+	local installer = DlcInstaller(fs --[[@as any]], new_extractor())
+
+	local ok, err = installer:install(123, "set", "data", "song.osz")
+
+	t:eq(ok, nil)
+	t:eq(err, "Failed to remove archive: permission denied")
 end
 
 return test
