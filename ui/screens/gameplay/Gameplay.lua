@@ -60,6 +60,11 @@ function Gameplay:new(ui)
 	self.root:setOpacity(0)
 end
 
+function Gameplay:unload()
+	self.gameplay_playfield.aim:unload()
+	Screen.unload(self)
+end
+
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	local sequence_view = self.sequence_view

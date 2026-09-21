@@ -1,16 +1,31 @@
-local class = require("class")
+local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 local Spinner = require("rizu.gameplay.aim.Spinner")
 local CircleRenderer = require("rizu.gameplay.views.aim.CircleRenderer")
 local SliderRenderer = require("rizu.gameplay.views.aim.SliderRenderer")
 local SpinnerRenderer = require("rizu.gameplay.views.aim.SpinnerRenderer")
+local SliderGraphics = require("rizu.gameplay.views.aim.SliderGraphics")
 
 ---@class rizu.gameplay.views.AimPlayfield
 ---@operator call: rizu.gameplay.views.AimPlayfield
-local AimPlayfield = class()
+local AimPlayfield = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
 function AimPlayfield:new(game)
-	self.game = game
+	PlayfieldRenderer.new(self, game)
+	self.slider_graphics = SliderGraphics()
+	self.prepared_rules = nil
+end
+
+function AimPlayfield:load()
+	local rules = self.game.rhythm_engine and self.game.rhythm_engine.aim_rules
+	if not rules or self.prepared_rules == rules then return end
+	self.slider_graphics:prepare(rules)
+	self.prepared_rules = rules
+end
+
+function AimPlayfield:unload()
+	self.slider_graphics:unload()
+	self.prepared_rules = nil
 end
 
 ---@param width number
@@ -43,6 +58,7 @@ function AimPlayfield:draw(width, height, transform)
 	local re = self.game.rhythm_engine
 	local rules = re and re.aim_rules
 	if not rules then return end
+	self:load()
 	local scale, ox, oy = self:getField(width, height)
 	local time = re.visual_info.time
 	love.graphics.push("all")
@@ -68,7 +84,7 @@ function AimPlayfield:draw(width, height, transform)
 		end
 		local slider = rules.sliders[i]
 		if slider and not rules.states[i] then
-			SliderRenderer.draw(object, slider, rules.radius, time, rules.preempt)
+			SliderRenderer.draw(object, slider, rules.radius, time, rules.preempt, self.slider_graphics, i)
 		end
 		if not spinner and not rules.heads[i] then
 			CircleRenderer.draw(object, rules.radius, time, rules.preempt)

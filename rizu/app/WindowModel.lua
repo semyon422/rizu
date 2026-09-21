@@ -26,6 +26,9 @@ function WindowModel:getFlags()
 	return {
 		borderless = settings:getBoolean(keys.borderless),
 		centered = settings:getBoolean(keys.centered),
+		-- Slider body capsule meshes use a depth prepass to avoid blending
+		-- overlap at curved path segments.
+		depth = true,
 		displayindex = settings:getNumber(keys.display),
 		fullscreen = settings:getBoolean(keys.fullscreen),
 		fullscreentype = settings:getChoice(keys.fullscreen_type),

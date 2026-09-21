@@ -27,11 +27,14 @@ end
 -- know which native mode is active.
 function Playfield:refresh()
 	local engine = self.game.rhythm_engine
+	local previous = self.renderer
 	if engine and engine.aim_rules then self.renderer = self.aim
 	elseif engine and engine.catch_rules then self.renderer = self.catch
 	elseif engine and engine.taiko_rules then self.renderer = self.taiko
 	elseif engine and engine.sdvx_rules then self.renderer = self.sdvx
 	else self.renderer = nil end
+	if previous and previous ~= self.renderer then previous:unload() end
+	if self.renderer then self.renderer:load() end
 end
 
 ---@return boolean

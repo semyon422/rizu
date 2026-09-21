@@ -1,12 +1,12 @@
-local class = require("class")
+local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 
 ---@class rizu.gameplay.views.TaikoPlayfield
 ---@operator call: rizu.gameplay.views.TaikoPlayfield
-local TaikoPlayfield = class()
+local TaikoPlayfield = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
 function TaikoPlayfield:new(game)
-	self.game = game
+	PlayfieldRenderer.new(self, game)
 end
 
 ---@param width number Gameplay viewport width in drawable pixels

@@ -1,12 +1,12 @@
-local class = require("class")
+local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 
 ---@class rizu.gameplay.views.CatchPlayfield
 ---@operator call: rizu.gameplay.views.CatchPlayfield
-local CatchPlayfield = class()
+local CatchPlayfield = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
 function CatchPlayfield:new(game)
-	self.game = game
+	PlayfieldRenderer.new(self, game)
 end
 
 ---@param width number Gameplay viewport width in drawable pixels

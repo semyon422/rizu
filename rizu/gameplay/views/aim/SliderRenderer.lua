@@ -8,17 +8,16 @@ local SliderRenderer = {}
 ---@param radius number
 ---@param time number
 ---@param preempt number
-function SliderRenderer.draw(object, slider, radius, time, preempt)
+---@param graphics rizu.gameplay.views.aim.SliderGraphics
+---@param index integer
+function SliderRenderer.draw(object, slider, radius, time, preempt, graphics, index)
 	local end_age = time - slider.timing.end_time
 	if end_age >= Shared.slider_fade_out then return end
 	local alpha = Shared.circleAlpha(preempt - (object.time - time)) * Shared.sliderFadeOutAlpha(end_age)
 	if alpha <= 0 then return end
 
-	local points = slider.path.points
-	love.graphics.setLineWidth(radius * 2)
-	love.graphics.setColor(0.16, 0.33, 0.46, alpha)
-	for j = 2, #points do love.graphics.line(points[j - 1][1], points[j - 1][2], points[j][1], points[j][2]) end
-	for _, point in ipairs(points) do love.graphics.circle("fill", point[1], point[2], radius) end
+	local snake_end = math.min(1, math.max(0, (time - (object.time - preempt)) / math.max(preempt / 3, 1e-9)))
+	graphics:draw(index, alpha, 0, snake_end)
 
 	love.graphics.setLineWidth(2)
 	love.graphics.setColor(0.85, 0.95, 1, alpha)
