@@ -1,5 +1,8 @@
 local class = require("class")
 local Spinner = require("rizu.gameplay.aim.Spinner")
+local CircleRenderer = require("rizu.gameplay.views.aim.CircleRenderer")
+local SliderRenderer = require("rizu.gameplay.views.aim.SliderRenderer")
+local SpinnerRenderer = require("rizu.gameplay.views.aim.SpinnerRenderer")
 
 ---@class rizu.gameplay.views.AimPlayfield
 ---@operator call: rizu.gameplay.views.AimPlayfield
@@ -61,55 +64,14 @@ function AimPlayfield:draw(width, height, transform)
 		local object = objects[i]
 		local spinner = rules.spinners[i]
 		if spinner and not rules.states[i] then
-			local x, y = Spinner.center_x, Spinner.center_y
-			local progress = math.min(1, spinner:getTurns() / spinner.required_turns)
-			love.graphics.setColor(0.12, 0.2, 0.3)
-			love.graphics.circle("fill", x, y, 150)
-			love.graphics.setColor(0.8, 0.9, 1)
-			love.graphics.circle("line", x, y, 150)
-			local remaining = math.max(0, math.min(1, (spinner.end_time - time) / (spinner.end_time - spinner.start_time)))
-			love.graphics.circle("line", x, y, 40 + 100 * remaining)
-			love.graphics.setColor(0.3, 1, 0.6)
-			if progress > 0 then love.graphics.arc("line", "open", x, y, 155, -math.pi / 2, -math.pi / 2 + 2 * math.pi * progress) end
-			love.graphics.setColor(1, 0.8, 0.3)
-			love.graphics.circle("line", x, y, Spinner.dead_radius)
-			local angle = spinner.last_angle or 0
-			love.graphics.line(x, y, x + 100 * math.cos(angle), y + 100 * math.sin(angle))
+			SpinnerRenderer.draw(spinner, time)
 		end
 		local slider = rules.sliders[i]
 		if slider and not rules.states[i] then
-			local points = slider.path.points
-			love.graphics.setLineWidth(rules.radius * 2)
-			love.graphics.setColor(0.16, 0.33, 0.46)
-			for j = 2, #points do
-				love.graphics.line(points[j - 1][1], points[j - 1][2], points[j][1], points[j][2])
-			end
-			for _, p in ipairs(points) do love.graphics.circle("fill", p[1], p[2], rules.radius) end
-			love.graphics.setLineWidth(2)
-			love.graphics.setColor(0.85, 0.95, 1)
-			for _, checkpoint in ipairs(slider.timing.checkpoints) do
-				if checkpoint.time >= time then
-					local x, y = slider.path:position(checkpoint.progress)
-					if checkpoint.kind == "tick" then love.graphics.circle("fill", x, y, 4)
-					elseif checkpoint.kind == "repeat" then love.graphics.circle("line", x, y, rules.radius * 0.6) end
-				end
-			end
-			if time >= object.time then
-				local x, y = slider.path:position(slider.timing:progress(time))
-				love.graphics.setColor(1, 0.75, 0.2)
-				love.graphics.circle("line", x, y, rules.radius)
-				love.graphics.circle("fill", x, y, 6)
-				love.graphics.setColor(1, 0.85, 0.5, 0.3)
-				love.graphics.circle("line", x, y, rules.radius * 2.4)
-			end
+			SliderRenderer.draw(object, slider, rules.radius, time, rules.preempt)
 		end
 		if not spinner and not rules.heads[i] then
-			love.graphics.setColor(0.16, 0.4, 0.58)
-			love.graphics.circle("fill", object.x, object.y, rules.radius)
-			love.graphics.setColor(0.8, 0.92, 1)
-			love.graphics.circle("line", object.x, object.y, rules.radius)
-			local approach = 1 + 3 * math.max(0, (object.time - time) / rules.preempt)
-			love.graphics.circle("line", object.x, object.y, rules.radius * approach)
+			CircleRenderer.draw(object, rules.radius, time, rules.preempt)
 		end
 	end
 	for i = #rules.events, math.max(1, #rules.events - 20), -1 do
