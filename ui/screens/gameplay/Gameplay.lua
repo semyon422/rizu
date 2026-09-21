@@ -1,4 +1,5 @@
 local GameplayPlayfield = require("rizu.gameplay.Playfield")
+local View = require("gui.View")
 local Label = require("ui.views.Label")
 local Screen = require("gui.Screen")
 local SequenceView = require("sphere.views.SequenceView")
@@ -31,7 +32,11 @@ function Gameplay:new(ui)
 	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
 	self.bga_view:anchorPercent(0, 0, 1, 1)
 	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
-	self.gameplay_playfield = self.root:add(GameplayPlayfield(self.game)):anchorFill(0, 0, 0, 0)
+	self.gameplay_playfield = GameplayPlayfield(self.game)
+	self.gameplay_playfield_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
+	self.gameplay_playfield_view:setDraw(function()
+		self:drawGameplayPlayfield()
+	end)
 	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
 	self.aim_summary:setAlignment(0.5, 0.5)
 	self.aim_summary:setVisible(false)
@@ -61,8 +66,8 @@ function Gameplay:enter()
 	self.is_sdvx = self.game.rhythm_engine.sdvx_rules ~= nil
 	self.is_taiko = self.game.rhythm_engine.taiko_rules ~= nil
 	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
-	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.gameplay_playfield:refresh()
+	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.aim_summary:setVisible(false)
 	self.sequence_canvas:setVisible(not self.is_aim)
 	if not self.is_aim then
@@ -83,21 +88,56 @@ function Gameplay:enter()
 	self.restart_overlay:reset()
 
 	local cfg = self.ui.config
-	local width = cfg:getNumber(cfg.keys.gameplay_viewport_sx)
-	local height = cfg:getNumber(cfg.keys.gameplay_viewport_sy)
+	local viewport_width = cfg:getNumber(cfg.keys.gameplay_viewport_sx)
+	local viewport_height = cfg:getNumber(cfg.keys.gameplay_viewport_sy)
 	local align_x = cfg:getNumber(cfg.keys.gameplay_viewport_x)
 	local align_y = cfg:getNumber(cfg.keys.gameplay_viewport_y)
-	local min_x = align_x * (1 - width)
-	local min_y = align_y * (1 - height)
-	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + width, min_y + height)
+	local min_x = align_x * (1 - viewport_width)
+	local min_y = align_y * (1 - viewport_height)
+	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + viewport_width, min_y + viewport_height)
 
 	self.root:fadeIn(0.4, "OutQuint")
 	if self.gameplay_playfield:usesPointer() then
 		self:flush()
 		local x, y = love.mouse.getPosition()
-		x, y = self.gameplay_playfield:toChart(x, y)
+		x, y = self:toGameplayChart(x, y)
 		self.gameplay_interactor:aimPointer(x, y, self.game.global_timer:getTime())
 	end
+end
+
+---@return number
+---@return number
+---@return love.Transform Maps viewport coordinates to drawable pixels
+function Gameplay:getGameplayViewport()
+	local cfg = self.ui.config
+	local width = self.width * cfg:getNumber(cfg.keys.gameplay_viewport_sx)
+	local height = self.height * cfg:getNumber(cfg.keys.gameplay_viewport_sy)
+	local transform = love.math.newTransform()
+	transform:translate(
+		(self.width - width) * cfg:getNumber(cfg.keys.gameplay_viewport_x),
+		(self.height - height) * cfg:getNumber(cfg.keys.gameplay_viewport_y)
+	)
+	return width, height, transform
+end
+
+-- Gameplay renderers operate in drawable pixels. This UI-owned bridge cancels
+-- the retained UI scale and supplies the configured viewport explicitly.
+function Gameplay:drawGameplayPlayfield()
+	if not self.gameplay_playfield:isExperimental() then return end
+	local width, height, transform = self:getGameplayViewport()
+	love.graphics.push("all")
+	love.graphics.scale(1 / self.ui_scale)
+	self.gameplay_playfield:draw(width, height, transform)
+	love.graphics.pop()
+end
+
+---@param x number Window x coordinate in drawable pixels
+---@param y number Window y coordinate in drawable pixels
+---@return number
+---@return number
+function Gameplay:toGameplayChart(x, y)
+	local width, height, transform = self:getGameplayViewport()
+	return self.gameplay_playfield:toChart(x, y, width, height, transform)
 end
 
 function Gameplay:exit()
@@ -263,7 +303,7 @@ function Gameplay:receive(event)
 			end
 		end
 		if self.gameplay_playfield:usesPointer() and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
-			local x, y = self.gameplay_playfield:toChart(event[1], event[2])
+			local x, y = self:toGameplayChart(event[1], event[2])
 			self.gameplay_interactor:aimPointer(x, y, event.time)
 		end
 		self.gameplay_interactor:receive(event)
