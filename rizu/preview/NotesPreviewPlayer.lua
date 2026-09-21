@@ -28,7 +28,18 @@ function NotesPreviewPlayer:setChartview(chartview)
 	if not self.settings:getBoolean(Settings.keys.select.chart_preview) or not chartview then
 		return
 	end
-	local columns = InputMode(assert(chartview.chartdiff_inputmode)):getColumns()
+
+	-- The compact preview is VSRG-only. Native osu!/taiko/catch charts do not
+	-- have a chart diff suitable for its column renderer.
+	if chartview.chartmeta_mode and chartview.chartmeta_mode ~= "mania" then
+		return
+	end
+
+	local inputmode = chartview.chartdiff_inputmode
+	if not inputmode then
+		return
+	end
+	local columns = InputMode(inputmode):getColumns()
 	local ok, notes = pcall(NotesPreview, chartview.notes_preview or "", columns)
 	if not ok then
 		return false

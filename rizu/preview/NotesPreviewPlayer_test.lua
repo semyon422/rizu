@@ -29,6 +29,10 @@ function test.selection_settings_and_clear(t)
 	player:setChartview(cv)
 	t:eq(player.notes, nil)
 	enabled = true
+	player:setChartview({chartmeta_mode = "osu", chartdiff_inputmode = "1osu", notes_preview = "bad"})
+	t:eq(player.notes, nil)
+	player:setChartview({chartmeta_mode = "taiko", notes_preview = "bad"})
+	t:eq(player.notes, nil)
 	cv.notes_preview = "bad"
 	t:eq(player:setChartview(cv), false)
 	t:eq(player.notes, nil)
