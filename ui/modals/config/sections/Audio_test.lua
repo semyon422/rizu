@@ -76,6 +76,29 @@ function test.latency_preset_binds_audio_setting(t)
 end
 
 ---@param t testing.T
+function test.music_playback_mode_binds_audio_setting(t)
+	local settings, _, controls = createAudioControls()
+	---@type ui.views.form.SegmentedControl?
+	local music_mode_control
+	for _, control in ipairs(controls) do
+		if SegmentedControl * control then
+			local segmented = control --[[@as ui.views.form.SegmentedControl]]
+			if segmented.setting_key == Settings.keys.audio.mode_primary then
+				music_mode_control = segmented
+			end
+			t:ne(segmented.setting_key, Settings.keys.audio.mode_secondary)
+		end
+	end
+
+	local keys = Settings.keys.audio
+	assert(music_mode_control)
+	t:tdeq(music_mode_control.options, {"bass_sample", "bass_fx_tempo"})
+	music_mode_control:setValue("bass_sample", true)
+	t:eq(settings:getChoice(keys.mode_primary), "bass_sample")
+	t:eq(settings:getChoice(keys.mode_secondary), "bass_sample")
+end
+
+---@param t testing.T
 function test.custom_latency_exposes_period_and_buffer(t)
 	local _, _, controls = createAudioControls("custom")
 	---@type {[string]: boolean}

@@ -24,6 +24,13 @@ local function formatVolumeScale(value)
 	return value:sub(1, 1):upper() .. value:sub(2)
 end
 
+---@param value string
+---@param localization ui.localization.Localization
+---@return string formatted
+local function formatAudioMode(value, localization)
+	return localization:get("settings.audio_mode_" .. value)
+end
+
 ---@param value number
 ---@return number decibels
 local function toDecibels(value)
@@ -102,6 +109,14 @@ function Audio:new(settings, localization, audio_model, form, popup_container)
 				format = formatVolumeScale,
 				on_change = function()
 					section:invalidate()
+				end,
+			})
+			controls[#controls + 1] = ControlFactory.segmentedChoice(settings, keys.mode_primary, {
+				name = localization:get("settings.music_playback_mode"),
+				keywords = {"audio", "music", "playback", "tempo", "bass"},
+				tip = localization:get("settings.music_playback_mode_tip"),
+				format = function(value)
+					return formatAudioMode(value, localization)
 				end,
 			})
 			if audio_model then
