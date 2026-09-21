@@ -131,7 +131,7 @@ function ScoreList:reload()
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),
 			color = getColorFromScore(v.score or 0),
-			avatar_url = v.user_avatar,
+			avatar_url = is_local and user and user.avatar or v.user_avatar,
 		})
 	end
 
