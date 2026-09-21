@@ -312,9 +312,9 @@ function PreviewModel:loadPreview()
 	end
 	local notes_valid = self.chartPreview:setChartview(self.chartview)
 
+	-- Keep the decoder and current position when charts share an audio path,
+	-- regardless of chart-specific preview metadata.
 	local audio_needs_reload = (self.loaded_audio_path ~= path)
-		or (self.loaded_preview_time ~= preview_time)
-		or (self.loaded_mode ~= mode)
 		or (path == "")
 
 	if audio_needs_reload then
@@ -358,7 +358,8 @@ function PreviewModel:loadPreview()
 		local audio_exists = media.audio_exists
 		local bga_exists = media.bga_exists
 
-		if audio_exists and self.loaded_audio_hash ~= hash then
+		if audio_exists and self.loaded_audio_hash ~= hash
+			and (audio_needs_reload or self.loaded_audio_hash == nil) then
 			self.loaded_audio_hash = hash
 			self.audioPreviewPlayer:load(audio_preview_path, get_preview_resource_dir(self.chartview))
 			self.audioPreviewPlayer:setVolume(volume)
