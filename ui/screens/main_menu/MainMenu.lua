@@ -7,6 +7,7 @@ local MainMenuButton = require("ui.screens.main_menu.MainMenuButton")
 local MainMenuBackground = require("ui.screens.main_menu.MainMenuBackground")
 local Label = require("ui.views.Label")
 local Colors = require("ui.Colors")
+local UiActions = require("ui.UiActions")
 
 ---@class ui.screens.main_menu.MainMenu : gui.Screen
 ---@operator call: ui.screens.main_menu.MainMenu
@@ -68,6 +69,13 @@ function MainMenu:exit()
 	self.root:scaleTo(0.95, 0.95, 0.2)
 	self.root:fadeOut(0.3, "OutCubic")
 	return true
+end
+
+---@param inputs gui.Inputs
+function MainMenu:onHandleInputs(inputs)
+	if inputs:consumeActionJustPressed(UiActions.accept) then
+		self.ui:setScreen(self.ui.song_select, true)
+	end
 end
 
 function MainMenu:createButtons()

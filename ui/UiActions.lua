@@ -35,6 +35,7 @@ UiActions.master_volume_decrease = "global.master_volume_decrease"
 UiActions.editor_toggle_playback = "editor.toggle_playback"
 UiActions.toggle_audio_preview = "toggle_audio_preview"
 UiActions.refresh_song_select = "ui.refresh_song_select"
+UiActions.open_modifiers = "ui.open_modifiers"
 
 ---@param config ui.UiConfig
 ---@return gui.input.ActionMap
@@ -110,6 +111,7 @@ function UiActions.createMap(config)
 	actions:defineAction(UiActions.move_to_end, {{key = "end", allow_repeat = true}})
 	actions:defineAction(UiActions.clear_field, {{control = true, key = "backspace"}})
 	actions:defineAction(UiActions.refresh_song_select, {{key = "f5"}})
+	actions:defineAction(UiActions.open_modifiers, {{key = "f1"}})
 	return actions
 end
 

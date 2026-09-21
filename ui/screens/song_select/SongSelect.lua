@@ -200,7 +200,9 @@ end
 ---@param inputs gui.Inputs
 function SongSelect:onHandleInputs(inputs)
 	local game = self.ui.game
-	if inputs:consumeActionJustPressed(UiActions.select_random) then
+	if inputs:consumeActionJustPressed(UiActions.open_modifiers) then
+		self.ui.modal_manager:attachModifiers()
+	elseif inputs:consumeActionJustPressed(UiActions.select_random) then
 		game.chartSelector:scrollRandom()
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then
 		game.timeRateModel:increase(-1)
