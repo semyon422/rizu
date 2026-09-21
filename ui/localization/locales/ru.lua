@@ -291,6 +291,7 @@ return {
 	["song_select.filter_no"] = "Нет",
 	["song_select.played"] = "Сыграно",
 	["song_select.scratch"] = "Скрэтч",
+	["song_select.format"] = "Формат",
 	["song_select.original_input_mode"] = "Исходный режим",
 	["song_select.actual_input_mode"] = "Конечный режим",
 	["song_select.modifiers_title"] = "Моды",

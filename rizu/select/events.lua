@@ -36,6 +36,9 @@
 ---@field type "chartplay_scrolled"
 ---@field chartplay sea.Chartplay
 
+---@class rizu.select.FiltersChangedEvent
+---@field type "filters_changed"
+
 ---@class rizu.select.SearchStringChangedEvent
 ---@field type "search_string_changed"
 ---@field search_string string
@@ -83,6 +86,9 @@
 ---| rizu.select.ChartplayScrolledEvent
 ---| rizu.select.ScoreStoreItemsChangedEvent
 
+---@alias rizu.select.FilterModelEvent
+---| rizu.select.FiltersChangedEvent
+
 ---@alias rizu.select.SearchModelEvent
 ---| rizu.select.SearchStringChangedEvent
 
@@ -101,6 +107,7 @@
 
 ---@alias rizu.select.Event
 ---| rizu.select.SelectionStateEvent
+---| rizu.select.FilterModelEvent
 ---| rizu.select.SearchModelEvent
 ---| rizu.select.ChartSelectorEvent
 ---| rizu.select.ScoreSelectorEvent
@@ -117,6 +124,9 @@
 
 ---@alias rizu.select.ScoreSelectorEventReceiver fun(event: rizu.select.ScoreSelectorEvent)
 ---@alias rizu.select.ScoreSelectorEventObserver {receive: fun(self: table, event: rizu.select.ScoreSelectorEvent)}
+
+---@alias rizu.select.FilterModelEventReceiver fun(event: rizu.select.FilterModelEvent)
+---@alias rizu.select.FilterModelEventObserver {receive: fun(self: table, event: rizu.select.FilterModelEvent)}
 
 ---@alias rizu.select.SearchModelEventReceiver fun(event: rizu.select.SearchModelEvent)
 ---@alias rizu.select.SearchModelEventObserver {receive: fun(self: table, event: rizu.select.SearchModelEvent)}

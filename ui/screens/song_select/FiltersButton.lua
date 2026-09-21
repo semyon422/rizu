@@ -29,6 +29,9 @@ function FiltersButton:getValueLabel()
 	if filter_model:hasActiveFilters("scratch") then
 		active = active + 1
 	end
+	if filter_model:hasActiveFilters("format") then
+		active = active + 1
+	end
 	if filter_model:hasActiveFilters("original input mode") then
 		active = active + 1
 	end

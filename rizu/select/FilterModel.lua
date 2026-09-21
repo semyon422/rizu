@@ -1,9 +1,11 @@
 local class = require("class")
+local Observable = require("Observable")
 local table_util = require("table_util")
 
 ---@class rizu.select.FilterModel
 ---@operator call: rizu.select.FilterModel
 ---@field combined_filters rdb.Conditions[]
+---@field observable util.Observable
 local FilterModel = class()
 
 local input_mode_fields = {
@@ -16,6 +18,24 @@ function FilterModel:new(configModel)
 	self.configModel = configModel
 	---@type rdb.Conditions[]
 	self.combined_filters = {}
+	self.observable = Observable()
+end
+
+---@param observer rizu.select.FilterModelEventObserver|rizu.select.FilterModelEventReceiver
+---@return util.Observer
+function FilterModel:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function FilterModel:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
+function FilterModel:emitChanged()
+	self.observable:send({type = "filters_changed"})
 end
 
 ---@param group_name string
@@ -38,15 +58,26 @@ function FilterModel:setFilter(group_name, filter_name, is_active)
 end
 
 ---@param group_name string
+---@param values string[]
+function FilterModel:setInputModes(group_name, values)
+	assert(input_mode_fields[group_name], "unknown input mode filter group")
+	self:setValues(group_name, values)
+end
+
+---@param group_name string
 ---@return string[]
 function FilterModel:getInputModes(group_name)
 	assert(input_mode_fields[group_name], "unknown input mode filter group")
+	return self:getValues(group_name)
+end
+
+---@param group_name string
+---@return string[]
+function FilterModel:getValues(group_name)
 	local selected = self.configModel.configs.select.selected_filters[group_name] or {}
 	local values = {}
 	for value, active in pairs(selected) do
-		if active then
-			values[#values + 1] = value
-		end
+		if active then values[#values + 1] = value end
 	end
 	table.sort(values)
 	return values
@@ -54,8 +85,7 @@ end
 
 ---@param group_name string
 ---@param values string[]
-function FilterModel:setInputModes(group_name, values)
-	assert(input_mode_fields[group_name], "unknown input mode filter group")
+function FilterModel:setValues(group_name, values)
 	local selected = {}
 	for _, value in ipairs(values) do
 		selected[value] = true
@@ -65,7 +95,7 @@ end
 
 function FilterModel:clearFilters()
 	self.configModel.configs.select.selected_filters = {}
-	self:apply()
+	self:commit()
 end
 
 ---@param group_name string
@@ -143,6 +173,11 @@ function FilterModel:apply()
 		end
 	end
 	self.combined_filters = combined_filters
+end
+
+function FilterModel:commit()
+	self:apply()
+	self:emitChanged()
 end
 
 return FilterModel

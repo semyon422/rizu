@@ -11,7 +11,7 @@ function test.set_filter_updates_both_options_and_refreshes(t)
 		setFilter = function(_, group, name, active)
 			selected[group .. "/" .. name] = active
 		end,
-		apply = function()
+		commit = function()
 			applied = applied + 1
 		end,
 	}

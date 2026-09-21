@@ -280,6 +280,7 @@ return {
 	["song_select.filter_no"] = "No",
 	["song_select.played"] = "Jugado",
 	["song_select.scratch"] = "Scratch",
+	["song_select.format"] = "Formato",
 	["song_select.original_input_mode"] = "Modo de entrada original",
 	["song_select.actual_input_mode"] = "Modo de entrada actual",
 	["song_select.modifiers_title"] = "Modificadores de jugabilidad",

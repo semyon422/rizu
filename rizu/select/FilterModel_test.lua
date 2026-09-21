@@ -23,6 +23,21 @@ function test.applies_dynamic_input_modes(t)
 end
 
 ---@param t testing.T
+function test.emits_when_filters_are_committed(t)
+	local model = createModel()
+	local events = {}
+	model:onChanged(function(event)
+		events[#events + 1] = event.type
+	end)
+
+	model:setValues("format", {"osu"})
+	model:commit()
+	model:clearFilters()
+
+	t:teq(events, {"filters_changed", "filters_changed"})
+end
+
+---@param t testing.T
 function test.preserves_legacy_input_mode_selections(t)
 	local model = createModel({
 		["original input mode"] = {['7K'] = true, ['5K'] = false},

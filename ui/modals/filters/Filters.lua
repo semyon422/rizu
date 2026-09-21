@@ -1,5 +1,6 @@
 local Colors = require("ui.Colors")
 local Form = require("ui.views.form.Form")
+local FormatMultiSelect = require("ui.views.form.FormatMultiSelect")
 local FormSelection = require("ui.views.form.FormSelection")
 local Label = require("ui.views.Label")
 local ModalView = require("ui.ModalView")
@@ -14,15 +15,17 @@ local InputModeMultiSelect = require("ui.views.form.InputModeMultiSelect")
 ---@class ui.modals.filters.Filters : ui.ModalView
 ---@operator call: ui.modals.filters.Filters
 ---@field game sphere.GameController
+---@field filter_model_observer util.Observer
 ---@field form ui.views.form.Form
 ---@field played ui.views.form.SegmentedControl
 ---@field scratch ui.views.form.SegmentedControl
+---@field formats ui.views.form.FormatMultiSelect
 ---@field original_input_modes ui.views.form.InputModeMultiSelect
 ---@field actual_input_modes ui.views.form.InputModeMultiSelect
 local Filters = ModalView + {}
 
 local MODAL_WIDTH = 700
-local MODAL_HEIGHT = 440
+local MODAL_HEIGHT = 560
 local CONTENT_X = 50
 local CONTENT_Y = 88
 local OPTIONS = {"any", "yes", "no"}
@@ -50,6 +53,7 @@ function Filters:new(game, popup_container, localization)
 	ModalView.new(self)
 		local function formatValue(value) return localization:get("song_select.filter_" .. value) end
 	self.game = game
+	self.filter_model_observer = nil
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
@@ -100,6 +104,12 @@ function Filters:new(game, popup_container, localization)
 			self:setFilter("scratch", "has scratch", "has not scratch", value)
 		end,
 	}))
+	self.formats = self.form:add(FormatMultiSelect({
+		label = localization:get("song_select.format"),
+		on_change = function(values)
+			self:setValues("format", values)
+		end,
+	}))
 	self.original_input_modes = self.form:add(InputModeMultiSelect({
 		label = localization:get("song_select.original_input_mode"),
 		popup_container = popup_container,
@@ -126,25 +136,52 @@ function Filters:setFilter(group, positive, negative, value)
 	local filter_model = chart_selector.filterModel
 	filter_model:setFilter(group, positive, value == "yes")
 	filter_model:setFilter(group, negative, value == "no")
-	filter_model:apply()
-	chart_selector:noDebounceRefresh()
+	filter_model:commit()
 end
 
 ---@param group string
 ---@param values string[]
 function Filters:setInputModes(group, values)
-	local chart_selector = self.game.chartSelector
-	chart_selector.filterModel:setInputModes(group, values)
-	chart_selector.filterModel:apply()
-	chart_selector:noDebounceRefresh()
+	self:setValues(group, values)
 end
 
-function Filters:show()
+---@param group string
+---@param values string[]
+function Filters:setValues(group, values)
+	local chart_selector = self.game.chartSelector
+	chart_selector.filterModel:setValues(group, values)
+	chart_selector.filterModel:commit()
+end
+
+function Filters:sync()
 	local filter_model = self.game.chartSelector.filterModel
 	self.played:setValue(getValue(filter_model, "(not) played", "played", "not played"))
 	self.scratch:setValue(getValue(filter_model, "scratch", "has scratch", "has not scratch"))
+	self.formats:setValues(filter_model:getValues("format"))
 	self.original_input_modes:setValues(filter_model:getInputModes("original input mode"))
 	self.actual_input_modes:setValues(filter_model:getInputModes("actual input mode"))
+end
+
+---@param event rizu.select.FilterModelEvent
+function Filters:receive(event)
+	if event.type == "filters_changed" then self:sync() end
+end
+
+function Filters:load()
+	ModalView.load(self)
+	self.filter_model_observer = self.game.chartSelector.filterModel:onChanged(self)
+end
+
+function Filters:unload()
+	if self.filter_model_observer then
+		self.game.chartSelector.filterModel:offChanged(self.filter_model_observer)
+		self.filter_model_observer = nil
+	end
+	ModalView.unload(self)
+end
+
+function Filters:show()
+	self:sync()
 	self:setVisible(true)
 	self:fadeIn(0.3, "OutCubic")
 end
