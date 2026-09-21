@@ -54,10 +54,9 @@ function Source:new(decoder, use_tempo, decode_output)
 		self.channel = source_channel
 	end
 
-	-- Reduce playback buffer to minimum for lowest latency
-	if use_tempo then -- Push streams (using STREAMPROC_PUSH) are also unaffected
-		bass.BASS_ChannelSetAttribute(self.channel, bass_flags.BASS_ATTRIB_BUFFER, 0)
-	end
+	-- Keep BASS's playback buffer empty: Source maintains its own 0.5 s push queue.
+	-- Otherwise ChannelGetPosition gets ahead of audible audio in sample mode.
+	bass_assert(bass.BASS_ChannelSetAttribute(self.channel, bass_flags.BASS_ATTRIB_BUFFER, 0) == 1)
 
 	self.frame_size = decoder:getChannelCount() * decoder:getBytesPerSample()
 
@@ -157,33 +156,18 @@ function Source:getFFT()
 end
 
 ---@private
-function Source:getNeedBytesSource()
+---@return integer
+function Source:getNeedBytes()
+	-- Query the push stream itself. BASS_ChannelGetData(..., BASS_DATA_AVAILABLE)
+	-- reports the playback channel's buffer, which is not the queued source PCM.
 	---@type integer
-	local available = bass.BASS_ChannelGetData(self.source_channel, nil, bass_flags.BASS_DATA_AVAILABLE)
+	local available = bass.BASS_StreamPutData(self.source_channel, nil, 0)
+	bass_assert(available ~= -1)
 	return self.buf_len - available
 end
 
----@private
-function Source:getNeedBytesTempo()
-	---@type integer
-	local available_source = bass.BASS_StreamPutData(self.source_channel, nil, 0)
-
-	---@type integer
-	-- local available_tempo = bass.BASS_ChannelGetData(self.channel, nil, bass_flags.BASS_DATA_AVAILABLE)
-
-	--- TODO: smooth
-
-	return self.buf_len - available_source
-end
-
 function Source:update()
-	local need_bytes = 0
-
-	if not self.use_tempo then
-		need_bytes = self:getNeedBytesSource()
-	else
-		need_bytes = self:getNeedBytesTempo()
-	end
+	local need_bytes = self:getNeedBytes()
 
 	if need_bytes <= 0 then
 		return
