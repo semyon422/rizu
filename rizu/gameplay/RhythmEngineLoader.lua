@@ -63,14 +63,6 @@ function RhythmEngineLoader:load(rhythm_engine)
 	rhythm_engine:setTimeToPrepare(settings:getNumber(keys.gameplay.time_prepare))
 	rhythm_engine:setAdjustFactor(settings:getNumber(keys.audio.adjust_rate))
 
-	local format_key = keys.audio.volume_keysounds_format[chartmeta.format]
-	local format_volume = format_key and settings:getNumber(format_key) or 1
-	rhythm_engine:setVolume({
-		master = settings:getNumber(keys.audio.volume_master),
-		music = settings:getNumber(keys.audio.volume_music),
-		keysounds = settings:getNumber(keys.audio.volume_keysounds) * format_volume,
-	})
-
 	rhythm_engine:setLongNoteShortening(settings:getNumber(keys.gameplay.long_note_shortening))
 	rhythm_engine:setVisualRate(
 		settings:getNumber(keys.gameplay.speed),

@@ -193,6 +193,7 @@ end
 function GameplayInteractor:load(autoplay)
 	local game = self.game
 
+	self:unloadVolume()
 	game:recreateRhythmEngine()
 	game.rhythm_engine.aim_stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
 	game.rhythm_engine.aim_tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
@@ -211,6 +212,7 @@ function GameplayInteractor:load(autoplay)
 	)
 	loader:setAudioEnabled(not self.audio_disabled)
 	loader:load(game.rhythm_engine)
+	self:loadVolume()
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
 	self.sdvx_input = game.rhythm_engine.sdvx_rules and SdvxInput() or nil
@@ -244,6 +246,46 @@ function GameplayInteractor:load(autoplay)
 	game.rhythm_engine:setGlobalTime(game.global_timer:getTime())
 end
 
+function GameplayInteractor:updateVolume()
+	local settings = self.game.settings
+	local keys = Settings.keys.audio
+	local format_key = keys.volume_keysounds_format[self.game.rhythm_engine.chartmeta.format]
+	local format_volume = format_key and settings:getNumber(format_key) or 1
+	self.game.rhythm_engine:setVolume({
+		master = settings:getNumber(keys.volume_master),
+		music = settings:getNumber(keys.volume_music),
+		keysounds = settings:getNumber(keys.volume_keysounds) * format_volume,
+	})
+end
+
+function GameplayInteractor:loadVolume()
+	local settings = self.game.settings
+	local keys = Settings.keys.audio
+	local format_key = keys.volume_keysounds_format[self.game.rhythm_engine.chartmeta.format]
+	local update_volume = function()
+		self:updateVolume()
+	end
+	self.unsubscribe_volume = {
+		settings:subscribeNumber(keys.volume_master, update_volume),
+		settings:subscribeNumber(keys.volume_music, update_volume),
+		settings:subscribeNumber(keys.volume_keysounds, update_volume),
+	}
+	if format_key then
+		table.insert(self.unsubscribe_volume, settings:subscribeNumber(format_key, update_volume))
+	end
+	self:updateVolume()
+end
+
+function GameplayInteractor:unloadVolume()
+	if not self.unsubscribe_volume then
+		return
+	end
+	for _, unsubscribe in ipairs(self.unsubscribe_volume) do
+		unsubscribe()
+	end
+	self.unsubscribe_volume = nil
+end
+
 ---@param frames rizu.ReplayFrame[]
 function GameplayInteractor:setReplayFrames(frames)
 	self.replay_frames = frames
@@ -253,6 +295,8 @@ function GameplayInteractor:setReplayFrames(frames)
 end
 
 function GameplayInteractor:unloadGameplay()
+	self:unloadVolume()
+
 	local re = self.game.rhythm_engine
 	if re and (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) and self.loaded then
 		self:saveAimReplay()
