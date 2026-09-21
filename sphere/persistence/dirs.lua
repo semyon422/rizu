@@ -4,6 +4,7 @@ local dirs_list = {
 	"userdata",
 	"userdata/pkg",
 	"userdata/skins",
+	"userdata/noteskins",
 	"userdata/charts",
 	"userdata/charts/downloads",
 	"userdata/charts/mapperatorinator",

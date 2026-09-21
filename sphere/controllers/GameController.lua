@@ -78,6 +78,7 @@ local GameInteractor = require("rizu.game.GameInteractor")
 
 local ResourceLoader = require("rizu.files.ResourceLoader")
 local ResourceFinder = require("rizu.files.ResourceFinder")
+local SkinRegistry = require("rizu.skin.SkinRegistry")
 
 local RhythmEngine = require("rizu.engine.RhythmEngine")
 
@@ -136,6 +137,7 @@ function GameController:new()
 	self.multiplayer_client.server_remote = self.seaClient.remote
 
 	self.noteSkinModel = NoteSkinModel(self.persistence.configModel, self.packageManager)
+	self.skinRegistry = SkinRegistry(self.fs)
 	self.inputModel = InputModel(self.persistence.configModel)
 	self.pauseModel = PauseModel(self.settings, self.rhythm_engine)
 	self.editorInput = EditorInput()
@@ -369,6 +371,7 @@ function GameController:load()
 	end)
 
 	self.noteSkinModel:load()
+	self.skinRegistry:load()
 	self.dlcManager:load()
 	self.collectionSelector:load()
 	self.selectionCoordinator:load()

@@ -2,7 +2,6 @@ local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
-local NotesPreviewRenderer = require("ui.views.NotesPreviewRenderer")
 local BgaRenderer = require("ui.views.BgaRenderer")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
@@ -38,7 +37,7 @@ end
 ---@class ui.screens.song_select.SelectedSongPanel : gui.View
 ---@operator call: ui.screens.song_select.SelectedSongPanel
 ---@field bg_model sphere.BackgroundModel
----@field notes_renderer ui.views.NotesPreviewRenderer
+---@field playfield_renderer rizu.gameplay.views.PlayfieldRenderer?
 ---@field bga_renderer ui.views.BgaRenderer
 ---@field game sphere.GameController
 ---@field preview_canvas love.Canvas?
@@ -83,7 +82,6 @@ function SelectedSongPanel:new(bg_model, game, localization)
 	self.details_hidden_offset = 0
 	self.handles_mouse_input = true
 	self:setClip(true)
-	self.notes_renderer = NotesPreviewRenderer()
 	self.details_container = self:add(Details(self))
 	self.progress_bar = self.details_container:add(ProgressBar(game.previewModel))
 end
@@ -145,6 +143,15 @@ function SelectedSongPanel:bind(cvf)
 	self.details_opacity:snap(0):set(1)
 	self.title = cvf:getTitle()
 	self.artist = cvf:getArtist()
+
+	self.playfield_renderer = nil
+	local input_mode = cvf.chartview.chartdiff_inputmode
+	if input_mode and cvf.chartview.chartmeta_mode == "mania" and self.game.skinRegistry then
+		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode)
+		if skin then
+			self.playfield_renderer = skin.load(self.game, input_mode)
+		end
+	end
 end
 
 function SelectedSongPanel:drawBackground()
@@ -177,7 +184,10 @@ function SelectedSongPanel:drawBackground()
 		self.bga_renderer:draw(bga_engine, preview_model:getTime(), w, h)
 	end
 
-	self.notes_renderer:draw(self.game.previewModel.chartPreview, w, h)
+	local player = self.game.previewModel.chartPreview
+	if self.playfield_renderer then
+		self.playfield_renderer:drawPreview(player, w, h)
+	end
 	lg.pop()
 
 	lg.draw(self.preview_canvas)
