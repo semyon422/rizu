@@ -191,6 +191,32 @@ function test.prefers_omnimix_metadata_at_same_version(t)
 end
 
 ---@param t testing.T
+function test.scans_large_catalog_without_transaction_boundaries(t)
+	local fs = create_fs()
+	---@type chart.iidx.TestMusicSong[]
+	local songs = {}
+	for song_id = 1, 1000 do
+		songs[song_id] = {
+			song_id = song_id,
+			title = "Song " .. song_id,
+			artist = "Fixture Artist",
+			genre = "Fixture Genre",
+		}
+	end
+	fs:write("data/info/0/music_data.bin", Fixtures.musicdb(songs))
+	local repo = FakeChartfilesRepo:new()
+	local context = FakeTaskContext()
+	local generator = FileCacheGenerator(repo, fs, context)
+
+	assert(generator:scan(nil, 1, "data"))
+
+	for _, action in ipairs(context.actions) do
+		t:ne(action[1], "dbCommit")
+		t:ne(action[1], "dbBegin")
+	end
+end
+
+---@param t testing.T
 function test.scans_metadata_listed_ifs_files(t)
 	local fs = create_fs()
 	local repo = FakeChartfilesRepo:new()

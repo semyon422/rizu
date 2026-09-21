@@ -73,10 +73,6 @@ function FileCacheGenerator:scan(root_dir, location_id, location_prefix)
 			print("iidx scan:", label)
 			self.taskContext:report(label)
 		end
-		if i % 1000 == 0 then
-			self.taskContext:dbCommit()
-			self.taskContext:dbBegin()
-		end
 	end
 	print(("iidx scan: discovered %d present chart sets"):format(discovered_count))
 	self.taskContext:report(("%d/%d metadata songs"):format(#catalog.songs, #catalog.songs))
