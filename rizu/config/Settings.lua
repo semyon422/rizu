@@ -128,6 +128,7 @@ local keys = {
 		volume_music = "audio.volume.music",
 		volume_keysounds = "audio.volume.keysounds",
 		volume_metronome = "audio.volume.metronome",
+		volume_ui = "audio.volume.ui",
 		volume_keysounds_format = {},
 		sample_gain = "audio.sample_gain",
 		adjust_rate = "audio.adjust_rate",
@@ -298,6 +299,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(a.volume_music, 1, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_keysounds, 1, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_metronome, 1, 0, 1, 0.01)
+	config:setDefaultNumber(a.volume_ui, 1, 0, 1, 0.01)
 	for _, key in pairs(a.volume_keysounds_format) do
 		config:setDefaultNumber(key, 1, 0, 1, 0.01)
 	end

@@ -142,6 +142,7 @@ return {
 	["settings.keysound_volume"] = "Кейсаунды",
 	["settings.format_keysound_volume"] = "Громкость кейсаундов {format}",
 	["settings.metronome_volume"] = "Метроном",
+	["settings.ui_volume"] = "Громкость интерфейса",
 	["settings.scroll_speed_type"] = "Тип скорости",
 	["settings.scroll_speed_type_tip"] = "Шкала скорости прокрутки.",
 	["settings.scroll_speed"] = "Скорость прокрутки",

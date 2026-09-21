@@ -168,6 +168,7 @@ function Audio:new(settings, localization, audio_model, form, popup_container)
 				{key = keys.volume_music, name = localization:get("settings.music_volume"), keyword = "music"},
 				{key = keys.volume_keysounds, name = localization:get("settings.keysound_volume"), keyword = "keysounds"},
 				{key = keys.volume_metronome, name = localization:get("settings.metronome_volume"), keyword = "metronome"},
+				{key = keys.volume_ui, name = localization:get("settings.ui_volume"), keyword = "ui"},
 			}
 			local function addVolume(key, name, keywords, tip)
 				controls[#controls + 1] = ControlFactory.number(settings, key, {

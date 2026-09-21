@@ -128,6 +128,7 @@ return {
 	["settings.keysound_volume"] = "Volumen de los sonidos de teclas",
 	["settings.format_keysound_volume"] = "Volumen de sonidos de teclas de {format}",
 	["settings.metronome_volume"] = "Volumen del metrónomo",
+	["settings.ui_volume"] = "Volumen de la interfaz",
 	["settings.scroll_speed_type"] = "Tipo de velocidad de desplazamiento",
 	["settings.scroll_speed"] = "Velocidad de desplazamiento",
 	["settings.auto_keysound"] = "Sonido automático de teclas",

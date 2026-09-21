@@ -1,5 +1,6 @@
 local RizuUserInterface = require("rizu.app.UserInterface")
 local Resources = require("ui.Resources")
+local Sounds = require("ui.Sounds")
 local MainMenu = require("ui.screens.main_menu.MainMenu")
 local SongSelect = require("ui.screens.song_select.SongSelect")
 local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
@@ -105,6 +106,7 @@ end
 
 function UserInterface:load()
 	Resources.load()
+	Sounds.load(self.game.settings)
 	self.tooltip = Tooltip()
 	self.main_menu = MainMenu(self)
 	self.song_select = SongSelect(self)

@@ -22,6 +22,8 @@ function test.settings_defaults(t)
 	t:eq(config:getString(Settings.keys.user_interface), "new")
 	local volume = config:getDefinition(Settings.keys.audio.volume_master)
 	t:eq(volume.min, 0)
+	local ui_volume = config:getDefinition(Settings.keys.audio.volume_ui)
+	t:eq(ui_volume.default, 1)
 	t:eq(volume.max, 1)
 	t:eq(volume.step, 0.01)
 end

@@ -1,13 +1,37 @@
 local Path = require("Path")
 local Sample = require("rizu.engine.audio.bass.Sample")
+local Settings = require("rizu.config.Settings")
 
 ---@class ui.Sounds
 local Sounds = {}
 Sounds.sounds_dir = "resources/yi/sounds"
-Sounds.sound_volume = 0.2
 Sounds.cache = {} ---@type {[string]: rizu.audio.bass.Sample}
+---@type rizu.config.Config?
+Sounds.settings = nil
 
-function Sounds.load() end
+---@return number
+function Sounds.getVolume()
+	local volume = 1
+	if Sounds.settings then
+		local keys = Settings.keys.audio
+		volume = volume * Sounds.settings:getNumber(keys.volume_master) * Sounds.settings:getNumber(keys.volume_ui)
+	end
+	return volume
+end
+
+---@param settings rizu.config.Config
+function Sounds.load(settings)
+	Sounds.settings = settings
+	local keys = Settings.keys.audio
+	local function updateVolume()
+		for _, sound in pairs(Sounds.cache) do
+			sound:setVolume(Sounds.getVolume())
+		end
+	end
+	settings:subscribeNumber(keys.volume_master, updateVolume)
+	settings:subscribeNumber(keys.volume_ui, updateVolume)
+	updateVolume()
+end
 
 ---@param name string
 ---@return rizu.audio.bass.Sample
@@ -18,7 +42,7 @@ function Sounds:loadSound(name)
 
 	local data = assert(love.filesystem.read(tostring(Path(Sounds.sounds_dir) .. name .. ".wav")))
 	local source = Sample(data)
-	source:setVolume(Sounds.sound_volume)
+	source:setVolume(Sounds.getVolume())
 	Sounds.cache[name] = source
 	return source
 end

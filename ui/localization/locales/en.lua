@@ -144,6 +144,7 @@ return {
 	["settings.keysound_volume"] = "Keysound volume",
 	["settings.format_keysound_volume"] = "{format} keysound volume",
 	["settings.metronome_volume"] = "Metronome volume",
+	["settings.ui_volume"] = "UI volume",
 	["settings.scroll_speed_type"] = "Scroll speed type",
 	["settings.scroll_speed"] = "Scroll speed",
 	["settings.auto_keysound"] = "Auto keysound",
