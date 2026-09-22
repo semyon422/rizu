@@ -2,6 +2,7 @@ local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
+local Settings = require("rizu.config.Settings")
 local BgaRenderer = require("ui.views.BgaRenderer")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
@@ -147,7 +148,9 @@ function SelectedSongPanel:bind(cvf)
 	self.playfield_renderer = nil
 	local input_mode = cvf.chartview.chartdiff_inputmode
 	if input_mode and cvf.chartview.chartmeta_mode == "mania" and self.game.skinRegistry then
-		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode)
+		local skin_key = Settings.keys.gameplay.skin[input_mode]
+		local skin_name = skin_key and self.game.settings:getString(skin_key)
+		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_name)
 		if skin then
 			self.playfield_renderer = skin.load(self.game, input_mode)
 		end

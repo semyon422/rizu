@@ -21,8 +21,8 @@ function test.timing_and_holds(t)
 		local data = SphPreview:encode(lines, version)
 		local preview = NotesPreview(data, 2)
 		t:tdeq(preview.columns, {
-			{{time = -2, end_time = 1}, {time = 2.5, end_time = 2.5}},
-			{{time = 1, end_time = 1}, {time = 4, end_time = 4}},
+			{{time = -2, end_time = 1, beat = 0}, {time = 2.5, end_time = 2.5, beat = 2.5}},
+			{{time = 1, end_time = 1, beat = 1.5}, {time = 4, end_time = 4, beat = 4}},
 		})
 		local sph = Sph()
 		sph.metadata:set("input", "2key")

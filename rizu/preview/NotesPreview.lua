@@ -4,6 +4,7 @@ local SphPreview = require("chart.format.sph.SphPreview")
 ---@class rizu.preview.PreviewNote
 ---@field time number
 ---@field end_time number
+---@field beat number
 
 ---@class rizu.preview.NotesPreview
 ---@operator call: rizu.preview.NotesPreview
@@ -58,7 +59,7 @@ function NotesPreview:new(data, column_count)
 		for column, press in pairs(line.notes or {}) do
 			assert(column <= column_count, "invalid preview column")
 			if press then
-				local note = {time = time, end_time = time}
+				local note = {time = time, end_time = time, beat = position}
 				local notes = self.columns[column]
 				notes[#notes + 1] = note
 				pressed[column] = note

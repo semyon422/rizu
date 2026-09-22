@@ -11,7 +11,6 @@ local path_util = require("path_util")
 ---@alias rizu.skin.SkinFormat
 ---| "lua"
 ---| "stepmania"
----| "osu"
 
 ---@class rizu.skin.SkinInfo
 ---@field path string
@@ -33,7 +32,9 @@ local SkinRegistry = class()
 ---@param path string?
 function SkinRegistry:new(fs, path)
 	self.fs = fs
-	self.path = path or "userdata/noteskins"
+	self.path = path or "userdata/dlc"
+	self.skins_rizu_path = path_util.join(self.path, "skins_rizu")
+	self.skins_stepmania_path = path_util.join(self.path, "skins_stepmania")
 	self.base_path = "rizu/skin/base"
 	self.skins = {}
 	self.errors = {}
@@ -121,21 +122,27 @@ end
 
 ---@param directory_path string
 ---@param format rizu.skin.SkinFormat
-function SkinRegistry:addExternalSkin(directory_path, format)
+---@param input_modes string[]?
+function SkinRegistry:addExternalSkin(directory_path, format, input_modes)
 	local name = directory_path:match("([^/]+)$") or directory_path
+	-- StepMania/Etterna NoteSkins are VSRG packages. Their game-type directory
+	-- determines the Mania keycounts they can render.
+	local metadata = {name = name, gamemode = "mania", input_modes = input_modes or {"4key"}}
+	local load = function(game, skin_input_mode)
+		return require("rizu.gameplay.views.StepmaniaRenderer")(game, directory_path, skin_input_mode)
+	end
 	table.insert(self.skins, {
 		path = directory_path,
 		directory_path = directory_path,
 		format = format,
-		metadata = {name = name},
-		load = function()
-			error(("%s skin loading is not implemented"):format(format))
-		end,
+		metadata = metadata,
+		load = load,
 	})
 end
 
 ---@param directory_path string
-function SkinRegistry:scan(directory_path)
+---@param input_modes string[]?
+function SkinRegistry:scanStepmania(directory_path, input_modes)
 	local items = self.fs:getDirectoryItems(directory_path)
 	table.sort(items)
 
@@ -145,14 +152,38 @@ function SkinRegistry:scan(directory_path)
 		local path = path_util.join(directory_path, name)
 		local info = self.fs:getInfo(path)
 		if info and info.type == "directory" then
+			-- StepMania accepts either NoteSkin.lua spelling; Linux does not.
 			if self.fs:getInfo(path_util.join(path, "NoteSkin.lua"))
+				or self.fs:getInfo(path_util.join(path, "Noteskin.lua"))
 				or self.fs:getInfo(path_util.join(path, "metrics.ini")) then
-				self:addExternalSkin(path, "stepmania")
-			elseif self.fs:getInfo(path_util.join(path, "skin.ini")) then
-				self:addExternalSkin(path, "osu")
+				self:addExternalSkin(path, "stepmania", input_modes)
 			elseif name ~= "__MACOSX" then
-				self:scan(path)
+				-- Etterna groups NoteSkins by game type. `common` contains shared
+				-- fallback assets, rather than playable skins.
+				local game_type_modes = {
+					dance = {"4key"},
+					kb7 = {"7key"},
+					popn = {"9key"},
+					pump = {"5key"},
+					beat = {"5key", "7key"},
+				}
+				local keymode = name:match("^%d+key$")
+				local modes = game_type_modes[name] or (keymode and {keymode}) or input_modes
+				if name ~= "common" then self:scanStepmania(path, modes) end
 			end
+		elseif info and info.type == "file" and name:lower():match("%.skin%.lua$") then
+			self:loadFile(path)
+		end
+	end
+end
+
+---@param directory_path string
+function SkinRegistry:scan(directory_path)
+	for _, name in ipairs(self.fs:getDirectoryItems(directory_path)) do
+		local path = path_util.join(directory_path, name)
+		local info = self.fs:getInfo(path)
+		if info and info.type == "directory" then
+			self:scan(path)
 		elseif info and info.type == "file" and name:lower():match("%.skin%.lua$") then
 			self:loadFile(path)
 		end
@@ -163,8 +194,11 @@ end
 function SkinRegistry:load()
 	self.skins = {}
 	self.errors = {}
-	if self.fs:getInfo(self.path) then
-		self:scan(self.path)
+	if self.fs:getInfo(self.skins_rizu_path) then
+		self:scan(self.skins_rizu_path)
+	end
+	if self.fs:getInfo(self.skins_stepmania_path) then
+		self:scanStepmania(self.skins_stepmania_path)
 	end
 	self:scan(self.base_path)
 	table.sort(self.skins, function(a, b)
@@ -189,15 +223,22 @@ end
 
 ---@param gamemode string
 ---@param input_mode string
+---@param name string?
 ---@return rizu.skin.SkinInfo?
-function SkinRegistry:getSkinForInputMode(gamemode, input_mode)
+function SkinRegistry:getSkinForInputMode(gamemode, input_mode, name)
+	-- Configured external-skin paths commonly come from directory pickers,
+	-- which retain a trailing slash unlike registry paths.
+	if name then
+		name = name:gsub("/+$", "")
+	end
 	local fallback
 	for _, skin in ipairs(self.skins) do
 		local metadata = skin.metadata
 		if metadata and metadata.gamemode == gamemode then
 			for _, supported_input_mode in ipairs(metadata.input_modes) do
 				if supported_input_mode == input_mode then
-					return skin
+					if name and (skin.path == name or metadata.name == name) then return skin end
+					fallback = fallback or skin
 				elseif supported_input_mode == "any" then
 					fallback = fallback or skin
 				end
