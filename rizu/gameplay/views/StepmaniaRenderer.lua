@@ -41,7 +41,9 @@ local directions = {
 local rotations = {Left = math.pi / 2, Down = 0, Up = math.pi, Right = -math.pi / 2}
 
 local function key(name)
-	return name:lower():gsub("%.[^%.]+$", ""):gsub(" %d+x%d+$", "")
+	-- Parenthesized suffixes such as "(stretch)" and "(res 64x64)" are
+	-- StepMania filename hints, not part of the noteskin element name.
+	return name:lower():gsub("%.[^%.]+$", ""):gsub("%s*%b()", ""):gsub(" %d+x%d+$", "")
 end
 
 ---@param game sphere.GameController
