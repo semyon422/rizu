@@ -24,6 +24,9 @@ function test.timing_and_holds(t)
 			{{time = -2, end_time = 1, beat = 0}, {time = 2.5, end_time = 2.5, beat = 2.5}},
 			{{time = 1, end_time = 1, beat = 1.5}, {time = 4, end_time = 4, beat = 4}},
 		})
+		t:eq(preview:getBeatAtTime(-2), 0)
+		t:eq(preview:getBeatAtTime(1), 1.5)
+		t:eq(preview:getBeatAtTime(2.5), 2.5)
 		local sph = Sph()
 		sph.metadata:set("input", "2key")
 		sph.metadata:set("title", "")

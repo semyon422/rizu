@@ -10,6 +10,7 @@ local SphPreview = require("chart.format.sph.SphPreview")
 ---@operator call: rizu.preview.NotesPreview
 ---@field columns rizu.preview.PreviewNote[][]
 ---@field end_times number[][] Cumulative maximum end times for interval lookup.
+---@field timing_vertices {beat: number, time: number}[]
 local NotesPreview = class()
 
 ---@param data string
@@ -46,6 +47,7 @@ function NotesPreview:new(data, column_count)
 		end
 	end
 	assert(#vertices >= 2, "missing preview timing vertices")
+	self.timing_vertices = vertices
 	---@type {[integer]: rizu.preview.PreviewNote}
 	local pressed = {}
 	local vertex_index = 1
@@ -78,6 +80,18 @@ function NotesPreview:new(data, column_count)
 			ends[i] = last
 		end
 	end
+end
+
+---@param time number
+---@return number
+function NotesPreview:getBeatAtTime(time)
+	local vertices = self.timing_vertices
+	local index = 1
+	while index < #vertices - 1 and time >= vertices[index + 1].time do
+		index = index + 1
+	end
+	local a, b = vertices[index], vertices[index + 1]
+	return a.beat + (time - a.time) * (b.beat - a.beat) / (b.time - a.time)
 end
 
 -- Includes holds starting before the window, including after a backward seek.
