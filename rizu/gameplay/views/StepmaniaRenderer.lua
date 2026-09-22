@@ -351,8 +351,10 @@ function StepmaniaRenderer:getActorTexture(path, depth)
 	-- first drawable child until the renderer draws actor trees directly.
 	for _, child in ipairs(actor) do
 		if type(child) == "table" then
-			local child_texture, child_actor = self:getActorTextureFromActor(child, depth)
-			if child_texture then return child_texture, child_actor end
+			local child_texture = self:getActorTextureFromActor(child, depth)
+			-- Preserve the ActorFrame definition so the StepMania Actor runtime
+			-- can construct and draw all of its children, not just this first one.
+			if child_texture then return child_texture, actor end
 		end
 	end
 end
@@ -376,6 +378,17 @@ end
 
 ---@param direction string
 ---@param element string
+---@param texture {button: string, element: string}
+---@return love.Image?
+---@return integer
+---@return integer
+function StepmaniaRenderer:resolveActorImage(texture)
+	local image = self:getImage(actor_path_key(texture))
+	if not image then return nil, 1, 1 end
+	local columns, rows = self:getGrid(image)
+	return image, columns, rows
+end
+
 ---@return love.Image?
 ---@return table?
 function StepmaniaRenderer:getElementActor(direction, element)
@@ -384,15 +397,27 @@ function StepmaniaRenderer:getElementActor(direction, element)
 	if cached then return cached.image, cached.actor end
 
 	local button, resolved_element = self:resolveElement(direction, element)
-	local texture, actor = self:getActorTexture(note_skin_path(button, resolved_element))
+	local candidates = {
+		note_skin_path(button, resolved_element),
+		note_skin_path("_" .. button, resolved_element),
+		note_skin_path("Down", resolved_element),
+		note_skin_path("_Down", resolved_element),
+	}
+	local texture, actor
+	for _, candidate in ipairs(candidates) do
+		texture, actor = self:getActorTexture(candidate)
+		if texture then break end
+	end
 	local image
 	if texture then
 		image = self:getImage(actor_path_key(texture))
 	else
-		image = self:getImage(button .. " " .. resolved_element)
-			or self:getImage("_" .. button .. " " .. resolved_element)
-			or self:getImage("Down " .. resolved_element)
-			or self:getImage("_Down " .. resolved_element)
+		-- A plain image does not have an actor script. Preserve the same button
+		-- fallback order used for actor resolution.
+		for _, candidate in ipairs(candidates) do
+			image = self:getImage(actor_path_key(candidate))
+			if image then break end
+		end
 	end
 	self.elements[cache_key] = {image = image, actor = actor}
 	return image, actor
@@ -644,16 +669,32 @@ function StepmaniaRenderer:drawReceptors(columns, receptor_y, beat_modulo)
 		if image then
 			local image_columns, image_rows = self:getGrid(image)
 			local actor = self.receptor_actors[column]
-			if not actor or actor.image ~= image then
-				actor = Actor(image, definition, image_columns, image_rows)
+			if not actor or actor.definition ~= definition then
+				-- An ActorFrame has no texture of its own. Its image only establishes
+				-- that at least one child resolved successfully.
+				local root_image = image
+				if definition and #definition > 0 then root_image = nil end
+				actor = Actor(root_image, definition, image_columns, image_rows, function(texture)
+					return self:resolveActorImage(texture)
+				end)
 				self.receptor_actors[column] = actor
 			end
-			if pressed and not self.receptor_press_states[column] then
+			local was_pressed = self.receptor_press_states[column]
+			-- Match StepMania's ReceptorArrow: Press and Lift are dispatched on
+			-- input edges. Keep NoneCommand as a compatibility fallback for older
+			-- skins that put their press effect in ReceptorArrow metrics.
+			if pressed and not was_pressed then
+				actor:play("Press")
+				actor:playCommand((self.metrics.ReceptorArrow or {}).PressCommand)
 				actor:playCommand((self.metrics.ReceptorArrow or {}).NoneCommand)
+			elseif was_pressed and not pressed then
+				actor:play("Lift")
+				actor:playCommand((self.metrics.ReceptorArrow or {}).LiftCommand)
 			end
 			self.receptor_press_states[column] = pressed
 			actor:update(dt, beat_modulo)
-			actor:draw((column - 0.5) * 64, receptor_y, 64, 64, rotations[direction])
+			local x = (column - 0.5) * 64
+			actor:draw(x, receptor_y, 64, 64, rotations[direction])
 		end
 	end
 end
