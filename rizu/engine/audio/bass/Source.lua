@@ -54,9 +54,12 @@ function Source:new(decoder, use_tempo, decode_output)
 		self.channel = source_channel
 	end
 
-	-- Keep BASS's playback buffer empty: Source maintains its own 0.5 s push queue.
-	-- Otherwise ChannelGetPosition gets ahead of audible audio in sample mode.
-	bass_assert(bass.BASS_ChannelSetAttribute(self.channel, bass_flags.BASS_ATTRIB_BUFFER, 0) == 1)
+	-- Keep the direct playback stream's BASS buffer empty: Source maintains its
+	-- own 0.5 s push queue. A BASS FX tempo channel does not support this
+	-- attribute and reports BASS_ERROR_ILLTYPE.
+	if not use_tempo and not self.decode_output then
+		bass_assert(bass.BASS_ChannelSetAttribute(self.channel, bass_flags.BASS_ATTRIB_BUFFER, 0) == 1)
+	end
 
 	self.frame_size = decoder:getChannelCount() * decoder:getBytesPerSample()
 
