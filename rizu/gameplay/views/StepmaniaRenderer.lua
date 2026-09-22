@@ -5,6 +5,7 @@ local Snap = require("chart.model.convert.Snap")
 local IniParser = require("rizu.skin.IniParser")
 local InputMode = require("chart.core.InputMode")
 local Actor = require("rizu.skin.stepmania.Actor")
+local Environment = require("rizu.skin.stepmania.Environment")
 
 local lg = love.graphics
 
@@ -288,63 +289,12 @@ function StepmaniaRenderer:getActorTexture(path, depth)
 	local source = self.game.fs:read(source_path)
 	if not source then return end
 
-	local variables = self.note_skin_variables
-	local actor_meta = {
-		__concat = function(left, right)
-			if type(left) ~= "table" then return right end
-			if type(right) == "table" then
-				for name, value in pairs(right) do left[name] = value end
-			end
-			return left
-		end,
-	}
-	local function actor_table(actor)
-		return setmetatable(actor, actor_meta)
-	end
-	local function load_actor(actor_path, ...)
-		local texture, actor
-		if type(actor_path) == "table" then
-			texture, actor = self:getActorTexture(actor_path, (depth or 0) + 1)
-		elseif type(actor_path) == "string" then
-			-- LoadActor accepts a bare asset name as well as NOTESKIN:GetPath.
-			texture, actor = note_skin_path("", actor_path), actor_table({Texture = note_skin_path("", actor_path), __loaded_asset = actor_path})
-		end
-		if texture then return actor or actor_table({Texture = texture}) end
-		for i = 1, select("#", ...) do
-			local child = select(i, ...)
-			if type(child) == "table" and type(child.Texture) == "table" then return child end
-		end
-	end
-	local env = {
-		Var = function(name) return variables and variables[name] end,
-		NOTESKIN = {
-			GetPath = function(_, button, element) return note_skin_path(button, element) end,
-			GetMetricA = function(_, group, name)
-				return (self.metrics[group] or {})[name] or ""
-			end,
-			LoadActor = function(_, button, element)
-				local resolved_button, resolved_element = self:resolveElement(button, element)
-				return load_actor(note_skin_path(resolved_button, resolved_element))
-			end,
-		},
-		LoadActor = load_actor,
-		Sprite = {LinearFrames = function() return nil end},
-		Def = setmetatable({}, {__index = function() return function(actor) return actor_table(actor) end end}),
-		string = string,
-		table = table,
-		math = math,
-		pairs = pairs,
-		ipairs = ipairs,
-		type = type,
-		tonumber = tonumber,
-		tostring = tostring,
-		select = select,
-	}
-	local chunk = loadstring(source, "@" .. source_path)
-	if not chunk then return end
-	setfenv(chunk, env)
-	local ok, actor = pcall(chunk)
-	if not ok or type(actor) ~= "table" then return end
+	local actor = Environment.load(source, source_path, self.note_skin_variables,
+		function(actor_path, actor_depth) return self:getActorTexture(actor_path, actor_depth) end,
+		function(button, element) return self:resolveElement(button, element) end,
+		function(group, name) return (self.metrics[group] or {})[name] or "" end,
+		depth)
+	if not actor then return end
 	local texture = actor.Texture
 	if type(texture) == "table" then
 		local resolved_texture, resolved_actor = self:getActorTexture(texture, (depth or 0) + 1)
