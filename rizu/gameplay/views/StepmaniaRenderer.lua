@@ -272,9 +272,23 @@ end
 
 ---@param note rizu.VisualNote
 ---@return boolean
+function StepmaniaRenderer:isLongNoteVisible(note)
+	local state = note:getState()
+	if state:find("^end") then
+		return false
+	end
+
+	-- Our scoring may not transition a held LN to an end state immediately.
+	-- StepMania removes it when its tail reaches the current absolute time.
+	return state ~= "startPassedPressed"
+		or note.linked_note:getEndTime() > note.cvp.point.absoluteTime
+end
+
+---@param note rizu.VisualNote
+---@return boolean
 function StepmaniaRenderer:isNoteVisible(note)
 	if note.type == "long" then
-		return note:getState() ~= "endPassed"
+		return self:isLongNoteVisible(note)
 	end
 	return note:getState() == "clear"
 end
@@ -283,7 +297,7 @@ end
 ---@return boolean
 function StepmaniaRenderer:isNoteHeadVisible(note)
 	if note.type == "long" then
-		return not note:getState():find("^end")
+		return self:isLongNoteVisible(note)
 	end
 	return note:getState() == "clear"
 end
@@ -291,7 +305,13 @@ end
 ---@param note rizu.VisualNote
 ---@return boolean
 function StepmaniaRenderer:isNoteHeadHeld(note)
-	return note.type == "long" and note:getState():find("^start.*Pressed") ~= nil
+	return note.type == "long" and note:getState() == "startPassedPressed"
+end
+
+---@param note rizu.VisualNote
+---@return "Active"|"Inactive"
+function StepmaniaRenderer:getHoldState(note)
+	return self:isNoteHeadHeld(note) and "Active" or "Inactive"
 end
 
 ---@param note rizu.VisualNote
@@ -300,7 +320,20 @@ end
 ---@return number
 function StepmaniaRenderer:clampHeldNoteY(note, y, receptor_y)
 	if self:isNoteHeadHeld(note) then
-		return math.max(receptor_y, y)
+		return math.min(receptor_y, y)
+	end
+	return y
+end
+
+---@param note rizu.VisualNote
+---@param y number
+---@param receptor_y number
+---@return number
+function StepmaniaRenderer:clampHeldTailY(note, y, receptor_y)
+	if self:isNoteHeadHeld(note) then
+		-- Tail sprites are centered on their position. Cap their center half a
+		-- receptor above the target so their lower edge stays at the receptor.
+		return math.min(receptor_y, y)
 	end
 	return y
 end
@@ -317,19 +350,26 @@ function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 			if column and column <= columns then
 				local x = (column - 0.5) * 64
 				local head_y = self:clampHeldNoteY(note, receptor_y + note.start_dt * time_scale, receptor_y)
-				local tail_y = receptor_y + note.end_dt * time_scale
+				-- A held LN is fully capped at the receptor once its tail reaches it.
+				-- The game resolves it at that point, matching Etterna's display.
+				local tail_y = self:clampHeldTailY(note, receptor_y + note.end_dt * time_scale, receptor_y)
 				local direction = tail_y >= head_y and 1 or -1
 				local body_start = head_y + direction * self.hold_body_start_offset
 				local body_end = tail_y + direction * self.hold_body_end_offset
-				local body = self:getElement(self:getDirection(column), "Hold Body Active")
+				local note_direction = self:getDirection(column)
+				local hold_state = self:getHoldState(note)
+				local body = self:getElement(note_direction, "Hold Body " .. hold_state)
 				if body then draw_hold_body(body, x, body_start, body_end, 64) end
-				local cap = self:getElement(self:getDirection(column), "Hold BottomCap Active")
+				local cap = self:getElement(note_direction, "Hold BottomCap " .. hold_state)
 				if cap then
 					local cap_width, cap_height = cap:getDimensions()
-					-- Keep the cap's native aspect ratio. Its origin is its inner edge,
-					-- so move its centered LÖVE draw position outside the body.
 					local height = cap_height * 64 / cap_width
 					draw_image(cap, x, body_end + direction * height / 2, 64, height, nil, nil, nil, nil, true)
+				end
+				local tail = self:getElement(note_direction, "Hold Tail " .. hold_state)
+				if tail then
+					local tail_columns, tail_rows = self:getGrid(tail)
+					draw_image(tail, x, tail_y, 64, 64, 0, tail_columns, tail_rows, rotations[note_direction])
 				end
 			end
 		end
@@ -342,7 +382,9 @@ function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 			local y = self:clampHeldNoteY(note, receptor_y + note.start_dt * time_scale, receptor_y)
 			local direction = self:getDirection(column)
 			local part = note.type == "long" and "HoldHead" or "TapNote"
-			local image = note.type == "long" and self:getElement(direction, "Hold Active") or self:getElement(direction, "Tap Note")
+			local image = note.type == "long"
+				and self:getElement(direction, "Hold Head " .. self:getHoldState(note))
+				or self:getElement(direction, "Tap Note")
 			if image then
 				local image_columns, image_rows = self:getGrid(image)
 				-- StepMania sheets are columns × snap rows: columns animate, while

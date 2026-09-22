@@ -142,7 +142,9 @@ end
 ---@param note rizu.VisualNote
 ---@return boolean
 local function is_note_head_held(note)
-	return note.type == "long" and note:getState():find("^start.*Pressed") ~= nil
+	-- A missed head can still be physically pressed, but it is not an active
+	-- hold. Only a successfully-held head is anchored at the receptor.
+	return note.type == "long" and note:getState() == "startPassedPressed"
 end
 
 ---@param note rizu.VisualNote
@@ -150,7 +152,17 @@ end
 ---@return number
 local function clamp_held_note_y(note, y)
 	if is_note_head_held(note) then
-		return math.max(RECEPTOR_Y, y)
+		return math.min(RECEPTOR_Y, y)
+	end
+	return y
+end
+
+---@param note rizu.VisualNote
+---@param y number
+---@return number
+local function clamp_held_tail_y(note, y)
+	if is_note_head_held(note) then
+		return math.min(RECEPTOR_Y + NOTE_HEIGHT / 2, y)
 	end
 	return y
 end
@@ -265,7 +277,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 			if column and column >= 1 and column <= columns then
 				local x = field_left + (column - 0.5) * LANE_WIDTH
 				local head_y = clamp_held_note_y(note, RECEPTOR_Y + note.start_dt * FIELD_HEIGHT)
-				local tail_y = RECEPTOR_Y + note.end_dt * FIELD_HEIGHT
+				local tail_y = clamp_held_tail_y(note, RECEPTOR_Y + note.end_dt * FIELD_HEIGHT)
 				draw_hold_body(x, head_y, tail_y, LANE_WIDTH * 0.64, colors[column])
 			end
 		end
