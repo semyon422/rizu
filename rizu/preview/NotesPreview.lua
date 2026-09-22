@@ -86,6 +86,7 @@ end
 ---@return number
 function NotesPreview:getBeatAtTime(time)
 	local vertices = self.timing_vertices
+	if not vertices then return 0 end
 	local index = 1
 	while index < #vertices - 1 and time >= vertices[index + 1].time do
 		index = index + 1

@@ -4,6 +4,7 @@ local path_util = require("path_util")
 local Snap = require("chart.model.convert.Snap")
 local IniParser = require("rizu.skin.IniParser")
 local InputMode = require("chart.core.InputMode")
+local Actor = require("rizu.skin.stepmania.Actor")
 
 local lg = love.graphics
 
@@ -16,13 +17,15 @@ local lg = love.graphics
 ---@field elements {[string]: {image: love.Image?, actor: table?}}
 ---@field files {[string]: string}
 ---@field scripts {[string]: string}
+---@field redirs {[string]: string}
 ---@field timing_chart chart.Chart?
 ---@field timing_points chart.AbsolutePoint[]?
 ---@field grids {[string]: {columns: integer, rows: integer}}
 ---@field note_color_frames {[string]: boolean}
----@field receptor_pulse {from: number, to: number, duration: number}?
+---@field metrics table
+---@field receptor_actors {[integer]: rizu.skin.stepmania.Actor}
 ---@field receptor_press_states boolean[]
----@field receptor_pulse_times number[]
+---@field actor_time number?
 ---@field hold_body_start_offset number
 ---@field hold_body_end_offset number
 ---@field note_skin table?
@@ -53,13 +56,15 @@ function StepmaniaRenderer:new(game, directory_path, input_mode, screen)
 	self.elements = {}
 	self.files = {}
 	self.scripts = {}
+	self.redirs = {}
 	self.timing_chart = nil
 	self.timing_points = nil
 	self.grids = {}
 	self.note_color_frames = {}
-	self.receptor_pulse = nil
+	self.metrics = {}
+	self.receptor_actors = {}
 	self.receptor_press_states = {}
-	self.receptor_pulse_times = {}
+	self.actor_time = nil
 	self.hold_body_start_offset = 0
 	self.hold_body_end_offset = 0
 	self.note_skin = nil
@@ -75,6 +80,12 @@ end
 ---@return {button: string, element: string}
 local function note_skin_path(button, element)
 	return {button = button, element = element}
+end
+
+---@param path {button: string, element: string}
+---@return string
+local function actor_path_key(path)
+	return key(path.button == "" and path.element or path.button .. " " .. path.element)
 end
 
 -- NoteSkin.lua is StepMania Lua, not ordinary Lua. Execute only its resolver
@@ -125,12 +136,14 @@ function StepmaniaRenderer:load()
 				end
 			elseif name:lower():match("%.lua$") then
 				self.scripts[file_key] = path
+			elseif name:lower():match("%.redir$") then
+				self.redirs[file_key] = (self.game.fs:read(path) or ""):match("^%s*(.-)%s*$")
 			end
 		end
 	end
 	self:loadNoteSkin()
-	local metrics = IniParser.parse(self.game.fs:read(path_util.join(self.directory_path, "metrics.ini")) or "")
-	local note_display = metrics.NoteDisplay or {}
+	self.metrics = IniParser.parse(self.game.fs:read(path_util.join(self.directory_path, "metrics.ini")) or "")
+	local note_display = self.metrics.NoteDisplay or {}
 	for part, spacing in pairs(note_display) do
 		local name = part:match("^(%a+)NoteColorTextureCoordSpacingY$")
 		if name and tonumber(spacing) ~= 0 then
@@ -139,11 +152,6 @@ function StepmaniaRenderer:load()
 	end
 	self.hold_body_start_offset = tonumber(note_display.StartDrawingHoldBodyOffsetFromHead) or 0
 	self.hold_body_end_offset = tonumber(note_display.StopDrawingHoldBodyOffsetFromTail) or 0
-	local receptor_command = (metrics.ReceptorArrow or {}).NoneCommand or ""
-	local from, duration, to = receptor_command:match("zoom%s*,%s*([%d%.%-]+)%s*;%s*linear%s*,%s*([%d%.]+)%s*;%s*zoom%s*,%s*([%d%.%-]+)")
-	if from and duration and to then
-		self.receptor_pulse = {from = tonumber(from), duration = tonumber(duration), to = tonumber(to)}
-	end
 end
 
 function StepmaniaRenderer:unload()
@@ -151,13 +159,15 @@ function StepmaniaRenderer:unload()
 	self.elements = {}
 	self.files = {}
 	self.scripts = {}
+	self.redirs = {}
 	self.timing_chart = nil
 	self.timing_points = nil
 	self.grids = {}
 	self.note_color_frames = {}
-	self.receptor_pulse = nil
+	self.metrics = {}
+	self.receptor_actors = {}
 	self.receptor_press_states = {}
-	self.receptor_pulse_times = {}
+	self.actor_time = nil
 	self.hold_body_start_offset = 0
 	self.hold_body_end_offset = 0
 	self.note_skin = nil
@@ -255,39 +265,66 @@ end
 ---@param path {button: string, element: string}
 ---@param depth integer?
 ---@return {button: string, element: string}?
+---@return table?
 function StepmaniaRenderer:getActorTexture(path, depth)
 	if (depth or 0) >= 16 then return end
-	local source_path = self.scripts[key(path.button .. " " .. path.element)]
+	local path_key = actor_path_key(path)
+	local source_path = self.scripts[path_key]
 	if not source_path then
-		if self.files[key(path.button .. " " .. path.element)] then return path end
-		return
+		local target = self.redirs[path_key]
+		if target and target ~= "" then
+			local target_key = key(target)
+			source_path = self.scripts[target_key]
+			if not source_path and self.files[target_key] then return {button = "", element = target} end
+		end
+		if not source_path and self.files[path_key] then return path end
+		if not source_path then return end
 	end
 	local source = self.game.fs:read(source_path)
 	if not source then return end
 
 	local variables = self.note_skin_variables
+	local actor_meta = {
+		__concat = function(left, right)
+			if type(left) ~= "table" then return right end
+			if type(right) == "table" then
+				for name, value in pairs(right) do left[name] = value end
+			end
+			return left
+		end,
+	}
+	local function actor_table(actor)
+		return setmetatable(actor, actor_meta)
+	end
 	local function load_actor(actor_path, ...)
 		local texture, actor
 		if type(actor_path) == "table" then
 			texture, actor = self:getActorTexture(actor_path, (depth or 0) + 1)
+		elseif type(actor_path) == "string" then
+			-- LoadActor accepts a bare asset name as well as NOTESKIN:GetPath.
+			texture, actor = note_skin_path("", actor_path), actor_table({Texture = note_skin_path("", actor_path), __loaded_asset = actor_path})
 		end
-		if texture then return actor or {Texture = texture} end
+		if texture then return actor or actor_table({Texture = texture}) end
 		for i = 1, select("#", ...) do
-			local actor = select(i, ...)
-			if type(actor) == "table" and type(actor.Texture) == "table" then return actor end
+			local child = select(i, ...)
+			if type(child) == "table" and type(child.Texture) == "table" then return child end
 		end
 	end
 	local env = {
 		Var = function(name) return variables and variables[name] end,
 		NOTESKIN = {
 			GetPath = function(_, button, element) return note_skin_path(button, element) end,
+			GetMetricA = function(_, group, name)
+				return (self.metrics[group] or {})[name] or ""
+			end,
 			LoadActor = function(_, button, element)
 				local resolved_button, resolved_element = self:resolveElement(button, element)
 				return load_actor(note_skin_path(resolved_button, resolved_element))
 			end,
 		},
 		LoadActor = load_actor,
-		Def = setmetatable({}, {__index = function() return function(actor) return actor end end}),
+		Sprite = {LinearFrames = function() return nil end},
+		Def = setmetatable({}, {__index = function() return function(actor) return actor_table(actor) end end}),
 		string = string,
 		table = table,
 		math = math,
@@ -308,7 +345,33 @@ function StepmaniaRenderer:getActorTexture(path, depth)
 		local resolved_texture, resolved_actor = self:getActorTexture(texture, (depth or 0) + 1)
 		return resolved_texture, resolved_actor
 	end
-	return texture, actor
+	if texture then return texture, actor end
+
+	-- ActorFrames are tables whose numeric entries are child actors. Use the
+	-- first drawable child until the renderer draws actor trees directly.
+	for _, child in ipairs(actor) do
+		if type(child) == "table" then
+			local child_texture, child_actor = self:getActorTextureFromActor(child, depth)
+			if child_texture then return child_texture, child_actor end
+		end
+	end
+end
+
+---@param actor table
+---@param depth integer?
+---@return {button: string, element: string}?
+---@return table?
+function StepmaniaRenderer:getActorTextureFromActor(actor, depth)
+	local texture = actor.Texture
+	if type(texture) == "table" then
+		return self:getActorTexture(texture, (depth or 0) + 1)
+	end
+	if texture then return texture, actor end
+	-- LoadActor("asset") uses a direct string texture; NOTESKIN:GetPath uses
+	-- a path table. Both are valid Sprite texture forms.
+	if type(actor.__loaded_asset) == "string" then
+		return {button = "", element = actor.__loaded_asset}, actor
+	end
 end
 
 ---@param direction string
@@ -324,7 +387,7 @@ function StepmaniaRenderer:getElementActor(direction, element)
 	local texture, actor = self:getActorTexture(note_skin_path(button, resolved_element))
 	local image
 	if texture then
-		image = self:getImage(texture.button .. " " .. texture.element)
+		image = self:getImage(actor_path_key(texture))
 	else
 		image = self:getImage(button .. " " .. resolved_element)
 			or self:getImage("_" .. button .. " " .. resolved_element)
@@ -571,33 +634,26 @@ function StepmaniaRenderer:drawReceptors(columns, receptor_y, beat_modulo)
 	beat_modulo = beat_modulo or self:getCurrentBeatModulo()
 	local engine = self.game.rhythm_engine
 	local time = engine.visual_info.time
+	local dt = self.actor_time and math.max(time - self.actor_time, 0) or 0
+	self.actor_time = time
 	for column = 1, columns do
 		local pressed = engine:isColumnPressed(column)
-		if pressed and not self.receptor_press_states[column] then
-			-- StepMania sends NoneCommand for an unjudged key press. Most skins,
-			-- including acessm5 and DivideByZero, use it for this short pulse.
-			self.receptor_pulse_times[column] = time
-		end
-		self.receptor_press_states[column] = pressed
 		local direction = self:getDirection(column)
-		local image, actor = self:getElementActor(direction, "Receptor")
-		if not image then image, actor = self:getElementActor(direction, "Go Receptor Go") end
+		local image, definition = self:getElementActor(direction, "Receptor")
+		if not image then image, definition = self:getElementActor(direction, "Go Receptor Go") end
 		if image then
 			local image_columns, image_rows = self:getGrid(image)
-			-- NoteSkin sprites may assign unequal DelayNNNN values.  Their
-			-- effectclock,"beat" animation is still one complete cycle per beat.
-			local frame = self:getAnimationFrame(image, actor, beat_modulo)
-			local pulse, pulse_time = self.receptor_pulse, self.receptor_pulse_times[column]
-			local zoom = 1
-			if pulse and pulse_time then
-				local progress = (time - pulse_time) / pulse.duration
-				if progress < 1 then
-					zoom = pulse.from + (pulse.to - pulse.from) * progress
-				else
-					self.receptor_pulse_times[column] = nil
-				end
+			local actor = self.receptor_actors[column]
+			if not actor or actor.image ~= image then
+				actor = Actor(image, definition, image_columns, image_rows)
+				self.receptor_actors[column] = actor
 			end
-			draw_image(image, (column - 0.5) * 64, receptor_y, 64 * zoom, 64 * zoom, frame, image_columns, image_rows, rotations[direction])
+			if pressed and not self.receptor_press_states[column] then
+				actor:playCommand((self.metrics.ReceptorArrow or {}).NoneCommand)
+			end
+			self.receptor_press_states[column] = pressed
+			actor:update(dt, beat_modulo)
+			actor:draw((column - 0.5) * 64, receptor_y, 64, 64, rotations[direction])
 		end
 	end
 end
