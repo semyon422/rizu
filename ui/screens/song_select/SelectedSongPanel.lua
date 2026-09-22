@@ -152,7 +152,7 @@ function SelectedSongPanel:bind(cvf)
 		local skin_name = skin_key and self.game.settings:getString(skin_key)
 		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_name)
 		if skin then
-			self.playfield_renderer = skin.load(self.game, input_mode)
+			self.playfield_renderer = skin.load(self.game, input_mode, "preview")
 		end
 	end
 end

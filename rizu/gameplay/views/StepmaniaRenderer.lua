@@ -10,6 +10,7 @@ local lg = love.graphics
 ---@operator call: rizu.gameplay.views.StepmaniaRenderer
 ---@field directory_path string
 ---@field input_mode string
+---@field screen rizu.skin.Screen
 ---@field images {[string]: love.Image}
 ---@field grids {[string]: {columns: integer, rows: integer}}
 ---@field note_color_frames {[string]: boolean}
@@ -33,10 +34,12 @@ end
 ---@param game sphere.GameController
 ---@param directory_path string
 ---@param input_mode string
-function StepmaniaRenderer:new(game, directory_path, input_mode)
+---@param screen rizu.skin.Screen
+function StepmaniaRenderer:new(game, directory_path, input_mode, screen)
 	PlayfieldRenderer.new(self, game)
 	self.directory_path = directory_path
 	self.input_mode = input_mode
+	self.screen = screen
 	self.images = {}
 	self.files = {}
 	self.grids = {}

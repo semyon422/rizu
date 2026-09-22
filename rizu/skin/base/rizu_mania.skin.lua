@@ -61,8 +61,10 @@ local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
 ---@param input_mode string
-function ManiaPlayfieldRenderer:new(game, input_mode)
+---@param screen rizu.skin.Screen
+function ManiaPlayfieldRenderer:new(game, input_mode, screen)
 	PlayfieldRenderer.new(self, game)
+	self.screen = screen
 	self.inputs = InputMode(input_mode):getInputs()
 end
 
@@ -125,7 +127,7 @@ end
 
 ---@class rizu.skin.base.rizu_mania.Skin
 ---@field metadata rizu.skin.SkinMetadata
----@field load fun(game: sphere.GameController, input_mode: string): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
 return {
 	metadata = {
 		name = "Rizu Mania 4K",
@@ -134,7 +136,7 @@ return {
 		gamemode = "mania",
 		input_modes = {"any"},
 	},
-	load = function(game, input_mode)
-		return ManiaPlayfieldRenderer(game, input_mode)
+	load = function(game, input_mode, screen)
+		return ManiaPlayfieldRenderer(game, input_mode, screen)
 	end,
 }

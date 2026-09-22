@@ -6,7 +6,7 @@ local test = {}
 local valid_skin = [[
 return {
 	metadata = {name = "Example", author = "Rizu", version = "1", gamemode = "mania", input_modes = {"4key"}},
-	load = function(context) return context end,
+	load = function(game, input_mode, screen) return game, input_mode, screen end,
 }
 ]]
 
@@ -29,7 +29,10 @@ function test.discovers_native_lua_skin_metadata(t)
 	t:eq(registry:getSkin(skins[1].path), skins[1])
 	t:eq(registry:getSkinForInputMode("mania", "4key"), skins[1])
 	t:eq(registry:getSkinForInputMode("mania", "7key"), nil)
-	t:eq(skins[1].load("context"), "context")
+	local game, input_mode, screen = skins[1].load("game", "4key", "preview")
+	t:eq(game, "game")
+	t:eq(input_mode, "4key")
+	t:eq(screen, "preview")
 end
 
 ---@param t testing.T

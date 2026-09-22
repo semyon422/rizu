@@ -12,13 +12,18 @@ local path_util = require("path_util")
 ---| "lua"
 ---| "stepmania"
 
+---@alias rizu.skin.Screen
+---| "gameplay"
+---| "preview"
+---| "editor"
+
 ---@class rizu.skin.SkinInfo
 ---@field path string
 ---@field directory_path string
 ---@field file_name string?
 ---@field format rizu.skin.SkinFormat
 ---@field metadata rizu.skin.SkinMetadata?
----@field load fun(context: table?): unknown
+---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen): unknown
 
 ---@class rizu.skin.SkinRegistry
 ---@operator call: rizu.skin.SkinRegistry
@@ -128,8 +133,8 @@ function SkinRegistry:addExternalSkin(directory_path, format, input_modes)
 	-- StepMania/Etterna NoteSkins are VSRG packages. Their game-type directory
 	-- determines the Mania keycounts they can render.
 	local metadata = {name = name, gamemode = "mania", input_modes = input_modes or {"4key"}}
-	local load = function(game, skin_input_mode)
-		return require("rizu.gameplay.views.StepmaniaRenderer")(game, directory_path, skin_input_mode)
+	local load = function(game, skin_input_mode, screen)
+		return require("rizu.gameplay.views.StepmaniaRenderer")(game, directory_path, skin_input_mode, screen)
 	end
 	table.insert(self.skins, {
 		path = directory_path,
