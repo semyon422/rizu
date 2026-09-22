@@ -13,4 +13,14 @@ function PlayfieldRenderer:load() end
 
 function PlayfieldRenderer:unload() end
 
+---@param width number Gameplay viewport width in drawable pixels
+---@param height number Gameplay viewport height in drawable pixels
+---@param transform love.Transform Maps viewport coordinates to drawable pixels
+function PlayfieldRenderer:draw(width, height, transform) end
+
+---@param player rizu.preview.NotesPreviewPlayer
+---@param width number Preview width in drawable pixels
+---@param height number Preview height in drawable pixels
+function PlayfieldRenderer:drawPreview(player, width, height) end
+
 return PlayfieldRenderer

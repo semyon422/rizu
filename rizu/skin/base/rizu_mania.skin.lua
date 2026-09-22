@@ -4,6 +4,11 @@ local InputMode = require("chart.core.InputMode")
 
 local lg = love.graphics
 
+local FIELD_WIDTH = 640
+local FIELD_HEIGHT = 480
+local LANE_WIDTH = 48
+local RECEPTOR_Y = 360
+
 local note_colors = {
 	white = {1, 1, 1},
 	pink = {0.2, 0.75, 0.9},
@@ -68,6 +73,81 @@ function ManiaPlayfieldRenderer:new(game, input_mode, screen)
 	self.inputs = InputMode(input_mode):getInputs()
 end
 
+---@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@param columns integer
+---@return string[]
+local function get_column_colors(renderer, columns)
+	local key_columns = 0
+	for column = 1, columns do
+		local input = renderer.inputs[column] or ""
+		if input:find("key") then
+			key_columns = key_columns + 1
+		end
+	end
+	local color_names = get_note_color_names(key_columns)
+	local colors = {}
+	local key_column = 0
+	for column = 1, columns do
+		local input = renderer.inputs[column] or ""
+		if input:find("scratch") then
+			colors[column] = "green"
+		elseif input:find("key") then
+			key_column = key_column + 1
+			colors[column] = color_names[key_column]
+		else
+			colors[column] = "white"
+		end
+	end
+	return colors
+end
+
+---@param columns integer
+---@param lane_width number
+---@param width number
+---@return number
+---@return number
+local function get_field_left(columns, lane_width, width)
+	local field_width = columns * lane_width
+	return (width - field_width) / 2, field_width
+end
+
+---@param left number
+---@param columns integer
+---@param lane_width number
+---@param height number
+local function draw_field(left, columns, lane_width, height)
+	lg.setColor(0, 0, 0, 0.3)
+	lg.rectangle("fill", left, 0, columns * lane_width, height)
+	for column = 0, columns do
+		lg.setColor(1, 1, 1, 0.12)
+		lg.rectangle("fill", left + column * lane_width, 0, 1, height)
+	end
+end
+
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@param color_name string
+---@param alpha number?
+local function draw_note(x, y, width, height, color_name, alpha)
+	local color = note_colors[color_name]
+	lg.setColor(color[1], color[2], color[3], alpha or 1)
+	lg.rectangle("fill", x - width / 2, y - height / 2, width, height)
+end
+
+---@param x number
+---@param first_y number
+---@param second_y number
+---@param width number
+---@param color_name string
+---@param alpha number?
+local function draw_hold_body(x, first_y, second_y, width, color_name, alpha)
+	local color = note_colors[color_name]
+	lg.setColor(color[1], color[2], color[3], alpha or 0.65)
+	lg.rectangle("fill", x - width / 2, math.min(first_y, second_y), width, math.abs(second_y - first_y))
+end
+
 ---@param player rizu.preview.NotesPreviewPlayer
 ---@param width number
 ---@param height number
@@ -78,51 +158,90 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	end
 
 	local columns = #preview.columns
-	local key_columns = 0
-	for column = 1, columns do
-		local input = self.inputs and self.inputs[column] or ""
-		if input:find("key") then
-			key_columns = key_columns + 1
-		end
-	end
-	local color_names = get_note_color_names(key_columns)
-	local lane_width = height * 48 / 480
-	local field_width = columns * lane_width
-	local left = (width - field_width) / 2
+	local colors = get_column_colors(self, columns)
+	local lane_width = height * LANE_WIDTH / FIELD_HEIGHT
+	local left = get_field_left(columns, lane_width, width)
 	local note_width = lane_width
 	local note_height = note_width * 1.5 / 2
 	local pixels_per_second = height * math.max(player.rate, 0.01)
 	local time = player.time
 	local until_time = time + height / pixels_per_second
 
-	lg.setColor(0, 0, 0, 0.3)
-	lg.rectangle("fill", left, 0, field_width, height)
+	draw_field(left, columns, lane_width, height)
 
-	local key_column = 0
 	for column, notes in ipairs(preview.columns) do
 		local display_column = player.column_map[column]
 		local x = left + (display_column - 0.5) * lane_width
-		local input = self.inputs and self.inputs[column] or ""
-		local color_name
-		if input:find("scratch") then
-			color_name = "green"
-		elseif input:find("key") then
-			key_column = key_column + 1
-			color_name = color_names[key_column]
-		else
-			color_name = "white"
-		end
+		local color_name = colors[column]
 		local first, last = preview:getVisibleRange(column, time, until_time)
 		for i = first, last do
 			local note = notes[i]
-			if note.time >= time and note.time <= until_time then
-				local y = height - (note.time - time) * pixels_per_second
-				lg.setColor(note_colors[color_name])
-				lg.rectangle("fill", x - note_width / 2, y - note_height / 2, note_width, note_height)
+			if note.end_time >= time then
+				local head_y = height - (note.time - time) * pixels_per_second
+				local tail_y = height - (note.end_time - time) * pixels_per_second
+				if note.end_time > note.time then
+					draw_hold_body(x, head_y, tail_y, note_width * 0.64, color_name)
+				end
+				if note.time >= time and note.time <= until_time then
+					draw_note(x, head_y, note_width, note_height, color_name)
+				end
 			end
 		end
 	end
 	lg.setColor(1, 1, 1, 1)
+end
+
+---@param width number
+---@param height number
+---@param transform love.Transform
+function ManiaPlayfieldRenderer:draw(width, height, transform)
+	local engine = self.game.rhythm_engine
+	local visual_engine = engine and engine.visual_engine
+	if not visual_engine then return end
+
+	local columns = #self.inputs
+	if columns == 0 then return end
+	local colors = get_column_colors(self, columns)
+	local scale = math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT)
+	local field_left = get_field_left(columns, LANE_WIDTH, FIELD_WIDTH)
+
+	lg.push("all")
+	lg.applyTransform(transform)
+	lg.translate((width - FIELD_WIDTH * scale) / 2, (height - FIELD_HEIGHT * scale) / 2)
+	lg.scale(scale)
+
+	draw_field(field_left, columns, LANE_WIDTH, FIELD_HEIGHT)
+
+	-- Bodies are behind heads and receptors.
+	for _, note in ipairs(visual_engine.visible_notes) do
+		if note.type == "long" then
+			local column = note:getColumn()
+			if column >= 1 and column <= columns then
+				local x = field_left + (column - 0.5) * LANE_WIDTH
+				local head_y = RECEPTOR_Y + note.start_dt * FIELD_HEIGHT
+				local tail_y = RECEPTOR_Y + note.end_dt * FIELD_HEIGHT
+				draw_hold_body(x, head_y, tail_y, LANE_WIDTH * 0.64, colors[column])
+			end
+		end
+	end
+
+	for _, note in ipairs(visual_engine.visible_notes) do
+		local column = note:getColumn()
+		if column >= 1 and column <= columns then
+			local x = field_left + (column - 0.5) * LANE_WIDTH
+			local y = RECEPTOR_Y + note.start_dt * FIELD_HEIGHT
+			draw_note(x, y, LANE_WIDTH - 4, 18, colors[column])
+		end
+	end
+
+	for column = 1, columns do
+		local x = field_left + (column - 0.5) * LANE_WIDTH
+		local color = note_colors[colors[column]]
+		local pressed = engine:isColumnPressed(column)
+		lg.setColor(color[1], color[2], color[3], pressed and 1 or 0.55)
+		lg.rectangle("fill", x - LANE_WIDTH / 2 + 2, RECEPTOR_Y - 6, LANE_WIDTH - 4, 12)
+	end
+	lg.pop()
 end
 
 ---@class rizu.skin.base.rizu_mania.Skin
