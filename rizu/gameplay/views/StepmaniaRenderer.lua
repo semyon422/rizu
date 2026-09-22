@@ -3,6 +3,7 @@ local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 local path_util = require("path_util")
 local Snap = require("chart.model.convert.Snap")
 local IniParser = require("rizu.skin.IniParser")
+local InputMode = require("chart.core.InputMode")
 
 local lg = love.graphics
 
@@ -48,6 +49,7 @@ function StepmaniaRenderer:new(game, directory_path, input_mode, screen)
 	self.hold_body_end_offset = 0
 	self.note_skin = nil
 	self.columns = assert(tonumber(input_mode:match("^(%d+)key$")), "StepMania skins require a key input mode")
+	self.input_map = InputMode(input_mode):getInputMap()
 	self.directions = assert(directions[self.columns], "unsupported StepMania keymode: " .. input_mode)
 	self.snap = Snap()
 	self.loaded = false
@@ -262,6 +264,47 @@ function StepmaniaRenderer:getFrame(part, note)
 	return 0
 end
 
+---@param note rizu.VisualNote
+---@return integer?
+function StepmaniaRenderer:getColumn(note)
+	return self.input_map[note:getColumn()]
+end
+
+---@param note rizu.VisualNote
+---@return boolean
+function StepmaniaRenderer:isNoteVisible(note)
+	if note.type == "long" then
+		return note:getState() ~= "endPassed"
+	end
+	return note:getState() == "clear"
+end
+
+---@param note rizu.VisualNote
+---@return boolean
+function StepmaniaRenderer:isNoteHeadVisible(note)
+	if note.type == "long" then
+		return not note:getState():find("^end")
+	end
+	return note:getState() == "clear"
+end
+
+---@param note rizu.VisualNote
+---@return boolean
+function StepmaniaRenderer:isNoteHeadHeld(note)
+	return note.type == "long" and note:getState():find("^start.*Pressed") ~= nil
+end
+
+---@param note rizu.VisualNote
+---@param y number
+---@param receptor_y number
+---@return number
+function StepmaniaRenderer:clampHeldNoteY(note, y, receptor_y)
+	if self:isNoteHeadHeld(note) then
+		return math.max(receptor_y, y)
+	end
+	return y
+end
+
 ---@param notes rizu.VisualNote[]
 ---@param columns integer
 ---@param time_scale number
@@ -269,11 +312,11 @@ end
 function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 	-- Hold bodies are behind heads and receptors, matching NoteDisplay's normal layering.
 	for _, note in ipairs(notes) do
-		if note.type == "long" then
-			local column = note:getColumn()
-			if column <= columns then
+		if note.type == "long" and self:isNoteVisible(note) then
+			local column = self:getColumn(note)
+			if column and column <= columns then
 				local x = (column - 0.5) * 64
-				local head_y = receptor_y + note.start_dt * time_scale
+				local head_y = self:clampHeldNoteY(note, receptor_y + note.start_dt * time_scale, receptor_y)
 				local tail_y = receptor_y + note.end_dt * time_scale
 				local direction = tail_y >= head_y and 1 or -1
 				local body_start = head_y + direction * self.hold_body_start_offset
@@ -292,10 +335,11 @@ function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 		end
 	end
 	for _, note in ipairs(notes) do
-		local column = note:getColumn()
-		if column <= columns then
+		local column = self:getColumn(note)
+		if self:isNoteHeadVisible(note) then
+		if column and column <= columns then
 			local x = (column - 0.5) * 64
-			local y = receptor_y + note.start_dt * time_scale
+			local y = self:clampHeldNoteY(note, receptor_y + note.start_dt * time_scale, receptor_y)
 			local direction = self:getDirection(column)
 			local part = note.type == "long" and "HoldHead" or "TapNote"
 			local image = note.type == "long" and self:getElement(direction, "Hold Active") or self:getElement(direction, "Tap Note")
@@ -306,6 +350,7 @@ function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 				local frame = self:getFrame(part, note) * image_columns
 				draw_image(image, x, y, 64, 64, frame, image_columns, image_rows, rotations[direction])
 			end
+		end
 		end
 	end
 end

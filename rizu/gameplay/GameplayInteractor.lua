@@ -50,18 +50,10 @@ function GameplayInteractor.getInputMode(chart)
 	return tostring(chart.inputMode)
 end
 
----@param noteSkin table
 ---@param chartview table
 ---@return string[]
-function GameplayInteractor:getResourcePaths(noteSkin, chartview)
-	local paths = {}
-	if self.game.settings:getBoolean(Settings.keys.gameplay.skin_resources_top_priority) then
-		table.insert(paths, noteSkin.directoryPath)
-		table.insert(paths, chartview.location_dir)
-	else
-		table.insert(paths, chartview.location_dir)
-		table.insert(paths, noteSkin.directoryPath)
-	end
+function GameplayInteractor:getResourcePaths(chartview)
+	local paths = {chartview.location_dir}
 	local movie_path = IidxResourcePaths.getMoviePath(chartview, self.game.fs)
 	if movie_path then
 		table.insert(paths, movie_path)
@@ -153,13 +145,15 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	if chartmeta.mode ~= "mania" then
 		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
-		self.noteSkin = nil
+		self.mania_renderer = nil
 	else
-		local noteSkin = game.noteSkinModel:loadNoteSkin(input_mode)
-		noteSkin:loadData()
-		self.noteSkin = noteSkin
-		paths = self:getResourcePaths(noteSkin, chartview)
+		local skin_paths = game.settings:getStringMap(Settings.keys.gameplay.skins)
+		local skin = assert(game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_paths["mania/" .. input_mode]),
+			"no Mania skin available for " .. input_mode)
+		self.mania_renderer = skin.load(game, input_mode, "gameplay")
+		paths = self:getResourcePaths(chartview)
 	end
+	self.noteSkin = nil
 	self:loadFileFinderPaths(paths)
 
 	local resource_future = game.resource_loader:startLoadAsync(chart.resources, paths)

@@ -7,6 +7,7 @@ local lg = love.graphics
 local FIELD_WIDTH = 640
 local FIELD_HEIGHT = 480
 local LANE_WIDTH = 48
+local NOTE_HEIGHT = 30
 local RECEPTOR_Y = 360
 
 local note_colors = {
@@ -70,7 +71,9 @@ local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 function ManiaPlayfieldRenderer:new(game, input_mode, screen)
 	PlayfieldRenderer.new(self, game)
 	self.screen = screen
-	self.inputs = InputMode(input_mode):getInputs()
+	local mode = InputMode(input_mode)
+	self.inputs = mode:getInputs()
+	self.input_map = mode:getInputMap()
 end
 
 ---@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
@@ -109,6 +112,47 @@ end
 local function get_field_left(columns, lane_width, width)
 	local field_width = columns * lane_width
 	return (width - field_width) / 2, field_width
+end
+
+---@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@param note rizu.VisualNote
+---@return integer?
+local function get_note_column(renderer, note)
+	return renderer.input_map[note:getColumn()]
+end
+
+---@param note rizu.VisualNote
+---@return boolean
+local function is_note_visible(note)
+	if note.type == "long" then
+		return note:getState() ~= "endPassed"
+	end
+	return note:getState() == "clear"
+end
+
+---@param note rizu.VisualNote
+---@return boolean
+local function is_note_head_visible(note)
+	if note.type == "long" then
+		return not note:getState():find("^end")
+	end
+	return note:getState() == "clear"
+end
+
+---@param note rizu.VisualNote
+---@return boolean
+local function is_note_head_held(note)
+	return note.type == "long" and note:getState():find("^start.*Pressed") ~= nil
+end
+
+---@param note rizu.VisualNote
+---@param y number
+---@return number
+local function clamp_held_note_y(note, y)
+	if is_note_head_held(note) then
+		return math.max(RECEPTOR_Y, y)
+	end
+	return y
 end
 
 ---@param left number
@@ -162,10 +206,12 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	local lane_width = height * LANE_WIDTH / FIELD_HEIGHT
 	local left = get_field_left(columns, lane_width, width)
 	local note_width = lane_width
-	local note_height = note_width * 1.5 / 2
+	local note_height = lane_width * NOTE_HEIGHT / LANE_WIDTH
+	local hold_width = lane_width * 0.64
 	local pixels_per_second = height * math.max(player.rate, 0.01)
+	local receptor_y = height * RECEPTOR_Y / FIELD_HEIGHT
 	local time = player.time
-	local until_time = time + height / pixels_per_second
+	local until_time = time + receptor_y / pixels_per_second
 
 	draw_field(left, columns, lane_width, height)
 
@@ -177,10 +223,10 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 		for i = first, last do
 			local note = notes[i]
 			if note.end_time >= time then
-				local head_y = height - (note.time - time) * pixels_per_second
-				local tail_y = height - (note.end_time - time) * pixels_per_second
+				local head_y = receptor_y - (note.time - time) * pixels_per_second
+				local tail_y = receptor_y - (note.end_time - time) * pixels_per_second
 				if note.end_time > note.time then
-					draw_hold_body(x, head_y, tail_y, note_width * 0.64, color_name)
+					draw_hold_body(x, head_y, tail_y, hold_width, color_name)
 				end
 				if note.time >= time and note.time <= until_time then
 					draw_note(x, head_y, note_width, note_height, color_name)
@@ -214,11 +260,11 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 
 	-- Bodies are behind heads and receptors.
 	for _, note in ipairs(visual_engine.visible_notes) do
-		if note.type == "long" then
-			local column = note:getColumn()
-			if column >= 1 and column <= columns then
+		if note.type == "long" and is_note_visible(note) then
+			local column = get_note_column(self, note)
+			if column and column >= 1 and column <= columns then
 				local x = field_left + (column - 0.5) * LANE_WIDTH
-				local head_y = RECEPTOR_Y + note.start_dt * FIELD_HEIGHT
+				local head_y = clamp_held_note_y(note, RECEPTOR_Y + note.start_dt * FIELD_HEIGHT)
 				local tail_y = RECEPTOR_Y + note.end_dt * FIELD_HEIGHT
 				draw_hold_body(x, head_y, tail_y, LANE_WIDTH * 0.64, colors[column])
 			end
@@ -226,11 +272,13 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	end
 
 	for _, note in ipairs(visual_engine.visible_notes) do
-		local column = note:getColumn()
-		if column >= 1 and column <= columns then
+		local column = get_note_column(self, note)
+		if is_note_head_visible(note) then
+		if column and column >= 1 and column <= columns then
 			local x = field_left + (column - 0.5) * LANE_WIDTH
-			local y = RECEPTOR_Y + note.start_dt * FIELD_HEIGHT
-			draw_note(x, y, LANE_WIDTH - 4, 18, colors[column])
+			local y = clamp_held_note_y(note, RECEPTOR_Y + note.start_dt * FIELD_HEIGHT)
+			draw_note(x, y, LANE_WIDTH, NOTE_HEIGHT, colors[column])
+		end
 		end
 	end
 
@@ -239,7 +287,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 		local color = note_colors[colors[column]]
 		local pressed = engine:isColumnPressed(column)
 		lg.setColor(color[1], color[2], color[3], pressed and 1 or 0.55)
-		lg.rectangle("fill", x - LANE_WIDTH / 2 + 2, RECEPTOR_Y - 6, LANE_WIDTH - 4, 12)
+		lg.rectangle("fill", x - LANE_WIDTH / 2, RECEPTOR_Y - 6, LANE_WIDTH, 12)
 	end
 	lg.pop()
 end

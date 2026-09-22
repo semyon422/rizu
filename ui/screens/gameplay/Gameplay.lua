@@ -2,10 +2,8 @@ local GameplayPlayfield = require("rizu.gameplay.Playfield")
 local View = require("gui.View")
 local Label = require("ui.views.Label")
 local Screen = require("gui.Screen")
-local SequenceView = require("sphere.views.SequenceView")
 local Colors = require("ui.Colors")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
-local SequenceCanvas = require("ui.screens.gameplay.SequenceCanvas")
 local BgaView = require("ui.screens.gameplay.BgaView")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
@@ -24,14 +22,12 @@ function Gameplay:new(ui)
 	Screen.new(self)
 	self.ui = ui
 	self.game = ui.game
-	self.sequence_view = SequenceView()
 	self.gameplay_interactor = self.game.gameplayInteractor
 	self.is_playing = false
 	self.was_retrying = false
 
 	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
 	self.bga_view:anchorPercent(0, 0, 1, 1)
-	self.sequence_canvas = self.root:add(SequenceCanvas(self.sequence_view))
 	self.gameplay_playfield = GameplayPlayfield(self.game)
 	self.gameplay_playfield_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
 	self.gameplay_playfield_view:setDraw(function()
@@ -61,31 +57,22 @@ function Gameplay:new(ui)
 end
 
 function Gameplay:unload()
-	self.gameplay_playfield.aim:unload()
+	self.gameplay_playfield:unload()
 	Screen.unload(self)
 end
 
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
-	local sequence_view = self.sequence_view
 	self.is_sdvx = self.game.rhythm_engine.sdvx_rules ~= nil
 	self.is_taiko = self.game.rhythm_engine.taiko_rules ~= nil
 	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
 	self.gameplay_playfield:refresh()
 	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.aim_summary:setVisible(false)
-	self.sequence_canvas:setVisible(not self.is_aim)
-	if not self.is_aim then
-		sequence_view.game = self.game
-		sequence_view.subscreen = "gameplay"
-		sequence_view:setSequenceConfig(self.game.noteSkinModel.noteSkin.playField)
-		sequence_view:load()
-	end
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(false)
 	self.is_playing = true
-	self.sequence_canvas.playing = not self.is_aim
 	self.clear_status:hide()
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
@@ -97,10 +84,6 @@ function Gameplay:enter()
 	local viewport_height = cfg:getNumber(cfg.keys.gameplay_viewport_sy)
 	local align_x = cfg:getNumber(cfg.keys.gameplay_viewport_x)
 	local align_y = cfg:getNumber(cfg.keys.gameplay_viewport_y)
-	local min_x = align_x * (1 - viewport_width)
-	local min_y = align_y * (1 - viewport_height)
-	self.sequence_canvas:anchorPercent(min_x, min_y, min_x + viewport_width, min_y + viewport_height)
-
 	self.root:fadeIn(0.4, "OutQuint")
 	if self.gameplay_playfield:usesPointer() then
 		self:flush()
@@ -128,7 +111,7 @@ end
 -- Gameplay renderers operate in drawable pixels. This UI-owned bridge cancels
 -- the retained UI scale and supplies the configured viewport explicitly.
 function Gameplay:drawGameplayPlayfield()
-	if not self.gameplay_playfield:isExperimental() then return end
+	if not self.gameplay_playfield:usesDirectRenderer() then return end
 	local width, height, transform = self:getGameplayViewport()
 	love.graphics.push("all")
 	love.graphics.scale(1 / self.ui_scale)
@@ -153,10 +136,6 @@ function Gameplay:exit()
 	self.restart_overlay:reset()
 	self.ui.command_registry:popContext("gameplay_commands")
 	self.gameplay_interactor:unloadGameplay()
-	self.sequence_canvas.playing = false
-	if not self.is_aim then
-		self.sequence_view:unload()
-	end
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
 	love.mouse.setVisible(true)
@@ -217,7 +196,6 @@ function Gameplay:observeCompletion()
 	end
 
 	self.is_playing = false
-	self.sequence_canvas.playing = false
 	if self.is_aim then
 		self.gameplay_interactor:saveAimReplay()
 		self.gameplay_interactor.aim_complete = true
@@ -315,7 +293,6 @@ function Gameplay:receive(event)
 		return
 	end
 	self.gameplay_interactor:receive(event)
-	self.sequence_canvas:receive(event)
 end
 
 return Gameplay

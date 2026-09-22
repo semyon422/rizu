@@ -10,7 +10,7 @@ local SdvxPlayfield = require("rizu.gameplay.views.SdvxPlayfield")
 ---@field catch rizu.gameplay.views.CatchPlayfield
 ---@field taiko rizu.gameplay.views.TaikoPlayfield
 ---@field sdvx rizu.gameplay.views.SdvxPlayfield
----@field renderer rizu.gameplay.views.AimPlayfield|rizu.gameplay.views.CatchPlayfield|rizu.gameplay.views.TaikoPlayfield|rizu.gameplay.views.SdvxPlayfield?
+---@field renderer rizu.gameplay.views.PlayfieldRenderer?
 local Playfield = class()
 
 ---@param game sphere.GameController
@@ -32,14 +32,26 @@ function Playfield:refresh()
 	elseif engine and engine.catch_rules then self.renderer = self.catch
 	elseif engine and engine.taiko_rules then self.renderer = self.taiko
 	elseif engine and engine.sdvx_rules then self.renderer = self.sdvx
+	elseif engine and engine.chartmeta and engine.chartmeta.mode == "mania" then self.renderer = self.game.gameplayInteractor.mania_renderer
 	else self.renderer = nil end
 	if previous and previous ~= self.renderer then previous:unload() end
 	if self.renderer then self.renderer:load() end
 end
 
 ---@return boolean
-function Playfield:isExperimental()
+function Playfield:usesDirectRenderer()
 	return self.renderer ~= nil
+end
+
+---@return boolean
+function Playfield:isExperimental()
+	local engine = self.game.rhythm_engine
+	return not not (engine and (engine.aim_rules or engine.catch_rules or engine.taiko_rules or engine.sdvx_rules))
+end
+
+function Playfield:unload()
+	if self.renderer then self.renderer:unload() end
+	self.renderer = nil
 end
 
 ---@return boolean
