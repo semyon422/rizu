@@ -229,12 +229,17 @@ end
 
 -- StepMania hold bodies repeat their texture; scaling one image across the
 -- entire hold distorts its pattern. x/y denote the body's first endpoint.
-local function draw_hold_body(image, x, a, b, width)
+local function draw_hold_body(image, x, a, b, width, frame, columns, rows)
 	local image_width, image_height = image:getDimensions()
-	local scale = width / image_width
+	columns, rows = columns or 1, rows or 1
+	local frame_width, frame_height = image_width / columns, image_height / rows
+	local scale = width / frame_width
 	local y, height = math.min(a, b), math.abs(b - a)
 	if height == 0 then return end
-	local quad = lg.newQuad(0, 0, image_width, height / scale, image_width, image_height)
+	local column = (frame or 0) % columns
+	local row = math.floor((frame or 0) / columns) % rows
+	-- Repeat only the selected animation cell, never the complete atlas.
+	local quad = lg.newQuad(column * frame_width, row * frame_height, frame_width, height / scale, image_width, image_height)
 	lg.draw(image, quad, x - width / 2, y, 0, scale, scale)
 end
 
@@ -562,18 +567,25 @@ function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 				local body_end = tail_y + direction * self.hold_body_end_offset
 				local note_direction = self:getDirection(column)
 				local hold_state = self:getHoldState(note)
-				local body = self:getElement(note_direction, "Hold Body " .. hold_state)
-				if body then draw_hold_body(body, x, body_start, body_end, 64) end
-				local cap = self:getElement(note_direction, "Hold BottomCap " .. hold_state)
-				if cap then
-					local cap_width, cap_height = cap:getDimensions()
-					local height = cap_height * 64 / cap_width
-					draw_image(cap, x, body_end + direction * height / 2, 64, height, nil, nil, nil, nil, true)
+				local body, body_actor = self:getElementActor(note_direction, "Hold Body " .. hold_state)
+				if body then
+					local body_columns, body_rows = self:getGrid(body)
+					local frame = self:getNoteAnimationFrame(body, body_actor, "HoldBody", note.linked_note.startNote:getBeatModulo())
+					draw_hold_body(body, x, body_start, body_end, 64, frame, body_columns, body_rows)
 				end
-				local tail = self:getElement(note_direction, "Hold Tail " .. hold_state)
+				local cap, cap_actor = self:getElementActor(note_direction, "Hold BottomCap " .. hold_state)
+				if cap then
+					local cap_columns, cap_rows = self:getGrid(cap)
+					local cap_width, cap_height = cap:getDimensions()
+					local height = cap_height / cap_rows * 64 / (cap_width / cap_columns)
+					local frame = self:getNoteAnimationFrame(cap, cap_actor, "HoldBottomCap", note.linked_note.startNote:getBeatModulo())
+					draw_image(cap, x, body_end + direction * height / 2, 64, height, frame, cap_columns, cap_rows, nil, true)
+				end
+				local tail, tail_actor = self:getElementActor(note_direction, "Hold Tail " .. hold_state)
 				if tail then
 					local tail_columns, tail_rows = self:getGrid(tail)
-					draw_image(tail, x, tail_y, 64, 64, 0, tail_columns, tail_rows, rotations[note_direction])
+					local frame = self:getNoteAnimationFrame(tail, tail_actor, "HoldTail", note.linked_note.startNote:getBeatModulo())
+					draw_image(tail, x, tail_y, 64, 64, frame, tail_columns, tail_rows, rotations[note_direction])
 				end
 			end
 		end
@@ -586,14 +598,15 @@ function StepmaniaRenderer:drawNotes(notes, columns, time_scale, receptor_y)
 			local y = self:clampHeldNoteY(note, receptor_y + note.start_dt * time_scale, receptor_y)
 			local direction = self:getDirection(column)
 			local part = note.type == "long" and "HoldHead" or "TapNote"
-			local image = note.type == "long"
-				and self:getElement(direction, "Hold Head " .. self:getHoldState(note))
-				or self:getElement(direction, "Tap Note")
+			local image, actor = note.type == "long"
+				and self:getElementActor(direction, "Hold Head " .. self:getHoldState(note))
+				or self:getElementActor(direction, "Tap Note")
 			if image then
 				local image_columns, image_rows = self:getGrid(image)
 				-- StepMania sheets are columns × snap rows: columns animate, while
 				-- NoteColorTextureCoordSpacing selects a vertical snap row.
 				local frame = self:getFrame(part, note) * image_columns
+				frame = frame + self:getNoteAnimationFrame(image, actor, part, note.linked_note.startNote:getBeatModulo()) % image_columns
 				draw_image(image, x, y, 64, 64, frame, image_columns, image_rows, rotations[direction])
 			end
 		end
@@ -606,8 +619,10 @@ end
 ---@param progress number
 ---@return integer
 function StepmaniaRenderer:getAnimationFrame(image, actor, progress)
-	local columns, rows = self:getGrid(image)
-	local frame_count = columns * rows
+	local columns = self:getGrid(image)
+	-- NoteDisplay stores animation frames across the sheet and note colors in
+	-- rows. Animating every cell makes an 8×9 note sheet run nine times faster.
+	local frame_count = columns
 	if not actor then return math.floor(progress * frame_count) % frame_count end
 
 	local frames, duration = {}, 0
@@ -628,8 +643,31 @@ function StepmaniaRenderer:getAnimationFrame(image, actor, progress)
 	return frames[#frames].frame
 end
 
+---@param image love.Image
+---@param actor table?
+---@param part string
+---@param note_beat number
+---@param current_beat number?
+---@param current_time number?
+---@return integer
+function StepmaniaRenderer:getNoteAnimationFrame(image, actor, part, note_beat, current_beat, current_time)
+	local metrics = self.metrics.NoteDisplay or {}
+	local length = tonumber(metrics[part .. "AnimationLength"]) or 0
+	if length == 0 then return 0 end
+	local position
+	if tonumber(metrics.AnimationIsBeatBased) ~= 0 then
+		position = (current_beat or self:getCurrentBeat()) / length
+	else
+		position = (current_time or self.game.rhythm_engine.visual_info.time) / length
+	end
+	if tonumber(metrics[part .. "AnimationIsVivid"]) ~= 0 then
+		position = position + math.floor((note_beat % 1) * length) / length
+	end
+	return self:getAnimationFrame(image, actor, position % 1)
+end
+
 ---@return number
-function StepmaniaRenderer:getCurrentBeatModulo()
+function StepmaniaRenderer:getCurrentBeat()
 	local engine = self.game.rhythm_engine
 	local chart = engine.chart
 	local layer = chart and chart.layers.main
@@ -649,7 +687,12 @@ function StepmaniaRenderer:getCurrentBeatModulo()
 	if point.absoluteTime > time then point = nil end
 	if not point or not point.tempo then return 0 end
 	local measure_offset = point.measure and point.measure.offset or 0
-	return ((time - point.tempo.point.absoluteTime) / point.tempo:getBeatDuration() + measure_offset) % 1
+	return (time - point.tempo.point.absoluteTime) / point.tempo:getBeatDuration() + measure_offset
+end
+
+---@return number
+function StepmaniaRenderer:getCurrentBeatModulo()
+	return self:getCurrentBeat() % 1
 end
 
 ---@param columns integer
@@ -735,6 +778,7 @@ function StepmaniaRenderer:drawPreview(player, width, height)
 	local receptor_y, pixels_per_second = 360, 480 * math.max(player.rate, 0.01)
 	local top, bottom = 0, 480
 	local time = player.time
+	local current_beat = preview:getBeatAtTime(time)
 	-- Include the portion below the receptor, so notes visibly travel past it
 	-- rather than disappearing exactly at their absolute time.
 	local from_time = time - (bottom - receptor_y) / pixels_per_second
@@ -752,25 +796,32 @@ function StepmaniaRenderer:drawPreview(player, width, height)
 					-- viewport. Clamping changes its scale and distorts the texture.
 					local body_start = head_y - self.hold_body_start_offset
 					local body_end = tail_y - self.hold_body_end_offset
-					local body = self:getElement(direction, "Hold Body Active")
-					if body then draw_hold_body(body, (column - .5) * 64, body_start, body_end, 64) end
-					local cap = self:getElement(direction, "Hold BottomCap Active")
+					local body, body_actor = self:getElementActor(direction, "Hold Body Active")
+					if body then
+						local body_columns, body_rows = self:getGrid(body)
+						local frame = self:getNoteAnimationFrame(body, body_actor, "HoldBody", note.beat, current_beat, time)
+						draw_hold_body(body, (column - .5) * 64, body_start, body_end, 64, frame, body_columns, body_rows)
+					end
+					local cap, cap_actor = self:getElementActor(direction, "Hold BottomCap Active")
 					if cap then
+						local cap_columns, cap_rows = self:getGrid(cap)
 						local cap_width, cap_height = cap:getDimensions()
-						local height = cap_height * 64 / cap_width
+						local height = cap_height / cap_rows * 64 / (cap_width / cap_columns)
+						local frame = self:getNoteAnimationFrame(cap, cap_actor, "HoldBottomCap", note.beat, current_beat, time)
 						-- The cap attaches to the metrics-adjusted body endpoint, not
 						-- the unadjusted chart tail. Preview scrolls upward.
-						draw_image(cap, (column - .5) * 64, body_end - height / 2, 64, height, nil, nil, nil, nil, true)
+						draw_image(cap, (column - .5) * 64, body_end - height / 2, 64, height, frame, cap_columns, cap_rows, nil, true)
 					end
 				end
 				if head_y > top and head_y < bottom then
-					local image = note.end_time > note.time and self:getElement(direction, "Hold Active") or self:getElement(direction, "Tap Note")
+					local part = note.end_time > note.time and "HoldHead" or "TapNote"
+					local image, actor = note.end_time > note.time
+						and self:getElementActor(direction, "Hold Active") or self:getElementActor(direction, "Tap Note")
 					if image then
 						local image_columns, image_rows = self:getGrid(image)
-						local snap_frame = self.note_color_frames[note.end_time > note.time and "HoldHead" or "TapNote"]
-							and self:getColorFrameFromBeat(note.beat) or 0
+						local snap_frame = self.note_color_frames[part] and self:getColorFrameFromBeat(note.beat) or 0
 						-- Horizontal cells are animation frames; snap colors use rows.
-						local frame = snap_frame * image_columns
+						local frame = snap_frame * image_columns + self:getNoteAnimationFrame(image, actor, part, note.beat, current_beat, time) % image_columns
 						draw_image(image, (column - .5) * 64, head_y, 64, 64, frame, image_columns, image_rows, rotations[direction])
 					end
 				end
