@@ -30,7 +30,7 @@ local keys = {
 		event_based_render = "gameplay.event_based_render",
 		swap_velocity_type = "gameplay.swap_velocity_type",
 		skin_resources_top_priority = "gameplay.skin_resources_top_priority",
-		skin = {},
+		skins = "gameplay.skins",
 		hp_shift = "gameplay.hp.shift",
 		hp_notes = "gameplay.hp.notes",
 		bga_video = "gameplay.bga.video",
@@ -152,9 +152,6 @@ local keys = {
 	},
 }
 
-for keymode = 1, 10 do
-	keys.gameplay.skin[keymode .. "key"] = "gameplay.skin." .. keymode .. "key"
-end
 for _, format in ipairs({"sphere", "osu", "o2jam", "bms", "stepmania", "quaver", "midi", "ksm"}) do
 	keys.audio.volume_keysounds_format[format] = "audio.volume.keysounds_format." .. format
 end
@@ -211,9 +208,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(g.event_based_render, false) -- Don't we already use it by default?
 	config:setDefaultBoolean(g.swap_velocity_type, false)
 	config:setDefaultBoolean(g.skin_resources_top_priority, false)
-	for _, key in pairs(g.skin) do
-		config:setDefaultString(key, "default")
-	end
+	config:setDefaultStringMap(g.skins, {})
 	config:setDefaultBoolean(g.hp_shift, false) -- Not sure if it works
 	config:setDefaultNumber(g.hp_notes, 20, 0, 100, 1) -- Not sure if it works
 	config:setDefaultBoolean(g.bga_video, false)

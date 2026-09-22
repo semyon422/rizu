@@ -7,6 +7,7 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local NoteSkinList = require("ui.modals.note_skins.NoteSkinList")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
+local Settings = require("rizu.config.Settings")
 local UiActions = require("ui.UiActions")
 local View = require("gui.View")
 
@@ -128,9 +129,8 @@ function NoteSkins:new(game, on_close, localization)
 	self.list:anchorFixed(CONTENT_X, HEADER_HEIGHT + CONTENT_PADDING_Y,
 		WIDTH - CONTENT_X * 2, HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - CONTENT_PADDING_Y * 2)
 	self.list_page:add(ModalFooter(on_close, localization:get("settings.close")))
-	self.edit_button = self.list_page:add(Button(localization:get("note_skin_overrides.edit"), function()
-		self:showOverrides()
-	end, {variant = "primary", shape = "capsule", font_size = 18}))
+	self.edit_button = self.list_page:add(Button(localization:get("note_skin_overrides.edit"), function() end,
+		{variant = "primary", shape = "capsule", font_size = 18}))
 	self.edit_button:setSize(150, 48):setPosition(WIDTH - CONTENT_X - 150, HEIGHT - 70)
 
 	self.overrides_page = self:add(View())
@@ -157,20 +157,36 @@ function NoteSkins:refresh()
 		return
 	end
 
-	local model = self.game.noteSkinModel
-	self.items = model:getSkinInfos(input_mode)
-	local selected = model:getSkinInfo(input_mode)
-	local selected_path = selected and selected:getPath() or nil
+	local registry = self.game.skinRegistry
+	self.items = {}
+	if registry then
+		for _, skin in ipairs(registry:getSkins()) do
+			local metadata = skin.metadata
+			if metadata and metadata.gamemode == "mania" then
+				for _, supported_input_mode in ipairs(metadata.input_modes) do
+					if supported_input_mode == input_mode or supported_input_mode == "any" then
+						table.insert(self.items, skin)
+						break
+					end
+				end
+			end
+		end
+	end
+
+	local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
+	local selected_path = skin_paths["mania/" .. input_mode]
+	local selected = registry and registry:getSkinForInputMode("mania", input_mode, selected_path)
+	selected_path = selected and selected.path or nil
 	self.list_header.subtitle:setText(self.localization:get("song_select.choose_skin_for") .. input_mode .. ".")
+	self.selected_index = 1
 	for index, item in ipairs(self.items) do
-		if item:getPath() == selected_path then
+		if item.path == selected_path then
 			self.selected_index = index
 			break
 		end
 	end
 	self.list:setItems(self.items, selected_path)
-	local note_skin = model:getNoteSkin(input_mode)
-	self.edit_button:setEnabled(note_skin ~= nil and note_skin.config ~= nil)
+	self.edit_button:setEnabled(#self.items > 0)
 end
 
 ---@param index integer
@@ -178,15 +194,10 @@ function NoteSkins:select(index)
 	local item = self.items[index]
 	if not item or self.input_mode == "" then return end
 	self.selected_index = index
-	local model = self.game.noteSkinModel
-	local path = item:getPath()
-	model:setDefaultNoteSkin(self.input_mode, path)
-	model:loadNoteSkin(self.input_mode)
-	self.game.persistence.configModel:write("settings")
-	self.list.selected_path = path
-	if self.edit_button then
-		self.edit_button:setEnabled(model.noteSkin ~= nil and model.noteSkin.config ~= nil)
-	end
+	local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
+	skin_paths["mania/" .. self.input_mode] = item.path
+	self.game.settings:setStringMap(Settings.keys.gameplay.skins, skin_paths)
+	self.list.selected_path = item.path
 end
 
 function NoteSkins:showOverrides()

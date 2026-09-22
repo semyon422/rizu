@@ -130,7 +130,7 @@ end
 ---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
 return {
 	metadata = {
-		name = "Rizu Mania 4K",
+		name = "Rizu Default",
 		author = "Rizu",
 		version = "0.1.0",
 		gamemode = "mania",

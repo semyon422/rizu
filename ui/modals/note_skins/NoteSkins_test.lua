@@ -4,29 +4,23 @@ local test = {}
 
 ---@param t testing.T
 function test.selects_and_persists_skin(t)
-	local writes = {}
 	local selected
-	local loaded
-	local first = {getPath = function() return "base" end}
-	local second = {getPath = function() return "skins/example/skin.ini" end}
+	local skin = {path = "userdata/dlc/skins_rizu/example.skin.lua"}
 	local modal = {
-		items = {first, second},
+		items = {skin},
 		input_mode = "4key",
 		game = {
-			noteSkinModel = {
-				setDefaultNoteSkin = function(_, input_mode, path) selected = {input_mode, path} end,
-				loadNoteSkin = function(_, input_mode) loaded = input_mode end,
+			settings = {
+				getStringMap = function() return {} end,
+				setStringMap = function(_, key, paths) selected = {key, paths["mania/4key"]} end,
 			},
-			persistence = {configModel = {write = function(_, name) writes[#writes + 1] = name end}},
 		},
 		list = {},
 	}
 
-	NoteSkins.select(modal, 2)
-	t:tdeq(selected, {"4key", "skins/example/skin.ini"})
-	t:eq(loaded, "4key")
-	t:tdeq(writes, {"settings"})
-	t:eq(modal.list.selected_path, "skins/example/skin.ini")
+	NoteSkins.select(modal, 1)
+	t:tdeq(selected, {"gameplay.skins", skin.path})
+	t:eq(modal.list.selected_path, skin.path)
 end
 
 return test

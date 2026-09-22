@@ -2,10 +2,10 @@ local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
-local Settings = require("rizu.config.Settings")
 local BgaRenderer = require("ui.views.BgaRenderer")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
+local Settings = require("rizu.config.Settings")
 
 local lg = love.graphics
 
@@ -44,6 +44,8 @@ end
 ---@field preview_canvas love.Canvas?
 ---@field details_container ui.screens.song_select.SelectedSongPanel.Details
 ---@field progress_bar ui.screens.music_player.ProgressBar
+---@field chartview_formatter ui.formatters.ChartviewFormatter?
+---@field unsubscribe_skins fun()
 ---@field details_opacity gui.anim.SpringValue
 ---@field details_reveal gui.anim.SpringValue
 ---@field details_hidden_offset number
@@ -65,6 +67,9 @@ function SelectedSongPanel:new(bg_model, game, localization)
 	View.new(self)
 	self.bg_model = bg_model
 	self.game = game
+	self.unsubscribe_skins = game.settings:subscribeStringMap(Settings.keys.gameplay.skins, function()
+		if self.chartview_formatter then self:bind(self.chartview_formatter) end
+	end)
 	self.bga_renderer = BgaRenderer()
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
@@ -88,6 +93,7 @@ function SelectedSongPanel:new(bg_model, game, localization)
 end
 
 function SelectedSongPanel:unload()
+	self.unsubscribe_skins()
 	if self.preview_canvas then
 		self.preview_canvas:release()
 		self.preview_canvas = nil
@@ -141,6 +147,7 @@ end
 
 ---@param cvf ui.formatters.ChartviewFormatter
 function SelectedSongPanel:bind(cvf)
+	self.chartview_formatter = cvf
 	self.details_opacity:snap(0):set(1)
 	self.title = cvf:getTitle()
 	self.artist = cvf:getArtist()
@@ -148,9 +155,8 @@ function SelectedSongPanel:bind(cvf)
 	self.playfield_renderer = nil
 	local input_mode = cvf.chartview.chartdiff_inputmode
 	if input_mode and cvf.chartview.chartmeta_mode == "mania" and self.game.skinRegistry then
-		local skin_key = Settings.keys.gameplay.skin[input_mode]
-		local skin_name = skin_key and self.game.settings:getString(skin_key)
-		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_name)
+		local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
+		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_paths["mania/" .. input_mode])
 		if skin then
 			self.playfield_renderer = skin.load(self.game, input_mode, "preview")
 		end

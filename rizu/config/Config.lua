@@ -10,13 +10,15 @@ local json = require("json")
 ---@field allow_repeat boolean?
 
 ---@alias rizu.config.KeyBindings rizu.config.KeyBinding[]
----@alias rizu.config.Kind "number"|"choice"|"boolean"|"string"|"key_bindings"
----@alias rizu.config.Value number|string|boolean|rizu.config.KeyBindings
+---@alias rizu.config.StringMap {[string]: string}
+---@alias rizu.config.Kind "number"|"choice"|"boolean"|"string"|"key_bindings"|"string_map"
+---@alias rizu.config.Value number|string|boolean|rizu.config.KeyBindings|rizu.config.StringMap
 ---@alias rizu.config.ChangeCallback fun(value: rizu.config.Value, old_value: rizu.config.Value, key: string)
 ---@alias rizu.config.NumberChangeCallback fun(value: number, old_value: number, key: string)
 ---@alias rizu.config.StringChangeCallback fun(value: string, old_value: string, key: string)
 ---@alias rizu.config.BooleanChangeCallback fun(value: boolean, old_value: boolean, key: string)
 ---@alias rizu.config.KeyBindingsChangeCallback fun(value: rizu.config.KeyBindings, old_value: rizu.config.KeyBindings, key: string)
+---@alias rizu.config.StringMapChangeCallback fun(value: rizu.config.StringMap, old_value: rizu.config.StringMap, key: string)
 
 ---@class rizu.config.Definition
 ---@field kind rizu.config.Kind
@@ -52,7 +54,7 @@ end
 local function lua_type(kind)
 	if kind == "choice" then
 		return "string"
-	elseif kind == "key_bindings" then
+	elseif kind == "key_bindings" or kind == "string_map" then
 		return "table"
 	else
 		---@cast kind "number"|"string"|"boolean"
@@ -77,7 +79,30 @@ local function copy_key_bindings(bindings)
 	return copy
 end
 
----@param bindings rizu.config.KeyBindings
+---@param map rizu.config.StringMap
+local function copy_string_map(map)
+	local copy = {}
+	for key, value in pairs(map) do copy[key] = value end
+	return copy
+end
+
+---@param map rizu.config.StringMap
+local function validate_string_map(map)
+	for key, value in pairs(map) do
+		assert(type(key) == "string" and key ~= "", "string map keys must be non-empty strings")
+		assert(type(value) == "string", "string map values must be strings")
+	end
+end
+
+---@param a rizu.config.StringMap
+---@param b rizu.config.StringMap
+---@return boolean
+local function string_maps_equal(a, b)
+	for key, value in pairs(a) do if b[key] ~= value then return false end end
+	for key in pairs(b) do if a[key] == nil then return false end end
+	return true
+end
+
 local function validate_key_bindings(bindings)
 	for index, binding in ipairs(bindings) do
 		assert(type(binding) == "table", "key binding must be a table at index " .. index)
@@ -119,6 +144,8 @@ local function validate_default(key, definition)
 		assert(definition.default >= definition.min and definition.default <= definition.max, "number default is out of range")
 	elseif definition.kind == "key_bindings" then
 		validate_key_bindings(definition.default --[[@as rizu.config.KeyBindings]])
+	elseif definition.kind == "string_map" then
+		validate_string_map(definition.default --[[@as rizu.config.StringMap]])
 	elseif definition.kind == "choice" then
 		assert(definition.choices and #definition.choices > 0, "choices must not be empty")
 		local found = false
@@ -179,6 +206,13 @@ end
 function Config:setDefaultKeyBindings(key, default)
 	validate_key_bindings(default)
 	self:setDefault(key, {kind = "key_bindings", default = copy_key_bindings(default)})
+end
+
+---@param key string
+---@param default rizu.config.StringMap
+function Config:setDefaultStringMap(key, default)
+	validate_string_map(default)
+	self:setDefault(key, {kind = "string_map", default = copy_string_map(default)})
 end
 
 ---@param key string
@@ -257,6 +291,13 @@ function Config:getKeyBindings(key)
 end
 
 ---@param key string
+---@return rizu.config.StringMap
+function Config:getStringMap(key)
+	assert_kind(self, key, "string_map")
+	return copy_string_map(self:get(key) --[[@as rizu.config.StringMap]])
+end
+
+---@param key string
 ---@param value rizu.config.Value
 ---@param old_value rizu.config.Value
 function Config:notify(key, value, old_value)
@@ -267,12 +308,18 @@ function Config:notify(key, value, old_value)
 	for callback in pairs(self.all_subscriptions) do
 		callbacks[#callbacks + 1] = callback
 	end
-	local key_bindings = self.definitions[key].kind == "key_bindings"
+	local kind = self.definitions[key].kind
 	for _, callback in ipairs(callbacks) do
-		if key_bindings then
+		if kind == "key_bindings" then
 			callback(
 				copy_key_bindings(value --[[@as rizu.config.KeyBindings]]),
 				copy_key_bindings(old_value --[[@as rizu.config.KeyBindings]]),
+				key
+			)
+		elseif kind == "string_map" then
+			callback(
+				copy_string_map(value --[[@as rizu.config.StringMap]]),
+				copy_string_map(old_value --[[@as rizu.config.StringMap]]),
 				key
 			)
 		else
@@ -296,6 +343,8 @@ function Config:set(key, value)
 		assert(found, "value must be one of the choices")
 	elseif definition.kind == "key_bindings" then
 		validate_key_bindings(value --[[@as rizu.config.KeyBindings]])
+	elseif definition.kind == "string_map" then
+		validate_string_map(value --[[@as rizu.config.StringMap]])
 	end
 
 	local old_value = self:get(key)
@@ -304,6 +353,9 @@ function Config:set(key, value)
 	if definition.kind == "key_bindings" then
 		equal = key_bindings_equal(old_value --[[@as rizu.config.KeyBindings]], value --[[@as rizu.config.KeyBindings]])
 		is_default = key_bindings_equal(value --[[@as rizu.config.KeyBindings]], definition.default --[[@as rizu.config.KeyBindings]])
+	elseif definition.kind == "string_map" then
+		equal = string_maps_equal(old_value --[[@as rizu.config.StringMap]], value --[[@as rizu.config.StringMap]])
+		is_default = string_maps_equal(value --[[@as rizu.config.StringMap]], definition.default --[[@as rizu.config.StringMap]])
 	end
 	if equal then return end
 	self.values[key] = is_default and nil or value
@@ -344,6 +396,14 @@ function Config:setKeyBindings(key, value)
 	assert_kind(self, key, "key_bindings")
 	validate_key_bindings(value)
 	self:set(key, copy_key_bindings(value))
+end
+
+---@param key string
+---@param value rizu.config.StringMap
+function Config:setStringMap(key, value)
+	assert_kind(self, key, "string_map")
+	validate_string_map(value)
+	self:set(key, copy_string_map(value))
 end
 
 ---@param key string
@@ -403,6 +463,14 @@ function Config:subscribeKeyBindings(key, callback)
 	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
 end
 
+---@param key string
+---@param callback rizu.config.StringMapChangeCallback
+---@return function unsubscribe
+function Config:subscribeStringMap(key, callback)
+	assert_kind(self, key, "string_map")
+	return self:subscribe(key, callback --[[@as rizu.config.ChangeCallback]])
+end
+
 ---@param callback rizu.config.ChangeCallback
 ---@return function unsubscribe
 function Config:subscribeAll(callback)
@@ -445,6 +513,9 @@ function Config:deserialize(json_string)
 			elseif definition.kind == "key_bindings" then
 				local valid = pcall(validate_key_bindings, value)
 				if not valid then return false end
+			elseif definition.kind == "string_map" then
+				local valid = pcall(validate_string_map, value)
+				if not valid then return false end
 			end
 			if value ~= definition.default then
 				values[key] = value
@@ -461,6 +532,9 @@ function Config:deserialize(json_string)
 		local equal = old_value == value
 		if definition.kind == "key_bindings" then
 			equal = key_bindings_equal(old_value --[[@as rizu.config.KeyBindings]], value --[[@as rizu.config.KeyBindings]])
+		end
+		if definition.kind == "string_map" then
+			equal = string_maps_equal(old_value --[[@as rizu.config.StringMap]], value --[[@as rizu.config.StringMap]])
 		end
 		if not equal then self:notify(key, value, old_value) end
 	end

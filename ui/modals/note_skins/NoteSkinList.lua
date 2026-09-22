@@ -35,7 +35,7 @@ function NoteSkinList:getItemCount()
 	return #self.items
 end
 
----@param items sphere.SkinInfo[]
+---@param items rizu.skin.SkinInfo[]
 ---@param selected_path string?
 function NoteSkinList:setItems(items, selected_path)
 	self.items = items
@@ -80,7 +80,7 @@ function NoteSkinList:draw()
 	local first_index, last_index = self:getVisibleRowRange()
 	for index = first_index, last_index do
 		local item = self.items[index]
-		local selected = item:getPath() == self.selected_path
+		local selected = item.path == self.selected_path
 		local y = math.floor((index - 1) * self:getRowStep() - scroll + 0.5)
 
 		Painter.setColorRgb(1, 1, 1)
@@ -104,7 +104,7 @@ function NoteSkinList:draw()
 
 		Painter.setColorTable(Colors.text)
 		love.graphics.setFont(self.font)
-		love.graphics.print(item.name, TEXT_X, y + (ITEM_HEIGHT - self.font:getHeight()) / 2)
+		love.graphics.print(item.metadata.name, TEXT_X, y + (ITEM_HEIGHT - self.font:getHeight()) / 2)
 	end
 end
 

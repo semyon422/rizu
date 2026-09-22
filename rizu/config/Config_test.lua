@@ -13,6 +13,7 @@ local function createConfig()
 	config:setDefaultBoolean("show_fps", false)
 	config:setDefaultString("name", "")
 	config:setDefaultKeyBindings("cancel", {{key = "escape"}})
+	config:setDefaultStringMap("skins", {})
 	return config, fs
 end
 
@@ -48,6 +49,7 @@ function test.typed_access(t)
 	t:eq(config:getBoolean("show_fps"), false)
 	t:eq(config:getString("name"), "")
 	t:tdeq(config:getKeyBindings("cancel"), {{key = "escape"}})
+	t:tdeq(config:getStringMap("skins"), {})
 	t:tdeq(config:getChoices("interface"), {"old", "new"})
 
 	config:setNumber("volume", 0.8)
@@ -55,14 +57,19 @@ function test.typed_access(t)
 	config:setBoolean("show_fps", true)
 	config:setString("name", "player")
 	config:setKeyBindings("cancel", {{key = "q", control = true}})
+	config:setStringMap("skins", {["mania/12key"] = "example.skin.lua"})
 	t:eq(config:getNumber("volume"), 0.8)
 	t:eq(config:getChoice("interface"), "old")
 	t:eq(config:getBoolean("show_fps"), true)
 	t:eq(config:getString("name"), "player")
 	t:tdeq(config:getKeyBindings("cancel"), {{key = "q", control = true}})
+	t:tdeq(config:getStringMap("skins"), {["mania/12key"] = "example.skin.lua"})
 	local bindings = config:getKeyBindings("cancel")
 	bindings[1].key = "mutated"
 	t:eq(config:getKeyBindings("cancel")[1].key, "q")
+	local skins = config:getStringMap("skins")
+	skins["mania/12key"] = "mutated"
+	t:eq(config:getStringMap("skins")["mania/12key"], "example.skin.lua")
 end
 
 ---@param t testing.T
@@ -103,17 +110,21 @@ function test.typed_subscriptions(t)
 	config:subscribeBoolean("show_fps", function(value) boolean_value = value end)
 	config:subscribeString("name", function(value) string_value = value end)
 	config:subscribeKeyBindings("cancel", function(value) binding_key = value[1].key end)
+	local skin_path ---@type string?
+	config:subscribeStringMap("skins", function(value) skin_path = value["mania/4key"] end)
 
 	config:setNumber("volume", 0.7)
 	config:setChoice("interface", "old")
 	config:setBoolean("show_fps", true)
 	config:setString("name", "player")
 	config:setKeyBindings("cancel", {{key = "q"}})
+	config:setStringMap("skins", {["mania/4key"] = "example.skin.lua"})
 	t:eq(number_value, 0.7)
 	t:eq(choice_value, "old")
 	t:eq(boolean_value, true)
 	t:eq(string_value, "player")
 	t:eq(binding_key, "q")
+	t:eq(skin_path, "example.skin.lua")
 	t:has_error(function() config:subscribeBoolean("volume", function() end) end)
 end
 
