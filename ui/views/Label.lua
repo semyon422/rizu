@@ -50,7 +50,13 @@ function Label:draw()
 	Painter.snapToPixel()
 	Painter.setColorTable(self.color)
 	love.graphics.setFont(self.font)
-	love.graphics.printf(self.text, 0, 0, self.width, self.align)
+	if self.align == "left" then
+		-- A Label is sized to its unwrapped text. Passing that measured width back
+		-- to printf can still wrap on platforms whose font metrics differ slightly.
+		love.graphics.print(self.text, 0, 0)
+	else
+		love.graphics.printf(self.text, 0, 0, self.width, self.align)
+	end
 end
 
 return Label
