@@ -47,6 +47,8 @@ function LunaticRaveScore:new(rank)
 	self.judge_counter = JudgeCounter(5)
 	self.combo = 0
 	self.max_combo = 0
+	self.slice_input = nil
+	self.slice_judge_index = nil
 
 	---@type {[integer]: integer}
 	self.long_note_judges = {}
@@ -67,8 +69,13 @@ function LunaticRaveScore:mash(event)
 end
 
 ---@param index integer
-function LunaticRaveScore:addJudge(index)
+---@param event rizu.LogicNoteChange?
+function LunaticRaveScore:addJudge(index, event)
 	self.judge_counter:add(index)
+	if event then
+		self.slice_input = event.column
+		self.slice_judge_index = index
+	end
 	if index <= 3 then
 		self.combo = self.combo + 1
 		self.max_combo = math.max(self.max_combo, self.combo)
@@ -117,12 +124,12 @@ end
 ---@param event rizu.LogicNoteChange
 function LunaticRaveScore:hit(event)
 	local index = self.judge_windows:get(event.delta_time) or 5
-	self:addJudge(index)
+	self:addJudge(index, event)
 end
 
 ---@param event rizu.LogicNoteChange
 function LunaticRaveScore:miss(event)
-	self:addJudge(5)
+	self:addJudge(5, event)
 	self.long_note_judges[event.index] = nil
 end
 
@@ -144,7 +151,7 @@ function LunaticRaveScore:longNoteRelease(event)
 		index = 4
 	end
 
-	self:addJudge(index)
+	self:addJudge(index, event)
 	self.long_note_judges[event.index] = nil
 end
 
@@ -155,12 +162,14 @@ function LunaticRaveScore:longNoteTimeout(event)
 		return
 	end
 
-	self:addJudge(index)
+	self:addJudge(index, event)
 	self.long_note_judges[event.index] = nil
 end
 
 function LunaticRaveScore:getSlice()
-	return {
+	local slice = {
+		input = self.slice_input,
+		judge_index = self.slice_judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(),
 		score = self:getScore(),
@@ -168,6 +177,9 @@ function LunaticRaveScore:getSlice()
 		combo = self:getCombo(),
 		max_combo = self:getMaxCombo(),
 	}
+	self.slice_input = nil
+	self.slice_judge_index = nil
+	return slice
 end
 
 LunaticRaveScore.events = {

@@ -81,6 +81,8 @@ function OsuManiaV1Score:new(od)
 	self.hitValue = 0
 	self.totalBonus = 0
 	self.combo = 0
+	self.slice_input = nil
+	self.slice_judge_index = nil
 end
 
 ---@return string
@@ -89,8 +91,13 @@ function OsuManiaV1Score:getKey()
 end
 
 ---@param index integer
-function OsuManiaV1Score:addCounter(index)
+---@param event rizu.LogicNoteChange?
+function OsuManiaV1Score:addCounter(index, event)
 	self.judge_counter:add(index)
+	if event then
+		self.slice_input = event.column
+		self.slice_judge_index = index
+	end
 	self.last_judge = index
 	self.visual_judge = index
 
@@ -139,6 +146,8 @@ function OsuManiaV1Score:before(event)
 	-- Do not let views reuse the preceding note's judgement for this event.
 	self.last_judge = nil
 	self.visual_judge = nil
+	self.slice_input = nil
+	self.slice_judge_index = nil
 end
 
 ---@return integer?
@@ -153,7 +162,7 @@ end
 
 ---@param event rizu.LogicNoteChange
 function OsuManiaV1Score:miss(event)
-	self:addCounter(6)
+	self:addCounter(6, event)
 	if event.type == "hold" then
 		self:setLongNoteState(event, nil)
 	end
@@ -162,7 +171,7 @@ end
 ---@param event rizu.LogicNoteChange
 function OsuManiaV1Score:shortNoteHit(event)
 	local index = self.note_judge_windows:get(event.delta_time) or 6
-	self:addCounter(index)
+	self:addCounter(index, event)
 end
 
 ---@param event rizu.LogicNoteChange
@@ -170,7 +179,10 @@ function OsuManiaV1Score:longNoteStartHit(event)
 	-- osu! judges an LN once, at its end. The head timing is retained only for
 	-- the combined head+tail judgement; it must not add a separate judgement.
 	-- Its head judgement is nevertheless exposed for visual hit feedback.
-	self.visual_judge = self.head_judge_windows:get(event.delta_time) or 6
+	local index = self.head_judge_windows:get(event.delta_time) or 6
+	self.visual_judge = index
+	self.slice_input = event.column
+	self.slice_judge_index = index
 	self:setLongNoteState(event, {
 		head_delta_time = event.delta_time,
 		broken = false,
@@ -202,15 +214,15 @@ end
 function OsuManiaV1Score:didntReleased(event)
 	local state = self:getLongNoteState(event)
 	if not state then
-		self:addCounter(6)
+		self:addCounter(6, event)
 		return
 	end
 
 	-- Releasing before the 50 window is a stable hold break and final miss.
 	if event.delta_time < -self.windows[5] then
-		self:addCounter(6)
+		self:addCounter(6, event)
 	else
-		self:addCounter(self:getLongNoteJudge(state.head_delta_time, event.delta_time))
+		self:addCounter(self:getLongNoteJudge(state.head_delta_time, event.delta_time), event)
 	end
 	self:setLongNoteState(event, nil)
 end
@@ -237,7 +249,7 @@ end
 function OsuManiaV1Score:longNoteRelease(event)
 	local state = self:getLongNoteState(event)
 	if not state then
-		self:addCounter(6)
+		self:addCounter(6, event)
 		return
 	end
 
@@ -246,7 +258,7 @@ function OsuManiaV1Score:longNoteRelease(event)
 		-- In stable, a hold break caps an otherwise 300g/300 LN at 200.
 		index = math.max(index, 3)
 	end
-	self:addCounter(index)
+	self:addCounter(index, event)
 	self:setLongNoteState(event, nil)
 end
 
@@ -259,12 +271,17 @@ function OsuManiaV1Score:getAccuracy()
 end
 
 function OsuManiaV1Score:getSlice()
-	return {
+	local slice = {
+		input = self.slice_input,
+		judge_index = self.slice_judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(), -- scoring judgement, only assigned at an LN tail
 		visual_judge = self:getVisualJudge(), -- immediate head/tail feedback for UI
 		score = self:getScore(),
 	}
+	self.slice_input = nil
+	self.slice_judge_index = nil
+	return slice
 end
 
 OsuManiaV1Score.events = {

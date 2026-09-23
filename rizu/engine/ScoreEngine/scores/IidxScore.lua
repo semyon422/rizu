@@ -29,6 +29,8 @@ function IidxScore:new()
 	self.judge_counter = JudgeCounter(5)
 	self.combo = 0
 	self.max_combo = 0
+	self.slice_input = nil
+	self.slice_judge_index = nil
 
 	---@type {[integer]: boolean}
 	self.active_charge_notes = {}
@@ -40,8 +42,13 @@ function IidxScore:getKey()
 end
 
 ---@param index integer
-function IidxScore:addJudge(index)
+---@param event rizu.LogicNoteChange?
+function IidxScore:addJudge(index, event)
 	self.judge_counter:add(index)
+	if event then
+		self.slice_input = event.column
+		self.slice_judge_index = index
+	end
 	if index <= 3 then
 		self.combo = self.combo + 1
 		self.max_combo = math.max(self.max_combo, self.combo)
@@ -52,17 +59,18 @@ end
 
 ---@param event rizu.LogicNoteChange
 function IidxScore:hit(event)
-	self:addJudge(self.judge_windows:get(event.delta_time) or 5)
+	self:addJudge(self.judge_windows:get(event.delta_time) or 5, event)
 end
 
-function IidxScore:miss()
-	self:addJudge(5)
+---@param event rizu.LogicNoteChange
+function IidxScore:miss(event)
+	self:addJudge(5, event)
 end
 
 ---@param event rizu.LogicNoteChange
 function IidxScore:chargeHead(event)
 	local index = self.judge_windows:get(event.delta_time) or 5
-	self:addJudge(index)
+	self:addJudge(index, event)
 	-- A BAD or POOR head deactivates the tail judgment.
 	self.active_charge_notes[event.index] = index <= 3 or nil
 end
@@ -75,11 +83,11 @@ function IidxScore:chargeTail(event)
 
 	local delta_time = event.delta_time
 	if math.abs(delta_time) <= charge_tail_window then
-		self:addJudge(1) -- Any valid release is PGREAT.
+		self:addJudge(1, event) -- Any valid release is PGREAT.
 	elseif delta_time < 0 then
-		self:addJudge(5) -- Premature release is POOR.
+		self:addJudge(5, event) -- Premature release is POOR.
 	else
-		self:addJudge(4) -- Holding past the late boundary is BAD.
+		self:addJudge(4, event) -- Holding past the late boundary is BAD.
 	end
 	self.active_charge_notes[event.index] = nil
 end
@@ -110,13 +118,18 @@ function IidxScore:getMaxCombo()
 end
 
 function IidxScore:getSlice()
-	return {
+	local slice = {
+		input = self.slice_input,
+		judge_index = self.slice_judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(),
 		score = self:getScore(),
 		combo = self:getCombo(),
 		max_combo = self:getMaxCombo(),
 	}
+	self.slice_input = nil
+	self.slice_judge_index = nil
+	return slice
 end
 
 IidxScore.events = {

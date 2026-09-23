@@ -26,6 +26,9 @@ local lg = love.graphics
 ---@field metrics table
 ---@field receptor_actors {[integer]: rizu.skin.stepmania.Actor}
 ---@field receptor_press_states boolean[]
+---@field explosions {time: number, column: integer, actor: rizu.skin.stepmania.Actor}[]
+---@field explosion_event_index integer
+---@field explosion_time number?
 ---@field actor_time number?
 ---@field hold_body_start_offset number
 ---@field hold_body_end_offset number
@@ -67,6 +70,9 @@ function StepmaniaRenderer:new(game, directory_path, input_mode, screen)
 	self.metrics = {}
 	self.receptor_actors = {}
 	self.receptor_press_states = {}
+	self.explosions = {}
+	self.explosion_event_index = 1
+	self.explosion_time = nil
 	self.actor_time = nil
 	self.hold_body_start_offset = 0
 	self.hold_body_end_offset = 0
@@ -170,6 +176,9 @@ function StepmaniaRenderer:unload()
 	self.metrics = {}
 	self.receptor_actors = {}
 	self.receptor_press_states = {}
+	self.explosions = {}
+	self.explosion_event_index = 1
+	self.explosion_time = nil
 	self.actor_time = nil
 	self.hold_body_start_offset = 0
 	self.hold_body_end_offset = 0
@@ -647,6 +656,63 @@ function StepmaniaRenderer:getCurrentBeatModulo()
 	return self:getCurrentBeat() % 1
 end
 
+---@param receptor_y number
+---@param time number
+---@param beat_modulo number
+function StepmaniaRenderer:drawExplosions(receptor_y, time, beat_modulo)
+	local score_engine = self.game.rhythm_engine.score_engine
+	local judges_source = score_engine and score_engine.judgesSource
+	local sequence = score_engine and score_engine.sequence or {}
+	if self.explosion_time and time < self.explosion_time then
+		self.explosions = {}
+		self.explosion_event_index = 1
+	end
+	self.explosion_time = time
+	while self.explosion_event_index <= #sequence do
+		local slice = sequence[self.explosion_event_index]
+		local event_time = slice.base.currentTime
+		if event_time > time then break end
+
+		local judge_slice = judges_source and slice[judges_source:getKey()]
+		if judge_slice and judge_slice.judge_index then
+			local column = self.input_map[judge_slice.input]
+			local judge = judge_slice.judge_index
+			-- StepMania reserves W0 for misses, while score systems put their
+			-- miss at the final judge index.
+			if judge == #judges_source:getJudgeNames() then judge = 0 end
+			if column then
+				local direction = self:getDirection(column)
+				local image, definition = self:getElementActor(direction, "Tap Explosion Dim W" .. judge)
+				if image then
+					local image_columns, image_rows = self:getGrid(image)
+					local actor = Actor(image, definition, image_columns, image_rows, function(texture)
+						return self:resolveActorImage(texture)
+					end)
+					-- Scripted sprites commonly initialize at diffusealpha(0) and expect
+					-- their W# command to make them visible. Metrics commands must play on
+					-- every actor-tree child, just like StepMania's GhostArrow does.
+					local command = (self.metrics.GhostArrowDim or {})["W" .. judge .. "Command"]
+					actor:play("W" .. judge)
+					actor:playCommand(command)
+					table.insert(self.explosions, {time = event_time, column = column, actor = actor, last_time = time})
+				end
+			end
+		end
+		self.explosion_event_index = self.explosion_event_index + 1
+	end
+	for i = #self.explosions, 1, -1 do
+		local explosion = self.explosions[i]
+		local age = time - explosion.time
+		if age > 0.5 then
+			table.remove(self.explosions, i)
+		else
+			explosion.actor:update(math.max(time - explosion.last_time, 0), beat_modulo)
+			explosion.last_time = time
+			explosion.actor:draw((explosion.column - .5) * 64, receptor_y, 64, 64, rotations[self:getDirection(explosion.column)])
+		end
+	end
+end
+
 ---@param columns integer
 ---@param receptor_y number
 ---@param beat_modulo number?
@@ -712,6 +778,7 @@ function StepmaniaRenderer:draw(width, height, transform)
 	lg.translate((640 - columns * 64) / 2, 0)
 	self:drawNotes(visual_engine.visible_notes, columns, 480, 360)
 	self:drawReceptors(columns, 360)
+	self:drawExplosions(360, engine.visual_info.time, self:getCurrentBeatModulo())
 	lg.pop()
 end
 

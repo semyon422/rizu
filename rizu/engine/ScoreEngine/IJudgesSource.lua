@@ -1,7 +1,9 @@
 local class = require("class")
 
 ---@class rizu.JudgesSlice
----@field last_judge integer
+---@field input integer?
+---@field judge_index integer?
+---@field last_judge integer?
 
 ---@class rizu.IJudgesSource
 ---@operator call: rizu.IJudgesSource

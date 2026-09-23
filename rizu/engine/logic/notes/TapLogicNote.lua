@@ -73,6 +73,7 @@ function TapLogicNote:switchState(state)
 
 	self.logic_info:addNoteChange({
 		index = self.index,
+		column = self:getColumn(),
 		type = "tap",
 		time = current_time,
 		delta_time = delta_time,

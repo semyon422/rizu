@@ -24,6 +24,8 @@ function QuaverScore:new()
 	self.judge_counter = JudgeCounter(6)
 	self.judge_windows = JudgeWindows(stdWindows)
 	self.judge_accuracy = JudgeAccuracy(weights)
+	self.slice_input = nil
+	self.slice_judge_index = nil
 end
 
 ---@return string
@@ -42,14 +44,22 @@ function QuaverScore:hit(event)
 
 	local index = self.judge_windows:get(delta_time) or -1
 	self.judge_counter:add(index)
+	self.slice_input = event.column
+	self.slice_judge_index = index
 end
 
-function QuaverScore:releaseFail()
+---@param event rizu.LogicNoteChange
+function QuaverScore:releaseFail(event)
 	self.judge_counter:add(4)
+	self.slice_input = event.column
+	self.slice_judge_index = index
 end
 
-function QuaverScore:miss()
+---@param event rizu.LogicNoteChange
+function QuaverScore:miss(event)
 	self.judge_counter:add(-1)
+	self.slice_input = event.column
+	self.slice_judge_index = index
 end
 
 function QuaverScore:getAccuracy()
@@ -57,10 +67,15 @@ function QuaverScore:getAccuracy()
 end
 
 function QuaverScore:getSlice()
-	return {
+	local slice = {
+		input = self.slice_input,
+		judge_index = self.slice_judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(),
 	}
+	self.slice_input = nil
+	self.slice_judge_index = nil
+	return slice
 end
 
 QuaverScore.events = {

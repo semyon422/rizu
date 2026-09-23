@@ -17,6 +17,8 @@ function SoundsphereScore:new()
 	self.timings = Timings("sphere")
 	self.judge_windows = JudgeWindows(windows)
 	self.judge_counter = JudgeCounter(3)
+	self.slice_input = nil
+	self.slice_judge_index = nil
 end
 
 ---@return string
@@ -28,11 +30,26 @@ end
 function SoundsphereScore:hit(event)
 	local index = self.judge_windows:get(event.delta_time) or -1
 	self.judge_counter:add(index)
+	self.slice_input = event.column
+	self.slice_judge_index = index
 end
 
 ---@param event rizu.LogicNoteChange
 function SoundsphereScore:miss(event)
 	self.judge_counter:add(-1)
+	self.slice_input = event.column
+	self.slice_judge_index = index
+end
+
+function SoundsphereScore:getSlice()
+	local slice = {
+		input = self.slice_input,
+		judge_index = self.slice_judge_index,
+		last_judge = self:getLastJudge(),
+	}
+	self.slice_input = nil
+	self.slice_judge_index = nil
+	return slice
 end
 
 SoundsphereScore.events = {

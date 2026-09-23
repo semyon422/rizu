@@ -23,6 +23,17 @@ function test.long_note_is_judged_once(t)
 end
 
 ---@param t testing.T
+function test.slice_reports_long_note_head_feedback(t)
+	local score = OsuManiaV1Score(8)
+	score:setNotesCount(1)
+
+	score:longNoteStartHit({index = 1, column = 2, delta_time = 0})
+	local slice = score:getSlice()
+	t:eq(slice.input, 2)
+	t:eq(slice.judge_index, 1)
+end
+
+---@param t testing.T
 function test.long_note_uses_combined_head_and_tail_error(t)
 	local score = OsuManiaV1Score(8)
 	score:setNotesCount(1)

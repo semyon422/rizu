@@ -24,8 +24,18 @@ function test.qwe(t)
 
 	t:eq(se.accuracySource:getAccuracyString(), "0.00%")
 
-	-- local acc = se:getAccuracy()
-	-- local score = se:getScore()
+	se:receive({
+		index = 1,
+		column = 2,
+		type = "tap",
+		time = 1,
+		delta_time = 0,
+		old_state = "clear",
+		new_state = "passed",
+	})
+	local slice = se.sequence[1][osu_od85_v2:getKey()]
+	t:eq(slice.input, 2)
+	t:eq(slice.judge_index, 1)
 end
 
 return test

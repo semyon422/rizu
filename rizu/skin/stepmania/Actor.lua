@@ -5,6 +5,7 @@ local lg = love.graphics
 ---@class rizu.skin.stepmania.Actor.Tween
 ---@field duration number
 ---@field elapsed number
+---@field delay number
 ---@field from number
 ---@field to number
 ---@field property string
@@ -92,24 +93,24 @@ end
 ---@param command string?
 function Actor:playCommand(command)
 	if not command or command == "" then return end
-	local duration = 0
+	local duration, delay = 0, 0
 	for part in command:gmatch("[^;]+") do
 		local name, value = part:match("^%s*([%a_]+)%s*,?%s*([%d%.%-]*)")
 		name, value = name and name:lower(), tonumber(value)
 		if name == "stoptweening" or name == "finishtweening" then
 			self.tweens = {}
-		elseif name == "linear" and value then
+		elseif (name == "linear" or name == "accelerate" or name == "decelerate") and value then
 			duration = value
 		elseif name == "zoom" then
-			self:addTween("zoom_x", value, duration)
-			self:addTween("zoom_y", value, duration)
-			duration = 0
-		elseif name == "zoomx" then self:addTween("zoom_x", value, duration); duration = 0
-		elseif name == "zoomy" then self:addTween("zoom_y", value, duration); duration = 0
-		elseif name == "x" then self:addTween("x", value, duration); duration = 0
-		elseif name == "y" then self:addTween("y", value, duration); duration = 0
-		elseif name == "rotationz" then self:addTween("rotation_z", math.rad(value), duration); duration = 0
-		elseif name == "diffusealpha" then self:addTween("opacity", value, duration); duration = 0
+			self:addTween("zoom_x", value, duration, delay)
+			self:addTween("zoom_y", value, duration, delay)
+			delay, duration = delay + duration, 0
+		elseif name == "zoomx" then self:addTween("zoom_x", value, duration, delay); delay, duration = delay + duration, 0
+		elseif name == "zoomy" then self:addTween("zoom_y", value, duration, delay); delay, duration = delay + duration, 0
+		elseif name == "x" then self:addTween("x", value, duration, delay); delay, duration = delay + duration, 0
+		elseif name == "y" then self:addTween("y", value, duration, delay); delay, duration = delay + duration, 0
+		elseif name == "rotationz" then self:addTween("rotation_z", math.rad(value), duration, delay); delay, duration = delay + duration, 0
+		elseif name == "diffusealpha" then self:addTween("opacity", value, duration, delay); delay, duration = delay + duration, 0
 		end
 	end
 end
@@ -117,9 +118,10 @@ end
 ---@param property string
 ---@param value number
 ---@param duration number
-function Actor:addTween(property, value, duration)
-	if duration == 0 then self[property] = value return end
-	table.insert(self.tweens, {property = property, from = self[property], to = value, duration = duration, elapsed = 0})
+---@param delay number
+function Actor:addTween(property, value, duration, delay)
+	if duration == 0 and delay == 0 then self[property] = value return end
+	table.insert(self.tweens, {property = property, from = self[property], to = value, duration = duration, delay = delay, elapsed = 0})
 end
 
 ---@param dt number
@@ -128,9 +130,12 @@ function Actor:update(dt, beat_modulo)
 	for i = #self.tweens, 1, -1 do
 		local tween = self.tweens[i]
 		tween.elapsed = tween.elapsed + dt
-		local progress = math.min(tween.elapsed / tween.duration, 1)
-		self[tween.property] = tween.from + (tween.to - tween.from) * progress
-		if progress == 1 then table.remove(self.tweens, i) end
+		local elapsed = tween.elapsed - tween.delay
+		if elapsed >= 0 then
+			local progress = tween.duration == 0 and 1 or math.min(elapsed / tween.duration, 1)
+			self[tween.property] = tween.from + (tween.to - tween.from) * progress
+			if progress == 1 then table.remove(self.tweens, i) end
+		end
 	end
 	if self.image then
 		if not self.definition then
