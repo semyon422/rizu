@@ -83,7 +83,22 @@ function MainMenu:createButtons()
 
 	local play = actions:add(MainMenuButton(self.ui.localization:get("main_menu.play"), function()
 		self.ui:setScreen(self.ui.song_select, true)
-	end, {variant = "play", font_size = 30, icon = Resources.sprites.icon_play}))
+	end, {
+		variant = "play",
+		font_size = 30,
+		icon = Resources.sprites.icon_play,
+		get_beat_phase = function()
+			local preview_model = self.ui.game.previewModel
+			local notes = preview_model.chartPreview.notes
+			if notes and notes.timing_vertices then
+				return notes:getBeatAtTime(preview_model:getTime())
+			end
+		end,
+		get_bpm = function()
+			local chartview = self.ui.game.chartSelector.chartview
+			return chartview and chartview.tempo
+		end,
+	}))
 	play:setSize(380, 88)
 
 	local multiplayer = actions:add(MainMenuButton(self.ui.localization:get("main_menu.lobby_list"), function()

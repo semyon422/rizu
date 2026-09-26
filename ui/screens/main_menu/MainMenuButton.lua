@@ -11,6 +11,8 @@ local SpringValue = require("gui.anim.SpringValue")
 ---@field variant? ui.screens.main_menu.MainMenuButtonVariant
 ---@field font_size? integer
 ---@field icon gui.Sprite
+---@field get_beat_phase? fun(): number?
+---@field get_bpm? fun(): number?
 
 ---@class ui.screens.main_menu.MainMenuButton : gui.View
 ---@operator call: ui.screens.main_menu.MainMenuButton
@@ -22,11 +24,13 @@ local SpringValue = require("gui.anim.SpringValue")
 ---@field hover_background gui.NineSliceUsage
 ---@field pressed_background gui.NineSliceUsage
 ---@field pulse_outline gui.NineSliceUsage?
----@field pulse_time number
+---@field get_beat_phase fun(): number?
+---@field get_bpm fun(): number?
+---@field pulse_phase number
 local MainMenuButton = View + {}
 
-local PLAY_PULSE_DURATION = 1
 local PLAY_PULSE_SCALE = 1.12
+local DEFAULT_PULSE_DURATION = 1
 local HOVER_ENTER_SPRING = {stiffness = 700, damping = 46}
 local HOVER_EXIT_SPRING = {stiffness = 90, damping = 20}
 local HORIZONTAL_PADDING = 20
@@ -51,7 +55,9 @@ function MainMenuButton:new(text, on_click, config)
 	if variant == "play" then
 		self.pulse_outline = NineSliceUsage(Resources.nine_slices.button_play_pulse)
 	end
-	self.pulse_time = 0
+	self.get_beat_phase = config.get_beat_phase or function() return nil end
+	self.get_bpm = config.get_bpm or function() return nil end
+	self.pulse_phase = 0
 	self:setSize(320, 64)
 	self:setPivot(0.5, 0.5)
 	self.handles_mouse_input = true
@@ -88,13 +94,20 @@ function MainMenuButton:update(dt)
 	self.hover:configure(self.mouse_over and HOVER_ENTER_SPRING or HOVER_EXIT_SPRING)
 	self.hover:set(self.mouse_over and 1 or 0)
 	self.hover:update(dt)
-	self.pulse_time = (self.pulse_time + dt) % PLAY_PULSE_DURATION
+	local beat_phase = self.get_beat_phase()
+	if beat_phase ~= nil then
+		self.pulse_phase = beat_phase % 1
+	else
+		local bpm = self.get_bpm()
+		local duration = bpm and bpm > 0 and bpm < math.huge and 60 / bpm or DEFAULT_PULSE_DURATION
+		self.pulse_phase = (self.pulse_phase + dt / duration) % 1
+	end
 end
 
 function MainMenuButton:drawPulseOutline()
 	if not self.pulse_outline then return end
 
-	local progress = self.pulse_time / PLAY_PULSE_DURATION
+	local progress = self.pulse_phase
 	local scale = 1 + (PLAY_PULSE_SCALE - 1) * progress
 	local alpha = 1 - progress
 	local width = self.width * scale
