@@ -1,10 +1,10 @@
-local AimPlayfield = require("rizu.gameplay.views.AimPlayfield")
+local AimRenderer = require("rizu.skin.base.AimRenderer")
 local test = {}
 
 ---@param t testing.T
 function test.pointer_mapping_round_trips_across_transformed_viewports(t)
 	for _, size in ipairs({{640, 480}, {1280, 720}, {900, 1200}}) do
-		local view = AimPlayfield(nil)
+		local view = AimRenderer(nil)
 		-- A non-axis-aligned affine transform, equivalent to a translated,
 		-- rotated, scaled, and skewed love.Transform.
 		local transform = {a = 1.117, b = 0.355, c = -0.195, d = 0.743, x = 15, y = 20}

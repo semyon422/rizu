@@ -1,29 +1,29 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
-local Spinner = require("rizu.gameplay.aim.Spinner")
-local CircleRenderer = require("rizu.gameplay.views.aim.CircleRenderer")
-local SliderRenderer = require("rizu.gameplay.views.aim.SliderRenderer")
-local SpinnerRenderer = require("rizu.gameplay.views.aim.SpinnerRenderer")
-local SliderGraphics = require("rizu.gameplay.views.aim.SliderGraphics")
+local CircleRenderer = require("rizu.skin.base.osu.aim.CircleRenderer")
+local SliderRenderer = require("rizu.skin.base.osu.aim.SliderRenderer")
+local SliderOverlayRenderer = require("rizu.skin.base.osu.aim.SliderOverlayRenderer")
+local SpinnerRenderer = require("rizu.skin.base.osu.aim.SpinnerRenderer")
+local SliderGraphics = require("rizu.skin.base.osu.aim.SliderGraphics")
 
----@class rizu.gameplay.views.AimPlayfield
----@operator call: rizu.gameplay.views.AimPlayfield
-local AimPlayfield = PlayfieldRenderer + {}
+---@class rizu.skin.base.AimRenderer : rizu.gameplay.views.PlayfieldRenderer
+---@operator call: rizu.skin.base.AimRenderer
+local AimRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
-function AimPlayfield:new(game)
+function AimRenderer:new(game)
 	PlayfieldRenderer.new(self, game)
 	self.slider_graphics = SliderGraphics()
 	self.prepared_rules = nil
 end
 
-function AimPlayfield:load()
+function AimRenderer:load()
 	local rules = self.game.rhythm_engine and self.game.rhythm_engine.aim_rules
 	if not rules or self.prepared_rules == rules then return end
 	self.slider_graphics:prepare(rules)
 	self.prepared_rules = rules
 end
 
-function AimPlayfield:unload()
+function AimRenderer:unload()
 	self.slider_graphics:unload()
 	self.prepared_rules = nil
 end
@@ -33,7 +33,7 @@ end
 ---@return number scale
 ---@return number x
 ---@return number y
-function AimPlayfield:getField(width, height)
+function AimRenderer:getField(width, height)
 	local scale = math.max(0.001, math.min(width / 640, height / 480))
 	return scale, (width - 512 * scale) / 2, (height - 384 * scale) / 2
 end
@@ -45,7 +45,7 @@ end
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 ---@return number
 ---@return number
-function AimPlayfield:toChart(x, y, width, height, transform)
+function AimRenderer:toChart(x, y, width, height, transform)
 	x, y = transform:inverseTransformPoint(x, y)
 	local scale, ox, oy = self:getField(width, height)
 	return (x - ox) / scale, (y - oy) / scale
@@ -54,7 +54,7 @@ end
 ---@param width number Gameplay viewport width in drawable pixels
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
-function AimPlayfield:draw(width, height, transform)
+function AimRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
 	local rules = re and re.aim_rules
 	if not rules then return end
@@ -67,7 +67,6 @@ function AimPlayfield:draw(width, height, transform)
 	love.graphics.rectangle("fill", 0, 0, width, height)
 	love.graphics.translate(ox, oy)
 	love.graphics.scale(scale)
-	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	love.graphics.setLineWidth(2)
 	local objects = rules.objects
 	local last_visible = 0
@@ -84,21 +83,15 @@ function AimPlayfield:draw(width, height, transform)
 		end
 		local slider = rules.sliders[i]
 		if slider and not rules.states[i] then
-			SliderRenderer.draw(object, slider, rules.radius, time, rules.preempt, self.slider_graphics, i)
-		end
-		if not spinner and not rules.heads[i] then
+			local alpha = SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i)
+			if not rules.heads[i] then
+				SliderOverlayRenderer.drawHead(object, rules.radius, time, rules.preempt)
+			end
+			SliderOverlayRenderer.drawBodyOverlays(slider, rules.radius, time, alpha,
+				SliderRenderer.getSnakeEnd(object, time, rules.preempt))
+		elseif not spinner and not rules.heads[i] then
 			CircleRenderer.draw(object, rules.radius, time, rules.preempt)
 		end
-	end
-	for i = #rules.events, math.max(1, #rules.events - 20), -1 do
-		local event = rules.events[i]
-		local age = re.logic_info.time - event.time
-		if age > 0.4 then break end
-		local object = objects[event.index]
-		local x, y = object.x, object.y
-		if object.kind == "spinner" then x, y = Spinner.center_x, Spinner.center_y end
-		if event.hit then love.graphics.setColor(0.3, 1, 0.5, 1 - age / 0.4)
-		else love.graphics.setColor(1, 0.3, 0.3, 1 - age / 0.4) end
 	end
 	love.graphics.setColor(1, 0.85, 0.2)
 	love.graphics.circle("line", rules.x, rules.y, 9)
@@ -106,4 +99,4 @@ function AimPlayfield:draw(width, height, transform)
 	love.graphics.pop()
 end
 
-return AimPlayfield
+return AimRenderer

@@ -1,4 +1,4 @@
----@class rizu.gameplay.views.aim.AimRenderShared
+---@class rizu.skin.base.osu.aim.AimRenderShared
 local AimRenderShared = {}
 
 AimRenderShared.circle_fade_in = 0.4

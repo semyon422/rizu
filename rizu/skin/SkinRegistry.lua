@@ -26,6 +26,7 @@ local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 ---@field path string
 ---@field directory_path string
 ---@field file_name string
+---@field files string[] Relative file paths beneath the skin directory.
 ---@field format "osu"
 ---@field metadata rizu.skin.SkinMetadata
 ---@field skin_ini rizu.skin.OsuSkinIni.Data
@@ -143,9 +144,38 @@ function SkinRegistry:loadFile(path)
 	table.insert(self.skins, skin)
 end
 
+---@param directory_path string
+---@param relative_path string?
+---@param files string[]?
+---@return string[]
+function SkinRegistry:indexFiles(directory_path, relative_path, files)
+	relative_path = relative_path or ""
+	files = files or {}
+	local names = self.fs:getDirectoryItems(directory_path)
+	table.sort(names)
+	for _, name in ipairs(names) do
+		local path = path_util.join(directory_path, name)
+		local info = self.fs:getInfo(path)
+		local relative_file_path = name
+		if relative_path ~= "" then
+			relative_file_path = path_util.join(relative_path, name)
+		end
+		if info and info.type == "directory" then
+			self:indexFiles(path, relative_file_path, files)
+		elseif info and info.type == "file" then
+			table.insert(files, relative_file_path)
+		end
+	end
+	if relative_path == "" then
+		table.sort(files)
+	end
+	return files
+end
+
 ---@param skin_directory string
 ---@param file_name string
-function SkinRegistry:loadOsuSkin(skin_directory, file_name)
+---@param files string[]
+function SkinRegistry:loadOsuSkin(skin_directory, file_name, files)
 	local path = path_util.join(skin_directory, file_name)
 	local source, read_error = self.fs:read(path)
 	if not source then
@@ -185,6 +215,7 @@ function SkinRegistry:loadOsuSkin(skin_directory, file_name)
 		path = skin_directory,
 		directory_path = skin_directory,
 		file_name = file_name,
+		files = files,
 		format = "osu",
 		metadata = {
 			name = skin_name,
@@ -207,16 +238,16 @@ function SkinRegistry:scanOsu(directory_path)
 		local skin_directory = path_util.join(directory_path, name)
 		local info = self.fs:getInfo(skin_directory)
 		if info and info.type == "directory" then
-			local files = self.fs:getDirectoryItems(skin_directory)
-			table.sort(files)
+			local files = self:indexFiles(skin_directory)
+			local skin_ini_file
 			for _, file_name in ipairs(files) do
-				if file_name:lower() == "skin.ini" then
-					local file_info = self.fs:getInfo(path_util.join(skin_directory, file_name))
-					if file_info and file_info.type == "file" then
-						self:loadOsuSkin(skin_directory, file_name)
-						break
-					end
+				if not file_name:find("/", 1, true) and file_name:lower() == "skin.ini" then
+					skin_ini_file = file_name
+					break
 				end
+			end
+			if skin_ini_file then
+				self:loadOsuSkin(skin_directory, skin_ini_file, files)
 			end
 		end
 	end

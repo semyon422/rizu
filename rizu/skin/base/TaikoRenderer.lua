@@ -1,18 +1,18 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 
----@class rizu.gameplay.views.TaikoPlayfield
----@operator call: rizu.gameplay.views.TaikoPlayfield
-local TaikoPlayfield = PlayfieldRenderer + {}
+---@class rizu.skin.base.TaikoRenderer : rizu.gameplay.views.PlayfieldRenderer
+---@operator call: rizu.skin.base.TaikoRenderer
+local TaikoRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
-function TaikoPlayfield:new(game)
+function TaikoRenderer:new(game)
 	PlayfieldRenderer.new(self, game)
 end
 
 ---@param width number Gameplay viewport width in drawable pixels
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
-function TaikoPlayfield:draw(width, height, transform)
+function TaikoRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
 	local rules = re and re.taiko_rules
 	if not rules then return end
@@ -23,7 +23,6 @@ function TaikoPlayfield:draw(width, height, transform)
 	local scale = math.min(width / 800, height / 450)
 	love.graphics.translate((width - 800 * scale) / 2, (height - 450 * scale) / 2)
 	love.graphics.scale(scale)
-	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	love.graphics.setColor(0.7, 0.8, 1)
 	love.graphics.setLineWidth(2)
 	love.graphics.line(80, 210, 760, 210)
@@ -47,18 +46,10 @@ function TaikoPlayfield:draw(width, height, transform)
 				if object.kind == "roll" then love.graphics.setColor(1, 0.8, 0.25) else love.graphics.setColor(0.75, 0.4, 1) end
 				love.graphics.setLineWidth(object.big and 28 or 18)
 				love.graphics.line(x, 210, ending, 210)
-				love.graphics.print(("%s %d/%d"):format(object.kind, state.count, object.target), x, 250)
 			end
 		end
-	end
-	love.graphics.setColor(1, 1, 1)
-	love.graphics.print(("Taiko | Hit %d / Miss %d | Double %d / Single %d"):format(rules.hits, rules.misses, rules.doubles, rules.singles), 40, 40)
-	local labels = {"F: don L", "J: don R", "D: kat L", "K: kat R"}
-	for id, text in ipairs(labels) do
-		if rules.buttons[id] then love.graphics.setColor(1, 0.85, 0.3) else love.graphics.setColor(0.7, 0.75, 0.85) end
-		love.graphics.print(text, 70 + (id - 1) * 180, 360)
 	end
 	love.graphics.pop()
 end
 
-return TaikoPlayfield
+return TaikoRenderer

@@ -1,6 +1,6 @@
 local Spinner = require("rizu.gameplay.aim.Spinner")
 
----@class rizu.gameplay.views.aim.SpinnerRenderer
+---@class rizu.skin.base.osu.aim.SpinnerRenderer
 local SpinnerRenderer = {}
 
 ---@param spinner rizu.aim.Spinner
@@ -8,7 +8,7 @@ local SpinnerRenderer = {}
 function SpinnerRenderer.draw(spinner, time)
 	local x, y = Spinner.center_x, Spinner.center_y
 	local progress = math.min(1, spinner:getTurns() / spinner.required_turns)
-	love.graphics.setColor(0.12, 0.2, 0.3)
+	love.graphics.setColor(0.12, 0.2, 0.3, 0.5)
 	love.graphics.circle("fill", x, y, 150)
 	love.graphics.setColor(0.8, 0.9, 1)
 	love.graphics.circle("line", x, y, 150)

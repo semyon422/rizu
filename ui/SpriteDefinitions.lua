@@ -187,6 +187,20 @@ local SpriteDefinitions = {
 		slice = 17,
 		fills = fills(Colors.surface),
 	},
+	window_header = {
+		width = 35,
+		height = 35,
+		corner_radii = {top_left = 17, top_right = 17},
+		slice = 17,
+		fills = fills(Colors.surface_raised),
+	},
+	window_background = {
+		width = 35,
+		height = 35,
+		corner_radii = {bottom_left = 17, bottom_right = 17},
+		slice = 17,
+		fills = fills(Colors.surface),
+	},
 	radio_body = {
 		width = 20,
 		height = 20,

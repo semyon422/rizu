@@ -13,6 +13,17 @@ function PlayfieldRenderer:load() end
 
 function PlayfieldRenderer:unload() end
 
+---@param x number Window x coordinate in drawable pixels
+---@param y number Window y coordinate in drawable pixels
+---@param width number Gameplay viewport width in drawable pixels
+---@param height number Gameplay viewport height in drawable pixels
+---@param transform love.Transform Maps viewport coordinates to drawable pixels
+---@return number
+---@return number
+function PlayfieldRenderer:toChart(x, y, width, height, transform)
+	return x, y
+end
+
 ---@param width number Gameplay viewport width in drawable pixels
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels

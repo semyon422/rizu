@@ -1,5 +1,5 @@
 local class = require("class")
-local SliderMesh = require("rizu.gameplay.views.aim.SliderMesh")
+local SliderMesh = require("rizu.skin.base.osu.aim.SliderMesh")
 
 local vertex_shader = [[
 attribute vec2 SegmentStart;
@@ -66,8 +66,8 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
 }
 ]]
 
----@class rizu.gameplay.views.aim.SliderGraphics
----@operator call: rizu.gameplay.views.aim.SliderGraphics
+---@class rizu.skin.base.osu.aim.SliderGraphics
+---@operator call: rizu.skin.base.osu.aim.SliderGraphics
 local SliderGraphics = class()
 
 function SliderGraphics:new()

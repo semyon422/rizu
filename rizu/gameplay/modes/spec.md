@@ -489,13 +489,13 @@ Review shared contracts and lifecycle first, then each decoder/mechanic/playfiel
 - [ ] ui/screens/chart_loading/ChartLoading.lua — **M**
 - [ ] ui/screens/chart_loading/LoadError.lua — **A**
 - [ ] ui/screens/chart_loading/LoadError_test.lua — **A**
-- [ ] ui/screens/gameplay/AimPlayfield.lua — **A**
-- [ ] ui/screens/gameplay/AimPlayfield_test.lua — **A**
-- [ ] ui/screens/gameplay/CatchPlayfield.lua — **A**
+- [ ] `rizu/skin/base/AimRenderer.lua` — **A**
+- [ ] `rizu/skin/base/AimRenderer_test.lua` — **A**
+- [ ] `rizu/skin/base/FruitsRenderer.lua` — **A**
 - [ ] ui/screens/gameplay/Gameplay.lua — **M**
 - [ ] ui/screens/gameplay/Gameplay_test.lua — **M**
 - [ ] ui/screens/gameplay/SdvxPlayfield.lua — **A**
-- [ ] ui/screens/gameplay/TaikoPlayfield.lua — **A**
+- [ ] `rizu/skin/base/TaikoRenderer.lua` — **A**
 
 #### Assets and provenance (2)
 

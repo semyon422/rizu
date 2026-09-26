@@ -70,7 +70,7 @@ end
 ---@param t testing.T
 function test.discovers_osu_skins_from_root_skin_ini_case_insensitively(t)
 	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_osu/Custom Skin")
+	fs:createDirectory("userdata/dlc/skins_osu/Custom Skin/Textures")
 	fs:write("userdata/dlc/skins_osu/Custom Skin/SKiN.INi", [[
 [General]
 Name: Custom Name
@@ -83,6 +83,8 @@ Keys: 4
 [Mania]
 Keys: 7
 ]])
+	fs:write("userdata/dlc/skins_osu/Custom Skin/cursor@2x.png", "cursor")
+	fs:write("userdata/dlc/skins_osu/Custom Skin/Textures/hitcircle.png", "texture")
 	fs:createDirectory("userdata/dlc/skins_osu/nested")
 	fs:createDirectory("userdata/dlc/skins_osu/nested/subfolder")
 	fs:write("userdata/dlc/skins_osu/nested/subfolder/skin.ini", "[General]\nName: Nested\n")
@@ -98,6 +100,7 @@ Keys: 7
 	t:eq(skins[1].path, "userdata/dlc/skins_osu/Custom Skin")
 	t:eq(skins[1].directory_path, skins[1].path)
 	t:eq(skins[1].file_name, "SKiN.INi")
+	t:tdeq(skins[1].files, {"SKiN.INi", "Textures/hitcircle.png", "cursor@2x.png"})
 	t:eq(skins[1].format, "osu")
 	t:eq(skins[1].metadata.author, "Mapper")
 	t:eq(skins[1].metadata.version, "2.7")

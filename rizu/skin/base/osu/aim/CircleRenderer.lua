@@ -1,6 +1,6 @@
-local Shared = require("rizu.gameplay.views.aim.AimRenderShared")
+local Shared = require("rizu.skin.base.osu.aim.AimRenderShared")
 
----@class rizu.gameplay.views.aim.CircleRenderer
+---@class rizu.skin.base.osu.aim.CircleRenderer
 local CircleRenderer = {}
 
 ---@param object chart.osu.AimObject

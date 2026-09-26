@@ -1,6 +1,6 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 
----@class rizu.gameplay.views.SdvxPlayfield
+---@class rizu.gameplay.views.SdvxPlayfield : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.gameplay.views.SdvxPlayfield
 local SdvxPlayfield = PlayfieldRenderer + {}
 

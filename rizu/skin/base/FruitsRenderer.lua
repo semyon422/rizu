@@ -1,18 +1,18 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 
----@class rizu.gameplay.views.CatchPlayfield
----@operator call: rizu.gameplay.views.CatchPlayfield
-local CatchPlayfield = PlayfieldRenderer + {}
+---@class rizu.skin.base.FruitsRenderer : rizu.gameplay.views.PlayfieldRenderer
+---@operator call: rizu.skin.base.FruitsRenderer
+local FruitsRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
-function CatchPlayfield:new(game)
+function FruitsRenderer:new(game)
 	PlayfieldRenderer.new(self, game)
 end
 
 ---@param width number Gameplay viewport width in drawable pixels
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
-function CatchPlayfield:draw(width, height, transform)
+function FruitsRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
 	local rules = re and re.catch_rules
 	if not rules then return end
@@ -23,7 +23,6 @@ function CatchPlayfield:draw(width, height, transform)
 	local scale = math.min(width / 640, height / 480)
 	love.graphics.translate((width - 512 * scale) / 2, (height - 400 * scale) / 2)
 	love.graphics.scale(scale)
-	-- Use the active Love font; gameplay rendering must not depend on UI resources.
 	love.graphics.setLineWidth(2)
 	love.graphics.setColor(0.7, 0.8, 1)
 	love.graphics.line(0, 360, 512, 360)
@@ -48,10 +47,7 @@ function CatchPlayfield:draw(width, height, transform)
 	else love.graphics.setColor(0.4, 1, 0.65) end
 	love.graphics.setLineWidth(10)
 	love.graphics.line(rules.x - rules.half_width, 365, rules.x + rules.half_width, 365)
-	love.graphics.setColor(1, 1, 1)
-	love.graphics.print(("Catch | Hit %d / Miss %d | Extras %d / %d"):format(rules.hits, rules.misses, rules.bonus_hits, rules.bonus_misses), 0, -25)
-	love.graphics.print("Left/Right or A/D | Shift: dash", 0, 400)
 	love.graphics.pop()
 end
 
-return CatchPlayfield
+return FruitsRenderer
