@@ -1,5 +1,4 @@
 local View = require("gui.View")
-local TrackContainer = require("gui.layout.TrackContainer")
 local Colors = require("ui.Colors")
 local Resources = require("ui.Resources")
 local Panel = require("ui.views.Panel")
@@ -8,6 +7,7 @@ local MusicSpeedControl = require("ui.screens.song_select.MusicSpeedControl")
 
 ---@class ui.screens.song_select.Footer : gui.View
 ---@operator call: ui.screens.song_select.Footer
+---@field back_button ui.screens.song_select.FooterButton
 ---@field mods_button ui.screens.song_select.FooterButton
 ---@field mutators_button ui.screens.song_select.FooterButton
 ---@field inputs_button ui.screens.song_select.FooterButton
@@ -29,24 +29,19 @@ function Footer:new(ui)
 		lines = {top = true},
 	})):anchorFill(0, 0, 0, 0)
 
-	local layout = self:add(TrackContainer({direction = "row"}))
-	layout:anchorFill(0, 0, 0, 0)
-	layout:add(FooterButton({
+	local back_button = FooterButton({
 		width = 154,
 		height = HEIGHT,
 		color = Colors.danger,
 		text = ui.localization:get("song_select.back"),
 		icon = Resources.sprites.icon_undo_2,
 		large = true,
+		padding_x = 17,
 		on_click = function() ui:setScreen(ui.main_menu, true) end,
-	}), 154)
+	})
+	self.back_button = back_button
 
-	local loadout = layout:add(TrackContainer({
-		direction = "row",
-		gap = 6,
-		padding = {14, 9, 0, 9},
-	}), "*")
-	self.mods_button = loadout:add(FooterButton({
+	local mods_button = FooterButton({
 		height = 46,
 		color = Colors.success,
 		text = ui.localization:get("song_select.mods"),
@@ -58,8 +53,9 @@ function Footer:new(ui)
 		active_hover_gradient = Resources.sprites.song_select_loadout_success_active_hover,
 		padding_x = 17,
 		on_click = function() ui.modal_manager:attachModifiers() end,
-	}), 124)
-	self.mutators_button = loadout:add(FooterButton({
+	})
+	self.mods_button = mods_button
+	local mutators_button = FooterButton({
 		height = 46,
 		color = Colors.magenta,
 		text = ui.localization:get("song_select.mutators"),
@@ -71,8 +67,9 @@ function Footer:new(ui)
 		active_hover_gradient = Resources.sprites.song_select_loadout_magenta_active_hover,
 		padding_x = 17,
 		on_click = function() ui.modal_manager:attachChartMutators() end,
-	}), 153)
-	self.inputs_button = loadout:add(FooterButton({
+	})
+	self.mutators_button = mutators_button
+	local inputs_button = FooterButton({
 		height = 46,
 		color = Colors.purple,
 		text = ui.localization:get("song_select.inputs"),
@@ -81,8 +78,9 @@ function Footer:new(ui)
 		hover_gradient = Resources.sprites.song_select_loadout_purple_hover,
 		padding_x = 17,
 		on_click = function() ui.modal_manager:attachInput() end,
-	}), 111)
-	self.skins_button = loadout:add(FooterButton({
+	})
+	self.inputs_button = inputs_button
+	local skins_button = FooterButton({
 		height = 46,
 		color = Colors.blue,
 		text = ui.localization:get("song_select.skins"),
@@ -91,11 +89,10 @@ function Footer:new(ui)
 		hover_gradient = Resources.sprites.song_select_loadout_blue_hover,
 		padding_x = 17,
 		on_click = function() ui.modal_manager:attachNoteSkins() end,
-	}), 104)
+	})
+	self.skins_button = skins_button
 
-	local play_controls = layout:add(TrackContainer({direction = "row", gap = 8}), 310)
-	self.music_speed = play_controls:add(MusicSpeedControl(game.timeRateModel, game.modifierSelectModel), 148)
-	self.play_button = play_controls:add(FooterButton({
+	local play_button = FooterButton({
 		width = 154,
 		height = HEIGHT,
 		color = Colors.success,
@@ -103,14 +100,49 @@ function Footer:new(ui)
 		icon = Resources.sprites.icon_play,
 		large = true,
 		icon_after = true,
+		padding_x = 17,
 		on_click = function()
 			if game.chartSelector:chartExists() then
 				ui:setScreen(ui.chart_loading, true)
 			end
 		end,
-	}), 154)
+	})
+	local music_speed = MusicSpeedControl(game.timeRateModel, game.modifierSelectModel)
+	self.music_speed = music_speed
+	self.play_button = play_button
 
+	self:add(back_button)
+	self:add(mods_button)
+	self:add(mutators_button)
+	self:add(inputs_button)
+	self:add(skins_button)
+	self:add(music_speed)
+	self:add(play_button)
 	self:updateState()
+end
+
+function Footer:layoutButtons()
+	-- We need to say: this is stupid, and we should get a Flexbox container already.
+	local back_width = self.back_button:getPreferredWidth()
+	self.back_button:anchorFixed(0, 0, back_width, HEIGHT)
+
+	local x = back_width + 14
+	for _, button in ipairs({
+		self.mods_button,
+		self.mutators_button,
+		self.inputs_button,
+		self.skins_button,
+	}) do
+		local width = button:getPreferredWidth()
+		button:anchorFixed(x, 9, width, 46)
+		x = x + width + 6
+	end
+
+	local play_width = self.play_button:getPreferredWidth()
+	self.play_button:anchorFixed(0, 0, play_width, HEIGHT):setAlignmentX(1)
+	self.music_speed:anchorFixed(0, 0, 148, HEIGHT)
+		:setAlignmentX(1)
+		:addPosition(-(8 + play_width), 0)
 end
 
 function Footer:updateState()
@@ -128,6 +160,7 @@ function Footer:updateState()
 	self.inputs_button:setEnabled(chart_exists)
 	self.skins_button:setEnabled(chart_exists)
 	self.play_button:setEnabled(chart_exists)
+	self:layoutButtons()
 end
 
 return Footer

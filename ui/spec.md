@@ -44,4 +44,4 @@ Do not reference any class from this UI in "rizu" or "gui" or any other modules.
 
 ## Song Select Footer
 
-The built-in song-select screen uses a 64-unit footer matching the webclient layout: Back, loadout controls, music speed, and Play. Its Lucide icons render at their native 24-pixel size to preserve crisp edges. The music-speed knob artwork is currently represented by colored pixel-sprite rectangles so final sprites can replace that placeholder without changing layout or interactions.
+The built-in song-select screen uses a 64-unit footer matching the webclient layout: Back, loadout controls, music speed, and Play. Footer button widths are measured from their localized labels, icons, badges, and padding; the row tracks use those widths so they adapt when the UI language changes. Its Lucide icons render at their native 24-pixel size to preserve crisp edges. The music-speed knob artwork is currently represented by colored pixel-sprite rectangles so final sprites can replace that placeholder without changing layout or interactions.

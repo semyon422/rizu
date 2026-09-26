@@ -6,7 +6,7 @@ local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 
 ---@class ui.screens.song_select.FooterButton.Config
----@field width? number
+---@field width? number Minimum width; content may expand beyond it.
 ---@field height number
 ---@field color gui.Color
 ---@field text string
@@ -24,6 +24,7 @@ local Sounds = require("ui.Sounds")
 ---@class ui.screens.song_select.FooterButton : gui.View
 ---@operator call: ui.screens.song_select.FooterButton
 ---@field control_color gui.Color
+---@field preferred_width number
 ---@field text string
 ---@field icon gui.Sprite
 ---@field badge string?
@@ -48,20 +49,46 @@ function FooterButton:new(config)
 	self.active_gradient = config.active_gradient
 	self.active_hover_gradient = config.active_hover_gradient
 	self.padding_x = config.padding_x or 0
+	self.min_width = config.width or 0
+	self.button_height = assert(config.height, "FooterButton height is required")
 	self.on_click = config.on_click
 	self.font = Resources.getFont("bold", self.large and 16 or 12)
 	self.handles_mouse_input = true
+	self:updateSize()
+end
 
+---@private
+function FooterButton:updateSize()
 	local badge_width = self.badge and math.max(18, self.font:getWidth(self.badge) + 10) or 0
 	local badge_gap = self.badge and GAP or 0
 	local gap = self.large and LARGE_GAP or GAP
 	local content_width = ICON_SIZE + gap + self.font:getWidth(self.text) + badge_gap + badge_width
-	self:setSize(config.width or content_width + self.padding_x * 2, config.height)
+	local width = math.max(self.min_width, content_width + self.padding_x * 2)
+	self.preferred_width = width
+	self:setSize(width, self.button_height)
+end
+
+---@return number
+function FooterButton:getPreferredWidth()
+	return self.preferred_width
+end
+
+---@param text string
+function FooterButton:setText(text)
+	if self.text == text then
+		return
+	end
+	self.text = text
+	self:updateSize()
 end
 
 ---@param badge string?
 function FooterButton:setBadge(badge)
+	if self.badge == badge then
+		return
+	end
 	self.badge = badge
+	self:updateSize()
 end
 
 ---@param active boolean
@@ -134,7 +161,7 @@ function FooterButton:draw()
 	local badge_width = self.badge and math.max(18, self.font:getWidth(self.badge) + 10) or 0
 	local badge_gap = self.badge and GAP or 0
 	local content_width = icon_width + gap + text_width + badge_gap + badge_width
-	local x = self.padding_x > 0 and self.padding_x or (self.width - content_width) / 2
+	local x = math.max(self.padding_x, (self.width - content_width) / 2)
 	local text_x
 	local icon_x
 	if self.icon_after then
