@@ -7,6 +7,7 @@ local dirs_list = {
 	"userdata/dlc",
 	"userdata/dlc/skins_rizu",
 	"userdata/dlc/skins_stepmania",
+	"userdata/dlc/skins_osu",
 	"userdata/dlc/skins_stepmania/dance",
 	"userdata/dlc/skins_stepmania/kb7",
 	"userdata/dlc/skins_stepmania/popn",

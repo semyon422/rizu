@@ -1,5 +1,6 @@
 local class = require("class")
 local path_util = require("path_util")
+local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 
 ---@class rizu.skin.SkinMetadata
 ---@field name string
@@ -8,7 +9,7 @@ local path_util = require("path_util")
 ---@field gamemode string
 ---@field input_modes string[]
 
----@alias rizu.skin.SkinFormat "lua"
+---@alias rizu.skin.SkinFormat "lua"|"osu"
 
 ---@alias rizu.skin.Screen
 ---| "gameplay"
@@ -19,6 +20,15 @@ local path_util = require("path_util")
 ---@field name string
 ---@field path string
 ---@field input_modes string[]
+
+---@class rizu.skin.OsuSkinDiscovery
+---@field name string
+---@field path string
+---@field directory_path string
+---@field file_name string
+---@field format "osu"
+---@field metadata rizu.skin.SkinMetadata
+---@field skin_ini rizu.skin.OsuSkinIni.Data
 
 ---@class rizu.skin.SkinInfo
 ---@field path string
@@ -34,6 +44,7 @@ local path_util = require("path_util")
 ---@field path string
 ---@field skins rizu.skin.SkinInfo[]
 ---@field stepmania_skins rizu.skin.StepmaniaSkinDiscovery[]
+---@field osu_skins rizu.skin.OsuSkinDiscovery[]
 ---@field errors {[string]: string}
 local SkinRegistry = class()
 
@@ -44,9 +55,11 @@ function SkinRegistry:new(fs, path)
 	self.path = path or "userdata/dlc"
 	self.skins_rizu_path = path_util.join(self.path, "skins_rizu")
 	self.skins_stepmania_path = path_util.join(self.path, "skins_stepmania")
+	self.skins_osu_path = path_util.join(self.path, "skins_osu")
 	self.base_path = "rizu/skin/base"
 	self.skins = {}
 	self.stepmania_skins = {}
+	self.osu_skins = {}
 	self.errors = {}
 end
 
@@ -130,6 +143,85 @@ function SkinRegistry:loadFile(path)
 	table.insert(self.skins, skin)
 end
 
+---@param skin_directory string
+---@param file_name string
+function SkinRegistry:loadOsuSkin(skin_directory, file_name)
+	local path = path_util.join(skin_directory, file_name)
+	local source, read_error = self.fs:read(path)
+	if not source then
+		self.errors[path] = read_error or "could not read skin.ini"
+		return
+	end
+	if #source > 1024 * 1024 then
+		self.errors[path] = "skin.ini exceeds 1 MiB"
+		return
+	end
+
+	local skin_ini = OsuSkinIni.parse(source)
+	local general = skin_ini.General
+	local skin_name = general.Name
+	if not skin_name or skin_name == "" then
+		skin_name = skin_directory:match("([^/]+)$") or skin_directory
+	end
+
+	local input_modes = {}
+	local seen_input_modes = {}
+	for _, mania in ipairs(skin_ini.Mania) do
+		local keys = tonumber(mania.Keys)
+		if keys and keys > 0 and keys <= 18 and keys == math.floor(keys) then
+			local input_mode = tostring(keys) .. "key"
+			if not seen_input_modes[input_mode] then
+				seen_input_modes[input_mode] = true
+				table.insert(input_modes, input_mode)
+			end
+		end
+	end
+	table.sort(input_modes, function(a, b)
+		return tonumber(a:match("^(%d+)key$")) < tonumber(b:match("^(%d+)key$"))
+	end)
+
+	table.insert(self.osu_skins, {
+		name = skin_name,
+		path = skin_directory,
+		directory_path = skin_directory,
+		file_name = file_name,
+		format = "osu",
+		metadata = {
+			name = skin_name,
+			author = general.Author,
+			version = general.Version,
+			gamemode = "mania",
+			input_modes = input_modes,
+		},
+		skin_ini = skin_ini,
+	})
+end
+
+---osu! only recognizes a skin.ini in each skin directory's root. Match the
+---filename without regard to case, since the game normally runs on Windows.
+---@param directory_path string
+function SkinRegistry:scanOsu(directory_path)
+	local directories = self.fs:getDirectoryItems(directory_path)
+	table.sort(directories)
+	for _, name in ipairs(directories) do
+		local skin_directory = path_util.join(directory_path, name)
+		local info = self.fs:getInfo(skin_directory)
+		if info and info.type == "directory" then
+			local files = self.fs:getDirectoryItems(skin_directory)
+			table.sort(files)
+			for _, file_name in ipairs(files) do
+				if file_name:lower() == "skin.ini" then
+					local file_info = self.fs:getInfo(path_util.join(skin_directory, file_name))
+					if file_info and file_info.type == "file" then
+						self:loadOsuSkin(skin_directory, file_name)
+						break
+					end
+				end
+			end
+		end
+	end
+end
+
 ---@param directory_path string
 ---@param input_modes string[]?
 function SkinRegistry:addStepmaniaDiscovery(directory_path, input_modes)
@@ -195,6 +287,7 @@ end
 function SkinRegistry:load()
 	self.skins = {}
 	self.stepmania_skins = {}
+	self.osu_skins = {}
 	self.errors = {}
 	if self.fs:getInfo(self.skins_rizu_path) then
 		self:scan(self.skins_rizu_path)
@@ -202,8 +295,14 @@ function SkinRegistry:load()
 	if self.fs:getInfo(self.skins_stepmania_path) then
 		self:scanStepmania(self.skins_stepmania_path)
 	end
+	if self.fs:getInfo(self.skins_osu_path) then
+		self:scanOsu(self.skins_osu_path)
+	end
 	self:scan(self.base_path)
 	table.sort(self.skins, function(a, b)
+		return a.path < b.path
+	end)
+	table.sort(self.osu_skins, function(a, b)
 		return a.path < b.path
 	end)
 end
@@ -217,6 +316,22 @@ end
 ---@return rizu.skin.StepmaniaSkinDiscovery[]
 function SkinRegistry:getStepmaniaSkins()
 	return self.stepmania_skins
+end
+
+---Discovered osu! skin metadata and parsed ini files; rendering support is separate.
+---@return rizu.skin.OsuSkinDiscovery[]
+function SkinRegistry:getOsuSkins()
+	return self.osu_skins
+end
+
+---@param path string
+---@return rizu.skin.OsuSkinDiscovery?
+function SkinRegistry:getOsuSkin(path)
+	for _, skin in ipairs(self.osu_skins) do
+		if skin.path == path then
+			return skin
+		end
+	end
 end
 
 ---@param path string

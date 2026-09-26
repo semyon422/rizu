@@ -1,4 +1,5 @@
 local string_util = require("string_util")
+local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 local NoteSkinVsrg = require("sphere.models.NoteSkinModel.NoteSkinVsrg")
 local PlayfieldVsrg = require("sphere.models.NoteSkinModel.PlayfieldVsrg")
 local BasePlayfield = require("sphere.models.NoteSkinModel.BasePlayfield")
@@ -70,8 +71,12 @@ end
 local function copyDefaults(src, dst)
 	for k, default in pairs(src) do
 		local v = dst[k]
-		if not v then
-			dst[k] = default
+		if not v or v == "" then
+			if type(default) == "table" then
+				dst[k] = fromDefault({}, default)
+			else
+				dst[k] = default
+			end
 		elseif type(default) == "table" then
 			local arr = toarray(v, true)
 			if k:find("Colour") then
@@ -863,32 +868,7 @@ end
 ---@param content string
 ---@return table
 function OsuNoteSkin:parseSkinIni(content)
-	local skinini = {}
-	skinini.General = skinini.General or {}
-	skinini.Colours = skinini.Colours or {}
-	skinini.Fonts = skinini.Fonts or {}
-	skinini.CatchTheBeat = skinini.CatchTheBeat or {}
-	skinini.Mania = skinini.Mania or {}
-	local block
-	for line in (content .. "\n"):gmatch("(.-)\n") do
-		line = line:match("^%s*(.-)%s*$")
-		if line:find("^%[") then
-			local section = line:match("^%[(.*)%]")
-			skinini[section] = skinini[section] or {}
-			if section == "Mania" then
-				block = {}
-				table.insert(skinini.Mania, block)
-			else
-				block = skinini[section]
-			end
-		else
-			local key, value = line:match("^(.-)%s*:%s*(.+)$")
-			if key and block then
-				value = value:match("^(.-)%s*//.*$") or value
-				block[key] = value
-			end
-		end
-	end
+	local skinini = OsuSkinIni.parse(content)
 
 	copyDefaults(self:getDefaultGeneralSection(), skinini.General)
 	copyDefaults(self:getDefaultFontsSection(), skinini.Fonts)

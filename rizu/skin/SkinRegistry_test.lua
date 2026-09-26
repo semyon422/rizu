@@ -68,6 +68,47 @@ function test.discovers_skins_stepmania_in_etterna_game_type_directories(t)
 end
 
 ---@param t testing.T
+function test.discovers_osu_skins_from_root_skin_ini_case_insensitively(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata/dlc/skins_osu/Custom Skin")
+	fs:write("userdata/dlc/skins_osu/Custom Skin/SKiN.INi", [[
+[General]
+Name: Custom Name
+Author: Mapper
+Version: 2.7
+[Mania]
+Keys: 7
+[Mania]
+Keys: 4
+[Mania]
+Keys: 7
+]])
+	fs:createDirectory("userdata/dlc/skins_osu/nested")
+	fs:createDirectory("userdata/dlc/skins_osu/nested/subfolder")
+	fs:write("userdata/dlc/skins_osu/nested/subfolder/skin.ini", "[General]\nName: Nested\n")
+	fs:createDirectory("userdata/dlc/skins_osu/no-config")
+	fs:write("userdata/dlc/skins_osu/no-config/readme.txt", "not a skin")
+
+	local registry = SkinRegistry(fs)
+	registry:load()
+
+	local skins = registry:getOsuSkins()
+	t:eq(#skins, 1)
+	t:eq(skins[1].name, "Custom Name")
+	t:eq(skins[1].path, "userdata/dlc/skins_osu/Custom Skin")
+	t:eq(skins[1].directory_path, skins[1].path)
+	t:eq(skins[1].file_name, "SKiN.INi")
+	t:eq(skins[1].format, "osu")
+	t:eq(skins[1].metadata.author, "Mapper")
+	t:eq(skins[1].metadata.version, "2.7")
+	t:eq(skins[1].metadata.gamemode, "mania")
+	t:tdeq(skins[1].metadata.input_modes, {"4key", "7key"})
+	t:eq(skins[1].skin_ini.Mania[1].Keys, "7")
+	t:eq(registry:getOsuSkin(skins[1].path), skins[1])
+	t:eq(#registry:getSkins(), 0) -- Native Rizu skin collection remains separate.
+end
+
+---@param t testing.T
 function test.isolates_invalid_lua_skins(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata/dlc/skins_rizu")
