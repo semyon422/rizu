@@ -47,12 +47,13 @@ local CircleRules = class()
 ---@param tracking boolean? False for checkpoint-only diagnostic replays.
 function CircleRules:new(chart, stacking, tracking)
 	assert(AimDecoder.isSupported(chart))
+	local data = chart.data ---@type chart.osu.AimData
 	self.chart = chart
 	self.objects = Objects.get(chart, "osu")
-	self.radius = 54.4 - 4.48 * chart.data.circle_size
-	local ar = chart.data.approach_rate
+	self.radius = 54.4 - 4.48 * data.circle_size
+	local ar = data.approach_rate
 	self.preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
-	self.window = (200 - 10 * chart.data.overall_difficulty) / 1000
+	self.window = (200 - 10 * data.overall_difficulty) / 1000
 	self.states, self.heads = {}, {}
 	self.events, self.checkpoint_events = {}, {}
 	self.buttons = {}
@@ -68,10 +69,11 @@ function CircleRules:new(chart, stacking, tracking)
 	if self.stacking_enabled then
 		chart = Stacking.apply(chart, self.sliders, self.preempt, self.radius)
 		self.chart = chart
-	self.objects = Objects.get(chart, "osu")
+		self.objects = Objects.get(chart, "osu")
 	end
 	self.scheduled, self.schedule_index = {}, 1
 	for i, object in ipairs(Objects.get(chart, "osu")) do
+		---@cast object chart.osu.AimObject
 		local deadline = object.time + self.window
 		if object.kind == "spinner" then
 			self.spinners[i] = Spinner(object, chart.data.overall_difficulty)
@@ -234,9 +236,10 @@ end
 ---@param stacking boolean? False when chart already contains runtime offsets.
 ---@return rizu.ReplayFrame[]
 function CircleRules.autoplay(chart, stacking)
+	local data = chart.data ---@type chart.osu.AimData
 	local sliders = Sliders.prepare(chart)
 	if stacking ~= false and chart.data.stack_leniency ~= nil then
-		local ar = chart.data.approach_rate
+		local ar = data.approach_rate
 		local preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
 		chart = Stacking.apply(chart, sliders, preempt, 54.4 - 4.48 * chart.data.circle_size)
 	end
@@ -249,6 +252,7 @@ function CircleRules.autoplay(chart, stacking)
 		frames[#frames + 1] = {time = time, event = event, order = #frames + 1}
 	end
 	for i, object in ipairs(Objects.get(chart, "osu")) do
+		---@cast object chart.osu.AimObject
 		-- An alternating head key avoids suppressing a fresh press while a slider is held.
 		local id = (i - 1) % 2 + 1
 		if object.kind == "spinner" then
