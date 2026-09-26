@@ -146,11 +146,18 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
 		self.mania_renderer = nil
+		self.mania_skin = nil
+		self.mania_input_mode = nil
+		self.mania_skin_config = nil
+		self.mania_skin_config_path = nil
 	else
 		local skin_paths = game.settings:getStringMap(Settings.keys.gameplay.skins)
 		local skin = assert(game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_paths["mania/" .. input_mode]),
 			"no Mania skin available for " .. input_mode)
-		self.mania_renderer = skin.load(game, input_mode, "gameplay")
+		self.mania_skin = skin
+		self.mania_input_mode = input_mode
+		self.mania_renderer, self.mania_skin_config, self.mania_skin_config_path =
+			game.skinRegistry:loadSkin(skin, game, input_mode, "gameplay")
 		paths = self:getResourcePaths(chartview)
 	end
 	self.noteSkin = nil
@@ -290,6 +297,12 @@ end
 
 function GameplayInteractor:unloadGameplay()
 	self:unloadVolume()
+	if self.mania_skin_config and self.mania_skin_config.has_unsaved_changes and self.mania_skin_config_path then
+		local saved, save_error = self.mania_skin_config:save(self.game.fs, self.mania_skin_config_path)
+		if not saved then
+			print(("could not save skin config %s: %s"):format(self.mania_skin_config_path, tostring(save_error)))
+		end
+	end
 
 	local re = self.game.rhythm_engine
 	if re and (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) and self.loaded then
@@ -300,6 +313,11 @@ function GameplayInteractor:unloadGameplay()
 	self.loaded = false
 	self.replaying = false
 	self.autoplay = false
+	self.mania_renderer = nil
+	self.mania_skin = nil
+	self.mania_input_mode = nil
+	self.mania_skin_config = nil
+	self.mania_skin_config_path = nil
 	local game = self.game
 
 	game.windowModel:setVsyncOnSelect(true)

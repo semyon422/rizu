@@ -94,6 +94,10 @@ end
 
 function SelectedSongPanel:unload()
 	self.unsubscribe_skins()
+	if self.playfield_renderer and self.playfield_renderer.unload then
+		self.playfield_renderer:unload()
+	end
+	self.playfield_renderer = nil
 	if self.preview_canvas then
 		self.preview_canvas:release()
 		self.preview_canvas = nil
@@ -152,13 +156,16 @@ function SelectedSongPanel:bind(cvf)
 	self.title = cvf:getTitle()
 	self.artist = cvf:getArtist()
 
+	if self.playfield_renderer and self.playfield_renderer.unload then
+		self.playfield_renderer:unload()
+	end
 	self.playfield_renderer = nil
 	local input_mode = cvf.chartview.chartdiff_inputmode
 	if input_mode and cvf.chartview.chartmeta_mode == "mania" and self.game.skinRegistry then
 		local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
 		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_paths["mania/" .. input_mode])
 		if skin then
-			self.playfield_renderer = skin.load(self.game, input_mode, "preview")
+			self.playfield_renderer = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "preview")
 		end
 	end
 end

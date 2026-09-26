@@ -36,6 +36,37 @@ function test.discovers_native_lua_skin_metadata(t)
 end
 
 ---@param t testing.T
+function test.loads_skin_with_an_instance_scoped_config(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata/dlc/skins_rizu/example")
+	fs:write("userdata/dlc/skins_rizu/example/example.skin.lua", valid_skin)
+	local registry = SkinRegistry(fs)
+	registry:load()
+	local skin = registry:getSkins()[1]
+
+	local first_renderer, first_config, first_path = registry:loadSkin(skin, {}, "4key", "gameplay")
+	local second_renderer, second_config = registry:loadSkin(skin, {}, "4key", "preview")
+	t:tdeq(first_renderer, {})
+	t:tdeq(second_renderer, {})
+	t:assert(first_config ~= second_config)
+	t:eq(first_path, "userdata/dlc/skins_rizu/example/example.skin-config.json")
+	first_config:set("mania", "4key", "receptor.y", 320)
+	t:eq(second_config:getOverride("mania", "4key", "receptor.y"), nil)
+	first_config:save(fs, first_path)
+
+	local reloaded_renderer, reloaded_config = registry:loadSkin(skin, {}, "4key", "gameplay")
+	t:tdeq(reloaded_renderer, {})
+	t:eq(reloaded_config:getOverride("mania", "4key", "receptor.y"), 320)
+end
+
+---@param t testing.T
+function test.base_skin_config_uses_userdata_base_directory(t)
+	local registry = SkinRegistry(FakeFilesystem())
+	local path = registry:getSkinConfigPath({path = "rizu/skin/base/rizu_mania.skin.lua"})
+	t:eq(path, "userdata/dlc/skins_rizu/base/rizu_mania.skin-config.json")
+end
+
+---@param t testing.T
 function test.discovers_skins_stepmania_in_etterna_game_type_directories(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata/dlc/skins_stepmania/dance/example")
@@ -58,9 +89,13 @@ function test.discovers_skins_stepmania_in_etterna_game_type_directories(t)
 	local discovered = {}
 	for _, skin in ipairs(discoveries) do
 		discovered[skin.path] = skin
+		t:eq(skin.format, "stepmania")
 		t:eq(registry:getSkin(skin.path), nil)
 	end
 	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].name, "example")
+	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].format, "stepmania")
+	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].directory_path,
+		"userdata/dlc/skins_stepmania/dance/example")
 	t:tdeq(discovered["userdata/dlc/skins_stepmania/dance/example"].input_modes, {"4key"})
 	t:tdeq(discovered["userdata/dlc/skins_stepmania/kb7/example"].input_modes, {"7key"})
 	t:tdeq(discovered["userdata/dlc/skins_stepmania/beat/example"].input_modes, {"5key", "7key"})
@@ -102,6 +137,7 @@ Keys: 7
 	t:eq(skins[1].file_name, "SKiN.INi")
 	t:tdeq(skins[1].files, {"SKiN.INi", "Textures/hitcircle.png", "cursor@2x.png"})
 	t:eq(skins[1].format, "osu")
+	t:tdeq(skins[1].input_modes, {"4key", "7key"})
 	t:eq(skins[1].metadata.author, "Mapper")
 	t:eq(skins[1].metadata.version, "2.7")
 	t:eq(skins[1].metadata.gamemode, "mania")

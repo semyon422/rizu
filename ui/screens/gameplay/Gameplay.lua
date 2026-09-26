@@ -9,6 +9,8 @@ local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
 local Window = require("ui.views.Window")
+local FlowContainer = require("gui.layout.FlowContainer")
+local Slider = require("ui.views.form.Slider")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
@@ -16,6 +18,9 @@ local thread = require("thread")
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
 ---@field gameplay_playfield rizu.gameplay.Playfield
 ---@field skin_editor_window ui.views.Window
+---@field skin_editor_controls gui.layout.FlowContainer
+---@field skin_editor_properties rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property[]
+---@field skin_editor_status ui.views.Label
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -60,6 +65,10 @@ function Gameplay:new(ui)
 	self.skin_editor_window:setAlignment(0.5, 0.5)
 	self.skin_editor_window:setInactiveOpacity(0.35)
 	self.skin_editor_window:setVisible(false)
+	self.skin_editor_controls = self.skin_editor_window:addContent(FlowContainer({direction = "column", gap = 14}))
+	self.skin_editor_status = self.skin_editor_controls:add(Label({
+		font_name = "regular", font_size = 14, text = "",
+	}))
 
 	self.root:setOpacity(0)
 end
@@ -82,6 +91,9 @@ function Gameplay:enter()
 	love.mouse.setVisible(self.ui.skin_editor)
 	self.is_playing = true
 	self.skin_editor_window:setVisible(self.ui.skin_editor)
+	if self.ui.skin_editor then
+		self:refreshSkinEditor()
+	end
 	self.clear_status:hide()
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
@@ -135,6 +147,59 @@ end
 function Gameplay:toGameplayChart(x, y)
 	local width, height, transform = self:getGameplayViewport()
 	return self.gameplay_playfield:toChart(x, y, width, height, transform)
+end
+
+function Gameplay:refreshSkinEditor()
+	self.skin_editor_controls:clear()
+	self.skin_editor_controls:setDirection("column")
+	self.skin_editor_controls:setGap(14)
+	self.skin_editor_status:setText("")
+	self.skin_editor_status:setSize(540, 24)
+	local renderer = self.gameplay_interactor.mania_renderer
+	self.skin_editor_properties = {}
+	if not renderer or not renderer.getProperties then
+		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.no_properties"))
+		self.skin_editor_controls:add(self.skin_editor_status)
+		self.skin_editor_controls:fitContent()
+		self.skin_editor_window:setContentHeight(math.max(120, self.skin_editor_controls.height))
+		return
+	end
+
+	self.skin_editor_properties = renderer:getProperties()
+	for _, property in ipairs(self.skin_editor_properties) do
+		self.skin_editor_controls:add(Slider({
+			label = property.label or self.ui.localization:get(property.label_key),
+			value = property.get(),
+			min = property.min,
+			max = property.max,
+			step = property.step,
+			width = 540,
+			value_format = function(value) return tostring(math.floor(value + 0.5)) end,
+			on_change = function(value)
+				property.set(value)
+				local config = self.gameplay_interactor.mania_skin_config
+				if not config then
+					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
+						error = "Skin config is unavailable.",
+					}))
+					return
+				end
+				local saved, save_error = config:save(
+					self.game.fs, self.gameplay_interactor.mania_skin_config_path
+				)
+				if saved then
+					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.saved"))
+				else
+					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
+						error = tostring(save_error),
+					}))
+				end
+			end,
+		}))
+	end
+	self.skin_editor_controls:add(self.skin_editor_status)
+	self.skin_editor_controls:fitContent()
+	self.skin_editor_window:setContentHeight(math.max(120, self.skin_editor_controls.height))
 end
 
 function Gameplay:exit()

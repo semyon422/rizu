@@ -1,6 +1,6 @@
-local class = require("class")
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 local InputMode = require("chart.core.InputMode")
+local SkinConfig = require("rizu.skin.SkinConfig")
 
 local lg = love.graphics
 
@@ -8,7 +8,11 @@ local FIELD_WIDTH = 640
 local FIELD_HEIGHT = 480
 local LANE_WIDTH = 48
 local NOTE_HEIGHT = 30
-local RECEPTOR_Y = 360
+local DEFAULT_RECEPTOR_Y = 360
+local MIN_RECEPTOR_Y = 0
+local MAX_RECEPTOR_Y = FIELD_HEIGHT
+local MIN_PLAYFIELD_X_OFFSET = -FIELD_WIDTH
+local MAX_PLAYFIELD_X_OFFSET = FIELD_WIDTH
 
 local note_colors = {
 	white = {1, 1, 1},
@@ -61,19 +65,106 @@ local function get_note_color_names(columns)
 	return colors
 end
 
+---@class rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property
+---@field key string
+---@field label_key string
+---@field min number
+---@field max number
+---@field step number
+---@field get fun(): number
+---@field set fun(value: number)
+
 ---@class rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@field config rizu.skin.SkinConfig
+---@field config_path string
+---@field input_mode string
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
 ---@param input_mode string
 ---@param screen rizu.skin.Screen
-function ManiaPlayfieldRenderer:new(game, input_mode, screen)
+---@param config rizu.skin.SkinConfig?
+---@param config_path string?
+function ManiaPlayfieldRenderer:new(game, input_mode, screen, config, config_path)
 	PlayfieldRenderer.new(self, game)
 	self.screen = screen
+	self.input_mode = input_mode
+	self.config = config or SkinConfig()
+	self.config_path = config_path or "userdata/dlc/skins_rizu/base/skin-config.json"
 	local mode = InputMode(input_mode)
 	self.inputs = mode:getInputs()
 	self.input_map = mode:getInputMap()
+end
+
+function ManiaPlayfieldRenderer:getReceptorY()
+	local value = self.config:get("mania", self.input_mode, "receptor.y", DEFAULT_RECEPTOR_Y)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		value = DEFAULT_RECEPTOR_Y
+	end
+	return math.max(MIN_RECEPTOR_Y, math.min(MAX_RECEPTOR_Y, value))
+end
+
+function ManiaPlayfieldRenderer:setReceptorY(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"receptor y must be a finite number")
+	assert(value >= MIN_RECEPTOR_Y and value <= MAX_RECEPTOR_Y, "receptor y is out of range")
+	self.config:set("mania", self.input_mode, "receptor.y", value)
+end
+
+function ManiaPlayfieldRenderer:getPlayfieldXOffset()
+	local value = self.config:get("mania", self.input_mode, "playfield.x_offset", 0)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		value = 0
+	end
+	return math.max(MIN_PLAYFIELD_X_OFFSET, math.min(MAX_PLAYFIELD_X_OFFSET, value))
+end
+
+function ManiaPlayfieldRenderer:setPlayfieldXOffset(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"playfield x offset must be a finite number")
+	assert(value >= MIN_PLAYFIELD_X_OFFSET and value <= MAX_PLAYFIELD_X_OFFSET,
+		"playfield x offset is out of range")
+	self.config:set("mania", self.input_mode, "playfield.x_offset", value)
+end
+
+---@return rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property[]
+function ManiaPlayfieldRenderer:getProperties()
+	return {
+		{key = "receptor.y", label_key = "gameplay.skin_editor.receptor_y",
+			min = MIN_RECEPTOR_Y, max = MAX_RECEPTOR_Y, step = 1,
+			get = function() return self:getReceptorY() end,
+			set = function(value) self:setReceptorY(value) end},
+		{key = "playfield.x_offset", label_key = "gameplay.skin_editor.playfield_x_offset",
+			min = MIN_PLAYFIELD_X_OFFSET,
+			max = MAX_PLAYFIELD_X_OFFSET, step = 1,
+			get = function() return self:getPlayfieldXOffset() end,
+			set = function(value) self:setPlayfieldXOffset(value) end},
+	}
+end
+
+---@return boolean success
+---@return string? error_message
+function ManiaPlayfieldRenderer:saveConfig()
+	return self.config:save(self.game.fs, self.config_path)
+end
+
+---@param player rizu.preview.NotesPreviewPlayer
+---@param column integer
+---@param columns integer
+---@return integer
+function ManiaPlayfieldRenderer:getPreviewDisplayColumn(player, column, columns)
+	if player.input_mode ~= self.input_mode then
+		return math.min(column, columns)
+	end
+	local display_column = player.column_map and player.column_map[column]
+	if type(display_column) == "number" and display_column % 1 == 0
+		and display_column >= 1 and display_column <= columns then
+		return display_column
+	end
+	if column <= columns then
+		return column
+	end
 end
 
 ---@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
@@ -107,11 +198,28 @@ end
 ---@param columns integer
 ---@param lane_width number
 ---@param width number
----@return number
----@return number
+---@return number left
+---@return number field_width
 local function get_field_left(columns, lane_width, width)
 	local field_width = columns * lane_width
 	return (width - field_width) / 2, field_width
+end
+
+---@param width number
+---@param height number
+---@return number scale
+---@return number offset_x
+---@return number offset_y
+local function get_field_transform(width, height)
+	local scale = math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT)
+	return scale, (width - FIELD_WIDTH * scale) / 2, (height - FIELD_HEIGHT * scale) / 2
+end
+
+---@param columns integer
+---@param offset_x number
+---@return number left
+local function get_field_offset(columns, offset_x)
+	return get_field_left(columns, LANE_WIDTH, FIELD_WIDTH) + offset_x
 end
 
 ---@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
@@ -150,9 +258,9 @@ end
 ---@param note rizu.VisualNote
 ---@param y number
 ---@return number
-local function clamp_held_note_y(note, y)
+local function clamp_held_note_y(note, y, receptor_y)
 	if is_note_head_held(note) then
-		return math.min(RECEPTOR_Y, y)
+		return math.min(receptor_y, y)
 	end
 	return y
 end
@@ -160,9 +268,9 @@ end
 ---@param note rizu.VisualNote
 ---@param y number
 ---@return number
-local function clamp_held_tail_y(note, y)
+local function clamp_held_tail_y(note, y, receptor_y)
 	if is_note_head_held(note) then
-		return math.min(RECEPTOR_Y + NOTE_HEIGHT / 2, y)
+		return math.min(receptor_y + NOTE_HEIGHT / 2, y)
 	end
 	return y
 end
@@ -213,23 +321,26 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 		return
 	end
 
-	local columns = #preview.columns
+	local columns = #self.inputs
 	local colors = get_column_colors(self, columns)
-	local lane_width = height * LANE_WIDTH / FIELD_HEIGHT
-	local left = get_field_left(columns, lane_width, width)
-	local note_width = lane_width
-	local note_height = lane_width * NOTE_HEIGHT / LANE_WIDTH
-	local hold_width = lane_width * 0.64
-	local pixels_per_second = height * math.max(player.rate, 0.01)
-	local receptor_y = height * RECEPTOR_Y / FIELD_HEIGHT
+	local scale, offset_x, offset_y = get_field_transform(width, height)
+	local left = get_field_offset(columns, self:getPlayfieldXOffset())
+	local hold_width = LANE_WIDTH * 0.64
+	local pixels_per_second = FIELD_HEIGHT * math.max(player.rate, 0.01)
+	local receptor_y = self:getReceptorY()
 	local time = player.time
 	local until_time = time + receptor_y / pixels_per_second
 
-	draw_field(left, columns, lane_width, height)
+	lg.push("all")
+	lg.translate(offset_x, offset_y)
+	lg.scale(scale)
+	draw_field(left, columns, LANE_WIDTH, FIELD_HEIGHT)
 
-	for column, notes in ipairs(preview.columns) do
-		local display_column = player.column_map[column]
-		local x = left + (display_column - 0.5) * lane_width
+	local preview_columns = math.min(columns, #preview.columns)
+	for column = 1, preview_columns do
+		local notes = preview.columns[column]
+		local display_column = self:getPreviewDisplayColumn(player, column, columns)
+		local x = left + (display_column - 0.5) * LANE_WIDTH
 		local color_name = colors[column]
 		local first, last = preview:getVisibleRange(column, time, until_time)
 		for i = first, last do
@@ -241,12 +352,20 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 					draw_hold_body(x, head_y, tail_y, hold_width, color_name)
 				end
 				if note.time >= time and note.time <= until_time then
-					draw_note(x, head_y, note_width, note_height, color_name)
+					draw_note(x, head_y, LANE_WIDTH, NOTE_HEIGHT, color_name)
 				end
 			end
 		end
 	end
-	lg.setColor(1, 1, 1, 1)
+
+	for column = 1, columns do
+		local display_column = self:getPreviewDisplayColumn(player, column, columns)
+		local x = left + (display_column - 0.5) * LANE_WIDTH
+		local color = note_colors[colors[column]]
+		lg.setColor(color[1], color[2], color[3], 0.55)
+		lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y - 6, LANE_WIDTH, 12)
+	end
+	lg.pop()
 end
 
 ---@param width number
@@ -260,12 +379,13 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	local columns = #self.inputs
 	if columns == 0 then return end
 	local colors = get_column_colors(self, columns)
-	local scale = math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT)
-	local field_left = get_field_left(columns, LANE_WIDTH, FIELD_WIDTH)
+	local scale, offset_x, offset_y = get_field_transform(width, height)
+	local field_left = get_field_offset(columns, self:getPlayfieldXOffset())
+	local receptor_y = self:getReceptorY()
 
 	lg.push("all")
 	lg.applyTransform(transform)
-	lg.translate((width - FIELD_WIDTH * scale) / 2, (height - FIELD_HEIGHT * scale) / 2)
+	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
 
 	draw_field(field_left, columns, LANE_WIDTH, FIELD_HEIGHT)
@@ -276,8 +396,8 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 			local column = get_note_column(self, note)
 			if column and column >= 1 and column <= columns then
 				local x = field_left + (column - 0.5) * LANE_WIDTH
-				local head_y = clamp_held_note_y(note, RECEPTOR_Y + note.start_dt * FIELD_HEIGHT)
-				local tail_y = clamp_held_tail_y(note, RECEPTOR_Y + note.end_dt * FIELD_HEIGHT)
+				local head_y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
+				local tail_y = clamp_held_tail_y(note, receptor_y + note.end_dt * FIELD_HEIGHT, receptor_y)
 				draw_hold_body(x, head_y, tail_y, LANE_WIDTH * 0.64, colors[column])
 			end
 		end
@@ -288,7 +408,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 		if is_note_head_visible(note) then
 		if column and column >= 1 and column <= columns then
 			local x = field_left + (column - 0.5) * LANE_WIDTH
-			local y = clamp_held_note_y(note, RECEPTOR_Y + note.start_dt * FIELD_HEIGHT)
+			local y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
 			draw_note(x, y, LANE_WIDTH, NOTE_HEIGHT, colors[column])
 		end
 		end
@@ -299,14 +419,14 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 		local color = note_colors[colors[column]]
 		local pressed = engine:isColumnPressed(column)
 		lg.setColor(color[1], color[2], color[3], pressed and 1 or 0.55)
-		lg.rectangle("fill", x - LANE_WIDTH / 2, RECEPTOR_Y - 6, LANE_WIDTH, 12)
+		lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y - 6, LANE_WIDTH, 12)
 	end
 	lg.pop()
 end
 
 ---@class rizu.skin.base.rizu_mania.Skin
 ---@field metadata rizu.skin.SkinMetadata
----@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
 return {
 	metadata = {
 		name = "Rizu Default",
@@ -315,7 +435,7 @@ return {
 		gamemode = "mania",
 		input_modes = {"any"},
 	},
-	load = function(game, input_mode, screen)
-		return ManiaPlayfieldRenderer(game, input_mode, screen)
+	load = function(game, input_mode, screen, config, config_path)
+		return ManiaPlayfieldRenderer(game, input_mode, screen, config, config_path)
 	end,
 }

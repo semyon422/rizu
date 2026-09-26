@@ -38,6 +38,7 @@ function test.selection_settings_and_clear(t)
 	t:eq(player.notes, nil)
 	player:setChartview(nil)
 	t:eq(player.notes, nil)
+	t:tdeq(player.column_map, {})
 end
 
 return test

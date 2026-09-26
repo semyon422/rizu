@@ -1,6 +1,7 @@
 local class = require("class")
 local path_util = require("path_util")
 local OsuSkinIni = require("rizu.skin.OsuSkinIni")
+local SkinConfig = require("rizu.skin.SkinConfig")
 
 ---@class rizu.skin.SkinMetadata
 ---@field name string
@@ -9,27 +10,12 @@ local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 ---@field gamemode string
 ---@field input_modes string[]
 
----@alias rizu.skin.SkinFormat "lua"|"osu"
+---@alias rizu.skin.SkinFormat "lua"|"osu"|"stepmania"
 
 ---@alias rizu.skin.Screen
 ---| "gameplay"
 ---| "preview"
 ---| "editor"
-
----@class rizu.skin.StepmaniaSkinDiscovery
----@field name string
----@field path string
----@field input_modes string[]
-
----@class rizu.skin.OsuSkinDiscovery
----@field name string
----@field path string
----@field directory_path string
----@field file_name string
----@field files string[] Relative file paths beneath the skin directory.
----@field format "osu"
----@field metadata rizu.skin.SkinMetadata
----@field skin_ini rizu.skin.OsuSkinIni.Data
 
 ---@class rizu.skin.SkinInfo
 ---@field path string
@@ -37,7 +23,25 @@ local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 ---@field file_name string?
 ---@field format rizu.skin.SkinFormat
 ---@field metadata rizu.skin.SkinMetadata?
----@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen): unknown
+---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): unknown
+
+---@class rizu.skin.StepmaniaSkinDiscovery : rizu.skin.SkinInfo
+---@field name string
+---@field path string
+---@field directory_path string
+---@field format "stepmania"
+---@field input_modes string[]
+
+---@class rizu.skin.OsuSkinDiscovery : rizu.skin.SkinInfo
+---@field name string
+---@field path string
+---@field directory_path string
+---@field file_name string
+---@field files string[] Relative file paths beneath the skin directory.
+---@field format "osu"
+---@field input_modes string[]
+---@field metadata rizu.skin.SkinMetadata
+---@field skin_ini rizu.skin.OsuSkinIni.Data
 
 ---@class rizu.skin.SkinRegistry
 ---@operator call: rizu.skin.SkinRegistry
@@ -217,6 +221,7 @@ function SkinRegistry:loadOsuSkin(skin_directory, file_name, files)
 		file_name = file_name,
 		files = files,
 		format = "osu",
+		input_modes = input_modes,
 		metadata = {
 			name = skin_name,
 			author = general.Author,
@@ -260,6 +265,8 @@ function SkinRegistry:addStepmaniaDiscovery(directory_path, input_modes)
 	table.insert(self.stepmania_skins, {
 		name = name,
 		path = directory_path,
+		directory_path = directory_path,
+		format = "stepmania",
 		input_modes = input_modes or {"4key"},
 	})
 end
@@ -373,6 +380,40 @@ function SkinRegistry:getSkin(path)
 			return skin
 		end
 	end
+end
+
+---@param skin rizu.skin.SkinInfo
+---@return string
+function SkinRegistry:getSkinConfigPath(skin)
+	local base_prefix = self.base_path .. "/"
+	if skin.path:sub(1, #base_prefix) == base_prefix then
+		local relative_path = skin.path:sub(#base_prefix + 1)
+		local config_relative_path = relative_path:gsub("%.skin%.lua$", ".skin-config.json")
+		return path_util.join("userdata/dlc/skins_rizu/base", config_relative_path)
+	end
+	return (skin.path:gsub("%.skin%.lua$", ".skin-config.json"))
+end
+
+---@param skin rizu.skin.SkinInfo
+---@param game sphere.GameController
+---@param input_mode string
+---@param screen rizu.skin.Screen
+---@return unknown renderer
+---@return rizu.skin.SkinConfig config
+---@return string config_path
+function SkinRegistry:loadSkin(skin, game, input_mode, screen)
+	assert(skin and type(skin.load) == "function", "skin with a load function is required")
+	assert(type(input_mode) == "string" and input_mode ~= "", "input mode is required")
+	local config = SkinConfig()
+	local config_path = self:getSkinConfigPath(skin)
+	if self.fs:getInfo(config_path) then
+		local loaded, load_error = config:load(self.fs, config_path)
+		if not loaded then
+			print(("could not load skin config %s: %s"):format(config_path, tostring(load_error)))
+		end
+	end
+	local renderer = skin.load(game, input_mode, screen, config, config_path)
+	return renderer, config, config_path
 end
 
 ---@param gamemode string

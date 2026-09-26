@@ -6,6 +6,7 @@ local Settings = require("rizu.config.Settings")
 ---@class rizu.preview.NotesPreviewPlayer
 ---@operator call: rizu.preview.NotesPreviewPlayer
 ---@field notes rizu.preview.NotesPreview?
+---@field input_mode string?
 ---@field column_map integer[]
 local NotesPreviewPlayer = class()
 
@@ -25,6 +26,8 @@ end
 ---@return boolean? valid
 function NotesPreviewPlayer:setChartview(chartview)
 	self.notes = nil
+	self.input_mode = nil
+	self.column_map = {}
 	if not self.settings:getBoolean(Settings.keys.select.chart_preview) or not chartview then
 		return
 	end
@@ -45,6 +48,7 @@ function NotesPreviewPlayer:setChartview(chartview)
 		return false
 	end
 	self.notes = notes
+	self.input_mode = inputmode
 	local order = self.replayBase.columns_order
 	local map = {}
 	for i = 1, columns do
