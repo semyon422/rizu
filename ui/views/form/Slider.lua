@@ -52,8 +52,9 @@ function Slider:new(params)
 	self.line_right = Resources.sprites.slider_line_right
 	self.thumb = Resources.sprites.slider_thumb
 
-	local width = params.width or 300
-	assert(width >= self.thumb:getWidth(), "slider width is too small")
+	-- Keep narrow sliders usable instead of rejecting them. A thumb-sized
+	-- slider has no travel, but remains drawable and safely clickable.
+	local width = math.max(params.width or 300, self.thumb:getWidth())
 	self:setSize(width, HEIGHT)
 	self.handles_mouse_input = true
 	self.drag_axis = "horizontal"
@@ -77,7 +78,10 @@ end
 function Slider:setValueAt(screen_x, screen_y)
 	local local_x = self.world_transform:inverseTransformPoint(screen_x, screen_y)
 	local thumb_radius = self.thumb:getWidth() / 2
-	local position = math.max(0, math.min(1, (local_x - thumb_radius) / (self.width - thumb_radius * 2)))
+	local travel = math.max(self.width - thumb_radius * 2, 0)
+	local position = travel > 0
+		and math.max(0, math.min(1, (local_x - thumb_radius) / travel))
+		or 0
 	local value = self.min + (self.max - self.min) * position
 	if self.step then
 		value = self.min + math.floor((value - self.min) / self.step + 0.5) * self.step
@@ -134,7 +138,7 @@ end
 local function drawLine(self, width)
 	local left_width = self.line_left:getWidth()
 	local right_width = self.line_right:getWidth()
-	local middle_width = width - left_width - right_width
+	local middle_width = math.max(width - left_width - right_width, 0)
 	self.line_left:draw(0, LINE_Y)
 	self.line_middle:draw(left_width, LINE_Y, 0, middle_width / self.line_middle:getWidth(), 1)
 	self.line_right:draw(width - right_width, LINE_Y)

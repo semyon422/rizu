@@ -98,10 +98,12 @@ local CONTENT_PADDING_Y = 20
 ---@param game sphere.GameController
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
-function NoteSkins:new(game, on_close, localization)
+---@param on_edit fun()?
+function NoteSkins:new(game, on_close, localization, on_edit)
 	ModalView.new(self)
 	self.localization = localization
 	self.game = game
+	self.on_edit = on_edit
 	self.input_mode = ""
 	self.items = {}
 	self.selected_index = 1
@@ -129,8 +131,9 @@ function NoteSkins:new(game, on_close, localization)
 	self.list:anchorFixed(CONTENT_X, HEADER_HEIGHT + CONTENT_PADDING_Y,
 		WIDTH - CONTENT_X * 2, HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - CONTENT_PADDING_Y * 2)
 	self.list_page:add(ModalFooter(on_close, localization:get("settings.close")))
-	self.edit_button = self.list_page:add(Button(localization:get("note_skin_overrides.edit"), function() end,
-		{variant = "primary", shape = "capsule", font_size = 18}))
+	self.edit_button = self.list_page:add(Button(localization:get("note_skin_overrides.edit"), function()
+		self:editSkin()
+	end, {variant = "primary", shape = "capsule", font_size = 18}))
 	self.edit_button:setSize(150, 48):setPosition(WIDTH - CONTENT_X - 150, HEIGHT - 70)
 
 	self.overrides_page = self:add(View())
@@ -198,6 +201,13 @@ function NoteSkins:select(index)
 	skin_paths["mania/" .. self.input_mode] = item.path
 	self.game.settings:setStringMap(Settings.keys.gameplay.skins, skin_paths)
 	self.list.selected_path = item.path
+end
+
+function NoteSkins:editSkin()
+	if self.input_mode == "" or #self.items == 0 then return end
+	if self.on_edit then
+		self.on_edit()
+	end
 end
 
 function NoteSkins:showOverrides()

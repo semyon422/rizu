@@ -68,6 +68,7 @@ local TARGET_HEIGHT = 1080
 ---@field mapperatorinator_config rizu.config.Config
 ---@field mapperatorinator_workflow rizu.mapperatorinator.Workflow
 ---@field localization ui.localization.Localization
+---@field skin_editor boolean
 ---@field private prev_w number
 ---@field private prev_h number
 local UserInterface = RizuUserInterface + {}
@@ -102,6 +103,20 @@ function UserInterface:new(game, mount_path)
 	self.mapperatorinator_workflow = MapperatorinatorWorkflow(game, self)
 	self.actions = UiActions.createMap(self.config)
 	self.inputs:setActionMap(self.actions)
+	self.skin_editor = false
+end
+
+---@param autoplay boolean
+---@param skin_editor boolean
+---@param keep_previous_visible boolean?
+---@return boolean changed
+function UserInterface:loadSelectedChart(autoplay, skin_editor, keep_previous_visible)
+	local interactor = self.game.gameplayInteractor
+	interactor.replaying = false
+	interactor.aim_replay = nil
+	interactor.autoplay = autoplay
+	self.skin_editor = skin_editor
+	return self:setScreen(self.chart_loading, keep_previous_visible)
 end
 
 function UserInterface:load()

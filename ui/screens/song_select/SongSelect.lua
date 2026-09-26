@@ -217,7 +217,7 @@ function SongSelect:onHandleInputs(inputs)
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif game.chartSelector:chartExists() and inputs:consumeActionJustPressed(UiActions.accept) then
-		self.ui:setScreen(self.ui.chart_loading, true)
+		self.ui:loadSelectedChart(false, false, true)
 	end
 end
 

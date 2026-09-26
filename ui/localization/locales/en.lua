@@ -360,6 +360,7 @@ return {
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "Online",
 
+	["gameplay.skin_editor.title"] = "Skin Editor",
 	["gameplay.pause.title"] = "Paused",
 	["gameplay.pause.continue"] = "Continue",
 	["gameplay.pause.restart"] = "Restart",

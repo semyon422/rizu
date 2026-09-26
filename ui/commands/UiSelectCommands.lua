@@ -11,10 +11,7 @@ return function(game, ui)
 			description = "Starts the selected chart",
 			callback = function()
 				if game.chartSelector:chartExists() then
-					game.gameplayInteractor.replaying = false
-					game.gameplayInteractor.aim_replay = nil
-					game.gameplayInteractor.autoplay = false
-					ui:setScreen(ui.chart_loading)
+					ui:loadSelectedChart(false, false)
 				end
 			end,
 		},
@@ -24,10 +21,7 @@ return function(game, ui)
 			description = "Starts the selected chart with autoplay enabled",
 			callback = function()
 				if game.chartSelector:chartExists() then
-					game.gameplayInteractor.replaying = false
-					game.gameplayInteractor.aim_replay = nil
-					game.gameplayInteractor.autoplay = true
-					ui:setScreen(ui.chart_loading)
+					ui:loadSelectedChart(true, false)
 				end
 			end,
 		},

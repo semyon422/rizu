@@ -87,7 +87,10 @@ function ModalManager:new(ui, popup_container)
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed,
 		function() self:hideModal(self.modifiers) end, localization))
 	self.note_skins = self:addModal(NoteSkins(ui.game,
-		function() self:hideModal(self.note_skins) end, localization))
+		function() self:hideModal(self.note_skins) end, localization, function()
+			self:hideModal(self.note_skins)
+			ui:loadSelectedChart(true, true, true)
+		end))
 	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed, localization))
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)

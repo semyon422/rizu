@@ -103,7 +103,7 @@ function Footer:new(ui)
 		padding_x = 17,
 		on_click = function()
 			if game.chartSelector:chartExists() then
-				ui:setScreen(ui.chart_loading, true)
+				ui:loadSelectedChart(false, false, true)
 			end
 		end,
 	})

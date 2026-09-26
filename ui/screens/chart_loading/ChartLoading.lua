@@ -47,6 +47,7 @@ end
 
 function ChartLoading:enter()
 	if self.pending_error then
+		self.ui.skin_editor = false
 		self.failed = true
 		self.content:setVisible(false)
 		self.error_view:setMessage(self.pending_error)
@@ -68,6 +69,7 @@ function ChartLoading:enter()
 		if ok and loaded then
 			self.ui:setScreen(self.ui.gameplay, true)
 		elseif not ok then
+			self.ui.skin_editor = false
 			self.failed = true
 			self.content:setVisible(false)
 			self.error_view:setMessage(tostring(loaded))

@@ -8,12 +8,14 @@ local BgaView = require("ui.screens.gameplay.BgaView")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
+local Window = require("ui.views.Window")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
 
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
 ---@field gameplay_playfield rizu.gameplay.Playfield
+---@field skin_editor_window ui.views.Window
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -52,6 +54,12 @@ function Gameplay:new(ui)
 	))
 	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
 	self.restart_overlay = self.root:add(RestartOverlay())
+	self.skin_editor_window = self.root:add(Window(
+		ui.localization:get("gameplay.skin_editor.title"), 640, 420
+	))
+	self.skin_editor_window:setAlignment(0.5, 0.5)
+	self.skin_editor_window:setInactiveOpacity(0.35)
+	self.skin_editor_window:setVisible(false)
 
 	self.root:setOpacity(0)
 end
@@ -71,8 +79,9 @@ function Gameplay:enter()
 	self.aim_summary:setVisible(false)
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
-	love.mouse.setVisible(false)
+	love.mouse.setVisible(self.ui.skin_editor)
 	self.is_playing = true
+	self.skin_editor_window:setVisible(self.ui.skin_editor)
 	self.clear_status:hide()
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
@@ -130,6 +139,8 @@ end
 
 function Gameplay:exit()
 	self.is_playing = false
+	self.skin_editor_window:setVisible(false)
+	self.ui.skin_editor = false
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
