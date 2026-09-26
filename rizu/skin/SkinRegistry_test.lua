@@ -50,19 +50,21 @@ function test.discovers_skins_stepmania_in_etterna_game_type_directories(t)
 	local registry = SkinRegistry(fs)
 	registry:load()
 
-	local four_key = assert(registry:getSkin("userdata/dlc/skins_stepmania/dance/example"))
-	t:eq(four_key.format, "stepmania")
-	t:eq(four_key.metadata.input_modes[1], "4key")
-	t:eq(registry:getSkinForInputMode("mania", "4key"), four_key)
+	t:eq(#registry:getSkins(), 0)
+	t:eq(registry:getSkinForInputMode("mania", "4key"), nil)
 
-	local seven_key = assert(registry:getSkin("userdata/dlc/skins_stepmania/kb7/example"))
-	t:eq(seven_key.metadata.input_modes[1], "7key")
-	t:eq(registry:getSkinForInputMode("mania", "7key", "userdata/dlc/skins_stepmania/kb7/example/"), seven_key)
-
-	local beat = assert(registry:getSkin("userdata/dlc/skins_stepmania/beat/example"))
-	t:tdeq(beat.metadata.input_modes, {"5key", "7key"})
-	t:eq(registry:getSkinForInputMode("mania", "5key"), beat)
-	t:eq(registry:getSkin("userdata/dlc/skins_stepmania/common/example"), nil)
+	local discoveries = registry:getStepmaniaSkins()
+	t:eq(#discoveries, 3)
+	local discovered = {}
+	for _, skin in ipairs(discoveries) do
+		discovered[skin.path] = skin
+		t:eq(registry:getSkin(skin.path), nil)
+	end
+	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].name, "example")
+	t:tdeq(discovered["userdata/dlc/skins_stepmania/dance/example"].input_modes, {"4key"})
+	t:tdeq(discovered["userdata/dlc/skins_stepmania/kb7/example"].input_modes, {"7key"})
+	t:tdeq(discovered["userdata/dlc/skins_stepmania/beat/example"].input_modes, {"5key", "7key"})
+	t:eq(discovered["userdata/dlc/skins_stepmania/common/example"], nil)
 end
 
 ---@param t testing.T
