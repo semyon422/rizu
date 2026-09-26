@@ -38,6 +38,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@field list_background gui.NineSliceUsage
 ---@field private settings_invalidated boolean
 ---@field private on_language_change fun()
+---@field private on_diff_column_change fun()
 local Config = ModalView + {}
 
 local MODAL_WIDTH = 1060
@@ -53,7 +54,8 @@ local LIST_WIDTH = 635
 ---@param on_language_change fun()
 ---@param audio_model rizu.AudioModel
 ---@param user_interface_manager rizu.app.UserInterfaceManager
-function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, audio_model, user_interface_manager)
+---@param on_diff_column_change fun()
+function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, audio_model, user_interface_manager, on_diff_column_change)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
@@ -62,6 +64,7 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 	self.localization = localization
 	self.audio_model = audio_model
 	self.on_language_change = on_language_change
+	self.on_diff_column_change = on_diff_column_change
 	self.form = Form({
 		direction = "column",
 		gap = 18,
@@ -150,7 +153,8 @@ function Config:createSections()
 			self.form,
 			self.popup_container,
 			self.on_language_change,
-			self.user_interface_manager
+			self.user_interface_manager,
+			self.on_diff_column_change
 		),
 		BindingsSection(self.ui_config, self.localization),
 	}

@@ -43,7 +43,8 @@ end
 ---@param popup_container ui.views.PopupContainer
 ---@param on_language_change fun()
 ---@param user_interface_manager rizu.app.UserInterfaceManager
-function UserInterface:new(settings, ui_config, localization, form, popup_container, on_language_change, user_interface_manager)
+---@param on_diff_column_change fun()
+function UserInterface:new(settings, ui_config, localization, form, popup_container, on_language_change, user_interface_manager, on_diff_column_change)
 	Section.new(self, {
 		name = localization:get("settings.user_interface"),
 		icon = Resources.sprites.icon_layers,
@@ -97,6 +98,7 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					keywords = {"difficulty", "rating", "menus"},
 					tip = localization:get("settings.difficulty_type_tip"),
 					format = formatDifficulty,
+					on_change = on_diff_column_change,
 				}),
 			}
 		end,
