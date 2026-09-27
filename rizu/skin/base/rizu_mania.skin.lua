@@ -231,24 +231,6 @@ end
 
 ---@param note rizu.VisualNote
 ---@return boolean
-local function is_note_visible(note)
-	if note.type == "long" then
-		return note:getState() ~= "endPassed"
-	end
-	return note:getState() == "clear"
-end
-
----@param note rizu.VisualNote
----@return boolean
-local function is_note_head_visible(note)
-	if note.type == "long" then
-		return not note:getState():find("^end")
-	end
-	return note:getState() == "clear"
-end
-
----@param note rizu.VisualNote
----@return boolean
 local function is_note_head_held(note)
 	-- A missed head can still be physically pressed, but it is not an active
 	-- hold. Only a successfully-held head is anchored at the receptor.
@@ -329,6 +311,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	local pixels_per_second = FIELD_HEIGHT * math.max(player.rate, 0.01)
 	local receptor_y = self:getReceptorY()
 	local time = player.time
+	local from_time = time - (FIELD_HEIGHT - receptor_y) / pixels_per_second
 	local until_time = time + receptor_y / pixels_per_second
 
 	lg.push("all")
@@ -342,16 +325,16 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 		local display_column = self:getPreviewDisplayColumn(player, column, columns)
 		local x = left + (display_column - 0.5) * LANE_WIDTH
 		local color_name = colors[column]
-		local first, last = preview:getVisibleRange(column, time, until_time)
+		local first, last = preview:getVisibleRange(column, from_time, until_time)
 		for i = first, last do
 			local note = notes[i]
-			if note.end_time >= time then
+			if note.end_time >= from_time then
 				local head_y = receptor_y - (note.time - time) * pixels_per_second
 				local tail_y = receptor_y - (note.end_time - time) * pixels_per_second
 				if note.end_time > note.time then
 					draw_hold_body(x, head_y, tail_y, hold_width, color_name)
 				end
-				if note.time >= time and note.time <= until_time then
+				if note.time >= from_time and note.time <= until_time then
 					draw_note(x, head_y, LANE_WIDTH, NOTE_HEIGHT, color_name)
 				end
 			end
@@ -392,7 +375,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 
 	-- Bodies are behind heads and receptors.
 	for _, note in ipairs(visual_engine.visible_notes) do
-		if note.type == "long" and is_note_visible(note) then
+		if note.type == "long" then
 			local column = get_note_column(self, note)
 			if column and column >= 1 and column <= columns then
 				local x = field_left + (column - 0.5) * LANE_WIDTH
@@ -405,12 +388,10 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 
 	for _, note in ipairs(visual_engine.visible_notes) do
 		local column = get_note_column(self, note)
-		if is_note_head_visible(note) then
 		if column and column >= 1 and column <= columns then
 			local x = field_left + (column - 0.5) * LANE_WIDTH
 			local y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
 			draw_note(x, y, LANE_WIDTH, NOTE_HEIGHT, colors[column])
-		end
 		end
 	end
 

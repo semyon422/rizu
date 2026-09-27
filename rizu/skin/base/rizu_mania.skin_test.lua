@@ -58,4 +58,55 @@ function test.preview_column_mapping_handles_stale_and_changed_keymodes(t)
 	t:eq(renderer:getPreviewDisplayColumn(player, 1, 8), 1)
 end
 
+local function capture_note_rectangles(draw)
+	local previous_rectangle = love.graphics.rectangle
+	local note_rectangles = {}
+	love.graphics.rectangle = function(_, x, y, width, height)
+		if width == 48 and height == 30 then
+			note_rectangles[#note_rectangles + 1] = {x, y, width, height}
+		end
+	end
+	local ok, err = xpcall(draw, debug.traceback)
+	love.graphics.rectangle = previous_rectangle
+	if not ok then error(err) end
+	return note_rectangles
+end
+
+---@param t testing.T
+function test.gameplay_notes_continue_below_the_receptor_after_their_absolute_time(t)
+	local renderer = skin.load({
+		fs = FakeFilesystem(),
+		rhythm_engine = {
+			visual_engine = {
+				visible_notes = {
+					{type = "short", start_dt = 0.1, getState = function() return "missed" end,
+						getColumn = function() return "key1" end},
+				},
+			},
+			isColumnPressed = function() return false end,
+		},
+	}, "4key", "gameplay", SkinConfig(), "config.json")
+	local note_rectangles = capture_note_rectangles(function()
+		renderer:draw(640, 480, love.math.newTransform())
+	end)
+	t:eq(#note_rectangles, 1)
+	t:assert(note_rectangles[1][2] > renderer:getReceptorY())
+end
+
+---@param t testing.T
+function test.preview_notes_continue_below_the_receptor_after_their_absolute_time(t)
+	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
+	local preview = {
+		columns = {{{time = 0.5, end_time = 0.5}}, {}, {}, {}},
+		getVisibleRange = function(self, column)
+			return 1, #self.columns[column]
+		end,
+	}
+	local note_rectangles = capture_note_rectangles(function()
+		renderer:drawPreview({notes = preview, input_mode = "4key", time = 0.6, rate = 1}, 640, 480)
+	end)
+	t:eq(#note_rectangles, 1)
+	t:assert(note_rectangles[1][2] > renderer:getReceptorY())
+end
+
 return test
