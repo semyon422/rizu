@@ -153,21 +153,12 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	else
 		local skin_paths = game.settings:getStringMap(Settings.keys.gameplay.skins)
 		local selected_path = skin_paths["mania/" .. input_mode]
-		local skin = selected_path and game.skinRegistry:getOsuSkin(selected_path)
-		if not skin then
-			skin = game.skinRegistry:getSkinForInputMode("mania", input_mode, selected_path)
-		end
+		local skin = game.skinRegistry:getSkinForInputMode("mania", input_mode, selected_path)
 		assert(skin, "no Mania skin available for " .. input_mode)
 		self.mania_skin = skin
 		self.mania_input_mode = input_mode
-		if skin.format == "osu" then
-			self.mania_renderer = skin.load(game, input_mode, "gameplay")
-			self.mania_skin_config = nil
-			self.mania_skin_config_path = nil
-		else
-			self.mania_renderer, self.mania_skin_config, self.mania_skin_config_path =
-				game.skinRegistry:loadSkin(skin, game, input_mode, "gameplay")
-		end
+		self.mania_renderer, self.mania_skin_config, self.mania_skin_config_path =
+			game.skinRegistry:loadSkin(skin, game, input_mode, "gameplay")
 		paths = self:getResourcePaths(chartview)
 	end
 	self.noteSkin = nil

@@ -149,6 +149,39 @@ Keys: 7
 end
 
 ---@param t testing.T
+function test.resolves_selected_skin_across_supported_formats(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata/dlc/skins_rizu/example")
+	fs:write("userdata/dlc/skins_rizu/example/example.skin.lua", valid_skin)
+	fs:createDirectory("userdata/dlc/skins_osu/osu-example")
+	fs:write("userdata/dlc/skins_osu/osu-example/skin.ini", [[
+[General]
+Name: Osu Example
+[Mania]
+Keys: 4
+]])
+
+	local registry = SkinRegistry(fs)
+	registry:load()
+	local native_skin = registry:getSkins()[1]
+	local osu_skin = registry:getOsuSkins()[1]
+	t:eq(registry:getSkin(osu_skin.path), osu_skin)
+	t:eq(registry:getSkinForInputMode("mania", "4key", osu_skin.path .. "/"), osu_skin)
+	t:eq(registry:getSkinForInputMode("mania", "4key", native_skin.path), native_skin)
+
+	local loaded
+	osu_skin.load = function(game, input_mode, screen)
+		loaded = {game, input_mode, screen}
+		return "osu-renderer"
+	end
+	local renderer, config, config_path = registry:loadSkin(osu_skin, "game", "4key", "preview")
+	t:eq(renderer, "osu-renderer")
+	t:eq(config, nil)
+	t:eq(config_path, nil)
+	t:tdeq(loaded, {"game", "4key", "preview"})
+end
+
+---@param t testing.T
 function test.isolates_invalid_lua_skins(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata/dlc/skins_rizu")

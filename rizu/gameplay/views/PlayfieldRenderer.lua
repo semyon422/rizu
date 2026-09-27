@@ -9,6 +9,9 @@ function PlayfieldRenderer:new(game)
 	self.game = game
 end
 
+---@param dt number
+function PlayfieldRenderer:update(dt) end
+
 function PlayfieldRenderer:load() end
 
 function PlayfieldRenderer:unload() end

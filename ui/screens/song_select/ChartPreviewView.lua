@@ -56,12 +56,7 @@ function ChartPreviewView:getPreviewSkin(input_mode, skin_paths)
 	local registry = self.game.skinRegistry
 	if not registry then return nil end
 	local selected_path = skin_paths["mania/" .. input_mode]
-	---@type rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery?
-	local skin = selected_path and registry:getOsuSkin(selected_path)
-	if not skin then
-		skin = registry:getSkinForInputMode("mania", input_mode, selected_path)
-	end
-	return skin
+	return registry:getSkinForInputMode("mania", input_mode, selected_path)
 end
 
 ---@param skin_paths rizu.config.StringMap
@@ -93,12 +88,7 @@ function ChartPreviewView:getPreviewRenderer(input_mode, skin)
 		cached.renderer:unload()
 	end
 
-	local renderer ---@type rizu.gameplay.views.PlayfieldRenderer?
-	if skin.format == "osu" then
-		renderer = skin.load(self.game, input_mode, "preview") --[[@as rizu.gameplay.views.PlayfieldRenderer?]]
-	else
-		renderer = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "preview") --[[@as rizu.gameplay.views.PlayfieldRenderer?]]
-	end
+	local renderer = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "preview") --[[@as rizu.gameplay.views.PlayfieldRenderer?]]
 	if renderer then
 		mode_cache[input_mode] = {skin = skin, renderer = renderer}
 	else

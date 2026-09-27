@@ -44,6 +44,8 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 ---@field skin_ini rizu.skin.OsuSkinIni.Data
 ---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): rizu.skin.osu.OsuManiaRenderer
 
+---@alias rizu.skin.LoadableSkin rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery
+
 ---@class rizu.skin.SkinRegistry
 ---@operator call: rizu.skin.SkinRegistry
 ---@field fs fs.IFilesystem
@@ -53,6 +55,27 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 ---@field osu_skins rizu.skin.OsuSkinDiscovery[]
 ---@field errors {[string]: string}
 local SkinRegistry = class()
+
+---@param path string
+---@return string
+local function normalizeSkinPath(path)
+	return path:gsub("\\", "/"):gsub("/+$", "")
+end
+
+---@param skin rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery
+---@param gamemode string
+---@param input_mode string
+---@return boolean
+local function supportsInputMode(skin, gamemode, input_mode)
+	local metadata = skin.metadata
+	if not metadata or metadata.gamemode ~= gamemode then return false end
+	for _, supported_input_mode in ipairs(metadata.input_modes or {}) do
+		if supported_input_mode == input_mode or supported_input_mode == "any" then
+			return true
+		end
+	end
+	return false
+end
 
 ---@param fs fs.IFilesystem
 ---@param path string?
@@ -370,7 +393,7 @@ end
 ---@param path string
 ---@return rizu.skin.OsuSkinDiscovery?
 function SkinRegistry:getOsuSkin(path)
-	path = path:gsub("\\", "/"):gsub("/+$", "")
+	path = normalizeSkinPath(path)
 	for _, skin in ipairs(self.osu_skins) do
 		if skin.path == path then
 			return skin
@@ -379,13 +402,15 @@ function SkinRegistry:getOsuSkin(path)
 end
 
 ---@param path string
----@return rizu.skin.SkinInfo?
+---@return rizu.skin.LoadableSkin?
 function SkinRegistry:getSkin(path)
+	path = normalizeSkinPath(path)
 	for _, skin in ipairs(self.skins) do
-		if skin.path == path then
+		if normalizeSkinPath(skin.path) == path then
 			return skin
 		end
 	end
+	return self:getOsuSkin(path)
 end
 
 ---@param skin rizu.skin.SkinInfo
@@ -400,16 +425,19 @@ function SkinRegistry:getSkinConfigPath(skin)
 	return (skin.path:gsub("%.skin%.lua$", ".skin-config.json"))
 end
 
----@param skin rizu.skin.SkinInfo
+---@param skin rizu.skin.LoadableSkin
 ---@param game sphere.GameController
 ---@param input_mode string
 ---@param screen rizu.skin.Screen
 ---@return unknown renderer
----@return rizu.skin.SkinConfig config
----@return string config_path
+---@return rizu.skin.SkinConfig? config
+---@return string? config_path
 function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 	assert(skin and type(skin.load) == "function", "skin with a load function is required")
 	assert(type(input_mode) == "string" and input_mode ~= "", "input mode is required")
+	if type(skin) == "table" and skin.format == "osu" then
+		return skin.load(game, input_mode, screen), nil, nil
+	end
 	local config = SkinConfig()
 	local config_path = self:getSkinConfigPath(skin)
 	if self.fs:getInfo(config_path) then
@@ -425,25 +453,24 @@ end
 ---@param gamemode string
 ---@param input_mode string
 ---@param name string?
----@return rizu.skin.SkinInfo?
+---@return rizu.skin.LoadableSkin?
 function SkinRegistry:getSkinForInputMode(gamemode, input_mode, name)
-	-- Configured skin paths commonly come from directory pickers, which retain
-	-- a trailing slash unlike registry paths.
+	-- Settings may point directly at a discovered skin, regardless of the
+	-- package format. Fall back to a compatible native skin if stale.
 	if name then
-		name = name:gsub("/+$", "")
+		local selected = self:getSkin(name)
+		if selected and (selected.format == "osu" or supportsInputMode(selected, gamemode, input_mode)) then
+			return selected
+		end
 	end
+
 	local fallback
 	for _, skin in ipairs(self.skins) do
-		local metadata = skin.metadata
-		if metadata and metadata.gamemode == gamemode then
-			for _, supported_input_mode in ipairs(metadata.input_modes) do
-				if supported_input_mode == input_mode then
-					if name and (skin.path == name or metadata.name == name) then return skin end
-					fallback = fallback or skin
-				elseif supported_input_mode == "any" then
-					fallback = fallback or skin
-				end
+		if supportsInputMode(skin, gamemode, input_mode) then
+			if name and (normalizeSkinPath(skin.path) == normalizeSkinPath(name) or skin.metadata.name == name) then
+				return skin
 			end
+			fallback = fallback or skin
 		end
 	end
 	return fallback

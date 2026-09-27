@@ -276,10 +276,7 @@ function NoteSkins:refresh()
 	---@type string?
 	local selected_path = skin_paths["mania/" .. input_mode]
 		or skin_paths["osu/1osu"] or skin_paths.osu
-	local selected = selected_path and registry and registry:getOsuSkin(selected_path)
-	if not selected then
-		selected = registry and registry:getSkinForInputMode("mania", input_mode, selected_path)
-	end
+	local selected = selected_path and registry and registry:getSkinForInputMode("mania", input_mode, selected_path)
 	selected = selected or (registry and registry:getOsuSkins()[1])
 	selected_path = selected and selected.path or nil
 	self.list_header.subtitle:setText(self.localization:get("song_select.choose_skin_for") .. input_mode .. ".")

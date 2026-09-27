@@ -17,7 +17,6 @@ local function newPanel()
 		getSkinForInputMode = function(_, _, _, path)
 			return path and skins_by_path[path]
 		end,
-		getOsuSkin = function() return nil end,
 	}
 	local panel = setmetatable({
 		game = {skinRegistry = registry},
@@ -82,20 +81,16 @@ function test.invalidates_only_the_keymode_whose_resolved_skin_changed(t)
 end
 
 ---@param t testing.T
-function test.loads_osu_skin_renderer_for_preview(t)
-	local panel = newPanel()
-	local renderer = {unload = function() end}
-	local skin = {
-		path = "osu-skin",
-		format = "osu",
-		load = function(game, input_mode, screen)
-			t:eq(game, panel.game)
-			t:eq(input_mode, "4key")
-			t:eq(screen, "preview")
-			return renderer
-		end,
-	}
-	t:eq(panel:getPreviewRenderer("4key", skin), renderer)
+function test.loads_osu_skin_renderer_through_registry_for_preview(t)
+	local panel, loads = newPanel()
+	local skin = {path = "osu-skin", format = "osu"}
+	skins_by_path[skin.path] = skin
+	local renderer = panel:getPreviewRenderer("4key", skin)
+	t:eq(renderer, loads[1] and panel.preview_renderer_cache.mania["4key"].renderer)
+	t:eq(#loads, 1)
+	t:eq(loads[1].skin, skin)
+	t:eq(loads[1].input_mode, "4key")
+	t:eq(loads[1].screen, "preview")
 end
 
 return test

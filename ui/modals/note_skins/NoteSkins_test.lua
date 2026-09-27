@@ -54,6 +54,11 @@ function test.shows_osu_skins_for_native_osu_mode(t)
 						if skin.path == path then return skin end
 					end
 				end,
+				getSkinForInputMode = function(_, _, _, path)
+					for _, skin in ipairs(skins) do
+						if skin.path == path then return skin end
+					end
+				end,
 			},
 			settings = {getStringMap = function() return {["osu/1osu"] = "skins/second"} end},
 		},
@@ -93,6 +98,11 @@ function test.shows_osu_mania_skins_for_mania_regardless_of_chart_format(t)
 				}} end,
 				getOsuSkins = function() return skins end,
 				getOsuSkin = function(_, path)
+					for _, skin in ipairs(skins) do
+						if skin.path == path then return skin end
+					end
+				end,
+				getSkinForInputMode = function(_, _, _, path)
 					for _, skin in ipairs(skins) do
 						if skin.path == path then return skin end
 					end
@@ -149,6 +159,11 @@ function test.shows_osu_skin_for_each_osu_chart_mode(t)
 					getOsuSkin = function(_, path)
 						for _, skin in ipairs(skins) do
 							if skin.path == path then return skin end
+						end
+					end,
+					getSkinForInputMode = function(_, _, _, path)
+						for _, skin in ipairs(skins) do
+						if skin.path == path then return skin end
 						end
 					end,
 				},
