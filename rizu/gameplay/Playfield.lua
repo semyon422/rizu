@@ -1,14 +1,19 @@
 local class = require("class")
 local AimRenderer = require("rizu.skin.base.AimRenderer")
+local OsuAimRenderer = require("rizu.skin.osu.OsuAimRenderer")
 local FruitsRenderer = require("rizu.skin.base.FruitsRenderer")
+local OsuFruitsRenderer = require("rizu.skin.osu.OsuFruitsRenderer")
 local TaikoRenderer = require("rizu.skin.base.TaikoRenderer")
+local OsuTaikoRenderer = require("rizu.skin.osu.OsuTaikoRenderer")
 local SdvxPlayfield = require("rizu.gameplay.views.SdvxPlayfield")
 
 ---@class rizu.gameplay.Playfield
 ---@operator call: rizu.gameplay.Playfield
 ---@field aim rizu.skin.base.AimRenderer
+---@field osu_aim rizu.skin.osu.OsuAimRenderer
 ---@field catch rizu.skin.base.FruitsRenderer
----@field taiko rizu.skin.base.TaikoRenderer
+---@field osu_catch rizu.skin.osu.OsuFruitsRenderer
+---@field taiko rizu.skin.osu.OsuTaikoRenderer
 ---@field sdvx rizu.gameplay.views.SdvxPlayfield
 ---@field renderer rizu.gameplay.views.PlayfieldRenderer?
 local Playfield = class()
@@ -17,8 +22,10 @@ local Playfield = class()
 function Playfield:new(game)
 	self.game = game
 	self.aim = AimRenderer(game)
+	self.osu_aim = OsuAimRenderer(game)
 	self.catch = FruitsRenderer(game)
-	self.taiko = TaikoRenderer(game)
+	self.osu_catch = OsuFruitsRenderer(game)
+	self.taiko = OsuTaikoRenderer(game)
 	self.sdvx = SdvxPlayfield(game)
 	self:refresh()
 end
@@ -29,8 +36,10 @@ function Playfield:refresh()
 	local engine = self.game.rhythm_engine
 	local mode = engine and engine.chartmeta and engine.chartmeta.mode
 	local previous = self.renderer
-	if engine and (engine.aim_rules or mode == "osu") then self.renderer = self.aim
-	elseif engine and (engine.catch_rules or mode == "catch") then self.renderer = self.catch
+	if engine and mode == "osu" then self.renderer = self.osu_aim
+	elseif engine and engine.aim_rules then self.renderer = self.aim
+	elseif engine and mode == "catch" then self.renderer = self.osu_catch
+	elseif engine and engine.catch_rules then self.renderer = self.catch
 	elseif engine and (engine.taiko_rules or mode == "taiko") then self.renderer = self.taiko
 	elseif engine and (engine.sdvx_rules or mode == "sdvx") then self.renderer = self.sdvx
 	elseif mode == "mania" then self.renderer = self.game.gameplayInteractor.mania_renderer
@@ -59,6 +68,14 @@ function Playfield:unload()
 	if self.renderer then self.renderer:unload() end
 	self.renderer = nil
 end
+
+---@param dt number
+function Playfield:update(dt)
+	if self.renderer then
+		self.renderer:update(dt)
+	end
+end
+
 
 ---@return boolean
 function Playfield:usesPointer()

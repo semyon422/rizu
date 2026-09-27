@@ -8,7 +8,7 @@ function test.selects_osu_mode_renderers_before_rules_are_created(t)
 		gameplayInteractor = {},
 	}
 	local playfield = Playfield(game)
-	t:eq(playfield.renderer, playfield.aim)
+	t:eq(playfield.renderer, playfield.osu_aim)
 	t:eq(playfield:usesPointer(), true)
 	t:eq(playfield:isExperimental(), true)
 end
@@ -25,6 +25,10 @@ end
 function test.selects_fruits_and_taiko_renderers_from_chart_mode(t)
 	local game = {rhythm_engine = {chartmeta = {mode = "catch"}}}
 	local playfield = Playfield(game)
+	t:eq(playfield.renderer, playfield.osu_catch)
+
+	game.rhythm_engine = {catch_rules = {}}
+	playfield:refresh()
 	t:eq(playfield.renderer, playfield.catch)
 
 	game.rhythm_engine = {chartmeta = {mode = "taiko"}}
