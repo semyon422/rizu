@@ -57,7 +57,7 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	t:eq(renderer:getColumnSuffix(3), "1")
 	local field_scale, field_x, field_y = renderer:getFieldTransform(1280, 720)
 	t:eq(field_scale, 1.5)
-	t:eq(field_x, 160)
+	t:eq(field_x, 0)
 	t:eq(field_y, 0)
 	local note_width, note_height = renderer:getNoteDimensions(1, {
 		getDimensions = function() return 512, 164 end,

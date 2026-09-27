@@ -255,7 +255,9 @@ end
 ---@return number offset_y
 function OsuManiaRenderer:getFieldTransform(width, height)
 	local scale = math.max(0, math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT))
-	return scale, (width - FIELD_WIDTH * scale) / 2, (height - FIELD_HEIGHT * scale) / 2
+	-- osu!'s legacy mania transform scales from the viewport's left edge; the
+	-- 640px reference canvas is not centered in the remaining horizontal space.
+	return scale, 0, (height - FIELD_HEIGHT * scale) / 2
 end
 
 ---@return number left
