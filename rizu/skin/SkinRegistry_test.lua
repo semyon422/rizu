@@ -143,6 +143,7 @@ Keys: 7
 	t:eq(skins[1].metadata.gamemode, "mania")
 	t:tdeq(skins[1].metadata.input_modes, {"4key", "7key"})
 	t:eq(skins[1].skin_ini.Mania[1].Keys, "7")
+	t:assert(type(skins[1].load) == "function")
 	t:eq(registry:getOsuSkin(skins[1].path), skins[1])
 	t:eq(#registry:getSkins(), 0) -- Native Rizu skin collection remains separate.
 end

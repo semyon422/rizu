@@ -42,6 +42,7 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 ---@field input_modes string[]
 ---@field metadata rizu.skin.SkinMetadata
 ---@field skin_ini rizu.skin.OsuSkinIni.Data
+---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): rizu.skin.osu.OsuManiaRenderer
 
 ---@class rizu.skin.SkinRegistry
 ---@operator call: rizu.skin.SkinRegistry
@@ -230,6 +231,10 @@ function SkinRegistry:loadOsuSkin(skin_directory, file_name, files)
 			input_modes = input_modes,
 		},
 		skin_ini = skin_ini,
+		load = function(game, input_mode)
+			local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
+			return OsuManiaRenderer(game, input_mode, skin_directory)
+		end,
 	})
 end
 
@@ -365,6 +370,7 @@ end
 ---@param path string
 ---@return rizu.skin.OsuSkinDiscovery?
 function SkinRegistry:getOsuSkin(path)
+	path = path:gsub("\\", "/"):gsub("/+$", "")
 	for _, skin in ipairs(self.osu_skins) do
 		if skin.path == path then
 			return skin

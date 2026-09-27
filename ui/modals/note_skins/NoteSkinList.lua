@@ -35,7 +35,7 @@ function NoteSkinList:getItemCount()
 	return #self.items
 end
 
----@param items rizu.skin.SkinInfo[]
+---@param items (rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery|rizu.skin.StepmaniaSkinDiscovery)[]
 ---@param selected_path string?
 function NoteSkinList:setItems(items, selected_path)
 	self.items = items
@@ -104,7 +104,9 @@ function NoteSkinList:draw()
 
 		Painter.setColorTable(Colors.text)
 		love.graphics.setFont(self.font)
-		love.graphics.print(item.metadata.name, TEXT_X, y + (ITEM_HEIGHT - self.font:getHeight()) / 2)
+		local metadata = item.metadata
+		local name = metadata and metadata.name or item.name or item.path
+		love.graphics.print(name, TEXT_X, y + (ITEM_HEIGHT - self.font:getHeight()) / 2)
 	end
 end
 
