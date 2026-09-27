@@ -128,6 +128,88 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 	if not ok then error(err) end
 end
 
+function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local images = {
+		body = {getDimensions = function() return 20, 20 end},
+		head = {getDimensions = function() return 20, 20 end},
+		tail = {getDimensions = function() return 20, 20 end},
+	}
+	renderer.skin_graphics = {
+		skin = nil,
+		loaded = true,
+		unload = function() end,
+		getFrames = function(_, name)
+			local image = name == "mania-note1L" and images.body
+				or name == "mania-note1H" and images.head
+				or name == "mania-note1T" and images.tail
+			return image and {image} or {}
+		end,
+	}
+	renderer.load = function() end
+	renderer.drawStageDecorations = function() end
+	renderer.hud.draw = function() end
+	local note = {
+		type = "long",
+		start_dt = -0.5,
+		end_dt = -1,
+		getState = function() return "clear" end,
+		getColumn = function() return "key1" end,
+	}
+	renderer.game.rhythm_engine = {
+		visual_engine = {visible_notes = {note}},
+		isColumnPressed = function() return false end,
+	}
+
+	local graphics = love.graphics
+	local previous = {
+		draw = graphics.draw,
+		push = graphics.push,
+		pop = graphics.pop,
+		applyTransform = graphics.applyTransform,
+		translate = graphics.translate,
+		scale = graphics.scale,
+		setColor = graphics.setColor,
+		rectangle = graphics.rectangle,
+	}
+	local draws = {}
+	graphics.draw = function(image, ...)
+		draws[#draws + 1] = {image = image, args = {...}}
+	end
+	graphics.push = function() end
+	graphics.pop = function() end
+	graphics.applyTransform = function() end
+	graphics.translate = function() end
+	graphics.scale = function() end
+	graphics.setColor = function() end
+	graphics.rectangle = function() end
+
+	local ok, err = xpcall(function()
+		local function draw_and_check(upside_down, expected_body_y, expected_body_sy, expected_tail_y, expected_tail_sy)
+			renderer.upside_down = upside_down
+			draws = {}
+			renderer:draw(640, 480, {})
+			local body_draw, tail_draw
+			for _, draw in ipairs(draws) do
+				if draw.image == images.body then body_draw = draw end
+				if draw.image == images.tail then tail_draw = draw end
+			end
+			t:assert(body_draw, "expected long-note body to draw")
+			t:assert(tail_draw, "expected long-note tail to draw")
+			t:aeq(body_draw.args[2], expected_body_y, 1e-6)
+			t:aeq(body_draw.args[5], expected_body_sy, 1e-6)
+			t:aeq(tail_draw.args[2], expected_tail_y, 1e-6)
+			t:aeq(tail_draw.args[5], expected_tail_sy, 1e-6)
+		end
+
+		draw_and_check(false, -93, 12, -78, -1.5)
+		draw_and_check(true, 573, -12, 558, 1.5)
+	end, debug.traceback)
+	for name, fn in pairs(previous) do graphics[name] = fn end
+	renderer:unload()
+	if not ok then error(err) end
+end
+
 function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "18key")
 	local left, widths, scale = renderer:getPlayfieldLayout()

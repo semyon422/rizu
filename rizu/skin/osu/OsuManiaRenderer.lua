@@ -398,7 +398,9 @@ local function draw_image_rect(image, x, y, width, height, flip)
 	local scale_x, scale_y = width / image_width, height / image_height
 	lg.setColor(1, 1, 1, 1)
 	if flip then
-		lg.draw(image, x, y + height, 0, scale_x, -scale_y, 0, image_height)
+		-- A negative scale around the image origin reverses the texture while
+		-- keeping it inside the requested rectangle.
+		lg.draw(image, x, y + height, 0, scale_x, -scale_y)
 	else
 		lg.draw(image, x, y, 0, scale_x, scale_y)
 	end
@@ -743,6 +745,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 			if column and column >= 1 and column <= self.columns then
 				local suffix = self:getColumnSuffix(column - 1)
 				local body = get_column_image(self, column - 1, suffix, "L")
+				local head_image = get_column_image(self, column - 1, suffix, "H")
 				local tail_image = get_column_image(self, column - 1, suffix, "T")
 				local direction = self.upside_down and -1 or 1
 				local head_y = hit_y + note.start_dt * hit_speed * direction
@@ -757,35 +760,44 @@ function OsuManiaRenderer:draw(width, height, transform)
 					end
 				end
 				local top, bottom = math.min(head_y, tail_y), math.max(head_y, tail_y)
-				if body and bottom > top then
-					local image_width, image_height = body:getDimensions()
+				if bottom > top then
 					local note_width = lane_widths[column]
+					local head_height = note_width
+					if head_image then
+						local _, image_height = self:getNoteDimensions(column, head_image)
+						head_height = image_height
+					end
 					local tail_height = 0
 					if tail_image then
-						local _, image_height_px = tail_image:getDimensions()
-						tail_height = image_height_px * note_width / tail_image:getWidth()
+						local _, image_height = self:getNoteDimensions(column, tail_image)
+						tail_height = image_height
 					end
-					local body_top = top + tail_height
-					local body_bottom = math.max(body_top, bottom - tail_height)
-					lg.setColor(1, 1, 1, 1)
-					if tail_image then
-						local flip_key = "NoteFlipWhenUpsideDown" .. (column - 1) .. "T"
-						local flip_tail = self.upside_down and get_boolean(self.section, flip_key, self.note_flip)
-						local tail_top = tail_y - tail_height
-						draw_image_rect(tail_image, lane_xs[column] - note_width / 2, tail_top,
-							note_width, tail_height, flip_tail)
-					end
-					if body_bottom > body_top then
+
+					-- The legacy renderer offset the body by half the head height,
+					-- so it meets the head at its midpoint instead of its edge.
+					local body_offset = (self.upside_down and 1 or -1) * head_height / 2
+					local body_top = top + body_offset
+					local body_bottom = bottom + body_offset
+					if body then
 						local flip_key = "NoteFlipWhenUpsideDown" .. (column - 1) .. "L"
 						local flip_body = self.upside_down and get_boolean(self.section, flip_key, self.note_flip)
 						draw_image_rect(body, lane_xs[column] - note_width / 2, body_top, note_width,
 							body_bottom - body_top, flip_body)
+					else
+						local color = get_color(self.section, "ColourHold", {1, 0.78, 0.2, 1})
+						lg.setColor(color[1], color[2], color[3], color[4] * 0.8)
+						lg.rectangle("fill", lane_xs[column] - note_width * 0.32, body_top,
+							note_width * 0.64, body_bottom - body_top)
 					end
-				elseif bottom > top then
-					local color = get_color(self.section, "ColourHold", {1, 0.78, 0.2, 1})
-					lg.setColor(color[1], color[2], color[3], color[4] * 0.8)
-					lg.rectangle("fill", lane_xs[column] - lane_widths[column] * 0.32, top,
-						lane_widths[column] * 0.64, bottom - top)
+					if tail_image then
+						-- Legacy skin transforms used a negative tail height. On the
+						-- normal playfield this anchors the tail at its bottom and
+						-- reverses the texture vertically; upside-down applies the
+						-- inverse Y transform as well.
+						local tail_top = self.upside_down and tail_y or tail_y - tail_height
+						draw_image_rect(tail_image, lane_xs[column] - note_width / 2, tail_top,
+							note_width, tail_height, not self.upside_down)
+					end
 				end
 			end
 		end
@@ -817,7 +829,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 					draw_note_head(image, lane_xs[column], note_y, note_width, note_height,
 						flip, self.upside_down)
 				else
-						local color = get_color(self.section, "ColourHold", {0.25, 0.72, 1, 1})
+					local color = get_color(self.section, "ColourHold", {0.25, 0.72, 1, 1})
 					lg.setColor(color[1], color[2], color[3], color[4])
 					lg.rectangle("fill", lane_xs[column] - lane_widths[column] / 2, note_y - 10,
 						lane_widths[column], 10)
