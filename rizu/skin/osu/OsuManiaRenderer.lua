@@ -566,8 +566,8 @@ end
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 function OsuManiaRenderer:drawHud(width, height, transform)
-	local scale, offset_x, offset_y = self:getFieldTransform(width, height)
-	self:drawHudInNativeSpace(transform, FIELD_WIDTH, FIELD_HEIGHT, scale, offset_x, offset_y)
+	local scale = self:getFieldTransform(width, height)
+	self:drawHudInViewport(transform, width, height, scale)
 end
 
 ---@param width number Gameplay viewport width in drawable pixels

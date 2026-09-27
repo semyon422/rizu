@@ -72,12 +72,26 @@ function OsuManiaScoreView:setSkin(skin)
 	self:refreshSize()
 end
 
+local function character_suffix(character)
+	if character:match("%d") then return character end
+	local suffixes = {
+		["."] = "dot",
+		[","] = "comma",
+		["%"] = "percent",
+		["/"] = "slash",
+		["\\"] = "fps",
+		["="] = "ms",
+		["+"] = "hz",
+	}
+	return suffixes[character]
+end
+
 ---@return string[]
 function OsuManiaScoreView:getImageAssets()
 	---@type string[]
 	local names = {}
 	for digit = 0, 9 do names[#names + 1] = self.score_prefix .. "-" .. digit end
-	for _, suffix in ipairs({"dot", "percent"}) do
+	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz"}) do
 		names[#names + 1] = self.score_prefix .. "-" .. suffix
 	end
 	return names
@@ -92,33 +106,43 @@ end
 ---@param image love.Image?
 ---@return number width
 ---@return number height
-function OsuManiaScoreView:getLogicalDimensions(image)
+function OsuManiaScoreView:getImageDimensions(image)
 	if not image then return 0, 0 end
-	local density = self.graphics:getImageDensity(image)
-	if type(density) ~= "number" or density <= 0 then density = 1 end
-	return image:getWidth() / density, image:getHeight() / density
+	-- LÖVE's @2x image DPI scale is already reflected in getDimensions and draw.
+	if image.getDimensions then return image:getDimensions() end
+	return image:getWidth(), image:getHeight()
 end
 
 ---@return number width
 ---@return number height
 function OsuManiaScoreView:getTextLayout()
-	local digit = self:getImage("5")
-	local slot_width, digit_height = self:getLogicalDimensions(digit)
+	local image = self:getImage("5")
+	local slot_width, digit_height = self:getImageDimensions(image)
 	if slot_width <= 0 then slot_width = 16 end
-	local accuracy_width = 0
-	local accuracy_height = digit_height
-	for _, character in ipairs({"0", "0", ".", "0", "0", "%"}) do
-		local suffix = character == "." and "dot" or character == "%" and "percent" or character
-		local width, height = self:getLogicalDimensions(self:getImage(suffix))
-		accuracy_width = accuracy_width + (character:match("%d") and slot_width or width) - self.score_overlap
-		accuracy_height = math.max(accuracy_height, height)
+	local function measure(value)
+		local width = 0
+		local height = digit_height
+		local count = 0
+		for character in value:gmatch(".") do
+			local image_width, image_height = self:getImageDimensions(self:getImage(character_suffix(character)))
+			local advance = character:match("%d") and slot_width or image_width
+			if advance > 0 then
+				width = width + advance
+				height = math.max(height, image_height)
+				count = count + 1
+			end
+		end
+		return math.max(0, width - count * self.score_overlap), height
 	end
 
-	local score_width = math.max(0, SCORE_DIGITS * (slot_width - self.score_overlap) * SCORE_SCALE)
-	local score_height = digit_height * SCORE_SCALE
-	local scaled_accuracy_width = math.max(0, accuracy_width * ACCURACY_SCALE)
+	local score_width, score_height = measure(string.rep("0", SCORE_DIGITS))
+	local accuracy_width, accuracy_height = measure("00.00%")
+	local scaled_score_width = score_width * SCORE_SCALE
+	local scaled_score_height = score_height * SCORE_SCALE
+	local scaled_accuracy_width = accuracy_width * ACCURACY_SCALE
 	local scaled_accuracy_height = accuracy_height * ACCURACY_SCALE
-	return math.max(score_width, scaled_accuracy_width), score_height + NEW_LAYOUT_GAP + scaled_accuracy_height
+	return math.max(scaled_score_width, scaled_accuracy_width),
+		scaled_score_height + NEW_LAYOUT_GAP + scaled_accuracy_height
 end
 
 function OsuManiaScoreView:refreshSize()
@@ -179,40 +203,36 @@ end
 function OsuManiaScoreView:drawText(value, scale, y, right_edge)
 	---@type rizu.skin.osu.mania.OsuManiaScoreView.Glyph[]
 	local slots = {}
-	local slot_width, slot_height = self:getLogicalDimensions(self:getImage("5"))
+	local slot_width, slot_height = self:getImageDimensions(self:getImage("5"))
 	if slot_width <= 0 then slot_width = 16 end
 	local max_height = slot_height
 	local total_width = 0
 	for character in value:gmatch(".") do
-		local suffix = character
-		if character == "." then suffix = "dot"
-		elseif character == "%" then suffix = "percent" end
-		local image = self:getImage(suffix)
-		local width, height = self:getLogicalDimensions(image)
+		local suffix = character_suffix(character)
+		local image = suffix and self:getImage(suffix)
+		local width, height = self:getImageDimensions(image)
 		local digit = character:match("%d") ~= nil
-		local advance = (digit and slot_width or width) - self.score_overlap
-		max_height = math.max(max_height, height)
-		slots[#slots + 1] = {
-			image = image,
-			width = width,
-			height = height,
-			advance = advance,
-			digit = digit,
-		}
-		total_width = total_width + advance
+		local advance = digit and slot_width or width
+		if image and advance > 0 then
+			max_height = math.max(max_height, height)
+			slots[#slots + 1] = {
+				image = image,
+				width = width,
+				height = height,
+				advance = advance,
+				digit = digit,
+			}
+			total_width = total_width + advance
+		end
 	end
-	local draw_x = right_edge - total_width * scale
+	local draw_x = right_edge - math.max(0, total_width - #slots * self.score_overlap) * scale
 
 	for _, slot in ipairs(slots) do
-		if slot.image then
-			local density = self.graphics:getImageDensity(slot.image)
-			if type(density) ~= "number" or density <= 0 then density = 1 end
-			local offset_x = slot.digit and math.max(0, (slot_width - slot.width) / 2) or 0
-			local offset_y = (max_height - slot.height) / 2
-			lg.setColor(1, 1, 1, 1)
-			lg.draw(slot.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale / density, scale / density)
-		end
-		draw_x = draw_x + slot.advance * scale
+		local offset_x = slot.digit and math.max(0, (slot_width - slot.width) / 2) or 0
+		local offset_y = (max_height - slot.height) / 2
+		lg.setColor(1, 1, 1, 1)
+		lg.draw(slot.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale)
+		draw_x = draw_x + (slot.advance - self.score_overlap) * scale
 	end
 	return max_height * scale
 end

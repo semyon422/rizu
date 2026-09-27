@@ -27,6 +27,16 @@ function PlayfieldRenderer:drawHud(width, height, transform)
 	if self.hud then self.hud:draw(width, height, transform) end
 end
 
+---Draws the HUD in native coordinates covering the complete viewport at the renderer's HUD scale.
+---@param transform love.Transform Viewport-to-drawable transform.
+---@param viewport_width number Viewport width in drawable pixels.
+---@param viewport_height number Viewport height in drawable pixels.
+---@param scale number Native-space scale used for rendering.
+function PlayfieldRenderer:drawHudInViewport(transform, viewport_width, viewport_height, scale)
+	if not self.hud or scale <= 0 then return end
+	self:drawHudInNativeSpace(transform, viewport_width / scale, viewport_height / scale, scale, 0, 0)
+end
+
 ---Draws the HUD in a renderer-selected native coordinate space.
 ---@param transform love.Transform Viewport-to-drawable transform.
 ---@param native_width number Renderer-selected native width.

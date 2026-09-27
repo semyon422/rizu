@@ -361,8 +361,8 @@ end
 ---@param height number
 ---@param transform love.Transform
 function ManiaPlayfieldRenderer:drawHud(width, height, transform)
-	local scale, offset_x, offset_y = get_field_transform(width, height)
-	self:drawHudInNativeSpace(transform, FIELD_WIDTH, FIELD_HEIGHT, scale, offset_x, offset_y)
+	local scale = get_field_transform(width, height)
+	self:drawHudInViewport(transform, width, height, scale)
 end
 
 ---@param width number

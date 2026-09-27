@@ -69,6 +69,22 @@ function test.exposes_gameplay_hud_with_accuracy_view(t)
 	t:eq(renderer.hud.children[3].text, "") -- combo source not present
 	t:eq(renderer.hud.children[4].text, "") -- no judgement yet
 
+	local hud = renderer.hud
+	local native_width, native_height, hud_transform
+	local draw_hud = hud.draw
+	hud.draw = function(_, width, height, transform)
+		native_width, native_height, hud_transform = width, height, transform
+	end
+	renderer:drawHud(1280, 720, love.math.newTransform())
+	hud.draw = draw_hud
+	t:aeq(native_width, 1280 / 1.5, 1e-6)
+	t:aeq(native_height, 720 / 1.5, 1e-6)
+	for _, view in ipairs({renderer.hud.children[1], renderer.hud.children[2]}) do
+		local view_transform = view:getWorldTransform(native_width, native_height, hud_transform)
+		local right_edge = view_transform:transformPoint(view.width, 0)
+		t:aeq(right_edge, 1280 - 8 * 1.5, 1e-3)
+	end
+
 	renderer:unload()
 	t:eq(renderer.hud, nil)
 	t:eq(renderer.hud_fonts, nil)
