@@ -2,10 +2,9 @@ local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
-local BgaRenderer = require("ui.views.BgaRenderer")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
-local Settings = require("rizu.config.Settings")
+local ChartPreviewView = require("ui.screens.song_select.ChartPreviewView")
 
 local lg = love.graphics
 
@@ -37,20 +36,18 @@ end
 
 ---@class ui.screens.song_select.SelectedSongPanel : gui.View
 ---@operator call: ui.screens.song_select.SelectedSongPanel
----@field bg_model sphere.BackgroundModel
----@field playfield_renderer rizu.gameplay.views.PlayfieldRenderer?
----@field bga_renderer ui.views.BgaRenderer
----@field game sphere.GameController
----@field preview_canvas love.Canvas?
+---@field chart_preview ui.screens.song_select.ChartPreviewView
 ---@field details_container ui.screens.song_select.SelectedSongPanel.Details
 ---@field progress_bar ui.screens.music_player.ProgressBar
----@field chartview_formatter ui.formatters.ChartviewFormatter?
----@field unsubscribe_skins fun()
+---@field game sphere.GameController
+---@field title_font love.Font
+---@field artist_font love.Font
+---@field title string
+---@field artist string
 ---@field details_opacity gui.anim.SpringValue
 ---@field details_reveal gui.anim.SpringValue
 ---@field details_hidden_offset number
 local SelectedSongPanel = View + {}
-
 
 local DETAILS_PADDING = 20
 local PROGRESS_HEIGHT = 54
@@ -65,12 +62,9 @@ local DETAILS_IDLE_Y = 56 + DETAILS_BOTTOM_PADDING
 ---@param localization ui.localization.Localization
 function SelectedSongPanel:new(bg_model, game, localization)
 	View.new(self)
-	self.bg_model = bg_model
 	self.game = game
-	self.unsubscribe_skins = game.settings:subscribeStringMap(Settings.keys.gameplay.skins, function()
-		if self.chartview_formatter then self:bind(self.chartview_formatter) end
-	end)
-	self.bga_renderer = BgaRenderer()
+	self.chart_preview = self:add(ChartPreviewView(bg_model, game))
+	self.chart_preview:anchorFill(0, 0, 0, 0)
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
 	self.title = localization:get("song_select.title")
@@ -92,18 +86,6 @@ function SelectedSongPanel:new(bg_model, game, localization)
 	self.progress_bar = self.details_container:add(ProgressBar(game.previewModel))
 end
 
-function SelectedSongPanel:unload()
-	self.unsubscribe_skins()
-	if self.playfield_renderer and self.playfield_renderer.unload then
-		self.playfield_renderer:unload()
-	end
-	self.playfield_renderer = nil
-	if self.preview_canvas then
-		self.preview_canvas:release()
-		self.preview_canvas = nil
-	end
-end
-
 ---@param old_x number
 ---@param old_y number
 ---@param old_width number
@@ -123,21 +105,6 @@ function SelectedSongPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 	)
 	self.details_hidden_offset = DETAILS_IDLE_Y
 	self.details_container:setOffset(0, self.details_hidden_offset * (1 - self.details_reveal:get()))
-
-	local overlay_width, overlay_height = Resources.sprites.select_bg_overlay:getDimensions()
-	self.bg_overlay_sx = self.width / overlay_width
-	self.bg_overlay_sy = self.height / overlay_height
-
-	local canvas_width = math.max(1, math.floor(self.width))
-	local canvas_height = math.max(1, math.floor(self.height))
-	if self.preview_canvas then
-		local old_canvas_width, old_canvas_height = self.preview_canvas:getDimensions()
-		if old_canvas_width == canvas_width and old_canvas_height == canvas_height then
-			return
-		end
-		self.preview_canvas:release()
-	end
-	self.preview_canvas = lg.newCanvas(canvas_width, canvas_height)
 end
 
 ---@param dt number
@@ -151,68 +118,10 @@ end
 
 ---@param cvf ui.formatters.ChartviewFormatter
 function SelectedSongPanel:bind(cvf)
-	self.chartview_formatter = cvf
 	self.details_opacity:snap(0):set(1)
 	self.title = cvf:getTitle()
 	self.artist = cvf:getArtist()
-
-	if self.playfield_renderer and self.playfield_renderer.unload then
-		self.playfield_renderer:unload()
-	end
-	self.playfield_renderer = nil
-	local input_mode = cvf.chartview.chartdiff_inputmode
-	if input_mode and cvf.chartview.chartmeta_mode == "mania" and self.game.skinRegistry then
-		local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
-		local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, skin_paths["mania/" .. input_mode])
-		if skin then
-			self.playfield_renderer = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "preview")
-		end
-	end
-end
-
-function SelectedSongPanel:drawBackground()
-	local images = self.bg_model.images
-	local alpha = self.bg_model.alpha
-	local w, h = self.preview_canvas:getDimensions()
-
-	lg.push("all")
-	lg.setCanvas(self.preview_canvas)
-	lg.clear(0, 0, 0, 0)
-	lg.origin()
-	-- The panel's screen-space clip does not apply to its local preview canvas.
-	-- Keeping it here offsets/clips the background, BGA, and legacy chart preview.
-	lg.setScissor()
-
-	for i = 1, 2 do
-		if not images[i] then break end
-		love.graphics.setColor(1, 1, 1, i == 1 and 1 or alpha)
-		local image = images[i]
-		local image_width, image_height = image:getDimensions()
-		local scale = math.max(h / image_height, w / image_width)
-		lg.draw(image, (w - image_width * scale) * 0.5, (h - image_height * scale) * 0.5, 0, scale, scale)
-	end
-
-	Painter.setColorRgb(1, 1, 1)
-	Painter.setOpacity(1)
-	local preview_model = self.game.previewModel
-	local bga_engine = preview_model and preview_model.bgaPreviewPlayer
-	if bga_engine then
-		self.bga_renderer:draw(bga_engine, preview_model:getTime(), w, h)
-	end
-
-	local player = self.game.previewModel.chartPreview
-	if self.playfield_renderer then
-		self.playfield_renderer:drawPreview(player, w, h)
-	end
-	lg.pop()
-
-	lg.draw(self.preview_canvas)
-	Resources.sprites.select_bg_overlay:draw(0, 0, 0, self.bg_overlay_sx, self.bg_overlay_sy)
-end
-
-function SelectedSongPanel:draw()
-	if not self.preview_canvas then return end
-	self:drawBackground()
+	self.chart_preview:bind(cvf)
 end
 
 return SelectedSongPanel

@@ -40,6 +40,9 @@ function Gameplay:new(ui)
 	self.gameplay_playfield_view:setDraw(function()
 		self:drawGameplayPlayfield()
 	end)
+	self.gameplay_playfield_view:setUpdate(function(_, dt)
+		self.gameplay_playfield:update(dt)
+	end)
 	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
 	self.aim_summary:setAlignment(0.5, 0.5)
 	self.aim_summary:setVisible(false)
@@ -134,9 +137,12 @@ end
 function Gameplay:drawGameplayPlayfield()
 	if not self.gameplay_playfield:usesDirectRenderer() then return end
 	local width, height, transform = self:getGameplayViewport()
+	local x, y = transform:transformPoint(0, 0)
 	love.graphics.push("all")
 	love.graphics.scale(1 / self.ui_scale)
+	love.graphics.setScissor(x, y, width, height)
 	self.gameplay_playfield:draw(width, height, transform)
+	love.graphics.setScissor()
 	love.graphics.pop()
 end
 
