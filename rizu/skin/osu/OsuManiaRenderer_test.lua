@@ -34,11 +34,8 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	t:eq(renderer.columns, 4)
 	t:eq(renderer.hit_position, 400)
 	t:eq(renderer.judgement_line, false)
-	t:eq(renderer.hud.combo_position, 125)
-	t:eq(renderer.hud.combo_prefix, "combo")
-	t:eq(renderer.hud.score_prefix, "digits")
-	t:eq(renderer.hud.combo_overlap, -2)
-	t:eq(renderer.hud.score_overlap, 1)
+	t:eq(renderer.score_view.score_prefix, "digits")
+	t:eq(renderer.score_view.score_overlap, 1)
 	local assets = renderer:getSkinAssets()
 	local asset_names = {}
 	for _, asset in ipairs(assets) do asset_names[asset.name] = true end
@@ -128,6 +125,64 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 	if not ok then error(err) end
 end
 
+function test.preview_long_note_draws_hold_head_body_and_tail(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local images = {
+		body = {getDimensions = function() return 20, 20 end},
+		head = {getDimensions = function() return 20, 20 end},
+		tail = {getDimensions = function() return 20, 20 end},
+	}
+	renderer.skin_graphics = {
+		skin = nil,
+		loaded = true,
+		unload = function() end,
+		getFrames = function(_, name)
+			local image = name == "mania-note1L" and images.body
+				or name == "mania-note1H" and images.head
+				or name == "mania-note1T" and images.tail
+			return image and {image} or {}
+		end,
+	}
+	renderer.load = function() end
+	renderer.drawStageDecorations = function() end
+	local preview = {
+		columns = {{{time = 0.2, end_time = 0.9}}, {}, {}, {}},
+		getVisibleRange = function() return 1, 1 end,
+	}
+	local graphics = love.graphics
+	local previous = {
+		draw = graphics.draw,
+		push = graphics.push,
+		pop = graphics.pop,
+		translate = graphics.translate,
+		scale = graphics.scale,
+		setColor = graphics.setColor,
+		rectangle = graphics.rectangle,
+	}
+	local draws = {}
+	graphics.draw = function(image, ...)
+		draws[#draws + 1] = {image = image, args = {...}}
+	end
+	graphics.push = function() end
+	graphics.pop = function() end
+	graphics.translate = function() end
+	graphics.scale = function() end
+	graphics.setColor = function() end
+	graphics.rectangle = function() end
+
+	local ok, err = xpcall(function()
+		renderer:drawPreview({notes = preview, input_mode = "4key", time = 0, rate = 1}, 640, 480)
+		local seen = {}
+		for _, draw in ipairs(draws) do seen[draw.image] = true end
+		t:assert(seen[images.body], "expected hold body to draw in preview")
+		t:assert(seen[images.head], "expected hold head to draw in preview")
+		t:assert(seen[images.tail], "expected hold tail to draw in preview")
+	end, debug.traceback)
+	for name, fn in pairs(previous) do graphics[name] = fn end
+	renderer:unload()
+	if not ok then error(err) end
+end
+
 function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
 	local images = {
@@ -148,7 +203,7 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 	}
 	renderer.load = function() end
 	renderer.drawStageDecorations = function() end
-	renderer.hud.draw = function() end
+	renderer.score_view.draw = function() end
 	local note = {
 		type = "long",
 		start_dt = -0.5,
@@ -219,6 +274,26 @@ function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
 	t:eq(#widths, 18)
 	t:assert(left + total * scale <= 640 - renderer.column_right)
 	t:assert(scale < 1)
+	renderer:unload()
+end
+
+function test.renderer_updates_each_playfield_component(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local updated = {}
+	for _, component in ipairs({
+		renderer.field_renderer,
+		renderer.key_renderer,
+		renderer.note_renderer,
+		renderer.stage_renderer,
+	}) do
+		component.update = function(_, dt)
+			updated[#updated + 1] = dt
+		end
+	end
+
+	renderer:update(0.25)
+	t:eq(#updated, 4)
+	for _, dt in ipairs(updated) do t:eq(dt, 0.25) end
 	renderer:unload()
 end
 

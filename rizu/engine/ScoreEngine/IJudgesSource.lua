@@ -4,10 +4,16 @@ local class = require("class")
 ---@field input integer?
 ---@field judge_index integer?
 ---@field last_judge integer?
+---@field visual_judge integer?
 
 ---@class rizu.IJudgesSource
 ---@operator call: rizu.IJudgesSource
 local IJudgesSource = class()
+
+---@return string
+function IJudgesSource:getKey()
+	error("not implemented")
+end
 
 ---@return integer[]
 function IJudgesSource:getJudges()

@@ -17,6 +17,8 @@ local thread = require("thread")
 
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
 ---@field gameplay_playfield rizu.gameplay.Playfield
+---@field gameplay_playfield_view gui.View
+---@field gameplay_hud_view gui.View
 ---@field skin_editor_window ui.views.Window
 ---@field skin_editor_controls gui.layout.FlowContainer
 ---@field skin_editor_properties rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property[]
@@ -42,6 +44,13 @@ function Gameplay:new(ui)
 	end)
 	self.gameplay_playfield_view:setUpdate(function(_, dt)
 		self.gameplay_playfield:update(dt)
+	end)
+	self.gameplay_hud_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
+	self.gameplay_hud_view:setDraw(function()
+		self:drawGameplayHud()
+	end)
+	self.gameplay_hud_view:setUpdate(function(_, dt)
+		self:updateGameplayHud(dt)
 	end)
 	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
 	self.aim_summary:setAlignment(0.5, 0.5)
@@ -103,11 +112,6 @@ function Gameplay:enter()
 	self.was_retrying = false
 	self.restart_overlay:reset()
 
-	local cfg = self.ui.config
-	local viewport_width = cfg:getNumber(cfg.keys.gameplay_viewport_sx)
-	local viewport_height = cfg:getNumber(cfg.keys.gameplay_viewport_sy)
-	local align_x = cfg:getNumber(cfg.keys.gameplay_viewport_x)
-	local align_y = cfg:getNumber(cfg.keys.gameplay_viewport_y)
 	self.root:fadeIn(0.4, "OutQuint")
 	if self.gameplay_playfield:usesPointer() then
 		self:flush()
@@ -124,7 +128,12 @@ function Gameplay:getGameplayViewport()
 	local cfg = self.ui.config
 	local width = self.width * cfg:getNumber(cfg.keys.gameplay_viewport_sx)
 	local height = self.height * cfg:getNumber(cfg.keys.gameplay_viewport_sy)
-	local transform = love.math.newTransform()
+	local transform = self._gameplay_viewport_transform
+	if not transform then
+		transform = love.math.newTransform()
+		self._gameplay_viewport_transform = transform
+	end
+	transform:reset()
 	transform:translate(
 		(self.width - width) * cfg:getNumber(cfg.keys.gameplay_viewport_x),
 		(self.height - height) * cfg:getNumber(cfg.keys.gameplay_viewport_y)
@@ -142,6 +151,23 @@ function Gameplay:drawGameplayPlayfield()
 	love.graphics.scale(1 / self.ui_scale)
 	love.graphics.setScissor(x, y, width, height)
 	self.gameplay_playfield:draw(width, height, transform)
+	love.graphics.setScissor()
+	love.graphics.pop()
+end
+
+---@param dt number
+function Gameplay:updateGameplayHud(dt)
+	self.gameplay_playfield:updateHud(dt)
+end
+
+function Gameplay:drawGameplayHud()
+	local width, height, transform = self:getGameplayViewport()
+	if width <= 0 or height <= 0 then return end
+	local x, y = transform:transformPoint(0, 0)
+	love.graphics.push("all")
+	love.graphics.scale(1 / self.ui_scale)
+	love.graphics.setScissor(x, y, width, height)
+	self.gameplay_playfield:drawHud(width, height, transform)
 	love.graphics.setScissor()
 	love.graphics.pop()
 end

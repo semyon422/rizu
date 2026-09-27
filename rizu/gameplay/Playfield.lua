@@ -83,6 +83,17 @@ function Playfield:usesPointer()
 	return not not (engine and (engine.aim_rules or engine.chartmeta and engine.chartmeta.mode == "osu"))
 end
 
+function Playfield:updateHud(dt)
+	if self.renderer then self.renderer:updateHud(dt) end
+end
+
+---@param width number Gameplay viewport width in drawable pixels.
+---@param height number Gameplay viewport height in drawable pixels.
+---@param transform love.Transform Maps viewport coordinates to drawable pixels.
+function Playfield:drawHud(width, height, transform)
+	if self.renderer then self.renderer:drawHud(width, height, transform) end
+end
+
 ---@param width number Gameplay viewport width in drawable pixels
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels

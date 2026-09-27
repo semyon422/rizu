@@ -11,7 +11,7 @@ local test = {}
 ---@param t testing.T
 function test.exposes_receptor_and_playfield_properties(t)
 	local config = SkinConfig()
-	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "gameplay", config,
+	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "preview", config,
 		"userdata/dlc/skins_rizu/base/skin-config.json")
 	local properties = renderer:getProperties()
 	t:eq(#properties, 2)
@@ -30,8 +30,60 @@ function test.exposes_receptor_and_playfield_properties(t)
 end
 
 ---@param t testing.T
+function test.exposes_gameplay_hud_with_accuracy_view(t)
+	local game = {
+		fs = FakeFilesystem(),
+		rhythm_engine = {
+			score_engine = {
+				accuracySource = {getAccuracyString = function() return "97.25%" end},
+			},
+		},
+	}
+	local original_new_font = love.graphics.newFont
+	local fonts = {}
+	love.graphics.newFont = function(_, size)
+		local font = {
+			size = size,
+			released = false,
+			getWidth = function(self, text) return #text * self.size / 2 end,
+			getHeight = function(self) return self.size end,
+			release = function(self) self.released = true end,
+		}
+		fonts[#fonts + 1] = font
+		return font
+	end
+	local renderer = skin.load(game, "4key", "gameplay", SkinConfig(), "config.json")
+	t:eq(renderer.hud, nil)
+	renderer:load()
+	love.graphics.newFont = original_new_font
+	t:assert(renderer.hud)
+	local accuracy_view = renderer.hud.children[1]
+	t:eq(accuracy_view.anchor, "top_right")
+	t:eq(accuracy_view.x, -8)
+	t:eq(accuracy_view.y, 38)
+	t:eq(accuracy_view.text, "97.25%")
+	t:eq(accuracy_view.font:getHeight(), 24)
+	t:eq(renderer.hud.children[2].text, "") -- score source not present
+	t:eq(renderer.hud.children[2].x, -8)
+	t:eq(renderer.hud.children[2].y, 8)
+	t:eq(renderer.hud.children[3].text, "") -- combo source not present
+	t:eq(renderer.hud.children[4].text, "") -- no judgement yet
+
+	renderer:unload()
+	t:eq(renderer.hud, nil)
+	t:eq(renderer.hud_fonts, nil)
+	t:eq(#fonts, 2)
+	for _, font in ipairs(fonts) do t:assert(font.released) end
+
+	local preview_renderer = skin.load(game, "4key", "preview", SkinConfig(), "config.json")
+	t:eq(preview_renderer.hud, nil)
+	preview_renderer:load()
+	t:eq(preview_renderer.hud, nil)
+end
+
+---@param t testing.T
 function test.rejects_out_of_range_properties(t)
-	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "gameplay", SkinConfig(), "config.json")
+	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
 	t:has_error(function() renderer:setReceptorY(481) end)
 	t:has_error(function() renderer:setPlayfieldXOffset(641) end)
 end
@@ -62,7 +114,7 @@ local function capture_note_rectangles(draw)
 	local previous_rectangle = love.graphics.rectangle
 	local note_rectangles = {}
 	love.graphics.rectangle = function(_, x, y, width, height)
-		if width == 48 and height == 30 then
+		if width == 48 and height == 30 or math.abs(width - 48 * 0.64) < 0.001 then
 			note_rectangles[#note_rectangles + 1] = {x, y, width, height}
 		end
 	end
@@ -74,6 +126,14 @@ end
 
 ---@param t testing.T
 function test.gameplay_notes_continue_below_the_receptor_after_their_absolute_time(t)
+	local original_new_font = love.graphics.newFont
+	love.graphics.newFont = function()
+		return {
+			getWidth = function(_, text) return #text * 12 end,
+			getHeight = function() return 24 end,
+			getDPIScale = function() return 1 end,
+		}
+	end
 	local renderer = skin.load({
 		fs = FakeFilesystem(),
 		rhythm_engine = {
@@ -86,11 +146,45 @@ function test.gameplay_notes_continue_below_the_receptor_after_their_absolute_ti
 			isColumnPressed = function() return false end,
 		},
 	}, "4key", "gameplay", SkinConfig(), "config.json")
+	love.graphics.newFont = original_new_font
 	local note_rectangles = capture_note_rectangles(function()
 		renderer:draw(640, 480, love.math.newTransform())
 	end)
 	t:eq(#note_rectangles, 1)
 	t:assert(note_rectangles[1][2] > renderer:getReceptorY())
+end
+
+---@param t testing.T
+function test.gameplay_does_not_draw_successfully_hit_notes(t)
+	local original_new_font = love.graphics.newFont
+	love.graphics.newFont = function()
+		return {
+			getWidth = function(_, text) return #text * 12 end,
+			getHeight = function() return 24 end,
+			getDPIScale = function() return 1 end,
+		}
+	end
+	local renderer = skin.load({
+		fs = FakeFilesystem(),
+		rhythm_engine = {
+			visual_engine = {
+				visible_notes = {
+					{type = "short", start_dt = 0, getState = function() return "passed" end,
+						getColumn = function() return "key1" end},
+					{type = "long", start_dt = 0.1, end_dt = -0.1,
+						getState = function() return "endPassed" end,
+						getColumn = function() return "key2" end},
+				},
+			},
+			isColumnPressed = function() return false end,
+		},
+	}, "4key", "gameplay", SkinConfig(), "config.json")
+	love.graphics.newFont = original_new_font
+
+	local note_rectangles = capture_note_rectangles(function()
+		renderer:draw(640, 480, love.math.newTransform())
+	end)
+	t:eq(#note_rectangles, 0)
 end
 
 ---@param t testing.T

@@ -36,6 +36,37 @@ function test.discovers_native_lua_skin_metadata(t)
 end
 
 ---@param t testing.T
+function test.loadSkin_passes_user_skin_directory_only_for_dlc_skins(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata/dlc/skins_rizu/renamed_skin")
+	fs:createDirectory("rizu/skin/base")
+	fs:write("userdata/dlc/skins_rizu/renamed_skin/custom.skin.lua", [[
+return {
+	metadata = {name = "Custom", gamemode = "mania", input_modes = {"4key"}},
+	load = function(game, input_mode, screen, config, config_path, skin_directory_path)
+		return {skin_directory_path = skin_directory_path}
+	end,
+}
+]])
+	fs:write("rizu/skin/base/base.skin.lua", [[
+return {
+	metadata = {name = "Base", gamemode = "mania", input_modes = {"4key"}},
+	load = function(game, input_mode, screen, config, config_path, skin_directory_path)
+		return {skin_directory_path = skin_directory_path}
+	end,
+}
+]])
+	local registry = SkinRegistry(fs)
+	registry:load()
+	local renderer = registry:loadSkin(registry:getSkin("userdata/dlc/skins_rizu/renamed_skin/custom.skin.lua"),
+		{}, "4key", "gameplay")
+	local base_renderer = registry:loadSkin(registry:getSkin("rizu/skin/base/base.skin.lua"),
+		{}, "4key", "gameplay")
+	t:eq(renderer.skin_directory_path, "userdata/dlc/skins_rizu/renamed_skin")
+	t:eq(base_renderer.skin_directory_path, nil)
+end
+
+---@param t testing.T
 function test.loads_skin_with_an_instance_scoped_config(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata/dlc/skins_rizu/example")

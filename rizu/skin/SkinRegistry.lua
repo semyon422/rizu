@@ -23,7 +23,7 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 ---@field file_name string?
 ---@field format rizu.skin.SkinFormat
 ---@field metadata rizu.skin.SkinMetadata?
----@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): unknown
+---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?, skin_directory_path: string?): unknown
 
 ---@class rizu.skin.StepmaniaSkinDiscovery : rizu.skin.SkinInfo
 ---@field name string
@@ -446,7 +446,12 @@ function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 			print(("could not load skin config %s: %s"):format(config_path, tostring(load_error)))
 		end
 	end
-	local renderer = skin.load(game, input_mode, screen, config, config_path)
+	local skin_directory_path
+	local user_data_prefix = normalizeSkinPath(self.path) .. "/"
+	if normalizeSkinPath(skin.path):sub(1, #user_data_prefix) == user_data_prefix then
+		skin_directory_path = skin.directory_path
+	end
+	local renderer = skin.load(game, input_mode, screen, config, config_path, skin_directory_path)
 	return renderer, config, config_path
 end
 

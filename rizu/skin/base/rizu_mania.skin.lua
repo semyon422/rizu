@@ -1,4 +1,9 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
+local Hud = require("rizu.skin.Hud")
+local AccuracyView = require("rizu.skin.views.AccuracyView")
+local ComboView = require("rizu.skin.views.ComboView")
+local ScoreView = require("rizu.skin.views.ScoreView")
+local CurrentJudgeView = require("rizu.skin.views.CurrentJudgeView")
 local InputMode = require("chart.core.InputMode")
 local SkinConfig = require("rizu.skin.SkinConfig")
 
@@ -79,6 +84,8 @@ end
 ---@field config rizu.skin.SkinConfig
 ---@field config_path string
 ---@field input_mode string
+---@field hud rizu.skin.Hud?
+---@field hud_fonts {regular: love.Font, emphasis: love.Font}?
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
@@ -95,6 +102,18 @@ function ManiaPlayfieldRenderer:new(game, input_mode, screen, config, config_pat
 	local mode = InputMode(input_mode)
 	self.inputs = mode:getInputs()
 	self.input_map = mode:getInputMap()
+end
+
+function ManiaPlayfieldRenderer:unload()
+	if self.hud then
+		self.hud:unload(self.game)
+		self.hud = nil
+	end
+	if self.hud_fonts then
+		self.hud_fonts.regular:release()
+		self.hud_fonts.emphasis:release()
+		self.hud_fonts = nil
+	end
 end
 
 function ManiaPlayfieldRenderer:getReceptorY()
@@ -154,17 +173,13 @@ end
 ---@param columns integer
 ---@return integer
 function ManiaPlayfieldRenderer:getPreviewDisplayColumn(player, column, columns)
-	if player.input_mode ~= self.input_mode then
-		return math.min(column, columns)
-	end
+	if player.input_mode ~= self.input_mode then return math.min(column, columns) end
 	local display_column = player.column_map and player.column_map[column]
 	if type(display_column) == "number" and display_column % 1 == 0
 		and display_column >= 1 and display_column <= columns then
 		return display_column
 	end
-	if column <= columns then
-		return column
-	end
+	return math.min(column, columns)
 end
 
 ---@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
@@ -172,11 +187,8 @@ end
 ---@return string[]
 local function get_column_colors(renderer, columns)
 	local key_columns = 0
-	for column = 1, columns do
-		local input = renderer.inputs[column] or ""
-		if input:find("key") then
-			key_columns = key_columns + 1
-		end
+	for _, input in ipairs(renderer.inputs) do
+		if input:find("key") then key_columns = key_columns + 1 end
 	end
 	local color_names = get_note_color_names(key_columns)
 	local colors = {}
@@ -239,21 +251,19 @@ end
 
 ---@param note rizu.VisualNote
 ---@param y number
+---@param receptor_y number
 ---@return number
 local function clamp_held_note_y(note, y, receptor_y)
-	if is_note_head_held(note) then
-		return math.min(receptor_y, y)
-	end
+	if is_note_head_held(note) then return math.min(receptor_y, y) end
 	return y
 end
 
 ---@param note rizu.VisualNote
 ---@param y number
+---@param receptor_y number
 ---@return number
 local function clamp_held_tail_y(note, y, receptor_y)
-	if is_note_head_held(note) then
-		return math.min(receptor_y + NOTE_HEIGHT / 2, y)
-	end
+	if is_note_head_held(note) then return math.min(receptor_y + NOTE_HEIGHT / 2, y) end
 	return y
 end
 
@@ -299,9 +309,7 @@ end
 ---@param height number
 function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	local preview = player.notes
-	if not preview then
-		return
-	end
+	if not preview then return end
 
 	local columns = #self.inputs
 	local colors = get_column_colors(self, columns)
@@ -331,9 +339,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 			if note.end_time >= from_time then
 				local head_y = receptor_y - (note.time - time) * pixels_per_second
 				local tail_y = receptor_y - (note.end_time - time) * pixels_per_second
-				if note.end_time > note.time then
-					draw_hold_body(x, head_y, tail_y, hold_width, color_name)
-				end
+				if note.end_time > note.time then draw_hold_body(x, head_y, tail_y, hold_width, color_name) end
 				if note.time >= from_time and note.time <= until_time then
 					draw_note(x, head_y, LANE_WIDTH, NOTE_HEIGHT, color_name)
 				end
@@ -349,6 +355,14 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 		lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y - 6, LANE_WIDTH, 12)
 	end
 	lg.pop()
+end
+
+---@param width number
+---@param height number
+---@param transform love.Transform
+function ManiaPlayfieldRenderer:drawHud(width, height, transform)
+	local scale, offset_x, offset_y = get_field_transform(width, height)
+	self:drawHudInNativeSpace(transform, FIELD_WIDTH, FIELD_HEIGHT, scale, offset_x, offset_y)
 end
 
 ---@param width number
@@ -375,7 +389,8 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 
 	-- Bodies are behind heads and receptors.
 	for _, note in ipairs(visual_engine.visible_notes) do
-		if note.type == "long" then
+		local state = note:getState()
+		if note.type == "long" and state ~= "endPassed" then
 			local column = get_note_column(self, note)
 			if column and column >= 1 and column <= columns then
 				local x = field_left + (column - 0.5) * LANE_WIDTH
@@ -387,11 +402,14 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	end
 
 	for _, note in ipairs(visual_engine.visible_notes) do
-		local column = get_note_column(self, note)
-		if column and column >= 1 and column <= columns then
-			local x = field_left + (column - 0.5) * LANE_WIDTH
-			local y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
-			draw_note(x, y, LANE_WIDTH, NOTE_HEIGHT, colors[column])
+		local state = note:getState()
+		if state ~= "passed" and state ~= "endPassed" then
+			local column = get_note_column(self, note)
+			if column and column >= 1 and column <= columns then
+				local x = field_left + (column - 0.5) * LANE_WIDTH
+				local y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
+				draw_note(x, y, LANE_WIDTH, NOTE_HEIGHT, colors[column])
+			end
 		end
 	end
 
@@ -405,6 +423,38 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	lg.pop()
 end
 
+---@param game sphere.GameController
+---@param fonts {regular: love.Font, emphasis: love.Font}
+local function create_hud(game, fonts)
+	local hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
+	hud:add(AccuracyView(fonts.regular, {x = -8, y = 38}))
+	hud:add(ScoreView(fonts.regular, {x = -8, y = 8}))
+	hud:add(ComboView(fonts.emphasis, {y = -36}))
+	hud:add(CurrentJudgeView(fonts.emphasis, {y = -72}))
+	hud:load(game)
+	return hud
+end
+
+function ManiaPlayfieldRenderer:load()
+	if self.screen ~= "gameplay" or self.hud then return end
+	self.hud_fonts = {
+		regular = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 24, "normal", 4),
+		emphasis = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 32, "normal", 4),
+	}
+	self.hud = create_hud(self.game, self.hud_fonts)
+end
+
+---@param game sphere.GameController
+---@param input_mode string
+---@param screen rizu.skin.Screen
+---@param config rizu.skin.SkinConfig?
+---@param config_path string?
+---@return rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+local function load_skin(game, input_mode, screen, config, config_path)
+	local renderer = ManiaPlayfieldRenderer(game, input_mode, screen, config, config_path)
+	return renderer
+end
+
 ---@class rizu.skin.base.rizu_mania.Skin
 ---@field metadata rizu.skin.SkinMetadata
 ---@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
@@ -416,7 +466,5 @@ return {
 		gamemode = "mania",
 		input_modes = {"any"},
 	},
-	load = function(game, input_mode, screen, config, config_path)
-		return ManiaPlayfieldRenderer(game, input_mode, screen, config, config_path)
-	end,
+	load = load_skin,
 }

@@ -47,4 +47,27 @@ function test.keeps_mania_renderer_selection(t)
 	t:eq(playfield.renderer, mania_renderer)
 end
 
+function test.dispatches_hud_to_active_renderer(t)
+	local renderer = {
+		load = function() end,
+		unload = function() end,
+		updateHud = function(self, dt) self.updated = dt end,
+		drawHud = function(self, width, height, transform)
+			self.drawn = {width, height, transform}
+		end,
+	}
+	local game = {
+		rhythm_engine = {chartmeta = {mode = "mania"}},
+		gameplayInteractor = {mania_renderer = renderer},
+	}
+	local playfield = Playfield(game)
+	playfield:updateHud(0.25)
+	local transform = love.math.newTransform()
+	playfield:drawHud(320, 240, transform)
+	t:eq(renderer.updated, 0.25)
+	t:eq(renderer.drawn[1], 320)
+	t:eq(renderer.drawn[2], 240)
+	t:eq(renderer.drawn[3], transform)
+end
+
 return test
