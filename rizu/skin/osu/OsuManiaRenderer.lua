@@ -1,6 +1,11 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 local Hud = require("rizu.skin.Hud")
 local OsuManiaScoreView = require("rizu.skin.osu.mania.OsuManiaScoreView")
+local OsuManiaAccuracyView = require("rizu.skin.osu.mania.OsuManiaAccuracyView")
+local OsuManiaComboView = require("rizu.skin.osu.mania.OsuManiaComboView")
+local OsuManiaJudgeView = require("rizu.skin.osu.mania.OsuManiaJudgeView")
+local OsuManiaHitMeterView = require("rizu.skin.osu.mania.OsuManiaHitMeterView")
+local OsuManiaProgressView = require("rizu.skin.osu.mania.OsuManiaProgressView")
 local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
 local OsuManiaFieldRenderer = require("rizu.skin.osu.mania.OsuManiaFieldRenderer")
 local OsuManiaKeyRenderer = require("rizu.skin.osu.mania.OsuManiaKeyRenderer")
@@ -44,6 +49,11 @@ local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 ---@field stage_renderer rizu.skin.osu.mania.OsuManiaStageRenderer
 ---@field hud rizu.skin.Hud
 ---@field score_view rizu.skin.osu.mania.OsuManiaScoreView
+---@field accuracy_view rizu.skin.osu.mania.OsuManiaAccuracyView
+---@field combo_view rizu.skin.osu.mania.OsuManiaComboView
+---@field judge_view rizu.skin.osu.mania.OsuManiaJudgeView
+---@field hit_meter_view rizu.skin.osu.mania.OsuManiaHitMeterView
+---@field progress_view rizu.skin.osu.mania.OsuManiaProgressView
 ---@field split_stages boolean
 ---@field stage_separation number
 local OsuManiaRenderer = PlayfieldRenderer + {}
@@ -64,8 +74,18 @@ function OsuManiaRenderer:new(game, input_mode, skin_path)
 	self.input_map = self.engine_input_map
 	self.skin_graphics = OsuManiaSkinGraphics(game.fs)
 	self.score_view = OsuManiaScoreView(self.skin_graphics)
+	self.accuracy_view = OsuManiaAccuracyView(self.skin_graphics)
+	self.combo_view = OsuManiaComboView(self.skin_graphics)
+	self.judge_view = OsuManiaJudgeView(self.skin_graphics)
+	self.hit_meter_view = OsuManiaHitMeterView()
+	self.progress_view = OsuManiaProgressView()
 	self.hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
 	self.hud:add(self.score_view)
+	self.hud:add(self.accuracy_view)
+	self.hud:add(self.combo_view)
+	self.hud:add(self.judge_view)
+	self.hud:add(self.hit_meter_view)
+	self.hud:add(self.progress_view)
 	self.hud:load(game)
 	self.field_renderer = OsuManiaFieldRenderer()
 	self.key_renderer = OsuManiaKeyRenderer()
@@ -201,6 +221,9 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 		end
 	end
 	self.section = section
+	self.combo_view:setSkin(skin, section)
+	self.judge_view:setSkin(skin, section)
+	self.accuracy_view:setSkin(skin, self.score_view.height + 3)
 	self.column_widths = get_number_list(section, "ColumnWidth", columns, DEFAULT_COLUMN_WIDTH, 5, 100)
 	self.column_spacings = get_number_list(section, "ColumnSpacing", math.max(columns - 1, 0), 0, -100, 100)
 	for index = 1, #self.column_spacings do
@@ -269,6 +292,7 @@ function OsuManiaRenderer:load()
 		self.skin_graphics:load(self:getSkinAssets())
 	end
 	self.score_view:refreshSize()
+	self.accuracy_view:setSkin(skin, self.score_view.height)
 end
 
 function OsuManiaRenderer:unload()
@@ -313,15 +337,15 @@ function OsuManiaRenderer:getPlayfieldLayout()
 	return left, widths, scale
 end
 
----@return {name: string?, fallback: string?}[]
+---@return {name: string?, fallback: string?, animation: boolean?}[]
 function OsuManiaRenderer:getSkinAssets()
 	local assets, seen = {}, {}
-	local function add(name, fallback)
-		if not name or name == "" then return end
-		local key = name:lower() .. "\0" .. tostring(fallback or ""):lower()
+	local function add(name, fallback, animation)
+		if (not name or name == "") and (not fallback or fallback == "") then return end
+		local key = tostring(name or ""):lower() .. "\0" .. tostring(fallback or ""):lower()
 		if seen[key] then return end
 		seen[key] = true
-		assets[#assets + 1] = {name = name, fallback = fallback}
+		assets[#assets + 1] = {name = name, fallback = fallback, animation = animation}
 	end
 
 	for column = 1, self.columns do
@@ -352,6 +376,13 @@ function OsuManiaRenderer:getSkinAssets()
 
 	local score_images = self.score_view:getImageAssets()
 	for _, name in ipairs(score_images) do add(name) end
+	for _, name in ipairs(self.accuracy_view:getImageAssets()) do add(name) end
+	for _, name in ipairs(self.combo_view:getImageAssets()) do add(name) end
+	for _, asset in ipairs(self.judge_view:getImageAssets()) do
+		local name = asset.name or asset.fallback
+		local fallback = asset.name and asset.fallback or nil
+		add(name, fallback, true)
+	end
 	return assets
 end
 

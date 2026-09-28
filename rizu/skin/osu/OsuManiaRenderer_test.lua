@@ -38,7 +38,7 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	t:eq(renderer.score_view.score_overlap, 1)
 	local assets = renderer:getSkinAssets()
 	local asset_names = {}
-	for _, asset in ipairs(assets) do asset_names[asset.name] = true end
+	for _, asset in ipairs(assets) do asset_names[asset.name or asset.fallback] = true end
 	t:assert(asset_names["Mania\\key-custom"])
 	t:assert(asset_names["Mania\\note-custom"])
 	t:assert(asset_names["Mania\\stage-custom"])

@@ -8,6 +8,7 @@ local path_util = require("path_util")
 ---@field images {[string]: love.Image|false}
 ---@field file_map {[string]: string} Lowercase asset path to full filesystem path.
 ---@field frame_cache {[string]: love.Image[]}
+---@field animation_cache {[string]: love.Image[]}
 ---@field image_density {[love.Image]: number}
 ---@field loaded boolean
 ---@field fallback_directory string?
@@ -21,6 +22,7 @@ function OsuManiaSkinGraphics:new(fs, skin)
 	self.images = {}
 	self.file_map = {}
 	self.frame_cache = {}
+	self.animation_cache = {}
 	self.image_density = {}
 	self.loaded = false
 	self.fallback_directory = nil
@@ -50,6 +52,7 @@ function OsuManiaSkinGraphics:setSkin(skin)
 	if self.loaded or next(self.images) then self:unload() end
 	self.skin = skin
 	self.frame_cache = {}
+	self.animation_cache = {}
 	self:indexFiles()
 end
 
@@ -58,6 +61,7 @@ function OsuManiaSkinGraphics:setFallbackDirectory(directory)
 	if self.loaded or next(self.images) then self:unload() end
 	self.fallback_directory = directory
 	self.frame_cache = {}
+	self.animation_cache = {}
 	self:indexFiles()
 end
 
@@ -166,7 +170,6 @@ function OsuManiaSkinGraphics:getFrames(image_name, fallback_name)
 	local key = tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
-
 	local frames = {}
 	local function load_name(name)
 		if not name or name == "" then return end
@@ -180,10 +183,46 @@ function OsuManiaSkinGraphics:getFrames(image_name, fallback_name)
 	return frames
 end
 
+---@param image_name string?
+---@param fallback_name string?
+---@return love.Image[]
+function OsuManiaSkinGraphics:getAnimationFrames(image_name, fallback_name)
+	local key = tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
+	local cached = self.animation_cache[key]
+	if cached then return cached end
+	local function load_animation(name)
+		if name == nil then return {} end
+		---@cast name string
+		local discovered = self:findAnimationAssets(name)
+		local frames = {}
+		for _, asset in ipairs(discovered) do
+			local image = self:loadImage(asset.path)
+			if image then frames[#frames + 1] = image end
+		end
+		return frames
+	end
+	local frames = load_animation(image_name)
+	if #frames == 0 and image_name then
+		local image = self:getFrames(image_name, nil)[1]
+		if image then frames[1] = image end
+	end
+	if #frames == 0 and fallback_name ~= image_name then frames = load_animation(fallback_name) end
+	if #frames == 0 then
+		local image = self:getFrames(nil, fallback_name)[1]
+		if image then frames[1] = image end
+	end
+	self.animation_cache[key] = frames
+	return frames
+end
+
 function OsuManiaSkinGraphics:load(assets)
 	self.loaded = true
 	for _, asset in ipairs(assets or {}) do
-		self:getFrames(asset.name, asset.fallback)
+		if asset.animation then
+			self:getAnimationFrames(asset.name, asset.fallback)
+		else
+			self:getFrames(asset.name, asset.fallback)
+		end
 	end
 end
 
@@ -193,6 +232,7 @@ function OsuManiaSkinGraphics:unload()
 	end
 	self.images = {}
 	self.frame_cache = {}
+	self.animation_cache = {}
 	self.image_density = {}
 	self.loaded = false
 	self:indexFiles()
