@@ -30,7 +30,7 @@ function OsuManiaJudgeView:new(graphics)
 	self.rotation = 0
 	self.grade = 1
 	self.section = {}
-	View.new(self, {anchor = "center", origin = "center", x = 0, y = 325, width = 0, height = 0})
+	View.new(self, {anchor = "top", origin = "center", x = 0, y = 325, width = 0, height = 0})
 end
 
 ---@param _skin rizu.skin.OsuSkinDiscovery?

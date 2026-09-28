@@ -153,8 +153,36 @@ function test.animates_combo_towards_score_combo_source_and_runs_break_effect(t)
 	view:update(0)
 	t:eq(view.breaking, true)
 	t:eq(view.break_combo, 1)
+	t:eq(view.display_combo, 0)
 	view:update(0.2)
 	t:eq(view.display_combo, 0)
+	t:eq(view.breaking, false)
+end
+
+function test.resets_combo_state_while_break_animation_is_playing(t)
+	local combo = 0
+	local source = {getCombo = function() return combo end}
+	local view = OsuManiaComboView(make_graphics())
+	view:load({rhythm_engine = {score_engine = {comboSource = source}}})
+
+	combo = 100
+	view:update(0)
+	t:eq(view.display_combo, 100)
+
+	combo = 0
+	view:update(0)
+	t:eq(view.breaking, true)
+	t:eq(view.display_combo, 0)
+
+	-- A second miss leaves the source at zero and must not leave stale display state.
+	view:update(0.1)
+	t:eq(view.display_combo, 0)
+	t:eq(view.breaking, true)
+
+	-- The next hit should start counting from zero even before the animation ends.
+	combo = 1
+	view:update(0)
+	t:eq(view.display_combo, 1)
 	t:eq(view.breaking, false)
 end
 
@@ -203,6 +231,11 @@ function test.positions_hud_score_against_the_full_viewport_edge(t)
 	local score_transform = score_view:getWorldTransform(native_width, native_height, hud_transform)
 	local right_edge = score_transform:transformPoint(score_view.width, 0)
 	t:aeq(right_edge, 1280 - 6 * 1.5, 1e-3)
+	local conveyor_width = select(4, renderer:getPlayfieldLayout())
+	local combo_center = renderer.combo_view:getWorldTransform(
+		conveyor_width, 480, renderer._conveyor_hud_transform
+	):transformPoint(renderer.combo_view.width / 2, renderer.combo_view.height / 2)
+	t:aeq(combo_center, (136 + 120 / 2) * 1.5, 1e-3)
 	renderer:unload()
 end
 

@@ -48,6 +48,8 @@ local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 ---@field note_renderer rizu.skin.osu.mania.OsuManiaNoteRenderer
 ---@field stage_renderer rizu.skin.osu.mania.OsuManiaStageRenderer
 ---@field hud rizu.skin.Hud
+---@field conveyor_hud rizu.skin.Hud
+---@field _conveyor_hud_transform love.Transform
 ---@field score_view rizu.skin.osu.mania.OsuManiaScoreView
 ---@field accuracy_view rizu.skin.osu.mania.OsuManiaAccuracyView
 ---@field combo_view rizu.skin.osu.mania.OsuManiaComboView
@@ -80,13 +82,16 @@ function OsuManiaRenderer:new(game, input_mode, skin_path)
 	self.hit_meter_view = OsuManiaHitMeterView()
 	self.progress_view = OsuManiaProgressView()
 	self.hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
+	self.conveyor_hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
+	self._conveyor_hud_transform = love.math.newTransform()
 	self.hud:add(self.score_view)
 	self.hud:add(self.accuracy_view)
-	self.hud:add(self.combo_view)
-	self.hud:add(self.judge_view)
-	self.hud:add(self.hit_meter_view)
 	self.hud:add(self.progress_view)
+	self.conveyor_hud:add(self.combo_view)
+	self.conveyor_hud:add(self.judge_view)
+	self.conveyor_hud:add(self.hit_meter_view)
 	self.hud:load(game)
+	self.conveyor_hud:load(game)
 	self.field_renderer = OsuManiaFieldRenderer()
 	self.key_renderer = OsuManiaKeyRenderer()
 	self.note_renderer = OsuManiaNoteRenderer()
@@ -275,8 +280,12 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.input_map = inputs
 end
 
-function OsuManiaRenderer:update(dt)
+function OsuManiaRenderer:updateHud(dt)
 	self.hud:update(dt, self.game)
+	self.conveyor_hud:update(dt, self.game)
+end
+
+function OsuManiaRenderer:update(dt)
 	self.field_renderer:update(dt)
 	self.key_renderer:update(dt)
 	self.note_renderer:update(dt)
@@ -287,6 +296,7 @@ function OsuManiaRenderer:load()
 	local skin = self:getSkin()
 	if self.skin ~= skin then self:loadSkinSettings(skin) end
 	self.hud:load(self.game)
+	self.conveyor_hud:load(self.game)
 	if self.skin_graphics.skin ~= skin then self.skin_graphics:setSkin(skin) end
 	if not self.skin_graphics.loaded then
 		self.skin_graphics:load(self:getSkinAssets())
@@ -297,6 +307,7 @@ end
 
 function OsuManiaRenderer:unload()
 	self.hud:unload(self.game)
+	self.conveyor_hud:unload(self.game)
 	self.skin_graphics:unload()
 end
 
@@ -315,6 +326,7 @@ end
 ---@return number left
 ---@return number[] widths
 ---@return number scale
+---@return number full_width
 function OsuManiaRenderer:getPlayfieldLayout()
 	local widths = {}
 	local full_width = 0
@@ -334,7 +346,7 @@ function OsuManiaRenderer:getPlayfieldLayout()
 	local right = math.max(0, math.min(self.column_right, FIELD_WIDTH - left))
 	local available_width = math.max(0, FIELD_WIDTH - left - right)
 	local scale = full_width > available_width and available_width / full_width or 1
-	return left, widths, scale
+	return left, widths, scale, full_width
 end
 
 ---@return {name: string?, fallback: string?, animation: boolean?}[]
@@ -597,8 +609,20 @@ end
 ---@param height number Gameplay viewport height in drawable pixels
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 function OsuManiaRenderer:drawHud(width, height, transform)
-	local scale = self:getFieldTransform(width, height)
+	local scale, offset_x, offset_y = self:getFieldTransform(width, height)
+	local field_left, _, column_scale, field_width = self:getPlayfieldLayout()
 	self:drawHudInViewport(transform, width, height, scale)
+	if scale <= 0 then return end
+
+	local conveyor_width = field_width * column_scale
+	self._conveyor_hud_transform:reset()
+	self._conveyor_hud_transform:apply(transform)
+	self._conveyor_hud_transform:translate(offset_x, offset_y)
+	self._conveyor_hud_transform:scale(scale)
+	-- Match the first lane's transform and give the HUD the complete lane span,
+	-- including all inter-column gaps.
+	self._conveyor_hud_transform:translate(field_left, 0)
+	self.conveyor_hud:draw(conveyor_width, FIELD_HEIGHT, self._conveyor_hud_transform)
 end
 
 ---@param width number Gameplay viewport width in drawable pixels

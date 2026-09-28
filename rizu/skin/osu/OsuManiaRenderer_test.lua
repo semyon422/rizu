@@ -64,6 +64,57 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	renderer:unload()
 end
 
+function test.uses_separate_conveyor_hud_for_conveyor_anchored_views(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	t:eq(renderer.hud.children[1], renderer.score_view)
+	t:eq(renderer.hud.children[2], renderer.accuracy_view)
+	t:eq(renderer.hud.children[3], renderer.progress_view)
+	t:eq(renderer.conveyor_hud.children[1], renderer.combo_view)
+	t:eq(renderer.conveyor_hud.children[2], renderer.judge_view)
+	t:eq(renderer.conveyor_hud.children[3], renderer.hit_meter_view)
+	t:eq(renderer.combo_view.anchor, "top")
+	t:eq(renderer.judge_view.anchor, "top")
+	t:eq(renderer.hit_meter_view.anchor, "bottom")
+	renderer:unload()
+end
+
+function test.column_anchor_width_includes_stage_separation(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	renderer.column_widths = {40, 50, 60, 70}
+	renderer.column_spacings = {3, 4, 5}
+	renderer.split_stages = true
+	renderer.stage_separation = 40
+	local left, _, scale, column_width = renderer:getPlayfieldLayout()
+	t:eq(left, 136)
+	t:eq(scale, 1)
+	t:eq(column_width, 268)
+	renderer:unload()
+end
+
+function test.draws_conveyor_hud_over_the_complete_column_span(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	renderer.column_widths = {40, 50, 60, 70}
+	renderer.column_spacings = {3, 4, 5}
+	renderer.split_stages = false
+	local received_width, received_height, received_transform
+	renderer.hud.draw = function() end
+	renderer.conveyor_hud.draw = function(_, width, height, transform)
+		received_width, received_height, received_transform = width, height, transform
+	end
+	local viewport_transform = love.math.newTransform()
+	viewport_transform:translate(5, 7)
+	renderer:drawHud(1280, 720, viewport_transform)
+	t:eq(received_width, 232)
+	t:eq(received_height, 480)
+	local x, y = received_transform:transformPoint(0, 0)
+	t:aeq(x, 209, 1e-6)
+	t:aeq(y, 7, 1e-6)
+	x, y = received_transform:transformPoint(232, 480)
+	t:aeq(x, 557, 1e-6)
+	t:aeq(y, 727, 1e-6)
+	renderer:unload()
+end
+
 function test.preview_note_images_ignore_lane_and_hold_tints(t)
 	local skin = {
 		path = "skins/example",
@@ -279,6 +330,12 @@ end
 
 function test.renderer_updates_each_playfield_component(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local hud_updates = 0
+	renderer.hud.update = function() hud_updates = hud_updates + 1 end
+	renderer.conveyor_hud.update = function() hud_updates = hud_updates + 1 end
+	renderer:updateHud(0.25)
+	t:eq(hud_updates, 2)
+
 	local updated = {}
 	for _, component in ipairs({
 		renderer.field_renderer,
