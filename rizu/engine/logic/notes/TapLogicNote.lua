@@ -54,6 +54,11 @@ function TapLogicNote:getEndTime()
 	return self.linked_note:getEndTime() + self.logic_info:getNoteMaxTime("ShortNote")
 end
 
+---@return number?
+function TapLogicNote:getPressedTime()
+	return self.pressed_at
+end
+
 ---@return sea.TimingResult
 function TapLogicNote:getResult()
 	local dt = self:getDeltaTime()

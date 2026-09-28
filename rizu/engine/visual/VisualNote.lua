@@ -37,7 +37,7 @@ end
 ---@return number?
 function VisualNote:getPressedTime()
 	local input_note = self:getInputNote()
-	return input_note and input_note.pressed_time
+	return input_note and input_note:getPressedTime()
 end
 
 ---@param vp chart.IVisualPoint

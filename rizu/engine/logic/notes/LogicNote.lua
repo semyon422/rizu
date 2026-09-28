@@ -31,6 +31,11 @@ function LogicNote:isPlayable()
 	return true
 end
 
+---@return number?
+function LogicNote:getPressedTime()
+	return nil
+end
+
 ---@return boolean
 function LogicNote:isEarly()
 	return self.logic_info:sub(self:getStartTime()) < 0

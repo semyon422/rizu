@@ -108,6 +108,11 @@ function HoldLogicNote:getHeadEndTime()
 	return self.linked_note:getStartTime() + self.logic_info:getNoteMaxTime("LongNoteStart")
 end
 
+---@return number?
+function HoldLogicNote:getPressedTime()
+	return self.pressed_at
+end
+
 ---@return sea.TimingResult
 function HoldLogicNote:getStartResult()
 	local dt = self:getDeltaTime()
