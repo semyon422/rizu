@@ -11,10 +11,12 @@ local OsuManiaFieldRenderer = require("rizu.skin.osu.mania.OsuManiaFieldRenderer
 local OsuManiaKeyRenderer = require("rizu.skin.osu.mania.OsuManiaKeyRenderer")
 local OsuManiaNoteRenderer = require("rizu.skin.osu.mania.OsuManiaNoteRenderer")
 local OsuManiaStageRenderer = require("rizu.skin.osu.mania.OsuManiaStageRenderer")
+local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local InputMode = require("chart.core.InputMode")
 local Settings = require("rizu.config.Settings")
 
 local lg = love.graphics
+local MANIA_HEIGHT_SCALE = 480 / 768
 local FIELD_WIDTH, FIELD_HEIGHT = 640, 480
 local DEFAULT_COLUMN_WIDTH = 30
 local DEFAULT_COLUMN_START = 136
@@ -58,6 +60,15 @@ local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 ---@field progress_view rizu.skin.osu.mania.OsuManiaProgressView
 ---@field split_stages boolean
 ---@field stage_separation number
+---@field light_position number
+---@field light_frame_rate number
+---@field lighting_n_widths number[]
+---@field lighting_l_widths number[]
+---@field stage_lightings rizu.skin.osu.mania.OsuManiaLighting[]
+---@field hit_lightings {[integer]: {short: rizu.skin.osu.mania.OsuManiaLighting?, long: rizu.skin.osu.mania.OsuManiaLighting?}}
+---@field lighting_notes {[table]: boolean}
+---@field lighting_skin rizu.skin.OsuSkinDiscovery?
+---@field lighting_loaded boolean
 local OsuManiaRenderer = PlayfieldRenderer + {}
 OsuManiaRenderer.field_width = FIELD_WIDTH
 OsuManiaRenderer.field_height = FIELD_HEIGHT
@@ -120,6 +131,16 @@ function OsuManiaRenderer:new(game, input_mode, skin_path)
 	self.key_flip = true
 	self.split_stages = false
 	self.stage_separation = 40
+	self.light_position = 413
+	self.light_frame_rate = 60
+	self.lighting_n_widths = {}
+	self.lighting_l_widths = {}
+	self.stage_lightings = {}
+	self.hit_lightings = {}
+	self.lighting_notes = setmetatable({}, {__mode = "k"})
+	self.lighting_skin = nil
+	self.lighting_loaded = false
+	self.lighting_input_state = {}
 	self:loadSkinSettings(self:getSkin())
 end
 
@@ -306,6 +327,16 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.key_flip = get_boolean(section, "KeyFlipWhenUpsideDown", true)
 	self.split_stages = get_boolean(section, "SplitStages", self.columns >= 10)
 	self.stage_separation = math.max(5, get_number(section, "StageSeparation", 40))
+	self.light_position = math.max(0, math.min(FIELD_HEIGHT, get_number(section, "LightPosition", 413)))
+	self.light_frame_rate = math.max(1, get_number(section, "LightFramePerSecond", 60))
+	self.lighting_n_widths = get_number_list(section, "LightingNWidth", columns, 0, 0, math.huge)
+	self.lighting_l_widths = get_number_list(section, "LightingLWidth", columns, 0, 0, math.huge)
+	self.stage_lightings = {}
+	self.hit_lightings = {}
+	self.lighting_notes = setmetatable({}, {__mode = "k"})
+	self.lighting_skin = nil
+	self.lighting_loaded = false
+	self.lighting_input_state = {}
 	if self.split_stages and columns > 1 then
 		local split = math.floor(columns / 2)
 		self.column_spacings[split] = math.max(self.column_spacings[split] or 0, self.stage_separation)
@@ -336,6 +367,15 @@ function OsuManiaRenderer:update(dt)
 	self.key_renderer:update(dt)
 	self.note_renderer:update(dt)
 	self.stage_renderer:update(dt)
+	for column = 1, self.columns do
+		local stage_lighting = self.stage_lightings[column]
+		if stage_lighting then stage_lighting:update(dt) end
+		local hit_lighting = self.hit_lightings[column]
+		if hit_lighting then
+			if hit_lighting.short then hit_lighting.short:update(dt) end
+			if hit_lighting.long then hit_lighting.long:update(dt) end
+		end
+	end
 end
 
 function OsuManiaRenderer:load()
@@ -347,6 +387,7 @@ function OsuManiaRenderer:load()
 	if not self.skin_graphics.loaded then
 		self.skin_graphics:load(self:getSkinAssets())
 	end
+	self:loadLightings()
 	self.score_view:refreshSize()
 	self.accuracy_view:setSkin(skin, self.score_view.height)
 end
@@ -355,6 +396,11 @@ function OsuManiaRenderer:unload()
 	self.hud:unload(self.game)
 	self.conveyor_hud:unload(self.game)
 	self.skin_graphics:unload()
+	self.stage_lightings = {}
+	self.hit_lightings = {}
+	self.lighting_skin = nil
+	self.lighting_loaded = false
+	self.lighting_input_state = {}
 end
 
 ---@param width number
@@ -393,6 +439,186 @@ function OsuManiaRenderer:getPlayfieldLayout()
 	local available_width = math.max(0, FIELD_WIDTH - left - right)
 	local scale = full_width > available_width and available_width / full_width or 1
 	return left, widths, scale, full_width
+end
+
+---@param name string?
+---@param fallback string
+---@return love.Image[]
+function OsuManiaRenderer:getLightingFrames(name, fallback)
+	if self.skin_graphics.getAnimationFrames then
+		return self.skin_graphics:getAnimationFrames(name, fallback)
+	end
+	return self.skin_graphics:getFrames(name, fallback)
+end
+
+---@param frames love.Image[]
+---@return number
+local function getLightingFrameRate(frames)
+	-- osu! advances hit-light animations over 170 ms, but never faster than
+	-- the historical 60 Hz update interval.
+	return math.min(#frames / 0.17, 60)
+end
+
+---@param key string
+---@param fallback number[]
+---@return number[]
+function OsuManiaRenderer:getLightingColor(key, fallback)
+	return self:getSkinColor(key, fallback)
+end
+
+function OsuManiaRenderer:loadLightings()
+	if self.lighting_loaded and self.lighting_skin == self.skin then return end
+	self.stage_lightings = {}
+	self.hit_lightings = {}
+	self.lighting_notes = setmetatable({}, {__mode = "k"})
+	self.lighting_skin = self.skin
+	if not self.skin_graphics.loaded then return end
+
+	local function get_name(key)
+		local name = get_section_value(self.section, key)
+		if name and tonumber(name) then return nil end
+		return name
+	end
+
+	local stage_frames = self:getLightingFrames(get_name("StageLight"), "mania-stage-light")
+	local normal_frames = self:getLightingFrames(get_name("LightingN"), "lightingN")
+	local long_frames = self:getLightingFrames(get_name("LightingL"), "lightingL")
+	if #long_frames == 0 then long_frames = normal_frames end
+
+	local _, _, width_scale = self:getPlayfieldLayout()
+	for column = 1, self.columns do
+		local lane_width = (self.column_widths[column] or DEFAULT_COLUMN_WIDTH) * width_scale
+		local stage_color = self:getLightingColor("ColourLight" .. column, {55 / 255, 1, 1, 1})
+		if #stage_frames > 0 then
+			local image_width, image_height = stage_frames[1]:getDimensions()
+			if image_width > 0 and image_height > 0 then
+				self.stage_lightings[column] = OsuManiaLighting({
+					frames = stage_frames,
+					mode = "stage",
+					frame_rate = self.light_frame_rate,
+					width = lane_width,
+					scale_y = FIELD_HEIGHT / 768,
+					color = stage_color,
+					blend_mode = {"alpha", "alphamultiply"},
+					origin_x = 0,
+					origin_y = 1,
+				})
+			end
+		end
+
+		local normal = nil
+		if #normal_frames > 0 then
+			local image_width = normal_frames[1]:getWidth()
+			local lighting_width = self.lighting_n_widths[column] > 0
+				and self.lighting_n_widths[column] * width_scale or lane_width
+			if image_width > 0 then
+				normal = OsuManiaLighting({
+					frames = normal_frames,
+					mode = "oneshot",
+					frame_rate = getLightingFrameRate(normal_frames),
+					width = image_width * lighting_width / 30 * MANIA_HEIGHT_SCALE,
+					scale_y = lighting_width / 30 * MANIA_HEIGHT_SCALE,
+					color = {1, 1, 1, 1},
+					blend_mode = {"add", "alphamultiply"},
+					origin_x = 0.5,
+					origin_y = 0.5,
+					duration = 0.2,
+					fade_in = 0.08,
+					fade_out = 0.12,
+				})
+			end
+		end
+
+		local long = nil
+		if #long_frames > 0 then
+			local image_width = long_frames[1]:getWidth()
+			local lighting_width = self.lighting_l_widths[column] > 0
+				and self.lighting_l_widths[column] * width_scale or lane_width
+			if image_width > 0 then
+				long = OsuManiaLighting({
+					frames = long_frames,
+					mode = "hold",
+					frame_rate = getLightingFrameRate(long_frames),
+					width = image_width * lighting_width / 30 * MANIA_HEIGHT_SCALE,
+					scale_y = lighting_width / 30 * MANIA_HEIGHT_SCALE,
+					color = {1, 1, 1, 1},
+					blend_mode = {"add", "alphamultiply"},
+					origin_x = 0.5,
+					origin_y = 0.5,
+					fade_in = 0.08,
+					fade_out = 0.12,
+				})
+			end
+		end
+		if normal or long then self.hit_lightings[column] = {short = normal, long = long} end
+	end
+	self.lighting_loaded = true
+end
+
+---@param engine rizu.RhythmEngine
+function OsuManiaRenderer:updateLightingInput(engine)
+	self.lighting_input_state = self.lighting_input_state or {}
+	local release_duration = 40 / math.max(engine.chartmeta and engine.chartmeta.tempo or 120, 1)
+	for column = 1, self.columns do
+		local input = self.inputs[column]
+		local engine_column = self.engine_input_map[input] or column
+		local pressed = engine.isColumnPressed and engine:isColumnPressed(engine_column) or false
+		local was_pressed = self.lighting_input_state[column]
+		local lighting = self.stage_lightings[column]
+		if lighting and pressed ~= was_pressed then
+			lighting:setHeld(pressed, release_duration)
+		end
+		self.lighting_input_state[column] = pressed
+	end
+end
+
+---@param notes table[]
+function OsuManiaRenderer:updateHitLightings(notes)
+	local active_long = {}
+	for _, note in ipairs(notes) do
+		local column = self.input_map[note:getColumn()]
+		if column then
+			local state = note:getState()
+			local hit = self.hit_lightings[column]
+			if note.type == "long" and state == "startPassedPressed" then
+				active_long[column] = true
+			elseif hit and (note.type == "short" and state == "passed"
+				or note.type == "long" and state == "endPassed")
+				and not self.lighting_notes[note] then
+				self.lighting_notes[note] = true
+				if hit.short then hit.short:trigger() end
+			end
+		end
+	end
+	for column = 1, self.columns do
+		local hit = self.hit_lightings[column]
+		if hit and hit.long then hit.long:setHeld(active_long[column] == true) end
+	end
+end
+
+---@param lane_widths number[]
+---@param lane_xs number[]
+---@param hit_y number
+function OsuManiaRenderer:drawStageLightings(lane_widths, lane_xs, hit_y)
+	local light_y = self.upside_down and FIELD_HEIGHT - self.light_position or self.light_position
+	for column = 1, self.columns do
+		local lighting = self.stage_lightings[column]
+		if lighting then
+			lighting:draw(lane_xs[column] - lane_widths[column] / 2, light_y, self.upside_down)
+		end
+	end
+end
+
+---@param lane_xs number[]
+---@param hit_y number
+function OsuManiaRenderer:drawHitLightings(lane_xs, hit_y)
+	for column = 1, self.columns do
+		local hit = self.hit_lightings[column]
+		if hit then
+			if hit.short then hit.short:draw(lane_xs[column], hit_y) end
+			if hit.long then hit.long:draw(lane_xs[column], hit_y) end
+		end
+	end
 end
 
 ---@return {name: string?, fallback: string?, animation: boolean?}[]
@@ -437,6 +663,9 @@ function OsuManiaRenderer:getSkinAssets()
 		local fallback = "mania-" .. key:gsub("^Stage", "stage-"):lower()
 		add(name, fallback)
 	end
+	add(get_section_value(self.section, "StageLight"), "mania-stage-light", true)
+	add(get_section_value(self.section, "LightingN"), "lightingN", true)
+	add(get_section_value(self.section, "LightingL"), "lightingL", true)
 
 	local score_images = self.score_view:getImageAssets()
 	for _, name in ipairs(score_images) do add(name) end
@@ -638,6 +867,7 @@ end
 ---@param hit_y number
 function OsuManiaRenderer:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
 	self.stage_renderer:draw(self, field_left, field_width, lane_widths, lane_xs, hit_y)
+	self:drawStageLightings(lane_widths, lane_xs, hit_y)
 end
 
 ---@param notes {column: integer, long_note: boolean, head_y: number, tail_y: number, body_visible: boolean, body_frame: integer?, head_visible: boolean}[]
@@ -745,6 +975,8 @@ function OsuManiaRenderer:draw(width, height, transform)
 	local visual_engine = engine and engine.visual_engine
 	if not visual_engine or self.columns == 0 then return end
 	self:load()
+	self:updateLightingInput(engine)
+	self:updateHitLightings(visual_engine.visible_notes)
 
 	local scale, offset_x, offset_y = self:getFieldTransform(width, height)
 	local field_left, column_widths, width_scale = self:getPlayfieldLayout()
@@ -813,6 +1045,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 
 	if not self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 	if not self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
+	self:drawHitLightings(lane_xs, hit_y)
 	lg.pop()
 end
 
