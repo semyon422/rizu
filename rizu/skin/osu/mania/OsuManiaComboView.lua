@@ -94,6 +94,7 @@ function OsuManiaComboView:update(dt)
 			self.elapsed = 0
 			self.alpha = 0.8
 			self.break_combo = self.display_combo
+			self.display_combo = 0
 		end
 	end
 	self.combo = combo
