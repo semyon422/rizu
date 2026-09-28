@@ -42,7 +42,6 @@ local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 ---@field judgement_line boolean
 ---@field note_flip boolean
 ---@field key_flip boolean
----@field scratch_on_left boolean
 ---@field engine_input_map {[chart.Column]: integer}
 ---@field field_renderer rizu.skin.osu.mania.OsuManiaFieldRenderer
 ---@field key_renderer rizu.skin.osu.mania.OsuManiaKeyRenderer
@@ -119,7 +118,6 @@ function OsuManiaRenderer:new(game, input_mode, skin_path)
 	self.judgement_line = true
 	self.note_flip = true
 	self.key_flip = true
-	self.scratch_on_left = false -- Should be replaced by visual column reorder.
 	self.split_stages = false
 	self.stage_separation = 40
 	self:loadSkinSettings(self:getSkin())
@@ -211,6 +209,61 @@ local function get_number_list(section, key, count, default, minimum, maximum)
 	return result
 end
 
+---@param columns integer
+---@param scratch_count integer
+---@param special_style integer
+---@return {[integer]: boolean}
+local function get_scratch_columns(columns, scratch_count, special_style)
+	local scratch_columns = {}
+	if special_style == 1 then
+		if scratch_count == 1 then
+			scratch_columns[1] = true
+		elseif scratch_count == 2 then
+			scratch_columns[1] = true
+			scratch_columns[columns] = true
+		end
+	elseif special_style == 2 then
+		if scratch_count == 1 then
+			scratch_columns[columns] = true
+		elseif scratch_count == 2 then
+			local center = math.floor(columns / 2)
+			scratch_columns[center] = true
+			scratch_columns[center + 1] = true
+		end
+	end
+	return scratch_columns
+end
+
+---@param inputs chart.Column[]
+---@param special_style integer
+---@return chart.Column[]
+local function reorder_scratch_inputs(inputs, special_style)
+	local scratches, keys = {}, {}
+	for _, input in ipairs(inputs) do
+		if input:lower():match("^scratch%d+$") then
+			scratches[#scratches + 1] = input
+		else
+			keys[#keys + 1] = input
+		end
+	end
+
+	local scratch_columns = get_scratch_columns(#inputs, #scratches, special_style)
+	if not next(scratch_columns) then return inputs end
+
+	local reordered = {}
+	local scratch_index, key_index = 1, 1
+	for column = 1, #inputs do
+		if scratch_columns[column] then
+			reordered[column] = scratches[scratch_index]
+			scratch_index = scratch_index + 1
+		else
+			reordered[column] = keys[key_index]
+			key_index = key_index + 1
+		end
+	end
+	return reordered
+end
+
 ---@param skin rizu.skin.OsuSkinDiscovery?
 function OsuManiaRenderer:loadSkinSettings(skin)
 	self.skin = skin
@@ -251,7 +304,6 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.judgement_line = get_boolean(section, "JudgementLine", false)
 	self.note_flip = get_boolean(section, "NoteFlipWhenUpsideDown", true)
 	self.key_flip = get_boolean(section, "KeyFlipWhenUpsideDown", true)
-	self.scratch_on_left = get_boolean(section, "ScratchOnLeft", false)
 	self.split_stages = get_boolean(section, "SplitStages", self.columns >= 10)
 	self.stage_separation = math.max(5, get_number(section, "StageSeparation", 40))
 	if self.split_stages and columns > 1 then
@@ -259,7 +311,6 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 		self.column_spacings[split] = math.max(self.column_spacings[split] or 0, self.stage_separation)
 	end
 
-	local inputs = self.input_map
 	local skin_inputs = get_section_value(section, "Inputs" .. self.input_mode)
 	if skin_inputs then
 		local reordered = {}
@@ -269,16 +320,8 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 		end
 		if #reordered == columns then self.inputs = reordered end
 	end
-	if self.scratch_on_left then
-		for index, input in ipairs(self.inputs) do
-			if input:lower():match("^scratch%d+$") then
-				table.remove(self.inputs, index)
-				table.insert(self.inputs, 1, input)
-				break
-			end
-		end
-	end
-	inputs = {}
+	self.inputs = reorder_scratch_inputs(self.inputs, self.special_style)
+	local inputs = {}
 	for column, input in ipairs(self.inputs) do inputs[input] = column end
 	self.input_map = inputs
 end
@@ -427,10 +470,37 @@ end
 ---@param column integer zero based physical Mania lane index
 ---@return "1"|"2"|"S"
 function OsuManiaRenderer:getColumnSuffix(column)
-	local key = column + 1
+	local physical_column = column + 1
+	local scratch_count = 0
+	for _, input in ipairs(self.inputs) do
+		if input:lower():match("^scratch%d+$") then scratch_count = scratch_count + 1 end
+	end
+
+	if scratch_count > 0 and (self.special_style == 1 or self.special_style == 2) then
+		local scratch_columns = get_scratch_columns(self.columns, scratch_count, self.special_style)
+		if scratch_columns[physical_column] then return "S" end
+
+		local scratch_before = 0
+		for current = 1, physical_column do
+			if scratch_columns[current] then scratch_before = scratch_before + 1 end
+		end
+		local key = physical_column - scratch_before
+		local key_count = self.columns - scratch_count
+		if key_count % 2 == 1 then
+			local half = (key_count - 1) / 2
+			if (key_count + 1) / 2 == key then return "2" end
+			return (half - key + 1) % 2 == 1 and "1" or "2"
+		end
+		local odd = (key_count / 2 - key + 1) % 2 == 1
+		local same = key <= key_count / 2
+		return odd == same and "2" or "1"
+	end
+
+	-- Preserve the original fallback layout for key-only modes and for skins
+	-- that declare SpecialStyle without a matching scratch input mode.
+	local key = physical_column
 	local key_count = self.columns
 	local special_style = self.special_style
-
 	if special_style == 1 then
 		if key == 1 then return "S" end
 		key = key - 1

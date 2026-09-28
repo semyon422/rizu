@@ -68,6 +68,54 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	renderer:unload()
 end
 
+function test.special_style_reorders_scratch_inputs_without_changing_columns(t)
+	local function create_renderer(input_mode, special_style)
+		local skin = {
+			path = "skins/special-style-" .. input_mode .. "-" .. special_style,
+			files = {}, skin_ini = {Mania = {{Keys = input_mode == "7key1scratch" and "8" or "16",
+				SpecialStyle = tostring(special_style)}}},
+		}
+		local game = {
+			fs = FakeFilesystem(),
+			settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
+		skinRegistry = {
+				getOsuSkin = function(_, path) return path == skin.path and skin end,
+				getOsuSkins = function() return {skin} end,
+			},
+		}
+		return OsuManiaRenderer(game, input_mode)
+	end
+
+	local left = create_renderer("7key1scratch", 1)
+	t:eq(left.inputs[1], "scratch1")
+	t:eq(left.input_map.scratch1, 1)
+	t:eq(left:getColumnSuffix(0), "S")
+	left:unload()
+
+	local right = create_renderer("7key1scratch", 2)
+	t:eq(right.inputs[8], "scratch1")
+	t:eq(right.input_map.scratch1, 8)
+	t:eq(right:getColumnSuffix(7), "S")
+	right:unload()
+
+	local outer = create_renderer("14key2scratch", 1)
+	t:eq(outer.inputs[1], "scratch1")
+	t:eq(outer.inputs[16], "scratch2")
+	t:eq(outer.input_map.scratch1, 1)
+	t:eq(outer.input_map.scratch2, 16)
+	t:eq(outer:getColumnSuffix(0), "S")
+	t:eq(outer:getColumnSuffix(15), "S")
+	outer:unload()
+
+	local center = create_renderer("14key2scratch", 2)
+	t:eq(center.inputs[8], "scratch1")
+	t:eq(center.inputs[9], "scratch2")
+	t:eq(center.input_map.scratch1, 8)
+	t:eq(center.input_map.scratch2, 9)
+	t:eq(center:getColumnSuffix(7), "S")
+	t:eq(center:getColumnSuffix(8), "S")
+	center:unload()
+end
 function test.uses_separate_conveyor_hud_for_conveyor_anchored_views(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
 	t:eq(renderer.hud.children[1], renderer.score_view)
