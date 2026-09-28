@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class rizu.skin.easy_lua.HitLighting.Config
+---@class rizu.skin.easy_lua.StageLighting.Config
 ---@field image love.Image? Single image to display when triggered; mutually exclusive with frames.
 ---@field fit_width boolean? Fit image frame width to width; defaults to true only when width is given.
 ---@field frames love.Image[]? Animation frames in playback order.
@@ -16,11 +16,10 @@ local class = require("class")
 ---@field blend_mode {[1]: string, [2]: string?}? LÖVE blend mode and optional alpha mode.
 ---@field color number[]? RGBA tint; defaults to white with 0.15 alpha.
 
----@class rizu.skin.easy_lua.HitLighting
----@operator call: rizu.skin.easy_lua.HitLighting
+---@class rizu.skin.easy_lua.StageLighting
+---@operator call: rizu.skin.easy_lua.StageLighting
 ---@field image love.Image
 ---@field frames love.Image[]
----@field width number
 ---@field fit_width boolean
 ---@field scale_y number
 ---@field offset_x number
@@ -34,20 +33,20 @@ local class = require("class")
 ---@field color number[]
 ---@field elapsed number
 ---@field active boolean
-local HitLighting = class()
+local StageLighting = class()
 
----@param config rizu.skin.easy_lua.HitLighting.Config
-function HitLighting:new(config)
-	assert(type(config) == "table", "hit lighting config must be a table")
+---@param config rizu.skin.easy_lua.StageLighting.Config
+function StageLighting:new(config)
+	assert(type(config) == "table", "stage lighting config must be a table")
 	assert(not (config.image and config.frames), "specify either image or frames, not both")
 	local frames = config.frames
 	if not frames and config.image then
 		frames = {config.image}
 	end
-	assert(type(frames) == "table" and #frames > 0, "hit lighting image or non-empty frames are required")
+	assert(type(frames) == "table" and #frames > 0, "stage lighting image or non-empty frames are required")
 	for index, frame in ipairs(frames) do
 		assert(frame and type(frame.getDimensions) == "function",
-			("hit lighting frame %d must be a Love image"):format(index))
+			("stage lighting frame %d must be a Love image"):format(index))
 	end
 
 	self.frames = frames
@@ -57,7 +56,7 @@ function HitLighting:new(config)
 	if config.fit_width == nil then
 		self.fit_width = config.width ~= nil
 	else
-		assert(type(config.fit_width) == "boolean", "hit lighting fit_width must be a boolean")
+		assert(type(config.fit_width) == "boolean", "stage lighting fit_width must be a boolean")
 		self.fit_width = config.fit_width
 	end
 	self.scale_y = config.scale_y or 1
@@ -74,44 +73,44 @@ function HitLighting:new(config)
 	self.active = false
 
 	assert(type(self.width) == "number" and self.width > 0 and self.width < math.huge,
-		"hit lighting width must be positive and finite")
+		"stage lighting width must be positive and finite")
 	assert(type(self.scale_y) == "number" and self.scale_y == self.scale_y and math.abs(self.scale_y) < math.huge,
-		"hit lighting scale_y must be finite")
+		"stage lighting scale_y must be finite")
 	assert(type(self.offset_x) == "number" and self.offset_x == self.offset_x and math.abs(self.offset_x) < math.huge,
-		"hit lighting offset_x must be finite")
+		"stage lighting offset_x must be finite")
 	assert(type(self.offset_y) == "number" and self.offset_y == self.offset_y and math.abs(self.offset_y) < math.huge,
-		"hit lighting offset_y must be finite")
+		"stage lighting offset_y must be finite")
 	assert(type(self.frame_rate) == "number" and self.frame_rate > 0 and self.frame_rate < math.huge,
-		"hit lighting frame_rate must be positive and finite")
+		"stage lighting frame_rate must be positive and finite")
 	assert(type(self.duration) == "number" and self.duration > 0 and self.duration < math.huge,
-		"hit lighting duration must be positive and finite")
+		"stage lighting duration must be positive and finite")
 	assert(type(self.animation) == "string" and (self.animation == "shrink" or self.animation == "fade"),
-		"hit lighting animation must be 'shrink' or 'fade'")
+		"stage lighting animation must be 'shrink' or 'fade'")
 	assert(type(self.origin_x) == "number" and self.origin_x == self.origin_x
-		and self.origin_x >= 0 and self.origin_x <= 1, "hit lighting origin_x must be between 0 and 1")
+		and self.origin_x >= 0 and self.origin_x <= 1, "stage lighting origin_x must be between 0 and 1")
 	assert(type(self.origin_y) == "number" and self.origin_y == self.origin_y
-		and self.origin_y >= 0 and self.origin_y <= 1, "hit lighting origin_y must be between 0 and 1")
+		and self.origin_y >= 0 and self.origin_y <= 1, "stage lighting origin_y must be between 0 and 1")
 	if self.blend_mode then
 		assert(type(self.blend_mode) == "table" and type(self.blend_mode[1]) == "string"
 			and (self.blend_mode[2] == nil or type(self.blend_mode[2]) == "string"),
-			"hit lighting blend_mode must contain a mode and optional alpha mode")
+			"stage lighting blend_mode must contain a mode and optional alpha mode")
 	end
 	assert(type(self.color) == "table" and #self.color >= 3 and #self.color <= 4,
-		"hit lighting color must be RGB or RGBA")
+		"stage lighting color must be RGB or RGBA")
 	for i = 1, #self.color do
 		local channel = self.color[i]
 		assert(type(channel) == "number" and channel == channel and channel >= 0 and channel <= 1,
-			"hit lighting color channels must be between 0 and 1")
+			"stage lighting color channels must be between 0 and 1")
 	end
 end
 
-function HitLighting:trigger()
+function StageLighting:trigger()
 	self.elapsed = 0
 	self.active = true
 end
 
 ---@param dt number
-function HitLighting:update(dt)
+function StageLighting:update(dt)
 	if not self.active then return end
 	self.elapsed = self.elapsed + dt
 	if self.elapsed >= self.duration then
@@ -122,7 +121,7 @@ end
 
 ---@param x number Column centerline.
 ---@param hit_y number Column hit position.
-function HitLighting:draw(x, hit_y)
+function StageLighting:draw(x, hit_y)
 	if not self.active then return end
 	local progress = math.min(self.elapsed / self.duration, 1)
 	local frame_index = math.min(math.floor(self.elapsed * self.frame_rate) + 1, #self.frames)
@@ -143,4 +142,4 @@ function HitLighting:draw(x, hit_y)
 	love.graphics.pop()
 end
 
-return HitLighting
+return StageLighting

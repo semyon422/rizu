@@ -37,6 +37,43 @@ function test.column_rejects_invalid_geometry(t)
 	t:eq(column.notes.image, nil)
 end
 
+function test.column_hit_lighting_uses_note_type_and_success_state(t)
+	local HitLighting = require("rizu.skin.easy_lua.HitLighting")
+	local image = {getWidth = function() return 40 end, getDimensions = function() return 40, 40 end}
+	local short_lighting = HitLighting({image = image})
+	local long_lighting = HitLighting({image = image})
+	local column = Column({
+		input = "key1", x = 100, y = 300, width = 40,
+		hit_lighting = {short = short_lighting, long = long_lighting},
+	})
+	local short_note = {
+		type = "short",
+		getColumn = function() return "key1" end,
+		getState = function() return "clear" end,
+	}
+	local long_note = {
+		type = "long",
+		getColumn = function() return "key1" end,
+		getState = function() return "clear" end,
+	}
+
+	column:triggerHitLighting({short_note, long_note})
+	t:eq(short_lighting.active, false)
+	t:eq(long_lighting.active, false)
+	short_note.getState = function() return "passed" end
+	column:triggerHitLighting({short_note, long_note})
+	t:eq(short_lighting.active, true)
+	t:eq(long_lighting.active, false)
+	column:triggerHitLighting({short_note, long_note})
+	t:eq(short_lighting.elapsed, 0)
+	long_note.getState = function() return "startPassedPressed" end
+	column:triggerHitLighting({short_note, long_note})
+	t:eq(long_lighting.active, true)
+	column:update(0.1)
+	t:eq(short_lighting.elapsed, 0.1)
+	t:eq(long_lighting.elapsed, 0.1)
+end
+
 ---@param t testing.T
 function test.conveyor_uses_480_high_native_space_and_aspect_scaled_width(t)
 	t:eq(Conveyor.HEIGHT, 480)

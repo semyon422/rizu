@@ -1,12 +1,16 @@
 local class = require("class")
 
 ---@class rizu.skin.easy_lua.Note.HoldStyle
----@field body love.Image?
 ---@field head love.Image?
----@field tail love.Image?
+---@field head_scale_x number? Optional horizontal scale for the long-note head.
+---@field head_scale_y number? Optional vertical scale for the long-note head.
+---@field body love.Image?
 ---@field body_scale_x number?
 ---@field body_scale_y number? Body scale_y; defaults to the note scale_y.
 ---@field body_fit_duration boolean? Explicitly stretch the body to the note duration.
+---@field tail love.Image?
+---@field tail_scale_x number? Optional horizontal scale for the long-note tail.
+---@field tail_scale_y number? Optional vertical scale for the long-note tail.
 
 ---@class rizu.skin.easy_lua.Note.Config
 ---@field image love.Image? Image used for short notes and default long-note head/tail.
@@ -137,11 +141,13 @@ function Note:drawNote(visual_note, column_x, hit_y, pixels_per_second, reverse,
 				color, left, right, viewport_height)
 		end
 		if head_visible then
-			draw_image(hold and hold.head or image, x, start_y, scale_x, scale_y,
+			draw_image(hold and hold.head or image, x, start_y,
+				hold and hold.head_scale_x or scale_x, hold and hold.head_scale_y or scale_y,
 				color, left, right, viewport_height)
 		end
 		if long_note_visible then
-			draw_image(hold and hold.tail or image, x, end_y, scale_x, scale_y,
+			draw_image(hold and hold.tail or image, x, end_y,
+				hold and hold.tail_scale_x or scale_x, hold and hold.tail_scale_y or scale_y,
 				color, left, right, viewport_height)
 		end
 	elseif head_visible then

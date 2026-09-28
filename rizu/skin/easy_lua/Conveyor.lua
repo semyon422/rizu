@@ -78,8 +78,7 @@ function Conveyor:draw(visible_notes, viewport_width, viewport_height, transform
 		self.columns[i]:drawBackground(Conveyor.HEIGHT)
 	end
 	for i = 1, #self.columns do
-		local column = self.columns[i]
-		column:draw(visible_notes, self.pixels_per_second, self.reverse, 0, canvas_width)
+		self.columns[i]:draw(visible_notes, self.pixels_per_second, self.reverse, 0, canvas_width)
 	end
 	for i = 1, #self.columns do
 		local column = self.columns[i]
@@ -90,6 +89,11 @@ function Conveyor:draw(visible_notes, viewport_width, viewport_height, transform
 		column:updateInput(pressed)
 		column:drawReceptor(pressed)
 	end
+	-- Stage lighting overlays the column background, notes, and receptor.
+	for i = 1, #self.columns do
+		self.columns[i]:drawStageLighting()
+	end
+	-- Judgement-driven hit effects stay on top of the stage lighting.
 	for i = 1, #self.columns do
 		self.columns[i]:drawHitLighting()
 	end

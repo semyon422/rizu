@@ -1,7 +1,12 @@
 local class = require("class")
 local Note = require("rizu.skin.easy_lua.Note")
 local Receptor = require("rizu.skin.easy_lua.Receptor")
+local StageLighting = require("rizu.skin.easy_lua.StageLighting")
 local HitLighting = require("rizu.skin.easy_lua.HitLighting")
+
+---@class rizu.skin.easy_lua.Column.HitLightingConfig
+---@field short rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLighting.Config? Short-note hit effect.
+---@field long rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLighting.Config? Long-note hit effect.
 
 ---@class rizu.skin.easy_lua.Column.Config
 ---@field input chart.Column Input represented by this column.
@@ -11,7 +16,8 @@ local HitLighting = require("rizu.skin.easy_lua.HitLighting")
 ---@field notes rizu.skin.easy_lua.Note|rizu.skin.easy_lua.Note.Config? Note drawing style.
 ---@field background_color number[]? RGBA background fill; omitted means transparent.
 ---@field receptor rizu.skin.easy_lua.Receptor|rizu.skin.easy_lua.Receptor.Config? Input-state receptor art.
----@field hit_lighting rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLighting.Config? Input-triggered hit flash.
+---@field stage_lighting rizu.skin.easy_lua.StageLighting|rizu.skin.easy_lua.StageLighting.Config? Input-triggered stage flash.
+---@field hit_lighting rizu.skin.easy_lua.Column.HitLightingConfig? Separate short/long note-judgement effects.
 
 ---@class rizu.skin.easy_lua.Column
 ---@operator call: rizu.skin.easy_lua.Column
@@ -21,7 +27,9 @@ local HitLighting = require("rizu.skin.easy_lua.HitLighting")
 ---@field width number
 ---@field background_color number[]?
 ---@field receptor rizu.skin.easy_lua.Receptor?
----@field hit_lighting rizu.skin.easy_lua.HitLighting?
+---@field stage_lighting rizu.skin.easy_lua.StageLighting?
+---@field hit_lighting {[string]: rizu.skin.easy_lua.HitLighting?}?
+---@field hit_lighting_notes {[rizu.VisualNote]: boolean}?
 ---@field notes rizu.skin.easy_lua.Note
 local Column = class()
 
@@ -40,6 +48,8 @@ function Column:new(config)
 	self.y = config.y
 	self.width = config.width
 	self.background_color = config.background_color
+	self.stage_lighting = nil
+	self.hit_lighting = nil
 	if self.background_color then
 		assert(type(self.background_color) == "table" and #self.background_color >= 3
 			and #self.background_color <= 4, "column background_color must be RGB or RGBA")
@@ -58,14 +68,33 @@ function Column:new(config)
 			self.receptor = Receptor(configured_receptor)
 		end
 	end
+	local configured_stage_lighting = config.stage_lighting
+	if configured_stage_lighting then
+		if StageLighting * configured_stage_lighting then
+			---@cast configured_stage_lighting rizu.skin.easy_lua.StageLighting
+			self.stage_lighting = configured_stage_lighting
+		else
+			self.stage_lighting = StageLighting(configured_stage_lighting)
+		end
+	end
 	local configured_hit_lighting = config.hit_lighting
 	if configured_hit_lighting then
-		if HitLighting * configured_hit_lighting then
-			---@cast configured_hit_lighting rizu.skin.easy_lua.HitLighting
-			self.hit_lighting = configured_hit_lighting
-		else
-			self.hit_lighting = HitLighting(configured_hit_lighting)
+		assert(type(configured_hit_lighting) == "table", "column hit_lighting must be a table")
+		self.hit_lighting = {} ---@type {[string]: rizu.skin.easy_lua.HitLighting?}
+		local lighting_configs = configured_hit_lighting ---@type {[string]: rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLighting.Config}
+		for _, note_type in ipairs({"short", "long"}) do
+			---@cast note_type "short"|"long"
+			local configured_lighting = lighting_configs[note_type]
+			if configured_lighting then
+				if HitLighting * configured_lighting then
+					---@cast configured_lighting rizu.skin.easy_lua.HitLighting
+					self.hit_lighting[note_type] = configured_lighting
+				else
+					self.hit_lighting[note_type] = HitLighting(configured_lighting)
+				end
+			end
 		end
+		self.hit_lighting_notes = setmetatable({}, {__mode = "k"})
 	end
 	local configured_notes = config.notes
 	if Note * configured_notes then
@@ -86,16 +115,44 @@ end
 
 ---@param pressed boolean
 function Column:updateInput(pressed)
-	if pressed and not self.input_was_pressed and self.hit_lighting then
-		self.hit_lighting:trigger()
+	if pressed and not self.input_was_pressed and self.stage_lighting then
+		self.stage_lighting:trigger()
 	end
 	self.input_was_pressed = pressed
 end
 
 
+function Column:drawStageLighting()
+	if self.stage_lighting then
+		self.stage_lighting:draw(self.x, self.y)
+	end
+end
+
 function Column:drawHitLighting()
-	if self.hit_lighting then
-		self.hit_lighting:draw(self.x, self.y)
+	if not self.hit_lighting then return end
+	if self.hit_lighting.short then self.hit_lighting.short:draw(self.x, self.y) end
+	if self.hit_lighting.long then self.hit_lighting.long:draw(self.x, self.y) end
+end
+
+---@param visible_notes rizu.VisualNote[]
+function Column:triggerHitLighting(visible_notes)
+	if not self.hit_lighting then return end
+	self.hit_lighting_notes = self.hit_lighting_notes or setmetatable({}, {__mode = "k"})
+	for _, visual_note in ipairs(visible_notes) do
+		if visual_note:getColumn() == self.input then
+			local state = visual_note:getState()
+			local note_type ---@type "short"|"long"?
+			if visual_note.type == "short" and state == "passed" then
+				note_type = "short"
+			elseif visual_note.type == "long" and state == "startPassedPressed" then
+				note_type = "long"
+			end
+			if note_type and not self.hit_lighting_notes[visual_note] then
+				self.hit_lighting_notes[visual_note] = true
+				local lighting = self.hit_lighting[note_type]
+				if lighting then lighting:trigger() end
+			end
+		end
 	end
 end
 
@@ -111,16 +168,25 @@ end
 ---@param reverse boolean
 ---@param left number
 ---@param right number
-function Column:draw(visible_notes, pixels_per_second, reverse, left, right)
+function Column:drawNotes(visible_notes, pixels_per_second, reverse, left, right)
+	self:triggerHitLighting(visible_notes)
 	self.notes:draw(visible_notes, self.input, self.x, self.y,
 		pixels_per_second, reverse, left, right, 480)
+end
+
+function Column:draw(visible_notes, pixels_per_second, reverse, left, right)
+	self:drawNotes(visible_notes, pixels_per_second, reverse, left, right)
 end
 
 ---@param dt number
 function Column:update(dt)
 	self.notes:update(dt)
 	if self.receptor then self.receptor:update(dt) end
-	if self.hit_lighting then self.hit_lighting:update(dt) end
+	if self.stage_lighting then self.stage_lighting:update(dt) end
+	if self.hit_lighting then
+		if self.hit_lighting.short then self.hit_lighting.short:update(dt) end
+		if self.hit_lighting.long then self.hit_lighting.long:update(dt) end
+	end
 end
 
 return Column

@@ -39,8 +39,11 @@ The initial object composition is deliberately small:
 ```text
 PlayfieldRenderer (game integration / custom-skin boundary)
 └── Conveyor
+    ├── Sprite (reusable static image component)
     └── Column
-        └── Note style / note renderer
+        ├── Note style / note renderer
+        ├── Receptor
+        └── Stage lighting
 ```
 
 These easy-Lua objects are plain reusable rendering objects, not `gui.View`s. The tree describes composition and update/draw delegation; it does not create a node per gameplay note. `Conveyor:update(dt)` updates its columns and note components, and `Conveyor:draw(...)` receives the engine's visible-note list and asks each column to draw notes for its input.
@@ -56,6 +59,10 @@ Owns an ordered list of columns and the shared vertical scrolling configuration:
 
 Columns must have unique input identifiers in a conveyor. The conveyor does not decide how gameplay inputs are interpreted or judged.
 
+### Sprite
+
+A reusable static image positioned in native conveyor coordinates. It owns no texture resource; skin code loads and releases the `love.Image`. Configure its center position, scale, rotation, normalized origin, offset, and tint. `draw()` renders it, with optional X/Y overrides for reusable relative placement; `update(dt)` is a no-op extension point for later animated sprites.
+
 ### Column
 
 A column explicitly declares:
@@ -64,7 +71,8 @@ A column explicitly declares:
 - `x`: manually authored horizontal centerline.
 - `y`: hit position, equivalent to the receptor position to be added later.
 - `width`: a suggested lane width only. It is not an implicit hit area and does not force child images to resize.
-- `notes`: a note-rendering style/component.
+- `stage_lighting`: optional input-triggered stage flash, separate from hit lighting and the receptor's pressed-state artwork.
+- `hit_lighting`: optional short/long note effects; these trigger on successful note judgements, not directly on key presses.
 
 Elements added in future work must be able to set their own X, Y, width, and height relative to or independent of the column. In particular, receptors may need custom dimensions and X offsets, as in IIDX skins.
 
@@ -83,11 +91,9 @@ Gameplay note state affects which portions are drawn. For example, an active hel
 
 The 320 skin and API discussion identify likely next components. Add these only when implementing or porting a concrete skin that exercises them:
 
-1. **Per-column element composition**: column background, independently positioned note artwork, receptor, hit lighting, and hit explosion. Components should expose their own geometry rather than silently fitting to the suggested column width.
-2. **Input-driven receptor/lighting state**: hit lighting triggers when a key press is accepted as a new press. If the game already considers that input held, another press may still be handled by gameplay, but should not create a second visual press response.
-3. **Judgement-driven explosions**: spawn/trigger only on successful score-system hits, with the actual judgement (e.g. Marvelous, Perfect, Good) available for selecting the effect.
-4. **Reusable animation**: persistent components may animate through `update(dt)` and be retargeted or restarted by input/judgement events. Do not create retained views per note just to obtain tweens. Any component animation work must preserve the renderer's ownership and lifecycle.
-5. **Layer ordering**: define a predictable conveyor-wide order for backgrounds, notes, receptors, and effects. Do not rely on per-column draw grouping when columns can overlap.
+1. **Stage composition**: assemble a stage from reusable sprites, including static background/side/bottom artwork and layers around the playfield. Preserve a predictable stage draw order relative to column backgrounds, notes, receptors, and stage lighting.
+2. **Judgement-driven explosions**: spawn/trigger only on successful score-system hits, with the actual judgement (e.g. Marvelous, Perfect, Good) available for selecting the effect.
+3. **Reusable animation**: persistent components may animate through `update(dt)` and be retargeted or restarted by input/judgement events. Do not create retained views per note just to obtain tweens. Any component animation work must preserve the renderer's ownership and lifecycle.
 
 ## Integration and lifecycle
 
@@ -104,8 +110,8 @@ Visual note timing remains sourced from the rhythm engine. `dt` is for advancing
 
 ## Current status
 
-Implemented: `Conveyor`, `Column`, and `Note` for manually positioned columns and short/long note drawing; renderer `update(dt)` integration; tests in `Conveyor_test.lua`.
+Implemented: `Conveyor`, `Column`, `Sprite`, `Note`, `Receptor`, `StageLighting`, and `HitLighting`; stage lighting is input-triggered while separate short/long hit-light animations respond to successful note states. Both support ordered image frames, configurable frame rate/blend mode, shrink/fade effects, and renderer `update(dt)` integration; tests cover rendering, note-type separation, input-triggered stage lighting, and native geometry.
 
-Not yet implemented: skin discovery/selection changes for a new package format, a sample easy-Lua skin using this namespace, per-column backgrounds/receptors/lighting/explosions, judgement-event delivery, or HUD support.
+Not yet implemented: stage composition using `Sprite`, skin discovery/selection changes for a new package format, a sample easy-Lua skin using this namespace, judgement-event delivery, or HUD support.
 
 Treat this document as the direction and scope for the easy-Lua helpers, not as a promise that every planned component already exists.
