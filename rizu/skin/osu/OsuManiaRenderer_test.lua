@@ -14,7 +14,7 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 				{Keys = "4", ColumnStart = "136", ColumnRight = "19", ColumnWidth = "51,51,51,51",
 					ColumnSpacing = "2,2,2", HitPosition = "400", ComboPosition = "125",
 					KeyImage0 = "Mania\\key-custom", NoteImage0 = "Mania\\note-custom",
-					StageHint = "Mania\\stage-custom",
+					StageHint = "Mania\\stage-custom", StageUnderKeys = "0",
 					SpecialStyle = "0", JudgementLine = "0"},
 			},
 			Fonts = {ComboPrefix = "combo", ScorePrefix = "digits", ComboOverlap = "-2", ScoreOverlap = "1"},
@@ -34,14 +34,18 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	t:eq(renderer.columns, 4)
 	t:eq(renderer.hit_position, 400)
 	t:eq(renderer.judgement_line, false)
+	t:eq(renderer.stage_under_keys, false)
 	t:eq(renderer.score_view.score_prefix, "digits")
 	t:eq(renderer.score_view.score_overlap, 1)
 	local assets = renderer:getSkinAssets()
 	local asset_names = {}
-	for _, asset in ipairs(assets) do asset_names[asset.name or asset.fallback] = true end
+	for _, asset in ipairs(assets) do
+		asset_names[asset.name or asset.fallback] = asset
+	end
 	t:assert(asset_names["Mania\\key-custom"])
 	t:assert(asset_names["Mania\\note-custom"])
 	t:assert(asset_names["Mania\\stage-custom"])
+	t:assert(asset_names["mania-note1L"].animation)
 	t:assert(asset_names["digits-9"])
 	t:eq(asset_names["ui-button"], nil)
 	local left, widths, width_scale = renderer:getPlayfieldLayout()
@@ -316,6 +320,72 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 	if not ok then error(err) end
 end
 
+function test.long_note_body_uses_the_selected_animation_frame(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local images = {
+		body_first = {getDimensions = function() return 20, 20 end},
+		body_second = {getDimensions = function() return 20, 20 end},
+		head = {getDimensions = function() return 20, 20 end},
+		tail = {getDimensions = function() return 20, 20 end},
+	}
+	renderer.skin_graphics = {
+		unload = function() end,
+		getFrames = function(_, name)
+			local image = name == "mania-note1H" and images.head
+				or name == "mania-note1T" and images.tail
+			return image and {image} or {}
+		end,
+		getAnimationFrames = function(_, name)
+			return name == "mania-note1L" and {images.body_first, images.body_second} or {}
+		end,
+	}
+	local note = {
+		getState = function() return "startPassedPressed" end,
+		getPressedTime = function() return 0 end,
+		visual_info = {getTime = function() return 0.031 end},
+	}
+	t:eq(renderer:getNoteBodyFrame(note, 2), 2)
+
+	local previous_draw = love.graphics.draw
+	local drawn_images = {}
+	love.graphics.draw = function(image) drawn_images[#drawn_images + 1] = image end
+	local ok, err = xpcall(function()
+		renderer.note_renderer:draw(renderer, {{
+			column = 1, long_note = true, head_y = 100, tail_y = 200,
+			body_visible = true, body_frame = 2, head_visible = false,
+		}}, {30, 30, 30, 30}, {15, 45, 75, 105})
+	end, debug.traceback)
+	love.graphics.draw = previous_draw
+	renderer:unload()
+	if not ok then error(err) end
+	t:eq(drawn_images[1], images.body_second)
+end
+
+function test.draws_stage_before_keys(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	renderer.load = function() end
+	renderer.game.rhythm_engine = {visual_engine = {visible_notes = {}}, isColumnPressed = function() return false end}
+	local events = {}
+	renderer.field_renderer.drawBackground = function() end
+	renderer.field_renderer.drawLanes = function() end
+	renderer.field_renderer.drawGuides = function() end
+	renderer.stage_renderer.draw = function() events[#events + 1] = "stage" end
+	renderer.note_renderer.draw = function() events[#events + 1] = "notes" end
+	renderer.key_renderer.draw = function() events[#events + 1] = "keys" end
+	local graphics = love.graphics
+	local previous = {push = graphics.push, pop = graphics.pop, applyTransform = graphics.applyTransform,
+		translate = graphics.translate, scale = graphics.scale}
+	graphics.push = function() end
+	graphics.pop = function() end
+	graphics.applyTransform = function() end
+	graphics.translate = function() end
+	graphics.scale = function() end
+	local ok, err = pcall(function() renderer:draw(640, 480, {}) end)
+	for name, fn in pairs(previous) do graphics[name] = fn end
+	renderer:unload()
+	if not ok then error(err) end
+	t:tdeq(events, {"stage", "notes", "keys"})
+end
 function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "18key")
 	local left, widths, scale = renderer:getPlayfieldLayout()

@@ -26,6 +26,17 @@ function test.resolves_skin_assets_case_insensitively_and_keeps_nested_image_map
 	})
 end
 
+function test.finds_animated_long_note_frames_starting_at_zero(t)
+	local graphics = OsuManiaSkinGraphics(FakeFilesystem(), {
+		path = "skins/example",
+		files = {"mania-note1L-0.png", "mania-note1L-1.png", "mania-note1L-2.png"},
+	})
+	t:tdeq(graphics:findAnimationAssets("mania-note1L"), {
+		{index = 0, path = "skins/example/mania-note1L-0.png", high_density = false},
+		{index = 1, path = "skins/example/mania-note1L-1.png", high_density = false},
+		{index = 2, path = "skins/example/mania-note1L-2.png", high_density = false},
+	})
+end
 function test.preloads_skin_png_assets_once_during_load(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("skins/example/notes")

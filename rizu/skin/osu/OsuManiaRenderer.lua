@@ -38,6 +38,7 @@ local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 ---@field note_height_scale number
 ---@field upside_down boolean
 ---@field keys_under_notes boolean
+---@field stage_under_keys boolean Draw stage decorations below keys when true.
 ---@field judgement_line boolean
 ---@field note_flip boolean
 ---@field key_flip boolean
@@ -114,6 +115,7 @@ function OsuManiaRenderer:new(game, input_mode, skin_path)
 	self.note_height_scale = 0
 	self.upside_down = false
 	self.keys_under_notes = false
+	self.stage_under_keys = true
 	self.judgement_line = true
 	self.note_flip = true
 	self.key_flip = true
@@ -245,6 +247,7 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.note_height_scale = math.max(0, get_number(section, "WidthForNoteHeightScale", 0))
 	self.upside_down = get_boolean(section, "UpsideDown", false)
 	self.keys_under_notes = get_boolean(section, "KeysUnderNotes", false)
+	self.stage_under_keys = get_boolean(section, "StageUnderKeys", true)
 	self.judgement_line = get_boolean(section, "JudgementLine", false)
 	self.note_flip = get_boolean(section, "NoteFlipWhenUpsideDown", true)
 	self.key_flip = get_boolean(section, "KeyFlipWhenUpsideDown", true)
@@ -355,22 +358,28 @@ function OsuManiaRenderer:getSkinAssets()
 	local function add(name, fallback, animation)
 		if (not name or name == "") and (not fallback or fallback == "") then return end
 		local key = tostring(name or ""):lower() .. "\0" .. tostring(fallback or ""):lower()
-		if seen[key] then return end
-		seen[key] = true
-		assets[#assets + 1] = {name = name, fallback = fallback, animation = animation}
+		local existing = seen[key]
+		if existing then
+			existing.animation = existing.animation or animation
+			return
+		end
+		local asset = {name = name, fallback = fallback, animation = animation}
+		seen[key] = asset
+		assets[#assets + 1] = asset
 	end
 
 	for column = 1, self.columns do
 		local zero_based_column = column - 1
 		local suffix = self:getColumnSuffix(zero_based_column)
 		for _, postfix in ipairs({"", "H", "L", "T"}) do
-			add(get_section_value(self.section, "NoteImage" .. zero_based_column .. postfix))
+			local animated = postfix == "L"
+			add(get_section_value(self.section, "NoteImage" .. zero_based_column .. postfix), nil, animated)
 			if postfix == "H" or postfix == "T" then
 				add(get_section_value(self.section, "NoteImage" .. zero_based_column .. "H"))
 				add(get_section_value(self.section, "NoteImage" .. zero_based_column))
 			end
 			local fallback = "mania-note" .. suffix .. postfix
-			add(fallback)
+			add(fallback, nil, animated)
 			if postfix == "H" or postfix == "T" then add("mania-note" .. suffix) end
 		end
 		add(get_section_value(self.section, "KeyImage" .. zero_based_column))
@@ -492,27 +501,55 @@ end
 ---@param column integer
 ---@param suffix string
 ---@param postfix string
+---@return love.Image[]
+function OsuManiaRenderer:getColumnFrames(column, suffix, postfix)
+	local graphics = self.skin_graphics
+	local animated = postfix == "L"
+	local function find(name)
+		if not name then return {} end
+		if animated and graphics.getAnimationFrames then
+			return graphics:getAnimationFrames(name, nil)
+		end
+		return graphics:getFrames(name, nil)
+	end
+
+	local frames = find(get_section_value(self.section, "NoteImage" .. column .. postfix))
+	if #frames > 0 then return frames end
+	if postfix == "H" or postfix == "T" then
+		frames = find(get_section_value(self.section, "NoteImage" .. column .. "H"))
+		if #frames > 0 then return frames end
+		frames = find(get_section_value(self.section, "NoteImage" .. column))
+		if #frames > 0 then return frames end
+	end
+
+	frames = find("mania-note" .. suffix .. postfix)
+	if #frames > 0 then return frames end
+	if postfix == "H" or postfix == "T" then
+		return graphics:getFrames("mania-note" .. suffix, nil)
+	end
+	return {}
+end
+
+---@param column integer
+---@param suffix string
+---@param postfix string
 ---@return love.Image?
 function OsuManiaRenderer:getColumnImage(column, suffix, postfix)
-	local graphics = self.skin_graphics
-	local function find(name)
-		return name and graphics:getFrames(name, nil)[1]
-	end
+	return self:getColumnFrames(column, suffix, postfix)[1]
+end
 
-	local image = find(get_section_value(self.section, "NoteImage" .. column .. postfix))
-	if image then return image end
-	if postfix == "H" or postfix == "T" then
-		image = find(get_section_value(self.section, "NoteImage" .. column .. "H"))
-		if image then return image end
-		image = find(get_section_value(self.section, "NoteImage" .. column))
-		if image then return image end
-	end
-
-	local fallback = graphics:getFrames("mania-note" .. suffix .. postfix, nil)[1]
-	if fallback then return fallback end
-	if postfix == "H" or postfix == "T" then
-		return graphics:getFrames("mania-note" .. suffix, nil)[1]
-	end
+---@param note table
+---@param frame_count integer
+---@return integer
+function OsuManiaRenderer:getNoteBodyFrame(note, frame_count)
+	local state = note:getState()
+	if frame_count <= 1 or (state ~= "startPassedPressed" and state ~= "startMissedPressed") then return 1 end
+	local pressed_time = note.getPressedTime and note:getPressedTime()
+	local visual_info = note.visual_info
+	local current_time = visual_info and visual_info.getTime and visual_info:getTime()
+	if not pressed_time or not current_time then return 1 end
+	local elapsed = math.max(0, current_time - pressed_time)
+	return math.floor(elapsed / 0.03) % frame_count + 1
 end
 
 
@@ -533,7 +570,7 @@ function OsuManiaRenderer:drawStageDecorations(field_left, field_width, lane_wid
 	self.stage_renderer:draw(self, field_left, field_width, lane_widths, lane_xs, hit_y)
 end
 
----@param notes {column: integer, long_note: boolean, head_y: number, tail_y: number, body_visible: boolean, head_visible: boolean}[]
+---@param notes {column: integer, long_note: boolean, head_y: number, tail_y: number, body_visible: boolean, body_frame: integer?, head_visible: boolean}[]
 ---@param lane_widths number[]
 ---@param lane_xs number[]
 function OsuManiaRenderer:drawNoteList(notes, lane_widths, lane_xs)
@@ -600,8 +637,13 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 			end
 		end
 	end
+	if self.stage_under_keys then
+		self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
+	end
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
-	self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
+	if not self.stage_under_keys then
+		self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
+	end
 	lg.pop()
 end
 
@@ -662,6 +704,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 	self.field_renderer:drawLanes(self, lane_widths, lane_xs)
 	self.field_renderer:drawGuides(self, field_left, field_width, lane_widths, lane_xs, hit_y, width_scale)
 
+	if self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
 	if self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 
 	local notes_to_draw = {}
@@ -690,6 +733,8 @@ function OsuManiaRenderer:draw(width, height, transform)
 				head_y = head_y,
 				tail_y = tail_y,
 				body_visible = long_note and state ~= "endPassed",
+				body_frame = long_note and self:getNoteBodyFrame(note, #self:getColumnFrames(column - 1,
+					self:getColumnSuffix(column - 1), "L")) or 1,
 				head_visible = head_visible,
 			}
 		end
@@ -697,7 +742,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
 
 	if not self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
-	self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
+	if not self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
 	lg.pop()
 end
 

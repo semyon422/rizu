@@ -61,7 +61,8 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 		local column = note.column
 		if note.long_note and note.body_visible then
 			local suffix = renderer:getColumnSuffix(column - 1)
-			local body = renderer:getColumnImage(column - 1, suffix, "L")
+			local body_frames = renderer:getColumnFrames(column - 1, suffix, "L")
+			local body = body_frames[note.body_frame or 1] or body_frames[1]
 			local head_image = renderer:getColumnImage(column - 1, suffix, "H")
 			local tail_image = renderer:getColumnImage(column - 1, suffix, "T")
 			local head_y, tail_y = note.head_y, note.tail_y
