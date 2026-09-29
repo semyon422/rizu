@@ -305,6 +305,7 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.combo_view:setSkin(skin, section)
 	self.judge_view:setSkin(skin, section)
 	self.accuracy_view:setSkin(skin, self.score_view.height + 3)
+	self.progress_view:setAccuracyView(self.accuracy_view)
 	self.column_widths = get_number_list(section, "ColumnWidth", columns, DEFAULT_COLUMN_WIDTH, 5, 100)
 	self.column_spacings = get_number_list(section, "ColumnSpacing", math.max(columns - 1, 0), 0, -100, 100)
 	for index = 1, #self.column_spacings do
@@ -390,6 +391,7 @@ function OsuManiaRenderer:load()
 	self:loadLightings()
 	self.score_view:refreshSize()
 	self.accuracy_view:setSkin(skin, self.score_view.height)
+	self.progress_view:setAccuracyView(self.accuracy_view)
 end
 
 function OsuManiaRenderer:unload()

@@ -2,6 +2,7 @@ local View = require("rizu.skin.View")
 
 local lg = love.graphics
 local JUDGE_ASSETS = {"300g", "300", "200", "100", "50", "0"}
+local JUDGE_SCALE = 480 / 768
 local DURATION = 0.22
 
 ---@class rizu.skin.osu.mania.OsuManiaJudgeView : rizu.skin.View
@@ -131,7 +132,8 @@ function OsuManiaJudgeView:draw()
 	else scale = 0.7 - 0.3 * (self.elapsed - 0.18) / 0.04 end
 	local frame = self.frames[math.min(#self.frames, math.floor(self.elapsed * 20) + 1)] or self.image
 	lg.setColor(1, 1, 1, math.max(0, alpha))
-	lg.draw(frame, self.width / 2, self.height / 2, self.rotation, scale, scale,
+	local draw_scale = scale * JUDGE_SCALE
+	lg.draw(frame, self.width / 2, self.height / 2, self.rotation, draw_scale, draw_scale,
 		frame:getWidth() / 2, frame:getHeight() / 2)
 end
 

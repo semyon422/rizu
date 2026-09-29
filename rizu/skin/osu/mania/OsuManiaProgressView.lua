@@ -1,6 +1,9 @@
 local View = require("rizu.skin.View")
 
 local lg = love.graphics
+local PROGRESS_VIEW_SIZE = 24
+local PROGRESS_RADIUS = 10
+local PROGRESS_POSITION_OFFSET = 24
 
 ---@class rizu.skin.osu.mania.OsuManiaProgressView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.OsuManiaProgressView
@@ -9,7 +12,22 @@ local OsuManiaProgressView = View + {}
 
 function OsuManiaProgressView:new()
 	self.progress = 0
-	View.new(self, {anchor = "top_right", origin = "center", x = -20, y = 18, width = 24, height = 24})
+	View.new(self, {
+		anchor = "top_right",
+		origin = "center",
+		x = -20,
+		y = 18,
+		width = PROGRESS_VIEW_SIZE,
+		height = PROGRESS_VIEW_SIZE,
+	})
+end
+
+---@param accuracy_view rizu.skin.osu.mania.OsuManiaAccuracyView
+function OsuManiaProgressView:setAccuracyView(accuracy_view)
+	-- osu! positions the pie 24 pixels to the left of the accuracy
+	-- display's left edge (ScoreDisplay.LeftOfDisplay).
+	self.x = accuracy_view.x - accuracy_view.width - PROGRESS_POSITION_OFFSET
+	self.y = accuracy_view.y + accuracy_view.height / 2
 end
 
 ---@param dt number
@@ -22,7 +40,7 @@ function OsuManiaProgressView:update(dt, game)
 end
 
 function OsuManiaProgressView:draw()
-	local cx, cy, radius = self.width / 2, self.height / 2, 10
+	local cx, cy, radius = self.width / 2, self.height / 2, PROGRESS_RADIUS
 	local previous_mode, previous_alpha = lg.getBlendMode()
 	lg.setBlendMode("add", "alphamultiply")
 	lg.setColor(1, 1, 1, 0.16)

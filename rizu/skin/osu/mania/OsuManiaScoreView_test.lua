@@ -200,6 +200,28 @@ function test.judge_animation_maps_osu_mania_grades(t)
 	t:eq(view.elapsed, view.duration)
 end
 
+function test.judge_uses_osu_mania_sprite_scale(t)
+	local view = OsuManiaJudgeView(make_graphics())
+	local source = {
+		getKey = function() return "score" end,
+		getJudgeNames = function() return {"perfect", "great", "good", "ok", "meh", "miss"} end,
+	}
+	local score_engine = {sequence = {{score = {visual_judge = 1}}}, judgesSource = source}
+	local game = {rhythm_engine = {score_engine = score_engine}}
+	view:load(game)
+	view:update(0, game)
+	view:update(0.08, game)
+
+	local previous_draw = love.graphics.draw
+	local draw_scale
+	love.graphics.draw = function(_, _, _, _, scale)
+		draw_scale = scale
+	end
+	local ok, err = xpcall(function() view:draw() end, debug.traceback)
+	love.graphics.draw = previous_draw
+	if not ok then error(err) end
+	t:aeq(draw_scale, 480 / 768, 1e-6)
+end
 function test.hit_meter_advances_colored_blocks_and_progress_pie_draws(t)
 	local source = {getKey = function() return "score" end,
 		getJudgeNames = function() return {"perfect", "great", "good", "ok", "meh", "miss"} end}
@@ -214,6 +236,7 @@ function test.hit_meter_advances_colored_blocks_and_progress_pie_draws(t)
 	progress:update(0, {rhythm_engine = {getProgress = function() return 0.5 end}})
 	t:eq(progress.progress, 0.5)
 end
+
 
 function test.positions_hud_score_against_the_full_viewport_edge(t)
 	local renderer = require("rizu.skin.osu.OsuManiaRenderer")({fs = require("fs.FakeFilesystem")()}, "4key")
