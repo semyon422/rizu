@@ -12,6 +12,8 @@ local class = require("class")
 ---@field origin_x number? Normalized horizontal origin in [0, 1]; defaults to 0.5.
 ---@field origin_y number? Normalized vertical origin in [0, 1]; defaults to 0.5.
 ---@field color number[]? Optional RGB or RGBA tint; defaults to white.
+---@field blend_mode love.BlendMode?
+---@field blend_alpha_mode love.BlendAlphaMode?
 
 ---@class rizu.skin.easy_lua.Sprite
 ---@operator call: rizu.skin.easy_lua.Sprite
@@ -26,6 +28,8 @@ local class = require("class")
 ---@field origin_x number
 ---@field origin_y number
 ---@field color number[]
+---@field blend_mode love.BlendMode
+---@field blend_alpha_mode love.BlendAlphaMode
 local Sprite = class()
 
 ---@param config rizu.skin.easy_lua.Sprite.Config
@@ -42,6 +46,8 @@ function Sprite:new(config)
 	self.origin_x = config.origin_x or 0.5
 	self.origin_y = config.origin_y or 0.5
 	self.color = config.color or {1, 1, 1, 1}
+	self.blend_mode = config.blend_mode or "alpha"
+	self.blend_alpha_mode = config.blend_alpha_mode or "alphamultiply"
 
 	assert(type(self.x) == "number" and self.x == self.x and math.abs(self.x) < math.huge,
 		"sprite x must be finite")
@@ -76,6 +82,7 @@ end
 function Sprite:draw(x, y)
 	local width, height = self.image:getDimensions()
 	love.graphics.setColor(self.color[1], self.color[2], self.color[3], self.color[4] or 1)
+	love.graphics.setBlendMode(self.blend_mode, self.blend_alpha_mode)
 	love.graphics.draw(self.image, (x or self.x) + self.offset_x, (y or self.y) + self.offset_y,
 		self.rotation, self.scale_x, self.scale_y, width * self.origin_x, height * self.origin_y)
 end

@@ -10,8 +10,8 @@ local HitLighting = require("rizu.skin.easy_lua.HitLighting")
 
 ---@class rizu.skin.easy_lua.Column.Config
 ---@field input chart.Column Input represented by this column.
----@field x number Centerline in the conveyor's 640x480 reference space.
----@field y number Hit position in the conveyor's 640x480 reference space.
+---@field x number Centerline in the conveyor's native coordinate space.
+---@field y number Hit position in the conveyor's native coordinate space.
 ---@field width number Suggested column width; note textures are not resized to it.
 ---@field notes rizu.skin.easy_lua.Note|rizu.skin.easy_lua.Note.Config? Note drawing style.
 ---@field background_color number[]? RGBA background fill; omitted means transparent.
@@ -163,19 +163,15 @@ function Column:drawReceptor(pressed)
 	end
 end
 
----@param visible_notes rizu.VisualNote[]
----@param pixels_per_second number
----@param reverse boolean
----@param left number
----@param right number
-function Column:drawNotes(visible_notes, pixels_per_second, reverse, left, right)
+---@param viewport_height number Conveyor native height.
+function Column:drawNotes(visible_notes, pixels_per_second, reverse, left, right, viewport_height)
 	self:triggerHitLighting(visible_notes)
 	self.notes:draw(visible_notes, self.input, self.x, self.y,
-		pixels_per_second, reverse, left, right, 480)
+		pixels_per_second, reverse, left, right, viewport_height or 480)
 end
 
-function Column:draw(visible_notes, pixels_per_second, reverse, left, right)
-	self:drawNotes(visible_notes, pixels_per_second, reverse, left, right)
+function Column:draw(visible_notes, pixels_per_second, reverse, left, right, viewport_height)
+	self:drawNotes(visible_notes, pixels_per_second, reverse, left, right, viewport_height)
 end
 
 ---@param dt number

@@ -25,8 +25,8 @@ This is a new system designed from concrete skin experiments, including the lega
 
 ## Coordinate and time contract
 
-- Authored geometry uses native units based on a `640 x 480` reference, with a fixed native height of `480`.
-- The conveyor is fitted by height to the gameplay viewport. Its available native width follows the viewport aspect ratio: `viewport_width / viewport_height * 480`. At 4:3 that is 640; wider viewports provide more native width. The renderer applies the viewport transform, and the conveyor scales its 480-unit height to the viewport height.
+- Authored geometry uses a configurable native coordinate space. `Conveyor` defaults to `640 x 480`, but skins may set `width` and `height` for other assets and resolutions.
+- The conveyor is fitted by height to the gameplay viewport. Its available native width follows the viewport aspect ratio for the configured native height. At the default `4:3` space that is 640; wider viewports provide more native width. The renderer applies the viewport transform, and the conveyor scales its native height to the viewport height.
 - Column positions and element dimensions are authored in this native coordinate space. `pixels_per_second` is also measured in these units per visual-time second.
 - Note motion comes from the engine's visual-time deltas (`start_dt`/`end_dt`) and the configured pixels-per-second value. It is derived from gameplay visual time rather than accumulated frame `dt`, so pauses, speed changes, and irregular frame rates do not desynchronize note positions.
 - Downscroll moves notes toward the hit position as their visual-time delta approaches zero. Reverse scroll negates the vertical displacement; it does not rotate each note image.
@@ -52,9 +52,10 @@ These easy-Lua objects are plain reusable rendering objects, not `gui.View`s. Th
 
 Owns an ordered list of columns and the shared vertical scrolling configuration:
 
-- `pixels_per_second`, defaulting to 480 native units per second.
+- `pixels_per_second`, defaulting to the configured native height (480 by default).
+- `width` and `height`, defining the authored native conveyor space; both default to 640 and 480.
 - `reverse`, controlling the scroll direction.
-- `draw(visible_notes, viewport_width, viewport_height, transform)`, which draws into the viewport using the 480-unit native height.
+- `draw(visible_notes, viewport_width, viewport_height, transform)`, which draws into the viewport using the configured native height.
 - `update(dt)`, delegated to reusable child components.
 
 Columns must have unique input identifiers in a conveyor. The conveyor does not decide how gameplay inputs are interpreted or judged.

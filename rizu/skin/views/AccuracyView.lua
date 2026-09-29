@@ -5,6 +5,8 @@ local lg = love.graphics
 ---@class rizu.skin.views.AccuracyView.Config
 ---@field x number? Horizontal offset from the top-right anchor.
 ---@field y number? Vertical offset from the top-right anchor.
+---@field anchor rizu.skin.ViewAnchor? Anchor point in the parent viewport.
+---@field origin rizu.skin.ViewAnchor? Point on this view aligned to its anchor.
 ---@field transform love.Transform? Local transform.
 ---@field visible boolean? Whether this view is drawn.
 
@@ -26,8 +28,8 @@ function AccuracyView:new(font, config)
 	self.font = font
 	self.text = ""
 	View.new(self, {
-		anchor = "top_right",
-		origin = "top_right",
+		anchor = config.anchor or "top_right",
+		origin = config.origin or "top_right",
 		x = config.x,
 		y = config.y,
 		width = font:getWidth(self.text),

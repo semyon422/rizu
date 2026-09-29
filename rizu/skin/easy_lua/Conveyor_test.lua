@@ -75,14 +75,19 @@ function test.column_hit_lighting_uses_note_type_and_success_state(t)
 end
 
 ---@param t testing.T
-function test.conveyor_uses_480_high_native_space_and_aspect_scaled_width(t)
+function test.conveyor_uses_configurable_native_geometry(t)
 	t:eq(Conveyor.HEIGHT, 480)
 	t:eq(Conveyor.WIDTH, 640)
 	t:eq(Conveyor.getCanvasWidth(1280, 720), 1280 / 720 * 480)
 	t:eq(Conveyor.getCanvasWidth(800, 600), 640)
-	local conveyor = Conveyor({columns = {}, pixels_per_second = 240, reverse = true})
-	t:eq(conveyor.pixels_per_second, 240)
+	local conveyor = Conveyor({
+		columns = {}, width = 1920, height = 1080, pixels_per_second = 900, reverse = true,
+	})
+	t:eq(conveyor.width, 1920)
+	t:eq(conveyor.height, 1080)
+	t:eq(conveyor.pixels_per_second, 900)
 	t:eq(conveyor.reverse, true)
+	t:eq(Conveyor.getCanvasWidth(1920, 1080, conveyor.height), 1920)
 end
 
 ---@param t testing.T
