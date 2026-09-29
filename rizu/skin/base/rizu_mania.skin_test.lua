@@ -4,7 +4,7 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 local Settings = require("rizu.config.Settings")
 local SphPreview = require("chart.format.sph.SphPreview")
 
-local skin = assert(love.filesystem.load("rizu/skin/base/rizu_mania.skin.lua"))()
+local skin = dofile("rizu/skin/base/rizu_mania.skin.lua")
 
 local test = {}
 
