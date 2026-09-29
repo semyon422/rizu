@@ -36,9 +36,13 @@ local predefined_colors = {
 	{"white", "pink", "white", "yellow", "white", "pink", "white"},
 }
 
+local note_color_names_cache = {}
+
 ---@param columns integer
 ---@return string[]
 local function get_note_color_names(columns)
+	local cached = note_color_names_cache[columns]
+	if cached then return cached end
 	local symmetric = columns % 2 == 0
 	local structure
 	if columns < 5 then
@@ -67,6 +71,7 @@ local function get_note_color_names(columns)
 			colors[column] = column % 2 == 0 and "white" or "pink"
 		end
 	end
+	note_color_names_cache[columns] = colors
 	return colors
 end
 
@@ -86,6 +91,7 @@ end
 ---@field input_mode string
 ---@field hud rizu.skin.Hud?
 ---@field hud_fonts {regular: love.Font, emphasis: love.Font}?
+---@field private column_colors string[]?
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
@@ -186,6 +192,7 @@ end
 ---@param columns integer
 ---@return string[]
 local function get_column_colors(renderer, columns)
+	if renderer.column_colors then return renderer.column_colors end
 	local key_columns = 0
 	for _, input in ipairs(renderer.inputs) do
 		if input:find("key") then key_columns = key_columns + 1 end
@@ -204,6 +211,7 @@ local function get_column_colors(renderer, columns)
 			colors[column] = "white"
 		end
 	end
+	renderer.column_colors = colors
 	return colors
 end
 
