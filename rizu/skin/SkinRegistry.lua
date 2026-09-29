@@ -141,32 +141,40 @@ function SkinRegistry:verify(path, skin)
 end
 
 ---@param path string
+---@param message unknown
+function SkinRegistry:recordError(path, message)
+	message = tostring(message)
+	self.errors[path] = message
+	print(("SkinRegistry error in %s: %s"):format(path, message))
+end
+
+---@param path string
 function SkinRegistry:loadFile(path)
 	local source, read_error = self.fs:read(path)
 	if not source then
-		self.errors[path] = read_error or "could not read skin"
+		self:recordError(path, read_error or "could not read skin")
 		return
 	end
 	if #source > 1024 * 1024 then
-		self.errors[path] = "skin source exceeds 1 MiB"
+		self:recordError(path, "skin source exceeds 1 MiB")
 		return
 	end
 
 	local chunk, load_error = loadstring(source, "@" .. path)
 	if not chunk then
-		self.errors[path] = load_error
+		self:recordError(path, load_error)
 		return
 	end
 
 	local ok, skin_or_error = xpcall(chunk, debug.traceback)
 	if not ok then
-		self.errors[path] = skin_or_error
+		self:recordError(path, skin_or_error)
 		return
 	end
 
 	local skin, verify_error = self:verify(path, skin_or_error)
 	if not skin then
-		self.errors[path] = assert(verify_error)
+		self:recordError(path, assert(verify_error))
 		return
 	end
 	table.insert(self.skins, skin)
@@ -207,11 +215,11 @@ function SkinRegistry:loadOsuSkin(skin_directory, file_name, files)
 	local path = path_util.join(skin_directory, file_name)
 	local source, read_error = self.fs:read(path)
 	if not source then
-		self.errors[path] = read_error or "could not read skin.ini"
+		self:recordError(path, read_error or "could not read skin.ini")
 		return
 	end
 	if #source > 1024 * 1024 then
-		self.errors[path] = "skin.ini exceeds 1 MiB"
+		self:recordError(path, "skin.ini exceeds 1 MiB")
 		return
 	end
 
