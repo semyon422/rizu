@@ -91,7 +91,9 @@ function OsuManiaLighting:setHeld(held, fade_duration)
 		self.scale_factor = 1
 		return
 	end
-	if not self.held and not self.fading then return end
+	-- Only the held-to-released transition starts the fade. The renderer
+	-- supplies the current held state every draw, including while fading.
+	if not self.held then return end
 	self.held = false
 	self.fading = true
 	self.fade_elapsed = 0
