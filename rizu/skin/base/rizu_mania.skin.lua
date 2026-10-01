@@ -1,5 +1,6 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 local Hud = require("rizu.skin.Hud")
+local BgaView = require("rizu.skin.views.BgaView")
 local AccuracyView = require("rizu.skin.views.AccuracyView")
 local ComboView = require("rizu.skin.views.ComboView")
 local ScoreView = require("rizu.skin.views.ScoreView")
@@ -89,9 +90,9 @@ end
 ---@field config rizu.skin.SkinConfig
 ---@field config_path string
 ---@field input_mode string
----@field hud rizu.skin.Hud?
----@field hud_fonts {regular: love.Font, emphasis: love.Font}?
----@field private column_colors string[]?
+---@field background_hud rizu.skin.Hud
+---@field foreground_hud rizu.skin.Hud
+---@field private hud_fonts {regular: love.Font, emphasis: love.Font}?
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
 ---@param game sphere.GameController
@@ -101,6 +102,7 @@ local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 ---@param config_path string?
 function ManiaPlayfieldRenderer:new(game, input_mode, screen, config, config_path)
 	PlayfieldRenderer.new(self, game)
+	self.background_hud:add(BgaView(game))
 	self.screen = screen
 	self.input_mode = input_mode
 	self.config = config or SkinConfig()
@@ -111,10 +113,8 @@ function ManiaPlayfieldRenderer:new(game, input_mode, screen, config, config_pat
 end
 
 function ManiaPlayfieldRenderer:unload()
-	if self.hud then
-		self.hud:unload(self.game)
-		self.hud = nil
-	end
+	self.foreground_hud:unload(self.game)
+	self.foreground_hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
 	if self.hud_fonts then
 		self.hud_fonts.regular:release()
 		self.hud_fonts.emphasis:release()
@@ -444,12 +444,12 @@ local function create_hud(game, fonts)
 end
 
 function ManiaPlayfieldRenderer:load()
-	if self.screen ~= "gameplay" or self.hud then return end
+	if self.screen ~= "gameplay" or self.hud_fonts then return end
 	self.hud_fonts = {
 		regular = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 24, "normal", 4),
 		emphasis = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 32, "normal", 4),
 	}
-	self.hud = create_hud(self.game, self.hud_fonts)
+	self.foreground_hud = create_hud(self.game, self.hud_fonts)
 end
 
 ---@param game sphere.GameController

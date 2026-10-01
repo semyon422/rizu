@@ -168,8 +168,6 @@ return {
 	["settings.background_images_tip"] = "Показывать BGA-картинки.",
 	["settings.background_videos"] = "Фоновые видео",
 	["settings.background_videos_tip"] = "Показывать BGA-видео.",
-	["settings.bga_brightness"] = "Яркость BGA",
-	["settings.bga_brightness_tip"] = "Яркость фоновых картинок и видео.",
 	["settings.universal_offset"] = "Общий оффсет",
 	["settings.universal_offset_tip"] = "Один аудио-оффсет для всех режимов.",
 	["settings.format_offset"] = "Оффсет {format}",

@@ -27,15 +27,13 @@ function Playfield:new(game)
 	self.osu_catch = OsuFruitsRenderer(game)
 	self.taiko = OsuTaikoRenderer(game)
 	self.sdvx = SdvxPlayfield(game)
-	self:refresh()
 end
 
 -- Selects the renderer from the gameplay engine. Consumers do not need to
 -- know which native mode is active.
-function Playfield:refresh()
+function Playfield:load()
 	local engine = self.game.rhythm_engine
 	local mode = engine and engine.chartmeta and engine.chartmeta.mode
-	local previous = self.renderer
 	if engine and mode == "osu" then self.renderer = self.osu_aim
 	elseif engine and engine.aim_rules then self.renderer = self.aim
 	elseif engine and mode == "catch" then self.renderer = self.osu_catch
@@ -44,8 +42,10 @@ function Playfield:refresh()
 	elseif engine and (engine.sdvx_rules or mode == "sdvx") then self.renderer = self.sdvx
 	elseif mode == "mania" then self.renderer = self.game.gameplayInteractor.mania_renderer
 	else self.renderer = nil end
-	if previous and previous ~= self.renderer then previous:unload() end
-	if self.renderer then self.renderer:load() end
+	if self.renderer then
+		self.renderer:loadBackgroundHud()
+		self.renderer:load()
+	end
 end
 
 ---@return boolean
@@ -65,8 +65,23 @@ function Playfield:isExperimental()
 end
 
 function Playfield:unload()
-	if self.renderer then self.renderer:unload() end
+	if self.renderer then
+		self.renderer:unloadBackgroundHud()
+		self.renderer:unload()
+	end
 	self.renderer = nil
+end
+
+function Playfield:updateBackgroundHud(dt)
+	if self.renderer then
+		self.renderer:updateBackgroundHud(dt)
+	end
+end
+
+function Playfield:drawBackgroundHud(width, height, transform)
+	if self.renderer then
+		self.renderer:drawBackgroundHud(width, height, transform)
+	end
 end
 
 ---@param dt number

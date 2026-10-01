@@ -118,9 +118,9 @@ function test.special_style_reorders_scratch_inputs_without_changing_columns(t)
 end
 function test.uses_separate_conveyor_hud_for_conveyor_anchored_views(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
-	t:eq(renderer.hud.children[1], renderer.score_view)
-	t:eq(renderer.hud.children[2], renderer.accuracy_view)
-	t:eq(renderer.hud.children[3], renderer.progress_view)
+	t:eq(renderer.foreground_hud.children[1], renderer.score_view)
+	t:eq(renderer.foreground_hud.children[2], renderer.accuracy_view)
+	t:eq(renderer.foreground_hud.children[3], renderer.progress_view)
 	t:eq(renderer.conveyor_hud.children[1], renderer.combo_view)
 	t:eq(renderer.conveyor_hud.children[2], renderer.judge_view)
 	t:eq(renderer.conveyor_hud.children[3], renderer.hit_meter_view)
@@ -149,7 +149,7 @@ function test.draws_conveyor_hud_over_the_complete_column_span(t)
 	renderer.column_spacings = {3, 4, 5}
 	renderer.split_stages = false
 	local received_width, received_height, received_transform
-	renderer.hud.draw = function() end
+	renderer.foreground_hud.draw = function() end
 	renderer.conveyor_hud.draw = function(_, width, height, transform)
 		received_width, received_height, received_transform = width, height, transform
 	end
@@ -449,7 +449,7 @@ end
 function test.renderer_updates_each_playfield_component(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
 	local hud_updates = 0
-	renderer.hud.update = function() hud_updates = hud_updates + 1 end
+	renderer.foreground_hud.update = function() hud_updates = hud_updates + 1 end
 	renderer.conveyor_hud.update = function() hud_updates = hud_updates + 1 end
 	renderer:updateHud(0.25)
 	t:eq(hud_updates, 2)

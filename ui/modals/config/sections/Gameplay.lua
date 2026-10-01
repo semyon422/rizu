@@ -17,12 +17,6 @@ local function formatScrollSpeedType(value)
 	})[value]
 end
 
----@param value number
----@return string formatted
-local function formatPercent(value)
-	return ("%d%%"):format(math.floor(value * 100 + 0.5))
-end
-
 ---@param settings rizu.config.Config
 ---@param ui_config ui.UiConfig
 ---@param localization ui.localization.Localization
@@ -77,12 +71,6 @@ function Gameplay:new(settings, ui_config, localization)
 					name = localization:get("settings.background_videos"),
 					keywords = {"gameplay", "background", "animation", "bga", "video"},
 					tip = localization:get("settings.background_videos_tip"),
-				}),
-				ControlFactory.number(ui_config, ui_config.keys.gameplay_bga_brightness, {
-					name = localization:get("settings.bga_brightness"),
-					keywords = {"gameplay", "background", "animation", "bga", "brightness", "dim"},
-					tip = localization:get("settings.bga_brightness_tip"),
-					value_format = formatPercent,
 				}),
 			}
 			for _, name in ipairs({"prepare", "play_pause", "pause_play", "play_retry", "pause_retry"}) do

@@ -53,23 +53,25 @@ function test.exposes_gameplay_hud_with_accuracy_view(t)
 		return font
 	end
 	local renderer = skin.load(game, "4key", "gameplay", SkinConfig(), "config.json")
-	t:eq(renderer.hud, nil)
+	t:eq(#renderer.foreground_hud.children, 0)
+	t:eq(#renderer.background_hud.children, 1)
+	t:assert(require("rizu.skin.views.BgaView") * renderer.background_hud.children[1])
 	renderer:load()
 	love.graphics.newFont = original_new_font
-	t:assert(renderer.hud)
-	local accuracy_view = renderer.hud.children[1]
+	t:assert(#renderer.foreground_hud.children > 0)
+	local accuracy_view = renderer.foreground_hud.children[1]
 	t:eq(accuracy_view.anchor, "top_right")
 	t:eq(accuracy_view.x, -8)
 	t:eq(accuracy_view.y, 38)
 	t:eq(accuracy_view.text, "97.25%")
 	t:eq(accuracy_view.font:getHeight(), 24)
-	t:eq(renderer.hud.children[2].text, "") -- score source not present
-	t:eq(renderer.hud.children[2].x, -8)
-	t:eq(renderer.hud.children[2].y, 8)
-	t:eq(renderer.hud.children[3].text, "") -- combo source not present
-	t:eq(renderer.hud.children[4].text, "") -- no judgement yet
+	t:eq(renderer.foreground_hud.children[2].text, "") -- score source not present
+	t:eq(renderer.foreground_hud.children[2].x, -8)
+	t:eq(renderer.foreground_hud.children[2].y, 8)
+	t:eq(renderer.foreground_hud.children[3].text, "") -- combo source not present
+	t:eq(renderer.foreground_hud.children[4].text, "") -- no judgement yet
 
-	local hud = renderer.hud
+	local hud = renderer.foreground_hud
 	local native_width, native_height, hud_transform
 	local draw_hud = hud.draw
 	hud.draw = function(_, width, height, transform)
@@ -79,22 +81,22 @@ function test.exposes_gameplay_hud_with_accuracy_view(t)
 	hud.draw = draw_hud
 	t:aeq(native_width, 1280 / 1.5, 1e-6)
 	t:aeq(native_height, 720 / 1.5, 1e-6)
-	for _, view in ipairs({renderer.hud.children[1], renderer.hud.children[2]}) do
+	for _, view in ipairs({renderer.foreground_hud.children[1], renderer.foreground_hud.children[2]}) do
 		local view_transform = view:getWorldTransform(native_width, native_height, hud_transform)
 		local right_edge = view_transform:transformPoint(view.width, 0)
 		t:aeq(right_edge, 1280 - 8 * 1.5, 1e-3)
 	end
 
 	renderer:unload()
-	t:eq(renderer.hud, nil)
+	t:eq(#renderer.foreground_hud.children, 0)
 	t:eq(renderer.hud_fonts, nil)
 	t:eq(#fonts, 2)
 	for _, font in ipairs(fonts) do t:assert(font.released) end
 
 	local preview_renderer = skin.load(game, "4key", "preview", SkinConfig(), "config.json")
-	t:eq(preview_renderer.hud, nil)
+	t:eq(#preview_renderer.foreground_hud.children, 0)
 	preview_renderer:load()
-	t:eq(preview_renderer.hud, nil)
+	t:eq(#preview_renderer.foreground_hud.children, 0)
 end
 
 ---@param t testing.T

@@ -240,7 +240,7 @@ end
 
 function test.positions_hud_score_against_the_full_viewport_edge(t)
 	local renderer = require("rizu.skin.osu.OsuManiaRenderer")({fs = require("fs.FakeFilesystem")()}, "4key")
-	local hud = renderer.hud
+	local hud = renderer.foreground_hud
 	local native_width, native_height, hud_transform
 	local draw_hud = hud.draw
 	hud.draw = function(_, width, height, transform)
@@ -256,7 +256,7 @@ function test.positions_hud_score_against_the_full_viewport_edge(t)
 	t:aeq(right_edge, 1280 - 6 * 1.5, 1e-3)
 	local conveyor_width = select(4, renderer:getPlayfieldLayout())
 	local combo_center = renderer.combo_view:getWorldTransform(
-		conveyor_width, 480, renderer._conveyor_hud_transform
+		conveyor_width, 480, renderer.conveyor_hud_transform
 	):transformPoint(renderer.combo_view.width / 2, renderer.combo_view.height / 2)
 	t:aeq(combo_center, (136 + 120 / 2) * 1.5, 1e-3)
 	renderer:unload()

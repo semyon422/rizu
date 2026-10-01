@@ -4,7 +4,6 @@ local Label = require("ui.views.Label")
 local Screen = require("gui.Screen")
 local Colors = require("ui.Colors")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
-local BgaView = require("ui.screens.gameplay.BgaView")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
@@ -35,8 +34,6 @@ function Gameplay:new(ui)
 	self.is_playing = false
 	self.was_retrying = false
 
-	self.bga_view = self.root:add(BgaView(self.game, self.ui.config))
-	self.bga_view:anchorPercent(0, 0, 1, 1)
 	self.gameplay_playfield = GameplayPlayfield(self.game)
 	self.gameplay_playfield_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
 	self.gameplay_playfield_view:setDraw(function()
@@ -95,7 +92,7 @@ function Gameplay:enter()
 	self.is_sdvx = self.game.rhythm_engine.sdvx_rules ~= nil
 	self.is_taiko = self.game.rhythm_engine.taiko_rules ~= nil
 	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
-	self.gameplay_playfield:refresh()
+	self.gameplay_playfield:load()
 	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.aim_summary:setVisible(false)
 	love.keyboard.setKeyRepeat(false)
@@ -144,19 +141,27 @@ end
 -- Gameplay renderers operate in drawable pixels. This UI-owned bridge cancels
 -- the retained UI scale and supplies the configured viewport explicitly.
 function Gameplay:drawGameplayPlayfield()
-	if not self.gameplay_playfield:usesDirectRenderer() then return end
 	local width, height, transform = self:getGameplayViewport()
+	if width <= 0 or height <= 0 then return end
 	local x, y = transform:transformPoint(0, 0)
 	love.graphics.push("all")
 	love.graphics.scale(1 / self.ui_scale)
 	love.graphics.setScissor(x, y, width, height)
-	self.gameplay_playfield:draw(width, height, transform)
+	if self.gameplay_playfield.drawBackgroundHud then
+		self.gameplay_playfield:drawBackgroundHud(width, height, transform)
+	end
+	if self.gameplay_playfield:usesDirectRenderer() then
+		self.gameplay_playfield:draw(width, height, transform)
+	end
 	love.graphics.setScissor()
 	love.graphics.pop()
 end
 
 ---@param dt number
 function Gameplay:updateGameplayHud(dt)
+	if self.gameplay_playfield.updateBackgroundHud then
+		self.gameplay_playfield:updateBackgroundHud(dt)
+	end
 	self.gameplay_playfield:updateHud(dt)
 end
 

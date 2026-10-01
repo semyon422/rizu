@@ -8,7 +8,6 @@ local keys = {
 	gameplay_viewport_y = "gameplay_viewport_y",
 	gameplay_viewport_sx = "gameplay_viewport_sx",
 	gameplay_viewport_sy = "gameplay_viewport_sy",
-	gameplay_bga_brightness = "gameplay_bga_brightness",
 	command_palette_bindings = "command_palette_bindings",
 	open_config_bindings = "open_config_bindings",
 	accept_bindings = "accept_bindings",
@@ -52,7 +51,6 @@ function UiConfig:new(fs, path)
 	self:setDefaultNumber(keys.gameplay_viewport_y, 0)
 	self:setDefaultNumber(keys.gameplay_viewport_sx, 1)
 	self:setDefaultNumber(keys.gameplay_viewport_sy, 1)
-	self:setDefaultNumber(keys.gameplay_bga_brightness, 1, 0, 1, 0.01)
 	self:setDefaultBoolean(keys.show_fps, false)
 	self:setDefaultKeyBindings(keys.command_palette_bindings, {{key = ";", shift = true}})
 	self:setDefaultKeyBindings(keys.open_config_bindings, {{key = "o", control = true}})
