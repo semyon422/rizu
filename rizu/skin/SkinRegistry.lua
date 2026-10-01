@@ -2,6 +2,8 @@ local class = require("class")
 local path_util = require("path_util")
 local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 local SkinConfig = require("rizu.skin.SkinConfig")
+local SkinModuleLoader = require("rizu.skin.SkinModuleLoader")
+local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 
 ---@class rizu.skin.SkinMetadata
 ---@field name string
@@ -23,7 +25,8 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 ---@field file_name string?
 ---@field format rizu.skin.SkinFormat
 ---@field metadata rizu.skin.SkinMetadata?
----@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?, skin_directory_path: string?): unknown
+---@field load_module (fun(name: string): any)? Custom skin-local module loader.
+---@field load fun(context: rizu.skin.SkinLoadContext): unknown
 
 ---@class rizu.skin.StepmaniaSkinDiscovery : rizu.skin.SkinInfo
 ---@field name string
@@ -42,7 +45,7 @@ local SkinConfig = require("rizu.skin.SkinConfig")
 ---@field input_modes string[]
 ---@field metadata rizu.skin.SkinMetadata
 ---@field skin_ini rizu.skin.OsuSkinIni.Data
----@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): rizu.skin.osu.OsuManiaRenderer
+---@field load fun(context: rizu.skin.SkinLoadContext): rizu.skin.osu.OsuManiaRenderer
 
 ---@alias rizu.skin.LoadableSkin rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery
 
@@ -166,6 +169,11 @@ function SkinRegistry:loadFile(path)
 		return
 	end
 
+	local load_module
+	local user_data_prefix = normalizeSkinPath(self.path) .. "/"
+	if normalizeSkinPath(path):sub(1, #user_data_prefix) == user_data_prefix then
+		load_module = SkinModuleLoader(self.fs, path:match("^(.*)/[^/]+$") or "")
+	end
 	local ok, skin_or_error = xpcall(chunk, debug.traceback)
 	if not ok then
 		self:recordError(path, skin_or_error)
@@ -177,6 +185,7 @@ function SkinRegistry:loadFile(path)
 		self:recordError(path, assert(verify_error))
 		return
 	end
+	skin.load_module = load_module
 	table.insert(self.skins, skin)
 end
 
@@ -262,9 +271,9 @@ function SkinRegistry:loadOsuSkin(skin_directory, file_name, files)
 			input_modes = input_modes,
 		},
 		skin_ini = skin_ini,
-		load = function(game, input_mode)
+		load = function(context)
 			local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
-			return OsuManiaRenderer(game, input_mode, skin_directory)
+			return OsuManiaRenderer(context.game, context.input_mode, context.directory_path)
 		end,
 	})
 end
@@ -444,7 +453,8 @@ function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 	assert(skin and type(skin.load) == "function", "skin with a load function is required")
 	assert(type(input_mode) == "string" and input_mode ~= "", "input mode is required")
 	if type(skin) == "table" and skin.format == "osu" then
-		return skin.load(game, input_mode, screen), nil, nil
+		return skin.load(SkinLoadContext({game = game, input_mode = input_mode, screen = screen,
+			skin_path = skin.path, directory_path = skin.directory_path})), nil, nil
 	end
 	local config = SkinConfig()
 	local config_path = self:getSkinConfigPath(skin)
@@ -454,12 +464,12 @@ function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 			print(("could not load skin config %s: %s"):format(config_path, tostring(load_error)))
 		end
 	end
-	local skin_directory_path
-	local user_data_prefix = normalizeSkinPath(self.path) .. "/"
-	if normalizeSkinPath(skin.path):sub(1, #user_data_prefix) == user_data_prefix then
-		skin_directory_path = skin.directory_path
-	end
-	local renderer = skin.load(game, input_mode, screen, config, config_path, skin_directory_path)
+	local context = SkinLoadContext({
+		game = game, input_mode = input_mode, screen = screen,
+		skin_path = skin.path, directory_path = skin.directory_path,
+		config = config, config_path = config_path, module_loader = skin.load_module,
+	})
+	local renderer = skin.load(context)
 	return renderer, config, config_path
 end
 

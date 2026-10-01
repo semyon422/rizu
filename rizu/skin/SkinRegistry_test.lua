@@ -6,7 +6,7 @@ local test = {}
 local valid_skin = [[
 return {
 	metadata = {name = "Example", author = "Rizu", version = "1", gamemode = "mania", input_modes = {"4key"}},
-	load = function(game, input_mode, screen) return game, input_mode, screen end,
+	load = function(context) return context.game end,
 }
 ]]
 
@@ -29,31 +29,25 @@ function test.discovers_native_lua_skin_metadata(t)
 	t:eq(registry:getSkin(skins[1].path), skins[1])
 	t:eq(registry:getSkinForInputMode("mania", "4key"), skins[1])
 	t:eq(registry:getSkinForInputMode("mania", "7key"), nil)
-	local game, input_mode, screen = skins[1].load("game", "4key", "preview")
+	local game = registry:loadSkin(skins[1], "game", "4key", "preview")
 	t:eq(game, "game")
-	t:eq(input_mode, "4key")
-	t:eq(screen, "preview")
 end
 
 ---@param t testing.T
-function test.loadSkin_passes_user_skin_directory_only_for_dlc_skins(t)
+function test.loadSkin_provides_paths_and_custom_loader(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata/dlc/skins_rizu/renamed_skin")
 	fs:createDirectory("rizu/skin/base")
 	fs:write("userdata/dlc/skins_rizu/renamed_skin/custom.skin.lua", [[
 return {
 	metadata = {name = "Custom", gamemode = "mania", input_modes = {"4key"}},
-	load = function(game, input_mode, screen, config, config_path, skin_directory_path)
-		return {skin_directory_path = skin_directory_path}
-	end,
+	load = function(context) return context end,
 }
 ]])
 	fs:write("rizu/skin/base/base.skin.lua", [[
 return {
 	metadata = {name = "Base", gamemode = "mania", input_modes = {"4key"}},
-	load = function(game, input_mode, screen, config, config_path, skin_directory_path)
-		return {skin_directory_path = skin_directory_path}
-	end,
+	load = function(context) return context end,
 }
 ]])
 	local registry = SkinRegistry(fs)
@@ -62,8 +56,31 @@ return {
 		{}, "4key", "gameplay")
 	local base_renderer = registry:loadSkin(registry:getSkin("rizu/skin/base/base.skin.lua"),
 		{}, "4key", "gameplay")
-	t:eq(renderer.skin_directory_path, "userdata/dlc/skins_rizu/renamed_skin")
-	t:eq(base_renderer.skin_directory_path, nil)
+	t:eq(renderer.directory_path, "userdata/dlc/skins_rizu/renamed_skin")
+	t:eq(base_renderer.directory_path, "rizu/skin/base")
+	t:eq(base_renderer.module_loader, nil)
+	t:assert(renderer.module_loader)
+	t:assert(not pcall(base_renderer.loadModule, base_renderer, "Font"))
+end
+
+---@param t testing.T
+function test.custom_skin_receives_module_loader(t)
+	local fs = FakeFilesystem()
+	local directory = "userdata/dlc/skins_rizu/renamed"
+	fs:createDirectory(directory)
+	fs:write(directory .. "/Font.lua", "return {}")
+	fs:write(directory .. "/custom.skin.lua", [[
+return {
+	metadata = {name = "Custom", gamemode = "mania", input_modes = {"4key"}},
+	load = function(context)
+		return {font = context:loadModule("Font"), context = context}
+	end,
+}
+]])
+	local registry = SkinRegistry(fs)
+	registry:load()
+	local renderer = registry:loadSkin(registry:getSkins()[1], {}, "4key", "gameplay")
+	t:eq(renderer.font, renderer.context:loadModule("Font"))
 end
 
 ---@param t testing.T
@@ -201,8 +218,8 @@ Keys: 4
 	t:eq(registry:getSkinForInputMode("mania", "4key", native_skin.path), native_skin)
 
 	local loaded
-	osu_skin.load = function(game, input_mode, screen)
-		loaded = {game, input_mode, screen}
+	osu_skin.load = function(context)
+		loaded = {context.game, context.input_mode, context.screen}
 		return "osu-renderer"
 	end
 	local renderer, config, config_path = registry:loadSkin(osu_skin, "game", "4key", "preview")

@@ -1,3 +1,4 @@
+local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
 local SkinConfig = require("rizu.skin.SkinConfig")
@@ -11,8 +12,7 @@ local test = {}
 ---@param t testing.T
 function test.exposes_receptor_and_playfield_properties(t)
 	local config = SkinConfig()
-	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "preview", config,
-		"userdata/dlc/skins_rizu/base/skin-config.json")
+	local renderer = skin.load(SkinLoadContext({game = {fs = FakeFilesystem()}, input_mode = "4key", screen = "preview", config = config, config_path = "userdata/dlc/skins_rizu/base/skin-config.json", directory_path = "rizu/skin/base"}))
 	local properties = renderer:getProperties()
 	t:eq(#properties, 2)
 	t:eq(properties[1].key, "receptor.y")
@@ -52,7 +52,7 @@ function test.exposes_gameplay_hud_with_accuracy_view(t)
 		fonts[#fonts + 1] = font
 		return font
 	end
-	local renderer = skin.load(game, "4key", "gameplay", SkinConfig(), "config.json")
+	local renderer = skin.load(SkinLoadContext({game = game, input_mode = "4key", screen = "gameplay", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	t:eq(#renderer.foreground_hud.children, 0)
 	t:eq(#renderer.background_hud.children, 1)
 	t:assert(require("rizu.skin.views.BgaView") * renderer.background_hud.children[1])
@@ -93,7 +93,7 @@ function test.exposes_gameplay_hud_with_accuracy_view(t)
 	t:eq(#fonts, 2)
 	for _, font in ipairs(fonts) do t:assert(font.released) end
 
-	local preview_renderer = skin.load(game, "4key", "preview", SkinConfig(), "config.json")
+	local preview_renderer = skin.load(SkinLoadContext({game = game, input_mode = "4key", screen = "preview", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	t:eq(#preview_renderer.foreground_hud.children, 0)
 	preview_renderer:load()
 	t:eq(#preview_renderer.foreground_hud.children, 0)
@@ -101,7 +101,7 @@ end
 
 ---@param t testing.T
 function test.rejects_out_of_range_properties(t)
-	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
+	local renderer = skin.load(SkinLoadContext({game = {fs = FakeFilesystem()}, input_mode = "4key", screen = "preview", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	t:has_error(function() renderer:setReceptorY(481) end)
 	t:has_error(function() renderer:setPlayfieldXOffset(641) end)
 end
@@ -113,7 +113,7 @@ function test.preview_column_mapping_handles_stale_and_changed_keymodes(t)
 		getNumber = function() return 1 end,
 	}
 	local player = NotesPreviewPlayer(settings, {rate = 1, getTime = function() return 0 end}, {})
-	local renderer = skin.load({fs = FakeFilesystem()}, "7key1scratch", "preview", SkinConfig(), "config.json")
+	local renderer = skin.load(SkinLoadContext({game = {fs = FakeFilesystem()}, input_mode = "7key1scratch", screen = "preview", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	local three_key_preview = SphPreview:encode({{offset = 0, notes = {true}}, {offset = 1}})
 	player:setChartview({chartdiff_inputmode = "3key", notes_preview = three_key_preview})
 
@@ -152,7 +152,7 @@ function test.gameplay_notes_continue_below_the_receptor_after_their_absolute_ti
 			getDPIScale = function() return 1 end,
 		}
 	end
-	local renderer = skin.load({
+	local renderer = skin.load(SkinLoadContext({game = {
 		fs = FakeFilesystem(),
 		rhythm_engine = {
 			visual_engine = {
@@ -163,7 +163,7 @@ function test.gameplay_notes_continue_below_the_receptor_after_their_absolute_ti
 			},
 			isColumnPressed = function() return false end,
 		},
-	}, "4key", "gameplay", SkinConfig(), "config.json")
+	}, input_mode = "4key", screen = "gameplay", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	love.graphics.newFont = original_new_font
 	local note_rectangles = capture_note_rectangles(function()
 		renderer:draw(640, 480, love.math.newTransform())
@@ -182,7 +182,7 @@ function test.gameplay_does_not_draw_successfully_hit_notes(t)
 			getDPIScale = function() return 1 end,
 		}
 	end
-	local renderer = skin.load({
+	local renderer = skin.load(SkinLoadContext({game = {
 		fs = FakeFilesystem(),
 		rhythm_engine = {
 			visual_engine = {
@@ -196,7 +196,7 @@ function test.gameplay_does_not_draw_successfully_hit_notes(t)
 			},
 			isColumnPressed = function() return false end,
 		},
-	}, "4key", "gameplay", SkinConfig(), "config.json")
+	}, input_mode = "4key", screen = "gameplay", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	love.graphics.newFont = original_new_font
 
 	local note_rectangles = capture_note_rectangles(function()
@@ -207,7 +207,7 @@ end
 
 ---@param t testing.T
 function test.preview_notes_continue_below_the_receptor_after_their_absolute_time(t)
-	local renderer = skin.load({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
+	local renderer = skin.load(SkinLoadContext({game = {fs = FakeFilesystem()}, input_mode = "4key", screen = "preview", config = SkinConfig(), config_path = "config.json", directory_path = "rizu/skin/base"}))
 	local preview = {
 		columns = {{{time = 0.5, end_time = 0.5}}, {}, {}, {}},
 		getVisibleRange = function(self, column)

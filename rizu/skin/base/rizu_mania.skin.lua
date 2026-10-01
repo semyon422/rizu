@@ -452,20 +452,15 @@ function ManiaPlayfieldRenderer:load()
 	self.foreground_hud = create_hud(self.game, self.hud_fonts)
 end
 
----@param game sphere.GameController
----@param input_mode string
----@param screen rizu.skin.Screen
----@param config rizu.skin.SkinConfig?
----@param config_path string?
+---@param context rizu.skin.SkinLoadContext
 ---@return rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
-local function load_skin(game, input_mode, screen, config, config_path)
-	local renderer = ManiaPlayfieldRenderer(game, input_mode, screen, config, config_path)
-	return renderer
+local function load_skin(context)
+	return ManiaPlayfieldRenderer(context.game, context.input_mode, context.screen, context.config, context.config_path)
 end
 
 ---@class rizu.skin.base.rizu_mania.Skin
 ---@field metadata rizu.skin.SkinMetadata
----@field load fun(game: sphere.GameController, input_mode: string, screen: rizu.skin.Screen, config: rizu.skin.SkinConfig?, config_path: string?): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@field load fun(context: rizu.skin.SkinLoadContext): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
 return {
 	metadata = {
 		name = "Rizu Default",
