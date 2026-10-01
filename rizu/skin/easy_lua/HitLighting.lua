@@ -14,6 +14,7 @@ local class = require("class")
 ---@field origin_x number? Normalized horizontal image origin in [0, 1]; defaults to 0.5.
 ---@field origin_y number? Normalized vertical image origin in [0, 1]; defaults to 0.5.
 ---@field blend_mode {[1]: string, [2]: string?}? LÖVE blend mode and optional alpha mode.
+---@field mode "oneshot"|"hold"? Animation mode; defaults to oneshot.
 ---@field color number[]? RGBA tint; defaults to white with 0.15 alpha.
 
 ---@class rizu.skin.easy_lua.HitLighting
@@ -31,6 +32,7 @@ local class = require("class")
 ---@field origin_x number
 ---@field origin_y number
 ---@field blend_mode {[1]: string, [2]: string?}?
+---@field mode "oneshot"|"hold"
 ---@field color number[]
 ---@field elapsed number
 ---@field active boolean
@@ -70,9 +72,12 @@ function HitLighting:new(config)
 	self.origin_y = config.origin_y or 0.5
 	self.blend_mode = config.blend_mode
 	self.color = config.color or {1, 1, 1, 0.15}
+	self.mode = config.mode or "oneshot"
 	self.elapsed = 0
 	self.active = false
+	self.held = false
 
+	assert(self.mode == "oneshot" or self.mode == "hold", "hit lighting mode must be oneshot or hold")
 	assert(type(self.width) == "number" and self.width > 0 and self.width < math.huge,
 		"hit lighting width must be positive and finite")
 	assert(type(self.scale_y) == "number" and self.scale_y == self.scale_y and math.abs(self.scale_y) < math.huge,
@@ -108,12 +113,35 @@ end
 function HitLighting:trigger()
 	self.elapsed = 0
 	self.active = true
+	self.held = false
+end
+
+---@param held boolean
+function HitLighting:setHeld(held)
+	if self.mode ~= "hold" then
+		if held then self:trigger() end
+		return
+	end
+	if held then
+		if self.held then return end
+		self.elapsed = 0
+		self.active = true
+		self.held = true
+	else
+		self.held = false
+	end
 end
 
 ---@param dt number
 function HitLighting:update(dt)
 	if not self.active then return end
 	self.elapsed = self.elapsed + dt
+	if self.mode == "hold" then
+		if not self.held then
+			self.active = false
+		end
+		return
+	end
 	if self.elapsed >= self.duration then
 		self.elapsed = self.duration
 		self.active = false
@@ -124,8 +152,13 @@ end
 ---@param hit_y number Column hit position.
 function HitLighting:draw(x, hit_y)
 	if not self.active then return end
-	local progress = math.min(self.elapsed / self.duration, 1)
-	local frame_index = math.min(math.floor(self.elapsed * self.frame_rate) + 1, #self.frames)
+	local progress = self.mode == "hold" and 0 or math.min(self.elapsed / self.duration, 1)
+	local frame_index = math.floor(self.elapsed * self.frame_rate) + 1
+	if self.mode == "hold" then
+		frame_index = (frame_index - 1) % #self.frames + 1
+	else
+		frame_index = math.min(frame_index, #self.frames)
+	end
 	local image = self.frames[frame_index]
 	local scale_factor = self.animation == "shrink" and (1 - progress) * (1 - progress) or 1
 	local alpha = (self.color[4] or 1) * (self.animation == "fade" and (1 - progress) or 1)

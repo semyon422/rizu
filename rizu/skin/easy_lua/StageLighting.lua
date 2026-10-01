@@ -45,7 +45,7 @@ function StageLighting:new(config)
 	end
 	assert(type(frames) == "table" and #frames > 0, "stage lighting image or non-empty frames are required")
 	for index, frame in ipairs(frames) do
-		assert(frame and type(frame.getDimensions) == "function",
+		assert(frame and (type(frame.getDimensions) == "function" or type(frame.getWidth) == "function"),
 			("stage lighting frame %d must be a Love image"):format(index))
 	end
 

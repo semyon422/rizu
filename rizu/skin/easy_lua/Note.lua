@@ -1,10 +1,17 @@
 local class = require("class")
 
+---@class rizu.skin.easy_lua.Note.HoldBodyAnimation
+---@field idle love.Image Frame used before the hold starts.
+---@field hold love.Image[] Frames used while the hold is active.
+---@field failed love.Image[] Frames used after a hold judgment fails.
+---@field frame_rate number? Animation frame rate; defaults to 30.
+
 ---@class rizu.skin.easy_lua.Note.HoldStyle
 ---@field head love.Image?
 ---@field head_scale_x number? Optional horizontal scale for the long-note head.
 ---@field head_scale_y number? Optional vertical scale for the long-note head.
----@field body love.Image?
+---@field body love.Image|rizu.skin.easy_lua.Note.HoldBodyAnimation?
+---@field body_animation rizu.skin.easy_lua.Note.HoldBodyAnimation? Explicit animated body configuration.
 ---@field body_scale_x number?
 ---@field body_scale_y number? Body scale_y; defaults to the note scale_y.
 ---@field body_fit_duration boolean? Explicitly stretch the body to the note duration.
@@ -34,7 +41,30 @@ local class = require("class")
 ---@field offset_y number
 ---@field color number[]
 ---@field hold rizu.skin.easy_lua.Note.HoldStyle?
+---@field hold_body_animation rizu.skin.easy_lua.Note.HoldBodyAnimation?
 local Note = class()
+
+local function is_image(value)
+	return value and type(value.getDimensions) == "function"
+end
+
+local function validate_animation_frames(frames, name)
+	assert(type(frames) == "table" and #frames > 0, ("note hold %s frames must not be empty"):format(name))
+	for index, frame in ipairs(frames) do
+		assert(is_image(frame), ("note hold %s frame %d must be a Love image"):format(name, index))
+	end
+end
+
+---@param animation rizu.skin.easy_lua.Note.HoldBodyAnimation
+local function validate_body_animation(animation)
+	assert(type(animation) == "table", "note hold body animation must be a table")
+	assert(is_image(animation.idle), "note hold body animation needs an idle image")
+	validate_animation_frames(animation.hold, "hold")
+	validate_animation_frames(animation.failed, "failed")
+	local frame_rate = animation.frame_rate or 30
+	assert(type(frame_rate) == "number" and frame_rate > 0 and frame_rate < math.huge,
+		"note hold body animation frame_rate must be positive and finite")
+end
 
 ---@param config rizu.skin.easy_lua.Note.Config?
 function Note:new(config)
@@ -46,6 +76,8 @@ function Note:new(config)
 	self.offset_y = config.offset_y or 0
 	self.color = config.color or {1, 1, 1, 1}
 	self.hold = config.hold
+	self.hold_body_animation = self.hold and self.hold.body_animation
+	self.body_animation_states = setmetatable({}, {__mode = "k"})
 
 	assert(self.scale_x == self.scale_x and math.abs(self.scale_x) < math.huge,
 		"note scale_x must be finite")
@@ -57,6 +89,13 @@ function Note:new(config)
 		"note offset_y must be finite")
 	assert(type(self.color) == "table", "note color must be an RGBA table")
 	assert(self.hold == nil or type(self.hold) == "table", "note hold style must be a table")
+	if self.hold then
+		if self.hold_body_animation then
+			validate_body_animation(self.hold_body_animation)
+		elseif self.hold.body then
+			assert(is_image(self.hold.body), "note hold body must be a Love image or animation")
+		end
+	end
 end
 
 ---@param image love.Image?
@@ -82,7 +121,36 @@ local function draw_image(image, x, y, scale_x, scale_y, color, left, right, vie
 	love.graphics.draw(image, x, y, 0, scale_x, scale_y, width / 2, height / 2)
 end
 
----Draws visible notes matching one input without allocating per-note objects.
+local function get_body_frame(visual_note, animation, animation_states)
+	local state = visual_note:getState()
+	local frames
+	if state == "startPassedPressed" then
+		frames = animation.hold
+	elseif state == "startMissed" or state == "startMissedPressed"
+		or state == "endMissed" or state == "endMissedPassed"
+	then
+		frames = animation.failed
+	else
+		return animation.idle
+	end
+
+	local visual_info = visual_note.visual_info
+	local current_time = visual_info and visual_info:getTime()
+	if not current_time then
+		return frames[1]
+	end
+
+	local state_data = animation_states[visual_note]
+	if not state_data or state_data.state ~= state then
+		state_data = {state = state, time = current_time}
+		animation_states[visual_note] = state_data
+	end
+
+	local elapsed = math.max(0, current_time - state_data.time)
+	local frame_index = math.floor(elapsed * (animation.frame_rate or 30)) % #frames + 1
+	return frames[frame_index]
+end
+
 ---@param visible_notes rizu.VisualNote[]
 ---@param input chart.Column
 ---@param column_x number
@@ -128,16 +196,20 @@ function Note:drawNote(visual_note, column_x, hit_y, pixels_per_second, reverse,
 	if is_long and state == "startPassedPressed" then
 		start_y = hit_y + self.offset_y
 	end
+	local body = hold and hold.body
+	if self.hold_body_animation then
+		body = get_body_frame(visual_note, self.hold_body_animation, self.body_animation_states)
+	end
 	if is_long then
 		local end_y = hit_y + direction * visual_note.end_dt * pixels_per_second + self.offset_y
-		if long_note_visible and hold and hold.body then
-			local _, body_height = hold.body:getDimensions()
+		if long_note_visible and body then
+			local _, body_height = body:getDimensions()
 			local body_scale_x = hold.body_scale_x or scale_x
 			local body_scale_y = hold.body_scale_y or scale_y
 			if hold.body_fit_duration then
 				body_scale_y = body_height > 0 and math.abs(end_y - start_y) / body_height or 0
 			end
-			draw_image(hold.body, x, (start_y + end_y) / 2, body_scale_x, body_scale_y,
+			draw_image(body, x, (start_y + end_y) / 2, body_scale_x, body_scale_y,
 				color, left, right, viewport_height)
 		end
 		if head_visible then
@@ -155,7 +227,7 @@ function Note:drawNote(visual_note, column_x, hit_y, pixels_per_second, reverse,
 	end
 end
 
----@param dt number
-function Note:update(dt) end
+---@param _dt number
+function Note:update(_dt) end
 
 return Note
