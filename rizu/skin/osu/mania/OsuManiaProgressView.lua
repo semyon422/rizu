@@ -4,6 +4,8 @@ local lg = love.graphics
 local PROGRESS_VIEW_SIZE = 24
 local PROGRESS_RADIUS = 10
 local PROGRESS_POSITION_OFFSET = 24
+local NEGATIVE_PROGRESS_COLOR = {0.78, 1, 0.18, 0.6}
+local POSITIVE_PROGRESS_COLOR = {1, 1, 1, 0.6}
 
 ---@class rizu.skin.osu.mania.OsuManiaProgressView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.OsuManiaProgressView
@@ -46,8 +48,8 @@ function OsuManiaProgressView:draw()
 	lg.setColor(1, 1, 1, 0.16)
 	lg.circle("line", cx, cy, radius)
 	if self.progress ~= 0 then
-		local color = self.progress < 0 and {0.78, 1, 0.18, 0.6} or {1, 1, 1, 0.6}
-		lg.setColor(color)
+		local color = self.progress < 0 and NEGATIVE_PROGRESS_COLOR or POSITIVE_PROGRESS_COLOR
+		lg.setColor(color[1], color[2], color[3], color[4])
 		local angle = math.min(math.abs(self.progress), 1) * math.pi * 2
 		local segments = math.max(2, math.ceil(angle * 10))
 		lg.arc("fill", "pie", cx, cy, radius, -math.pi / 2, -math.pi / 2 + angle, segments)

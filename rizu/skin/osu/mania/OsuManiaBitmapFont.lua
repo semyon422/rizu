@@ -2,6 +2,12 @@ local class = require("class")
 
 local lg = love.graphics
 
+local CHARACTER_SUFFIXES = {
+	[46] = "dot", [44] = "comma", [37] = "percent", [47] = "slash",
+	[92] = "fps", [61] = "ms", [43] = "hz", [120] = "x",
+}
+local DIGIT_SUFFIXES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
+
 ---@class rizu.skin.osu.mania.OsuManiaBitmapFont.Glyph
 ---@field image love.Image
 ---@field width number
@@ -14,6 +20,13 @@ local lg = love.graphics
 ---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@field prefix string
 ---@field overlap number
+---@field image_cache {[string]: love.Image|false}
+---@field image_cache_generation integer
+---@field glyphs rizu.skin.osu.mania.OsuManiaBitmapFont.Glyph[]
+---@field glyph_count integer
+---@field measured_value string?
+---@field measured_width number
+---@field measured_height number
 local OsuManiaBitmapFont = class()
 
 ---@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
@@ -23,6 +36,13 @@ function OsuManiaBitmapFont:new(graphics, prefix, overlap)
 	self.graphics = graphics
 	self.prefix = prefix or "score"
 	self.overlap = overlap or 0
+	self.image_cache = {}
+	self.image_cache_generation = -1
+	self.glyphs = {}
+	self.glyph_count = 0
+	self.measured_value = nil
+	self.measured_width = 0
+	self.measured_height = 0
 end
 
 ---@param skin rizu.skin.OsuSkinDiscovery?
@@ -41,23 +61,35 @@ function OsuManiaBitmapFont:setSkin(skin, font_name)
 	if overlap ~= overlap or overlap == math.huge or overlap == -math.huge then overlap = 0 end
 	self.prefix = prefix
 	self.overlap = overlap
+	self.image_cache = {}
+	self.image_cache_generation = -1
+	self.measured_value = nil
 end
 
----@param character string
+---@param character_code integer
 ---@return string?
-local function character_suffix(character)
-	if character:match("%d") then return character end
-	local suffixes = {
-		["."] = "dot", [","] = "comma", ["%"] = "percent", ["/"] = "slash",
-		["\\"] = "fps", ["="] = "ms", ["+"] = "hz", ["x"] = "x",
-	}
-	return suffixes[character]
+local function character_suffix(character_code)
+	if character_code >= 48 and character_code <= 57 then return DIGIT_SUFFIXES[character_code - 47] end
+	return CHARACTER_SUFFIXES[character_code]
 end
 
 ---@param suffix string
 ---@return love.Image?
 function OsuManiaBitmapFont:getImage(suffix)
-	return self.graphics:getFrames(self.prefix .. "-" .. suffix, nil)[1]
+	if self.image_cache_generation ~= self.graphics.generation then
+		self.image_cache = {}
+		self.image_cache_generation = self.graphics.generation
+		self.measured_value = nil
+		for index = 1, #self.glyphs do
+			local glyph = self.glyphs[index]
+			glyph.image, glyph.width, glyph.height, glyph.advance, glyph.digit = nil, nil, nil, nil, nil
+		end
+	end
+	local cached = self.image_cache[suffix]
+	if cached ~= nil then return cached ~= false and cached or nil end
+	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, nil)[1]
+	self.image_cache[suffix] = image or false
+	return image
 end
 
 ---@param image love.Image?
@@ -85,20 +117,27 @@ end
 ---@return number width
 ---@return number height
 function OsuManiaBitmapFont:measure(value)
+	local generation = self.graphics.generation
+	if self.measured_value == value and self.image_cache_generation == generation then return self.measured_width, self.measured_height end
 	local slot_width, digit_height = self:getImageDimensions(self:getImage("5"))
 	if slot_width <= 0 then slot_width = 16 end
 	local width, height, count = 0, digit_height, 0
-	for character in value:gmatch(".") do
-		local image = self:getImage(character_suffix(character) or "")
+	for index = 1, #value do
+		local character_code = value:byte(index)
+		local image = self:getImage(character_suffix(character_code) or "")
 		local image_width, image_height = self:getImageDimensions(image)
-		local advance = character:match("%d") and slot_width or image_width
+		local digit = character_code >= 48 and character_code <= 57
+		local advance = digit and slot_width or image_width
 		if advance > 0 then
 			width = width + advance
 			height = math.max(height, image_height)
 			count = count + 1
 		end
 	end
-	return math.max(0, width - count * self.overlap), height
+	self.measured_value = value
+	self.measured_width = math.max(0, width - count * self.overlap)
+	self.measured_height = height
+	return self.measured_width, self.measured_height
 end
 
 ---@param value string
@@ -107,25 +146,39 @@ end
 ---@param right_edge number
 ---@param color number[]?
 function OsuManiaBitmapFont:draw(value, scale, y, right_edge, color)
-	---@type rizu.skin.osu.mania.OsuManiaBitmapFont.Glyph[]
-	local glyphs = {}
+	local glyphs = self.glyphs
+	local glyph_count = 0
 	local slot_width = self:getImageDimensions(self:getImage("5"))
 	if slot_width <= 0 then slot_width = 16 end
 	local max_height, total_width = 0, 0
-	for character in value:gmatch(".") do
-		local suffix = character_suffix(character)
+	for index = 1, #value do
+		local character_code = value:byte(index)
+		local suffix = character_suffix(character_code)
 		local image = suffix and self:getImage(suffix)
 		local width, height = self:getImageDimensions(image)
-		local digit = character:match("%d") ~= nil
+		local digit = character_code >= 48 and character_code <= 57
 		local advance = digit and slot_width or width
 		if image and advance > 0 then
 			max_height = math.max(max_height, height)
-			glyphs[#glyphs + 1] = {image = image, width = width, height = height, advance = advance, digit = digit}
+			glyph_count = glyph_count + 1
+			local glyph = glyphs[glyph_count]
+			if not glyph then
+				glyph = {}
+				glyphs[glyph_count] = glyph
+			end
+			glyph.image, glyph.width, glyph.height = image, width, height
+			glyph.advance, glyph.digit = advance, digit
 			total_width = total_width + advance
 		end
 	end
-	local draw_x = right_edge - math.max(0, total_width - #glyphs * self.overlap) * scale
-	for _, glyph in ipairs(glyphs) do
+	self.glyph_count = glyph_count
+	for index = glyph_count + 1, #glyphs do
+		local glyph = glyphs[index]
+		glyph.image, glyph.width, glyph.height, glyph.advance, glyph.digit = nil, nil, nil, nil, nil
+	end
+	local draw_x = right_edge - math.max(0, total_width - glyph_count * self.overlap) * scale
+	for index = 1, glyph_count do
+		local glyph = glyphs[index]
 		local offset_x = glyph.digit and math.max(0, (slot_width - glyph.width) / 2) or 0
 		local offset_y = (max_height - glyph.height) / 2
 		if color then

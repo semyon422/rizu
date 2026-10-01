@@ -5,6 +5,9 @@ local StageLighting = require("rizu.skin.easy_lua.StageLighting")
 local HitLighting = require("rizu.skin.easy_lua.HitLighting")
 local HitLightingGroup = require("rizu.skin.easy_lua.HitLightingGroup")
 
+local HIT_LIGHTING_NAMES = {"short", "long_start", "long_end", "long"}
+local HIT_LIGHTING_CONFIG_NAMES = {"short", "long", "long_start", "long_end"}
+
 ---@class rizu.skin.easy_lua.Column.HitLightingConfig
 ---@field short rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLighting.Config? Short-note hit effect.
 ---@field long rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLightingGroup|rizu.skin.easy_lua.HitLighting.Config? Long-note hold effect.
@@ -85,7 +88,7 @@ function Column:new(config)
 		assert(type(configured_hit_lighting) == "table", "column hit_lighting must be a table")
 		self.hit_lighting = {} ---@type {[string]: rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLightingGroup}
 		local lighting_configs = configured_hit_lighting ---@type {[string]: rizu.skin.easy_lua.HitLighting|rizu.skin.easy_lua.HitLightingGroup|rizu.skin.easy_lua.HitLighting.Config}
-		for _, note_type in ipairs({"short", "long", "long_start", "long_end"}) do
+		for _, note_type in ipairs(HIT_LIGHTING_CONFIG_NAMES) do
 			---@cast note_type "short"|"long"
 			local configured_lighting = lighting_configs[note_type]
 			if configured_lighting then
@@ -134,7 +137,7 @@ end
 
 function Column:drawHitLighting()
 	if not self.hit_lighting then return end
-	for _, name in ipairs({"short", "long_start", "long_end", "long"}) do
+	for _, name in ipairs(HIT_LIGHTING_NAMES) do
 		local lighting = self.hit_lighting[name]
 		if lighting then lighting:draw(self.x, self.y) end
 	end
@@ -199,7 +202,7 @@ function Column:update(dt)
 	if self.receptor then self.receptor:update(dt) end
 	if self.stage_lighting then self.stage_lighting:update(dt) end
 	if self.hit_lighting then
-		for _, name in ipairs({"short", "long_start", "long_end", "long"}) do
+		for _, name in ipairs(HIT_LIGHTING_NAMES) do
 			local lighting = self.hit_lighting[name]
 			if lighting then lighting:update(dt) end
 		end

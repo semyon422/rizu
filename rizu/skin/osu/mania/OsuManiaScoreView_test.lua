@@ -6,7 +6,7 @@ local OsuManiaJudgeView = require("rizu.skin.osu.mania.OsuManiaJudgeView")
 local OsuManiaHitMeterView = require("rizu.skin.osu.mania.OsuManiaHitMeterView")
 local OsuManiaProgressView = require("rizu.skin.osu.mania.OsuManiaProgressView")
 local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
-
+local OsuManiaBitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
 local test = {}
 
 local function make_graphics()
@@ -22,6 +22,93 @@ local function make_graphics()
 	end
 	graphics.getImageDensity = function() return 1 end
 	return graphics
+end
+
+function test.bitmap_font_reuses_glyph_records_and_clears_shorter_tails(t)
+	local graphics = make_graphics()
+	local font = OsuManiaBitmapFont(graphics)
+	local previous_draw = love.graphics.draw
+	love.graphics.draw = function() end
+	font:draw("123456", 1, 0, 100)
+	local first, third = font.glyphs[1], font.glyphs[3]
+	font:draw("12", 1, 0, 100)
+	love.graphics.draw = previous_draw
+	t:eq(font.glyphs[1], first)
+	t:eq(font.glyphs[3], third)
+	t:eq(font.glyph_count, 2)
+	t:eq(font.glyphs[3].image, nil)
+	t:eq(font.glyphs[3].width, nil)
+end
+
+function test.bitmap_fonts_keep_independent_pools_and_refresh_same_measurement_after_generation(t)
+	local graphics = make_graphics()
+	local image = {getDimensions = function() return 10, 20 end}
+	local next_image = {getDimensions = function() return 30, 40 end}
+	local initial_generation = graphics.generation
+	graphics.getFrames = function(_, name)
+		return {(graphics.generation == initial_generation and image or next_image)}
+	end
+	local first = OsuManiaBitmapFont(graphics)
+	local second = OsuManiaBitmapFont(graphics)
+	local width_before = first:measure("12")
+	local previous_draw = love.graphics.draw
+	love.graphics.draw = function() end
+	first:draw("12", 1, 0, 100)
+	second:draw("12", 1, 0, 100)
+	love.graphics.draw = previous_draw
+	graphics.generation = initial_generation + 1
+	local width_after = first:measure("12")
+	t:assert(first.glyphs ~= second.glyphs)
+	t:assert(first.glyphs[1] ~= second.glyphs[1])
+	t:eq(width_before, 20)
+	t:eq(width_after, 60)
+end
+
+function test.combo_parser_preserves_numeric_channels_and_refreshes_layout(t)
+	local graphics = make_graphics()
+	local initial_generation = graphics.generation
+	local fallback_image = {getDimensions = function() return 10, 11 end}
+	local loaded_image = {getDimensions = function() return 30, 41 end}
+	graphics.getFrames = function()
+		return {graphics.generation == initial_generation and fallback_image or loaded_image}
+	end
+	local view = OsuManiaComboView(graphics)
+	view:setSkin({skin_ini = {Fonts = {}, Mania = {{ColourBreak = "-1.5, 128.5, 300, 7"}}}})
+	t:aeq(view.break_color[1], 0, 1e-6)
+	t:aeq(view.break_color[2], 128.5 / 255, 1e-6)
+	t:aeq(view.break_color[3], 1, 1e-6)
+	t:aeq(view.width, 6 * 10 * 1.28 * 0.625, 1e-6)
+	t:aeq(view.height, 11 * 1.28 * 0.625, 1e-6)
+	graphics.generation = initial_generation + 1
+	view:refreshSize()
+	t:aeq(view.width, 6 * 30 * 1.28 * 0.625, 1e-6)
+	t:aeq(view.height, 41 * 1.28 * 0.625, 1e-6)
+end
+
+function test.accuracy_format_cache_uses_rounded_display_value(t)
+	local value = 0.95
+	local source = {accuracy_multiplier = 100, getAccuracy = function() return value end}
+	local view = OsuManiaAccuracyView(make_graphics())
+	local game = {rhythm_engine = {score_engine = {accuracySource = source}}}
+	local old_format = string.format
+	local percent_formats = 0
+	string.format = function(format, ...)
+		if format == "%05.2f%%" then percent_formats = percent_formats + 1 end
+		return old_format(format, ...)
+	end
+	local ok, err = xpcall(function()
+		view:update(1, game)
+		t:eq(percent_formats, 1)
+		value = 0.95004
+		view:update(1, game)
+		t:eq(percent_formats, 1)
+		value = 0.95006
+		view:update(1, game)
+		t:eq(percent_formats, 2)
+		t:eq(view.display_text, "95.01%")
+	end, debug.traceback)
+	string.format = old_format
+	if not ok then error(err) end
 end
 
 function test.uses_osu_score_bitmap_font_and_layout(t)

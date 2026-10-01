@@ -416,6 +416,7 @@ function OsuManiaRenderer:load()
 	end
 	self:loadLightings()
 	self.score_view:refreshSize()
+	self.combo_view:refreshSize()
 	self.accuracy_view:setSkin(skin, self.score_view.height)
 	self.progress_view:setAccuracyView(self.accuracy_view)
 end

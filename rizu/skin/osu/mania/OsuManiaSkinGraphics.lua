@@ -11,6 +11,7 @@ local path_util = require("path_util")
 ---@field animation_cache {[string]: love.Image[]}
 ---@field image_density {[love.Image]: number}
 ---@field loaded boolean
+---@field generation integer
 ---@field fallback_directory string?
 local OsuManiaSkinGraphics = class()
 
@@ -25,6 +26,7 @@ function OsuManiaSkinGraphics:new(fs, skin)
 	self.animation_cache = {}
 	self.image_density = {}
 	self.loaded = false
+	self.generation = 0
 	self.fallback_directory = nil
 	self:setSkin(skin)
 end
@@ -50,6 +52,7 @@ end
 function OsuManiaSkinGraphics:setSkin(skin)
 	if self.skin == skin and (self.loaded or next(self.file_map)) then return end
 	if self.loaded or next(self.images) then self:unload() end
+	self.generation = self.generation + 1
 	self.skin = skin
 	self.frame_cache = {}
 	self.animation_cache = {}
@@ -59,6 +62,7 @@ end
 function OsuManiaSkinGraphics:setFallbackDirectory(directory)
 	if self.fallback_directory == directory then return end
 	if self.loaded or next(self.images) then self:unload() end
+	self.generation = self.generation + 1
 	self.fallback_directory = directory
 	self.frame_cache = {}
 	self.animation_cache = {}
@@ -216,6 +220,7 @@ function OsuManiaSkinGraphics:getAnimationFrames(image_name, fallback_name)
 end
 
 function OsuManiaSkinGraphics:load(assets)
+	self.generation = self.generation + 1
 	self.loaded = true
 	for _, asset in ipairs(assets or {}) do
 		if asset.animation then
@@ -235,6 +240,7 @@ function OsuManiaSkinGraphics:unload()
 	self.animation_cache = {}
 	self.image_density = {}
 	self.loaded = false
+	self.generation = self.generation + 1
 	self:indexFiles()
 end
 

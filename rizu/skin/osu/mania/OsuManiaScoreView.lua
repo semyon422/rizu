@@ -14,8 +14,18 @@ local SCORE_ANIMATION_RATE = 0.75
 ---@field score_overlap number
 ---@field score number
 ---@field target_score number
+---@field display_text string
+---@field display_value integer?
 ---@field has_score boolean
 local OsuManiaScoreView = View + {}
+
+local function update_display_text(self)
+	local display_value = math.min(99999999, math.floor(self.score + 0.5))
+	if self.display_value ~= display_value then
+		self.display_value = display_value
+		self.display_text = ("%08d"):format(display_value)
+	end
+end
 
 ---@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
 function OsuManiaScoreView:new(graphics)
@@ -26,6 +36,8 @@ function OsuManiaScoreView:new(graphics)
 	self.score_overlap = self.bitmap_font.overlap
 	self.score = 0
 	self.target_score = 0
+	self.display_text = "00000000"
+	self.display_value = nil
 	self.has_score = false
 	View.new(self, {anchor = "top_right", origin = "top_right", width = 0, height = 0, x = -6})
 	self:refreshSize()
@@ -78,12 +90,13 @@ function OsuManiaScoreView:update(dt, game)
 	elseif frame_ratio > 0 then
 		self.score = self.target_score + (self.score - self.target_score) * SCORE_ANIMATION_RATE ^ frame_ratio
 	end
+	update_display_text(self)
 end
 
 function OsuManiaScoreView:draw()
 	if not self.has_score then return end
-	local text = ("%08d"):format(math.min(99999999, math.floor(self.score + 0.5)))
-	self.bitmap_font:draw(text, SCORE_SCALE, 0, self.width)
+	update_display_text(self)
+	self.bitmap_font:draw(self.display_text, SCORE_SCALE, 0, self.width)
 end
 
 return OsuManiaScoreView
