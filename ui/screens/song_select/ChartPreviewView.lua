@@ -3,8 +3,16 @@ local Resources = require("ui.Resources")
 local Painter = require("gui.Painter")
 local BgaRenderer = require("ui.views.BgaRenderer")
 local Settings = require("rizu.config.Settings")
+local thread = require("thread")
 
 local lg = love.graphics
+
+---@class ui.screens.song_select.ChartPreviewView.CachedRenderer
+---@field skin rizu.skin.LoadableSkin
+---@field renderer rizu.gameplay.views.PlayfieldRenderer
+---@field alive boolean
+---@field ready boolean
+---@field error string?
 
 ---@class ui.screens.song_select.ChartPreviewView : gui.View
 ---@operator call: ui.screens.song_select.ChartPreviewView
@@ -13,7 +21,7 @@ local lg = love.graphics
 ---@field preview_canvas love.Canvas?
 ---@field bga_renderer ui.views.BgaRenderer
 ---@field playfield_renderer rizu.gameplay.views.PlayfieldRenderer?
----@field preview_renderer_cache {[string]: {[string]: {skin: rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery, renderer: rizu.gameplay.views.PlayfieldRenderer}}}
+---@field preview_renderer_cache {[string]: {[string]: ui.screens.song_select.ChartPreviewView.CachedRenderer}}
 ---@field chartview_formatter ui.formatters.ChartviewFormatter?
 ---@field unsubscribe_skins fun()
 local ChartPreviewView = View + {}
@@ -59,6 +67,48 @@ function ChartPreviewView:getPreviewSkin(input_mode, skin_paths)
 	return registry:getSkinForInputMode("mania", input_mode, selected_path)
 end
 
+---@param cached ui.screens.song_select.ChartPreviewView.CachedRenderer
+function ChartPreviewView:releasePreviewRenderer(cached)
+	if cached.alive == false then return end
+	cached.alive = false
+	cached.ready = false
+	local renderer = cached.renderer
+	if self.playfield_renderer == renderer then self.playfield_renderer = nil end
+	if renderer.unload then renderer:unload() end
+	if renderer.unloadResources then renderer:unloadResources() end
+end
+
+---@param cached ui.screens.song_select.ChartPreviewView.CachedRenderer
+---@param context rizu.skin.SkinLoadContext
+function ChartPreviewView:preparePreviewRenderer(cached, context)
+	local renderer = cached.renderer
+	-- Legacy renderers retain their existing deferred/main-thread behavior.
+	if not renderer.isResourcesReady or renderer:isResourcesReady() then return end
+	cached.ready = false
+	local started, ticket = pcall(renderer.startLoadResources, renderer, context)
+	if not started then
+		cached.error = tostring(ticket)
+		self:releasePreviewRenderer(cached)
+		print("Chart preview skin load failed: " .. cached.error)
+		return
+	end
+	if not ticket then cached.ready = true; return end
+	thread.coro(function()
+		local ok, err = renderer:finishLoadResourcesAsync(ticket)
+		if not cached.alive then return end
+		if ok then
+			ok, err = xpcall(function() renderer:load() end, debug.traceback)
+		end
+		if not ok then
+			cached.error = tostring(err)
+			self:releasePreviewRenderer(cached)
+			print("Chart preview skin load failed: " .. cached.error)
+			return
+		end
+		cached.ready = true
+	end)()
+end
+
 ---@param skin_paths rizu.config.StringMap
 ---@param old_skin_paths rizu.config.StringMap
 function ChartPreviewView:invalidateChangedPreviewRenderers(skin_paths, old_skin_paths)
@@ -67,9 +117,7 @@ function ChartPreviewView:invalidateChangedPreviewRenderers(skin_paths, old_skin
 		local old_skin = self:getPreviewSkin(input_mode, old_skin_paths)
 		local new_skin = self:getPreviewSkin(input_mode, skin_paths)
 		if old_skin ~= new_skin then
-			if cached.renderer.unload then
-				cached.renderer:unload()
-			end
+			self:releasePreviewRenderer(cached)
 			mode_cache[input_mode] = nil
 		end
 	end
@@ -82,27 +130,27 @@ function ChartPreviewView:getPreviewRenderer(input_mode, skin)
 	local mode_cache = self.preview_renderer_cache.mania
 	local cached = mode_cache[input_mode]
 	if cached and cached.skin == skin then
-		return cached.renderer
+		return cached.alive and cached.renderer or nil
 	end
-	if cached and cached.renderer.unload then
-		cached.renderer:unload()
-	end
+	if cached then self:releasePreviewRenderer(cached) end
 
-	local renderer = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "preview") --[[@as rizu.gameplay.views.PlayfieldRenderer?]]
+	---@diagnostic disable-next-line: no-unknown
+	local loaded_renderer, config, config_path, context = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "preview")
+	local renderer = loaded_renderer --[[@as rizu.gameplay.views.PlayfieldRenderer?]]
 	if renderer then
-		mode_cache[input_mode] = {skin = skin, renderer = renderer}
+		local entry = {skin = skin, renderer = renderer, alive = true, ready = true}
+		mode_cache[input_mode] = entry
+		self:preparePreviewRenderer(entry, context)
 	else
 		mode_cache[input_mode] = nil
 	end
-	return renderer
+	return renderer and mode_cache[input_mode].alive and renderer or nil
 end
 
 function ChartPreviewView:clearPreviewRendererCache()
 	for _, mode_cache in pairs(self.preview_renderer_cache) do
 		for _, cached in pairs(mode_cache) do
-			if cached.renderer.unload then
-				cached.renderer:unload()
-			end
+			self:releasePreviewRenderer(cached)
 		end
 	end
 	self.preview_renderer_cache = {mania = {}}
@@ -129,6 +177,19 @@ function ChartPreviewView:unload()
 	if self.preview_canvas then
 		self.preview_canvas:release()
 		self.preview_canvas = nil
+	end
+end
+
+---@param dt number
+function ChartPreviewView:update(dt)
+	local renderer = self.playfield_renderer
+	if renderer and renderer.isResourcesReady and renderer:isResourcesReady() then
+		for _, entry in pairs(self.preview_renderer_cache.mania) do
+			if entry.renderer == renderer and entry.alive and entry.ready then
+				renderer:update(dt)
+				break
+			end
+		end
 	end
 end
 
@@ -163,7 +224,8 @@ function ChartPreviewView:draw()
 		self.bga_renderer:draw(bga_engine, preview_model:getTime(), w, h)
 	end
 	local player = self.game.previewModel.chartPreview
-	if self.playfield_renderer then
+	if self.playfield_renderer and (not self.playfield_renderer.isResourcesReady or
+			self.playfield_renderer:isResourcesReady()) then
 		self.playfield_renderer:drawPreview(player, w, h)
 	end
 	lg.pop()

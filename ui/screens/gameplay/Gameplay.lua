@@ -248,6 +248,7 @@ function Gameplay:exit()
 	self.was_retrying = false
 	self.restart_overlay:reset()
 	self.ui.command_registry:popContext("gameplay_commands")
+	self.gameplay_playfield:unload()
 	self.gameplay_interactor:unloadGameplay()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)

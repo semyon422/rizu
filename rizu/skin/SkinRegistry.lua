@@ -25,6 +25,7 @@ local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 ---@field file_name string?
 ---@field format rizu.skin.SkinFormat
 ---@field metadata rizu.skin.SkinMetadata?
+---@field files string[]? Cached relative file list, populated on first native load.
 ---@field load_module (fun(name: string): any)? Custom skin-local module loader.
 ---@field load fun(context: rizu.skin.SkinLoadContext): unknown
 
@@ -449,12 +450,17 @@ end
 ---@return unknown renderer
 ---@return rizu.skin.SkinConfig? config
 ---@return string? config_path
+---@return rizu.skin.SkinLoadContext context
 function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 	assert(skin and type(skin.load) == "function", "skin with a load function is required")
 	assert(type(input_mode) == "string" and input_mode ~= "", "input mode is required")
+	-- Native directories are indexed lazily and reused; osu discovery already indexes them.
+	skin.files = skin.files or self:indexFiles(skin.directory_path)
 	if type(skin) == "table" and skin.format == "osu" then
-		return skin.load(SkinLoadContext({game = game, input_mode = input_mode, screen = screen,
-			skin_path = skin.path, directory_path = skin.directory_path})), nil, nil
+		local context = SkinLoadContext({game = game, fs = self.fs, files = skin.files,
+			input_mode = input_mode, screen = screen,
+			skin_path = skin.path, directory_path = skin.directory_path})
+		return skin.load(context), nil, nil, context
 	end
 	local config = SkinConfig()
 	local config_path = self:getSkinConfigPath(skin)
@@ -465,12 +471,13 @@ function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 		end
 	end
 	local context = SkinLoadContext({
-		game = game, input_mode = input_mode, screen = screen,
+		game = game, fs = self.fs, files = skin.files,
+		input_mode = input_mode, screen = screen,
 		skin_path = skin.path, directory_path = skin.directory_path,
 		config = config, config_path = config_path, module_loader = skin.load_module,
 	})
 	local renderer = skin.load(context)
-	return renderer, config, config_path
+	return renderer, config, config_path, context
 end
 
 ---@param gamemode string

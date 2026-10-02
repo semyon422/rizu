@@ -93,4 +93,100 @@ function test.loads_osu_skin_renderer_through_registry_for_preview(t)
 	t:eq(loads[1].screen, "preview")
 end
 
+---@param t testing.T
+function test.prepares_once_and_releases_evicted_pending_result(t)
+	local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
+	local ResourceRenderer = require("rizu.skin.test.ResourceRenderer")
+	local context = require("rizu.skin.SkinResourceContext")(nil, {skin_path = "test", directory_path = "skin"})
+	local function makeRenderer()
+		local renderer = ResourceRenderer({})
+		local loads, releases, decoded_releases = 0, 0, 0
+		local ticket
+		local waiting
+		local loader = {
+			startAsync = function() return {done = false} end,
+			waitAsync = function()
+				waiting = coroutine.running()
+				coroutine.yield()
+				return {images = {}, assets = {}, errors = {}}
+			end,
+			releaseDecoded = function() decoded_releases = decoded_releases + 1 end,
+			install = function() return {images = {}, assets = {}, errors = {}} end,
+		}
+		local start = PlayfieldRenderer.startLoadResources
+		renderer.startLoadResources = function(self, ctx)
+			ticket = start(self, ctx, loader)
+			return ticket
+		end
+		renderer.load = function() loads = loads + 1 end
+		renderer.unload = function() releases = releases + 1 end
+		return renderer, function() return loads, releases, decoded_releases end, function() return waiting end
+	end
+	local panel = newPanel()
+	local renderer, counts, getWaiting = makeRenderer()
+	panel.game.skinRegistry.loadSkin = function() return renderer, nil, nil, context end
+	local skin = {path = "async", format = "lua"}
+	panel:getPreviewRenderer("14key", skin)
+	panel:getPreviewRenderer("14key", skin)
+	local thread = require("thread")
+	local co = assert(getWaiting())
+	panel:clearPreviewRendererCache()
+	assert(coroutine.resume(co))
+	local loads, releases, decoded_releases = counts()
+	t:eq(loads, 0)
+	t:eq(releases, 1)
+	t:eq(decoded_releases, 1)
+	t:assert(not renderer:isResourcesReady())
+	thread.coroutines[co] = nil
+	thread.current = thread.current - 1
+end
+
+---@param t testing.T
+function test.runtime_failure_releases_resources_and_does_not_retry_from_draw(t)
+	local panel = newPanel()
+	local ResourceRenderer = require("rizu.skin.test.ResourceRenderer")
+	local renderer = ResourceRenderer({})
+	local released = 0
+	renderer.startLoadResources = function() return {} end
+	renderer.finishLoadResourcesAsync = function(self)
+		self.resources = {images = {}, assets = {}, errors = {}}
+		return true
+	end
+	renderer.load = function() error("bad runtime") end
+	renderer.unloadResources = function(self) released = released + 1; self.resources = nil end
+	panel.game.skinRegistry.loadSkin = function() return renderer end
+	local skin = {path = "broken", format = "lua"}
+	panel:getPreviewRenderer("14key", skin)
+	t:eq(released, 1)
+	t:eq(panel.preview_renderer_cache.mania["14key"].alive, false)
+	t:assert(panel.preview_renderer_cache.mania["14key"].error:find("bad runtime", 1, true))
+	panel:clearPreviewRendererCache()
+	t:eq(released, 1)
+end
+
+---@param t testing.T
+function test.completed_preview_resources_are_reused_across_chart_bindings(t)
+	local panel = newPanel()
+	local ResourceRenderer = require("rizu.skin.test.ResourceRenderer")
+	local renderer = ResourceRenderer({})
+	local starts, loads = 0, 0
+	renderer.startLoadResources = function() starts = starts + 1; return {} end
+	renderer.finishLoadResourcesAsync = function(self)
+		self.isResourcesReady = function() return true end
+		return true
+	end
+	renderer.load = function() loads = loads + 1 end
+	panel.game.skinRegistry.loadSkin = function() return renderer end
+	local skin = {path = "ready", format = "lua"}
+	skins_by_path.ready = skin
+	panel.game.settings = {getStringMap = function() return {["mania/14key"] = "ready"} end}
+	panel:bind({chartview = {chartdiff_inputmode = "14key", chartmeta_mode = "mania", name = "A"}})
+	panel:bind({chartview = {chartdiff_inputmode = "14key", chartmeta_mode = "mania", name = "B"}})
+	t:eq(panel.playfield_renderer, renderer)
+	t:eq(starts, 1)
+	t:eq(loads, 1)
+	t:assert(panel.preview_renderer_cache.mania["14key"].ready)
+	panel:clearPreviewRendererCache()
+end
+
 return test

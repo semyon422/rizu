@@ -120,4 +120,34 @@ function test.constructor_does_not_load_renderer(t)
 	t:eq(loads, 2)
 end
 
+---@param t testing.T
+function test.prepared_resources_teardown_after_runtime_and_background_once(t)
+	local renderer = PlayfieldRenderer({})
+	local calls = {} ---@type string[]
+	renderer.loadBackgroundHud = function() calls[#calls + 1] = "background-load" end
+	renderer.load = function() calls[#calls + 1] = "runtime-load" end
+	renderer.unloadBackgroundHud = function() calls[#calls + 1] = "background-unload" end
+	renderer.unload = function() calls[#calls + 1] = "runtime-unload" end
+	renderer.unloadResources = function() calls[#calls + 1] = "resources-unload" end
+	local playfield = Playfield({rhythm_engine = {chartmeta = {mode = "mania"}},
+		gameplayInteractor = {mania_renderer = renderer}})
+	playfield:load()
+	playfield:unload()
+	playfield:unload()
+	t:tdeq(calls, {"background-load", "runtime-load", "background-unload", "runtime-unload", "resources-unload"})
+end
+
+---@param t testing.T
+function test.runtime_load_failure_cleans_up_and_clears_renderer(t)
+	local renderer = PlayfieldRenderer({})
+	local released = 0
+	renderer.load = function() error("runtime failure") end
+	renderer.unloadResources = function() released = released + 1 end
+	local playfield = Playfield({rhythm_engine = {chartmeta = {mode = "mania"}},
+		gameplayInteractor = {mania_renderer = renderer}})
+	t:assert(not pcall(playfield.load, playfield))
+	t:eq(playfield.renderer, nil)
+	t:eq(released, 1)
+end
+
 return test

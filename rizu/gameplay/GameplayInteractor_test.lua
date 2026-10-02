@@ -181,4 +181,35 @@ function test.aim_replay_preparation_keeps_replay_base_contract(t)
 	t:eq(exported.rate, 1.5)
 end
 
+---@param t testing.T
+function test.skin_resources_cancelled_before_or_during_wait_are_not_published(t)
+	for _, cancel_during_wait in ipairs({false, true}) do
+		local interactor = setmetatable({load_generation = 2}, {__index = GameplayInteractor})
+		local releases = 0
+		local renderer = {
+			unloadResources = function() releases = releases + 1 end,
+			finishLoadResourcesAsync = function()
+				if cancel_during_wait then interactor.load_generation = 3 end
+				return true
+			end,
+		}
+		t:eq(interactor:finishManiaResourcesAsync(renderer, {}, cancel_during_wait and 2 or 1), false)
+		t:assert(releases >= 1)
+	end
+end
+
+---@param t testing.T
+function test.skin_decode_error_releases_resources_and_is_reported(t)
+	local interactor = setmetatable({load_generation = 1}, {__index = GameplayInteractor})
+	local released = 0
+	local renderer = {
+		unloadResources = function() released = released + 1 end,
+		finishLoadResourcesAsync = function() return false, "missing skin texture" end,
+	}
+	local ok, err = pcall(interactor.finishManiaResourcesAsync, interactor, renderer, {}, 1)
+	t:assert(not ok)
+	t:assert(tostring(err):find("missing skin texture", 1, true))
+	t:eq(released, 1)
+end
+
 return test

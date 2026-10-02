@@ -42,9 +42,17 @@ function Playfield:load()
 	elseif engine and (engine.sdvx_rules or mode == "sdvx") then self.renderer = self.sdvx
 	elseif mode == "mania" then self.renderer = self.game.gameplayInteractor.mania_renderer
 	else self.renderer = nil end
-	if self.renderer then
-		self.renderer:loadBackgroundHud()
-		self.renderer:load()
+	local renderer = self.renderer
+	if renderer then
+		local ok, err = xpcall(function()
+			assert(not renderer.isResourcesReady or renderer:isResourcesReady(), "playfield resources are not ready")
+			renderer:loadBackgroundHud()
+			renderer:load()
+		end, debug.traceback)
+		if not ok then
+			self:unload()
+			error(err)
+		end
 	end
 end
 
@@ -68,6 +76,7 @@ function Playfield:unload()
 	if self.renderer then
 		self.renderer:unloadBackgroundHud()
 		self.renderer:unload()
+		if self.renderer.unloadResources then self.renderer:unloadResources() end
 	end
 	self.renderer = nil
 end

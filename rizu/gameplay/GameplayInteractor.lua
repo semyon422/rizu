@@ -19,6 +19,7 @@ local Settings = require("rizu.config.Settings")
 local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 
 ---@class rizu.GameplayInteractor
+---@field mania_renderer rizu.gameplay.views.PlayfieldRenderer?
 ---@operator call: rizu.GameplayInteractor
 local GameplayInteractor = class()
 
@@ -87,6 +88,24 @@ function GameplayInteractor:getPreparationBase()
 	return base
 end
 
+---@param renderer rizu.gameplay.views.PlayfieldRenderer
+---@param ticket rizu.gameplay.views.PlayfieldRenderer.ResourceLoad
+---@param generation integer
+---@return boolean
+function GameplayInteractor:finishManiaResourcesAsync(renderer, ticket, generation)
+	if generation ~= self.load_generation then renderer:unloadResources() end
+	local ready, err = renderer:finishLoadResourcesAsync(ticket)
+	if generation ~= self.load_generation then
+		renderer:unloadResources()
+		return false
+	end
+	if not ready then
+		renderer:unloadResources()
+		error(err or "could not load skin resources")
+	end
+	return true
+end
+
 ---@param chartview table
 ---@return boolean loaded
 function GameplayInteractor:loadGameplayAsync(chartview)
@@ -142,6 +161,7 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 	local input_mode = GameplayInteractor.getInputMode(chart)
 	---@type string[]
 	local paths
+	local skin_context ---@type rizu.skin.SkinLoadContext?
 	if chartmeta.mode ~= "mania" then
 		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
@@ -157,22 +177,45 @@ function GameplayInteractor:loadGameplayAsync(chartview)
 		assert(skin, "no Mania skin available for " .. input_mode)
 		self.mania_skin = skin
 		self.mania_input_mode = input_mode
-		self.mania_renderer, self.mania_skin_config, self.mania_skin_config_path =
-			game.skinRegistry:loadSkin(skin, game, input_mode, "gameplay")
+		---@diagnostic disable-next-line: no-unknown
+		local loaded_renderer, config, config_path, context = game.skinRegistry:loadSkin(skin, game, input_mode, "gameplay")
+		self.mania_renderer = loaded_renderer --[[@as rizu.gameplay.views.PlayfieldRenderer]]
+		skin_context = context
+		self.mania_skin_config = config
+		self.mania_skin_config_path = config_path
 		paths = self:getResourcePaths(chartview)
 	end
+	---@diagnostic disable-next-line: no-unknown
 	self.noteSkin = nil
 	self:loadFileFinderPaths(paths)
 
 	local resource_future = game.resource_loader:startLoadAsync(chart.resources, paths)
+	local renderer = self.mania_renderer
+	local skin_ticket = renderer and renderer.startLoadResources and renderer:startLoadResources(assert(skin_context))
 
-	local snapshot = game.resource_loader:waitLoadAsync(resource_future)
-	if load_generation ~= self.load_generation then
+	-- Both workers start before waiting. Always consume the skin ticket on cancellation.
+	local skin_ready = true
+	local skin_ok, skin_error = xpcall(function()
+		if renderer and skin_ticket then
+			skin_ready = self:finishManiaResourcesAsync(renderer, skin_ticket, load_generation)
+		end
+	end, debug.traceback)
+	local snapshot_ok, snapshot = pcall(game.resource_loader.waitLoadAsync, game.resource_loader, resource_future)
+	if not snapshot_ok or not skin_ok then
+		if renderer and renderer.unloadResources then renderer:unloadResources() end
+		error(not skin_ok and skin_error or snapshot)
+	end
+	if not skin_ready or load_generation ~= self.load_generation then
+		if renderer and renderer.unloadResources then renderer:unloadResources() end
 		return false
 	end
 	game.resource_loader:applySnapshot(snapshot)
 
-	self:load(self.autoplay)
+	local runtime_ok, runtime_error = xpcall(function() self:load(self.autoplay) end, debug.traceback)
+	if not runtime_ok then
+		if renderer and renderer.unloadResources then renderer:unloadResources() end
+		error(runtime_error)
+	end
 
 	local input_binder = InputBinder(game.configModel.configs.input, input_mode)
 	self.input_binder = input_binder
@@ -314,6 +357,9 @@ function GameplayInteractor:unloadGameplay()
 	self.loaded = false
 	self.replaying = false
 	self.autoplay = false
+	if self.mania_renderer and self.mania_renderer.unloadResources then
+		self.mania_renderer:unloadResources()
+	end
 	self.mania_renderer = nil
 	self.mania_skin = nil
 	self.mania_input_mode = nil
@@ -395,6 +441,16 @@ function GameplayInteractor:retry()
 	game.pauseModel:load()
 
 	self:load(self.autoplay)
+	local renderer = self.mania_renderer
+	local rebind = renderer and renderer.rebindRuntime
+	if rebind and renderer then
+		local rebound, err = xpcall(rebind, debug.traceback, renderer)
+		if not rebound then
+			renderer:unload()
+			renderer:unloadResources()
+			error(err)
+		end
+	end
 
 	game.rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings)
 	self:play()

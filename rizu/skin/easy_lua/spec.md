@@ -102,6 +102,129 @@ The 320 skin and API discussion identify likely next components. Add these only 
 
 Visual note timing remains sourced from the rhythm engine. `dt` is for advancing skin-owned animation state only. A custom renderer may ignore all easy-Lua classes and draw directly using the same renderer contract.
 
+## Resource-loading foundation
+
+`SkinLoadContext` now exposes the CPU-only `SkinResourceContext` helpers:
+
+- `files`: sorted, normalized, skin-relative available files, cached by the registry.
+- `getFiles(directory, root_name?)`: filter beneath a directory, preserving root-relative names.
+- `resolvePath(path, root_name?)`: resolve a normalized path relative to an explicit asset root.
+- `loadImageData(path, root_name?)`: read/decode an image, returning caller-owned `ImageData`.
+- `createRequest(assets)`: copy file lists, roots, and explicit asset requests into a plain worker request.
+
+The primary root is named `skin`. Additional roots can be provided when constructing a
+resource context. This is not automatic fallback resolution: osu filename matching,
+fallback precedence, animation selection, and density remain renderer-specific.
+Available files are not automatically decoded.
+
+`SkinResourceLoader` provides the initial pipeline, without progress notifications:
+
+```lua
+local Loader = require("rizu.skin.SkinResourceLoader")
+local thread = require("thread")
+
+-- Main-thread setup, outside draw().
+local request = context:createRequest({
+	{name = "note", path = "sprites/note.png"},
+	{name = "decoration", path = "sprites/optional.png", optional = true},
+})
+thread.coro(function()
+	local decoded, err = Loader.waitAsync(Loader.startAsync(request))
+	if not decoded then
+		print(err)
+		return
+	end
+	-- The eventual lifecycle owner must reject stale requests before installation.
+	-- For a discarded result, call Loader.releaseDecoded(decoded) instead.
+	local resources, upload_error = Loader.install(decoded)
+	if not resources then
+		print(upload_error)
+		return
+	end
+	-- Borrow resources.assets.note when building components.
+	-- Retain resources in the renderer and call Loader.releaseInstalled(resources)
+	-- only after its runtime objects have been torn down.
+end)()
+```
+
+The existing pool executes filesystem reads and `love.image` decoding in a separate
+Lua state. The main-thread coroutine resumes when the result arrives; only `install`
+creates GPU images. Worker requests must not contain live game/renderer objects or
+closures. No image re-encoding is used for transport.
+
+Resolved paths deduplicate decoded/uploaded ownership; logical resource names may
+alias one image. Roots with distinct resolved paths remain distinct resources.
+Optional failures are recorded in `resources.errors`; required failures release the
+partial CPU set. Installation consumes decoded ownership and releases partial GPU
+images on failure. Release helpers are idempotent. All pending futures must still be
+consumed after cancellation so late decoded data can be released.
+
+### Opt-in renderer lifecycle
+
+`PlayfieldRenderer` now supplies the resource lifecycle without changing legacy
+`load()`/`unload()` or caller behavior. A new renderer overrides
+`getResourceRequests(context)` to return explicit asset requests. This declaration
+runs on the main thread; it must not read or decode assets. The base implementation
+returns `nil` for legacy loading. An empty array opts into a texture-free resource set.
+
+```lua
+function Renderer:getResourceRequests(context)
+	return {{name = "note", path = "sprites/note.png"}}
+end
+
+function Renderer:load()
+	assert(self:isResourcesReady() and self.resources)
+	-- Build runtime components borrowing self.resources.assets.note here.
+end
+```
+
+Outside draw(), the owner explicitly prepares and then loads runtime objects:
+
+```lua
+thread.coro(function()
+	local ok, err = renderer:loadResourcesAsync(context)
+	if not ok then print(err); return end
+	renderer:load()
+end)()
+```
+
+For a blocking custom UI, `renderer:loadResources(context)` provides the same resource
+ownership and readiness without a coroutine or worker; call `renderer:load()` afterward.
+The filesystem comes from the registry-provided context. The two immediate-mode examples
+in `userdata/pkg/simple_ui/ChartPreview.lua` and `AsyncChartPreview.lua` share a
+bind/update/draw/unload API. Simple UI uses async by default and Tab switches modes.
+
+For overlapping loading work, use `startLoadResources(context)` and later
+`finishLoadResourcesAsync(ticket)`. Tickets bind their owner and generation.
+`unloadResources()` cancels pending generations, and replacement requests supersede
+older requests. Every ticket must still be finished exactly once, including cancelled
+ones: late CPU data is released without GPU upload. `applyResources(decoded)` is the
+lower-level main-thread install operation; it consumes decoded ownership and does not
+perform runtime construction. Do not override it with asset IO or partial publication.
+
+`isResourcesReady()` describes resource readiness only. Opt-in renderers must also gate
+drawing on their runtime state, and must never initiate loading from draw methods.
+Teardown order is `unload()` then `unloadResources()`; runtime teardown alone preserves
+textures for rebinding. Neither resource operation dispatches background-HUD lifecycle.
+Runtime construction failure is handled by the owner calling both teardown phases.
+Installed resources must be torn down before starting a reload.
+
+`rizu/skin/test/ResourceRenderer.lua` is an unregistered example/test fixture that builds
+a Sprite from installed images. Tests cover its fake-transport lifecycle, late-result
+cleanup, and a real worker/upload/gameplay-draw/preview-draw round trip.
+
+Existing skins remain on the legacy path except the experimental local 320 skin.
+Gameplay starts opted-in resource decoding alongside Chart-resource loading and waits
+before starting play; Playfield owns runtime/background-HUD teardown, with texture
+release afterward. ChartPreviewView prepares opted-in cached renderers once, keeps their
+textures across Chart changes, and invalidates pending results on eviction/unload.
+The 320 skin no longer loads from draw(), and retry rebuilds its runtime effects/HUD
+without redecoding textures. Its assets and descriptors live in ignored userdata;
+local integration tests skip those assets when absent in another checkout.
+Atlas packing and upload budgeting remain deferred. Decoding uses
+LÖVE's supported image formats; FFmpeg fallback is not enabled for skin images yet.
+
+
 ## Design constraints
 
 - Keep all classes under `rizu/skin/easy_lua/`, with LuaLS class annotations matching `rizu.skin.easy_lua.*`.
