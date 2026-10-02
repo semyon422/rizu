@@ -359,6 +359,9 @@ return {
 	["song_select.score_source_online"] = "Online",
 
 	["gameplay.skin_editor.title"] = "Skin Editor",
+	["gameplay.skin_editor.no_properties"] = "This skin has no editable properties.",
+	["gameplay.skin_editor.saved"] = "Skin settings saved.",
+	["gameplay.skin_editor.save_failed"] = "Could not save skin settings: {error}",
 	["gameplay.pause.title"] = "Paused",
 	["gameplay.pause.continue"] = "Continue",
 	["gameplay.pause.restart"] = "Restart",
