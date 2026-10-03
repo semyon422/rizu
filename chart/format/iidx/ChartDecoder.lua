@@ -270,7 +270,7 @@ end
 ---@return chart.Chart
 function ChartDecoder:decodeSection(section, variation, song)
 	local chart = Chart()
-	chart.inputMode = variation.inputMode
+	chart.inputMode = InputMode(variation.inputMode)
 
 	local layer = MeasureLayer()
 	chart.layers.main = layer
