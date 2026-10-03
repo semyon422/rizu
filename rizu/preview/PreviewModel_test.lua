@@ -1,3 +1,4 @@
+local PreviewLoader = require("rizu.preview.PreviewLoader")
 local PreviewModel = require("rizu.preview.PreviewModel")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
@@ -13,6 +14,10 @@ local test = {}
 ---@field stopCount integer
 ---@field pause fun(self: rizu.preview.FakeAudioPreviewPlayer)
 ---@field stop fun(self: rizu.preview.FakeAudioPreviewPlayer)
+---@field getRange fun(self: rizu.preview.FakeAudioPreviewPlayer): number, number
+---@field getPosition fun(self: rizu.preview.FakeAudioPreviewPlayer): number
+---@field resume fun(self: rizu.preview.FakeAudioPreviewPlayer)
+---@field update fun(self: rizu.preview.FakeAudioPreviewPlayer)
 
 ---@class rizu.preview.FakeBgaPreviewPlayer
 ---@field stopCount integer
@@ -36,8 +41,11 @@ local function createPreviewModel()
 		stop = function(self)
 			self.stopCount = self.stopCount + 1
 		end,
+		getRange = function() return 0, 0 end,
+		getPosition = function() return 0 end,
+		resume = function() end,
+		update = function() end,
 	}
-	---@type rizu.preview.FakeBgaPreviewPlayer
 	previewModel.bgaPreviewPlayer = {
 		stopCount = 0,
 		stop = function(self)
@@ -103,7 +111,7 @@ end
 
 ---@param t testing.T
 function test.worker_returns_parse_errors_instead_of_throwing(t)
-	local async = get_upvalue(PreviewModel.startPreviewGeneration, "generatePreviewAsync")
+	local async = get_upvalue(PreviewLoader.startPreviewGeneration, "generatePreviewAsync")
 	local worker = assert(loadstring(string.dump(get_upvalue(async, "f"))))
 	setfenv(worker, setmetatable({
 		print = function() end,
@@ -134,7 +142,7 @@ end
 
 ---@param t testing.T
 function test.worker_returns_repaired_notes(t)
-	local async = get_upvalue(PreviewModel.startPreviewGeneration, "generatePreviewAsync")
+	local async = get_upvalue(PreviewLoader.startPreviewGeneration, "generatePreviewAsync")
 	local worker = assert(loadstring(string.dump(get_upvalue(async, "f"))))
 	local fake_chart = {layers = {main = {toAbsolute = function() end}}}
 	local modules = {
@@ -179,11 +187,11 @@ function test.stale_media_probe_does_not_activate(t)
 	local model = createPreviewModel()
 	model:load()
 	model.chartview = {hash = "old"}
-	model.probe_media = function()
+	model.loader.probe_media = function()
 		coroutine.yield()
 		return {audio_exists = true, bga_exists = true, bga_paths = {}}
 	end
-	local co = coroutine.create(function() model:loadPreview() end)
+	local co = coroutine.create(function() model.loader:loadPreview() end)
 	t:assert(coroutine.resume(co))
 	model:stop()
 	model:load()
@@ -191,6 +199,79 @@ function test.stale_media_probe_does_not_activate(t)
 	t:eq(coroutine.status(co), "dead")
 	t:eq(model.loaded_audio_hash, nil)
 	t:eq(model.loaded_hash, nil)
+end
+
+---@param t testing.T
+function test.selection_blanks_notes_before_skin_binding(t)
+	local model = createPreviewModel()
+	model:load()
+	model.skinCache.bind = function()
+		t:eq(model.chartPreview.chartview, nil)
+		t:eq(model:getMediaState(), "loading")
+	end
+	model:setAudioPathPreview("song.ogg", 12, "absolute", {hash = "a"})
+	t:eq(model.chartPreview.chartview, nil)
+	model:stop()
+end
+
+---@param t testing.T
+function test.final_release_releases_cache_loader_and_players_once(t)
+	local model = createPreviewModel()
+	local counts = {audio = 0, bga = 0}
+	model.audioPreviewPlayer.release = function() counts.audio = counts.audio + 1 end
+	model.bgaPreviewPlayer.release = function() counts.bga = counts.bga + 1 end
+	model:load()
+	model:release()
+	model:release()
+	t:eq(counts.audio, 1)
+	t:eq(counts.bga, 1)
+	t:eq(model.active, false)
+	t:eq(model.loader.released, true)
+	t:eq(model.skinCache.released, true)
+	t:eq(model.skinCache.unsubscribe, nil)
+end
+
+---@param t testing.T
+function test.shared_audio_keeps_decoder_and_position_but_changes_bga(t)
+	local model = createPreviewModel()
+	local loads = {audio = 0, bga = 0}
+	model.audioPreviewPlayer.load = function() loads.audio = loads.audio + 1 end
+	model.audioPreviewPlayer.setVolume = function() end
+	model.audioPreviewPlayer.setRate = function() end
+	model.audioPreviewPlayer.seek = function() end
+	model.bgaPreviewPlayer.load = function() loads.bga = loads.bga + 1 end
+	model.bgaPreviewPlayer.seek = function() end
+	model:load()
+	model.audio_path = "shared.ogg"
+	local media = {audio_exists = true, bga_exists = true, bga_paths = {}}
+	local a = {hash = "a", location_path = "a.sph", location_dir = ""}
+	local b = {hash = "b", location_path = "b.sph", location_dir = ""}
+	model.chartview = a
+	model:applyPreparedMedia(media, "shared.ogg", 12, "absolute", a)
+	model.manual_time = 20
+	model.chartview = b
+	model:applyPreparedMedia(media, "shared.ogg", 30, "absolute", b)
+	t:eq(loads.audio, 1)
+	t:eq(loads.bga, 2)
+	t:eq(model.manual_time, 20)
+end
+
+---@param t testing.T
+function test.selection_changed_by_stop_observer_cannot_load_captured_media(t)
+	local model = createPreviewModel()
+	model:load()
+	local cv = {hash = "a", location_path = "a.sph", location_dir = ""}
+	model.audio_path = "a.ogg"
+	model.chartview = cv
+	local loads = 0
+	model.audioPreviewPlayer.load = function() loads = loads + 1 end
+	model.audioPreviewPlayer.stop = function()
+		model.audio_path = "b.ogg"
+		model.chartview = {hash = "b"}
+	end
+	model:applyPreparedMedia({audio_exists = true, bga_exists = true, bga_paths = {}}, "a.ogg", 0, "absolute", cv)
+	t:eq(loads, 0)
+	t:eq(model.loaded_audio_path, nil)
 end
 
 return test

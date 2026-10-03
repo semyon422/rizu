@@ -1,15 +1,16 @@
 local class = require("class")
-local delay = require("delay")
-local thread = require("thread")
 local AudioPreviewPlayer = require("rizu.preview.AudioPreviewPlayer")
 local BgaPreviewPlayer = require("rizu.preview.BgaPreviewPlayer")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
-local ChartfileReader = require("rizu.library.ChartfileReader")
+local PreviewLoader = require("rizu.preview.PreviewLoader")
+local PreviewSkinCache = require("rizu.preview.PreviewSkinCache")
 local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.preview.PreviewMode "absolute"|"relative"
 
 ---@class rizu.preview.PreviewChartview
+---@field chartmeta_mode string?
+---@field chartdiff_inputmode string?
 ---@field hash string
 ---@field notes_preview string?
 ---@field chartdiff_id integer?
@@ -37,6 +38,14 @@ local Settings = require("rizu.config.Settings")
 ---@field modifiers sea.Modifier[]?
 
 ---@class rizu.preview.PreviewModel
+---@field game sphere.GameController
+---@field settings rizu.config.Config
+---@field skinCache rizu.preview.PreviewSkinCache
+---@field loader rizu.preview.PreviewLoader
+---@field chartview rizu.preview.PreviewChartview?
+---@field loaded_audio_path string?
+---@field loaded_hash string?
+---@field loaded_audio_hash string?
 ---@operator call: rizu.preview.PreviewModel
 local PreviewModel = class()
 
@@ -45,58 +54,20 @@ PreviewModel.position = 0
 PreviewModel.mode = "absolute"
 PreviewModel.manual_time = 0
 
----@param chartview rizu.preview.PreviewChartview
----@return string?
-local function get_preview_resource_dir(chartview)
-	local archive_path = chartview.location_path and ChartfileReader.splitArchivePath(chartview.location_path)
-	return archive_path or chartview.location_dir
-end
-
-local probeMedia = thread.async(function(chartview)
-	require("love.filesystem")
-	local PreviewMediaProbe = require("rizu.preview.PreviewMediaProbe")
-	local LoveFilesystem = require("fs.LoveFilesystem")
-	return PreviewMediaProbe(LoveFilesystem()):probe(chartview)
-end)
-
----@param chartview rizu.preview.PreviewChartview|rizu.preview.PreviewGenerationData
----@return string
-local function get_notes_key(chartview)
-	return chartview.hash .. ":" .. chartview.index .. ":" .. tostring(chartview.chartdiff_id)
-end
-
----@param hash string
----@return string
-local function get_audio_preview_path(hash)
-	return "userdata/audio_previews/" .. hash .. ".audio_preview"
-end
-
 ---@param settings rizu.config.Config
 ---@param replayBase sea.ReplayBase
 ---@param game table
 function PreviewModel:new(settings, replayBase, game)
 	self.settings = settings
-	self.probe_media = probeMedia
-	self.media_generation = 0
 	self.replayBase = replayBase
 	self.game = game
 	self.audioPreviewPlayer = AudioPreviewPlayer(settings)
 	self.bgaPreviewPlayer = BgaPreviewPlayer()
 	self.chartPreview = NotesPreviewPlayer(settings, self, replayBase)
-	---@type {[string]: boolean?}
-	self.generating_hashes = {}
-	---@type {[string]: boolean?}
-	self.attempted_hashes = {}
-	---@type {[string]: string}
-	self.repaired_notes = {}
-	---@type string?
-	self.active_generation_hash = nil
-	---@type rizu.preview.PreviewGenerationData?
-	self.pending_generation = nil
+	self.skinCache = PreviewSkinCache(game, settings)
+	self.loader = PreviewLoader(self)
 
 	self.loaded_audio_path = nil
-	self.loaded_preview_time = nil
-	self.loaded_mode = nil
 	self.loaded_hash = nil
 	self.loaded_audio_hash = nil
 	self.initial_seek_done = false
@@ -110,6 +81,8 @@ function PreviewModel:load()
 	self.volume = 0
 	self.rate = 1
 	self.target_rate = 1
+	self.loader:load()
+	self.skinCache:load()
 end
 
 ---@param audio_path string?
@@ -126,11 +99,15 @@ function PreviewModel:setAudioPathPreview(audio_path, preview_time, mode, chartv
 		self.mode = mode
 		self.chartview = chartview
 
-		self:loadPreviewDebounce()
+		-- Invalidate pending media before a custom skin hook can yield.
+		self.chartPreview:setChartview(nil)
+		self.loader:loadPreviewDebounce()
+		self.skinCache:bind(chartview)
 	end
 end
 
-function PreviewModel:update()
+---@param dt number?
+function PreviewModel:update(dt)
 	if not self.active then
 		self.audioPreviewPlayer:pause()
 		return
@@ -180,6 +157,7 @@ function PreviewModel:update()
 	self.audioPreviewPlayer:update()
 	self.bgaPreviewPlayer:update(self:getTime())
 	self.chartPreview:update()
+	self.skinCache:update(dt or 0, self.chartview)
 
 	local volume = self.settings:getNumber(keys.audio.volume_master)
 		* self.settings:getNumber(keys.audio.volume_music)
@@ -193,6 +171,47 @@ function PreviewModel:update()
 		self.audioPreviewPlayer:setRate(target_rate)
 		self.rate = target_rate
 	end
+end
+
+---@param media rizu.preview.PreviewLoader.Media?
+---@param path string
+---@param preview_time number?
+---@param mode rizu.preview.PreviewMode?
+---@param chartview rizu.preview.PreviewChartview?
+function PreviewModel:applyPreparedMedia(media, path, preview_time, mode, chartview)
+	local audio_needs_reload = self.loaded_audio_path ~= path or path == ""
+	if audio_needs_reload then
+		self.audioPreviewPlayer:stop()
+		self.bgaPreviewPlayer:stop()
+		if not self.active or path ~= self.audio_path or chartview ~= self.chartview then return end
+		self.loaded_audio_path = path
+		self.loaded_hash = nil
+		self.loaded_audio_hash = nil
+		self.initial_seek_done = false
+	end
+	local volume = self.settings:getNumber(Settings.keys.audio.volume_master)
+		* self.settings:getNumber(Settings.keys.audio.volume_music)
+	local position = preview_time or 0
+	if mode == "relative" then position = (chartview and chartview.duration or 0) * position end
+	position = math.max(position, 0)
+	if audio_needs_reload then self.position, self.manual_time = position, position end
+	if chartview and media then
+		local hash = chartview.hash
+		if media.audio_exists and self.loaded_audio_hash ~= hash
+			and (audio_needs_reload or self.loaded_audio_hash == nil) then
+			self.loaded_audio_hash = hash
+			self.audioPreviewPlayer:load("userdata/audio_previews/" .. hash .. ".audio_preview", media.audio_resource_dir or "")
+			self.audioPreviewPlayer:setVolume(volume)
+			self.audioPreviewPlayer:setRate(self.rate)
+			self.audioPreviewPlayer:seek(position)
+		end
+		if media.bga_exists and self.loaded_hash ~= hash then
+			self.loaded_hash = hash
+			self.bgaPreviewPlayer:load("userdata/bga_previews/" .. hash .. ".bga_preview", media.bga_paths)
+			self.bgaPreviewPlayer:seek(self:getTime())
+		end
+	end
+	self.volume = volume
 end
 
 ---@param rate number
@@ -276,308 +295,30 @@ function PreviewModel:getFFT()
 	return self.audioPreviewPlayer:getFFT()
 end
 
-function PreviewModel:loadPreviewDebounce()
-	self.media_generation = self.media_generation + 1
-	delay.debounce(self, "loadDebounce", 0.1, self.loadPreview, self)
-end
+---@return rizu.gameplay.views.PlayfieldRenderer?
+function PreviewModel:getPlayfield() return self.skinCache:getPlayfield() end
 
-local loadingPreview = false
-function PreviewModel:loadPreview()
-	if loadingPreview then
-		return
-	end
-	local generation = self.media_generation
-	local chartview = self.chartview
-	local media
-	if chartview and chartview.hash then
-		media = self.probe_media(chartview)
-		if generation ~= self.media_generation or chartview ~= self.chartview or not self.active then
-			return
-		end
-	end
-	loadingPreview = true
+---@return rizu.preview.PreviewSkinCache.State
+function PreviewModel:getSkinState() return self.skinCache:getState() end
 
-	local path = self.audio_path
-	local preview_time = self.preview_time
-	local mode = self.mode
+---@return string?
+function PreviewModel:getSkinError() return self.skinCache:getError() end
 
-	if not path then
-		loadingPreview = false
-		self:stop()
-		return
-	end
+---@return rizu.preview.PreviewLoader.State
+function PreviewModel:getMediaState() return self.loader.media_state end
 
-	if self.chartview and self.repaired_notes[get_notes_key(self.chartview)] then
-		self.chartview.notes_preview = self.repaired_notes[get_notes_key(self.chartview)]
-	end
-	local notes_valid = self.chartPreview:setChartview(self.chartview)
-
-	-- Keep the decoder and current position when charts share an audio path,
-	-- regardless of chart-specific preview metadata.
-	local audio_needs_reload = (self.loaded_audio_path ~= path)
-		or (path == "")
-
-	if audio_needs_reload then
-		self.audioPreviewPlayer:stop()
-		self.bgaPreviewPlayer:stop()
-		self.loaded_audio_path = path
-		self.loaded_preview_time = preview_time
-		self.loaded_mode = mode
-		self.loaded_hash = nil
-		self.loaded_audio_hash = nil
-		self.initial_seek_done = false
-	end
-
-	loadingPreview = false
-	if path ~= self.audio_path then
-		self:loadPreview()
-		return
-	end
-
-	local keys = Settings.keys
-	local volume = self.settings:getNumber(keys.audio.volume_master)
-		* self.settings:getNumber(keys.audio.volume_music)
-
-	local position = preview_time or 0
-	if mode == "relative" then
-		position = (self.chartview and self.chartview.duration or 0) * position
-	end
-	position = math.max(position, 0)
-
-	if audio_needs_reload then
-		self.position = position
-		self.manual_time = position
-	end
-
-	---@type string?
-	local hash = self.chartview and self.chartview.hash
-	if hash then
-		local audio_preview_path = get_audio_preview_path(hash)
-		local bga_preview_path = "userdata/bga_previews/" .. hash .. ".bga_preview"
-
-		local audio_exists = media.audio_exists
-		local bga_exists = media.bga_exists
-
-		if audio_exists and self.loaded_audio_hash ~= hash
-			and (audio_needs_reload or self.loaded_audio_hash == nil) then
-			self.loaded_audio_hash = hash
-			self.audioPreviewPlayer:load(audio_preview_path, get_preview_resource_dir(self.chartview))
-			self.audioPreviewPlayer:setVolume(volume)
-			self.audioPreviewPlayer:setRate(self.rate)
-			self.audioPreviewPlayer:seek(position)
-		end
-
-		if bga_exists and self.loaded_hash ~= hash then
-			self.loaded_hash = hash
-			self.bgaPreviewPlayer:load(bga_preview_path, media.bga_paths)
-			self.bgaPreviewPlayer:seek(self:getTime())
-		end
-
-		if not audio_exists or not bga_exists or notes_valid == false then
-			if not self.attempted_hashes[hash] then
-				self:generatePreview(self.chartview, notes_valid == false)
-			end
-		end
-	end
-
-	self.volume = volume
-
-	self:update()
-end
-
-local generatePreviewAsync = thread.async(function(chartview_data)
-	---@param chartview_data rizu.preview.PreviewGenerationData
-	---@return boolean
-	---@return string? notes_preview
-	local function generate(chartview_data)
-		print("Preview: generating " .. chartview_data.hash)
-		local AudioPreviewGenerator = require("rizu.preview.AudioPreviewGenerator")
-		local BgaPreviewGenerator = require("rizu.preview.BgaPreviewGenerator")
-		local Decoder = require("rizu.engine.audio.bass.Decoder")
-		local ChartFactory = require("chart.format.notechart.ChartFactory")
-		local ChartfileReader = require("rizu.library.ChartfileReader")
-		local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
-		local LoveFilesystem = require("fs.LoveFilesystem")
-
-		require("love.filesystem")
-		local bass = require("bass")
-		assert(bass.initNoSound(), "Preview: could not initialize worker BASS device")
-
-		local fs = LoveFilesystem()
-		local audio_generator = AudioPreviewGenerator(fs, Decoder.probeDuration)
-		local bga_generator = BgaPreviewGenerator(fs)
-
-		local content = ChartfileReader.read(fs, chartview_data.location_path)
-		if not content then
-			print("Preview: could not read " .. tostring(chartview_data.location_path))
-			return false
-		end
-		---@type chart.iidx.DecodeContext?
-		local decode_context
-		if chartview_data.format == "iidx" then
-			decode_context = IidxDecodeContext.fromLocation(
-				fs,
-				chartview_data.location_prefix,
-				chartview_data.chartfile_name
-			)
-		end
-
-		local chart_chartmetas, chart_error = ChartFactory:getCharts(
-			chartview_data.chartfile_name,
-			content,
-			chartview_data.hash,
-			decode_context
-		)
-		if not chart_chartmetas then
-			print("Preview: chart parsing failed for " .. tostring(chartview_data.chartfile_name))
-			return false, chart_error
-		end
-
-		local t = chart_chartmetas[chartview_data.index]
-		if not t then
-			print("Preview: chart index " .. tostring(chartview_data.index) .. " not found")
-			return false
-		end
-
-		t.chart.layers.main:toAbsolute()
-
-		local audio_preview_path = "userdata/audio_previews/" .. chartview_data.hash .. ".audio_preview"
-		if not fs:getInfo(audio_preview_path) then
-			audio_generator:generate(t.chart, chartview_data.preview_resource_dir, chartview_data.hash)
-		end
-
-		local bga_preview_path = "userdata/bga_previews/" .. chartview_data.hash .. ".bga_preview"
-		if not fs:getInfo(bga_preview_path) then
-			bga_generator:generate(t.chart, chartview_data.hash)
-		end
-
-		---@type string?
-		local notes_preview
-		if chartview_data.regenerate_notes then
-			local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
-			local ModifierModel = require("sphere.models.ModifierModel")
-			if chartview_data.modifiers then
-				ModifierModel:apply(chartview_data.modifiers, t.chart)
-			end
-			local ctx = {chart = t.chart, chartdiff = {}}
-			PreviewDiffcalc():compute(ctx)
-			notes_preview = ctx.chartdiff.notes_preview
-			assert(notes_preview and notes_preview ~= "", "Preview: notes regeneration failed")
-			local Sph = require("chart.format.sph.Sph")
-			local SphPreview = require("chart.format.sph.SphPreview")
-			local ChartDecoder = require("chart.format.sph.ChartDecoder")
-			local sph = Sph()
-			sph.metadata:set("title", "")
-			sph.metadata:set("artist", "")
-			sph.metadata:set("input", tostring(t.chart.inputMode))
-			sph.sphLines:decode(SphPreview:decodeLines(notes_preview))
-			ChartDecoder():decodeSph(sph)
-		end
-
-		return true, notes_preview
-	end
-
-	local ok, result, notes_preview = xpcall(generate, debug.traceback, chartview_data)
-	if not ok then
-		return false, tostring(result)
-	end
-	return result, notes_preview
-end)
-
----@param chartview_data rizu.preview.PreviewGenerationData
-function PreviewModel:startPreviewGeneration(chartview_data)
-	local hash = chartview_data.hash
-	self.active_generation_hash = hash
-	self.generating_hashes[hash] = true
-
-	thread.coro(function()
-		local ok, result, detail = pcall(generatePreviewAsync, chartview_data)
-		self.generating_hashes[hash] = nil
-		self.attempted_hashes[hash] = true
-		self.active_generation_hash = nil
-		if ok and result then
-			if detail and detail ~= "" then
-				self.repaired_notes[get_notes_key(chartview_data)] = detail
-				if chartview_data.chartdiff_id and chartview_data.chartdiff_id > 0 then
-					local saved, save_error = pcall(
-						self.game.persistence.library.chartsRepo.repairNotesPreview,
-						self.game.persistence.library.chartsRepo,
-						chartview_data.chartdiff_id,
-						chartview_data.previous_notes_preview,
-						detail
-					)
-					if not saved then
-						print("Preview: could not save repaired notes for " .. hash .. ": " .. tostring(save_error))
-					end
-				end
-			end
-			if self.chartview and self.chartview.hash == hash then
-				self:loadPreview()
-			end
-		else
-			print("Preview: generation failed for " .. hash .. " error: " .. tostring(detail or result))
-		end
-
-		local pending = self.pending_generation
-		self.pending_generation = nil
-		if pending then
-			self:startPreviewGeneration(pending)
-		end
-	end)()
-end
-
----@param chartview rizu.preview.PreviewChartview
----@param regenerate_notes boolean?
-function PreviewModel:generatePreview(chartview, regenerate_notes)
-	local hash = chartview.hash
-	if self.generating_hashes[hash] then
-		return
-	end
-
-	---@type rizu.preview.PreviewGenerationData
-	local chartview_data = {
-		location_path = chartview.location_path,
-		location_prefix = chartview.location_prefix,
-		location_dir = chartview.location_dir,
-		preview_resource_dir = get_preview_resource_dir(chartview),
-		chartfile_name = chartview.chartfile_name,
-		format = chartview.format,
-		index = chartview.index,
-		hash = hash,
-		regenerate_notes = regenerate_notes,
-		chartdiff_id = chartview.chartdiff_id,
-		previous_notes_preview = chartview.notes_preview,
-		modifiers = chartview.modifiers,
-	}
-
-	if self.active_generation_hash then
-		local pending = self.pending_generation
-		if pending then
-			self.generating_hashes[pending.hash] = nil
-		end
-		self.pending_generation = chartview_data
-		self.generating_hashes[hash] = true
-		return
-	end
-
-	self:startPreviewGeneration(chartview_data)
-end
+---@return string?
+function PreviewModel:getMediaError() return self.loader.media_error end
 
 function PreviewModel:stop()
-	self.media_generation = self.media_generation + 1
 	self.active = false
-	local pending_generation = self.pending_generation
-	if pending_generation then
-		self.generating_hashes[pending_generation.hash] = nil
-	end
-	self.pending_generation = nil
+	self.loader:stop()
+	self.skinCache:stop()
 	self.audioPreviewPlayer:stop()
 	self.bgaPreviewPlayer:stop()
 	self.chartPreview:setChartview(nil)
 	self.manual_time = 0
 	self.loaded_audio_path = nil
-	self.loaded_preview_time = nil
-	self.loaded_mode = nil
 	self.loaded_hash = nil
 	self.loaded_audio_hash = nil
 	self.initial_seek_done = false
@@ -593,6 +334,8 @@ function PreviewModel:release()
 	end
 	self.released = true
 	self:stop()
+	self.loader:release()
+	self.skinCache:release()
 	self.audioPreviewPlayer:release()
 	self.bgaPreviewPlayer:release()
 end

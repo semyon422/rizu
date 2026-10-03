@@ -5,6 +5,9 @@ local FruitsRenderer = require("rizu.skin.base.FruitsRenderer")
 local OsuFruitsRenderer = require("rizu.skin.osu.OsuFruitsRenderer")
 local TaikoRenderer = require("rizu.skin.base.TaikoRenderer")
 local OsuTaikoRenderer = require("rizu.skin.osu.OsuTaikoRenderer")
+local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
+
+local Settings = require("rizu.config.Settings")
 local SdvxPlayfield = require("rizu.gameplay.views.SdvxPlayfield")
 
 ---@class rizu.gameplay.Playfield
@@ -15,12 +18,20 @@ local SdvxPlayfield = require("rizu.gameplay.views.SdvxPlayfield")
 ---@field osu_catch rizu.skin.osu.OsuFruitsRenderer
 ---@field taiko rizu.skin.osu.OsuTaikoRenderer
 ---@field sdvx rizu.gameplay.views.SdvxPlayfield
+---@field preparation rizu.skin.PlayfieldPreparation?
 ---@field renderer rizu.gameplay.views.PlayfieldRenderer?
+---@field mania_skin rizu.skin.LoadableSkin?
+---@field mania_input_mode string?
+---@field mania_renderer rizu.gameplay.views.PlayfieldRenderer?
+---@field mania_skin_config rizu.skin.SkinConfig?
+---@field mania_skin_config_path string?
+---@field load_generation integer
 local Playfield = class()
 
 ---@param game sphere.GameController
 function Playfield:new(game)
 	self.game = game
+	self.load_generation = 0
 	self.aim = AimRenderer(game)
 	self.osu_aim = OsuAimRenderer(game)
 	self.catch = FruitsRenderer(game)
@@ -29,31 +40,68 @@ function Playfield:new(game)
 	self.sdvx = SdvxPlayfield(game)
 end
 
--- Selects the renderer from the gameplay engine. Consumers do not need to
--- know which native mode is active.
+---@param input_mode string
+---@param generation integer
+---@return rizu.gameplay.views.PlayfieldRenderer?
+function Playfield:loadManiaSkin(input_mode, generation)
+	local paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
+	local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, paths["mania/" .. input_mode])
+	assert(skin, "no Mania skin available for " .. input_mode)
+	if self.mania_skin == skin and self.mania_input_mode == input_mode and self.mania_renderer then
+		return self.mania_renderer
+	end
+	-- Do not discard dirty configuration if saving a replacement fails.
+	assert(self:saveSkinConfig(), "could not save previous Mania skin config")
+	---@diagnostic disable-next-line: no-unknown
+	local loaded, config, config_path = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "gameplay")
+	local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
+	if generation ~= self.load_generation then
+		pcall(renderer.unload, renderer)
+		return
+	end
+	self.mania_skin = skin
+	self.mania_input_mode = input_mode
+	self.mania_renderer = renderer
+	self.mania_skin_config = config
+	self.mania_skin_config_path = config_path
+	return renderer
+end
+
+-- Selects and loads the renderer in core code; UI consumers only draw it.
 function Playfield:load()
+	if self.preparation then return end
+	self.load_generation = self.load_generation + 1
+	local generation = self.load_generation
 	local engine = self.game.rhythm_engine
 	local mode = engine and engine.chartmeta and engine.chartmeta.mode
-	if engine and mode == "osu" then self.renderer = self.osu_aim
-	elseif engine and engine.aim_rules then self.renderer = self.aim
-	elseif engine and mode == "catch" then self.renderer = self.osu_catch
-	elseif engine and engine.catch_rules then self.renderer = self.catch
-	elseif engine and (engine.taiko_rules or mode == "taiko") then self.renderer = self.taiko
-	elseif engine and (engine.sdvx_rules or mode == "sdvx") then self.renderer = self.sdvx
-	elseif mode == "mania" then self.renderer = self.game.gameplayInteractor.mania_renderer
-	else self.renderer = nil end
-	local renderer = self.renderer
-	if renderer then
-		local ok, err = xpcall(function()
-			assert(not renderer.isResourcesReady or renderer:isResourcesReady(), "playfield resources are not ready")
-			renderer:loadBackgroundHud()
-			renderer:load()
-		end, debug.traceback)
-		if not ok then
-			self:unload()
-			error(err)
-		end
+	local renderer ---@type rizu.gameplay.views.PlayfieldRenderer?
+	if engine and mode == "osu" then renderer = self.osu_aim
+	elseif engine and engine.aim_rules then renderer = self.aim
+	elseif engine and mode == "catch" then renderer = self.osu_catch
+	elseif engine and engine.catch_rules then renderer = self.catch
+	elseif engine and (engine.taiko_rules or mode == "taiko") then renderer = self.taiko
+	elseif engine and (engine.sdvx_rules or mode == "sdvx") then renderer = self.sdvx
+	elseif mode == "mania" then
+		local input_mode = assert(engine.chart and engine.chart.inputMode, "Chart input mode is required")
+		renderer = self:loadManiaSkin(tostring(input_mode), generation)
 	end
+	if generation ~= self.load_generation then return end
+	if renderer then
+		local preparation = PlayfieldPreparation(renderer)
+		self.preparation = preparation
+		local ready = preparation:load(true)
+		if self.preparation ~= preparation then return end
+		if not ready then
+			self.preparation = nil
+			error(preparation.error)
+		end
+		self.renderer = preparation:getPlayfield()
+	end
+end
+
+---@return rizu.gameplay.views.PlayfieldRenderer?
+function Playfield:getPlayfield()
+	return self.preparation and self.preparation:getPlayfield() or nil
 end
 
 ---@return boolean
@@ -73,12 +121,35 @@ function Playfield:isExperimental()
 end
 
 function Playfield:unload()
-	if self.renderer then
-		self.renderer:unloadBackgroundHud()
-		self.renderer:unload()
-		if self.renderer.unloadResources then self.renderer:unloadResources() end
-	end
+	self.load_generation = self.load_generation + 1
+	local preparation = self.preparation
+	self.preparation = nil
 	self.renderer = nil
+	if preparation then preparation:release() end
+end
+
+---@return boolean
+---@return string?
+function Playfield:saveSkinConfig()
+	if self.mania_skin_config and self.mania_skin_config.has_unsaved_changes and self.mania_skin_config_path then
+		local saved, save_error = self.mania_skin_config:save(self.game.fs, self.mania_skin_config_path)
+		if not saved then
+			print(("could not save skin config %s: %s"):format(self.mania_skin_config_path, tostring(save_error)))
+			return false, tostring(save_error)
+		end
+	end
+	return true
+end
+
+---@return boolean
+function Playfield:clearManiaSkin()
+	if not self:saveSkinConfig() then return false end
+	self.mania_skin = nil
+	self.mania_renderer = nil
+	self.mania_input_mode = nil
+	self.mania_skin_config = nil
+	self.mania_skin_config_path = nil
+	return true
 end
 
 function Playfield:updateBackgroundHud(dt)

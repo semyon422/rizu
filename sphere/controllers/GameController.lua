@@ -396,6 +396,7 @@ function GameController:unload()
 	end
 	if self.needleGpuProbe then self.needleGpuProbe:release() end
 	if self.needleGpuEncoderProbe then self.needleGpuEncoderProbe:release() end
+	self.gameplayInteractor:unloadGameplay()
 	self.network:cancelStreams("unload")
 	self.seaClient:unload()
 	self.previewModel:release()
@@ -425,14 +426,14 @@ function GameController:update(dt)
 	self.joystickModel:update(dt)
 
 	self.multiplayerController:update()
-	self.gameplayInteractor:update()
+	self.gameplayInteractor:update(dt)
 	self.dlcManager:update()
 
 	self.library:update()
 	self.seaClient:update()
 
 	self.backgroundModel:update()
-	self.previewModel:update()
+	self.previewModel:update(dt)
 	self.ui:update(dt)
 end
 
@@ -448,6 +449,7 @@ end
 function GameController:setUI(ui)
 	if self.ui then
 		self.ui:unload()
+		self.gameplayInteractor:unloadGameplay()
 		self.previewModel:stop()
 	end
 

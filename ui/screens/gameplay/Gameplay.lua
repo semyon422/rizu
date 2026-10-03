@@ -1,4 +1,3 @@
-local GameplayPlayfield = require("rizu.gameplay.Playfield")
 local View = require("gui.View")
 local Label = require("ui.views.Label")
 local Screen = require("gui.Screen")
@@ -34,20 +33,14 @@ function Gameplay:new(ui)
 	self.is_playing = false
 	self.was_retrying = false
 
-	self.gameplay_playfield = GameplayPlayfield(self.game)
+	self.gameplay_playfield = self.gameplay_interactor.playfield
 	self.gameplay_playfield_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
 	self.gameplay_playfield_view:setDraw(function()
 		self:drawGameplayPlayfield()
 	end)
-	self.gameplay_playfield_view:setUpdate(function(_, dt)
-		self.gameplay_playfield:update(dt)
-	end)
 	self.gameplay_hud_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
 	self.gameplay_hud_view:setDraw(function()
 		self:drawGameplayHud()
-	end)
-	self.gameplay_hud_view:setUpdate(function(_, dt)
-		self:updateGameplayHud(dt)
 	end)
 	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
 	self.aim_summary:setAlignment(0.5, 0.5)
@@ -83,7 +76,6 @@ function Gameplay:new(ui)
 end
 
 function Gameplay:unload()
-	self.gameplay_playfield:unload()
 	Screen.unload(self)
 end
 
@@ -92,7 +84,7 @@ function Gameplay:enter()
 	self.is_sdvx = self.game.rhythm_engine.sdvx_rules ~= nil
 	self.is_taiko = self.game.rhythm_engine.taiko_rules ~= nil
 	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
-	self.gameplay_playfield:load()
+	assert(self.gameplay_interactor:getPlayfield(), "gameplay playfield is not ready")
 	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.aim_summary:setVisible(false)
 	love.keyboard.setKeyRepeat(false)
@@ -157,14 +149,6 @@ function Gameplay:drawGameplayPlayfield()
 	love.graphics.pop()
 end
 
----@param dt number
-function Gameplay:updateGameplayHud(dt)
-	if self.gameplay_playfield.updateBackgroundHud then
-		self.gameplay_playfield:updateBackgroundHud(dt)
-	end
-	self.gameplay_playfield:updateHud(dt)
-end
-
 function Gameplay:drawGameplayHud()
 	local width, height, transform = self:getGameplayViewport()
 	if width <= 0 or height <= 0 then return end
@@ -192,7 +176,7 @@ function Gameplay:refreshSkinEditor()
 	self.skin_editor_controls:setGap(14)
 	self.skin_editor_status:setText("")
 	self.skin_editor_status:setSize(540, 24)
-	local renderer = self.gameplay_interactor.mania_renderer
+	local renderer = self.gameplay_interactor.playfield:getPlayfield()
 	self.skin_editor_properties = {}
 	if not renderer or not renderer.getProperties then
 		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.no_properties"))
@@ -214,16 +198,14 @@ function Gameplay:refreshSkinEditor()
 			value_format = function(value) return tostring(math.floor(value + 0.5)) end,
 			on_change = function(value)
 				property.set(value)
-				local config = self.gameplay_interactor.mania_skin_config
+				local config = self.gameplay_interactor.playfield.mania_skin_config
 				if not config then
 					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
 						error = "Skin config is unavailable.",
 					}))
 					return
 				end
-				local saved, save_error = config:save(
-					self.game.fs, self.gameplay_interactor.mania_skin_config_path
-				)
+				local saved, save_error = self.gameplay_interactor.playfield:saveSkinConfig()
 				if saved then
 					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.saved"))
 				else
@@ -248,7 +230,6 @@ function Gameplay:exit()
 	self.was_retrying = false
 	self.restart_overlay:reset()
 	self.ui.command_registry:popContext("gameplay_commands")
-	self.gameplay_playfield:unload()
 	self.gameplay_interactor:unloadGameplay()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
@@ -367,7 +348,7 @@ function Gameplay:update(dt)
 	self.was_retrying = retrying
 
 	if self.is_aim and self.gameplay_interactor.loaded then
-		self.gameplay_interactor:update(true)
+		self.gameplay_interactor:update(dt, true)
 		if not self.is_playing and self.game.rhythm_engine:getProgress() < 1 then
 			self.is_playing = true
 			self.aim_summary:setVisible(false)

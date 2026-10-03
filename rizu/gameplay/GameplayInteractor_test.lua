@@ -107,6 +107,10 @@ function test.retry_request_starts_one_fresh_attempt(t)
 		local interactor = setmetatable({
 			loaded = true,
 			autoplay = true,
+			playfield = {
+				unload = function() t:eq(attempts, 0) end,
+				load = function() t:eq(attempts, 1); t:eq(plays, 0) end,
+			},
 			gameplay_session = session,
 			game = {
 				pauseModel = pause_model,
@@ -130,13 +134,13 @@ function test.retry_request_starts_one_fresh_attempt(t)
 
 		interactor:changePlayState("retry")
 		t:eq(pause_model.needRetry, true)
-		interactor:update()
+		interactor:update(0.25)
 		t:ne(interactor.gameplay_session, session)
 		t:eq(attempts, 1)
 		t:eq(plays, 1)
 		t:eq(pause_model.needRetry, false)
 		t:eq(pause_model.state, "play")
-		interactor:update()
+		interactor:update(0.25)
 		t:eq(attempts, 1)
 	end
 end
@@ -160,9 +164,9 @@ function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
 		aim_replay_store = {save = function() saves = saves + 1 return "local.json" end},
 		score_saver = {saveScore = function() error("must not save/submit an Aim score") end},
 	}, {__index = GameplayInteractor})
-	interactor:update()
+	interactor:update(0.25)
 	t:eq(updates, 0)
-	interactor:update(true)
+	interactor:update(0.25, true)
 	t:eq(updates, 1)
 	interactor:unloadGameplay()
 	t:eq(saves, 1)
@@ -182,34 +186,143 @@ function test.aim_replay_preparation_keeps_replay_base_contract(t)
 end
 
 ---@param t testing.T
-function test.skin_resources_cancelled_before_or_during_wait_are_not_published(t)
-	for _, cancel_during_wait in ipairs({false, true}) do
-		local interactor = setmetatable({load_generation = 2}, {__index = GameplayInteractor})
-		local releases = 0
-		local renderer = {
-			unloadResources = function() releases = releases + 1 end,
-			finishLoadResourcesAsync = function()
-				if cancel_during_wait then interactor.load_generation = 3 end
-				return true
-			end,
-		}
-		t:eq(interactor:finishManiaResourcesAsync(renderer, {}, cancel_during_wait and 2 or 1), false)
-		t:assert(releases >= 1)
+function test.core_runtime_preparation_precedes_playback_and_ui_getter(t)
+	local calls = {}
+	local engine = {chartmeta = {mode = "mania"}, chart = {inputMode = "4key"}, unloadAudio = function() end}
+	local renderer = require("rizu.gameplay.views.PlayfieldRenderer")({})
+	renderer.load = function() calls[#calls + 1] = "runtime" end
+	local settings = Settings.createConfig(FakeFilesystem())
+	local interactor = setmetatable({load_generation = 0, loaded = false,
+		game = {rhythm_engine = engine, settings = settings, skinRegistry = {
+			getSkinForInputMode = function() return {} end,
+			loadSkin = function() return renderer end,
+		}, unloadAudio = function() end,
+		windowModel = {setVsyncOnSelect = function() end}, discordModel = {setPresence = function() end},
+		multiplayerModel = {client = {setPlaying = function() end}}}, mania_renderer = renderer}, {__index = GameplayInteractor})
+	interactor.game.gameplayInteractor = interactor
+	interactor.playfield = require("rizu.gameplay.Playfield")(interactor.game)
+	interactor.prepareGameplayAsync = function(self)
+		self.playfield:load()
+		calls[#calls + 1] = "play"
+		self.loaded = true
+		return true
+	end
+	t:eq(interactor:getPlayfield(), nil)
+	t:assert(interactor:loadGameplayAsync({}))
+	t:tdeq(calls, {"runtime", "play"})
+	t:eq(interactor:getPlayfield(), interactor.playfield)
+	interactor.playfield:load() -- UI entry must not duplicate runtime/HUD loading.
+	t:eq(#calls, 2)
+	interactor.playfield:unload()
+end
+
+---@param t testing.T
+function test.gameplay_preparation_failure_is_not_ready_and_tears_down(t)
+	local interactor = setmetatable({load_generation = 0, game = {},
+		playfield = {unload = function() end, clearManiaSkin = function() end},
+		prepareGameplayAsync = function() error("runtime failed before play") end}, {__index = GameplayInteractor})
+	t:assert(not pcall(interactor.loadGameplayAsync, interactor, {}))
+	t:eq(interactor:getState(), "failed")
+	t:eq(interactor:getPlayfield(), nil)
+	t:assert(interactor:getError():find("before play", 1, true))
+end
+
+---@param t testing.T
+function test.update_advances_ready_playfield_after_session_and_pause(t)
+	local calls = {} ---@type string[]
+	local interactor = setmetatable({loaded = false, load_state = "loading", playfield = {
+		update = function(_, dt) calls[#calls + 1] = "runtime"; t:eq(dt, 0.25) end,
+		updateBackgroundHud = function(_, dt) calls[#calls + 1] = "background"; t:eq(dt, 0.25) end,
+		updateHud = function(_, dt) calls[#calls + 1] = "hud"; t:eq(dt, 0.25) end,
+	}, gameplay_session = {update = function() calls[#calls + 1] = "session" end}, game = {
+		global_timer = {getTime = function() return 10 end},
+		pauseModel = {update = function() calls[#calls + 1] = "pause" end},
+	}}, {__index = GameplayInteractor})
+	interactor:update(0.25)
+	t:eq(#calls, 0)
+	interactor.loaded = true
+	interactor:update(0.25)
+	t:tdeq(calls, {"session", "pause"})
+	interactor.load_state = "ready"
+	interactor:update(0.25)
+	t:tdeq(calls, {"session", "pause", "session", "pause", "runtime", "background", "hud"})
+end
+
+---@param t testing.T
+function test.after_input_pass_does_not_update_playfield_twice(t)
+	for _, rules in ipairs({"aim_rules", "catch_rules", "taiko_rules", "sdvx_rules"}) do
+		local calls = {} ---@type string[]
+		local interactor = setmetatable({loaded = true, load_state = "ready", playfield = {
+			update = function(_, dt) calls[#calls + 1] = "runtime"; t:eq(dt, 0.25) end,
+			updateBackgroundHud = function() calls[#calls + 1] = "background" end,
+			updateHud = function() calls[#calls + 1] = "hud" end,
+		}, gameplay_session = {update = function() calls[#calls + 1] = "session" end}, game = {
+			rhythm_engine = {[rules] = {}},
+			global_timer = {getTime = function() return 10 end},
+			pauseModel = {update = function() calls[#calls + 1] = "pause" end},
+		}}, {__index = GameplayInteractor})
+		interactor:update(0.25)
+		t:tdeq(calls, {"runtime", "background", "hud"})
+		interactor:update(0.25, true)
+		t:tdeq(calls, {"runtime", "background", "hud", "session", "pause"})
 	end
 end
 
 ---@param t testing.T
-function test.skin_decode_error_releases_resources_and_is_reported(t)
-	local interactor = setmetatable({load_generation = 1}, {__index = GameplayInteractor})
-	local released = 0
-	local renderer = {
-		unloadResources = function() released = released + 1 end,
-		finishLoadResourcesAsync = function() return false, "missing skin texture" end,
-	}
-	local ok, err = pcall(interactor.finishManiaResourcesAsync, interactor, renderer, {}, 1)
-	t:assert(not ok)
-	t:assert(tostring(err):find("missing skin texture", 1, true))
-	t:eq(released, 1)
+function test.unload_before_loading_is_a_noop(t)
+	local interactor = setmetatable({load_state = "empty", load_generation = 0, game = {}},
+		{__index = GameplayInteractor})
+	t:has_not_error(function()
+		interactor:unloadGameplay()
+		interactor:unloadGameplay()
+	end)
+	t:eq(interactor.load_generation, 0)
+end
+
+---@param t testing.T
+function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
+	for _, state in ipairs({"loading", "failed", "ready"}) do
+		local calls = {playfield = 0, audio = 0, bga = 0, skip = 0, score = 0, playing = 0}
+		local session = {hasResult = function() return true end}
+		local interactor = setmetatable({load_state = state, loaded = state == "ready",
+			load_generation = 0, gameplay_session = session,
+			game = {
+				rhythm_engine = {
+					setTime = function() calls.skip = calls.skip + 1 end,
+					unloadAudio = function() calls.audio = calls.audio + 1 end,
+					bga_engine = {unload = function() calls.bga = calls.bga + 1 end},
+				},
+				windowModel = {setVsyncOnSelect = function() end},
+				discordModel = {setPresence = function() end},
+				multiplayerModel = {client = {setPlaying = function(_, playing)
+					t:eq(playing, false)
+					calls.playing = calls.playing + 1
+				end}},
+			},
+			score_saver = {saveScore = function(_, saved_session)
+				t:eq(saved_session, session)
+				calls.score = calls.score + 1
+			end},
+		}, {__index = GameplayInteractor})
+		interactor.playfield = {unload = function()
+			t:eq(interactor.loaded, false)
+			t:eq(interactor.load_generation, 1)
+			calls.playfield = calls.playfield + 1
+			interactor:unloadGameplay()
+		end, clearManiaSkin = function() end}
+		interactor:unloadGameplay()
+		interactor:unloadGameplay()
+		t:eq(calls.playfield, 1)
+		t:eq(calls.audio, 1)
+		t:eq(calls.bga, 1)
+		t:eq(calls.playing, 1)
+		t:eq(calls.skip, state == "ready" and 1 or 0)
+		t:eq(calls.score, state == "ready" and 1 or 0)
+		t:eq(interactor.load_generation, 1)
+		t:eq(interactor:getState(), "empty")
+		t:eq(interactor.gameplay_session, nil)
+		t:eq(interactor:hasResult(), false)
+	end
 end
 
 return test

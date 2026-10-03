@@ -29,7 +29,10 @@ The preview system provides players with an immediate sensory snapshot of a song
 ## Implementation Details
 
 ### Components
-- **PreviewModel**: The central coordinator. Manages the master clock, looping range, and loading states.
+- **PreviewModel**: Playback coordinator. Owns the master clock, looping, seeking, rate, volume, and audio/BGA/notes players.
+- **PreviewLoader**: Media preparation owner. Handles debounce, worker probing/generation, notes repair, and selected-intent media status. It does not select or load skins.
+- **PreviewSkinCache**: Independent core skin owner. Resolves/caches preview renderers, subscribes to skin settings, handles invalidation, updates animation, and releases renderers. PreviewModel coordinates its binding separately from media loading.
+- **PlayfieldPreparation**: Shared renderer lifecycle owner used by preview and gameplay. Calls the skin's own `load()`/`unload()` hooks and publishes the renderer only after loading succeeds. It does not prescribe resource loading or start skin workers.
 - **Notes Preview**: A high-performance string representation of notes stored in the database for instant retrieval.
 - **Audio/BGA Previews**: Dedicated event collections stored in `.audio_preview` and `.bga_preview` files within `userdata/`.
   - **Unified Audio**: The system does not distinguish between single-file audio (osu!) and multi-sample backgrounds (BMS). All audio is treated as a sequence of events (sample index, time, duration, volume).
@@ -66,16 +69,65 @@ The preview system provides players with an immediate sensory snapshot of a song
 
 ### Specialized Notes Preview
 
-Song select renders notes through `ui.views.NotesPreviewRenderer`, with white tap heads and translucent white hold bodies only: no field background, dividers, or judgement line. The hit position is at the bottom edge and the visible field uses the full panel height. Lane width and note-head thickness follow the base skin's default proportions (48 and 24 units per 480 units of viewport height), centered horizontally. Heads and hold bodies fill the entire lane width without gaps. It intentionally does not use gameplay noteskins. `NotesPreviewPlayer` owns a compact `NotesPreview` instead of a full `Chart`/`VisualEngine`; consumers use `notes`, `column_map`, `time`, and `rate`. The former skin/visual-engine fields and `iterNotes` are no longer part of the active select preview contract. Legacy noteskin preview views are not used by the built-in select screen.
+Song select draws the core-owned skin renderer returned by `game.previewModel:getPlayfield()`.
+It returns `nil` until the renderer's `load()` hook succeeds; UI code supplies the viewport,
+clipping, background presentation, and `renderer:drawPreview(model.chartPreview, width, height)`.
+The UI does not select skins, start workers, update the renderer, or release the cache.
+`getSkinState()`/`getSkinError()` describe playfield preparation; `getMediaState()`/`getMediaError()`
+describe independent media preparation. Missing media does not hide a ready skin.
+
+The core caches one renderer per input mode/resolved skin. Chart changes reuse unchanged renderers;
+settings changes and registry replacement evict affected entries. Stop clears the active binding but
+retains the cache; final release unsubscribes and unloads entries. Skins choose how to load and
+release their own resources; core code does not impose a threaded loading pipeline.
+
+`NotesPreviewPlayer` owns a compact `NotesPreview` instead of a full `Chart`/`VisualEngine`;
+consumers use `notes`, `column_map`, `time`, and `rate`. The former skin/visual-engine fields and
+`iterNotes` are no longer part of the active preview contract.
 
 `NotesPreview` reads the existing version 0/1 SPH preview cache without changing persistence. Fractional line positions are interpolated between absolute timing vertices, with first/last segments extrapolated outside the vertex range. At least two vertices are required for non-empty data; invalid data returns `false` from `setChartview` and uses the existing background repair flow. Empty previews remain valid and contain no notes.
 
 Each column stores ordered tap/hold intervals and cumulative maximum end times. Binary searches select a visible interval range, preserving crossing holds on forward and backward seeks. Rendering filters expired intervals, so update/draw do not construct gameplay notes or scan the entire chart. Column order uses the same destination-to-source permutation as `ColumnsOrder`; playback time and speed/scale-speed settings come from the preview clock. The renderer receives explicit canvas dimensions and does not override global graphics viewport functions.
 
+### Playback and presentation
+
+`game.previewModel:getPlayfield()` returns the active runtime-ready renderer or `nil`.
+`getSkinState()`/`getSkinError()` describe skin readiness independently of media preparation
+(`getMediaState()`/`getMediaError()`). Both use `empty`, `loading`, `ready`, and `failed`.
+Media `ready` means probing/generation succeeded and player loads were dispatched, **not** that
+asynchronous audio/BGA decoding is ready. Unrelated generation cannot keep the selected Chart
+in `loading`; missing media after an exhausted attempt reports `failed`. Skin `loading` is
+observable only when a custom load hook yields. The game updates skin animation once; UI drawing
+must not initiate loads, update renderers, or release the shared cache.
+
+The UI supplies transforms/clipping and calls `drawPreview(model.chartPreview, w, h)`.
+Stopping preview drops the active binding and cancels media intent while retaining skin
+renderers for reuse. Final game release unloads the cache.
+
+Gameplay similarly exposes a core-owned Playfield through
+`game.gameplayInteractor:getPlayfield()`. The renderer and its background HUD are loaded
+before play begins. GameController updates runtime/background-HUD/foreground-HUD once;
+UI code only draws the prepared playfield. GameplayInteractor owns teardown on exit and
+failure, with background HUD released before the renderer's `unload()` hook.
+
 ### Preview Types
 - **Audio**: Scans for all hitsounds and background music events across all formats to create a flattened event sequence.
 - **BGA**: Scans for layer changes and video triggers.
 - **Notes**: Encodes a simplified bitmask of column activity over time.
+
+### Gameplay preparation
+
+GameplayInteractor owns a Playfield and exposes it only after preparation succeeds through
+`getPlayfield()` (`getState()`/`getError()` provide loading/failure information). After Chart
+resources and the rhythm engine are prepared, core code loads the renderer and background HUD
+before starting playback. The game updates the playfield once; UI entry only draws it and does
+not call renderer load or update again. Core teardown unloads the background HUD and renderer;
+skins own their resource strategy and preview renderers remain separate from gameplay instances.
+Retry unloads and loads the playfield against the recreated rhythm engine before playback resumes.
+Playfield owns Mania skin selection, renderer construction, configuration, and teardown. Construction
+happens after Chart resources/engine preparation and canceled construction cannot publish a renderer.
+Retry retains the same skin renderer/configuration while reloading its runtime against the new engine;
+replacement saves dirty configuration first and aborts replacement if that save fails.
 
 ## Future Work and Open Questions
 

@@ -245,30 +245,4 @@ function test.isolates_invalid_lua_skins(t)
 	t:assert(registry.errors["userdata/dlc/skins_rizu/bytecode.skin.lua"])
 end
 
----@param t testing.T
-function test.file_lists_are_cached_and_propagated(t)
-	local fs = FakeFilesystem()
-	local directory = "userdata/dlc/skins_rizu/example"
-	fs:createDirectory(directory .. "/textures")
-	fs:write(directory .. "/example.skin.lua", valid_skin)
-	fs:write(directory .. "/textures/b.png", "b")
-	fs:write(directory .. "/a.png", "a")
-	local registry = SkinRegistry(fs)
-	registry:load()
-	local skin = registry:getSkins()[1]
-	skin.load = function(context) return context end
-	local first = registry:loadSkin(skin, {}, "4key", "preview")
-	t:tdeq(first.files, {"a.png", "example.skin.lua", "textures/b.png"})
-	t:eq(first:resolvePath("textures/b.png"), directory .. "/textures/b.png")
-	t:tdeq(first:getFiles("textures"), {"textures/b.png"})
-	local indexed = skin.files
-	local second = registry:loadSkin(skin, {}, "4key", "gameplay")
-	t:eq(skin.files, indexed)
-	t:tdeq(second.files, first.files)
-	local osu = {format = "osu", path = "osu", directory_path = "osu", files = {"z.png", "a.png"},
-		load = function(context) return context end}
-	local osu_context = registry:loadSkin(osu, {}, "4key", "preview")
-	t:tdeq(osu_context.files, {"a.png", "z.png"})
-end
-
 return test

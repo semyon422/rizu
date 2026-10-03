@@ -44,7 +44,7 @@ local function input(screen, pressed, released)
 end
 
 ---@param t testing.T
-function test.skin_hud_has_separate_update_and_draw_bridge(t)
+function test.skin_hud_draw_bridge_does_not_update_core_animation(t)
 	local hud_update_count = 0
 	local hud_draw_count = 0
 	local playfield
@@ -75,9 +75,8 @@ function test.skin_hud_has_separate_update_and_draw_bridge(t)
 		}},
 	}, {__index = Gameplay})
 
-	screen:updateGameplayHud(1 / 60)
 	screen:drawGameplayHud()
-	t:eq(hud_update_count, 1)
+	t:eq(hud_update_count, 0)
 	t:eq(hud_draw_count, 1)
 	t:eq(playfield.last_viewport.width, 1280)
 	t:eq(playfield.last_viewport.height, 720)
@@ -92,6 +91,7 @@ function test.skin_hud_has_separate_update_and_draw_bridge(t)
 	t:eq(y, 0)
 end
 
+---@param t testing.T
 function test.gameplay_hud_dispatch_does_not_require_a_renderer_hud_field(t)
 	local updates, draws = 0, 0
 	local playfield = {
@@ -115,9 +115,8 @@ function test.gameplay_hud_dispatch_does_not_require_a_renderer_hud_field(t)
 			end,
 		}},
 	}, {__index = Gameplay})
-	screen:updateGameplayHud(1 / 60)
 	screen:drawGameplayHud()
-	t:eq(updates, 1)
+	t:eq(updates, 0)
 	t:eq(draws, 1)
 end
 
