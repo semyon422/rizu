@@ -1,12 +1,19 @@
 local class = require("class")
 local path_util = require("path_util")
+local ZipFilesystem = require("fs.ZipFilesystem")
+
+---@type {[string]: fs.ZipFilesystem}
+local archive_cache = {}
 
 ---@class rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@operator call: rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@field fs fs.IFilesystem?
 ---@field skin rizu.skin.OsuSkinDiscovery?
 ---@field images {[string]: love.Image|false}
----@field file_map {[string]: string} Lowercase asset path to full filesystem path.
+---@field file_map {[string]: string} Lowercase selected skin asset path to full filesystem path.
+---@field fallback_file_map {[string]: string}
+---@field fallback_archive string?
+---@field fallback_fs fs.ZipFilesystem?
 ---@field frame_cache {[string]: love.Image[]}
 ---@field animation_cache {[string]: love.Image[]}
 ---@field image_density {[love.Image]: number}
@@ -22,6 +29,7 @@ function OsuManiaSkinGraphics:new(fs, skin)
 	self.skin = nil
 	self.images = {}
 	self.file_map = {}
+	self.fallback_file_map = {}
 	self.frame_cache = {}
 	self.animation_cache = {}
 	self.image_density = {}
@@ -33,6 +41,7 @@ end
 
 function OsuManiaSkinGraphics:indexFiles()
 	self.file_map = {}
+	self.fallback_file_map = {}
 	for _, relative_path in ipairs(self.skin and self.skin.files or {}) do
 		local normalized = relative_path:gsub("\\", "/")
 		self.file_map[normalized:lower()] = path_util.join(self.skin.path, relative_path)
@@ -42,8 +51,13 @@ function OsuManiaSkinGraphics:indexFiles()
 		if ok then
 			for _, file_name in ipairs(file_names) do
 				local asset = self.fallback_directory .. "/" .. file_name
-				self.file_map[file_name:lower()] = self.file_map[file_name:lower()] or asset
+				self.fallback_file_map[file_name:lower()] = asset
 			end
+		end
+	end
+	if self.fallback_fs and self.fallback_archive then
+		for _, file_name in ipairs(self.fallback_fs:getDirectoryItems("")) do
+			self.fallback_file_map[file_name:lower()] = self.fallback_archive .. "/" .. file_name
 		end
 	end
 end
@@ -69,29 +83,61 @@ function OsuManiaSkinGraphics:setFallbackDirectory(directory)
 	self:indexFiles()
 end
 
+---@param archive_path string
+function OsuManiaSkinGraphics:setFallbackArchive(archive_path)
+	if self.fallback_archive == archive_path then return end
+	if self.loaded or next(self.images) then self:unload() end
+	local archive = archive_cache[archive_path]
+	if not archive then
+		local content = love.filesystem.read(archive_path)
+		if content then
+			archive = ZipFilesystem(content)
+			archive_cache[archive_path] = archive
+		end
+	end
+	self.fallback_archive = archive_path
+	self.fallback_fs = archive
+	self.generation = self.generation + 1
+	self.frame_cache = {}
+	self.animation_cache = {}
+	self:indexFiles()
+end
+
 ---@param name string
+---@param file_map {[string]: string}?
 ---@return string?
-function OsuManiaSkinGraphics:findAsset(name)
+function OsuManiaSkinGraphics:findAsset(name, file_map)
 	if type(name) ~= "string" or name == "" then return nil end
 	name = name:gsub("\\", "/"):gsub("^/+", ""):lower()
 	local stem = name:gsub("%.png$", "")
-	for _, candidate in ipairs({stem .. "@2x.png", stem .. ".png"}) do
-		local path = self.file_map[candidate:lower()]
-		if path then return path end
+	for _, map in ipairs(file_map and {file_map} or {self.file_map, self.fallback_file_map}) do
+		for _, candidate in ipairs({stem .. "@2x.png", stem .. ".png"}) do
+			local path = map[candidate]
+			if path then return path end
+		end
 	end
 end
 
 ---@param base string
+---@param file_map {[string]: string}?
 ---@return {index: integer, path: string}[]
-function OsuManiaSkinGraphics:findAnimationAssets(base)
+function OsuManiaSkinGraphics:findAnimationAssets(base, file_map)
+	if not file_map then
+		local assets = self:findAnimationAssets(base, self.file_map)
+		if #assets > 0 or self:findAsset(base, self.file_map) then return assets end
+		return self:findAnimationAssets(base, self.fallback_file_map)
+	end
 	if type(base) ~= "string" or base == "" then return {} end
 	base = base:gsub("\\", "/"):gsub("^/+", ""):gsub("%.png$", ""):lower()
+	---@type string?, string?
 	local directory, stem = base:match("^(.*[/])([^/]+)$")
 	directory = directory or ""
 	stem = stem or base
 	local escaped_stem = stem:gsub("([^%w])", "%%%1")
+	---@type {[integer]: {index: integer, path: string, high_density: boolean}}
 	local found = {}
-	for normalized_path, path in pairs(self.file_map) do
+	for normalized_path, path in pairs(file_map) do
+		---@type string?, string?
 		local file_directory, file_name = normalized_path:match("^(.*[/])([^/]+)$")
 		file_directory = file_directory or ""
 		file_name = file_name or normalized_path
@@ -99,19 +145,21 @@ function OsuManiaSkinGraphics:findAnimationAssets(base)
 			local index = file_name:match("^" .. escaped_stem .. "%-([0-9]+)@2x%.png$")
 				or file_name:match("^" .. escaped_stem .. "%-([0-9]+)%.png$")
 			if index then
-				index = tonumber(index)
-				local frame = found[index]
+				local frame_index = assert(tonumber(index))
+				local frame = found[frame_index]
 				local high_density = file_name:find("@2x.png", 1, true) ~= nil
 				if not frame or high_density then
-					found[index] = {index = index, path = path, high_density = high_density}
+					found[frame_index] = {index = frame_index, path = path, high_density = high_density}
 				end
 			end
 		end
 	end
 
+	---@type integer[]
 	local indices = {}
 	for index in pairs(found) do indices[#indices + 1] = index end
 	table.sort(indices)
+	---@type {index: integer, path: string}[]
 	local result = {}
 	if #indices == 0 then return result end
 	local index = found[0] and 0 or 1
@@ -138,9 +186,16 @@ function OsuManiaSkinGraphics:loadImage(path)
 		self.image_density[image] = path:lower():match("@2x%.png$") and 2 or 1
 		return image
 	end
-	if not self.fs then return nil end
+	local fs = self.fs
+	local read_path = path
+	if self.fallback_fs and self.fallback_archive
+		and path:sub(1, #self.fallback_archive + 1) == self.fallback_archive .. "/" then
+		fs = self.fallback_fs
+		read_path = path:sub(#self.fallback_archive + 2)
+	end
+	if not fs then return nil end
 
-	local ok_read, content = pcall(self.fs.read, self.fs, path)
+	local ok_read, content = pcall(fs.read, fs, read_path)
 	if not ok_read or not content then
 		self.images[path] = false
 		return nil
@@ -174,15 +229,21 @@ function OsuManiaSkinGraphics:getFrames(image_name, fallback_name)
 	local key = tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
+	---@type love.Image[]
 	local frames = {}
-	local function load_name(name)
+	---@param name string?
+	---@param file_map {[string]: string}
+	local function load_name(name, file_map)
 		if not name or name == "" then return end
-		local path = self:findAsset(name)
-		local image = path and self:loadImage(path)
+		local path = self:findAsset(name, file_map)
+		local image = path and self:loadImage(path) or nil
 		if image then frames[1] = image end
 	end
-	load_name(image_name)
-	if #frames == 0 and fallback_name ~= image_name then load_name(fallback_name) end
+	for _, file_map in ipairs({self.file_map, self.fallback_file_map}) do
+		load_name(image_name, file_map)
+		if #frames == 0 and fallback_name ~= image_name then load_name(fallback_name, file_map) end
+		if #frames > 0 then break end
+	end
 	self.frame_cache[key] = frames
 	return frames
 end
@@ -194,31 +255,37 @@ function OsuManiaSkinGraphics:getAnimationFrames(image_name, fallback_name)
 	local key = tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
 	local cached = self.animation_cache[key]
 	if cached then return cached end
-	local function load_animation(name)
+	---@param name string?
+	---@param file_map {[string]: string}
+	---@return love.Image[]
+	local function load_animation(name, file_map)
 		if name == nil then return {} end
 		---@cast name string
-		local discovered = self:findAnimationAssets(name)
+		local discovered = self:findAnimationAssets(name, file_map)
+		---@type love.Image[]
 		local frames = {}
 		for _, asset in ipairs(discovered) do
 			local image = self:loadImage(asset.path)
 			if image then frames[#frames + 1] = image end
 		end
+		if #frames == 0 then
+			local path = self:findAsset(name, file_map)
+			local image = path and self:loadImage(path) or nil
+			if image then frames[1] = image end
+		end
 		return frames
 	end
-	local frames = load_animation(image_name)
-	if #frames == 0 and image_name then
-		local image = self:getFrames(image_name, nil)[1]
-		if image then frames[1] = image end
-	end
-	if #frames == 0 and fallback_name ~= image_name then frames = load_animation(fallback_name) end
-	if #frames == 0 then
-		local image = self:getFrames(nil, fallback_name)[1]
-		if image then frames[1] = image end
+	local frames = {}
+	for _, file_map in ipairs({self.file_map, self.fallback_file_map}) do
+		frames = load_animation(image_name, file_map)
+		if #frames == 0 and fallback_name ~= image_name then frames = load_animation(fallback_name, file_map) end
+		if #frames > 0 then break end
 	end
 	self.animation_cache[key] = frames
 	return frames
 end
 
+---@param assets {name: string?, fallback: string?, animation: boolean?}[]?
 function OsuManiaSkinGraphics:load(assets)
 	self.generation = self.generation + 1
 	self.loaded = true

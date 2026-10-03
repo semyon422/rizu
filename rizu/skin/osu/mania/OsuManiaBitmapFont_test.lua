@@ -27,4 +27,22 @@ function test.bitmap_font_pool_capacity_is_stable_after_warmup(t)
 	t:eq(font.glyphs[1], first)
 end
 
+---@param t testing.T
+function test.custom_font_prefix_falls_back_to_score_glyphs(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("skins/example")
+	local graphics = OsuManiaSkinGraphics(fs, {
+		path = "skins/example", files = {"digits-1.png", "score-2.png"},
+	})
+	local custom, skin_default, bundled = image(10, 20), image(12, 20), image(16, 24)
+	graphics.images["skins/example/digits-1.png"] = custom
+	graphics.images["skins/example/score-2.png"] = skin_default
+	graphics.fallback_file_map = {['score-0@2x.png'] = "archive/score-0@2x.png"}
+	graphics.images["archive/score-0@2x.png"] = bundled
+	local font = OsuManiaBitmapFont(graphics, "digits")
+	t:eq(font:getImage("1"), custom)
+	t:eq(font:getImage("2"), skin_default)
+	t:eq(font:getImage("0"), bundled)
+end
+
 return test

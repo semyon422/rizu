@@ -79,4 +79,81 @@ function test.preloads_skin_png_assets_once_during_load(t)
 	if not ok then error(err) end
 end
 
+---@param t testing.T
+function test.loads_missing_assets_from_zip_without_overriding_skin_assets(t)
+	local ZipFilesystem = require("fs.ZipFilesystem")
+	local archive = ZipFilesystem()
+	archive:write("mania-key1@2x.png", "default-key")
+	archive:write("mania-note1L@2x.png", "default-body")
+	archive:write("mania-note1L-0@2x.png", "default-body-0")
+	archive:write("mania-note1L-1@2x.png", "default-body-1")
+	archive:write("mania-hit300g-0@2x.png", "default-judge")
+	archive:write("mania-stage-left@2x.png", "default-stage")
+	archive:write("score-0@2x.png", "default-digit")
+	local archive_data = archive:save()
+	local fs = FakeFilesystem()
+	fs:createDirectory("skins/example")
+	fs:write("skins/example/MANIA-KEY1.PNG", "skin-key")
+	fs:write("skins/example/mania-hit300g.png", "skin-static-judge")
+	fs:write("skins/example/mania-note1L-0.png", "skin-body-0")
+	fs:write("skins/example/mania-note1L-1.png", "skin-body-1")
+	local skin = {path = "skins/example", files = {
+		"MANIA-KEY1.PNG", "mania-hit300g.png", "mania-note1L-0.png", "mania-note1L-1.png",
+	}}
+	local graphics = OsuManiaSkinGraphics(fs, skin)
+	local previous_read = love.filesystem.read
+	local previous_new_image = love.graphics.newImage
+	local previous_new_file_data = love.filesystem.newFileData
+	local reads, loaded, released = 0, {}, 0
+	love.filesystem.read = function(path)
+		t:eq(path, "test-mania-fallback.zip")
+		reads = reads + 1
+		return archive_data
+	end
+	love.filesystem.newFileData = function(content) return content end
+	love.graphics.newImage = function(data)
+		loaded[#loaded + 1] = data
+		return {
+			data = data,
+			getWidth = function() return 16 end,
+			getHeight = function() return 16 end,
+			release = function() released = released + 1 end,
+		}
+	end
+	local ok, err = xpcall(function()
+		graphics:setFallbackArchive("test-mania-fallback.zip")
+		t:eq(reads, 1)
+		t:eq(graphics:findAsset("mania-key1"), "skins/example/MANIA-KEY1.PNG")
+		t:eq(graphics:findAsset("mania-stage-left"), "test-mania-fallback.zip/mania-stage-left@2x.png")
+		graphics:load({{name = "mania-key1"}, {name = "mania-note1L", animation = true},
+			{name = "mania-hit300g", animation = true},
+			{name = "missing-custom-stage", fallback = "mania-stage-left"},
+			{name = "custom-0", fallback = "score-0"}})
+		t:tdeq(loaded, {"skin-key", "skin-body-0", "skin-body-1", "skin-static-judge", "default-stage", "default-digit"})
+		local key = graphics:getFrames("mania-key1")[1]
+		local stage = graphics:getFrames("missing-custom-stage", "mania-stage-left")[1]
+		t:eq(graphics:getImageDensity(key), 1)
+		t:eq(graphics:getImageDensity(stage), 2)
+		t:eq(#graphics:getAnimationFrames("mania-note1L"), 2)
+		t:eq(#graphics:getAnimationFrames("mania-hit300g"), 1)
+		t:eq(#graphics:getFrames("not-in-skin-or-archive"), 0)
+		t:eq(#loaded, 6)
+		graphics:unload()
+		t:eq(released, 6)
+		graphics:setSkin(nil)
+		graphics:load({{name = "mania-hit300g", animation = true}, {name = "mania-key1"}})
+		t:eq(loaded[7], "default-judge")
+		t:eq(loaded[8], "default-key")
+		t:eq(reads, 1)
+		local second = OsuManiaSkinGraphics(fs)
+		second:setFallbackArchive("test-mania-fallback.zip")
+		t:eq(reads, 1)
+	end, debug.traceback)
+	love.filesystem.read = previous_read
+	love.graphics.newImage = previous_new_image
+	love.filesystem.newFileData = previous_new_file_data
+	graphics:unload()
+	if not ok then error(err) end
+end
+
 return test

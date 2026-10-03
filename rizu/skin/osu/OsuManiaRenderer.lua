@@ -137,11 +137,6 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.key_renderer = OsuManiaKeyRenderer()
 	self.note_renderer = OsuManiaNoteRenderer()
 	self.stage_renderer = OsuManiaStageRenderer()
-	local graphics = self.game.packageManager
-	local osu_ui_directory = graphics and graphics:getPackageDir("osu_ui")
-	if osu_ui_directory then
-		self.skin_graphics:setFallbackDirectory(osu_ui_directory .. "/osu_ui/assets")
-	end
 	self.skin = nil
 	self.section = {}
 	self.columns = 0
@@ -425,6 +420,7 @@ function OsuManiaRenderer:update(dt)
 end
 
 function OsuManiaRenderer:load()
+	self.skin_graphics:setFallbackArchive("resources/osu_default_assets.zip")
 	local skin = self:getSkin()
 	if self.skin ~= skin then self:loadSkinSettings(skin) end
 	self.foreground_hud:load(self.game)
@@ -716,6 +712,10 @@ function OsuManiaRenderer:getSkinAssets()
 	add(get_section_value(self.section, "LightingN"), "lightingN", true)
 	add(get_section_value(self.section, "LightingL"), "lightingL", true)
 
+	for digit = 0, 9 do add("score-" .. digit) end
+	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
+		add("score-" .. suffix)
+	end
 	local score_images = self.score_view:getImageAssets()
 	for _, name in ipairs(score_images) do add(name) end
 	for _, name in ipairs(self.accuracy_view:getImageAssets()) do add(name) end

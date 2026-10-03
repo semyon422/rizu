@@ -87,7 +87,7 @@ function OsuManiaBitmapFont:getImage(suffix)
 	end
 	local cached = self.image_cache[suffix]
 	if cached ~= nil then return cached ~= false and cached or nil end
-	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, nil)[1]
+	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, "score-" .. suffix)[1]
 	self.image_cache[suffix] = image or false
 	return image
 end
