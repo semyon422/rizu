@@ -85,7 +85,8 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 
 	if mode == "retry" then
 		game.gameplayInteractor.replaying = false
-		return
+		game.gameplayInteractor:setReplayBase(nil)
+		return game.gameplayInteractor:loadGameplayAsync(game.chartSelector.chartview)
 	end
 
 	local computeContext = game.computeContext
@@ -96,7 +97,8 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 	game.gameplayInteractor:setReplayFrames(replay.frames)
 
 	if mode == "replay" then
-		return
+		game.gameplayInteractor:setReplayBase(replayBase)
+		return game.gameplayInteractor:loadGameplayAsync(game.chartSelector.chartview)
 	end
 
 	local chartview = game.chartSelector.chartview

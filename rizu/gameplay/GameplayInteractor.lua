@@ -23,6 +23,7 @@ local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 ---@field playfield rizu.gameplay.Playfield
 ---@field load_state "empty"|"loading"|"ready"|"failed"
 ---@field load_error string?
+---@field replay_base sea.ReplayBase?
 ---@operator call: rizu.GameplayInteractor
 local GameplayInteractor = class()
 
@@ -80,6 +81,9 @@ end
 
 ---@return sea.ReplayBase
 function GameplayInteractor:getPreparationBase()
+	if self.replay_base then
+		return self.replay_base
+	end
 	if not self.aim_replay then
 		return self.game.replayBase
 	end
@@ -96,6 +100,10 @@ end
 ---@param chartview table
 ---@return boolean loaded
 function GameplayInteractor:loadGameplayAsync(chartview)
+	if not self.replaying then
+		self.replay_base = nil
+	end
+
 	local generation = self.load_generation + 1
 	self.load_generation = self.load_generation + 1
 	self.playfield:unload()
@@ -225,7 +233,7 @@ function GameplayInteractor:load(autoplay)
 	game.rhythm_engine.aim_stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
 	game.rhythm_engine.aim_tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
 
-	local replay_base = game.replayBase
+	local replay_base = self.replay_base or game.replayBase
 	if self.aim_replay then
 		replay_base = table_util.copy(replay_base)
 		replay_base.rate = self.aim_replay.rate
@@ -313,6 +321,11 @@ function GameplayInteractor:unloadVolume()
 	self.unsubscribe_volume = nil
 end
 
+---@param replayBase sea.ReplayBase?
+function GameplayInteractor:setReplayBase(replayBase)
+	self.replay_base = replayBase
+end
+
 ---@param frames rizu.ReplayFrame[]
 function GameplayInteractor:setReplayFrames(frames)
 	self.replay_frames = frames
@@ -339,6 +352,7 @@ function GameplayInteractor:unloadGameplay()
 		self:saveAimReplay()
 	end
 	self.aim_replay = nil
+	self.replay_base = nil
 	self.replaying = false
 	self.autoplay = false
 	local game = self.game

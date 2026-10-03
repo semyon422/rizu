@@ -7,8 +7,10 @@ return function(ui)
 
 	---@param mode "retry"|"replay"
 	local play = thread.coro(function(mode)
-		game.resultController:replayNoteChartAsync(mode, game.scoreSelector.chartplay)
-		ui:setScreen(ui.gameplay)
+		local loaded = game.resultController:replayNoteChartAsync(mode, game.scoreSelector.chartplay)
+		if loaded then
+			ui:setScreen(ui.gameplay)
+		end
 	end)
 
 	return {
