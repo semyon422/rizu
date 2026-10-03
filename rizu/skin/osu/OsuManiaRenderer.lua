@@ -15,6 +15,7 @@ local OsuManiaStageRenderer = require("rizu.skin.osu.mania.OsuManiaStageRenderer
 local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local InputMode = require("chart.core.InputMode")
 local Settings = require("rizu.config.Settings")
+local SkinConfig = require("rizu.skin.SkinConfig")
 local table_util = require("table_util")
 
 local lg = love.graphics
@@ -24,14 +25,27 @@ local DEFAULT_COLUMN_WIDTH = 30
 local DEFAULT_COLUMN_START = 136
 local DEFAULT_COLUMN_RIGHT = 19
 local DEFAULT_HIT_POSITION = 402
+local DEFAULT_HIT_METER_MODE = 0
 local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 local EMPTY_FRAMES = {}
+
+---@class rizu.skin.osu.OsuManiaRenderer.Property
+---@field key string
+---@field label string
+---@field min number
+---@field max number
+---@field step number
+---@field value_format fun(value: number): string
+---@field get fun(): number
+---@field set fun(value: number)
 
 ---@class rizu.skin.osu.OsuManiaRenderer : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.skin.osu.OsuManiaRenderer
 ---@field skin_graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@field skin rizu.skin.OsuSkinDiscovery?
 ---@field section rizu.skin.OsuSkinIni.ManiaSection
+---@field config rizu.skin.SkinConfig
+---@field config_path string?
 ---@field columns integer
 ---@field column_widths number[]
 ---@field column_spacings number[]
@@ -87,11 +101,15 @@ OsuManiaRenderer.field_height = FIELD_HEIGHT
 ---@param game sphere.GameController
 ---@param input_mode string?
 ---@param skin_path string?
-function OsuManiaRenderer:new(game, input_mode, skin_path)
+---@param config rizu.skin.SkinConfig?
+---@param config_path string?
+function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	PlayfieldRenderer.new(self, game)
 	self.background_hud:add(BgaView(game))
 	self.input_mode = input_mode or "4key"
 	self.skin_path = skin_path
+	self.config = config or SkinConfig()
+	self.config_path = config_path
 	local mode = InputMode(self.input_mode)
 	self.inputs = mode:getInputs()
 	self.base_inputs = mode:getInputs()
@@ -325,6 +343,7 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.skin_colors = {}
 	self.combo_view:setSkin(skin, section)
 	self.judge_view:setSkin(skin, section)
+	self.hit_meter_view:setMode(self:getHitMeterMode())
 	self.accuracy_view:setSkin(skin, self.score_view.height + 3)
 	self.progress_view:setAccuracyView(self.accuracy_view)
 	self.column_widths = get_number_list(section, "ColumnWidth", columns, DEFAULT_COLUMN_WIDTH, 5, 100)
@@ -796,6 +815,30 @@ local function get_color(section, key, fallback)
 	if #values < 3 then return fallback end
 	values[4] = values[4] or 1
 	return values
+end
+
+function OsuManiaRenderer:getHitMeterMode()
+	local value = self.config:get("mania", self.input_mode, "hit_meter.mode", DEFAULT_HIT_METER_MODE)
+	value = tonumber(value)
+	return value == 1 and 1 or DEFAULT_HIT_METER_MODE
+end
+
+function OsuManiaRenderer:setHitMeterMode(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"hit meter mode must be finite")
+	assert(value == 0 or value == 1, "hit meter mode must be 0 or 1")
+	self.config:set("mania", self.input_mode, "hit_meter.mode", value)
+	self.hit_meter_view:setMode(value)
+end
+
+---@return rizu.skin.osu.OsuManiaRenderer.Property[]
+function OsuManiaRenderer:getProperties()
+	return {
+		{key = "hit_meter.mode", label = "Hit error meter", min = 0, max = 1, step = 1,
+			value_format = function(value) return value == 1 and "Timing error" or "Judgement history" end,
+			get = function() return self:getHitMeterMode() end,
+			set = function(value) self:setHitMeterMode(value) end},
+	}
 end
 
 ---@param key string

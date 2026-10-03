@@ -52,9 +52,31 @@ function test.hit_meter_rolls_judge_blocks_and_fades_after_idle(t)
 		if icon.alpha > 0 then lit = lit + 1 end
 	end
 	t:eq(lit, 1)
-	t:eq(view.icons[1].color[1], 0.48)
+	t:eq(view.icons[1].color[1], 0.85)
 	view:update(5, game)
 	t:assert(view.icons[1].alpha < 1)
+end
+
+function test.hit_meter_error_mode_tracks_timing_delta(t)
+	local view = OsuManiaHitMeterView()
+	view:setMode(1)
+	t:eq(view.mode, "error")
+	t:assert(view.error_mode)
+	local source = {
+		getKey = function() return "mania" end,
+		getJudgeNames = function() return {"perfect", "great", "good", "ok", "meh", "miss"} end,
+		judge_windows = {windows = {0.016, 0.064, 0.097, 0.127, 0.151, 0.188}},
+	}
+	local score_engine = {
+		judgesSource = source,
+		sequence = {{mania = {visual_judge = 2}, misc = {deltaTime = 0.08}}},
+	}
+	local game = {rhythm_engine = {score_engine = score_engine}}
+	view:load(game)
+	view:update(0, game)
+	t:eq(view.point_index, 1)
+	t:assert(view.target_position > view.width / 2)
+	t:eq(view.error_range, 0.151)
 end
 
 function test.progress_pie_uses_engine_progress(t)

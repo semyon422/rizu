@@ -224,8 +224,8 @@ Keys: 4
 	end
 	local renderer, config, config_path = registry:loadSkin(osu_skin, "game", "4key", "preview")
 	t:eq(renderer, "osu-renderer")
-	t:eq(config, nil)
-	t:eq(config_path, nil)
+	t:assert(config)
+	t:eq(config_path, "userdata/dlc/skins_osu/osu-example/skin-config.json")
 	t:tdeq(loaded, {"game", "4key", "preview"})
 end
 

@@ -288,7 +288,7 @@ function NoteSkins:refresh()
 		end
 	end
 	self.list:setItems(self.items, selected_path)
-	self.edit_button:setEnabled(selected ~= nil and selected.format ~= "osu")
+	self.edit_button:setEnabled(selected ~= nil)
 end
 
 ---@param index integer
@@ -307,12 +307,12 @@ function NoteSkins:select(index)
 	end
 	self.game.settings:setStringMap(Settings.keys.gameplay.skins, skin_paths)
 	self.list.selected_path = item.path
-	self.edit_button:setEnabled(not self.is_osu_mode and item.format ~= "osu")
+	self.edit_button:setEnabled(not self.is_osu_mode)
 end
 
 function NoteSkins:editSkin()
 	local selected = self.items[self.selected_index]
-	if self.is_osu_mode or self.input_mode == "" or #self.items == 0 or selected and selected.format == "osu" then return end
+	if self.is_osu_mode or self.input_mode == "" or #self.items == 0 then return end
 	if self.on_edit then
 		self.on_edit()
 	end

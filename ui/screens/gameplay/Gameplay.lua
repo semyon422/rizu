@@ -19,7 +19,7 @@ local thread = require("thread")
 ---@field gameplay_hud_view gui.View
 ---@field skin_editor_window ui.views.Window
 ---@field skin_editor_controls gui.layout.FlowContainer
----@field skin_editor_properties rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property[]
+---@field skin_editor_properties table[]
 ---@field skin_editor_status ui.views.Label
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
@@ -195,7 +195,7 @@ function Gameplay:refreshSkinEditor()
 			max = property.max,
 			step = property.step,
 			width = 540,
-			value_format = function(value) return tostring(math.floor(value + 0.5)) end,
+			value_format = property.value_format or function(value) return tostring(math.floor(value + 0.5)) end,
 			on_change = function(value)
 				property.set(value)
 				local config = self.gameplay_interactor.playfield.mania_skin_config

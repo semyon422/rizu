@@ -273,7 +273,8 @@ function SkinRegistry:loadOsuSkin(skin_directory, file_name, files)
 		skin_ini = skin_ini,
 		load = function(context)
 			local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
-			return OsuManiaRenderer(context.game, context.input_mode, context.directory_path)
+			return OsuManiaRenderer(context.game, context.input_mode, context.directory_path,
+				context.config, context.config_path)
 		end,
 	})
 end
@@ -433,6 +434,9 @@ end
 ---@param skin rizu.skin.SkinInfo
 ---@return string
 function SkinRegistry:getSkinConfigPath(skin)
+	if skin.format == "osu" then
+		return path_util.join(skin.path, "skin-config.json")
+	end
 	local base_prefix = self.base_path .. "/"
 	if skin.path:sub(1, #base_prefix) == base_prefix then
 		local relative_path = skin.path:sub(#base_prefix + 1)
@@ -453,8 +457,18 @@ function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 	assert(skin and type(skin.load) == "function", "skin with a load function is required")
 	assert(type(input_mode) == "string" and input_mode ~= "", "input mode is required")
 	if type(skin) == "table" and skin.format == "osu" then
-		return skin.load(SkinLoadContext({game = game, input_mode = input_mode, screen = screen,
-			skin_path = skin.path, directory_path = skin.directory_path})), nil, nil
+		local config = SkinConfig()
+		local config_path = self:getSkinConfigPath(skin)
+		if self.fs:getInfo(config_path) then
+			local loaded, load_error = config:load(self.fs, config_path)
+			if not loaded then
+				print(("could not load skin config %s: %s"):format(config_path, tostring(load_error)))
+			end
+		end
+		local renderer = skin.load(SkinLoadContext({game = game, input_mode = input_mode, screen = screen,
+			skin_path = skin.path, directory_path = skin.directory_path, config = config,
+			config_path = config_path}))
+		return renderer, config, config_path
 	end
 	local config = SkinConfig()
 	local config_path = self:getSkinConfigPath(skin)
