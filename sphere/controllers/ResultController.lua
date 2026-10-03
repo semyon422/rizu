@@ -2,6 +2,7 @@ local class = require("class")
 local simplify_notechart = require("chart.transform.simplify_notechart")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local ReplayLoader = require("sea.replays.ReplayLoader")
+local ReplayBase = require("sea.replays.ReplayBase")
 local RhythmEngineLoader = require("rizu.gameplay.RhythmEngineLoader")
 local Settings = require("rizu.config.Settings")
 
@@ -77,8 +78,10 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 		return
 	end
 
-	local replayBase = game.replayBase
-	replayBase:importReplayBase(replay) -- for UI timings selector
+	-- A score's replay base is only for this result calculation. The shared
+	-- base is the user's current play configuration and must not be replaced.
+	local replayBase = ReplayBase()
+	replayBase:importReplayBase(replay)
 
 	if mode == "retry" then
 		game.gameplayInteractor.replaying = false

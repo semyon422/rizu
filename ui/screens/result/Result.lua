@@ -193,7 +193,9 @@ function Result:updateInfo()
 	local score_system_formatter = ScoreSystemFormatter(judge_source)
 	self.stats:bind(accuracy_source, judge_source, score_system_formatter)
 
-	self.chartview_formatter:setTimeRate(game.replayBase.rate)
+	self.chartview_formatter:setTimeRate(
+		(game.computeContext.chartplay and game.computeContext.chartplay.rate) or game.replayBase.rate
+	)
 	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
 
 	self.meta:bind(
