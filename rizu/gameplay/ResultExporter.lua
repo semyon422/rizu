@@ -99,8 +99,9 @@ end
 ---@param chartview rizu.library.LocatedChartview?
 ---@param replay_base sea.ReplayBase?
 ---@param score_engine rizu.ScoreEngine?
+---@param offset table?
 ---@return string
-function ResultExporter.serialize(chartplay, chartview, replay_base, score_engine)
+function ResultExporter.serialize(chartplay, chartview, replay_base, score_engine, offset)
 	local payload = json.object({
 		version = 1,
 		score_id = serializeValue(chartplay and chartplay.id, {}),
@@ -108,6 +109,7 @@ function ResultExporter.serialize(chartplay, chartview, replay_base, score_engin
 		artist = serializeValue(chartview and chartview.artist, {}),
 		diff_name = serializeValue(chartview and chartview.name, {}),
 		replay_base = serializeReplayBase(replay_base),
+		offset = serializeValue(offset or {}, {}),
 		hits = serializeValue(score_engine and score_engine.events or {}, {}),
 		sequence = serializeValue(score_engine and score_engine.sequence or {}, {}),
 	})
@@ -120,15 +122,17 @@ end
 ---@param chartview rizu.library.LocatedChartview?
 ---@param replay_base sea.ReplayBase?
 ---@param score_engine rizu.ScoreEngine?
+---@param offset {input: number, visual: number}?
 ---@return boolean
 ---@return string?
-function ResultExporter.export(fs, path, chartplay, chartview, replay_base, score_engine)
+function ResultExporter.export(fs, path, chartplay, chartview, replay_base, score_engine, offset)
 	local ok, data = pcall(
 		ResultExporter.serialize,
 		chartplay,
 		chartview,
 		replay_base,
-		score_engine
+		score_engine,
+		offset
 	)
 	if not ok then
 		return false, data

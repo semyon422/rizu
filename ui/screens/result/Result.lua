@@ -240,13 +240,19 @@ function Result:exportResult()
 		index = index + 1
 	end
 
+	local offset = {
+		input = game.rhythm_engine and game.rhythm_engine.logic_offset or 0,
+		visual = game.rhythm_engine and game.rhythm_engine.visual_offset or 0,
+	}
+
 	local ok, err = ResultExporter.export(
 		game.fs,
 		path,
 		chartplay,
 		game.chartSelector.chartview,
 		replay_base,
-		game.rhythm_engine and game.rhythm_engine.score_engine
+		game.rhythm_engine and game.rhythm_engine.score_engine,
+		offset
 	)
 	if not ok then
 		print("failed to export result: " .. tostring(err))
