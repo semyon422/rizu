@@ -6,9 +6,7 @@ local test = {}
 function test.english_translation_and_key_fallback(t)
 	local localization = Localization("en")
 	t:eq(localization:get("main_menu.play"), "Play")
-	t:has_error(function()
-		localization:get("missing.key")
-	end)
+	t:eq(localization:get("missing.key"), "missing.key")
 end
 
 ---@param t testing.T

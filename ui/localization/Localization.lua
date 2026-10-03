@@ -52,8 +52,7 @@ function Localization:get(key, parameters)
 	end
 
 	local catalog = self.catalogs[self.locale] or {}
-	local translated = assert(catalog[key] or self.catalogs.en[key],
-		("missing localization key %q"):format(key))
+	local translated = catalog[key] or self.catalogs.en[key] or key
 	local values = parameters or {}
 	return (translated:gsub(interpolation_pattern, function(name)
 		local value = values[name]
