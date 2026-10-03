@@ -12,6 +12,8 @@ local ERROR_VIEW_HEIGHT = ERROR_BACKGROUND_HEIGHT + 8
 local ERROR_POINT_FADE = 10
 local MAX_ERROR_POINTS = 64
 local DEFAULT_ERROR_WINDOWS = {0.016, 0.064, 0.097, 0.127, 0.151, 0.188}
+local SPRITE_SCALE = 480 / 768
+local ERROR_ARROW_SCALE = 0.6 * SPRITE_SCALE
 local COLORS = {
 	{0.20, 0.74, 0.91}, {0.34, 0.89, 0.08}, {0.85, 0.68, 0.27},
 	{0.12, 0.41, 0.78}, {0.43, 0.47, 0.53}, {1, 0.035, 0.035},
@@ -44,6 +46,8 @@ local ERROR_COLORS = {
 ---@field point_index integer
 ---@field error_points rizu.skin.osu.mania.OsuManiaHitMeterView.ErrorPoint[]
 ---@field meter_alpha number
+---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
+---@field arrow_image love.Image?
 local OsuManiaHitMeterView = View + {}
 ---@return number[]
 local function get_error_windows(source)
@@ -98,7 +102,10 @@ local function get_grade(judge, source)
 	if type(judge) == "number" and judge >= 1 and judge <= 6 then return judge end
 end
 
-function OsuManiaHitMeterView:new()
+---@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
+function OsuManiaHitMeterView:new(graphics)
+	self.graphics = graphics
+	self.arrow_image = nil
 	self.sequence_index = 0
 	self.score_engine = nil
 	self.last_hit_time = -math.huge
@@ -147,6 +154,10 @@ end
 ---@param game sphere.GameController
 function OsuManiaHitMeterView:load(game)
 	View.load(self, game)
+	local graphics = self.graphics
+	local frames = graphics and graphics.getFallbackFrames
+		and graphics:getFallbackFrames("editor-rate-arrow") or nil
+	self.arrow_image = frames and frames[1] or nil
 	self.sequence_index = 0
 	self.score_engine = nil
 	self.error_range = nil
@@ -273,6 +284,10 @@ end
 
 function OsuManiaHitMeterView:drawErrorMeter()
 	if self.meter_alpha <= 0 then return end
+	if not self.arrow_image and self.graphics then
+		local frames = self.graphics:getFallbackFrames("editor-rate-arrow")
+		self.arrow_image = frames[1]
+	end
 	local alpha = self.meter_alpha
 	local center = self.width / 2
 	local bar_center = self.height - 2
@@ -307,10 +322,13 @@ function OsuManiaHitMeterView:drawErrorMeter()
 	lg.rectangle("fill", center - 0.75, background_top, 1.5, ERROR_BACKGROUND_HEIGHT)
 	lg.setBlendMode(previous_mode, previous_alpha)
 
-	local arrow_top = background_top - 6
-	lg.setColor(1, 1, 1, alpha)
-	lg.polygon("fill", self.floating_position, arrow_top + 8,
-		self.floating_position - 5, arrow_top, self.floating_position + 5, arrow_top)
+	local arrow_y = bar_center - 3
+	if self.arrow_image then
+		local width, height = self.arrow_image:getDimensions()
+		lg.setColor(1, 1, 1, alpha)
+		lg.draw(self.arrow_image, self.floating_position, arrow_y,
+			0, ERROR_ARROW_SCALE, ERROR_ARROW_SCALE, width / 2, height)
+	end
 end
 
 function OsuManiaHitMeterView:draw()

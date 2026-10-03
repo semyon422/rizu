@@ -55,6 +55,8 @@ local EMPTY_FRAMES = {}
 ---@field hit_position number
 ---@field special_style integer
 ---@field note_height_scale number
+---@field note_body_styles string[]
+---@field default_note_body_style string
 ---@field upside_down boolean
 ---@field keys_under_notes boolean
 ---@field stage_under_keys boolean Draw stage decorations below keys when true.
@@ -120,8 +122,8 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.accuracy_view = OsuManiaAccuracyView(self.skin_graphics)
 	self.combo_view = OsuManiaComboView(self.skin_graphics)
 	self.judge_view = OsuManiaJudgeView(self.skin_graphics)
-	self.hit_meter_view = OsuManiaHitMeterView()
-	self.progress_view = OsuManiaProgressView()
+	self.hit_meter_view = OsuManiaHitMeterView(self.skin_graphics)
+	self.progress_view = OsuManiaProgressView(self.skin_graphics)
 	self.foreground_hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
 	self.conveyor_hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
 	self.conveyor_hud_transform = love.math.newTransform()
@@ -148,6 +150,8 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.hit_position = DEFAULT_HIT_POSITION
 	self.special_style = 0
 	self.note_height_scale = 0
+	self.note_body_styles = {}
+	self.default_note_body_style = "stretch"
 	self.upside_down = false
 	self.keys_under_notes = false
 	self.stage_under_keys = true
@@ -355,6 +359,22 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.hit_position = math.max(240, math.min(480, get_number(section, "HitPosition", DEFAULT_HIT_POSITION)))
 	self.special_style = math.max(0, math.min(2, math.floor(get_number(section, "SpecialStyle", 0))))
 	self.note_height_scale = math.max(0, get_number(section, "WidthForNoteHeightScale", 0))
+	local general = skin and skin.skin_ini and skin.skin_ini.General
+	local version_value = general and get_section_value(general, "Version")
+	local version = tonumber(version_value)
+	if version_value and version_value:lower() == "latest" then version = 2.6 end
+	self.default_note_body_style = version and version >= 2.5 and "repeat_bottom" or "stretch"
+	self.note_body_styles = {}
+	for column = 1, columns do
+		local style = get_section_value(section, "NoteBodyStyle" .. (column - 1))
+			or get_section_value(section, "NoteBodyStyle")
+		local style_number = tonumber(style)
+		self.note_body_styles[column] = style_number == 2 and "repeat_top"
+			or style_number == 3 and "repeat_bottom"
+			or style_number == 4 and "repeat_top_and_bottom"
+			or style_number == 0 and "stretch"
+			or self.default_note_body_style
+	end
 	self.upside_down = get_boolean(section, "UpsideDown", false)
 	self.keys_under_notes = get_boolean(section, "KeysUnderNotes", false)
 	self.stage_under_keys = get_boolean(section, "StageUnderKeys", true)
@@ -725,6 +745,8 @@ function OsuManiaRenderer:getSkinAssets()
 		local fallback = asset.name and asset.fallback or nil
 		add(name, fallback, true)
 	end
+	add("editor-rate-arrow")
+	add("circularmetre")
 	return assets
 end
 

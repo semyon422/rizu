@@ -3,6 +3,7 @@ local View = require("rizu.skin.View")
 local lg = love.graphics
 local PROGRESS_VIEW_SIZE = 24
 local PROGRESS_RADIUS = 10
+local SPRITE_SCALE = 480 / 768
 local PROGRESS_POSITION_OFFSET = 24
 local NEGATIVE_PROGRESS_COLOR = {0.78, 1, 0.18, 0.6}
 local POSITIVE_PROGRESS_COLOR = {1, 1, 1, 0.6}
@@ -10,9 +11,14 @@ local POSITIVE_PROGRESS_COLOR = {1, 1, 1, 0.6}
 ---@class rizu.skin.osu.mania.OsuManiaProgressView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.OsuManiaProgressView
 ---@field progress number
+---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
+---@field progress_image love.Image?
 local OsuManiaProgressView = View + {}
 
-function OsuManiaProgressView:new()
+---@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
+function OsuManiaProgressView:new(graphics)
+	self.graphics = graphics
+	self.progress_image = nil
 	self.progress = 0
 	View.new(self, {
 		anchor = "top_right",
@@ -32,6 +38,15 @@ function OsuManiaProgressView:setAccuracyView(accuracy_view)
 	self.y = accuracy_view.y + accuracy_view.height / 2
 end
 
+---@param game sphere.GameController
+function OsuManiaProgressView:load(game)
+	View.load(self, game)
+	local graphics = self.graphics
+	local frames = graphics and graphics.getFallbackFrames
+		and graphics:getFallbackFrames("circularmetre") or nil
+	self.progress_image = frames and frames[1] or nil
+end
+
 ---@param dt number
 ---@param game sphere.GameController
 function OsuManiaProgressView:update(dt, game)
@@ -42,6 +57,10 @@ function OsuManiaProgressView:update(dt, game)
 end
 
 function OsuManiaProgressView:draw()
+	if not self.progress_image and self.graphics then
+		local frames = self.graphics:getFallbackFrames("circularmetre")
+		self.progress_image = frames[1]
+	end
 	local cx, cy, radius = self.width / 2, self.height / 2, PROGRESS_RADIUS
 	local previous_mode, previous_alpha = lg.getBlendMode()
 	lg.setBlendMode("add", "alphamultiply")
@@ -53,6 +72,11 @@ function OsuManiaProgressView:draw()
 		local angle = math.min(math.abs(self.progress), 1) * math.pi * 2
 		local segments = math.max(2, math.ceil(angle * 10))
 		lg.arc("fill", "pie", cx, cy, radius, -math.pi / 2, -math.pi / 2 + angle, segments)
+	end
+	if self.progress_image then
+		local width, height = self.progress_image:getDimensions()
+		lg.setColor(1, 1, 1, 1)
+		lg.draw(self.progress_image, cx, cy, 0, SPRITE_SCALE, SPRITE_SCALE, width / 2, height / 2)
 	end
 	lg.setBlendMode(previous_mode, previous_alpha)
 end

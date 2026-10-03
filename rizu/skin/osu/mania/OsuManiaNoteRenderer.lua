@@ -14,6 +14,44 @@ function OsuManiaNoteRenderer:update(dt) end
 ---@param width number
 ---@param height number
 ---@param flip boolean
+---@param style "repeat_top"|"repeat_bottom"|"repeat_top_and_bottom"
+local function draw_repeated_image_rect(image, x, y, width, height, flip, style)
+	local image_width, image_height = image:getDimensions()
+	if image_width <= 0 or image_height <= 0 or width <= 0 or height <= 0 then return end
+
+	local scale = width / image_width
+	local source_height = height / scale
+	local source_y = style == "repeat_top" and image_height - source_height
+		or style == "repeat_top_and_bottom" and (image_height - source_height) / 2
+		or 0
+	local remaining = source_height
+	local destination_y = flip and height or 0
+	local source_position = source_y
+	lg.setColor(1, 1, 1, 1)
+	while remaining > 0 do
+		local wrapped_y = source_position % image_height
+		local segment_height = math.min(remaining, image_height - wrapped_y)
+		local destination_height = segment_height * scale
+		local quad = love.graphics.newQuad(0, wrapped_y, image_width, segment_height,
+			image_width, image_height)
+		if flip then
+			destination_y = destination_y - destination_height
+			lg.draw(image, quad, x, y + destination_y + destination_height, 0, scale, -scale)
+		else
+			lg.draw(image, quad, x, y + destination_y, 0, scale, scale)
+			destination_y = destination_y + destination_height
+		end
+		source_position = source_position + segment_height
+		remaining = remaining - segment_height
+	end
+end
+
+---@param image love.Image
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@param flip boolean
 local function draw_image_rect(image, x, y, width, height, flip)
 	local image_width, image_height = image:getDimensions()
 	if image_width <= 0 or image_height <= 0 then return end
@@ -82,8 +120,14 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 					local flip_key = "NoteFlipWhenUpsideDown" .. (column - 1) .. "L"
 					local flip_body = renderer.upside_down
 						and renderer:getBoolean(flip_key, renderer.note_flip)
-					draw_image_rect(body, lane_xs[column] - note_width / 2, body_top, note_width,
-						body_bottom - body_top, flip_body)
+					local body_style = renderer.note_body_styles[column] or renderer.default_note_body_style
+					if body_style == "stretch" then
+						draw_image_rect(body, lane_xs[column] - note_width / 2, body_top, note_width,
+							body_bottom - body_top, flip_body)
+					else
+						draw_repeated_image_rect(body, lane_xs[column] - note_width / 2, body_top,
+							note_width, body_bottom - body_top, flip_body, body_style)
+					end
 				else
 					local color = renderer:getSkinColor("ColourHold", {1, 0.78, 0.2, 1})
 					lg.setColor(color[1], color[2], color[3], color[4] * 0.8)

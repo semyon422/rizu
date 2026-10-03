@@ -37,6 +37,7 @@ function test.finds_animated_long_note_frames_starting_at_zero(t)
 		{index = 2, path = "skins/example/mania-note1L-2.png", high_density = false},
 	})
 end
+
 function test.preloads_skin_png_assets_once_during_load(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("skins/example/notes")
@@ -152,6 +153,60 @@ function test.loads_missing_assets_from_zip_without_overriding_skin_assets(t)
 	love.filesystem.read = previous_read
 	love.graphics.newImage = previous_new_image
 	love.filesystem.newFileData = previous_new_file_data
+	graphics:unload()
+	if not ok then error(err) end
+end
+
+function test.loads_oversized_skin_hold_body_instead_of_falling_back(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("skins/example")
+	fs:write("skins/example/mania-note1L.png", "body")
+	local graphics = OsuManiaSkinGraphics(fs, {
+		path = "skins/example",
+		files = {"mania-note1L.png"},
+	})
+	local image = {
+		getDimensions = function() return 128, 16384 end,
+		release = function() end,
+	}
+	local decoded = {
+		getDimensions = function() return 128, 40000 end,
+		getWidth = function() return 128 end,
+		getHeight = function() return 40000 end,
+		release = function() end,
+	}
+	local limited = {
+		getDimensions = function() return 128, 16384 end,
+		getWidth = function() return 128 end,
+		getHeight = function() return 16384 end,
+		paste = function() end,
+		release = function() end,
+	}
+	local previous = {
+		newFileData = love.filesystem.newFileData,
+		newImage = love.graphics.newImage,
+		newImageData = love.image.newImageData,
+		getSystemLimits = love.graphics.getSystemLimits,
+	}
+	love.filesystem.newFileData = function() return {kind = "file"} end
+	love.graphics.newImage = function(data)
+		if data.kind == "file" then error("texture is too large") end
+		return image
+	end
+	love.image.newImageData = function(width_or_data)
+		if type(width_or_data) == "number" then return limited end
+		return decoded
+	end
+	love.graphics.getSystemLimits = function() return {texturesize = 16384} end
+
+	local ok, err = xpcall(function()
+		local frames = graphics:getAnimationFrames("mania-note1L")
+		t:eq(frames[1], image)
+	end, debug.traceback)
+	for name, value in pairs(previous) do
+		if name == "newFileData" then love.filesystem[name] = value
+		else love.graphics[name] = value end
+	end
 	graphics:unload()
 	if not ok then error(err) end
 end

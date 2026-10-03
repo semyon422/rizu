@@ -5,6 +5,85 @@ local ZipFilesystem = require("fs.ZipFilesystem")
 ---@type {[string]: fs.ZipFilesystem}
 local archive_cache = {}
 
+---@param resource any
+local function release_resource(resource)
+	if resource and resource.release then
+		pcall(resource.release, resource)
+	end
+end
+
+---@return number?
+local function get_texture_size()
+	local ok_limits, limits = pcall(love.graphics.getSystemLimits)
+	local texture_size = ok_limits and limits and tonumber(limits.texturesize)
+	if texture_size and texture_size > 0 then return texture_size end
+end
+
+---@param image_data love.ImageData
+---@return love.ImageData
+local function limit_image_data(image_data)
+	local texture_size = get_texture_size()
+	if not texture_size then return image_data end
+
+	local width, height = image_data:getDimensions()
+	if width <= texture_size and height <= texture_size then return image_data end
+
+	local limited = love.image.newImageData(math.min(width, texture_size), math.min(height, texture_size))
+	limited:paste(image_data, 0, 0, 0, 0, limited:getWidth(), limited:getHeight())
+	return limited
+end
+
+---@param image any
+---@return number?, number?
+local function get_image_dimensions(image)
+	if image.getDimensions then
+		local ok, width, height = pcall(image.getDimensions, image)
+		if ok then return width, height end
+	end
+	if image.getWidth and image.getHeight then
+		local ok_width, width = pcall(image.getWidth, image)
+		local ok_height, height = pcall(image.getHeight, image)
+		if ok_width and ok_height then return width, height end
+	end
+end
+
+---@param source any
+---@return love.Image?
+local function create_image(source)
+	---@param image any
+	---@return boolean
+	local function is_valid(image)
+		if not image then return false end
+		local width, height = get_image_dimensions(image)
+		if width and height and width > 0 and height > 0 then return true end
+		release_resource(image)
+		return false
+	end
+
+	-- osu! creates the GPU texture with each dimension capped at the maximum
+	-- supported texture size, copying the bitmap from its top-left corner.
+	-- Decode before uploading so a driver that accepts the original oversized
+	-- image still produces the same texture as osu!.
+	local ok_data, image_data = pcall(love.image.newImageData, source)
+	if ok_data then
+		local ok_limited, limited = pcall(limit_image_data, image_data)
+		if ok_limited then
+			local ok_limited_image, limited_image = pcall(love.graphics.newImage, limited)
+			release_resource(limited)
+			if limited ~= image_data then release_resource(image_data) end
+			if ok_limited_image and is_valid(limited_image) then return limited_image end
+		else
+			release_resource(image_data)
+		end
+	end
+
+	-- Keep the direct path as a fallback for decoders that only LÖVE can
+	-- consume directly (and for non-image files presented by fake filesystems).
+	local ok_image, image = pcall(love.graphics.newImage, source)
+	if ok_image and is_valid(image) then return image end
+	return nil
+end
+
 ---@class rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@operator call: rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@field fs fs.IFilesystem?
@@ -176,15 +255,14 @@ function OsuManiaSkinGraphics:loadImage(path)
 	local cached = self.images[path]
 	if cached ~= nil then return cached or nil end
 	if self.fallback_directory and path:sub(1, #self.fallback_directory + 1) == self.fallback_directory .. "/" then
-		local ok_image, image = pcall(love.graphics.newImage, path)
-		if not ok_image or image:getWidth() <= 0 or image:getHeight() <= 0 then
-			if ok_image then image:release() end
-			self.images[path] = false
-			return nil
+		local image = create_image(path)
+		if image then
+			self.images[path] = image
+			self.image_density[image] = path:lower():match("@2x%.png$") and 2 or 1
+			return image
 		end
-		self.images[path] = image
-		self.image_density[image] = path:lower():match("@2x%.png$") and 2 or 1
-		return image
+		self.images[path] = false
+		return nil
 	end
 	local fs = self.fs
 	local read_path = path
@@ -205,9 +283,9 @@ function OsuManiaSkinGraphics:loadImage(path)
 		self.images[path] = false
 		return nil
 	end
-	local ok_image, image = pcall(love.graphics.newImage, file_data)
-	if not ok_image or image:getWidth() <= 0 or image:getHeight() <= 0 then
-		if ok_image then image:release() end
+	local image = create_image(file_data)
+	release_resource(file_data)
+	if not image then
 		self.images[path] = false
 		return nil
 	end
@@ -282,6 +360,21 @@ function OsuManiaSkinGraphics:getAnimationFrames(image_name, fallback_name)
 		if #frames > 0 then break end
 	end
 	self.animation_cache[key] = frames
+	return frames
+end
+
+---@param image_name string
+---@return love.Image[]
+function OsuManiaSkinGraphics:getFallbackFrames(image_name)
+	local key = "\0fallback\0" .. tostring(image_name or "")
+	local cached = self.frame_cache[key]
+	if cached then return cached end
+	---@type love.Image[]
+	local frames = {}
+	local path = self:findAsset(image_name, self.fallback_file_map)
+	local image = path and self:loadImage(path) or nil
+	if image then frames[1] = image end
+	self.frame_cache[key] = frames
 	return frames
 end
 
