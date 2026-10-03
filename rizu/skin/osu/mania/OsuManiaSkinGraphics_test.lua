@@ -81,6 +81,50 @@ function test.preloads_skin_png_assets_once_during_load(t)
 end
 
 ---@param t testing.T
+function test.preserves_osu_image_density_when_decoding_through_image_data(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("skins/example")
+	fs:write("skins/example/mania-key1@2x.png", "key")
+	local graphics = OsuManiaSkinGraphics(fs, {
+		path = "skins/example",
+		files = {"mania-key1@2x.png"},
+	})
+	local previous = {
+		newFileData = love.filesystem.newFileData,
+		newImage = love.graphics.newImage,
+		newImageData = love.image.newImageData,
+		getSystemLimits = love.graphics.getSystemLimits,
+	}
+	local image_data = {
+		getDimensions = function() return 16, 16 end,
+		release = function() end,
+	}
+	local image = {
+		getDimensions = function() return 8, 8 end,
+		release = function() end,
+	}
+	local image_settings
+	love.filesystem.newFileData = function(content) return content end
+	love.image.newImageData = function() return image_data end
+	love.graphics.getSystemLimits = function() return {texturesize = 16384} end
+	love.graphics.newImage = function(_, settings)
+		image_settings = settings
+		return image
+	end
+
+	local ok, err = xpcall(function()
+		local loaded = graphics:getFrames("mania-key1")[1]
+		t:eq(loaded, image)
+		t:eq(image_settings.dpiscale, 2)
+	end, debug.traceback)
+	for name, value in pairs(previous) do
+		if name == "newFileData" then love.filesystem[name] = value
+		elseif name == "newImageData" then love.image[name] = value
+		else love.graphics[name] = value end
+	end
+	graphics:unload()
+	if not ok then error(err) end
+end
 function test.loads_missing_assets_from_zip_without_overriding_skin_assets(t)
 	local ZipFilesystem = require("fs.ZipFilesystem")
 	local archive = ZipFilesystem()

@@ -48,8 +48,18 @@ local function get_image_dimensions(image)
 end
 
 ---@param source any
+---@param density number
+---@return boolean, any
+local function upload_image(source, density)
+	local ok, image = pcall(love.graphics.newImage, source, {dpiscale = density})
+	if ok then return true, image end
+	return pcall(love.graphics.newImage, source)
+end
+
+---@param source any
+---@param density number
 ---@return love.Image?
-local function create_image(source)
+local function create_image(source, density)
 	---@param image any
 	---@return boolean
 	local function is_valid(image)
@@ -60,15 +70,20 @@ local function create_image(source)
 		return false
 	end
 
+	-- Prefer LÖVE's direct loader. Besides being cheaper, it preserves the
+	-- @2x DPI metadata carried by FileData and filesystem paths.
+	local ok_image, image = upload_image(source, density)
+	if ok_image and is_valid(image) then return image end
+
 	-- osu! creates the GPU texture with each dimension capped at the maximum
 	-- supported texture size, copying the bitmap from its top-left corner.
-	-- Decode before uploading so a driver that accepts the original oversized
+	-- Decode before uploading so a driver that rejects the original oversized
 	-- image still produces the same texture as osu!.
 	local ok_data, image_data = pcall(love.image.newImageData, source)
 	if ok_data then
 		local ok_limited, limited = pcall(limit_image_data, image_data)
 		if ok_limited then
-			local ok_limited_image, limited_image = pcall(love.graphics.newImage, limited)
+			local ok_limited_image, limited_image = upload_image(limited, density)
 			release_resource(limited)
 			if limited ~= image_data then release_resource(image_data) end
 			if ok_limited_image and is_valid(limited_image) then return limited_image end
@@ -77,11 +92,13 @@ local function create_image(source)
 		end
 	end
 
-	-- Keep the direct path as a fallback for decoders that only LÖVE can
-	-- consume directly (and for non-image files presented by fake filesystems).
-	local ok_image, image = pcall(love.graphics.newImage, source)
-	if ok_image and is_valid(image) then return image end
 	return nil
+end
+
+---@param path string
+---@return number
+local function get_image_density(path)
+	return path:lower():match("@2x%.png$") and 2 or 1
 end
 
 ---@class rizu.skin.osu.mania.OsuManiaSkinGraphics
@@ -255,10 +272,11 @@ function OsuManiaSkinGraphics:loadImage(path)
 	local cached = self.images[path]
 	if cached ~= nil then return cached or nil end
 	if self.fallback_directory and path:sub(1, #self.fallback_directory + 1) == self.fallback_directory .. "/" then
-		local image = create_image(path)
+		local density = get_image_density(path)
+		local image = create_image(path, density)
 		if image then
 			self.images[path] = image
-			self.image_density[image] = path:lower():match("@2x%.png$") and 2 or 1
+			self.image_density[image] = density
 			return image
 		end
 		self.images[path] = false
@@ -283,14 +301,15 @@ function OsuManiaSkinGraphics:loadImage(path)
 		self.images[path] = false
 		return nil
 	end
-	local image = create_image(file_data)
+	local density = get_image_density(path)
+	local image = create_image(file_data, density)
 	release_resource(file_data)
 	if not image then
 		self.images[path] = false
 		return nil
 	end
 	self.images[path] = image
-	self.image_density[image] = path:lower():match("@2x%.png$") and 2 or 1
+	self.image_density[image] = density
 	return image
 end
 
