@@ -978,7 +978,6 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	lg.scale(scale)
 	local batch = self.skin_graphics.batch
 	if batch then batch:begin() end
-	self.field_renderer:drawBackground(self, field_left, field_width)
 	for column = 1, math.min(self.columns, #preview.columns) do
 		local source_column = column
 		if player.column_map and player.column_map[column] then source_column = player.column_map[column] end
@@ -990,7 +989,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 		if display_column <= self.columns then
 			local lane_x = lane_xs[display_column]
 			local lane_width = lane_widths[display_column]
-			self.field_renderer:drawLane(self, display_column, lane_width, lane_x)
+			self.field_renderer:drawLane(self, display_column, lane_width, lane_x, 0.4)
 			local first, last = preview:getVisibleRange(source_column, lower, upper)
 			for index = first, last do
 				local note = notes[index]
@@ -1016,13 +1015,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 			end
 		end
 	end
-	if self.stage_under_keys then
-		self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
-	end
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
-	if not self.stage_under_keys then
-		self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
-	end
 	if batch then batch:finish() end
 	lg.pop()
 end

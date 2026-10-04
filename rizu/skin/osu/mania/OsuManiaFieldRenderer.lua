@@ -20,9 +20,10 @@ end
 ---@param column integer
 ---@param lane_width number
 ---@param lane_x number
-function OsuManiaFieldRenderer:drawLane(renderer, column, lane_width, lane_x)
+---@param alpha number?
+function OsuManiaFieldRenderer:drawLane(renderer, column, lane_width, lane_x, alpha)
 	local color = renderer:getSkinColor("Colour" .. column, {0, 0, 0, 1})
-	lg.setColor(color[1], color[2], color[3], color[4])
+	lg.setColor(color[1], color[2], color[3], alpha or color[4])
 	OsuManiaImage.rectangle(renderer.skin_graphics, lane_x - lane_width / 2, 0, lane_width, 480)
 end
 
