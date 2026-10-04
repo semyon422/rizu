@@ -135,7 +135,7 @@ function OsuManiaBitmapFont:measure(value)
 		end
 	end
 	self.measured_value = value
-	self.measured_width = math.max(0, width - count * self.overlap)
+	self.measured_width = math.max(0, width - math.max(0, count - 1) * self.overlap)
 	self.measured_height = height
 	return self.measured_width, self.measured_height
 end
@@ -176,7 +176,7 @@ function OsuManiaBitmapFont:draw(value, scale, y, right_edge, color)
 		local glyph = glyphs[index]
 		glyph.image, glyph.width, glyph.height, glyph.advance, glyph.digit = nil, nil, nil, nil, nil
 	end
-	local draw_x = right_edge - math.max(0, total_width - glyph_count * self.overlap) * scale
+	local draw_x = right_edge - math.max(0, total_width - math.max(0, glyph_count - 1) * self.overlap) * scale
 	for index = 1, glyph_count do
 		local glyph = glyphs[index]
 		local offset_x = glyph.digit and math.max(0, (slot_width - glyph.width) / 2) or 0

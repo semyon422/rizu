@@ -64,6 +64,23 @@ function test.bitmap_fonts_keep_independent_pools_and_refresh_same_measurement_a
 	t:eq(width_after, 60)
 end
 
+function test.bitmap_font_applies_overlap_between_adjacent_glyphs_only(t)
+	local graphics = make_graphics()
+	local image = {getDimensions = function() return 350, 350 end}
+	graphics.getFrames = function() return {image} end
+	local font = OsuManiaBitmapFont(graphics, "score", 330)
+	t:eq(font:measure("00"), 370)
+	local previous_draw = love.graphics.draw
+	local draws = {}
+	love.graphics.draw = function(_, x) draws[#draws + 1] = x end
+	local ok, err = xpcall(function() font:draw("00", 1, 0, 370) end, debug.traceback)
+	love.graphics.draw = previous_draw
+	if not ok then error(err) end
+	t:eq(#draws, 2)
+	t:eq(draws[1], 0)
+	t:eq(draws[2], 20)
+end
+
 function test.combo_parser_preserves_numeric_channels_and_refreshes_layout(t)
 	local graphics = make_graphics()
 	local initial_generation = graphics.generation
@@ -199,7 +216,7 @@ function test.uses_skin_overlap_and_love_image_dpi_scaling_once(t)
 	if not ok then error(err) end
 	t:eq(#draws, 8)
 	t:aeq(draws[1].sx, 0.6, 1e-6)
-	t:aeq(draws[1].x, view.width - (8 * 20 - 8 * 8) * 0.6, 1e-6)
+	t:aeq(draws[1].x, view.width - (8 * 20 - 7 * 8) * 0.6, 1e-6)
 	t:aeq(draws[2].x - draws[1].x, 7.2, 1e-6)
 end
 
