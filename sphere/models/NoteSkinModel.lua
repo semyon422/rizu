@@ -1,5 +1,5 @@
+local Settings = require("rizu.config.Settings")
 local class = require("class")
-local path_util = require("path_util")
 local BaseNoteSkin = require("sphere.models.NoteSkinModel.BaseNoteSkin")
 local LuaSkinInfo = require("sphere.models.NoteSkinModel.LuaSkinInfo")
 local OsuSkinInfo = require("sphere.models.NoteSkinModel.OsuSkinInfo")
@@ -11,10 +11,10 @@ local path_util = require("path_util")
 ---@operator call: sphere.NoteSkinModel
 local NoteSkinModel = class()
 
----@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param packageManager rizu.PackageManager
-function NoteSkinModel:new(configModel, packageManager)
-	self.configModel = configModel
+function NoteSkinModel:new(settings, packageManager)
+	self.settings = settings
 	self.packageManager = packageManager
 	self.items = {}
 end
@@ -23,7 +23,7 @@ NoteSkinModel.path = "userdata/skins"
 
 function NoteSkinModel:load()
 	self.inputMode = nil
-	self.config = self.configModel.configs.settings
+	self.skin_key = Settings.keys.gameplay.skins
 
 	local tree = {}
 	self:lookupTree(self.path, tree)
@@ -166,15 +166,16 @@ end
 ---@param inputMode string
 ---@param path string
 function NoteSkinModel:setDefaultNoteSkin(inputMode, path)
-	self.config.gameplay["noteskin" .. inputMode] = path
+	local skins = self.settings:getStringMap(self.skin_key)
+	skins["mania/" .. inputMode] = path
+	self.settings:setStringMap(self.skin_key, skins)
 end
 
 ---@param inputMode string
 ---@return sphere.NoteSkin
 function NoteSkinModel:getNoteSkin(inputMode)
 	local skinInfos = self:getSkinInfos(inputMode)
-
-	local sel_path = self.config.gameplay["noteskin" .. inputMode]
+	local sel_path = self.settings:getStringMap(self.skin_key)["mania/" .. inputMode]
 	if sel_path then
 		for _, skinInfo in ipairs(skinInfos) do
 			if skinInfo:getPath() == sel_path then
@@ -198,8 +199,7 @@ end
 ---@return sphere.SkinInfo
 function NoteSkinModel:getSkinInfo(inputMode)
 	local skinInfos = self:getSkinInfos(inputMode)
-
-	local sel_path = self.config.gameplay["noteskin" .. inputMode]
+	local sel_path = self.settings:getStringMap(self.skin_key)["mania/" .. inputMode]
 	if sel_path then
 		for _, skinInfo in ipairs(skinInfos) do
 			if skinInfo:getPath() == sel_path then

@@ -25,8 +25,7 @@ function AutoplayPlayer:update(engine, next_time)
 
 	local logic_engine = engine.logic_engine
 	local input_map = self.input_map
-	local offset = engine.logic_offset
-	local target_time = next_time - offset
+	local target_time = next_time
 	local old_time = engine.logic_info.time
 
 	-- Detect seek or rewind
@@ -63,7 +62,7 @@ function AutoplayPlayer:update(engine, next_time)
 		local start_time = note.linked_note:getStartTime()
 		if start_time > old_time and start_time <= target_time then
 			local col_index = input_map[note:getColumn()]
-			engine:setTimeNoAudio(start_time + offset)
+			engine:setTimeNoAudio(start_time)
 			engine:receive(VirtualInputEvent(col_index, true, col_index))
 
 			if note.linked_note:isShort() then
@@ -83,7 +82,7 @@ function AutoplayPlayer:update(engine, next_time)
 		if end_time <= target_time then
 			if end_time > old_time then
 				local col_index = input_map[note:getColumn()]
-				engine:setTimeNoAudio(end_time + offset)
+				engine:setTimeNoAudio(end_time)
 				engine:receive(VirtualInputEvent(col_index, false, col_index))
 			end
 			table.remove(self.active_long_notes, i)

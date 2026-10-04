@@ -116,4 +116,105 @@ function test.render_wave_returns_empty_wave_for_empty_mixer(t)
 	t:eq(wave.channels_count, 0)
 end
 
+---@param t testing.T
+function test.audio_offset_compensates_engine_clock_and_runtime_changes(t)
+	local engine = AudioEngine()
+	engine.offset = 0
+	engine.source = {
+		position = 2,
+		getPosition = function(self) return self.position end,
+		setPosition = function(self, position) self.position = position end,
+		setRate = function(self, rate) self.rate = rate end,
+	}
+	engine.output = {
+		getPosition = function(_, position) return position end,
+		clear = function() end,
+		update = function() end,
+	}
+	engine.chart_audio = {getStartTime = function() return 1 end}
+	t:eq(engine:getPosition(), 2)
+	engine:setOffset(0.25)
+	t:eq(engine.source:getPosition(), 2.25)
+	t:eq(engine:getPosition(), 2)
+	t:eq(engine:getStartTime(), 0.75)
+	engine:setOffset(-0.5)
+	t:eq(engine.source:getPosition(), 1.5)
+	t:eq(engine:getPosition(), 2)
+	engine:setRate(1.5)
+	engine:setPosition(2.1)
+	t:aeq(engine.source:getPosition(), 1.6, 1e-9)
+	t:aeq(engine:getPosition(), 2.1, 1e-9)
+	engine:setOffset(0)
+	t:aeq(engine:getPosition(), 2.1, 1e-9)
+end
+
+---@param t testing.T
+function test.audio_offset_preserves_clock_with_latency_and_repeated_changes(t)
+	for _, rate in ipairs({0.5, 1, 1.5, 2}) do
+		local engine = AudioEngine()
+		local seeks = 0
+		local source = {
+			position = 2.04,
+			getPosition = function(self) return self.position end,
+			setPosition = function(self, position)
+				self.position = position
+				seeks = seeks + 1
+			end,
+			setRate = function(self, value) self.rate = value end,
+		}
+		engine.source = source
+		engine.output = {
+			getPosition = function(_, position) return position - 0.04 end,
+			clear = function() error("offset changes must preserve queued output") end,
+			update = function() error("offset changes must not refill queued output") end,
+		}
+		engine:setRate(rate)
+		t:aeq(engine:getPosition(), 2, 1e-9)
+		engine:setOffset(0.25)
+		t:aeq(engine.source:getPosition(), 2.29, 1e-9)
+		t:aeq(engine:getPosition(), 2, 1e-9)
+		engine:setOffset(0.25)
+		t:eq(seeks, 1)
+		t:aeq(engine:getPosition(), 2, 1e-9)
+		engine:setOffset(-0.5)
+		t:aeq(engine.source:getPosition(), 1.54, 1e-9)
+		t:aeq(engine:getPosition(), 2, 1e-9)
+		source.position = source.position + 0.1 * rate
+		t:aeq(engine:getPosition(), 2 + 0.1 * rate, 1e-9)
+		engine:setOffset(0)
+		t:aeq(engine:getPosition(), 2 + 0.1 * rate, 1e-9)
+		t:eq(seeks, 3)
+	end
+end
+
+---@param t testing.T
+function test.audio_offset_reapplies_after_source_reload(t)
+	local engine = AudioEngine()
+	engine:setEnabled(false)
+	local chart = {
+		notes = {
+			iter = function()
+				return ipairs({{
+					type = "tap",
+					visualPoint = {point = {absoluteTime = 1}},
+					data = {sounds = {{"bg", 1}}},
+				}})
+			end,
+		},
+	}
+	local resources = {bg = 100}
+	engine:load(chart, resources, true)
+	engine:setPosition(2)
+	engine:setOffset(0.25)
+	t:aeq(engine.source:getPosition(), 2.25, 1e-9)
+	engine:unload()
+	t:eq(engine.offset, 0)
+	engine:load(chart, resources, true)
+	engine:setPosition(2)
+	engine:setOffset(0.25)
+	t:aeq(engine.source:getPosition(), 2.25, 1e-9)
+	t:aeq(engine:getPosition(), 2, 1e-9)
+	engine:unload()
+end
+
 return test

@@ -150,7 +150,7 @@ Pipeline: `VirtualInputEvent` → `ReplayRecorder` → `ReplayFrames` → `Binar
 4. For Taiko, preserve all four actions, same-time event ordering, and the second hit of a large note, not just the color index.
 5. For SDVX, compare relative increments against accumulated virtual-knob state represented through `pos`. Choose one explicitly documented contract; do not mix relative and absolute values without identifying their semantics.
 6. Define behavior between samples: hold the last value, interpolate, or integrate. Judgement and visual smoothing must not accidentally determine each other's behavior.
-7. Fix the time scale and apply input offset/rate exactly once; check identical timestamps, pauses, and interval-boundary events.
+7. Fix the time scale and apply rate exactly once; check identical timestamps, pauses, and interval-boundary events.
 8. Check the replay envelope: chart and mode identity, mechanic version, judgement parameters, seed, and other simulation inputs. Playback must not depend on current user settings.
 9. Measure sample frequency, long-replay size, and recording memory. Check validator limits, including frame count; do not discard samples in ways that change mechanics.
 10. If recording downsamples movement, compare it against the full manual-input stream: fast reversals, brief exits from the tracking area, and spinner rotation. Force significant state samples at button transitions and other mechanic boundaries, or prove another sufficient method. Identical playback at different FPS does not yet prove that replay matches the original manual attempt.
@@ -161,7 +161,7 @@ If the existing format really is insufficient, first document the specific scena
 ### Replay And Autoplay Acceptance Criteria
 
 - Record a manual attempt, serialize it, load it, and play it back: judgement events, their order, and significant states match; allowed numerical tolerance is explicit.
-- Test one stream at 30/60/144 FPS, with irregular frames and a long frame crossing multiple events. Separately test supported rate changes and nonzero input offset.
+- Test one stream at 30/60/144 FPS, with irregular frames and a long frame crossing multiple events. Separately test supported rate changes.
 - Continuous objects are handled correctly even when multiple checkpoints, a direction change, or a slam occur between two frames.
 - Autoplay generates valid virtual input through the same mechanics rather than directly marking objects as hit. Its stream can serve as a reproducible test.
 - Pausing does not accumulate hidden movement or cause an analog-input jump on resume. Retry creates a new session; backward seeking is not assumed to work without state restoration.
@@ -209,7 +209,8 @@ Geometry proposal: compute a canonical slider path once and reuse it in mechanic
 
 The inspected projects do not prove that our replay or engine is ready: their algorithms and test scenarios must be adapted to our invariants.
 
-## Invariants
+- Gameplay judgement and replay use the engine clock directly. Universal, per-format, and Chart-local audio offsets adjust only source playback, with clock compensation in `AudioEngine`, so they cannot alter judgement or replay timestamps.
+
 
 - One attempt means one fresh session. Retry carries no previous-attempt state.
 - Logical time, not rendered frame count, determines movement and judgement.

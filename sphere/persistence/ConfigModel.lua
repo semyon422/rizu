@@ -14,7 +14,6 @@ local stbl = require("stbl")
 ---@field online sphere.OnlineConfig
 ---@field play sphere.PlayConfig
 ---@field select sphere.SelectConfig
----@field settings sphere.SettingsConfig
 ---@field urls sphere.UrlsConfig
 
 ---@class sphere.ConfigModel

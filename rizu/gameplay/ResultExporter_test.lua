@@ -59,7 +59,7 @@ function test.export_writes_result_file(t)
 	t:eq(err, nil)
 	local result = json.decode(assert(fs:read("userdata/result.json")))
 	t:eq(result.score_id, 9)
-	t:eq(result.offset.input, 0.02)
+	t:eq(result.offset, nil)
 end
 
 ---@diagnostic enable: missing-fields

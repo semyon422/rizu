@@ -72,7 +72,7 @@ function GameplaySession:pause()
 	if self.play_type == "manual" and re.aim_rules and next(re.aim_rules.spinners) then
 		local event = VirtualInputEvent(0, nil, 2)
 		re:receive(event)
-		self.replay_recorder:record(re.logic_info.time, event)
+		self.replay_recorder:record(re:getTime(), event)
 	end
 end
 
@@ -102,15 +102,11 @@ function GameplaySession:receive(event, current_time)
 	local re = self.rhythm_engine
 	re:setGlobalTime(current_time)
 	re:receive(event)
-	if re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules then
-		-- Paused transitions update button state but must never become hits on playback.
-		if self:isPaused() then
-			event = VirtualInputEvent(event.id, event.value, 2, event.pos)
-		end
-		self.replay_recorder:record(re.logic_info.time, event)
-	else
-		self.replay_recorder:record(re:getTime(), event)
+	-- Only experimental replay formats use column 2 for paused state updates.
+	if (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) and self:isPaused() then
+		event = VirtualInputEvent(event.id, event.value, 2, event.pos)
 	end
+	self.replay_recorder:record(re:getTime(), event)
 end
 
 return GameplaySession

@@ -1,5 +1,43 @@
 local class = require("class")
 local s3dc = require("s3dc")
+local Settings = require("rizu.config.Settings")
+
+---@param settings rizu.config.Config
+---@return sphere.views.CameraView.Perspective
+local function getPerspective(settings)
+	local keys = Settings.keys.graphics
+	return {
+		camera = settings:getBoolean(keys.perspective_camera),
+		rx = settings:getBoolean(keys.perspective_rx),
+		ry = settings:getBoolean(keys.perspective_ry),
+		x = settings:getNumber(keys.perspective_x),
+		y = settings:getNumber(keys.perspective_y),
+		z = settings:getNumber(keys.perspective_z),
+		pitch = settings:getNumber(keys.perspective_pitch),
+		yaw = settings:getNumber(keys.perspective_yaw),
+	}
+end
+
+---@param settings rizu.config.Config
+---@param perspective {x: number, y: number, z: number, pitch: number, yaw: number}
+local function setPerspective(settings, perspective)
+	local keys = Settings.keys.graphics
+	settings:setNumber(keys.perspective_x, perspective.x)
+	settings:setNumber(keys.perspective_y, perspective.y)
+	settings:setNumber(keys.perspective_z, perspective.z)
+	settings:setNumber(keys.perspective_pitch, perspective.pitch)
+	settings:setNumber(keys.perspective_yaw, perspective.yaw)
+end
+
+---@class sphere.views.CameraView.Perspective
+---@field camera boolean
+---@field rx boolean
+---@field ry boolean
+---@field x number
+---@field y number
+---@field z number
+---@field pitch number
+---@field yaw number
 
 ---@class sphere.CameraView
 ---@operator call: sphere.CameraView
@@ -10,7 +48,7 @@ CameraView.sensitivity = 0.5
 CameraView.speed = 500
 
 function CameraView:load()
-	local perspective = self.game.configModel.configs.settings.graphics.perspective
+	local perspective = getPerspective(self.game.settings)
 	self.camera = perspective.camera
 	if not self.camera or not self.draw_start then
 		return
@@ -22,7 +60,7 @@ function CameraView:loadCamera()
 	s3dc.load()
 	local w, h = love.graphics.getDimensions()
 	self.w, self.h = w, h
-	local perspective = self.game.configModel.configs.settings.graphics.perspective
+	local perspective = getPerspective(self.game.settings)
 	s3dc.translate(perspective.x * w, perspective.y * h, perspective.z * h)
 	s3dc.rotate(perspective.pitch, perspective.yaw)
 end
@@ -34,16 +72,14 @@ function CameraView:unload()
 
 	local w, h = self.w, self.h
 	local x, y, z = unpack(s3dc.pos)
-	x = x / w
-	y = y / h
-	z = z / h
-
-	local p = self.game.configModel.configs.settings.graphics.perspective
-	p.x = x
-	p.y = y
-	p.z = z
-	p.pitch = s3dc.angle.pitch
-	p.yaw = s3dc.angle.yaw
+	local perspective = {
+		x = x / w,
+		y = y / h,
+		z = z / h,
+		pitch = s3dc.angle.pitch,
+		yaw = s3dc.angle.yaw,
+	}
+	setPerspective(self.game.settings, perspective)
 end
 
 ---@param event table
@@ -76,7 +112,7 @@ function CameraView:receive(event)
 		local dx, dy = event[3], event[4]
 		local angle = self.sensitivity
 
-		local perspective = self.game.configModel.configs.settings.graphics.perspective
+		local perspective = getPerspective(self.game.settings)
 		if not perspective.ry then
 			dy = 0
 		end

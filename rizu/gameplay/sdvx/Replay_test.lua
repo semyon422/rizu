@@ -29,15 +29,15 @@ local function session()
 	local re = RhythmEngine()
 	re:setChart(res.chart, res.chartmeta, res.chartdiff)
 	re:load(); re:setGlobalTime(0); re:setTime(-1)
-	re:setPlayTime(0, 3); re:setRate(1.5); re:setInputOffset(0.031); re:play()
+	re:setPlayTime(0, 3); re:setRate(1.5); re:play()
 	return re, GameplaySession(re)
 end
 
 ---@param t testing.T
-function test.manual_session_replays_lasers_and_buttons_with_rate_offset(t)
+function test.manual_session_replays_lasers_and_buttons_with_rate(t)
 	local re, manual = session()
 	for _, frame in ipairs(Rules.autoplay(re.sdvx_rules.chart)) do
-		manual:receive(frame.event, (frame.time + 1 + 0.031) / 1.5)
+		manual:receive(frame.event, (frame.time + 1) / 1.5)
 	end
 	manual:update(4)
 	t:eq(re.sdvx_rules.hits, 2)

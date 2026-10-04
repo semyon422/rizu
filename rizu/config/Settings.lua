@@ -44,10 +44,16 @@ local keys = {
 		time_pause_play = "gameplay.time.pause_play",
 		time_play_retry = "gameplay.time.play_retry",
 		time_pause_retry = "gameplay.time.pause_retry",
-		offset_input = "gameplay.offset.input",
-		offset_visual = "gameplay.offset.visual",
-		offset_format = {},
-		offset_audio_mode = {},
+		offset_format = {
+			osu = "gameplay.offset.format.osu",
+			quaver = "gameplay.offset.format.qua",
+			stepmania = "gameplay.offset.format.sm",
+			ksm = "gameplay.offset.format.ksh",
+		},
+		offset_audio_mode = {
+			bass_sample = "gameplay.offset.audio_mode.bass_sample",
+			bass_fx_tempo = "gameplay.offset.audio_mode.bass_fx_tempo",
+		},
 	},
 	input = {
 		pause = "input.pause",
@@ -61,9 +67,6 @@ local keys = {
 		select_random = "input.select_random",
 		screenshot_capture = "input.screenshot.capture",
 		screenshot_open = "input.screenshot.open",
-		offset_decrease = "input.offset.decrease",
-		offset_increase = "input.offset.increase",
-		offset_reset = "input.offset.reset",
 	},
 	select = {
 		primary_mode = "select.primary_mode",
@@ -122,6 +125,11 @@ local keys = {
 		perspective_camera = "graphics.perspective.camera",
 		perspective_rx = "graphics.perspective.rx",
 		perspective_ry = "graphics.perspective.ry",
+		perspective_x = "graphics.perspective.x",
+		perspective_y = "graphics.perspective.y",
+		perspective_z = "graphics.perspective.z",
+		perspective_pitch = "graphics.perspective.pitch",
+		perspective_yaw = "graphics.perspective.yaw",
 	},
 	audio = {
 		volume_type = "audio.volume_type",
@@ -154,12 +162,6 @@ local keys = {
 
 for _, format in ipairs({"sphere", "osu", "o2jam", "bms", "stepmania", "quaver", "midi", "ksm"}) do
 	keys.audio.volume_keysounds_format[format] = "audio.volume.keysounds_format." .. format
-end
-for _, format in ipairs({"osu", "qua", "sm", "ksh"}) do
-	keys.gameplay.offset_format[format] = "gameplay.offset.format." .. format
-end
-for _, mode in ipairs({"bass_sample", "bass_fx_tempo"}) do
-	keys.gameplay.offset_audio_mode[mode] = "gameplay.offset.audio_mode." .. mode
 end
 
 ---@class rizu.config.Settings
@@ -225,11 +227,10 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(g.time_play_retry, 0.5, 0, 2, 0.1)
 	config:setDefaultNumber(g.time_pause_retry, 0.5, 0, 2, 0.1)
 
-	config:setDefaultNumber(g.offset_input, 0, -0.5, 0.5, 0.001)
-	config:setDefaultNumber(g.offset_visual, 0, -0.5, 0.5, 0.001)
-	local format_defaults = {osu = 0.02, qua = 0.02, sm = -0.05, ksh = 0}
+	-- Existing JSON keys are retained, but these offsets affect audio only.
+	local format_offsets = {osu = 0.02, quaver = 0.02, stepmania = -0.05, ksm = 0}
 	for format, key in pairs(g.offset_format) do
-		config:setDefaultNumber(key, format_defaults[format], -0.5, 0.5, 0.001)
+		config:setDefaultNumber(key, format_offsets[format], -0.5, 0.5, 0.001)
 	end
 	config:setDefaultNumber(g.offset_audio_mode.bass_sample, 0, -0.5, 0.5, 0.001)
 	config:setDefaultNumber(g.offset_audio_mode.bass_fx_tempo, -0.02, -0.5, 0.5, 0.001)
@@ -295,6 +296,11 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(gr.perspective_camera, false)
 	config:setDefaultBoolean(gr.perspective_rx, false)
 	config:setDefaultBoolean(gr.perspective_ry, true)
+	config:setDefaultNumber(gr.perspective_x, 0.5)
+	config:setDefaultNumber(gr.perspective_y, 0.5)
+	config:setDefaultNumber(gr.perspective_z, -0.71407400337106)
+	config:setDefaultNumber(gr.perspective_pitch, 0)
+	config:setDefaultNumber(gr.perspective_yaw, 0)
 
 	config:setDefaultChoice(a.volume_type, "linear", {"linear", "logarithmic"})
 	config:setDefaultNumber(a.volume_master, 1, 0, 1, 0.01)

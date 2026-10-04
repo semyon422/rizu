@@ -18,7 +18,7 @@ function test.local_replay_round_trip_without_score_or_hits(t)
 		play_type = "manual", replay_recorder = recorder,
 		rhythm_engine = {
 			aim_rules = {}, chartmeta = {hash = hash, index = 1},
-			time_engine = {timer = {rate = 1.5}}, logic_offset = -0.025,
+			time_engine = {timer = {rate = 1.5}},
 		},
 	}
 	local path = store:save(session)
@@ -26,7 +26,6 @@ function test.local_replay_round_trip_without_score_or_hits(t)
 	local replay, frames = store:load(hash, 1)
 	t:eq(replay.format, "rizu-aim-tracking-1")
 	t:eq(replay.rate, 1.5)
-	t:eq(replay.input_offset, -0.025)
 	t:tdeq(frames, recorder:getFrames())
 	local old = assert(json.decode(assert(fs:read(path))))
 	old.format = "rizu-aim-circles-1"

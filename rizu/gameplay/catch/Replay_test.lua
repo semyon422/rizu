@@ -20,7 +20,7 @@ function test.catch_input_and_replay_are_separate_from_aim(t)
 	local hash = ("c"):rep(32)
 	local session = {play_type = "manual", replay_recorder = recorder,
 		rhythm_engine = {catch_rules = {}, chartmeta = {hash = hash, index = 1},
-			time_engine = {timer = {rate = 1.5}}, logic_offset = 0.031}}
+			time_engine = {timer = {rate = 1.5}}}}
 	local path = catch:save(session)
 	t:eq(path, "userdata/replays/catch/" .. hash .. "_1.json")
 	local data, frames = catch:load(hash, 1)

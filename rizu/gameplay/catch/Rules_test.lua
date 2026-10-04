@@ -60,11 +60,11 @@ function test.recorded_actions_replay_at_different_frame_rates(t)
 		res.chartmeta.mode = "catch"
 		local re = RhythmEngine()
 		re:setChart(res.chart, res.chartmeta, res.chartdiff)
-		re:load(); re:setInputOffset(0.031); re:setRate(1.5); re:setPlayTime(0, 4); re:setGlobalTime(0); re:setTime(-1); re:play()
+		re:load(); re:setRate(1.5); re:setPlayTime(0, 4); re:setGlobalTime(0); re:setTime(-1); re:play()
 		return re, GameplaySession(re)
 	end
 	local re, manual = session()
-	for _, frame in ipairs(Rules.autoplay(TestChart.create(chart(), "catch"))) do manual:receive(frame.event, (frame.time + 1 + 0.031) / 1.5) end
+	for _, frame in ipairs(Rules.autoplay(TestChart.create(chart(), "catch"))) do manual:receive(frame.event, (frame.time + 1) / 1.5) end
 	manual:update(5)
 	t:eq(re.catch_rules.hits, 3)
 	t:eq(manual:hasResult(), false)

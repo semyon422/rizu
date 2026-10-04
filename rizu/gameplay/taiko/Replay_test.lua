@@ -31,15 +31,15 @@ local function session()
 	local engine = RhythmEngine()
 	engine:setChart(res.chart, res.chartmeta, res.chartdiff)
 	engine:load(); engine:setGlobalTime(0); engine:setTime(-1)
-	engine:setPlayTime(1, 5); engine:setRate(1.5); engine:setInputOffset(0.031); engine:play()
+	engine:setPlayTime(1, 5); engine:setRate(1.5); engine:play()
 	return engine, GameplaySession(engine)
 end
 
 ---@param t testing.T
-function test.manual_actions_persist_and_replay_with_offset_and_rate(t)
+function test.manual_actions_persist_and_replay_with_rate(t)
 	local engine, manual = session()
 	for _, frame in ipairs(Rules.autoplay(TestChart.create(chart(), "taiko"))) do
-		manual:receive(frame.event, (frame.time + 1 + 0.031) / 1.5)
+		manual:receive(frame.event, (frame.time + 1) / 1.5)
 	end
 	manual:update(5)
 	t:eq(engine.taiko_rules.hits, 3)
@@ -51,7 +51,6 @@ function test.manual_actions_persist_and_replay_with_offset_and_rate(t)
 	t:eq(path, "userdata/replays/taiko/" .. engine.chartmeta.hash .. "_1.json")
 	local data, frames = store:load(engine.chartmeta.hash, 1)
 	t:eq(data.format, "rizu-taiko-1")
-	t:eq(data.input_offset, 0.031)
 	t:eq(data.rate, 1.5)
 	for _, step in ipairs({1 / 30, 1 / 144, 0.37, 5}) do
 		local re, replay = session()

@@ -1,5 +1,6 @@
 local class = require("class")
 local table_util = require("table_util")
+local Settings = require("rizu.config.Settings")
 local AnalogScratch = require("chart.transform.AnalogScratch")
 local ScratchMapper = require("chart.transform.ScratchMapper")
 
@@ -7,10 +8,10 @@ local ScratchMapper = require("chart.transform.ScratchMapper")
 ---@operator call: sphere.JoystickModel
 local JoystickModel = class()
 
----@param configModel sphere.ConfigModel
-function JoystickModel:new(configModel)
+---@param settings rizu.config.Config
+function JoystickModel:new(settings)
 	self.data = {}
-	self.configModel = configModel
+	self.settings = settings
 end
 
 function JoystickModel:getScratchState(id, axis, joystick)
@@ -20,7 +21,14 @@ function JoystickModel:getScratchState(id, axis, joystick)
 		return data[id][axis]
 	end
 
-	local cfg = self.configModel.configs.settings.gameplay.analog_scratch
+	local keys = Settings.keys.gameplay
+	local settings = self.settings
+	local cfg = {
+		act_period = settings:getNumber(keys.analog_scratch_act_period),
+		deact_period = settings:getNumber(keys.analog_scratch_deact_period),
+		act_w = settings:getNumber(keys.analog_scratch_act_w),
+		deact_w = settings:getNumber(keys.analog_scratch_deact_w),
+	}
 
 	local analogScratch = AnalogScratch(cfg.act_period, cfg.deact_period, cfg.act_w, cfg.deact_w)
 	local scratchMapper = ScratchMapper(analogScratch, function(state, is_right)

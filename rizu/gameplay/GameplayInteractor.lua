@@ -213,9 +213,6 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 	game.pauseModel:load()
 
 	game.multiplayerModel.client:setPlaying(chartmeta.mode == "mania")
-	if chartmeta.mode == "mania" then
-		game.offsetController:updateOffsets()
-	end
 
 	game.windowModel:setVsyncOnSelect(false)
 	self:play()
@@ -247,6 +244,7 @@ function GameplayInteractor:load(autoplay)
 	)
 	loader:setAudioEnabled(not self.audio_disabled)
 	loader:load(game.rhythm_engine)
+	game.offsetController:setRhythmEngine(game.rhythm_engine)
 	self:loadVolume()
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
@@ -257,15 +255,12 @@ function GameplayInteractor:load(autoplay)
 	self.aim_saved = false
 	self.aim_status = nil
 	self.aim_complete = false
-	game.offsetController.rhythm_engine = game.rhythm_engine
 	if game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules or game.rhythm_engine.taiko_rules or game.rhythm_engine.sdvx_rules then
-		game.offsetController:updateOffsets()
 		if self.aim_replay then
-			game.rhythm_engine:setInputOffset(self.aim_replay.input_offset)
 			game.rhythm_engine:setRate(self.aim_replay.rate)
 		end
 	end
-	
+
 	local play_type = "manual"
 	if self.replaying then
 		play_type = "replay"

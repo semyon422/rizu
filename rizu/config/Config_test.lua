@@ -165,4 +165,22 @@ function test.deserialize_ignores_unknown_keys(t)
 	t:eq(config:getBoolean("show_fps"), true)
 end
 
+---@param t testing.T
+function test.audio_offset_defaults_and_json_round_trip(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata")
+	local config = Settings.createConfig(fs)
+	local keys = Settings.keys.gameplay
+	t:eq(config:getNumber(keys.offset_format.quaver), 0.02)
+	t:eq(config:getNumber(keys.offset_format.stepmania), -0.05)
+	t:eq(config:getNumber(keys.offset_format.ksm), 0)
+	config:setNumber(keys.offset_format.quaver, -0.123)
+	config:setNumber(keys.offset_audio_mode.bass_sample, 0.045)
+	t:eq(config:save(), true)
+	local restored = Settings.createConfig(fs)
+	t:eq(restored:load(), true)
+	t:eq(restored:getNumber(keys.offset_format.quaver), -0.123)
+	t:eq(restored:getNumber(keys.offset_audio_mode.bass_sample), 0.045)
+end
+
 return test

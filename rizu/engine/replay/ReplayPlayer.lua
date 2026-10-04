@@ -30,14 +30,11 @@ end
 ---@param engine rizu.RhythmEngine
 ---@param next_time number
 function ReplayPlayer:update(engine, next_time)
-	local offset = engine.logic_offset
-	local replay_to = next_time - offset
-
-	local frame = self:play(replay_to)
+	local frame = self:play(next_time)
 	while frame do
-		engine:setTimeNoAudio(frame.time + offset)
+		engine:setTimeNoAudio(frame.time)
 		engine:receive(frame.event)
-		frame = self:play(replay_to)
+		frame = self:play(next_time)
 	end
 
 	engine:setTimeNoAudio(next_time)

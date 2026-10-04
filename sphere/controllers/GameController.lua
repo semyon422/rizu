@@ -16,8 +16,7 @@ local EditorModel = require("rizu.editor.EditorModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local PauseModel = require("sphere.models.PauseModel")
 local JoystickModel = require("sphere.models.JoystickModel")
-local OffsetModel = require("sphere.models.OffsetModel")
-
+local OffsetController = require("sphere.controllers.gameplay.OffsetController")
 local SelectionCoordinator = require("rizu.select.SelectionCoordinator")
 local ModifierCoordinator = require("rizu.select.ModifierCoordinator")
 local LibraryDropManager = require("rizu.library.LibraryDropManager")
@@ -28,8 +27,6 @@ local ModifierConfigPersistence = require("rizu.select.services.ModifierConfigPe
 local ResultController = require("sphere.controllers.ResultController")
 local MultiplayerController = require("sphere.controllers.MultiplayerController")
 local EditorController = require("rizu.editor.EditorController")
-
-local OffsetController = require("sphere.controllers.gameplay.OffsetController")
 
 local BackgroundModel = require("sphere.ui.BackgroundModel")
 local PreviewModel = require("rizu.preview.PreviewModel")
@@ -136,7 +133,7 @@ function GameController:new()
 
 	self.multiplayer_client.server_remote = self.seaClient.remote
 
-	self.noteSkinModel = NoteSkinModel(self.persistence.configModel, self.packageManager)
+	self.noteSkinModel = NoteSkinModel(self.settings, self.packageManager)
 	self.skinRegistry = SkinRegistry(self.fs)
 	self.inputModel = InputModel(self.persistence.configModel)
 	self.pauseModel = PauseModel(self.settings, self.rhythm_engine)
@@ -187,12 +184,8 @@ function GameController:new()
 		self.replayBase,
 		self.multiplayer_client
 	)
-	self.offsetModel = OffsetModel(
-		self.persistence.configModel,
-		self.persistence.library.chartsRepo
-	)
-
-	self.joystickModel = JoystickModel(self.persistence.configModel)
+	self.joystickModel = JoystickModel(self.settings)
+	self.offsetController = OffsetController(self.library, self.computeContext, self.settings)
 
 	self.library = self.persistence.library
 	self.configModel = self.persistence.configModel
@@ -241,13 +234,6 @@ function GameController:new()
 		self.chartSelector,
 		self.replayBase
 	)
-	self.offsetController = OffsetController(
-		self.library,
-		self.computeContext,
-		self.offsetModel,
-		self.rhythm_engine
-	)
-
 	self.resource_finder = ResourceFinder(self.fs)
 	self.resource_loader = ResourceLoader(self.fs, self.resource_finder)
 
@@ -397,6 +383,7 @@ function GameController:unload()
 	if self.needleGpuProbe then self.needleGpuProbe:release() end
 	if self.needleGpuEncoderProbe then self.needleGpuEncoderProbe:release() end
 	self.gameplayInteractor:unloadGameplay()
+	self.offsetController:unload()
 	self.network:cancelStreams("unload")
 	self.seaClient:unload()
 	self.previewModel:release()
@@ -443,6 +430,7 @@ function GameController:recreateRhythmEngine()
 	end
 	self.rhythm_engine = RhythmEngine(self.fs)
 	self.pauseModel:setRhythmEngine(self.rhythm_engine)
+	self.offsetController:setRhythmEngine(self.rhythm_engine)
 end
 
 ---@param ui gui.UserInterface

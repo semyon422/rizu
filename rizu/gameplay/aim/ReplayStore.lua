@@ -9,7 +9,6 @@ local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 ---@field hash string
 ---@field index integer
 ---@field rate number
----@field input_offset number
 ---@field frames string
 
 ---@class rizu.aim.ReplayStore
@@ -45,7 +44,7 @@ function ReplayStore:save(session)
 	---@type rizu.aim.ReplayData
 	local data = {
 		format = self.mode == "sdvx" and "rizu-sdvx-1" or self.mode == "taiko" and "rizu-taiko-1" or self.mode == "catch" and "rizu-catch-1" or "rizu-aim-tracking-1", hash = meta.hash, index = meta.index,
-		rate = re.time_engine.timer.rate, input_offset = re.logic_offset,
+		rate = re.time_engine.timer.rate,
 		frames = mime.b64(ReplayFrames.encode(session.replay_recorder:getFrames())),
 	}
 	assert(self.fs:createDirectory(self.directory))
@@ -65,7 +64,6 @@ function ReplayStore:load(hash, index)
 	assert((self.mode == "catch") == (replay.format == "rizu-catch-1"), "Incompatible replay mode.")
 	assert((replay.format == "rizu-sdvx-1" or replay.format == "rizu-taiko-1" or replay.format == "rizu-catch-1" or replay.format == "rizu-aim-circles-1" or replay.format == "rizu-aim-sliders-1" or replay.format == "rizu-aim-spinners-1" or replay.format == "rizu-aim-stacking-1" or replay.format == "rizu-aim-tracking-1") and replay.hash == hash and replay.index == index, "Incompatible experimental replay.")
 	assert(type(replay.rate) == "number" and replay.rate >= 0.25 and replay.rate <= 4, "Invalid replay rate.")
-	assert(type(replay.input_offset) == "number" and replay.input_offset == replay.input_offset and math.abs(replay.input_offset) < math.huge, "Invalid replay offset.")
 	local frames = ReplayFrames.decode(assert(mime.unb64(replay.frames)))
 	local time = -math.huge
 	for _, frame in ipairs(frames) do

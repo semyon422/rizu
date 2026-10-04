@@ -33,8 +33,6 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 ---@field aim_rules rizu.aim.CircleRules?
 local RhythmEngine = class()
 
-RhythmEngine.logic_offset = 0
-RhythmEngine.visual_offset = 0
 
 function RhythmEngine:new()
 	self.logic_info = LogicInfo()
@@ -211,8 +209,8 @@ function RhythmEngine:update()
 end
 
 function RhythmEngine:syncTime()
-	self.logic_info.time = self.time_engine.time - self.logic_offset
-	self.visual_info.time = self.time_engine.time - self.visual_offset
+	self.logic_info.time = self.time_engine.time
+	self.visual_info.time = self.time_engine.time
 end
 
 ---@param pending_resync boolean?
@@ -379,20 +377,10 @@ function RhythmEngine:setTimeNoAudio(time)
 	self:update()
 end
 
----@param offset number
-function RhythmEngine:setInputOffset(offset)
-	self.logic_offset = offset
-end
-
 ---@param column integer
 ---@return boolean
 function RhythmEngine:isColumnPressed(column)
 	return self.input_engine:isColumnPressed(column)
-end
-
----@param offset number
-function RhythmEngine:setVisualOffset(offset)
-	self.visual_offset = offset
 end
 
 ---@param shortening number

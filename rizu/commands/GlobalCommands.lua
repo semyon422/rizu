@@ -96,7 +96,7 @@ return function(game)
 				local width = assert(tonumber(w), "invalid resolution: " .. val)
 				local height = assert(tonumber(h), "invalid resolution: " .. val)
 				game.app.windowModel:setResolution(width, height)
-				game.persistence.configModel:write("settings")
+				game.settings:save()
 			end,
 		},
 	}

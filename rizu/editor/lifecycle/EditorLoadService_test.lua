@@ -26,6 +26,7 @@ local function createContext(calls)
 	}
 	local context
 	context = {
+		audioSettings = audioSettings,
 		setLoaded = function(_, loaded)
 			table.insert(calls, "loaded:" .. tostring(loaded))
 		end,
@@ -163,7 +164,7 @@ function test.load_runs_lifecycle_steps_in_order(t)
 	t:eq(context.layer.visuals.main.id, "main-visual")
 	t:eq(context.notes.id, "notes")
 	t:eq(context.visual, context.layer.visuals.main)
-	t:eq(context.metronome.volume, context.configModel.configs.settings.audio.volume)
+	t:eq(context.metronome.volume, context.audioSettings.volume)
 	t:eq(context.bmsLayer, context.layer)
 	t:tdeq(calls, {
 		"loaded:true",
@@ -259,7 +260,7 @@ function test.load_metronome_sets_volume_before_loading(t)
 		EditorLoadService():load(context)
 	end)
 
-	t:eq(context.metronome.volume, context.configModel.configs.settings.audio.volume)
+	t:eq(context.metronome.volume, context.audioSettings.volume)
 end
 
 return test

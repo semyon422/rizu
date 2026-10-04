@@ -3,7 +3,12 @@
 ## Goal
 The gameplay module owns the orchestration of a single play attempt. It should coordinate timing, input source selection, replay recording, and game-facing integrations without leaking those responsibilities into lower-level engine code.
 
+## Timing and audio-offset policy
+
+Gameplay and replay judgement use the engine clock directly. Universal, per-format, and Chart-local audio offsets add together and shift only source playback. `AudioEngine:getPosition()` compensates the shift, so judgement, rendering, and replay time remain unchanged. Changes to audio settings apply immediately to the bound gameplay audio engine. Experimental envelopes persist the playback rate only.
+
 ## User Experience
+
 - Starting a song should create a fresh gameplay session with deterministic timing and clean state.
 - Retrying a chart should behave like a brand-new attempt rather than reusing mutable state from the previous play.
 - The retry binding defaults to the backtick/tilde (`~`) key. Retry and play-to-pause require holding the key for their configured duration; early release cancels the transition. Resume uses a countdown (no hold required), cancelled by pressing pause again, matching the legacy UI. Zero duration executes immediately. `GameplayInteractor:update()` consumes `PauseModel.needRetry` by starting a fresh attempt; reloading the pause model clears the request and stops its tween. Multiplayer rooms continue to disallow local transitions.

@@ -8,7 +8,7 @@ The chart editor provides tools for creating, modifying, and exporting rhythm ga
 - Adding, moving, or deleting notes feels responsive. Grab-and-drag works for both notes and timing vertices. Snap grid ensures notes land on musically meaningful positions.
 - Undo/redo covers all note mutations. Copy, cut, paste, and flip/mirror operate on the current selection.
 - Charts save as `.sph` by default and can export to `.osu`.
-- Tempo and offset can be auto-detected from the audio using the NCBT algorithm.
+- Tempo and offset can be auto-detected from the audio using the editor's timing tools. Editor audio and waveform offsets remain editor-local controls and do not configure gameplay judgement or visual clocks.
 - A scrollbar with a note density graph and waveform view lets the user navigate long charts quickly.
 
 ## Current State

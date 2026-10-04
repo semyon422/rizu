@@ -37,24 +37,24 @@ return function(game)
 		},
 		{
 			id = "gameplay.offset_decrease",
-			title = "Gameplay: Decrease Local Offset",
-			description = "Moves the selected chart local offset back by 1 ms",
+			title = "Gameplay: Decrease Local Audio Offset",
+			description = "Moves the selected chart audio offset back by 1 ms",
 			callback = function()
 				game.offsetController:increaseLocalOffset(-0.001)
 			end,
 		},
 		{
 			id = "gameplay.offset_increase",
-			title = "Gameplay: Increase Local Offset",
-			description = "Moves the selected chart local offset forward by 1 ms",
+			title = "Gameplay: Increase Local Audio Offset",
+			description = "Moves the selected chart audio offset forward by 1 ms",
 			callback = function()
 				game.offsetController:increaseLocalOffset(0.001)
 			end,
 		},
 		{
 			id = "gameplay.offset_reset",
-			title = "Gameplay: Reset Local Offset",
-			description = "Resets the selected chart local offset",
+			title = "Gameplay: Reset Local Audio Offset",
+			description = "Resets the selected chart audio offset",
 			callback = function()
 				game.offsetController:resetLocalOffset()
 			end,

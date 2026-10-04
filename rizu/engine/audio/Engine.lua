@@ -27,6 +27,7 @@ function Engine:new()
 	self.foregroundSource = ISource()
 	self.output = IOutput()
 	self.provider = FakeProvider()
+	self.offset = 0
 end
 
 ---@param mode {primary: string, secondary: string}
@@ -120,6 +121,7 @@ function Engine:unload()
 	self.chart_audio = nil
 	self.resources = nil
 	self.soundDataCache = {}
+	self.offset = 0
 end
 
 ---@return number
@@ -128,7 +130,7 @@ function Engine:getStartTime()
 	if not chart_audio then
 		return 0
 	end
-	return chart_audio:getStartTime()
+	return chart_audio:getStartTime() - self.offset
 end
 
 ---@return audio.Wave
@@ -167,7 +169,19 @@ end
 
 ---@return number?
 function Engine:getPosition()
-	return self.output:getPosition(self.source:getPosition())
+	return self.output:getPosition(self.source:getPosition()) - self.offset
+end
+
+---@param offset number
+function Engine:setOffset(offset)
+	if self.offset == offset then
+		return
+	end
+	-- Seek relative to the decoded source, not the latency-adjusted audible
+	-- position. Keep queued output intact so its latency is not counted twice.
+	local position = self.source:getPosition() + offset - self.offset
+	self.source:setPosition(position)
+	self.offset = offset
 end
 
 function Engine:update()
@@ -205,7 +219,7 @@ end
 
 ---@param position number
 function Engine:setPosition(position)
-	self.source:setPosition(position)
+	self.source:setPosition(position + self.offset)
 	self.output:clear()
 	self.output:update()
 	-- Hitsounds usually don't seek with the song position,
