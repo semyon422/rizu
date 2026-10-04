@@ -18,7 +18,6 @@ local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local UiActions = require("ui.UiActions")
 local ResultDetails = require("ui.screens.result.ResultDetails")
 local BgaPreview = require("ui.views.BgaPreview")
-local ResultExporter = require("rizu.gameplay.ResultExporter")
 
 ---@class ui.screens.result.ResultScrollView : gui.ScrollView
 local ResultScrollView = ScrollView + {}
@@ -215,42 +214,8 @@ function Result:enter()
 	self.ui.command_registry:pushContext("result_commands", self.ui.result_commands)
 	self.ui.command_registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
 	self:updateInfo()
-	self:exportResult()
 	self.scroll_view:scrollTo(0, true)
 	self.composite:fadeIn(0.6, "OutQuint")
-end
-
-function Result:exportResult()
-	local game = self.ui.game
-	local chartplay = game.computeContext.chartplay or game.scoreSelector.chartplay
-	local replay = game.resultController.replay
-	local replay_base = game.replayBase
-	if replay and chartplay and
-		replay.hash == chartplay.hash and
-		replay.index == chartplay.index and
-		replay.created_at == chartplay.created_at
-	then
-		replay_base = replay
-	end
-
-	local path = "userdata/result.json"
-	local index = 1
-	while game.fs:getInfo(path) do
-		path = ("userdata/result%d.json"):format(index)
-		index = index + 1
-	end
-
-	local ok, err = ResultExporter.export(
-		game.fs,
-		path,
-		chartplay,
-		game.chartSelector.chartview,
-		replay_base,
-		game.rhythm_engine and game.rhythm_engine.score_engine
-	)
-	if not ok then
-		print("failed to export result: " .. tostring(err))
-	end
 end
 
 function Result:exit()
