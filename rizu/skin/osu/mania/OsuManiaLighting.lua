@@ -172,6 +172,14 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	if scale_x <= 0 or math.abs(scale_y) <= 0 then return end
 
 	local batch = image.texture and image.batch
+	if batch and batch.collecting then
+		batch:setBlendMode(self.blend_mode[1], self.blend_mode[2])
+		lg.setColor(self.color[1], self.color[2], self.color[3], (self.color[4] or 1) * self.alpha)
+		OsuManiaImage.draw(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
+			image_height * origin_y)
+		return
+	end
+
 	if batch then batch:flush() end
 	lg.push("all")
 	lg.setBlendMode(self.blend_mode[1], self.blend_mode[2])
