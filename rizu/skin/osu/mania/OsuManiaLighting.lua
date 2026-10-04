@@ -1,9 +1,10 @@
 local class = require("class")
+local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
 
 local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaLighting.Config
----@field frames love.Image[]
+---@field frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
 ---@field mode "stage"|"oneshot"|"hold"
 ---@field frame_rate number
 ---@field width number
@@ -19,7 +20,7 @@ local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaLighting
 ---@operator call: rizu.skin.osu.mania.OsuManiaLighting
----@field frames love.Image[]
+---@field frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
 ---@field mode "stage"|"oneshot"|"hold"
 ---@field frame_rate number
 ---@field width number
@@ -161,7 +162,7 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	end
 	local image = self.frames[frame_index]
 	if not image then return end
-	local image_width, image_height = image:getDimensions()
+	local image_width, image_height = OsuManiaImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 
 	local scale_x = self.width / image_width
@@ -170,14 +171,17 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	if upside_down then scale_y = -scale_y end
 	if scale_x <= 0 or math.abs(scale_y) <= 0 then return end
 
+	local batch = image.texture and image.batch
+	if batch then batch:flush() end
 	lg.push("all")
 	lg.setBlendMode(self.blend_mode[1], self.blend_mode[2])
 	lg.setColor(self.color[1], self.color[2], self.color[3], (self.color[4] or 1) * self.alpha)
 	-- Keeping the origin at the lower edge reproduces osu!'s BottomLeft
 	-- origin in normal scroll and its flipped TopLeft origin in upside-down
 	-- mode when the Y scale is negative.
-	lg.draw(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
+	OsuManiaImage.draw(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
 		image_height * origin_y)
+	if batch then batch:flush() end
 	lg.pop()
 end
 

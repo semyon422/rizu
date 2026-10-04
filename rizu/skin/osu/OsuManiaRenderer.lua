@@ -16,6 +16,7 @@ local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local InputMode = require("chart.core.InputMode")
 local Settings = require("rizu.config.Settings")
 local SkinConfig = require("rizu.skin.SkinConfig")
+local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
 local table_util = require("table_util")
 
 local lg = love.graphics
@@ -118,6 +119,8 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.engine_input_map = mode:getInputMap()
 	self.input_map = self.engine_input_map
 	self.skin_graphics = OsuManiaSkinGraphics(game.fs)
+	self.skin_graphics.defer_grouped = true
+	self.skin_graphics.hide_unbatched = false
 	self.score_view = OsuManiaScoreView(self.skin_graphics)
 	self.accuracy_view = OsuManiaAccuracyView(self.skin_graphics)
 	self.combo_view = OsuManiaComboView(self.skin_graphics)
@@ -447,6 +450,10 @@ function OsuManiaRenderer:load()
 	self.conveyor_hud:load(self.game)
 	if self.skin_graphics.skin ~= skin then self.skin_graphics:setSkin(skin) end
 	if not self.skin_graphics.loaded then
+		local limits = love.graphics.getSystemLimits()
+		local texture_limit = limits.texturesize > 0 and limits.texturesize or 4096
+		self.skin_graphics:setTextureLimit(texture_limit)
+		self.skin_graphics:setAtlasLimit(math.min(4096, texture_limit))
 		self.skin_graphics:load(self:getSkinAssets())
 	end
 	self:loadLightings()
@@ -507,15 +514,15 @@ end
 
 ---@param name string?
 ---@param fallback string
----@return love.Image[]
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
 function OsuManiaRenderer:getLightingFrames(name, fallback)
 	if self.skin_graphics.getAnimationFrames then
-		return self.skin_graphics:getAnimationFrames(name, fallback)
+		return self.skin_graphics:getAnimationFrames(name, fallback, "playfield")
 	end
-	return self.skin_graphics:getFrames(name, fallback)
+	return self.skin_graphics:getFrames(name, fallback, "playfield")
 end
 
----@param frames love.Image[]
+---@param frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
 ---@return number
 local function getLightingFrameRate(frames)
 	-- osu! advances hit-light animations over 170 ms, but never faster than
@@ -554,7 +561,7 @@ function OsuManiaRenderer:loadLightings()
 		local lane_width = (self.column_widths[column] or DEFAULT_COLUMN_WIDTH) * width_scale
 		local stage_color = self:getLightingColor("ColourLight" .. column, {55 / 255, 1, 1, 1})
 		if #stage_frames > 0 then
-			local image_width, image_height = stage_frames[1]:getDimensions()
+			local image_width, image_height = OsuManiaImage.dimensions(stage_frames[1])
 			if image_width > 0 and image_height > 0 then
 				self.stage_lightings[column] = OsuManiaLighting({
 					frames = stage_frames,
@@ -572,7 +579,7 @@ function OsuManiaRenderer:loadLightings()
 
 		local normal = nil
 		if #normal_frames > 0 then
-			local image_width = normal_frames[1]:getWidth()
+			local image_width = OsuManiaImage.dimensions(normal_frames[1])
 			local lighting_width = self.lighting_n_widths[column] > 0
 				and self.lighting_n_widths[column] * width_scale or lane_width
 			if image_width > 0 then
@@ -595,7 +602,7 @@ function OsuManiaRenderer:loadLightings()
 
 		local long = nil
 		if #long_frames > 0 then
-			local image_width = long_frames[1]:getWidth()
+			local image_width = OsuManiaImage.dimensions(long_frames[1])
 			local lighting_width = self.lighting_l_widths[column] > 0
 				and self.lighting_l_widths[column] * width_scale or lane_width
 			if image_width > 0 then
@@ -686,18 +693,23 @@ function OsuManiaRenderer:drawHitLightings(lane_xs, hit_y)
 	end
 end
 
----@return {name: string?, fallback: string?, animation: boolean?}[]
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset[]
 function OsuManiaRenderer:getSkinAssets()
-	local assets, seen = {}, {}
-	local function add(name, fallback, animation)
+	local assets = {} ---@type rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset[]
+	local seen = {} ---@type {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset}
+	---@param name string?
+	---@param fallback string?
+	---@param animation boolean?
+	---@param group string?
+	local function add(name, fallback, animation, group)
 		if (not name or name == "") and (not fallback or fallback == "") then return end
-		local key = tostring(name or ""):lower() .. "\0" .. tostring(fallback or ""):lower()
+		local key = tostring(name or ""):lower() .. "\0" .. tostring(fallback or ""):lower() .. "\0" .. tostring(group or "")
 		local existing = seen[key]
 		if existing then
 			existing.animation = existing.animation or animation
 			return
 		end
-		local asset = {name = name, fallback = fallback, animation = animation}
+		local asset = {name = name, fallback = fallback, animation = animation, group = group}
 		seen[key] = asset
 		assets[#assets + 1] = asset
 	end
@@ -706,52 +718,56 @@ function OsuManiaRenderer:getSkinAssets()
 		local zero_based_column = column - 1
 		local suffix = self:getColumnSuffix(zero_based_column)
 		for _, postfix in ipairs({"", "H", "L", "T"}) do
-			local animated = postfix == "L"
-			add(get_section_value(self.section, "NoteImage" .. zero_based_column .. postfix), nil, animated)
+			local animated = true
+			add(get_section_value(self.section, "NoteImage" .. zero_based_column .. postfix), nil, animated, "playfield")
 			if postfix == "H" or postfix == "T" then
-				add(get_section_value(self.section, "NoteImage" .. zero_based_column .. "H"))
-				add(get_section_value(self.section, "NoteImage" .. zero_based_column))
+				add(get_section_value(self.section, "NoteImage" .. zero_based_column .. "H"), nil, false, "playfield")
+				add(get_section_value(self.section, "NoteImage" .. zero_based_column), nil, false, "playfield")
 			end
 			local fallback = "mania-note" .. suffix .. postfix
-			add(fallback, nil, animated)
-			if postfix == "H" or postfix == "T" then add("mania-note" .. suffix) end
+			add(fallback, nil, animated, "playfield")
+			if postfix == "H" or postfix == "T" then add("mania-note" .. suffix, nil, false, "playfield") end
 		end
-		add(get_section_value(self.section, "KeyImage" .. zero_based_column))
-		add(get_section_value(self.section, "KeyImage" .. zero_based_column .. "D"))
-		add("mania-key" .. suffix)
-		add("mania-key" .. suffix .. "D")
+		add(get_section_value(self.section, "KeyImage" .. zero_based_column), nil, false, "playfield")
+		add(get_section_value(self.section, "KeyImage" .. zero_based_column .. "D"), nil, false, "playfield")
+		add("mania-key" .. suffix, nil, false, "playfield")
+		add("mania-key" .. suffix .. "D", nil, false, "playfield")
 	end
 
 	for _, key in ipairs({"StageHint", "StageLeft", "StageRight", "StageBottom"}) do
 		local name = get_section_value(self.section, key)
 		if name and tonumber(name) then name = nil end
 		local fallback = "mania-" .. key:gsub("^Stage", "stage-"):lower()
-		add(name, fallback)
+		add(name, fallback, false, key == "StageHint" and "playfield" or "standalone")
 	end
-	add(get_section_value(self.section, "StageLight"), "mania-stage-light", true)
-	add(get_section_value(self.section, "LightingN"), "lightingN", true)
-	add(get_section_value(self.section, "LightingL"), "lightingL", true)
+	add(get_section_value(self.section, "StageLight"), "mania-stage-light", true, "playfield")
+	add(get_section_value(self.section, "LightingN"), "lightingN", true, "playfield")
+	add(get_section_value(self.section, "LightingL"), "lightingL", true, "playfield")
 
-	for digit = 0, 9 do add("score-" .. digit) end
+	for digit = 0, 9 do add("score-" .. digit, nil, false, "font") end
 	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
-		add("score-" .. suffix)
+		add("score-" .. suffix, nil, false, "font")
 	end
 	local score_images = self.score_view:getImageAssets()
-	for _, name in ipairs(score_images) do add(name) end
-	for _, name in ipairs(self.accuracy_view:getImageAssets()) do add(name) end
-	for _, name in ipairs(self.combo_view:getImageAssets()) do add(name) end
+	for _, name in ipairs(score_images) do add(name, nil, false, "font") end
+	for _, name in ipairs(self.accuracy_view:getImageAssets()) do add(name, nil, false, "font") end
+	for _, name in ipairs(self.combo_view:getImageAssets()) do add(name, nil, false, "playfield") end
+	for digit = 0, 9 do add("score-" .. digit, nil, false, "playfield") end
+	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
+		add("score-" .. suffix, nil, false, "playfield")
+	end
 	for _, asset in ipairs(self.judge_view:getImageAssets()) do
 		local name = asset.name or asset.fallback
 		local fallback = asset.name and asset.fallback or nil
-		add(name, fallback, true)
+		add(name, fallback, true, "playfield")
 	end
-	add("editor-rate-arrow")
-	add("circularmetre")
+	add("editor-rate-arrow", nil, false, "standalone")
+	add("circularmetre", nil, false, "standalone")
 	return assets
 end
 
 ---@param column integer one based physical Mania lane index
----@param image love.Image
+---@param image any
 ---@return number width
 ---@return number height
 function OsuManiaRenderer:getNoteDimensions(column, image)
@@ -762,7 +778,7 @@ function OsuManiaRenderer:getNoteDimensions(column, image)
 		base_width = math.min(base_width,
 			self.note_height_scale > 0 and self.note_height_scale or self.column_widths[lane] or DEFAULT_COLUMN_WIDTH)
 	end
-	local image_width, image_height = image:getDimensions()
+	local image_width, image_height = OsuManiaImage.dimensions(image)
 	local height = image_width > 0 and image_height * base_width * width_scale / image_width or 0
 	return width, height
 end
@@ -890,24 +906,24 @@ function OsuManiaRenderer:getSkinColor(key, fallback)
 end
 
 ---@param name string?
----@return love.Image?
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
 function OsuManiaRenderer:getFirstFrame(name)
-	return self.skin_graphics:getFrames(name, nil)[1]
+	return self.skin_graphics:getFrames(name, nil, "playfield")[1]
 end
 
 ---@param column integer
 ---@param suffix string
 ---@param postfix string
----@return love.Image[]
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
 function OsuManiaRenderer:getColumnFrames(column, suffix, postfix)
 	local graphics = self.skin_graphics
-	local animated = postfix == "L"
+	local animated = true
 	local function find(name)
 		if not name then return EMPTY_FRAMES end
 		if animated and graphics.getAnimationFrames then
-			return graphics:getAnimationFrames(name, nil)
+			return graphics:getAnimationFrames(name, nil, "playfield")
 		end
-		return graphics:getFrames(name, nil)
+		return graphics:getFrames(name, nil, "playfield")
 	end
 
 	local frames = find(get_section_value(self.section, "NoteImage" .. column .. postfix))
@@ -922,7 +938,7 @@ function OsuManiaRenderer:getColumnFrames(column, suffix, postfix)
 	frames = find("mania-note" .. suffix .. postfix)
 	if #frames > 0 then return frames end
 	if postfix == "H" or postfix == "T" then
-		return graphics:getFrames("mania-note" .. suffix, nil)
+		return find("mania-note" .. suffix)
 	end
 	return EMPTY_FRAMES
 end
@@ -930,9 +946,11 @@ end
 ---@param column integer
 ---@param suffix string
 ---@param postfix string
----@return love.Image?
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
 function OsuManiaRenderer:getColumnImage(column, suffix, postfix)
-	return self:getColumnFrames(column, suffix, postfix)[1]
+	local frames = self:getColumnFrames(column, suffix, postfix)
+	local index = math.floor((self.note_renderer.time or 0) / 0.03) % math.max(#frames, 1) + 1
+	return frames[index]
 end
 
 ---@param note table
@@ -964,7 +982,10 @@ end
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaRenderer:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
+	local batch = self.skin_graphics.batch
+	if batch then batch:flush() end
 	self.stage_renderer:draw(self, field_left, field_width, lane_widths, lane_xs, hit_y)
+	if batch then batch:flush() end
 	self:drawStageLightings(lane_widths, lane_xs, hit_y)
 end
 
@@ -1006,6 +1027,8 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	lg.push("all")
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
+	local batch = self.skin_graphics.batch
+	if batch then batch:begin() end
 	self.field_renderer:drawBackground(self, field_left, field_width)
 	for column = 1, math.min(self.columns, #preview.columns) do
 		local source_column = column
@@ -1051,6 +1074,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	if not self.stage_under_keys then
 		self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
 	end
+	if batch then batch:finish() end
 	lg.pop()
 end
 
@@ -1112,6 +1136,8 @@ function OsuManiaRenderer:draw(width, height, transform)
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
 
+	local batch = self.skin_graphics.batch
+	if batch then batch:begin() end
 	self.field_renderer:drawBackground(self, field_left, field_width)
 	self.field_renderer:drawLanes(self, lane_widths, lane_xs)
 	self.field_renderer:drawGuides(self, field_left, field_width, lane_widths, lane_xs, hit_y, width_scale)
@@ -1162,9 +1188,10 @@ function OsuManiaRenderer:draw(width, height, transform)
 
 	if not self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 	if not self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
+	if batch then batch:flush() end
 	self:drawHitLightings(lane_xs, hit_y)
+	if batch then batch:finish() end
 	lg.pop()
 end
 
 return OsuManiaRenderer
-

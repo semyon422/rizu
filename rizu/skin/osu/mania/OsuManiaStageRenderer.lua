@@ -1,4 +1,5 @@
 local class = require("class")
+local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
 
 local lg = love.graphics
 
@@ -11,10 +12,10 @@ function OsuManiaStageRenderer:update(dt) end
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
 ---@param name string?
 ---@param fallback string
----@return love.Image?
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
 local function get_image(renderer, name, fallback)
 	if name and tonumber(name) then name = nil end
-	return renderer.skin_graphics:getFrames(name, fallback)[1]
+	return renderer.skin_graphics:getFrames(name, fallback, (fallback == "mania-stage-hint") and "playfield" or "standalone")[1]
 end
 
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
@@ -29,18 +30,20 @@ function OsuManiaStageRenderer:drawStagePair(renderer, first, last, lane_widths,
 	local height = 480
 	local stage_left = get_image(renderer, renderer:getSkinValue("StageLeft"), "mania-stage-left")
 	if stage_left then
-		local image_width, image_height = stage_left:getDimensions()
+		if renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
+		local image_width, image_height = OsuManiaImage.dimensions(stage_left)
 		local width = image_width * height / image_height
 		lg.setColor(1, 1, 1, 1)
-		lg.draw(stage_left, left, height, 0, width / image_width, height / image_height,
+		OsuManiaImage.draw(stage_left, left, height, 0, width / image_width, height / image_height,
 			image_width, image_height)
 	end
 	local stage_right = get_image(renderer, renderer:getSkinValue("StageRight"), "mania-stage-right")
 	if stage_right then
-		local image_width, image_height = stage_right:getDimensions()
+		if renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
+		local image_width, image_height = OsuManiaImage.dimensions(stage_right)
 		local width = image_width * height / image_height
 		lg.setColor(1, 1, 1, 1)
-		lg.draw(stage_right, right, height, 0, width / image_width, height / image_height,
+		OsuManiaImage.draw(stage_right, right, height, 0, width / image_width, height / image_height,
 			0, image_height)
 	end
 end
@@ -54,9 +57,10 @@ end
 function OsuManiaStageRenderer:draw(renderer, field_left, field_width, lane_widths, lane_xs, hit_y)
 	local stage_hint = get_image(renderer, renderer:getSkinValue("StageHint"), "mania-stage-hint")
 	if stage_hint then
-		local _, image_height = stage_hint:getDimensions()
+		local image_width, image_height = OsuManiaImage.dimensions(stage_hint)
 		lg.setColor(1, 1, 1, 1)
-		lg.draw(stage_hint, field_left, hit_y - image_height / 2, 0, field_width / stage_hint:getWidth(), 1)
+		OsuManiaImage.draw(stage_hint, field_left, hit_y - image_height / 2, 0, field_width / image_width, 1,
+			0, 0, renderer.skin_graphics.batch)
 	end
 
 	local middle = math.floor(renderer.columns / 2)
@@ -69,6 +73,7 @@ function OsuManiaStageRenderer:draw(renderer, field_left, field_width, lane_widt
 
 	local stage_bottom = get_image(renderer, renderer:getSkinValue("StageBottom"), "mania-stage-bottom")
 	if stage_bottom then
+		if renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
 		local left = lane_xs[1] - lane_widths[1] / 2
 		local right = lane_xs[renderer.columns] + lane_widths[renderer.columns] / 2
 		lg.setColor(1, 1, 1, 1)

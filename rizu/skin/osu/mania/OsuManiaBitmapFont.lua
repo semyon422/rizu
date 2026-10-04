@@ -1,4 +1,5 @@
 local class = require("class")
+local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
 
 local lg = love.graphics
 
@@ -9,18 +10,19 @@ local CHARACTER_SUFFIXES = {
 local DIGIT_SUFFIXES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
 ---@class rizu.skin.osu.mania.OsuManiaBitmapFont.Glyph
----@field image love.Image
----@field width number
----@field height number
----@field advance number
----@field digit boolean
+---@field image rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
+---@field width number?
+---@field height number?
+---@field advance number?
+---@field digit boolean?
 
 ---@class rizu.skin.osu.mania.OsuManiaBitmapFont
 ---@operator call: rizu.skin.osu.mania.OsuManiaBitmapFont
 ---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@field group "playfield"|"font"
 ---@field prefix string
 ---@field overlap number
----@field image_cache {[string]: love.Image|false}
+---@field image_cache {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Image|false}
 ---@field image_cache_generation integer
 ---@field glyphs rizu.skin.osu.mania.OsuManiaBitmapFont.Glyph[]
 ---@field glyph_count integer
@@ -35,6 +37,7 @@ local OsuManiaBitmapFont = class()
 function OsuManiaBitmapFont:new(graphics, prefix, overlap)
 	self.graphics = graphics
 	self.prefix = prefix or "score"
+	self.group = "font"
 	self.overlap = overlap or 0
 	self.image_cache = {}
 	self.image_cache_generation = -1
@@ -48,6 +51,7 @@ end
 ---@param skin rizu.skin.OsuSkinDiscovery?
 ---@param font_name "Score"|"Combo"
 function OsuManiaBitmapFont:setSkin(skin, font_name)
+	self.group = font_name == "Combo" and "playfield" or "font"
 	local fonts = skin and skin.skin_ini.Fonts or {}
 	local prefix, overlap
 	for name, value in pairs(fonts) do
@@ -74,7 +78,7 @@ local function character_suffix(character_code)
 end
 
 ---@param suffix string
----@return love.Image?
+---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
 function OsuManiaBitmapFont:getImage(suffix)
 	if self.image_cache_generation ~= self.graphics.generation then
 		self.image_cache = {}
@@ -87,18 +91,17 @@ function OsuManiaBitmapFont:getImage(suffix)
 	end
 	local cached = self.image_cache[suffix]
 	if cached ~= nil then return cached ~= false and cached or nil end
-	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, "score-" .. suffix)[1]
+	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, "score-" .. suffix, self.group)[1]
 	self.image_cache[suffix] = image or false
 	return image
 end
 
----@param image love.Image?
+---@param image rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
 ---@return number width
 ---@return number height
 function OsuManiaBitmapFont:getImageDimensions(image)
 	if not image then return 0, 0 end
-	if image.getDimensions then return image:getDimensions() end
-	return image:getWidth(), image:getHeight()
+	return OsuManiaImage.dimensions(image)
 end
 
 ---@param include_combo_suffix boolean?
@@ -177,6 +180,9 @@ function OsuManiaBitmapFont:draw(value, scale, y, right_edge, color)
 		glyph.image, glyph.width, glyph.height, glyph.advance, glyph.digit = nil, nil, nil, nil, nil
 	end
 	local draw_x = right_edge - math.max(0, total_width - math.max(0, glyph_count - 1) * self.overlap) * scale
+	local batch = self.graphics.batch
+	local own_scope = batch and not batch.collecting
+	if own_scope then batch:begin() end
 	for index = 1, glyph_count do
 		local glyph = glyphs[index]
 		local offset_x = glyph.digit and math.max(0, (slot_width - glyph.width) / 2) or 0
@@ -186,9 +192,11 @@ function OsuManiaBitmapFont:draw(value, scale, y, right_edge, color)
 		else
 			lg.setColor(1, 1, 1, 1)
 		end
-		lg.draw(glyph.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale)
+		OsuManiaImage.draw(glyph.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale,
+			0, 0, batch)
 		draw_x = draw_x + (glyph.advance - self.overlap) * scale
 	end
+	if own_scope then batch:finish() end
 	return max_height * scale
 end
 

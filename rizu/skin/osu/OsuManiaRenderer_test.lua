@@ -477,14 +477,23 @@ end
 function test.loads_bundled_fallback_assets(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
 	local previous_new_image = love.graphics.newImage
-	love.graphics.newImage = function(data)
-		local image_data = love.image.newImageData(data)
-		local width, height = image_data:getDimensions()
-		image_data:release()
+	local previous_new_quad = love.graphics.newQuad
+	local previous_new_batch = love.graphics.newSpriteBatch
+	love.graphics.newSpriteBatch = function()
+		return {release = function() end}
+	end
+	love.graphics.newQuad = function(x, y, width, height)
+		return {getViewport = function() return x, y, width, height end, release = function() end}
+	end
+	love.graphics.newImage = function(data, settings)
+		local width, height = data:getDimensions()
+		local density = settings and settings.dpiscale or 1
+		width, height = width / density, height / density
 		return {
 			getWidth = function() return width end,
 			getHeight = function() return height end,
 			getDimensions = function() return width, height end,
+			setWrap = function() end,
 			release = function() end,
 		}
 	end
@@ -492,19 +501,27 @@ function test.loads_bundled_fallback_assets(t)
 		renderer:load()
 		local graphics = renderer.skin_graphics
 		t:eq(graphics.fallback_archive, "resources/osu_default_assets.zip")
-		for _, name in ipairs({"mania-key1", "mania-key2D", "mania-noteS", "mania-note1L",
+		for _, name in ipairs({"mania-key1", "mania-key2D", "mania-note1", "mania-note1L",
 			"mania-note2T", "mania-stage-left", "mania-stage-hint", "score-0", "score-percent"}) do
-			local image = graphics:getFrames(name)[1]
-			t:assert(image, name)
-			t:eq(graphics:getImageDensity(image), 2)
+			local group = name:match("^score") and "font"
+				or name:match("^mania%-stage%-left") and "standalone" or "playfield"
+			local image = graphics:getFrames(name, nil, group)[1]
+			if group == "standalone" then
+				t:eq(image, nil, name)
+			else
+				t:assert(image, name)
+				t:eq(graphics:getImageDensity(image), 2)
+			end
 		end
-		t:assert(graphics:getAnimationFrames("mania-hit300g")[1])
+		t:assert(graphics:getAnimationFrames("mania-hit300g", nil, "playfield")[1])
 		t:assert(renderer.score_view.height > 0)
 		renderer:unload()
 		renderer:load()
-		t:assert(graphics:getFrames("mania-key1")[1])
+		t:assert(graphics:getFrames("mania-key1", nil, "playfield")[1])
 	end, debug.traceback)
 	love.graphics.newImage = previous_new_image
+	love.graphics.newQuad = previous_new_quad
+	love.graphics.newSpriteBatch = previous_new_batch
 	renderer:unload()
 	if not ok then error(err) end
 end
