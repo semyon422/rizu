@@ -134,6 +134,38 @@ function test.frame_animation_uses_native_width_and_fades_alpha(t)
 	if not ok then error(err) end
 end
 
+function test.set_held_does_not_affect_a_oneshot_animation(t)
+	local image = {getWidth = function() return 40 end, getDimensions = function() return 40, 40 end}
+	local lighting = HitLighting({image = image, duration = 1})
+
+	lighting:trigger()
+	lighting:update(0.25)
+	lighting:setHeld(true)
+	t:eq(lighting.elapsed, 0.25)
+	t:eq(lighting.active, true)
+
+	lighting:setHeld(false)
+	t:eq(lighting.elapsed, 0.25)
+	t:eq(lighting.active, true)
+end
+
+---@param t testing.T
+function test.hold_mode_advances_until_release(t)
+	local image = {getWidth = function() return 40 end, getDimensions = function() return 40, 40 end}
+	local lighting = HitLighting({image = image, mode = "hold", duration = 1})
+
+	lighting:setHeld(true)
+	lighting:update(0.25)
+	lighting:setHeld(true)
+	t:eq(lighting.elapsed, 0.25)
+	t:eq(lighting.active, true)
+
+	lighting:setHeld(false)
+	t:eq(lighting.active, true)
+	lighting:update(0)
+	t:eq(lighting.active, false)
+end
+
 ---@param t testing.T
 function test.rejects_unknown_animation(t)
 	local image = {getWidth = function() return 40 end}

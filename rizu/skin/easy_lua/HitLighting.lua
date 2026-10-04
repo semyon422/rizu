@@ -118,10 +118,7 @@ end
 
 ---@param held boolean
 function HitLighting:setHeld(held)
-	if self.mode ~= "hold" then
-		if held then self:trigger() end
-		return
-	end
+	if self.mode ~= "hold" then return end
 	if held then
 		if self.held then return end
 		self.elapsed = 0

@@ -41,7 +41,7 @@ function test.column_hit_lighting_uses_note_type_and_success_state(t)
 	local HitLighting = require("rizu.skin.easy_lua.HitLighting")
 	local image = {getWidth = function() return 40 end, getDimensions = function() return 40, 40 end}
 	local short_lighting = HitLighting({image = image})
-	local long_lighting = HitLighting({image = image})
+	local long_lighting = HitLighting({image = image, mode = "hold"})
 	local column = Column({
 		input = "key1", x = 100, y = 300, width = 40,
 		hit_lighting = {short = short_lighting, long = long_lighting},
@@ -70,6 +70,7 @@ function test.column_hit_lighting_uses_note_type_and_success_state(t)
 	column:triggerHitLighting({short_note, long_note})
 	t:eq(long_lighting.active, true)
 	column:update(0.1)
+	column:triggerHitLighting({short_note, long_note})
 	t:eq(short_lighting.elapsed, 0.1)
 	t:eq(long_lighting.elapsed, 0.1)
 end
