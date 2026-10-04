@@ -333,6 +333,9 @@ end
 function GameplayInteractor:unloadGameplay()
 	if self.load_state == "empty" and not self.loaded then return end
 	local was_loaded = self.loaded
+	-- Check this before skipping to the end: skip() advances the engine to
+	-- infinity so checking after it would make every partial play eligible.
+	local should_save_score = was_loaded and self:hasResult() and self:hasReachedScoreSaveTime()
 	-- Invalidate loading and disable updates before teardown hooks can yield.
 	self.load_generation = self.load_generation + 1
 	self.loaded = false
@@ -363,7 +366,7 @@ function GameplayInteractor:unloadGameplay()
 		end
 	end
 
-	if was_loaded and self:hasResult() then
+	if should_save_score then
 		self:saveScore()
 	end
 	self.gameplay_session = nil
@@ -426,6 +429,24 @@ end
 ---@return boolean
 function GameplayInteractor:hasResult()
 	return self.gameplay_session and self.gameplay_session:hasResult() or false
+end
+
+---@return boolean
+function GameplayInteractor:hasReachedScoreSaveTime()
+	local re = self.game.rhythm_engine
+	if not re then
+		return false
+	end
+
+	local time = re:getTime()
+	local chartdiff = re.chartdiff
+	local last_note_time = chartdiff and chartdiff.start_time + chartdiff.duration
+	local progress = re.play_progress
+	local chart_end_time = progress and progress.start_time + progress.duration
+
+	return last_note_time and time >= last_note_time
+		or chart_end_time and time >= chart_end_time
+		or false
 end
 
 function GameplayInteractor:saveScore()

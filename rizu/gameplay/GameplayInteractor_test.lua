@@ -289,6 +289,9 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 			game = {
 				rhythm_engine = {
 					setTime = function() calls.skip = calls.skip + 1 end,
+					getTime = function() return 10 end,
+					chartdiff = {start_time = 0, duration = 10},
+					play_progress = {start_time = 0, duration = 10},
 					unloadAudio = function() calls.audio = calls.audio + 1 end,
 					bga_engine = {unload = function() calls.bga = calls.bga + 1 end},
 				},
@@ -323,6 +326,43 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 		t:eq(interactor.gameplay_session, nil)
 		t:eq(interactor:hasResult(), false)
 	end
+end
+
+---@param t testing.T
+function test.partial_play_is_not_saved_until_chart_end(t)
+	local function make_interactor(time)
+		local saves = 0
+		local interactor = setmetatable({load_state = "ready", loaded = true,
+			load_generation = 0, gameplay_session = {hasResult = function() return true end},
+			game = {
+				rhythm_engine = {
+					getTime = function() return time end,
+					chartdiff = {start_time = 2, duration = 6},
+					play_progress = {start_time = 2, duration = 8},
+					setTime = function() end,
+					unloadAudio = function() end,
+				},
+				windowModel = {setVsyncOnSelect = function() end},
+				discordModel = {setPresence = function() end},
+				multiplayerModel = {client = {setPlaying = function() end}},
+			},
+			score_saver = {saveScore = function() saves = saves + 1 end},
+		}, {__index = GameplayInteractor})
+		interactor.playfield = {unload = function() end, clearManiaSkin = function() end}
+		return interactor, function() return saves end
+	end
+
+	local partial, partial_saves = make_interactor(7.9)
+	partial:unloadGameplay()
+	t:eq(partial_saves(), 0)
+
+	local after_last_note, after_last_note_saves = make_interactor(8.1)
+	after_last_note:unloadGameplay()
+	t:eq(after_last_note_saves(), 1)
+
+	local complete, complete_saves = make_interactor(10)
+	complete:unloadGameplay()
+	t:eq(complete_saves(), 1)
 end
 
 return test
