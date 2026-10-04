@@ -4,8 +4,8 @@ local OsuManiaBitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
 local ACCURACY_SCALE = 0.96 * 0.625 * 0.6
 local GAP = 3
 
----@class rizu.skin.osu.mania.OsuManiaAccuracyView : rizu.skin.View
----@operator call: rizu.skin.osu.mania.OsuManiaAccuracyView
+---@class rizu.skin.osu.mania.views.OsuManiaAccuracyView : rizu.skin.View
+---@operator call: rizu.skin.osu.mania.views.OsuManiaAccuracyView
 ---@field bitmap_font rizu.skin.osu.mania.OsuManiaBitmapFont
 ---@field accuracy number
 ---@field target_accuracy number

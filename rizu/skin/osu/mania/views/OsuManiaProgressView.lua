@@ -8,8 +8,8 @@ local PROGRESS_POSITION_OFFSET = 24
 local NEGATIVE_PROGRESS_COLOR = {0.78, 1, 0.18, 0.6}
 local POSITIVE_PROGRESS_COLOR = {1, 1, 1, 0.6}
 
----@class rizu.skin.osu.mania.OsuManiaProgressView : rizu.skin.View
----@operator call: rizu.skin.osu.mania.OsuManiaProgressView
+---@class rizu.skin.osu.mania.views.OsuManiaProgressView : rizu.skin.View
+---@operator call: rizu.skin.osu.mania.views.OsuManiaProgressView
 ---@field progress number
 ---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
 ---@field progress_image love.Image?
@@ -30,7 +30,7 @@ function OsuManiaProgressView:new(graphics)
 	})
 end
 
----@param accuracy_view rizu.skin.osu.mania.OsuManiaAccuracyView
+---@param accuracy_view rizu.skin.osu.mania.views.OsuManiaAccuracyView
 function OsuManiaProgressView:setAccuracyView(accuracy_view)
 	-- osu! positions the pie 24 pixels to the left of the accuracy
 	-- display's left edge (ScoreDisplay.LeftOfDisplay).

@@ -6,8 +6,8 @@ local JUDGE_ASSETS = {"300g", "300", "200", "100", "50", "0"}
 local JUDGE_SCALE = 480 / 768
 local DURATION = 0.22
 
----@class rizu.skin.osu.mania.OsuManiaJudgeView : rizu.skin.View
----@operator call: rizu.skin.osu.mania.OsuManiaJudgeView
+---@class rizu.skin.osu.mania.views.OsuManiaJudgeView : rizu.skin.View
+---@operator call: rizu.skin.osu.mania.views.OsuManiaJudgeView
 ---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@field elapsed number
 ---@field duration number

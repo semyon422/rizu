@@ -703,6 +703,39 @@ function OsuManiaSkinGraphics:getAtlasFrame(group, path)
 	return self.atlas_frames[group] and self.atlas_frames[group][path]
 end
 
+---@param group string
+---@return integer
+function OsuManiaSkinGraphics:getAtlasCount(group)
+	local images = self.atlas_images[group]
+	return images and #images or 0
+end
+
+---@return {[string]: integer}
+function OsuManiaSkinGraphics:getAtlasCounts()
+	local counts = {} ---@type {[string]: integer}
+	for group, images in pairs(self.atlas_images) do counts[group] = #images end
+	return counts
+end
+
+---@param group string
+---@return string[][]
+function OsuManiaSkinGraphics:getAtlasContents(group)
+	local contents = {} ---@type string[][]
+	local layers = {} ---@type {[love.Image]: integer}
+	for layer, image in ipairs(self.atlas_images[group] or {}) do layers[image] = layer end
+	for path, frame in pairs(self.atlas_frames[group] or {}) do
+		local layer = layers[frame.texture]
+		if layer then
+			local paths = contents[layer] or {}
+			contents[layer] = paths
+			paths[#paths + 1] = path
+		end
+	end
+	for _, paths in ipairs(contents) do table.sort(paths) end
+	return contents
+end
+
+
 ---@param frame rizu.skin.osu.mania.OsuManiaSkinGraphics.Image
 ---@return number, number
 function OsuManiaSkinGraphics:getFrameDimensions(frame)

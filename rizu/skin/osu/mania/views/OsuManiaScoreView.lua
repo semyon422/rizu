@@ -5,9 +5,9 @@ local SCORE_DIGITS = 8
 local SCORE_SCALE = 0.96 * 0.625
 local SCORE_ANIMATION_RATE = 0.75
 
----@class rizu.skin.osu.mania.OsuManiaScoreView : rizu.skin.View
----@operator call: rizu.skin.osu.mania.OsuManiaScoreView
----@overload fun(graphics: rizu.skin.osu.mania.OsuManiaSkinGraphics): rizu.skin.osu.mania.OsuManiaScoreView
+---@class rizu.skin.osu.mania.views.OsuManiaScoreView : rizu.skin.View
+---@operator call: rizu.skin.osu.mania.views.OsuManiaScoreView
+---@overload fun(graphics: rizu.skin.osu.mania.OsuManiaSkinGraphics): rizu.skin.osu.mania.views.OsuManiaScoreView
 ---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
 ---@field bitmap_font rizu.skin.osu.mania.OsuManiaBitmapFont
 ---@field score_prefix string

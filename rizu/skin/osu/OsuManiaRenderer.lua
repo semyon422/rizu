@@ -1,18 +1,20 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
 local Hud = require("rizu.skin.Hud")
 local BgaView = require("rizu.skin.views.BgaView")
-local OsuManiaScoreView = require("rizu.skin.osu.mania.OsuManiaScoreView")
-local OsuManiaAccuracyView = require("rizu.skin.osu.mania.OsuManiaAccuracyView")
-local OsuManiaComboView = require("rizu.skin.osu.mania.OsuManiaComboView")
-local OsuManiaJudgeView = require("rizu.skin.osu.mania.OsuManiaJudgeView")
-local OsuManiaHitMeterView = require("rizu.skin.osu.mania.OsuManiaHitMeterView")
-local OsuManiaProgressView = require("rizu.skin.osu.mania.OsuManiaProgressView")
+local OsuManiaScoreView = require("rizu.skin.osu.mania.views.OsuManiaScoreView")
+local OsuManiaAccuracyView = require("rizu.skin.osu.mania.views.OsuManiaAccuracyView")
+local OsuManiaComboView = require("rizu.skin.osu.mania.views.OsuManiaComboView")
+local OsuManiaJudgeView = require("rizu.skin.osu.mania.views.OsuManiaJudgeView")
+local OsuManiaHitMeterView = require("rizu.skin.osu.mania.views.OsuManiaHitMeterView")
+local OsuManiaProgressView = require("rizu.skin.osu.mania.views.OsuManiaProgressView")
 local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
 local OsuManiaFieldRenderer = require("rizu.skin.osu.mania.OsuManiaFieldRenderer")
 local OsuManiaKeyRenderer = require("rizu.skin.osu.mania.OsuManiaKeyRenderer")
 local OsuManiaNoteRenderer = require("rizu.skin.osu.mania.OsuManiaNoteRenderer")
 local OsuManiaStageRenderer = require("rizu.skin.osu.mania.OsuManiaStageRenderer")
 local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
+local OsuManiaSkinAssetFinder = require("rizu.skin.osu.mania.OsuManiaSkinAssetFinder")
+local OsuManiaBatchPlan = require("rizu.skin.osu.mania.OsuManiaBatchPlan")
 local InputMode = require("chart.core.InputMode")
 local Settings = require("rizu.config.Settings")
 local SkinConfig = require("rizu.skin.SkinConfig")
@@ -43,6 +45,7 @@ local EMPTY_FRAMES = {}
 ---@class rizu.skin.osu.OsuManiaRenderer : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.skin.osu.OsuManiaRenderer
 ---@field skin_graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@field batch_plan rizu.skin.osu.mania.OsuManiaBatchPlan
 ---@field skin rizu.skin.OsuSkinDiscovery?
 ---@field section rizu.skin.OsuSkinIni.ManiaSection
 ---@field config rizu.skin.SkinConfig
@@ -72,12 +75,12 @@ local EMPTY_FRAMES = {}
 ---@field foreground_hud rizu.skin.Hud?
 ---@field conveyor_hud rizu.skin.Hud
 ---@field private conveyor_hud_transform love.Transform
----@field score_view rizu.skin.osu.mania.OsuManiaScoreView
----@field accuracy_view rizu.skin.osu.mania.OsuManiaAccuracyView
----@field combo_view rizu.skin.osu.mania.OsuManiaComboView
----@field judge_view rizu.skin.osu.mania.OsuManiaJudgeView
----@field hit_meter_view rizu.skin.osu.mania.OsuManiaHitMeterView
----@field progress_view rizu.skin.osu.mania.OsuManiaProgressView
+---@field score_view rizu.skin.osu.mania.views.OsuManiaScoreView
+---@field accuracy_view rizu.skin.osu.mania.views.OsuManiaAccuracyView
+---@field combo_view rizu.skin.osu.mania.views.OsuManiaComboView
+---@field judge_view rizu.skin.osu.mania.views.OsuManiaJudgeView
+---@field hit_meter_view rizu.skin.osu.mania.views.OsuManiaHitMeterView
+---@field progress_view rizu.skin.osu.mania.views.OsuManiaProgressView
 ---@field split_stages boolean
 ---@field stage_separation number
 ---@field light_position number
@@ -119,6 +122,7 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.engine_input_map = mode:getInputMap()
 	self.input_map = self.engine_input_map
 	self.skin_graphics = OsuManiaSkinGraphics(game.fs)
+	self.batch_plan = OsuManiaBatchPlan()
 	self.skin_graphics.defer_grouped = true
 	self.skin_graphics.hide_unbatched = false
 	self.score_view = OsuManiaScoreView(self.skin_graphics)
@@ -695,75 +699,20 @@ end
 
 ---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset[]
 function OsuManiaRenderer:getSkinAssets()
-	local assets = {} ---@type rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset[]
-	local seen = {} ---@type {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset}
-	---@param name string?
-	---@param fallback string?
-	---@param animation boolean?
-	---@param group string?
-	local function add(name, fallback, animation, group)
-		if (not name or name == "") and (not fallback or fallback == "") then return end
-		local key = tostring(name or ""):lower() .. "\0" .. tostring(fallback or ""):lower() .. "\0" .. tostring(group or "")
-		local existing = seen[key]
-		if existing then
-			existing.animation = existing.animation or animation
-			return
-		end
-		local asset = {name = name, fallback = fallback, animation = animation, group = group}
-		seen[key] = asset
-		assets[#assets + 1] = asset
-	end
-
-	for column = 1, self.columns do
-		local zero_based_column = column - 1
-		local suffix = self:getColumnSuffix(zero_based_column)
-		for _, postfix in ipairs({"", "H", "L", "T"}) do
-			local animated = true
-			add(get_section_value(self.section, "NoteImage" .. zero_based_column .. postfix), nil, animated, "playfield")
-			if postfix == "H" or postfix == "T" then
-				add(get_section_value(self.section, "NoteImage" .. zero_based_column .. "H"), nil, false, "playfield")
-				add(get_section_value(self.section, "NoteImage" .. zero_based_column), nil, false, "playfield")
-			end
-			local fallback = "mania-note" .. suffix .. postfix
-			add(fallback, nil, animated, "playfield")
-			if postfix == "H" or postfix == "T" then add("mania-note" .. suffix, nil, false, "playfield") end
-		end
-		add(get_section_value(self.section, "KeyImage" .. zero_based_column), nil, false, "playfield")
-		add(get_section_value(self.section, "KeyImage" .. zero_based_column .. "D"), nil, false, "playfield")
-		add("mania-key" .. suffix, nil, false, "playfield")
-		add("mania-key" .. suffix .. "D", nil, false, "playfield")
-	end
-
-	for _, key in ipairs({"StageHint", "StageLeft", "StageRight", "StageBottom"}) do
-		local name = get_section_value(self.section, key)
-		if name and tonumber(name) then name = nil end
-		local fallback = "mania-" .. key:gsub("^Stage", "stage-"):lower()
-		add(name, fallback, false, key == "StageHint" and "playfield" or "standalone")
-	end
-	add(get_section_value(self.section, "StageLight"), "mania-stage-light", true, "playfield")
-	add(get_section_value(self.section, "LightingN"), "lightingN", true, "playfield")
-	add(get_section_value(self.section, "LightingL"), "lightingL", true, "playfield")
-
-	for digit = 0, 9 do add("score-" .. digit, nil, false, "font") end
-	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
-		add("score-" .. suffix, nil, false, "font")
-	end
-	local score_images = self.score_view:getImageAssets()
-	for _, name in ipairs(score_images) do add(name, nil, false, "font") end
-	for _, name in ipairs(self.accuracy_view:getImageAssets()) do add(name, nil, false, "font") end
-	for _, name in ipairs(self.combo_view:getImageAssets()) do add(name, nil, false, "playfield") end
-	for digit = 0, 9 do add("score-" .. digit, nil, false, "playfield") end
-	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
-		add("score-" .. suffix, nil, false, "playfield")
-	end
-	for _, asset in ipairs(self.judge_view:getImageAssets()) do
-		local name = asset.name or asset.fallback
-		local fallback = asset.name and asset.fallback or nil
-		add(name, fallback, true, "playfield")
-	end
-	add("editor-rate-arrow", nil, false, "standalone")
-	add("circularmetre", nil, false, "standalone")
-	return assets
+	local finder = OsuManiaSkinAssetFinder({
+		section = self.section,
+		columns = self.columns,
+		column_suffixes = (function()
+			local suffixes = {}
+			for column = 1, self.columns do suffixes[column] = self:getColumnSuffix(column - 1) end
+			return suffixes
+		end)(),
+		score_assets = self.score_view:getImageAssets(),
+		accuracy_assets = self.accuracy_view:getImageAssets(),
+		combo_assets = self.combo_view:getImageAssets(),
+		judge_assets = self.judge_view:getImageAssets(),
+	})
+	return self.batch_plan:build(finder:find())
 end
 
 ---@param column integer one based physical Mania lane index

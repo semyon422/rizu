@@ -25,13 +25,13 @@ local ERROR_COLORS = {
 	{1, 0.035, 0.035}, -- miss
 }
 
----@class rizu.skin.osu.mania.OsuManiaHitMeterView.ErrorPoint
+---@class rizu.skin.osu.mania.views.OsuManiaHitMeterView.ErrorPoint
 ---@field position number
 ---@field color number[]
 ---@field age number
 
----@class rizu.skin.osu.mania.OsuManiaHitMeterView : rizu.skin.View
----@operator call: rizu.skin.osu.mania.OsuManiaHitMeterView
+---@class rizu.skin.osu.mania.views.OsuManiaHitMeterView : rizu.skin.View
+---@operator call: rizu.skin.osu.mania.views.OsuManiaHitMeterView
 ---@field sequence_index integer
 ---@field score_engine rizu.ScoreEngine?
 ---@field last_hit_time number
@@ -44,7 +44,7 @@ local ERROR_COLORS = {
 ---@field target_position number
 ---@field floating_position number
 ---@field point_index integer
----@field error_points rizu.skin.osu.mania.OsuManiaHitMeterView.ErrorPoint[]
+---@field error_points rizu.skin.osu.mania.views.OsuManiaHitMeterView.ErrorPoint[]
 ---@field meter_alpha number
 ---@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
 ---@field arrow_image love.Image?

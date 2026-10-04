@@ -7,8 +7,8 @@ local COMBO_INCREASE_DURATION = 0.3
 local BREAK_DURATION = 0.2
 local BREAK_SCALE = 4
 
----@class rizu.skin.osu.mania.OsuManiaComboView : rizu.skin.View
----@operator call: rizu.skin.osu.mania.OsuManiaComboView
+---@class rizu.skin.osu.mania.views.OsuManiaComboView : rizu.skin.View
+---@operator call: rizu.skin.osu.mania.views.OsuManiaComboView
 ---@field bitmap_font rizu.skin.osu.mania.OsuManiaBitmapFont
 ---@field combo integer
 ---@field display_combo integer

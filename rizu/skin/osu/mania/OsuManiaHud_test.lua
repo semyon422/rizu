@@ -1,6 +1,6 @@
-local OsuManiaJudgeView = require("rizu.skin.osu.mania.OsuManiaJudgeView")
-local OsuManiaHitMeterView = require("rizu.skin.osu.mania.OsuManiaHitMeterView")
-local OsuManiaProgressView = require("rizu.skin.osu.mania.OsuManiaProgressView")
+local OsuManiaJudgeView = require("rizu.skin.osu.mania.views.OsuManiaJudgeView")
+local OsuManiaHitMeterView = require("rizu.skin.osu.mania.views.OsuManiaHitMeterView")
+local OsuManiaProgressView = require("rizu.skin.osu.mania.views.OsuManiaProgressView")
 local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
