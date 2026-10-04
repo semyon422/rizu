@@ -357,6 +357,25 @@ function test.hides_standalone_but_keeps_oversized_batched_pages_visible(t)
 	end)
 end
 
+function test.one_pixel_hold_body_is_stretched_once(t)
+	local graphics = fixture({["body.png"] = png(255, 1)})
+	with_gpu(function(_, draws)
+		graphics:load({{name = "body", group = "playfield"}})
+		local body = graphics:getFrames("body", nil, "playfield")[1]
+		local renderer = {skin_graphics = graphics, upside_down = false, note_flip = false,
+			note_body_styles = {"repeat_bottom"}, getColumnSuffix = function() return "1" end,
+			getColumnFrames = function() return {body} end, getColumnImage = function() return nil end,
+			getBoolean = function() return false end}
+		graphics.batch:begin()
+		require("rizu.skin.osu.mania.OsuManiaNoteRenderer")():draw(renderer,
+			{{column = 1, long_note = true, head_visible = false, body_visible = true,
+				head_y = 300, tail_y = 0}}, {40}, {20})
+		graphics.batch:finish()
+		t:eq(#draws, 1)
+		graphics:unload()
+	end)
+end
+
 function test.tall_body_crops_top_left_to_device_limit_and_batches_without_hot_quads(t)
 	local data = love.image.newImageData(40, 70000)
 	data:setPixel(0, 0, 1, 0, 0, 1)
