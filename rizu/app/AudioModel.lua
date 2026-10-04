@@ -185,13 +185,20 @@ function AudioModel:load(device, device_id, backend)
 	if tonumber(bass.BASS_GetDevice()) >= 0 then
 		return
 	end
-	assert(device_id, "Could not initialize the default BASS output device")
 	self.sdl_status = nil
 	OutputConfig.set({backend = "bass_default", period = device.period, buffer = device.buffer})
-	self.startup_warning = "The selected audio device failed to initialize; using the default output device."
+	if device_id then
+		self.startup_warning = "The selected audio device failed to initialize; using the default output device."
+		print("AudioModel: " .. self.startup_warning)
+		bass.init()
+		if tonumber(bass.BASS_GetDevice()) >= 0 then
+			return
+		end
+	end
+	self.startup_warning = "No audio output device is available; using the BASS no-sound device."
 	print("AudioModel: " .. self.startup_warning)
-	bass.init()
-	assert(tonumber(bass.BASS_GetDevice()) >= 0, "Could not initialize the fallback BASS output device")
+	bass.init(0)
+	assert(tonumber(bass.BASS_GetDevice()) >= 0, "Could not initialize the BASS no-sound device")
 end
 
 return AudioModel
