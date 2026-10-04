@@ -20,6 +20,7 @@ local ResultDetails = require("ui.screens.result.ResultDetails")
 local BgaPreview = require("ui.views.BgaPreview")
 
 ---@class ui.screens.result.ResultScrollView : gui.ScrollView
+---@operator call: ui.screens.result.ResultScrollView
 local ResultScrollView = ScrollView + {}
 
 function ResultScrollView:onLayoutChanged()
@@ -46,7 +47,8 @@ function Result:new(ui)
 	)
 
 	self.pages = View()
-	self.scroll_view = self.root:add(ResultScrollView(self.pages)):anchorFill(0, 0, 0, 0)
+	self.scroll_view = self.root:add(ResultScrollView(self.pages))
+	self.scroll_view:anchorFill(0, 0, 0, 0)
 	self.first_page = self.pages:add(View()):anchorPercent(0, 0, 1, 0.5)
 	self.second_page = self.pages:add(View()):anchorPercent(0, 0.5, 1, 1)
 
@@ -95,7 +97,8 @@ function Result:new(ui)
 	self.meta = ResultMeta()
 	self.ring = self.content:add(self:createRingPanel())
 	self.no_score_panel = self.content:add(self:createNoScorePanel())
-	self.details = self.second_page:add(ResultDetails(ui.tooltip)):anchorFill(0, 0, 0, 0)
+	self.details = self.second_page:add(ResultDetails(ui.tooltip))
+	self.details:anchorFill(0, 0, 0, 0)
 
 	self.composite:setOpacity(0)
 end
@@ -188,9 +191,9 @@ function Result:updateInfo()
 	-- Auto timings sourced from chart metadata are intentionally absent from
 	-- replayBase. The selected judge system is created from the resolved timings,
 	-- so it is authoritative for both manual and automatic timing selection.
-	---@cast judge_source +rizu.ScoreSystem
-	assert(judge_source.timings)
-	local score_system_formatter = ScoreSystemFormatter(judge_source)
+	local score_system = judge_source --[[@as rizu.ScoreSystem]]
+	assert(score_system.timings)
+	local score_system_formatter = ScoreSystemFormatter(score_system)
 	self.stats:bind(accuracy_source, judge_source, score_system_formatter)
 
 	self.chartview_formatter:setTimeRate(

@@ -1,4 +1,6 @@
 local decibel = require("decibel")
+local ActionMap = require("gui.input.ActionMap")
+local Inputs = require("gui.input.Inputs")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Overlay = require("ui.Overlay")
 local Settings = require("rizu.config.Settings")
@@ -9,19 +11,27 @@ local test = {}
 ---@param action string
 ---@return gui.Inputs
 local function createInputs(action)
-	return {
-		consumeActionJustPressed = function(_, requested_action)
-			return requested_action == action
-		end,
-	} --[[@as gui.Inputs]]
+	local actions = ActionMap()
+	actions:defineAction(action, {{key = "test_action"}})
+	local inputs = Inputs()
+	inputs:setActionMap(actions)
+	inputs:receive({name = "keypressed", "test_action"}, {
+		control = false, shift = false, alt = false, super = false,
+	})
+	return inputs
 end
 
 ---@param settings rizu.config.Config
 ---@param action string
 local function handleVolumeAction(settings, action)
-	Overlay.onHandleInputs({
-		ui = {game = {settings = settings}},
-	}, createInputs(action))
+	local overlay = setmetatable({
+		ui = {
+			game = {settings = settings},
+			gameplay = {},
+			screen_manager = {input_screen = {}},
+		},
+	}, {__index = Overlay})
+	overlay:onHandleInputs(createInputs(action))
 end
 
 ---@param t testing.T

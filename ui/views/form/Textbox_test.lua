@@ -1,9 +1,14 @@
+local ActionMap = require("gui.input.ActionMap")
+local FocusLostEvent = require("gui.input.events.FocusLostEvent")
 local Inputs = require("gui.input.Inputs")
 local Screen = require("gui.Screen")
 local Textbox = require("ui.views.form.Textbox")
+local UiActions = require("ui.UiActions")
 local View = require("gui.View")
 
 local test = {}
+
+local default_modifiers = {control = false, shift = false, alt = false, super = false}
 
 ---@param t testing.T
 function test.activation_requests_keyboard_focus(t)
@@ -14,7 +19,7 @@ function test.activation_requests_keyboard_focus(t)
 	screen.root:add(textbox)
 	screen:resize(100, 100)
 
-	local activated = Textbox.activate(textbox, {
+	local activated = Textbox.activate(textbox --[[@as ui.views.form.Textbox]], {
 		control_pressed = false,
 		shift_pressed = false,
 		alt_pressed = false,
@@ -37,12 +42,12 @@ function test.commits_changes_on_focus_lost(t)
 		notifyChange = Textbox.notifyChange,
 	}
 
-	Textbox.onFocusLost(textbox, {})
+	Textbox.onFocusLost(textbox, FocusLostEvent(default_modifiers))
 	t:eq(committed, "changed")
 	t:eq(textbox.committed_text, "changed")
 
 	committed = nil
-	Textbox.onFocusLost(textbox, {})
+	Textbox.onFocusLost(textbox, FocusLostEvent(default_modifiers))
 	t:eq(committed, nil)
 end
 
@@ -62,24 +67,25 @@ end
 ---@param t testing.T
 function test.escape_clears_keyboard_focus(t)
 	local textbox = View()
-	textbox.onKeyDown = Textbox.onKeyDown
-	textbox.focused = true
+	textbox.onHandleInputs = Textbox.onHandleInputs
+	textbox:setSize(100, 100)
 	local screen = Screen()
 	local inputs = Inputs()
-	screen:acceptInputs(inputs)
+	local actions = ActionMap()
+	actions:defineAction(UiActions.cancel, {{key = "escape"}})
+	inputs:setActionMap(actions)
 	screen.root:add(textbox)
 	screen:resize(100, 100)
+	inputs:beginFrame(0, 0)
+	screen:acceptInputs(inputs)
 	inputs:setKeyboardFocus(textbox, {control = false, shift = false, alt = false, super = false})
 
-	local handled = textbox:onKeyDown({
-		key = "escape",
-		control_pressed = false,
-		shift_pressed = false,
-		alt_pressed = false,
-		super_pressed = false,
+	inputs:receive({name = "keypressed", "escape"}, {
+		control = false, shift = false, alt = false, super = false,
 	})
+	textbox:onHandleInputs(inputs)
 
-	t:eq(handled, true)
+	t:eq(inputs:isActionJustPressed(UiActions.cancel), false)
 	t:eq(inputs.keyboard_focus, nil)
 	t:eq(textbox.focused, false)
 end

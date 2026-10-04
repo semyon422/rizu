@@ -1,5 +1,6 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Layout = require("ui.modals.config.sections.Layout")
+local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
 local Settings = require("rizu.config.Settings")
 local View = require("gui.View")
@@ -37,9 +38,13 @@ function test.exposes_fullscreen_mode_selector(t)
 	local settings = Settings.createConfig(FakeFilesystem())
 	local form = View()
 	local popup_container = View()
-	local controls = Layout(settings, form, popup_container):build()
+	local ok, controls = pcall(function()
+		return Layout(settings, form, popup_container, Localization()):build()
+	end)
 	Resources.sprites = old_sprites
 	Resources.getFont = old_get_font
+	assert(ok, controls)
+	---@cast controls ui.views.form.FormControl[]
 	local fullscreen_type = controls[2] --[[@as ui.views.form.Dropdown]]
 
 	t:eq(#controls, 2)

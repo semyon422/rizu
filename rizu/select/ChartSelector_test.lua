@@ -189,6 +189,26 @@ function test.duplicate_chartmeta_restores_by_chartfile(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.filter_changes_refresh_without_debounce(t)
+	local library = tlf:create()
+	local selector = ChartSelector(createMockConfigModel(), createSettings(), library, {}, {
+		getSelectedItem = function() end,
+	}, timer)
+	local refreshed = 0
+	selector.noDebounceRefresh = function()
+		refreshed = refreshed + 1
+	end
+
+	selector.filterModel:setValues("format", {"osu"})
+	t:eq(refreshed, 0)
+	selector.filterModel:commit()
+	t:eq(refreshed, 1)
+	selector.filterModel:clearFilters()
+	t:eq(refreshed, 2)
+	library:unload()
+end
+
 function test.primary_items_loading_event(t)
 	local library = tlf:create()
 	local chartSelector = ChartSelector(createMockConfigModel(), createSettings(), library, {}, {getSelectedItem = function() end}, timer)

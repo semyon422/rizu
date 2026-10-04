@@ -5,34 +5,55 @@ local Resources = require("ui.Resources")
 
 local test = {}
 
-local textbox_cap = {
-	getWidth = function() return 10 end,
-}
+---@generic T
+---@param callback fun(): T
+---@return T
+local function withResources(callback)
+	local old_sprites = Resources.sprites
+	local old_get_font = Resources.getFont
+	local textbox_cap = {
+		getWidth = function() return 10 end,
+		getHeight = function() return 20 end,
+	}
+	Resources.sprites = {
+		checkbox_body = textbox_cap,
+		checkbox_mark = textbox_cap,
+		form_element_cap_left = textbox_cap,
+		form_element_cap_middle = textbox_cap,
+		form_element_cap_right = textbox_cap,
+		slider_line_left = textbox_cap,
+		slider_line_middle = textbox_cap,
+		slider_line_right = textbox_cap,
+		slider_thumb = textbox_cap,
+		segmented_bg_left = textbox_cap,
+		segmented_bg_middle = textbox_cap,
+		segmented_bg_right = textbox_cap,
+	}
+	Resources.getFont = function()
+		return {
+			getHeight = function() return 16 end,
+			getWidth = function(_, text) return #text * 8 end,
+		}
+	end
 
-Resources.sprites = {
-	checkbox_body = {getHeight = function() return 20 end},
-	checkbox_mark = {},
-	form_element_cap_left = textbox_cap,
-	form_element_cap_middle = textbox_cap,
-	form_element_cap_right = textbox_cap,
-	slider_line_left = textbox_cap,
-	slider_line_middle = textbox_cap,
-	slider_line_right = textbox_cap,
-	slider_thumb = textbox_cap,
-	segmented_bg_left = textbox_cap,
-	segmented_bg_middle = textbox_cap,
-	segmented_bg_right = textbox_cap,
-}
+	local ok, result = pcall(callback)
+	Resources.sprites = old_sprites
+	Resources.getFont = old_get_font
+	assert(ok, result)
+	return result
+end
 
 ---@param t testing.T
 function test.boolean_binds_ui_config_and_metadata(t)
 	local config = Config(FakeFilesystem(), "ui.json")
 	config:setDefaultBoolean("show_fps", false)
-	local control = ControlFactory.boolean(config, "show_fps", {
-		name = "Show FPS",
-		keywords = {"performance"},
-		tip = "Display frame timings.",
-	})
+	local control = withResources(function()
+		return ControlFactory.boolean(config, "show_fps", {
+			name = "Show FPS",
+			keywords = {"performance"},
+			tip = "Display frame timings.",
+		})
+	end)
 
 	t:eq(control.setting_name, "Show FPS")
 	t:tdeq(control.setting_keywords, {"performance"})
@@ -46,14 +67,16 @@ end
 function test.number_uses_definition_metadata_and_conversions(t)
 	local config = Config(FakeFilesystem(), "settings.json")
 	config:setDefaultNumber("volume", 0.5, 0, 1, 0.01)
-	local control = ControlFactory.number(config, "volume", {
-		name = "Volume",
-		from_storage = function(value) return value * 100 end,
-		to_storage = function(value) return value / 100 end,
-		min = 0,
-		max = 100,
-		step = 1,
-	})
+	local control = withResources(function()
+		return ControlFactory.number(config, "volume", {
+			name = "Volume",
+			from_storage = function(value) return value * 100 end,
+			to_storage = function(value) return value / 100 end,
+			min = 0,
+			max = 100,
+			step = 1,
+		})
+	end)
 
 	t:eq(control.value, 50)
 	control:setValue(75, true)
@@ -67,11 +90,13 @@ end
 function test.segmented_choice_binds_config_and_metadata(t)
 	local config = Config(FakeFilesystem(), "settings.json")
 	config:setDefaultChoice("difficulty", "enps", {"enps", "osu"})
-	local control = ControlFactory.segmentedChoice(config, "difficulty", {
-		name = "Displayed difficulty type",
-		keywords = {"difficulty"},
-		options = {"osu", "enps"},
-	})
+	local control = withResources(function()
+		return ControlFactory.segmentedChoice(config, "difficulty", {
+			name = "Displayed difficulty type",
+			keywords = {"difficulty"},
+			options = {"osu", "enps"},
+		})
+	end)
 
 	t:tdeq(control.options, {"osu", "enps"})
 	t:eq(control.setting_name, "Displayed difficulty type")
@@ -84,9 +109,11 @@ end
 function test.key_bindings_bind_ui_config(t)
 	local config = Config(FakeFilesystem(), "ui.json")
 	config:setDefaultKeyBindings("open_config", {{key = "o", control = true}})
-	local control = ControlFactory.keyBindings(config, "open_config", {
-		name = "Open settings",
-	})
+	local control = withResources(function()
+		return ControlFactory.keyBindings(config, "open_config", {
+			name = "Open settings",
+		})
+	end)
 
 	t:tdeq(control:getBinding(), {
 		key = "o",
