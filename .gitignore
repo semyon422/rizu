@@ -42,7 +42,7 @@ userdata/llm_chart.lua
 userdata/ai.lua
 userdata/ai_auth.lua
 userdata/ai_proxy.lua
-userdata/glm_proxy.lua
+userdata/zai_proxy.lua
 userdata/mcp.lua
 userdata/mcp_sessions.json
 userdata/needle.lua
