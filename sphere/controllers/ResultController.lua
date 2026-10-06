@@ -8,6 +8,7 @@ local Settings = require("rizu.config.Settings")
 
 ---@class sphere.ResultController
 ---@operator call: sphere.ResultController
+---@field replay_base sea.ReplayBase?
 local ResultController = class()
 
 ---@param game sphere.GameController
@@ -15,6 +16,10 @@ function ResultController:new(game)
 	self.game = game
 end
 
+function ResultController:clearReplay()
+	self.replay_base = nil
+	self.replay = nil
+end
 function ResultController:load()
 	self.game.scoreSelector:pullScore()
 
@@ -56,7 +61,6 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 	-- The fresh engine remains unloaded, so its score sources are nil until a
 	-- replay is successfully loaded below.
 	if mode == "result" then
-		self.replay = nil
 		game:recreateRhythmEngine()
 	end
 
@@ -71,17 +75,20 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 	end
 
 	local replay, err = ReplayLoader.load(replay_data)
-	self.replay = replay -- TODO: move it somewhere else
-
 	if not replay then
 		print("load replay:", err)
 		return
+	end
+
+	if mode ~= "retry" then
+		self.replay = replay -- TODO: move it somewhere else
 	end
 
 	-- A score's replay base is only for this result calculation. The shared
 	-- base is the user's current play configuration and must not be replaced.
 	local replayBase = ReplayBase()
 	replayBase:importReplayBase(replay)
+	self.replay_base = replayBase
 
 	if mode == "retry" then
 		game.gameplayInteractor.replaying = false

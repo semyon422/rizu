@@ -17,6 +17,8 @@ local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local UiActions = require("ui.UiActions")
 local ResultDetails = require("ui.screens.result.ResultDetails")
+local ResultInfo = require("ui.screens.result.ResultInfo")
+local ResultMods = require("ui.screens.result.ResultMods")
 local BgaPreview = require("ui.views.BgaPreview")
 
 ---@class ui.screens.result.ResultScrollView : gui.ScrollView
@@ -58,10 +60,19 @@ function Result:new(ui)
 	self.background:setBrightness(0.7, true)
 	self.bga_preview = self.composite:add(BgaPreview(ui.game.previewModel)):anchorFill(0, 0, 0, 0)
 
-	self.composite:add(Image(Resources.sprites.result_gradient, "fit"))
+	self.mods = self.composite:add(ResultMods())
+	self.mods:setAlignment(1, 0):addPosition(-20, 20)
+
+	self.composite:add(Image(Resources.sprites.result_gradient_background, "fit"))
 		:fillWidth(0, 0)
 		:setHeight(130)
 		:setAlignmentY(1)
+		:addPosition(0, -64)
+
+	self.info = self.composite:add(ResultInfo())
+	self.info:fillWidth(0, 0)
+	self.info:setHeight(64)
+	self.info:setAlignmentY(1)
 
 	self.content = self.composite:add(View()):anchorFill(20, 20, 20, 20)
 
@@ -91,6 +102,8 @@ function Result:new(ui)
 
 	bottom_left:fitContent()
 	bottom_left:setAlignment(0, 1)
+	bottom_left:addPosition(0, -64)
+	self.chart_name:addPosition(0, -64)
 
 	self.judge_segments = JudgeSegments()
 	self.stats = ResultStats()
@@ -165,11 +178,20 @@ function Result:updateInfo()
 	end
 
 	local game = self.ui.game
+	local result_controller = game.resultController
+	local is_replay_result = result_controller.replay ~= nil
+	local result_chartplay = is_replay_result and game.computeContext.chartplay
+	local result_rate = result_chartplay and result_chartplay.rate or game.replayBase.rate
 	self.chartview_formatter:setChartview(chartview)
 
 	self.title:setText(chartview.title)
 	self.artist:setText(chartview.artist)
 	self.chart_name:setText(self.chartview_formatter:getName() or "")
+
+	self.chartview_formatter:setTimeRate(result_rate)
+	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
+	self.info:bind(self.chartview_formatter, self.chartdiff_formatter)
+	self.mods:bind(is_replay_result and result_controller.replay_base or game.replayBase)
 
 	self.details:bind(game)
 	local score_engine = game.rhythm_engine.score_engine
@@ -195,11 +217,6 @@ function Result:updateInfo()
 	assert(score_system.timings)
 	local score_system_formatter = ScoreSystemFormatter(score_system)
 	self.stats:bind(accuracy_source, judge_source, score_system_formatter)
-
-	self.chartview_formatter:setTimeRate(
-		(game.computeContext.chartplay and game.computeContext.chartplay.rate) or game.replayBase.rate
-	)
-	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
 
 	self.meta:bind(
 		self.chartview_formatter,

@@ -425,6 +425,7 @@ function GameController:update(dt)
 end
 
 function GameController:recreateRhythmEngine()
+	self.resultController:clearReplay()
 	if self.rhythm_engine then
 		self.rhythm_engine:unload()
 	end

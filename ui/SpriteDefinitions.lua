@@ -374,6 +374,18 @@ local SpriteDefinitions = {
 			},
 		}},
 	},
+	result_gradient_background = {
+		width = 1,
+		height = 176,
+		fills = {{
+			type = "linear_gradient",
+			angle = 90,
+			stops = {
+				{offset = 0, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0}},
+				{offset = 1, color = Colors.background},
+			},
+		}},
+	},
 }
 
 return SpriteDefinitions
