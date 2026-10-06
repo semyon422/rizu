@@ -14,6 +14,13 @@ This file records repository-level notes that do not clearly belong to a single 
 - `main.lua` is the top-level LÖVE startup entry point and should stay thin. Move feature behavior into the owning module spec and implementation instead of growing project-wide logic here.
 - Server and tool entry points are documented near their owning modules or root configuration files.
 
+## Module Path Invariants
+
+- Project game, worker, CLI, test, benchmark, and LuaJIT entry points use `require("pkg_config")` for common Lua and native module paths. Do not copy path lists into entry points or restore the obsolete `ncdk`, `chartbase`, and `libchart` package roots.
+- `pkg_config.lua` exports Lua paths and platform-specific native paths, and exports LÖVE paths only when `love.filesystem` is available. When `OR_ROOT` is set, it also adds OpenResty's `lualib` directory.
+- Entry points run from the repository root. Environment-specific imports, such as `pkg.import_lua()` in the Sea CLI, happen before loading the common config so those paths are retained.
+- Standalone `aqua/env` bootstrap modules remain independent of project configuration. Thread path propagation and dynamic package loading retain their own `aqua.pkg` operations.
+
 ## Future Work and Open Questions
 
 - Use this section for quick project-wide thoughts before they have a clear owner.

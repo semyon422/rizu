@@ -1,23 +1,6 @@
+require("pkg_config")
+
 local pkg = require("aqua.pkg")
-
-pkg.addc()
-pkg.addc("3rd-deps/lib")
-pkg.addc("bin/lib")
-pkg.addc("tree/lib/lua/5.1")
-pkg.add()
-pkg.add("3rd-deps/lua")
-pkg.add("aqua")
-pkg.add("ncdk")
-pkg.add("chartbase")
-pkg.add("libchart")
-pkg.add("tree/share/lua/5.1")
-
-local or_root = os.getenv("OR_ROOT")
-if or_root then
-	pkg.add(or_root .. "/lualib")
-end
-
-pkg.export_lua()
 
 local pprint = require("pprint")
 pprint.export()
@@ -40,6 +23,7 @@ local BaseTestingIO = require("testing.BaseTestingIO")
 local tio = BaseTestingIO()
 tio.blacklist = {
 	".git",
+	".kilo",
 	"3rd-deps",
 	"tree",
 	"userdata",

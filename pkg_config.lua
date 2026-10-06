@@ -11,6 +11,11 @@ pkg.add("3rd-deps/lua")
 pkg.add("aqua")
 pkg.add("tree/share/lua/5.1")
 
+local or_root = os.getenv("OR_ROOT")
+if or_root then
+	pkg.add(or_root .. "/lualib")
+end
+
 -- Platform specific binaries
 if jit then
 	if jit.os == "Windows" then

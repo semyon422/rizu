@@ -1,17 +1,4 @@
-local pkg = require("aqua.pkg")
-
-pkg.addc()
-pkg.addc("3rd-deps/lib")
-pkg.addc("bin/lib")
-pkg.addc("tree/lib/lua/5.1")
-pkg.add()
-pkg.add("3rd-deps/lua")
-pkg.add("aqua")
-pkg.add("ncdk")
-pkg.add("chartbase")
-pkg.add("libchart")
-pkg.add("tree/share/lua/5.1")
-pkg.export_lua()
+require("pkg_config")
 
 require("testing.FakeLove").install()
 

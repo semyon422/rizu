@@ -2,20 +2,7 @@ local pkg = require("aqua.pkg")
 
 pkg.import_lua()
 
-pkg.addc()
-pkg.addc("3rd-deps/lib")
-pkg.addc("bin/lib")
-pkg.addc("tree/lib/lua/5.1")
-pkg.add()
-pkg.add("3rd-deps/lua")
-pkg.add("aqua")
-pkg.add("ncdk")
-pkg.add("chartbase")
-pkg.add("libchart")
-pkg.add("tree/share/lua/5.1")
-
-pkg.export_lua()
-pcall(pkg.export_love)
+require("pkg_config")
 
 local json = require("web.json")
 local io_util = require("io_util")
