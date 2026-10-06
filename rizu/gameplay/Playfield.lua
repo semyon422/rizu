@@ -8,7 +8,7 @@ local OsuTaikoRenderer = require("rizu.skin.osu.OsuTaikoRenderer")
 local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
 
 local Settings = require("rizu.config.Settings")
-local SdvxPlayfield = require("rizu.gameplay.views.SdvxPlayfield")
+local SdvxRenderer = require("rizu.skin.base.SdvxRenderer")
 
 ---@class rizu.gameplay.Playfield
 ---@operator call: rizu.gameplay.Playfield
@@ -17,7 +17,11 @@ local SdvxPlayfield = require("rizu.gameplay.views.SdvxPlayfield")
 ---@field catch rizu.skin.base.FruitsRenderer
 ---@field osu_catch rizu.skin.osu.OsuFruitsRenderer
 ---@field taiko rizu.skin.osu.OsuTaikoRenderer
----@field sdvx rizu.gameplay.views.SdvxPlayfield
+---@field sdvx rizu.skin.base.SdvxRenderer
+---@field sdvx_skin rizu.skin.LoadableSkin?
+---@field sdvx_skin_renderer rizu.gameplay.views.PlayfieldRenderer?
+---@field sdvx_input_mode string?
+---@field sdvx_skin_config rizu.skin.SkinConfig?
 ---@field preparation rizu.skin.PlayfieldPreparation?
 ---@field renderer rizu.gameplay.views.PlayfieldRenderer?
 ---@field mania_skin rizu.skin.LoadableSkin?
@@ -37,11 +41,39 @@ function Playfield:new(game)
 	self.catch = FruitsRenderer(game)
 	self.osu_catch = OsuFruitsRenderer(game)
 	self.taiko = OsuTaikoRenderer(game)
-	self.sdvx = SdvxPlayfield(game)
+	self.sdvx = SdvxRenderer(game)
+	self.sdvx_skin = nil
+	self.sdvx_skin_renderer = nil
+	self.sdvx_input_mode = nil
+	self.sdvx_skin_config = nil
+	self.sdvx_skin_config_path = nil
 end
 
 ---@param input_mode string
 ---@param generation integer
+---@return rizu.gameplay.views.PlayfieldRenderer?
+function Playfield:loadSdvxSkin(input_mode, generation)
+	local registry = self.game.skinRegistry
+	local paths = self.game.settings and self.game.settings:getStringMap(Settings.keys.gameplay.skins) or {}
+	local skin = registry and registry:getSkinForInputMode("sdvx", input_mode, paths["sdvx/" .. input_mode])
+	if not skin then return self.sdvx end
+	if self.sdvx_skin == skin and self.sdvx_input_mode == input_mode and self.sdvx_skin_renderer then
+		return self.sdvx_skin_renderer
+	end
+	local loaded, config, config_path = registry:loadSkin(skin, self.game, input_mode, "gameplay")
+	local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
+	if generation ~= self.load_generation then
+		pcall(renderer.unload, renderer)
+		return
+	end
+	self.sdvx_skin = skin
+	self.sdvx_skin_renderer = renderer
+	self.sdvx_input_mode = input_mode
+	self.sdvx_skin_config = config
+	self.sdvx_skin_config_path = config_path
+	return renderer
+end
+
 ---@return rizu.gameplay.views.PlayfieldRenderer?
 function Playfield:loadManiaSkin(input_mode, generation)
 	local paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
@@ -80,7 +112,9 @@ function Playfield:load()
 	elseif engine and mode == "catch" then renderer = self.osu_catch
 	elseif engine and engine.catch_rules then renderer = self.catch
 	elseif engine and (engine.taiko_rules or mode == "taiko") then renderer = self.taiko
-	elseif engine and (engine.sdvx_rules or mode == "sdvx") then renderer = self.sdvx
+	elseif engine and (engine.sdvx_rules or mode == "sdvx") then
+		local input_mode = tostring(engine.chart and engine.chart.inputMode or "4bt2fx2laserleft2laserright")
+		renderer = self:loadSdvxSkin(input_mode, generation)
 	elseif mode == "mania" then
 		local input_mode = assert(engine.chart and engine.chart.inputMode, "Chart input mode is required")
 		renderer = self:loadManiaSkin(tostring(input_mode), generation)

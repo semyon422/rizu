@@ -7,7 +7,8 @@ local Knob = require("rizu.gameplay.sdvx.Knob")
 ---@field knobs rizu.sdvx.Knob[]
 local Input = class()
 ---@type {[string]: integer}
-local keys = {d = 1, f = 2, j = 3, k = 4, c = 5, m = 6, w = 7, e = 8, o = 9, p = 10}
+--local keys = {d = 1, f = 2, j = 3, k = 4, c = 5, m = 6, w = 7, e = 8, o = 9, p = 10}
+local keys = {a = 1, s = 2, l = 3, [";"] = 4, lalt = 5, ralt = 6, q = 7, w = 8, p = 9, ["["] = 10}
 
 function Input:new()
 	self.knobs = {Knob(1, false, 0), Knob(1, false, 0)}
