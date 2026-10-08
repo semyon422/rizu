@@ -1,13 +1,13 @@
 local OsuManiaJudgeView = require("rizu.skin.osu.mania.views.OsuManiaJudgeView")
 local OsuManiaHitMeterView = require("rizu.skin.osu.mania.views.OsuManiaHitMeterView")
 local OsuManiaProgressView = require("rizu.skin.osu.mania.views.OsuManiaProgressView")
-local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
+local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
 local function make_graphics()
-	local graphics = OsuManiaSkinGraphics(FakeFilesystem())
+	local graphics = OsuSkinGraphics(FakeFilesystem())
 	local image = {getDimensions = function() return 40, 20 end}
 	graphics.getAnimationFrames = function(_, name, fallback)
 		return {image}
@@ -83,7 +83,12 @@ function test.progress_pie_uses_engine_progress(t)
 	local view = OsuManiaProgressView()
 	view:update(0, {rhythm_engine = {getProgress = function() return 0.5 end}})
 	t:eq(view.progress, 0.5)
-	local previous_arc = love.graphics.arc
+	local previous_arc, previous_circle = love.graphics.arc, love.graphics.circle
+	local previous_get_blend, previous_set_blend = love.graphics.getBlendMode, love.graphics.setBlendMode
+	local blend_mode, alpha_mode = "alpha", "alphamultiply"
+	love.graphics.circle = function() end
+	love.graphics.getBlendMode = function() return blend_mode, alpha_mode end
+	love.graphics.setBlendMode = function(mode, alpha) blend_mode, alpha_mode = mode, alpha end
 	local called = false
 	love.graphics.arc = function(mode, arc_type, x, y, radius, start_angle, end_angle)
 		called = true
@@ -91,8 +96,11 @@ function test.progress_pie_uses_engine_progress(t)
 		t:eq(arc_type, "pie")
 	end
 	local ok, err = xpcall(function() view:draw() end, debug.traceback)
-	love.graphics.arc = previous_arc
+	love.graphics.arc, love.graphics.circle = previous_arc, previous_circle
+	love.graphics.getBlendMode, love.graphics.setBlendMode = previous_get_blend, previous_set_blend
 	if not ok then error(err) end
+	t:eq(blend_mode, "alpha")
+	t:eq(alpha_mode, "alphamultiply")
 	t:eq(called, true)
 end
 

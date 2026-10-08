@@ -5,12 +5,12 @@ local OsuManiaComboView = require("rizu.skin.osu.mania.views.OsuManiaComboView")
 local OsuManiaJudgeView = require("rizu.skin.osu.mania.views.OsuManiaJudgeView")
 local OsuManiaHitMeterView = require("rizu.skin.osu.mania.views.OsuManiaHitMeterView")
 local OsuManiaProgressView = require("rizu.skin.osu.mania.views.OsuManiaProgressView")
-local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
-local OsuManiaBitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
+local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
+local OsuBitmapFont = require("rizu.skin.osu.OsuBitmapFont")
 local test = {}
 
 local function make_graphics()
-	local graphics = OsuManiaSkinGraphics(FakeFilesystem())
+	local graphics = OsuSkinGraphics(FakeFilesystem())
 	local image = {
 		getWidth = function() return 20 end,
 		getHeight = function() return 32 end,
@@ -26,7 +26,7 @@ end
 
 function test.bitmap_font_reuses_glyph_records_and_clears_shorter_tails(t)
 	local graphics = make_graphics()
-	local font = OsuManiaBitmapFont(graphics)
+	local font = OsuBitmapFont(graphics)
 	local previous_draw = love.graphics.draw
 	love.graphics.draw = function() end
 	font:draw("123456", 1, 0, 100)
@@ -40,23 +40,25 @@ function test.bitmap_font_reuses_glyph_records_and_clears_shorter_tails(t)
 	t:eq(font.glyphs[3].width, nil)
 end
 
-function test.bitmap_fonts_keep_independent_pools_and_refresh_same_measurement_after_generation(t)
+function test.bitmap_fonts_keep_independent_pools_and_reload_same_measurement(t)
 	local graphics = make_graphics()
 	local image = {getDimensions = function() return 10, 20 end}
 	local next_image = {getDimensions = function() return 30, 40 end}
-	local initial_generation = graphics.generation
+	local loaded = false
 	graphics.getFrames = function(_, name)
-		return {(graphics.generation == initial_generation and image or next_image)}
+		return {loaded and next_image or image}
 	end
-	local first = OsuManiaBitmapFont(graphics)
-	local second = OsuManiaBitmapFont(graphics)
+	local first = OsuBitmapFont(graphics)
+	local second = OsuBitmapFont(graphics)
 	local width_before = first:measure("12")
 	local previous_draw = love.graphics.draw
 	love.graphics.draw = function() end
 	first:draw("12", 1, 0, 100)
 	second:draw("12", 1, 0, 100)
 	love.graphics.draw = previous_draw
-	graphics.generation = initial_generation + 1
+	loaded = true
+	first:load()
+	second:load()
 	local width_after = first:measure("12")
 	t:assert(first.glyphs ~= second.glyphs)
 	t:assert(first.glyphs[1] ~= second.glyphs[1])
@@ -68,7 +70,7 @@ function test.bitmap_font_applies_overlap_between_adjacent_glyphs_only(t)
 	local graphics = make_graphics()
 	local image = {getDimensions = function() return 350, 350 end}
 	graphics.getFrames = function() return {image} end
-	local font = OsuManiaBitmapFont(graphics, "score", 330)
+	local font = OsuBitmapFont(graphics, "score", 330)
 	t:eq(font:measure("00"), 370)
 	local previous_draw = love.graphics.draw
 	local draws = {}
@@ -83,11 +85,11 @@ end
 
 function test.combo_parser_preserves_numeric_channels_and_refreshes_layout(t)
 	local graphics = make_graphics()
-	local initial_generation = graphics.generation
+	local loaded = false
 	local fallback_image = {getDimensions = function() return 10, 11 end}
 	local loaded_image = {getDimensions = function() return 30, 41 end}
 	graphics.getFrames = function()
-		return {graphics.generation == initial_generation and fallback_image or loaded_image}
+		return {loaded and loaded_image or fallback_image}
 	end
 	local view = OsuManiaComboView(graphics)
 	view:setSkin({skin_ini = {Fonts = {}, Mania = {{ColourBreak = "-1.5, 128.5, 300, 7"}}}})
@@ -96,8 +98,8 @@ function test.combo_parser_preserves_numeric_channels_and_refreshes_layout(t)
 	t:aeq(view.break_color[3], 1, 1e-6)
 	t:aeq(view.width, 6 * 10 * 1.28 * 0.625, 1e-6)
 	t:aeq(view.height, 11 * 1.28 * 0.625, 1e-6)
-	graphics.generation = initial_generation + 1
-	view:refreshSize()
+	loaded = true
+	view:load({})
 	t:aeq(view.width, 6 * 30 * 1.28 * 0.625, 1e-6)
 	t:aeq(view.height, 41 * 1.28 * 0.625, 1e-6)
 end

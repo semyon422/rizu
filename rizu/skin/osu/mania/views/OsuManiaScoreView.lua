@@ -1,5 +1,5 @@
 local View = require("rizu.skin.View")
-local OsuManiaBitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
+local OsuBitmapFont = require("rizu.skin.osu.OsuBitmapFont")
 
 local SCORE_DIGITS = 8
 local SCORE_SCALE = 0.96 * 0.625
@@ -7,9 +7,9 @@ local SCORE_ANIMATION_RATE = 0.75
 
 ---@class rizu.skin.osu.mania.views.OsuManiaScoreView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.views.OsuManiaScoreView
----@overload fun(graphics: rizu.skin.osu.mania.OsuManiaSkinGraphics): rizu.skin.osu.mania.views.OsuManiaScoreView
----@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
----@field bitmap_font rizu.skin.osu.mania.OsuManiaBitmapFont
+---@overload fun(graphics: rizu.skin.osu.OsuSkinGraphics): rizu.skin.osu.mania.views.OsuManiaScoreView
+---@field graphics rizu.skin.osu.OsuSkinGraphics
+---@field bitmap_font rizu.skin.osu.OsuBitmapFont
 ---@field score_prefix string
 ---@field score_overlap number
 ---@field score number
@@ -27,11 +27,11 @@ local function update_display_text(self)
 	end
 end
 
----@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@param graphics rizu.skin.osu.OsuSkinGraphics
 function OsuManiaScoreView:new(graphics)
 	assert(type(graphics) == "table", "osu mania score view requires skin graphics")
 	self.graphics = graphics
-	self.bitmap_font = OsuManiaBitmapFont(graphics)
+	self.bitmap_font = OsuBitmapFont(graphics)
 	self.score_prefix = self.bitmap_font.prefix
 	self.score_overlap = self.bitmap_font.overlap
 	self.score = 0
@@ -40,7 +40,7 @@ function OsuManiaScoreView:new(graphics)
 	self.display_value = nil
 	self.has_score = false
 	View.new(self, {anchor = "top_right", origin = "top_right", width = 0, height = 0, x = -6})
-	self:refreshSize()
+	self.width, self.height = self:getTextLayout()
 end
 
 ---@param skin rizu.skin.OsuSkinDiscovery?
@@ -48,7 +48,7 @@ function OsuManiaScoreView:setSkin(skin)
 	self.bitmap_font:setSkin(skin, "Score")
 	self.score_prefix = self.bitmap_font.prefix
 	self.score_overlap = self.bitmap_font.overlap
-	self:refreshSize()
+	self.width, self.height = self:getTextLayout()
 end
 
 ---@return string[]
@@ -63,14 +63,18 @@ function OsuManiaScoreView:getTextLayout()
 	return width * SCORE_SCALE, height * SCORE_SCALE
 end
 
-function OsuManiaScoreView:refreshSize()
-	self.width, self.height = self:getTextLayout()
-end
-
 ---@param game sphere.GameController
 function OsuManiaScoreView:load(game)
 	View.load(self, game)
+	self.bitmap_font:load()
+	self.width, self.height = self:getTextLayout()
 	self:update(0, game)
+end
+
+---@param game sphere.GameController?
+function OsuManiaScoreView:unload(game)
+	self.bitmap_font:unload()
+	View.unload(self, game)
 end
 
 ---@param dt number

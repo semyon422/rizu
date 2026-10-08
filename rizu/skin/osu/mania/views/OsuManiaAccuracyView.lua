@@ -1,12 +1,12 @@
 local View = require("rizu.skin.View")
-local OsuManiaBitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
+local OsuBitmapFont = require("rizu.skin.osu.OsuBitmapFont")
 
 local ACCURACY_SCALE = 0.96 * 0.625 * 0.6
 local GAP = 3
 
 ---@class rizu.skin.osu.mania.views.OsuManiaAccuracyView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.views.OsuManiaAccuracyView
----@field bitmap_font rizu.skin.osu.mania.OsuManiaBitmapFont
+---@field bitmap_font rizu.skin.osu.OsuBitmapFont
 ---@field accuracy number
 ---@field target_accuracy number
 ---@field display_text string
@@ -14,9 +14,9 @@ local GAP = 3
 ---@field has_accuracy boolean
 local OsuManiaAccuracyView = View + {}
 
----@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@param graphics rizu.skin.osu.OsuSkinGraphics
 function OsuManiaAccuracyView:new(graphics)
-	self.bitmap_font = OsuManiaBitmapFont(graphics)
+	self.bitmap_font = OsuBitmapFont(graphics)
 	self.accuracy = 0
 	self.target_accuracy = 0
 	self.display_text = "00.00%"
@@ -44,7 +44,17 @@ end
 ---@param game sphere.GameController
 function OsuManiaAccuracyView:load(game)
 	View.load(self, game)
+	self.bitmap_font:load()
+	local width, height = self.bitmap_font:measure("00.00%")
+	self.width = width * ACCURACY_SCALE
+	self.height = height * ACCURACY_SCALE
 	self:update(0, game)
+end
+
+---@param game sphere.GameController?
+function OsuManiaAccuracyView:unload(game)
+	self.bitmap_font:unload()
+	View.unload(self, game)
 end
 
 ---@param dt number

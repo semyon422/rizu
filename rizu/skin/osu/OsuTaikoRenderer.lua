@@ -1,3 +1,4 @@
+local OsuImage = require("rizu.skin.osu.OsuImage")
 local TaikoRenderer = require("rizu.skin.base.TaikoRenderer")
 local OsuTaikoSkinGraphics = require("rizu.skin.osu.taiko.OsuTaikoSkinGraphics")
 local Settings = require("rizu.config.Settings")
@@ -28,10 +29,10 @@ local HIT_X, HIT_Y = 160, 125 + 72
 ---@param blue number
 ---@param alpha number
 local function drawSkinCircle(image, x, y, width_scale, height_scale, red, green, blue, alpha)
-	local width, height = image:getDimensions()
+	local width, height = OsuImage.dimensions(image)
 	if width <= 1 or height <= 1 or width_scale <= 0 or height_scale <= 0 then return end
 	love.graphics.setColor(red, green, blue, alpha)
-	love.graphics.draw(image, x, y, 0, width_scale, height_scale, width / 2, height / 2)
+	OsuImage.draw(image, x, y, 0, width_scale, height_scale, width / 2, height / 2)
 end
 
 ---@param game sphere.GameController

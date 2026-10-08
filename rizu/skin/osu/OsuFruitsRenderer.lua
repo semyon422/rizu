@@ -1,5 +1,6 @@
 local FruitsRenderer = require("rizu.skin.base.FruitsRenderer")
 local OsuFruitsGraphics = require("rizu.skin.osu.fruits.OsuFruitsGraphics")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 local Settings = require("rizu.config.Settings")
 
 local fruits = {"pear", "grapes", "apple", "orange"}
@@ -102,12 +103,12 @@ end
 local function drawSprite(sprite, x, y, reference_size, alpha, color, rotation)
 	if not sprite then return false end
 	local image = sprite.image
-	local width, height = image:getDimensions()
+	local width, height = OsuImage.dimensions(image)
 	if width <= 1 or height <= 1 or reference_size <= 0 then return false end
 	local scale = reference_size / width
 	color = color or {1, 1, 1}
 	love.graphics.setColor(color[1], color[2], color[3], alpha)
-	love.graphics.draw(image, x, y, rotation or 0, scale, scale, width / 2, height / 2)
+	OsuImage.draw(image, x, y, rotation or 0, scale, scale, width / 2, height / 2)
 	return true
 end
 
@@ -217,7 +218,7 @@ function OsuFruitsRenderer:draw(width, height, transform)
 		local factor = catcher_scale
 		local tint = rules.time < rules.hyper_until and self.hyperdash_color or {1, 1, 1}
 		love.graphics.setColor(tint[1], tint[2], tint[3], 1)
-		love.graphics.draw(sprite, rules.x, 340 - 16 * catcher_scale,
+		OsuImage.draw(sprite, rules.x, 340 - 16 * catcher_scale,
 			0, factor, factor, width_px / 2, 0)
 	else
 		if rules.time < rules.hyper_until then love.graphics.setColor(self.hyperdash_color)

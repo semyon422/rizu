@@ -1,5 +1,5 @@
 local class = require("class")
-local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaFieldRenderer
@@ -13,7 +13,7 @@ function OsuManiaFieldRenderer:update(dt) end
 ---@param field_width number
 function OsuManiaFieldRenderer:drawBackground(renderer, field_left, field_width)
 	lg.setColor(0.025, 0.03, 0.045, 0.94)
-	OsuManiaImage.rectangle(renderer.skin_graphics, field_left, 0, field_width, 480)
+	OsuImage.rectangle(renderer.skin_graphics, field_left, 0, field_width, 480)
 end
 
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
@@ -24,7 +24,7 @@ end
 function OsuManiaFieldRenderer:drawLane(renderer, column, lane_width, lane_x, alpha)
 	local color = renderer:getSkinColor("Colour" .. column, {0, 0, 0, 1})
 	lg.setColor(color[1], color[2], color[3], alpha or color[4])
-	OsuManiaImage.rectangle(renderer.skin_graphics, lane_x - lane_width / 2, 0, lane_width, 480)
+	OsuImage.rectangle(renderer.skin_graphics, lane_x - lane_width / 2, 0, lane_width, 480)
 end
 
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
@@ -50,13 +50,13 @@ function OsuManiaFieldRenderer:drawGuides(renderer, field_left, field_width, lan
 		local width = (renderer.column_lines[edge + 1] or 0) * width_scale
 		if width > 0 then
 			lg.setColor(color[1], color[2], color[3], color[4] * 0.7)
-			OsuManiaImage.rectangle(renderer.skin_graphics, x - width / 2, 0, width, 480)
+			OsuImage.rectangle(renderer.skin_graphics, x - width / 2, 0, width, 480)
 		end
 	end
 	if renderer.judgement_line then
 		color = renderer:getSkinColor("ColourJudgementLine", {1, 1, 1, 1})
 		lg.setColor(color[1], color[2], color[3], color[4] * 0.9)
-		OsuManiaImage.rectangle(renderer.skin_graphics, field_left, hit_y - 1, field_width, 2)
+		OsuImage.rectangle(renderer.skin_graphics, field_left, hit_y - 1, field_width, 2)
 	end
 end
 

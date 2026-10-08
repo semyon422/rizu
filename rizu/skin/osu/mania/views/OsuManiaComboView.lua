@@ -1,5 +1,5 @@
 local View = require("rizu.skin.View")
-local OsuManiaBitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
+local OsuBitmapFont = require("rizu.skin.osu.OsuBitmapFont")
 
 local lg = love.graphics
 local COMBO_SCALE = 1.28 * 0.625
@@ -9,7 +9,7 @@ local BREAK_SCALE = 4
 
 ---@class rizu.skin.osu.mania.views.OsuManiaComboView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.views.OsuManiaComboView
----@field bitmap_font rizu.skin.osu.mania.OsuManiaBitmapFont
+---@field bitmap_font rizu.skin.osu.OsuBitmapFont
 ---@field combo integer
 ---@field display_combo integer
 ---@field target_combo integer
@@ -26,9 +26,9 @@ local BREAK_SCALE = 4
 ---@field display_text_combo integer?
 local OsuManiaComboView = View + {}
 
----@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@param graphics rizu.skin.osu.OsuSkinGraphics
 function OsuManiaComboView:new(graphics)
-	self.bitmap_font = OsuManiaBitmapFont(graphics)
+	self.bitmap_font = OsuBitmapFont(graphics)
 	self.bitmap_font.prefix = "score"
 	self.combo = 0
 	self.display_combo = 0
@@ -69,13 +69,24 @@ function OsuManiaComboView:setSkin(skin, section)
 		end
 	end
 	self.break_color = break_color
-	self:refreshSize()
-end
-
-function OsuManiaComboView:refreshSize()
 	local font_width, font_height = self.bitmap_font:measure("000000")
 	self.width = font_width * COMBO_SCALE
 	self.height = font_height * COMBO_SCALE
+end
+
+---@param game sphere.GameController
+function OsuManiaComboView:load(game)
+	View.load(self, game)
+	self.bitmap_font:load()
+	local font_width, font_height = self.bitmap_font:measure("000000")
+	self.width = font_width * COMBO_SCALE
+	self.height = font_height * COMBO_SCALE
+end
+
+---@param game sphere.GameController?
+function OsuManiaComboView:unload(game)
+	self.bitmap_font:unload()
+	View.unload(self, game)
 end
 
 ---@return string[]

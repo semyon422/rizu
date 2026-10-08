@@ -1,5 +1,5 @@
 local View = require("rizu.skin.View")
-local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 
 local lg = love.graphics
 local JUDGE_ASSETS = {"300g", "300", "200", "100", "50", "0"}
@@ -8,19 +8,19 @@ local DURATION = 0.22
 
 ---@class rizu.skin.osu.mania.views.OsuManiaJudgeView : rizu.skin.View
 ---@operator call: rizu.skin.osu.mania.views.OsuManiaJudgeView
----@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@field graphics rizu.skin.osu.OsuSkinGraphics
 ---@field elapsed number
 ---@field duration number
 ---@field sequence_index integer
 ---@field score_engine rizu.ScoreEngine?
----@field image rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
----@field frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+---@field image rizu.skin.osu.OsuSkinGraphics.Image?
+---@field frames rizu.skin.osu.OsuSkinGraphics.Image[]
 ---@field rotation number
 ---@field grade integer
 ---@field section rizu.skin.OsuSkinIni.ManiaSection
 local OsuManiaJudgeView = View + {}
 
----@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@param graphics rizu.skin.osu.OsuSkinGraphics
 function OsuManiaJudgeView:new(graphics)
 	self.graphics = graphics
 	self.elapsed = DURATION
@@ -80,6 +80,14 @@ function OsuManiaJudgeView:load(game)
 	self.score_engine = nil
 end
 
+---@param game sphere.GameController?
+function OsuManiaJudgeView:unload(game)
+	self.image = nil
+	self.frames = {}
+	self.elapsed = self.duration
+	View.unload(self, game)
+end
+
 ---@param dt number
 ---@param game sphere.GameController
 function OsuManiaJudgeView:update(dt, game)
@@ -112,7 +120,7 @@ function OsuManiaJudgeView:update(dt, game)
 			self.frames = frames
 			self.image = frames[1]
 			if self.image then
-				self.width, self.height = OsuManiaImage.dimensions(self.image)
+				self.width, self.height = OsuImage.dimensions(self.image)
 				self.elapsed = 0
 				self.rotation = grade == 6 and (math.random() - 0.5) * 0.2 or 0
 				self.grade = grade
@@ -134,9 +142,9 @@ function OsuManiaJudgeView:draw()
 	local frame = self.frames[math.min(#self.frames, math.floor(self.elapsed * 20) + 1)] or self.image
 	lg.setColor(1, 1, 1, math.max(0, alpha))
 	local draw_scale = scale * JUDGE_SCALE
-	local width, height = OsuManiaImage.dimensions(frame)
+	local width, height = OsuImage.dimensions(frame)
 	local batch = frame.texture and frame.batch
-	OsuManiaImage.draw(frame, self.width / 2, self.height / 2, self.rotation, draw_scale, draw_scale,
+	OsuImage.draw(frame, self.width / 2, self.height / 2, self.rotation, draw_scale, draw_scale,
 		width / 2, height / 2)
 	if batch then batch:flush() end
 end

@@ -123,7 +123,7 @@ function OsuManiaSkinAssetFinder:find()
 	end
 
 	self:add("editor-rate-arrow", nil, false, "standalone")
-	self:add("circularmetre", nil, false, "standalone")
+	self:add("circularmetre", nil, false, "progress")
 	return self.requests
 end
 

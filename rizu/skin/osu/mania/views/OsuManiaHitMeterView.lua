@@ -1,4 +1,5 @@
 local View = require("rizu.skin.View")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 
 local lg = love.graphics
 local ICON_SIZE = 9 * 1.6
@@ -46,8 +47,8 @@ local ERROR_COLORS = {
 ---@field point_index integer
 ---@field error_points rizu.skin.osu.mania.views.OsuManiaHitMeterView.ErrorPoint[]
 ---@field meter_alpha number
----@field graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
----@field arrow_image love.Image?
+---@field graphics rizu.skin.osu.OsuSkinGraphics?
+---@field arrow_image rizu.skin.osu.OsuSkinGraphics.Image?
 local OsuManiaHitMeterView = View + {}
 ---@return number[]
 local function get_error_windows(source)
@@ -102,7 +103,7 @@ local function get_grade(judge, source)
 	if type(judge) == "number" and judge >= 1 and judge <= 6 then return judge end
 end
 
----@param graphics rizu.skin.osu.mania.OsuManiaSkinGraphics?
+---@param graphics rizu.skin.osu.OsuSkinGraphics?
 function OsuManiaHitMeterView:new(graphics)
 	self.graphics = graphics
 	self.arrow_image = nil
@@ -155,9 +156,7 @@ end
 function OsuManiaHitMeterView:load(game)
 	View.load(self, game)
 	local graphics = self.graphics
-	local frames = graphics and graphics.getFallbackFrames
-		and graphics:getFallbackFrames("editor-rate-arrow") or nil
-	self.arrow_image = frames and frames[1] or nil
+	self.arrow_image = graphics and graphics:getFrames("editor-rate-arrow", nil, "standalone")[1]
 	self.sequence_index = 0
 	self.score_engine = nil
 	self.error_range = nil
@@ -167,6 +166,12 @@ function OsuManiaHitMeterView:load(game)
 	self.meter_alpha = 0
 	for _, icon in ipairs(self.icons) do icon.alpha = 0 end
 	for _, point in ipairs(self.error_points) do point.age = math.huge end
+end
+
+---@param game sphere.GameController?
+function OsuManiaHitMeterView:unload(game)
+	self.arrow_image = nil
+	View.unload(self, game)
 end
 
 ---@param source rizu.IJudgesSource?
@@ -284,10 +289,7 @@ end
 
 function OsuManiaHitMeterView:drawErrorMeter()
 	if self.meter_alpha <= 0 then return end
-	if not self.arrow_image and self.graphics then
-		local frames = self.graphics:getFallbackFrames("editor-rate-arrow")
-		self.arrow_image = frames[1]
-	end
+	if self.graphics then self.graphics.batch:flush() end
 	local alpha = self.meter_alpha
 	local center = self.width / 2
 	local bar_center = self.height - 2
@@ -324,9 +326,9 @@ function OsuManiaHitMeterView:drawErrorMeter()
 
 	local arrow_y = bar_center - 3
 	if self.arrow_image then
-		local width, height = self.arrow_image:getDimensions()
+		local width, height = OsuImage.dimensions(self.arrow_image)
 		lg.setColor(1, 1, 1, alpha)
-		lg.draw(self.arrow_image, self.floating_position, arrow_y,
+		OsuImage.draw(self.arrow_image, self.floating_position, arrow_y,
 			0, ERROR_ARROW_SCALE, ERROR_ARROW_SCALE, width / 2, height)
 	end
 end
@@ -336,6 +338,7 @@ function OsuManiaHitMeterView:draw()
 		self:drawErrorMeter()
 		return
 	end
+	if self.graphics then self.graphics.batch:flush() end
 	local x = 0
 	local previous_mode, previous_alpha = lg.getBlendMode()
 	lg.setBlendMode("add", "alphamultiply")

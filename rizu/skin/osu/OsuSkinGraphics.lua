@@ -1,7 +1,7 @@
 local class = require("class")
 local path_util = require("path_util")
 local ZipFilesystem = require("fs.ZipFilesystem")
-local OsuManiaBatch = require("rizu.skin.osu.mania.OsuManiaBatch")
+local OsuSpriteBatch = require("rizu.skin.osu.OsuSpriteBatch")
 local ImageAtlasPacker = require("rizu.skin.ImageAtlasPacker")
 
 ---@type {[string]: fs.ZipFilesystem}
@@ -103,37 +103,37 @@ local function get_image_density(path)
 	return path:lower():match("@2x%.png$") and 2 or 1
 end
 
----@class rizu.skin.osu.mania.OsuManiaSkinGraphics.Frame
+---@class rizu.skin.osu.OsuSkinGraphics.Frame
 ---@field texture love.Image
 ---@field quad love.Quad
 ---@field width number Logical width
 ---@field height number Logical height
 ---@field density number
----@field batch rizu.skin.osu.mania.OsuManiaBatch
+---@field batch rizu.skin.osu.OsuSpriteBatch
 
----@alias rizu.skin.osu.mania.OsuManiaSkinGraphics.Image love.Image|rizu.skin.osu.mania.OsuManiaSkinGraphics.Frame
+---@alias rizu.skin.osu.OsuSkinGraphics.Image love.Image|rizu.skin.osu.OsuSkinGraphics.Frame
 
----@class rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset
+---@class rizu.skin.osu.OsuSkinGraphics.Asset
 ---@field name string?
 ---@field fallback string?
 ---@field animation boolean?
 ---@field group string?
 
----@class rizu.skin.osu.mania.OsuManiaSkinGraphics.Source
+---@class rizu.skin.osu.OsuSkinGraphics.Source
 ---@field image_data love.ImageData
 ---@field density number
 
----@class rizu.skin.osu.mania.OsuManiaSkinGraphics.PreparedGroup
+---@class rizu.skin.osu.OsuSkinGraphics.PreparedGroup
 ---@field atlases love.ImageData[]
 ---@field locations {[string]: rizu.skin.ImageAtlasPacker.Location}
 ---@field densities {[string]: number}
 
----@class rizu.skin.osu.mania.OsuManiaSkinGraphics.Prepared
----@field groups {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.PreparedGroup}
----@field standalone {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Source}
+---@class rizu.skin.osu.OsuSkinGraphics.Prepared
+---@field groups {[string]: rizu.skin.osu.OsuSkinGraphics.PreparedGroup}
+---@field standalone {[string]: rizu.skin.osu.OsuSkinGraphics.Source}
 
----@class rizu.skin.osu.mania.OsuManiaSkinGraphics
----@operator call: rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@class rizu.skin.osu.OsuSkinGraphics
+---@operator call: rizu.skin.osu.OsuSkinGraphics
 ---@field fs fs.IFilesystem?
 ---@field skin rizu.skin.OsuSkinDiscovery?
 ---@field images {[string]: love.Image|false}
@@ -141,28 +141,25 @@ end
 ---@field fallback_file_map {[string]: string}
 ---@field fallback_archive string?
 ---@field fallback_fs fs.ZipFilesystem?
----@field frame_cache {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]}
----@field animation_cache {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]}
+---@field frame_cache {[string]: rizu.skin.osu.OsuSkinGraphics.Image[]}
+---@field animation_cache {[string]: rizu.skin.osu.OsuSkinGraphics.Image[]}
 ---@field image_density {[love.Image]: number}
 ---@field loaded boolean
----@field generation integer
 ---@field fallback_directory string?
 ---@field atlas_images {[string]: love.Image[]}
----@field atlas_frames {[string]: {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Frame}}
+---@field atlas_frames {[string]: {[string]: rizu.skin.osu.OsuSkinGraphics.Frame}}
 ---@field atlas_limit integer
 ---@field texture_limit integer?
----@field prepared rizu.skin.osu.mania.OsuManiaSkinGraphics.Prepared?
+---@field prepared rizu.skin.osu.OsuSkinGraphics.Prepared?
 ---@field atlas_mode boolean
----@field defer_grouped boolean
----@field hide_unbatched boolean
 ---@field grouped_paths {[string]: {[string]: boolean}}
----@field batch rizu.skin.osu.mania.OsuManiaBatch
+---@field batch rizu.skin.osu.OsuSpriteBatch
 ---@field repeated_quad love.Quad?
-local OsuManiaSkinGraphics = class()
+local OsuSkinGraphics = class()
 
 ---@param fs fs.IFilesystem?
 ---@param skin rizu.skin.OsuSkinDiscovery?
-function OsuManiaSkinGraphics:new(fs, skin)
+function OsuSkinGraphics:new(fs, skin)
 	self.fs = fs
 	self.skin = nil
 	self.images = {}
@@ -172,7 +169,6 @@ function OsuManiaSkinGraphics:new(fs, skin)
 	self.animation_cache = {}
 	self.image_density = {}
 	self.loaded = false
-	self.generation = 0
 	self.fallback_directory = nil
 	self.atlas_images = {}
 	self.atlas_frames = {}
@@ -180,20 +176,18 @@ function OsuManiaSkinGraphics:new(fs, skin)
 	self.atlas_limit = ImageAtlasPacker.max_atlas_width
 	self.texture_limit = nil
 	self.atlas_mode = false
-	self.defer_grouped = false
-	self.hide_unbatched = false
 	self.grouped_paths = {}
-	self.batch = OsuManiaBatch()
+	self.batch = OsuSpriteBatch()
 	self:setSkin(skin)
 end
 
 ---@param limit integer
-function OsuManiaSkinGraphics:setAtlasLimit(limit)
+function OsuSkinGraphics:setAtlasLimit(limit)
 	assert(type(limit) == "number" and limit > 0 and limit % 1 == 0)
 	self.atlas_limit = limit
 end
 
-function OsuManiaSkinGraphics:indexFiles()
+function OsuSkinGraphics:indexFiles()
 	self.file_map = {}
 	self.fallback_file_map = {}
 	for _, relative_path in ipairs(self.skin and self.skin.files or {}) do
@@ -217,20 +211,18 @@ function OsuManiaSkinGraphics:indexFiles()
 end
 
 ---@param skin rizu.skin.OsuSkinDiscovery?
-function OsuManiaSkinGraphics:setSkin(skin)
+function OsuSkinGraphics:setSkin(skin)
 	if self.skin == skin and (self.loaded or next(self.file_map)) then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end
-	self.generation = self.generation + 1
 	self.skin = skin
 	self.frame_cache = {}
 	self.animation_cache = {}
 	self:indexFiles()
 end
 
-function OsuManiaSkinGraphics:setFallbackDirectory(directory)
+function OsuSkinGraphics:setFallbackDirectory(directory)
 	if self.fallback_directory == directory then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end
-	self.generation = self.generation + 1
 	self.fallback_directory = directory
 	self.frame_cache = {}
 	self.animation_cache = {}
@@ -238,7 +230,7 @@ function OsuManiaSkinGraphics:setFallbackDirectory(directory)
 end
 
 ---@param archive_path string
-function OsuManiaSkinGraphics:setFallbackArchive(archive_path)
+function OsuSkinGraphics:setFallbackArchive(archive_path)
 	if self.fallback_archive == archive_path then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end
 	local archive = archive_cache[archive_path]
@@ -251,7 +243,6 @@ function OsuManiaSkinGraphics:setFallbackArchive(archive_path)
 	end
 	self.fallback_archive = archive_path
 	self.fallback_fs = archive
-	self.generation = self.generation + 1
 	self.frame_cache = {}
 	self.animation_cache = {}
 	self:indexFiles()
@@ -260,7 +251,7 @@ end
 ---@param name string
 ---@param file_map {[string]: string}?
 ---@return string?
-function OsuManiaSkinGraphics:findAsset(name, file_map)
+function OsuSkinGraphics:findAsset(name, file_map)
 	if type(name) ~= "string" or name == "" then return nil end
 	name = name:gsub("\\", "/"):gsub("^/+", ""):lower()
 	local stem = name:gsub("%.png$", "")
@@ -275,7 +266,7 @@ end
 ---@param base string
 ---@param file_map {[string]: string}?
 ---@return {index: integer, path: string}[]
-function OsuManiaSkinGraphics:findAnimationAssets(base, file_map)
+function OsuSkinGraphics:findAnimationAssets(base, file_map)
 	if not file_map then
 		local assets = self:findAnimationAssets(base, self.file_map)
 		if #assets > 0 or self:findAsset(base, self.file_map) then return assets end
@@ -326,7 +317,7 @@ end
 
 ---@param path string
 ---@return love.Image?
-function OsuManiaSkinGraphics:loadImage(path)
+function OsuSkinGraphics:loadImage(path)
 	local cached = self.images[path]
 	if cached ~= nil then return cached or nil end
 	if self.fallback_directory and path:sub(1, #self.fallback_directory + 1) == self.fallback_directory .. "/" then
@@ -371,9 +362,9 @@ function OsuManiaSkinGraphics:loadImage(path)
 	return image
 end
 
----@param image rizu.skin.osu.mania.OsuManiaSkinGraphics.Image
+---@param image rizu.skin.osu.OsuSkinGraphics.Image
 ---@return number
-function OsuManiaSkinGraphics:getImageDensity(image)
+function OsuSkinGraphics:getImageDensity(image)
 	if image.texture then return image.density end
 	return self.image_density[image] or 1
 end
@@ -381,12 +372,12 @@ end
 ---@param image_name string?
 ---@param fallback_name string?
 ---@param group string?
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
-function OsuManiaSkinGraphics:getFrames(image_name, fallback_name, group)
+---@return rizu.skin.osu.OsuSkinGraphics.Image[]
+function OsuSkinGraphics:getFrames(image_name, fallback_name, group)
 	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
-	---@type rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+	---@type rizu.skin.osu.OsuSkinGraphics.Image[]
 	local frames = {}
 	---@param name string?
 	---@param file_map {[string]: string}
@@ -408,19 +399,19 @@ end
 ---@param image_name string?
 ---@param fallback_name string?
 ---@param group string?
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
-function OsuManiaSkinGraphics:getAnimationFrames(image_name, fallback_name, group)
+---@return rizu.skin.osu.OsuSkinGraphics.Image[]
+function OsuSkinGraphics:getAnimationFrames(image_name, fallback_name, group)
 	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
 	local cached = self.animation_cache[key]
 	if cached then return cached end
 	---@param name string?
 	---@param file_map {[string]: string}
-	---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+	---@return rizu.skin.osu.OsuSkinGraphics.Image[]
 	local function load_animation(name, file_map)
 		if name == nil then return {} end
 		---@cast name string
 		local discovered = self:findAnimationAssets(name, file_map)
-		---@type rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+		---@type rizu.skin.osu.OsuSkinGraphics.Image[]
 		local frames = {}
 		for _, asset in ipairs(discovered) do
 			local image = self:getFrame(asset.path, group)
@@ -444,12 +435,12 @@ function OsuManiaSkinGraphics:getAnimationFrames(image_name, fallback_name, grou
 end
 
 ---@param image_name string
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
-function OsuManiaSkinGraphics:getFallbackFrames(image_name)
+---@return rizu.skin.osu.OsuSkinGraphics.Image[]
+function OsuSkinGraphics:getFallbackFrames(image_name)
 	local key = "\0fallback\0" .. tostring(image_name or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
-	---@type rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+	---@type rizu.skin.osu.OsuSkinGraphics.Image[]
 	local frames = {}
 	local path = self:findAsset(image_name, self.fallback_file_map)
 	local image = path and self:getFrame(path, nil) or nil
@@ -459,7 +450,7 @@ function OsuManiaSkinGraphics:getFallbackFrames(image_name)
 end
 
 ---@param limit integer
-function OsuManiaSkinGraphics:setTextureLimit(limit)
+function OsuSkinGraphics:setTextureLimit(limit)
 	assert(type(limit) == "number" and limit > 0 and limit % 1 == 0)
 	self.texture_limit = limit
 end
@@ -467,7 +458,7 @@ end
 
 ---@param path string
 ---@return love.ImageData?
-function OsuManiaSkinGraphics:loadImageData(path)
+function OsuSkinGraphics:loadImageData(path)
 	local fs, read_path = self.fs, path
 	local directory = self.fallback_directory
 	local is_directory = directory and path:sub(1, #directory + 1) == directory .. "/"
@@ -501,7 +492,7 @@ local function crop_image_data(image_data, limit)
 	return cropped
 end
 
----@param prepared rizu.skin.osu.mania.OsuManiaSkinGraphics.Prepared
+---@param prepared rizu.skin.osu.OsuSkinGraphics.Prepared
 local function release_prepared(prepared)
 	for _, group in pairs(prepared.groups) do
 		for _, data in ipairs(group.atlases) do release_resource(data) end
@@ -510,20 +501,20 @@ local function release_prepared(prepared)
 end
 
 ---Decode, crop and pack on the CPU. Device limits are supplied by the caller.
----@param assets rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset[]?
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Prepared
-function OsuManiaSkinGraphics:prepare(assets)
+---@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]?
+---@return rizu.skin.osu.OsuSkinGraphics.Prepared
+function OsuSkinGraphics:prepare(assets)
 	assert(not self.loaded and not next(self.images) and not next(self.atlas_images),
 		"unload GPU resources before preparing skin graphics")
 	if self.prepared then release_prepared(self.prepared) end
 	self.prepared = nil
 	self.grouped_paths, self.frame_cache, self.animation_cache = {}, {}, {}
 	self.atlas_mode = true
-	local prepared = {groups = {}, standalone = {}} ---@type rizu.skin.osu.mania.OsuManiaSkinGraphics.Prepared
-	local sources = {} ---@type {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Source|false}
-	local groups = {} ---@type {[string]: {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Source}}
+	local prepared = {groups = {}, standalone = {}} ---@type rizu.skin.osu.OsuSkinGraphics.Prepared
+	local sources = {} ---@type {[string]: rizu.skin.osu.OsuSkinGraphics.Source|false}
+	local groups = {} ---@type {[string]: {[string]: rizu.skin.osu.OsuSkinGraphics.Source}}
 	---@param path string
-	---@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Source?
+	---@return rizu.skin.osu.OsuSkinGraphics.Source?
 	local function decode(path)
 		local cached = sources[path]
 		if cached ~= nil then return cached or nil end
@@ -548,7 +539,7 @@ function OsuManiaSkinGraphics:prepare(assets)
 		local path = self:findAsset(name, map)
 		return path and {path} or {}
 	end
-	---@param asset rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset
+	---@param asset rizu.skin.osu.OsuSkinGraphics.Asset
 	local function add_asset(asset)
 		local group_name = asset.group or "standalone"
 		local group = groups[group_name] or {}
@@ -644,12 +635,12 @@ function OsuManiaSkinGraphics:prepare(assets)
 end
 
 ---Upload only: no decoding, cropping, packing, filesystem or ImageData creation.
-function OsuManiaSkinGraphics:upload()
+function OsuSkinGraphics:upload()
 	local prepared = assert(self.prepared, "no prepared skin graphics")
 	local ok, err = xpcall(function()
 		for name, group in pairs(prepared.groups) do
 			local images = {} ---@type love.Image[]
-			local frames = {} ---@type {[string]: rizu.skin.osu.mania.OsuManiaSkinGraphics.Frame}
+			local frames = {} ---@type {[string]: rizu.skin.osu.OsuSkinGraphics.Frame}
 			self.atlas_images[name], self.atlas_frames[name] = images, frames
 			for layer, data in ipairs(group.atlases) do
 				local image = love.graphics.newImage(data, {dpiscale = 1})
@@ -678,40 +669,39 @@ function OsuManiaSkinGraphics:upload()
 	self.prepared = nil
 	self.loaded = true
 	self.frame_cache, self.animation_cache = {}, {}
-	self.generation = self.generation + 1
 end
 
 ---@param path string
 ---@param group string?
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
-function OsuManiaSkinGraphics:getFrame(path, group)
+---@return rizu.skin.osu.OsuSkinGraphics.Image?
+function OsuSkinGraphics:getFrame(path, group)
 	local frame = group and self.atlas_frames[group] and self.atlas_frames[group][path]
 	if frame then return frame end
-	if self.hide_unbatched then return end
 	if self.atlas_mode then
 		if group and not (self.grouped_paths[group] and self.grouped_paths[group][path]) then return end
 		return self.images[path] or nil
 	end
-	if group and self.defer_grouped then return end
+	-- Grouped resources are acquired only after upload, not during HUD construction.
+	if group and not self.loaded then return end
 	return self:loadImage(path)
 end
 
 ---@param group string
 ---@param path string
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Frame?
-function OsuManiaSkinGraphics:getAtlasFrame(group, path)
+---@return rizu.skin.osu.OsuSkinGraphics.Frame?
+function OsuSkinGraphics:getAtlasFrame(group, path)
 	return self.atlas_frames[group] and self.atlas_frames[group][path]
 end
 
 ---@param group string
 ---@return integer
-function OsuManiaSkinGraphics:getAtlasCount(group)
+function OsuSkinGraphics:getAtlasCount(group)
 	local images = self.atlas_images[group]
 	return images and #images or 0
 end
 
 ---@return {[string]: integer}
-function OsuManiaSkinGraphics:getAtlasCounts()
+function OsuSkinGraphics:getAtlasCounts()
 	local counts = {} ---@type {[string]: integer}
 	for group, images in pairs(self.atlas_images) do counts[group] = #images end
 	return counts
@@ -719,7 +709,7 @@ end
 
 ---@param group string
 ---@return string[][]
-function OsuManiaSkinGraphics:getAtlasContents(group)
+function OsuSkinGraphics:getAtlasContents(group)
 	local contents = {} ---@type string[][]
 	local layers = {} ---@type {[love.Image]: integer}
 	for layer, image in ipairs(self.atlas_images[group] or {}) do layers[image] = layer end
@@ -736,20 +726,20 @@ function OsuManiaSkinGraphics:getAtlasContents(group)
 end
 
 
----@param frame rizu.skin.osu.mania.OsuManiaSkinGraphics.Image
+---@param frame rizu.skin.osu.OsuSkinGraphics.Image
 ---@return number, number
-function OsuManiaSkinGraphics:getFrameDimensions(frame)
+function OsuSkinGraphics:getFrameDimensions(frame)
 	if frame.texture then return frame.width, frame.height end
 	if frame.getDimensions then return frame:getDimensions() end
 	return frame:getWidth(), frame:getHeight()
 end
 
 ---@param assets {name: string?, fallback: string?, animation: boolean?, group: string?}[]?
-function OsuManiaSkinGraphics:load(assets)
+function OsuSkinGraphics:load(assets)
 	local legacy = true
 	for _, asset in ipairs(assets or {}) do if asset.group then legacy = false; break end end
 	if legacy then
-		self.generation = self.generation + 1; self.loaded = true
+		self.loaded = true
 		for _, asset in ipairs(assets or {}) do
 			if asset.animation then self:getAnimationFrames(asset.name, asset.fallback)
 			else self:getFrames(asset.name, asset.fallback) end
@@ -761,7 +751,7 @@ function OsuManiaSkinGraphics:load(assets)
 	self:upload()
 end
 
-function OsuManiaSkinGraphics:unload()
+function OsuSkinGraphics:unload()
 	self.batch:unload()
 	if self.repeated_quad then release_resource(self.repeated_quad) end
 	self.repeated_quad = nil
@@ -777,7 +767,6 @@ function OsuManiaSkinGraphics:unload()
 	self.prepared = nil
 	self.grouped_paths, self.frame_cache, self.animation_cache, self.image_density = {}, {}, {}, {}
 	self.loaded, self.atlas_mode = false, false
-	self.generation = self.generation + 1
 end
 
-return OsuManiaSkinGraphics
+return OsuSkinGraphics

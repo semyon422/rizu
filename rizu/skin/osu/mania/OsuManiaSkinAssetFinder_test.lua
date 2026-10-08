@@ -28,7 +28,7 @@ function test.finds_playfield_fonts_and_standalone_assets(t)
 	t:eq(by_name["combo-0"].role, "combo_font")
 	t:eq(by_name["custom/judge"].role, "judgement")
 	t:eq(by_name["custom/bottom"].role, "stage_decoration")
-	t:eq(by_name["circularmetre"].role, "standalone")
+	t:eq(by_name["circularmetre"].role, "progress")
 	t:assert(by_name["mania-note1L"].animation)
 end
 

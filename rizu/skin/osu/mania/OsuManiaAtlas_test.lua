@@ -1,8 +1,8 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
-local Graphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
+local Graphics = require("rizu.skin.osu.OsuSkinGraphics")
 local Renderer = require("rizu.skin.osu.OsuManiaRenderer")
-local Image = require("rizu.skin.osu.mania.OsuManiaImage")
-local BitmapFont = require("rizu.skin.osu.mania.OsuManiaBitmapFont")
+local Image = require("rizu.skin.osu.OsuImage")
+local BitmapFont = require("rizu.skin.osu.OsuBitmapFont")
 local Lighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local test = {}
 
@@ -21,7 +21,7 @@ local function png(width, height, color)
 end
 
 ---@param files {[string]: string}
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@return rizu.skin.osu.OsuSkinGraphics
 local function fixture(files)
 	local fs = FakeFilesystem()
 	fs:createDirectory("skin")
@@ -202,15 +202,17 @@ function test.renderer_membership_and_all_draw_paths(t)
 		renderer:load()
 		local graphics = renderer.skin_graphics
 		for _, name in ipairs({"mania-note1", "mania-note1L", "mania-key1", "mania-stage-hint",
-			"mania-stage-light", "lightingN", "lightingL", "mania-hit300g", "score-0"}) do
+			"mania-hit300g", "score-0"}) do
 			local frame = graphics:getAnimationFrames(name, nil, "playfield")[1]
 			t:assert(frame and frame.texture, name)
 		end
 		t:assert(graphics:getFrames("score-0", nil, "font")[1].texture)
 		t:eq(renderer.combo_view.bitmap_font.group, "playfield")
-		for _, name in ipairs({"mania-stage-left", "mania-stage-right", "mania-stage-bottom"}) do
-			local frame = graphics:getFrames(name, nil, "standalone")[1]
-			t:eq(frame, nil, name)
+		for _, name in ipairs({"mania-stage-left", "mania-stage-right", "mania-stage-bottom",
+			"mania-stage-light", "lightingN", "lightingL", "circularmetre"}) do
+			local frame = graphics:getAnimationFrames(name, nil, "standalone")[1]
+			t:assert(frame, name)
+			t:eq(frame.texture, nil, name)
 		end
 		local old_quad, old_batch = love.graphics.newQuad, love.graphics.newSpriteBatch
 		love.graphics.newQuad = function() error("Quad allocation during draw") end
@@ -244,6 +246,53 @@ function test.renderer_membership_and_all_draw_paths(t)
 		love.graphics.newQuad, love.graphics.newSpriteBatch = old_quad, old_batch
 		renderer:unload()
 		for _, r in ipairs(resources) do t:eq(r.releases, 1) end
+	end)
+end
+
+function test.renderer_loads_hud_after_upload_once_per_skin(t)
+	with_gpu(function(resources)
+		local fs = FakeFilesystem()
+		local first = {path = "first", files = {"circularmetre.png", "editor-rate-arrow.png"},
+			skin_ini = {Mania = {}, Fonts = {}}}
+		local second = {path = "second", files = first.files, skin_ini = first.skin_ini}
+		for _, skin in ipairs({first, second}) do
+			fs:createDirectory(skin.path)
+			for _, name in ipairs(skin.files) do fs:write(skin.path .. "/" .. name, png(4, 4)) end
+		end
+		local selected = first
+		local renderer = Renderer({fs = fs, skinRegistry = {
+			getOsuSkins = function() return {selected} end,
+		}}, "4key")
+		t:eq(renderer.progress_view.progress_image, nil)
+		t:eq(renderer.hit_meter_view.arrow_image, nil)
+		local hud_load, hud_unload = renderer.foreground_hud.load, renderer.foreground_hud.unload
+		local loads = 0
+		renderer.foreground_hud.load = function(hud, game)
+			t:assert(renderer.skin_graphics.loaded)
+			loads = loads + 1
+			return hud_load(hud, game)
+		end
+		renderer.foreground_hud.unload = function(hud, game)
+			t:assert(not renderer.progress_view.progress_image
+				or renderer.skin_graphics.loaded)
+			return hud_unload(hud, game)
+		end
+		renderer:load()
+		local progress = renderer.progress_view.progress_image
+		local arrow = renderer.hit_meter_view.arrow_image
+		t:assert(progress and arrow)
+		renderer:load()
+		t:eq(loads, 1)
+		t:eq(renderer.progress_view.progress_image, progress)
+		selected = second
+		renderer:load()
+		t:eq(loads, 2)
+		t:ne(renderer.progress_view.progress_image, progress)
+		t:ne(renderer.hit_meter_view.arrow_image, arrow)
+		renderer:unload()
+		t:eq(renderer.progress_view.progress_image, nil)
+		t:eq(renderer.hit_meter_view.arrow_image, nil)
+		for _, resource in ipairs(resources) do t:eq(resource.releases, 1) end
 	end)
 end
 
@@ -337,10 +386,9 @@ function test.spritebatch_order_colors_capacity_and_no_hot_allocations(t)
 	end)
 end
 
-function test.hides_standalone_but_keeps_oversized_batched_pages_visible(t)
+function test.standalone_assets_remain_visible_alongside_oversized_atlas_pages(t)
 	local graphics = fixture({["small.png"] = png(2, 2), ["huge.png"] = png(2, 20),
 		["stage.png"] = png(2, 2)})
-	graphics.hide_unbatched = true
 	graphics:setAtlasLimit(8)
 	with_gpu(function()
 		graphics:load({{name = "small", group = "playfield"}, {name = "huge", group = "playfield"},
@@ -348,11 +396,11 @@ function test.hides_standalone_but_keeps_oversized_batched_pages_visible(t)
 		t:assert(graphics:getFrames("small", nil, "playfield")[1].batch)
 		t:assert(graphics:getFrames("huge", nil, "playfield")[1].batch)
 		t:eq(#graphics:getAnimationFrames("huge", nil, "playfield"), 1)
-		t:eq(#graphics:getFrames("stage", nil, "standalone"), 0)
-		t:eq(#graphics:getFrames("stage"), 0)
+		t:eq(#graphics:getFrames("stage", nil, "standalone"), 1)
+		t:eq(#graphics:getFrames("stage"), 1)
 		t:eq(graphics.images["skin/huge.png"], nil)
 		graphics.fallback_file_map["stage.png"] = "skin/stage.png"
-		t:eq(#graphics:getFallbackFrames("stage"), 0)
+		t:eq(#graphics:getFallbackFrames("stage"), 1)
 		graphics:unload()
 	end)
 end
@@ -386,7 +434,6 @@ function test.tall_body_crops_top_left_to_device_limit_and_batches_without_hot_q
 	encoded:release(); data:release()
 	graphics:setTextureLimit(64)
 	graphics:setAtlasLimit(8)
-	graphics.hide_unbatched = true
 	local prepared = graphics:prepare({{name = "body", group = "playfield"}})
 	local group = prepared.groups.playfield
 	local location = group.locations["skin/body.png"]

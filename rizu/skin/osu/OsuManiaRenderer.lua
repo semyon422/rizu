@@ -7,7 +7,7 @@ local OsuManiaComboView = require("rizu.skin.osu.mania.views.OsuManiaComboView")
 local OsuManiaJudgeView = require("rizu.skin.osu.mania.views.OsuManiaJudgeView")
 local OsuManiaHitMeterView = require("rizu.skin.osu.mania.views.OsuManiaHitMeterView")
 local OsuManiaProgressView = require("rizu.skin.osu.mania.views.OsuManiaProgressView")
-local OsuManiaSkinGraphics = require("rizu.skin.osu.mania.OsuManiaSkinGraphics")
+local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
 local OsuManiaFieldRenderer = require("rizu.skin.osu.mania.OsuManiaFieldRenderer")
 local OsuManiaKeyRenderer = require("rizu.skin.osu.mania.OsuManiaKeyRenderer")
 local OsuManiaNoteRenderer = require("rizu.skin.osu.mania.OsuManiaNoteRenderer")
@@ -18,7 +18,7 @@ local OsuManiaBatchPlan = require("rizu.skin.osu.mania.OsuManiaBatchPlan")
 local InputMode = require("chart.core.InputMode")
 local Settings = require("rizu.config.Settings")
 local SkinConfig = require("rizu.skin.SkinConfig")
-local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 local table_util = require("table_util")
 
 local lg = love.graphics
@@ -44,7 +44,7 @@ local EMPTY_FRAMES = {}
 
 ---@class rizu.skin.osu.OsuManiaRenderer : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.skin.osu.OsuManiaRenderer
----@field skin_graphics rizu.skin.osu.mania.OsuManiaSkinGraphics
+---@field skin_graphics rizu.skin.osu.OsuSkinGraphics
 ---@field batch_plan rizu.skin.osu.mania.OsuManiaBatchPlan
 ---@field skin rizu.skin.OsuSkinDiscovery?
 ---@field section rizu.skin.OsuSkinIni.ManiaSection
@@ -121,10 +121,8 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.base_inputs = mode:getInputs()
 	self.engine_input_map = mode:getInputMap()
 	self.input_map = self.engine_input_map
-	self.skin_graphics = OsuManiaSkinGraphics(game.fs)
+	self.skin_graphics = OsuSkinGraphics(game.fs)
 	self.batch_plan = OsuManiaBatchPlan()
-	self.skin_graphics.defer_grouped = true
-	self.skin_graphics.hide_unbatched = false
 	self.score_view = OsuManiaScoreView(self.skin_graphics)
 	self.accuracy_view = OsuManiaAccuracyView(self.skin_graphics)
 	self.combo_view = OsuManiaComboView(self.skin_graphics)
@@ -140,8 +138,6 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.conveyor_hud:add(self.combo_view)
 	self.conveyor_hud:add(self.judge_view)
 	self.conveyor_hud:add(self.hit_meter_view)
-	self.foreground_hud:load(game)
-	self.conveyor_hud:load(game)
 	self.field_renderer = OsuManiaFieldRenderer()
 	self.key_renderer = OsuManiaKeyRenderer()
 	self.note_renderer = OsuManiaNoteRenderer()
@@ -447,12 +443,18 @@ function OsuManiaRenderer:update(dt)
 end
 
 function OsuManiaRenderer:load()
-	self.skin_graphics:setFallbackArchive("resources/osu_default_assets.zip")
 	local skin = self:getSkin()
-	if self.skin ~= skin then self:loadSkinSettings(skin) end
-	self.foreground_hud:load(self.game)
-	self.conveyor_hud:load(self.game)
+	if self.skin == skin and self.skin_graphics.loaded
+		and self.skin_graphics.skin == skin
+		and self.skin_graphics.fallback_archive == "resources/osu_default_assets.zip" then return end
+
+	-- Consumers release their references before the graphics owner releases GPU
+	-- resources. Acquire the HUD only after the complete skin has been uploaded.
+	self.foreground_hud:unload(self.game)
+	self.conveyor_hud:unload(self.game)
+	self.skin_graphics:setFallbackArchive("resources/osu_default_assets.zip")
 	if self.skin_graphics.skin ~= skin then self.skin_graphics:setSkin(skin) end
+	if self.skin ~= skin then self:loadSkinSettings(skin) end
 	if not self.skin_graphics.loaded then
 		local limits = love.graphics.getSystemLimits()
 		local texture_limit = limits.texturesize > 0 and limits.texturesize or 4096
@@ -461,9 +463,9 @@ function OsuManiaRenderer:load()
 		self.skin_graphics:load(self:getSkinAssets())
 	end
 	self:loadLightings()
-	self.score_view:refreshSize()
-	self.combo_view:refreshSize()
-	self.accuracy_view:setSkin(skin, self.score_view.height)
+	self.foreground_hud:load(self.game)
+	self.conveyor_hud:load(self.game)
+	self.accuracy_view.y = self.score_view.height + 3
 	self.progress_view:setAccuracyView(self.accuracy_view)
 end
 
@@ -518,15 +520,15 @@ end
 
 ---@param name string?
 ---@param fallback string
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+---@return rizu.skin.osu.OsuSkinGraphics.Image[]
 function OsuManiaRenderer:getLightingFrames(name, fallback)
 	if self.skin_graphics.getAnimationFrames then
-		return self.skin_graphics:getAnimationFrames(name, fallback, "playfield")
+		return self.skin_graphics:getAnimationFrames(name, fallback, "standalone")
 	end
-	return self.skin_graphics:getFrames(name, fallback, "playfield")
+	return self.skin_graphics:getFrames(name, fallback, "standalone")
 end
 
----@param frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+---@param frames rizu.skin.osu.OsuSkinGraphics.Image[]
 ---@return number
 local function getLightingFrameRate(frames)
 	-- osu! advances hit-light animations over 170 ms, but never faster than
@@ -565,7 +567,7 @@ function OsuManiaRenderer:loadLightings()
 		local lane_width = (self.column_widths[column] or DEFAULT_COLUMN_WIDTH) * width_scale
 		local stage_color = self:getLightingColor("ColourLight" .. column, {55 / 255, 1, 1, 1})
 		if #stage_frames > 0 then
-			local image_width, image_height = OsuManiaImage.dimensions(stage_frames[1])
+			local image_width, image_height = OsuImage.dimensions(stage_frames[1])
 			if image_width > 0 and image_height > 0 then
 				self.stage_lightings[column] = OsuManiaLighting({
 					frames = stage_frames,
@@ -574,7 +576,6 @@ function OsuManiaRenderer:loadLightings()
 					width = lane_width,
 					scale_y = FIELD_HEIGHT / 768,
 					color = stage_color,
-					blend_mode = {"alpha", "alphamultiply"},
 					origin_x = 0,
 					origin_y = 1,
 				})
@@ -583,7 +584,7 @@ function OsuManiaRenderer:loadLightings()
 
 		local normal = nil
 		if #normal_frames > 0 then
-			local image_width = OsuManiaImage.dimensions(normal_frames[1])
+			local image_width = OsuImage.dimensions(normal_frames[1])
 			local lighting_width = self.lighting_n_widths[column] > 0
 				and self.lighting_n_widths[column] * width_scale or lane_width
 			if image_width > 0 then
@@ -594,7 +595,6 @@ function OsuManiaRenderer:loadLightings()
 					width = image_width * lighting_width / 30 * MANIA_HEIGHT_SCALE,
 					scale_y = lighting_width / 30 * MANIA_HEIGHT_SCALE,
 					color = {1, 1, 1, 1},
-					blend_mode = {"add", "alphamultiply"},
 					origin_x = 0.5,
 					origin_y = 0.5,
 					duration = 0.2,
@@ -606,7 +606,7 @@ function OsuManiaRenderer:loadLightings()
 
 		local long = nil
 		if #long_frames > 0 then
-			local image_width = OsuManiaImage.dimensions(long_frames[1])
+			local image_width = OsuImage.dimensions(long_frames[1])
 			local lighting_width = self.lighting_l_widths[column] > 0
 				and self.lighting_l_widths[column] * width_scale or lane_width
 			if image_width > 0 then
@@ -617,7 +617,6 @@ function OsuManiaRenderer:loadLightings()
 					width = image_width * lighting_width / 30 * MANIA_HEIGHT_SCALE,
 					scale_y = lighting_width / 30 * MANIA_HEIGHT_SCALE,
 					color = {1, 1, 1, 1},
-					blend_mode = {"add", "alphamultiply"},
 					origin_x = 0.5,
 					origin_y = 0.5,
 					fade_in = 0.08,
@@ -672,32 +671,65 @@ function OsuManiaRenderer:updateHitLightings(notes)
 	end
 end
 
+---The pass, not each sprite, owns blend state. Avoid setting an unchanged
+---mode: even a redundant state call can interrupt automatic batching.
+---@param batch rizu.skin.osu.OsuSpriteBatch
+---@param mode love.BlendMode
+---@return love.BlendMode? previous_mode
+---@return love.BlendAlphaMode? previous_alpha
+local function begin_lighting_pass(batch, mode)
+	batch:flush()
+	local previous_mode, previous_alpha = lg.getBlendMode()
+	if previous_mode == mode and previous_alpha == "alphamultiply" then return end
+	lg.setBlendMode(mode, "alphamultiply")
+	return previous_mode, previous_alpha
+end
+
 ---@param lane_widths number[]
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaRenderer:drawStageLightings(lane_widths, lane_xs, hit_y)
 	local light_y = self.upside_down and FIELD_HEIGHT - self.light_position or self.light_position
+	local started = false
+	local previous_mode ---@type love.BlendMode?
+	local previous_alpha ---@type love.BlendAlphaMode?
 	for column = 1, self.columns do
 		local lighting = self.stage_lightings[column]
-		if lighting then
+		if lighting and lighting.active and lighting.alpha > 0 then
+			if not started then
+				previous_mode, previous_alpha = begin_lighting_pass(self.skin_graphics.batch, "alpha")
+				started = true
+			end
 			lighting:draw(lane_xs[column] - lane_widths[column] / 2, light_y, self.upside_down)
 		end
 	end
+	if previous_mode then lg.setBlendMode(previous_mode, previous_alpha) end
 end
 
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaRenderer:drawHitLightings(lane_xs, hit_y)
+	local started = false
+	local previous_mode ---@type love.BlendMode?
+	local previous_alpha ---@type love.BlendAlphaMode?
 	for column = 1, self.columns do
 		local hit = self.hit_lightings[column]
 		if hit then
-			if hit.short then hit.short:draw(lane_xs[column], hit_y) end
-			if hit.long then hit.long:draw(lane_xs[column], hit_y) end
+			local short, long = hit.short, hit.long
+			if short and short.active and short.alpha > 0 or long and long.active and long.alpha > 0 then
+				if not started then
+					previous_mode, previous_alpha = begin_lighting_pass(self.skin_graphics.batch, "add")
+					started = true
+				end
+				if short then short:draw(lane_xs[column], hit_y) end
+				if long then long:draw(lane_xs[column], hit_y) end
+			end
 		end
 	end
+	if previous_mode then lg.setBlendMode(previous_mode, previous_alpha) end
 end
 
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Asset[]
+---@return rizu.skin.osu.OsuSkinGraphics.Asset[]
 function OsuManiaRenderer:getSkinAssets()
 	local finder = OsuManiaSkinAssetFinder({
 		section = self.section,
@@ -727,7 +759,7 @@ function OsuManiaRenderer:getNoteDimensions(column, image)
 		base_width = math.min(base_width,
 			self.note_height_scale > 0 and self.note_height_scale or self.column_widths[lane] or DEFAULT_COLUMN_WIDTH)
 	end
-	local image_width, image_height = OsuManiaImage.dimensions(image)
+	local image_width, image_height = OsuImage.dimensions(image)
 	local height = image_width > 0 and image_height * base_width * width_scale / image_width or 0
 	return width, height
 end
@@ -855,7 +887,7 @@ function OsuManiaRenderer:getSkinColor(key, fallback)
 end
 
 ---@param name string?
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
+---@return rizu.skin.osu.OsuSkinGraphics.Image?
 function OsuManiaRenderer:getFirstFrame(name)
 	return self.skin_graphics:getFrames(name, nil, "playfield")[1]
 end
@@ -863,7 +895,7 @@ end
 ---@param column integer
 ---@param suffix string
 ---@param postfix string
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+---@return rizu.skin.osu.OsuSkinGraphics.Image[]
 function OsuManiaRenderer:getColumnFrames(column, suffix, postfix)
 	local graphics = self.skin_graphics
 	local animated = true
@@ -895,7 +927,7 @@ end
 ---@param column integer
 ---@param suffix string
 ---@param postfix string
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
+---@return rizu.skin.osu.OsuSkinGraphics.Image?
 function OsuManiaRenderer:getColumnImage(column, suffix, postfix)
 	local frames = self:getColumnFrames(column, suffix, postfix)
 	local index = math.floor((self.note_renderer.time or 0) / 0.03) % math.max(#frames, 1) + 1
@@ -931,10 +963,7 @@ end
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaRenderer:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y)
-	local batch = self.skin_graphics.batch
-	if batch then batch:flush() end
 	self.stage_renderer:draw(self, field_left, field_width, lane_widths, lane_xs, hit_y)
-	if batch then batch:flush() end
 	self:drawStageLightings(lane_widths, lane_xs, hit_y)
 end
 
@@ -977,7 +1006,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
 	local batch = self.skin_graphics.batch
-	if batch then batch:begin() end
+	batch:begin()
 	for column = 1, math.min(self.columns, #preview.columns) do
 		local source_column = column
 		if player.column_map and player.column_map[column] then source_column = player.column_map[column] end
@@ -1016,7 +1045,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 		end
 	end
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
-	if batch then batch:finish() end
+	batch:finish()
 	lg.pop()
 end
 
@@ -1079,7 +1108,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 	lg.scale(scale)
 
 	local batch = self.skin_graphics.batch
-	if batch then batch:begin() end
+	batch:begin()
 	self.field_renderer:drawBackground(self, field_left, field_width)
 	self.field_renderer:drawLanes(self, lane_widths, lane_xs)
 	self.field_renderer:drawGuides(self, field_left, field_width, lane_widths, lane_xs, hit_y, width_scale)
@@ -1130,9 +1159,8 @@ function OsuManiaRenderer:draw(width, height, transform)
 
 	if not self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 	if not self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
-	if batch then batch:flush() end
 	self:drawHitLightings(lane_xs, hit_y)
-	if batch then batch:finish() end
+	batch:finish()
 	lg.pop()
 end
 

@@ -1,5 +1,5 @@
 local class = require("class")
-local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 
 local lg = love.graphics
 local FIELD_HEIGHT = 480
@@ -34,7 +34,7 @@ end
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
 ---@param column integer
 ---@param pressed boolean
----@return rizu.skin.osu.mania.OsuManiaSkinGraphics.Image?
+---@return rizu.skin.osu.OsuSkinGraphics.Image?
 local function get_key_image(renderer, column, pressed)
 	local suffix = renderer:getColumnSuffix(column - 1)
 	local key_name = renderer:getSkinValue("KeyImage" .. (column - 1))
@@ -64,7 +64,7 @@ local function get_key_flip(renderer, column, pressed)
 end
 
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
----@param image rizu.skin.osu.mania.OsuManiaSkinGraphics.Image
+---@param image rizu.skin.osu.OsuSkinGraphics.Image
 ---@param x number
 ---@param width number
 ---@param flip boolean
@@ -72,19 +72,19 @@ end
 ---@param alpha number
 local function draw_key(renderer, image, x, width, flip, upside_down, alpha)
 	if not image.texture and renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
-	local image_width, image_height = OsuManiaImage.dimensions(image)
+	local image_width, image_height = OsuImage.dimensions(image)
 	local scale_x, scale_y = width / image_width, FIELD_HEIGHT / 768
 	lg.setColor(1, 1, 1, alpha)
 	if upside_down then
 		if flip then
-			OsuManiaImage.draw(image, x, 0, 0, scale_x, -scale_y, image_width / 2, image_height)
+			OsuImage.draw(image, x, 0, 0, scale_x, -scale_y, image_width / 2, image_height)
 		else
-			OsuManiaImage.draw(image, x, 0, 0, scale_x, scale_y, image_width / 2, 0)
+			OsuImage.draw(image, x, 0, 0, scale_x, scale_y, image_width / 2, 0)
 		end
 	elseif flip then
-		OsuManiaImage.draw(image, x, FIELD_HEIGHT, 0, scale_x, -scale_y, image_width / 2, 0)
+		OsuImage.draw(image, x, FIELD_HEIGHT, 0, scale_x, -scale_y, image_width / 2, 0)
 	else
-		OsuManiaImage.draw(image, x, FIELD_HEIGHT, 0, scale_x, scale_y, image_width / 2, image_height)
+		OsuImage.draw(image, x, FIELD_HEIGHT, 0, scale_x, scale_y, image_width / 2, image_height)
 	end
 end
 
@@ -136,7 +136,7 @@ function OsuManiaKeyRenderer:draw(renderer, engine, lane_widths, lane_xs, hit_y)
 				renderer.upside_down, 1)
 		else
 			lg.setColor(1, 1, 1, pressed and 0.8 or 0.22)
-			OsuManiaImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2, hit_y - 5,
+			OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2, hit_y - 5,
 				lane_widths[column], 10)
 		end
 	end

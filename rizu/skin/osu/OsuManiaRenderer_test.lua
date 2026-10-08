@@ -1,4 +1,5 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
+local OsuSpriteBatch = require("rizu.skin.osu.OsuSpriteBatch")
 local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
 
 local test = {}
@@ -186,6 +187,7 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 		getDimensions = function() return 20, 20 end,
 	}
 	renderer.skin_graphics = {
+		batch = OsuSpriteBatch(),
 		skin = skin,
 		loaded = true,
 		setFallbackArchive = function() end,
@@ -237,6 +239,7 @@ function test.preview_long_note_draws_hold_head_body_and_tail(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
+		batch = OsuSpriteBatch(),
 		skin = nil,
 		loaded = true,
 		unload = function() end,
@@ -295,6 +298,7 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
+		batch = OsuSpriteBatch(),
 		skin = nil,
 		loaded = true,
 		unload = function() end,
@@ -378,6 +382,7 @@ function test.long_note_body_uses_the_selected_animation_frame(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
+		batch = OsuSpriteBatch(),
 		unload = function() end,
 		getFrames = function(_, name)
 			local image = name == "mania-note1H" and images.head
@@ -502,14 +507,17 @@ function test.loads_bundled_fallback_assets(t)
 		local graphics = renderer.skin_graphics
 		t:eq(graphics.fallback_archive, "resources/osu_default_assets.zip")
 		for _, name in ipairs({"mania-key1", "mania-key2D", "mania-note1", "mania-note1L",
-			"mania-note2T", "mania-stage-left", "mania-stage-hint", "score-0", "score-percent"}) do
-			local group = name:match("^score") and "font"
+			"mania-note2T", "mania-stage-left", "mania-stage-hint", "score-0", "score-percent",
+			"circularmetre", "editor-rate-arrow"}) do
+			local group = name == "circularmetre" and "standalone"
+				or name == "editor-rate-arrow" and "standalone"
+				or name:match("^score") and "font"
 				or name:match("^mania%-stage%-left") and "standalone" or "playfield"
 			local image = graphics:getFrames(name, nil, group)[1]
+			t:assert(image, name)
 			if group == "standalone" then
-				t:eq(image, nil, name)
+				t:eq(image.texture, nil, name)
 			else
-				t:assert(image, name)
 				t:eq(graphics:getImageDensity(image), 2)
 			end
 		end

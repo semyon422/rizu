@@ -1,16 +1,15 @@
 local class = require("class")
-local OsuManiaImage = require("rizu.skin.osu.mania.OsuManiaImage")
+local OsuImage = require("rizu.skin.osu.OsuImage")
 
 local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaLighting.Config
----@field frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+---@field frames rizu.skin.osu.OsuSkinGraphics.Image[]
 ---@field mode "stage"|"oneshot"|"hold"
 ---@field frame_rate number
 ---@field width number
 ---@field scale_y number
 ---@field color number[]
----@field blend_mode {[1]: string, [2]: string?}
 ---@field origin_x number
 ---@field origin_y number
 ---@field fit_width boolean?
@@ -20,13 +19,12 @@ local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaLighting
 ---@operator call: rizu.skin.osu.mania.OsuManiaLighting
----@field frames rizu.skin.osu.mania.OsuManiaSkinGraphics.Image[]
+---@field frames rizu.skin.osu.OsuSkinGraphics.Image[]
 ---@field mode "stage"|"oneshot"|"hold"
 ---@field frame_rate number
 ---@field width number
 ---@field scale_y number
 ---@field color number[]
----@field blend_mode {[1]: string, [2]: string?}
 ---@field origin_x number
 ---@field origin_y number
 ---@field elapsed number
@@ -49,7 +47,6 @@ function OsuManiaLighting:new(config)
 	self.width = config.width
 	self.scale_y = config.scale_y
 	self.color = config.color
-	self.blend_mode = config.blend_mode
 	self.origin_x = config.origin_x
 	self.origin_y = config.origin_y
 	self.fit_width = config.fit_width or false
@@ -149,6 +146,8 @@ function OsuManiaLighting:update(dt)
 	end
 end
 
+---Draw in the lighting pass's blend mode. The pass owns graphics state so
+---consecutive images can share LÖVE's automatic batch.
 ---@param x number
 ---@param y number
 ---@param upside_down boolean?
@@ -162,7 +161,7 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	end
 	local image = self.frames[frame_index]
 	if not image then return end
-	local image_width, image_height = OsuManiaImage.dimensions(image)
+	local image_width, image_height = OsuImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 
 	local scale_x = self.width / image_width
@@ -171,26 +170,12 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	if upside_down then scale_y = -scale_y end
 	if scale_x <= 0 or math.abs(scale_y) <= 0 then return end
 
-	local batch = image.texture and image.batch
-	if batch and batch.collecting then
-		batch:setBlendMode(self.blend_mode[1], self.blend_mode[2])
-		lg.setColor(self.color[1], self.color[2], self.color[3], (self.color[4] or 1) * self.alpha)
-		OsuManiaImage.draw(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
-			image_height * origin_y)
-		return
-	end
-
-	if batch then batch:flush() end
-	lg.push("all")
-	lg.setBlendMode(self.blend_mode[1], self.blend_mode[2])
 	lg.setColor(self.color[1], self.color[2], self.color[3], (self.color[4] or 1) * self.alpha)
 	-- Keeping the origin at the lower edge reproduces osu!'s BottomLeft
 	-- origin in normal scroll and its flipped TopLeft origin in upside-down
 	-- mode when the Y scale is negative.
-	OsuManiaImage.draw(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
+	OsuImage.drawDirect(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
 		image_height * origin_y)
-	if batch then batch:flush() end
-	lg.pop()
 end
 
 return OsuManiaLighting
