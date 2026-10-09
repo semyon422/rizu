@@ -42,6 +42,12 @@ local EMPTY_FRAMES = {}
 ---@field get fun(): number
 ---@field set fun(value: number)
 
+---@class rizu.skin.osu.OsuManiaRenderer.ColumnKeys
+---@field up rizu.skin.osu.OsuSkinGraphics.Image?
+---@field down rizu.skin.osu.OsuSkinGraphics.Image?
+---@field up_flip boolean
+---@field down_flip boolean
+
 ---@class rizu.skin.osu.OsuManiaRenderer : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.skin.osu.OsuManiaRenderer
 ---@field skin_graphics rizu.skin.osu.OsuSkinGraphics
@@ -100,6 +106,15 @@ local EMPTY_FRAMES = {}
 ---@field private note_draw_pool table[]
 ---@field private active_long {[integer]: boolean}
 ---@field private skin_colors {[string]: number[]}
+---@field private column_suffixes {[integer]: "1"|"2"|"S"}
+---@field private column_frames {[integer]: {[string]: rizu.skin.osu.OsuSkinGraphics.Image[]}}
+---@field private column_keys {[integer]: rizu.skin.osu.OsuManiaRenderer.ColumnKeys}
+---@field private note_body_flips boolean[]
+---@field private note_head_flips boolean[]
+---@field private note_short_flips boolean[]
+---@field private lane_colors {[integer]: number[]}
+---@field private playfield_width_scale number
+---@field private note_base_width number
 local OsuManiaRenderer = PlayfieldRenderer + {}
 OsuManiaRenderer.field_width = FIELD_WIDTH
 OsuManiaRenderer.field_height = FIELD_HEIGHT
@@ -181,6 +196,15 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.note_draw_pool = {}
 	self.active_long = {}
 	self.skin_colors = {}
+	self.column_suffixes = {}
+	self.column_frames = {}
+	self.column_keys = {}
+	self.note_body_flips = {}
+	self.note_head_flips = {}
+	self.note_short_flips = {}
+	self.lane_colors = {}
+	self.playfield_width_scale = 1
+	self.note_base_width = DEFAULT_COLUMN_WIDTH
 	self:loadSkinSettings(self:getSkin())
 end
 
@@ -419,6 +443,31 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	local inputs = {}
 	for column, input in ipairs(self.inputs) do inputs[input] = column end
 	self.input_map = inputs
+	self.column_suffixes = {}
+	self.column_frames = {}
+	self.column_keys = {}
+	self.note_body_flips = {}
+	self.note_head_flips = {}
+	self.note_short_flips = {}
+	self.lane_colors = {}
+	for column = 1, columns do
+		self:getColumnSuffix(column - 1)
+		self:getNoteBodyFlip(column)
+		self:getNoteHeadFlip(column, true)
+		self:getNoteHeadFlip(column, false)
+		self:getColumnLineColor(column)
+	end
+	local _, _, width_scale = self:getPlayfieldLayout()
+	self.playfield_width_scale = width_scale
+	local base_width = self.note_height_scale
+	if base_width <= 0 then
+		base_width = math.huge
+		for lane = 1, columns do
+			base_width = math.min(base_width, self.column_widths[lane] or DEFAULT_COLUMN_WIDTH)
+		end
+		if base_width == math.huge then base_width = DEFAULT_COLUMN_WIDTH end
+	end
+	self.note_base_width = base_width
 end
 
 function OsuManiaRenderer:updateHud(dt)
@@ -478,6 +527,8 @@ function OsuManiaRenderer:unload()
 	self.lighting_skin = nil
 	self.lighting_loaded = false
 	self.lighting_input_state = {}
+	self.column_frames = {}
+	self.column_keys = {}
 end
 
 ---@param width number
@@ -752,21 +803,25 @@ end
 ---@return number width
 ---@return number height
 function OsuManiaRenderer:getNoteDimensions(column, image)
-	local _, _, width_scale = self:getPlayfieldLayout()
-	local width = (self.column_widths[column] or DEFAULT_COLUMN_WIDTH) * width_scale
-	local base_width = self.note_height_scale > 0 and self.note_height_scale or self.column_widths[1] or DEFAULT_COLUMN_WIDTH
-	for lane = 2, self.columns do
-		base_width = math.min(base_width,
-			self.note_height_scale > 0 and self.note_height_scale or self.column_widths[lane] or DEFAULT_COLUMN_WIDTH)
-	end
+	local width = (self.column_widths[column] or DEFAULT_COLUMN_WIDTH) * self.playfield_width_scale
 	local image_width, image_height = OsuImage.dimensions(image)
-	local height = image_width > 0 and image_height * base_width * width_scale / image_width or 0
+	local height = image_width > 0 and image_height * self.note_base_width * self.playfield_width_scale / image_width or 0
 	return width, height
 end
 
 ---@param column integer zero based physical Mania lane index
 ---@return "1"|"2"|"S"
 function OsuManiaRenderer:getColumnSuffix(column)
+	local suffix = self.column_suffixes[column]
+	if suffix then return suffix end
+	suffix = self:computeColumnSuffix(column)
+	self.column_suffixes[column] = suffix
+	return suffix
+end
+
+---@param column integer zero based physical Mania lane index
+---@return "1"|"2"|"S"
+function OsuManiaRenderer:computeColumnSuffix(column)
 	local physical_column = column + 1
 	local scratch_count = self.scratch_count
 
@@ -873,6 +928,30 @@ function OsuManiaRenderer:getBoolean(key, default)
 	return get_boolean(self.section, key, default)
 end
 
+---@param column integer one based physical Mania lane index
+---@return boolean
+function OsuManiaRenderer:getNoteBodyFlip(column)
+	local flip = self.note_body_flips[column]
+	if flip == nil then
+		flip = self:getBoolean("NoteFlipWhenUpsideDown" .. (column - 1) .. "L", self.note_flip)
+		self.note_body_flips[column] = flip
+	end
+	return flip
+end
+
+---@param column integer one based physical Mania lane index
+---@param long_note boolean
+---@return boolean
+function OsuManiaRenderer:getNoteHeadFlip(column, long_note)
+	local flips = long_note and self.note_head_flips or self.note_short_flips
+	local flip = flips[column]
+	if flip == nil then
+		flip = self:getBoolean("NoteFlipWhenUpsideDown" .. (column - 1) .. (long_note and "H" or ""), self.note_flip)
+		flips[column] = flip
+	end
+	return flip
+end
+
 ---@param key string
 ---@param fallback number[]
 ---@return number[]
@@ -886,10 +965,52 @@ function OsuManiaRenderer:getSkinColor(key, fallback)
 	return color
 end
 
+---@param column integer one based physical Mania lane index
+---@return number[]
+function OsuManiaRenderer:getColumnLineColor(column)
+	local color = self.lane_colors[column]
+	if not color then
+		color = self:getSkinColor("Colour" .. column, {0, 0, 0, 1})
+		self.lane_colors[column] = color
+	end
+	return color
+end
+
 ---@param name string?
 ---@return rizu.skin.osu.OsuSkinGraphics.Image?
 function OsuManiaRenderer:getFirstFrame(name)
 	return self.skin_graphics:getFrames(name, nil, "playfield")[1]
+end
+
+---@param column integer one based physical Mania lane index
+---@return rizu.skin.osu.OsuManiaRenderer.ColumnKeys
+function OsuManiaRenderer:getColumnKeys(column)
+	local keys = self.column_keys[column]
+	if keys then return keys end
+	local suffix = self:getColumnSuffix(column - 1)
+	local base = "KeyFlipWhenUpsideDown" .. (column - 1)
+	local key_name = self:getSkinValue("KeyImage" .. (column - 1))
+	local down_name = self:getSkinValue("KeyImage" .. (column - 1) .. "D")
+	local key_frame = self:getFirstFrame(key_name)
+	local up = key_frame or self:getFirstFrame("mania-key" .. suffix)
+	local down = self:getFirstFrame(down_name)
+	if not down then down = key_frame end
+	if not down then down = self:getFirstFrame("mania-key" .. suffix .. "D") end
+	if not down then down = up end
+	local function get_flip(postfix)
+		local value = self:getSkinValue(base .. postfix)
+		if not value then value = self:getSkinValue(base) end
+		local flip = value and (value:lower() == "true" or tonumber(value) == 1) or false
+		return flip or self.key_flip
+	end
+	keys = {
+		up = up,
+		down = down,
+		up_flip = get_flip(""),
+		down_flip = get_flip("D"),
+	}
+	self.column_keys[column] = keys
+	return keys
 end
 
 ---@param column integer
@@ -897,6 +1018,24 @@ end
 ---@param postfix string
 ---@return rizu.skin.osu.OsuSkinGraphics.Image[]
 function OsuManiaRenderer:getColumnFrames(column, suffix, postfix)
+	local column_frames = self.column_frames[column]
+	if not column_frames then
+		column_frames = {}
+		self.column_frames[column] = column_frames
+	end
+	local frames = column_frames[postfix]
+	if frames == nil then
+		frames = self:findColumnFrames(column, suffix, postfix)
+		column_frames[postfix] = frames
+	end
+	return frames
+end
+
+---@param column integer
+---@param suffix string
+---@param postfix string
+---@return rizu.skin.osu.OsuSkinGraphics.Image[]
+function OsuManiaRenderer:findColumnFrames(column, suffix, postfix)
 	local graphics = self.skin_graphics
 	local animated = true
 	local function find(name)
@@ -1001,6 +1140,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	local upper = time + (self.upside_down and 1 or 1.5) / rate
 	local notes_to_draw = self.notes_to_draw
 	table_util.clear(notes_to_draw)
+	local direction = self.upside_down and -1 or 1
 
 	lg.push("all")
 	lg.translate(offset_x, offset_y)
@@ -1023,7 +1163,6 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 			for index = first, last do
 				local note = notes[index]
 				if note and note.end_time >= lower then
-					local direction = self.upside_down and -1 or 1
 					local head_y = hit_y + (time - note.time) * NOTE_SCROLL_SPEED * rate * direction
 					local tail_y = hit_y + (time - note.end_time) * NOTE_SCROLL_SPEED * rate * direction
 					local item_index = #notes_to_draw + 1
@@ -1118,13 +1257,13 @@ function OsuManiaRenderer:draw(width, height, transform)
 
 	local notes_to_draw = self.notes_to_draw
 	table_util.clear(notes_to_draw)
+	local direction = self.upside_down and -1 or 1
 	for _, note in ipairs(visual_engine.visible_notes) do
 
 		local state = note:getState()
 		local long_note = note.type == "long"
 		local column = self.input_map[note:getColumn()]
 		if column and column >= 1 and column <= self.columns then
-			local direction = self.upside_down and -1 or 1
 			local head_y = hit_y + note.start_dt * hit_speed * direction
 			local tail_y = hit_y + (long_note and note.end_dt or note.start_dt) * hit_speed * direction
 			if state == "startPassedPressed" then

@@ -32,38 +32,6 @@ function OsuManiaKeyRenderer:update(dt)
 end
 
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
----@param column integer
----@param pressed boolean
----@return rizu.skin.osu.OsuSkinGraphics.Image?
-local function get_key_image(renderer, column, pressed)
-	local suffix = renderer:getColumnSuffix(column - 1)
-	local key_name = renderer:getSkinValue("KeyImage" .. (column - 1))
-	local down_name = renderer:getSkinValue("KeyImage" .. (column - 1) .. "D")
-	local image_name = pressed and down_name or key_name
-	local image = renderer:getFirstFrame(image_name)
-	if not image and pressed then image = renderer:getFirstFrame(key_name) end
-	if not image then
-		image = renderer:getFirstFrame("mania-key" .. suffix .. (pressed and "D" or ""))
-	end
-	if not image and pressed then image = renderer:getFirstFrame("mania-key" .. suffix) end
-	return image
-end
-
----@param renderer rizu.skin.osu.OsuManiaRenderer
----@param column integer
----@param pressed boolean
----@return boolean
-local function get_key_flip(renderer, column, pressed)
-	local flip_value = renderer:getSkinValue("KeyFlipWhenUpsideDown" .. (column - 1)
-		.. (pressed and "D" or ""))
-	if not flip_value then
-		flip_value = renderer:getSkinValue("KeyFlipWhenUpsideDown" .. (column - 1))
-	end
-	local flip = flip_value and (flip_value:lower() == "true" or tonumber(flip_value) == 1)
-	return renderer.upside_down and (flip or renderer.key_flip)
-end
-
----@param renderer rizu.skin.osu.OsuManiaRenderer
 ---@param image rizu.skin.osu.OsuSkinGraphics.Image
 ---@param x number
 ---@param width number
@@ -113,11 +81,10 @@ function OsuManiaKeyRenderer:draw(renderer, engine, lane_widths, lane_xs, hit_y)
 			state.pressed = pressed
 		end
 
-		local up = get_key_image(renderer, column, false)
-		local down = get_key_image(renderer, column, true)
-		if not down then down = up end
-		local up_flip = get_key_flip(renderer, column, false)
-		local down_flip = get_key_flip(renderer, column, true)
+		local keys = renderer:getColumnKeys(column)
+		local up, down = keys.up, keys.down
+		local up_flip = renderer.upside_down and keys.up_flip or false
+		local down_flip = renderer.upside_down and keys.down_flip or false
 		if up and down then
 			local draw_width = lane_widths[column]
 			if state.releasing and up ~= down then

@@ -2,6 +2,8 @@ local class = require("class")
 local OsuImage = require("rizu.skin.osu.OsuImage")
 
 local lg = love.graphics
+local HOLD_COLOR = {1, 0.78, 0.2, 1}
+local HEAD_COLOR = {0.25, 0.72, 1, 1}
 
 ---@class rizu.skin.osu.mania.OsuManiaNoteRenderer
 ---@operator call: rizu.skin.osu.mania.OsuManiaNoteRenderer
@@ -153,9 +155,8 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 				local body_top = top + body_offset
 				local body_bottom = bottom + body_offset
 				if body then
-					local flip_key = "NoteFlipWhenUpsideDown" .. (column - 1) .. "L"
 					local flip_body = renderer.upside_down
-						and renderer:getBoolean(flip_key, renderer.note_flip)
+						and renderer:getNoteBodyFlip(column)
 					local body_style = renderer.note_body_styles[column] or renderer.default_note_body_style
 					if body_style == "stretch" then
 						draw_image_rect(renderer.skin_graphics, body, lane_xs[column] - note_width / 2, body_top, note_width,
@@ -165,7 +166,7 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 							note_width, body_bottom - body_top, flip_body, body_style)
 					end
 				else
-					local color = renderer:getSkinColor("ColourHold", {1, 0.78, 0.2, 1})
+					local color = renderer:getSkinColor("ColourHold", HOLD_COLOR)
 					lg.setColor(color[1], color[2], color[3], color[4] * 0.8)
 					OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - note_width * 0.32, body_top,
 						note_width * 0.64, body_bottom - body_top)
@@ -188,13 +189,12 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 			local image = renderer:getColumnImage(column - 1, suffix, postfix)
 			if image then
 				local note_width, note_height = renderer:getNoteDimensions(column, image)
-				local flip_key = "NoteFlipWhenUpsideDown" .. (column - 1) .. postfix
 				local flip = renderer.upside_down
-					and renderer:getBoolean(flip_key, renderer.note_flip)
+					and renderer:getNoteHeadFlip(column, note.long_note)
 				draw_note_head(renderer.skin_graphics, image, lane_xs[column], note.head_y, note_width, note_height,
 					flip, renderer.upside_down)
 			else
-				local color = renderer:getSkinColor("ColourHold", {0.25, 0.72, 1, 1})
+				local color = renderer:getSkinColor("ColourHold", HEAD_COLOR)
 				lg.setColor(color[1], color[2], color[3], color[4])
 				OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2,
 					note.head_y - 10, lane_widths[column], 10)
