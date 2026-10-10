@@ -29,18 +29,26 @@ local DEFAULT_COLUMN_START = 136
 local DEFAULT_COLUMN_RIGHT = 19
 local DEFAULT_HIT_POSITION = 402
 local DEFAULT_HIT_METER_MODE = 0
+local DEFAULT_BGA_BRIGHTNESS = 1
 local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 local EMPTY_FRAMES = {}
 
+---@alias rizu.skin.osu.OsuManiaRenderer.PropertyType "slider"|"checkbox"|"segmented"|"dropdown"
+
+---Editor property rendered by the skin editor. `type` selects the control:
+---"slider" (default), "checkbox", "segmented", or "dropdown".
 ---@class rizu.skin.osu.OsuManiaRenderer.Property
 ---@field key string
 ---@field label string
----@field min number
----@field max number
----@field step number
----@field value_format fun(value: number): string
----@field get fun(): number
----@field set fun(value: number)
+---@field type rizu.skin.osu.OsuManiaRenderer.PropertyType?
+---@field min number?
+---@field max number?
+---@field step number?
+---@field value_format (fun(value: number): string)?
+---@field options any[]? Values for segmented and dropdown controls
+---@field format (fun(value: any): string)? Value label for segmented and dropdown controls
+---@field get fun(): any
+---@field set fun(value: any)
 
 ---@class rizu.skin.osu.OsuManiaRenderer.ColumnKeys
 ---@field up rizu.skin.osu.OsuSkinGraphics.Image?
@@ -68,6 +76,8 @@ local EMPTY_FRAMES = {}
 ---@field note_body_styles string[]
 ---@field default_note_body_style string
 ---@field upside_down boolean
+---@field skin_upside_down boolean Direction declared by the skin ini (UpsideDown)
+---@field skin_hit_position number Hit position declared by the skin ini (HitPosition)
 ---@field keys_under_notes boolean
 ---@field stage_under_keys boolean Draw stage decorations below keys when true.
 ---@field judgement_line boolean
@@ -80,6 +90,7 @@ local EMPTY_FRAMES = {}
 ---@field stage_renderer rizu.skin.osu.mania.OsuManiaStageRenderer
 ---@field foreground_hud rizu.skin.Hud?
 ---@field conveyor_hud rizu.skin.Hud
+---@field bga_view rizu.skin.views.BgaView
 ---@field private conveyor_hud_transform love.Transform
 ---@field score_view rizu.skin.osu.mania.views.OsuManiaScoreView
 ---@field accuracy_view rizu.skin.osu.mania.views.OsuManiaAccuracyView
@@ -126,11 +137,13 @@ OsuManiaRenderer.field_height = FIELD_HEIGHT
 ---@param config_path string?
 function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	PlayfieldRenderer.new(self, game)
-	self.background_hud:add(BgaView(game))
+	self.bga_view = BgaView(game)
+	self.background_hud:add(self.bga_view)
 	self.input_mode = input_mode or "4key"
 	self.skin_path = skin_path
 	self.config = config or SkinConfig()
 	self.config_path = config_path
+	self.bga_view.brightness = self:getBgaBrightness()
 	local mode = InputMode(self.input_mode)
 	self.inputs = mode:getInputs()
 	self.base_inputs = mode:getInputs()
@@ -171,6 +184,8 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.note_body_styles = {}
 	self.default_note_body_style = "stretch"
 	self.upside_down = false
+	self.skin_upside_down = false
+	self.skin_hit_position = DEFAULT_HIT_POSITION
 	self.keys_under_notes = false
 	self.stage_under_keys = true
 	self.judgement_line = true
@@ -366,9 +381,11 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 		end
 	end
 	self.section = section
+	self.skin_upside_down = get_boolean(section, "UpsideDown", false)
+	self.upside_down = self:getUpscroll()
 	self.skin_colors = {}
-	self.combo_view:setSkin(skin, section)
-	self.judge_view:setSkin(skin, section)
+	self.combo_view:setSkin(skin, section, self.upside_down)
+	self.judge_view:setSkin(skin, section, self.upside_down)
 	self.hit_meter_view:setMode(self:getHitMeterMode())
 	self.accuracy_view:setSkin(skin, self.score_view.height + 3)
 	self.progress_view:setAccuracyView(self.accuracy_view)
@@ -383,7 +400,8 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	end
 	self.column_start = get_number(section, "ColumnStart", DEFAULT_COLUMN_START)
 	self.column_right = get_number(section, "ColumnRight", DEFAULT_COLUMN_RIGHT)
-	self.hit_position = math.max(240, math.min(480, get_number(section, "HitPosition", DEFAULT_HIT_POSITION)))
+	self.skin_hit_position = math.max(240, math.min(480, get_number(section, "HitPosition", DEFAULT_HIT_POSITION)))
+	self.hit_position = self:getHitPosition()
 	self.special_style = math.max(0, math.min(2, math.floor(get_number(section, "SpecialStyle", 0))))
 	self.note_height_scale = math.max(0, get_number(section, "WidthForNoteHeightScale", 0))
 	local general = skin and skin.skin_ini and skin.skin_ini.General
@@ -402,7 +420,6 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 			or style_number == 0 and "stretch"
 			or self.default_note_body_style
 	end
-	self.upside_down = get_boolean(section, "UpsideDown", false)
 	self.keys_under_notes = get_boolean(section, "KeysUnderNotes", false)
 	self.stage_under_keys = get_boolean(section, "StageUnderKeys", true)
 	self.judgement_line = get_boolean(section, "JudgementLine", false)
@@ -905,13 +922,81 @@ function OsuManiaRenderer:setHitMeterMode(value)
 	self.hit_meter_view:setMode(value)
 end
 
+---Effective scroll direction: the config override when set, otherwise the
+---skin's UpsideDown value. True means upscroll (osu!'s UpsideDown).
+---@return boolean upscroll
+function OsuManiaRenderer:getUpscroll()
+	local override = self.config:get("mania", self.input_mode, "scroll.upscroll")
+	if type(override) == "boolean" then return override end
+	return self.skin_upside_down
+end
+
+---@param upscroll boolean
+function OsuManiaRenderer:setUpscroll(upscroll)
+	assert(type(upscroll) == "boolean", "upscroll must be a boolean")
+	self.config:set("mania", self.input_mode, "scroll.upscroll", upscroll)
+	self.upside_down = upscroll
+	self.combo_view:setSkin(self.skin, self.section, upscroll)
+	self.judge_view:setSkin(self.skin, self.section, upscroll)
+end
+
+---Effective hit position: the config override when set, otherwise the skin's
+---HitPosition value.
+---@return number
+function OsuManiaRenderer:getHitPosition()
+	local override = self.config:get("mania", self.input_mode, "hit_position")
+	if type(override) == "number" and override == override
+		and override ~= math.huge and override ~= -math.huge then
+		return math.max(240, math.min(480, override))
+	end
+	return self.skin_hit_position
+end
+
+---@param value number
+function OsuManiaRenderer:setHitPosition(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"hit position must be finite")
+	self.hit_position = math.max(240, math.min(480, value))
+	self.config:set("mania", self.input_mode, "hit_position", self.hit_position)
+end
+
+---@return number
+function OsuManiaRenderer:getBgaBrightness()
+	local value = self.config:get("mania", self.input_mode, "bga.brightness", DEFAULT_BGA_BRIGHTNESS)
+	value = tonumber(value)
+	if not value or value ~= value or value == math.huge or value == -math.huge then
+		return DEFAULT_BGA_BRIGHTNESS
+	end
+	return math.max(0, math.min(1, value))
+end
+
+---@param value number
+function OsuManiaRenderer:setBgaBrightness(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"bga brightness must be finite")
+	value = math.max(0, math.min(1, value))
+	self.config:set("mania", self.input_mode, "bga.brightness", value)
+	self.bga_view.brightness = value
+end
+
 ---@return rizu.skin.osu.OsuManiaRenderer.Property[]
 function OsuManiaRenderer:getProperties()
 	return {
-		{key = "hit_meter.mode", label = "Hit error meter", min = 0, max = 1, step = 1,
-			value_format = function(value) return value == 1 and "Timing error" or "Judgement history" end,
+		{key = "hit_meter.mode", label = "Hit error meter", type = "segmented",
+			options = {0, 1},
+			format = function(value) return value == 1 and "Timing error" or "Judgement history" end,
 			get = function() return self:getHitMeterMode() end,
 			set = function(value) self:setHitMeterMode(value) end},
+		{key = "scroll.upscroll", label = "Upscroll", type = "checkbox",
+			get = function() return self:getUpscroll() end,
+			set = function(value) self:setUpscroll(value) end},
+		{key = "hit_position", label = "Hit position", min = 240, max = 480, step = 1,
+			get = function() return self:getHitPosition() end,
+			set = function(value) self:setHitPosition(value) end},
+		{key = "bga.brightness", label = "BGA brightness", min = 0, max = 1, step = 0.01,
+			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
+			get = function() return self:getBgaBrightness() end,
+			set = function(value) self:setBgaBrightness(value) end},
 	}
 end
 

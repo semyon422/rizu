@@ -48,12 +48,16 @@ end
 
 ---@param skin rizu.skin.OsuSkinDiscovery?
 ---@param section rizu.skin.OsuSkinIni.ManiaSection?
-function OsuManiaComboView:setSkin(skin, section)
+---@param upside_down boolean? Effective direction; defaults to the section's UpsideDown.
+function OsuManiaComboView:setSkin(skin, section, upside_down)
 	self.bitmap_font:setSkin(skin, "Combo")
 	section = section or (skin and skin.skin_ini.Mania and skin.skin_ini.Mania[1]) or {}
 	local position = tonumber(section.ComboPosition)
 	if position == nil or position ~= position or position == math.huge or position == -math.huge then position = 111 end
-	if section.UpsideDown == "1" or section.UpsideDown == "true" then position = 480 - position end
+	if upside_down == nil then
+		upside_down = section.UpsideDown == "1" or section.UpsideDown == "true"
+	end
+	if upside_down then position = 480 - position end
 	self.y = math.max(0, math.min(480, position))
 	local break_color = self.break_color
 	break_color[1], break_color[2], break_color[3], break_color[4] = 1, 0.035, 0.035, 1

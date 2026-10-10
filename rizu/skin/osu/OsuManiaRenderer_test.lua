@@ -1,6 +1,7 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local OsuSpriteBatch = require("rizu.skin.osu.OsuSpriteBatch")
 local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
+local SkinConfig = require("rizu.skin.SkinConfig")
 
 local test = {}
 
@@ -532,6 +533,140 @@ function test.loads_bundled_fallback_assets(t)
 	love.graphics.newSpriteBatch = previous_new_batch
 	renderer:unload()
 	if not ok then error(err) end
+end
+
+function test.scroll_override_falls_back_to_skin_and_flips_hud_positions(t)
+	local skin = {
+		path = "skins/upscroll",
+		files = {},
+		skin_ini = {Mania = {{Keys = "4", UpsideDown = "1", ScorePosition = "325", ComboPosition = "111"}}},
+	}
+	local game = {
+		fs = FakeFilesystem(),
+		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
+		skinRegistry = {
+			getOsuSkin = function(_, path) return path == skin.path and skin end,
+			getOsuSkins = function() return {skin} end,
+		},
+	}
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer(game, "4key", skin.path, config)
+
+	t:eq(renderer:getUpscroll(), true)
+	t:eq(renderer.upside_down, true)
+	t:eq(renderer.judge_view.y, 480 - 325)
+	t:eq(renderer.combo_view.y, 480 - 111)
+	t:eq(config:getOverride("mania", "4key", "scroll.upscroll"), nil)
+
+	renderer:setUpscroll(false)
+	t:eq(renderer.upside_down, false)
+	t:eq(renderer.judge_view.y, 325)
+	t:eq(renderer.combo_view.y, 111)
+	t:eq(config:getOverride("mania", "4key", "scroll.upscroll"), false)
+
+	renderer:loadSkinSettings(renderer.skin)
+	t:eq(renderer.upside_down, false)
+
+	---@type {[string]: rizu.skin.osu.OsuManiaRenderer.Property}
+	local properties = {}
+	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
+
+	local hit_meter = properties["hit_meter.mode"]
+	t:eq(hit_meter.type, "segmented")
+	t:tdeq(hit_meter.options, {0, 1})
+	t:eq(hit_meter.get(), 0)
+	t:eq(hit_meter.format(0), "Judgement history")
+	t:eq(hit_meter.format(1), "Timing error")
+	hit_meter.set(1)
+	t:eq(hit_meter.get(), 1)
+
+	local upscroll = properties["scroll.upscroll"]
+	t:eq(upscroll.type, "checkbox")
+	t:eq(upscroll.get(), false)
+	upscroll.set(true)
+	t:eq(upscroll.get(), true)
+	t:eq(renderer.upside_down, true)
+	t:eq(renderer.judge_view.y, 480 - 325)
+	renderer:unload()
+end
+
+function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+
+	t:eq(renderer:getBgaBrightness(), 1)
+	t:eq(renderer.bga_view.brightness, 1)
+
+	renderer:setBgaBrightness(0.4)
+	t:eq(renderer:getBgaBrightness(), 0.4)
+	t:eq(renderer.bga_view.brightness, 0.4)
+	t:eq(config:getOverride("mania", "4key", "bga.brightness"), 0.4)
+
+	renderer:setBgaBrightness(2)
+	t:eq(renderer:getBgaBrightness(), 1)
+	renderer:setBgaBrightness(-1)
+	t:eq(renderer:getBgaBrightness(), 0)
+
+	---@type {[string]: rizu.skin.osu.OsuManiaRenderer.Property}
+	local properties = {}
+	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
+	local brightness = properties["bga.brightness"]
+	t:eq(brightness.get(), 0)
+	t:eq(brightness.value_format(0.75), "75%")
+	brightness.set(0.75)
+	t:eq(brightness.get(), 0.75)
+	t:eq(renderer.bga_view.brightness, 0.75)
+
+	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	t:eq(reloaded.bga_view.brightness, 0.75)
+	reloaded:unload()
+	renderer:unload()
+end
+
+function test.hit_position_prefers_config_override_and_clamps(t)
+	local skin = {
+		path = "skins/hit-position",
+		files = {},
+		skin_ini = {Mania = {{Keys = "4", HitPosition = "400"}}},
+	}
+	local game = {
+		fs = FakeFilesystem(),
+		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
+		skinRegistry = {
+			getOsuSkin = function(_, path) return path == skin.path and skin end,
+			getOsuSkins = function() return {skin} end,
+		},
+	}
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer(game, "4key", skin.path, config)
+
+	t:eq(renderer.hit_position, 400)
+	t:eq(renderer:getHitPosition(), 400)
+	t:eq(config:getOverride("mania", "4key", "hit_position"), nil)
+
+	renderer:setHitPosition(200)
+	t:eq(renderer.hit_position, 240)
+	t:eq(renderer:getHitPosition(), 240)
+	t:eq(config:getOverride("mania", "4key", "hit_position"), 240)
+
+	renderer:setHitPosition(500)
+	t:eq(renderer.hit_position, 480)
+
+	renderer:setHitPosition(300)
+	renderer:loadSkinSettings(renderer.skin)
+	t:eq(renderer.hit_position, 300)
+
+	---@type {[string]: rizu.skin.osu.OsuManiaRenderer.Property}
+	local properties = {}
+	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
+	local hit_position = properties["hit_position"]
+	t:eq(hit_position.min, 240)
+	t:eq(hit_position.max, 480)
+	t:eq(hit_position.get(), 300)
+	hit_position.set(450)
+	t:eq(hit_position.get(), 450)
+	t:eq(renderer.hit_position, 450)
+	renderer:unload()
 end
 
 return test

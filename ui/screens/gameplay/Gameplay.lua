@@ -9,9 +9,27 @@ local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
 local Window = require("ui.views.Window")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Slider = require("ui.views.form.Slider")
+local Checkbox = require("ui.views.form.Checkbox")
+local SegmentedControl = require("ui.views.form.SegmentedControl")
+local Dropdown = require("ui.views.form.Dropdown")
+local PopupContainer = require("ui.views.PopupContainer")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
+
+---@class ui.screens.gameplay.Gameplay.SkinEditorProperty
+---@field key string?
+---@field label string?
+---@field label_key string?
+---@field type "slider"|"checkbox"|"segmented"|"dropdown"? Defaults to "slider".
+---@field min number?
+---@field max number?
+---@field step number?
+---@field value_format (fun(value: number): string)?
+---@field options any[]? Values for segmented and dropdown controls
+---@field format (fun(value: any): string)? Value label for segmented and dropdown controls
+---@field get fun(): any
+---@field set fun(value: any)
 
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
 ---@field gameplay_playfield rizu.gameplay.Playfield
@@ -19,8 +37,9 @@ local thread = require("thread")
 ---@field gameplay_hud_view gui.View
 ---@field skin_editor_window ui.views.Window
 ---@field skin_editor_controls gui.layout.FlowContainer
----@field skin_editor_properties table[]
+---@field skin_editor_properties ui.screens.gameplay.Gameplay.SkinEditorProperty[]
 ---@field skin_editor_status ui.views.Label
+---@field skin_editor_popup ui.views.PopupContainer
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -71,6 +90,9 @@ function Gameplay:new(ui)
 	self.skin_editor_status = self.skin_editor_controls:add(Label({
 		font_name = "regular", font_size = 14, text = "",
 	}))
+	-- Dropdown popups must escape the window's clipping, so they live on the
+	-- screen root above the window.
+	self.skin_editor_popup = self.root:add(PopupContainer())
 
 	self.root:setOpacity(0)
 end
@@ -170,7 +192,80 @@ function Gameplay:toGameplayChart(x, y)
 	return self.gameplay_playfield:toChart(x, y, width, height, transform)
 end
 
+---Closes an open skin editor dropdown popup, if any.
+function Gameplay:closeSkinEditorPopup()
+	local owner = self.skin_editor_popup and self.skin_editor_popup.owner
+	if owner then owner:close() end
+end
+
+---Persists the skin config and reports the result in the status label.
+function Gameplay:saveSkinEditorConfig()
+	local config = self.gameplay_interactor.playfield.mania_skin_config
+	if not config then
+		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
+			error = "Skin config is unavailable.",
+		}))
+		return
+	end
+	local saved, save_error = self.gameplay_interactor.playfield:saveSkinConfig()
+	if saved then
+		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.saved"))
+	else
+		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
+			error = tostring(save_error),
+		}))
+	end
+end
+
+---@param property ui.screens.gameplay.Gameplay.SkinEditorProperty
+---@return gui.View
+function Gameplay:createSkinEditorControl(property)
+	local label = property.label or self.ui.localization:get(property.label_key)
+	local function commit(value)
+		property.set(value)
+		self:saveSkinEditorConfig()
+	end
+
+	local control_type = property.type or "slider"
+	if control_type == "checkbox" then
+		return Checkbox({
+			text = label,
+			checked = property.get(),
+			on_change = commit,
+		})
+	elseif control_type == "segmented" then
+		return SegmentedControl({
+			label = label,
+			options = property.options or {},
+			value = property.get(),
+			format = property.format,
+			on_change = commit,
+		})
+	elseif control_type == "dropdown" then
+		return Dropdown({
+			label = label,
+			options = property.options or {},
+			value = property.get(),
+			width = 540,
+			format = property.format,
+			popup_container = self.skin_editor_popup,
+			on_change = commit,
+		})
+	end
+	return Slider({
+		label = label,
+		value = property.get(),
+		min = property.min,
+		max = property.max,
+		step = property.step,
+		width = 540,
+		value_format = property.value_format or function(value) return tostring(math.floor(value + 0.5)) end,
+		on_change = commit,
+	})
+end
+
 function Gameplay:refreshSkinEditor()
+	self:closeSkinEditorPopup()
 	self.skin_editor_controls:clear()
 	self.skin_editor_controls:setDirection("column")
 	self.skin_editor_controls:setGap(14)
@@ -188,33 +283,7 @@ function Gameplay:refreshSkinEditor()
 
 	self.skin_editor_properties = renderer:getProperties()
 	for _, property in ipairs(self.skin_editor_properties) do
-		self.skin_editor_controls:add(Slider({
-			label = property.label or self.ui.localization:get(property.label_key),
-			value = property.get(),
-			min = property.min,
-			max = property.max,
-			step = property.step,
-			width = 540,
-			value_format = property.value_format or function(value) return tostring(math.floor(value + 0.5)) end,
-			on_change = function(value)
-				property.set(value)
-				local config = self.gameplay_interactor.playfield.mania_skin_config
-				if not config then
-					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
-						error = "Skin config is unavailable.",
-					}))
-					return
-				end
-				local saved, save_error = self.gameplay_interactor.playfield:saveSkinConfig()
-				if saved then
-					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.saved"))
-				else
-					self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
-						error = tostring(save_error),
-					}))
-				end
-			end,
-		}))
+		self.skin_editor_controls:add(self:createSkinEditorControl(property))
 	end
 	self.skin_editor_controls:add(self.skin_editor_status)
 	self.skin_editor_controls:fitContent()
@@ -224,6 +293,7 @@ end
 function Gameplay:exit()
 	self.is_playing = false
 	self.skin_editor_window:setVisible(false)
+	self:closeSkinEditorPopup()
 	self.ui.skin_editor = false
 	self.pause_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)

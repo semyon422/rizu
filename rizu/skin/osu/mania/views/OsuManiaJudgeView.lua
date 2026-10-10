@@ -37,11 +37,15 @@ end
 
 ---@param _skin rizu.skin.OsuSkinDiscovery?
 ---@param section rizu.skin.OsuSkinIni.ManiaSection?
-function OsuManiaJudgeView:setSkin(_skin, section)
+---@param upside_down boolean? Effective direction; defaults to the section's UpsideDown.
+function OsuManiaJudgeView:setSkin(_skin, section, upside_down)
 	self.section = section or {}
 	local position = tonumber(self.section.ScorePosition)
 	if position == nil or position ~= position or position == math.huge or position == -math.huge then position = 325 end
-	if self.section.UpsideDown == "1" or self.section.UpsideDown == "true" then position = 480 - position end
+	if upside_down == nil then
+		upside_down = self.section.UpsideDown == "1" or self.section.UpsideDown == "true"
+	end
+	if upside_down then position = 480 - position end
 	self.y = math.max(0, math.min(480, position))
 end
 

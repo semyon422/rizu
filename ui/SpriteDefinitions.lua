@@ -199,7 +199,7 @@ local SpriteDefinitions = {
 		height = 35,
 		corner_radii = {bottom_left = 17, bottom_right = 17},
 		slice = 17,
-		fills = fills(Colors.surface),
+		fills = fills(Colors.panel),
 	},
 	radio_body = {
 		width = 20,
