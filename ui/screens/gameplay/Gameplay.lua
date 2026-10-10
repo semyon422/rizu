@@ -264,6 +264,15 @@ function Gameplay:createSkinEditorControl(property)
 	})
 end
 
+function Gameplay:updateSkinEditorContentHeight()
+	-- FlowContainer:fitContent() updates authored dimensions, while `height`
+	-- remains the previous resolved layout value until the next screen flush.
+	-- Measure the flow directly so the ScrollView gets the complete content
+	-- extent immediately.
+	local _, content_height = self.skin_editor_controls:getContentSize()
+	self.skin_editor_window:setContentHeight(math.max(120, content_height))
+end
+
 function Gameplay:refreshSkinEditor()
 	self:closeSkinEditorPopup()
 	self.skin_editor_controls:clear()
@@ -277,7 +286,7 @@ function Gameplay:refreshSkinEditor()
 		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.no_properties"))
 		self.skin_editor_controls:add(self.skin_editor_status)
 		self.skin_editor_controls:fitContent()
-		self.skin_editor_window:setContentHeight(math.max(120, self.skin_editor_controls.height))
+		self:updateSkinEditorContentHeight()
 		return
 	end
 
@@ -287,7 +296,7 @@ function Gameplay:refreshSkinEditor()
 	end
 	self.skin_editor_controls:add(self.skin_editor_status)
 	self.skin_editor_controls:fitContent()
-	self.skin_editor_window:setContentHeight(math.max(120, self.skin_editor_controls.height))
+	self:updateSkinEditorContentHeight()
 end
 
 function Gameplay:exit()

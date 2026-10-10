@@ -29,7 +29,8 @@ local DEFAULT_COLUMN_START = 136
 local DEFAULT_COLUMN_RIGHT = 19
 local DEFAULT_HIT_POSITION = 402
 local DEFAULT_HIT_METER_MODE = 0
-local DEFAULT_BGA_BRIGHTNESS = 1
+local DEFAULT_HIT_METER_Y = -4
+local DEFAULT_BGA_BRIGHTNESS = 0.15
 local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 local EMPTY_FRAMES = {}
 
@@ -71,6 +72,9 @@ local EMPTY_FRAMES = {}
 ---@field column_start number
 ---@field column_right number
 ---@field hit_position number
+---@field move_with_hit_position boolean Move keys and stage lightings with the effective hit position.
+---@field disable_hit_lightings boolean
+---@field disable_stage_lightings boolean
 ---@field special_style integer
 ---@field note_height_scale number
 ---@field note_body_styles string[]
@@ -179,6 +183,9 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.column_start = DEFAULT_COLUMN_START
 	self.column_right = DEFAULT_COLUMN_RIGHT
 	self.hit_position = DEFAULT_HIT_POSITION
+	self.move_with_hit_position = false
+	self.disable_hit_lightings = false
+	self.disable_stage_lightings = false
 	self.special_style = 0
 	self.note_height_scale = 0
 	self.note_body_styles = {}
@@ -387,6 +394,7 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.combo_view:setSkin(skin, section, self.upside_down)
 	self.judge_view:setSkin(skin, section, self.upside_down)
 	self.hit_meter_view:setMode(self:getHitMeterMode())
+	self.hit_meter_view.y = self:getHitMeterY()
 	self.accuracy_view:setSkin(skin, self.score_view.height + 3)
 	self.progress_view:setAccuracyView(self.accuracy_view)
 	self.column_widths = get_number_list(section, "ColumnWidth", columns, DEFAULT_COLUMN_WIDTH, 5, 100)
@@ -402,6 +410,9 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.column_right = get_number(section, "ColumnRight", DEFAULT_COLUMN_RIGHT)
 	self.skin_hit_position = math.max(240, math.min(480, get_number(section, "HitPosition", DEFAULT_HIT_POSITION)))
 	self.hit_position = self:getHitPosition()
+	self.move_with_hit_position = self:getMoveWithHitPosition()
+	self.disable_hit_lightings = self:getDisableHitLightings()
+	self.disable_stage_lightings = self:getDisableStageLightings()
 	self.special_style = math.max(0, math.min(2, math.floor(get_number(section, "SpecialStyle", 0))))
 	self.note_height_scale = math.max(0, get_number(section, "WidthForNoteHeightScale", 0))
 	local general = skin and skin.skin_ini and skin.skin_ini.General
@@ -501,7 +512,7 @@ function OsuManiaRenderer:update(dt)
 		local stage_lighting = self.stage_lightings[column]
 		if stage_lighting then stage_lighting:update(dt) end
 		local hit_lighting = self.hit_lightings[column]
-		if hit_lighting then
+		if not self.disable_hit_lightings and hit_lighting then
 			if hit_lighting.short then hit_lighting.short:update(dt) end
 			if hit_lighting.long then hit_lighting.long:update(dt) end
 		end
@@ -707,7 +718,7 @@ function OsuManiaRenderer:updateLightingInput(engine)
 		local pressed = engine.isColumnPressed and engine:isColumnPressed(engine_column) or false
 		local was_pressed = self.lighting_input_state[column]
 		local lighting = self.stage_lightings[column]
-		if lighting and pressed ~= was_pressed then
+		if not self.disable_stage_lightings and lighting and pressed ~= was_pressed then
 			lighting:setHeld(pressed, release_duration)
 		end
 		self.lighting_input_state[column] = pressed
@@ -716,6 +727,7 @@ end
 
 ---@param notes table[]
 function OsuManiaRenderer:updateHitLightings(notes)
+	if self.disable_hit_lightings then return end
 	local active_long = self.active_long
 	table_util.clear(active_long)
 	for _, note in ipairs(notes) do
@@ -757,7 +769,9 @@ end
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaRenderer:drawStageLightings(lane_widths, lane_xs, hit_y)
-	local light_y = self.upside_down and FIELD_HEIGHT - self.light_position or self.light_position
+	if self.disable_stage_lightings then return end
+	local offset = self:getHitPositionOffset()
+	local light_y = self.upside_down and FIELD_HEIGHT - self.light_position + offset or self.light_position - offset
 	local started = false
 	local previous_mode ---@type love.BlendMode?
 	local previous_alpha ---@type love.BlendAlphaMode?
@@ -777,6 +791,7 @@ end
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaRenderer:drawHitLightings(lane_xs, hit_y)
+	if self.disable_hit_lightings then return end
 	local started = false
 	local previous_mode ---@type love.BlendMode?
 	local previous_alpha ---@type love.BlendAlphaMode?
@@ -911,15 +926,79 @@ end
 function OsuManiaRenderer:getHitMeterMode()
 	local value = self.config:get("mania", self.input_mode, "hit_meter.mode", DEFAULT_HIT_METER_MODE)
 	value = tonumber(value)
-	return value == 1 and 1 or DEFAULT_HIT_METER_MODE
+	return value == 1 and 1 or value == 2 and 2 or DEFAULT_HIT_METER_MODE
 end
 
 function OsuManiaRenderer:setHitMeterMode(value)
 	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
 		"hit meter mode must be finite")
-	assert(value == 0 or value == 1, "hit meter mode must be 0 or 1")
+	assert(value == 0 or value == 1 or value == 2, "hit meter mode must be 0, 1, or 2")
 	self.config:set("mania", self.input_mode, "hit_meter.mode", value)
 	self.hit_meter_view:setMode(value)
+end
+
+---@return number
+function OsuManiaRenderer:getHitMeterY()
+	local value = self.config:get("mania", self.input_mode, "hit_meter.y", DEFAULT_HIT_METER_Y)
+	value = tonumber(value)
+	if not value or value ~= value or value == math.huge or value == -math.huge then
+		return DEFAULT_HIT_METER_Y
+	end
+	return math.max(-FIELD_HEIGHT, math.min(FIELD_HEIGHT, value))
+end
+
+---@param value number
+function OsuManiaRenderer:setHitMeterY(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"hit meter y must be finite")
+	value = math.max(-FIELD_HEIGHT, math.min(FIELD_HEIGHT, value))
+	self.config:set("mania", self.input_mode, "hit_meter.y", value)
+	self.hit_meter_view.y = value
+end
+
+---@return boolean
+function OsuManiaRenderer:getMoveWithHitPosition()
+	local value = self.config:get("mania", self.input_mode, "hit_position.move_keys")
+	return type(value) == "boolean" and value or false
+end
+
+---@param value boolean
+function OsuManiaRenderer:setMoveWithHitPosition(value)
+	assert(type(value) == "boolean", "move with hit position must be a boolean")
+	self.move_with_hit_position = value
+	self.config:set("mania", self.input_mode, "hit_position.move_keys", value)
+end
+
+---@return number
+function OsuManiaRenderer:getHitPositionOffset()
+	if not self.move_with_hit_position then return 0 end
+	return self.skin_hit_position - self.hit_position
+end
+
+---@return boolean
+function OsuManiaRenderer:getDisableHitLightings()
+	local value = self.config:get("mania", self.input_mode, "lighting.disable_hit")
+	return type(value) == "boolean" and value or false
+end
+
+---@param value boolean
+function OsuManiaRenderer:setDisableHitLightings(value)
+	assert(type(value) == "boolean", "disable hit lightings must be a boolean")
+	self.disable_hit_lightings = value
+	self.config:set("mania", self.input_mode, "lighting.disable_hit", value)
+end
+
+---@return boolean
+function OsuManiaRenderer:getDisableStageLightings()
+	local value = self.config:get("mania", self.input_mode, "lighting.disable_stage")
+	return type(value) == "boolean" and value or false
+end
+
+---@param value boolean
+function OsuManiaRenderer:setDisableStageLightings(value)
+	assert(type(value) == "boolean", "disable stage lightings must be a boolean")
+	self.disable_stage_lightings = value
+	self.config:set("mania", self.input_mode, "lighting.disable_stage", value)
 end
 
 ---Effective scroll direction: the config override when set, otherwise the
@@ -983,10 +1062,24 @@ end
 function OsuManiaRenderer:getProperties()
 	return {
 		{key = "hit_meter.mode", label = "Hit error meter", type = "segmented",
-			options = {0, 1},
-			format = function(value) return value == 1 and "Timing error" or "Judgement history" end,
+			options = {0, 1, 2},
+			format = function(value)
+				return value == 2 and "Off" or value == 1 and "Timing error" or "Judgement history"
+			end,
 			get = function() return self:getHitMeterMode() end,
 			set = function(value) self:setHitMeterMode(value) end},
+		{key = "hit_meter.y", label = "Hit error meter Y", min = -FIELD_HEIGHT, max = FIELD_HEIGHT, step = 1,
+			get = function() return self:getHitMeterY() end,
+			set = function(value) self:setHitMeterY(value) end},
+		{key = "hit_position.move_keys", label = "Move keys with hit position", type = "checkbox",
+			get = function() return self:getMoveWithHitPosition() end,
+			set = function(value) self:setMoveWithHitPosition(value) end},
+		{key = "lighting.disable_hit", label = "Disable hit lightings", type = "checkbox",
+			get = function() return self:getDisableHitLightings() end,
+			set = function(value) self:setDisableHitLightings(value) end},
+		{key = "lighting.disable_stage", label = "Disable stage lightings", type = "checkbox",
+			get = function() return self:getDisableStageLightings() end,
+			set = function(value) self:setDisableStageLightings(value) end},
 		{key = "scroll.upscroll", label = "Upscroll", type = "checkbox",
 			get = function() return self:getUpscroll() end,
 			set = function(value) self:setUpscroll(value) end},

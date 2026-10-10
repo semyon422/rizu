@@ -573,10 +573,11 @@ function test.scroll_override_falls_back_to_skin_and_flips_hud_positions(t)
 
 	local hit_meter = properties["hit_meter.mode"]
 	t:eq(hit_meter.type, "segmented")
-	t:tdeq(hit_meter.options, {0, 1})
+	t:tdeq(hit_meter.options, {0, 1, 2})
 	t:eq(hit_meter.get(), 0)
 	t:eq(hit_meter.format(0), "Judgement history")
 	t:eq(hit_meter.format(1), "Timing error")
+	t:eq(hit_meter.format(2), "Off")
 	hit_meter.set(1)
 	t:eq(hit_meter.get(), 1)
 
@@ -594,8 +595,8 @@ function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
 	local config = SkinConfig()
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
 
-	t:eq(renderer:getBgaBrightness(), 1)
-	t:eq(renderer.bga_view.brightness, 1)
+	t:eq(renderer:getBgaBrightness(), 0.15)
+	t:eq(renderer.bga_view.brightness, 0.15)
 
 	renderer:setBgaBrightness(0.4)
 	t:eq(renderer:getBgaBrightness(), 0.4)
@@ -666,6 +667,81 @@ function test.hit_position_prefers_config_override_and_clamps(t)
 	hit_position.set(450)
 	t:eq(hit_position.get(), 450)
 	t:eq(renderer.hit_position, 450)
+	renderer:unload()
+end
+
+function test.hit_position_dependent_visuals_can_move_and_lighting_can_be_disabled(t)
+	local skin = {
+		path = "skins/visual-settings",
+		files = {},
+		skin_ini = {Mania = {{Keys = "4", HitPosition = "450"}}},
+	}
+	local config = SkinConfig()
+	config:set("mania", "4key", "hit_position.move_keys", true)
+	local game = {
+		fs = FakeFilesystem(),
+		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
+		skinRegistry = {
+			getOsuSkin = function(_, path) return path == skin.path and skin end,
+			getOsuSkins = function() return {skin} end,
+		},
+	}
+	local renderer = OsuManiaRenderer(game, "4key", skin.path, config)
+
+	t:eq(renderer:getHitPositionOffset(), 0)
+	t:eq(renderer:getMoveWithHitPosition(), true)
+	renderer:setHitPosition(380)
+	t:eq(renderer:getHitPositionOffset(), 70)
+	renderer:setMoveWithHitPosition(false)
+	t:eq(renderer:getHitPositionOffset(), 0)
+	renderer:setMoveWithHitPosition(true)
+	renderer:setDisableHitLightings(true)
+	renderer:setDisableStageLightings(true)
+	t:eq(renderer:getDisableHitLightings(), true)
+	t:eq(renderer:getDisableStageLightings(), true)
+	t:eq(config:getOverride("mania", "4key", "hit_position.move_keys"), true)
+	t:eq(config:getOverride("mania", "4key", "lighting.disable_stage"), true)
+	local properties = {}
+	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
+	t:eq(properties["hit_position.move_keys"].type, "checkbox")
+	t:eq(properties["lighting.disable_hit"].type, "checkbox")
+	t:eq(properties["lighting.disable_stage"].type, "checkbox")
+	renderer:unload()
+end
+
+function test.hit_meter_y_is_configurable(t)
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+
+	t:eq(renderer:getHitMeterY(), -4)
+	t:eq(renderer.hit_meter_view.y, -4)
+	renderer:setHitMeterY(-120)
+	t:eq(renderer:getHitMeterY(), -120)
+	t:eq(renderer.hit_meter_view.y, -120)
+	t:eq(config:getOverride("mania", "4key", "hit_meter.y"), -120)
+
+	renderer:setHitMeterY(600)
+	t:eq(renderer:getHitMeterY(), 480)
+	local properties = {}
+	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
+	local hit_meter_y = properties["hit_meter.y"]
+	t:eq(hit_meter_y.get(), 480)
+	hit_meter_y.set(120)
+	t:eq(renderer.hit_meter_view.y, 120)
+	renderer:unload()
+end
+
+function test.hit_meter_can_be_disabled(t)
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	renderer:setHitMeterMode(2)
+	t:eq(renderer:getHitMeterMode(), 2)
+	t:eq(renderer.hit_meter_view.mode, "off")
+	t:eq(renderer.hit_meter_view.visible, false)
+	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	t:eq(reloaded:getHitMeterMode(), 2)
+	t:eq(reloaded.hit_meter_view.visible, false)
+	reloaded:unload()
 	renderer:unload()
 end
 

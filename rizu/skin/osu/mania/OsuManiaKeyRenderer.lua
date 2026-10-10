@@ -34,25 +34,26 @@ end
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
 ---@param image rizu.skin.osu.OsuSkinGraphics.Image
 ---@param x number
+---@param y number
 ---@param width number
 ---@param flip boolean
 ---@param upside_down boolean
 ---@param alpha number
-local function draw_key(renderer, image, x, width, flip, upside_down, alpha)
+local function draw_key(renderer, image, x, y, width, flip, upside_down, alpha)
 	if not image.texture and renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
 	local image_width, image_height = OsuImage.dimensions(image)
 	local scale_x, scale_y = width / image_width, FIELD_HEIGHT / 768
 	lg.setColor(1, 1, 1, alpha)
 	if upside_down then
 		if flip then
-			OsuImage.draw(image, x, 0, 0, scale_x, -scale_y, image_width / 2, image_height)
+			OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, image_height)
 		else
-			OsuImage.draw(image, x, 0, 0, scale_x, scale_y, image_width / 2, 0)
+			OsuImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, 0)
 		end
 	elseif flip then
-		OsuImage.draw(image, x, FIELD_HEIGHT, 0, scale_x, -scale_y, image_width / 2, 0)
+		OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, 0)
 	else
-		OsuImage.draw(image, x, FIELD_HEIGHT, 0, scale_x, scale_y, image_width / 2, image_height)
+		OsuImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, image_height)
 	end
 end
 
@@ -62,6 +63,9 @@ end
 ---@param lane_xs number[]
 ---@param hit_y number
 function OsuManiaKeyRenderer:draw(renderer, engine, lane_widths, lane_xs, hit_y)
+	local key_offset = renderer.getHitPositionOffset and renderer:getHitPositionOffset() or 0
+	local key_y = renderer.upside_down and key_offset or FIELD_HEIGHT - key_offset
+	local fallback_y = hit_y
 	for column = 1, renderer.columns do
 		local input = renderer.inputs[column]
 		local engine_column = renderer.engine_input_map[input] or column
@@ -89,21 +93,21 @@ function OsuManiaKeyRenderer:draw(renderer, engine, lane_widths, lane_xs, hit_y)
 			local draw_width = lane_widths[column]
 			if state.releasing and up ~= down then
 				local progress = state.release_elapsed / KEY_RELEASE_DURATION
-				draw_key(renderer, down, lane_xs[column], draw_width, down_flip, renderer.upside_down, 1 - progress)
-				draw_key(renderer, up, lane_xs[column], draw_width, up_flip, renderer.upside_down, progress)
+				draw_key(renderer, down, lane_xs[column], key_y, draw_width, down_flip, renderer.upside_down, 1 - progress)
+				draw_key(renderer, up, lane_xs[column], key_y, draw_width, up_flip, renderer.upside_down, progress)
 			elseif pressed then
-				draw_key(renderer, down, lane_xs[column], draw_width, down_flip, renderer.upside_down, 1)
+				draw_key(renderer, down, lane_xs[column], key_y, draw_width, down_flip, renderer.upside_down, 1)
 			else
-				draw_key(renderer, up, lane_xs[column], draw_width, up_flip, renderer.upside_down, 1)
+				draw_key(renderer, up, lane_xs[column], key_y, draw_width, up_flip, renderer.upside_down, 1)
 			end
 		elseif up or down then
 			local image = up or down
 			assert(image)
-			draw_key(renderer, image, lane_xs[column], lane_widths[column], pressed and down_flip or up_flip,
+			draw_key(renderer, image, lane_xs[column], key_y, lane_widths[column], pressed and down_flip or up_flip,
 				renderer.upside_down, 1)
 		else
 			lg.setColor(1, 1, 1, pressed and 0.8 or 0.22)
-			OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2, hit_y - 5,
+			OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2, fallback_y - 5,
 				lane_widths[column], 10)
 		end
 	end

@@ -38,7 +38,7 @@ local ERROR_COLORS = {
 ---@field last_hit_time number
 ---@field icon_index integer
 ---@field icons {color: number[], alpha: number}[]
----@field mode "colour"|"error"
+---@field mode "colour"|"error"|"off"
 ---@field error_mode boolean
 ---@field error_windows number[]
 ---@field error_range number
@@ -133,7 +133,8 @@ function OsuManiaHitMeterView:new(graphics)
 end
 
 function OsuManiaHitMeterView:setMode(mode)
-	mode = mode == 1 and "error" or "colour"
+	mode = mode == 2 and "off" or mode == 1 and "error" or "colour"
+	self.visible = mode ~= "off"
 	if mode == self.mode then return end
 	self.mode = mode
 	self.error_mode = mode == "error"

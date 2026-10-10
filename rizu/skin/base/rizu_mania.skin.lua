@@ -15,6 +15,7 @@ local FIELD_HEIGHT = 480
 local LANE_WIDTH = 48
 local NOTE_HEIGHT = 30
 local DEFAULT_RECEPTOR_Y = 360
+local DEFAULT_BGA_BRIGHTNESS = 0.15
 local MIN_RECEPTOR_Y = 0
 local MAX_RECEPTOR_Y = FIELD_HEIGHT
 local MIN_PLAYFIELD_X_OFFSET = -FIELD_WIDTH
@@ -92,6 +93,7 @@ end
 ---@field input_mode string
 ---@field background_hud rizu.skin.Hud
 ---@field foreground_hud rizu.skin.Hud
+---@field bga_view rizu.skin.views.BgaView
 ---@field private hud_fonts {regular: love.Font, emphasis: love.Font}?
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
@@ -102,11 +104,12 @@ local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 ---@param config_path string?
 function ManiaPlayfieldRenderer:new(game, input_mode, screen, config, config_path)
 	PlayfieldRenderer.new(self, game)
-	self.background_hud:add(BgaView(game))
 	self.screen = screen
 	self.input_mode = input_mode
 	self.config = config or SkinConfig()
 	self.config_path = config_path or "userdata/dlc/skins_rizu/base/skin-config.json"
+	self.bga_view = BgaView(game, {brightness = self:getBgaBrightness()})
+	self.background_hud:add(self.bga_view)
 	local mode = InputMode(input_mode)
 	self.inputs = mode:getInputs()
 	self.input_map = mode:getInputMap()
@@ -153,6 +156,25 @@ function ManiaPlayfieldRenderer:setPlayfieldXOffset(value)
 	self.config:set("mania", self.input_mode, "playfield.x_offset", value)
 end
 
+---@return number
+function ManiaPlayfieldRenderer:getBgaBrightness()
+	local value = self.config:get("mania", self.input_mode, "bga.brightness", DEFAULT_BGA_BRIGHTNESS)
+	value = tonumber(value)
+	if not value or value ~= value or value == math.huge or value == -math.huge then
+		return DEFAULT_BGA_BRIGHTNESS
+	end
+	return math.max(0, math.min(1, value))
+end
+
+---@param value number
+function ManiaPlayfieldRenderer:setBgaBrightness(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"bga brightness must be finite")
+	value = math.max(0, math.min(1, value))
+	self.config:set("mania", self.input_mode, "bga.brightness", value)
+	self.bga_view.brightness = value
+end
+
 ---@return rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property[]
 function ManiaPlayfieldRenderer:getProperties()
 	return {
@@ -165,6 +187,11 @@ function ManiaPlayfieldRenderer:getProperties()
 			max = MAX_PLAYFIELD_X_OFFSET, step = 1,
 			get = function() return self:getPlayfieldXOffset() end,
 			set = function(value) self:setPlayfieldXOffset(value) end},
+		{key = "bga.brightness", label_key = "gameplay.skin_editor.bga_brightness",
+			min = 0, max = 1, step = 0.01,
+			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
+			get = function() return self:getBgaBrightness() end,
+			set = function(value) self:setBgaBrightness(value) end},
 	}
 end
 
