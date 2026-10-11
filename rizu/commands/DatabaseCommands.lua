@@ -1,6 +1,6 @@
 local ModifierModel = require("sphere.models.ModifierModel")
 
-local formats = {"bms", "ksh", "mid", "ojn", "osu", "qua", "sph", "sm"}
+local formats = {"bms", "ksh", "mid", "ojn", "osu", "qua", "sph", "sm", "iidx"}
 
 ---@param value string
 ---@return boolean valid

@@ -214,6 +214,8 @@ function test.positive_note_duration_creates_hold(t)
 		},
 	}), nil, {song_id = 1234}))
 
+	t:eq(charts[1].chartmeta.tempo, 150)
+
 	local linked_notes = charts[1].chart.notes:getLinkedNotes()
 	local hold
 	for _, note in ipairs(linked_notes) do

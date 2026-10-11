@@ -247,9 +247,9 @@ function ChartDecoder:decode(s, hash, context)
 		if section and #section.events > 0 then
 			out_index = out_index + 1
 			if not context.selected_index or out_index == context.selected_index then
-				local chart = self:decodeSection(section, variation, song)
+				local chart, tempo = self:decodeSection(section, variation, song)
 				add_audio_resources(song_id, chart, song, variation)
-				local chartmeta = self:getChartmeta(out_index, song_id, song, variation, chart)
+				local chartmeta = self:getChartmeta(out_index, song_id, song, variation, chart, tempo)
 				out[#out + 1] = {
 					chart = chart,
 					chartmeta = chartmeta,
@@ -268,6 +268,7 @@ end
 ---@param variation chart.iidx.ChartVariation
 ---@param song chart.iidx.MusicDbEntry?
 ---@return chart.Chart
+---@return number tempo
 function ChartDecoder:decodeSection(section, variation, song)
 	local chart = Chart()
 	chart.inputMode = InputMode(variation.inputMode)
@@ -287,21 +288,21 @@ function ChartDecoder:decodeSection(section, variation, song)
 	local ticks = get_measure_ticks(section.events)
 	local max_measure = 0
 
-	local first_bpm = nil
+	local first_bpm = 120
 	for _, event in ipairs(section.events) do
 		if event.type == 4 then
 			first_bpm = normalize_bpm(event.value)
 			break
 		end
 	end
-	layer:getPoint(Fraction(0))._tempo = Tempo(first_bpm or 120)
+	layer:getPoint(Fraction(0))._tempo = Tempo(first_bpm)
 	layer:getPoint(Fraction(0))._signature = Signature()
 	visual:getPoint(layer:getPoint(Fraction(0)))
 	visual_bga:getPoint(layer:getPoint(Fraction(0)))
 
 	local bga_name = get_bga_resource_name(song and song.bga_filename)
 	if bga_name then
-		local point = layer:getPoint(get_bga_measure_time(song.bga_delay, first_bpm or 120))
+		local point = layer:getPoint(get_bga_measure_time(song.bga_delay, first_bpm))
 		local note = Note(visual_bga_columns:getPoint(point, "bga"), "bga", "sprite")
 		note.data.images = {{bga_name, 1}}
 		chart.notes:insert(note)
@@ -399,7 +400,7 @@ function ChartDecoder:decodeSection(section, variation, song)
 
 	chart:compute()
 
-	return chart
+	return chart, first_bpm
 end
 
 ---@param index integer
@@ -407,8 +408,9 @@ end
 ---@param song chart.iidx.MusicDbEntry?
 ---@param variation chart.iidx.ChartVariation
 ---@param chart chart.Chart
+---@param tempo number
 ---@return sea.Chartmeta
-function ChartDecoder:getChartmeta(index, song_id, song, variation, chart)
+function ChartDecoder:getChartmeta(index, song_id, song, variation, chart, tempo)
 	local chartmeta = {
 		mode = "mania",
 		hash = self.hash,
@@ -421,6 +423,7 @@ function ChartDecoder:getChartmeta(index, song_id, song, variation, chart)
 		source = song and song.genre or nil,
 		name = variation.name,
 		level = song and song.levels and song.levels[variation.name] or nil,
+		tempo = tempo,
 		inputmode = tostring(chart.inputMode),
 	}
 	setmetatable(chartmeta, Chartmeta)
