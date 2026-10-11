@@ -165,7 +165,8 @@ function test.move_changes_draw_and_input_order_after_flush(t)
 
 	s.root:move(first, 2)
 	s:flush()
-	t:tdeq(s.draw_views, {second, first})
+	t:eq(s.renderer.commands[2], second)
+	t:eq(s.renderer.commands[4], first)
 
 	local inputs = Inputs()
 	inputs:beginFrame(5, 5)
@@ -237,7 +238,6 @@ function test.relayout_builds_specialized_update_and_draw_arrays(t)
 	s:relayout()
 
 	t:tdeq(s.update_views, {updating, both})
-	t:tdeq(s.draw_views, {drawing, both})
 	local commands = s.renderer.commands
 	t:eq(type(commands[1]), "number")
 	t:eq(commands[2], drawing)
@@ -260,7 +260,6 @@ function test.tree_mutation_invalidates_and_flush_rebuilds_arrays(t)
 	s:flush()
 	t:eq(s.dirty, false)
 	t:tdeq(s.views, {s.root, child})
-	t:tdeq(s.draw_views, {child})
 	t:eq(type(s.renderer.commands[1]), "number")
 	t:eq(s.renderer.commands[2], child)
 end
@@ -548,6 +547,17 @@ function test.remove_skips_cached_update_and_draw_before_flush(t)
 
 	t:eq(updates, 0)
 	t:eq(draws, 0)
+end
+
+---@param t testing.T
+function test.idle_flush_does_not_replace_pending_tables(t)
+	local s = Screen()
+	s:flush()
+	local pending = s.pending_unload
+
+	s:flush()
+
+	t:eq(s.pending_unload, pending)
 end
 
 ---@param t testing.T

@@ -9,7 +9,6 @@ local View = require("gui.View")
 ---@field views gui.View[] All attached views in DFS pre-order
 ---@field input_views gui.View[] Views overriding View:onHandleInputs
 ---@field update_views gui.View[] Views overriding View:update
----@field draw_views gui.View[] Views overriding View:draw
 ---@field renderer gui.Renderer
 ---@field dirty boolean
 ---@field width number Window width in drawable pixels
@@ -30,8 +29,6 @@ function Screen:new()
 	self.input_views = {}
 	---@type gui.View[]
 	self.update_views = {}
-	---@type gui.View[]
-	self.draw_views = {}
 	self.renderer = Renderer()
 	self.dirty = true
 	self.inputs = nil
@@ -90,7 +87,6 @@ function Screen:unload()
 	self.views = {}
 	self.input_views = {}
 	self.update_views = {}
-	self.draw_views = {}
 	self.renderer:clear()
 	self.inputs = nil
 	self.pending_unload = {}
@@ -119,6 +115,9 @@ end
 ---@param only_view gui.View?
 function Screen:flushPendingUnload(only_view)
 	local pending = self.pending_unload
+	if next(pending) == nil then
+		return
+	end
 	if only_view then
 		if not pending[only_view] then
 			return
@@ -151,6 +150,9 @@ end
 ---@private
 function Screen:removeExpiredViews()
 	local pending = self.pending_expire
+	if next(pending) == nil then
+		return
+	end
 	self.pending_expire = {}
 	-- Removing an expired ancestor detaches its whole subtree; descendants are
 	-- revalidated before removal.
@@ -164,10 +166,9 @@ end
 ---@param views gui.View[]
 ---@param input_views gui.View[]
 ---@param update_views gui.View[]
----@param draw_views gui.View[]
 ---@param view gui.View
 ---@param renderer gui.Renderer
-local function flatten(view, views, input_views, update_views, draw_views, renderer)
+local function flatten(view, views, input_views, update_views, renderer)
 	local index = #views + 1
 	view.flat_index = index
 	views[index] = view
@@ -178,11 +179,8 @@ local function flatten(view, views, input_views, update_views, draw_views, rende
 	if view.update ~= View.update then
 		update_views[#update_views + 1] = view
 	end
-	if view.draw ~= View.draw then
-		draw_views[#draw_views + 1] = view
-		if not view.is_composite then
-			renderer:addView(view)
-		end
+	if view.draw ~= View.draw and not view.is_composite then
+		renderer:addView(view)
 	end
 
 	if view.is_composite then
@@ -190,7 +188,7 @@ local function flatten(view, views, input_views, update_views, draw_views, rende
 		renderer:beginComposite(view)
 	end
 	for i = 1, #view.children do
-		flatten(view.children[i], views, input_views, update_views, draw_views, renderer)
+		flatten(view.children[i], views, input_views, update_views, renderer)
 	end
 	if view.is_composite then
 		renderer:endComposite()
@@ -207,13 +205,11 @@ function Screen:relayout()
 	local views = {} ---@type gui.View[]
 	local input_views = {} ---@type gui.View[]
 	local update_views = {} ---@type gui.View[]
-	local draw_views = {} ---@type gui.View[]
 	self.renderer:beginBuild()
-	flatten(self.root, views, input_views, update_views, draw_views, self.renderer)
+	flatten(self.root, views, input_views, update_views, self.renderer)
 	self.views = views
 	self.input_views = input_views
 	self.update_views = update_views
-	self.draw_views = draw_views
 	for i = 1, #views do
 		local view = views[i]
 		if ScrollView * view then

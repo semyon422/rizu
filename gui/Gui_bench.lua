@@ -146,7 +146,7 @@ function test.dense_1000_view_layout()
 	assert(max_depth == MAX_DEPTH)
 end
 
----Full CPU-side rebuild: layout, flatten/update/draw caches, and renderer command
+---Full CPU-side rebuild: layout, flatten/update caches, and renderer command
 ---generation. Renderer:draw is deliberately never called.
 function test.dense_1000_view_screen_rebuild()
 	local screen = makeDenseScreen()
@@ -156,8 +156,7 @@ function test.dense_1000_view_screen_rebuild()
 		screen:relayout()
 	end)
 	assert(count == VIEW_COUNT)
-	assert(#screen.draw_views == 902)
-	assert(screen.renderer.command_count == #screen.draw_views * 2)
+	assert(screen.renderer.command_count == 902 * 2)
 end
 
 ---Simulates a layout-affecting style change every frame, including invalidation
