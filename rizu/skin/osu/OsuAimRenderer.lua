@@ -17,6 +17,7 @@ local Settings = require("rizu.config.Settings")
 ---@field prepared_rules rizu.aim.CircleRules?
 local OsuAimRenderer = AimRenderer + {}
 
+local white = {1, 1, 1}
 local DEFAULT_ASSETS = "resources/osu_default_assets.zip"
 
 ---@param game sphere.GameController
@@ -111,9 +112,15 @@ function OsuAimRenderer:draw(width, height, transform)
 	-- Sprites queue into the atlas batch; slider bodies and primitives flush it.
 	batch:begin()
 	OsuFollowPointRenderer.draw(rules, time, sprites)
+	-- A chart's own combo colours replace the skin's.
+	local chart_colors = rules.chart.data.combo_colors ---@type number[][]?
+	local combo_colors = chart_colors and #chart_colors > 0 and chart_colors or sprites.combo_colors
+	local border_color = sprites.slider_border or white
 	-- Earlier heads must remain on top of later members of a stack.
 	for i = last_visible, 1, -1 do
 		local object = objects[i]
+		---@type number[]?
+		local color = object.combo_index and combo_colors[object.combo_index % #combo_colors + 1]
 		local spinner = rules.spinners[i]
 		if spinner and not rules.states[i] then
 			batch:flush()
@@ -126,17 +133,18 @@ function OsuAimRenderer:draw(width, height, transform)
 			local alpha = SliderRenderer.getBodyAlpha(object, slider, time, rules.preempt)
 			if alpha > 0 then
 				batch:flush()
-				SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i)
+				SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i,
+					sprites.slider_track or color, border_color)
 			end
 			local snake_end = SliderRenderer.getSnakeEnd(object, time, rules.preempt)
-			OsuSliderOverlayRenderer.drawEndCircle(slider, rules.radius, alpha, snake_end, sprites)
+			OsuSliderOverlayRenderer.drawEndCircle(slider, rules.radius, alpha, snake_end, sprites, color)
 			OsuSliderOverlayRenderer.drawHead(object, rules.radius, time, rules.preempt, sprites,
-				rules.heads[i], rules.head_times[i])
+				rules.heads[i], rules.head_times[i], color)
 			OsuSliderOverlayRenderer.drawBodyOverlays(slider, rules.radius, time, alpha, snake_end, sprites,
 				sprites.animation_framerate, rules.preempt)
 		elseif not spinner then
 			OsuCircleRenderer.draw(object, rules.radius, time, rules.preempt, sprites, false,
-				rules.heads[i], rules.head_times[i])
+				rules.heads[i], rules.head_times[i], color)
 		end
 	end
 

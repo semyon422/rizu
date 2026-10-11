@@ -12,8 +12,9 @@ local OsuSliderOverlayRenderer = {}
 ---@param sprites rizu.skin.osu.aim.OsuAimSprites?
 ---@param head_state ("hit"|"miss")?
 ---@param head_time number?
-function OsuSliderOverlayRenderer.drawHead(object, radius, time, preempt, sprites, head_state, head_time)
-	OsuCircleRenderer.draw(object, radius, time, preempt, sprites, true, head_state, head_time)
+---@param color number[]?
+function OsuSliderOverlayRenderer.drawHead(object, radius, time, preempt, sprites, head_state, head_time, color)
+	OsuCircleRenderer.draw(object, radius, time, preempt, sprites, true, head_state, head_time, color)
 end
 
 ---One end circle, where the final span finishes. OsuAimSprites decides whether the skin shows it.
@@ -22,11 +23,12 @@ end
 ---@param alpha number
 ---@param snake_end number
 ---@param sprites rizu.skin.osu.aim.OsuAimSprites?
-function OsuSliderOverlayRenderer.drawEndCircle(slider, radius, alpha, snake_end, sprites)
+---@param color number[]?
+function OsuSliderOverlayRenderer.drawEndCircle(slider, radius, alpha, snake_end, sprites, color)
 	if alpha <= 0 or not sprites then return end
 	-- An end circle at the far end rides the snaking edge of the body.
 	local x, y = slider.path:position(slider.timing.spans % 2 * math.min(1, math.max(0, snake_end)))
-	SpriteRenderer.draw(sprites.sliderendcircle, x, y, radius * 2, alpha)
+	SpriteRenderer.draw(sprites.sliderendcircle, x, y, radius * 2, alpha, 0, color)
 	SpriteRenderer.draw(sprites.sliderendcircleoverlay, x, y, radius * 2, alpha)
 end
 

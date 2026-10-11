@@ -74,4 +74,26 @@ function test.slider_end_circle_follows_the_skin_version(t)
 	t:eq(sprites.sliderendcircleoverlay, nil)
 end
 
+---@param t testing.T
+function test.reads_skin_colours_with_default_combo_colours(t)
+	---@param colours {[string]: string}
+	local function load(colours)
+		local graphics = OsuSkinGraphics(FakeFilesystem(), {
+			path = "skins/example", files = {}, skin_ini = {General = {}, Fonts = {}, Colours = colours},
+		})
+		return OsuAimSprites.load(graphics)
+	end
+
+	local plain = load({})
+	t:eq(#plain.combo_colors, 4)
+	t:eq(plain.slider_border, nil)
+	t:eq(plain.slider_track, nil)
+
+	-- Gaps in the numbering are skipped rather than ending the list.
+	local skinned = load({Combo1 = "255, 0, 0", Combo3 = "0,0,255", SliderBorder = "0,255,0", SliderTrackOverride = "bad"})
+	t:tdeq(skinned.combo_colors, {{1, 0, 0}, {0, 0, 1}})
+	t:tdeq(skinned.slider_border, {0, 1, 0})
+	t:eq(skinned.slider_track, nil)
+end
+
 return test

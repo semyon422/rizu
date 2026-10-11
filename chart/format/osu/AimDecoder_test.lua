@@ -53,6 +53,24 @@ function test.combo_numbers_restart_on_new_combo_and_after_spinners(t)
 end
 
 ---@param t testing.T
+function test.combo_colours_and_colour_skips_are_decoded(t)
+	local source = header:gsub("%[TimingPoints%]", "[Colours]\nCombo2 : 0,255,0\nCombo1 : 255,0,0\n[TimingPoints]")
+	local chart = ChartDecoder():decode(source .. table.concat({
+		"10,10,1000,1,0",
+		"20,10,1100,1,0",
+		-- New combo skipping two colours.
+		"30,10,1200," .. (1 + 4 + 32) .. ",0",
+		"256,192,1400," .. (8 + 4 + 16) .. ",0,1800",
+		"50,10,1900,1,0",
+	}, "\n"))[1].chart
+	local aim = ModeNotes.read(chart, "osu")
+	t:tdeq(aim.combo_colors, {{1, 0, 0}, {0, 1, 0}})
+	local indices = {}
+	for i, object in ipairs(aim.objects) do indices[i] = object.combo_index end
+	t:tdeq(indices, {1, 1, 4, 5, 6})
+end
+
+---@param t testing.T
 function test.unsupported_objects_are_preserved_and_rejected(t)
 	for _, line in ipairs({
 		"256,192,1000,128,0,2000:0:0:0:0:",

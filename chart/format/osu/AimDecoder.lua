@@ -20,6 +20,7 @@ local bit = require("bit")
 ---@field y number
 ---@field kind "circle"|"slider"|"spinner"|"unsupported"
 ---@field combo_number integer Position within its combo, starting at 1.
+---@field combo_index integer Counts combos, colour skips included; picks the combo colour.
 ---@field stack_height integer? Runtime-only stacking height.
 ---@field end_time number? Spinner end time in seconds.
 ---@field slider chart.osu.AimSlider?
@@ -35,6 +36,7 @@ local bit = require("bit")
 ---@field format_version integer
 ---@field slider_multiplier number
 ---@field slider_tick_rate number
+---@field combo_colors number[][] The chart's own combo colours as RGB in 0 to 1; empty to use the skin's.
 local AimDecoder = {}
 
 ---@param osu chart.osu.Osu
@@ -58,7 +60,16 @@ function AimDecoder.decode(osu, chart, layer, visual)
 	for i, point in ipairs(osu.rawOsu.TimingPoints) do
 		data.timing_points[i] = table_util.copy(point)
 	end
+	local combo_colors = {} ---@type number[][]
+	local color_keys = {} ---@type integer[]
+	local combos = osu.rawOsu.Colours.combos ---@type {[integer]: number[]}
+	for index in pairs(combos) do color_keys[#color_keys + 1] = index end
+	table.sort(color_keys)
+	for i, index in ipairs(color_keys) do combo_colors[i] = combos[index] end
+	data.combo_colors = combo_colors
+
 	local combo_number = 0 ---@type integer
+	local combo_index = 0 ---@type integer
 	local previous_kind ---@type string?
 	for i, object in ipairs(osu.rawOsu.HitObjects) do
 		local kind = "unsupported"
@@ -77,13 +88,24 @@ function AimDecoder.decode(osu, chart, layer, visual)
 				sounds[#sounds + 1] = {sound.name, sound.volume / 100}
 			end
 		end
-		-- osu! also starts a new combo on the object after a spinner.
-		local new_combo = bit.band(object.type, 4) ~= 0 or previous_kind == "spinner"
-		if new_combo then combo_number = 1 else combo_number = combo_number + 1 end
+		local flagged = bit.band(object.type, 4) ~= 0
+		-- A new combo may also skip some colours.
+		local color_skip = flagged and object.colour_skip or 0
+		if kind == "spinner" then
+			-- A spinner takes no colour itself, but old formats ignore its skip count.
+			if data.format_version > 8 then combo_index = combo_index + color_skip end
+			combo_number = combo_number + 1
+		elseif flagged or previous_kind == nil or previous_kind == "spinner" then
+			-- osu! also starts a new combo on the object after a spinner.
+			combo_number = 1
+			combo_index = combo_index + color_skip + 1
+		else
+			combo_number = combo_number + 1
+		end
 		previous_kind = kind
 		local result = {
 			time = object.time / 1000, x = object.x, y = object.y, kind = kind, sounds = sounds,
-			combo_number = combo_number,
+			combo_number = combo_number, combo_index = combo_index,
 		}
 		if kind == "spinner" then
 			result.end_time = object.endTime and object.endTime / 1000

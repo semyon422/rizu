@@ -9,6 +9,7 @@ local string_util = require("string_util")
 ---@field time number
 ---@field endTime number?
 ---@field type number
+---@field colour_skip integer Combo colours skipped by a new combo; decoded only.
 ---@field soundType number
 ---@field repeatCount number?
 ---@field length number?
@@ -168,8 +169,10 @@ function HitObjects:decodeLine(line)
 	object.y = math.min(math.max(tonumber(split[2]) or 0, 0), 512)
 	object.time = tonumber(split[3]) or 0
 
-	local _type = bit.band(tonumber(split[4]) or 0, bit.bnot(HitObjectType.ColourHax))
+	local raw_type = tonumber(split[4]) or 0
+	local _type = bit.band(raw_type, bit.bnot(HitObjectType.ColourHax))
 	object.type = _type
+	object.colour_skip = bit.rshift(bit.band(raw_type, HitObjectType.ColourHax), 4)
 	object.soundType = tonumber(split[5]) or 0
 
 	if is_type(HitObjectType.Normal, _type) then

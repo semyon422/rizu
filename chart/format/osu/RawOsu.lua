@@ -7,6 +7,7 @@ local DifficultySection = require("chart.format.osu.sections.DifficultySection")
 local Events = require("chart.format.osu.sections.Events")
 local TimingPoints = require("chart.format.osu.sections.TimingPoints")
 local HitObjects = require("chart.format.osu.sections.HitObjects")
+local Colours = require("chart.format.osu.sections.Colours")
 
 ---@class chart.osu.RawOsu
 ---@operator call: chart.osu.RawOsu
@@ -39,6 +40,7 @@ function RawOsu:new()
 	self.Events = Events(true)
 	self.TimingPoints = TimingPoints()
 	self.HitObjects = HitObjects()
+	self.Colours = Colours()
 end
 
 ---@param s string

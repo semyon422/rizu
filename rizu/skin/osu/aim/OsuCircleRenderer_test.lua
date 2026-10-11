@@ -23,7 +23,7 @@ local function capture(draw)
 		graphics = {
 			setColor = function(...) color = {...} end,
 			draw = function(...)
-				draws[#draws + 1] = {alpha = color[4], ...}
+				draws[#draws + 1] = {alpha = color[4], red = color[1], ...}
 			end,
 			circle = function() error("loaded osu! sprites should replace primitive circles") end,
 		},
@@ -104,6 +104,26 @@ function test.hit_circle_expands_and_fades_without_number_or_approach_circle(t)
 	t:eq(#capture(function() OsuCircleRenderer.draw(object, 64, 2, 1.2, sprites, false, "hit", 0.95) end), 0)
 	-- A missed circle keeps its number while it fades.
 	t:eq(#capture(function() OsuCircleRenderer.draw(object, 64, 1.23, 1.2, sprites, false, "miss", 1.2) end), 3)
+end
+
+---@param t testing.T
+function test.combo_colour_tints_circle_and_approach_circle_but_not_overlay_or_number(t)
+	local sprites = {
+		hitcircle = image(128, 128),
+		hitcircleoverlay = image(128, 128),
+		approachcircle = image(128, 128),
+		digits = {[1] = image(20, 50)},
+		digit_overlap = -2,
+	}
+	local object = {time = 1, x = 0, y = 0, kind = "circle", sounds = {}, combo_number = 1}
+	local draws = capture(function()
+		OsuCircleRenderer.draw(object, 64, 0.5, 1.2, sprites, false, nil, nil, {0.25, 1, 1})
+	end)
+	t:eq(#draws, 4)
+	t:eq(draws[1].red, 0.25)
+	t:eq(draws[2].red, 0.25)
+	t:eq(draws[3].red, 1)
+	t:eq(draws[4].red, 1)
 end
 
 return test

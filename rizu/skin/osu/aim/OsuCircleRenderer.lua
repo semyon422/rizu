@@ -40,7 +40,8 @@ end
 ---@param is_slider_head boolean?
 ---@param head_state ("hit"|"miss")? Set once the head is resolved; it then fades out.
 ---@param head_time number? When the head was resolved.
-function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slider_head, head_state, head_time)
+---@param color number[]? Combo colour; tints the circle and its approach circle, not the overlay.
+function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slider_head, head_state, head_time, color)
 	local remaining = object.time - time
 	local age = preempt - remaining
 	local alpha = Shared.circleAlpha(age)
@@ -70,7 +71,7 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 			if circle_width > 0 and approach_width > 0 then
 				approach_size = approach_size * approach_width / circle_width
 			end
-			SpriteRenderer.draw(approachcircle, object.x, object.y, approach_size, approach_alpha)
+			SpriteRenderer.draw(approachcircle, object.x, object.y, approach_size, approach_alpha, 0, color)
 		else
 			SpriteRenderer.flush(sprites)
 			love.graphics.setColor(0.8, 0.92, 1, approach_alpha)
@@ -79,7 +80,7 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 	end
 
 	if hitcircle then
-		SpriteRenderer.draw(hitcircle, object.x, object.y, size, alpha)
+		SpriteRenderer.draw(hitcircle, object.x, object.y, size, alpha, 0, color)
 	else
 		SpriteRenderer.flush(sprites)
 		love.graphics.setColor(0.16, 0.4, 0.58, alpha)

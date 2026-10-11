@@ -28,13 +28,15 @@ end
 ---@param preempt number
 ---@param graphics rizu.skin.base.osu.aim.SliderGraphics
 ---@param index integer
+---@param body_color number[]?
+---@param border_color number[]?
 ---@return number alpha
-function SliderRenderer.drawBody(object, slider, time, preempt, graphics, index)
+function SliderRenderer.drawBody(object, slider, time, preempt, graphics, index, body_color, border_color)
 	local alpha = SliderRenderer.getBodyAlpha(object, slider, time, preempt)
 	if alpha <= 0 then return alpha end
 
 	local snake_end = SliderRenderer.getSnakeEnd(object, time, preempt)
-	graphics:draw(index, alpha, 0, snake_end)
+	graphics:draw(index, alpha, 0, snake_end, body_color, border_color)
 	return alpha
 end
 

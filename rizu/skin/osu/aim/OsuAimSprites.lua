@@ -32,7 +32,20 @@ local names = {
 ---@field sliderscorepoint rizu.skin.osu.OsuSkinGraphics.Image?
 ---@field cursor rizu.skin.osu.OsuSkinGraphics.Image?
 ---@field followpoint rizu.skin.osu.OsuSkinGraphics.Image[]
+---@field combo_colors number[][] RGB; used when the chart brings none.
+---@field slider_border number[]? RGB
+---@field slider_track number[]? RGB replacing the combo colour of slider bodies.
 local OsuAimSprites = {}
+
+local default_combo_colors = {{1, 192 / 255, 0}, {0, 202 / 255, 0}, {18 / 255, 124 / 255, 1}, {242 / 255, 24 / 255, 57 / 255}}
+
+---@param value string?
+---@return number[]?
+local function parseColor(value)
+	---@type string?, string?, string?
+	local r, g, b = tostring(value):match("^%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)")
+	if r then return {tonumber(r) / 255, tonumber(g) / 255, tonumber(b) / 255} end
+end
 
 ---@param graphics rizu.skin.osu.OsuSkinGraphics
 ---@return string[]
@@ -86,6 +99,7 @@ function OsuAimSprites.load(graphics)
 	local sprites = {
 		batch = graphics.batch, digits = {}, digit_overlap = tonumber(getFonts(graphics).HitCircleOverlap) or -2,
 		followpoint = graphics:getAnimationFrames("followpoint", nil, GROUP),
+		combo_colors = {},
 	}
 	for _, name in ipairs(names) do sprites[name] = graphics:getFrames(name, nil, GROUP)[1] end
 
@@ -111,6 +125,13 @@ function OsuAimSprites.load(graphics)
 			sprites.sliderendcircle, sprites.sliderendcircleoverlay = sprites.hitcircle, sprites.hitcircleoverlay
 		end
 	end
+	local colours = ini and ini.Colours or {}
+	for index = 1, 8 do
+		sprites.combo_colors[#sprites.combo_colors + 1] = parseColor(colours["Combo" .. index])
+	end
+	if #sprites.combo_colors == 0 then sprites.combo_colors = default_combo_colors end
+	sprites.slider_border = parseColor(colours.SliderBorder)
+	sprites.slider_track = parseColor(colours.SliderTrackOverride)
 	local framerate = tonumber(ini and ini.General and ini.General.AnimationFramerate)
 	if framerate and framerate > 0 then sprites.animation_framerate = framerate end
 	return sprites

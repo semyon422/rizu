@@ -70,6 +70,9 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
 }
 ]]
 
+local default_body_color = {0.16, 0.33, 0.46}
+local default_border_color = {0.85, 0.95, 1}
+
 ---@class rizu.skin.base.osu.aim.SliderGraphics
 ---@operator call: rizu.skin.base.osu.aim.SliderGraphics
 local SliderGraphics = class()
@@ -95,11 +98,14 @@ end
 ---@param alpha number
 ---@param snake_start number
 ---@param snake_end number
-function SliderGraphics:draw(index, alpha, snake_start, snake_end)
+---@param body_color number[]? RGB
+---@param border_color number[]? RGB
+function SliderGraphics:draw(index, alpha, snake_start, snake_end, body_color, border_color)
 	local mesh = self.meshes[index]
 	if not mesh or alpha <= 0 then return end
-	self.shader:send("body_color", {0.16, 0.33, 0.46, 1})
-	self.shader:send("border_color", {0.85, 0.95, 1, 1})
+	body_color, border_color = body_color or default_body_color, border_color or default_border_color
+	self.shader:send("body_color", {body_color[1], body_color[2], body_color[3], 1})
+	self.shader:send("border_color", {border_color[1], border_color[2], border_color[3], 1})
 	self.shader:send("opacity", alpha)
 	self.shader:send("path_radius", self.radius)
 	self.shader:send("snake_range", {math.min(snake_start, snake_end), math.max(snake_start, snake_end)})
