@@ -156,7 +156,7 @@ function test.dense_1000_view_screen_rebuild()
 		screen:relayout()
 	end)
 	assert(count == VIEW_COUNT)
-	assert(screen.renderer.command_count == 902 * 2)
+	assert(screen.renderer.command_count == 902 * 3)
 end
 
 ---Simulates a layout-affecting style change every frame, including invalidation

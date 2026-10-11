@@ -190,18 +190,23 @@ local function flatten(view, views, input_views, update_views, after_layout_view
 		after_layout_views[#after_layout_views + 1] = view
 	end
 	-- A composite's own draw belongs to its content, so it goes inside the boundary.
+	local composite_slot, draw_slot ---@type integer?, integer?
 	if view.is_composite then
 		---@cast view gui.CompositeView
-		renderer:beginComposite(view)
+		composite_slot = renderer:beginComposite(view)
 	end
 	if view.draw ~= View.draw then
-		renderer:addView(view)
+		draw_slot = renderer:addView(view)
 	end
 	for i = 1, #view.children do
 		flatten(view.children[i], views, input_views, update_views, after_layout_views, renderer)
 	end
-	if view.is_composite then
+	if draw_slot then
+		renderer:endSubtree(draw_slot)
+	end
+	if composite_slot then
 		renderer:endComposite()
+		renderer:endSubtree(composite_slot)
 	end
 	view.flat_subtree_end = #views
 end
@@ -426,12 +431,23 @@ function Screen:acceptInputs(inputs)
 	self:flush()
 	self.inputs = inputs
 	local views = self.views
-	for i = #views, 1, -1 do
+	local i = #views
+	while i >= 1 do
 		local view = views[i]
-		if not view.detached and view.cull_mask == 0
-			and view.effective_visible and view.effective_enabled and view.present
-		then
-			inputs:processView(view)
+		if not view.effective_visible or not view.present then
+			-- Visibility and presence are inherited: jump over the whole hidden subtree.
+			local top = view ---@type gui.View
+			local parent = top.parent ---@type gui.View?
+			while parent and not (parent.effective_visible and parent.present) do
+				top = parent
+				parent = top.parent
+			end
+			i = top.flat_index - 1
+		else
+			if not view.detached and view.cull_mask == 0 and view.effective_enabled then
+				inputs:processView(view)
+			end
+			i = i - 1
 		end
 	end
 end

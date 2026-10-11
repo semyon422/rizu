@@ -164,7 +164,7 @@ function test.move_changes_draw_and_input_order_after_flush(t)
 	s.root:move(first, 2)
 	s:flush()
 	t:eq(s.renderer.commands[2], second)
-	t:eq(s.renderer.commands[4], first)
+	t:eq(s.renderer.commands[5], first)
 
 	local inputs = Inputs()
 	inputs:beginFrame(5, 5)
@@ -239,9 +239,9 @@ function test.relayout_builds_specialized_update_and_draw_arrays(t)
 	local commands = s.renderer.commands
 	t:eq(type(commands[1]), "number")
 	t:eq(commands[2], drawing)
-	t:eq(commands[3], commands[1])
-	t:eq(commands[4], both)
-	t:eq(s.renderer.command_count, 4)
+	t:eq(commands[4], commands[1])
+	t:eq(commands[5], both)
+	t:eq(s.renderer.command_count, 6)
 end
 
 ---@param t testing.T
@@ -568,6 +568,53 @@ function test.onLayoutChanged_fires_again_after_reattach(t)
 	other:add(view)
 	s:flush()
 	t:eq(calls, 2)
+end
+
+---@param t testing.T
+function test.renderer_skips_hidden_subtree_in_one_jump(t)
+	local s = Screen()
+	s:resize(100, 100)
+	local draws = {}
+	---@param parent gui.View
+	---@param name string
+	---@return gui.View
+	local function add(parent, name)
+		local view = parent:add(View():anchorFixed(0, 0, 10, 10))
+		view:setDraw(function() draws[#draws + 1] = name end)
+		return view
+	end
+	local hidden = add(s.root, "hidden")
+	add(add(hidden, "child"), "leaf")
+	local culled = add(s.root, "culled")
+	add(culled, "inside")
+	add(s.root, "last")
+	hidden:setVisible(false)
+	s:flush()
+	culled.cull_mask = View.CULL_VIEWPORT
+
+	s:draw()
+
+	t:tdeq(draws, {"inside", "last"})
+	-- hidden, child, leaf: the hidden view points past all three.
+	t:eq(s.renderer.commands[3], 10)
+	t:eq(s.renderer.commands[10 + 1], culled)
+end
+
+---@param t testing.T
+function test.acceptInputs_skips_hidden_subtrees(t)
+	local s = Screen()
+	local first = s.root:add(View())
+	local hidden = s.root:add(View())
+	local child = hidden:add(View())
+	child:add(View())
+	local last = s.root:add(View())
+	hidden:setOpacity(0)
+	local processed = {}
+	local inputs = {processView = function(_, view) processed[#processed + 1] = view end}
+
+	s:acceptInputs(inputs)
+
+	t:tdeq(processed, {last, first, s.root})
 end
 
 ---@param t testing.T

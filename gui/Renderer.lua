@@ -8,9 +8,15 @@ local END_COMPOSITE = 3
 
 ---@alias gui.RenderCommand 1|2|3
 
+---Draws a screen from a packed command stream:
+---  DRAW_ITEM, view, next         draw one view
+---  BEGIN_COMPOSITE, view, next   open a composite boundary
+---  END_COMPOSITE                 close it
+---`next` is the command index after the view's whole subtree. Visibility and presence are
+---inherited, so a hidden view skips its subtree by jumping there.
 ---@class gui.Renderer
 ---@operator call: gui.Renderer
----@field commands (gui.RenderCommand|gui.View)[] Packed command stream
+---@field commands (gui.RenderCommand|gui.View|integer)[] Packed command stream
 ---@field command_count integer
 ---@field relative_transform love.Transform
 ---@field private composite_stack gui.CompositeView[] Open composites while drawing
@@ -20,7 +26,7 @@ local END_COMPOSITE = 3
 local Renderer = class()
 
 function Renderer:new()
-	---@type (gui.RenderCommand|gui.View)[]
+	---@type (gui.RenderCommand|gui.View|integer)[]
 	self.commands = {}
 	self.command_count = 0
 	self.relative_transform = love.math.newTransform()
@@ -38,30 +44,39 @@ end
 
 ---@param self gui.Renderer
 ---@param command gui.RenderCommand
----@param view gui.View?
+---@param view gui.View
+---@return integer slot Pass to endSubtree once the view's descendants are added
 local function addCommand(self, command, view)
 	local index = self.command_count + 1
 	self.commands[index] = command
-	if view then
-		self.commands[index + 1] = view
-		self.command_count = index + 1
-	else
-		self.command_count = index
-	end
+	self.commands[index + 1] = view
+	self.commands[index + 2] = index + 3
+	self.command_count = index + 2
+	return index
 end
 
 ---@param view gui.View
+---@return integer slot
 function Renderer:addView(view)
-	addCommand(self, DRAW_ITEM, view)
+	return addCommand(self, DRAW_ITEM, view)
 end
 
 ---@param view gui.CompositeView
+---@return integer slot
 function Renderer:beginComposite(view)
-	addCommand(self, BEGIN_COMPOSITE, view)
+	return addCommand(self, BEGIN_COMPOSITE, view)
 end
 
 function Renderer:endComposite()
-	addCommand(self, END_COMPOSITE)
+	local index = self.command_count + 1
+	self.commands[index] = END_COMPOSITE
+	self.command_count = index
+end
+
+---Record where the commands of a view's subtree end.
+---@param slot integer
+function Renderer:endSubtree(slot)
+	self.commands[slot + 2] = self.command_count + 1
 end
 
 function Renderer:clear()
@@ -145,7 +160,12 @@ function Renderer:draw()
 		if command == DRAW_ITEM then
 			local view = commands[index + 1]
 			---@cast view gui.View
-			if not view.detached and view.cull_mask == 0 and view.effective_visible and view.present then
+			if view.detached or not view.effective_visible or not view.present then
+				index = commands[index + 2] --[[@as integer]]
+			elseif view.cull_mask ~= 0 then
+				-- Culling is per view: descendants may still be inside the viewport.
+				index = index + 3
+			else
 				local scale = 1
 				if boundary and inverse then
 					scale = boundary.canvas_scale
@@ -158,8 +178,8 @@ function Renderer:draw()
 				-- A composite drawing into its own canvas is opaque there; its opacity applies to the canvas.
 				Painter.begin(view == boundary and 1 or view.render_opacity)
 				view:draw()
+				index = index + 3
 			end
-			index = index + 2
 		elseif command == BEGIN_COMPOSITE then
 			local composite = commands[index + 1]
 			---@cast composite gui.CompositeView
@@ -172,22 +192,7 @@ function Renderer:draw()
 				or not composite.effective_visible or not composite.present
 				or not (direct or composite:prepareCanvas())
 			then
-				local nesting = 1
-				index = index + 2
-				while nesting > 0 do
-					local nested_command = commands[index]
-					if nested_command == BEGIN_COMPOSITE then
-						nesting = nesting + 1
-						index = index + 2
-					elseif nested_command == END_COMPOSITE then
-						nesting = nesting - 1
-						index = index + 1
-					elseif nested_command == DRAW_ITEM then
-						index = index + 2
-					else
-						error(("unknown render command: %s"):format(tostring(nested_command)))
-					end
-				end
+				index = commands[index + 2] --[[@as integer]]
 			else
 				depth = depth + 1
 				composite_stack[depth] = composite
@@ -207,7 +212,7 @@ function Renderer:draw()
 				end
 				boundary_stack[depth] = boundary or false
 				inverse_stack[depth] = inverse or false
-				index = index + 2
+				index = index + 3
 			end
 		elseif command == END_COMPOSITE then
 			local composite = assert(composite_stack[depth], "unbalanced composite commands")

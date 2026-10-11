@@ -14,8 +14,8 @@ function test.modal_draws_its_own_background_inside_its_composite_boundary(t)
 
 	t:assert(CompositeView * modal)
 	local commands = screen.renderer.commands
-	t:tdeq({commands[2], commands[4]}, {modal, modal})
-	t:eq(screen.renderer.command_count, 5)
+	t:tdeq({commands[2], commands[5]}, {modal, modal})
+	t:eq(screen.renderer.command_count, 7)
 end
 
 return test
