@@ -47,7 +47,7 @@ function RhythmEngineLoader:load(rhythm_engine)
 	rhythm_engine:loadVisuals(self.resources, self.resource_paths)
 
 	rhythm_engine:setRate(replayBase.rate)
-	Gamemodes[chartmeta.mode].configureEngine(rhythm_engine, replayBase, settings)
+	Gamemodes[chartmeta.mode]:configureEngine(rhythm_engine, replayBase, settings)
 
 	rhythm_engine:setPlayTime(chartdiff.start_time, chartdiff.duration + rhythm_engine:getPlayPadding())
 	rhythm_engine:setTimeToPrepare(settings:getNumber(keys.gameplay.time_prepare))

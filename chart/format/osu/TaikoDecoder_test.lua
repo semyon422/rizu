@@ -71,9 +71,10 @@ function test.worker_snapshot_keeps_native_mode_and_bounds(t)
 	t:eq(result.chartdiff.osu_diff, nil)
 	local restored = SnapshotRestorer():restore(result.snapshot)
 	t:tdeq(ModeNotes.read(restored, "taiko"), decode(data))
+	-- Mania-only play options are not carried into another gamemode.
 	local base = ReplayBase()
 	base.tap_only = true
-	t:assert(compute({chartfile_name = "native.osu", index = 1}, data, nil, base, {}).error)
+	t:eq(compute({chartfile_name = "native.osu", index = 1}, data, nil, base, {}).error, nil)
 end
 
 return test

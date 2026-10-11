@@ -8,7 +8,6 @@ local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
 local Chartdiff = require("sea.chart.Chartdiff")
 local Chartmeta = require("sea.chart.Chartmeta")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
-local ReplayBase = require("sea.replays.ReplayBase")
 local SnapshotRestorer = require("chart.refchart.SnapshotRestorer")
 local Settings = require("rizu.config.Settings")
 
@@ -106,11 +105,7 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local ModeNotesAsync = require("chart.model.ModeNotes")
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local ChartSnapshotAsync = require("chart.refchart.ChartSnapshot")
-	local ReplayBaseAsync = require("sea.replays.ReplayBase")
 	local GamemodesAsync = require("rizu.gameplay.Gamemodes")
-
-	local replay_base = ReplayBaseAsync()
-	replay_base:importReplayBase(replay_base_data)
 
 	local compute_context = ComputeContext()
 	local ok, decoded, decode_error = pcall(compute_context.fromFileData, compute_context,
@@ -130,7 +125,10 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local mode = compute_context.chartmeta.mode
 	local mode_ok, mode_error = pcall(ModeNotesAsync.validate, compute_context.chart, mode)
 	if not mode_ok then return {error = tostring(mode_error)} end
-	local prepared, prepare_error = pcall(GamemodesAsync[mode].prepare, compute_context, replay_base, gameplay_config)
+	local gamemode = GamemodesAsync[mode]
+	-- Class instances do not survive the trip into this thread.
+	local replay_base = gamemode:createReplayBase(replay_base_data)
+	local prepared, prepare_error = pcall(gamemode.prepare, gamemode, compute_context, replay_base, gameplay_config)
 	if not prepared then return {error = tostring(prepare_error)} end
 
 	return {
@@ -152,7 +150,8 @@ local compute_async = thread.async(GameplayChart.compute)
 function GameplayChart:computeLoaded(replayBase, ctx)
 	local mode = ctx.chartmeta.mode
 	ModeNotes.validate(ctx.chart, mode)
-	Gamemodes[mode].prepare(ctx, replayBase, self:getConfig())
+	local gamemode = Gamemodes[mode]
+	gamemode:prepare(ctx, gamemode:getReplayBase(replayBase), self:getConfig())
 end
 
 ---@param replayBase sea.ReplayBase
@@ -187,25 +186,20 @@ function GameplayChart:loadAsync(replayBase, ctx)
 	self:loadPrepared(replayBase, ctx, data, context)
 end
 
----@param replay_base sea.ReplayBase
----@return sea.ReplayBase
-local function getReplayBaseData(replay_base)
-	local data = ReplayBase()
-	replay_base:exportReplayBase(data)
-	return data
-end
-
 ---@param replayBase sea.ReplayBase
 ---@param data string
 ---@param context table?
 ---@return rizu.GameplayChartComputeResult
 function GameplayChart:computeAsync(replayBase, data, context)
+	local replay_base_data = {}
+	replayBase:exportReplayBase(replay_base_data)
+
 	---@type rizu.GameplayChartComputeResult|{error: string}
 	local result = compute_async(
 		self:getChartviewData(),
 		data,
 		context,
-		getReplayBaseData(replayBase),
+		replay_base_data,
 		self:getConfig()
 	)
 	assert(not result.error, result.error)
@@ -227,8 +221,11 @@ local function apply_computed(replayBase, ctx, result, chart)
 	diffcalc_context:new(ctx.chartdiff, ctx.chart, replayBase.rate)
 	ctx.diffcalc_context = diffcalc_context
 
-	replayBase.modifiers = result.replay_base.modifiers
-	replayBase.columns_order = result.replay_base.columns_order
+	-- Preparation rewrites the base of its own gamemode only; a base of another one stays as it was.
+	if Gamemodes[ctx.chartmeta.mode].ReplayBase * replayBase then
+		replayBase.modifiers = result.replay_base.modifiers
+		replayBase.columns_order = result.replay_base.columns_order
+	end
 end
 
 ---@param replayBase sea.ReplayBase

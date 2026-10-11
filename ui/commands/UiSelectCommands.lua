@@ -32,7 +32,7 @@ return function(game, ui)
 			callback = function()
 				local view = game.chartSelector.chartview
 				if view and view.chartmeta_mode == "osu" then
-					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index)
+					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "osu")
 					if ok then
 						ui:setScreen(ui.chart_loading)
 					else
@@ -49,7 +49,7 @@ return function(game, ui)
 			callback = function()
 				local view = game.chartSelector.chartview
 				if view and view.chartmeta_mode == "catch" then
-					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, true)
+					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "catch")
 					if not ok then ui.chart_loading:showError(err) end
 					ui:setScreen(ui.chart_loading)
 				end
@@ -62,7 +62,7 @@ return function(game, ui)
 			callback = function()
 				local view = game.chartSelector.chartview
 				if view and view.chartmeta_mode == "taiko" then
-					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, "taiko")
+					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "taiko")
 					if not ok then ui.chart_loading:showError(err) end
 					ui:setScreen(ui.chart_loading)
 				end
@@ -75,7 +75,7 @@ return function(game, ui)
 			callback = function()
 				local view = game.chartSelector.chartview
 				if view and view.chartmeta_mode == "sdvx" then
-					local ok, err = game.gameplayInteractor:loadAimReplay(view.hash, view.index, "sdvx")
+					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "sdvx")
 					if not ok then ui.chart_loading:showError(err) end
 					ui:setScreen(ui.chart_loading)
 				end

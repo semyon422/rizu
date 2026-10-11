@@ -113,7 +113,6 @@ end
 function UserInterface:loadSelectedChart(autoplay, skin_editor, keep_previous_visible)
 	local interactor = self.game.gameplayInteractor
 	interactor.replaying = false
-	interactor.aim_replay = nil
 	interactor.autoplay = autoplay
 	self.skin_editor = skin_editor
 	return self:setScreen(self.chart_loading, keep_previous_visible)

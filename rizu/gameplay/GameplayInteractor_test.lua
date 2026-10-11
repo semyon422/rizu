@@ -5,6 +5,9 @@ local GameplaySession = require("rizu.gameplay.GameplaySession")
 local RhythmEngine = require("rizu.gameplay.mania.Engine")
 local ManiaInput = require("rizu.gameplay.mania.Input")
 local Gamemodes = require("rizu.gameplay.Gamemodes")
+local ReplayStore = require("rizu.gameplay.ReplayStore")
+local ReplayRecorder = require("rizu.engine.replay.ReplayRecorder")
+local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local TimingValues = require("sea.chart.TimingValues")
 local PauseModel = require("sphere.models.PauseModel")
@@ -151,7 +154,7 @@ end
 ---@param t testing.T
 function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
 	local updates, saves = 0, 0
-	local re = {rules = {}, unloadAudio = function() end, setTime = function() end}
+	local re = {mode = "osu", unloadAudio = function() end, setTime = function() end}
 	local session = {
 		rhythm_engine = re, play_type = "manual",
 		update = function() updates = updates + 1 end,
@@ -164,7 +167,7 @@ function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
 			pauseModel = {update = function() end}, windowModel = {setVsyncOnSelect = function() end},
 			discordModel = {setPresence = function() end}, multiplayerModel = {client = {setPlaying = function() end}},
 		},
-		aim_replay_store = {save = function() saves = saves + 1 return "local.json" end},
+		replay_stores = {osu = {save = function() saves = saves + 1 return "local.json" end}},
 		score_saver = {saveScore = function() error("must not save/submit an Aim score") end},
 	}, {__index = GameplayInteractor})
 	interactor:update(0.25)
@@ -177,15 +180,38 @@ function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
 end
 
 ---@param t testing.T
-function test.aim_replay_preparation_keeps_replay_base_contract(t)
+function test.local_replay_base_replaces_the_selection_without_touching_it(t)
 	local source = ReplayBase()
 	source.rate = 2
-	local interactor = setmetatable({game = {replayBase = source}, aim_replay = {rate = 1.5}}, {__index = GameplayInteractor})
-	local copy = interactor:getPreparationBase()
-	local exported = ReplayBase()
-	t:has_not_error(function() copy:exportReplayBase(exported) end)
+	source.modifiers = {{id = 1}}
+	local fs = FakeFilesystem()
+	local hash = ("a"):rep(32)
+	local interactor = setmetatable({game = {replayBase = source},
+		replay_stores = {osu = ReplayStore(fs, Gamemodes.osu.ReplayBase)}}, {__index = GameplayInteractor})
+	t:eq(interactor:getPreparationBase(), source)
+	-- Mania modifiers do not reach another gamemode: only the rate is shared.
+	local selected = Gamemodes.osu:getReplayBase(source)
+	t:eq(selected.rate, 2)
+	t:eq(selected.modifiers, nil)
+	t:eq(Gamemodes.mania:getReplayBase(source), source)
+
+	local recorder = ReplayRecorder()
+	recorder:record(0, VirtualInputEvent(1, true, 1, {1, 2}))
+	interactor.replay_stores.osu:save({play_type = "manual", replay_recorder = recorder, rhythm_engine = {
+		chartmeta = {hash = hash, index = 1}, time_engine = {timer = {rate = 1.5}}}})
+	t:eq(interactor:loadLocalReplay(hash, 1, "mania"), false)
+	t:eq(interactor:loadLocalReplay(hash, 1, "osu"), true)
+	local base = interactor:getPreparationBase()
+	t:eq(base.rate, 1.5)
+	t:eq(Gamemodes.osu:getReplayBase(base), base)
 	t:eq(source.rate, 2)
-	t:eq(exported.rate, 1.5)
+	-- The worker thread receives plain data and rebuilds the same base from it.
+	local data = {}
+	base:exportReplayBase(data)
+	data.format = "rizu-aim-sliders-1"
+	local rebuilt = Gamemodes.osu:createReplayBase(data)
+	t:eq(rebuilt.rate, 1.5)
+	t:eq(rebuilt:hasStacking(), false)
 end
 
 ---@param t testing.T
@@ -287,7 +313,7 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 	for _, state in ipairs({"loading", "failed", "ready"}) do
 		local calls = {playfield = 0, audio = 0, bga = 0, skip = 0, score = 0, playing = 0}
 		local session = {hasResult = function() return true end}
-		local interactor = setmetatable({load_state = state, loaded = state == "ready",
+		local interactor = setmetatable({load_state = state, loaded = state == "ready", replay_stores = {},
 			load_generation = 0, gameplay_session = session,
 			game = {
 				rhythm_engine = {
@@ -335,7 +361,7 @@ end
 function test.partial_play_is_not_saved_until_chart_end(t)
 	local function make_interactor(time)
 		local saves = 0
-		local interactor = setmetatable({load_state = "ready", loaded = true,
+		local interactor = setmetatable({load_state = "ready", loaded = true, replay_stores = {},
 			load_generation = 0, gameplay_session = {hasResult = function() return true end},
 			game = {
 				rhythm_engine = {

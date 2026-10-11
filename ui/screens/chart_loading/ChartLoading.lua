@@ -79,7 +79,6 @@ function ChartLoading:enter()
 			self.error_view:setMessage(tostring(loaded))
 			self.error_view:setVisible(true)
 			self.ui.game.gameplayInteractor.replaying = false
-			self.ui.game.gameplayInteractor.aim_replay = nil
 			self.ui.game.gameplayInteractor.autoplay = false
 		end
 	end)()

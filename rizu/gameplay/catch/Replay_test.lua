@@ -1,4 +1,6 @@
-local ReplayStore = require("rizu.gameplay.aim.ReplayStore")
+local ReplayStore = require("rizu.gameplay.ReplayStore")
+local AimReplayBase = require("rizu.gameplay.aim.ReplayBase")
+local CatchReplayBase = require("rizu.gameplay.catch.ReplayBase")
 local ReplayRecorder = require("rizu.engine.replay.ReplayRecorder")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local FakeFilesystem = require("fs.FakeFilesystem")
@@ -8,8 +10,8 @@ local test = {}
 ---@param t testing.T
 function test.catch_input_and_replay_are_separate_from_aim(t)
 	local fs = FakeFilesystem()
-	local catch = ReplayStore(fs, "catch")
-	local aim = ReplayStore(fs)
+	local catch = ReplayStore(fs, CatchReplayBase)
+	local aim = ReplayStore(fs, AimReplayBase)
 	local recorder = ReplayRecorder()
 	local event = Input():transform({name = "keypressed", "rshift"})
 	t:eq(event.id, 6)

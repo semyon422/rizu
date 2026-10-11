@@ -6,10 +6,9 @@ local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
 local Preparation = {}
 
 ---@param ctx sea.ComputeContext
----@param base sea.ReplayBase
+---@param base rizu.gameplay.catch.ReplayBase
 function Preparation.compute(ctx, base)
 	assert(base.rate >= 0.25 and base.rate <= 4, "Catch prototype: supported rates are 0.25x–4x.")
-	assert(#base.modifiers == 0 and not base.tap_only and not base.columns_order, "Catch prototype: modifiers/reordering are unsupported.")
 	local chart = assert(ctx.chart)
 	local catch = chart
 	local objects = Objects.get(catch, "catch")

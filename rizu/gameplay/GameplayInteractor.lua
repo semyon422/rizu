@@ -1,8 +1,5 @@
-local Objects = require("chart.format.osu.Objects")
-local ReplayBase = require("sea.replays.ReplayBase")
-local table_util = require("table_util")
 local Gamemodes = require("rizu.gameplay.Gamemodes")
-local AimReplayStore = require("rizu.gameplay.aim.ReplayStore")
+local ReplayStore = require("rizu.gameplay.ReplayStore")
 local class = require("class")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
@@ -18,7 +15,10 @@ local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 ---@field playfield rizu.gameplay.Playfield
 ---@field load_state "empty"|"loading"|"ready"|"failed"
 ---@field load_error string?
----@field replay_base sea.ReplayBase?
+---@field replay_base (rizu.gameplay.ReplayBase|sea.ReplayBase)? Of the replay being watched.
+---@field replay_chart {hash: string, index: integer}? Chart a local replay was loaded for.
+---@field replay_stores {[sea.Gamemode]: rizu.gameplay.ReplayStore} For gamemodes that do not save scores.
+---@field complete boolean? The attempt ended and waits on its summary.
 ---@field gamemode rizu.gameplay.Gamemode Of the loaded chart.
 ---@field input rizu.gameplay.GamemodeInput
 ---@operator call: rizu.GameplayInteractor
@@ -33,10 +33,12 @@ function GameplayInteractor:new(game)
 	self.load_generation = 0
 	self.load_state = "empty"
 	self.playfield = Playfield(game)
-	self.sdvx_replay_store = AimReplayStore(game.fs, "sdvx")
-	self.taiko_replay_store = AimReplayStore(game.fs, "taiko")
-	self.catch_replay_store = AimReplayStore(game.fs, "catch")
-	self.aim_replay_store = AimReplayStore(game.fs)
+	self.replay_stores = {}
+	for mode, gamemode in pairs(Gamemodes) do
+		if not gamemode.saves_scores then
+			self.replay_stores[mode] = ReplayStore(game.fs, gamemode.ReplayBase)
+		end
+	end
 
 	self.score_saver = ScoreSaver(
 		game.fs,
@@ -55,15 +57,17 @@ function GameplayInteractor.getInputMode(chart)
 end
 
 ---@param chartview table
+---@param gamemode rizu.gameplay.Gamemode
 ---@return string[]
-function GameplayInteractor:getResourcePaths(chartview)
+function GameplayInteractor:getResourcePaths(chartview, gamemode)
 	local paths = {chartview.location_dir}
 	local movie_path = IidxResourcePaths.getMoviePath(chartview, self.game.fs)
 	if movie_path then
 		table.insert(paths, movie_path)
 	end
-	table.insert(paths, "userdata/hitsounds")
-	table.insert(paths, "userdata/hitsounds/midi")
+	for _, path in ipairs(gamemode.resource_paths) do
+		table.insert(paths, path)
+	end
 	return paths
 end
 
@@ -76,22 +80,11 @@ function GameplayInteractor:loadFileFinderPaths(paths)
 	end
 end
 
----@return sea.ReplayBase
+---The watched replay's base, or what is selected for a new play. May belong to another
+---gamemode than the chart: each gamemode takes from it what it shares.
+---@return rizu.gameplay.ReplayBase|sea.ReplayBase
 function GameplayInteractor:getPreparationBase()
-	if self.replay_base then
-		return self.replay_base
-	end
-	if not self.aim_replay then
-		return self.game.replayBase
-	end
-	local base = ReplayBase()
-	base:importReplayBase(self.game.replayBase)
-	base.rate = self.aim_replay.rate
-	base.rate_type = "linear"
-	base.modifiers = {}
-	base.columns_order = nil
-	base.tap_only = false
-	return base
+	return self.replay_base or self.game.replayBase
 end
 
 ---@param chartview table
@@ -99,6 +92,7 @@ end
 function GameplayInteractor:loadGameplayAsync(chartview)
 	if not self.replaying then
 		self.replay_base = nil
+		self.replay_chart = nil
 	end
 
 	local generation = self.load_generation + 1
@@ -154,41 +148,21 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 
 	local chart = assert(game.computeContext.chart)
 	local chartmeta = assert(game.computeContext.chartmeta)
-	assert(chartmeta.mode ~= "sdvx" or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-sdvx-1",
-		"Legacy KSH column replays cannot be played with native SDVX rules.")
-	assert(chartmeta.mode ~= "taiko" or not self.replaying or self.aim_replay and self.aim_replay.format == "rizu-taiko-1",
-		"Legacy 2K replays cannot be played with native Taiko rules.")
-	if self.aim_replay then
-		if self.aim_replay.format == "rizu-aim-sliders-1" then
-			for _, object in ipairs(Objects.get(chart, "osu")) do
-				assert(object.kind ~= "spinner", "Incompatible pre-spinner Aim replay.")
-			end
-		end
-		if self.aim_replay.format == "rizu-aim-circles-1" then
-			for _, object in ipairs(Objects.get(chart, "osu")) do
-				assert(object.kind == "circle", "Incompatible circle-only Aim replay.")
-			end
-		end
-		assert((chartmeta.mode ~= "mania") and self.aim_replay.hash == chartmeta.hash and self.aim_replay.index == chartmeta.index,
-			"Aim replay does not match the selected chart.")
-		assert((self.aim_replay.format == "rizu-sdvx-1") == (chartmeta.mode == "sdvx"), "Replay mode does not match chart.")
-		assert((self.aim_replay.format == "rizu-taiko-1") == (chartmeta.mode == "taiko"), "Replay mode does not match chart.")
-		assert((self.aim_replay.format == "rizu-catch-1") == (chartmeta.mode == "catch"), "Replay mode does not match chart.")
-	end
+	local gamemode = Gamemodes[chartmeta.mode]
+	local replay_chart = self.replay_chart
+	assert(not self.replaying or gamemode.saves_scores or gamemode.ReplayBase * preparation_base,
+		"This replay was recorded in another gamemode.")
+	assert(not replay_chart or not gamemode.saves_scores
+		and replay_chart.hash == chartmeta.hash and replay_chart.index == chartmeta.index,
+		"Local replay does not match the selected chart.")
 
 	if not self.replaying and chartmeta.mode == "mania" then
 		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
 	end
 
-	local input_mode = GameplayInteractor.getInputMode(chart)
-	---@type string[]
-	local paths
-	if chartmeta.mode ~= "mania" then
-		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
-		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
-	else
-		paths = self:getResourcePaths(chartview)
-	end
+	assert(gamemode.saves_scores or not game.multiplayerModel.client:isInRoom(),
+		"Experimental modes are not available in multiplayer.")
+	local paths = self:getResourcePaths(chartview, gamemode)
 	---@diagnostic disable-next-line: no-unknown
 	self.noteSkin = nil
 	self:loadFileFinderPaths(paths)
@@ -205,7 +179,7 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 
 	game.pauseModel:load()
 
-	game.multiplayerModel.client:setPlaying(chartmeta.mode == "mania")
+	game.multiplayerModel.client:setPlaying(gamemode.saves_scores)
 
 	game.windowModel:setVsyncOnSelect(false)
 	self:play()
@@ -220,16 +194,11 @@ function GameplayInteractor:load(autoplay)
 
 	self:unloadVolume()
 	local mode = game.computeContext.chartmeta.mode
-	self.gamemode = Gamemodes[mode]
-	game:recreateRhythmEngine(mode)
-	game.rhythm_engine.stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
-	game.rhythm_engine.tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
+	local gamemode = Gamemodes[mode]
+	self.gamemode = gamemode
+	local replay_base = gamemode:getReplayBase(self:getPreparationBase())
+	game:recreateRhythmEngine(mode, replay_base)
 
-	local replay_base = self.replay_base or game.replayBase
-	if self.aim_replay then
-		replay_base = table_util.copy(replay_base)
-		replay_base.rate = self.aim_replay.rate
-	end
 	local loader = RhythmEngineLoader(
 		replay_base,
 		game.computeContext,
@@ -243,13 +212,13 @@ function GameplayInteractor:load(autoplay)
 	self:loadVolume()
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
-	self.input = self.gamemode.createInput(
+	self.input = gamemode:createInput(
 		game.configModel.configs.input,
 		GameplayInteractor.getInputMode(game.computeContext.chart)
 	)
-	self.aim_saved = false
-	self.aim_status = nil
-	self.aim_complete = false
+	self.replay_saved = false
+	self.replay_status = nil
+	self.complete = false
 
 	local play_type = "manual"
 	if self.replaying then
@@ -335,12 +304,11 @@ function GameplayInteractor:unloadGameplay()
 	self:unloadVolume()
 	if self.playfield then self.playfield:clearSkin() end
 
-	local re = self.game.rhythm_engine
-	if re and re.rules and was_loaded then
-		self:saveAimReplay()
+	if was_loaded then
+		self:saveLocalReplay()
 	end
-	self.aim_replay = nil
 	self.replay_base = nil
+	self.replay_chart = nil
 	self.replaying = false
 	self.autoplay = false
 	local game = self.game
@@ -438,7 +406,6 @@ function GameplayInteractor:hasReachedScoreSaveTime()
 end
 
 function GameplayInteractor:saveScore()
-	assert(not self.game.rhythm_engine.rules, "Experimental modes cannot save or submit scores")
 	self.score_saver:saveScore(self.gameplay_session)
 end
 
@@ -503,7 +470,7 @@ end
 
 ---@param event table
 function GameplayInteractor:receive(event)
-	if self.aim_complete then return end
+	if self.complete then return end
 	local virtual_event = self.input:transform(event)
 	if virtual_event then
 		local time = self.gamemode.deferred_input and event.time or self.game.global_timer:getTime()
@@ -515,37 +482,42 @@ end
 ---@param y number
 ---@param time number
 function GameplayInteractor:movePointer(x, y, time)
-	if self.loaded and not self.aim_complete and self.input.move then
+	if self.loaded and not self.complete and self.input.move then
 		self.gameplay_session:receive(self.input:move(x, y), time)
 	end
 end
 
----@return string?
-function GameplayInteractor:saveAimReplay()
+---Keeps the latest manual attempt of a gamemode that does not save scores.
+---@return string? status
+function GameplayInteractor:saveLocalReplay()
 	local session = self.gameplay_session
-	if not session or not session.rhythm_engine.rules or session.play_type ~= "manual" or self.aim_saved then
+	local engine = self.game.rhythm_engine
+	local store = session and engine and self.replay_stores[engine.mode]
+	if not store or session.play_type ~= "manual" or self.replay_saved then
 		return
 	end
-	local mode = session.rhythm_engine.mode
-	local store = mode == "sdvx" and self.sdvx_replay_store or mode == "taiko" and self.taiko_replay_store or mode == "catch" and self.catch_replay_store or self.aim_replay_store
 	local ok, path = pcall(store.save, store, session)
-	self.aim_saved = ok
-	self.aim_status = ok and ("Replay saved: " .. path) or ("Replay save failed: " .. tostring(path))
-	return self.aim_status
+	self.replay_saved = ok
+	self.replay_status = ok and ("Replay saved: " .. path) or ("Replay save failed: " .. tostring(path))
+	return self.replay_status
 end
 
 ---@param hash string
 ---@param index integer
----@param catch boolean|"taiko"|"sdvx"? Legacy true selects Catch; strings select another experimental mode.
+---@param mode sea.Gamemode
 ---@return boolean
 ---@return string?
-function GameplayInteractor:loadAimReplay(hash, index, catch)
-	local store = catch == "sdvx" and self.sdvx_replay_store or catch == "taiko" and self.taiko_replay_store or catch and self.catch_replay_store or self.aim_replay_store
-	local ok, replay, frames = pcall(store.load, store, hash, index)
-	if not ok then
-		return false, tostring(replay)
+function GameplayInteractor:loadLocalReplay(hash, index, mode)
+	local store = self.replay_stores[mode]
+	if not store then
+		return false, "This gamemode has no local replays."
 	end
-	self.aim_replay = replay
+	local ok, base, frames = pcall(store.load, store, hash, index)
+	if not ok then
+		return false, tostring(base)
+	end
+	self.replay_base = base
+	self.replay_chart = {hash = hash, index = index}
 	self.replay_frames = frames
 	self.replaying = true
 	self.autoplay = false

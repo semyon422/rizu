@@ -11,7 +11,7 @@ local AimDecoder = require("chart.format.osu.AimDecoder")
 local Preparation = {}
 
 ---@param ctx sea.ComputeContext
----@param replay_base sea.ReplayBase
+---@param replay_base rizu.gameplay.aim.ReplayBase
 function Preparation.compute(ctx, replay_base)
 	assert(replay_base.rate >= 0.25 and replay_base.rate <= 4,
 		"Aim prototype supports playback rates from 0.25x to 4x only.")
@@ -19,14 +19,16 @@ function Preparation.compute(ctx, replay_base)
 	local aim = chart
 	local ok, err = AimDecoder.isSupported(aim)
 	assert(ok, err)
-	assert(#replay_base.modifiers == 0 and not replay_base.tap_only, "Aim prototype does not support chart modifiers.")
-	assert(not replay_base.columns_order, "Aim prototype does not support column reordering.")
 	-- Session bounds only: do not run mania difficulty or persist this as a chartdiff.
 	local bounds = Chartdiff()
 	bounds.mode = "osu"
 	bounds.rate = replay_base.rate
 	bounds.inputmode = "1osu"
 	local objects = Objects.get(aim, "osu")
+	for _, object in ipairs(objects) do
+		assert(replay_base.format ~= "rizu-aim-sliders-1" or object.kind ~= "spinner", "Incompatible pre-spinner Aim replay.")
+		assert(replay_base.format ~= "rizu-aim-circles-1" or object.kind == "circle", "Incompatible circle-only Aim replay.")
+	end
 	bounds.start_time = objects[1].time
 	local end_time = objects[#objects].time
 	for _, object in ipairs(objects) do

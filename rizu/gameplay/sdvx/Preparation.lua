@@ -7,10 +7,9 @@ local Rules = require("rizu.gameplay.sdvx.Rules")
 local Preparation = {}
 
 ---@param ctx sea.ComputeContext
----@param base sea.ReplayBase
+---@param base rizu.gameplay.sdvx.ReplayBase
 function Preparation.compute(ctx, base)
 	assert(base.rate >= 0.25 and base.rate <= 4, "SDVX prototype: supported rates are 0.25x–4x.")
-	assert(#base.modifiers == 0 and not base.tap_only and not base.columns_order, "SDVX prototype: modifiers/reordering are unsupported.")
 	local chart = assert(ctx.chart)
 	local buttons, lasers = Objects.get(chart)
 	Rules(chart) -- Validate bounded simulation before entering gameplay.

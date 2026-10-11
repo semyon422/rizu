@@ -1,5 +1,6 @@
 local json = require("json")
-local ReplayStore = require("rizu.gameplay.aim.ReplayStore")
+local ReplayStore = require("rizu.gameplay.ReplayStore")
+local AimReplayBase = require("rizu.gameplay.aim.ReplayBase")
 local ReplayRecorder = require("rizu.engine.replay.ReplayRecorder")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local FakeFilesystem = require("fs.FakeFilesystem")
@@ -9,7 +10,7 @@ local test = {}
 ---@param t testing.T
 function test.local_replay_round_trip_without_score_or_hits(t)
 	local fs = FakeFilesystem()
-	local store = ReplayStore(fs)
+	local store = ReplayStore(fs, AimReplayBase)
 	local hash = ("a"):rep(32)
 	local recorder = ReplayRecorder()
 	recorder:record(-1, VirtualInputEvent(0, nil, 1, {100, 200}))

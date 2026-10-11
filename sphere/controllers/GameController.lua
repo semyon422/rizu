@@ -108,7 +108,7 @@ local GameController = class()
 function GameController:new()
 	self.fs = LoveFilesystem()
 
-	self.rhythm_engine = Gamemodes.mania.createEngine()
+	self.rhythm_engine = Gamemodes.mania:createEngine()
 	self.network = NetworkService()
 	self.avatar_cache = AvatarCache(self.network)
 
@@ -425,12 +425,13 @@ function GameController:update(dt)
 end
 
 ---@param mode sea.Gamemode?
-function GameController:recreateRhythmEngine(mode)
+---@param replay_base (rizu.gameplay.ReplayBase|sea.ReplayBase)?
+function GameController:recreateRhythmEngine(mode, replay_base)
 	self.resultController:clearReplay()
 	if self.rhythm_engine then
 		self.rhythm_engine:unload()
 	end
-	self.rhythm_engine = Gamemodes[mode or "mania"].createEngine()
+	self.rhythm_engine = Gamemodes[mode or "mania"]:createEngine(replay_base)
 	self.pauseModel:setRhythmEngine(self.rhythm_engine)
 	self.offsetController:setRhythmEngine(self.rhythm_engine)
 end

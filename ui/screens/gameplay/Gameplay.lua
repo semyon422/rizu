@@ -103,10 +103,6 @@ end
 
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
-	local mode = self.game.rhythm_engine.mode
-	self.is_sdvx = mode == "sdvx"
-	self.is_taiko = mode == "taiko"
-	self.is_catch = mode == "catch"
 	assert(self.gameplay_interactor:getPlayfield(), "gameplay playfield is not ready")
 	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.aim_summary:setVisible(false)
@@ -372,12 +368,12 @@ function Gameplay:observeCompletion()
 
 	self.is_playing = false
 	if self.is_aim then
-		self.gameplay_interactor:saveAimReplay()
-		self.gameplay_interactor.aim_complete = true
+		self.gameplay_interactor:saveLocalReplay()
+		self.gameplay_interactor.complete = true
 		self.gameplay_interactor:pause()
 		local rules = self.game.rhythm_engine.rules
 		self.aim_summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
-			rules.hits, rules.misses, self.gameplay_interactor.aim_status or "Autoplay / replay — no score saved"))
+			rules.hits, rules.misses, self.gameplay_interactor.replay_status or "Autoplay / replay — no score saved"))
 		self.aim_summary:setVisible(true)
 		return
 	end
@@ -449,7 +445,7 @@ function Gameplay:receive(event)
 				return true
 			elseif event[1] == "r" then
 				local meta = self.game.rhythm_engine.chartmeta
-				local ok, err = self.gameplay_interactor:loadAimReplay(meta.hash, meta.index, self.is_sdvx and "sdvx" or self.is_taiko and "taiko" or self.is_catch)
+				local ok, err = self.gameplay_interactor:loadLocalReplay(meta.hash, meta.index, meta.mode)
 				if ok then
 					self.gameplay_interactor:retry()
 					self.is_playing = true
