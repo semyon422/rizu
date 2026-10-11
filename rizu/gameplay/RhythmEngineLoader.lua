@@ -6,7 +6,7 @@ local Gamemodes = require("rizu.gameplay.Gamemodes")
 ---@operator call: rizu.RhythmEngineLoader
 local RhythmEngineLoader = class()
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase Of the chart's gamemode.
 ---@param computeContext sea.ComputeContext
 ---@param settings rizu.config.Config
 ---@param resources {[string]: string}

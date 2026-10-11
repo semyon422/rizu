@@ -15,6 +15,8 @@ local RhythmEngine = require("rizu.engine.RhythmEngine")
 ---@field rules rizu.Rules
 local RulesEngine = RhythmEngine + {}
 
+RulesEngine.marks_paused_input = true
+
 ---@return rizu.Rules
 function RulesEngine:createRules()
 	error("not implemented")

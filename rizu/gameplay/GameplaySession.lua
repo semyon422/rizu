@@ -91,8 +91,7 @@ function GameplaySession:receive(event, current_time)
 	local re = self.rhythm_engine
 	re:setGlobalTime(current_time)
 	re:receive(event)
-	-- Only rules replay formats use column 2 for paused state updates.
-	if re.rules and self:isPaused() then
+	if re.marks_paused_input and self:isPaused() then
 		event = VirtualInputEvent(event.id, event.value, 2, event.pos)
 	end
 	self.replay_recorder:record(re:getTime(), event)

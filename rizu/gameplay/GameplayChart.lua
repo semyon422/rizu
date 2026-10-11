@@ -98,7 +98,7 @@ local prepare_async = thread.async(prepare)
 ---@param chartview_data rizu.GameplayChartviewData
 ---@param data string
 ---@param context table?
----@param replay_base_data sea.ReplayBase
+---@param replay_base_data table Plain data of a replay base of any gamemode.
 ---@param gameplay_config rizu.GameplayChartConfig
 ---@return rizu.GameplayChartComputeResult|{error: string}
 function GameplayChart.compute(chartview_data, data, context, replay_base_data, gameplay_config)
@@ -145,7 +145,7 @@ end
 
 local compute_async = thread.async(GameplayChart.compute)
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:computeLoaded(replayBase, ctx)
 	local mode = ctx.chartmeta.mode
@@ -154,7 +154,7 @@ function GameplayChart:computeLoaded(replayBase, ctx)
 	gamemode:prepare(ctx, gamemode:getReplayBase(replayBase), self:getConfig())
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 ---@param data string
 ---@param context table?
@@ -166,7 +166,7 @@ function GameplayChart:loadPrepared(replayBase, ctx, data, context)
 	self:computeLoaded(replayBase, ctx)
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:load(replayBase, ctx)
 	local chartview = self.chartview
@@ -179,14 +179,14 @@ function GameplayChart:load(replayBase, ctx)
 	self:loadPrepared(replayBase, ctx, data, context)
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 function GameplayChart:loadAsync(replayBase, ctx)
 	local data, context = self:prepareAsync()
 	self:loadPrepared(replayBase, ctx, data, context)
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param data string
 ---@param context table?
 ---@return rizu.GameplayChartComputeResult
@@ -206,7 +206,7 @@ function GameplayChart:computeAsync(replayBase, data, context)
 	return result
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 ---@param result rizu.GameplayChartComputeResult
 ---@param chart chart.Chart
@@ -228,7 +228,7 @@ local function apply_computed(replayBase, ctx, result, chart)
 	end
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 ---@param result rizu.GameplayChartComputeResult
 function GameplayChart:applyComputed(replayBase, ctx, result)
@@ -236,7 +236,7 @@ function GameplayChart:applyComputed(replayBase, ctx, result)
 	apply_computed(replayBase, ctx, result, chart)
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase rizu.gameplay.ReplayBase|sea.ReplayBase
 ---@param ctx sea.ComputeContext
 ---@param result rizu.GameplayChartComputeResult
 ---@param is_cancelled fun(): boolean

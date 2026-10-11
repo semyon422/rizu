@@ -15,7 +15,10 @@ local PauseCounter = require("rizu.engine.PauseCounter")
 ---@field chartmeta sea.Chartmeta
 ---@field chartdiff sea.Chartdiff
 ---@field mode sea.Gamemode
+---@field marks_paused_input boolean Inputs received while paused are recorded on column 2.
 local RhythmEngine = class()
+
+RhythmEngine.marks_paused_input = false
 
 function RhythmEngine:new()
 	self.visual_info = VisualInfo()
