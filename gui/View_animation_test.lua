@@ -62,6 +62,159 @@ function test.delay_offsets_subsequent_transform(t)
 end
 
 ---@param t testing.T
+function test.delay_does_not_leak_into_later_calls(t)
+	local screen = Screen()
+	local view = screen.root:add(View())
+	view:delay(1):fadeOut(0.2, "Linear")
+	view:moveToX(10, 0.5, "Linear")
+
+	screen:update(0.25)
+	t:aeq(view.offset_x, 5, 1e-9)
+	t:eq(view.opacity, 1)
+end
+
+---@param t testing.T
+function test.delayed_transform_waits_for_the_running_one_on_its_target(t)
+	local screen = Screen()
+	local view = screen.root:add(View())
+	view:setOpacity(0)
+	local completed = 0
+	view:transformTo("opacity", 1, 0.2, "Linear", function() completed = completed + 1 end)
+	view:delay(1):fadeOut(0.2, "Linear")
+
+	screen:update(0.1)
+	t:aeq(view.opacity, 0.5, 1e-9)
+	screen:update(0.1)
+	t:eq(view.opacity, 1)
+	t:eq(completed, 1)
+	screen:update(0.9)
+	t:eq(view.opacity, 1)
+	t:eq(view:hasTransforms(), true)
+	-- Starts at 1.2 from the value it finds there.
+	screen:update(0.2)
+	t:aeq(view.opacity, 0.5, 1e-9)
+	screen:update(0.15)
+	t:eq(view.opacity, 0)
+	t:eq(view:hasTransforms(), false)
+end
+
+---@param t testing.T
+function test.delayed_chain_reads_like_a_sequence(t)
+	local screen = Screen()
+	local view = screen.root:add(View())
+	view:setOpacity(0)
+	view:fadeIn(0.2, "Linear"):delay(1):fadeOut(0.2, "Linear")
+
+	screen:update(0.2)
+	t:eq(view.opacity, 1)
+	screen:update(1.25)
+	t:eq(view.opacity, 0)
+end
+
+---@param t testing.T
+function test.clear_and_immediate_transform_drop_delayed_ones(t)
+	local screen = Screen()
+	local view = screen.root:add(View())
+	view:delay(1):fadeOut(0.2)
+	view:clearTransforms("opacity")
+	t:eq(view:hasTransforms(), false)
+
+	view:delay(1):fadeOut(0.2)
+	view:fadeTo(0.5, 0)
+	screen:update(2)
+	t:eq(view.opacity, 0.5)
+end
+
+---@param t testing.T
+function test.only_animating_attached_views_step(t)
+	local screen = Screen()
+	local idle = screen.root:add(View())
+	local moving = screen.root:add(View())
+	local steps = {}
+	for _, view in ipairs({idle, moving}) do
+		local step = view.stepAnimations
+		function view:stepAnimations(dt, completions)
+			steps[self] = (steps[self] or 0) + 1
+			return step(self, dt, completions)
+		end
+	end
+	moving:moveToX(10, 1, "Linear")
+
+	screen:update(0.5)
+	t:eq(steps[idle], nil)
+	t:eq(steps[moving], 1)
+	t:eq(screen:isTransitionActive(), true)
+
+	screen.root:remove(moving)
+	screen:update(0.25)
+	t:eq(steps[moving], 1)
+	screen.root:add(moving)
+	screen:update(0.5)
+	t:eq(moving.offset_x, 10)
+	t:eq(screen:isTransitionActive(), false)
+	screen:update(0.5)
+	t:eq(steps[moving], 2)
+end
+
+---@param t testing.T
+function test.nested_animations_recompose_shared_descendants_once(t)
+	local screen = Screen()
+	local parent = screen.root:add(View())
+	local child = parent:add(View())
+	local leaf = child:add(View())
+	screen:flush()
+	local composes = 0
+	local compose = leaf.compose
+	function leaf:compose(root_scale, opacity_only)
+		composes = composes + 1
+		compose(self, root_scale, opacity_only)
+	end
+	parent:moveToX(10, 1, "Linear")
+	child:moveToX(10, 1, "Linear")
+	leaf:fadeOut(1, "Linear")
+
+	screen:update(0.5)
+
+	t:eq(composes, 1)
+	t:eq(leaf:getWorldPosition(), 10)
+	t:aeq(leaf.effective_opacity, 0.5, 1e-9)
+end
+
+---@param t testing.T
+function test.opacity_animation_keeps_matrices_and_updates_descendants(t)
+	local screen = Screen()
+	local parent = screen.root:add(View())
+	local child = parent:add(View())
+	screen:flush()
+	local geometry = 0
+	local composeGeometry = child.composeGeometry
+	function child:composeGeometry(root_scale)
+		geometry = geometry + 1
+		composeGeometry(self, root_scale)
+	end
+	parent:fadeOut(1, "Linear")
+
+	screen:update(0.5)
+	t:eq(geometry, 0)
+	t:aeq(child.effective_opacity, 0.5, 1e-9)
+	screen:update(0.5)
+	t:eq(child.present, false)
+end
+
+---@param t testing.T
+function test.pivot_animation_reuses_the_pivot_table(t)
+	local screen = Screen()
+	local view = screen.root:add(View())
+	local pivot = view.pivot
+	view:pivotTo(1, 1, 1, "Linear")
+
+	screen:update(0.5)
+
+	t:eq(view.pivot, pivot)
+	t:tdeq(view.pivot, {0.5, 0.5})
+end
+
+---@param t testing.T
 function test.finish_fires_completion_once(t)
 	local view = View()
 	local calls = 0

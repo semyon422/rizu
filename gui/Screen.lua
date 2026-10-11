@@ -1,5 +1,6 @@
 local class = require("class")
 local Renderer = require("gui.Renderer")
+local Animation = require("gui.view.Animation")
 local View = require("gui.View")
 
 ---@class gui.Screen
@@ -17,9 +18,15 @@ local View = require("gui.View")
 ---@field loaded boolean
 ---@field pending_unload {[gui.View]: true}
 ---@field private pending_expire {[gui.View]: true}
+---@field private animating {[gui.View]: true} Attached views with a running transform or layout glide
+---@field private animation_views gui.View[] Scratch list for one animation step
+---@field private animation_kinds integer[]
 local Screen = class()
 
 function Screen:new()
+	self.animating = {}
+	self.animation_views = {}
+	self.animation_kinds = {}
 	self.root = View()
 	self.root:setScreen(self)
 	---@type gui.View[]
@@ -265,12 +272,83 @@ function Screen:isTransitionActive()
 	if not self.root.present then
 		return false
 	end
-	for i = 1, #self.views do
-		if self.views[i]:isAnimating() then
+	for view in pairs(self.animating) do
+		if view:isAnimating() then
 			return true
 		end
 	end
 	return false
+end
+
+---Views call this when they start animating while attached, or attach while animating.
+---@param view gui.View
+function Screen:trackAnimation(view)
+	self.animating[view] = true
+end
+
+---@param view gui.View
+function Screen:untrackAnimation(view)
+	self.animating[view] = nil
+end
+
+---@param a gui.View
+---@param b gui.View
+---@return boolean
+local function byFlatIndex(a, b)
+	return (a.flat_index or 0) < (b.flat_index or 0)
+end
+
+---Step every animating view, then recompose each affected subtree once and run completions.
+---@private
+---@param dt number
+function Screen:stepAnimations(dt)
+	local animating = self.animating
+	if next(animating) == nil then
+		return
+	end
+	-- Completions may start or stop animations, so iterate a snapshot. Tree order makes
+	-- completion order deterministic and lets a recomposed ancestor cover its descendants.
+	local views, kinds = self.animation_views, self.animation_kinds
+	local count = 0
+	for view in pairs(animating) do
+		count = count + 1
+		views[count] = view
+	end
+	table.sort(views, byFlatIndex)
+
+	local completions ---@type any[]?
+	for i = 1, count do
+		kinds[i], completions = views[i]:stepAnimations(dt, completions)
+	end
+
+	local flat = not self.dirty
+	local geometry_end, any_end = 0, 0
+	for i = 1, count do
+		local view, kind = views[i], kinds[i]
+		local index = flat and view.flat_index or math.huge
+		if kind == Animation.GEOMETRY and index > geometry_end then
+			view:composeSubtree()
+			if flat then
+				geometry_end = view.flat_subtree_end
+				any_end = math.max(any_end, geometry_end)
+			end
+		elseif kind == Animation.OPACITY and index > any_end then
+			view:composeSubtree(true)
+			if flat then
+				any_end = view.flat_subtree_end
+			end
+		end
+	end
+
+	Animation.runCompletions(completions)
+	for i = 1, count do
+		local view = views[i]
+		views[i] = nil
+		view:checkExpired()
+		if not view:isAnimating() then
+			animating[view] = nil
+		end
+	end
 end
 
 ---Override for screen-level semantic actions. Views run first.
@@ -297,16 +375,8 @@ end
 ---@param dt number
 function Screen:update(dt)
 	self:flush()
-	-- Animations settle first so view update code always observes this frame's
-	-- visual state (§7.3, §11.1). Use the complete flat cache: inert layout
-	-- views can still own whole-subtree animations.
-	local all_views = self.views
-	for i = 1, #all_views do
-		local view = all_views[i]
-		if not view.detached then
-			view:stepTransforms(dt)
-		end
-	end
+	-- Animations settle first so view update code always observes this frame's visual state.
+	self:stepAnimations(dt)
 	local views = self.update_views
 	for i = 1, #views do
 		local view = views[i]

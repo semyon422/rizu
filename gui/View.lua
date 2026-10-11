@@ -1,16 +1,8 @@
 local IInputHandler = require("gui.input.IInputHandler")
 local Easing = require("gui.anim.Easing")
+local Animation = require("gui.view.Animation")
 
 ---@alias gui.Color [number, number, number, number]
-
----@class gui.Transform
----@field target string
----@field from number
----@field to number
----@field start number
----@field duration number
----@field easing gui.anim.Easing
----@field on_complete (fun(view: gui.View))?
 
 ---Compensation at `start`; it decays to none over `duration`.
 ---@class gui.View.LayoutTween
@@ -71,11 +63,11 @@ local Easing = require("gui.anim.Easing")
 ---@field scale_y number
 ---@field opacity number
 ---
----Animation state (§11).
----@field private transforms {[string]: gui.Transform}
+---Animation state, owned by gui.view.Animation.
+---@field transforms {[string]: gui.Transform} Running transforms by target
+---@field pending_transforms gui.Transform[]? Delayed transforms in start order
+---@field animation_time number View clock; advances only while the view is animating on a screen
 ---@field expired boolean
----@field private animation_time number
----@field private transform_start number?
 ---@field private layout_initialized boolean
 ---
 ---Layout transition compensation: a private visual delta that makes a rect change glide.
@@ -121,44 +113,9 @@ local View = IInputHandler + {}
 View.CULL_CLIP_EMPTY = 1
 View.CULL_VIEWPORT = 2
 
-local transform_targets = {
-	offset_x = true,
-	offset_y = true,
-	pivot_x = true,
-	pivot_y = true,
-	rotation = true,
-	scale_x = true,
-	scale_y = true,
-	opacity = true,
-}
-
----@param self gui.View
----@param target string
----@return number
-local function getTransformValue(self, target)
-	if target == "pivot_x" then return self.pivot[1] end
-	if target == "pivot_y" then return self.pivot[2] end
-	return self[target]
-end
-
 local function assertFinite(value, name)
 	assert(type(value) == "number" and value == value and math.abs(value) < math.huge,
 		("%s must be a finite number"):format(name))
-end
-
----@param self gui.View
----@param target string
----@param value number
-local function setTransformValue(self, target, value)
-	if target == "pivot_x" then
-		self.pivot = {value, self.pivot[2]}
-	elseif target == "pivot_y" then
-		self.pivot = {self.pivot[1], value}
-	elseif target == "opacity" then
-		self.opacity = math.max(0, math.min(1, value))
-	else
-		self[target] = value ---@diagnostic disable-line
-	end
 end
 
 function View:new()
@@ -197,9 +154,9 @@ function View:new()
 
 	---@type {[string]: gui.Transform}
 	self.transforms = {}
+	self.pending_transforms = nil
 	self.expired = false
 	self.animation_time = 0
-	self.transform_start = nil
 	self.layout_initialized = false
 	self.layout_dx = 0
 	self.layout_dy = 0
@@ -362,6 +319,11 @@ end
 
 ---@param screen gui.Screen?
 function View:setScreen(screen)
+	local old_screen = self.screen
+	if old_screen ~= screen and self:isAnimating() then
+		if old_screen then old_screen:untrackAnimation(self) end
+		if screen then screen:trackAnimation(self) end
+	end
 	self.screen = screen
 	for i = 1, #self.children do
 		self.children[i]:setScreen(screen)
@@ -445,7 +407,7 @@ function View:setVisible(visible)
 	assert(type(visible) == "boolean", "visible must be boolean")
 	if self.visible == visible then return self end
 	self.visible = visible
-	self:composeSubtree()
+	self:composeSubtree(true)
 	return self
 end
 
@@ -455,7 +417,7 @@ function View:setEnabled(enabled)
 	assert(type(enabled) == "boolean", "enabled must be boolean")
 	if self.enabled == enabled then return self end
 	self.enabled = enabled
-	self:composeSubtree()
+	self:composeSubtree(true)
 	return self
 end
 
@@ -876,6 +838,9 @@ function View:applyLayoutTransition(old_x, old_y, old_width, old_height)
 	tween.duration = transition.duration
 	tween.easing = Easing.resolve(transition.easing or "OutQuint")
 	self.layout_tween = tween
+	if self.screen then
+		self.screen:trackAnimation(self)
+	end
 end
 
 ---Clear every child's `arranged`, then let a layout container arrange them.
@@ -943,9 +908,45 @@ end
 
 ---@private
 ---@param root_scale number  ui_scale baked into the local transform; 1 for non-roots
-function View:compose(root_scale)
+---@param opacity_only boolean? Skip matrices and clip rects: only opacity, visibility or enabled changed
+function View:compose(root_scale, opacity_only)
 	local was_input_present = self.effective_visible and self.effective_enabled
 		and self.present and self.cull_mask == 0
+	if not opacity_only then
+		self:composeGeometry(root_scale)
+	end
+	local parent = self.parent
+	if parent then
+		self.effective_opacity = parent.effective_opacity * self.opacity
+		if parent.is_composite then
+			self.render_opacity = self.opacity
+		else
+			self.render_opacity = parent.render_opacity * self.opacity
+		end
+		self.effective_visible = parent.effective_visible and self.visible
+		self.effective_enabled = parent.effective_enabled and self.enabled
+	else
+		self.effective_opacity = self.opacity
+		self.render_opacity = self.opacity
+		self.effective_visible = self.visible
+		self.effective_enabled = self.enabled
+	end
+	self.present = (not parent or parent.present)
+		and self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
+	local input_present = self.effective_visible and self.effective_enabled
+		and self.present and self.cull_mask == 0
+	local parent_input_present = not parent or (parent.effective_visible
+		and parent.effective_enabled and parent.present and parent.cull_mask == 0)
+	if was_input_present and not input_present and parent_input_present
+		and self.screen and self.screen.inputs
+	then
+		self.screen.inputs:clearSubtree(self)
+	end
+end
+
+---@private
+---@param root_scale number
+function View:composeGeometry(root_scale)
 	local sx = self.scale_x * self.layout_sx * root_scale
 	local sy = self.scale_y * self.layout_sy * root_scale
 	local w = self.width
@@ -963,38 +964,14 @@ function View:compose(root_scale)
 	world_transform:reset()
 	if self.parent then
 		world_transform:apply(self.parent.world_transform)
-		self.effective_opacity = self.parent.effective_opacity * self.opacity
-		if self.parent.is_composite then
-			self.render_opacity = self.opacity
-		else
-			self.render_opacity = self.parent.render_opacity * self.opacity
-		end
-		self.effective_visible = self.parent.effective_visible and self.visible
-		self.effective_enabled = self.parent.effective_enabled and self.enabled
-	else
-		self.effective_opacity = self.opacity
-		self.render_opacity = self.opacity
-		self.effective_visible = self.visible
-		self.effective_enabled = self.enabled
 	end
 	world_transform:apply(self.transform)
 	composeClipRect(self)
-	self.present = (not self.parent or self.parent.present)
-		and self.effective_opacity > 0.001 and self.scale_x ~= 0 and self.scale_y ~= 0
 	local clip_rect = self.clip_rect
 	if clip_rect and (clip_rect[3] <= 0 or clip_rect[4] <= 0) then
 		self.cull_mask = bit.bor(self.cull_mask, self.CULL_CLIP_EMPTY)
 	else
 		self.cull_mask = bit.band(self.cull_mask, bit.bnot(self.CULL_CLIP_EMPTY))
-	end
-	local input_present = self.effective_visible and self.effective_enabled
-		and self.present and self.cull_mask == 0
-	local parent_input_present = not self.parent or (self.parent.effective_visible
-		and self.parent.effective_enabled and self.parent.present and self.parent.cull_mask == 0)
-	if was_input_present and not input_present and parent_input_present
-		and self.screen and self.screen.inputs
-	then
-		self.screen.inputs:clearSubtree(self)
 	end
 end
 
@@ -1016,27 +993,28 @@ function View:getWorldBounds()
 	return left, top, right - left, bottom - top
 end
 
-local function composeRecursive(view, root_scale)
-	view:compose(root_scale)
+local function composeRecursive(view, root_scale, opacity_only)
+	view:compose(root_scale, opacity_only)
 	for i = 1, #view.children do
-		composeRecursive(view.children[i], 1)
+		composeRecursive(view.children[i], 1, opacity_only)
 	end
 end
 
 ---Recompose this view and its descendants without running layout.
-function View:composeSubtree()
+---@param opacity_only boolean? Only opacity, visibility or enabled changed; matrices and clip rects are kept
+function View:composeSubtree(opacity_only)
 	local screen = self.screen
 	local first = self.flat_index
 	local last = self.flat_subtree_end
 	if screen and not screen.dirty and first and last then
 		for i = first, last do
 			local view = screen.views[i]
-			view:compose(view.parent and 1 or screen.ui_scale)
+			view:compose(view.parent and 1 or screen.ui_scale, opacity_only)
 		end
 		return
 	end
 
-	composeRecursive(self, self.parent and 1 or (screen and screen.ui_scale or 1))
+	composeRecursive(self, self.parent and 1 or (screen and screen.ui_scale or 1), opacity_only)
 end
 
 ---@param target string
@@ -1046,39 +1024,20 @@ end
 ---@param on_complete (fun(view: gui.View))?
 ---@return gui.View
 function View:transformTo(target, to, duration, easing, on_complete)
-	assert(transform_targets[target], ("invalid transform target: %s"):format(tostring(target)))
-	assert(type(to) == "number" and to == to and math.abs(to) < math.huge, "transform target value must be finite")
-	assert(type(duration) == "number" and duration >= 0 and duration < math.huge, "transform duration must be finite and non-negative")
-	assert(on_complete == nil or type(on_complete) == "function", "transform completion must be a function or nil")
-	local start = self.transform_start or self.animation_time
-	local transform = {
-		target = target,
-		from = getTransformValue(self, target),
-		to = to,
-		start = start,
-		duration = duration,
-		easing = Easing.resolve(easing),
-		on_complete = on_complete,
-	}
-	self.transforms[target] = transform
-	if duration == 0 and start <= self.animation_time then
-		setTransformValue(self, target, to)
-		self.transforms[target] = nil
-		self:composeSubtree()
-		if on_complete then on_complete(self) end
-		self:checkExpired()
-	end
+	Animation.transformTo(self, target, to, duration, easing, on_complete)
 	return self
 end
 
+---Advance this view's animations. Called by the Screen, which afterwards recomposes
+---the affected subtrees once and runs the collected completions.
 ---@param dt number
-function View:stepTransforms(dt)
+---@param completions any[]? Flat {view, callback, ...} list, created on first use
+---@return integer kind What changed: gui.view.Animation.NONE|OPACITY|GEOMETRY
+---@return any[]? completions
+function View:stepAnimations(dt, completions)
 	assert(type(dt) == "number" and dt >= 0, "animation dt must be non-negative")
-	self.animation_time = self.animation_time + dt
-	if self.transform_start and self.animation_time >= self.transform_start then
-		self.transform_start = nil
-	end
-	local changed = false
+	local kind
+	kind, completions = Animation.step(self, dt, completions)
 	local tween = self.layout_tween
 	if tween then
 		local progress = math.min(1, (self.animation_time - tween.start) / tween.duration)
@@ -1088,97 +1047,45 @@ function View:stepTransforms(dt)
 		if progress >= 1 then
 			self.layout_tween = nil
 		end
-		changed = true
+		kind = Animation.GEOMETRY
 	end
-	local completions = {} ---@type (fun(view: gui.View))[]
-	for target, transform in pairs(self.transforms) do
-		if self.animation_time >= transform.start then
-			local progress ---@type number
-			if transform.duration == 0 then
-				progress = 1
-			else
-				progress = math.min(1, (self.animation_time - transform.start) / transform.duration)
-			end
-			setTransformValue(self, target, transform.from + (transform.to - transform.from) * transform.easing(progress))
-			changed = true
-			if progress >= 1 then
-				setTransformValue(self, target, transform.to)
-				self.transforms[target] = nil
-				if transform.on_complete then completions[#completions + 1] = transform.on_complete end
-			end
-		end
-	end
-	if changed then self:composeSubtree() end
-	for i = 1, #completions do completions[i](self) end
-	self:checkExpired()
+	return kind, completions
 end
 
+---True while a transform is running or waiting for its delay.
 ---@return boolean
 function View:hasTransforms()
-	return next(self.transforms) ~= nil
+	return Animation.has(self)
 end
 
 ---True while a transform or a layout transition glide is running.
 ---@return boolean
 function View:isAnimating()
-	return next(self.transforms) ~= nil or self.layout_tween ~= nil
+	return Animation.has(self) or self.layout_tween ~= nil
 end
 
+---Jump transforms to their end values and run their completions.
 ---@param target string?
 ---@return gui.View
 function View:finishTransforms(target)
-	if target ~= nil then assert(transform_targets[target], ("invalid transform target: %s"):format(tostring(target))) end
-	local completions = {} ---@type (fun(view: gui.View))[]
-	local changed = false
-	for transform_target, transform in pairs(self.transforms) do
-		if target == nil or target == transform_target then
-			setTransformValue(self, transform_target, transform.to)
-			self.transforms[transform_target] = nil
-			changed = true
-			if transform.on_complete then completions[#completions + 1] = transform.on_complete end
-		end
-	end
-	if changed then self:composeSubtree() end
-	for i = 1, #completions do completions[i](self) end
-	self:checkExpired()
+	Animation.finish(self, target)
 	return self
 end
 
+---Drop transforms without applying or completing them.
 ---@param target string?
 ---@return gui.View
 function View:clearTransforms(target)
-	if target ~= nil then
-		assert(transform_targets[target], ("invalid transform target: %s"):format(tostring(target)))
-		self.transforms[target] = nil
-	else
-		self.transforms = {}
-	end
-	self:checkExpired()
+	Animation.clear(self, target)
 	return self
 end
 
+---Animations chained on the result start `duration` after everything scheduled so far has
+---ended: `view:fadeIn(0.2):delay(1):fadeOut(0.2)`. Later calls on the view are not delayed.
 ---@param duration number
----@return gui.View
+---@return gui.view.Animation.Delayed
 function View:delay(duration)
-	assert(type(duration) == "number" and duration >= 0 and duration < math.huge, "delay must be finite and non-negative")
-	local latest = self.animation_time
-	for _, transform in pairs(self.transforms) do
-		latest = math.max(latest, transform.start + transform.duration)
-	end
-	self.transform_start = latest + duration
-	return self
-end
-
----@param target string
----@param to number
----@param duration number
----@param easing gui.anim.EasingName|gui.anim.Easing?
----@param start number
-function View:transformToAt(target, to, duration, easing, start)
-	local saved = self.transform_start
-	self.transform_start = start
-	self:transformTo(target, to, duration, easing)
-	self.transform_start = saved
+	return Animation.Delayed(self, duration)
 end
 
 ---@param alpha number
@@ -1210,10 +1117,8 @@ end
 ---@param easing gui.anim.EasingName|gui.anim.Easing?
 ---@return gui.View
 function View:moveTo(x, y, duration, easing)
-	local start = self.transform_start or self.animation_time
-	self:transformToAt("offset_x", x, duration, easing, start)
-	self:transformToAt("offset_y", y, duration, easing, start)
-	return self
+	self:transformTo("offset_x", x, duration, easing)
+	return self:transformTo("offset_y", y, duration, easing)
 end
 
 ---@param x number
@@ -1238,10 +1143,8 @@ end
 ---@param easing gui.anim.EasingName|gui.anim.Easing?
 ---@return gui.View
 function View:scaleTo(scale_x, scale_y, duration, easing)
-	local start = self.transform_start or self.animation_time
-	self:transformToAt("scale_x", scale_x, duration, easing, start)
-	self:transformToAt("scale_y", scale_y, duration, easing, start)
-	return self
+	self:transformTo("scale_x", scale_x, duration, easing)
+	return self:transformTo("scale_y", scale_y, duration, easing)
 end
 
 ---@param pivot_x number
@@ -1250,10 +1153,8 @@ end
 ---@param easing gui.anim.EasingName|gui.anim.Easing?
 ---@return gui.View
 function View:pivotTo(pivot_x, pivot_y, duration, easing)
-	local start = self.transform_start or self.animation_time
-	self:transformToAt("pivot_x", pivot_x, duration, easing, start)
-	self:transformToAt("pivot_y", pivot_y, duration, easing, start)
-	return self
+	self:transformTo("pivot_x", pivot_x, duration, easing)
+	return self:transformTo("pivot_y", pivot_y, duration, easing)
 end
 
 ---@param rotation number
@@ -1271,7 +1172,7 @@ function View:expire()
 	return self
 end
 
----@private
+---Queue removal once an expired view has no transforms left.
 function View:checkExpired()
 	if self.expired and not self:hasTransforms() and self.screen then
 		self.screen:queueExpire(self)
@@ -1325,7 +1226,7 @@ function View:setOpacity(opacity)
 	assert(opacity >= 0 and opacity <= 1, "opacity must be between 0 and 1")
 	if self.opacity == opacity then return self end
 	self.opacity = opacity
-	self:composeSubtree()
+	self:composeSubtree(true)
 	return self
 end
 
