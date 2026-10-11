@@ -2,6 +2,7 @@ local VirtualizedList = require("gui.VirtualizedList")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
+local Sounds = require("ui.Sounds")
 local SpriteBatch = require("gui.SpriteBatch")
 local Settings = require("rizu.config.Settings")
 local ModifierModel = require("sphere.models.ModifierModel")
@@ -23,6 +24,10 @@ local TEXT_X = AVATAR_PADDING * 2 + AVATAR_SIZE + 6
 local TEXT_RIGHT = 14
 local PLACEHOLDER_COLOR = {0, 0, 0}
 local PLACEHOLDER_ALPHA = 0.25
+local FADE_DURATION = 0.4
+local FADE_STAGGER = 0.02
+local HOVER_GRADIENT_ALPHA = 0.6
+local GRADIENT_ALPHA = 0.3
 
 ScoreList.ITEM_HEIGHT = ITEM_HEIGHT
 ScoreList.ROW_GAP = ROW_GAP
@@ -45,6 +50,14 @@ function ScoreList:new(score_selector, localization, online_client, avatar_cache
 	self.avatar_cache = avatar_cache
 	self.items = {}
 	self.avatar_items = {}
+	self.show_empty_sprite = false
+	self.animated = false
+	self.handles_mouse_input = true
+	self.reload_time = 0
+	self.fade_out_time = nil
+	self.hover_index = nil
+	self.loading = false
+	self.empty_t = 0
 	self.item_height = ITEM_HEIGHT
 	self.gap = ROW_GAP
 	self.batch = SpriteBatch(Resources.sprites.result_v2_score_cap)
@@ -86,6 +99,8 @@ end
 
 function ScoreList:reload()
 	self.items = {}
+	self.fade_out_time = nil
+	self.reload_time = love.timer.getTime()
 
 	local fallback_username = self.localization:get("song_select.username")
 	local local_username = fallback_username
@@ -142,15 +157,79 @@ end
 local cs = {{1, 1, 1, 1}, ""}
 
 ---@param color gui.Color
-local function setColor(color)
+---@param alpha number?
+local function setColor(color, alpha)
 	cs[1][1] = color[1]
 	cs[1][2] = color[2]
 	cs[1][3] = color[3]
-	cs[1][4] = color[4]
+	cs[1][4] = alpha or color[4]
+end
+
+---@param p number
+---@return number
+local function easeOutCubic(p)
+	return 1 - (1 - p) ^ 3
+end
+
+---Shows the "no records" sprite while there are no scores and none are loading.
+---@param enabled boolean
+function ScoreList:setEmptySpriteEnabled(enabled)
+	self.show_empty_sprite = enabled
+end
+
+---Rows fade in one after another on reload, fade out while scores load and brighten under the mouse.
+---@param animated boolean
+function ScoreList:setAnimated(animated)
+	self.animated = animated
+end
+
+function ScoreList:fadeOutItems()
+	if #self.items > 0 and not self.fade_out_time then
+		self.fade_out_time = love.timer.getTime()
+	end
+end
+
+---Makes rows clickable.
+---@param on_select fun(index: integer)?
+function ScoreList:setOnSelect(on_select)
+	self.on_select = on_select
+end
+
+---@param e gui.MouseClickEvent
+function ScoreList:onMouseClick(e)
+	if e.button == 1 and self.on_select and self.hover_index then
+		self.on_select(self.hover_index)
+		return true
+	end
+end
+
+---@param loading boolean
+function ScoreList:setLoading(loading)
+	self.loading = loading
 end
 
 function ScoreList:update(dt)
 	VirtualizedList.update(self, dt)
+
+	if self.show_empty_sprite and not self.loading and #self.items == 0 then
+		self.empty_t = math.min(1, self.empty_t + dt * 6)
+	else
+		self.empty_t = math.max(0, self.empty_t - dt * 15)
+	end
+
+	local last_hover = self.hover_index
+	self.hover_index = nil
+	if self.animated and self.mouse_over then
+		local _, my = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
+		local row_step = ITEM_HEIGHT + ROW_GAP
+		local index = math.floor((my + self:getVisualScrollPosition()) / row_step) + 1
+		if my >= 0 and my < self.height and index >= 1 and index <= #self.items then
+			self.hover_index = index
+		end
+	end
+	if last_hover ~= self.hover_index and self.hover_index then
+		Sounds.play("hover")
+	end
 
 	self.batch:clear()
 	self.avatar_items = {}
@@ -161,13 +240,13 @@ function ScoreList:update(dt)
 	local scroll = self:getVisualScrollPosition()
 	local first_row, last_row = self:getVisibleRowRange()
 	for i = first_row, last_row do
-		self:drawItem(self.items[i], (i - 1) * row_step - scroll)
+		self:drawItem(self.items[i], i, (i - 1) * row_step - scroll)
 	end
 
 	-- Empty placeholder rows below the last score so a short list doesn't leave the bottom bare.
 	local y = #self.items * row_step - scroll
 	while y < self.height do
-		self:drawBackground(PLACEHOLDER_COLOR, PLACEHOLDER_ALPHA, y)
+		self:drawBackground(PLACEHOLDER_COLOR, PLACEHOLDER_ALPHA, y, true)
 		y = y + row_step
 	end
 end
@@ -175,41 +254,63 @@ end
 ---@param color gui.Color
 ---@param alpha number
 ---@param y number
-function ScoreList:drawBackground(color, alpha, y)
+---@param solid boolean? Flat body instead of the fade-out.
+function ScoreList:drawBackground(color, alpha, y, solid)
 	local cap = Resources.sprites.result_v2_score_cap
-	local fade = Resources.sprites.result_v2_score_fade
+	local fade = solid and Resources.sprites.result_v2_score_body or Resources.sprites.result_v2_score_fade
 	local cap_width = cap:getWidth()
 	self.batch:setColor(color[1], color[2], color[3], alpha)
 	self.batch:add(cap, 0, y)
+	if solid then
+		local right_cap = Resources.sprites.result_v2_score_cap_right
+		local body_width = self.width - cap_width - right_cap:getWidth()
+		self.batch:add(fade, cap_width, y, 0, body_width / fade:getWidth(), ITEM_HEIGHT / fade:getHeight())
+		self.batch:add(right_cap, self.width - right_cap:getWidth(), y)
+		return
+	end
 	self.batch:add(fade, cap_width, y, 0, (self.width - cap_width) / fade:getWidth(), ITEM_HEIGHT / fade:getHeight())
 end
 
 ---@param item table
+---@param index integer
 ---@param y number
-function ScoreList:drawItem(item, y)
-	self:drawBackground(item.color, 0.3, y)
+function ScoreList:drawItem(item, index, y)
+	-- Visibility of the row's content, 0 to 1.
+	local p = 1
+	if self.animated then
+		local now = love.timer.getTime()
+		p = easeOutCubic(math.max(0, math.min(1, (now - self.reload_time - index * FADE_STAGGER) / FADE_DURATION)))
+		if self.fade_out_time then
+			p = p * (1 - easeOutCubic(math.max(0, math.min(1, (now - self.fade_out_time) / FADE_DURATION))))
+		end
+	end
+
+	-- The same solid base as the empty rows, so the fade-out has something to blend with.
+	self:drawBackground(PLACEHOLDER_COLOR, PLACEHOLDER_ALPHA, y, true)
+	self:drawBackground(item.color, (index == self.hover_index and HOVER_GRADIENT_ALPHA or GRADIENT_ALPHA) * p, y)
 
 	local avatar_image = self.avatar_cache and self.avatar_cache:get(item.avatar_url)
 	if avatar_image then
-		table.insert(self.avatar_items, {image = avatar_image, y = y})
+		table.insert(self.avatar_items, {image = avatar_image, y = y, opacity = p})
 	else
-		self.batch:setColor(1, 1, 1, 1)
+		self.batch:setColor(1, 1, 1, p)
 		self.batch:add(Resources.sprites.result_v2_score_avatar, AVATAR_PADDING, y + AVATAR_PADDING)
 	end
 
 	local has_mods = item.mods ~= ""
-	setColor(Colors.text)
+	setColor(Colors.text, p)
 	cs[2] = item.label
 	self.text_batch24:add(cs, TEXT_X, y + (has_mods and 8 or 18))
 
-	setColor(item.color)
+	setColor(item.color, p)
 	cs[2] = item.accuracy
 	self.text_batch24:addf(cs, self.width, "right", -TEXT_RIGHT, y + 8)
 
-	setColor(Colors.muted)
+	setColor(Colors.muted, p)
 	cs[2] = item.time_ago
 	self.text_batch16:addf(cs, self.width, "right", -TEXT_RIGHT, y + 37)
 
+	setColor(Colors.muted, p)
 	cs[2] = item.mods
 	self.text_batch16:add(cs, TEXT_X, y + 37)
 end
@@ -233,6 +334,7 @@ function ScoreList:draw()
 		self.avatar_shader:send("u_size", {AVATAR_SIZE * ui_scale, AVATAR_SIZE * ui_scale})
 		self.avatar_shader:send("u_radius", 5 * ui_scale)
 		Painter.setColorRgb(1, 1, 1)
+		Painter.setOpacity(avatar.opacity or 1)
 		lg.setShader(self.avatar_shader)
 		lg.draw(
 			avatar.image,
@@ -242,9 +344,19 @@ function ScoreList:draw()
 			scale
 		)
 		lg.setShader()
+		Painter.setOpacity(1)
 	end
 	lg.draw(self.text_batch16)
 	lg.draw(self.text_batch24)
+
+	if self.empty_t > 0 then
+		local sprite = Resources.sprites.no_records_set
+		local t = 1 - self.empty_t
+		Painter.setColorRgb(1, 1, 1)
+		Painter.setOpacity(1 - t * t * t)
+		sprite:draw(self.width / 2, self.height / 2, 0, 1, 1, sprite:getWidth() / 2, sprite:getHeight() / 2)
+		Painter.setOpacity(1)
+	end
 end
 
 return ScoreList

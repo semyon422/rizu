@@ -3,8 +3,13 @@ local thread = require("thread")
 local gfx_util = require("gfx_util")
 local flux = require("flux")
 local delay = require("delay")
+local Observable = require("Observable")
 
 local loadHttpImage
+
+---@class sphere.BackgroundModel.ChangedEvent
+---@field type "background_changed"
+---@field image love.Image
 
 ---@class sphere.BackgroundModel
 ---@operator call: sphere.BackgroundModel
@@ -40,6 +45,19 @@ function BackgroundModel:new(network, http_image_loader)
 	self.http_image_loader = http_image_loader or loadHttpImage
 	self.background_finder = findBackground
 	self.generation = 0
+	self.observable = Observable()
+end
+
+---@param observer util.Observer|fun(event: sphere.BackgroundModel.ChangedEvent)
+---@return util.Observer
+function BackgroundModel:onChanged(observer)
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function BackgroundModel:offChanged(observer)
+	return self.observable:remove(observer)
 end
 
 function BackgroundModel:load()
@@ -100,6 +118,7 @@ function BackgroundModel:setBackground(image)
 	if layer == 2 then
 		self.alpha = 0
 	end
+	self.observable:send({type = "background_changed", image = image})
 end
 
 ---@param path string?

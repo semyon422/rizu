@@ -16,6 +16,17 @@ local function button(background_color, capsule)
 	}
 end
 
+local function iconTextButton(background_color, stroke_color)
+	return {
+		width = 27,
+		height = 27,
+		border_radius = 12,
+		slice = 13,
+		fills = fills(background_color),
+		stroke = stroke_color and {width = 1, color = stroke_color},
+	}
+end
+
 local function playButton(dark, light)
 	return {
 		width = 380,
@@ -136,6 +147,34 @@ local SpriteDefinitions = {
 	gameplay_pause_button_leave = pauseButton({0, 0, 0, 0}, {0, 0, 0, 0}, {0.76, 0.36, 0.62, 0.85}),
 	gameplay_pause_button_leave_hover = pauseButton({0.42, 0.15, 0.34, 1}, {0.42, 0.15, 0.34, 1}, {1, 0.53, 0.78, 1}),
 	gameplay_pause_button_leave_pressed = pauseButton({0.24, 0.08, 0.20, 1}, {0.24, 0.08, 0.20, 1}, {0.62, 0.27, 0.50, 0.85}),
+	icon_text_button_secondary = iconTextButton(Colors.surface, Colors.outline),
+	icon_text_button_secondary_hover = iconTextButton(Colors.surface_raised, Colors.outline),
+	icon_text_button_danger = iconTextButton({0.71, 0.22, 0.22, 1}),
+	icon_text_button_danger_hover = iconTextButton(Colors.danger),
+	icon_text_button_success = iconTextButton(Colors.success),
+	icon_text_button_success_hover = iconTextButton({0.55, 0.76, 0.28, 1}),
+	-- Icon coloured glow fading out upwards, shown while the badge counts something. Drawn at the button height.
+	icon_text_button_active = {
+		width = 40,
+		height = 56,
+		border_radius = 12,
+		slice = 13,
+		fills = {{
+			type = "linear_gradient",
+			angle = -90,
+			stops = {
+				{offset = 0, color = {1, 1, 1, 1}},
+				{offset = 1, color = {1, 1, 1, 0}},
+			},
+		}},
+	},
+	icon_text_button_badge = {
+		width = 13,
+		height = 13,
+		border_radius = 6,
+		slice = 6,
+		fills = fills({Colors.background[1], Colors.background[2], Colors.background[3], 0.6}),
+	},
 	button_play = playButton({0.29, 0.48, 0.10, 1}, {0.61, 0.82, 0.31, 1}),
 	button_play_pulse = {
 		width = 380,
@@ -331,10 +370,49 @@ local SpriteDefinitions = {
 			color = {1, 1, 1, 1},
 		},
 	},
+	chart_grid_arrow = {
+		width = 48,
+		height = 56,
+		border_radius = 10,
+		rounding_power = 4,
+		fills = fills({1, 1, 1, 1}),
+	},
+	chart_grid_tab = {
+		width = 160,
+		height = 56,
+		border_radius = 10,
+		rounding_power = 4,
+		fills = fills({1, 1, 1, 1}),
+	},
+	chart_grid_tab_selected = {
+		width = 160,
+		height = 56,
+		border_radius = 10,
+		rounding_power = 4,
+		fills = fills({1, 1, 1, 0}),
+		stroke = {
+			width = {bottom = 3},
+			color = {1, 1, 1, 1},
+		},
+	},
 	chart_grid_item_gradient = {
 		width = 110,
 		height = 66,
 		border_radius = 8,
+		rounding_power = 4,
+		fills = {{
+			type = "linear_gradient",
+			angle = -90,
+			stops = {
+				{offset = 0, color = {1, 1, 1, 1}},
+				{offset = 1, color = {1, 1, 1, 0}},
+			},
+		}},
+	},
+	chart_grid_tab_gradient = {
+		width = 160,
+		height = 56,
+		border_radius = 10,
 		rounding_power = 4,
 		fills = {{
 			type = "linear_gradient",
@@ -405,6 +483,56 @@ local SpriteDefinitions = {
 				{offset = 1, color = {1, 1, 1, 0}},
 			},
 		}},
+	},
+	result_v2_score_cap_right = {
+		width = 12,
+		height = 64,
+		corner_radii = {top_right = 6, bottom_right = 6},
+		fills = fills({1, 1, 1, 1}),
+	},
+	result_v2_score_body = {
+		width = 8,
+		height = 1,
+		fills = fills({1, 1, 1, 1}),
+	},
+	-- Song select v2 chart set rows: rounded caps around a flat body, a difficulty tint fading out
+	-- to the right, and an accent outline for the selected row.
+	song_set_cap_left = {
+		width = 16,
+		height = 76,
+		corner_radii = {top_left = 8, bottom_left = 8},
+		fills = fills({1, 1, 1, 1}),
+	},
+	song_set_cap_right = {
+		width = 16,
+		height = 76,
+		corner_radii = {top_right = 8, bottom_right = 8},
+		fills = fills({1, 1, 1, 1}),
+	},
+	song_set_body = {
+		width = 8,
+		height = 76,
+		fills = fills({1, 1, 1, 1}),
+	},
+	song_set_tint = {
+		width = 64,
+		height = 76,
+		fills = {{
+			type = "linear_gradient",
+			angle = 0,
+			stops = {
+				{offset = 0, color = {1, 1, 1, 1}},
+				{offset = 1, color = {1, 1, 1, 0}},
+			},
+		}},
+	},
+	song_set_outline = {
+		width = 21,
+		height = 21,
+		border_radius = 8,
+		slice = 10,
+		fills = fills({1, 1, 1, 0}),
+		stroke = {width = 2, color = {1, 1, 1, 1}},
 	},
 	result_v2_score_avatar = {
 		width = 52,

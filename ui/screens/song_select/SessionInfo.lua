@@ -39,7 +39,8 @@ local function maxNumericWidth(font, template)
 end
 
 ---@param status_text string?
-function SessionInfo:new(status_text)
+---@param no_background boolean?
+function SessionInfo:new(status_text, no_background)
 	View.new(self)
 	self.date_font = Resources.getFont("regular", 16)
 	self.session_font = Resources.getFont("bold", 16)
@@ -48,7 +49,7 @@ function SessionInfo:new(status_text)
 	self.session_text = ""
 	self.status_text = status_text or "OFFLINE"
 	self.text_timer = 0
-	self.background = NineSliceUsage(Resources.nine_slices.song_select_session)
+	self.background = not no_background and NineSliceUsage(Resources.nine_slices.song_select_session) or nil
 	self:updateText()
 	self.first_separator = self:add(Line({color = Colors.outline, direction = "vertical"}))
 	self.second_separator = self:add(Line({color = Colors.outline, direction = "vertical"}))
@@ -104,8 +105,10 @@ end
 
 function SessionInfo:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(panel_color)
-	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
+	if self.background then
+		Painter.setColorTable(panel_color)
+		self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
+	end
 
 	local date_y = (HEIGHT - self.date_font:getHeight()) / 2
 	local session_y = (HEIGHT - self.session_font:getHeight()) / 2

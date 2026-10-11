@@ -74,7 +74,7 @@ end
 ---@param inputs gui.Inputs
 function MainMenu:onHandleInputs(inputs)
 	if inputs:consumeActionJustPressed(UiActions.accept) then
-		self.ui:setScreen(self.ui.song_select, true)
+		self.ui:setScreen(self.ui.song_select_v2, true)
 	end
 end
 
@@ -82,7 +82,7 @@ function MainMenu:createButtons()
 	local actions = FlowContainer({direction = "column", gap = 14, align = 0.5})
 
 	local play = actions:add(MainMenuButton(self.ui.localization:get("main_menu.play"), function()
-		self.ui:setScreen(self.ui.song_select, true)
+		self.ui:setScreen(self.ui.song_select_v2, true)
 	end, {
 		variant = "play",
 		font_size = 30,
