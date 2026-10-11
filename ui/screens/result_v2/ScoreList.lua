@@ -21,6 +21,8 @@ local AVATAR_SIZE = 52
 local AVATAR_PADDING = 6
 local TEXT_X = AVATAR_PADDING * 2 + AVATAR_SIZE + 6
 local TEXT_RIGHT = 14
+local PLACEHOLDER_COLOR = {0, 0, 0}
+local PLACEHOLDER_ALPHA = 0.25
 
 ScoreList.ITEM_HEIGHT = ITEM_HEIGHT
 ScoreList.ROW_GAP = ROW_GAP
@@ -161,18 +163,31 @@ function ScoreList:update(dt)
 	for i = first_row, last_row do
 		self:drawItem(self.items[i], (i - 1) * row_step - scroll)
 	end
+
+	-- Empty placeholder rows below the last score so a short list doesn't leave the bottom bare.
+	local y = #self.items * row_step - scroll
+	while y < self.height do
+		self:drawBackground(PLACEHOLDER_COLOR, PLACEHOLDER_ALPHA, y)
+		y = y + row_step
+	end
+end
+
+---@param color gui.Color
+---@param alpha number
+---@param y number
+function ScoreList:drawBackground(color, alpha, y)
+	local cap = Resources.sprites.result_v2_score_cap
+	local fade = Resources.sprites.result_v2_score_fade
+	local cap_width = cap:getWidth()
+	self.batch:setColor(color[1], color[2], color[3], alpha)
+	self.batch:add(cap, 0, y)
+	self.batch:add(fade, cap_width, y, 0, (self.width - cap_width) / fade:getWidth(), ITEM_HEIGHT / fade:getHeight())
 end
 
 ---@param item table
 ---@param y number
 function ScoreList:drawItem(item, y)
-	local cap_width = Resources.sprites.result_v2_score_cap:getWidth()
-	local fade = Resources.sprites.result_v2_score_fade
-	local color = item.color
-
-	self.batch:setColor(color[1], color[2], color[3], 0.3)
-	self.batch:add(Resources.sprites.result_v2_score_cap, 0, y)
-	self.batch:add(fade, cap_width, y, 0, (self.width - cap_width) / fade:getWidth(), ITEM_HEIGHT / fade:getHeight())
+	self:drawBackground(item.color, 0.3, y)
 
 	local avatar_image = self.avatar_cache and self.avatar_cache:get(item.avatar_url)
 	if avatar_image then
