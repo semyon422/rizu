@@ -204,6 +204,8 @@ return {
 	["settings.final_resolution"] = "Итоговое разрешение",
 	["settings.height_tip"] = "Высота игровой области.",
 	["settings.chart_preview"] = "Превью карты в Song Select",
+	["settings.song_select_blurred_background"] = "Размытый фон в Song Select",
+	["settings.song_select_blurred_background_tip"] = "Показывать размытое фоновое изображение карты в Song Select. Если выключено, используется однотонный фон.",
 	["settings.open_song_select_on_startup"] = "Открывать Song Select при запуске",
 	["settings.open_song_select_on_startup_tip"] = "Открывать Song Select вместо главного меню при запуске игры.",
 	["settings.chart_preview_tip"] = "Показывать превью выбранной карты.",

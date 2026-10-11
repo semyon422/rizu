@@ -66,8 +66,16 @@ function SongSelectV2:new(ui)
 	self.ui = ui
 
 	self.root:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
-	self.root:add(BlurredBackground(ui.game.backgroundModel)):anchorFill(0, 0, 0, 0)
-	self.root:add(Scrim()):anchorFill(0, 0, 0, 0)
+	self.blurred_background = self.root:add(BlurredBackground(ui.game.backgroundModel))
+	self.blurred_background:anchorFill(0, 0, 0, 0)
+	self.scrim = self.root:add(Scrim())
+	self.scrim:anchorFill(0, 0, 0, 0)
+	-- Follows the setting live, since the config modal opens over this screen.
+	self.root:setUpdate(function()
+		local visible = ui.game.settings:getBoolean(Settings.keys.select.blurred_background)
+		self.blurred_background:setVisible(visible)
+		self.scrim:setVisible(visible)
+	end)
 
 	self.chartview_formatter = ChartviewFormatter(ui.game.chartSelector.chartview, ui.game.settings)
 	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game, ui.localization)
