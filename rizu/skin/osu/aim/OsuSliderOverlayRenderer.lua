@@ -23,9 +23,9 @@ end
 ---@param snake_end number
 ---@param sprites rizu.skin.osu.aim.OsuAimSprites?
 function OsuSliderOverlayRenderer.drawEndCircle(slider, radius, alpha, snake_end, sprites)
-	alpha = alpha * math.min(1, math.max(0, snake_end))
 	if alpha <= 0 then return end
-	local x, y = slider.path:position(slider.timing.spans % 2)
+	-- An end circle at the far end rides the snaking edge of the body.
+	local x, y = slider.path:position(slider.timing.spans % 2 * math.min(1, math.max(0, snake_end)))
 	local circle = sprites and sprites.sliderendcircle
 	local overlay = sprites and sprites.sliderendcircleoverlay
 	if not SpriteRenderer.isRenderable(circle) then

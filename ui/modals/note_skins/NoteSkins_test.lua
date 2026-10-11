@@ -75,7 +75,7 @@ function test.shows_osu_skins_for_native_osu_mode(t)
 	t:eq(list_items[1].path, default_skin.path)
 	t:eq(list_selected, "skins/second")
 	t:eq(subtitle, "song_select.osu_skin")
-	t:eq(edit_enabled, false)
+	t:eq(edit_enabled, true)
 end
 
 ---@param t testing.T

@@ -28,6 +28,7 @@ local thread = require("thread")
 ---@field value_format (fun(value: number): string)?
 ---@field options any[]? Values for segmented and dropdown controls
 ---@field format (fun(value: any): string)? Value label for segmented and dropdown controls
+---@field setting boolean? Stored in the game settings, so no skin config is saved.
 ---@field get fun(): any
 ---@field set fun(value: any)
 
@@ -220,7 +221,7 @@ function Gameplay:createSkinEditorControl(property)
 	local label = property.label or self.ui.localization:get(property.label_key)
 	local function commit(value)
 		property.set(value)
-		self:saveSkinEditorConfig()
+		if not property.setting then self:saveSkinEditorConfig() end
 	end
 
 	local control_type = property.type or "slider"

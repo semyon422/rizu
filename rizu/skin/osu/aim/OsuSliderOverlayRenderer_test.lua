@@ -62,7 +62,10 @@ function test.end_circle_sits_where_the_final_span_finishes_and_ignores_placehol
 
 	draws = capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 1, sprites) end)
 	t:eq(draws[1].x, 100)
-	t:eq(#capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 0, sprites) end), 0)
+	-- While the body snakes in, the far end circle rides its leading edge.
+	draws = capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 0.5, sprites) end)
+	t:eq(draws[1].x, 50)
+	t:eq(#capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 0, 1, sprites) end), 0)
 end
 
 ---@param t testing.T

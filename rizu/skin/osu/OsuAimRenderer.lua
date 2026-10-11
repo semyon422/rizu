@@ -45,6 +45,18 @@ function OsuAimRenderer:getSkin()
 	return registry:getOsuSkins()[1]
 end
 
+---@return ui.screens.gameplay.Gameplay.SkinEditorProperty[]
+function OsuAimRenderer:getProperties()
+	local settings = self.game.settings
+	local key = Settings.keys.gameplay.osu_cursor_scale
+	return {
+		{key = "cursor.scale", label = "Cursor size", setting = true, min = 0.25, max = 2, step = 0.05,
+			value_format = function(value) return ("%.2fx"):format(value) end,
+			get = function() return settings:getNumber(key) end,
+			set = function(value) settings:setNumber(key, value) end},
+	}
+end
+
 function OsuAimRenderer:load()
 	local skin = self:getSkin()
 	local graphics = self.skin_graphics
