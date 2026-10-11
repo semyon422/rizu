@@ -6,6 +6,7 @@ local Label = require("ui.views.Label")
 local Loading = require("ui.screens.chart_loading.Loading")
 local UiActions = require("ui.UiActions")
 local thread = require("thread")
+local delay = require("delay")
 
 ---@class ui.screens.chart_loading.ChartLoading : gui.Screen
 ---@operator call: ui.screens.chart_loading.ChartLoading
@@ -67,6 +68,9 @@ function ChartLoading:enter()
 	thread.coro(function()
 		local ok, loaded = pcall(self.ui.game.gameInteractor.loadGameplaySelectedChartAsync, self.ui.game.gameInteractor)
 		if ok and loaded then
+			-- Let a few frames pass after the main-thread stall, so the
+			-- transition starts with a normal dt instead of the stall's.
+			delay.sleep(0.1)
 			self.ui:setScreen(self.ui.gameplay, true)
 		elseif not ok then
 			self.ui.skin_editor = false

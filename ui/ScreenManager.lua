@@ -169,8 +169,13 @@ function ScreenManager:handleInputs(inputs)
 	end
 end
 
+---Longest step screens animate in one frame. A long stall (e.g. a synchronous
+---screen enter) must not fast-forward transitions that started right before it.
+local MAX_UPDATE_DT = 1 / 10
+
 ---@param dt number
 function ScreenManager:update(dt)
+	dt = math.min(dt, MAX_UPDATE_DT)
 	for i = 1, #self.visible_screens do
 		self.visible_screens[i]:update(dt)
 	end
