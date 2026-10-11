@@ -1,8 +1,5 @@
 local ModeNotes = require("chart.model.ModeNotes")
-local SdvxPreparation = require("rizu.gameplay.sdvx.Preparation")
-local TaikoPreparation = require("rizu.gameplay.taiko.Preparation")
-local CatchPreparation = require("rizu.gameplay.catch.Preparation")
-local AimPreparation = require("rizu.gameplay.aim.Preparation")
+local Gamemodes = require("rizu.gameplay.Gamemodes")
 local class = require("class")
 local delay = require("delay")
 local thread = require("thread")
@@ -65,6 +62,17 @@ function GameplayChart:getChartviewData()
 	}
 end
 
+---@return rizu.GameplayChartConfig
+function GameplayChart:getConfig()
+	local keys = Settings.keys.gameplay
+	return {
+		tempoFactor = self.settings:getChoice(keys.tempo_factor),
+		primaryTempo = self.settings:getNumber(keys.primary_tempo),
+		autoKeySound = self.settings:getBoolean(keys.auto_key_sound),
+		swapVelocityType = self.settings:getBoolean(keys.swap_velocity_type),
+	}
+end
+
 ---@param chartview_data rizu.GameplayChartviewData
 ---@return string
 ---@return table?
@@ -99,10 +107,7 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local ChartSnapshotAsync = require("chart.refchart.ChartSnapshot")
 	local ReplayBaseAsync = require("sea.replays.ReplayBase")
-	local SdvxPreparationAsync = require("rizu.gameplay.sdvx.Preparation")
-	local TaikoPreparationAsync = require("rizu.gameplay.taiko.Preparation")
-	local CatchPreparationAsync = require("rizu.gameplay.catch.Preparation")
-	local AimPreparationAsync = require("rizu.gameplay.aim.Preparation")
+	local GamemodesAsync = require("rizu.gameplay.Gamemodes")
 
 	local replay_base = ReplayBaseAsync()
 	replay_base:importReplayBase(replay_base_data)
@@ -125,31 +130,8 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local mode = compute_context.chartmeta.mode
 	local mode_ok, mode_error = pcall(ModeNotesAsync.validate, compute_context.chart, mode)
 	if not mode_ok then return {error = tostring(mode_error)} end
-	if mode == "sdvx" then
-		local prepared, err = pcall(SdvxPreparationAsync.compute, compute_context, replay_base)
-		if not prepared then return {error = tostring(err)} end
-	elseif mode == "taiko" then
-		local prepared, err = pcall(TaikoPreparationAsync.compute, compute_context, replay_base)
-		if not prepared then return {error = tostring(err)} end
-	elseif mode == "catch" then
-		local prepared, err = pcall(CatchPreparationAsync.compute, compute_context, replay_base)
-		if not prepared then return {error = tostring(err)} end
-	elseif mode == "osu" then
-		local ok, err = pcall(AimPreparationAsync.compute, compute_context, replay_base)
-		if not ok then
-			return {error = tostring(err)}
-		end
-	else
-		compute_context:applyModifierReorder(replay_base)
-		compute_context:computeBase(replay_base)
-		compute_context:applyTempo(gameplay_config.tempoFactor, gameplay_config.primaryTempo)
-		if gameplay_config.autoKeySound then
-			compute_context:applyAutoKeysound()
-		end
-		if gameplay_config.swapVelocityType then
-			compute_context:swapVelocityType()
-		end
-	end
+	local prepared, prepare_error = pcall(GamemodesAsync[mode].prepare, compute_context, replay_base, gameplay_config)
+	if not prepared then return {error = tostring(prepare_error)} end
 
 	return {
 		snapshot = ChartSnapshotAsync(assert(compute_context.chart)),
@@ -170,38 +152,7 @@ local compute_async = thread.async(GameplayChart.compute)
 function GameplayChart:computeLoaded(replayBase, ctx)
 	local mode = ctx.chartmeta.mode
 	ModeNotes.validate(ctx.chart, mode)
-	if mode == "sdvx" then
-		SdvxPreparation.compute(ctx, replayBase)
-		return
-	end
-	if mode == "taiko" then
-		TaikoPreparation.compute(ctx, replayBase)
-		return
-	end
-	if mode == "catch" then
-		CatchPreparation.compute(ctx, replayBase)
-		return
-	end
-	if mode == "osu" then
-		AimPreparation.compute(ctx, replayBase)
-		return
-	end
-	local keys = Settings.keys.gameplay
-
-	ctx:applyModifierReorder(replayBase)
-
-	ctx:computeBase(replayBase)
-
-	ctx:applyTempo(
-		self.settings:getChoice(keys.tempo_factor),
-		self.settings:getNumber(keys.primary_tempo)
-	)
-	if self.settings:getBoolean(keys.auto_key_sound) then
-		ctx:applyAutoKeysound()
-	end
-	if self.settings:getBoolean(keys.swap_velocity_type) then
-		ctx:swapVelocityType()
-	end
+	Gamemodes[mode].prepare(ctx, replayBase, self:getConfig())
 end
 
 ---@param replayBase sea.ReplayBase
@@ -249,21 +200,13 @@ end
 ---@param context table?
 ---@return rizu.GameplayChartComputeResult
 function GameplayChart:computeAsync(replayBase, data, context)
-	local keys = Settings.keys.gameplay
-	local gameplay_config = {
-		tempoFactor = self.settings:getChoice(keys.tempo_factor),
-		primaryTempo = self.settings:getNumber(keys.primary_tempo),
-		autoKeySound = self.settings:getBoolean(keys.auto_key_sound),
-		swapVelocityType = self.settings:getBoolean(keys.swap_velocity_type),
-	}
-
 	---@type rizu.GameplayChartComputeResult|{error: string}
 	local result = compute_async(
 		self:getChartviewData(),
 		data,
 		context,
 		getReplayBaseData(replayBase),
-		gameplay_config
+		self:getConfig()
 	)
 	assert(not result.error, result.error)
 	return result
