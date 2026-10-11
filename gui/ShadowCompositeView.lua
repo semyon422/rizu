@@ -89,7 +89,7 @@ end
 
 ---Blurs the content canvas alpha into `shadow_canvas`. Called by the Renderer once the content is drawn.
 ---@param restore_canvas love.Canvas? Canvas to make current again afterwards.
-function ShadowCompositeView:prepareShadow(restore_canvas)
+function ShadowCompositeView:postProcess(restore_canvas)
 	local content = self.canvas
 	local scratch = self.scratch_canvas
 	local target = self.shadow_canvas
@@ -132,7 +132,7 @@ end
 
 ---Draws the prepared shadow in this view's local logical space. Called before the content is drawn.
 ---@param opacity number The view's render opacity.
-function ShadowCompositeView:drawShadow(opacity)
+function ShadowCompositeView:drawUnderlay(opacity)
 	local shadow = self.shadow_canvas
 	if not shadow then
 		return

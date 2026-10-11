@@ -16,6 +16,7 @@ local Easing = require("gui.anim.Easing")
 ---@operator call: gui.View
 ---@field parent gui.View?
 ---@field getBaseline? fun(self: gui.View): number? Distance from the top to the text baseline; lets baseline-aligned containers line children up.
+---@field afterLayout? fun(self: gui.View) Called after each screen rebuild, once every view is resolved and flattened.
 ---@field children gui.View[]
 ---@field screen gui.Screen?
 ---@field pending_unload_screen gui.Screen?
@@ -232,34 +233,9 @@ end
 ---@param child T
 ---@return T
 function View:add(child)
-	assertCanAdopt(self, child)
 	---@cast child gui.View
-
-	if child.parent then
-		child.parent:remove(child)
-	end
-
-	local screen = self.screen
-	local pending_screen = child.pending_unload_screen
-	if pending_screen then
-		if pending_screen == screen then
-			pending_screen:cancelUnload(child)
-		else
-			pending_screen:flushPendingUnload(child)
-		end
-	end
-
-	child.parent = self
-	child:setDetached(false)
-	child:setScreen(screen)
-	table.insert(self.children, child)
-	if screen then
-		if screen.loaded then
-			child:loadSubtree()
-		end
-		screen:invalidateLayout()
-	end
-	return child
+	-- Not self:insert: subclasses override insert with their own bookkeeping.
+	return View.insert(self, #self.children + (child.parent == self and 0 or 1), child)
 end
 
 ---@generic T: gui.View
@@ -627,10 +603,16 @@ function View:setPosition(x, y)
 		"setPosition cannot be used on a fill axis")
 	assertFinite(x, "x")
 	assertFinite(y, "y")
-	if self.offset_min[1] == x and self.offset_min[2] == y and not self.align_x and not self.align_y then
+	local anchor = self.anchor_min
+	if self.offset_min[1] == x and self.offset_min[2] == y and anchor[1] == 0 and anchor[2] == 0
+		and not self.align_x and not self.align_y
+	then
 		return self
 	end
 	local width, height = self:getAuthoredSize()
+	-- Position is relative to the parent's origin, whatever alignment came before.
+	self.anchor_min = {0, 0}
+	self.anchor_max = {0, 0}
 	self.offset_min = {x, y}
 	self.offset_max = {x + width, y + height}
 	self.align_x = nil
@@ -640,7 +622,7 @@ function View:setPosition(x, y)
 end
 
 ---Translate the authored rect relative to its current anchored position.
----Unlike setPosition, this preserves alignment and works on fill axes.
+---Unlike setPosition, this preserves anchors and alignment and works on fill axes.
 ---@param x number
 ---@param y number
 ---@return gui.View
@@ -729,14 +711,11 @@ function View:setDraw(callback)
 	self:invalidate()
 end
 
----Recursively detach every descendant. After this call `self.children` is empty
----and no view in the former subtree retains a parent reference. `self` stays
----attached to its own parent.
+---Remove every direct child. Each removed child keeps its own subtree, so it
+---unloads as a unit and can be added again.
 function View:clear()
 	for i = #self.children, 1, -1 do
-		local child = self.children[i]
-		child:clear()
-		self:remove(child)
+		self:remove(self.children[i])
 	end
 end
 
@@ -1284,6 +1263,20 @@ end
 function View:isMouseOver(screen_x, screen_y)
 	local x, y = self.world_transform:inverseTransformPoint(screen_x, screen_y)
 	return x >= 0 and x <= self.width and y >= 0 and y <= self.height
+end
+
+---Tests whether a window-space point is over this view and not clipped away by an ancestor.
+---@param screen_x number
+---@param screen_y number
+---@return boolean
+function View:isPointerOver(screen_x, screen_y)
+	if not self:isMouseOver(screen_x, screen_y) then
+		return false
+	end
+	local clip_rect = self.clip_rect
+	return not clip_rect or (clip_rect[3] > 0 and clip_rect[4] > 0
+		and screen_x >= clip_rect[1] and screen_x <= clip_rect[1] + clip_rect[3]
+		and screen_y >= clip_rect[2] and screen_y <= clip_rect[2] + clip_rect[4])
 end
 
 ---@param inputs gui.Inputs

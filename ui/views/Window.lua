@@ -136,15 +136,7 @@ function Window:update(dt)
 
 	local target = 1
 	if inactive_opacity then
-		local mouse_x, mouse_y = inputs.mouse_x, inputs.mouse_y
-		local mouse_over = self:isMouseOver(mouse_x, mouse_y)
-		local clip_rect = self.clip_rect
-		if mouse_over and clip_rect then
-			mouse_over = clip_rect[3] > 0 and clip_rect[4] > 0
-				and mouse_x >= clip_rect[1] and mouse_x <= clip_rect[1] + clip_rect[3]
-				and mouse_y >= clip_rect[2] and mouse_y <= clip_rect[2] + clip_rect[4]
-		end
-		target = mouse_over and 1 or inactive_opacity
+		target = self:isPointerOver(inputs.mouse_x, inputs.mouse_y) and 1 or inactive_opacity
 	end
 	if target == self.opacity_target then
 		return

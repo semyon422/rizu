@@ -1,6 +1,5 @@
 local class = require("class")
 local Renderer = require("gui.Renderer")
-local ScrollView = require("gui.ScrollView")
 local View = require("gui.View")
 
 ---@class gui.Screen
@@ -166,9 +165,10 @@ end
 ---@param views gui.View[]
 ---@param input_views gui.View[]
 ---@param update_views gui.View[]
+---@param after_layout_views gui.View[]
 ---@param view gui.View
 ---@param renderer gui.Renderer
-local function flatten(view, views, input_views, update_views, renderer)
+local function flatten(view, views, input_views, update_views, after_layout_views, renderer)
 	local index = #views + 1
 	view.flat_index = index
 	views[index] = view
@@ -179,6 +179,9 @@ local function flatten(view, views, input_views, update_views, renderer)
 	if view.update ~= View.update then
 		update_views[#update_views + 1] = view
 	end
+	if view.afterLayout then
+		after_layout_views[#after_layout_views + 1] = view
+	end
 	if view.draw ~= View.draw and not view.is_composite then
 		renderer:addView(view)
 	end
@@ -188,7 +191,7 @@ local function flatten(view, views, input_views, update_views, renderer)
 		renderer:beginComposite(view)
 	end
 	for i = 1, #view.children do
-		flatten(view.children[i], views, input_views, update_views, renderer)
+		flatten(view.children[i], views, input_views, update_views, after_layout_views, renderer)
 	end
 	if view.is_composite then
 		renderer:endComposite()
@@ -205,17 +208,14 @@ function Screen:relayout()
 	local views = {} ---@type gui.View[]
 	local input_views = {} ---@type gui.View[]
 	local update_views = {} ---@type gui.View[]
+	local after_layout_views = {} ---@type gui.View[]
 	self.renderer:beginBuild()
-	flatten(self.root, views, input_views, update_views, self.renderer)
+	flatten(self.root, views, input_views, update_views, after_layout_views, self.renderer)
 	self.views = views
 	self.input_views = input_views
 	self.update_views = update_views
-	for i = 1, #views do
-		local view = views[i]
-		if ScrollView * view then
-			---@cast view gui.ScrollView
-			view:refreshAfterLayout()
-		end
+	for i = 1, #after_layout_views do
+		after_layout_views[i]:afterLayout()
 	end
 end
 

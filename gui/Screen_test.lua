@@ -548,6 +548,37 @@ function test.remove_skips_cached_update_and_draw_before_flush(t)
 end
 
 ---@param t testing.T
+function test.afterLayout_runs_once_per_rebuild(t)
+	local s = Screen()
+	local view = s.root:add(View())
+	local calls = 0
+	function view:afterLayout() calls = calls + 1 end
+
+	s:flush()
+	s:flush()
+	t:eq(calls, 1)
+	view:invalidate()
+	s:flush()
+	t:eq(calls, 2)
+end
+
+---@param t testing.T
+function test.clear_queues_each_removed_subtree_once(t)
+	local s = Screen()
+	local parent = s.root:add(View())
+	local child = parent:add(View())
+	local inner = child:add(View())
+	s:load()
+
+	parent:clear()
+
+	t:eq(child.pending_unload_screen, s)
+	t:eq(inner.pending_unload_screen, nil)
+	s:flush()
+	t:eq(inner.loaded, false)
+end
+
+---@param t testing.T
 function test.idle_flush_does_not_replace_pending_tables(t)
 	local s = Screen()
 	s:flush()

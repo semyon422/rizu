@@ -46,12 +46,12 @@ end
 ---Hook for subclasses that render extra output from their finished content canvas.
 ---Called by the Renderer before the view's transform for the parent canvas is set.
 ---@param restore_canvas love.Canvas? Canvas that must be current again afterwards.
-function CompositeView:prepareShadow(restore_canvas)
+function CompositeView:postProcess(restore_canvas)
 end
 
 ---Hook for subclasses that draw something under their content, in local logical space.
 ---@param opacity number
-function CompositeView:drawShadow(opacity)
+function CompositeView:drawUnderlay(opacity)
 end
 
 function CompositeView:unload()

@@ -785,7 +785,7 @@ function test.clear_detaches_each_direct_child(t)
 end
 
 ---@param t testing.T
-function test.clear_recurses_into_descendants(t)
+function test.clear_keeps_removed_subtrees_intact(t)
 	local root = View()
 	local a = View()
 	local b = View()
@@ -797,11 +797,10 @@ function test.clear_recurses_into_descendants(t)
 	root:clear()
 
 	t:eq(#root.children, 0)
-	t:eq(#a.children, 0)
-	t:eq(#b.children, 0)
 	t:eq(a.parent, nil)
-	t:eq(b.parent, nil)
-	t:eq(inner.parent, nil)
+	t:tdeq(a.children, {b})
+	t:eq(b.parent, a)
+	t:eq(inner.parent, b)
 end
 
 ---@param t testing.T
@@ -817,6 +816,18 @@ function test.clear_keeps_self_attached_to_its_parent(t)
 	t:eq(child.parent, root)
 	t:eq(#child.children, 0)
 	t:eq(inner.parent, nil)
+end
+
+---@param t testing.T
+function test.add_of_own_child_moves_it_to_the_end(t)
+	local parent = View()
+	local a, b = View(), View()
+	parent:add(a)
+	parent:add(b)
+
+	t:eq(parent:add(a), a)
+
+	t:tdeq(parent.children, {b, a})
 end
 
 ---@param t testing.T
@@ -916,6 +927,25 @@ function test.setPosition_preserves_authored_size(t)
 	local view = View():setSize(30, 40):setPosition(10, 20)
 	t:tdeq(view.offset_min, {10, 20})
 	t:tdeq(view.offset_max, {40, 60})
+end
+
+---@param t testing.T
+function test.setPosition_after_alignment_is_relative_to_parent_origin(t)
+	local root = newSizedRoot(200, 100)
+	local view = root:add(View():setSize(30, 40):setAlignment(0.5, 0.5):setPosition(10, 20))
+	root:relayout()
+	t:tdeq({view.x, view.y, view.width, view.height}, {10, 20, 30, 40})
+end
+
+---@param t testing.T
+function test.isPointerOver_respects_ancestor_clip(t)
+	local root = newSizedRoot(200, 100)
+	local clipper = root:add(View():anchorFixed(0, 0, 50, 50):setClip(true))
+	local view = clipper:add(View():anchorFixed(0, 0, 100, 100))
+	root:relayout()
+	t:eq(view:isMouseOver(80, 20), true)
+	t:eq(view:isPointerOver(80, 20), false)
+	t:eq(view:isPointerOver(20, 20), true)
 end
 
 ---@param t testing.T

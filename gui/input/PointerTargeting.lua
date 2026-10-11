@@ -52,14 +52,7 @@ function PointerTargeting:processView(view)
 	end
 	local inputs = self.inputs
 	local had_focus = view.mouse_over
-	local is_mouse_over = view:isMouseOver(inputs.mouse_x, inputs.mouse_y)
-	local clip_rect = view.clip_rect
-	if is_mouse_over and clip_rect then
-		local x, y = inputs.mouse_x, inputs.mouse_y
-		is_mouse_over = clip_rect[3] > 0 and clip_rect[4] > 0
-			and x >= clip_rect[1] and x <= clip_rect[1] + clip_rect[3]
-			and y >= clip_rect[2] and y <= clip_rect[2] + clip_rect[4]
-	end
+	local is_mouse_over = view:isPointerOver(inputs.mouse_x, inputs.mouse_y)
 
 	if is_mouse_over then
 		inputs.mouse_hits[#inputs.mouse_hits + 1] = view

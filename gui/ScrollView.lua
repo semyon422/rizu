@@ -93,7 +93,7 @@ end
 
 ---Re-clamp and re-cull after a layout/tree rebuild, even when the extent did
 ---not change (descendant geometry may have changed).
-function ScrollView:refreshAfterLayout()
+function ScrollView:afterLayout()
 	self.max_scroll = nil
 	self:refreshBounds()
 end
