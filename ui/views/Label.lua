@@ -35,6 +35,12 @@ function Label:updateSize()
 	self:setSize(width, math.max(#lines, 1) * self.font:getHeight())
 end
 
+---Distance from the top of the label to the baseline of its first line.
+---@return number
+function Label:getBaseline()
+	return self.font:getBaseline()
+end
+
 ---@return string text
 function Label:getText()
 	return self.text

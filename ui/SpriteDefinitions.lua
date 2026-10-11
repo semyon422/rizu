@@ -374,6 +374,47 @@ local SpriteDefinitions = {
 			},
 		}},
 	},
+	-- Result v2 judge line: the round ends; the middle of each segment is the plain pixel sprite.
+	judge_line_cap_left = {
+		width = 12,
+		height = 12,
+		corner_radii = {top_left = 6, bottom_left = 6},
+		fills = fills({1, 1, 1, 1}),
+	},
+	judge_line_cap_right = {
+		width = 12,
+		height = 12,
+		corner_radii = {top_right = 6, bottom_right = 6},
+		fills = fills({1, 1, 1, 1}),
+	},
+	-- Result v2 scrims: dark left edge for the stat column, dark bottom for the footer.
+	result_v2_scrim_horizontal = {
+		width = 64,
+		height = 1,
+		fills = {{
+			type = "linear_gradient",
+			angle = 0,
+			stops = {
+				{offset = 0, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0.88}},
+				{offset = 0.55, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0.55}},
+				{offset = 1, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0.25}},
+			},
+		}},
+	},
+	result_v2_scrim_vertical = {
+		width = 1,
+		height = 64,
+		fills = {{
+			type = "linear_gradient",
+			angle = 90,
+			stops = {
+				{offset = 0, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0}},
+				{offset = 0.5, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0}},
+				{offset = 0.82, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0.94}},
+				{offset = 1, color = {Colors.background[1], Colors.background[2], Colors.background[3], 0.94}},
+			},
+		}},
+	},
 	result_gradient_background = {
 		width = 1,
 		height = 176,

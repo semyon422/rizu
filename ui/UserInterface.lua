@@ -6,7 +6,7 @@ local SongSelect = require("ui.screens.song_select.SongSelect")
 local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
 local Editor = require("ui.screens.editor.Editor")
-local Result = require("ui.screens.result.Result")
+local Result = require("ui.screens.result_v2.ResultV2")
 local LobbyList = require("ui.screens.lobby_list.LobbyList")
 local Lobby = require("ui.screens.lobby.Lobby")
 local MusicPlayer = require("ui.screens.music_player.MusicPlayer")
@@ -51,7 +51,7 @@ local TARGET_HEIGHT = 1080
 ---@field chart_loading ui.screens.chart_loading.ChartLoading
 ---@field gameplay ui.screens.gameplay.Gameplay
 ---@field editor ui.screens.editor.Editor
----@field result ui.screens.result.Result
+---@field result ui.screens.result_v2.ResultV2
 ---@field lobby_list ui.screens.lobby_list.LobbyList
 ---@field lobby ui.screens.lobby.Lobby
 ---@field music_player ui.screens.music_player.MusicPlayer
