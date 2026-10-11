@@ -67,7 +67,7 @@ function ResultV2:new(ui)
 	self.composite:add(Image(Resources.sprites.result_v2_scrim_vertical, "fit")):anchorFill(0, 0, 0, 0)
 
 	-- Everything above the background casts a soft shadow, sprites included.
-	self.content = self.composite:add(ShadowCompositeView({blur = 6, offset_y = 3, opacity = 0.85}))
+	self.content = self.composite:add(ShadowCompositeView({blur = 6, opacity = 0.85}))
 	self.content:anchorFill(0, 0, 0, 0)
 
 	self:createName()
