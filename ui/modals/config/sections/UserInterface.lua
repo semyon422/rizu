@@ -81,6 +81,11 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					keywords = {"song select", "chart", "preview"},
 					tip = localization:get("settings.chart_preview_tip"),
 				}),
+				ControlFactory.boolean(settings, select_keys.open_on_startup, {
+					name = localization:get("settings.open_song_select_on_startup"),
+					keywords = {"song select", "main menu", "startup", "launch"},
+					tip = localization:get("settings.open_song_select_on_startup_tip"),
+				}),
 				ControlFactory.choice(settings, select_keys.score_filter, {
 					name = localization:get("settings.score_filter"),
 					keywords = {"song select", "scores", "mutators", "timings"},

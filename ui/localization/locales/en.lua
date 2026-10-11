@@ -221,6 +221,8 @@ return {
 	["settings.vertical_position_tip"] = "Position the gameplay area vertically within the screen.",
 	["settings.width_tip"] = "Scale down the gameplay area's width to make notes easier to see.",
 	["settings.height_tip"] = "Scale down the gameplay area's height to make notes easier to see.",
+	["settings.open_song_select_on_startup"] = "Open Song Select on startup",
+	["settings.open_song_select_on_startup_tip"] = "Open Song Select instead of the main menu when the game starts.",
 	["settings.chart_preview_tip"] = "Show a preview of the selected chart in Song Select.",
 	["settings.difficulty_type_tip"] = "Choose the difficulty rating displayed in menus.",
 

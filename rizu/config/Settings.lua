@@ -76,6 +76,7 @@ local keys = {
 		locations_in_collections = "select.locations_in_collections",
 		collapse = "select.collapse",
 		chart_preview = "select.chart_preview",
+		open_on_startup = "select.open_on_startup",
 		filter_string = "select.filter_string",
 		lamp_string = "select.lamp_string",
 		sort_function = "select.sort_function",
@@ -245,6 +246,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(s.locations_in_collections, false)
 	config:setDefaultBoolean(s.collapse, true) -- Deprecated?
 	config:setDefaultBoolean(s.chart_preview, true)
+	config:setDefaultBoolean(s.open_on_startup, false)
 	config:setDefaultString(s.filter_string, "")
 	config:setDefaultString(s.lamp_string, "")
 	config:setDefaultString(s.sort_function, "title")

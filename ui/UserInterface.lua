@@ -21,6 +21,7 @@ local Registry = require("rizu.command.Registry")
 local Colors = require("ui.Colors")
 local LoveFilesystem = require("fs.LoveFilesystem")
 local UiConfig = require("ui.UiConfig")
+local Settings = require("rizu.config.Settings")
 local Localization = require("ui.localization.Localization")
 local UiActions = require("ui.UiActions")
 local MapperatorinatorConfig = require("rizu.mapperatorinator.Config")
@@ -164,7 +165,11 @@ function UserInterface:load()
 	self.prev_w = ww
 	self.prev_h = wh
 	self:applyViewport(ww, wh)
-	self:setScreen(self.main_menu)
+	if self.game.settings:getBoolean(Settings.keys.select.open_on_startup) then
+		self:setScreen(self.song_select)
+	else
+		self:setScreen(self.main_menu)
+	end
 	love.keyboard.setTextInput(true)
 	love.keyboard.setKeyRepeat(true)
 end
