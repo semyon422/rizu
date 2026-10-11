@@ -14,6 +14,7 @@ local FIELD_WIDTH = 640
 local FIELD_HEIGHT = 480
 local LANE_WIDTH = 48
 local NOTE_HEIGHT = 30
+local RECEPTOR_HEIGHT = 12
 local DEFAULT_RECEPTOR_Y = 360
 local DEFAULT_BGA_BRIGHTNESS = 0.15
 local MIN_RECEPTOR_Y = 0
@@ -339,6 +340,17 @@ local function draw_hold_body(x, first_y, second_y, width, color_name, alpha)
 	lg.rectangle("fill", x - width / 2, math.min(first_y, second_y), width, math.abs(second_y - first_y))
 end
 
+---@param x number
+---@param receptor_y number
+---@param color_name string
+---@param alpha number
+local function draw_receptor(x, receptor_y, color_name, alpha)
+	-- Notes are centered on receptor_y, so the receptor starts at the bottom edge of a note at its hit position.
+	local color = note_colors[color_name]
+	lg.setColor(color[1], color[2], color[3], alpha)
+	lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y + NOTE_HEIGHT / 2, LANE_WIDTH, RECEPTOR_HEIGHT)
+end
+
 ---@param player rizu.preview.NotesPreviewPlayer
 ---@param width number
 ---@param height number
@@ -385,9 +397,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	for column = 1, columns do
 		local display_column = self:getPreviewDisplayColumn(player, column, columns)
 		local x = left + (display_column - 0.5) * LANE_WIDTH
-		local color = note_colors[colors[column]]
-		lg.setColor(color[1], color[2], color[3], 0.55)
-		lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y - 6, LANE_WIDTH, 12)
+		draw_receptor(x, receptor_y, colors[column], 0.55)
 	end
 	lg.pop()
 end
@@ -450,10 +460,8 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 
 	for column = 1, columns do
 		local x = field_left + (column - 0.5) * LANE_WIDTH
-		local color = note_colors[colors[column]]
 		local pressed = engine:isColumnPressed(column)
-		lg.setColor(color[1], color[2], color[3], pressed and 1 or 0.55)
-		lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y - 6, LANE_WIDTH, 12)
+		draw_receptor(x, receptor_y, colors[column], pressed and 1 or 0.55)
 	end
 	lg.pop()
 end
