@@ -102,6 +102,15 @@ function OsuAimSprites.load(graphics)
 	end
 
 	local ini = graphics.skin and graphics.skin.skin_ini
+	if not sprites.sliderendcircle then
+		sprites.sliderendcircleoverlay = nil
+		-- Slider ends became invisible in skin version 2 unless the skin draws them itself.
+		-- A skin.ini without a version is version 1; "latest" is not a number.
+		local version = ini and ini.General and ini.General.Version
+		if ini and (version == nil or (tonumber(version) or math.huge) < 2) then
+			sprites.sliderendcircle, sprites.sliderendcircleoverlay = sprites.hitcircle, sprites.hitcircleoverlay
+		end
+	end
 	local framerate = tonumber(ini and ini.General and ini.General.AnimationFramerate)
 	if framerate and framerate > 0 then sprites.animation_framerate = framerate end
 	return sprites

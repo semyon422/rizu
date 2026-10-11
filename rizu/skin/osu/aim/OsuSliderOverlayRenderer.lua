@@ -16,32 +16,18 @@ function OsuSliderOverlayRenderer.drawHead(object, radius, time, preempt, sprite
 	OsuCircleRenderer.draw(object, radius, time, preempt, sprites, true, head_state, head_time)
 end
 
----osu! draws one end circle, where the final span finishes.
+---One end circle, where the final span finishes. OsuAimSprites decides whether the skin shows it.
 ---@param slider rizu.aim.Slider
 ---@param radius number
 ---@param alpha number
 ---@param snake_end number
 ---@param sprites rizu.skin.osu.aim.OsuAimSprites?
 function OsuSliderOverlayRenderer.drawEndCircle(slider, radius, alpha, snake_end, sprites)
-	if alpha <= 0 then return end
+	if alpha <= 0 or not sprites then return end
 	-- An end circle at the far end rides the snaking edge of the body.
 	local x, y = slider.path:position(slider.timing.spans % 2 * math.min(1, math.max(0, snake_end)))
-	local circle = sprites and sprites.sliderendcircle
-	local overlay = sprites and sprites.sliderendcircleoverlay
-	if not SpriteRenderer.isRenderable(circle) then
-		-- A skin without its own end circle reuses the hit circle pair.
-		circle = sprites and sprites.hitcircle
-		if not SpriteRenderer.isRenderable(overlay) then overlay = sprites and sprites.hitcircleoverlay end
-	end
-	SpriteRenderer.draw(circle, x, y, radius * 2, alpha)
-	if SpriteRenderer.isRenderable(overlay) then
-		SpriteRenderer.draw(overlay, x, y, radius * 2, alpha)
-	elseif not SpriteRenderer.isRenderable(circle) then
-		SpriteRenderer.flush(sprites)
-		love.graphics.setLineWidth(2)
-		love.graphics.setColor(0.85, 0.95, 1, alpha)
-		love.graphics.circle("line", x, y, radius - 1)
-	end
+	SpriteRenderer.draw(sprites.sliderendcircle, x, y, radius * 2, alpha)
+	SpriteRenderer.draw(sprites.sliderendcircleoverlay, x, y, radius * 2, alpha)
 end
 
 local reverse_arrow_fade_in = 0.15

@@ -39,4 +39,39 @@ function test.uses_default_digits_and_still_slider_ball_without_skin_overrides(t
 	t:assert(map["default-0"] and map["default-9"])
 end
 
+---@param t testing.T
+function test.slider_end_circle_follows_the_skin_version(t)
+	---@param files string[]
+	---@param version string?
+	local function load(files, version)
+		local graphics = OsuSkinGraphics(FakeFilesystem(), {
+			path = "skins/example", files = files, skin_ini = {General = {Version = version}, Fonts = {}},
+		})
+		graphics.getFrames = function(_, name)
+			for _, file in ipairs(files) do
+				if file == name .. ".png" then return {name} end
+			end
+			return {}
+		end
+		return OsuAimSprites.load(graphics)
+	end
+	local circles = {"hitcircle.png", "hitcircleoverlay.png"}
+
+	-- Version 1 skins, and those that do not state a version, reuse the hit circle.
+	for _, version in ipairs({false, "1", "1.0"}) do
+		local sprites = load(circles, version or nil)
+		t:eq(sprites.sliderendcircle, "hitcircle")
+		t:eq(sprites.sliderendcircleoverlay, "hitcircleoverlay")
+	end
+	for _, version in ipairs({"2", "2.5", "latest"}) do
+		local sprites = load(circles, version)
+		t:eq(sprites.sliderendcircle, nil)
+		t:eq(sprites.sliderendcircleoverlay, nil)
+	end
+	-- A skinned end circle is used at any version, without borrowing an overlay.
+	local sprites = load({"hitcircle.png", "hitcircleoverlay.png", "sliderendcircle.png"}, "2.5")
+	t:eq(sprites.sliderendcircle, "sliderendcircle")
+	t:eq(sprites.sliderendcircleoverlay, nil)
+end
+
 return test

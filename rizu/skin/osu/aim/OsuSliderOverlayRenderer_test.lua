@@ -47,17 +47,12 @@ local function slider(spans)
 end
 
 ---@param t testing.T
-function test.end_circle_sits_where_the_final_span_finishes_and_ignores_placeholders(t)
-	local sprites = {
-		hitcircle = image(128, 128),
-		hitcircleoverlay = image(128, 128),
-		sliderendcircle = image(1, 1),
-		sliderendcircleoverlay = image(1, 1),
-	}
+function test.end_circle_sits_where_the_final_span_finishes(t)
+	local sprites = {sliderendcircle = image(128, 128), sliderendcircleoverlay = image(128, 128)}
 	local draws = capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(2), 10, 1, 1, sprites) end)
 	t:eq(#draws, 2)
-	t:eq(draws[1].sprite, sprites.hitcircle)
-	t:eq(draws[2].sprite, sprites.hitcircleoverlay)
+	t:eq(draws[1].sprite, sprites.sliderendcircle)
+	t:eq(draws[2].sprite, sprites.sliderendcircleoverlay)
 	t:eq(draws[1].x, 0)
 
 	draws = capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 1, sprites) end)
@@ -66,6 +61,11 @@ function test.end_circle_sits_where_the_final_span_finishes_and_ignores_placehol
 	draws = capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 0.5, sprites) end)
 	t:eq(draws[1].x, 50)
 	t:eq(#capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 0, 1, sprites) end), 0)
+	-- A skin that leaves its end circle out, or blanks it, shows none.
+	t:eq(#capture(function() OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 1, {}) end), 0)
+	t:eq(#capture(function()
+		OsuSliderOverlayRenderer.drawEndCircle(slider(3), 10, 1, 1, {sliderendcircle = image(1, 1)})
+	end), 0)
 end
 
 ---@param t testing.T
