@@ -14,11 +14,11 @@ function test.draws_ball_frame_and_follow_circle_along_active_slider(t)
 		}
 	end
 	local frames = {
-		{image = image(128), density = 1},
-		{image = image(128), density = 1},
-		{image = image(128), density = 1},
+		image(128),
+		image(128),
+		image(128),
 	}
-	local follow = {image = image(200), density = 1}
+	local follow = image(200)
 	love = {graphics = {
 		setColor = function() end,
 		draw = function(sprite, x, y, rotation, sx, sy)
@@ -42,11 +42,11 @@ function test.draws_ball_frame_and_follow_circle_along_active_slider(t)
 	love = previous_love
 
 	t:eq(#draws, 2)
-	t:eq(draws[1][1]:getWidth(), follow.image:getWidth())
+	t:eq(draws[1][1]:getWidth(), follow:getWidth())
 	t:aeq(draws[1][2], 70, 1e-9)
 	t:aeq(draws[1][3], 70, 1e-9)
 	t:aeq(draws[1][5], 0.24, 1e-9)
-	t:eq(draws[2][1]:getWidth(), frames[1].image:getWidth())
+	t:eq(draws[2][1]:getWidth(), frames[1]:getWidth())
 	t:aeq(draws[2][2], 70, 1e-9)
 	t:aeq(draws[2][3], 70, 1e-9)
 	t:aeq(draws[2][4], math.atan2(80, 100), 1e-6)
@@ -58,11 +58,11 @@ function test.does_not_draw_slider_ball_before_snake_reaches_it(t)
 	local previous_love = love
 	local draw_count = 0
 	love = {graphics = {setColor = function() end, draw = function() draw_count = draw_count + 1 end}}
-	local image = {image = {
+	local image = {
 		getWidth = function() return 100 end,
 		getHeight = function() return 100 end,
 		getDimensions = function() return 100, 100 end,
-	}, density = 1}
+	}
 	local slider = {
 		path = {position = function() return 0, 0 end},
 		timing = {start_time = 0, end_time = 2, progress = function() return 0.8 end},

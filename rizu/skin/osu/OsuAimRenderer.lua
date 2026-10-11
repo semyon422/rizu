@@ -1,18 +1,22 @@
 local AimRenderer = require("rizu.skin.base.AimRenderer")
 local OsuCircleRenderer = require("rizu.skin.osu.aim.OsuCircleRenderer")
-local OsuSkinGraphics = require("rizu.skin.osu.aim.OsuSkinGraphics")
+local OsuAimSprites = require("rizu.skin.osu.aim.OsuAimSprites")
+local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
 local OsuSliderOverlayRenderer = require("rizu.skin.osu.aim.OsuSliderOverlayRenderer")
+local OsuSpriteRenderer = require("rizu.skin.osu.aim.OsuSpriteRenderer")
 local SliderRenderer = require("rizu.skin.base.osu.aim.SliderRenderer")
 local SpinnerRenderer = require("rizu.skin.base.osu.aim.SpinnerRenderer")
 local Settings = require("rizu.config.Settings")
 
 ---@class rizu.skin.osu.OsuAimRenderer : rizu.skin.base.AimRenderer
 ---@operator call: rizu.skin.osu.OsuAimRenderer
----@field skin_graphics rizu.skin.osu.aim.OsuSkinGraphics
+---@field skin_graphics rizu.skin.osu.OsuSkinGraphics
 ---@field slider_graphics {prepare: fun(rules: rizu.aim.CircleRules), unload: fun(), [string]: any}
----@field sprites rizu.skin.osu.aim.OsuSkinGraphics.Sprites?
+---@field sprites rizu.skin.osu.aim.OsuAimSprites?
 ---@field prepared_rules rizu.aim.CircleRules?
 local OsuAimRenderer = AimRenderer + {}
+
+local DEFAULT_ASSETS = "resources/osu_default_assets.zip"
 
 ---@param game sphere.GameController
 function OsuAimRenderer:new(game)
@@ -42,13 +46,18 @@ end
 
 function OsuAimRenderer:load()
 	local skin = self:getSkin()
-	if self.skin_graphics.skin ~= skin then
-		self.skin_graphics:setSkin(skin)
-		self.skin_graphics:load()
-	elseif not self.skin_graphics.loaded then
-		self.skin_graphics:load()
+	local graphics = self.skin_graphics
+	if not graphics.loaded or graphics.skin ~= skin then
+		-- The default assets supply the cursor and hit circle numbers a skin omits.
+		graphics:setFallbackArchive(DEFAULT_ASSETS)
+		graphics:setSkin(skin)
+		local limits = love.graphics.getSystemLimits()
+		local texture_limit = limits.texturesize > 0 and limits.texturesize or 4096
+		graphics:setTextureLimit(texture_limit)
+		graphics:setAtlasLimit(math.min(4096, texture_limit))
+		graphics:load(OsuAimSprites.getAssets(graphics))
+		self.sprites = OsuAimSprites.load(graphics)
 	end
-	self.sprites = self.skin_graphics.images
 	local rules = self.game.rhythm_engine and self.game.rhythm_engine.rules
 	if rules and self.prepared_rules ~= rules then
 		---@type fun(graphics: rizu.skin.base.osu.aim.SliderGraphics, rules: rizu.aim.CircleRules)
@@ -68,7 +77,8 @@ function OsuAimRenderer:draw(width, height, transform)
 	self:load()
 	local scale, ox, oy = self:getField(width, height)
 	local time = re.visual_info.time
-	local sprites = self.skin_graphics.images
+	local sprites = assert(self.sprites)
+	local batch = self.skin_graphics.batch
 
 	love.graphics.push("all")
 	love.graphics.applyTransform(transform)
@@ -85,31 +95,48 @@ function OsuAimRenderer:draw(width, height, transform)
 		last_visible = i
 	end
 
+	-- Sprites queue into the atlas batch; slider bodies and primitives flush it.
+	batch:begin()
 	-- Earlier heads must remain on top of later members of a stack.
 	for i = last_visible, 1, -1 do
 		local object = objects[i]
 		local spinner = rules.spinners[i]
 		if spinner and not rules.states[i] then
+			batch:flush()
 			SpinnerRenderer.draw(spinner, time)
 		end
 
 		local slider = rules.sliders[i]
-		if slider and not rules.states[i] then
-			local alpha = SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i)
-			if not rules.heads[i] then
-				OsuSliderOverlayRenderer.drawHead(object, rules.radius, time, rules.preempt, sprites)
+		if slider then
+			-- A finished slider stays until its body has faded out.
+			local alpha = SliderRenderer.getBodyAlpha(object, slider, time, rules.preempt)
+			if alpha > 0 then
+				batch:flush()
+				SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i)
 			end
+			OsuSliderOverlayRenderer.drawHead(object, rules.radius, time, rules.preempt, sprites,
+				rules.heads[i], rules.head_times[i])
 			OsuSliderOverlayRenderer.drawBodyOverlays(slider, rules.radius, time, alpha,
 				SliderRenderer.getSnakeEnd(object, time, rules.preempt), sprites,
-				self.skin_graphics.animation_framerate)
-		elseif not spinner and not rules.heads[i] then
-			OsuCircleRenderer.draw(object, rules.radius, time, rules.preempt, sprites)
+				sprites.animation_framerate)
+		elseif not spinner then
+			OsuCircleRenderer.draw(object, rules.radius, time, rules.preempt, sprites, false,
+				rules.heads[i], rules.head_times[i])
 		end
 	end
 
-	love.graphics.setColor(1, 0.85, 0.2)
-	love.graphics.circle("line", rules.x, rules.y, 9)
-	love.graphics.circle("fill", rules.x, rules.y, 3)
+	-- osu! shrinks the cursor while a button is held.
+	local cursor_scale = rules:isHeld() and 0.9 or 1
+	if OsuSpriteRenderer.isRenderable(sprites.cursor) then
+		OsuSpriteRenderer.draw(sprites.cursor, rules.x, rules.y,
+			OsuSpriteRenderer.getWidth(sprites.cursor) * cursor_scale, 1)
+	else
+		batch:flush()
+		love.graphics.setColor(1, 0.85, 0.2)
+		love.graphics.circle("line", rules.x, rules.y, 9 * cursor_scale)
+		love.graphics.circle("fill", rules.x, rules.y, 3)
+	end
+	batch:finish()
 	love.graphics.pop()
 end
 

@@ -23,12 +23,12 @@ function test.ignores_transparent_placeholder_repeat_assets(t)
 	}}
 
 	local sprites = {
-		hitcircle = {image = image(128, 128), density = 1},
-		hitcircleoverlay = {image = image(128, 128), density = 1},
-		sliderscorepoint = {image = image(1, 1), density = 1},
-		sliderendcircle = {image = image(1, 1), density = 1},
-		sliderendcircleoverlay = {image = image(1, 1), density = 1},
-		reversearrow = {image = image(128, 128), density = 1},
+		hitcircle = image(128, 128),
+		hitcircleoverlay = image(128, 128),
+		sliderscorepoint = image(1, 1),
+		sliderendcircle = image(1, 1),
+		sliderendcircleoverlay = image(1, 1),
+		reversearrow = image(128, 128),
 	}
 	local slider = {
 		path = {position = function(_, progress) return progress * 100, progress * 100 end},
@@ -50,9 +50,9 @@ function test.ignores_transparent_placeholder_repeat_assets(t)
 	love = previous_love
 
 	t:eq(#draws, 3)
-	t:eq(draws[1].sprite:getWidth(), sprites.hitcircle.image:getWidth())
-	t:eq(draws[2].sprite:getWidth(), sprites.hitcircleoverlay.image:getWidth())
-	t:eq(draws[3].sprite:getWidth(), sprites.reversearrow.image:getWidth())
+	t:eq(draws[1].sprite:getWidth(), sprites.hitcircle:getWidth())
+	t:eq(draws[2].sprite:getWidth(), sprites.hitcircleoverlay:getWidth())
+	t:eq(draws[3].sprite:getWidth(), sprites.reversearrow:getWidth())
 	for _, draw in ipairs(draws) do
 		t:assert(draw.sx < 1 and draw.sy < 1, "osu! overlay sprite scale unexpectedly enlarged")
 	end

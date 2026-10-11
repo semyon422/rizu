@@ -37,6 +37,22 @@ function test.positions_settings_and_same_time_objects_survive_refchart(t)
 end
 
 ---@param t testing.T
+function test.combo_numbers_restart_on_new_combo_and_after_spinners(t)
+	local chart = ChartDecoder():decode(header .. table.concat({
+		"10,10,1000,1,0",
+		"20,10,1100,1,0",
+		"30,10,1200,5,0",
+		"40,10,1300,1,0",
+		"256,192,1400,8,0,1800",
+		"50,10,1900,1,0",
+		"60,10,2000,1,0",
+	}, "\n"))[1].chart
+	local numbers = {}
+	for i, object in ipairs(ModeNotes.read(chart, "osu").objects) do numbers[i] = object.combo_number end
+	t:tdeq(numbers, {1, 2, 1, 2, 3, 1, 2})
+end
+
+---@param t testing.T
 function test.unsupported_objects_are_preserved_and_rejected(t)
 	for _, line in ipairs({
 		"256,192,1000,128,0,2000:0:0:0:0:",

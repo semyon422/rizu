@@ -8,7 +8,7 @@ local OsuSliderBallRenderer = {}
 ---@param time number
 ---@param alpha number
 ---@param snake_end number
----@param sprites rizu.skin.osu.aim.OsuSkinGraphics.Sprites?
+---@param sprites rizu.skin.osu.aim.OsuAimSprites?
 ---@param framerate number?
 function OsuSliderBallRenderer.draw(slider, radius, time, alpha, snake_end, sprites, framerate)
 	if alpha <= 0 then return end
@@ -41,6 +41,7 @@ function OsuSliderBallRenderer.draw(slider, radius, time, alpha, snake_end, spri
 	if SpriteRenderer.isRenderable(follow) then
 		SpriteRenderer.draw(follow, x, y, radius * 4.8, alpha)
 	else
+		SpriteRenderer.flush(sprites)
 		love.graphics.setColor(1, 0.85, 0.35, 0.25 * alpha)
 		love.graphics.circle("line", x, y, radius * 2.4)
 	end

@@ -34,6 +34,7 @@ local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 ---@field chart chart.Chart
 ---@field states ("hit"|"miss")[]
 ---@field heads ("hit"|"miss")[]
+---@field head_times number[] When each head was resolved.
 ---@field events rizu.aim.Judgement[]
 ---@field checkpoint_events rizu.aim.CheckpointJudgement[]
 ---@field buttons {[integer]: boolean}
@@ -54,7 +55,7 @@ function CircleRules:new(chart, stacking, tracking)
 	local ar = data.approach_rate
 	self.preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
 	self.window = (200 - 10 * data.overall_difficulty) / 1000
-	self.states, self.heads = {}, {}
+	self.states, self.heads, self.head_times = {}, {}, {}
 	self.events, self.checkpoint_events = {}, {}
 	self.buttons = {}
 	self.x, self.y = 256, 192
@@ -129,6 +130,7 @@ end
 ---@param hit boolean
 function CircleRules:judgeHead(index, time, hit)
 	self.heads[index] = hit and "hit" or "miss"
+	self.head_times[index] = time
 	local slider = self.sliders[index]
 	if slider then
 		slider.intact = slider.intact and hit

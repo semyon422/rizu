@@ -9,9 +9,11 @@ local OsuSliderOverlayRenderer = {}
 ---@param radius number
 ---@param time number
 ---@param preempt number
----@param sprites rizu.skin.osu.aim.OsuSkinGraphics.Sprites?
-function OsuSliderOverlayRenderer.drawHead(object, radius, time, preempt, sprites)
-	OsuCircleRenderer.draw(object, radius, time, preempt, sprites, true)
+---@param sprites rizu.skin.osu.aim.OsuAimSprites?
+---@param head_state ("hit"|"miss")?
+---@param head_time number?
+function OsuSliderOverlayRenderer.drawHead(object, radius, time, preempt, sprites, head_state, head_time)
+	OsuCircleRenderer.draw(object, radius, time, preempt, sprites, true, head_state, head_time)
 end
 
 ---@param slider rizu.aim.Slider
@@ -19,12 +21,11 @@ end
 ---@param time number
 ---@param alpha number
 ---@param snake_end number
----@param sprites rizu.skin.osu.aim.OsuSkinGraphics.Sprites?
+---@param sprites rizu.skin.osu.aim.OsuAimSprites?
 ---@param framerate number?
 function OsuSliderOverlayRenderer.drawBodyOverlays(slider, radius, time, alpha, snake_end, sprites, framerate)
 	if alpha <= 0 then return end
 	love.graphics.setLineWidth(2)
-	love.graphics.setColor(0.85, 0.95, 1, alpha)
 	snake_end = math.min(1, math.max(0, snake_end))
 	for _, checkpoint in ipairs(slider.timing.checkpoints) do
 		if checkpoint.time >= time then
@@ -36,6 +37,8 @@ function OsuSliderOverlayRenderer.drawBodyOverlays(slider, radius, time, alpha, 
 					local size = math.min(radius * 0.5, scorepoint_width)
 					SpriteRenderer.draw(scorepoint, x, y, size, alpha)
 				else
+					SpriteRenderer.flush(sprites)
+					love.graphics.setColor(0.85, 0.95, 1, alpha)
 					love.graphics.circle("fill", x, y, 4)
 				end
 			elseif checkpoint.kind == "repeat" then
@@ -60,6 +63,7 @@ function OsuSliderOverlayRenderer.drawBodyOverlays(slider, radius, time, alpha, 
 				if repeat_overlay_width > 0 then
 					SpriteRenderer.draw(repeat_overlay, x, y, radius * 2, alpha)
 				elseif repeat_circle_width == 0 then
+					SpriteRenderer.flush(sprites)
 					love.graphics.setLineWidth(2)
 					love.graphics.setColor(0.85, 0.95, 1, alpha)
 					love.graphics.circle("line", x, y, radius - 1)
@@ -71,6 +75,8 @@ function OsuSliderOverlayRenderer.drawBodyOverlays(slider, radius, time, alpha, 
 					local rotation = math.atan2(y - previous_y, x - previous_x) + math.pi
 					SpriteRenderer.draw(reverse_arrow, x, y, radius * 1.2, alpha, rotation)
 				else
+					SpriteRenderer.flush(sprites)
+					love.graphics.setColor(0.85, 0.95, 1, alpha)
 					love.graphics.circle("line", x, y, radius * 0.6)
 				end
 			end

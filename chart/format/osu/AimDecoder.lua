@@ -19,6 +19,7 @@ local bit = require("bit")
 ---@field x number
 ---@field y number
 ---@field kind "circle"|"slider"|"spinner"|"unsupported"
+---@field combo_number integer Position within its combo, starting at 1.
 ---@field stack_height integer? Runtime-only stacking height.
 ---@field end_time number? Spinner end time in seconds.
 ---@field slider chart.osu.AimSlider?
@@ -57,6 +58,8 @@ function AimDecoder.decode(osu, chart, layer, visual)
 	for i, point in ipairs(osu.rawOsu.TimingPoints) do
 		data.timing_points[i] = table_util.copy(point)
 	end
+	local combo_number = 0 ---@type integer
+	local previous_kind ---@type string?
 	for i, object in ipairs(osu.rawOsu.HitObjects) do
 		local kind = "unsupported"
 		if bit.band(object.type, 2) ~= 0 then
@@ -74,7 +77,14 @@ function AimDecoder.decode(osu, chart, layer, visual)
 				sounds[#sounds + 1] = {sound.name, sound.volume / 100}
 			end
 		end
-		local result = {time = object.time / 1000, x = object.x, y = object.y, kind = kind, sounds = sounds}
+		-- osu! also starts a new combo on the object after a spinner.
+		local new_combo = bit.band(object.type, 4) ~= 0 or previous_kind == "spinner"
+		if new_combo then combo_number = 1 else combo_number = combo_number + 1 end
+		previous_kind = kind
+		local result = {
+			time = object.time / 1000, x = object.x, y = object.y, kind = kind, sounds = sounds,
+			combo_number = combo_number,
+		}
 		if kind == "spinner" then
 			result.end_time = object.endTime and object.endTime / 1000
 		elseif kind == "slider" then

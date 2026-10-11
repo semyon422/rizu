@@ -25,20 +25,20 @@ function test.loads_selected_osu_skin_and_uses_sprite_renderers(t)
 	local renderer_fields = renderer
 	renderer_fields.slider_graphics.prepare = function() end
 	renderer_fields.slider_graphics.load = function() end
-	---@type {skin: {path: string}, images: table, loaded: boolean}
-	local graphics_field
-	renderer_fields.skin_graphics.load = function(graphics)
-		graphics_field = graphics
-		loaded.path = graphics_field.skin.path
-		graphics_field.images = {}
-		graphics_field.loaded = true
+	renderer_fields.skin_graphics.setFallbackArchive = function() end
+	renderer_fields.skin_graphics.load = function(graphics, assets)
+		loaded.path = graphics.skin.path
+		loaded.assets = assets
+		graphics.loaded = true
 	end
 
 	local selected = renderer:getSkin()
 	t:eq(selected, skins[2])
 	renderer:load()
 	t:eq(loaded.path, "skins/two")
-	t:eq(renderer.skin_graphics.images.hitcircle, nil)
+	t:eq(loaded.assets[1].group, "playfield")
+	t:eq(renderer.sprites.hitcircle, nil)
+	t:eq(renderer.sprites.batch, renderer.skin_graphics.batch)
 	t:eq(renderer.skin_graphics.skin, selected)
 end
 

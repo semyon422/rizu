@@ -31,6 +31,7 @@ function test.spatial_hits_note_lock_and_deadlines(t)
 	t:eq(rules.hits, 0)
 	rules:receive(VirtualInputEvent(1, true, 1), 1)
 	t:eq(rules.hits, 1)
+	t:eq(rules.head_times[1], 1)
 	rules:receive(VirtualInputEvent(1, true, 1, {300, 100}), 1)
 	t:eq(rules.hits, 1)
 	rules:receive(VirtualInputEvent(2, true, 1), 1)
@@ -38,6 +39,7 @@ function test.spatial_hits_note_lock_and_deadlines(t)
 	rules:update(10)
 	t:eq(rules.misses, 1)
 	t:aeq(rules.events[3].time, 2.15, 1e-9)
+	t:aeq(rules.head_times[3], 2.15, 1e-9)
 end
 
 ---@param t testing.T
