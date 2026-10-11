@@ -548,6 +548,29 @@ function test.remove_skips_cached_update_and_draw_before_flush(t)
 end
 
 ---@param t testing.T
+function test.onLayoutChanged_fires_again_after_reattach(t)
+	local s = Screen()
+	s:resize(100, 100)
+	local view = s.root:add(View():anchorFixed(0, 0, 10, 10))
+	local calls = 0
+	function view:onLayoutChanged() calls = calls + 1 end
+	s:load()
+	t:eq(calls, 1)
+
+	-- Moving within the screen keeps the view loaded, so nothing fires.
+	local other = s.root:add(View())
+	other:add(view)
+	s:flush()
+	t:eq(calls, 1)
+
+	other:remove(view)
+	s:flush()
+	other:add(view)
+	s:flush()
+	t:eq(calls, 2)
+end
+
+---@param t testing.T
 function test.afterLayout_runs_once_per_rebuild(t)
 	local s = Screen()
 	local view = s.root:add(View())

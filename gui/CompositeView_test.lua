@@ -111,4 +111,46 @@ test.renderer_draws_nested_composites = withFakeCanvases(function(t)
 	t:eq(draws, 1)
 end)
 
+test.reattached_composite_gets_a_canvas_again = withFakeCanvases(function(t)
+	local screen = Screen()
+	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 100, 50))
+	screen:resize(800, 600)
+	screen:load()
+
+	screen.root:remove(composite)
+	screen:flush()
+	t:eq(composite.canvas, nil)
+	screen.root:add(composite)
+	screen:flush()
+
+	t:assert(composite.canvas ~= nil)
+end)
+
+test.fixed_size_canvas_follows_ui_scale = withFakeCanvases(function(t)
+	local screen = Screen()
+	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 100, 50))
+	screen:resize(800, 600)
+	local old_canvas = composite.canvas
+
+	screen:setUIScale(2)
+	screen:draw()
+
+	t:eq(old_canvas.released, true)
+	t:eq(composite.canvas:getWidth(), 200)
+	t:eq(composite.canvas_scale, 2)
+end)
+
+test.renderer_skips_composite_without_canvas = withFakeCanvases(function(t)
+	local screen = Screen()
+	local composite = screen.root:add(CompositeView():anchorFixed(0, 0, 0, 0))
+	local draws = 0
+	composite:add(View():anchorFixed(0, 0, 10, 10)):setDraw(function() draws = draws + 1 end)
+	screen:resize(800, 600)
+
+	screen:draw()
+
+	t:eq(composite.canvas, nil)
+	t:eq(draws, 0)
+end)
+
 return test

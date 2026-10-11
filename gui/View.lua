@@ -319,7 +319,7 @@ function View:remove(child)
 			if screen then
 				screen:queueUnload(child)
 				screen:invalidateLayout()
-			elseif child.loaded then
+			else
 				child:unloadSubtree()
 			end
 			return
@@ -369,6 +369,8 @@ function View:unloadSubtree()
 		self:unload()
 		self.loaded = false
 	end
+	-- The next attach is a first resolution again: onLayoutChanged fires and nothing glides.
+	self.layout_initialized = false
 end
 
 ---Override for size-dependent resource and geometry updates.

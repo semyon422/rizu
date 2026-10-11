@@ -139,8 +139,10 @@ function Renderer:draw()
 		elseif command == BEGIN_COMPOSITE then
 			local composite = commands[index + 1]
 			---@cast composite gui.CompositeView
+			-- A composite without a canvas has nothing to draw into; its subtree must not leak to the parent target.
 			if composite.detached or composite.cull_mask ~= 0
 				or not composite.effective_visible or not composite.present
+				or not composite:prepareCanvas()
 			then
 				local depth = 1
 				index = index + 2

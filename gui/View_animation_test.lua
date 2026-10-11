@@ -147,4 +147,26 @@ function test.layout_transition_keeps_final_rect_and_visual_position(t)
 	t:aeq(final_x, 20, 1e-9)
 end
 
+---@param t testing.T
+function test.layout_transition_does_not_glide_on_reattach(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local container = screen.root:add(StackContainer({
+		layout_transition = {duration = 1, easing = "Linear"},
+	}))
+	container:anchorFill(0, 0, 0, 0)
+	local child = container:add(View())
+	screen:flush()
+
+	container:remove(child)
+	screen:flush()
+	container:setPadding({20, 0, 0, 0})
+	container:add(child)
+	screen:flush()
+
+	t:eq(child.x, 20)
+	t:eq(child:getWorldPosition(), 20)
+	t:eq(child:hasTransforms(), false)
+end
+
 return test

@@ -18,29 +18,37 @@ end
 ---@param old_width number
 ---@param old_height number
 function CompositeView:onLayoutChanged(old_x, old_y, old_width, old_height)
+	self:prepareCanvas()
+end
+
+---Returns the content canvas for the current rect and ui_scale, replacing a stale one.
+---The Renderer calls this before every use, so a ui_scale change that leaves the rect alone is still followed.
+---@return love.Canvas? canvas nil when the view has no pixels
+function CompositeView:prepareCanvas()
 	local screen = assert(self.screen, "CompositeView must be attached before layout")
 	local scale = screen.ui_scale
 	local width = math.ceil(self.width * scale)
 	local height = math.ceil(self.height * scale)
+	self.canvas_scale = scale
 	if width <= 0 or height <= 0 then
-		if self.canvas then
-			self.canvas:release()
-			self.canvas = nil
-		end
-		self.canvas_scale = scale
-		return
+		self:releaseCanvas()
+		return nil
 	end
 
-	if self.canvas then
-		local old_canvas_width, old_canvas_height = self.canvas:getDimensions()
-		if old_canvas_width == width and old_canvas_height == height then
-			self.canvas_scale = scale
-			return
-		end
-		self.canvas:release()
+	local canvas = self.canvas
+	if canvas and canvas:getWidth() == width and canvas:getHeight() == height then
+		return canvas
 	end
+	self:releaseCanvas()
 	self.canvas = love.graphics.newCanvas(width, height)
-	self.canvas_scale = scale
+	return self.canvas
+end
+
+function CompositeView:releaseCanvas()
+	if self.canvas then
+		self.canvas:release()
+		self.canvas = nil
+	end
 end
 
 ---Hook for subclasses that render extra output from their finished content canvas.
@@ -55,10 +63,7 @@ function CompositeView:drawUnderlay(opacity)
 end
 
 function CompositeView:unload()
-	if self.canvas then
-		self.canvas:release()
-		self.canvas = nil
-	end
+	self:releaseCanvas()
 end
 
 return CompositeView

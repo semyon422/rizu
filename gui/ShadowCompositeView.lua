@@ -52,26 +52,21 @@ function ShadowCompositeView:new(config)
 	self.shadow_opacity = config.opacity or 0.8
 end
 
----@param old_x number
----@param old_y number
----@param old_width number
----@param old_height number
-function ShadowCompositeView:onLayoutChanged(old_x, old_y, old_width, old_height)
-	CompositeView.onLayoutChanged(self, old_x, old_y, old_width, old_height)
-	self:releaseShadowCanvases()
-
-	local canvas = self.canvas
-	if not canvas then
-		return
+---@return love.Canvas?
+function ShadowCompositeView:prepareCanvas()
+	local canvas = CompositeView.prepareCanvas(self)
+	if canvas and not self.shadow_canvas then
+		local width = math.max(1, math.ceil(canvas:getWidth() * DOWNSCALE))
+		local height = math.max(1, math.ceil(canvas:getHeight() * DOWNSCALE))
+		self.scratch_canvas = love.graphics.newCanvas(width, height)
+		self.shadow_canvas = love.graphics.newCanvas(width, height)
 	end
-	local width = math.max(1, math.ceil(canvas:getWidth() * DOWNSCALE))
-	local height = math.max(1, math.ceil(canvas:getHeight() * DOWNSCALE))
-	self.scratch_canvas = love.graphics.newCanvas(width, height)
-	self.shadow_canvas = love.graphics.newCanvas(width, height)
+	return canvas
 end
 
----@private
-function ShadowCompositeView:releaseShadowCanvases()
+-- The shadow canvases are sized from the content canvas, so they go whenever it goes.
+function ShadowCompositeView:releaseCanvas()
+	CompositeView.releaseCanvas(self)
 	if self.scratch_canvas then
 		self.scratch_canvas:release()
 		self.scratch_canvas = nil
@@ -80,11 +75,6 @@ function ShadowCompositeView:releaseShadowCanvases()
 		self.shadow_canvas:release()
 		self.shadow_canvas = nil
 	end
-end
-
-function ShadowCompositeView:unload()
-	self:releaseShadowCanvases()
-	CompositeView.unload(self)
 end
 
 ---Blurs the content canvas alpha into `shadow_canvas`. Called by the Renderer once the content is drawn.
