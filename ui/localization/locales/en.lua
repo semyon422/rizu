@@ -189,6 +189,8 @@ return {
 	["settings.volume_tip"] = "Adjust the {kind} output level.",
 	["settings.format_keysound_volume_tip"] = "Adjust the keysound volume for {format} Charts.",
 	["settings.scroll_speed_type_tip"] = "Choose the scale used by the scroll speed slider.",
+	["settings.osu_cursor_scale"] = "osu! cursor size",
+	["settings.osu_cursor_scale_tip"] = "Scale of the cursor in osu! gameplay.",
 	["settings.time_prepare"] = "Preparation time",
 	["settings.time_prepare_tip"] = "Lead-in time before the chart starts.",
 	["settings.time_play_pause"] = "Hold to pause",

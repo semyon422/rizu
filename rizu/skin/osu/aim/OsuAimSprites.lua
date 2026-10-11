@@ -31,6 +31,7 @@ local names = {
 ---@field sliderfollowcircle rizu.skin.osu.OsuSkinGraphics.Image?
 ---@field sliderscorepoint rizu.skin.osu.OsuSkinGraphics.Image?
 ---@field cursor rizu.skin.osu.OsuSkinGraphics.Image?
+---@field followpoint rizu.skin.osu.OsuSkinGraphics.Image[]
 local OsuAimSprites = {}
 
 ---@param graphics rizu.skin.osu.OsuSkinGraphics
@@ -69,6 +70,7 @@ function OsuAimSprites.getAssets(graphics)
 	local assets = {}
 	for _, name in ipairs(names) do assets[#assets + 1] = {name = name, group = GROUP} end
 	for _, name in ipairs(sliderBallNames(graphics)) do assets[#assets + 1] = {name = name, group = GROUP} end
+	assets[#assets + 1] = {name = "followpoint", animation = true, group = GROUP}
 	local prefix = getDigitPrefix(graphics)
 	for digit = 0, 9 do
 		assets[#assets + 1] = {name = prefix .. "-" .. digit, fallback = "default-" .. digit, group = GROUP}
@@ -81,7 +83,10 @@ end
 ---@return rizu.skin.osu.aim.OsuAimSprites
 function OsuAimSprites.load(graphics)
 	---@type rizu.skin.osu.aim.OsuAimSprites
-	local sprites = {batch = graphics.batch, digits = {}, digit_overlap = tonumber(getFonts(graphics).HitCircleOverlap) or -2}
+	local sprites = {
+		batch = graphics.batch, digits = {}, digit_overlap = tonumber(getFonts(graphics).HitCircleOverlap) or -2,
+		followpoint = graphics:getAnimationFrames("followpoint", nil, GROUP),
+	}
 	for _, name in ipairs(names) do sprites[name] = graphics:getFrames(name, nil, GROUP)[1] end
 
 	---@type rizu.skin.osu.OsuSkinGraphics.Image[]

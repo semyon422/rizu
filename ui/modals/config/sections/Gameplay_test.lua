@@ -53,6 +53,12 @@ function test.auto_keysound_binds_gameplay_setting(t)
 		t:eq(found, true)
 	end
 
+	local has_cursor_scale = false
+	for _, control in ipairs(controls) do
+		if control.setting_key == Settings.keys.gameplay.osu_cursor_scale then has_cursor_scale = true end
+	end
+	t:eq(has_cursor_scale, true)
+
 	local key = Settings.keys.gameplay.auto_key_sound
 	---@type ui.views.form.Checkbox?
 	local checkbox

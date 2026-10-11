@@ -1,5 +1,6 @@
 local AimRenderer = require("rizu.skin.base.AimRenderer")
 local OsuCircleRenderer = require("rizu.skin.osu.aim.OsuCircleRenderer")
+local OsuFollowPointRenderer = require("rizu.skin.osu.aim.OsuFollowPointRenderer")
 local OsuAimSprites = require("rizu.skin.osu.aim.OsuAimSprites")
 local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
 local OsuSliderOverlayRenderer = require("rizu.skin.osu.aim.OsuSliderOverlayRenderer")
@@ -97,6 +98,7 @@ function OsuAimRenderer:draw(width, height, transform)
 
 	-- Sprites queue into the atlas batch; slider bodies and primitives flush it.
 	batch:begin()
+	OsuFollowPointRenderer.draw(rules, time, sprites)
 	-- Earlier heads must remain on top of later members of a stack.
 	for i = last_visible, 1, -1 do
 		local object = objects[i]
@@ -114,11 +116,12 @@ function OsuAimRenderer:draw(width, height, transform)
 				batch:flush()
 				SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i)
 			end
+			local snake_end = SliderRenderer.getSnakeEnd(object, time, rules.preempt)
+			OsuSliderOverlayRenderer.drawEndCircle(slider, rules.radius, alpha, snake_end, sprites)
 			OsuSliderOverlayRenderer.drawHead(object, rules.radius, time, rules.preempt, sprites,
 				rules.heads[i], rules.head_times[i])
-			OsuSliderOverlayRenderer.drawBodyOverlays(slider, rules.radius, time, alpha,
-				SliderRenderer.getSnakeEnd(object, time, rules.preempt), sprites,
-				sprites.animation_framerate)
+			OsuSliderOverlayRenderer.drawBodyOverlays(slider, rules.radius, time, alpha, snake_end, sprites,
+				sprites.animation_framerate, rules.preempt)
 		elseif not spinner then
 			OsuCircleRenderer.draw(object, rules.radius, time, rules.preempt, sprites, false,
 				rules.heads[i], rules.head_times[i])
@@ -126,7 +129,8 @@ function OsuAimRenderer:draw(width, height, transform)
 	end
 
 	-- osu! shrinks the cursor while a button is held.
-	local cursor_scale = rules:isHeld() and 0.9 or 1
+	local cursor_scale = self.game.settings:getNumber(Settings.keys.gameplay.osu_cursor_scale)
+		* (rules:isHeld() and 0.9 or 1)
 	if OsuSpriteRenderer.isRenderable(sprites.cursor) then
 		OsuSpriteRenderer.draw(sprites.cursor, rules.x, rules.y,
 			OsuSpriteRenderer.getWidth(sprites.cursor) * cursor_scale, 1)

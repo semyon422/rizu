@@ -150,6 +150,8 @@ return {
 	["settings.scroll_speed_type"] = "Тип скорости",
 	["settings.scroll_speed_type_tip"] = "Шкала скорости прокрутки.",
 	["settings.scroll_speed"] = "Скорость прокрутки",
+	["settings.osu_cursor_scale"] = "Размер курсора osu!",
+	["settings.osu_cursor_scale_tip"] = "Масштаб курсора в режиме osu!.",
 	["settings.time_prepare"] = "Время подготовки",
 	["settings.time_prepare_tip"] = "Время до начала чарта.",
 	["settings.time_play_pause"] = "Удержание для паузы",

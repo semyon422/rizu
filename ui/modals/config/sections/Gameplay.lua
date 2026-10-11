@@ -72,6 +72,14 @@ function Gameplay:new(settings, ui_config, localization)
 					keywords = {"gameplay", "background", "animation", "bga", "video"},
 					tip = localization:get("settings.background_videos_tip"),
 				}),
+				ControlFactory.number(settings, keys.osu_cursor_scale, {
+					name = localization:get("settings.osu_cursor_scale"),
+					keywords = {"gameplay", "osu", "cursor", "scale", "size"},
+					tip = localization:get("settings.osu_cursor_scale_tip"),
+					value_format = function(value)
+						return ("%.2fx"):format(value)
+					end,
+				}),
 			}
 			for _, name in ipairs({"prepare", "play_pause", "pause_play", "play_retry", "pause_retry"}) do
 				controls[#controls + 1] = ControlFactory.number(settings, keys["time_" .. name], {

@@ -31,6 +31,7 @@ local keys = {
 		swap_velocity_type = "gameplay.swap_velocity_type",
 		skin_resources_top_priority = "gameplay.skin_resources_top_priority",
 		skins = "gameplay.skins",
+		osu_cursor_scale = "gameplay.osu.cursor_scale",
 		hp_shift = "gameplay.hp.shift",
 		hp_notes = "gameplay.hp.notes",
 		bga_video = "gameplay.bga.video",
@@ -219,6 +220,8 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(g.analog_scratch_deact_w, 1 / 9, 0, 2, 1 / 180)
 	config:setDefaultNumber(g.analog_scratch_act_period, 0.1, 0, 1, 0.001)
 	config:setDefaultNumber(g.analog_scratch_deact_period, 0.05, 0, 1, 0.001)
+
+	config:setDefaultNumber(g.osu_cursor_scale, 1, 0.25, 2, 0.05)
 
 	-- Should to UI
 	config:setDefaultNumber(g.time_prepare, 2, 0.5, 3, 0.1)
