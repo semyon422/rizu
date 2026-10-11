@@ -18,6 +18,14 @@ function OsuSpriteRenderer.getWidth(sprite)
 	return (OsuImage.dimensions(sprite))
 end
 
+---Like osu!lazer, an overlay keeps its own logical size inside the 128px object, whatever size the circle texture is.
+---@param overlay rizu.skin.osu.OsuSkinGraphics.Image?
+---@param size number Drawn diameter of the circle
+---@return number
+function OsuSpriteRenderer.getOverlayWidth(overlay, size)
+	return size * OsuSpriteRenderer.getWidth(overlay) / 128
+end
+
 ---Queued sprites must reach the screen before a primitive is drawn over them.
 ---@param sprites rizu.skin.osu.aim.OsuAimSprites?
 function OsuSpriteRenderer.flush(sprites)

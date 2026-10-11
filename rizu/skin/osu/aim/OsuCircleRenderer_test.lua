@@ -61,6 +61,19 @@ function test.draws_loaded_circle_and_approach_sprites_centered_at_hit_position(
 end
 
 ---@param t testing.T
+function test.scales_overlay_by_logical_size_not_hitcircle_texture(t)
+	local sprites = {
+		hitcircle = image(20, 20),
+		hitcircleoverlay = image(128, 128),
+	}
+	local object = {time = 1.2, x = 30, y = 40, kind = "circle", sounds = {}, combo_number = 1}
+	local draws = capture(function() OsuCircleRenderer.draw(object, 20, 1.2, 1.2, sprites) end)
+
+	t:eq(draws[2][1], sprites.hitcircleoverlay)
+	t:aeq(draws[2][5], 40 / 128, 1e-9)
+end
+
+---@param t testing.T
 function test.draws_combo_number_centered_between_circle_and_overlay(t)
 	local sprites = {
 		hitcircle = image(128, 128),

@@ -29,7 +29,8 @@ function OsuSliderOverlayRenderer.drawEndCircle(slider, radius, alpha, snake_end
 	-- An end circle at the far end rides the snaking edge of the body.
 	local x, y = slider.path:position(slider.timing.spans % 2 * math.min(1, math.max(0, snake_end)))
 	SpriteRenderer.draw(sprites.sliderendcircle, x, y, radius * 2, alpha, 0, color)
-	SpriteRenderer.draw(sprites.sliderendcircleoverlay, x, y, radius * 2, alpha)
+	SpriteRenderer.draw(sprites.sliderendcircleoverlay, x, y,
+		SpriteRenderer.getOverlayWidth(sprites.sliderendcircleoverlay, radius * 2), alpha)
 end
 
 local reverse_arrow_fade_in = 0.15

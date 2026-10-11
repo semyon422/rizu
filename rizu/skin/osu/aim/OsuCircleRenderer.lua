@@ -66,11 +66,8 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 		local approachcircle = sprites and sprites.approachcircle
 		local approach_size = radius * 2 * approach
 		if SpriteRenderer.isRenderable(approachcircle) then
-			local circle_width = hitcircle and SpriteRenderer.getWidth(hitcircle) or 0
-			local approach_width = SpriteRenderer.getWidth(approachcircle)
-			if circle_width > 0 and approach_width > 0 then
-				approach_size = approach_size * approach_width / circle_width
-			end
+			-- Natural size inside the 128px object, as in osu!lazer.
+			approach_size = approach_size * SpriteRenderer.getWidth(approachcircle) / 128
 			SpriteRenderer.draw(approachcircle, object.x, object.y, approach_size, approach_alpha, 0, color)
 		else
 			SpriteRenderer.flush(sprites)
@@ -91,7 +88,7 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 		drawNumber(sprites, object.combo_number, object.x, object.y, radius * 2 / 128 * 0.8, number_alpha)
 	end
 	if overlay then
-		SpriteRenderer.draw(overlay, object.x, object.y, size, alpha)
+		SpriteRenderer.draw(overlay, object.x, object.y, SpriteRenderer.getOverlayWidth(overlay, size), alpha)
 	elseif not hitcircle then
 		SpriteRenderer.flush(sprites)
 		local border_width = 2
