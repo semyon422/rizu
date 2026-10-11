@@ -2,8 +2,6 @@ local CompositeView = require("gui.CompositeView")
 
 ---@class gui.ShadowCompositeView.Config
 ---@field blur? number Gaussian sigma in logical pixels.
----@field offset_x? number Logical pixels.
----@field offset_y? number Logical pixels.
 ---@field opacity? number Shadow strength, 0..1.
 
 ---A CompositeView that draws a soft shadow under its content: the alpha of the whole content canvas,
@@ -11,8 +9,6 @@ local CompositeView = require("gui.CompositeView")
 ---@class gui.ShadowCompositeView : gui.CompositeView
 ---@operator call: gui.ShadowCompositeView
 ---@field blur number
----@field offset_x number
----@field offset_y number
 ---@field shadow_opacity number
 ---@field shadow_canvas love.Canvas? Final blurred shadow, at `downscale` of the content canvas size.
 ---@field scratch_canvas love.Canvas? Horizontal pass output.
@@ -47,8 +43,6 @@ function ShadowCompositeView:new(config)
 	CompositeView.new(self)
 	config = config or {}
 	self.blur = config.blur or 6
-	self.offset_x = config.offset_x or 0
-	self.offset_y = config.offset_y or 3
 	self.shadow_opacity = config.opacity or 0.8
 end
 
@@ -132,8 +126,8 @@ function ShadowCompositeView:drawUnderlay(opacity)
 	love.graphics.setBlendMode("alpha", "premultiplied")
 	love.graphics.draw(
 		shadow,
-		self.offset_x,
-		self.offset_y,
+		0,
+		0,
 		0,
 		self.width / shadow:getWidth(),
 		self.height / shadow:getHeight()
