@@ -56,11 +56,31 @@ function GameplayInteractor.getInputMode(chart)
 	return tostring(chart.inputMode)
 end
 
+---The directory of the skin selected for this play, whose sounds can stand in for the chart's.
+---@param gamemode rizu.gameplay.Gamemode
+---@param input_mode string
+---@return string?
+function GameplayInteractor:getSkinDirectory(gamemode, input_mode)
+	local registry = self.game.skinRegistry
+	local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
+	-- An osu! skin picked for a non-mania mode is stored under the osu/ key.
+	local osu_path = skin_paths["osu/" .. input_mode]
+	local skin = osu_path and registry:getOsuSkin(osu_path)
+		or registry:getSkinForInputMode(gamemode.name, input_mode, skin_paths[gamemode.name .. "/" .. input_mode])
+	return skin and skin.directory_path
+end
+
 ---@param chartview table
 ---@param gamemode rizu.gameplay.Gamemode
+---@param input_mode string
 ---@return string[]
-function GameplayInteractor:getResourcePaths(chartview, gamemode)
+function GameplayInteractor:getResourcePaths(chartview, gamemode, input_mode)
 	local paths = {chartview.location_dir}
+	local skin_directory = self:getSkinDirectory(gamemode, input_mode)
+	if skin_directory then
+		local top_priority = self.game.settings:getBoolean(Settings.keys.gameplay.skin_resources_top_priority)
+		table.insert(paths, top_priority and 1 or 2, skin_directory)
+	end
 	local movie_path = IidxResourcePaths.getMoviePath(chartview, self.game.fs)
 	if movie_path then
 		table.insert(paths, movie_path)
@@ -162,7 +182,7 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 
 	assert(gamemode.saves_scores or not game.multiplayerModel.client:isInRoom(),
 		"Experimental modes are not available in multiplayer.")
-	local paths = self:getResourcePaths(chartview, gamemode)
+	local paths = self:getResourcePaths(chartview, gamemode, GameplayInteractor.getInputMode(chart))
 	---@diagnostic disable-next-line: no-unknown
 	self.noteSkin = nil
 	self:loadFileFinderPaths(paths)

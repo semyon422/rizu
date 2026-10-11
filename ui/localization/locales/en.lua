@@ -189,6 +189,8 @@ return {
 	["settings.volume_tip"] = "Adjust the {kind} output level.",
 	["settings.format_keysound_volume_tip"] = "Adjust the keysound volume for {format} Charts.",
 	["settings.scroll_speed_type_tip"] = "Choose the scale used by the scroll speed slider.",
+	["settings.skin_sounds"] = "Prefer skin hit sounds",
+	["settings.skin_sounds_tip"] = "Use the selected skin's sounds instead of the Chart's own when both exist.",
 	["settings.osu_cursor_scale"] = "osu! cursor size",
 	["settings.osu_cursor_scale_tip"] = "Scale of the cursor in osu! gameplay.",
 	["settings.time_prepare"] = "Preparation time",

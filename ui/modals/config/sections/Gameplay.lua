@@ -62,6 +62,11 @@ function Gameplay:new(settings, ui_config, localization)
 					keywords = {"gameplay", "audio", "auto", "keysound"},
 					tip = localization:get("settings.auto_keysound_tip"),
 				}),
+				ControlFactory.boolean(settings, keys.skin_resources_top_priority, {
+					name = localization:get("settings.skin_sounds"),
+					keywords = {"gameplay", "audio", "skin", "hit", "sound", "hitsound", "keysound"},
+					tip = localization:get("settings.skin_sounds_tip"),
+				}),
 				ControlFactory.boolean(settings, keys.bga_image, {
 					name = localization:get("settings.background_images"),
 					keywords = {"gameplay", "background", "animation", "bga", "image"},

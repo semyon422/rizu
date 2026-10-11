@@ -150,6 +150,8 @@ return {
 	["settings.scroll_speed_type"] = "Тип скорости",
 	["settings.scroll_speed_type_tip"] = "Шкала скорости прокрутки.",
 	["settings.scroll_speed"] = "Скорость прокрутки",
+	["settings.skin_sounds"] = "Звуки ударов из скина",
+	["settings.skin_sounds_tip"] = "Использовать звуки выбранного скина вместо звуков чарта, если есть оба.",
 	["settings.osu_cursor_scale"] = "Размер курсора osu!",
 	["settings.osu_cursor_scale_tip"] = "Масштаб курсора в режиме osu!.",
 	["settings.time_prepare"] = "Время подготовки",

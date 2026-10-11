@@ -23,6 +23,41 @@ function test.uses_computed_chart_input_mode(t)
 end
 
 ---@param t testing.T
+function test.selected_skin_directory_joins_resource_paths_by_priority(t)
+	local osu_skin = {path = "skins/osu", directory_path = "skins/osu"}
+	local mania_skin = {path = "skins/mania.skin.lua", directory_path = "skins"}
+	local top_priority = false
+	local interactor = {
+		game = {
+			settings = {
+				getStringMap = function() return {["osu/1osu"] = "skins/osu", ["mania/4key"] = "skins/mania.skin.lua"} end,
+				getBoolean = function() return top_priority end,
+			},
+			skinRegistry = {
+				getOsuSkin = function(_, path) return path == osu_skin.path and osu_skin or nil end,
+				getSkinForInputMode = function(_, gamemode, input_mode, name)
+					return gamemode == "mania" and input_mode == "4key" and name == mania_skin.path and mania_skin or nil
+				end,
+			},
+		},
+		getSkinDirectory = GameplayInteractor.getSkinDirectory,
+	}
+	local chartview = {location_dir = "chart"}
+	local aim = {name = "osu", resource_paths = {"userdata/hitsounds"}}
+	local mania = {name = "mania", resource_paths = {"userdata/hitsounds"}}
+
+	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, aim, "1osu"),
+		{"chart", "skins/osu", "userdata/hitsounds"})
+	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, mania, "4key"),
+		{"chart", "skins", "userdata/hitsounds"})
+	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, mania, "7key"),
+		{"chart", "userdata/hitsounds"})
+	top_priority = true
+	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, aim, "1osu"),
+		{"skins/osu", "chart", "userdata/hitsounds"})
+end
+
+---@param t testing.T
 function test.paused_input_updates_binding(t)
 	local session = {receive = function() end}
 	local input = ManiaInput({["4key"] = {{{"a", "keyboard", 1}}}}, "4key")
