@@ -212,7 +212,11 @@ function Input:onKeyDown(e)
 		self:debugEvent("down", e, "ignored: escape")
 		return
 	end
-	if not MODIFIER_KEYS[e.key]
+	-- Gameplay matches keyboard inputs by scancode (see LoopEvents), so bind
+	-- the scancode: the key name depends on the layout (right alt is "mode",
+	-- dead keys are "unknown") and would never match in game.
+	local key = e.scancode or e.key
+	if not MODIFIER_KEYS[key]
 		and (e.control_pressed or e.shift_pressed or e.alt_pressed or e.super_pressed)
 	then
 		-- Input bindings do not support key combinations.
@@ -223,13 +227,13 @@ function Input:onKeyDown(e)
 		self:debugEvent("down", e, "ignored: not waiting or repeat")
 		return
 	end
-	self:debugEvent("down", e, "BOUND " .. debugValue(e.key))
+	self:debugEvent("down", e, "BOUND " .. debugValue(key))
 	local column = self.waiting_column
 	local binding_index = self.waiting_binding_index or 1
 	self.waiting_column = nil
 	self.waiting_binding_index = nil
 	column:setWaiting(false)
-	column.binder:setKey(column.column, binding_index, e.key, InputDevice(e.device or "keyboard", e.device_id or 1))
+	column.binder:setKey(column.column, binding_index, key, InputDevice(e.device or "keyboard", e.device_id or 1))
 	self:save()
 
 	for index, candidate in ipairs(self.columns) do
