@@ -2,7 +2,7 @@ local ReplayBase = require("sea.replays.ReplayBase")
 local InputMode = require("chart.core.InputMode")
 local GameplayInteractor = require("rizu.gameplay.GameplayInteractor")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.mania.Engine")
 local InputBinder = require("rizu.input.InputBinder")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local TimingValues = require("sea.chart.TimingValues")
@@ -148,7 +148,7 @@ end
 ---@param t testing.T
 function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
 	local updates, saves = 0, 0
-	local re = {aim_rules = {}, unloadAudio = function() end, setTime = function() end}
+	local re = {rules = {}, unloadAudio = function() end, setTime = function() end}
 	local session = {
 		rhythm_engine = re, play_type = "manual",
 		update = function() updates = updates + 1 end,
@@ -250,7 +250,7 @@ end
 
 ---@param t testing.T
 function test.after_input_pass_does_not_update_playfield_twice(t)
-	for _, rules in ipairs({"aim_rules", "catch_rules", "taiko_rules", "sdvx_rules"}) do
+	for _, rules in ipairs({"rules", "rules", "rules", "rules"}) do
 		local calls = {} ---@type string[]
 		local interactor = setmetatable({loaded = true, load_state = "ready", playfield = {
 			update = function(_, dt) calls[#calls + 1] = "runtime"; t:eq(dt, 0.25) end,

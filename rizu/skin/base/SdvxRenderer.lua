@@ -527,7 +527,7 @@ end
 ---@param transform love.Transform
 function SdvxRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
-	local rules = re and re.sdvx_rules
+	local rules = re and re.rules
 	if not rules then return end
 	self:load()
 	local scale, offset_x, offset_y = self:getField(width, height)

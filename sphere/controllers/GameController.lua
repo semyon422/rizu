@@ -77,7 +77,7 @@ local ResourceLoader = require("rizu.files.ResourceLoader")
 local ResourceFinder = require("rizu.files.ResourceFinder")
 local SkinRegistry = require("rizu.skin.SkinRegistry")
 
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local Gamemodes = require("rizu.gameplay.Gamemodes")
 
 local GlobalTimer = require("rizu.game.GlobalTimer")
 
@@ -108,7 +108,7 @@ local GameController = class()
 function GameController:new()
 	self.fs = LoveFilesystem()
 
-	self.rhythm_engine = RhythmEngine(self.fs)
+	self.rhythm_engine = Gamemodes.mania.createEngine()
 	self.network = NetworkService()
 	self.avatar_cache = AvatarCache(self.network)
 
@@ -424,12 +424,13 @@ function GameController:update(dt)
 	self.ui:update(dt)
 end
 
-function GameController:recreateRhythmEngine()
+---@param mode sea.Gamemode?
+function GameController:recreateRhythmEngine(mode)
 	self.resultController:clearReplay()
 	if self.rhythm_engine then
 		self.rhythm_engine:unload()
 	end
-	self.rhythm_engine = RhythmEngine(self.fs)
+	self.rhythm_engine = Gamemodes[mode or "mania"].createEngine()
 	self.pauseModel:setRhythmEngine(self.rhythm_engine)
 	self.offsetController:setRhythmEngine(self.rhythm_engine)
 end

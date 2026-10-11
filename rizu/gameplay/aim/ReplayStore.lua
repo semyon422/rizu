@@ -38,7 +38,7 @@ end
 ---@return string
 function ReplayStore:save(session)
 	local re = session.rhythm_engine
-	assert((self.mode == "sdvx" and re.sdvx_rules or self.mode == "taiko" and re.taiko_rules or self.mode == "catch" and re.catch_rules or self.mode == "aim" and re.aim_rules) and session.play_type == "manual", "only manual experimental attempts can be saved")
+	assert(re.rules and session.play_type == "manual", "only manual experimental attempts can be saved")
 	local meta = re.chartmeta
 	local path = self:path(meta.hash, meta.index)
 	---@type rizu.aim.ReplayData

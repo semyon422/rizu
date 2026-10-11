@@ -1,4 +1,4 @@
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.mania.Engine")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 
 local tcf = TestChartFactory()

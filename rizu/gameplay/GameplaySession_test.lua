@@ -1,5 +1,5 @@
 local GameplaySession = require("rizu.gameplay.GameplaySession")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.mania.Engine")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local TimingValues = require("sea.chart.TimingValues")
 local ComputeContext = require("sea.compute.ComputeContext")

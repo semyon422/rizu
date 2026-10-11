@@ -46,11 +46,6 @@ function test.selects_fruits_and_taiko_renderers_from_chart_mode(t)
 	playfield:load()
 	t:eq(playfield.renderer, playfield.osu_catch)
 
-	game.rhythm_engine = {catch_rules = {}}
-	playfield:unload()
-	playfield:load()
-	t:eq(playfield.renderer, playfield.catch)
-
 	game.rhythm_engine = {chartmeta = {mode = "taiko"}}
 	playfield:unload()
 	playfield:load()

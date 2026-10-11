@@ -1,7 +1,7 @@
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local Rules = require("rizu.gameplay.sdvx.Rules")
 local SdvxDecoder = require("chart.format.ksm.SdvxDecoder")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.sdvx.Engine")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ReplayStore = require("rizu.gameplay.aim.ReplayStore")
 local FakeFilesystem = require("fs.FakeFilesystem")
@@ -36,11 +36,11 @@ end
 ---@param t testing.T
 function test.manual_session_replays_lasers_and_buttons_with_rate(t)
 	local re, manual = session()
-	for _, frame in ipairs(Rules.autoplay(re.sdvx_rules.chart)) do
+	for _, frame in ipairs(Rules.autoplay(re.rules.chart)) do
 		manual:receive(frame.event, (frame.time + 1) / 1.5)
 	end
 	manual:update(4)
-	t:eq(re.sdvx_rules.hits, 2)
+	t:eq(re.rules.hits, 2)
 	t:eq(manual:hasResult(), false)
 	t:has_error(function() ScoreSaver.saveScore({}, manual) end)
 	local fs = FakeFilesystem()
@@ -52,10 +52,10 @@ function test.manual_session_replays_lasers_and_buttons_with_rate(t)
 		local engine, replay = session()
 		replay:setPlayType("replay"); replay:setReplayFrames(frames)
 		for time = step, 4 + step, step do replay:update(time) end
-		t:tdeq(engine.sdvx_rules.button_rules.events, re.sdvx_rules.button_rules.events)
-		for i, laser in ipairs(engine.sdvx_rules.lasers) do
-			t:tdeq(laser.ticks, re.sdvx_rules.lasers[i].ticks)
-			t:tdeq(laser.slams, re.sdvx_rules.lasers[i].slams)
+		t:tdeq(engine.rules.button_rules.events, re.rules.button_rules.events)
+		for i, laser in ipairs(engine.rules.lasers) do
+			t:tdeq(laser.ticks, re.rules.lasers[i].ticks)
+			t:tdeq(laser.slams, re.rules.lasers[i].slams)
 		end
 	end
 	for _, mode in ipairs({"aim", "catch", "taiko"}) do

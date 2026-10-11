@@ -107,12 +107,10 @@ function Playfield:load()
 	local engine = self.game.rhythm_engine
 	local mode = engine and engine.chartmeta and engine.chartmeta.mode
 	local renderer ---@type rizu.gameplay.views.PlayfieldRenderer?
-	if engine and mode == "osu" then renderer = self.osu_aim
-	elseif engine and engine.aim_rules then renderer = self.aim
-	elseif engine and mode == "catch" then renderer = self.osu_catch
-	elseif engine and engine.catch_rules then renderer = self.catch
-	elseif engine and (engine.taiko_rules or mode == "taiko") then renderer = self.taiko
-	elseif engine and (engine.sdvx_rules or mode == "sdvx") then
+	if mode == "osu" then renderer = self.osu_aim
+	elseif mode == "catch" then renderer = self.osu_catch
+	elseif mode == "taiko" then renderer = self.taiko
+	elseif mode == "sdvx" then
 		local input_mode = tostring(engine.chart and engine.chart.inputMode or "4bt2fx2laserleft2laserright")
 		renderer = self:loadSdvxSkin(input_mode, generation)
 	elseif mode == "mania" then
@@ -148,10 +146,7 @@ function Playfield:isExperimental()
 	local engine = self.game.rhythm_engine
 	if not engine then return false end
 	local mode = engine.chartmeta and engine.chartmeta.mode
-	return not not (
-		engine.aim_rules or engine.catch_rules or engine.taiko_rules or engine.sdvx_rules
-		or mode == "osu" or mode == "catch" or mode == "taiko" or mode == "sdvx"
-	)
+	return not not (engine.rules or mode and mode ~= "mania")
 end
 
 function Playfield:unload()
@@ -209,7 +204,7 @@ end
 ---@return boolean
 function Playfield:usesPointer()
 	local engine = self.game.rhythm_engine
-	return not not (engine and (engine.aim_rules or engine.chartmeta and engine.chartmeta.mode == "osu"))
+	return not not (engine and engine.chartmeta and engine.chartmeta.mode == "osu")
 end
 
 function Playfield:updateHud(dt)

@@ -19,7 +19,7 @@ function test.loads_selected_osu_skin_and_uses_sprite_renderers(t)
 			getOsuSkins = function() return skins end,
 		},
 		settings = {getStringMap = function() return {["osu/1osu"] = "skins/two"} end},
-		rhythm_engine = {aim_rules = {objects = {}}, visual_info = {time = 0}},
+		rhythm_engine = {rules = {objects = {}}, visual_info = {time = 0}},
 	}
 	local renderer = OsuAimRenderer(game)
 	local renderer_fields = renderer

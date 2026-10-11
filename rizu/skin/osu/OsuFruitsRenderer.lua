@@ -184,7 +184,7 @@ end
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 function OsuFruitsRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
-	local rules = re and re.catch_rules
+	local rules = re and re.rules
 	if not rules then return end
 	self:load()
 	local scale, ox, oy = self:getField(width, height)

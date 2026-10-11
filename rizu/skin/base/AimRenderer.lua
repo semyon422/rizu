@@ -17,7 +17,7 @@ function AimRenderer:new(game)
 end
 
 function AimRenderer:load()
-	local rules = self.game.rhythm_engine and self.game.rhythm_engine.aim_rules
+	local rules = self.game.rhythm_engine and self.game.rhythm_engine.rules
 	if not rules or self.prepared_rules == rules then return end
 	self.slider_graphics:prepare(rules)
 	self.prepared_rules = rules
@@ -56,7 +56,7 @@ end
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 function AimRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
-	local rules = re and re.aim_rules
+	local rules = re and re.rules
 	if not rules then return end
 	self:load()
 	local scale, ox, oy = self:getField(width, height)

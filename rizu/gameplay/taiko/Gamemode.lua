@@ -7,4 +7,9 @@ local TaikoGamemode = Gamemode + {}
 TaikoGamemode.name = "taiko"
 TaikoGamemode.prepare = Preparation.compute
 
+---@return rizu.gameplay.taiko.Engine
+function TaikoGamemode.createEngine()
+	return require("rizu.gameplay.taiko.Engine")()
+end
+
 return TaikoGamemode

@@ -103,9 +103,10 @@ end
 
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
-	self.is_sdvx = self.game.rhythm_engine.sdvx_rules ~= nil
-	self.is_taiko = self.game.rhythm_engine.taiko_rules ~= nil
-	self.is_catch = self.game.rhythm_engine.catch_rules ~= nil
+	local mode = self.game.rhythm_engine.mode
+	self.is_sdvx = mode == "sdvx"
+	self.is_taiko = mode == "taiko"
+	self.is_catch = mode == "catch"
 	assert(self.gameplay_interactor:getPlayfield(), "gameplay playfield is not ready")
 	self.is_aim = self.gameplay_playfield:isExperimental()
 	self.aim_summary:setVisible(false)
@@ -374,7 +375,7 @@ function Gameplay:observeCompletion()
 		self.gameplay_interactor:saveAimReplay()
 		self.gameplay_interactor.aim_complete = true
 		self.gameplay_interactor:pause()
-		local rules = self.game.rhythm_engine.aim_rules or self.game.rhythm_engine.catch_rules or self.game.rhythm_engine.taiko_rules or self.game.rhythm_engine.sdvx_rules
+		local rules = self.game.rhythm_engine.rules
 		self.aim_summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
 			rules.hits, rules.misses, self.gameplay_interactor.aim_status or "Autoplay / replay — no score saved"))
 		self.aim_summary:setVisible(true)

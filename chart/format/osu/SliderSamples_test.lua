@@ -1,5 +1,5 @@
 local ModeNotes = require("chart.model.ModeNotes")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.aim.Engine")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local Chartdiff = require("sea.chart.Chartdiff")
 local ChartDecoder = require("chart.format.osu.ChartDecoder")

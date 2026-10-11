@@ -226,9 +226,10 @@ function GameplayInteractor:load(autoplay)
 	local game = self.game
 
 	self:unloadVolume()
-	game:recreateRhythmEngine()
-	game.rhythm_engine.aim_stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
-	game.rhythm_engine.aim_tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
+	local mode = game.computeContext.chartmeta.mode
+	game:recreateRhythmEngine(mode)
+	game.rhythm_engine.stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
+	game.rhythm_engine.tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
 
 	local replay_base = self.replay_base or game.replayBase
 	if self.aim_replay then
@@ -248,18 +249,13 @@ function GameplayInteractor:load(autoplay)
 	self:loadVolume()
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
-	self.sdvx_input = game.rhythm_engine.sdvx_rules and SdvxInput() or nil
-	self.taiko_input = game.rhythm_engine.taiko_rules ~= nil
-	self.catch_input = game.rhythm_engine.catch_rules ~= nil
-	self.aim_input = game.rhythm_engine.aim_rules and AimInput() or nil
+	self.sdvx_input = mode == "sdvx" and SdvxInput() or nil
+	self.taiko_input = mode == "taiko"
+	self.catch_input = mode == "catch"
+	self.aim_input = mode == "osu" and AimInput() or nil
 	self.aim_saved = false
 	self.aim_status = nil
 	self.aim_complete = false
-	if game.rhythm_engine.aim_rules or game.rhythm_engine.catch_rules or game.rhythm_engine.taiko_rules or game.rhythm_engine.sdvx_rules then
-		if self.aim_replay then
-			game.rhythm_engine:setRate(self.aim_replay.rate)
-		end
-	end
 
 	local play_type = "manual"
 	if self.replaying then
@@ -346,7 +342,7 @@ function GameplayInteractor:unloadGameplay()
 	if self.playfield then self.playfield:clearManiaSkin() end
 
 	local re = self.game.rhythm_engine
-	if re and (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) and was_loaded then
+	if re and re.rules and was_loaded then
 		self:saveAimReplay()
 	end
 	self.aim_replay = nil
@@ -395,7 +391,7 @@ function GameplayInteractor:update(dt, after_inputs)
 	local game = self.game
 	-- Experimental input is timestamped and queued by the UI. Resolve it before deadlines.
 	local engine = game.rhythm_engine
-	local deferred = engine and (engine.aim_rules or engine.catch_rules or engine.taiko_rules or engine.sdvx_rules)
+	local deferred = engine and engine.rules
 	if not deferred or after_inputs then
 		self.gameplay_session:update(game.global_timer:getTime())
 		game.pauseModel:update()
@@ -450,7 +446,7 @@ function GameplayInteractor:hasReachedScoreSaveTime()
 end
 
 function GameplayInteractor:saveScore()
-	assert(not self.game.rhythm_engine.aim_rules and not self.game.rhythm_engine.catch_rules and not self.game.rhythm_engine.taiko_rules and not self.game.rhythm_engine.sdvx_rules, "Experimental modes cannot save or submit scores")
+	assert(not self.game.rhythm_engine.rules, "Experimental modes cannot save or submit scores")
 	self.score_saver:saveScore(self.gameplay_session)
 end
 
@@ -563,10 +559,11 @@ end
 ---@return string?
 function GameplayInteractor:saveAimReplay()
 	local session = self.gameplay_session
-	if not session or not (session.rhythm_engine.aim_rules or session.rhythm_engine.catch_rules or session.rhythm_engine.taiko_rules or session.rhythm_engine.sdvx_rules) or session.play_type ~= "manual" or self.aim_saved then
+	if not session or not session.rhythm_engine.rules or session.play_type ~= "manual" or self.aim_saved then
 		return
 	end
-	local store = session.rhythm_engine.sdvx_rules and self.sdvx_replay_store or session.rhythm_engine.taiko_rules and self.taiko_replay_store or session.rhythm_engine.catch_rules and self.catch_replay_store or self.aim_replay_store
+	local mode = session.rhythm_engine.mode
+	local store = mode == "sdvx" and self.sdvx_replay_store or mode == "taiko" and self.taiko_replay_store or mode == "catch" and self.catch_replay_store or self.aim_replay_store
 	local ok, path = pcall(store.save, store, session)
 	self.aim_saved = ok
 	self.aim_status = ok and ("Replay saved: " .. path) or ("Replay save failed: " .. tostring(path))

@@ -2,7 +2,7 @@ local TestChart = require("rizu.gameplay.modes.TestChart")
 local ModeNotes = require("chart.model.ModeNotes")
 local Rules = require("rizu.gameplay.catch.Rules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.catch.Engine")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 local TestChartFactory = require("sea.chart.TestChartFactory")
@@ -66,18 +66,18 @@ function test.recorded_actions_replay_at_different_frame_rates(t)
 	local re, manual = session()
 	for _, frame in ipairs(Rules.autoplay(TestChart.create(chart(), "catch"))) do manual:receive(frame.event, (frame.time + 1) / 1.5) end
 	manual:update(5)
-	t:eq(re.catch_rules.hits, 3)
+	t:eq(re.rules.hits, 3)
 	t:eq(manual:hasResult(), false)
 	local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
 	for _, step in ipairs({1 / 30, 1 / 144, 0.37, 5}) do
 		local engine, replay = session()
 		replay:setPlayType("replay"); replay:setReplayFrames(frames)
 		for time = step, 5 + step, step do replay:update(time) end
-		t:eq(engine.catch_rules.hits, re.catch_rules.hits)
-		t:eq(engine.catch_rules.misses, re.catch_rules.misses)
-		for i, e in ipairs(engine.catch_rules.events) do
-			t:eq(e.hit, re.catch_rules.events[i].hit)
-			t:aeq(e.x, re.catch_rules.events[i].x, 1e-7)
+		t:eq(engine.rules.hits, re.rules.hits)
+		t:eq(engine.rules.misses, re.rules.misses)
+		for i, e in ipairs(engine.rules.events) do
+			t:eq(e.hit, re.rules.events[i].hit)
+			t:aeq(e.x, re.rules.events[i].x, 1e-7)
 		end
 	end
 end

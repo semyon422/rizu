@@ -1,7 +1,3 @@
-local SdvxRules = require("rizu.gameplay.sdvx.Rules")
-local TaikoRules = require("rizu.gameplay.taiko.Rules")
-local CatchRules = require("rizu.gameplay.catch.Rules")
-local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local class = require("class")
 local AutoplayPlayer = require("rizu.engine.autoplay.AutoplayPlayer")
@@ -26,14 +22,9 @@ end
 ---@param play_type "manual"|"auto"|"replay"
 function GameplaySession:setPlayType(play_type)
 	self.play_type = play_type
-	if play_type == "auto" and self.rhythm_engine.sdvx_rules then
-		self.replay_player = ReplayPlayer(SdvxRules.autoplay(self.rhythm_engine.sdvx_rules.chart))
-	elseif play_type == "auto" and self.rhythm_engine.taiko_rules then
-		self.replay_player = ReplayPlayer(TaikoRules.autoplay(self.rhythm_engine.taiko_rules.chart))
-	elseif play_type == "auto" and self.rhythm_engine.catch_rules then
-		self.replay_player = ReplayPlayer(CatchRules.autoplay(self.rhythm_engine.catch_rules.chart))
-	elseif play_type == "auto" and self.rhythm_engine.aim_rules then
-		self.replay_player = ReplayPlayer(CircleRules.autoplay(self.rhythm_engine.aim_rules.chart, false))
+	local frames = play_type == "auto" and self.rhythm_engine:getAutoplayFrames()
+	if frames then
+		self.replay_player = ReplayPlayer(frames)
 	end
 end
 
@@ -50,12 +41,10 @@ function GameplaySession:update(current_time)
 
 	local next_time = re:getTime(true)
 
-	if self.play_type == "auto" and (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) then
+	if self.replay_player and self.play_type ~= "manual" then
 		self.replay_player:update(re, next_time)
 	elseif self.play_type == "auto" then
 		self.autoplay_player:update(re, next_time)
-	elseif self.play_type == "replay" and self.replay_player then
-		self.replay_player:update(re, next_time)
 	end
 
 	re:update()
@@ -69,8 +58,8 @@ end
 function GameplaySession:pause()
 	local re = self.rhythm_engine
 	re:pause()
-	if self.play_type == "manual" and re.aim_rules and next(re.aim_rules.spinners) then
-		local event = VirtualInputEvent(0, nil, 2)
+	local event = self.play_type == "manual" and re:getPauseEvent()
+	if event then
 		re:receive(event)
 		self.replay_recorder:record(re:getTime(), event)
 	end
@@ -78,7 +67,7 @@ end
 
 ---@return boolean
 function GameplaySession:isPaused()
-	return not not self.rhythm_engine.input_engine.input_pauser.paused
+	return self.rhythm_engine:isPaused()
 end
 
 ---@return boolean
@@ -102,8 +91,8 @@ function GameplaySession:receive(event, current_time)
 	local re = self.rhythm_engine
 	re:setGlobalTime(current_time)
 	re:receive(event)
-	-- Only experimental replay formats use column 2 for paused state updates.
-	if (re.aim_rules or re.catch_rules or re.taiko_rules or re.sdvx_rules) and self:isPaused() then
+	-- Only rules replay formats use column 2 for paused state updates.
+	if re.rules and self:isPaused() then
 		event = VirtualInputEvent(event.id, event.value, 2, event.pos)
 	end
 	self.replay_recorder:record(re:getTime(), event)

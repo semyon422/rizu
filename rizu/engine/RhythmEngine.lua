@@ -1,57 +1,29 @@
-local SdvxRules = require("rizu.gameplay.sdvx.Rules")
-local TaikoRules = require("rizu.gameplay.taiko.Rules")
-local CatchRules = require("rizu.gameplay.catch.Rules")
-local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local class = require("class")
-
-local InputEngine = require("rizu.engine.input.InputEngine")
-local ActiveInputNotes = require("rizu.engine.input.ActiveInputNotes")
 
 local AudioEngine = require("rizu.engine.audio.Engine")
 local TimeEngine = require("rizu.engine.time.TimeEngine")
-
-local LogicInfo = require("rizu.engine.logic.LogicInfo")
-local LogicEngine = require("rizu.engine.logic.LogicEngine")
-
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local VisualEngine = require("rizu.engine.visual.VisualEngine")
-
 local BgaEngine = require("rizu.engine.sprite.BgaEngine")
-
 local PlayProgress = require("rizu.engine.PlayProgress")
 local PauseCounter = require("rizu.engine.PauseCounter")
 
-local ScoreEngine = require("rizu.engine.ScoreEngine")
-
+---What every gamemode shares: time, audio, BGA, progress and pauses.
+---Notes, judgement and scoring belong to the subclass of each gamemode.
 ---@class rizu.RhythmEngine
 ---@operator call: rizu.RhythmEngine
----@field aim_tracking boolean? False for checkpoint-only legacy replays.
----@field aim_stacking boolean? False for legacy diagnostic replay geometry.
----@field sdvx_rules rizu.sdvx.Rules?
----@field taiko_rules rizu.taiko.Rules?
----@field catch_rules rizu.catch.Rules?
----@field aim_rules rizu.aim.CircleRules?
+---@field chart chart.Chart
+---@field chartmeta sea.Chartmeta
+---@field chartdiff sea.Chartdiff
+---@field mode sea.Gamemode
 local RhythmEngine = class()
 
-
 function RhythmEngine:new()
-	self.logic_info = LogicInfo()
-
-	self.logic_engine = LogicEngine(self.logic_info)
-
-	self.active_input_notes = ActiveInputNotes(self.logic_engine.active_notes)
-	self.input_engine = InputEngine(self.active_input_notes)
-
 	self.visual_info = VisualInfo()
-	self.visual_engine = VisualEngine(self.visual_info)
 	self.bga_engine = BgaEngine(self.visual_info)
 
 	self.auto_key_sound = true
-
-	self.score_engine = ScoreEngine()
-	function self.logic_info.on_note_change(change)
-		self.score_engine:receive(change)
-	end
+	self.rate = 1
+	self.paused = false
 
 	self.audio_engine = AudioEngine()
 
@@ -61,37 +33,37 @@ function RhythmEngine:new()
 	self.pause_counter = PauseCounter()
 end
 
-function RhythmEngine:load()
-	local chart = self.chart
-	self.mode = self.chartmeta.mode
+---Builds gamemode state from the chart given to setChart.
+function RhythmEngine:load() end
 
-	if self.mode == "sdvx" then
-		self.sdvx_rules = SdvxRules(chart)
-		return
-	end
-	if self.mode == "taiko" then
-		self.taiko_rules = TaikoRules(chart)
-		self.taiko_sound_index = 0
-		return
-	end
-	if self.mode == "catch" then
-		self.catch_rules = CatchRules(chart)
-		self.catch_sound_index = 0
-		return
-	end
-	if self.mode == "osu" then
-		self.aim_rules = CircleRules(chart, self.aim_stacking, self.aim_tracking)
-		self.aim_sound_index = 0
-		self.aim_result_sound_index = 0
-		return
-	end
-	self.active_input_notes:setInputMap(chart.inputMode:getInputMap())
-	self.logic_engine:load(chart)
-	self.visual_engine:load(chart)
-	self.score_engine:load(self.chartdiff)
-	self.pause_counter:new()
+---Advances gamemode state to the current time.
+function RhythmEngine:updateNotes() end
 
-	self.visual_info.logic_notes = self.logic_engine.linked_to_logic
+---@param event rizu.VirtualInputEvent
+function RhythmEngine:receive(event) end
+
+---@return boolean
+function RhythmEngine:hasResult()
+	return false
+end
+
+---Modes without configurable timings keep their own windows.
+---@param timings sea.Timings?
+---@param subtimings sea.Subtimings?
+function RhythmEngine:setTimings(timings, subtimings) end
+
+---Scripted inputs for modes that autoplay through the replay player.
+---@return rizu.ReplayFrame[]?
+function RhythmEngine:getAutoplayFrames() end
+
+---An input the mode needs replayed when the player pauses.
+---@return rizu.VirtualInputEvent?
+function RhythmEngine:getPauseEvent() end
+
+---Extra time after the last object during which it can still be judged.
+---@return number
+function RhythmEngine:getPlayPadding()
+	return 0
 end
 
 ---@param resources {[string]: string}
@@ -115,23 +87,6 @@ function RhythmEngine:setAutoKeySound(enabled)
 	self.auto_key_sound = enabled
 end
 
----@return boolean
-function RhythmEngine:hasResult()
-	if self.aim_rules or self.catch_rules or self.taiko_rules or self.sdvx_rules then
-		return false
-	end
-	local time_engine = self.time_engine
-	local base = self.score_engine.scores.base
-	local accuracy = self.score_engine.scores.normalscore.accuracyAdjusted
-
-	return
-		not time_engine.wind_up and
-		time_engine.time >= self.play_progress.start_time and
-		base.hitCount > 0 and
-		accuracy > 0 and
-		accuracy < math.huge
-end
-
 function RhythmEngine:unloadAudio()
 	if self.audio_engine then
 		self.audio_engine:unload()
@@ -147,69 +102,25 @@ function RhythmEngine:unload()
 	end
 	self.bga_engine = nil
 
-	self.visual_engine = nil
-	self.logic_engine = nil
-	self.input_engine = nil
 	self.time_engine = nil
-	self.score_engine = nil
 end
 
 function RhythmEngine:update()
 	self:syncTime()
-
-	if self.sdvx_rules then
-		self.sdvx_rules:update(self.logic_info.time)
-	elseif self.taiko_rules then
-		self.taiko_rules:update(self.logic_info.time)
-		for i = self.taiko_sound_index + 1, #self.taiko_rules.sounds do
-			local object = self.taiko_rules.objects[self.taiko_rules.sounds[i]]
-			for _, sample in ipairs(object.sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
-		end
-		self.taiko_sound_index = #self.taiko_rules.sounds
-	elseif self.catch_rules then
-		self.catch_rules:update(self.logic_info.time)
-		for i = self.catch_sound_index + 1, #self.catch_rules.events do
-			local event = self.catch_rules.events[i]
-			if event.hit then
-				for _, sample in ipairs(self.catch_rules.objects[event.index].sounds) do self.audio_engine:playSample(sample[1], sample[2]) end
-			end
-		end
-		self.catch_sound_index = #self.catch_rules.events
-	elseif self.aim_rules then
-		self.aim_rules:update(self.logic_info.time)
-	else
-		self.input_engine:update()
-		self.logic_engine:update()
-		self.visual_engine:update()
-	end
-	local sound = self.aim_sound_index or 0
-	if self.aim_rules then
-		for i = sound + 1, #self.aim_rules.checkpoint_events do
-			local event = self.aim_rules.checkpoint_events[i]
-			if event.hit then
-				for _, sample in ipairs(event.sounds) do
-					self.audio_engine:playSample(sample[1], sample[2])
-				end
-			end
-		end
-		self.aim_sound_index = #self.aim_rules.checkpoint_events
-		for i = self.aim_result_sound_index + 1, #self.aim_rules.events do
-			local event = self.aim_rules.events[i]
-			local object = self.aim_rules.objects[event.index]
-			if event.hit and object.kind == "spinner" then
-				for _, sample in ipairs(object.sounds) do
-					self.audio_engine:playSample(sample[1], sample[2])
-				end
-			end
-		end
-		self.aim_result_sound_index = #self.aim_rules.events
-	end
+	self:updateNotes()
 	self.bga_engine:update()
 	self.audio_engine:update()
 end
 
+---@param samples {[1]: string, [2]: number}[]?
+function RhythmEngine:playSamples(samples)
+	if not samples then return end
+	for _, sample in ipairs(samples) do
+		self.audio_engine:playSample(sample[1], sample[2])
+	end
+end
+
 function RhythmEngine:syncTime()
-	self.logic_info.time = self.time_engine.time
 	self.visual_info.time = self.time_engine.time
 end
 
@@ -217,7 +128,7 @@ end
 function RhythmEngine:play(pending_resync)
 	self.time_engine:play()
 	self.audio_engine:play()
-	self.input_engine:resume()
+	self.paused = false
 	self.pause_counter:play(self.time_engine.time)
 	self.pending_resync = pending_resync
 end
@@ -225,46 +136,14 @@ end
 function RhythmEngine:pause()
 	self.time_engine:pause()
 	self.audio_engine:pause()
-	self.input_engine:pause()
+	self.paused = true
 	self.pause_counter:pause()
 	self.pending_resync = false
 end
 
----@param event rizu.VirtualInputEvent
-function RhythmEngine:receive(event)
-	self:syncTime()
-	if self.sdvx_rules then
-		self.sdvx_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
-		return
-	end
-	if self.taiko_rules then
-		self.taiko_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
-		return
-	end
-	if self.catch_rules then
-		self.catch_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
-		return
-	end
-	if self.aim_rules then
-		local index = self.aim_rules:receive(event, self.logic_info.time, self.input_engine.input_pauser.paused)
-		if index then
-			for _, sound in ipairs(self.aim_rules.objects[index].sounds) do
-				self.audio_engine:playSample(sound[1], sound[2])
-			end
-		end
-		return
-	end
-	local input_note, catched = self.input_engine:receive(event)
-
-	if not self.auto_key_sound and event.value == true and catched then
-		local logic_note = input_note and input_note.logic_note
-
-		if logic_note and logic_note.linked_note.startNote.data.sounds then
-			for _, sound in ipairs(logic_note.linked_note.startNote.data.sounds) do
-				self.audio_engine:playSample(sound[1], sound[2])
-			end
-		end
-	end
+---@return boolean
+function RhythmEngine:isPaused()
+	return self.paused
 end
 
 ---@param no_mono boolean?
@@ -287,26 +166,12 @@ function RhythmEngine:setChart(chart, chartmeta, chartdiff)
 	self.chart = chart
 	self.chartmeta = chartmeta
 	self.chartdiff = chartdiff
-end
-
----@param timings sea.Timings?
----@param subtimings sea.Subtimings?
-function RhythmEngine:setTimings(timings, subtimings)
-	if self.aim_rules or self.catch_rules or self.taiko_rules or self.sdvx_rules then
-		return
-	end
-	timings = assert(timings or self.chartmeta.timings)
-	self.score_engine:createByTimings(timings, subtimings, true)
-end
-
----@param timing_values sea.TimingValues
-function RhythmEngine:setTimingValues(timing_values)
-	self.logic_info.timing_values = timing_values
+	self.mode = chartmeta.mode
 end
 
 ---@param rate number
 function RhythmEngine:setRate(rate)
-	self.logic_info.rate = rate
+	self.rate = rate
 	self.time_engine:setRate(rate)
 	self.audio_engine:setRate(rate)
 end
@@ -314,17 +179,6 @@ end
 ---@param enabled boolean
 function RhythmEngine:setAudioEnabled(enabled)
 	self.audio_engine:setEnabled(enabled)
-end
-
----@param nearest boolean
-function RhythmEngine:setNearest(nearest)
-	self.input_engine.nearest = nearest
-end
-
----@param const boolean
-function RhythmEngine:setConst(const)
-	self.time_engine.const = const
-	self.visual_info.const = const
 end
 
 ---@param time number
@@ -354,7 +208,7 @@ end
 ---@param scale_visual_rate boolean?
 function RhythmEngine:setVisualRate(visual_rate, scale_visual_rate)
 	if not scale_visual_rate then
-		visual_rate = visual_rate / self.logic_info.rate
+		visual_rate = visual_rate / self.rate
 	end
 	self.visual_info.rate = visual_rate
 end
@@ -377,23 +231,12 @@ function RhythmEngine:setTimeNoAudio(time)
 	self:update()
 end
 
----@param column integer
----@return boolean
-function RhythmEngine:isColumnPressed(column)
-	return self.input_engine:isColumnPressed(column)
-end
-
----@param shortening number
-function RhythmEngine:setLongNoteShortening(shortening)
-	self.visual_info.shortening = shortening
-end
-
 ---@param time number
 function RhythmEngine:setTimeToPrepare(time)
 	self.prepare_time = time
 	local start_time = self.play_progress.start_time
 	local time_to_prepare = math.min(start_time - time, self.audio_engine:getStartTime())
-	local init_time = time_to_prepare * self.logic_info.rate
+	local init_time = time_to_prepare * self.rate
 	self:setTime(init_time)
 	self.play_progress.init_time = init_time
 end
@@ -410,10 +253,6 @@ end
 function RhythmEngine:setAudioMode(audio_mode)
 	self.audio_mode = audio_mode
 	self.audio_engine:setAudioMode(audio_mode)
-end
-
----@param wind_up string
-function RhythmEngine:setWindUp(wind_up)
 end
 
 function RhythmEngine:skipIntro()

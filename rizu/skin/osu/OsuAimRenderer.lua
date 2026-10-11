@@ -49,7 +49,7 @@ function OsuAimRenderer:load()
 		self.skin_graphics:load()
 	end
 	self.sprites = self.skin_graphics.images
-	local rules = self.game.rhythm_engine and self.game.rhythm_engine.aim_rules
+	local rules = self.game.rhythm_engine and self.game.rhythm_engine.rules
 	if rules and self.prepared_rules ~= rules then
 		---@type fun(graphics: rizu.skin.base.osu.aim.SliderGraphics, rules: rizu.aim.CircleRules)
 		local prepare = self.slider_graphics.prepare
@@ -63,7 +63,7 @@ end
 ---@param transform love.Transform
 function OsuAimRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
-	local rules = re and re.aim_rules
+	local rules = re and re.rules
 	if not rules then return end
 	self:load()
 	local scale, ox, oy = self:getField(width, height)

@@ -1,5 +1,6 @@
 local class = require("class")
 local Settings = require("rizu.config.Settings")
+local Gamemodes = require("rizu.gameplay.Gamemodes")
 
 ---@class rizu.RhythmEngineLoader
 ---@operator call: rizu.RhythmEngineLoader
@@ -42,28 +43,16 @@ function RhythmEngineLoader:load(rhythm_engine)
 		primary = settings:getChoice(keys.audio.mode_primary),
 		secondary = settings:getChoice(keys.audio.mode_secondary),
 	})
-	if chartmeta.mode ~= "mania" then
-		rhythm_engine:setAutoKeySound(false)
-	end
 	rhythm_engine:loadAudio(self.resources)
 	rhythm_engine:loadVisuals(self.resources, self.resource_paths)
 
-	rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings)
-	rhythm_engine:setTimingValues(replayBase.timing_values)
 	rhythm_engine:setRate(replayBase.rate)
-	rhythm_engine:setNearest(replayBase.nearest)
-	rhythm_engine:setConst(replayBase.const)
+	Gamemodes[chartmeta.mode].configureEngine(rhythm_engine, replayBase, settings)
 
-	local duration = chartdiff.duration
-	if rhythm_engine.aim_rules or rhythm_engine.catch_rules or rhythm_engine.taiko_rules or rhythm_engine.sdvx_rules then
-		local rules = rhythm_engine.aim_rules or rhythm_engine.catch_rules or rhythm_engine.taiko_rules or rhythm_engine.sdvx_rules
-		duration = duration + rules.window + 0.5
-	end
-	rhythm_engine:setPlayTime(chartdiff.start_time, duration)
+	rhythm_engine:setPlayTime(chartdiff.start_time, chartdiff.duration + rhythm_engine:getPlayPadding())
 	rhythm_engine:setTimeToPrepare(settings:getNumber(keys.gameplay.time_prepare))
 	rhythm_engine:setAdjustFactor(settings:getNumber(keys.audio.adjust_rate))
 
-	rhythm_engine:setLongNoteShortening(settings:getNumber(keys.gameplay.long_note_shortening))
 	rhythm_engine:setVisualRate(
 		settings:getNumber(keys.gameplay.speed),
 		settings:getBoolean(keys.gameplay.scale_speed)

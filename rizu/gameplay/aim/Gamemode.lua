@@ -7,4 +7,9 @@ local AimGamemode = Gamemode + {}
 AimGamemode.name = "osu"
 AimGamemode.prepare = Preparation.compute
 
+---@return rizu.gameplay.aim.Engine
+function AimGamemode.createEngine()
+	return require("rizu.gameplay.aim.Engine")()
+end
+
 return AimGamemode

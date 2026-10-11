@@ -104,7 +104,7 @@ function test.gameplay_uses_world_objects_not_debug_preview(t)
 			objects = {{lane = 1, time = 0.15, end_time = 0.15}},
 			states = {{}},
 		}, lasers = {}}
-		renderer.game.rhythm_engine = {sdvx_rules = rules, visual_info = {time = 0}}
+		renderer.game.rhythm_engine = {rules = rules, visual_info = {time = 0}}
 		-- Synthetic colors make the note and track unambiguous in readback.
 		local images = assert(renderer.images)
 		images.button:release(); images.button = white_image()

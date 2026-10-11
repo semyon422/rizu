@@ -11,7 +11,7 @@ local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
 local TempoRange = require("chart.format.notechart.TempoRange")
 local Note = require("chart.model.notes.Note")
 local Notes = require("chart.model.notes.Notes")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local ManiaEngine = require("rizu.gameplay.mania.Engine")
 local ChartplayComputedFactory = require("rizu.engine.ChartplayComputedFactory")
 local ReplayPlayer = require("rizu.engine.replay.ReplayPlayer")
 
@@ -152,7 +152,7 @@ function ComputeContext:computeReplay(replay)
 	local state = assert(self.state)
 	local diffcalc_context = assert(self.diffcalc_context)
 
-	local rhythm_engine = RhythmEngine()
+	local rhythm_engine = ManiaEngine()
 
 	rhythm_engine:setChart(self.chart, chartmeta, chartdiff)
 	rhythm_engine:load()

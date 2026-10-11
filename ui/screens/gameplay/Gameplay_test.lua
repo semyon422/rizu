@@ -217,7 +217,7 @@ function test.aim_completion_saves_diagnostic_replay_without_score_screen(t)
 	local text, visible
 	local screen = setmetatable({
 		is_aim = true, is_playing = true, sequence_canvas = {},
-		game = {rhythm_engine = {getProgress = function() return 1 end, aim_rules = {hits = 2, misses = 1}}},
+		game = {rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 2, misses = 1}}},
 		gameplay_interactor = {
 			saveAimReplay = function() saved = saved + 1 end,
 			pause = function() paused = paused + 1 end,
@@ -239,7 +239,7 @@ function test.taiko_completion_uses_local_summary(t)
 	local text
 	local screen = setmetatable({
 		is_aim = true, is_taiko = true, is_playing = true, sequence_canvas = {},
-		game = {rhythm_engine = {getProgress = function() return 1 end, taiko_rules = {hits = 3, misses = 1}}},
+		game = {rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 3, misses = 1}}},
 		gameplay_interactor = {
 			saveAimReplay = function() saved = saved + 1 end,
 			pause = function() paused = paused + 1 end,

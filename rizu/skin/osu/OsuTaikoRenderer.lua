@@ -119,7 +119,7 @@ end
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 function OsuTaikoRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
-	local rules = re and re.taiko_rules
+	local rules = re and re.rules
 	if not rules then return end
 	self:load()
 

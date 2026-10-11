@@ -17,7 +17,7 @@ function test.local_replay_round_trip_without_score_or_hits(t)
 	local session = {
 		play_type = "manual", replay_recorder = recorder,
 		rhythm_engine = {
-			aim_rules = {}, chartmeta = {hash = hash, index = 1},
+			rules = {}, chartmeta = {hash = hash, index = 1},
 			time_engine = {timer = {rate = 1.5}},
 		},
 	}

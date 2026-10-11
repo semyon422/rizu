@@ -13,4 +13,15 @@ local Gamemode = class()
 ---@param config rizu.GameplayChartConfig
 function Gamemode.prepare(ctx, replay_base, config) end
 
+---@return rizu.RhythmEngine
+function Gamemode.createEngine()
+	error("not implemented")
+end
+
+---Applies the play settings only this gamemode understands.
+---@param engine rizu.RhythmEngine
+---@param replay_base sea.ReplayBase
+---@param settings rizu.config.Config
+function Gamemode.configureEngine(engine, replay_base, settings) end
+
 return Gamemode

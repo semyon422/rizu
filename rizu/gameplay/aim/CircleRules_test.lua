@@ -2,7 +2,7 @@ local TestChart = require("rizu.gameplay.modes.TestChart")
 local ModeNotes = require("chart.model.ModeNotes")
 local CircleRules = require("rizu.gameplay.aim.CircleRules")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
-local RhythmEngine = require("rizu.engine.RhythmEngine")
+local RhythmEngine = require("rizu.gameplay.aim.Engine")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 local TestChartFactory = require("sea.chart.TestChartFactory")
@@ -78,7 +78,7 @@ function test.manual_recording_and_replay_match_at_different_rates_and_frames(t)
 			manual:receive(frame.event, frame.time / rate)
 		end
 		manual:update(5)
-		t:eq(re.aim_rules.hits, 3)
+		t:eq(re.rules.hits, 3)
 		t:eq(manual:hasResult(), false)
 		local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
 		for _, step in ipairs({1 / 30, 1 / 60, 1 / 144, 0.37, 5}) do
@@ -88,7 +88,7 @@ function test.manual_recording_and_replay_match_at_different_rates_and_frames(t)
 			for time = step, 5 + step, step do
 				replay:update(time)
 			end
-			t:tdeq(replay_re.aim_rules.events, re.aim_rules.events)
+			t:tdeq(replay_re.rules.events, re.rules.events)
 		end
 	end
 end
@@ -98,7 +98,7 @@ function test.autoplay_uses_replay_input_and_recording_snapshots(t)
 	local re, auto = session(1)
 	auto:setPlayType("auto")
 	auto:update(5)
-	t:eq(re.aim_rules.hits, 3)
+	t:eq(re.rules.hits, 3)
 	local _, manual = session(1)
 	local event = VirtualInputEvent(1, true, 1, {100, 100})
 	manual:receive(event, 1)
@@ -114,7 +114,7 @@ function test.pause_recording_replays_without_spurious_hits(t)
 	manual:update(1.03)
 	manual:pause()
 	manual:receive(VirtualInputEvent(1, true, 1, {100, 100}), 2)
-	t:eq(re.aim_rules.hits, 0)
+	t:eq(re.rules.hits, 0)
 	manual:play()
 	manual:receive(VirtualInputEvent(1, false, 1), 2)
 	manual:receive(VirtualInputEvent(1, true, 1, {100, 100}), 2)
@@ -123,8 +123,8 @@ function test.pause_recording_replays_without_spurious_hits(t)
 	replay:setPlayType("replay")
 	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
 	replay:update(5)
-	t:tdeq(replay_re.aim_rules.events, re.aim_rules.events)
-	t:eq(re.aim_rules.hits, 1)
+	t:tdeq(replay_re.rules.events, re.rules.events)
+	t:eq(re.rules.hits, 1)
 end
 
 ---@return table
@@ -147,17 +147,17 @@ function test.slider_autoplay_manual_and_binary_replay_match(t)
 			manual:receive(frame.event, frame.time / rate)
 		end
 		manual:update(10)
-		t:eq(re.aim_rules.hits, 2)
-		t:eq(re.aim_rules.checkpoint_hits, 6)
-		t:eq(re.aim_rules.checkpoint_misses, 0)
+		t:eq(re.rules.hits, 2)
+		t:eq(re.rules.checkpoint_hits, 6)
+		t:eq(re.rules.checkpoint_misses, 0)
 		local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
 		for _, step in ipairs({1 / 30, 1 / 144, 0.37, 10}) do
 			local engine, replay = session(rate, aim)
 			replay:setPlayType("replay")
 			replay:setReplayFrames(frames)
 			for time = step, 10 + step, step do replay:update(time) end
-			t:tdeq(engine.aim_rules.events, re.aim_rules.events)
-			t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
+			t:tdeq(engine.rules.events, re.rules.events)
+			t:tdeq(engine.rules.checkpoint_events, re.rules.checkpoint_events)
 		end
 	end
 end
@@ -205,9 +205,9 @@ function test.slider_pause_release_round_trip(t)
 	replay:setPlayType("replay")
 	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
 	replay:update(10)
-	t:tdeq(engine.aim_rules.events, re.aim_rules.events)
-	t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
-	t:eq(re.aim_rules.checkpoint_hits, 0)
+	t:tdeq(engine.rules.events, re.rules.events)
+	t:tdeq(engine.rules.checkpoint_events, re.rules.checkpoint_events)
+	t:eq(re.rules.checkpoint_hits, 0)
 end
 
 ---@return table
@@ -227,21 +227,21 @@ function test.spinner_autoplay_and_manual_binary_replay(t)
 				local re, manual = session(rate, aim)
 		for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do manual:receive(frame.event, frame.time / rate) end
 		manual:update(10)
-		t:eq(re.aim_rules.hits, 2)
+		t:eq(re.rules.hits, 2)
 		local frames = ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames()))
 		for _, step in ipairs({1 / 30, 1 / 144, 0.37, 10}) do
 			local engine, replay = session(rate, aim)
 			replay:setPlayType("replay")
 			replay:setReplayFrames(frames)
 			for time = step, 10 + step, step do replay:update(time) end
-			t:tdeq(engine.aim_rules.events, re.aim_rules.events)
-			t:eq(engine.aim_rules.spinners[1].angle_sum, re.aim_rules.spinners[1].angle_sum)
+			t:tdeq(engine.rules.events, re.rules.events)
+			t:eq(engine.rules.spinners[1].angle_sum, re.rules.spinners[1].angle_sum)
 		end
 	end
 	local engine, auto = session(1, aim)
 	auto:setPlayType("auto")
 	auto:update(10)
-	t:eq(engine.aim_rules.hits, 2)
+	t:eq(engine.rules.hits, 2)
 end
 
 ---@param t testing.T
@@ -263,17 +263,17 @@ function test.spinner_pause_without_motion_resets_replay_baseline(t)
 	manual:receive(VirtualInputEvent(1, true, 1, {356, 192}), 1)
 	manual:receive(VirtualInputEvent(0, nil, 1, {256, 292}), 1.1)
 	manual:pause()
-	t:eq(re.aim_rules.spinners[1].last_angle, nil)
+	t:eq(re.rules.spinners[1].last_angle, nil)
 	manual:play()
 	manual:receive(VirtualInputEvent(0, nil, 1, {156, 192}), 1.2)
-	t:aeq(re.aim_rules.spinners[1]:getTurns(), 0.25, 1e-9)
+	t:aeq(re.rules.spinners[1]:getTurns(), 0.25, 1e-9)
 	manual:update(10)
 	local engine, replay = session(1, aim)
 	replay:setPlayType("replay")
 	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
 	replay:update(10)
-	t:tdeq(engine.aim_rules.events, re.aim_rules.events)
-	t:eq(engine.aim_rules.spinners[1].angle_sum, re.aim_rules.spinners[1].angle_sum)
+	t:tdeq(engine.rules.events, re.rules.events)
+	t:eq(engine.rules.spinners[1].angle_sum, re.rules.spinners[1].angle_sum)
 end
 
 ---@param t testing.T
@@ -282,21 +282,21 @@ function test.stacked_slider_autoplay_and_replay_share_geometry(t)
 	aim.stack_leniency = 0.7
 	aim.objects[2].time = 4.1
 	local re, manual = session(1.5, aim)
-	t:eq(re.aim_rules.objects[2].stack_height, -1)
+	t:eq(re.rules.objects[2].stack_height, -1)
 	for _, frame in ipairs(CircleRules.autoplay(TestChart.create(aim, "osu"))) do manual:receive(frame.event, frame.time / 1.5) end
 	manual:update(10)
-	t:eq(re.aim_rules.hits, 2)
+	t:eq(re.rules.hits, 2)
 	local engine, replay = session(1.5, aim)
 	replay:setPlayType("replay")
 	replay:setReplayFrames(ReplayFrames.decode(ReplayFrames.encode(manual.replay_recorder:getFrames())))
 	replay:update(10)
-	t:tdeq(engine.aim_rules.events, re.aim_rules.events)
-	t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
+	t:tdeq(engine.rules.events, re.rules.events)
+	t:tdeq(engine.rules.checkpoint_events, re.rules.checkpoint_events)
 	local auto_engine, auto = session(1, aim)
 	auto:setPlayType("auto")
 	auto:update(10)
-	t:eq(auto_engine.aim_rules.hits, 2)
-	t:eq(auto_engine.aim_rules.objects[2].x, re.aim_rules.objects[2].x)
+	t:eq(auto_engine.rules.hits, 2)
+	t:eq(auto_engine.rules.objects[2].x, re.rules.objects[2].x)
 end
 
 ---@param t testing.T
@@ -372,9 +372,9 @@ function test.tracking_break_and_early_tail_replay_across_frame_rates(t)
 		replay:setPlayType("replay")
 		replay:setReplayFrames(frames)
 		for time = step, 10 + step, step do replay:update(time) end
-		t:tdeq(engine.aim_rules.events, re.aim_rules.events)
-		t:tdeq(engine.aim_rules.checkpoint_events, re.aim_rules.checkpoint_events)
-		t:eq(engine.aim_rules.tracking_breaks, 1)
+		t:tdeq(engine.rules.events, re.rules.events)
+		t:tdeq(engine.rules.checkpoint_events, re.rules.checkpoint_events)
+		t:eq(engine.rules.tracking_breaks, 1)
 	end
 end
 

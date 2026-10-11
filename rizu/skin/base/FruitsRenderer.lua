@@ -14,7 +14,7 @@ end
 ---@param transform love.Transform Maps viewport coordinates to drawable pixels
 function FruitsRenderer:draw(width, height, transform)
 	local re = self.game.rhythm_engine
-	local rules = re and re.catch_rules
+	local rules = re and re.rules
 	if not rules then return end
 	love.graphics.push("all")
 	love.graphics.setColor(0.04, 0.05, 0.08)
