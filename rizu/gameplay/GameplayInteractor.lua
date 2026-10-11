@@ -1,17 +1,12 @@
 local Objects = require("chart.format.osu.Objects")
 local ReplayBase = require("sea.replays.ReplayBase")
 local table_util = require("table_util")
-local SdvxInput = require("rizu.gameplay.sdvx.Input")
-local TaikoInput = require("rizu.gameplay.taiko.Input")
-local CatchInput = require("rizu.gameplay.catch.Input")
-local AimInput = require("rizu.gameplay.aim.Input")
+local Gamemodes = require("rizu.gameplay.Gamemodes")
 local AimReplayStore = require("rizu.gameplay.aim.ReplayStore")
 local class = require("class")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
 local RhythmEngineLoader = require("rizu.gameplay.RhythmEngineLoader")
-local InputBinder = require("rizu.input.InputBinder")
-local KeyPhysicInputEvent = require("rizu.input.KeyPhysicInputEvent")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ScoreSaver = require("rizu.gameplay.ScoreSaver")
 local IidxResourcePaths = require("rizu.library.iidx.ResourcePaths")
@@ -24,6 +19,8 @@ local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 ---@field load_state "empty"|"loading"|"ready"|"failed"
 ---@field load_error string?
 ---@field replay_base sea.ReplayBase?
+---@field gamemode rizu.gameplay.Gamemode Of the loaded chart.
+---@field input rizu.gameplay.GamemodeInput
 ---@operator call: rizu.GameplayInteractor
 local GameplayInteractor = class()
 
@@ -207,9 +204,6 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 	self.playfield:load()
 	if load_generation ~= self.load_generation then return false end
 
-	local input_binder = InputBinder(game.configModel.configs.input, input_mode)
-	self.input_binder = input_binder
-
 	game.pauseModel:load()
 
 	game.multiplayerModel.client:setPlaying(chartmeta.mode == "mania")
@@ -227,6 +221,7 @@ function GameplayInteractor:load(autoplay)
 
 	self:unloadVolume()
 	local mode = game.computeContext.chartmeta.mode
+	self.gamemode = Gamemodes[mode]
 	game:recreateRhythmEngine(mode)
 	game.rhythm_engine.stacking = not self.aim_replay or self.aim_replay.format == "rizu-aim-stacking-1" or self.aim_replay.format == "rizu-aim-tracking-1"
 	game.rhythm_engine.tracking = not self.aim_replay or self.aim_replay.format == "rizu-aim-tracking-1"
@@ -249,10 +244,10 @@ function GameplayInteractor:load(autoplay)
 	self:loadVolume()
 
 	self.gameplay_session = GameplaySession(game.rhythm_engine)
-	self.sdvx_input = mode == "sdvx" and SdvxInput() or nil
-	self.taiko_input = mode == "taiko"
-	self.catch_input = mode == "catch"
-	self.aim_input = mode == "osu" and AimInput() or nil
+	self.input = self.gamemode.createInput(
+		game.configModel.configs.input,
+		GameplayInteractor.getInputMode(game.computeContext.chart)
+	)
 	self.aim_saved = false
 	self.aim_status = nil
 	self.aim_complete = false
@@ -389,10 +384,8 @@ function GameplayInteractor:update(dt, after_inputs)
 	end
 
 	local game = self.game
-	-- Experimental input is timestamped and queued by the UI. Resolve it before deadlines.
-	local engine = game.rhythm_engine
-	local deferred = engine and engine.rules
-	if not deferred or after_inputs then
+	-- Deferred input is timestamped and queued by the UI. Resolve it before deadlines.
+	if not self.gamemode.deferred_input or after_inputs then
 		self.gameplay_session:update(game.global_timer:getTime())
 		game.pauseModel:update()
 		if game.pauseModel.needRetry then
@@ -511,48 +504,20 @@ end
 
 ---@param event table
 function GameplayInteractor:receive(event)
-	local game = self.game
-	local physic_event = KeyPhysicInputEvent.fromInputChangedEvent(event)
-	if self.sdvx_input then
-		if self.aim_complete then return end
-		local virtual_event = self.sdvx_input:transform(event)
-		if virtual_event then self.gameplay_session:receive(virtual_event, event.time) end
-		return
-	end
-	if self.taiko_input then
-		if self.aim_complete then return end
-		local virtual_event = TaikoInput.transform(event)
-		if virtual_event then self.gameplay_session:receive(virtual_event, event.time) end
-		return
-	end
-	if self.catch_input then
-		if self.aim_complete then return end
-		local virtual_event = CatchInput.transform(event)
-		if virtual_event then self.gameplay_session:receive(virtual_event, event.time) end
-		return
-	end
-	if self.aim_input then
-		if self.aim_complete then return end
-		local virtual_event = self.aim_input:transform(event)
-		if virtual_event then
-			self.gameplay_session:receive(virtual_event, event.time or game.global_timer:getTime())
-		end
-		return
-	end
-	if physic_event then
-		local virtual_event = self.input_binder:transform(physic_event)
-		if virtual_event then
-			self.gameplay_session:receive(virtual_event, game.global_timer:getTime())
-		end
+	if self.aim_complete then return end
+	local virtual_event = self.input:transform(event)
+	if virtual_event then
+		local time = self.gamemode.deferred_input and event.time or self.game.global_timer:getTime()
+		self.gameplay_session:receive(virtual_event, time)
 	end
 end
 
 ---@param x number
 ---@param y number
 ---@param time number
-function GameplayInteractor:aimPointer(x, y, time)
-	if self.aim_input and self.loaded and not self.aim_complete then
-		self.gameplay_session:receive(self.aim_input:move(x, y), time)
+function GameplayInteractor:movePointer(x, y, time)
+	if self.loaded and not self.aim_complete and self.input.move then
+		self.gameplay_session:receive(self.input:move(x, y), time)
 	end
 end
 

@@ -7,6 +7,11 @@ local SdvxGamemode = Gamemode + {}
 SdvxGamemode.name = "sdvx"
 SdvxGamemode.prepare = Preparation.compute
 
+---@return rizu.sdvx.Input
+function SdvxGamemode.createInput()
+	return require("rizu.gameplay.sdvx.Input")()
+end
+
 ---@return rizu.gameplay.sdvx.Engine
 function SdvxGamemode.createEngine()
 	return require("rizu.gameplay.sdvx.Engine")()

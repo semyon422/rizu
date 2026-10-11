@@ -86,12 +86,12 @@ end
 ---@param t testing.T
 function test.four_keys_keep_hand_identity(t)
 	for id, key in ipairs({"f", "j", "d", "k"}) do
-		local event = Input.transform({name = "keypressed", key})
+		local event = Input():transform({name = "keypressed", key})
 		t:eq(event.id, id)
 		t:eq(event.value, true)
-		t:eq(Input.transform({name = "keyreleased", key}).value, false)
+		t:eq(Input():transform({name = "keyreleased", key}).value, false)
 	end
-	t:eq(Input.transform({name = "keypressed", "a"}), nil)
+	t:eq(Input():transform({name = "keypressed", "a"}), nil)
 end
 
 return test

@@ -7,6 +7,11 @@ local CatchGamemode = Gamemode + {}
 CatchGamemode.name = "catch"
 CatchGamemode.prepare = Preparation.compute
 
+---@return rizu.catch.Input
+function CatchGamemode.createInput()
+	return require("rizu.gameplay.catch.Input")()
+end
+
 ---@return rizu.gameplay.catch.Engine
 function CatchGamemode.createEngine()
 	return require("rizu.gameplay.catch.Engine")()

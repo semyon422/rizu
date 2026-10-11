@@ -3,7 +3,8 @@ local InputMode = require("chart.core.InputMode")
 local GameplayInteractor = require("rizu.gameplay.GameplayInteractor")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local RhythmEngine = require("rizu.gameplay.mania.Engine")
-local InputBinder = require("rizu.input.InputBinder")
+local ManiaInput = require("rizu.gameplay.mania.Input")
+local Gamemodes = require("rizu.gameplay.Gamemodes")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local TimingValues = require("sea.chart.TimingValues")
 local PauseModel = require("sphere.models.PauseModel")
@@ -21,11 +22,12 @@ end
 ---@param t testing.T
 function test.paused_input_updates_binding(t)
 	local session = {receive = function() end}
-	local binder = InputBinder({["4key"] = {{{"a", "keyboard", 1}}}}, "4key")
+	local input = ManiaInput({["4key"] = {{{"a", "keyboard", 1}}}}, "4key")
 	local interactor = setmetatable({
 		game = {global_timer = {getTime = function() return 0 end}},
 		gameplay_session = session,
-		input_binder = binder,
+		gamemode = Gamemodes.mania,
+		input = input,
 	}, {__index = GameplayInteractor})
 	---@cast interactor rizu.GameplayInteractor
 	t:has_not_error(function()
@@ -54,7 +56,8 @@ function test.direct_engine_pause_preserves_long_note_and_binding(t)
 	local interactor = setmetatable({
 		game = {global_timer = {getTime = function() return time end}},
 		gameplay_session = session,
-		input_binder = InputBinder({["4key"] = {
+		gamemode = Gamemodes.mania,
+		input = ManiaInput({["4key"] = {
 			{{"a", "keyboard", 1}},
 			{{"s", "keyboard", 1}},
 		}}, "4key"),
@@ -104,7 +107,7 @@ function test.retry_request_starts_one_fresh_attempt(t)
 		local attempts = 0
 		local plays = 0
 		local session = {update = function() end}
-		local interactor = setmetatable({
+		local interactor = setmetatable({gamemode = Gamemodes.mania,
 			loaded = true,
 			autoplay = true,
 			playfield = {
@@ -155,7 +158,7 @@ function test.aim_deadlines_wait_for_queued_input_and_score_is_never_saved(t)
 		hasResult = function() return false end,
 	}
 	local interactor = setmetatable({
-		loaded = true, load_generation = 0, gameplay_session = session,
+		loaded = true, load_generation = 0, gameplay_session = session, gamemode = Gamemodes.osu,
 		game = {
 			rhythm_engine = re, global_timer = {getTime = function() return 10 end},
 			pauseModel = {update = function() end}, windowModel = {setVsyncOnSelect = function() end},
@@ -230,7 +233,7 @@ end
 ---@param t testing.T
 function test.update_advances_ready_playfield_after_session_and_pause(t)
 	local calls = {} ---@type string[]
-	local interactor = setmetatable({loaded = false, load_state = "loading", playfield = {
+	local interactor = setmetatable({gamemode = Gamemodes.mania, loaded = false, load_state = "loading", playfield = {
 		update = function(_, dt) calls[#calls + 1] = "runtime"; t:eq(dt, 0.25) end,
 		updateBackgroundHud = function(_, dt) calls[#calls + 1] = "background"; t:eq(dt, 0.25) end,
 		updateHud = function(_, dt) calls[#calls + 1] = "hud"; t:eq(dt, 0.25) end,
@@ -250,14 +253,14 @@ end
 
 ---@param t testing.T
 function test.after_input_pass_does_not_update_playfield_twice(t)
-	for _, rules in ipairs({"rules", "rules", "rules", "rules"}) do
+	for _, gamemode in ipairs({Gamemodes.osu, Gamemodes.catch, Gamemodes.taiko, Gamemodes.sdvx}) do
 		local calls = {} ---@type string[]
-		local interactor = setmetatable({loaded = true, load_state = "ready", playfield = {
+		local interactor = setmetatable({loaded = true, load_state = "ready", gamemode = gamemode, playfield = {
 			update = function(_, dt) calls[#calls + 1] = "runtime"; t:eq(dt, 0.25) end,
 			updateBackgroundHud = function() calls[#calls + 1] = "background" end,
 			updateHud = function() calls[#calls + 1] = "hud" end,
 		}, gameplay_session = {update = function() calls[#calls + 1] = "session" end}, game = {
-			rhythm_engine = {[rules] = {}},
+			rhythm_engine = {},
 			global_timer = {getTime = function() return 10 end},
 			pauseModel = {update = function() calls[#calls + 1] = "pause" end},
 		}}, {__index = GameplayInteractor})

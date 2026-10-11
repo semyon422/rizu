@@ -129,7 +129,7 @@ function Gameplay:enter()
 		self:flush()
 		local x, y = love.mouse.getPosition()
 		x, y = self:toGameplayChart(x, y)
-		self.gameplay_interactor:aimPointer(x, y, self.game.global_timer:getTime())
+		self.gameplay_interactor:movePointer(x, y, self.game.global_timer:getTime())
 	end
 end
 
@@ -462,7 +462,7 @@ function Gameplay:receive(event)
 		end
 		if self.gameplay_playfield:usesPointer() and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
 			local x, y = self:toGameplayChart(event[1], event[2])
-			self.gameplay_interactor:aimPointer(x, y, event.time)
+			self.gameplay_interactor:movePointer(x, y, event.time)
 		end
 		self.gameplay_interactor:receive(event)
 		return

@@ -5,6 +5,8 @@ local Settings = require("rizu.config.Settings")
 local ManiaGamemode = Gamemode + {}
 
 ManiaGamemode.name = "mania"
+ManiaGamemode.saves_scores = true
+ManiaGamemode.deferred_input = false
 
 ---@param ctx sea.ComputeContext
 ---@param replay_base sea.ReplayBase
@@ -19,6 +21,13 @@ function ManiaGamemode.prepare(ctx, replay_base, config)
 	if config.swapVelocityType then
 		ctx:swapVelocityType()
 	end
+end
+
+---@param input_config table
+---@param input_mode string
+---@return rizu.gameplay.mania.Input
+function ManiaGamemode.createInput(input_config, input_mode)
+	return require("rizu.gameplay.mania.Input")(input_config, input_mode)
 end
 
 ---@return rizu.gameplay.mania.Engine

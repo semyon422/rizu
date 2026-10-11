@@ -1,4 +1,5 @@
 local class = require("class")
+local Gamemodes = require("rizu.gameplay.Gamemodes")
 local AimRenderer = require("rizu.skin.base.AimRenderer")
 local OsuAimRenderer = require("rizu.skin.osu.OsuAimRenderer")
 local FruitsRenderer = require("rizu.skin.base.FruitsRenderer")
@@ -204,7 +205,8 @@ end
 ---@return boolean
 function Playfield:usesPointer()
 	local engine = self.game.rhythm_engine
-	return not not (engine and engine.chartmeta and engine.chartmeta.mode == "osu")
+	local gamemode = engine and engine.chartmeta and Gamemodes[engine.chartmeta.mode]
+	return not not (gamemode and gamemode.uses_pointer)
 end
 
 function Playfield:updateHud(dt)
