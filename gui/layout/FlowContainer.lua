@@ -4,7 +4,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@class gui.layout.FlowContainer.Config
 ---@field direction? "row"|"column"
 ---@field gap? number
----@field align? number
+---@field align? number|"baseline" "baseline" (row only) aligns children that define getBaseline() on a shared baseline; others stay at the start.
 ---@field padding? gui.layout.Padding
 ---@field layout_transition? gui.layout.LayoutTransition
 ---@field [number] gui.View
@@ -17,6 +17,7 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 ---@field direction "row"|"column"
 ---@field gap number
 ---@field align number
+---@field baseline_align boolean
 ---@field padding gui.layout.Padding
 ---@field layout_transition gui.layout.LayoutTransition?
 local FlowContainer = View + {}
@@ -50,7 +51,13 @@ function FlowContainer:new(config)
 	config = config or {}
 	self.direction = config.direction or "row"
 	self.gap = config.gap or 0
-	self.align = config.align or 0
+	local align = config.align
+	self.baseline_align = align == "baseline"
+	if self.baseline_align or align == nil then
+		align = 0
+	end
+	---@cast align number
+	self.align = align
 	self.padding = config.padding or 0
 	self.layout_transition = config.layout_transition
 
@@ -99,9 +106,14 @@ function FlowContainer:setPadding(padding)
 	return self
 end
 
----@param align number
+---@param align number|"baseline"
 ---@return gui.layout.FlowContainer
 function FlowContainer:setAlign(align)
+	self.baseline_align = align == "baseline"
+	if self.baseline_align then
+		align = 0
+	end
+	---@cast align number
 	assert(isFiniteNumber(align) and align >= 0 and align <= 1,
 		("align must be a finite number in [0, 1] (got %s)"):format(tostring(align)))
 	self.align = align
@@ -134,6 +146,47 @@ local function desiredSize(child)
 	return width, height
 end
 
+---Distance from a child's top to its baseline, if it has one.
+---@param child gui.View
+---@return number?
+local function childBaseline(child)
+	local get = child.getBaseline
+	return get and get(child) or nil
+end
+
+---Largest baseline offset and largest extent below the baseline among baseline children.
+---@param container gui.View
+---@return number? above
+---@return number below
+function FlowContainer:measureBaseline(container)
+	local above, below = nil, nil ---@type number?, number?
+	for _, child in ipairs(container.children) do
+		if not child.layout_ignore then
+			local baseline = childBaseline(child)
+			if baseline then
+				local _, height = desiredSize(child)
+				above = math.max(above or baseline, baseline)
+				below = math.max(below or 0, height - baseline)
+			end
+		end
+	end
+	return above, below or 0
+end
+
+---Baseline of this container when it is a baseline-aligned row, measured from its top.
+---@return number?
+function FlowContainer:getBaseline()
+	if self.direction ~= "row" or not self.baseline_align then
+		return nil
+	end
+	local above = self:measureBaseline(self)
+	if not above then
+		return nil
+	end
+	local _, top = self:normalizePadding()
+	return top + above
+end
+
 ---@param container gui.View
 function FlowContainer:arrange(container)
 	local left, top, right, bottom = self:normalizePadding()
@@ -142,6 +195,10 @@ function FlowContainer:arrange(container)
 	local is_row = self.direction == "row"
 	local position = is_row and left or top
 	local arranged_count = 0
+	local above, below = nil, nil ---@type number?, number?
+	if is_row and self.baseline_align then
+		above, below = self:measureBaseline(container)
+	end
 
 	for _, child in ipairs(container.children) do
 		if not child.layout_ignore then
@@ -150,7 +207,13 @@ function FlowContainer:arrange(container)
 			end
 			local width, height = desiredSize(child)
 			if is_row then
-				local y = top + (inner_height - height) * self.align
+				local baseline = above and childBaseline(child)
+				local y ---@type number
+				if baseline then
+					y = top + above - baseline
+				else
+					y = top + (inner_height - height) * self.align
+				end
 				child.arranged = {position, y, width, height}
 				position = position + width
 			else
@@ -169,11 +232,18 @@ function FlowContainer:getContentSize()
 	local total_main = 0
 	local max_cross = 0
 	local measured_count = 0
+	local above, below = nil, nil ---@type number?, number?
+	if self.direction == "row" and self.baseline_align then
+		above, below = self:measureBaseline(self)
+		max_cross = above and above + below or 0
+	end
 	for _, child in ipairs(self.children) do
 		if not child.layout_ignore then
 			local width, height = desiredSize(child)
 			total_main = total_main + (self.direction == "row" and width or height)
-			max_cross = math.max(max_cross, self.direction == "row" and height or width)
+			if not (above and childBaseline(child)) then
+				max_cross = math.max(max_cross, self.direction == "row" and height or width)
+			end
 			measured_count = measured_count + 1
 		end
 	end

@@ -176,9 +176,13 @@ function Renderer:draw()
 				and composite.effective_visible and composite.present
 			then
 				local scale = parent and parent.canvas_scale or 1
+				-- Shadow-casting composites blur their own content first; this switches canvases,
+				-- so it has to run before the transform and scissor for the parent are set.
+				composite:prepareShadow(parent and parent.canvas or initial_canvas)
 				replaceRelativeTransform(self, composite.world_transform, parent, scale)
 				setScissor(composite.clip_rect, parent, scale)
 				local opacity = composite.render_opacity
+				composite:drawShadow(opacity)
 				love.graphics.setColor(opacity, opacity, opacity, opacity)
 				love.graphics.setBlendMode("alpha", "premultiplied")
 				love.graphics.draw(composite.canvas, 0, 0, 0,

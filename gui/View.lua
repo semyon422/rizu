@@ -15,6 +15,7 @@ local Easing = require("gui.anim.Easing")
 ---@class gui.View : gui.IInputHandler
 ---@operator call: gui.View
 ---@field parent gui.View?
+---@field getBaseline? fun(self: gui.View): number? Distance from the top to the text baseline; lets baseline-aligned containers line children up.
 ---@field children gui.View[]
 ---@field screen gui.Screen?
 ---@field pending_unload_screen gui.Screen?

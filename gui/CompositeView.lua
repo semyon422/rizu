@@ -43,6 +43,17 @@ function CompositeView:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.canvas_scale = scale
 end
 
+---Hook for subclasses that render extra output from their finished content canvas.
+---Called by the Renderer before the view's transform for the parent canvas is set.
+---@param restore_canvas love.Canvas? Canvas that must be current again afterwards.
+function CompositeView:prepareShadow(restore_canvas)
+end
+
+---Hook for subclasses that draw something under their content, in local logical space.
+---@param opacity number
+function CompositeView:drawShadow(opacity)
+end
+
 function CompositeView:unload()
 	if self.canvas then
 		self.canvas:release()

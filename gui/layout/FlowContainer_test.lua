@@ -31,6 +31,27 @@ function test.row_packs_authored_sizes_and_aligns_cross_axis(t)
 end
 
 ---@param t testing.T
+function test.row_baseline_aligns_children_and_measures_content(t)
+	local function based(width, height, baseline)
+		local view = View():setSize(width, height)
+		view.getBaseline = function() return baseline end
+		return view
+	end
+	local big = based(50, 100, 80)
+	local small = based(20, 40, 30)
+	local plain = View():setSize(10, 10)
+	local container = FlowContainer({direction = "row", align = "baseline", padding = {0, 5, 0, 5}, big, small, plain})
+	local _, height = container:getContentSize()
+	arrange(200, height, container)
+
+	t:eq(height, 110) -- 5 + 80 above + 20 below (big; small has 10) + 5
+	t:eq(big.y, 5)
+	t:eq(small.y, 55)
+	t:eq(plain.y, 5)
+	t:eq(container:getBaseline(), 85)
+end
+
+---@param t testing.T
 function test.column_packs_authored_sizes(t)
 	local first = View():setSize(20, 30)
 	local second = View():setSize(40, 10)
