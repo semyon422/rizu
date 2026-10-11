@@ -1,6 +1,8 @@
 local Screen = require("gui.Screen")
 local View = require("gui.View")
+local FlowContainer = require("gui.layout.FlowContainer")
 local StackContainer = require("gui.layout.StackContainer")
+local TrackContainer = require("gui.layout.TrackContainer")
 
 local test = {}
 
@@ -145,6 +147,167 @@ function test.layout_transition_keeps_final_rect_and_visual_position(t)
 	t:eq(child.offset_x, 0)
 	local final_x = child:getWorldPosition()
 	t:aeq(final_x, 20, 1e-9)
+end
+
+---A row of tracks filling a 1000x100 screen; `first` is a fixed 100 px track.
+---@param transition gui.layout.LayoutTransition
+---@return gui.Screen screen
+---@return gui.layout.TrackContainer row
+---@return gui.View first
+local function newTrackRow(transition)
+	local screen = Screen()
+	screen:resize(1000, 100)
+	local row = screen.root:add(TrackContainer({direction = "row", layout_transition = transition}))
+	row:anchorFill(0, 0, 0, 0)
+	local first = row:add(View(), 100)
+	screen:flush()
+	return screen, row, first
+end
+
+---@param t testing.T
+function test.layout_transition_snaps_size_and_glides_position_by_default(t)
+	local screen, row, first = newTrackRow({duration = 1, easing = "Linear"})
+	local second = row:add(View(), 50)
+	screen:flush()
+
+	row:setTrackSize(first, 200)
+	screen:flush()
+
+	local _, _, first_width = first:getWorldBounds()
+	t:eq(first_width, 200)
+	t:eq(second.x, 200)
+	t:eq(second:getWorldPosition(), 100)
+	screen:update(0.5)
+	t:aeq(second:getWorldPosition(), 150, 1e-9)
+	screen:update(0.5)
+	t:eq(second:getWorldPosition(), 200)
+	t:eq(second:isAnimating(), false)
+end
+
+---@param t testing.T
+function test.layout_transition_interrupted_size_glide_is_continuous(t)
+	local screen, row, first = newTrackRow({duration = 1, easing = "Linear", scale_size = true})
+	row:setTrackSize(first, 200)
+	screen:update(0.5)
+	local _, _, width = first:getWorldBounds()
+	t:aeq(width, 150, 1e-9)
+
+	row:setTrackSize(first, 400)
+	screen:flush()
+
+	_, _, width = first:getWorldBounds()
+	t:aeq(width, 150, 1e-9)
+	screen:update(1)
+	_, _, width = first:getWorldBounds()
+	t:eq(width, 400)
+end
+
+---@param t testing.T
+function test.layout_transition_leaves_visual_channel_alone(t)
+	local screen, row, first = newTrackRow({duration = 1, easing = "Linear", scale_size = true})
+	local second = row:add(View(), 50)
+	screen:flush()
+	second:setScale(2, 2):setOffset(5, 0)
+
+	row:setTrackSize(first, 200)
+	row:setTrackSize(second, 100)
+	screen:flush()
+	t:tdeq({second.scale_x, second.scale_y, second.offset_x}, {2, 2, 5})
+	t:eq(second:hasTransforms(), false)
+	screen:update(1)
+
+	t:tdeq({second.scale_x, second.scale_y, second.offset_x}, {2, 2, 5})
+	local x, _, width = second:getWorldBounds()
+	t:tdeq({x, width}, {205, 200})
+end
+
+---@param t testing.T
+function test.layout_transition_nested_containers_compensate_size_once(t)
+	local transition = {duration = 1, easing = "Linear", scale_size = true}
+	local screen, row, inner = newTrackRow(transition)
+	row:remove(inner)
+	inner = row:add(TrackContainer({direction = "row", layout_transition = transition}), 100)
+	local leaf = inner:add(View())
+	screen:flush()
+
+	row:setTrackSize(inner, 200)
+	screen:flush()
+
+	t:eq(leaf.width, 200)
+	local _, _, width = leaf:getWorldBounds()
+	t:aeq(width, 100, 1e-9)
+end
+
+---@param t testing.T
+function test.layout_transition_scale_keeps_old_rect_with_pivot(t)
+	local screen, row, first = newTrackRow({duration = 1, easing = "Linear", scale_size = true})
+	first:setPivot(0.5, 0.5)
+
+	row:setTrackSize(first, 300)
+	screen:flush()
+
+	local x, _, width = first:getWorldBounds()
+	t:aeq(x, 0, 1e-9)
+	t:aeq(width, 100, 1e-9)
+end
+
+---@param t testing.T
+function test.layout_transition_ignores_window_resize(t)
+	local screen = Screen()
+	screen:resize(1000, 100)
+	local container = screen.root:add(StackContainer({
+		layout_transition = {duration = 1, easing = "Linear", scale_size = true},
+	}))
+	container:anchorFill(0, 0, 0, 0)
+	local child = container:add(View())
+	screen:flush()
+
+	screen:resize(500, 100)
+
+	t:eq(child.width, 500)
+	t:eq(child.scale_x, 1)
+	t:eq(child:isAnimating(), false)
+	local _, _, width = child:getWorldBounds()
+	t:eq(width, 500)
+end
+
+---@param t testing.T
+function test.layout_transition_glides_when_the_container_resizes_itself(t)
+	local screen = Screen()
+	screen:resize(100, 100)
+	local column = screen.root:add(FlowContainer({
+		direction = "column",
+		layout_transition = {duration = 1, easing = "Linear"},
+	}))
+	local row = column:add(View():setSize(10, 10))
+	column:fitContent()
+	screen:flush()
+
+	column:insert(1, View():setSize(10, 30))
+	column:fitContent()
+	screen:flush()
+
+	t:eq(row.y, 30)
+	local _, y = row:getWorldPosition()
+	t:eq(y, 0)
+end
+
+---@param t testing.T
+function test.layout_transition_does_not_glide_from_another_parent(t)
+	local screen = Screen()
+	screen:resize(1000, 100)
+	local transition = {duration = 1, easing = "Linear"}
+	local left = screen.root:add(StackContainer({layout_transition = transition}):anchorFixed(0, 0, 100, 100))
+	local right = screen.root:add(StackContainer({layout_transition = transition, padding = {7, 0, 0, 0}}))
+	right:anchorFixed(500, 0, 100, 100)
+	local child = left:add(View())
+	screen:flush()
+
+	right:add(child)
+	screen:flush()
+
+	t:eq(child:getWorldPosition(), 507)
+	t:eq(child:isAnimating(), false)
 end
 
 ---@param t testing.T

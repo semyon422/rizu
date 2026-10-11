@@ -8,9 +8,12 @@ local Easing = require("gui.anim.Easing")
 ---Cross/main-axis alignment values used by layout containers.
 ---@alias gui.layout.Align "fill"|"start"|"center"|"end"
 
+---Children glide from their old position when the container moves them. Their size snaps unless
+---`scale_size` is set, which glides it by scaling the child and therefore stretches its content.
 ---@class gui.layout.LayoutTransition
 ---@field duration number
 ---@field easing? gui.anim.EasingName|gui.anim.Easing
+---@field scale_size? boolean
 
 ---Validation shared by the layout containers.
 local Layout = {}
@@ -48,6 +51,8 @@ function Layout.validateTransition(transition)
 	if transition.easing ~= nil then
 		Easing.resolve(transition.easing)
 	end
+	assert(transition.scale_size == nil or type(transition.scale_size) == "boolean",
+		"layout_transition.scale_size must be boolean or nil")
 end
 
 return Layout

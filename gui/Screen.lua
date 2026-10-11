@@ -266,7 +266,7 @@ function Screen:isTransitionActive()
 		return false
 	end
 	for i = 1, #self.views do
-		if self.views[i]:hasTransforms() then
+		if self.views[i]:isAnimating() then
 			return true
 		end
 	end

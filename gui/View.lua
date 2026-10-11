@@ -12,6 +12,16 @@ local Easing = require("gui.anim.Easing")
 ---@field easing gui.anim.Easing
 ---@field on_complete (fun(view: gui.View))?
 
+---Compensation at `start`; it decays to none over `duration`.
+---@class gui.View.LayoutTween
+---@field dx number
+---@field dy number
+---@field sx number
+---@field sy number
+---@field start number
+---@field duration number
+---@field easing gui.anim.Easing
+
 ---@class gui.View : gui.IInputHandler
 ---@operator call: gui.View
 ---@field parent gui.View?
@@ -67,6 +77,18 @@ local Easing = require("gui.anim.Easing")
 ---@field private animation_time number
 ---@field private transform_start number?
 ---@field private layout_initialized boolean
+---
+---Layout transition compensation: a private visual delta that makes a rect change glide.
+---`compose()` combines it with the visual channel; it never writes `offset_*`/`scale_*`.
+---@field private layout_dx number
+---@field private layout_dy number
+---@field private layout_sx number
+---@field private layout_sy number
+---@field private layout_tween gui.View.LayoutTween?
+---@field private layout_parent gui.View? Parent of the last resolution
+---@field private layout_width number Size at the last resolution
+---@field private layout_height number
+---@field private layout_resized boolean This pass resized the view because the window or an ancestor resized
 ---
 ---Cached transforms and flattened traversal data (§2.1, §6.1).
 ---@field private transform love.Transform
@@ -179,6 +201,15 @@ function View:new()
 	self.animation_time = 0
 	self.transform_start = nil
 	self.layout_initialized = false
+	self.layout_dx = 0
+	self.layout_dy = 0
+	self.layout_sx = 1
+	self.layout_sy = 1
+	self.layout_tween = nil
+	self.layout_parent = nil
+	self.layout_width = 0
+	self.layout_height = 0
+	self.layout_resized = false
 
 	self.transform = love.math.newTransform()
 	self.world_transform = love.math.newTransform()
@@ -371,6 +402,8 @@ function View:unloadSubtree()
 	end
 	-- The next attach is a first resolution again: onLayoutChanged fires and nothing glides.
 	self.layout_initialized = false
+	self.layout_tween = nil
+	self.layout_dx, self.layout_dy, self.layout_sx, self.layout_sy = 0, 0, 1, 1
 end
 
 ---Override for size-dependent resource and geometry updates.
@@ -729,10 +762,18 @@ function View:relayout(root_scale)
 	local initialized = self.layout_initialized
 	local old_x, old_y = self.x, self.y
 	local old_width, old_height = self.width, self.height
-	if self.parent then
-		self:resolve(self.parent)
+	local parent = self.parent
+	if parent then
+		self:resolve(parent)
+	end
+	-- A resize the view chose itself (setSize, fitContent) still lets its children glide.
+	self.layout_resized = (self.layout_width ~= self.width or self.layout_height ~= self.height)
+		and (not parent or parent.layout_resized)
+	self.layout_width, self.layout_height = self.width, self.height
+	if parent and initialized and self.layout_parent == parent and not parent.layout_resized then
 		self:applyLayoutTransition(old_x, old_y, old_width, old_height)
 	end
+	self.layout_parent = parent
 	self.layout_initialized = true
 	self:compose(root_scale)
 	if not initialized or old_x ~= self.x or old_y ~= self.y
@@ -782,39 +823,59 @@ function View:resolve(parent)
 	self.height = math.max(0, bottom - top)
 end
 
+---An ancestor that is scale-compensating already shows its whole subtree at the old size.
+---@private
+---@return boolean
+function View:hasScalingAncestor()
+	local ancestor = self.parent
+	while ancestor do
+		if ancestor.layout_sx ~= 1 or ancestor.layout_sy ~= 1 then
+			return true
+		end
+		ancestor = ancestor.parent
+	end
+	return false
+end
+
+---Start or retarget the glide for a rect the parent's layout just changed.
 ---@private
 ---@param old_x number
 ---@param old_y number
 ---@param old_width number
 ---@param old_height number
 function View:applyLayoutTransition(old_x, old_y, old_width, old_height)
-	local transition = self.parent and self.parent.layout_transition
-	if not self.layout_initialized or not transition or transition.duration == 0 then
+	local transition = self.parent.layout_transition
+	if not transition or transition.duration == 0 then
 		return
 	end
-	if old_x == self.x and old_y == self.y and old_width == self.width and old_height == self.height then
+	local width, height = self.width, self.height
+	if old_x == self.x and old_y == self.y and old_width == width and old_height == height then
 		return
 	end
 
-	local start = self.animation_time
-	local duration = transition.duration
-	local easing = transition.easing or "OutQuint"
-	if old_x ~= self.x then
-		self.offset_x = self.offset_x + old_x - self.x
-		self:transformToAt("offset_x", 0, duration, easing, start)
+	-- Compose with the compensation still in flight so the visual rect is continuous.
+	local dx = self.layout_dx + old_x - self.x
+	local dy = self.layout_dy + old_y - self.y
+	local sx, sy = self.layout_sx, self.layout_sy
+	if transition.scale_size and not self:hasScalingAncestor() then
+		if old_width ~= width and old_width > 0 and width > 0 then
+			sx = sx * old_width / width
+			-- Scaling happens about the pivot; this keeps the old left edge.
+			dx = dx + self.pivot[1] * (old_width - width)
+		end
+		if old_height ~= height and old_height > 0 and height > 0 then
+			sy = sy * old_height / height
+			dy = dy + self.pivot[2] * (old_height - height)
+		end
 	end
-	if old_y ~= self.y then
-		self.offset_y = self.offset_y + old_y - self.y
-		self:transformToAt("offset_y", 0, duration, easing, start)
-	end
-	if old_width ~= self.width and old_width > 0 and self.width > 0 then
-		self.scale_x = old_width / self.width
-		self:transformToAt("scale_x", 1, duration, easing, start)
-	end
-	if old_height ~= self.height and old_height > 0 and self.height > 0 then
-		self.scale_y = old_height / self.height
-		self:transformToAt("scale_y", 1, duration, easing, start)
-	end
+	self.layout_dx, self.layout_dy, self.layout_sx, self.layout_sy = dx, dy, sx, sy
+
+	local tween = self.layout_tween or {}
+	tween.dx, tween.dy, tween.sx, tween.sy = dx, dy, sx, sy
+	tween.start = self.animation_time
+	tween.duration = transition.duration
+	tween.easing = Easing.resolve(transition.easing or "OutQuint")
+	self.layout_tween = tween
 end
 
 ---Clear every child's `arranged`, then let a layout container arrange them.
@@ -885,15 +946,15 @@ end
 function View:compose(root_scale)
 	local was_input_present = self.effective_visible and self.effective_enabled
 		and self.present and self.cull_mask == 0
-	local sx = self.scale_x * root_scale
-	local sy = self.scale_y * root_scale
+	local sx = self.scale_x * self.layout_sx * root_scale
+	local sy = self.scale_y * self.layout_sy * root_scale
 	local w = self.width
 	local h = self.height
 	local px = self.pivot[1] * w
 	local py = self.pivot[2] * h
 	self.transform:setTransformation(
-		(self.x + self.offset_x + px) * root_scale,
-		(self.y + self.offset_y + py) * root_scale,
+		(self.x + self.offset_x + self.layout_dx + px) * root_scale,
+		(self.y + self.offset_y + self.layout_dy + py) * root_scale,
 		self.rotation,
 		sx, sy,
 		px, py
@@ -1018,6 +1079,17 @@ function View:stepTransforms(dt)
 		self.transform_start = nil
 	end
 	local changed = false
+	local tween = self.layout_tween
+	if tween then
+		local progress = math.min(1, (self.animation_time - tween.start) / tween.duration)
+		local left = progress < 1 and 1 - tween.easing(progress) or 0
+		self.layout_dx, self.layout_dy = tween.dx * left, tween.dy * left
+		self.layout_sx, self.layout_sy = 1 + (tween.sx - 1) * left, 1 + (tween.sy - 1) * left
+		if progress >= 1 then
+			self.layout_tween = nil
+		end
+		changed = true
+	end
 	local completions = {} ---@type (fun(view: gui.View))[]
 	for target, transform in pairs(self.transforms) do
 		if self.animation_time >= transform.start then
@@ -1044,6 +1116,12 @@ end
 ---@return boolean
 function View:hasTransforms()
 	return next(self.transforms) ~= nil
+end
+
+---True while a transform or a layout transition glide is running.
+---@return boolean
+function View:isAnimating()
+	return next(self.transforms) ~= nil or self.layout_tween ~= nil
 end
 
 ---@param target string?
