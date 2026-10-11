@@ -216,6 +216,8 @@ Keys: 4
 	t:eq(registry:getSkin(osu_skin.path), osu_skin)
 	t:eq(registry:getSkinForInputMode("mania", "4key", osu_skin.path .. "/"), osu_skin)
 	t:eq(registry:getSkinForInputMode("mania", "4key", native_skin.path), native_skin)
+	-- An osu! skin renders mania only: another gamemode falls back to its own skins.
+	t:eq(registry:getSkinForInputMode("osu", "1osu", osu_skin.path), nil)
 
 	local loaded
 	osu_skin.load = function(context)

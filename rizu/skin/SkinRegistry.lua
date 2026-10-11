@@ -496,7 +496,9 @@ function SkinRegistry:getSkinForInputMode(gamemode, input_mode, name)
 	-- package format. Fall back to a compatible native skin if stale.
 	if name then
 		local selected = self:getSkin(name)
-		if selected and (selected.format == "osu" or supportsInputMode(selected, gamemode, input_mode)) then
+		-- osu! skins are accepted for any key count, but only for the gamemode they render.
+		if selected and (selected.format == "osu" and selected.metadata.gamemode == gamemode
+			or supportsInputMode(selected, gamemode, input_mode)) then
 			return selected
 		end
 	end

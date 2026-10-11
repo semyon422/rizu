@@ -201,7 +201,7 @@ end
 
 ---Persists the skin config and reports the result in the status label.
 function Gameplay:saveSkinEditorConfig()
-	local config = self.gameplay_interactor.playfield.mania_skin_config
+	local config = self.gameplay_interactor.playfield.skin_config
 	if not config then
 		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
 			error = "Skin config is unavailable.",

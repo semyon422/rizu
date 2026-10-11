@@ -1,35 +1,18 @@
 local class = require("class")
 local Gamemodes = require("rizu.gameplay.Gamemodes")
-local AimRenderer = require("rizu.skin.base.AimRenderer")
-local OsuAimRenderer = require("rizu.skin.osu.OsuAimRenderer")
-local FruitsRenderer = require("rizu.skin.base.FruitsRenderer")
-local OsuFruitsRenderer = require("rizu.skin.osu.OsuFruitsRenderer")
-local TaikoRenderer = require("rizu.skin.base.TaikoRenderer")
-local OsuTaikoRenderer = require("rizu.skin.osu.OsuTaikoRenderer")
 local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
 
 local Settings = require("rizu.config.Settings")
-local SdvxRenderer = require("rizu.skin.base.SdvxRenderer")
 
 ---@class rizu.gameplay.Playfield
 ---@operator call: rizu.gameplay.Playfield
----@field aim rizu.skin.base.AimRenderer
----@field osu_aim rizu.skin.osu.OsuAimRenderer
----@field catch rizu.skin.base.FruitsRenderer
----@field osu_catch rizu.skin.osu.OsuFruitsRenderer
----@field taiko rizu.skin.osu.OsuTaikoRenderer
----@field sdvx rizu.skin.base.SdvxRenderer
----@field sdvx_skin rizu.skin.LoadableSkin?
----@field sdvx_skin_renderer rizu.gameplay.views.PlayfieldRenderer?
----@field sdvx_input_mode string?
----@field sdvx_skin_config rizu.skin.SkinConfig?
 ---@field preparation rizu.skin.PlayfieldPreparation?
 ---@field renderer rizu.gameplay.views.PlayfieldRenderer?
----@field mania_skin rizu.skin.LoadableSkin?
----@field mania_input_mode string?
----@field mania_renderer rizu.gameplay.views.PlayfieldRenderer?
----@field mania_skin_config rizu.skin.SkinConfig?
----@field mania_skin_config_path string?
+---@field skin rizu.skin.LoadableSkin?
+---@field skin_key string? "gamemode/input_mode" the skin was loaded for.
+---@field skin_renderer rizu.gameplay.views.PlayfieldRenderer?
+---@field skin_config rizu.skin.SkinConfig?
+---@field skin_config_path string?
 ---@field load_generation integer
 local Playfield = class()
 
@@ -37,54 +20,23 @@ local Playfield = class()
 function Playfield:new(game)
 	self.game = game
 	self.load_generation = 0
-	self.aim = AimRenderer(game)
-	self.osu_aim = OsuAimRenderer(game)
-	self.catch = FruitsRenderer(game)
-	self.osu_catch = OsuFruitsRenderer(game)
-	self.taiko = OsuTaikoRenderer(game)
-	self.sdvx = SdvxRenderer(game)
-	self.sdvx_skin = nil
-	self.sdvx_skin_renderer = nil
-	self.sdvx_input_mode = nil
-	self.sdvx_skin_config = nil
-	self.sdvx_skin_config_path = nil
 end
 
+---Every gamemode gets its renderer from a skin; the registry falls back to the base skin of the mode.
+---@param gamemode sea.Gamemode
 ---@param input_mode string
 ---@param generation integer
 ---@return rizu.gameplay.views.PlayfieldRenderer?
-function Playfield:loadSdvxSkin(input_mode, generation)
-	local registry = self.game.skinRegistry
-	local paths = self.game.settings and self.game.settings:getStringMap(Settings.keys.gameplay.skins) or {}
-	local skin = registry and registry:getSkinForInputMode("sdvx", input_mode, paths["sdvx/" .. input_mode])
-	if not skin then return self.sdvx end
-	if self.sdvx_skin == skin and self.sdvx_input_mode == input_mode and self.sdvx_skin_renderer then
-		return self.sdvx_skin_renderer
-	end
-	local loaded, config, config_path = registry:loadSkin(skin, self.game, input_mode, "gameplay")
-	local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
-	if generation ~= self.load_generation then
-		pcall(renderer.unload, renderer)
-		return
-	end
-	self.sdvx_skin = skin
-	self.sdvx_skin_renderer = renderer
-	self.sdvx_input_mode = input_mode
-	self.sdvx_skin_config = config
-	self.sdvx_skin_config_path = config_path
-	return renderer
-end
-
----@return rizu.gameplay.views.PlayfieldRenderer?
-function Playfield:loadManiaSkin(input_mode, generation)
+function Playfield:loadSkin(gamemode, input_mode, generation)
+	local key = gamemode .. "/" .. input_mode
 	local paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
-	local skin = self.game.skinRegistry:getSkinForInputMode("mania", input_mode, paths["mania/" .. input_mode])
-	assert(skin, "no Mania skin available for " .. input_mode)
-	if self.mania_skin == skin and self.mania_input_mode == input_mode and self.mania_renderer then
-		return self.mania_renderer
+	local skin = self.game.skinRegistry:getSkinForInputMode(gamemode, input_mode, paths[key])
+	assert(skin, ("no %s skin available for %s"):format(gamemode, input_mode))
+	if self.skin == skin and self.skin_key == key and self.skin_renderer then
+		return self.skin_renderer
 	end
 	-- Do not discard dirty configuration if saving a replacement fails.
-	assert(self:saveSkinConfig(), "could not save previous Mania skin config")
+	assert(self:saveSkinConfig(), "could not save previous skin config")
 	---@diagnostic disable-next-line: no-unknown
 	local loaded, config, config_path = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "gameplay")
 	local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
@@ -92,11 +44,11 @@ function Playfield:loadManiaSkin(input_mode, generation)
 		pcall(renderer.unload, renderer)
 		return
 	end
-	self.mania_skin = skin
-	self.mania_input_mode = input_mode
-	self.mania_renderer = renderer
-	self.mania_skin_config = config
-	self.mania_skin_config_path = config_path
+	self.skin = skin
+	self.skin_key = key
+	self.skin_renderer = renderer
+	self.skin_config = config
+	self.skin_config_path = config_path
 	return renderer
 end
 
@@ -108,15 +60,9 @@ function Playfield:load()
 	local engine = self.game.rhythm_engine
 	local mode = engine and engine.chartmeta and engine.chartmeta.mode
 	local renderer ---@type rizu.gameplay.views.PlayfieldRenderer?
-	if mode == "osu" then renderer = self.osu_aim
-	elseif mode == "catch" then renderer = self.osu_catch
-	elseif mode == "taiko" then renderer = self.taiko
-	elseif mode == "sdvx" then
-		local input_mode = tostring(engine.chart and engine.chart.inputMode or "4bt2fx2laserleft2laserright")
-		renderer = self:loadSdvxSkin(input_mode, generation)
-	elseif mode == "mania" then
+	if mode then
 		local input_mode = assert(engine.chart and engine.chart.inputMode, "Chart input mode is required")
-		renderer = self:loadManiaSkin(tostring(input_mode), generation)
+		renderer = self:loadSkin(mode, tostring(input_mode), generation)
 	end
 	if generation ~= self.load_generation then return end
 	if renderer then
@@ -142,12 +88,16 @@ function Playfield:usesDirectRenderer()
 	return self.renderer ~= nil
 end
 
+---@return rizu.gameplay.Gamemode?
+function Playfield:getGamemode()
+	local engine = self.game.rhythm_engine
+	return engine and engine.chartmeta and Gamemodes[engine.chartmeta.mode]
+end
+
 ---@return boolean
 function Playfield:isExperimental()
-	local engine = self.game.rhythm_engine
-	if not engine then return false end
-	local mode = engine.chartmeta and engine.chartmeta.mode
-	return not not (engine.rules or mode and mode ~= "mania")
+	local gamemode = self:getGamemode()
+	return not not (gamemode and not gamemode.saves_scores)
 end
 
 function Playfield:unload()
@@ -161,10 +111,10 @@ end
 ---@return boolean
 ---@return string?
 function Playfield:saveSkinConfig()
-	if self.mania_skin_config and self.mania_skin_config.has_unsaved_changes and self.mania_skin_config_path then
-		local saved, save_error = self.mania_skin_config:save(self.game.fs, self.mania_skin_config_path)
+	if self.skin_config and self.skin_config.has_unsaved_changes and self.skin_config_path then
+		local saved, save_error = self.skin_config:save(self.game.fs, self.skin_config_path)
 		if not saved then
-			print(("could not save skin config %s: %s"):format(self.mania_skin_config_path, tostring(save_error)))
+			print(("could not save skin config %s: %s"):format(self.skin_config_path, tostring(save_error)))
 			return false, tostring(save_error)
 		end
 	end
@@ -172,13 +122,13 @@ function Playfield:saveSkinConfig()
 end
 
 ---@return boolean
-function Playfield:clearManiaSkin()
+function Playfield:clearSkin()
 	if not self:saveSkinConfig() then return false end
-	self.mania_skin = nil
-	self.mania_renderer = nil
-	self.mania_input_mode = nil
-	self.mania_skin_config = nil
-	self.mania_skin_config_path = nil
+	self.skin = nil
+	self.skin_key = nil
+	self.skin_renderer = nil
+	self.skin_config = nil
+	self.skin_config_path = nil
 	return true
 end
 
@@ -204,8 +154,7 @@ end
 
 ---@return boolean
 function Playfield:usesPointer()
-	local engine = self.game.rhythm_engine
-	local gamemode = engine and engine.chartmeta and Gamemodes[engine.chartmeta.mode]
+	local gamemode = self:getGamemode()
 	return not not (gamemode and gamemode.uses_pointer)
 end
 

@@ -186,7 +186,6 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 	if chartmeta.mode ~= "mania" then
 		assert(not game.multiplayerModel.client:isInRoom(), "Experimental modes are not available in multiplayer.")
 		paths = {chartview.location_dir, "userdata/hitsounds", "resources/aim/hitsounds"}
-		self.playfield:clearManiaSkin()
 	else
 		paths = self:getResourcePaths(chartview)
 	end
@@ -334,7 +333,7 @@ function GameplayInteractor:unloadGameplay()
 	self.load_error = nil
 	if self.playfield then self.playfield:unload() end
 	self:unloadVolume()
-	if self.playfield then self.playfield:clearManiaSkin() end
+	if self.playfield then self.playfield:clearSkin() end
 
 	local re = self.game.rhythm_engine
 	if re and re.rules and was_loaded then

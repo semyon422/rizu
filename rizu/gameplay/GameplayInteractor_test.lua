@@ -222,7 +222,7 @@ end
 ---@param t testing.T
 function test.gameplay_preparation_failure_is_not_ready_and_tears_down(t)
 	local interactor = setmetatable({load_generation = 0, game = {},
-		playfield = {unload = function() end, clearManiaSkin = function() end},
+		playfield = {unload = function() end, clearSkin = function() end},
 		prepareGameplayAsync = function() error("runtime failed before play") end}, {__index = GameplayInteractor})
 	t:assert(not pcall(interactor.loadGameplayAsync, interactor, {}))
 	t:eq(interactor:getState(), "failed")
@@ -315,7 +315,7 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 			t:eq(interactor.load_generation, 1)
 			calls.playfield = calls.playfield + 1
 			interactor:unloadGameplay()
-		end, clearManiaSkin = function() end}
+		end, clearSkin = function() end}
 		interactor:unloadGameplay()
 		interactor:unloadGameplay()
 		t:eq(calls.playfield, 1)
@@ -351,7 +351,7 @@ function test.partial_play_is_not_saved_until_chart_end(t)
 			},
 			score_saver = {saveScore = function() saves = saves + 1 end},
 		}, {__index = GameplayInteractor})
-		interactor.playfield = {unload = function() end, clearManiaSkin = function() end}
+		interactor.playfield = {unload = function() end, clearSkin = function() end}
 		return interactor, function() return saves end
 	end
 

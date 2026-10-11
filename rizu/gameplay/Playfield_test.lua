@@ -18,47 +18,33 @@ end
 local test = {}
 
 ---@param t testing.T
-function test.selects_osu_mode_renderers_before_rules_are_created(t)
-	local game = {
-		rhythm_engine = {chartmeta = {mode = "osu"}},
-		gameplayInteractor = {},
-	}
-	local playfield = Playfield(game)
-	playfield:load()
-	t:eq(playfield.renderer, playfield.osu_aim)
-	t:eq(playfield:usesPointer(), true)
-	t:eq(playfield:isExperimental(), true)
+function test.asks_the_registry_for_a_skin_of_the_chart_gamemode(t)
+	for _, case in ipairs({{"osu", "1osu", true}, {"catch", "1fruits", false}, {"taiko", "1taiko", false},
+		{"sdvx", "4bt2fx2laserleft2laserright", false}, {"mania", "4key", false}}) do
+		local renderer = PlayfieldRenderer({})
+		local game = maniaGame(renderer)
+		local requested ---@type string[]
+		game.skinRegistry.getSkinForInputMode = function(_, gamemode, input_mode)
+			requested = {gamemode, input_mode}
+			return {}
+		end
+		game.rhythm_engine = {chartmeta = {mode = case[1]}, chart = {inputMode = case[2]}}
+		local playfield = Playfield(game)
+		playfield:load()
+		t:eq(playfield.renderer, renderer)
+		t:tdeq(requested, {case[1], case[2]})
+		t:eq(playfield:usesPointer(), case[3])
+		t:eq(playfield:isExperimental(), case[1] ~= "mania")
+	end
 end
 
 ---@param t testing.T
-function test.selects_sdvx_renderer_from_chart_mode(t)
-	local game = {rhythm_engine = {chartmeta = {mode = "sdvx"}}}
+function test.keeps_skin_renderer_selection(t)
+	local skin_renderer = PlayfieldRenderer({})
+	local game = maniaGame(skin_renderer)
 	local playfield = Playfield(game)
 	playfield:load()
-	t:eq(playfield.renderer, playfield.sdvx)
-	t:eq(playfield:isExperimental(), true)
-end
-
----@param t testing.T
-function test.selects_fruits_and_taiko_renderers_from_chart_mode(t)
-	local game = {rhythm_engine = {chartmeta = {mode = "catch"}}}
-	local playfield = Playfield(game)
-	playfield:load()
-	t:eq(playfield.renderer, playfield.osu_catch)
-
-	game.rhythm_engine = {chartmeta = {mode = "taiko"}}
-	playfield:unload()
-	playfield:load()
-	t:eq(playfield.renderer, playfield.taiko)
-end
-
----@param t testing.T
-function test.keeps_mania_renderer_selection(t)
-	local mania_renderer = PlayfieldRenderer({})
-	local game = maniaGame(mania_renderer)
-	local playfield = Playfield(game)
-	playfield:load()
-	t:eq(playfield.renderer, mania_renderer)
+	t:eq(playfield.renderer, skin_renderer)
 end
 
 ---@param t testing.T
@@ -164,11 +150,11 @@ function test.retry_reuses_renderer_and_dirty_config_after_engine_recreation(t)
 	playfield:load()
 	t:eq(creates, 1)
 	t:eq(loads, 2)
-	t:eq(playfield.mania_skin_config, config)
+	t:eq(playfield.skin_config, config)
 	t:eq(playfield:getPlayfield(), renderer)
 	playfield:unload()
-	playfield:clearManiaSkin()
-	t:eq(playfield.mania_skin_config, config)
+	playfield:clearSkin()
+	t:eq(playfield.skin_config, config)
 end
 
 ---@param t testing.T
@@ -191,7 +177,7 @@ function test.skin_replacement_saves_config_and_failed_save_preserves_it(t)
 	local replacement = {}
 	game.skinRegistry.getSkinForInputMode = function() return replacement end
 	t:eq(pcall(playfield.load, playfield), false)
-	t:eq(playfield.mania_skin_config, config)
+	t:eq(playfield.skin_config, config)
 	t:eq(creates, 1)
 	save_ok = true
 	playfield:load()
@@ -212,10 +198,10 @@ function test.canceled_skin_construction_cannot_publish_or_start_runtime(t)
 	local co = coroutine.create(function() playfield:load() end)
 	assert(coroutine.resume(co))
 	playfield:unload()
-	playfield:clearManiaSkin()
+	playfield:clearSkin()
 	assert(coroutine.resume(co))
 	t:eq(playfield:getPlayfield(), nil)
-	t:eq(playfield.mania_renderer, nil)
+	t:eq(playfield.skin_renderer, nil)
 	t:eq(loads, 0)
 	t:eq(unloads, 1)
 end
