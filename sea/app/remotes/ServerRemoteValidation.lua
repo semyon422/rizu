@@ -43,8 +43,11 @@ function ServerRemoteValidation:ping(msg)
 	return res
 end
 
+---@return integer online_count
 function ServerRemoteValidation:heartbeat()
-	return self.remote:heartbeat()
+	local res = self.remote:heartbeat()
+	assert(type(res) == "number")
+	return res
 end
 
 ---@param msg string

@@ -70,6 +70,15 @@ function SessionInfo:updateSize()
 	self.second_separator:anchorFixed(self.second_separator_x, 0, 0, HEIGHT)
 end
 
+---@param text string
+function SessionInfo:setStatusText(text)
+	if self.status_text == text then
+		return
+	end
+	self.status_text = text
+	self:updateSize()
+end
+
 ---@param dt number
 function SessionInfo:update(dt)
 	self.text_timer = self.text_timer + dt

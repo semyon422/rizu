@@ -336,6 +336,7 @@ return {
 	["song_select.collection_chart_count"] = "{kind} — карт: {count}",
 	["song_select.username"] = "Игрок",
 	["song_select.offline"] = "ОФЛАЙН",
+	["song_select.online"] = "ОНЛАЙН: {count}",
 	["song_select.const"] = "Const",
 	["song_select.pauses"] = "Паузы",
 	["song_select.score_username"] = "#{index} {username}",

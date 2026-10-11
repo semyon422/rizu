@@ -15,6 +15,7 @@ local HeaderButton = require("ui.screens.song_select.HeaderButton")
 ---@operator call: ui.screens.song_select.SongSelectHeader
 ---@field ui ui.UserInterface
 ---@field actions gui.layout.FlowContainer
+---@field session_info ui.screens.song_select.SessionInfo
 ---@field player_info ui.views.PlayerInfo
 ---@field online_observer util.Observer?
 local SongSelectHeader = View + {}
@@ -34,6 +35,7 @@ function SongSelectHeader:new(ui)
 
 	local session_info = self:add(SessionInfo(ui.localization:get("song_select.offline")))
 	session_info:setAlignment(0.5, 0.5)
+	self.session_info = session_info
 
 	local actions = self:add(FlowContainer({direction = "row", align = 0.5}))
 	self.actions = actions
@@ -66,7 +68,7 @@ end
 
 function SongSelectHeader:load()
 	self.online_observer = self.ui.game.online_client:onChanged(function(event)
-		if event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
+		if event.type == "online_count_changed" or event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
 			self:updatePlayerInfo()
 		end
 	end)
@@ -90,6 +92,13 @@ function SongSelectHeader:updatePlayerInfo()
 	self.player_info:updateText(username)
 	self.player_info:updateAvatar(user and user.avatar, self.ui.game.avatar_cache)
 	self.actions:fitContent()
+
+	local count = online_client:getOnlineCount()
+	if online_client:isConnected() and count then
+		self.session_info:setStatusText(self.ui.localization:get("song_select.online", {count = count}))
+	else
+		self.session_info:setStatusText(self.ui.localization:get("song_select.offline"))
+	end
 end
 
 return SongSelectHeader

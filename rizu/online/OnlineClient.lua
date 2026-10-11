@@ -8,6 +8,7 @@ local Observable = require("Observable")
 ---@class rizu.online.ConnectionChangedEvent
 ---@field type "connection_changed"
 ---@field connected boolean
+---@field online_count integer?
 
 ---@class rizu.online.AuthenticationResolvedEvent
 ---@field type "authentication_resolved"
@@ -23,7 +24,11 @@ local Observable = require("Observable")
 ---@field type "login_failed"
 ---@field error string
 
----@alias rizu.online.Event rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
+---@class rizu.online.OnlineCountChangedEvent
+---@field type "online_count_changed"
+---@field count integer?
+
+---@alias rizu.online.Event rizu.online.OnlineCountChangedEvent|rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
 ---@alias rizu.online.EventObserver {receive: fun(self: table, event: rizu.online.Event)}
 ---@alias rizu.online.EventReceiver fun(event: rizu.online.Event)
 
@@ -67,7 +72,24 @@ function OnlineClient:setConnected(connected)
 	end
 	self.connected = connected
 	self.authentication_resolved = false
+	if not connected then
+		self.online_count = nil
+	end
 	self.observable:send({type = "connection_changed", connected = connected})
+end
+
+---@param count integer
+function OnlineClient:setOnlineCount(count)
+	if self.online_count == count then
+		return
+	end
+	self.online_count = count
+	self.observable:send({type = "online_count_changed", count = count})
+end
+
+---@return integer?
+function OnlineClient:getOnlineCount()
+	return self.online_count
 end
 
 ---@return boolean

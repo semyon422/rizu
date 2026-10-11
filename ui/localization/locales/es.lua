@@ -325,6 +325,7 @@ return {
 	["song_select.collection_chart_count"] = "{kind} - Charts: {count}",
 	["song_select.username"] = "Nombre de usuario",
 	["song_select.offline"] = "SIN CONEXIÓN",
+	["song_select.online"] = "EN LÍNEA: {count}",
 	["song_select.const"] = "Const",
 	["song_select.pauses"] = "Pausas",
 	["song_select.score_username"] = "#{index} {username}",

@@ -41,8 +41,10 @@ function ServerRemote:ping(msg)
 	return msg .. "world" .. self.user.id
 end
 
+---@return integer online_count
 function ServerRemote:heartbeat()
 	self.user_connections:heartbeat(self.peer_id, self.user.id)
+	return self.user_connections:getOnlineCount()
 end
 
 ---@param msg string

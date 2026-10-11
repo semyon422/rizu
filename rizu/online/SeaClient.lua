@@ -123,11 +123,13 @@ function SeaClient:ping()
 		return nil, err
 	end
 
-	ok, err = pcall(self.remote.heartbeat, self.remote)
+	local online_count
+	ok, online_count = pcall(self.remote.heartbeat, self.remote)
 	if not ok then
-		self:closeWebsocket(err)
-		return nil, err
+		self:closeWebsocket(online_count)
+		return nil, online_count
 	end
+	self.client:setOnlineCount(online_count)
 
 	return true
 end
@@ -181,6 +183,7 @@ function SeaClient:load(url, on_connect)
 						break
 					end
 					self.client:setUser(user)
+					self:ping()
 				end
 			end
 			delay.sleep(1)
