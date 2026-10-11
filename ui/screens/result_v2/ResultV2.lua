@@ -17,6 +17,8 @@ local ChartdiffFormatter = require("ui.formatters.ChartdiffFormatter")
 local ValueCells = require("ui.screens.result_v2.ValueCells")
 local ResultStatus = require("ui.screens.result_v2.ResultStatus")
 local ResultMutators = require("ui.screens.result_v2.ResultMutators")
+local ScoreList = require("ui.screens.result_v2.ScoreList")
+local HitGraph = require("ui.screens.result.HitGraph")
 local ResultAccuracy = require("ui.screens.result_v2.ResultAccuracy")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local UiActions = require("ui.UiActions")
@@ -30,6 +32,9 @@ local CONTENT_TOP = 196
 local COLUMN_RIGHT_WIDTH = 718
 local FOOTER_BOTTOM = 40
 local BUTTON_HEIGHT = 56
+local SCORES_ROWS = 4
+local SCORES_FOOTER_GAP = 28
+local COLUMN_LEFT_WIDTH = 840
 local BUTTON_GAP = 12
 
 ---@class ui.screens.result_v2.ResultV2 : gui.Screen
@@ -69,6 +74,8 @@ function ResultV2:new(ui)
 	self.status = self.content:add(ResultStatus())
 	self.status:setAlignment(1, 0):addPosition(-EDGE, STATUS_TOP)
 	self:createAccuracy()
+	self:createScores()
+	self:createHitGraph()
 	self:createFooter()
 
 	self.composite:setOpacity(0)
@@ -115,7 +122,7 @@ function ResultV2:createAccuracy()
 	self.left = self.content:add(FlowContainer({direction = "column", gap = 32}))
 	self.accuracy = self.left:add(ResultAccuracy())
 	self.judges = self.left:add(ResultJudges())
-	self.run_cells = self.left:add(ValueCells({"COMBO", "PAUSES", "MEAN", "L MISS", "C MISS", "R MISS"}))
+	self.run_cells = self.left:add(ValueCells({"COMBO", "NS", "PAUSES", "L MISS", "C MISS", "R MISS"}))
 	self.left:fitContent()
 	self.left:setPosition(EDGE - 5, CONTENT_TOP)
 
@@ -127,6 +134,30 @@ function ResultV2:createAccuracy()
 	self.right:fitContent()
 	self.right:setWidth(COLUMN_RIGHT_WIDTH)
 	self.right:setAlignment(1, 0):addPosition(-EDGE, CONTENT_TOP)
+end
+
+---@private
+function ResultV2:createScores()
+	local ui = self.ui
+	local scores = self.content:add(FlowContainer({direction = "column", gap = 10}))
+	scores:add(Label({
+		font_name = "bold",
+		font_size = 20,
+		color = Colors.muted,
+		text = "LEADERBOARD",
+	}))
+	self.score_list = scores:add(ScoreList(ui.game.scoreSelector, ui.localization, ui.game.online_client, ui.game.avatar_cache))
+	self.score_list:setSize(COLUMN_LEFT_WIDTH, ScoreList.getHeightForRows(SCORES_ROWS))
+	scores:fitContent()
+	scores:setAlignment(0, 1):addPosition(EDGE, -(FOOTER_BOTTOM + BUTTON_HEIGHT + SCORES_FOOTER_GAP))
+end
+
+---@private
+function ResultV2:createHitGraph()
+	-- Bottom-aligned with the score list on the other side.
+	self.hit_graph = self.content:add(HitGraph(self.ui.tooltip, false))
+	self.hit_graph:anchorFixed(0, 0, COLUMN_RIGHT_WIDTH, ScoreList.getHeightForRows(SCORES_ROWS))
+	self.hit_graph:setAlignment(1, 1):addPosition(-EDGE, -(FOOTER_BOTTOM + BUTTON_HEIGHT + SCORES_FOOTER_GAP))
 end
 
 ---@private
@@ -218,9 +249,12 @@ function ResultV2:updateInfo()
 	local accuracy_source = score_engine.accuracySource
 	if not judge_source or not accuracy_source then
 		self.left:setVisible(false)
+		self.hit_graph:setVisible(false)
 		return
 	end
 	self.left:setVisible(true)
+	self.hit_graph:setVisible(true)
+	self.hit_graph:bind(score_engine)
 	-- The selected judge system is created from the resolved timings, so it is authoritative.
 	local score_system = judge_source --[[@as rizu.ScoreSystem]]
 	assert(score_system.timings)
@@ -231,12 +265,13 @@ function ResultV2:updateInfo()
 	-- Combo counts a long note twice, so the total is the judgeable count, not the note count.
 	-- TODO: IComboSource:getMaxPossibleCombo() should provide this, so score systems can report their own total.
 	local combo_source = score_engine.comboSource
+	local normalscore = score_engine.scores.normalscore
 	local pauses = result_chartplay and result_chartplay.pause_count or game.rhythm_engine.pause_counter.count
-	-- TODO: mean (or std dev) and the miss counts need a pass over all score system events.
+	-- TODO: the miss counts need a pass over all score system events.
 	self.run_cells:setValues({
 		{value = tostring(combo_source and combo_source:getMaxCombo() or 0), suffix = " / " .. tostring(game.computeContext.chartdiff.judges_count)},
+		{value = normalscore and normalscore:getAccuracyString() or "-"},
 		{value = tostring(pauses), color = pauses > 0 and Colors.danger or nil},
-		{value = "0", suffix = " ms"},
 		{value = "0"},
 		{value = "0"},
 		{value = "0"},
@@ -250,11 +285,26 @@ function ResultV2:enter()
 
 	self.ui.command_registry:pushContext("result_commands", self.ui.result_commands)
 	self.ui.command_registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
+	local score_selector = self.ui.game.scoreSelector
+	score_selector:onChanged(self)
 	self:updateInfo()
+	self.score_list:reload()
+	-- Saving a score doesn't emit anything, so the selector still holds the list from before the play.
+	-- Pulling again reloads it, and the resulting event refreshes the rows.
+	score_selector:pullScore()
 	self.composite:fadeIn(0.6, "OutQuint")
 end
 
+---@param event rizu.select.Event|{name: string, [integer]: any}
+function ResultV2:receive(event)
+	-- Rows are replaced once loading finishes; the transient clear while loading is ignored.
+	if event.type == "score_items_changed" and not event.loading then
+		self.score_list:reload()
+	end
+end
+
 function ResultV2:exit()
+	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.tooltip:setText(nil)
 	self.ui.command_registry:popContext("result_commands")
 	self.ui.command_registry:popContext("ui_result_commands")

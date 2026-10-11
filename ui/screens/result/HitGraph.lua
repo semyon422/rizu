@@ -14,11 +14,17 @@ local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 ---@field error_message string?
 ---@field sprite_batch gui.SpriteBatch?
 ---@field tooltip ui.views.Tooltip?
+---@field background gui.Color? Nil draws no background.
 local HitGraph = View + {}
 
 ---@param tooltip ui.views.Tooltip?
-function HitGraph:new(tooltip)
+---@param background gui.Color? Defaults to the surface color; pass `false` for a transparent graph.
+function HitGraph:new(tooltip, background)
 	View.new(self)
+	if background == nil then
+		background = Colors.surface
+	end
+	self.background = background or nil
 	self.sequence = {}
 	self.tooltip = tooltip
 	self.font = Resources.getFont("regular", 14)
@@ -159,8 +165,10 @@ function HitGraph:rebuild()
 end
 
 function HitGraph:draw()
-	Painter.setColorTable(Colors.surface)
-	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	if self.background then
+		Painter.setColorTable(self.background)
+		Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
+	end
 
 	local timing_values = self.timing_values
 	if timing_values then

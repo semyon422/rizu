@@ -9,7 +9,8 @@ local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 ---@field sprite gui.Sprite
 ---@field value string?
 
----Grid of the mutators applied to the play: an icon, with the setting underneath when it has one.
+---One row of the mutators applied to the play: an icon, with the setting underneath when it has one.
+---A long row is clipped at the right edge instead of wrapping.
 ---@class ui.screens.result_v2.ResultMutators : gui.View
 ---@operator call: ui.screens.result_v2.ResultMutators
 ---@field items ui.screens.result_v2.ResultMutators.Item[]
@@ -18,7 +19,6 @@ local ResultMutators = View + {}
 
 local ICON_SIZE = 76
 local GAP_X = 12
-local GAP_Y = 8
 local VALUE_GAP = 4
 
 local icon_names = {
@@ -54,11 +54,7 @@ function ResultMutators:new(width)
 	self.items = {}
 	self.value_font = Resources.getFont("medium", 26)
 	self:setSize(width, 0)
-end
-
----@return number
-function ResultMutators:getColumns()
-	return math.max(1, math.floor((self.width + GAP_X) / (ICON_SIZE + GAP_X)))
+	self:setClip(true)
 end
 
 ---@return number
@@ -85,20 +81,15 @@ function ResultMutators:bind(replay_base)
 		self.items[#self.items + 1] = {sprite = sprite, value = value}
 	end
 
-	local rows = math.ceil(#self.items / self:getColumns())
-	self:setHeight(rows > 0 and rows * self:getRowHeight() + (rows - 1) * GAP_Y or 0)
+	self:setHeight(#self.items > 0 and self:getRowHeight() or 0)
 end
 
 function ResultMutators:draw()
 	Painter.snapToPixel()
-	local columns = self:getColumns()
-	local row_height = self:getRowHeight()
 	love.graphics.setFont(self.value_font)
 	for i, item in ipairs(self.items) do
-		local column = (i - 1) % columns
-		local row = math.floor((i - 1) / columns)
-		local x = column * (ICON_SIZE + GAP_X)
-		local y = row * (row_height + GAP_Y)
+		local x = (i - 1) * (ICON_SIZE + GAP_X)
+		local y = 0
 
 		Painter.setColorRgb(1, 1, 1, 1)
 		item.sprite:draw(x, y, 0, ICON_SIZE / item.sprite:getWidth(), ICON_SIZE / item.sprite:getHeight())

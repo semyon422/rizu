@@ -387,6 +387,31 @@ local SpriteDefinitions = {
 		corner_radii = {top_right = 6, bottom_right = 6},
 		fills = fills({1, 1, 1, 1}),
 	},
+	-- Result v2 score list: a round solid cap and a fade-out body make the transparent row.
+	result_v2_score_cap = {
+		width = 12,
+		height = 64,
+		corner_radii = {top_left = 6, bottom_left = 6},
+		fills = fills({1, 1, 1, 1}),
+	},
+	result_v2_score_fade = {
+		width = 64,
+		height = 1,
+		fills = {{
+			type = "linear_gradient",
+			angle = 0,
+			stops = {
+				{offset = 0, color = {1, 1, 1, 1}},
+				{offset = 1, color = {1, 1, 1, 0}},
+			},
+		}},
+	},
+	result_v2_score_avatar = {
+		width = 52,
+		height = 52,
+		border_radius = 5,
+		fills = fills(Colors.surface),
+	},
 	-- Result v2 scrims: dark left edge for the stat column, dark bottom for the footer.
 	result_v2_scrim_horizontal = {
 		width = 64,
