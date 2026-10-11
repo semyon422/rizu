@@ -1,8 +1,9 @@
-local View = require("gui.View")
+local CompositeView = require("gui.CompositeView")
 
----@class ui.ModalView : gui.View
+---A composite so the show/hide fades blend the whole modal as one layer.
+---@class ui.ModalView : gui.CompositeView
 ---@operator call: ui.ModalView
-local ModalView = View + {}
+local ModalView = CompositeView + {}
 
 function ModalView:show()
 	error("ModalView:show() must be implemented")

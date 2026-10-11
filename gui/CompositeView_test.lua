@@ -200,6 +200,26 @@ test.opaque_composite_draws_directly_and_holds_no_canvas = withFakeCanvases(func
 	t:eq(target, canvasOf(outer))
 end)
 
+test.composite_own_draw_goes_into_its_canvas_at_full_opacity = withFakeCanvases(function(t)
+	local screen = Screen()
+	local composite = addTranslucent(screen, 100, 50)
+	local target, alpha
+	composite:setDraw(function()
+		target = love.graphics.getCanvas()
+		alpha = select(4, love.graphics.getColor())
+	end)
+	screen:resize(800, 600)
+
+	screen:draw()
+	t:eq(target, canvasOf(composite))
+	t:eq(alpha, 1)
+
+	composite:setOpacity(1)
+	screen:draw()
+	t:eq(target, nil)
+	t:eq(alpha, 1)
+end)
+
 test.post_processed_composite_keeps_its_canvas_when_opaque = withFakeCanvases(function(t)
 	local screen = Screen()
 	local composite = CompositeView()

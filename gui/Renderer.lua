@@ -155,7 +155,8 @@ function Renderer:draw()
 				end
 				setScissor(view.clip_rect, inverse, scale)
 				love.graphics.setBlendMode("alpha")
-				Painter.begin(view.render_opacity)
+				-- A composite drawing into its own canvas is opaque there; its opacity applies to the canvas.
+				Painter.begin(view == boundary and 1 or view.render_opacity)
 				view:draw()
 			end
 			index = index + 2

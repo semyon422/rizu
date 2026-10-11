@@ -189,13 +189,13 @@ local function flatten(view, views, input_views, update_views, after_layout_view
 	if view.afterLayout then
 		after_layout_views[#after_layout_views + 1] = view
 	end
-	if view.draw ~= View.draw and not view.is_composite then
-		renderer:addView(view)
-	end
-
+	-- A composite's own draw belongs to its content, so it goes inside the boundary.
 	if view.is_composite then
 		---@cast view gui.CompositeView
 		renderer:beginComposite(view)
+	end
+	if view.draw ~= View.draw then
+		renderer:addView(view)
 	end
 	for i = 1, #view.children do
 		flatten(view.children[i], views, input_views, update_views, after_layout_views, renderer)
