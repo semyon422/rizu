@@ -1,9 +1,9 @@
 local View = require("gui.View")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Resources = require("ui.Resources")
-local Dropdown = require("ui.screens.song_select.Dropdown")
-local FiltersButton = require("ui.screens.song_select.FiltersButton")
-local SearchField = require("ui.screens.song_select.SearchField")
+local Dropdown = require("ui.screens.song_select_v2.Dropdown")
+local FiltersButton = require("ui.screens.song_select_v2.FiltersButton")
+local SearchField = require("ui.screens.song_select_v2.SearchField")
 local Settings = require("rizu.config.Settings")
 
 ---Copy of the old toolbar without its strip: the controls sit directly on the blurred background.
@@ -12,7 +12,7 @@ local Settings = require("rizu.config.Settings")
 local LibraryToolbar = View + {}
 
 ---@param node rizu.library.Collections.TreeNode
----@param options ui.screens.song_select.DropdownOption[]
+---@param options ui.screens.song_select_v2.DropdownOption[]
 ---@param prefix string
 local function addCollectionOptions(node, options, prefix)
 	for _, item in ipairs(node.items) do
@@ -54,7 +54,7 @@ function LibraryToolbar:new(ui, popup_container)
 		end,
 	}), 240)
 
-	---@type ui.screens.song_select.DropdownOption[]
+	---@type ui.screens.song_select_v2.DropdownOption[]
 	local sort_options = {}
 	for _, name in ipairs(chart_selector.sortModel.names) do
 		sort_options[#sort_options + 1] = {label = ui.localization:get("song_select.sort_" .. name), value = name}
@@ -88,7 +88,7 @@ function LibraryToolbar:updateCollections()
 	local selector = self.ui.game.collectionSelector
 	local root = selector.store.root_tree
 	if not root then return end
-	---@type ui.screens.song_select.DropdownOption[]
+	---@type ui.screens.song_select_v2.DropdownOption[]
 	local options = {{label = self.ui.localization:get("song_select.all_songs"), value = root}}
 	addCollectionOptions(root, options, "")
 	self.collection_dropdown:setOptions(options, selector:getSelectedItem() or root)

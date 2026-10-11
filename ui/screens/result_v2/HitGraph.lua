@@ -6,8 +6,8 @@ local Colors = require("ui.Colors")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 
----@class ui.screens.result.HitGraph : gui.View
----@operator call: ui.screens.result.HitGraph
+---@class ui.screens.result_v2.HitGraph : gui.View
+---@operator call: ui.screens.result_v2.HitGraph
 ---@field sequence table[]
 ---@field judges_source rizu.IJudgesSource?
 ---@field timing_values sea.TimingValues?

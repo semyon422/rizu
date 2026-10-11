@@ -5,20 +5,20 @@ local Painter = require("gui.Painter")
 
 local lg = love.graphics
 
----@class ui.screens.song_select.DropdownOption
+---@class ui.screens.song_select_v2.DropdownOption
 ---@field label string
 ---@field value any
 
----@class ui.screens.song_select.DropdownItems : gui.View
----@operator call: ui.screens.song_select.DropdownItems
----@field dropdown ui.screens.song_select.Dropdown
----@field options ui.screens.song_select.DropdownOption[]
+---@class ui.screens.song_select_v2.DropdownItems : gui.View
+---@operator call: ui.screens.song_select_v2.DropdownItems
+---@field dropdown ui.screens.song_select_v2.Dropdown
+---@field options ui.screens.song_select_v2.DropdownOption[]
 local DropdownItems = View + {}
 
 local ROW_HEIGHT = 42
 
----@param dropdown ui.screens.song_select.Dropdown
----@param options ui.screens.song_select.DropdownOption[]
+---@param dropdown ui.screens.song_select_v2.Dropdown
+---@param options ui.screens.song_select_v2.DropdownOption[]
 function DropdownItems:new(dropdown, options)
 	View.new(self)
 	self.dropdown = dropdown

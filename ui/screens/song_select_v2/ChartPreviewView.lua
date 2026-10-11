@@ -5,8 +5,8 @@ local BgaRenderer = require("ui.views.BgaRenderer")
 
 local lg = love.graphics
 
----@class ui.screens.song_select.ChartPreviewView : gui.View
----@operator call: ui.screens.song_select.ChartPreviewView
+---@class ui.screens.song_select_v2.ChartPreviewView : gui.View
+---@operator call: ui.screens.song_select_v2.ChartPreviewView
 ---@field bg_model sphere.BackgroundModel
 ---@field game sphere.GameController
 ---@field preview_canvas love.Canvas?

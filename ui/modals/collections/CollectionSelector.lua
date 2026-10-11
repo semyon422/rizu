@@ -9,8 +9,8 @@ local UiActions = require("ui.UiActions")
 
 ---@class ui.modals.collections.CollectionSelector : ui.ModalView
 ---@operator call: ui.modals.collections.CollectionSelector
----@field options ui.screens.song_select.DropdownOption[]
----@field filtered_options ui.screens.song_select.DropdownOption[]
+---@field options ui.screens.song_select_v2.DropdownOption[]
+---@field filtered_options ui.screens.song_select_v2.DropdownOption[]
 local CollectionSelector = ModalView + {}
 
 local MODAL_WIDTH = 680
@@ -64,7 +64,7 @@ function CollectionSelector:new(on_close, localization)
 	self.list:anchorFixed(PADDING, LIST_TOP, MODAL_WIDTH - PADDING * 2, MODAL_HEIGHT - LIST_TOP - PADDING)
 end
 
----@param options ui.screens.song_select.DropdownOption[]
+---@param options ui.screens.song_select_v2.DropdownOption[]
 ---@param value any
 ---@param on_change fun(value: any)
 function CollectionSelector:open(options, value, on_change)

@@ -5,8 +5,8 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 
----@class ui.screens.song_select.FiltersButton : gui.View
----@operator call: ui.screens.song_select.FiltersButton
+---@class ui.screens.song_select_v2.FiltersButton : gui.View
+---@operator call: ui.screens.song_select_v2.FiltersButton
 local FiltersButton = View + {}
 
 ---@param ui ui.UserInterface

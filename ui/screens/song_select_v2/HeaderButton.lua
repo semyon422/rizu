@@ -3,8 +3,8 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 
----@class ui.screens.song_select.HeaderButton : gui.View
----@operator call: ui.screens.song_select.HeaderButton
+---@class ui.screens.song_select_v2.HeaderButton : gui.View
+---@operator call: ui.screens.song_select_v2.HeaderButton
 ---@field icon gui.Sprite
 ---@field on_click fun()?
 local HeaderButton = View + {}

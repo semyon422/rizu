@@ -83,7 +83,6 @@ function ModalManager:new(ui, popup_container)
 	local function modifiers_changed()
 		-- TODO: This callback chain stinks. The game core should emit modifier-change events.
 		ui.song_select:updateModifiers()
-		ui.song_select_v2:updateModifiers()
 	end
 	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed,
 		function() self:hideModal(self.modifiers) end, localization))
@@ -296,7 +295,7 @@ function ModalManager:detachChartMutators()
 	return self:hideModal(self.chart_mutators)
 end
 
----@param options ui.screens.song_select.DropdownOption[]
+---@param options ui.screens.song_select_v2.DropdownOption[]
 ---@param value any
 ---@param on_change fun(value: any)
 ---@return boolean attached

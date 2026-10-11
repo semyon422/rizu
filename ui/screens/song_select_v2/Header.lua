@@ -7,15 +7,15 @@ local Panel = require("ui.views.Panel")
 local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local PlayerInfo = require("ui.views.PlayerInfo")
-local SessionInfo = require("ui.screens.song_select.SessionInfo")
-local HeaderButton = require("ui.screens.song_select.HeaderButton")
+local SessionInfo = require("ui.screens.song_select_v2.SessionInfo")
+local HeaderButton = require("ui.screens.song_select_v2.HeaderButton")
 
 ---Copy of the old header on a translucent strip, laid out after result_design/select.html.
 ---@class ui.screens.song_select_v2.Header : gui.View
 ---@operator call: ui.screens.song_select_v2.Header
 ---@field ui ui.UserInterface
 ---@field actions gui.layout.FlowContainer
----@field session_info ui.screens.song_select.SessionInfo
+---@field session_info ui.screens.song_select_v2.SessionInfo
 ---@field player_info ui.views.PlayerInfo
 ---@field online_observer util.Observer?
 local Header = View + {}

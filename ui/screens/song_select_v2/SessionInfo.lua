@@ -7,8 +7,8 @@ local Line = require("ui.views.Line")
 
 local lg = love.graphics
 
----@class ui.screens.song_select.SessionInfo : gui.View
----@operator call: ui.screens.song_select.SessionInfo
+---@class ui.screens.song_select_v2.SessionInfo : gui.View
+---@operator call: ui.screens.song_select_v2.SessionInfo
 ---@field date_text string
 ---@field session_text string
 ---@field text_timer number

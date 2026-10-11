@@ -4,7 +4,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
-local ChartPreviewView = require("ui.screens.song_select.ChartPreviewView")
+local ChartPreviewView = require("ui.screens.song_select_v2.ChartPreviewView")
 
 local lg = love.graphics
 
@@ -50,7 +50,7 @@ end
 
 ---@class ui.screens.song_select_v2.SelectedSongPanel : gui.View
 ---@operator call: ui.screens.song_select_v2.SelectedSongPanel
----@field chart_preview ui.screens.song_select.ChartPreviewView
+---@field chart_preview ui.screens.song_select_v2.ChartPreviewView
 ---@field details_container ui.screens.song_select_v2.SelectedSongPanel.Details
 ---@field progress_bar ui.screens.music_player.ProgressBar
 ---@field game sphere.GameController

@@ -2,8 +2,7 @@ local RizuUserInterface = require("rizu.app.UserInterface")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 local MainMenu = require("ui.screens.main_menu.MainMenu")
-local SongSelect = require("ui.screens.song_select.SongSelect")
-local SongSelectV2 = require("ui.screens.song_select_v2.SongSelectV2")
+local SongSelect = require("ui.screens.song_select_v2.SongSelectV2")
 local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
 local Editor = require("ui.screens.editor.Editor")
@@ -48,8 +47,7 @@ local TARGET_HEIGHT = 1080
 ---@class ui.UserInterface : rizu.app.UserInterface
 ---@operator call: ui.UserInterface
 ---@field main_menu ui.screens.main_menu.MainMenu
----@field song_select ui.screens.song_select.SongSelect
----@field song_select_v2 ui.screens.song_select_v2.SongSelectV2
+---@field song_select ui.screens.song_select_v2.SongSelectV2
 ---@field chart_loading ui.screens.chart_loading.ChartLoading
 ---@field gameplay ui.screens.gameplay.Gameplay
 ---@field editor ui.screens.editor.Editor
@@ -126,7 +124,6 @@ function UserInterface:load()
 	self.tooltip = Tooltip()
 	self.main_menu = MainMenu(self)
 	self.song_select = SongSelect(self)
-	self.song_select_v2 = SongSelectV2(self)
 	self.chart_loading = ChartLoading(self)
 	self.gameplay = Gameplay(self)
 	self.editor = Editor(self)
@@ -143,7 +140,6 @@ function UserInterface:load()
 	self.screen_manager:registerAll({
 		self.main_menu,
 		self.song_select,
-		self.song_select_v2,
 		self.chart_loading,
 		self.gameplay,
 		self.editor,

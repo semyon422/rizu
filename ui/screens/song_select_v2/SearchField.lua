@@ -6,8 +6,8 @@ local Painter = require("gui.Painter")
 
 local lg = love.graphics
 
----@class ui.screens.song_select.SearchField : ui.views.Textbox
----@operator call: ui.screens.song_select.SearchField
+---@class ui.screens.song_select_v2.SearchField : ui.views.Textbox
+---@operator call: ui.screens.song_select_v2.SearchField
 local SearchField = Textbox + {}
 
 local TEXT_X = 48

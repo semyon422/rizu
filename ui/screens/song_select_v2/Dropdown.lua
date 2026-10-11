@@ -3,28 +3,28 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
-local DropdownItems = require("ui.screens.song_select.DropdownItems")
+local DropdownItems = require("ui.screens.song_select_v2.DropdownItems")
 local Sounds = require("ui.Sounds")
 
 local lg = love.graphics
 
----@class ui.screens.song_select.Dropdown.Config
+---@class ui.screens.song_select_v2.Dropdown.Config
 ---@field label string
----@field options ui.screens.song_select.DropdownOption[]
+---@field options ui.screens.song_select_v2.DropdownOption[]
 ---@field value any
 ---@field popup_container ui.views.PopupContainer
 ---@field icon? gui.Sprite
 ---@field show_chevron? boolean
 ---@field on_change? fun(value: any)
----@field on_open? fun(dropdown: ui.screens.song_select.Dropdown): boolean?
+---@field on_open? fun(dropdown: ui.screens.song_select_v2.Dropdown): boolean?
 
----@class ui.screens.song_select.Dropdown : gui.View, ui.views.PopupOwner
----@operator call: ui.screens.song_select.Dropdown
----@field options ui.screens.song_select.DropdownOption[]
+---@class ui.screens.song_select_v2.Dropdown : gui.View, ui.views.PopupOwner
+---@operator call: ui.screens.song_select_v2.Dropdown
+---@field options ui.screens.song_select_v2.DropdownOption[]
 ---@field popup_container ui.views.PopupContainer
 local Dropdown = View + {}
 
----@param config ui.screens.song_select.Dropdown.Config
+---@param config ui.screens.song_select_v2.Dropdown.Config
 function Dropdown:new(config)
 	View.new(self)
 	self.label = config.label
@@ -47,7 +47,7 @@ function Dropdown:setValue(value)
 	self.value = value
 end
 
----@param options ui.screens.song_select.DropdownOption[]
+---@param options ui.screens.song_select_v2.DropdownOption[]
 ---@param value any
 function Dropdown:setOptions(options, value)
 	self:close()
@@ -85,7 +85,7 @@ function Dropdown:close()
 	return true
 end
 
----@param option ui.screens.song_select.DropdownOption
+---@param option ui.screens.song_select_v2.DropdownOption
 function Dropdown:selectOption(option)
 	self.value = option.value
 	self:close()

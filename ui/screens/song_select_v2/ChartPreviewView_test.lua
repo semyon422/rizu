@@ -1,4 +1,4 @@
-local ChartPreviewView = require("ui.screens.song_select.ChartPreviewView")
+local ChartPreviewView = require("ui.screens.song_select_v2.ChartPreviewView")
 local test = {}
 
 ---@param t testing.T

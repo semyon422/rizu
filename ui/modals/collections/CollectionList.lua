@@ -5,7 +5,7 @@ local VirtualizedList = require("gui.VirtualizedList")
 
 ---@class ui.modals.collections.CollectionList : gui.VirtualizedList
 ---@operator call: ui.modals.collections.CollectionList
----@field options ui.screens.song_select.DropdownOption[]
+---@field options ui.screens.song_select_v2.DropdownOption[]
 ---@field selected_index integer
 ---@field hover_index integer?
 local CollectionList = VirtualizedList + {}
@@ -34,7 +34,7 @@ function CollectionList:getItemCount()
 	return #self.options
 end
 
----@param options ui.screens.song_select.DropdownOption[]
+---@param options ui.screens.song_select_v2.DropdownOption[]
 function CollectionList:setOptions(options)
 	self.options = options
 	self.selected_index = math.max(1, math.min(self.selected_index, math.max(1, #options)))
