@@ -42,6 +42,16 @@ local MODIFIER_KEYS = {
 	rshift = true,
 }
 
+local DEBUG_LINES = 8
+local DEBUG_X = 0
+local DEBUG_Y = -160 -- above the modal, which is no longer clipped
+
+---@param v any
+---@return string
+local function debugValue(v)
+	return v == nil and "nil" or tostring(v)
+end
+
 ---@param game sphere.GameController
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
@@ -56,7 +66,7 @@ function Input:new(game, on_close, localization)
 	self:setPivot(0.5, 0.5)
 	self:setOpacity(0)
 	self:setVisible(false)
-	self:setClip(true)
+	self:setClip(false)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 
@@ -82,6 +92,51 @@ function Input:new(game, on_close, localization)
 		align = "center",
 	}))
 	self.tip_label:anchorFixed(190, 32, MODAL_MAX_WIDTH - 238, 28)
+
+	-- Temporary: shows every keyboard event this modal receives, to debug keys
+	-- (e.g. right alt on Linux/Mac) that cannot be bound.
+	self.debug_log = {}
+	self.debug_label = self:add(Label({
+		font_name = "regular",
+		font_size = 14,
+		text = "key debug: press keys",
+		color = Colors.muted,
+	}))
+	self.debug_label:setOffset(DEBUG_X, DEBUG_Y)
+end
+
+---@param kind string
+---@param e gui.KeyboardEvent
+---@param result string?
+function Input:debugEvent(kind, e, result)
+	local line = ("%s key=%s scan=%s rep=%s mods=%s%s%s%s wait=%s -> %s"):format(
+		kind,
+		debugValue(e.key or e.text),
+		debugValue(e.scancode),
+		debugValue(e.is_repeated),
+		e.control_pressed and "C" or "-",
+		e.shift_pressed and "S" or "-",
+		e.alt_pressed and "A" or "-",
+		e.super_pressed and "G" or "-",
+		self.waiting_column and "yes" or "no",
+		result or "")
+	print("[input debug] " .. line)
+	local log = self.debug_log
+	log[#log + 1] = line
+	if #log > DEBUG_LINES then
+		table.remove(log, 1)
+	end
+	self.debug_label:setText(table.concat(log, "\n"))
+end
+
+---@param e gui.KeyUpEvent
+function Input:onKeyUp(e)
+	self:debugEvent("up  ", e)
+end
+
+---@param e gui.TextInputEvent
+function Input:onTextInput(e)
+	self:debugEvent("text", e)
 end
 
 ---@param input_mode string?
@@ -154,17 +209,21 @@ end
 function Input:onKeyDown(e)
 	if e.key == "escape" then
 		-- Leave cancel available for ModalManager.
+		self:debugEvent("down", e, "ignored: escape")
 		return
 	end
 	if not MODIFIER_KEYS[e.key]
 		and (e.control_pressed or e.shift_pressed or e.alt_pressed or e.super_pressed)
 	then
 		-- Input bindings do not support key combinations.
+		self:debugEvent("down", e, "ignored: modifier combination")
 		return
 	end
 	if not self.waiting_column or e.is_repeated then
+		self:debugEvent("down", e, "ignored: not waiting or repeat")
 		return
 	end
+	self:debugEvent("down", e, "BOUND " .. debugValue(e.key))
 	local column = self.waiting_column
 	local binding_index = self.waiting_binding_index or 1
 	self.waiting_column = nil
@@ -216,6 +275,10 @@ end
 function Input:draw()
 	Painter.setColorTable(Colors.panel)
 	self.background:draw(self.width, self.height)
+
+	local label = self.debug_label
+	love.graphics.setColor(0, 0, 0, 1)
+	love.graphics.rectangle("fill", DEBUG_X - 4, DEBUG_Y - 4, label.width + 8, label.height + 8)
 end
 
 return Input
