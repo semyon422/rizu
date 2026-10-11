@@ -906,7 +906,7 @@ local function composeClipRect(view)
 	view.clip_rect = rect
 end
 
----@private
+---@protected
 ---@param root_scale number  ui_scale baked into the local transform; 1 for non-roots
 ---@param opacity_only boolean? Skip matrices and clip rects: only opacity, visibility or enabled changed
 function View:compose(root_scale, opacity_only)

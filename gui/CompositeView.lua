@@ -1,5 +1,8 @@
 local View = require("gui.View")
 
+---Blends its subtree as one layer. The canvas exists only while it is needed: the view is
+---visible and either translucent or post-processed. Otherwise its children draw straight into
+---the parent target, where they are not cut off at this view's rect; set `clip` if they overflow.
 ---@class gui.CompositeView : gui.View
 ---@operator call: gui.CompositeView
 ---@field canvas love.Canvas?
@@ -13,16 +16,19 @@ function CompositeView:new()
 	self.canvas_scale = 1
 end
 
----@param old_x number
----@param old_y number
----@param old_width number
----@param old_height number
-function CompositeView:onLayoutChanged(old_x, old_y, old_width, old_height)
-	self:prepareCanvas()
+---A hidden composite gives its canvas back; the Renderer asks for a new one when it is drawn again.
+---@protected
+---@param root_scale number
+---@param opacity_only boolean?
+function CompositeView:compose(root_scale, opacity_only)
+	View.compose(self, root_scale, opacity_only)
+	if not self.effective_visible then
+		self:releaseCanvas()
+	end
 end
 
----Returns the content canvas for the current rect and ui_scale, replacing a stale one.
----The Renderer calls this before every use, so a ui_scale change that leaves the rect alone is still followed.
+---Returns the content canvas for the current rect and ui_scale, creating or replacing it as needed.
+---The Renderer calls this each time it is about to draw the view through its canvas.
 ---@return love.Canvas? canvas nil when the view has no pixels
 function CompositeView:prepareCanvas()
 	local screen = assert(self.screen, "CompositeView must be attached before layout")
