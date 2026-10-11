@@ -216,13 +216,13 @@ function test.aim_completion_saves_diagnostic_replay_without_score_screen(t)
 	local saved, paused = 0, 0
 	local text, visible
 	local screen = setmetatable({
-		is_aim = true, is_playing = true, sequence_canvas = {},
+		is_unscored = true, is_playing = true, sequence_canvas = {},
 		game = {rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 2, misses = 1}}},
 		gameplay_interactor = {
 			saveLocalReplay = function() saved = saved + 1 end,
 			pause = function() paused = paused + 1 end,
 		},
-		aim_summary = {setText = function(_, value) text = value end, setVisible = function(_, value) visible = value end},
+		summary = {setText = function(_, value) text = value end, setVisible = function(_, value) visible = value end},
 	}, {__index = Gameplay})
 	screen:observeCompletion()
 	t:eq(saved, 1)
@@ -238,13 +238,13 @@ function test.taiko_completion_uses_local_summary(t)
 	local saved, paused = 0, 0
 	local text
 	local screen = setmetatable({
-		is_aim = true, is_playing = true, sequence_canvas = {},
+		is_unscored = true, is_playing = true, sequence_canvas = {},
 		game = {rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 3, misses = 1}}},
 		gameplay_interactor = {
 			saveLocalReplay = function() saved = saved + 1 end,
 			pause = function() paused = paused + 1 end,
 		},
-		aim_summary = {setText = function(_, value) text = value end, setVisible = function() end},
+		summary = {setText = function(_, value) text = value end, setVisible = function() end},
 	}, {__index = Gameplay})
 	screen:observeCompletion()
 	t:eq(saved, 1)

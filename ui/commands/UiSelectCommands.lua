@@ -26,59 +26,15 @@ return function(game, ui)
 			end,
 		},
 		{
-			id = "ui.select.aim_replay",
-			title = "Select: Watch Local Aim Replay",
-			description = "Plays the latest diagnostic circle-only Aim replay for the selected chart",
+			id = "ui.select.local_replay",
+			title = "Select: Watch Local Replay",
+			description = "Plays the latest local attempt of the selected chart, for gamemodes that do not save scores",
 			callback = function()
 				local view = game.chartSelector.chartview
-				if view and view.chartmeta_mode == "osu" then
-					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "osu")
-					if ok then
-						ui:setScreen(ui.chart_loading)
-					else
-						ui.chart_loading:showError(err)
-						ui:setScreen(ui.chart_loading)
-					end
-				end
-			end,
-		},
-		{
-			id = "ui.select.catch_replay",
-			title = "Select: Watch Local Catch Replay",
-			description = "Plays the latest local Catch attempt",
-			callback = function()
-				local view = game.chartSelector.chartview
-				if view and view.chartmeta_mode == "catch" then
-					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "catch")
-					if not ok then ui.chart_loading:showError(err) end
-					ui:setScreen(ui.chart_loading)
-				end
-			end,
-		},
-		{
-			id = "ui.select.taiko_replay",
-			title = "Select: Watch Local Taiko Replay",
-			description = "Plays the latest local native Taiko attempt",
-			callback = function()
-				local view = game.chartSelector.chartview
-				if view and view.chartmeta_mode == "taiko" then
-					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "taiko")
-					if not ok then ui.chart_loading:showError(err) end
-					ui:setScreen(ui.chart_loading)
-				end
-			end,
-		},
-		{
-			id = "ui.select.sdvx_replay",
-			title = "Select: Watch Local SDVX Replay",
-			description = "Plays the latest native KSH attempt",
-			callback = function()
-				local view = game.chartSelector.chartview
-				if view and view.chartmeta_mode == "sdvx" then
-					local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, "sdvx")
-					if not ok then ui.chart_loading:showError(err) end
-					ui:setScreen(ui.chart_loading)
-				end
+				if not view or not game.gameplayInteractor.replay_stores[view.chartmeta_mode] then return end
+				local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, view.chartmeta_mode)
+				if not ok then ui.chart_loading:showError(err) end
+				ui:setScreen(ui.chart_loading)
 			end,
 		},
 		{

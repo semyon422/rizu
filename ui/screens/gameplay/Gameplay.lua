@@ -61,9 +61,9 @@ function Gameplay:new(ui)
 	self.gameplay_hud_view:setDraw(function()
 		self:drawGameplayHud()
 	end)
-	self.aim_summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
-	self.aim_summary:setAlignment(0.5, 0.5)
-	self.aim_summary:setVisible(false)
+	self.summary = self.root:add(Label({font_name = "regular", font_size = 20, text = "", align = "center"}))
+	self.summary:setAlignment(0.5, 0.5)
+	self.summary:setVisible(false)
 
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
@@ -104,8 +104,8 @@ end
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	assert(self.gameplay_interactor:getPlayfield(), "gameplay playfield is not ready")
-	self.is_aim = self.gameplay_playfield:isExperimental()
-	self.aim_summary:setVisible(false)
+	self.is_unscored = self.gameplay_playfield:isExperimental()
+	self.summary:setVisible(false)
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(self.ui.skin_editor)
@@ -367,14 +367,14 @@ function Gameplay:observeCompletion()
 	end
 
 	self.is_playing = false
-	if self.is_aim then
+	if self.is_unscored then
 		self.gameplay_interactor:saveLocalReplay()
 		self.gameplay_interactor.complete = true
 		self.gameplay_interactor:pause()
 		local rules = self.game.rhythm_engine.rules
-		self.aim_summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
+		self.summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
 			rules.hits, rules.misses, self.gameplay_interactor.replay_status or "Autoplay / replay — no score saved"))
-		self.aim_summary:setVisible(true)
+		self.summary:setVisible(true)
 		return
 	end
 	local base_score = self.game.rhythm_engine.score_engine.scores.base
@@ -423,11 +423,11 @@ function Gameplay:update(dt)
 	end
 	self.was_retrying = retrying
 
-	if self.is_aim and self.gameplay_interactor.loaded then
+	if self.is_unscored and self.gameplay_interactor.loaded then
 		self.gameplay_interactor:update(dt, true)
 		if not self.is_playing and self.game.rhythm_engine:getProgress() < 1 then
 			self.is_playing = true
-			self.aim_summary:setVisible(false)
+			self.summary:setVisible(false)
 			self.clear_status:hide()
 		end
 	end
@@ -438,7 +438,7 @@ end
 
 ---@param event {name: string, time: number, [integer]: any}
 function Gameplay:receive(event)
-	if self.is_aim then
+	if self.is_unscored then
 		if not self.is_playing and event.name == "keypressed" then
 			if event[1] == "return" then
 				self.ui:setScreen(self.ui.song_select)
@@ -449,9 +449,9 @@ function Gameplay:receive(event)
 				if ok then
 					self.gameplay_interactor:retry()
 					self.is_playing = true
-					self.aim_summary:setVisible(false)
+					self.summary:setVisible(false)
 				else
-					self.aim_summary:setText(err .. "\nEnter: back")
+					self.summary:setText(err .. "\nEnter: back")
 				end
 				return true
 			end
