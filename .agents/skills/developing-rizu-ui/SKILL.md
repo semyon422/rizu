@@ -42,7 +42,7 @@ function Example:new(ui)
 	local page = TrackContainer({direction = "column", gap = 20, padding = 32})
 	page:add(Label({font_name = "bold", font_size = 36, text = "Example"}), 48)
 	page:add(require("gui.View")(), "*")
-	page:add(actions, actions.offset_max[2] - actions.offset_min[2])
+	page:add(actions, actions:getAuthoredHeight())
 	self.root:add(page):anchorFill(0, 0, 0, 0)
 end
 
@@ -90,13 +90,13 @@ Placement calls are state assignments, not independent CSS-like properties. Orde
 | `fillWidth(l, r)` / `fillHeight(t, b)` | That axis's anchors and offsets; makes it fill and clears alignment on that axis |
 | `setAlignment(ax, ay)` | Both axes' anchors and offsets; makes both fixed and centers the current authored size around the anchor points |
 | `setAlignmentX/Y(a)` | That axis's anchors and offsets; makes it fixed and records alignment |
-| `setPosition(x, y)` | Both axes' offsets and both recorded alignments; keeps current authored size; fixed axes only |
+| `setPosition(x, y)` | Both axes' offsets, anchors (reset to the parent origin) and recorded alignments; keeps current authored size; fixed axes only |
 | `setWidth/Height/Size(...)` | Authored size; fixed axes only. Recorded alignment, if present, is preserved |
 | `addPosition(dx, dy)` | Adds to both edge offsets; preserves size and recorded alignment; also works on fill axes |
 
 Consequences:
 
-- `setAlignment(...):setPosition(...)` does not mean "align, then offset". `setPosition` removes the alignment.
+- `setAlignment(...):setPosition(...)` does not mean "align, then offset". `setPosition` removes the alignment and positions from the parent origin.
 - `setPosition(...):setAlignment(...)` does not preserve the position. `setAlignment` rebuilds offsets around the anchor.
 - `anchorFill(...):setSize(...)` fails because `setSize` is only valid on fixed axes.
 - `anchorPercent(...)` zeroes previous margins. Apply any intended translation afterward with `addPosition`.
@@ -177,9 +177,9 @@ view:fadeOut(0.2, "OutQuad"):expire()
 
 - General API: `transformTo(target, value, duration, easing, on_complete)`.
 - Sugar: `fadeIn`, `fadeOut`, `fadeTo`, `moveTo`, `moveToX/Y`, `scaleTo`, `pivotTo`, and `rotateTo`.
-- `delay(d)` schedules subsequent transforms. `finishTransforms(target?)` applies endpoints; `clearTransforms(target?)` cancels.
+- `delay(d)` returns a chain; transforms called on it start `d` after everything already scheduled (`view:fadeIn(0.2):delay(1):fadeOut(0.2)`), and later calls on the view are not delayed. `finishTransforms(target?)` applies endpoints; `clearTransforms(target?)` cancels.
 - A new transform replaces one on the same target. Different targets run together.
-- Use `SpringValue` for continuously retargeted motion. Use container `layout_transition = {duration = 0.25, easing = "OutQuint"}` when arranged child rectangles should glide after relayout.
+- Use `SpringValue` for continuously retargeted motion. Use container `layout_transition = {duration = 0.25, easing = "OutQuint"}` when arranged children should glide to their new position after relayout; size snaps unless `scale_size = true`.
 - After several direct visual-field writes, call `composeSubtree()` once.
 
 ## Useful gui Classes
@@ -192,7 +192,7 @@ view:fadeOut(0.2, "OutQuad"):expire()
 | `gui.NineSlice` | Resizable nine-slice sprites |
 | `gui.Sprite`, `gui.AtlasImage`, `gui.ImageSprite` | Drawable sprite abstractions and atlas regions |
 | `gui.SpriteBatch` | Explicit sprite batching for dense repeated drawing |
-| `gui.CompositeView` | Canvas-backed subtree with group opacity |
+| `gui.CompositeView` | Subtree with group opacity; uses a canvas only while translucent |
 | `gui.anim.SpringValue`, `TweenValue`, `Easing` | Springs, standalone tweens, and easing |
 | `gui.input.ActionMap`, `Inputs` | Semantic bindings and consumed action edges |
 

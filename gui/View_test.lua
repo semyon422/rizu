@@ -263,7 +263,7 @@ function test.remove_from_wrong_parent_is_error(t)
 end
 
 -- ===========================================================================
--- Layout: resolution (§3.1)
+-- Layout: resolution (§3)
 -- ===========================================================================
 
 local function newSizedRoot(w, h)
@@ -577,7 +577,7 @@ function test.getWorldPosition_matches_transformPoint_zero_zero(t)
 end
 
 -- ===========================================================================
--- Clipping (§9.1)
+-- Clipping (§8.2)
 -- ===========================================================================
 
 ---@param t testing.T
@@ -633,7 +633,7 @@ function test.rotated_clip_errors(t)
 end
 
 -- ===========================================================================
--- Visual setters and subtree composition (§4.4)
+-- Visual setters and subtree composition (§4)
 -- ===========================================================================
 
 ---@param t testing.T

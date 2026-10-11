@@ -99,7 +99,7 @@ local Animation = require("gui.view.Animation")
 ---
 ---Compose-time scale, applied to `scale_x`/`scale_y` in `compose()`.
 ---Set on screen roots by the Screen (the root's local transform bakes in
----`ui_scale`, §7.4); always 1 for non-roots.
+---`ui_scale`, §3); always 1 for non-roots.
 ---@field package root_scale number
 ---@field focused boolean
 ---@field mouse_over boolean
