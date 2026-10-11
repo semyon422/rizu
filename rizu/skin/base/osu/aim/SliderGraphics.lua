@@ -2,9 +2,11 @@ local class = require("class")
 local SliderMesh = require("rizu.skin.base.osu.aim.SliderMesh")
 
 local vertex_shader = [[
-attribute vec2 SegmentStart;
-attribute vec2 SegmentEnd;
-attribute vec2 SegmentProgress;
+#pragma language glsl3
+
+layout(location = 3) in vec2 SegmentStart;
+layout(location = 4) in vec2 SegmentEnd;
+layout(location = 5) in vec2 SegmentProgress;
 
 varying vec2 path_position;
 varying vec2 path_start;
@@ -21,6 +23,8 @@ vec4 position(mat4 transform_projection, vec4 vertex_position) {
 ]]
 
 local fragment_shader = [[
+#pragma language glsl3
+
 extern vec4 body_color;
 extern vec4 border_color;
 extern float opacity;

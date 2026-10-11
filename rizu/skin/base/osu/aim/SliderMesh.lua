@@ -3,11 +3,13 @@ local SliderMesh = {}
 local max_render_points = 2048
 local render_point_distance = 6
 
+-- Location 0 is LÖVE's VertexPosition; 1 and 2 are its texture coordinate and
+-- colour, so the segment attributes start at 3. SliderGraphics' shader matches.
 local vertex_format = {
-	{"VertexPosition", "float", 2},
-	{"SegmentStart", "float", 2},
-	{"SegmentEnd", "float", 2},
-	{"SegmentProgress", "float", 2},
+	{format = "floatvec2", location = 0},
+	{format = "floatvec2", location = 3},
+	{format = "floatvec2", location = 4},
+	{format = "floatvec2", location = 5},
 }
 
 ---@param previous chart.osu.PathPoint
