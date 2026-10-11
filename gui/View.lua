@@ -29,12 +29,13 @@ local Easing = require("gui.anim.Easing")
 ---@field size_mode_x "fixed"|"fill"
 ---@field size_mode_y "fixed"|"fill"
 ---
----Transient arranged output (§2.1, §5). Written by the parent's strategy,
----cleared every relayout. When present, resolution uses it directly.
+---Transient arranged output. Written by the parent's `arrange`, cleared every
+---relayout. When present, resolution uses it directly.
 ---@field arranged {[1]: number, [2]: number, [3]: number, [4]: number}?
 ---
 ---Behavior/state flags (§2.1).
----@field arrange_strategy gui.ArrangeStrategy?
+---@field arrange? fun(self: gui.View) Layout containers define this to write each child's `arranged` rect.
+---@field layout_transition gui.layout.LayoutTransition? Glide for children whose rect this view's layout changes.
 ---@field layout_ignore boolean
 ---@field align_x number?
 ---@field align_y number?
@@ -152,7 +153,7 @@ function View:new()
 	self.size_mode_y = "fixed"
 
 	self.arranged = nil
-	self.arrange_strategy = nil
+	self.layout_transition = nil
 	self.layout_ignore = false
 	self.align_x = nil
 	self.align_y = nil
@@ -405,15 +406,6 @@ function View:invalidate()
 	if self.screen then
 		self.screen:invalidateLayout()
 	end
-end
-
----@param strategy gui.ArrangeStrategy?
----@return gui.View
-function View:setArrangeStrategy(strategy)
-	assert(strategy == nil or type(strategy.arrange) == "function", "arrange strategy must provide arrange(container)")
-	self.arrange_strategy = strategy
-	self:invalidate()
-	return self
 end
 
 ---@param ignored boolean
@@ -801,8 +793,7 @@ end
 ---@param old_width number
 ---@param old_height number
 function View:applyLayoutTransition(old_x, old_y, old_width, old_height)
-	local strategy = self.parent and self.parent.arrange_strategy
-	local transition = strategy and strategy.layout_transition
+	local transition = self.parent and self.parent.layout_transition
 	if not self.layout_initialized or not transition or transition.duration == 0 then
 		return
 	end
@@ -831,16 +822,15 @@ function View:applyLayoutTransition(old_x, old_y, old_width, old_height)
 	end
 end
 
----Clear every child's `arranged`, then run the strategy if attached (§5).
+---Clear every child's `arranged`, then let a layout container arrange them.
 ---@private
 function View:arrangeChildren()
 	local children = self.children
 	for i = 1, #children do
 		children[i].arranged = nil
 	end
-	local strategy = self.arrange_strategy
-	if strategy then
-		strategy:arrange(self)
+	if self.arrange then
+		self:arrange()
 	end
 end
 

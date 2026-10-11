@@ -118,6 +118,17 @@ function test.track_size_is_parent_owned_and_mutable(t)
 end
 
 ---@param t testing.T
+function test.percent_track_size_can_be_set_later(t)
+	local container = TrackContainer({direction = "row"})
+	local child = container:add(View(), 20)
+	container:setTrackSize(child, "25%")
+	arrange(200, 10, container)
+	t:eq(child.width, 50)
+
+	t:has_error(function() container:setTrackSize(child, "25") end)
+end
+
+---@param t testing.T
 function test.invalid_track_size_errors(t)
 	local container = TrackContainer()
 	t:has_error(function()

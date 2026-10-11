@@ -1,5 +1,5 @@
 local View = require("gui.View")
-local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
+local Layout = require("gui.layout.Layout")
 
 ---@class gui.layout.StackContainer.Config
 ---@field padding? gui.layout.Padding
@@ -9,37 +9,17 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 
 ---Places every child in the same padded inner rect. Non-fill alignment uses the
 ---child's authored size on that axis.
----@class gui.layout.StackContainer : gui.View, gui.ArrangeStrategy
+---@class gui.layout.StackContainer : gui.View
 ---@operator call: gui.layout.StackContainer
 ---@overload fun(config: gui.layout.StackContainer.Config?): gui.layout.StackContainer
----@field padding gui.layout.Padding
+---@field padding gui.layout.Insets
 ---@field align_items_x gui.layout.Align
 ---@field align_items_y gui.layout.Align
----@field layout_transition gui.layout.LayoutTransition?
 local StackContainer = View + {}
 
 local valid_aligns = {fill = true, start = true, center = true, ["end"] = true}
 
----@param value any
----@return boolean
-local function isFiniteNumber(value)
-	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
-end
-
----@param padding gui.layout.Padding
-local function validatePadding(padding)
-	if type(padding) == "number" then
-		assert(isFiniteNumber(padding) and padding >= 0,
-			("padding must be a finite non-negative number (got %s)"):format(tostring(padding)))
-		return
-	end
-	assert(type(padding) == "table" and #padding == 4,
-		"padding table must be {left, top, right, bottom}")
-	for i = 1, 4 do
-		assert(isFiniteNumber(padding[i]) and padding[i] >= 0,
-			("padding[%d] must be a finite non-negative number (got %s)"):format(i, tostring(padding[i])))
-	end
-end
+local isFiniteNumber = Layout.isFiniteNumber
 
 ---@param name string
 ---@param align any
@@ -75,16 +55,14 @@ end
 function StackContainer:new(config)
 	View.new(self)
 	config = config or {}
-	self.padding = config.padding or 0
+	self.padding = Layout.normalizePadding(config.padding or 0)
 	self.align_items_x = config.align_items_x or "fill"
 	self.align_items_y = config.align_items_y or "fill"
 	self.layout_transition = config.layout_transition
 
-	validatePadding(self.padding)
 	validateAlign("align_items_x", self.align_items_x)
 	validateAlign("align_items_y", self.align_items_y)
-	ArrangeStrategy.validateLayoutTransition(self, self.layout_transition)
-	self.arrange_strategy = self
+	Layout.validateTransition(self.layout_transition)
 
 	for _, child in ipairs(config) do
 		self:add(child)
@@ -94,30 +72,21 @@ end
 ---@param padding gui.layout.Padding
 ---@return gui.layout.StackContainer
 function StackContainer:setPadding(padding)
-	validatePadding(padding)
-	self.padding = padding
+	local insets = Layout.normalizePadding(padding)
+	local old = self.padding
+	if old[1] == insets[1] and old[2] == insets[2] and old[3] == insets[3] and old[4] == insets[4] then
+		return self
+	end
+	self.padding = insets
 	self:invalidate()
 	return self
 end
 
----@return number left
----@return number top
----@return number right
----@return number bottom
-function StackContainer:normalizePadding()
-	local padding = self.padding
-	if type(padding) == "number" then
-		return padding, padding, padding, padding
-	end
-	return padding[1], padding[2], padding[3], padding[4]
-end
-
----@param container gui.View
-function StackContainer:arrange(container)
-	local left, top, right, bottom = self:normalizePadding()
-	local inner_width = math.max(0, container.width - left - right)
-	local inner_height = math.max(0, container.height - top - bottom)
-	for _, child in ipairs(container.children) do
+function StackContainer:arrange()
+	local left, top, right, bottom = unpack(self.padding)
+	local inner_width = math.max(0, self.width - left - right)
+	local inner_height = math.max(0, self.height - top - bottom)
+	for _, child in ipairs(self.children) do
 		if not child.layout_ignore then
 			local desired_width = child.offset_max[1] - child.offset_min[1]
 			local desired_height = child.offset_max[2] - child.offset_min[2]
@@ -142,7 +111,7 @@ function StackContainer:getContentSize()
 			max_height = math.max(max_height, height)
 		end
 	end
-	local left, top, right, bottom = self:normalizePadding()
+	local left, top, right, bottom = unpack(self.padding)
 	return max_width + left + right, max_height + top + bottom
 end
 

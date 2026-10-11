@@ -1,5 +1,5 @@
 local View = require("gui.View")
-local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
+local Layout = require("gui.layout.Layout")
 
 ---@alias gui.layout.TrackSize number|"*"|string
 
@@ -12,53 +12,31 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 
 ---Divides its main axis into tracks. Children always fill their track on the
 ---cross axis; alignment and intrinsic sizing are intentionally not supported.
----@class gui.layout.TrackContainer : gui.View, gui.ArrangeStrategy
+---@class gui.layout.TrackContainer : gui.View
 ---@operator call: gui.layout.TrackContainer
 ---@overload fun(config: gui.layout.TrackContainer.Config?): gui.layout.TrackContainer
 ---@field direction "row"|"column"
 ---@field gap number
----@field padding gui.layout.Padding
----@field layout_transition gui.layout.LayoutTransition?
+---@field padding gui.layout.Insets
 ---@field private track_sizes {[gui.View]: gui.layout.TrackSize}
+---@field private track_percents {[gui.View]: number} Parsed "NN%" track sizes
 local TrackContainer = View + {}
 
 local valid_directions = {row = true, column = true}
 
----@param value any
----@return boolean
-local function isFiniteNumber(value)
-	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
-end
+local isFiniteNumber = Layout.isFiniteNumber
 
+---Validates a track size; returns the percentage for "NN%" sizes.
 ---@param size any
----@return boolean
-local function isTrackSize(size)
-	if isFiniteNumber(size) then
-		return size >= 0
+---@return number? percent
+local function parseTrackSize(size)
+	if size == "*" or isFiniteNumber(size) and size >= 0 then
+		return nil
 	end
-	if size == "*" then
-		return true
-	end
-	if type(size) ~= "string" then
-		return false
-	end
-	local percent = size:match("^(%d+%.?%d*)%%$")
-	return percent ~= nil
-end
-
----@param padding gui.layout.Padding
-local function validatePadding(padding)
-	if type(padding) == "number" then
-		assert(isFiniteNumber(padding) and padding >= 0,
-			("padding must be a finite non-negative number (got %s)"):format(tostring(padding)))
-		return
-	end
-	assert(type(padding) == "table" and #padding == 4,
-		"padding table must be {left, top, right, bottom}")
-	for i = 1, 4 do
-		assert(isFiniteNumber(padding[i]) and padding[i] >= 0,
-			("padding[%d] must be a finite non-negative number (got %s)"):format(i, tostring(padding[i])))
-	end
+	local percent = type(size) == "string" and tonumber(size:match("^(%d+%.?%d*)%%$"))
+	assert(percent,
+		("track size must be a non-negative number, \"NN%%\", or \"*\" (got %s)"):format(tostring(size)))
+	return percent
 end
 
 ---@param config gui.layout.TrackContainer.Config?
@@ -67,29 +45,22 @@ function TrackContainer:new(config)
 	config = config or {}
 	self.direction = config.direction or "row"
 	self.gap = config.gap or 0
-	self.padding = config.padding or 0
+	self.padding = Layout.normalizePadding(config.padding or 0)
 	self.layout_transition = config.layout_transition
 	---@type {[gui.View]: gui.layout.TrackSize}
 	self.track_sizes = {}
+	---@type {[gui.View]: number}
+	self.track_percents = {}
 
 	assert(valid_directions[self.direction],
 		("direction must be row|column (got %s)"):format(tostring(self.direction)))
 	assert(isFiniteNumber(self.gap) and self.gap >= 0,
 		("gap must be a finite non-negative number (got %s)"):format(tostring(self.gap)))
-	validatePadding(self.padding)
-	self:validateLayoutTransition(self.layout_transition)
-
-	-- Reuse View's strategy hook internally. To callers this remains a container.
-	self.arrange_strategy = self
+	Layout.validateTransition(self.layout_transition)
 
 	for _, child in ipairs(config) do
 		self:add(child)
 	end
-end
-
----@param transition gui.layout.LayoutTransition?
-function TrackContainer:validateLayoutTransition(transition)
-	ArrangeStrategy.validateLayoutTransition(self, transition)
 end
 
 ---@param direction "row"|"column"
@@ -117,8 +88,12 @@ end
 ---@param padding gui.layout.Padding
 ---@return gui.layout.TrackContainer
 function TrackContainer:setPadding(padding)
-	validatePadding(padding)
-	self.padding = padding
+	local insets = Layout.normalizePadding(padding)
+	local old = self.padding
+	if old[1] == insets[1] and old[2] == insets[2] and old[3] == insets[3] and old[4] == insets[4] then
+		return self
+	end
+	self.padding = insets
 	self:invalidate()
 	return self
 end
@@ -129,10 +104,10 @@ end
 ---@return T
 function TrackContainer:add(child, size)
 	size = size or "*"
-	assert(isTrackSize(size),
-		("track size must be a non-negative number, \"NN%%\", or \"*\" (got %s)"):format(tostring(size)))
+	local percent = parseTrackSize(size)
 	View.add(self, child)
 	self.track_sizes[child] = size
+	self.track_percents[child] = percent
 	return child
 end
 
@@ -143,10 +118,10 @@ end
 ---@return T
 function TrackContainer:insert(index, child, size)
 	size = size or self.track_sizes[child] or "*"
-	assert(isTrackSize(size),
-		("track size must be a non-negative number, \"NN%%\", or \"*\" (got %s)"):format(tostring(size)))
+	local percent = parseTrackSize(size)
 	View.insert(self, index, child)
 	self.track_sizes[child] = size
+	self.track_percents[child] = percent
 	return child
 end
 
@@ -154,6 +129,7 @@ end
 function TrackContainer:remove(child)
 	View.remove(self, child)
 	self.track_sizes[child] = nil
+	self.track_percents[child] = nil
 end
 
 ---@param child gui.View
@@ -161,34 +137,21 @@ end
 ---@return gui.layout.TrackContainer
 function TrackContainer:setTrackSize(child, size)
 	assert(child.parent == self, "cannot size a view that is not a child")
-	assert(isTrackSize(size),
-		("track size must be a non-negative number, \"NN%%\", or \"*\" (got %s)"):format(tostring(size)))
+	local percent = parseTrackSize(size)
 	if self.track_sizes[child] == size then return self end
 	self.track_sizes[child] = size
+	self.track_percents[child] = percent
 	self:invalidate()
 	return self
 end
 
----@return number left
----@return number top
----@return number right
----@return number bottom
-function TrackContainer:normalizePadding()
-	local padding = self.padding
-	if type(padding) == "number" then
-		return padding, padding, padding, padding
-	end
-	return padding[1], padding[2], padding[3], padding[4]
-end
-
----@param container gui.View
-function TrackContainer:arrange(container)
-	local left, top, right, bottom = self:normalizePadding()
-	local inner_width = math.max(0, container.width - left - right)
-	local inner_height = math.max(0, container.height - top - bottom)
+function TrackContainer:arrange()
+	local left, top, right, bottom = unpack(self.padding)
+	local inner_width = math.max(0, self.width - left - right)
+	local inner_height = math.max(0, self.height - top - bottom)
 	local is_row = self.direction == "row"
 	local main_size = is_row and inner_width or inner_height
-	local children = container.children
+	local children = self.children
 	local layout_count = 0
 	for _, child in ipairs(children) do
 		if not child.layout_ignore then
@@ -211,8 +174,7 @@ function TrackContainer:arrange(container)
 				resolved_sizes[i] = size
 				fixed_size = fixed_size + size
 			else
-				local percent = assert(tonumber(size:match("^(%d+%.?%d*)%%$")))
-				local resolved = main_size * percent / 100
+				local resolved = main_size * self.track_percents[child] / 100
 				resolved_sizes[i] = resolved
 				fixed_size = fixed_size + resolved
 			end
@@ -238,28 +200,6 @@ function TrackContainer:arrange(container)
 			arranged_count = arranged_count + 1
 		end
 	end
-end
-
----@param container gui.View
----@return number width
----@return number height
-function TrackContainer:contentSize(container)
-	local main_size = 0
-	local measured_count = 0
-	for _, child in ipairs(container.children) do
-		if not child.layout_ignore then
-			local size = self.track_sizes[child]
-			assert(type(size) == "number", "contentSize requires numeric track sizes")
-			main_size = main_size + size
-			measured_count = measured_count + 1
-		end
-	end
-	main_size = main_size + self.gap * math.max(0, measured_count - 1)
-	local left, top, right, bottom = self:normalizePadding()
-	if self.direction == "row" then
-		return main_size + left + right, top + bottom
-	end
-	return left + right, main_size + top + bottom
 end
 
 return TrackContainer

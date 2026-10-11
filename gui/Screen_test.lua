@@ -58,11 +58,9 @@ function test.printDebugLayout_does_not_error(t)
 	local anchored = arranged:add(View())
 	anchored.debug_name = "anchored"
 	s.root:add(arranged)
-	arranged.arrange_strategy = {
-		arrange = function(_, container)
-			container.children[1].arranged = {1, 2, 3, 4}
-		end,
-	}
+	function arranged:arrange()
+		self.children[1].arranged = {1, 2, 3, 4}
+	end
 
 	s:printDebugLayout()
 	t:eq(arranged.width, 0)

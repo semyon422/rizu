@@ -1,5 +1,5 @@
 local View = require("gui.View")
-local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
+local Layout = require("gui.layout.Layout")
 
 ---@class gui.layout.FlowContainer.Config
 ---@field direction? "row"|"column"
@@ -11,39 +11,19 @@ local ArrangeStrategy = require("gui.layout.ArrangeStrategy")
 
 ---Packs children at their authored sizes along one axis. Unlike
 ---TrackContainer, FlowContainer does not distribute available main-axis space.
----@class gui.layout.FlowContainer : gui.View, gui.ArrangeStrategy
+---@class gui.layout.FlowContainer : gui.View
 ---@operator call: gui.layout.FlowContainer
 ---@overload fun(config: gui.layout.FlowContainer.Config?): gui.layout.FlowContainer
 ---@field direction "row"|"column"
 ---@field gap number
 ---@field align number
 ---@field baseline_align boolean
----@field padding gui.layout.Padding
----@field layout_transition gui.layout.LayoutTransition?
+---@field padding gui.layout.Insets
 local FlowContainer = View + {}
 
 local valid_directions = {row = true, column = true}
 
----@param value any
----@return boolean
-local function isFiniteNumber(value)
-	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
-end
-
----@param padding gui.layout.Padding
-local function validatePadding(padding)
-	if type(padding) == "number" then
-		assert(isFiniteNumber(padding) and padding >= 0,
-			("padding must be a finite non-negative number (got %s)"):format(tostring(padding)))
-		return
-	end
-	assert(type(padding) == "table" and #padding == 4,
-		"padding table must be {left, top, right, bottom}")
-	for i = 1, 4 do
-		assert(isFiniteNumber(padding[i]) and padding[i] >= 0,
-			("padding[%d] must be a finite non-negative number (got %s)"):format(i, tostring(padding[i])))
-	end
-end
+local isFiniteNumber = Layout.isFiniteNumber
 
 ---@param config gui.layout.FlowContainer.Config?
 function FlowContainer:new(config)
@@ -58,7 +38,7 @@ function FlowContainer:new(config)
 	end
 	---@cast align number
 	self.align = align
-	self.padding = config.padding or 0
+	self.padding = Layout.normalizePadding(config.padding or 0)
 	self.layout_transition = config.layout_transition
 
 	assert(valid_directions[self.direction],
@@ -67,10 +47,7 @@ function FlowContainer:new(config)
 		("gap must be a finite non-negative number (got %s)"):format(tostring(self.gap)))
 	assert(isFiniteNumber(self.align) and self.align >= 0 and self.align <= 1,
 		("align must be a finite number in [0, 1] (got %s)"):format(tostring(self.align)))
-	validatePadding(self.padding)
-	ArrangeStrategy.validateLayoutTransition(self, self.layout_transition)
-
-	self.arrange_strategy = self
+	Layout.validateTransition(self.layout_transition)
 
 	for _, child in ipairs(config) do
 		self:add(child)
@@ -102,8 +79,12 @@ end
 ---@param padding gui.layout.Padding
 ---@return gui.layout.FlowContainer
 function FlowContainer:setPadding(padding)
-	validatePadding(padding)
-	self.padding = padding
+	local insets = Layout.normalizePadding(padding)
+	local old = self.padding
+	if old[1] == insets[1] and old[2] == insets[2] and old[3] == insets[3] and old[4] == insets[4] then
+		return self
+	end
+	self.padding = insets
 	self:invalidate()
 	return self
 end
@@ -123,18 +104,6 @@ function FlowContainer:setAlign(align)
 	self.align = align
 	self:invalidate()
 	return self
-end
-
----@return number left
----@return number top
----@return number right
----@return number bottom
-function FlowContainer:normalizePadding()
-	local padding = self.padding
-	if type(padding) == "number" then
-		return padding, padding, padding, padding
-	end
-	return padding[1], padding[2], padding[3], padding[4]
 end
 
 ---@param child gui.View
@@ -159,12 +128,11 @@ local function childBaseline(child)
 end
 
 ---Largest baseline offset and largest extent below the baseline among baseline children.
----@param container gui.View
 ---@return number? above
 ---@return number below
-function FlowContainer:measureBaseline(container)
+function FlowContainer:measureBaseline()
 	local above, below = nil, nil ---@type number?, number?
-	for _, child in ipairs(container.children) do
+	for _, child in ipairs(self.children) do
 		if not child.layout_ignore then
 			local baseline = childBaseline(child)
 			if baseline then
@@ -183,28 +151,26 @@ function FlowContainer:getBaseline()
 	if self.direction ~= "row" or not self.baseline_align then
 		return nil
 	end
-	local above = self:measureBaseline(self)
+	local above = self:measureBaseline()
 	if not above then
 		return nil
 	end
-	local _, top = self:normalizePadding()
-	return top + above
+	return self.padding[2] + above
 end
 
----@param container gui.View
-function FlowContainer:arrange(container)
-	local left, top, right, bottom = self:normalizePadding()
-	local inner_width = math.max(0, container.width - left - right)
-	local inner_height = math.max(0, container.height - top - bottom)
+function FlowContainer:arrange()
+	local left, top, right, bottom = unpack(self.padding)
+	local inner_width = math.max(0, self.width - left - right)
+	local inner_height = math.max(0, self.height - top - bottom)
 	local is_row = self.direction == "row"
 	local position = is_row and left or top
 	local arranged_count = 0
 	local above, below = nil, nil ---@type number?, number?
 	if is_row and self.baseline_align then
-		above, below = self:measureBaseline(container)
+		above, below = self:measureBaseline()
 	end
 
-	for _, child in ipairs(container.children) do
+	for _, child in ipairs(self.children) do
 		if not child.layout_ignore then
 			if arranged_count > 0 then
 				position = position + self.gap
@@ -238,7 +204,7 @@ function FlowContainer:getContentSize()
 	local measured_count = 0
 	local above, below = nil, nil ---@type number?, number?
 	if self.direction == "row" and self.baseline_align then
-		above, below = self:measureBaseline(self)
+		above, below = self:measureBaseline()
 		max_cross = above and above + below or 0
 	end
 	for _, child in ipairs(self.children) do
@@ -252,19 +218,11 @@ function FlowContainer:getContentSize()
 		end
 	end
 	total_main = total_main + self.gap * math.max(0, measured_count - 1)
-	local left, top, right, bottom = self:normalizePadding()
+	local left, top, right, bottom = unpack(self.padding)
 	if self.direction == "row" then
 		return total_main + left + right, max_cross + top + bottom
 	end
 	return max_cross + left + right, total_main + top + bottom
-end
-
----@param container gui.View
----@return number width
----@return number height
-function FlowContainer:contentSize(container)
-	assert(container == self, "FlowContainer can only measure itself")
-	return self:getContentSize()
 end
 
 ---Sets the authored size to the packed content size.
