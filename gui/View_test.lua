@@ -982,6 +982,29 @@ function test.layout_setters_invalidate_attached_screen(t)
 end
 
 ---@param t testing.T
+function test.unchanged_setters_do_not_invalidate_or_recompose(t)
+	local screen = {dirty = false}
+	function screen:invalidateLayout() self.dirty = true end
+	local view = View():setSize(10, 20):setPosition(3, 4)
+	view:setScreen(screen)
+	local composes = 0
+	function view:composeSubtree() composes = composes + 1 end
+
+	t:eq(view:setSize(10, 20), view)
+	view:setWidth(10):setHeight(20):setPosition(3, 4):addPosition(0, 0)
+	view:setClip(false):setLayoutIgnore(false)
+	view:setVisible(true):setEnabled(true):setOffset(0, 0):setScale(1, 1)
+	view:setRotation(0):setPivot(0, 0):setOpacity(1)
+	t:eq(screen.dirty, false)
+	t:eq(composes, 0)
+
+	view:setWidth(11)
+	t:eq(screen.dirty, true)
+	view:setOpacity(0.5)
+	t:eq(composes, 1)
+end
+
+---@param t testing.T
 function test.onLayoutChanged_fires_initially_and_after_geometry_change(t)
 	local root = newSizedRoot(100, 100)
 	local view = View():setSize(10, 20)

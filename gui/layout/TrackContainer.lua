@@ -97,6 +97,7 @@ end
 function TrackContainer:setDirection(direction)
 	assert(valid_directions[direction],
 		("direction must be row|column (got %s)"):format(tostring(direction)))
+	if self.direction == direction then return self end
 	self.direction = direction
 	self:invalidate()
 	return self
@@ -107,6 +108,7 @@ end
 function TrackContainer:setGap(gap)
 	assert(isFiniteNumber(gap) and gap >= 0,
 		("gap must be a finite non-negative number (got %s)"):format(tostring(gap)))
+	if self.gap == gap then return self end
 	self.gap = gap
 	self:invalidate()
 	return self
@@ -161,6 +163,7 @@ function TrackContainer:setTrackSize(child, size)
 	assert(child.parent == self, "cannot size a view that is not a child")
 	assert(isTrackSize(size),
 		("track size must be a non-negative number, \"NN%%\", or \"*\" (got %s)"):format(tostring(size)))
+	if self.track_sizes[child] == size then return self end
 	self.track_sizes[child] = size
 	self:invalidate()
 	return self

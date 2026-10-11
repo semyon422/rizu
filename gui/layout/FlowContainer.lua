@@ -82,6 +82,7 @@ end
 function FlowContainer:setDirection(direction)
 	assert(valid_directions[direction],
 		("direction must be row|column (got %s)"):format(tostring(direction)))
+	if self.direction == direction then return self end
 	self.direction = direction
 	self:invalidate()
 	return self
@@ -92,6 +93,7 @@ end
 function FlowContainer:setGap(gap)
 	assert(isFiniteNumber(gap) and gap >= 0,
 		("gap must be a finite non-negative number (got %s)"):format(tostring(gap)))
+	if self.gap == gap then return self end
 	self.gap = gap
 	self:invalidate()
 	return self
@@ -109,13 +111,15 @@ end
 ---@param align number|"baseline"
 ---@return gui.layout.FlowContainer
 function FlowContainer:setAlign(align)
-	self.baseline_align = align == "baseline"
-	if self.baseline_align then
+	local baseline_align = align == "baseline"
+	if baseline_align then
 		align = 0
 	end
 	---@cast align number
 	assert(isFiniteNumber(align) and align >= 0 and align <= 1,
 		("align must be a finite number in [0, 1] (got %s)"):format(tostring(align)))
+	if self.align == align and self.baseline_align == baseline_align then return self end
+	self.baseline_align = baseline_align
 	self.align = align
 	self:invalidate()
 	return self

@@ -420,6 +420,7 @@ end
 ---@return gui.View
 function View:setLayoutIgnore(ignored)
 	assert(type(ignored) == "boolean", "layout_ignore must be boolean")
+	if self.layout_ignore == ignored then return self end
 	self.layout_ignore = ignored
 	self:invalidate()
 	return self
@@ -429,6 +430,7 @@ end
 ---@return gui.View
 function View:setClip(clip)
 	assert(type(clip) == "boolean", "clip must be boolean")
+	if self.clip == clip then return self end
 	self.clip = clip
 	self:invalidate()
 	return self
@@ -438,6 +440,7 @@ end
 ---@return gui.View
 function View:setVisible(visible)
 	assert(type(visible) == "boolean", "visible must be boolean")
+	if self.visible == visible then return self end
 	self.visible = visible
 	self:composeSubtree()
 	return self
@@ -447,6 +450,7 @@ end
 ---@return gui.View
 function View:setEnabled(enabled)
 	assert(type(enabled) == "boolean", "enabled must be boolean")
+	if self.enabled == enabled then return self end
 	self.enabled = enabled
 	self:composeSubtree()
 	return self
@@ -615,6 +619,9 @@ function View:setPosition(x, y)
 		"setPosition cannot be used on a fill axis")
 	assertFinite(x, "x")
 	assertFinite(y, "y")
+	if self.offset_min[1] == x and self.offset_min[2] == y and not self.align_x and not self.align_y then
+		return self
+	end
 	local width = self.offset_max[1] - self.offset_min[1]
 	local height = self.offset_max[2] - self.offset_min[2]
 	self.offset_min = {x, y}
@@ -633,6 +640,7 @@ end
 function View:addPosition(x, y)
 	assertFinite(x, "x")
 	assertFinite(y, "y")
+	if x == 0 and y == 0 then return self end
 	self.offset_min = {self.offset_min[1] + x, self.offset_min[2] + y}
 	self.offset_max = {self.offset_max[1] + x, self.offset_max[2] + y}
 	self:invalidate()
@@ -646,6 +654,7 @@ function View:setWidth(width)
 	assertFinite(width, "width")
 	assert(width >= 0, "size must be non-negative")
 	local old_width = self.offset_max[1] - self.offset_min[1]
+	if old_width == width then return self end
 	local min_x = self.align_x
 		and self.offset_min[1] + self.align_x * old_width - self.align_x * width
 		or self.offset_min[1]
@@ -662,6 +671,7 @@ function View:setHeight(height)
 	assertFinite(height, "height")
 	assert(height >= 0, "size must be non-negative")
 	local old_height = self.offset_max[2] - self.offset_min[2]
+	if old_height == height then return self end
 	local min_y = self.align_y
 		and self.offset_min[2] + self.align_y * old_height - self.align_y * height
 		or self.offset_min[2]
@@ -682,6 +692,7 @@ function View:setSize(width, height)
 	assert(width >= 0 and height >= 0, "size must be non-negative")
 	local old_width = self.offset_max[1] - self.offset_min[1]
 	local old_height = self.offset_max[2] - self.offset_min[2]
+	if old_width == width and old_height == height then return self end
 	local min_x = self.align_x
 		and self.offset_min[1] + self.align_x * old_width - self.align_x * width
 		or self.offset_min[1]
@@ -1208,6 +1219,7 @@ end
 ---@param y number
 ---@return gui.View
 function View:setOffset(x, y)
+	if self.offset_x == x and self.offset_y == y then return self end
 	self.offset_x = x
 	self.offset_y = y
 	self:composeSubtree()
@@ -1217,6 +1229,7 @@ end
 ---@param rotation number
 ---@return gui.View
 function View:setRotation(rotation)
+	if self.rotation == rotation then return self end
 	self.rotation = rotation
 	self:composeSubtree()
 	return self
@@ -1226,6 +1239,7 @@ end
 ---@param scale_y number
 ---@return gui.View
 function View:setScale(scale_x, scale_y)
+	if self.scale_x == scale_x and self.scale_y == scale_y then return self end
 	self.scale_x = scale_x
 	self.scale_y = scale_y
 	self:composeSubtree()
@@ -1236,6 +1250,7 @@ end
 ---@param pivot_y number
 ---@return gui.View
 function View:setPivot(pivot_x, pivot_y)
+	if self.pivot[1] == pivot_x and self.pivot[2] == pivot_y then return self end
 	self.pivot = {pivot_x, pivot_y}
 	self:composeSubtree()
 	return self
@@ -1245,6 +1260,7 @@ end
 ---@return gui.View
 function View:setOpacity(opacity)
 	assert(opacity >= 0 and opacity <= 1, "opacity must be between 0 and 1")
+	if self.opacity == opacity then return self end
 	self.opacity = opacity
 	self:composeSubtree()
 	return self
