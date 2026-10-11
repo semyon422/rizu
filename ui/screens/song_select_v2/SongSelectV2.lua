@@ -174,6 +174,7 @@ function SongSelectV2:enter()
 	score_selector:onChanged(self)
 	self.ui.game.timeRateModel:onChanged(self)
 	self.ui.game.collectionSelector:onChanged(self)
+	self.ui.game.collectionSelector.store:onChanged(self)
 	-- Score loading may have started before this screen subscribed.
 	score_selector:pullScore()
 	self.score_list:reload()
@@ -188,6 +189,7 @@ function SongSelectV2:exit()
 	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.game.timeRateModel:offChanged(self)
 	self.ui.game.collectionSelector:offChanged(self)
+	self.ui.game.collectionSelector.store:offChanged(self)
 	Screen.exit(self)
 	self.root:fadeOut(0.2, "OutQuad")
 	return true
@@ -206,7 +208,8 @@ end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
 function SongSelectV2:receive(event)
-	if event.type == "collection_selection_changed" then
+	-- The tree may finish loading after this screen is entered.
+	if event.type == "collection_selection_changed" or event.type == "collection_tree_changed" then
 		self.library_toolbar:updateCollections()
 	end
 	if event.type == "chartview_changed" then
