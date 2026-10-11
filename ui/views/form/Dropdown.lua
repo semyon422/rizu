@@ -112,7 +112,7 @@ function Dropdown:open()
 		end
 	)
 	items:setValue(self.value)
-	local items_height = items.offset_max[2] - items.offset_min[2]
+	local items_height = items:getAuthoredHeight()
 	items:setSize(self.width, items_height)
 	self.popup_container:open(self, items, self)
 

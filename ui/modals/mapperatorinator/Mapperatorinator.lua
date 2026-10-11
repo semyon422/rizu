@@ -46,7 +46,7 @@ end
 ---@return ui.views.Label
 local function note(text)
 	local label = Label({font_name = "regular", font_size = 16, text = text, color = Colors.muted})
-	label:setSize(FORM_WIDTH, math.max(label.offset_max[2] - label.offset_min[2], 24))
+	label:setSize(FORM_WIDTH, math.max(label:getAuthoredHeight(), 24))
 	return label
 end
 

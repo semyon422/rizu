@@ -28,7 +28,7 @@ function SectionItem:new(section, on_select)
 
 	self:add(Image(section.icon, "fit", Colors.text)):anchorFixed(PADDING, PADDING, ICON_SIZE, ICON_SIZE)
 	local label = self:add(Label({font_name = "medium", font_size = 16, text = section.name}))
-	local label_height = label.offset_max[2] - label.offset_min[2]
+	local label_height = label:getAuthoredHeight()
 	label:setOffset(PADDING + ICON_SIZE + GAP, (HEIGHT - label_height) / 2)
 end
 

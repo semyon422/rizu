@@ -22,8 +22,8 @@ function test.rows_are_added_to_internal_flow(t)
 
 	t:eq(first.parent, form.rows)
 	t:eq(second.parent, form.rows)
-	t:eq(form.offset_max[1] - form.offset_min[1], 30)
-	t:eq(form.offset_max[2] - form.offset_min[2], 30)
+	t:eq(form:getAuthoredWidth(), 30)
+	t:eq(form:getAuthoredHeight(), 30)
 end
 
 ---@param t testing.T

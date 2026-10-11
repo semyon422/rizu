@@ -114,10 +114,7 @@ end
 ---@return ui.views.form.Form
 function Form:fitContent()
 	self.rows:fitContent()
-	self:setSize(
-		self.rows.offset_max[1] - self.rows.offset_min[1],
-		self.rows.offset_max[2] - self.rows.offset_min[2]
-	)
+	self:setSize(self.rows:getAuthoredSize())
 	return self
 end
 

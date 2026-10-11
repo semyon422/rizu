@@ -110,8 +110,7 @@ end
 ---@return number width
 ---@return number height
 local function desiredSize(child)
-	local width = child.offset_max[1] - child.offset_min[1]
-	local height = child.offset_max[2] - child.offset_min[2]
+	local width, height = child:getAuthoredSize()
 	assert(isFiniteNumber(width) and width >= 0,
 		("FlowContainer child authored width must be finite and non-negative (got %s)"):format(tostring(width)))
 	assert(isFiniteNumber(height) and height >= 0,

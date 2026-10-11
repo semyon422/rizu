@@ -88,8 +88,7 @@ function StackContainer:arrange()
 	local inner_height = math.max(0, self.height - top - bottom)
 	for _, child in ipairs(self.children) do
 		if not child.layout_ignore then
-			local desired_width = child.offset_max[1] - child.offset_min[1]
-			local desired_height = child.offset_max[2] - child.offset_min[2]
+			local desired_width, desired_height = child:getAuthoredSize()
 			local x, width = placeAxis("align_items_x", child.align_x or self.align_items_x, left, inner_width, desired_width)
 			local y, height = placeAxis("align_items_y", child.align_y or self.align_items_y, top, inner_height, desired_height)
 			child.arranged = {x, y, width, height}
@@ -103,8 +102,7 @@ function StackContainer:getContentSize()
 	local max_width, max_height = 0, 0
 	for _, child in ipairs(self.children) do
 		if not child.layout_ignore then
-			local width = child.offset_max[1] - child.offset_min[1]
-			local height = child.offset_max[2] - child.offset_min[2]
+			local width, height = child:getAuthoredSize()
 			assert(isFiniteNumber(width) and width >= 0, "child authored width must be finite and non-negative")
 			assert(isFiniteNumber(height) and height >= 0, "child authored height must be finite and non-negative")
 			max_width = math.max(max_width, width)

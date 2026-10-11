@@ -73,20 +73,20 @@ function ExternalLink:open(title, url)
 	self.title:setText(title)
 	self.url_label:setText(url)
 
-	local title_bottom = PADDING_TOP + self.title.offset_max[2] - self.title.offset_min[2]
+	local title_bottom = PADDING_TOP + self.title:getAuthoredHeight()
 	self.message:setPosition(PADDING_X, title_bottom + GAP)
-	local message_bottom = title_bottom + GAP + self.message.offset_max[2] - self.message.offset_min[2]
+	local message_bottom = title_bottom + GAP + self.message:getAuthoredHeight()
 	self.url_label:setPosition(PADDING_X, message_bottom + GAP)
-	local url_bottom = message_bottom + GAP + self.url_label.offset_max[2] - self.url_label.offset_min[2]
+	local url_bottom = message_bottom + GAP + self.url_label:getAuthoredHeight()
 	self.actions:setAlignment(0.5, 0):addPosition(0, url_bottom + GAP)
 
 	local content_width = math.max(
-		self.title.offset_max[1] - self.title.offset_min[1],
-		self.message.offset_max[1] - self.message.offset_min[1],
-		self.url_label.offset_max[1] - self.url_label.offset_min[1],
-		self.actions.offset_max[1] - self.actions.offset_min[1]
+		self.title:getAuthoredWidth(),
+		self.message:getAuthoredWidth(),
+		self.url_label:getAuthoredWidth(),
+		self.actions:getAuthoredWidth()
 	)
-	local height = url_bottom + GAP + self.actions.offset_max[2] - self.actions.offset_min[2] + PADDING_BOTTOM
+	local height = url_bottom + GAP + self.actions:getAuthoredHeight() + PADDING_BOTTOM
 	self:setSize(math.max(MIN_WIDTH, content_width + PADDING_X * 2), height)
 end
 

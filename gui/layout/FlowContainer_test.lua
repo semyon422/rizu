@@ -106,8 +106,8 @@ function test.fit_content_sets_authored_size(t)
 	local result = container:fitContent()
 
 	t:eq(result, container)
-	t:eq(container.offset_max[1] - container.offset_min[1], 85)
-	t:eq(container.offset_max[2] - container.offset_min[2], 50)
+	t:eq(container:getAuthoredWidth(), 85)
+	t:eq(container:getAuthoredHeight(), 50)
 end
 
 ---@param t testing.T

@@ -982,6 +982,14 @@ function test.layout_setters_invalidate_attached_screen(t)
 end
 
 ---@param t testing.T
+function test.authored_size_ignores_position_and_alignment(t)
+	local view = View():setSize(30, 40):setPosition(5, 6):setAlignment(0.5, 1)
+	t:tdeq({view:getAuthoredSize()}, {30, 40})
+	t:eq(view:getAuthoredWidth(), 30)
+	t:eq(view:getAuthoredHeight(), 40)
+end
+
+---@param t testing.T
 function test.unchanged_setters_do_not_invalidate_or_recompose(t)
 	local screen = {dirty = false}
 	function screen:invalidateLayout() self.dirty = true end
