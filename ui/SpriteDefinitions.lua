@@ -331,6 +331,14 @@ local SpriteDefinitions = {
 		slice = 6,
 		fills = fills({1, 1, 1, 1}),
 	},
+	song_select_toolbar_border = {
+		width = 13,
+		height = 13,
+		border_radius = 5,
+		slice = 6,
+		fills = fills({1, 1, 1, 0}),
+		stroke = {width = 1, color = {1, 1, 1, 1}},
+	},
 	song_select_search = {
 		width = 13,
 		height = 13,

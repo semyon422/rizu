@@ -1,9 +1,9 @@
 local View = require("gui.View")
-local NineSliceUsage = require("gui.NineSliceUsage")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
+local ToolbarBackground = require("ui.screens.song_select_v2.ToolbarBackground")
 
 ---@class ui.screens.song_select_v2.FiltersButton : gui.View
 ---@operator call: ui.screens.song_select_v2.FiltersButton
@@ -15,7 +15,7 @@ function FiltersButton:new(ui)
 	self.ui = ui
 	self.label_font = Resources.getFont("bold", 9)
 	self.value_font = Resources.getFont("bold", 14)
-	self.background = NineSliceUsage(Resources.nine_slices.song_select_toolbar_control)
+	self.background = ToolbarBackground()
 	self.handles_mouse_input = true
 end
 
@@ -48,8 +48,7 @@ end
 
 function FiltersButton:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(self.mouse_over and Colors.surface_raised or Colors.surface)
-	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
+	self.background:draw(self.width, self.height, assert(self.screen).ui_scale, self.mouse_over)
 
 	local icon = Resources.sprites.icon_funnel
 	local width, height = icon:getDimensions()

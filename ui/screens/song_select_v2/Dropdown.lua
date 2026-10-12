@@ -1,10 +1,10 @@
 local View = require("gui.View")
-local NineSliceUsage = require("gui.NineSliceUsage")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local DropdownItems = require("ui.screens.song_select_v2.DropdownItems")
 local Sounds = require("ui.Sounds")
+local ToolbarBackground = require("ui.screens.song_select_v2.ToolbarBackground")
 
 local lg = love.graphics
 
@@ -39,7 +39,7 @@ function Dropdown:new(config)
 	self.value_font = Resources.getFont("bold", 14)
 	self.handles_mouse_input = true
 	self.opened = false
-	self.background = NineSliceUsage(Resources.nine_slices.song_select_toolbar_control)
+	self.background = ToolbarBackground()
 end
 
 ---@param value any
@@ -110,8 +110,7 @@ end
 
 function Dropdown:draw()
 	Painter.snapToPixel()
-	Painter.setColorTable(self.mouse_over and Colors.surface_raised or Colors.surface)
-	self.background:drawFixedScale(self.width, self.height, assert(self.screen).ui_scale)
+	self.background:draw(self.width, self.height, assert(self.screen).ui_scale, self.mouse_over)
 	local text_x = self.icon and 45 or 14
 	if self.icon then
 		Painter.setColorTable(Colors.accent)
