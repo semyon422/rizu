@@ -223,6 +223,8 @@ return {
 	["settings.height_tip"] = "Scale down the gameplay area's height to make notes easier to see.",
 	["settings.song_select_blurred_background"] = "Blurred background in Song Select",
 	["settings.song_select_blurred_background_tip"] = "Show the blurred chart background image in Song Select. When disabled, a plain background color is used.",
+	["settings.song_select_carousel"] = "Song Select: charts in one list",
+	["settings.song_select_carousel_tip"] = "Show sets and their charts in one list. When disabled, the old set list with a difficulty strip is used.",
 	["settings.open_song_select_on_startup"] = "Open Song Select on startup",
 	["settings.open_song_select_on_startup_tip"] = "Open Song Select instead of the main menu when the game starts.",
 	["settings.chart_preview_tip"] = "Show a preview of the selected chart in Song Select.",

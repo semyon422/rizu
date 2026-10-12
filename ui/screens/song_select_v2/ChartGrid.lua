@@ -162,6 +162,8 @@ local function fitText(font, text, max_width)
 	return text .. "…"
 end
 
+ChartGrid.fitText = fitText
+
 function ChartGrid:update(dt)
 	VirtualizedList.update(self, dt)
 	if self.reload_items_needed then

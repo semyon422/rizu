@@ -192,6 +192,8 @@ return {
 	["settings.height_tip"] = "Reduce la altura del área de juego para que las notas sean más fáciles de ver.",
 	["settings.song_select_blurred_background"] = "Fondo desenfocado en la selección de canciones",
 	["settings.song_select_blurred_background_tip"] = "Muestra la imagen de fondo desenfocada del Chart en la selección de canciones. Si se desactiva, se usa un color de fondo liso.",
+	["settings.song_select_carousel"] = "Selección de canciones: Charts en una lista",
+	["settings.song_select_carousel_tip"] = "Muestra los sets y sus Charts en una sola lista. Si se desactiva, se usa la lista de sets anterior con una tira de dificultades.",
 	["settings.open_song_select_on_startup"] = "Abrir la selección de canciones al iniciar",
 	["settings.open_song_select_on_startup_tip"] = "Abre la selección de canciones en lugar del menú principal al iniciar el juego.",
 	["settings.chart_preview_tip"] = "Muestra una vista previa del Chart seleccionado en la selección de canciones.",

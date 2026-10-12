@@ -526,6 +526,24 @@ local SpriteDefinitions = {
 			},
 		}},
 	},
+	-- Chart rows under an open set in the carousel: the same shapes, shorter.
+	song_chart_cap_left = {
+		width = 12,
+		height = 44,
+		corner_radii = {top_left = 6, bottom_left = 6},
+		fills = fills({1, 1, 1, 1}),
+	},
+	song_chart_cap_right = {
+		width = 12,
+		height = 44,
+		corner_radii = {top_right = 6, bottom_right = 6},
+		fills = fills({1, 1, 1, 1}),
+	},
+	song_chart_body = {
+		width = 8,
+		height = 44,
+		fills = fills({1, 1, 1, 1}),
+	},
 	song_set_outline = {
 		width = 21,
 		height = 21,

@@ -9,6 +9,8 @@ local Sounds = require("ui.Sounds")
 local ChartSets = require("ui.screens.song_select_v2.ChartSets")
 local ChartInfo = require("ui.screens.song_select_v2.ChartInfo")
 local ChartGrid = require("ui.screens.song_select_v2.ChartGrid")
+local ChartCarousel = require("ui.screens.song_select_v2.ChartCarousel")
+local Settings = require("rizu.config.Settings")
 local Loading = require("ui.screens.chart_loading.Loading")
 local Label = require("ui.views.Label")
 local Button = require("ui.views.Button")
@@ -44,9 +46,11 @@ end
 
 ---@class ui.screens.song_select_v2.ChartBrowser : gui.View
 ---@operator call: ui.screens.song_select_v2.ChartBrowser
----@field chart_sets ui.screens.song_select_v2.ChartSets
+---@field content gui.layout.TrackContainer
+---@field list_views gui.View[]
+---@field list gui.View The set list, or the carousel when it is enabled.
 ---@field chart_info ui.screens.song_select_v2.ChartInfo
----@field chart_grid ui.screens.song_select_v2.ChartGrid
+---@field chart_grid ui.screens.song_select_v2.ChartGrid?
 ---@field loading ui.screens.chart_loading.Loading
 ---@field empty ui.views.Label
 ---@field no_results ui.views.Label
@@ -59,6 +63,43 @@ end
 ---@field empty_state_dirty boolean
 ---@field refresh_notice gui.layout.FlowContainer
 local ChartBrowser = View + {}
+
+---Replaces the set list, and the difficulty strip that goes with the old one, to match the setting.
+---@param settings rizu.config.Config
+---@param tooltip ui.views.Tooltip?
+---@param localization ui.localization.Localization
+function ChartBrowser:buildList(settings, tooltip, localization)
+	local chart_selector = self.chart_selector
+	local content = self.content
+	for _, view in ipairs(self.list_views or {}) do
+		content:remove(view)
+	end
+	self.chart_grid = nil
+	if settings:getBoolean(Settings.keys.select.carousel) then
+		self.list = content:add(ChartCarousel(chart_selector, settings, localization), "*")
+		self.list_views = {self.list}
+	else
+		local difficulty_strip = content:add(TrackContainer({
+			direction = "row",
+			gap = 6,
+		}), 56)
+		local function moveDifficulty(offset)
+			chart_selector:scrollLevel(2, offset)
+			Sounds.play("chart_changed")
+			self.chart_grid:scrollToSelected()
+		end
+		difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_left, function()
+			moveDifficulty(-1)
+		end), 48)
+		self.chart_grid = difficulty_strip:add(ChartGrid(chart_selector, tooltip, localization), "*")
+		difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_right, function()
+			moveDifficulty(1)
+		end), 48)
+
+		self.list = content:add(ChartSets(chart_selector, settings, function() end), "*")
+		self.list_views = {difficulty_strip, self.list}
+	end
+end
 
 ---@param ui ui.UserInterface
 ---@param chart_selector rizu.select.ChartSelector
@@ -75,27 +116,13 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 	}))
 	content:anchorFill(0, 0, 0, 0)
 	self.chart_info = content:add(ChartInfo(), ChartInfo.HEIGHT)
-	local difficulty_strip = content:add(TrackContainer({
-		direction = "row",
-		gap = 6,
-	}), 56)
-	local function moveDifficulty(offset)
-		chart_selector:scrollLevel(2, offset)
-		Sounds.play("chart_changed")
-		self.chart_grid:scrollToSelected()
-	end
-	difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_left, function()
-		moveDifficulty(-1)
-	end), 48)
-	self.chart_grid = difficulty_strip:add(ChartGrid(chart_selector, tooltip, localization), "*")
-	difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_right, function()
-		moveDifficulty(1)
-	end), 48)
-
-	self.chart_sets = ChartSets(chart_selector, settings, function() end)
-	content:add(self.chart_sets, "*")
-
+	self.content = content
 	self.chart_selector = chart_selector
+	self:buildList(settings, tooltip, localization)
+	settings:subscribeBoolean(Settings.keys.select.carousel, function()
+		self:buildList(settings, tooltip, localization)
+	end)
+
 	self.has_chartfiles = nil
 	self.has_chartfiles_checking = false
 	self.primary_items_loading = false
@@ -162,14 +189,14 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 		if event.type == "primary_items_loading" then
 			self.primary_items_loading = true
 			self.empty_state_dirty = true
-			self.chart_sets:fadeOut(0.1, "OutQuad")
-			self.chart_grid:fadeOut(0.1, "OutQuad")
+			self.list:fadeOut(0.1, "OutQuad")
+			if self.chart_grid then self.chart_grid:fadeOut(0.1, "OutQuad") end
 			self.loading:fadeIn(0.1, "OutQuad")
 		elseif event.type == "primary_items_updated" then
 			self.primary_items_loading = false
 			self.empty_state_dirty = true
-			self.chart_sets:fadeIn(0.1, "OutQuad")
-			self.chart_grid:fadeIn(0.1, "OutQuad")
+			self.list:fadeIn(0.1, "OutQuad")
+			if self.chart_grid then self.chart_grid:fadeIn(0.1, "OutQuad") end
 			self.loading:fadeOut(0.1, "OutQuad")
 		end
 	end)
