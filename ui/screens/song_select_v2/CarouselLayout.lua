@@ -249,21 +249,23 @@ function CarouselLayout:visit(top, bottom, on_set, on_child)
 	sets(set_count)
 end
 
----Finds the row under content position `y`.
+---Finds the row under content position `y`. A gap belongs to the two rows around it, half each,
+---so there is nothing to miss between them.
 ---@param y number
 ---@return "set"|"child"|nil kind
 ---@return integer? index Set index, or the group's set index for a chart row.
 ---@return integer? child
 function CarouselLayout:locate(y)
-	if y < 0 then
+	local set_step = self.set_step
+	local half_gap = self.set_gap / 2
+	if y < -half_gap then
 		return
 	end
-	local set_step = self.set_step
 	local cursor_y, cursor_i = 0, 1
 
 	local function setAt(from_y, from_i)
-		local i = from_i + math.floor((y - from_y) / set_step)
-		if i <= self.set_count and (y - from_y) % set_step < self.set_height then
+		local i = from_i + math.max(0, math.floor((y - from_y + half_gap) / set_step))
+		if i <= self.set_count then
 			return "set", i
 		end
 	end
@@ -273,21 +275,26 @@ function CarouselLayout:locate(y)
 			break
 		end
 		local base = cursor_y + (g.index - cursor_i + 1) * set_step
-		if y < base then
+		if y < base - half_gap then
 			return setAt(cursor_y, cursor_i)
 		end
 		local open = self:getOpen(g)
 		local row_step = self.child_step * open
-		if y < base + g.count * row_step then
-			for j = 1, g.target == 1 and g.count or 0 do -- closing rows can't be clicked
-				local top = base + (j - 1) * row_step
-				if y >= top and y < top + self.child_height then
+		local bottom = base + g.count * row_step
+		local half_child_gap = math.max(0, row_step - self.child_height) / 2
+		if g.target == 0 then
+			if y < bottom then -- closing rows can't be clicked
+				return
+			end
+		elseif y < bottom - half_child_gap then
+			-- Rows overlap while the group is opening, and the earlier one is on top.
+			for j = 1, g.count do
+				if y < base + (j - 1) * row_step + self.child_height + half_child_gap then
 					return "child", g.index, j
 				end
 			end
-			return
 		end
-		cursor_y = base + g.count * row_step
+		cursor_y = bottom
 		cursor_i = g.index + 1
 	end
 	return setAt(cursor_y, cursor_i)

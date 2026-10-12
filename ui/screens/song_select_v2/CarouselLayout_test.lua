@@ -13,7 +13,11 @@ function test.closed_layout_is_a_plain_list(t)
 	t:eq(layout:getContentHeight(), 5 * 12 - 2)
 	t:eq(layout:getSetY(3), 24)
 	t:tdeq({layout:locate(25)}, {"set", 3})
-	t:eq(layout:locate(11), nil) -- gap
+	-- A gap is split between the rows around it.
+	t:tdeq({layout:locate(10.5)}, {"set", 1})
+	t:tdeq({layout:locate(11)}, {"set", 2})
+	t:tdeq({layout:locate(5 * 12 - 2 + 0.5)}, {"set", 5})
+	t:eq(layout:locate(5 * 12), nil)
 end
 
 ---@param t testing.T
@@ -29,6 +33,10 @@ function test.open_group_pushes_following_sets_down(t)
 	t:eq(layout:getSetY(3), 24 + 15)
 	t:tdeq({layout:locate(24 + 5)}, {"child", 2, 2})
 	t:tdeq({layout:locate(24 + 15 + 1)}, {"set", 3})
+	t:tdeq({layout:locate(22.5)}, {"set", 2})
+	t:tdeq({layout:locate(23)}, {"child", 2, 1})
+	t:tdeq({layout:locate(24 + 4.6)}, {"child", 2, 2})
+	t:tdeq({layout:locate(24 + 15 - 0.4)}, {"set", 3})
 end
 
 ---@param t testing.T
