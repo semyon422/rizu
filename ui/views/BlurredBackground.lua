@@ -8,7 +8,7 @@ local lg = love.graphics
 ---blurred images are kept at most: the shown one and the one fading in over it.
 ---@class ui.views.BlurredBackground : gui.View
 ---@operator call: ui.views.BlurredBackground
----@field model sphere.BackgroundModel
+---@field media rizu.api.Media
 ---@field observer util.Observer?
 ---@field chain love.Canvas[]? Blur levels, each half the size of the previous one.
 ---@field shown love.Canvas? Finished blur under the fade.
@@ -59,10 +59,10 @@ vec4 effect(vec4 color, Image tex, vec2 uv, vec2 screen_coords) {
 ---@type love.Shader?, love.Shader?
 local down_shader, up_shader
 
----@param model sphere.BackgroundModel
-function BlurredBackground:new(model)
+---@param media rizu.api.Media
+function BlurredBackground:new(media)
 	View.new(self)
-	self.model = model
+	self.media = media
 	self.has_shown = false
 	self.step = 0
 end
@@ -80,17 +80,17 @@ function BlurredBackground:load()
 	self.shown = lg.newCanvas(BASE_WIDTH, BASE_HEIGHT, {dpiscale = 1})
 	self.incoming = lg.newCanvas(BASE_WIDTH, BASE_HEIGHT, {dpiscale = 1})
 
-	local images = self.model.images
-	self.pending = images and images[#images]
-	self.observer = self.model:onChanged(function(event)
-		self.pending = event.image
+	local images = self.media:getBackgroundImages()
+	self.pending = images[#images]
+	self.unsubscribe = self.media:on("background_changed", function(image)
+		self.pending = image
 	end)
 end
 
 function BlurredBackground:unload()
-	if self.observer then
-		self.model:offChanged(self.observer)
-		self.observer = nil
+	if self.unsubscribe then
+		self.unsubscribe()
+		self.unsubscribe = nil
 	end
 	if self.chain then
 		for i = 0, ITERATIONS do

@@ -48,10 +48,10 @@ function PlayerInfo:updateText(username)
 end
 
 ---@param avatar_url string?
----@param avatar_cache rizu.online.AvatarCache?
-function PlayerInfo:updateAvatar(avatar_url, avatar_cache)
+---@param online rizu.api.Online
+function PlayerInfo:updateAvatar(avatar_url, online)
 	self.avatar_url = avatar_url
-	self.avatar_cache = avatar_cache
+	self.online = online
 	self.avatar_image = nil
 	self.logged_avatar_image = nil
 end
@@ -65,8 +65,8 @@ function PlayerInfo:onLayoutChanged(old_x, old_y, old_width, old_height)
 end
 
 function PlayerInfo:drawAvatar()
-	if self.avatar_cache then
-		self.avatar_image = self.avatar_cache:get(self.avatar_url)
+	if self.online then
+		self.avatar_image = self.online:getAvatar(self.avatar_url)
 	end
 	if self.avatar_image and self.logged_avatar_image ~= self.avatar_image then
 		self.logged_avatar_image = self.avatar_image

@@ -1,5 +1,5 @@
 local BlurredBackground = require("ui.views.BlurredBackground")
-local Observable = require("Observable")
+local Events = require("rizu.api.Events")
 
 local test = {}
 local lg = love.graphics
@@ -22,13 +22,10 @@ function test.blurs_over_frames_and_crossfades(t)
 	local was_active = lg.isActive()
 	if not was_active then assert(love.window.setMode(1000, 720)) end
 
-	local observable = Observable()
-	local model = {
-		images = {checker(1, 0, 0)},
-		onChanged = function(_, observer) return observable:add(observer) end,
-		offChanged = function(_, observer) return observable:remove(observer) end,
-	}
-	local view = BlurredBackground(model --[[@as any]])
+	local media = Events()
+	local images = {checker(1, 0, 0)}
+	function media:getBackgroundImages() return images, 0 end
+	local view = BlurredBackground(media --[[@as any]])
 	view:load()
 
 	local frames = 0
@@ -49,7 +46,7 @@ function test.blurs_over_frames_and_crossfades(t)
 
 	-- A change during the fade waits: only two blurred images exist.
 	local red = view.incoming
-	observable:send({type = "background_changed", image = checker(0, 1, 0)})
+	media:emit("background_changed", checker(0, 1, 0))
 	view:update(0.1)
 	t:eq(view.incoming, red)
 	t:eq(view.source, nil)
@@ -60,7 +57,7 @@ function test.blurs_over_frames_and_crossfades(t)
 	t:assert(view.source ~= nil, "the queued image must start blurring after the fade")
 
 	view:unload()
-	t:eq(#observable, 0)
+	t:eq(#media.listeners.background_changed, 0)
 	if not was_active then love.window.close() end
 end
 

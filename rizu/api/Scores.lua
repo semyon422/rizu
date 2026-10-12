@@ -1,0 +1,102 @@
+local thread = require("thread")
+local Settings = require("rizu.config.Settings")
+local Events = require("rizu.api.Events")
+
+--[[
+The scores of the selected chart: the leaderboard on song select and on the result screen.
+
+	local scores = ui.api.scores
+	for i = 1, scores:getCount() do
+		local score = scores:get(i)
+		drawRow(score.user_name, score.accuracy, score.rate)
+	end
+	scores:on("scores_changed", function(loading) ... end)
+
+The list follows the selected chart by itself.
+]]
+
+---A row of the leaderboard. Other fields most lists need:
+---`accuracy`, `rating`, `rate`, `const`, `modifiers`, `pause_count`, `miss_count`, `created_at` (unix time).
+---See `sea/chart/Chartplay.lua` for the rest.
+---@class rizu.api.Score : sea.Chartplay
+---@field score number 0..10000, from accuracy.
+---@field user_name string? Online scores only.
+---@field user_avatar string? Online scores only. A url for `ui.api.online:getAvatar()`.
+
+---@alias rizu.api.Scores.Source
+---| "local" # Scores set on this computer.
+---| "online" # The server's leaderboard for the chart.
+
+---@alias rizu.api.Scores.Event
+---| "scores_changed" # The list was replaced. Arguments: loading, true while the new list is on its way.
+
+---@class rizu.api.Scores : rizu.api.Events
+---@operator call: rizu.api.Scores
+---@field on fun(self: rizu.api.Scores, event: rizu.api.Scores.Event, f: function): fun()
+---@field private selector rizu.select.ScoreSelector
+---@field private result_controller sphere.ResultController
+local Scores = Events + {}
+
+---@param selector rizu.select.ScoreSelector
+---@param result_controller sphere.ResultController
+function Scores:new(selector, result_controller)
+	Events.new(self)
+	self.selector = selector
+	self.result_controller = result_controller
+	selector:onChanged(function(event)
+		if event.type == "score_items_changed" then
+			self:emit("scores_changed", event.loading and true or false)
+		end
+	end)
+end
+
+---@return integer
+function Scores:getCount() return self.selector.store:count() end
+
+---@param index integer
+---@return rizu.api.Score? score nil outside 1..getCount()
+function Scores:get(index) return self.selector.store:get(index) --[[@as rizu.api.Score?]] end
+
+---@return boolean
+function Scores:isLoading() return self.selector.scoresLoading end
+
+---@return rizu.api.Scores.Source
+function Scores:getSource() return self.selector.settings:getChoice(Settings.keys.select.score_source) end
+
+---Switches the list and loads it again.
+---@param source rizu.api.Scores.Source
+function Scores:setSource(source)
+	self.selector.settings:setChoice(Settings.keys.select.score_source, source)
+	self.selector:pullScore()
+end
+
+---Loads the list again for the selected chart.
+---Call it when a screen with a score list is entered: loading may have started before the screen subscribed.
+function Scores:refresh() self.selector:pullScore() end
+
+---@param index integer
+function Scores:select(index) self.selector:scrollScore(nil, index) end
+
+---@return rizu.api.Score? score
+function Scores:getSelected() return self.selector.chartplay --[[@as rizu.api.Score?]] end
+
+---Replays the selected score in the background so the result screen can show it.
+---f gets false when there is no selected score or its replay could not be loaded.
+---@param f fun(ok: boolean)
+function Scores:loadSelectedResult(f)
+	local chartplay = self.selector.chartplay
+	if not chartplay then
+		return f(false)
+	end
+	thread.coro(function()
+		local ok, err = pcall(function()
+			self.result_controller:replayNoteChartAsync("result", chartplay)
+		end)
+		if not ok then
+			print("failed to load score:", err)
+		end
+		f(ok)
+	end)()
+end
+
+return Scores

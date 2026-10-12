@@ -7,18 +7,15 @@ local lg = love.graphics
 
 ---@class ui.screens.song_select_v2.ChartPreviewView : gui.View
 ---@operator call: ui.screens.song_select_v2.ChartPreviewView
----@field bg_model sphere.BackgroundModel
----@field game sphere.GameController
+---@field media rizu.api.Media
 ---@field preview_canvas love.Canvas?
 ---@field bga_renderer ui.views.BgaRenderer
 local ChartPreviewView = View + {}
 
----@param bg_model sphere.BackgroundModel
----@param game sphere.GameController
-function ChartPreviewView:new(bg_model, game)
+---@param media rizu.api.Media
+function ChartPreviewView:new(media)
 	View.new(self)
-	self.bg_model = bg_model
-	self.game = game
+	self.media = media
 	self.bga_renderer = BgaRenderer()
 end
 
@@ -39,7 +36,7 @@ function ChartPreviewView:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.preview_canvas = lg.newCanvas(canvas_width, canvas_height)
 end
 
----Presentation-only compatibility hook; selection is owned by PreviewModel/PreviewLoader.
+---Presentation-only compatibility hook; the game picks what is previewed.
 ---@param cvf ui.formatters.ChartviewFormatter
 function ChartPreviewView:bind(cvf) end
 
@@ -50,8 +47,8 @@ end
 function ChartPreviewView:draw()
 	local canvas = self.preview_canvas
 	if not canvas then return end
-	local images = self.bg_model.images
-	local alpha = self.bg_model.alpha
+	local media = self.media
+	local images, alpha = media:getBackgroundImages()
 	local w, h = canvas:getDimensions()
 
 	lg.push("all")
@@ -72,13 +69,11 @@ function ChartPreviewView:draw()
 
 	Painter.setColorRgb(1, 1, 1)
 	Painter.setOpacity(1)
-	local preview_model = self.game.previewModel
-	local bga_engine = preview_model and preview_model.bgaPreviewPlayer
-	if bga_engine then
-		self.bga_renderer:draw(bga_engine, preview_model:getTime(), w, h)
+	local animation, time = media:getBackgroundAnimation()
+	if animation then
+		self.bga_renderer:draw(animation, time, w, h)
 	end
-	local renderer = preview_model and preview_model:getPlayfield()
-	if renderer then renderer:drawPreview(preview_model.chartPreview, w, h) end
+	media:drawNotesPreview(w, h)
 	lg.pop()
 
 	lg.draw(canvas)

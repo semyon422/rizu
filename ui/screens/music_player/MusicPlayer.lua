@@ -44,7 +44,7 @@ function MusicPlayer:new(ui)
 	self.artist_label:setAlignment(0.5, 0.17)
 	self.artist_label:setPivot(0.5, 0.5)
 
-	self.root:add(ProgressBar(preview_model)):anchorFill(120, 900, 120, 115)
+	self.root:add(ProgressBar(self.ui.api.media)):anchorFill(120, 900, 120, 115)
 
 	self.root:setOpacity(0)
 end

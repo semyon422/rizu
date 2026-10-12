@@ -3,7 +3,7 @@ local GuiUserInterface = require("gui.UserInterface")
 ---@class rizu.app.UserInterface : gui.UserInterface
 ---@overload fun(game: sphere.GameController, mount_path: string, screen_manager: gui.IScreenManager): rizu.app.UserInterface
 ---@field api rizu.api.GameApi The documented way to talk to the game, see `rizu/api/`.
----@field game sphere.GameController For what the API does not cover.
+---@field game sphere.GameController For what the API does not cover. Holds nothing but `api` when the UI runs without the game.
 local UserInterface = GuiUserInterface + {}
 
 -- Name must be overriden

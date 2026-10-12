@@ -4,7 +4,6 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Sounds = require("ui.Sounds")
 local SpriteBatch = require("gui.SpriteBatch")
-local Settings = require("rizu.config.Settings")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local time_util = require("time_util")
@@ -38,16 +37,14 @@ function ScoreList.getHeightForRows(rows)
 	return rows * ITEM_HEIGHT + (rows - 1) * ROW_GAP
 end
 
----@param score_selector rizu.select.ScoreSelector
+---@param scores rizu.api.Scores
 ---@param localization ui.localization.Localization
----@param online_client rizu.OnlineClient
----@param avatar_cache rizu.online.AvatarCache?
-function ScoreList:new(score_selector, localization, online_client, avatar_cache)
+---@param online rizu.api.Online
+function ScoreList:new(scores, localization, online)
 	VirtualizedList.new(self)
-	self.score_selector = score_selector
+	self.scores = scores
 	self.localization = localization
-	self.online_client = online_client
-	self.avatar_cache = avatar_cache
+	self.online = online
 	self.items = {}
 	self.avatar_items = {}
 	self.show_empty_sprite = false
@@ -67,17 +64,13 @@ function ScoreList:new(score_selector, localization, online_client, avatar_cache
 end
 
 function ScoreList:load()
-	self.online_observer = self.online_client:onChanged(function(event)
-		if event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
-			self:reload()
-		end
-	end)
+	self.unsubscribe = self.online:on("account_changed", function() self:reload() end)
 end
 
 function ScoreList:unload()
-	if self.online_observer then
-		self.online_client:offChanged(self.online_observer)
-		self.online_observer = nil
+	if self.unsubscribe then
+		self.unsubscribe()
+		self.unsubscribe = nil
 	end
 end
 
@@ -103,14 +96,12 @@ function ScoreList:reload()
 	self.reload_time = love.timer.getTime()
 
 	local fallback_username = self.localization:get("song_select.username")
-	local local_username = fallback_username
-	local user = self.online_client:getUser()
-	if self.online_client:isConnected() and user and type(user.name) == "string" and user.name ~= "" then
-		local_username = user.name
-	end
-	local is_local = self.score_selector.settings:getChoice(Settings.keys.select.score_source) == "local"
+	local local_username = self.online:getUsername() or fallback_username
+	local local_avatar = self.online:getAvatarUrl()
+	local is_local = self.scores:getSource() == "local"
 
-	for i, v in ipairs(self.score_selector.store.items) do
+	for i = 1, self.scores:getCount() do
+		local v = assert(self.scores:get(i))
 		local mods_sb = {}
 
 		if v.const then
@@ -142,7 +133,7 @@ function ScoreList:reload()
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),
 			color = getColorFromScore(v.score or 0),
-			avatar_url = is_local and user and user.avatar or v.user_avatar,
+			avatar_url = is_local and local_avatar or v.user_avatar,
 		})
 	end
 
@@ -289,7 +280,7 @@ function ScoreList:drawItem(item, index, y)
 	self:drawBackground(PLACEHOLDER_COLOR, PLACEHOLDER_ALPHA, y, true)
 	self:drawBackground(item.color, (index == self.hover_index and HOVER_GRADIENT_ALPHA or GRADIENT_ALPHA) * p, y)
 
-	local avatar_image = self.avatar_cache and self.avatar_cache:get(item.avatar_url)
+	local avatar_image = self.online:getAvatar(item.avatar_url)
 	if avatar_image then
 		table.insert(self.avatar_items, {image = avatar_image, y = y, opacity = p})
 	else

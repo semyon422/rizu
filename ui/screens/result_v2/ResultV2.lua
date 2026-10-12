@@ -146,7 +146,7 @@ function ResultV2:createScores()
 		color = Colors.muted,
 		text = "LEADERBOARD",
 	}))
-	self.score_list = scores:add(ScoreList(ui.game.scoreSelector, ui.localization, ui.game.online_client, ui.game.avatar_cache))
+	self.score_list = scores:add(ScoreList(ui.api.scores, ui.localization, ui.api.online))
 	self.score_list:setSize(COLUMN_LEFT_WIDTH, ScoreList.getHeightForRows(SCORES_ROWS))
 	scores:fitContent()
 	scores:setAlignment(0, 1):addPosition(EDGE, -(FOOTER_BOTTOM + BUTTON_HEIGHT + SCORES_FOOTER_GAP))

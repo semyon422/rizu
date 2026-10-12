@@ -17,7 +17,7 @@ local HeaderButton = require("ui.screens.song_select_v2.HeaderButton")
 ---@field actions gui.layout.FlowContainer
 ---@field session_info ui.screens.song_select_v2.SessionInfo
 ---@field player_info ui.views.PlayerInfo
----@field online_observer util.Observer?
+---@field unsubscribes fun()[]
 local Header = View + {}
 
 Header.HEIGHT = 52
@@ -71,34 +71,27 @@ function Header:new(ui)
 end
 
 function Header:load()
-	self.online_observer = self.ui.game.online_client:onChanged(function(event)
-		if event.type == "online_count_changed" or event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
-			self:updatePlayerInfo()
-		end
-	end)
+	local online = self.ui.api.online
+	local function update() self:updatePlayerInfo() end
+	self.unsubscribes = {online:on("account_changed", update), online:on("online_count_changed", update)}
 	self:updatePlayerInfo()
 end
 
 function Header:unload()
-	if self.online_observer then
-		self.ui.game.online_client:offChanged(self.online_observer)
-		self.online_observer = nil
+	for _, unsubscribe in ipairs(self.unsubscribes or {}) do
+		unsubscribe()
 	end
+	self.unsubscribes = {}
 end
 
 function Header:updatePlayerInfo()
-	local online_client = self.ui.game.online_client
-	local user = online_client:getUser()
-	local username = self.ui.localization:get("song_select.username")
-	if online_client:isConnected() and user and type(user.name) == "string" and user.name ~= "" then
-		username = user.name
-	end
-	self.player_info:updateText(username)
-	self.player_info:updateAvatar(user and user.avatar, self.ui.game.avatar_cache)
+	local online = self.ui.api.online
+	self.player_info:updateText(online:getUsername() or self.ui.localization:get("song_select.username"))
+	self.player_info:updateAvatar(online:getAvatarUrl(), online)
 	self.actions:fitContent()
 
-	local count = online_client:getOnlineCount()
-	if online_client:isConnected() and count then
+	local count = online:getOnlineCount()
+	if count then
 		self.session_info:setStatusText(self.ui.localization:get("song_select.online", {count = count}))
 	else
 		self.session_info:setStatusText(self.ui.localization:get("song_select.offline"))

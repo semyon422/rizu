@@ -17,7 +17,6 @@ local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Settings = require("rizu.config.Settings")
 local ScoreList = require("ui.screens.result_v2.ScoreList")
 local UiActions = require("ui.UiActions")
-local thread = require("thread")
 
 ---@class ui.screens.song_select_v2.CornerHit : gui.View
 ---@field on_click fun()
@@ -47,6 +46,7 @@ end
 ---@field score_list ui.screens.result_v2.ScoreList
 ---@field footer ui.screens.song_select_v2.Footer
 ---@field library_toolbar ui.screens.song_select_v2.LibraryToolbar
+---@field unsubscribes fun()[]
 local SongSelectV2 = Screen + {}
 
 -- Layout follows result_design/select.html (1920x1080 logical).
@@ -66,20 +66,20 @@ function SongSelectV2:new(ui)
 	self.ui = ui
 
 	self.root:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
-	self.blurred_background = self.root:add(BlurredBackground(ui.game.backgroundModel))
+	self.blurred_background = self.root:add(BlurredBackground(ui.api.media))
 	self.blurred_background:anchorFill(0, 0, 0, 0)
 	self.scrim = self.root:add(Scrim())
 	self.scrim:anchorFill(0, 0, 0, 0)
 	-- Follows the setting live, since the config modal opens over this screen.
 	self.root:setUpdate(function()
-		local visible = ui.game.settings:getBoolean(Settings.keys.select.blurred_background)
+		local visible = ui.api.settings:getBoolean(Settings.keys.select.blurred_background)
 		self.blurred_background:setVisible(visible)
 		self.scrim:setVisible(visible)
 	end)
 
-	self.chartview_formatter = ChartviewFormatter(ui.game.chartSelector.chartview, ui.game.settings)
-	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game, ui.localization)
-	self.chart_browser = ChartBrowser(ui, ui.api.charts, ui.game.settings, ui.tooltip, ui.localization, function()
+	self.chartview_formatter = ChartviewFormatter(ui.api.charts:getSelectedChart(), ui.api.settings)
+	self.selected_song_panel = SelectedSongPanel(ui.api.media, ui.localization)
+	self.chart_browser = ChartBrowser(ui, ui.api.charts, ui.api.settings, ui.tooltip, ui.localization, function()
 		self.library_toolbar.search:setText("")
 	end)
 
@@ -124,7 +124,7 @@ end
 ---@return gui.View
 function SongSelectV2:createScores()
 	local ui = self.ui
-	local score_selector = ui.game.scoreSelector
+	local scores_api = ui.api.scores
 	local scores = TrackContainer({direction = "column", gap = SCORES_GAP})
 
 	local head = scores:add(View(), SCORES_HEADER_HEIGHT)
@@ -137,18 +137,17 @@ function SongSelectV2:createScores()
 	head:add(SegmentedControl({
 		label = "",
 		options = {"local", "online"},
-		value = score_selector.settings:getChoice(Settings.keys.select.score_source),
+		value = scores_api:getSource(),
 		compact = true,
 		format = function(source)
 			return ui.localization:get("song_select.score_source_" .. source)
 		end,
 		on_change = function(source)
-			score_selector.settings:setChoice(Settings.keys.select.score_source, source)
-			score_selector:pullScore()
+			scores_api:setSource(source)
 		end,
 	})):setAlignment(1, 0.5)
 
-	self.score_list = scores:add(ScoreList(score_selector, ui.localization, ui.game.online_client, ui.game.avatar_cache), "*")
+	self.score_list = scores:add(ScoreList(scores_api, ui.localization, ui.api.online), "*")
 	self.score_list:setEmptySpriteEnabled(true)
 	self.score_list:setAnimated(true)
 	self.score_list:setOnSelect(function(index) self:openScore(index) end)
@@ -157,83 +156,70 @@ end
 
 ---@param index integer
 function SongSelectV2:openScore(index)
-	local game = self.ui.game
-	game.scoreSelector:scrollScore(nil, index)
-	local chartplay = game.scoreSelector.chartplay
-	if not chartplay then
+	local scores = self.ui.api.scores
+	scores:select(index)
+	if not scores:getSelected() then
 		return
 	end
-	thread.coro(function()
-		local ok, err = pcall(function()
-			game.resultController:replayNoteChartAsync("result", chartplay)
-		end)
-		if ok then
-			self.ui:setScreen(self.ui.result)
-		else
-			print("failed to load score:", err)
-			self.ui:setScreen(self)
-		end
-	end)()
+	scores:loadSelectedResult(function(ok)
+		self.ui:setScreen(ok and self.ui.result or self)
+	end)
 end
 
 function SongSelectV2:enter()
-	local score_selector = self.ui.game.scoreSelector
-	self.ui.game.chartSelector:onChanged(self)
-	score_selector:onChanged(self)
-	self.ui.game.timeRateModel:onChanged(self)
+	local api = self.ui.api
+	local function updateFooter() self.footer:updateState() end
+	self.unsubscribes = {
+		api.charts:on("selection_changed", function(chart)
+			self:bindChartview(chart)
+			updateFooter()
+		end),
+		api.charts:on("can_play_changed", updateFooter),
+		api.scores:on("scores_changed", function(loading)
+			self.score_list:setLoading(loading)
+			-- Rows are replaced once loading finishes; the old ones fade out meanwhile.
+			if loading then
+				self.score_list:fadeOutItems()
+			else
+				self.score_list:reload()
+			end
+		end),
+		api.play:on("rate_changed", function()
+			local chart = api.charts:getSelectedChart()
+			if chart and chart.hash then
+				self.chartview_formatter:setTimeRate(api.play:getRate())
+				self.chart_browser.chart_info:bind(self.chartview_formatter)
+			end
+			updateFooter()
+		end),
+	}
 	-- Score loading may have started before this screen subscribed.
-	score_selector:pullScore()
+	api.scores:refresh()
 	self.score_list:reload()
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
-	self:bindChartview(self.ui.game.chartSelector.chartview)
+	self:bindChartview(api.charts:getSelectedChart())
 	self.root:fadeIn(0.3, "OutCubic")
 end
 
 function SongSelectV2:exit()
-	self.ui.game.chartSelector:offChanged(self)
-	self.ui.game.scoreSelector:offChanged(self)
-	self.ui.game.timeRateModel:offChanged(self)
+	for _, unsubscribe in ipairs(self.unsubscribes) do
+		unsubscribe()
+	end
+	self.unsubscribes = {}
 	Screen.exit(self)
 	self.root:fadeOut(0.2, "OutQuad")
 	return true
 end
 
 ---@private
----@param chartview rizu.library.LocatedChartview?
+---@param chartview rizu.api.Chart?
 function SongSelectV2:bindChartview(chartview)
 	self.chartview_formatter:setChartview(chartview)
-	self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
+	self.chartview_formatter:setTimeRate(self.ui.api.play:getRate())
 	if chartview and chartview.hash then
 		self.selected_song_panel:bind(self.chartview_formatter)
 		self.chart_browser.chart_info:bind(self.chartview_formatter)
-	end
-end
-
----@param event rizu.select.Event|{name: string, [integer]: any}
-function SongSelectV2:receive(event)
-	if event.type == "chartview_changed" then
-		self:bindChartview(event.chartview)
-	end
-	-- Rows are replaced once loading finishes; the transient clear while loading is ignored.
-	if event.type == "score_items_changed" then
-		self.score_list:setLoading(event.loading and true or false)
-		-- The old rows fade out while the new ones load.
-		if event.loading then
-			self.score_list:fadeOutItems()
-		end
-	end
-	if event.type == "score_items_changed" and not event.loading then
-		self.score_list:reload()
-	end
-	if event.type == "time_rate_changed" and self.ui.game.chartSelector.chartview.hash then
-		self.chartview_formatter:setTimeRate(self.ui.game.replayBase.rate)
-		self.chart_browser.chart_info:bind(self.chartview_formatter)
-	end
-	if event.type == "chartview_changed" or event.type == "chart_availability_changed"
-		or event.type == "time_rate_changed"
-	then
-		self.footer:updateState()
 	end
 end
 
@@ -243,7 +229,6 @@ end
 
 ---@param inputs gui.Inputs
 function SongSelectV2:onHandleInputs(inputs)
-	local game = self.ui.game
 	local charts = self.ui.api.charts
 	if inputs:consumeActionJustPressed(UiActions.up) then
 		charts:moveSet(-1)
@@ -258,11 +243,9 @@ function SongSelectV2:onHandleInputs(inputs)
 	elseif inputs:consumeActionJustPressed(UiActions.open_modifiers) then
 		self.ui.modal_manager:attachModifiers()
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then
-		game.timeRateModel:increase(-1)
-		game.modifierSelectModel:change()
+		self.ui.api.play:changeRate(-1)
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_increase) then
-		game.timeRateModel:increase(1)
-		game.modifierSelectModel:change()
+		self.ui.api.play:changeRate(1)
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif charts:canPlaySelectedChart() and inputs:consumeActionJustPressed(UiActions.accept) then

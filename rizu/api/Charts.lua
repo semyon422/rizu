@@ -1,6 +1,6 @@
-local class = require("class")
 local thread = require("thread")
 local Settings = require("rizu.config.Settings")
+local Events = require("rizu.api.Events")
 
 --[[
 The chart library as the song select screen sees it: a list of sets, and the charts of the selected set.
@@ -36,6 +36,7 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---| "charts_changed" # The charts of the selected set were replaced. No arguments.
 ---| "charts_loaded" # Rows of the chart list got their data. Arguments: first, last.
 ---| "selection_changed" # Another chart is selected, or its data arrived. Arguments: chart or nil.
+---| "can_play_changed" # canPlaySelectedChart() has a new answer. No arguments.
 ---| "library_changed" # Chart files were added or removed on disk; call refresh() to see them. No arguments.
 ---| "filters_changed" # A filter was set or all were cleared. No arguments.
 ---| "collections_changed" # The collections were listed again, or another one is selected. No arguments.
@@ -63,15 +64,15 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@field path string? For the game.
 ---@field location_id integer? For the game.
 
----@class rizu.api.Charts
+---@class rizu.api.Charts : rizu.api.Events
 ---@operator call: rizu.api.Charts
+---@field on fun(self: rizu.api.Charts, event: rizu.api.Charts.Event, f: function): fun()
 ---@field private selector rizu.select.ChartSelector
----@field private listeners {[string]: function[]}
 ---@field private loading boolean
 ---@field private collections rizu.api.Collection[]
 ---@field private collections_root rizu.library.Collections.TreeNode?
 ---@field private collection_of {[rizu.library.Collections.TreeNode]: rizu.api.Collection}
-local Charts = class()
+local Charts = Events + {}
 
 -- group, name of the "yes" filter, name of the "no" filter
 local yes_no_filters = {
@@ -87,8 +88,8 @@ local value_filters = {
 
 ---@param selector rizu.select.ChartSelector
 function Charts:new(selector)
+	Events.new(self)
 	self.selector = selector
-	self.listeners = {}
 	self.loading = false
 	self.collections = {}
 	self.collection_of = {}
@@ -102,6 +103,8 @@ function Charts:new(selector)
 			self:emit("sets_changed")
 		elseif event.type == "chartview_changed" then
 			self:emit("selection_changed", event.chartview)
+		elseif event.type == "chart_availability_changed" then
+			self:emit("can_play_changed")
 		end
 	end)
 	for level, name in ipairs({"sets", "charts"}) do
@@ -124,33 +127,6 @@ function Charts:new(selector)
 	end
 	selector.collectionSelector:onChanged(collectionsChanged)
 	selector.collectionSelector.store:onChanged(collectionsChanged)
-end
-
----@private
----@param event rizu.api.Charts.Event
----@param ... any
-function Charts:emit(event, ...)
-	for _, f in ipairs(self.listeners[event] or {}) do
-		f(...)
-	end
-end
-
----Calls f every time the event happens. Returns a function that stops it.
----@param event rizu.api.Charts.Event
----@param f function
----@return fun() unsubscribe
-function Charts:on(event, f)
-	local listeners = self.listeners[event] or {}
-	self.listeners[event] = listeners
-	listeners[#listeners + 1] = f
-	return function()
-		for i, listener in ipairs(listeners) do
-			if listener == f then
-				table.remove(listeners, i)
-				return
-			end
-		end
-	end
 end
 
 -- Sets
@@ -292,17 +268,18 @@ local function newCollection(node, label)
 	}
 end
 
----@private
+---@param collections rizu.api.Collection[]
+---@param collection_of {[rizu.library.Collections.TreeNode]: rizu.api.Collection}
 ---@param node rizu.library.Collections.TreeNode
 ---@param prefix string
-function Charts:addCollections(node, prefix)
+local function addCollections(collections, collection_of, node, prefix)
 	for _, item in ipairs(node.items) do
 		-- The first item of a node points back up the tree.
 		if item.depth > node.depth then
 			local collection = newCollection(item, prefix .. item.name)
-			table.insert(self.collections, collection)
-			self.collection_of[item] = collection
-			self:addCollections(item, collection.label .. "/")
+			table.insert(collections, collection)
+			collection_of[item] = collection
+			addCollections(collections, collection_of, item, collection.label .. "/")
 		end
 	end
 end
@@ -320,7 +297,7 @@ function Charts:getCollections()
 		if root then
 			self.collections[1] = newCollection(root, root.name)
 			self.collection_of[root] = self.collections[1]
-			self:addCollections(root, "")
+			addCollections(self.collections, self.collection_of, root, "")
 		end
 	end
 	return self.collections

@@ -14,14 +14,14 @@ end
 
 ---@class ui.screens.music_player.ProgressBar : gui.View
 ---@operator call: ui.screens.music_player.ProgressBar
----@field preview_model rizu.preview.PreviewModel
+---@field media rizu.api.Media
 ---@field font love.Font
 local ProgressBar = View + {}
 
----@param preview_model rizu.preview.PreviewModel
-function ProgressBar:new(preview_model)
+---@param media rizu.api.Media
+function ProgressBar:new(media)
 	View.new(self)
-	self.preview_model = preview_model
+	self.media = media
 	self.handles_mouse_input = true
 end
 
@@ -33,7 +33,7 @@ end
 ---@param screen_y number
 function ProgressBar:seekAt(screen_x, screen_y)
 	local x = self.world_transform:inverseTransformPoint(screen_x, screen_y)
-	self.preview_model:setRelativePosition(math.max(0, math.min(x / self.width, 1)))
+	self.media:seekPreview(math.max(0, math.min(x / self.width, 1)))
 end
 
 ---@param event gui.MouseDownEvent
@@ -58,10 +58,10 @@ function ProgressBar:onDrag(event)
 end
 
 function ProgressBar:draw()
-	local progress = self.preview_model:getRelativePosition()
-	local min_time, max_time = self.preview_model:getRange()
-	local position = math.max(self.preview_model:getTime() - min_time, 0)
+	local time, min_time, max_time = self.media:getPreviewTime()
+	local position = math.max(time - min_time, 0)
 	local duration = math.max(max_time - min_time, 0)
+	local progress = duration > 0 and math.min(position / duration, 1) or 0
 	local track_y = 10
 
 	Painter.setColorTable(Colors.surface)

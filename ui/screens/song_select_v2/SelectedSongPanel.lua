@@ -53,7 +53,6 @@ end
 ---@field chart_preview ui.screens.song_select_v2.ChartPreviewView
 ---@field details_container ui.screens.song_select_v2.SelectedSongPanel.Details
 ---@field progress_bar ui.screens.music_player.ProgressBar
----@field game sphere.GameController
 ---@field title_font love.Font
 ---@field artist_font love.Font
 ---@field chart_name_font love.Font
@@ -73,13 +72,11 @@ local DETAILS_GAP = 12
 -- Downward offset while idle. Keep it low enough for the title and artist to remain visible.
 local DETAILS_IDLE_Y = 56 + DETAILS_BOTTOM_PADDING
 
----@param bg_model sphere.BackgroundModel
----@param game sphere.GameController
+---@param media rizu.api.Media
 ---@param localization ui.localization.Localization
-function SelectedSongPanel:new(bg_model, game, localization)
+function SelectedSongPanel:new(media, localization)
 	View.new(self)
-	self.game = game
-	self.chart_preview = self:add(ChartPreviewView(bg_model, game))
+	self.chart_preview = self:add(ChartPreviewView(media))
 	self.chart_preview:anchorFill(0, 0, 0, 0)
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
@@ -101,7 +98,7 @@ function SelectedSongPanel:new(bg_model, game, localization)
 	self.handles_mouse_input = true
 	self:setClip(true)
 	self.details_container = self:add(Details(self))
-	self.progress_bar = self.details_container:add(ProgressBar(game.previewModel))
+	self.progress_bar = self.details_container:add(ProgressBar(media))
 end
 
 ---@param old_x number

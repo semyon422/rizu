@@ -169,6 +169,17 @@ end
 local delay = require("delay")
 delay.set_timer(love.timer.getTime)
 
+-- The default user interface on a fake game: `./ui-preview`.
+if arg[2] == "ui" then
+	local preview = require("rizu.api.fake.Preview")(require("ui.UserInterface"))
+	preview:load()
+	local loop = require("rizu.loop.Loop")
+	loop:init()
+	current_loop = loop:run()
+	loop:add(preview)
+	return
+end
+
 ---@type sphere.GameController?
 local game
 
