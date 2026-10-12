@@ -35,7 +35,6 @@ return {
 	["locations.edit"] = "Editar",
 	["locations.delete"] = "Eliminar",
 
-	["chart_loading.loading"] = "Cargando...",
 	["editor.notice"] = "¡¡¡EDITOR EN DESARROLLO!!! Espera a que se actualicen el editor y las apariencias",
 	["editor.exit_hint"] = "Pulsa ESCAPE para salir",
 	["lobby.title"] = "Sala multijugador",

@@ -1,5 +1,6 @@
 local Screen = require("gui.Screen")
 local View = require("gui.View")
+local CompositeView = require("gui.CompositeView")
 local TrackContainer = require("gui.layout.TrackContainer")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
@@ -46,6 +47,8 @@ end
 ---@field score_list ui.screens.result_v2.ScoreList
 ---@field footer ui.screens.song_select_v2.Footer
 ---@field library_toolbar ui.screens.song_select_v2.LibraryToolbar
+---@field backdrop gui.View Background, blur and scrim; also drawn by chart loading
+---@field content gui.CompositeView Everything above the backdrop
 ---@field unsubscribes fun()[]
 local SongSelectV2 = Screen + {}
 
@@ -60,16 +63,34 @@ local SCORES_GAP = 10
 -- Extra room below the rows, taken from the selected song panel.
 local SCORES_EXTRA_HEIGHT = 5
 
+local ZOOM_SCALE = 1.08
+local ZOOM_ROTATION = math.rad(-2)
+
+---Rotates the finished content canvas, following the zoom. The view itself stays unrotated:
+---clipped views such as the carousel cannot be composed under a rotated parent.
+---@param content gui.CompositeView
+local function tiltContent(content)
+	local x, y = content.width / 2, content.height / 2
+	love.graphics.translate(x, y)
+	love.graphics.rotate(ZOOM_ROTATION * (content.scale_x - 1) / (ZOOM_SCALE - 1))
+	love.graphics.translate(-x, -y)
+end
+
 ---@param ui ui.UserInterface
 function SongSelectV2:new(ui)
 	Screen.new(self)
 	self.ui = ui
 
-	self.root:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
-	self.blurred_background = self.root:add(BlurredBackground(ui.api.media))
+	-- The backdrop and the content fade separately: chart loading shows the same backdrop.
+	-- One layer: fading the blur and the scrim on their own lets the blur show through brighter.
+	self.backdrop = self.root:add(CompositeView()):anchorFill(0, 0, 0, 0)
+	self.backdrop:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
+	self.blurred_background = self.backdrop:add(BlurredBackground(ui.api.media))
 	self.blurred_background:anchorFill(0, 0, 0, 0)
-	self.scrim = self.root:add(Scrim())
+	self.scrim = self.backdrop:add(Scrim())
 	self.scrim:anchorFill(0, 0, 0, 0)
+	self.content = self.root:add(CompositeView())
+	self.content:anchorFill(0, 0, 0, 0):setPivot(0.5, 0.5)
 	-- Follows the setting live, since the config modal opens over this screen.
 	self.root:setUpdate(function()
 		local visible = ui.api.settings:getBoolean(Settings.keys.select.blurred_background)
@@ -84,7 +105,7 @@ function SongSelectV2:new(ui)
 	end)
 
 	-- Same place as on the old screen: top of the left column, between the header, toolbar and footer rows.
-	local layout = self.root:add(TrackContainer({direction = "column"}))
+	local layout = self.content:add(TrackContainer({direction = "column"}))
 	layout:anchorFill(0, 0, 0, 0)
 	layout:add(View(), 122)
 	local content = layout:add(TrackContainer({
@@ -99,25 +120,26 @@ function SongSelectV2:new(ui)
 	right:add(self.chart_browser, "*")
 	layout:add(View(), Footer.HEIGHT + FOOTER_BOTTOM + 8)
 
-	self.root:add(Header(ui)):fillWidth(0, 0):setHeight(Header.HEIGHT)
+	self.content:add(Header(ui)):fillWidth(0, 0):setHeight(Header.HEIGHT)
 
 	local popup_container = PopupContainer()
-	self.library_toolbar = self.root:add(LibraryToolbar(ui, popup_container))
+	self.library_toolbar = self.content:add(LibraryToolbar(ui, popup_container))
 	self.library_toolbar:fillWidth(EDGE, EDGE):setHeight(TOOLBAR_HEIGHT):addPosition(0, TOOLBAR_TOP)
 
 	self.footer = Footer(ui)
 	-- Invisible corner areas under the buttons, so hitting the very corner of the screen still works.
-	local back_hit = self.root:add(CornerHit(function() self.footer.back_button.on_click() end))
+	local back_hit = self.content:add(CornerHit(function() self.footer.back_button.on_click() end))
 	back_hit:setSize(EDGE + self.footer.back_button:getPreferredWidth(), Footer.HEIGHT + FOOTER_BOTTOM + 12)
 		:setAlignment(0, 1)
-	local play_hit = self.root:add(CornerHit(function() self.footer.play_button:onMouseClick({button = 1}) end))
+	local play_hit = self.content:add(CornerHit(function() self.footer.play_button:onMouseClick({button = 1}) end))
 	play_hit:setSize(EDGE + self.footer.play_button:getPreferredWidth(), Footer.HEIGHT + FOOTER_BOTTOM + 12)
 		:setAlignment(1, 1)
-	self.root:add(self.footer)
+	self.content:add(self.footer)
 	self.footer:fillWidth(EDGE, EDGE):setHeight(Footer.HEIGHT):setAlignmentY(1):addPosition(0, -FOOTER_BOTTOM)
-	self.root:add(popup_container)
+	self.content:add(popup_container)
 
-	self.root:setOpacity(0)
+	self.backdrop:setOpacity(0)
+	self.content:setOpacity(0)
 end
 
 ---@private
@@ -201,7 +223,11 @@ function SongSelectV2:enter()
 	self.footer:updateState()
 	-- Binds the selected chart, and restarts the previews that gameplay stopped.
 	api.charts:announceSelection()
-	self.root:fadeIn(0.3, "OutCubic")
+	self.backdrop:fadeIn(0.3, "OutCubic")
+	-- Undoes zoomOut(), which ends while the screen is already hidden.
+	self.content:clearTransforms():setScale(1, 1)
+	rawset(self.content, "drawUnderlay", nil)
+	self.content:fadeIn(0.3, "OutCubic")
 end
 
 function SongSelectV2:exit()
@@ -210,8 +236,18 @@ function SongSelectV2:exit()
 	end
 	self.unsubscribes = {}
 	Screen.exit(self)
-	self.root:fadeOut(0.2, "OutQuad")
+	self.content:fadeOut(0.2, "OutQuad")
+	-- The backdrop stays until the next screen covers it; two half-faded screens would show black through.
+	self.backdrop:delay(0.2):fadeOut(0.2, "OutQuad")
 	return true
+end
+
+---Replaces the content fade of exit() on the way into chart loading: the content also flies
+---towards the viewer. Ends together with the backdrop fade.
+function SongSelectV2:zoomOut()
+	self.content:fadeOut(0.3, "OutQuad")
+	self.content:scaleTo(ZOOM_SCALE, ZOOM_SCALE, 0.4, "OutCubic")
+	rawset(self.content, "drawUnderlay", tiltContent)
 end
 
 ---@private

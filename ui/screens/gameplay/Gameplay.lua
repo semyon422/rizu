@@ -1,4 +1,5 @@
 local View = require("gui.View")
+local CompositeView = require("gui.CompositeView")
 local Label = require("ui.views.Label")
 local Screen = require("gui.Screen")
 local Colors = require("ui.Colors")
@@ -54,11 +55,14 @@ function Gameplay:new(ui)
 	self.was_retrying = false
 
 	self.gameplay_playfield = self.gameplay_interactor.playfield
-	self.gameplay_playfield_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
+	-- The skin draws with its own colours and ignores the screen opacity. As one layer it fades
+	-- through a canvas, and draws straight to the screen again once the fade has ended.
+	local skin_layer = self.root:add(CompositeView()):anchorFill(0, 0, 0, 0)
+	self.gameplay_playfield_view = skin_layer:add(View()):anchorFill(0, 0, 0, 0)
 	self.gameplay_playfield_view:setDraw(function()
 		self:drawGameplayPlayfield()
 	end)
-	self.gameplay_hud_view = self.root:add(View()):anchorFill(0, 0, 0, 0)
+	self.gameplay_hud_view = skin_layer:add(View()):anchorFill(0, 0, 0, 0)
 	self.gameplay_hud_view:setDraw(function()
 		self:drawGameplayHud()
 	end)

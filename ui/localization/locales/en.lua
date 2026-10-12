@@ -51,7 +51,6 @@ return {
 	["locations.edit"] = "Edit",
 	["locations.delete"] = "Delete",
 
-	["chart_loading.loading"] = "Loading...",
 	["editor.notice"] = "EDITOR WORK IN PROGRESS!!! Please wait for the editor and skins update",
 	["editor.exit_hint"] = "Press ESCAPE to exit",
 	["lobby.title"] = "Multiplayer room",

@@ -35,7 +35,6 @@ return {
 	["locations.edit"] = "Изменить",
 	["locations.delete"] = "Удалить",
 
-	["chart_loading.loading"] = "Загрузка карты...",
 	["editor.notice"] = "РЕДАКТОР ЕЩЁ В РАЗРАБОТКЕ! Ждите апдейт редактора и скинов",
 	["editor.exit_hint"] = "ESCAPE — выйти",
 	["lobby.title"] = "Сетевая комната",

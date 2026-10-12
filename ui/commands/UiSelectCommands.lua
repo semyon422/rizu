@@ -11,7 +11,7 @@ return function(game, ui)
 			description = "Starts the selected chart",
 			callback = function()
 				if game.chartSelector:chartExists() then
-					ui:loadSelectedChart(false, false)
+					ui:loadSelectedChart(false, false, true)
 				end
 			end,
 		},
@@ -21,7 +21,7 @@ return function(game, ui)
 			description = "Starts the selected chart with autoplay enabled",
 			callback = function()
 				if game.chartSelector:chartExists() then
-					ui:loadSelectedChart(true, false)
+					ui:loadSelectedChart(true, false, true)
 				end
 			end,
 		},
@@ -34,7 +34,7 @@ return function(game, ui)
 				if not view or not game.gameplayInteractor.replay_stores[view.chartmeta_mode] then return end
 				local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, view.chartmeta_mode)
 				if not ok then ui.chart_loading:showError(err) end
-				ui:setScreen(ui.chart_loading)
+				ui:setScreen(ui.chart_loading, true)
 			end,
 		},
 		{
