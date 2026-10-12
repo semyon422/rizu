@@ -56,8 +56,8 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 
 	---@type rizu.select.stores.ListStore[]
 	self.stores = {
-		ListStore(library, timer), -- Primary
-		ListStore(library, timer), -- Secondary
+		ListStore(library), -- Primary
+		ListStore(library), -- Secondary
 	}
 
 	self.searchModel = SearchModel(configModel, settings)
@@ -78,17 +78,17 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 	self.state:onChanged(self)
 
 	self.stores[1]:onChanged(function(event)
-		if event.type == "list_item_loaded" then
-			local current = self.state:getSelection(1)
-			if event.index == current.index then
+		if event.type == "list_items_loaded" then
+			local index = self.state:getSelection(1).index
+			if index >= event.first and index <= event.last then
 				self:setChanged()
 			end
 		end
 	end)
 	self.stores[2]:onChanged(function(event)
-		if event.type == "list_item_loaded" then
-			local current = self.state:getSelection(2)
-			if event.index == current.index then
+		if event.type == "list_items_loaded" then
+			local index = self.state:getSelection(2).index
+			if index >= event.first and index <= event.last then
 				self:emitChanged({type = "chartview_changed", chartview = self.chartview})
 				self:setChanged()
 			end

@@ -4,35 +4,18 @@ local Resources = require("ui.Resources")
 local Dropdown = require("ui.screens.song_select_v2.Dropdown")
 local FiltersButton = require("ui.screens.song_select_v2.FiltersButton")
 local SearchField = require("ui.screens.song_select_v2.SearchField")
-local Settings = require("rizu.config.Settings")
 
 ---Copy of the old toolbar without its strip: the controls sit directly on the blurred background.
 ---@class ui.screens.song_select_v2.LibraryToolbar : gui.View
 ---@operator call: ui.screens.song_select_v2.LibraryToolbar
 local LibraryToolbar = View + {}
 
----@param node rizu.library.Collections.TreeNode
----@param options ui.screens.song_select_v2.DropdownOption[]
----@param prefix string
-local function addCollectionOptions(node, options, prefix)
-	for _, item in ipairs(node.items) do
-		if item.depth > node.depth then
-			local label = prefix .. item.name
-			options[#options + 1] = {label = label, value = item}
-			addCollectionOptions(item, options, label .. "/")
-		end
-	end
-end
-
 ---@param ui ui.UserInterface
 ---@param popup_container ui.views.PopupContainer
 function LibraryToolbar:new(ui, popup_container)
 	View.new(self)
 	self.ui = ui
-	local game = ui.game
-	local chart_selector = game.chartSelector
-	local collection_selector = game.collectionSelector
-	local settings = game.settings
+	local charts = ui.api.charts
 
 	local controls = self:add(TrackContainer({direction = "row", gap = 10}))
 	controls:anchorFill(0, 0, 0, 0)
@@ -49,49 +32,52 @@ function LibraryToolbar:new(ui, popup_container)
 			end)
 		end,
 		on_change = function(item)
-			---@cast item rizu.library.Collections.TreeNode
-			collection_selector:selectCollection(item.path, item.location_id)
+			---@cast item rizu.api.Collection
+			charts:selectCollection(item)
 		end,
 	}), 240)
 
 	---@type ui.screens.song_select_v2.DropdownOption[]
 	local sort_options = {}
-	for _, name in ipairs(chart_selector.sortModel.names) do
+	for _, name in ipairs(charts:getSortNames()) do
 		sort_options[#sort_options + 1] = {label = ui.localization:get("song_select.sort_" .. name), value = name}
 	end
-	local sort_key = Settings.keys.select.sort_function
 	self.sort_dropdown = controls:add(Dropdown({
 		label = ui.localization:get("song_select.sort"),
 		options = sort_options,
-		value = settings:getString(sort_key),
+		value = charts:getSort(),
 		popup_container = popup_container,
 		icon = Resources.sprites.icon_layers,
 		on_change = function(value)
 			---@cast value string
-			settings:setString(sort_key, value)
-			chart_selector:noDebounceRefresh()
+			charts:setSort(value)
 		end,
 	}), 190)
 
 	controls:add(FiltersButton(ui), 225)
 
 	self.search = controls:add(SearchField({
-		text = chart_selector.searchModel:getSearchString(),
+		text = charts:getSearch(),
 		placeholder = ui.localization:get("song_select.search_placeholder"),
 		on_change = function(text)
-			chart_selector.searchModel:setSearchString(text)
+			charts:setSearch(text)
 		end,
 	}), "*")
+
+	-- The collections may be listed after this toolbar is built.
+	charts:on("collections_changed", function() self:updateCollections() end)
 end
 
 function LibraryToolbar:updateCollections()
-	local selector = self.ui.game.collectionSelector
-	local root = selector.store.root_tree
-	if not root then return end
+	local charts = self.ui.api.charts
 	---@type ui.screens.song_select_v2.DropdownOption[]
-	local options = {{label = self.ui.localization:get("song_select.all_songs"), value = root}}
-	addCollectionOptions(root, options, "")
-	self.collection_dropdown:setOptions(options, selector:getSelectedItem() or root)
+	local options = {}
+	for i, collection in ipairs(charts:getCollections()) do
+		local label = collection.kind == "library" and self.ui.localization:get("song_select.all_songs") or collection.label
+		options[i] = {label = label, value = collection}
+	end
+	if not options[1] then return end
+	self.collection_dropdown:setOptions(options, charts:getSelectedCollection())
 end
 
 return LibraryToolbar

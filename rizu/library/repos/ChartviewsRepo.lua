@@ -502,4 +502,17 @@ function ChartviewsRepo:getChartview(_chartview)
 	return obj
 end
 
+---One call for a whole page of list rows. A row that no longer exists is `false`.
+---@param chartviews rizu.library.IChartviewBase[]
+---@return (rizu.library.Chartview|false)[]
+function ChartviewsRepo:getChartviews(chartviews)
+	---@type (rizu.library.Chartview|false)[]
+	local objs = {}
+	-- shortcut: one query per row, switch to a single IN query if a page is slow to load
+	for i, chartview in ipairs(chartviews) do
+		objs[i] = self:getChartview(chartview) or false
+	end
+	return objs
+end
+
 return ChartviewsRepo

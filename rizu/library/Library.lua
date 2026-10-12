@@ -296,14 +296,14 @@ function Library:getViewsAsync(params, chartview)
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams
----@param _chartview rizu.library.IChartviewBase
----@return rizu.library.Chartview? result
-function Library:getChartviewAsync(params, _chartview)
+---@param chartviews rizu.library.IChartviewBase[]
+---@return (rizu.library.Chartview|false)[] result
+function Library:getChartviewsAsync(params, chartviews)
 	if self.is_sync or not self.worker then
 		self.chartviewsRepo.params = params
-		return self.chartviewsRepo:getChartview(_chartview)
+		return self.chartviewsRepo:getChartviews(chartviews)
 	end
-	return self.worker:getChartview(params, _chartview)
+	return self.worker:getChartviews(params, chartviews)
 end
 
 ---@param chartdiff_key sea.ChartdiffKey

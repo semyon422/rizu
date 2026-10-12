@@ -91,12 +91,12 @@ local function colored(color, alpha, text)
 	return cs
 end
 
----@param chart_selector rizu.select.ChartSelector
+---@param charts rizu.api.Charts
 ---@param settings rizu.config.Config
 ---@param localization ui.localization.Localization
-function ChartCarousel:new(chart_selector, settings, localization)
+function ChartCarousel:new(charts, settings, localization)
 	VirtualizedList.new(self)
-	self.chart_selector = chart_selector
+	self.charts = charts
 	self.settings = settings
 	self.localization = localization
 	self.formatter = ChartviewFormatter(nil, settings)
@@ -116,20 +116,15 @@ function ChartCarousel:new(chart_selector, settings, localization)
 	self.outline = NineSliceUsage(Resources.nine_slices.song_set_outline)
 	self.diff_color = {0, 0, 0, 0}
 
-	local state = chart_selector.state
-	if chart_selector.stores[2]:count() > 0 then
-		self.children_set = state:getPrimary().index
+	if charts:getChartCount() > 0 then
+		self.children_set = charts:getSelectedSetIndex()
 	end
-	chart_selector.stores[2]:onChanged(function(event)
-		if event.type == "list_count_changed" then
-			self.children_set = state:getPrimary().index
-		end
+	charts:on("charts_changed", function()
+		self.children_set = charts:getSelectedSetIndex()
 	end)
-	chart_selector:onChanged(function(event)
-		if event.type == "primary_items_updated" then
-			self.layout:reset()
-			self.children_set = nil
-		end
+	charts:on("sets_changed", function()
+		self.layout:reset()
+		self.children_set = nil
 	end)
 
 	self.visit_set = function(index, y) self:addSet(index, y) end
@@ -146,7 +141,7 @@ end
 
 ---@return integer count
 function ChartCarousel:getItemCount()
-	return self.chart_selector.stores[1]:count()
+	return self.charts:getSetCount()
 end
 
 ---The taller of the current and final layout. Only the final one would clamp the camera
@@ -164,14 +159,14 @@ end
 ---@return number
 function ChartCarousel:getFocusScroll()
 	local layout = self.layout
-	local state = self.chart_selector.state
+	local charts = self.charts
 	local center
 	local group = self:getOpenGroup()
-	local child = state:getSecondary().index
+	local child = charts:getSelectedChartIndex()
 	if self.focus_child and group and child >= 1 and child <= group.count then
 		center = layout:getChildY(group, child) + CHILD_HEIGHT / 2
 	else
-		center = layout:getSetY(state:getPrimary().index) + SET_HEIGHT / 2
+		center = layout:getSetY(charts:getSelectedSetIndex()) + SET_HEIGHT / 2
 	end
 	return center + GAP / 2 - self.height / 2
 end
@@ -187,7 +182,7 @@ end
 ---@private
 ---@return ui.screens.song_select_v2.CarouselLayout.Group?
 function ChartCarousel:getOpenGroup()
-	local selected = self.chart_selector.state:getPrimary().index
+	local selected = self.charts:getSelectedSetIndex()
 	for _, g in ipairs(self.layout.groups) do
 		if g.index == selected and g.target == 1 then
 			return g
@@ -204,13 +199,12 @@ end
 function ChartCarousel:update(dt)
 	VirtualizedList.update(self, dt)
 
-	local chart_selector = self.chart_selector
+	local charts = self.charts
 	local layout = self.layout
-	local state = chart_selector.state
-	local selected = state:getPrimary().index
-	local children_count = chart_selector.stores[2]:count()
+	local selected = charts:getSelectedSetIndex()
+	local children_count = charts:getChartCount()
 
-	layout:setSetCount(chart_selector.stores[1]:count())
+	layout:setSetCount(charts:getSetCount())
 	if self.children_set == selected and children_count > 0 then
 		layout:expand(selected, children_count)
 	else
@@ -219,7 +213,7 @@ function ChartCarousel:update(dt)
 	layout:update(dt)
 
 	local group = self:getOpenGroup()
-	local child = group and state:getSecondary().index or 0
+	local child = group and charts:getSelectedChartIndex() or 0
 	-- Taken from osu!lazer (Carousel.cs): keep the selected set still on screen while rows above it open or close.
 	local set_y = layout:getSetY(selected)
 	if selected == self.last_selected and self.last_set_y then
@@ -284,11 +278,11 @@ end
 ---@param index integer
 ---@param content_y number
 function ChartCarousel:addSet(index, content_y)
-	local cv = self.chart_selector.stores[1]:get(index)
+	local cv = self.charts:getSet(index)
 	if not cv then return end
 
 	local y = content_y - self.draw_scroll + GAP / 2
-	local is_selected = index == self.chart_selector.state:getPrimary().index
+	local is_selected = index == self.charts:getSelectedSetIndex()
 	local is_hovered = self.hover_kind == "set" and self.hover_set == index
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local diff = cv[diff_column] ---@type number?
@@ -334,7 +328,9 @@ function ChartCarousel:addSet(index, content_y)
 	decoration:add(sprites.chart_sets_difficulty, 0, y)
 	decoration:setColor(1, 1, 1)
 	-- TODO: Dans
-	if cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
+	if not cv.loaded then
+		-- Nothing to say about the row yet.
+	elseif cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
 		decoration:add(sprites.chart_sets_ranked, self.width - 45, y + 23)
 	else
 		decoration:add(sprites.chart_sets_unranked, self.width - 45, y + 23)
@@ -353,7 +349,7 @@ function ChartCarousel:addChild(group, j, content_y, fade)
 	local cv
 	local is_open = group.target == 1
 	if is_open then
-		cv = self.chart_selector.stores[2]:get(j)
+		cv = self.charts:getChart(j)
 		group.items[j] = cv
 	else
 		cv = group.items[j]
@@ -361,7 +357,7 @@ function ChartCarousel:addChild(group, j, content_y, fade)
 	if not cv then return end
 
 	local y = content_y - self.draw_scroll + GAP / 2
-	local is_selected = is_open and j == self.chart_selector.state:getSecondary().index
+	local is_selected = is_open and j == self.charts:getSelectedChartIndex()
 	local is_hovered = self.hover_kind == "child" and self.hover_set == group.index and self.hover_child == j
 	local formatter = self.formatter
 	formatter:setChartview(cv)
@@ -440,11 +436,11 @@ end
 
 function ChartCarousel:onKeyDown(e)
 	if e.key == "j" then
-		self.chart_selector:scrollLevel(1, 1)
+		self.charts:moveSet(1)
 		Sounds.play("set_changed")
 		return true
 	elseif e.key == "k" then
-		self.chart_selector:scrollLevel(1, -1)
+		self.charts:moveSet(-1)
 		Sounds.play("set_changed")
 		return true
 	end
@@ -455,10 +451,10 @@ function ChartCarousel:onMouseClick(e)
 		return
 	end
 	if self.hover_kind == "set" then
-		self.chart_selector:scrollLevel(1, nil, self.hover_set)
+		self.charts:selectSet(self.hover_set)
 		Sounds.play("set_changed")
 	else
-		self.chart_selector:scrollLevel(2, 0, self.hover_child)
+		self.charts:selectChart(self.hover_child)
 		Sounds.play("chart_changed")
 	end
 	return true

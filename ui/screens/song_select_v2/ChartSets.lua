@@ -23,12 +23,12 @@ local TINT_LENGTH = 0.45
 local SELECTED_TINT_ALPHA = 0.20
 local SELECTED_TINT_LENGTH = 0.60
 
----@param chartSelector rizu.select.ChartSelector
+---@param charts rizu.api.Charts
 ---@param settings rizu.config.Config
 ---@param on_selected fun(index: integer)
-function ChartSets:new(chartSelector, settings, on_selected)
+function ChartSets:new(charts, settings, on_selected)
 	VirtualizedList.new(self)
-	self.chartSelector = chartSelector
+	self.charts = charts
 	self.settings = settings
 	self.on_selected = on_selected
 	self.gap = 5
@@ -52,12 +52,12 @@ function ChartSets:onLayoutChanged(old_x, old_y, old_width, old_height)
 	self.item_height = ITEM_HEIGHT
 	self.cap_width = Resources.sprites.song_set_cap_left:getWidth()
 	self.mid_width = self.width - self.cap_width * 2
-	self:scrollToIndex(self.chartSelector.state:getPrimary().index, true)
+	self:scrollToIndex(self.charts:getSelectedSetIndex(), true)
 end
 
 ---@return integer count
 function ChartSets:getItemCount()
-	return self.chartSelector.stores[1]:count()
+	return self.charts:getSetCount()
 end
 
 ---@private
@@ -69,8 +69,8 @@ end
 function ChartSets:update(dt)
 	VirtualizedList.update(self, dt)
 
-	local store = self.chartSelector.stores[1]
-	local item_count = store:count()
+	local charts = self.charts
+	local item_count = charts:getSetCount()
 	local row_step = self.item_height + self.gap
 
 	local last_hover = self.hover_index
@@ -96,7 +96,7 @@ function ChartSets:update(dt)
 	self.title_batch:clear()
 	self.artist_batch:clear()
 
-	local selected_index = self.chartSelector.state:getPrimary().index
+	local selected_index = self.charts:getSelectedSetIndex()
 	if selected_index ~= self.last_selected_index then
 		self.last_selected_index = selected_index
 		self.scroll_return_pending = false
@@ -124,7 +124,7 @@ function ChartSets:update(dt)
 	local scroll = self:getVisualScrollPosition()
 	local first_index, last_index = self:getVisibleRowRange()
 	for i = first_index, last_index do
-		local cv = store:get(i)
+		local cv = charts:getSet(i)
 		if cv then
 			local y = (i - 1) * row_step - scroll + self.gap / 2
 			self:drawItem(cv, i, y, i == selected_index, i == self.hover_index)
@@ -143,7 +143,7 @@ local function copy_color_to_cs(color)
 	cs[1][4] = color[4]
 end
 
----@param cv rizu.library.LocatedChartview
+---@param cv rizu.api.Chart
 ---@param index integer
 ---@param y number
 ---@param is_selected boolean
@@ -204,7 +204,9 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 	self.batch:setColor(1, 1, 1)
 
 	-- TODO: Dans
-	if cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
+	if not cv.loaded then
+		-- Nothing to say about the row yet.
+	elseif cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
 		self.batch:add(Resources.sprites.chart_sets_ranked, self.width - 45, y + 23)
 	else
 		self.batch:add(Resources.sprites.chart_sets_unranked, self.width - 45, y + 23)
@@ -244,11 +246,11 @@ end
 
 function ChartSets:onKeyDown(e)
 	if e.key == "j" then
-		self.chartSelector:scrollLevel(1, 1)
+		self.charts:moveSet(1)
 		Sounds.play("set_changed")
 		return true
 	elseif e.key == "k" then
-		self.chartSelector:scrollLevel(1, -1)
+		self.charts:moveSet(-1)
 		Sounds.play("set_changed")
 		return true
 	end
@@ -264,7 +266,7 @@ end
 
 function ChartSets:onMouseClick(e)
 	if e.button == 1 and self.hover_index then
-		self.chartSelector:scrollLevel(1, nil, self.hover_index)
+		self.charts:selectSet(self.hover_index)
 		self:scrollToIndex(self.hover_index)
 		self.on_selected(self.hover_index)
 		Sounds.play("set_changed")

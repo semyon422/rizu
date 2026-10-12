@@ -72,6 +72,7 @@ local LoveTimer = require("time.LoveTimer")
 
 local GameplayInteractor = require("rizu.gameplay.GameplayInteractor")
 local GameInteractor = require("rizu.game.GameInteractor")
+local GameApi = require("rizu.api.GameApi")
 
 local ResourceLoader = require("rizu.files.ResourceLoader")
 local ResourceFinder = require("rizu.files.ResourceFinder")
@@ -257,6 +258,7 @@ function GameController:new()
 
 	self.gameplayInteractor = GameplayInteractor(self)
 	self.gameInteractor = GameInteractor(self)
+	self.api = GameApi(self)
 
 	self.global_timer = GlobalTimer()
 end

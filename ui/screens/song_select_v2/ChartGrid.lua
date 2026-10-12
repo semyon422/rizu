@@ -32,15 +32,16 @@ local TEXT_GAP = 10
 local STROKE_HEIGHT = 3
 local SELECTED_GRADIENT_OPACITY = 0.32
 
----@param chart_selector rizu.select.ChartSelector
+---@param charts rizu.api.Charts
+---@param settings rizu.config.Config
 ---@param tooltip ui.views.Tooltip?
 ---@param localization ui.localization.Localization
-function ChartGrid:new(chart_selector, tooltip, localization)
+function ChartGrid:new(charts, settings, tooltip, localization)
 	VirtualizedList.new(self)
-	self.chart_selector = chart_selector
+	self.charts = charts
 	self.tooltip = tooltip
 	self.localization = localization
-	self.chartview_formatter = ChartviewFormatter(nil, chart_selector.settings)
+	self.chartview_formatter = ChartviewFormatter(nil, settings)
 	self.items = {}
 	self.difficulty_batch = love.graphics.newTextBatch(Resources.getFont("bold", 24)) ---@type love.Text
 	self.name_batch = love.graphics.newTextBatch(Resources.getFont("regular", 20)) ---@type love.Text
@@ -50,12 +51,11 @@ function ChartGrid:new(chart_selector, tooltip, localization)
 	self.handles_keyboard_input = true
 	self.reload_items_needed = true
 
-	chart_selector.settings:subscribeChoice(Settings.keys.select.diff_column, function()
+	settings:subscribeChoice(Settings.keys.select.diff_column, function()
 		self:requestReloadItems()
 	end)
-	chart_selector.stores[2]:onChanged(function()
-		self:requestReloadItems()
-	end)
+	charts:on("charts_changed", function() self:requestReloadItems() end)
+	charts:on("charts_loaded", function() self:requestReloadItems() end)
 end
 
 function ChartGrid:load() end
@@ -89,11 +89,10 @@ end
 
 function ChartGrid:reloadItems()
 	self.items = {}
-	local secondary = self.chart_selector.stores[2]
-	local count = secondary:count()
+	local count = self.charts:getChartCount()
 
 	for i = 1, count do
-		local item = secondary:get(i)
+		local item = self.charts:getChart(i)
 		if item then
 			self.chartview_formatter:setChartview(item)
 			local difficulty = self.chartview_formatter:getDifficulty()
@@ -114,7 +113,7 @@ end
 
 ---@param immediate boolean?
 function ChartGrid:scrollToSelected(immediate)
-	local selected_index = self.chart_selector.state:getSecondary().index
+	local selected_index = self.charts:getSelectedChartIndex()
 	local selected_x = math.max(0, (selected_index - 1) * (ITEM_WIDTH + ITEM_GAP))
 	self:scrollTo(selected_x - (self.width - ITEM_WIDTH) / 2, immediate)
 end
@@ -126,12 +125,12 @@ end
 
 function ChartGrid:onKeyDown(e)
 	if e.key == "h" then
-		self.chart_selector:scrollLevel(2, -1)
+		self.charts:moveChart(-1)
 		Sounds.play("chart_changed")
 		self:scrollToSelected()
 		return true
 	elseif e.key == "l" then
-		self.chart_selector:scrollLevel(2, 1)
+		self.charts:moveChart(1)
 		Sounds.play("chart_changed")
 		self:scrollToSelected()
 		return true
@@ -140,7 +139,7 @@ end
 
 function ChartGrid:onMouseClick(e)
 	if e.button == 1 and self.hover_id then
-		self.chart_selector:scrollLevel(2, 0, self.hover_id)
+		self.charts:selectChart(self.hover_id)
 		Sounds.play("chart_changed")
 		return true
 	end
@@ -239,7 +238,7 @@ function ChartGrid:draw()
 	local item_step = ITEM_WIDTH + ITEM_GAP
 	local first_index = math.max(1, math.floor(scroll / item_step) + 1)
 	local last_index = math.min(#self.items, math.floor((scroll + self.width) / item_step) + 1)
-	local selected_index = self.chart_selector.state:getSecondary().index
+	local selected_index = self.charts:getSelectedChartIndex()
 
 	for i = first_index, last_index do
 		local item = self.items[i]

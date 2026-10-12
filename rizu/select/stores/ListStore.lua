@@ -1,5 +1,4 @@
 local class = require("class")
-local ExpireTable = require("ExpireTable")
 local Observable = require("Observable")
 local table_util = require("table_util")
 
@@ -7,11 +6,23 @@ local table_util = require("table_util")
 ---@operator call: rizu.select.stores.ListStore
 ---@field generation integer
 ---@field itemsCount integer
+---@field private pages {[integer]: rizu.select.stores.ListStore.Page}
+---@field private pages_count integer
+---@field private clock integer
 local ListStore = class()
 
+---@class rizu.select.stores.ListStore.Page
+---@field items {[integer]: rizu.library.LocatedChartview}
+---@field used integer
+
+-- Rows are loaded a page at a time, one worker call each.
+ListStore.page_size = 64
+-- Rows this close to a requested one are loaded too, so scrolling does not reach unloaded rows.
+ListStore.prefetch = 32
+ListStore.max_pages = 32
+
 ---@param library rizu.library.Library
----@param timer time.ITimer
-function ListStore:new(library, timer)
+function ListStore:new(library)
 	self.library = library
 	self.observable = Observable()
 
@@ -21,12 +32,9 @@ function ListStore:new(library, timer)
 	self.maps = {}
 	self.mode = "chartmetas"
 	self.generation = 0
-
-	local cache = ExpireTable(timer)
-	self.cache = cache
-	self.cache.load = function(_, k)
-		return self:_loadObject(k)
-	end
+	self.pages = {}
+	self.pages_count = 0
+	self.clock = 0
 end
 
 ---@param observer rizu.select.ListStoreEventObserver|rizu.select.ListStoreEventReceiver
@@ -61,49 +69,88 @@ function ListStore:setResult(result, mode)
 		self.items, self.itemsCount, self.maps = self.library.chartviewsRepo:unpackResult(result)
 	end
 
-	self.cache:new()
+	self.pages = {}
+	self.pages_count = 0
 	self:emitChanged({type = "list_count_changed", count = self.itemsCount})
 end
 
 ---@private
----@param index integer
----@return rizu.library.LocatedChartview?
-function ListStore:_loadObject(index)
-	if not self.items or index < 1 or index > self.itemsCount then
-		return nil
-	end
-
-	local item = self.library.chartviewsRepo:structToTable(self.items[index - 1])
-
-	if self.library.is_sync or not self.library.worker then
-		local chartview = self.library.chartviewsRepo:getChartview(item)
-		if not chartview then
-			return nil
-		end
-		---@cast chartview rizu.library.LocatedChartview
-		chartview.lamp = item.lamp
-		self.library:enrichChartview(chartview)
-		table_util.copy(chartview, item)
-		return item
-	end
-
-	coroutine.wrap(function()
-		local params = self.library.chartviewsRepo.params
-		local generation = self.generation
-		local chartview = self.library:getChartviewAsync(params, item)
-		if generation ~= self.generation then
-			return
-		end
+---@param page rizu.select.stores.ListStore.Page
+---@param first integer
+---@param chartviews (rizu.library.Chartview|false)[]
+---@param keep_missing boolean
+function ListStore:fillPage(page, first, chartviews, keep_missing)
+	for i, chartview in ipairs(chartviews) do
+		local item = page.items[first + i - 1]
 		if chartview then
 			---@cast chartview rizu.library.LocatedChartview
 			chartview.lamp = item.lamp
+			chartview.loaded = true
 			self.library:enrichChartview(chartview)
 			table_util.copy(chartview, item)
-			self:emitChanged({type = "list_item_loaded", index = index, item = item})
+		elseif not keep_missing then
+			page.items[first + i - 1] = nil
 		end
+	end
+end
+
+---@private
+function ListStore:evictPage()
+	local oldest ---@type integer?
+	for index, page in pairs(self.pages) do
+		if not oldest or page.used < self.pages[oldest].used then
+			oldest = index
+		end
+	end
+	self.pages[oldest] = nil
+	self.pages_count = self.pages_count - 1
+end
+
+---@private
+---@param page_index integer Zero-based.
+---@return rizu.select.stores.ListStore.Page
+function ListStore:getPage(page_index)
+	self.clock = self.clock + 1
+	local page = self.pages[page_index]
+	if page then
+		page.used = self.clock
+		return page
+	end
+
+	local first = page_index * self.page_size + 1
+	local last = math.min(first + self.page_size - 1, self.itemsCount)
+	local repo = self.library.chartviewsRepo
+	---@type rizu.library.LocatedChartview[]
+	local requested = {}
+	page = {items = {}, used = self.clock}
+	for i = first, last do
+		local item = repo:structToTable(self.items[i - 1]) --[[@as rizu.library.LocatedChartview]]
+		item.loaded = false
+		page.items[i] = item
+		requested[#requested + 1] = item
+	end
+	self.pages[page_index] = page
+	self.pages_count = self.pages_count + 1
+	if self.pages_count > self.max_pages then
+		self:evictPage()
+	end
+
+	if self.library.is_sync or not self.library.worker then
+		self:fillPage(page, first, repo:getChartviews(requested), false)
+		return page
+	end
+
+	coroutine.wrap(function()
+		local generation = self.generation
+		local chartviews = self.library:getChartviewsAsync(repo.params, requested)
+		if generation ~= self.generation then
+			return
+		end
+		self:fillPage(page, first, chartviews, true)
+		self:emitChanged({type = "list_items_loaded", first = first, last = last})
 	end)()
 
-	return item
+	return page
 end
 
 ---@return integer
@@ -111,13 +158,22 @@ function ListStore:count()
 	return self.itemsCount
 end
 
+---Always a row inside the list. `loaded` is false until the worker returns its page.
 ---@param i integer
 ---@return rizu.library.LocatedChartview?
 function ListStore:get(i)
-	if i < 1 or i > self.itemsCount then
+	local count = self.itemsCount
+	if i < 1 or i > count then
 		return nil
 	end
-	return self.cache:get(i)
+	local size = self.page_size
+	local page_index = math.floor((i - 1) / size)
+	local page = self:getPage(page_index)
+	local before = math.floor((math.max(i - self.prefetch, 1) - 1) / size)
+	local after = math.floor((math.min(i + self.prefetch, count) - 1) / size)
+	if before ~= page_index then self:getPage(before) end
+	if after ~= page_index then self:getPage(after) end
+	return page.items[i]
 end
 
 ---@param chartview rizu.library.IChartviewBase

@@ -14,7 +14,6 @@ local Settings = require("rizu.config.Settings")
 local Loading = require("ui.screens.chart_loading.Loading")
 local Label = require("ui.views.Label")
 local Button = require("ui.views.Button")
-local thread = require("thread")
 
 ---@class ui.screens.song_select_v2.ChartBrowser.ChevronButton : gui.View
 ---@operator call: ui.screens.song_select_v2.ChartBrowser.ChevronButton
@@ -56,10 +55,9 @@ end
 ---@field no_results ui.views.Label
 ---@field clear_filters ui.views.Button
 ---@field download ui.views.Button
----@field chart_selector rizu.select.ChartSelector
+---@field charts rizu.api.Charts
 ---@field has_chartfiles boolean?
 ---@field has_chartfiles_checking boolean
----@field primary_items_loading boolean
 ---@field empty_state_dirty boolean
 ---@field refresh_notice gui.layout.FlowContainer
 local ChartBrowser = View + {}
@@ -69,14 +67,14 @@ local ChartBrowser = View + {}
 ---@param tooltip ui.views.Tooltip?
 ---@param localization ui.localization.Localization
 function ChartBrowser:buildList(settings, tooltip, localization)
-	local chart_selector = self.chart_selector
+	local charts = self.charts
 	local content = self.content
 	for _, view in ipairs(self.list_views or {}) do
 		content:remove(view)
 	end
 	self.chart_grid = nil
 	if settings:getBoolean(Settings.keys.select.carousel) then
-		self.list = content:add(ChartCarousel(chart_selector, settings, localization), "*")
+		self.list = content:add(ChartCarousel(charts, settings, localization), "*")
 		self.list_views = {self.list}
 	else
 		local difficulty_strip = content:add(TrackContainer({
@@ -84,30 +82,30 @@ function ChartBrowser:buildList(settings, tooltip, localization)
 			gap = 6,
 		}), 56)
 		local function moveDifficulty(offset)
-			chart_selector:scrollLevel(2, offset)
+			charts:moveChart(offset)
 			Sounds.play("chart_changed")
 			self.chart_grid:scrollToSelected()
 		end
 		difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_left, function()
 			moveDifficulty(-1)
 		end), 48)
-		self.chart_grid = difficulty_strip:add(ChartGrid(chart_selector, tooltip, localization), "*")
+		self.chart_grid = difficulty_strip:add(ChartGrid(charts, settings, tooltip, localization), "*")
 		difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_right, function()
 			moveDifficulty(1)
 		end), 48)
 
-		self.list = content:add(ChartSets(chart_selector, settings, function() end), "*")
+		self.list = content:add(ChartSets(charts, settings, function() end), "*")
 		self.list_views = {difficulty_strip, self.list}
 	end
 end
 
 ---@param ui ui.UserInterface
----@param chart_selector rizu.select.ChartSelector
+---@param charts rizu.api.Charts
 ---@param settings rizu.config.Config
 ---@param tooltip ui.views.Tooltip?
 ---@param localization ui.localization.Localization
 ---@param on_filters_cleared fun()
-function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, on_filters_cleared)
+function ChartBrowser:new(ui, charts, settings, tooltip, localization, on_filters_cleared)
 	View.new(self)
 
 	local content = self:add(TrackContainer({
@@ -117,7 +115,7 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 	content:anchorFill(0, 0, 0, 0)
 	self.chart_info = content:add(ChartInfo(), ChartInfo.HEIGHT)
 	self.content = content
-	self.chart_selector = chart_selector
+	self.charts = charts
 	self:buildList(settings, tooltip, localization)
 	settings:subscribeBoolean(Settings.keys.select.carousel, function()
 		self:buildList(settings, tooltip, localization)
@@ -125,7 +123,6 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 
 	self.has_chartfiles = nil
 	self.has_chartfiles_checking = false
-	self.primary_items_loading = false
 	self.empty_state_dirty = true
 	self.empty = self:add(Label({
 		font_name = "regular",
@@ -144,10 +141,10 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 	}))
 	self.no_results:setSize(500, 30):setAlignment(0.5, 0.5):addPosition(0, 30):setVisible(false)
 	self.clear_filters = self:add(Button("Clear search and filters", function()
-		chart_selector.searchModel:setSearchString("")
-		chart_selector.filterModel:clearFilters()
+		charts:setSearch("")
+		charts:clearFilters()
 		on_filters_cleared()
-		ui.game.collectionSelector:selectCollection(nil, nil)
+		charts:selectCollection(nil)
 	end, {variant = "primary", shape = "capsule", font_name = "medium", font_size = 18}))
 	self.clear_filters:setSize(260, 44):setAlignment(0.5, 0.5):addPosition(0, 78):setVisible(false)
 	self.download = self:add(Button("Download charts", function()
@@ -157,7 +154,7 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 
 	local refresh_button = Button(localization:get("song_select.refresh"), function()
 		self.refresh_notice:setVisible(false)
-		chart_selector:noDebounceRefresh()
+		charts:refresh()
 	end, {variant = "success", shape = "capsule", font_name = "medium", font_size = 16})
 	refresh_button:setSize(100, 34)
 	self.refresh_notice = self:add(FlowContainer({
@@ -177,7 +174,7 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 	self.refresh_notice:add(refresh_button)
 	self.refresh_notice:anchorFixed(0, 0, 0, 0):setAlignment(1, 1)
 	self.refresh_notice:fitContent():setVisible(false)
-	chart_selector.library.onChartsChanged:add(function()
+	charts:on("library_changed", function()
 		self.has_chartfiles = true
 		self.empty_state_dirty = true
 		self.refresh_notice:setVisible(true)
@@ -185,20 +182,17 @@ function ChartBrowser:new(ui, chart_selector, settings, tooltip, localization, o
 
 	self.loading = self:add(Loading())
 	self.loading:setAlignment(0.5, 0.5):addPosition(0, 60):setOpacity(0)
-	chart_selector:onChanged(function(event)
-		if event.type == "primary_items_loading" then
-			self.primary_items_loading = true
-			self.empty_state_dirty = true
-			self.list:fadeOut(0.1, "OutQuad")
-			if self.chart_grid then self.chart_grid:fadeOut(0.1, "OutQuad") end
-			self.loading:fadeIn(0.1, "OutQuad")
-		elseif event.type == "primary_items_updated" then
-			self.primary_items_loading = false
-			self.empty_state_dirty = true
-			self.list:fadeIn(0.1, "OutQuad")
-			if self.chart_grid then self.chart_grid:fadeIn(0.1, "OutQuad") end
-			self.loading:fadeOut(0.1, "OutQuad")
-		end
+	charts:on("sets_loading", function()
+		self.empty_state_dirty = true
+		self.list:fadeOut(0.1, "OutQuad")
+		if self.chart_grid then self.chart_grid:fadeOut(0.1, "OutQuad") end
+		self.loading:fadeIn(0.1, "OutQuad")
+	end)
+	charts:on("sets_changed", function()
+		self.empty_state_dirty = true
+		self.list:fadeIn(0.1, "OutQuad")
+		if self.chart_grid then self.chart_grid:fadeIn(0.1, "OutQuad") end
+		self.loading:fadeOut(0.1, "OutQuad")
 	end)
 end
 
@@ -206,15 +200,15 @@ function ChartBrowser:update()
 	if not self.empty_state_dirty then return end
 	self.empty_state_dirty = false
 
-	local has_items = self.chart_selector.stores[1]:count() > 0
-	local show_empty_state = not self.primary_items_loading and not has_items
+	local charts = self.charts
+	local show_empty_state = not charts:isLoading() and charts:getSetCount() == 0
 	if self.has_chartfiles == nil and show_empty_state and not self.has_chartfiles_checking then
 		self.has_chartfiles_checking = true
-		thread.coro(function()
-			self.has_chartfiles = self.chart_selector.library:hasChartfilesAsync()
+		charts:checkLibraryEmpty(function(empty)
+			self.has_chartfiles = not empty
 			self.has_chartfiles_checking = false
 			self.empty_state_dirty = true
-		end)()
+		end)
 	end
 
 	local has_chartfiles = self.has_chartfiles == true

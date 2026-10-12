@@ -79,7 +79,7 @@ function SongSelectV2:new(ui)
 
 	self.chartview_formatter = ChartviewFormatter(ui.game.chartSelector.chartview, ui.game.settings)
 	self.selected_song_panel = SelectedSongPanel(ui.game.backgroundModel, ui.game, ui.localization)
-	self.chart_browser = ChartBrowser(ui, ui.game.chartSelector, ui.game.settings, ui.tooltip, ui.localization, function()
+	self.chart_browser = ChartBrowser(ui, ui.api.charts, ui.game.settings, ui.tooltip, ui.localization, function()
 		self.library_toolbar.search:setText("")
 	end)
 
@@ -181,8 +181,6 @@ function SongSelectV2:enter()
 	self.ui.game.chartSelector:onChanged(self)
 	score_selector:onChanged(self)
 	self.ui.game.timeRateModel:onChanged(self)
-	self.ui.game.collectionSelector:onChanged(self)
-	self.ui.game.collectionSelector.store:onChanged(self)
 	-- Score loading may have started before this screen subscribed.
 	score_selector:pullScore()
 	self.score_list:reload()
@@ -196,8 +194,6 @@ function SongSelectV2:exit()
 	self.ui.game.chartSelector:offChanged(self)
 	self.ui.game.scoreSelector:offChanged(self)
 	self.ui.game.timeRateModel:offChanged(self)
-	self.ui.game.collectionSelector:offChanged(self)
-	self.ui.game.collectionSelector.store:offChanged(self)
 	Screen.exit(self)
 	self.root:fadeOut(0.2, "OutQuad")
 	return true
@@ -216,10 +212,6 @@ end
 
 ---@param event rizu.select.Event|{name: string, [integer]: any}
 function SongSelectV2:receive(event)
-	-- The tree may finish loading after this screen is entered.
-	if event.type == "collection_selection_changed" or event.type == "collection_tree_changed" then
-		self.library_toolbar:updateCollections()
-	end
 	if event.type == "chartview_changed" then
 		self:bindChartview(event.chartview)
 	end
@@ -252,17 +244,17 @@ end
 ---@param inputs gui.Inputs
 function SongSelectV2:onHandleInputs(inputs)
 	local game = self.ui.game
-	local chart_selector = game.chartSelector
+	local charts = self.ui.api.charts
 	if inputs:consumeActionJustPressed(UiActions.up) then
-		chart_selector:scrollLevel(1, -1)
+		charts:moveSet(-1)
 	elseif inputs:consumeActionJustPressed(UiActions.down) then
-		chart_selector:scrollLevel(1, 1)
+		charts:moveSet(1)
 	elseif inputs:consumeActionJustPressed(UiActions.left) then
-		chart_selector:scrollLevel(2, -1)
+		charts:moveChart(-1)
 	elseif inputs:consumeActionJustPressed(UiActions.right) then
-		chart_selector:scrollLevel(2, 1)
+		charts:moveChart(1)
 	elseif inputs:consumeActionJustPressed(UiActions.select_random) then
-		chart_selector:scrollRandom()
+		charts:selectRandomSet()
 	elseif inputs:consumeActionJustPressed(UiActions.open_modifiers) then
 		self.ui.modal_manager:attachModifiers()
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then
@@ -273,7 +265,7 @@ function SongSelectV2:onHandleInputs(inputs)
 		game.modifierSelectModel:change()
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
-	elseif chart_selector:chartExists() and inputs:consumeActionJustPressed(UiActions.accept) then
+	elseif charts:canPlaySelectedChart() and inputs:consumeActionJustPressed(UiActions.accept) then
 		self.ui:loadSelectedChart(false, false, true)
 	end
 end

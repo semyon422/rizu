@@ -94,7 +94,7 @@ function CollectionList:draw()
 	local first_index, last_index = self:getVisibleRowRange()
 	for index = first_index, last_index do
 		local option = self.options[index]
-		local node = option.value --[[@as rizu.library.Collections.TreeNode]]
+		local collection = option.value --[[@as rizu.api.Collection]]
 		local y = (index - 1) * self:getRowStep() - scroll
 		if index == self.selected_index then
 			Painter.setColorTable(Colors.surface_raised)
@@ -109,11 +109,11 @@ function CollectionList:draw()
 		love.graphics.print(option.label, TEXT_X, y + 7)
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.detail_font)
-		local kind_key = node.depth == 0 and "library" or (node.path == nil and "location" or "collection_kind")
+		local kind_key = collection.kind == "collection" and "collection_kind" or collection.kind
 		local kind = self.localization:get("song_select." .. kind_key)
 		love.graphics.print(self.localization:get("song_select.collection_chart_count", {
 			kind = kind,
-			count = node.count,
+			count = collection.count,
 		}), TEXT_X, y + 32)
 	end
 end

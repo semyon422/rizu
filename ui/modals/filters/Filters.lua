@@ -10,12 +10,10 @@ local Resources = require("ui.Resources")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local InputModeMultiSelect = require("ui.views.form.InputModeMultiSelect")
 
----@alias ui.modals.filters.Filters.Value "any"|"yes"|"no"
-
 ---@class ui.modals.filters.Filters : ui.ModalView
 ---@operator call: ui.modals.filters.Filters
----@field game sphere.GameController
----@field filter_model_observer util.Observer
+---@field charts rizu.api.Charts
+---@field unsubscribe fun()?
 ---@field form ui.views.form.Form
 ---@field played ui.views.form.SegmentedControl
 ---@field scratch ui.views.form.SegmentedControl
@@ -30,30 +28,13 @@ local CONTENT_X = 50
 local CONTENT_Y = 88
 local OPTIONS = {"any", "yes", "no"}
 
----@param value ui.modals.filters.Filters.Value
----@return string
----@param filter_model rizu.select.FilterModel
----@param group string
----@param positive string
----@param negative string
----@return ui.modals.filters.Filters.Value
-local function getValue(filter_model, group, positive, negative)
-	if filter_model:isActive(group, positive) then
-		return "yes"
-	elseif filter_model:isActive(group, negative) then
-		return "no"
-	end
-	return "any"
-end
-
----@param game sphere.GameController
+---@param charts rizu.api.Charts
 ---@param popup_container ui.views.PopupContainer
 ---@param localization ui.localization.Localization
-function Filters:new(game, popup_container, localization)
+function Filters:new(charts, popup_container, localization)
 	ModalView.new(self)
 		local function formatValue(value) return localization:get("song_select.filter_" .. value) end
-	self.game = game
-	self.filter_model_observer = nil
+	self.charts = charts
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
@@ -92,7 +73,7 @@ function Filters:new(game, popup_container, localization)
 		value = "any",
 		format = formatValue,
 		on_change = function(value)
-			self:setFilter("(not) played", "played", "not played", value)
+			charts:setYesNoFilter("played", value)
 		end,
 	}))
 	self.scratch = self.form:add(SegmentedControl({
@@ -101,81 +82,50 @@ function Filters:new(game, popup_container, localization)
 		value = "any",
 		format = formatValue,
 		on_change = function(value)
-			self:setFilter("scratch", "has scratch", "has not scratch", value)
+			charts:setYesNoFilter("scratch", value)
 		end,
 	}))
 	self.formats = self.form:add(FormatMultiSelect({
 		label = localization:get("song_select.format"),
 		on_change = function(values)
-			self:setValues("format", values)
+			charts:setFilterValues("format", values)
 		end,
 	}))
 	self.original_input_modes = self.form:add(InputModeMultiSelect({
 		label = localization:get("song_select.original_input_mode"),
 		popup_container = popup_container,
 		on_change = function(values)
-			self:setInputModes("original input mode", values)
+			charts:setFilterValues("original_input_mode", values)
 		end,
 	}))
 	self.actual_input_modes = self.form:add(InputModeMultiSelect({
 		label = localization:get("song_select.actual_input_mode"),
 		popup_container = popup_container,
 		on_change = function(values)
-			self:setInputModes("actual input mode", values)
+			charts:setFilterValues("actual_input_mode", values)
 		end,
 	}))
 	self.form:fitContent()
 end
 
----@param group string
----@param positive string
----@param negative string
----@param value ui.modals.filters.Filters.Value
-function Filters:setFilter(group, positive, negative, value)
-	local chart_selector = self.game.chartSelector
-	local filter_model = chart_selector.filterModel
-	filter_model:setFilter(group, positive, value == "yes")
-	filter_model:setFilter(group, negative, value == "no")
-	filter_model:commit()
-end
-
----@param group string
----@param values string[]
-function Filters:setInputModes(group, values)
-	self:setValues(group, values)
-end
-
----@param group string
----@param values string[]
-function Filters:setValues(group, values)
-	local chart_selector = self.game.chartSelector
-	chart_selector.filterModel:setValues(group, values)
-	chart_selector.filterModel:commit()
-end
-
 function Filters:sync()
-	local filter_model = self.game.chartSelector.filterModel
-	self.played:setValue(getValue(filter_model, "(not) played", "played", "not played"))
-	self.scratch:setValue(getValue(filter_model, "scratch", "has scratch", "has not scratch"))
-	self.formats:setValues(filter_model:getValues("format"))
-	self.original_input_modes:setValues(filter_model:getInputModes("original input mode"))
-	self.actual_input_modes:setValues(filter_model:getInputModes("actual input mode"))
-end
-
----@param event rizu.select.FilterModelEvent
-function Filters:receive(event)
-	if event.type == "filters_changed" then self:sync() end
+	local charts = self.charts
+	self.played:setValue(charts:getYesNoFilter("played"))
+	self.scratch:setValue(charts:getYesNoFilter("scratch"))
+	self.formats:setValues(charts:getFilterValues("format"))
+	self.original_input_modes:setValues(charts:getFilterValues("original_input_mode"))
+	self.actual_input_modes:setValues(charts:getFilterValues("actual_input_mode"))
 end
 
 function Filters:load()
 	ModalView.load(self)
-	self.filter_model_observer = self.game.chartSelector.filterModel:onChanged(self)
+	self.unsubscribe = self.charts:on("filters_changed", function() self:sync() end)
 end
 
 function Filters:unload()
-	if self.filter_model_observer then
-		self.game.chartSelector.filterModel:offChanged(self.filter_model_observer)
-		self.filter_model_observer = nil
+	if self.unsubscribe then
+		self.unsubscribe()
+		self.unsubscribe = nil
 	end
 	ModalView.unload(self)
 end

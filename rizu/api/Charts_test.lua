@@ -1,0 +1,139 @@
+local Charts = require("rizu.api.Charts")
+local ChartSelector = require("rizu.select.ChartSelector")
+local CollectionSelector = require("rizu.select.CollectionSelector")
+local TestLibraryFactory = require("rizu.select.TestLibraryFactory")
+local FunctionTimer = require("time.FunctionTimer")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
+
+local test = {}
+
+---Two sets: "A" with one chart in packs/one, "B" with two charts in packs/two.
+---@return rizu.api.Charts charts
+---@return rizu.select.ChartSelector selector
+---@return rizu.library.Library library
+local function createCharts()
+	local tlf = TestLibraryFactory()
+	local library = tlf:create()
+	tlf:populate(library, {
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "a", title = "A",
+			set_dir = "packs/one", inputmode = "4key"},
+		{chartfile_set_id = 2, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "b", title = "B",
+			set_dir = "packs/two", inputmode = "7key"},
+		{chartfile_set_id = 2, chartfile_id = 3, chartmeta_id = 3, chartdiff_id = 3, hash = "c", title = "B",
+			set_dir = "packs/two", inputmode = "7key"},
+	})
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setChoice(Settings.keys.select.primary_mode, "chartfile_sets")
+	local config_model = {configs = {select = {
+		searchMode = "title", selected_filters = {}, filterString = "", lampString = "",
+	}, filters = require("sphere.persistence.ConfigModel.filters")}}
+	local collection_selector = CollectionSelector(config_model, settings, library)
+	local selector = ChartSelector(config_model, settings, library, {}, collection_selector,
+		FunctionTimer(function() return 0 end))
+	return Charts(selector), selector, library
+end
+
+---@param t testing.T
+function test.lists_and_selection(t)
+	local charts, selector, library = createCharts()
+
+	local events = {}
+	for _, name in ipairs({"sets_loading", "sets_changed", "charts_changed"}) do
+		charts:on(name, function() table.insert(events, name) end)
+	end
+	local selected ---@type rizu.api.Chart?
+	local unsubscribe = charts:on("selection_changed", function(chart) selected = chart end)
+
+	selector.collectionSelector:load()
+	selector:load()
+	t:eq(events[1], "sets_loading")
+	t:eq(events[2], "sets_changed")
+	t:eq(events[#events], "charts_changed")
+	t:eq(charts:isLoading(), false)
+	t:eq(charts:getSetCount(), 2)
+	t:eq(charts:getSet(1).loaded, true)
+	t:eq(charts:getSet(1).title, "A")
+	t:eq(charts:getSet(3), nil)
+	t:eq(charts:getSelectedSetIndex(), 1)
+	t:eq(charts:getChartCount(), 1)
+
+	charts:moveSet(1)
+	t:eq(charts:getSelectedSetIndex(), 2)
+	t:eq(charts:getChartCount(), 2)
+	t:eq(selected, charts:getSelectedChart())
+	t:eq(selected.chartfile_id, 2)
+
+	charts:selectChart(2)
+	t:eq(charts:getSelectedChartIndex(), 2)
+	t:eq(selected.chartfile_id, 3)
+
+	unsubscribe()
+	charts:selectSet(1)
+	t:eq(selected.chartfile_id, 3)
+	t:eq(charts:getSelectedChart().chartfile_id, 1)
+
+	library:unload()
+end
+
+---@param t testing.T
+function test.filters(t)
+	local charts, selector, library = createCharts()
+	local changes = 0
+	charts:on("filters_changed", function() changes = changes + 1 end)
+	selector.collectionSelector:load()
+	selector:load()
+
+	t:eq(charts:getActiveFilterCount(), 0)
+	t:eq(charts:getYesNoFilter("played"), "any")
+	t:tdeq(charts:getFilterValues("original_input_mode"), {})
+
+	charts:setFilterValues("original_input_mode", {"7K"})
+	t:tdeq(charts:getFilterValues("original_input_mode"), {"7K"})
+	t:eq(charts:getActiveFilterCount(), 1)
+	t:eq(changes, 1)
+	t:eq(charts:getSetCount(), 1)
+	t:eq(charts:getSet(1).title, "B")
+
+	charts:setYesNoFilter("played", "no")
+	t:eq(charts:getYesNoFilter("played"), "no")
+	t:eq(charts:getActiveFilterCount(), 2)
+	charts:setYesNoFilter("played", "any")
+	t:eq(charts:getActiveFilterCount(), 1)
+
+	charts:clearFilters()
+	t:eq(charts:getActiveFilterCount(), 0)
+	t:eq(charts:getSetCount(), 2)
+
+	library:unload()
+end
+
+---@param t testing.T
+function test.collections(t)
+	local charts, selector, library = createCharts()
+	t:tdeq(charts:getCollections(), {})
+	t:eq(charts:getSelectedCollection(), nil)
+
+	local changes = 0
+	charts:on("collections_changed", function() changes = changes + 1 end)
+	selector.collectionSelector:load()
+	t:assert(changes > 0)
+
+	local collections = charts:getCollections()
+	local labels = {}
+	for i, collection in ipairs(collections) do
+		labels[i] = collection.kind .. " " .. collection.label .. " " .. collection.count
+	end
+	t:tdeq(labels, {"library / 2", "collection packs 2", "collection packs/one 1", "collection packs/two 1"})
+	t:eq(charts:getCollections(), collections)
+	t:eq(charts:getSelectedCollection(), collections[1])
+
+	charts:selectCollection(collections[4])
+	t:eq(charts:getSelectedCollection(), collections[4])
+	charts:selectCollection(nil)
+	t:eq(charts:getSelectedCollection(), collections[1])
+
+	library:unload()
+end
+
+return test

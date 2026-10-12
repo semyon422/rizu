@@ -17,6 +17,7 @@
 
 ---@class rizu.library.IChartviewBase: rizu.library.ChartviewIds
 ---@field lamp boolean?
+---@field loaded boolean? List rows only: false while the row holds nothing but its ids.
 
 ---@class rizu.library.LocatedChartfile: sea.ClientChartfile
 ---@field chartmeta_id integer?

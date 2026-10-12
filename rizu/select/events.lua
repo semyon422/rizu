@@ -52,10 +52,10 @@
 ---@field type "list_count_changed"
 ---@field count integer
 
----@class rizu.select.ListStoreItemLoadedEvent
----@field type "list_item_loaded"
----@field index integer
----@field item rizu.library.LocatedChartview
+---@class rizu.select.ListStoreItemsLoadedEvent
+---@field type "list_items_loaded"
+---@field first integer
+---@field last integer
 
 ---@class rizu.select.ScoreStoreItemsChangedEvent
 ---@field type "score_items_changed"
@@ -97,7 +97,7 @@
 
 ---@alias rizu.select.ListStoreEvent
 ---| rizu.select.ListStoreCountChangedEvent
----| rizu.select.ListStoreItemLoadedEvent
+---| rizu.select.ListStoreItemsLoadedEvent
 
 ---@alias rizu.select.ScoreStoreEvent
 ---| rizu.select.ScoreStoreItemsChangedEvent

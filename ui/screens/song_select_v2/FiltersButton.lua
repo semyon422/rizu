@@ -21,23 +21,7 @@ end
 
 ---@return string
 function FiltersButton:getValueLabel()
-	local filter_model = self.ui.game.chartSelector.filterModel
-	local active = 0
-	if filter_model:hasActiveFilters("(not) played") then
-		active = active + 1
-	end
-	if filter_model:hasActiveFilters("scratch") then
-		active = active + 1
-	end
-	if filter_model:hasActiveFilters("format") then
-		active = active + 1
-	end
-	if filter_model:hasActiveFilters("original input mode") then
-		active = active + 1
-	end
-	if filter_model:hasActiveFilters("actual input mode") then
-		active = active + 1
-	end
+	local active = self.ui.api.charts:getActiveFilterCount()
 	if active == 0 then
 		return self.ui.localization:get("song_select.filters_none")
 	end

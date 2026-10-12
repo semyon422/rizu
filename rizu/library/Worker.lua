@@ -103,12 +103,12 @@ function Worker:getViews(params, chartview)
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams
----@param _chartview rizu.library.IChartviewBase
----@return rizu.library.Chartview?
-function Worker:getChartview(params, _chartview)
+---@param chartviews rizu.library.IChartviewBase[]
+---@return (rizu.library.Chartview|false)[]
+function Worker:getChartviews(params, chartviews)
 	local repo = ChartviewsRepo(self.db.models)
 	repo.params = params
-	return repo:getChartview(_chartview)
+	return repo:getChartviews(chartviews)
 end
 
 ---@param chartdiff_key sea.ChartdiffKey
