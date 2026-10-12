@@ -503,6 +503,13 @@ local SpriteDefinitions = {
 		height = 1,
 		fills = fills({1, 1, 1, 1}),
 	},
+	-- The dot after the name of the selected score.
+	result_v2_score_marker = {
+		width = 10,
+		height = 10,
+		border_radius = 5,
+		fills = fills({1, 1, 1, 1}),
+	},
 	-- Song select v2 chart set rows: rounded caps around a flat body, a difficulty tint fading out
 	-- to the right, and an accent outline for the selected row.
 	song_set_cap_left = {

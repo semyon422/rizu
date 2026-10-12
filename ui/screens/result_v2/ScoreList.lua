@@ -9,8 +9,8 @@ local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local time_util = require("time_util")
 local AvatarShader = require("ui.views.AvatarShader")
 
--- Transparent version of the song select score list: no panel behind it, shorter rows,
--- no hover, selection, fade animations or clicks yet.
+-- Transparent score list of song select and the result screen: no panel behind it, short rows.
+-- Fade animations, clicks and the selected score marker are opt-in.
 ---@class ui.screens.result_v2.ScoreList : gui.VirtualizedList
 ---@operator call: ui.screens.result_v2.ScoreList
 local ScoreList = VirtualizedList + {}
@@ -27,6 +27,7 @@ local FADE_DURATION = 0.4
 local FADE_STAGGER = 0.02
 local HOVER_GRADIENT_ALPHA = 0.6
 local GRADIENT_ALPHA = 0.3
+local MARKER_GAP = 12
 
 ScoreList.ITEM_HEIGHT = ITEM_HEIGHT
 ScoreList.ROW_GAP = ROW_GAP
@@ -59,7 +60,8 @@ function ScoreList:new(scores, localization, online)
 	self.gap = ROW_GAP
 	self.batch = SpriteBatch(Resources.sprites.result_v2_score_cap)
 	self.avatar_shader = AvatarShader.new()
-	self.text_batch24 = love.graphics.newTextBatch(Resources.getFont("regular", 24))
+	self.font24 = Resources.getFont("regular", 24)
+	self.text_batch24 = love.graphics.newTextBatch(self.font24)
 	self.text_batch16 = love.graphics.newTextBatch(Resources.getFont("regular", 16))
 end
 
@@ -134,6 +136,7 @@ function ScoreList:reload()
 			mods = table.concat(mods_sb, " "),
 			color = getColorFromScore(v.score or 0),
 			avatar_url = is_local and local_avatar or v.user_avatar,
+			score = v,
 		})
 	end
 
@@ -168,7 +171,7 @@ function ScoreList:setEmptySpriteEnabled(enabled)
 	self.show_empty_sprite = enabled
 end
 
----Rows fade in one after another on reload, fade out while scores load and brighten under the mouse.
+---Rows fade in one after another on reload and fade out while scores load.
 ---@param animated boolean
 function ScoreList:setAnimated(animated)
 	self.animated = animated
@@ -180,7 +183,13 @@ function ScoreList:fadeOutItems()
 	end
 end
 
----Makes rows clickable.
+---Draws a small circle after the name of the selected score.
+---@param marked boolean
+function ScoreList:setSelectionMarked(marked)
+	self.selection_marked = marked
+end
+
+---Makes rows clickable; they brighten under the mouse.
 ---@param on_select fun(index: integer)?
 function ScoreList:setOnSelect(on_select)
 	self.on_select = on_select
@@ -210,7 +219,7 @@ function ScoreList:update(dt)
 
 	local last_hover = self.hover_index
 	self.hover_index = nil
-	if self.animated and self.mouse_over then
+	if (self.animated or self.on_select) and self.mouse_over then
 		local _, my = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
 		local row_step = ITEM_HEIGHT + ROW_GAP
 		local index = math.floor((my + self:getVisualScrollPosition()) / row_step) + 1
@@ -224,6 +233,7 @@ function ScoreList:update(dt)
 
 	self.batch:clear()
 	self.avatar_items = {}
+	self.selected_score = self.selection_marked and self.scores:getSelected() or nil
 	self.text_batch24:clear()
 	self.text_batch16:clear()
 
@@ -291,7 +301,17 @@ function ScoreList:drawItem(item, index, y)
 	local has_mods = item.mods ~= ""
 	setColor(Colors.text, p)
 	cs[2] = item.label
-	self.text_batch24:add(cs, TEXT_X, y + (has_mods and 8 or 18))
+	local label_y = y + (has_mods and 8 or 18)
+	self.text_batch24:add(cs, TEXT_X, label_y)
+	if item.score == self.selected_score then
+		local marker = Resources.sprites.result_v2_score_marker
+		self.batch:setColor(Colors.text[1], Colors.text[2], Colors.text[3], p)
+		self.batch:add(
+			marker,
+			TEXT_X + self.font24:getWidth(item.label) + MARKER_GAP,
+			label_y + (self.font24:getHeight() - marker:getHeight()) / 2
+		)
+	end
 
 	setColor(item.color, p)
 	cs[2] = item.accuracy

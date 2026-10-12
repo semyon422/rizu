@@ -41,6 +41,7 @@ local BUTTON_GAP = 12
 ---@operator call: ui.screens.result_v2.ResultV2
 ---@field ui ui.UserInterface
 ---@field unsubscribe fun()?
+---@field loading_score boolean?
 local ResultV2 = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -150,8 +151,30 @@ function ResultV2:createScores()
 	}))
 	self.score_list = scores:add(ScoreList(ui.api.scores, ui.localization, ui.api.online))
 	self.score_list:setSize(COLUMN_LEFT_WIDTH, ScoreList.getHeightForRows(SCORES_ROWS))
+	self.score_list:setOnSelect(function(index) self:openScore(index) end)
+	self.score_list:setSelectionMarked(true)
 	scores:fitContent()
 	scores:setAlignment(0, 1):addPosition(EDGE, -(FOOTER_BOTTOM + BUTTON_HEIGHT + SCORES_FOOTER_GAP))
+end
+
+---@private
+---@param index integer
+function ResultV2:openScore(index)
+	local scores = self.ui.api.scores
+	-- Two replays computing at once would leave whichever finishes last on screen.
+	if self.loading_score then
+		return
+	end
+	scores:select(index)
+	if not scores:getSelected() then
+		return
+	end
+	self.loading_score = true
+	scores:loadSelectedResult(function()
+		self.loading_score = false
+		-- A failed load leaves no score, which updateInfo shows as an empty result.
+		self:updateInfo()
+	end)
 end
 
 ---@private
