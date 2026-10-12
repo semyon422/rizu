@@ -1,5 +1,6 @@
 local Online = require("rizu.api.Online")
 local Play = require("rizu.api.Play")
+local Result = require("rizu.api.Result")
 local OnlineClient = require("rizu.online.OnlineClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local ReplayBase = require("sea.replays.ReplayBase")
@@ -113,6 +114,48 @@ function test.play_mods_and_judging(t)
 	t:eq(play:getTimingValue(), 9.7, "a system comes back with its last value")
 	play:setTimingSystem("etternaj")
 	t:eq(play:getTimingValue(), 7)
+end
+
+---@param t testing.T
+function test.result(t)
+	local judges = {
+		timings = {name = "etternaj", data = 4},
+		getKey = function() return "etterna" end,
+		getJudges = function() return {1, 0, 1} end,
+	}
+	local score_engine = {
+		scores = {},
+		sequence = {
+			{base = {currentTime = 1, lastMean = 0.01}, misc = {deltaTime = -0.02}, etterna = {last_judge = 1}},
+			{base = {currentTime = 2, isMiss = true}, misc = {}, etterna = {last_judge = 3}},
+		},
+	}
+	local game = {
+		rhythm_engine = {score_engine = score_engine, pause_counter = {count = 2}},
+		computeContext = {chartdiff = {judges_count = 3}, chartplay = {rate = 1.5, pause_count = 0}},
+		resultController = {},
+		replayBase = {rate = 1.2, modifiers = {{id = 1}}},
+	}
+	local result = Result(game --[[@as any]])
+
+	t:eq(result:hasScore(), false)
+	score_engine.judgesSource = judges
+	score_engine.accuracySource = {}
+	t:eq(result:hasScore(), true)
+
+	t:tdeq(result:getHits(), {
+		{time = 1, kind = "hit", delta = -0.02, judge = 1, accuracy = 0, mean = 0.01, normalscore = 0},
+		{time = 2, kind = "miss", delta = 0, judge = 3, accuracy = 0, mean = 0, normalscore = 0},
+	})
+	local early, late = result:getHitWindow()
+	t:assert(early < 0 and late > 0)
+	t:tdeq({result:getMaxCombo()}, {0, 3})
+
+	-- After a play the numbers are the player's own, for a replayed score they are the score's.
+	t:tdeq({result:getRate(), result:getPauseCount(), #result:getMutators()}, {1.2, 2, 1})
+	game.resultController.replay = {}
+	game.resultController.replay_base = {modifiers = {}}
+	t:tdeq({result:getRate(), result:getPauseCount(), #result:getMutators()}, {1.5, 0, 0})
 end
 
 return test

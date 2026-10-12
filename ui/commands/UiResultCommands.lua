@@ -1,37 +1,34 @@
-local thread = require("thread")
-
 ---@param ui ui.UserInterface
 ---@return rizu.command.Command[]
 return function(ui)
-	local game = ui.game
+	local result = ui.api.result
 
-	---@param mode "retry"|"replay"
-	local play = thread.coro(function(mode)
-		local loaded = game.resultController:replayNoteChartAsync(mode, game.scoreSelector.chartplay)
-		if loaded then
+	---@param ok boolean
+	local function play(ok)
+		if ok then
 			ui:setScreen(ui.gameplay)
 		end
-	end)
+	end
 
 	return {
 		{
 			id = "ui.result.retry",
 			title = "Result: Retry",
 			description = "Retries the result chart",
-			callback = function() play("retry") end,
+			callback = function() result:retry(play) end,
 		},
 		{
 			id = "ui.result.watch_replay",
 			title = "Result: Watch Replay",
 			description = "Watches the selected score replay",
-			callback = function() play("replay") end,
+			callback = function() result:watch(play) end,
 		},
 		{
 			id = "ui.result.back",
 			title = "Result: Back to Select",
 			description = "Returns to chart selection",
 			callback = function()
-				game.resultController:unload()
+				result:close()
 				ui:setScreen(ui.song_select, true)
 			end,
 		},

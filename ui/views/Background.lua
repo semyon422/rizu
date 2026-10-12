@@ -6,7 +6,7 @@ local lg = love.graphics
 
 ---@class ui.views.Background : gui.View
 ---@operator call: ui.views.Background
----@field model sphere.BackgroundModel
+---@field media rizu.api.Media
 ---@field parallax boolean
 ---@field parallax_x number
 ---@field parallax_y number
@@ -18,11 +18,11 @@ Background.parallax_scale = 1.02
 Background.parallax_strength = 10
 Background.parallax_smoothing = 5
 
----@param model sphere.BackgroundModel
+---@param media rizu.api.Media
 ---@param parallax boolean?
-function Background:new(model, parallax)
+function Background:new(media, parallax)
 	View.new(self)
-	self.model = model
+	self.media = media
 	self.parallax = parallax == true
 	self.parallax_x = 0
 	self.parallax_y = 0
@@ -65,10 +65,7 @@ function Background:update(dt)
 end
 
 function Background:draw()
-	local images = self.model.images
-	if not images then
-		return
-	end
+	local images, next_alpha = self.media:getBackgroundImages()
 
 	local parallax_scale = self.parallax and self.parallax_scale or 1
 	local offset_x = self.parallax and self.parallax_x or 0
@@ -77,7 +74,7 @@ function Background:draw()
 		local image = images[i]
 		local image_width, image_height = image:getDimensions()
 		local scale = math.max(self.width / image_width, self.height / image_height) * parallax_scale
-		local alpha = i == 1 and 1 or self.model.alpha
+		local alpha = i == 1 and 1 or next_alpha
 		local b = self.brighness_spring:get()
 		Painter.setColorRgb(b, b, b, alpha)
 		lg.draw(

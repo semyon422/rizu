@@ -23,7 +23,7 @@ function MusicPlayer:new(ui)
 	preview_model:setFFTSize(Spectrum.fft_size)
 
 	self.background = self.root:add(Background(ui.game.backgroundModel, preview_model, Spectrum.fft_size)):anchorFill(0, 0, 0, 0)
-	self.root:add(BgaPreview(preview_model)):anchorFill(0, 0, 0, 0)
+	self.root:add(BgaPreview(ui.api.media)):anchorFill(0, 0, 0, 0)
 	self.root:add(Rectangle({0.035, 0.025, 0.06, 0.62})):anchorFill(0, 0, 0, 0)
 	self.root:add(Spectrum(preview_model)):anchorFill(100, 210, 100, 270)
 

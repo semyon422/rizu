@@ -87,7 +87,8 @@ function UserInterface:new(game, mount_path)
 	self.actions = UiActions.createMap(self.config)
 	self.inputs:setActionMap(self.actions)
 	self.skin_editor = false
-	-- shortcut: without the game only song select runs (see load), move the rest behind ui.api to lift this
+	self.ui_result_commands = UiResultCommands(self)
+	-- shortcut: without the game only song select and the result run (see load), move the rest behind ui.api to lift this
 	if self.api.fake then return end
 	self.command_registry = Registry()
 	self.global_commands = GlobalCommands(game)
@@ -102,7 +103,6 @@ function UserInterface:new(game, mount_path)
 	self.result_commands = ResultCommands(game)
 	self.select_commands = SelectCommands(game)
 	self.ui_global_commands = UiGlobalCommands(game, self)
-	self.ui_result_commands = UiResultCommands(self)
 	self.ui_select_commands = UiSelectCommands(game, self)
 	self.mapperatorinator_config = MapperatorinatorConfig.create(LoveFilesystem())
 	self.mapperatorinator_config:load()
@@ -134,9 +134,10 @@ function UserInterface:load()
 	self.tooltip = Tooltip()
 	if self.api.fake then
 		self.song_select = SongSelect(self)
+		self.result = Result(self)
 		self.overlay = Overlay(self)
 		self.modal_manager = self.overlay.modal_manager
-		self.screen_manager:registerAll({self.song_select})
+		self.screen_manager:registerAll({self.song_select, self.result})
 		self.screen_manager:setOverlay(self.overlay)
 	else
 		self.main_menu = MainMenu(self)

@@ -62,10 +62,10 @@ function ResultMutators:getRowHeight()
 	return ICON_SIZE + VALUE_GAP + self.value_font:getHeight()
 end
 
----@param replay_base sea.ReplayBase?
-function ResultMutators:bind(replay_base)
+---@param mutators sea.Modifier[]
+function ResultMutators:bind(mutators)
 	self.items = {}
-	for _, modifier in ipairs(replay_base and replay_base.modifiers or {}) do
+	for _, modifier in ipairs(mutators) do
 		local name = modifier_names[modifier.id]
 		local sprite = Resources.sprites[icon_names[name or ""] or "mod_unknown"] --[[@as gui.Sprite]]
 

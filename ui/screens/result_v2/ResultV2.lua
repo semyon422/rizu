@@ -39,6 +39,8 @@ local BUTTON_GAP = 12
 
 ---@class ui.screens.result_v2.ResultV2 : gui.Screen
 ---@operator call: ui.screens.result_v2.ResultV2
+---@field ui ui.UserInterface
+---@field unsubscribe fun()?
 local ResultV2 = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -47,21 +49,21 @@ function ResultV2:new(ui)
 	self.ui = ui
 
 	self.chartview_formatter = ChartviewFormatter(
-		ui.game.chartSelector.chartview,
-		ui.game.settings
+		ui.api.charts:getSelectedChart(),
+		ui.api.settings
 	)
 
 	self.chartdiff_formatter = ChartdiffFormatter(
-		ui.game.computeContext.chartdiff,
-		ui.game.settings
+		ui.api.result:getChartdiff(),
+		ui.api.settings
 	)
 
 	self.composite = self.root:add(CompositeView()):anchorFill(0, 0, 0, 0)
 
 	-- Sharp fullscreen chart art; legibility comes from the scrims below, not from dimming it.
-	self.background = self.composite:add(Background(ui.game.backgroundModel, true))
+	self.background = self.composite:add(Background(ui.api.media, true))
 	self.background:anchorFill(0, 0, 0, 0)
-	self.bga_preview = self.composite:add(BgaPreview(ui.game.previewModel)):anchorFill(0, 0, 0, 0)
+	self.bga_preview = self.composite:add(BgaPreview(ui.api.media)):anchorFill(0, 0, 0, 0)
 
 	self.composite:add(Image(Resources.sprites.result_v2_scrim_horizontal, "fit")):anchorFill(0, 0, 0, 0)
 	self.composite:add(Image(Resources.sprites.result_v2_scrim_vertical, "fit")):anchorFill(0, 0, 0, 0)
@@ -210,25 +212,22 @@ function ResultV2:onHandleInputs(inputs)
 end
 
 function ResultV2:updateInfo()
-	local chartview = self.ui.game.chartSelector.chartview
+	local chartview = self.ui.api.charts:getSelectedChart()
 
 	if not chartview then
 		self.ui:setScreen(self.ui.main_menu)
 		return
 	end
 
-	local game = self.ui.game
-	local result_controller = game.resultController
-	local is_replay_result = result_controller.replay ~= nil
-	local result_chartplay = is_replay_result and game.computeContext.chartplay
-	local result_rate = result_chartplay and result_chartplay.rate or game.replayBase.rate
+	local result = self.ui.api.result
+	local chartdiff = result:getChartdiff()
 
 	self.chartview_formatter:setChartview(chartview)
-	self.chartview_formatter:setTimeRate(result_rate)
-	self.chartdiff_formatter:setChartdiff(game.computeContext.chartdiff)
+	self.chartview_formatter:setTimeRate(result:getRate())
+	self.chartdiff_formatter:setChartdiff(chartdiff)
 	self.difficulty:bind(self.chartview_formatter, self.chartdiff_formatter)
 	self.status:bind(self.chartview_formatter)
-	self.mutators:bind(is_replay_result and result_controller.replay_base or game.replayBase)
+	self.mutators:bind(result:getMutators())
 	local ln = self.chartview_formatter:getLongNoteRatio()
 	self.facts:setValues({
 		{value = (self.chartview_formatter:getMode())},
@@ -244,33 +243,27 @@ function ResultV2:updateInfo()
 	self.artist:setText(chartview.artist)
 	self.chart_name:setText(self.chartview_formatter:getName() or "")
 
-	local score_engine = self.ui.game.rhythm_engine.score_engine
-	local judge_source = score_engine.judgesSource
-	local accuracy_source = score_engine.accuracySource
-	if not judge_source or not accuracy_source then
-		self.left:setVisible(false)
-		self.hit_graph:setVisible(false)
+	local has_score = result:hasScore()
+	self.left:setVisible(has_score)
+	self.hit_graph:setVisible(has_score)
+	if not has_score then
 		return
 	end
-	self.left:setVisible(true)
-	self.hit_graph:setVisible(true)
-	self.hit_graph:bind(score_engine)
-	-- The selected judge system is created from the resolved timings, so it is authoritative.
-	local score_system = judge_source --[[@as rizu.ScoreSystem]]
-	assert(score_system.timings)
-	local score_system_formatter = ScoreSystemFormatter(score_system)
-	self.accuracy:bind(accuracy_source, score_system_formatter)
-	self.judges:bind(judge_source, score_system_formatter)
+	self.hit_graph:bind(result)
+	-- The judging system is created from the resolved timings, so it is authoritative.
+	local judging = result:getJudging()
+	assert(judging.timings)
+	local score_system_formatter = ScoreSystemFormatter(judging --[[@as rizu.ScoreSystem]])
+	local accuracy, accuracy_text = result:getAccuracy()
+	self.accuracy:bind(accuracy, accuracy_text, score_system_formatter)
+	self.judges:bind(result:getJudgeCounts(), score_system_formatter)
 
-	-- Combo counts a long note twice, so the total is the judgeable count, not the note count.
-	-- TODO: IComboSource:getMaxPossibleCombo() should provide this, so score systems can report their own total.
-	local combo_source = score_engine.comboSource
-	local normalscore = score_engine.scores.normalscore
-	local pauses = result_chartplay and result_chartplay.pause_count or game.rhythm_engine.pause_counter.count
+	local max_combo, possible_combo = result:getMaxCombo()
+	local pauses = result:getPauseCount()
 	-- TODO: the miss counts need a pass over all score system events.
 	self.run_cells:setValues({
-		{value = tostring(combo_source and combo_source:getMaxCombo() or 0), suffix = " / " .. tostring(game.computeContext.chartdiff.judges_count)},
-		{value = normalscore and normalscore:getAccuracyString() or "-"},
+		{value = tostring(max_combo), suffix = " / " .. tostring(possible_combo)},
+		{value = result:getNormalscoreText() or "-"},
 		{value = tostring(pauses), color = pauses > 0 and Colors.danger or nil},
 		{value = "0"},
 		{value = "0"},
@@ -280,34 +273,38 @@ function ResultV2:updateInfo()
 end
 
 function ResultV2:enter()
+	local api = self.ui.api
 	-- Gameplay stops previews; resume the selected Chart's synchronized audio and BGA.
-	self.ui.game.selectionCoordinator:activatePreview()
+	api.charts:announceSelection()
 
-	self.ui.command_registry:pushContext("result_commands", self.ui.result_commands)
-	self.ui.command_registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
-	local score_selector = self.ui.game.scoreSelector
-	score_selector:onChanged(self)
+	-- Missing without the game.
+	local registry = self.ui.command_registry
+	if registry then
+		registry:pushContext("result_commands", self.ui.result_commands)
+		registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
+	end
+	self.unsubscribe = api.scores:on("scores_changed", function(loading)
+		-- Rows are replaced once loading finishes; the transient clear while loading is ignored.
+		if not loading then
+			self.score_list:reload()
+		end
+	end)
 	self:updateInfo()
 	self.score_list:reload()
-	-- Saving a score doesn't emit anything, so the selector still holds the list from before the play.
-	-- Pulling again reloads it, and the resulting event refreshes the rows.
-	score_selector:pullScore()
+	-- Saving a score doesn't emit anything, so the list is still the one from before the play.
+	-- Loading it again emits the event that refreshes the rows.
+	api.scores:refresh()
 	self.composite:fadeIn(0.6, "OutQuint")
 end
 
----@param event rizu.select.Event|{name: string, [integer]: any}
-function ResultV2:receive(event)
-	-- Rows are replaced once loading finishes; the transient clear while loading is ignored.
-	if event.type == "score_items_changed" and not event.loading then
-		self.score_list:reload()
-	end
-end
-
 function ResultV2:exit()
-	self.ui.game.scoreSelector:offChanged(self)
+	self.unsubscribe()
 	self.ui.tooltip:setText(nil)
-	self.ui.command_registry:popContext("result_commands")
-	self.ui.command_registry:popContext("ui_result_commands")
+	local registry = self.ui.command_registry
+	if registry then
+		registry:popContext("result_commands")
+		registry:popContext("ui_result_commands")
+	end
 	Screen.exit(self)
 	self.composite:fadeOut(0.3, "OutQuint")
 end

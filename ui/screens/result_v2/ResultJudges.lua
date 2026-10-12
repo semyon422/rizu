@@ -19,11 +19,11 @@ function ResultJudges:new()
 	self:fitContent()
 end
 
----@param judges_source rizu.IJudgesSource
+---@param counts integer[]
 ---@param ssf ui.formatters.ScoreSystemFormatter
-function ResultJudges:bind(judges_source, ssf)
+function ResultJudges:bind(counts, ssf)
 	local items = {} ---@type ui.screens.result_v2.JudgeCounts.Item[]
-	for index, count in ipairs(judges_source:getJudges()) do
+	for index, count in ipairs(counts) do
 		items[index] = {
 			name = ssf:getJudgeName(index),
 			count = count,

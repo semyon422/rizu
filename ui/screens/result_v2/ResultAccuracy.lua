@@ -57,14 +57,15 @@ function ResultAccuracy:new()
 	self:fitContent()
 end
 
----@param accuracy_source rizu.IAccuracySource
+---@param accuracy number 0..1
+---@param text string
 ---@param ssf ui.formatters.ScoreSystemFormatter
-function ResultAccuracy:bind(accuracy_source, ssf)
-	local grade = ssf:getGrade(accuracy_source:getAccuracy())
+function ResultAccuracy:bind(accuracy, text, ssf)
+	local grade = ssf:getGrade(accuracy)
 	local color = ssf:getGradeColor(grade)
 
 	-- The percent sign is a separate, smaller label.
-	self.accuracy:setText((accuracy_source:getAccuracyString():gsub("%%$", "")))
+	self.accuracy:setText((text:gsub("%%$", "")))
 	self.grade:setText(grade)
 	self.score_system:setText(ssf:getName())
 	self.accuracy.color = color

@@ -48,7 +48,7 @@ end
 function FakeScores:select(index) self.selected = self.items[index] or self.selected end
 function FakeScores:getSelected() return self.selected end
 
----There is no game to replay the score, so it always fails.
-function FakeScores:loadSelectedResult(f) f(false) end
+---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.
+function FakeScores:loadSelectedResult(f) f(self.selected ~= nil) end
 
 return FakeScores
