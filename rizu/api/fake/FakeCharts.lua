@@ -169,6 +169,7 @@ end
 
 function FakeCharts:moveChart(offset) self:selectChart(self.chart_index + offset) end
 function FakeCharts:getSelectedChart() return self:getChart(self.chart_index) end
+function FakeCharts:announceSelection() self:emit("selection_changed", self:getSelectedChart()) end
 function FakeCharts:canPlaySelectedChart() return self:getSelectedChart() ~= nil end
 
 function FakeCharts:isLoading() return false end

@@ -199,7 +199,8 @@ function SongSelectV2:enter()
 	self.score_list:reload()
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
-	self:bindChartview(api.charts:getSelectedChart())
+	-- Binds the selected chart, and restarts the previews that gameplay stopped.
+	api.charts:announceSelection()
 	self.root:fadeIn(0.3, "OutCubic")
 end
 

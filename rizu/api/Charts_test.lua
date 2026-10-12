@@ -68,6 +68,10 @@ function test.lists_and_selection(t)
 	t:eq(charts:getSelectedChartIndex(), 2)
 	t:eq(selected.chartfile_id, 3)
 
+	selected = nil
+	charts:announceSelection()
+	t:eq(selected, charts:getSelectedChart())
+
 	unsubscribe()
 	charts:selectSet(1)
 	t:eq(selected.chartfile_id, 3)
