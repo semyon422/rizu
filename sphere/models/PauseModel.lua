@@ -110,6 +110,7 @@ end
 function PauseModel:retry()
 	self.needRetry = true
 	self.state = "play"
+	love.mouse.setVisible(false)
 end
 
 return PauseModel
