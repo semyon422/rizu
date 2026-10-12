@@ -55,6 +55,9 @@ end
 ---@param progress number 0 is the start of the audio, 1 its end.
 function Media:seekPreview(progress) self.preview:setRelativePosition(progress) end
 
+---Pauses the audio preview, or resumes it.
+function Media:togglePreview() self.preview:togglePause() end
+
 -- Moving previews. Both follow the audio preview.
 
 ---Draws the chart's notes scrolling on the current note skin, into a width x height area at the origin.

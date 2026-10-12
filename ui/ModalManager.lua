@@ -47,64 +47,78 @@ function ModalManager:new(ui, popup_container)
 	self.keyboard_input_fallback = true
 	self.ui = ui
 
-	local needle_tools = NeedleToolRegistry(ui.command_registry)
-	self.palette = CommandPalette(PaletteState(ui.command_registry), function()
-		self:modalClosed(self.palette)
-	end, ui.game.needleModel, needle_tools)
 	self.active_view = nil
+	local localization = ui.localization
+	-- shortcut: without the game only the modals that use ui.api alone are built,
+	-- move the rest behind ui.api to lift this. Attaching a missing modal does nothing.
+	local game = not ui.api.fake and ui.game
+
+	if game then
+		local needle_tools = NeedleToolRegistry(ui.command_registry)
+		self.palette = CommandPalette(PaletteState(ui.command_registry), function()
+			self:modalClosed(self.palette)
+		end, game.needleModel, needle_tools)
+	end
 
 	self.bg = self:add(OverlayBackground(function()
 		self:hideModal()
 	end))
-	self.config = self:addModal(Config(ui.config, ui.game.settings, popup_container,
-		function() self:hideModal(self.config) end,
-		ui.localization,
-		function()
-			ui.config:save()
-			ui.game.user_interface_manager:requestReload()
-		end,
-		ui.game.app.audioModel,
-		ui.game.user_interface_manager,
-		function()
-			ui.game.chartSelector:noDebounceRefresh()
-		end))
-	self.external_link = self:addModal(ExternalLink(ui.localization, function()
+	if game then
+		self.config = self:addModal(Config(ui.config, game.settings, popup_container,
+			function() self:hideModal(self.config) end,
+			localization,
+			function()
+				ui.config:save()
+				game.user_interface_manager:requestReload()
+			end,
+			game.app.audioModel,
+			game.user_interface_manager,
+			function()
+				game.chartSelector:noDebounceRefresh()
+			end))
+	end
+	self.external_link = self:addModal(ExternalLink(localization, function()
 		self:hideModal(self.external_link)
 	end))
-	self.mapperatorinator = self:addModal(Mapperatorinator(
-		ui.mapperatorinator_workflow,
-		ui.mapperatorinator_config,
-		function() self:detachMapperatorinator() end,
-		popup_container
-	))
-	local localization = ui.localization
-	self.input = self:addModal(Input(ui.game, function() self:hideModal(self.input) end, localization))
-	ui.game.chartSelector:onChanged(self.input)
 	local function modifiers_changed()
 		-- TODO: This callback chain stinks. The game core should emit modifier-change events.
 		ui.song_select:updateModifiers()
 	end
-	self.modifiers = self:addModal(Modifiers(ui.game, modifiers_changed,
+	if game then
+		self.mapperatorinator = self:addModal(Mapperatorinator(
+			ui.mapperatorinator_workflow,
+			ui.mapperatorinator_config,
+			function() self:detachMapperatorinator() end,
+			popup_container
+		))
+		self.input = self:addModal(Input(game, function() self:hideModal(self.input) end, localization))
+		game.chartSelector:onChanged(self.input)
+	end
+	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization))
-	self.note_skins = self:addModal(NoteSkins(ui.game,
-		function() self:hideModal(self.note_skins) end, localization, function()
-			self:hideModal(self.note_skins)
-			ui:loadSelectedChart(true, true, true)
-		end))
-	self.chart_mutators = self:addModal(ChartMutators(ui.game, modifiers_changed, localization))
+	if game then
+		self.note_skins = self:addModal(NoteSkins(game,
+			function() self:hideModal(self.note_skins) end, localization, function()
+				self:hideModal(self.note_skins)
+				ui:loadSelectedChart(true, true, true)
+			end))
+		self.chart_mutators = self:addModal(ChartMutators(game, modifiers_changed, localization))
+	end
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)
 	end, localization))
 	self.filters = self:addModal(Filters(ui.api.charts, popup_container, localization))
-	self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
-	self.create_room = self:addModal(CreateRoom(ui))
-	self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
-	if ui.game.aiChatModel then
-		self.ai_chat = self:addModal(AiChat(ui.game.aiChatModel, function()
-			self:hideModal(self.ai_chat)
-		end))
+	if game then
+		self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
+		self.create_room = self:addModal(CreateRoom(ui))
+		self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
+		if game.aiChatModel then
+			self.ai_chat = self:addModal(AiChat(game.aiChatModel, function()
+				self:hideModal(self.ai_chat)
+			end))
+		end
+		self:addModal(self.palette)
 	end
-	self:addModal(self.palette)
 end
 
 ---@generic T: ui.ModalView
@@ -114,10 +128,10 @@ function ModalManager:addModal(view)
 	return self:add(view)
 end
 
----@param view ui.ModalView
+---@param view ui.ModalView? nil for a modal that is not built without the game
 ---@return boolean shown
 function ModalManager:showModal(view)
-	if self.active_view == view then
+	if not view or self.active_view == view then
 		return false
 	end
 	if self.active_view then
@@ -180,7 +194,7 @@ end
 
 ---@return boolean attached
 function ModalManager:attachPalette()
-	if self.active_view == self.palette then
+	if not self.palette or self.active_view == self.palette then
 		return false
 	end
 	self.palette:reset()

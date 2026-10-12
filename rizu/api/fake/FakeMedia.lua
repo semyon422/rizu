@@ -10,6 +10,7 @@ function FakeMedia:new()
 	self.images = {}
 	self.time = 0
 	self.duration = 0
+	self.paused = false
 end
 
 ---The fake game calls this when another chart is selected.
@@ -33,7 +34,7 @@ end
 
 ---@param dt number
 function FakeMedia:update(dt)
-	if self.duration > 0 then
+	if self.duration > 0 and not self.paused then
 		self.time = (self.time + dt) % self.duration
 	end
 end
@@ -41,6 +42,7 @@ end
 function FakeMedia:getBackgroundImages() return self.images, 0 end
 function FakeMedia:getPreviewTime() return self.time, 0, self.duration end
 function FakeMedia:seekPreview(progress) self.time = progress * self.duration end
+function FakeMedia:togglePreview() self.paused = not self.paused end
 function FakeMedia:drawNotesPreview(width, height) end
 function FakeMedia:getBackgroundAnimation() return nil, self.time end
 

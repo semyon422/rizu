@@ -134,11 +134,10 @@ function UserInterface:load()
 	self.tooltip = Tooltip()
 	if self.api.fake then
 		self.song_select = SongSelect(self)
+		self.overlay = Overlay(self)
+		self.modal_manager = self.overlay.modal_manager
 		self.screen_manager:registerAll({self.song_select})
-		-- No modal exists without the game: every attach call answers "not attached".
-		self.modal_manager = setmetatable({}, {__index = function()
-			return function() return false end
-		end})
+		self.screen_manager:setOverlay(self.overlay)
 	else
 		self.main_menu = MainMenu(self)
 		self.song_select = SongSelect(self)

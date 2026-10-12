@@ -184,6 +184,7 @@ function SongSelectV2:enter()
 				self.score_list:reload()
 			end
 		end),
+		api.play:on("mods_changed", updateFooter),
 		api.play:on("rate_changed", function()
 			local chart = api.charts:getSelectedChart()
 			if chart and chart.hash then

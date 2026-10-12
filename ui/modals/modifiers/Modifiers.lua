@@ -8,21 +8,16 @@ local ModalHeader = require("ui.views.ModalHeader")
 local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
-local Settings = require("rizu.config.Settings")
 local Resources = require("ui.Resources")
 local Slider = require("ui.views.form.Slider")
-local Subtimings = require("sea.chart.Subtimings")
-local Timings = require("sea.chart.Timings")
-local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
----@field game sphere.GameController
+---@field play rizu.api.Play
 ---@field form ui.views.form.Form
 ---@field form_selection ui.views.form.FormSelection
 ---@field background gui.NineSliceUsage
 ---@field private form_invalidated boolean
----@field private on_change fun()?
 local Modifiers = ModalView + {}
 
 local MODAL_WIDTH = 700
@@ -31,7 +26,6 @@ local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 112
 
-local TIMING_SYSTEMS = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"}
 local TIMING_SYSTEM_LABELS = {
 	sphere = "Rizu",
 	osuod = "osu!mania",
@@ -75,15 +69,13 @@ local function formatOsuScoreVersion(value)
 	return "V" .. value
 end
 
----@param game sphere.GameController
----@param on_change fun()?
+---@param play rizu.api.Play
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
-function Modifiers:new(game, on_change, on_close, localization)
+function Modifiers:new(play, on_close, localization)
 	ModalView.new(self)
 	self.localization = localization
-	self.game = game
-	self.on_change = on_change
+	self.play = play
 	self.form_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -118,52 +110,6 @@ function Modifiers:new(game, on_change, on_close, localization)
 	self:rebuildForm()
 end
 
-function Modifiers:changed()
-	self.game.modifierSelectModel:change()
-	if self.on_change then
-		self.on_change()
-	end
-end
-
----@param name string
----@param data number?
----@param score_version number?
-function Modifiers:setTimings(name, data, score_version)
-	local game = self.game
-	local timing_key = Settings.keys.timings[name]
-	data = data or (timing_key and game.settings:getNumber(timing_key)) or 0
-	if name == "osuod" then
-		-- Slider arithmetic can leave values such as 9.7 just below the exact
-		-- tenth required by Timings validation.
-		data = math.floor(data * 10 + 0.5) / 10
-	end
-	local timings = Timings(name, data)
-	local subtimings ---@type sea.Subtimings?
-
-	if timing_key then
-		game.settings:setNumber(timing_key, data)
-	end
-	if name == "osuod" then
-		score_version = score_version or game.settings:getNumber(Settings.keys.timings.osu_score_version)
-		game.settings:setNumber(Settings.keys.timings.osu_score_version, score_version)
-		subtimings = Subtimings("scorev", score_version)
-	end
-
-	game.replayBase.timings = timings
-	game.replayBase.subtimings = subtimings
-	game.replayBase.timing_values = assert(TimingValuesFactory:get(timings, subtimings))
-	self:changed()
-end
-
----@return string
-function Modifiers:getTimingSystem()
-	local timings = self.game.replayBase.timings
-	if timings and TIMING_SYSTEM_LABELS[timings.name] then
-		return timings.name
-	end
-	return "sphere"
-end
-
 function Modifiers:invalidateForm()
 	self.form_invalidated = true
 end
@@ -175,32 +121,29 @@ function Modifiers:rebuildForm()
 	self.form:clearSelection()
 	self.form:clearRows()
 
-	local game = self.game
-	local replay_base = game.replayBase
-	local time_rate_model = game.timeRateModel
-	local rate_type = replay_base.rate_type
-	local range = assert(time_rate_model.range[rate_type], "unknown time rate type")
+	local play = self.play
+	local rate_type = play:getRateType()
+	local rate, rate_min, rate_max, rate_step = play:getRateValue()
 
 	self.form:add(SegmentedControl({
 		label = self.localization:get("song_select.time_rate_type"),
-		options = time_rate_model.types,
+		options = play:getRateTypes(),
 		value = rate_type,
 		width = FORM_WIDTH,
 		format = function(value)
 			return value == "exp" and "Exp" or "Linear"
 		end,
 		on_change = function(value)
-			time_rate_model:setType(value)
-			self:changed()
+			play:setRateType(value)
 			self:invalidateForm()
 		end,
 	}))
 	self.form:add(Slider({
 		label = self.localization:get("song_select.time_rate"),
-		value = time_rate_model:get(),
-		min = range[1],
-		max = range[2],
-		step = range[3],
+		value = rate,
+		min = rate_min,
+		max = rate_max,
+		step = rate_step,
 		width = FORM_WIDTH,
 		value_format = function(value)
 			if rate_type == "linear" then
@@ -209,37 +152,29 @@ function Modifiers:rebuildForm()
 			return ("%+.0f"):format(value)
 		end,
 		on_change = function(value)
-			time_rate_model:set(value)
-			self:changed()
+			play:setRateValue(value)
 		end,
 	}))
 	self.form:add(Checkbox({
 		text = self.localization:get("song_select.constant_scroll_speed"),
-		checked = replay_base.const,
+		checked = play:getToggle("constant_scroll"),
 		on_change = function(value)
-			replay_base.const = value
-			self:changed()
+			play:setToggle("constant_scroll", value)
 		end,
 	}))
 	self.form:add(Checkbox({
 		text = self.localization:get("song_select.no_long_notes"),
-		checked = replay_base.tap_only,
+		checked = play:getToggle("taps_only"),
 		on_change = function(value)
-			replay_base.tap_only = value
-			self:changed()
+			play:setToggle("taps_only", value)
 		end,
 	}))
-	local auto_timings = game.settings:getBoolean(Settings.keys.replay_base.auto_timings)
+	local auto_timings = play:getToggle("auto_timings")
 	self.form:add(Checkbox({
 		text = self.localization:get("song_select.auto_timings"),
 		checked = auto_timings,
 		on_change = function(value)
-			game.settings:setBoolean(Settings.keys.replay_base.auto_timings, value)
-			if not value then
-				self:setTimings(self:getTimingSystem())
-			else
-				self:changed()
-			end
+			play:setToggle("auto_timings", value)
 			self:invalidateForm()
 		end,
 	}))
@@ -247,71 +182,66 @@ function Modifiers:rebuildForm()
 	if not auto_timings then
 		self.form:add(Checkbox({
 			text = self.localization:get("song_select.nearest_input"),
-			checked = replay_base.nearest,
+			checked = play:getToggle("nearest_input"),
 			on_change = function(value)
-				replay_base.nearest = value
-				self:changed()
+				play:setToggle("nearest_input", value)
 			end,
 		}))
 
-		local timing_system = self:getTimingSystem()
+		local timing_system = play:getTimingSystem()
 		self.form:add(SegmentedControl({
 			label = self.localization:get("song_select.score_system"),
-			options = TIMING_SYSTEMS,
+			options = play:getTimingSystems(),
 			value = timing_system,
 			format = function(value)
 				return TIMING_SYSTEM_LABELS[value]
 			end,
 			on_change = function(value)
-				self:setTimings(value)
+				play:setTimingSystem(value)
 				self:invalidateForm()
 			end,
 		}))
 
-		local timings = replay_base.timings or Timings(timing_system,
-			game.settings:getNumber(assert(Settings.keys.timings[timing_system])))
 		if timing_system == "osuod" then
 			self.form:add(SegmentedControl({
 				label = self.localization:get("song_select.osu_score_version"),
 				options = OSU_SCORE_VERSIONS,
-				value = replay_base.subtimings and replay_base.subtimings.data
-					or game.settings:getNumber(Settings.keys.timings.osu_score_version),
+				value = play:getOsuScoreVersion(),
 				format = formatOsuScoreVersion,
 				on_change = function(value)
-					self:setTimings("osuod", timings.data, value)
+					play:setOsuScoreVersion(value)
 				end,
 			}))
 			self.form:add(Slider({
 				label = self.localization:get("song_select.overall_difficulty"),
-				value = timings.data,
+				value = play:getTimingValue(),
 				min = 0,
 				max = 10,
 				step = 0.1,
 				width = FORM_WIDTH,
 				value_format = formatOsuOd,
 				on_change = function(value)
-					self:setTimings("osuod", value,
-						replay_base.subtimings and replay_base.subtimings.data or nil)
+					play:setTimingValue(value)
 				end,
 			}))
 		elseif timing_system == "etternaj" then
 			self.form:add(SegmentedControl({
 				label = self.localization:get("song_select.etterna_judge"),
 				options = ETTERNA_JUDGES,
-				value = timings.data,
+				value = play:getTimingValue(),
 				format = formatEtternaJudge,
 				on_change = function(value)
-					self:setTimings("etternaj", value)
+					play:setTimingValue(value)
 				end,
 			}))
 		elseif timing_system == "bmsrank" then
 			self.form:add(SegmentedControl({
 				label = self.localization:get("song_select.bms_rank"),
 				options = BMS_RANKS,
-				value = timings.data,
+				value = play:getTimingValue(),
 				format = formatBmsRank,
 				on_change = function(value)
-					self:setTimings("bmsrank", value)
+					play:setTimingValue(value)
 				end,
 			}))
 		end

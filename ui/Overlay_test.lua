@@ -26,7 +26,8 @@ end
 local function handleVolumeAction(settings, action)
 	local overlay = setmetatable({
 		ui = {
-			game = {settings = settings},
+			api = {settings = settings},
+			game = {},
 			gameplay = {},
 			screen_manager = {input_screen = {}},
 		},
@@ -64,7 +65,8 @@ function test.command_palette_is_not_opened_during_gameplay(t)
 	local palette_opened = false
 	local overlay = {
 		ui = {
-			game = {settings = Settings.createConfig(FakeFilesystem())},
+			api = {settings = Settings.createConfig(FakeFilesystem())},
+			game = {},
 			gameplay = gameplay,
 			screen_manager = {input_screen = gameplay},
 		},

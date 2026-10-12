@@ -13,7 +13,7 @@ local Play = require("rizu.api.Play")
 ---@field scores rizu.api.Scores Scores of the selected chart.
 ---@field media rizu.api.Media Background and previews of the selected chart.
 ---@field online rizu.api.Online The player's account and the server connection.
----@field play rizu.api.Play Music speed, mods, starting a play.
+---@field play rizu.api.Play Music speed, mods, judging, starting a play.
 ---@field settings rizu.config.Config Every setting. Keys are in `rizu.config.Settings.keys`, see `rizu/config/spec.md`.
 ---@field fake boolean? True when this is `rizu.api.fake.FakeGameApi` and there is no game behind it.
 local GameApi = class()

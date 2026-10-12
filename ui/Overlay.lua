@@ -16,7 +16,7 @@ local Settings = require("rizu.config.Settings")
 ---@field volume_overlay ui.views.VolumeOverlay
 ---@field tooltip ui.views.Tooltip
 ---@field ui ui.UserInterface
----@field cache_progress_view ui.views.CacheProgressView
+---@field cache_progress_view ui.views.CacheProgressView? nil without the game
 local Overlay = Screen + {}
 
 local MASTER_VOLUME_STEP = 0.05
@@ -48,12 +48,15 @@ function Overlay:new(ui)
 	self.fps_view = self.root:add(FpsView(ui.config))
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
-	self.cache_progress_view = self.root:add(CacheProgressView(ui.game.library))
-	self.cache_progress_view:setOffset(16, 16)
+	-- shortcut: the library's scan progress is not in ui.api yet, so it is not shown without the game
+	if not ui.api.fake then
+		self.cache_progress_view = self.root:add(CacheProgressView(ui.game.library))
+		self.cache_progress_view:setOffset(16, 16)
+	end
 	self.popup_container = PopupContainer()
 	self.modal_manager = self.root:add(ModalManager(ui, self.popup_container))
 	self.root:add(self.popup_container)
-	self.volume_overlay = self.root:add(VolumeOverlay(ui.game.settings))
+	self.volume_overlay = self.root:add(VolumeOverlay(ui.api.settings))
 	self.volume_overlay:setAlignment(0, 0.5):addPosition(24, 0)
 	-- Tooltips are last so they draw above navigation screens, modals, popups, and notifications.
 	self.tooltip = self.root:add(ui.tooltip)
@@ -83,10 +86,12 @@ end
 
 ---@param inputs gui.Inputs
 function Overlay:onHandleInputs(inputs)
-	local settings = self.ui.game.settings
+	local settings = self.ui.api.settings
+	-- Missing without the game.
+	local app = self.ui.game.app
 	if self:isCommandPaletteAllowed()
 		and inputs:consumeActionJustPressed(UiActions.toggle_audio_preview) then
-		self.ui.game.previewModel:togglePause()
+		self.ui.api.media:togglePreview()
 	elseif inputs:consumeActionJustPressed(UiActions.master_volume_increase) then
 		adjustMasterVolume(settings, 1)
 	elseif inputs:consumeActionJustPressed(UiActions.master_volume_decrease) then
@@ -96,10 +101,10 @@ function Overlay:onHandleInputs(inputs)
 		self.modal_manager:attachPalette()
 	elseif inputs:consumeActionJustPressed(UiActions.open_config) then
 		self.modal_manager:attachConfig()
-	elseif inputs:consumeActionJustPressed(UiActions.global_screenshot_open) then
-		self.ui.game.app.screenshotModel:capture(true)
-	elseif inputs:consumeActionJustPressed(UiActions.global_screenshot) then
-		self.ui.game.app.screenshotModel:capture(false)
+	elseif app and inputs:consumeActionJustPressed(UiActions.global_screenshot_open) then
+		app.screenshotModel:capture(true)
+	elseif app and inputs:consumeActionJustPressed(UiActions.global_screenshot) then
+		app.screenshotModel:capture(false)
 	end
 end
 
