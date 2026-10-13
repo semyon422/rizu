@@ -167,4 +167,28 @@ function test.resource_directory_is_prepared_for_playback(t)
 	loader:release()
 end
 
+---@param t testing.T
+function test.remote_audio_preview_is_downloaded_not_generated(t)
+	local loader, model = create()
+	local applied = {} ---@type any[]
+	loader.probe_media = function() error("a remote chart has no generated media") end
+	model.game.remoteAssetCache = {get = function(_, url)
+		if url == "https://cdn.test/missing.webm" then return nil, "HTTP 404" end
+		return "audio of " .. url
+	end}
+	model.applyRemoteAudio = function(_, data, url, chartview)
+		applied = {data, url, chartview}
+		return true
+	end
+	model.chartview = chart("a")
+
+	model.audio_path = "https://cdn.test/p.webm"
+	t:tdeq({loader:loadPreview()}, {"ready"})
+	t:tdeq(applied, {"audio of https://cdn.test/p.webm", "https://cdn.test/p.webm", model.chartview})
+
+	model.audio_path = "https://cdn.test/missing.webm"
+	t:tdeq({loader:loadPreview()}, {"failed", "HTTP 404"})
+	loader:release()
+end
+
 return test

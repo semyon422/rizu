@@ -40,8 +40,10 @@ end)
 
 ---@param network rizu.NetworkService
 ---@param http_image_loader fun(body: string, url: string): love.ImageData?
-function BackgroundModel:new(network, http_image_loader)
+---@param asset_cache rizu.library.RemoteAssetCache? Keeps downloaded images on disk.
+function BackgroundModel:new(network, http_image_loader, asset_cache)
 	self.network = assert(network, "network is required")
+	self.asset_cache = asset_cache
 	self.http_image_loader = http_image_loader or loadHttpImage
 	self.background_finder = findBackground
 	self.generation = 0
@@ -218,11 +220,17 @@ function BackgroundModel:loadImage(path, type)
 	if type == "ojn" then
 		imageData = loadOJN(path)
 	elseif type == "http" then
-		local res = self.network:request(path)
-		if not res or res.status >= 400 then
+		local body
+		if self.asset_cache then
+			body = self.asset_cache:get(path)
+		else
+			local res = self.network:request(path)
+			body = res and res.status < 400 and res.body or nil
+		end
+		if not body then
 			return
 		end
-		imageData = self.http_image_loader(res.body, path)
+		imageData = self.http_image_loader(body, path)
 	else
 		imageData = loadImage(path)
 	end

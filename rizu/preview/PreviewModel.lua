@@ -4,6 +4,7 @@ local BgaPreviewPlayer = require("rizu.preview.BgaPreviewPlayer")
 local NotesPreviewPlayer = require("rizu.preview.NotesPreviewPlayer")
 local PreviewLoader = require("rizu.preview.PreviewLoader")
 local PreviewSkinCache = require("rizu.preview.PreviewSkinCache")
+local RemoteAudioPreviewPlayer = require("rizu.preview.RemoteAudioPreviewPlayer")
 local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.preview.PreviewMode "absolute"|"relative"
@@ -46,6 +47,8 @@ local Settings = require("rizu.config.Settings")
 ---@field loaded_audio_path string?
 ---@field loaded_hash string?
 ---@field loaded_audio_hash string?
+---@field remote boolean The audio is the preview of a chart of a remote location, not a generated one.
+---@field remote_audio rizu.preview.RemoteAudioPreviewPlayer?
 ---@operator call: rizu.preview.PreviewModel
 local PreviewModel = class()
 
@@ -71,6 +74,7 @@ function PreviewModel:new(settings, replayBase, game)
 	self.loaded_hash = nil
 	self.loaded_audio_hash = nil
 	self.initial_seek_done = false
+	self.remote = false
 end
 
 function PreviewModel:load()
@@ -83,6 +87,48 @@ function PreviewModel:load()
 	self.target_rate = 1
 	self.loader:load()
 	self.skinCache:load()
+end
+
+---The player of the audio that is selected now.
+---@return rizu.preview.AudioPreviewPlayer|rizu.preview.RemoteAudioPreviewPlayer
+function PreviewModel:getAudioPlayer()
+	return self.remote and self.remote_audio or self.audioPreviewPlayer
+end
+
+---Plays the audio preview of a chart of a remote location in place of a generated one: from its start, in a loop.
+---@param data string The audio file.
+---@param path string Its url, the audio path this was loaded for.
+---@param chartview rizu.preview.PreviewChartview?
+---@return true?
+---@return string?
+function PreviewModel:applyRemoteAudio(data, path, chartview)
+	self.audioPreviewPlayer:stop()
+	self.bgaPreviewPlayer:stop()
+	if not self.active or path ~= self.audio_path or chartview ~= self.chartview then return true end
+	self.loaded_audio_path = path
+	self.loaded_hash = nil
+	self.loaded_audio_hash = nil
+	self.remote_audio = self.remote_audio or RemoteAudioPreviewPlayer(
+		self.settings,
+		require("rizu.engine.audio.bass.Provider")()
+	)
+	local ok, err = self.remote_audio:load(data)
+	self.remote = ok == true
+	if not ok then
+		return nil, err
+	end
+	self.position, self.manual_time = 0, 0
+	self.initial_seek_done = true
+	-- The new player takes the volume on the next update.
+	self.volume = -1
+	self.remote_audio:setRate(self.rate)
+	return true
+end
+
+---@private
+function PreviewModel:stopRemoteAudio()
+	self.remote = false
+	if self.remote_audio then self.remote_audio:stop() end
 end
 
 ---@param audio_path string?
@@ -108,8 +154,9 @@ end
 
 ---@param dt number?
 function PreviewModel:update(dt)
+	local player = self:getAudioPlayer()
 	if not self.active then
-		self.audioPreviewPlayer:pause()
+		player:pause()
 		return
 	end
 
@@ -118,11 +165,11 @@ function PreviewModel:update(dt)
 	local hasFocus = love.window.hasFocus()
 
 	if hasFocus or not mute_on_unfocus then
-		local min_time, max_time = self.audioPreviewPlayer:getRange()
+		local min_time, max_time = player:getRange()
 		local duration = max_time - min_time
 
 		if duration > 0 then
-			self.manual_time = self.audioPreviewPlayer:getPosition()
+			self.manual_time = player:getPosition()
 
 			-- Default start position to min_time if preview_time is missing
 			if not self.initial_seek_done then
@@ -130,31 +177,32 @@ function PreviewModel:update(dt)
 					self.initial_seek_done = true
 				elseif self.manual_time < min_time then
 					self.manual_time = min_time
-					self.audioPreviewPlayer:seek(self.manual_time)
+					player:seek(self.manual_time)
 					self.bgaPreviewPlayer:seek(self.manual_time)
 					self.initial_seek_done = true
 				end
 			end
 
 			-- Looping: Restart from audio start time (min_time)
-			if self.manual_time >= max_time then
+			-- A remote preview ends a moment before its decoder's duration.
+			if self.manual_time >= max_time - (self.remote and 0.05 or 0) then
 				self.manual_time = min_time
-				self.audioPreviewPlayer:seek(self.manual_time)
+				player:seek(self.manual_time)
 				self.bgaPreviewPlayer:seek(self.manual_time)
 			end
 			if self.paused then
-				self.audioPreviewPlayer:pause()
+				player:pause()
 			else
-				self.audioPreviewPlayer:resume()
+				player:resume()
 			end
 		else
-			self.audioPreviewPlayer:pause()
+			player:pause()
 		end
 	else
-		self.audioPreviewPlayer:pause()
+		player:pause()
 	end
 
-	self.audioPreviewPlayer:update()
+	player:update()
 	self.bgaPreviewPlayer:update(self:getTime())
 	self.chartPreview:update()
 	self.skinCache:update(dt or 0, self.chartview)
@@ -162,13 +210,13 @@ function PreviewModel:update(dt)
 	local volume = self.settings:getNumber(keys.audio.volume_master)
 		* self.settings:getNumber(keys.audio.volume_music)
 	if self.volume ~= volume then
-		self.audioPreviewPlayer:setVolume(volume)
+		player:setVolume(volume)
 		self.volume = volume
 	end
 
 	local target_rate = self.target_rate
 	if self.rate ~= target_rate then
-		self.audioPreviewPlayer:setRate(target_rate)
+		player:setRate(target_rate)
 		self.rate = target_rate
 	end
 end
@@ -181,6 +229,7 @@ end
 function PreviewModel:applyPreparedMedia(media, path, preview_time, mode, chartview)
 	local audio_needs_reload = self.loaded_audio_path ~= path or path == ""
 	if audio_needs_reload then
+		self:stopRemoteAudio()
 		self.audioPreviewPlayer:stop()
 		self.bgaPreviewPlayer:stop()
 		if not self.active or path ~= self.audio_path or chartview ~= self.chartview then return end
@@ -221,12 +270,12 @@ end
 
 function PreviewModel:pause()
 	self.paused = true
-	self.audioPreviewPlayer:pause()
+	self:getAudioPlayer():pause()
 end
 
 function PreviewModel:resume()
 	self.paused = false
-	self.audioPreviewPlayer:resume()
+	self:getAudioPlayer():resume()
 end
 
 function PreviewModel:togglePause()
@@ -247,7 +296,7 @@ function PreviewModel:setPosition(time)
 	self.position = time
 	self.manual_time = time
 	self.initial_seek_done = true
-	self.audioPreviewPlayer:seek(time)
+	self:getAudioPlayer():seek(time)
 	self.bgaPreviewPlayer:seek(time)
 end
 
@@ -266,7 +315,7 @@ end
 
 ---@return number, number
 function PreviewModel:getRange()
-	return self.audioPreviewPlayer:getRange()
+	return self:getAudioPlayer():getRange()
 end
 
 ---@return number
@@ -287,12 +336,12 @@ end
 
 ---@param size integer
 function PreviewModel:setFFTSize(size)
-	self.audioPreviewPlayer:setFFTSize(size)
+	self:getAudioPlayer():setFFTSize(size)
 end
 
 ---@return ffi.cdata*?
 function PreviewModel:getFFT()
-	return self.audioPreviewPlayer:getFFT()
+	return self:getAudioPlayer():getFFT()
 end
 
 ---@return rizu.gameplay.views.PlayfieldRenderer?
@@ -312,6 +361,7 @@ function PreviewModel:getMediaError() return self.loader.media_error end
 
 function PreviewModel:stop()
 	self.active = false
+	self:stopRemoteAudio()
 	self.loader:stop()
 	self.skinCache:stop()
 	self.audioPreviewPlayer:stop()
@@ -337,6 +387,7 @@ function PreviewModel:release()
 	self.loader:release()
 	self.skinCache:release()
 	self.audioPreviewPlayer:release()
+	if self.remote_audio then self.remote_audio:release() end
 	self.bgaPreviewPlayer:release()
 end
 

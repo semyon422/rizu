@@ -219,7 +219,7 @@ end
 function ChartSelector:getBackgroundPath()
 	local chartview = self.chartview
 	if not self:isPlayableChartview(chartview) then return end
-	return self.chartMediaService:getBackgroundPath(chartview)
+	return self.chartMediaService:getBackgroundPath(chartview, self.library:getRemoteAssets(chartview))
 end
 
 ---@return string?
@@ -228,7 +228,7 @@ end
 function ChartSelector:getAudioPathPreview()
 	local chartview = self.chartview
 	if not self:isPlayableChartview(chartview) then return end
-	return self.chartMediaService:getAudioPathPreview(chartview)
+	return self.chartMediaService:getAudioPathPreview(chartview, self.library:getRemoteAssets(chartview))
 end
 
 ---@param settings table?

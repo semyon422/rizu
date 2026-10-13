@@ -53,4 +53,17 @@ function test.audio_path_preview(t)
 	t:eq(mode, "relative")
 end
 
+---@param t testing.T
+function test.remote_chart_uses_the_media_of_the_catalog(t)
+	local service = ChartMediaService()
+	local assets = {
+		chart_url = "https://cdn.test/c.osu", audio_url = "https://cdn.test/a.webm",
+		audio_preview_url = "https://cdn.test/p.webm", background_url = "https://cdn.test/b.avif",
+	}
+	---@diagnostic disable-next-line: missing-fields
+	local chartview = {chartfile_name = "a.osu", location_dir = "online/Song", audio_path = "audio.mp3"}
+	t:eq(service:getBackgroundPath(chartview, assets), "https://cdn.test/b.avif")
+	t:tdeq({service:getAudioPathPreview(chartview, assets)}, {"https://cdn.test/p.webm", 0, "absolute"})
+end
+
 return test

@@ -93,6 +93,10 @@ function PreviewLoader:loadPreview()
 	if self.released or not model.active then return end
 	local generation = self.media_generation
 	local chartview = model.chartview
+	local url = model.audio_path
+	if url and url:find("^https?://") then
+		return self:loadRemotePreview(url, chartview, generation)
+	end
 	local media ---@type rizu.preview.PreviewLoader.Media?
 	if chartview and chartview.hash then
 		media = self.probe_media(chartview)
@@ -125,6 +129,26 @@ function PreviewLoader:loadPreview()
 		end
 		if self.generating_hashes[hash] then return "loading" end
 		return "failed", self.generation_errors[hash] or "Preview generation did not provide all required media"
+	end
+	return "ready"
+end
+
+---A chart of a remote location has its audio preview in the catalog. Nothing is generated for it.
+---@param url string
+---@param chartview rizu.preview.PreviewChartview?
+---@param generation integer
+---@return rizu.preview.PreviewLoader.State?
+---@return string?
+function PreviewLoader:loadRemotePreview(url, chartview, generation)
+	local model = self.model
+	local data, err = self.game.remoteAssetCache:get(url)
+	if generation ~= self.media_generation or not model.active then return end
+	if not data then
+		return "failed", err
+	end
+	local ok, play_err = model:applyRemoteAudio(data, url, chartview)
+	if not ok then
+		return "failed", play_err
 	end
 	return "ready"
 end

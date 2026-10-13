@@ -201,7 +201,7 @@ function GameController:new()
 	self.remoteAssetCache = RemoteAssetCache(self.network, self.fs)
 	self.remoteChartFiles = RemoteChartFiles(self.library, self.remoteAssetCache, self.fs)
 
-	self.backgroundModel = BackgroundModel(self.network)
+	self.backgroundModel = BackgroundModel(self.network, nil, self.remoteAssetCache)
 	self.previewModel = PreviewModel(
 		self.settings,
 		self.replayBase,

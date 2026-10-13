@@ -59,6 +59,69 @@ function RemoteAudioPreviewPlayer:update()
 	self.source:update()
 end
 
+---The player of the preview model works with this interface.
+
+---@return number start
+---@return number finish
+function RemoteAudioPreviewPlayer:getRange()
+	return 0, self.decoder and self.decoder:getDuration() or 0
+end
+
+---@return number
+function RemoteAudioPreviewPlayer:getPosition()
+	return self.source and self.source:getPosition() or 0
+end
+
+---@param time number
+function RemoteAudioPreviewPlayer:seek(time)
+	if self.source then
+		self.source:setPosition(time)
+	end
+end
+
+function RemoteAudioPreviewPlayer:pause()
+	if self.source then
+		self.source:pause()
+	end
+end
+
+function RemoteAudioPreviewPlayer:resume()
+	if self.source then
+		self.source:play()
+	end
+end
+
+---@param rate number
+function RemoteAudioPreviewPlayer:setRate(rate)
+	if self.source then
+		self.source:setRate(rate)
+	end
+end
+
+---@param volume number
+function RemoteAudioPreviewPlayer:setVolume(volume)
+	if self.source then
+		self.source:setVolume(volume)
+	end
+	self.volume = volume
+end
+
+---@param size integer
+function RemoteAudioPreviewPlayer:setFFTSize(size)
+	if self.source then
+		self.source:setFFTSize(size)
+	end
+end
+
+---@return ffi.cdata*?
+function RemoteAudioPreviewPlayer:getFFT()
+	return self.source and self.source:getFFT()
+end
+
+function RemoteAudioPreviewPlayer:release()
+	self:stop()
+end
+
 function RemoteAudioPreviewPlayer:stop()
 	local source = self.source
 	local decoder = self.decoder
