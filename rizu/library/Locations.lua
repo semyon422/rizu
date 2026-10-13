@@ -92,6 +92,17 @@ function Locations:mountLocation(location)
 	self.status[location.id] = "errored"
 end
 
+---@return integer[]
+function Locations:getRemoteLocationIds()
+	local ids = {} ---@type integer[]
+	for _, location in ipairs(self.locations) do
+		if location.url then
+			ids[#ids + 1] = location.id
+		end
+	end
+	return ids
+end
+
 ---@param location rizu.library.Location
 ---@return string
 function Locations:getPrefix(location)

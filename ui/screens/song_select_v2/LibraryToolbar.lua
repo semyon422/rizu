@@ -3,6 +3,7 @@ local TrackContainer = require("gui.layout.TrackContainer")
 local Resources = require("ui.Resources")
 local Dropdown = require("ui.screens.song_select_v2.Dropdown")
 local FiltersButton = require("ui.screens.song_select_v2.FiltersButton")
+local OnlineButton = require("ui.screens.song_select_v2.OnlineButton")
 local SearchField = require("ui.screens.song_select_v2.SearchField")
 
 ---Copy of the old toolbar without its strip: the controls sit directly on the blurred background.
@@ -55,6 +56,7 @@ function LibraryToolbar:new(ui, popup_container)
 	}), 190)
 
 	controls:add(FiltersButton(ui), 225)
+	controls:add(OnlineButton(ui), 190)
 
 	self.search = controls:add(SearchField({
 		text = charts:getSearch(),

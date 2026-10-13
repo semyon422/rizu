@@ -40,6 +40,7 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---| "library_changed" # Chart files were added or removed on disk; call refresh() to see them. No arguments.
 ---| "filters_changed" # A filter was set or all were cleared. No arguments.
 ---| "collections_changed" # The collections were listed again, or another one is selected. No arguments.
+---| "source_changed" # getSource() or getOnlineError() has a new answer. The lists follow with their own events. No arguments.
 
 ---Filters with three states: "any" shows everything, "yes" only matching charts, "no" only the others.
 ---@alias rizu.api.Charts.YesNoFilter
@@ -53,6 +54,11 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---| "format" # Values are chart formats: "osu", "quaver", "stepmania", "bms", ...
 ---| "original_input_mode" # Values are "4K", "7K", ... or a full input mode such as "7key1scratch".
 ---| "actual_input_mode" # Same values, compared against the input mode after modifiers.
+
+---Where the listed charts are.
+---@alias rizu.api.Charts.Source
+---| "local" # On this computer.
+---| "online" # In the remote catalog. Their files are downloaded when they are played; everything else is the same.
 
 ---A folder of the library that the set list can be narrowed to.
 ---@class rizu.api.Collection
@@ -68,6 +74,9 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@operator call: rizu.api.Charts
 ---@field on fun(self: rizu.api.Charts, event: rizu.api.Charts.Event, f: function): fun()
 ---@field private selector rizu.select.ChartSelector
+---@field private coordinator rizu.select.SelectionCoordinator?
+---@field private syncing boolean The remote catalog is being downloaded.
+---@field private online_error string?
 ---@field private loading boolean
 ---@field private collections rizu.api.Collection[]
 ---@field private collections_root rizu.library.Collections.TreeNode?
@@ -87,9 +96,12 @@ local value_filters = {
 }
 
 ---@param selector rizu.select.ChartSelector
-function Charts:new(selector)
+---@param coordinator rizu.select.SelectionCoordinator? Without it there is no remote catalog.
+function Charts:new(selector, coordinator)
 	Events.new(self)
 	self.selector = selector
+	self.coordinator = coordinator
+	self.syncing = false
 	self.loading = false
 	self.collections = {}
 	self.collection_of = {}
@@ -188,7 +200,7 @@ function Charts:canPlaySelectedChart() return self.selector:chartExists() end
 
 ---True between "sets_loading" and "sets_changed".
 ---@return boolean
-function Charts:isLoading() return self.loading end
+function Charts:isLoading() return self.loading or self.syncing end
 
 ---Queries the set list again, keeping the selection where possible.
 function Charts:refresh() self.selector:noDebounceRefresh() end
@@ -323,6 +335,39 @@ end
 function Charts:selectCollection(collection)
 	self.selector.collectionSelector:selectCollection(collection and collection.path, collection and collection.location_id)
 end
+
+-- Source
+
+---@return rizu.api.Charts.Source
+function Charts:getSource()
+	local config = self.selector.config
+	return config and config.online and "online" or "local"
+end
+
+---Lists the charts of the remote catalog, or the ones on this computer. Going online downloads the
+---catalog when it is missing or a day old: `isLoading()` is true meanwhile.
+---@param source rizu.api.Charts.Source
+function Charts:setSource(source)
+	local coordinator = self.coordinator
+	if not coordinator or source == self:getSource() then return end
+	self.online_error = nil
+	self.selector:setOnline(source == "online")
+	self:emit("source_changed")
+	if source ~= "online" then return end
+
+	self.syncing = true
+	self:emit("sets_loading")
+	thread.coro(function()
+		local ok, err = coordinator:syncOnline()
+		self.syncing = false
+		self.online_error = not ok and err or nil
+		self:emit("source_changed")
+	end)()
+end
+
+---Why the remote catalog could not be downloaded, if it could not. Charts of an older catalog may be listed anyway.
+---@return string? error
+function Charts:getOnlineError() return self.online_error end
 
 -- Library
 

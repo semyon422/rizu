@@ -12,7 +12,7 @@ local test = {}
 ---@return rizu.api.Charts charts
 ---@return rizu.select.ChartSelector selector
 ---@return rizu.library.Library library
-local function createCharts()
+local function createCharts(coordinator)
 	local tlf = TestLibraryFactory()
 	local library = tlf:create()
 	tlf:populate(library, {
@@ -31,7 +31,7 @@ local function createCharts()
 	local collection_selector = CollectionSelector(config_model, settings, library)
 	local selector = ChartSelector(config_model, settings, library, {}, collection_selector,
 		FunctionTimer(function() return 0 end))
-	return Charts(selector), selector, library
+	return Charts(selector, coordinator), selector, library
 end
 
 ---@param t testing.T
@@ -136,6 +136,57 @@ function test.collections(t)
 	t:eq(charts:getSelectedCollection(), collections[4])
 	charts:selectCollection(nil)
 	t:eq(charts:getSelectedCollection(), collections[1])
+
+	library:unload()
+end
+
+---@param t testing.T
+function test.online_source_lists_the_remote_locations_only(t)
+	local synced = 0
+	local sync_error ---@type string?
+	local charts, selector, library ---@type rizu.api.Charts, rizu.select.ChartSelector, rizu.library.Library
+	charts, selector, library = createCharts({syncOnline = function()
+		synced = synced + 1
+		selector:noDebounceRefresh()
+		return sync_error == nil, sync_error
+	end})
+	-- The same chart as "a", listed by the catalog.
+	local location = library.locationsRepo:insertLocation({
+		path = "online", name = "online", is_relative = true, is_internal = false, url = "https://cdn.test",
+	})
+	local set = library.database.models.chartfile_sets:create({
+		location_id = location.id, name = "Online A", dir = "osu_ranked", modified_at = 0, is_file = false,
+	})
+	library.database.models.chartfiles:create({set_id = set.id, name = "a.osu", hash = "a", modified_at = 0})
+	library.locations:selectLocations()
+
+	selector.collectionSelector:load()
+	selector:load()
+	t:eq(charts:getSource(), "local")
+	t:eq(charts:getSetCount(), 2)
+
+	local events = {}
+	charts:on("source_changed", function() table.insert(events, charts:getSource()) end)
+	charts:setSource("online")
+	t:eq(synced, 1)
+	t:tdeq(events, {"online", "online"})
+	t:eq(charts:isLoading(), false)
+	t:eq(charts:getSetCount(), 1)
+	local chart = charts:getSelectedChart()
+	t:eq(chart.hash, "a")
+	t:eq(chart.location_url, "https://cdn.test")
+	t:eq(charts:canPlaySelectedChart(), true)
+	t:eq(charts:getOnlineError(), nil)
+
+	charts:setSource("local")
+	t:eq(charts:getSetCount(), 2)
+	t:eq(synced, 1)
+
+	-- A catalog that cannot be downloaded leaves what is known listed, with the reason.
+	sync_error = "HTTP 503"
+	charts:setSource("online")
+	t:eq(charts:getOnlineError(), "HTTP 503")
+	t:eq(charts:getSetCount(), 1)
 
 	library:unload()
 end

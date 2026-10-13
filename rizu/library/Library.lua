@@ -291,7 +291,6 @@ function Library:importCatalogAsync(path, base_url)
 	end
 	if location_id then
 		self.locations:selectLocations()
-		self:notifyChartsChanged()
 	end
 	return location_id, err
 end

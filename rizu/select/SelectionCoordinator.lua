@@ -1,4 +1,5 @@
 local class = require("class")
+local thread = require("thread")
 
 ---@class rizu.select.SelectionCoordinator
 ---@operator call: rizu.select.SelectionCoordinator
@@ -9,13 +10,16 @@ local SelectionCoordinator = class()
 ---@param collectionSelector rizu.select.CollectionSelector
 ---@param backgroundModel sphere.BackgroundModel
 ---@param previewModel rizu.preview.PreviewModel
+---@param catalog rizu.library.RemoteCatalogLoader?
 function SelectionCoordinator:new(
 	chartSelector,
 	scoreSelector,
 	collectionSelector,
 	backgroundModel,
-	previewModel
+	previewModel,
+	catalog
 )
+	self.catalog = catalog
 	self.chartSelector = chartSelector
 	self.scoreSelector = scoreSelector
 	self.collectionSelector = collectionSelector
@@ -45,6 +49,20 @@ end
 function SelectionCoordinator:load()
 	self.chartSelector:setLock(false)
 	self.chartSelector:load()
+	-- Keeps the catalog of a player who stays online up to date.
+	if self.catalog and self.chartSelector.config.online then
+		thread.coro(self.syncOnline)(self)
+	end
+end
+
+---Brings the remote catalog into the library, or up to date, and lists the charts again. Yields.
+---@return boolean ok
+---@return string? err
+function SelectionCoordinator:syncOnline()
+	local location_id, err = self.catalog:sync(self.chartSelector.library)
+	self.collectionSelector:load()
+	self.chartSelector:noDebounceRefresh()
+	return location_id ~= nil, err
 end
 
 function SelectionCoordinator:activatePreview()

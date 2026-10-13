@@ -22,7 +22,7 @@ local GameApi = class()
 
 ---@param game sphere.GameController
 function GameApi:new(game)
-	self.charts = Charts(game.chartSelector)
+	self.charts = Charts(game.chartSelector, game.selectionCoordinator)
 	self.scores = Scores(game.scoreSelector, game.resultController)
 	self.media = Media(game.backgroundModel, game.previewModel)
 	self.online = Online(game.online_client, game.avatar_cache)

@@ -13,11 +13,13 @@
 ---@field chartfile_id integer?
 ---@field chartmeta_id integer?
 ---@field chartdiff_id integer?
+---@field online boolean The charts of the remote catalog are listed instead of the local ones.
 
 ---@alias sphere.SelectedFilters {[string]: {[string]: boolean?}}
 
 local _select = {
 	collection = nil,
+	online = false,
 	location_id = nil,
 	chartdiff_id = 1,
 	chartmeta_id = 1,

@@ -233,4 +233,13 @@ end
 
 function FakeCharts:checkLibraryEmpty(f) f(#self.all_sets == 0) end
 
+function FakeCharts:getSource() return self.source or "local" end
+
+function FakeCharts:setSource(source)
+	self.source = source
+	self:emit("source_changed")
+end
+
+function FakeCharts:getOnlineError() return nil end
+
 return FakeCharts

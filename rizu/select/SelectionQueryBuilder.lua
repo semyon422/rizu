@@ -21,8 +21,9 @@ end
 
 ---@param config sphere.SelectConfig The 'select' config from configModel
 ---@param collectionItem rizu.library.Collections.TreeNode? Current collection item
+---@param remote_location_ids integer[]? The locations whose charts are listed only while `config.online`.
 ---@return rizu.select.SelectionQueryParams params
-function SelectionQueryBuilder:build(config, collectionItem)
+function SelectionQueryBuilder:build(config, collectionItem, remote_location_ids)
 	local keys = Settings.keys.select
 	---@type rizu.select.SelectionQueryParams
 	local params = {}
@@ -49,6 +50,13 @@ function SelectionQueryBuilder:build(config, collectionItem)
 			where.set_dir__startswith = path
 		end
 		where.location_id = collectionItem.location_id
+	end
+
+	-- Online charts and the charts on this computer are listed apart: many players have both copies of a chart.
+	if config.online then
+		where.location_id__in = remote_location_ids or {}
+	elseif remote_location_ids and remote_location_ids[1] then
+		where.location_id__notin = remote_location_ids
 	end
 
 	params.where = where

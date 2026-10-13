@@ -172,7 +172,7 @@ end
 
 function ChartSelector:updatePrimaryItems()
 	local collectionItem = self.collectionSelector:getSelectedItem()
-	local params = self.queryBuilder:build(self.config, collectionItem)
+	local params = self.queryBuilder:build(self.config, collectionItem, self.library.locations:getRemoteLocationIds())
 
 	self:emitChanged({type = "primary_items_loading"})
 	local result = self.library:queryAsync(params)
@@ -314,6 +314,13 @@ function ChartSelector:setSortFunction(sortFunctionName)
 	self:noDebounceRefresh()
 end
 
+---Lists the charts of the remote locations instead of the charts on this computer.
+---@param online boolean
+function ChartSelector:setOnline(online)
+	self.config.online = online
+	self:noDebounceRefresh()
+end
+
 ---@param locked boolean
 function ChartSelector:setLock(locked)
 	self.locked = locked
@@ -421,7 +428,7 @@ function ChartSelector:pullLevel(level)
 
 	local parentItem = self.stores[1]:get(self.state:getSelection(1).index)
 	if parentItem and parentItem.chartfile_set_id and parentItem.chartfile_set_id ~= 0 then
-		local params = self.queryBuilder:build(self.config)
+		local params = self.queryBuilder:build(self.config, nil, self.library.locations:getRemoteLocationIds())
 		local result = self.library:getViewsAsync(params, parentItem)
 		self.stores[2]:setResult(result, self:getSecondaryResultMode())
 	else

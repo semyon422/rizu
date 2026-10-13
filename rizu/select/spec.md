@@ -108,6 +108,9 @@ All select events must include a `type` field. Event type names should describe 
 
 A chart of a remote location (`chartview.location_url`) always exists for this check: `RemoteChartFiles:ensure(chartview)` downloads the chart file (verified against its hash), its audio and its background into the chart's own directory when gameplay or a result is loaded, under the names the chart uses. Nothing else about such a chart is special: it is a chartview of the library, so modifiers, scores, results and replays work as for any chart, and after the download its files are local.
 
+### Online Source
+The select config has `online`. `SelectionQueryBuilder` lists only the charts of the remote locations while it is set, and leaves them out otherwise, so a chart the player has both locally and in the catalog is never listed twice in one list. Everything else in the query (search, sort, filters, collections, lamps) is unchanged. `rizu.api.Charts:setSource("online")` sets it and runs `SelectionCoordinator:syncOnline()`, which brings the catalog into the library (`RemoteCatalogLoader:sync`) and queries the lists again; `SelectionCoordinator:load()` does the same at startup for a player who stayed online. A catalog that cannot be downloaded is reported by `getOnlineError()` and the charts already imported stay listed. The collection tree still counts the sets of remote locations in both sources.
+
 ### Modifier Config Persistence
 `ModifierConfigPersistence` owns loading and saving the play config around modifier coordination. `ModifierCoordinator` requests replay-base load/save through this adapter instead of calling `ConfigModel:write()` or reading `configs.play` directly.
 

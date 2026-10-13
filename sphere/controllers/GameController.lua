@@ -9,6 +9,7 @@ local NoteSkinModel = require("sphere.models.NoteSkinModel")
 local InputModel = require("sphere.models.InputModel")
 local ChartSelector = require("rizu.select.ChartSelector")
 local RemoteAssetCache = require("rizu.library.RemoteAssetCache")
+local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 local RemoteChartFiles = require("rizu.library.RemoteChartFiles")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local CollectionSelector = require("rizu.select.CollectionSelector")
@@ -213,7 +214,8 @@ function GameController:new()
 		self.scoreSelector,
 		self.collectionSelector,
 		self.backgroundModel,
-		self.previewModel
+		self.previewModel,
+		RemoteCatalogLoader(self.network, self.fs)
 	)
 	self.modifierCoordinator = ModifierCoordinator(
 		self.chartSelector,

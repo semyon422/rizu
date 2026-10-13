@@ -132,10 +132,12 @@ function ChartBrowser:new(ui, charts, settings, tooltip, localization, on_filter
 		align = "center",
 	}))
 	self.empty:setSize(500, 30):setAlignment(0.5, 0.5):addPosition(0, 30):setVisible(false)
+	self.localization = localization
+	self.no_results_text = "No charts found. Check your search and filters."
 	self.no_results = self:add(Label({
 		font_name = "regular",
 		font_size = 20,
-		text = "No charts found. Check your search and filters.",
+		text = self.no_results_text,
 		color = Colors.muted,
 		align = "center",
 	}))
@@ -202,7 +204,8 @@ function ChartBrowser:update()
 
 	local charts = self.charts
 	local show_empty_state = not charts:isLoading() and charts:getSetCount() == 0
-	if self.has_chartfiles == nil and show_empty_state and not self.has_chartfiles_checking then
+	local online = charts:getSource() == "online"
+	if self.has_chartfiles == nil and show_empty_state and not online and not self.has_chartfiles_checking then
 		self.has_chartfiles_checking = true
 		charts:checkLibraryEmpty(function(empty)
 			self.has_chartfiles = not empty
@@ -211,11 +214,16 @@ function ChartBrowser:update()
 		end)
 	end
 
-	local has_chartfiles = self.has_chartfiles == true
-	self.empty:setVisible(show_empty_state and self.has_chartfiles == false)
+	local has_chartfiles = self.has_chartfiles == true or online
+	local online_error = online and charts:getOnlineError()
+	self.no_results:setText(online_error
+		and self.localization:get("song_select.online_error", {error = online_error})
+		or self.no_results_text)
+	local library_empty = self.has_chartfiles == false and not online
+	self.empty:setVisible(show_empty_state and library_empty)
 	self.no_results:setVisible(show_empty_state and has_chartfiles)
-	self.clear_filters:setVisible(show_empty_state and has_chartfiles)
-	self.download:setVisible(show_empty_state and self.has_chartfiles == false)
+	self.clear_filters:setVisible(show_empty_state and has_chartfiles and not online_error)
+	self.download:setVisible(show_empty_state and library_empty)
 end
 
 return ChartBrowser
