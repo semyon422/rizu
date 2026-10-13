@@ -102,6 +102,10 @@ end
 ---@return true?
 ---@return string?
 function PreviewModel:applyRemoteAudio(data, path, chartview)
+	if self.remote and self.loaded_audio_path == path then
+		-- The same audio keeps playing, like a local one.
+		return true
+	end
 	self.audioPreviewPlayer:stop()
 	self.bgaPreviewPlayer:stop()
 	if not self.active or path ~= self.audio_path or chartview ~= self.chartview then return true end
