@@ -110,6 +110,11 @@ function ResultController:replayNoteChartAsync(mode, chartplay)
 
 	local chartview = game.chartSelector.chartview
 
+	local downloaded, download_err = game.remoteChartFiles:ensure(chartview)
+	if not downloaded then
+		print("load replay:", download_err)
+		return
+	end
 	GameplayChart(game.settings, game.fs, chartview):load(replayBase, game.computeContext)
 
 	RhythmEngineLoader(

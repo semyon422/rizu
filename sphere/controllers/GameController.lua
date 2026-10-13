@@ -8,6 +8,8 @@ local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
 local NoteSkinModel = require("sphere.models.NoteSkinModel")
 local InputModel = require("sphere.models.InputModel")
 local ChartSelector = require("rizu.select.ChartSelector")
+local RemoteAssetCache = require("rizu.library.RemoteAssetCache")
+local RemoteChartFiles = require("rizu.library.RemoteChartFiles")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local CollectionSelector = require("rizu.select.CollectionSelector")
 local MultiplayerModel = require("rizu.online.MultiplayerModel")
@@ -195,6 +197,9 @@ function GameController:new()
 
 	self.discordModel = self.app.discordModel
 	self.windowModel = self.app.windowModel
+
+	self.remoteAssetCache = RemoteAssetCache(self.network, self.fs)
+	self.remoteChartFiles = RemoteChartFiles(self.library, self.remoteAssetCache, self.fs)
 
 	self.backgroundModel = BackgroundModel(self.network)
 	self.previewModel = PreviewModel(

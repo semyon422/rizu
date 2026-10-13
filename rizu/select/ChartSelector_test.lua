@@ -445,4 +445,19 @@ function test.chart_exists_async_ignores_old_selection(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.chart_of_a_remote_location_is_playable_before_it_is_downloaded(t)
+	local library = tlf:create()
+	library:setSync(true)
+	local fs = {getInfo = function() error("the file is not looked for") end}
+	local chartSelector = ChartSelector(createMockConfigModel(), createSettings(), library, fs,
+		{getSelectedItem = function() end}, timer)
+
+	---@diagnostic disable-next-line: missing-fields
+	chartSelector:setChartview({location_path = "online/a.osu", location_url = "https://cdn.test"})
+	t:eq(chartSelector:chartExists(), true)
+
+	library:unload()
+end
+
 return test

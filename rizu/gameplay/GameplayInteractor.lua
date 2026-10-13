@@ -151,6 +151,9 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 
 	game.previewModel:stop()
 
+	assert(game.remoteChartFiles:ensure(chartview))
+	if load_generation ~= self.load_generation then return false end
+
 	local gameplay_chart = GameplayChart(game.settings, game.fs, chartview)
 	local data, context = gameplay_chart:prepareAsync()
 	if load_generation ~= self.load_generation then return false end

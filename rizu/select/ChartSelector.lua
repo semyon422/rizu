@@ -271,6 +271,11 @@ function ChartSelector:chartExists()
 	if not chartview or not chartview.location_path then
 		return false
 	end
+	-- The files of a remote location are downloaded when the chart is loaded.
+	if chartview.location_url then
+		self.chart_exists = true
+		return true
+	end
 
 	if self.library.is_sync then
 		self.chart_exists = ChartfileReader.exists(self.fs, chartview.location_path)

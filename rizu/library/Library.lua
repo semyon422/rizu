@@ -296,6 +296,32 @@ function Library:importCatalogAsync(path, base_url)
 	return location_id, err
 end
 
+---@class rizu.library.RemoteAssets
+---@field chart_url string
+---@field audio_url string The whole audio, encoded.
+---@field audio_preview_url string A short part of the audio.
+---@field background_url string?
+
+---Where the files of a chart of a remote location are downloaded from.
+---@param chartview rizu.library.LocatedChartview
+---@return rizu.library.RemoteAssets? assets nil for a chart of a local location.
+function Library:getRemoteAssets(chartview)
+	local url = chartview.location_url
+	if not url or not chartview.hash or not chartview.index then
+		return
+	end
+	local row = self.database.models.remote_assets:find({hash = chartview.hash, index = chartview.index})
+	if not row then
+		return
+	end
+	return {
+		chart_url = url .. "/" .. row.chart_path,
+		audio_url = url .. "/" .. row.audio_path,
+		audio_preview_url = url .. "/" .. row.audio_preview_path,
+		background_url = row.background_path and url .. "/" .. row.background_path,
+	}
+end
+
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:queryAsync(params)

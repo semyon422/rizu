@@ -106,6 +106,8 @@ All select events must include a `type` field. Event type names should describe 
 
 `ChartSelector:chartExists()` is non-blocking in the game client: it schedules a worker check and returns false while pending. It caches the result until `setChartview()` invalidates it. Each pending check has an identity token so a result from a previous selection cannot enable Play for a new one. Completion emits `chart_availability_changed` to update the footer without reactivating chart previews. Explicit synchronous-library mode retains direct checks for headless callers/tests. `ChartfileReader.exists()` checks an ordinary chart path or only the outer archive for an internal IFS path, never parsing chart contents.
 
+A chart of a remote location (`chartview.location_url`) always exists for this check: `RemoteChartFiles:ensure(chartview)` downloads the chart file (verified against its hash), its audio and its background into the chart's own directory when gameplay or a result is loaded, under the names the chart uses. Nothing else about such a chart is special: it is a chartview of the library, so modifiers, scores, results and replays work as for any chart, and after the download its files are local.
+
 ### Modifier Config Persistence
 `ModifierConfigPersistence` owns loading and saving the play config around modifier coordination. `ModifierCoordinator` requests replay-base load/save through this adapter instead of calling `ConfigModel:write()` or reading `configs.play` directly.
 
