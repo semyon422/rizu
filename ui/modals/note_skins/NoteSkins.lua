@@ -159,6 +159,10 @@ function NoteSkins:new(game, on_close, localization, on_edit)
 	self.overrides_page:add(ModalFooter(function() self:showList() end,
 		localization:get("note_skin_overrides.back")))
 	self.overrides_page:setVisible(false):setEnabled(false)
+
+	game.skinRegistry:onChanged(function()
+		if self.page == "list" then self:refresh() end
+	end)
 end
 
 function NoteSkins:refresh()

@@ -226,7 +226,7 @@ function GameController:new()
 		self.replayBase,
 		self.previewModel
 	)
-	self.libraryDropManager = LibraryDropManager(self.library)
+	self.libraryDropManager = LibraryDropManager(self.library, self.skinRegistry)
 	self.chartExporter = ChartExporter(self.library)
 	self.selectionActions = SelectionActions(
 		self.chartSelector,

@@ -1,4 +1,5 @@
 local class = require("class")
+local Observable = require("Observable")
 local path_util = require("path_util")
 local OsuSkinIni = require("rizu.skin.OsuSkinIni")
 local SkinConfig = require("rizu.skin.SkinConfig")
@@ -49,6 +50,15 @@ local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 
 ---@alias rizu.skin.LoadableSkin rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery
 
+---@class rizu.skin.SkinsChangedEvent
+---@field type "skins_changed"
+
+---@alias rizu.skin.SkinRegistryEvent
+---| rizu.skin.SkinsChangedEvent
+
+---@alias rizu.skin.SkinRegistryEventReceiver fun(event: rizu.skin.SkinRegistryEvent)
+---@alias rizu.skin.SkinRegistryEventObserver {receive: fun(self: table, event: rizu.skin.SkinRegistryEvent)}
+
 ---@class rizu.skin.SkinRegistry
 ---@operator call: rizu.skin.SkinRegistry
 ---@field fs fs.IFilesystem
@@ -57,6 +67,7 @@ local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 ---@field stepmania_skins rizu.skin.StepmaniaSkinDiscovery[]
 ---@field osu_skins rizu.skin.OsuSkinDiscovery[]
 ---@field errors {[string]: string}
+---@field observable util.Observable
 local SkinRegistry = class()
 
 ---@param path string
@@ -93,6 +104,20 @@ function SkinRegistry:new(fs, path)
 	self.stepmania_skins = {}
 	self.osu_skins = {}
 	self.errors = {}
+	self.observable = Observable()
+end
+
+---@param observer rizu.skin.SkinRegistryEventObserver|rizu.skin.SkinRegistryEventReceiver
+---@return util.Observer
+function SkinRegistry:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function SkinRegistry:offChanged(observer)
+	return self.observable:remove(observer)
 end
 
 ---@param path string
@@ -389,6 +414,7 @@ function SkinRegistry:load()
 	table.sort(self.osu_skins, function(a, b)
 		return a.path < b.path
 	end)
+	self.observable:send({type = "skins_changed"})
 end
 
 ---@return rizu.skin.SkinInfo[]
