@@ -46,6 +46,14 @@ The library is structured around a 5-level hierarchy, where each level represent
 - **Decision**: The `ChartviewsRepo` is completely stateless. Every query returns a self-contained `QueryResult` object containing the result buffer and all necessary lookup maps.
 - **Consequence**: High performance and no risk of race conditions when the user rapidly changes filters or search queries.
 
+## Remote Catalog
+
+`scripts/catalog.lua` (`rizu.library.CatalogBuilder`) builds the catalog of charts the client can play without having them, from a directory of charts (`<location>/<set>/<chart files>`). It runs the same `Processor` as the game, so the catalog is a library database in the format of `data.db` holding the mania charts: `locations` (relative `charts/<name>`), `chartfile_sets`, `chartfiles`, `chartmetas`, the default `chartdiffs` and `remote_assets` (per chart: the chart file, the encoded audio, the audio preview and the background image, as paths under the bucket). One table is added: `catalog` (`schema_version`, `version`, `generated_at`). Notes previews are not stored; the size of the file stays a few megabytes.
+
+- Other modes are left out: the engine makes chartdiffs only for mania. They will be added when the engine learns to measure them.
+- The build is resumable. The library is kept in `catalog-work.sqlite` and a chart that is already known is not read again; assets are named after their content (`chart-files/v1/<md5>.<ext>`, `audio/v1/<sha256>-opus-96k-stereo-v1.webm`, `audio-previews/v1/<key>.webm`, `backgrounds/v2/<md5>.avif`), so existing files are reused and never rewritten. This is the naming of the web client's script, so files it made are found.
+- A chart whose audio file is missing is left out. A missing or unreadable background only drops the background.
+
 ## Selection Logic
 
 ### Granularity Levels
