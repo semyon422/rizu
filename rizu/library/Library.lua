@@ -69,15 +69,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.stageStartTime = self.timer:getTime()
 	self.is_sync = false
 
-	local migrations = {}
-	setmetatable(migrations, {__index = function(_, k)
-		local path = ("rizu/library/sql/migrate%s.sql"):format(k)
-		if self.fs:getInfo(path) then
-			return self.fs:read(path)
-		end
-	end})
-
-	self.database = Database(fs, migrations)
+	self.database = Database(fs)
 
 	self.chartsRepo = ChartsRepo(self.database.models)
 	self.difftablesRepo = DifftablesRepo(self.database.models, "immediate")

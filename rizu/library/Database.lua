@@ -13,10 +13,12 @@ local Database = class()
 local user_version = 9
 
 ---@param fs fs.IFilesystem
----@param migrations table?
-function Database:new(fs, migrations)
+function Database:new(fs)
 	self.fs = fs
-	self.migrations = migrations or {}
+	-- Every connection can migrate: one that could not would raise the version and skip the change.
+	self.migrations = setmetatable({}, {__index = function(_, k)
+		return assert(fs:read(("rizu/library/sql/migrate%s.sql"):format(k)))
+	end})
 
 	local db = LjsqliteDatabase()
 	self.db = db
