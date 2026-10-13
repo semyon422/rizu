@@ -26,7 +26,7 @@ RemoteCatalogLoader.max_age = 24 * 60 * 60
 function RemoteCatalogLoader:new(network, fs, url, path)
 	self.network = assert(network, "network is required")
 	self.fs = assert(fs, "filesystem is required")
-	self.url = url or "https://s3.kuudere.fun/catalog.sqlite"
+	self.url = url or "https://s3.kuudere.fun/catalog_v2.sqlite"
 	self.path = path or "userdata/online/catalog.sqlite"
 end
 
