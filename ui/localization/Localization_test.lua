@@ -25,12 +25,12 @@ end
 ---@param t testing.T
 function test.named_interpolation(t)
 	local localization = Localization("en")
-	t:eq(localization:get("remote_catalog.connecting", {url = "example.test"}), "Connecting to example.test")
+	t:eq(localization:get("song_select.filters_active", {count = 3}), "3 active")
 	t:has_error(function()
-		localization:get("remote_catalog.connecting")
+		localization:get("song_select.filters_active")
 	end)
 	t:has_error(function()
-		localization:get("remote_catalog.connecting", {url = {}})
+		localization:get("song_select.filters_active", {count = {}})
 	end)
 end
 

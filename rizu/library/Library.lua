@@ -10,6 +10,7 @@ local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
+local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 require("rizu.library.views")
 
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
@@ -272,6 +273,27 @@ function Library:hasChartfilesAsync()
 		has_chartfiles = self.worker:hasChartfiles()
 	end, true)
 	return has_chartfiles
+end
+
+---Copies a downloaded remote catalog into the library. See `RemoteCatalogLoader.import`.
+---@param path string
+---@param base_url string
+---@return integer? location_id
+---@return string? err
+function Library:importCatalogAsync(path, base_url)
+	local location_id, err
+	if self.is_sync or not self.worker then
+		location_id, err = RemoteCatalogLoader.import(self.database.db, path, base_url)
+	else
+		self:addTask(function()
+			location_id, err = self.worker:importCatalog(path, base_url)
+		end, true)
+	end
+	if location_id then
+		self.locations:selectLocations()
+		self:notifyChartsChanged()
+	end
+	return location_id, err
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams

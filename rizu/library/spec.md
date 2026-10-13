@@ -54,6 +54,10 @@ The library is structured around a 5-level hierarchy, where each level represent
 - The build is resumable. The library is kept in `catalog-work.sqlite` and a chart that is already known is not read again; assets are named after their content (`chart-files/v1/<md5>.<ext>`, `audio/v1/<sha256>-opus-96k-stereo-v1.webm`, `audio-previews/v1/<key>.webm`, `backgrounds/v2/<md5>.avif`), so existing files are reused and never rewritten. This is the naming of the web client's script, so files it made are found.
 - A chart whose audio file is missing is left out. A missing or unreadable background only drops the background.
 
+### Remote locations
+
+A location with an `url` is remote: its charts come from a catalog, and their files are downloaded when needed. `RemoteCatalogLoader:sync(library)` downloads `catalog.sqlite` (once a day at most) and `Library:importCatalogAsync` copies it into `data.db` on the worker: the catalog's sets and chart files go into the one location of that url (`userdata/online/charts`; the catalog's own locations become its top folders), chartmetas and chartdiffs are added unless the library has them, and `remote_assets` is replaced. A catalog of another `catalog.schema_version` is refused. Importing again keeps the ids of what is there. Such a location is never scanned, because a scan removes charts whose files are missing. The same chart can be listed twice, once from a local location and once from the remote one.
+
 ## Selection Logic
 
 ### Granularity Levels

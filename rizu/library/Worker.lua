@@ -3,6 +3,7 @@ local Processor = require("rizu.library.Processor")
 local Database = require("rizu.library.Database")
 local ChartviewsRepo = require("rizu.library.repos.ChartviewsRepo")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
+local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 
 ---@class rizu.library.Worker
 ---@operator call: rizu.library.Worker
@@ -78,6 +79,14 @@ end
 
 function Worker:computeChartplays()
 	self.processor:computeChartplays()
+end
+
+---@param path string
+---@param base_url string
+---@return integer? location_id
+---@return string? err
+function Worker:importCatalog(path, base_url)
+	return RemoteCatalogLoader.import(self.db.db, path, base_url)
 end
 
 ---@return boolean
