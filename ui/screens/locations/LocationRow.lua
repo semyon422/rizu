@@ -21,8 +21,19 @@ function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delet
 
 	local name = self:add(Label({font_name = "bold", font_size = 24, text = location.name}))
 	name:setPosition(24, 20):setSize(width - 540, 30)
-	local path = self:add(Label({font_name = "regular", font_size = 16, text = location.path, color = Colors.muted}))
+	-- A remote location is known by where its charts come from, not by the folder they are downloaded to.
+	local path = self:add(Label({
+		font_name = "regular", font_size = 16, text = location.url or location.path, color = Colors.muted,
+	}))
 	path:setPosition(24, 58):setSize(width - 540, 24)
+
+	local delete_button = {variant = "danger", shape = "capsule", font_name = "medium", font_size = 16}
+	if location.url then
+		-- Its charts are listed by the catalog: there is nothing to scan and no folder to choose.
+		local delete = self:add(Button(ui.localization:get("locations.delete"), function() on_delete(location) end, delete_button))
+		delete:setSize(110, 40):setAlignment(1, 0.5):setOffset(-24, 0)
+		return
+	end
 
 	local update_cache = self:add(Button(ui.localization:get("locations.update_cache"), function() on_update_cache(location) end, {
 		variant = "primary", shape = "capsule", font_name = "medium", font_size = 16,
@@ -37,9 +48,7 @@ function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delet
 		variant = "secondary", shape = "capsule", font_name = "medium", font_size = 16,
 	}))
 	edit:setSize(110, 40):setAlignment(1, 0.5):setOffset(-154, 0)
-	local delete = self:add(Button(ui.localization:get("locations.delete"), function() on_delete(location) end, {
-		variant = "danger", shape = "capsule", font_name = "medium", font_size = 16,
-	}))
+	local delete = self:add(Button(ui.localization:get("locations.delete"), function() on_delete(location) end, delete_button))
 	delete:setSize(110, 40):setAlignment(1, 0.5):setOffset(-24, 0)
 end
 
