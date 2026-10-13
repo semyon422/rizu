@@ -129,15 +129,6 @@ function MainMenu:createFooter()
 	footer:setSize(0, 72):fillWidth(0, 0):setAlignmentY(1)
 
 	local links = footer:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
-	local editor = links:add(MainMenuButton(self.ui.localization:get("main_menu.editor"), function()
-		if self.ui.game.chartSelector:chartExists() then
-			self.ui:setScreen(self.ui.editor)
-		else
-			self.ui:setScreen(self.ui.song_select, true)
-		end
-	end, {font_size = 16, icon = Resources.sprites.icon_brush}))
-	editor:setSize(180, 44)
-
 	local music_player = links:add(MainMenuButton(self.ui.localization:get("main_menu.music_player"), function()
 		self.ui:setScreen(self.ui.music_player, true)
 	end, {font_size = 16, icon = Resources.sprites.icon_music}))

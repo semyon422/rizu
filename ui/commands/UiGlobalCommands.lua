@@ -33,16 +33,6 @@ return function(game, ui)
 				ui.config:setBoolean("show_fps", not show_fps)
 			end,
 		},
-		{
-			id = "ui.global.open_editor",
-			title = "Editor: Open",
-			description = "Opens the editor screen",
-			callback = function()
-				if game.chartSelector:chartExists() then
-					ui:setScreen(ui.editor)
-				end
-			end,
-		},
 	}
 	if game.aiChatModel then
 		table.insert(commands, 1, {

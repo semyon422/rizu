@@ -13,7 +13,7 @@ local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 ---@field gamemode string
 ---@field input_modes string[]
 
----@alias rizu.skin.SkinFormat "lua"|"osu"|"stepmania"
+---@alias rizu.skin.SkinFormat "lua"|"osu"
 
 ---@alias rizu.skin.Screen
 ---| "gameplay"
@@ -28,13 +28,6 @@ local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 ---@field metadata rizu.skin.SkinMetadata?
 ---@field load_module (fun(name: string): any)? Custom skin-local module loader.
 ---@field load fun(context: rizu.skin.SkinLoadContext): unknown
-
----@class rizu.skin.StepmaniaSkinDiscovery : rizu.skin.SkinInfo
----@field name string
----@field path string
----@field directory_path string
----@field format "stepmania"
----@field input_modes string[]
 
 ---@class rizu.skin.OsuSkinDiscovery : rizu.skin.SkinInfo
 ---@field name string
@@ -64,9 +57,7 @@ local SkinLoadContext = require("rizu.skin.SkinLoadContext")
 ---@field fs fs.IFilesystem
 ---@field path string
 ---@field skins rizu.skin.SkinInfo[]
----@field stepmania_skins rizu.skin.StepmaniaSkinDiscovery[]
 ---@field osu_skins rizu.skin.OsuSkinDiscovery[]
----@field errors {[string]: string}
 ---@field observable util.Observable
 local SkinRegistry = class()
 
@@ -97,13 +88,10 @@ function SkinRegistry:new(fs, path)
 	self.fs = fs
 	self.path = path or "userdata/dlc"
 	self.skins_rizu_path = path_util.join(self.path, "skins_rizu")
-	self.skins_stepmania_path = path_util.join(self.path, "skins_stepmania")
 	self.skins_osu_path = path_util.join(self.path, "skins_osu")
 	self.base_path = "rizu/skin/base"
 	self.skins = {}
-	self.stepmania_skins = {}
 	self.osu_skins = {}
-	self.errors = {}
 	self.observable = Observable()
 end
 
@@ -172,7 +160,6 @@ end
 ---@param message unknown
 function SkinRegistry:recordError(path, message)
 	message = tostring(message)
-	self.errors[path] = message
 	print(("SkinRegistry error in %s: %s"):format(path, message))
 end
 
@@ -330,56 +317,6 @@ function SkinRegistry:scanOsu(directory_path)
 end
 
 ---@param directory_path string
----@param input_modes string[]?
-function SkinRegistry:addStepmaniaDiscovery(directory_path, input_modes)
-	local name = directory_path:match("([^/]+)$") or directory_path
-	table.insert(self.stepmania_skins, {
-		name = name,
-		path = directory_path,
-		directory_path = directory_path,
-		format = "stepmania",
-		input_modes = input_modes or {"4key"},
-	})
-end
-
----@param directory_path string
----@param input_modes string[]?
-function SkinRegistry:scanStepmania(directory_path, input_modes)
-	local items = self.fs:getDirectoryItems(directory_path)
-	table.sort(items)
-
-	-- External skin formats are packages rooted at a directory, not individual
-	-- Lua files. Do not execute their scripts while identifying their format.
-	for _, name in ipairs(items) do
-		local path = path_util.join(directory_path, name)
-		local info = self.fs:getInfo(path)
-		if info and info.type == "directory" then
-			-- StepMania accepts either NoteSkin.lua spelling; Linux does not.
-			if self.fs:getInfo(path_util.join(path, "NoteSkin.lua"))
-				or self.fs:getInfo(path_util.join(path, "Noteskin.lua"))
-				or self.fs:getInfo(path_util.join(path, "metrics.ini")) then
-				self:addStepmaniaDiscovery(path, input_modes)
-			elseif name ~= "__MACOSX" then
-				-- Etterna groups NoteSkins by game type. `common` contains shared
-				-- fallback assets, rather than playable skins.
-				local game_type_modes = {
-					dance = {"4key"},
-					kb7 = {"7key"},
-					popn = {"9key"},
-					pump = {"5key"},
-					beat = {"5key", "7key"},
-				}
-				local keymode = name:match("^%d+key$")
-				local modes = game_type_modes[name] or (keymode and {keymode}) or input_modes
-				if name ~= "common" then self:scanStepmania(path, modes) end
-			end
-		elseif info and info.type == "file" and name:lower():match("%.skin%.lua$") then
-			self:loadFile(path)
-		end
-	end
-end
-
----@param directory_path string
 function SkinRegistry:scan(directory_path)
 	for _, name in ipairs(self.fs:getDirectoryItems(directory_path)) do
 		local path = path_util.join(directory_path, name)
@@ -395,14 +332,9 @@ end
 ---Discovers metadata only. Expensive renderer resources stay deferred in SkinInfo.load.
 function SkinRegistry:load()
 	self.skins = {}
-	self.stepmania_skins = {}
 	self.osu_skins = {}
-	self.errors = {}
 	if self.fs:getInfo(self.skins_rizu_path) then
 		self:scan(self.skins_rizu_path)
-	end
-	if self.fs:getInfo(self.skins_stepmania_path) then
-		self:scanStepmania(self.skins_stepmania_path)
 	end
 	if self.fs:getInfo(self.skins_osu_path) then
 		self:scanOsu(self.skins_osu_path)
@@ -420,12 +352,6 @@ end
 ---@return rizu.skin.SkinInfo[]
 function SkinRegistry:getSkins()
 	return self.skins
-end
-
----Discovered package paths are exposed separately and are not loadable skins.
----@return rizu.skin.StepmaniaSkinDiscovery[]
-function SkinRegistry:getStepmaniaSkins()
-	return self.stepmania_skins
 end
 
 ---Discovered osu! skin metadata and parsed ini files; rendering support is separate.
@@ -482,20 +408,6 @@ end
 function SkinRegistry:loadSkin(skin, game, input_mode, screen)
 	assert(skin and type(skin.load) == "function", "skin with a load function is required")
 	assert(type(input_mode) == "string" and input_mode ~= "", "input mode is required")
-	if type(skin) == "table" and skin.format == "osu" then
-		local config = SkinConfig()
-		local config_path = self:getSkinConfigPath(skin)
-		if self.fs:getInfo(config_path) then
-			local loaded, load_error = config:load(self.fs, config_path)
-			if not loaded then
-				print(("could not load skin config %s: %s"):format(config_path, tostring(load_error)))
-			end
-		end
-		local renderer = skin.load(SkinLoadContext({game = game, input_mode = input_mode, screen = screen,
-			skin_path = skin.path, directory_path = skin.directory_path, config = config,
-			config_path = config_path}))
-		return renderer, config, config_path
-	end
 	local config = SkinConfig()
 	local config_path = self:getSkinConfigPath(skin)
 	if self.fs:getInfo(config_path) then

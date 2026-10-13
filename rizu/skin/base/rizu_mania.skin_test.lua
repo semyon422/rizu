@@ -28,10 +28,10 @@ function test.exposes_receptor_and_playfield_properties(t)
 	t:eq(renderer:getReceptorY(), 320)
 	t:eq(renderer:getPlayfieldXOffset(), -24)
 	t:eq(renderer:getBgaBrightness(), 0.4)
-	t:eq(config:getOverride("mania", "4key", "receptor.y"), 320)
-	t:eq(config:getOverride("mania", "4key", "playfield.x_offset"), -24)
-	t:eq(config:getOverride("mania", "4key", "bga.brightness"), 0.4)
-	t:eq(config:getOverride("mania", "7key", "receptor.y"), nil)
+	t:eq(config:get("mania", "4key", "receptor.y"), 320)
+	t:eq(config:get("mania", "4key", "playfield.x_offset"), -24)
+	t:eq(config:get("mania", "4key", "bga.brightness"), 0.4)
+	t:eq(config:get("mania", "7key", "receptor.y"), nil)
 end
 
 ---@param t testing.T

@@ -35,7 +35,7 @@ function NoteSkinList:getItemCount()
 	return #self.items
 end
 
----@param items (rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery|rizu.skin.StepmaniaSkinDiscovery)[]
+---@param items (rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery)[]
 ---@param selected_path string?
 function NoteSkinList:setItems(items, selected_path)
 	self.items = items

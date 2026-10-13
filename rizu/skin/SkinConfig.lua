@@ -5,21 +5,16 @@ local SkinConfigSerializer = require("rizu.skin.SkinConfigSerializer")
 ---@alias rizu.skin.SkinConfigPropertyOverrides {[string]: rizu.skin.SkinConfigValue}
 ---@alias rizu.skin.SkinConfigInputModeOverrides {[string]: rizu.skin.SkinConfigPropertyOverrides}
 ---@alias rizu.skin.SkinConfigOverrides {[string]: rizu.skin.SkinConfigInputModeOverrides}
----@alias rizu.skin.SkinConfigChangeCallback fun(value: rizu.skin.SkinConfigValue?, old_value: rizu.skin.SkinConfigValue?, gamemode: string, input_mode: string, key: string)
 
 ---@class rizu.skin.SkinConfig
 ---@operator call: rizu.skin.SkinConfig
 ---@field private values rizu.skin.SkinConfigOverrides
----@field private subscriptions {[string]: {[string]: {[string]: {[rizu.skin.SkinConfigChangeCallback]: boolean}}}}
----@field private all_subscriptions {[rizu.skin.SkinConfigChangeCallback]: boolean}
 ---@field has_unsaved_changes boolean
 local SkinConfig = class()
 
 ---@param values? rizu.skin.SkinConfigOverrides
 function SkinConfig:new(values)
 	self.values = {}
-	self.subscriptions = {}
-	self.all_subscriptions = {}
 	self.has_unsaved_changes = false
 	if values then
 		self:replaceOverrides(values)
@@ -32,19 +27,11 @@ end
 ---@param default? rizu.skin.SkinConfigValue
 ---@return rizu.skin.SkinConfigValue?
 function SkinConfig:get(gamemode, input_mode, key, default)
-	local value = self:getOverride(gamemode, input_mode, key)
-	if value == nil then return default end
-	return value
-end
-
----@param gamemode string
----@param input_mode string
----@param key string
----@return rizu.skin.SkinConfigValue?
-function SkinConfig:getOverride(gamemode, input_mode, key)
 	local mode_values = self.values[gamemode]
 	local input_values = mode_values and mode_values[input_mode]
-	return input_values and input_values[key]
+	local value = input_values and input_values[key]
+	if value == nil then return default end
+	return value
 end
 
 ---@param gamemode string
@@ -80,67 +67,6 @@ function SkinConfig:set(gamemode, input_mode, key, value)
 		mode_values[input_mode] = input_values
 		input_values[key] = value
 	end
-
-	self:notify(gamemode, input_mode, key, value, old_value)
-end
-
----@param gamemode string
----@param input_mode string
----@param key string
----@param callback rizu.skin.SkinConfigChangeCallback
----@return fun() unsubscribe
-function SkinConfig:subscribe(gamemode, input_mode, key, callback)
-	assert(type(callback) == "function", "callback must be a function")
-	local modes = self.subscriptions[gamemode]
-	if not modes then
-		modes = {}
-		self.subscriptions[gamemode] = modes
-	end
-	local input_modes = modes[input_mode]
-	if not input_modes then
-		input_modes = {}
-		modes[input_mode] = input_modes
-	end
-	local keys = input_modes[key]
-	if not keys then
-		keys = {}
-		input_modes[key] = keys
-	end
-	keys[callback] = true
-	return function()
-		keys[callback] = nil
-	end
-end
-
----@param callback rizu.skin.SkinConfigChangeCallback
----@return fun() unsubscribe
-function SkinConfig:subscribeAll(callback)
-	assert(type(callback) == "function", "callback must be a function")
-	self.all_subscriptions[callback] = true
-	return function()
-		self.all_subscriptions[callback] = nil
-	end
-end
-
----@param gamemode string
----@param input_mode string
----@param key string
----@param value rizu.skin.SkinConfigValue?
----@param old_value rizu.skin.SkinConfigValue?
-function SkinConfig:notify(gamemode, input_mode, key, value, old_value)
-	local callbacks = {} ---@type rizu.skin.SkinConfigChangeCallback[]
-	local modes = self.subscriptions[gamemode]
-	local input_modes = modes and modes[input_mode]
-	local keys = input_modes and input_modes[key]
-	for callback in pairs(keys or {}) do
-		callbacks[#callbacks + 1] = callback
-	end
-	for callback in pairs(self.all_subscriptions) do
-		callbacks[#callbacks + 1] = callback
-	end
-	for _, callback in ipairs(callbacks) do
-		callback(value, old_value, gamemode, input_mode, key)
-	end
 end
 
 ---@param overrides rizu.skin.SkinConfigOverrides
@@ -175,49 +101,7 @@ function SkinConfig:replaceOverrides(overrides)
 		replacement[gamemode] = copied_modes
 	end
 
-	local old_values = self.values
-	local had_unsaved_changes = self.has_unsaved_changes
 	self.values = replacement
-	self.has_unsaved_changes = false
-	for gamemode, modes in pairs(old_values) do
-		for input_mode, keys in pairs(modes) do
-			for key, old_value in pairs(keys) do
-				local new_modes = replacement[gamemode]
-				local new_keys = new_modes and new_modes[input_mode]
-				local new_value = new_keys and new_keys[key]
-				if old_value ~= new_value then
-					self:notify(gamemode, input_mode, key, new_value, old_value)
-				end
-			end
-		end
-	end
-	for gamemode, modes in pairs(replacement) do
-		for input_mode, keys in pairs(modes) do
-			for key, value in pairs(keys) do
-				local old_modes = old_values[gamemode]
-				local old_keys = old_modes and old_modes[input_mode]
-				if not old_keys or old_keys[key] == nil then
-					self:notify(gamemode, input_mode, key, value, nil)
-				end
-			end
-		end
-	end
-	self.has_unsaved_changes = had_unsaved_changes
-end
-
----@return rizu.skin.SkinConfigOverrides
-function SkinConfig:getOverrides()
-	local copy = {} ---@type rizu.skin.SkinConfigOverrides
-	for gamemode, modes in pairs(self.values) do
-		local copied_modes = {} ---@type rizu.skin.SkinConfigInputModeOverrides
-		for input_mode, keys in pairs(modes) do
-			local copied_keys = {} ---@type rizu.skin.SkinConfigPropertyOverrides
-			for key, value in pairs(keys) do copied_keys[key] = value end
-			copied_modes[input_mode] = copied_keys
-		end
-		copy[gamemode] = copied_modes
-	end
-	return copy
 end
 
 ---@return string

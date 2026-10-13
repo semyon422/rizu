@@ -145,7 +145,6 @@ end
 ---@field animation_cache {[string]: rizu.skin.osu.OsuSkinGraphics.Image[]}
 ---@field image_density {[love.Image]: number}
 ---@field loaded boolean
----@field fallback_directory string?
 ---@field atlas_images {[string]: love.Image[]}
 ---@field atlas_frames {[string]: {[string]: rizu.skin.osu.OsuSkinGraphics.Frame}}
 ---@field atlas_limit integer
@@ -169,7 +168,6 @@ function OsuSkinGraphics:new(fs, skin)
 	self.animation_cache = {}
 	self.image_density = {}
 	self.loaded = false
-	self.fallback_directory = nil
 	self.atlas_images = {}
 	self.atlas_frames = {}
 	self.prepared = nil
@@ -194,15 +192,6 @@ function OsuSkinGraphics:indexFiles()
 		local normalized = relative_path:gsub("\\", "/")
 		self.file_map[normalized:lower()] = path_util.join(self.skin.path, relative_path)
 	end
-	if self.fallback_directory then
-		local ok, file_names = pcall(love.filesystem.getDirectoryItems, self.fallback_directory)
-		if ok then
-			for _, file_name in ipairs(file_names) do
-				local asset = self.fallback_directory .. "/" .. file_name
-				self.fallback_file_map[file_name:lower()] = asset
-			end
-		end
-	end
 	if self.fallback_fs and self.fallback_archive then
 		for _, file_name in ipairs(self.fallback_fs:getDirectoryItems("")) do
 			self.fallback_file_map[file_name:lower()] = self.fallback_archive .. "/" .. file_name
@@ -215,15 +204,6 @@ function OsuSkinGraphics:setSkin(skin)
 	if self.skin == skin and (self.loaded or next(self.file_map)) then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end
 	self.skin = skin
-	self.frame_cache = {}
-	self.animation_cache = {}
-	self:indexFiles()
-end
-
-function OsuSkinGraphics:setFallbackDirectory(directory)
-	if self.fallback_directory == directory then return end
-	if self.loaded or next(self.images) or self.prepared then self:unload() end
-	self.fallback_directory = directory
 	self.frame_cache = {}
 	self.animation_cache = {}
 	self:indexFiles()
@@ -320,17 +300,6 @@ end
 function OsuSkinGraphics:loadImage(path)
 	local cached = self.images[path]
 	if cached ~= nil then return cached or nil end
-	if self.fallback_directory and path:sub(1, #self.fallback_directory + 1) == self.fallback_directory .. "/" then
-		local density = get_image_density(path)
-		local image = create_image(path, density)
-		if image then
-			self.images[path] = image
-			self.image_density[image] = density
-			return image
-		end
-		self.images[path] = false
-		return nil
-	end
 	local fs = self.fs
 	local read_path = path
 	if self.fallback_fs and self.fallback_archive
@@ -460,14 +429,8 @@ end
 ---@return love.ImageData?
 function OsuSkinGraphics:loadImageData(path)
 	local fs, read_path = self.fs, path
-	local directory = self.fallback_directory
-	local is_directory = directory and path:sub(1, #directory + 1) == directory .. "/"
 	if self.fallback_fs and self.fallback_archive and path:sub(1, #self.fallback_archive + 1) == self.fallback_archive .. "/" then
 		fs, read_path = self.fallback_fs, path:sub(#self.fallback_archive + 2)
-	end
-	if is_directory then
-		local ok, data = pcall(love.image.newImageData, path)
-		return ok and data or nil
 	end
 	if not fs then return nil end
 	local ok_read, content = pcall(fs.read, fs, read_path)
@@ -692,39 +655,6 @@ end
 function OsuSkinGraphics:getAtlasFrame(group, path)
 	return self.atlas_frames[group] and self.atlas_frames[group][path]
 end
-
----@param group string
----@return integer
-function OsuSkinGraphics:getAtlasCount(group)
-	local images = self.atlas_images[group]
-	return images and #images or 0
-end
-
----@return {[string]: integer}
-function OsuSkinGraphics:getAtlasCounts()
-	local counts = {} ---@type {[string]: integer}
-	for group, images in pairs(self.atlas_images) do counts[group] = #images end
-	return counts
-end
-
----@param group string
----@return string[][]
-function OsuSkinGraphics:getAtlasContents(group)
-	local contents = {} ---@type string[][]
-	local layers = {} ---@type {[love.Image]: integer}
-	for layer, image in ipairs(self.atlas_images[group] or {}) do layers[image] = layer end
-	for path, frame in pairs(self.atlas_frames[group] or {}) do
-		local layer = layers[frame.texture]
-		if layer then
-			local paths = contents[layer] or {}
-			contents[layer] = paths
-			paths[#paths + 1] = path
-		end
-	end
-	for _, paths in ipairs(contents) do table.sort(paths) end
-	return contents
-end
-
 
 ---@param frame rizu.skin.osu.OsuSkinGraphics.Image
 ---@return number, number

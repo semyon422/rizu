@@ -11,82 +11,9 @@ local Settings = require("rizu.config.Settings")
 local UiActions = require("ui.UiActions")
 local View = require("gui.View")
 
----@class ui.modals.note_skins.NoteSkins.ConfigView : gui.View
----@operator call: ui.modals.note_skins.NoteSkins.ConfigView
-local ConfigView = View + {}
-
-local CONFIG_WINDOW_ID = "NoteSkinOverrides"
-local CONFIG_PALETTE = {
-	control = Colors.surface_raised,
-	control_hover = Colors.outline,
-	control_active = Colors.accent,
-	boundless_hover = Colors.surface_raised,
-	boundless_active = Colors.outline,
-	text = Colors.text,
-	muted = Colors.muted,
-	accent = Colors.accent,
-	divider = Colors.divider,
-	scrollbar_track = Colors.surface,
-	scrollbar_thumb = Colors.outline,
-	scrollbar_thumb_hover = Colors.muted,
-}
-
-function ConfigView:new()
-	View.new(self)
-	self.config = nil
-	self.scroll_y = 0
-	self:setClip(true)
-	self.handles_mouse_input = true
-end
-
----@param config sphere.JustConfig?
-function ConfigView:setConfig(config)
-	self.config = config
-	self.scroll_y = 0
-end
-
-function ConfigView:onMouseDown()
-	return true
-end
-
-function ConfigView:onMouseUp()
-	return true
-end
-
-function ConfigView:onMouseClick()
-	return true
-end
-
-function ConfigView:onScroll()
-	return true
-end
-
-function ConfigView:draw()
-	local config = self.config
-	if not config or not config.draw then return end
-	local imgui = require("imgui")
-	local just = require("just")
-	local theme = require("imgui.theme")
-
-	-- Skin configs are legacy immediate-mode UIs authored in drawable pixels.
-	-- Cancel the retained UI's root scale and give them the resulting pixel size.
-	local ui_scale = assert(self.screen).ui_scale
-	local width, height = self.width * ui_scale, self.height * ui_scale
-	love.graphics.push("all")
-	love.graphics.scale(1 / ui_scale)
-	theme.pushPalette(CONFIG_PALETTE)
-	just.push()
-	imgui.Container(CONFIG_WINDOW_ID, width, height, 12, 55, self.scroll_y)
-	config:draw(width, height)
-	self.scroll_y = imgui.Container()
-	just.pop()
-	theme.popPalette()
-	love.graphics.pop()
-end
-
 ---@class ui.modals.note_skins.NoteSkins : ui.ModalView
 ---@operator call: ui.modals.note_skins.NoteSkins
----@field items (rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery|rizu.skin.StepmaniaSkinDiscovery)[]
+---@field items (rizu.skin.SkinInfo|rizu.skin.OsuSkinDiscovery)[]
 ---@field input_mode string
 ---@field is_osu_mode boolean
 ---@field osu_skin_setting_key string?
@@ -120,8 +47,6 @@ function NoteSkins:new(game, on_close, localization, on_edit)
 	self.osu_skin_setting_key = nil
 	self.items = {}
 	self.selected_index = 1
-	self.page = "list"
-	self.edited_note_skin = nil
 
 	self:setSize(WIDTH, HEIGHT):setAlignment(0.5, 0.5):setPivot(0.5, 0.5)
 	self:setOpacity(0):setVisible(false):setClip(true)
@@ -149,19 +74,8 @@ function NoteSkins:new(game, on_close, localization, on_edit)
 	end, {variant = "primary", shape = "capsule", font_size = 18}))
 	self.edit_button:setSize(150, 48):setPosition(WIDTH - CONTENT_X - 150, HEIGHT - 70)
 
-	self.overrides_page = self:add(View())
-	self.overrides_page:anchorFill(0, 0, 0, 0)
-	self.overrides_page:add(ModalHeader(localization:get("note_skin_overrides.title"),
-		localization:get("note_skin_overrides.subtitle")))
-	self.config_view = self.overrides_page:add(ConfigView())
-	self.config_view:anchorFixed(CONTENT_X, HEADER_HEIGHT + CONTENT_PADDING_Y,
-		WIDTH - CONTENT_X * 2, HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - CONTENT_PADDING_Y * 2)
-	self.overrides_page:add(ModalFooter(function() self:showList() end,
-		localization:get("note_skin_overrides.back")))
-	self.overrides_page:setVisible(false):setEnabled(false)
-
 	game.skinRegistry:onChanged(function()
-		if self.page == "list" then self:refresh() end
+		self:refresh()
 	end)
 end
 
@@ -321,35 +235,6 @@ function NoteSkins:editSkin()
 	end
 end
 
-function NoteSkins:showOverrides()
-	local selected = self.items[self.selected_index]
-	if self.is_osu_mode or self.input_mode == "" or selected and selected.format == "osu" then return end
-	local note_skin = self.game.noteSkinModel.noteSkin
-	if not note_skin or not note_skin.config then return end
-	self.page = "overrides"
-	self.edited_note_skin = note_skin
-	self.config_view:setConfig(note_skin.config)
-	self.list_page:setVisible(false):setEnabled(false)
-	self.overrides_page:setVisible(true):setEnabled(true)
-end
-
-function NoteSkins:showList()
-	if self.page ~= "overrides" then return end
-	local note_skin = self.edited_note_skin
-	if note_skin and note_skin.config then
-		note_skin.config:close()
-	end
-	if self.input_mode ~= "" and not self.is_osu_mode then
-		self.game.noteSkinModel:loadNoteSkin(self.input_mode)
-	end
-	self.edited_note_skin = nil
-	self.config_view:setConfig(nil)
-	self.page = "list"
-	self.overrides_page:setVisible(false):setEnabled(false)
-	self.list_page:setVisible(true):setEnabled(true)
-	self:refresh()
-end
-
 ---@param offset integer
 function NoteSkins:move(offset)
 	if #self.items == 0 then return end
@@ -361,12 +246,6 @@ end
 
 ---@param inputs gui.Inputs
 function NoteSkins:onHandleInputs(inputs)
-	if self.page == "overrides" then
-		if inputs:consumeActionJustPressed(UiActions.cancel) then
-			self:showList()
-		end
-		return
-	end
 	if inputs:consumeActionJustPressed(UiActions.down) then
 		self:move(1)
 	elseif inputs:consumeActionJustPressed(UiActions.up) then
@@ -381,9 +260,6 @@ function NoteSkins:show()
 end
 
 function NoteSkins:hide()
-	if self.page == "overrides" then
-		self:showList()
-	end
 	self:transformTo("opacity", 0, 0.2, "InCubic", function()
 		self:setVisible(false)
 	end)

@@ -5,7 +5,6 @@ local utf8validate = require("utf8validate")
 
 local OnlineModel = require("rizu.online.OnlineModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
-local NoteSkinModel = require("sphere.models.NoteSkinModel")
 local InputModel = require("sphere.models.InputModel")
 local ChartSelector = require("rizu.select.ChartSelector")
 local RemoteAssetCache = require("rizu.library.RemoteAssetCache")
@@ -137,7 +136,6 @@ function GameController:new()
 
 	self.multiplayer_client.server_remote = self.seaClient.remote
 
-	self.noteSkinModel = NoteSkinModel(self.settings, self.packageManager)
 	self.skinRegistry = SkinRegistry(self.fs)
 	self.inputModel = InputModel(self.persistence.configModel)
 	self.pauseModel = PauseModel(self.settings, self.rhythm_engine)
@@ -248,7 +246,6 @@ function GameController:new()
 	self.editorController = EditorController({
 		chartSelector = self.chartSelector,
 		editorModel = self.editorModel,
-		noteSkinModel = self.noteSkinModel,
 		settings = self.settings,
 		windowModel = self.windowModel,
 		library = self.library,
@@ -365,7 +362,6 @@ function GameController:load()
 		end
 	end)
 
-	self.noteSkinModel:load()
 	self.skinRegistry:load()
 	self.dlcManager:load()
 	self.collectionSelector:load()

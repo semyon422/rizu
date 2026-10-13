@@ -262,14 +262,13 @@ function NeedleToolRegistry:snapshot()
 	local panel_commands = {
 		modifiers = commands["ui.select.open_modifiers"], filters = commands["ui.select.open_filters"],
 		input = commands["ui.select.open_input"], note_skins = commands["ui.select.open_noteskins"],
-		editor = commands["ui.global.open_editor"],
 	}
 	if panel_commands.modifiers then
 		addTool(tools, by_name, {
 			name = "open_panel",
-			description = "Open a game configuration panel or the chart editor.",
-			routing_description = "open settings panel editor",
-			parameters = object({panel = stringEnum({"modifiers", "filters", "input", "note_skins", "editor"}, "Panel to open.")}, {"panel"}),
+			description = "Open a game configuration panel.",
+			routing_description = "open settings panel",
+			parameters = object({panel = stringEnum({"modifiers", "filters", "input", "note_skins"}, "Panel to open.")}, {"panel"}),
 			argument_order = {"panel"},
 			execute = function(args) assert(panel_commands[args.panel]).callback({}) end,
 		})

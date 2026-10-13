@@ -10,7 +10,6 @@ local Settings = require("rizu.config.Settings")
 ---@class rizu.editor.EditorLoadControllerContext
 ---@field chartSelector rizu.select.ChartSelector
 ---@field editorModel rizu.editor.EditorModel
----@field noteSkinModel sphere.NoteSkinModel
 ---@field settings rizu.config.Config
 ---@field windowModel rizu.WindowModel
 ---@field fileFinder sphere.FileFinder
@@ -34,35 +33,8 @@ end
 
 ---@param context rizu.editor.EditorLoadControllerContext
 function EditorLoadControllerService:load(context)
-	local chartSelector = context.chartSelector
-	local editorModel = context.editorModel
-
-	local chart, chartmeta = chartSelector:loadChart()
-
-	if context.isModifierApplyRequested() then
-		self.modifierModel:apply(context.replayBase.modifiers, chart)
-	end
-
-	local chartview = chartSelector.chartview
-
-	local noteSkin = context.noteSkinModel:loadNoteSkin(tostring(chart.inputMode))
-	noteSkin:loadData()
-	noteSkin.editor = true
-
-	editorModel:setNoteSkin(noteSkin)
-	editorModel.chart = chart
-	editorModel.chartmeta = chartmeta
-	editorModel:load()
-
-	context.previewModel:stop()
-
-	local paths = self:getResourcePaths(context.settings, chartview, noteSkin, context.fs)
-	self:loadResourcePaths(context.fileFinder, context.resource_finder, paths)
-
-	context.resource_loader:load(chart.resources)
-	editorModel:loadResources(context.resource_loader.resources)
-
-	context.windowModel:setVsyncOnSelect(false)
+	-- The old skin system that gave the editor its playfield is removed; restore the load with the renderer port.
+	error("the editor is disabled until it is ported to the new skin renderers")
 end
 
 ---@param settings rizu.config.Config

@@ -99,12 +99,12 @@ function test.loads_skin_with_an_instance_scoped_config(t)
 	t:assert(first_config ~= second_config)
 	t:eq(first_path, "userdata/dlc/skins_rizu/example/example.skin-config.json")
 	first_config:set("mania", "4key", "receptor.y", 320)
-	t:eq(second_config:getOverride("mania", "4key", "receptor.y"), nil)
+	t:eq(second_config:get("mania", "4key", "receptor.y"), nil)
 	first_config:save(fs, first_path)
 
 	local reloaded_renderer, reloaded_config = registry:loadSkin(skin, {}, "4key", "gameplay")
 	t:tdeq(reloaded_renderer, {})
-	t:eq(reloaded_config:getOverride("mania", "4key", "receptor.y"), 320)
+	t:eq(reloaded_config:get("mania", "4key", "receptor.y"), 320)
 end
 
 ---@param t testing.T
@@ -112,42 +112,6 @@ function test.base_skin_config_uses_userdata_base_directory(t)
 	local registry = SkinRegistry(FakeFilesystem())
 	local path = registry:getSkinConfigPath({path = "rizu/skin/base/rizu_mania.skin.lua"})
 	t:eq(path, "userdata/dlc/skins_rizu/base/rizu_mania.skin-config.json")
-end
-
----@param t testing.T
-function test.discovers_skins_stepmania_in_etterna_game_type_directories(t)
-	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_stepmania/dance/example")
-	fs:write("userdata/dlc/skins_stepmania/dance/example/NoteSkin.lua", "error('must not execute during discovery')")
-	fs:createDirectory("userdata/dlc/skins_stepmania/kb7/example")
-	fs:write("userdata/dlc/skins_stepmania/kb7/example/Noteskin.lua", "error('must not execute during discovery')")
-	fs:createDirectory("userdata/dlc/skins_stepmania/beat/example")
-	fs:write("userdata/dlc/skins_stepmania/beat/example/metrics.ini", "")
-	fs:createDirectory("userdata/dlc/skins_stepmania/common/example")
-	fs:write("userdata/dlc/skins_stepmania/common/example/metrics.ini", "")
-
-	local registry = SkinRegistry(fs)
-	registry:load()
-
-	t:eq(#registry:getSkins(), 0)
-	t:eq(registry:getSkinForInputMode("mania", "4key"), nil)
-
-	local discoveries = registry:getStepmaniaSkins()
-	t:eq(#discoveries, 3)
-	local discovered = {}
-	for _, skin in ipairs(discoveries) do
-		discovered[skin.path] = skin
-		t:eq(skin.format, "stepmania")
-		t:eq(registry:getSkin(skin.path), nil)
-	end
-	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].name, "example")
-	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].format, "stepmania")
-	t:eq(discovered["userdata/dlc/skins_stepmania/dance/example"].directory_path,
-		"userdata/dlc/skins_stepmania/dance/example")
-	t:tdeq(discovered["userdata/dlc/skins_stepmania/dance/example"].input_modes, {"4key"})
-	t:tdeq(discovered["userdata/dlc/skins_stepmania/kb7/example"].input_modes, {"7key"})
-	t:tdeq(discovered["userdata/dlc/skins_stepmania/beat/example"].input_modes, {"5key", "7key"})
-	t:eq(discovered["userdata/dlc/skins_stepmania/common/example"], nil)
 end
 
 ---@param t testing.T
@@ -243,8 +207,6 @@ function test.isolates_invalid_lua_skins(t)
 	registry:load()
 
 	t:eq(#registry:getSkins(), 1)
-	t:assert(registry.errors["userdata/dlc/skins_rizu/bad.skin.lua"])
-	t:assert(registry.errors["userdata/dlc/skins_rizu/bytecode.skin.lua"])
 end
 
 return test

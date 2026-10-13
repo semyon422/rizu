@@ -186,8 +186,6 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 	assert(gamemode.saves_scores or not game.multiplayerModel.client:isInRoom(),
 		"Experimental modes are not available in multiplayer.")
 	local paths = self:getResourcePaths(chartview, gamemode, GameplayInteractor.getInputMode(chart))
-	---@diagnostic disable-next-line: no-unknown
-	self.noteSkin = nil
 	self:loadFileFinderPaths(paths)
 
 	local resource_future = game.resource_loader:startLoadAsync(chart.resources, paths)

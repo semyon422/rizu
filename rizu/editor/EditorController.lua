@@ -7,7 +7,6 @@ local LoveFilesystem = require("fs.LoveFilesystem")
 ---@class rizu.editor.EditorControllerDeps
 ---@field chartSelector rizu.select.ChartSelector
 ---@field editorModel rizu.editor.EditorModel
----@field noteSkinModel sphere.NoteSkinModel
 ---@field settings rizu.config.Config
 ---@field windowModel rizu.WindowModel
 ---@field library rizu.library
@@ -37,7 +36,6 @@ local EditorController = class()
 function EditorController:new(deps)
 	self.chartSelector = deps.chartSelector
 	self.editorModel = deps.editorModel
-	self.noteSkinModel = deps.noteSkinModel
 	self.settings = assert(deps.settings, "settings are required")
 	self.windowModel = deps.windowModel
 	self.library = deps.library
@@ -73,7 +71,6 @@ function EditorController:createLoadControllerContext()
 	return {
 		chartSelector = self.chartSelector,
 		editorModel = self.editorModel,
-		noteSkinModel = self.noteSkinModel,
 		settings = self.settings,
 		windowModel = self.windowModel,
 		fileFinder = self.fileFinder,
