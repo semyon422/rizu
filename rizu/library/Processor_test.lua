@@ -60,6 +60,28 @@ input 4key
 end
 
 ---@param t testing.T
+function test.remote_location_is_not_scanned(t)
+	local fs = FakeFilesystem()
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+
+	local processor = Processor(onChartsChanged, db, fs, "/fake/root", timer)
+	local location = processor.locationsRepo:insertLocation({
+		path = "userdata/online", name = "online", is_relative = true, is_internal = false,
+		url = "https://cdn.test",
+	})
+	-- Listed by the catalog, not downloaded.
+	processor.chartfilesRepo:insertChartfileSet({
+		dir = nil, name = "set", modified_at = 0, is_file = false, location_id = location.id,
+	})
+
+	processor:computeLocation(nil, location.id)
+	t:eq(processor.chartfilesRepo:countChartfileSets({location_id = location.id}), 1)
+
+	db:unload()
+end
+
+---@param t testing.T
 function test.getChartsByHash(t)
 	local fs = FakeFilesystem()
 	local db = Database(LinuxFilesystem())

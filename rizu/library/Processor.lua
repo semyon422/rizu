@@ -132,6 +132,10 @@ function Processor:computeLocation(path, location_id)
 		self:addError("location not found")
 		return
 	end
+	-- A scan would remove every chart that is not downloaded yet.
+	if location.url then
+		return
+	end
 
 	local location_prefix = self.locations:getPrefix(location)
 	local is_iidx_location = IidxCatalog.isLocation(self.fs, location_prefix)

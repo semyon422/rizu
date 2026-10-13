@@ -115,6 +115,7 @@ function Locations:enrichChartview(chart)
 		self.locationsById[chart.location_id] = location
 	end
 	local prefix = self:getPrefix(location)
+	chart.location_url = location.url
 	chart.location_prefix = prefix
 	chart.location_dir = path_util.join(prefix, chart.dir)
 	chart.location_path = path_util.join(prefix, chart.path)

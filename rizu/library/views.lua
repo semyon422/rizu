@@ -4,6 +4,7 @@
 ---@field name string
 ---@field is_relative boolean
 ---@field is_internal boolean
+---@field url string? Remote locations only: where the catalog's files are downloaded from.
 
 ---@class rizu.library.Location: rizu.library.LocationInsert
 ---@field id integer
@@ -117,6 +118,7 @@
 ---@class rizu.library.Chartview: rizu.library.IChartviewBase, rizu.library.ChartviewSetFields, rizu.library.ChartviewFileFields, rizu.library.ChartviewPlayStatFields, rizu.library.ChartviewMetaFields, rizu.library.ChartviewMetaUserDataFields, rizu.library.ChartviewDiffFields, rizu.library.ChartviewDiffPreviewFields, rizu.library.ChartviewRepoComputedFields
 
 ---@class rizu.library.LocatedChartview: rizu.library.Chartview
+---@field location_url string? Of a remote location: the chart's files may not be downloaded yet.
 ---@field location_prefix string
 ---@field location_dir string
 ---@field location_path string

@@ -30,7 +30,18 @@ CREATE TABLE IF NOT EXISTS `locations` (
 	`path` TEXT UNIQUE,
 	`name` TEXT NOT NULL,
 	`is_relative` INTEGER NOT NULL,
-	`is_internal` INTEGER NOT NULL
+	`is_internal` INTEGER NOT NULL,
+	`url` TEXT
+);
+
+CREATE TABLE IF NOT EXISTS `remote_assets` (
+	`hash` TEXT NOT NULL,
+	`index` INTEGER NOT NULL,
+	`chart_path` TEXT NOT NULL,
+	`audio_path` TEXT NOT NULL,
+	`audio_preview_path` TEXT NOT NULL,
+	`background_path` TEXT,
+	PRIMARY KEY (`hash`, `index`)
 );
 
 CREATE TABLE IF NOT EXISTS `collections` (
