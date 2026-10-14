@@ -2,6 +2,8 @@ local Online = require("rizu.api.Online")
 local Play = require("rizu.api.Play")
 local Result = require("rizu.api.Result")
 local Gameplay = require("rizu.api.Gameplay")
+local Input = require("rizu.api.Input")
+local Skins = require("rizu.api.Skins")
 local OnlineClient = require("rizu.online.OnlineClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local ReplayBase = require("sea.replays.ReplayBase")
@@ -183,6 +185,62 @@ function test.gameplay_score(t)
 	t:eq(taiko:getJudgementCount(), 0)
 	t:tdeq(taiko:getVisibleNotes(), {})
 	t:eq(taiko:isColumnPressed(1), false)
+end
+
+---@param t testing.T
+function test.input_bindings(t)
+	local config, writes = {}, 0
+	local game = {configModel = {configs = {input = config}, write = function() writes = writes + 1 end}}
+	local input = Input(game --[[@as any]])
+	local changes = {}
+	input:on("bindings_changed", function(mode) changes[#changes + 1] = mode end)
+
+	t:tdeq(input:getColumns("4key"), {"key1", "key2", "key3", "key4"})
+	t:eq(input:getSlotCount("key1"), 1)
+	t:eq(input:getSlotCount("scratch1"), 2)
+
+	t:eq(input:getBinding("4key", "key2", 1), nil)
+	input:setBinding("4key", "key2", 1, "d", "keyboard", 1)
+	t:tdeq({input:getBinding("4key", "key2", 1)}, {"d", "keyboard", 1})
+	t:eq(writes, 1)
+
+	input:clearBinding("4key", "key2", 1)
+	t:eq(input:getBinding("4key", "key2", 1), nil)
+	input:setBinding("4key", "key1", 1, "a", "keyboard", 1)
+	input:resetBindings("4key")
+	t:eq(input:getBinding("4key", "key1", 1), nil)
+	t:eq(writes, 4)
+	t:tdeq(changes, {"4key", "4key", "4key", "4key"})
+end
+
+---@param t testing.T
+function test.skins(t)
+	local list = {{path = "builtin/mania"}, {path = "skins/a"}}
+	local registry_listener, selected
+	local game = {
+		skinRegistry = {
+			onChanged = function(_, f) registry_listener = f end,
+			getSkinsFor = function() return list end,
+			resolve = function() return list[2] end,
+			select = function(_, gamemode, mode, skin) selected = {gamemode, mode, skin} end,
+		},
+		chartSelector = {chartview = {chartmeta_mode = "mania"}, isPlayableChartview = function() return true end},
+		modifierCoordinator = {state = {inputMode = "7key"}},
+	}
+	local skins = Skins(game --[[@as any]])
+	local changed = 0
+	skins:on("skins_changed", function() changed = changed + 1 end)
+
+	t:tdeq({skins:getContext()}, {"mania", "7key"})
+	t:eq(skins:getList("mania", "7key"), list)
+	t:eq(skins:getSelected("mania", "7key"), list[2])
+	skins:select("mania", "7key", list[1])
+	t:tdeq(selected, {"mania", "7key", list[1]})
+	registry_listener()
+	t:eq(changed, 1)
+
+	game.chartSelector.isPlayableChartview = function() return false end
+	t:eq(skins:getContext(), nil)
 end
 
 return test

@@ -6,25 +6,25 @@ local View = require("gui.View")
 ---@class ui.modals.input.BindingColumn : gui.View
 ---@operator call: ui.modals.input.BindingColumn
 ---@field column chart.Column
----@field binder rizu.InputBinder
+---@field input rizu.api.Input
+---@field input_mode string
 ---@field waiting_index integer?
 ---@field on_waiting fun(column: ui.modals.input.BindingColumn, binding_index: integer)
----@field on_changed fun()
 local BindingColumn = View + {}
 
 local LABEL_HEIGHT = 34
 
 ---@param column chart.Column
----@param binder rizu.InputBinder
+---@param input rizu.api.Input
+---@param input_mode string
 ---@param width number
 ---@param on_waiting fun(column: ui.modals.input.BindingColumn, binding_index: integer)
----@param on_changed fun()
-function BindingColumn:new(column, binder, width, on_waiting, on_changed)
+function BindingColumn:new(column, input, input_mode, width, on_waiting)
 	View.new(self)
 	self.column = column
-	self.binder = binder
+	self.input = input
+	self.input_mode = input_mode
 	self.on_waiting = on_waiting
-	self.on_changed = on_changed
 	self.waiting_index = nil
 	self.font = Resources.getFont("bold", 20)
 	self.key_font = Resources.getFont("regular", 18)
@@ -46,7 +46,7 @@ end
 
 ---@return integer
 function BindingColumn:getBindingCount()
-	return self:isScratch() and 2 or 1
+	return self.input:getSlotCount(self.column)
 end
 
 ---@param waiting boolean
@@ -79,8 +79,7 @@ function BindingColumn:onMouseClick(e)
 		return true
 	elseif e.button == 2 then
 		self:setWaiting(false)
-		self.binder:setKey(self.column, binding_index)
-		self.on_changed()
+		self.input:clearBinding(self.input_mode, self.column, binding_index)
 		return true
 	end
 end
@@ -117,7 +116,7 @@ function BindingColumn:draw()
 	lg.setFont(self.key_font)
 	for binding_index = 1, binding_count do
 		local cell_y = LABEL_HEIGHT + (binding_index - 1) * cell_height
-		local key = self.binder:getKey(self.column, binding_index)
+		local key = self.input:getBinding(self.input_mode, self.column, binding_index)
 		local text = self.waiting_index == binding_index and "..." or (key and tostring(key):upper() or "")
 		Painter.setColorTable(is_scratch and Colors.accent or Colors.text)
 		local text_width = self.key_font:getWidth(text)

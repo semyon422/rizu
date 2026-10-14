@@ -91,17 +91,17 @@ function ModalManager:new(ui, popup_container)
 			function() self:detachMapperatorinator() end,
 			popup_container
 		))
-		self.input = self:addModal(Input(game, function() self:hideModal(self.input) end, localization))
-		game.chartSelector:onChanged(self.input)
 	end
+	self.input = self:addModal(Input(ui.api.input, function() self:hideModal(self.input) end, localization))
+	ui.api.charts:on("selection_changed", function() self.input:receive() end)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization))
+	self.note_skins = self:addModal(NoteSkins(ui.api.skins,
+		function() self:hideModal(self.note_skins) end, localization, function()
+			self:hideModal(self.note_skins)
+			ui:loadSelectedChart(true, true, true)
+		end))
 	if game then
-		self.note_skins = self:addModal(NoteSkins(game,
-			function() self:hideModal(self.note_skins) end, localization, function()
-				self:hideModal(self.note_skins)
-				ui:loadSelectedChart(true, true, true)
-			end))
 		self.chart_mutators = self:addModal(ChartMutators(game, modifiers_changed, localization))
 	end
 	self.collection_selector = self:addModal(CollectionSelector(function()

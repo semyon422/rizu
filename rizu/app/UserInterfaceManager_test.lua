@@ -50,6 +50,7 @@ end
 local function createGame(selected)
 	---@type sphere.GameController
 	local game = {
+		api = {removeListeners = function() end},
 		settings = {
 			getString = function() return selected end,
 			setString = function(_, _, value) selected = value end,

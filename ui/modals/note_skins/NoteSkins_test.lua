@@ -32,17 +32,18 @@ end
 local function new_modal(input_mode, chartview, skins, selected)
 	local state = {}
 	local modal = {
-		game = {
-			modifierCoordinator = {state = {inputMode = input_mode}},
-			chartSelector = {chartview = chartview},
-			skinRegistry = {
-				getSkinsFor = function(_, gamemode, mode)
-					state.listed = {gamemode, mode}
-					return skins
-				end,
-				resolve = function() return selected end,
-				select = function(_, gamemode, mode, skin) state.selected = {gamemode, mode, skin} end,
-			},
+		skins = {
+			getContext = function()
+				if chartview and chartview.chartmeta_mode and input_mode ~= "" then
+					return chartview.chartmeta_mode, input_mode
+				end
+			end,
+			getList = function(_, gamemode, mode)
+				state.listed = {gamemode, mode}
+				return skins
+			end,
+			getSelected = function() return selected end,
+			select = function(_, gamemode, mode, skin) state.selected = {gamemode, mode, skin} end,
 		},
 		localization = {get = function(_, key) return key end},
 		list_header = {subtitle = {setText = function(_, text) state.subtitle = text end}},

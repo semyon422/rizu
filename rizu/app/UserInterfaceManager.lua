@@ -100,6 +100,9 @@ function UserInterfaceManager:loadSelected()
 		return item.name == name
 	end) or self.default_user_interface
 
+	-- The old UI's listeners would keep being called otherwise.
+	self.game.api:removeListeners()
+
 	local ok, instance_or_error = xpcall(function()
 		return ui_class(self.game, self.mount_paths[ui_class])
 	end, debug.traceback)

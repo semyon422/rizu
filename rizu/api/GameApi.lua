@@ -6,6 +6,8 @@ local Online = require("rizu.api.Online")
 local Play = require("rizu.api.Play")
 local Result = require("rizu.api.Result")
 local Gameplay = require("rizu.api.Gameplay")
+local Skins = require("rizu.api.Skins")
+local Input = require("rizu.api.Input")
 
 ---Everything a user interface needs from the game, one documented object per area.
 ---A UI gets it as `ui.api`. What is not here yet is still reachable through `ui.game`.
@@ -18,6 +20,8 @@ local Gameplay = require("rizu.api.Gameplay")
 ---@field play rizu.api.Play Music speed, mods, judging, starting a play.
 ---@field result rizu.api.Result How the last play went, or a score loaded from the leaderboard.
 ---@field gameplay rizu.api.Gameplay The play in progress. Lua skins get this object too.
+---@field skins rizu.api.Skins Gameplay skins: the list for a chart, and the chosen one.
+---@field input rizu.api.Input Key bindings.
 ---@field settings rizu.config.Config Every setting. Keys are in `rizu.config.Settings.keys`, see `rizu/config/spec.md`.
 ---@field fake boolean? True when this is `rizu.api.fake.FakeGameApi` and there is no game behind it.
 local GameApi = class()
@@ -31,7 +35,18 @@ function GameApi:new(game)
 	self.play = Play(game)
 	self.result = Result(game)
 	self.gameplay = Gameplay(game)
+	self.skins = Skins(game)
+	self.input = Input(game)
 	self.settings = game.settings
+end
+
+---Forgets the listeners of every area. `UserInterfaceManager` calls this before it creates a new user interface.
+function GameApi:removeListeners()
+	for _, area in pairs(self) do
+		if type(area) == "table" and area.removeListeners then
+			area:removeListeners()
+		end
+	end
 end
 
 return GameApi

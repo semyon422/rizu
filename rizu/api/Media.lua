@@ -1,5 +1,7 @@
 local Events = require("rizu.api.Events")
 
+local NO_IMAGES = {}
+
 --[[
 What the selected chart looks and sounds like before it is played: its background image, the audio
 preview that plays on song select, and the moving preview of its notes.
@@ -39,7 +41,7 @@ end
 ---@return love.Image[] images Empty until the first image is ready.
 ---@return number alpha 0..1
 function Media:getBackgroundImages()
-	return self.background.images or {}, self.background.alpha or 0
+	return self.background.images or NO_IMAGES, self.background.alpha or 0
 end
 
 -- Audio preview

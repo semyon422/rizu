@@ -82,7 +82,7 @@ function Scores:getSelected() return self.selector.chartplay --[[@as rizu.api.Sc
 
 ---Replays the selected score in the background so the result screen can show it.
 ---f gets false when there is no selected score or its replay could not be loaded.
----@param f fun(ok: boolean)
+---@param f fun(ok: boolean, err: string?)
 function Scores:loadSelectedResult(f)
 	local chartplay = self.selector.chartplay
 	if not chartplay then
@@ -95,7 +95,7 @@ function Scores:loadSelectedResult(f)
 		if not ok then
 			print("failed to load score:", err)
 		end
-		f(ok)
+		f(ok, not ok and tostring(err) or nil)
 	end)()
 end
 

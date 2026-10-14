@@ -175,22 +175,28 @@ end
 
 ---@param self rizu.api.Result
 ---@param mode "retry"|"replay"
----@param f fun(ok: boolean)
+---@param f fun(ok: boolean, err: string?)
 local function loadGameplay(self, mode, f)
 	local game = self.game ---@diagnostic disable-line: invisible
 	thread.coro(function()
-		f(game.resultController:replayNoteChartAsync(mode, game.scoreSelector.chartplay) and true or false)
+		local ok, result = pcall(game.resultController.replayNoteChartAsync, game.resultController,
+			mode, game.scoreSelector.chartplay)
+		if not ok then
+			print("failed to load gameplay:", result)
+			return f(false, tostring(result))
+		end
+		f(result and true or false)
 	end)()
 end
 
 ---Loads the chart to play it again the way the selected score was played.
----Switch to the gameplay screen when f gets true.
----@param f fun(ok: boolean)
+---Switch to the gameplay screen when f gets true. On failure the error text is the second argument.
+---@param f fun(ok: boolean, err: string?)
 function Result:retry(f) loadGameplay(self, "retry", f) end
 
 ---Loads the chart to watch the selected score's replay.
----Switch to the gameplay screen when f gets true.
----@param f fun(ok: boolean)
+---Switch to the gameplay screen when f gets true. On failure the error text is the second argument.
+---@param f fun(ok: boolean, err: string?)
 function Result:watch(f) loadGameplay(self, "replay", f) end
 
 ---Call when the result screen is left for song select.

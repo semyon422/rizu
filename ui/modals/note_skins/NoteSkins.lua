@@ -12,8 +12,9 @@ local View = require("gui.View")
 
 ---@class ui.modals.note_skins.NoteSkins : ui.ModalView
 ---@operator call: ui.modals.note_skins.NoteSkins
----@field items rizu.skin.Skin[]
+---@field items rizu.api.Skin[]
 ---@field input_mode string
+---@field skins rizu.api.Skins
 ---@field gamemode string?
 local NoteSkins = ModalView + {}
 
@@ -24,14 +25,14 @@ local HEADER_HEIGHT = 112
 local FOOTER_HEIGHT = 92
 local CONTENT_PADDING_Y = 20
 
----@param game sphere.GameController
+---@param skins rizu.api.Skins
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
 ---@param on_edit fun()?
-function NoteSkins:new(game, on_close, localization, on_edit)
+function NoteSkins:new(skins, on_close, localization, on_edit)
 	ModalView.new(self)
 	self.localization = localization
-	self.game = game
+	self.skins = skins
 	self.on_edit = on_edit
 	self.input_mode = ""
 	self.items = {}
@@ -63,20 +64,15 @@ function NoteSkins:new(game, on_close, localization, on_edit)
 	end, {variant = "primary", shape = "capsule", font_size = 18}))
 	self.edit_button:setSize(150, 48):setPosition(WIDTH - CONTENT_X - 150, HEIGHT - 70)
 
-	game.skinRegistry:onChanged(function()
+	skins:on("skins_changed", function()
 		self:refresh()
 	end)
 end
 
 function NoteSkins:refresh()
-	self.input_mode = tostring(self.game.modifierCoordinator.state.inputMode or "")
-	local chart_selector = self.game.chartSelector
-	local chartview = chart_selector and chart_selector.chartview
-	local has_chart = chartview ~= nil
-	if chart_selector and chart_selector.isPlayableChartview then
-		has_chart = chart_selector:isPlayableChartview(chartview)
-	end
-	self.gamemode = has_chart and chartview.chartmeta_mode or nil
+	local gamemode, input_mode = self.skins:getContext()
+	self.input_mode = input_mode or ""
+	self.gamemode = gamemode
 	self.items = {}
 	self.selected_index = 1
 	if not self.gamemode or self.input_mode == "" then
@@ -86,9 +82,8 @@ function NoteSkins:refresh()
 		return
 	end
 
-	local registry = self.game.skinRegistry
-	self.items = registry:getSkinsFor(self.gamemode, self.input_mode)
-	local selected = registry:resolve(self.gamemode, self.input_mode)
+	self.items = self.skins:getList(self.gamemode, self.input_mode)
+	local selected = self.skins:getSelected(self.gamemode, self.input_mode)
 	local selected_path = selected and selected.path
 	if self.gamemode == "mania" then
 		self.list_header.subtitle:setText(self.localization:get("song_select.choose_skin_for") .. self.input_mode .. ".")
@@ -110,7 +105,7 @@ function NoteSkins:select(index)
 	local item = self.items[index]
 	if not item or not self.gamemode then return end
 	self.selected_index = index
-	self.game.skinRegistry:select(self.gamemode, self.input_mode, item)
+	self.skins:select(self.gamemode, self.input_mode, item)
 	self.list.selected_path = item.path
 	self.edit_button:setEnabled(true)
 end
