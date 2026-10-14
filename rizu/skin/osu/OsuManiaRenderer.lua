@@ -495,9 +495,11 @@ function OsuManiaRenderer:update(dt)
 	end
 end
 
+---Yields while a worker thread decodes the skin, so call it from a coroutine to keep the UI responsive.
 function OsuManiaRenderer:load()
 	local skin = self.skin
-	if self.skin == skin and self.skin_graphics.loaded
+	if self.skin_graphics.loading then return end
+	if self.skin_graphics.loaded
 		and self.skin_graphics.skin == skin
 		and self.skin_graphics.fallback_archive == "resources/osu_default_assets.zip" then return end
 
@@ -512,7 +514,8 @@ function OsuManiaRenderer:load()
 		local texture_limit = limits.texturesize > 0 and limits.texturesize or 4096
 		self.skin_graphics:setTextureLimit(texture_limit)
 		self.skin_graphics:setAtlasLimit(math.min(4096, texture_limit))
-		self.skin_graphics:load(self:getSkinAssets())
+		-- unload() while waiting cancels the load; there is nothing to build then.
+		if not self.skin_graphics:loadAsync(self:getSkinAssets()) then return end
 	end
 	self:loadLightings()
 	self.foreground_hud:load(self.game)

@@ -4,6 +4,8 @@ local Renderer = require("rizu.skin.osu.OsuManiaRenderer")
 local Image = require("rizu.skin.osu.OsuImage")
 local BitmapFont = require("rizu.skin.osu.OsuBitmapFont")
 local Lighting = require("rizu.skin.osu.mania.OsuManiaLighting")
+local LoveFilesystem = require("fs.LoveFilesystem")
+local Atlas = require("rizu.skin.osu.OsuSkinAtlas")
 local test = {}
 
 ---@param width integer
@@ -492,6 +494,103 @@ function test.large_cropped_bodies_share_page_with_heads_and_tails(t)
 		t:eq(calls, 1)
 		t:eq(#draws, 200)
 		graphics:unload()
+	end)
+end
+
+---A graphics object whose files a worker could read: it serves a table through the LoveFilesystem class.
+---@return rizu.skin.osu.OsuSkinGraphics
+local function worker_fixture()
+	local files = {["note.png"] = png(4, 4)}
+	local fs = LoveFilesystem()
+	fs.read = function(_, path) return files[path:gsub("^skin/", "")] end
+	return Graphics(fs, {path = "skin", files = {"note.png"}})
+end
+
+local assets = {{name = "note", group = "playfield"}}
+
+---A stand-in for the worker thread that decodes on the calling thread but yields first, like thread.async.
+---@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param error_message string?
+local function fake_worker(graphics, error_message)
+	graphics.prepareInThread = function(request)
+		coroutine.yield("waiting")
+		if error_message then return false, error_message end
+		local loader = Atlas.newImageDataLoader(graphics.fs, request.fallback_archive)
+		return xpcall(Atlas.prepare, debug.traceback, request, loader)
+	end
+end
+
+function test.atlas_prepare_packs_plain_data_without_the_gpu(t)
+	local data = love.image.newImageData(1, 1)
+	local lg = love.graphics
+	love.graphics = nil
+	local ok, prepared = pcall(Atlas.prepare, {
+		file_map = {["note.png"] = "skin/note.png"}, fallback_file_map = {}, assets = assets,
+		atlas_limit = 4096,
+	}, function(path) return path == "skin/note.png" and love.image.newImageData(4, 4) or nil end)
+	love.graphics = lg
+	data:release()
+	if not ok then error(prepared) end
+	t:assert(prepared.groups.playfield.locations["skin/note.png"])
+	t:assert(prepared.groups.playfield.locations["\0white"])
+	t:eq(prepared.grouped_paths.playfield["skin/note.png"], true)
+end
+
+function test.load_async_outside_a_coroutine_loads_synchronously(t)
+	local graphics = fixture({["note.png"] = png(4, 4)})
+	with_gpu(function()
+		t:eq(graphics:loadAsync(assets), true)
+		t:eq(graphics.loaded, true)
+		graphics:unload()
+	end)
+end
+
+function test.load_async_yields_while_the_worker_prepares_then_uploads(t)
+	local graphics = worker_fixture()
+	fake_worker(graphics)
+	with_gpu(function()
+		local result
+		local co = coroutine.create(function() result = graphics:loadAsync(assets) end)
+		t:eq(select(2, coroutine.resume(co)), "waiting")
+		t:eq(graphics.loading, true)
+		t:eq(graphics.loaded, false)
+		assert(coroutine.resume(co))
+		t:eq(result, true)
+		t:eq(graphics.loading, false)
+		t:eq(graphics.loaded, true)
+		t:assert(graphics:getAtlasFrame("playfield", "skin/note.png"))
+		graphics:unload()
+	end)
+end
+
+function test.load_async_cancelled_by_unload_uploads_nothing(t)
+	local graphics = worker_fixture()
+	fake_worker(graphics)
+	with_gpu(function(resources)
+		local result
+		local co = coroutine.create(function() result = graphics:loadAsync(assets) end)
+		coroutine.resume(co)
+		t:eq(graphics:loadAsync(assets), false) -- a second load while one is running does nothing
+		graphics:unload()
+		assert(coroutine.resume(co))
+		t:eq(result, false)
+		t:eq(graphics.loaded, false)
+		t:eq(graphics.loading, false)
+		t:eq(#resources, 0)
+	end)
+end
+
+function test.load_async_raises_worker_errors_and_stays_unloaded(t)
+	local graphics = worker_fixture()
+	fake_worker(graphics, "decode failed")
+	with_gpu(function()
+		local co = coroutine.create(function() graphics:loadAsync(assets) end)
+		coroutine.resume(co)
+		local ok, err = coroutine.resume(co)
+		t:eq(ok, false)
+		t:assert(tostring(err):find("decode failed", 1, true))
+		t:eq(graphics.loading, false)
+		t:eq(graphics.loaded, false)
 	end)
 end
 

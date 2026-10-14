@@ -107,17 +107,17 @@ end
 ---@param t testing.T
 function test.skin_controls_loading_and_stale_load_cannot_replace_current(t)
 	local first = true
+	local loader ---@type thread
 	local _, model, renderers = create(function()
-		if first then first = false; coroutine.yield() end
+		if first then first = false; loader = coroutine.running(); coroutine.yield() end
 	end)
 	model.chartview = chart("A")
-	local co = coroutine.create(function() model.skinCache:bind(model.chartview) end)
-	assert(coroutine.resume(co))
+	model.skinCache:bind(model.chartview)
 	t:eq(model.skinCache:getState(), "loading")
 	t:eq(model.skinCache:getPlayfield(), nil)
 	model.settings:setStringMap(Settings.keys.gameplay.skins, {["mania/14key"] = "b"})
 	t:eq(model.skinCache:getPlayfield(), renderers[2])
-	assert(coroutine.resume(co))
+	assert(coroutine.resume(loader))
 	t:eq(model.skinCache:getPlayfield(), renderers[2])
 	t:eq(model.skinCache:getState(), "ready")
 	model.skinCache:release()
@@ -125,12 +125,12 @@ end
 
 ---@param t testing.T
 function test.release_during_skin_load_does_not_revive(t)
-	local _, model = create(function() coroutine.yield() end)
+	local loader ---@type thread
+	local _, model = create(function() loader = coroutine.running(); coroutine.yield() end)
 	model.chartview = chart("A")
-	local co = coroutine.create(function() model.skinCache:bind(model.chartview) end)
-	assert(coroutine.resume(co))
+	model.skinCache:bind(model.chartview)
 	model.skinCache:release()
-	assert(coroutine.resume(co))
+	assert(coroutine.resume(loader))
 	t:eq(model.skinCache:getPlayfield(), nil)
 	t:eq(model.skinCache:getState(), "empty")
 end
@@ -170,15 +170,16 @@ end
 function test.stop_during_construction_retains_reusable_load(t)
 	local cache, model, renderers = create()
 	local loadSkin = model.game.skinRegistry.createRenderer
+	local loader ---@type thread
 	model.game.skinRegistry.createRenderer = function(...)
+		loader = coroutine.running()
 		coroutine.yield()
 		return loadSkin(...)
 	end
 	local cv = chart("A")
-	local co = coroutine.create(function() cache:bind(cv) end)
-	assert(coroutine.resume(co))
+	cache:bind(cv)
 	cache:stop()
-	assert(coroutine.resume(co))
+	assert(coroutine.resume(loader))
 	t:eq(cache:getPlayfield(), nil)
 	cache:load()
 	cache:bind(cv)
@@ -191,14 +192,15 @@ end
 function test.release_during_construction_unloads_late_renderer(t)
 	local cache, model, renderers = create()
 	local loadSkin = model.game.skinRegistry.createRenderer
+	local loader ---@type thread
 	model.game.skinRegistry.createRenderer = function(...)
+		loader = coroutine.running()
 		coroutine.yield()
 		return loadSkin(...)
 	end
-	local co = coroutine.create(function() cache:bind(chart("A")) end)
-	assert(coroutine.resume(co))
+	cache:bind(chart("A"))
 	cache:release()
-	assert(coroutine.resume(co))
+	assert(coroutine.resume(loader))
 	t:eq(renderers[1].unloads, 1)
 	t:eq(renderers[1].loads, 0)
 	t:eq(cache:getState(), "empty")

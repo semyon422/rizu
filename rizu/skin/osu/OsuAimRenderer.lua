@@ -41,9 +41,11 @@ function OsuAimRenderer:getProperties()
 	}
 end
 
+---Yields while a worker thread decodes the skin, so call it from a coroutine to keep the UI responsive.
 function OsuAimRenderer:load()
 	local skin = self.skin
 	local graphics = self.skin_graphics
+	if graphics.loading then return end
 	if not graphics.loaded or graphics.skin ~= skin then
 		-- The default assets supply the cursor and hit circle numbers a skin omits.
 		graphics:setFallbackArchive(DEFAULT_ASSETS)
@@ -52,7 +54,7 @@ function OsuAimRenderer:load()
 		local texture_limit = limits.texturesize > 0 and limits.texturesize or 4096
 		graphics:setTextureLimit(texture_limit)
 		graphics:setAtlasLimit(math.min(4096, texture_limit))
-		graphics:load(OsuAimSprites.getAssets(graphics))
+		if not graphics:loadAsync(OsuAimSprites.getAssets(graphics)) then return end
 		self.sprites = OsuAimSprites.load(graphics)
 	end
 	local rules = self.game.rhythm_engine and self.game.rhythm_engine.rules

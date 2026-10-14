@@ -38,9 +38,14 @@ end
 ---@param items rizu.skin.Skin[]
 ---@param selected_path string?
 function NoteSkinList:setItems(items, selected_path)
+	local same = #items == #self.items
+	for i = 1, same and #items or 0 do
+		if items[i] ~= self.items[i] then same = false break end
+	end
 	self.items = items
 	self.selected_path = selected_path
-	self:scrollTo(0, true)
+	-- Picking a skin refreshes the list with the same items: keep the scroll position.
+	if not same then self:scrollTo(0, true) end
 end
 
 ---@param screen_x number

@@ -1,4 +1,5 @@
 local class = require("class")
+local thread = require("thread")
 local Settings = require("rizu.config.Settings")
 local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
 
@@ -68,23 +69,25 @@ function PreviewSkinCache:bind(chartview)
 		self.cache[mode] = entry
 		self.current = entry
 		local captured = entry
-		local ok, err = xpcall(function()
-			---@diagnostic disable-next-line: no-unknown
-			local loaded = registry:createRenderer(skin, self.game, "mania", mode, "preview")
-			local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
-			if self.cache[mode] ~= captured or self.released then
-				pcall(renderer.unload, renderer)
-				return
+		-- Skin loading waits for a worker thread, which needs a coroutine: update() is not in one.
+		thread.coro(function()
+			local ok, err = xpcall(function()
+				---@diagnostic disable-next-line: no-unknown
+				local loaded = registry:createRenderer(skin, self.game, "mania", mode, "preview")
+				local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
+				if self.cache[mode] ~= captured or self.released then
+					pcall(renderer.unload, renderer)
+					return
+				end
+				local preparation = PlayfieldPreparation(renderer)
+				captured.preparation = preparation
+				preparation:load(false)
+			end, debug.traceback)
+			if not ok then
+				captured.error = tostring(err)
+				if captured.preparation then captured.preparation:release() end
 			end
-			local preparation = PlayfieldPreparation(renderer)
-			captured.preparation = preparation
-			preparation:load(false)
-		end, debug.traceback)
-		if not ok then
-			entry.error = tostring(err)
-			if entry.preparation then entry.preparation:release() end
-		end
-		if self.current ~= entry then return end
+		end)()
 	end
 	self.current = entry
 end

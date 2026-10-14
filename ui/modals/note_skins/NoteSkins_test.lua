@@ -1,4 +1,5 @@
 local NoteSkins = require("ui.modals.note_skins.NoteSkins")
+local NoteSkinList = require("ui.modals.note_skins.NoteSkinList")
 
 local test = {}
 
@@ -95,6 +96,21 @@ function test.select_stores_the_skin_through_the_registry(t)
 	t:tdeq(state.selected, {"mania", "4key", skins[2]})
 	t:eq(modal.list.selected_path, "skins/b")
 	t:eq(modal.selected_index, 2)
+end
+
+---@param t testing.T
+function test.list_keeps_its_scroll_when_only_the_selection_changes(t)
+	local scrolls = 0
+	local list = {items = {}, scrollTo = function() scrolls = scrolls + 1 end}
+	local a, b = {path = "a"}, {path = "b"}
+
+	NoteSkinList.setItems(list, {a, b}, "a")
+	t:eq(scrolls, 1) -- new items start at the top
+	NoteSkinList.setItems(list, {a, b}, "b")
+	t:eq(scrolls, 1)
+	t:eq(list.selected_path, "b")
+	NoteSkinList.setItems(list, {a}, "a")
+	t:eq(scrolls, 2)
 end
 
 return test
