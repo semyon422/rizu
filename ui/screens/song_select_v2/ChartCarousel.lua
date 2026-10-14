@@ -330,9 +330,11 @@ function ChartCarousel:addSet(index, content_y)
 	decoration:setColor(diff_color)
 	decoration:add(sprites.chart_sets_difficulty, 0, y)
 	decoration:setColor(1, 1, 1)
-	-- TODO: Dans
+	self.formatter:setChartview(cv)
 	if not cv.loaded then
 		-- Nothing to say about the row yet.
+	elseif self.formatter:isDan() then
+		decoration:add(sprites.chart_sets_dan, self.width - 45, y + 23)
 	elseif cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
 		decoration:add(sprites.chart_sets_ranked, self.width - 45, y + 23)
 	else

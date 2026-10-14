@@ -2,12 +2,21 @@ local class = require("class")
 local Color = require("ui.Color")
 local MsdFormatter = require("ui.formatters.MsdFormatter")
 local Settings = require("rizu.config.Settings")
+local dan_list = require("sea.dan.dan_list")
 
 --- Formats info from chartview
 --- You can get it from `ui.api.charts:getSelectedChart()`
 ---@class ui.formatters.ChartviewFormatter
 ---@overload fun(chartview: rizu.api.Chart?, settings: rizu.config.Config): ui.formatters.ChartviewFormatter
 local ChartviewFormatter = class()
+
+---@type {[string]: true}
+local dan_chartmeta_keys = {}
+for _, dan in pairs(dan_list) do
+	for _, cmk in ipairs(dan.chartmeta_keys) do
+		dan_chartmeta_keys[cmk.hash .. ":" .. cmk.index] = true
+	end
+end
 
 local iidx_difficulty_names = {
 	B = "Beginner",
@@ -206,6 +215,12 @@ end
 ---@return boolean
 function ChartviewFormatter:isRanked()
 	return self.chartview.difftable_chartmetas and #self.chartview.difftable_chartmetas > 0 or false
+end
+
+---@return boolean
+function ChartviewFormatter:isDan()
+	local cv = self.chartview
+	return cv.hash ~= nil and cv.index ~= nil and dan_chartmeta_keys[cv.hash .. ":" .. cv.index] == true
 end
 
 return ChartviewFormatter

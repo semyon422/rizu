@@ -7,6 +7,7 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local Sounds = require("ui.Sounds")
 local Color = require("ui.Color")
 local Settings = require("rizu.config.Settings")
+local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 
 ---@class ui.screens.song_select_v2.ChartSets : gui.VirtualizedList
 ---@operator call: ui.screens.song_select_v2.ChartSets
@@ -40,6 +41,7 @@ function ChartSets:new(charts, settings, on_selected)
 	-- Generated and packed sprites live in different atlases, so each needs its own batch.
 	self.background_batch = SpriteBatch(Resources.sprites.song_set_body)
 	self.batch = SpriteBatch(Resources.sprites.chart_sets_difficulty)
+	self.formatter = ChartviewFormatter(nil, settings)
 	self.outline = NineSliceUsage(Resources.nine_slices.song_set_outline)
 	self.title_batch = love.graphics.newTextBatch(Resources.getFont("cjk_bold", 24))
 	self.artist_batch = love.graphics.newTextBatch(Resources.getFont("cjk_regular", 24))
@@ -203,9 +205,11 @@ function ChartSets:drawItem(cv, index, y, is_selected, is_hovered)
 
 	self.batch:setColor(1, 1, 1)
 
-	-- TODO: Dans
+	self.formatter:setChartview(cv)
 	if not cv.loaded then
 		-- Nothing to say about the row yet.
+	elseif self.formatter:isDan() then
+		self.batch:add(Resources.sprites.chart_sets_dan, self.width - 45, y + 23)
 	elseif cv.difftable_chartmetas and #cv.difftable_chartmetas > 0 then -- Ranked
 		self.batch:add(Resources.sprites.chart_sets_ranked, self.width - 45, y + 23)
 	else
