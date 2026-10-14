@@ -26,6 +26,9 @@ function FakeGameplay:getAccuracy() end
 function FakeGameplay:getCombo() end
 function FakeGameplay:getHitCounts() return 0, 0 end
 function FakeGameplay:getJudgeNames() return empty end
+function FakeGameplay:getJudgeWindows() end
+function FakeGameplay:getBeatPhase() end
+function FakeGameplay:drawBackgroundAnimation(width, height, brightness, scale_mode) end
 function FakeGameplay:getJudgementCount() return 0 end
 function FakeGameplay:getJudgement(i) error("no judgements") end
 function FakeGameplay:getVisibleNotes() return empty end

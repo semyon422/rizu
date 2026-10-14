@@ -278,12 +278,28 @@ function test.gameplay_score(t)
 	t:tdeq({mania:getJudgement(1)}, {"hit", -0.012, 2})
 	t:tdeq({mania:getJudgement(2)}, {"miss", 0})
 	t:tdeq(mania:getJudgeNames(), {"300", "200"})
+	t:eq(mania:getJudgeWindows(), nil)
 
 	local taiko = Gameplay({rhythm_engine = {rules = {hits = 3, misses = 2}}} --[[@as any]])
 	t:tdeq({taiko:getHitCounts()}, {3, 2})
 	t:eq(taiko:getJudgementCount(), 0)
 	t:tdeq(taiko:getVisibleNotes(), {})
 	t:eq(taiko:isColumnPressed(1), false)
+end
+
+---@param t testing.T
+function test.gameplay_beat_phase(t)
+	local function tempo(time, beat_duration)
+		return {tempo = {point = {absoluteTime = time}, getBeatDuration = function() return beat_duration end}}
+	end
+	local time = 0.75
+	local chart = {layers = {main = {getPointList = function() return {tempo(0, 0.5), tempo(1, 1)} end}}}
+	local gameplay = Gameplay({rhythm_engine = {chart = chart, visual_info = {getTime = function() return time end}}} --[[@as any]])
+	t:eq(gameplay:getBeatPhase(), 0.5)
+	time = 1.25
+	t:eq(gameplay:getBeatPhase(), 0.25)
+	local empty_chart = {layers = {main = {getPointList = function() return {} end}}}
+	t:eq(Gameplay({rhythm_engine = {chart = empty_chart}} --[[@as any]]):getBeatPhase(), nil)
 end
 
 ---@param t testing.T

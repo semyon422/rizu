@@ -1,4 +1,5 @@
 local class = require("class")
+local BgaView = require("rizu.skin.views.BgaView")
 
 --[[
 The play in progress: drawing it, pausing, retrying and the score so far.
@@ -48,6 +49,9 @@ Nothing here builds a table per call unless it says so.
 ---@class rizu.api.Gameplay
 ---@operator call: rizu.api.Gameplay
 ---@field private game sphere.GameController
+---@field private bga_view rizu.skin.views.BgaView?
+---@field private beat_chart table?
+---@field private beat_points {time: number, beat_duration: number}[]
 local Gameplay = class()
 
 ---@param game sphere.GameController
@@ -135,6 +139,14 @@ function Gameplay:getCombo()
 	if source then return source:getCombo(), source:getMaxCombo() end
 end
 
+---@return number[]? windows Seconds from the note, one per judge from the best. nil without scoring.
+function Gameplay:getJudgeWindows()
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.judgesSource
+	local windows = source and (source --[[@as any]]).judge_windows
+	return windows and windows.windows
+end
+
 ---Every gamemode has these.
 ---@return integer hits
 ---@return integer misses
@@ -174,7 +186,7 @@ function Gameplay:getJudgement(i)
 	local source = score_engine.judgesSource
 	local judges = source and slice[source:getKey()]
 	local kind = base.isMiss and "miss" or base.isEarlyHit and "early" or "hit"
-	return kind, kind == "hit" and slice.misc.deltaTime or 0, judges and (judges.visual_judge or judges.last_judge)
+	return kind, kind == "hit" and slice.misc.deltaTime or 0, judges and (judges.visual_judge or judges.judge_index or judges.last_judge)
 end
 
 -- Notes, for skins. Mania only: other gamemodes have no notes or columns here.
@@ -199,6 +211,42 @@ function Gameplay:isColumnPressed(column)
 	return engine.isColumnPressed ~= nil and engine:isColumnPressed(column)
 end
 
+---Where the play is inside the current beat, for something that pulses with the music.
+---@return number? phase 0 on the beat up to 1 before the next one. nil without tempo data.
+function Gameplay:getBeatPhase()
+	local engine = self.game.rhythm_engine
+	local chart = engine.chart
+	if not chart then return end
+	if self.beat_chart ~= chart then
+		local points = {} ---@type {time: number, beat_duration: number}[]
+		-- The chart's tempo layer is untyped.
+		---@diagnostic disable: no-unknown
+		local layer = (chart --[[@as any]]).layers.main ---@type any
+		for _, point in ipairs(layer and layer:getPointList() or empty) do
+			local tempo = point.tempo ---@type any
+			local time = tempo and tempo.point.absoluteTime ---@type number?
+			local last = points[#points]
+			if time and (not last or last.time ~= time) then
+				points[#points + 1] = {time = time, beat_duration = tempo:getBeatDuration()}
+			end
+		end
+		---@diagnostic enable: no-unknown
+		self.beat_chart, self.beat_points = chart, points
+	end
+	local points = self.beat_points
+	if #points == 0 then return end
+	local time = self:getTime()
+	local low, high = 1, #points
+	while low < high do
+		local middle = math.ceil((low + high) / 2)
+		if points[middle].time <= time then low = middle else high = middle - 1 end
+	end
+	local duration = points[low].beat_duration
+	if not (duration > 0 and duration < math.huge) then return end
+	local phase = (time - points[low].time) / duration
+	return phase - math.floor(phase)
+end
+
 -- Drawing. Both take the viewport in drawable pixels, not in UI units.
 
 ---The skin's background layer and its playfield.
@@ -209,6 +257,18 @@ function Gameplay:drawPlayfield(width, height, transform)
 	local playfield = self.game.gameplayInteractor.playfield
 	playfield:drawBackgroundHud(width, height, transform)
 	playfield:draw(width, height, transform)
+end
+
+---The videos and images the chart shows behind the notes. Draws nothing when it has none.
+---@param width number The area to fill, in the units of the current transform.
+---@param height number
+---@param brightness number? 0..1, defaults to 1.
+---@param scale_mode "cover"|"height"? Fill the area, or fit the height. Defaults to "cover".
+function Gameplay:drawBackgroundAnimation(width, height, brightness, scale_mode)
+	local view = self.bga_view or BgaView(self.game)
+	self.bga_view = view
+	view.brightness, view.scale_mode = brightness, scale_mode or "cover"
+	view:drawViewport(width, height)
 end
 
 ---The skin's score, combo and judgements, drawn above the playfield.

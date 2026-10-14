@@ -20,7 +20,7 @@ local Settings = require("rizu.config.Settings")
 ---@field input_modes string[]? lua skins. nil means any.
 ---@field skin_ini rizu.skin.OsuSkinIni.Data? osu skins
 ---@field files string[]? osu skins, relative paths. Indexed on first access.
----@field load (fun(game: sphere.GameController, directory: string, input_mode: string, config: rizu.skin.SkinConfig, screen: rizu.skin.Screen): rizu.gameplay.views.PlayfieldRenderer)? lua skins
+---@field load (fun(api: rizu.api.GameApi, directory: string, input_mode: string, config: rizu.skin.SkinConfig, screen: rizu.skin.Screen): rizu.gameplay.views.PlayfieldRenderer)? lua skins, they get the game api and never the game
 
 ---@class rizu.skin.SkinRegistry
 ---@operator call: rizu.skin.SkinRegistry
@@ -294,7 +294,7 @@ function SkinRegistry:createRenderer(skin, game, gamemode, input_mode, screen)
 
 	local renderer
 	if skin and skin.format == "lua" then
-		renderer = skin.load(game, skin.path, input_mode, config, screen)
+		renderer = skin.load(game.api, skin.path, input_mode, config, screen)
 	elseif skin and skin.format == "osu" then
 		renderer = require("rizu.skin.osu.OsuManiaRenderer")(game, skin, input_mode, config, config_path)
 	else

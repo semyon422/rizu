@@ -29,7 +29,7 @@ local function add_lua_skin(fs, name, source)
 	fs:write("userdata/dlc/skins_rizu/" .. name .. "/skin.lua", source or [[
 return {
 	name = "Example", gamemode = "mania", input_modes = {"4key"},
-	load = function(game, directory, input_mode, config, screen) return {game, directory, input_mode, config, screen} end,
+	load = function(api, directory, input_mode, config, screen) return {api, directory, input_mode, config, screen} end,
 }
 ]])
 end
@@ -165,9 +165,9 @@ function test.createRenderer_loads_a_lua_skin_with_its_own_config(t)
 	registry:load()
 	local skin = assert(registry:getSkin("userdata/dlc/skins_rizu/example"))
 
-	local renderer, config, config_path = registry:createRenderer(skin, "game", "mania", "4key", "gameplay")
+	local renderer, config, config_path = registry:createRenderer(skin, {api = "api"}, "mania", "4key", "gameplay")
 	t:eq(config_path, "userdata/dlc/skins_rizu/example/skin-config.json")
-	t:eq(renderer[1], "game")
+	t:eq(renderer[1], "api")
 	t:eq(renderer[2], skin.path)
 	t:eq(renderer[3], "4key")
 	t:eq(renderer[4], config)
@@ -175,7 +175,7 @@ function test.createRenderer_loads_a_lua_skin_with_its_own_config(t)
 	config:set("mania", "4key", "receptor.y", 320)
 	config:save(fs, config_path)
 
-	local _, reloaded = registry:createRenderer(skin, "game", "mania", "4key", "preview")
+	local _, reloaded = registry:createRenderer(skin, {api = "api"}, "mania", "4key", "preview")
 	t:assert(reloaded ~= config)
 	t:eq(reloaded:get("mania", "4key", "receptor.y"), 320)
 end
