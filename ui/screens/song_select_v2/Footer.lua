@@ -1,6 +1,7 @@
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Colors = require("ui.Colors")
+local Color = require("ui.Color")
 local Resources = require("ui.Resources")
 local Label = require("ui.views.Label")
 local IconTextButton = require("ui.views.IconTextButton")
@@ -100,7 +101,7 @@ function Footer:new(ui)
 	end
 	rate:add(Label({font_name = "medium", font_size = 13, color = Colors.muted, text = "RATE"}))
 		:setAlignment(1, 0)
-	self.rate = rate:add(Label({font_name = "bold", font_size = 34, color = Colors.grade_a}))
+	self.rate = rate:add(Label({font_name = "bold", font_size = 34, color = {1, 1, 1, 1}}))
 	self.rate:setAlignment(1, 1)
 
 	self:updateState()
@@ -120,6 +121,7 @@ function Footer:updateState()
 	self.play_button:setEnabled(chart_exists)
 
 	self.rate:setText(RateFormatter.format(play:getRateValue(), play:getRateType()))
+	Color.rateToColor(play:getRate(), self.rate.color)
 end
 
 return Footer

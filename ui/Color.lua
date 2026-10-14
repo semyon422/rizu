@@ -176,6 +176,36 @@ function Color.linearRateToColor(rate, out)
 	return Color.HSV(hue, rate / 4, 1, out)
 end
 
+local RATE_STOPS = {
+	{0.5, {0.45, 0.65, 1, 1}},  -- slow: blue
+	{1.0, {0.7, 1, 0.75, 1}},   -- normal: soft green
+	{1.25, {1, 0.9, 0.3, 1}},   -- yellow
+	{1.5, {1, 0.2, 0.2, 1}},    -- red
+	{2.0, {0.75, 0.05, 0.55, 1}}, -- death
+	{3.0, {0.4, 0, 0.3, 1}},
+}
+
+---Gradient over the time rate: blue below 1x, green at 1x, red at 1.5x, deep magenta at 2x.
+---@param rate number
+---@param out gui.Color
+---@return gui.Color
+function Color.rateToColor(rate, out)
+	local first, last = RATE_STOPS[1], RATE_STOPS[#RATE_STOPS]
+	if rate <= first[1] then
+		return Color.copy_to(out, first[2])
+	elseif rate >= last[1] then
+		return Color.copy_to(out, last[2])
+	end
+	for i = 2, #RATE_STOPS do
+		local b = RATE_STOPS[i]
+		if rate <= b[1] then
+			local a = RATE_STOPS[i - 1]
+			return Color.mix_to(out, a[2], b[2], (rate - a[1]) / (b[1] - a[1]))
+		end
+	end
+	return out
+end
+
 ---@param ln_percent number
 ---@param out gui.Color
 ---@return gui.Color

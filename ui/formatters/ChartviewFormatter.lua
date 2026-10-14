@@ -48,7 +48,7 @@ end
 function ChartviewFormatter:getTimeRate()
 	return {
 		value = ("%0.02fx"):format(self.time_rate),
-		color = Color.linearRateToColor(self.time_rate, {1, 1, 1, 1})
+		color = Color.rateToColor(self.time_rate, {1, 1, 1, 1})
 	}
 end
 
