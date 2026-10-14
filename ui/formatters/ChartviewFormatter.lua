@@ -52,6 +52,15 @@ function ChartviewFormatter:getDifficulty()
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
 	local num = self.chartview[diff_column] or 0
 
+	if diff_column == "msd_diff" then
+		local rates = self.chartview.msd_diff_rates
+		if rates and #rates > 0 then
+			num = num * MsdFormatter.multiplierAt(rates, self.time_rate)
+		end
+	else
+		num = num * self.time_rate
+	end
+
 	local postfix = "USER"
 
 	if diff_column == "osu_diff" then
@@ -79,7 +88,8 @@ function ChartviewFormatter:getPatterns()
 	end
 
 	local msd_formatter = MsdFormatter(msd_diff_data, msd_diff_rates)
-	local first, second = msd_formatter:getTopPatterns(self.time_rate)
+	local inputmode = self.chartview.chartdiff_inputmode or self.chartview.inputmode
+	local first, second = msd_formatter:getTopPatterns(self.time_rate, inputmode)
 
 	local t = {
 		top_full = first,

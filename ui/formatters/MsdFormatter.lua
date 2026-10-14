@@ -47,20 +47,25 @@ function MsdFormatter:new(pattern_map, rate_multipliers)
 	end)
 end
 
+---Allocation-free, for when only the multiplier is needed.
+---@param rate_multipliers number[]
 ---@param time_rate number
 ---@return number
-function MsdFormatter:getApproximateMultiplier(time_rate)
+function MsdFormatter.multiplierAt(rate_multipliers, time_rate)
 	local floor = math_util.clamp(math.floor(time_rate * 10), MIN_RATE, MAX_RATE) - MIN_RATE + 1
 	local ceil = math_util.clamp(math.ceil(time_rate * 10), MIN_RATE, MAX_RATE) - MIN_RATE + 1
 
 	if floor == ceil then
-		return self.rate_multipliers[floor]
+		return rate_multipliers[floor]
 	end
 
-	local lower = self.rate_multipliers[floor]
-	local upper = self.rate_multipliers[ceil]
+	return (rate_multipliers[floor] + rate_multipliers[ceil]) / 2
+end
 
-	return (lower + upper) / 2
+---@param time_rate number
+---@return number
+function MsdFormatter:getApproximateMultiplier(time_rate)
+	return MsdFormatter.multiplierAt(self.rate_multipliers, time_rate)
 end
 
 ---@param time_rate number
@@ -111,9 +116,11 @@ function MsdFormatter:getOrderedByPattern(time_rate, inputmode)
 end
 
 ---@param time_rate number
----@return ui.formatters.MsdFormatter.Pattern
----@return ui.formatters.MsdFormatter.Pattern?
-function MsdFormatter:getTopPatterns(time_rate)
+---@param inputmode string?
+---@return string
+---@return string?
+function MsdFormatter:getTopPatterns(time_rate, inputmode)
+	inputmode = inputmode or "4key"
 	local multiplier = self:getApproximateMultiplier(time_rate)
 	---@type ui.formatters.MsdFormatter.KV
 	local top
@@ -129,11 +136,11 @@ function MsdFormatter:getTopPatterns(time_rate)
 	for _, pattern in ipairs(self.patterns) do
 		local difficulty = pattern.difficulty * multiplier
 		if pattern.name ~= "overall" and pattern.name ~= top.name and difficulty > top_difficulty * 0.93 then
-			return top.name, pattern.name
+			return getPatternName(top.name, inputmode), getPatternName(pattern.name, inputmode)
 		end
 	end
 
-	return top.name
+	return getPatternName(top.name, inputmode)
 end
 
 ---@param pattern string
@@ -144,9 +151,9 @@ function MsdFormatter.simplifyName(pattern)
 	elseif pattern == "jumpstream" then
 		return "JS"
 	elseif pattern == "chordstream" then
-		return "CSTR"
+		return "CS"
 	elseif pattern == "bracket" then
-		return "BRACKET"
+		return "BRKT"
 	elseif pattern == "handstream" then
 		return "HS"
 	elseif pattern == "chordjack" then

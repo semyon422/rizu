@@ -79,8 +79,8 @@ function ChartInfo:bind(cvf)
 
 	local patterns = cvf:getPatterns()
 	local names = {}
-	for _, name in ipairs({patterns.top_simple, patterns.second_simple}) do
-		names[#names + 1] = name
+	for _, name in ipairs({patterns.top_full, patterns.second_full}) do
+		names[#names + 1] = name:sub(1, 1):upper() .. name:sub(2)
 	end
 	self.patterns = table.concat(names, PATTERN_SEPARATOR)
 
