@@ -202,7 +202,7 @@ function Settings.createConfig(filesystem)
 		ScrollSpeed.canonical_max,
 		ScrollSpeed.ranges.default[3]
 	)
-	config:setDefaultChoice(g.speed_type, "default", ScrollSpeed.types)
+	config:setDefaultChoice(g.speed_type, "osu", ScrollSpeed.types)
 	config:setDefaultChoice(g.action_on_fail, "none", {"none", "pause", "quit"}) -- Should go to UI
 	config:setDefaultBoolean(g.scale_speed, false) -- Nobody uses it
 	config:setDefaultNumber(g.long_note_shortening, 0, -0.3, 0, 0.01)
@@ -312,7 +312,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(gr.perspective_yaw, 0)
 
 	config:setDefaultChoice(a.volume_type, "linear", {"linear", "logarithmic"})
-	config:setDefaultNumber(a.volume_master, 1, 0, 1, 0.01)
+	config:setDefaultNumber(a.volume_master, 0.3, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_music, 1, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_keysounds, 1, 0, 1, 0.01)
 	config:setDefaultNumber(a.volume_metronome, 1, 0, 1, 0.01)
