@@ -120,7 +120,7 @@ function Input:setInputMode(input_mode)
 		self.columns[#self.columns + 1] = self.column_list:add(view)
 	end
 	self.column_list:fitContent()
-	self.column_list:setOffset((modal_width - self.column_list.width) / 2, COLUMN_Y)
+	self.column_list:setOffset((modal_width - self.column_list:getAuthoredWidth()) / 2, COLUMN_Y)
 end
 
 ---@param column ui.modals.input.BindingColumn
