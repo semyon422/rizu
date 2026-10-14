@@ -9,6 +9,7 @@ local Gameplay = require("rizu.api.Gameplay")
 local Skins = require("rizu.api.Skins")
 local Input = require("rizu.api.Input")
 local Library = require("rizu.api.Library")
+local App = require("rizu.api.App")
 
 ---Everything a user interface needs from the game, one documented object per area.
 ---A UI gets it as `ui.api`. What is not here yet is still reachable through `ui.game`.
@@ -24,6 +25,7 @@ local Library = require("rizu.api.Library")
 ---@field skins rizu.api.Skins Gameplay skins: the list for a chart, and the chosen one.
 ---@field input rizu.api.Input Key bindings.
 ---@field library rizu.api.Library Chart folders and scanning them.
+---@field app rizu.api.App The user interface, the audio device, screenshots.
 ---@field settings rizu.config.Config Every setting. Keys are in `rizu.config.Settings.keys`, see `rizu/config/spec.md`.
 ---@field version integer Which API this is. A user interface built for another number may break.
 ---@field fake boolean? True when this is `rizu.api.fake.FakeGameApi` and there is no game behind it.
@@ -44,6 +46,7 @@ function GameApi:new(game)
 	self.skins = Skins(game)
 	self.input = Input(game)
 	self.library = Library(game)
+	self.app = App(game)
 	self.settings = game.settings
 end
 

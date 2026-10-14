@@ -4,9 +4,9 @@ local MsdFormatter = require("ui.formatters.MsdFormatter")
 local Settings = require("rizu.config.Settings")
 
 --- Formats info from chartview
---- You can get it from GameController.chartSelector.chartview
+--- You can get it from `ui.api.charts:getSelectedChart()`
 ---@class ui.formatters.ChartviewFormatter
----@overload fun(chartview: rizu.library.LocatedChartview, settings: rizu.config.Config): ui.formatters.ChartviewFormatter
+---@overload fun(chartview: rizu.api.Chart?, settings: rizu.config.Config): ui.formatters.ChartviewFormatter
 local ChartviewFormatter = class()
 
 local iidx_difficulty_names = {
@@ -17,7 +17,7 @@ local iidx_difficulty_names = {
 	L = "Leggendaria",
 }
 
----@param chartview rizu.library.LocatedChartview?
+---@param chartview rizu.api.Chart?
 ---@param settings rizu.config.Config
 function ChartviewFormatter:new(chartview, settings)
 	self.chartview = chartview or {}
@@ -25,7 +25,7 @@ function ChartviewFormatter:new(chartview, settings)
 	self.time_rate = 1
 end
 
----@param chartview rizu.library.LocatedChartview?
+---@param chartview rizu.api.Chart?
 function ChartviewFormatter:setChartview(chartview)
 	self.chartview = chartview or {}
 end

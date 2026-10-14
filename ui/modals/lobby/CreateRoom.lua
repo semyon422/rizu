@@ -101,7 +101,7 @@ function CreateRoom:createRoom()
 		return
 	end
 
-	local chartview = self.ui.game.chartSelector.chartview
+	local chartview = self.ui.api.charts:getSelectedChart()
 	if not chartview or not chartview.hash or not chartview.index then
 		self.status:setText(self.ui.localization:get("create_room.chart_required"))
 		return

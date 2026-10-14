@@ -8,12 +8,12 @@ local View = require("gui.View")
 ---@operator call: ui.screens.locations.LocationRow
 local LocationRow = View + {}
 
----@param location rizu.library.Location
+---@param location rizu.api.Location
 ---@param width number
 ---@param ui ui.UserInterface
----@param on_update_cache fun(location: rizu.library.Location)
----@param on_edit fun(location: rizu.library.Location)
----@param on_delete fun(location: rizu.library.Location)
+---@param on_update_cache fun(location: rizu.api.Location)
+---@param on_edit fun(location: rizu.api.Location)
+---@param on_delete fun(location: rizu.api.Location)
 function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delete)
 	View.new(self)
 	self:setSize(width, 100)

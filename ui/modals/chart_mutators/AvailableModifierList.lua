@@ -1,5 +1,4 @@
 local Colors = require("ui.Colors")
-local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -7,7 +6,8 @@ local VirtualizedList = require("gui.VirtualizedList")
 
 ---@class ui.modals.chart_mutators.AvailableModifierList : gui.VirtualizedList
 ---@operator call: ui.modals.chart_mutators.AvailableModifierList
----@field model sphere.ModifierSelectModel
+---@field play rizu.api.Play
+---@field index integer The mutator the cursor is on.
 ---@field active boolean
 ---@field selection_visible boolean
 ---@field background gui.NineSliceUsage
@@ -28,12 +28,13 @@ local function createBackground()
 	})
 end
 
----@param model sphere.ModifierSelectModel
+---@param play rizu.api.Play
 ---@param on_add fun()?
 ---@param localization ui.localization.Localization
-function AvailableModifierList:new(model, on_add, localization)
+function AvailableModifierList:new(play, on_add, localization)
 	VirtualizedList.new(self)
-	self.model = model
+	self.play = play
+	self.index = 1
 	self.on_add = on_add
 	self.title = localization:get("song_select.available_mutators")
 	self.active = true
@@ -46,7 +47,7 @@ end
 
 ---@return integer
 function AvailableModifierList:getItemCount()
-	return #ModifierRegistry.list
+	return #self.play:getAvailableMutators()
 end
 
 ---@return number
@@ -80,12 +81,15 @@ end
 
 ---@param direction integer
 function AvailableModifierList:move(direction)
-	self.model:scrollAvailableModifier(direction)
+	local index = self.index + direction
+	if index >= 1 and index <= self:getItemCount() then
+		self.index = index
+	end
 	self:scrollToSelection()
 end
 
 function AvailableModifierList:scrollToSelection()
-	local top = (self.model.availableModifierIndex - 1) * self:getRowStep()
+	local top = (self.index - 1) * self:getRowStep()
 	local bottom = top + self.item_height
 	local viewport = self:getScrollViewportSize()
 	if top < self.scroll_target then
@@ -96,11 +100,11 @@ function AvailableModifierList:scrollToSelection()
 end
 
 function AvailableModifierList:activate()
-	local name = ModifierRegistry.list[self.model.availableModifierIndex]
+	local name = self.play:getAvailableMutators()[self.index]
 	if not name then
 		return
 	end
-	self.model:add(name)
+	self.play:addMutator(name)
 	if self.on_add then
 		self.on_add()
 	end
@@ -132,7 +136,7 @@ function AvailableModifierList:onMouseClick(e)
 	if not index then
 		return
 	end
-	self.model.availableModifierIndex = index
+	self.index = index
 	self:activate()
 	return true
 end
@@ -145,13 +149,13 @@ function AvailableModifierList:draw()
 	local first_index, last_index = self:getVisibleRowRange()
 	for index = first_index, last_index do
 		local y = HEADER_HEIGHT + (index - 1) * self:getRowStep() - scroll
-		if self.selection_visible and index == self.model.availableModifierIndex then
+		if self.selection_visible and index == self.index then
 			Painter.setColorTable(self.active and Colors.surface_raised or Colors.surface)
 			love.graphics.rectangle("fill", HORIZONTAL_PADDING, y, self.width - HORIZONTAL_PADDING * 2, self.item_height)
 		end
 
-		local name = ModifierRegistry.list[index]
-		local unavailable = self.model:isOneUse(name) and self.model:isAdded(name)
+		local name = self.play:getAvailableMutators()[index]
+		local unavailable = not self.play:canAddMutator(name)
 		Painter.setColorTable(unavailable and Colors.muted or Colors.text)
 		love.graphics.setFont(self.item_font)
 		love.graphics.print(name, HORIZONTAL_PADDING * 2, y + 8)

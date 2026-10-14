@@ -14,7 +14,6 @@ local UiActions = require("ui.UiActions")
 ---@class ui.modals.login.Login : ui.ModalView
 ---@operator call: ui.modals.login.Login
 ---@field state ui.modals.login.State
----@field observer util.Observer?
 local Login = ModalView + {}
 
 local WIDTH = 560
@@ -28,7 +27,6 @@ function Login:new(ui, on_close)
 	self.ui = ui
 	self.on_close = on_close
 	self.state = "idle"
-	self.observer = nil
 	self:setSize(WIDTH, HEIGHT):setAlignment(0.5, 0.5):setPivot(0.5, 0.5)
 	self:setOpacity(0):setVisible(false):setClip(true)
 	self.handles_mouse_input = true
@@ -83,7 +81,14 @@ function Login:login()
 		return
 	end
 	self:setState("loading")
-	self.ui.game.onlineModel.authManager:login(email, password)
+	self.ui.api.online:login(email, password, function(ok, err)
+		if ok then
+			self.password:setText("")
+			self.on_close()
+		else
+			self:setState("error", err)
+		end
+	end)
 end
 
 ---@param state ui.modals.login.State
@@ -95,31 +100,6 @@ function Login:setState(state, err)
 	self.email:setEnabled(state ~= "loading")
 	self.password:setEnabled(state ~= "loading")
 	self.status:setText(state == "error" and (err or self.ui.localization:get("login.failed")) or "")
-end
-
----@param event rizu.online.Event
-function Login:receive(event)
-	if event.type == "login_started" then
-		self:setState("loading")
-	elseif event.type == "login_failed" then
-		self:setState("error", event.error)
-	elseif event.type == "login_succeeded" then
-		self.password:setText("")
-		self.on_close()
-	end
-end
-
-function Login:load()
-	ModalView.load(self)
-	self.observer = self.ui.game.online_client:onChanged(self)
-end
-
-function Login:unload()
-	if self.observer then
-		self.ui.game.online_client:offChanged(self.observer)
-		self.observer = nil
-	end
-	ModalView.unload(self)
 end
 
 ---@param inputs gui.Inputs

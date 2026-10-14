@@ -6,6 +6,8 @@ local Events = require("rizu.api.Events")
 local FakeOnline = Events + {}
 
 function FakeOnline:isConnected() return true end
+function FakeOnline:isLoggedIn() return true end
+function FakeOnline:isAuthenticationResolved() return true end
 function FakeOnline:getUsername() return "Player" end
 function FakeOnline:getAvatarUrl() return nil end
 function FakeOnline:getOnlineCount() return 42 end

@@ -67,10 +67,10 @@ end
 
 ---@param settings rizu.config.Config
 ---@param localization ui.localization.Localization
----@param audio_model rizu.AudioModel?
+---@param app rizu.api.App?
 ---@param form ui.views.form.Form?
 ---@param popup_container ui.views.PopupContainer?
-function Audio:new(settings, localization, audio_model, form, popup_container)
+function Audio:new(settings, localization, app, form, popup_container)
 	Section.new(self, {
 		name = localization:get("settings.audio"),
 		icon = Resources.sprites.icon_volume_1,
@@ -79,7 +79,7 @@ function Audio:new(settings, localization, audio_model, form, popup_container)
 			local logarithmic = settings:getChoice(keys.volume_type) == "logarithmic"
 			---@type gui.View[]
 			local controls = {}
-			if jit.os == "Linux" and audio_model then
+			if jit.os == "Linux" and app then
 				controls[#controls + 1] = ControlFactory.segmentedChoice(settings, keys.backend, {
 					name = localization:get("settings.audio_backend"),
 					keywords = {"audio", "backend", "pipewire", "device"},
@@ -119,8 +119,8 @@ function Audio:new(settings, localization, audio_model, form, popup_container)
 					return formatAudioMode(value, localization)
 				end,
 			})
-			if audio_model then
-				local status = audio_model:getStatus()
+			if app then
+				local status = app:getAudioStatus()
 				controls[#controls + 1] = Label({
 					font_name = "medium",
 					font_size = 16,

@@ -6,7 +6,7 @@ local UiActions = require("ui.UiActions")
 
 ---@class ui.modals.chart_mutators.ChartMutators : ui.ModalView
 ---@operator call: ui.modals.chart_mutators.ChartMutators
----@field game sphere.GameController
+---@field play rizu.api.Play
 ---@field available_list ui.modals.chart_mutators.AvailableModifierList
 ---@field selected_list ui.modals.chart_mutators.SelectedModifierList
 ---@field active_list integer
@@ -21,12 +21,12 @@ local MODAL_HEIGHT = 620
 local LIST_GAP = 20
 local LIST_WIDTH = (MODAL_WIDTH - LIST_GAP) / 2
 
----@param game sphere.GameController
+---@param play rizu.api.Play
 ---@param on_change fun()?
 ---@param localization ui.localization.Localization
-function ChartMutators:new(game, on_change, localization)
+function ChartMutators:new(play, on_change, localization)
 	ModalView.new(self)
-	self.game = game
+	self.play = play
 	self.on_change = on_change
 	self.active_list = 1
 	self.navigation = FormNavigation.Mouse
@@ -41,8 +41,7 @@ function ChartMutators:new(game, on_change, localization)
 	self.handles_mouse_input = true
 	self.handles_keyboard_input = true
 
-	local model = game.modifierSelectModel
-	self.available_list = self:add(AvailableModifierList(model, function()
+	self.available_list = self:add(AvailableModifierList(play, function()
 		self.selected_list:refreshItems()
 		self.selected_list:scrollToSelection()
 		self:setActiveList(1)
@@ -50,7 +49,7 @@ function ChartMutators:new(game, on_change, localization)
 	end, localization))
 	self.available_list:anchorFixed(0, 0, LIST_WIDTH, MODAL_HEIGHT)
 
-	self.selected_list = self:add(SelectedModifierList(model, function()
+	self.selected_list = self:add(SelectedModifierList(play, function()
 		self:setActiveList(2)
 		self:changed()
 	end, localization))
@@ -81,7 +80,7 @@ end
 function ChartMutators:selectHoveredItem(mouse_x, mouse_y)
 	local index = self.available_list:getIndexAt(mouse_x, mouse_y)
 	if index then
-		self.game.modifierSelectModel.availableModifierIndex = index
+		self.available_list.index = index
 		self:setActiveList(1)
 		return true
 	end
@@ -170,9 +169,6 @@ function ChartMutators:update(dt)
 end
 
 function ChartMutators:show()
-	local model = self.game.modifierSelectModel
-	model:updateAdded()
-	model.modifierIndex = math.max(1, math.min(model.modifierIndex, #model.replayBase.modifiers + 1))
 	self.selected_list:refreshItems()
 	self:setNavigation(FormNavigation.Mouse)
 	self:setVisible(true)

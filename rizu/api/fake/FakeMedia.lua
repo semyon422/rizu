@@ -42,6 +42,10 @@ end
 function FakeMedia:getBackgroundImages() return self.images, 0 end
 function FakeMedia:getPreviewTime() return self.time, 0, self.duration end
 function FakeMedia:seekPreview(progress) self.time = progress * self.duration end
+function FakeMedia:setPreviewTime(time) self.time = math.max(0, time) end
+function FakeMedia:getBeat() return self.time * 2 end
+function FakeMedia:setSpectrumSize(size) end
+function FakeMedia:getSpectrum() return nil end
 function FakeMedia:togglePreview() self.paused = not self.paused end
 function FakeMedia:drawNotesPreview(width, height) end
 function FakeMedia:getBackgroundAnimation() return nil, self.time end

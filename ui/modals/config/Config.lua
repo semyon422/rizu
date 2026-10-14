@@ -25,7 +25,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@operator call: ui.modals.config.Config
 ---@field ui_config ui.UiConfig
 ---@field settings rizu.config.Config
----@field user_interface_manager rizu.app.UserInterfaceManager
+---@field app rizu.api.App
 ---@field popup_container ui.views.PopupContainer
 ---@field sections ui.modals.config.Section[]
 ---@field all_section ui.modals.config.Section
@@ -52,17 +52,15 @@ local LIST_WIDTH = 635
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
 ---@param on_language_change fun()
----@param audio_model rizu.AudioModel
----@param user_interface_manager rizu.app.UserInterfaceManager
+---@param app rizu.api.App
 ---@param on_diff_column_change fun()
-function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, audio_model, user_interface_manager, on_diff_column_change)
+function Config:new(ui_config, settings, popup_container, on_close, localization, on_language_change, app, on_diff_column_change)
 	ModalView.new(self)
 	self.ui_config = ui_config
 	self.settings = settings
-	self.user_interface_manager = user_interface_manager
+	self.app = app
 	self.popup_container = popup_container
 	self.localization = localization
-	self.audio_model = audio_model
 	self.on_language_change = on_language_change
 	self.on_diff_column_change = on_diff_column_change
 	self.form = Form({
@@ -140,7 +138,7 @@ end
 ---@return ui.modals.config.Section[] sections
 function Config:createSections()
 	return {
-		AudioSection(self.settings, self.localization, self.audio_model, self.form, self.popup_container),
+		AudioSection(self.settings, self.localization, self.app, self.form, self.popup_container),
 		GameplaySection(self.settings, self.ui_config, self.localization),
 		OffsetSection(self.settings, self.localization),
 		LayoutSection(self.settings, self.form, self.popup_container, self.localization),
@@ -153,7 +151,7 @@ function Config:createSections()
 			self.form,
 			self.popup_container,
 			self.on_language_change,
-			self.user_interface_manager,
+			self.app,
 			self.on_diff_column_change
 		),
 		BindingsSection(self.ui_config, self.localization),

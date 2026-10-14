@@ -30,10 +30,10 @@ local function formatLanguage(value)
 end
 
 ---@param value string
----@param user_interface_manager rizu.app.UserInterfaceManager
+---@param app rizu.api.App
 ---@return string formatted
-local function formatUserInterface(value, user_interface_manager)
-	return user_interface_manager:getUserInterfaceDisplayName(value) or value
+local function formatUserInterface(value, app)
+	return app:getUserInterfaceDisplayName(value) or value
 end
 
 ---@param settings rizu.config.Config
@@ -42,16 +42,16 @@ end
 ---@param form ui.views.form.Form
 ---@param popup_container ui.views.PopupContainer
 ---@param on_language_change fun()
----@param user_interface_manager rizu.app.UserInterfaceManager
+---@param app rizu.api.App
 ---@param on_diff_column_change fun()
-function UserInterface:new(settings, ui_config, localization, form, popup_container, on_language_change, user_interface_manager, on_diff_column_change)
+function UserInterface:new(settings, ui_config, localization, form, popup_container, on_language_change, app, on_diff_column_change)
 	Section.new(self, {
 		name = localization:get("settings.user_interface"),
 		icon = Resources.sprites.icon_layers,
 		build = function()
 			local select_keys = Settings.keys.select
 			local interface_options = {}
-			for _, user_interface in ipairs(user_interface_manager:getUserInterfaces()) do
+			for _, user_interface in ipairs(app:getUserInterfaces()) do
 				interface_options[#interface_options + 1] = user_interface.name
 			end
 			return {
@@ -59,12 +59,12 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					name = localization:get("settings.user_interface"),
 					keywords = {"user interface", "ui", "theme"},
 					options = interface_options,
-					format = function(value) return formatUserInterface(value, user_interface_manager) end,
+					format = function(value) return formatUserInterface(value, app) end,
 					form = form,
 					popup_container = popup_container,
 					on_change = function(value)
-						user_interface_manager:setUserInterface(value)
-						user_interface_manager:requestReload()
+						app:setUserInterface(value)
+						app:requestReload()
 					end,
 				}),
 				ControlFactory.choice(ui_config, UiConfig.keys.language, {

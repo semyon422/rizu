@@ -7,16 +7,16 @@ local BAR_COUNT = 64
 
 ---@class ui.screens.music_player.Spectrum : gui.View
 ---@operator call: ui.screens.music_player.Spectrum
----@field preview_model rizu.preview.PreviewModel
+---@field media rizu.api.Media
 ---@field levels number[]
 local Spectrum = View + {}
 
 Spectrum.fft_size = 2048
 
----@param preview_model rizu.preview.PreviewModel
-function Spectrum:new(preview_model)
+---@param media rizu.api.Media
+function Spectrum:new(media)
 	View.new(self)
-	self.preview_model = preview_model
+	self.media = media
 	---@type number[]
 	self.levels = {}
 	for i = 1, BAR_COUNT do
@@ -26,7 +26,7 @@ end
 
 ---@param dt number
 function Spectrum:update(dt)
-	local fft = self.preview_model:getFFT()
+	local fft = self.media:getSpectrum()
 	local decay = 1 - math.exp(-7 * dt)
 
 	for i = 1, BAR_COUNT do

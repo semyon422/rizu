@@ -1,7 +1,5 @@
 local Colors = require("ui.Colors")
 local FlowContainer = require("gui.layout.FlowContainer")
-local ModifierModel = require("sphere.models.ModifierModel")
-local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
@@ -99,8 +97,7 @@ function SelectedModifierRow:new(list, config)
 	self.handles_keyboard_input = true
 	self:setSize(0, ROW_HEIGHT)
 
-	local modifier = ModifierModel:getModifier(config.id)
-	if modifier and modifier.values and #modifier.values > 0 then
+	if list.play:hasMutatorValue(config) then
 		self.decrease_button = self:add(ModifierOptionButton(self, -1))
 		self.decrease_button:addPosition(-(
 			HORIZONTAL_PADDING + OPTION_BUTTON_SIZE + OPTION_BUTTON_GAP * 2 + OPTION_VALUE_WIDTH
@@ -113,7 +110,7 @@ end
 ---@param inputs gui.Inputs
 function SelectedModifierRow:onHandleInputs(inputs)
 	local index = self.list:getModifierIndex(self.config)
-	if not self.list.active or index ~= self.list.model.modifierIndex then
+	if not self.list.active or index ~= self.list.play:getMutatorPosition() then
 		return
 	end
 	if inputs:consumeActionJustPressed(UiActions.left) then
@@ -133,7 +130,7 @@ function SelectedModifierRow:onMouseClick(e)
 	if not index then
 		return
 	end
-	self.list.model.modifierIndex = index
+	self.list.play:setMutatorPosition(index)
 	if e.button == 2 then
 		self.list:activate()
 	else
@@ -149,13 +146,12 @@ function SelectedModifierRow:draw()
 		Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 	end
 
-	local name = ModifierRegistry:getName(self.config.id)
+	local name = self.list.play:getMutatorName(self.config)
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.list.item_font)
 	love.graphics.print(name, HORIZONTAL_PADDING, 8)
 
-	local modifier = ModifierModel:getModifier(self.config.id)
-	if modifier and modifier.values and #modifier.values > 0 then
+	if self.list.play:hasMutatorValue(self.config) then
 		local right_button_x = self.width - HORIZONTAL_PADDING - OPTION_BUTTON_SIZE
 		local value_x = right_button_x - OPTION_BUTTON_GAP - OPTION_VALUE_WIDTH
 		Painter.setColorTable(Colors.muted)
@@ -229,7 +225,7 @@ end
 
 ---@class ui.modals.chart_mutators.SelectedModifierList : gui.ScrollView
 ---@operator call: ui.modals.chart_mutators.SelectedModifierList
----@field model sphere.ModifierSelectModel
+---@field play rizu.api.Play
 ---@field active boolean
 ---@field background gui.NineSliceUsage
 ---@field content gui.layout.FlowContainer
@@ -247,17 +243,17 @@ local function createBackground()
 	})
 end
 
----@param model sphere.ModifierSelectModel
+---@param play rizu.api.Play
 ---@param on_change fun()?
 ---@param localization ui.localization.Localization
-function SelectedModifierList:new(model, on_change, localization)
+function SelectedModifierList:new(play, on_change, localization)
 	local content = FlowContainer({
 		direction = "column",
 		padding = {HORIZONTAL_PADDING, HEADER_HEIGHT, HORIZONTAL_PADDING, VERTICAL_PADDING},
 		layout_transition = {duration = TRANSITION_DURATION, easing = "OutQuint"},
 	})
 	ScrollView.new(self, content)
-	self.model = model
+	self.play = play
 	self.on_change = on_change
 	self.title = localization:get("song_select.selected_mutators")
 	self.insertion_text = localization:get("song_select.mutator_insertion")
@@ -279,7 +275,7 @@ end
 ---@param config table
 ---@return integer?
 function SelectedModifierList:getModifierIndex(config)
-	for index, modifier in ipairs(self.model.replayBase.modifiers) do
+	for index, modifier in ipairs(self.play:getMutators()) do
 		if modifier == config then
 			return index
 		end
@@ -298,8 +294,8 @@ end
 ---Synchronizes ordinary row views with the modifier table and moves the
 ---insertion cell without recreating unaffected rows.
 function SelectedModifierList:refreshItems()
-	local modifiers = self.model.replayBase.modifiers
-	self.model.modifierIndex = math.max(1, math.min(self.model.modifierIndex, #modifiers + 1))
+	local modifiers = self.play:getMutators()
+	local position = self.play:getMutatorPosition()
 
 	---@type {[table]: ui.modals.chart_mutators.SelectedModifierRow}
 	local existing = {}
@@ -312,7 +308,7 @@ function SelectedModifierList:refreshItems()
 	---@type gui.View[]
 	local desired = {}
 	for index, config in ipairs(modifiers) do
-		if index == self.model.modifierIndex then
+		if index == position then
 			desired[#desired + 1] = self.insertion_cell
 		end
 		local row = existing[config] or SelectedModifierRow(self, config)
@@ -320,7 +316,7 @@ function SelectedModifierList:refreshItems()
 		rows[#rows + 1] = row
 		desired[#desired + 1] = row
 	end
-	if self.model.modifierIndex == #modifiers + 1 then
+	if position == #modifiers + 1 then
 		desired[#desired + 1] = self.insertion_cell
 	end
 
@@ -353,13 +349,13 @@ end
 
 ---@param direction integer
 function SelectedModifierList:move(direction)
-	self.model:scrollModifier(direction)
+	self.play:setMutatorPosition(self.play:getMutatorPosition() + direction)
 	self:refreshItems()
 	self:scrollToSelection()
 end
 
 function SelectedModifierList:scrollToSelection()
-	local top = (self.model.modifierIndex - 1) * ROW_HEIGHT
+	local top = (self.play:getMutatorPosition() - 1) * ROW_HEIGHT
 	local bottom = top + ROW_HEIGHT
 	local viewport = math.max(0, self.height - HEADER_HEIGHT - VERTICAL_PADDING)
 	if top < self.scroll_target then
@@ -370,10 +366,11 @@ function SelectedModifierList:scrollToSelection()
 end
 
 function SelectedModifierList:activate()
-	if not self.model.replayBase.modifiers[self.model.modifierIndex] then
+	local position = self.play:getMutatorPosition()
+	if not self.play:getMutators()[position] then
 		return
 	end
-	self.model:remove(self.model.modifierIndex)
+	self.play:removeMutator(position)
 	self:refreshItems()
 	self:scrollTo(self.scroll_target)
 	if self.on_change then
@@ -385,17 +382,10 @@ end
 ---@param direction integer
 ---@return boolean changed
 function SelectedModifierList:changeConfigValue(config, direction)
-	local modifier = ModifierModel:getModifier(config.id)
-	if not modifier or not modifier.values or #modifier.values == 0 then
+	local index = self:getModifierIndex(config)
+	if not index or not self.play:changeMutatorValue(index, direction) then
 		return false
 	end
-
-	local previous_value = config.value
-	ModifierModel:increaseModifierValue(config, direction)
-	if config.value == previous_value then
-		return false
-	end
-	self.model:change()
 	if self.on_change then
 		self.on_change()
 	end
@@ -405,7 +395,7 @@ end
 ---@param direction integer
 ---@return boolean changed
 function SelectedModifierList:changeValue(direction)
-	local config = self.model.replayBase.modifiers[self.model.modifierIndex]
+	local config = self.play:getMutators()[self.play:getMutatorPosition()]
 	if not config then
 		return false
 	end
@@ -437,7 +427,7 @@ function SelectedModifierList:onMouseClick(e)
 	if x < 0 or x >= self.width or y < HEADER_HEIGHT or y >= self.height - VERTICAL_PADDING then
 		return
 	end
-	self.model.modifierIndex = #self.model.replayBase.modifiers + 1
+	self.play:setMutatorPosition(self.play:getMutatorCount() + 1)
 	self:refreshItems()
 	self:scrollToSelection()
 	return true

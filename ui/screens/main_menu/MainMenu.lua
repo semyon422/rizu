@@ -13,7 +13,7 @@ local UiActions = require("ui.UiActions")
 ---@operator call: ui.screens.main_menu.MainMenu
 ---@field content gui.layout.FlowContainer
 ---@field online_status ui.views.Label
----@field online_observer util.Observer?
+---@field online_observer fun()?
 ---@field account_buttons gui.layout.FlowContainer
 ---@field register_button ui.screens.main_menu.MainMenuButton
 ---@field login_button ui.screens.main_menu.MainMenuButton
@@ -37,17 +37,15 @@ end
 
 function MainMenu:load()
 	Screen.load(self)
-	self.online_observer = self.ui.game.online_client:onChanged(function(event)
-		if event.type == "user_changed" or event.type == "connection_changed" or event.type == "authentication_resolved" then
-			self:updateOnlineStatus()
-		end
+	self.online_observer = self.ui.api.online:on("account_changed", function()
+		self:updateOnlineStatus()
 	end)
 	self:updateOnlineStatus()
 end
 
 function MainMenu:unload()
 	if self.online_observer then
-		self.ui.game.online_client:offChanged(self.online_observer)
+		self.online_observer()
 		self.online_observer = nil
 	end
 	Screen.unload(self)
@@ -88,14 +86,10 @@ function MainMenu:createButtons()
 		font_size = 30,
 		icon = Resources.sprites.icon_play,
 		get_beat_phase = function()
-			local preview_model = self.ui.game.previewModel
-			local notes = preview_model.chartPreview.notes
-			if notes and notes.timing_vertices then
-				return notes:getBeatAtTime(preview_model:getTime())
-			end
+			return self.ui.api.media:getBeat()
 		end,
 		get_bpm = function()
-			local chartview = self.ui.game.chartSelector.chartview
+			local chartview = self.ui.api.charts:getSelectedChart()
 			return chartview and chartview.tempo
 		end,
 	}))
@@ -181,10 +175,9 @@ function MainMenu:createOnlineStatus()
 end
 
 function MainMenu:updateOnlineStatus()
-	local online_client = self.ui.game.online_client
-	local user = online_client:getUser()
-	if online_client:isConnected() and user and type(user.name) == "string" and user.name ~= "" then
-		self.online_status:setText(self.ui.localization:get("main_menu.logged_in_as", {username = user.name}))
+	local username = self.ui.api.online:getUsername()
+	if username then
+		self.online_status:setText(self.ui.localization:get("main_menu.logged_in_as", {username = username}))
 	else
 		self.online_status:setText(self.ui.localization:get("main_menu.not_connected"))
 	end
@@ -193,10 +186,8 @@ end
 
 function MainMenu:updateAccountButtons()
 	if not self.account_buttons or not self.register_button or not self.login_button then return end
-	local online_client = self.ui.game.online_client
-	local user = online_client:getUser()
-	local logged_in = user ~= nil and user.id ~= nil
-	local show_buttons = online_client:isConnected() and online_client:isAuthenticationResolved() and not logged_in
+	local online = self.ui.api.online
+	local show_buttons = online:isConnected() and online:isAuthenticationResolved() and not online:isLoggedIn()
 	if not show_buttons then
 		if self.register_button.parent then self.account_buttons:remove(self.register_button) end
 		if self.login_button.parent then self.account_buttons:remove(self.login_button) end

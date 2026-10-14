@@ -48,19 +48,17 @@ function Locations:new(ui)
 end
 
 function Locations:refresh()
-	local locations = self.ui.game.library.locations
-	locations:selectLocations()
+	local library = self.ui.api.library
 	self.content:clear()
 	local displayed = 0
-	for _, location in ipairs(locations.locations) do
+	for _, location in ipairs(library:getLocations()) do
 		displayed = displayed + 1
 		self.content:add(LocationRow(location, LIST_WIDTH, self.ui, function(selected)
-			self.ui.game.selectionActions:updateCacheLocation(selected.id)
+			library:toggleCacheUpdate(selected)
 		end, function(selected)
 			self.ui.modal_manager:attachLocationEditor(selected)
 		end, function(selected)
-			if locations:deleteLocation(selected.id) then
-				self.ui.game.chartSelector:noDebounceRefresh()
+			if library:deleteLocation(selected) then
 				self:refresh()
 			end
 		end))

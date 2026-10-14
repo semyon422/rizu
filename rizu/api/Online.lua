@@ -50,6 +50,17 @@ function Online:getUsername()
 	end
 end
 
+---False while the server has not said yet who the player is: see isAuthenticationResolved().
+---@return boolean
+function Online:isLoggedIn()
+	local user = self.client:getUser()
+	return user ~= nil and user.id ~= nil
+end
+
+---True once the game knows whether the player is logged in, so a login button does not flash on startup.
+---@return boolean
+function Online:isAuthenticationResolved() return self.client:isAuthenticationResolved() end
+
 ---@return string? url The logged in player's avatar, for getAvatar().
 function Online:getAvatarUrl()
 	local user = self.client:getUser()

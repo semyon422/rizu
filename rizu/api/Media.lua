@@ -57,8 +57,27 @@ end
 ---@param progress number 0 is the start of the audio, 1 its end.
 function Media:seekPreview(progress) self.preview:setRelativePosition(progress) end
 
+---@param time number Seconds from the start of the audio file.
+function Media:setPreviewTime(time) self.preview:setPosition(time) end
+
 ---Pauses the audio preview, or resumes it.
 function Media:togglePreview() self.preview:togglePause() end
+
+---Which beat of the chart the audio preview is at, for something that pulses with the music.
+---@return number? beat nil when the chart has no tempo data or nothing is loaded
+function Media:getBeat()
+	local notes = self.preview.chartPreview.notes
+	if notes and notes.timing_vertices then
+		return notes:getBeatAtTime(self.preview:getTime())
+	end
+end
+
+---Ask for the size first, once. The spectrum of what the audio preview plays right now.
+---@param size integer A power of two. 2048 gives 1023 values.
+function Media:setSpectrumSize(size) self.preview:setFFTSize(size) end
+
+---@return ffi.cdata*? magnitudes Indexed from 1, low frequencies first, 0..1 and above. nil while nothing plays.
+function Media:getSpectrum() return self.preview:getFFT() end
 
 -- Moving previews. Both follow the audio preview.
 

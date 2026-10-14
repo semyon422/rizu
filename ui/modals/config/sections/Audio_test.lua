@@ -11,7 +11,7 @@ local SegmentedControl = require("ui.views.form.SegmentedControl")
 local test = {}
 
 ---@param preset? rizu.AudioDevicePreset
----@param audio_model? rizu.AudioModel
+---@param audio_model? rizu.api.App
 ---@return rizu.config.Config, ui.views.form.Dropdown, gui.View[]
 local function createAudioControls(preset, audio_model)
 	local old_sprites = Resources.sprites
@@ -120,7 +120,7 @@ end
 ---@param t testing.T
 function test.shows_runtime_audio_status_and_backends(t)
 	local audio_model = {
-		getStatus = function()
+		getAudioStatus = function()
 			return {
 				latency = 8,
 				min_buffer = 5,
@@ -131,7 +131,7 @@ function test.shows_runtime_audio_status_and_backends(t)
 				device_driver = "pipewire",
 			}
 		end,
-	} --[[@as rizu.AudioModel]]
+	} --[[@as rizu.api.App]]
 	local _, _, controls = createAudioControls(nil, audio_model)
 	---@type string[]
 	local texts = {}
@@ -159,7 +159,7 @@ end
 ---@param t testing.T
 function test.shows_sdl_queue_diagnostics(t)
 	local audio_model = {
-		getStatus = function()
+		getAudioStatus = function()
 			return {
 				latency = 15.8,
 				min_buffer = 5.8,
@@ -173,7 +173,7 @@ function test.shows_sdl_queue_diagnostics(t)
 				underruns = 2,
 			}
 		end,
-	} --[[@as rizu.AudioModel]]
+	} --[[@as rizu.api.App]]
 	local _, _, controls = createAudioControls(nil, audio_model)
 	---@type string[]
 	local texts = {}

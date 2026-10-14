@@ -49,8 +49,8 @@ function ModalManager:new(ui, popup_container)
 
 	self.active_view = nil
 	local localization = ui.localization
-	-- shortcut: without the game only the modals that use ui.api alone are built,
-	-- move the rest behind ui.api to lift this. Attaching a missing modal does nothing.
+	-- shortcut: the command palette, AI, multiplayer and mapperatorinator modals still need the game, so
+	-- they are not built without it (not covered by ui.api yet). Attaching a missing modal does nothing.
 	local game = not ui.api.fake and ui.game
 
 	if game then
@@ -63,20 +63,17 @@ function ModalManager:new(ui, popup_container)
 	self.bg = self:add(OverlayBackground(function()
 		self:hideModal()
 	end))
-	if game then
-		self.config = self:addModal(Config(ui.config, game.settings, popup_container,
-			function() self:hideModal(self.config) end,
-			localization,
-			function()
-				ui.config:save()
-				game.user_interface_manager:requestReload()
-			end,
-			game.app.audioModel,
-			game.user_interface_manager,
-			function()
-				game.chartSelector:noDebounceRefresh()
-			end))
-	end
+	self.config = self:addModal(Config(ui.config, ui.api.settings, popup_container,
+		function() self:hideModal(self.config) end,
+		localization,
+		function()
+			ui.config:save()
+			ui.api.app:requestReload()
+		end,
+		ui.api.app,
+		function()
+			ui.api.charts:refresh()
+		end))
 	self.external_link = self:addModal(ExternalLink(localization, function()
 		self:hideModal(self.external_link)
 	end))
@@ -101,17 +98,17 @@ function ModalManager:new(ui, popup_container)
 			self:hideModal(self.note_skins)
 			ui:loadSelectedChart(true, true, true)
 		end))
-	if game then
-		self.chart_mutators = self:addModal(ChartMutators(game, modifiers_changed, localization))
-	end
+	self.chart_mutators = self:addModal(ChartMutators(ui.api.play, modifiers_changed, localization))
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)
 	end, localization))
 	self.filters = self:addModal(Filters(ui.api.charts, popup_container, localization))
+	self.location_editor = self:addModal(LocationEditor(ui, function()
+		if ui.locations then ui.locations:refresh() end
+	end))
+	self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
 	if game then
-		self.location_editor = self:addModal(LocationEditor(ui, function() ui.locations:refresh() end))
 		self.create_room = self:addModal(CreateRoom(ui))
-		self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
 		if game.aiChatModel then
 			self.ai_chat = self:addModal(AiChat(game.aiChatModel, function()
 				self:hideModal(self.ai_chat)
@@ -324,7 +321,7 @@ function ModalManager:attachFilters()
 	return self:showModal(self.filters)
 end
 
----@param location rizu.library.Location?
+---@param location rizu.api.Location?
 ---@return boolean attached
 function ModalManager:attachLocationEditor(location)
 	if self.active_view == self.location_editor then

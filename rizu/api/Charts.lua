@@ -22,12 +22,44 @@ time, a moment after it is first asked for; until then `loaded` is false and onl
 Rows near the ones you ask for are loaded ahead, so in practice only a jump far away shows unloaded rows.
 ]]
 
----A row of either list. Fields most lists need:
----`title`, `artist`, `name` (difficulty name), `creator`, `inputmode`, `format`, `level`, `duration`,
----`notes_count`, `tempo`, `enps_diff`, `osu_diff`, `msd_diff`, `user_diff`, `difficulty` (the column chosen
----in settings), `accuracy`, `lamp`, `hash`, `index`. All of them are nil while `loaded` is false.
----See `rizu/library/views.lua` for the rest.
----@alias rizu.api.Chart rizu.library.LocatedChartview
+---A row of either list: a set or a chart. Only the fields below are the contract; the game's row has
+---more, and they can be renamed at any time. All of them are nil while `loaded` is false.
+---@class rizu.api.Chart
+---@field loaded boolean? False while the row holds only its ids.
+---@field chartfile_id integer
+---@field chartfile_set_id integer
+---@field chartmeta_id integer
+---@field chartdiff_id integer
+---@field chartplay_id integer
+---@field hash string
+---@field index integer Which chart of the file, for formats that keep several in one.
+---@field title string?
+---@field artist string?
+---@field name string? Difficulty name.
+---@field creator string?
+---@field level number?
+---@field inputmode string "4key", "7key1scratch", ...
+---@field format string "osu", "bms", "stepmania", ...
+---@field chartmeta_mode string? The gamemode: "mania", "taiko", ...
+---@field duration number Seconds.
+---@field notes_count integer
+---@field tempo number? BPM
+---@field tempo_min number?
+---@field tempo_max number?
+---@field mode string The gamemode after the mutators, with the rate applied.
+---@field chartdiff_inputmode string The input mode after the mutators.
+---@field long_notes_ratio number
+---@field msd_diff_data table? Etterna's skill ratings by pattern.
+---@field msd_diff_rates number[]? Etterna's overall rating at each music speed.
+---@field difftable_chartmetas table[]? The difficulty tables the chart is in.
+---@field enps_diff number
+---@field osu_diff number
+---@field msd_diff number
+---@field user_diff number
+---@field difficulty number? The column chosen in the settings.
+---@field accuracy number? Best score of the chart, 0..1.
+---@field miss_count integer? Misses of that score.
+---@field lamp boolean? True for charts with a score.
 
 ---@alias rizu.api.Charts.Event
 ---| "sets_loading" # A new search, sort, filter or collection is being queried. No arguments.
@@ -148,7 +180,7 @@ function Charts:getSetCount() return self.selector.stores[1]:count() end
 
 ---@param index integer
 ---@return rizu.api.Chart? set nil only outside 1..getSetCount()
-function Charts:getSet(index) return self.selector.stores[1]:get(index) end
+function Charts:getSet(index) return self.selector.stores[1]:get(index) --[[@as rizu.api.Chart?]] end
 
 ---@return integer index 0 when the list is empty
 function Charts:getSelectedSetIndex() return self.selector.state:getPrimary().index end
@@ -169,7 +201,7 @@ function Charts:getChartCount() return self.selector.stores[2]:count() end
 
 ---@param index integer
 ---@return rizu.api.Chart? chart nil only outside 1..getChartCount()
-function Charts:getChart(index) return self.selector.stores[2]:get(index) end
+function Charts:getChart(index) return self.selector.stores[2]:get(index) --[[@as rizu.api.Chart?]] end
 
 ---@return integer index 0 when the set has no charts
 function Charts:getSelectedChartIndex() return self.selector.state:getSecondary().index end
@@ -182,7 +214,7 @@ function Charts:selectChart(index) self.selector:scrollLevel(2, nil, index) end
 function Charts:moveChart(offset) self.selector:scrollLevel(2, offset) end
 
 ---@return rizu.api.Chart? chart The chart that Play would start.
-function Charts:getSelectedChart() return self.selector.chartview end
+function Charts:getSelectedChart() return self.selector.chartview --[[@as rizu.api.Chart?]] end
 
 -- TODO: weak spot. The UI fakes a selection change so that SelectionCoordinator restarts the previews
 -- GameplayInteractor stopped. The game should restart them itself when gameplay unloads; then this

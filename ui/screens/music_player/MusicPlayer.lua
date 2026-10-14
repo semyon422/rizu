@@ -13,19 +13,20 @@ local BgaPreview = require("ui.views.BgaPreview")
 ---@field ui ui.UserInterface
 ---@field title_label ui.views.Label
 ---@field artist_label ui.views.Label
+---@field private unsubscribe fun()
 local MusicPlayer = Screen + {}
 
 ---@param ui ui.UserInterface
 function MusicPlayer:new(ui)
 	Screen.new(self)
 	self.ui = ui
-	local preview_model = ui.game.previewModel
-	preview_model:setFFTSize(Spectrum.fft_size)
+	local media = ui.api.media
+	media:setSpectrumSize(Spectrum.fft_size)
 
-	self.background = self.root:add(Background(ui.game.backgroundModel, preview_model, Spectrum.fft_size)):anchorFill(0, 0, 0, 0)
-	self.root:add(BgaPreview(ui.api.media)):anchorFill(0, 0, 0, 0)
+	self.background = self.root:add(Background(media, Spectrum.fft_size)):anchorFill(0, 0, 0, 0)
+	self.root:add(BgaPreview(media)):anchorFill(0, 0, 0, 0)
 	self.root:add(Rectangle({0.035, 0.025, 0.06, 0.62})):anchorFill(0, 0, 0, 0)
-	self.root:add(Spectrum(preview_model)):anchorFill(100, 210, 100, 270)
+	self.root:add(Spectrum(media)):anchorFill(100, 210, 100, 270)
 
 	self.title_label = self.root:add(Label({
 		font_name = "cjk_bold",
@@ -44,24 +45,24 @@ function MusicPlayer:new(ui)
 	self.artist_label:setAlignment(0.5, 0.17)
 	self.artist_label:setPivot(0.5, 0.5)
 
-	self.root:add(ProgressBar(self.ui.api.media)):anchorFill(120, 900, 120, 115)
+	self.root:add(ProgressBar(media)):anchorFill(120, 900, 120, 115)
 
 	self.root:setOpacity(0)
 end
 
 ---@param inputs gui.Inputs
 function MusicPlayer:onHandleInputs(inputs)
-	local preview_model = self.ui.game.previewModel
+	local media = self.ui.api.media
 	if inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif inputs:consumeActionJustPressed(UiActions.left) then
-		preview_model:setPosition(preview_model:getTime() - 5)
+		media:setPreviewTime((media:getPreviewTime()) - 5)
 	elseif inputs:consumeActionJustPressed(UiActions.right) then
-		preview_model:setPosition(preview_model:getTime() + 5)
+		media:setPreviewTime((media:getPreviewTime()) + 5)
 	end
 end
 
----@param chartview rizu.library.LocatedChartview?
+---@param chartview rizu.api.Chart?
 function MusicPlayer:bind(chartview)
 	if not chartview then
 		self.title_label:setText(self.ui.localization:get("music_player.no_song"))
@@ -73,25 +74,18 @@ function MusicPlayer:bind(chartview)
 end
 
 function MusicPlayer:enter()
-	local chart_selector = self.ui.game.chartSelector
-	chart_selector:onChanged(self)
-	self:bind(chart_selector.chartview)
-	chart_selector:notifyChartviewChanged()
+	local charts = self.ui.api.charts
+	self.unsubscribe = charts:on("selection_changed", function(chart) self:bind(chart) end)
+	self:bind(charts:getSelectedChart())
+	charts:announceSelection()
 	self.root:fadeIn(0.35, "OutCubic")
 end
 
 function MusicPlayer:exit()
-	self.ui.game.chartSelector:offChanged(self)
+	self.unsubscribe()
 	Screen.exit(self)
 	self.root:fadeOut(0.25, "OutQuart")
 	return true
-end
-
----@param event rizu.select.Event|{name: string, [integer]: any}
-function MusicPlayer:receive(event)
-	if event.type == "chartview_changed" then
-		self:bind(event.chartview)
-	end
 end
 
 return MusicPlayer

@@ -15,11 +15,19 @@ The scores of the selected chart: the leaderboard on song select and on the resu
 The list follows the selected chart by itself.
 ]]
 
----A row of the leaderboard. Other fields most lists need:
----`accuracy`, `rating`, `rate`, `const`, `modifiers`, `pause_count`, `miss_count`, `created_at` (unix time).
----See `sea/chart/Chartplay.lua` for the rest.
----@class rizu.api.Score : sea.Chartplay
+---A row of the leaderboard. Only the fields below are the contract; the game's row has more,
+---and they can be renamed at any time.
+---@class rizu.api.Score
+---@field id integer
 ---@field score number 0..10000, from accuracy.
+---@field accuracy number Seconds. Normalscore accuracy: lower is better.
+---@field rating number
+---@field rate number How many times faster than normal the music played.
+---@field const boolean Constant scroll speed.
+---@field modifiers table[] The mutators the play was made with.
+---@field pause_count integer
+---@field miss_count integer
+---@field created_at integer Unix time.
 ---@field user_name string? Online scores only.
 ---@field user_avatar string? Online scores only. A url for `ui.api.online:getAvatar()`.
 

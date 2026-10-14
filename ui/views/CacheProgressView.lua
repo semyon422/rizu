@@ -9,30 +9,28 @@ local PADDING = 12
 
 ---@class ui.views.CacheProgressView : gui.View
 ---@operator call: ui.views.CacheProgressView
----@field library rizu.library.Library
+---@field library rizu.api.Library
 ---@field font love.Font
----@field status rizu.library.TaskStatus
+---@field status rizu.api.CacheStatus
+---@field private unsubscribe fun()
 local CacheProgressView = View + {}
 
----@param library rizu.library.Library
+---@param library rizu.api.Library
 function CacheProgressView:new(library)
 	View.new(self)
 	self.library = library
 	self.font = Resources.getFont("regular", 20)
-	self.status = library.status
+	self.status = library:getCacheStatus()
 	self:setSize(WIDTH, HEIGHT)
 	self:setVisible(self.status.stage ~= "idle")
-	library.onStatusChanged:add(self)
+	self.unsubscribe = library:on("cache_status_changed", function(status)
+		self.status = status
+		self:setVisible(status.stage ~= "idle")
+	end)
 end
 
 function CacheProgressView:unload()
-	self.library.onStatusChanged:remove(self)
-end
-
----@param status rizu.library.TaskStatus
-function CacheProgressView:receive(status)
-	self.status = status
-	self:setVisible(status.stage ~= "idle")
+	self.unsubscribe()
 end
 
 ---@param seconds number
@@ -56,8 +54,8 @@ function CacheProgressView:getProgressText()
 		progress = ("%d items"):format(status.current)
 	end
 
-	if status.itemsPerSecond then
-		progress = progress .. ("  %.1f/s"):format(status.itemsPerSecond)
+	if status.items_per_second then
+		progress = progress .. ("  %.1f/s"):format(status.items_per_second)
 	end
 	if status.eta then
 		progress = progress .. "  ETA " .. formatTime(status.eta)

@@ -5,13 +5,12 @@ local Label = require("ui.views.Label")
 local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
-local path_util = require("path_util")
 local Resources = require("ui.Resources")
 local Textbox = require("ui.views.form.Textbox")
 
 ---@class ui.modals.locations.LocationEditor : ui.ModalView
 ---@operator call: ui.modals.locations.LocationEditor
----@field location rizu.library.Location?
+---@field location rizu.api.Location?
 local LocationEditor = ModalView + {}
 
 local WIDTH = 820
@@ -73,7 +72,7 @@ function LocationEditor:new(ui, on_saved)
 	self.cancel_button:setSize(150, 46):setPosition(520, 525)
 end
 
----@param location rizu.library.Location?
+---@param location rizu.api.Location?
 function LocationEditor:open(location)
 	self.location = location
 	self.status:setText("")
@@ -81,19 +80,13 @@ function LocationEditor:open(location)
 		self.title:setText(self.ui.localization:get("locations.edit"))
 		self.subtitle:setText(self.ui.localization:get("locations.edit_hint"))
 		self.name_input:setText(location.name)
-		local display_path = location.is_relative
-			and path_util.join(self.ui.game.library.locations.root, location.path)
-			or location.path
-		self.path_input:setText(display_path)
+		local library = self.ui.api.library
+		self.path_input:setText(library:getLocationPath(location))
 		self.save_button.text = self.ui.localization:get("locations.save_changes")
 		self.save_button:setVariant("success")
-		local locations = self.ui.game.library.locations
-		local info = locations.info[location.id] or {}
+		local info = library:getLocationInfo(location)
 		self.info:setText(("Status: %s\nChart sets: %d   Chart files: %d   Hashed: %d"):format(
-			locations.status[location.id] or "unknown",
-			info.chartfile_sets or 0,
-			info.chartfiles or 0,
-			info.hashed_chartfiles or 0
+			info.status, info.chart_sets, info.charts, info.hashed_charts
 		))
 	else
 		self.title:setText(self.ui.localization:get("locations.add"))
@@ -125,46 +118,18 @@ function LocationEditor:save()
 		return
 	end
 
-	local game = self.ui.game
-	local library_locations = game.library.locations
-	local repo = game.library.locationsRepo
-	local created_location ---@type rizu.library.Location?
-	local previous_location ---@type rizu.library.Location?
-	local ok, err = pcall(function()
-		if self.location then
-			local location = assert(repo:selectLocationById(self.location.id), "Location no longer exists")
-			previous_location = {
-				id = location.id,
-				name = location.name,
-				path = location.path,
-				is_relative = location.is_relative,
-				is_internal = location.is_internal,
-			}
-			library_locations:updateLocationPath(location, path)
-			location.name = name
-			repo:updateLocation(location)
-		else
-			created_location = repo:insertLocation({
-				name = name, path = path, is_relative = false, is_internal = false,
-			})
-			library_locations:updateLocationPath(created_location, path)
-		end
-	end)
+	local library = self.ui.api.library
+	local ok, err
+	if self.location then
+		ok, err = library:updateLocation(self.location, name, path)
+	else
+		ok, err = library:addLocation(name, path)
+	end
 	if not ok then
-		if created_location then
-			library_locations:deleteLocation(created_location.id)
-		elseif previous_location then
-			pcall(function()
-				repo:updateLocation(previous_location)
-				library_locations:mountLocation(previous_location)
-			end)
-		end
-		self.status:setText(self.ui.localization:get("locations.save_error", {error = tostring(err)}))
+		self.status:setText(self.ui.localization:get("locations.save_error", {error = err}))
 		return
 	end
 
-	library_locations:selectLocations()
-	game.chartSelector:noDebounceRefresh()
 	self.ui.modal_manager:hideModal(self)
 	self.on_saved()
 end

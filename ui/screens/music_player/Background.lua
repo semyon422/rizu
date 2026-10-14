@@ -42,19 +42,16 @@ local shader_code = [[
 
 ---@class ui.screens.music_player.Background : ui.views.Background
 ---@operator call: ui.screens.music_player.Background
----@field preview_model rizu.preview.PreviewModel
 ---@field fft_size integer
 ---@field shader love.Shader?
 ---@field elapsed number
 ---@field bands number[]
 local MusicBackground = Background + {}
 
----@param model sphere.BackgroundModel
----@param preview_model rizu.preview.PreviewModel
+---@param media rizu.api.Media
 ---@param fft_size integer
-function MusicBackground:new(model, preview_model, fft_size)
-	Background.new(self, model)
-	self.preview_model = preview_model
+function MusicBackground:new(media, fft_size)
+	Background.new(self, media)
 	self.fft_size = fft_size
 	self.elapsed = 0
 	---@type number[]
@@ -79,7 +76,7 @@ end
 function MusicBackground:update(dt)
 	Background.update(self, dt)
 	self.elapsed = self.elapsed + dt
-	local fft = self.preview_model:getFFT()
+	local fft = self.media:getSpectrum()
 	local bin_count = self.fft_size / 2 - 1
 	local bucket_space = bin_count - 16
 	for i = 1, 16 do
