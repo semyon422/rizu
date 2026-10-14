@@ -1,22 +1,26 @@
+local thread = require("thread")
 local Events = require("rizu.api.Events")
 local Settings = require("rizu.config.Settings")
-local Subtimings = require("sea.chart.Subtimings")
-local Timings = require("sea.chart.Timings")
-local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local ModifierModel = require("sphere.models.ModifierModel")
+local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 
 --[[
-How the next play will go: the music speed, the mods, how hits are judged, and starting it.
+How the next play will go: the music speed, the mods, the mutators, how hits are judged, and starting it.
 
 	local play = ui.api.play
 	play:changeRate(1)
-	label:setText(play:getRateText())
+	label:setText(RateFormatter.format(play:getRateValue(), play:getRateType()))
 	play:setToggle("constant_scroll", true)
+	play:addMutator("Mirror")
 	play:on("rate_changed", function() ... end)
+	play:start({autoplay = false}, function(ok, err)
+		if ok then showGameplay() else showError(err) end
+	end)
 ]]
 
 ---@alias rizu.api.Play.Event
 ---| "rate_changed" # The music speed or the way it is counted changed. No arguments.
----| "mods_changed" # A toggle or the judging changed. No arguments.
+---| "mods_changed" # A toggle, a mutator or the judging changed. No arguments.
 
 ---@alias rizu.api.Play.Toggle
 ---| "constant_scroll" # Notes fall at one speed, ignoring the chart's speed changes. Counts as a mod.
@@ -32,6 +36,16 @@ How the next play will go: the music speed, the mods, how hits are judged, and s
 ---| "quaver" # Quaver.
 ---| "bmsrank" # Lunatic Rave 2. Value: rank, 0 insane, 1 hard, 2 normal, 3 easy.
 ---| "iidx" # beatmania IIDX.
+
+---A mutator that changes the chart, one entry of getMutators(). The game's own table: read it, do not change it.
+---@class rizu.api.Mutator
+---@field id integer Which mutator it is, for the game. getMutatorName() says.
+---@field value any The setting of a mutator that has one, see hasMutatorValue(). It can be a number, a string or a boolean.
+
+---Where a play starts and what it plays. `replay` is only for gamemodes without scoring, see hasLocalReplays().
+---@class rizu.api.Play.StartOptions
+---@field autoplay boolean? The game plays the chart by itself.
+---@field replay boolean? Watch the kept replay of the selected chart instead of playing it.
 
 ---@class rizu.api.Play : rizu.api.Events
 ---@operator call: rizu.api.Play
@@ -58,20 +72,9 @@ function Play:getRate() return self.game.replayBase.rate end
 ---@return sea.RateType
 function Play:getRateType() return self.game.replayBase.rate_type end
 
----The speed the way the player set it: "1.05x" or "+1".
----@return string
-function Play:getRateText()
-	local value = self.game.timeRateModel:get()
-	if self.game.replayBase.rate_type == "exp" then
-		return value > 0 and ("+%.0f"):format(value) or ("%.0f"):format(value)
-	end
-	return ("%.2fx"):format(value)
-end
-
 ---@param steps integer 1 is one step faster, -1 one step slower.
 function Play:changeRate(steps)
 	self.game.timeRateModel:increase(steps)
-	self.game.modifierSelectModel:change()
 end
 
 ---@return sea.RateType[]
@@ -81,7 +84,6 @@ function Play:getRateTypes() return self.game.timeRateModel.types end
 ---@param rate_type sea.RateType
 function Play:setRateType(rate_type)
 	self.game.timeRateModel:setType(rate_type)
-	self.game.modifierSelectModel:change()
 end
 
 ---The speed in the units of getRateType(): 1.05 for "linear", 1 for "exp". For a slider.
@@ -98,7 +100,6 @@ end
 ---@param value number In the units of getRateType(). Clamped to the range.
 function Play:setRateValue(value)
 	self.game.timeRateModel:set(value)
-	self.game.modifierSelectModel:change()
 end
 
 -- Mods
@@ -108,8 +109,6 @@ local function modsChanged(self)
 	self.game.modifierSelectModel:change() ---@diagnostic disable-line: invisible
 	self:emit("mods_changed")
 end
-
-local setTimings
 
 local toggle_fields = {constant_scroll = "const", taps_only = "tap_only", nearest_input = "nearest"}
 
@@ -130,10 +129,10 @@ function Play:setToggle(toggle, on)
 		return modsChanged(self)
 	end
 	self.game.settings:setBoolean(Settings.keys.replay_base.auto_timings, on)
-	if on then
-		return modsChanged(self)
+	if not on then
+		self.game.timingsModel:set(self:getTimingSystem())
 	end
-	setTimings(self, self:getTimingSystem())
+	modsChanged(self)
 end
 
 ---How many of the play options that count as mods are on (constant scroll, taps only).
@@ -143,9 +142,80 @@ function Play:getModCount()
 	return (replay_base.const and 1 or 0) + (replay_base.tap_only and 1 or 0)
 end
 
+-- Mutators. They change the chart before it is played and are applied in the order of the list.
+-- New ones go in at the insertion point, a place between two mutators that the game remembers.
+
+---@return string[] names Every mutator the game has.
+function Play:getAvailableMutators() return ModifierRegistry.list end
+
+---False when a mutator that can only be used once is already in the list.
+---@param name string One of getAvailableMutators().
+---@return boolean
+function Play:canAddMutator(name)
+	local model = self.game.modifierSelectModel
+	model:updateAdded()
+	return not (model:isOneUse(name) and model:isAdded(name))
+end
+
 ---How many mutators will change the chart.
 ---@return integer
 function Play:getMutatorCount() return #self.game.modifierSelectModel.replayBase.modifiers end
+
+---The same table until the list changes. Do not change it.
+---@return rizu.api.Mutator[]
+function Play:getMutators() return self.game.modifierSelectModel.replayBase.modifiers --[[@as rizu.api.Mutator[] ]] end
+
+---@param mutator rizu.api.Mutator
+---@return string
+function Play:getMutatorName(mutator) return ModifierRegistry:getName(mutator.id) end
+
+---True for mutators with a setting, which changeMutatorValue() steps through.
+---@param mutator rizu.api.Mutator
+---@return boolean
+function Play:hasMutatorValue(mutator)
+	local modifier = ModifierModel:getModifier(mutator.id) --[[@as table?]]
+	return modifier ~= nil and modifier.values ~= nil and #modifier.values > 0
+end
+
+---Adds a mutator at the insertion point. Does nothing if canAddMutator() is false.
+---@param name string One of getAvailableMutators().
+function Play:addMutator(name)
+	if not self:canAddMutator(name) then return end
+	self.game.modifierSelectModel:add(name)
+	modsChanged(self)
+end
+
+---@param index integer 1..getMutatorCount()
+function Play:removeMutator(index)
+	self.game.modifierSelectModel:remove(index)
+	modsChanged(self)
+end
+
+---@param index integer 1..getMutatorCount()
+---@param steps integer 1 is the next value of the setting, -1 the previous.
+---@return boolean changed False at the ends of the list of values.
+function Play:changeMutatorValue(index, steps)
+	local mutator = self:getMutators()[index]
+	if not mutator or not self:hasMutatorValue(mutator) then return false end
+	local previous = mutator.value
+	ModifierModel:increaseModifierValue(mutator, steps)
+	if mutator.value == previous then return false end
+	modsChanged(self)
+	return true
+end
+
+---Where the next mutator goes: 1 is before the first one, getMutatorCount() + 1 after the last.
+---@return integer
+function Play:getMutatorPosition()
+	local model = self.game.modifierSelectModel
+	return math.max(1, math.min(model.modifierIndex, #model.replayBase.modifiers + 1))
+end
+
+---@param position integer Clamped to 1..getMutatorCount() + 1.
+function Play:setMutatorPosition(position)
+	local model = self.game.modifierSelectModel
+	model.modifierIndex = math.max(1, math.min(position, #model.replayBase.modifiers + 1))
+end
 
 -- Judging. Used when "auto_timings" is off.
 
@@ -153,38 +223,6 @@ local timing_systems = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iid
 local is_timing_system = {} ---@type {[string]: true}
 for _, name in ipairs(timing_systems) do
 	is_timing_system[name] = true
-end
-
----@param self rizu.api.Play
----@param name rizu.api.Play.TimingSystem
----@param value number?
----@param score_version number?
-function setTimings(self, name, value, score_version)
-	local game = self.game ---@diagnostic disable-line: invisible
-	local settings = game.settings
-	local timing_key = Settings.keys.timings[name]
-	value = value or (timing_key and settings:getNumber(timing_key)) or 0
-	if name == "osuod" then
-		-- Slider arithmetic can leave values such as 9.7 just below the exact
-		-- tenth required by Timings validation.
-		value = math.floor(value * 10 + 0.5) / 10
-	end
-	local timings = Timings(name, value)
-	local subtimings ---@type sea.Subtimings?
-
-	if timing_key then
-		settings:setNumber(timing_key, value)
-	end
-	if name == "osuod" then
-		score_version = score_version or settings:getNumber(Settings.keys.timings.osu_score_version)
-		settings:setNumber(Settings.keys.timings.osu_score_version, score_version)
-		subtimings = Subtimings("scorev", score_version)
-	end
-
-	game.replayBase.timings = timings
-	game.replayBase.subtimings = subtimings
-	game.replayBase.timing_values = assert(TimingValuesFactory:get(timings, subtimings))
-	modsChanged(self)
 end
 
 ---@return rizu.api.Play.TimingSystem[]
@@ -198,7 +236,10 @@ end
 
 ---Switches the system and brings back the value it was last used with.
 ---@param system rizu.api.Play.TimingSystem
-function Play:setTimingSystem(system) setTimings(self, system) end
+function Play:setTimingSystem(system)
+	self.game.timingsModel:set(system)
+	self:emit("mods_changed")
+end
 
 ---@return number value 0 for systems that take none.
 function Play:getTimingValue()
@@ -214,7 +255,8 @@ end
 ---@param value number See rizu.api.Play.TimingSystem for what each system takes.
 function Play:setTimingValue(value)
 	local subtimings = self.game.replayBase.subtimings
-	setTimings(self, self:getTimingSystem(), value, subtimings and subtimings.data)
+	self.game.timingsModel:set(self:getTimingSystem(), value, subtimings and subtimings.data)
+	self:emit("mods_changed")
 end
 
 ---osu!mania's ScoreV1 or ScoreV2 hit windows. Only used by "osuod".
@@ -226,17 +268,53 @@ end
 
 ---@param version 1|2
 function Play:setOsuScoreVersion(version)
-	setTimings(self, "osuod", self:getTimingValue(), version)
+	self.game.timingsModel:set("osuod", self:getTimingValue(), version)
+	self:emit("mods_changed")
 end
 
 -- Starting
 
----Call before switching to the screen that loads the selected chart.
----@param autoplay boolean The game plays the chart by itself.
-function Play:prepare(autoplay)
-	local interactor = self.game.gameplayInteractor
+---True when the selected chart's gamemode has no scores and keeps its last attempt as a local replay instead.
+---Then start() takes `replay = true`.
+---@return boolean
+function Play:hasLocalReplays()
+	local chartview = self.game.chartSelector.chartview
+	return chartview ~= nil and self.game.gameplayInteractor.replay_stores[chartview.chartmeta_mode] ~= nil
+end
+
+---Loads the selected chart with the options set above. Switch to the gameplay screen when f gets true.
+---Loading takes a while and the game does not draw meanwhile: show a loading screen first.
+---On failure f gets false and why, or only false when there was nothing to load.
+---@param options rizu.api.Play.StartOptions
+---@param f fun(ok: boolean, err: string?)
+function Play:start(options, f)
+	local game = self.game
+	local interactor = game.gameplayInteractor
+
+	---@param err string?
+	local function failed(err)
+		interactor.replaying = false
+		interactor.autoplay = false
+		f(false, err)
+	end
+
 	interactor.replaying = false
-	interactor.autoplay = autoplay
+	interactor.autoplay = options.autoplay or false
+	if options.replay then
+		local chartview = game.chartSelector.chartview
+		if not chartview or not self:hasLocalReplays() then
+			return failed("The selected chart has no local replay.")
+		end
+		local ok, err = interactor:loadLocalReplay(chartview.hash, chartview.index, chartview.chartmeta_mode)
+		if not ok then return failed(err) end
+	end
+	thread.coro(function()
+		local ok, loaded = pcall(game.gameInteractor.loadGameplaySelectedChartAsync, game.gameInteractor)
+		if ok and loaded then
+			return f(true)
+		end
+		failed(not ok and tostring(loaded) or nil)
+	end)()
 end
 
 return Play

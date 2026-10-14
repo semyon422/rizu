@@ -67,6 +67,7 @@ local TARGET_HEIGHT = 1080
 ---@field mapperatorinator_workflow rizu.mapperatorinator.Workflow
 ---@field localization ui.localization.Localization
 ---@field skin_editor boolean
+---@field play_options rizu.api.Play.StartOptions? What ChartLoading starts, set by loadSelectedChart()
 ---@field private prev_w number
 ---@field private prev_h number
 local UserInterface = RizuUserInterface + {}
@@ -108,9 +109,10 @@ end
 ---@param autoplay boolean
 ---@param skin_editor boolean
 ---@param keep_previous_visible boolean?
+---@param replay boolean? Watch the local replay of a gamemode without scoring.
 ---@return boolean changed
-function UserInterface:loadSelectedChart(autoplay, skin_editor, keep_previous_visible)
-	self.api.play:prepare(autoplay)
+function UserInterface:loadSelectedChart(autoplay, skin_editor, keep_previous_visible, replay)
+	self.play_options = {autoplay = autoplay, replay = replay}
 	self.skin_editor = skin_editor
 	return self:setScreen(self.chart_loading, keep_previous_visible)
 end

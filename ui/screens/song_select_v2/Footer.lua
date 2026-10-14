@@ -4,6 +4,7 @@ local Colors = require("ui.Colors")
 local Resources = require("ui.Resources")
 local Label = require("ui.views.Label")
 local IconTextButton = require("ui.views.IconTextButton")
+local RateFormatter = require("ui.formatters.RateFormatter")
 
 -- Layout follows result_design/select.html (1920x1080 logical).
 local HEIGHT = IconTextButton.HEIGHT
@@ -118,7 +119,7 @@ function Footer:updateState()
 	self.skins_button:setEnabled(chart_exists)
 	self.play_button:setEnabled(chart_exists)
 
-	self.rate:setText(play:getRateText())
+	self.rate:setText(RateFormatter.format(play:getRateValue(), play:getRateType()))
 end
 
 return Footer

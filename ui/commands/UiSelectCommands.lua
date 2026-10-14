@@ -1,5 +1,3 @@
-local thread = require("thread")
-
 ---@param game sphere.GameController
 ---@param ui ui.UserInterface
 ---@return rizu.command.Command[]
@@ -10,7 +8,7 @@ return function(game, ui)
 			title = "Select: Play",
 			description = "Starts the selected chart",
 			callback = function()
-				if game.chartSelector:chartExists() then
+				if ui.api.charts:canPlaySelectedChart() then
 					ui:loadSelectedChart(false, false, true)
 				end
 			end,
@@ -20,7 +18,7 @@ return function(game, ui)
 			title = "Select: Autoplay",
 			description = "Starts the selected chart with autoplay enabled",
 			callback = function()
-				if game.chartSelector:chartExists() then
+				if ui.api.charts:canPlaySelectedChart() then
 					ui:loadSelectedChart(true, false, true)
 				end
 			end,
@@ -30,11 +28,9 @@ return function(game, ui)
 			title = "Select: Watch Local Replay",
 			description = "Plays the latest local attempt of the selected chart, for gamemodes that do not save scores",
 			callback = function()
-				local view = game.chartSelector.chartview
-				if not view or not game.gameplayInteractor.replay_stores[view.chartmeta_mode] then return end
-				local ok, err = game.gameplayInteractor:loadLocalReplay(view.hash, view.index, view.chartmeta_mode)
-				if not ok then ui.chart_loading:showError(err) end
-				ui:setScreen(ui.chart_loading, true)
+				if ui.api.play:hasLocalReplays() then
+					ui:loadSelectedChart(false, false, true, true)
+				end
 			end,
 		},
 		{
@@ -42,19 +38,10 @@ return function(game, ui)
 			title = "Select: Open Result",
 			description = "Opens the selected score result",
 			callback = function()
-				if game.chartSelector:chartExists() and game.scoreSelector.chartplay then
-					local chartplay = game.scoreSelector.chartplay
-					thread.coro(function()
-						local ok, err = pcall(function()
-							game.resultController:replayNoteChartAsync("result", chartplay)
-						end)
-						if ok then
-							ui:setScreen(ui.result)
-						else
-							print("failed to load score:", err)
-							ui:setScreen(ui.song_select)
-						end
-					end)()
+				if ui.api.charts:canPlaySelectedChart() and ui.api.scores:getSelected() then
+					ui.api.scores:loadSelectedResult(function(ok)
+						ui:setScreen(ok and ui.result or ui.song_select)
+					end)
 				end
 			end,
 		},

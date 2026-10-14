@@ -10,5 +10,7 @@ function FakeOnline:getUsername() return "Player" end
 function FakeOnline:getAvatarUrl() return nil end
 function FakeOnline:getOnlineCount() return 42 end
 function FakeOnline:getAvatar(url) return nil end
+function FakeOnline:login(email, password, f) f(true) end
+function FakeOnline:logout() end
 
 return FakeOnline

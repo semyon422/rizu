@@ -6,6 +6,7 @@ The player's account and the connection to the server.
 	local online = ui.api.online
 	local name = online:getUsername() or "Guest"
 	online:on("account_changed", function() ... end)
+	online:login(email, password, function(ok, err) ... end)
 ]]
 
 ---@alias rizu.api.Online.Event
@@ -17,14 +18,16 @@ The player's account and the connection to the server.
 ---@field on fun(self: rizu.api.Online, event: rizu.api.Online.Event, f: function): fun()
 ---@field private client rizu.OnlineClient
 ---@field private avatars rizu.online.AvatarCache
+---@field private auth rizu.AuthManager
 local Online = Events + {}
 
----@param client rizu.OnlineClient
----@param avatars rizu.online.AvatarCache
-function Online:new(client, avatars)
+---@param game sphere.GameController
+function Online:new(game)
 	Events.new(self)
+	local client = game.online_client
 	self.client = client
-	self.avatars = avatars
+	self.avatars = game.avatar_cache
+	self.auth = game.onlineModel.authManager
 	client:onChanged(function(event)
 		if event.type == "online_count_changed" then
 			self:emit("online_count_changed")
@@ -63,5 +66,26 @@ end
 ---@param url string?
 ---@return love.Image? image
 function Online:getAvatar(url) return self.avatars:get(url) end
+
+---Logs in with the account's email and password. The player stays logged in after a restart.
+---f gets true when it worked, otherwise false and the server's reason. "account_changed" follows.
+---@param email string
+---@param password string
+---@param f fun(ok: boolean, err: string?)
+function Online:login(email, password, f)
+	local observer
+	observer = self.client:onChanged(function(event)
+		if event.type == "login_succeeded" then
+			self.client:offChanged(observer)
+			f(true)
+		elseif event.type == "login_failed" then
+			self.client:offChanged(observer)
+			f(false, event.error)
+		end
+	end)
+	self.auth:login(email, password)
+end
+
+function Online:logout() self.auth:logout() end
 
 return Online

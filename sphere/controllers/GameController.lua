@@ -16,6 +16,7 @@ local MultiplayerModel = require("rizu.online.MultiplayerModel")
 local EditorInput = require("rizu.editor.EditorInput")
 local EditorModel = require("rizu.editor.EditorModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
+local TimingsModel = require("sphere.models.TimingsModel")
 local PauseModel = require("sphere.models.PauseModel")
 local JoystickModel = require("sphere.models.JoystickModel")
 local OffsetController = require("sphere.controllers.gameplay.OffsetController")
@@ -152,6 +153,8 @@ function GameController:new()
 
 	self.timeRateModel = TimeRateModel(self.replayBase)
 	self.modifierSelectModel = ModifierSelectModel(self.replayBase)
+	self.timeRateModel:onChanged(function() self.modifierSelectModel:change() end)
+	self.timingsModel = TimingsModel(self.replayBase, self.settings, self.modifierSelectModel)
 	self.collectionSelector = CollectionSelector(
 		self.persistence.configModel,
 		self.settings,

@@ -103,7 +103,6 @@ return function(game)
 			},
 			callback = function(args)
 				game.timeRateModel:set(args.rate)
-				game.modifierSelectModel:change()
 			end,
 		},
 		{

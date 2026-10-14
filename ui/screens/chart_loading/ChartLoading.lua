@@ -5,7 +5,6 @@ local CompositeView = require("gui.CompositeView")
 local Panel = require("ui.views.Panel")
 local Colors = require("ui.Colors")
 local UiActions = require("ui.UiActions")
-local thread = require("thread")
 local delay = require("delay")
 
 ---@class ui.screens.chart_loading.ChartLoading : gui.Screen
@@ -42,44 +41,27 @@ function ChartLoading:new(ui)
 	self.root:setOpacity(0)
 end
 
----@param message string
-function ChartLoading:showError(message)
-	self.pending_error = message
-end
-
 function ChartLoading:enter()
 	local song_select = self.ui.song_select
 	if self.ui.screen_manager:getVisibleIndex(song_select) then
 		song_select:zoomOut()
 	end
-	if self.pending_error then
-		self.ui.skin_editor = false
-		self.failed = true
-		self.error_view:setMessage(self.pending_error)
-		self.error_view:setVisible(true)
-		self.pending_error = nil
-		self.root:fadeIn(0.3, "OutQuart")
-		return
-	end
 	self.failed = false
 	self.error_view:setVisible(false)
 	self.root:fadeIn(0.3, "OutQuart")
-	thread.coro(function()
-		local ok, loaded = pcall(self.ui.game.gameInteractor.loadGameplaySelectedChartAsync, self.ui.game.gameInteractor)
-		if ok and loaded then
+	self.ui.api.play:start(self.ui.play_options or {}, function(ok, err)
+		if ok then
 			-- Let a few frames pass after the main-thread stall, so the
 			-- transition starts with a normal dt instead of the stall's.
 			delay.sleep(0.1)
 			self.ui:setScreen(self.ui.gameplay, true)
-		elseif not ok then
+		elseif err then
 			self.ui.skin_editor = false
 			self.failed = true
-			self.error_view:setMessage(tostring(loaded))
+			self.error_view:setMessage(err)
 			self.error_view:setVisible(true)
-			self.ui.game.gameplayInteractor.replaying = false
-			self.ui.game.gameplayInteractor.autoplay = false
 		end
-	end)()
+	end)
 end
 
 ---@param inputs gui.Inputs
