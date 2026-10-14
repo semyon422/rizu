@@ -1,4 +1,5 @@
 local AudioModel = require("rizu.app.AudioModel")
+local bass = require("bass")
 
 local test = {}
 
@@ -27,6 +28,27 @@ function test.resolves_latency_presets(t)
 	t:has_error(function()
 		AudioModel.getDeviceConfig("unknown", 0, 0) --[[@as rizu.AudioDevicePreset]]
 	end)
+end
+
+---@param t testing.T
+function test.falls_back_to_no_sound_when_output_cannot_start(t)
+	local real_start = bass.BASS_Start
+	-- Simulates a device that passes BASS_Init but whose output cannot start
+	-- (BASS_ERROR_START on every BASS_ChannelPlay).
+	bass.BASS_Start = function() return 0 end
+
+	local model = AudioModel()
+	local ok, err = pcall(model.load, model, {period = 10, buffer = 40}, nil, "bass_default")
+
+	bass.BASS_Start = real_start
+	local device = tonumber(bass.BASS_GetDevice())
+	if device >= 0 then
+		bass.BASS_Free()
+	end
+
+	t:assert(ok, err)
+	t:eq(device, 0)
+	t:assert(model.startup_warning ~= nil)
 end
 
 return test

@@ -151,6 +151,24 @@ local function getSdlSampleFrames(milliseconds)
 	return math.max(32, math.min(2048, 2 ^ exponent))
 end
 
+---A device can pass BASS_Init yet be unable to start its output (e.g. a disabled
+---or missing Windows endpoint), which makes every BASS_ChannelPlay fail with
+---BASS_ERROR_START. Treat that as an init failure so the caller falls back.
+---@param device_id integer?
+---@return boolean
+local function initStartedDevice(device_id)
+	bass.init(device_id)
+	if tonumber(bass.BASS_GetDevice()) < 0 then
+		return false
+	end
+	if bass.BASS_Start() ~= 0 then
+		return true
+	end
+	print("AudioModel: audio output failed to start")
+	bass.BASS_Free()
+	return false
+end
+
 ---@param device rizu.AudioDeviceConfig
 ---@param device_id integer?
 ---@param backend rizu.AudioBackend
@@ -181,8 +199,7 @@ function AudioModel:load(device, device_id, backend)
 	if backend == "pipewire_low_latency" then
 		configurePipeWireLatency(device)
 	end
-	bass.init(device_id)
-	if tonumber(bass.BASS_GetDevice()) >= 0 then
+	if initStartedDevice(device_id) then
 		return
 	end
 	self.sdl_status = nil
@@ -190,8 +207,7 @@ function AudioModel:load(device, device_id, backend)
 	if device_id then
 		self.startup_warning = "The selected audio device failed to initialize; using the default output device."
 		print("AudioModel: " .. self.startup_warning)
-		bass.init()
-		if tonumber(bass.BASS_GetDevice()) >= 0 then
+		if initStartedDevice() then
 			return
 		end
 	end
