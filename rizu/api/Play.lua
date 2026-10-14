@@ -144,6 +144,10 @@ end
 
 -- Mutators. They change the chart before it is played and are applied in the order of the list.
 -- New ones go in at the insertion point, a place between two mutators that the game remembers.
+-- TODO: weak spot. The insertion point is the cursor of the old mutator screen, kept in
+-- ModifierSelectModel. A mutator should be added with an index instead, and the model should
+-- lose `modifierIndex`. A mutator is the game's own table with an opaque `id`, so names and
+-- setting texts go through the functions below; the game should give it a name and a text itself.
 
 ---@return string[] names Every mutator the game has.
 function Play:getAvailableMutators() return ModifierRegistry.list end
@@ -175,6 +179,18 @@ function Play:getMutatorName(mutator) return ModifierRegistry:getName(mutator.id
 function Play:hasMutatorValue(mutator)
 	local modifier = ModifierModel:getModifier(mutator.id) --[[@as table?]]
 	return modifier ~= nil and modifier.values ~= nil and #modifier.values > 0
+end
+
+---The setting of a mutator the way the player reads it, such as the 3 of "full long notes 3".
+---@param mutator rizu.api.Mutator
+---@return string? text nil when it has no setting worth showing.
+function Play:getMutatorValueText(mutator)
+	local modifier = ModifierModel:getModifier(mutator.id)
+	if not modifier or self:getMutatorName(mutator) == "Custom" then return end
+	local _, setting = modifier:getString(mutator)
+	if setting and #tostring(setting) > 0 then
+		return tostring(setting)
+	end
 end
 
 ---Adds a mutator at the insertion point. Does nothing if canAddMutator() is false.
@@ -282,6 +298,8 @@ function Play:hasLocalReplays()
 	return chartview ~= nil and self.game.gameplayInteractor.replay_stores[chartview.chartmeta_mode] ~= nil
 end
 
+-- TODO: weak spot. Loading runs on the main thread and stalls the frame, so the UI has to show a
+-- loading screen before it calls start(). The engine should load in the background.
 ---Loads the selected chart with the options set above. Switch to the gameplay screen when f gets true.
 ---Loading takes a while and the game does not draw meanwhile: show a loading screen first.
 ---On failure f gets false and why, or only false when there was nothing to load.

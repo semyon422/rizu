@@ -115,6 +115,8 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@field private collection_of {[rizu.library.Collections.TreeNode]: rizu.api.Collection}
 local Charts = Events + {}
 
+-- TODO: weak spot. These are the display names from FilterModel's config. Renaming one there silently
+-- turns the filter off here. The filter config should give its filters stable ids.
 -- group, name of the "yes" filter, name of the "no" filter
 local yes_no_filters = {
 	played = {"(not) played", "played", "not played"},

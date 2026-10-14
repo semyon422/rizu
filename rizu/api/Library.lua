@@ -77,6 +77,8 @@ local function changed(self)
 	self:emit("locations_changed")
 end
 
+-- TODO: weak spot. `selectLocations()` reads the database on every call to getLocations(), and the
+-- scan status "stage" is a string the game made up. A scan should report a list of known stages.
 ---Reads the locations again, so it is up to date when a screen is entered.
 ---@return rizu.api.Location[]
 function Library:getLocations()

@@ -2,8 +2,6 @@ local View = require("gui.View")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
-local ModifierModel = require("sphere.models.ModifierModel")
-local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 
 ---@class ui.screens.result_v2.ResultMutators.Item
 ---@field sprite gui.Sprite
@@ -42,12 +40,6 @@ local icon_names = {
 	MinLnLength = "mod_min_ln_length",
 }
 
----@type {[integer]: string}
-local modifier_names = {}
-for name, id in pairs(ModifierRegistry.enum) do
-	modifier_names[id] = name
-end
-
 ---@param width number
 function ResultMutators:new(width)
 	View.new(self)
@@ -62,23 +54,14 @@ function ResultMutators:getRowHeight()
 	return ICON_SIZE + VALUE_GAP + self.value_font:getHeight()
 end
 
----@param mutators sea.Modifier[]
-function ResultMutators:bind(mutators)
+---@param mutators rizu.api.Mutator[] From `ui.api.result:getMutators()`.
+---@param play rizu.api.Play Names the mutators.
+function ResultMutators:bind(mutators, play)
 	self.items = {}
-	for _, modifier in ipairs(mutators) do
-		local name = modifier_names[modifier.id]
-		local sprite = Resources.sprites[icon_names[name or ""] or "mod_unknown"] --[[@as gui.Sprite]]
-
-		-- The second return of getString is the setting, e.g. the 3 of FLN 3. Custom has a decorative one.
-		local value ---@type string?
-		local mod = ModifierModel:getModifier(modifier.id)
-		if mod and name ~= "Custom" then
-			local _, setting = mod:getString(modifier)
-			if setting and #tostring(setting) > 0 then
-				value = tostring(setting)
-			end
-		end
-		self.items[#self.items + 1] = {sprite = sprite, value = value}
+	for _, mutator in ipairs(mutators) do
+		local name = play:getMutatorName(mutator)
+		local sprite = Resources.sprites[icon_names[name] or "mod_unknown"] --[[@as gui.Sprite]]
+		self.items[#self.items + 1] = {sprite = sprite, value = play:getMutatorValueText(mutator)}
 	end
 
 	self:setHeight(#self.items > 0 and self:getRowHeight() or 0)

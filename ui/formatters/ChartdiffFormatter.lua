@@ -3,20 +3,20 @@ local Color = require("ui.Color")
 local Settings = require("rizu.config.Settings")
 
 --- Formats info from chartdiff
---- You can get it from GameController.computeContext.chartdiff
+--- You can get it from `ui.api.result:getChartdiff()`
 --- It can be nil there
 ---@class ui.formatters.ChartdiffFormatter
----@overload fun(chartdiff: sea.Chartdiff, settings: rizu.config.Config): ui.formatters.ChartdiffFormatter
+---@overload fun(chartdiff: rizu.api.Chartdiff, settings: rizu.config.Config): ui.formatters.ChartdiffFormatter
 local ChartdiffFormatter = class()
 
----@param chartdiff sea.Chartdiff?
+---@param chartdiff rizu.api.Chartdiff?
 ---@param settings rizu.config.Config
 function ChartdiffFormatter:new(chartdiff, settings)
 	self.chartdiff = chartdiff or {}
 	self.settings = settings
 end
 
----@param chartdiff sea.Chartdiff?
+---@param chartdiff rizu.api.Chartdiff?
 function ChartdiffFormatter:setChartdiff(chartdiff)
 	self.chartdiff = chartdiff or {}
 end
@@ -33,7 +33,7 @@ end
 
 ---@return string
 function ChartdiffFormatter:getLongNoteRatio()
-	return ("%i%%"):format(self.chartdiff.long_note_ratio or 0)
+	return ("%i%%"):format((self.chartdiff.long_notes_ratio or 0) * 100)
 end
 
 ---@return string

@@ -1,5 +1,4 @@
 local thread = require("thread")
-local Settings = require("rizu.config.Settings")
 local Events = require("rizu.api.Events")
 
 --[[
@@ -59,23 +58,22 @@ function Scores:new(selector, result_controller)
 end
 
 ---@return integer
-function Scores:getCount() return self.selector.store:count() end
+function Scores:getCount() return self.selector:getScoreCount() end
 
 ---@param index integer
 ---@return rizu.api.Score? score nil outside 1..getCount()
-function Scores:get(index) return self.selector.store:get(index) --[[@as rizu.api.Score?]] end
+function Scores:get(index) return self.selector:getScoreAt(index) --[[@as rizu.api.Score?]] end
 
 ---@return boolean
-function Scores:isLoading() return self.selector.scoresLoading end
+function Scores:isLoading() return self.selector:isScoreLoading() end
 
 ---@return rizu.api.Scores.Source
-function Scores:getSource() return self.selector.settings:getChoice(Settings.keys.select.score_source) end
+function Scores:getSource() return self.selector:getScoreSource() end
 
 ---Switches the list and loads it again.
 ---@param source rizu.api.Scores.Source
 function Scores:setSource(source)
-	self.selector.settings:setChoice(Settings.keys.select.score_source, source)
-	self.selector:pullScore()
+	self.selector:setScoreSource(source)
 end
 
 ---Loads the list again for the selected chart.

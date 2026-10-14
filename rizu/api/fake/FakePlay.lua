@@ -74,6 +74,7 @@ function FakePlay:getMutatorCount() return #self.mutators end
 function FakePlay:getMutators() return self.mutators end
 function FakePlay:getMutatorName(mutator) return mutator.name end
 function FakePlay:hasMutatorValue(mutator) return mutator.value ~= nil end
+function FakePlay:getMutatorValueText(mutator) return mutator.value and tostring(mutator.value) or nil end
 
 function FakePlay:addMutator(name)
 	if not self:canAddMutator(name) then return end

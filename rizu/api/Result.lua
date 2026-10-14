@@ -21,10 +21,19 @@ Nothing here changes by itself: read it when the result screen is entered and af
 -- engine, the compute context, the result controller and the shared replay base, and "is this a
 -- replayed score" decides which of them is right. A play or a replay should leave one finished result.
 
+---The difficulty of the chart as it was played. The game's row has more fields; these are the contract.
+---@class rizu.api.Chartdiff
+---@field enps_diff number
+---@field osu_diff number
+---@field msd_diff number
+---@field user_diff number
+---@field notes_count integer
+---@field long_notes_ratio number 0..1
+
 ---The system that judged the play. `ui.formatters.ScoreSystemFormatter` names and colors it.
 ---@class rizu.api.Result.Judging
----@field timings sea.Timings? The same systems as `rizu.api.Play.TimingSystem`, with the value in `data`.
----@field subtimings sea.Subtimings?
+---@field timings {name: string, data: number}? The same systems as `rizu.api.Play.TimingSystem`, with the value in `data`.
+---@field subtimings {name: string, data: number}? osu!mania's score version: name "scorev", the version in `data`.
 ---@field getJudgeNames fun(self: rizu.api.Result.Judging): string[] From the best judge to the miss.
 
 ---One judged note, in the order they were played.
@@ -57,8 +66,8 @@ end
 -- What was played
 
 ---Difficulty and note counts of the chart as it was played, with the rate and the mutators applied.
----@return sea.Chartdiff? chartdiff nil when nothing was played or loaded yet
-function Result:getChartdiff() return self.game.computeContext.chartdiff end
+---@return rizu.api.Chartdiff? chartdiff nil when nothing was played or loaded yet
+function Result:getChartdiff() return self.game.computeContext.chartdiff --[[@as rizu.api.Chartdiff?]] end
 
 ---How many times faster than normal the music played.
 ---@return number
@@ -68,7 +77,7 @@ function Result:getRate()
 end
 
 ---The mutators that changed the chart, in the order they were applied.
----@return sea.Modifier[]
+---@return rizu.api.Mutator[]
 function Result:getMutators()
 	local result_controller = self.game.resultController
 	local replay_base = result_controller.replay and result_controller.replay_base or self.game.replayBase

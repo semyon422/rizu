@@ -120,6 +120,27 @@ function ScoreSelector:clear()
 end
 
 ---@return string[]
+---@return integer
+function ScoreSelector:getScoreCount() return self.store:count() end
+
+---@param index integer
+---@return sea.Chartplay?
+function ScoreSelector:getScoreAt(index) return self.store:get(index) end
+
+---@return boolean
+function ScoreSelector:isScoreLoading() return self.scoresLoading end
+
+---@return "local"|"online"
+function ScoreSelector:getScoreSource()
+	return self.settings:getChoice(Settings.keys.select.score_source)
+end
+
+---@param source "local"|"online"
+function ScoreSelector:setScoreSource(source)
+	self.settings:setChoice(Settings.keys.select.score_source, source)
+	self:pullScore()
+end
+
 function ScoreSelector:getScoreFilterNames()
 	local names = {}
 	for _, filter in ipairs(self.configModel.configs.filters.score) do

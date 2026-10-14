@@ -78,6 +78,8 @@ end
 ---@return love.Image? image
 function Online:getAvatar(url) return self.avatars:get(url) end
 
+-- TODO: weak spot. f is called by the first login result the client reports, so a login started
+-- somewhere else (a command) at the same time would end it. AuthManager.login should take a callback.
 ---Logs in with the account's email and password. The player stays logged in after a restart.
 ---f gets true when it worked, otherwise false and the server's reason. "account_changed" follows.
 ---@param email string
