@@ -29,7 +29,7 @@ function OsuAimRenderer:new(game, skin)
 	self.skin_graphics = OsuSkinGraphics(game.fs)
 end
 
----@return ui.screens.gameplay.Gameplay.SkinEditorProperty[]
+---@return rizu.api.Gameplay.SkinProperty[]
 function OsuAimRenderer:getProperties()
 	local settings = self.game.settings
 	local key = Settings.keys.gameplay.osu_cursor_scale

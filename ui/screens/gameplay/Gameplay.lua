@@ -18,28 +18,13 @@ local UiActions = require("ui.UiActions")
 local delay = require("delay")
 local thread = require("thread")
 
----@class ui.screens.gameplay.Gameplay.SkinEditorProperty
----@field key string?
----@field label string?
----@field label_key string?
----@field type "slider"|"checkbox"|"segmented"|"dropdown"? Defaults to "slider".
----@field min number?
----@field max number?
----@field step number?
----@field value_format (fun(value: number): string)?
----@field options any[]? Values for segmented and dropdown controls
----@field format (fun(value: any): string)? Value label for segmented and dropdown controls
----@field setting boolean? Stored in the game settings, so no skin config is saved.
----@field get fun(): any
----@field set fun(value: any)
-
 ---@class ui.screens.gameplay.Gameplay : gui.Screen
----@field gameplay_playfield rizu.gameplay.Playfield
+---@field gameplay rizu.api.Gameplay
 ---@field gameplay_playfield_view gui.View
 ---@field gameplay_hud_view gui.View
 ---@field skin_editor_window ui.views.Window
 ---@field skin_editor_controls gui.layout.FlowContainer
----@field skin_editor_properties ui.screens.gameplay.Gameplay.SkinEditorProperty[]
+---@field skin_editor_properties rizu.api.Gameplay.SkinProperty[]
 ---@field skin_editor_status ui.views.Label
 ---@field skin_editor_popup ui.views.PopupContainer
 ---@operator call: ui.screens.gameplay.Gameplay
@@ -49,12 +34,10 @@ local Gameplay = Screen + {}
 function Gameplay:new(ui)
 	Screen.new(self)
 	self.ui = ui
-	self.game = ui.game
-	self.gameplay_interactor = self.game.gameplayInteractor
+	self.gameplay = ui.api.gameplay
 	self.is_playing = false
 	self.was_retrying = false
 
-	self.gameplay_playfield = self.gameplay_interactor.playfield
 	-- The skin draws with its own colours and ignores the screen opacity. As one layer it fades
 	-- through a canvas, and draws straight to the screen again once the fade has ended.
 	local skin_layer = self.root:add(CompositeView()):anchorFill(0, 0, 0, 0)
@@ -76,8 +59,8 @@ function Gameplay:new(ui)
 
 	self.pause_overlay = self.root:add(PauseOverlay(
 		ui.localization,
-		function() self.gameplay_interactor:changePlayState("play") end,
-		function() self.gameplay_interactor:changePlayState("retry") end,
+		function() self.gameplay:resume() end,
+		function() self.gameplay:retry() end,
 		function()
 			self.ui:setScreen(self.ui.song_select, true)
 			self.is_playing = false
@@ -108,8 +91,8 @@ end
 
 function Gameplay:enter()
 	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
-	assert(self.gameplay_interactor:getPlayfield(), "gameplay playfield is not ready")
-	self.is_unscored = self.gameplay_playfield:isExperimental()
+	assert(self.gameplay:isLoaded(), "gameplay playfield is not ready")
+	self.is_unscored = not self.gameplay:hasScoring()
 	self.summary:setVisible(false)
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
@@ -126,11 +109,10 @@ function Gameplay:enter()
 	self.restart_overlay:reset()
 
 	self.root:fadeIn(0.4, "OutQuint")
-	if self.gameplay_playfield:usesPointer() then
+	if self.gameplay:usesPointer() then
 		self:flush()
 		local x, y = love.mouse.getPosition()
-		x, y = self:toGameplayChart(x, y)
-		self.gameplay_interactor:movePointer(x, y, self.game.global_timer:getTime())
+		self:moveGameplayPointer(x, y)
 	end
 end
 
@@ -163,12 +145,7 @@ function Gameplay:drawGameplayPlayfield()
 	love.graphics.push("all")
 	love.graphics.scale(1 / self.ui_scale)
 	love.graphics.setScissor(x, y, width, height)
-	if self.gameplay_playfield.drawBackgroundHud then
-		self.gameplay_playfield:drawBackgroundHud(width, height, transform)
-	end
-	if self.gameplay_playfield:usesDirectRenderer() then
-		self.gameplay_playfield:draw(width, height, transform)
-	end
+	self.gameplay:drawPlayfield(width, height, transform)
 	love.graphics.setScissor()
 	love.graphics.pop()
 end
@@ -180,18 +157,17 @@ function Gameplay:drawGameplayHud()
 	love.graphics.push("all")
 	love.graphics.scale(1 / self.ui_scale)
 	love.graphics.setScissor(x, y, width, height)
-	self.gameplay_playfield:drawHud(width, height, transform)
+	self.gameplay:drawHud(width, height, transform)
 	love.graphics.setScissor()
 	love.graphics.pop()
 end
 
 ---@param x number Window x coordinate in drawable pixels
 ---@param y number Window y coordinate in drawable pixels
----@return number
----@return number
-function Gameplay:toGameplayChart(x, y)
+---@param time number?
+function Gameplay:moveGameplayPointer(x, y, time)
 	local width, height, transform = self:getGameplayViewport()
-	return self.gameplay_playfield:toChart(x, y, width, height, transform)
+	self.gameplay:movePointer(x, y, width, height, transform, time)
 end
 
 ---Closes an open skin editor dropdown popup, if any.
@@ -202,14 +178,7 @@ end
 
 ---Persists the skin config and reports the result in the status label.
 function Gameplay:saveSkinEditorConfig()
-	local config = self.gameplay_interactor.playfield.skin_config
-	if not config then
-		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
-			error = "Skin config is unavailable.",
-		}))
-		return
-	end
-	local saved, save_error = self.gameplay_interactor.playfield:saveSkinConfig()
+	local saved, save_error = self.gameplay:saveSkinConfig()
 	if saved then
 		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.saved"))
 	else
@@ -219,7 +188,7 @@ function Gameplay:saveSkinEditorConfig()
 	end
 end
 
----@param property ui.screens.gameplay.Gameplay.SkinEditorProperty
+---@param property rizu.api.Gameplay.SkinProperty
 ---@return gui.View
 function Gameplay:createSkinEditorControl(property)
 	local label = property.label or self.ui.localization:get(property.label_key)
@@ -282,9 +251,9 @@ function Gameplay:refreshSkinEditor()
 	self.skin_editor_controls:setGap(14)
 	self.skin_editor_status:setText("")
 	self.skin_editor_status:setSize(540, 24)
-	local renderer = self.gameplay_interactor.playfield:getPlayfield()
-	self.skin_editor_properties = {}
-	if not renderer or not renderer.getProperties then
+	local properties = self.gameplay:getSkinProperties()
+	self.skin_editor_properties = properties or {}
+	if not properties then
 		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.no_properties"))
 		self.skin_editor_controls:add(self.skin_editor_status)
 		self.skin_editor_controls:fitContent()
@@ -292,7 +261,6 @@ function Gameplay:refreshSkinEditor()
 		return
 	end
 
-	self.skin_editor_properties = renderer:getProperties()
 	for _, property in ipairs(self.skin_editor_properties) do
 		self.skin_editor_controls:add(self:createSkinEditorControl(property))
 	end
@@ -311,7 +279,7 @@ function Gameplay:exit()
 	self.was_retrying = false
 	self.restart_overlay:reset()
 	self.ui.command_registry:popContext("gameplay_commands")
-	self.gameplay_interactor:unloadGameplay()
+	self.gameplay:close()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
 	love.mouse.setVisible(true)
@@ -321,69 +289,66 @@ end
 
 ---@param inputs gui.Inputs
 function Gameplay:onHandleInputs(inputs)
-	local interactor = self.gameplay_interactor
+	local gameplay = self.gameplay
 	if inputs:consumeActionJustPressed(UiActions.gameplay_quit) then
 		self.ui:setScreen(self.ui.song_select, true)
 		self.is_playing = false
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_pause) then
-		local state = self.game.pauseModel.state
-		if state == "play" then
-			interactor:changePlayState("pause")
+		local state = gameplay:getState()
+		if state == "play" or state == "pause-play" then
+			gameplay:pause()
 		elseif state == "pause" then
-			interactor:changePlayState("play")
-		elseif state == "pause-play" then
-			interactor:changePlayState("pause")
+			gameplay:resume()
 		end
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_retry) then
-		local state = self.game.pauseModel.state
+		local state = gameplay:getState()
 		if state == "play" or state == "pause" then
-			interactor:changePlayState("retry")
+			gameplay:retry()
 		end
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_skip_intro) then
-		interactor:skipIntro()
+		gameplay:skipIntro()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_decrease) then
-		self.game.offsetController:increaseLocalOffset(-0.001)
+		gameplay:changeLocalOffset(-0.001)
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_increase) then
-		self.game.offsetController:increaseLocalOffset(0.001)
+		gameplay:changeLocalOffset(0.001)
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_reset) then
-		self.game.offsetController:resetLocalOffset()
+		gameplay:resetLocalOffset()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_decrease) then
-		interactor:increasePlaySpeed(-1)
+		gameplay:changeScrollSpeed(-1)
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_increase) then
-		interactor:increasePlaySpeed(1)
+		gameplay:changeScrollSpeed(1)
 	end
 
-	local state = self.game.pauseModel.state
+	local state = gameplay:getState()
 	if inputs:consumeActionJustReleased(UiActions.gameplay_pause) and state == "play-pause" then
-		interactor:changePlayState("play")
+		gameplay:resume()
 	end
 	if inputs:consumeActionJustReleased(UiActions.gameplay_retry) then
 		if state == "play-retry" then
-			interactor:changePlayState("play")
+			gameplay:resume()
 		elseif state == "pause-retry" then
-			interactor:changePlayState("pause")
+			gameplay:pause()
 		end
 	end
 end
 
 function Gameplay:observeCompletion()
-	if self.game.rhythm_engine:getProgress() < 1 then
+	local gameplay = self.gameplay
+	if gameplay:getProgress() < 1 then
 		return
 	end
 
 	self.is_playing = false
 	if self.is_unscored then
-		self.gameplay_interactor:saveLocalReplay()
-		self.gameplay_interactor.complete = true
-		self.gameplay_interactor:pause()
-		local rules = self.game.rhythm_engine.rules
+		local status = gameplay:finish()
+		local hits, misses = gameplay:getHitCounts()
 		self.summary:setText(("Hit %d / Miss %d\n%s\nEnter: back | R: replay | Retry: new attempt"):format(
-			rules.hits, rules.misses, self.gameplay_interactor.replay_status or "Autoplay / replay — no score saved"))
+			hits, misses, status or "Autoplay / replay — no score saved"))
 		self.summary:setVisible(true)
 		return
 	end
-	local base_score = self.game.rhythm_engine.score_engine.scores.base
-	if base_score.missCount == 0 then
+	local _, misses = gameplay:getHitCounts()
+	if misses == 0 then
 		self.clear_status:bind("FULL COMBO", Colors.grade_s)
 	else
 		self.clear_status:bind("STAGE COMPLETED", Colors.text)
@@ -400,18 +365,19 @@ end
 ---@param dt number
 function Gameplay:update(dt)
 	Screen.update(self, dt)
-	local pause_model = self.game.pauseModel
-	local state = pause_model.state
+	local gameplay = self.gameplay
+	local state = gameplay:getState()
+	local progress = gameplay:getStateProgress()
 	if state == "play-pause" then
 		self.pause_hold_overlay:setPrompt("pause")
-		self.pause_hold_overlay:setProgress(pause_model.progress)
+		self.pause_hold_overlay:setProgress(progress)
 		self.pause_overlay:setReveal(0)
 	elseif state == "play-retry" or state == "pause-retry" then
 		self.pause_hold_overlay:setProgress(0)
 		self.pause_overlay:setReveal(state == "pause-retry" and 1 or 0)
 	elseif state == "pause-play" then
 		self.pause_hold_overlay:setProgress(0)
-		self.pause_overlay:setReveal(1 - pause_model.progress)
+		self.pause_overlay:setReveal(1 - progress)
 	elseif state:sub(1, 5) == "pause" then
 		self.pause_hold_overlay:setProgress(0)
 		self.pause_overlay:setReveal(1)
@@ -422,15 +388,15 @@ function Gameplay:update(dt)
 
 	local retrying = state == "play-retry" or state == "pause-retry"
 	if retrying then
-		self.restart_overlay:setProgress(pause_model.progress)
+		self.restart_overlay:setProgress(progress)
 	elseif self.was_retrying then
 		self.restart_overlay:retract()
 	end
 	self.was_retrying = retrying
 
-	if self.is_unscored and self.gameplay_interactor.loaded then
-		self.gameplay_interactor:update(dt, true)
-		if not self.is_playing and self.game.rhythm_engine:getProgress() < 1 then
+	if self.is_unscored and gameplay:isLoaded() then
+		gameplay:update(dt)
+		if not self.is_playing and gameplay:getProgress() < 1 then
 			self.is_playing = true
 			self.summary:setVisible(false)
 			self.clear_status:hide()
@@ -449,10 +415,8 @@ function Gameplay:receive(event)
 				self.ui:setScreen(self.ui.song_select)
 				return true
 			elseif event[1] == "r" then
-				local meta = self.game.rhythm_engine.chartmeta
-				local ok, err = self.gameplay_interactor:loadLocalReplay(meta.hash, meta.index, meta.mode)
+				local ok, err = self.gameplay:watchLocalReplay()
 				if ok then
-					self.gameplay_interactor:retry()
 					self.is_playing = true
 					self.summary:setVisible(false)
 				else
@@ -461,14 +425,13 @@ function Gameplay:receive(event)
 				return true
 			end
 		end
-		if self.gameplay_playfield:usesPointer() and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
-			local x, y = self:toGameplayChart(event[1], event[2])
-			self.gameplay_interactor:movePointer(x, y, event.time)
+		if self.gameplay:usesPointer() and (event.name == "mousemoved" or event.name == "mousepressed" or event.name == "mousereleased") then
+			self:moveGameplayPointer(event[1], event[2], event.time)
 		end
-		self.gameplay_interactor:receive(event)
+		self.gameplay:receive(event)
 		return
 	end
-	self.gameplay_interactor:receive(event)
+	self.gameplay:receive(event)
 end
 
 return Gameplay

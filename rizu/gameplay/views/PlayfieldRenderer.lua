@@ -5,6 +5,7 @@ local Hud = require("rizu.skin.Hud")
 ---@operator call: rizu.gameplay.views.PlayfieldRenderer
 ---@field background_hud rizu.skin.Hud
 ---@field foreground_hud rizu.skin.Hud
+---@field getProperties (fun(self: rizu.gameplay.views.PlayfieldRenderer): rizu.api.Gameplay.SkinProperty[])? Settings for the gameplay skin editor.
 ---@field private foreground_hud_transform love.Transform
 local PlayfieldRenderer = class()
 

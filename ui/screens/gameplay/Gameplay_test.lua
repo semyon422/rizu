@@ -1,4 +1,5 @@
 local Gameplay = require("ui.screens.gameplay.Gameplay")
+local GameplayApi = require("rizu.api.Gameplay")
 local UiActions = require("ui.UiActions")
 local PauseModel = require("sphere.models.PauseModel")
 local Settings = require("rizu.config.Settings")
@@ -17,7 +18,12 @@ local function create(state)
 	model:load()
 	model.state = state
 	local screen = setmetatable({
-		game = {pauseModel = model},
+		gameplay = GameplayApi({
+			pauseModel = model,
+			gameplayInteractor = {changePlayState = function(_, target)
+				model:changePlayState(target)
+			end},
+		} --[[@as sphere.GameController]]),
 		was_retrying = false,
 		restart_overlay = {
 			progress = 0,
@@ -25,9 +31,6 @@ local function create(state)
 			retract = function() end,
 			reset = function(self) self.progress = 0 end,
 		},
-		gameplay_interactor = {changePlayState = function(_, target)
-			model:changePlayState(target)
-		end},
 	}, {__index = Gameplay})
 	---@cast screen ui.screens.gameplay.Gameplay
 	return screen, model
@@ -57,8 +60,7 @@ function test.skin_hud_draw_bridge_does_not_update_core_animation(t)
 		end,
 	}
 	local screen = setmetatable({
-		gameplay_playfield = playfield,
-		game = {},
+		gameplay = playfield,
 		width = 1280,
 		height = 720,
 		ui_scale = 1,
@@ -99,7 +101,7 @@ function test.gameplay_hud_dispatch_does_not_require_a_renderer_hud_field(t)
 		drawHud = function() draws = draws + 1 end,
 	}
 	local screen = setmetatable({
-		gameplay_playfield = playfield,
+		gameplay = playfield,
 		width = 640,
 		height = 480,
 		ui_scale = 1,
@@ -215,19 +217,22 @@ end
 function test.aim_completion_saves_diagnostic_replay_without_score_screen(t)
 	local saved, paused = 0, 0
 	local text, visible
+	local interactor = {
+		saveLocalReplay = function() saved = saved + 1 end,
+		pause = function() paused = paused + 1 end,
+	}
 	local screen = setmetatable({
 		is_unscored = true, is_playing = true, sequence_canvas = {},
-		game = {rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 2, misses = 1}}},
-		gameplay_interactor = {
-			saveLocalReplay = function() saved = saved + 1 end,
-			pause = function() paused = paused + 1 end,
-		},
+		gameplay = GameplayApi({
+			rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 2, misses = 1}},
+			gameplayInteractor = interactor,
+		} --[[@as sphere.GameController]]),
 		summary = {setText = function(_, value) text = value end, setVisible = function(_, value) visible = value end},
 	}, {__index = Gameplay})
 	screen:observeCompletion()
 	t:eq(saved, 1)
 	t:eq(paused, 1)
-	t:eq(screen.gameplay_interactor.complete, true)
+	t:eq(interactor.complete, true)
 	t:eq(screen.is_playing, false)
 	t:eq(visible, true)
 	t:assert(text:find("Hit 2 / Miss 1", 1, true))
@@ -237,19 +242,22 @@ end
 function test.taiko_completion_uses_local_summary(t)
 	local saved, paused = 0, 0
 	local text
+	local interactor = {
+		saveLocalReplay = function() saved = saved + 1 end,
+		pause = function() paused = paused + 1 end,
+	}
 	local screen = setmetatable({
 		is_unscored = true, is_playing = true, sequence_canvas = {},
-		game = {rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 3, misses = 1}}},
-		gameplay_interactor = {
-			saveLocalReplay = function() saved = saved + 1 end,
-			pause = function() paused = paused + 1 end,
-		},
+		gameplay = GameplayApi({
+			rhythm_engine = {getProgress = function() return 1 end, rules = {hits = 3, misses = 1}},
+			gameplayInteractor = interactor,
+		} --[[@as sphere.GameController]]),
 		summary = {setText = function(_, value) text = value end, setVisible = function() end},
 	}, {__index = Gameplay})
 	screen:observeCompletion()
 	t:eq(saved, 1)
 	t:eq(paused, 1)
-	t:eq(screen.gameplay_interactor.complete, true)
+	t:eq(interactor.complete, true)
 	t:assert(text:find("Hit 3 / Miss 1", 1, true))
 end
 

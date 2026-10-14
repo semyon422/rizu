@@ -5,7 +5,7 @@ local test = {}
 ---A fake that lacks a function crashes only the UI that calls it, and only without the game.
 ---@param t testing.T
 function test.fake_has_every_function_of_the_real_api(t)
-	for _, name in ipairs({"Charts", "Scores", "Media", "Online", "Play", "Result"}) do
+	for _, name in ipairs({"Charts", "Scores", "Media", "Online", "Play", "Result", "Gameplay"}) do
 		local real = require("rizu.api." .. name)
 		local fake = require("rizu.api.fake.Fake" .. name)
 		for key, value in pairs(real) do

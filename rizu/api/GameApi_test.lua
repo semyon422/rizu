@@ -1,6 +1,7 @@
 local Online = require("rizu.api.Online")
 local Play = require("rizu.api.Play")
 local Result = require("rizu.api.Result")
+local Gameplay = require("rizu.api.Gameplay")
 local OnlineClient = require("rizu.online.OnlineClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local ReplayBase = require("sea.replays.ReplayBase")
@@ -156,6 +157,32 @@ function test.result(t)
 	game.resultController.replay = {}
 	game.resultController.replay_base = {modifiers = {}}
 	t:tdeq({result:getRate(), result:getPauseCount(), #result:getMutators()}, {1.5, 0, 0})
+end
+
+---@param t testing.T
+function test.gameplay_score(t)
+	local sequence = {
+		{base = {isMiss = false, isEarlyHit = false}, misc = {deltaTime = -0.012}, osu = {visual_judge = 2}},
+		{base = {isMiss = true, isEarlyHit = false}, misc = {deltaTime = 0.2}},
+	}
+	local score_engine = {
+		scores = {base = {hitCount = 1, missCount = 1}},
+		sequence = sequence,
+		judgesSource = {getKey = function() return "osu" end, getJudgeNames = function() return {"300", "200"} end},
+	}
+	local mania = Gameplay({rhythm_engine = {score_engine = score_engine}} --[[@as any]])
+	t:tdeq({mania:getHitCounts()}, {1, 1})
+	t:eq(mania:getScore(), nil, "a missing source reads as nil")
+	t:eq(mania:getJudgementCount(), 2)
+	t:tdeq({mania:getJudgement(1)}, {"hit", -0.012, 2})
+	t:tdeq({mania:getJudgement(2)}, {"miss", 0})
+	t:tdeq(mania:getJudgeNames(), {"300", "200"})
+
+	local taiko = Gameplay({rhythm_engine = {rules = {hits = 3, misses = 2}}} --[[@as any]])
+	t:tdeq({taiko:getHitCounts()}, {3, 2})
+	t:eq(taiko:getJudgementCount(), 0)
+	t:tdeq(taiko:getVisibleNotes(), {})
+	t:eq(taiko:isColumnPressed(1), false)
 end
 
 return test

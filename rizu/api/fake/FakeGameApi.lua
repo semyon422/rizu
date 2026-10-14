@@ -7,6 +7,7 @@ local FakeMedia = require("rizu.api.fake.FakeMedia")
 local FakeOnline = require("rizu.api.fake.FakeOnline")
 local FakePlay = require("rizu.api.fake.FakePlay")
 local FakeResult = require("rizu.api.fake.FakeResult")
+local FakeGameplay = require("rizu.api.fake.FakeGameplay")
 
 ---`rizu.api.GameApi` with no game behind it: a made-up library, scores and player, and settings
 ---that are never saved. Enough to run and test a user interface on its own.
@@ -23,6 +24,7 @@ function FakeGameApi:new()
 	self.online = FakeOnline()
 	self.play = FakePlay()
 	self.result = FakeResult()
+	self.gameplay = FakeGameplay()
 
 	local function selected(chart)
 		self.scores:setChart(chart)
