@@ -13,6 +13,9 @@ local Colors = require("ui.Colors")
 ---@operator call: ui.screens.result_v2.ResultMutators
 ---@field items ui.screens.result_v2.ResultMutators.Item[]
 ---@field value_font love.Font
+---@field icon_size number
+---@field show_values boolean
+---@field align_right boolean
 local ResultMutators = View + {}
 
 local ICON_SIZE = 76
@@ -40,9 +43,19 @@ local icon_names = {
 	MinLnLength = "mod_min_ln_length",
 }
 
+---@class ui.screens.result_v2.ResultMutators.Params
+---@field icon_size number?
+---@field show_values boolean? Draw the setting under the icon; default true.
+---@field align_right boolean? Stick the row to the right edge instead of the left.
+
 ---@param width number
-function ResultMutators:new(width)
+---@param params ui.screens.result_v2.ResultMutators.Params?
+function ResultMutators:new(width, params)
 	View.new(self)
+	params = params or {}
+	self.icon_size = params.icon_size or ICON_SIZE
+	self.show_values = params.show_values ~= false
+	self.align_right = params.align_right == true
 	self.items = {}
 	self.value_font = Resources.getFont("medium", 26)
 	self:setSize(width, 0)
@@ -51,7 +64,10 @@ end
 
 ---@return number
 function ResultMutators:getRowHeight()
-	return ICON_SIZE + VALUE_GAP + self.value_font:getHeight()
+	if not self.show_values then
+		return self.icon_size
+	end
+	return self.icon_size + VALUE_GAP + self.value_font:getHeight()
 end
 
 ---@param mutators rizu.api.Mutator[] From `ui.api.result:getMutators()`.
@@ -70,15 +86,20 @@ end
 function ResultMutators:draw()
 	Painter.snapToPixel()
 	love.graphics.setFont(self.value_font)
+	local icon_size = self.icon_size
+	local x0 = 0
+	if self.align_right then
+		x0 = self.width - (#self.items * (icon_size + GAP_X) - GAP_X)
+	end
 	for i, item in ipairs(self.items) do
-		local x = (i - 1) * (ICON_SIZE + GAP_X)
+		local x = x0 + (i - 1) * (icon_size + GAP_X)
 		local y = 0
 
 		Painter.setColorRgb(1, 1, 1, 1)
-		item.sprite:draw(x, y, 0, ICON_SIZE / item.sprite:getWidth(), ICON_SIZE / item.sprite:getHeight())
-		if item.value then
+		item.sprite:draw(x, y, 0, icon_size / item.sprite:getWidth(), icon_size / item.sprite:getHeight())
+		if item.value and self.show_values then
 			Painter.setColorTable(Colors.text)
-			love.graphics.printf(item.value, x, y + ICON_SIZE + VALUE_GAP, ICON_SIZE, "center")
+			love.graphics.printf(item.value, x, y + icon_size + VALUE_GAP, icon_size, "center")
 		end
 	end
 end

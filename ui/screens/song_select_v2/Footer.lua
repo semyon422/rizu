@@ -5,6 +5,7 @@ local Color = require("ui.Color")
 local Resources = require("ui.Resources")
 local Label = require("ui.views.Label")
 local IconTextButton = require("ui.views.IconTextButton")
+local ResultMutators = require("ui.screens.result_v2.ResultMutators")
 local RateFormatter = require("ui.formatters.RateFormatter")
 
 -- Layout follows result_design/select.html (1920x1080 logical).
@@ -13,6 +14,7 @@ local BUTTON_GAP = 12
 local OPTION_GAP = 10
 local RATE_GAP = 28
 local RATE_WIDTH = 140
+local MUTATORS_WIDTH = 420
 
 ---@class ui.screens.song_select_v2.Footer : gui.View
 ---@operator call: ui.screens.song_select_v2.Footer
@@ -24,6 +26,7 @@ local RATE_WIDTH = 140
 ---@field back_button ui.views.IconTextButton
 ---@field play_button ui.views.IconTextButton
 ---@field rate ui.views.Label
+---@field mutators ui.screens.result_v2.ResultMutators
 local Footer = View + {}
 
 Footer.HEIGHT = HEIGHT
@@ -104,6 +107,10 @@ function Footer:new(ui)
 	self.rate = rate:add(Label({font_name = "bold", font_size = 34, color = {1, 1, 1, 1}}))
 	self.rate:setAlignment(1, 1)
 
+	self.mutators = self:add(ResultMutators(MUTATORS_WIDTH, {icon_size = HEIGHT, show_values = false, align_right = true}))
+	self.mutators:anchorFixed(0, 0, MUTATORS_WIDTH, HEIGHT):setAlignmentX(1)
+		:addPosition(-(self.play_button:getPreferredWidth() + RATE_GAP + RATE_WIDTH + RATE_GAP), 0)
+
 	self:updateState()
 end
 
@@ -122,6 +129,7 @@ function Footer:updateState()
 
 	self.rate:setText(RateFormatter.format(play:getRateValue(), play:getRateType()))
 	Color.rateToColor(play:getRate(), self.rate.color)
+	self.mutators:bind(play:getMutators(), play)
 end
 
 return Footer
