@@ -155,6 +155,16 @@ end
 
 ---@return string?
 function ChartviewFormatter:getName()
+	local name = self:getBaseName()
+	local level = self.chartview.level
+	if not name or not level or level <= 0 then
+		return name
+	end
+	return ("[Lv. %i] %s"):format(level, name)
+end
+
+---@return string?
+function ChartviewFormatter:getBaseName()
 	local name = self.chartview.name
 	if self.chartview.format ~= "iidx" or not name then
 		return name
