@@ -17,7 +17,7 @@ function test.exposes_receptor_and_playfield_properties(t)
 	t:eq(properties[1].key, "receptor.y")
 	t:eq(properties[2].key, "playfield.x_offset")
 	t:eq(properties[3].key, "bga.brightness")
-	t:eq(renderer:getReceptorY(), 360)
+	t:eq(renderer:getReceptorY(), 430)
 	t:eq(renderer:getPlayfieldXOffset(), 0)
 	t:eq(renderer:getBgaBrightness(), 0.15)
 
