@@ -24,13 +24,8 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	}
 	local game = {
 		fs = FakeFilesystem(),
-		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
-		skinRegistry = {
-			getOsuSkin = function(_, path) return path == skin.path and skin end,
-			getOsuSkins = function() return {skin} end,
-		},
 	}
-	local renderer = OsuManiaRenderer(game, "4key")
+	local renderer = OsuManiaRenderer(game, skin, "4key")
 
 	t:eq(renderer.skin, skin)
 	t:eq(renderer.columns, 4)
@@ -79,13 +74,8 @@ function test.special_style_reorders_scratch_inputs_without_changing_columns(t)
 		}
 		local game = {
 			fs = FakeFilesystem(),
-			settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
-		skinRegistry = {
-				getOsuSkin = function(_, path) return path == skin.path and skin end,
-				getOsuSkins = function() return {skin} end,
-			},
 		}
-		return OsuManiaRenderer(game, input_mode)
+		return OsuManiaRenderer(game, skin, input_mode)
 	end
 
 	local left = create_renderer("7key1scratch", 1)
@@ -119,7 +109,7 @@ function test.special_style_reorders_scratch_inputs_without_changing_columns(t)
 	center:unload()
 end
 function test.uses_separate_conveyor_hud_for_conveyor_anchored_views(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	t:eq(renderer.foreground_hud.children[1], renderer.score_view)
 	t:eq(renderer.foreground_hud.children[2], renderer.accuracy_view)
 	t:eq(renderer.foreground_hud.children[3], renderer.progress_view)
@@ -133,7 +123,7 @@ function test.uses_separate_conveyor_hud_for_conveyor_anchored_views(t)
 end
 
 function test.column_anchor_width_includes_stage_separation(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	renderer.column_widths = {40, 50, 60, 70}
 	renderer.column_spacings = {3, 4, 5}
 	renderer.split_stages = true
@@ -146,7 +136,7 @@ function test.column_anchor_width_includes_stage_separation(t)
 end
 
 function test.draws_conveyor_hud_over_the_complete_column_span(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	renderer.column_widths = {40, 50, 60, 70}
 	renderer.column_spacings = {3, 4, 5}
 	renderer.split_stages = false
@@ -177,13 +167,8 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 	}
 	local game = {
 		fs = FakeFilesystem(),
-		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
-		skinRegistry = {
-			getOsuSkin = function(_, path) return path == skin.path and skin end,
-			getOsuSkins = function() return {skin} end,
-		},
 	}
-	local renderer = OsuManiaRenderer(game, "4key")
+	local renderer = OsuManiaRenderer(game, skin, "4key")
 	local image = {
 		getDimensions = function() return 20, 20 end,
 	}
@@ -233,7 +218,7 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 end
 
 function test.preview_long_note_draws_hold_head_body_and_tail(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	local images = {
 		body = {getDimensions = function() return 20, 20 end},
 		head = {getDimensions = function() return 20, 20 end},
@@ -292,7 +277,7 @@ function test.preview_long_note_draws_hold_head_body_and_tail(t)
 end
 
 function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	local images = {
 		body = {getDimensions = function() return 20, 20 end},
 		head = {getDimensions = function() return 20, 20 end},
@@ -375,7 +360,7 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 end
 
 function test.long_note_body_uses_the_selected_animation_frame(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	local images = {
 		body_first = {getDimensions = function() return 20, 20 end},
 		body_second = {getDimensions = function() return 20, 20 end},
@@ -417,7 +402,7 @@ function test.long_note_body_uses_the_selected_animation_frame(t)
 end
 
 function test.draws_stage_before_keys(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	renderer.load = function() end
 	renderer.game.rhythm_engine = {visual_engine = {visible_notes = {}}, isColumnPressed = function() return false end}
 	local events = {}
@@ -442,7 +427,7 @@ function test.draws_stage_before_keys(t)
 	t:tdeq(events, {"stage", "notes", "keys"})
 end
 function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "18key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "18key")
 	local left, widths, scale = renderer:getPlayfieldLayout()
 	local total = 0
 	for _, width in ipairs(widths) do total = total + width end
@@ -454,7 +439,7 @@ function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
 end
 
 function test.renderer_updates_each_playfield_component(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	local hud_updates = 0
 	renderer.foreground_hud.update = function() hud_updates = hud_updates + 1 end
 	renderer.conveyor_hud.update = function() hud_updates = hud_updates + 1 end
@@ -481,7 +466,7 @@ end
 
 ---@param t testing.T
 function test.loads_bundled_fallback_assets(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key")
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	local previous_new_image = love.graphics.newImage
 	local previous_new_quad = love.graphics.newQuad
 	local previous_new_batch = love.graphics.newSpriteBatch
@@ -543,14 +528,9 @@ function test.scroll_override_falls_back_to_skin_and_flips_hud_positions(t)
 	}
 	local game = {
 		fs = FakeFilesystem(),
-		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
-		skinRegistry = {
-			getOsuSkin = function(_, path) return path == skin.path and skin end,
-			getOsuSkins = function() return {skin} end,
-		},
 	}
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer(game, "4key", skin.path, config)
+	local renderer = OsuManiaRenderer(game, skin, "4key", config)
 
 	t:eq(renderer:getUpscroll(), true)
 	t:eq(renderer.upside_down, true)
@@ -593,7 +573,7 @@ end
 
 function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
 
 	t:eq(renderer:getBgaBrightness(), 0.15)
 	t:eq(renderer.bga_view.brightness, 0.15)
@@ -618,7 +598,7 @@ function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
 	t:eq(brightness.get(), 0.75)
 	t:eq(renderer.bga_view.brightness, 0.75)
 
-	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
 	t:eq(reloaded.bga_view.brightness, 0.75)
 	reloaded:unload()
 	renderer:unload()
@@ -632,14 +612,9 @@ function test.hit_position_prefers_config_override_and_clamps(t)
 	}
 	local game = {
 		fs = FakeFilesystem(),
-		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
-		skinRegistry = {
-			getOsuSkin = function(_, path) return path == skin.path and skin end,
-			getOsuSkins = function() return {skin} end,
-		},
 	}
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer(game, "4key", skin.path, config)
+	local renderer = OsuManiaRenderer(game, skin, "4key", config)
 
 	t:eq(renderer.hit_position, 400)
 	t:eq(renderer:getHitPosition(), 400)
@@ -680,13 +655,8 @@ function test.hit_position_dependent_visuals_can_move_and_lighting_can_be_disabl
 	config:set("mania", "4key", "hit_position.move_keys", true)
 	local game = {
 		fs = FakeFilesystem(),
-		settings = {getStringMap = function() return {['osu/1osu'] = skin.path} end},
-		skinRegistry = {
-			getOsuSkin = function(_, path) return path == skin.path and skin end,
-			getOsuSkins = function() return {skin} end,
-		},
 	}
-	local renderer = OsuManiaRenderer(game, "4key", skin.path, config)
+	local renderer = OsuManiaRenderer(game, skin, "4key", config)
 
 	t:eq(renderer:getHitPositionOffset(), 0)
 	t:eq(renderer:getMoveWithHitPosition(), true)
@@ -711,7 +681,7 @@ end
 
 function test.hit_meter_y_is_configurable(t)
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
 
 	t:eq(renderer:getHitMeterY(), -4)
 	t:eq(renderer.hit_meter_view.y, -4)
@@ -733,12 +703,12 @@ end
 
 function test.hit_meter_can_be_disabled(t)
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
 	renderer:setHitMeterMode(2)
 	t:eq(renderer:getHitMeterMode(), 2)
 	t:eq(renderer.hit_meter_view.mode, "off")
 	t:eq(renderer.hit_meter_view.visible, false)
-	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, "4key", nil, config)
+	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
 	t:eq(reloaded:getHitMeterMode(), 2)
 	t:eq(reloaded.hit_meter_view.visible, false)
 	reloaded:unload()

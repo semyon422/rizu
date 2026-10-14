@@ -61,13 +61,8 @@ end
 ---@param input_mode string
 ---@return string?
 function GameplayInteractor:getSkinDirectory(gamemode, input_mode)
-	local registry = self.game.skinRegistry
-	local skin_paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
-	-- An osu! skin picked for a non-mania mode is stored under the osu/ key.
-	local osu_path = skin_paths["osu/" .. input_mode]
-	local skin = osu_path and registry:getOsuSkin(osu_path)
-		or registry:getSkinForInputMode(gamemode.name, input_mode, skin_paths[gamemode.name .. "/" .. input_mode])
-	return skin and skin.directory_path
+	local skin = self.game.skinRegistry:resolve(gamemode.name, input_mode)
+	return skin and skin.format ~= "builtin" and skin.path or nil
 end
 
 ---@param chartview table

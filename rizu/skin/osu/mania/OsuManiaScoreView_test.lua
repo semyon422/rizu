@@ -345,7 +345,7 @@ end
 
 
 function test.positions_hud_score_against_the_full_viewport_edge(t)
-	local renderer = require("rizu.skin.osu.OsuManiaRenderer")({fs = require("fs.FakeFilesystem")()}, "4key")
+	local renderer = require("rizu.skin.osu.OsuManiaRenderer")({fs = require("fs.FakeFilesystem")()}, nil, "4key")
 	local hud = renderer.foreground_hud
 	local native_width, native_height, hud_transform
 	local draw_hud = hud.draw

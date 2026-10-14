@@ -10,8 +10,8 @@ local function maniaGame(renderer)
 		rhythm_engine = {chartmeta = {mode = "mania"}, chart = {inputMode = "4key"}},
 		settings = settings,
 		skinRegistry = {
-			getSkinForInputMode = function() return skin end,
-			loadSkin = function() return renderer end,
+			resolve = function() return skin end,
+			createRenderer = function() return renderer end,
 		},
 	}
 end
@@ -24,7 +24,7 @@ function test.asks_the_registry_for_a_skin_of_the_chart_gamemode(t)
 		local renderer = PlayfieldRenderer({})
 		local game = maniaGame(renderer)
 		local requested ---@type string[]
-		game.skinRegistry.getSkinForInputMode = function(_, gamemode, input_mode)
+		game.skinRegistry.resolve = function(_, gamemode, input_mode)
 			requested = {gamemode, input_mode}
 			return {}
 		end
@@ -138,7 +138,7 @@ function test.retry_reuses_renderer_and_dirty_config_after_engine_recreation(t)
 	local game = maniaGame(renderer)
 	local creates, loads = 0, 0
 	local config = {has_unsaved_changes = true, save = function() return false, "disk full" end}
-	game.skinRegistry.loadSkin = function()
+	game.skinRegistry.createRenderer = function()
 		creates = creates + 1
 		return renderer, config, "config.json"
 	end
@@ -167,7 +167,7 @@ function test.skin_replacement_saves_config_and_failed_save_preserves_it(t)
 		saves = saves + 1
 		return save_ok, "disk full"
 	end}
-	game.skinRegistry.loadSkin = function()
+	game.skinRegistry.createRenderer = function()
 		creates = creates + 1
 		return renderer, config, "config.json"
 	end
@@ -175,7 +175,7 @@ function test.skin_replacement_saves_config_and_failed_save_preserves_it(t)
 	playfield:load()
 	playfield:unload()
 	local replacement = {}
-	game.skinRegistry.getSkinForInputMode = function() return replacement end
+	game.skinRegistry.resolve = function() return replacement end
 	t:eq(pcall(playfield.load, playfield), false)
 	t:eq(playfield.skin_config, config)
 	t:eq(creates, 1)
@@ -193,7 +193,7 @@ function test.canceled_skin_construction_cannot_publish_or_start_runtime(t)
 	local loads, unloads = 0, 0
 	renderer.load = function() loads = loads + 1 end
 	renderer.unload = function() unloads = unloads + 1 end
-	game.skinRegistry.loadSkin = function() coroutine.yield(); return renderer end
+	game.skinRegistry.createRenderer = function() coroutine.yield(); return renderer end
 	local playfield = Playfield(game)
 	local co = coroutine.create(function() playfield:load() end)
 	assert(coroutine.resume(co))

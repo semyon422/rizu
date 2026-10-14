@@ -1,212 +1,201 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local SkinRegistry = require("rizu.skin.SkinRegistry")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
-local valid_skin = [[
+---@param paths {[string]: string}?
+local function new_settings(paths)
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setStringMap(Settings.keys.gameplay.skins, paths or {})
+	return settings
+end
+
+local osu_ini = "[General]\nName: %s\nAuthor: Mapper\nVersion: 2.7\n[Mania]\nKeys: 4\n"
+
+---@param fs fs.IFilesystem
+---@param name string
+---@param ini string?
+local function add_osu_skin(fs, name, ini)
+	fs:createDirectory("userdata/dlc/skins_osu/" .. name)
+	fs:write("userdata/dlc/skins_osu/" .. name .. "/skin.ini", ini or osu_ini:format(name))
+end
+
+---@param fs fs.IFilesystem
+---@param name string
+---@param source string?
+local function add_lua_skin(fs, name, source)
+	fs:createDirectory("userdata/dlc/skins_rizu/" .. name)
+	fs:write("userdata/dlc/skins_rizu/" .. name .. "/skin.lua", source or [[
 return {
-	metadata = {name = "Example", author = "Rizu", version = "1", gamemode = "mania", input_modes = {"4key"}},
-	load = function(context) return context.game end,
+	name = "Example", gamemode = "mania", input_modes = {"4key"},
+	load = function(game, directory, input_mode, config, screen) return {game, directory, input_mode, config, screen} end,
 }
-]]
+]])
+end
 
 ---@param t testing.T
-function test.discovers_native_lua_skin_metadata(t)
+function test.lists_builtin_then_lua_then_osu_skins_with_one_shape(t)
 	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_rizu/example")
-	fs:write("userdata/dlc/skins_rizu/example/example.skin.lua", valid_skin)
+	add_osu_skin(fs, "Custom Skin")
+	add_lua_skin(fs, "example")
+	fs:createDirectory("userdata/dlc/skins_rizu/base") -- config folder, not a skin
+	fs:createDirectory("userdata/dlc/skins_osu/no-ini")
+	fs:write("userdata/dlc/skins_osu/no-ini/readme.txt", "not a skin")
 
-	local registry = SkinRegistry(fs)
+	local registry = SkinRegistry(fs, new_settings())
 	registry:load()
 
 	local skins = registry:getSkins()
-	t:eq(#skins, 1)
-	t:eq(skins[1].path, "userdata/dlc/skins_rizu/example/example.skin.lua")
-	t:eq(skins[1].directory_path, "userdata/dlc/skins_rizu/example")
-	t:eq(skins[1].file_name, "example.skin.lua")
-	t:eq(skins[1].format, "lua")
-	t:eq(skins[1].metadata.name, "Example")
-	t:eq(registry:getSkin(skins[1].path), skins[1])
-	t:eq(registry:getSkinForInputMode("mania", "4key"), skins[1])
-	t:eq(registry:getSkinForInputMode("mania", "7key"), nil)
-	local game = registry:loadSkin(skins[1], "game", "4key", "preview")
-	t:eq(game, "game")
+	local paths = {}
+	for _, skin in ipairs(skins) do table.insert(paths, skin.path) end
+	t:tdeq(paths, {
+		"builtin/mania", "builtin/sdvx",
+		"userdata/dlc/skins_rizu/example", "userdata/dlc/skins_osu/Custom Skin",
+	})
+	t:eq(skins[3].format, "lua")
+	t:eq(skins[3].name, "Example")
+	t:eq(skins[4].format, "osu")
+	t:eq(skins[4].name, "Custom Skin")
+	t:eq(skins[4].author, "Mapper")
+	t:eq(skins[4].version, "2.7")
+	t:eq(registry:getSkin("userdata/dlc/skins_osu/Custom Skin/"), skins[4])
 end
 
 ---@param t testing.T
-function test.loadSkin_provides_paths_and_custom_loader(t)
+function test.osu_skin_matches_skin_ini_case_insensitively_and_indexes_files_on_demand(t)
 	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_rizu/renamed_skin")
-	fs:createDirectory("rizu/skin/base")
-	fs:write("userdata/dlc/skins_rizu/renamed_skin/custom.skin.lua", [[
-return {
-	metadata = {name = "Custom", gamemode = "mania", input_modes = {"4key"}},
-	load = function(context) return context end,
-}
-]])
-	fs:write("rizu/skin/base/base.skin.lua", [[
-return {
-	metadata = {name = "Base", gamemode = "mania", input_modes = {"4key"}},
-	load = function(context) return context end,
-}
-]])
-	local registry = SkinRegistry(fs)
+	fs:createDirectory("userdata/dlc/skins_osu/Custom/Textures")
+	fs:write("userdata/dlc/skins_osu/Custom/SKiN.INi", "[General]\nName:\n")
+	fs:write("userdata/dlc/skins_osu/Custom/cursor@2x.png", "cursor")
+	fs:write("userdata/dlc/skins_osu/Custom/Textures/hitcircle.png", "texture")
+	fs:createDirectory("userdata/dlc/skins_osu/nested/sub")
+	fs:write("userdata/dlc/skins_osu/nested/sub/skin.ini", "[General]\nName: Nested\n")
+
+	local registry = SkinRegistry(fs, new_settings())
 	registry:load()
-	local renderer = registry:loadSkin(registry:getSkin("userdata/dlc/skins_rizu/renamed_skin/custom.skin.lua"),
-		{}, "4key", "gameplay")
-	local base_renderer = registry:loadSkin(registry:getSkin("rizu/skin/base/base.skin.lua"),
-		{}, "4key", "gameplay")
-	t:eq(renderer.directory_path, "userdata/dlc/skins_rizu/renamed_skin")
-	t:eq(base_renderer.directory_path, "rizu/skin/base")
-	t:eq(base_renderer.module_loader, nil)
-	t:assert(renderer.module_loader)
-	t:assert(not pcall(base_renderer.loadModule, base_renderer, "Font"))
+	local skin = registry:getSkin("userdata/dlc/skins_osu/Custom")
+	assert(skin)
+
+	t:eq(skin.name, "Custom") -- an empty Name falls back to the directory
+	t:eq(rawget(skin, "files"), nil)
+	t:tdeq(skin.files, {"SKiN.INi", "Textures/hitcircle.png", "cursor@2x.png"})
+	t:eq(rawget(skin, "files"), skin.files)
+	t:eq(registry:getSkin("userdata/dlc/skins_osu/nested"), nil) -- skin.ini only counts in the root
 end
 
 ---@param t testing.T
-function test.custom_skin_receives_module_loader(t)
+function test.invalid_lua_skins_are_skipped(t)
 	local fs = FakeFilesystem()
-	local directory = "userdata/dlc/skins_rizu/renamed"
-	fs:createDirectory(directory)
-	fs:write(directory .. "/Font.lua", "return {}")
-	fs:write(directory .. "/custom.skin.lua", [[
-return {
-	metadata = {name = "Custom", gamemode = "mania", input_modes = {"4key"}},
-	load = function(context)
-		return {font = context:loadModule("Font"), context = context}
-	end,
-}
-]])
-	local registry = SkinRegistry(fs)
-	registry:load()
-	local renderer = registry:loadSkin(registry:getSkins()[1], {}, "4key", "gameplay")
-	t:eq(renderer.font, renderer.context:loadModule("Font"))
-end
+	add_lua_skin(fs, "bad", "return {name = 'Bad'}")
+	add_lua_skin(fs, "bytecode", string.char(27) .. "Lua")
+	add_lua_skin(fs, "throws", "error('boom')")
+	add_lua_skin(fs, "good")
 
----@param t testing.T
-function test.loads_skin_with_an_instance_scoped_config(t)
-	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_rizu/example")
-	fs:write("userdata/dlc/skins_rizu/example/example.skin.lua", valid_skin)
-	local registry = SkinRegistry(fs)
-	registry:load()
-	local skin = registry:getSkins()[1]
-
-	local first_renderer, first_config, first_path = registry:loadSkin(skin, {}, "4key", "gameplay")
-	local second_renderer, second_config = registry:loadSkin(skin, {}, "4key", "preview")
-	t:tdeq(first_renderer, {})
-	t:tdeq(second_renderer, {})
-	t:assert(first_config ~= second_config)
-	t:eq(first_path, "userdata/dlc/skins_rizu/example/example.skin-config.json")
-	first_config:set("mania", "4key", "receptor.y", 320)
-	t:eq(second_config:get("mania", "4key", "receptor.y"), nil)
-	first_config:save(fs, first_path)
-
-	local reloaded_renderer, reloaded_config = registry:loadSkin(skin, {}, "4key", "gameplay")
-	t:tdeq(reloaded_renderer, {})
-	t:eq(reloaded_config:get("mania", "4key", "receptor.y"), 320)
-end
-
----@param t testing.T
-function test.base_skin_config_uses_userdata_base_directory(t)
-	local registry = SkinRegistry(FakeFilesystem())
-	local path = registry:getSkinConfigPath({path = "rizu/skin/base/rizu_mania.skin.lua"})
-	t:eq(path, "userdata/dlc/skins_rizu/base/rizu_mania.skin-config.json")
-end
-
----@param t testing.T
-function test.discovers_osu_skins_from_root_skin_ini_case_insensitively(t)
-	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_osu/Custom Skin/Textures")
-	fs:write("userdata/dlc/skins_osu/Custom Skin/SKiN.INi", [[
-[General]
-Name: Custom Name
-Author: Mapper
-Version: 2.7
-[Mania]
-Keys: 7
-[Mania]
-Keys: 4
-[Mania]
-Keys: 7
-]])
-	fs:write("userdata/dlc/skins_osu/Custom Skin/cursor@2x.png", "cursor")
-	fs:write("userdata/dlc/skins_osu/Custom Skin/Textures/hitcircle.png", "texture")
-	fs:createDirectory("userdata/dlc/skins_osu/nested")
-	fs:createDirectory("userdata/dlc/skins_osu/nested/subfolder")
-	fs:write("userdata/dlc/skins_osu/nested/subfolder/skin.ini", "[General]\nName: Nested\n")
-	fs:createDirectory("userdata/dlc/skins_osu/no-config")
-	fs:write("userdata/dlc/skins_osu/no-config/readme.txt", "not a skin")
-
-	local registry = SkinRegistry(fs)
+	local registry = SkinRegistry(fs, new_settings())
 	registry:load()
 
-	local skins = registry:getOsuSkins()
-	t:eq(#skins, 1)
-	t:eq(skins[1].name, "Custom Name")
-	t:eq(skins[1].path, "userdata/dlc/skins_osu/Custom Skin")
-	t:eq(skins[1].directory_path, skins[1].path)
-	t:eq(skins[1].file_name, "SKiN.INi")
-	t:tdeq(skins[1].files, {"SKiN.INi", "Textures/hitcircle.png", "cursor@2x.png"})
-	t:eq(skins[1].format, "osu")
-	t:tdeq(skins[1].input_modes, {"4key", "7key"})
-	t:eq(skins[1].metadata.author, "Mapper")
-	t:eq(skins[1].metadata.version, "2.7")
-	t:eq(skins[1].metadata.gamemode, "mania")
-	t:tdeq(skins[1].metadata.input_modes, {"4key", "7key"})
-	t:eq(skins[1].skin_ini.Mania[1].Keys, "7")
-	t:assert(type(skins[1].load) == "function")
-	t:eq(registry:getOsuSkin(skins[1].path), skins[1])
-	t:eq(#registry:getSkins(), 0) -- Native Rizu skin collection remains separate.
+	t:eq(#registry:getSkins(), 3)
+	t:eq(registry:getSkins()[3].name, "Example")
 end
 
 ---@param t testing.T
-function test.resolves_selected_skin_across_supported_formats(t)
+function test.skins_for_a_gamemode_respect_input_modes(t)
 	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_rizu/example")
-	fs:write("userdata/dlc/skins_rizu/example/example.skin.lua", valid_skin)
-	fs:createDirectory("userdata/dlc/skins_osu/osu-example")
-	fs:write("userdata/dlc/skins_osu/osu-example/skin.ini", [[
-[General]
-Name: Osu Example
-[Mania]
-Keys: 4
-]])
-
-	local registry = SkinRegistry(fs)
+	add_lua_skin(fs, "example")
+	add_osu_skin(fs, "osu-example")
+	local registry = SkinRegistry(fs, new_settings())
 	registry:load()
-	local native_skin = registry:getSkins()[1]
-	local osu_skin = registry:getOsuSkins()[1]
-	t:eq(registry:getSkin(osu_skin.path), osu_skin)
-	t:eq(registry:getSkinForInputMode("mania", "4key", osu_skin.path .. "/"), osu_skin)
-	t:eq(registry:getSkinForInputMode("mania", "4key", native_skin.path), native_skin)
-	-- An osu! skin renders mania only: another gamemode falls back to its own skins.
-	t:eq(registry:getSkinForInputMode("osu", "1osu", osu_skin.path), nil)
 
-	local loaded
-	osu_skin.load = function(context)
-		loaded = {context.game, context.input_mode, context.screen}
-		return "osu-renderer"
+	local function names(gamemode, input_mode)
+		local list = {}
+		for _, skin in ipairs(registry:getSkinsFor(gamemode, input_mode)) do table.insert(list, skin.name) end
+		return list
 	end
-	local renderer, config, config_path = registry:loadSkin(osu_skin, "game", "4key", "preview")
-	t:eq(renderer, "osu-renderer")
-	t:assert(config)
-	t:eq(config_path, "userdata/dlc/skins_osu/osu-example/skin-config.json")
-	t:tdeq(loaded, {"game", "4key", "preview"})
+	t:tdeq(names("mania", "4key"), {"Rizu Default", "Example", "osu-example"})
+	t:tdeq(names("mania", "7key"), {"Rizu Default", "osu-example"})
+	t:tdeq(names("taiko", "1taiko"), {"osu-example"})
+	t:tdeq(names("sdvx", "4bt"), {"Rizu SDVX"})
 end
 
 ---@param t testing.T
-function test.isolates_invalid_lua_skins(t)
+function test.resolve_follows_settings_and_falls_back(t)
 	local fs = FakeFilesystem()
-	fs:createDirectory("userdata/dlc/skins_rizu")
-	fs:write("userdata/dlc/skins_rizu/bad.skin.lua", "return {metadata = {name = 'Bad'}}")
-	fs:write("userdata/dlc/skins_rizu/bytecode.skin.lua", string.char(27) .. "Lua")
-	fs:write("userdata/dlc/skins_rizu/good.skin.lua", valid_skin)
-
-	local registry = SkinRegistry(fs)
+	add_lua_skin(fs, "example")
+	add_osu_skin(fs, "first")
+	add_osu_skin(fs, "second")
+	local settings = new_settings()
+	local registry = SkinRegistry(fs, settings)
 	registry:load()
+	local second = assert(registry:getSkin("userdata/dlc/skins_osu/second"))
+	local lua_skin = assert(registry:getSkin("userdata/dlc/skins_rizu/example"))
 
-	t:eq(#registry:getSkins(), 1)
+	t:eq(registry:resolve("mania", "4key").path, "builtin/mania")
+	t:eq(registry:resolve("osu", "1osu").path, "userdata/dlc/skins_osu/first")
+
+	registry:select("mania", "4key", second)
+	registry:select("taiko", "1taiko", second)
+	t:eq(settings:getStringMap(Settings.keys.gameplay.skins)["mania/4key"], second.path)
+	t:eq(settings:getStringMap(Settings.keys.gameplay.skins)["osu/1taiko"], second.path)
+	t:eq(registry:resolve("mania", "4key"), second)
+	t:eq(registry:resolve("taiko", "1taiko"), second)
+	-- Another key count and another osu! gamemode are not affected.
+	t:eq(registry:resolve("mania", "7key").path, "builtin/mania")
+	t:eq(registry:resolve("osu", "1osu").path, "userdata/dlc/skins_osu/first")
+
+	-- A lua skin cannot draw a key count it does not list: the choice is stale.
+	registry:select("mania", "7key", lua_skin)
+	t:eq(registry:resolve("mania", "7key").path, "builtin/mania")
+	registry:select("mania", "4key", lua_skin)
+	t:eq(registry:resolve("mania", "4key"), lua_skin)
+
+	-- One choice for the whole osu! family, unless a gamemode has its own.
+	settings:setStringMap(Settings.keys.gameplay.skins, {["osu/1osu"] = second.path})
+	t:eq(registry:resolve("catch", "1fruits"), second)
+	-- A removed skin falls back instead of failing.
+	settings:setStringMap(Settings.keys.gameplay.skins, {["osu/1osu"] = "userdata/dlc/skins_osu/gone"})
+	t:eq(registry:resolve("osu", "1osu").path, "userdata/dlc/skins_osu/first")
+end
+
+---@param t testing.T
+function test.createRenderer_loads_a_lua_skin_with_its_own_config(t)
+	local fs = FakeFilesystem()
+	add_lua_skin(fs, "example")
+	local registry = SkinRegistry(fs, new_settings())
+	registry:load()
+	local skin = assert(registry:getSkin("userdata/dlc/skins_rizu/example"))
+
+	local renderer, config, config_path = registry:createRenderer(skin, "game", "mania", "4key", "gameplay")
+	t:eq(config_path, "userdata/dlc/skins_rizu/example/skin-config.json")
+	t:eq(renderer[1], "game")
+	t:eq(renderer[2], skin.path)
+	t:eq(renderer[3], "4key")
+	t:eq(renderer[4], config)
+	t:eq(renderer[5], "gameplay")
+	config:set("mania", "4key", "receptor.y", 320)
+	config:save(fs, config_path)
+
+	local _, reloaded = registry:createRenderer(skin, "game", "mania", "4key", "preview")
+	t:assert(reloaded ~= config)
+	t:eq(reloaded:get("mania", "4key", "receptor.y"), 320)
+end
+
+---@param t testing.T
+function test.builtin_mania_config_stays_in_the_base_skin_folder(t)
+	local registry = SkinRegistry(FakeFilesystem(), new_settings())
+	registry:load()
+	t:eq(registry:getConfigPath(registry:getSkin("builtin/mania")),
+		"userdata/dlc/skins_rizu/base/rizu_mania.skin-config.json")
+end
+
+---@param t testing.T
+function test.load_notifies_listeners(t)
+	local registry = SkinRegistry(FakeFilesystem(), new_settings())
+	local calls = 0
+	registry:onChanged(function() calls = calls + 1 end)
+	registry:load()
+	registry:load()
+	t:eq(calls, 2)
 end
 
 return test

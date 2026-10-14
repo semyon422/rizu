@@ -5,7 +5,7 @@ local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
 ---@alias rizu.preview.PreviewSkinCache.State "empty"|"loading"|"ready"|"failed"
 
 ---@class rizu.preview.PreviewSkinCache.Entry
----@field skin rizu.skin.LoadableSkin
+---@field skin rizu.skin.Skin
 ---@field preparation rizu.skin.PlayfieldPreparation?
 ---@field error string?
 
@@ -17,7 +17,6 @@ local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
 ---@field settings rizu.config.Config
 ---@field cache {[string]: rizu.preview.PreviewSkinCache.Entry}
 ---@field current rizu.preview.PreviewSkinCache.Entry?
----@field skin_paths rizu.config.StringMap?
 ---@field unsubscribe (fun())?
 ---@field active boolean
 ---@field released boolean
@@ -37,12 +36,9 @@ end
 function PreviewSkinCache:load()
 	self.released = false
 	self.active = true
-	self.skin_paths = self.settings:getStringMap(Settings.keys.gameplay.skins)
-	if not self.unsubscribe and self.settings.subscribeStringMap then
-		self.unsubscribe = self.settings:subscribeStringMap(Settings.keys.gameplay.skins, function(value)
-			self.skin_paths = value
-			self:invalidate()
-		end)
+	local registry = self.game.skinRegistry
+	if registry and not self.unsubscribe then
+		self.unsubscribe = registry:onChanged(function() self:invalidate() end)
 	end
 end
 
@@ -52,12 +48,10 @@ function PreviewSkinCache:bind(chartview)
 	if self.released or not self.active then return end
 	local registry = self.game.skinRegistry
 	local input_mode = chartview and chartview.chartdiff_inputmode
-	local skin ---@type rizu.skin.LoadableSkin?
+	local skin ---@type rizu.skin.Skin?
 	if registry and chartview and input_mode and chartview.chartmeta_mode == "mania"
 		and self.settings:getBoolean(Settings.keys.select.chart_preview) then
-		local paths = self.skin_paths or self.settings:getStringMap(Settings.keys.gameplay.skins)
-		self.skin_paths = paths
-		skin = registry:getSkinForInputMode("mania", input_mode, paths["mania/" .. input_mode])
+		skin = registry:resolve("mania", input_mode)
 	end
 	if not skin then
 		self.current = nil
@@ -76,7 +70,7 @@ function PreviewSkinCache:bind(chartview)
 		local captured = entry
 		local ok, err = xpcall(function()
 			---@diagnostic disable-next-line: no-unknown
-			local loaded = registry:loadSkin(skin, self.game, mode, "preview")
+			local loaded = registry:createRenderer(skin, self.game, "mania", mode, "preview")
 			local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
 			if self.cache[mode] ~= captured or self.released then
 				pcall(renderer.unload, renderer)
@@ -107,10 +101,8 @@ end
 function PreviewSkinCache:invalidate()
 	local registry = self.game.skinRegistry
 	if not registry then return end
-	local paths = self.skin_paths or self.settings:getStringMap(Settings.keys.gameplay.skins)
-	self.skin_paths = paths
 	for mode, entry in pairs(self.cache) do
-		if entry.skin ~= registry:getSkinForInputMode("mania", mode, paths["mania/" .. mode]) then
+		if entry.skin ~= registry:resolve("mania", mode) then
 			self:evict(mode)
 		end
 	end

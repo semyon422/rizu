@@ -1,10 +1,10 @@
 local OsuImage = require("rizu.skin.osu.OsuImage")
 local TaikoRenderer = require("rizu.skin.base.TaikoRenderer")
 local OsuTaikoSkinGraphics = require("rizu.skin.osu.taiko.OsuTaikoSkinGraphics")
-local Settings = require("rizu.config.Settings")
 
 ---@class rizu.skin.osu.OsuTaikoRenderer : rizu.skin.base.TaikoRenderer
 ---@operator call: rizu.skin.osu.OsuTaikoRenderer
+---@field skin rizu.skin.Skin?
 ---@field skin_graphics rizu.skin.osu.taiko.OsuTaikoSkinGraphics
 local OsuTaikoRenderer = TaikoRenderer + {}
 
@@ -36,28 +36,11 @@ local function drawSkinCircle(image, x, y, width_scale, height_scale, red, green
 end
 
 ---@param game sphere.GameController
-function OsuTaikoRenderer:new(game)
+---@param skin rizu.skin.Skin?
+function OsuTaikoRenderer:new(game, skin)
 	TaikoRenderer.new(self, game)
+	self.skin = skin
 	self.skin_graphics = OsuTaikoSkinGraphics(game.fs)
-end
-
----@return rizu.skin.OsuSkinDiscovery?
-function OsuTaikoRenderer:getSkin()
-	local registry = self.game and self.game.skinRegistry
-	if not registry then return nil end
-	local settings = self.game.settings
-	---@type string?
-	local skin_path
-	if settings then
-		local skin_paths = settings:getStringMap(Settings.keys.gameplay.skins)
-		skin_path = skin_paths["osu/1taiko"] or skin_paths["osu/1osu"] or skin_paths.osu
-	end
-	if skin_path then
-		local normalized_path = skin_path:gsub("\\", "/"):gsub("/+$", "")
-		local skin = registry:getOsuSkin(normalized_path)
-		if skin then return skin end
-	end
-	return registry:getOsuSkins()[1]
 end
 
 ---@param width number Gameplay viewport width in drawable pixels
@@ -107,7 +90,7 @@ function OsuTaikoRenderer:getNotePosition(object_time, current_time, field_width
 end
 
 function OsuTaikoRenderer:load()
-	local skin = self:getSkin()
+	local skin = self.skin
 	if self.skin_graphics.skin ~= skin or not self.skin_graphics.loaded then
 		self.skin_graphics:setSkin(skin)
 		self.skin_graphics:load()

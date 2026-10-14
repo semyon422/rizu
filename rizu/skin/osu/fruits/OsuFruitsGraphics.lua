@@ -15,14 +15,14 @@ local catcher_names = {"idle", "fail", "kiai"}
 ---@class rizu.skin.osu.fruits.OsuFruitsGraphics
 ---@operator call: rizu.skin.osu.fruits.OsuFruitsGraphics
 ---@field fs fs.IFilesystem?
----@field skin rizu.skin.OsuSkinDiscovery?
+---@field skin rizu.skin.Skin?
 ---@field images rizu.skin.osu.fruits.OsuFruitsGraphics.Images
 ---@field animation_framerate number?
 ---@field loaded boolean
 local OsuFruitsGraphics = class()
 
 ---@param fs fs.IFilesystem?
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuFruitsGraphics:new(fs, skin)
 	self.fs = fs
 	self.skin = skin
@@ -31,7 +31,7 @@ function OsuFruitsGraphics:new(fs, skin)
 	self.loaded = false
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuFruitsGraphics:setSkin(skin)
 	if self.skin == skin then return end
 	self:unload()

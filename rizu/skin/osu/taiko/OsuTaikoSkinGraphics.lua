@@ -17,12 +17,12 @@ local asset_names = {
 ---@class rizu.skin.osu.taiko.OsuTaikoSkinGraphics
 ---@operator call: rizu.skin.osu.taiko.OsuTaikoSkinGraphics
 ---@field fs fs.IFilesystem?
----@field skin rizu.skin.OsuSkinDiscovery?
+---@field skin rizu.skin.Skin?
 ---@field images {[string]: love.Image}
 local OsuTaikoSkinGraphics = class()
 
 ---@param fs fs.IFilesystem?
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuTaikoSkinGraphics:new(fs, skin)
 	self.fs = fs
 	self.skin = skin
@@ -30,7 +30,7 @@ function OsuTaikoSkinGraphics:new(fs, skin)
 	self.loaded = false
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuTaikoSkinGraphics:setSkin(skin)
 	if self.skin == skin then return end
 	self:unload()

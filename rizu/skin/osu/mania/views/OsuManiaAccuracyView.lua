@@ -26,7 +26,7 @@ function OsuManiaAccuracyView:new(graphics)
 	self:setSkin(nil, 0)
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 ---@param score_height number
 function OsuManiaAccuracyView:setSkin(skin, score_height)
 	self.bitmap_font:setSkin(skin, "Score")

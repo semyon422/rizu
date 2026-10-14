@@ -2,26 +2,14 @@ local OsuAimRenderer = require("rizu.skin.osu.OsuAimRenderer")
 local test = {}
 
 ---@param t testing.T
-function test.loads_selected_osu_skin_and_uses_sprite_renderers(t)
+function test.loads_the_given_osu_skin_and_uses_sprite_renderers(t)
 	local loaded = {}
-	local skins = {
-		{path = "skins/one", files = {}},
-		{path = "skins/two", files = {}},
-	}
+	local skin = {path = "skins/two", files = {}}
 	local game = {
 		fs = {},
-		skinRegistry = {
-			getOsuSkin = function(_, path)
-				for _, skin in ipairs(skins) do
-					if skin.path == path then return skin end
-				end
-			end,
-			getOsuSkins = function() return skins end,
-		},
-		settings = {getStringMap = function() return {["osu/1osu"] = "skins/two"} end},
 		rhythm_engine = {rules = {objects = {}}, visual_info = {time = 0}},
 	}
-	local renderer = OsuAimRenderer(game)
+	local renderer = OsuAimRenderer(game, skin)
 	local renderer_fields = renderer
 	renderer_fields.slider_graphics.prepare = function() end
 	renderer_fields.slider_graphics.load = function() end
@@ -32,14 +20,12 @@ function test.loads_selected_osu_skin_and_uses_sprite_renderers(t)
 		graphics.loaded = true
 	end
 
-	local selected = renderer:getSkin()
-	t:eq(selected, skins[2])
 	renderer:load()
 	t:eq(loaded.path, "skins/two")
 	t:eq(loaded.assets[1].group, "playfield")
 	t:eq(renderer.sprites.hitcircle, nil)
 	t:eq(renderer.sprites.batch, renderer.skin_graphics.batch)
-	t:eq(renderer.skin_graphics.skin, selected)
+	t:eq(renderer.skin_graphics.skin, skin)
 end
 
 return test

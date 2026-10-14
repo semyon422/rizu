@@ -78,7 +78,7 @@ local function get_note_color_names(columns)
 	return colors
 end
 
----@class rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property
+---@class rizu.skin.base.ManiaPlayfieldRenderer.Property
 ---@field key string
 ---@field label_key string
 ---@field min number
@@ -87,8 +87,8 @@ end
 ---@field get fun(): number
 ---@field set fun(value: number)
 
----@class rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer : rizu.gameplay.views.PlayfieldRenderer
----@operator call: rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@class rizu.skin.base.ManiaPlayfieldRenderer : rizu.gameplay.views.PlayfieldRenderer
+---@operator call: rizu.skin.base.ManiaPlayfieldRenderer
 ---@field config rizu.skin.SkinConfig
 ---@field config_path string
 ---@field input_mode string
@@ -176,7 +176,7 @@ function ManiaPlayfieldRenderer:setBgaBrightness(value)
 	self.bga_view.brightness = value
 end
 
----@return rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer.Property[]
+---@return rizu.skin.base.ManiaPlayfieldRenderer.Property[]
 function ManiaPlayfieldRenderer:getProperties()
 	return {
 		{key = "receptor.y", label_key = "gameplay.skin_editor.receptor_y",
@@ -216,7 +216,7 @@ function ManiaPlayfieldRenderer:getPreviewDisplayColumn(player, column, columns)
 	return math.min(column, columns)
 end
 
----@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@param renderer rizu.skin.base.ManiaPlayfieldRenderer
 ---@param columns integer
 ---@return string[]
 local function get_column_colors(renderer, columns)
@@ -270,7 +270,7 @@ local function get_field_offset(columns, offset_x)
 	return get_field_left(columns, LANE_WIDTH, FIELD_WIDTH) + offset_x
 end
 
----@param renderer rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
+---@param renderer rizu.skin.base.ManiaPlayfieldRenderer
 ---@param note rizu.VisualNote
 ---@return integer?
 local function get_note_column(renderer, note)
@@ -487,22 +487,4 @@ function ManiaPlayfieldRenderer:load()
 	self.foreground_hud = create_hud(self.game, self.hud_fonts)
 end
 
----@param context rizu.skin.SkinLoadContext
----@return rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
-local function load_skin(context)
-	return ManiaPlayfieldRenderer(context.game, context.input_mode, context.screen, context.config, context.config_path)
-end
-
----@class rizu.skin.base.rizu_mania.Skin
----@field metadata rizu.skin.SkinMetadata
----@field load fun(context: rizu.skin.SkinLoadContext): rizu.skin.base.rizu_mania.ManiaPlayfieldRenderer
-return {
-	metadata = {
-		name = "Rizu Default",
-		author = "Rizu",
-		version = "0.1.0",
-		gamemode = "mania",
-		input_modes = {"any"},
-	},
-	load = load_skin,
-}
+return ManiaPlayfieldRenderer

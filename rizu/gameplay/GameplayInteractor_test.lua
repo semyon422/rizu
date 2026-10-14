@@ -24,19 +24,17 @@ end
 
 ---@param t testing.T
 function test.selected_skin_directory_joins_resource_paths_by_priority(t)
-	local osu_skin = {path = "skins/osu", directory_path = "skins/osu"}
-	local mania_skin = {path = "skins/mania.skin.lua", directory_path = "skins"}
+	local osu_skin = {path = "skins/osu", format = "osu"}
+	local mania_skin = {path = "skins/mania", format = "lua"}
+	local builtin_skin = {path = "builtin/mania", format = "builtin"}
 	local top_priority = false
 	local interactor = {
 		game = {
-			settings = {
-				getStringMap = function() return {["osu/1osu"] = "skins/osu", ["mania/4key"] = "skins/mania.skin.lua"} end,
-				getBoolean = function() return top_priority end,
-			},
+			settings = {getBoolean = function() return top_priority end},
 			skinRegistry = {
-				getOsuSkin = function(_, path) return path == osu_skin.path and osu_skin or nil end,
-				getSkinForInputMode = function(_, gamemode, input_mode, name)
-					return gamemode == "mania" and input_mode == "4key" and name == mania_skin.path and mania_skin or nil
+				resolve = function(_, gamemode, input_mode)
+					if gamemode == "osu" then return osu_skin end
+					return input_mode == "4key" and mania_skin or builtin_skin
 				end,
 			},
 		},
@@ -49,7 +47,7 @@ function test.selected_skin_directory_joins_resource_paths_by_priority(t)
 	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, aim, "1osu"),
 		{"chart", "skins/osu", "userdata/hitsounds"})
 	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, mania, "4key"),
-		{"chart", "skins", "userdata/hitsounds"})
+		{"chart", "skins/mania", "userdata/hitsounds"})
 	t:tdeq(GameplayInteractor.getResourcePaths(interactor, chartview, mania, "7key"),
 		{"chart", "userdata/hitsounds"})
 	top_priority = true
@@ -258,8 +256,8 @@ function test.core_runtime_preparation_precedes_playback_and_ui_getter(t)
 	local settings = Settings.createConfig(FakeFilesystem())
 	local interactor = setmetatable({load_generation = 0, loaded = false,
 		game = {rhythm_engine = engine, settings = settings, skinRegistry = {
-			getSkinForInputMode = function() return {} end,
-			loadSkin = function() return renderer end,
+			resolve = function() return {} end,
+			createRenderer = function() return renderer end,
 		}, unloadAudio = function() end,
 		windowModel = {setVsyncOnSelect = function() end}, discordModel = {setPresence = function() end},
 		multiplayerModel = {client = {setPlaying = function() end}}}, mania_renderer = renderer}, {__index = GameplayInteractor})

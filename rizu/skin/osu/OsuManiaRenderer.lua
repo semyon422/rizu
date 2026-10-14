@@ -16,7 +16,6 @@ local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local OsuManiaSkinAssetFinder = require("rizu.skin.osu.mania.OsuManiaSkinAssetFinder")
 local OsuManiaBatchPlan = require("rizu.skin.osu.mania.OsuManiaBatchPlan")
 local InputMode = require("chart.core.InputMode")
-local Settings = require("rizu.config.Settings")
 local SkinConfig = require("rizu.skin.SkinConfig")
 local OsuImage = require("rizu.skin.osu.OsuImage")
 local table_util = require("table_util")
@@ -61,7 +60,7 @@ local EMPTY_FRAMES = {}
 ---@operator call: rizu.skin.osu.OsuManiaRenderer
 ---@field skin_graphics rizu.skin.osu.OsuSkinGraphics
 ---@field batch_plan rizu.skin.osu.mania.OsuManiaBatchPlan
----@field skin rizu.skin.OsuSkinDiscovery?
+---@field skin rizu.skin.Skin?
 ---@field section rizu.skin.OsuSkinIni.ManiaSection
 ---@field config rizu.skin.SkinConfig
 ---@field config_path string?
@@ -111,7 +110,7 @@ local EMPTY_FRAMES = {}
 ---@field stage_lightings rizu.skin.osu.mania.OsuManiaLighting[]
 ---@field hit_lightings {[integer]: {short: rizu.skin.osu.mania.OsuManiaLighting?, long: rizu.skin.osu.mania.OsuManiaLighting?}}
 ---@field lighting_notes {[table]: boolean}
----@field lighting_skin rizu.skin.OsuSkinDiscovery?
+---@field lighting_skin rizu.skin.Skin?
 ---@field lighting_loaded boolean
 ---@field scratch_count integer
 ---@field scratch_columns {[integer]: boolean}
@@ -135,16 +134,15 @@ OsuManiaRenderer.field_width = FIELD_WIDTH
 OsuManiaRenderer.field_height = FIELD_HEIGHT
 
 ---@param game sphere.GameController
+---@param skin rizu.skin.Skin
 ---@param input_mode string?
----@param skin_path string?
 ---@param config rizu.skin.SkinConfig?
 ---@param config_path string?
-function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
+function OsuManiaRenderer:new(game, skin, input_mode, config, config_path)
 	PlayfieldRenderer.new(self, game)
 	self.bga_view = BgaView(game)
 	self.background_hud:add(self.bga_view)
 	self.input_mode = input_mode or "4key"
-	self.skin_path = skin_path
 	self.config = config or SkinConfig()
 	self.config_path = config_path
 	self.bga_view.brightness = self:getBgaBrightness()
@@ -227,29 +225,7 @@ function OsuManiaRenderer:new(game, input_mode, skin_path, config, config_path)
 	self.lane_colors = {}
 	self.playfield_width_scale = 1
 	self.note_base_width = DEFAULT_COLUMN_WIDTH
-	self:loadSkinSettings(self:getSkin())
-end
-
----@return rizu.skin.OsuSkinDiscovery?
-function OsuManiaRenderer:getSkin()
-	local registry = self.game and self.game.skinRegistry
-	if not registry then return nil end
-	local skin_path = self.skin_path
-	if not skin_path then
-		local settings = self.game.settings
-		if settings then
-			local skin_paths = settings:getStringMap(Settings.keys.gameplay.skins)
-			skin_path = skin_paths["mania/" .. self.input_mode]
-				or skin_paths["osu/1osu"] or skin_paths.osu
-		end
-	end
-	if skin_path then
-		local normalized_path = skin_path:gsub("\\", "/"):gsub("/+$", "")
-		local skin = registry:getOsuSkin(normalized_path)
-		if skin then return skin end
-	end
-	local skins = registry:getOsuSkins()
-	return skins and skins[1] or nil
+	self:loadSkinSettings(skin)
 end
 
 ---@param section rizu.skin.OsuSkinIni.ManiaSection
@@ -371,7 +347,7 @@ local function reorder_scratch_inputs(inputs, special_style)
 	return reordered
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuManiaRenderer:loadSkinSettings(skin)
 	self.skin = skin
 	self.score_view:setSkin(skin)
@@ -520,7 +496,7 @@ function OsuManiaRenderer:update(dt)
 end
 
 function OsuManiaRenderer:load()
-	local skin = self:getSkin()
+	local skin = self.skin
 	if self.skin == skin and self.skin_graphics.loaded
 		and self.skin_graphics.skin == skin
 		and self.skin_graphics.fallback_archive == "resources/osu_default_assets.zip" then return end
@@ -531,7 +507,6 @@ function OsuManiaRenderer:load()
 	self.conveyor_hud:unload(self.game)
 	self.skin_graphics:setFallbackArchive("resources/osu_default_assets.zip")
 	if self.skin_graphics.skin ~= skin then self.skin_graphics:setSkin(skin) end
-	if self.skin ~= skin then self:loadSkinSettings(skin) end
 	if not self.skin_graphics.loaded then
 		local limits = love.graphics.getSystemLimits()
 		local texture_limit = limits.texturesize > 0 and limits.texturesize or 4096

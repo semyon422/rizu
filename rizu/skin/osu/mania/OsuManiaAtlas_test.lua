@@ -198,7 +198,7 @@ function test.renderer_membership_and_all_draw_paths(t)
 		local files = {"lightingN-0.png", "lightingL-0.png", "mania-stage-bottom.png"}
 		for _, name in ipairs(files) do fs:write("atlas-skin/" .. name, png(4, 4)) end
 		local skin = {path = "atlas-skin", files = files, skin_ini = {Mania = {}, Fonts = {}}}
-		local renderer = Renderer({fs = fs, skinRegistry = {getOsuSkins = function() return {skin} end}}, "4key")
+		local renderer = Renderer({fs = fs}, skin, "4key")
 		renderer:load()
 		local graphics = renderer.skin_graphics
 		for _, name in ipairs({"mania-note1", "mania-note1L", "mania-key1", "mania-stage-hint",
@@ -259,10 +259,7 @@ function test.renderer_loads_hud_after_upload_once_per_skin(t)
 			fs:createDirectory(skin.path)
 			for _, name in ipairs(skin.files) do fs:write(skin.path .. "/" .. name, png(4, 4)) end
 		end
-		local selected = first
-		local renderer = Renderer({fs = fs, skinRegistry = {
-			getOsuSkins = function() return {selected} end,
-		}}, "4key")
+		local renderer = Renderer({fs = fs}, first, "4key")
 		t:eq(renderer.progress_view.progress_image, nil)
 		t:eq(renderer.hit_meter_view.arrow_image, nil)
 		local hud_load, hud_unload = renderer.foreground_hud.load, renderer.foreground_hud.unload
@@ -284,11 +281,11 @@ function test.renderer_loads_hud_after_upload_once_per_skin(t)
 		renderer:load()
 		t:eq(loads, 1)
 		t:eq(renderer.progress_view.progress_image, progress)
-		selected = second
-		renderer:load()
-		t:eq(loads, 2)
-		t:ne(renderer.progress_view.progress_image, progress)
-		t:ne(renderer.hit_meter_view.arrow_image, arrow)
+		local other = Renderer({fs = fs}, second, "4key")
+		other:load()
+		t:ne(other.progress_view.progress_image, progress)
+		t:ne(other.hit_meter_view.arrow_image, arrow)
+		other:unload()
 		renderer:unload()
 		t:eq(renderer.progress_view.progress_image, nil)
 		t:eq(renderer.hit_meter_view.arrow_image, nil)

@@ -35,7 +35,7 @@ function OsuManiaJudgeView:new(graphics)
 	View.new(self, {anchor = "top", origin = "center", x = 0, y = 325, width = 0, height = 0})
 end
 
----@param _skin rizu.skin.OsuSkinDiscovery?
+---@param _skin rizu.skin.Skin?
 ---@param section rizu.skin.OsuSkinIni.ManiaSection?
 ---@param upside_down boolean? Effective direction; defaults to the section's UpsideDown.
 function OsuManiaJudgeView:setSkin(_skin, section, upside_down)

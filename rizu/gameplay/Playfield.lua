@@ -2,13 +2,11 @@ local class = require("class")
 local Gamemodes = require("rizu.gameplay.Gamemodes")
 local PlayfieldPreparation = require("rizu.skin.PlayfieldPreparation")
 
-local Settings = require("rizu.config.Settings")
-
 ---@class rizu.gameplay.Playfield
 ---@operator call: rizu.gameplay.Playfield
 ---@field preparation rizu.skin.PlayfieldPreparation?
 ---@field renderer rizu.gameplay.views.PlayfieldRenderer?
----@field skin rizu.skin.LoadableSkin?
+---@field skin rizu.skin.Skin?
 ---@field skin_key string? "gamemode/input_mode" the skin was loaded for.
 ---@field skin_renderer rizu.gameplay.views.PlayfieldRenderer?
 ---@field skin_config rizu.skin.SkinConfig?
@@ -22,23 +20,22 @@ function Playfield:new(game)
 	self.load_generation = 0
 end
 
----Every gamemode gets its renderer from a skin; the registry falls back to the base skin of the mode.
+---Every gamemode gets its renderer from the registry, which falls back to the built-in skin of the mode.
 ---@param gamemode sea.Gamemode
 ---@param input_mode string
 ---@param generation integer
 ---@return rizu.gameplay.views.PlayfieldRenderer?
 function Playfield:loadSkin(gamemode, input_mode, generation)
 	local key = gamemode .. "/" .. input_mode
-	local paths = self.game.settings:getStringMap(Settings.keys.gameplay.skins)
-	local skin = self.game.skinRegistry:getSkinForInputMode(gamemode, input_mode, paths[key])
-	assert(skin, ("no %s skin available for %s"):format(gamemode, input_mode))
+	local registry = self.game.skinRegistry
+	local skin = registry:resolve(gamemode, input_mode)
 	if self.skin == skin and self.skin_key == key and self.skin_renderer then
 		return self.skin_renderer
 	end
 	-- Do not discard dirty configuration if saving a replacement fails.
 	assert(self:saveSkinConfig(), "could not save previous skin config")
 	---@diagnostic disable-next-line: no-unknown
-	local loaded, config, config_path = self.game.skinRegistry:loadSkin(skin, self.game, input_mode, "gameplay")
+	local loaded, config, config_path = registry:createRenderer(skin, self.game, gamemode, input_mode, "gameplay")
 	local renderer = assert(loaded) --[[@as rizu.gameplay.views.PlayfieldRenderer]]
 	if generation ~= self.load_generation then
 		pcall(renderer.unload, renderer)

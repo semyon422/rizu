@@ -43,7 +43,7 @@ function OsuManiaScoreView:new(graphics)
 	self.width, self.height = self:getTextLayout()
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuManiaScoreView:setSkin(skin)
 	self.bitmap_font:setSkin(skin, "Score")
 	self.score_prefix = self.bitmap_font.prefix

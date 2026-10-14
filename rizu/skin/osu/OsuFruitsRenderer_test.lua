@@ -25,20 +25,12 @@ function test.uses_the_classic_512_by_384_gamefield_and_reverses_viewport_transf
 end
 
 ---@param t testing.T
-function test.selects_the_configured_osu_skin_and_parses_catch_colors(t)
+function test.parses_catch_colors_from_the_given_skin(t)
 	local skin = {
 		path = "skins/fruit",
 		skin_ini = {CatchTheBeat = {HyperDash = "12, 34, 56", HyperDashFruit = "78,90,123"}},
 	}
-	local game = {
-		fs = {},
-		skinRegistry = {
-			getOsuSkin = function(_, path) if path == skin.path then return skin end end,
-			getOsuSkins = function() return {skin} end,
-		},
-		settings = {getStringMap = function() return {["osu/1fruits"] = "skins/fruit/"} end},
-	}
-	local renderer = OsuFruitsRenderer(game)
+	local renderer = OsuFruitsRenderer({fs = {}}, skin)
 	renderer.skin_graphics.load = function(graphics) graphics.loaded = true end
 	renderer:load()
 	t:eq(renderer.skin_graphics.skin, skin)

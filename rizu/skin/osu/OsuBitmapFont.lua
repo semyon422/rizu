@@ -46,7 +46,7 @@ function OsuBitmapFont:new(graphics, prefix, overlap)
 	self.measured_height = 0
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 ---@param font_name "Score"|"Combo"
 function OsuBitmapFont:setSkin(skin, font_name)
 	self.group = font_name == "Combo" and "playfield" or "font"

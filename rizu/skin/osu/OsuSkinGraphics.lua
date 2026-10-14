@@ -135,7 +135,7 @@ end
 ---@class rizu.skin.osu.OsuSkinGraphics
 ---@operator call: rizu.skin.osu.OsuSkinGraphics
 ---@field fs fs.IFilesystem?
----@field skin rizu.skin.OsuSkinDiscovery?
+---@field skin rizu.skin.Skin?
 ---@field images {[string]: love.Image|false}
 ---@field file_map {[string]: string} Lowercase selected skin asset path to full filesystem path.
 ---@field fallback_file_map {[string]: string}
@@ -157,7 +157,7 @@ end
 local OsuSkinGraphics = class()
 
 ---@param fs fs.IFilesystem?
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuSkinGraphics:new(fs, skin)
 	self.fs = fs
 	self.skin = nil
@@ -199,7 +199,7 @@ function OsuSkinGraphics:indexFiles()
 	end
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 function OsuSkinGraphics:setSkin(skin)
 	if self.skin == skin and (self.loaded or next(self.file_map)) then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end

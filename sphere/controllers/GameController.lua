@@ -136,7 +136,7 @@ function GameController:new()
 
 	self.multiplayer_client.server_remote = self.seaClient.remote
 
-	self.skinRegistry = SkinRegistry(self.fs)
+	self.skinRegistry = SkinRegistry(self.fs, self.settings)
 	self.inputModel = InputModel(self.persistence.configModel)
 	self.pauseModel = PauseModel(self.settings, self.rhythm_engine)
 	self.editorInput = EditorInput()

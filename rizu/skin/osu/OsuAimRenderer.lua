@@ -11,6 +11,7 @@ local Settings = require("rizu.config.Settings")
 
 ---@class rizu.skin.osu.OsuAimRenderer : rizu.skin.base.AimRenderer
 ---@operator call: rizu.skin.osu.OsuAimRenderer
+---@field skin rizu.skin.Skin?
 ---@field skin_graphics rizu.skin.osu.OsuSkinGraphics
 ---@field slider_graphics {prepare: fun(rules: rizu.aim.CircleRules), unload: fun(), [string]: any}
 ---@field sprites rizu.skin.osu.aim.OsuAimSprites?
@@ -21,29 +22,11 @@ local white = {1, 1, 1}
 local DEFAULT_ASSETS = "resources/osu_default_assets.zip"
 
 ---@param game sphere.GameController
-function OsuAimRenderer:new(game)
+---@param skin rizu.skin.Skin?
+function OsuAimRenderer:new(game, skin)
 	AimRenderer.new(self, game)
+	self.skin = skin
 	self.skin_graphics = OsuSkinGraphics(game.fs)
-end
-
----@return rizu.skin.OsuSkinDiscovery?
-function OsuAimRenderer:getSkin()
-	local registry = self.game and self.game.skinRegistry
-	if not registry then return nil end
-
-	---@type string?
-	local skin_path
-	local settings = self.game.settings
-	if settings then
-		local skin_paths = settings:getStringMap(Settings.keys.gameplay.skins)
-		skin_path = skin_paths["osu/1osu"] or skin_paths.osu
-	end
-	if skin_path then
-		local normalized_path = skin_path:gsub("\\", "/"):gsub("/+$", "")
-		local skin = registry:getOsuSkin(normalized_path)
-		if skin then return skin end
-	end
-	return registry:getOsuSkins()[1]
 end
 
 ---@return ui.screens.gameplay.Gameplay.SkinEditorProperty[]
@@ -59,7 +42,7 @@ function OsuAimRenderer:getProperties()
 end
 
 function OsuAimRenderer:load()
-	local skin = self:getSkin()
+	local skin = self.skin
 	local graphics = self.skin_graphics
 	if not graphics.loaded or graphics.skin ~= skin then
 		-- The default assets supply the cursor and hit circle numbers a skin omits.

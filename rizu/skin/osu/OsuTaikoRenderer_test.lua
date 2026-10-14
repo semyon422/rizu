@@ -33,27 +33,4 @@ function test.uses_stable_taiko_gamefield_sprite_ratio(t)
 	t:aeq(renderer:getStretchedSpriteScale(640, 1024), 0.625, 1e-9)
 end
 
----@param t testing.T
-function test.selects_explicit_taiko_skin_then_osu_skin_fallback(t)
-	local taiko_skin = {path = "skins/taiko"}
-	local osu_skin = {path = "skins/osu"}
-	local registry = {
-		getOsuSkin = function(_, path)
-			if path == taiko_skin.path then return taiko_skin end
-			if path == osu_skin.path then return osu_skin end
-		end,
-		getOsuSkins = function() return {osu_skin} end,
-	}
-	local game = {
-		fs = {},
-		skinRegistry = registry,
-		settings = {getStringMap = function() return {["osu/1taiko"] = "skins\\taiko\\"} end},
-	}
-	local renderer = OsuTaikoRenderer(game)
-	t:eq(renderer:getSkin(), taiko_skin)
-
-	game.settings = {getStringMap = function() return {["osu/1osu"] = "skins/osu"} end}
-	t:eq(renderer:getSkin(), osu_skin)
-end
-
 return test

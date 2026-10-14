@@ -46,7 +46,7 @@ function OsuManiaComboView:new(graphics)
 	self:setSkin(nil)
 end
 
----@param skin rizu.skin.OsuSkinDiscovery?
+---@param skin rizu.skin.Skin?
 ---@param section rizu.skin.OsuSkinIni.ManiaSection?
 ---@param upside_down boolean? Effective direction; defaults to the section's UpsideDown.
 function OsuManiaComboView:setSkin(skin, section, upside_down)

@@ -16,9 +16,19 @@ local function create(on_load)
 	local renderers = {} ---@type rizu.preview.PreviewSkinCacheTest.Renderer[]
 	local skins = {a = {path = "a"}, b = {path = "b"}}
 	local game = {settings = settings}
+	local paths = settings:getStringMap(Settings.keys.gameplay.skins)
+	local listeners = {}
+	settings:subscribeStringMap(Settings.keys.gameplay.skins, function(value)
+		paths = value
+		for listener in pairs(listeners) do listener() end
+	end)
 	game.skinRegistry = {
-		getSkinForInputMode = function(_, _, _, path) return skins[path or "a"] end,
-		loadSkin = function()
+		onChanged = function(_, listener)
+			listeners[listener] = true
+			return function() listeners[listener] = nil end
+		end,
+		resolve = function(_, _, mode) return skins[paths["mania/" .. mode] or "a"] end,
+		createRenderer = function()
 			local renderer = PlayfieldRenderer({})
 			---@cast renderer rizu.preview.PreviewSkinCacheTest.Renderer
 			renderer.loads, renderer.unloads, renderer.updates = 0, 0, 0
@@ -149,7 +159,7 @@ function test.registry_replacement_and_preview_toggle(t)
 	model.settings:setBoolean(Settings.keys.select.chart_preview, true)
 	cache:update(0.1, cv)
 	t:eq(#renderers, 1)
-	model.game.skinRegistry.getSkinForInputMode = function() return {path = "replacement"} end
+	model.game.skinRegistry.resolve = function() return {path = "replacement"} end
 	cache:bind(cv)
 	t:eq(#renderers, 2)
 	t:eq(renderers[1].unloads, 1)
@@ -159,8 +169,8 @@ end
 ---@param t testing.T
 function test.stop_during_construction_retains_reusable_load(t)
 	local cache, model, renderers = create()
-	local loadSkin = model.game.skinRegistry.loadSkin
-	model.game.skinRegistry.loadSkin = function(...)
+	local loadSkin = model.game.skinRegistry.createRenderer
+	model.game.skinRegistry.createRenderer = function(...)
 		coroutine.yield()
 		return loadSkin(...)
 	end
@@ -180,8 +190,8 @@ end
 ---@param t testing.T
 function test.release_during_construction_unloads_late_renderer(t)
 	local cache, model, renderers = create()
-	local loadSkin = model.game.skinRegistry.loadSkin
-	model.game.skinRegistry.loadSkin = function(...)
+	local loadSkin = model.game.skinRegistry.createRenderer
+	model.game.skinRegistry.createRenderer = function(...)
 		coroutine.yield()
 		return loadSkin(...)
 	end
