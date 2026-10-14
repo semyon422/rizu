@@ -205,6 +205,8 @@ function ChartCarousel:update(dt)
 	local children_count = charts:getChartCount()
 
 	layout:setSetCount(charts:getSetCount())
+	-- Where the selected set was drawn last frame, even if it was not the selected one then.
+	local prev_set_y = layout:getSetY(selected)
 	if self.children_set == selected and children_count > 0 then
 		layout:expand(selected, children_count)
 	else
@@ -216,11 +218,12 @@ function ChartCarousel:update(dt)
 	local child = group and charts:getSelectedChartIndex() or 0
 	-- Taken from osu!lazer (Carousel.cs): keep the selected set still on screen while rows above it open or close.
 	local set_y = layout:getSetY(selected)
-	if selected == self.last_selected and self.last_set_y then
-		local shift = set_y - self.last_set_y
+	-- Also on the frame the selection changes: the set above that starts closing would otherwise
+	-- pull the newly clicked set off screen in one frame, before the camera starts following it.
+	if self.last_selected then
+		local shift = set_y - prev_set_y
 		self.scroll_current = self.scroll_current + shift
 	end
-	self.last_set_y = set_y
 	if selected ~= self.last_selected then
 		-- The chart picked inside a new set is not worth a second camera move.
 		self.focus_child = false
