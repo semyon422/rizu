@@ -121,6 +121,8 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     float inner_alpha = 1.0 - smoothstep(-0.5, 0.5, inner_distance);
     float uniform_stroke_alpha = max(outer_alpha - inner_alpha, 0.0);
     float stroke_alpha = mix(side_stroke_alpha, uniform_stroke_alpha, u_uniform_stroke);
+    // Boost partial coverage so thin strokes don't fade out on curves; 0 and 1 stay unchanged.
+    stroke_alpha = pow(stroke_alpha, 0.6);
 
     vec4 stroke = vec4(u_stroke_color.rgb, u_stroke_color.a * stroke_alpha);
     return sourceOver(Texel(texture, texture_coords), stroke) * color;
