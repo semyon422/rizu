@@ -7,7 +7,7 @@ local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
 local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
-local Button = require("ui.views.Button")
+local IconTextButton = require("ui.views.IconTextButton")
 local Background = require("ui.views.Background")
 local BgaPreview = require("ui.views.BgaPreview")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
@@ -31,7 +31,7 @@ local STATUS_TOP = 62
 local CONTENT_TOP = 196
 local COLUMN_RIGHT_WIDTH = 718
 local FOOTER_BOTTOM = 40
-local BUTTON_HEIGHT = 56
+local BUTTON_HEIGHT = IconTextButton.HEIGHT
 local SCORES_ROWS = 4
 local SCORES_FOOTER_GAP = 28
 local COLUMN_LEFT_WIDTH = 840
@@ -204,26 +204,44 @@ function ResultV2:createFooter()
 	local footer = self.content:add(View())
 	footer:fillWidth(EDGE, EDGE):setHeight(BUTTON_HEIGHT):setAlignmentY(1):addPosition(0, -FOOTER_BOTTOM)
 
-	local function button(text, variant, width, on_click)
-		return footer:add(Button(text, on_click, {variant = variant, font_size = 18}))
-			:anchorFixed(0, 0, width, BUTTON_HEIGHT)
-	end
-
-	self.back_button = button("BACK", "danger", 154, function()
-		self:runCommand("ui.result.back")
-	end)
+	self.back_button = footer:add(IconTextButton({
+		text = "BACK",
+		icon = Resources.sprites.icon_undo_2,
+		variant = "danger",
+		font_size = 18,
+		padding_left = 24,
+		padding_right = 30,
+		on_click = function() self:runCommand("ui.result.back") end,
+	}))
 
 	-- Right-aligned, laid out from the edge inwards: Watch, Export Video, Export Replay.
 	local x = 0
 	for _, item in ipairs({
-		{"WATCH", "success", 190, function() self:runCommand("ui.result.watch_replay") end},
-		{"EXPORT VIDEO", "secondary", 227, function() ui.modal_manager:attachVideoExport() end},
-		{"EXPORT REPLAY", "secondary", 227, nil},
+		{
+			text = "WATCH",
+			icon = Resources.sprites.icon_play,
+			icon_after = true,
+			variant = "success",
+			font_size = 18,
+			gap = 14,
+			padding_left = 44,
+			padding_right = 34,
+			on_click = function() self:runCommand("ui.result.watch_replay") end,
+		},
+		{
+			text = "EXPORT VIDEO",
+			icon = Resources.sprites.icon_camera,
+			on_click = function() ui.modal_manager:attachVideoExport() end,
+		},
+		{
+			text = "EXPORT REPLAY",
+			icon = Resources.sprites.icon_download,
+		},
 	}) do
-		local view = button(item[1], item[2], item[3], item[4])
+		local view = footer:add(IconTextButton(item))
 		view:setAlignmentX(1):addPosition(-x, 0)
-		view:setEnabled(item[4] ~= nil)
-		x = x + item[3] + BUTTON_GAP
+		view:setEnabled(item.on_click ~= nil)
+		x = x + view:getPreferredWidth() + BUTTON_GAP
 	end
 end
 
