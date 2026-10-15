@@ -1,3 +1,4 @@
+local NotesPlayer = require("rizu.video_export.NotesPlayer")
 local Events = require("rizu.api.Events")
 
 local NO_IMAGES = {}
@@ -90,6 +91,25 @@ function Media:drawNotesPreview(width, height)
 	if playfield then
 		playfield:drawPreview(self.preview.chartPreview, width, height)
 	end
+end
+
+---A notes preview of a chart with its own clock and its own note skin, for a video export that steps through
+---the chart. It works with the chart preview in song select turned off. The skin loads in the background:
+---wait for `isReady`, draw with `draw(time, dt, width, height)` and `release` it when done.
+---@param chartview table The chart's chartview, e.g. from `Charts:getSelectedChart`.
+---@return rizu.video_export.NotesPlayer? preview
+---@return string? error Why the chart has no notes preview.
+function Media:createNotesPreview(chartview)
+	local preview = self.preview
+	local player, err = NotesPlayer.fromChartview(
+		chartview,
+		preview.replayBase.columns_order,
+		NotesPlayer.getRate(preview.settings, preview.rate)
+	)
+	if player then
+		player:load(preview.game)
+	end
+	return player, err
 end
 
 ---The chart's background animation, for a renderer such as `ui.views.BgaRenderer`.

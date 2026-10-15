@@ -217,7 +217,7 @@ function ResultV2:createFooter()
 	local x = 0
 	for _, item in ipairs({
 		{"WATCH", "success", 190, function() self:runCommand("ui.result.watch_replay") end},
-		{"EXPORT VIDEO", "secondary", 227, nil},
+		{"EXPORT VIDEO", "secondary", 227, function() ui.modal_manager:attachVideoExport() end},
 		{"EXPORT REPLAY", "secondary", 227, nil},
 	}) do
 		local view = button(item[1], item[2], item[3], item[4])

@@ -25,6 +25,14 @@ return function(game, ui)
 			end,
 		},
 		{
+			id = "ui.global.video_export",
+			title = "Export: Chart Preview Animation",
+			description = "Saves the notes preview of the selected chart as an animated WebP without audio (needs ffmpeg)",
+			callback = function()
+				ui.modal_manager:attachVideoExport()
+			end,
+		},
+		{
 			id = "ui.global.toggle_fps",
 			title = "FPS: Toggle",
 			description = "Toggles the FPS overlay",

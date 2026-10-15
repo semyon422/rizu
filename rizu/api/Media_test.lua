@@ -39,4 +39,18 @@ function test.background_and_preview(t)
 	t:eq(media:getBeat(), nil)
 end
 
+---@param t testing.T
+function test.draw_notes_preview_at_another_time(t)
+	local drawn = {}
+	local preview = {
+		chartPreview = {time = 1, rate = 2},
+		getPlayfield = function()
+			return {drawPreview = function(_, player, w, h) drawn[#drawn + 1] = {player.time, player.rate, w, h} end}
+		end,
+	}
+	local media = Media({onChanged = function() end} --[[@as any]], preview --[[@as any]])
+	media:drawNotesPreview(10, 20)
+	t:tdeq(drawn, {{1, 2, 10, 20}})
+end
+
 return test

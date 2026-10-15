@@ -75,16 +75,22 @@ function ChartInfo:bind(cvf)
 		end)
 	end
 	self.cvf = cvf
-	self.difficulty = cvf:getDifficulty()
+	self.difficulty, self.patterns, self.cells = ChartInfo.collect(cvf)
+end
 
+---The texts the panel shows, so other screens (the video export) can draw the same facts.
+---@param cvf ui.formatters.ChartviewFormatter
+---@return {value: string, postfix: string, color: gui.Color} difficulty
+---@return string patterns
+---@return {value: string, label: string}[] cells
+function ChartInfo.collect(cvf)
 	local patterns = cvf:getPatterns()
 	local names = {}
 	for _, name in ipairs({patterns.top_full, patterns.second_full}) do
 		names[#names + 1] = name:sub(1, 1):upper() .. name:sub(2)
 	end
-	self.patterns = table.concat(names, PATTERN_SEPARATOR)
 
-	self.cells = {
+	return cvf:getDifficulty(), table.concat(names, PATTERN_SEPARATOR), {
 		{value = (cvf:getMode():gsub(" %(EXPERIMENTAL%)$", "")), label = "KEYS"},
 		{value = cvf:getDuration(), label = "LENGTH"},
 		{value = cvf:getNoteCount(), label = "NOTES"},

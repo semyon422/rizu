@@ -16,6 +16,7 @@ local Filters = require("ui.modals.filters.Filters")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
 local Login = require("ui.modals.login.Login")
+local VideoExport = require("ui.modals.video_export.VideoExport")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.ModalManager : gui.View
@@ -35,6 +36,7 @@ local UiActions = require("ui.UiActions")
 ---@field location_editor ui.modals.locations.LocationEditor
 ---@field create_room ui.modals.lobby.CreateRoom
 ---@field login ui.modals.login.Login
+---@field video_export ui.modals.video_export.VideoExport
 ---@field active_view ui.ModalView?
 local ModalManager = View + {}
 
@@ -107,6 +109,7 @@ function ModalManager:new(ui, popup_container)
 		if ui.locations then ui.locations:refresh() end
 	end))
 	self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
+	self.video_export = self:addModal(VideoExport(ui.api, function() self:hideModal(self.video_export) end))
 	if game then
 		self.create_room = self:addModal(CreateRoom(ui))
 		if game.aiChatModel then
@@ -131,6 +134,9 @@ function ModalManager:showModal(view)
 	if not view or self.active_view == view then
 		return false
 	end
+	if self.active_view and self.active_view.locked then
+		return false
+	end
 	if self.active_view then
 		self:hideModal(self.active_view)
 	end
@@ -153,6 +159,10 @@ end
 function ModalManager:hideModal(view)
 	view = view or self.active_view
 	if not view or self.active_view ~= view then
+		return false
+	end
+	-- A locked modal is busy and closes itself when it is done.
+	if view.locked then
 		return false
 	end
 	if view == self.palette and self.palette.needle_model then
@@ -187,6 +197,12 @@ function ModalManager:onHandleInputs(inputs)
 	if self.active_view and inputs:consumeActionJustPressed(UiActions.cancel) then
 		self:hideModal()
 	end
+end
+
+---@return boolean attached
+function ModalManager:attachVideoExport()
+	self.video_export:open()
+	return self:showModal(self.video_export)
 end
 
 ---@return boolean attached
