@@ -39,6 +39,7 @@ function UpdateController:updateAsync()
 
 	if
 		configs.urls.update == "" or
+		not self.settings:getBoolean(Settings.keys.misc.auto_update) or
 		os.getenv("RIZU_DISABLE_UPDATE") == "1" or
 		love.filesystem.getInfo(".git")
 	then

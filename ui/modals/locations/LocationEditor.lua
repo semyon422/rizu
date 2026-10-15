@@ -21,6 +21,12 @@ local function trim(value)
 	return value:match("^%s*(.-)%s*$")
 end
 
+---@param path string
+---@return string
+local function normalizePath(path)
+	return (path:gsub("\\", "/"):gsub("/+$", ""))
+end
+
 ---@param ui ui.UserInterface
 ---@param on_saved fun()
 function LocationEditor:new(ui, on_saved)
@@ -119,6 +125,14 @@ function LocationEditor:save()
 	end
 
 	local library = self.ui.api.library
+	local normalized = normalizePath(path)
+	for _, other in ipairs(library:getLocations()) do
+		local is_self = self.location and other.id == self.location.id
+		if not is_self and normalizePath(library:getLocationPath(other)) == normalized then
+			self.status:setText(self.ui.localization:get("locations.already_added", {name = other.name}))
+			return
+		end
+	end
 	local ok, err
 	if self.location then
 		ok, err = library:updateLocation(self.location, name, path)

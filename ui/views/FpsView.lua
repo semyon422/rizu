@@ -15,9 +15,6 @@ local GRAPH_Y = 32
 local GRAPH_HEIGHT = HEIGHT - GRAPH_Y - PADDING
 local FRAME_TIME_CAPACITY = 120
 local DEFAULT_GRAPH_MAX_DT = 1 / 30
-local MIN_GRAPH_MAX_DT = 0.001
-local MAX_GRAPH_MAX_DT = 1
-local GRAPH_SCALE_STEP = 1.25
 local TIMING_KEYS = {"dt", "event", "update", "draw", "present", "gc", "sleep", "busy"}
 local HITCH_MIN_FRAME_TIME = 0.004
 local HITCH_BASELINE_MULTIPLIER = 1.75
@@ -51,7 +48,6 @@ function FpsView:new(ui_config)
 	self.frame_time_count = 0
 	self.graph_max_dt = DEFAULT_GRAPH_MAX_DT
 	self.timing_index = 1
-	self.handles_mouse_input = true
 	self:setSize(WIDTH, HEIGHT)
 	self:setVisible(ui_config:getBoolean("show_fps"))
 	self.unsubscribe_show_fps = ui_config:subscribeBoolean("show_fps", function(value)
@@ -83,20 +79,10 @@ function FpsView:unload()
 	self.unsubscribe_show_fps()
 end
 
----@param e gui.ScrollEvent
----@return boolean handled
-function FpsView:onScroll(e)
-	if e.direction_y == 0 then
-		return false
-	end
-	local factor = e.direction_y > 0 and 1 / GRAPH_SCALE_STEP or GRAPH_SCALE_STEP
-	self.graph_max_dt = math.max(MIN_GRAPH_MAX_DT, math.min(MAX_GRAPH_MAX_DT, self.graph_max_dt * factor))
-	return true
-end
-
 ---@param inputs gui.Inputs
 function FpsView:onHandleInputs(inputs)
-	if not self.mouse_over then
+	-- Not a mouse target, so it never blocks clicks and hover on views behind it.
+	if not self.visible or not self:isPointerOver(inputs.mouse_x, inputs.mouse_y) then
 		return
 	end
 	local direction

@@ -113,6 +113,21 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					form = form,
 					popup_container = popup_container,
 				}),
+				ControlFactory.boolean(settings, Settings.keys.misc.auto_update, {
+					name = localization:get("settings.auto_update"),
+					keywords = {"update", "updater", "startup"},
+					tip = localization:get("settings.auto_update_tip"),
+				}),
+				ControlFactory.boolean(settings, Settings.keys.misc.mute_on_unfocus, {
+					name = localization:get("settings.mute_on_unfocus"),
+					keywords = {"mute", "focus", "background", "audio", "volume"},
+					tip = localization:get("settings.mute_on_unfocus_tip"),
+				}),
+				ControlFactory.boolean(settings, Settings.keys.misc.discord_presence, {
+					name = localization:get("settings.discord_presence"),
+					keywords = {"discord", "rpc", "presence", "status"},
+					tip = localization:get("settings.discord_presence_tip"),
+				}),
 				ControlFactory.segmentedChoice(settings, select_keys.diff_column, {
 					name = localization:get("settings.difficulty_type"),
 					keywords = {"difficulty", "rating", "menus"},
