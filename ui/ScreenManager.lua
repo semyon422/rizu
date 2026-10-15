@@ -112,6 +112,14 @@ function ScreenManager:setScreen(screen, keep_previous_visible)
 		table.remove(self.visible_screens, index)
 	end
 	self.visible_screens[#self.visible_screens + 1] = screen
+	-- Some screens fade out better over the next one than under it.
+	if previous and keep_previous_visible and previous.draw_over_next_screen then
+		local previous_index = self:getVisibleIndex(previous)
+		if previous_index then
+			table.remove(self.visible_screens, previous_index)
+			self.visible_screens[#self.visible_screens + 1] = previous
+		end
+	end
 	self.input_screen = screen
 	screen:enter()
 	return true

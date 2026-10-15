@@ -44,6 +44,9 @@ local BUTTON_GAP = 12
 ---@field loading_score boolean?
 local ResultV2 = Screen + {}
 
+-- Stays above the next screen while fading out: song select fades in an opaque backdrop that would hide it.
+ResultV2.draw_over_next_screen = true
+
 ---@param ui ui.UserInterface
 function ResultV2:new(ui)
 	Screen.new(self)
@@ -347,7 +350,7 @@ function ResultV2:exit()
 		registry:popContext("ui_result_commands")
 	end
 	Screen.exit(self)
-	self.composite:fadeOut(0.3, "OutQuint")
+	self.composite:fadeOut(0.3, "InOutQuad")
 end
 
 return ResultV2
