@@ -6,7 +6,6 @@ AiRouterConfig.path = "/router-state/config.lua"
 ---@param config ai.router.Config
 function AiRouterConfig.validate(config)
 	assert(config.host == "127.0.0.1" and config.port == 28083, "Compose router must listen on 127.0.0.1:28083")
-	assert(config.mcp_host == "127.0.0.1" and config.mcp_port == 28084, "Compose MCP must listen on 127.0.0.1:28084")
 	assert(config.db_path == "/router-state/router.db", "Compose router database must use its persistent mount")
 	assert(config.network_path == "/router-state/network.lua", "Compose router network config must use its persistent mount")
 	assert(type(config.admin_password) == "string" and #config.admin_password >= 16

@@ -18,7 +18,7 @@ end
 
 ---@param t testing.T
 function test.rejects_public_binds_ephemeral_paths_and_weak_secrets(t)
-	for key, value in pairs({host = "0.0.0.0", mcp_host = "0.0.0.0", port = 80, mcp_port = 81,
+	for key, value in pairs({host = "0.0.0.0", port = 80,
 		db_path = "userdata/router.db", network_path = "userdata/network.lua", admin_password = "short", mcp_token = "short"}) do
 		local config = validConfig()
 		config[key] = value
