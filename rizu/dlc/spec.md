@@ -25,7 +25,7 @@ Players access the **DLC Screen** from the sidebar to browse and search for new 
 
 ### ADR: Third-Party Mirrors for osu!
 - **Context**: The official osu! beatmap API requires OAuth authentication for downloads, which would require players to log in to download charts.
-- **Decision**: We route osu! downloads through public mirrors (e.g., BeatConnect, Mino).
+- **Decision**: We route osu! downloads through public mirrors (e.g., Mino).
 - **Consequence**: Players can download content without authentication, though we are dependent on the availability and uptime of these third-party services.
 
 ## Implementation Details
@@ -46,13 +46,11 @@ The `DlcExtractor` utility handles `.zip` and `.osz` formats.
 
 #### 1. osu! Beatmapsets (Type: `set`)
 - **Download URLs**: 
-  - `https://beatconnect.io/b/BEATMAP_SET_ID`
   - `https://catboy.best/d/BEATMAP_SET_ID`
 - **Search APIs**:
   - **Mino (JSON)**: `https://catboy.best/api/v2/search`
   - **osu!direct (Text)**: 
     - Akatsuki: `https://osu.ppy.sb/web/osu-search.php?r=4&m=3&p=0&q=`
-    - Ripple: `https://ripple.moe/web/osu-search.php?r=4&m=3&p=0&q=`
   - **Official (Unauthorized)**: `https://osu.ppy.sh/beatmapsets/search`
 - **Assets**:
   - Thumbnails: 

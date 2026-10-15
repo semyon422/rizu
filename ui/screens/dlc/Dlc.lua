@@ -44,12 +44,10 @@ local osu_status_labels = {
 
 local providers = {
 	set = {
-		{key = "mino", label = "Mino"},
-		{key = "beatconnect", label = "BeatConnect"},
-		{key = "akatsuki", label = "Akatsuki"},
-		{key = "ripple", label = "Ripple"},
+		{key = "mino", label = "Mino", url = "https://catboy.best"},
+		{key = "akatsuki", label = "Akatsuki", url = "https://akatsuki.gg"},
 	},
-	pack = {{key = "etterna", label = "EtternaOnline"}},
+	pack = {{key = "etterna", label = "EtternaOnline", url = "https://etternaonline.com"}},
 	skin = {},
 }
 
@@ -185,6 +183,17 @@ function Dlc:rebuildSidebar()
 		button:setSelected(key == self.provider)
 	end
 	provider_list:fitContent()
+
+	local current
+	for _, item in ipairs(choices) do
+		if item.key == self.provider then current = item end
+	end
+	if current and current.url then
+		local visit = self.sidebar:add(Button("Visit website", function()
+			self.ui.modal_manager:attachExternalLink(current.label, current.url)
+		end, {variant = "secondary", font_name = "medium", font_size = 16}))
+		visit:setSize(240, 40):setPosition(0, 32 + #choices * 49 - 5 + 14)
+	end
 end
 
 function Dlc:cancelPendingSearch()

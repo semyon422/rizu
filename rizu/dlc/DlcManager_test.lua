@@ -85,12 +85,12 @@ function test.download_calls_local_worker(t)
 		}
 
 		local metadata = {mirror = "mino"}
-		manager:download(123, "set", "beatconnect", metadata)
+		manager:download(123, "set", "akatsuki", metadata)
 
 		t:tdeq(called, {
 			id = 123,
 			type = "set",
-			provider = "beatconnect",
+			provider = "akatsuki",
 			metadata = metadata,
 		})
 		t:eq(manager.tasks[123].status, "completed")

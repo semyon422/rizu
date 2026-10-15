@@ -8,7 +8,7 @@ local USER_AGENT = "rizu/1.0"
 
 ---@class rizu.dlc.DlcMetadata
 ---@field dest_dir string?
----@field mirror "beatconnect"|"mino"?
+---@field mirror "mino"?
 
 ---@class rizu.dlc.DlcTaskUpdates
 ---@field status string?
