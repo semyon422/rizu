@@ -1,12 +1,11 @@
 local Button = require("ui.views.Button")
+local IconTextButton = require("ui.views.IconTextButton")
 local DlcList = require("ui.screens.dlc.DlcList")
 local DlcPanel = require("ui.screens.dlc.DlcPanel")
 local DlcQueue = require("ui.screens.dlc.DlcQueue")
-local Dropdown = require("ui.views.form.Dropdown")
+local Dropdown = require("ui.screens.song_select_v2.Dropdown")
 local Colors = require("ui.Colors")
-local ContentTypeTab = require("ui.screens.dlc.ContentTypeTab")
 local FlowContainer = require("gui.layout.FlowContainer")
-local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local Loading = require("ui.screens.chart_loading.Loading")
 local Panel = require("ui.views.Panel")
@@ -14,7 +13,9 @@ local PopupContainer = require("ui.views.PopupContainer")
 local Resources = require("ui.Resources")
 local Screen = require("gui.Screen")
 local SidebarItem = require("ui.screens.dlc.SidebarItem")
-local Textbox = require("ui.views.Textbox")
+local TrackContainer = require("gui.layout.TrackContainer")
+local SearchField = require("ui.screens.song_select_v2.SearchField")
+local Scrim = require("ui.screens.song_select_v2.Scrim")
 local ThumbnailCache = require("ui.screens.dlc.ThumbnailCache")
 local UiActions = require("ui.UiActions")
 local View = require("gui.View")
@@ -26,6 +27,16 @@ local thread = require("thread")
 local Dlc = Screen + {}
 
 local SEARCH_DEBOUNCE = 0.35
+
+-- Same translucent look as the song select header and panels, over a dark scrim.
+local EDGE = 40
+local TOOLBAR_TOP = 120
+local TOOLBAR_HEIGHT = 54
+local FOOTER_BOTTOM = 12
+local HEADER_COLOR = {Colors.background[1], Colors.background[2], Colors.background[3], 0.55}
+local HEADER_LINE_COLOR = {Colors.outline[1], Colors.outline[2], Colors.outline[3], 0.5}
+local PAGE_LABEL_WIDTH = 100
+local PANEL_COLOR = {Colors.background[1], Colors.background[2], Colors.background[3], 0.62}
 
 local content_types = {
 	{key = "set", label = "osu! beatmaps"},
@@ -79,33 +90,76 @@ function Dlc:new(ui)
 		return ui.game.backgroundModel:loadImage(url, "http")
 	end, 100)
 
-	self.header = self.root:add(Panel({color = Colors.surface, line_color = Colors.outline, lines = {bottom = true}}))
+	self.backdrop = self.root:add(View()):anchorFill(0, 0, 0, 0)
+	self.backdrop:add(Panel({color = Colors.background})):anchorFill(0, 0, 0, 0)
+	self.backdrop:add(Scrim()):anchorFill(0, 0, 0, 0)
+
+	self.header = self.root:add(Panel({color = HEADER_COLOR, line_color = HEADER_LINE_COLOR, lines = {bottom = true}}))
 	self.header:anchorFixed(0, 0, 1920, 106):fillWidth(0, 0)
 	self.title = self.root:add(Label({font_name = "bold", font_size = 42, text = "Downloadable content"}))
 	self.title:setPosition(40, 20)
 	self.status = self.root:add(Label({font_name = "regular", font_size = 16, text = ""}))
 	self.status:setPosition(40, 72)
 
+	local popup = PopupContainer()
+	self.popup = popup
+	-- The controls sit directly on the backdrop, like the song select toolbar.
 	self.toolbar = self.root:add(View())
-	self.toolbar:anchorFixed(0, 106, 1920, 68):fillWidth(0, 0)
-	self.toolbar:add(Panel({
-		color = Colors.panel,
-		line_color = Colors.outline,
-		lines = {bottom = true},
-	})):anchorFill(0, 0, 0, 0)
-	self.toolbar:add(Image(
-		Resources.sprites.song_select_library_toolbar_shadow,
-		"fit",
-		{Colors.shadow[1], Colors.shadow[2], Colors.shadow[3], 0.27}
-	)):anchorFill(0, 0, 0, 0)
-	self.type_tabs = self.toolbar:add(FlowContainer({direction = "row", gap = 4, align = 0.5}))
-	self.type_tabs:setPosition(40, 12)
+	self.toolbar:fillWidth(EDGE, EDGE):setHeight(TOOLBAR_HEIGHT):addPosition(0, TOOLBAR_TOP)
+	local controls = self.toolbar:add(TrackContainer({direction = "row", gap = 10}))
+	controls:anchorFill(0, 0, 0, 0)
+
+	local type_options = {}
+	for i, item in ipairs(content_types) do
+		type_options[i] = {label = item.label, value = item.key}
+	end
+	self.type_control = controls:add(Dropdown({
+		label = "TYPE",
+		options = type_options,
+		value = self.content_type,
+		popup_container = popup,
+		on_change = function(value) self:setContentType(value) end,
+	}), 240)
+
+	self.search = controls:add(SearchField({
+		placeholder = "Search downloadable content...",
+		on_change = function(text)
+			self.query = text
+			self.page = 1
+			self:setPageLabel(1)
+			self:debounceSearch()
+		end,
+	}), "*")
+
+	local status_options = {}
+	for i, key in ipairs(osu_statuses) do
+		status_options[i] = {label = osu_status_labels[key], value = key}
+	end
+	self.status_control = controls:add(Dropdown({
+		label = "STATUS",
+		options = status_options,
+		value = self.status_filter,
+		popup_container = popup,
+		on_change = function(value) self:setStatusFilter(value) end,
+	}), 190)
+
+	local mode_options = {}
+	for i, key in ipairs(osu_modes) do
+		mode_options[i] = {label = osu_mode_labels[key], value = key}
+	end
+	self.mode_control = controls:add(Dropdown({
+		label = "MODE",
+		options = mode_options,
+		value = self.mode_filter,
+		popup_container = popup,
+		on_change = function(value) self:setModeFilter(value) end,
+	}), 190)
 
 	self.sidebar = self.root:add(View())
 	self.sidebar:setWidth(240):fillHeight(190, 82):addPosition(40, 0)
 	self.list_host = self.root:add(View())
 	self.list_host:anchorFill(318, 190, 390, 82)
-	self.list_host:add(DlcPanel(Colors.panel)):anchorFill(0, 0, 0, 0)
+	self.list_host:add(DlcPanel(PANEL_COLOR)):anchorFill(0, 0, 0, 0)
 	self.list = self.list_host:add(DlcList(
 		self.thumbnail_cache,
 		function(item) self:download(item) end,
@@ -116,65 +170,56 @@ function Dlc:new(ui)
 	self.loading:setAlignment(0.5, 0.5):setVisible(false)
 	self.queue_title = self.root:add(Label({font_name = "bold", font_size = 20, text = "Download queue"}))
 	self.queue_title:setSize(310, 28):setAlignment(1, 0):setOffset(-40, 190)
-	self.queue_panel = self.root:add(DlcPanel(Colors.panel))
+	self.queue_panel = self.root:add(DlcPanel(PANEL_COLOR))
 	self.queue_panel:setWidth(310):fillHeight(230, 82):setAlignmentX(1):setOffset(-40, 0)
 	self.queue = self.root:add(DlcQueue())
 	self.queue:setWidth(310):fillHeight(230, 82):setAlignmentX(1):setOffset(-40, 0)
 
-	self.search = self.toolbar:add(Textbox({
-		placeholder = "Search downloadable content...",
-		on_change = function(text)
-			self.query = text
-			self.page = 1
-			self.page_label:setText("Page 1")
-			self:debounceSearch()
-		end,
+	self.back = self.root:add(IconTextButton({
+		text = "Back",
+		icon = Resources.sprites.icon_undo_2,
+		variant = "danger",
+		font_size = 18,
+		padding_left = 24,
+		padding_right = 30,
+		on_click = function() ui:setScreen(ui.main_menu, true) end,
 	}))
-	self.search:setSize(620, 44):setPosition(446, 12)
-
-	self.back = self.root:add(Button("Back", function() ui:setScreen(ui.main_menu, true) end, {
-		variant = "secondary", font_name = "medium", font_size = 18,
-	}))
-	self.back:setSize(150, 44):setAlignment(0, 1):setOffset(40, -24)
+	self.back:setAlignment(0, 1):setOffset(EDGE, -FOOTER_BOTTOM)
 
 	self.pagination = self.root:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
-	self.previous = self.pagination:add(Button("Previous", function() self:setPage(self.page - 1) end, {
-		variant = "secondary", font_name = "medium", font_size = 16,
+	self.previous = self.pagination:add(IconTextButton({
+		text = "",
+		icon = Resources.sprites.icon_chevron_left,
+		gap = 0,
+		padding_left = 16,
+		padding_right = 16,
+		on_click = function() self:setPage(self.page - 1) end,
 	}))
-	self.previous:setSize(120, 44)
 	self.page_label = self.pagination:add(Label({font_name = "medium", font_size = 17, text = "Page 1", align = "center"}))
-	self.page_label:setSize(100, 30)
-	self.next = self.pagination:add(Button("Next", function() self:setPage(self.page + 1) end, {
-		variant = "secondary", font_name = "medium", font_size = 16,
+	self.page_label:setSize(PAGE_LABEL_WIDTH, 30)
+	self.next = self.pagination:add(IconTextButton({
+		text = "",
+		icon = Resources.sprites.icon_chevron_right,
+		icon_after = true,
+		gap = 0,
+		padding_left = 16,
+		padding_right = 16,
+		on_click = function() self:setPage(self.page + 1) end,
 	}))
-	self.next:setSize(120, 44)
-	self.pagination:fitContent():setAlignment(0.5, 1):setOffset(0, -24)
+	self.pagination:fitContent():setAlignment(0.5, 1):setOffset(0, -FOOTER_BOTTOM)
 
-	-- Added last so the dropdown list is drawn above the rest of the screen.
-	self.popup = self.root:add(PopupContainer())
-	self.status_control = self.toolbar:add(Dropdown({
-		label = "",
-		options = osu_statuses,
-		value = self.status_filter,
-		width = 200,
-		format = function(value) return osu_status_labels[value] end,
-		popup_container = self.popup,
-		on_change = function(value) self:setStatusFilter(value) end,
-	}))
-	-- The dropdown body sits 25px below its label row; align it with the search box.
-	self.status_control:setPosition(1090, -13)
-	self.mode_control = self.toolbar:add(Dropdown({
-		label = "",
-		options = osu_modes,
-		value = self.mode_filter,
-		width = 200,
-		format = function(value) return osu_mode_labels[value] end,
-		popup_container = self.popup,
-		on_change = function(value) self:setModeFilter(value) end,
-	}))
-	self.mode_control:setPosition(1310, -13)
+	-- Added last so the dropdown lists are drawn above the rest of the screen.
+	self.root:add(popup)
 	self:rebuildSidebar()
 	self:refreshQueue()
+end
+
+---Label:setText resizes the label to its text, which would shift the pagination row
+---that was packed around a fixed-width label.
+---@param page integer
+function Dlc:setPageLabel(page)
+	self.page_label:setText("Page " .. page)
+	self.page_label:setSize(PAGE_LABEL_WIDTH, 30)
 end
 
 function Dlc:refreshQueue()
@@ -185,13 +230,6 @@ function Dlc:refreshQueue()
 end
 
 function Dlc:rebuildSidebar()
-	self.type_tabs:clear()
-	for _, item in ipairs(content_types) do
-		local key = item.key
-		local tab = self.type_tabs:add(ContentTypeTab(item.label, function() self:setContentType(key) end))
-		tab:setSelected(key == self.content_type)
-	end
-	self.type_tabs:fitContent()
 	self.status_control:setVisible(self.content_type == "set")
 	self.mode_control:setVisible(self.content_type == "set")
 
@@ -200,7 +238,7 @@ function Dlc:rebuildSidebar()
 	provider_title:setPosition(12, 0)
 	local choices = providers[self.content_type]
 	if #choices > 0 then
-		local provider_panel = self.sidebar:add(DlcPanel(Colors.panel))
+		local provider_panel = self.sidebar:add(DlcPanel(PANEL_COLOR))
 		provider_panel:setSize(240, #choices * 49 - 5):setPosition(0, 32)
 	end
 	local provider_list = self.sidebar:add(FlowContainer({direction = "column", gap = 5}))
@@ -242,7 +280,7 @@ function Dlc:setContentType(content_type)
 	if self.content_type == content_type then return end
 	self.content_type = content_type
 	self.page = 1
-	self.page_label:setText("Page 1")
+	self:setPageLabel(1)
 	local choices = providers[content_type]
 	self.provider = choices[1] and choices[1].key or ""
 	self:rebuildSidebar()
@@ -255,7 +293,7 @@ function Dlc:setProvider(provider)
 	if self.provider == provider then return end
 	self.provider = provider
 	self.page = 1
-	self.page_label:setText("Page 1")
+	self:setPageLabel(1)
 	self:rebuildSidebar()
 	self:cancelPendingSearch()
 	self:searchContent()
@@ -266,7 +304,7 @@ function Dlc:setStatusFilter(status)
 	if self.status_filter == status then return end
 	self.status_filter = status
 	self.page = 1
-	self.page_label:setText("Page 1")
+	self:setPageLabel(1)
 	self:cancelPendingSearch()
 	self:searchContent()
 end
@@ -276,7 +314,7 @@ function Dlc:setModeFilter(mode)
 	if self.mode_filter == mode then return end
 	self.mode_filter = mode
 	self.page = 1
-	self.page_label:setText("Page 1")
+	self:setPageLabel(1)
 	self:cancelPendingSearch()
 	self:searchContent()
 end
@@ -285,7 +323,7 @@ end
 function Dlc:setPage(page)
 	if page < 1 or page == self.page then return end
 	self.page = page
-	self.page_label:setText("Page " .. page)
+	self:setPageLabel(page)
 	self:cancelPendingSearch()
 	self:searchContent()
 end
