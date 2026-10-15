@@ -17,6 +17,8 @@ local DURATION = 0.22
 ---@field frames rizu.skin.osu.OsuSkinGraphics.Image[]
 ---@field rotation number
 ---@field grade integer
+---@field start_alpha number Opacity the fade-in starts from (the previous judgement's opacity).
+---@field animated boolean Scale and tilt the judgement image; the fade out always plays.
 ---@field section rizu.skin.OsuSkinIni.ManiaSection
 local OsuManiaJudgeView = View + {}
 
@@ -31,6 +33,8 @@ function OsuManiaJudgeView:new(graphics)
 	self.frames = {}
 	self.rotation = 0
 	self.grade = 1
+	self.animated = true
+	self.start_alpha = 0
 	self.section = {}
 	View.new(self, {anchor = "top", origin = "center", x = 0, y = 325, width = 0, height = 0})
 end
@@ -121,9 +125,11 @@ function OsuManiaJudgeView:update(dt, game)
 			local asset = self.section["Hit" .. JUDGE_ASSETS[grade]]
 			if asset and tonumber(asset) then asset = nil end
 			local frames = self.graphics:getAnimationFrames(asset, "mania-hit" .. JUDGE_ASSETS[grade], "playfield")
+			local previous_alpha = self:getAlpha()
 			self.frames = frames
 			self.image = frames[1]
 			if self.image then
+				self.start_alpha = previous_alpha
 				self.width, self.height = OsuImage.dimensions(self.image)
 				self.elapsed = 0
 				self.rotation = grade == 6 and (math.random() - 0.5) * 0.2 or 0
@@ -134,21 +140,35 @@ function OsuManiaJudgeView:update(dt, game)
 	self.sequence_index = latest_index
 end
 
+---Current opacity. A new judgement fades in from the opacity the previous one
+---had reached (as osu! does) instead of from zero, so rapid hits don't flicker.
+---@return number
+function OsuManiaJudgeView:getAlpha()
+	if not self.image or self.elapsed >= self.duration then return 0 end
+	local progress = self.elapsed / self.duration
+	if progress < 0.08 then
+		return self.start_alpha + (1 - self.start_alpha) * progress / 0.08
+	end
+	return progress > 0.82 and (1 - progress) / 0.18 or 1
+end
+
 function OsuManiaJudgeView:draw()
 	if not self.image or self.elapsed >= self.duration then return end
-	local progress = self.elapsed / self.duration
-	local alpha = progress < 0.08 and progress / 0.08 or (progress > 0.82 and (1 - progress) / 0.18 or 1)
-	local scale
-	if self.grade == 6 then scale = 1.2 - 0.2 * math.min(1, self.elapsed / 0.1)
+	local alpha = self:getAlpha()
+	local scale = 1
+	if not self.animated then
+		-- Fade only: keep the final size and skip the miss tilt.
+	elseif self.grade == 6 then scale = 1.2 - 0.2 * math.min(1, self.elapsed / 0.1)
 	elseif self.elapsed < 0.08 then scale = 0.8 + 0.2 * self.elapsed / 0.08
 	elseif self.elapsed < 0.18 then scale = 1 - 0.3 * (self.elapsed - 0.08) / 0.1
 	else scale = 0.7 - 0.3 * (self.elapsed - 0.18) / 0.04 end
+	local rotation = self.animated and self.rotation or 0
 	local frame = self.frames[math.min(#self.frames, math.floor(self.elapsed * 20) + 1)] or self.image
 	lg.setColor(1, 1, 1, math.max(0, alpha))
 	local draw_scale = scale * JUDGE_SCALE
 	local width, height = OsuImage.dimensions(frame)
 	local batch = frame.texture and frame.batch
-	OsuImage.draw(frame, self.width / 2, self.height / 2, self.rotation, draw_scale, draw_scale,
+	OsuImage.draw(frame, self.width / 2, self.height / 2, rotation, draw_scale, draw_scale,
 		width / 2, height / 2)
 	if batch then batch:flush() end
 end

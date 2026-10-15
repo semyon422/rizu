@@ -369,6 +369,7 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.skin_colors = {}
 	self.combo_view:setSkin(skin, section, self.upside_down)
 	self.judge_view:setSkin(skin, section, self.upside_down)
+	self.judge_view.animated = self:getJudgeAnimation()
 	self.hit_meter_view:setMode(self:getHitMeterMode())
 	self.hit_meter_view.y = self:getHitMeterY()
 	self.accuracy_view:setSkin(skin, self.score_view.height + 3)
@@ -915,6 +916,20 @@ function OsuManiaRenderer:setHitMeterMode(value)
 	self.hit_meter_view:setMode(value)
 end
 
+---@return boolean
+function OsuManiaRenderer:getJudgeAnimation()
+	local value = self.config:get("mania", self.input_mode, "judge.animation")
+	if type(value) == "boolean" then return value end
+	return true
+end
+
+---@param value boolean
+function OsuManiaRenderer:setJudgeAnimation(value)
+	assert(type(value) == "boolean", "judge animation must be a boolean")
+	self.config:set("mania", self.input_mode, "judge.animation", value)
+	self.judge_view.animated = value
+end
+
 ---@return number
 function OsuManiaRenderer:getHitMeterY()
 	local value = self.config:get("mania", self.input_mode, "hit_meter.y", DEFAULT_HIT_METER_Y)
@@ -1039,6 +1054,9 @@ end
 ---@return rizu.skin.osu.OsuManiaRenderer.Property[]
 function OsuManiaRenderer:getProperties()
 	return {
+		{key = "judge.animation", label = "Judgement scaling animation", type = "checkbox",
+			get = function() return self:getJudgeAnimation() end,
+			set = function(value) self:setJudgeAnimation(value) end},
 		{key = "hit_meter.mode", label = "Hit error meter", type = "segmented",
 			options = {0, 1, 2},
 			format = function(value)
