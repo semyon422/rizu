@@ -2,6 +2,7 @@ local Button = require("ui.views.Button")
 local DlcList = require("ui.screens.dlc.DlcList")
 local DlcPanel = require("ui.screens.dlc.DlcPanel")
 local DlcQueue = require("ui.screens.dlc.DlcQueue")
+local Dropdown = require("ui.views.form.Dropdown")
 local Colors = require("ui.Colors")
 local ContentTypeTab = require("ui.screens.dlc.ContentTypeTab")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -9,9 +10,9 @@ local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 local Loading = require("ui.screens.chart_loading.Loading")
 local Panel = require("ui.views.Panel")
+local PopupContainer = require("ui.views.PopupContainer")
 local Resources = require("ui.Resources")
 local Screen = require("gui.Screen")
-local SegmentedControl = require("ui.views.form.SegmentedControl")
 local SidebarItem = require("ui.screens.dlc.SidebarItem")
 local Textbox = require("ui.views.Textbox")
 local ThumbnailCache = require("ui.screens.dlc.ThumbnailCache")
@@ -33,6 +34,16 @@ local content_types = {
 }
 
 local osu_statuses = {"any", "ranked", "qualified", "pending", "graveyard"}
+
+local osu_modes = {"any", "osu", "taiko", "catch", "mania"}
+
+local osu_mode_labels = {
+	any = "All modes",
+	osu = "osu!",
+	taiko = "Taiko",
+	catch = "Catch",
+	mania = "Mania",
+}
 
 local osu_status_labels = {
 	any = "All",
@@ -60,6 +71,7 @@ function Dlc:new(ui)
 	self.page = 1
 	self.query = ""
 	self.status_filter = "ranked"
+	self.mode_filter = "mania"
 	self.search_generation = 0
 	self.searching = false
 
@@ -119,15 +131,6 @@ function Dlc:new(ui)
 		end,
 	}))
 	self.search:setSize(620, 44):setPosition(446, 12)
-	self.status_control = self.toolbar:add(SegmentedControl({
-		label = "",
-		options = osu_statuses,
-		value = self.status_filter,
-		format = function(value) return osu_status_labels[value] end,
-		compact = true,
-		on_change = function(value) self:setStatusFilter(value) end,
-	}))
-	self.status_control:setPosition(1090, 14)
 
 	self.back = self.root:add(Button("Back", function() ui:setScreen(ui.main_menu, true) end, {
 		variant = "secondary", font_name = "medium", font_size = 18,
@@ -146,6 +149,30 @@ function Dlc:new(ui)
 	}))
 	self.next:setSize(120, 44)
 	self.pagination:fitContent():setAlignment(0.5, 1):setOffset(0, -24)
+
+	-- Added last so the dropdown list is drawn above the rest of the screen.
+	self.popup = self.root:add(PopupContainer())
+	self.status_control = self.toolbar:add(Dropdown({
+		label = "",
+		options = osu_statuses,
+		value = self.status_filter,
+		width = 200,
+		format = function(value) return osu_status_labels[value] end,
+		popup_container = self.popup,
+		on_change = function(value) self:setStatusFilter(value) end,
+	}))
+	-- The dropdown body sits 25px below its label row; align it with the search box.
+	self.status_control:setPosition(1090, -13)
+	self.mode_control = self.toolbar:add(Dropdown({
+		label = "",
+		options = osu_modes,
+		value = self.mode_filter,
+		width = 200,
+		format = function(value) return osu_mode_labels[value] end,
+		popup_container = self.popup,
+		on_change = function(value) self:setModeFilter(value) end,
+	}))
+	self.mode_control:setPosition(1310, -13)
 	self:rebuildSidebar()
 	self:refreshQueue()
 end
@@ -166,6 +193,7 @@ function Dlc:rebuildSidebar()
 	end
 	self.type_tabs:fitContent()
 	self.status_control:setVisible(self.content_type == "set")
+	self.mode_control:setVisible(self.content_type == "set")
 
 	self.sidebar:clear()
 	local provider_title = self.sidebar:add(Label({font_name = "bold", font_size = 16, text = "PROVIDER"}))
@@ -243,6 +271,16 @@ function Dlc:setStatusFilter(status)
 	self:searchContent()
 end
 
+---@param mode string
+function Dlc:setModeFilter(mode)
+	if self.mode_filter == mode then return end
+	self.mode_filter = mode
+	self.page = 1
+	self.page_label:setText("Page 1")
+	self:cancelPendingSearch()
+	self:searchContent()
+end
+
 ---@param page integer
 function Dlc:setPage(page)
 	if page < 1 or page == self.page then return end
@@ -268,11 +306,11 @@ function Dlc:searchContent()
 	self.list:setVisible(false)
 	self.loading:setVisible(true)
 	self.status:setText("Searching " .. self.provider .. "...")
-	local query, page, provider = self.query, self.page, self.provider
+	local query, page, provider, mode = self.query, self.page, self.provider, self.mode_filter
 	local status = self.status_filter
 	if status == "any" and provider ~= "mino" then status = "all" end
 	thread.coro(function()
-		local results, err = self.ui.game.dlcManager:search(query, {page = page, status = status}, provider)
+		local results, err = self.ui.game.dlcManager:search(query, {page = page, status = status, mode = mode}, provider)
 		if generation ~= self.search_generation then return end
 		self.searching = false
 		self.loading:setVisible(false)

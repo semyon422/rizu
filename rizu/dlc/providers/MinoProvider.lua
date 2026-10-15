@@ -35,24 +35,36 @@ local MinoRankedStatus = {
 	loved = 4,
 }
 
+---@enum (key) rizu.dlc.MinoMode
+local MinoMode = {
+	osu = 0,
+	taiko = 1,
+	catch = 2,
+	mania = 3,
+}
+
 ---@param config {request: fun(url: string): {status: integer, body: string}?, string?}
 function MinoProvider:new(config)
 	self.request = assert(config.request, "request is required")
 end
 
 ---@param query string
----@param filters {page: integer, status: rizu.dlc.MinoRankedStatus}?
+---@param filters {page: integer, status: rizu.dlc.MinoRankedStatus, mode: "any"|rizu.dlc.MinoMode}?
 ---@return table[]? results
 ---@return string? error
 function MinoProvider:search(query, filters)
 	local page = filters and filters.page or 1
 	local status = filters and filters.status or "ranked"
 
+	local mode = filters and filters.mode or "mania"
+
+	-- Omitting `mode` or `status` makes the API match any of them;
+	-- the explicit "any" status (-3) returns nothing.
 	local url = self.search_url .. "?" .. http_util.encode_query_string({
 		query = query,
-		mode = 3,
+		mode = MinoMode[mode],
 		offset = (page - 1) * 100,
-		status = MinoRankedStatus[status] or 1,
+		status = status ~= "any" and (MinoRankedStatus[status] or 1) or nil,
 		amount = 100,
 	})
 

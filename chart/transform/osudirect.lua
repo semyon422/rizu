@@ -20,9 +20,10 @@ local osudirect = {}
 ---@param q string
 ---@param r number?
 ---@param p number?
+---@param m number? game mode, -1 for all (default 3, mania)
 ---@return string
-function osudirect.search(q, r, p)
-	return ("/web/osu-search.php?m=3&q=%s&r=%s&p=%s"):format(q, r or 4, p or 0)
+function osudirect.search(q, r, p, m)
+	return ("/web/osu-search.php?m=%s&q=%s&r=%s&p=%s"):format(m or 3, q, r or 4, p or 0)
 end
 
 ---@param setId number

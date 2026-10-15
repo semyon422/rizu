@@ -16,6 +16,27 @@ function test.initialization(t)
 end
 
 ---@param t testing.T
+function test.search_mode(t)
+	local urls = {}
+	local provider = OsuDirectProvider({
+		baseUrl = "https://example.com",
+		downloadUrl = "https://example.com/d/%s",
+		request = function(url)
+			table.insert(urls, url)
+			return {status = 200, body = "0"}
+		end,
+	})
+
+	provider:search("a", {mode = "catch"})
+	provider:search("a", {mode = "any"})
+	provider:search("a")
+
+	t:assert(urls[1]:find("m=2", 1, true))
+	t:assert(urls[2]:find("m=-1", 1, true))
+	t:assert(urls[3]:find("m=3", 1, true))
+end
+
+---@param t testing.T
 function test.getDownloadUrl(t)
 	local provider = OsuDirectProvider({
 		baseUrl = "https://example.com",

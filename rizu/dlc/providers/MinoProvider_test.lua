@@ -41,6 +41,27 @@ function test.search(t)
 end
 
 ---@param t testing.T
+function test.search_mode_and_any_status(t)
+	local urls = {}
+	local provider = MinoProvider({
+		request = function(url)
+			table.insert(urls, url)
+			return {status = 200, body = "[]"}
+		end,
+	})
+
+	provider:search("a", {page = 1, status = "any", mode = "taiko"})
+	provider:search("a", {page = 1, status = "ranked", mode = "any"})
+	provider:search("a")
+
+	t:assert(urls[1]:find("mode=1", 1, true))
+	t:assert(not urls[1]:find("status=", 1, true))
+	t:assert(not urls[2]:find("mode=", 1, true))
+	t:assert(urls[2]:find("status=1", 1, true))
+	t:assert(urls[3]:find("mode=3", 1, true))
+end
+
+---@param t testing.T
 function test.getDownloadUrl(t)
 	local provider = MinoProvider({request = noop_request})
 	local url = provider:getDownloadUrl(12345)

@@ -25,6 +25,14 @@ local statusMap = {
 	graveyard = 5,
 }
 
+local modeMap = {
+	any = -1,
+	osu = 0,
+	taiko = 1,
+	catch = 2,
+	mania = 3,
+}
+
 ---@param config {baseUrl: string, downloadUrl: string, request: fun(url: string): {status: integer, body: string}?, string?}
 function OsuDirectProvider:new(config)
 	self.baseUrl = config.baseUrl
@@ -40,7 +48,9 @@ function OsuDirectProvider:search(query, filters)
 	local page = filters.page or 0
 	local status = statusMap[filters.status] or filters.status or 4 -- Default to "All"
 
-	local searchPath = osudirect.search(query, status, page)
+	local mode = modeMap[filters.mode or "mania"] or 3
+
+	local searchPath = osudirect.search(query, status, page, mode)
 	local url = self.baseUrl .. searchPath
 	
 	print("[OsuDirectProvider] Requesting URL:", url)
