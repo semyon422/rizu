@@ -10,7 +10,6 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
-local Section = require("ui.modals.config.Section")
 local SectionItem = require("ui.modals.config.SectionItem")
 local AudioSection = require("ui.modals.config.sections.Audio")
 local BindingsSection = require("ui.modals.config.sections.Bindings")
@@ -28,8 +27,7 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@field app rizu.api.App
 ---@field popup_container ui.views.PopupContainer
 ---@field sections ui.modals.config.Section[]
----@field all_section ui.modals.config.Section
----@field selected_section ui.modals.config.Section
+---@field section_headers {[ui.modals.config.Section]: gui.View}
 ---@field section_list gui.layout.FlowContainer
 ---@field form ui.views.form.Form
 ---@field form_selection ui.views.form.FormSelection
@@ -69,12 +67,7 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 		padding = {0, 16, 0, 16},
 	})
 	self.sections = self:createSections()
-	self.all_section = Section({
-		name = localization:get("settings.all"),
-		icon = Resources.sprites.icon_gear,
-		build = function() return {} end,
-	})
-	self.selected_section = self.all_section
+	self.section_headers = {}
 	self.settings_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -86,14 +79,9 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 	self.handles_mouse_input = true
 
 	self.section_list = FlowContainer({direction = "column", gap = 4, padding = 20})
-	self.section_list:add(SectionItem(self.all_section, function(selected_section)
-		self.selected_section = selected_section
-		self:invalidateSettings()
-	end))
 	for _, section in ipairs(self.sections) do
-		self.section_list:add(SectionItem(section, function(selected_section)
-			self.selected_section = selected_section
-			self:invalidateSettings()
+		self.section_list:add(SectionItem(section, function(section)
+			self:scrollToSection(section)
 		end))
 	end
 	self.section_list:fitContent()
@@ -172,6 +160,15 @@ local function createSectionHeader(section)
 	return header
 end
 
+---Scrolls the settings list so the section's header is at the top.
+---@param section ui.modals.config.Section
+function Config:scrollToSection(section)
+	local header = self.section_headers[section]
+	local x, y = header.world_transform:transformPoint(0, 0)
+	local _, local_y = self.scroll_view.world_transform:inverseTransformPoint(x, y)
+	self.scroll_view:scrollTo(self.scroll_view:getScrollPosition() + local_y)
+end
+
 function Config:rebuildSettings()
 	self.settings_invalidated = false
 	local selected_index = self.form.selected_index
@@ -179,16 +176,10 @@ function Config:rebuildSettings()
 	self.form:clearSelection()
 	self.form:clearRows()
 
-	if self.selected_section == self.all_section then
-		for _, section in ipairs(self.sections) do
-			self.form:add(createSectionHeader(section))
-			for _, control in ipairs(section:build()) do
-				self.form:add(control)
-			end
-		end
-	else
-		local section = self.selected_section
-		self.form:add(createSectionHeader(section))
+	self.section_headers = {}
+	for _, section in ipairs(self.sections) do
+		local header = self.form:add(createSectionHeader(section))
+		self.section_headers[section] = header
 		for _, control in ipairs(section:build()) do
 			self.form:add(control)
 		end
