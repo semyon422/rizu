@@ -133,6 +133,9 @@ function Deployment:prepareRoot()
 	for _, name in ipairs({"app_config.lua", "bancho_config.lua", "package_config.lua", "nginx_config.lua"}) do
 		self.shell:execute("test -f " .. quote(root .. "/server-state/" .. name))
 	end
+	for _, name in ipairs({"config.lua", "network.lua"}) do
+		self.shell:execute("test -f " .. quote(root .. "/server-state/ai-router/" .. name))
+	end
 	self.shell:execute("make nginx-conf")
 	self.shell:execute("test -f " .. quote(root .. "/server-state/nginx.conf"))
 end
@@ -181,19 +184,35 @@ function Deployment:ensureNats(app_dir)
 end
 
 ---@param app_dir string
+---@return boolean
+function Deployment:hasRouter(app_dir)
+	local output = self.shell:popen("test -f " .. quote(app_dir .. "/docker/ai-router-entrypoint.sh") .. " && echo yes || true")
+	return output ~= nil and output:find("yes", 1, true) ~= nil
+end
+
+---@param app_dir string
 function Deployment:startOpenResty(app_dir)
-	self.shell:execute(self:composeCommand(app_dir) .. " up --detach --force-recreate --pull missing --no-build --no-deps compute openresty")
+	local compose = self:composeCommand(app_dir)
+	local services = "compute ai-router openresty"
+	if not self:hasRouter(app_dir) then
+		self.shell:execute(compose .. " stop ai-router")
+		services = "compute openresty"
+	end
+	self.shell:execute(compose .. " up --detach --force-recreate --pull missing --no-build --no-deps " .. services)
 end
 
 ---@param app_dir string
 ---@return boolean
 function Deployment:waitHealthy(app_dir)
 	local compose = self:composeCommand(app_dir)
+	local has_router = self:hasRouter(app_dir)
 	for _ = 1, self.config.health_attempts do
 		local openresty_status = self.shell:popen(compose .. " ps --format json openresty | grep -q '\"Health\":\"healthy\"' && echo healthy || true")
 		local compute_status = self.shell:popen(compose .. " ps --format json compute | grep -q '\"Health\":\"healthy\"' && echo healthy || true")
+		local router_status = not has_router and "healthy" or self.shell:popen(compose .. " ps --format json ai-router | grep -q '\"Health\":\"healthy\"' && echo healthy || true")
 		if openresty_status and openresty_status:find("healthy", 1, true)
 			and compute_status and compute_status:find("healthy", 1, true)
+			and router_status and router_status:find("healthy", 1, true)
 		then
 			return true
 		end
@@ -205,17 +224,17 @@ end
 ---@param candidate string
 ---@param previous string?
 function Deployment:activateServer(candidate, previous)
-	self:startOpenResty(candidate)
-	if self:waitHealthy(candidate) then
+	local started = pcall(self.startOpenResty, self, candidate)
+	if started and self:waitHealthy(candidate) then
 		return
 	end
 	if previous and previous ~= "" then
 		self:startOpenResty(previous)
 		assert(self:waitHealthy(previous), "candidate failed health check and previous release could not be restored")
 	else
-		self.shell:execute(self:composeCommand(candidate) .. " stop openresty compute")
+		self.shell:execute(self:composeCommand(candidate) .. " stop openresty compute ai-router")
 	end
-	error("candidate failed OpenResty health check")
+	error("candidate application services failed startup or health checks")
 end
 
 ---@param link string

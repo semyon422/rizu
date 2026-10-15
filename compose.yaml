@@ -47,6 +47,28 @@ services:
       retries: 5
       start_period: 10s
 
+  ai-router:
+    image: openresty/openresty:1.31.1.1-2-noble
+    pull_policy: missing
+    user: "${RIZU_UID:-1000}:${RIZU_GID:-1000}"
+    working_dir: /app
+    entrypoint:
+      - /bin/sh
+      - /app/docker/ai-router-entrypoint.sh
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - "${RIZU_APP_DIR:-.}:/app:ro"
+      - "${RIZU_SERVER_STATE_PATH:-./server-state}/ai-router:/router-state"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /app/luajit docker/ai-router-healthcheck.lua
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 15s
+
   openresty:
     image: openresty/openresty:1.31.1.1-2-noble
     pull_policy: missing

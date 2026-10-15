@@ -29,6 +29,11 @@ ReleasePackager.SERVER_RUNTIME_PATHS = {
 ReleasePackager.SERVER_REQUIRED_PATHS = {
 	"sea/app/handler.lua",
 	"docker/entrypoint.sh",
+	"docker/ai-router-entrypoint.sh",
+	"docker/ai-router-healthcheck.lua",
+	"docker/AiRouterConfig.lua",
+	"aqua/ai/router/proxy.lua",
+	"aqua/ai/router/storage/db.sql",
 	"compose.yaml",
 	"luajit",
 	"luajit.lua",
@@ -38,6 +43,11 @@ ReleasePackager.SERVER_REQUIRED_PATHS = {
 	"bin/linux64/libminacalc.so",
 	"bin/linux64/libsqlite3.so",
 	"tree/lib/lua/5.1/bcrypt.so",
+	"tree/lib/lua/5.1/socket/core.so",
+	"tree/lib/lua/5.1/ssl.so",
+	"tree/share/lua/5.1/socket.lua",
+	"tree/share/lua/5.1/ssl.lua",
+	"resources/certs/cacert.pem",
 	"tree/share/lua/5.1/resty/nats/client.lua",
 	"release.json",
 }

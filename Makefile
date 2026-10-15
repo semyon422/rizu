@@ -7,23 +7,25 @@ export RIZU_GID
 
 .DEFAULT_GOAL := help
 
-.PHONY: help config nginx-conf preflight validate pull up down restart ps logs openresty-logs compute-logs nats-logs shell update backup
+.PHONY: help config ai-router-config nginx-conf preflight validate pull up down restart ps logs openresty-logs compute-logs ai-router-logs nats-logs shell update backup
 
 help:
 	@echo "Rizu server deployment"
 	@echo
 	@echo "  make config          Create the local application config"
+	@echo "  make ai-router-config Create private AI router config with random secrets"
 	@echo "  make nginx-conf      Render nginx.conf from local configuration"
 	@echo "  make preflight       Check prebuilt server artifacts"
 	@echo "  make validate        Validate the Compose configuration"
 	@echo "  make pull            Pull OpenResty and NATS images"
-	@echo "  make up              Start OpenResty and NATS"
-	@echo "  make down            Stop OpenResty and NATS"
-	@echo "  make restart         Restart OpenResty and NATS"
+	@echo "  make up              Start all application services and NATS"
+	@echo "  make down            Stop all Compose services"
+	@echo "  make restart         Restart all Compose services"
 	@echo "  make ps              Show service status"
 	@echo "  make logs            Follow all service logs"
 	@echo "  make openresty-logs  Follow OpenResty logs"
 	@echo "  make compute-logs    Follow compute worker logs"
+	@echo "  make ai-router-logs  Follow AI router logs"
 	@echo "  make nats-logs       Follow NATS logs"
 	@echo "  make shell           Open a shell in the OpenResty container"
 	@echo "  make update          Pull Git and submodule changes"
@@ -57,6 +59,18 @@ config:
 		echo "server-state/nginx_config.lua already exists"; \
 	fi
 
+ai-router-config:
+	@install -d -m 0700 server-state/ai-router
+	@if [ ! -e server-state/ai-router/config.lua ]; then \
+		(umask 077; set -C; ./luajit docker/init-ai-router.lua > server-state/ai-router/config.lua); \
+	else \
+		echo "server-state/ai-router/config.lua already exists; preserved"; \
+	fi
+	@if [ ! -e server-state/ai-router/network.lua ]; then \
+		(umask 077; set -C; printf 'return {}\n' > server-state/ai-router/network.lua); \
+	fi
+	@echo "Router secrets are in server-state/ai-router/config.lua; not printed. Review before deployment."
+
 nginx-conf: config
 	@OR_ROOT=/usr/local/openresty \
 		LJ_ROOT=/usr/local/openresty/luajit \
@@ -77,12 +91,18 @@ preflight: nginx-conf
 	@test -f server-state/package_config.lua || { echo "missing server-state/package_config.lua; run make config" >&2; exit 1; }
 	@test -f server-state/nginx.conf || { echo "missing server-state/nginx.conf; run make nginx-conf" >&2; exit 1; }
 	@test -f server-state/nginx_config.lua || { echo "missing server-state/nginx_config.lua; run make config" >&2; exit 1; }
+	@test -f server-state/ai-router/config.lua || { echo "missing router config; run make ai-router-config" >&2; exit 1; }
+	@test -f server-state/ai-router/network.lua || { echo "missing router network config; run make ai-router-config" >&2; exit 1; }
+	@./luajit -e 'require("docker.AiRouterConfig").load("server-state/ai-router/config.lua")'
 	@test -f bin/linux64/lib7z.so || { echo "missing bin/linux64/lib7z.so" >&2; exit 1; }
 	@test -f bin/linux64/libiconv.so || { echo "missing bin/linux64/libiconv.so" >&2; exit 1; }
 	@test -f bin/linux64/libsqlite3.so || { echo "missing bin/linux64/libsqlite3.so" >&2; exit 1; }
 	@test -f bin/linux64/libminacalc.so || { echo "missing bin/linux64/libminacalc.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/bcrypt.so || { echo "missing tree/lib/lua/5.1/bcrypt.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/socket/core.so || { echo "missing tree/lib/lua/5.1/socket/core.so" >&2; exit 1; }
+	@test -f tree/lib/lua/5.1/ssl.so || { echo "missing tree/lib/lua/5.1/ssl.so" >&2; exit 1; }
+	@test -f tree/share/lua/5.1/ssl.lua || { echo "missing tree/share/lua/5.1/ssl.lua" >&2; exit 1; }
+	@test -f resources/certs/cacert.pem || { echo "missing TLS CA bundle" >&2; exit 1; }
 	@test -f tree/share/lua/5.1/socket.lua || { echo "missing tree/share/lua/5.1/socket.lua" >&2; exit 1; }
 	@test -f tree/share/lua/5.1/resty/nats/client.lua || { echo "missing tree/share/lua/5.1/resty/nats/client.lua" >&2; exit 1; }
 	@test -w server-state || { echo "server-state must be writable for SQLite WAL files and runtime logs" >&2; exit 1; }
@@ -115,6 +135,9 @@ openresty-logs:
 
 compute-logs:
 	$(COMPOSE) logs --follow compute
+
+ai-router-logs:
+	$(COMPOSE) logs --follow ai-router
 
 nats-logs:
 	$(COMPOSE) logs --follow nats

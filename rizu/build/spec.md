@@ -19,6 +19,8 @@ The system is optimized for local development and CI usage on Linux hosts while 
 - Incremental behavior: already-satisfied steps are skipped through output checks.
 
 ## Architecture Decisions
+
+The server release also requires the AI router entrypoint, healthcheck/config loader, router source/schema, LuaSocket/LuaSec runtime, and CA bundle. Runtime router configuration, credentials, and SQLite state are never included; see `deploy/spec.md` for one-time production preparation and schema compatibility.
 ### ADR-1: Build Target As Single Task Boundary
 Each platform build uses `BuildTargetTask` and a validated declarative step spec. This keeps orchestration simple and target selection explicit.
 
