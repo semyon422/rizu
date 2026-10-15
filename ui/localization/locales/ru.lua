@@ -69,7 +69,8 @@ return {
 	["music_player.unknown_title"] = "Неизвестный трек",
 	["music_player.unknown_artist"] = "Неизвестный исполнитель",
 
-	["settings.all"] = "Все",
+	["settings.search_placeholder"] = "Поиск настроек...",
+	["settings.no_results"] = "Ничего не найдено",
 	["settings.close"] = "Закрыть",
 	["settings.audio"] = "Звук",
 	["settings.gameplay"] = "Геймплей",

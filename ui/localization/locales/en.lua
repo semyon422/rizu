@@ -85,7 +85,8 @@ return {
 	["music_player.unknown_title"] = "Unknown title",
 	["music_player.unknown_artist"] = "Unknown artist",
 
-	["settings.all"] = "All",
+	["settings.search_placeholder"] = "Search settings...",
+	["settings.no_results"] = "No results",
 	["settings.close"] = "Close",
 	["settings.audio"] = "Audio Volume",
 	["settings.gameplay"] = "Gameplay",

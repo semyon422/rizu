@@ -10,7 +10,9 @@ local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
+local SettingsFilter = require("ui.modals.config.SettingsFilter")
 local SectionItem = require("ui.modals.config.SectionItem")
+local Textbox = require("ui.views.Textbox")
 local AudioSection = require("ui.modals.config.sections.Audio")
 local BindingsSection = require("ui.modals.config.sections.Bindings")
 local GameplaySection = require("ui.modals.config.sections.Gameplay")
@@ -28,6 +30,11 @@ local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
 ---@field popup_container ui.views.PopupContainer
 ---@field sections ui.modals.config.Section[]
 ---@field section_headers {[ui.modals.config.Section]: gui.View}
+---@field section_items {[ui.modals.config.Section]: ui.modals.config.SectionItem}
+---@field search ui.views.Textbox
+---@field no_results gui.View
+---@field query string
+---@field private reset_scroll boolean
 ---@field section_list gui.layout.FlowContainer
 ---@field form ui.views.form.Form
 ---@field form_selection ui.views.form.FormSelection
@@ -43,6 +50,9 @@ local MODAL_WIDTH = 1060
 local MODAL_HEIGHT = 740
 local LIST_PANEL_WIDTH = 740
 local LIST_WIDTH = 635
+local LIST_LEFT_WIDTH = MODAL_WIDTH - LIST_PANEL_WIDTH
+local SEARCH_Y = 20
+local SEARCH_HEIGHT = 40
 
 ---@param ui_config ui.UiConfig
 ---@param settings rizu.config.Config
@@ -68,6 +78,9 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 	})
 	self.sections = self:createSections()
 	self.section_headers = {}
+	self.section_items = {}
+	self.query = ""
+	self.reset_scroll = false
 	self.settings_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -80,12 +93,27 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 
 	self.section_list = FlowContainer({direction = "column", gap = 4, padding = 20})
 	for _, section in ipairs(self.sections) do
-		self.section_list:add(SectionItem(section, function(section)
-			self:scrollToSection(section)
-		end))
+		self.section_items[section] = SectionItem(section, function(clicked)
+			self:scrollToSection(clicked)
+		end)
 	end
-	self.section_list:fitContent()
-	self.section_list:setOffset(0, 20)
+	self:updateSectionList(self.sections)
+	self.section_list:setOffset(0, SEARCH_Y + SEARCH_HEIGHT)
+
+	self.search = Textbox({
+		placeholder = localization:get("settings.search_placeholder"),
+		icon = Resources.sprites.icon_search,
+		blur_on_accept = true,
+		blur_on_cancel = true,
+		on_change = function(text)
+			self:setQuery(text)
+		end,
+	})
+	self.search:anchorFixed(20, SEARCH_Y, LIST_LEFT_WIDTH - 40, SEARCH_HEIGHT)
+
+	self.no_results = Label({font_name = "medium", font_size = 16, text = localization:get("settings.no_results")})
+	self.no_results:setOffset(LIST_LEFT_WIDTH + 36, 36)
+	self.no_results:setVisible(false)
 
 	self.scroll_view = ScrollView(self.form)
 	self.scroll_view:anchorFixed(
@@ -111,9 +139,11 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 	self.list_background = NineSliceUsage(modal_sprites)
 
 	self:add(self.section_list)
+	self:add(self.search)
 	self.close_button = self:add(ModalCloseButton(on_close, localization:get("settings.close")))
 	self.close_button:anchorFixed(20, 0, 280, 48):setAlignmentY(1):addPosition(0, -20)
 	self:add(self.scroll_view)
+	self:add(self.no_results)
 	self.form_selection = self:add(FormSelection(self.form))
 	for _, section in ipairs(self.sections) do
 		section:setInvalidator(function()
@@ -164,28 +194,63 @@ end
 ---@param section ui.modals.config.Section
 function Config:scrollToSection(section)
 	local header = self.section_headers[section]
+	if not header then
+		return
+	end
 	local x, y = header.world_transform:transformPoint(0, 0)
 	local _, local_y = self.scroll_view.world_transform:inverseTransformPoint(x, y)
 	self.scroll_view:scrollTo(self.scroll_view:getScrollPosition() + local_y)
 end
 
+---Shows only the given sections' buttons, in section order.
+---@param visible ui.modals.config.Section[]
+function Config:updateSectionList(visible)
+	self.section_list:clear()
+	for _, section in ipairs(visible) do
+		self.section_list:add(self.section_items[section])
+	end
+	self.section_list:fitContent()
+end
+
+---@param query string
+function Config:setQuery(query)
+	if query == self.query then
+		return
+	end
+	self.query = query
+	self.reset_scroll = true
+	self:invalidateSettings()
+end
+
 function Config:rebuildSettings()
 	self.settings_invalidated = false
+	local query_changed = self.reset_scroll
+	self.reset_scroll = false
 	local selected_index = self.form.selected_index
 	self.form:closeActiveDropdown()
 	self.form:clearSelection()
 	self.form:clearRows()
 
+	local terms = SettingsFilter.parse(self.query)
 	self.section_headers = {}
+	local visible = {}
 	for _, section in ipairs(self.sections) do
-		local header = self.form:add(createSectionHeader(section))
-		self.section_headers[section] = header
-		for _, control in ipairs(section:build()) do
-			self.form:add(control)
+		local controls = SettingsFilter.filterControls(terms, section.name, section:build())
+		if #controls > 0 then
+			visible[#visible + 1] = section
+			local header = self.form:add(createSectionHeader(section))
+			self.section_headers[section] = header
+			for _, control in ipairs(controls) do
+				self.form:add(control)
+			end
 		end
 	end
+	self:updateSectionList(visible)
+	self.no_results:setVisible(#visible == 0)
 	self.form:fitContent()
-	if selected_index then
+	if query_changed then
+		self.scroll_view:scrollTo(0, true)
+	elseif selected_index then
 		self.form.selected_index = selected_index
 		self.form:syncSelection()
 	end

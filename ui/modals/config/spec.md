@@ -4,7 +4,7 @@ Provide a section-based settings modal for `rizu.config.Settings` and the UI-spe
 
 ## User Experience
 
-Settings are grouped under named, illustrated sections and use the shared form controls. A padded section list on the left shows each section's icon and name, highlights hovered items, and displays the selected section on the right. Changes to checkboxes, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
+Settings are grouped under named, illustrated sections and use the shared form controls. A padded section list on the left shows each section's icon and name, highlights hovered items, and scrolls the single settings list to that section's heading when clicked. A search box above the section list filters the list on every keystroke: a control is kept when every whitespace-separated term appears (case-insensitively) in its name, keywords, tip, or section name, and a query matching a section name keeps that whole section. Sections without matches lose their heading and their button, and an empty result shows a "No results" label. Changing the query resets the scroll position. Changes to checkboxes, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
 
 ## Architecture Decisions
 
