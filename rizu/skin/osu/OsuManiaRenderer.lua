@@ -1262,7 +1262,7 @@ function OsuManiaRenderer:drawStageDecorations(field_left, field_width, lane_wid
 	self:drawStageLightings(lane_widths, lane_xs, hit_y)
 end
 
----@param notes {column: integer, long_note: boolean, head_y: number, tail_y: number, body_visible: boolean, body_frame: integer?, head_visible: boolean}[]
+---@param notes {column: integer, long_note: boolean, head_y: number, tail_y: number, body_visible: boolean, body_frame: integer?, head_visible: boolean, mine: boolean?}[]
 ---@param lane_widths number[]
 ---@param lane_xs number[]
 function OsuManiaRenderer:drawNoteList(notes, lane_widths, lane_xs)
@@ -1335,6 +1335,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 					item.body_visible = note.end_time > note.time
 					item.body_frame = nil
 					item.head_visible = note.time >= lower and note.time <= upper
+					item.mine = false
 				end
 			end
 		end
@@ -1448,6 +1449,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 			item.body_frame = long_note and self:getNoteBodyFrame(note, #self:getColumnFrames(column - 1,
 				self:getColumnSuffix(column - 1), "L")) or 1
 			item.head_visible = head_visible
+			item.mine = note.linked_note:getType() == "mine"
 		end
 	end
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)

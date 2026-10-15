@@ -4,6 +4,8 @@ local OsuImage = require("rizu.skin.osu.OsuImage")
 local lg = love.graphics
 local HOLD_COLOR = {1, 0.78, 0.2, 1}
 local HEAD_COLOR = {0.25, 0.72, 1, 1}
+local MINE_COLOR = {1, 0, 0, 1}
+local WHITE = {1, 1, 1, 1}
 
 ---@class rizu.skin.osu.mania.OsuManiaNoteRenderer
 ---@operator call: rizu.skin.osu.mania.OsuManiaNoteRenderer
@@ -108,12 +110,13 @@ end
 ---@param target_height number
 ---@param flip boolean
 ---@param upside_down boolean
-local function draw_note_head(graphics, image, x, y, target_width, target_height, flip, upside_down)
+---@param color number[]
+local function draw_note_head(graphics, image, x, y, target_width, target_height, flip, upside_down, color)
 	if not image.texture and graphics.batch then graphics.batch:flush() end
 	local image_width, image_height = OsuImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 	local scale_x, scale_y = target_width / image_width, target_height / image_height
-	lg.setColor(1, 1, 1, 1)
+	lg.setColor(color)
 	if upside_down then
 		if flip then
 			OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, image_height)
@@ -192,9 +195,9 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 				local flip = renderer.upside_down
 					and renderer:getNoteHeadFlip(column, note.long_note)
 				draw_note_head(renderer.skin_graphics, image, lane_xs[column], note.head_y, note_width, note_height,
-					flip, renderer.upside_down)
+					flip, renderer.upside_down, note.mine and MINE_COLOR or WHITE)
 			else
-				local color = renderer:getSkinColor("ColourHold", HEAD_COLOR)
+				local color = note.mine and MINE_COLOR or renderer:getSkinColor("ColourHold", HEAD_COLOR)
 				lg.setColor(color[1], color[2], color[3], color[4])
 				OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2,
 					note.head_y - 10, lane_widths[column], 10)
