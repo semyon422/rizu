@@ -76,6 +76,7 @@ local keys = {
 		locations_in_collections = "select.locations_in_collections",
 		collapse = "select.collapse",
 		chart_preview = "select.chart_preview",
+		random_preview_position = "select.random_preview_position",
 		open_on_startup = "select.open_on_startup",
 		blurred_background = "select.blurred_background",
 		carousel = "select.carousel",
@@ -248,6 +249,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(s.locations_in_collections, false)
 	config:setDefaultBoolean(s.collapse, true) -- Deprecated?
 	config:setDefaultBoolean(s.chart_preview, true)
+	config:setDefaultBoolean(s.random_preview_position, false)
 	config:setDefaultBoolean(s.open_on_startup, false)
 	config:setDefaultBoolean(s.blurred_background, true)
 	config:setDefaultBoolean(s.carousel, true)

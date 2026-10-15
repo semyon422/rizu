@@ -172,6 +172,8 @@ return {
 	["settings.song_select_carousel_tip"] = "Muestra los sets y sus Charts en una sola lista. Si se desactiva, se usa la lista de sets anterior con una tira de dificultades.",
 	["settings.open_song_select_on_startup"] = "Abrir la selección de canciones al iniciar",
 	["settings.open_song_select_on_startup_tip"] = "Abre la selección de canciones en lugar del menú principal al iniciar el juego.",
+	["settings.random_preview_position"] = "Posición aleatoria de la vista previa de música",
+	["settings.random_preview_position_tip"] = "Inicia la vista previa de música en una posición aleatoria entre el 20% y el 80% de su rango en lugar del tiempo de vista previa del Chart.",
 	["settings.chart_preview_tip"] = "Muestra una vista previa del Chart seleccionado en la selección de canciones.",
 	["settings.difficulty_type_tip"] = "Elige la valoración de dificultad que se muestra en los menús.",
 

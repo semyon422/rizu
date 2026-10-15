@@ -81,6 +81,11 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					keywords = {"song select", "chart", "preview"},
 					tip = localization:get("settings.chart_preview_tip"),
 				}),
+				ControlFactory.boolean(settings, select_keys.random_preview_position, {
+					name = localization:get("settings.random_preview_position"),
+					keywords = {"song select", "preview", "random", "position", "music"},
+					tip = localization:get("settings.random_preview_position_tip"),
+				}),
 				ControlFactory.boolean(settings, select_keys.blurred_background, {
 					name = localization:get("settings.song_select_blurred_background"),
 					keywords = {"song select", "background", "blur", "image"},

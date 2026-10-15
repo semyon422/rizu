@@ -106,6 +106,10 @@ function AudioPreviewPlayer:load(preview_path, chart_dir)
 			self.audio_source:setFFTSize(self.fft_size)
 		end
 
+		if self.settings:getBoolean(Settings.keys.select.random_preview_position) and max_time > min_time then
+			self.pending_seek = min_time + (max_time - min_time) * (0.2 + math.random() * 0.6)
+		end
+
 		if self.pending_seek then
 			self.audio_source:setPosition(self.pending_seek)
 			self.pending_seek = nil
