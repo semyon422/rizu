@@ -3,6 +3,9 @@ local DlcWorker = require("rizu.dlc.DlcWorker")
 local DlcTask = require("rizu.dlc.DlcTask")
 local Observable = require("Observable")
 
+-- Some mirrors (e.g. catboy.best) reject the default HTTP client user agent
+local USER_AGENT = "rizu/1.0"
+
 ---@class rizu.dlc.DlcMetadata
 ---@field dest_dir string?
 ---@field mirror "beatconnect"|"mino"?
@@ -42,9 +45,12 @@ function DlcManager:createAndLoadWorker(workingDirectory)
 		self,
 		workingDirectory,
 		function(url)
-			return network:request(url)
+			return network:request(url, nil, {headers = {["User-Agent"] = USER_AGENT}})
 		end,
 		function(url, options)
+			options = options or {}
+			options.headers = options.headers or {}
+			options.headers["User-Agent"] = options.headers["User-Agent"] or USER_AGENT
 			return network:download(url, options)
 		end
 	)

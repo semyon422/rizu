@@ -40,7 +40,7 @@ function test.worker_uses_network_transport(t)
 	t:tdeq(calls[1], {"request", "https://example.test/search"})
 	t:eq(calls[2][1], "download")
 	t:eq(calls[2][2], "https://example.test/file")
-	t:tdeq(calls[2][3], {chunk_size = 1})
+	t:tdeq(calls[2][3], {chunk_size = 1, headers = {["User-Agent"] = "rizu/1.0"}})
 end
 
 ---@param t testing.T
