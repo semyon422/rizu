@@ -19,9 +19,12 @@ local Settings = require("rizu.config.Settings")
 ---@field is_finding_chartmeta boolean?
 ---@field chartMediaService rizu.select.services.ChartMediaService
 ---@field chartLoader rizu.select.services.ChartLoader
+---@field random_history {last: integer, count: integer, [integer]: integer} Ring buffer of primary indexes jumped away from by scrollRandom.
 local ChartSelector = class()
 
 ChartSelector.debounceTime = 0.5
+
+local RANDOM_HISTORY_SIZE = 64
 
 local chartExistsAsync = thread.async(function(path)
 	require("love.filesystem")
@@ -53,6 +56,7 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 	self.check_chart_exists = chartExistsAsync
 	self.collectionSelector = collectionSelector
 	self.state = state or SelectionState()
+	self.random_history = {last = 0, count = 0}
 
 	---@type rizu.select.stores.ListStore[]
 	self.stores = {
@@ -174,6 +178,8 @@ function ChartSelector:updatePrimaryItems()
 	local collectionItem = self.collectionSelector:getSelectedItem()
 	local params = self.queryBuilder:build(self.config, collectionItem, self.library.locations:getRemoteLocationIds())
 
+	-- The indexes mean something else in the new list.
+	self.random_history = {last = 0, count = 0}
 	self:emitChanged({type = "primary_items_loading"})
 	local result = self.library:queryAsync(params)
 	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
@@ -346,7 +352,25 @@ end
 function ChartSelector:scrollRandom()
 	local itemsCount = self.stores[1]:count()
 	local destination = math.random(1, itemsCount)
+	local from = self.state:getPrimary().index
 	self:scrollLevel(1, nil, destination)
+	if from > 0 and self.state:getPrimary().index ~= from then
+		local history = self.random_history
+		history.last = history.last % RANDOM_HISTORY_SIZE + 1
+		history[history.last] = from
+		history.count = math.min(history.count + 1, RANDOM_HISTORY_SIZE)
+	end
+end
+
+---Goes back to where the latest scrollRandom came from.
+function ChartSelector:scrollRandomUndo()
+	local history = self.random_history
+	if history.count == 0 then return end
+	local index = history[history.last]
+	history[history.last] = nil
+	history.last = (history.last - 2) % RANDOM_HISTORY_SIZE + 1
+	history.count = history.count - 1
+	self:scrollLevel(1, nil, index)
 end
 
 ---@param chartview rizu.library.IChartviewBase?

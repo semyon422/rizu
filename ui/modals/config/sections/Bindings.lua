@@ -34,6 +34,7 @@ function Bindings:new(ui_config, localization)
 		binding("up", keys.up_bindings, {"ui", "navigation", "up"}),
 		binding("down", keys.down_bindings, {"ui", "navigation", "down"}),
 		binding("random_chart", keys.select_random_bindings, {"song select", "random", "f2"}),
+		binding("random_chart_undo", keys.select_random_undo_bindings, {"song select", "random", "undo", "shift", "f2"}),
 		binding("audio_preview", keys.toggle_audio_preview_bindings, {"song select", "audio", "preview"}),
 		binding("rate_decrease", keys.select_time_rate_decrease_bindings, {"song select", "rate", "f5"}),
 		binding("rate_increase", keys.select_time_rate_increase_bindings, {"song select", "rate", "f6"}),

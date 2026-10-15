@@ -111,6 +111,7 @@ function FakeCharts:matches(chart)
 end
 
 function FakeCharts:refresh()
+	self.random_history = nil
 	self:emit("sets_loading")
 	local selected = self:getSelectedChart()
 	local sets = {}
@@ -154,7 +155,19 @@ function FakeCharts:selectSet(index)
 end
 
 function FakeCharts:moveSet(offset) self:selectSet(self.set_index + offset) end
-function FakeCharts:selectRandomSet() self:selectSet(math.random(1, math.max(#self.sets, 1))) end
+function FakeCharts:selectRandomSet()
+	local from = self.set_index
+	self:selectSet(math.random(1, math.max(#self.sets, 1)))
+	if self.set_index ~= from and from > 0 then
+		self.random_history = self.random_history or {}
+		table.insert(self.random_history, from)
+	end
+end
+
+function FakeCharts:undoRandomSet()
+	local index = table.remove(self.random_history or {})
+	if index then self:selectSet(index) end
+end
 
 function FakeCharts:getChartCount() return #(self.sets[self.set_index] or {}) end
 function FakeCharts:getChart(index) return (self.sets[self.set_index] or {})[index] end

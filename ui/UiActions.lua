@@ -26,6 +26,7 @@ UiActions.gameplay_offset_reset = "gameplay.offset_reset"
 UiActions.gameplay_play_speed_decrease = "gameplay.play_speed_decrease"
 UiActions.gameplay_play_speed_increase = "gameplay.play_speed_increase"
 UiActions.select_random = "select.random"
+UiActions.select_random_undo = "select.random_undo"
 UiActions.select_time_rate_decrease = "select.time_rate_decrease"
 UiActions.select_time_rate_increase = "select.time_rate_increase"
 UiActions.global_screenshot = "global.screenshot"
@@ -61,6 +62,7 @@ function UiActions.createMap(config)
 		[UiActions.gameplay_play_speed_decrease] = keys.gameplay_play_speed_decrease_bindings,
 		[UiActions.gameplay_play_speed_increase] = keys.gameplay_play_speed_increase_bindings,
 		[UiActions.select_random] = keys.select_random_bindings,
+		[UiActions.select_random_undo] = keys.select_random_undo_bindings,
 		[UiActions.select_time_rate_decrease] = keys.select_time_rate_decrease_bindings,
 		[UiActions.select_time_rate_increase] = keys.select_time_rate_increase_bindings,
 		[UiActions.global_screenshot] = keys.global_screenshot_bindings,

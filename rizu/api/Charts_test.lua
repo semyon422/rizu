@@ -81,6 +81,43 @@ function test.lists_and_selection(t)
 end
 
 ---@param t testing.T
+function test.random_set_history(t)
+	local charts, selector, library = createCharts()
+	selector.collectionSelector:load()
+	selector:load()
+
+	local picks = {2, 1, 2}
+	local random = math.random
+	math.random = function() return table.remove(picks, 1) end
+
+	charts:selectRandomSet()
+	charts:selectRandomSet()
+	charts:selectRandomSet()
+	math.random = random
+	t:eq(charts:getSelectedSetIndex(), 2)
+
+	charts:undoRandomSet()
+	t:eq(charts:getSelectedSetIndex(), 1)
+	charts:undoRandomSet()
+	t:eq(charts:getSelectedSetIndex(), 2)
+	charts:undoRandomSet()
+	t:eq(charts:getSelectedSetIndex(), 1)
+	charts:undoRandomSet()
+	t:eq(charts:getSelectedSetIndex(), 1)
+
+	math.random = function() return 2 end
+	charts:selectRandomSet()
+	math.random = random
+	charts:setSearch("A")
+	charts:refresh()
+	charts:selectSet(1)
+	charts:undoRandomSet()
+	t:eq(charts:getSelectedSetIndex(), 1)
+
+	library:unload()
+end
+
+---@param t testing.T
 function test.filters(t)
 	local charts, selector, library = createCharts()
 	local changes = 0

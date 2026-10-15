@@ -278,6 +278,8 @@ function SongSelectV2:onHandleInputs(inputs)
 		charts:moveChart(1)
 	elseif inputs:consumeActionJustPressed(UiActions.select_random) then
 		charts:selectRandomSet()
+	elseif inputs:consumeActionJustPressed(UiActions.select_random_undo) then
+		charts:undoRandomSet()
 	elseif inputs:consumeActionJustPressed(UiActions.open_modifiers) then
 		self.ui.modal_manager:attachModifiers()
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then

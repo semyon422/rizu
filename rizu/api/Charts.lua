@@ -196,6 +196,10 @@ function Charts:moveSet(offset) self.selector:scrollLevel(1, offset) end
 
 function Charts:selectRandomSet() self.selector:scrollRandom() end
 
+---Goes back to the set that was selected before the latest selectRandomSet(), repeatedly.
+---The history is emptied whenever the set list is queried again.
+function Charts:undoRandomSet() self.selector:scrollRandomUndo() end
+
 -- Charts of the selected set
 
 ---@return integer
