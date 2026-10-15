@@ -70,6 +70,7 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - Client publication happens after server activation, never before it.
 - The deployment command does not restart NATS for each application commit.
 - OpenResty and its compute worker run the same immutable release and receive the same `RIZU_COMPUTE_VERSION`; mismatched code cannot finalize a compute response.
+- The AI router loads bundled SQLite and OpenSSL through symlinks in its private `/tmp/rizu-router-libs` directory, prepended to `LD_LIBRARY_PATH` before any LuaSec/FFI load. Only `libsqlite3.so`, `libssl.so.3`, and `libcrypto.so.3` are selected; do not prepend the whole game `bin` directory or replace OpenResty's own libraries. Startup fails if required files are absent or loaded SQLite/OpenSSL versions differ from the pinned build versions. The router must not silently fall back to the image's OpenSSL: different TLS ClientHello defaults can trigger upstream Cloudflare challenges. TLS peer/CA verification stays enabled, without a forced protocol downgrade. No production configuration or database migration is required for this runtime-library update.
 - Release artifacts built from a dirty tree are development snapshots even though their directory is keyed by `HEAD`; production automation must consume artifacts built and tested from an exact committed revision.
 
 ## Operation

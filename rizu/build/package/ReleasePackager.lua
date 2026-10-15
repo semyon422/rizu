@@ -22,6 +22,8 @@ ReleasePackager.SERVER_RUNTIME_PATHS = {
 	"bin/linux64/libiconv.so",
 	"bin/linux64/libminacalc.so",
 	"bin/linux64/libsqlite3.so",
+	"bin/linux64/libssl.so.3",
+	"bin/linux64/libcrypto.so.3",
 	"tree/lib/lua/5.1",
 	"tree/share/lua/5.1",
 }
@@ -42,6 +44,8 @@ ReleasePackager.SERVER_REQUIRED_PATHS = {
 	"bin/linux64/libiconv.so",
 	"bin/linux64/libminacalc.so",
 	"bin/linux64/libsqlite3.so",
+	"bin/linux64/libssl.so.3",
+	"bin/linux64/libcrypto.so.3",
 	"tree/lib/lua/5.1/bcrypt.so",
 	"tree/lib/lua/5.1/socket/core.so",
 	"tree/lib/lua/5.1/ssl.so",

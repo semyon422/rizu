@@ -10,6 +10,8 @@ for path in \
 	/router-state/config.lua \
 	/router-state/network.lua \
 	bin/linux64/libsqlite3.so \
+	bin/linux64/libssl.so.3 \
+	bin/linux64/libcrypto.so.3 \
 	tree/lib/lua/5.1/socket/core.so \
 	tree/lib/lua/5.1/ssl.so \
 	tree/share/lua/5.1/socket.lua \
@@ -36,8 +38,20 @@ done
 
 runtime_lib_dir="/tmp/rizu-router-libs"
 mkdir -p "$runtime_lib_dir"
-ln -sfn /app/bin/linux64/libsqlite3.so "$runtime_lib_dir/libsqlite3.so"
+for name in libsqlite3.so libssl.so.3 libcrypto.so.3; do
+	ln -sfn "/app/bin/linux64/$name" "$runtime_lib_dir/$name"
+done
 export LD_LIBRARY_PATH="$runtime_lib_dir:${LD_LIBRARY_PATH:-$LJ_ROOT/lib}"
 
-./luajit -e 'require("docker.AiRouterConfig").load(); assert(require("ssl")); local db = require("ljsqlite3").open(":memory:"); assert(db:rowexec("SELECT sqlite_version()") == "3.53.4"); db:close()'
+./luajit - <<'LUA'
+require("docker.AiRouterConfig").load()
+assert(require("ssl"))
+local ffi = require("ffi")
+ffi.cdef("const char *OpenSSL_version(int t);")
+local version = ffi.string(ffi.load("libcrypto.so.3").OpenSSL_version(0))
+assert(version:match("^OpenSSL 3%.5%.7 "), "AI router requires bundled OpenSSL 3.5.7; got " .. version)
+local db = require("ljsqlite3").open(":memory:")
+assert(db:rowexec("SELECT sqlite_version()") == "3.53.4")
+db:close()
+LUA
 exec ./luajit aqua/ai/router/proxy.lua /router-state/config.lua

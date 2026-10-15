@@ -20,7 +20,7 @@ The system is optimized for local development and CI usage on Linux hosts while 
 
 ## Architecture Decisions
 
-The server release also requires the AI router entrypoint, healthcheck/config loader, router source/schema, LuaSocket/LuaSec runtime, and CA bundle. Runtime router configuration, credentials, and SQLite state are never included; see `deploy/spec.md` for one-time production preparation and schema compatibility.
+The server release also requires the AI router entrypoint, healthcheck/config loader, router source/schema, LuaSocket/LuaSec runtime, bundled Linux OpenSSL (`libssl.so.3` and `libcrypto.so.3`), and CA bundle. Runtime router configuration, credentials, and SQLite state are never included; see `deploy/spec.md` for one-time production preparation and schema compatibility.
 ### ADR-1: Build Target As Single Task Boundary
 Each platform build uses `BuildTargetTask` and a validated declarative step spec. This keeps orchestration simple and target selection explicit.
 
@@ -84,7 +84,7 @@ CLI mapping:
 
 `release` exports the current Git-tracked application files from the working tree into the server archive, excluding `userdata/` and `temp/`. Dirty tracked files are allowed so the complete release workflow can be tested before committing; the release directory and manifest remain keyed by `HEAD`, so such artifacts are development snapshots and must not be treated as immutable commit builds. It adds the Linux native modules required by the Compose server and the Lua 5.1 runtime module trees. Ignored local configuration, databases, storage, logs, and user data are never copied into the artifact.
 
-The server archive contains its own release metadata. The outer `release.json` records the format version, exact Git commit, UTC build time, byte size, and SHA-256 checksum of each deployable file. Packaging validates required server entrypoints and native modules and rejects runtime state or production configuration in the archive.
+The server archive contains its own release metadata. The outer `release.json` records the format version, exact Git commit, UTC build time, byte size, and SHA-256 checksum of each deployable file. Packaging validates required server entrypoints and native modules and rejects runtime state or production configuration in the archive. Both OpenSSL libraries must be explicitly copied from `bin/linux64/` through `SERVER_RUNTIME_PATHS`, as well as listed in `SERVER_REQUIRED_PATHS`; the LuaSec module alone does not supply them. The AI router startup checks the loaded OpenSSL version against the source-build pin (currently 3.5.7), so update its check in `docker/ai-router-entrypoint.sh` when changing that pin.
 
 Archive extraction defaults to stripping one leading path component for source releases with a top-level directory. Recipes whose upstream archives contain the desired layout at archive root must set `strip_components = 0` and declare real file outputs, not only the destination directory. When an extract action runs, it recreates the destination directory before unpacking. Tar extraction uses extraction-time mtimes so freshness reflects the local archive input rather than old upstream file timestamps stored inside the tarball.
 
