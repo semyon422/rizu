@@ -38,6 +38,7 @@ local UiActions = require("ui.UiActions")
 ---@field login ui.modals.login.Login
 ---@field video_export ui.modals.video_export.VideoExport
 ---@field active_view ui.ModalView?
+---@field popup_container ui.views.PopupContainer
 local ModalManager = View + {}
 
 ---@param ui ui.UserInterface
@@ -48,6 +49,7 @@ function ModalManager:new(ui, popup_container)
 	self.handles_keyboard_input = true
 	self.keyboard_input_fallback = true
 	self.ui = ui
+	self.popup_container = popup_container
 
 	self.active_view = nil
 	local localization = ui.localization
@@ -180,6 +182,11 @@ function ModalManager:modalClosed(view)
 		return
 	end
 	self.active_view = nil
+	-- A popup opened from the modal may hold a focus scope above the modal's one.
+	local popup_owner = self.popup_container.owner
+	if popup_owner then
+		popup_owner:close()
+	end
 	local inputs = self.screen and self.screen.inputs
 	if inputs then
 		-- The focused modal may have closed itself while raw key events were
