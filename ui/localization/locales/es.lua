@@ -122,6 +122,8 @@ return {
 	["settings.auto_keysound"] = "Sonido automático de teclas",
 	["settings.background_images"] = "Imágenes de fondo",
 	["settings.background_videos"] = "Vídeos de fondo",
+	["settings.input_offset"] = "Desfase de entrada",
+	["settings.input_offset_tip"] = "Desplaza el tiempo de tus pulsaciones y liberaciones en mania. Los replays guardan los tiempos ya desplazados.",
 	["settings.universal_offset"] = "Desfase universal",
 	["settings.format_offset"] = "Desfase de {format}",
 	["settings.fullscreen"] = "Pantalla completa",

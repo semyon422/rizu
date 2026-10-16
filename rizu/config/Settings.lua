@@ -45,6 +45,7 @@ local keys = {
 		time_pause_play = "gameplay.time.pause_play",
 		time_play_retry = "gameplay.time.play_retry",
 		time_pause_retry = "gameplay.time.pause_retry",
+		offset_input = "gameplay.offset.input",
 		offset_format = {
 			osu = "gameplay.offset.format.osu",
 			quaver = "gameplay.offset.format.qua",
@@ -233,6 +234,8 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(g.time_pause_play, 0.5, 0, 2, 0.1)
 	config:setDefaultNumber(g.time_play_retry, 0.5, 0, 2, 0.1)
 	config:setDefaultNumber(g.time_pause_retry, 0.5, 0, 2, 0.1)
+
+	config:setDefaultNumber(g.offset_input, 0, -0.5, 0.5, 0.001)
 
 	-- Existing JSON keys are retained, but these offsets affect audio only.
 	local format_offsets = {osu = 0.02, quaver = 0.02, stepmania = -0.05, ksm = 0}

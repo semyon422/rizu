@@ -138,6 +138,8 @@ return {
 	["settings.auto_keysound"] = "Auto keysound",
 	["settings.background_images"] = "Background images",
 	["settings.background_videos"] = "Background videos",
+	["settings.input_offset"] = "Input offset",
+	["settings.input_offset_tip"] = "Shifts the time of your presses and releases in mania. Replays store the shifted times.",
 	["settings.universal_offset"] = "Universal offset",
 	["settings.format_offset"] = "{format} offset",
 	["settings.fullscreen"] = "Fullscreen",

@@ -244,6 +244,12 @@ function GameplayInteractor:load(autoplay)
 	end
 	
 	self.gameplay_session:setPlayType(play_type)
+	-- Replays and autoplay hold already shifted times, so only manual play applies the offset.
+	local input_offset = 0
+	if play_type == "manual" then
+		input_offset = game.settings:getNumber(Settings.keys.gameplay.offset_input)
+	end
+	game.rhythm_engine:setInputOffset(input_offset)
 	if play_type == "replay" and self.replay_frames then
 		self.gameplay_session:setReplayFrames(self.replay_frames)
 	end

@@ -61,7 +61,7 @@ function GameplaySession:pause()
 	local event = self.play_type == "manual" and re:getPauseEvent()
 	if event then
 		re:receive(event)
-		self.replay_recorder:record(re:getTime(), event)
+		self.replay_recorder:record(re:getLogicTime(), event)
 	end
 end
 
@@ -94,7 +94,7 @@ function GameplaySession:receive(event, current_time)
 	if re.marks_paused_input and self:isPaused() then
 		event = VirtualInputEvent(event.id, event.value, 2, event.pos)
 	end
-	self.replay_recorder:record(re:getTime(), event)
+	self.replay_recorder:record(re:getLogicTime(), event)
 end
 
 return GameplaySession

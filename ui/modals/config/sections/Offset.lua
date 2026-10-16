@@ -34,6 +34,13 @@ function Offset:new(settings, localization)
 				}),
 			}
 
+			controls[#controls + 1] = ControlFactory.number(settings, keys.offset_input, {
+				name = localization:get("settings.input_offset"),
+				keywords = {"input", "timing", "latency", "hit", "mania"},
+				tip = localization:get("settings.input_offset_tip"),
+				value_format = formatSeconds,
+			})
+
 			local formats = {
 				{name = "osu!", key = "osu"},
 				{name = "Quaver", key = "quaver"},

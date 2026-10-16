@@ -93,6 +93,31 @@ function test.input_recording(t)
 end
 
 ---@param t testing.T
+function test.input_offset_recorded_on_logic_clock(t)
+	local re = RhythmEngine()
+	local gc = GameplaySession(re)
+
+	local res = tcf:create("4key", {
+		{time = 2, column = 1},
+	})
+	re:setChart(res.chart, res.chartmeta, res.chartdiff)
+	re:setTimingValues(TimingValues())
+	re:load()
+	re:setAudioEnabled(false)
+	re:setInputOffset(0.025)
+
+	re:setTimeNoAudio(2)
+	t:eq(re.logic_info.time, 2 - 0.025)
+
+	gc:receive(VirtualInputEvent(1, true, 1), 0)
+	local frame = gc.replay_recorder.frames[1]
+	t:eq(frame.time, re:getTime() - 0.025)
+
+	re:setInputOffset(0)
+	t:eq(re:getLogicTime(), re:getTime())
+end
+
+---@param t testing.T
 function test.has_result(t)
 	local re = RhythmEngine()
 	local gc = GameplaySession(re)

@@ -14,6 +14,8 @@ local ScoreEngine = require("rizu.engine.ScoreEngine")
 ---@operator call: rizu.gameplay.mania.Engine
 local ManiaEngine = RhythmEngine + {}
 
+ManiaEngine.logic_offset = 0
+
 function ManiaEngine:new()
 	RhythmEngine.new(self)
 
@@ -67,7 +69,18 @@ end
 
 function ManiaEngine:syncTime()
 	RhythmEngine.syncTime(self)
-	self.logic_info.time = self.time_engine.time
+	self.logic_info.time = self:getLogicTime()
+end
+
+---Rounded to 1/1024 so that the shifted times stay exact in floating point.
+---@param offset number
+function ManiaEngine:setInputOffset(offset)
+	self.logic_offset = math.floor(offset * 1024) / 1024
+end
+
+---@return number
+function ManiaEngine:getLogicTime()
+	return self.time_engine.time - self.logic_offset
 end
 
 function ManiaEngine:updateNotes()

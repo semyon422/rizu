@@ -157,6 +157,8 @@ return {
 	["settings.background_images_tip"] = "Показывать BGA-картинки.",
 	["settings.background_videos"] = "Фоновые видео",
 	["settings.background_videos_tip"] = "Показывать BGA-видео.",
+	["settings.input_offset"] = "Оффсет ввода",
+	["settings.input_offset_tip"] = "Сдвигает время ваших нажатий и отпусканий в mania. В реплеях хранится уже сдвинутое время.",
 	["settings.universal_offset"] = "Общий оффсет",
 	["settings.universal_offset_tip"] = "Один аудио-оффсет для всех режимов.",
 	["settings.format_offset"] = "Оффсет {format}",

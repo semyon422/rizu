@@ -42,6 +42,16 @@ function RhythmEngine:load() end
 ---Advances gamemode state to the current time.
 function RhythmEngine:updateNotes() end
 
+---Shifts judgement of manual input. Only modes that support it override this.
+---@param offset number
+function RhythmEngine:setInputOffset(offset) end
+
+---Time on the judgement clock, which replays record and play back as is.
+---@return number
+function RhythmEngine:getLogicTime()
+	return self.time_engine.time
+end
+
 ---@param event rizu.VirtualInputEvent
 function RhythmEngine:receive(event) end
 
