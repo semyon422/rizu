@@ -5,6 +5,7 @@ local Painter = require("gui.Painter")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
 local ChartPreviewView = require("ui.screens.song_select_v2.ChartPreviewView")
+local math_util = require("math_util")
 
 local lg = love.graphics
 
@@ -45,6 +46,39 @@ function Details:draw()
 		lg.print(panel.chart_name, x + 2, y + 2)
 		Painter.setColorTable(Colors.text)
 		lg.print(panel.chart_name, x, y)
+	end
+end
+
+---@class ui.screens.song_select_v2.SelectedSongPanel.PauseButton : gui.View
+---@operator call: ui.screens.song_select_v2.SelectedSongPanel.PauseButton
+---@field is_paused boolean
+local PauseButton = View + {}
+
+---@param on_click function
+function PauseButton:new(on_click)
+	View.new(self)
+	self.on_click = on_click
+	self.handles_mouse_input = true
+	self.is_paused = false
+	self:setSize(38, 40)
+	self:setOpacity(0)
+	self:setPivot(0.5, 0.5)
+end
+
+function PauseButton:onMouseDown(e)
+	self:scaleTo(1.3, 1.3, 0.1, "OutQuad")
+	self.on_click()
+end
+
+function PauseButton:onMouseUp(e)
+	self:scaleTo(1, 1, 0.1, "OutQuad")
+end
+
+function PauseButton:draw()
+	if self.is_paused then
+		Resources.sprites.icon_continue:draw()
+	else
+		Resources.sprites.icon_pause:draw()
 	end
 end
 
@@ -99,6 +133,9 @@ function SelectedSongPanel:new(media, localization)
 	self:setClip(true)
 	self.details_container = self:add(Details(self))
 	self.progress_bar = self.details_container:add(ProgressBar(media))
+	self.pause_button = self:add(PauseButton(function() media:togglePreview() end))
+	self.pause_button:setAlignment(0.5, 0.5)
+	self.media = media
 end
 
 ---@param old_x number
@@ -118,6 +155,7 @@ function SelectedSongPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 		math.max(0, self.width - DETAILS_PADDING * 2),
 		PROGRESS_HEIGHT
 	)
+	self.pause_button:setAlignment(0.5, 0.5)
 	self.details_hidden_offset = DETAILS_IDLE_Y
 	self.details_container:setOffset(0, self.details_hidden_offset * (1 - self.details_reveal:get()))
 end
@@ -128,6 +166,8 @@ function SelectedSongPanel:update(dt)
 	local inputs = self.screen and self.screen.inputs
 	local hovered = inputs and self:isMouseOver(inputs.mouse_x, inputs.mouse_y) or false
 	self.details_reveal:set(hovered and 1 or 0):update(dt)
+	self.pause_button:setOpacity(math_util.clamp(self.details_reveal:get(), 0, 1))
+	self.pause_button.is_paused = self.media:isPaused()
 	self.details_container:setOffset(0, self.details_hidden_offset * (1 - self.details_reveal:get()))
 end
 

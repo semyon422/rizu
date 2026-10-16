@@ -64,6 +64,9 @@ function Media:setPreviewTime(time) self.preview:setPosition(time) end
 ---Pauses the audio preview, or resumes it.
 function Media:togglePreview() self.preview:togglePause() end
 
+---@return boolean
+function Media:isPaused() return self.preview.paused end
+
 ---Which beat of the chart the audio preview is at, for something that pulses with the music.
 ---@return number? beat nil when the chart has no tempo data or nothing is loaded
 function Media:getBeat()
