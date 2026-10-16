@@ -142,6 +142,8 @@ return {
 	["settings.osu_cursor_scale_tip"] = "Масштаб курсора в режиме osu!.",
 	["settings.enable_cheats"] = "Включить читы",
 	["settings.enable_cheats_tip"] = "Показать читерские настройки геймплея. При выключении они сбрасываются к значениям по умолчанию.",
+	["settings.advanced_options"] = "Расширенные настройки",
+	["settings.advanced_options_tip"] = "Показать расширенные настройки звука: бэкенд, задержку, режим воспроизведения и громкость кейсаундов по форматам.",
 	["settings.tempo_factor"] = "Фактор темпа",
 	["settings.tempo_factor_tip"] = "Относительно какого темпа чарта масштабируется скорость прокрутки.",
 	["settings.tempo_factor_average"] = "Средний",

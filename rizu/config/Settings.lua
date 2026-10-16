@@ -163,6 +163,7 @@ local keys = {
 		discord_presence = "misc.discord_presence",
 		generate_gif_result = "misc.generate_gif_result",
 		enable_cheats = "misc.enable_cheats",
+		advanced_options = "misc.advanced_options",
 	},
 }
 
@@ -355,6 +356,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(m.discord_presence, true)
 	config:setDefaultBoolean(m.generate_gif_result, false)
 	config:setDefaultBoolean(m.enable_cheats, false)
+	config:setDefaultBoolean(m.advanced_options, false)
 
 	return config
 end

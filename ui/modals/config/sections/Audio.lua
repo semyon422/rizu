@@ -77,9 +77,10 @@ function Audio:new(settings, localization, app, form, popup_container)
 		build = function(section)
 			local keys = Settings.keys.audio
 			local logarithmic = settings:getChoice(keys.volume_type) == "logarithmic"
+			local advanced = settings:getBoolean(Settings.keys.misc.advanced_options)
 			---@type gui.View[]
 			local controls = {}
-			if jit.os == "Linux" and app then
+			if advanced and jit.os == "Linux" and app then
 				controls[#controls + 1] = ControlFactory.segmentedChoice(settings, keys.backend, {
 					name = localization:get("settings.audio_backend"),
 					keywords = {"audio", "backend", "pipewire", "device"},
@@ -90,19 +91,21 @@ function Audio:new(settings, localization, app, form, popup_container)
 					end,
 				})
 			end
-			controls[#controls + 1] = ControlFactory.choice(settings, keys.device_preset, {
-				form = form,
-				popup_container = popup_container,
-				name = localization:get("settings.audio_latency"),
-				keywords = {"audio", "latency", "buffer", "period"},
-				tip = localization:get("settings.audio_latency_tip"),
-				format = function(preset)
-					return formatLatencyPreset(preset, localization)
-				end,
-				on_change = function()
-					section:invalidate()
-				end,
-			})
+			if advanced then
+				controls[#controls + 1] = ControlFactory.choice(settings, keys.device_preset, {
+					form = form,
+					popup_container = popup_container,
+					name = localization:get("settings.audio_latency"),
+					keywords = {"audio", "latency", "buffer", "period"},
+					tip = localization:get("settings.audio_latency_tip"),
+					format = function(preset)
+						return formatLatencyPreset(preset, localization)
+					end,
+					on_change = function()
+						section:invalidate()
+					end,
+				})
+			end
 			controls[#controls + 1] = ControlFactory.segmentedChoice(settings, keys.volume_type, {
 				name = localization:get("settings.volume_scale"),
 				tip = localization:get("settings.volume_scale_tip"),
@@ -111,15 +114,17 @@ function Audio:new(settings, localization, app, form, popup_container)
 					section:invalidate()
 				end,
 			})
-			controls[#controls + 1] = ControlFactory.segmentedChoice(settings, keys.mode_primary, {
-				name = localization:get("settings.music_playback_mode"),
-				keywords = {"audio", "music", "playback", "tempo", "bass"},
-				tip = localization:get("settings.music_playback_mode_tip"),
-				format = function(value)
-					return formatAudioMode(value, localization)
-				end,
-			})
-			if app then
+			if advanced then
+				controls[#controls + 1] = ControlFactory.segmentedChoice(settings, keys.mode_primary, {
+					name = localization:get("settings.music_playback_mode"),
+					keywords = {"audio", "music", "playback", "tempo", "bass"},
+					tip = localization:get("settings.music_playback_mode_tip"),
+					format = function(value)
+						return formatAudioMode(value, localization)
+					end,
+				})
+			end
+			if advanced and app then
 				local status = app:getAudioStatus()
 				controls[#controls + 1] = Label({
 					font_name = "medium",
@@ -160,7 +165,7 @@ function Audio:new(settings, localization, app, form, popup_container)
 					})
 				end
 			end
-			if settings:getChoice(keys.device_preset) == "custom" then
+			if advanced and settings:getChoice(keys.device_preset) == "custom" then
 				controls[#controls + 1] = ControlFactory.number(settings, keys.device_period, {
 					name = localization:get("settings.audio_period"),
 					keywords = {"audio", "latency", "period", "custom"},
@@ -207,22 +212,24 @@ function Audio:new(settings, localization, app, form, popup_container)
 				)
 			end
 
-			local format_names = {
-				sphere = "Sphere",
-				osu = "osu!",
-				o2jam = "O2Jam",
-				stepmania = "StepMania",
-				quaver = "Quaver",
-				ksm = "KSH",
-			}
-			for _, format in ipairs({"sphere", "osu", "o2jam", "stepmania", "quaver", "ksm"}) do
-				local name = format_names[format]
-				addVolume(
-					keys.volume_keysounds_format[format],
-					localization:get("settings.format_keysound_volume", {format = name}),
-					{"audio", "sound", "keysound", "format", format, name},
-					localization:get("settings.format_keysound_volume_tip", {format = name})
-				)
+			if advanced then
+				local format_names = {
+					sphere = "Sphere",
+					osu = "osu!",
+					o2jam = "O2Jam",
+					stepmania = "StepMania",
+					quaver = "Quaver",
+					ksm = "KSH",
+				}
+				for _, format in ipairs({"sphere", "osu", "o2jam", "stepmania", "quaver", "ksm"}) do
+					local name = format_names[format]
+					addVolume(
+						keys.volume_keysounds_format[format],
+						localization:get("settings.format_keysound_volume", {format = name}),
+						{"audio", "sound", "keysound", "format", format, name},
+						localization:get("settings.format_keysound_volume_tip", {format = name})
+					)
+				end
 			end
 			return controls
 		end,

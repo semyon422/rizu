@@ -44,6 +44,14 @@ function Other:new(settings, ui_config, localization)
 			build_label.setting_name = build_label:getText()
 			build_label.setting_keywords = {"version", "build", "commit"}
 			return {
+				ControlFactory.boolean(settings, keys.advanced_options, {
+					name = localization:get("settings.advanced_options"),
+					keywords = {"advanced", "audio", "latency", "backend", "keysound", "options"},
+					tip = localization:get("settings.advanced_options_tip"),
+					on_change = function()
+						section:invalidate()
+					end,
+				}),
 				ControlFactory.boolean(settings, keys.enable_cheats, {
 					name = localization:get("settings.enable_cheats"),
 					keywords = {"cheats", "advanced", "gameplay", "tempo", "velocity"},

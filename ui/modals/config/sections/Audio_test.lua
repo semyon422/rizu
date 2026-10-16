@@ -12,8 +12,9 @@ local test = {}
 
 ---@param preset? rizu.AudioDevicePreset
 ---@param audio_model? rizu.api.App
----@return rizu.config.Config, ui.views.form.Dropdown, gui.View[]
-local function createAudioControls(preset, audio_model)
+---@param advanced? boolean defaults to true
+---@return rizu.config.Config, ui.views.form.Dropdown?, gui.View[]
+local function createAudioControls(preset, audio_model, advanced)
 	local old_sprites = Resources.sprites
 	local old_get_font = Resources.getFont
 	local sprite = {
@@ -45,6 +46,7 @@ local function createAudioControls(preset, audio_model)
 	local fs = FakeFilesystem()
 	fs:createDirectory("userdata")
 	local settings = Settings.createConfig(fs)
+	settings:setBoolean(Settings.keys.misc.advanced_options, advanced ~= false)
 	if preset then
 		settings:setChoice(Settings.keys.audio.device_preset, preset)
 	end
@@ -52,6 +54,9 @@ local function createAudioControls(preset, audio_model)
 	Resources.sprites = old_sprites
 	Resources.getFont = old_get_font
 
+	if advanced == false then
+		return settings, nil, controls
+	end
 	local key = Settings.keys.audio.device_preset
 	for _, control in ipairs(controls) do
 		if FormControl * control and control.setting_key == key then
@@ -73,6 +78,32 @@ function test.latency_preset_binds_audio_setting(t)
 	})
 	control:setValue("experimental", true)
 	t:eq(settings:getChoice(key), "experimental")
+end
+
+---@param t testing.T
+function test.advanced_audio_controls_follow_advanced_options(t)
+	local audio_keys = Settings.keys.audio
+	---@param controls gui.View[]
+	---@param key string
+	---@return boolean
+	local function has(controls, key)
+		for _, control in ipairs(controls) do
+			if FormControl * control and control.setting_key == key then return true end
+		end
+		return false
+	end
+	local _, _, advanced = createAudioControls("custom", nil, true)
+	t:eq(has(advanced, audio_keys.device_preset), true)
+	t:eq(has(advanced, audio_keys.mode_primary), true)
+	t:eq(has(advanced, audio_keys.device_period), true)
+	t:eq(has(advanced, audio_keys.volume_keysounds_format.osu), true)
+
+	local _, _, controls = createAudioControls(nil, nil, false)
+	t:eq(has(controls, audio_keys.device_preset), false)
+	t:eq(has(controls, audio_keys.mode_primary), false)
+	t:eq(has(controls, audio_keys.device_period), false)
+	t:eq(has(controls, audio_keys.volume_keysounds_format.osu), false)
+	t:eq(has(controls, audio_keys.volume_keysounds), true)
 end
 
 ---@param t testing.T

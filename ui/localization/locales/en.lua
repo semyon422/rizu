@@ -183,6 +183,8 @@ return {
 	["settings.osu_cursor_scale_tip"] = "Scale of the cursor in osu! gameplay.",
 	["settings.enable_cheats"] = "Enable Cheats",
 	["settings.enable_cheats_tip"] = "Show cheat gameplay options. Turning this off resets them to their defaults.",
+	["settings.advanced_options"] = "Advanced options",
+	["settings.advanced_options_tip"] = "Show advanced audio options: backend, latency, playback mode and per-format keysound volume.",
 	["settings.tempo_factor"] = "Tempo factor",
 	["settings.tempo_factor_tip"] = "Which chart tempo scroll speed is scaled against.",
 	["settings.tempo_factor_average"] = "Average",
