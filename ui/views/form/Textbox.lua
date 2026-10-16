@@ -13,6 +13,7 @@ local utf8validate = require("utf8validate")
 ---@field placeholder string?
 ---@field width number?
 ---@field secret? boolean Replace entered characters with dots while preserving the actual value.
+---@field live boolean? Call on_change on every edit, not only when focus is lost.
 ---@field on_change fun(text: string)?
 
 ---@class ui.views.form.Textbox : ui.views.form.FormControl
@@ -22,6 +23,7 @@ local utf8validate = require("utf8validate")
 ---@field label_text string
 ---@field placeholder string
 ---@field secret boolean
+---@field live boolean
 ---@field on_change fun(text: string)?
 ---@field cap_left gui.Sprite
 ---@field cap_middle gui.Sprite
@@ -45,6 +47,7 @@ function Textbox:new(params)
 	self.placeholder = params.placeholder or ""
 	self.secret = params.secret == true
 	self.on_change = params.on_change
+	self.live = params.live == true
 	self.cap_left = Resources.sprites.form_element_cap_left
 	self.cap_middle = Resources.sprites.form_element_cap_middle
 	self.cap_right = Resources.sprites.form_element_cap_right
@@ -76,6 +79,12 @@ function Textbox:setText(text, notify)
 		self:notifyChange()
 	else
 		self.committed_text = text
+	end
+end
+
+function Textbox:notifyLive()
+	if self.live then
+		self:notifyChange()
 	end
 end
 
@@ -124,6 +133,7 @@ function Textbox:onTextInput(e)
 		return
 	end
 	self.model:insert(e.text or "")
+	self:notifyLive()
 	return true
 end
 
@@ -135,6 +145,7 @@ function Textbox:onKeyDown(e)
 	end
 	if e.control_pressed and e.key == "v" then
 		self.model:insert(utf8validate(love.system.getClipboardText()))
+		self:notifyLive()
 		return true
 	end
 end
@@ -161,6 +172,9 @@ function Textbox:onHandleInputs(inputs)
 		self.model:moveToStart()
 	elseif inputs:consumeActionJustPressed(UiActions.move_to_end) then
 		self.model:moveToEnd()
+	end
+	if self.live then
+		self:notifyChange()
 	end
 end
 

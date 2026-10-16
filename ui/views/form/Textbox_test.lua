@@ -90,4 +90,31 @@ function test.escape_clears_keyboard_focus(t)
 	t:eq(textbox.focused, false)
 end
 
+---@param t testing.T
+function test.live_textbox_notifies_on_text_input(t)
+	local text = ""
+	local texts = {} ---@type string[]
+	local textbox = {
+		focused = true,
+		live = true,
+		committed_text = "",
+		model = {
+			---@param s string
+			insert = function(_, s) text = text .. s end,
+			getText = function() return text end,
+		},
+		---@param value string
+		on_change = function(value) texts[#texts + 1] = value end,
+	}
+	textbox.notifyChange = Textbox.notifyChange
+	textbox.notifyLive = Textbox.notifyLive
+
+	---@diagnostic disable-next-line: missing-fields
+	Textbox.onTextInput(textbox --[[@as ui.views.form.Textbox]], {text = "a"})
+	---@diagnostic disable-next-line: missing-fields
+	Textbox.onTextInput(textbox --[[@as ui.views.form.Textbox]], {text = "b"})
+
+	t:tdeq(texts, {"a", "ab"})
+end
+
 return test

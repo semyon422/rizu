@@ -43,6 +43,10 @@
 ---@field type "search_string_changed"
 ---@field search_string string
 
+---@class rizu.select.LampStringChangedEvent
+---@field type "lamp_string_changed"
+---@field lamp_string string
+
 ---@class rizu.select.CollectionSelectionChangedEvent
 ---@field type "collection_selection_changed"
 ---@field item rizu.library.Collections.TreeNode?

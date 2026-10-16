@@ -333,6 +333,7 @@ return {
 	["song_select.format"] = "Format",
 	["song_select.original_input_mode"] = "Original input mode",
 	["song_select.actual_input_mode"] = "Actual input mode",
+	["song_select.lamp_filter"] = "Lamp filter",
 	["song_select.modifiers_title"] = "Gameplay Modifiers",
 	["song_select.modifiers_subtitle"] = "Customize gameplay for the selected Chart.",
 	["song_select.time_rate_type"] = "Time Rate Type",

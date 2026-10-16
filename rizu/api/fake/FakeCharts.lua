@@ -64,6 +64,7 @@ function FakeCharts:new(sets_count)
 	self.collection = self.collections[1]
 
 	self.search = ""
+	self.lamp_search = ""
 	self.sort = "title"
 	self.yes_no = {played = "any", scratch = "any"}
 	self.values = {format = {}, original_input_mode = {}, actual_input_mode = {}}
@@ -190,6 +191,13 @@ function FakeCharts:getSearch() return self.search end
 
 function FakeCharts:setSearch(text)
 	self.search = text
+	self:refresh()
+end
+
+function FakeCharts:getLampSearch() return self.lamp_search end
+
+function FakeCharts:setLampSearch(text)
+	self.lamp_search = text
 	self:refresh()
 end
 

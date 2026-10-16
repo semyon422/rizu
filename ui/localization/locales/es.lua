@@ -287,6 +287,7 @@ return {
 	["song_select.format"] = "Formato",
 	["song_select.original_input_mode"] = "Modo de entrada original",
 	["song_select.actual_input_mode"] = "Modo de entrada actual",
+	["song_select.lamp_filter"] = "Filtro de lámpara",
 	["song_select.modifiers_title"] = "Modificadores de jugabilidad",
 	["song_select.modifiers_subtitle"] = "Personaliza la jugabilidad del Chart seleccionado.",
 	["song_select.time_rate_type"] = "Tipo de velocidad de reproducción",

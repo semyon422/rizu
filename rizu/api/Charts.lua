@@ -250,6 +250,13 @@ function Charts:getSearch() return self.selector.searchModel:getSearchString() e
 ---@param text string
 function Charts:setSearch(text) self.selector.searchModel:setSearchString(text) end
 
+---@return string
+function Charts:getLampSearch() return self.selector.searchModel:getLampString() end
+
+---Same syntax as the search, but applied to the scores that decide which charts get a lamp.
+---@param text string
+function Charts:setLampSearch(text) self.selector.searchModel:setLampString(text) end
+
 ---@return string[] names
 function Charts:getSortNames() return self.selector.sortModel.names end
 

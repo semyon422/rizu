@@ -341,6 +341,10 @@ function ChartCarousel:addSet(index, content_y)
 		decoration:add(sprites.chart_sets_unranked, self.width - 45, y + 23)
 	end
 
+	if cv.lamp then
+		decoration:add(sprites.chart_sets_lamp, self.width - 45 - sprites.chart_sets_lamp:getWidth() - 8, y + 23)
+	end
+
 	layer.first:add(colored(Colors.text, 1, cv.title or ""), 24, y + 4)
 	layer.second:add(colored(Colors.muted, 1, cv.artist or ""), 24, y + 36)
 end

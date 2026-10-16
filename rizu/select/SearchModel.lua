@@ -11,6 +11,7 @@ local Settings = require("rizu.config.Settings")
 ---@field field string
 ---@field inverse boolean?
 ---@field flip boolean?
+---@field alias boolean? Not a real column, so it can't be used in the lamp query.
 ---@field transform (fun(self: rizu.select.SearchModel, value: string): number?)?
 
 ---@class rizu.select.SearchModel
@@ -52,6 +53,20 @@ function SearchModel:setSearchString(search_string)
 	self.observable:send({type = "search_string_changed", search_string = search_string})
 end
 
+---@return string
+function SearchModel:getLampString()
+	return self.settings:getString(Settings.keys.select.lamp_string)
+end
+
+---@param lamp_string string
+function SearchModel:setLampString(lamp_string)
+	if lamp_string == self:getLampString() then
+		return
+	end
+	self.settings:setString(Settings.keys.select.lamp_string, lamp_string)
+	self.observable:send({type = "lamp_string_changed", lamp_string = lamp_string})
+end
+
 ---@type rizu.select.NumberFieldConfig[]
 local number_fields = {
 	{
@@ -87,6 +102,7 @@ local number_fields = {
 	{
 		keys = {"ln"},
 		field = "long_notes_ratio",
+		alias = true,
 		transform = function(self, v)
 			local value = tonumber(v)
 			if not value then
@@ -97,7 +113,7 @@ local number_fields = {
 	},
 	{
 		keys = {"miss", "m"},
-		field = "miss",
+		field = "miss_count",
 	},
 	{
 		keys = {"accuracy", "acc", "a"},
@@ -183,8 +199,9 @@ local flip_operators = {
 
 ---@param s string
 ---@param cond rdb.Conditions?
+---@param numbers_only boolean? For the lamp query: skip plain text terms (their columns are ambiguous when joined) and alias fields.
 ---@return rdb.Conditions
-function SearchModel:transformSearchString(s, cond)
+function SearchModel:transformSearchString(s, cond, numbers_only)
 	cond = cond or {}
 
 	for _, _s in string_util.isplit(s, " ") do
@@ -194,7 +211,14 @@ function SearchModel:transformSearchString(s, cond)
 		elseif key and operators[operator] then
 			local config = fields_map[key]
 			operator = operators[operator]
+			if config and numbers_only and config.alias then
+				config = nil
+			end
 			if config then
+				local field = config.field
+				if numbers_only and field == "difficulty" then
+					field = self.settings:getChoice(Settings.keys.select.diff_column)
+				end
 				if config.inverse then
 					operator = inverse_operators[operator] or operator
 				end
@@ -207,10 +231,10 @@ function SearchModel:transformSearchString(s, cond)
 					value = tonumber(value)
 				end
 				if value then
-					cond[config.field .. "__" .. operator] = value
+					cond[field .. "__" .. operator] = value
 				end
 			end
-		elseif not key and _s ~= "" then
+		elseif not key and _s ~= "" and not numbers_only then
 			---@type rdb.Conditions
 			local _cond = {"or"}
 			for _, k in ipairs(textFields) do
@@ -244,7 +268,7 @@ function SearchModel:getConditions()
 
 	local keys = Settings.keys.select
 	local filterString = self:getSearchString()
-	local lampString = self.settings:getString(keys.lamp_string)
+	local lampString = self:getLampString()
 
 	---@type rdb.Conditions
 	local cond = {}
@@ -263,9 +287,13 @@ function SearchModel:getConditions()
 		return self:transformSearchString(filterString, cond)
 	end
 
-	return
-		self:transformSearchString(filterString, cond),
-		self:transformSearchString(lampString)
+	local lamp = self:transformSearchString(lampString, nil, true)
+	if next(lamp) == nil then
+		-- Nothing usable was typed (plain text, unknown key). An empty condition would give every scored chart a lamp.
+		lamp[{"0"}] = true
+	end
+
+	return self:transformSearchString(filterString, cond), lamp
 end
 
 return SearchModel

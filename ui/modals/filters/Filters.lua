@@ -9,6 +9,7 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local InputModeMultiSelect = require("ui.views.form.InputModeMultiSelect")
+local Textbox = require("ui.views.form.Textbox")
 
 ---@class ui.modals.filters.Filters : ui.ModalView
 ---@operator call: ui.modals.filters.Filters
@@ -20,10 +21,11 @@ local InputModeMultiSelect = require("ui.views.form.InputModeMultiSelect")
 ---@field formats ui.views.form.FormatMultiSelect
 ---@field original_input_modes ui.views.form.InputModeMultiSelect
 ---@field actual_input_modes ui.views.form.InputModeMultiSelect
+---@field lamp ui.views.form.Textbox
 local Filters = ModalView + {}
 
 local MODAL_WIDTH = 700
-local MODAL_HEIGHT = 560
+local MODAL_HEIGHT = 643
 local CONTENT_X = 50
 local CONTENT_Y = 88
 local OPTIONS = {"any", "yes", "no"}
@@ -105,6 +107,15 @@ function Filters:new(charts, popup_container, localization)
 			charts:setFilterValues("actual_input_mode", values)
 		end,
 	}))
+	self.lamp = self.form:add(Textbox({
+		label = localization:get("song_select.lamp_filter"),
+		width = MODAL_WIDTH - CONTENT_X * 2,
+		placeholder = "miss<3",
+		live = true,
+		on_change = function(text)
+			charts:setLampSearch(text)
+		end,
+	}))
 	self.form:fitContent()
 end
 
@@ -115,6 +126,7 @@ function Filters:sync()
 	self.formats:setValues(charts:getFilterValues("format"))
 	self.original_input_modes:setValues(charts:getFilterValues("original_input_mode"))
 	self.actual_input_modes:setValues(charts:getFilterValues("actual_input_mode"))
+	self.lamp:setText(charts:getLampSearch())
 end
 
 function Filters:load()

@@ -317,6 +317,7 @@ return {
 	["song_select.format"] = "Формат",
 	["song_select.original_input_mode"] = "Исходный режим",
 	["song_select.actual_input_mode"] = "Конечный режим",
+	["song_select.lamp_filter"] = "Фильтр лампы",
 	["song_select.modifiers_title"] = "Моды",
 	["song_select.modifiers_subtitle"] = "Настройки игры для выбранной карты.",
 	["song_select.time_rate_type"] = "Тип скорости музыки",
