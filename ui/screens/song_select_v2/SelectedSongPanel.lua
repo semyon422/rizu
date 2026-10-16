@@ -163,8 +163,8 @@ end
 ---@param dt number
 function SelectedSongPanel:update(dt)
 	self.details_opacity:update(dt)
-	-- The pause button takes the mouse target from the panel while hovered.
-	local hovered = self.mouse_over or self.pause_button.mouse_over
+	-- The pause button and progress bar take the mouse target from the panel while hovered.
+	local hovered = self.mouse_over or self.pause_button.mouse_over or self.progress_bar.mouse_over
 	self.details_reveal:set(hovered and 1 or 0):update(dt)
 	self.pause_button:setOpacity(math_util.clamp(self.details_reveal:get(), 0, 1))
 	self.pause_button.is_paused = self.media:isPaused()
