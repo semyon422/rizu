@@ -81,6 +81,25 @@ function KeyboardInputs:isInActiveFocusScope(view)
 	return view.keyboard_input_fallback and inputs:isInSubtree(scope.root, view)
 end
 
+---Whether the active focus scope covers the view, hiding it from actions.
+---Views drawn above the scope root in its screen stay reachable.
+---@param view gui.View
+---@return boolean blocked
+function KeyboardInputs:isBlockedByFocusScope(view)
+	local inputs = self.inputs
+	local scope = inputs.focus_scopes[#inputs.focus_scopes]
+	if not scope then
+		return false
+	end
+	local root = scope.root
+	if view.screen == root.screen and view.flat_index and root.flat_index
+		and view.flat_index > root.flat_subtree_end
+	then
+		return false
+	end
+	return not self:isInActiveFocusScope(view)
+end
+
 ---@param root gui.View
 function KeyboardInputs:pushFocusScope(root)
 	local inputs = self.inputs

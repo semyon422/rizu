@@ -194,6 +194,12 @@ function Inputs:isInActiveFocusScope(view)
 	return self.keyboard_inputs:isInActiveFocusScope(view)
 end
 
+---@param view gui.View
+---@return boolean blocked
+function Inputs:isBlockedByFocusScope(view)
+	return self.keyboard_inputs:isBlockedByFocusScope(view)
+end
+
 ---@param root gui.View
 function Inputs:pushFocusScope(root)
 	self.keyboard_inputs:pushFocusScope(root)

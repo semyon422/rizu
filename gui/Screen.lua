@@ -370,11 +370,16 @@ function Screen:handleInputs(inputs)
 		local view = views[i]
 		if not view.detached and view.cull_mask == 0
 			and view.effective_visible and view.effective_enabled and view.present
+			and not inputs:isBlockedByFocusScope(view)
 		then
 			view:onHandleInputs(inputs)
 		end
 	end
-	self:onHandleInputs(inputs)
+	-- A focus scope in another screen (a modal in the overlay) owns the actions.
+	local scope = inputs.focus_scopes[#inputs.focus_scopes]
+	if not scope or scope.root.screen == self then
+		self:onHandleInputs(inputs)
+	end
 end
 
 ---@param dt number

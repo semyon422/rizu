@@ -126,6 +126,50 @@ function test.handleInputs_uses_specialized_views_front_to_back(t)
 end
 
 ---@param t testing.T
+function test.handleInputs_skips_views_and_screen_outside_foreign_focus_scope(t)
+	local overlay = Screen()
+	local modal = View()
+	overlay.root:add(modal)
+	overlay:relayout()
+
+	local s = Screen()
+	local view = View()
+	local seen = {}
+	function view:onHandleInputs() seen[#seen + 1] = "view" end
+	function s:onHandleInputs() seen[#seen + 1] = "screen" end
+	s.root:add(view)
+	s:relayout()
+
+	local inputs = Inputs()
+	inputs:pushFocusScope(modal)
+	s:handleInputs(inputs)
+	t:tdeq(seen, {})
+
+	inputs:popFocusScope(modal)
+	s:handleInputs(inputs)
+	t:tdeq(seen, {"view", "screen"})
+end
+
+---@param t testing.T
+function test.handleInputs_reaches_views_above_focus_scope_only(t)
+	local s = Screen()
+	local below, modal, above = View(), View(), View()
+	local seen = {}
+	function below:onHandleInputs() seen[#seen + 1] = "below" end
+	function modal:onHandleInputs() seen[#seen + 1] = "modal" end
+	function above:onHandleInputs() seen[#seen + 1] = "above" end
+	s.root:add(below)
+	s.root:add(modal)
+	s.root:add(above)
+	s:relayout()
+
+	local inputs = Inputs()
+	inputs:pushFocusScope(modal)
+	s:handleInputs(inputs)
+	t:tdeq(seen, {"above", "modal"})
+end
+
+---@param t testing.T
 function test.relayout_builds_flat_preorder_and_ranges(t)
 	local s = Screen()
 	local a = View()
