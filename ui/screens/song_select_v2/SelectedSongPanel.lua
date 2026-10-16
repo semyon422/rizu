@@ -163,8 +163,8 @@ end
 ---@param dt number
 function SelectedSongPanel:update(dt)
 	self.details_opacity:update(dt)
-	local inputs = self.screen and self.screen.inputs
-	local hovered = inputs and self:isMouseOver(inputs.mouse_x, inputs.mouse_y) or false
+	-- The pause button takes the mouse target from the panel while hovered.
+	local hovered = self.mouse_over or self.pause_button.mouse_over
 	self.details_reveal:set(hovered and 1 or 0):update(dt)
 	self.pause_button:setOpacity(math_util.clamp(self.details_reveal:get(), 0, 1))
 	self.pause_button.is_paused = self.media:isPaused()
