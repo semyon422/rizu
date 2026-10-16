@@ -34,12 +34,14 @@ function Offset:new(settings, localization)
 				}),
 			}
 
-			controls[#controls + 1] = ControlFactory.number(settings, keys.offset_input, {
-				name = localization:get("settings.input_offset"),
-				keywords = {"input", "timing", "latency", "hit", "mania"},
-				tip = localization:get("settings.input_offset_tip"),
-				value_format = formatSeconds,
-			})
+			if settings:getBoolean(Settings.keys.misc.enable_cheats) then
+				controls[#controls + 1] = ControlFactory.number(settings, keys.offset_input, {
+					name = localization:get("settings.input_offset"),
+					keywords = {"input", "timing", "latency", "hit", "mania"},
+					tip = localization:get("settings.input_offset_tip"),
+					value_format = formatSeconds,
+				})
+			end
 
 			local formats = {
 				{name = "osu!", key = "osu"},

@@ -1,5 +1,6 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Gameplay = require("ui.modals.config.sections.Gameplay")
+local View = require("gui.View")
 local Resources = require("ui.Resources")
 local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
@@ -78,6 +79,57 @@ function test.auto_keysound_binds_gameplay_setting(t)
 	t:eq(restored:getBoolean(key), true)
 	checkbox:activate()
 	t:eq(settings:getBoolean(key), false)
+end
+
+---@param t testing.T
+function test.cheat_controls_follow_enable_cheats(t)
+	local old_sprites = Resources.sprites
+	local old_get_font = Resources.getFont
+	local sprite = {
+		getWidth = function() return 10 end,
+		getHeight = function() return 20 end,
+	}
+	Resources.sprites = setmetatable({}, {__index = function() return sprite end})
+	Resources.getFont = function()
+		return {
+			getHeight = function() return 16 end,
+			getWidth = function(_, text) return #text * 8 end,
+			getWrap = function(_, text) return #text * 8, {text} end,
+		}
+	end
+
+	local fs = FakeFilesystem()
+	fs:createDirectory("userdata")
+	local settings = Settings.createConfig(fs)
+	local section = Gameplay(settings, UiConfig(fs, "userdata/ui.json"), Localization(), nil, View())
+	local keys = Settings.keys.gameplay
+
+	---@param key string
+	---@param controls ui.views.form.FormControl[]
+	---@return boolean found
+	local function has(key, controls)
+		for _, control in ipairs(controls) do
+			if control.setting_key == key then return true end
+		end
+		return false
+	end
+
+	local controls = section:build()
+	t:eq(has(keys.tempo_factor, controls), false)
+	t:eq(has(keys.swap_velocity_type, controls), false)
+
+	settings:setBoolean(Settings.keys.misc.enable_cheats, true)
+	controls = section:build()
+	t:eq(has(keys.tempo_factor, controls), true)
+	t:eq(has(keys.swap_velocity_type, controls), true)
+	t:eq(has(keys.primary_tempo, controls), false)
+
+	settings:setChoice(keys.tempo_factor, "primary")
+	controls = section:build()
+	t:eq(has(keys.primary_tempo, controls), true)
+
+	Resources.sprites = old_sprites
+	Resources.getFont = old_get_font
 end
 
 return test

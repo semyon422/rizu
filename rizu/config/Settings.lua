@@ -27,7 +27,6 @@ local keys = {
 		last_mean_values = "gameplay.last_mean_values",
 		rating_hit_timing_window = "gameplay.rating_hit_timing_window",
 		auto_key_sound = "gameplay.auto_key_sound",
-		event_based_render = "gameplay.event_based_render",
 		swap_velocity_type = "gameplay.swap_velocity_type",
 		skin_resources_top_priority = "gameplay.skin_resources_top_priority",
 		skins = "gameplay.skins",
@@ -163,6 +162,7 @@ local keys = {
 		show_debug_menu = "misc.show_debug_menu",
 		discord_presence = "misc.discord_presence",
 		generate_gif_result = "misc.generate_gif_result",
+		enable_cheats = "misc.enable_cheats",
 	},
 }
 
@@ -175,6 +175,15 @@ local Settings = {
 	keys = keys,
 	-- Compatibility alias for callers being migrated to Settings.keys.
 	user_interface = keys.user_interface,
+}
+
+---Gameplay settings that only take effect while misc.enable_cheats is on.
+---@type string[]
+Settings.cheat_keys = {
+	keys.gameplay.tempo_factor,
+	keys.gameplay.primary_tempo,
+	keys.gameplay.swap_velocity_type,
+	keys.gameplay.offset_input,
 }
 
 ---@param filesystem fs.IFilesystem
@@ -213,7 +222,6 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(g.last_mean_values, 10, 1, 100, 1) -- Should go to UI, also should be removed from score system
 	config:setDefaultNumber(g.rating_hit_timing_window, 0.032, 0, 0.2, 0.001) -- Not used anymore
 	config:setDefaultBoolean(g.auto_key_sound, false)
-	config:setDefaultBoolean(g.event_based_render, false) -- Don't we already use it by default?
 	config:setDefaultBoolean(g.swap_velocity_type, false)
 	config:setDefaultBoolean(g.skin_resources_top_priority, false)
 	config:setDefaultStringMap(g.skins, {})
@@ -346,6 +354,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(m.show_debug_menu, false)
 	config:setDefaultBoolean(m.discord_presence, true)
 	config:setDefaultBoolean(m.generate_gif_result, false)
+	config:setDefaultBoolean(m.enable_cheats, false)
 
 	return config
 end

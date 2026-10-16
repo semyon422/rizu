@@ -19,9 +19,9 @@ local GameplaySection = require("ui.modals.config.sections.Gameplay")
 local GameplayViewportSection = require("ui.modals.config.sections.GameplayViewport")
 local LayoutSection = require("ui.modals.config.sections.Layout")
 local OffsetSection = require("ui.modals.config.sections.Offset")
+local OtherSection = require("ui.modals.config.sections.Other")
 local RendererSection = require("ui.modals.config.sections.Renderer")
 local UserInterfaceSection = require("ui.modals.config.sections.UserInterface")
-local version = require("version")
 
 ---@class ui.modals.config.Config : ui.ModalView
 ---@operator call: ui.modals.config.Config
@@ -143,15 +143,6 @@ function Config:new(ui_config, settings, popup_container, on_close, localization
 	self:add(self.search)
 	self.close_button = self:add(ModalCloseButton(on_close, localization:get("settings.close")))
 	self.close_button:anchorFixed(20, 0, 280, 48):setAlignmentY(1):addPosition(0, -20)
-	local build = version.commit ~= "" and version.commit:sub(1, 8) or "dev"
-	if version.date ~= "" then
-		build = build .. " (" .. version.date .. ")"
-	end
-	self.build_label = self:add(Label({
-		font_name = "medium", font_size = 14, color = Colors.muted,
-		text = localization:get("settings.build", {commit = build}),
-	}))
-	self.build_label:setAlignmentY(1):setOffset(20, -76)
 	self:add(self.scroll_view)
 	self:add(self.no_results)
 	self.form_selection = self:add(FormSelection(self.form))
@@ -167,7 +158,7 @@ end
 function Config:createSections()
 	return {
 		AudioSection(self.settings, self.localization, self.app, self.form, self.popup_container),
-		GameplaySection(self.settings, self.ui_config, self.localization),
+		GameplaySection(self.settings, self.ui_config, self.localization, self.form, self.popup_container),
 		OffsetSection(self.settings, self.localization),
 		LayoutSection(self.settings, self.form, self.popup_container, self.localization),
 		RendererSection(self.settings, self.ui_config, self.localization),
@@ -183,6 +174,7 @@ function Config:createSections()
 			self.on_diff_column_change
 		),
 		BindingsSection(self.ui_config, self.localization),
+		OtherSection(self.settings, self.ui_config, self.localization),
 	}
 end
 

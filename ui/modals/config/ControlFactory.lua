@@ -53,6 +53,9 @@ function ControlFactory.boolean(config, key, metadata)
 		checked = config:getBoolean(key),
 		on_change = function(value)
 			config:setBoolean(key, value)
+			if metadata.on_change then
+				metadata.on_change(value)
+			end
 		end,
 	})
 	return configure(control, metadata, key) --[[@as ui.views.form.Checkbox]]

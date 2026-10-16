@@ -20,7 +20,9 @@ end
 ---@param settings rizu.config.Config
 ---@param ui_config ui.UiConfig
 ---@param localization ui.localization.Localization
-function Gameplay:new(settings, ui_config, localization)
+---@param form ui.views.form.Form
+---@param popup_container ui.views.PopupContainer
+function Gameplay:new(settings, ui_config, localization, form, popup_container)
 		Section.new(self, {
 		name = localization:get("settings.gameplay"),
 		icon = Resources.sprites.icon_play,
@@ -94,6 +96,38 @@ function Gameplay:new(settings, ui_config, localization)
 					value_format = function(value)
 						return localization:get("settings.time_seconds", {value = ("%.1f"):format(value)})
 					end,
+				})
+			end
+
+			if settings:getBoolean(Settings.keys.misc.enable_cheats) then
+				local tempo_factor = settings:getChoice(keys.tempo_factor)
+				controls[#controls + 1] = ControlFactory.choice(settings, keys.tempo_factor, {
+					name = localization:get("settings.tempo_factor"),
+					keywords = {"gameplay", "advanced", "tempo", "bpm", "scroll", "average", "minimum", "maximum"},
+					tip = localization:get("settings.tempo_factor_tip"),
+					form = form,
+					popup_container = popup_container,
+					format = function(value)
+						return localization:get("settings.tempo_factor_" .. value)
+					end,
+					on_change = function()
+						section:invalidate()
+					end,
+				})
+				if tempo_factor == "primary" then
+					controls[#controls + 1] = ControlFactory.number(settings, keys.primary_tempo, {
+						name = localization:get("settings.primary_tempo"),
+						keywords = {"gameplay", "advanced", "tempo", "bpm", "primary"},
+						tip = localization:get("settings.primary_tempo_tip"),
+						value_format = function(value)
+							return ("%d bpm"):format(value)
+						end,
+					})
+				end
+				controls[#controls + 1] = ControlFactory.boolean(settings, keys.swap_velocity_type, {
+					name = localization:get("settings.swap_velocity_type"),
+					keywords = {"gameplay", "advanced", "velocity", "global", "local", "current", "swap"},
+					tip = localization:get("settings.swap_velocity_type_tip"),
 				})
 			end
 			return controls
