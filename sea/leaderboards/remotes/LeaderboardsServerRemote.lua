@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class sea.LeaderboardsServerRemote: sea.IServerRemote
+---@class sea.LeaderboardsServerRemote: sea.IServerRemoteContext
 ---@operator call: sea.LeaderboardsServerRemote
 local LeaderboardsServerRemote = class()
 

@@ -1,50 +1,24 @@
 local InputEngine = require("rizu.engine.input.InputEngine")
-local TestInputNote = require("rizu.engine.input.TestInputNote")
+local FakeActiveInputNotes = require("rizu.engine.input.FakeActiveInputNotes")
+local TestInputNote = require("rizu.engine.input.notes.TestInputNote")
 
----@param t testing.T
----@param h rizu.InputEngine
----@param _t number
----@param n integer
-local function update_and_eq_active(t, h, _t, n)
-	for _, note in ipairs(h.notes) do
+---@param notes rizu.InputNote[]
+---@param time number
+local function set_time(notes, time)
+	for _, note in ipairs(notes) do
 		---@cast note rizu.TestInputNote
-		note.current_time = _t
+		note.current_time = time
 	end
-	h:update()
-	t:eq(h:getActiveNotesCount(), n)
 end
 
 local test = {}
 
 ---@param t testing.T
 function test.no_notes(t)
-	local h = InputEngine()
+	local notes = {}
+	local ie = InputEngine(FakeActiveInputNotes(notes))
 
-	t:has_not_error(h.update, h, 0)
-	t:has_not_error(h.receive, h, {})
-end
-
----@param t testing.T
-function test.track_active_notes(t)
-	local function new_note()
-		local note = TestInputNote()
-		note.time = 0
-		note.early_window = -1
-		note.late_window = 1
-		return note
-	end
-
-	local h = InputEngine()
-	h:setNotes({
-		new_note(),
-		new_note(),
-	})
-
-	update_and_eq_active(t, h, -10, 0)
-	update_and_eq_active(t, h, -1, 2)
-	update_and_eq_active(t, h, 0, 2)
-	update_and_eq_active(t, h, 1, 2)
-	update_and_eq_active(t, h, 10, 0)
+	t:has_not_error(ie.receive, ie, {id = 1, pos = 1})
 end
 
 ---@param t testing.T
@@ -52,166 +26,308 @@ function test.match(t)
 	local function new_note(match_event)
 		local note = TestInputNote()
 		note.time = 0
-		note.early_window = -1
-		note.late_window = 1
-		function note:match(event)
-			return event == match_event
+		function note:input(value)
+			table.insert(match_event, self)
 		end
-		function note:receive(event)
-			table.insert(event, self)
+		function note:match(event)
+			return match_event.pos == event.pos
 		end
 		return note
 	end
 
-	local event_1 = {}
-	local event_2 = {}
+	local event_1 = {value = true, id = 1, pos = 1}
+	local event_2 = {value = true, id = 2, pos = 2}
 
 	local notes = {
 		new_note(event_1),
 		new_note(event_2),
 	}
 
-	local h = InputEngine()
-	h:setNotes(notes)
+	local ie = InputEngine(FakeActiveInputNotes(notes))
 
-	update_and_eq_active(t, h, 0, 2)
+	set_time(notes, 0)
 
-	h:receive(event_1)
+	ie:receive(event_1)
 	t:eq(event_1[1], notes[1])
 	t:eq(#event_1, 1)
 
-	h:receive(event_2)
+	ie:receive(event_2)
 	t:eq(event_2[1], notes[2])
 	t:eq(#event_2, 1)
 
-	h:receive(event_1)
+	ie:receive(event_1)
 	t:eq(event_1[2], notes[1])
 	t:eq(#event_1, 2)
 end
 
 ---@param t testing.T
 function test.catch(t)
-	local function new_note(id)
+	local function new_note(id, events)
 		local note = TestInputNote()
-		---@cast note +{catched: any}
 		note.time = 0
-		note.early_window = -1
-		note.late_window = 1
-		function note:match(event)
-			return not self.catched
+		function note:input(value)
+			table.insert(events, {id, value})
 		end
-		function note:catch(event)
-			return event[1] == id
-		end
-		function note:receive(event)
-			self.catched = event
-			table.insert(event, id)
+		function note:match()
+			return true
 		end
 		return note
 	end
 
-	local event_1 = {}
-	local event_2 = {}
+	local events = {}
 
 	local notes = {
-		new_note(1),
-		new_note(2),
+		new_note("a", events),
+		new_note("b", events),
 	}
 
-	local h = InputEngine()
-	h:setNotes(notes)
+	local ie = InputEngine(FakeActiveInputNotes(notes))
 
-	update_and_eq_active(t, h, 0, 2)
+	set_time(notes, 0)
 
-	h:receive(event_1)
-	t:eq(event_1[1], 1)
-	t:eq(#event_1, 1)
+	ie:receive({id = 1, value = true})
+	ie:receive({id = 2, value = true})
+	ie:receive({id = 1, value = true})
+	ie:receive({id = 2, value = false})
+	ie:receive({id = 1, value = false})
 
-	h:receive(event_2)
-	t:eq(event_2[1], 2)
-	t:eq(#event_2, 1)
-
-	h:receive(event_1)
-	t:eq(event_1[2], 1)
-	t:eq(#event_1, 2)
+	t:tdeq(events, {
+		{"a", true},
+		{"b", true},
+		{"a", true},
+		{"b", false},
+		{"a", false},
+	})
 end
 
 ---@param t testing.T
 function test.nearest(t)
-	local function new_note(time)
+	local function new_note(time, events)
 		local note = TestInputNote()
 		---@cast note +{catched: any}
 		note.time = time
-		note.early_window = -10
-		note.late_window = 10
-		function note:match(event)
-			return true
+		function note:input()
+			table.insert(events, time)
 		end
-		function note:receive(event)
-			table.insert(event, time)
+		function note:match()
+			return true
 		end
 		return note
 	end
 
-	local event = {}
+	local events = {}
 
 	local notes = {
-		new_note(0),
-		new_note(2),
+		new_note(0, events),
+		new_note(2, events),
 	}
 
-	local h = InputEngine()
-	h:setNotes(notes)
-	h.nearest = true
+	local ie = InputEngine(FakeActiveInputNotes(notes))
+	ie.nearest = true
 
-	update_and_eq_active(t, h, 1, 2)
+	set_time(notes, 1)
 
-	h:receive(event)
-	t:eq(event[1], 0)
+	ie:receive({value = true, id = 1})
+	ie:receive({value = false, id = 1})
+	t:eq(events[1], 0)
 
-	update_and_eq_active(t, h, 1.001, 2)
+	set_time(notes, 1.001)
 
-	h:receive(event)
-	t:eq(event[2], 2)
+	ie:receive({value = true, id = 1})
+	ie:receive({value = false, id = 1})
+	t:eq(events[3], 2)
 
-	update_and_eq_active(t, h, 0.999, 2)
+	set_time(notes, 0.999)
 
-	h:receive(event)
-	t:eq(event[3], 0)
+	ie:receive({value = true, id = 1})
+	ie:receive({value = false, id = 1})
+	t:eq(events[5], 0)
 end
 
 ---@param t testing.T
 function test.priority(t)
-	local function new_note(time, priority)
+	local function new_note(time, priority, event)
 		local note = TestInputNote()
 		---@cast note +{catched: any}
 		note.time = time
-		note.early_window = -10
-		note.late_window = 10
 		note.priority = priority
-		function note:match(event)
-			return true
-		end
-		function note:receive(event)
+		function note:input()
 			table.insert(event, time)
+		end
+		function note:match()
+			return true
 		end
 		return note
 	end
 
-	local event = {}
+	local event = {value = true, id = 1}
 
 	local notes = {
-		new_note(0, 0),
-		new_note(2, 1),
+		new_note(0, 0, event),
+		new_note(2, 1, event),
 	}
 
-	local h = InputEngine()
-	h:setNotes(notes)
+	local ie = InputEngine(FakeActiveInputNotes(notes))
 
-	update_and_eq_active(t, h, 0, 2)
+	set_time(notes, 0)
 
-	h:receive(event)
+	ie:receive(event)
 	t:eq(event[1], 2)
+end
+
+---@param t testing.T
+function test.nil_value(t)
+	local function new_note(events)
+		local note = TestInputNote()
+		note.time = 0
+		function note:input(value)
+			table.insert(events, {value})
+			return value
+		end
+		function note:match()
+			return true
+		end
+		return note
+	end
+
+	local events = {}
+
+	local notes = {
+		new_note(events),
+	}
+
+	local ie = InputEngine(FakeActiveInputNotes(notes))
+
+	set_time(notes, 0)
+
+	ie:receive({id = 1, value = nil})
+	ie:receive({id = 1, value = true})
+	ie:receive({id = 1, value = true})
+	ie:receive({id = 1, value = nil})
+	ie:receive({id = 1, value = false})
+
+	t:tdeq(events, {
+		{true},
+		{true},
+		{false},
+	})
+
+	ie:receive({id = 1, value = false})
+	ie:receive({id = 1, value = nil})
+
+	t:tdeq(events, {
+		{true},
+		{true},
+		{false},
+	})
+end
+
+---@param t testing.T
+function test.variable_match(t)
+	local function new_note(events)
+		local note = TestInputNote()
+		note.time = 0
+		function note:input(value)
+			table.insert(events, {value})
+		end
+		return note
+	end
+
+	local events = {}
+
+	local notes = {
+		new_note(events),
+	}
+
+	local ie = InputEngine(FakeActiveInputNotes(notes))
+
+	set_time(notes, 0)
+
+	ie:receive({id = 1, pos = true, value = true})
+	ie:receive({id = 1, pos = true, value = nil})
+	ie:receive({id = 1, pos = false, value = nil})
+
+	t:tdeq(events, {
+		{true},
+		{false},
+	})
+
+	ie:receive({id = 1, pos = true, value = nil})
+	ie:receive({id = 1, pos = true, value = nil})
+	ie:receive({id = 1, pos = true, value = nil})
+	ie:receive({id = 1, pos = false, value = nil})
+	ie:receive({id = 1, pos = false, value = nil})
+	ie:receive({id = 1, pos = true, value = nil})
+	ie:receive({id = 1, pos = true, value = nil})
+	ie:receive({id = 1, pos = true, value = false})
+
+	t:tdeq(events, {
+		{true},
+		{false},
+	})
+end
+
+--[[
+	TODO:
+	pause (unmatch / rematch) x (top / bottom)
+]]
+
+---@param t testing.T
+function test.paused_press_is_applied_on_resume(t)
+	---@type boolean[]
+	local events = {}
+	local note = TestInputNote()
+	note.time = 0
+	function note:match()
+		return true
+	end
+	function note:input(value)
+		table.insert(events, value)
+	end
+	local ie = InputEngine(FakeActiveInputNotes({note}))
+	set_time({note}, 0)
+
+	ie:pause()
+	ie:receive({id = 1, value = true})
+	t:tdeq(events, {})
+	t:eq(ie.event_catches[1], note)
+	t:eq(ie.input_pauser.event_values[1], true)
+
+	ie:resume()
+	t:tdeq(events, {true})
+	ie:receive({id = 1, value = false})
+	t:tdeq(events, {true, false})
+end
+
+---@param t testing.T
+function test.paused_repress_prefers_held_note_over_next_note(t)
+	---@type boolean[]
+	local events = {}
+	local held = TestInputNote()
+	held.time = 0
+	held.priority = -1
+	function held:match() return true end
+	function held:input(value)
+		table.insert(events, value)
+	end
+	local next_note = TestInputNote()
+	next_note.time = 1
+	next_note.priority = 0
+	function next_note:match() return true end
+	local notes = {held}
+	local ie = InputEngine(FakeActiveInputNotes(notes))
+	set_time({held, next_note}, 0)
+	ie:receive({id = 1, value = true})
+	notes[2] = next_note
+	ie:pause()
+	ie:receive({id = 1, value = false})
+	ie:receive({id = 2, value = true})
+	t:eq(ie.event_catches[2], held)
+	t:tdeq(events, {true})
+	ie:resume()
+	t:tdeq(events, {true})
+	ie:receive({id = 2, value = false})
+	t:tdeq(events, {true, false})
 end
 
 return test

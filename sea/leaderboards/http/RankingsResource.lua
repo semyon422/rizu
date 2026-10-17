@@ -25,10 +25,12 @@ RankingsResource.ranking_type_tabs = {
 ---@param users sea.Users
 ---@param leaderboards sea.Leaderboards
 ---@param views web.Views
-function RankingsResource:new(users, leaderboards, views)
+---@param user_connections sea.UserConnections
+function RankingsResource:new(users, leaderboards, views, user_connections)
 	self.users = users
 	self.leaderboards = leaderboards
 	self.views = views
+	self.user_connections = user_connections
 end
 
 ---@param leaderboard sea.Leaderboard
@@ -99,6 +101,10 @@ function RankingsResource:getRankings(req, res, ctx)
 		if lb then
 			ctx.rules_allowed, ctx.rules_disallowed = self:getRules(lb)
 		end
+
+		for _, lb_user in ipairs(ctx.leaderboard_users) do
+			lb_user.user.online = self.user_connections:isUserOnline(lb_user.user_id)
+		end
 	else
 		local order = "chartplays_count"
 		leaderboard_name = "Play Count"
@@ -112,6 +118,10 @@ function RankingsResource:getRankings(req, res, ctx)
 		ctx.pages_count = math.ceil(self.users:getUsersCount() / per_page)
 		page = math.min(page, ctx.pages_count)
 		ctx.users = self.users:getUsers(order, per_page, (page - 1) * per_page)
+
+		for _, user in ipairs(ctx.users) do
+			user.online = self.user_connections:isUserOnline(user.id)
+		end
 	end
 
 	ctx.page_num = page

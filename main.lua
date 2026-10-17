@@ -5,8 +5,6 @@ if arg[2] == "cli" then
 	return
 end
 
-require("hooks")
-
 require("mime")
 require("ltn12")
 require("enet")
@@ -16,22 +14,10 @@ if arg[2] == "debug" then
     require("lldebugger").start()
 end
 
-local pkg = require("aqua.pkg")
+require("pkg_config")
 
-pkg.addc()
-pkg.addc("3rd-deps/lib")
-pkg.addc("bin/lib")
-pkg.addc("tree/lib/lua/5.1")
-pkg.add()
-pkg.add("3rd-deps/lua")
-pkg.add("aqua")
-pkg.add("ncdk")
-pkg.add("chartbase")
-pkg.add("libchart")
-pkg.add("tree/share/lua/5.1")
-
-pkg.export_lua()
-pkg.export_love()
+require("pprint").export()
+require("coext").export()
 
 local luacov_runner
 if arg[2] == "test" then
@@ -86,7 +72,6 @@ if jit.os == "Windows" then
 	local winapi = require("winapi")
 	winapi.putenv("PATH", ("%s;%s"):format(winapi.getenv("PATH"), root .. "/bin/win64"))
 	winapi.chdir(root)
-	pkg.addc("bin/win64")
 elseif jit.os == "Linux" then
 	local ldlp = os.getenv("LD_LIBRARY_PATH")
 	if not ldlp or not ldlp:find("bin/linux64") then
@@ -97,7 +82,6 @@ elseif jit.os == "Linux" then
 	end
 	ffi.cdef("int chdir(const char *path);")
 	ffi.C.chdir(root)
-	pkg.addc("bin/linux64")
 elseif jit.os == "OSX" then
 	local ldlp = os.getenv("DYLD_FALLBACK_LIBRARY_PATH")
 	if not ldlp or not ldlp:find("bin/mac64") then
@@ -108,33 +92,53 @@ elseif jit.os == "OSX" then
 	end
 	ffi.cdef("int chdir(const char *path);")
 	ffi.C.chdir(root)
-	pkg.addc("bin/mac64")
 end
 
-pkg.export_lua()
-pkg.export_love()
+love.errorhandler = require("errhand")
 
-love.errhand = require("errhand")
+love.filesystem.unmountCommonPath("appsavedir")
+love.filesystem.unmountFullPath(root)
+assert(love.filesystem.mountFullPath(root, "/", "readwrite", false))
 
-local physfs = require("physfs")
-physfs.setWriteDir(root)
+pcall(require, "luamidi")
 
-if root == sourceBase then
-	assert(physfs.mount(root, "/", true))
-end
+setmetatable(_G, {__newindex = function(a, b, c)
+	print("__newindex", a, b, c, debug.traceback())
+	rawset(a, b, c)
+end})
 
-require("preload")
-
-local love_run = require("love_run")
-love.load = function() end  -- for compatibility with old conf.lua
-local defaultLoop = love.loop or love_run()
+local current_loop = love.run()
 function love.run()
 	return function()
-		return defaultLoop()
+		return current_loop()
 	end
 end
 
 if arg[2] == "test" then
+	local stbl = require("stbl")
+	local utf8validate = require("utf8validate")
+	local typecheck = require("typecheck")
+
+	function love.errorhandler(msg)
+		if type(msg) ~= "string" then
+			if type(msg) ~= "table" then
+				msg = tostring(msg)
+			else
+				local _ = false
+				_, msg = pcall(stbl.encode, msg)
+			end
+		end
+		local message = utf8validate(msg)
+		local trace = debug.traceback()
+
+		message = typecheck.fix_traceback(message)
+		trace = typecheck.fix_traceback(trace)
+
+		print(message .. "\n" .. trace)
+		os.exit()
+		return function() end
+	end
+
 	local Testing = require("testing.Testing")
 	local BaseTestingIO = require("testing.BaseTestingIO")
 
@@ -145,6 +149,7 @@ if arg[2] == "test" then
 		"tree",
 		"userdata",
 		"storages",
+		"build/deps/",
 	}
 
 	local testing = Testing(tio)
@@ -164,20 +169,30 @@ end
 local delay = require("delay")
 delay.set_timer(love.timer.getTime)
 
+-- The default user interface on a fake game: `./ui-preview`.
+if arg[2] == "ui" then
+	local preview = require("rizu.api.fake.Preview")(require("ui.UserInterface"))
+	preview:load()
+	local loop = require("rizu.loop.Loop")
+	loop:init()
+	current_loop = loop:run()
+	loop:add(preview)
+	return
+end
+
 ---@type sphere.GameController?
 local game
 
 local thread = require("thread")
 thread.setInitFunc(function(packageLoader)
 	print("thread init")
-	require("preload")
 	if not packageLoader then
 		return
 	end
-	local PackageLoader = require("sphere.pkg.PackageLoader")
-	local PackageRequire = require("sphere.pkg.PackageRequire")
+	local PackageLoader = require("rizu.pkg.PackageLoader")
+	local PackageRequire = require("rizu.pkg.PackageRequire")
 	setmetatable(packageLoader, PackageLoader)
-	---@cast packageLoader sphere.PackageLoader
+	---@cast packageLoader rizu.PackageLoader
 	local packageRequire = PackageRequire()
 	local pkgs = packageLoader:getPackagesByType("require")
 	packageRequire:require(pkgs)
@@ -186,7 +201,7 @@ end, function()
 end)
 
 thread.coro(function()
-	local UpdateController = require("sphere.update.UpdateController")
+	local UpdateController = require("rizu.update.UpdateController")
 	local updateController = UpdateController()
 	local needRestart = updateController:updateAsync()
 	if needRestart then
@@ -201,8 +216,8 @@ thread.coro(function()
 
 	game:load()
 
-	local loop = require("loop")
+	local loop = require("rizu.loop.Loop")
 	loop:init()
-	defaultLoop = loop:run()
+	current_loop = loop:run()
 	loop:add(game)
 end)()

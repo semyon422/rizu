@@ -1,7 +1,7 @@
 local Modifier = require("sphere.models.ModifierModel.Modifier")
 local Alternate = require("sphere.models.ModifierModel.Alternate")
-local InputMode = require("ncdk.InputMode")
-local Notes = require("ncdk2.notes.Notes")
+local InputMode = require("chart.core.InputMode")
+local Notes = require("chart.model.notes.Notes")
 
 ---@class sphere.Alternate2: sphere.Modifier
 ---@operator call: sphere.Alternate2
@@ -24,7 +24,7 @@ end
 Alternate2.applyMeta = Alternate.applyMeta
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function Alternate2:apply(config, chart)
 	local inputMode = chart.inputMode
 

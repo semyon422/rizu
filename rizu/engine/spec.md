@@ -1,0 +1,67 @@
+# Engine And Audio Architecture (`rizu.engine`)
+
+## Goal
+The engine module provides the low-level runtime systems for rhythm processing, audio playback, rendering support, and input plumbing. It should remain modular, backend-friendly, and efficient enough for real-time gameplay.
+
+## User Experience
+- Timing and judgment should feel consistent and precise.
+- Audio should remain synchronized with gameplay across supported backends and playback rates.
+- Engine-level changes should not introduce frame drops, audio desync, or hidden state carried across sessions.
+
+## Module Areas
+
+- `RhythmEngine`: core note processing and timing logic.
+- `ScoreEngine`: scoring systems, judge counters, accuracy, combo, health, and score source interfaces.
+- `audio/`: provider-based audio backend system.
+- `visual/`: low-level rendering and playfield support.
+- `input/`: physical and virtual input event handling.
+
+## Architecture Decisions
+
+### ADR: Provider-Based Audio Backends
+- Audio backends implement interface-based contracts instead of hard-coding a single implementation.
+- Core interfaces:
+  - `rizu.audio.IProvider`
+  - `rizu.audio.IDecoder`
+  - `rizu.audio.ISource`
+- Current backends:
+  - `rizu.audio.bass.*` for the primary BASS implementation, with BASS_FFMPEG plugin decoding
+  - `rizu.audio.fake.*` for testing or disabled-audio scenarios
+- Short UI and metronome effects use `rizu.audio.bass.Sample`, a focused one-shot sample wrapper. Keep these effects out of the removed legacy `aqua/audio` playback hierarchy.
+
+### ADR: Central Audio Engine Coordination
+- `rizu.audio.Engine` coordinates background playback and foreground hitsounds.
+- `rizu.audio.SoftwareMixer` is used when multiple streams need software-level combination, such as waveform rendering or preview workflows.
+
+### ADR: SDL3 Native Output
+- LÖVE 12 already loads SDL3, so LuaJIT FFI accesses SDL symbols through `ffi.C` without packaging another library.
+- The `sdl3_pipewire` backend initializes SDL's native `pipewire` audio driver and opens a float32 stereo `SDL_AudioStream`. Lua pushes bounded PCM blocks; no Lua callback runs on SDL's audio thread.
+- Gameplay background audio and foreground keysounds remain separate BASS decode sources, then feed one non-stop BASS decode mixer. Only that master stream is submitted to SDL.
+- The selected buffer preset is the target combined SDL queue plus one device period. SDL device sample frames come from the period preset; at least one period is kept queued. Runtime timing subtracts queued stream frames and one device period from the decoded source position.
+- The push prototype depends on regular engine updates. It counts empty-queue observations as underruns; a future native ring-buffer bridge is required if render stalls make Experimental settings unstable.
+
+### ADR: Streaming Decode Stays In BASS Channels
+- Runtime playback uses BASS streams so encoded files are decoded on demand instead of fully decoded before playback. BASS output backends play these streams directly; SDL3 output configures them as decode-only children of the master mixer.
+- The BASS_FFMPEG plugin lets BASS streams decode through FFmpeg while preserving BASS mixer, tempo, seeking, and keysound behavior.
+- `IDecoder` positions, durations, and reads are frame-based (`getFrames`, `getFramePosition`, `setFramePosition`, `getFrameDuration`). A frame contains one sample per channel and is independent of channel count and sample representation. Byte-oriented helpers remain compatibility boundary methods and must not be used as internal timeline state.
+- Decoder buffer representation is explicit through `rizu.audio.SampleFormat` (`"int16"` or `"float32"`) rather than boolean flags.
+- `SoftwareMixer` accepts int16 decoders internally. Runtime preview and gameplay background playback request normalized `"float32"` output from the mixer. Offline `Engine:renderWave()` explicitly converts that float output back to the int16 `Wave` format.
+- `MixerSource` requires all added decoders to match its configured sample format. Gameplay configures both the foreground mixer and its one-shot keysound decoders for `"float32"` output.
+
+### ADR: Session-Level Policy Outside Core Timing
+- Flags such as autoplay or promode should be coordinated by higher-level gameplay/session code where possible, even if legacy paths still exist elsewhere.
+
+### Empty WAV Hitsounds
+
+Some charts intentionally ship header-only RIFF/WAVE files with an empty data chunk as silent samples. `EmptyWave` recognizes a complete bounded chunk structure; BASS decoders expose zero frames/duration without opening a stream, and `MixerSource` releases these without attaching a nonexistent channel. Nonempty/truncated files still use normal decoder validation; this is not a blanket audio-error suppression.
+
+## Performance Notes
+
+- Treat gameplay and audio code as performance-sensitive by default.
+- When optimizing core loops, use focused benchmarks with `luajit` where a normal test run would not show timing regressions clearly.
+- Prefer simple data flow and avoid unnecessary allocation in per-frame or per-note paths.
+
+## Verification
+
+- Run focused tests in `rizu/engine` or adjacent modules after changes.
+- If an engine change affects gameplay semantics, also run the relevant gameplay tests.

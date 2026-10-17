@@ -375,20 +375,29 @@ function LeaderboardsRepo:getLeaderboardUserRank(leaderboard_id, total_rating)
 	}) + 1
 end
 
-function LeaderboardsRepo:updateLeaderboardUserRanks()
-	self.models._orm.db:query([[
+---@param lb sea.Leaderboard?
+function LeaderboardsRepo:updateLeaderboardUserRanks(lb)
+	local where = ""
+	local partition = "PARTITION BY leaderboard_id"
+	if lb then
+		where = "WHERE leaderboard_id = " .. lb.id
+		partition = ""
+	end
+
+	self.models._orm.db:query(([[
 		UPDATE leaderboard_users
 		SET rank = lb_users.rank
 		FROM (
 			SELECT
-				ROW_NUMBER() OVER (PARTITION BY leaderboard_id ORDER BY total_rating DESC) AS rank,
+				ROW_NUMBER() OVER (%s ORDER BY total_rating DESC) AS rank,
 				id
 			FROM leaderboard_users
+			%s
 		) AS lb_users
 		WHERE
 			leaderboard_users.id = lb_users.id AND
 			leaderboard_users.rank != lb_users.rank
-	]])
+	]]):format(partition, where))
 end
 --------------------------------------------------------------------------------
 

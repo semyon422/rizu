@@ -1,11 +1,11 @@
 local LongVisualNote = require("rizu.engine.visual.LongVisualNote")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local ManiaHoldInputNote = require("rizu.engine.input.mania.ManiaHoldInputNote")
-local LinkedNote = require("ncdk2.notes.LinkedNote")
-local Note = require("ncdk2.notes.Note")
-local Visual = require("ncdk2.visual.Visual")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
-local Point = require("ncdk2.tp.Point")
+local HoldLogicNote = require("rizu.engine.logic.notes.HoldLogicNote")
+local LinkedNote = require("chart.model.notes.LinkedNote")
+local Note = require("chart.model.notes.Note")
+local Visual = require("chart.model.visual.Visual")
+local VisualPoint = require("chart.model.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
 
 local function new_ctx()
 	local visual = Visual()
@@ -26,94 +26,153 @@ local function new_ctx()
 	---@param time number
 	local function set_time(time)
 		visual_info.time = time
-		time = time - visual_info.input_offset
 		cvp.visualTime = time
+		cvp.monotonicVisualTime = time
 		cvp.point.absoluteTime = time
 	end
 
-	local input_note = ManiaHoldInputNote(linked_note, {}, visual_info)
-	visual_info.input_notes[linked_note] = input_note
+	local logic_note = HoldLogicNote(linked_note, {}, visual_info)
+	visual_info.logic_notes[linked_note] = logic_note
 
 	return {
 		set_time = set_time,
 		visual_info = visual_info,
 		note = visual_note,
-		input_note = input_note,
-		offsets = {-0.5, -0.25, 0, 0.25, 0.5},
+		logic_note = logic_note,
+		iter = function()
+			---@type fun(): boolean, number, number
+			return coroutine.wrap(function()
+				for _, const in ipairs({false, true}) do
+					visual_info.const = const
+					coroutine.yield(const)
+				end
+			end)
+		end
 	}
 end
 
 local test = {}
 
---- Early press, late release, offsets
+--- Do not press
+---@param t testing.T
+function test.do_not_press(t)
+	local ctx = new_ctx()
+
+	for const in ctx.iter() do
+		ctx.set_time(0)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, -1)
+		t:eq(ctx.note.end_dt, -2)
+
+		ctx.set_time(0.75)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, -0.25)
+		t:eq(ctx.note.end_dt, -1.25)
+
+		ctx.set_time(1.5)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0.5)
+		t:eq(ctx.note.end_dt, -0.5)
+
+		ctx.set_time(2.25)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 1.25)
+		t:eq(ctx.note.end_dt, 0.25)
+	end
+end
+
+--- Early press, late release
 ---@param t testing.T
 function test.hold(t)
 	local ctx = new_ctx()
 
-	ctx.input_note.state = "startPassedPressed"
+	for const in ctx.iter() do
+		ctx.logic_note.state = "startPassedPressed"
 
-	for _, visual_offset in ipairs(ctx.offsets) do
-		ctx.visual_info.visual_offset = visual_offset
+		ctx.set_time(0)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, -1)
+		t:eq(ctx.note.end_dt, -2)
 
-		for _, input_offset in ipairs(ctx.offsets) do
-			ctx.visual_info.input_offset = input_offset
+		ctx.set_time(0.75)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, -0.25)
+		t:eq(ctx.note.end_dt, -1.25)
 
-			ctx.set_time(0 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, -1)
-			t:eq(ctx.note.end_dt, -2)
+		ctx.set_time(1.5)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0)
+		t:eq(ctx.note.end_dt, -0.5)
 
-			ctx.set_time(0.75 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, -0.25)
-			t:eq(ctx.note.end_dt, -1.25)
-
-			ctx.set_time(1.5 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, 0)
-			t:eq(ctx.note.end_dt, -0.5)
-
-			ctx.set_time(2.25 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, 0.25)
-			t:eq(ctx.note.end_dt, 0.25)
-		end
+		ctx.set_time(2.25)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0.25)
+		t:eq(ctx.note.end_dt, 0.25)
 	end
 end
 
---- Early release, visual offset
+--- Late press
+---@param t testing.T
+function test.hold_late_press(t)
+	local ctx = new_ctx()
+
+	for const in ctx.iter() do
+		ctx.logic_note.state = "startPassedPressed"
+
+		ctx.set_time(1.25)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0.25)
+		t:eq(ctx.note.end_dt, -0.75)
+
+		ctx.set_time(1.3)
+		ctx.note:update()
+		t:aeq(ctx.note.start_dt, 0.2, 1e-6)
+		t:aeq(ctx.note.end_dt, -0.7, 1e-6)
+
+		ctx.set_time(1.4)
+		ctx.note:update()
+		t:aeq(ctx.note.start_dt, 0.1, 1e-6)
+		t:aeq(ctx.note.end_dt, -0.6, 1e-6)
+
+		ctx.set_time(1.5)
+		ctx.note:update()
+		t:aeq(ctx.note.start_dt, 0, 1e-6)
+		t:aeq(ctx.note.end_dt, -0.5, 1e-6)
+
+		ctx.set_time(1.75)
+		ctx.note:update()
+		t:aeq(ctx.note.start_dt, 0, 1e-6)
+		t:aeq(ctx.note.end_dt, -0.25, 1e-6)
+	end
+end
+
+--- Early release
 ---@param t testing.T
 function test.hold_early_release(t)
 	local ctx = new_ctx()
 
-	for _, visual_offset in ipairs(ctx.offsets) do
-		ctx.visual_info.visual_offset = visual_offset
+	for const in ctx.iter() do
+		ctx.logic_note.state = "startPassedPressed"
+		ctx.set_time(1)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0)
+		t:eq(ctx.note.end_dt, -1)
 
-		for _, input_offset in ipairs(ctx.offsets) do
-			ctx.visual_info.input_offset = input_offset
+		ctx.logic_note.state = "endPassed"
+		ctx.set_time(1.5)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0)
+		t:eq(ctx.note.end_dt, -0.5)
 
-			ctx.input_note.state = "startPassedPressed"
-			ctx.set_time(1.25 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, 0)
-			t:eq(ctx.note.end_dt, -0.75)
+		ctx.set_time(1.75)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0)
+		t:eq(ctx.note.end_dt, -0.25)
 
-			ctx.input_note.state = "endPassed"
-			ctx.set_time(1.5 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, 0)
-			t:eq(ctx.note.end_dt, -0.5)
-
-			ctx.set_time(1.75 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, 0)
-			t:eq(ctx.note.end_dt, -0.25)
-
-			ctx.set_time(2.25 + visual_offset)
-			ctx.note:update()
-			t:eq(ctx.note.start_dt, 0.25)
-			t:eq(ctx.note.end_dt, 0.25)
-		end
+		ctx.set_time(2.25)
+		ctx.note:update()
+		t:eq(ctx.note.start_dt, 0.25)
+		t:eq(ctx.note.end_dt, 0.25)
 	end
 end
 
@@ -121,7 +180,7 @@ end
 function test.shortening(t)
 	local ctx = new_ctx()
 
-	ctx.input_note.state = "startPassedPressed"
+	ctx.logic_note.state = "startPassedPressed"
 	ctx.visual_info.shortening = -0.25
 
 	ctx.set_time(0)
@@ -133,6 +192,62 @@ function test.shortening(t)
 	ctx.note:update()
 	t:eq(ctx.note.start_dt, 0.5)
 	t:eq(ctx.note.end_dt, 0.5)
+end
+
+---@param t testing.T
+function test.shortening_with_high_rate(t)
+	local ctx = new_ctx()
+
+	ctx.logic_note.state = "startPassedPressed"
+	ctx.visual_info.shortening = -0.25
+	ctx.visual_info.rate = 2
+
+	ctx.set_time(0)
+	ctx.note:update()
+	t:eq(ctx.note.start_dt, -2)
+	t:eq(ctx.note.end_dt, -3.5)
+
+	ctx.set_time(2.25)
+	ctx.note:update()
+	t:eq(ctx.note.start_dt, 1)
+	t:eq(ctx.note.end_dt, 1)
+end
+
+---@param t testing.T
+function test.shortening_with_low_rate(t)
+	local ctx = new_ctx()
+
+	ctx.logic_note.state = "startPassedPressed"
+	ctx.visual_info.shortening = -0.25
+	ctx.visual_info.rate = 0.5
+
+	ctx.set_time(0)
+	ctx.note:update()
+	t:eq(ctx.note.start_dt, -0.5)
+	t:eq(ctx.note.end_dt, -0.875)
+
+	ctx.set_time(2.25)
+	ctx.note:update()
+	t:eq(ctx.note.start_dt, 0.25)
+	t:eq(ctx.note.end_dt, 0.25)
+end
+
+---@param t testing.T
+function test.shortening_too_much(t)
+	local ctx = new_ctx()
+
+	ctx.logic_note.state = "startPassedPressed"
+	ctx.visual_info.shortening = -1.25
+
+	ctx.set_time(0)
+	ctx.note:update()
+	t:eq(ctx.note.start_dt, -1)
+	t:eq(ctx.note.end_dt, -1)
+
+	ctx.set_time(2.25)
+	ctx.note:update()
+	t:eq(ctx.note.start_dt, 1.25)
+	t:eq(ctx.note.end_dt, 1.25)
 end
 
 return test

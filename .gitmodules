@@ -1,21 +1,3 @@
-[submodule "ncdk"]
-	path = ncdk
-	url = https://github.com/semyon422/ncdk
-[submodule "chartbase"]
-	path = chartbase
-	url = https://github.com/semyon422/chartbase
 [submodule "aqua"]
-	path = aqua
-	url = https://github.com/semyon422/aqua
-[submodule "soundsphere-skins"]
-	path = userdata/skins
-	url = https://github.com/semyon422/soundsphere-skins
-[submodule "resources"]
-	path = resources
-	url = https://github.com/semyon422/soundsphere-resources
-[submodule "libchart"]
-	path = libchart
-	url = https://github.com/semyon422/libchart
-[submodule "3rd-deps"]
-	path = 3rd-deps
-	url = https://github.com/semyon422/soundsphere-3rd-party-deps
+        path = aqua
+        url = https://github.com/semyon422/aqua

@@ -1,0 +1,226 @@
+local class = require("class")
+local Color = require("ui.Color")
+local MsdFormatter = require("ui.formatters.MsdFormatter")
+local Settings = require("rizu.config.Settings")
+local dan_list = require("sea.dan.dan_list")
+
+--- Formats info from chartview
+--- You can get it from `ui.api.charts:getSelectedChart()`
+---@class ui.formatters.ChartviewFormatter
+---@overload fun(chartview: rizu.api.Chart?, settings: rizu.config.Config): ui.formatters.ChartviewFormatter
+local ChartviewFormatter = class()
+
+---@type {[string]: true}
+local dan_chartmeta_keys = {}
+for _, dan in pairs(dan_list) do
+	for _, cmk in ipairs(dan.chartmeta_keys) do
+		dan_chartmeta_keys[cmk.hash .. ":" .. cmk.index] = true
+	end
+end
+
+local iidx_difficulty_names = {
+	B = "Beginner",
+	N = "Normal",
+	H = "Hyper",
+	A = "Another",
+	L = "Leggendaria",
+}
+
+---@param chartview rizu.api.Chart?
+---@param settings rizu.config.Config
+function ChartviewFormatter:new(chartview, settings)
+	self.chartview = chartview or {}
+	self.settings = settings
+	self.time_rate = 1
+end
+
+---@param chartview rizu.api.Chart?
+function ChartviewFormatter:setChartview(chartview)
+	self.chartview = chartview or {}
+end
+
+---@param time_rate number
+function ChartviewFormatter:setTimeRate(time_rate)
+	self.time_rate = time_rate
+end
+
+---@return {value: string, color: gui.Color}
+function ChartviewFormatter:getTimeRate()
+	return {
+		value = ("%0.02fx"):format(self.time_rate),
+		color = Color.rateToColor(self.time_rate, {1, 1, 1, 1})
+	}
+end
+
+---@return {value: string, postfix: string, color: gui.Color}
+function ChartviewFormatter:getDifficulty()
+	local mode = self.chartview.chartmeta_mode
+	if mode and mode ~= "mania" then
+		return {value = "—", postfix = "EXPERIMENTAL", color = {0.6, 0.8, 1, 1}}
+	end
+	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
+	local num = self.chartview[diff_column] or 0
+
+	if diff_column == "msd_diff" then
+		local rates = self.chartview.msd_diff_rates
+		if rates and #rates > 0 then
+			num = num * MsdFormatter.multiplierAt(rates, self.time_rate)
+		end
+	else
+		num = num * self.time_rate
+	end
+
+	local postfix = "USER"
+
+	if diff_column == "osu_diff" then
+		postfix = "★"
+	elseif diff_column == "msd_diff" then
+		postfix = "MSD"
+	elseif diff_column == "enps_diff" then
+		postfix = "ENPS"
+	end
+
+	return {
+		value = ("%0.01f"):format(num),
+		postfix = postfix,
+		color = Color.diffToColor(diff_column, num, {1, 1, 1, 1})
+	}
+end
+
+---@return {top_full: string?, second_full: string?, top_simple: string?, second_simple: string?}
+function ChartviewFormatter:getPatterns()
+	local msd_diff_data = self.chartview.msd_diff_data
+	local msd_diff_rates = self.chartview.msd_diff_rates
+
+	if not msd_diff_data or not msd_diff_rates then
+		return {}
+	end
+
+	local msd_formatter = MsdFormatter(msd_diff_data, msd_diff_rates)
+	local inputmode = self.chartview.chartdiff_inputmode or self.chartview.inputmode
+	local first, second = msd_formatter:getTopPatterns(self.time_rate, inputmode)
+
+	local t = {
+		top_full = first,
+		second_full = second,
+	}
+
+	if first then
+		t.top_simple = msd_formatter.simplifyName(first)
+	end
+
+	if second then
+		t.second_simple = msd_formatter.simplifyName(second)
+	end
+
+	return t
+end
+
+---@return string
+function ChartviewFormatter:getDuration()
+	local duration = (self.chartview.duration or 0) / self.time_rate
+	return ("%i:%02i"):format(duration / 60, duration % 60)
+end
+
+---@return {value: string, color: gui.Color}
+function ChartviewFormatter:getLongNoteRatio()
+	local ratio = self.chartview.long_notes_ratio or 0
+	return {
+		value = ("%i%%"):format(math.floor(ratio * 100 + 0.5)),
+		color = Color.lnPercentToColor(ratio, {1, 1, 1, 1})
+	}
+end
+
+---@return {min: string, max: string, avg: string}
+function ChartviewFormatter:getTempo()
+	local time_rate = self.time_rate
+	return {
+		avg = ("%i"):format((self.chartview.tempo or 0) * time_rate), -- SHOULD USE chartview.tempo_avg, but it's always 0
+		min = ("%i"):format((self.chartview.tempo_min or 0) * time_rate),
+		max = ("%i"):format((self.chartview.tempo_max or 0) * time_rate)
+	}
+end
+
+---@return string
+function ChartviewFormatter:getNoteCount()
+	return tostring(self.chartview.notes_count or 0)
+end
+
+---@return string
+function ChartviewFormatter:getMode()
+	local chartview = self.chartview
+	local labels = {osu = "AIM", catch = "CATCH", taiko = "TAIKO", sdvx = "SDVX"}
+	local label = labels[chartview.chartmeta_mode]
+	if label then return label .. " (EXPERIMENTAL)" end
+	local inputmode = chartview.chartdiff_inputmode or chartview.inputmode
+	if inputmode and inputmode ~= "" then
+		return inputmode:gsub("key", "K"):gsub("scratch", "S"):upper()
+	end
+	if chartview.mode and chartview.mode ~= "" then
+		return chartview.mode:upper()
+	end
+	return "NO CHART"
+end
+
+---@return string
+function ChartviewFormatter:getLevel()
+	return tostring(self.chartview.level or 0)
+end
+
+---@return string
+function ChartviewFormatter:getFormat()
+	return (self.chartview.format or "unknown"):upper()
+end
+
+---@return string?
+function ChartviewFormatter:getName()
+	local name = self:getBaseName()
+	local level = self.chartview.level
+	if not name or not level or level <= 0 then
+		return name
+	end
+	return ("[Lv. %i] %s"):format(level, name)
+end
+
+---@return string?
+function ChartviewFormatter:getBaseName()
+	local name = self.chartview.name
+	if self.chartview.format ~= "iidx" or not name then
+		return name
+	end
+
+	local play_style, difficulty = name:match("^(SP)([BNHAL])$")
+	if not play_style then
+		play_style, difficulty = name:match("^(DP)([BNHAL])$")
+	end
+	if not play_style then
+		return name
+	end
+
+	return ("%s %s"):format(iidx_difficulty_names[difficulty], play_style)
+end
+
+---@return string
+function ChartviewFormatter:getTitle()
+	local cv = self.chartview
+	return cv.title and not cv.title:match("^%s*$") and cv.title or "Unknown title"
+end
+
+---@return string
+function ChartviewFormatter:getArtist()
+	local cv = self.chartview
+	return cv.artist and not cv.artist:match("^%s*$") and cv.artist or "Unknown artist"
+end
+
+---@return boolean
+function ChartviewFormatter:isRanked()
+	return self.chartview.difftable_chartmetas and #self.chartview.difftable_chartmetas > 0 or false
+end
+
+---@return boolean
+function ChartviewFormatter:isDan()
+	local cv = self.chartview
+	return cv.hash ~= nil and cv.index ~= nil and dan_chartmeta_keys[cv.hash .. ":" .. cv.index] == true
+end
+
+return ChartviewFormatter

@@ -38,6 +38,12 @@
 					Donate
 				</p>
 			</a>
+			<div class="navbar-item">
+				<p>
+					<i class="fas fa-users icon-margin-right"></i>
+					<%= players_online %> Players Online
+				</p>
+			</div>
 		</div>
 		<div class="navbar-end">
 			<div class="navbar-item has-dropdown is-hoverable" x-data="{

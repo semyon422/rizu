@@ -1,8 +1,6 @@
 local class = require("class")
 local ShortNoteView = require("sphere.views.RhythmView.ShortNoteView")
 local LongNoteView = require("sphere.views.RhythmView.LongNoteView")
-local ImageNoteView = require("sphere.views.RhythmView.ImageNoteView")
-local VideoNoteView = require("sphere.views.RhythmView.VideoNoteView")
 
 ---@class sphere.NoteViewFactory
 ---@operator call: sphere.NoteViewFactory
@@ -16,29 +14,23 @@ local NoteViewFactory = class()
 ---| "LongNoteAnimation"
 ---| "ShortNoteLighting"
 ---| "LongNoteLighting"
----| "ImageNote"
----| "VideoNote"
 
 ---@see sphere.GraphicalNoteFactory
 
 ---@type {[string]: {[sphere.GraphicalNoteType]: {[1]: table, [2]: sphere.NoteViewType}}}
 local notes = {
 	default = {
-		ShortNote = {ShortNoteView, "ShortNote"},
+		short = {ShortNoteView, "ShortNote"},
 		SoundNote = {ShortNoteView, "SoundNote"},
-		LongNote = {LongNoteView, "LongNote"},
+		long = {LongNoteView, "LongNote"},
 	},
 	animation = {
-		ShortNote = {ShortNoteView, "ShortNoteAnimation"},
-		LongNote = {ShortNoteView, "LongNoteAnimation"},
+		short = {ShortNoteView, "ShortNoteAnimation"},
+		long = {ShortNoteView, "LongNoteAnimation"},
 	},
 	lighting = {
-		ShortNote = {ShortNoteView, "ShortNoteLighting"},
-		LongNote = {ShortNoteView, "LongNoteLighting"},
-	},
-	bga = {
-		ImageNote = {ImageNoteView, "ImageNote"},
-		VideoNote = {VideoNoteView, "VideoNote"},
+		short = {ShortNoteView, "ShortNoteLighting"},
+		long = {ShortNoteView, "LongNoteLighting"},
 	},
 }
 
@@ -48,11 +40,11 @@ for _, c in pairs(notes) do
 	end
 end
 
----@param graphicalNote sphere.GraphicalNote
+---@param visual_note rizu.VisualNote
 ---@param mode string
 ---@return sphere.NoteView?
-function NoteViewFactory:getNoteView(graphicalNote, mode)
-	return notes[mode][graphicalNote.noteType]
+function NoteViewFactory:getNoteView(visual_note, mode)
+	return notes[mode][visual_note.type]
 end
 
 return NoteViewFactory

@@ -2,22 +2,8 @@ local pkg = require("aqua.pkg")
 
 pkg.import_lua()
 
-pkg.addc()
-pkg.addc("3rd-deps/lib")
-pkg.addc("bin/lib")
-pkg.addc("tree/lib/lua/5.1")
-pkg.add()
-pkg.add("3rd-deps/lua")
-pkg.add("aqua")
-pkg.add("ncdk")
-pkg.add("chartbase")
-pkg.add("libchart")
-pkg.add("tree/share/lua/5.1")
+require("pkg_config")
 
-pkg.export_lua()
-pcall(pkg.export_love)
-
-require("preload")
 local json = require("web.json")
 local io_util = require("io_util")
 local table_util = require("table_util")
@@ -31,7 +17,7 @@ local ActivityTimezones = require("sea.activity.ActivityTimezones")
 coroutine.wrap = require("icc.co").wrap
 
 local App = require("sea.app.App")
-local app_config = require("app_config")
+local app_config = require("server-state.app_config")
 local app = App(app_config)
 
 local domain = app.domain
@@ -109,6 +95,34 @@ function cmds.start_total_rating()
 	local total = domain.users:getUsersCount() * leaderboards:getLeaderboardsCount()
 	local task = compute_tasks:createComputeTask(os.time(), "total_rating", "new", total)
 	cmds.list()
+end
+
+function cmds.compute_jobs(state, limit)
+	limit = limit and assert(tonumber(limit)) or 100
+	for _, job in ipairs(domain.compute_jobs:getJobs(state, limit)) do
+		print(stbl.encode(job))
+	end
+end
+
+function cmds.requeue_compute_job(id)
+	id = assert(tonumber(id))
+	local job, err = domain.compute_jobs:requeue(id)
+	assert(job, err)
+	print(stbl.encode(job))
+end
+
+function cmds.chartplay_effects(state, limit)
+	limit = limit and assert(tonumber(limit)) or 100
+	for _, effect in ipairs(domain.chartplay_effects:getEffects(state, limit)) do
+		print(stbl.encode(effect))
+	end
+end
+
+function cmds.requeue_chartplay_effect(id)
+	id = assert(tonumber(id))
+	local effect, err = domain.chartplay_effects:requeue(id)
+	assert(effect, err)
+	print(stbl.encode(effect))
 end
 
 function cmds.compute_chartplay(id)
@@ -355,7 +369,7 @@ function cmds.migrate()
 	src_db:open("backend", "username", "password", "127.0.0.1", 3306)
 
 	local dst_db = ServerSqliteDatabase(LjsqliteDatabase())
-	dst_db.path = "server.db"
+	dst_db.path = "server-state/server.db"
 	dst_db:open()
 
 	dst_db.db:exec("BEGIN")

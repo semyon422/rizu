@@ -3,9 +3,12 @@ local dirs = {}
 local dirs_list = {
 	"userdata",
 	"userdata/pkg",
-	"userdata/skins",
+	"userdata/dlc",
+	"userdata/dlc/skins_rizu",
+	"userdata/dlc/skins_osu",
 	"userdata/charts",
 	"userdata/charts/downloads",
+	"userdata/charts/mapperatorinator",
 	"userdata/export",
 	"userdata/hitsounds",
 	"userdata/replays",

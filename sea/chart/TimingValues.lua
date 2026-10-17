@@ -108,7 +108,7 @@ end
 function TimingValues:getMinTime(key)
 	---@type sea.TimingObjectValues
 	local values = self[key]
-	return values.hit[1]
+	return values.miss[1]
 end
 
 return TimingValues

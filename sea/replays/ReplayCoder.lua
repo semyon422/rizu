@@ -2,6 +2,8 @@ local json = require("json")
 local table_util = require("table_util")
 local mime = require("mime")
 local Replay = require("sea.replays.Replay")
+local ReplayEvents = require("sea.replays.ReplayEvents")
+local ReplayFrames = require("rizu.engine.replay.ReplayFrames")
 
 ---@class sea.ReplayCoder
 local ReplayCoder = {}
@@ -16,13 +18,20 @@ function ReplayCoder.decode(s)
 		return nil, "invalid json: " .. obj
 	end
 
-	local events = mime.unb64(obj.events)
-	if not events then
+	local replay = setmetatable(obj, Replay)
+
+	local events = mime.unb64(obj.events) -- v1
+	local frames = mime.unb64(obj.frames) -- v2
+
+	if not events and not frames then
 		return nil, "can't unb64"
 	end
 
-	obj.events = events
-	setmetatable(obj, Replay)
+	if events then
+		replay.events = ReplayEvents.decode(events)
+	elseif frames then
+		replay.frames = ReplayFrames.decode(frames)
+	end
 
 	return obj
 end
@@ -32,7 +41,14 @@ end
 ---@return string?
 function ReplayCoder.encode(replay)
 	local obj = table_util.copy(replay)
-	obj.events = mime.b64(obj.events)
+	---@cast obj -sea.Replay
+	---@cast replay +{events: {}}
+
+	if replay.events then -- v1
+		obj.events = mime.b64(ReplayEvents.encode(replay.events))
+	elseif replay.frames then -- v2
+		obj.frames = mime.b64(ReplayFrames.encode(replay.frames))
+	end
 
 	---@type boolean, string
 	local ok, str = pcall(json.encode, obj)

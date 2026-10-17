@@ -4,7 +4,7 @@ local class = require("class")
 ---@operator call: rizu.TimeSkip
 local TimeSkip = class()
 
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 ---@param time_to_prepare number
 ---@param rate number
 function TimeSkip:new(chart, time_to_prepare, rate)

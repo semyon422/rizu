@@ -32,7 +32,7 @@ files.relations = {
 
 ---@param file sea.old.File
 function files.from_db(file)
-	file.path = "storages/" .. file.storage .. "/" .. file.hash
+	file.path = "server-state/storages/" .. file.storage .. "/" .. file.hash
 end
 
 return files

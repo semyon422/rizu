@@ -1,12 +1,8 @@
 local WebsocketPeer = require("icc.WebsocketPeer")
-local TaskHandler = require("icc.TaskHandler")
-local RemoteHandler = require("icc.RemoteHandler")
-local Remote = require("icc.Remote")
+local Message = require("icc.Message")
 local IResource = require("web.framework.IResource")
 local Websocket = require("web.ws.Websocket")
-local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
-
-local whitelist = require("sea.app.remotes.whitelist")
+local Peer = require("sea.app.Peer")
 
 ---@class sea.WebsocketResource: web.IResource
 ---@operator call: sea.WebsocketResource
@@ -21,11 +17,13 @@ WebsocketResource.routes = {
 	}},
 }
 
----@param server_handler sea.ServerRemote
+---@param domain sea.Domain
 ---@param views web.Views
-function WebsocketResource:new(server_handler, views)
-	self.remote_handler = RemoteHandler(server_handler, whitelist)
+function WebsocketResource:new(domain, views)
+	self.domain = domain
 	self.views = views
+	self.user_connections = domain.user_connections
+	self.task_handler = self.user_connections.task_handler
 end
 
 ---@param req web.IRequest
@@ -33,26 +31,50 @@ end
 ---@param ctx sea.RequestContext
 function WebsocketResource:server(req, res, ctx)
 	local ws = Websocket(req.soc, req, res, "server")
-	local peer = WebsocketPeer(ws)
-	local task_handler = TaskHandler(self.remote_handler)
+	local ws_peer = WebsocketPeer(ws)
+	local task_handler = self.task_handler
+	local user_connections = self.user_connections
 
 	ws.max_payload_len = 1e7
 	task_handler.timeout = 60
 
-	local remote_ctx = {
-		remote = ClientRemoteValidation(Remote(task_handler, peer)),
-		user = ctx.session_user,
-		session = ctx.session,
-		ip = ctx.ip,
-	}
+	local nats = user_connections:getNats()
+	local inbox = "icc.inbox." .. ctx.peer_id
+
+	-- Subscribe to our inbox for two-way call responses
+	-- When callee responds to reply_to (icc.inbox.{peer_id}.{id}),
+	-- this routes the response to task_handler:handleReturn() to resume the waiting coroutine
+	local _, inbox_sid = nil, nil
+	_, _, inbox_sid = nats:subscribe(inbox .. ".*", function(nats_msg)
+		local id = tonumber(nats_msg.subject:match("^.+%.(%d+)$"))
+		if not id then return end
+
+		local decoded = ws_peer:decode(nats_msg.payload)
+		if not decoded then return end
+
+		---@type icc.Message
+		local msg = setmetatable({
+			id = id,
+			ret = true,
+			n = decoded.n or 0,
+		}, {__index = Message})
+		for i = 1, msg.n do
+			msg[i] = decoded[i]
+		end
+
+		task_handler:handleReturn(msg)
+	end)
+	-- inbox_sid is nil when NATS is unavailable; two-way ICC calls will error immediately
+
+	local peer = Peer(task_handler, ws_peer, nats, inbox, ctx.session_user, ctx.ip, ctx.port, ctx.peer_id, ctx.session)
 
 	function ws.protocol:text(payload, fin)
 		if not fin then return end
 
-		local msg = peer:decode(payload)
+		local msg = ws_peer:decode(payload)
 		if not msg then return end
 
-		local ok, err = xpcall(task_handler.handle, debug.traceback, task_handler, peer, remote_ctx, msg)
+		local ok, err = xpcall(task_handler.handle, debug.traceback, task_handler, ws_peer, peer, msg)
 		if not ok then
 			print("icc error ", err)
 		end
@@ -64,9 +86,31 @@ function WebsocketResource:server(req, res, ctx)
 		return
 	end
 
-	local ok, err = ws:loop()
-	if not ok then
-		print(err)
+	local client_task_handler = user_connections:createClientTaskHandler(peer.remote)
+	peer:setup_dispatch(client_task_handler)
+
+	-- Subscribe BEFORE onConnect so broadcasts reach this peer
+	peer:subscribe("icc.peer." .. ctx.peer_id)
+	peer:subscribe("icc.broadcast.all")
+
+	local connected_ok, connected_err = xpcall(function()
+		self.domain:onConnect(peer)
+
+		local loop_ok, loop_err = ws:loop()
+		if not loop_ok then
+			print(loop_err)
+		end
+	end, debug.traceback)
+
+	-- Cleanup NATS subscriptions (by SID to avoid clobbering other connections)
+	if inbox_sid then nats:unsubscribe(inbox_sid) end
+	for _, sid in pairs(peer.broadcast_sids) do
+		nats:unsubscribe(sid)
+	end
+
+	self.domain:onDisconnect(peer)
+	if not connected_ok then
+		error(connected_err, 0)
 	end
 end
 

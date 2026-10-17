@@ -1,57 +1,9 @@
 {
-	"Lua.diagnostics.globals": [
-		"love",
-		"newproxy"
-	],
-	"Lua.runtime.version": "LuaJIT",
-	"Lua.runtime.path": [
-		"?.lua",
-		"?/init.lua",
-		"3rd-deps/lua/?.lua",
-		"aqua/?.lua",
-		"ncdk/?.lua",
-		"chartbase/?.lua",
-		"libchart/?.lua",
-		"3rd-deps/lua/?/init.lua",
-		"aqua/?/init.lua",
-		"ncdk/?/init.lua",
-		"chartbase/?/init.lua",
-		"libchart/?/init.lua",
-	],
-	"Lua.runtime.builtin": {
-		"utf8": "enable"
-	},
-	"Lua.workspace.ignoreSubmodules": false,
-	"Lua.workspace.maxPreload": 2000,
-	"Lua.workspace.ignoreDir": [
-		".vscode",
-		"*/bench",
-		"*/spec",
-		"*/test",
-		"*/tests",
-	],
-	"Lua.completion.autoRequire": false,
-	"Lua.workspace.library": [
-		"${3rd}/love2d/library",
-		"${3rd}/OpenResty/library",
-		"~/.config/Code/User/globalStorage/sumneko.lua/addonManager/addons/luasocket/module/library"
-	],
-	"Lua.workspace.checkThirdParty": false,
-	"Lua.diagnostics.disable": [
-		"undefined-field",
-		"cast-local-type",
-		"duplicate-set-field"
-	],
-	"Lua.runtime.pathStrict": true,
 	"coverage-gutters.showLineCoverage": true,
 	"coverage-gutters.showRulerCoverage": true,
 	"coverage-gutters.highlightdark": "rgba(0, 122, 30, 0.0)",
 	"coverage-gutters.partialHighlightDark": "rgba(163, 149, 0, 0.4)",
 	"coverage-gutters.noHighlightDark": "rgba(255, 191, 63, 0.3)",
-	"Lua.diagnostics.neededFileStatus": {
-		"no-unknown": "Opened",
-		"codestyle-check": "Any"
-	},
 	"files.watcherExclude": {
 		"**/.git/**": true,
 		"**/tree/**": true,
@@ -61,5 +13,5 @@
 	],
 	"folderformatter.extensions": [
 		"lua"
-	],
+	]
 }

@@ -1,0 +1,179 @@
+local EditorServices = require("rizu.editor.EditorServices")
+
+local test = {}
+---@type fun(): rizu.editor.EditorServicesDeps
+local createDeps
+
+---@param t testing.T
+function test.applies_and_attaches_editor_model_collaborators(t)
+	local deps = createDeps()
+	local services = EditorServices(deps)
+	local context = {
+		noteChartLoaderContext = {},
+		intervalManagerContext = {},
+		editorChangesContext = {},
+		noteServiceContext = {},
+		visualEngineContext = {},
+		scrollerContext = {},
+		metronomeContext = {},
+	}
+	function context:getNoteChartLoaderContext()
+		return self.noteChartLoaderContext
+	end
+	function context:getIntervalManagerContext()
+		return self.intervalManagerContext
+	end
+	function context:getEditorChangesContext()
+		return self.editorChangesContext
+	end
+	function context:getNoteServiceContext()
+		return self.noteServiceContext
+	end
+	function context:getVisualEngineContext()
+		return self.visualEngineContext
+	end
+	function context:getScrollerContext()
+		return self.scrollerContext
+	end
+	function context:getMetronomeContext()
+		return self.metronomeContext
+	end
+	local editorModel = {
+		context = context,
+	}
+
+	services:applyToEditorModel(editorModel)
+	services:attachEditorModel(editorModel)
+
+	t:eq(editorModel.noteChartLoader, deps.noteChartLoader)
+	t:eq(editorModel.audio_engine, deps.audio_engine)
+	t:eq(editorModel.ncbtContext, deps.ncbtContext)
+	t:eq(editorModel.intervalManager, deps.intervalManager)
+	t:eq(editorModel.graphsGenerator, deps.graphsGenerator)
+	t:eq(editorModel.editorChanges, deps.editorChanges)
+	t:eq(editorModel.timer, deps.timer)
+	t:eq(editorModel.noteService, deps.noteService)
+	t:eq(editorModel.visualEngine, deps.visualEngine)
+	t:eq(editorModel.scroller, deps.scroller)
+	t:eq(editorModel.metronome, deps.metronome)
+	t:eq(editorModel.metadata, deps.metadata)
+	t:eq(editorModel.bmsToolsContext, deps.bmsToolsContext)
+	t:eq(editorModel.loadService, deps.loadService)
+	t:eq(editorModel.saveService, deps.saveService)
+	t:eq(editorModel.sessionResetService, deps.sessionResetService)
+	t:eq(editorModel.resourceLoadService, deps.resourceLoadService)
+	t:eq(editorModel.playbackService, deps.playbackService)
+	t:eq(editorModel.selectionService, deps.selectionService)
+	t:eq(editorModel.settingsService, deps.settingsService)
+	t:eq(editorModel.analysisService, deps.analysisService)
+	t:eq(editorModel.cursorState, deps.cursorState)
+	t:eq(editorModel.selectionState, deps.selectionState)
+	t:eq(editorModel.renderState, deps.renderState)
+	t:eq(editorModel.analysisState, deps.analysisState)
+	t:eq(editorModel.runtimeState, deps.runtimeState)
+	t:eq(editorModel.viewState, deps.viewState)
+	t:eq(editorModel.frameService, deps.frameService)
+	t:eq(deps.noteChartLoader.context, context.noteChartLoaderContext)
+	t:eq(deps.noteChartLoader.editorModel, nil)
+	t:eq(deps.ncbtContext.editorModel, nil)
+	t:eq(deps.intervalManager.context, context.intervalManagerContext)
+	t:eq(deps.graphsGenerator.editorModel, nil)
+	t:eq(deps.editorChanges.context, context.editorChangesContext)
+	t:eq(deps.editorChanges.editorModel, nil)
+	t:eq(deps.noteService.context, context.noteServiceContext)
+	t:eq(deps.noteService.editorModel, nil)
+	t:eq(deps.visualEngine.context, context.visualEngineContext)
+	t:eq(deps.visualEngine.editorModel, nil)
+	t:eq(deps.scroller.context, context.scrollerContext)
+	t:eq(deps.metronome.context, context.metronomeContext)
+	t:eq(deps.bmsToolsContext.editorModel, nil)
+	t:eq(deps.audio_engine.editorModel, nil)
+	t:eq(deps.timer.editorModel, nil)
+	t:eq(deps.metadata.editorModel, nil)
+	t:eq(deps.loadService.editorModel, nil)
+	t:eq(deps.saveService.editorModel, nil)
+	t:eq(deps.sessionResetService.editorModel, nil)
+	t:eq(deps.resourceLoadService.editorModel, nil)
+	t:eq(deps.playbackService.editorModel, nil)
+	t:eq(deps.selectionService.editorModel, nil)
+	t:eq(deps.settingsService.editorModel, nil)
+	t:eq(deps.analysisService.editorModel, nil)
+	t:eq(deps.cursorState.editorModel, nil)
+	t:eq(deps.selectionState.editorModel, nil)
+	t:eq(deps.renderState.editorModel, nil)
+	t:eq(deps.analysisState.editorModel, nil)
+	t:eq(deps.runtimeState.editorModel, nil)
+	t:eq(deps.viewState.editorModel, nil)
+	t:eq(deps.frameService.editorModel, nil)
+end
+
+---@return rizu.editor.EditorServicesDeps
+function createDeps()
+	local noteService = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local scroller = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local intervalManager = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local metronome = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local editorChanges = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local noteChartLoader = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	local visualEngine = {
+		setContext = function(self, context)
+			self.context = context
+		end,
+	}
+	return {
+		noteChartLoader = noteChartLoader,
+		audio_engine = {},
+		ncbtContext = {},
+		intervalManager = intervalManager,
+		graphsGenerator = {},
+		editorChanges = editorChanges,
+		timer = {},
+		noteService = noteService,
+		visualEngine = visualEngine,
+		scroller = scroller,
+		metronome = metronome,
+		metadata = {},
+		bmsToolsContext = {},
+		loadService = {},
+		saveService = {},
+		sessionResetService = {},
+		resourceLoadService = {},
+		playbackService = {},
+		selectionService = {},
+		settingsService = {},
+		analysisService = {},
+		cursorState = {},
+		selectionState = {},
+		renderState = {},
+		analysisState = {},
+		runtimeState = {},
+		viewState = {},
+		frameService = {},
+	}
+end
+
+return test

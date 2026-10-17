@@ -1,0 +1,230 @@
+local class = require("class")
+local ffi = require("ffi")
+local Wave = require("audio.Wave")
+local ChartAudio = require("rizu.engine.audio.ChartAudio")
+local IOutput = require("rizu.engine.audio.IOutput")
+local ISource = require("rizu.engine.audio.ISource")
+local OutputConfig = require("rizu.engine.audio.OutputConfig")
+local SoftwareMixer = require("rizu.engine.audio.SoftwareMixer")
+local FakeProvider = require("rizu.engine.audio.fake.Provider")
+
+---@class rizu.audio.Engine
+---@operator call: rizu.audio.Engine
+---@field source rizu.audio.ISource
+---@field foregroundSource rizu.audio.ISource
+---@field provider rizu.audio.IProvider
+---@field output rizu.audio.IOutput
+local Engine = class()
+
+Engine.music_volume = 1
+Engine.keysounds_volume = 1
+
+function Engine:new()
+	---@type {[string]: audio.Wave}
+	self.soundDataCache = {}
+	self.mode = {primary = "bass_sample", secondary = "bass_sample"}
+	self.source = ISource()
+	self.foregroundSource = ISource()
+	self.output = IOutput()
+	self.provider = FakeProvider()
+	self.offset = 0
+end
+
+---@param mode {primary: string, secondary: string}
+function Engine:setAudioMode(mode)
+	self.mode = mode
+end
+
+---@param enabled boolean
+function Engine:setEnabled(enabled)
+	if enabled then
+		local BassProvider = require("rizu.engine.audio.bass.Provider")
+		self.provider = BassProvider(OutputConfig.get().backend == "sdl3_pipewire")
+	else
+		self.provider = FakeProvider()
+	end
+end
+
+---@param chart chart.Chart
+---@param resources {[string]: string}?
+---@param auto_key_sound boolean?
+function Engine:load(chart, resources, auto_key_sound)
+	self.resources = resources or {}
+
+	local use_tempo_secondary = self.mode.secondary == "bass_fx_tempo"
+	self.foregroundSource = self.provider:createMixerSource(use_tempo_secondary, "float32")
+	self.foregroundSource:setVolume(self.keysounds_volume)
+
+	local chart_audio = ChartAudio()
+	self.chart_audio = chart_audio
+
+	chart_audio:load(chart, auto_key_sound)
+
+	---@type {[integer]: rizu.audio.IDecoder}
+	local decoders = {}
+	for i, sound in ipairs(chart_audio.sounds) do
+		local data = self.resources[sound.name]
+		if data then
+			decoders[i] = self.provider:createDecoder(data)
+		end
+	end
+
+	self.mixer = SoftwareMixer(chart_audio.sounds, decoders, "float32")
+	if not self.mixer.empty then
+		local use_tempo = self.mode.primary == "bass_fx_tempo"
+		self.source = self.provider:createChartSource(self.mixer, use_tempo)
+		self.source:setVolume(self.music_volume)
+	end
+	self.output = self.provider:createOutput({self.source, self.foregroundSource})
+end
+
+---@param name string
+---@param volume number?
+---@param offset number?
+function Engine:playSample(name, volume, offset)
+	if not self.resources then
+		return
+	end
+	local data = self.resources[name]
+	if not data then
+		return
+	end
+
+	local decoder = self.provider:createDecoder(data, "float32")
+	if offset and offset > 0 then
+		decoder:setPosition(offset)
+	end
+	self.foregroundSource:addSound(decoder, volume)
+end
+
+function Engine:unload()
+	if self.output then
+		self.output:release()
+		self.output = IOutput()
+	end
+
+	if self.source then
+		self.source:release()
+		self.source = ISource()
+	end
+
+	if self.mixer then
+		self.mixer:release()
+		self.mixer = nil
+	end
+
+	if self.foregroundSource then
+		self.foregroundSource:release()
+		self.foregroundSource = ISource()
+	end
+
+	self.chart_audio = nil
+	self.resources = nil
+	self.soundDataCache = {}
+	self.offset = 0
+end
+
+---@return number
+function Engine:getStartTime()
+	local chart_audio = self.chart_audio
+	if not chart_audio then
+		return 0
+	end
+	return chart_audio:getStartTime() - self.offset
+end
+
+---@return audio.Wave
+function Engine:renderWave()
+	local mixer = self.mixer
+	if not mixer or mixer.empty then
+		return Wave()
+	end
+	local position = mixer:getPosition()
+	local start_time = mixer:getTimeBounds()
+	local samples_duration = mixer:getSamplesDuration()
+	if samples_duration <= 0 then
+		return Wave()
+	end
+	mixer:setPosition(start_time)
+
+	local wave = Wave()
+	wave:initBuffer(mixer:getChannelCount(), samples_duration)
+	local sample_format = mixer:getSampleFormat()
+	if sample_format == "int16" then
+		mixer:getFrames(wave.byte_ptr, samples_duration)
+	else
+		assert(sample_format == "float32", "Unsupported mixer sample format")
+		local samples_count = samples_duration * mixer:getChannelCount()
+		---@type {[integer]: number}
+		local float_buf = ffi.new("float[?]", samples_count)
+		mixer:getFrames(float_buf, samples_duration)
+		for i = 0, samples_count - 1 do
+			local sample = float_buf[i] * 32768
+			wave.data_buf[i] = math.min(math.max(sample, -32768), 32767)
+		end
+	end
+	mixer:setPosition(position)
+	return wave
+end
+
+---@return number?
+function Engine:getPosition()
+	return self.output:getPosition(self.source:getPosition()) - self.offset
+end
+
+---@param offset number
+function Engine:setOffset(offset)
+	if self.offset == offset then
+		return
+	end
+	-- Seek relative to the decoded source, not the latency-adjusted audible
+	-- position. Keep queued output intact so its latency is not counted twice.
+	local position = self.source:getPosition() + offset - self.offset
+	self.source:setPosition(position)
+	self.offset = offset
+end
+
+function Engine:update()
+	self.source:update()
+	self.foregroundSource:update()
+	self.output:update()
+end
+
+function Engine:play()
+	self.source:play()
+	self.foregroundSource:play()
+	self.output:play()
+end
+
+function Engine:pause()
+	self.output:pause()
+	self.source:pause()
+	self.foregroundSource:pause()
+end
+
+---@param rate number
+function Engine:setRate(rate)
+	self.source:setRate(rate)
+	self.foregroundSource:setRate(rate)
+end
+
+---@param music_volume number
+---@param keysounds_volume number
+function Engine:setVolume(music_volume, keysounds_volume)
+	self.music_volume = music_volume
+	self.keysounds_volume = keysounds_volume
+	self.source:setVolume(music_volume)
+	self.foregroundSource:setVolume(keysounds_volume)
+end
+
+---@param position number
+function Engine:setPosition(position)
+	self.source:setPosition(position + self.offset)
+	self.output:clear()
+	self.output:update()
+	-- Hitsounds usually don't seek with the song position,
+	-- but we can reset the foreground mixer if needed.
+	-- Currently we just let it be.
+end
+
+return Engine

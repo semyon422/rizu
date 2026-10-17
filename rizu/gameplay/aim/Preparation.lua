@@ -1,0 +1,56 @@
+local Objects = require("chart.format.osu.Objects")
+local SliderSamples = require("chart.format.osu.SliderSamples")
+local Tracking = require("rizu.gameplay.aim.Tracking")
+local Stacking = require("rizu.gameplay.aim.Stacking")
+local Sliders = require("rizu.gameplay.aim.Sliders")
+local Chartdiff = require("sea.chart.Chartdiff")
+local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
+local ModifiersMetaState = require("sea.compute.ModifiersMetaState")
+local AimDecoder = require("chart.format.osu.AimDecoder")
+
+local Preparation = {}
+
+---@param ctx sea.ComputeContext
+---@param replay_base rizu.gameplay.aim.ReplayBase
+function Preparation.compute(ctx, replay_base)
+	assert(replay_base.rate >= 0.25 and replay_base.rate <= 4,
+		"Aim prototype supports playback rates from 0.25x to 4x only.")
+	local chart = assert(ctx.chart)
+	local aim = chart
+	local ok, err = AimDecoder.isSupported(aim)
+	assert(ok, err)
+	-- Session bounds only: do not run mania difficulty or persist this as a chartdiff.
+	local bounds = Chartdiff()
+	bounds.mode = "osu"
+	bounds.rate = replay_base.rate
+	bounds.inputmode = "1osu"
+	local objects = Objects.get(aim, "osu")
+	for _, object in ipairs(objects) do
+		assert(replay_base.format ~= "rizu-aim-sliders-1" or object.kind ~= "spinner", "Incompatible pre-spinner Aim replay.")
+		assert(replay_base.format ~= "rizu-aim-circles-1" or object.kind == "circle", "Incompatible circle-only Aim replay.")
+	end
+	bounds.start_time = objects[1].time
+	local end_time = objects[#objects].time
+	for _, object in ipairs(objects) do
+		if object.kind == "spinner" then end_time = math.max(end_time, assert(object.end_time)) end
+	end
+	local prepared, sliders = pcall(Sliders.prepare, aim)
+	assert(prepared, "Aim prototype: invalid slider geometry/timing: " .. tostring(sliders))
+	SliderSamples.prepare(aim, sliders, chart.resources)
+	Tracking.validateBudget(sliders)
+	for _, slider in pairs(sliders) do
+		end_time = math.max(end_time, slider.timing.end_time)
+	end
+	if aim.data.stack_leniency ~= nil then
+		local ar = aim.data.approach_rate
+		local preempt = ar < 5 and 1.8 - 0.12 * ar or 1.2 - 0.15 * (ar - 5)
+		Stacking.apply(aim, sliders, preempt, 54.4 - 4.48 * aim.data.circle_size)
+	end
+	bounds.duration = end_time - bounds.start_time
+	ctx.chartdiff = bounds
+	ctx.state = ModifiersMetaState(chart.inputMode)
+	ctx.diffcalc_context = DiffcalcContext(bounds, chart, replay_base.rate)
+	ctx.diffcalc_context.notes = {}
+end
+
+return Preparation

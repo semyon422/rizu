@@ -3,18 +3,51 @@ local table_util = require("table_util")
 local icc_co = require("icc.co")
 local Room = require("sea.multi.Room")
 local RoomUpdate = require("sea.multi.RoomUpdate")
+local Observable = require("Observable")
+
+---@class sea.multi.MultiplayerClient.RoomsChangedEvent
+---@field type "rooms_changed"
+---@field rooms sea.Room[]
+
+---@class sea.multi.MultiplayerClient.RoomUsersChangedEvent
+---@field type "room_users_changed"
+---@field room_users sea.RoomUser[]
+---@field room_id integer?
+
+---@class sea.multi.MultiplayerClient.UsersChangedEvent
+---@field type "users_changed"
+---@field users sea.User[]
+
+---@class sea.multi.MultiplayerClient.JoinFailedEvent
+---@field type "join_failed"
+---@field room_id integer
+---@field error string
+
+---@class sea.multi.MultiplayerClient.CreateSucceededEvent
+---@field type "create_succeeded"
+---@field room_id integer
+
+---@class sea.multi.MultiplayerClient.CreateFailedEvent
+---@field type "create_failed"
+---@field error string
+
+---@alias sea.multi.MultiplayerClient.Event sea.multi.MultiplayerClient.RoomsChangedEvent|sea.multi.MultiplayerClient.RoomUsersChangedEvent|sea.multi.MultiplayerClient.UsersChangedEvent|sea.multi.MultiplayerClient.JoinFailedEvent|sea.multi.MultiplayerClient.CreateSucceededEvent|sea.multi.MultiplayerClient.CreateFailedEvent
+---@alias sea.multi.MultiplayerClient.EventObserver {receive: fun(self: table, event: sea.multi.MultiplayerClient.Event)}
+---@alias sea.multi.MultiplayerClient.EventReceiver fun(event: sea.multi.MultiplayerClient.Event)
 
 ---@class sea.MultiplayerClient
 ---@operator call: sea.MultiplayerClient
+---@field observable util.Observable
 local MultiplayerClient = class()
 
----@param server_remote sea.MultiplayerServerRemote
+---@param server_remote sea.ServerRemote
 ---@param replay_base sea.ReplayBase
 ---@param chart_selector sea.IChartSelector
 function MultiplayerClient:new(server_remote, replay_base, chart_selector)
 	self.server_remote = server_remote
 	self.replay_base = replay_base
 	self.chart_selector = chart_selector
+	self.observable = Observable()
 
 	---@type sea.User[]
 	self.users = {}
@@ -35,6 +68,20 @@ end
 ---@param rooms sea.Room[]
 function MultiplayerClient:setRooms(rooms)
 	self.rooms = rooms
+	self.observable:send({type = "rooms_changed", rooms = rooms})
+end
+
+---@param observer sea.multi.MultiplayerClient.EventObserver|sea.multi.MultiplayerClient.EventReceiver
+---@return util.Observer
+function MultiplayerClient:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function MultiplayerClient:offChanged(observer)
+	return self.observable:remove(observer)
 end
 
 ---@param room_users sea.RoomUser[]
@@ -42,14 +89,16 @@ function MultiplayerClient:setRoomUsers(room_users)
 	self.room_users = room_users
 	if #room_users == 0 then
 		self.room_id = nil
-		return
+	else
+		self.room_id = room_users[1].room_id
 	end
-	self.room_id = room_users[1].room_id
+	self.observable:send({type = "room_users_changed", room_users = room_users, room_id = self.room_id})
 end
 
 ---@param users sea.User[]
 function MultiplayerClient:setUsers(users)
 	self.users = users
+	self.observable:send({type = "users_changed", users = users})
 end
 
 ---@param msg string
@@ -68,15 +117,13 @@ function MultiplayerClient:syncChart()
 
 	-- local rules = room.rules
 	-- if not rules.chart then
-	-- 	-- self.selectModel:setConfig(mp_model.chartview)  -- mp controller
+	-- 	-- self.chartSelector:setConfig(mp_model.chartview)  -- mp controller
 	-- end
 
-	self.chart_selector:selectChart(hash, index)
+	-- self.chart_selector:selectChart(hash, index)
 end
 
 function MultiplayerClient:syncReplayBase()
-	print("sync replay base")
-
 	local room = self:getMyRoom()
 	if not room then
 		return
@@ -103,11 +150,6 @@ end
 ---@return boolean
 function MultiplayerClient:isLoggedIn()
 	return not not self.user_id
-end
-
----@param user_name string
-function MultiplayerClient:loginOffline(user_name)
-	self.user_id = self.server_remote:loginOffline(user_name)
 end
 
 ---@param id integer
@@ -175,7 +217,7 @@ function MultiplayerClient:switchReadyAsync()
 	if room_user then
 		room_user.is_ready = not room_user.is_ready
 	end
-	self.server_remote.mp_user:switchReady()
+	self.server_remote.multiplayer:switchReady()
 end
 
 ---@param is_playing boolean
@@ -185,16 +227,16 @@ function MultiplayerClient:setPlayingAsync(is_playing)
 	end
 
 	self.is_playing = is_playing
-	self.server_remote.mp_user:setPlaying(is_playing)
+	self.server_remote.multiplayer:setPlaying(is_playing)
 end
 
 ---@param msg string
 function MultiplayerClient:sendMessageAsync(msg)
-	self.server_remote.mp_user:sendMessage(msg)
+	self.server_remote.multiplayer:sendMessage(msg)
 end
 
 function MultiplayerClient:startMatchAsync()
-	self.server_remote.mp_room:startMatch()
+	self.server_remote.multiplayer:startMatch()
 end
 
 function MultiplayerClient:startClientMatch() -- !!!
@@ -216,7 +258,7 @@ function MultiplayerClient:startClientMatch() -- !!!
 end
 
 function MultiplayerClient:stopMatchAsync()
-	self.server_remote.mp_room:stopMatch()
+	self.server_remote.multiplayer:stopMatch()
 end
 
 function MultiplayerClient:stopClientMatch()
@@ -231,7 +273,7 @@ function MultiplayerClient:kickUserAsync(user_id)
 		return
 	end
 
-	self.server_remote.mp_room:kickUser(user_id)
+	self.server_remote.multiplayer:kickUser(user_id)
 end
 
 ---@param user_id integer
@@ -246,10 +288,7 @@ function MultiplayerClient:setHostAsync(user_id)
 	local room_values = RoomUpdate()
 	room_values.host_user_id = user_id
 
-	local ok, err = self.server_remote.mp_room:updateRoom(room_values)
-	if not ok then
-		print("setHostAsync", err)
-	end
+	self.server_remote.multiplayer:updateRoom(room_values)
 end
 
 ---@param rules sea.RoomRules
@@ -264,10 +303,7 @@ function MultiplayerClient:setRulesAsync(rules)
 	local room_values = RoomUpdate()
 	room_values.rules = rules
 
-	local ok, err = self.server_remote.mp_room:updateRoom(room_values)
-	if not ok then
-		print("setRulesAsync", err)
-	end
+	self.server_remote.multiplayer:updateRoom(room_values)
 end
 
 function MultiplayerClient:updateReplayBaseAsync()
@@ -278,10 +314,7 @@ function MultiplayerClient:updateReplayBaseAsync()
 	local room_values = RoomUpdate()
 	room_values.replay_base = self.replay_base
 
-	local ok, err = self.server_remote.mp_room:updateRoom(room_values)
-	if not ok then
-		print("updateReplayBaseAsync", err)
-	end
+	self.server_remote.multiplayer:updateRoom(room_values)
 end
 
 ---@param chartmeta_key sea.ChartmetaKey
@@ -293,10 +326,7 @@ function MultiplayerClient:updateChartmetaKeyAsync(chartmeta_key)
 	local room_values = RoomUpdate()
 	room_values.chartmeta_key = chartmeta_key
 
-	local ok, err = self.server_remote.mp_room:updateRoom(room_values)
-	if not ok then
-		print("updateChartmetaKeyAsync", err)
-	end
+	self.server_remote.multiplayer:updateRoom(room_values)
 end
 
 ---@param name string
@@ -309,27 +339,51 @@ function MultiplayerClient:createRoomAsync(name, password, chartmeta_key)
 	room_values.replay_base = self.replay_base
 	room_values.chartmeta_key = chartmeta_key
 
-	local room_id, err = self.server_remote:createRoom(room_values)
+	local room_id, err = self.server_remote.multiplayer:createRoom(room_values)
 	if not room_id then
-		print("createRoomAsync", err)
+		local message = tostring(err or "unknown error")
+		self.observable:send({type = "create_failed", error = message})
 		return
 	end
 	self.room_id = room_id
+	-- The room-list broadcast can arrive after the create response (or be
+	-- unavailable when NATS is down). Cache the room we just created so the
+	-- room screen can resolve getMyRoom() immediately.
+	room_values.id = room_id
+	room_values.host_user_id = self.user_id
+	room_values.password = ""
+	local found = false
+	for i, room in ipairs(self.rooms) do
+		if room.id == room_id then
+			self.rooms[i] = room_values
+			found = true
+			break
+		end
+	end
+	if not found then
+		table.insert(self.rooms, room_values)
+	end
+	self.observable:send({type = "rooms_changed", rooms = self.rooms})
+	self.observable:send({type = "create_succeeded", room_id = room_id})
 end
 
 ---@param id integer
 ---@param password string
 function MultiplayerClient:joinRoomAsync(id, password)
-	local ok, err = self.server_remote:joinRoom(id, password)
+	local ok, err = self.server_remote.multiplayer:joinRoom(id, password)
 	if not ok then
-		print("joinRoomAsync", err)
+		local message = tostring(err or "unknown error")
+		self.observable:send({type = "join_failed", room_id = id, error = message})
 	end
 end
 
 function MultiplayerClient:leaveRoomAsync()
-	self.server_remote:leaveRoom()
+	-- Clear local state first so leaving remains usable even if the server-side
+	-- notification path fails after removing this user from the room.
 	self.room_id = nil
+	self.room_users = {}
 	self.room_messages = {}
+	self.server_remote.multiplayer:leaveRoom()
 end
 
 MultiplayerClient.switchReady = icc_co.callwrap(MultiplayerClient.switchReadyAsync)

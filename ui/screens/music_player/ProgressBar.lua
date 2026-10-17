@@ -1,0 +1,79 @@
+local View = require("gui.View")
+local Painter = require("gui.Painter")
+local Colors = require("ui.Colors")
+local Resources = require("ui.Resources")
+
+local lg = love.graphics
+
+---@param seconds number
+---@return string
+local function formatTime(seconds)
+	seconds = math.max(0, math.floor(seconds))
+	return ("%d:%02d"):format(math.floor(seconds / 60), seconds % 60)
+end
+
+---@class ui.screens.music_player.ProgressBar : gui.View
+---@operator call: ui.screens.music_player.ProgressBar
+---@field media rizu.api.Media
+---@field font love.Font
+local ProgressBar = View + {}
+
+---@param media rizu.api.Media
+function ProgressBar:new(media)
+	View.new(self)
+	self.media = media
+	self.handles_mouse_input = true
+end
+
+function ProgressBar:load()
+	self.font = Resources.getFont("regular", 20)
+end
+
+---@param screen_x number
+---@param screen_y number
+function ProgressBar:seekAt(screen_x, screen_y)
+	local x = self.world_transform:inverseTransformPoint(screen_x, screen_y)
+	self.media:seekPreview(math.max(0, math.min(x / self.width, 1)))
+end
+
+---@param event gui.MouseDownEvent
+function ProgressBar:onMouseDown(event)
+	if event.button ~= 1 then
+		return
+	end
+	self:seekAt(event.x, event.y)
+	return true
+end
+
+---@param event gui.DragStartEvent
+function ProgressBar:onDragStart(event)
+	self:seekAt(event.x, event.y)
+	return true
+end
+
+---@param event gui.DragEvent
+function ProgressBar:onDrag(event)
+	self:seekAt(event.x, event.y)
+	return true
+end
+
+function ProgressBar:draw()
+	local time, min_time, max_time = self.media:getPreviewTime()
+	local position = math.max(time - min_time, 0)
+	local duration = math.max(max_time - min_time, 0)
+	local progress = duration > 0 and math.min(position / duration, 1) or 0
+	local track_y = 10
+
+	Painter.setColorTable(Colors.surface)
+	lg.rectangle("fill", 0, track_y, self.width, 12, 6, 6)
+	Painter.setColorTable(Colors.accent)
+	lg.rectangle("fill", 0, track_y, self.width * progress, 12, 6, 6)
+
+	Painter.setColorTable(Colors.text)
+	lg.setFont(self.font)
+	lg.print(formatTime(position), 0, 34)
+	local duration_text = formatTime(duration)
+	lg.print(duration_text, self.width - self.font:getWidth(duration_text), 34)
+end
+
+return ProgressBar

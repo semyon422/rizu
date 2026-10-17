@@ -18,6 +18,7 @@ local presets = {
 	require("sea.timings.quaver.QuaverTimings_v1"),
 	require("sea.timings.bmsrank.LunaticRaveTimings_v2"),
 	require("sea.timings.bmsrank.LunaticRaveTimings_v1"),
+	require("sea.timings.iidx.IidxTimings_v1"),
 	require("sea.timings.simple.SimpleTimings_v1"),
 }
 

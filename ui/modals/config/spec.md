@@ -1,0 +1,43 @@
+## Goal
+
+Provide a section-based settings modal for `rizu.config.Settings` and the UI-specific `ui.UiConfig` store.
+
+## User Experience
+
+Settings are grouped under named, illustrated sections and use the shared form controls. A padded section list on the left shows each section's icon and name, highlights hovered items, and scrolls the single settings list to that section's heading when clicked. A search box above the section list filters the list on every keystroke: a control is kept when every whitespace-separated term appears (case-insensitively) in its name, keywords, tip, or section name, and a query matching a section name keeps that whole section. Sections without matches lose their heading and their button, and an empty result shows a "No results" label. Changing the query resets the scroll position. Changes to checkboxes, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
+
+## Architecture Decisions
+
+`Section` is a stateful definition rather than a view. It owns a name, icon, arbitrary presentation state, and a builder that returns the controls currently applicable to that state. Calling `Section:invalidate()` schedules the modal to rebuild its rows on the next update.
+
+Each concrete section lives in its own module under `ui/modals/config/sections/`. All generated `FormControl` instances are direct rows of the modal's single `Form`. Section headings are non-selectable rows in the same form. `ControlFactory` binds flat config keys from `rizu.config.Settings` and `ui.UiConfig` to controls; changes update their config stores immediately.
+
+The Gameplay section exposes Auto keysound (`gameplay.auto_key_sound`, off by default). When enabled, keysounds play automatically independently of key presses. The stored value updates immediately and is used on the next chart load.
+
+The Gameplay section also exposes preparation time (0.5–3 seconds) and four transition durations (0–2 seconds, step 0.1): hold to pause, resume delay, hold to retry during play, and hold to retry while paused. These bind the existing modern `gameplay.time.*` settings; pause defaults to 0 seconds, resume and both retries to 0.5 seconds. Early release cancels pause/retry, while resume is a countdown cancelled by a second pause press. Labels and tips distinguish those behaviors.
+
+The audio section exposes master, music, keysound, metronome, and UI volume, plus independent keysound-volume controls for the applicable Chart formats. Stored volumes remain linear values in `[0, 1]`. The logarithmic presentation converts them to and from decibels and changing the presentation mode invalidates the section. It also selects the music playback mode: BASS Sample changes pitch with rate, while BASS FX Tempo preserves pitch. Changes apply when the next Chart is loaded. Keysounds use BASS Sample by default; their mode remains configurable through `audio.mode.secondary`.
+
+It also exposes restart-applied audio latency presets. `System` preserves the existing platform defaults or advanced numeric device period/buffer values; `Safe`, `Balanced`, `Low`, and `Experimental` select 40, 20, 10, and 5 ms device buffers respectively, with update periods chosen for those buffers. `Custom` exposes the raw BASS device period and buffer controls. Lower values reduce the delay of keysounds triggered by live input but can produce crackling on devices that cannot sustain them. The section reports the active BASS device, driver, configured period/buffer, actual device latency, and minimum buffer.
+
+On Linux, the section selects between BASS Default, PipeWire Low Latency, and SDL3 Native PipeWire. PipeWire Low Latency selects BASS's PipeWire ALSA endpoint and requests a graph quantum derived from the selected device buffer through `PIPEWIRE_LATENCY`. SDL3 Native PipeWire routes the gameplay background/foreground master PCM stream through SDL's native PipeWire driver; preview and focused UI samples remain on BASS during this prototype. Changes apply after restart. Missing or failed endpoints fall back to BASS Default and display the startup fallback in the settings diagnostics.
+
+The renderer section binds the renderer settings for unlimited FPS, the FPS limit, and VSync (`-1` adaptive, `0` off, `1` on). The FPS limit is hidden while unlimited FPS is enabled, and toggling unlimited FPS invalidates the section to update its controls. The section also owns the modern UI's Show FPS option.
+
+The layout section exposes the fullscreen toggle and fullscreen mode selector. The mode selector maps LÖVE's stored `desktop` and `exclusive` values to user-facing borderless desktop and exclusive fullscreen labels; changes apply through `WindowModel` immediately.
+
+The offset section exposes a Universal offset slider. It uses the `bass_sample` audio-mode offset as its displayed value and writes every change to both `bass_sample` and `bass_fx_tempo`. It also exposes independent format-offset sliders for osu!, Quaver, StepMania, and KSH Charts.
+
+The User Interface section controls whether Song Select displays a chart preview, filters scores to unmodified automatic-timing plays, and selects which difficulty rating type menus display. Changing the displayed difficulty type refreshes the Song Select library, matching F5.
+
+The Bindings section exposes modern UI, Song Select, gameplay, editor, and screenshot shortcuts. Each keybind control captures one key together with its held modifiers and displays combinations with `+`, for example `Ctrl+O`. Changes update the active action map immediately and persist in `userdata/ui.json`. The defaults preserve the legacy shortcuts from the previous game UI: F2 random chart, F3/F4 play speed, F5/F6 time rate, backtick retry, Space skip intro, Shift+Escape gameplay quit, minus/equal/Delete local offset, and F12 screenshots.
+
+## Invariants
+
+- A section never owns or draws views.
+- Structural changes are deferred until `Config:update()` and never mutate rows from an input callback.
+- Rebuilding closes dropdown overlays and clears form selection before replacing rows.
+- Every setting control may carry a localized name, search keywords, a stable config key, and an optional `tip` for a future tip view.
+- Textboxes notify their change callback only on focus loss and only when their value changed since the previous commit.
+- Key-binding text uses canonical `Ctrl`, `Shift`, `Alt`, and `Super` modifier labels and lowercase LÖVE key names.
+- Audio volume storage is always linear even when sliders display decibels.

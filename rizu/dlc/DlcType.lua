@@ -1,0 +1,5 @@
+---@alias rizu.dlc.DlcType
+---| "pack" # A collection of multiple chart sets (e.g., Etterna packs)
+---| "set" # A single chart set containing multiple difficulties and assets (e.g., osu! beatmapsets)
+---| "file" # A single chart file, downloaded to a specific set folder (e.g., for updating or adding difficulties)
+---| "skin" # A visual theme for the game

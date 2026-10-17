@@ -1,0 +1,479 @@
+local class = require("class")
+local delay = require("delay")
+local Observable = require("Observable")
+local SelectionState = require("rizu.select.SelectionState")
+local ListStore = require("rizu.select.stores.ListStore")
+local SearchModel = require("rizu.select.SearchModel")
+local SortModel = require("rizu.select.SortModel")
+local FilterModel = require("rizu.select.FilterModel")
+local SelectionQueryBuilder = require("rizu.select.SelectionQueryBuilder")
+local ChartMediaService = require("rizu.select.services.ChartMediaService")
+local ChartLoader = require("rizu.select.services.ChartLoader")
+local TaskRunner = require("rizu.select.tasks.TaskRunner")
+local thread = require("thread")
+local ChartfileReader = require("rizu.library.ChartfileReader")
+local Settings = require("rizu.config.Settings")
+
+---@class rizu.select.ChartSelector
+---@operator call: rizu.select.ChartSelector
+---@field is_finding_chartmeta boolean?
+---@field chartMediaService rizu.select.services.ChartMediaService
+---@field chartLoader rizu.select.services.ChartLoader
+---@field random_history {last: integer, count: integer, [integer]: integer} Ring buffer of primary indexes jumped away from by scrollRandom.
+local ChartSelector = class()
+
+ChartSelector.debounceTime = 0.5
+
+local RANDOM_HISTORY_SIZE = 64
+
+local chartExistsAsync = thread.async(function(path)
+	require("love.filesystem")
+	local ChartfileReader = require("rizu.library.ChartfileReader")
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	return ChartfileReader.exists(LoveFilesystem(), path)
+end)
+
+local LEVELS = {
+	chartfile_sets = 1,
+	chartfiles = 2,
+	chartmetas = 3,
+	chartdiffs = 4,
+	chartplays = 5,
+}
+
+---@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
+---@param library rizu.library.Library
+---@param fs fs.IFilesystem
+---@param collectionSelector rizu.select.CollectionSelector
+---@param timer time.ITimer
+---@param state? rizu.select.SelectionState
+function ChartSelector:new(configModel, settings, library, fs, collectionSelector, timer, state)
+	self.configModel = configModel
+	self.settings = settings
+	self.library = library
+	self.fs = fs
+	self.check_chart_exists = chartExistsAsync
+	self.collectionSelector = collectionSelector
+	self.state = state or SelectionState()
+	self.random_history = {last = 0, count = 0}
+
+	---@type rizu.select.stores.ListStore[]
+	self.stores = {
+		ListStore(library), -- Primary
+		ListStore(library), -- Secondary
+	}
+
+	self.searchModel = SearchModel(configModel, settings)
+	self.searchModel:onChanged(function()
+		self:debounceRefresh()
+	end)
+	self.filterModel = FilterModel(configModel)
+	self.filterModel:onChanged(function()
+		self:noDebounceRefresh()
+	end)
+	self.sortModel = SortModel()
+	self.queryBuilder = SelectionQueryBuilder(settings, self.sortModel, self.searchModel, self.filterModel)
+	self.chartMediaService = ChartMediaService()
+	self.chartLoader = ChartLoader(fs)
+	self.taskRunner = TaskRunner()
+
+	self.observable = Observable()
+	self.state:onChanged(self)
+
+	self.stores[1]:onChanged(function(event)
+		if event.type == "list_items_loaded" then
+			local index = self.state:getSelection(1).index
+			if index >= event.first and index <= event.last then
+				self:setChanged()
+			end
+		end
+	end)
+	self.stores[2]:onChanged(function(event)
+		if event.type == "list_items_loaded" then
+			local index = self.state:getSelection(2).index
+			if index >= event.first and index <= event.last then
+				self:emitChanged({type = "chartview_changed", chartview = self.chartview})
+				self:setChanged()
+			end
+		end
+	end)
+end
+
+---@param observer rizu.select.ChartSelectorEventObserver|rizu.select.ChartSelectorEventReceiver
+---@return util.Observer
+function ChartSelector:onChanged(observer)
+	---@cast observer util.Observer|util.EventReceiver
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function ChartSelector:offChanged(observer)
+	return self.observable:remove(observer)
+end
+
+---@param event rizu.select.ChartSelectorEvent
+function ChartSelector:emitChanged(event)
+	self.observable:send(event)
+end
+
+---@param chartview rizu.library.LocatedChartview?
+function ChartSelector:setChartview(chartview)
+	self.chartview = chartview
+	self.chart_exists = nil
+	self.chart_exists_pending = nil
+	self.changed = true
+	self:emitChanged({type = "chartview_changed", chartview = chartview})
+end
+
+function ChartSelector:notifyChartviewChanged()
+	self:emitChanged({type = "chartview_changed", chartview = self.chartview})
+end
+
+---@param chartview rizu.library.LocatedChartview?
+---@return boolean
+function ChartSelector:isPlayableChartview(chartview)
+	return chartview ~= nil
+		and chartview.chartmeta_id ~= nil
+		and chartview.chartmeta_id ~= 0
+		and chartview.hash ~= nil
+		and chartview.index ~= nil
+		and chartview.inputmode ~= nil
+		and chartview.location_path ~= nil
+end
+
+---@param event rizu.select.SelectionStateEvent
+function ChartSelector:receive(event)
+	if self.is_finding_chartmeta then
+		return
+	end
+
+	if event.type == "selection_changed" then
+		if event.level == 1 then
+			self.taskRunner:push(function()
+				self:pullLevel(2)
+			end, TaskRunner.priority.high)
+		elseif event.level == 2 then
+			self.taskRunner:push(function()
+				local index = self.stores[1]:indexof(self.config)
+				local item = self.stores[1]:get(index)
+				self.state:setSelection(1, index, item and item.chartfile_set_id)
+			end, TaskRunner.priority.low)
+		end
+	end
+end
+
+function ChartSelector:load()
+	local config = self.configModel.configs.select
+	self.config = config
+
+	self.searchMode = config.searchMode
+	self.filterModel:apply()
+
+	self:noDebounceRefresh()
+end
+
+function ChartSelector:updatePrimaryItems()
+	local collectionItem = self.collectionSelector:getSelectedItem()
+	local params = self.queryBuilder:build(self.config, collectionItem, self.library.locations:getRemoteLocationIds())
+
+	-- The indexes mean something else in the new list.
+	self.random_history = {last = 0, count = 0}
+	self:emitChanged({type = "primary_items_loading"})
+	local result = self.library:queryAsync(params)
+	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
+	self.stores[1]:setResult(result, self:getPrimaryMode())
+	self:emitChanged({type = "primary_items_updated"})
+end
+
+---@param hash string
+---@param index integer
+function ChartSelector:findChartmeta(hash, index)
+	local params = {
+		where = {hash = hash, index = index},
+		difficulty = self.settings:getChoice(Settings.keys.select.diff_column),
+		primary_mode = "chartmetas",
+		secondary_mode = "chartmetas",
+	}
+	self.taskRunner:push(function()
+		local result = self.library:queryAsync(params)
+		if result then
+			self.library.chartviewsRepo.params = params
+			self.stores[1]:setResult(result, "chartmetas")
+			local item = self.stores[1]:get(1)
+			if item then
+				local result2 = self.library:getViewsAsync(params, item)
+				self.stores[2]:setResult(result2, "chartmetas")
+
+				local chartview = self.stores[2]:get(1)
+				self:setChartview(chartview)
+				self:setConfig(chartview)
+				if chartview then
+					self.is_finding_chartmeta = true
+					self.state:setSelection(1, 1, chartview.chartfile_set_id)
+					self.state:setSelection(2, 1, chartview.chartfile_id)
+					self.is_finding_chartmeta = false
+				end
+			end
+			self:emitChanged({type = "chartmeta_found", hash = hash, index = index})
+		end
+	end, TaskRunner.priority.high)
+end
+
+---@return string?
+function ChartSelector:getBackgroundPath()
+	local chartview = self.chartview
+	if not self:isPlayableChartview(chartview) then return end
+	return self.chartMediaService:getBackgroundPath(chartview, self.library:getRemoteAssets(chartview))
+end
+
+---@return string?
+---@return number?
+---@return string?
+function ChartSelector:getAudioPathPreview()
+	local chartview = self.chartview
+	if not self:isPlayableChartview(chartview) then return end
+	return self.chartMediaService:getAudioPathPreview(chartview, self.library:getRemoteAssets(chartview))
+end
+
+---@param settings table?
+---@return chart.Chart?
+---@return sea.Chartmeta?
+function ChartSelector:loadChart(settings)
+	local chartview = self.chartview
+	if not self:isPlayableChartview(chartview) then return end
+	return self.chartLoader:loadChart(chartview)
+end
+
+---@param settings table?
+---@return chart.Chart?
+---@return sea.Chartmeta?
+function ChartSelector:loadChartAbsolute(settings)
+	local chartview = self.chartview
+	if not self:isPlayableChartview(chartview) then return end
+	return self.chartLoader:loadChartAbsolute(chartview)
+end
+
+---@return boolean
+function ChartSelector:isChanged()
+	local changed = self.changed
+	self.changed = false
+	return changed == true
+end
+
+function ChartSelector:setChanged()
+	self.changed = true
+	self:emitChanged({type = "selected_set_changed"})
+end
+
+---@return boolean
+function ChartSelector:chartExists()
+	if self.chart_exists ~= nil then
+		return self.chart_exists
+	end
+
+	local chartview = self.chartview
+	if not chartview or not chartview.location_path then
+		return false
+	end
+	-- The files of a remote location are downloaded when the chart is loaded.
+	if chartview.location_url then
+		self.chart_exists = true
+		return true
+	end
+
+	if self.library.is_sync then
+		self.chart_exists = ChartfileReader.exists(self.fs, chartview.location_path)
+		return self.chart_exists
+	end
+	if self.chart_exists_pending then return false end
+	local token = {}
+	self.chart_exists_pending = token
+	thread.coro(function()
+		local exists = self.check_chart_exists(chartview.location_path)
+		if self.chart_exists_pending ~= token or self.chartview ~= chartview then return end
+		self.chart_exists_pending = nil
+		self.chart_exists = exists
+		self:emitChanged({type = "chart_availability_changed"})
+	end)()
+	return false
+end
+
+function ChartSelector:debounceRefresh(...)
+	delay.debounce(self, "refreshDebounce", self.debounceTime, self.refresh, self, ...)
+end
+
+function ChartSelector:noDebounceRefresh(...)
+	local args = {...}
+	self.taskRunner:push(function()
+		self:refresh(unpack(args))
+		if self.chartview then
+			self:setConfig(self.chartview)
+		end
+	end, TaskRunner.priority.high)
+end
+
+---@param sortFunctionName string
+function ChartSelector:setSortFunction(sortFunctionName)
+	self.settings:setString(Settings.keys.select.sort_function, sortFunctionName)
+	self:noDebounceRefresh()
+end
+
+---Lists the charts of the remote locations instead of the charts on this computer.
+---@param online boolean
+function ChartSelector:setOnline(online)
+	self.config.online = online
+	self:noDebounceRefresh()
+end
+
+---@param locked boolean
+function ChartSelector:setLock(locked)
+	self.locked = locked
+end
+
+---@return string
+function ChartSelector:getPrimaryMode()
+	return self.settings:getChoice(Settings.keys.select.primary_mode)
+end
+
+---@return string
+function ChartSelector:getSecondaryResultMode()
+	local keys = Settings.keys.select
+	local primary_mode = self.settings:getChoice(keys.primary_mode)
+	local secondary_mode = self.settings:getChoice(keys.secondary_mode)
+
+	if LEVELS[secondary_mode] >= LEVELS[primary_mode] then
+		return secondary_mode
+	end
+	return primary_mode
+end
+
+function ChartSelector:scrollRandom()
+	local itemsCount = self.stores[1]:count()
+	local destination = math.random(1, itemsCount)
+	local from = self.state:getPrimary().index
+	self:scrollLevel(1, nil, destination)
+	if from > 0 and self.state:getPrimary().index ~= from then
+		local history = self.random_history
+		history.last = history.last % RANDOM_HISTORY_SIZE + 1
+		history[history.last] = from
+		history.count = math.min(history.count + 1, RANDOM_HISTORY_SIZE)
+	end
+end
+
+---Goes back to where the latest scrollRandom came from.
+function ChartSelector:scrollRandomUndo()
+	local history = self.random_history
+	if history.count == 0 then return end
+	local index = history[history.last]
+	history[history.last] = nil
+	history.last = (history.last - 2) % RANDOM_HISTORY_SIZE + 1
+	history.count = history.count - 1
+	self:scrollLevel(1, nil, index)
+end
+
+---@param chartview rizu.library.IChartviewBase?
+function ChartSelector:setConfig(chartview)
+	if not chartview or not chartview.chartfile_id or chartview.chartfile_id == 0 then return end
+	self.config.chartfile_set_id = chartview.chartfile_set_id
+	self.config.chartfile_id = chartview.chartfile_id
+	self.config.chartmeta_id = chartview.chartmeta_id
+	self.config.chartdiff_id = chartview.chartdiff_id
+	self.config.chartplay_id = chartview.chartplay_id
+	self.config.selected_chartplay_id = chartview.chartplay_id
+end
+
+---@param level integer
+---@param direction integer?
+---@param destination integer?
+function ChartSelector:scrollLevel(level, direction, destination)
+	local store = self.stores[level]
+	local current = self.state:getSelection(level)
+	local itemsCount = store:count()
+
+	destination = math.min(math.max(destination or current.index + direction, 1), itemsCount)
+	if current.index == destination then
+		return
+	end
+
+	local item = store:get(destination)
+	if not item then return end
+
+	self:setConfig(item)
+
+	if level == 1 then
+		self.state:setSelection(1, destination, item.chartfile_set_id)
+	else
+		self:setChartview(item)
+		self.state:setSelection(2, destination, item.chartfile_id)
+		self:emitChanged({type = "level_scrolled", level = level, chartview = item})
+	end
+end
+
+---@param noUpdate boolean?
+---@param noPullNext boolean?
+function ChartSelector:refresh(noUpdate, noPullNext)
+	if self.locked then return end
+
+	if not noUpdate then
+		self:updatePrimaryItems()
+	end
+
+	local index = self.stores[1]:indexof(self.config)
+	local item = self.stores[1]:get(index)
+
+	if item and item.chartfile_set_id and item.chartfile_set_id ~= 0 then
+		-- Only update the set ID; preserve finer-grained selection IDs that
+		-- may have been loaded from config or set by previous navigation.
+		self.config.chartfile_set_id = item.chartfile_set_id
+	else
+		self.config.chartfile_set_id = nil
+		self.config.chartfile_id = nil
+		self.config.chartmeta_id = nil
+		self.config.chartdiff_id = nil
+		self.config.chartplay_id = nil
+
+		self:setChartview(nil)
+
+		self.stores[2]:setResult(nil, self:getSecondaryResultMode())
+	end
+
+	self.state:setSelection(1, index, item and item.chartfile_set_id)
+
+	if item and not noPullNext then
+		self:pullLevel(2)
+	end
+end
+
+---@param level integer
+function ChartSelector:pullLevel(level)
+	if level ~= 2 then return end -- Currently only supports 2 levels
+
+	local parentItem = self.stores[1]:get(self.state:getSelection(1).index)
+	if parentItem and parentItem.chartfile_set_id and parentItem.chartfile_set_id ~= 0 then
+		local params = self.queryBuilder:build(self.config, nil, self.library.locations:getRemoteLocationIds())
+		local result = self.library:getViewsAsync(params, parentItem)
+		self.stores[2]:setResult(result, self:getSecondaryResultMode())
+	else
+		self.stores[2]:setResult(nil, self:getSecondaryResultMode())
+	end
+
+	local index = self.stores[2]:indexof(self.config)
+	local chartview = self.stores[2]:get(index)
+
+	if chartview and chartview.chartfile_id and chartview.chartfile_id ~= 0 then
+		self:setConfig(chartview)
+	else
+		self.config.chartfile_id = nil
+		self.config.chartmeta_id = nil
+		self.config.chartdiff_id = nil
+		self.config.chartplay_id = nil
+	end
+
+	self:setChartview(chartview)
+
+	self.state:setSelection(2, index, chartview and chartview.chartfile_id)
+end
+
+return ChartSelector

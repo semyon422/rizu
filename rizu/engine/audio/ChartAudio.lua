@@ -1,3 +1,4 @@
+local NativeNoteTypes = require("chart.model.NativeNoteTypes")
 local class = require("class")
 local table_util = require("table_util")
 
@@ -30,15 +31,22 @@ function ChartAudio:sort()
 	end)
 end
 
----@param chart ncdk2.Chart
+---@return number
+function ChartAudio:getStartTime()
+	local sound = self.sounds[1]
+	return sound and sound.time or 0
+end
+
+---@param chart chart.Chart
 ---@param with_playable boolean?
 function ChartAudio:load(chart, with_playable)
 	local sounds = self.sounds
 
 	for _, note in chart.notes:iter() do
-		---@cast note notechart.Note
-		if note.data.sounds and (with_playable or not playable_types[note.type]) then
-			for _, sound in ipairs(note.data.sounds) do
+		---@type {sounds: {[1]: string, [2]: number?}[]?}
+		local note_data = note.data
+		if note_data.sounds and (with_playable or not playable_types[note.type] and not NativeNoteTypes[note.type]) then
+			for _, sound in ipairs(note_data.sounds) do
 				table.insert(sounds, {
 					time = note.visualPoint.point.absoluteTime,
 					name = sound[1],

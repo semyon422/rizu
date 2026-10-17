@@ -4,7 +4,7 @@ local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 local Healths = require("sea.chart.Healths")
 local TimingValues = require("sea.chart.TimingValues")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 local chart_types = {}
@@ -72,7 +72,7 @@ local function is_columns_order(v)
 	end
 	return true
 end
-is_columns_order = valid.optional(valid.compose(valid.array(types.index, 100), is_columns_order))
+is_columns_order = valid.optional(valid.compose(valid.array(valid.index, 100), is_columns_order))
 chart_types.columns_order = is_columns_order
 
 assert(is_columns_order())

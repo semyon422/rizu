@@ -1,10 +1,11 @@
 local class = require("class")
 
-local CacheModel = require("sphere.persistence.CacheModel")
+local Library = require("rizu.library.Library")
 local ConfigModel = require("sphere.persistence.ConfigModel")
-local OsudirectModel = require("sphere.persistence.OsudirectModel")
 local FileFinder = require("sphere.persistence.FileFinder")
-local DifficultyModel = require("sphere.models.DifficultyModel")
+local DifficultyModel = require("chart.difficulty.DifficultyModel")
+local LoveTimer = require("time.LoveTimer")
+local Settings = require("rizu.config.Settings")
 
 local dirs = require("sphere.persistence.dirs")
 
@@ -14,17 +15,28 @@ local Persistence = class()
 
 function Persistence:new()
 	self.difficultyModel = DifficultyModel()
-	self.cacheModel = CacheModel(self.difficultyModel)
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	self.library = Library(
+		LoveFilesystem(),
+		love.filesystem.getWorkingDirectory(),
+		LoveTimer()
+	)
 	self.configModel = ConfigModel()
-	self.osudirectModel = OsudirectModel(self.configModel, self.cacheModel)
 	self.fileFinder = FileFinder()
+	self.settings = Settings.createConfig(LoveFilesystem())
 end
 
 function Persistence:load()
 	dirs.create()
 
+	self.settings:load()
+
 	local configModel = self.configModel
-	configModel:open("settings", true)
+	configModel:open("ai", true)
+	configModel:open("ai_auth", true)
+	configModel:open("needle")
+	configModel:open("mcp")
+	configModel:open("network")
 	configModel:open("select", true)
 	configModel:open("play", true)
 	configModel:open("input", true)
@@ -35,7 +47,7 @@ function Persistence:load()
 	configModel:open("files")
 	configModel:read()
 
-	self.cacheModel:load()
+	self.library:load()
 end
 
 ---@param name string
@@ -49,6 +61,7 @@ end
 
 function Persistence:unload()
 	self.configModel:write()
+	self.settings:save()
 end
 
 return Persistence

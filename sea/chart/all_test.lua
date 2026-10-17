@@ -1,8 +1,11 @@
 local table_util = require("table_util")
-local md5 = require("md5")
+local digest = require("digest")
 local Chartplay = require("sea.chart.Chartplay")
 local Chartdiff = require("sea.chart.Chartdiff")
 local Chartplays = require("sea.chart.Chartplays")
+local ChartplaySubmission = require("sea.chart.ChartplaySubmission")
+local SubmissionServerRemote = require("sea.chart.remotes.SubmissionServerRemote")
+local SubmissionServerRemoteValidation = require("sea.chart.remotes.SubmissionServerRemoteValidation")
 local TableStorage = require("sea.chart.storage.TableStorage")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
@@ -11,15 +14,30 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local FakeComputeDataProvider = require("sea.compute.FakeComputeDataProvider")
 local ComputeDataProvider = require("sea.compute.ComputeDataProvider")
 local ComputeDataLoader = require("sea.compute.ComputeDataLoader")
+local ReplayComputer = require("sea.compute.ReplayComputer")
+local ComputeJobs = require("sea.compute.ComputeJobs")
+local ComputeJobsRepo = require("sea.compute.repos.ComputeJobsRepo")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ChartfilesRepo = require("sea.chart.repos.ChartfilesRepo")
+local Users = require("sea.access.Users")
+local UsersRepo = require("sea.access.repos.UsersRepo")
+local UserInsecure = require("sea.access.UserInsecure")
+local Leaderboards = require("sea.leaderboards.Leaderboards")
+local LeaderboardsRepo = require("sea.leaderboards.repos.LeaderboardsRepo")
+local UserActivityGraph = require("sea.activity.UserActivityGraph")
+local ActivityRepo = require("sea.activity.repos.ActivityRepo")
+local ExternalRanked = require("sea.difftables.ExternalRanked")
+local Dans = require("sea.dan.Dans")
+local DanClearsRepo = require("sea.dan.repos.DanClearsRepo")
+local FakePasswordHasher = require("sea.access.FakePasswordHasher")
 
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
 local User = require("sea.access.User")
 local Replay = require("sea.replays.Replay")
 local ReplayCoder = require("sea.replays.ReplayCoder")
-local ReplayEvents = require("sea.replays.ReplayEvents")
+local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
+local InputMode = require("chart.core.InputMode")
 
 local test = {}
 
@@ -37,20 +55,44 @@ local function create_test_ctx()
 
 	local charts_repo = ChartsRepo(models)
 	local chartfiles_repo = ChartfilesRepo(models)
+	local users_repo = UsersRepo(models)
+	local leaderboards_repo = LeaderboardsRepo(models)
+	local activity_repo = ActivityRepo(models)
+	local dan_clears_repo = DanClearsRepo(models)
 
 	local charts_storage = TableStorage()
 	local replays_storage = TableStorage()
 
 	local compute_data_provider = ComputeDataProvider(chartfiles_repo, charts_storage, replays_storage)
 	local compute_data_loader = ComputeDataLoader(compute_data_provider)
+	local compute_jobs = ComputeJobs(
+		ComputeJobsRepo(models),
+		charts_repo,
+		chartfiles_repo,
+		compute_data_provider,
+		ReplayComputer(),
+		"test",
+		function(f, ...) return f(...) end
+	)
 
 	local chartplays = Chartplays(
 		charts_repo,
 		chartfiles_repo,
-		compute_data_loader,
+		compute_data_provider,
 		charts_storage,
-		replays_storage
+		replays_storage,
+		compute_jobs
 	)
+
+	local leaderboards = Leaderboards(leaderboards_repo)
+	local users = Users(users_repo, FakePasswordHasher(), nil)
+	local dans = Dans(charts_repo, dan_clears_repo)
+	local user_activity_graph = UserActivityGraph(activity_repo)
+	local external_ranked = ExternalRanked(nil, nil)
+	-- Mock external_ranked:submit to do nothing
+	external_ranked.submit = function() end
+
+	local submission = ChartplaySubmission(chartplays, leaderboards, users, dans, user_activity_graph, external_ranked)
 
 	local user = User()
 	user.id = 1
@@ -59,7 +101,11 @@ local function create_test_ctx()
 		db = db,
 		charts_repo = charts_repo,
 		chartfiles_repo = chartfiles_repo,
+		users_repo = users_repo,
 		chartplays = chartplays,
+		leaderboards = leaderboards,
+		users = users,
+		submission = submission,
 		user = user,
 	}
 end
@@ -82,20 +128,22 @@ input 4key
 1000 =4
 ]]
 
-local _events = {
-	{0.01, 2, true},
-	{0.1, 2, false},
-	{0.95, 3, true},
-	{1.1, 3, false},
+---@type rizu.ReplayFrame[]
+local frames = {
+	{time = 0.01, event = VirtualInputEvent(1, true, 2)},
+	{time = 0.1, event = VirtualInputEvent(1, false, 2)},
+	{time = 0.95, event = VirtualInputEvent(1, true, 3)},
+	{time = 1.1, event = VirtualInputEvent(1, false, 3)},
 }
 
-local _replayfile_data_table = {
-	version = 1,
-	timing_values = TimingValuesFactory:get(Timings("osuod", 8)),
-	events = ReplayEvents.encode(_events),
+---@type sea.Replay
+local replay = {
+	version = 2,
+	timing_values = assert(TimingValuesFactory:get(Timings("osuod", 8))),
+	frames = frames,
 	created_at = 0,
 	--
-	hash = md5.sumhexa(chartfile_data),
+	hash = digest.hash("md5", chartfile_data, true),
 	index = 1,
 	modifiers = {},
 	rate = 1,
@@ -113,38 +161,37 @@ local _replayfile_data_table = {
 	pause_count = 0,
 	rate_type = "linear",
 }
-setmetatable(_replayfile_data_table, Replay)
----@cast _replayfile_data_table sea.Replay
-local _replayfile_data = ReplayCoder.encode(_replayfile_data_table)
+setmetatable(replay, Replay)
+local _replayfile_data = assert(ReplayCoder.encode(replay))
 
 local _chartplay_values = {
-	hash = _replayfile_data_table.hash,
-	index = _replayfile_data_table.index,
-	modifiers = _replayfile_data_table.modifiers,
-	rate = _replayfile_data_table.rate,
-	mode = _replayfile_data_table.mode,
+	hash = replay.hash,
+	index = replay.index,
+	modifiers = replay.modifiers,
+	rate = replay.rate,
+	mode = replay.mode,
 	--
-	nearest = _replayfile_data_table.nearest,
-	tap_only = _replayfile_data_table.tap_only,
-	timings = _replayfile_data_table.timings,
-	subtimings = _replayfile_data_table.subtimings,
-	healths = _replayfile_data_table.healths,
-	columns_order = _replayfile_data_table.columns_order,
+	nearest = replay.nearest,
+	tap_only = replay.tap_only,
+	timings = replay.timings,
+	subtimings = replay.subtimings,
+	healths = replay.healths,
+	columns_order = replay.columns_order,
 	--
-	custom = _replayfile_data_table.custom,
-	const = _replayfile_data_table.const,
-	pause_count = _replayfile_data_table.pause_count,
-	created_at = _replayfile_data_table.created_at,
-	rate_type = _replayfile_data_table.rate_type,
+	custom = replay.custom,
+	const = replay.const,
+	pause_count = replay.pause_count,
+	created_at = replay.created_at,
+	rate_type = replay.rate_type,
 	--
-	accuracy = 0.05984583644905697164,
-	replay_hash = md5.sumhexa(_replayfile_data),
+	accuracy = 0.059305293410162315815,
+	replay_hash = digest.hash("md5", _replayfile_data, true),
 	judges = {1, 0, 1, 0, 0, 3},
 	max_combo = 2,
 	miss_count = 3,
 	not_perfect_count = 4,
-	rating = 0.0037285851356950172608,
-	rating_msd = 0.20387402176856994629,
+	rating = 0.0037594122723929000729,
+	rating_msd = 0.20617003738880157471,
 	rating_pp = 0,
 	pass = true,
 }
@@ -152,7 +199,7 @@ setmetatable(_chartplay_values, Chartplay)
 ---@cast _chartplay_values sea.Chartplay
 
 local _chartdiff_values = {
-	hash = md5.sumhexa(chartfile_data),
+	hash = digest.hash("md5", chartfile_data, true),
 	index = 1,
 	modifiers = {},
 	rate = 1,
@@ -190,11 +237,13 @@ setmetatable(_chartdiff_values, Chartdiff)
 function test.submit_valid_score(t)
 	local ctx = create_test_ctx()
 
-	local replayfile_data_table = setmetatable(table_util.copy(_replayfile_data_table), Replay)
+	local replayfile_data_table = setmetatable(table_util.copy(replay), Replay)
 	local replayfile_data = _replayfile_data
 	t:assert(replayfile_data_table:validate())
 
-	local compute_data_provider = FakeComputeDataProvider(chartfile_name, chartfile_data, replayfile_data)
+	local compute_data_provider = FakeComputeDataProvider()
+	compute_data_provider:addChart(replay.hash, chartfile_name, chartfile_data)
+	compute_data_provider:addReplay(digest.hash("md5", replayfile_data, true), replayfile_data)
 	local compute_data_loader = ComputeDataLoader(compute_data_provider)
 
 	local chartplay_values = setmetatable(table_util.copy(_chartplay_values), Chartplay)
@@ -209,7 +258,7 @@ function test.submit_valid_score(t)
 	local user = User()
 	user.id = 1
 
-	local c, err = ctx.chartplays:submit(user, 0, compute_data_loader, chartplay_values, chartdiff_values)
+	local c, err = ctx.chartplays:submit(user, 0, compute_data_provider, chartplay_values, chartdiff_values)
 
 	if t:assert(c, err) then
 		---@cast c -?
@@ -217,13 +266,98 @@ function test.submit_valid_score(t)
 		t:assert(c.chartplay.compute_state == "valid")
 	end
 
-	c, err = ctx.chartplays:submit(user, 0, compute_data_loader, chartplay_values, chartdiff_values)
-	t:eq(c, nil)
-	t:eq(err, "can submit: rate limit")
+	c, err = ctx.chartplays:submit(user, 0, compute_data_provider, chartplay_values, chartdiff_values)
+	t:assert(c, err)
+	t:eq(ctx.charts_repo:countChartplays(), 1)
 
 	local interval = ctx.chartplays.chartplays_access.submit_interval
-	c, err = ctx.chartplays:submit(user, interval, compute_data_loader, chartplay_values, chartdiff_values)
+	c, err = ctx.chartplays:submit(user, interval, compute_data_provider, chartplay_values, chartdiff_values)
 	t:assert(c, err)
+	t:eq(ctx.charts_repo:countChartplays(), 1)
+end
+
+---@param t testing.T
+function test.async_submission_status(t)
+	local ctx = create_test_ctx()
+	local replayfile_data = _replayfile_data
+	local provider = FakeComputeDataProvider()
+	provider:addChart(replay.hash, chartfile_name, chartfile_data)
+	provider:addReplay(digest.hash("md5", replayfile_data, true), replayfile_data)
+	local peer = {
+		user = ctx.user,
+		remote = {compute_data_provider = provider},
+	}
+	local server_remote = SubmissionServerRemote(ctx.submission, ctx.chartplays)
+	server_remote.peer = peer
+	server_remote.user = ctx.user
+	local remote = SubmissionServerRemoteValidation(server_remote)
+
+	local result = assert(remote:submitChartplay(
+		setmetatable(table_util.copy(_chartplay_values), Chartplay),
+		setmetatable(table_util.copy(_chartdiff_values), Chartdiff)
+	))
+	t:eq(result.status.state, "queued")
+	t:eq(result.status.chartplay, nil)
+	t:eq(result.status.effects_complete, false)
+	t:eq(result.duplicate, false)
+	local duplicate = assert(remote:submitChartplay(
+		setmetatable(table_util.copy(_chartplay_values), Chartplay),
+		setmetatable(table_util.copy(_chartdiff_values), Chartdiff)
+	))
+	t:eq(duplicate.status.job_id, result.status.job_id)
+	t:eq(duplicate.duplicate, true)
+
+	local status = assert(remote:getChartplaySubmission(result.status.job_id))
+	t:eq(status.state, "queued")
+	t:eq(status.chartplay, nil)
+	assert(ctx.chartplays.compute_jobs:process(result.status.job_id, os.time()))
+	status = assert(remote:getChartplaySubmission(result.status.job_id))
+	t:eq(status.state, "succeeded")
+	t:eq(status.chartplay.compute_state, "valid")
+	t:eq(status.effects_complete, false)
+	local effects = ctx.chartplays.compute_jobs.chartplay_effects
+	if effects then
+		while not effects:isComplete(status.chartplay_id) do
+			assert(effects:process())
+		end
+		status = assert(remote:getChartplaySubmission(result.status.job_id))
+		t:eq(status.effects_complete, true)
+	end
+	local _, err = ctx.chartplays.compute_jobs:getStatus(2, result.status.job_id)
+	t:eq(err, "compute job not found")
+end
+
+---@param t testing.T
+function test.submit_chartplay_save_on_retrieval_failure(t)
+	local ctx = create_test_ctx()
+
+	local user_values = UserInsecure()
+	user_values.name = "test"
+	user_values.email = "test@test.com"
+	user_values.password = "password"
+
+	local res, err = ctx.users:register(User(), "127.0.0.1", 1000, user_values)
+	t:assert(res, "Registration should succeed: " .. tostring(err))
+	---@cast res -?
+	local user = res.user
+
+	-- Provider that will return nil for everything
+	local compute_data_provider = FakeComputeDataProvider()
+	local remote = {compute_data_provider = compute_data_provider, client = {setLeaderboardUsers = function() end}}
+
+	local chartplay_values = setmetatable(table_util.copy(_chartplay_values), Chartplay)
+	local chartdiff_values = setmetatable(table_util.copy(_chartdiff_values), Chartdiff)
+
+	local peer = {user = user, remote = remote}
+	local res, err = ctx.submission:submitChartplay(peer, chartplay_values, chartdiff_values)
+	---@cast err -?
+
+	t:eq(res, nil, "Submission should have failed due to retrieval error")
+	t:assert(err:find("not found"), "Error message should reflect retrieval failure, got: " .. tostring(err))
+
+	-- Durable acceptance happens only after all required inputs are stored.
+	local count = ctx.charts_repo:countChartplays()
+	t:eq(count, 0, "Chartplay should not be accepted before input retrieval succeeds")
 end
 
 return test

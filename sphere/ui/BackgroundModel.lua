@@ -3,15 +3,64 @@ local thread = require("thread")
 local gfx_util = require("gfx_util")
 local flux = require("flux")
 local delay = require("delay")
-local Path = require("Path")
+local Observable = require("Observable")
+
+local loadHttpImage
+
+---@class sphere.BackgroundModel.ChangedEvent
+---@field type "background_changed"
+---@field image love.Image
 
 ---@class sphere.BackgroundModel
 ---@operator call: sphere.BackgroundModel
+---@field network rizu.NetworkService
+---@field http_image_loader fun(body: string, url: string): love.ImageData?
 local BackgroundModel = class()
 
 BackgroundModel.alpha = 0
 
-local defaultBackgroundsPath = "userdata/backgrounds"
+local loadDefaults = thread.async(function()
+	require("love.filesystem")
+	require("love.image")
+	local ImageDataDecoder = require("ImageDataDecoder")
+	local images = {}
+	for _, name in ipairs(love.filesystem.getDirectoryItems("userdata/backgrounds")) do
+		local data = ImageDataDecoder.decodePath("userdata/backgrounds/" .. name)
+		if data then images[#images + 1] = data end
+	end
+	return images
+end)
+
+local findBackground = thread.async(function(path)
+	require("love.filesystem")
+	local BackgroundFinder = require("rizu.preview.BackgroundFinder")
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	return BackgroundFinder(LoveFilesystem()):find(path)
+end)
+
+---@param network rizu.NetworkService
+---@param http_image_loader fun(body: string, url: string): love.ImageData?
+---@param asset_cache rizu.library.RemoteAssetCache? Keeps downloaded images on disk.
+function BackgroundModel:new(network, http_image_loader, asset_cache)
+	self.network = assert(network, "network is required")
+	self.asset_cache = asset_cache
+	self.http_image_loader = http_image_loader or loadHttpImage
+	self.background_finder = findBackground
+	self.generation = 0
+	self.observable = Observable()
+end
+
+---@param observer util.Observer|fun(event: sphere.BackgroundModel.ChangedEvent)
+---@return util.Observer
+function BackgroundModel:onChanged(observer)
+	return self.observable:add(observer)
+end
+
+---@param observer util.Observer
+---@return util.Observer?
+function BackgroundModel:offChanged(observer)
+	return self.observable:remove(observer)
+end
 
 function BackgroundModel:load()
 	self.path = ""
@@ -19,26 +68,24 @@ function BackgroundModel:load()
 	self.emptyImage = gfx_util.newPixel(0.25, 0.25, 0.25, 1)
 	self.images = {self.emptyImage}
 
-	local dir = love.filesystem.getDirectoryItems(defaultBackgroundsPath)
+	self.defaults_pending = true
+end
 
-	if not dir or #dir == 0 then
-		return
-	end
-
-	self.defaultImages = {}
-	for _, item in ipairs(dir) do
-		local path = defaultBackgroundsPath .. "/" .. item
-		local status, imageData = pcall(love.image.newImageData, path)
-
-		if status then
-			local image = love.graphics.newImage(imageData)
-			table.insert(self.defaultImages, image)
+function BackgroundModel:loadDefaults()
+	self.defaults_pending = false
+	thread.coro(function()
+		local data = loadDefaults()
+		local images = {}
+		for _, image_data in ipairs(data) do
+			images[#images + 1] = love.graphics.newImage(image_data)
+			image_data:release()
 		end
-	end
+		self.defaultImages = images
+	end)()
 end
 
 function BackgroundModel:getDefaultImage()
-	if not self.defaultImages then
+	if not self.defaultImages or #self.defaultImages == 0 then
 		return self.emptyImage
 	end
 
@@ -55,6 +102,7 @@ function BackgroundModel:setBackgroundPath(path)
 end
 
 function BackgroundModel:update()
+	if self.defaults_pending then self:loadDefaults() end
 	if #self.images > 1 then
 		if self.alpha == 1 then
 			table.remove(self.images, 1)
@@ -72,109 +120,30 @@ function BackgroundModel:setBackground(image)
 	if layer == 2 then
 		self.alpha = 0
 	end
+	self.observable:send({type = "background_changed", image = image})
 end
 
 ---@param path string?
 function BackgroundModel:loadBackgroundDebounce(path)
 	self.path = path or self.path
+	self.generation = self.generation + 1
 	delay.debounce(self, "loadDebounce", 0.1, self.loadBackground, self)
-end
-
----@param path string?
----@return boolean
-function BackgroundModel:isValidImage(path)
-	if not path then
-		return false
-	end
-	local info = love.filesystem.getInfo(path)
-	return info and info.type ~= "directory"
-end
-
-local image_ext = {
-	png = true,
-	jpg = true,
-	jpeg = true,
-	tga = true,
-	bmp = true
-}
-
----@return string?
-function BackgroundModel:findBackground()
-	if not self.path then
-		return
-	end
-
-	local path = Path(self.path):normalize()
-
-	if self:isValidImage(tostring(path)) then
-		return tostring(path)
-	end
-
-
-	local path_info = love.filesystem.getInfo(tostring(path))
-
-	local search_directory ---@type aqua.Path
-	if path_info and path_info.type == "directory" then
-		path = path:toDirectory()
-		search_directory = path
-	else
-		search_directory = path:trimLast()
-	end
-
-	local original_file_name = path:isFile() and path:getName(true)
-	local files = love.filesystem.getDirectoryItems(tostring(search_directory))
-	local found = nil ---@type string?
-	local last_resort = nil ---@type string?
-
-	for _, filepath_str in ipairs(files) do
-		local filepath = Path(filepath_str)
-
-		local ext = filepath:getExtension()
-		if ext and image_ext[ext] then
-			local c = filepath:getName(true):lower()
-
-			if c:find("cdtitle") or c:find("banner") or c == "bn" then
-				-- ignore
-			elseif c:find("background") then
-				found = filepath_str
-				break
-			elseif c:find("bg") then
-				found = filepath_str
-				break
-			elseif original_file_name and c:find(original_file_name) then
-				found = filepath_str
-				break
-			else
-				last_resort = filepath_str
-			end
-		end
-	end
-
-	if not found and not last_resort then
-		return
-	end
-
-	local result = tostring(search_directory .. Path(found or last_resort))
-
-	if self:isValidImage(result) then
-		return result
-	end
 end
 
 function BackgroundModel:loadBackground()
 	local path = self.path
+	local generation = self.generation
 	if not path then
 		self:setBackground(self:getDefaultImage())
 		return
 	end
 
-	if not path:find("^http") then
-		if not self:isValidImage(path) then
-			path = self:findBackground()
-			if not path then
-				self:setBackground(self:getDefaultImage())
-				return
-			end
+	if not path:find("^http") and not path:find("%.ojn$") and not path:find("%.mid$") then
+		path = self.background_finder(path)
+		if generation ~= self.generation then return end
+		if not path then
+			self:setBackground(self:getDefaultImage())
+			return
 		end
 	end
 
@@ -189,7 +158,10 @@ function BackgroundModel:loadBackground()
 		image = self:loadImage(path)
 	end
 
-	self.path = path
+	if generation ~= self.generation then
+		if image then image:release() end
+		return
+	end
 
 	if image then
 		self:setBackground(image)
@@ -202,22 +174,21 @@ end
 local loadImage = thread.async(function(path)
 	require("love.filesystem")
 	require("love.image")
+	local ImageDataDecoder = require("ImageDataDecoder")
 
 	local info = love.filesystem.getInfo(path)
 	if not info then
 		return
 	end
 
-	local status, imageData = pcall(love.image.newImageData, path)
-	if status then
-		return imageData
-	end
+	return ImageDataDecoder.decodePath(path)
 end)
 
 local loadOJN = thread.async(function(path)
 	require("love.filesystem")
 	require("love.image")
-	local OJN = require("o2jam.OJN")
+	local OJN = require("chart.format.o2jam.OJN")
+	local ImageDataDecoder = require("ImageDataDecoder")
 
 	local content = love.filesystem.read(path)
 	if not content then
@@ -230,26 +201,15 @@ local loadOJN = thread.async(function(path)
 	end
 
 	local fileData = love.filesystem.newFileData(ojn.cover, "cover")
-	local status, imageData = pcall(love.image.newImageData, fileData)
-	if status then
-		return imageData
-	end
+	return ImageDataDecoder.decodeFileData(fileData, path .. ":cover")
 end)
 
-local loadHttp = thread.async(function(url)
-	local http = require("http")
-	local body = http.request(url)
-	if not body then
-		return
-	end
-
+loadHttpImage = thread.async(function(body, url)
 	require("love.filesystem")
 	require("love.image")
+	local ImageDataDecoder = require("ImageDataDecoder")
 	local fileData = love.filesystem.newFileData(body, "cover")
-	local status, imageData = pcall(love.image.newImageData, fileData)
-	if status then
-		return imageData
-	end
+	return ImageDataDecoder.decodeFileData(fileData, url)
 end)
 
 ---@param path string
@@ -260,7 +220,17 @@ function BackgroundModel:loadImage(path, type)
 	if type == "ojn" then
 		imageData = loadOJN(path)
 	elseif type == "http" then
-		imageData = loadHttp(path)
+		local body
+		if self.asset_cache then
+			body = self.asset_cache:get(path)
+		else
+			local res = self.network:request(path)
+			body = res and res.status < 400 and res.body or nil
+		end
+		if not body then
+			return
+		end
+		imageData = self.http_image_loader(body, path)
 	else
 		imageData = loadImage(path)
 	end

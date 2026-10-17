@@ -1,2 +1,0 @@
-#!/bin/bash
-gcc -shared -fPIC sqlite3.c -o libsqlite3.so

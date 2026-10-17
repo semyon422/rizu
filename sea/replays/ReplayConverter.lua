@@ -1,5 +1,5 @@
 local class = require("class")
-local int_rates = require("libchart.int_rates")
+local int_rates = require("chart.scoring.int_rates")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local TimingsDefiner = require("sea.timings.TimingsDefiner")
@@ -8,6 +8,7 @@ local Subtimings = require("sea.chart.Subtimings")
 local TimingValues = require("sea.chart.TimingValues")
 local Healths = require("sea.chart.Healths")
 local Replay = require("sea.replays.Replay")
+local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 -- LEGACY CODE
 -- tests for every replay version are required
@@ -84,6 +85,9 @@ function ReplayConverter:convertModifier(c, replay)
 	if c.value == true then
 		c.value = nil
 	end
+	if c.value == false then
+		return false
+	end
 
 	if c.name then
 		-- deleted modifiers
@@ -112,21 +116,12 @@ function ReplayConverter:convertModifier(c, replay)
 			return false
 		end
 		c.name = nil
+	end
 
-		for k in pairs(c) do
-			if k ~= "value" and k ~= "version" and k ~= "id" then
-				c[k] = nil
-			end
+	for k in pairs(c) do
+		if k ~= "value" and k ~= "version" and k ~= "id" then
+			c[k] = nil
 		end
-
-		return true
-	end
-
-	if c.value == nil then
-		return true
-	end
-	if c.value == false then
-		return false
 	end
 
 	return true
@@ -144,11 +139,27 @@ function ReplayConverter:convertModifiers(replay)
 	ModifierModel:fixOldFormat(replay.modifiers)
 end
 
+---@param events [number, integer, boolean][]
+function ReplayConverter:convertEvents(events)
+	---@type rizu.ReplayFrame[]
+	local frames = {}
+
+	for i, e in ipairs(events) do
+		local id, value, column = e[2], e[3], e[2]
+		frames[i] = {
+			time = e[1],
+			event = VirtualInputEvent(id, value, column),
+		}
+	end
+
+	return frames
+end
+
 ---@param obj table
 ---@return sea.Replay
 function ReplayConverter:convert(obj)
 	if obj.version then
-		if obj.version == 1 then
+		if obj.version == 1 or obj.version == 2 then
 			if obj.timings then
 				setmetatable(obj.timings, Timings)
 			end
@@ -158,9 +169,21 @@ function ReplayConverter:convert(obj)
 			if obj.healths then
 				setmetatable(obj.healths, Healths)
 			end
+			if obj.timing_values then
+				setmetatable(obj.timing_values, TimingValues)
+			end
+			if obj.events then
+				obj.frames = self:convertEvents(obj.events)
+				obj.events = nil
+			end
 			return (setmetatable(obj, Replay))
 		end
 		error("invalid replay version")
+	end
+
+	if obj.events then
+		obj.frames = self:convertEvents(obj.events)
+		obj.events = nil
 	end
 
 	obj.rate = obj.rate or 1
@@ -176,7 +199,7 @@ function ReplayConverter:convert(obj)
 	local replay = Replay()
 
 	replay.version = 0
-	replay.events = obj.events
+	replay.frames = obj.frames
 
 	replay.hash = obj.hash
 	replay.index = obj.index

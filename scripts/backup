@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+config=${RIZU_BACKUP_CONFIG:-server-state/backup.env}
+if [[ ! -f "$config" ]]; then
+	echo "missing backup configuration: $config" >&2
+	exit 1
+fi
+# shellcheck source=/dev/null
+source "$config"
+
+: "${BACKUP_HOST:?BACKUP_HOST is required}"
+: "${BACKUP_USER:?BACKUP_USER is required}"
+: "${BACKUP_ROOT:?BACKUP_ROOT is required}"
+: "${BACKUP_SSH_KEY:?BACKUP_SSH_KEY is required}"
+: "${BACKUP_SSH_HOST_KEY:?BACKUP_SSH_HOST_KEY is required}"
+
+state_root=${RIZU_SERVER_STATE_PATH:-server-state}
+staging="$state_root/temp/backup"
+snapshot="$staging/server.db"
+known_hosts="$staging/known_hosts"
+lock="$state_root/backup.lock"
+remote="$BACKUP_USER@$BACKUP_HOST"
+
+mkdir -p "$staging"
+printf '%s\n' "$BACKUP_SSH_HOST_KEY" > "$known_hosts"
+chmod 600 "$known_hosts"
+
+ssh_args=(-i "$BACKUP_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o "UserKnownHostsFile=$known_hosts" -o StrictHostKeyChecking=yes -o ConnectTimeout=15)
+rsync_ssh=$(printf ' %q' ssh "${ssh_args[@]}")
+rsync_ssh=${rsync_ssh:1}
+
+date_utc=$(date -u +%F)
+tmp_remote="$BACKUP_ROOT/database/.server-$date_utc.db.tmp"
+db_remote="$BACKUP_ROOT/database/server-$date_utc.db"
+
+cleanup() {
+	rm -f "$snapshot"
+}
+trap cleanup EXIT
+
+exec 9>"$lock"
+flock --nonblock 9 || { echo "backup is already running" >&2; exit 1; }
+
+LD_LIBRARY_PATH="$PWD/bin/linux64:${LD_LIBRARY_PATH:-}" ./scripts/backup.lua "$snapshot"
+ssh "${ssh_args[@]}" "$remote" "mkdir -p '$BACKUP_ROOT/database' '$BACKUP_ROOT/storages/charts' '$BACKUP_ROOT/storages/replays'"
+rsync --archive --partial --chmod=F600,D700 -e "$rsync_ssh" "$snapshot" "$remote:$tmp_remote"
+ssh "${ssh_args[@]}" "$remote" "mv '$tmp_remote' '$db_remote' && find '$BACKUP_ROOT/database' -maxdepth 1 -type f -name 'server-????-??-??.db' -mtime +6 -delete"
+
+rsync --archive --ignore-existing --partial --chmod=F600,D700 -e "$rsync_ssh" "$state_root/storages/charts/" "$remote:$BACKUP_ROOT/storages/charts/"
+rsync --archive --ignore-existing --partial --chmod=F600,D700 -e "$rsync_ssh" "$state_root/storages/replays/" "$remote:$BACKUP_ROOT/storages/replays/"
+
+echo "Backup completed: $date_utc"

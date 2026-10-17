@@ -1,6 +1,6 @@
 local Modifier = require("sphere.models.ModifierModel.Modifier")
-local InputMode = require("ncdk.InputMode")
-local Notes = require("ncdk2.notes.Notes")
+local InputMode = require("chart.core.InputMode")
+local Notes = require("chart.model.notes.Notes")
 
 ---@class sphere.Taiko: sphere.Modifier
 ---@operator call: sphere.Taiko
@@ -26,7 +26,7 @@ local function getKey(i)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function Taiko:apply(config, chart)
 	local inputMode = chart.inputMode
 

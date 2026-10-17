@@ -50,6 +50,18 @@ function UsersRepo:getUser(id)
 	return user
 end
 
+--- Fetch multiple users by ID in a single query.
+---@param ids integer[]
+---@return sea.User[]
+function UsersRepo:getUsersByIds(ids)
+	if #ids == 0 then
+		return {}
+	end
+	local users = self.models.users:select({id__in = ids})
+	self.models.users:preload(users, "user_roles")
+	return users
+end
+
 ---@param id integer
 ---@return sea.UserInsecure?
 function UsersRepo:getUserInsecure(id)
@@ -92,6 +104,118 @@ end
 ---@return sea.User?
 function UsersRepo:deleteUser(id)
 	return self.models.users:delete({id = assert(id)})[1]
+end
+
+--------------------------------------------------------------------------------
+
+---@param user_id integer
+---@return sea.BanchoCredential?
+function UsersRepo:getBanchoCredential(user_id)
+	return self.models.bancho_credentials:find({user_id = assert(user_id)})
+end
+
+---@param bancho_credential sea.BanchoCredential
+---@return sea.BanchoCredential
+function UsersRepo:createBanchoCredential(bancho_credential)
+	return self.models.bancho_credentials:create(bancho_credential)
+end
+
+---@param bancho_credential sea.BanchoCredential
+---@return sea.BanchoCredential
+function UsersRepo:updateBanchoCredential(bancho_credential)
+	return self.models.bancho_credentials:update(bancho_credential, {user_id = assert(bancho_credential.user_id)})[1]
+end
+
+---@param user_id integer
+---@return sea.BanchoCredential?
+function UsersRepo:deleteBanchoCredential(user_id)
+	return self.models.bancho_credentials:delete({user_id = assert(user_id)})[1]
+end
+
+---@param user_id integer
+---@return sea.BanchoUserSettings?
+function UsersRepo:getBanchoUserSettings(user_id)
+	return self.models.bancho_user_settings:find({user_id = assert(user_id)})
+end
+
+---@param bancho_user_settings sea.BanchoUserSettings
+---@return sea.BanchoUserSettings
+function UsersRepo:createBanchoUserSettings(bancho_user_settings)
+	return self.models.bancho_user_settings:create(bancho_user_settings)
+end
+
+---@param bancho_user_settings sea.BanchoUserSettings
+---@return sea.BanchoUserSettings
+function UsersRepo:updateBanchoUserSettings(bancho_user_settings)
+	return self.models.bancho_user_settings:update(bancho_user_settings, {user_id = assert(bancho_user_settings.user_id)})[1]
+end
+
+---@param user_id integer
+---@return sea.BanchoUserSettings?
+function UsersRepo:deleteBanchoUserSettings(user_id)
+	return self.models.bancho_user_settings:delete({user_id = assert(user_id)})[1]
+end
+
+---@param user_id integer
+---@return integer[]
+function UsersRepo:getUserFriends(user_id)
+	local rows = self.models.user_friends:select({user_id = assert(user_id)})
+	local ids = {}
+	for _, row in ipairs(rows) do
+		table.insert(ids, row.friend_id)
+	end
+	return ids
+end
+
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function UsersRepo:addUserFriend(user_id, friend_id)
+	local row = self.models.user_friends:create({user_id = user_id, friend_id = friend_id})
+	return row ~= nil
+end
+
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function UsersRepo:removeUserFriend(user_id, friend_id)
+	local rows = self.models.user_friends:delete({user_id = user_id, friend_id = friend_id})
+	return #rows > 0
+end
+
+---@param user_id integer
+---@param friend_id integer
+---@return boolean
+function UsersRepo:isUserFriend(user_id, friend_id)
+	local row = self.models.user_friends:find({user_id = user_id, friend_id = friend_id})
+	return row ~= nil
+end
+
+---@param user_id integer
+---@return integer[]
+function UsersRepo:getUserOsuFavourites(user_id)
+	local rows = self.models.user_osu_favourites:select({user_id = assert(user_id)})
+	local ids = {}
+	for _, row in ipairs(rows) do
+		table.insert(ids, row.set_id)
+	end
+	return ids
+end
+
+---@param user_id integer
+---@param set_id integer
+---@return boolean
+function UsersRepo:addUserOsuFavourite(user_id, set_id)
+	local row = self.models.user_osu_favourites:create({user_id = user_id, set_id = set_id})
+	return row ~= nil
+end
+
+---@param user_id integer
+---@param set_id integer
+---@return boolean
+function UsersRepo:removeUserOsuFavourite(user_id, set_id)
+	local rows = self.models.user_osu_favourites:delete({user_id = user_id, set_id = set_id})
+	return #rows > 0
 end
 
 --------------------------------------------------------------------------------
@@ -271,6 +395,50 @@ function UsersRepo:deleteAuthCode(id)
 end
 
 --------------------------------------------------------------------------------
+
+---@param user_id integer
+function UsersRepo:updateUserSubmissionAggregates(user_id)
+	self.models._orm.db:query([[
+		UPDATE users SET
+			latest_activity = COALESCE((
+				SELECT MAX(submitted_at) FROM chartplays WHERE user_id = ? AND compute_state = 1
+			), latest_activity),
+			chartplays_count = (SELECT COUNT(*) FROM chartplays WHERE user_id = ? AND compute_state = 1),
+			chartmetas_count = (SELECT COUNT(*) FROM (
+				SELECT hash, `index` FROM chartplays WHERE user_id = ? AND compute_state = 1 GROUP BY hash, `index`
+			)),
+			chartdiffs_count = (SELECT COUNT(*) FROM (
+				SELECT hash, `index`, modifiers, rate, mode FROM chartplays
+				WHERE user_id = ? AND compute_state = 1 GROUP BY hash, `index`, modifiers, rate, mode
+			)),
+			play_time = COALESCE((
+				SELECT SUM(chartdiffs.duration) FROM chartplays
+				INNER JOIN chartdiffs ON
+					chartplays.hash = chartdiffs.hash AND chartplays.`index` = chartdiffs.`index` AND
+					chartplays.modifiers = chartdiffs.modifiers AND chartplays.rate = chartdiffs.rate AND
+					chartplays.mode = chartdiffs.mode
+				WHERE chartplays.user_id = ? AND chartplays.compute_state = 1
+			), 0),
+			chartfiles_upload_size = COALESCE((
+				SELECT SUM(size) FROM chartfiles WHERE creator_id = ?
+			), 0),
+			chartplays_upload_size = COALESCE((
+				SELECT SUM(compute_jobs.replay_upload_size) FROM compute_jobs
+				INNER JOIN chartplays ON chartplays.id = compute_jobs.chartplay_id
+				WHERE chartplays.user_id = ? AND chartplays.compute_state = 1
+			), 0)
+		WHERE id = ?
+	]], {
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+		user_id,
+	})
+end
 
 ---@param reset_before boolean?
 function UsersRepo:updateChartmetasCount(reset_before)

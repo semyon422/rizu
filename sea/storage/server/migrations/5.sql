@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS `bancho_user_settings` (
+	`user_id` INTEGER NOT NULL PRIMARY KEY,
+	`utc_offset` INTEGER NOT NULL DEFAULT 0,
+	`pm_private` INTEGER NOT NULL DEFAULT 0,
+	`stealth` INTEGER NOT NULL DEFAULT 0,
+	`away_msg` TEXT NOT NULL DEFAULT '',
+	`pres_filter` INTEGER NOT NULL DEFAULT 0
+);

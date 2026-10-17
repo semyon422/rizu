@@ -6,6 +6,7 @@ local DownloadResource = require("sea.shared.http.DownloadResource")
 local PolicyResource = require("sea.shared.http.PolicyResource")
 local WikiResource = require("sea.shared.http.WikiResource")
 local DonateResource = require("sea.shared.http.DonateResource")
+local DiscordResource = require("sea.shared.http.DiscordResource")
 
 local AuthResource = require("sea.access.http.AuthResource")
 
@@ -32,6 +33,14 @@ local ChartplayResource = require("sea.chart.http.ChartplayResource")
 
 local WebsocketResource = require("sea.shared.http.WebsocketResource")
 
+-- Bancho (osu! server) resources
+local BanchoAdapter = require("bancho.adapter")
+local BanchoServer = require("bancho.server.BanchoServer")
+local BanchoProtocolResource = require("bancho.http.BanchoProtocolResource")
+local OsuWebResource = require("bancho.http.OsuWebResource")
+local BanchoFileResource = require("bancho.http.FileResource")
+local BanchoAccountResource = require("bancho.http.AccountResource")
+
 ---@class sea.Resources
 ---@operator call: sea.Resources
 local Resources = class()
@@ -41,20 +50,24 @@ local Resources = class()
 ---@param views web.Views
 ---@param sessions web.Sessions
 ---@param app_config sea.AppConfig
-function Resources:new(domain, server_remote, views, sessions, app_config)
+---@param package_config {repo_url: string, servers: sphere.ServerConfig[]}
+---@param bancho_config bancho.config.BanchoConfig
+---@param shared_memory? web.SharedMemory Shared memory for cross-worker persistence
+function Resources:new(domain, server_remote, views, sessions, app_config, package_config, bancho_config, shared_memory)
 	self.index = IndexResource(views)
 	self.style = StyleResource()
-	self.download = DownloadResource(views)
+	self.download = DownloadResource(views, package_config.repo_url)
 	self.policy = PolicyResource(views, app_config.responsible_person)
 	self.wiki = WikiResource(views)
 	self.donate = DonateResource(views)
+	self.discord = DiscordResource()
 
 	self.auth = AuthResource(sessions, domain.users, views)
 
 	self.users = UsersResource(domain.users, views)
-	self.user = UserResource(domain.users, domain.user_roles, domain.user_badges, domain.leaderboards, domain.dans, domain.user_activity_graph, views)
+	self.user = UserResource(domain.users, domain.user_roles, domain.user_badges, domain.leaderboards, domain.dans, domain.user_activity_graph, views, domain.user_connections)
 
-	self.rankings = RankingsResource(domain.users, domain.leaderboards, views)
+	self.rankings = RankingsResource(domain.users, domain.leaderboards, views, domain.user_connections)
 
 	self.leaderboards = LeaderboardsResource(domain.leaderboards, views)
 	self.leaderboard = LeaderboardResource(domain.leaderboards, domain.difftables, views)
@@ -72,7 +85,26 @@ function Resources:new(domain, server_remote, views, sessions, app_config)
 	self.chartdiff = ChartdiffResource(nil, views)
 	self.chartplay = ChartplayResource(nil, views)
 
-	self.websocket = WebsocketResource(server_remote, views)
+	self.websocket = WebsocketResource(domain, views)
+
+	self.bancho = BanchoServer(bancho_config, shared_memory)
+	BanchoAdapter.setupSeaRepos(
+		self.bancho,
+		domain.users_repo,
+		domain.repos.leaderboards_repo,
+		domain.repos.charts_repo,
+		domain.repos.osu_repo,
+		domain.osu_beatmaps,
+		domain.charts_storage,
+		domain.chartplay_submission,
+		domain.replays_storage
+	)
+
+	-- Bancho HTTP resources (domain-restricted)
+	self.bancho_protocol = BanchoProtocolResource(self.bancho)
+	self.bancho_web = OsuWebResource(self.bancho)
+	self.bancho_files = BanchoFileResource(self.bancho)
+	self.bancho_account = BanchoAccountResource(self.bancho)
 end
 
 function Resources:getList()
@@ -83,6 +115,7 @@ function Resources:getList()
 		self.policy,
 		self.wiki,
 		self.donate,
+		self.discord,
 
 		self.auth,
 
@@ -108,6 +141,12 @@ function Resources:getList()
 		self.chartplay,
 
 		self.websocket,
+
+		-- Bancho resources (domain-restricted to osu.*, c.*, etc.)
+		self.bancho_protocol,
+		self.bancho_web,
+		self.bancho_files,
+		self.bancho_account,
 	}
 end
 

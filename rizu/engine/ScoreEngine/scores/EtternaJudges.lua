@@ -1,0 +1,130 @@
+--- SOURCE: https://github.com/etternagame/etterna
+--- SOURCE: https://github.com/etternagame/etterna/blob/master/Themes/_fallback/Scripts/10%20Scores.lua
+
+local ScoreSystem = require("rizu.engine.ScoreEngine.ScoreSystem")
+local SimpleJudgesSource = require("rizu.engine.ScoreEngine.SimpleJudgesSource")
+local JudgeCounter = require("rizu.engine.ScoreEngine.JudgeCounter")
+local JudgeWindows = require("rizu.engine.ScoreEngine.JudgeWindows")
+local Timings = require("sea.chart.Timings")
+
+local judgeTimingWindows = {
+	{0.03375, 0.0675, 0.135, 0.2025, 0.27},
+	{0.029925, 0.05985, 0.1197, 0.17955, 0.2394},
+	{0.0261, 0.0522, 0.1044, 0.1566, 0.2088},
+	{0.0225, 0.045, 0.09, 0.135, 0.18},
+	{0.0189, 0.0378, 0.0756, 0.1134, 0.18},
+	{0.01485, 0.0297, 0.0594, 0.0891, 0.18},
+	{0.01125, 0.0225, 0.045, 0.0675, 0.18},
+	{0.007425, 0.01485, 0.0297, 0.04455, 0.18},
+	{0.0045, 0.009, 0.018, 0.027, 0.18},
+}
+
+---@class rizu.EtternaJudges: rizu.ScoreSystem, rizu.SimpleJudgesSource
+---@operator call: rizu.EtternaJudges
+local EtternaJudges = ScoreSystem + SimpleJudgesSource
+
+EtternaJudges.judge_names = {"marvelous", "perfect", "great", "bad", "boo", "miss"}
+
+---@param j number
+function EtternaJudges:new(j)
+	self.timings = Timings("etternaj", j)
+
+	self.judge = j
+
+	local w = judgeTimingWindows[j]
+	local windows = {
+		w[1],
+		w[2],
+		w[3],
+		w[4],
+		w[5],
+	}
+
+	self.judge_windows = JudgeWindows(windows)
+	self.judge_counter = JudgeCounter(6)
+	self.holds_held = 0
+	self.holds_let_go = 0
+	self.holds_missed = 0
+	self.slice_input = nil
+	self.slice_judge_index = nil
+end
+
+---@return string
+function EtternaJudges:getKey()
+	return "etterna_judges_j" .. self.judge
+end
+
+---@param event rizu.LogicNoteChange
+function EtternaJudges:hit(event)
+	local index = self.judge_windows:get(event.delta_time) or -1
+	self.judge_counter:add(index)
+	self.slice_input = event.column
+	self.slice_judge_index = index
+end
+
+---@param event rizu.LogicNoteChange
+function EtternaJudges:miss(event)
+	self.judge_counter:add(-1)
+	self.slice_input = event.column
+	self.slice_judge_index = index
+end
+
+function EtternaJudges:holdHeld()
+	self.holds_held = self.holds_held + 1
+end
+
+function EtternaJudges:holdLetGo()
+	self.holds_let_go = self.holds_let_go + 1
+end
+
+function EtternaJudges:holdMissed()
+	self.holds_missed = self.holds_missed + 1
+end
+
+function EtternaJudges:getSlice()
+	local slice = {
+		input = self.slice_input,
+		judge_index = self.slice_judge_index,
+		last_judge = self:getLastJudge(),
+		holds_held = self.holds_held,
+		holds_let_go = self.holds_let_go,
+		holds_missed = self.holds_missed,
+	}
+	self.slice_input = nil
+	self.slice_judge_index = nil
+	return slice
+end
+
+EtternaJudges.events = {
+	tap = {
+		clear = {
+			passed = "hit",
+			missed = "miss",
+			clear = nil,
+		},
+	},
+	hold = {
+		clear = {
+			startPassedPressed = "hit",
+			startMissed = "miss",
+			startMissedPressed = nil,
+			clear = nil,
+		},
+		startPassedPressed = {
+			startMissed = nil,
+			endMissed = "holdLetGo",
+			endPassed = "holdHeld",
+		},
+		startMissedPressed = {
+			endMissedPassed = "holdMissed",
+			startMissed = nil,
+			endMissed = "holdMissed",
+		},
+		startMissed = {
+			startMissedPressed = nil,
+			endMissed = "holdMissed",
+		},
+	},
+}
+
+return EtternaJudges

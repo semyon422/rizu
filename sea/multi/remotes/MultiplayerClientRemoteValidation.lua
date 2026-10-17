@@ -1,17 +1,12 @@
 local class = require("class")
 
----@class sea.MultiplayerClientRemoteValidation: sea.MultiplayerClientRemote
+---@class sea.MultiplayerClientRemoteValidation: sea.IClientRemoteContext
 ---@operator call: sea.MultiplayerClientRemoteValidation
 local MultiplayerClientRemoteValidation = class()
 
 ---@param remote sea.MultiplayerClientRemote
 function MultiplayerClientRemoteValidation:new(remote)
-	self.remote = remote
-end
-
----@param ... any
-function MultiplayerClientRemoteValidation:print(...)
-	self.remote:print(...)
+	self.remote = assert(remote)
 end
 
 ---@param rooms sea.Room[]

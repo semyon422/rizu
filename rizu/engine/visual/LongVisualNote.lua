@@ -1,82 +1,115 @@
+local math_util = require("math_util")
 local VisualNote = require("rizu.engine.visual.VisualNote")
-local Point = require("ncdk2.tp.Point")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
+local VisualPoint = require("chart.model.visual.VisualPoint")
 
 ---@class rizu.LongVisualNote: rizu.VisualNote
 ---@operator call: rizu.LongVisualNote
 local LongVisualNote = VisualNote + {}
 
-function LongVisualNote:initHold()
-	if self.hold_index then
+LongVisualNote.type = "long"
+
+---@param vp chart.IVisualPoint
+local function copy_point(vp)
+	local _p = Point(vp.point.absoluteTime)
+	local _vp = VisualPoint(_p)
+
+	_vp.visualTime = vp.visualTime
+
+	return _p, _vp
+end
+
+function LongVisualNote:initPoints()
+	if self.head_p then
 		return
 	end
 
-	local vp = self.linked_note.startNote.visualPoint
-	local hold_p = Point(vp.point.absoluteTime)
-	local hold_vp = VisualPoint(hold_p)
-	hold_vp.visualTime = vp.visualTime
+	local note = self.linked_note
 
-	self.hold_p = hold_p
-	self.hold_vp = hold_vp
-	self.hold_index = 1
+	self.head_p, self.head_vp = copy_point(note.startNote.visualPoint)
+	self.tail_p, self.tail_vp = copy_point(note.endNote.visualPoint)
 end
 
 function LongVisualNote:update()
 	local visual_info = self.visual_info
 
-	self:initHold()
+	self:initPoints()
 
-	local end_visual_time = self:getVisualTime(self.linked_note.endNote.visualPoint)
+	local head_visual_time = self:getHeadVisualTime()
+	self.start_dt = visual_info:sub(head_visual_time)
 
-	local time = visual_info.time
-	local rate = visual_info.rate
-	local visual_offset = visual_info.visual_offset
-
-	local hold_visual_time = self:getHoldVisualTime()
-	self.start_dt = (time - hold_visual_time - visual_offset) * rate
-
-	hold_visual_time = math.max(hold_visual_time, end_visual_time + visual_info.shortening)
-	self.end_dt = (time - hold_visual_time - visual_offset) * rate
+	head_visual_time = math.max(head_visual_time, self:getTailVisualTime())
+	self.end_dt = visual_info:sub(head_visual_time)
 end
 
 ---@param time number
 function LongVisualNote:clampAbsoluteTime(time)
 	local linked_note = self.linked_note
 	local visual_info = self.visual_info
-	return math.min(math.max(time, linked_note:getStartTime()), linked_note:getEndTime() + visual_info.shortening)
+
+	local start_time = linked_note:getStartTime()
+	local end_time = math.max(start_time, linked_note:getEndTime() + visual_info.shortening)
+
+	return math_util.clamp(time, start_time, end_time)
+end
+
+---@param cur_time number
+function LongVisualNote:getLatePressTime(cur_time)
+	self.head_press_offset = self.head_press_offset or cur_time
+
+	local dur = math.max(self.head_press_offset - self.linked_note:getStartTime(), 0)
+	local press_time = cur_time - self.head_press_offset
+
+	return cur_time + math.min(press_time - dur, 0)
+end
+
+---@param cur_time number
+function LongVisualNote:getLatePressTimeClamped(cur_time)
+	return self:clampAbsoluteTime(self:getLatePressTime(cur_time))
 end
 
 ---@return number
-function LongVisualNote:getHoldVisualTime()
-	local visual_info = self.visual_info
+function LongVisualNote:getHeadVisualTime()
 	local cvp = self.cvp
-	local hold_vp = self.hold_vp
-	local hold_p = self.hold_p
+	local head_vp = self.head_vp
+	local head_p = self.head_p
 
 	local state = self:getState()
 	if state ~= "startPassedPressed" and state ~= "endPassed" then
-		return self:getVisualTime(hold_vp)
+		return self:getVisualTime(head_vp)
 	end
 
-	-- Important: `cvp.point.absoluteTime` must be equal `time - input_offset`
-	local offset = visual_info.visual_offset - visual_info.input_offset
-
-	if visual_info.const then
-		local time = cvp.point.absoluteTime - offset
-		hold_vp.point.absoluteTime = self:clampAbsoluteTime(time)
-		return hold_vp.point.absoluteTime
+	if self.visual_info.const then
+		head_p.absoluteTime = self:getLatePressTimeClamped(cvp.point.absoluteTime)
+		return head_p.absoluteTime
 	end
 
 	local interpolator = self.visual.interpolator
 	local points = self.visual.points
 
-	hold_vp.visualTime = cvp.visualTime - offset
-	self.hold_index = interpolator:interpolate(points, self.hold_index, hold_vp, "visual")
+	head_vp.monotonicVisualTime = cvp.monotonicVisualTime
+	interpolator:interpolate(points, head_vp, "visual")
 
-	hold_p.absoluteTime = self:clampAbsoluteTime(hold_p.absoluteTime)
-	self.hold_index = interpolator:interpolate(points, self.hold_index, hold_vp, "absolute")
+	head_p.absoluteTime = self:getLatePressTimeClamped(head_p.absoluteTime)
+	interpolator:interpolate(points, head_vp, "absolute")
 
-	return hold_vp:getVisualTime(cvp)
+	return self:getVisualTime(head_vp)
+end
+
+---@return number
+function LongVisualNote:getTailVisualTime()
+	local tail_vp = self.tail_vp
+	local tail_p = self.tail_p
+
+	tail_p.absoluteTime = self:clampAbsoluteTime(self.linked_note:getEndTime())
+
+	if self.visual_info.const then
+		return tail_p.absoluteTime
+	end
+
+	self.visual.interpolator:interpolate(self.visual.points, tail_vp, "absolute")
+
+	return self:getVisualTime(tail_vp)
 end
 
 LongVisualNote.__lt = VisualNote.__lt

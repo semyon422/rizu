@@ -1,6 +1,7 @@
 local ServerDatabaseMigrator = require("sea.storage.old_server.ServerDatabaseMigrator")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
+local SharedMemory = require("web.nginx.SharedMemory")
 local ServerRepo = require("sea.storage.old_server.ServerRepo")
 local Repos = require("sea.app.Repos")
 local Timezone = require("sea.activity.Timezone")
@@ -28,7 +29,7 @@ local function create_test_ctx()
 	dst_db.path = ":memory:"
 	dst_db:open()
 
-	local repos = Repos(dst_db.models)
+	local repos = Repos(dst_db.models, SharedMemory())
 
 	local migrator = ServerDatabaseMigrator(old_repo, repos)
 

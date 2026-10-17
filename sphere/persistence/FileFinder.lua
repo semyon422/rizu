@@ -5,6 +5,8 @@ local FileTypes = {
 	image = {"png", "bmp", "jpg"},
 	video = {"mpg", "avi", "mp4", "mpeg", "wmv"},
 	ojm = {"ojm"},
+	s3p = {"s3p"},
+	["2dx"] = {"2dx"},
 }
 
 local FileTypeMap = {}
@@ -88,10 +90,6 @@ function FileFinder:findFile(fullFileName, _fileType)
 		return
 	end
 
-	if love.filesystem.getInfo(fullFileName) then
-		return fullFileName
-	end
-
 	fullFileName = fullFileName:gsub("\\", "/")
 	fullFileName = fullFileName:gsub("¥", "/")
 	fullFileName = fullFileName:gsub("^/", "")
@@ -102,9 +100,13 @@ function FileFinder:findFile(fullFileName, _fileType)
 		return
 	end
 
+	if love.filesystem.getInfo(fullFileName) and self:getType(fullFileName) == fileType then
+		return fullFileName
+	end
+
 	for _, path in ipairs(self.paths) do
 		local filePath = path .. "/" .. fullFileName
-		if love.filesystem.getInfo(filePath) then
+		if love.filesystem.getInfo(filePath) and self:getType(filePath) == fileType then
 			return filePath
 		end
 		local files = self:getFileList(path)

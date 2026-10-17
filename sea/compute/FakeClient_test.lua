@@ -58,7 +58,7 @@ input 4key
 	replayBase.const = false
 	replayBase.rate_type = "linear"
 
-	local ret, err = client:play(chartfile_name, chartfile_data, 1, 0, 0, false)
+	local ret, err = client:play(chartfile_name, chartfile_data, 1, 0, 0)
 	if not t:assert(ret, err) then
 		return
 	end

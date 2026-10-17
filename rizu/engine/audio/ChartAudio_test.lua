@@ -1,5 +1,5 @@
 local ChartAudio = require("rizu.engine.audio.ChartAudio")
-local ChartFactory = require("notechart.ChartFactory")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
 
 local cf = ChartFactory()
 local test_chart_header = [[
@@ -19,7 +19,7 @@ input 4key
 ]]
 
 ---@param notes string
----@return ncdk2.Chart
+---@return chart.Chart
 local function get_chart(notes)
 	return assert(cf:getCharts("chart.sph", test_chart_header .. notes))[1].chart
 end
@@ -51,6 +51,23 @@ function test.basic(t)
 		{name = "2.wav", time = 1, volume = 0.25},
 		{name = "3.wav", time = 1, volume = 0.5},
 	})
+end
+
+---@param t testing.T
+function test.type_punctuation_does_not_determine_playability(t)
+	local chart = get_chart("1000 =0 :01 .50\n0100 =1 :01 .50\n")
+	chart.notes.notes[2].data.sounds = nil
+	local note = chart.notes.notes[1]
+	note.type = "custom:sample"
+	local audio = ChartAudio()
+	audio:load(chart)
+	t:eq(#audio.sounds, 1)
+	note.type = "osu:circle"
+	audio = ChartAudio()
+	audio:load(chart)
+	t:eq(#audio.sounds, 0)
+	audio:load(chart, true)
+	t:eq(#audio.sounds, 1)
 end
 
 return test

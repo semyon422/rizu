@@ -1,6 +1,7 @@
 local class = require("class")
-local InputMode = require("ncdk.InputMode")
-local DiscreteKeyVirtualInputEvent = require("rizu.input.DiscreteKeyVirtualInputEvent")
+local InputMode = require("chart.core.InputMode")
+local EventIdMapper = require("rizu.input.EventIdMapper")
+local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 ---@alias rizu.InputKey string|integer
 
@@ -17,13 +18,15 @@ function InputBinder:new(config, input_mode)
 	self.config = config
 	self.input_mode = input_mode
 
+	self.mapper = EventIdMapper()
+
 	local im = InputMode(input_mode)
 	self.columns = im:getInputs()
 	self.map = im:getInputMap()
 end
 
----@param event rizu.DiscreteKeyPhysicInputEvent
----@return rizu.DiscreteKeyVirtualInputEvent?
+---@param event rizu.KeyPhysicInputEvent
+---@return rizu.VirtualInputEvent?
 function InputBinder:transform(event)
 	local config = self.config[self.input_mode]
 	if not config then
@@ -33,16 +36,21 @@ function InputBinder:transform(event)
 	local key, device = event.key, event.device
 
 	for i, binds in pairs(config) do
-		for _, bind in pairs(binds) do
+		for index, bind in pairs(binds) do
 			local _key, d_type, d_id = unpack(bind, 1, 3)
 			if _key == key and d_type == device.type and d_id == device.id then
-				return DiscreteKeyVirtualInputEvent(self.columns[i], event.state)
+				local id_string = table.concat({d_type, d_id, key, index}, "_")
+				local event_id = self.mapper:get(id_string)
+				if event.state == false then
+					self.mapper:free(id_string)
+				end
+				return VirtualInputEvent(event_id, event.state, i, nil)
 			end
 		end
 	end
 end
 
----@param vkey ncdk2.Column
+---@param vkey chart.Column
 ---@param index integer
 ---@param key rizu.InputKey?
 ---@param device rizu.InputDevice?
@@ -66,7 +74,7 @@ function InputBinder:setKey(vkey, index, key, device)
 	binds[index] = {key, device.type, device.id}
 end
 
----@param vkey ncdk2.Column
+---@param vkey chart.Column
 ---@param index number
 ---@return rizu.InputKey?
 ---@return rizu.InputDeviceType?

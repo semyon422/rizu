@@ -1,109 +1,198 @@
 local class = require("class")
+local brand = require("brand")
+local json = require("web.json")
+local utf8validate = require("utf8validate")
 
-local OnlineModel = require("sphere.models.OnlineModel")
+local OnlineModel = require("rizu.online.OnlineModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
-local NoteSkinModel = require("sphere.models.NoteSkinModel")
 local InputModel = require("sphere.models.InputModel")
-local SelectModel = require("sphere.models.SelectModel")
-local RhythmModel = require("sphere.models.RhythmModel")
-local MultiplayerModel = require("sphere.models.MultiplayerModel")
-local ReplayModel = require("sphere.models.ReplayModel")
-local EditorModel = require("sphere.models.EditorModel")
-local SpeedModel = require("sphere.models.SpeedModel")
+local ChartSelector = require("rizu.select.ChartSelector")
+local RemoteAssetCache = require("rizu.library.RemoteAssetCache")
+local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
+local RemoteChartFiles = require("rizu.library.RemoteChartFiles")
+local ScoreSelector = require("rizu.select.ScoreSelector")
+local CollectionSelector = require("rizu.select.CollectionSelector")
+local MultiplayerModel = require("rizu.online.MultiplayerModel")
+local EditorInput = require("rizu.editor.EditorInput")
+local EditorModel = require("rizu.editor.EditorModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
-local ResourceModel = require("sphere.models.ResourceModel")
+local TimingsModel = require("sphere.models.TimingsModel")
 local PauseModel = require("sphere.models.PauseModel")
 local JoystickModel = require("sphere.models.JoystickModel")
-local OffsetModel = require("sphere.models.OffsetModel")
-
-local SelectController = require("sphere.controllers.SelectController")
-local GameplayController = require("sphere.controllers.GameplayController")
+local OffsetController = require("sphere.controllers.gameplay.OffsetController")
+local SelectionCoordinator = require("rizu.select.SelectionCoordinator")
+local ModifierCoordinator = require("rizu.select.ModifierCoordinator")
+local LibraryDropManager = require("rizu.library.LibraryDropManager")
+local ChartExporter = require("rizu.library.ChartExporter")
+local SelectionActions = require("rizu.select.SelectionActions")
+local LocationDirectoryOpener = require("rizu.select.services.LocationDirectoryOpener")
+local ModifierConfigPersistence = require("rizu.select.services.ModifierConfigPersistence")
 local ResultController = require("sphere.controllers.ResultController")
 local MultiplayerController = require("sphere.controllers.MultiplayerController")
-local EditorController = require("sphere.controllers.EditorController")
+local EditorController = require("rizu.editor.EditorController")
 
-local NotificationModel = require("sphere.ui.NotificationModel")
 local BackgroundModel = require("sphere.ui.BackgroundModel")
-local PreviewModel = require("sphere.ui.PreviewModel")
-local ChartPreviewModel = require("sphere.ui.ChartPreviewModel")
+local PreviewModel = require("rizu.preview.PreviewModel")
 
 local Persistence = require("sphere.persistence.Persistence")
-local App = require("sphere.app.App")
-local UserInterfaceModel = require("sphere.models.UserInterfaceModel")
+local App = require("rizu.app.App")
+local UserInterfaceManager = require("rizu.app.UserInterfaceManager")
 
-local PackageManager = require("sphere.pkg.PackageManager")
-local SeaClient = require("sphere.online.SeaClient")
-local OnlineClient = require("sphere.online.OnlineClient")
-local OnlineWrapper = require("sphere.online.OnlineWrapper")
+local PackageManager = require("rizu.pkg.PackageManager")
+local SeaClient = require("rizu.online.SeaClient")
+local OnlineClient = require("rizu.online.OnlineClient")
+local OnlineWrapper = require("rizu.online.OnlineWrapper")
+local NetworkService = require("rizu.net.NetworkService")
+local AvatarCache = require("rizu.online.AvatarCache")
+local McpServer = require("mcp.Server")
+local OpenAiAgent = require("ai.openai.Agent")
+local AiChatModel = require("rizu.ai.ChatModel")
+local AiProviderManager = require("rizu.ai.ProviderManager")
+local GetToolFailuresTool = require("rizu.ai.GetToolFailuresTool")
+local InspectRuntimeTool = require("rizu.ai.InspectRuntimeTool")
+local LuaEvalTool = require("rizu.ai.LuaEvalTool")
+local ReadFileTool = require("rizu.ai.ReadFileTool")
+local SearchSourceTool = require("rizu.ai.SearchSourceTool")
+local SourceLocationTool = require("rizu.ai.SourceLocationTool")
+local ToolFailureLog = require("rizu.ai.ToolFailureLog")
+local McpSessionStore = require("rizu.ai.McpSessionStore")
+local RestartTool = require("rizu.ai.RestartTool")
+local RuntimeStateTool = require("rizu.ai.RuntimeStateTool")
+local ScreenshotTool = require("rizu.ai.ScreenshotTool")
+local AiSystemPrompt = require("rizu.ai.SystemPrompt")
+local NeedleModel = require("rizu.ai.NeedleModel")
+local NeedleGpuProbe = require("rizu.ai.NeedleGpuProbe")
+local NeedleGpuEncoderProbe = require("rizu.ai.NeedleGpuEncoderProbe")
 local DifftablesSync = require("sea.difftables.DifftablesSync")
 local ClientRemote = require("sea.app.remotes.ClientRemote")
+local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
 
 local ComputeContext = require("sea.compute.ComputeContext")
 local ReplayBase = require("sea.replays.ReplayBase")
+
+local LoveFilesystem = require("fs.LoveFilesystem")
+local LoveTimer = require("time.LoveTimer")
+
+local GameplayInteractor = require("rizu.gameplay.GameplayInteractor")
+local GameInteractor = require("rizu.game.GameInteractor")
+local GameApi = require("rizu.api.GameApi")
+
+local ResourceLoader = require("rizu.files.ResourceLoader")
+local ResourceFinder = require("rizu.files.ResourceFinder")
+local SkinRegistry = require("rizu.skin.SkinRegistry")
+
+local Gamemodes = require("rizu.gameplay.Gamemodes")
+
+local GlobalTimer = require("rizu.game.GlobalTimer")
+
+local MultiplayerClient = require("sea.multi.MultiplayerClient")
+
+local DlcManager = require("rizu.dlc.DlcManager")
+
+---@param surface "agent"|"mcp"
+---@param name string?
+---@param arguments any
+---@param err string
+---@param failure_log rizu.ai.ToolFailureLog
+local function logToolFailure(failure_log, surface, name, arguments, err)
+	failure_log:add(surface, name, arguments, err)
+	local ok, encoded = pcall(json.encode, {
+		surface = surface,
+		tool = name,
+		arguments = arguments,
+		error = err,
+	})
+	print("AI tool failure: " .. utf8validate(ok and encoded or tostring(err)))
+end
 
 ---@class sphere.GameController
 ---@operator call: sphere.GameController
 local GameController = class()
 
 function GameController:new()
-	self.packageManager = PackageManager()
+	self.fs = LoveFilesystem()
+
+	self.rhythm_engine = Gamemodes.mania:createEngine()
+	self.network = NetworkService()
+	self.avatar_cache = AvatarCache(self.network)
+
+	self.packageManager = PackageManager(self.network)
 
 	self.persistence = Persistence()
+	self.settings = self.persistence.settings
 	self.app = App(self.persistence)
-	self.uiModel = UserInterfaceModel(self)
+	self.user_interface_manager = UserInterfaceManager(self)
+
+	self.library = self.persistence.library
+	self.dlcManager = DlcManager(self.library, self.network)
 
 	self.online_client = OnlineClient()
-	self.client_remote = ClientRemote(self.online_client, self.persistence.cacheModel)
-	self.seaClient = SeaClient(self.online_client, self.client_remote)
-	self.difftables_sync = DifftablesSync(self.seaClient.remote.difftables, self.persistence.cacheModel.difftablesRepo)
+	self.multiplayer_client = MultiplayerClient()
+	self.client_remote = ClientRemoteValidation(ClientRemote(self.online_client, self.persistence.library, self.multiplayer_client))
+	self.seaClient = SeaClient(self.online_client, self.client_remote, self.network)
+	self.difftables_sync = DifftablesSync(self.seaClient.remote.difftables, self.persistence.library.difftablesRepo)
 	self.online_wrapper = OnlineWrapper(self.online_client, self.seaClient.remote)
 
 	self.onlineModel = OnlineModel(self.persistence.configModel, self.seaClient)
-	self.noteSkinModel = NoteSkinModel(self.persistence.configModel, self.packageManager)
+
+	self.multiplayer_client.server_remote = self.seaClient.remote
+
+	self.skinRegistry = SkinRegistry(self.fs, self.settings)
 	self.inputModel = InputModel(self.persistence.configModel)
-	self.resourceModel = ResourceModel(
-		self.persistence.configModel,
-		self.persistence.fileFinder
-	)
-	self.rhythmModel = RhythmModel(
-		self.inputModel,
-		self.resourceModel
-	)
-	self.pauseModel = PauseModel(self.persistence.configModel, self.rhythmModel)
-	self.replayModel = ReplayModel(self.rhythmModel)
-	self.editorModel = EditorModel(
-		self.persistence.configModel,
-		self.resourceModel
-	)
-	self.speedModel = SpeedModel(self.persistence.configModel)
+	self.pauseModel = PauseModel(self.settings, self.rhythm_engine)
+	self.editorInput = EditorInput()
+	self.editorModel = EditorModel({
+		settings = self.settings,
+		fs = self.fs,
+		input = self.editorInput,
+	})
 	self.computeContext = ComputeContext()
 	self.replayBase = ReplayBase()
+
+	self.multiplayer_client.replay_base = self.replayBase
+
 	self.timeRateModel = TimeRateModel(self.replayBase)
 	self.modifierSelectModel = ModifierSelectModel(self.replayBase)
-	self.selectModel = SelectModel(
+	self.timeRateModel:onChanged(function() self.modifierSelectModel:change() end)
+	self.timingsModel = TimingsModel(self.replayBase, self.settings, self.modifierSelectModel)
+	self.collectionSelector = CollectionSelector(
 		self.persistence.configModel,
-		self.persistence.cacheModel,
-		self.onlineModel,
-		self.replayBase
+		self.settings,
+		self.persistence.library
 	)
+	self.chartSelector = ChartSelector(
+		self.persistence.configModel,
+		self.settings,
+		self.persistence.library,
+		self.fs,
+		self.collectionSelector,
+		LoveTimer()
+	)
+	self.scoreSelector = ScoreSelector(
+		self.persistence.configModel,
+		self.settings,
+		self.persistence.library,
+		self.onlineModel,
+		self.replayBase,
+		self.chartSelector.state
+	)
+
+	self.multiplayer_client.chart_selector = self.chartSelector
+
 	self.multiplayerModel = MultiplayerModel(
-		self.persistence.cacheModel,
-		self.rhythmModel,
+		self.persistence.library,
+		self.rhythm_engine,
 		self.persistence.configModel,
-		self.selectModel,
+		self.chartSelector,
 		self.onlineModel,
-		self.persistence.osudirectModel,
-		self.replayBase
+		self.dlcManager,
+		self.replayBase,
+		self.multiplayer_client
 	)
-	self.offsetModel = OffsetModel(
-		self.persistence.configModel,
-		self.persistence.cacheModel.chartsRepo
-	)
+	self.joystickModel = JoystickModel(self.settings)
+	self.offsetController = OffsetController(self.library, self.computeContext, self.settings)
 
-	self.joystickModel = JoystickModel(self.persistence.configModel)
-
-	self.cacheModel = self.persistence.cacheModel
-	self.osudirectModel = self.persistence.osudirectModel
+	self.library = self.persistence.library
 	self.configModel = self.persistence.configModel
 	self.fileFinder = self.persistence.fileFinder
 	self.difficultyModel = self.persistence.difficultyModel
@@ -111,104 +200,164 @@ function GameController:new()
 	self.discordModel = self.app.discordModel
 	self.windowModel = self.app.windowModel
 
-	self.backgroundModel = BackgroundModel()
-	self.notificationModel = NotificationModel()
-	self.previewModel = PreviewModel(self.persistence.configModel)
-	self.chartPreviewModel = ChartPreviewModel(
-		self.persistence.configModel,
-		self.previewModel,
+	self.remoteAssetCache = RemoteAssetCache(self.network, self.fs)
+	self.remoteChartFiles = RemoteChartFiles(self.library, self.remoteAssetCache, self.fs)
+
+	self.backgroundModel = BackgroundModel(self.network, nil, self.remoteAssetCache)
+	self.previewModel = PreviewModel(
+		self.settings,
 		self.replayBase,
 		self
 	)
 
-	self.selectController = SelectController(
-		self.selectModel,
-		self.modifierSelectModel,
-		self.noteSkinModel,
-		self.configModel,
-		self.multiplayerModel,
-		self.onlineModel,
-		self.cacheModel,
-		self.osudirectModel,
-		self.windowModel,
-		self.replayBase,
+	self.selectionCoordinator = SelectionCoordinator(
+		self.chartSelector,
+		self.scoreSelector,
+		self.collectionSelector,
 		self.backgroundModel,
 		self.previewModel,
-		self.chartPreviewModel
+		RemoteCatalogLoader(self.network, self.fs)
 	)
-	self.gameplayController = GameplayController(
-		self.rhythmModel,
-		self.selectModel,
-		self.noteSkinModel,
-		self.configModel,
-		self.difficultyModel,
-		self.replayModel,
+	self.modifierCoordinator = ModifierCoordinator(
+		self.chartSelector,
+		self.scoreSelector,
+		self.modifierSelectModel,
+		ModifierConfigPersistence(self.configModel),
 		self.multiplayerModel,
-		self.discordModel,
-		self.onlineModel,
-		self.resourceModel,
-		self.windowModel,
-		self.speedModel,
-		self.cacheModel,
-		self.fileFinder,
 		self.replayBase,
-		self.computeContext,
-		self.pauseModel,
-		self.offsetModel,
-		self.previewModel,
-		self.notificationModel,
-		self.seaClient
+		self.previewModel
 	)
-	self.resultController = ResultController(
-		self.selectModel,
-		self.replayModel,
-		self.rhythmModel,
+	self.libraryDropManager = LibraryDropManager(self.library, self.skinRegistry)
+	self.chartExporter = ChartExporter(self.library)
+	self.selectionActions = SelectionActions(
+		self.chartSelector,
+		self.library,
 		self.onlineModel,
-		self.configModel,
-		self.computeContext,
-		self.replayBase
+		LocationDirectoryOpener()
 	)
+
+	self.resultController = ResultController(self)
 	self.multiplayerController = MultiplayerController(
 		self.multiplayerModel,
 		self.configModel,
-		self.selectModel,
+		self.chartSelector,
 		self.replayBase
 	)
-	self.editorController = EditorController(
-		self.selectModel,
-		self.editorModel,
-		self.noteSkinModel,
-		self.configModel,
-		self.resourceModel,
-		self.windowModel,
-		self.cacheModel,
-		self.fileFinder,
-		self.previewModel,
-		self.replayBase
-	)
+	self.resource_finder = ResourceFinder(self.fs)
+	self.resource_loader = ResourceLoader(self.fs, self.resource_finder)
+
+	self.editorController = EditorController({
+		chartSelector = self.chartSelector,
+		editorModel = self.editorModel,
+		settings = self.settings,
+		windowModel = self.windowModel,
+		library = self.library,
+		fileFinder = self.fileFinder,
+		previewModel = self.previewModel,
+		replayBase = self.replayBase,
+		resource_finder = self.resource_finder,
+		resource_loader = self.resource_loader,
+		fs = self.fs,
+		isModifierApplyRequested = function()
+			return self.editorInput:isModifierApplyRequested()
+		end,
+	})
+
+	self.gameplayInteractor = GameplayInteractor(self)
+	self.gameInteractor = GameInteractor(self)
+	self.api = GameApi(self)
+
+	self.global_timer = GlobalTimer()
 end
 
 function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
+	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
+
+	local ai_config = self.persistence.configModel.configs.ai
+	self.aiToolFailureLog = ToolFailureLog()
+	self.aiProviderManager = AiProviderManager({
+		config = ai_config,
+		credentials = self.persistence.configModel.configs.ai_auth,
+		scheduler = self.network.scheduler,
+		request = function(url, body, options)
+			return self.network:request(url, body, options)
+		end,
+		open_stream = function(url, options)
+			return self.network:openStream(url, options)
+		end,
+		open_url = function(url) return love.system.openURL(url) end,
+		save_config = function() self.persistence.configModel:write("ai") end,
+		save_credentials = function() self.persistence.configModel:write("ai_auth") end,
+	})
+	local ai_tools = {
+		SearchSourceTool(self.fs),
+		InspectRuntimeTool(self),
+		GetToolFailuresTool(self.aiToolFailureLog),
+		SourceLocationTool(self),
+		ReadFileTool(self.fs),
+		LuaEvalTool(self),
+	}
+	if self.aiProviderManager:hasModels() then
+		local ai_agent = OpenAiAgent(self.aiProviderManager:getClient(), ai_tools, {
+			streaming = true,
+			max_tool_rounds = 50,
+			on_tool_failure = function(name, arguments, err)
+				logToolFailure(self.aiToolFailureLog, "agent", name, arguments, err)
+			end,
+		})
+		self.aiChatModel = AiChatModel(ai_agent, AiSystemPrompt, {provider_manager = self.aiProviderManager})
+	end
+	self.needleModel = NeedleModel(self.persistence.configModel.configs.needle)
+	self.needleGpuProbe = NeedleGpuProbe()
+	self.needleGpuEncoderProbe = NeedleGpuEncoderProbe()
+	local mcp_config = self.persistence.configModel.configs.mcp
+	if mcp_config.enabled then
+		local mcp_session_store = McpSessionStore()
+		local mcp_tools = {
+			RuntimeStateTool(self),
+			ScreenshotTool(self),
+			RestartTool(),
+		}
+		for _, tool in ipairs(ai_tools) do
+			table.insert(mcp_tools, tool)
+		end
+		self.mcpServer = McpServer(self.network.scheduler, mcp_tools, {
+			host = mcp_config.host,
+			port = mcp_config.port,
+			token = mcp_config.token,
+			on_tool_failure = function(name, arguments, err)
+				logToolFailure(self.aiToolFailureLog, "mcp", name, arguments, err)
+			end,
+			session_id_generator = function()
+				return mcp_session_store:generateId()
+			end,
+			session_store = mcp_session_store,
+			server_info = {
+				name = brand.name,
+				version = "dev",
+				description = "MCP access to the running game",
+			},
+		})
+		local ok, err = self.mcpServer:start()
+		if not ok then
+			print(("MCP server failed to start: %s"):format(err))
+			self.mcpServer = nil
+		end
+	end
 	self.app:load()
 
-	self.uiModel:load()
-	self.ui = self.uiModel.activeUI
+	self.user_interface_manager:load()
 
 	local configModel = self.configModel
-	local rhythmModel = self.rhythmModel
-
-	rhythmModel.judgements = configModel.configs.judgements
-	rhythmModel.hp = configModel.configs.settings.gameplay.hp
-	rhythmModel.settings = configModel.configs.settings
 
 	self.replayBase:importReplayBase(configModel.configs.play)
 	self.modifierSelectModel:updateAdded()
 
-	self.seaClient:load(self.persistence.configModel.configs.urls.websocket, function()
-		self.onlineModel:load()
+	local server_url = self.onlineModel:getServerUrl()
+	self.seaClient:load(server_url, function()
 		self.onlineModel.authManager:checkSession()
 		self.online_wrapper:updateLeaderboards()
 		if not love.filesystem.read("disable_difftables_sync.txt") then
@@ -216,41 +365,95 @@ function GameController:load()
 		end
 	end)
 
-	self.noteSkinModel:load()
-	self.osudirectModel:load()
-	self.selectModel:load()
+	self.skinRegistry:load()
+	self.dlcManager:load()
+	self.collectionSelector:load()
+	self.selectionCoordinator:load()
+	self.modifierCoordinator:load()
 
 	self.multiplayerController:load()
 
 	self.multiplayerModel:connect()
 
 	self.backgroundModel:load()
-	self.previewModel:load()
 end
 
 function GameController:unload()
+	if self.mcpServer then
+		self.mcpServer:stop()
+	end
+	if self.aiChatModel then
+		self.aiChatModel:unload()
+	end
+	if self.needleModel then
+		self.needleModel:unload()
+	end
+	if self.needleGpuProbe then self.needleGpuProbe:release() end
+	if self.needleGpuEncoderProbe then self.needleGpuEncoderProbe:release() end
+	self.gameplayInteractor:unloadGameplay()
+	self.offsetController:unload()
+	self.network:cancelStreams("unload")
+	self.seaClient:unload()
+	self.previewModel:release()
+	self.dlcManager:unload()
+	self.library:stopThread()
+
+	self.selectionCoordinator:unload()
+	self.modifierCoordinator:unload()
 	self.multiplayerController:unload()
 	self.ui:unload()
 	self.app:unload()
+	self.persistence:unload()
 end
 
 ---@param dt number
 function GameController:update(dt)
+	self.user_interface_manager:update()
 	self.app:update()
+	self.network:update()
+	if self.needleModel then self.needleModel:update() end
+	if self.needleGpuProbe then self.needleGpuProbe:update() end
+	if self.needleGpuEncoderProbe then self.needleGpuEncoderProbe:update() end
+
+	self.selectionCoordinator:update(function() self.modifierCoordinator:applySelectionModifierMeta() end)
+	self.modifierCoordinator:update()
 
 	self.joystickModel:update(dt)
 
 	self.multiplayerController:update()
-	self.osudirectModel:update()
+	self.gameplayInteractor:update(dt)
+	self.dlcManager:update()
 
-	self.cacheModel:update()
+	self.library:update()
+	self.seaClient:update()
 
 	self.backgroundModel:update()
-	self.chartPreviewModel:update()
+	self.previewModel:update(dt)
 	self.ui:update(dt)
-	self.notificationModel:update()
+end
 
-	self.seaClient:update()
+---@param mode sea.Gamemode?
+---@param replay_base (rizu.gameplay.ReplayBase|sea.ReplayBase)?
+function GameController:recreateRhythmEngine(mode, replay_base)
+	self.resultController:clearReplay()
+	if self.rhythm_engine then
+		self.rhythm_engine:unload()
+	end
+	self.rhythm_engine = Gamemodes[mode or "mania"]:createEngine(replay_base)
+	self.pauseModel:setRhythmEngine(self.rhythm_engine)
+	self.offsetController:setRhythmEngine(self.rhythm_engine)
+end
+
+---@param ui gui.UserInterface
+function GameController:setUI(ui)
+	if self.ui then
+		self.ui:unload()
+		self.gameplayInteractor:unloadGameplay()
+		self.previewModel:stop()
+	end
+
+	self.ui = ui
+	self.ui:load()
 end
 
 function GameController:draw()
@@ -269,6 +472,12 @@ function GameController:receive(event)
 		self:unload()
 		return
 	end
+
+	if event.name == "framestarted" then
+		self.global_timer:setTime(event.time)
+	end
+
+	self.libraryDropManager:receive(event)
 
 	self.ui:receive(event)
 	self.app:receive(event)

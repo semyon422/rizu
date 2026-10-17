@@ -1,4 +1,16 @@
 #!/bin/bash
+set -e
+
+ulimit -v 2097152
 cd "$(dirname "$0")"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib:$PWD/bin/linux64
-love . bench
+source ./aqua/env/luajit_setenv
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/usr/lib:$PWD/bin/linux64"
+
+if [ $# -eq 0 ]; then
+	set -- gui/Gui_bench.lua
+fi
+
+for benchmark in "$@"; do
+	echo "$benchmark:"
+	luajit bench.lua "$benchmark"
+done

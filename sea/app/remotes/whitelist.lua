@@ -11,6 +11,7 @@ local whitelist = {
 	},
 	submission = {
 		submitChartplay = true,
+		getChartplaySubmission = true,
 		getBestChartplaysForChartmeta = true,
 		getBestChartplaysForChartdiff = true,
 		getReplayFile = true,
@@ -23,8 +24,30 @@ local whitelist = {
 		getDifftables = true,
 		getDifftableChartmetas = true,
 	},
+	multiplayer = {
+		getRooms = true,
+		getUsers = true,
+		getUser = true,
+		getRoomId = true,
+		createRoom = true,
+		joinRoom = true,
+		leaveRoom = true,
+		getCurrentRoom = true,
+		setChartplayComputed = true,
+		switchReady = true,
+		setChartFound = true,
+		setPlaying = true,
+		sendMessage = true,
+		updateRoom = true,
+		kickUser = true,
+		startMatch = true,
+		stopMatch = true,
+	},
 	getUser = true,
 	getSession = true,
+	heartbeat = true,
+	printAll = true,
+	getRandomNumbersFromAllClients = true,
 }
 
 return whitelist

@@ -1,5 +1,5 @@
 local class = require("class")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 local RatingCalc = require("sea.leaderboards.RatingCalc")
 
 ---@class sea.TotalRating

@@ -178,7 +178,7 @@
 		<h2 align="center" class="title is-4">What are you waiting for? Download the game now and join our Discord server!</h2>
 		<div class="level-item buttons are-medium">
 			<a href="/download"><button class="button is-rounded is-link">Download the game</button></a>
-			<a href="https://discord.gg/ubKMtTk" class="button is-rounded is-info">Our Discord server</a>
+			<a href="/discord" hx-boost="false" class="button is-rounded is-info">Our Discord server</a>
 		</div>
 	</div>
 </div>

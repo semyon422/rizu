@@ -1,4 +1,5 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 export DYLD_FALLBACK_LIBRARY_PATH=$PWD/bin/mac64
-/Applications/love.app/Contents/MacOS/love .
+export RIZU_DISABLE_UPDATE=1
+exec "$PWD/build/repo/macos/rizu.app/Contents/MacOS/love" .

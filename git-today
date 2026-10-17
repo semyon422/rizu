@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Get the current git user
+AUTHOR=$(git config user.name)
+
+# Define the start of the period (work day starts at 5:00 AM)
+DAYS=${1:-0}
+SINCE="05:00:00"
+SINCE_DATE=$(date -d "$((5 + 24 * $DAYS)) hours ago" +%Y-%m-%d)
+
+# Calculate committed additions and deletions
+STATS=$( (git log --author="$AUTHOR" --since="$SINCE_DATE $SINCE" --numstat --pretty=tformat:;
+          echo;
+          git submodule foreach --quiet --recursive "git log --author=\"$AUTHOR\" --since=\"$SINCE_DATE $SINCE\" --numstat --pretty=tformat:; echo") |
+    awk '{add += $1; del += $2} END {printf "%d %d", add, del}')
+
+ADDITIONS=$(echo $STATS | awk '{print $1}')
+DELETIONS=$(echo $STATS | awk '{print $2}')
+
+# Count the number of commits
+COMMITS=$( (git log --author="$AUTHOR" --since="$SINCE_DATE $SINCE" --oneline;
+            echo;
+            git submodule foreach --quiet --recursive "git log --author=\"$AUTHOR\" --since=\"$SINCE_DATE $SINCE\" --oneline; echo") | grep -v '^$' | wc -l | xargs)
+
+# Output the result
+BOLD='\033[1m'
+NC='\033[0m'
+
+WORK_TIME_STRING=""
+if [ "$COMMITS" -gt 1 ]; then
+    # Get commit timestamps
+    TIMESTAMPS=$( (git log --author="$AUTHOR" --since="$SINCE_DATE $SINCE" --pretty=format:%ct;
+                   echo;
+                   git submodule foreach --quiet --recursive "git log --author=\"$AUTHOR\" --since=\"$SINCE_DATE $SINCE\" --pretty=format:%ct; echo") | grep -v '^$')
+
+    # Calculate work time in seconds (sum of daily spans)
+    WORK_TIME_SECONDS=$(echo "$TIMESTAMPS" | awk '{
+        # Shift time by 5 hours to align with the 05:00 work day start
+        # Use strftime to get the day string for bucketing
+        day = strftime("%Y-%m-%d", $1 - 18000)
+        if (!(day in min) || $1 < min[day]) min[day] = $1
+        if (!(day in max) || $1 > max[day]) max[day] = $1
+    } END {
+        total = 0
+        for (d in min) total += max[d] - min[d]
+        print total
+    }')
+
+    # Format work time
+    if [ "$WORK_TIME_SECONDS" -gt 0 ]; then
+        WORK_TIME_HOURS=$((WORK_TIME_SECONDS / 3600))
+        WORK_TIME_MINUTES=$(((WORK_TIME_SECONDS % 3600) / 60))
+        WORK_TIME_STRING=" in ${BOLD}${WORK_TIME_HOURS}h ${WORK_TIME_MINUTES}m${NC}"
+    fi
+fi
+
+PERIOD="Today"
+if [ "$DAYS" -gt 0 ]; then
+    PERIOD="In the last $((DAYS + 1)) days"
+fi
+
+echo -e "$PERIOD you've made a total of ${BOLD}${ADDITIONS:-0} additions${NC} and ${BOLD}${DELETIONS:-0} deletions${NC} across ${BOLD}${COMMITS:-0} commits${NC}${WORK_TIME_STRING}."

@@ -1,6 +1,6 @@
 local Modifier = require("sphere.models.ModifierModel.Modifier")
-local InputMode = require("ncdk.InputMode")
-local Notes = require("ncdk2.notes.Notes")
+local InputMode = require("chart.core.InputMode")
+local Notes = require("chart.model.notes.Notes")
 
 ---@class sphere.LessChord: sphere.Modifier
 ---@operator call: sphere.LessChord
@@ -33,7 +33,7 @@ end
 --		 and LN + LN chords
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function LessChord:apply(config, chart)
 	local configVal
 	if config.value ~= "none" then
@@ -78,7 +78,7 @@ function LessChord:apply(config, chart)
 				chords[time] = {
 					time = time,
 					notes = {time_notes[time], note},
-					columnSizes = {unpack(columnSizes)}
+					columnSizes = {unpack(columnSizes)},
 				}
 			end
 

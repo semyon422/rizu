@@ -1,5 +1,5 @@
 local TotalRating = require("sea.leaderboards.TotalRating")
-local erfunc = require("libchart.erfunc")
+local erfunc = require("chart.scoring.erfunc")
 
 local test = {}
 

@@ -1,6 +1,6 @@
 local Modifier = require("sphere.models.ModifierModel.Modifier")
-local InputMode = require("ncdk.InputMode")
-local Notes = require("ncdk2.notes.Notes")
+local InputMode = require("chart.core.InputMode")
+local Notes = require("chart.model.notes.Notes")
 
 ---@class sphere.NoScratch: sphere.Modifier
 ---@operator call: sphere.NoScratch
@@ -18,7 +18,7 @@ function NoScratch:applyMeta(config, state)
 end
 
 ---@param config table
----@param chart ncdk2.Chart
+---@param chart chart.Chart
 function NoScratch:apply(config, chart)
 	chart.inputMode.scratch = nil
 
@@ -32,6 +32,7 @@ function NoScratch:apply(config, chart)
 		new_notes:insert(note)
 	end
 	chart.notes = new_notes
+	chart:compute()
 end
 
 return NoScratch

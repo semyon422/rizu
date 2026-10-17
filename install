@@ -5,16 +5,15 @@ luarocks install luasocket
 luarocks install luaossl
 luarocks install luasec
 luarocks install bcrypt
-luarocks install md5
 luarocks install utf8
 luarocks install lsqlite3
-luarocks install etlua
 luarocks install luacov
 luarocks install luacov-reporter-lcov
 luarocks install nginx-lua-prometheus
 luarocks install enet
+luarocks install lua-resty-nats-next
 
-mkdir -p logs
-mkdir -p temp
-mkdir -p storages/charts
-mkdir -p storages/replays
+mkdir -p server-state/logs
+mkdir -p server-state/temp
+mkdir -p server-state/storages/charts
+mkdir -p server-state/storages/replays

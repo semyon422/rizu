@@ -1,5 +1,6 @@
 local class = require("class")
-local InputNoteFactory = require("rizu.engine.input.InputNoteFactory")
+local BottomNotesHandler = require("rizu.engine.input.BottomNotesHandler")
+local InputPauser = require("rizu.engine.input.InputPauser")
 
 ---@class rizu.InputEngine
 ---@operator call: rizu.InputEngine
@@ -7,63 +8,18 @@ local InputEngine = class()
 
 InputEngine.nearest = false
 
----@param input_info rizu.InputInfo
-function InputEngine:new(input_info)
-	self.input_note_factory = InputNoteFactory(input_info)
-	self:setNotes({})
-end
+---@param active_notes rizu.ActiveInputNotes
+function InputEngine:new(active_notes)
+	self.active_notes = active_notes
 
----@param chart ncdk2.Chart
-function InputEngine:load(chart)
-	local input_note_factory = self.input_note_factory
+	self.bottom_notes_handler = BottomNotesHandler(active_notes)
 
-	---@type rizu.IInputNote[]
-	local notes = {}
-	for i, linked_note in ipairs(chart.notes:getLinkedNotes()) do
-		notes[i] = input_note_factory:getNote(linked_note)
-	end
-	self:setNotes(notes)
-end
+	self.input_pauser = InputPauser()
 
----@param notes rizu.IInputNote[]
-function InputEngine:setNotes(notes)
-	self.notes = notes
-	table.sort(self.notes)
-
-	self.note_index = 1
-
-	---@type rizu.IInputNote[]
-	self.active_notes = {}
-end
-
----@return integer
-function InputEngine:getActiveNotesCount()
-	return #self.active_notes
-end
-
-function InputEngine:update()
-	local notes = self.notes
-	local active_notes = self.active_notes
-
-	for i = self.note_index, #notes do
-		local note = notes[i]
-		if note:getPos() == "early" then
-			break
-		end
-		self.note_index = i + 1
-		table.insert(active_notes, note)
-	end
-
-	for _, note in ipairs(active_notes) do
-		note:update()
-	end
-
-	for i = #active_notes, 1, -1 do
-		local note = active_notes[i]
-		if note:getPos() == "late" then
-			table.remove(active_notes, i)
-		end
-	end
+	---@type {[rizu.VirtualInputEventId]: rizu.InputNote}
+	self.event_catches = {}
+	---@type {[rizu.InputNote]: rizu.VirtualInputEventId}
+	self.catched_notes = {}
 end
 
 ---@param event rizu.VirtualInputEvent
@@ -71,8 +27,8 @@ end
 function InputEngine:getNotesMaxPriority(event)
 	local priority = -math.huge
 
-	for _, note in ipairs(self.active_notes) do
-		if note:match(event) then
+	for _, note in ipairs(self.active_notes:getNotes()) do
+		if not note.is_bottom and note:match(event) then
 			priority = math.max(priority, note:getPriority())
 		end
 	end
@@ -80,47 +36,137 @@ function InputEngine:getNotesMaxPriority(event)
 	return priority
 end
 
----@param event rizu.VirtualInputEvent
-function InputEngine:receive(event)
-	local active_notes = self.active_notes
+---@param note rizu.InputNote
+---@param value any
+---@return rizu.InputNote?
+---@return boolean? catched
+function InputEngine:input_note(note, value)
+	if not self.input_pauser.paused then
+		note:input(value)
+	end
+end
 
-	if not active_notes[1] then
+function InputEngine:update()
+	if not self.input_pauser.paused then
+		self.bottom_notes_handler:update()
+	end
+end
+
+---@param event rizu.VirtualInputEvent
+---@param note rizu.InputNote
+---@return rizu.InputNote?
+---@return boolean? catched
+function InputEngine:handle_catched_note(event, note)
+	local matched = note:match(event)
+	if matched and event.value ~= nil then
+		self:input_note(note, event.value)
+		return note, not not event.value
+	elseif not matched then
+		self:input_note(note, false)
+		return note, false
+	end
+
+	return note, true
+end
+
+---@param event rizu.VirtualInputEvent
+---@return rizu.InputNote?
+---@return boolean? catched
+function InputEngine:receive_catched(event)
+	local active_notes = self.active_notes
+	local catched_notes = self.catched_notes
+
+	local notes = active_notes:getNotes()
+	if not notes[1] then
 		return
 	end
 
-	for _, note in ipairs(active_notes) do
-		if note:catch(event) then
-			note:receive(event)
-			return
+	local catch_note = self.event_catches[event.id]
+	for _, note in ipairs(notes) do
+		if note == catch_note then
+			return self:handle_catched_note(event, note)
+		end
+	end
+
+	local value = event.value
+	if not value then
+		return
+	end
+
+	if self.input_pauser.paused then
+		for _, note in ipairs(notes) do
+			if self.input_pauser.paused_notes[note] ~= nil and not catched_notes[note] and note:match(event) then
+				return note, true
+			end
 		end
 	end
 
 	local priority = self:getNotesMaxPriority(event)
 
 	if not self.nearest then
-		for _, note in ipairs(active_notes) do
-			if note:getPriority() == priority and note:match(event) then
-				note:receive(event)
-				return
+		for _, note in ipairs(notes) do
+			if not note.is_bottom and note:getPriority() == priority and note:match(event) and not catched_notes[note] then
+				self:input_note(note, value)
+				return note, not not value
 			end
 		end
 		return
 	end
 
-	---@type rizu.IInputNote?
+	---@type rizu.InputNote?
 	local nearest_note
 	local nearest_time = math.huge
-	for _, note in ipairs(active_notes) do
+	for _, note in ipairs(notes) do
 		local time = math.abs(note:getDeltaTime())
-		if note:getPriority() == priority and note:match(event) and time < nearest_time then
+		if not note.is_bottom and note:getPriority() == priority and note:match(event) and not catched_notes[note] and time < nearest_time then
 			nearest_time = time
 			nearest_note = note
 		end
 	end
 
-	if nearest_note then
-		nearest_note:receive(event)
+	if not nearest_note then
+		return
 	end
+
+	self:input_note(nearest_note, value)
+	return nearest_note, not not value
+end
+
+---@param event rizu.VirtualInputEvent
+---@return rizu.InputNote?
+---@return boolean? catched
+function InputEngine:receive(event)
+	self.bottom_notes_handler:receive(event)
+	self.input_pauser:receive(event.id, event.value)
+
+	local note, catched = self:receive_catched(event)
+
+	local old_note = self.event_catches[event.id]
+	if old_note then
+		self.event_catches[event.id] = nil
+		self.catched_notes[old_note] = nil
+	end
+
+	if note and catched then
+		self.event_catches[event.id] = note
+		self.catched_notes[note] = event.id
+	end
+
+	return note, catched
+end
+
+function InputEngine:pause()
+	self.input_pauser:pause(self.catched_notes)
+end
+
+function InputEngine:resume()
+	self.input_pauser:resume(self.catched_notes)
+end
+
+---@param column integer
+---@return boolean
+function InputEngine:isColumnPressed(column)
+	return self.bottom_notes_handler:isColumnPressed(column)
 end
 
 return InputEngine

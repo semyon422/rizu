@@ -1,0 +1,134 @@
+local Colors = require("ui.Colors")
+local Painter = require("gui.Painter")
+local Resources = require("ui.Resources")
+local View = require("gui.View")
+
+---@class ui.modals.input.BindingColumn : gui.View
+---@operator call: ui.modals.input.BindingColumn
+---@field column chart.Column
+---@field input rizu.api.Input
+---@field input_mode string
+---@field waiting_index integer?
+---@field on_waiting fun(column: ui.modals.input.BindingColumn, binding_index: integer)
+local BindingColumn = View + {}
+
+local LABEL_HEIGHT = 34
+
+---@param column chart.Column
+---@param input rizu.api.Input
+---@param input_mode string
+---@param width number
+---@param on_waiting fun(column: ui.modals.input.BindingColumn, binding_index: integer)
+function BindingColumn:new(column, input, input_mode, width, on_waiting)
+	View.new(self)
+	self.column = column
+	self.input = input
+	self.input_mode = input_mode
+	self.on_waiting = on_waiting
+	self.waiting_index = nil
+	self.font = Resources.getFont("bold", 20)
+	self.key_font = Resources.getFont("regular", 18)
+	self.handles_mouse_input = true
+	self:setSize(width, 118)
+end
+
+---@return string
+function BindingColumn:getColumnLabel()
+	local input_type, index = self.column:match("^(.-)(%d+)$")
+	local postfix = input_type == "scratch" and "S" or "K"
+	return tostring(index) .. postfix
+end
+
+---@return boolean
+function BindingColumn:isScratch()
+	return self.column:match("^scratch%d+$") ~= nil
+end
+
+---@return integer
+function BindingColumn:getBindingCount()
+	return self.input:getSlotCount(self.column)
+end
+
+---@param waiting boolean
+---@param binding_index integer?
+function BindingColumn:setWaiting(waiting, binding_index)
+	self.waiting_index = waiting and (binding_index or 1) or nil
+end
+
+---@param screen_x number
+---@param screen_y number
+---@return integer?
+function BindingColumn:getBindingIndexAt(screen_x, screen_y)
+	local _, y = self.world_transform:inverseTransformPoint(screen_x, screen_y)
+	if y < LABEL_HEIGHT or y > self.height then
+		return
+	end
+	local binding_count = self:getBindingCount()
+	local cell_height = (self.height - LABEL_HEIGHT) / binding_count
+	return math.min(binding_count, math.floor((y - LABEL_HEIGHT) / cell_height) + 1)
+end
+
+---@param e gui.MouseClickEvent
+function BindingColumn:onMouseClick(e)
+	local binding_index = self:getBindingIndexAt(e.x, e.y)
+	if not binding_index then
+		return
+	end
+	if e.button == 1 then
+		self.on_waiting(self, binding_index)
+		return true
+	elseif e.button == 2 then
+		self:setWaiting(false)
+		self.input:clearBinding(self.input_mode, self.column, binding_index)
+		return true
+	end
+end
+
+function BindingColumn:draw()
+	local lg = love.graphics
+	Painter.snapToPixel()
+	local is_scratch = self:isScratch()
+	Painter.setColorTable(is_scratch and Colors.accent or Colors.muted)
+	lg.setFont(self.font)
+	lg.printf(self:getColumnLabel(), 0, 0, self.width, "center")
+
+	local binding_count = self:getBindingCount()
+	local cell_height = (self.height - LABEL_HEIGHT) / binding_count
+	local hovered_index ---@type integer?
+	if self.mouse_over then
+		hovered_index = self:getBindingIndexAt(love.mouse.getPosition())
+	end
+
+	lg.setLineWidth(2)
+	if self.waiting_index then
+		Painter.setColorTable(Colors.accent)
+	elseif hovered_index then
+		Painter.setColorTable(Colors.text)
+	else
+		Painter.setColorTable(is_scratch and Colors.accent or Colors.outline)
+	end
+	lg.rectangle("line", 1, LABEL_HEIGHT + 1, self.width - 2, self.height - LABEL_HEIGHT - 2, 5, 5)
+	if is_scratch then
+		local divider_y = LABEL_HEIGHT + cell_height
+		lg.line(1, divider_y, self.width - 1, divider_y)
+	end
+
+	lg.setFont(self.key_font)
+	for binding_index = 1, binding_count do
+		local cell_y = LABEL_HEIGHT + (binding_index - 1) * cell_height
+		local key = self.input:getBinding(self.input_mode, self.column, binding_index)
+		local text = self.waiting_index == binding_index and "..." or (key and tostring(key):upper() or "")
+		Painter.setColorTable(is_scratch and Colors.accent or Colors.text)
+		local text_width = self.key_font:getWidth(text)
+		local available_width = self.width - 8
+		local text_scale = text_width > available_width and available_width / text_width or 1
+		lg.push()
+		lg.translate(self.width / 2, cell_y + cell_height / 2)
+		lg.scale(text_scale)
+		lg.printf(text, -available_width / text_scale / 2, -self.key_font:getHeight() / 2,
+			available_width / text_scale, "center")
+		lg.pop()
+	end
+end
+
+return BindingColumn

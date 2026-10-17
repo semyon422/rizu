@@ -1,0 +1,55 @@
+local Button = require("ui.views.Button")
+local Colors = require("ui.Colors")
+local Label = require("ui.views.Label")
+local Panel = require("ui.views.Panel")
+local View = require("gui.View")
+
+---@class ui.screens.locations.LocationRow : gui.View
+---@operator call: ui.screens.locations.LocationRow
+local LocationRow = View + {}
+
+---@param location rizu.api.Location
+---@param width number
+---@param ui ui.UserInterface
+---@param on_update_cache fun(location: rizu.api.Location)
+---@param on_edit fun(location: rizu.api.Location)
+---@param on_delete fun(location: rizu.api.Location)
+function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delete)
+	View.new(self)
+	self:setSize(width, 100)
+	self:add(Panel({color = Colors.panel, line_color = Colors.outline})):anchorFill(0, 0, 0, 0)
+
+	local name = self:add(Label({font_name = "bold", font_size = 24, text = location.name}))
+	name:setPosition(24, 20):setSize(width - 540, 30)
+	-- A remote location is known by where its charts come from, not by the folder they are downloaded to.
+	local path = self:add(Label({
+		font_name = "regular", font_size = 16, text = location.url or location.path, color = Colors.muted,
+	}))
+	path:setPosition(24, 58):setSize(width - 540, 24)
+
+	local delete_button = {variant = "danger", shape = "capsule", font_name = "medium", font_size = 16}
+	if location.url then
+		-- Its charts are listed by the catalog: there is nothing to scan and no folder to choose.
+		local delete = self:add(Button(ui.localization:get("locations.delete"), function() on_delete(location) end, delete_button))
+		delete:setSize(110, 40):setAlignment(1, 0.5):setOffset(-24, 0)
+		return
+	end
+
+	local update_cache = self:add(Button(ui.localization:get("locations.update_cache"), function() on_update_cache(location) end, {
+		variant = "primary", shape = "capsule", font_name = "medium", font_size = 16,
+	}))
+	local update_offset = location.is_internal and -24 or -284
+	update_cache:setSize(150, 40):setAlignment(1, 0.5):setOffset(update_offset, 0)
+	if location.is_internal then
+		return
+	end
+
+	local edit = self:add(Button(ui.localization:get("locations.edit"), function() on_edit(location) end, {
+		variant = "secondary", shape = "capsule", font_name = "medium", font_size = 16,
+	}))
+	edit:setSize(110, 40):setAlignment(1, 0.5):setOffset(-154, 0)
+	local delete = self:add(Button(ui.localization:get("locations.delete"), function() on_delete(location) end, delete_button))
+	delete:setSize(110, 40):setAlignment(1, 0.5):setOffset(-24, 0)
+end
+
+return LocationRow

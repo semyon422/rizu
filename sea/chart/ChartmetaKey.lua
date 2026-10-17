@@ -11,7 +11,7 @@ local ChartmetaKey = class()
 
 ChartmetaKey.struct = {
 	hash = types.md5hash,
-	index = types.index,
+	index = valid.index,
 }
 
 assert(#table_util.keys(ChartmetaKey.struct) == 2)

@@ -1,16 +1,39 @@
-local ChartFactory = require("notechart.ChartFactory")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartFormat = require("sea.chart.ChartFormat")
 
+---@param name string
+---@param inputMode string
+---@return sphere.ScoreFilter
 local function newInputModeScoreFilter(name, inputMode)
 	return {
 		name = name,
 		check = function(score)
 			return score.inputmode == inputMode
-		end
+		end,
 	}
 end
 
 ---@class sphere.FiltersConfig
+---@field notechart (sphere.ChartFilterGroup|sphere.ChartSearchFilter)[]
+---@field score sphere.ScoreFilter[]
+
+---@class sphere.ChartConditionFilter
+---@field name string
+---@field conds rdb.Conditions
+
+---@class sphere.ChartFilterGroup
+---@field name string
+---@field [integer] sphere.ChartConditionFilter
+
+---@class sphere.ChartSearchFilter
+---@field name string
+---@field string string?
+---@field condition rdb.Conditions?
+
+---@class sphere.ScoreFilter
+---@field name string
+---@field check (fun(score: sea.Chartplay): boolean)?
+
 local filters = {
 	notechart = {
 		{
@@ -70,9 +93,18 @@ local filters = {
 	},
 	score = {
 		{name = "No filter"},
-		{name = "FC", check = function(score)
-			return score.missCount == 0
-		end},
+		{
+			name = "Unmodified",
+			check = function(score)
+				return (not score.modifiers or not next(score.modifiers)) and score.timings == nil
+			end,
+		},
+		{
+			name = "FC",
+			check = function(score)
+				return score.missCount == 0
+			end
+		},
 		newInputModeScoreFilter("4K", "4key"),
 		newInputModeScoreFilter("5K", "5key"),
 		newInputModeScoreFilter("6K", "6key"),
@@ -80,7 +112,7 @@ local filters = {
 		newInputModeScoreFilter("8K", "8key"),
 		newInputModeScoreFilter("9K", "9key"),
 		newInputModeScoreFilter("10K", "10key"),
-	}
+	},
 }
 
 return filters

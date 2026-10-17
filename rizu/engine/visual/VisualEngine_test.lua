@@ -1,24 +1,8 @@
 local VisualEngine = require("rizu.engine.visual.VisualEngine")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local ChartFactory = require("notechart.ChartFactory")
+local TestChartFactory = require("sea.chart.TestChartFactory")
 
-local cf = ChartFactory()
-local test_chart_header = [[
-# metadata
-title Title
-artist Artist
-name Name
-creator Creator
-input 4key
-
-# notes
-]]
-
----@param notes string
----@return ncdk2.Chart
-local function get_chart(notes)
-	return assert(cf:getCharts("chart.sph", test_chart_header .. notes))[1].chart
-end
+local tcf = TestChartFactory()
 
 local test = {}
 
@@ -27,13 +11,13 @@ function test.basic_short(t)
 	local visual_info = VisualInfo()
 	local ve = VisualEngine(visual_info)
 
-	local chart = get_chart([[
-1000 =0
-0100 =1
-0010 =2
-]])
+	local res = tcf:create("4key", {
+		{time = 0, column = 1},
+		{time = 1, column = 2},
+		{time = 2, column = 3},
+	})
 
-	ve:load(chart, {-1, 1})
+	ve:load(res.chart)
 
 	visual_info.time = -1.001
 	ve:update()
@@ -65,15 +49,11 @@ function test.basic_long(t)
 	local visual_info = VisualInfo()
 	local ve = VisualEngine(visual_info)
 
-	local chart = get_chart([[
-2000 =0
-0000 =1
-0000 =2
-0000 =3
-3000 =4
-]])
+	local res = tcf:create("4key", {
+		{time = 0, column = 1, end_time = 4},
+	})
 
-	ve:load(chart, {-1, 1})
+	ve:load(res.chart)
 
 	visual_info.time = -1.001
 	ve:update()
@@ -94,6 +74,42 @@ function test.basic_long(t)
 	visual_info.time = 5
 	ve:update()
 	t:eq(#ve.visible_notes, 0)
+end
+
+---@param t testing.T
+function test.sv_should_move_with_notes(t)
+	local visual_info = VisualInfo()
+	local ve = VisualEngine(visual_info)
+
+	local res = tcf:create("4key", {
+		{time = 0, velocity = {}},
+		{time = 0.25, column = 2, velocity = {0.5}},
+		{time = 0.75, column = 3, velocity = {}},
+	})
+
+	ve:load(res.chart)
+
+	local notes = ve.visible_notes
+	---@cast notes rizu.ShortVisualNote[]
+
+	visual_info.time = 0
+	ve:update()
+	t:eq(#notes, 2)
+
+	t:eq(notes[1].start_dt, -0.25)
+	t:eq(notes[2].start_dt, -0.5)
+
+	visual_info.time = 0.25
+	ve:update()
+
+	t:eq(notes[1].start_dt, 0)
+	t:eq(notes[2].start_dt, -0.25)
+
+	visual_info.time = 0.5
+	ve:update()
+
+	t:eq(notes[1].start_dt, 0.125)
+	t:eq(notes[2].start_dt, -0.125)
 end
 
 return test

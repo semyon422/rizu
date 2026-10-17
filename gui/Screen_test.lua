@@ -1,0 +1,783 @@
+local Inputs = require("gui.input.Inputs")
+local ActionMap = require("gui.input.ActionMap")
+local Screen = require("gui.Screen")
+local View = require("gui.View")
+
+local test = {}
+
+---@param t testing.T
+function test.new_screen_has_root(t)
+	local s = Screen()
+	t:assert(s.root ~= nil, "root should be set")
+end
+
+---@param t testing.T
+function test.root_is_a_view(t)
+	local s = Screen()
+	t:assert(View * s.root, "root should be a View instance")
+end
+
+---@param t testing.T
+function test.root_starts_unparented_with_no_children(t)
+	local s = Screen()
+	t:eq(s.root.parent, nil)
+	t:eq(s.root.screen, s)
+	t:eq(#s.root.children, 0)
+end
+
+---@param t testing.T
+function test.add_injects_screen_into_subtree(t)
+	local s = Screen()
+	local parent = View()
+	local child = View()
+	parent:add(child)
+
+	s.root:add(parent)
+
+	t:eq(parent.screen, s)
+	t:eq(child.screen, s)
+end
+
+---@param t testing.T
+function test.update_does_not_error(t)
+	local s = Screen()
+	s:update(0.016)
+end
+
+---@param t testing.T
+function test.draw_does_not_error(t)
+	local s = Screen()
+	s:draw()
+end
+
+---@param t testing.T
+function test.printDebugLayout_does_not_error(t)
+	local s = Screen()
+	local arranged = View()
+	arranged.debug_name = "arranged"
+	local anchored = arranged:add(View())
+	anchored.debug_name = "anchored"
+	s.root:add(arranged)
+	function arranged:arrange()
+		self.children[1].arranged = {1, 2, 3, 4}
+	end
+
+	s:printDebugLayout()
+	t:eq(arranged.width, 0)
+	t:eq(anchored.x, 1)
+	t:eq(anchored.y, 2)
+	t:eq(anchored.width, 3)
+	t:eq(anchored.height, 4)
+end
+
+---@param t testing.T
+function test.acceptInputs_uses_flat_views_front_to_back(t)
+	local s = Screen()
+	local first = View()
+	local last = View()
+	local child = View()
+	s.root:add(first)
+	s.root:add(last)
+	last:add(child)
+
+	local seen = {}
+	s:acceptInputs({
+		processView = function(_, view)
+			seen[#seen + 1] = view
+		end,
+	})
+
+	t:tdeq(seen, {child, last, first, s.root})
+end
+
+---@param t testing.T
+function test.handleInputs_uses_specialized_views_front_to_back(t)
+	local s = Screen()
+	local first = View()
+	local last = View()
+	local child = View()
+	local inert = View()
+	local seen = {}
+	function first:onHandleInputs(inputs)
+		seen[#seen + 1] = "first:" .. tostring(inputs:consumeActionJustPressed("test"))
+	end
+	function last:onHandleInputs(inputs)
+		seen[#seen + 1] = "last:" .. tostring(inputs:consumeActionJustPressed("test"))
+	end
+	function child:onHandleInputs(inputs)
+		seen[#seen + 1] = "child:" .. tostring(inputs:consumeActionJustPressed("test"))
+	end
+	s.root:add(first)
+	s.root:add(last)
+	last:add(child)
+	s.root:add(inert)
+
+	local inputs = Inputs()
+	local actions = ActionMap()
+	actions:defineAction("test", {{key = "return"}})
+	inputs:setActionMap(actions)
+	inputs:updateActions({name = "keypressed", "return"}, {
+		control = false, shift = false, alt = false, super = false,
+	})
+	s:handleInputs(inputs)
+
+	t:tdeq(seen, {"child:true", "last:false", "first:false"})
+	t:tdeq(s.input_views, {first, last, child})
+end
+
+---@param t testing.T
+function test.handleInputs_skips_views_and_screen_outside_foreign_focus_scope(t)
+	local overlay = Screen()
+	local modal = View()
+	overlay.root:add(modal)
+	overlay:relayout()
+
+	local s = Screen()
+	local view = View()
+	local seen = {}
+	function view:onHandleInputs() seen[#seen + 1] = "view" end
+	function s:onHandleInputs() seen[#seen + 1] = "screen" end
+	s.root:add(view)
+	s:relayout()
+
+	local inputs = Inputs()
+	inputs:pushFocusScope(modal)
+	s:handleInputs(inputs)
+	t:tdeq(seen, {})
+
+	inputs:popFocusScope(modal)
+	s:handleInputs(inputs)
+	t:tdeq(seen, {"view", "screen"})
+end
+
+---@param t testing.T
+function test.handleInputs_reaches_views_above_focus_scope_only(t)
+	local s = Screen()
+	local below, modal, above = View(), View(), View()
+	local seen = {}
+	function below:onHandleInputs() seen[#seen + 1] = "below" end
+	function modal:onHandleInputs() seen[#seen + 1] = "modal" end
+	function above:onHandleInputs() seen[#seen + 1] = "above" end
+	s.root:add(below)
+	s.root:add(modal)
+	s.root:add(above)
+	s:relayout()
+
+	local inputs = Inputs()
+	inputs:pushFocusScope(modal)
+	s:handleInputs(inputs)
+	t:tdeq(seen, {"above", "modal"})
+end
+
+---@param t testing.T
+function test.relayout_builds_flat_preorder_and_ranges(t)
+	local s = Screen()
+	local a = View()
+	local b = View()
+	local leaf = View()
+	s.root:add(a)
+	s.root:add(b)
+	b:add(leaf)
+
+	s:relayout()
+
+	t:tdeq(s.views, {s.root, a, b, leaf})
+	t:eq(s.root.flat_index, 1)
+	t:eq(s.root.flat_subtree_end, 4)
+	t:eq(a.flat_index, 2)
+	t:eq(a.flat_subtree_end, 2)
+	t:eq(b.flat_index, 3)
+	t:eq(b.flat_subtree_end, 4)
+end
+
+---@param t testing.T
+function test.move_changes_draw_and_input_order_after_flush(t)
+	local s = Screen()
+	local first = View()
+	local second = View()
+	first:setDraw(function() end)
+	second:setDraw(function() end)
+	first.handles_mouse_input = true
+	second.handles_mouse_input = true
+	first:anchorFixed(0, 0, 10, 10)
+	second:anchorFixed(0, 0, 10, 10)
+	s.root:add(first)
+	s.root:add(second)
+	s:flush()
+
+	s.root:move(first, 2)
+	s:flush()
+	t:eq(s.renderer.commands[2], second)
+	t:eq(s.renderer.commands[5], first)
+
+	local inputs = Inputs()
+	inputs:beginFrame(5, 5)
+	s:acceptInputs(inputs)
+	t:tdeq(inputs.mouse_hits, {first, second})
+end
+
+---@param t testing.T
+function test.insert_reparents_across_loaded_screens(t)
+	local old_screen = Screen()
+	local new_screen = Screen()
+	local child = View()
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+	old_screen.root:add(child)
+	old_screen:load()
+	new_screen:load()
+
+	new_screen.root:insert(1, child)
+
+	t:eq(child.screen, new_screen)
+	t:eq(child.parent, new_screen.root)
+	t:eq(child.loaded, true)
+	t:eq(unloads, 1)
+	t:eq(loads, 2)
+	t:eq(old_screen.dirty, true)
+	t:eq(new_screen.dirty, true)
+end
+
+---@param t testing.T
+function test.acceptInputs_respects_ancestor_clip(t)
+	local s = Screen()
+	s:resize(200, 200)
+	local clip = s.root:add(View():anchorFixed(10, 10, 50, 50))
+	clip:setClip(true)
+	local child = clip:add(View():anchorFixed(40, 40, 50, 50))
+	child.handles_mouse_input = true
+
+	local inputs = Inputs()
+	inputs:beginFrame(75, 75)
+	s:acceptInputs(inputs)
+
+	t:eq(child.clip_rect[1], 10)
+	t:eq(child.clip_rect[3], 50)
+	t:eq(#inputs.mouse_hits, 0)
+
+	inputs:beginFrame(55, 55)
+	s:acceptInputs(inputs)
+	t:tdeq(inputs.mouse_hits, {child})
+end
+
+---@param t testing.T
+function test.relayout_builds_specialized_update_and_draw_arrays(t)
+	local s = Screen()
+	local inert = View()
+	local updating = View()
+	local drawing = View()
+	local both = View()
+	updating:setUpdate(function() end)
+	drawing:setDraw(function() end)
+	both:setUpdate(function() end)
+	both:setDraw(function() end)
+	s.root:add(inert)
+	s.root:add(updating)
+	s.root:add(drawing)
+	s.root:add(both)
+
+	s:relayout()
+
+	t:tdeq(s.update_views, {updating, both})
+	local commands = s.renderer.commands
+	t:eq(type(commands[1]), "number")
+	t:eq(commands[2], drawing)
+	t:eq(commands[4], commands[1])
+	t:eq(commands[5], both)
+	t:eq(s.renderer.command_count, 6)
+end
+
+---@param t testing.T
+function test.tree_mutation_invalidates_and_flush_rebuilds_arrays(t)
+	local s = Screen()
+	s:relayout()
+	local child = View()
+	child:setDraw(function() end)
+
+	s.root:add(child)
+	t:eq(s.dirty, true)
+	t:eq(#s.views, 1)
+
+	s:flush()
+	t:eq(s.dirty, false)
+	t:tdeq(s.views, {s.root, child})
+	t:eq(type(s.renderer.commands[1]), "number")
+	t:eq(s.renderer.commands[2], child)
+end
+
+---@param t testing.T
+function test.update_and_draw_skip_base_noop_views(t)
+	local s = Screen()
+	local inert = View()
+	local active = View()
+	local updated = 0
+	local drawn = 0
+	active:setUpdate(function(_, dt)
+		updated = updated + dt
+	end)
+	active:setDraw(function()
+		drawn = drawn + 1
+	end)
+	s.root:add(inert)
+	s.root:add(active)
+
+	s:update(0.25)
+	s:draw()
+
+	t:eq(updated, 0.25)
+	t:eq(drawn, 1)
+end
+
+---@param t testing.T
+function test.update_skips_invisible_subtrees(t)
+	local s = Screen()
+	local parent = View()
+	local child = View()
+	local updates = 0
+	child:setUpdate(function()
+		updates = updates + 1
+	end)
+	parent:add(child)
+	s.root:add(parent)
+
+	s:update(0.25)
+	t:eq(updates, 1)
+
+	parent:setVisible(false)
+	s:update(0.25)
+	t:eq(updates, 1)
+
+	parent:setVisible(true)
+	s:update(0.25)
+	t:eq(updates, 2)
+end
+
+---@param t testing.T
+function test.resize_sets_root_size_and_screen_size(t)
+	local s = Screen()
+	s:resize(800, 600)
+	t:eq(s.width, 800)
+	t:eq(s.height, 600)
+	t:eq(s.root.width, 800)
+	t:eq(s.root.height, 600)
+	t:eq(s.root.x, 0)
+	t:eq(s.root.y, 0)
+end
+
+---@param t testing.T
+function test.resize_triggers_relayout_of_children(t)
+	local s = Screen()
+	local child = View()
+	child.anchor_max = {1, 1}
+	s.root:add(child)
+
+	s:resize(640, 480)
+
+	t:eq(child.width, 640)
+	t:eq(child.height, 480)
+end
+
+---@param t testing.T
+function test.resize_again_relays_children(t)
+	local s = Screen()
+	local child = View()
+	child.anchor_max = {1, 1}
+	s.root:add(child)
+
+	s:resize(640, 480)
+	t:eq(child.width, 640)
+
+	s:resize(1024, 768)
+	t:eq(child.width, 1024)
+	t:eq(child.height, 768)
+end
+
+-- ===========================================================================
+-- ui_scale (§3)
+-- ===========================================================================
+
+---@param t testing.T
+function test.default_ui_scale_is_1(t)
+	local s = Screen()
+	t:eq(s.ui_scale, 1)
+end
+
+---@param t testing.T
+function test.setUIScale_updates_field(t)
+	local s = Screen()
+	s:setUIScale(2)
+	t:eq(s.ui_scale, 2)
+end
+
+---@param t testing.T
+function test.setUIScale_rejects_invalid_values(t)
+	local s = Screen()
+	local bad = {0, -1, -0.5, math.huge, -math.huge, math.huge - math.huge, "1", nil, {}}
+	for _, v in ipairs(bad) do
+		t:has_error(function()
+			s:setUIScale(v)
+		end)
+	end
+end
+
+---@param t testing.T
+function test.resize_with_ui_scale_halves_root_size(t)
+	local s = Screen()
+	s:setUIScale(2)
+	s:resize(800, 600)
+	t:eq(s.root.width, 400)
+	t:eq(s.root.height, 300)
+end
+
+---@param t testing.T
+function test.ui_scale_bakes_scale_into_root_world_transform(t)
+	local s = Screen()
+	s:setUIScale(2)
+	s:resize(800, 600)
+	local x, y = s.root.world_transform:transformPoint(100, 50)
+	t:aeq(x, 200, 1e-9)
+	t:aeq(y, 100, 1e-9)
+end
+
+---@param t testing.T
+function test.ui_scale_preserves_root_center_pivot(t)
+	local s = Screen()
+	s:setUIScale(2)
+	s:resize(800, 600)
+	s.root:setPivot(0.5, 0.5)
+
+	local x, y = s.root:getWorldPosition()
+	t:aeq(x, 0, 1e-9)
+	t:aeq(y, 0, 1e-9)
+
+	s.root:setScale(0.5, 0.5)
+	x, y = s.root.world_transform:transformPoint(s.root.width / 2, s.root.height / 2)
+	t:aeq(x, 400, 1e-9)
+	t:aeq(y, 300, 1e-9)
+end
+
+---@param t testing.T
+function test.ui_scale_doubles_child_world_position(t)
+	local s = Screen()
+	s:setUIScale(2)
+	s:resize(800, 600)
+
+	local child = View()
+	child.offset_min = {10, 20}
+	child.offset_max = {40, 60}
+	s.root:add(child)
+	s:relayout()
+
+	local wx, wy = child:getWorldPosition()
+	t:aeq(wx, 20, 1e-9)
+	t:aeq(wy, 40, 1e-9)
+end
+
+---@param t testing.T
+function test.setUIScale_after_resize_triggers_relayout(t)
+	local s = Screen()
+	s:resize(800, 600)
+	t:eq(s.root.width, 800)
+
+	s:setUIScale(2)
+	t:eq(s.root.width, 400)
+	t:eq(s.root.height, 300)
+end
+
+---@param t testing.T
+function test.screen_relayout_preserves_ui_scale(t)
+	local s = Screen()
+	s:setUIScale(2)
+	s:resize(800, 600)
+
+	local child = View()
+	child.offset_min = {10, 10}
+	child.offset_max = {20, 20}
+	s.root:add(child)
+	s:relayout()
+
+	local wx, wy = child:getWorldPosition()
+	t:aeq(wx, 20, 1e-9)
+	t:aeq(wy, 20, 1e-9)
+end
+
+-- ===========================================================================
+-- Lifecycle
+-- ===========================================================================
+
+---@param t testing.T
+function test.default_enter_and_exit(t)
+	local s = Screen()
+	s:enter()
+	t:eq(s:exit(), true)
+end
+
+---@param t testing.T
+function test.exit_clears_input_state(t)
+	local s = Screen()
+	local cleared
+	s.inputs = {
+		clearSubtree = function(_, root)
+			cleared = root
+		end,
+	}
+
+	t:eq(s:exit(), true)
+	t:eq(cleared, s.root)
+	t:eq(s.inputs, nil)
+end
+
+---@param t testing.T
+function test.load_and_unload_visit_tree_once(t)
+	local s = Screen()
+	local child = View()
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+	s.root:add(child)
+
+	s:load()
+	s:load()
+	t:eq(loads, 1)
+
+	s:unload()
+	s:unload()
+	t:eq(unloads, 1)
+	t:eq(s.renderer.command_count, 0)
+	t:eq(#s.renderer.commands, 0)
+end
+
+---@param t testing.T
+function test.add_to_loaded_screen_loads_and_remove_unloads_at_flush(t)
+	local s = Screen()
+	s:load()
+	local child = View()
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+
+	s.root:add(child)
+	t:eq(loads, 1)
+	s.root:remove(child)
+	t:eq(unloads, 0)
+	t:eq(child.detached, true)
+	t:eq(child.loaded, true)
+
+	s:flush()
+	t:eq(unloads, 1)
+	t:eq(child.loaded, false)
+	t:eq(child.pending_unload_screen, nil)
+end
+
+---@param t testing.T
+function test.remove_skips_cached_update_and_draw_before_flush(t)
+	local s = Screen()
+	local child = View()
+	local updates, draws = 0, 0
+	child:setUpdate(function() updates = updates + 1 end)
+	child:setDraw(function() draws = draws + 1 end)
+	s.root:add(child)
+	s:load()
+
+	s.root:remove(child)
+	-- Exercise the stale caches directly: normal update/draw starts with flush.
+	for _, view in ipairs(s.update_views) do
+		if not view.detached then view:update(0) end
+	end
+	s.renderer:draw()
+
+	t:eq(updates, 0)
+	t:eq(draws, 0)
+end
+
+---@param t testing.T
+function test.onLayoutChanged_fires_again_after_reattach(t)
+	local s = Screen()
+	s:resize(100, 100)
+	local view = s.root:add(View():anchorFixed(0, 0, 10, 10))
+	local calls = 0
+	function view:onLayoutChanged() calls = calls + 1 end
+	s:load()
+	t:eq(calls, 1)
+
+	-- Moving within the screen keeps the view loaded, so nothing fires.
+	local other = s.root:add(View())
+	other:add(view)
+	s:flush()
+	t:eq(calls, 1)
+
+	other:remove(view)
+	s:flush()
+	other:add(view)
+	s:flush()
+	t:eq(calls, 2)
+end
+
+---@param t testing.T
+function test.renderer_skips_hidden_subtree_in_one_jump(t)
+	local s = Screen()
+	s:resize(100, 100)
+	local draws = {}
+	---@param parent gui.View
+	---@param name string
+	---@return gui.View
+	local function add(parent, name)
+		local view = parent:add(View():anchorFixed(0, 0, 10, 10))
+		view:setDraw(function() draws[#draws + 1] = name end)
+		return view
+	end
+	local hidden = add(s.root, "hidden")
+	add(add(hidden, "child"), "leaf")
+	local culled = add(s.root, "culled")
+	add(culled, "inside")
+	add(s.root, "last")
+	hidden:setVisible(false)
+	s:flush()
+	culled.cull_mask = View.CULL_VIEWPORT
+
+	s:draw()
+
+	t:tdeq(draws, {"inside", "last"})
+	-- hidden, child, leaf: the hidden view points past all three.
+	t:eq(s.renderer.commands[3], 10)
+	t:eq(s.renderer.commands[10 + 1], culled)
+end
+
+---@param t testing.T
+function test.acceptInputs_skips_hidden_subtrees(t)
+	local s = Screen()
+	local first = s.root:add(View())
+	local hidden = s.root:add(View())
+	local child = hidden:add(View())
+	child:add(View())
+	local last = s.root:add(View())
+	hidden:setOpacity(0)
+	local processed = {}
+	local inputs = {processView = function(_, view) processed[#processed + 1] = view end}
+
+	s:acceptInputs(inputs)
+
+	t:tdeq(processed, {last, first, s.root})
+end
+
+---@param t testing.T
+function test.afterLayout_runs_once_per_rebuild(t)
+	local s = Screen()
+	local view = s.root:add(View())
+	local calls = 0
+	function view:afterLayout() calls = calls + 1 end
+
+	s:flush()
+	s:flush()
+	t:eq(calls, 1)
+	view:invalidate()
+	s:flush()
+	t:eq(calls, 2)
+end
+
+---@param t testing.T
+function test.clear_queues_each_removed_subtree_once(t)
+	local s = Screen()
+	local parent = s.root:add(View())
+	local child = parent:add(View())
+	local inner = child:add(View())
+	s:load()
+
+	parent:clear()
+
+	t:eq(child.pending_unload_screen, s)
+	t:eq(inner.pending_unload_screen, nil)
+	s:flush()
+	t:eq(inner.loaded, false)
+end
+
+---@param t testing.T
+function test.idle_flush_does_not_replace_pending_tables(t)
+	local s = Screen()
+	s:flush()
+	local pending = s.pending_unload
+
+	s:flush()
+
+	t:eq(s.pending_unload, pending)
+end
+
+---@param t testing.T
+function test.same_screen_reparent_cancels_pending_unload(t)
+	local s = Screen()
+	local left = s.root:add(View())
+	local right = s.root:add(View())
+	local child = left:add(View())
+	local loads, unloads = 0, 0
+	function child:load() loads = loads + 1 end
+	function child:unload() unloads = unloads + 1 end
+	s:load()
+
+	right:add(child)
+	s:flush()
+
+	t:eq(child.parent, right)
+	t:eq(child.detached, false)
+	t:eq(loads, 1)
+	t:eq(unloads, 0)
+end
+
+---@param t testing.T
+function test.cross_screen_reparent_unloads_before_loading(t)
+	local old_screen = Screen()
+	local new_screen = Screen()
+	local child = View()
+	local calls = {}
+	function child:load() calls[#calls + 1] = "load" end
+	function child:unload() calls[#calls + 1] = "unload" end
+	old_screen.root:add(child)
+	old_screen:load()
+	new_screen:load()
+
+	new_screen.root:add(child)
+
+	t:tdeq(calls, {"load", "unload", "load"})
+	t:eq(child.screen, new_screen)
+	t:eq(child.loaded, true)
+end
+
+---@param t testing.T
+function test.presence_loss_clears_input_once(t)
+	local s = Screen()
+	local child = s.root:add(View())
+	s:load()
+	local clears = 0
+	s.inputs = {
+		clearSubtree = function(_, root)
+			t:eq(root, child)
+			clears = clears + 1
+		end,
+	}
+
+	child:setOpacity(0)
+	child:setOpacity(0)
+
+	t:eq(clears, 1)
+end
+
+---@param t testing.T
+function test.visibility_and_enabled_loss_clear_input(t)
+	local s = Screen()
+	local child = s.root:add(View())
+	s:load()
+	local clears = 0
+	s.inputs = {
+		clearSubtree = function()
+			clears = clears + 1
+		end,
+	}
+
+	child:setVisible(false)
+	child:setVisible(true)
+	child:setEnabled(false)
+
+	t:eq(clears, 2)
+end
+
+return test

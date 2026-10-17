@@ -142,7 +142,7 @@ function Leaderboards:updateLeaderboardUser(lb, user_id, no_rank, time)
 		return
 	end
 
-	repo:updateLeaderboardUserRanks()
+	repo:updateLeaderboardUserRanks(lb)
 
 	lb_user = assert(repo:getLeaderboardUser(lb.id, user_id))
 	self:updateHistory(lb_user)

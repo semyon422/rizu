@@ -1,64 +1,233 @@
-local IUserInterface = require("sphere.IUserInterface")
-local fonts = require("sphere.assets.fonts")
+local RizuUserInterface = require("rizu.app.UserInterface")
+local Resources = require("ui.Resources")
+local Sounds = require("ui.Sounds")
+local MainMenu = require("ui.screens.main_menu.MainMenu")
+local SongSelect = require("ui.screens.song_select_v2.SongSelectV2")
+local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
+local Gameplay = require("ui.screens.gameplay.Gameplay")
+local Editor = require("ui.screens.editor.Editor")
+local Result = require("ui.screens.result_v2.ResultV2")
+local LobbyList = require("ui.screens.lobby_list.LobbyList")
+local Lobby = require("ui.screens.lobby.Lobby")
+local MusicPlayer = require("ui.screens.music_player.MusicPlayer")
+local Dlc = require("ui.screens.dlc.Dlc")
+local Locations = require("ui.screens.locations.Locations")
+local TestScreen = require("ui.test.TestScreen")
+local ScreenManager = require("ui.ScreenManager")
+local Overlay = require("ui.Overlay")
+local Tooltip = require("ui.views.Tooltip")
+local Registry = require("rizu.command.Registry")
+local Colors = require("ui.Colors")
+local LoveFilesystem = require("fs.LoveFilesystem")
+local UiConfig = require("ui.UiConfig")
+local Settings = require("rizu.config.Settings")
+local Localization = require("ui.localization.Localization")
+local UiActions = require("ui.UiActions")
+local MapperatorinatorConfig = require("rizu.mapperatorinator.Config")
+local MapperatorinatorWorkflow = require("rizu.mapperatorinator.Workflow")
+local GlobalCommands = require("rizu.commands.GlobalCommands")
+local DatabaseCommands = require("rizu.commands.DatabaseCommands")
+local GameplayCommands = require("rizu.commands.GameplayCommands")
+local LocationCommands = require("rizu.commands.LocationCommands")
+local MultiplayerCommands = require("rizu.commands.MultiplayerCommands")
+local OnlineCommands = require("rizu.commands.OnlineCommands")
+local PackageCommands = require("rizu.commands.PackageCommands")
+local PlayConfigCommands = require("rizu.commands.PlayConfigCommands")
+local ResultCommands = require("rizu.commands.ResultCommands")
+local SelectCommands = require("rizu.commands.SelectCommands")
+local UiGlobalCommands = require("ui.commands.UiGlobalCommands")
+local UiResultCommands = require("ui.commands.UiResultCommands")
+local UiSelectCommands = require("ui.commands.UiSelectCommands")
 
-local GameView = require("ui.views.GameView")
-local SelectView = require("ui.views.SelectView")
-local ResultView = require("ui.views.ResultView")
-local GameplayView = require("ui.views.GameplayView")
-local MultiplayerView = require("ui.views.MultiplayerView")
-local EditorView = require("ui.views.EditorView")
+-- The tree always works in a 1080-logical-tall coordinate system; the screen
+-- scales to fit the actual window height.
+local TARGET_HEIGHT = 1080
 
----@class ui.UserInterface: sphere.IUserInterface
+---@class ui.UserInterface : rizu.app.UserInterface
 ---@operator call: ui.UserInterface
----@field selectView ui.ScreenView
-local UserInterface = IUserInterface + {}
+---@field main_menu ui.screens.main_menu.MainMenu
+---@field song_select ui.screens.song_select_v2.SongSelectV2
+---@field chart_loading ui.screens.chart_loading.ChartLoading
+---@field gameplay ui.screens.gameplay.Gameplay
+---@field editor ui.screens.editor.Editor
+---@field result ui.screens.result_v2.ResultV2
+---@field lobby_list ui.screens.lobby_list.LobbyList
+---@field lobby ui.screens.lobby.Lobby
+---@field music_player ui.screens.music_player.MusicPlayer
+---@field dlc ui.screens.dlc.Dlc
+---@field locations ui.screens.locations.Locations
+---@field test_screen ui.test.TestScreen
+---@field screen_manager ui.ScreenManager
+---@field overlay ui.Overlay
+---@field tooltip ui.views.Tooltip
+---@field modal_manager ui.ModalManager
+---@field command_registry rizu.command.Registry
+---@field actions gui.input.ActionMap
+---@field mapperatorinator_config rizu.config.Config
+---@field mapperatorinator_workflow rizu.mapperatorinator.Workflow
+---@field localization ui.localization.Localization
+---@field skin_editor boolean
+---@field play_options rizu.api.Play.StartOptions? What ChartLoading starts, set by loadSelectedChart()
+---@field private prev_w number
+---@field private prev_h number
+local UserInterface = RizuUserInterface + {}
+
+UserInterface.name = "default_user_interface_2026"
+UserInterface.display_name = "Default User Interface 2026"
 
 ---@param game sphere.GameController
-function UserInterface:new(game)
-	self.gameView = GameView(game, self)
-	self.selectView = SelectView(game)
-	self.resultView = ResultView(game)
-	self.gameplayView = GameplayView(game)
-	self.multiplayerView = MultiplayerView(game)
-	self.editorView = EditorView(game)
+---@param mount_path string
+function UserInterface:new(game, mount_path)
+	RizuUserInterface.new(self, game, mount_path, ScreenManager())
+	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
+	self.config:load()
+	self.localization = Localization(self.config:getChoice(UiConfig.keys.language))
+	self.actions = UiActions.createMap(self.config)
+	self.inputs:setActionMap(self.actions)
+	self.skin_editor = false
+	self.ui_result_commands = UiResultCommands(self)
+	-- shortcut: without the game only song select and the result run (see load), move the rest behind ui.api to lift this
+	if self.api.fake then return end
+	self.command_registry = Registry()
+	self.global_commands = GlobalCommands(game)
+	self.database_commands = DatabaseCommands(game)
+	self.gameplay_commands = GameplayCommands(game)
+	self.location_commands = LocationCommands(game)
+	self.multiplayer_commands = MultiplayerCommands(game)
+	self.online_commands = OnlineCommands(game)
+	self.package_commands = PackageCommands(game)
+	self.play_config_commands = PlayConfigCommands(game)
+	self.result_commands = ResultCommands(game)
+	self.select_commands = SelectCommands(game)
+	self.ui_global_commands = UiGlobalCommands(game, self)
+	self.ui_select_commands = UiSelectCommands(game, self)
+	self.mapperatorinator_config = MapperatorinatorConfig.create(LoveFilesystem())
+	self.mapperatorinator_config:load()
+	self.mapperatorinator_workflow = MapperatorinatorWorkflow(game, self)
+end
 
-	self.configs = game.persistence.configModel.configs
-	self.screenshotModel = game.app.screenshotModel
+---@param autoplay boolean
+---@param skin_editor boolean
+---@param keep_previous_visible boolean?
+---@param replay boolean? Watch the local replay of a gamemode without scoring.
+---@return boolean changed
+function UserInterface:loadSelectedChart(autoplay, skin_editor, keep_previous_visible, replay)
+	self.play_options = {autoplay = autoplay, replay = replay}
+	self.skin_editor = skin_editor
+	return self:setScreen(self.chart_loading, keep_previous_visible)
+end
+
+---@param screen gui.Screen?
+---@param keep_previous_visible boolean?
+---@return boolean changed
+function UserInterface:setScreen(screen, keep_previous_visible)
+	-- Without the game most screens do not exist; going to one of them does nothing.
+	if not screen and self.api.fake then return false end
+	return RizuUserInterface.setScreen(self, screen --[[@as gui.Screen]], keep_previous_visible)
 end
 
 function UserInterface:load()
-	self.gameView:load()
+	Resources.load()
+	Sounds.load(self.api.settings)
+	self.tooltip = Tooltip()
+	if self.api.fake then
+		self.song_select = SongSelect(self)
+		self.result = Result(self)
+		self.overlay = Overlay(self)
+		self.modal_manager = self.overlay.modal_manager
+		self.screen_manager:registerAll({self.song_select, self.result})
+		self.screen_manager:setOverlay(self.overlay)
+	else
+		self.main_menu = MainMenu(self)
+		self.song_select = SongSelect(self)
+		self.chart_loading = ChartLoading(self)
+		self.gameplay = Gameplay(self)
+		self.editor = Editor(self)
+		self.result = Result(self)
+		self.lobby_list = LobbyList(self)
+		self.lobby = Lobby(self)
+		self.music_player = MusicPlayer(self)
+		self.dlc = Dlc(self)
+		self.locations = Locations(self)
+		self.test_screen = TestScreen(self)
+		self.overlay = Overlay(self)
+		self.modal_manager = self.overlay.modal_manager
+		self.screen_manager:registerAll({
+			self.main_menu,
+			self.song_select,
+			self.chart_loading,
+			self.gameplay,
+			self.editor,
+			self.result,
+			self.lobby_list,
+			self.lobby,
+			self.music_player,
+			self.dlc,
+			self.locations,
+			self.test_screen,
+		})
+		self.screen_manager:setOverlay(self.overlay)
 
-	local fonts_dpi = self.configs.settings.graphics.fonts_dpi
-	if fonts_dpi ~= fonts.dpi then
-		fonts.dpi = fonts_dpi
-		fonts.reset()
+		for _, command_set in ipairs({self.global_commands, self.ui_global_commands}) do
+			for _, command in ipairs(command_set) do
+				self.command_registry:registerGlobal(command)
+			end
+		end
 	end
-end
 
-function UserInterface:unload()
-	self.gameView:unload()
+	local ww, wh = love.graphics.getDimensions()
+	self.prev_w = ww
+	self.prev_h = wh
+	self:applyViewport(ww, wh)
+	if self.api.fake or self.api.settings:getBoolean(Settings.keys.select.open_on_startup) then
+		self:setScreen(self.song_select)
+	else
+		self:setScreen(self.main_menu)
+	end
+	love.keyboard.setTextInput(true)
+	love.keyboard.setKeyRepeat(true)
 end
 
 ---@param dt number
 function UserInterface:update(dt)
-	self.gameView:update(dt)
+	if self:windowDimensionsChanged() then
+		local ww, wh = love.graphics.getDimensions()
+		self:applyViewport(ww, wh)
+	end
+
+	if self.mapperatorinator_workflow then self.mapperatorinator_workflow:update(dt) end
+	RizuUserInterface.update(self, dt)
 end
 
 function UserInterface:draw()
-	self.gameView:draw()
+	love.graphics.clear(Colors.background)
+	RizuUserInterface.draw(self)
 end
 
----@param event table
-function UserInterface:receive(event)
-	self.gameView:receive(event)
+function UserInterface:unload()
+	self.config:save()
+	if self.mapperatorinator_config then self.mapperatorinator_config:save() end
+	RizuUserInterface.unload(self)
+end
 
-	local screenshot = self.configs.settings.input.screenshot
+---@private
+---@param w number
+---@param h number
+function UserInterface:applyViewport(w, h)
+	local scale = h / TARGET_HEIGHT
+	self.screen_manager:resize(w, h, scale)
+	Resources.setUIScale(scale)
+	Resources.setFontScale(1)
+end
 
-	if event.name == "keypressed" and event[1] == screenshot.capture then
-		local open = love.keyboard.isDown(screenshot.open)
-		self.screenshotModel:capture(open)
-	end
+---@private
+---@return boolean
+function UserInterface:windowDimensionsChanged()
+	local ww, wh = love.graphics.getDimensions()
+	local pw, ph = self.prev_w, self.prev_h
+	self.prev_w = ww
+	self.prev_h = wh
+	return ww ~= pw or wh ~= ph
 end
 
 return UserInterface

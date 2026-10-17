@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up Rizu database and immutable storage to the home PC
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=semyon422
+WorkingDirectory=/home/semyon422/rizu
+ExecStart=/home/semyon422/rizu/scripts/backup

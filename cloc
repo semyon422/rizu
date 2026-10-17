@@ -1,2 +1,32 @@
 #!/bin/bash
-cloc --exclude-dir=bin,3rd-deps,tree,share,storages --include-lang=Lua .
+
+# Exclude directories
+EXCLUDE_DIRS="bin,build,3rd-deps,tree,share,storages,userdata,db_dump,db_restore,temp"
+# Include languages
+INCLUDE_LANGS="Lua,Markdown,C,CSS,JavaScript,HTML,Shell"
+
+# Run cloc and capture json
+CLOC_JSON=$(cloc --exclude-dir=$EXCLUDE_DIRS --include-lang=$INCLUDE_LANGS --json . 2>/dev/null)
+
+if [ -z "$CLOC_JSON" ]; then
+	echo "cloc failed or returned no data."
+	exit 1
+fi
+
+LUA_CODE=$(echo "$CLOC_JSON" | jq '.Lua.code // 0')
+MARKDOWN_CODE=$(echo "$CLOC_JSON" | jq '.Markdown.code // 0')
+TOTAL_BLANK=$(echo "$CLOC_JSON" | jq '.SUM.blank // 0')
+TOTAL_COMMENT=$(echo "$CLOC_JSON" | jq '.SUM.comment // 0')
+TOTAL_CODE=$(echo "$CLOC_JSON" | jq '.SUM.code // 0')
+TOTAL_NONBLANK=$((TOTAL_COMMENT + TOTAL_CODE))
+
+echo "-------------------------------------------------------------------------------"
+echo "Language Statistics"
+echo "-------------------------------------------------------------------------------"
+echo "Blank lines:      $TOTAL_BLANK"
+echo "Comments:         $TOTAL_COMMENT"
+echo "Lua code:         $LUA_CODE"
+echo "Markdown text:    $MARKDOWN_CODE"
+echo "-------------------------------------------------------------------------------"
+echo "Sum of all non-blank lines: $TOTAL_NONBLANK"
+echo "-------------------------------------------------------------------------------"

@@ -1,6 +1,6 @@
 local class = require("class")
 
----@class sea.DifftablesServerRemote: sea.IServerRemote
+---@class sea.DifftablesServerRemote: sea.IServerRemoteContext
 ---@operator call: sea.DifftablesServerRemote
 local DifftablesServerRemote = class()
 

@@ -1,0 +1,102 @@
+local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
+local CircleRenderer = require("rizu.skin.base.osu.aim.CircleRenderer")
+local SliderRenderer = require("rizu.skin.base.osu.aim.SliderRenderer")
+local SliderOverlayRenderer = require("rizu.skin.base.osu.aim.SliderOverlayRenderer")
+local SpinnerRenderer = require("rizu.skin.base.osu.aim.SpinnerRenderer")
+local SliderGraphics = require("rizu.skin.base.osu.aim.SliderGraphics")
+
+---@class rizu.skin.base.AimRenderer : rizu.gameplay.views.PlayfieldRenderer
+---@operator call: rizu.skin.base.AimRenderer
+local AimRenderer = PlayfieldRenderer + {}
+
+---@param game sphere.GameController
+function AimRenderer:new(game)
+	PlayfieldRenderer.new(self, game)
+	self.slider_graphics = SliderGraphics()
+	self.prepared_rules = nil
+end
+
+function AimRenderer:load()
+	local rules = self.game.rhythm_engine and self.game.rhythm_engine.rules
+	if not rules or self.prepared_rules == rules then return end
+	self.slider_graphics:prepare(rules)
+	self.prepared_rules = rules
+end
+
+function AimRenderer:unload()
+	self.slider_graphics:unload()
+	self.prepared_rules = nil
+end
+
+---@param width number
+---@param height number
+---@return number scale
+---@return number x
+---@return number y
+function AimRenderer:getField(width, height)
+	local scale = math.max(0.001, math.min(width / 640, height / 480))
+	return scale, (width - 512 * scale) / 2, (height - 384 * scale) / 2
+end
+
+---@param x number Window x coordinate in drawable pixels
+---@param y number Window y coordinate in drawable pixels
+---@param width number Gameplay viewport width in drawable pixels
+---@param height number Gameplay viewport height in drawable pixels
+---@param transform love.Transform Maps viewport coordinates to drawable pixels
+---@return number
+---@return number
+function AimRenderer:toChart(x, y, width, height, transform)
+	x, y = transform:inverseTransformPoint(x, y)
+	local scale, ox, oy = self:getField(width, height)
+	return (x - ox) / scale, (y - oy) / scale
+end
+
+---@param width number Gameplay viewport width in drawable pixels
+---@param height number Gameplay viewport height in drawable pixels
+---@param transform love.Transform Maps viewport coordinates to drawable pixels
+function AimRenderer:draw(width, height, transform)
+	local re = self.game.rhythm_engine
+	local rules = re and re.rules
+	if not rules then return end
+	self:load()
+	local scale, ox, oy = self:getField(width, height)
+	local time = re.visual_info.time
+	love.graphics.push("all")
+	love.graphics.applyTransform(transform)
+	love.graphics.setColor(0.04, 0.05, 0.08, 0.95)
+	love.graphics.rectangle("fill", 0, 0, width, height)
+	love.graphics.translate(ox, oy)
+	love.graphics.scale(scale)
+	love.graphics.setLineWidth(2)
+	local objects = rules.objects
+	local last_visible = 0
+	for i, object in ipairs(objects) do
+		if object.time - time > rules.preempt then break end
+		last_visible = i
+	end
+	-- Earlier heads must remain on top of later members of a stack.
+	for i = last_visible, 1, -1 do
+		local object = objects[i]
+		local spinner = rules.spinners[i]
+		if spinner and not rules.states[i] then
+			SpinnerRenderer.draw(spinner, time)
+		end
+		local slider = rules.sliders[i]
+		if slider and not rules.states[i] then
+			local alpha = SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i)
+			if not rules.heads[i] then
+				SliderOverlayRenderer.drawHead(object, rules.radius, time, rules.preempt)
+			end
+			SliderOverlayRenderer.drawBodyOverlays(slider, rules.radius, time, alpha,
+				SliderRenderer.getSnakeEnd(object, time, rules.preempt))
+		elseif not spinner and not rules.heads[i] then
+			CircleRenderer.draw(object, rules.radius, time, rules.preempt)
+		end
+	end
+	love.graphics.setColor(1, 0.85, 0.2)
+	love.graphics.circle("line", rules.x, rules.y, 9)
+	love.graphics.circle("fill", rules.x, rules.y, 3)
+	love.graphics.pop()
+end
+
+return AimRenderer

@@ -1,13 +1,14 @@
+---@param t {[string]: any|table}
 function love.conf(t)
 	t.identity = nil
 	t.appendidentity = true
 	t.console = true
 	t.accelerometerjoystick = true
-	t.gammacorrect = false
+	t.graphics.gammacorrect = false
 
 	t.window = nil
 
-	t.modules.audio = true
+	t.modules.audio = false
 	t.modules.event = true
 	t.modules.graphics = true
 	t.modules.image = true

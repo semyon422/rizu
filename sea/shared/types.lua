@@ -114,7 +114,7 @@ function types.number(v)
 	elseif v ~= v then
 		return nil, "NaN"
 	elseif math.abs(v) == math.huge then
-		return nil, "infinite"
+		return nil, "infinity"
 	end
 
 	return true
@@ -168,18 +168,6 @@ function types.count(v)
 	return true
 end
 types.time = types.count
-
-function types.index(v)
-	if type(v) ~= "number" then
-		return nil, "not a number"
-	elseif v ~= math.floor(v) then
-		return nil, "not an integer"
-	elseif v < 1 then
-		return nil, "negative"
-	end
-
-	return true
-end
 
 function types.integer(v)
 	if type(v) ~= "number" then

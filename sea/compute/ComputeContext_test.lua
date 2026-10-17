@@ -1,6 +1,6 @@
 local ComputeContext = require("sea.compute.ComputeContext")
 local ReplayBase = require("sea.replays.ReplayBase")
-local InputMode = require("ncdk.InputMode")
+local InputMode = require("chart.core.InputMode")
 
 local test = {}
 

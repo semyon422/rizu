@@ -1,7 +1,5 @@
 local NoteView = require("sphere.views.RhythmView.NoteView")
-local math_util = require("math_util")
 local gfx_util = require("gfx_util")
-local just = require("just")
 
 ---@class sphere.ShortNoteView: sphere.NoteView
 ---@operator call: sphere.ShortNoteView
@@ -18,19 +16,6 @@ function ShortNoteView:draw()
 
 	local hw = self:getNotePart("Head")
 	local w, h = hw:getDimensions()
-
-	local tf = gfx_util.transform(self:getTransformParams())
-
-	-- (S*N)^(1)*M = N^-1*S^-1*M
-	-- local x, y = tf:inverseTransformPoint(love.graphics.inverseTransformPoint(love.mouse.getPosition()))
-
-	-- self.graphicalNote.over = math_util.belong(x, 0, w) and math_util.belong(y, 0, h)
-
-	love.graphics.push()
-	love.graphics.applyTransform(tf)
-	self.graphicalNote.over = just.is_over(w, h)
-	self.graphicalNote.selecting = just.is_selected(w, h)
-	love.graphics.pop()
 end
 
 function ShortNoteView:drawSelected()
@@ -57,8 +42,7 @@ end
 ---@param chords table
 ---@param column number
 function ShortNoteView:fillChords(chords, column)
-	local startNote = self.graphicalNote.startNote
-	local time = startNote:getTime()
+	local time = self.graphicalNote.linked_note.startNote:getTime()
 
 	chords[time] = chords[time] or {}
 	local chord = chords[time]

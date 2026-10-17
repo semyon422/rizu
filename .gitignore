@@ -5,8 +5,11 @@ userdata/replays/*
 userdata/screenshots/*
 userdata/backgrounds/*
 userdata/ui_themes/*
+userdata/audio_previews
+userdata/bga_previews
 userdata/pkg
 userdata/charts
+userdata/dlc
 userdata/export
 userdata/replays
 userdata/screenshots
@@ -24,6 +27,7 @@ userdata/select.lua
 userdata/settings.lua
 userdata/window.lua
 userdata/online.lua
+userdata/online
 userdata/timings.lua
 userdata/judgements.lua
 userdata/files.lua
@@ -32,13 +36,32 @@ userdata/filters.lua
 userdata/play.lua
 userdata/avatar.png
 userdata/lasterror.txt
+userdata/settings.json
+userdata/ui.json
+userdata/mapperatorinator.json
+userdata/llm_chart.lua
+userdata/ai.lua
+userdata/ai_auth.lua
+userdata/ai_proxy.lua
+userdata/zai_proxy.lua
+userdata/mcp.lua
+userdata/mcp_sessions.json
+userdata/needle.lua
+userdata/network.lua
 
 moddedgame
+/build/
+bin/
 
 reqprof
 typecheck
 lapis/*
 tree
+server-state/
+/releases/
+/public/
+/current
+/previous
 logs
 storages
 nginx.conf.compiled
@@ -59,8 +82,18 @@ userdata/result.gif
 nginx.conf
 nginx_config.lua
 app_config.lua
+bancho/config.lua
 my.cnf
 backups
 
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+
+.codex
+tmp/
+/experiments/
+security/
+
+.pi/lsp-bridge.sock

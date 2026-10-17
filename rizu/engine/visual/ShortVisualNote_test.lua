@@ -1,9 +1,9 @@
 local ShortVisualNote = require("rizu.engine.visual.ShortVisualNote")
 local VisualInfo = require("rizu.engine.visual.VisualInfo")
-local LinkedNote = require("ncdk2.notes.LinkedNote")
-local Note = require("ncdk2.notes.Note")
-local VisualPoint = require("ncdk2.visual.VisualPoint")
-local Point = require("ncdk2.tp.Point")
+local LinkedNote = require("chart.model.notes.LinkedNote")
+local Note = require("chart.model.notes.Note")
+local VisualPoint = require("chart.model.visual.VisualPoint")
+local Point = require("chart.model.tp.Point")
 
 local test = {}
 
@@ -16,7 +16,7 @@ function test.all(t)
 	visual_note:update()
 	t:eq(visual_note.start_dt, -1)
 
-	visual_info.visual_offset = -0.25 -- visually move note earlier
+	visual_info.time = 0.25
 	visual_note:update()
 	t:eq(visual_note.start_dt, -0.75)
 

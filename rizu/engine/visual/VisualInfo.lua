@@ -4,21 +4,28 @@ local class = require("class")
 ---@operator call: rizu.VisualInfo
 ---@field time number
 ---@field rate number
----@field input_offset number
----@field visual_offset number
 ---@field shortening number
 ---@field const boolean
----@field input_notes {[ncdk2.LinkedNote]: rizu.IInputNote?}
+---@field logic_notes {[chart.LinkedNote]: rizu.LogicNote?}
 local VisualInfo = class()
 
 function VisualInfo:new()
 	self.time = 0
 	self.rate = 1
-	self.input_offset = 0
-	self.visual_offset = 0
 	self.shortening = 0
 	self.const = false
-	self.input_notes = {}
+	self.logic_notes = {}
+end
+
+---@return number
+function VisualInfo:getTime()
+	return self.time
+end
+
+---@param time number
+---@return number
+function VisualInfo:sub(time)
+	return (self:getTime() - time) * self.rate
 end
 
 return VisualInfo

@@ -70,7 +70,8 @@ UserResource.routes = {
 ---@param dans sea.Dans
 ---@param user_activity_graph sea.UserActivityGraph
 ---@param views web.Views
-function UserResource:new(users, user_roles, user_badges, leaderboards, dans, user_activity_graph, views)
+---@param user_connections sea.UserConnections
+function UserResource:new(users, user_roles, user_badges, leaderboards, dans, user_activity_graph, views, user_connections)
 	self.users = users
 	self.user_roles = user_roles
 	self.user_badges = user_badges
@@ -78,6 +79,7 @@ function UserResource:new(users, user_roles, user_badges, leaderboards, dans, us
 	self.dans = dans
 	self.user_activity_graph = user_activity_graph
 	self.views = views
+	self.user_connections = user_connections
 
 	self.testActivity = {
 		["21-03-2025"] = 30,
@@ -97,6 +99,8 @@ function UserResource:getUser(req, res, ctx)
 		self.views:render_send(res, "sea/shared/http/not_found.etlua", ctx, true)
 		return
 	end
+
+	user.online = self.user_connections:isUserOnline(user.id)
 
 	local leaderboard_id = tonumber(ctx.query.lb) or 1
 	ctx.leaderboard = assert(self.leaderboards:getLeaderboard(leaderboard_id))

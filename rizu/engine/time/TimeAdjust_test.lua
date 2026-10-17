@@ -26,8 +26,8 @@ function test.time_ahead_factor_1(t)
 
 	t:eq(ta:adjust(0, 0), 0)
 	t:eq(ta:adjust(2, 0), nil)
-	t:eq(ta:adjust(2, 1), 2)
-	t:eq(ta:adjust(3, 1.5), 2)
+	t:eq(ta:adjust(2, 1), 1)
+	t:eq(ta:adjust(3, 1.5), 1.5)
 	t:eq(ta:adjust(3, 2), 2)
 	t:eq(ta:adjust(3, 2), nil)
 end
@@ -50,8 +50,8 @@ function test.time_ahead_factor_05(t)
 
 	t:eq(ta:adjust(0, 0), 0)
 	t:eq(ta:adjust(2, 0), nil)
-	t:eq(ta:adjust(2, 1), 2)
-	t:eq(ta:adjust(3, 1.5), 2.5)
+	t:eq(ta:adjust(2, 1), 1.5)
+	t:eq(ta:adjust(3, 1.5), 2.25)
 	t:eq(ta:adjust(3, 2), 2.5)
 	t:eq(ta:adjust(3, 2), nil)
 end

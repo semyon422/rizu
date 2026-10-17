@@ -1,0 +1,140 @@
+# Preview System (`rizu.preview`)
+
+## Goal
+The preview system provides players with an immediate sensory snapshot of a song before they commit to playing it. By synchronizing simplified note visuals, full audio playback, and background animations (BGA), it creates an "alive" selection experience that helps players identify songs and evaluate their difficulty.
+
+## User Experience
+- **Instant Feedback**: Selecting a song in the menu immediately triggers its preview. The playback starts at the song's most representative section (defined by metadata) and loops according to the audio content's duration.
+- **Visual Context**: A simplified "mini-playfield" renders the chart's notes, while any background images or videos are displayed in the preview area.
+- **Dynamic Response**: If the player changes the playback rate (e.g., to 1.5x) in the selection screen, the preview audio and visuals speed up accordingly to match the intended gameplay experience.
+- **Seamless Loading**: Previews are generated and cached in the background. If a preview isn't ready, the system stays silent and waits without blocking menu navigation or causing micro-stutters.
+
+## Architecture Decisions (ADR)
+
+### ADR: Model-Player Pattern
+- **Context**: The preview involves multiple independent systems (Audio, Video, Sprite, Visual) that must stay perfectly synchronized to a single master clock.
+- **Decision**: We use a central `PreviewModel` to manage the master clock and playback state, which then drives specialized "Player" components (`NotesPreviewPlayer`, `AudioPreviewPlayer`, `BgaPreviewPlayer`).
+- **Consequence**: This separation ensures that logic for time management is decoupled from specific rendering or audio backends, making the system easier to test and extend.
+
+### ADR: Off-Thread Preview Generation
+- **Context**: Generating preview files requires parsing full chart files and scanning for thousands of audio/visual events, which can take several hundred milliseconds.
+- **Decision**: All preview generation is performed as an asynchronous task in a separate thread. Results are cached in `userdata/` using the chart's content hash.
+- **Consequence**: The main UI thread remains completely unblocked, ensuring the library browsing experience remains fluid even for new or un-cached content.
+
+### ADR: Async BGA Video Playback
+- **Context**: Preview videos can be large and expensive to decode. Decoding or seeking them on the main thread causes visible stutter while scrolling charts.
+- **Decision**: `BgaPreviewPlayer` uses `AsyncVideoEngine`, which runs `AsyncVideoWorker.lua` in a LÖVE thread. The worker opens video files through `video.openPath(path)`, which uses PhysFS-backed FFmpeg AVIO callbacks for virtual filesystem reads. The worker decodes batches of `ImageData` and sends decoded frames back to the main thread.
+- **Consequence**: The main thread only drains decoded frames and uploads the currently displayed frame to the GPU. `AsyncVideoEngine` depends on `IAsyncVideoTransport`, `IAsyncVideoLogger`, and an injectable monotonic clock so thread/channel wiring, diagnostics, and headless server updates can be tested without LÖVE globals. `readAt` is used only for the first frame of a batch after a real seek or jump; sequential frames use `read()` to preserve decoder state. Queue resets must allow a small half-frame presentation lead so normal frame selection is not mistaken for a backward seek. If the preview clock asks for a video time beyond the resource duration, the worker sends the final decoded frame as an ended frame and the main thread holds it instead of repeatedly seeking past EOF.
+
+## Implementation Details
+
+### Components
+- **PreviewModel**: Playback coordinator. Owns the master clock, looping, seeking, rate, volume, and audio/BGA/notes players.
+- **PreviewLoader**: Media preparation owner. Handles debounce, worker probing/generation, notes repair, and selected-intent media status. It does not select or load skins.
+- **PreviewSkinCache**: Independent core skin owner. Resolves/caches preview renderers, subscribes to skin settings, handles invalidation, updates animation, and releases renderers. PreviewModel coordinates its binding separately from media loading.
+- **PlayfieldPreparation**: Shared renderer lifecycle owner used by preview and gameplay. Calls the skin's own `load()`/`unload()` hooks and publishes the renderer only after loading succeeds. It does not prescribe resource loading or start skin workers.
+- **Notes Preview**: A high-performance string representation of notes stored in the database for instant retrieval.
+- **Audio/BGA Previews**: Dedicated event collections stored in `.audio_preview` and `.bga_preview` files within `userdata/`.
+  - **Unified Audio**: The system does not distinguish between single-file audio (osu!) and multi-sample backgrounds (BMS). All audio is treated as a sequence of events (sample index, time, duration, volume).
+- **Async Video Policies**: `AsyncVideoQueue` owns queue reset/prefetch invariants, while `AsyncVideoReadPolicy` owns the `readAt` vs `read` decision. These modules intentionally avoid LÖVE state so timing behavior can be regression-tested directly.
+- **Async Video Transport**: `AsyncVideoThreadTransport` is the production LÖVE thread/channel implementation of `IAsyncVideoTransport`; tests use fake transports to exercise `AsyncVideoEngine` as a state machine without spawning a worker.
+- **PhysFS Video Input**: `video.openPath(path)` lives in the FFmpeg-backed native video module. It resolves PhysFS symbols from the LÖVE runtime at load time, opens virtual paths with `PHYSFS_openRead`, and lets FFmpeg pull chunks through custom AVIO read/seek callbacks.
+
+### Invariants
+- **Selection filesystem boundary**: preview cache existence and IIDX movie-directory checks run in `PreviewMediaProbe` through the shared worker pool. A selection generation is invalidated immediately when preview intent changes or playback stops; late probe results must not activate media. GPU texture creation remains on the main thread.
+- **Background filesystem boundary**: `BackgroundFinder` performs path checks and directory traversal in a worker. Background image reads/decoding and initial default-background scanning also run in workers; defaults are requested from the first update rather than re-entering the pool during application initialization. The requested path is retained separately from the resolved image path, and generation guards discard obsolete search/load results. Removed `BackgroundModel:isValidImage` and `findBackground` are replaced by the worker-owned finder; `loadImage` remains available for remote catalog images.
+- **Remote preview**: for a chart of a remote location `ChartMediaService` returns the catalog's urls instead of paths: the background url (`BackgroundModel` already loads urls) and the url of a short audio preview. `PreviewLoader` sees the url, fetches the file through `RemoteAssetCache` (kept on disk by its url path, never removed) and hands it to `PreviewModel:applyRemoteAudio`, which plays it with `RemoteAudioPreviewPlayer` from its start in a loop. Nothing is probed or generated for such a chart, so it has no notes or video preview. The model's players share one interface (`getAudioPlayer()`), so `update()` treats both alike; applying local media or `stop()` ends the remote one.
+- **Preview clock ownership**: `PreviewModel` owns the master preview time. Audio, notes, and BGA players are driven from that clock and should not advance their own independent playback time.
+- **Audio decode buffering**: preview decoder requests must fill the configured buffer rather than use frame-sized chunks. Thread-remote responses are serviced by the main update loop, so decode throughput must not depend on rendering frame rate.
+- **Preview generation failures**: generation exceptions are caught inside the worker and returned as ordinary failure results, not thread errors. The main thread logs the error and chart hash, skips preview activation, marks the hash as attempted for this model lifetime, and continues with the latest pending request.
+- **Notes preview repair**: if cached notes cannot be decoded (including legacy previews missing timing vertices), select regenerates them from the source chart in the existing preview worker, even when audio/BGA caches already exist. Repaired notes are validated by decoding before activation and retained by chart hash, index, and chartdiff ID for the model lifetime, including results arriving after selection changes. Generation applies the selected variation's modifiers. The main thread persists only `chartdiffs.notes_preview` through `ChartsRepo:repairNotesPreview`, matching the captured row ID and previous binary preview; stale results cannot overwrite a preview that has changed. Database write errors are logged without disabling the in-memory repair. Failed repairs use the same bounded attempt policy as other preview generation.
+- **Preview generation backpressure**: at most one preview-generation task is active and one latest task is pending. Rapid chart scrolling replaces the pending generation request instead of filling the shared thread-pool queue with obsolete BMS parsing and keysound probes.
+- **Audio duration probing**: preview generation uses a duration-only BASS stream and frees it immediately. It must not construct the normal decoder's BASSmix resampling stream for every keysound when no PCM decoding is required.
+- **Worker BASS context**: a preview-generation worker initializes BASS on its own no-sound device before probing durations. BASS device state is thread-local, so a worker must not reuse the main thread's current device implicitly.
+- **Preview activation source**: select preview loading is triggered only from a non-empty `chartview_changed` event. Select screen entry re-announces the currently loaded chartview so preview restarts after returning from gameplay, even when selection has not changed, but `SelectionCoordinator:load()` must not start preview directly.
+- **Async video queue order**: `AsyncVideoEngine` expects queued video frames to be monotonic by `frame_time`. Non-monotonic frames are logged because they can cause visible skips or stale presentation.
+- **Async video frame ownership**: decoded `ImageData` is owned by the main thread after it is received from the worker. The main thread must either upload it to the `Image` or release it when it is stale, dropped, or superseded.
+- **Async video backpressure**: each video has at most one pending worker request. A newer desired time replaces older intent, and stale generation/request responses must not affect current state. An empty decoded batch puts that video into a failed state so ordinary frame updates do not spin on `readAt`; an explicit seek or a new load may retry it.
+- **Async video queue resets**: queue resets are reserved for real backward seeks, stale batches behind the playback clock, or obsolete future batches. Normal fractional timer jitter around the displayed frame must not be treated as a seek.
+- **Async video decoder state**: `readAt` is intentionally rare because it flushes FFmpeg decoder state and caused visible preview stutter when used for ordinary playback. After the initial frame of a batch, or after a real seek/jump, sequential frames must use `read()` so decoder state stays warm.
+- **Async video EOF handling**: a request beyond the video's duration must not create a `readAt`/`read_miss` retry loop. The worker should decode the final available frame, report it as `ended`, and the main thread should stop requesting later frames until the playback clock seeks backward.
+- **Thread boundary**: the worker may read virtual paths and decode frames, but the main thread remains responsible for GPU image creation/replacement. The main thread should not decode video frames.
+- **Thread lifecycle**: async video workers must be registered as managed threads in `ThreadPool` so shutdown/quitting code can see and stop them. Each engine keeps one worker alive across resource loads; chart switches send `unload` and then `load` through the same channels instead of racing a stopped worker with a replacement. Empty video sets do not start a worker. Final engine release sends `stop`, and a transport should unregister only after the underlying worker is no longer running, unless it never started or already finished.
+- **Native video metadata**: video and image dimensions must be positive and fit a tightly packed RGBA byte count. Unknown, non-positive, non-finite, or implausible frame rates and durations are exposed as absent metadata rather than passed into queue timing or allocation logic.
+
+### Looping Algorithm
+- **Start Position**: Defined by `preview_time` metadata. If missing, it defaults to the absolute start time of the audio events (which may be non-zero).
+- **Looping Range**: The loop is determined by the **Audio Start Time** and **Audio End Time**. This range is distinct from the chart's `duration` field, which only tracks note data.
+- **End Behavior**: When the master clock reaches the audio end time, it restarts exactly from the audio start time.
+- **Audio Constraints**: If the audio preview is missing or its total duration is 0, the preview playback is automatically paused to prevent invalid state.
+
+### Specialized Notes Preview
+
+Song select draws the core-owned skin renderer returned by `game.previewModel:getPlayfield()`.
+It returns `nil` until the renderer's `load()` hook succeeds; UI code supplies the viewport,
+clipping, background presentation, and `renderer:drawPreview(model.chartPreview, width, height)`.
+The UI does not select skins, start workers, update the renderer, or release the cache.
+`getSkinState()`/`getSkinError()` describe playfield preparation; `getMediaState()`/`getMediaError()`
+describe independent media preparation. Missing media does not hide a ready skin.
+
+The core caches one renderer per input mode/resolved skin. Chart changes reuse unchanged renderers;
+settings changes and registry replacement evict affected entries. Stop clears the active binding but
+retains the cache; final release unsubscribes and unloads entries. Skins choose how to load and
+release their own resources; core code does not impose a threaded loading pipeline.
+
+`NotesPreviewPlayer` owns a compact `NotesPreview` instead of a full `Chart`/`VisualEngine`;
+consumers use `notes`, `column_map`, `time`, and `rate`. The former skin/visual-engine fields and
+`iterNotes` are no longer part of the active preview contract.
+
+`NotesPreview` reads the existing version 0/1 SPH preview cache without changing persistence. Fractional line positions are interpolated between absolute timing vertices, with first/last segments extrapolated outside the vertex range. At least two vertices are required for non-empty data; invalid data returns `false` from `setChartview` and uses the existing background repair flow. Empty previews remain valid and contain no notes.
+
+Each column stores ordered tap/hold intervals and cumulative maximum end times. Binary searches select a visible interval range, preserving crossing holds on forward and backward seeks. Rendering filters expired intervals, so update/draw do not construct gameplay notes or scan the entire chart. Column order uses the same destination-to-source permutation as `ColumnsOrder`; playback time and speed/scale-speed settings come from the preview clock. The renderer receives explicit canvas dimensions and does not override global graphics viewport functions.
+
+### Playback and presentation
+
+`game.previewModel:getPlayfield()` returns the active runtime-ready renderer or `nil`.
+`getSkinState()`/`getSkinError()` describe skin readiness independently of media preparation
+(`getMediaState()`/`getMediaError()`). Both use `empty`, `loading`, `ready`, and `failed`.
+Media `ready` means probing/generation succeeded and player loads were dispatched, **not** that
+asynchronous audio/BGA decoding is ready. Unrelated generation cannot keep the selected Chart
+in `loading`; missing media after an exhausted attempt reports `failed`. Skin `loading` is
+observable only when a custom load hook yields. The game updates skin animation once; UI drawing
+must not initiate loads, update renderers, or release the shared cache.
+
+The UI supplies transforms/clipping and calls `drawPreview(model.chartPreview, w, h)`.
+Stopping preview drops the active binding and cancels media intent while retaining skin
+renderers for reuse. Final game release unloads the cache.
+
+Gameplay similarly exposes a core-owned Playfield through
+`game.gameplayInteractor:getPlayfield()`. The renderer and its background HUD are loaded
+before play begins. GameController updates runtime/background-HUD/foreground-HUD once;
+UI code only draws the prepared playfield. GameplayInteractor owns teardown on exit and
+failure, with background HUD released before the renderer's `unload()` hook.
+
+### Preview Types
+- **Audio**: Scans for all hitsounds and background music events across all formats to create a flattened event sequence.
+- **BGA**: Scans for layer changes and video triggers.
+- **Notes**: Encodes a simplified bitmask of column activity over time.
+
+### Gameplay preparation
+
+GameplayInteractor owns a Playfield and exposes it only after preparation succeeds through
+`getPlayfield()` (`getState()`/`getError()` provide loading/failure information). After Chart
+resources and the rhythm engine are prepared, core code loads the renderer and background HUD
+before starting playback. The game updates the playfield once; UI entry only draws it and does
+not call renderer load or update again. Core teardown unloads the background HUD and renderer;
+skins own their resource strategy and preview renderers remain separate from gameplay instances.
+Retry unloads and loads the playfield against the recreated rhythm engine before playback resumes.
+Playfield owns Mania skin selection, renderer construction, configuration, and teardown. Construction
+happens after Chart resources/engine preparation and canceled construction cannot publish a renderer.
+Retry retains the same skin renderer/configuration while reloading its runtime against the new engine;
+replacement saves dirty configuration first and aborts replacement if that save fails.
+
+## Future Work and Open Questions
+
+### BGA Video Playback
+Select preview and gameplay now share the low-level `AsyncVideoEngine` decode and presentation pipeline. Their BGA event ownership remains separate: `BgaPreviewPlayer` owns preview events, while gameplay keeps `BgaEngine` and its session timing/lifetime.
+
+Some imported libraries can contain unusual or stale `preview_time` metadata. The async video pipeline now handles video times beyond EOF by holding the final frame, but metadata normalization may still be worth revisiting if a format consistently stores preview offsets in unexpected units.
+
+`sphere.views.BgaView` currently chooses between gameplay BGA and select-preview BGA in one shared draw path. This couples two different lifecycles and two different video backends, so it is easy for stale gameplay state to affect result or select screens. Refactor it later so gameplay and preview BGA presentation are owned by separate view paths or by an explicit presentation interface.

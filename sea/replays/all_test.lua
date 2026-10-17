@@ -1,4 +1,4 @@
-local md5 = require("md5")
+local digest = require("digest")
 local valid = require("valid")
 local Replay = require("sea.replays.Replay")
 local ReplayCoder = require("sea.replays.ReplayCoder")
@@ -7,6 +7,7 @@ local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 local Healths = require("sea.chart.Healths")
+local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 
 local test = {}
 
@@ -26,18 +27,20 @@ input 4key
 
 ---@param t testing.T
 function test.all(t)
-	local events = {
-		{0, 1, true},
-		{1, 1, false},
+	---@type rizu.ReplayFrame[]
+	local frames = {
+		{time = 0, event = VirtualInputEvent(1, true, 1)},
+		{time = 1, event = VirtualInputEvent(1, false, 1)},
 	}
 
+	---@type sea.Replay
 	local replay = {
-		version = 1,
-		timing_values = TimingValuesFactory:get(Timings("sphere")),
-		events = ReplayEvents.encode(events),
+		version = 2,
+		timing_values = assert(TimingValuesFactory:get(Timings("sphere"))),
+		frames = frames,
 		created_at = 0,
 		--
-		hash = md5.sumhexa(chartfile_data),
+		hash = digest.hash("md5", chartfile_data, true),
 		index = 1,
 		modifiers = {},
 		rate = 1,
@@ -56,7 +59,6 @@ function test.all(t)
 		rate_type = "linear",
 	}
 	setmetatable(replay, Replay)
-	---@cast replay sea.Replay
 
 	t:assert(valid.format(replay:validate()))
 
@@ -64,9 +66,10 @@ function test.all(t)
 
 	local _replay = t:assert(ReplayCoder.decode(replayfile_data))
 
-	t:assert(valid.format(_replay:validate()))
-
-	t:tdeq(_replay, replay)
+	if _replay then
+		t:assert(valid.format(_replay:validate()))
+		t:tdeq(_replay, replay)
+	end
 end
 
 return test

@@ -1,0 +1,691 @@
+local ModalView = require("ui.ModalView")
+local brand = require("brand")
+local Resources = require("ui.Resources")
+local Colors = require("ui.Colors")
+local ToolPresentation = require("ui.modals.ai_chat.ToolPresentation")
+local UiActions = require("ui.UiActions")
+local utf8 = require("utf8")
+local utf8validate = require("utf8validate")
+
+---@class ui.modals.ai_chat.AiChat : ui.ModalView
+---@operator call: ui.modals.ai_chat.AiChat
+---@field model rizu.ai.ChatModel
+---@field input string
+---@field scroll integer
+---@field cached_lines ui.ai_chat.TranscriptLine[]?
+---@field cached_wrap_width number?
+---@field preserve_line_count integer?
+---@field expanded_tools {[string]: boolean}
+---@field model_menu_open boolean
+---@field model_menu_scroll integer
+---@field scrollbar_drag_active boolean
+---@field scrollbar_drag_offset number
+---@class ui.ai_chat.TranscriptLine
+---@field text string
+---@field color gui.Color
+---@field tool_call_id string?
+local AiChat = ModalView + {}
+
+local PADDING = 18
+local TITLE_HEIGHT = 48
+local INPUT_HEIGHT = 120
+local LINE_HEIGHT = 24
+local STOP_WIDTH = 72
+local STOP_HEIGHT = 32
+local LOGIN_WIDTH = 142
+local MODEL_X = 170
+local MODEL_WIDTH = 300
+local MODEL_ROW_HEIGHT = 30
+local TOOL_PREVIEW_LINES = 5
+local TOOL_PREVIEW_RENDERED_LINES = 5
+local TOOL_PREVIEW_CHARS = 1200
+local TOOL_ARGUMENT_RENDERED_LINES = 4
+local TOOL_ARGUMENT_CHARS = 600
+local SCROLLBAR_WIDTH = 8
+local JUMP_WIDTH = 128
+local JUMP_HEIGHT = 28
+
+---@param model rizu.ai.ChatModel
+---@param on_close fun()
+function AiChat:new(model, on_close)
+	ModalView.new(self)
+	self.model = model
+	self.on_close = on_close
+	self:setSize(1000, 780)
+	self:setAlignment(0.5, 0.5)
+	self:setPivot(0.5, 0.5)
+	self:setOpacity(0)
+	self:setVisible(false)
+	self:setClip(true)
+	self.handles_keyboard_input = true
+	self.handles_mouse_input = true
+	self.input = ""
+	self.scroll = 0
+	self.cached_lines = nil
+	self.cached_wrap_width = nil
+	self.preserve_line_count = nil
+	self.expanded_tools = {}
+	self.model_menu_open = false
+	self.model_menu_scroll = 0
+	self.scrollbar_drag_active = false
+	self.scrollbar_drag_offset = 0
+	self.model:onChanged(self)
+end
+
+function AiChat:unload()
+	self.model:offChanged(self)
+end
+
+function AiChat:show()
+	self:reset()
+	self:setVisible(true)
+	self:fadeIn(0.2, "OutCubic")
+end
+
+function AiChat:hide()
+	self.model:cancel()
+	self:transformTo("opacity", 0, 0.15, "InCubic", function()
+		self:setVisible(false)
+	end)
+end
+
+---@param event table
+function AiChat:receive(event)
+	if event.type == "chat_changed" then
+		if self.scroll > 0 and self.cached_lines and not self.preserve_line_count then
+			self.preserve_line_count = #self.cached_lines
+		end
+		self.cached_lines = nil
+		self.cached_wrap_width = nil
+	end
+end
+
+---@return integer
+function AiChat:getVisibleLineCount()
+	return math.max(1, math.floor((self.height - TITLE_HEIGHT - INPUT_HEIGHT - PADDING * 2) / LINE_HEIGHT))
+end
+
+---@param lines ui.ai_chat.TranscriptLine[]?
+---@return integer
+function AiChat:getMaxScroll(lines)
+	lines = lines or self:getLines()
+	return math.max(0, #lines - self:getVisibleLineCount())
+end
+
+---@param lines ui.ai_chat.TranscriptLine[]?
+function AiChat:clampScroll(lines)
+	self.scroll = math.floor(math.max(0, math.min(self:getMaxScroll(lines), self.scroll)) + 0.5)
+end
+
+---@param lines ui.ai_chat.TranscriptLine[]
+---@return integer first
+---@return integer last
+function AiChat:getVisibleRange(lines)
+	self:clampScroll(lines)
+	local last = math.max(0, #lines - self.scroll)
+	local first = math.max(1, last - self:getVisibleLineCount() + 1)
+	return first, last
+end
+
+---@param lines ui.ai_chat.TranscriptLine[]
+---@return number? x
+---@return number? track_y
+---@return number? track_height
+---@return number? thumb_y
+---@return number? thumb_height
+function AiChat:getScrollbarMetrics(lines)
+	local max_scroll = self:getMaxScroll(lines)
+	if max_scroll == 0 then
+		return
+	end
+	local track_y = TITLE_HEIGHT + PADDING
+	local track_height = self.height - TITLE_HEIGHT - INPUT_HEIGHT - PADDING * 2
+	local thumb_height = math.max(28, track_height * self:getVisibleLineCount() / #lines)
+	local scroll_from_top = max_scroll - self.scroll
+	local thumb_y = track_y + (track_height - thumb_height) * scroll_from_top / max_scroll
+	return self.width - PADDING - SCROLLBAR_WIDTH, track_y, track_height, thumb_y, thumb_height
+end
+
+---@param screen_y number
+---@param lines ui.ai_chat.TranscriptLine[]
+function AiChat:updateScrollbarDrag(screen_y, lines)
+	local _, local_y = self.world_transform:inverseTransformPoint(0, screen_y)
+	local _, track_y, track_height, _, thumb_height = self:getScrollbarMetrics(lines)
+	if not track_y then
+		return
+	end
+	local travel = track_height - thumb_height
+	local thumb_y = math.max(track_y, math.min(track_y + travel, local_y - self.scrollbar_drag_offset))
+	local position_from_top = travel > 0 and (thumb_y - track_y) / travel or 1
+	self.scroll = math.floor(self:getMaxScroll(lines) * (1 - position_from_top) + 0.5)
+end
+
+---@param tool_call_id string
+function AiChat:toggleTool(tool_call_id)
+	if self.scroll > 0 and self.cached_lines then
+		self.preserve_line_count = #self.cached_lines
+	end
+	self.expanded_tools[tool_call_id] = not self.expanded_tools[tool_call_id]
+	self.cached_lines = nil
+	self.cached_wrap_width = nil
+end
+
+---@param screen_x number
+---@param screen_y number
+---@return ui.ai_chat.TranscriptLine?
+function AiChat:getTranscriptLineAt(screen_x, screen_y)
+	local x, y = self.world_transform:inverseTransformPoint(screen_x, screen_y)
+	if x < PADDING or x >= self.width - PADDING - SCROLLBAR_WIDTH
+		or y < TITLE_HEIGHT + PADDING or y >= self.height - INPUT_HEIGHT - PADDING
+	then
+		return
+	end
+	local lines = self:getLines()
+	local first, last = self:getVisibleRange(lines)
+	local row = math.floor((y - TITLE_HEIGHT - PADDING) / LINE_HEIGHT)
+	local index = first + row
+	if index > last then
+		return
+	end
+	return lines[index]
+end
+
+---@param e gui.MouseClickEvent
+---@return true
+function AiChat:onMouseClick(e)
+	local x, y = self.world_transform:inverseTransformPoint(e.x, e.y)
+	if self.model_menu_open and x >= MODEL_X and x <= MODEL_X + MODEL_WIDTH and y >= TITLE_HEIGHT then
+		local index = self.model_menu_scroll + math.floor((y - TITLE_HEIGHT) / MODEL_ROW_HEIGHT) + 1
+		if self.model:getModelOptions()[index] then self.model:selectModel(index) end
+		self.model_menu_open = false
+		return true
+	end
+	if e.button == 1 and x >= self.width - PADDING - SCROLLBAR_WIDTH and x <= self.width - PADDING then
+		local lines = self:getLines()
+		local scrollbar_x, track_y, track_height, _, thumb_height = self:getScrollbarMetrics(lines)
+		if scrollbar_x and y >= track_y and y <= track_y + track_height then
+			self.scrollbar_drag_offset = thumb_height / 2
+			self:updateScrollbarDrag(e.y, lines)
+			return true
+		end
+	end
+	if self.scroll > 0 and x >= self.width - PADDING - JUMP_WIDTH and x <= self.width - PADDING
+		and y >= self.height - INPUT_HEIGHT - PADDING - JUMP_HEIGHT
+		and y <= self.height - INPUT_HEIGHT - PADDING
+	then
+		self.scroll = 0
+		return true
+	end
+	if y >= TITLE_HEIGHT + PADDING and y < self.height - INPUT_HEIGHT - PADDING then
+		local line = self:getTranscriptLineAt(e.x, e.y)
+		if line and line.tool_call_id then
+			self:toggleTool(line.tool_call_id)
+			return true
+		end
+	end
+	if self.model.busy and x >= self.width - PADDING - STOP_WIDTH and x <= self.width - PADDING
+		and y >= 8 and y <= 8 + STOP_HEIGHT
+	then
+		self.model:cancel()
+	elseif self.model:hasAuth() and x >= self.width - PADDING - LOGIN_WIDTH and x <= self.width - PADDING
+		and y >= 8 and y <= 8 + STOP_HEIGHT
+	then
+		local status = self.model:getAuthStatus()
+		if status ~= "logging_in" and status ~= "authenticated" then
+			self.model:startLogin()
+		end
+	elseif not self.model.busy and #self.model:getModelOptions() > 0
+		and x >= MODEL_X and x <= MODEL_X + MODEL_WIDTH and y >= 8 and y <= 8 + STOP_HEIGHT
+	then
+		self.model_menu_open = not self.model_menu_open
+		self.model_menu_scroll = 0
+	else
+		self.model_menu_open = false
+	end
+	return true
+end
+
+---@param e gui.DragStartEvent
+---@return boolean?
+function AiChat:onDragStart(e)
+	if e.button ~= 1 then
+		return
+	end
+	local x, y = self.world_transform:inverseTransformPoint(e.x, e.y)
+	local lines = self:getLines()
+	local scrollbar_x, track_y, track_height, thumb_y, thumb_height = self:getScrollbarMetrics(lines)
+	if not scrollbar_x or x < scrollbar_x or x > scrollbar_x + SCROLLBAR_WIDTH
+		or y < track_y or y > track_y + track_height
+	then
+		return
+	end
+	self.scrollbar_drag_active = true
+	if y >= thumb_y and y <= thumb_y + thumb_height then
+		self.scrollbar_drag_offset = y - thumb_y
+	else
+		self.scrollbar_drag_offset = thumb_height / 2
+	end
+	self:updateScrollbarDrag(e.y, lines)
+	return true
+end
+
+---@param e gui.DragEvent
+---@return boolean?
+function AiChat:onDrag(e)
+	if not self.scrollbar_drag_active or e.button ~= 1 then
+		return
+	end
+	self:updateScrollbarDrag(e.y, self:getLines())
+	return true
+end
+
+---@param e gui.DragEndEvent
+---@return boolean?
+function AiChat:onDragEnd(e)
+	if not self.scrollbar_drag_active or e.button ~= 1 then
+		return
+	end
+	self.scrollbar_drag_active = false
+	return true
+end
+
+---@param e gui.MouseUpEvent
+function AiChat:onMouseUp(e)
+	if e.button == 1 then
+		self.scrollbar_drag_active = false
+	end
+end
+
+---@param e gui.ScrollEvent
+---@return true
+function AiChat:onScroll(e)
+	if self.model_menu_open then
+		local max_rows = math.floor((self.height - TITLE_HEIGHT) / MODEL_ROW_HEIGHT)
+		local max_scroll = math.max(0, #self.model:getModelOptions() - max_rows)
+		self.model_menu_scroll = math.max(0, math.min(max_scroll, self.model_menu_scroll - e.direction_y))
+	else
+		self.scroll = self.scroll + e.direction_y * 3
+		self:clampScroll()
+	end
+	return true
+end
+
+function AiChat:reset()
+	self.input = ""
+	self.scroll = 0
+	self.preserve_line_count = nil
+	self.expanded_tools = {}
+	self.model_menu_open = false
+	self.model_menu_scroll = 0
+	self.scrollbar_drag_active = false
+	self.scrollbar_drag_offset = 0
+end
+
+---@param e gui.KeyDownEvent
+---@return true
+function AiChat:onKeyDown(e)
+	if e.key == "escape" then
+		if self.model.busy then
+			self.model:cancel()
+		else
+			self.on_close()
+		end
+	elseif e.key == "backspace" then
+		local byte_offset = utf8.offset(self.input, -1)
+		if byte_offset then
+			self.input = self.input:sub(1, byte_offset - 1)
+		end
+	elseif e.key == "return" or e.key == "kpenter" then
+		if e.shift_pressed then
+			self.input = self.input .. "\n"
+		else
+			local sent = self.model:send(self.input)
+			if sent then
+				self.input = ""
+				self.scroll = 0
+			end
+		end
+	elseif e.control_pressed and e.key == "l" then
+		self.model:clear()
+		self.scroll = 0
+	elseif e.control_pressed and e.key == "v" then
+		self.input = utf8validate(self.input .. love.system.getClipboardText())
+	elseif e.key == "pageup" then
+		self.scroll = self.scroll + 10
+		self:clampScroll()
+	elseif e.key == "pagedown" then
+		self.scroll = self.scroll - 10
+		self:clampScroll()
+	elseif e.key == "home" then
+		self.scroll = self:getMaxScroll()
+	elseif e.key == "end" then
+		self.scroll = 0
+	end
+	return true
+end
+
+---@param inputs gui.Inputs
+function AiChat:onHandleInputs(inputs)
+	-- onKeyDown owns Enter while the modal is focused. Consume its semantic
+	-- action so the underlying screen cannot also accept the selected chart.
+	inputs:consumeActionJustPressed(UiActions.accept)
+end
+
+---@param e gui.TextInputEvent
+---@return true
+function AiChat:onTextInput(e)
+	self.input = utf8validate(self.input .. (e.text or e.key or ""))
+	return true
+end
+
+---@param lines ui.ai_chat.TranscriptLine[]
+---@param font love.Font
+---@param text string
+---@param wrap_width number
+---@param color gui.Color
+---@param tool_call_id string?
+---@param max_lines integer?
+---@return boolean truncated
+local function addWrapped(lines, font, text, wrap_width, color, tool_call_id, max_lines)
+	local _, wrapped = font:getWrap(utf8validate(text), wrap_width)
+	local visible_count = max_lines and math.min(#wrapped, max_lines) or #wrapped
+	for index = 1, visible_count do
+		table.insert(lines, {text = wrapped[index], color = color, tool_call_id = tool_call_id})
+	end
+	return visible_count < #wrapped
+end
+
+---@param text string
+---@param limit integer
+---@return string
+---@return boolean truncated
+local function truncateText(text, limit)
+	if #text <= limit then
+		return text, false
+	end
+	return utf8validate(text:sub(1, limit)) .. "…", true
+end
+
+---@param content string
+---@return string preview
+---@return boolean truncated
+---@return integer total_lines
+local function previewToolResult(content)
+	local source_lines = {}
+	for line in (content .. "\n"):gmatch("(.-)\n") do
+		local clean_line = line:gsub("\r$", "")
+		table.insert(source_lines, clean_line)
+	end
+	local visible = {}
+	for index = 1, math.min(#source_lines, TOOL_PREVIEW_LINES) do
+		table.insert(visible, source_lines[index])
+	end
+	local preview = table.concat(visible, "\n")
+	local truncated = #visible < #source_lines or #preview > TOOL_PREVIEW_CHARS
+	if #preview > TOOL_PREVIEW_CHARS then
+		preview = utf8validate(preview:sub(1, TOOL_PREVIEW_CHARS))
+	end
+	return preview, truncated, #source_lines
+end
+
+---@param entry rizu.ai.ChatEntry
+---@return string
+local function toolStatusLabel(entry)
+	if entry.status == "running" then return "running" end
+	if entry.status == "error" then return "error" end
+	if entry.status == "canceled" then return "canceled" end
+	return "ok"
+end
+
+---@return ui.ai_chat.TranscriptLine[]
+function AiChat:getLines()
+	local font = Resources.getFont("regular", 20)
+	local wrap_width = self.width - PADDING * 2 - SCROLLBAR_WIDTH - 4
+	if self.cached_lines and self.cached_wrap_width == wrap_width then
+		return self.cached_lines
+	end
+	---@type ui.ai_chat.TranscriptLine[]
+	local lines = {}
+	local role_colors = {
+		user = Colors.accent,
+		assistant = Colors.text,
+		tool = Colors.muted,
+		error = Colors.danger,
+	}
+	for _, entry in ipairs(self.model.entries) do
+		if entry.role == "tool" and entry.tool_call_id then
+			local expanded = self.expanded_tools[entry.tool_call_id] == true
+			local header = ("[%s] %s"):format(toolStatusLabel(entry), entry.name or "tool")
+			local status_color = entry.status == "error" and Colors.danger
+				or entry.status == "running" and Colors.accent or Colors.success
+			addWrapped(lines, font, header, wrap_width, status_color, entry.tool_call_id)
+
+			local arguments = ToolPresentation.formatArguments(entry.arguments)
+			local arguments_truncated = false
+			if arguments ~= "" then
+				table.insert(lines, {
+					text = "input",
+					color = Colors.muted,
+					tool_call_id = entry.tool_call_id,
+				})
+				if not expanded then
+					arguments, arguments_truncated = truncateText(arguments, TOOL_ARGUMENT_CHARS)
+				end
+				local argument_line_limit
+				if not expanded then
+					argument_line_limit = TOOL_ARGUMENT_RENDERED_LINES
+				end
+				arguments_truncated = addWrapped(
+					lines,
+					font,
+					arguments,
+					wrap_width,
+					Colors.text,
+					entry.tool_call_id,
+					argument_line_limit
+				) or arguments_truncated
+			end
+
+			local result_truncated = false
+			local total_lines = 0
+			if entry.content ~= "" then
+				table.insert(lines, {
+					text = entry.status == "error" and "error" or "output",
+					color = Colors.muted,
+					tool_call_id = entry.tool_call_id,
+				})
+				local formatted_result = ToolPresentation.formatResult(entry.name, entry.content)
+				local output
+				output, result_truncated, total_lines = previewToolResult(formatted_result)
+				if expanded then
+					output = formatted_result
+				end
+				local result_line_limit
+				if not expanded then
+					result_line_limit = TOOL_PREVIEW_RENDERED_LINES
+				end
+				local wrapped_truncated = addWrapped(
+					lines,
+					font,
+					output,
+					wrap_width,
+					Colors.muted,
+					entry.tool_call_id,
+					result_line_limit
+				)
+				result_truncated = result_truncated or wrapped_truncated
+			end
+			if expanded and (arguments ~= "" or entry.content ~= "") then
+				table.insert(lines, {
+					text = "Click to collapse",
+					color = Colors.accent,
+					tool_call_id = entry.tool_call_id,
+				})
+			elseif result_truncated then
+				local line_label = total_lines == 1 and "line" or "lines"
+				table.insert(lines, {
+					text = ("… %d %s, %d bytes total — click to expand"):format(
+						total_lines,
+						line_label,
+						#entry.content
+					),
+					color = Colors.accent,
+					tool_call_id = entry.tool_call_id,
+				})
+			elseif arguments_truncated then
+				table.insert(lines, {
+					text = "… input truncated — click to expand",
+					color = Colors.accent,
+					tool_call_id = entry.tool_call_id,
+				})
+			end
+		else
+			local label = entry.name and (entry.role .. " " .. entry.name) or entry.role
+			local text = ("[%s] %s"):format(label, entry.content)
+			addWrapped(lines, font, text, wrap_width, role_colors[entry.role] or Colors.text)
+		end
+		table.insert(lines, {text = "", color = Colors.text})
+	end
+	if self.preserve_line_count then
+		self.scroll = self.scroll + #lines - self.preserve_line_count
+		self.preserve_line_count = nil
+	end
+	self:clampScroll(lines)
+	self.cached_lines = lines
+	self.cached_wrap_width = wrap_width
+	return lines
+end
+
+function AiChat:draw()
+	local font = Resources.getFont("regular", 20)
+	local small_font = Resources.getFont("regular", 16)
+	love.graphics.setColor(Colors.panel)
+	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+	love.graphics.setColor(Colors.outline)
+	love.graphics.setLineWidth(2)
+	love.graphics.rectangle("line", 0, 0, self.width, self.height)
+	love.graphics.rectangle("line", 0, TITLE_HEIGHT, self.width, self.height - TITLE_HEIGHT - INPUT_HEIGHT)
+
+	love.graphics.setFont(font)
+	love.graphics.setColor(Colors.text)
+	love.graphics.print(brand.name .. " AI", PADDING, 12)
+	love.graphics.setFont(small_font)
+	love.graphics.setColor(Colors.muted)
+	local model_options = self.model:getModelOptions()
+	if #model_options > 0 then
+		love.graphics.setColor(Colors.surface)
+		love.graphics.rectangle("fill", MODEL_X, 8, MODEL_WIDTH, STOP_HEIGHT)
+		love.graphics.setColor(Colors.text)
+		love.graphics.printf(utf8validate(self.model:getSelectedModelLabel()), MODEL_X + 8, 15, MODEL_WIDTH - 16, "left")
+		love.graphics.setColor(Colors.muted)
+	end
+	local help = self.model.busy and "Esc stop  •  Ctrl+L clear  •  Shift+Enter newline"
+		or "Esc close  •  Ctrl+L clear  •  Shift+Enter newline"
+	local auth_status, auth_error = self.model:getAuthStatus()
+	local show_auth = self.model:hasAuth() and not self.model.busy
+	local help_right = self.model.busy and (PADDING * 2 + STOP_WIDTH)
+		or show_auth and (PADDING * 2 + LOGIN_WIDTH) or PADDING
+	love.graphics.printf(help, 0, 15, self.width - help_right, "right")
+	if self.model.busy then
+		local stop_x = self.width - PADDING - STOP_WIDTH
+		love.graphics.setColor(Colors.danger)
+		love.graphics.rectangle("fill", stop_x, 8, STOP_WIDTH, STOP_HEIGHT)
+		love.graphics.setColor(Colors.text)
+		love.graphics.printf("Stop", stop_x, 15, STOP_WIDTH, "center")
+	elseif show_auth then
+		local login_x = self.width - PADDING - LOGIN_WIDTH
+		local login_text = "Login OpenAI"
+		local login_color = Colors.accent
+		if auth_status == "logging_in" then
+			login_text = "Waiting for login"
+			login_color = Colors.muted
+		elseif auth_status == "authenticated" then
+			login_text = "OpenAI connected"
+			login_color = Colors.accent
+		elseif auth_status == "error" then
+			login_text = "Retry OpenAI login"
+			login_color = Colors.danger
+		end
+		love.graphics.setColor(login_color)
+		love.graphics.rectangle("fill", login_x, 8, LOGIN_WIDTH, STOP_HEIGHT)
+		love.graphics.setColor(Colors.text)
+		love.graphics.printf(login_text, login_x, 15, LOGIN_WIDTH, "center")
+	end
+
+	local lines = self:getLines()
+	local first, last = self:getVisibleRange(lines)
+	love.graphics.setFont(font)
+	local y = TITLE_HEIGHT + PADDING
+	for i = first, last do
+		local line = lines[i]
+		local text_x = PADDING
+		if line.tool_call_id then
+			love.graphics.setColor(Colors.surface)
+			love.graphics.rectangle(
+				"fill",
+				PADDING - 6,
+				y - 2,
+				self.width - PADDING * 2 - SCROLLBAR_WIDTH - 2,
+				LINE_HEIGHT
+			)
+			text_x = PADDING + 8
+		end
+		love.graphics.setColor(line.color)
+		love.graphics.print(line.text, text_x, y)
+		y = y + LINE_HEIGHT
+	end
+	local max_scroll = self:getMaxScroll(lines)
+	if max_scroll > 0 then
+		local scrollbar_x, track_y, track_height, thumb_y, thumb_height = self:getScrollbarMetrics(lines)
+		love.graphics.setColor(Colors.outline)
+		love.graphics.rectangle("fill", scrollbar_x, track_y, SCROLLBAR_WIDTH, track_height)
+		love.graphics.setColor(Colors.muted)
+		love.graphics.rectangle("fill", scrollbar_x, thumb_y, SCROLLBAR_WIDTH, thumb_height)
+	end
+	if self.scroll > 0 then
+		local jump_x = self.width - PADDING - JUMP_WIDTH
+		local jump_y = self.height - INPUT_HEIGHT - PADDING - JUMP_HEIGHT
+		love.graphics.setColor(Colors.surface_raised)
+		love.graphics.rectangle("fill", jump_x, jump_y, JUMP_WIDTH, JUMP_HEIGHT)
+		love.graphics.setFont(small_font)
+		love.graphics.setColor(Colors.text)
+		love.graphics.printf("Jump to latest", jump_x, jump_y + 6, JUMP_WIDTH, "center")
+	end
+
+	local input_y = self.height - INPUT_HEIGHT
+	love.graphics.setColor(Colors.surface)
+	love.graphics.rectangle("fill", 0, input_y, self.width, INPUT_HEIGHT)
+	love.graphics.setFont(font)
+	love.graphics.setColor(Colors.text)
+	local prompt = utf8validate(self.input)
+	if prompt == "" then
+		love.graphics.setColor(Colors.muted)
+		prompt = "Type a message and press Enter..."
+	end
+	love.graphics.printf(prompt, PADDING, input_y + PADDING, self.width - PADDING * 2, "left")
+	if self.model.busy then
+		love.graphics.setFont(small_font)
+		love.graphics.setColor(Colors.accent)
+		love.graphics.printf("Streaming...", 0, self.height - 24, self.width - PADDING, "right")
+	elseif auth_status == "error" and auth_error then
+		love.graphics.setFont(small_font)
+		love.graphics.setColor(Colors.danger)
+		love.graphics.printf(utf8validate(auth_error), PADDING, self.height - 24, self.width - PADDING * 2, "right")
+	end
+
+	if self.model_menu_open then
+		love.graphics.setFont(small_font)
+		local max_rows = math.floor((self.height - TITLE_HEIGHT) / MODEL_ROW_HEIGHT)
+		local last_index = math.min(#model_options, self.model_menu_scroll + max_rows)
+		for index = self.model_menu_scroll + 1, last_index do
+			local model_option = model_options[index]
+			local y = TITLE_HEIGHT + (index - self.model_menu_scroll - 1) * MODEL_ROW_HEIGHT
+			love.graphics.setColor(index == self.model:getSelectedModelIndex() and Colors.accent or Colors.surface)
+			love.graphics.rectangle("fill", MODEL_X, y, MODEL_WIDTH, MODEL_ROW_HEIGHT)
+			love.graphics.setColor(Colors.text)
+			love.graphics.printf(utf8validate(model_option.label), MODEL_X + 8, y + 7, MODEL_WIDTH - 16, "left")
+		end
+	end
+end
+
+return AiChat

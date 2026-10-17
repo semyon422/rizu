@@ -4,7 +4,8 @@ Open-source rhythm game
 - [Website](https://rizu.su)
 - [Download](https://dl.rizu.su/rizu.zip)
 - [Installation guide](https://youtu.be/FvdafJSMx-s)
-- [Discord server](https://discord.gg/ubKMtTk)
+- [Developer bootstrap and tooling](BOOTSTRAP.md)
+- [Discord server](https://rizu.su/discord)
 
 ## License
 
@@ -40,6 +41,7 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - Multiplayer
 - Auto-updater
 - Editor
+- BMS/o2jam Audio and Video preview  
 - And much more
 
 ## Future plans:

@@ -1,0 +1,150 @@
+local ChartLocation = require("chart.format.notechart.ChartLocation")
+local path_util = require("path_util")
+local class = require("class")
+
+---@class rizu.library.Finder
+---@operator call: rizu.library.Finder
+---@field fs fs.IFilesystem
+local Finder = class()
+
+---@alias rizu.library.FinderEventType
+---| "related_dir"
+---| "related"
+---| "related_all"
+---| "unrelated_dir"
+---| "unrelated"
+---| "unrelated_all"
+---| "directory_dir"
+---| "directory"
+---| "directory_all"
+---| "not_found"
+
+---@alias rizu.library.FinderEventName string|string[]
+
+---@alias rizu.library.FinderIterator fun(should_scan: boolean?): rizu.library.FinderEventType?, string?, rizu.library.FinderEventName?, number?
+
+---@param typ rizu.library.FinderEventType
+---@param dir string?
+---@param name rizu.library.FinderEventName?
+---@param modified_at number?
+---@return boolean? should_scan
+local function yieldEvent(typ, dir, name, modified_at)
+	return coroutine.yield(typ, dir, name, modified_at)
+end
+
+---@param fs fs.IFilesystem
+function Finder:new(fs)
+	self.fs = fs
+end
+
+---@param dir string?
+---@return string? parent
+---@return string? name
+local function get_dir_name(dir)
+	if not dir then
+		return
+	end
+	local a, b = dir:match("^(.*)/(.-)$")
+	if a and b then
+		return a, b
+	end
+	return nil, dir
+end
+Finder.get_dir_name = get_dir_name
+
+---@private
+---@param prefix string?
+---@param dir string?
+function Finder:lookupAsync(prefix, dir)
+	print("scan dir", prefix, dir)
+	local prefix_dir = path_util.join(prefix, dir)
+
+	local items = self.fs:getDirectoryItems(prefix_dir)
+	local dir_info = self.fs:getInfo(prefix_dir)
+	if not dir_info then
+		local a, b = get_dir_name(dir)
+		yieldEvent("not_found", a, b, nil)
+		return
+	end
+
+	---@type string[]
+	local all_items = {}
+
+	-- Phase 1: Check for direct chart files (like .osu, .bms, .sph)
+	-- If a directory contains these, it's considered a "chart set"
+	local has_related = false
+	for _, item in ipairs(items) do
+		local info = self.fs:getInfo(path_util.join(prefix, dir, item))
+		if info and info.type == "file" and ChartLocation:isRelated(item) then
+			if not has_related then
+				has_related = true
+				local a, b = get_dir_name(dir)
+				yieldEvent("related_dir", a, b, dir_info.modtime)
+			end
+			yieldEvent("related", dir, item, info.modtime)
+			table.insert(all_items, item)
+		end
+	end
+
+	-- If we found related files, we stop here for this directory (don't treat as container)
+	if has_related then
+		yieldEvent("related_all", dir, all_items, dir_info.modtime)
+		return
+	end
+
+	-- Phase 2: Check for unrelated container files (like .ojn, .sm)
+	-- These files themselves act as chart sets
+	local has_unrelated = false
+	for _, item in ipairs(items) do
+		local info = self.fs:getInfo(path_util.join(prefix, dir, item))
+		if info and info.type == "file" and ChartLocation:isUnrelated(item) then
+			if not has_unrelated then
+				has_unrelated = true
+				local a, b = get_dir_name(dir)
+				yieldEvent("unrelated_dir", a, b, dir_info.modtime)
+			end
+			yieldEvent("unrelated", dir, item, info.modtime)
+			table.insert(all_items, item)
+		end
+	end
+
+	if has_unrelated then
+		yieldEvent("unrelated_all", dir, all_items, dir_info.modtime)
+		return
+	end
+
+	-- Phase 3: Pure directory scanning
+	-- If no charts were found, recurse into subdirectories
+	local a, b = get_dir_name(dir)
+	yieldEvent("directory_dir", a, b, dir_info.modtime)
+
+	---@type string[]
+	local subdirs_to_scan = {}
+	for _, item in ipairs(items) do
+		local info = self.fs:getInfo(path_util.join(prefix, dir, item))
+		if info and (info.type == "directory" or info.type == "symlink") then
+			-- The consumer can return 'false' to skip scanning this subdirectory
+			if yieldEvent("directory", dir, item, info.modtime) then
+				table.insert(subdirs_to_scan, item)
+			end
+			table.insert(all_items, item)
+		end
+	end
+
+	yieldEvent("directory_all", dir, all_items, dir_info.modtime)
+
+	for _, item in ipairs(subdirs_to_scan) do
+		self:lookupAsync(prefix, path_util.join(dir, item))
+	end
+end
+
+---@param prefix string?
+---@param dir string?
+---@return rizu.library.FinderIterator
+function Finder:iter(prefix, dir)
+	return coroutine.wrap(function()
+		self:lookupAsync(prefix, dir)
+	end)
+end
+
+return Finder

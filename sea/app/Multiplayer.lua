@@ -1,0 +1,413 @@
+local class = require("class")
+local Room = require("sea.multi.Room")
+local RoomUpdate = require("sea.multi.RoomUpdate")
+local RoomUser = require("sea.multi.RoomUser")
+local MultiplayerAccess = require("sea.multi.access.MultiplayerAccess")
+
+---@class sea.Multiplayer
+---@operator call: sea.Multiplayer
+local Multiplayer = class()
+
+---@param multiplayer_repo sea.MultiplayerRepo
+---@param user_connections sea.UserConnections
+function Multiplayer:new(multiplayer_repo, user_connections)
+	self.multiplayer_repo = multiplayer_repo
+	self.user_connections = user_connections
+	self.multiplayer_access = MultiplayerAccess()
+end
+
+---@param peer sea.Peer
+function Multiplayer:connected(peer)
+	self:pushUsers()
+	peer.remote_no_return.multiplayer:setRooms(self:getRooms())
+end
+
+---@param peer sea.Peer
+function Multiplayer:disconnected(peer)
+	self:leaveRoom(peer)
+end
+
+---@return sea.User[]
+function Multiplayer:getUsers()
+	local users = self.user_connections:getOnlineUsers()
+	table.sort(users, function(a, b)
+		return a.id < b.id
+	end)
+	return users
+end
+
+---@param user_id integer
+---@param peer sea.Peer
+---@return sea.InternalPeer[]
+function Multiplayer:getPeersByUserId(user_id, peer)
+	local peer_ids = self.user_connections.repo:getPeerIdsByUserId(user_id)
+	if #peer_ids == 0 then
+		return {}
+	end
+	---@type sea.InternalPeer[]
+	local peers = {}
+	for _, peer_id in ipairs(peer_ids) do
+		local p = self.user_connections:getPeer(peer_id, peer)
+		if p then
+			table.insert(peers, p)
+		end
+	end
+	return peers
+end
+
+---@return sea.Room[]
+function Multiplayer:getRooms()
+	local rooms = self.multiplayer_repo:getRooms()
+	for _, room in ipairs(rooms) do
+		room.password = nil
+	end
+	return rooms
+end
+
+---@param id integer
+---@return sea.Room?
+function Multiplayer:getRoom(id)
+	return self.multiplayer_repo:getRoom(id)
+end
+
+function Multiplayer:pushUsers()
+	local users = self:getUsers()
+	self.user_connections:broadcastAll().multiplayer:setUsers(users)
+end
+
+---@param peer sea.Peer
+function Multiplayer:pushRooms()
+	local rooms = self:getRooms()
+	self.user_connections:broadcastAll().multiplayer:setRooms(rooms)
+end
+
+---@param room_id integer
+function Multiplayer:pushRoomUsers(room_id)
+	local room_users = self.multiplayer_repo:getRoomUsers(room_id)
+	self.user_connections:broadcastRoom(room_id).multiplayer:setRoomUsers(room_users)
+end
+
+---@param room_id integer
+---@param room sea.Room|sea.RoomUpdate
+function Multiplayer:syncRoomParts(room_id, room)
+	local broadcast = self.user_connections:broadcastRoom(room_id)
+	if room.rules then
+		broadcast.multiplayer:syncRules()
+	end
+	if room.chartmeta_key then
+		broadcast.multiplayer:syncChart()
+	end
+	if room.replay_base then
+		broadcast.multiplayer:syncReplayBase()
+	end
+end
+
+---@param peer sea.Peer
+---@param room_values sea.Room
+---@return integer?
+---@return string?
+function Multiplayer:createRoom(peer, room_values)
+	local user = peer.user
+	if not self.multiplayer_access:canCreateRoom(user) then
+		return nil, "not allowed"
+	end
+
+	room_values.host_user_id = user.id
+
+	local room = self.multiplayer_repo:createRoom(room_values)
+	self:pushRooms()
+
+	self:joinRoom(peer, room.id, room.password)
+
+	return room.id
+end
+
+---@param peer sea.Peer
+---@param room_id integer
+---@param room_values sea.RoomUpdate
+---@return true?
+---@return string?
+function Multiplayer:updateRoom(peer, room_id, room_values)
+	local user = peer.user
+	local room = self.multiplayer_repo:getRoom(room_id)
+	if not room then
+		return nil, "not found"
+	end
+
+	if not self.multiplayer_access:canUpdateRoom(user, room) then
+		return nil, "not allowed"
+	end
+
+	room_values.id = room_id
+
+	self.multiplayer_repo:updateRoom(room_values)
+	self:pushRooms()
+
+	self:syncRoomParts(room_id, room_values)
+
+	return true
+end
+
+---@param peer sea.Peer
+---@param room_id integer
+---@param password string
+---@return true?
+---@return string?
+function Multiplayer:joinRoom(peer, room_id, password)
+	local user = peer.user
+	local room = self.multiplayer_repo:getRoom(room_id)
+	if not room then
+		return nil, "not found"
+	end
+
+	if not self.multiplayer_access:canJoinRoom(user, room) then
+		return nil, "not allowed"
+	end
+
+	local room_user = self.multiplayer_repo:getRoomUserByUserId(user.id)
+	if room_user then
+		return nil, "is in a room"
+	end
+
+	if room.password ~= password then
+		return nil, "invalid password"
+	end
+
+	room_user = RoomUser(room.id, user.id)
+	room_user = self.multiplayer_repo:createRoomUser(room_user)
+
+	self:_subscribeRoom(peer, room_id)
+	self:pushRoomUsers(room_id)
+	self:syncRoomParts(room_id, room)
+
+	return true
+end
+
+---@param peer sea.Peer
+---@param room_id integer
+---@param target_user_id integer
+---@return true?
+---@return string?
+function Multiplayer:kickUser(peer, room_id, target_user_id)
+	local user = peer.user
+	local room = self.multiplayer_repo:getRoom(room_id)
+	if not room then
+		return nil, "not found"
+	end
+
+	if not self.multiplayer_access:canKickUser(user, room, target_user_id) then
+		return nil, "not allowed"
+	end
+
+	local room_user = self.multiplayer_repo:deleteRoomUser(room_id, target_user_id)
+	if not room_user then
+		return nil, "not found"
+	end
+
+	local room_users = self.multiplayer_repo:getRoomUsers(room_id)
+
+	if #room_users == 0 then
+		self.multiplayer_repo:deleteRoom(room_id)
+		self:pushRooms()
+	else
+		if room.host_user_id == target_user_id then
+			room.host_user_id = room_users[1].user_id
+			self.multiplayer_repo:updateRoom(room)
+			self:pushRooms()
+		end
+		self:pushRoomUsers(room_id)
+	end
+
+	for _, target_peer in ipairs(self:getPeersByUserId(target_user_id, peer)) do
+		-- The connection handling this request can be notified directly over its
+		-- WebSocket. Routing that same notification through NATS makes a normal
+		-- leave fail when NATS is unavailable, even though the database update
+		-- has already succeeded.
+		local remote = target_peer.peer_id == peer.peer_id
+			and peer.remote_no_return or target_peer.remote_no_return
+		-- Notification delivery to another connection is best-effort and must
+		-- not turn an already-completed kick/leave into an RPC failure.
+		pcall(function()
+			remote.multiplayer:setRoomUsers({})
+		end)
+	end
+
+	return true
+end
+
+---@param user sea.User
+---@return integer?
+function Multiplayer:getRoomId(user)
+	if user:isAnon() then
+		return
+	end
+	local room_user = self.multiplayer_repo:getRoomUserByUserId(user.id)
+	if not room_user then
+		return
+	end
+	return room_user.room_id
+end
+
+---@param peer sea.Peer
+---@param user? sea.User
+---@return true?
+---@return string?
+function Multiplayer:leaveRoom(peer, user)
+	user = user or peer.user
+	if user:isAnon() then
+		return
+	end
+
+	local room_id = self:getRoomId(user)
+	if not room_id then
+		return nil, "is not in a room"
+	end
+
+	self:_unsubscribeRoom(peer, room_id)
+	return self:kickUser(peer, room_id, user.id)
+end
+
+---@return sea.Room?
+function Multiplayer:getCurrentRoom(user)
+	local id = self:getRoomId(user)
+	if id then
+		return self:getRoom(id)
+	end
+end
+
+---@param peer sea.Peer
+---@param room_id integer
+---@param msg string
+function Multiplayer:sendMessage(peer, room_id, msg)
+	local user = peer.user
+	msg = ("%s: %s"):format(user.name, msg)
+
+	self.user_connections:broadcastRoom(room_id).multiplayer:addMessage(msg)
+end
+
+---@param peer sea.Peer
+---@param msg string
+function Multiplayer:sendLocalMessage(peer, msg)
+	local room_id = self:getRoomId(peer.user)
+	if not room_id then
+		return
+	end
+	self:sendMessage(peer, room_id, msg)
+end
+
+---@param peer sea.Peer
+---@param room_values sea.RoomUpdate
+---@return boolean?
+---@return string?
+function Multiplayer:updateLocalRoom(peer, room_values)
+	local room_id = self:getRoomId(peer.user)
+	if not room_id then
+		return
+	end
+	return self:updateRoom(peer, room_id, room_values)
+end
+
+---@param peer sea.Peer
+---@param target_user_id integer
+function Multiplayer:kickLocalUser(peer, target_user_id)
+	local room_id = self:getRoomId(peer.user)
+	if not room_id then
+		return
+	end
+	self:kickUser(peer, room_id, target_user_id)
+end
+
+---@param peer sea.Peer
+function Multiplayer:switchReady(peer)
+	local user = peer.user
+	local room_user = self.multiplayer_repo:getRoomUserByUserId(user.id)
+	if not room_user then
+		return
+	end
+
+	room_user.is_ready = not room_user.is_ready
+	self.multiplayer_repo:updateRoomUser(room_user)
+
+	self:pushRoomUsers(room_user.room_id)
+end
+
+---@param peer sea.Peer
+---@param found boolean
+function Multiplayer:setChartFound(peer, found)
+	local user = peer.user
+	local room_user = self.multiplayer_repo:getRoomUserByUserId(user.id)
+	if not room_user then
+		return
+	end
+
+	room_user.chart_found = found
+	self.multiplayer_repo:updateRoomUser(room_user)
+
+	self:pushRoomUsers(room_user.room_id)
+end
+
+---@param peer sea.Peer
+---@param chartplay_computed sea.ChartplayComputed
+function Multiplayer:setChartplayComputed(peer, chartplay_computed)
+	local user = peer.user
+	local room_user = self.multiplayer_repo:getRoomUserByUserId(user.id)
+	if not room_user then
+		return
+	end
+
+	room_user.chartplay_computed = chartplay_computed
+	self.multiplayer_repo:updateRoomUser(room_user)
+
+	self:pushRoomUsers(room_user.room_id)
+end
+
+---@param peer sea.Peer
+---@param is_playing boolean
+function Multiplayer:setPlaying(peer, is_playing)
+	local user = peer.user
+	local room_user = self.multiplayer_repo:getRoomUserByUserId(user.id)
+	if not room_user then
+		return
+	end
+
+	room_user.is_playing = is_playing
+	self.multiplayer_repo:updateRoomUser(room_user)
+
+	self:pushRoomUsers(room_user.room_id)
+end
+
+---@param peer sea.Peer
+function Multiplayer:startLocalMatch(peer)
+	local room_id = self:getRoomId(peer.user)
+	if not room_id then
+		return
+	end
+
+	self.user_connections:broadcastRoom(room_id).multiplayer:startMatch()
+end
+
+---@param peer sea.Peer
+function Multiplayer:stopLocalMatch(peer)
+	local room_id = self:getRoomId(peer.user)
+	if not room_id then
+		return
+	end
+
+	self.user_connections:broadcastRoom(room_id).multiplayer:stopMatch()
+end
+
+--- Subscribe this peer to a room's broadcast channel.
+---@param peer sea.Peer
+---@param room_id integer
+function Multiplayer:_subscribeRoom(peer, room_id)
+	peer:subscribe("icc.broadcast.room." .. room_id)
+end
+
+--- Unsubscribe this peer from its current room's broadcast channel.
+---@param peer sea.Peer
+---@param room_id integer
+function Multiplayer:_unsubscribeRoom(peer, room_id)
+	peer:unsubscribe("icc.broadcast.room." .. room_id)
+end
+
+return Multiplayer

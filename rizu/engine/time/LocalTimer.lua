@@ -2,15 +2,21 @@ local class = require("class")
 
 ---@class rizu.LocalTimer
 ---@operator call: rizu.LocalTimer
+---@field global_time number?
+---@field global_offset number?
 local LocalTimer = class()
 
 LocalTimer.is_playing = false
 LocalTimer.offset = 0
 LocalTimer.rate = 1
-LocalTimer.global_offset = 0
-LocalTimer.global_time = 0
+LocalTimer.mono_offset = -math.huge
 
 ---@return number
+function LocalTimer:assertGlobalTime()
+	return assert(self.global_time, "timer not initialized")
+end
+
+---@return number?
 function LocalTimer:getGlobalTime()
 	return self.global_time
 end
@@ -20,29 +26,37 @@ function LocalTimer:setGlobalTime(global_time)
 	self.global_time = global_time
 end
 
+---@private
 ---@return number
 function LocalTimer:getDeltaGlobalTime()
 	if not self.is_playing then
 		return 0
 	end
-	return self:getGlobalTime() - self.global_offset
+	return self:assertGlobalTime() - self.global_offset
 end
 
+---@param no_mono boolean?
 ---@return number
-function LocalTimer:getTime()
+function LocalTimer:getTime(no_mono)
 	local dt = self:getDeltaGlobalTime()
-	return dt * self.rate + self.offset
+	local time = dt * self.rate + self.offset
+	if no_mono then
+		return time
+	end
+	return math.max(time, self.mono_offset)
 end
 
 ---@param global_time number
 ---@return number
 function LocalTimer:transform(global_time)
-	return (global_time - self:getGlobalTime()) * self.rate + self:getTime()
+	return (global_time - self:assertGlobalTime()) * self.rate + self:getTime()
 end
 
 ---@param time number?
-function LocalTimer:setTime(time)
-	self.offset = time or self:getTime()
+---@param reset boolean?
+function LocalTimer:setTime(time, reset)
+	self.mono_offset = not reset and math.max(self.mono_offset, self:getTime()) or -math.huge
+	self.offset = time or self:getTime(true)
 	self.global_offset = self:getGlobalTime()
 end
 
@@ -57,6 +71,7 @@ function LocalTimer:pause()
 		return
 	end
 
+	self:assertGlobalTime()
 	self:setTime()
 	self.is_playing = false
 end
@@ -66,6 +81,7 @@ function LocalTimer:play()
 		return
 	end
 
+	self:assertGlobalTime()
 	self:setTime()
 	self.is_playing = true
 end

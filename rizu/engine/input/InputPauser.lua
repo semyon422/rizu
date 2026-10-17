@@ -5,35 +5,61 @@ local class = require("class")
 local InputPauser = class()
 
 function InputPauser:new()
-	---@type {[ncdk2.Column]: boolean}
-	self.states = {}
-	---@type {[ncdk2.Column]: boolean}
-	self.saved_states = {}
+	---@type {[rizu.VirtualInputEventId]: any}
+	self.event_values = {}
+
+	---@type {[rizu.InputNote]: any}
+	self.paused_notes = {}
 end
 
----@param key ncdk2.Column
----@param state boolean
-function InputPauser:setState(key, state)
-	self.states[key] = state
+---@param id rizu.VirtualInputEventId
+---@param value any?
+function InputPauser:receive(id, value)
+	local event_values = self.event_values
+
+	if value ~= nil then
+		event_values[id] = value or nil
+	end
 end
 
-function InputPauser:resume()
-	for key, state in pairs(self.states) do
-		if state ~= self.savedState[key] then
-			self:apply(key, state, currentTime)
+---@param catched_notes {[rizu.InputNote]: rizu.VirtualInputEventId}
+function InputPauser:pause(catched_notes)
+	self.paused = true
+
+	local paused_notes = self.paused_notes
+	local event_values = self.event_values
+
+	for note, id in pairs(catched_notes) do
+		paused_notes[note] = event_values[id]
+	end
+end
+
+---@param catched_notes {[rizu.InputNote]: rizu.VirtualInputEventId}
+function InputPauser:resume(catched_notes)
+	self.paused = false
+
+	local paused_notes = self.paused_notes
+	local event_values = self.event_values
+
+	---@type {[rizu.InputNote]: true}
+	local handled_notes = {}
+
+	for note, value in pairs(paused_notes) do
+		paused_notes[note] = nil
+		handled_notes[note] = true
+
+		local new_value = event_values[catched_notes[note]] or false
+		if value ~= new_value then
+			note:input(new_value)
 		end
 	end
-end
 
-function InputPauser:pause()
-	for key, state in pairs(self.states) do
-		self.saved_states[key] = state
+	for note, id in pairs(catched_notes) do
+		if not handled_notes[note] then
+			local new_value = event_values[id]
+			note:input(new_value)
+		end
 	end
-end
-
----@param event rizu.VirtualInputEvent
-function InputPauser:receive(event)
-	
 end
 
 return InputPauser

@@ -2,6 +2,7 @@ local table_util = require("table_util")
 local valid = require("valid")
 local chart_types = require("sea.chart.types")
 local ChartplayBase = require("sea.chart.ChartplayBase")
+local TimingValues = require("sea.chart.TimingValues")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 ---@class sea.ReplayBase: sea.ChartplayBase
@@ -33,6 +34,9 @@ end
 function ReplayBase:importReplayBase(base)
 	for k in pairs(ReplayBase.struct) do
 		self[k] = base[k] ---@diagnostic disable-line
+	end
+	if self.timing_values then
+		setmetatable(self.timing_values, TimingValues)
 	end
 end
 

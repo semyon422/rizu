@@ -1,10 +1,10 @@
-local inspect = require("inspect")
+local stbl = require("stbl")
 local utf8validate = require("utf8validate")
 local just = require("just")
 local imgui = require("imgui")
 local typecheck = require("typecheck")
 local version = require("version")
-local errhand = love.errhand
+local errorhandler = love.errorhandler
 
 local message = ""
 local trace = ""
@@ -104,7 +104,12 @@ end
 
 return function(msg)
 	if type(msg) ~= "string" then
-		msg = inspect(msg)
+		if type(msg) ~= "table" then
+			msg = tostring(msg)
+		else
+			local _ = false
+			_, msg = pcall(stbl.encode, msg)
+		end
 	end
 	message = utf8validate(msg)
 	trace = debug.traceback()
@@ -126,7 +131,7 @@ return function(msg)
 	return function()
 		local status, err = pcall(run)
 		if not status then
-			run = errhand(err)
+			run = errorhandler(err)
 		else
 			return err
 		end

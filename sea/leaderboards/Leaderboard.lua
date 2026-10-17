@@ -104,7 +104,7 @@ Leaderboard.struct = {
 	mode = types.new_enum(Gamemode),
 	chartmeta_inputmode = valid.array(types.name, 10),
 	chartdiff_inputmode = valid.array(types.name, 10),
-	leaderboard_difftables = valid.array(valid.struct({difftable_id = types.index}), 10),
+	leaderboard_difftables = valid.array(valid.struct({difftable_id = types.integer}), 10),
 }
 
 local validate_leaderboard = valid.struct(Leaderboard.struct)

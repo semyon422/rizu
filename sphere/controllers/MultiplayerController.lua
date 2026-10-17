@@ -1,23 +1,22 @@
 local class = require("class")
-local remote = require("remote")
 
 ---@class sphere.MultiplayerController
 ---@operator call: sphere.MultiplayerController
 local MultiplayerController = class()
 
----@param multiplayerModel sphere.MultiplayerModel
+---@param multiplayerModel rizu.MultiplayerModel
 ---@param configModel sphere.ConfigModel
----@param selectModel sphere.SelectModel
+---@param chartSelector rizu.select.ChartSelector
 ---@param replayBase sea.ReplayBase
 function MultiplayerController:new(
 	multiplayerModel,
 	configModel,
-	selectModel,
+	chartSelector,
 	replayBase
 )
 	self.multiplayerModel = multiplayerModel
 	self.configModel = configModel
-	self.selectModel = selectModel
+	self.chartSelector = chartSelector
 	self.replayBase = replayBase
 end
 
@@ -27,7 +26,7 @@ function MultiplayerController:load()
 end
 
 function MultiplayerController:beginUnload()
-	self.selectModel:setLock(true)
+	self.chartSelector:setLock(true)
 end
 
 function MultiplayerController:unload()

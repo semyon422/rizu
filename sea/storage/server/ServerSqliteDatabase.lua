@@ -10,9 +10,9 @@ local io_util = require("io_util")
 ---@operator call: sea.ServerSqliteDatabase
 local ServerSqliteDatabase = class()
 
-ServerSqliteDatabase.path = "server.db"
+ServerSqliteDatabase.path = "server-state/server.db"
 
-local user_version = 3
+local user_version = 11
 
 ---@param db rdb.SqliteDatabase
 function ServerSqliteDatabase:new(db)
@@ -33,6 +33,8 @@ end
 function ServerSqliteDatabase:open()
 	local db = self.db
 	db:open(self.path)
+	db:exec("PRAGMA journal_mode = WAL")
+	db:exec("PRAGMA synchronous = NORMAL")
 	db:exec("PRAGMA busy_timeout = 10000")
 	db:exec("PRAGMA foreign_keys = ON")
 

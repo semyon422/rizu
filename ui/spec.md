@@ -1,0 +1,47 @@
+# UI for Rizu
+
+User interface module for Rizu. Uses "gui" module. Exists on it's own, but goes to GameController to take some data from the game, to become a listener of some events, read and writes configs or calls methods that can change the game behavior.
+
+## Structure
+
+### Directories
+- `/`: A dump for everything
+- `views/`: Generic views that can be used everywhere. Add views here if not sure where to put them.
+- `screens/`: Screens together with their views.
+- `formatters/`: Formatting info from the game. Works only with this UI, you can copy paste it into your UI and slightly change it to make it work.
+- `test/`: A collection of test views used to test "gui" module and views from this module.
+
+### Userful files
+- `UserInterface.lua`: Entry point for this UI
+- `Resources.lua`: Singleton class that loads and stores fonts and sprites
+- `Colors.lua`: Colorscheme table
+- `Color.lua`: Utils for working with colors
+- `Sounds.lua`: Singleton that can play sounds
+
+## UI actions and key bindings
+
+`gui.input.ActionMap` maps semantic action names to one or more keyboard bindings. UI code asks whether an input event matches an action instead of checking LÖVE keys directly:
+
+```lua
+if inputs:consumeActionJustPressed(UiActions.cancel) then
+	closeModal()
+end
+```
+
+`ui.UiActions` owns UI-specific action names and maps the key-binding settings in `ui.UiConfig` into the generic action map. `gui.Inputs` exposes `isActionPressed`, `isActionJustPressed`, and `isActionJustReleased`; `consumeActionJustPressed` / `consumeActionJustReleased` remove an edge after a higher-priority handler claims it, and all remaining `just` states reset at the start of each frame. `defineAction` replaces an action's bindings, `addBinding` adds an alternative, `getBindings` supports settings UI, and `getBindingLabel` provides display text. Bindings use exact modifiers and ignore key-repeat unless `allow_repeat = true`. Mouse wheel bindings use the keys `wheelup`, `wheeldown`, `wheelleft`, and `wheelright`; they produce a pressed edge only, since wheel input is not held.
+
+Queued events update action state before raw event routing, including events consumed by screen-level handlers. Gameplay input remains separate. Alt+mouse-wheel adjusts master volume by 5 percentage points in linear mode and by 1 dB in logarithmic mode.
+
+The song-select footer displays linear playback rates as multipliers such as `1.25x`. Exponential rates display their signed exponent value directly, such as `-1`, `0`, or `+1`. Left-clicking the music-speed control toggles linear/exponential mode without changing the playback multiplier. Wheel and horizontal drag use the selected mode's range and step (linear: 0.25–4, step 0.05; exponential: -20–20, step 1). The knob position uses that same range; its color always represents the actual playback multiplier. A drag does not toggle the mode.
+
+## Guidelines
+
+We use sprites for most things. Try to batch as much as we can using love's automatic batching or sometimes use TextBatch and SpriteBatch. Spamming a lot of views should be okay, but you can always make a single view which can for example display a lot of info using TextBatch or SpriteBatch or even automatic batching works okay here.
+
+Do not use love.graphics.rectangle() if you draw visible rectangles. Use love.graphics.draw(Resources.sprites.pixel, 0, 0, 0, width, height). love.graphics.rectangle() is okay for stencils. And don't even thing about using love.graphics.rectangle() to make rounded rectangles, they look horrible.
+
+Do not reference any class from this UI in "rizu" or "gui" or any other modules. If you need to, then something is wrong and it is time to start complain and refactor. This is frontend, it's completely separate from the backend.
+
+## Song Select Footer
+
+The built-in song-select screen uses a 64-unit footer matching the webclient layout: Back, loadout controls, music speed, and Play. Footer button widths are measured from their localized labels, icons, badges, and padding; the row tracks use those widths so they adapt when the UI language changes. Its Lucide icons render at their native 24-pixel size to preserve crisp edges. The music-speed knob artwork is currently represented by colored pixel-sprite rectangles so final sprites can replace that placeholder without changing layout or interactions.

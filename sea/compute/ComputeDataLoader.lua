@@ -1,8 +1,6 @@
 local class = require("class")
-local valid = require("valid")
-local md5 = require("md5")
-local ReplayCoder = require("sea.replays.ReplayCoder")
-local ReplayConverter = require("sea.replays.ReplayConverter")
+local digest = require("digest")
+local ReplayLoader = require("sea.replays.ReplayLoader")
 
 ---@class sea.ComputeDataLoader
 ---@operator call: sea.ComputeDataLoader
@@ -24,7 +22,7 @@ function ComputeDataLoader:requireChart(hash)
 		return nil, "get chartfile data: " .. err
 	end
 
-	if md5.sumhexa(file.data) ~= hash then
+	if digest.hash("md5", file.data, true) ~= hash then
 		return nil, "invalid hash"
 	end
 
@@ -45,20 +43,13 @@ function ComputeDataLoader:requireReplay(hash)
 		return nil, "get replay data: " .. (err or "missing error")
 	end
 
-	if md5.sumhexa(replay_data) ~= hash then
+	if digest.hash("md5", replay_data, true) ~= hash then
 		return nil, "invalid replay hash"
 	end
 
-	local replay, err = ReplayCoder.decode(replay_data)
+	local replay, err = ReplayLoader.load(replay_data)
 	if not replay then
-		return nil, "can't decode replay: " .. err
-	end
-
-	replay = ReplayConverter:convert(replay)
-
-	local ok, err = valid.format(replay:validate())
-	if not ok then
-		return nil, "invalid replay: " .. err
+		return nil, "can't load replay: " .. err
 	end
 
 	self.replays_size = self.replays_size + #replay_data
