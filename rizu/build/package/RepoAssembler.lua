@@ -3,6 +3,7 @@ local config = require("rizu.build.package.config")
 local fs_util = require("fs.util")
 
 local ArchiveUtil = require("rizu.build.package.ArchiveUtil")
+local FileCopier = require("rizu.build.package.FileCopier")
 local RepoConfigWriter = require("rizu.build.package.RepoConfigWriter")
 
 local _name = config.repo.name
@@ -141,7 +142,7 @@ function RepoAssembler:build()
 	print("Extracting platform files...")
 	for _, dir in ipairs(config.repo.extract) do
 		if self.src_fs:getInfo(dir) then
-			fs_util.copy(dir, gamerepo .. "/" .. dir, self.src_fs, self.ctx.fs)
+			FileCopier.copy(self.ctx, dir, gamerepo .. "/" .. dir, self.src_fs)
 		end
 	end
 	self:removeStaleFfmpeg(gamerepo .. "/bin")
@@ -163,7 +164,7 @@ function RepoAssembler:build()
 			if subdir then
 				local dst_dir = gamerepo .. "/bin/" .. subdir
 				self.ctx.fs:createDirectory(dst_dir)
-				fs_util.copy("3rd-deps/lib/" .. lib, dst_dir .. "/" .. lib, self.src_fs, self.ctx.fs)
+				FileCopier.copy(self.ctx, "3rd-deps/lib/" .. lib, dst_dir .. "/" .. lib, self.src_fs)
 			end
 		end
 	end
@@ -201,10 +202,10 @@ function RepoAssembler:build()
 	fs_util.remove(gamedir, self.ctx.fs)
 
 	if self.src_fs:getInfo("conf.lua") then
-		fs_util.copy("conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
+		FileCopier.copy(self.ctx, "conf.lua", gamerepo .. "/conf.lua", self.src_fs)
 	end
 	if self.src_fs:getInfo("rizu/build/package/conf.lua") then
-		fs_util.copy("rizu/build/package/conf.lua", gamerepo .. "/conf.lua", self.src_fs, self.ctx.fs)
+		FileCopier.copy(self.ctx, "rizu/build/package/conf.lua", gamerepo .. "/conf.lua", self.src_fs)
 	end
 
 	self:validate(gamerepo)

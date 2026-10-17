@@ -3,6 +3,7 @@ local config = require("rizu.build.package.config")
 local fs_util = require("fs.util")
 
 local ArchiveUtil = require("rizu.build.package.ArchiveUtil")
+local FileCopier = require("rizu.build.package.FileCopier")
 
 local _name = config.repo.name
 
@@ -120,11 +121,11 @@ function MacOSPackager:build()
 	end
 
 	if self.src_fs:getInfo("rizu/build/package/Info.plist") then
-		fs_util.copy("rizu/build/package/Info.plist", Contents .. "/Info.plist", self.src_fs, self.ctx.fs)
+		FileCopier.copy(self.ctx, "rizu/build/package/Info.plist", Contents .. "/Info.plist", self.src_fs)
 	end
 
 	fs_util.remove(Resources, self.ctx.fs)
-	fs_util.copy("build/repo/" .. _name, Resources, self.ctx.fs, self.ctx.fs)
+	FileCopier.copy(self.ctx, "build/repo/" .. _name, Resources)
 
 	if self.ctx.fs:getInfo(Resources .. "/bin/mac64") then
 		---@type string[]
@@ -132,7 +133,7 @@ function MacOSPackager:build()
 		fs_util.find(Resources .. "/bin/mac64", self.ctx.fs, function(p) table.insert(mac64_files, p) end)
 		for _, path in ipairs(mac64_files) do
 			local name = assert(path:match("([^/]+)$"))
-			fs_util.copy(path, Frameworks .. "/" .. name, self.ctx.fs, self.ctx.fs)
+			FileCopier.copy(self.ctx, path, Frameworks .. "/" .. name)
 			self.ctx.fs:remove(path)
 		end
 	end

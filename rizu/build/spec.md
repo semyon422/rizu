@@ -80,6 +80,11 @@ CLI mapping:
 - macOS packaging rewrites build-host Mach-O dependency paths and install IDs to `@loader_path` references, then rejects any remaining `build/deps/` dependency before creating the archive.
 - `server-state/package_config.lua`: ignored deployment input that supplies the client update repository and named WebSocket server list embedded during packaging.
 
+## Invariants
+
+- Host-backed files copied into the downloadable repository or macOS bundle retain their source Unix file permissions, including executable bits, regardless of the build process umask. `FileCopier` restores file modes using GNU `chmod --reference` on the Linux build host; copy or permission failures abort packaging. Files are not made executable indiscriminately.
+- ZIP packaging preserves these file modes. The regression test assembles and extracts both client ZIPs under `umask 077`; its macOS runtime is a minimal fixture, so it does not validate Mach-O relocation or actual game startup.
+
 ## Release Artifact
 
 `release` exports the current Git-tracked application files from the working tree into the server archive, excluding `userdata/` and `temp/`. Dirty tracked files are allowed so the complete release workflow can be tested before committing; the release directory and manifest remain keyed by `HEAD`, so such artifacts are development snapshots and must not be treated as immutable commit builds. It adds the Linux native modules required by the Compose server and the Lua 5.1 runtime module trees. Ignored local configuration, databases, storage, logs, and user data are never copied into the artifact.
