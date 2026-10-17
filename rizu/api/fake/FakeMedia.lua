@@ -47,6 +47,7 @@ function FakeMedia:getBeat() return self.time * 2 end
 function FakeMedia:setSpectrumSize(size) end
 function FakeMedia:getSpectrum() return nil end
 function FakeMedia:togglePreview() self.paused = not self.paused end
+function FakeMedia:isPaused() return self.paused end
 function FakeMedia:drawNotesPreview(width, height) end
 function FakeMedia:createNotesPreview(chartview)
 	return {isReady = function() return true end, getError = function() end, release = function() end, draw = function() end}
