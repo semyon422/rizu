@@ -128,7 +128,7 @@ function ResultV2:createAccuracy()
 	self.left = self.content:add(FlowContainer({direction = "column", gap = 32}))
 	self.accuracy = self.left:add(ResultAccuracy())
 	self.judges = self.left:add(ResultJudges())
-	self.run_cells = self.left:add(ValueCells({"COMBO", "NS", "PAUSES", "L MISS", "C MISS", "R MISS"}))
+	self.run_cells = self.left:add(ValueCells({"COMBO", "NS", "PAUSES"}))
 	self.left:fitContent()
 	self.left:setPosition(EDGE - 5, CONTENT_TOP)
 
@@ -304,15 +304,27 @@ function ResultV2:updateInfo()
 
 	local max_combo, possible_combo = result:getMaxCombo()
 	local pauses = result:getPauseCount()
-	-- TODO: the miss counts need a pass over all score system events.
-	self.run_cells:setValues({
+	local captions = {"COMBO", "NS", "PAUSES"}
+	local values = {
 		{value = tostring(max_combo), suffix = " / " .. tostring(possible_combo)},
 		{value = result:getNormalscoreText() or "-"},
 		{value = tostring(pauses), color = pauses > 0 and Colors.danger or nil},
-		{value = "0"},
-		{value = "0"},
-		{value = "0"},
-	})
+	}
+	-- A kind of miss that never happened is not shown.
+	local misses = result:getMissCounts()
+	for _, kind in ipairs({
+		{"L MISS", misses.left},
+		{"C MISS", misses.center},
+		{"R MISS", misses.right},
+		{"S MISS", misses.scratch},
+	}) do
+		if kind[2] > 0 then
+			table.insert(captions, kind[1])
+			table.insert(values, {value = tostring(kind[2])})
+		end
+	end
+	self.run_cells:setCaptions(captions)
+	self.run_cells:setValues(values)
 	self.left:fitContent()
 end
 

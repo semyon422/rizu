@@ -62,6 +62,7 @@ function ScoreEngine:load(chartdiff)
 	for _, v in pairs(by_name) do
 		table.insert(self.scoreSystems, v)
 		v:setNotesCount(chartdiff.notes_count)
+		v:setInputMode(chartdiff.inputmode)
 	end
 end
 
@@ -134,6 +135,7 @@ function ScoreEngine:addScoreSystem(score_system)
 	by_name[key] = score_system
 
 	score_system:setNotesCount(self.chartdiff.notes_count)
+	score_system:setInputMode(self.chartdiff.inputmode)
 
 	for _, event in ipairs(self.events) do
 		score_system:receive(event)

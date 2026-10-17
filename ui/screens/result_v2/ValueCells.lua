@@ -18,6 +18,13 @@ local ValueCells = FlowContainer + {}
 ---@param gap number?
 function ValueCells:new(captions, gap)
 	FlowContainer.new(self, {direction = "row", gap = gap or 56})
+	self:setCaptions(captions)
+end
+
+---Replaces all cells, for rows whose set of cells depends on the data.
+---@param captions string[]
+function ValueCells:setCaptions(captions)
+	self:clear()
 	self.values = {}
 	self.suffixes = {}
 	for i, caption in ipairs(captions) do

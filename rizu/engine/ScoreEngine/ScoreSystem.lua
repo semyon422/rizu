@@ -8,6 +8,7 @@ local class = require("class")
 ---@field judge_names string[]?
 ---@field timings sea.Timings?
 ---@field subtimings sea.Subtimings?
+---@field inputmode string?
 local ScoreSystem = class()
 
 ---@alias rizu.ScoreSystemHandler string|function|rizu.ScoreSystemHandler[]
@@ -27,6 +28,11 @@ end
 ---@param notes_count integer
 function ScoreSystem:setNotesCount(notes_count)
 	self.notes_count = notes_count
+end
+
+---@param inputmode string
+function ScoreSystem:setInputMode(inputmode)
+	self.inputmode = inputmode
 end
 
 ---@param event table

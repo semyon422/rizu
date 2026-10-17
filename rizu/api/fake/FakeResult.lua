@@ -68,6 +68,7 @@ function FakeResult:getJudgeCounts() return self.judge_counts end
 function FakeResult:getMaxCombo() return 214, hit_count end
 function FakeResult:getNormalscoreText() return "21.00ms" end
 function FakeResult:getPauseCount() return 0 end
+function FakeResult:getMissCounts() return {left = 3, center = 0, right = 5, scratch = 1} end
 function FakeResult:getHitWindow() return -0.127, 0.127 end
 function FakeResult:getHits() return self.hits end
 

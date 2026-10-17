@@ -3,7 +3,7 @@ local TimingValues = require("sea.chart.TimingValues")
 
 ---@class rizu.LogicNoteChange
 ---@field index integer
----@field column integer
+---@field column chart.Column
 ---@field type "tap"|"hold"
 ---@field time number
 ---@field delta_time number

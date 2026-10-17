@@ -130,6 +130,23 @@ function Result:getNormalscoreText()
 	return normalscore and normalscore:getAccuracyString()
 end
 
+---@class rizu.api.Result.MissCounts
+---@field left integer
+---@field center integer The middle key of an odd key count.
+---@field right integer
+---@field scratch integer
+
+---@return rizu.api.Result.MissCounts
+function Result:getMissCounts()
+	local base = self.game.rhythm_engine.score_engine.scores.base
+	return {
+		left = base.leftMissCount,
+		center = base.centerMissCount,
+		right = base.rightMissCount,
+		scratch = base.scratchMissCount,
+	}
+end
+
 ---@return integer
 function Result:getPauseCount()
 	local score = getReplayedScore(self)

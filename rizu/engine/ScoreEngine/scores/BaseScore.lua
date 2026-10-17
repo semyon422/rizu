@@ -1,5 +1,6 @@
 local ScoreSystem = require("rizu.engine.ScoreEngine.ScoreSystem")
 local IComboSource = require("rizu.engine.ScoreEngine.IComboSource")
+local InputMode = require("chart.core.InputMode")
 local RingBuffer = require("RingBuffer")
 
 ---@class rizu.BaseScore: rizu.ScoreSystem, rizu.IComboSource
@@ -12,6 +13,13 @@ function BaseScore:new()
 	self.hitCount = 0
 	self.missCount = 0
 	self.earlyHitCount = 0
+	self.leftMissCount = 0
+	self.rightMissCount = 0
+	self.centerMissCount = 0
+	self.scratchMissCount = 0
+
+	---@type {[chart.Column]: "left"|"right"|"center"|"scratch"}
+	self.columnHands = {}
 
 	self.combo = 0
 	self.maxCombo = 0
@@ -22,6 +30,34 @@ function BaseScore:new()
 	self.isLongNoteComboBreak = false
 
 	self.lastMean = 0
+end
+
+---@param inputmode string
+function BaseScore:setInputMode(inputmode)
+	ScoreSystem.setInputMode(self, inputmode)
+
+	---@type {[chart.Column]: "left"|"right"|"center"|"scratch"}
+	local hands = {}
+	self.columnHands = hands
+
+	local mode = InputMode(inputmode)
+	local keys = (mode --[[@as {key: integer?}]]).key or 0
+	local half = math.floor(keys / 2)
+	for _, input in ipairs(mode:getInputs()) do
+		---@type string?, number?
+		local type, index = mode:splitInput(input)
+		if type == "scratch" then
+			hands[input] = "scratch"
+		elseif type ~= "key" then
+			-- other input types have no hand
+		elseif index <= half then
+			hands[input] = "left"
+		elseif index > keys - half then
+			hands[input] = "right"
+		else
+			hands[input] = "center"
+		end
+	end
 end
 
 ---@return string
@@ -69,6 +105,17 @@ end
 function BaseScore:miss(event)
 	self.missCount = self.missCount + 1
 	self.isMiss = true
+
+	local hand = self.columnHands[event.column]
+	if hand == "left" then
+		self.leftMissCount = self.leftMissCount + 1
+	elseif hand == "right" then
+		self.rightMissCount = self.rightMissCount + 1
+	elseif hand == "center" then
+		self.centerMissCount = self.centerMissCount + 1
+	elseif hand == "scratch" then
+		self.scratchMissCount = self.scratchMissCount + 1
+	end
 end
 
 ---@param event rizu.LogicNoteChange
@@ -97,6 +144,10 @@ function BaseScore:getSlice()
 		hitCount = self.hitCount,
 		missCount = self.missCount,
 		earlyHitCount = self.earlyHitCount,
+		leftMissCount = self.leftMissCount,
+		rightMissCount = self.rightMissCount,
+		centerMissCount = self.centerMissCount,
+		scratchMissCount = self.scratchMissCount,
 		notesCount = self.notes_count,
 		combo = self.combo,
 		maxCombo = self.maxCombo,
