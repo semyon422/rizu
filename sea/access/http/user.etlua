@@ -1,7 +1,7 @@
 <% local util = require("web.http.util") %>
 <% local json = require("web.json") %>
 <% local format = require("sea.shared.format") %>
-<% local erfunc = require("libchart.erfunc") %>
+<% local erfunc = require("chart.scoring.erfunc") %>
 <% local Username = require("sea.shared.http.components.Username") %>
 
 <div class="is-hidden-mobile" style="position:relative;">
