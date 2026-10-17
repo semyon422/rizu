@@ -8,6 +8,14 @@ local RepoConfigWriter = require("rizu.build.package.RepoConfigWriter")
 
 local _name = config.repo.name
 
+---@type {[string]: true}
+local SERVER_CONFIG_FILES = {
+	["app_config.lua"] = true,
+	["nginx_config.lua"] = true,
+	["bancho_config.lua"] = true,
+	["package_config.lua"] = true,
+}
+
 ---@type {["linux64"|"win64"]: string[]}
 local EXPECTED_FFMPEG_FILES = {
 	linux64 = {
@@ -125,7 +133,7 @@ function RepoAssembler:build()
 	print("Copying root lua files...")
 	local root_items = self.src_fs:getDirectoryItems(".")
 	for _, item in ipairs(root_items) do
-		if item:match("%.lua$") then
+		if item:match("%.lua$") and not SERVER_CONFIG_FILES[item] then
 			local info = self.src_fs:getInfo(item)
 			if info and info.type == "file" then
 				fs_util.copy(item, gamedir .. "/" .. item, self.src_fs, self.ctx.fs)

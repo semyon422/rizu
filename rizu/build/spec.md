@@ -83,6 +83,7 @@ CLI mapping:
 ## Invariants
 
 - Host-backed files copied into the downloadable repository or macOS bundle retain their source Unix file permissions, including executable bits, regardless of the build process umask. `FileCopier` restores file modes using GNU `chmod --reference` on the Linux build host; copy or permission failures abort packaging. Files are not made executable indiscriminately.
+- Client `game.love` excludes root server/deployment inputs `app_config.lua`, `nginx_config.lua`, `bancho_config.lua`, and `package_config.lua`, even when ignored local files exist after tests. Only generated public endpoint configuration is embedded by `RepoConfigWriter`; server-state/userdata directories are not client inputs. The archive regression seeds all four root files and verifies exclusion before building both client ZIPs.
 - ZIP packaging preserves these file modes. The regression test assembles and extracts both client ZIPs under `umask 077`; its macOS runtime is a minimal fixture, so it does not validate Mach-O relocation or actual game startup.
 
 ## Release Artifact

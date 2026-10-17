@@ -57,9 +57,11 @@ function test.preserves_permissions_in_client_and_macos_archives(t)
 	---@type string
 	local root = fs:getWorkingDirectory()
 	local source = dir .. "/source"
+	---@type boolean, string?
 	local ok, err = xpcall(function()
 		for _, path in ipairs({
 			"main.lua", "conf.lua", "rizu/game/GameInteractor.lua",
+			"app_config.lua", "nginx_config.lua", "bancho_config.lua", "package_config.lua",
 			"chart/model/notes/Notes.lua", "gui/Screen.lua", "rizu/ai/SystemPrompt.md",
 			"resources/needle/needle-q8-stripped.bin",
 			"bin/linux64/libneedle_runtime.so", "bin/win64/needle_runtime.dll",
@@ -96,6 +98,10 @@ assert(ffi.C.chdir(source) == 0)
 local fs, shell = LinuxFilesystem(), Shell()
 local ctx = Context(fs, shell, {})
 RepoAssembler(ctx):build()
+local love_listing = "\n" .. assert(shell:popen("unzip -Z1 build/repo/rizu/game.love"))
+for _, name in ipairs({"app_config.lua", "nginx_config.lua", "bancho_config.lua", "package_config.lua"}) do
+	assert(not love_listing:find("\n" .. name .. "\n", 1, true), "server config in client: " .. name)
+end
 ZipPackager(ctx):build()
 shell:execute("mkdir -p build/downloads; cd mac-runtime && zip -qry ../build/downloads/love-macos.zip love.app")
 local macos = MacOSPackager(ctx)
