@@ -1,5 +1,7 @@
 local class = require("class")
 local thread = require("thread")
+local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 --[[
@@ -195,6 +197,37 @@ function Result:getHits()
 		}
 	end
 	return hits
+end
+
+-- Rescoring
+
+---Systems rescore() takes. Their names are those of `rizu.api.Play.TimingSystem`.
+---@type string[]
+local rescore_systems = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"}
+
+---@return string[]
+function Result:getRescoreSystems() return rescore_systems end
+
+---Counts the same play again with another scoring system. What was hit and when stays as played,
+---only the judges, accuracy and score are worked out anew. Read the result again after it.
+---It is exact only between judges of Etterna or ranks of LR2, whose hit windows do not change
+---with the value. Elsewhere notes that wider windows would catch stay misses.
+---@param system string One of getRescoreSystems().
+---@param value number? OD, judge or rank. Systems that take none ignore it.
+---@param osu_score_version 1|2? Only for "osuod", 1 by default.
+---@return boolean? ok
+---@return string? err
+function Result:rescore(system, value, osu_score_version)
+	if not self:hasScore() then
+		return nil, "There is no result to rescore."
+	end
+	local subtimings ---@type sea.Subtimings?
+	if system == "osuod" then
+		subtimings = Subtimings("scorev", osu_score_version or 1)
+		-- Slider arithmetic leaves values such as 7.7 just off the exact tenth Timings requires.
+		value = value and math.floor(value * 10 + 0.5) / 10
+	end
+	return self.game.rhythm_engine.score_engine:rescore(Timings(system, value), subtimings)
 end
 
 -- Leaving

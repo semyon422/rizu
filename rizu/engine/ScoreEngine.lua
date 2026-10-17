@@ -137,11 +137,36 @@ function ScoreEngine:addScoreSystem(score_system)
 	score_system:setNotesCount(self.chartdiff.notes_count)
 	score_system:setInputMode(self.chartdiff.inputmode)
 
-	for _, event in ipairs(self.events) do
+	-- Late systems fill the slices of the events that already happened, so the sequence stays whole.
+	for i, event in ipairs(self.events) do
 		score_system:receive(event)
+		local slice = self.sequence[i]
+		if slice then
+			slice[key] = score_system:getSlice()
+		end
 	end
 
 	return score_system
+end
+
+---Scores the events received so far with another system and makes it the selected one.
+---Hit windows are not touched: the events already hold what was hit and when.
+---@param t sea.Timings
+---@param st sea.Subtimings?
+---@return boolean?
+---@return string?
+function ScoreEngine:rescore(t, st)
+	local systems, err = ScoreEngineFactory:get(t, st)
+	if not systems then
+		return nil, err
+	end
+
+	self:selectDefault()
+	for _, sys in ipairs(systems) do
+		self:select(self:addScoreSystem(sys):getKey())
+	end
+
+	return true
 end
 
 ---@return {[string]: table}

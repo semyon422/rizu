@@ -38,4 +38,28 @@ function test.qwe(t)
 	t:eq(slice.judge_index, 1)
 end
 
+---@param t testing.T
+function test.rescore_fills_sequence(t)
+	local se = ScoreEngine()
+	se:load({notes_count = 1})
+
+	se:receive({
+		index = 1,
+		column = 2,
+		type = "tap",
+		time = 1,
+		delta_time = 0,
+		old_state = "clear",
+		new_state = "passed",
+	})
+
+	t:assert(se:rescore(Timings("osuod", 8.5), Subtimings("scorev", 2)))
+	t:eq(se.accuracySource:getKey(), "osu_mania_v2_od8.5")
+	t:eq(se.sequence[1][se.judgesSource:getKey()].judge_index, 1)
+
+	local ok, err = se:rescore(Timings("simple"))
+	t:assert(not ok and err)
+	t:eq(se.accuracySource:getKey(), "osu_mania_v2_od8.5")
+end
+
 return test

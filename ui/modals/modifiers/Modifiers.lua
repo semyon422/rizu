@@ -34,7 +34,7 @@ local TIMING_SYSTEM_LABELS = {
 	bmsrank = "LR2",
 	iidx = "IIDX",
 }
-local ETTERNA_JUDGES = {1, 2, 3, 4, 5, 6, 7, 8, 9}
+local ETTERNA_JUDGES = {4, 5, 6, 7, 8, 9}
 local BMS_RANKS = {3, 2, 1, 0, 4}
 local BMS_RANK_LABELS = {
 	[3] = "Easy",

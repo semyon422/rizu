@@ -217,6 +217,14 @@ function ResultV2:createFooter()
 		on_click = function() self:runCommand("ui.result.back") end,
 	}))
 
+	self.rescore_button = footer:add(IconTextButton({
+		text = "RESCORE",
+		icon = Resources.sprites.icon_calculator,
+		font_size = 18,
+		on_click = function() self:runCommand("ui.result.open_rescore") end,
+	}))
+	self.rescore_button:addPosition(self.back_button:getPreferredWidth() + BUTTON_GAP, 0)
+
 	-- Right-aligned, laid out from the edge inwards: Watch, Export Video, Export Replay.
 	local x = 0
 	for _, item in ipairs({
@@ -290,6 +298,7 @@ function ResultV2:updateInfo()
 	local has_score = result:hasScore()
 	self.left:setVisible(has_score)
 	self.hit_graph:setVisible(has_score)
+	self.rescore_button:setVisible(has_score)
 	if not has_score then
 		return
 	end

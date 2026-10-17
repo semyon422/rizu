@@ -24,6 +24,16 @@ return function(ui)
 			callback = function() result:watch(play) end,
 		},
 		{
+			id = "ui.result.open_rescore",
+			title = "Result: Recalculate Score",
+			description = "Counts this play again with another scoring system, hit windows stay as played",
+			callback = function()
+				if result:hasScore() then
+					ui.modal_manager:attachRescore()
+				end
+			end,
+		},
+		{
 			id = "ui.result.back",
 			title = "Result: Back to Select",
 			description = "Returns to chart selection",

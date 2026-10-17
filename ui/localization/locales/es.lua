@@ -290,6 +290,8 @@ return {
 	["song_select.lamp_filter"] = "Filtro de lámpara",
 	["song_select.modifiers_title"] = "Modificadores de jugabilidad",
 	["song_select.modifiers_subtitle"] = "Personaliza la jugabilidad del Chart seleccionado.",
+	["result.rescore_title"] = "Recalcular puntuación",
+	["result.rescore_subtitle"] = "Cuenta esta partida de nuevo con otro sistema de puntuación. Las ventanas de acierto no cambian.",
 	["song_select.time_rate_type"] = "Tipo de velocidad de reproducción",
 	["song_select.time_rate"] = "Velocidad de reproducción",
 	["song_select.auto_timings"] = "Sistema de puntuación automático",

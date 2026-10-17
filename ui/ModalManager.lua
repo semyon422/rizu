@@ -12,6 +12,7 @@ local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
 local NoteSkins = require("ui.modals.note_skins.NoteSkins")
+local Rescore = require("ui.modals.rescore.Rescore")
 local Filters = require("ui.modals.filters.Filters")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
@@ -30,6 +31,7 @@ local UiActions = require("ui.UiActions")
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field note_skins ui.modals.note_skins.NoteSkins
+---@field rescore ui.modals.rescore.Rescore
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
@@ -97,6 +99,9 @@ function ModalManager:new(ui, popup_container)
 	ui.api.charts:on("selection_changed", function() self.input:receive() end)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization))
+	self.rescore = self:addModal(Rescore(ui.api.result,
+		function() ui.result:updateInfo() end,
+		function() self:hideModal(self.rescore) end, localization))
 	self.note_skins = self:addModal(NoteSkins(ui.api.skins,
 		function() self:hideModal(self.note_skins) end, localization, function()
 			self:hideModal(self.note_skins)
@@ -307,6 +312,16 @@ end
 ---@return boolean detached
 function ModalManager:detachModifiers()
 	return self:hideModal(self.modifiers)
+end
+
+---@return boolean attached
+function ModalManager:attachRescore()
+	return self:showModal(self.rescore)
+end
+
+---@return boolean detached
+function ModalManager:detachRescore()
+	return self:hideModal(self.rescore)
 end
 
 ---@return boolean attached
