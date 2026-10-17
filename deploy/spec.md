@@ -136,7 +136,7 @@ Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE
 
 ## GitHub Actions
 
-`.github/workflows/deploy.yml` triggers `build-deploy` over SSH for pushes to `refactor2025` and supports a manually supplied full SHA. Configure the production environment secrets:
+`.github/workflows/deploy.yml` triggers `build-deploy` over SSH for pushes to `master` and supports a manually supplied full SHA. Configure the production environment secrets:
 
 - `DEPLOY_HOST`
 - `DEPLOY_USER`

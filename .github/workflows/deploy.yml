@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - refactor2025
+      - master
   workflow_dispatch:
     inputs:
       commit:
