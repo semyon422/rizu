@@ -1,12 +1,14 @@
 local EditorController = require("rizu.editor.EditorController")
 local EditorDropImport = require("rizu.editor.controller.EditorDropImport")
 local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
 ---@param fields table
 ---@return rizu.editor.EditorController
 local function createController(fields)
+	fields.settings = Settings.createConfig(FakeFilesystem())
 	return EditorController(fields)
 end
 

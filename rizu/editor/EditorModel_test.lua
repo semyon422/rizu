@@ -10,6 +10,8 @@ local EditorAnalysisService = require("rizu.editor.analysis.EditorAnalysisServic
 local EditorRuntimeState = require("rizu.editor.state.EditorRuntimeState")
 local EditorViewState = require("rizu.editor.state.EditorViewState")
 local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 ---@type fun(): rizu.editor.EditorModel
@@ -27,16 +29,8 @@ end
 
 ---@param t testing.T
 function test.new_uses_dependency_table_and_input_adapter(t)
-	local configModel = {
-		configs = {
-			settings = {
-				editor = {
-					speed = 1,
-					snap = 4,
-				},
-			},
-		},
-	}
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setNumber(Settings.keys.editor.snap, 4)
 	local timer = {
 		setGlobalTime = function(_, time)
 			t:eq(time, 0)
@@ -142,7 +136,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	}
 
 	local editorModel = EditorModel({
-		configModel = configModel,
+		settings = settings,
 		input = input,
 		noteChartLoader = services.noteChartLoader,
 		audio_engine = services.audio_engine,
@@ -174,7 +168,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 		frameService = services.frameService,
 	})
 
-	t:eq(editorModel.configModel, configModel)
+	t:eq(editorModel.settings, settings)
 	t:eq(editorModel.services.noteService, services.noteService)
 	t:eq(editorModel.services.metronome, services.metronome)
 	t:eq(editorModel.services.frameService, services.frameService)
@@ -198,7 +192,7 @@ function test.new_uses_dependency_table_and_input_adapter(t)
 	t:eq(type(services.scroller.context.getPoint), "function")
 	t:eq(type(services.metronome.context.getPoint), "function")
 	t:eq(services.bmsToolsContext.editorModel, nil)
-	t:eq(configModel.editorModel, nil)
+	t:eq(settings.editorModel, nil)
 	t:eq(input.editorModel, nil)
 	t:eq(services.audio_engine.editorModel, nil)
 	t:eq(services.timer.editorModel, nil)
@@ -367,38 +361,31 @@ function test.settings_commands_use_settings_context(t)
 	---@type rizu.editor.EditorModel
 	local editorModel
 	editorModel = {
-		configModel = {
-			configs = {
-				settings = {
-					editor = editor,
-					audio = audio,
-				},
-			},
-		},
+		settings = Settings.createConfig(FakeFilesystem()),
 		max_snap = 64,
 		settingsService = {
 			normalizeContextEditorSettings = function(_, context, value)
 				table.insert(calls, "normalize")
-				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getConfig(), editorModel.settings)
 				t:eq(context:getMaxSnap(), 64)
 				t:eq(value, editor)
 				return value
 			end,
 			getEditorSettings = function(_, context)
 				table.insert(calls, "settings")
-				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getConfig(), editorModel.settings)
 				t:eq(context:getMaxSnap(), 64)
 				return editor
 			end,
 			getEditorAudioSettings = function(_, context)
 				table.insert(calls, "audio")
-				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getConfig(), editorModel.settings)
 				t:eq(context:getMaxSnap(), 64)
 				return audio
 			end,
 			getEditorLogSpeed = function(_, context)
 				table.insert(calls, "log")
-				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getConfig(), editorModel.settings)
 				return 20
 			end,
 			setEditorLogSpeed = function(_, context, logSpeed)
@@ -407,7 +394,7 @@ function test.settings_commands_use_settings_context(t)
 			end,
 			incEditorSnap = function(_, context)
 				table.insert(calls, "inc")
-				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getConfig(), editorModel.settings)
 			end,
 			decEditorSnap = function(_, context)
 				table.insert(calls, "dec")
@@ -415,7 +402,7 @@ function test.settings_commands_use_settings_context(t)
 			end,
 			getEditorSnap = function(_, context, j)
 				table.insert(calls, "snap:" .. j)
-				t:eq(context:getConfigModel(), editorModel.configModel)
+				t:eq(context:getConfig(), editorModel.settings)
 				return 8
 			end,
 		},
@@ -472,16 +459,7 @@ function createEditorModel()
 	local analysisState = EditorAnalysisState()
 	---@type rizu.editor.EditorModel
 	local editorModel = {
-		configModel = {
-			configs = {
-				settings = {
-					editor = {
-						speed = 0,
-						snap = 999,
-					},
-				},
-			},
-		},
+		settings = Settings.createConfig(FakeFilesystem()),
 		cursorState = cursorState,
 		selectionState = selectionState,
 		renderState = renderState,
@@ -493,12 +471,16 @@ function createEditorModel()
 end
 
 ---@param t testing.T
-function test.get_settings_normalizes_speed_and_snap(t)
+function test.get_settings_reads_config_and_clamps_snap(t)
 	local editorModel = createEditorModel()
+	editorModel.settings:setNumber(Settings.keys.editor.speed, 2)
+	editorModel.settings:setNumber(Settings.keys.editor.snap, 192)
+	editorModel.max_snap = 64
 	local editor = editorModel:getSettings()
 
-	t:eq(editor.speed, 1)
-	t:eq(editor.snap, EditorModel.max_snap)
+	t:eq(editor.speed, 2)
+	t:eq(editor.snap, 64)
+	t:eq(editorModel.settings:getNumber(Settings.keys.editor.snap), 192)
 end
 
 ---@class rizu.editor.FakeEditorPoint

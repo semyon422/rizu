@@ -1,4 +1,6 @@
 local EditorModelContext = require("rizu.editor.contexts.EditorModelContext")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local Settings = require("rizu.config.Settings")
 
 local test = {}
 
@@ -65,14 +67,7 @@ function test.view_context_delegates_to_model(t)
 			"Select",
 			"ShortNote",
 		},
-		configModel = {
-			configs = {
-				settings = {
-					editor = "editor",
-					audio = "audio",
-				},
-			},
-		},
+		settings = Settings.createConfig(FakeFilesystem()),
 		visualEngine = {
 			selectedNotes = {
 				id = "selected",
@@ -93,6 +88,10 @@ function test.view_context_delegates_to_model(t)
 		getSettings = function()
 			table.insert(calls, "settings")
 			return "settings"
+		end,
+		getAudioSettings = function()
+			table.insert(calls, "audio")
+			return "audio"
 		end,
 		getNoteSkin = function()
 			table.insert(calls, "noteSkin")
@@ -207,8 +206,9 @@ function test.view_context_delegates_to_model(t)
 	context:setLogSpeed(20)
 	t:eq(context:getMaxSnap(), 192)
 	t:eq(context:getTools(), model.tools)
+	t:eq(context:getConfig(), model.settings)
 	t:eq(context:getAudioSettings(), "audio")
-	t:eq(context:getEditorSettings(), "editor")
+	t:eq(context:getEditorSettings(), "settings")
 	local mx, my = context:getMousePosition()
 	t:eq(context:getMouseTime(), 1.25)
 	context:selectRegion(1, 2, 3, 4)
@@ -245,6 +245,8 @@ function test.view_context_delegates_to_model(t)
 		"noteSkin",
 		"visual-point:vp",
 		"log-speed:20",
+		"audio",
+		"settings",
 		"mouse",
 		"select:1:2:3:4",
 		"unselect",

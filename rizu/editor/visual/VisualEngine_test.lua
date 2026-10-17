@@ -8,15 +8,7 @@ local function createEditorModel()
 	local editorModel = EditorTestFactory.createEditorModel()
 	local visualEngine = VisualEngine()
 	editorModel.visualEngine = visualEngine
-	editorModel.configModel = {
-		configs = {
-			settings = {
-				editor = {
-					speed = 1,
-				},
-			},
-		},
-	}
+	editorModel:getSettings().speed = 1
 	function editorModel:getIterRange()
 		return -math.huge, math.huge
 	end
