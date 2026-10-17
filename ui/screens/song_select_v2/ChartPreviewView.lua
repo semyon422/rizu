@@ -10,6 +10,7 @@ local lg = love.graphics
 ---@field media rizu.api.Media
 ---@field preview_canvas love.Canvas?
 ---@field bga_renderer ui.views.BgaRenderer
+---@field brightness number 0..1, of the background and BGA but not the notes
 local ChartPreviewView = View + {}
 
 ---@param media rizu.api.Media
@@ -17,6 +18,7 @@ function ChartPreviewView:new(media)
 	View.new(self)
 	self.media = media
 	self.bga_renderer = BgaRenderer()
+	self.brightness = 1
 end
 
 ---@param old_x number
@@ -58,21 +60,23 @@ function ChartPreviewView:draw()
 	-- The view's screen-space clip does not apply while drawing to this canvas.
 	lg.setScissor()
 
+	local b = self.brightness
 	for i = 1, 2 do
 		if not images[i] then break end
-		love.graphics.setColor(1, 1, 1, i == 1 and 1 or alpha)
+		love.graphics.setColor(b, b, b, i == 1 and 1 or alpha)
 		local image = images[i]
 		local image_width, image_height = image:getDimensions()
 		local scale = math.max(h / image_height, w / image_width)
 		lg.draw(image, (w - image_width * scale) * 0.5, (h - image_height * scale) * 0.5, 0, scale, scale)
 	end
 
-	Painter.setColorRgb(1, 1, 1)
+	Painter.setColorRgb(b, b, b)
 	Painter.setOpacity(1)
 	local animation, time = media:getBackgroundAnimation()
 	if animation then
 		self.bga_renderer:draw(animation, time, w, h)
 	end
+	Painter.setColorRgb(1, 1, 1)
 	media:drawNotesPreview(w, h)
 	lg.pop()
 

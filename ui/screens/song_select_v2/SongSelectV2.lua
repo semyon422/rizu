@@ -16,6 +16,7 @@ local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local Label = require("ui.views.Label")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Settings = require("rizu.config.Settings")
+local UiConfig = require("ui.UiConfig")
 local ScoreList = require("ui.screens.result_v2.ScoreList")
 local UiActions = require("ui.UiActions")
 
@@ -100,6 +101,12 @@ function SongSelectV2:new(ui)
 
 	self.chartview_formatter = ChartviewFormatter(ui.api.charts:getSelectedChart(), ui.api.settings)
 	self.selected_song_panel = SelectedSongPanel(ui.api.media, ui.localization)
+	local function setBrightness(brightness)
+		self.blurred_background.brightness = brightness
+		self.selected_song_panel.chart_preview.brightness = brightness
+	end
+	setBrightness(ui.config:getNumber(UiConfig.keys.select_background_brightness))
+	ui.config:subscribeNumber(UiConfig.keys.select_background_brightness, setBrightness)
 	self.chart_browser = ChartBrowser(ui, ui.api.charts, ui.api.settings, ui.tooltip, ui.localization, function()
 		self.library_toolbar.search:setText("")
 	end)

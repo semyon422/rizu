@@ -36,6 +36,12 @@ local function formatUserInterface(value, app)
 	return app:getUserInterfaceDisplayName(value) or value
 end
 
+---@param value number
+---@return string formatted
+local function formatPercent(value)
+	return ("%d%%"):format(math.floor(value * 100 + 0.5))
+end
+
 ---@param settings rizu.config.Config
 ---@param ui_config ui.UiConfig
 ---@param localization ui.localization.Localization
@@ -90,6 +96,18 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					name = localization:get("settings.song_select_blurred_background"),
 					keywords = {"song select", "background", "blur", "image"},
 					tip = localization:get("settings.song_select_blurred_background_tip"),
+				}),
+				ControlFactory.number(ui_config, UiConfig.keys.select_background_brightness, {
+					name = localization:get("settings.song_select_background_brightness"),
+					keywords = {"song select", "background", "brightness", "dim"},
+					tip = localization:get("settings.song_select_background_brightness_tip"),
+					value_format = formatPercent,
+				}),
+				ControlFactory.number(ui_config, UiConfig.keys.result_background_brightness, {
+					name = localization:get("settings.result_background_brightness"),
+					keywords = {"result", "background", "brightness", "dim"},
+					tip = localization:get("settings.result_background_brightness_tip"),
+					value_format = formatPercent,
 				}),
 				ControlFactory.boolean(settings, select_keys.carousel, {
 					name = localization:get("settings.song_select_carousel"),

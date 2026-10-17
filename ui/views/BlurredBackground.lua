@@ -18,6 +18,7 @@ local lg = love.graphics
 ---@field source love.Image? Image of the running blur.
 ---@field step integer Next blur pass, 0-based.
 ---@field fade number? 0..1 while `incoming` fades in.
+---@field brightness number 0..1
 local BlurredBackground = View + {}
 
 -- The blur works on a small fixed canvas: it is cheap, and the result is stretched anyway.
@@ -65,6 +66,7 @@ function BlurredBackground:new(media)
 	self.media = media
 	self.has_shown = false
 	self.step = 0
+	self.brightness = 1
 end
 
 function BlurredBackground:load()
@@ -176,7 +178,8 @@ end
 ---@param alpha number
 function BlurredBackground:drawCover(canvas, alpha)
 	local scale = math.max(self.width / BASE_WIDTH, self.height / BASE_HEIGHT)
-	Painter.setColorRgb(1, 1, 1, alpha)
+	local b = self.brightness
+	Painter.setColorRgb(b, b, b, alpha)
 	lg.draw(canvas, self.width / 2, self.height / 2, 0, scale, scale, BASE_WIDTH / 2, BASE_HEIGHT / 2)
 end
 
