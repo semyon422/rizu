@@ -21,6 +21,7 @@ local NginxTcpSocket = require("web.nginx.NginxTcpSocket")
 local brand = require("brand")
 local SharedMemory = require("web.nginx.SharedMemory")
 local RestyNats = require("icc.nats.RestyNats")
+local NatsScope = require("sea.app.NatsScope")
 local bancho_config = require("server-state.bancho_config")
 local package_config = require("server-state.package_config")
 
@@ -65,14 +66,25 @@ function App:new(app_config)
 		end,
 	})
 	self.domain = Domain(self.repos, app_config, LinuxFilesystem(), replay_computer, compute_version)
-	self.compute_job_worker = ComputeJobWorker(self.domain.compute_jobs, function(delay, callback)
-		return ngx.timer.at(delay, callback)
-	end, function(level, message)
+	self.nats_scope = NatsScope(function()
+		return ngx.ctx
+	end, function()
+		return RestyNats()
+	end)
+
+	---@param delay number
+	---@param callback fun(premature: boolean)
+	---@return true?, string?
+	local function schedule(delay, callback)
+		return ngx.timer.at(delay, function(premature)
+			self.nats_scope:call(callback, premature)
+		end)
+	end
+
+	self.compute_job_worker = ComputeJobWorker(self.domain.compute_jobs, schedule, function(level, message)
 		ngx.log(level == "error" and ngx.ERR or ngx.NOTICE, message)
 	end)
-	self.chartplay_effect_worker = ComputeJobWorker(self.domain.chartplay_effects, function(delay, callback)
-		return ngx.timer.at(delay, callback)
-	end, function(level, message)
+	self.chartplay_effect_worker = ComputeJobWorker(self.domain.chartplay_effects, schedule, function(level, message)
 		ngx.log(level == "error" and ngx.ERR or ngx.NOTICE, message)
 	end)
 	self.server_remote = ServerRemoteValidation(ServerRemote(self.domain, self.sessions))
@@ -80,11 +92,7 @@ function App:new(app_config)
 	local whitelist = require("sea.app.remotes.whitelist")
 	local client_whitelist = require("sea.app.remotes.client_whitelist")
 	self.domain.user_connections:setup(self.server_remote, whitelist, client_whitelist, function()
-		local request_context = ngx.ctx
-		if not request_context.rizu_nats then
-			request_context.rizu_nats = RestyNats()
-		end
-		return request_context.rizu_nats
+		return self.nats_scope:get()
 	end)
 
 	local views = Views(etlua.autoload(), "sea/shared/http/layout.etlua")
@@ -173,6 +181,14 @@ end
 ---@param ip string
 ---@param port integer
 function App:handle(req, res, ip, port)
+	self.nats_scope:call(self.handleRequest, self, req, res, ip, port)
+end
+
+---@param req web.IRequest
+---@param res web.IResponse
+---@param ip string
+---@param port integer
+function App:handleRequest(req, res, ip, port)
 	local parsed_uri = socket_url.parse(req.uri)
 
 	-- Extract host from the Host header

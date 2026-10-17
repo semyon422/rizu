@@ -60,6 +60,7 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 - NATS subjects follow the pattern `icc.broadcast.{scope}.{id}` where scope is `all`, `room`, or `user`.
 - `sea.Peer:subscribe(subject)` and `:unsubscribe(subject)` manage NATS subscriptions with SID tracking. Idempotent, silently no-ops if NATS is unavailable.
 - `Peer:setup_dispatch(client_task_handler)` installs the NATS→WebSocket dispatcher on the peer.
+- `sea.NatsScope` lazily stores the connection in the current `ngx.ctx`; the application handle and both compute/effect timer callbacks finalize their captured scope on success or exception. Finalization drops the context reference and closes the receiver/socket without creating an unused connection. Each request/timer has independent ownership. Nested invocation of the scope wrapper within the same context is not supported; wrap only the outer lifecycle boundary.
 - Each OpenResty request owns its `RestyNats` connection through `ngx.ctx`. Lua cosockets are request-bound and must not be cached in worker-global application state or reused by another WebSocket request. `RestyNats` handles connection failure gracefully: returns `(nil, err)` instead of crashing. Caches initial connect failure to avoid retry storms. On receive loop death (socket error, parse error), resets state so subsequent calls reconnect automatically.
 
 ### ADR: Connection Tracking
@@ -78,7 +79,8 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 - `Domain:onAuth()` subscribes to `icc.broadcast.user.{user_id}`.
 - `Multiplayer:joinRoom()` subscribes to `icc.broadcast.room.{room_id}`; `leaveRoom()` unsubscribes.
 - `WebsocketResource` subscribes to `icc.peer.{peer_id}` and `icc.broadcast.all` before `onConnect`.
-- All subscription SIDs are cleaned up in `peer.broadcast_sids` on disconnect.
+- All subscription SIDs are cleaned up in `peer.broadcast_sids` on disconnect, including an exception from `onConnect` or the receive loop. Domain disconnect cleanup follows unsubscription; the enclosing application scope then physically closes NATS even if domain cleanup fails. Failed handshakes never register a domain connection, but still release any initial inbox subscription by closing NATS.
+- Application lifecycle ownership does not change queue encoding, remote whitelists, or peer/context injection. See `aqua/icc/nats/spec.md` for receiver cancellation and no-pooling constraints.
 
 ## Verification
 

@@ -93,12 +93,14 @@ function WebsocketResource:server(req, res, ctx)
 	peer:subscribe("icc.peer." .. ctx.peer_id)
 	peer:subscribe("icc.broadcast.all")
 
-	self.domain:onConnect(peer)
+	local connected_ok, connected_err = xpcall(function()
+		self.domain:onConnect(peer)
 
-	local ok, err = ws:loop()
-	if not ok then
-		print(err)
-	end
+		local loop_ok, loop_err = ws:loop()
+		if not loop_ok then
+			print(loop_err)
+		end
+	end, debug.traceback)
 
 	-- Cleanup NATS subscriptions (by SID to avoid clobbering other connections)
 	if inbox_sid then nats:unsubscribe(inbox_sid) end
@@ -107,6 +109,9 @@ function WebsocketResource:server(req, res, ctx)
 	end
 
 	self.domain:onDisconnect(peer)
+	if not connected_ok then
+		error(connected_err, 0)
+	end
 end
 
 ---@param req web.IRequest
