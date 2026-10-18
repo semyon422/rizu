@@ -252,6 +252,13 @@ function FakeCharts:selectCollection(collection)
 	self:refresh()
 end
 
+function FakeCharts:getLocationsInCollections() return self.locations_in_collections or false end
+
+function FakeCharts:setLocationsInCollections(enabled)
+	self.locations_in_collections = enabled
+	self:emit("collections_changed")
+end
+
 function FakeCharts:checkLibraryEmpty(f) f(#self.all_sets == 0) end
 
 function FakeCharts:getSource() return self.source or "local" end

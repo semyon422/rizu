@@ -174,6 +174,13 @@ function test.collections(t)
 	charts:selectCollection(nil)
 	t:eq(charts:getSelectedCollection(), collections[1])
 
+	t:eq(charts:getLocationsInCollections(), false)
+	changes = 0
+	charts:setLocationsInCollections(true)
+	t:eq(charts:getLocationsInCollections(), true)
+	t:assert(changes > 0)
+	t:eq(charts:getCollections()[2].kind, "location")
+
 	library:unload()
 end
 

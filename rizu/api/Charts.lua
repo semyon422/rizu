@@ -381,6 +381,18 @@ function Charts:selectCollection(collection)
 	self.selector.collectionSelector:selectCollection(collection and collection.path, collection and collection.location_id)
 end
 
+---True when the collections start with the library's locations, each holding its own folders.
+---@return boolean
+function Charts:getLocationsInCollections()
+	return self.selector.settings:getBoolean(Settings.keys.select.locations_in_collections)
+end
+
+---Lists the collections again, grouped by location or not, and keeps the selected one if it is still there.
+---@param enabled boolean
+function Charts:setLocationsInCollections(enabled)
+	self.selector.collectionSelector:setLocationsInCollections(enabled)
+end
+
 -- Source
 
 ---@return rizu.api.Charts.Source
