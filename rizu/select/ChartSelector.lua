@@ -17,6 +17,8 @@ local Settings = require("rizu.config.Settings")
 ---@class rizu.select.ChartSelector
 ---@operator call: rizu.select.ChartSelector
 ---@field is_finding_chartmeta boolean?
+---@field chart_exists_last boolean What chartExists() last found out.
+---@field pending_chartview rizu.library.LocatedChartview? The selected row, until its page loads.
 ---@field chartMediaService rizu.select.services.ChartMediaService
 ---@field chartLoader rizu.select.services.ChartLoader
 ---@field random_history {last: integer, count: integer, [integer]: integer} Ring buffer of primary indexes jumped away from by scrollRandom.
@@ -57,6 +59,7 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 	self.collectionSelector = collectionSelector
 	self.state = state or SelectionState()
 	self.random_history = {last = 0, count = 0}
+	self.chart_exists_last = false
 
 	---@type rizu.select.stores.ListStore[]
 	self.stores = {
@@ -90,12 +93,15 @@ function ChartSelector:new(configModel, settings, library, fs, collectionSelecto
 		end
 	end)
 	self.stores[2]:onChanged(function(event)
-		if event.type == "list_items_loaded" then
-			local index = self.state:getSelection(2).index
-			if index >= event.first and index <= event.last then
-				self:emitChanged({type = "chartview_changed", chartview = self.chartview})
-				self:setChanged()
-			end
+		local pending = self.pending_chartview
+		if event.type ~= "list_items_loaded" or not pending then
+			return
+		end
+		local index = self.state:getSelection(2).index
+		if pending.loaded then
+			self:setChartview(pending)
+		elseif index >= event.first and index <= event.last then
+			self:setChartview(nil) -- the row is gone from the library
 		end
 	end)
 end
@@ -118,8 +124,15 @@ function ChartSelector:emitChanged(event)
 	self.observable:send(event)
 end
 
+---A row whose page is still loading has only its ids. It waits in pending_chartview and the current chart
+---stays selected, so nothing reacts to a chart without its data.
 ---@param chartview rizu.library.LocatedChartview?
 function ChartSelector:setChartview(chartview)
+	if chartview and chartview.loaded == false then
+		self.pending_chartview = chartview
+		return
+	end
+	self.pending_chartview = nil
 	self.chartview = chartview
 	self.chart_exists = nil
 	self.chart_exists_pending = nil
@@ -267,6 +280,8 @@ function ChartSelector:setChanged()
 	self:emitChanged({type = "selected_set_changed"})
 end
 
+---The answer for the previous chart while the file of a new one is being looked for, so buttons
+---that depend on it do not turn off for a frame on every chart change.
 ---@return boolean
 function ChartSelector:chartExists()
 	if self.chart_exists ~= nil then
@@ -280,14 +295,16 @@ function ChartSelector:chartExists()
 	-- The files of a remote location are downloaded when the chart is loaded.
 	if chartview.location_url then
 		self.chart_exists = true
+		self.chart_exists_last = true
 		return true
 	end
 
 	if self.library.is_sync then
 		self.chart_exists = ChartfileReader.exists(self.fs, chartview.location_path)
+		self.chart_exists_last = self.chart_exists
 		return self.chart_exists
 	end
-	if self.chart_exists_pending then return false end
+	if self.chart_exists_pending then return self.chart_exists_last end
 	local token = {}
 	self.chart_exists_pending = token
 	thread.coro(function()
@@ -295,9 +312,10 @@ function ChartSelector:chartExists()
 		if self.chart_exists_pending ~= token or self.chartview ~= chartview then return end
 		self.chart_exists_pending = nil
 		self.chart_exists = exists
+		self.chart_exists_last = exists
 		self:emitChanged({type = "chart_availability_changed"})
 	end)()
-	return false
+	return self.chart_exists_last
 end
 
 function ChartSelector:debounceRefresh(...)
@@ -308,8 +326,9 @@ function ChartSelector:noDebounceRefresh(...)
 	local args = {...}
 	self.taskRunner:push(function()
 		self:refresh(unpack(args))
-		if self.chartview then
-			self:setConfig(self.chartview)
+		local chartview = self.pending_chartview or self.chartview
+		if chartview then
+			self:setConfig(chartview)
 		end
 	end, TaskRunner.priority.high)
 end

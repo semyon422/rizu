@@ -67,16 +67,18 @@ local function createCoordinator(chartview, calls, is_changed, candidateReplayBa
 end
 
 ---@param t testing.T
-function test.provisional_chartview_does_not_apply_modifier_meta(t)
+function test.provisional_chartview_keeps_the_column_order(t)
 	local calls = {}
 	local coordinator = createCoordinator({chartfile_id = 1}, calls)
+	coordinator.replayBase.columns_order = {2, 1, 3, 4}
 
 	t:has_not_error(function()
 		coordinator:applyModifierMeta(true)
+		coordinator:applyModifierMeta(false)
 	end)
 
 	t:tdeq(calls, {})
-	t:eq(coordinator.replayBase.columns_order, nil)
+	t:tdeq(coordinator.replayBase.columns_order, {2, 1, 3, 4})
 end
 
 ---@param t testing.T

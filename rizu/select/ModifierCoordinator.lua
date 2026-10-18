@@ -47,8 +47,8 @@ end
 
 function ModifierCoordinator:applySelectionModifierMeta()
 	local chartview = self.chartSelector.chartview
+	-- A chartview still loading is not playable either; keep the player's column order for it.
 	if not self.chartSelector:isPlayableChartview(chartview) then
-		self.replayBase.columns_order = nil
 		return
 	end
 
@@ -73,7 +73,6 @@ end
 function ModifierCoordinator:applyModifierMetaToCurrentReplayBase()
 	local chartview = self.chartSelector.chartview
 	if not self.chartSelector:isPlayableChartview(chartview) then
-		self.replayBase.columns_order = nil
 		return
 	end
 

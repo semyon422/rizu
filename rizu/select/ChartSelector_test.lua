@@ -257,6 +257,45 @@ function test.chartview_event(t)
 end
 
 ---@param t testing.T
+function test.unloaded_row_is_selected_once_its_page_loads(t)
+	local library = tlf:create()
+	local fs = {read = function() end, getInfo = function() end}
+	local chartSelector = ChartSelector(createMockConfigModel(), createSettings(), library, fs,
+		{getSelectedItem = function() end}, timer)
+	local loaded = {chartfile_id = 1, loaded = true}
+	chartSelector:setChartview(loaded)
+	chartSelector:isChanged()
+	local events = {}
+	chartSelector:onChanged(function(event)
+		table.insert(events, event.type)
+	end)
+
+	local row = {chartfile_id = 2, loaded = false}
+	chartSelector:setChartview(row)
+	t:eq(chartSelector.chartview, loaded)
+	t:eq(chartSelector:isChanged(), false)
+	t:tdeq(events, {})
+
+	chartSelector.state:setSelection(2, 5, 2)
+	events = {}
+	chartSelector.stores[2]:emitChanged({type = "list_items_loaded", first = 1, last = 4})
+	t:eq(chartSelector.chartview, loaded)
+	row.loaded = true
+	chartSelector.stores[2]:emitChanged({type = "list_items_loaded", first = 1, last = 64})
+	t:eq(chartSelector.chartview, row)
+	t:eq(chartSelector.pending_chartview, nil)
+	t:eq(chartSelector:isChanged(), true)
+	t:tdeq(events, {"chartview_changed"})
+
+	-- A row the library no longer has stays unloaded after its page loads.
+	chartSelector:setChartview({chartfile_id = 3, loaded = false})
+	chartSelector.stores[2]:emitChanged({type = "list_items_loaded", first = 1, last = 64})
+	t:eq(chartSelector.chartview, nil)
+
+	library:unload()
+end
+
+---@param t testing.T
 function test.playable_chartview_requires_metadata_and_location(t)
 	local configModel = createMockConfigModel()
 	local library = tlf:create()
@@ -442,6 +481,11 @@ function test.chart_exists_async_ignores_old_selection(t)
 	t:eq(selector:chartExists(), false)
 	t:assert(coroutine.resume(waiting[2], true))
 	t:eq(selector:chartExists(), true)
+	-- The next chart keeps the last answer until its own check is done.
+	selector:setChartview({location_path = "missing"})
+	t:eq(selector:chartExists(), true)
+	t:assert(coroutine.resume(waiting[3], false))
+	t:eq(selector:chartExists(), false)
 	library:unload()
 end
 
