@@ -80,7 +80,7 @@ function HitGraph:update()
 	local hit = assert(self:getHitAt(time))
 
 	self.tooltip_visible = true
-	tooltip:setText(("Time: %.3f s\nAccuracy: %.2f ms\nMean: %+.2f ms\nNormalscore: %d"):format(
+	tooltip:setText(("Time: %.3f s\nAccuracy: %.2f ms\nMean: %+.2f ms\nNormalscore: %i"):format(
 		time,
 		hit.accuracy * 1000,
 		hit.mean * 1000,

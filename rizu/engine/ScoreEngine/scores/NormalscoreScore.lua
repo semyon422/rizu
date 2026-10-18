@@ -70,7 +70,8 @@ function NormalscoreScore:getSlice()
 	---@class rizu.NormalscoreScore.Slice
 	local t = {
 		accuracyAdjusted = self.accuracyAdjusted,
-		mean = self.normalscore.mean
+		mean = self.normalscore.mean,
+		score = self:getScore(),
 	}
 	return t
 end
