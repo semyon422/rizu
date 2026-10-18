@@ -136,6 +136,41 @@ function test.chart_navigation(t)
 end
 
 ---@param t testing.T
+function test.difficulty_sort_lists_charts_ungrouped(t)
+	local charts = {
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h_ug_1", index = 1, msd_diff = 1, rate = 1},
+		{chartfile_set_id = 1, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "h_ug_2", index = 1, msd_diff = 3, rate = 1},
+		{chartfile_set_id = 2, chartfile_id = 3, chartmeta_id = 3, chartdiff_id = 3, hash = "h_ug_3", index = 1, msd_diff = 2, rate = 1},
+		{chartfile_set_id = 2, chartfile_id = 4, chartmeta_id = 4, chartdiff_id = 4, hash = "h_ug_4", index = 1, msd_diff = 4, rate = 1},
+	}
+	local library = tlf:create()
+	tlf:populate(library, charts)
+
+	local fs = {read = function() end, getInfo = function() end}
+	local settings = createSettings()
+	settings:setString(Settings.keys.select.sort_function, "difficulty")
+
+	local chartSelector = ChartSelector(createMockConfigModel(), settings, library, fs, {getSelectedItem = function() end}, timer)
+	chartSelector:load()
+
+	local store = chartSelector.stores[1]
+	t:eq(store:count(), 4)
+	for i, chartfile_id in ipairs({1, 3, 2, 4}) do
+		t:eq(store:get(i).chartfile_id, chartfile_id)
+	end
+	t:eq(chartSelector.stores[2]:count(), 1)
+
+	chartSelector:scrollLevel(1, 1)
+	t:eq(chartSelector.chartview.chartfile_id, 3)
+
+	settings:setString(Settings.keys.select.sort_function, "title")
+	chartSelector:noDebounceRefresh()
+	t:eq(store:count(), 2)
+
+	library:unload()
+end
+
+---@param t testing.T
 function test.duplicate_chartmeta_restores_by_chartfile(t)
 	local charts = {
 		{

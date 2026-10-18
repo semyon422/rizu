@@ -27,6 +27,10 @@ SortModel.orders = {
 	["last played"] = {"chartplay_created_at"},
 }
 
+---Sorts by a value each chart has on its own, so the list shows charts instead of sets.
+---@type {[string]: true}
+SortModel.ungrouped = {difficulty = true, level = true, duration = true, tempo = true}
+
 SortModel.name = "title"
 SortModel.names = {
 	"id",

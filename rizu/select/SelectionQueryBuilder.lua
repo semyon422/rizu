@@ -19,6 +19,19 @@ function SelectionQueryBuilder:new(settings, sortModel, searchModel, filterModel
 	self.filterModel = filterModel
 end
 
+---The primary mode setting, or one row per chart when the sort is ungrouped.
+---@return rizu.library.ChartviewsRepo.Mode
+function SelectionQueryBuilder:getPrimaryMode()
+	local keys = Settings.keys.select
+	---@type rizu.library.ChartviewsRepo.Mode
+	local primary_mode = self.settings:getChoice(keys.primary_mode)
+	local is_grouped = primary_mode == "chartfile_sets" or primary_mode == "chartfiles"
+	if is_grouped and self.sortModel.ungrouped[self.settings:getString(keys.sort_function)] then
+		return "chartmetas"
+	end
+	return primary_mode
+end
+
 ---@param config sphere.SelectConfig The 'select' config from configModel
 ---@param collectionItem rizu.library.Collections.TreeNode? Current collection item
 ---@param remote_location_ids integer[]? The locations whose charts are listed only while `config.online`.
@@ -28,8 +41,7 @@ function SelectionQueryBuilder:build(config, collectionItem, remote_location_ids
 	---@type rizu.select.SelectionQueryParams
 	local params = {}
 
-	---@type rizu.library.ChartviewsRepo.Mode
-	local primary_mode = self.settings:getChoice(keys.primary_mode)
+	local primary_mode = self:getPrimaryMode()
 	---@type rizu.library.ChartviewsRepo.Mode
 	local secondary_mode = self.settings:getChoice(keys.secondary_mode)
 

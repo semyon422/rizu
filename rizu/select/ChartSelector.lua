@@ -353,14 +353,13 @@ end
 
 ---@return string
 function ChartSelector:getPrimaryMode()
-	return self.settings:getChoice(Settings.keys.select.primary_mode)
+	return self.queryBuilder:getPrimaryMode()
 end
 
 ---@return string
 function ChartSelector:getSecondaryResultMode()
-	local keys = Settings.keys.select
-	local primary_mode = self.settings:getChoice(keys.primary_mode)
-	local secondary_mode = self.settings:getChoice(keys.secondary_mode)
+	local primary_mode = self:getPrimaryMode()
+	local secondary_mode = self.settings:getChoice(Settings.keys.select.secondary_mode)
 
 	if LEVELS[secondary_mode] >= LEVELS[primary_mode] then
 		return secondary_mode
