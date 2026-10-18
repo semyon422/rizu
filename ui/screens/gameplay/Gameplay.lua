@@ -3,6 +3,7 @@ local CompositeView = require("gui.CompositeView")
 local Label = require("ui.views.Label")
 local Screen = require("gui.Screen")
 local Colors = require("ui.Colors")
+local AdjustmentOverlay = require("ui.screens.gameplay.AdjustmentOverlay")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
@@ -53,6 +54,8 @@ function Gameplay:new(ui)
 	self.summary:setAlignment(0.5, 0.5)
 	self.summary:setVisible(false)
 
+	self.adjust_overlay = self.root:add(AdjustmentOverlay(ui.localization))
+
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
@@ -85,6 +88,10 @@ function Gameplay:new(ui)
 	self.root:setOpacity(0)
 end
 
+function Gameplay:showAdjustment()
+	self.adjust_overlay:show(self.gameplay:getScrollSpeedText(), self.gameplay:getLocalOffset())
+end
+
 function Gameplay:unload()
 	Screen.unload(self)
 end
@@ -107,6 +114,7 @@ function Gameplay:enter()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
 	self.restart_overlay:reset()
+	self.adjust_overlay:hide()
 
 	self.root:fadeIn(0.4, "OutQuint")
 	if self.gameplay:usesPointer() then
@@ -309,14 +317,19 @@ function Gameplay:onHandleInputs(inputs)
 		gameplay:skipIntro()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_decrease) then
 		gameplay:changeLocalOffset(-0.001)
+		self:showAdjustment()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_increase) then
 		gameplay:changeLocalOffset(0.001)
+		self:showAdjustment()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_offset_reset) then
 		gameplay:resetLocalOffset()
+		self:showAdjustment()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_decrease) then
 		gameplay:changeScrollSpeed(-1)
+		self:showAdjustment()
 	elseif inputs:consumeActionJustPressed(UiActions.gameplay_play_speed_increase) then
 		gameplay:changeScrollSpeed(1)
+		self:showAdjustment()
 	end
 
 	local state = gameplay:getState()

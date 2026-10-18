@@ -19,6 +19,8 @@ function FakeGameplay:skipIntro() end
 function FakeGameplay:changeScrollSpeed(steps) end
 function FakeGameplay:changeLocalOffset(seconds) end
 function FakeGameplay:resetLocalOffset() end
+function FakeGameplay:getScrollSpeedText() return "" end
+function FakeGameplay:getLocalOffset() return 0 end
 function FakeGameplay:getProgress() return 0 end
 function FakeGameplay:getTime() return 0 end
 function FakeGameplay:getScore() end

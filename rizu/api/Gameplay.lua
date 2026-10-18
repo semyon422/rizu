@@ -1,5 +1,7 @@
 local class = require("class")
 local BgaView = require("rizu.skin.views.BgaView")
+local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
+local Settings = require("rizu.config.Settings")
 
 --[[
 The play in progress: drawing it, pausing, retrying and the score so far.
@@ -101,6 +103,17 @@ function Gameplay:changeScrollSpeed(steps) self.game.gameplayInteractor:increase
 ---The audio offset of this chart only, on top of the global one.
 ---@param seconds number Also the step it is rounded to: 0.001 for one millisecond.
 function Gameplay:changeLocalOffset(seconds) self.game.offsetController:increaseLocalOffset(seconds) end
+
+---@return string # The scroll speed as the player set it, e.g. "25" or "0.50".
+function Gameplay:getScrollSpeedText()
+	local settings = self.game.settings
+	local keys = Settings.keys.gameplay
+	local speed_type = settings:getChoice(keys.speed_type)
+	return ScrollSpeed.formats[speed_type]:format(ScrollSpeed.toDisplay(speed_type, settings:getNumber(keys.speed)))
+end
+
+---@return number seconds
+function Gameplay:getLocalOffset() return self.game.offsetController:getLocalOffset() end
 
 function Gameplay:resetLocalOffset() self.game.offsetController:resetLocalOffset() end
 

@@ -390,6 +390,8 @@ return {
 	["gameplay.skin_editor.receptor_y"] = "Receptor Y",
 	["gameplay.skin_editor.playfield_x_offset"] = "Playfield X offset",
 	["gameplay.skin_editor.bga_brightness"] = "BGA brightness",
+	["gameplay.adjust.scroll_speed"] = "Scroll speed: {value}",
+	["gameplay.adjust.local_offset"] = "Local offset: {value} ms",
 	["gameplay.pause.title"] = "Paused",
 	["gameplay.pause.continue"] = "Continue",
 	["gameplay.pause.restart"] = "Restart",
