@@ -20,7 +20,6 @@ local function createDeployment()
 		health_attempts = 2,
 		health_interval = 1,
 		auto_rollback = true,
-		backup_before_deploy = false,
 	})
 	return deployment, shell
 end
@@ -268,36 +267,30 @@ function test.disabled_rollback_never_starts_previous_release(t)
 end
 
 ---@param t testing.T
-function test.backup_is_required_before_activation_and_publication(t)
-	for _, backup_fails in ipairs({false, true}) do
-		local deployment, shell = createDeployment()
-		deployment.config.backup_before_deploy = true
-		local commit = string.rep("e", 40)
-		local events = {}
-		deployment.prepareRoot = function() end
-		deployment.absolute = function(_, path) return path end
-		deployment.readManifest = function() return {format_version = 1, commit = commit, artifacts = {}} end
-		deployment.verifyRelease = function() end
-		deployment.readLink = function() return "/old" end
-		deployment.stageServer = function() return "/new" end
-		function shell:execute(command)
-			t:eq(command, "./scripts/backup")
-			table.insert(events, "backup")
-			if backup_fails then error("backup failed") end
-		end
-		deployment.ensureNats = function() table.insert(events, "nats") end
-		deployment.activateServer = function() table.insert(events, "activate") end
-		deployment.recordActivation = function() table.insert(events, "record") end
-		deployment.publishClient = function() table.insert(events, "publish") end
-		deployment.prune = function() table.insert(events, "prune") end
-		if backup_fails then
-			t:has_error(function() deployment:deploy(commit) end)
-			t:tdeq(events, {"backup"})
-		else
-			deployment:deploy(commit)
-			t:tdeq(events, {"backup", "nats", "activate", "record", "publish", "prune"})
-		end
+function test.deployment_does_not_run_backups(t)
+	local deployment, shell = createDeployment()
+	local commit = string.rep("e", 40)
+	---@type string[]
+	local events = {}
+	deployment.prepareRoot = function() end
+	deployment.absolute = function(_, path) return path end
+	deployment.readManifest = function() return {format_version = 1, commit = commit, artifacts = {}} end
+	deployment.verifyRelease = function() end
+	deployment.readLink = function() return "/old" end
+	deployment.stageServer = function()
+		table.insert(events, "stage")
+		return "/new"
 	end
+	function shell:execute(command)
+		error("unexpected deployment command: " .. command)
+	end
+	deployment.ensureNats = function() table.insert(events, "nats") end
+	deployment.activateServer = function() table.insert(events, "activate") end
+	deployment.recordActivation = function() table.insert(events, "record") end
+	deployment.publishClient = function() table.insert(events, "publish") end
+	deployment.prune = function() table.insert(events, "prune") end
+	deployment:deploy(commit)
+	t:tdeq(events, {"stage", "nats", "activate", "record", "publish", "prune"})
 end
 
 return test

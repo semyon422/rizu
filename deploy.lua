@@ -23,8 +23,7 @@ Environment:
   RIZU_HEALTH_ATTEMPTS   Health polling attempts (default: 30)
   RIZU_HEALTH_INTERVAL   Seconds between health checks (default: 2)
   RIZU_DEPLOY_TEST_COMMAND  VDS test command (default: ./test)
-  RIZU_DEPLOY_AUTO_ROLLBACK  Restore previous app on failure: 0 or 1 (default: 1)
-  RIZU_DEPLOY_BACKUP     Run scripts/backup before service changes: 0 or 1 (default: 0)]])
+  RIZU_DEPLOY_AUTO_ROLLBACK  Restore previous app on failure: 0 or 1 (default: 1)]])
 end
 
 local function positiveInteger(name, default)
@@ -60,7 +59,6 @@ local deployment = Deployment(Shell(), {
 	health_attempts = positiveInteger("RIZU_HEALTH_ATTEMPTS", "30"),
 	health_interval = positiveInteger("RIZU_HEALTH_INTERVAL", "2"),
 	auto_rollback = environmentFlag("RIZU_DEPLOY_AUTO_ROLLBACK", "1"),
-	backup_before_deploy = environmentFlag("RIZU_DEPLOY_BACKUP", "0"),
 })
 
 deployment.config.root = deployment:absolute(deployment.config.root)

@@ -56,7 +56,6 @@ jobs:
           git submodule update --init --recursive
           export RIZU_DEPLOY_LOCKED=1
           export RIZU_DEPLOY_AUTO_ROLLBACK=0
-          export RIZU_DEPLOY_BACKUP=1
           export RIZU_DEPLOY_TEST_COMMAND='set -e
           for pattern in "^sea/" "^bancho/" "^rizu/library/" "^rizu/build/" "^deploy/" "^aqua/rdb/" "^chart/"; do
             result=0

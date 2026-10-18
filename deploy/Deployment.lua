@@ -10,7 +10,6 @@ local ComputeVersion = require("sea.compute.ComputeVersion")
 ---@field health_attempts integer
 ---@field health_interval integer
 ---@field auto_rollback boolean
----@field backup_before_deploy boolean
 
 ---@class deploy.ManifestArtifact
 ---@field path string
@@ -344,9 +343,6 @@ function Deployment:deploy(commit_or_path)
 	self:verifyRelease(release_dir, manifest)
 	local previous = self:readLink(self.config.root .. "/current")
 	local candidate = self:stageServer(release_dir, manifest.commit)
-	if self.config.backup_before_deploy then
-		self.shell:execute("./scripts/backup")
-	end
 	self:ensureNats(candidate)
 	self:activateServer(candidate, previous)
 	self:recordActivation(candidate, previous)
