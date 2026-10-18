@@ -147,7 +147,7 @@ Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE
 - `DEPLOY_SSH_KEY` — private key used only for deployment
 - `DEPLOY_HOST_KEY` — pinned known-hosts line, not an unverified runtime scan
 
-The VDS clone must be `/home/semyon422/rizu`, have its build toolchains, ignored `server-state/`, and working `server-state/backup.env`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs. The SSH bootstrap acquires the same VDS lock **before checkout**, fetches/checks out the exact SHA and submodules, then starts that revision's deployment CLI with the lock inherited. This avoids loading the old deployment implementation before a checkout that changes its safety policy. An overlapping deployment waits up to two hours instead of failing immediately.
+The VDS clone must be `/home/semyon422/rizu`, have its build toolchains, ignored `server-state/`, and working `server-state/backup.env`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs. The SSH bootstrap acquires the same VDS lock **before checkout**, fetches/checks out the exact SHA and submodules, then starts that revision's deployment CLI with the lock inherited. This avoids loading the old deployment implementation before a checkout that changes its safety policy. SSH server-alive probes keep quiet backup/build stages from losing an otherwise healthy connection to an idle timeout. An overlapping deployment waits up to two hours instead of failing immediately.
 
 ## Backups
 

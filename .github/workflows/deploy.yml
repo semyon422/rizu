@@ -44,7 +44,7 @@ jobs:
             echo "DEPLOY_HOST and DEPLOY_USER production secrets must be configured" >&2
             exit 2
           fi
-          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" bash -s -- "$REQUESTED_COMMIT" <<'REMOTE'
+          ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=30 -o ServerAliveCountMax=10 "$DEPLOY_USER@$DEPLOY_HOST" bash -s -- "$REQUESTED_COMMIT" <<'REMOTE'
           set -euo pipefail
           cd /home/semyon422/rizu
           exec 9>.deploy.lock
