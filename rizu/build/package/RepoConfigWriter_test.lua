@@ -1,5 +1,6 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local RepoConfigWriter = require("rizu.build.package.RepoConfigWriter")
+local config = require("rizu.build.package.config")
 
 local test = {}
 
@@ -30,14 +31,14 @@ function test.writes_packaged_servers_to_urls_config(t)
 	local content = assert(fs:read("game/sphere/persistence/ConfigModel/urls.lua"))
 	local chunk = assert(loadstring(content))
 	local urls = chunk()
-	t:eq(urls.update, "https://rizu.dfjk.ru/files.json")
-	t:tdeq(urls.servers, {{name = "Rizu", url = "wss://rizu.su/ws"}})
+	t:eq(urls.update, config.game.repo .. "/files.json")
+	t:tdeq(urls.servers, config.game.servers)
 	t:eq(urls.websocket, nil)
 
 	content = assert(fs:read("game/sphere/persistence/ConfigModel/online.lua"))
 	chunk = assert(loadstring(content))
 	local online = chunk()
-	t:eq(online.url, "wss://rizu.su/ws")
+	t:eq(online.url, config.game.servers[1].url)
 	t:tdeq(online.tokens, {})
 end
 
