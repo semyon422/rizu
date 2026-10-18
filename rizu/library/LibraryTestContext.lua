@@ -1,6 +1,8 @@
 local class = require("class")
 local table_util = require("table_util")
 local Library = require("rizu.library.Library")
+local Worker = require("rizu.library.Worker")
+local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local FunctionTimer = require("time.FunctionTimer")
 
@@ -18,6 +20,15 @@ function LibraryTestContext:new()
 
 	self.lib = Library(self.fs, "/test", timer)
 	self.lib:setSync(true)
+	local fs = self.fs
+	function self.lib:createAndLoadWorker(workingDirectory)
+		local worker = Worker(self, fs, workingDirectory, timer)
+		function worker.db:load()
+			Database.load(self, ":memory:")
+		end
+		worker:load()
+		return worker
+	end
 
 	self.lib:load(":memory:")
 

@@ -46,6 +46,12 @@ The library is structured around a 5-level hierarchy, where each level represent
 - **Decision**: The `ChartviewsRepo` is completely stateless. Every query returns a self-contained `QueryResult` object containing the result buffer and all necessary lookup maps.
 - **Consequence**: High performance and no risk of race conditions when the user rapidly changes filters or search queries.
 
+## Compute-State Storage
+
+Local `chartplays.compute_state` is stored as the integer enum `new = 0`, `valid = 1`, `invalid = 2`; domain objects, ORM filters, and score-list/computable views use the corresponding Lua strings. The shared chartplay model provides the converter. Client chartfiles have no compute-state column.
+
+Database schema 10 converts legacy text states to integers while preserving existing numeric states, play IDs, and replay hashes. Unknown states abort and roll back the migration without advancing the version. Both the main-thread and worker database connections run this migration before querying scores, following the existing versioned initialization path. Back up existing client databases before rollout; older clients without the converter cannot safely read the normalized states. This does not change the separate remote catalog schema version.
+
 ## Remote Catalog
 
 `scripts/catalog.lua` (`rizu.library.CatalogBuilder`) builds the catalog of charts the client can play without having them, from a directory of charts (`<location>/<set>/<chart files>`). It runs the same `Processor` as the game, so the catalog is a library database in the format of `data.db` holding the mania charts: `locations` (relative `charts/<name>`), `chartfile_sets`, `chartfiles`, `chartmetas`, the default `chartdiffs` and `remote_assets` (per chart: the chart file, the encoded audio, the audio preview and the background image, as paths under the bucket). One table is added: `catalog` (`schema_version`, `version`, `generated_at`). Notes previews are not stored; the size of the file stays a few megabytes.
@@ -146,6 +152,8 @@ The client opens the same SQLite database from the main thread and the library w
 - Read-only operations do not need `BEGIN IMMEDIATE`. Independent scanner writes may use autocommit when partial cache states are valid and no multi-statement invariant needs protection.
 - Batch prepared writes only when this reduces transaction overhead without making writer lock duration significant. Library hashing currently writes at most 10 prepared chart results per transaction.
 - Finalize failed SQL statements before committing or rolling back. An unfinished statement can make SQLite reject transaction cleanup with `SQL statements in progress`.
+
+Local library fixtures must isolate both connections: `LibraryTestContext` opens the main database and its synchronous worker database in memory. Supplying `:memory:` only to `Library:load()` is insufficient because the production worker opens its own default database. The fixture overrides the worker opener, and its regression test checks `PRAGMA database_list` for both connections to prevent tests from opening or migrating real `userdata/data.db`.
 
 The preferred shape is:
 

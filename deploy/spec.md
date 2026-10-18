@@ -13,7 +13,7 @@ Operators can deploy an artifact and roll back over SSH with the same commands l
 ./deploy.lua status
 ```
 
-`build-deploy` fetches and checks out the exact requested commit in detached-HEAD state, updates recursive submodules, runs tests, builds the release locally on the VDS, and deploys it. A deployment verifies all artifact checksums, stages the server, starts or preserves NATS, recreates the compute worker, AI router, and OpenResty, waits for health, and publishes client downloads only after server success. A failed candidate restores the previous application release automatically. `status` reports whether OpenResty is using an immutable release, the checkout, a host process, or is stopped, together with mounts, health, commit, and active pointers.
+`build-deploy` fetches and checks out the exact requested commit in detached-HEAD state, updates recursive submodules, runs tests, builds the release locally on the VDS, and deploys it. A deployment verifies all artifact checksums, stages the server, starts or preserves NATS, recreates the compute worker, AI router, and OpenResty, waits for health, and publishes client downloads only after server success. A failed candidate restores the previous application release automatically only when `RIZU_DEPLOY_AUTO_ROLLBACK=1` (the manual CLI default). Production CI sets it to `0`: a failed candidate is stopped without starting older code or publishing client files. `status` reports whether OpenResty is using an immutable release, the checkout, a host process, or is stopped, together with mounts, health, commit, and active pointers.
 
 ## VDS Layout
 
@@ -57,11 +57,13 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - NATS is started if absent but is not recreated for application deployments. The compute worker, AI router, and OpenResty are recreated together with `--no-deps`; OpenResty depends on the compute health check during normal Compose startup.
 - The compute service is a single persistent LuaJIT process bound to loopback. It mounts the immutable release read-only and has no `server-state` mount, so SQLite ingestion/finalization remains owned by OpenResty.
 - The candidate OpenResty, compute, and AI router processes must all become Compose-healthcheck healthy before `current` or public client files switch.
-- Failed startup or health restores the previous application release. With no previous release, all candidate application services are stopped. Rolling back to a release without `docker/ai-router-entrypoint.sh` stops the router and checks only OpenResty and compute; router state is retained.
+- Startup/health failure restores the previous application release only when automatic rollback is enabled. With rollback disabled or no previous release, all candidate application services are stopped. Rolling back to a release without `docker/ai-router-entrypoint.sh` stops the router and checks only OpenResty and compute; router state is retained.
+- With `RIZU_DEPLOY_BACKUP=1`, deployment runs the existing verified off-host `scripts/backup` after staging and before any service changes. Backup failure aborts activation and publication while the running release remains untouched.
 - Explicit and implicit rollback use the same health gate before switching server and public pointers.
 - Only the current and previous server and published client releases are retained. After successful publication, all `build/release/` copies and stale staging directories are removed because deployed immutable directories are the durable rollback copies.
 - `build-deploy`, `deploy`, and `rollback` acquire the same `flock` lock. Concurrent automation or operators wait up to two hours instead of racing state and service changes.
 - Automated builds fetch and checkout the full pushed SHA rather than deploying a moving branch name. Tracked changes are rejected before and after checkout/submodule synchronization.
+- Application rollback does not roll back persistent database migrations. A release that changes storage encoding needs a database-compatible previous release or a separately planned data rollback that preserves subsequent writes. Container health alone does not prove that an older application understands the migrated data. In particular, server schema 12 normalizes compute states to integer enums, which pre-converter releases cannot safely read; see `sea/compute/spec.md`.
 
 ## Invariants
 
@@ -105,7 +107,9 @@ Build, test, and deploy an exact commit on the VDS:
 ./deploy.lua build-deploy <full-commit-sha>
 ```
 
-`RIZU_DEPLOY_TEST_COMMAND` may select a different VDS test command; its default is the complete `./test` suite.
+`RIZU_DEPLOY_TEST_COMMAND` may select a different VDS test command; its default is the complete `./test` suite. CI runs anchored headless suites (`sea`, `bancho`, `rizu/library`, `rizu/build`, `deploy`, `aqua/rdb`, `chart`) in separate processes, requiring explicit `OK:` and no `FAIL:` as well as a successful process exit for each. Anchoring avoids discovering tests in release/backup copies; separate processes avoid cross-suite global test-state pollution. The legacy test CLI does not reliably signal failures through its exit status. GUI tests requiring LÖVE belong to the separate `test-love` lane and are not claimed as passed by this VDS check.
+
+`RIZU_DEPLOY_AUTO_ROLLBACK=0` disables application rollback on activation failure. `RIZU_DEPLOY_BACKUP=1` requires the existing `server-state/backup.env` backup setup to succeed before service changes. Both flags accept only `0` or `1`; manual defaults are rollback enabled and backup disabled. Production CI enables backup and disables rollback, including for migrations with incompatible older readers. No existing ignored production configuration values need to change.
 
 Deploy a locally available release:
 
@@ -143,7 +147,7 @@ Use `RIZU_DEPLOY_ROOT` only for a nonstandard deployment root. Use `RIZU_COMPOSE
 - `DEPLOY_SSH_KEY` — private key used only for deployment
 - `DEPLOY_HOST_KEY` — pinned known-hosts line, not an unverified runtime scan
 
-The VDS clone must be `/home/semyon422/rizu`, have its build toolchains and ignored `server-state/`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs. The VDS lock also protects manual operations; an overlapping deployment waits for the active deployment for up to two hours instead of failing immediately.
+The VDS clone must be `/home/semyon422/rizu`, have its build toolchains, ignored `server-state/`, and working `server-state/backup.env`, and permit the deployment user to run Docker. GitHub concurrency serializes workflow runs. The SSH bootstrap acquires the same VDS lock **before checkout**, fetches/checks out the exact SHA and submodules, then starts that revision's deployment CLI with the lock inherited. This avoids loading the old deployment implementation before a checkout that changes its safety policy. An overlapping deployment waits up to two hours instead of failing immediately.
 
 ## Backups
 
@@ -162,7 +166,7 @@ sudo systemctl enable --now rizu-backup.timer
 
 The timer runs at 14:00 Asia/Yekaterinburg regardless of the VDS system timezone. `Persistent=true` runs a missed backup after the VDS restarts, but the home PC must be online when the transfer is attempted. Inspect runs with `systemctl status rizu-backup.service` and `journalctl -u rizu-backup.service`.
 
-Restore into a staging directory first. Verify a restored database before replacing live state:
+Restore into a staging directory first. A backup is a point-in-time snapshot: restoring it after production writes resume loses subsequent scores, sessions, uploads and other writes unless those deltas are preserved and replayed. Do not restore an old snapshot blindly. Verify a restored database before replacing live state:
 
 ```bash
 ./luajit -e 'local db = require("ljsqlite3").open("/path/to/restored/server.db"); assert(db:rowexec("PRAGMA integrity_check") == "ok"); db:close()'

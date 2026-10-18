@@ -13,11 +13,11 @@ end
 ---@param t testing.T
 function test.library_with_chartfile_has_chartfiles(t)
 	local ctx = LibraryTestContext()
-	ctx.lib.database.models.locations:create({
-		id = 1, name = "Test", path = "/test", is_relative = 0, is_internal = 0,
+	local location = ctx.lib.database.models.locations:create({
+		name = "Test", path = "/test", is_relative = false, is_internal = false,
 	})
 	ctx.lib.database.models.chartfile_sets:create({
-		id = 1, location_id = 1, name = "Set", modified_at = 0, is_file = 0,
+		id = 1, location_id = location.id, name = "Set", modified_at = 0, is_file = false,
 	})
 	ctx.lib.database.models.chartfiles:create({set_id = 1, name = "chart.osu", modified_at = 0})
 
@@ -124,6 +124,16 @@ function test.filesystem_corrupted(t)
 	end
 	t:assert(found, "Error message should be recorded in Library.errors")
 
+	ctx:cleanup()
+end
+
+---@param t testing.T
+function test.main_and_worker_databases_are_isolated_from_userdata(t)
+	local ctx = LibraryTestContext()
+	for _, db in ipairs({ctx.lib.database, ctx.lib.worker.db}) do
+		local database_info = db.db:query("PRAGMA database_list")
+		t:eq(database_info[1].file, "")
+	end
 	ctx:cleanup()
 end
 

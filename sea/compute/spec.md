@@ -159,12 +159,25 @@ At-least-once delivery is expected. Replay safety comes from effect-specific beh
 
 - leaderboards are recalculated from canonical valid chartplays,
 - activity is rebuilt from canonical valid chartplays,
-- user counts, play time, latest activity, and upload totals are recomputed from canonical rows and accepted upload attribution,
+- user counts, latest activity, chartfile upload totals, and rate-adjusted play time are recomputed from canonical rows whose stored `compute_state` is the integer enum value `1` (`valid` in Lua),
+- replay upload totals preserve their existing historical baseline; each new play's recorded `replay_upload_size` is added atomically with conditional completion of its `user_aggregates` effect,
 - external ranking checks for an existing row,
 - Dan handling retains its semantic duplicate guard,
 - notification is best-effort and does not affect correctness.
 
 The notification effect is claimable only after every other effect for the chartplay has succeeded. It broadcasts `chartplaySubmissionCompleted(chartplay_id)` to connected sockets of the submitting user. Notification loss is harmless because persisted status remains authoritative.
+
+`UsersRepo:updateUserSubmissionAggregates()` remains an idempotent rebuild and leaves replay upload totals untouched: imported historical plays do not have `compute_jobs` attribution. `UsersRepo:addChartplayUploadSize()` adds only the pending effect's accepted replay bytes. `ChartplayEffects:process()` commits both operations and the lease-conditional `succeeded` update in one SQLite transaction. A failed completion or lost lease rolls back the entire aggregate change; a committed effect cannot add its bytes again after a retry or worker restart. The `apply()` helper is not a standalone entry point for this effect. Other effects retain their existing replay-safety mechanisms.
+
+Play time is measured in seconds, using `1000.0 * chartdiffs.duration / chartdiffs.rate`: duration is rate-independent and the stored rate is an integer with 1x encoded as 1000. Previously corrupted user totals still require a separate backed-up repair.
+
+### Compute-state storage migration
+
+The `ComputeState` ORM converter stores `new = 0`, `valid = 1`, and `invalid = 2` in SQLite while domain objects and ORM conditions keep string states. Server `chartplays` and `chartfiles` use this converter; derived score models inherit it. The client shares the chartplay model, so its database must migrate too. Client chartfiles do not have a compute-state column. `compute_tasks.state` already uses the enum and is unchanged.
+
+Server schema 12 (`sea/storage/server/migrations/12.sql`) normalizes chartfile and chartplay states. Client schema 10 (`rizu/library/sql/migrate10.sql`) normalizes local chartplay states. Both convert legacy text states and preserve existing integer states, IDs, scores, and replay hashes. Unknown states fail with a constraint error and roll back the whole migration, without advancing the version; they are not silently treated as `new`.
+
+Before production deployment, take a fresh SQLite backup and prevent pre-enum writers from running during migration. Older releases without these converters cannot safely read the migrated database: application-only automatic rollback is not sufficient. Use a compatible rollback release or a separately planned data rollback that preserves subsequent writes. No production configuration fields change. Storage normalization does not repair user aggregates that were already overwritten.
 
 ### Native protocol
 
@@ -238,6 +251,8 @@ Transport and queue processing are at least once. Uniqueness constraints, lease-
 - Compute success and outbox creation commit atomically.
 - A permanent invalid result does not enter successful aggregates or leaderboards.
 - Duplicate submission, compute delivery, or side-effect delivery does not create a duplicate chartplay.
+- Chartplay and server chartfile compute states are persisted as integer enums (`new = 0`, `valid = 1`, `invalid = 2`). ORM reads and conditions use Lua strings; raw aggregate SQL uses the encoded integers. Clients and servers migrate legacy text states before model access.
+- A replay upload increment and its `user_aggregates` completion commit or roll back together. A count-only rebuild must preserve historical replay upload totals. Completed effect rows are the accounting deduplication ledger; resetting/recreating them is not a replay-safe repair.
 - Notification is best-effort; persisted job and effect state is authoritative.
 - Every finalized result identifies its compute version.
 - SQLite queue access remains on one host.
@@ -288,7 +303,9 @@ Coverage includes:
 - atomic input acceptance and retrieval failures,
 - unique side-effect keys and notification dependencies,
 - side-effect retry, dead state, and requeue,
-- migration through schema version 10,
+- real-ORM user aggregate rebuilding through the enum converter, distinct chart keys, rate-adjusted play time, and historical plays without jobs,
+- historical replay upload preservation, additive uploads in either processing order, transaction rollback/lost leases, and restart-safe completion before notification,
+- server schema 12 and client schema 10 migration of mixed text/integer states, enum round trips and derived-model filters, and full rollback on unknown states,
 - Bancho adapter and end-to-end regressions.
 
 Representative replay fixtures should continue to follow `sea/replays/spec.md`.

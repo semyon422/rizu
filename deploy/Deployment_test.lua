@@ -19,6 +19,8 @@ local function createDeployment()
 		compose_command = "docker compose",
 		health_attempts = 2,
 		health_interval = 1,
+		auto_rollback = true,
+		backup_before_deploy = false,
 	})
 	return deployment, shell
 end
@@ -60,7 +62,7 @@ function test.build_deploy_tests_builds_and_deploys(t)
 	deployment:buildDeploy(commit)
 	t:eq(prepared, commit)
 	t:eq(deployed, commit)
-	t:eq(shell.commands[1], "./test")
+	t:eq(shell.commands[1], os.getenv("RIZU_DEPLOY_TEST_COMMAND") or "./test")
 	t:eq(shell.commands[2], "./rizu/build/make.lua release")
 end
 
@@ -245,6 +247,57 @@ function test.startup_exception_restores_previous_release(t)
 	deployment.waitHealthy = function() return true end
 	t:has_error(function() deployment:activateServer("/new", "/old") end)
 	t:eq(restored, true)
+end
+
+---@param t testing.T
+function test.disabled_rollback_never_starts_previous_release(t)
+	for _, startup_fails in ipairs({false, true}) do
+		local deployment, shell = createDeployment()
+		deployment.config.auto_rollback = false
+		shell.outputs["id -u"], shell.outputs["id -g"] = "1000", "1000"
+		local started = {}
+		function deployment:startOpenResty(path)
+			table.insert(started, path)
+			if startup_fails then error("candidate startup failed") end
+		end
+		deployment.waitHealthy = function() return false end
+		t:has_error(function() deployment:activateServer("/new", "/old") end)
+		t:tdeq(started, {"/new"})
+		t:assert(joinedCommands(shell):find("stop openresty compute ai-router", 1, true))
+	end
+end
+
+---@param t testing.T
+function test.backup_is_required_before_activation_and_publication(t)
+	for _, backup_fails in ipairs({false, true}) do
+		local deployment, shell = createDeployment()
+		deployment.config.backup_before_deploy = true
+		local commit = string.rep("e", 40)
+		local events = {}
+		deployment.prepareRoot = function() end
+		deployment.absolute = function(_, path) return path end
+		deployment.readManifest = function() return {format_version = 1, commit = commit, artifacts = {}} end
+		deployment.verifyRelease = function() end
+		deployment.readLink = function() return "/old" end
+		deployment.stageServer = function() return "/new" end
+		function shell:execute(command)
+			t:eq(command, "./scripts/backup")
+			table.insert(events, "backup")
+			if backup_fails then error("backup failed") end
+		end
+		deployment.ensureNats = function() table.insert(events, "nats") end
+		deployment.activateServer = function() table.insert(events, "activate") end
+		deployment.recordActivation = function() table.insert(events, "record") end
+		deployment.publishClient = function() table.insert(events, "publish") end
+		deployment.prune = function() table.insert(events, "prune") end
+		if backup_fails then
+			t:has_error(function() deployment:deploy(commit) end)
+			t:tdeq(events, {"backup"})
+		else
+			deployment:deploy(commit)
+			t:tdeq(events, {"backup", "nats", "activate", "record", "publish", "prune"})
+		end
+	end
 end
 
 return test

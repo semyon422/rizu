@@ -78,7 +78,7 @@ function TestChartFactory:createChartplay(data)
 	local chartplay = Chartplay()
 	chartplay.id = data and (data.id or data.chartplay_id)
 	chartplay.user_id = data and data.user_id or 1
-	chartplay.compute_state = data and data.compute_state or 0
+	chartplay.compute_state = data and data.compute_state or "new"
 	chartplay.computed_at = data and data.computed_at or 0
 	chartplay.submitted_at = data and data.submitted_at or 0
 	chartplay.replay_hash = data and data.replay_hash or ("r" .. (chartplay.id or math.random(1000000)))

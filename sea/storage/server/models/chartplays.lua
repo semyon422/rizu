@@ -1,4 +1,5 @@
 local Gamemode = require("sea.chart.Gamemode")
+local ComputeState = require("sea.compute.ComputeState")
 local Chartplay = require("sea.chart.Chartplay")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
@@ -15,6 +16,7 @@ local chartplays = {}
 chartplays.metatable = Chartplay
 
 chartplays.types = {
+	compute_state = ComputeState,
 	nearest = "boolean",
 	pass = "boolean",
 	mode = Gamemode,

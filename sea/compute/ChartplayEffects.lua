@@ -96,9 +96,8 @@ function ChartplayEffects:apply(effect, chartplay)
 			self.user_activity_graph:recomputeUserActivity(chartplay.user_id)
 		end)
 	elseif effect.effect == "user_aggregates" then
-		self.transaction(function()
-			self.users_repo:updateUserSubmissionAggregates(chartplay.user_id)
-		end)
+		self.users_repo:updateUserSubmissionAggregates(chartplay.user_id)
+		self.users_repo:addChartplayUploadSize(chartplay.user_id, effect.replay_upload_size)
 	elseif effect.effect == "dan" then
 		local user = assert(self.users_repo:getUser(chartplay.user_id))
 		self.dans:submit(user, chartplay, chartplay, time)
@@ -132,14 +131,23 @@ function ChartplayEffects:process(id, time)
 	end
 
 	local ok, err = xpcall(function()
-		self:apply(effect, chartplay)
+		if effect.effect == "user_aggregates" then
+			self.transaction(function()
+				self:apply(effect, chartplay)
+				assert(self.repo:succeedEffect(effect, lease_owner, os.time()), "chartplay effect lease lost")
+			end)
+		else
+			self:apply(effect, chartplay)
+		end
 	end, debug.traceback)
 	if not ok then
 		local failure = ComputeFailure.transient("effect_failed", tostring(err))
 		assert(self.repo:retryEffect(effect, lease_owner, os.time(), failure, self.retry_delay))
 		return nil, failure
 	end
-	assert(self.repo:succeedEffect(effect, lease_owner, os.time()), "chartplay effect lease lost")
+	if effect.effect ~= "user_aggregates" then
+		assert(self.repo:succeedEffect(effect, lease_owner, os.time()), "chartplay effect lease lost")
+	end
 	return effect
 end
 

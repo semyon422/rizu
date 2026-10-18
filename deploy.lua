@@ -22,13 +22,24 @@ Environment:
   RIZU_COMPOSE           Compose command (default: docker compose)
   RIZU_HEALTH_ATTEMPTS   Health polling attempts (default: 30)
   RIZU_HEALTH_INTERVAL   Seconds between health checks (default: 2)
-  RIZU_DEPLOY_TEST_COMMAND  VDS test command (default: ./test)]])
+  RIZU_DEPLOY_TEST_COMMAND  VDS test command (default: ./test)
+  RIZU_DEPLOY_AUTO_ROLLBACK  Restore previous app on failure: 0 or 1 (default: 1)
+  RIZU_DEPLOY_BACKUP     Run scripts/backup before service changes: 0 or 1 (default: 0)]])
 end
 
 local function positiveInteger(name, default)
 	local value = tonumber(os.getenv(name) or default)
 	assert(value and value >= 1 and value % 1 == 0, name .. " must be a positive integer")
 	return value
+end
+
+---@param name string
+---@param default string
+---@return boolean
+local function environmentFlag(name, default)
+	local value = os.getenv(name) or default
+	assert(value == "0" or value == "1", name .. " must be 0 or 1")
+	return value == "1"
 end
 
 local command = args[1]
@@ -48,6 +59,8 @@ local deployment = Deployment(Shell(), {
 	compose_command = os.getenv("RIZU_COMPOSE") or "docker compose",
 	health_attempts = positiveInteger("RIZU_HEALTH_ATTEMPTS", "30"),
 	health_interval = positiveInteger("RIZU_HEALTH_INTERVAL", "2"),
+	auto_rollback = environmentFlag("RIZU_DEPLOY_AUTO_ROLLBACK", "1"),
+	backup_before_deploy = environmentFlag("RIZU_DEPLOY_BACKUP", "0"),
 })
 
 deployment.config.root = deployment:absolute(deployment.config.root)

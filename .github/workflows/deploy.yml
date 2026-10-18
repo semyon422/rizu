@@ -44,8 +44,30 @@ jobs:
             echo "DEPLOY_HOST and DEPLOY_USER production secrets must be configured" >&2
             exit 2
           fi
-          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd /home/semyon422/rizu && ./deploy.lua build-deploy '$REQUESTED_COMMIT'"
+          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" bash -s -- "$REQUESTED_COMMIT" <<'REMOTE'
+          set -euo pipefail
+          cd /home/semyon422/rizu
+          exec 9>.deploy.lock
+          flock --wait 7200 9
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git fetch --no-tags origin "$1"
+          git cat-file -e "$1^{commit}"
+          git checkout --detach "$1"
+          git submodule update --init --recursive
+          export RIZU_DEPLOY_LOCKED=1
+          export RIZU_DEPLOY_AUTO_ROLLBACK=0
+          export RIZU_DEPLOY_BACKUP=1
+          export RIZU_DEPLOY_TEST_COMMAND='set -e
+          for pattern in "^sea/" "^bancho/" "^rizu/library/" "^rizu/build/" "^deploy/" "^aqua/rdb/" "^chart/"; do
+            result=0
+            ./test "$pattern" >server-state/temp/deploy-tests.log 2>&1 || result=$?
+            cat server-state/temp/deploy-tests.log
+            test "$result" -eq 0
+            grep -q "^OK: [0-9]" server-state/temp/deploy-tests.log
+            ! grep -q "^FAIL:" server-state/temp/deploy-tests.log
+          done'
+          ./deploy.lua build-deploy "$1"
+          REMOTE
 
       - name: Verify public server
         run: curl --fail --show-error --silent --retry 5 --retry-delay 5 https://rizu.su/ >/dev/null

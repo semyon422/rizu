@@ -412,7 +412,7 @@ function UsersRepo:updateUserSubmissionAggregates(user_id)
 				WHERE user_id = ? AND compute_state = 1 GROUP BY hash, `index`, modifiers, rate, mode
 			)),
 			play_time = COALESCE((
-				SELECT SUM(chartdiffs.duration) FROM chartplays
+				SELECT SUM(1000.0 * chartdiffs.duration / chartdiffs.rate) FROM chartplays
 				INNER JOIN chartdiffs ON
 					chartplays.hash = chartdiffs.hash AND chartplays.`index` = chartdiffs.`index` AND
 					chartplays.modifiers = chartdiffs.modifiers AND chartplays.rate = chartdiffs.rate AND
@@ -421,11 +421,6 @@ function UsersRepo:updateUserSubmissionAggregates(user_id)
 			), 0),
 			chartfiles_upload_size = COALESCE((
 				SELECT SUM(size) FROM chartfiles WHERE creator_id = ?
-			), 0),
-			chartplays_upload_size = COALESCE((
-				SELECT SUM(compute_jobs.replay_upload_size) FROM compute_jobs
-				INNER JOIN chartplays ON chartplays.id = compute_jobs.chartplay_id
-				WHERE chartplays.user_id = ? AND chartplays.compute_state = 1
 			), 0)
 		WHERE id = ?
 	]], {
@@ -436,8 +431,17 @@ function UsersRepo:updateUserSubmissionAggregates(user_id)
 		user_id,
 		user_id,
 		user_id,
-		user_id,
 	})
+end
+
+-- Commit together with the corresponding user_aggregates effect completion.
+---@param user_id integer
+---@param size integer
+function UsersRepo:addChartplayUploadSize(user_id, size)
+	assert(size >= 0 and size % 1 == 0, "upload size must be a nonnegative integer")
+	self.models._orm.db:query([[
+		UPDATE users SET chartplays_upload_size = chartplays_upload_size + ? WHERE id = ?
+	]], {size, user_id})
 end
 
 ---@param reset_before boolean?

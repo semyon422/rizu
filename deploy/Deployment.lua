@@ -9,6 +9,8 @@ local ComputeVersion = require("sea.compute.ComputeVersion")
 ---@field compose_command string
 ---@field health_attempts integer
 ---@field health_interval integer
+---@field auto_rollback boolean
+---@field backup_before_deploy boolean
 
 ---@class deploy.ManifestArtifact
 ---@field path string
@@ -228,7 +230,7 @@ function Deployment:activateServer(candidate, previous)
 	if started and self:waitHealthy(candidate) then
 		return
 	end
-	if previous and previous ~= "" then
+	if self.config.auto_rollback and previous and previous ~= "" then
 		self:startOpenResty(previous)
 		assert(self:waitHealthy(previous), "candidate failed health check and previous release could not be restored")
 	else
@@ -342,6 +344,9 @@ function Deployment:deploy(commit_or_path)
 	self:verifyRelease(release_dir, manifest)
 	local previous = self:readLink(self.config.root .. "/current")
 	local candidate = self:stageServer(release_dir, manifest.commit)
+	if self.config.backup_before_deploy then
+		self.shell:execute("./scripts/backup")
+	end
 	self:ensureNats(candidate)
 	self:activateServer(candidate, previous)
 	self:recordActivation(candidate, previous)

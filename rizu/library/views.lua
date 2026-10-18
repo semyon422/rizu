@@ -141,7 +141,7 @@
 ---@class rizu.library.ChartplayList: rizu.library.Chartview
 ---@field chartplay_id integer
 ---@field user_id integer
----@field compute_state integer
+---@field compute_state sea.ComputeState
 ---@field computed_at integer
 ---@field submitted_at integer
 ---@field replay_hash string
@@ -158,7 +158,7 @@
 ---@class rizu.library.ChartplayComputable
 ---@field id integer
 ---@field user_id integer
----@field compute_state integer
+---@field compute_state sea.ComputeState
 ---@field computed_at integer
 ---@field submitted_at integer
 ---@field replay_hash string
