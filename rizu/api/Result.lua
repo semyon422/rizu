@@ -110,6 +110,14 @@ function Result:getAccuracy()
 	return source:getAccuracy(), source:getAccuracyString()
 end
 
+---The judging system's own score, osu!mania's 1,000,000 for example.
+---@return number score
+---@return string text The way the judging system writes it.
+function Result:getScore()
+	local source = assert(self.game.rhythm_engine.score_engine.scoreSource)
+	return source:getScore(), source:getScoreString()
+end
+
 ---How many notes got each judge, in the order of getJudging():getJudgeNames().
 ---@return integer[]
 function Result:getJudgeCounts()

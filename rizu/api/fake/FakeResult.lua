@@ -66,6 +66,7 @@ function FakeResult:getJudging()
 end
 
 function FakeResult:getAccuracy() return 0.9652, "96.52%" end
+function FakeResult:getScore() return 903714, "903714" end
 function FakeResult:getJudgeCounts() return self.judge_counts end
 function FakeResult:getMaxCombo() return 214, hit_count end
 function FakeResult:getNormalscoreText() return "21.00ms" end
