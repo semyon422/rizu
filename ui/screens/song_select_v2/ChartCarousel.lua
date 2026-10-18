@@ -405,12 +405,20 @@ function ChartCarousel:addChild(group, j, content_y, fade)
 		self.outline_child_color = {color[1], color[2], color[3]}
 	end
 
+	if cv.lamp then
+		local decoration = layer.decoration
+		local lamp = sprites.chart_sets_lamp
+		decoration:setColor(1, 1, 1, fade)
+		decoration:add(lamp, x + width - lamp:getWidth() - 16, y + (CHILD_HEIGHT - lamp:getHeight()) / 2)
+		decoration:setColor(1, 1, 1)
+	end
+
 	local first_font, second_font, third_font = layer.first:getFont(), layer.second:getFont(), layer.third:getFont()
 	local text_y = y + (CHILD_HEIGHT - second_font:getHeight()) / 2
 	layer.first:add(colored(color, fade, difficulty.value), x + DIFFICULTY_X, y + (CHILD_HEIGHT - first_font:getHeight()) / 2)
 	layer.second:add(colored(Colors.muted, fade, ChartGrid.fitText(second_font, mode, NAME_X - MODE_X - 8)),
 		x + MODE_X, text_y)
-	layer.third:add(colored(Colors.text, fade, ChartGrid.fitText(third_font, name, width - NAME_X - 16)),
+	layer.third:add(colored(Colors.text, fade, ChartGrid.fitText(third_font, name, width - NAME_X - (cv.lamp and sprites.chart_sets_lamp:getWidth() + 32 or 16))),
 		x + NAME_X, y + (CHILD_HEIGHT - third_font:getHeight()) / 2)
 end
 
