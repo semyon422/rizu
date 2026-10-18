@@ -148,7 +148,7 @@ function ScoreSystemFormatter:getGrade(accuracy)
 		return "D"
 	elseif name == "osuod" then
 		if accuracy == 1 then
-			return "X"
+			return "SS"
 		elseif accuracy > 0.95 then
 			return "S"
 		elseif accuracy > 0.9 then
