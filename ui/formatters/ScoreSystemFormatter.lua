@@ -24,6 +24,17 @@ local judge_colors = {
 }
 
 local grade_colors = {
+	sphere = {
+		SSSSS = {1, 1, 1, 1},
+		SSSS = {1, 1, 1, 1},
+		SSS = {1, 1, 1, 1},
+		SS = {0.6, 0.8, 1, 1},
+		S = {0.95, 0.796, 0.188, 1},
+		A = {0.07, 0.8, 0.56, 1},
+		B = {0.1, 0.39, 1, 1},
+		C = {1, 0.1, 0.7, 1},
+		D = fallback_grade_color,
+	},
 	osuod = {
 		SS = {0.6, 0.8, 1, 1},
 		S = {0.95, 0.796, 0.188, 1},
@@ -115,7 +126,27 @@ function ScoreSystemFormatter:getGrade(accuracy)
 	local timings = self.score_system.timings
 	local name = timings and timings.name
 
-	if name == "osuod" then
+	if name == "sphere" then
+		-- accuracy is the normalscore mean error in seconds, lower is better
+		if accuracy < 0.002 then
+			return "SSSSS"
+		elseif accuracy < 0.003 then
+			return "SSSS"
+		elseif accuracy < 0.005 then
+			return "SSS"
+		elseif accuracy < 0.008 then
+			return "SS"
+		elseif accuracy < 0.016 then
+			return "S"
+		elseif accuracy < 0.022 then
+			return "A"
+		elseif accuracy < 0.026 then
+			return "B"
+		elseif accuracy < 0.030 then
+			return "C"
+		end
+		return "D"
+	elseif name == "osuod" then
 		if accuracy == 1 then
 			return "X"
 		elseif accuracy > 0.95 then
