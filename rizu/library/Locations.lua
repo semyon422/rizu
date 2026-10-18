@@ -65,7 +65,7 @@ end
 
 ---@param location rizu.library.Location
 function Locations:unmountLocation(location)
-	if not self.mounted[location.id] then
+	if not self.mounted[location.id] or not location.path then
 		return
 	end
 	self.fs:unmount(location.path)
@@ -75,6 +75,10 @@ end
 ---@param location rizu.library.Location
 function Locations:mountLocation(location)
 	local path = location.path
+	if not path then
+		self.status[location.id] = "errored"
+		return
+	end
 	if location.is_relative then
 		self.status[location.id] = "direct access"
 		return
