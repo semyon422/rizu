@@ -8,6 +8,8 @@ local Settings = require("rizu.config.Settings")
 ---@field notes rizu.preview.NotesPreview?
 ---@field input_mode string?
 ---@field column_map integer[]
+---@field columns integer?
+---@field columns_order integer[]? The order column_map was made from.
 local NotesPreviewPlayer = class()
 
 ---@param settings rizu.config.Config
@@ -20,6 +22,18 @@ function NotesPreviewPlayer:new(settings, previewModel, replayBase)
 	self.column_map = {}
 	self.time = 0
 	self.rate = 1
+end
+
+---@param self rizu.preview.NotesPreviewPlayer
+local function updateColumnMap(self)
+	local columns = self.columns
+	local order = self.replayBase.columns_order
+	local map = {} ---@type integer[]
+	for i = 1, columns do
+		map[order and #order == columns and order[i] or i] = i
+	end
+	self.column_map = map
+	self.columns_order = order
 end
 
 ---@param chartview rizu.library.Chartview?
@@ -49,15 +63,15 @@ function NotesPreviewPlayer:setChartview(chartview)
 	end
 	self.notes = notes
 	self.input_mode = inputmode
-	local order = self.replayBase.columns_order
-	local map = {}
-	for i = 1, columns do
-		map[order and #order == columns and order[i] or i] = i
-	end
-	self.column_map = map
+	self.columns = columns
+	updateColumnMap(self)
 end
 
 function NotesPreviewPlayer:update()
+	-- The order is replaced, never changed in place, when the player swaps columns.
+	if self.notes and self.columns_order ~= self.replayBase.columns_order then
+		updateColumnMap(self)
+	end
 	local keys = Settings.keys.gameplay
 	self.rate = self.settings:getNumber(keys.speed)
 	if not self.settings:getBoolean(keys.scale_speed) then

@@ -108,8 +108,17 @@ end
 
 ---@type {[string]: sea.ColumnsOrderTransform}
 local transforms = {
-	mirror = function(c, i)
-		return c - i + 1
+	mirror = function(c, i, mode)
+		local a, b = 1, c
+		if mode == "left" then
+			b = math.floor(c / 2)
+		elseif mode == "right" then
+			a = math.ceil(c / 2) + 1
+		end
+		if i >= a and i <= b then
+			return a + b - i
+		end
+		return i
 	end,
 	shift = function(c, i, v)
 		return (i + v - 1) % c + 1
@@ -169,6 +178,10 @@ function ColumnsOrder:getName()
 	local inputmode = tostring(self.inputMode)
 	if self:equals(ColumnsOrder(inputmode):mirror()) then
 		return "mirror"
+	elseif self:equals(ColumnsOrder(inputmode):mirror("left")) then
+		return "mirror left"
+	elseif self:equals(ColumnsOrder(inputmode):mirror("right")) then
+		return "mirror right"
 	elseif self:equals(ColumnsOrder(inputmode):bracketswap()) then
 		return "bracketswap"
 	end
@@ -184,9 +197,10 @@ function ColumnsOrder:getName()
 	return "custom"
 end
 
+---@param mode "left"|"right"? Only that half, the middle column of an odd count stays.
 ---@return sea.ColumnsOrder
-function ColumnsOrder:mirror()
-	return self:transform(transforms.mirror)
+function ColumnsOrder:mirror(mode)
+	return self:transform(transforms.mirror, mode)
 end
 
 ---@param n integer

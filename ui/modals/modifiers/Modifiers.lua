@@ -1,5 +1,7 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Colors = require("ui.Colors")
+local ButtonRow = require("ui.views.form.ButtonRow")
+local ColumnOrder = require("ui.modals.column_order.ColumnOrder")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Form = require("ui.views.form.Form")
 local FormSelection = require("ui.views.form.FormSelection")
@@ -17,6 +19,7 @@ local Slider = require("ui.views.form.Slider")
 ---@field form ui.views.form.Form
 ---@field form_selection ui.views.form.FormSelection
 ---@field background gui.NineSliceUsage
+---@field on_edit_columns fun()
 ---@field private form_invalidated boolean
 local Modifiers = ModalView + {}
 
@@ -72,10 +75,12 @@ end
 ---@param play rizu.api.Play
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
-function Modifiers:new(play, on_close, localization)
+---@param on_edit_columns fun() Opens the column order modal.
+function Modifiers:new(play, on_close, localization, on_edit_columns)
 	ModalView.new(self)
 	self.localization = localization
 	self.play = play
+	self.on_edit_columns = on_edit_columns
 	self.form_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -169,6 +174,35 @@ function Modifiers:rebuildForm()
 			play:setToggle("taps_only", value)
 		end,
 	}))
+	if #play:getColumnOrder() > 0 then
+		local row ---@type ui.views.form.ButtonRow
+		local function summary()
+			return self.localization:get("song_select.column_order_summary",
+				{state = ColumnOrder.getStateText(play, self.localization)})
+		end
+		---@param f fun()
+		local function change(f)
+			return function()
+				f()
+				row:setLabel(summary())
+			end
+		end
+		row = self.form:add(ButtonRow({
+			label = summary(),
+			buttons = {
+				{text = self.localization:get("song_select.column_order_mirror"), on_click = change(function()
+					play:mirrorColumns()
+				end)},
+				{text = self.localization:get("song_select.column_order_random"), on_click = change(function()
+					play:randomizeColumns()
+				end)},
+				{text = self.localization:get("song_select.column_order_reset"), on_click = change(function()
+					play:setColumnOrder(nil)
+				end)},
+				{text = self.localization:get("song_select.column_order_edit"), on_click = self.on_edit_columns},
+			},
+		}))
+	end
 	local auto_timings = play:getToggle("auto_timings")
 	self.form:add(Checkbox({
 		text = self.localization:get("song_select.auto_timings"),

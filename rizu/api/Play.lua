@@ -3,6 +3,7 @@ local Events = require("rizu.api.Events")
 local Settings = require("rizu.config.Settings")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
+local ColumnsOrder = require("sea.chart.ColumnsOrder")
 
 --[[
 How the next play will go: the music speed, the mods, the mutators, how hits are judged, and starting it.
@@ -36,6 +37,17 @@ How the next play will go: the music speed, the mods, the mutators, how hits are
 ---| "quaver" # Quaver.
 ---| "bmsrank" # Lunatic Rave 2. Value: rank, 0 insane, 1 hard, 2 normal, 3 easy.
 ---| "iidx" # beatmania IIDX.
+
+---@alias rizu.api.Play.ColumnSide "left"|"right" Half of the keys; the middle one of an odd count stays.
+
+---@alias rizu.api.Play.ColumnOrderState
+---| "original"
+---| "mirror"
+---| "mirror_left"
+---| "mirror_right"
+---| "bracketswap"
+---| "shift"
+---| "custom"
 
 ---A mutator that changes the chart, one entry of getMutators(). The game's own table: read it, do not change it.
 ---@class rizu.api.Mutator
@@ -140,6 +152,59 @@ end
 function Play:getModCount()
 	local replay_base = self.game.replayBase
 	return (replay_base.const and 1 or 0) + (replay_base.tap_only and 1 or 0)
+end
+
+-- Column order. Moves the chart's columns to other keys. Only for the selected chart's key count.
+
+---Which chart column each key plays: order[2] == 3 means the second key plays the third column.
+---@return integer[] order Empty when no chart is selected.
+function Play:getColumnOrder()
+	local inputMode = self.game.modifierCoordinator.state.inputMode
+	local order = self.game.replayBase.columns_order
+	local columns = inputMode:getColumns()
+	local copy = {} ---@type integer[]
+	for i = 1, columns do
+		copy[i] = order and order[i] or i
+	end
+	return copy
+end
+
+---@param order integer[]? A permutation of 1..#getColumnOrder(). nil puts every column back.
+function Play:setColumnOrder(order)
+	self.game.replayBase.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, order):export()
+	modsChanged(self)
+end
+
+---@param side rizu.api.Play.ColumnSide? nil for every column.
+function Play:mirrorColumns(side)
+	local replay_base = self.game.replayBase
+	replay_base.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, replay_base.columns_order)
+		:mirror(side):export()
+	modsChanged(self)
+end
+
+---@param side rizu.api.Play.ColumnSide? nil for every column.
+function Play:randomizeColumns(side)
+	local replay_base = self.game.replayBase
+	replay_base.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, replay_base.columns_order)
+		:random(side):export()
+	modsChanged(self)
+end
+
+---What the order looks like. A shuffled order and one swapped by hand are both "custom".
+---@return rizu.api.Play.ColumnOrderState state
+---@return integer? shift How many keys to the right the columns moved, for "shift".
+function Play:getColumnOrderState()
+	local name = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, self.game.replayBase.columns_order)
+		:getName()
+	if not name then
+		return "original"
+	end
+	local shift = name:match("^shift (%-?%d+)$")
+	if shift then
+		return "shift", tonumber(shift)
+	end
+	return (name:gsub(" ", "_")) --[[@as rizu.api.Play.ColumnOrderState]]
 end
 
 -- Mutators. They change the chart before it is played and are applied in the order of the list.

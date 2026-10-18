@@ -1,4 +1,5 @@
 local Events = require("rizu.api.Events")
+local ColumnsOrder = require("sea.chart.ColumnsOrder")
 
 ---`rizu.api.Play` that remembers what was set and starts nothing.
 ---@class rizu.api.fake.FakePlay : rizu.api.Events
@@ -17,6 +18,8 @@ function FakePlay:new()
 	self.osu_score_version = 1
 	self.mutators = {} ---@type {name: string, value: integer?}[]
 	self.mutator_position = 1
+	self.input_mode = "7key"
+	self.columns_order = nil ---@type integer[]?
 end
 
 function FakePlay:getRate() return self.rate end
@@ -57,6 +60,37 @@ end
 
 function FakePlay:getModCount()
 	return (self.toggles.constant_scroll and 1 or 0) + (self.toggles.taps_only and 1 or 0)
+end
+
+function FakePlay:getColumnOrder()
+	local order = {} ---@type integer[]
+	for i = 1, ColumnsOrder(self.input_mode).inputMode:getColumns() do
+		order[i] = self.columns_order and self.columns_order[i] or i
+	end
+	return order
+end
+
+function FakePlay:setColumnOrder(order)
+	self.columns_order = ColumnsOrder(self.input_mode, order):export()
+	self:emit("mods_changed")
+end
+
+function FakePlay:mirrorColumns(side)
+	self.columns_order = ColumnsOrder(self.input_mode, self.columns_order):mirror(side):export()
+	self:emit("mods_changed")
+end
+
+function FakePlay:randomizeColumns(side)
+	self.columns_order = ColumnsOrder(self.input_mode, self.columns_order):random(side):export()
+	self:emit("mods_changed")
+end
+
+function FakePlay:getColumnOrderState()
+	local name = ColumnsOrder(self.input_mode, self.columns_order):getName()
+	if not name then return "original" end
+	local shift = name:match("^shift (%-?%d+)$")
+	if shift then return "shift", tonumber(shift) end
+	return (name:gsub(" ", "_"))
 end
 
 local available = {"Mirror", "Random", "Shift", "NoLongNote"}

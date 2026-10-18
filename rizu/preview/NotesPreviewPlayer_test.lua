@@ -25,6 +25,12 @@ function test.selection_settings_and_clear(t)
 	scale = true
 	player:update()
 	t:eq(player.rate, 2)
+	player.replayBase.columns_order = {2, 1, 3}
+	player:update()
+	t:tdeq(player.column_map, {2, 1, 3})
+	player.replayBase.columns_order = nil
+	player:update()
+	t:tdeq(player.column_map, {1, 2, 3})
 	enabled = false
 	player:setChartview(cv)
 	t:eq(player.notes, nil)

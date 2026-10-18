@@ -11,6 +11,7 @@ local Config = require("ui.modals.config.Config")
 local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
+local ColumnOrder = require("ui.modals.column_order.ColumnOrder")
 local NoteSkins = require("ui.modals.note_skins.NoteSkins")
 local Rescore = require("ui.modals.rescore.Rescore")
 local Filters = require("ui.modals.filters.Filters")
@@ -30,6 +31,7 @@ local UiActions = require("ui.UiActions")
 ---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
 ---@field input ui.modals.input.Input
 ---@field modifiers ui.modals.modifiers.Modifiers
+---@field column_order ui.modals.column_order.ColumnOrder
 ---@field note_skins ui.modals.note_skins.NoteSkins
 ---@field rescore ui.modals.rescore.Rescore
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
@@ -98,7 +100,10 @@ function ModalManager:new(ui, popup_container)
 	self.input = self:addModal(Input(ui.api.input, function() self:hideModal(self.input) end, localization))
 	ui.api.charts:on("selection_changed", function() self.input:receive() end)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
-		function() self:hideModal(self.modifiers) end, localization))
+		function() self:hideModal(self.modifiers) end, localization,
+		function() self:showModal(self.column_order) end))
+	self.column_order = self:addModal(ColumnOrder(ui.api.play,
+		function() self:showModal(self.modifiers) end, localization))
 	self.rescore = self:addModal(Rescore(ui.api.result,
 		function() ui.result:updateInfo() end,
 		function() self:hideModal(self.rescore) end, localization))

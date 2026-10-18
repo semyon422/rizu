@@ -17,6 +17,16 @@ function test.mirror(t)
 end
 
 ---@param t testing.T
+function test.mirror_half(t)
+	local co = ColumnsOrder("7key")
+	t:tdeq(co:mirror("left"):export(), {3, 2, 1, 4, 5, 6, 7})
+	t:eq(co:getName(), "mirror left")
+	co = ColumnsOrder("7key")
+	t:tdeq(co:mirror("right"):export(), {1, 2, 3, 4, 7, 6, 5})
+	t:eq(co:getName(), "mirror right")
+end
+
+---@param t testing.T
 function test.shift(t)
 	local co = ColumnsOrder("4key2fx")
 	t:tdeq(co:shift(1):export(), {4, 1, 2, 3, 6, 5})
