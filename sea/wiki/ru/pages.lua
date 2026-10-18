@@ -15,7 +15,6 @@ local t = {
 			pages = {
 				{ name = "Добавление карт/музыки", filename = "adding_charts" },
 				{ name = "Добавление скинов", filename = "adding_skins" },
-				{ name = "Добавление плагинов", filename = "adding_plugins" },
 				{ name = "Фильтры карт", filename = "chart_filters" },
 			}
 		}

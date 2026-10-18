@@ -15,7 +15,6 @@ local t = {
             pages = {
                 { name = "添加歌曲", filename = "adding_charts" },
                 { name = "添加皮肤", filename = "adding_skins" },
-                { name = "添加插件", filename = "adding_plugins" }
             }
         }
     }

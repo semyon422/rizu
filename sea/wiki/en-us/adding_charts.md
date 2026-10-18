@@ -43,13 +43,14 @@ songs_folder/
 This method of adding charts requires a root folder, in the examples above it is `songs_folder`, in the case of **osu!**, **Quaver** and **Etterna** it will be the `Songs` folder.
 
 1. Start <%= brand.name %>.
-2. On the bottom left of the screen, click the folder icon.
-3. You need to create a different location for each folder. Click on the `create location` button
-4. On the right side of the menu you will be able to rename the location. Give it a suitable name.
-5. Next, drag the folder with charts into the game window. This way the game will get the path to this folder.
-6. Click `update` and wait for the charts to be added.
+2. Click the `Locations` button on the bottom of the screen.
+3. Click `Add location` on the bottom right side.
+4. Specify the name in the textbox.
+5. Click `Choose folder` to open a file dialog and select the folder with charts. You can also enter the path manually.
+6. Click `Add location`.
+7. Click `Update cache` on the newly appeared row in the list.
 
-> After adding charts, you will need to click on the `collections` button in the bottom right corner of the screen and in the same place click on the `notecharts` button to update the list of charts. This will be fixed in the new version of the UI. This also applies to the following method.
+> Chart caching is asynchronous, you can play the game while it caches. In song select there will be an `Add new charts` button that updates the list with newly cached charts.
 
 ## Adding new charts to the <%= brand.name %> folder
 <%= brand.name %> has its own charts folder where you can put charts of any format. This folder is located at the path: `userdata/charts/` relative to the root of the game. You should add new charts in subfolders.
@@ -57,8 +58,14 @@ This method of adding charts requires a root folder, in the examples above it is
 1. Go to `userdata/charts/`.
 2. Create a folder in which you will put the charts. For example, the path would be as follows: `userdata/charts/cool_songs/`.
 3. In this folder put charts or packs (subfolders with charts).
-4. Go into the game and click on the folder icon in the bottom left corner of the screen. 
-5. Make sure the `<%= brand.location_name %>` location is selected. Click on the `update` button on the right side menu.
+4. Go into the game and click the `Locations` button on the bottom of the screen.
+5. Make sure the `<%= brand.location_name %>` location is in the list. Click `Update cache` on its row, then click `Add new charts` in song select.
+
+## Downloading charts in the game (DLC)
+You can download **osu!** charts and **Etterna**/**StepMania** packs right in the game.
+
+1. In the main menu, click the `DLC` button on the bottom.
+2. Pick the chart or pack you want and download it.
 
 ## Adding `.osz` charts 
 1. Drag `.osz` into the game window.
