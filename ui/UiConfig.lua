@@ -29,6 +29,7 @@ local keys = {
 	gameplay_play_speed_increase_bindings = "gameplay_play_speed_increase_bindings",
 	select_random_bindings = "select_random_bindings",
 	select_random_undo_bindings = "select_random_undo_bindings",
+	select_autoplay_bindings = "select_autoplay_bindings",
 	select_time_rate_decrease_bindings = "select_time_rate_decrease_bindings",
 	select_time_rate_increase_bindings = "select_time_rate_increase_bindings",
 	global_screenshot_bindings = "global_screenshot_bindings",
@@ -76,6 +77,7 @@ function UiConfig:new(fs, path)
 	self:setDefaultKeyBindings(keys.gameplay_play_speed_increase_bindings, {{key = "f4"}})
 	self:setDefaultKeyBindings(keys.select_random_bindings, {{key = "f2"}})
 	self:setDefaultKeyBindings(keys.select_random_undo_bindings, {{key = "f2", shift = true}})
+	self:setDefaultKeyBindings(keys.select_autoplay_bindings, {{key = "return", control = true}, {key = "kpenter", control = true}})
 	self:setDefaultKeyBindings(keys.select_time_rate_decrease_bindings, {{key = "["}})
 	self:setDefaultKeyBindings(keys.select_time_rate_increase_bindings, {{key = "]"}})
 	self:setDefaultKeyBindings(keys.global_screenshot_bindings, {{key = "f12"}})

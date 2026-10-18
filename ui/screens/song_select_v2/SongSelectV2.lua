@@ -297,6 +297,8 @@ function SongSelectV2:onHandleInputs(inputs)
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif charts:canPlaySelectedChart() and inputs:consumeActionJustPressed(UiActions.accept) then
 		self.ui:loadSelectedChart(false, false, true)
+	elseif charts:canPlaySelectedChart() and inputs:consumeActionJustPressed(UiActions.select_autoplay) then
+		self.ui:loadSelectedChart(true, false, true)
 	end
 end
 
