@@ -25,6 +25,8 @@ Native Mode=1 decoding stores Taiko objects as ordinary notes and uses `1taiko` 
 
 ## Invariants
 
+- Shared osu! timing decoding accepts only finite positive beat lengths as tempos and finite negative beat lengths as inherited velocity points; zero and non-finite values are ignored. `Barlines` also skips non-positive or non-finite measure lengths for direct callers, so malformed timing points cannot stall library scanning.
+
 - Geometry and checkpoint generation are independent of rendering and frame rate.
 - Checkpoint lists are chronological and capped at 16384 entries per slider before allocation.
 - Old circle-only replay files retain their circle semantics; new attempts use the tracking-versioned diagnostic envelope. Stacking shifts only runtime copies, not decoded/refchart source geometry.

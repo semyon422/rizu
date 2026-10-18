@@ -14,9 +14,9 @@ function Barlines:generate(tempo_points, lastTime)
 		return {}
 	end
 	local start = tempo_points[1].offset
-	if start > 0 then
-		local measure_length = tempo_points[1].beatLength * tempo_points[1].signature
-		start = start - math.floor(start / measure_length) * measure_length
+	local first_measure_length = tempo_points[1].beatLength * tempo_points[1].signature
+	if start > 0 and first_measure_length > 0 and first_measure_length < math.huge then
+		start = start - math.floor(start / first_measure_length) * first_measure_length
 	end
 
 	---@type number[]
@@ -34,6 +34,10 @@ function Barlines:generate(tempo_points, lastTime)
 		end
 
 		local measure_length = p.beatLength * p.signature
+		-- Guard direct callers as well as the osu decoder.
+		if measure_length <= 0 or measure_length == math.huge or measure_length ~= measure_length then
+			goto continue
+		end
 		if p.omitFirstBarLine then
 			beatTime = beatTime + measure_length
 		end
@@ -49,6 +53,7 @@ function Barlines:generate(tempo_points, lastTime)
 				break
 			end
 		end
+		::continue::
 	end
 	return barlines
 end

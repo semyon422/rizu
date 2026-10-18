@@ -62,10 +62,11 @@ end
 function Osu:decodeTimingPoints()
 	local points = self.rawOsu.TimingPoints
 	for _, p in ipairs(points) do
-		p.timingChange = p.beatLength >= 0  -- real timingChange
+		-- Only finite positive beat lengths define tempos.
+		p.timingChange = p.beatLength > 0 and p.beatLength < math.huge
 	end
 
-	---@type {[number]: osu.FilteredPoint}
+	---@type {[number]: chart.osu.FilteredPoint}
 	local filtered_points = {}
 
 	---@type {[number]: boolean}, {[number]: boolean}
@@ -80,14 +81,14 @@ function Osu:decodeTimingPoints()
 			filtered_points[offset].beatLength = p.beatLength
 			filtered_points[offset].signature = math.max(1, math.abs(p.timeSignature))
 			filtered_points[offset].omitFirstBarLine = p.omitFirstBarLine
-		elseif not p.timingChange and not green_points[offset] then
+		elseif p.beatLength < 0 and p.beatLength > -math.huge and not green_points[offset] then
 			green_points[offset] = true
 			filtered_points[offset] = filtered_points[offset] or {offset = offset}
 			filtered_points[offset].velocity = math.min(math.max(0.1, math.abs(-100 / p.beatLength)), 10)
 		end
 	end
 
-	---@type osu.FilteredPoint[]
+	---@type chart.osu.FilteredPoint[]
 	local tempo_points = {}
 	for _, p in pairs(filtered_points) do
 		if p.beatLength then

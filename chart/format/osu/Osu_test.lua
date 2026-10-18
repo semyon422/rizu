@@ -28,6 +28,7 @@ CircleSize:4
 
 test_chart = test_chart:gsub("\n", "\r\n")
 
+---@param t testing.T
 function test.basic(t)
 	local raw_osu = RawOsu()
 	local osu = Osu(raw_osu)
@@ -47,6 +48,25 @@ function test.basic(t)
 	t:eq(#osu.protoNotes, 2)
 	t:eq(osu.protoNotes[1].column, 3)
 	t:eq(osu.protoNotes[2].column, 1)
+end
+
+---@param t testing.T
+function test.invalid_beat_lengths(t)
+	local raw_osu = RawOsu()
+	raw_osu:decode(test_chart)
+	local osu = Osu(raw_osu)
+	for i, beat_length in ipairs({0, math.huge, -math.huge, 0 / 0}) do
+		table.insert(raw_osu.TimingPoints, {
+			offset = 3000 + i,
+			beatLength = beat_length,
+			timeSignature = 4,
+		})
+	end
+	osu:decode()
+	t:eq(#osu.protoTempos, 2)
+	t:eq(#osu.protoVelocities, 3)
+	t:eq(osu.protoTempos[1].tempo, 120)
+	t:eq(osu.protoVelocities[2].velocity, 0.5)
 end
 
 return test
