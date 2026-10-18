@@ -12,7 +12,6 @@ local Settings = require("rizu.config.Settings")
 ---@field onlineScoreCooldownActive boolean
 ---@field pendingOnlineScoreChartview rizu.library.LocatedChartview?
 ---@field pendingOnlineScoreGeneration integer?
----@field chartviewLoaded boolean
 ---@field scoresLoading boolean
 ---@field replayBaseApplier rizu.select.ISelectionReplayBaseApplier
 local ScoreSelector = class()
@@ -46,7 +45,6 @@ function ScoreSelector:new(configModel, settings, library, onlineModel, replayBa
 	self.onlineScoreCooldownActive = false
 	self.pendingOnlineScoreChartview = nil
 	self.pendingOnlineScoreGeneration = nil
-	self.chartviewLoaded = false
 	self.scoresLoading = false
 end
 
@@ -81,23 +79,15 @@ function ScoreSelector:receive(event)
 
 	if event.type == "chartview_changed" then
 		self:setChart(event.chartview)
-	elseif event.type == "selection_changed" and event.level == 2 then
-		self:setChart(self.chartview)
-	elseif event.type == "chartmeta_found" or event.type == "selected_set_changed" then
-		self:setChart(self.chartview)
 	end
 end
 
 ---@param chartview rizu.library.LocatedChartview?
 function ScoreSelector:setChart(chartview)
-	-- Chartviews are first announced without their loaded key. The same table
-	-- may later be populated in place, so table identity alone cannot tell us
-	-- that it was already loaded.
-	if chartview == self.chartview and self.chartviewLoaded then
+	if chartview == self.chartview then
 		return
 	end
 	self.chartview = chartview
-	self.chartviewLoaded = chartview ~= nil and chartview.hash ~= nil
 	self.chartplay = nil
 
 	if not chartview then

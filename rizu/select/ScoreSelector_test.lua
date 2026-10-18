@@ -319,7 +319,6 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 	local replayBase = ReplayBase()
 	local selector = createSelector("chartmetas", replayBase)
 	selector.settings:setChoice(Settings.keys.select.score_source, "online")
-	selector.chartview = {hash = "selected", index = 1}
 
 	---@type string[]
 	local updated_hashes = {}
@@ -332,7 +331,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 
 	local returned = false
 	coroutine.wrap(function()
-		selector:receive({type = "selected_set_changed"})
+		selector:receive({type = "chartview_changed", chartview = {hash = "selected", index = 1}})
 		returned = true
 	end)()
 

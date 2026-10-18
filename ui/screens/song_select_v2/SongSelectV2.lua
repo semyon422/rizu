@@ -216,7 +216,7 @@ function SongSelectV2:enter()
 		api.play:on("mods_changed", updateFooter),
 		api.play:on("rate_changed", function()
 			local chart = api.charts:getSelectedChart()
-			if chart and chart.hash then
+			if chart then
 				self.chartview_formatter:setTimeRate(api.play:getRate())
 				self.chart_browser.chart_info:bind(self.chartview_formatter)
 			end
@@ -262,7 +262,7 @@ end
 function SongSelectV2:bindChartview(chartview)
 	self.chartview_formatter:setChartview(chartview)
 	self.chartview_formatter:setTimeRate(self.ui.api.play:getRate())
-	if chartview and chartview.hash then
+	if chartview then
 		self.selected_song_panel:bind(self.chartview_formatter)
 		self.chart_browser.chart_info:bind(self.chartview_formatter)
 	end

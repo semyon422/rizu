@@ -26,12 +26,6 @@ function SelectionCoordinator:new(
 	self.backgroundModel = backgroundModel
 	self.previewModel = previewModel
 
-	self.chartSelector.state:onChanged(function(event)
-		if event.type == "selection_changed" and event.level == 2 then
-			self.scoreSelector:setChart(self.chartSelector.chartview)
-		end
-	end)
-
 	self.chartSelector:onChanged(self.scoreSelector)
 	self.chartSelector:onChanged(function(event)
 		if event.type == "chartview_changed" and self.chartSelector:isPlayableChartview(event.chartview) then
