@@ -15,6 +15,7 @@ local test = {}
 ---@class rizu.select.TestScoreStore
 ---@field items rizu.select.TestChartplay[]?
 ---@field clear fun(self: rizu.select.TestScoreStore)?
+---@field beginLoading fun(self: rizu.select.TestScoreStore, request_id: integer)?
 ---@field updateItems fun(self: rizu.select.TestScoreStore, chartview: table, scope: rizu.select.ScoreScope?, generation: integer)?
 
 ---@class rizu.select.TestReplayBaseApplier
@@ -250,6 +251,7 @@ function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart
 	local updated_hashes = {}
 	selector.store = {
 		clear = function() end,
+		beginLoading = function() end,
 		updateItems = function(_, chartview)
 			table.insert(updated_hashes, chartview.hash)
 		end,
@@ -291,6 +293,7 @@ function test.online_missing_chart_key_does_not_start_throttle(t)
 	local updated_hashes = {}
 	selector.store = {
 		clear = function() end,
+		beginLoading = function() end,
 		updateItems = function(_, chartview)
 			table.insert(updated_hashes, chartview.hash)
 		end,
@@ -324,6 +327,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 	local updated_hashes = {}
 	selector.store = {
 		clear = function() end,
+		beginLoading = function() end,
 		updateItems = function(_, chartview)
 			table.insert(updated_hashes, chartview.hash)
 		end,
@@ -331,6 +335,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 
 	local returned = false
 	coroutine.wrap(function()
+		---@diagnostic disable-next-line: missing-fields
 		selector:receive({type = "chartview_changed", chartview = {hash = "selected", index = 1}})
 		returned = true
 	end)()
