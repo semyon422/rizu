@@ -19,7 +19,10 @@ function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delet
 	self:setSize(width, 100)
 	self:add(Panel({color = Colors.panel, line_color = Colors.outline})):anchorFill(0, 0, 0, 0)
 
-	local name = self:add(Label({font_name = "bold", font_size = 24, text = location.name}))
+	local errored = ui.api.library:getLocationInfo(location).status == "errored"
+	local name = self:add(Label({
+		font_name = "bold", font_size = 24, text = location.name, color = errored and Colors.danger or nil,
+	}))
 	name:setPosition(24, 20):setSize(width - 540, 30)
 	-- A remote location is known by where its charts come from, not by the folder they are downloaded to.
 	local path = self:add(Label({

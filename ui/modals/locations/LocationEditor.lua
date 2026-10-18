@@ -85,9 +85,9 @@ function LocationEditor:open(location)
 	if location then
 		self.title:setText(self.ui.localization:get("locations.edit"))
 		self.subtitle:setText(self.ui.localization:get("locations.edit_hint"))
-		self.name_input:setText(location.name)
+		self.name_input:setText(location.name or "")
 		local library = self.ui.api.library
-		self.path_input:setText(library:getLocationPath(location))
+		self.path_input:setText(library:getLocationPath(location) or "")
 		self.save_button.text = self.ui.localization:get("locations.save_changes")
 		self.save_button:setVariant("success")
 		local info = library:getLocationInfo(location)
