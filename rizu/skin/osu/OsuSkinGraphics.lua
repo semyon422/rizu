@@ -277,9 +277,10 @@ end
 ---@param image_name string?
 ---@param fallback_name string?
 ---@param group string?
+---@param skin_only boolean? ignore the bundled fallback skin
 ---@return rizu.skin.osu.OsuSkinGraphics.Image[]
-function OsuSkinGraphics:getFrames(image_name, fallback_name, group)
-	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
+function OsuSkinGraphics:getFrames(image_name, fallback_name, group, skin_only)
+	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "") .. (skin_only and "\0skin" or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
 	---@type rizu.skin.osu.OsuSkinGraphics.Image[]
@@ -292,7 +293,7 @@ function OsuSkinGraphics:getFrames(image_name, fallback_name, group)
 		local image = path and self:getFrame(path, group) or nil
 		if image then frames[1] = image end
 	end
-	for _, file_map in ipairs({self.file_map, self.fallback_file_map}) do
+	for _, file_map in ipairs(skin_only and {self.file_map} or {self.file_map, self.fallback_file_map}) do
 		load_name(image_name, file_map)
 		if #frames == 0 and fallback_name ~= image_name then load_name(fallback_name, file_map) end
 		if #frames > 0 then break end
@@ -304,9 +305,10 @@ end
 ---@param image_name string?
 ---@param fallback_name string?
 ---@param group string?
+---@param skin_only boolean? ignore the bundled fallback skin
 ---@return rizu.skin.osu.OsuSkinGraphics.Image[]
-function OsuSkinGraphics:getAnimationFrames(image_name, fallback_name, group)
-	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "")
+function OsuSkinGraphics:getAnimationFrames(image_name, fallback_name, group, skin_only)
+	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "") .. (skin_only and "\0skin" or "")
 	local cached = self.animation_cache[key]
 	if cached then return cached end
 	---@param name string?
@@ -330,7 +332,7 @@ function OsuSkinGraphics:getAnimationFrames(image_name, fallback_name, group)
 		return frames
 	end
 	local frames = {}
-	for _, file_map in ipairs({self.file_map, self.fallback_file_map}) do
+	for _, file_map in ipairs(skin_only and {self.file_map} or {self.file_map, self.fallback_file_map}) do
 		frames = load_animation(image_name, file_map)
 		if #frames == 0 and fallback_name ~= image_name then frames = load_animation(fallback_name, file_map) end
 		if #frames > 0 then break end

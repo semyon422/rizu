@@ -276,6 +276,19 @@ function test.preview_long_note_draws_hold_head_body_and_tail(t)
 	if not ok then error(err) end
 end
 
+function test.missing_tail_falls_back_to_head_not_plain_note(t)
+	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local head = {getDimensions = function() return 20, 20 end}
+	local plain = {getDimensions = function() return 20, 20 end}
+	renderer.skin_graphics = {
+		getFrames = function(_, name)
+			local image = name == "mania-note1H" and head or name == "mania-note1" and plain
+			return image and {image} or {}
+		end,
+	}
+	t:eq(renderer:getColumnFrames(0, "1", "T")[1], head)
+end
+
 function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
 	local images = {

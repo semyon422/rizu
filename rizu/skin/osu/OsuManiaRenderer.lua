@@ -1212,27 +1212,31 @@ end
 function OsuManiaRenderer:findColumnFrames(column, suffix, postfix)
 	local graphics = self.skin_graphics
 	local animated = true
+	-- osu! has no bundled hold tail, so the tail never comes from the fallback skin.
+	local skin_only = postfix == "T"
 	local function find(name)
 		if not name then return EMPTY_FRAMES end
 		if animated and graphics.getAnimationFrames then
-			return graphics:getAnimationFrames(name, nil, "playfield")
+			return graphics:getAnimationFrames(name, nil, "playfield", skin_only)
 		end
-		return graphics:getFrames(name, nil, "playfield")
+		return graphics:getFrames(name, nil, "playfield", skin_only)
 	end
 
 	local frames = find(get_section_value(self.section, "NoteImage" .. column .. postfix))
 	if #frames > 0 then return frames end
-	if postfix == "H" or postfix == "T" then
-		frames = find(get_section_value(self.section, "NoteImage" .. column .. "H"))
-		if #frames > 0 then return frames end
+	if postfix == "H" then
 		frames = find(get_section_value(self.section, "NoteImage" .. column))
 		if #frames > 0 then return frames end
 	end
 
 	frames = find("mania-note" .. suffix .. postfix)
 	if #frames > 0 then return frames end
-	if postfix == "H" or postfix == "T" then
+	if postfix == "H" then
 		return find("mania-note" .. suffix)
+	end
+	-- osu! falls back to the head texture (drawn flipped) when the tail is missing.
+	if postfix == "T" then
+		return self:getColumnFrames(column, suffix, "H")
 	end
 	return EMPTY_FRAMES
 end
@@ -1467,7 +1471,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 			item.body_frame = long_note and self:getNoteBodyFrame(note, #self:getColumnFrames(column - 1,
 				self:getColumnSuffix(column - 1), "L")) or 1
 			item.head_visible = head_visible
-			item.mine = note.linked_note:getType() == "mine"
+			item.mine = note.linked_note ~= nil and note.linked_note:getType() == "mine"
 		end
 	end
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
