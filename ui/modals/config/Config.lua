@@ -13,6 +13,7 @@ local ScrollView = require("gui.ScrollView")
 local SettingsFilter = require("ui.modals.config.SettingsFilter")
 local SectionItem = require("ui.modals.config.SectionItem")
 local Textbox = require("ui.views.Textbox")
+local UiActions = require("ui.UiActions")
 local AudioSection = require("ui.modals.config.sections.Audio")
 local BindingsSection = require("ui.modals.config.sections.Bindings")
 local GameplaySection = require("ui.modals.config.sections.Gameplay")
@@ -262,6 +263,14 @@ end
 function Config:update(dt)
 	if self.settings_invalidated then
 		self:rebuildSettings()
+	end
+end
+
+---@param inputs gui.Inputs
+function Config:onHandleInputs(inputs)
+	-- Not while a textbox or a key binding capture has the keyboard.
+	if not inputs.keyboard_focus and inputs:consumeActionJustPressed(UiActions.focus_search) then
+		inputs:setKeyboardFocus(self.search, {control = false, shift = false, alt = false, super = false})
 	end
 end
 

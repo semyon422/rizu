@@ -287,6 +287,9 @@ function SongSelectV2:onHandleInputs(inputs)
 		charts:selectRandomSet()
 	elseif inputs:consumeActionJustPressed(UiActions.select_random_undo) then
 		charts:undoRandomSet()
+	elseif not inputs.keyboard_focus and inputs:consumeActionJustPressed(UiActions.focus_search) then
+		-- The "/" text input was dispatched before this, so it does not reach the search.
+		inputs:setKeyboardFocus(self.library_toolbar.search, {control = false, shift = false, alt = false, super = false})
 	elseif inputs:consumeActionJustPressed(UiActions.open_modifiers) then
 		self.ui.modal_manager:attachModifiers()
 	elseif inputs:consumeActionJustPressed(UiActions.select_time_rate_decrease) then
