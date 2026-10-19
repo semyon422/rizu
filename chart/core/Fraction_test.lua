@@ -84,12 +84,10 @@ function test.basic(t)
 	assert(("%p"):format(Fraction(99, 101)) == ("%p"):format(Fraction(100, 101) - Fraction(1, 101)))
 	collectgarbage("restart")
 
-	local f = Fraction(99, 101)
-	local p = ("%p"):format(f)
-	f = nil
+	local weak = setmetatable({Fraction(99, 101)}, {__mode = "v"})
 	collectgarbage("collect")
 	collectgarbage("collect")
-	assert(p ~= ("%p"):format(Fraction(99, 101)))
+	assert(weak[1] == nil)
 
 	t:eq(Fraction(1.5, 16, false), Fraction(3, 2))
 	t:eq(Fraction(0.5000001, 16, false), Fraction(1, 2))
