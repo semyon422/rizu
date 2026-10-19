@@ -11,12 +11,14 @@ local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
+local ScrollView = require("gui.ScrollView")
 local Slider = require("ui.views.form.Slider")
 
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
 ---@field play rizu.api.Play
 ---@field form ui.views.form.Form
+---@field scroll_view gui.ScrollView
 ---@field form_selection ui.views.form.FormSelection
 ---@field background gui.NineSliceUsage
 ---@field on_edit_columns fun()
@@ -24,10 +26,11 @@ local Slider = require("ui.views.form.Slider")
 local Modifiers = ModalView + {}
 
 local MODAL_WIDTH = 700
-local MODAL_HEIGHT = 700
+local MODAL_HEIGHT = 800
 local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 112
+local FORM_HEIGHT = MODAL_HEIGHT - FORM_Y - 92
 
 local TIMING_SYSTEM_LABELS = {
 	sphere = "Rizu",
@@ -108,10 +111,11 @@ function Modifiers:new(play, on_close, localization, on_edit_columns)
 		self.localization:get("song_select.modifiers_subtitle")))
 	self:add(ModalFooter(on_close, self.localization:get("settings.close")))
 
-	self.form = Form({direction = "column", gap = 12})
-	self.form:setPosition(FORM_X, FORM_Y)
-	self:add(self.form)
-	self.form_selection = self:add(FormSelection(self.form))
+	-- The list spans the modal so the selection marker left of the rows is not clipped.
+	self.form = Form({direction = "column", gap = 12, padding = {FORM_X, 8, 0, 0}})
+	self.scroll_view = self:add(ScrollView(self.form))
+	self.scroll_view:anchorFixed(0, FORM_Y, MODAL_WIDTH, FORM_HEIGHT)
+	self.form_selection = self.scroll_view:add(FormSelection(self.form))
 	self:rebuildForm()
 end
 
