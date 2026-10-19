@@ -8,6 +8,7 @@ local t = {
 			pages = {
 				{ name = "Установка", filename = "installation" },
 				{ name = "Помощь", filename = "help_center" },
+				{ name = "Подключение из osu!", filename = "osu_connect" },
 			}
 		},
 		{

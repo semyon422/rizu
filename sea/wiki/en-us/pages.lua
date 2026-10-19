@@ -7,7 +7,8 @@ local t = {
 			name = "Getting started",
 			pages = {
 				{ name = "Installation", filename = "installation" },
-				{ name = "Help center", filename = "help_center" }
+				{ name = "Help center", filename = "help_center" },
+				{ name = "Connecting from osu!", filename = "osu_connect" }
 			}
 		},
 		{

@@ -8,7 +8,7 @@
 					<div class="level welcome__buttons-level">
 						<div class="level-item buttons are-medium">
 							<a href="/download"><button class="button is-rounded is-link">Download <%= brand.name %></button></a>
-							<a href=""><button class="button is-rounded">Connect from osu!</button></a>
+							<a href="/wiki/en-us/osu_connect"><button class="button is-rounded">Connect from osu!</button></a>
 						</div>
 					</div>
 				</div>

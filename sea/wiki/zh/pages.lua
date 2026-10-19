@@ -7,7 +7,8 @@ local t = {
             name = "开始使用",
             pages = {
                 { name = "安装", filename = "installation" },
-                { name = "帮助中心", filename = "help_center" }
+                { name = "帮助中心", filename = "help_center" },
+                { name = "从 osu! 连接", filename = "osu_connect" }
             }
         },
         {

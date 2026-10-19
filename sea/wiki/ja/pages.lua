@@ -7,7 +7,8 @@ local t = {
 			name = "はじめに",
 			pages = {
 				{ name = "インストール", filename = "installation" },
-				{ name = "ヘルプセンター", filename = "help_center" }
+				{ name = "ヘルプセンター", filename = "help_center" },
+				{ name = "osu! から接続", filename = "osu_connect" }
 			}
 		},
 		{

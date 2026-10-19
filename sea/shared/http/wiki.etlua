@@ -53,5 +53,5 @@ function changeWikiLanguage(value) {
 		window.location = `/wiki/${value}`
 	}
 }
-document.getElementById("content").innerHTML = marked.parse(`<%- view:render(markdown_file_path):gsub("`", "\\`") %>`)
+document.getElementById("content").innerHTML = marked.parse(`<%- view:render(markdown_file_path):gsub("\\", "\\\\"):gsub("`", "\\`") %>`)
 </script>
