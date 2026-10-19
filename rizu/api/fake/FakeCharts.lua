@@ -145,6 +145,8 @@ function FakeCharts:setChartIndex(index)
 end
 
 function FakeCharts:getSetCount() return #self.sets end
+-- shortcut: the fake always lists sets, upgrade if a UI preview needs the ungrouped list.
+function FakeCharts:isUngrouped() return false end
 function FakeCharts:getSet(index) return self.sets[index] and self.sets[index][1] end
 function FakeCharts:getSelectedSetIndex() return self.set_index end
 

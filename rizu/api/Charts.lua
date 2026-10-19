@@ -180,6 +180,10 @@ end
 ---@return integer
 function Charts:getSetCount() return self.selector.stores[1]:count() end
 
+---True when every set is a single chart, as with the difficulty, level, duration and tempo sorts.
+---@return boolean
+function Charts:isUngrouped() return self.selector:getPrimaryMode() == "chartmetas" end
+
 ---@param index integer
 ---@return rizu.api.Chart? set nil only outside 1..getSetCount()
 function Charts:getSet(index) return self.selector.stores[1]:get(index) --[[@as rizu.api.Chart?]] end

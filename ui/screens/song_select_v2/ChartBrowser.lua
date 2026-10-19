@@ -3,53 +3,20 @@ local NineSlice = require("gui.NineSlice")
 local TrackContainer = require("gui.layout.TrackContainer")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Resources = require("ui.Resources")
-local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
-local Sounds = require("ui.Sounds")
-local ChartSets = require("ui.screens.song_select_v2.ChartSets")
 local ChartInfo = require("ui.screens.song_select_v2.ChartInfo")
-local ChartGrid = require("ui.screens.song_select_v2.ChartGrid")
 local ChartCarousel = require("ui.screens.song_select_v2.ChartCarousel")
-local Settings = require("rizu.config.Settings")
+local ChartList = require("ui.screens.song_select_v2.ChartList")
 local Loading = require("ui.screens.chart_loading.Loading")
 local Label = require("ui.views.Label")
 local Button = require("ui.views.Button")
 
----@class ui.screens.song_select_v2.ChartBrowser.ChevronButton : gui.View
----@operator call: ui.screens.song_select_v2.ChartBrowser.ChevronButton
-local ChevronButton = View + {}
-
----@param sprite gui.Sprite
----@param on_click fun()
-function ChevronButton:new(sprite, on_click)
-	View.new(self)
-	self.sprite = sprite
-	self.on_click = on_click
-	self.handles_mouse_input = true
-end
-
-function ChevronButton:onMouseClick(e)
-	if e.button == 1 then
-		self.on_click()
-		return true
-	end
-end
-
-function ChevronButton:draw()
-	Painter.setColorTable(self.mouse_over and Colors.surface_raised or Colors.surface)
-	Resources.sprites.chart_grid_arrow:draw(0, 0)
-	local icon_width, icon_height = self.sprite:getDimensions()
-	Painter.setColorTable(Colors.muted)
-	self.sprite:draw((self.width - icon_width) / 2, (self.height - icon_height) / 2)
-end
-
 ---@class ui.screens.song_select_v2.ChartBrowser : gui.View
 ---@operator call: ui.screens.song_select_v2.ChartBrowser
 ---@field content gui.layout.TrackContainer
----@field list_views gui.View[]
----@field list gui.View The set list, or the carousel when it is enabled.
+---@field list gui.View The carousel, or the chart list while the sets are ungrouped.
+---@field ungrouped boolean? What the list was built for.
 ---@field chart_info ui.screens.song_select_v2.ChartInfo
----@field chart_grid ui.screens.song_select_v2.ChartGrid?
 ---@field loading ui.screens.chart_loading.Loading
 ---@field empty ui.views.Label
 ---@field no_results ui.views.Label
@@ -62,50 +29,28 @@ end
 ---@field refresh_notice gui.layout.FlowContainer
 local ChartBrowser = View + {}
 
----Replaces the set list, and the difficulty strip that goes with the old one, to match the setting.
+---Replaces the list when the sets turn grouped or ungrouped.
 ---@param settings rizu.config.Config
----@param tooltip ui.views.Tooltip?
 ---@param localization ui.localization.Localization
-function ChartBrowser:buildList(settings, tooltip, localization)
-	local charts = self.charts
-	local content = self.content
-	for _, view in ipairs(self.list_views or {}) do
-		content:remove(view)
+function ChartBrowser:buildList(settings, localization)
+	local ungrouped = self.charts:isUngrouped()
+	if ungrouped == self.ungrouped then
+		return
 	end
-	self.chart_grid = nil
-	if settings:getBoolean(Settings.keys.select.carousel) then
-		self.list = content:add(ChartCarousel(charts, settings, localization), "*")
-		self.list_views = {self.list}
-	else
-		local difficulty_strip = content:add(TrackContainer({
-			direction = "row",
-			gap = 6,
-		}), 56)
-		local function moveDifficulty(offset)
-			charts:moveChart(offset)
-			Sounds.play("chart_changed")
-			self.chart_grid:scrollToSelected()
-		end
-		difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_left, function()
-			moveDifficulty(-1)
-		end), 48)
-		self.chart_grid = difficulty_strip:add(ChartGrid(charts, settings, tooltip, localization), "*")
-		difficulty_strip:add(ChevronButton(Resources.sprites.icon_chevron_right, function()
-			moveDifficulty(1)
-		end), 48)
-
-		self.list = content:add(ChartSets(charts, settings, function() end), "*")
-		self.list_views = {difficulty_strip, self.list}
+	self.ungrouped = ungrouped
+	if self.list then
+		self.content:remove(self.list)
 	end
+	local List = ungrouped and ChartList or ChartCarousel
+	self.list = self.content:add(List(self.charts, settings, localization), "*")
 end
 
 ---@param ui ui.UserInterface
 ---@param charts rizu.api.Charts
 ---@param settings rizu.config.Config
----@param tooltip ui.views.Tooltip?
 ---@param localization ui.localization.Localization
 ---@param on_filters_cleared fun()
-function ChartBrowser:new(ui, charts, settings, tooltip, localization, on_filters_cleared)
+function ChartBrowser:new(ui, charts, settings, localization, on_filters_cleared)
 	View.new(self)
 
 	local content = self:add(TrackContainer({
@@ -116,10 +61,7 @@ function ChartBrowser:new(ui, charts, settings, tooltip, localization, on_filter
 	self.chart_info = content:add(ChartInfo(), ChartInfo.HEIGHT)
 	self.content = content
 	self.charts = charts
-	self:buildList(settings, tooltip, localization)
-	settings:subscribeBoolean(Settings.keys.select.carousel, function()
-		self:buildList(settings, tooltip, localization)
-	end)
+	self:buildList(settings, localization)
 
 	self.has_chartfiles = nil
 	self.has_chartfiles_checking = false
@@ -187,13 +129,12 @@ function ChartBrowser:new(ui, charts, settings, tooltip, localization, on_filter
 	charts:on("sets_loading", function()
 		self.empty_state_dirty = true
 		self.list:fadeOut(0.1, "OutQuad")
-		if self.chart_grid then self.chart_grid:fadeOut(0.1, "OutQuad") end
 		self.loading:fadeIn(0.1, "OutQuad")
 	end)
 	charts:on("sets_changed", function()
 		self.empty_state_dirty = true
+		self:buildList(settings, localization)
 		self.list:fadeIn(0.1, "OutQuad")
-		if self.chart_grid then self.chart_grid:fadeIn(0.1, "OutQuad") end
 		self.loading:fadeOut(0.1, "OutQuad")
 	end)
 end

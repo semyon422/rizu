@@ -1,3 +1,4 @@
+local utf8 = require("utf8")
 local VirtualizedList = require("gui.VirtualizedList")
 local Resources = require("ui.Resources")
 local Colors = require("ui.Colors")
@@ -9,13 +10,13 @@ local Color = require("ui.Color")
 local Settings = require("rizu.config.Settings")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local CarouselLayout = require("ui.screens.song_select_v2.CarouselLayout")
-local ChartGrid = require("ui.screens.song_select_v2.ChartGrid")
 
 ---One list of sets. The selected set is unfolded into smaller rows with its charts.
 ---@class ui.screens.song_select_v2.ChartCarousel : gui.VirtualizedList
 ---@operator call: ui.screens.song_select_v2.ChartCarousel
 ---@field layout ui.screens.song_select_v2.CarouselLayout
 ---@field children_set integer? Primary index the secondary store was loaded for.
+---@field unsubscribe (fun())[]
 local ChartCarousel = VirtualizedList + {}
 
 local SET_HEIGHT = 76
@@ -24,7 +25,7 @@ local GAP = 5
 local CHILD_GAP = 4
 local CHILD_INDENT = 48
 local SCROLL_RETURN_DELAY = 2
--- Same colours as ChartSets.
+-- Same colours as ChartList.
 local BASE_ALPHA = 0.72
 local HOVER_ALPHA = 0.85
 local SELECTED_ALPHA = 0.95
@@ -91,6 +92,20 @@ local function colored(color, alpha, text)
 	return cs
 end
 
+---@param font love.Font
+---@param text string
+---@param max_width number
+---@return string
+function ChartCarousel.fitText(font, text, max_width)
+	if font:getWidth(text) <= max_width then
+		return text
+	end
+	while #text > 0 and font:getWidth(text .. "…") > max_width do
+		text = text:sub(1, utf8.offset(text, -1) - 1)
+	end
+	return text .. "…"
+end
+
 ---@param charts rizu.api.Charts
 ---@param settings rizu.config.Config
 ---@param localization ui.localization.Localization
@@ -115,23 +130,38 @@ function ChartCarousel:new(charts, settings, localization)
 		Resources.getFont("bold", 22), Resources.getFont("regular", 20), Resources.getFont("cjk_regular", 20))
 	self.outline = NineSliceUsage(Resources.nine_slices.song_set_outline)
 	self.diff_color = {0, 0, 0, 0}
-
-	if charts:getChartCount() > 0 then
-		self.children_set = charts:getSelectedSetIndex()
-	end
-	charts:on("charts_changed", function()
-		self.children_set = charts:getSelectedSetIndex()
-	end)
-	charts:on("sets_changed", function()
-		self.layout:reset()
-		self.children_set = nil
-	end)
+	self.unsubscribe = {}
 
 	self.visit_set = function(index, y) self:addSet(index, y) end
 	self.visit_child = function(group, j, y, fade) self:addChild(group, j, y, fade) end
 end
 
-function ChartCarousel:load() end
+-- Subscribed only while attached: song select drops the carousel when the list turns ungrouped.
+function ChartCarousel:load()
+	local charts = self.charts
+	-- The sets may have changed while it was not listening.
+	self.layout:reset()
+	self.children_set = nil
+	if charts:getChartCount() > 0 then
+		self.children_set = charts:getSelectedSetIndex()
+	end
+	self.unsubscribe = {
+		charts:on("charts_changed", function()
+			self.children_set = charts:getSelectedSetIndex()
+		end),
+		charts:on("sets_changed", function()
+			self.layout:reset()
+			self.children_set = nil
+		end),
+	}
+end
+
+function ChartCarousel:unload()
+	for _, unsubscribe in ipairs(self.unsubscribe) do
+		unsubscribe()
+	end
+	self.unsubscribe = {}
+end
 
 function ChartCarousel:onLayoutChanged()
 	self.cap_width = Resources.sprites.song_set_cap_left:getWidth()
@@ -416,9 +446,9 @@ function ChartCarousel:addChild(group, j, content_y, fade)
 	local first_font, second_font, third_font = layer.first:getFont(), layer.second:getFont(), layer.third:getFont()
 	local text_y = y + (CHILD_HEIGHT - second_font:getHeight()) / 2
 	layer.first:add(colored(color, fade, difficulty.value), x + DIFFICULTY_X, y + (CHILD_HEIGHT - first_font:getHeight()) / 2)
-	layer.second:add(colored(Colors.muted, fade, ChartGrid.fitText(second_font, mode, NAME_X - MODE_X - 8)),
+	layer.second:add(colored(Colors.muted, fade, ChartCarousel.fitText(second_font, mode, NAME_X - MODE_X - 8)),
 		x + MODE_X, text_y)
-	layer.third:add(colored(Colors.text, fade, ChartGrid.fitText(third_font, name, width - NAME_X - (cv.lamp and sprites.chart_sets_lamp:getWidth() + 32 or 16))),
+	layer.third:add(colored(Colors.text, fade, ChartCarousel.fitText(third_font, name, width - NAME_X - (cv.lamp and sprites.chart_sets_lamp:getWidth() + 32 or 16))),
 		x + NAME_X, y + (CHILD_HEIGHT - third_font:getHeight()) / 2)
 end
 

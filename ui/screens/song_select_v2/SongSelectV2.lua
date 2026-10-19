@@ -107,7 +107,7 @@ function SongSelectV2:new(ui)
 	end
 	setBrightness(ui.config:getNumber(UiConfig.keys.select_background_brightness))
 	ui.config:subscribeNumber(UiConfig.keys.select_background_brightness, setBrightness)
-	self.chart_browser = ChartBrowser(ui, ui.api.charts, ui.api.settings, ui.tooltip, ui.localization, function()
+	self.chart_browser = ChartBrowser(ui, ui.api.charts, ui.api.settings, ui.localization, function()
 		self.library_toolbar.search:setText("")
 	end)
 

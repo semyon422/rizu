@@ -229,8 +229,6 @@ return {
 	["settings.song_select_background_brightness_tip"] = "Яркость фонового изображения и превью выбранной песни в Song Select.",
 	["settings.result_background_brightness"] = "Яркость фона на экране результатов",
 	["settings.result_background_brightness_tip"] = "Яркость фонового изображения и видео на экране результатов.",
-	["settings.song_select_carousel"] = "Song Select: карты в одном списке",
-	["settings.song_select_carousel_tip"] = "Показывать наборы и их карты в одном списке. Если выключено, используется прежний список наборов с полосой сложностей.",
 	["settings.open_song_select_on_startup"] = "Открывать Song Select при запуске",
 	["settings.open_song_select_on_startup_tip"] = "Открывать Song Select вместо главного меню при запуске игры.",
 	["settings.random_preview_position"] = "Случайная позиция превью музыки",

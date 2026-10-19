@@ -360,77 +360,6 @@ local SpriteDefinitions = {
 		border_radius = 4,
 		fills = fills({1, 1, 1, 1}),
 	},
-	chart_grid_item = {
-		width = 110,
-		height = 66,
-		border_radius = 8,
-		rounding_power = 4,
-		fills = fills({1, 1, 1, 1}),
-	},
-	chart_grid_item_selected = {
-		width = 110,
-		height = 66,
-		border_radius = 8,
-		rounding_power = 4,
-		fills = fills({1, 1, 1, 0}),
-		stroke = {
-			width = {bottom = 3},
-			color = {1, 1, 1, 1},
-		},
-	},
-	chart_grid_arrow = {
-		width = 48,
-		height = 56,
-		border_radius = 10,
-		rounding_power = 4,
-		fills = fills({1, 1, 1, 1}),
-	},
-	chart_grid_tab = {
-		width = 160,
-		height = 56,
-		border_radius = 10,
-		rounding_power = 4,
-		fills = fills({1, 1, 1, 1}),
-	},
-	chart_grid_tab_selected = {
-		width = 160,
-		height = 56,
-		border_radius = 10,
-		rounding_power = 4,
-		fills = fills({1, 1, 1, 0}),
-		stroke = {
-			width = {bottom = 3},
-			color = {1, 1, 1, 1},
-		},
-	},
-	chart_grid_item_gradient = {
-		width = 110,
-		height = 66,
-		border_radius = 8,
-		rounding_power = 4,
-		fills = {{
-			type = "linear_gradient",
-			angle = -90,
-			stops = {
-				{offset = 0, color = {1, 1, 1, 1}},
-				{offset = 1, color = {1, 1, 1, 0}},
-			},
-		}},
-	},
-	chart_grid_tab_gradient = {
-		width = 160,
-		height = 56,
-		border_radius = 10,
-		rounding_power = 4,
-		fills = {{
-			type = "linear_gradient",
-			angle = -90,
-			stops = {
-				{offset = 0, color = {1, 1, 1, 1}},
-				{offset = 1, color = {1, 1, 1, 0}},
-			},
-		}},
-	},
 	dlc_panel = {
 		width = 21,
 		height = 21,
@@ -540,6 +469,13 @@ local SpriteDefinitions = {
 				{offset = 1, color = {1, 1, 1, 0}},
 			},
 		}},
+	},
+	-- Behind the difficulty in the ungrouped chart list.
+	song_chart_difficulty_capsule = {
+		width = 76,
+		height = 36,
+		border_radius = 18,
+		fills = fills({1, 1, 1, 1}),
 	},
 	-- Chart rows under an open set in the carousel: the same shapes, shorter.
 	song_chart_cap_left = {
