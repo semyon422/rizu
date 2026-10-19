@@ -1,0 +1,8 @@
+Adding skins
+
+osu! skins:   userdata/skins/<skin name>/skin.ini
+              (userdata/dlc/skins_osu/ works too)
+Rizu skins:   userdata/dlc/skins_rizu/<skin name>/skin.lua
+
+Unpack a skin and put its folder in one of these, so skin.ini (or skin.lua)
+is directly inside the folder. Then pick it in the settings.

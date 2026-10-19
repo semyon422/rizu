@@ -93,6 +93,7 @@ function SkinRegistry:new(fs, settings, path)
 	end)
 	self.skins_rizu_path = path_util.join(path or "userdata/dlc", "skins_rizu")
 	self.skins_osu_path = path_util.join(path or "userdata/dlc", "skins_osu")
+	self.skins_user_path = "userdata/skins"
 	self.skins = {}
 	self.listeners = {}
 end
@@ -190,6 +191,7 @@ function SkinRegistry:load()
 	local lua_skins, osu_skins = {}, {}
 	self:scan(self.skins_rizu_path, self.readLuaSkin, lua_skins)
 	self:scan(self.skins_osu_path, self.readOsuSkin, osu_skins)
+	self:scan(self.skins_user_path, self.readOsuSkin, osu_skins)
 	self.skins = builtin
 	table.move(lua_skins, 1, #lua_skins, #self.skins + 1, self.skins)
 	table.move(osu_skins, 1, #osu_skins, #self.skins + 1, self.skins)

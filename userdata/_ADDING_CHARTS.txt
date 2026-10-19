@@ -1,0 +1,6 @@
+Adding charts
+
+Put charts into a folder here:  userdata/charts/my_collection/
+
+Better: mount your existing chart folders in the game instead of copying them.
+Guide: https://rizu.su/wiki/en-us/adding_charts
