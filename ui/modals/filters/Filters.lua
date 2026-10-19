@@ -18,6 +18,7 @@ local Textbox = require("ui.views.form.Textbox")
 ---@field form ui.views.form.Form
 ---@field played ui.views.form.SegmentedControl
 ---@field scratch ui.views.form.SegmentedControl
+---@field cached ui.views.form.SegmentedControl
 ---@field formats ui.views.form.FormatMultiSelect
 ---@field original_input_modes ui.views.form.InputModeMultiSelect
 ---@field actual_input_modes ui.views.form.InputModeMultiSelect
@@ -25,7 +26,7 @@ local Textbox = require("ui.views.form.Textbox")
 local Filters = ModalView + {}
 
 local MODAL_WIDTH = 700
-local MODAL_HEIGHT = 643
+local MODAL_HEIGHT = 726
 local CONTENT_X = 50
 local CONTENT_Y = 88
 local OPTIONS = {"any", "yes", "no"}
@@ -87,6 +88,15 @@ function Filters:new(charts, popup_container, localization)
 			charts:setYesNoFilter("scratch", value)
 		end,
 	}))
+	self.cached = self.form:add(SegmentedControl({
+		label = localization:get("song_select.cached"),
+		options = OPTIONS,
+		value = "any",
+		format = formatValue,
+		on_change = function(value)
+			charts:setYesNoFilter("cached", value)
+		end,
+	}))
 	self.formats = self.form:add(FormatMultiSelect({
 		label = localization:get("song_select.format"),
 		on_change = function(values)
@@ -123,6 +133,7 @@ function Filters:sync()
 	local charts = self.charts
 	self.played:setValue(charts:getYesNoFilter("played"))
 	self.scratch:setValue(charts:getYesNoFilter("scratch"))
+	self.cached:setValue(charts:getYesNoFilter("cached"))
 	self.formats:setValues(charts:getFilterValues("format"))
 	self.original_input_modes:setValues(charts:getFilterValues("original_input_mode"))
 	self.actual_input_modes:setValues(charts:getFilterValues("actual_input_mode"))

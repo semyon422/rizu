@@ -66,7 +66,7 @@ function FakeCharts:new(sets_count)
 	self.search = ""
 	self.lamp_search = ""
 	self.sort = "title"
-	self.yes_no = {played = "any", scratch = "any"}
+	self.yes_no = {played = "any", scratch = "any", cached = "any"}
 	self.values = {format = {}, original_input_mode = {}, actual_input_mode = {}}
 	self.set_index = 0
 	self.chart_index = 0
@@ -106,6 +106,7 @@ function FakeCharts:matches(chart)
 		and (not path or chart.set_dir:sub(1, #path) == path)
 		and self:matchesYesNo("played", chart.accuracy ~= nil)
 		and self:matchesYesNo("scratch", chart.inputmode:find("scratch") ~= nil)
+		and self:matchesYesNo("cached", (chart.chartmeta_id or 0) ~= 0)
 		and self:matchesValues("format", chart.format)
 		and self:matchesValues("original_input_mode", chart.inputmode)
 		and self:matchesValues("actual_input_mode", chart.inputmode)
@@ -239,7 +240,7 @@ function FakeCharts:getActiveFilterCount()
 end
 
 function FakeCharts:clearFilters()
-	self.yes_no = {played = "any", scratch = "any"}
+	self.yes_no = {played = "any", scratch = "any", cached = "any"}
 	self.values = {format = {}, original_input_mode = {}, actual_input_mode = {}}
 	self:emit("filters_changed")
 	self:refresh()

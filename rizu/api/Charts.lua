@@ -80,6 +80,7 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@alias rizu.api.Charts.YesNoFilter
 ---| "played" # The chart has a score.
 ---| "scratch" # The chart has a scratch lane.
+---| "cached" # The chart file has been read: it has a chartmeta.
 
 ---@alias rizu.api.Charts.YesNoValue "any"|"yes"|"no"
 
@@ -123,6 +124,7 @@ local Charts = Events + {}
 local yes_no_filters = {
 	played = {"(not) played", "played", "not played"},
 	scratch = {"scratch", "has scratch", "has not scratch"},
+	cached = {"chartmeta", "has chartmeta", "has not chartmeta"},
 }
 
 local value_filters = {

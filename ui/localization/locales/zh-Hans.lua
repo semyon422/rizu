@@ -357,6 +357,7 @@ return {
 	["song_select.filter_no"] = "否",
 	["song_select.played"] = "已游玩",
 	["song_select.scratch"] = "搓盘",
+	["song_select.cached"] = "已缓存",
 	["song_select.format"] = "格式",
 	["song_select.original_input_mode"] = "原始输入模式",
 	["song_select.actual_input_mode"] = "实际输入模式",

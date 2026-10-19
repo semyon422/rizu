@@ -12,10 +12,10 @@ local test = {}
 ---@return rizu.api.Charts charts
 ---@return rizu.select.ChartSelector selector
 ---@return rizu.library.Library library
-local function createCharts(coordinator)
+local function createCharts(coordinator, seeds)
 	local tlf = TestLibraryFactory()
 	local library = tlf:create()
-	tlf:populate(library, {
+	tlf:populate(library, seeds or {
 		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "a", title = "A",
 			set_dir = "packs/one", inputmode = "4key"},
 		{chartfile_set_id = 2, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "b", title = "B",
@@ -145,6 +145,30 @@ function test.filters(t)
 	charts:clearFilters()
 	t:eq(charts:getActiveFilterCount(), 0)
 	t:eq(charts:getSetCount(), 2)
+
+	library:unload()
+end
+
+---@param t testing.T
+function test.cached_filter(t)
+	local charts, selector, library = createCharts(nil, {
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "a", title = "A",
+			set_dir = "packs/one", inputmode = "4key"},
+		{chartfile_set_id = 2, chartfile_id = 2, set_dir = "packs/two", set_name = "two", chartfile_name = "b.osu"},
+	})
+	selector.collectionSelector:load()
+	selector:load()
+	t:eq(charts:getSetCount(), 2)
+
+	charts:setYesNoFilter("cached", "yes")
+	t:eq(charts:getYesNoFilter("cached"), "yes")
+	t:eq(charts:getActiveFilterCount(), 1)
+	t:eq(charts:getSetCount(), 1)
+	t:eq(charts:getSet(1).title, "A")
+
+	charts:setYesNoFilter("cached", "no")
+	t:eq(charts:getSetCount(), 1)
+	t:eq(charts:getSet(1).set_name, "two")
 
 	library:unload()
 end
