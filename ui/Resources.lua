@@ -36,6 +36,8 @@ Resources.font_scale = 1
 Resources.ui_scale = 1
 
 function Resources.load()
+	-- Images do not depend on the language or settings: a UI reload reuses them, like the fonts.
+	if Resources.atlases then return end
 	local t = {} ---@type {[string]: love.ImageData}
 	local getDirItems = love.filesystem.getDirectoryItems
 
