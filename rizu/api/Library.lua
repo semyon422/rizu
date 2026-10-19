@@ -1,5 +1,6 @@
 local path_util = require("path_util")
 local Events = require("rizu.api.Events")
+local OtherGames = require("rizu.other_games.OtherGames")
 
 --[[
 Where the chart files are: the folders ("locations") the game scans, and the scan itself.
@@ -11,6 +12,9 @@ Where the chart files are: the folders ("locations") the game scans, and the sca
 	end
 	local ok, err = library:addLocation("Etterna", "/home/me/Etterna/Songs")
 	library:on("cache_status_changed", function(status) ... end)
+	for _, game in ipairs(library:findOtherGames() or {}) do
+		library:addLocation(game.name, game.songs)
+	end
 
 Adding, changing or deleting a location lists the charts again by itself.
 Scanning a location is slow and goes on in the background: follow it with getCacheStatus().
@@ -28,6 +32,12 @@ Scanning a location is slow and goes on in the background: follow it with getCac
 ---@field is_relative boolean
 ---@field is_internal boolean The game's own folder: it cannot be moved, changed or deleted.
 ---@field url string? Remote locations only: where the catalog's files are downloaded from.
+
+---A rhythm game installed on this computer.
+---@class rizu.api.OtherGame
+---@field name string "osu!", "Etterna" or "Quaver".
+---@field path string The game's folder.
+---@field songs string Its chart folder, for addLocation().
 
 ---@class rizu.api.CacheStatus
 ---@field stage string "idle" when nothing is being scanned, otherwise what the scan is doing.
@@ -178,6 +188,13 @@ function Library:deleteLocation(location)
 	end
 	changed(self)
 	return true
+end
+
+---Other rhythm games installed on this computer, found in the Windows registry.
+---@return rizu.api.OtherGame[]? games nil where there is no registry to search, that is not on Windows.
+function Library:findOtherGames()
+	local read = OtherGames.getRegistryReader()
+	return read and OtherGames.find(read) --[[@as rizu.api.OtherGame[] ]]
 end
 
 -- Scanning

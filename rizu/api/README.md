@@ -24,7 +24,7 @@ Check `api.version` (now `1`). It goes up when something is removed or changes m
 | `api.result` | How the last play went. |
 | `api.skins` | Gameplay skins and the chosen one. |
 | `api.input` | Key bindings. |
-| `api.library` | Chart folders and scanning them. |
+| `api.library` | Chart folders, scanning them, and other rhythm games installed on this computer. |
 | `api.app` | The user interface that runs, the audio device, screenshots. |
 | `api.video_export` | Writes frames the UI draws into an animated WebP (no audio) with the system `ffmpeg`. |
 | `api.settings` | Every setting. Keys are in `rizu/config/spec.md` and count as API: they are not renamed silently. |

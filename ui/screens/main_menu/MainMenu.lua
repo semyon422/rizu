@@ -25,6 +25,8 @@ function MainMenu:new(ui)
 	self.ui = ui
 
 	self.root:setPivot(0.5, 0.5)
+	-- Starts where exit() leaves it, so the first enter() animates too.
+	self.root:setOpacity(0):setScale(0.95, 0.95)
 
 	self.root:add(MainMenuBackground(Resources.images.main_menu_bg)):anchorFill(0, 0, 0, 0)
 	self:createOnlineStatus()

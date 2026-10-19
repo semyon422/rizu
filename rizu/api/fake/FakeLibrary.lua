@@ -46,6 +46,14 @@ function FakeLibrary:deleteLocation(location)
 	return true
 end
 
+---As if on Windows with osu! and Etterna installed; Etterna's folder is already added.
+function FakeLibrary:findOtherGames()
+	return {
+		{name = "osu!", path = "C:/Games/osu!", songs = "C:/Games/osu!/Songs"},
+		{name = "Etterna", path = "/home/player/Etterna", songs = "/home/player/Etterna/Songs"},
+	}
+end
+
 function FakeLibrary:toggleCacheUpdate(location) end
 
 function FakeLibrary:getCacheStatus() return {stage = "idle", current = 0, total = 0} end

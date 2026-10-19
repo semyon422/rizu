@@ -10,6 +10,25 @@ local class = require("class")
 ---@field private catalogs {[ui.localization.Locale]: ui.localization.Catalog}
 local Localization = class()
 
+---Each locale's name in its own language.
+Localization.display_names = {
+	en = "English",
+	ru = "Русский",
+	es = "Español (AI translation)",
+}
+
+---Each locale's name in its own language and in English, for the welcome screen.
+Localization.native_names = {
+	en = "English",
+	ru = "Русский",
+	es = "Español",
+}
+Localization.english_names = {
+	en = "English",
+	ru = "Russian",
+	es = "Spanish · AI translation",
+}
+
 local interpolation_pattern = "{([%w_]+)}"
 
 ---@param locale ui.localization.Locale

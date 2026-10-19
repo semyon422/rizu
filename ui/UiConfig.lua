@@ -3,6 +3,7 @@ local Config = require("rizu.config.Config")
 ---@class ui.UiConfig.Keys
 local keys = {
 	language = "language",
+	show_welcome = "show_welcome",
 	show_fps = "show_fps",
 	select_background_brightness = "select_background_brightness",
 	result_background_brightness = "result_background_brightness",
@@ -56,6 +57,7 @@ function UiConfig:new(fs, path)
 	self:setDefaultNumber(keys.gameplay_viewport_sx, 1)
 	self:setDefaultNumber(keys.gameplay_viewport_sy, 1)
 	self:setDefaultBoolean(keys.show_fps, false)
+	self:setDefaultBoolean(keys.show_welcome, false)
 	self:setDefaultNumber(keys.select_background_brightness, 1, 0, 1, 0.01)
 	self:setDefaultNumber(keys.result_background_brightness, 1, 0, 1, 0.01)
 	self:setDefaultKeyBindings(keys.command_palette_bindings, {{key = ";", shift = true}})

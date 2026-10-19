@@ -12,6 +12,7 @@ local Lobby = require("ui.screens.lobby.Lobby")
 local MusicPlayer = require("ui.screens.music_player.MusicPlayer")
 local Dlc = require("ui.screens.dlc.Dlc")
 local Locations = require("ui.screens.locations.Locations")
+local Welcome = require("ui.screens.welcome.Welcome")
 local TestScreen = require("ui.test.TestScreen")
 local ScreenManager = require("ui.ScreenManager")
 local Overlay = require("ui.Overlay")
@@ -56,6 +57,7 @@ local TARGET_HEIGHT = 1080
 ---@field music_player ui.screens.music_player.MusicPlayer
 ---@field dlc ui.screens.dlc.Dlc
 ---@field locations ui.screens.locations.Locations
+---@field welcome ui.screens.welcome.Welcome
 ---@field test_screen ui.test.TestScreen
 ---@field screen_manager ui.ScreenManager
 ---@field overlay ui.Overlay
@@ -80,7 +82,10 @@ UserInterface.display_name = "Default User Interface 2026"
 function UserInterface:new(game, mount_path)
 	RizuUserInterface.new(self, game, mount_path, ScreenManager())
 	self.config = UiConfig(LoveFilesystem(), "userdata/ui.json")
-	self.config:load()
+	-- No config yet: a newcomer, welcome them until they leave the welcome screen.
+	if not self.config:load() then
+		self.config:setBoolean(UiConfig.keys.show_welcome, true)
+	end
 	self.localization = Localization(self.config:getChoice(UiConfig.keys.language))
 	self.actions = UiActions.createMap(self.config)
 	self.inputs:setActionMap(self.actions)
@@ -133,9 +138,10 @@ function UserInterface:load()
 	if self.api.fake then
 		self.song_select = SongSelect(self)
 		self.result = Result(self)
+		self.welcome = Welcome(self)
 		self.overlay = Overlay(self)
 		self.modal_manager = self.overlay.modal_manager
-		self.screen_manager:registerAll({self.song_select, self.result})
+		self.screen_manager:registerAll({self.song_select, self.result, self.welcome})
 		self.screen_manager:setOverlay(self.overlay)
 	else
 		self.main_menu = MainMenu(self)
@@ -149,6 +155,7 @@ function UserInterface:load()
 		self.music_player = MusicPlayer(self)
 		self.dlc = Dlc(self)
 		self.locations = Locations(self)
+		self.welcome = Welcome(self)
 		self.test_screen = TestScreen(self)
 		self.overlay = Overlay(self)
 		self.modal_manager = self.overlay.modal_manager
@@ -164,6 +171,7 @@ function UserInterface:load()
 			self.music_player,
 			self.dlc,
 			self.locations,
+			self.welcome,
 			self.test_screen,
 		})
 		self.screen_manager:setOverlay(self.overlay)
@@ -179,7 +187,9 @@ function UserInterface:load()
 	self.prev_w = ww
 	self.prev_h = wh
 	self:applyViewport(ww, wh)
-	if self.api.fake or self.api.settings:getBoolean(Settings.keys.select.open_on_startup) then
+	if self.config:getBoolean(UiConfig.keys.show_welcome) then
+		self:setScreen(self.welcome)
+	elseif self.api.fake or self.api.settings:getBoolean(Settings.keys.select.open_on_startup) then
 		self:setScreen(self.song_select)
 	else
 		self:setScreen(self.main_menu)

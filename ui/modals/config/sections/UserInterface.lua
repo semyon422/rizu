@@ -1,4 +1,5 @@
 local ControlFactory = require("ui.modals.config.ControlFactory")
+local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")
 local Settings = require("rizu.config.Settings")
@@ -16,16 +17,6 @@ local function formatDifficulty(value)
 		osu_diff = "osu!",
 		msd_diff = "MSD",
 		user_diff = "User",
-	})[value]
-end
-
----@param value string
----@return string formatted
-local function formatLanguage(value)
-	return ({
-		en = "English",
-		ru = "Русский",
-		es = "Español (AI translation)",
 	})[value]
 end
 
@@ -77,7 +68,7 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					name = localization:get("settings.language"),
 					keywords = {"language", "locale"},
 					tip = localization:get("settings.language_tip"),
-					format = formatLanguage,
+					format = function(value) return Localization.display_names[value] end,
 					form = form,
 					popup_container = popup_container,
 					on_change = on_language_change,
