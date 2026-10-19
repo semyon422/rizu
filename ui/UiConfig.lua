@@ -51,7 +51,7 @@ UiConfig.keys = keys
 function UiConfig:new(fs, path)
 	Config.new(self, fs, path)
 
-	self:setDefaultChoice(keys.language, "en", {"en", "ru", "es"})
+	self:setDefaultChoice(keys.language, "en", {"en", "ru", "es", "zh-Hans"})
 	self:setDefaultNumber(keys.gameplay_viewport_x, 0)
 	self:setDefaultNumber(keys.gameplay_viewport_y, 0)
 	self:setDefaultNumber(keys.gameplay_viewport_sx, 1)

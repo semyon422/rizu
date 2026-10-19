@@ -14,7 +14,8 @@ local Localization = class()
 Localization.display_names = {
 	en = "English",
 	ru = "Русский",
-	es = "Español (AI translation)",
+	es = "Español (AI)",
+	["zh-Hans"] = "简体中文 (AI)",
 }
 
 ---Each locale's name in its own language and in English, for the welcome screen.
@@ -22,11 +23,13 @@ Localization.native_names = {
 	en = "English",
 	ru = "Русский",
 	es = "Español",
+	["zh-Hans"] = "简体中文",
 }
 Localization.english_names = {
 	en = "English",
 	ru = "Russian",
-	es = "Spanish · AI translation",
+	es = "Spanish · AI",
+	["zh-Hans"] = "Simplified Chinese · AI",
 }
 
 local interpolation_pattern = "{([%w_]+)}"

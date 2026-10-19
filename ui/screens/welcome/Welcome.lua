@@ -42,6 +42,7 @@ local FOOTER_BOTTOM = 40
 local COLUMN_WIDTH = 840
 local COLUMN_TOP = 290
 local RIGHT_X = 1010
+local LANGUAGES_PER_ROW = 3
 
 ---@param path string
 ---@return string
@@ -83,16 +84,23 @@ function Welcome:new(ui)
 	left:setPosition(EDGE, COLUMN_TOP)
 
 	left:add(sectionLabel(localization:get("welcome.language")))
-	local languages = left:add(FlowContainer({direction = "row", gap = 12}))
+	local languages = left:add(FlowContainer({direction = "column", gap = 12}))
 	local language = ui.config:getChoice(UiConfig.keys.language)
-	for _, locale in ipairs(ui.config:getChoices(UiConfig.keys.language)) do
-		languages:add(LanguageTile(locale, locale == language, function()
+	---@type gui.layout.FlowContainer?
+	local language_row
+	for i, locale in ipairs(ui.config:getChoices(UiConfig.keys.language)) do
+		if (i - 1) % LANGUAGES_PER_ROW == 0 then
+			if language_row then language_row:fitContent() end
+			language_row = languages:add(FlowContainer({direction = "row", gap = 12}))
+		end
+		language_row:add(LanguageTile(locale, locale == language, function()
 			if locale == language then return end
 			ui.config:setChoice(UiConfig.keys.language, locale)
 			ui.config:save()
 			ui.api.app:requestReload()
 		end))
 	end
+	if language_row then language_row:fitContent() end
 	languages:fitContent()
 
 	left:add(View()):setSize(0, 38)
