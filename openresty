@@ -10,6 +10,7 @@ NGINX_PID_PATH=$(pwd)/server-state/logs/nginx.pid \
 NGINX_TEMP_PATH=$(pwd)/server-state/temp \
 luajit aqua/web/nginx/compile.lua
 
+export NGINX_CONFIG_PATH=server-state/nginx_config.lua
 export DYLD_FALLBACK_LIBRARY_PATH=$PWD/bin/mac64
 export LD_LIBRARY_PATH=$OR_ROOT/openssl3/lib:$LD_LIBRARY_PATH:$PWD/bin/linux64
 

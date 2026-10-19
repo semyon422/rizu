@@ -1,5 +1,6 @@
 local IResource = require("web.framework.IResource")
 local brand = require("brand")
+local markdown = require("sea.shared.markdown")
 
 ---@class sea.PolicyResource: web.IResource
 ---@operator call: sea.PolicyResource
@@ -58,6 +59,8 @@ function PolicyResource:getPage(req, res, ctx)
 	else
 		ctx.canonical_path = "/policies?policy_key=" .. policy_key
 	end
+
+	ctx.content_html = markdown.to_html(self.views:render(ctx.policy_filename, ctx))
 
 	self.views:render_send(res, "sea/shared/http/policies.etlua", ctx, true)
 end

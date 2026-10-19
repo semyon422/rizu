@@ -1,5 +1,6 @@
 local IResource = require("web.framework.IResource")
 local brand = require("brand")
+local markdown = require("sea.shared.markdown")
 
 ---@class sea.WikiResource: web.IResource
 ---@operator call: sea.WikiResource
@@ -107,7 +108,7 @@ function WikiResource:getPage(req, res, ctx)
 	ctx.selected_page = selected_page
 	ctx.language_metadatas = language_metadatas
 	ctx.categories = meta.categories
-	ctx.markdown_file_path = ("sea/wiki/%s/%s.md"):format(selected_language_code, selected_page)
+	ctx.content_html = markdown.to_html(self.views:render(("sea/wiki/%s/%s.md"):format(selected_language_code, selected_page), ctx))
 
 	ctx.meta_tags["title"] = ("%s - %s Wiki"):format(selected_page_name, brand.name)
 

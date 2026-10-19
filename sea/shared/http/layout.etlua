@@ -36,7 +36,6 @@
 		<script src="https://unpkg.com/htmx.org@2.0.0"></script>
 		<script src="https://unpkg.com/hyperscript.org@0.9.8"></script>
 		<script src="https://kit.fontawesome.com/dbaf22a3a8.js?v=1.0"></script>
-		<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
 		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

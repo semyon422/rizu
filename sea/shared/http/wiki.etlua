@@ -43,7 +43,8 @@
 		</div>
 	</div>
 	<div class="column is-three-fifths-tablet is-three-fifths-desktop is-three-quarters-widescreen">
-		<div class="content" id="content">
+		<div class="content">
+			<%- content_html %>
 		</div>
 	</div>
 </div>
@@ -53,5 +54,4 @@ function changeWikiLanguage(value) {
 		window.location = `/wiki/${value}`
 	}
 }
-document.getElementById("content").innerHTML = marked.parse(`<%- view:render(markdown_file_path):gsub("\\", "\\\\"):gsub("`", "\\`") %>`)
 </script>

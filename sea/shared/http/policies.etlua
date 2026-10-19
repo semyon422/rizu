@@ -17,22 +17,6 @@
 	</ul>
 </div>
 
-<div class="content" id="content"></div>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script>
-var markdown = `<%- view:render(policy_filename) %>`
-
-function renderMarkdown() {
-	document.getElementById("content").innerHTML = marked.parse(markdown)
-}
-
-// Marked may not load immediately after switching pages
-if (typeof marked !== "undefined") {
-	renderMarkdown()
-}
-else {
-	document.addEventListener("htmx:afterSettle", function() {
-		renderMarkdown()
-	})
-}
-</script>
+<div class="content">
+	<%- content_html %>
+</div>
