@@ -1,1 +1,5 @@
-not found
+<% meta_tags["title"] = "Page not found - " .. brand.name %>
+<section class="section has-text-centered">
+	<h1 class="title">Page not found</h1>
+	<p><a href="/">Go to the main page</a></p>
+</section>

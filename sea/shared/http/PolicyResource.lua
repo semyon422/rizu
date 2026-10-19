@@ -55,6 +55,8 @@ function PolicyResource:getPage(req, res, ctx)
 
 	if not ctx.policy_filename then
 		ctx.policy_filename = self.policies[1].filename
+	else
+		ctx.canonical_path = "/policies?policy_key=" .. policy_key
 	end
 
 	self.views:render_send(res, "sea/shared/http/policies.etlua", ctx, true)

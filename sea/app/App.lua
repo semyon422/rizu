@@ -37,6 +37,8 @@ local package_config = require("server-state.package_config")
 ---@field session sea.Session?
 ---@field version any
 ---@field meta_tags {[string]: string} HTML meta tags
+---@field canonical_path string Path (with query if it selects the content) used for canonical and og:url
+---@field html_lang string? Value of <html lang>, "en" if not set
 ---@field brand sea.Brand
 ---@field players_online integer
 
@@ -96,6 +98,7 @@ function App:new(app_config)
 	end)
 
 	local views = Views(etlua.autoload(), "sea/shared/http/layout.etlua")
+	self.views = views
 	self.resources = Resources(self.domain, self.server_remote, views, self.sessions, app_config, package_config, bancho_config, self.shared_memory)
 
 	local router = Router()
@@ -198,10 +201,29 @@ function App:handleRequest(req, res, ip, port)
 
 	local resource, path_params, methods = self.router:getResource(parsed_uri.path, host_name)
 
+	---@type sea.RequestContext
+	local ctx = {
+		parsed_uri = parsed_uri,
+		path_params = path_params or {},
+		query = http_util.decode_query_string(parsed_uri.query),
+		ip = ip,
+		port = port,
+		peer_id = ip .. ":" .. port,
+		time = os.time(),
+		session = self.domain.users:getSession(),
+		session_user = self.domain.users:getUser(),
+		version = self:getVersion(),
+		meta_tags = {},
+		canonical_path = parsed_uri.path,
+		brand = brand,
+		players_online = self.domain.user_connections:getOnlineCount(),
+	}
+
+	self:handleSession(req, ctx)
+
 	if not resource or not path_params or not methods then
 		res.status = 404
-		res:set_chunked_encoding()
-		res:send("not found")
+		self.views:render_send(res, "sea/shared/http/not_found.etlua", ctx, true)
 		res:send("")
 		return
 	end
@@ -216,25 +238,6 @@ function App:handleRequest(req, res, ip, port)
 		res:send("")
 		return
 	end
-
-	---@type sea.RequestContext
-	local ctx = {
-		parsed_uri = parsed_uri,
-		path_params = path_params,
-		query = http_util.decode_query_string(parsed_uri.query),
-		ip = ip,
-		port = port,
-		peer_id = ip .. ":" .. port,
-		time = os.time(),
-		session = self.domain.users:getSession(),
-		session_user = self.domain.users:getUser(),
-		version = self:getVersion(),
-		meta_tags = {},
-		brand = brand,
-		players_online = self.domain.user_connections:getOnlineCount(),
-	}
-
-	self:handleSession(req, ctx)
 
 	local ok, err = xpcall(resource[_method], debug.traceback, resource, req, res, ctx)
 	if not ok then

@@ -103,6 +103,7 @@ function WikiResource:getPage(req, res, ctx)
 	end
 
 	ctx.selected_language_code = selected_language_code
+	ctx.html_lang = selected_language_code
 	ctx.selected_page = selected_page
 	ctx.language_metadatas = language_metadatas
 	ctx.categories = meta.categories

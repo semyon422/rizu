@@ -1,23 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="<%= html_lang or "en" %>">
 	<head>
 		<%
+			local meta_image = brand.url .. "/static/images/home/meta-image.webp"
+			local page_url = brand.url .. (canonical_path or "/")
 			meta_tags["title"] = meta_tags["title"] or brand.name
 			meta_tags["description"] = meta_tags["description"] or "The most advanced VSRG for any use case. It has everything you need to become a master of VSRGs."
 			meta_tags["og:title"] = meta_tags["title"]
 			meta_tags["og:description"] = meta_tags["description"]
+			meta_tags["og:image"] = meta_tags["og:image"] or meta_image
+			meta_tags["og:type"] = meta_tags["og:type"] or "website"
+			meta_tags["og:url"] = page_url
+			meta_tags["og:site_name"] = brand.name
+			meta_tags["twitter:card"] = "summary_large_image"
+			meta_tags["twitter:title"] = meta_tags["title"]
 			meta_tags["twitter:description"] = meta_tags["description"]
-			meta_tags["og:image"] = meta_tags["og:image"] or brand.url .. "/static/images/home/meta-image.webp"
-			meta_tags["twitter:card"] = brand.url .. "/static/images/home/meta-image.webp"
+			meta_tags["twitter:image"] = meta_tags["og:image"]
 		%>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<% for k, v in pairs(meta_tags) do %>
-			<meta property="<%= k %>" content="<%= v %>" />
-		<% end %>
-		<meta property="og:type" content="game" />
-		<meta property="og:url" content="<%= brand.url %>" />
-		<meta property="og:logo" content="<%= brand.url %>/static/images/logo.webp" />
+		<% for k, v in pairs(meta_tags) do if k ~= "title" then %>
+			<meta <%= (k:find("^og:") or k:find("^profile:")) and "property" or "name" %>="<%= k %>" content="<%= v %>" />
+		<% end end %>
+		<link rel="canonical" href="<%= page_url %>" />
 		<link rel="icon" href="/static/favicon.ico">
 		<link rel="stylesheet" href="/style.css?v=<%= version %>" />
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css" />

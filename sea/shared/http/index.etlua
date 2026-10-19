@@ -3,8 +3,8 @@
 		<div class="columns is-desktop welcome__main-columns">
 			<div class="column welcome__left-column">
 				<div class="welcome__hero">
-					<img src="/static/images/home/rizu.svg" class="welcome__game-name" />
-					<h3 class="welcome__game-description">RHYTHM GAME • COMPETITIVE SERVER • MODDING PLATFORM</h3>
+					<h1><img src="/static/images/home/rizu.svg" class="welcome__game-name" alt="<%= brand.name %>" /></h1>
+					<h2 class="welcome__game-description">RHYTHM GAME • COMPETITIVE SERVER • MODDING PLATFORM</h2>
 					<div class="level welcome__buttons-level">
 						<div class="level-item buttons are-medium">
 							<a href="/download"><button class="button is-rounded is-link">Download <%= brand.name %></button></a>
@@ -40,6 +40,7 @@
 					<div class="column">
 						<img
 							class="image is-5by3"
+							alt="<%= title %>"
 							data-light="static/images/home/<%= image_light %>"
 							data-dark="static/images/home/<%= image_dark %>"
 							style="border-radius: 16px;"/>

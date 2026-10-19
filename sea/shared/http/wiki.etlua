@@ -15,7 +15,7 @@
 						<select onchange="changeWikiLanguage(this.value)">
 							<% for _, language in ipairs(language_metadatas) do %>
 								<% if language.code == selected_language_code then %>
-									<option selected value=""><%= language.name %></p></option>
+									<option selected value=""><%= language.name %></option>
 								<% else %>
 									<option value="<%= language.code %>"><%= language.name %></option>
 								<% end %>

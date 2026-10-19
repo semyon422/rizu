@@ -134,6 +134,7 @@ function UserResource:getUser(req, res, ctx)
 	ctx.scores, ctx.total_rating = page:getScores(ctx.leaderboard, user.id, ctx.query.scores)
 
 	ctx.meta_tags["title"] = ("%s's profile - %s"):format(ctx.user.name or "Unknown", brand.name)
+	ctx.meta_tags["og:type"] = "profile"
 	ctx.meta_tags["profile:username"] = ctx.user.name
 	if ctx.user.avatar and ctx.user.avatar ~= "" then
 		ctx.meta_tags["og:image"] = ctx.user.avatar

@@ -4,7 +4,7 @@
 	<div class="container">
 		<div class="navbar-brand">
 			<a class="navbar-item" href="/">
-				<img src="/static/images/header-logo.svg" />
+				<img src="/static/images/header-logo.svg" alt="<%= brand.name %> logo" />
 				<strong class="navbar-item"><%= brand.name:upper() %></strong>
 			</a>
 		</div>
