@@ -297,6 +297,8 @@ return {
 	["result.rescore_title"] = "Recalcular puntuación",
 	["result.rescore_subtitle"] = "Cuenta esta partida de nuevo con otro sistema de puntuación. Las ventanas de acierto no cambian.",
 	["song_select.time_rate_type"] = "Tipo de velocidad de reproducción",
+	["song_select.time_rate_type_linear"] = "Lineal",
+	["song_select.time_rate_type_exp"] = "Exp",
 	["song_select.time_rate"] = "Velocidad de reproducción",
 	["song_select.auto_timings"] = "Sistema de puntuación automático",
 	["song_select.nearest_input"] = "Contar los aciertos según la nota más cercana",

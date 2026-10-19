@@ -136,7 +136,7 @@ function Modifiers:rebuildForm()
 		value = rate_type,
 		width = FORM_WIDTH,
 		format = function(value)
-			return value == "exp" and "Exp" or "Linear"
+			return self.localization:get("song_select.time_rate_type_" .. value)
 		end,
 		on_change = function(value)
 			play:setRateType(value)

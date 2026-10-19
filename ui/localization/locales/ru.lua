@@ -344,6 +344,8 @@ return {
 	["result.rescore_title"] = "Пересчёт скора",
 	["result.rescore_subtitle"] = "Посчитать игру заново другой системой скора. Окна попаданий остаются прежними.",
 	["song_select.time_rate_type"] = "Тип скорости музыки",
+	["song_select.time_rate_type_linear"] = "Линейная",
+	["song_select.time_rate_type_exp"] = "Экспоненциальная",
 	["song_select.time_rate"] = "Скорость музыки",
 	["song_select.auto_timings"] = "Автоматическая система скора",
 	["song_select.nearest_input"] = "Считать попадания по ближайшей ноте",

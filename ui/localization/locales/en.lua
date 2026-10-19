@@ -360,6 +360,8 @@ return {
 	["result.rescore_title"] = "Recalculate Score",
 	["result.rescore_subtitle"] = "Count this play again with another score system. Hit windows stay as played.",
 	["song_select.time_rate_type"] = "Time Rate Type",
+	["song_select.time_rate_type_linear"] = "Linear",
+	["song_select.time_rate_type_exp"] = "Exp",
 	["song_select.time_rate"] = "Time Rate",
 	["song_select.auto_timings"] = "Automatic score system",
 	["song_select.nearest_input"] = "Nearest input",
