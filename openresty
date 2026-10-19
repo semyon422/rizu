@@ -11,7 +11,7 @@ NGINX_TEMP_PATH=$(pwd)/server-state/temp \
 luajit aqua/web/nginx/compile.lua
 
 export DYLD_FALLBACK_LIBRARY_PATH=$PWD/bin/mac64
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/bin/linux64
+export LD_LIBRARY_PATH=$OR_ROOT/openssl3/lib:$LD_LIBRARY_PATH:$PWD/bin/linux64
 
 if [[ $1 == "start" ]]; then
 	openresty -p $(pwd) -c server-state/nginx.conf
