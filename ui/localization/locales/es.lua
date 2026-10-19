@@ -277,6 +277,8 @@ return {
 	["song_select.sort_last played"] = "Jugado por última vez",
 	["song_select.unknown_difficulty"] = "Dificultad desconocida",
 	["song_select.no_chart"] = "SIN CHART",
+	["song_select.loading"] = "CARGANDO...",
+	["song_select.uncached"] = "SIN CACHÉ",
 	["song_select.length"] = "DURACIÓN",
 	["song_select.notes"] = "NOTAS",
 	["song_select.tempo"] = "TEMPO",

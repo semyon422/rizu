@@ -324,6 +324,8 @@ return {
 	["song_select.sort_last played"] = "Последняя игра",
 	["song_select.unknown_difficulty"] = "Без названия",
 	["song_select.no_chart"] = "НЕТ КАРТЫ",
+	["song_select.loading"] = "ЗАГРУЗКА...",
+	["song_select.uncached"] = "НЕ КЭШИРОВАНО",
 	["song_select.length"] = "ДЛИНА",
 	["song_select.notes"] = "НОТЫ",
 	["song_select.tempo"] = "ТЕМП",

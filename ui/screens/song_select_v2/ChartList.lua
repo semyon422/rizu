@@ -213,7 +213,8 @@ function ChartList:drawItem(cv, y, is_selected, is_hovered)
 	batch:setColor(1, 1, 1)
 
 	local text_right = self.width - BADGE_RIGHT - 16
-	if not cv.loaded then
+	local uncached = ChartCarousel.isUncached(cv)
+	if not cv.loaded or uncached then
 		-- Nothing to say about the row yet.
 	elseif formatter:isDan() then
 		batch:add(sprites.chart_sets_dan, self.width - BADGE_RIGHT, y + 23)
@@ -229,6 +230,17 @@ function ChartList:drawItem(cv, y, is_selected, is_hovered)
 	end
 
 	local fitText = ChartCarousel.fitText
+	if not cv.loaded then
+		self.title_batch:add(colored(Colors.muted, self.localization:get("song_select.loading")), TITLE_X, y + TOP_Y)
+		return
+	elseif uncached then
+		local text_width = text_right - TITLE_X
+		self.title_batch:add(colored(Colors.text, fitText(self.title_batch:getFont(), cv.chartfile_name or "", text_width)),
+			TITLE_X, y + TOP_Y)
+		self.name_batch:add(colored(Colors.accent, fitText(self.name_batch:getFont(),
+			self.localization:get("song_select.uncached"), text_width)), TITLE_X, y + BOTTOM_Y)
+		return
+	end
 	local mode = (formatter:getMode():gsub(" %(EXPERIMENTAL%)$", ""))
 	local difficulty_font = self.difficulty_batch:getFont()
 	local value = fitText(difficulty_font, difficulty.value, capsule_width - 12)

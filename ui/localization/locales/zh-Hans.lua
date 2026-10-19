@@ -344,6 +344,8 @@ return {
 	["song_select.sort_last played"] = "上次游玩",
 	["song_select.unknown_difficulty"] = "未知难度",
 	["song_select.no_chart"] = "无谱面",
+	["song_select.loading"] = "加载中...",
+	["song_select.uncached"] = "未缓存",
 	["song_select.length"] = "长度",
 	["song_select.notes"] = "音符",
 	["song_select.tempo"] = "节拍",

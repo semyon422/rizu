@@ -28,10 +28,12 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@field loaded boolean? False while the row holds only its ids.
 ---@field chartfile_id integer
 ---@field chartfile_set_id integer
----@field chartmeta_id integer
+---@field chartmeta_id integer? Nil or 0 for an uncached chart: its file is known, but not read yet.
 ---@field chartdiff_id integer
 ---@field chartplay_id integer
 ---@field hash string
+---@field chartfile_name string? File name, the only name an uncached chart has.
+---@field set_name string? Directory or archive name of the set.
 ---@field index integer Which chart of the file, for formats that keep several in one.
 ---@field title string?
 ---@field artist string?

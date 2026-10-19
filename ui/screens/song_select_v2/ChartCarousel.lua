@@ -106,6 +106,13 @@ function ChartCarousel.fitText(font, text, max_width)
 	return text .. "…"
 end
 
+---A loaded row whose file was found but not read yet.
+---@param cv rizu.api.Chart
+---@return boolean
+function ChartCarousel.isUncached(cv)
+	return cv.loaded and (cv.chartmeta_id or 0) == 0 or false
+end
+
 ---@param charts rizu.api.Charts
 ---@param settings rizu.config.Config
 ---@param localization ui.localization.Localization
@@ -361,7 +368,8 @@ function ChartCarousel:addSet(index, content_y)
 	decoration:add(sprites.chart_sets_difficulty, 0, y)
 	decoration:setColor(1, 1, 1)
 	self.formatter:setChartview(cv)
-	if not cv.loaded then
+	local uncached = ChartCarousel.isUncached(cv)
+	if not cv.loaded or uncached then
 		-- Nothing to say about the row yet.
 	elseif self.formatter:isDan() then
 		decoration:add(sprites.chart_sets_dan, self.width - 45, y + 23)
@@ -375,6 +383,15 @@ function ChartCarousel:addSet(index, content_y)
 		decoration:add(sprites.chart_sets_lamp, self.width - 45 - sprites.chart_sets_lamp:getWidth() - 8, y + 23)
 	end
 
+	if not cv.loaded then
+		layer.second:add(colored(Colors.muted, 1, self.localization:get("song_select.loading")), 24, y + 4)
+		return
+	end
+	if uncached then
+		layer.first:add(colored(Colors.text, 1, cv.set_name or ""), 24, y + 4)
+		layer.second:add(colored(Colors.accent, 1, self.localization:get("song_select.uncached")), 24, y + 36)
+		return
+	end
 	layer.first:add(colored(Colors.text, 1, cv.title or ""), 24, y + 4)
 	layer.second:add(colored(Colors.muted, 1, cv.artist or ""), 24, y + 36)
 end
@@ -444,6 +461,18 @@ function ChartCarousel:addChild(group, j, content_y, fade)
 	end
 
 	local first_font, second_font, third_font = layer.first:getFont(), layer.second:getFont(), layer.third:getFont()
+	if not cv.loaded then
+		layer.second:add(colored(Colors.muted, fade, self.localization:get("song_select.loading")),
+			x + DIFFICULTY_X, y + (CHILD_HEIGHT - second_font:getHeight()) / 2)
+		return
+	elseif ChartCarousel.isUncached(cv) then
+		local label = self.localization:get("song_select.uncached")
+		layer.second:add(colored(Colors.accent, fade, ChartCarousel.fitText(second_font, label, NAME_X - DIFFICULTY_X - 8)),
+			x + DIFFICULTY_X, y + (CHILD_HEIGHT - second_font:getHeight()) / 2)
+		layer.third:add(colored(Colors.text, fade, ChartCarousel.fitText(third_font, cv.chartfile_name or "", width - NAME_X - 16)),
+			x + NAME_X, y + (CHILD_HEIGHT - third_font:getHeight()) / 2)
+		return
+	end
 	local text_y = y + (CHILD_HEIGHT - second_font:getHeight()) / 2
 	layer.first:add(colored(color, fade, difficulty.value), x + DIFFICULTY_X, y + (CHILD_HEIGHT - first_font:getHeight()) / 2)
 	layer.second:add(colored(Colors.muted, fade, ChartCarousel.fitText(second_font, mode, NAME_X - MODE_X - 8)),

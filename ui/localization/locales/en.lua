@@ -340,6 +340,8 @@ return {
 	["song_select.sort_last played"] = "Last played",
 	["song_select.unknown_difficulty"] = "Unknown difficulty",
 	["song_select.no_chart"] = "NO CHART",
+	["song_select.loading"] = "LOADING...",
+	["song_select.uncached"] = "UNCACHED",
 	["song_select.length"] = "LENGTH",
 	["song_select.notes"] = "NOTES",
 	["song_select.tempo"] = "TEMPO",
