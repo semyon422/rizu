@@ -56,14 +56,17 @@ function Decoder:new(data, sample_format)
 	self.sample_format = sample_format or "int16"
 	assert(self.sample_format == "int16" or self.sample_format == "float32")
 	self.empty = EmptyWave.isEmpty(data)
+	if not self.empty then
+		---@type integer
+		self.decode_channel = bass.BASS_StreamCreateFile(true, data, 0, #data, bit.bor(bass_flags.BASS_STREAM_DECODE, bass_flags.BASS_STREAM_PRESCAN))
+		-- charts use zero-byte or broken files to mute hitsounds, play them as silence
+		self.empty = self.decode_channel == 0
+	end
 	if self.empty then
 		self.frame_duration, self.frame_position = 0, 0
 		return
 	end
 
-	---@type integer
-	self.decode_channel = bass.BASS_StreamCreateFile(true, data, 0, #data, bit.bor(bass_flags.BASS_STREAM_DECODE, bass_flags.BASS_STREAM_PRESCAN))
-	bass_assert(self.decode_channel ~= 0)
 	local source_length = get_length(self.decode_channel)
 	---@type number
 	local duration = bass.BASS_ChannelBytes2Seconds(self.decode_channel, source_length)
