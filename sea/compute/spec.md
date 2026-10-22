@@ -187,6 +187,10 @@ Native `submitChartplay` returns `ChartplaySubmissionResult` after durable accep
 
 Duplicate native submissions resolve to the same canonical chartplay and job.
 
+For IIDX `.1` submissions with missing display metadata, the server starts a separate best-effort `compute_data_provider:getIidxMetadata(hash)` request after durable acceptance. This also runs when the chart bytes are already cached. The client reads its local IIDX catalog and returns `{song_id, title, artist?, genre?, levels?}`, with levels keyed by variation name. The server validates text and level bounds and matches the song ID to the chart filename, then fills missing metadata for every variation decoded from the verified `.1` bytes. Only display fields are imported; replay validation and scoring never consume the client metadata.
+
+Enrichment does not wait on the compute job and does not delay the submission response while awaiting RPC. Unsupported old clients, missing metadata, invalid replies, disconnects, and timeouts leave the result submission intact; a later submission can retry enrichment. Existing populated metadata is not replaced, and subsequent recomputation preserves it when the decoder only has fallback metadata. No schema migration is required: legacy missing metadata is identified by an absent/numeric title with no artist, source, or level. A real numeric-only title without those fields remains eligible for another request.
+
 ### Bancho protocol
 
 Bancho uses the same durable chartplay, compute job, and side-effect rows, but preserves its synchronous score response. Its request awaits external computation, canonical finalization, and durable side-effect processing. A client retry resolves through replay-hash idempotency rather than creating a second chartplay.

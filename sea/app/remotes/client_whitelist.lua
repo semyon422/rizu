@@ -19,6 +19,7 @@ local whitelist = {
 	},
 	compute_data_provider = {
 		getChartData = true,
+		getIidxMetadata = true,
 		getReplayData = true,
 	},
 	print = true,

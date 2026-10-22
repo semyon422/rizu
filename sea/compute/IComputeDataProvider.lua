@@ -11,6 +11,13 @@ function IComputeDataProvider:getChartData(hash)
 	error("not implemented")
 end
 
+---@param hash string
+---@return sea.IidxMetadata?
+---@return string?
+function IComputeDataProvider:getIidxMetadata(hash)
+	return nil, "metadata not supported"
+end
+
 ---@param replay_hash string
 ---@return string?
 ---@return string?

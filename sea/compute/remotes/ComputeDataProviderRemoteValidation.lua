@@ -1,6 +1,7 @@
 local class = require("class")
 local valid = require("valid")
 local types = require("sea.shared.types")
+local IidxMetadata = require("sea.chart.IidxMetadata")
 
 ---@class sea.ComputeDataProviderRemoteValidation: sea.ComputeDataProvider
 ---@operator call: sea.ComputeDataProviderRemoteValidation
@@ -32,6 +33,21 @@ function ComputeDataProviderRemoteValidation:getChartData(hash)
 	assert(validate_chart(t))
 
 	return t
+end
+
+---@param hash string
+---@return sea.IidxMetadata?
+---@return string?
+function ComputeDataProviderRemoteValidation:getIidxMetadata(hash)
+	assert(types.md5hash(hash))
+	local metadata, err = self.compute_data_provider:getIidxMetadata(hash)
+	if not metadata then
+		return nil, err
+	end
+	if not IidxMetadata.validate(metadata) then
+		return nil, "invalid IIDX metadata"
+	end
+	return metadata
 end
 
 ---@param replay_hash string

@@ -1,5 +1,6 @@
 local IComputeDataProvider = require("sea.compute.IComputeDataProvider")
 local ChartfileReader = require("rizu.library.ChartfileReader")
+local IidxDecodeContext = require("chart.format.iidx.DecodeContext")
 local path_util = require("path_util")
 local digest = require("digest")
 local types = require("sea.shared.types")
@@ -59,6 +60,36 @@ function ComputeDataProvider:getChartData(hash)
 	return {
 		name = chartfile.name,
 		data = data,
+	}
+end
+
+---@param hash string
+---@return sea.IidxMetadata?
+---@return string?
+function ComputeDataProvider:getIidxMetadata(hash)
+	if not types.md5hash(hash) then
+		return nil, "invalid hash"
+	end
+	local chartfile = self.chartfilesRepo:selectChartfileByHash(hash)
+	if not chartfile or path_util.ext(chartfile.name, true) ~= "1" then
+		return nil, "IIDX chartfile not found"
+	end
+	local set = self.chartfilesRepo:selectChartfileSetById(chartfile.set_id)
+	local location = set and self.locationsRepo:selectLocationById(set.location_id)
+	if not location then
+		return nil, "location not found"
+	end
+	local context = IidxDecodeContext.fromLocation(self.fs, self.locations:getPrefix(location), chartfile.name)
+	local song = context and context.iidx_song
+	if not song then
+		return nil, "IIDX metadata not found"
+	end
+	return {
+		song_id = song.song_id,
+		title = song.title,
+		artist = song.artist,
+		genre = song.genre,
+		levels = song.levels,
 	}
 end
 

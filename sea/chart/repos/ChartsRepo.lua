@@ -2,6 +2,7 @@ local class = require("class")
 local table_util = require("table_util")
 local sql_util = require("rdb.sql_util")
 local ChartmetaUserData = require("sea.chart.ChartmetaUserData")
+local IidxMetadata = require("sea.chart.IidxMetadata")
 
 ---@class sea.ChartsRepo
 ---@operator call: sea.ChartsRepo
@@ -204,7 +205,9 @@ function ChartsRepo:createUpdateChartmeta(chartmeta, time)
 		chartmeta.created_at = time
 		chartmeta.computed_at = time
 		return self:createChartmeta(chartmeta)
-	elseif not _chartmeta:equalsComputed(chartmeta) then
+	end
+	IidxMetadata.preserve(chartmeta, _chartmeta)
+	if not _chartmeta:equalsComputed(chartmeta) then
 		chartmeta.id = _chartmeta.id
 		chartmeta.computed_at = time
 		return self:updateChartmeta(chartmeta)

@@ -39,6 +39,9 @@ local ReplayCoder = require("sea.replays.ReplayCoder")
 local VirtualInputEvent = require("rizu.input.VirtualInputEvent")
 local InputMode = require("chart.core.InputMode")
 
+local IidxFixtures = require("chart.format.iidx.TestFixtures")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
+local ComputeDataProviderRemoteValidation = require("sea.compute.remotes.ComputeDataProviderRemoteValidation")
 local test = {}
 
 local function create_test_ctx()
@@ -358,6 +361,123 @@ function test.submit_chartplay_save_on_retrieval_failure(t)
 	-- Durable acceptance happens only after all required inputs are stored.
 	local count = ctx.charts_repo:countChartplays()
 	t:eq(count, 0, "Chartplay should not be accepted before input retrieval succeeds")
+end
+
+local function iidx_submission()
+	local ctx = create_test_ctx()
+	local data = IidxFixtures.sampleChart()
+	local hash = digest.hash("md5", data, true)
+	local provider = FakeComputeDataProvider()
+	provider:addChart(hash, "01234/01234.1", data)
+	local iidx_replay = setmetatable(table_util.copy(replay), Replay)
+	iidx_replay.hash = hash
+	iidx_replay.columns_order = nil
+	local replay_data = assert(ReplayCoder.encode(iidx_replay))
+	local replay_hash = digest.hash("md5", replay_data, true)
+	provider:addReplay(replay_hash, replay_data)
+	local play = setmetatable(table_util.copy(_chartplay_values), Chartplay)
+	play.hash = hash
+	play.replay_hash = replay_hash
+	play.columns_order = nil
+	local diff = setmetatable(table_util.copy(_chartdiff_values), Chartdiff)
+	diff.hash = hash
+	return ctx, provider, play, diff, data
+end
+
+function test.iidx_metadata_enrichment_and_recompute(t)
+	local ctx, provider, play, diff, data = iidx_submission()
+	local calls = 0
+	provider.getIidxMetadata = function(_, hash)
+		t:eq(hash, play.hash)
+		calls = calls + 1
+		return {song_id = 1234, title = "Song", artist = "Artist", genre = "Genre", levels = {SPN = 3, DPN = 4}}
+	end
+	local submission = assert(ctx.chartplays:enqueue(ctx.user, 0,
+		ComputeDataProviderRemoteValidation(provider), play, diff))
+	t:eq(calls, 1)
+	local meta = assert(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1))
+	t:eq(meta.title, "Song")
+	t:eq(meta.artist, "Artist")
+	t:eq(meta.source, "Genre")
+	t:eq(meta.level, 3)
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 2).level, 4)
+	assert(ctx.chartplays.compute_jobs:process(submission.job.id, os.time()))
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "Song")
+	play = assert(ctx.charts_repo:getChartplay(submission.chartplay.id))
+	assert(ctx.chartplays:enqueue(ctx.user, 0, provider, play, diff))
+	t:eq(calls, 1)
+	-- A full chartfile recomputation also keeps display metadata on every variation.
+	for _, entry in ipairs(assert(ChartFactory:getCharts("01234.1", data))) do
+		ctx.charts_repo:createUpdateChartmeta(entry.chartmeta, 1)
+	end
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 2).title, "Song")
+	ctx.db:close()
+end
+
+function test.iidx_metadata_backfill_cached_chart(t)
+	local ctx, provider, play, diff, data = iidx_submission()
+	local submission = assert(ctx.chartplays:enqueue(ctx.user, 0, provider, play, diff))
+	assert(ctx.chartplays.compute_jobs:process(submission.job.id, os.time()))
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "1234")
+	provider.getChartData = function() error("cached chart must not be downloaded again") end
+	provider.getIidxMetadata = function()
+		return {song_id = 1234, title = "Backfilled", levels = {SPN = 7}}
+	end
+	play = assert(ctx.charts_repo:getChartplay(submission.chartplay.id))
+	assert(ctx.chartplays:enqueue(ctx.user, 0, provider, play, diff))
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "Backfilled")
+	ctx.db:close()
+end
+
+function test.iidx_metadata_invalid_or_unavailable_does_not_reject(t)
+	for _, response in ipairs({
+		function() error("old client: not whitelisted") end,
+		function() return nil, "metadata unavailable" end,
+		function() return {song_id = 9999, title = "Wrong song"} end,
+		function() return {song_id = 1234, title = string.rep("x", 4097)} end,
+		function() return {song_id = 1234, title = "Song", levels = {SPN = 0 / 0}} end,
+	}) do
+		local ctx, provider, play, diff = iidx_submission()
+		provider.getIidxMetadata = response
+		local submission = assert(ctx.chartplays:enqueue(ctx.user, 0,
+			ComputeDataProviderRemoteValidation(provider), play, diff))
+		t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1), nil)
+		assert(ctx.chartplays.compute_jobs:process(submission.job.id, os.time()))
+		t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "1234")
+		ctx.db:close()
+	end
+end
+
+function test.iidx_metadata_request_does_not_delay_acceptance(t)
+	local ctx, provider, play, diff = iidx_submission()
+	---@type thread?
+	local request
+	provider.getIidxMetadata = function()
+		request = coroutine.running()
+		coroutine.yield()
+		return {song_id = 1234, title = "Late metadata"}
+	end
+	local submission = assert(ctx.chartplays:enqueue(ctx.user, 0, provider, play, diff))
+	assert(ctx.chartplays.compute_jobs:process(submission.job.id, os.time()))
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "1234")
+	assert(coroutine.resume(assert(request)))
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "Late metadata")
+	ctx.db:close()
+end
+
+function test.iidx_metadata_uses_safe_coroutine_wrapper(t)
+	local ctx, provider, play, diff = iidx_submission()
+	provider.getIidxMetadata = function()
+		return {song_id = 1234, title = "Safe background request"}
+	end
+	local wrap = coroutine.wrap
+	rawset(coroutine, "wrap", function() error("native coroutine.wrap is unsafe in OpenResty") end)
+	local ok, submission, err = pcall(ctx.chartplays.enqueue, ctx.chartplays, ctx.user, 0, provider, play, diff)
+	rawset(coroutine, "wrap", wrap)
+	assert(ok, submission)
+	assert(submission, err)
+	t:eq(ctx.charts_repo:getChartmetaByHashIndex(play.hash, 1).title, "Safe background request")
+	ctx.db:close()
 end
 
 return test

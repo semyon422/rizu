@@ -4,6 +4,10 @@ local Chartdiff = require("sea.chart.Chartdiff")
 local ChartplaysAccess = require("sea.chart.access.ChartplaysAccess")
 local ComputeInputLoader = require("sea.compute.ComputeInputLoader")
 local ComputeFailure = require("sea.compute.ComputeFailure")
+local ChartFactory = require("chart.format.notechart.ChartFactory")
+local IidxMetadata = require("sea.chart.IidxMetadata")
+local path_util = require("path_util")
+local icc_co = require("icc.co")
 
 ---@class sea.Chartplays
 ---@operator call: sea.Chartplays
@@ -97,6 +101,36 @@ end
 ---@field replays_size integer
 ---@field duplicate boolean
 
+---@param provider sea.IComputeDataProvider
+---@param hash string
+---@param index integer
+---@param file {name: string, data: string}
+---@param time integer
+function Chartplays:fetchIidxMetadata(provider, hash, index, file, time)
+	if path_util.ext(file.name, true) ~= "1"
+		or not IidxMetadata.isMissing(self.charts_repo:getChartmetaByHashIndex(hash, index))
+	then
+		return
+	end
+	local metadata = provider:getIidxMetadata(hash)
+	if not metadata or not IidxMetadata.validate(metadata)
+		or metadata.song_id ~= tonumber(file.name:match("(%d+)"))
+	then
+		return
+	end
+	local charts = ChartFactory:getCharts(file.name, file.data, hash)
+	if not charts then
+		return
+	end
+	for _, entry in ipairs(charts) do
+		local chartmeta = entry.chartmeta
+		if IidxMetadata.isMissing(self.charts_repo:getChartmetaByHashIndex(hash, chartmeta.index)) then
+			IidxMetadata.apply(chartmeta, metadata)
+			self.charts_repo:createUpdateChartmeta(chartmeta, time)
+		end
+	end
+end
+
 ---@param user sea.User
 ---@param time integer
 ---@param compute_data_provider sea.IComputeDataProvider
@@ -124,7 +158,7 @@ function Chartplays:enqueue(user, time, compute_data_provider, chartplay_values,
 	end
 
 	local input_loader = self.compute_input_loader
-	local replay_data, replay_uploaded
+	local replay_data, replay_uploaded, err
 	replay_data, replay_uploaded, err = input_loader:loadReplay(compute_data_provider, chartplay_values.replay_hash)
 	if not replay_data then
 		---@cast err sea.ComputeFailure
@@ -149,6 +183,14 @@ function Chartplays:enqueue(user, time, compute_data_provider, chartplay_values,
 		chart_uploaded and #chart_file.data or 0,
 		replay_uploaded and #replay_data or 0
 	)
+	-- Optional enrichment must not delay durable acceptance or fail the submission on old clients.
+	icc_co.wrap(function()
+		local ok, metadata_err = pcall(self.fetchIidxMetadata, self, compute_data_provider,
+			chartplay_values.hash, chartplay_values.index, chart_file, time)
+		if not ok then
+			print("chart metadata enrichment failed: " .. tostring(metadata_err))
+		end
+	end)()
 	return {
 		chartplay = chartplay,
 		job = job,
