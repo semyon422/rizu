@@ -3,6 +3,7 @@ local table_util = require("table_util")
 local VisualNoteFactory = require("rizu.engine.visual.VisualNoteFactory")
 local Point = require("chart.model.tp.Point")
 local VisualPoint = require("chart.model.visual.VisualPoint")
+local MonotonicEventScroller = require("chart.model.visual.MonotonicEventScroller")
 
 ---@class rizu.VisualEngine
 ---@operator call: rizu.VisualEngine
@@ -50,6 +51,8 @@ end
 function VisualEngine:load(chart, lazy_scrollers)
 	---@type {[chart.Visual]: chart.VisualPoint}
 	self.cvp = {}
+	---@type {[chart.Visual]: chart.MonotonicEventScroller}
+	self.const_scrollers = {}
 
 	---@type {[rizu.VisualNote]: true}
 	self.visible_notes_map = {}
@@ -109,11 +112,17 @@ function VisualEngine:_updateScrollers(time)
 	local range = self.range
 	local visual_info = self.visual_info
 	local handle_event = self.handle_event
+	local const_scrollers = self.const_scrollers
 
 	for visual, cvp in pairs(self.cvp) do
-		-- TODO: implement const for scroller
-		visual.scroller:scroll(time, handle_event)
-		visual.scroller:scale(range / (visual_info.rate * cvp.globalSpeed), handle_event)
+		local scroller = visual.scroller
+		if visual_info.const then
+			-- Const speed ignores velocity, so visibility must follow absolute time
+			const_scrollers[visual] = const_scrollers[visual] or MonotonicEventScroller(visual, true)
+			scroller = const_scrollers[visual]
+		end
+		scroller:scroll(time, handle_event)
+		scroller:scale(range / (visual_info.rate * cvp.globalSpeed), handle_event)
 	end
 end
 

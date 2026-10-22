@@ -8,8 +8,10 @@ local Point = require("chart.model.tp.Point")
 local MonotonicEventScroller = class()
 
 ---@param visual chart.Visual
-function MonotonicEventScroller:new(visual)
+---@param absolute boolean? scroll by absolute time instead of visual time
+function MonotonicEventScroller:new(visual, absolute)
 	self.visual = visual
+	self.absolute = absolute
 	self.points = visual.points
 	self.visible_points = {}
 	self.last_start = 1
@@ -20,14 +22,16 @@ end
 
 ---@param points chart.VisualPoint[]
 ---@param vt number
+---@param absolute boolean?
 ---@return integer
-local function find_index_upper(points, vt)
+local function find_index_upper(points, vt, absolute)
 	local low = 1
 	local high = #points
 	local ans = #points + 1
 	while low <= high do
 		local mid = math.floor((low + high) / 2)
-		if points[mid].visualTime > vt then
+		local t = absolute and points[mid].point.absoluteTime or points[mid].visualTime
+		if t > vt then
 			ans = mid
 			high = mid - 1
 		else
@@ -59,10 +63,14 @@ function MonotonicEventScroller:update(f)
 	if not self.cvp then
 		self.cvp = VisualPoint(Point())
 	end
-	local cvp = self.cvp
-	cvp.point.absoluteTime = self.currentTime
-	visual.interpolator:interpolate(points, cvp, "absolute")
-	local current_vt = cvp.visualTime
+	local absolute = self.absolute
+	local current_vt = self.currentTime
+	if not absolute then
+		local cvp = self.cvp
+		cvp.point.absoluteTime = current_vt
+		visual.interpolator:interpolate(points, cvp, "absolute")
+		current_vt = cvp.visualTime
+	end
 
 	local range = self.last_range
 	-- We use a half-open range (start_vt, end_vt] to match FullEventScroller behavior.
@@ -70,8 +78,8 @@ function MonotonicEventScroller:update(f)
 	local start_vt = current_vt - range
 	local end_vt = current_vt + range
 
-	local start_i = find_index_upper(points, start_vt)
-	local end_i = find_index_upper(points, end_vt) - 1
+	local start_i = find_index_upper(points, start_vt, absolute)
+	local end_i = find_index_upper(points, end_vt, absolute) - 1
 
 	if start_i == self.last_start and end_i == self.last_end then
 		return
