@@ -443,6 +443,7 @@ return {
 	["gameplay.skin_editor.column_width"] = "列宽",
 	["gameplay.skin_editor.column_gap"] = "列间距",
 	["gameplay.skin_editor.column_lines"] = "列分隔线",
+	["gameplay.skin_editor.hold_end_offset"] = "长条尾部偏移",
 	["gameplay.adjust.scroll_speed"] = "滚动速度：{value}",
 	["gameplay.adjust.local_offset"] = "本地偏移：{value} ms",
 	["gameplay.pause.title"] = "已暂停",

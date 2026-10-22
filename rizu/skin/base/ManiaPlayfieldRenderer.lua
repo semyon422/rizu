@@ -26,6 +26,7 @@ local DEFAULT_COMBO_Y = -36
 local DEFAULT_JUDGE_Y = -72
 local MAX_HUD_Y = FIELD_HEIGHT / 2 -- offset from the field center
 local DEFAULT_COLUMN_GAP = 4 -- notes keep their aspect ratio and are this much narrower than the lane
+local MAX_HOLD_END_OFFSET = 2 -- of the note height
 local MAX_COLUMN_GAP = MIN_LANE_WIDTH - 1
 local DEFAULT_NOTE_SHAPE = "rectangle"
 local ARROW_SHAPE = "arrow"
@@ -298,6 +299,23 @@ function ManiaPlayfieldRenderer:setColumnGap(value)
 	self.config:set("mania", self.input_mode, "column.gap", value)
 end
 
+---@return number fraction of the note height the body end moves down
+function ManiaPlayfieldRenderer:getHoldEndOffset()
+	local value = self.config:get("mania", self.input_mode, "hold.end_offset", 0)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return 0
+	end
+	return math.max(0, math.min(MAX_HOLD_END_OFFSET, value))
+end
+
+---@param value number
+function ManiaPlayfieldRenderer:setHoldEndOffset(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"hold end offset must be finite")
+	assert(value >= 0 and value <= MAX_HOLD_END_OFFSET, "hold end offset is out of range")
+	self.config:set("mania", self.input_mode, "hold.end_offset", value)
+end
+
 ---@return boolean
 function ManiaPlayfieldRenderer:getColumnLines()
 	return self.config:get("mania", self.input_mode, "column.lines", true) ~= false
@@ -372,6 +390,11 @@ function ManiaPlayfieldRenderer:getProperties()
 		{key = "column.lines", label_key = "gameplay.skin_editor.column_lines", type = "checkbox",
 			get = function() return self:getColumnLines() end,
 			set = function(value) self:setColumnLines(value) end},
+		{key = "hold.end_offset", label_key = "gameplay.skin_editor.hold_end_offset",
+			min = 0, max = MAX_HOLD_END_OFFSET, step = 0.01,
+			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
+			get = function() return self:getHoldEndOffset() end,
+			set = function(value) self:setHoldEndOffset(value) end},
 		{key = "note.shape", label = "Note shape", type = "dropdown",
 			options = self:getNoteShapes(),
 			format = function(value) return note_shape_labels[value] end,
@@ -509,6 +532,23 @@ local function draw_field(left, columns, lane_width, height, lines)
 end
 
 ---@param shape string
+---@param shape string
+---@param note_width number
+---@return number
+local function get_note_height(shape, note_width)
+	local width, height = get_note_image(shape):getDimensions()
+	return note_width * height / width
+end
+
+---Moves the far end of a hold body down by `shift`, without crossing the head.
+---@param head_y number
+---@param tail_y number
+---@param shift number
+---@return number
+local function shift_hold_end(head_y, tail_y, shift)
+	return math.min(tail_y + shift, head_y)
+end
+
 ---@param x number
 ---@param y number
 ---@param note_width number
@@ -562,6 +602,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	local hold_width = lane_width * 0.64
 	local note_shape = self:getNoteShape()
 	local note_width = lane_width - self:getColumnGap()
+	local hold_end_shift = self:getHoldEndOffset() * get_note_height(note_shape, note_width)
 	local pixels_per_second = FIELD_HEIGHT * math.max(player.rate, 0.01)
 	local receptor_y = self:getReceptorY()
 	local time = player.time
@@ -585,7 +626,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 			if note.end_time >= from_time then
 				local head_y = receptor_y - (note.time - time) * pixels_per_second
 				local tail_y = receptor_y - (note.end_time - time) * pixels_per_second
-				if note.end_time > note.time then draw_hold_body(x, head_y, tail_y, hold_width, color_name) end
+				if note.end_time > note.time then draw_hold_body(x, head_y, shift_hold_end(head_y, tail_y, hold_end_shift), hold_width, color_name) end
 				if note.time >= from_time and note.time <= until_time then
 					draw_note(note_shape, x, head_y, note_width, display_column, color_name)
 				end
@@ -626,6 +667,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	local receptor_y = self:getReceptorY()
 	local note_shape = self:getNoteShape()
 	local note_width = lane_width - self:getColumnGap()
+	local hold_end_shift = self:getHoldEndOffset() * get_note_height(note_shape, note_width)
 
 	lg.push("all")
 	lg.applyTransform(transform)
@@ -643,7 +685,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 				local x = field_left + (column - 0.5) * lane_width
 				local head_y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
 				local tail_y = clamp_held_tail_y(note, receptor_y + note.end_dt * FIELD_HEIGHT, receptor_y)
-				draw_hold_body(x, head_y, tail_y, lane_width * 0.64, colors[column])
+				draw_hold_body(x, head_y, shift_hold_end(head_y, tail_y, hold_end_shift), lane_width * 0.64, colors[column])
 			end
 		end
 	end

@@ -439,6 +439,7 @@ return {
 	["gameplay.skin_editor.column_width"] = "Column width",
 	["gameplay.skin_editor.column_gap"] = "Column gap",
 	["gameplay.skin_editor.column_lines"] = "Column lines",
+	["gameplay.skin_editor.hold_end_offset"] = "Long note end offset",
 	["gameplay.adjust.scroll_speed"] = "Scroll speed: {value}",
 	["gameplay.adjust.local_offset"] = "Local offset: {value} ms",
 	["gameplay.pause.title"] = "Paused",

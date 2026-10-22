@@ -13,7 +13,7 @@ function test.exposes_receptor_and_playfield_properties(t)
 	local config = SkinConfig()
 	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", config, "userdata/dlc/skins_rizu/base/skin-config.json")
 	local properties = renderer:getProperties()
-	t:eq(#properties, 10)
+	t:eq(#properties, 11)
 	t:eq(properties[1].key, "receptor.y")
 	t:eq(properties[2].key, "playfield.x_offset")
 	t:eq(properties[3].key, "bga.brightness")
@@ -22,8 +22,10 @@ function test.exposes_receptor_and_playfield_properties(t)
 	t:eq(properties[6].key, "column.width")
 	t:eq(properties[7].key, "column.gap")
 	t:eq(properties[8].key, "column.lines")
-	t:eq(properties[9].key, "note.shape")
-	t:eq(properties[10].key, "judge.scale")
+	t:eq(properties[9].key, "hold.end_offset")
+	t:eq(properties[10].key, "note.shape")
+	t:eq(properties[11].key, "judge.scale")
+	t:eq(renderer:getHoldEndOffset(), 0)
 	t:eq(renderer:getColumnGap(), 4)
 	t:eq(renderer:getColumnLines(), true)
 	renderer:setColumnLines(false)
@@ -135,6 +137,8 @@ function test.rejects_out_of_range_properties(t)
 	t:has_error(function() renderer:setJudgeScale(3) end)
 	t:has_error(function() renderer:setColumnWidth(15) end)
 	t:has_error(function() renderer:setColumnGap(16) end)
+	t:has_error(function() renderer:setHoldEndOffset(2.01) end)
+	t:has_error(function() renderer:setHoldEndOffset(-0.01) end)
 	t:has_error(function() renderer:setColumnLines(1) end)
 	t:has_error(function() renderer:setHudY("combo.y", 241) end)
 	renderer:setBgaBrightness(2)
@@ -323,6 +327,39 @@ function test.column_lines_can_be_disabled(t)
 	local with_lines = count_rectangles()
 	renderer:setColumnLines(false)
 	t:eq(with_lines - count_rectangles(), 5) -- columns + 1 lines
+end
+
+---@param t testing.T
+function test.hold_body_end_moves_down_by_a_fraction_of_the_note_height(t)
+	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
+	local preview = {
+		columns = {{{time = 0.5, end_time = 1}}, {}, {}, {}},
+		getVisibleRange = function(self, column) return 1, #self.columns[column] end,
+	}
+	---@return number top y of the hold body
+	---@return number height
+	local function body_top()
+		local previous, previous_draw = love.graphics.rectangle, love.graphics.draw
+		local top, body_height
+		love.graphics.draw = function() end
+		love.graphics.rectangle = function(_, _, y, width, height)
+			if math.abs(width - 48 * 0.64) < 0.001 then top, body_height = y, height end
+		end
+		local ok, err = xpcall(function()
+			renderer:drawPreview({notes = preview, input_mode = "4key", time = 0.6, rate = 1}, 640, 480)
+		end, debug.traceback)
+		love.graphics.rectangle, love.graphics.draw = previous, previous_draw
+		if not ok then error(err) end
+		return top, body_height
+	end
+	local base = body_top()
+	renderer:setHoldEndOffset(0.5)
+	-- the test sprites are 88x60, drawn 44 wide: 30 high
+	t:eq(body_top(), base + 15)
+	renderer:setHoldEndOffset(2)
+	t:eq(body_top(), base + 60)
+	preview.columns[1][1].end_time = 0.52 -- shorter than the shift: the end stops at the head
+	t:eq(select(2, body_top()), 0)
 end
 
 return test
