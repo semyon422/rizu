@@ -145,8 +145,14 @@ function DlcList:draw()
 		local item = self.items[index]
 		local y = (index - 1) * self:getRowStep() - scroll
 		local hovered = index == self.hover_index
-		Painter.setColorTable(hovered and Colors.surface_raised or Colors.surface)
+		if item.installed == "partial" then
+			Painter.setColorTable(Colors.blue)
+		else
+			Painter.setColorTable(hovered and Colors.surface or Colors.panel)
+		end
+		Painter.setOpacity(item.installed == "full" and 0.3 or 1)
 		drawBackground(self.item_background, 0, y, self.width, self.item_height)
+		Painter.setOpacity(1)
 
 		Painter.setColorTable(Colors.background)
 		Resources.sprites.pixel:draw(IMAGE_PADDING, y + IMAGE_PADDING, 0, IMAGE_WIDTH - IMAGE_PADDING * 2, self.item_height - IMAGE_PADDING * 2)
@@ -179,6 +185,7 @@ function DlcList:draw()
 
 		local details = item.total_songs and (tostring(item.total_songs) .. " Charts")
 			or (item.status and tostring(item.status) or "Chart set")
+		if item.installed then details = details .. " • " .. (item.installed == "full" and "Installed" or "Partially installed") end
 		if item.size then details = details .. " • " .. tostring(item.size) end
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.small_font)

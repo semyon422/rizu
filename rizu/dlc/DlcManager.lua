@@ -66,7 +66,36 @@ function DlcManager:unload() end
 ---@param provider_name string?
 ---@return table[]? results, string? error
 function DlcManager:search(query, filters, provider_name)
-	return self.worker:search(query, filters, provider_name)
+	local results, err = self.worker:search(query, filters, provider_name)
+	if results then self:markInstalled(results) end
+	return results, err
+end
+
+---Sets `installed` to "full" or "partial" on results whose `md5s` are in the library.
+---@param results table[]
+function DlcManager:markInstalled(results)
+	local all = {}
+	for _, result in ipairs(results) do
+		for _, md5 in ipairs(result.md5s or {}) do
+			table.insert(all, md5)
+		end
+	end
+	if #all == 0 then return end
+
+	local owned = {}
+	for _, hash in ipairs(self.library:getKnownHashesAsync(all)) do
+		owned[hash] = true
+	end
+
+	for _, result in ipairs(results) do
+		local found = 0
+		for _, md5 in ipairs(result.md5s or {}) do
+			if owned[md5] then found = found + 1 end
+		end
+		if found > 0 then
+			result.installed = found == #result.md5s and "full" or "partial"
+		end
+	end
 end
 
 ---@param url string

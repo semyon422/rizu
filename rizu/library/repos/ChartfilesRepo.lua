@@ -153,4 +153,14 @@ function ChartfilesRepo:getChartfilesByHashes(hashes)
 	return self.models.chartfiles:select({hash__in = hashes})
 end
 
+---@param hashes string[]
+---@return string[]
+function ChartfilesRepo:getKnownHashes(hashes)
+	local known = {}
+	for _, chartfile in ipairs(self:getChartfilesByHashes(hashes)) do
+		table.insert(known, chartfile.hash)
+	end
+	return known
+end
+
 return ChartfilesRepo

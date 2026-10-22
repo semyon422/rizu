@@ -267,6 +267,15 @@ function Library:hasChartfilesAsync()
 	return has_chartfiles
 end
 
+---@param hashes string[]
+---@return string[] hashes Of the given ones that are in the library.
+function Library:getKnownHashesAsync(hashes)
+	if self.is_sync or not self.worker then
+		return self.chartfilesRepo:getKnownHashes(hashes)
+	end
+	return self.worker:getKnownHashes(hashes)
+end
+
 ---Copies a downloaded remote catalog into the library. See `RemoteCatalogLoader.import`.
 ---@param path string
 ---@param base_url string

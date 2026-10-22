@@ -94,6 +94,12 @@ function Worker:hasChartfiles()
 	return self.processor.chartfilesRepo:hasChartfiles()
 end
 
+---@param hashes string[]
+---@return string[] hashes Of the given ones that are in the library.
+function Worker:getKnownHashes(hashes)
+	return self.processor.chartfilesRepo:getKnownHashes(hashes)
+end
+
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function Worker:query(params)

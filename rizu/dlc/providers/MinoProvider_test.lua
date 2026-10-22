@@ -21,7 +21,7 @@ function test.search(t)
 						"source": "Source",
 						"tags": "tag",
 						"status": "ranked",
-						"beatmaps": [{"id": 1}],
+						"beatmaps": [{"id": 1, "checksum": "aa"}, {"id": 2}],
 						"video": false,
 						"storyboard": true
 					}]
@@ -38,6 +38,7 @@ function test.search(t)
 	t:assert(requested_url:find("status=4", 1, true))
 	t:eq(results[1].id, 12345)
 	t:eq(results[1].thumbnail_url, "https://assets.ppy.sh/beatmaps/12345/covers/card.jpg")
+	t:tdeq(results[1].md5s, {"aa"})
 end
 
 ---@param t testing.T

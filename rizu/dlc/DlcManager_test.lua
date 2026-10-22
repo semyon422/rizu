@@ -44,6 +44,31 @@ function test.worker_uses_network_transport(t)
 end
 
 ---@param t testing.T
+function test.search_marks_installed_sets(t)
+	local old_love = love
+	love = {filesystem = {getSource = function() return "/game" end}}
+	local library = {
+		getKnownHashesAsync = function(_, hashes)
+			t:tdeq(hashes, {"a", "b", "c", "x", "y"})
+			return {"a", "b", "c"}
+		end,
+	}
+	local ok, err = pcall(function()
+		local manager = DlcManager(library, {} --[[@as any]])
+		manager.worker = {search = function()
+			return {{md5s = {"a", "b"}}, {md5s = {"c", "x"}}, {md5s = {"y"}}, {}}
+		end}
+		local results = manager:search("q")
+		t:eq(results[1].installed, "full")
+		t:eq(results[2].installed, "partial")
+		t:eq(results[3].installed, nil)
+		t:eq(results[4].installed, nil)
+	end)
+	love = old_love
+	if not ok then error(err, 0) end
+end
+
+---@param t testing.T
 function test.network_is_required(t)
 	local old_love = love
 	love = {

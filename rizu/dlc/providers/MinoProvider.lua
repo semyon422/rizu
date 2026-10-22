@@ -83,6 +83,10 @@ function MinoProvider:search(query, filters)
 
 	local results = {}
 	for _, set in ipairs(data) do
+		local md5s = {}
+		for _, beatmap in ipairs(set.beatmaps or {}) do
+			if beatmap.checksum then table.insert(md5s, beatmap.checksum) end
+		end
 		table.insert(results, {
 			id = set.id,
 			title = set.title,
@@ -92,6 +96,7 @@ function MinoProvider:search(query, filters)
 			tags = set.tags,
 			status = set.status,
 			difficulties = set.beatmaps,
+			md5s = md5s,
 			has_video = set.video,
 			has_storyboard = set.storyboard,
 			thumbnail_url = ("https://assets.ppy.sh/beatmaps/%s/covers/card.jpg"):format(set.id),
