@@ -116,4 +116,52 @@ function test.difftable_chartmetas(t)
 	ctx.assert_synced(t)
 end
 
+---@param t testing.T
+function test.difftables_timeout(t)
+	local ctx = create_test_ctx()
+	local sync = ctx.difftables_sync
+	local remote = sync.remote
+	local get_difftables = remote.getDifftables
+	remote.getDifftables = function()
+		error("timeout", 0)
+	end
+
+	t:tdeq({sync:sync()}, {nil, "timeout"})
+	t:eq(sync.syncing, false)
+
+	remote.getDifftables = get_difftables
+	t:tdeq({sync:sync()}, {0, 0})
+	ctx.assert_synced(t)
+end
+
+---@param t testing.T
+function test.chartmetas_timeout_resumes(t)
+	local ctx = create_test_ctx()
+	local sync = ctx.difftables_sync
+	sync.limit = 1
+	ctx.difftables_src:create(ctx.user, new_dt("1"))
+	ctx.difftables_src:setDifftableChartmeta(ctx.user, 0, 1, "1", 1)
+	ctx.difftables_src:setDifftableChartmeta(ctx.user, 0, 1, "2", 1)
+
+	local remote = sync.remote
+	local get_chartmetas = remote.getDifftableChartmetas
+	local calls = 0
+	remote.getDifftableChartmetas = function(self, ...)
+		calls = calls + 1
+		if calls == 2 then
+			error("timeout", 0)
+		end
+		return get_chartmetas(self, ...)
+	end
+
+	t:tdeq({sync:sync()}, {nil, "timeout"})
+	t:eq(sync.syncing, false)
+	t:eq(#ctx.difftables_repo_dst:getDifftableChartmetasAll(), 1)
+
+	remote.getDifftableChartmetas = get_chartmetas
+	t:tdeq({sync:sync()}, {0, 1})
+	t:eq(sync.syncing, false)
+	ctx.assert_synced(t)
+end
+
 return test

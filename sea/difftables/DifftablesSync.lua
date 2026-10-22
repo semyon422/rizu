@@ -69,13 +69,17 @@ function DifftablesSync:syncDifftableChartmetas()
 	return count
 end
 
----@return integer
----@return integer
+---@return integer? difftables
+---@return integer|string chartmetas_or_error
 function DifftablesSync:sync()
 	self.syncing = true
-	local dts = self:syncDifftables()
-	local dt_cms = self:syncDifftableChartmetas()
+	local ok, dts, dt_cms = pcall(function()
+		return self:syncDifftables(), self:syncDifftableChartmetas()
+	end)
 	self.syncing = false
+	if not ok then
+		return nil, tostring(dts)
+	end
 	return dts, dt_cms
 end
 
