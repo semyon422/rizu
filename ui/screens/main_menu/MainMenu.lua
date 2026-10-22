@@ -54,18 +54,12 @@ function MainMenu:unload()
 end
 
 function MainMenu:enter()
-	self.ui.command_registry:pushContext("online", self.ui.online_commands)
-	self.ui.command_registry:pushContext("database", self.ui.database_commands)
-	self.ui.command_registry:pushContext("package", self.ui.package_commands)
 	self.root:scaleTo(1, 1, 0.4, "OutQuart")
 	self.root:fadeIn(0.4, "OutQuart")
 end
 
 function MainMenu:exit()
 	Screen.exit(self)
-	self.ui.command_registry:popContext("online")
-	self.ui.command_registry:popContext("database")
-	self.ui.command_registry:popContext("package")
 	self.root:scaleTo(0.95, 0.95, 0.2)
 	self.root:fadeOut(0.3, "OutCubic")
 	return true

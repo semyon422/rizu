@@ -176,11 +176,20 @@ function UserInterface:load()
 		})
 		self.screen_manager:setOverlay(self.overlay)
 
-		for _, command_set in ipairs({self.global_commands, self.ui_global_commands}) do
-			for _, command in ipairs(command_set) do
-				self.command_registry:registerGlobal(command)
-			end
-		end
+		local registry = self.command_registry
+		registry:pushContext("global", self.global_commands)
+		registry:pushContext("database", self.database_commands)
+		registry:pushContext("gameplay", self.gameplay_commands)
+		registry:pushContext("location", self.location_commands)
+		registry:pushContext("multiplayer", self.multiplayer_commands)
+		registry:pushContext("online", self.online_commands)
+		registry:pushContext("package", self.package_commands)
+		registry:pushContext("play_config", self.play_config_commands)
+		registry:pushContext("result", self.result_commands)
+		registry:pushContext("select", self.select_commands)
+		registry:pushContext("ui_global", self.ui_global_commands)
+		registry:pushContext("ui_result", self.ui_result_commands)
+		registry:pushContext("ui_select", self.ui_select_commands)
 	end
 
 	local ww, wh = love.graphics.getDimensions()

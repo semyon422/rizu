@@ -104,7 +104,6 @@ function LobbyList:receive(event)
 end
 
 function LobbyList:enter()
-	self.ui.command_registry:pushContext("multiplayer", self.ui.multiplayer_commands)
 	self:refreshRooms()
 	self.joining_room_id = nil
 	self.list:setEnabled(true)
@@ -115,7 +114,6 @@ end
 
 function LobbyList:exit()
 	Screen.exit(self)
-	self.ui.command_registry:popContext("multiplayer")
 	self.root:fadeOut(0.2, "OutQuad")
 	self.root:scaleTo(1.01, 1.01, 0.3, "OutQuart")
 	return true

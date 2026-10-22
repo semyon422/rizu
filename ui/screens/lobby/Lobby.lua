@@ -110,7 +110,6 @@ function Lobby:receive(event)
 end
 
 function Lobby:enter()
-	self.ui.command_registry:pushContext("multiplayer", self.ui.multiplayer_commands)
 	self:refreshRoom()
 	self.root:fadeIn(0.3, "OutCubic")
 	self.root:scaleTo(1, 1, 0.3, "OutQuart")
@@ -118,7 +117,6 @@ end
 
 function Lobby:exit()
 	Screen.exit(self)
-	self.ui.command_registry:popContext("multiplayer")
 	self.root:fadeOut(0.2, "OutQuad")
 	self.root:scaleTo(1.01, 1.01, 0.3, "OutQuart")
 	return true

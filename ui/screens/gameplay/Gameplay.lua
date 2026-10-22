@@ -105,7 +105,6 @@ function Gameplay:unload()
 end
 
 function Gameplay:enter()
-	self.ui.command_registry:pushContext("gameplay_commands", self.ui.gameplay_commands)
 	assert(self.gameplay:isLoaded(), "gameplay playfield is not ready")
 	self.is_unscored = not self.gameplay:hasScoring()
 	self.summary:setVisible(false)
@@ -294,7 +293,6 @@ function Gameplay:exit()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
 	self.restart_overlay:reset()
-	self.ui.command_registry:popContext("gameplay_commands")
 	self.gameplay:close()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)

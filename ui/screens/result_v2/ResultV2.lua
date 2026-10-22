@@ -349,12 +349,6 @@ function ResultV2:enter()
 	-- Gameplay stops previews; resume the selected Chart's synchronized audio and BGA.
 	api.charts:announceSelection()
 
-	-- Missing without the game.
-	local registry = self.ui.command_registry
-	if registry then
-		registry:pushContext("result_commands", self.ui.result_commands)
-		registry:pushContext("ui_result_commands", self.ui.ui_result_commands)
-	end
 	self.unsubscribe = api.scores:on("scores_changed", function(loading)
 		-- Rows are replaced once loading finishes; the transient clear while loading is ignored.
 		if not loading then
@@ -372,11 +366,6 @@ end
 function ResultV2:exit()
 	self.unsubscribe()
 	self.ui.tooltip:setText(nil)
-	local registry = self.ui.command_registry
-	if registry then
-		registry:popContext("result_commands")
-		registry:popContext("ui_result_commands")
-	end
 	Screen.exit(self)
 	self.composite:fadeOut(0.3, "InOutQuad")
 end
