@@ -440,6 +440,7 @@ return {
 	["gameplay.skin_editor.judge_scale"] = "判定缩放",
 	["gameplay.skin_editor.combo_y"] = "连击 Y",
 	["gameplay.skin_editor.judge_y"] = "判定 Y",
+	["gameplay.skin_editor.column_width"] = "列宽",
 	["gameplay.adjust.scroll_speed"] = "滚动速度：{value}",
 	["gameplay.adjust.local_offset"] = "本地偏移：{value} ms",
 	["gameplay.pause.title"] = "已暂停",

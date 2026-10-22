@@ -13,13 +13,19 @@ function test.exposes_receptor_and_playfield_properties(t)
 	local config = SkinConfig()
 	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", config, "userdata/dlc/skins_rizu/base/skin-config.json")
 	local properties = renderer:getProperties()
-	t:eq(#properties, 6)
+	t:eq(#properties, 8)
 	t:eq(properties[1].key, "receptor.y")
 	t:eq(properties[2].key, "playfield.x_offset")
 	t:eq(properties[3].key, "bga.brightness")
 	t:eq(properties[4].key, "combo.y")
 	t:eq(properties[5].key, "judge.y")
-	t:eq(properties[6].key, "judge.scale")
+	t:eq(properties[6].key, "column.width")
+	t:eq(properties[7].key, "note.shape")
+	t:eq(properties[8].key, "judge.scale")
+	t:eq(renderer:getColumnWidth(), 48)
+	renderer:setColumnWidth(64)
+	t:eq(config:get("mania", "4key", "column.width"), 64)
+	renderer:setColumnWidth(48)
 	t:eq(properties[4].get(), -36)
 	t:eq(properties[5].get(), -72)
 	properties[5].set(-100)
@@ -120,6 +126,7 @@ function test.rejects_out_of_range_properties(t)
 	t:has_error(function() renderer:setReceptorY(481) end)
 	t:has_error(function() renderer:setPlayfieldXOffset(641) end)
 	t:has_error(function() renderer:setJudgeScale(3) end)
+	t:has_error(function() renderer:setColumnWidth(15) end)
 	t:has_error(function() renderer:setHudY("combo.y", 241) end)
 	renderer:setBgaBrightness(2)
 	t:eq(renderer:getBgaBrightness(), 1)
@@ -149,16 +156,20 @@ function test.preview_column_mapping_handles_stale_and_changed_keymodes(t)
 	t:eq(renderer:getPreviewDisplayColumn(player, 1, 8), 1)
 end
 
+for _, shape in ipairs({"rectangle", "circle", "ellipse", "arrow"}) do
+	Renderer.note_images[shape] = {getDimensions = function() return 88, 60 end}
+end
+
+---@return number[][] drawn notes as {x, y, rotation, scale}
 local function capture_note_rectangles(draw)
-	local previous_rectangle = love.graphics.rectangle
+	local previous_draw, previous_rectangle = love.graphics.draw, love.graphics.rectangle
 	local note_rectangles = {}
-	love.graphics.rectangle = function(_, x, y, width, height)
-		if width == 48 and height == 30 or math.abs(width - 48 * 0.64) < 0.001 then
-			note_rectangles[#note_rectangles + 1] = {x, y, width, height}
-		end
+	love.graphics.rectangle = function() end
+	love.graphics.draw = function(_, x, y, rotation, scale)
+		note_rectangles[#note_rectangles + 1] = {x, y, rotation, scale}
 	end
 	local ok, err = xpcall(draw, debug.traceback)
-	love.graphics.rectangle = previous_rectangle
+	love.graphics.draw, love.graphics.rectangle = previous_draw, previous_rectangle
 	if not ok then error(err) end
 	return note_rectangles
 end
@@ -240,6 +251,43 @@ function test.preview_notes_continue_below_the_receptor_after_their_absolute_tim
 	end)
 	t:eq(#note_rectangles, 1)
 	t:assert(note_rectangles[1][2] > renderer:getReceptorY())
+end
+
+---@param t testing.T
+function test.arrow_notes_are_4k_only_and_rotate_by_column(t)
+	local config = SkinConfig()
+	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", config, "config.json")
+	t:tdeq(renderer:getNoteShapes(), {"rectangle", "circle", "ellipse", "arrow"})
+	t:eq(renderer:getNoteShape(), "rectangle")
+	renderer:setNoteShape("arrow")
+	t:eq(config:get("mania", "4key", "note.shape"), "arrow")
+
+	local preview = {
+		columns = {{{time = 0.5, end_time = 0.5}}, {{time = 0.5, end_time = 0.5}}, {{time = 0.5, end_time = 0.5}}, {{time = 0.5, end_time = 0.5}}},
+		getVisibleRange = function(self, column) return 1, #self.columns[column] end,
+	}
+	local drawn = capture_note_rectangles(function()
+		renderer:drawPreview({notes = preview, input_mode = "4key", time = 0.6, rate = 1}, 640, 480)
+	end)
+	t:eq(#drawn, 4)
+	t:eq(drawn[1][3], 0)
+	t:eq(drawn[2][3], -math.pi / 2)
+	t:eq(drawn[3][3], math.pi / 2)
+	t:eq(drawn[4][3], math.pi)
+	t:eq(drawn[1][4], 0.5) -- 48 * 44 / 48 / 88
+
+	renderer:setColumnWidth(96)
+	local wide = capture_note_rectangles(function()
+		renderer:drawPreview({notes = preview, input_mode = "4key", time = 0.6, rate = 1}, 640, 480)
+	end)
+	t:eq(wide[1][4], 1) -- scales with the column, keeping the aspect ratio
+	t:eq(wide[2][1] - wide[1][1], 96)
+
+	local seven = Renderer({fs = FakeFilesystem()}, "7key", "preview", SkinConfig(), "config.json")
+	t:tdeq(seven:getNoteShapes(), {"rectangle", "circle", "ellipse"})
+	t:has_error(function() seven:setNoteShape("arrow") end)
+	seven.config:set("mania", "7key", "note.shape", "arrow")
+	t:eq(seven:getNoteShape(), "rectangle")
 end
 
 return test

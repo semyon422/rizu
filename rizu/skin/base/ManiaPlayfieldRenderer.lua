@@ -12,7 +12,9 @@ local lg = love.graphics
 
 local FIELD_WIDTH = 640
 local FIELD_HEIGHT = 480
-local LANE_WIDTH = 48
+local DEFAULT_LANE_WIDTH = 48
+local MIN_LANE_WIDTH = 16
+local MAX_LANE_WIDTH = 160
 local NOTE_HEIGHT = 30
 local RECEPTOR_HEIGHT = 12
 local DEFAULT_RECEPTOR_Y = 430
@@ -23,10 +25,40 @@ local MAX_JUDGE_SCALE = 2
 local DEFAULT_COMBO_Y = -36
 local DEFAULT_JUDGE_Y = -72
 local MAX_HUD_Y = FIELD_HEIGHT / 2 -- offset from the field center
+local NOTE_SPRITE_WIDTH_RATIO = 44 / 48 -- notes keep their aspect ratio and scale with the lane
+local DEFAULT_NOTE_SHAPE = "rectangle"
+local ARROW_SHAPE = "arrow"
+local ARROW_INPUT_MODE = "4key"
 local MIN_RECEPTOR_Y = 0
 local MAX_RECEPTOR_Y = FIELD_HEIGHT
 local MIN_PLAYFIELD_X_OFFSET = -FIELD_WIDTH
 local MAX_PLAYFIELD_X_OFFSET = FIELD_WIDTH
+
+local note_shape_files = {
+	rectangle = "rectangle_long",
+	circle = "circle",
+	ellipse = "ellipse",
+	arrow = "arrow",
+}
+local note_shape_labels = {rectangle = "Rectangle", circle = "Circle", ellipse = "Ellipse", arrow = "Arrow"}
+
+-- The arrow sprite points left; columns are left, bottom, top, right.
+local arrow_rotations = {0, -math.pi / 2, math.pi / 2, math.pi}
+
+---Loaded note images by shape; tests pre-fill it instead of touching the filesystem.
+---@type {[string]: love.Image}
+local note_images = {}
+
+---@param shape string
+---@return love.Image
+local function get_note_image(shape)
+	local image = note_images[shape]
+	if not image then
+		image = love.graphics.newImage("resources/rizu_base_skin/notes/" .. note_shape_files[shape] .. ".png")
+		note_images[shape] = image
+	end
+	return image
+end
 
 local note_colors = {
 	white = {1, 1, 1},
@@ -86,12 +118,16 @@ end
 
 ---@class rizu.skin.base.ManiaPlayfieldRenderer.Property
 ---@field key string
----@field label_key string
----@field min number
----@field max number
----@field step number
----@field get fun(): number
----@field set fun(value: number)
+---@field label_key string?
+---@field label string?
+---@field type "slider"|"dropdown"?
+---@field options string[]?
+---@field format (fun(value: any): string)?
+---@field min number?
+---@field max number?
+---@field step number?
+---@field get fun(): any
+---@field set fun(value: any)
 
 ---@class rizu.skin.base.ManiaPlayfieldRenderer : rizu.gameplay.views.PlayfieldRenderer
 ---@operator call: rizu.skin.base.ManiaPlayfieldRenderer
@@ -105,6 +141,7 @@ end
 ---@field private judge_view rizu.skin.views.CurrentJudgeView?
 ---@field private hud_fonts {regular: love.Font, emphasis: love.Font}?
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
+ManiaPlayfieldRenderer.note_images = note_images
 
 ---@param game sphere.GameController
 ---@param input_mode string
@@ -226,6 +263,50 @@ function ManiaPlayfieldRenderer:setJudgeScale(value)
 	if self.judge_view then self.judge_view:setScale(value) end
 end
 
+---@return number
+function ManiaPlayfieldRenderer:getColumnWidth()
+	local value = self.config:get("mania", self.input_mode, "column.width", DEFAULT_LANE_WIDTH)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return DEFAULT_LANE_WIDTH
+	end
+	return math.max(MIN_LANE_WIDTH, math.min(MAX_LANE_WIDTH, value))
+end
+
+---@param value number
+function ManiaPlayfieldRenderer:setColumnWidth(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"column width must be finite")
+	assert(value >= MIN_LANE_WIDTH and value <= MAX_LANE_WIDTH, "column width is out of range")
+	self.config:set("mania", self.input_mode, "column.width", value)
+end
+
+---@return string[]
+function ManiaPlayfieldRenderer:getNoteShapes()
+	local shapes = {"rectangle", "circle", "ellipse"}
+	if self.input_mode == ARROW_INPUT_MODE then shapes[#shapes + 1] = ARROW_SHAPE end
+	return shapes
+end
+
+---@return string
+function ManiaPlayfieldRenderer:getNoteShape()
+	local value = self.config:get("mania", self.input_mode, "note.shape", DEFAULT_NOTE_SHAPE)
+	for _, shape in ipairs(self:getNoteShapes()) do
+		if shape == value then return shape end
+	end
+	return DEFAULT_NOTE_SHAPE
+end
+
+---@param value string
+function ManiaPlayfieldRenderer:setNoteShape(value)
+	for _, shape in ipairs(self:getNoteShapes()) do
+		if shape == value then
+			self.config:set("mania", self.input_mode, "note.shape", value)
+			return
+		end
+	end
+	error("note shape is not available")
+end
+
 ---@return rizu.skin.base.ManiaPlayfieldRenderer.Property[]
 function ManiaPlayfieldRenderer:getProperties()
 	return {
@@ -251,6 +332,15 @@ function ManiaPlayfieldRenderer:getProperties()
 			min = -MAX_HUD_Y, max = MAX_HUD_Y, step = 1,
 			get = function() return self:getHudY("judge.y", DEFAULT_JUDGE_Y) end,
 			set = function(value) self:setHudY("judge.y", value) end},
+		{key = "column.width", label_key = "gameplay.skin_editor.column_width",
+			min = MIN_LANE_WIDTH, max = MAX_LANE_WIDTH, step = 1,
+			get = function() return self:getColumnWidth() end,
+			set = function(value) self:setColumnWidth(value) end},
+		{key = "note.shape", label = "Note shape", type = "dropdown",
+			options = self:getNoteShapes(),
+			format = function(value) return note_shape_labels[value] end,
+			get = function() return self:getNoteShape() end,
+			set = function(value) self:setNoteShape(value) end},
 		{key = "judge.scale", label_key = "gameplay.skin_editor.judge_scale",
 			min = MIN_JUDGE_SCALE, max = MAX_JUDGE_SCALE, step = 0.05,
 			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
@@ -327,10 +417,11 @@ local function get_field_transform(width, height)
 end
 
 ---@param columns integer
+---@param lane_width number
 ---@param offset_x number
 ---@return number left
-local function get_field_offset(columns, offset_x)
-	return get_field_left(columns, LANE_WIDTH, FIELD_WIDTH) + offset_x
+local function get_field_offset(columns, lane_width, offset_x)
+	return get_field_left(columns, lane_width, FIELD_WIDTH) + offset_x
 end
 
 ---@param renderer rizu.skin.base.ManiaPlayfieldRenderer
@@ -379,16 +470,19 @@ local function draw_field(left, columns, lane_width, height)
 	end
 end
 
+---@param shape string
 ---@param x number
 ---@param y number
----@param width number
----@param height number
+---@param lane_width number
+---@param column integer
 ---@param color_name string
----@param alpha number?
-local function draw_note(x, y, width, height, color_name, alpha)
+local function draw_note(shape, x, y, lane_width, column, color_name)
 	local color = note_colors[color_name]
-	lg.setColor(color[1], color[2], color[3], alpha or 1)
-	lg.rectangle("fill", x - width / 2, y - height / 2, width, height)
+	local image = get_note_image(shape)
+	local width, height = image:getDimensions()
+	local scale = lane_width * NOTE_SPRITE_WIDTH_RATIO / width
+	lg.setColor(color[1], color[2], color[3], 1)
+	lg.draw(image, x, y, shape == ARROW_SHAPE and arrow_rotations[column] or 0, scale, scale, width / 2, height / 2)
 end
 
 ---@param x number
@@ -405,13 +499,14 @@ end
 
 ---@param x number
 ---@param receptor_y number
+---@param lane_width number
 ---@param color_name string
 ---@param alpha number
-local function draw_receptor(x, receptor_y, color_name, alpha)
+local function draw_receptor(x, receptor_y, lane_width, color_name, alpha)
 	-- Notes are centered on receptor_y, so the receptor starts at the bottom edge of a note at its hit position.
 	local color = note_colors[color_name]
 	lg.setColor(color[1], color[2], color[3], alpha)
-	lg.rectangle("fill", x - LANE_WIDTH / 2, receptor_y + NOTE_HEIGHT / 2, LANE_WIDTH, RECEPTOR_HEIGHT)
+	lg.rectangle("fill", x - lane_width / 2, receptor_y + NOTE_HEIGHT / 2, lane_width, RECEPTOR_HEIGHT)
 end
 
 ---@param player rizu.preview.NotesPreviewPlayer
@@ -423,9 +518,11 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 
 	local columns = #self.inputs
 	local colors = get_column_colors(self, columns)
+	local lane_width = self:getColumnWidth()
 	local scale, offset_x, offset_y = get_field_transform(width, height)
-	local left = get_field_offset(columns, self:getPlayfieldXOffset())
-	local hold_width = LANE_WIDTH * 0.64
+	local left = get_field_offset(columns, lane_width, self:getPlayfieldXOffset())
+	local hold_width = lane_width * 0.64
+	local note_shape = self:getNoteShape()
 	local pixels_per_second = FIELD_HEIGHT * math.max(player.rate, 0.01)
 	local receptor_y = self:getReceptorY()
 	local time = player.time
@@ -435,13 +532,13 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	lg.push("all")
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
-	draw_field(left, columns, LANE_WIDTH, FIELD_HEIGHT)
+	draw_field(left, columns, lane_width, FIELD_HEIGHT)
 
 	local preview_columns = math.min(columns, #preview.columns)
 	for column = 1, preview_columns do
 		local notes = preview.columns[column]
 		local display_column = self:getPreviewDisplayColumn(player, column, columns)
-		local x = left + (display_column - 0.5) * LANE_WIDTH
+		local x = left + (display_column - 0.5) * lane_width
 		local color_name = colors[column]
 		local first, last = preview:getVisibleRange(column, from_time, until_time)
 		for i = first, last do
@@ -451,7 +548,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 				local tail_y = receptor_y - (note.end_time - time) * pixels_per_second
 				if note.end_time > note.time then draw_hold_body(x, head_y, tail_y, hold_width, color_name) end
 				if note.time >= from_time and note.time <= until_time then
-					draw_note(x, head_y, LANE_WIDTH, NOTE_HEIGHT, color_name)
+					draw_note(note_shape, x, head_y, lane_width, display_column, color_name)
 				end
 			end
 		end
@@ -459,8 +556,8 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 
 	for column = 1, columns do
 		local display_column = self:getPreviewDisplayColumn(player, column, columns)
-		local x = left + (display_column - 0.5) * LANE_WIDTH
-		draw_receptor(x, receptor_y, colors[column], 0.55)
+		local x = left + (display_column - 0.5) * lane_width
+		draw_receptor(x, receptor_y, lane_width, colors[column], 0.55)
 	end
 	lg.pop()
 end
@@ -485,15 +582,17 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	if columns == 0 then return end
 	local colors = get_column_colors(self, columns)
 	local scale, offset_x, offset_y = get_field_transform(width, height)
-	local field_left = get_field_offset(columns, self:getPlayfieldXOffset())
+	local lane_width = self:getColumnWidth()
+	local field_left = get_field_offset(columns, lane_width, self:getPlayfieldXOffset())
 	local receptor_y = self:getReceptorY()
+	local note_shape = self:getNoteShape()
 
 	lg.push("all")
 	lg.applyTransform(transform)
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
 
-	draw_field(field_left, columns, LANE_WIDTH, FIELD_HEIGHT)
+	draw_field(field_left, columns, lane_width, FIELD_HEIGHT)
 
 	-- Bodies are behind heads and receptors.
 	for _, note in ipairs(visual_engine.visible_notes) do
@@ -501,10 +600,10 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 		if note.type == "long" and state ~= "endPassed" then
 			local column = get_note_column(self, note)
 			if column and column >= 1 and column <= columns then
-				local x = field_left + (column - 0.5) * LANE_WIDTH
+				local x = field_left + (column - 0.5) * lane_width
 				local head_y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
 				local tail_y = clamp_held_tail_y(note, receptor_y + note.end_dt * FIELD_HEIGHT, receptor_y)
-				draw_hold_body(x, head_y, tail_y, LANE_WIDTH * 0.64, colors[column])
+				draw_hold_body(x, head_y, tail_y, lane_width * 0.64, colors[column])
 			end
 		end
 	end
@@ -514,17 +613,17 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 		if state ~= "passed" and state ~= "endPassed" then
 			local column = get_note_column(self, note)
 			if column and column >= 1 and column <= columns then
-				local x = field_left + (column - 0.5) * LANE_WIDTH
+				local x = field_left + (column - 0.5) * lane_width
 				local y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
-				draw_note(x, y, LANE_WIDTH, NOTE_HEIGHT, colors[column])
+				draw_note(note_shape, x, y, lane_width, column, colors[column])
 			end
 		end
 	end
 
 	for column = 1, columns do
-		local x = field_left + (column - 0.5) * LANE_WIDTH
+		local x = field_left + (column - 0.5) * lane_width
 		local pressed = engine:isColumnPressed(column)
-		draw_receptor(x, receptor_y, colors[column], pressed and 1 or 0.55)
+		draw_receptor(x, receptor_y, lane_width, colors[column], pressed and 1 or 0.55)
 	end
 	lg.pop()
 end

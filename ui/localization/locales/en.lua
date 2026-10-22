@@ -436,6 +436,7 @@ return {
 	["gameplay.skin_editor.judge_scale"] = "Judge scale",
 	["gameplay.skin_editor.combo_y"] = "Combo Y",
 	["gameplay.skin_editor.judge_y"] = "Judge Y",
+	["gameplay.skin_editor.column_width"] = "Column width",
 	["gameplay.adjust.scroll_speed"] = "Scroll speed: {value}",
 	["gameplay.adjust.local_offset"] = "Local offset: {value} ms",
 	["gameplay.pause.title"] = "Paused",
