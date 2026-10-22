@@ -5,6 +5,7 @@ local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local FunctionTimer = require("time.FunctionTimer")
+local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
 
 local test = {}
 local timer = FunctionTimer(function()
@@ -71,6 +72,44 @@ function test.computeMissing(t)
 	t:eq(#missing, 0)
 
 	db:unload()
+end
+
+function test.computeIncompleteFromPreview(t)
+	local tcf = TestChartFactory()
+	local res = tcf:create("4key", {
+		{time = 0, column = 1},
+		{time = 1, column = 2},
+	})
+	PreviewDiffcalc:compute({chart = res.chart, chartdiff = res.chartdiff})
+	t:assert(#res.chartdiff.notes_preview > 0)
+
+	---@type sea.Chartdiff
+	local updated
+	local chartsRepo = {
+		getIncompleteChartdiffs = function()
+			return {res.chartdiff}
+		end,
+		updateChartdiff = function(_, diff)
+			updated = diff
+		end,
+	}
+
+	---@type integer
+	local notes_count
+	local difficultyModel = {
+		compute = function(_, diff, chart, rate)
+			notes_count = #chart.notes:getLinkedNotes()
+			diff.enps_diff = 10.0
+		end,
+	}
+
+	local task = DifficultyTask(difficultyModel, nil, chartsRepo, FakeTaskContext(), timer, function()
+		error("chart files must not be read")
+	end)
+	task:computeIncomplete(true)
+
+	t:eq(notes_count, 2)
+	t:eq(updated.enps_diff, 10.0)
 end
 
 function test.cancellation(t)

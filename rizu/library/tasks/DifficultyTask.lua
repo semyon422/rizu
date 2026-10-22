@@ -90,7 +90,7 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 		if preview and prefer_preview then
 			local lines = SphPreview:decodeLines(preview)
 			local sph = Sph()
-			sph.metadata.input = assert(chartdiff.inputmode)
+			sph.metadata:set("input", assert(chartdiff.inputmode))
 			sph.sphLines:decode(lines)
 
 			local decoder = ChartDecoder()
