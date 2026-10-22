@@ -169,7 +169,7 @@ function test.preview_column_mapping_handles_stale_and_changed_keymodes(t)
 	t:eq(renderer:getPreviewDisplayColumn(player, 1, 8), 1)
 end
 
-for _, shape in ipairs({"rectangle", "circle", "ellipse", "arrow"}) do
+for _, shape in ipairs({"rectangle_long", "rectangle_medium", "rectangle_short", "circle", "ellipse", "arrow"}) do
 	Renderer.note_images[shape] = {getDimensions = function() return 88, 60 end}
 end
 
@@ -270,8 +270,8 @@ end
 function test.arrow_notes_are_4k_only_and_rotate_by_column(t)
 	local config = SkinConfig()
 	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", config, "config.json")
-	t:tdeq(renderer:getNoteShapes(), {"rectangle", "circle", "ellipse", "arrow"})
-	t:eq(renderer:getNoteShape(), "rectangle")
+	t:tdeq(renderer:getNoteShapes(), {"rectangle_long", "rectangle_medium", "rectangle_short", "circle", "ellipse", "arrow"})
+	t:eq(renderer:getNoteShape(), "rectangle_long")
 	renderer:setNoteShape("arrow")
 	t:eq(config:get("mania", "4key", "note.shape"), "arrow")
 
@@ -303,10 +303,10 @@ function test.arrow_notes_are_4k_only_and_rotate_by_column(t)
 	t:eq(flush[1][4], 96 / 88)
 
 	local seven = Renderer({fs = FakeFilesystem()}, "7key", "preview", SkinConfig(), "config.json")
-	t:tdeq(seven:getNoteShapes(), {"rectangle", "circle", "ellipse"})
+	t:tdeq(seven:getNoteShapes(), {"rectangle_long", "rectangle_medium", "rectangle_short", "circle", "ellipse"})
 	t:has_error(function() seven:setNoteShape("arrow") end)
 	seven.config:set("mania", "7key", "note.shape", "arrow")
-	t:eq(seven:getNoteShape(), "rectangle")
+	t:eq(seven:getNoteShape(), "rectangle_long")
 end
 
 ---@param t testing.T

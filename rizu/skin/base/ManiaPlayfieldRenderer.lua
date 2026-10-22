@@ -28,7 +28,7 @@ local MAX_HUD_Y = FIELD_HEIGHT / 2 -- offset from the field center
 local DEFAULT_COLUMN_GAP = 4 -- notes keep their aspect ratio and are this much narrower than the lane
 local MAX_HOLD_END_OFFSET = 2 -- of the note height
 local MAX_COLUMN_GAP = MIN_LANE_WIDTH - 1
-local DEFAULT_NOTE_SHAPE = "rectangle"
+local DEFAULT_NOTE_SHAPE = "rectangle_long"
 local ARROW_SHAPE = "arrow"
 local ARROW_INPUT_MODE = "4key"
 local MIN_RECEPTOR_Y = 0
@@ -36,13 +36,15 @@ local MAX_RECEPTOR_Y = FIELD_HEIGHT
 local MIN_PLAYFIELD_X_OFFSET = -FIELD_WIDTH
 local MAX_PLAYFIELD_X_OFFSET = FIELD_WIDTH
 
-local note_shape_files = {
-	rectangle = "rectangle_long",
-	circle = "circle",
-	ellipse = "ellipse",
-	arrow = "arrow",
+-- Shapes are named after their files in resources/rizu_base_skin/notes.
+local note_shape_labels = {
+	rectangle_long = "Long rectangle",
+	rectangle_medium = "Medium rectangle",
+	rectangle_short = "Short rectangle",
+	circle = "Circle",
+	ellipse = "Ellipse",
+	arrow = "Arrow",
 }
-local note_shape_labels = {rectangle = "Rectangle", circle = "Circle", ellipse = "Ellipse", arrow = "Arrow"}
 
 -- The arrow sprite points left; columns are left, bottom, top, right.
 local arrow_rotations = {0, -math.pi / 2, math.pi / 2, math.pi}
@@ -56,7 +58,7 @@ local note_images = {}
 local function get_note_image(shape)
 	local image = note_images[shape]
 	if not image then
-		image = love.graphics.newImage("resources/rizu_base_skin/notes/" .. note_shape_files[shape] .. ".png")
+		image = love.graphics.newImage("resources/rizu_base_skin/notes/" .. shape .. ".png")
 		note_images[shape] = image
 	end
 	return image
@@ -329,7 +331,7 @@ end
 
 ---@return string[]
 function ManiaPlayfieldRenderer:getNoteShapes()
-	local shapes = {"rectangle", "circle", "ellipse"}
+	local shapes = {"rectangle_long", "rectangle_medium", "rectangle_short", "circle", "ellipse"}
 	if self.input_mode == ARROW_INPUT_MODE then shapes[#shapes + 1] = ARROW_SHAPE end
 	return shapes
 end
