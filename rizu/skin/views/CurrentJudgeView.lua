@@ -1,4 +1,5 @@
 local View = require("rizu.skin.View")
+local JudgeSprites = require("rizu.skin.views.JudgeSprites")
 
 local lg = love.graphics
 
@@ -7,14 +8,14 @@ local lg = love.graphics
 ---@field y number? Vertical offset from the center anchor.
 ---@field transform love.Transform? Local transform.
 ---@field visible boolean? Whether this view is drawn.
----@field color number[]? Text color.
+---@field scale number? Sprite scale. Defaults to 0.5.
 ---@field duration number? Time in seconds to show a judgement before hiding it.
 
 ---@class rizu.skin.views.CurrentJudgeView : rizu.skin.View
 ---@operator call: rizu.skin.views.CurrentJudgeView
----@overload fun(font: love.Font, config: rizu.skin.views.CurrentJudgeView.Config?): rizu.skin.views.CurrentJudgeView
----@field font love.Font
----@field text string
+---@overload fun(config: rizu.skin.views.CurrentJudgeView.Config?): rizu.skin.views.CurrentJudgeView
+---@field image love.Image?
+---@field scale number
 ---@field color number[]
 ---@field duration number
 ---@field elapsed number
@@ -22,20 +23,19 @@ local lg = love.graphics
 ---@field score_engine rizu.ScoreEngine?
 local CurrentJudgeView = View + {}
 
----@param font love.Font
 ---@param config rizu.skin.views.CurrentJudgeView.Config?
-function CurrentJudgeView:new(font, config)
-	assert(font and type(font.getWidth) == "function" and type(font.getHeight) == "function",
-		"current judge view requires a Love font")
+function CurrentJudgeView:new(config)
 	config = config or {}
 	assert(type(config) == "table", "current judge view config must be a table")
 	local duration = config.duration or 0.8
 	assert(type(duration) == "number" and duration >= 0 and duration < math.huge,
 		"judgement duration must be a non-negative finite number")
 
-	self.font = font
-	self.text = ""
-	self.color = config.color or {1, 1, 1, 1}
+	local scale = config.scale or 0.5
+	assert(type(scale) == "number" and scale > 0 and scale < math.huge, "judgement scale must be a positive finite number")
+	self.scale = scale
+	self.image = nil
+	self.color = {1, 1, 1, 1}
 	self.duration = duration
 	self.elapsed = duration
 	self.sequence_index = 0
@@ -45,8 +45,8 @@ function CurrentJudgeView:new(font, config)
 		origin = "center",
 		x = config.x,
 		y = config.y,
-		width = font:getWidth(self.text),
-		height = font:getHeight(),
+		width = 0,
+		height = 0,
 		transform = config.transform,
 		visible = config.visible,
 	})
@@ -55,11 +55,26 @@ end
 ---@param game sphere.GameController
 function CurrentJudgeView:load(game)
 	View.load(self, game)
-	self.text = ""
-	self.elapsed = self.duration
+	self:clear()
 	self.sequence_index = 0
 	self.score_engine = nil
-	self.width = self.font:getWidth(self.text)
+end
+
+---@param scale number
+function CurrentJudgeView:setScale(scale)
+	assert(type(scale) == "number" and scale > 0 and scale < math.huge, "judgement scale must be a positive finite number")
+	self.scale = scale
+	if self.image then
+		local w, h = self.image:getDimensions()
+		self.width, self.height = w * scale, h * scale
+	end
+end
+
+function CurrentJudgeView:clear()
+	self.image = nil
+	self.width = 0
+	self.height = 0
+	self.elapsed = self.duration
 end
 
 ---@param dt number
@@ -72,9 +87,7 @@ function CurrentJudgeView:update(dt, game)
 	---@type {[string]: rizu.JudgesSlice}[]?
 	local judge_sequence = sequence
 	if not judge_sequence or not judges_source then
-		self.text = ""
-		self.width = self.font:getWidth(self.text)
-		self.elapsed = self.duration
+		self:clear()
 		self.score_engine = score_engine
 		self.sequence_index = 0
 		return
@@ -83,8 +96,7 @@ function CurrentJudgeView:update(dt, game)
 	if self.score_engine ~= score_engine then
 		self.score_engine = score_engine
 		self.sequence_index = 0
-		self.text = ""
-		self.elapsed = self.duration
+		self:clear()
 	end
 
 	self.elapsed = math.min(self.duration, self.elapsed + dt)
@@ -99,10 +111,12 @@ function CurrentJudgeView:update(dt, game)
 				if judge < 0 and names then
 					judge = #names + judge + 1
 				end
-				local name = names and names[judge]
-				self.text = name and name:gsub("_", " "):upper() or ""
-				self.width = self.font:getWidth(self.text)
-				self.elapsed = 0
+				if names and names[judge] then
+					self.image, self.color = JudgeSprites.get(names, judge)
+					local w, h = self.image:getDimensions()
+					self.width, self.height = w * self.scale, h * self.scale
+					self.elapsed = 0
+				end
 			end
 		end
 		self.sequence_index = latest_index
@@ -110,14 +124,13 @@ function CurrentJudgeView:update(dt, game)
 end
 
 function CurrentJudgeView:draw()
-	if self.elapsed >= self.duration or self.text == "" then return end
+	if self.elapsed >= self.duration or not self.image then return end
 	local alpha = self.color[4] or 1
 	if self.duration > 0 then
 		alpha = alpha * (1 - self.elapsed / self.duration)
 	end
-	lg.setFont(self.font)
 	lg.setColor(self.color[1], self.color[2], self.color[3], alpha)
-	lg.printf(self.text, 0, 0, self.width, "center")
+	lg.draw(self.image, 0, 0, 0, self.scale)
 end
 
 return CurrentJudgeView

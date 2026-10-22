@@ -17,6 +17,12 @@ local NOTE_HEIGHT = 30
 local RECEPTOR_HEIGHT = 12
 local DEFAULT_RECEPTOR_Y = 430
 local DEFAULT_BGA_BRIGHTNESS = 0.15
+local DEFAULT_JUDGE_SCALE = 0.5
+local MIN_JUDGE_SCALE = 0.1
+local MAX_JUDGE_SCALE = 2
+local DEFAULT_COMBO_Y = -36
+local DEFAULT_JUDGE_Y = -72
+local MAX_HUD_Y = FIELD_HEIGHT / 2 -- offset from the field center
 local MIN_RECEPTOR_Y = 0
 local MAX_RECEPTOR_Y = FIELD_HEIGHT
 local MIN_PLAYFIELD_X_OFFSET = -FIELD_WIDTH
@@ -95,6 +101,8 @@ end
 ---@field background_hud rizu.skin.Hud
 ---@field foreground_hud rizu.skin.Hud
 ---@field bga_view rizu.skin.views.BgaView
+---@field private combo_view rizu.skin.views.ComboView?
+---@field private judge_view rizu.skin.views.CurrentJudgeView?
 ---@field private hud_fonts {regular: love.Font, emphasis: love.Font}?
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 
@@ -119,6 +127,8 @@ end
 function ManiaPlayfieldRenderer:unload()
 	self.foreground_hud:unload(self.game)
 	self.foreground_hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
+	self.combo_view = nil
+	self.judge_view = nil
 	if self.hud_fonts then
 		self.hud_fonts.regular:release()
 		self.hud_fonts.emphasis:release()
@@ -176,6 +186,46 @@ function ManiaPlayfieldRenderer:setBgaBrightness(value)
 	self.bga_view.brightness = value
 end
 
+---@param key string
+---@param default number
+---@return number
+function ManiaPlayfieldRenderer:getHudY(key, default)
+	local value = self.config:get("mania", self.input_mode, key, default)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return default
+	end
+	return math.max(-MAX_HUD_Y, math.min(MAX_HUD_Y, value))
+end
+
+---@param key string
+---@param value number
+function ManiaPlayfieldRenderer:setHudY(key, value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		key .. " must be finite")
+	assert(value >= -MAX_HUD_Y and value <= MAX_HUD_Y, key .. " is out of range")
+	self.config:set("mania", self.input_mode, key, value)
+	local view = key == "combo.y" and self.combo_view or key == "judge.y" and self.judge_view
+	if view then view.y = value end
+end
+
+---@return number
+function ManiaPlayfieldRenderer:getJudgeScale()
+	local value = self.config:get("mania", self.input_mode, "judge.scale", DEFAULT_JUDGE_SCALE)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return DEFAULT_JUDGE_SCALE
+	end
+	return math.max(MIN_JUDGE_SCALE, math.min(MAX_JUDGE_SCALE, value))
+end
+
+---@param value number
+function ManiaPlayfieldRenderer:setJudgeScale(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"judge scale must be finite")
+	assert(value >= MIN_JUDGE_SCALE and value <= MAX_JUDGE_SCALE, "judge scale is out of range")
+	self.config:set("mania", self.input_mode, "judge.scale", value)
+	if self.judge_view then self.judge_view:setScale(value) end
+end
+
 ---@return rizu.skin.base.ManiaPlayfieldRenderer.Property[]
 function ManiaPlayfieldRenderer:getProperties()
 	return {
@@ -193,6 +243,19 @@ function ManiaPlayfieldRenderer:getProperties()
 			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
 			get = function() return self:getBgaBrightness() end,
 			set = function(value) self:setBgaBrightness(value) end},
+		{key = "combo.y", label_key = "gameplay.skin_editor.combo_y",
+			min = -MAX_HUD_Y, max = MAX_HUD_Y, step = 1,
+			get = function() return self:getHudY("combo.y", DEFAULT_COMBO_Y) end,
+			set = function(value) self:setHudY("combo.y", value) end},
+		{key = "judge.y", label_key = "gameplay.skin_editor.judge_y",
+			min = -MAX_HUD_Y, max = MAX_HUD_Y, step = 1,
+			get = function() return self:getHudY("judge.y", DEFAULT_JUDGE_Y) end,
+			set = function(value) self:setHudY("judge.y", value) end},
+		{key = "judge.scale", label_key = "gameplay.skin_editor.judge_scale",
+			min = MIN_JUDGE_SCALE, max = MAX_JUDGE_SCALE, step = 0.05,
+			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
+			get = function() return self:getJudgeScale() end,
+			set = function(value) self:setJudgeScale(value) end},
 	}
 end
 
@@ -468,12 +531,14 @@ end
 
 ---@param game sphere.GameController
 ---@param fonts {regular: love.Font, emphasis: love.Font}
-local function create_hud(game, fonts)
+---@param combo_view rizu.skin.views.ComboView
+---@param judge_view rizu.skin.views.CurrentJudgeView
+local function create_hud(game, fonts, combo_view, judge_view)
 	local hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
 	hud:add(AccuracyView(fonts.regular, {x = -8, y = 38}))
 	hud:add(ScoreView(fonts.regular, {x = -8, y = 8}))
-	hud:add(ComboView(fonts.emphasis, {y = -36}))
-	hud:add(CurrentJudgeView(fonts.emphasis, {y = -72}))
+	hud:add(combo_view)
+	hud:add(judge_view)
 	hud:load(game)
 	return hud
 end
@@ -484,7 +549,9 @@ function ManiaPlayfieldRenderer:load()
 		regular = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 24, "normal", 4),
 		emphasis = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 32, "normal", 4),
 	}
-	self.foreground_hud = create_hud(self.game, self.hud_fonts)
+	self.combo_view = ComboView(self.hud_fonts.emphasis, {y = self:getHudY("combo.y", DEFAULT_COMBO_Y)})
+	self.judge_view = CurrentJudgeView({y = self:getHudY("judge.y", DEFAULT_JUDGE_Y), scale = self:getJudgeScale()})
+	self.foreground_hud = create_hud(self.game, self.hud_fonts, self.combo_view, self.judge_view)
 end
 
 return ManiaPlayfieldRenderer
