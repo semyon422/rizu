@@ -246,6 +246,8 @@ return {
 	["settings.song_select_background_brightness_tip"] = "Brightness of the background image and the selected song preview in Song Select.",
 	["settings.result_background_brightness"] = "Result background brightness",
 	["settings.result_background_brightness_tip"] = "Brightness of the background image and video on the result screen.",
+	["settings.gameplay_background_brightness"] = "Gameplay background brightness",
+	["settings.gameplay_background_brightness_tip"] = "Brightness of the chart background image during gameplay.",
 	["settings.open_song_select_on_startup"] = "Open Song Select on startup",
 	["settings.open_song_select_on_startup_tip"] = "Open Song Select instead of the main menu when the game starts.",
 	["settings.random_preview_position"] = "Random music preview position",

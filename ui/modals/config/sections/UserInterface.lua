@@ -100,6 +100,12 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					tip = localization:get("settings.result_background_brightness_tip"),
 					value_format = formatPercent,
 				}),
+				ControlFactory.number(ui_config, UiConfig.keys.gameplay_background_brightness, {
+					name = localization:get("settings.gameplay_background_brightness"),
+					keywords = {"gameplay", "background", "brightness", "dim"},
+					tip = localization:get("settings.gameplay_background_brightness_tip"),
+					value_format = formatPercent,
+				}),
 				ControlFactory.boolean(settings, select_keys.open_on_startup, {
 					name = localization:get("settings.open_song_select_on_startup"),
 					keywords = {"song select", "main menu", "startup", "launch"},

@@ -9,6 +9,8 @@ local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
 local Window = require("ui.views.Window")
+local Background = require("ui.views.Background")
+local UiConfig = require("ui.UiConfig")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Slider = require("ui.views.form.Slider")
 local Checkbox = require("ui.views.form.Checkbox")
@@ -38,6 +40,12 @@ function Gameplay:new(ui)
 	self.gameplay = ui.api.gameplay
 	self.is_playing = false
 	self.was_retrying = false
+
+	self.background = self.root:add(Background(ui.api.media))
+	self.background:anchorFill(0, 0, 0, 0)
+	local function setBrightness(brightness) self.background:setBrightness(brightness, true) end
+	setBrightness(ui.config:getNumber(UiConfig.keys.gameplay_background_brightness))
+	ui.config:subscribeNumber(UiConfig.keys.gameplay_background_brightness, setBrightness)
 
 	-- The skin draws with its own colours and ignores the screen opacity. As one layer it fades
 	-- through a canvas, and draws straight to the screen again once the fade has ended.

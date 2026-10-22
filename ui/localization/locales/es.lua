@@ -183,6 +183,8 @@ return {
 	["settings.song_select_background_brightness_tip"] = "Brillo de la imagen de fondo y de la vista previa de la canción seleccionada en la selección de canciones.",
 	["settings.result_background_brightness"] = "Brillo del fondo en la pantalla de resultados",
 	["settings.result_background_brightness_tip"] = "Brillo de la imagen y el video de fondo en la pantalla de resultados.",
+	["settings.gameplay_background_brightness"] = "Brillo del fondo en el juego",
+	["settings.gameplay_background_brightness_tip"] = "Brillo de la imagen de fondo del chart durante el juego.",
 	["settings.open_song_select_on_startup"] = "Abrir la selección de canciones al iniciar",
 	["settings.open_song_select_on_startup_tip"] = "Abre la selección de canciones en lugar del menú principal al iniciar el juego.",
 	["settings.random_preview_position"] = "Posición aleatoria de la vista previa de música",

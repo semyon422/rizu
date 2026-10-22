@@ -250,6 +250,8 @@ return {
 	["settings.song_select_background_brightness_tip"] = "选曲界面中背景图和所选歌曲预览的亮度。",
 	["settings.result_background_brightness"] = "结算界面背景亮度",
 	["settings.result_background_brightness_tip"] = "结算界面中背景图和视频的亮度。",
+	["settings.gameplay_background_brightness"] = "游戏内背景亮度",
+	["settings.gameplay_background_brightness_tip"] = "游戏过程中谱面背景图的亮度。",
 	["settings.open_song_select_on_startup"] = "启动时打开选曲界面",
 	["settings.open_song_select_on_startup_tip"] = "游戏启动时打开选曲界面而不是主菜单。",
 	["settings.random_preview_position"] = "随机音乐预览位置",
