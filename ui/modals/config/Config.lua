@@ -280,6 +280,8 @@ function Config:show()
 end
 
 function Config:hide()
+	self.settings:save()
+	self.ui_config:save()
 	self:transformTo("opacity", 0, 0.2, "InCubic", function()
 		self:setVisible(false)
 	end)
