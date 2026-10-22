@@ -157,6 +157,12 @@ function DlcWorker:download(id, _type, provider_name, metadata)
 		return nil, err_msg
 	end
 
+	if #res.body == 0 then
+		print("[DlcWorker] Empty download:", url)
+		self.manager:updateTask(id, {status = "error", error = "Downloaded file is empty"})
+		return nil, "Downloaded file is empty"
+	end
+
 	if total_size == 0 then
 		local content_length = res.headers:get("Content-Length")
 		total_size = tonumber(content_length) or 0

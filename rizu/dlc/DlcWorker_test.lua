@@ -113,6 +113,24 @@ function test.download_reports_http_error(t)
 end
 
 ---@param t testing.T
+function test.download_reports_empty_body(t)
+	local manager = new_manager()
+	local worker = DlcWorker(manager, "/game", new_request(), function()
+		return {status = 200, headers = new_headers(), body = ""}
+	end, {
+		install = function()
+			error("installer should not be called")
+		end,
+	})
+
+	local ok, err = worker:download(123, "set", "mino")
+
+	t:eq(ok, nil)
+	t:eq(err, "Downloaded file is empty")
+	t:eq(manager.updates[#manager.updates].updates.status, "error")
+end
+
+---@param t testing.T
 function test.request_is_required(t)
 	local ok, err = pcall(function()
 		DlcWorker(new_manager(), "/game", nil --[[@as any]], function() end)
