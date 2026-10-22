@@ -13,15 +13,22 @@ function test.exposes_receptor_and_playfield_properties(t)
 	local config = SkinConfig()
 	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", config, "userdata/dlc/skins_rizu/base/skin-config.json")
 	local properties = renderer:getProperties()
-	t:eq(#properties, 8)
+	t:eq(#properties, 10)
 	t:eq(properties[1].key, "receptor.y")
 	t:eq(properties[2].key, "playfield.x_offset")
 	t:eq(properties[3].key, "bga.brightness")
 	t:eq(properties[4].key, "combo.y")
 	t:eq(properties[5].key, "judge.y")
 	t:eq(properties[6].key, "column.width")
-	t:eq(properties[7].key, "note.shape")
-	t:eq(properties[8].key, "judge.scale")
+	t:eq(properties[7].key, "column.gap")
+	t:eq(properties[8].key, "column.lines")
+	t:eq(properties[9].key, "note.shape")
+	t:eq(properties[10].key, "judge.scale")
+	t:eq(renderer:getColumnGap(), 4)
+	t:eq(renderer:getColumnLines(), true)
+	renderer:setColumnLines(false)
+	t:eq(config:get("mania", "4key", "column.lines"), false)
+	renderer:setColumnLines(true)
 	t:eq(renderer:getColumnWidth(), 48)
 	renderer:setColumnWidth(64)
 	t:eq(config:get("mania", "4key", "column.width"), 64)
@@ -127,6 +134,8 @@ function test.rejects_out_of_range_properties(t)
 	t:has_error(function() renderer:setPlayfieldXOffset(641) end)
 	t:has_error(function() renderer:setJudgeScale(3) end)
 	t:has_error(function() renderer:setColumnWidth(15) end)
+	t:has_error(function() renderer:setColumnGap(16) end)
+	t:has_error(function() renderer:setColumnLines(1) end)
 	t:has_error(function() renderer:setHudY("combo.y", 241) end)
 	renderer:setBgaBrightness(2)
 	t:eq(renderer:getBgaBrightness(), 1)
@@ -274,20 +283,46 @@ function test.arrow_notes_are_4k_only_and_rotate_by_column(t)
 	t:eq(drawn[2][3], -math.pi / 2)
 	t:eq(drawn[3][3], math.pi / 2)
 	t:eq(drawn[4][3], math.pi)
-	t:eq(drawn[1][4], 0.5) -- 48 * 44 / 48 / 88
+	t:eq(drawn[1][4], 0.5) -- (48 - 4) / 88
 
 	renderer:setColumnWidth(96)
 	local wide = capture_note_rectangles(function()
 		renderer:drawPreview({notes = preview, input_mode = "4key", time = 0.6, rate = 1}, 640, 480)
 	end)
-	t:eq(wide[1][4], 1) -- scales with the column, keeping the aspect ratio
+	t:eq(wide[1][4], 92 / 88) -- scales with the column, keeping the aspect ratio
 	t:eq(wide[2][1] - wide[1][1], 96)
+
+	renderer:setColumnGap(0)
+	local flush = capture_note_rectangles(function()
+		renderer:drawPreview({notes = preview, input_mode = "4key", time = 0.6, rate = 1}, 640, 480)
+	end)
+	t:eq(flush[1][4], 96 / 88)
 
 	local seven = Renderer({fs = FakeFilesystem()}, "7key", "preview", SkinConfig(), "config.json")
 	t:tdeq(seven:getNoteShapes(), {"rectangle", "circle", "ellipse"})
 	t:has_error(function() seven:setNoteShape("arrow") end)
 	seven.config:set("mania", "7key", "note.shape", "arrow")
 	t:eq(seven:getNoteShape(), "rectangle")
+end
+
+---@param t testing.T
+function test.column_lines_can_be_disabled(t)
+	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
+	local preview = {columns = {{}, {}, {}, {}}, getVisibleRange = function() return 1, 0 end}
+	local function count_rectangles()
+		local previous = love.graphics.rectangle
+		local count = 0
+		love.graphics.rectangle = function() count = count + 1 end
+		local ok, err = xpcall(function()
+			renderer:drawPreview({notes = preview, input_mode = "4key", time = 0, rate = 1}, 640, 480)
+		end, debug.traceback)
+		love.graphics.rectangle = previous
+		if not ok then error(err) end
+		return count
+	end
+	local with_lines = count_rectangles()
+	renderer:setColumnLines(false)
+	t:eq(with_lines - count_rectangles(), 5) -- columns + 1 lines
 end
 
 return test

@@ -25,7 +25,8 @@ local MAX_JUDGE_SCALE = 2
 local DEFAULT_COMBO_Y = -36
 local DEFAULT_JUDGE_Y = -72
 local MAX_HUD_Y = FIELD_HEIGHT / 2 -- offset from the field center
-local NOTE_SPRITE_WIDTH_RATIO = 44 / 48 -- notes keep their aspect ratio and scale with the lane
+local DEFAULT_COLUMN_GAP = 4 -- notes keep their aspect ratio and are this much narrower than the lane
+local MAX_COLUMN_GAP = MIN_LANE_WIDTH - 1
 local DEFAULT_NOTE_SHAPE = "rectangle"
 local ARROW_SHAPE = "arrow"
 local ARROW_INPUT_MODE = "4key"
@@ -120,7 +121,7 @@ end
 ---@field key string
 ---@field label_key string?
 ---@field label string?
----@field type "slider"|"dropdown"?
+---@field type "slider"|"checkbox"|"dropdown"?
 ---@field options string[]?
 ---@field format (fun(value: any): string)?
 ---@field min number?
@@ -280,6 +281,34 @@ function ManiaPlayfieldRenderer:setColumnWidth(value)
 	self.config:set("mania", self.input_mode, "column.width", value)
 end
 
+---@return number
+function ManiaPlayfieldRenderer:getColumnGap()
+	local value = self.config:get("mania", self.input_mode, "column.gap", DEFAULT_COLUMN_GAP)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return DEFAULT_COLUMN_GAP
+	end
+	return math.max(0, math.min(MAX_COLUMN_GAP, value))
+end
+
+---@param value number
+function ManiaPlayfieldRenderer:setColumnGap(value)
+	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
+		"column gap must be finite")
+	assert(value >= 0 and value <= MAX_COLUMN_GAP, "column gap is out of range")
+	self.config:set("mania", self.input_mode, "column.gap", value)
+end
+
+---@return boolean
+function ManiaPlayfieldRenderer:getColumnLines()
+	return self.config:get("mania", self.input_mode, "column.lines", true) ~= false
+end
+
+---@param value boolean
+function ManiaPlayfieldRenderer:setColumnLines(value)
+	assert(type(value) == "boolean", "column lines must be a boolean")
+	self.config:set("mania", self.input_mode, "column.lines", value)
+end
+
 ---@return string[]
 function ManiaPlayfieldRenderer:getNoteShapes()
 	local shapes = {"rectangle", "circle", "ellipse"}
@@ -336,6 +365,13 @@ function ManiaPlayfieldRenderer:getProperties()
 			min = MIN_LANE_WIDTH, max = MAX_LANE_WIDTH, step = 1,
 			get = function() return self:getColumnWidth() end,
 			set = function(value) self:setColumnWidth(value) end},
+		{key = "column.gap", label_key = "gameplay.skin_editor.column_gap",
+			min = 0, max = MAX_COLUMN_GAP, step = 1,
+			get = function() return self:getColumnGap() end,
+			set = function(value) self:setColumnGap(value) end},
+		{key = "column.lines", label_key = "gameplay.skin_editor.column_lines", type = "checkbox",
+			get = function() return self:getColumnLines() end,
+			set = function(value) self:setColumnLines(value) end},
 		{key = "note.shape", label = "Note shape", type = "dropdown",
 			options = self:getNoteShapes(),
 			format = function(value) return note_shape_labels[value] end,
@@ -461,9 +497,11 @@ end
 ---@param columns integer
 ---@param lane_width number
 ---@param height number
-local function draw_field(left, columns, lane_width, height)
+---@param lines boolean
+local function draw_field(left, columns, lane_width, height, lines)
 	lg.setColor(0, 0, 0, 0.3)
 	lg.rectangle("fill", left, 0, columns * lane_width, height)
+	if not lines then return end
 	for column = 0, columns do
 		lg.setColor(1, 1, 1, 0.12)
 		lg.rectangle("fill", left + column * lane_width, 0, 1, height)
@@ -473,14 +511,14 @@ end
 ---@param shape string
 ---@param x number
 ---@param y number
----@param lane_width number
+---@param note_width number
 ---@param column integer
 ---@param color_name string
-local function draw_note(shape, x, y, lane_width, column, color_name)
+local function draw_note(shape, x, y, note_width, column, color_name)
 	local color = note_colors[color_name]
 	local image = get_note_image(shape)
 	local width, height = image:getDimensions()
-	local scale = lane_width * NOTE_SPRITE_WIDTH_RATIO / width
+	local scale = note_width / width
 	lg.setColor(color[1], color[2], color[3], 1)
 	lg.draw(image, x, y, shape == ARROW_SHAPE and arrow_rotations[column] or 0, scale, scale, width / 2, height / 2)
 end
@@ -523,6 +561,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	local left = get_field_offset(columns, lane_width, self:getPlayfieldXOffset())
 	local hold_width = lane_width * 0.64
 	local note_shape = self:getNoteShape()
+	local note_width = lane_width - self:getColumnGap()
 	local pixels_per_second = FIELD_HEIGHT * math.max(player.rate, 0.01)
 	local receptor_y = self:getReceptorY()
 	local time = player.time
@@ -532,7 +571,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 	lg.push("all")
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
-	draw_field(left, columns, lane_width, FIELD_HEIGHT)
+	draw_field(left, columns, lane_width, FIELD_HEIGHT, self:getColumnLines())
 
 	local preview_columns = math.min(columns, #preview.columns)
 	for column = 1, preview_columns do
@@ -548,7 +587,7 @@ function ManiaPlayfieldRenderer:drawPreview(player, width, height)
 				local tail_y = receptor_y - (note.end_time - time) * pixels_per_second
 				if note.end_time > note.time then draw_hold_body(x, head_y, tail_y, hold_width, color_name) end
 				if note.time >= from_time and note.time <= until_time then
-					draw_note(note_shape, x, head_y, lane_width, display_column, color_name)
+					draw_note(note_shape, x, head_y, note_width, display_column, color_name)
 				end
 			end
 		end
@@ -586,13 +625,14 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 	local field_left = get_field_offset(columns, lane_width, self:getPlayfieldXOffset())
 	local receptor_y = self:getReceptorY()
 	local note_shape = self:getNoteShape()
+	local note_width = lane_width - self:getColumnGap()
 
 	lg.push("all")
 	lg.applyTransform(transform)
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
 
-	draw_field(field_left, columns, lane_width, FIELD_HEIGHT)
+	draw_field(field_left, columns, lane_width, FIELD_HEIGHT, self:getColumnLines())
 
 	-- Bodies are behind heads and receptors.
 	for _, note in ipairs(visual_engine.visible_notes) do
@@ -615,7 +655,7 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 			if column and column >= 1 and column <= columns then
 				local x = field_left + (column - 0.5) * lane_width
 				local y = clamp_held_note_y(note, receptor_y + note.start_dt * FIELD_HEIGHT, receptor_y)
-				draw_note(note_shape, x, y, lane_width, column, colors[column])
+				draw_note(note_shape, x, y, note_width, column, colors[column])
 			end
 		end
 	end
