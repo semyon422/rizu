@@ -1,5 +1,5 @@
 local class = require("class")
-local OsuImage = require("rizu.skin.osu.OsuImage")
+local TextureImage = require("rizu.skin.TextureImage")
 
 local lg = love.graphics
 local FIELD_HEIGHT = 480
@@ -32,7 +32,7 @@ function OsuManiaKeyRenderer:update(dt)
 end
 
 ---@param renderer rizu.skin.osu.OsuManiaRenderer
----@param image rizu.skin.osu.OsuSkinGraphics.Image
+---@param image rizu.skin.SkinTextures.Image
 ---@param x number
 ---@param y number
 ---@param width number
@@ -41,19 +41,19 @@ end
 ---@param alpha number
 local function draw_key(renderer, image, x, y, width, flip, upside_down, alpha)
 	if not image.texture and renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
-	local image_width, image_height = OsuImage.dimensions(image)
+	local image_width, image_height = TextureImage.dimensions(image)
 	local scale_x, scale_y = width / image_width, FIELD_HEIGHT / 768
 	lg.setColor(1, 1, 1, alpha)
 	if upside_down then
 		if flip then
-			OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, image_height)
+			TextureImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, image_height)
 		else
-			OsuImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, 0)
+			TextureImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, 0)
 		end
 	elseif flip then
-		OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, 0)
+		TextureImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, 0)
 	else
-		OsuImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, image_height)
+		TextureImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, image_height)
 	end
 end
 
@@ -107,7 +107,7 @@ function OsuManiaKeyRenderer:draw(renderer, engine, lane_widths, lane_xs, hit_y)
 				renderer.upside_down, 1)
 		else
 			lg.setColor(1, 1, 1, pressed and 0.8 or 0.22)
-			OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2, fallback_y - 5,
+			TextureImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2, fallback_y - 5,
 				lane_widths[column], 10)
 		end
 	end

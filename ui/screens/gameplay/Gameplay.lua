@@ -16,6 +16,7 @@ local Slider = require("ui.views.form.Slider")
 local Checkbox = require("ui.views.form.Checkbox")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Dropdown = require("ui.views.form.Dropdown")
+local ButtonRow = require("ui.views.form.ButtonRow")
 local PopupContainer = require("ui.views.PopupContainer")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
@@ -30,6 +31,7 @@ local thread = require("thread")
 ---@field skin_editor_properties rizu.api.Gameplay.SkinProperty[]
 ---@field skin_editor_status ui.views.Label
 ---@field skin_editor_popup ui.views.PopupContainer
+---@field skin_editor_refresh_pending boolean?
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -207,23 +209,39 @@ end
 ---@return gui.View
 function Gameplay:createSkinEditorControl(property)
 	local label = property.label or self.ui.localization:get(property.label_key)
-	local function commit(value)
-		property.set(value)
+	local function changed()
 		if not property.setting then self:saveSkinEditorConfig() end
+		-- Not now: the control that changed may be among the ones a refresh replaces.
+		if property.refresh then self.skin_editor_refresh_pending = true end
+	end
+	local function commit(value)
+		assert(property.set, "skin property without set")(value)
+		changed()
 	end
 
 	local control_type = property.type or "slider"
+	if control_type == "buttons" then
+		local buttons = {} ---@type ui.views.form.ButtonRow.Button[]
+		for i, button in ipairs(property.buttons) do
+			buttons[i] = {text = button.text, on_click = function()
+				button.on_click()
+				changed()
+			end}
+		end
+		return ButtonRow({label = label, buttons = buttons})
+	end
+	local value = assert(property.get, "skin property without get")()
 	if control_type == "checkbox" then
 		return Checkbox({
 			text = label,
-			checked = property.get(),
+			checked = value,
 			on_change = commit,
 		})
 	elseif control_type == "segmented" then
 		return SegmentedControl({
 			label = label,
 			options = property.options or {},
-			value = property.get(),
+			value = value,
 			format = property.format,
 			on_change = commit,
 		})
@@ -231,7 +249,7 @@ function Gameplay:createSkinEditorControl(property)
 		return Dropdown({
 			label = label,
 			options = property.options or {},
-			value = property.get(),
+			value = value,
 			width = 540,
 			format = property.format,
 			popup_container = self.skin_editor_popup,
@@ -240,7 +258,7 @@ function Gameplay:createSkinEditorControl(property)
 	end
 	return Slider({
 		label = label,
-		value = property.get(),
+		value = value,
 		min = property.min,
 		max = property.max,
 		step = property.step,
@@ -384,6 +402,10 @@ end
 ---@param dt number
 function Gameplay:update(dt)
 	Screen.update(self, dt)
+	if self.skin_editor_refresh_pending then
+		self.skin_editor_refresh_pending = false
+		self:refreshSkinEditor()
+	end
 	local gameplay = self.gameplay
 	local state = gameplay:getState()
 	local progress = gameplay:getStateProgress()

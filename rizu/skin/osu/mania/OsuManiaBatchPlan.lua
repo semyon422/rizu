@@ -12,13 +12,7 @@ local GROUPS = {
 	key = "playfield",
 	stage_hint = "playfield",
 	lighting = "standalone",
-	combo_font = "playfield",
-	judgement = "playfield",
-	score_font = "font",
-	accuracy_font = "font",
 	stage_decoration = "standalone",
-	progress = "standalone",
-	standalone = "standalone",
 }
 
 function OsuManiaBatchPlan:new()
@@ -44,9 +38,9 @@ function OsuManiaBatchPlan:getGroups()
 end
 
 ---@param requests rizu.skin.osu.mania.OsuManiaSkinAssetFinder.Request[]
----@return rizu.skin.osu.OsuSkinGraphics.Asset[]
+---@return rizu.skin.SkinTextures.Asset[]
 function OsuManiaBatchPlan:build(requests)
-	local assets = {} ---@type rizu.skin.osu.OsuSkinGraphics.Asset[]
+	local assets = {} ---@type rizu.skin.SkinTextures.Asset[]
 
 	for _, request in ipairs(requests) do
 		local group = self:getGroup(request.role)

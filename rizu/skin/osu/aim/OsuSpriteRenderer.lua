@@ -1,25 +1,25 @@
-local OsuImage = require("rizu.skin.osu.OsuImage")
+local TextureImage = require("rizu.skin.TextureImage")
 
 ---@class rizu.skin.osu.aim.OsuSpriteRenderer
 local OsuSpriteRenderer = {}
 
----@param sprite rizu.skin.osu.OsuSkinGraphics.Image?
+---@param sprite rizu.skin.SkinTextures.Image?
 ---@return boolean
 function OsuSpriteRenderer.isRenderable(sprite)
 	if not sprite then return false end
-	local width, height = OsuImage.dimensions(sprite)
+	local width, height = TextureImage.dimensions(sprite)
 	return width > 1 and height > 1
 end
 
----@param sprite rizu.skin.osu.OsuSkinGraphics.Image?
+---@param sprite rizu.skin.SkinTextures.Image?
 ---@return number
 function OsuSpriteRenderer.getWidth(sprite)
 	if not sprite or not OsuSpriteRenderer.isRenderable(sprite) then return 0 end
-	return (OsuImage.dimensions(sprite))
+	return (TextureImage.dimensions(sprite))
 end
 
 ---Like osu!lazer, an overlay keeps its own logical size inside the 128px object, whatever size the circle texture is.
----@param overlay rizu.skin.osu.OsuSkinGraphics.Image?
+---@param overlay rizu.skin.SkinTextures.Image?
 ---@param size number Drawn diameter of the circle
 ---@return number
 function OsuSpriteRenderer.getOverlayWidth(overlay, size)
@@ -32,7 +32,7 @@ function OsuSpriteRenderer.flush(sprites)
 	if sprites and sprites.batch then sprites.batch:flush() end
 end
 
----@param sprite rizu.skin.osu.OsuSkinGraphics.Image?
+---@param sprite rizu.skin.SkinTextures.Image?
 ---@param x number
 ---@param y number
 ---@param width number
@@ -41,15 +41,15 @@ end
 ---@param color number[]? RGB tint
 function OsuSpriteRenderer.draw(sprite, x, y, width, alpha, rotation, color)
 	if not OsuSpriteRenderer.isRenderable(sprite) or width <= 0 then return end
-	---@cast sprite rizu.skin.osu.OsuSkinGraphics.Image
-	local image_width, image_height = OsuImage.dimensions(sprite)
+	---@cast sprite rizu.skin.SkinTextures.Image
+	local image_width, image_height = TextureImage.dimensions(sprite)
 	local scale = width / image_width
 	if color then
 		love.graphics.setColor(color[1], color[2], color[3], alpha)
 	else
 		love.graphics.setColor(1, 1, 1, alpha)
 	end
-	OsuImage.draw(sprite, x, y, rotation or 0, scale, scale, image_width / 2, image_height / 2)
+	TextureImage.draw(sprite, x, y, rotation or 0, scale, scale, image_width / 2, image_height / 2)
 end
 
 return OsuSpriteRenderer

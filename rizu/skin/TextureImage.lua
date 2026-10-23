@@ -1,16 +1,16 @@
----@class rizu.skin.osu.OsuImage
-local OsuImage = {}
+---@class rizu.skin.TextureImage
+local TextureImage = {}
 
----@param image love.Image|rizu.skin.osu.OsuSkinGraphics.Frame
+---@param image love.Image|rizu.skin.SkinTextures.Frame
 ---@return number, number
-function OsuImage.dimensions(image)
+function TextureImage.dimensions(image)
 	if image.texture then return image.width, image.height end
 	if image.getDimensions then return image:getDimensions() end
 	return image:getWidth(), image:getHeight()
 end
 
 ---Draw a raw atlas region or standalone Image using logical-pixel transforms.
----@param image love.Image|rizu.skin.osu.OsuSkinGraphics.Frame
+---@param image love.Image|rizu.skin.SkinTextures.Frame
 ---@param x number
 ---@param y number
 ---@param rotation number?
@@ -18,8 +18,8 @@ end
 ---@param sy number?
 ---@param ox number?
 ---@param oy number?
----@param batch rizu.skin.osu.OsuSpriteBatch?
-function OsuImage.draw(image, x, y, rotation, sx, sy, ox, oy, batch)
+---@param batch rizu.skin.SpriteBatch?
+function TextureImage.draw(image, x, y, rotation, sx, sy, ox, oy, batch)
 	if image.texture then
 		local density = image.density
 		image.batch:add(image.texture, image.quad, x, y, rotation or 0,
@@ -31,15 +31,16 @@ function OsuImage.draw(image, x, y, rotation, sx, sy, ox, oy, batch)
 	end
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param graphics rizu.skin.SkinTextures
 ---@param x number
 ---@param y number
 ---@param width number
 ---@param height number
-function OsuImage.rectangle(graphics, x, y, width, height)
-	local pixel = graphics.getAtlasFrame and graphics:getAtlasFrame("playfield", "\0white")
+---@param group string? Atlas whose pixel is used, "playfield" by default.
+function TextureImage.rectangle(graphics, x, y, width, height, group)
+	local pixel = graphics.getAtlasFrame and graphics:getAtlasFrame(group or "playfield", "\0white")
 	if pixel then
-		OsuImage.draw(pixel, x, y, 0, width, height)
+		TextureImage.draw(pixel, x, y, 0, width, height)
 	else
 		if graphics.batch then graphics.batch:flush() end
 		love.graphics.rectangle("fill", x, y, width, height)
@@ -48,7 +49,7 @@ end
 
 ---Draw without enqueueing, even if the image is an atlas region.
 ---The caller must flush its batch BEFORE changing graphics state.
----@param image love.Image|rizu.skin.osu.OsuSkinGraphics.Frame
+---@param image love.Image|rizu.skin.SkinTextures.Frame
 ---@param x number
 ---@param y number
 ---@param rotation number?
@@ -56,7 +57,7 @@ end
 ---@param sy number?
 ---@param ox number?
 ---@param oy number?
-function OsuImage.drawDirect(image, x, y, rotation, sx, sy, ox, oy)
+function TextureImage.drawDirect(image, x, y, rotation, sx, sy, ox, oy)
 	if image.texture then
 		local density = image.density
 		love.graphics.draw(image.texture, image.quad, x, y, rotation or 0,
@@ -67,4 +68,4 @@ function OsuImage.drawDirect(image, x, y, rotation, sx, sy, ox, oy)
 	end
 end
 
-return OsuImage
+return TextureImage

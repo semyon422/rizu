@@ -10,7 +10,7 @@ local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.skin.Screen "gameplay"|"preview"
 
----@class rizu.skin.Skin
+---@class rizu.skin.Skin : rizu.skin.SkinTextures.Source
 ---@field path string Unique id, also the value stored in settings.
 ---@field name string
 ---@field author string?

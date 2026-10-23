@@ -1,4 +1,4 @@
-local OsuImage = require("rizu.skin.osu.OsuImage")
+local TextureImage = require("rizu.skin.TextureImage")
 local Shared = require("rizu.skin.base.osu.aim.AimRenderShared")
 local SpriteRenderer = require("rizu.skin.osu.aim.OsuSpriteRenderer")
 
@@ -17,7 +17,7 @@ local function drawNumber(sprites, number, x, y, scale, alpha)
 	local width = 0
 	for i = 1, #text do
 		local glyph = sprites.digits[text:byte(i) - 48]
-		if glyph then width = width + OsuImage.dimensions(glyph) - overlap end
+		if glyph then width = width + TextureImage.dimensions(glyph) - overlap end
 	end
 	if width == 0 then return end
 	love.graphics.setColor(1, 1, 1, alpha)
@@ -25,8 +25,8 @@ local function drawNumber(sprites, number, x, y, scale, alpha)
 	for i = 1, #text do
 		local glyph = sprites.digits[text:byte(i) - 48]
 		if glyph then
-			local glyph_width, glyph_height = OsuImage.dimensions(glyph)
-			OsuImage.draw(glyph, x, y - glyph_height * scale / 2, 0, scale, scale, 0, 0, sprites.batch)
+			local glyph_width, glyph_height = TextureImage.dimensions(glyph)
+			TextureImage.draw(glyph, x, y - glyph_height * scale / 2, 0, scale, scale, 0, 0, sprites.batch)
 			x = x + (glyph_width - overlap) * scale
 		end
 	end

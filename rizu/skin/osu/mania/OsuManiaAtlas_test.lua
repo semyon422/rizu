@@ -1,11 +1,19 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
-local Graphics = require("rizu.skin.osu.OsuSkinGraphics")
+local Graphics = require("rizu.skin.SkinTextures")
 local Renderer = require("rizu.skin.osu.OsuManiaRenderer")
-local Image = require("rizu.skin.osu.OsuImage")
-local BitmapFont = require("rizu.skin.osu.OsuBitmapFont")
+local Image = require("rizu.skin.TextureImage")
+local BitmapFont = require("rizu.skin.BitmapFont")
 local Lighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local LoveFilesystem = require("fs.LoveFilesystem")
-local Atlas = require("rizu.skin.osu.OsuSkinAtlas")
+local Atlas = require("rizu.skin.SkinAtlas")
+local FakeGameplay = require("rizu.api.fake.FakeGameplay")
+
+---HUD elements read the play through the game api.
+---@param fs fs.IFilesystem
+local function fake_game(fs)
+	return {fs = fs, api = {gameplay = FakeGameplay()}}
+end
+
 local test = {}
 
 ---@param width integer
@@ -23,7 +31,7 @@ local function png(width, height, color)
 end
 
 ---@param files {[string]: string}
----@return rizu.skin.osu.OsuSkinGraphics
+---@return rizu.skin.SkinTextures
 local function fixture(files)
 	local fs = FakeFilesystem()
 	fs:createDirectory("skin")
@@ -200,18 +208,20 @@ function test.renderer_membership_and_all_draw_paths(t)
 		local files = {"lightingN-0.png", "lightingL-0.png", "mania-stage-bottom.png"}
 		for _, name in ipairs(files) do fs:write("atlas-skin/" .. name, png(4, 4)) end
 		local skin = {path = "atlas-skin", files = files, skin_ini = {Mania = {}, Fonts = {}}}
-		local renderer = Renderer({fs = fs}, skin, "4key")
+		local renderer = Renderer(fake_game(fs), skin, "4key")
 		renderer:load()
 		local graphics = renderer.skin_graphics
-		for _, name in ipairs({"mania-note1", "mania-note1L", "mania-key1", "mania-stage-hint",
-			"mania-hit300g", "score-0"}) do
+		for _, name in ipairs({"mania-note1", "mania-note1L", "mania-key1", "mania-stage-hint"}) do
 			local frame = graphics:getAnimationFrames(name, nil, "playfield")[1]
 			t:assert(frame and frame.texture, name)
 		end
-		t:assert(graphics:getFrames("score-0", nil, "font")[1].texture)
-		t:eq(renderer.combo_view.bitmap_font.group, "playfield")
+		for _, name in ipairs({"mania-hit300g", "score-0", "circularmetre", "editor-rate-arrow"}) do
+			local frame = graphics:getAnimationFrames(name, nil, "hud")[1]
+			t:assert(frame and frame.texture, name)
+		end
+		t:assert(graphics:getAtlasFrame("hud", "\0white"))
 		for _, name in ipairs({"mania-stage-left", "mania-stage-right", "mania-stage-bottom",
-			"mania-stage-light", "lightingN", "lightingL", "circularmetre"}) do
+			"mania-stage-light", "lightingN", "lightingL"}) do
 			local frame = graphics:getAnimationFrames(name, nil, "standalone")[1]
 			t:assert(frame, name)
 			t:eq(frame.texture, nil, name)
@@ -233,12 +243,15 @@ function test.renderer_membership_and_all_draw_paths(t)
 			head_visible = true, head_y = 200, tail_y = 100}}, widths, xs)
 		graphics.batch:finish()
 		t:eq(graphics.repeated_quad, quad)
-		renderer.combo_view.bitmap_font:draw("123", 1, 0, 100)
-		renderer.score_view.bitmap_font:draw("123", 1, 0, 100)
-		local judge = renderer.judge_view
-		judge.frames = graphics:getAnimationFrames("mania-hit300g", nil, "playfield")
-		judge.image, judge.elapsed = judge.frames[1], 0.05
-		judge.width, judge.height = Image.dimensions(judge.image)
+		local score, combo = renderer:getHudElements("screen")[1], renderer:getHudElements("conveyor")[1]
+		score:setText("123")
+		score:draw()
+		combo:setText("123")
+		combo.combo_state.alpha = 1
+		combo:draw()
+		local judge = renderer:getHudElements("conveyor")[2]
+		judge:show("perfect", 1)
+		judge.judgement_state.elapsed = 0.05
 		judge:draw()
 		for _, lighting in ipairs(renderer.stage_lightings) do lighting:setHeld(true); lighting:draw(0, 0) end
 		t:assert(#draws > 15)
@@ -261,36 +274,25 @@ function test.renderer_loads_hud_after_upload_once_per_skin(t)
 			fs:createDirectory(skin.path)
 			for _, name in ipairs(skin.files) do fs:write(skin.path .. "/" .. name, png(4, 4)) end
 		end
-		local renderer = Renderer({fs = fs}, first, "4key")
-		t:eq(renderer.progress_view.progress_image, nil)
-		t:eq(renderer.hit_meter_view.arrow_image, nil)
-		local hud_load, hud_unload = renderer.foreground_hud.load, renderer.foreground_hud.unload
-		local loads = 0
-		renderer.foreground_hud.load = function(hud, game)
-			t:assert(renderer.skin_graphics.loaded)
-			loads = loads + 1
-			return hud_load(hud, game)
-		end
-		renderer.foreground_hud.unload = function(hud, game)
-			t:assert(not renderer.progress_view.progress_image
-				or renderer.skin_graphics.loaded)
-			return hud_unload(hud, game)
-		end
+		local renderer = Renderer(fake_game(fs), first, "4key")
+		t:eq(#renderer:getHudElements("screen"), 0)
 		renderer:load()
-		local progress = renderer.progress_view.progress_image
-		local arrow = renderer.hit_meter_view.arrow_image
-		t:assert(progress and arrow)
+		t:assert(renderer.skin_graphics.loaded)
+		local progress = renderer:getHudElements("screen")[3]
+		local meter = renderer:getHudElements("conveyor")[3]
+		local progress_image, arrow = progress.image, meter.arrow
+		t:assert(progress_image and arrow)
 		renderer:load()
-		t:eq(loads, 1)
-		t:eq(renderer.progress_view.progress_image, progress)
-		local other = Renderer({fs = fs}, second, "4key")
+		t:eq(renderer:getHudElements("screen")[3], progress)
+		t:eq(progress.image, progress_image)
+		local other = Renderer(fake_game(fs), second, "4key")
 		other:load()
-		t:ne(other.progress_view.progress_image, progress)
-		t:ne(other.hit_meter_view.arrow_image, arrow)
+		t:ne(other:getHudElements("screen")[3].image, progress_image)
+		t:ne(other:getHudElements("conveyor")[3].arrow, arrow)
 		other:unload()
 		renderer:unload()
-		t:eq(renderer.progress_view.progress_image, nil)
-		t:eq(renderer.hit_meter_view.arrow_image, nil)
+		t:eq(progress.image, nil)
+		t:eq(meter.arrow, nil)
 		for _, resource in ipairs(resources) do t:eq(resource.releases, 1) end
 	end)
 end
@@ -300,9 +302,7 @@ function test.font_consumer_not_prefix_selects_atlas(t)
 	with_gpu(function()
 		graphics:load({{name = "same-0", group = "playfield"}, {name = "same-0", group = "font"},
 			{name = "score-5", group = "playfield"}, {name = "score-5", group = "font"}})
-		local score, combo = BitmapFont(graphics), BitmapFont(graphics)
-		local skin = {skin_ini = {Fonts = {ScorePrefix = "same", ComboPrefix = "same"}}}
-		score:setSkin(skin, "Score"); combo:setSkin(skin, "Combo")
+		local score, combo = BitmapFont(graphics, "same", 0, "font"), BitmapFont(graphics, "same", 0, "playfield")
 		t:eq(score:getImage("0"), graphics:getAtlasFrame("font", "skin/same-0.png"))
 		t:eq(combo:getImage("0"), graphics:getAtlasFrame("playfield", "skin/same-0.png"))
 		score:draw("0", 1, 0, 100); combo:draw("0", 1, 0, 100)
@@ -498,7 +498,7 @@ function test.large_cropped_bodies_share_page_with_heads_and_tails(t)
 end
 
 ---A graphics object whose files a worker could read: it serves a table through the LoveFilesystem class.
----@return rizu.skin.osu.OsuSkinGraphics
+---@return rizu.skin.SkinTextures
 local function worker_fixture()
 	local files = {["note.png"] = png(4, 4)}
 	local fs = LoveFilesystem()
@@ -509,7 +509,7 @@ end
 local assets = {{name = "note", group = "playfield"}}
 
 ---A stand-in for the worker thread that decodes on the calling thread but yields first, like thread.async.
----@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param graphics rizu.skin.SkinTextures
 ---@param error_message string?
 local function fake_worker(graphics, error_message)
 	graphics.prepareInThread = function(request)

@@ -1,25 +1,25 @@
 local class = require("class")
 
----@class rizu.skin.osu.OsuSpriteBatch
----@operator call: rizu.skin.osu.OsuSpriteBatch
+---@class rizu.skin.SpriteBatch
+---@operator call: rizu.skin.SpriteBatch
 ---@field pages {[love.Image]: love.SpriteBatch}
 ---@field private current love.SpriteBatch?
 ---@field private scope_depth integer
-local OsuSpriteBatch = class()
+local SpriteBatch = class()
 local CAPACITY = 2048
 
-function OsuSpriteBatch:new()
+function SpriteBatch:new()
 	self.pages = {}
 	self.scope_depth = 0
 end
 
 ---@param image love.Image
-function OsuSpriteBatch:loadPage(image)
+function SpriteBatch:loadPage(image)
 	self.pages[image] = love.graphics.newSpriteBatch(image, CAPACITY, "stream")
 end
 
 ---Flush before changing transform, blend, shader, scissor, or drawing primitives.
-function OsuSpriteBatch:flush()
+function SpriteBatch:flush()
 	local batch = self.current
 	if not batch then return end
 	local lg = love.graphics
@@ -40,7 +40,7 @@ end
 ---@param sy number
 ---@param ox number
 ---@param oy number
-function OsuSpriteBatch:add(texture, quad, x, y, rotation, sx, sy, ox, oy)
+function SpriteBatch:add(texture, quad, x, y, rotation, sx, sy, ox, oy)
 	local batch = assert(self.pages[texture], "atlas batch not loaded")
 	if self.current ~= batch or batch:getCount() == CAPACITY then self:flush() end
 	self.current = batch
@@ -51,21 +51,21 @@ end
 
 -- Scopes nest without callers inspecting batch state. The outer owner must
 -- finish before restoring its graphics transform; inner draws may flush sooner.
-function OsuSpriteBatch:begin()
+function SpriteBatch:begin()
 	self.scope_depth = self.scope_depth + 1
 end
 
-function OsuSpriteBatch:finish()
-	assert(self.scope_depth > 0, "no active osu sprite batch scope")
+function SpriteBatch:finish()
+	assert(self.scope_depth > 0, "no active sprite batch scope")
 	self.scope_depth = self.scope_depth - 1
 	if self.scope_depth == 0 then self:flush() end
 end
 
-function OsuSpriteBatch:unload()
+function SpriteBatch:unload()
 	for _, batch in pairs(self.pages) do batch:release() end
 	self.pages = {}
 	self.current = nil
 	self.scope_depth = 0
 end
 
-return OsuSpriteBatch
+return SpriteBatch

@@ -1,5 +1,5 @@
 local class = require("class")
-local OsuImage = require("rizu.skin.osu.OsuImage")
+local TextureImage = require("rizu.skin.TextureImage")
 
 local lg = love.graphics
 
@@ -9,34 +9,40 @@ local CHARACTER_SUFFIXES = {
 }
 local DIGIT_SUFFIXES = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
----@class rizu.skin.osu.OsuBitmapFont.Glyph
----@field image rizu.skin.osu.OsuSkinGraphics.Image?
+---@class rizu.skin.BitmapFont.Glyph
+---@field image rizu.skin.SkinTextures.Image?
 ---@field width number?
 ---@field height number?
 ---@field advance number?
 ---@field digit boolean?
 
----@class rizu.skin.osu.OsuBitmapFont
----@operator call: rizu.skin.osu.OsuBitmapFont
----@field graphics rizu.skin.osu.OsuSkinGraphics
----@field group "playfield"|"font"
+---Text drawn with one sprite per character: `<prefix>-0` .. `<prefix>-9`, `<prefix>-dot`,
+---`-comma`, `-percent`, `-slash`, `-x`... A glyph the prefix lacks falls back to the `score-`
+---glyph of the skin, then of the fallback archive.
+---@class rizu.skin.BitmapFont
+---@operator call: rizu.skin.BitmapFont
+---@field graphics rizu.skin.SkinTextures
+---@field group string? Atlas group the glyphs were requested in.
 ---@field prefix string
----@field overlap number
----@field image_cache {[string]: rizu.skin.osu.OsuSkinGraphics.Image|false}
----@field glyphs rizu.skin.osu.OsuBitmapFont.Glyph[]
+---@field overlap number Pixels neighbouring glyphs overlap by; negative spreads them.
+---@field image_cache {[string]: rizu.skin.SkinTextures.Image|false}
+---@field glyphs rizu.skin.BitmapFont.Glyph[]
 ---@field glyph_count integer
 ---@field measured_value string?
 ---@field measured_width number
 ---@field measured_height number
-local OsuBitmapFont = class()
+local BitmapFont = class()
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
+BitmapFont.fallback_prefix = "score"
+
+---@param graphics rizu.skin.SkinTextures
 ---@param prefix string?
 ---@param overlap number?
-function OsuBitmapFont:new(graphics, prefix, overlap)
+---@param group string?
+function BitmapFont:new(graphics, prefix, overlap, group)
 	self.graphics = graphics
-	self.prefix = prefix or "score"
-	self.group = "font"
+	self.prefix = prefix or BitmapFont.fallback_prefix
+	self.group = group
 	self.overlap = overlap or 0
 	self.image_cache = {}
 	self.glyphs = {}
@@ -46,33 +52,29 @@ function OsuBitmapFont:new(graphics, prefix, overlap)
 	self.measured_height = 0
 end
 
----@param skin rizu.skin.Skin?
----@param font_name "Score"|"Combo"
-function OsuBitmapFont:setSkin(skin, font_name)
-	self.group = font_name == "Combo" and "playfield" or "font"
-	local fonts = skin and skin.skin_ini.Fonts or {}
-	local prefix ---@type string?
-	local overlap ---@type string|number?
-	for name, value in pairs(fonts) do
-		if type(name) == "string" then
-			if name:lower() == (font_name .. "Prefix"):lower() then prefix = value end
-			if name:lower() == (font_name .. "Overlap"):lower() then overlap = value end
-		end
+---Every glyph with its fallback, to request before loading the textures.
+---@param prefix string
+---@param group string?
+---@return rizu.skin.SkinTextures.Asset[]
+function BitmapFont.getAssets(prefix, group)
+	local suffixes = {} ---@type string[]
+	for _, suffix in ipairs(DIGIT_SUFFIXES) do suffixes[#suffixes + 1] = suffix end
+	for _, suffix in pairs(CHARACTER_SUFFIXES) do suffixes[#suffixes + 1] = suffix end
+	table.sort(suffixes)
+	local assets = {} ---@type rizu.skin.SkinTextures.Asset[]
+	for _, suffix in ipairs(suffixes) do
+		assets[#assets + 1] = {name = prefix .. "-" .. suffix, fallback = BitmapFont.fallback_prefix .. "-" .. suffix,
+			group = group}
 	end
-	if type(prefix) ~= "string" or prefix == "" then prefix = "score" end
-	overlap = tonumber(overlap) or 0
-	if overlap ~= overlap or overlap == math.huge or overlap == -math.huge then overlap = 0 end
-	self.prefix = prefix
-	self.overlap = overlap
-	self:unload()
+	return assets
 end
 
-function OsuBitmapFont:load()
+function BitmapFont:load()
 	self:unload()
 end
 
 ---Drop font-local resource references at lifecycle boundaries, not in draw().
-function OsuBitmapFont:unload()
+function BitmapFont:unload()
 	self.image_cache = {}
 	self.measured_value = nil
 	for _, glyph in ipairs(self.glyphs) do
@@ -88,39 +90,27 @@ local function character_suffix(character_code)
 end
 
 ---@param suffix string
----@return rizu.skin.osu.OsuSkinGraphics.Image?
-function OsuBitmapFont:getImage(suffix)
+---@return rizu.skin.SkinTextures.Image?
+function BitmapFont:getImage(suffix)
 	local cached = self.image_cache[suffix]
 	if cached ~= nil then return cached ~= false and cached or nil end
-	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, "score-" .. suffix, self.group)[1]
+	local image = self.graphics:getFrames(self.prefix .. "-" .. suffix, BitmapFont.fallback_prefix .. "-" .. suffix, self.group)[1]
 	self.image_cache[suffix] = image or false
 	return image
 end
 
----@param image rizu.skin.osu.OsuSkinGraphics.Image?
+---@param image rizu.skin.SkinTextures.Image?
 ---@return number width
 ---@return number height
-function OsuBitmapFont:getImageDimensions(image)
+function BitmapFont:getImageDimensions(image)
 	if not image then return 0, 0 end
-	return OsuImage.dimensions(image)
-end
-
----@param include_combo_suffix boolean?
----@return string[]
-function OsuBitmapFont:getImageAssets(include_combo_suffix)
-	local names = {} ---@type string[]
-	for digit = 0, 9 do names[#names + 1] = self.prefix .. "-" .. digit end
-	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz"}) do
-		names[#names + 1] = self.prefix .. "-" .. suffix
-	end
-	if include_combo_suffix then names[#names + 1] = self.prefix .. "-x" end
-	return names
+	return TextureImage.dimensions(image)
 end
 
 ---@param value string
 ---@return number width
 ---@return number height
-function OsuBitmapFont:measure(value)
+function BitmapFont:measure(value)
 	if self.measured_value == value then return self.measured_width, self.measured_height end
 	local slot_width, digit_height = self:getImageDimensions(self:getImage("5"))
 	if slot_width <= 0 then slot_width = 16 end
@@ -148,7 +138,7 @@ end
 ---@param y number
 ---@param right_edge number
 ---@param color number[]?
-function OsuBitmapFont:draw(value, scale, y, right_edge, color)
+function BitmapFont:draw(value, scale, y, right_edge, color)
 	local glyphs = self.glyphs
 	local glyph_count = 0
 	local slot_width = self:getImageDimensions(self:getImage("5"))
@@ -191,7 +181,7 @@ function OsuBitmapFont:draw(value, scale, y, right_edge, color)
 		else
 			lg.setColor(1, 1, 1, 1)
 		end
-		OsuImage.draw(glyph.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale,
+		TextureImage.draw(glyph.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale,
 			0, 0, batch)
 		draw_x = draw_x + (glyph.advance - self.overlap) * scale
 	end
@@ -200,4 +190,4 @@ function OsuBitmapFont:draw(value, scale, y, right_edge, color)
 	return max_height * scale
 end
 
-return OsuBitmapFont
+return BitmapFont

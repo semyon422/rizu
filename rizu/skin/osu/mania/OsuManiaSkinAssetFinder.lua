@@ -5,10 +5,6 @@ local class = require("class")
 ---@field section table
 ---@field columns integer
 ---@field column_suffixes string[]
----@field score_assets string[]
----@field accuracy_assets string[]
----@field combo_assets string[]
----@field judge_assets {name: string?, fallback: string?}[]
 local OsuManiaSkinAssetFinder = class()
 
 ---@class rizu.skin.osu.mania.OsuManiaSkinAssetFinder.Request
@@ -34,10 +30,6 @@ function OsuManiaSkinAssetFinder:new(options)
 	self.section = options.section or {}
 	self.columns = options.columns or 0
 	self.column_suffixes = options.column_suffixes or {}
-	self.score_assets = options.score_assets or {}
-	self.accuracy_assets = options.accuracy_assets or {}
-	self.combo_assets = options.combo_assets or {}
-	self.judge_assets = options.judge_assets or {}
 end
 
 ---@param name string?
@@ -105,25 +97,6 @@ function OsuManiaSkinAssetFinder:find()
 	self:add(get_section_value(section, "LightingN"), "lightingN", true, "lighting")
 	self:add(get_section_value(section, "LightingL"), "lightingL", true, "lighting")
 
-	for digit = 0, 9 do self:add("score-" .. digit, nil, false, "score_font") end
-	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
-		self:add("score-" .. suffix, nil, false, "score_font")
-	end
-	for _, name in ipairs(self.score_assets) do self:add(name, nil, false, "score_font") end
-	for _, name in ipairs(self.accuracy_assets) do self:add(name, nil, false, "accuracy_font") end
-	for _, name in ipairs(self.combo_assets) do self:add(name, nil, false, "combo_font") end
-	for digit = 0, 9 do self:add("score-" .. digit, nil, false, "combo_font") end
-	for _, suffix in ipairs({"dot", "comma", "percent", "slash", "fps", "ms", "hz", "x"}) do
-		self:add("score-" .. suffix, nil, false, "combo_font")
-	end
-	for _, asset in ipairs(self.judge_assets) do
-		local name = asset.name or asset.fallback
-		local fallback = asset.name and asset.fallback or nil
-		self:add(name, fallback, true, "judgement")
-	end
-
-	self:add("editor-rate-arrow", nil, false, "standalone")
-	self:add("circularmetre", nil, false, "progress")
 	return self.requests
 end
 

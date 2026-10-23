@@ -1,11 +1,11 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
-local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
+local SkinTextures = require("rizu.skin.SkinTextures")
 
 local test = {}
 
 ---@param t testing.T
 function test.resolves_skin_assets_case_insensitively_and_keeps_nested_image_maps(t)
-	local graphics = OsuSkinGraphics(FakeFilesystem(), {
+	local graphics = SkinTextures(FakeFilesystem(), {
 		path = "skins/example",
 		files = {
 			"MANIA-KEY1@2X.PNG",
@@ -27,7 +27,7 @@ function test.resolves_skin_assets_case_insensitively_and_keeps_nested_image_map
 end
 
 function test.finds_animated_long_note_frames_starting_at_zero(t)
-	local graphics = OsuSkinGraphics(FakeFilesystem(), {
+	local graphics = SkinTextures(FakeFilesystem(), {
 		path = "skins/example",
 		files = {"mania-note1L-0.png", "mania-note1L-1.png", "mania-note1L-2.png"},
 	})
@@ -45,7 +45,7 @@ function test.preloads_skin_png_assets_once_during_load(t)
 	fs:write("skins/example/mania-key1@2x.PNG", "key")
 	fs:write("skins/example/ui-button.png", "ui")
 	fs:write("skins/example/hitsound.wav", "sound")
-	local graphics = OsuSkinGraphics(fs, {
+	local graphics = SkinTextures(fs, {
 		path = "skins/example",
 		files = {"notes/blue.png", "mania-key1@2x.PNG", "ui-button.png", "hitsound.wav"},
 	})
@@ -85,7 +85,7 @@ function test.preserves_osu_image_density_when_decoding_through_image_data(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("skins/example")
 	fs:write("skins/example/mania-key1@2x.png", "key")
-	local graphics = OsuSkinGraphics(fs, {
+	local graphics = SkinTextures(fs, {
 		path = "skins/example",
 		files = {"mania-key1@2x.png"},
 	})
@@ -145,7 +145,7 @@ function test.loads_missing_assets_from_zip_without_overriding_skin_assets(t)
 	local skin = {path = "skins/example", files = {
 		"MANIA-KEY1.PNG", "mania-hit300g.png", "mania-note1L-0.png", "mania-note1L-1.png",
 	}}
-	local graphics = OsuSkinGraphics(fs, skin)
+	local graphics = SkinTextures(fs, skin)
 	local previous_read = love.filesystem.read
 	local previous_new_image = love.graphics.newImage
 	local previous_new_file_data = love.filesystem.newFileData
@@ -190,7 +190,7 @@ function test.loads_missing_assets_from_zip_without_overriding_skin_assets(t)
 		t:eq(loaded[7], "default-judge")
 		t:eq(loaded[8], "default-key")
 		t:eq(reads, 1)
-		local second = OsuSkinGraphics(fs)
+		local second = SkinTextures(fs)
 		second:setFallbackArchive("test-mania-fallback.zip")
 		t:eq(reads, 1)
 	end, debug.traceback)
@@ -205,7 +205,7 @@ function test.loads_oversized_skin_hold_body_instead_of_falling_back(t)
 	local fs = FakeFilesystem()
 	fs:createDirectory("skins/example")
 	fs:write("skins/example/mania-note1L.png", "body")
-	local graphics = OsuSkinGraphics(fs, {
+	local graphics = SkinTextures(fs, {
 		path = "skins/example",
 		files = {"mania-note1L.png"},
 	})
@@ -249,6 +249,7 @@ function test.loads_oversized_skin_hold_body_instead_of_falling_back(t)
 	end, debug.traceback)
 	for name, value in pairs(previous) do
 		if name == "newFileData" then love.filesystem[name] = value
+		elseif name == "newImageData" then love.image[name] = value
 		else love.graphics[name] = value end
 	end
 	graphics:unload()

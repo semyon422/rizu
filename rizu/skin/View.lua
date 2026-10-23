@@ -34,7 +34,7 @@ local lg = love.graphics
 ---@field height number
 ---@field transform love.Transform
 ---@field visible boolean
----@field game sphere.GameController?
+---@field context table? What the owner loads the view with: the game for background views, the game api for HUD elements.
 ---@field container rizu.skin.ViewContainer?
 ---@field _world_transform love.Transform?
 local View = class()
@@ -80,25 +80,25 @@ function View:new(config)
 	assert(self.width >= 0 and self.height >= 0, "view dimensions must be non-negative")
 	self.transform = config.transform or love.math.newTransform()
 	self.visible = config.visible ~= false
-	self.game = nil
+	self.context = nil
 	self.container = nil
 	self._world_transform = nil
 end
 
----@param game sphere.GameController
-function View:load(game)
-	if self.game == game then return end
-	if self.game then self:unload(self.game) end
-	self.game = game
+---@param context table
+function View:load(context)
+	if self.context == context then return end
+	if self.context then self:unload(self.context) end
+	self.context = context
 end
 
 ---@param dt number
----@param game sphere.GameController
-function View:update(dt, game) end
+---@param context table
+function View:update(dt, context) end
 
----@param game sphere.GameController?
-function View:unload(game)
-	if game == nil or game == self.game then self.game = nil end
+---@param context table?
+function View:unload(context)
+	if context == nil or context == self.context then self.context = nil end
 end
 
 ---Override to draw in local coordinates, with the view's origin at (0, 0).

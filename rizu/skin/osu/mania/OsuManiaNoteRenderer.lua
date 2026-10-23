@@ -1,5 +1,5 @@
 local class = require("class")
-local OsuImage = require("rizu.skin.osu.OsuImage")
+local TextureImage = require("rizu.skin.TextureImage")
 
 local lg = love.graphics
 local HOLD_COLOR = {1, 0.78, 0.2, 1}
@@ -20,8 +20,8 @@ function OsuManiaNoteRenderer:update(dt)
 	self.time = self.time + math.max(dt, 0)
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
----@param image rizu.skin.osu.OsuSkinGraphics.Image
+---@param graphics rizu.skin.SkinTextures
+---@param image rizu.skin.SkinTextures.Image
 ---@param x number
 ---@param y number
 ---@param width number
@@ -29,16 +29,16 @@ end
 ---@param flip boolean
 local function draw_image_rect(graphics, image, x, y, width, height, flip)
 	if not image.texture and graphics.batch then graphics.batch:flush() end
-	local image_width, image_height = OsuImage.dimensions(image)
+	local image_width, image_height = TextureImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 	local scale_x, scale_y = width / image_width, height / image_height
 	lg.setColor(1, 1, 1, 1)
-	if flip then OsuImage.draw(image, x, y + height, 0, scale_x, -scale_y)
-	else OsuImage.draw(image, x, y, 0, scale_x, scale_y) end
+	if flip then TextureImage.draw(image, x, y + height, 0, scale_x, -scale_y)
+	else TextureImage.draw(image, x, y, 0, scale_x, scale_y) end
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
----@param image rizu.skin.osu.OsuSkinGraphics.Image
+---@param graphics rizu.skin.SkinTextures
+---@param image rizu.skin.SkinTextures.Image
 ---@param x number
 ---@param y number
 ---@param width number
@@ -46,7 +46,7 @@ end
 ---@param flip boolean
 ---@param style "repeat_top"|"repeat_bottom"|"repeat_top_and_bottom"
 local function draw_repeated_image_rect(graphics, image, x, y, width, height, flip, style)
-	local image_width, image_height = OsuImage.dimensions(image)
+	local image_width, image_height = TextureImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 or width <= 0 or height <= 0 then return end
 
 	-- A one-pixel body (the common osu! `lnmid` asset) is already uniform
@@ -102,8 +102,8 @@ local function draw_repeated_image_rect(graphics, image, x, y, width, height, fl
 	end
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
----@param image rizu.skin.osu.OsuSkinGraphics.Image
+---@param graphics rizu.skin.SkinTextures
+---@param image rizu.skin.SkinTextures.Image
 ---@param x number
 ---@param y number
 ---@param target_width number
@@ -113,20 +113,20 @@ end
 ---@param color number[]
 local function draw_note_head(graphics, image, x, y, target_width, target_height, flip, upside_down, color)
 	if not image.texture and graphics.batch then graphics.batch:flush() end
-	local image_width, image_height = OsuImage.dimensions(image)
+	local image_width, image_height = TextureImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 	local scale_x, scale_y = target_width / image_width, target_height / image_height
 	lg.setColor(color)
 	if upside_down then
 		if flip then
-			OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, image_height)
+			TextureImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, image_height)
 		else
-			OsuImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, 0)
+			TextureImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, 0)
 		end
 	elseif flip then
-		OsuImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, 0)
+		TextureImage.draw(image, x, y, 0, scale_x, -scale_y, image_width / 2, 0)
 	else
-		OsuImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, image_height)
+		TextureImage.draw(image, x, y, 0, scale_x, scale_y, image_width / 2, image_height)
 	end
 end
 
@@ -171,7 +171,7 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 				else
 					local color = renderer:getSkinColor("ColourHold", HOLD_COLOR)
 					lg.setColor(color[1], color[2], color[3], color[4] * 0.8)
-					OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - note_width * 0.32, body_top,
+					TextureImage.rectangle(renderer.skin_graphics, lane_xs[column] - note_width * 0.32, body_top,
 						note_width * 0.64, body_bottom - body_top)
 				end
 				if tail_image then
@@ -199,7 +199,7 @@ function OsuManiaNoteRenderer:draw(renderer, notes, lane_widths, lane_xs)
 			else
 				local color = note.mine and MINE_COLOR or renderer:getSkinColor("ColourHold", HEAD_COLOR)
 				lg.setColor(color[1], color[2], color[3], color[4])
-				OsuImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2,
+				TextureImage.rectangle(renderer.skin_graphics, lane_xs[column] - lane_widths[column] / 2,
 					note.head_y - 10, lane_widths[column], 10)
 			end
 		end

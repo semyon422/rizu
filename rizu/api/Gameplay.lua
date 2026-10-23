@@ -33,11 +33,17 @@ Nothing here builds a table per call unless it says so.
 ---@field getState fun(self: rizu.api.Note): string "clear" until judged. Taps: "passed", "missed". Long notes: "startPassedPressed", "startMissed", "startMissedPressed", "endPassed", "endMissed", "endMissedPassed".
 
 ---A setting the skin offers in the gameplay skin editor.
+---@class rizu.api.Gameplay.SkinProperty.Button
+---@field text string
+---@field on_click fun()
+
 ---@class rizu.api.Gameplay.SkinProperty
 ---@field key string?
 ---@field label string?
 ---@field label_key string? Localization key, when there is no label.
----@field type "slider"|"checkbox"|"segmented"|"dropdown"? Defaults to "slider".
+---@field type "slider"|"checkbox"|"segmented"|"dropdown"|"buttons"? Defaults to "slider". "buttons" has no value, only `buttons`.
+---@field buttons rizu.api.Gameplay.SkinProperty.Button[]?
+---@field refresh boolean? The list of properties changes after set() or a button: ask for it again.
 ---@field min number?
 ---@field max number?
 ---@field step number?
@@ -45,8 +51,8 @@ Nothing here builds a table per call unless it says so.
 ---@field options any[]? Values for segmented and dropdown controls.
 ---@field format (fun(value: any): string)? Value label for segmented and dropdown controls.
 ---@field setting boolean? Stored in the game settings: do not call saveSkinConfig() after set().
----@field get fun(): any
----@field set fun(value: any)
+---@field get (fun(): any)? Every type but "buttons".
+---@field set (fun(value: any))? Every type but "buttons".
 
 ---@class rizu.api.Gameplay
 ---@operator call: rizu.api.Gameplay
@@ -130,18 +136,26 @@ function Gameplay:getTime() return self.game.rhythm_engine.visual_info:getTime()
 
 ---@return number? score
 ---@return string? text The way the judging system writes it.
+---@return number? shown The number in `text`, for a skin that draws it its own way.
 function Gameplay:getScore()
 	local score_engine = self.game.rhythm_engine.score_engine
 	local source = score_engine and score_engine.scoreSource
-	if source then return source:getScore(), source:getScoreString() end
+	if source then
+		local score = source:getScore()
+		return score, source:getScoreString(), score * source.score_multiplier
+	end
 end
 
 ---@return number? accuracy 0..1
 ---@return string? text "98.52%"
+---@return number? shown The number in `text`, for a skin that draws it its own way.
 function Gameplay:getAccuracy()
 	local score_engine = self.game.rhythm_engine.score_engine
 	local source = score_engine and score_engine.accuracySource
-	if source then return source:getAccuracy(), source:getAccuracyString() end
+	if source then
+		local accuracy = source:getAccuracy()
+		return accuracy, source:getAccuracyString(), accuracy * source.accuracy_multiplier
+	end
 end
 
 ---@return integer? combo
@@ -352,7 +366,15 @@ end
 ---@return rizu.api.Gameplay.SkinProperty[]? properties nil when the skin offers none.
 function Gameplay:getSkinProperties()
 	local renderer = self.game.gameplayInteractor.playfield:getPlayfield()
-	return renderer and renderer.getProperties and renderer:getProperties()
+	if not renderer then return end
+	local properties = {} ---@type rizu.api.Gameplay.SkinProperty[]
+	for _, property in ipairs(renderer.getProperties and renderer:getProperties() or empty) do
+		properties[#properties + 1] = property
+	end
+	for _, property in ipairs(renderer.getHudProperties and renderer:getHudProperties() or empty) do
+		properties[#properties + 1] = property
+	end
+	if #properties > 0 then return properties end
 end
 
 ---Writes the skin's settings changed with set() to its config file.

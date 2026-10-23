@@ -13,18 +13,15 @@ function test.exposes_receptor_and_playfield_properties(t)
 	local config = SkinConfig()
 	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", config, "userdata/dlc/skins_rizu/base/skin-config.json")
 	local properties = renderer:getProperties()
-	t:eq(#properties, 11)
+	t:eq(#properties, 8)
 	t:eq(properties[1].key, "receptor.y")
 	t:eq(properties[2].key, "playfield.x_offset")
 	t:eq(properties[3].key, "bga.brightness")
-	t:eq(properties[4].key, "combo.y")
-	t:eq(properties[5].key, "judge.y")
-	t:eq(properties[6].key, "column.width")
-	t:eq(properties[7].key, "column.gap")
-	t:eq(properties[8].key, "column.lines")
-	t:eq(properties[9].key, "hold.end_offset")
-	t:eq(properties[10].key, "note.shape")
-	t:eq(properties[11].key, "judge.scale")
+	t:eq(properties[4].key, "column.width")
+	t:eq(properties[5].key, "column.gap")
+	t:eq(properties[6].key, "column.lines")
+	t:eq(properties[7].key, "hold.end_offset")
+	t:eq(properties[8].key, "note.shape")
 	t:eq(renderer:getHoldEndOffset(), 0)
 	t:eq(renderer:getColumnGap(), 4)
 	t:eq(renderer:getColumnLines(), true)
@@ -35,14 +32,6 @@ function test.exposes_receptor_and_playfield_properties(t)
 	renderer:setColumnWidth(64)
 	t:eq(config:get("mania", "4key", "column.width"), 64)
 	renderer:setColumnWidth(48)
-	t:eq(properties[4].get(), -36)
-	t:eq(properties[5].get(), -72)
-	properties[5].set(-100)
-	t:eq(config:get("mania", "4key", "judge.y"), -100)
-	t:eq(renderer:getJudgeScale(), 0.5)
-	renderer:setJudgeScale(0.75)
-	t:eq(config:get("mania", "4key", "judge.scale"), 0.75)
-	renderer:setJudgeScale(0.5)
 	t:eq(renderer:getReceptorY(), 430)
 	t:eq(renderer:getPlayfieldXOffset(), 0)
 	t:eq(renderer:getBgaBrightness(), 0.15)
@@ -60,81 +49,99 @@ function test.exposes_receptor_and_playfield_properties(t)
 end
 
 ---@param t testing.T
-function test.exposes_gameplay_hud_with_accuracy_view(t)
+---@param renderer rizu.skin.base.ManiaPlayfieldRenderer
+---@return string[] requested Texture names the elements asked for.
+local function stub_textures(renderer)
+	local requested = {}
+	local image = {getDimensions = function() return 20, 46 end}
+	local textures = renderer.textures
+	textures.setFallbackArchive = function() end
+	textures.loadAsync = function(_, assets)
+		for _, asset in ipairs(assets) do requested[#requested + 1] = asset.name end
+		return true
+	end
+	textures.getFrames = function() return {image} end
+	textures.getAnimationFrames = function() return {image} end
+	return requested
+end
+
+---@param t testing.T
+function test.default_hud_puts_score_on_screen_and_combo_on_the_columns(t)
 	local game = {
 		fs = FakeFilesystem(),
-		rhythm_engine = {
-			score_engine = {
-				accuracySource = {getAccuracyString = function() return "97.25%" end},
-			},
-		},
+		api = {gameplay = {
+			getAccuracy = function() return 0.9725, "97.25%", 97.25 end,
+			getScore = function() end,
+			getCombo = function() end,
+			getJudgementCount = function() return 0 end,
+			getJudgeNames = function() return {} end,
+		}},
 	}
-	local original_new_font = love.graphics.newFont
-	local fonts = {}
-	love.graphics.newFont = function(_, size)
-		local font = {
-			size = size,
-			released = false,
-			getWidth = function(self, text) return #text * self.size / 2 end,
-			getHeight = function(self) return self.size end,
-			release = function(self) self.released = true end,
-		}
-		fonts[#fonts + 1] = font
-		return font
-	end
 	local renderer = Renderer(game, "4key", "gameplay", SkinConfig(), "config.json")
+	local requested = stub_textures(renderer)
 	t:eq(#renderer.foreground_hud.children, 0)
 	t:eq(#renderer.background_hud.children, 1)
 	t:assert(require("rizu.skin.views.BgaView") * renderer.background_hud.children[1])
 	renderer:load()
-	love.graphics.newFont = original_new_font
-	t:assert(#renderer.foreground_hud.children > 0)
-	local accuracy_view = renderer.foreground_hud.children[1]
-	t:eq(accuracy_view.anchor, "top_right")
-	t:eq(accuracy_view.x, -8)
-	t:eq(accuracy_view.y, 38)
-	t:eq(accuracy_view.text, "97.25%")
-	t:eq(accuracy_view.font:getHeight(), 24)
-	t:eq(renderer.foreground_hud.children[2].text, "") -- score source not present
-	t:eq(renderer.foreground_hud.children[2].x, -8)
-	t:eq(renderer.foreground_hud.children[2].y, 8)
-	t:eq(renderer.foreground_hud.children[3].text, "") -- combo source not present
-	t:eq(renderer.foreground_hud.children[4].image, nil) -- no judgement yet
+	local names = {}
+	for _, name in ipairs(requested) do names[name] = true end
+	t:assert(names["score-0"] and names["judges/marvelous"] and names["judges/pgreat"])
 
-	local hud = renderer.foreground_hud
-	local native_width, native_height, hud_transform
-	local draw_hud = hud.draw
-	hud.draw = function(_, width, height, transform)
-		native_width, native_height, hud_transform = width, height, transform
-	end
+	local accuracy, score = renderer:getHudElements("screen")[1], renderer:getHudElements("screen")[2]
+	t:eq(accuracy.type, "accuracy")
+	t:eq(accuracy.anchor, "top_right")
+	t:eq(accuracy.x, -8)
+	t:eq(accuracy.y, 38)
+	renderer:updateHud(0)
+	t:eq(accuracy.text, "97.25%")
+	t:eq(score.text, "") -- no score source
+	t:eq(score.y, 8)
+	local combo, judgement = renderer:getHudElements("conveyor")[1], renderer:getHudElements("conveyor")[2]
+	t:eq(combo.y, -36)
+	t:eq(judgement.y, -72)
+	t:eq(judgement.values.scale, 0.5)
+	t:eq(judgement.values.colored, true)
+
+	local screen, conveyor = {}, {}
+	local screen_draw, conveyor_draw = renderer.foreground_hud.draw, renderer.conveyor_hud.draw
+	renderer.foreground_hud.draw = function(_, width, height, transform) screen = {width, height, transform} end
+	renderer.conveyor_hud.draw = function(_, width, height, transform) conveyor = {width, height, transform} end
 	renderer:drawHud(1280, 720, love.math.newTransform())
-	hud.draw = draw_hud
-	t:aeq(native_width, 1280 / 1.5, 1e-6)
-	t:aeq(native_height, 720 / 1.5, 1e-6)
-	for _, view in ipairs({renderer.foreground_hud.children[1], renderer.foreground_hud.children[2]}) do
-		local view_transform = view:getWorldTransform(native_width, native_height, hud_transform)
-		local right_edge = view_transform:transformPoint(view.width, 0)
-		t:aeq(right_edge, 1280 - 8 * 1.5, 1e-3)
-	end
+	renderer.foreground_hud.draw, renderer.conveyor_hud.draw = screen_draw, conveyor_draw
+	t:aeq(screen[1], 1280 / 1.5, 1e-6)
+	t:aeq(screen[2], 720 / 1.5, 1e-6)
+	accuracy.width = 50
+	local right_edge = accuracy:getWorldTransform(screen[1], screen[2], screen[3]):transformPoint(accuracy.width, 0)
+	t:aeq(right_edge, 1280 - 8 * 1.5, 1e-3)
+	t:eq(conveyor[1], 4 * 48)
+	local left = conveyor[3]:transformPoint(0, 0)
+	t:aeq(left, 1280 / 2 - 2 * 48 * 1.5, 1e-3) -- the columns are centered
 
 	renderer:unload()
-	t:eq(#renderer.foreground_hud.children, 0)
-	t:eq(renderer.hud_fonts, nil)
-	t:eq(#fonts, 2)
-	for _, font in ipairs(fonts) do t:assert(font.released) end
+	t:eq(accuracy.font, nil)
 
 	local preview_renderer = Renderer(game, "4key", "preview", SkinConfig(), "config.json")
-	t:eq(#preview_renderer.foreground_hud.children, 0)
 	preview_renderer:load()
 	t:eq(#preview_renderer.foreground_hud.children, 0)
 end
 
 ---@param t testing.T
+function test.old_combo_and_judgement_keys_seed_the_default_hud(t)
+	local config = SkinConfig()
+	config:set("mania", "4key", "combo.y", 0)
+	config:set("mania", "4key", "judge.y", -37)
+	config:set("mania", "4key", "judge.scale", 9)
+	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "gameplay", config, "config.json")
+	local conveyor = renderer:getDefaultHudLayout().conveyor
+	t:eq(conveyor[1].y, 0)
+	t:eq(conveyor[2].y, -37)
+	t:eq(conveyor[2].scale, 2) -- clamped like the old judge scale
+end
+
 function test.rejects_out_of_range_properties(t)
 	local renderer = Renderer({fs = FakeFilesystem()}, "4key", "preview", SkinConfig(), "config.json")
 	t:has_error(function() renderer:setReceptorY(481) end)
 	t:has_error(function() renderer:setPlayfieldXOffset(641) end)
-	t:has_error(function() renderer:setJudgeScale(3) end)
 	t:has_error(function() renderer:setColumnWidth(15) end)
 	t:has_error(function() renderer:setColumnGap(16) end)
 	t:has_error(function() renderer:setHoldEndOffset(2.01) end)

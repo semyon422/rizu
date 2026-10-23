@@ -26,7 +26,7 @@ function ViewContainer:add(view)
 
 	view.container = self
 	self.children[#self.children + 1] = view
-	if self.game then view:load(self.game) end
+	if self.context then view:load(self.context) end
 	return self
 end
 
@@ -35,7 +35,7 @@ end
 function ViewContainer:remove(view)
 	for index, child in ipairs(self.children) do
 		if child == view then
-			if self.game then child:unload(self.game) end
+			if self.context then child:unload(self.context) end
 			child.container = nil
 			table.remove(self.children, index)
 			return true
@@ -49,30 +49,30 @@ function ViewContainer:getChildren()
 	return self.children
 end
 
----@param game sphere.GameController
-function ViewContainer:load(game)
-	if self.game == game then return end
-	if self.game then self:unload(self.game) end
-	View.load(self, game)
-	for _, child in ipairs(self.children) do child:load(game) end
+---@param context table
+function ViewContainer:load(context)
+	if self.context == context then return end
+	if self.context then self:unload(self.context) end
+	View.load(self, context)
+	for _, child in ipairs(self.children) do child:load(context) end
 end
 
 ---@param dt number
----@param game sphere.GameController
-function ViewContainer:update(dt, game)
+---@param context table
+function ViewContainer:update(dt, context)
 	if self.visible then
-		View.update(self, dt, game)
-		for _, child in ipairs(self.children) do child:update(dt, game) end
+		View.update(self, dt, context)
+		for _, child in ipairs(self.children) do child:update(dt, context) end
 	end
 end
 
----@param game sphere.GameController?
-function ViewContainer:unload(game)
-	game = game or self.game
-	if game then
-		for _, child in ipairs(self.children) do child:unload(game) end
+---@param context table?
+function ViewContainer:unload(context)
+	context = context or self.context
+	if context then
+		for _, child in ipairs(self.children) do child:unload(context) end
 	end
-	View.unload(self, game)
+	View.unload(self, context)
 end
 
 ---@param width number Parent viewport width in native coordinate units.

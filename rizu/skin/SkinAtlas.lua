@@ -1,36 +1,36 @@
 local ZipFilesystem = require("fs.ZipFilesystem")
 local ImageAtlasPacker = require("rizu.skin.ImageAtlasPacker")
 
----CPU half of osu! skin loading: finds files, decodes, crops and packs them into atlas pages.
+---CPU half of skin texture loading: finds files, decodes, crops and packs them into atlas pages.
 ---Pure functions over plain data and ImageData, with no GPU access, so a worker thread can run them.
-local OsuSkinAtlas = {}
+local SkinAtlas = {}
 
----@class rizu.skin.osu.OsuSkinAtlas.Asset
+---@class rizu.skin.SkinAtlas.Asset
 ---@field name string?
 ---@field fallback string?
 ---@field animation boolean?
 ---@field group string?
 
----@class rizu.skin.osu.OsuSkinAtlas.Source
+---@class rizu.skin.SkinAtlas.Source
 ---@field image_data love.ImageData
 ---@field density number
 
----@class rizu.skin.osu.OsuSkinAtlas.PreparedGroup
+---@class rizu.skin.SkinAtlas.PreparedGroup
 ---@field atlases love.ImageData[]
 ---@field locations {[string]: rizu.skin.ImageAtlasPacker.Location}
 ---@field densities {[string]: number}
 
----@class rizu.skin.osu.OsuSkinAtlas.Prepared
----@field groups {[string]: rizu.skin.osu.OsuSkinAtlas.PreparedGroup}
----@field standalone {[string]: rizu.skin.osu.OsuSkinAtlas.Source}
+---@class rizu.skin.SkinAtlas.Prepared
+---@field groups {[string]: rizu.skin.SkinAtlas.PreparedGroup}
+---@field standalone {[string]: rizu.skin.SkinAtlas.Source}
 ---@field grouped_paths {[string]: {[string]: boolean}} Group name to the paths it holds.
 
 ---Plain data, so it can cross a thread boundary.
----@class rizu.skin.osu.OsuSkinAtlas.Request
+---@class rizu.skin.SkinAtlas.Request
 ---@field file_map {[string]: string} Lowercase skin asset path to full path.
 ---@field fallback_file_map {[string]: string}
 ---@field fallback_archive string?
----@field assets rizu.skin.osu.OsuSkinAtlas.Asset[]
+---@field assets rizu.skin.SkinAtlas.Asset[]
 ---@field texture_limit integer?
 ---@field atlas_limit integer
 
@@ -38,16 +38,16 @@ local OsuSkinAtlas = {}
 local archive_cache = {}
 
 ---@param resource any
-function OsuSkinAtlas.release(resource)
+function SkinAtlas.release(resource)
 	if resource and resource.release then
 		pcall(resource.release, resource)
 	end
 end
-local release_resource = OsuSkinAtlas.release
+local release_resource = SkinAtlas.release
 
 ---@param archive_path string
 ---@return fs.ZipFilesystem?
-function OsuSkinAtlas.getArchive(archive_path)
+function SkinAtlas.getArchive(archive_path)
 	local archive = archive_cache[archive_path]
 	if not archive then
 		local content = love.filesystem.read(archive_path)
@@ -61,14 +61,14 @@ end
 
 ---@param path string
 ---@return number
-function OsuSkinAtlas.getDensity(path)
+function SkinAtlas.getDensity(path)
 	return path:lower():match("@2x%.png$") and 2 or 1
 end
 
 ---@param name string
 ---@param maps {[string]: string}[]
 ---@return string?
-function OsuSkinAtlas.findAsset(name, maps)
+function SkinAtlas.findAsset(name, maps)
 	if type(name) ~= "string" or name == "" then return nil end
 	name = name:gsub("\\", "/"):gsub("^/+", ""):lower()
 	local stem = name:gsub("%.png$", "")
@@ -83,7 +83,7 @@ end
 ---@param base string
 ---@param file_map {[string]: string}
 ---@return {index: integer, path: string}[]
-function OsuSkinAtlas.findAnimationAssets(base, file_map)
+function SkinAtlas.findAnimationAssets(base, file_map)
 	if type(base) ~= "string" or base == "" then return {} end
 	base = base:gsub("\\", "/"):gsub("^/+", ""):gsub("%.png$", ""):lower()
 	---@type string?, string?
@@ -131,13 +131,13 @@ end
 ---@param fs fs.IFilesystem
 ---@param fallback_archive string?
 ---@return fun(path: string): love.ImageData?
-function OsuSkinAtlas.newImageDataLoader(fs, fallback_archive)
+function SkinAtlas.newImageDataLoader(fs, fallback_archive)
 	return function(path)
 		---@type fs.IFilesystem?
 		local read_fs = fs
 		local read_path = path
 		if fallback_archive and path:sub(1, #fallback_archive + 1) == fallback_archive .. "/" then
-			read_fs, read_path = OsuSkinAtlas.getArchive(fallback_archive), path:sub(#fallback_archive + 2)
+			read_fs, read_path = SkinAtlas.getArchive(fallback_archive), path:sub(#fallback_archive + 2)
 		end
 		if not read_fs then return nil end
 		local ok_read, content = pcall(read_fs.read, read_fs, read_path)
@@ -163,8 +163,8 @@ local function crop_image_data(image_data, limit)
 	return cropped
 end
 
----@param prepared rizu.skin.osu.OsuSkinAtlas.Prepared
-function OsuSkinAtlas.releasePrepared(prepared)
+---@param prepared rizu.skin.SkinAtlas.Prepared
+function SkinAtlas.releasePrepared(prepared)
 	for _, group in pairs(prepared.groups) do
 		for _, data in ipairs(group.atlases) do release_resource(data) end
 	end
@@ -172,23 +172,23 @@ function OsuSkinAtlas.releasePrepared(prepared)
 end
 
 ---Decode, crop and pack. Device limits are supplied by the caller in the request.
----@param request rizu.skin.osu.OsuSkinAtlas.Request
+---@param request rizu.skin.SkinAtlas.Request
 ---@param load_image_data fun(path: string): love.ImageData?
----@return rizu.skin.osu.OsuSkinAtlas.Prepared
-function OsuSkinAtlas.prepare(request, load_image_data)
+---@return rizu.skin.SkinAtlas.Prepared
+function SkinAtlas.prepare(request, load_image_data)
 	local file_map, fallback_file_map = request.file_map, request.fallback_file_map
 	local texture_limit = request.texture_limit
-	local prepared = {groups = {}, standalone = {}, grouped_paths = {}} ---@type rizu.skin.osu.OsuSkinAtlas.Prepared
-	local sources = {} ---@type {[string]: rizu.skin.osu.OsuSkinAtlas.Source|false}
-	local groups = {} ---@type {[string]: {[string]: rizu.skin.osu.OsuSkinAtlas.Source}}
+	local prepared = {groups = {}, standalone = {}, grouped_paths = {}} ---@type rizu.skin.SkinAtlas.Prepared
+	local sources = {} ---@type {[string]: rizu.skin.SkinAtlas.Source|false}
+	local groups = {} ---@type {[string]: {[string]: rizu.skin.SkinAtlas.Source}}
 	---@param path string
-	---@return rizu.skin.osu.OsuSkinAtlas.Source?
+	---@return rizu.skin.SkinAtlas.Source?
 	local function decode(path)
 		local cached = sources[path]
 		if cached ~= nil then return cached or nil end
 		local data = load_image_data(path)
 		if not data then sources[path] = false; return end
-		local source = {image_data = data, density = OsuSkinAtlas.getDensity(path)}
+		local source = {image_data = data, density = SkinAtlas.getDensity(path)}
 		sources[path] = source
 		source.image_data = crop_image_data(data, texture_limit)
 		return source
@@ -201,13 +201,13 @@ function OsuSkinAtlas.prepare(request, load_image_data)
 		if not name or name == "" then return {} end
 		if animation then
 			local paths = {} ---@type string[]
-			for _, asset in ipairs(OsuSkinAtlas.findAnimationAssets(name, map)) do paths[#paths + 1] = asset.path end
+			for _, asset in ipairs(SkinAtlas.findAnimationAssets(name, map)) do paths[#paths + 1] = asset.path end
 			if #paths > 0 then return paths end
 		end
-		local path = OsuSkinAtlas.findAsset(name, {map})
+		local path = SkinAtlas.findAsset(name, {map})
 		return path and {path} or {}
 	end
-	---@param asset rizu.skin.osu.OsuSkinAtlas.Asset
+	---@param asset rizu.skin.SkinAtlas.Asset
 	local function add_asset(asset)
 		local group_name = asset.group or "standalone"
 		local group = groups[group_name] or {}
@@ -233,7 +233,10 @@ function OsuSkinAtlas.prepare(request, load_image_data)
 		sources["\0white"] = source
 		pixel:setPixel(0, 0, 1, 1, 1, 1)
 		groups.playfield = groups.playfield or {}
-		groups.playfield["\0white"] = source
+		-- Every atlas gets a pixel, so rectangles batch with the sprites around them.
+		for name, entries in pairs(groups) do
+			if name ~= "standalone" then entries["\0white"] = source end
+		end
 		local packer = ImageAtlasPacker()
 		local limit = math.min(request.atlas_limit, texture_limit or request.atlas_limit)
 		packer.max_atlas_width, packer.max_atlas_height = limit, limit
@@ -294,10 +297,10 @@ function OsuSkinAtlas.prepare(request, load_image_data)
 	end
 	if not ok then
 		prepared.standalone = {}
-		OsuSkinAtlas.releasePrepared(prepared)
+		SkinAtlas.releasePrepared(prepared)
 		error(err, 0)
 	end
 	return prepared
 end
 
-return OsuSkinAtlas
+return SkinAtlas

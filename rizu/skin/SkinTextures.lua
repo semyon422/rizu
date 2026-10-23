@@ -2,22 +2,22 @@ local class = require("class")
 local path_util = require("path_util")
 local thread = require("thread")
 local LoveFilesystem = require("fs.LoveFilesystem")
-local OsuSpriteBatch = require("rizu.skin.osu.OsuSpriteBatch")
-local OsuSkinAtlas = require("rizu.skin.osu.OsuSkinAtlas")
+local SpriteBatch = require("rizu.skin.SpriteBatch")
+local SkinAtlas = require("rizu.skin.SkinAtlas")
 local ImageAtlasPacker = require("rizu.skin.ImageAtlasPacker")
 
-local release_resource = OsuSkinAtlas.release
-local get_image_density = OsuSkinAtlas.getDensity
+local release_resource = SkinAtlas.release
+local get_image_density = SkinAtlas.getDensity
 
 ---Runs in a worker thread: it owns no GPU state, so everything it touches is plain data or ImageData.
 ---Errors are returned, not thrown: the thread pool would raise them in the main loop.
 local prepare_in_thread = thread.async(function(request)
 	require("love.filesystem")
 	require("love.image")
-	local OsuSkinAtlas = require("rizu.skin.osu.OsuSkinAtlas")
+	local SkinAtlas = require("rizu.skin.SkinAtlas")
 	local LoveFilesystem = require("fs.LoveFilesystem")
-	local loader = OsuSkinAtlas.newImageDataLoader(LoveFilesystem(), request.fallback_archive)
-	return xpcall(OsuSkinAtlas.prepare, debug.traceback, request, loader)
+	local loader = SkinAtlas.newImageDataLoader(LoveFilesystem(), request.fallback_archive)
+	return xpcall(SkinAtlas.prepare, debug.traceback, request, loader)
 end)
 
 ---@return number?
@@ -103,52 +103,60 @@ local function create_image(source, density)
 	return nil
 end
 
----@class rizu.skin.osu.OsuSkinGraphics.Frame
+---@class rizu.skin.SkinTextures.Frame
 ---@field texture love.Image
 ---@field quad love.Quad
 ---@field width number Logical width
 ---@field height number Logical height
 ---@field density number
----@field batch rizu.skin.osu.OsuSpriteBatch
+---@field batch rizu.skin.SpriteBatch
 
----@alias rizu.skin.osu.OsuSkinGraphics.Image love.Image|rizu.skin.osu.OsuSkinGraphics.Frame
+---@alias rizu.skin.SkinTextures.Image love.Image|rizu.skin.SkinTextures.Frame
 
----@alias rizu.skin.osu.OsuSkinGraphics.Asset rizu.skin.osu.OsuSkinAtlas.Asset
----@alias rizu.skin.osu.OsuSkinGraphics.Prepared rizu.skin.osu.OsuSkinAtlas.Prepared
+---@alias rizu.skin.SkinTextures.Asset rizu.skin.SkinAtlas.Asset
+---@alias rizu.skin.SkinTextures.Prepared rizu.skin.SkinAtlas.Prepared
 
----@class rizu.skin.osu.OsuSkinGraphics
----@operator call: rizu.skin.osu.OsuSkinGraphics
+---Where textures come from: a skin directory, with its file list when the caller already has one.
+---@class rizu.skin.SkinTextures.Source
+---@field path string
+---@field files string[]? Paths relative to `path`. The directory is listed when omitted.
+
+---Textures of one skin of any format: name lookup that ignores case and prefers @2x, animation
+---frames, atlases packed in a worker thread and a sprite batch. An optional fallback archive
+---supplies what the skin lacks.
+---@class rizu.skin.SkinTextures
+---@operator call: rizu.skin.SkinTextures
 ---@field fs fs.IFilesystem?
----@field skin rizu.skin.Skin?
+---@field skin rizu.skin.SkinTextures.Source?
 ---@field images {[string]: love.Image|false}
 ---@field file_map {[string]: string} Lowercase selected skin asset path to full filesystem path.
 ---@field fallback_file_map {[string]: string}
 ---@field fallback_archive string?
 ---@field fallback_fs fs.ZipFilesystem?
----@field frame_cache {[string]: rizu.skin.osu.OsuSkinGraphics.Image[]}
----@field animation_cache {[string]: rizu.skin.osu.OsuSkinGraphics.Image[]}
+---@field frame_cache {[string]: rizu.skin.SkinTextures.Image[]}
+---@field animation_cache {[string]: rizu.skin.SkinTextures.Image[]}
 ---@field image_density {[love.Image]: number}
 ---@field loaded boolean
 ---@field atlas_images {[string]: love.Image[]}
----@field atlas_frames {[string]: {[string]: rizu.skin.osu.OsuSkinGraphics.Frame}}
+---@field atlas_frames {[string]: {[string]: rizu.skin.SkinTextures.Frame}}
 ---@field atlas_limit integer
 ---@field texture_limit integer?
----@field prepared rizu.skin.osu.OsuSkinGraphics.Prepared?
+---@field prepared rizu.skin.SkinTextures.Prepared?
 ---@field atlas_mode boolean
 ---@field grouped_paths {[string]: {[string]: boolean}}
 ---@field load_token integer Changes on unload(), so a load that was waiting for the worker knows it was cancelled.
 ---@field loading boolean
----@field batch rizu.skin.osu.OsuSpriteBatch
+---@field batch rizu.skin.SpriteBatch
 ---@field repeated_quad love.Quad?
-local OsuSkinGraphics = class()
+local SkinTextures = class()
 
 ---Replaceable so tests can stand in for the worker.
----@type fun(request: rizu.skin.osu.OsuSkinAtlas.Request): boolean, rizu.skin.osu.OsuSkinAtlas.Prepared|string
-OsuSkinGraphics.prepareInThread = prepare_in_thread
+---@type fun(request: rizu.skin.SkinAtlas.Request): boolean, rizu.skin.SkinAtlas.Prepared|string
+SkinTextures.prepareInThread = prepare_in_thread
 
 ---@param fs fs.IFilesystem?
----@param skin rizu.skin.Skin?
-function OsuSkinGraphics:new(fs, skin)
+---@param skin rizu.skin.SkinTextures.Source?
+function SkinTextures:new(fs, skin)
 	self.fs = fs
 	self.skin = nil
 	self.images = {}
@@ -167,20 +175,44 @@ function OsuSkinGraphics:new(fs, skin)
 	self.grouped_paths = {}
 	self.load_token = 0
 	self.loading = false
-	self.batch = OsuSpriteBatch()
+	self.batch = SpriteBatch()
 	self:setSkin(skin)
 end
 
 ---@param limit integer
-function OsuSkinGraphics:setAtlasLimit(limit)
+function SkinTextures:setAtlasLimit(limit)
 	assert(type(limit) == "number" and limit > 0 and limit % 1 == 0)
 	self.atlas_limit = limit
 end
 
-function OsuSkinGraphics:indexFiles()
+---@param fs fs.IFilesystem
+---@param directory string
+---@param relative string?
+---@param files string[]
+---@return string[]
+local function list_files(fs, directory, relative, files)
+	for _, name in ipairs(fs:getDirectoryItems(directory)) do
+		local path = path_util.join(directory, name)
+		local relative_path = relative and path_util.join(relative, name) or name
+		local info = fs:getInfo(path)
+		if info and info.type == "directory" then
+			list_files(fs, path, relative_path, files)
+		elseif info then
+			files[#files + 1] = relative_path
+		end
+	end
+	return files
+end
+
+function SkinTextures:indexFiles()
 	self.file_map = {}
 	self.fallback_file_map = {}
-	for _, relative_path in ipairs(self.skin and self.skin.files or {}) do
+	local skin = self.skin
+	local files = skin and skin.files
+	if skin and not files and self.fs and self.fs:getInfo(skin.path) then
+		files = list_files(self.fs, skin.path, nil, {})
+	end
+	for _, relative_path in ipairs(files or {}) do
 		local normalized = relative_path:gsub("\\", "/")
 		self.file_map[normalized:lower()] = path_util.join(self.skin.path, relative_path)
 	end
@@ -191,8 +223,8 @@ function OsuSkinGraphics:indexFiles()
 	end
 end
 
----@param skin rizu.skin.Skin?
-function OsuSkinGraphics:setSkin(skin)
+---@param skin rizu.skin.SkinTextures.Source?
+function SkinTextures:setSkin(skin)
 	if self.skin == skin and (self.loaded or next(self.file_map)) then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end
 	self.skin = skin
@@ -202,11 +234,11 @@ function OsuSkinGraphics:setSkin(skin)
 end
 
 ---@param archive_path string
-function OsuSkinGraphics:setFallbackArchive(archive_path)
+function SkinTextures:setFallbackArchive(archive_path)
 	if self.fallback_archive == archive_path then return end
 	if self.loaded or next(self.images) or self.prepared then self:unload() end
 	self.fallback_archive = archive_path
-	self.fallback_fs = OsuSkinAtlas.getArchive(archive_path)
+	self.fallback_fs = SkinAtlas.getArchive(archive_path)
 	self.frame_cache = {}
 	self.animation_cache = {}
 	self:indexFiles()
@@ -215,25 +247,59 @@ end
 ---@param name string
 ---@param file_map {[string]: string}?
 ---@return string?
-function OsuSkinGraphics:findAsset(name, file_map)
-	return OsuSkinAtlas.findAsset(name, file_map and {file_map} or {self.file_map, self.fallback_file_map})
+function SkinTextures:findAsset(name, file_map)
+	return SkinAtlas.findAsset(name, file_map and {file_map} or {self.file_map, self.fallback_file_map})
+end
+
+---Lowercase image names without density, extension and animation frame number, for pickers.
+---@return string[]
+function SkinTextures:getTextureNames()
+	local set = {} ---@type {[string]: true}
+	for _, map in ipairs({self.file_map, self.fallback_file_map}) do
+		for path in pairs(map) do
+			local stem = path:match("^(.-)@2x%.png$") or path:match("^(.-)%.png$")
+			if stem then set[stem:match("^(.*)%-%d+$") or stem] = true end
+		end
+	end
+	local names = {} ---@type string[]
+	for name in pairs(set) do names[#names + 1] = name end
+	table.sort(names)
+	return names
+end
+
+---Prefixes that have at least the 0 and 1 glyphs of a bitmap font.
+---@return string[]
+function SkinTextures:getBitmapFontPrefixes()
+	local prefixes = {} ---@type string[]
+	local seen = {} ---@type {[string]: true}
+	for _, map in ipairs({self.file_map, self.fallback_file_map}) do
+		for path in pairs(map) do
+			local prefix = path:match("^(.-)%-0@2x%.png$") or path:match("^(.-)%-0%.png$")
+			if prefix and not seen[prefix] and self:findAsset(prefix .. "-1") then
+				seen[prefix] = true
+				prefixes[#prefixes + 1] = prefix
+			end
+		end
+	end
+	table.sort(prefixes)
+	return prefixes
 end
 
 ---@param base string
 ---@param file_map {[string]: string}?
 ---@return {index: integer, path: string}[]
-function OsuSkinGraphics:findAnimationAssets(base, file_map)
+function SkinTextures:findAnimationAssets(base, file_map)
 	if not file_map then
-		local assets = OsuSkinAtlas.findAnimationAssets(base, self.file_map)
+		local assets = SkinAtlas.findAnimationAssets(base, self.file_map)
 		if #assets > 0 or self:findAsset(base, self.file_map) then return assets end
-		return OsuSkinAtlas.findAnimationAssets(base, self.fallback_file_map)
+		return SkinAtlas.findAnimationAssets(base, self.fallback_file_map)
 	end
-	return OsuSkinAtlas.findAnimationAssets(base, file_map)
+	return SkinAtlas.findAnimationAssets(base, file_map)
 end
 
 ---@param path string
 ---@return love.Image?
-function OsuSkinGraphics:loadImage(path)
+function SkinTextures:loadImage(path)
 	local cached = self.images[path]
 	if cached ~= nil then return cached or nil end
 	local fs = self.fs
@@ -267,9 +333,9 @@ function OsuSkinGraphics:loadImage(path)
 	return image
 end
 
----@param image rizu.skin.osu.OsuSkinGraphics.Image
+---@param image rizu.skin.SkinTextures.Image
 ---@return number
-function OsuSkinGraphics:getImageDensity(image)
+function SkinTextures:getImageDensity(image)
 	if image.texture then return image.density end
 	return self.image_density[image] or 1
 end
@@ -278,12 +344,12 @@ end
 ---@param fallback_name string?
 ---@param group string?
 ---@param skin_only boolean? ignore the bundled fallback skin
----@return rizu.skin.osu.OsuSkinGraphics.Image[]
-function OsuSkinGraphics:getFrames(image_name, fallback_name, group, skin_only)
+---@return rizu.skin.SkinTextures.Image[]
+function SkinTextures:getFrames(image_name, fallback_name, group, skin_only)
 	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "") .. (skin_only and "\0skin" or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
-	---@type rizu.skin.osu.OsuSkinGraphics.Image[]
+	---@type rizu.skin.SkinTextures.Image[]
 	local frames = {}
 	---@param name string?
 	---@param file_map {[string]: string}
@@ -306,19 +372,19 @@ end
 ---@param fallback_name string?
 ---@param group string?
 ---@param skin_only boolean? ignore the bundled fallback skin
----@return rizu.skin.osu.OsuSkinGraphics.Image[]
-function OsuSkinGraphics:getAnimationFrames(image_name, fallback_name, group, skin_only)
+---@return rizu.skin.SkinTextures.Image[]
+function SkinTextures:getAnimationFrames(image_name, fallback_name, group, skin_only)
 	local key = tostring(group or "") .. "\0" .. tostring(image_name or "") .. "\0" .. tostring(fallback_name or "") .. (skin_only and "\0skin" or "")
 	local cached = self.animation_cache[key]
 	if cached then return cached end
 	---@param name string?
 	---@param file_map {[string]: string}
-	---@return rizu.skin.osu.OsuSkinGraphics.Image[]
+	---@return rizu.skin.SkinTextures.Image[]
 	local function load_animation(name, file_map)
 		if name == nil then return {} end
 		---@cast name string
 		local discovered = self:findAnimationAssets(name, file_map)
-		---@type rizu.skin.osu.OsuSkinGraphics.Image[]
+		---@type rizu.skin.SkinTextures.Image[]
 		local frames = {}
 		for _, asset in ipairs(discovered) do
 			local image = self:getFrame(asset.path, group)
@@ -342,12 +408,12 @@ function OsuSkinGraphics:getAnimationFrames(image_name, fallback_name, group, sk
 end
 
 ---@param image_name string
----@return rizu.skin.osu.OsuSkinGraphics.Image[]
-function OsuSkinGraphics:getFallbackFrames(image_name)
+---@return rizu.skin.SkinTextures.Image[]
+function SkinTextures:getFallbackFrames(image_name)
 	local key = "\0fallback\0" .. tostring(image_name or "")
 	local cached = self.frame_cache[key]
 	if cached then return cached end
-	---@type rizu.skin.osu.OsuSkinGraphics.Image[]
+	---@type rizu.skin.SkinTextures.Image[]
 	local frames = {}
 	local path = self:findAsset(image_name, self.fallback_file_map)
 	local image = path and self:getFrame(path, nil) or nil
@@ -357,7 +423,7 @@ function OsuSkinGraphics:getFallbackFrames(image_name)
 end
 
 ---@param limit integer
-function OsuSkinGraphics:setTextureLimit(limit)
+function SkinTextures:setTextureLimit(limit)
 	assert(type(limit) == "number" and limit > 0 and limit % 1 == 0)
 	self.texture_limit = limit
 end
@@ -365,14 +431,14 @@ end
 
 ---@param path string
 ---@return love.ImageData?
-function OsuSkinGraphics:loadImageData(path)
+function SkinTextures:loadImageData(path)
 	if not self.fs then return nil end
-	return OsuSkinAtlas.newImageDataLoader(self.fs, self.fallback_archive)(path)
+	return SkinAtlas.newImageDataLoader(self.fs, self.fallback_archive)(path)
 end
 
----@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]?
----@return rizu.skin.osu.OsuSkinAtlas.Request
-function OsuSkinGraphics:newRequest(assets)
+---@param assets rizu.skin.SkinTextures.Asset[]?
+---@return rizu.skin.SkinAtlas.Request
+function SkinTextures:newRequest(assets)
 	return {
 		file_map = self.file_map,
 		fallback_file_map = self.fallback_file_map,
@@ -383,38 +449,38 @@ function OsuSkinGraphics:newRequest(assets)
 	}
 end
 
----@param prepared rizu.skin.osu.OsuSkinAtlas.Prepared
-function OsuSkinGraphics:setPrepared(prepared)
+---@param prepared rizu.skin.SkinAtlas.Prepared
+function SkinTextures:setPrepared(prepared)
 	self.prepared = prepared
 	self.grouped_paths = prepared.grouped_paths
 	self.atlas_mode = true
 end
 
-function OsuSkinGraphics:assertUnloaded()
+function SkinTextures:assertUnloaded()
 	assert(not self.loaded and not next(self.images) and not next(self.atlas_images),
 		"unload GPU resources before preparing skin graphics")
-	if self.prepared then OsuSkinAtlas.releasePrepared(self.prepared) end
+	if self.prepared then SkinAtlas.releasePrepared(self.prepared) end
 	self.prepared = nil
 	self.grouped_paths, self.frame_cache, self.animation_cache = {}, {}, {}
 end
 
 ---Decode, crop and pack on the CPU, on the calling thread.
----@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]?
----@return rizu.skin.osu.OsuSkinGraphics.Prepared
-function OsuSkinGraphics:prepare(assets)
+---@param assets rizu.skin.SkinTextures.Asset[]?
+---@return rizu.skin.SkinTextures.Prepared
+function SkinTextures:prepare(assets)
 	self:assertUnloaded()
-	local prepared = OsuSkinAtlas.prepare(self:newRequest(assets), function(path) return self:loadImageData(path) end)
+	local prepared = SkinAtlas.prepare(self:newRequest(assets), function(path) return self:loadImageData(path) end)
 	self:setPrepared(prepared)
 	return prepared
 end
 
 ---Upload only: no decoding, cropping, packing, filesystem or ImageData creation.
-function OsuSkinGraphics:upload()
+function SkinTextures:upload()
 	local prepared = assert(self.prepared, "no prepared skin graphics")
 	local ok, err = xpcall(function()
 		for name, group in pairs(prepared.groups) do
 			local images = {} ---@type love.Image[]
-			local frames = {} ---@type {[string]: rizu.skin.osu.OsuSkinGraphics.Frame}
+			local frames = {} ---@type {[string]: rizu.skin.SkinTextures.Frame}
 			self.atlas_images[name], self.atlas_frames[name] = images, frames
 			for layer, data in ipairs(group.atlases) do
 				local image = love.graphics.newImage(data, {dpiscale = 1})
@@ -439,7 +505,7 @@ function OsuSkinGraphics:upload()
 		self.repeated_quad = love.graphics.newQuad(0, 0, 1, 1, 1, 1)
 	end, debug.traceback)
 	if not ok then self:unload(); error(err, 0) end
-	OsuSkinAtlas.releasePrepared(prepared)
+	SkinAtlas.releasePrepared(prepared)
 	self.prepared = nil
 	self.loaded = true
 	self.frame_cache, self.animation_cache = {}, {}
@@ -447,8 +513,8 @@ end
 
 ---@param path string
 ---@param group string?
----@return rizu.skin.osu.OsuSkinGraphics.Image?
-function OsuSkinGraphics:getFrame(path, group)
+---@return rizu.skin.SkinTextures.Image?
+function SkinTextures:getFrame(path, group)
 	local frame = group and self.atlas_frames[group] and self.atlas_frames[group][path]
 	if frame then return frame end
 	if self.atlas_mode then
@@ -462,28 +528,28 @@ end
 
 ---@param group string
 ---@param path string
----@return rizu.skin.osu.OsuSkinGraphics.Frame?
-function OsuSkinGraphics:getAtlasFrame(group, path)
+---@return rizu.skin.SkinTextures.Frame?
+function SkinTextures:getAtlasFrame(group, path)
 	return self.atlas_frames[group] and self.atlas_frames[group][path]
 end
 
----@param frame rizu.skin.osu.OsuSkinGraphics.Image
+---@param frame rizu.skin.SkinTextures.Image
 ---@return number, number
-function OsuSkinGraphics:getFrameDimensions(frame)
+function SkinTextures:getFrameDimensions(frame)
 	if frame.texture then return frame.width, frame.height end
 	if frame.getDimensions then return frame:getDimensions() end
 	return frame:getWidth(), frame:getHeight()
 end
 
----@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]?
+---@param assets rizu.skin.SkinTextures.Asset[]?
 ---@return boolean grouped True when the assets are grouped, so they are packed into atlases.
 local function is_grouped(assets)
 	for _, asset in ipairs(assets or {}) do if asset.group then return true end end
 	return false
 end
 
----@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]?
-function OsuSkinGraphics:load(assets)
+---@param assets rizu.skin.SkinTextures.Asset[]?
+function SkinTextures:load(assets)
 	if not is_grouped(assets) then
 		self.loaded = true
 		for _, asset in ipairs(assets or {}) do
@@ -500,9 +566,9 @@ end
 ---Like load(), but decodes and packs in a worker thread, so the calling coroutine yields instead of
 ---freezing the frame. Falls back to load() outside a coroutine or when the files are not reachable
 ---from a worker. Returns false when unload() cancelled the load or another load is already running.
----@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]?
+---@param assets rizu.skin.SkinTextures.Asset[]?
 ---@return boolean loaded
-function OsuSkinGraphics:loadAsync(assets)
+function SkinTextures:loadAsync(assets)
 	if self.loading then return false end
 	if not is_grouped(assets) or not coroutine.running() or not (self.fs and LoveFilesystem * self.fs) then
 		self:load(assets)
@@ -514,7 +580,7 @@ function OsuSkinGraphics:loadAsync(assets)
 	---@type boolean, any
 	local ok, prepared = self.prepareInThread(self:newRequest(assets))
 	if token ~= self.load_token then
-		if ok then OsuSkinAtlas.releasePrepared(prepared) end
+		if ok then SkinAtlas.releasePrepared(prepared) end
 		return false
 	end
 	self.loading = false
@@ -524,11 +590,11 @@ function OsuSkinGraphics:loadAsync(assets)
 	return true
 end
 
-function OsuSkinGraphics:unload()
+function SkinTextures:unload()
 	self.batch:unload()
 	if self.repeated_quad then release_resource(self.repeated_quad) end
 	self.repeated_quad = nil
-	if self.prepared then OsuSkinAtlas.releasePrepared(self.prepared) end
+	if self.prepared then SkinAtlas.releasePrepared(self.prepared) end
 	self.load_token = self.load_token + 1
 	for _, image in pairs(self.images) do if image then release_resource(image) end end
 	for _, images in pairs(self.atlas_images) do
@@ -543,4 +609,4 @@ function OsuSkinGraphics:unload()
 	self.loaded, self.atlas_mode, self.loading = false, false, false
 end
 
-return OsuSkinGraphics
+return SkinTextures

@@ -1,10 +1,6 @@
 local PlayfieldRenderer = require("rizu.gameplay.views.PlayfieldRenderer")
-local Hud = require("rizu.skin.Hud")
 local BgaView = require("rizu.skin.views.BgaView")
-local AccuracyView = require("rizu.skin.views.AccuracyView")
-local ComboView = require("rizu.skin.views.ComboView")
-local ScoreView = require("rizu.skin.views.ScoreView")
-local CurrentJudgeView = require("rizu.skin.views.CurrentJudgeView")
+local SkinTextures = require("rizu.skin.SkinTextures")
 local InputMode = require("chart.core.InputMode")
 local SkinConfig = require("rizu.skin.SkinConfig")
 
@@ -19,12 +15,15 @@ local NOTE_HEIGHT = 30
 local RECEPTOR_HEIGHT = 12
 local DEFAULT_RECEPTOR_Y = 430
 local DEFAULT_BGA_BRIGHTNESS = 0.15
-local DEFAULT_JUDGE_SCALE = 0.5
-local MIN_JUDGE_SCALE = 0.1
-local MAX_JUDGE_SCALE = 2
-local DEFAULT_COMBO_Y = -36
-local DEFAULT_JUDGE_Y = -72
-local MAX_HUD_Y = FIELD_HEIGHT / 2 -- offset from the field center
+local HUD_TEXTURES = "resources/rizu_base_skin"
+-- shortcut: digits come from the osu! default skin until the base skin has its own, then drop it.
+local HUD_FALLBACK_ARCHIVE = "resources/osu_default_assets.zip"
+-- Old configs placed combo and judgement with these keys; they seed the default HUD layout.
+local LEGACY_HUD_KEYS = {
+	["combo.y"] = {default = -36, min = -FIELD_HEIGHT / 2, max = FIELD_HEIGHT / 2},
+	["judge.y"] = {default = -72, min = -FIELD_HEIGHT / 2, max = FIELD_HEIGHT / 2},
+	["judge.scale"] = {default = 0.5, min = 0.1, max = 2},
+}
 local DEFAULT_COLUMN_GAP = 4 -- notes keep their aspect ratio and are this much narrower than the lane
 local MAX_HOLD_END_OFFSET = 2 -- of the note height
 local MAX_COLUMN_GAP = MIN_LANE_WIDTH - 1
@@ -138,14 +137,13 @@ end
 ---@field config rizu.skin.SkinConfig
 ---@field config_path string
 ---@field input_mode string
----@field background_hud rizu.skin.Hud
----@field foreground_hud rizu.skin.Hud
 ---@field bga_view rizu.skin.views.BgaView
----@field private combo_view rizu.skin.views.ComboView?
----@field private judge_view rizu.skin.views.CurrentJudgeView?
----@field private hud_fonts {regular: love.Font, emphasis: love.Font}?
+---@field textures rizu.skin.SkinTextures
+---@field private hud_loaded boolean
 local ManiaPlayfieldRenderer = PlayfieldRenderer + {}
 ManiaPlayfieldRenderer.note_images = note_images
+ManiaPlayfieldRenderer.gamemode = "mania"
+ManiaPlayfieldRenderer.hud_layers = {"screen", "conveyor"}
 
 ---@param game sphere.GameController
 ---@param input_mode string
@@ -163,18 +161,53 @@ function ManiaPlayfieldRenderer:new(game, input_mode, screen, config, config_pat
 	local mode = InputMode(input_mode)
 	self.inputs = mode:getInputs()
 	self.input_map = mode:getInputMap()
+	self.textures = SkinTextures(game.fs, {path = HUD_TEXTURES})
+	self.hud_loaded = false
+end
+
+---Yields while a worker thread packs the HUD textures, when called from a coroutine.
+function ManiaPlayfieldRenderer:load()
+	if self.screen ~= "gameplay" or self.hud_loaded then return end
+	self.textures:setFallbackArchive(HUD_FALLBACK_ARCHIVE)
+	self:buildHud()
+	-- unload() while waiting cancels the load; there is nothing to show then.
+	if not self.textures:loadAsync(self:getHudAssets()) then return end
+	self:loadHud()
+	self.hud_loaded = true
 end
 
 function ManiaPlayfieldRenderer:unload()
-	self.foreground_hud:unload(self.game)
-	self.foreground_hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
-	self.combo_view = nil
-	self.judge_view = nil
-	if self.hud_fonts then
-		self.hud_fonts.regular:release()
-		self.hud_fonts.emphasis:release()
-		self.hud_fonts = nil
+	self:unloadHud()
+	self.textures:unload()
+	self.hud_loaded = false
+end
+
+---@param key string
+---@return number
+function ManiaPlayfieldRenderer:getLegacyHudValue(key)
+	local legacy = LEGACY_HUD_KEYS[key]
+	local value = self.config:get("mania", self.input_mode, key, legacy.default)
+	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+		return legacy.default
 	end
+	return math.max(legacy.min, math.min(legacy.max, value))
+end
+
+---@return rizu.skin.hud.HudLayout.Data
+function ManiaPlayfieldRenderer:getDefaultHudLayout()
+	return {
+		screen = {
+			{type = "accuracy", anchor = "top_right", origin = "top_right", x = -8, y = 38, scale = 0.5},
+			{type = "score", anchor = "top_right", origin = "top_right", x = -8, y = 8, scale = 0.5},
+		},
+		conveyor = {
+			{type = "combo", y = self:getLegacyHudValue("combo.y"), scale = 0.7},
+			{type = "judgement", y = self:getLegacyHudValue("judge.y"), scale = self:getLegacyHudValue("judge.scale"),
+				colored = true, name_prefix = "judges/",
+				texture_1 = "judges/marvelous", texture_2 = "judges/perfect", texture_3 = "judges/great",
+				texture_4 = "judges/good", texture_5 = "judges/bad", texture_6 = "judges/miss"},
+		},
+	}
 end
 
 function ManiaPlayfieldRenderer:getReceptorY()
@@ -225,46 +258,6 @@ function ManiaPlayfieldRenderer:setBgaBrightness(value)
 	value = math.max(0, math.min(1, value))
 	self.config:set("mania", self.input_mode, "bga.brightness", value)
 	self.bga_view.brightness = value
-end
-
----@param key string
----@param default number
----@return number
-function ManiaPlayfieldRenderer:getHudY(key, default)
-	local value = self.config:get("mania", self.input_mode, key, default)
-	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
-		return default
-	end
-	return math.max(-MAX_HUD_Y, math.min(MAX_HUD_Y, value))
-end
-
----@param key string
----@param value number
-function ManiaPlayfieldRenderer:setHudY(key, value)
-	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
-		key .. " must be finite")
-	assert(value >= -MAX_HUD_Y and value <= MAX_HUD_Y, key .. " is out of range")
-	self.config:set("mania", self.input_mode, key, value)
-	local view = key == "combo.y" and self.combo_view or key == "judge.y" and self.judge_view
-	if view then view.y = value end
-end
-
----@return number
-function ManiaPlayfieldRenderer:getJudgeScale()
-	local value = self.config:get("mania", self.input_mode, "judge.scale", DEFAULT_JUDGE_SCALE)
-	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
-		return DEFAULT_JUDGE_SCALE
-	end
-	return math.max(MIN_JUDGE_SCALE, math.min(MAX_JUDGE_SCALE, value))
-end
-
----@param value number
-function ManiaPlayfieldRenderer:setJudgeScale(value)
-	assert(type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge,
-		"judge scale must be finite")
-	assert(value >= MIN_JUDGE_SCALE and value <= MAX_JUDGE_SCALE, "judge scale is out of range")
-	self.config:set("mania", self.input_mode, "judge.scale", value)
-	if self.judge_view then self.judge_view:setScale(value) end
 end
 
 ---@return number
@@ -373,14 +366,6 @@ function ManiaPlayfieldRenderer:getProperties()
 			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
 			get = function() return self:getBgaBrightness() end,
 			set = function(value) self:setBgaBrightness(value) end},
-		{key = "combo.y", label_key = "gameplay.skin_editor.combo_y",
-			min = -MAX_HUD_Y, max = MAX_HUD_Y, step = 1,
-			get = function() return self:getHudY("combo.y", DEFAULT_COMBO_Y) end,
-			set = function(value) self:setHudY("combo.y", value) end},
-		{key = "judge.y", label_key = "gameplay.skin_editor.judge_y",
-			min = -MAX_HUD_Y, max = MAX_HUD_Y, step = 1,
-			get = function() return self:getHudY("judge.y", DEFAULT_JUDGE_Y) end,
-			set = function(value) self:setHudY("judge.y", value) end},
 		{key = "column.width", label_key = "gameplay.skin_editor.column_width",
 			min = MIN_LANE_WIDTH, max = MAX_LANE_WIDTH, step = 1,
 			get = function() return self:getColumnWidth() end,
@@ -402,11 +387,6 @@ function ManiaPlayfieldRenderer:getProperties()
 			format = function(value) return note_shape_labels[value] end,
 			get = function() return self:getNoteShape() end,
 			set = function(value) self:setNoteShape(value) end},
-		{key = "judge.scale", label_key = "gameplay.skin_editor.judge_scale",
-			min = MIN_JUDGE_SCALE, max = MAX_JUDGE_SCALE, step = 0.05,
-			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
-			get = function() return self:getJudgeScale() end,
-			set = function(value) self:setJudgeScale(value) end},
 	}
 end
 
@@ -646,10 +626,24 @@ end
 
 ---@param width number
 ---@param height number
----@param transform love.Transform
-function ManiaPlayfieldRenderer:drawHud(width, height, transform)
-	local scale = get_field_transform(width, height)
-	self:drawHudInViewport(transform, width, height, scale)
+---@return number
+function ManiaPlayfieldRenderer:getHudScale(width, height)
+	return (get_field_transform(width, height))
+end
+
+---@param width number
+---@param height number
+---@return number? x
+---@return number? y
+---@return number? width
+---@return number? height
+function ManiaPlayfieldRenderer:getConveyorRect(width, height)
+	local columns = #self.inputs
+	local scale, offset_x, offset_y = get_field_transform(width, height)
+	if scale <= 0 or columns == 0 then return end
+	local lane_width = self:getColumnWidth()
+	local left = get_field_offset(columns, lane_width, self:getPlayfieldXOffset())
+	return offset_x / scale + left, offset_y / scale, columns * lane_width, FIELD_HEIGHT
 end
 
 ---@param width number
@@ -710,31 +704,6 @@ function ManiaPlayfieldRenderer:draw(width, height, transform)
 		draw_receptor(x, receptor_y, lane_width, colors[column], pressed and 1 or 0.55)
 	end
 	lg.pop()
-end
-
----@param game sphere.GameController
----@param fonts {regular: love.Font, emphasis: love.Font}
----@param combo_view rizu.skin.views.ComboView
----@param judge_view rizu.skin.views.CurrentJudgeView
-local function create_hud(game, fonts, combo_view, judge_view)
-	local hud = Hud({width = FIELD_WIDTH, height = FIELD_HEIGHT})
-	hud:add(AccuracyView(fonts.regular, {x = -8, y = 38}))
-	hud:add(ScoreView(fonts.regular, {x = -8, y = 8}))
-	hud:add(combo_view)
-	hud:add(judge_view)
-	hud:load(game)
-	return hud
-end
-
-function ManiaPlayfieldRenderer:load()
-	if self.screen ~= "gameplay" or self.hud_fonts then return end
-	self.hud_fonts = {
-		regular = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 24, "normal", 4),
-		emphasis = love.graphics.newFont("resources/fonts/NotoSansMono-Regular.ttf", 32, "normal", 4),
-	}
-	self.combo_view = ComboView(self.hud_fonts.emphasis, {y = self:getHudY("combo.y", DEFAULT_COMBO_Y)})
-	self.judge_view = CurrentJudgeView({y = self:getHudY("judge.y", DEFAULT_JUDGE_Y), scale = self:getJudgeScale()})
-	self.foreground_hud = create_hud(self.game, self.hud_fonts, self.combo_view, self.judge_view)
 end
 
 return ManiaPlayfieldRenderer

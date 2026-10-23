@@ -72,4 +72,31 @@ function test.persistence(t)
 	t:eq(loaded:get("mania", "5key", "receptor.y"), nil)
 end
 
+---@param t testing.T
+function test.hud_layouts_round_trip_and_drop_malformed_entries(t)
+	local fs = FakeFilesystem()
+	local config = SkinConfig()
+	config:set("mania", "4key", "receptor.y", 342)
+	config:setHud("mania", "4key", {
+		screen = {{type = "score", x = -8, color = {1, 0.5, 0, 1}}, "not an element"},
+		conveyor = {},
+	})
+	t:eq(config:save(fs, "skin-config.json"), true)
+
+	local loaded = SkinConfig()
+	t:eq(loaded:load(fs, "skin-config.json"), true)
+	t:eq(loaded:get("mania", "4key", "receptor.y"), 342)
+	t:tdeq(loaded:getHud("mania", "4key"), {
+		screen = {{type = "score", x = -8, color = {1, 0.5, 0, 1}}},
+		conveyor = {},
+	})
+	t:eq(loaded:getHud("mania", "7key"), nil)
+
+	local overrides, err, huds = SkinConfigSerializer.deserialize(
+		[[{"version":1,"overrides":{},"huds":{"mania":{"4key":{"screen":[{"type":"combo","x":{}}],"bad":5}}}}]])
+	t:eq(err, nil)
+	t:tdeq(overrides, {})
+	t:tdeq(huds, {mania = {["4key"] = {screen = {{type = "combo"}}}}})
+end
+
 return test

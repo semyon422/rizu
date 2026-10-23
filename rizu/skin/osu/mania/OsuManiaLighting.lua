@@ -1,10 +1,10 @@
 local class = require("class")
-local OsuImage = require("rizu.skin.osu.OsuImage")
+local TextureImage = require("rizu.skin.TextureImage")
 
 local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaLighting.Config
----@field frames rizu.skin.osu.OsuSkinGraphics.Image[]
+---@field frames rizu.skin.SkinTextures.Image[]
 ---@field mode "stage"|"oneshot"|"hold"
 ---@field frame_rate number
 ---@field width number
@@ -19,7 +19,7 @@ local lg = love.graphics
 
 ---@class rizu.skin.osu.mania.OsuManiaLighting
 ---@operator call: rizu.skin.osu.mania.OsuManiaLighting
----@field frames rizu.skin.osu.OsuSkinGraphics.Image[]
+---@field frames rizu.skin.SkinTextures.Image[]
 ---@field mode "stage"|"oneshot"|"hold"
 ---@field frame_rate number
 ---@field width number
@@ -161,7 +161,7 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	end
 	local image = self.frames[frame_index]
 	if not image then return end
-	local image_width, image_height = OsuImage.dimensions(image)
+	local image_width, image_height = TextureImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 
 	local scale_x = self.width / image_width
@@ -174,7 +174,7 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	-- Keeping the origin at the lower edge reproduces osu!'s BottomLeft
 	-- origin in normal scroll and its flipped TopLeft origin in upside-down
 	-- mode when the Y scale is negative.
-	OsuImage.drawDirect(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
+	TextureImage.drawDirect(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
 		image_height * origin_y)
 end
 

@@ -1,11 +1,11 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local OsuAimSprites = require("rizu.skin.osu.aim.OsuAimSprites")
-local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
+local SkinTextures = require("rizu.skin.SkinTextures")
 
 local test = {}
 
----@param assets rizu.skin.osu.OsuSkinGraphics.Asset[]
----@return {[string]: rizu.skin.osu.OsuSkinGraphics.Asset}
+---@param assets rizu.skin.SkinTextures.Asset[]
+---@return {[string]: rizu.skin.SkinTextures.Asset}
 local function byName(assets)
 	local map = {}
 	for _, asset in ipairs(assets) do map[asset.name] = asset end
@@ -14,7 +14,7 @@ end
 
 ---@param t testing.T
 function test.packs_every_sprite_into_one_atlas_with_skin_digits_and_numbered_slider_balls(t)
-	local graphics = OsuSkinGraphics(FakeFilesystem(), {
+	local graphics = SkinTextures(FakeFilesystem(), {
 		path = "skins/example",
 		files = {"sliderb0.png", "sliderb1@2x.png", "sliderb3.png"},
 		skin_ini = {General = {}, Fonts = {HitCirclePrefix = "fonts\\num"}},
@@ -32,7 +32,7 @@ end
 
 ---@param t testing.T
 function test.uses_default_digits_and_still_slider_ball_without_skin_overrides(t)
-	local graphics = OsuSkinGraphics(FakeFilesystem(), {path = "skins/plain", files = {"sliderb1.png"}})
+	local graphics = SkinTextures(FakeFilesystem(), {path = "skins/plain", files = {"sliderb1.png"}})
 	local map = byName(OsuAimSprites.getAssets(graphics))
 	t:assert(map.sliderb)
 	t:eq(map.sliderb1, nil)
@@ -44,7 +44,7 @@ function test.slider_end_circle_follows_the_skin_version(t)
 	---@param files string[]
 	---@param version string?
 	local function load(files, version)
-		local graphics = OsuSkinGraphics(FakeFilesystem(), {
+		local graphics = SkinTextures(FakeFilesystem(), {
 			path = "skins/example", files = files, skin_ini = {General = {Version = version}, Fonts = {}},
 		})
 		graphics.getFrames = function(_, name)
@@ -78,7 +78,7 @@ end
 function test.reads_skin_colours_with_default_combo_colours(t)
 	---@param colours {[string]: string}
 	local function load(colours)
-		local graphics = OsuSkinGraphics(FakeFilesystem(), {
+		local graphics = SkinTextures(FakeFilesystem(), {
 			path = "skins/example", files = {}, skin_ini = {General = {}, Fonts = {}, Colours = colours},
 		})
 		return OsuAimSprites.load(graphics)

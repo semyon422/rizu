@@ -15,23 +15,23 @@ local names = {
 }
 
 ---@class rizu.skin.osu.aim.OsuAimSprites
----@field batch rizu.skin.osu.OsuSpriteBatch
----@field digits {[integer]: rizu.skin.osu.OsuSkinGraphics.Image} Hit circle glyphs, indexed 0 to 9.
+---@field batch rizu.skin.SpriteBatch
+---@field digits {[integer]: rizu.skin.SkinTextures.Image} Hit circle glyphs, indexed 0 to 9.
 ---@field digit_overlap number
 ---@field animation_framerate number?
----@field hitcircle rizu.skin.osu.OsuSkinGraphics.Image?
----@field hitcircleoverlay rizu.skin.osu.OsuSkinGraphics.Image?
----@field approachcircle rizu.skin.osu.OsuSkinGraphics.Image?
----@field sliderstartcircle rizu.skin.osu.OsuSkinGraphics.Image?
----@field sliderstartcircleoverlay rizu.skin.osu.OsuSkinGraphics.Image?
----@field reversearrow rizu.skin.osu.OsuSkinGraphics.Image?
----@field sliderendcircle rizu.skin.osu.OsuSkinGraphics.Image?
----@field sliderendcircleoverlay rizu.skin.osu.OsuSkinGraphics.Image?
----@field sliderb rizu.skin.osu.OsuSkinGraphics.Image[]?
----@field sliderfollowcircle rizu.skin.osu.OsuSkinGraphics.Image?
----@field sliderscorepoint rizu.skin.osu.OsuSkinGraphics.Image?
----@field cursor rizu.skin.osu.OsuSkinGraphics.Image?
----@field followpoint rizu.skin.osu.OsuSkinGraphics.Image[]
+---@field hitcircle rizu.skin.SkinTextures.Image?
+---@field hitcircleoverlay rizu.skin.SkinTextures.Image?
+---@field approachcircle rizu.skin.SkinTextures.Image?
+---@field sliderstartcircle rizu.skin.SkinTextures.Image?
+---@field sliderstartcircleoverlay rizu.skin.SkinTextures.Image?
+---@field reversearrow rizu.skin.SkinTextures.Image?
+---@field sliderendcircle rizu.skin.SkinTextures.Image?
+---@field sliderendcircleoverlay rizu.skin.SkinTextures.Image?
+---@field sliderb rizu.skin.SkinTextures.Image[]?
+---@field sliderfollowcircle rizu.skin.SkinTextures.Image?
+---@field sliderscorepoint rizu.skin.SkinTextures.Image?
+---@field cursor rizu.skin.SkinTextures.Image?
+---@field followpoint rizu.skin.SkinTextures.Image[]
 ---@field combo_colors number[][] RGB; used when the chart brings none.
 ---@field slider_border number[]? RGB
 ---@field slider_track number[]? RGB replacing the combo colour of slider bodies.
@@ -47,7 +47,7 @@ local function parseColor(value)
 	if r then return {tonumber(r) / 255, tonumber(g) / 255, tonumber(b) / 255} end
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param graphics rizu.skin.SkinTextures
 ---@return string[]
 local function sliderBallNames(graphics)
 	---@type string[]
@@ -61,14 +61,14 @@ local function sliderBallNames(graphics)
 	return frames
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param graphics rizu.skin.SkinTextures
 ---@return {[string]: string}
 local function getFonts(graphics)
 	local ini = graphics.skin and graphics.skin.skin_ini
 	return ini and ini.Fonts or {}
 end
 
----@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param graphics rizu.skin.SkinTextures
 ---@return string
 local function getDigitPrefix(graphics)
 	local prefix = getFonts(graphics).HitCirclePrefix
@@ -76,10 +76,10 @@ local function getDigitPrefix(graphics)
 end
 
 ---Every aim sprite shares one atlas, so the playfield draws in few batches.
----@param graphics rizu.skin.osu.OsuSkinGraphics
----@return rizu.skin.osu.OsuSkinGraphics.Asset[]
+---@param graphics rizu.skin.SkinTextures
+---@return rizu.skin.SkinTextures.Asset[]
 function OsuAimSprites.getAssets(graphics)
-	---@type rizu.skin.osu.OsuSkinGraphics.Asset[]
+	---@type rizu.skin.SkinTextures.Asset[]
 	local assets = {}
 	for _, name in ipairs(names) do assets[#assets + 1] = {name = name, group = GROUP} end
 	for _, name in ipairs(sliderBallNames(graphics)) do assets[#assets + 1] = {name = name, group = GROUP} end
@@ -92,7 +92,7 @@ function OsuAimSprites.getAssets(graphics)
 end
 
 ---Call after the graphics have loaded `getAssets`.
----@param graphics rizu.skin.osu.OsuSkinGraphics
+---@param graphics rizu.skin.SkinTextures
 ---@return rizu.skin.osu.aim.OsuAimSprites
 function OsuAimSprites.load(graphics)
 	---@type rizu.skin.osu.aim.OsuAimSprites
@@ -103,7 +103,7 @@ function OsuAimSprites.load(graphics)
 	}
 	for _, name in ipairs(names) do sprites[name] = graphics:getFrames(name, nil, GROUP)[1] end
 
-	---@type rizu.skin.osu.OsuSkinGraphics.Image[]
+	---@type rizu.skin.SkinTextures.Image[]
 	local slider_ball = {}
 	for _, name in ipairs(sliderBallNames(graphics)) do
 		slider_ball[#slider_ball + 1] = graphics:getFrames(name, nil, GROUP)[1]

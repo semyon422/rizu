@@ -1,7 +1,15 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
-local OsuSpriteBatch = require("rizu.skin.osu.OsuSpriteBatch")
+local SpriteBatch = require("rizu.skin.SpriteBatch")
 local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
 local SkinConfig = require("rizu.skin.SkinConfig")
+
+local FakeGameplay = require("rizu.api.fake.FakeGameplay")
+
+---HUD elements read the play through the game api.
+---@param fs fs.IFilesystem
+local function fake_game(fs)
+	return {fs = fs, api = {gameplay = FakeGameplay()}}
+end
 
 local test = {}
 
@@ -22,9 +30,7 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 			Fonts = {ComboPrefix = "combo", ScorePrefix = "digits", ComboOverlap = "-2", ScoreOverlap = "1"},
 		},
 	}
-	local game = {
-		fs = FakeFilesystem(),
-	}
+	local game = fake_game(FakeFilesystem())
 	local renderer = OsuManiaRenderer(game, skin, "4key")
 
 	t:eq(renderer.skin, skin)
@@ -32,8 +38,13 @@ function test.uses_osu_mania_skin_dimensions_and_key_images(t)
 	t:eq(renderer.hit_position, 400)
 	t:eq(renderer.judgement_line, false)
 	t:eq(renderer.stage_under_keys, false)
-	t:eq(renderer.score_view.score_prefix, "digits")
-	t:eq(renderer.score_view.score_overlap, 1)
+	local layout = renderer:getDefaultHudLayout()
+	t:eq(layout.screen[1].font, "digits")
+	t:eq(layout.screen[1].overlap, 1)
+	t:eq(layout.conveyor[1].font, "combo")
+	t:eq(layout.conveyor[1].overlap, -2)
+	t:eq(layout.conveyor[1].y, 125)
+	renderer:buildHud()
 	local assets = renderer:getSkinAssets()
 	local asset_names = {}
 	for _, asset in ipairs(assets) do
@@ -72,9 +83,7 @@ function test.special_style_reorders_scratch_inputs_without_changing_columns(t)
 			files = {}, skin_ini = {Mania = {{Keys = input_mode == "7key1scratch" and "8" or "16",
 				SpecialStyle = tostring(special_style)}}},
 		}
-		local game = {
-			fs = FakeFilesystem(),
-		}
+		local game = fake_game(FakeFilesystem())
 		return OsuManiaRenderer(game, skin, input_mode)
 	end
 
@@ -108,22 +117,28 @@ function test.special_style_reorders_scratch_inputs_without_changing_columns(t)
 	t:eq(center:getColumnSuffix(8), "S")
 	center:unload()
 end
-function test.uses_separate_conveyor_hud_for_conveyor_anchored_views(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
-	t:eq(renderer.foreground_hud.children[1], renderer.score_view)
-	t:eq(renderer.foreground_hud.children[2], renderer.accuracy_view)
-	t:eq(renderer.foreground_hud.children[3], renderer.progress_view)
-	t:eq(renderer.conveyor_hud.children[1], renderer.combo_view)
-	t:eq(renderer.conveyor_hud.children[2], renderer.judge_view)
-	t:eq(renderer.conveyor_hud.children[3], renderer.hit_meter_view)
-	t:eq(renderer.combo_view.anchor, "top")
-	t:eq(renderer.judge_view.anchor, "top")
-	t:eq(renderer.hit_meter_view.anchor, "bottom")
+function test.default_layout_puts_combo_judgement_and_meter_on_the_conveyor(t)
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
+	renderer:buildHud()
+	local screen, conveyor = renderer:getHudElements("screen"), renderer:getHudElements("conveyor")
+	t:eq(screen[1].type, "score")
+	t:eq(screen[2].type, "accuracy")
+	t:eq(screen[3].type, "progress")
+	t:eq(conveyor[1].type, "combo")
+	t:eq(conveyor[2].type, "judgement")
+	t:eq(conveyor[3].type, "hit_error")
+	t:eq(conveyor[1].anchor, "top")
+	t:eq(conveyor[1].y, 111)
+	t:eq(conveyor[2].anchor, "top")
+	t:eq(conveyor[2].y, 325)
+	t:eq(conveyor[2].values.texture_1, "mania-hit300g")
+	t:eq(conveyor[3].anchor, "bottom")
+	t:eq(conveyor[3].y, -4)
 	renderer:unload()
 end
 
 function test.column_anchor_width_includes_stage_separation(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	renderer.column_widths = {40, 50, 60, 70}
 	renderer.column_spacings = {3, 4, 5}
 	renderer.split_stages = true
@@ -136,7 +151,7 @@ function test.column_anchor_width_includes_stage_separation(t)
 end
 
 function test.draws_conveyor_hud_over_the_complete_column_span(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	renderer.column_widths = {40, 50, 60, 70}
 	renderer.column_spacings = {3, 4, 5}
 	renderer.split_stages = false
@@ -165,15 +180,13 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 		files = {},
 		skin_ini = {Mania = {{Keys = "4", ColumnWidth = "30,30,30,30"}}},
 	}
-	local game = {
-		fs = FakeFilesystem(),
-	}
+	local game = fake_game(FakeFilesystem())
 	local renderer = OsuManiaRenderer(game, skin, "4key")
 	local image = {
 		getDimensions = function() return 20, 20 end,
 	}
 	renderer.skin_graphics = {
-		batch = OsuSpriteBatch(),
+		batch = SpriteBatch(),
 		skin = skin,
 		loaded = true,
 		setFallbackArchive = function() end,
@@ -218,14 +231,14 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 end
 
 function test.preview_long_note_draws_hold_head_body_and_tail(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local images = {
 		body = {getDimensions = function() return 20, 20 end},
 		head = {getDimensions = function() return 20, 20 end},
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
-		batch = OsuSpriteBatch(),
+		batch = SpriteBatch(),
 		skin = nil,
 		loaded = true,
 		unload = function() end,
@@ -277,7 +290,7 @@ function test.preview_long_note_draws_hold_head_body_and_tail(t)
 end
 
 function test.missing_tail_falls_back_to_head_not_plain_note(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local head = {getDimensions = function() return 20, 20 end}
 	local plain = {getDimensions = function() return 20, 20 end}
 	renderer.skin_graphics = {
@@ -290,14 +303,14 @@ function test.missing_tail_falls_back_to_head_not_plain_note(t)
 end
 
 function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local images = {
 		body = {getDimensions = function() return 20, 20 end},
 		head = {getDimensions = function() return 20, 20 end},
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
-		batch = OsuSpriteBatch(),
+		batch = SpriteBatch(),
 		skin = nil,
 		loaded = true,
 		unload = function() end,
@@ -310,7 +323,6 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 	}
 	renderer.load = function() end
 	renderer.drawStageDecorations = function() end
-	renderer.score_view.draw = function() end
 	local note = {
 		type = "long",
 		start_dt = -0.5,
@@ -373,7 +385,7 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 end
 
 function test.long_note_body_uses_the_selected_animation_frame(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local images = {
 		body_first = {getDimensions = function() return 20, 20 end},
 		body_second = {getDimensions = function() return 20, 20 end},
@@ -381,7 +393,7 @@ function test.long_note_body_uses_the_selected_animation_frame(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
-		batch = OsuSpriteBatch(),
+		batch = SpriteBatch(),
 		unload = function() end,
 		getFrames = function(_, name)
 			local image = name == "mania-note1H" and images.head
@@ -415,7 +427,7 @@ function test.long_note_body_uses_the_selected_animation_frame(t)
 end
 
 function test.draws_stage_before_keys(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	renderer.load = function() end
 	renderer.game.rhythm_engine = {visual_engine = {visible_notes = {}}, isColumnPressed = function() return false end}
 	local events = {}
@@ -440,7 +452,7 @@ function test.draws_stage_before_keys(t)
 	t:tdeq(events, {"stage", "notes", "keys"})
 end
 function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "18key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "18key")
 	local left, widths, scale = renderer:getPlayfieldLayout()
 	local total = 0
 	for _, width in ipairs(widths) do total = total + width end
@@ -452,7 +464,7 @@ function test.scales_wide_playfields_to_fit_the_640_pixel_skin_canvas(t)
 end
 
 function test.renderer_updates_each_playfield_component(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local hud_updates = 0
 	renderer.foreground_hud.update = function() hud_updates = hud_updates + 1 end
 	renderer.conveyor_hud.update = function() hud_updates = hud_updates + 1 end
@@ -479,7 +491,7 @@ end
 
 ---@param t testing.T
 function test.loads_bundled_fallback_assets(t)
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key")
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local previous_new_image = love.graphics.newImage
 	local previous_new_quad = love.graphics.newQuad
 	local previous_new_batch = love.graphics.newSpriteBatch
@@ -508,9 +520,7 @@ function test.loads_bundled_fallback_assets(t)
 		for _, name in ipairs({"mania-key1", "mania-key2D", "mania-note1", "mania-note1L",
 			"mania-note2T", "mania-stage-left", "mania-stage-hint", "score-0", "score-percent",
 			"circularmetre", "editor-rate-arrow"}) do
-			local group = name == "circularmetre" and "standalone"
-				or name == "editor-rate-arrow" and "standalone"
-				or name:match("^score") and "font"
+			local group = (name == "circularmetre" or name == "editor-rate-arrow" or name:match("^score")) and "hud"
 				or name:match("^mania%-stage%-left") and "standalone" or "playfield"
 			local image = graphics:getFrames(name, nil, group)[1]
 			t:assert(image, name)
@@ -520,8 +530,9 @@ function test.loads_bundled_fallback_assets(t)
 				t:eq(graphics:getImageDensity(image), 2)
 			end
 		end
-		t:assert(graphics:getAnimationFrames("mania-hit300g", nil, "playfield")[1])
-		t:assert(renderer.score_view.height > 0)
+		t:assert(graphics:getAnimationFrames("mania-hit300g", nil, "hud")[1])
+		t:assert(graphics:getAtlasFrame("hud", "\0white"))
+		t:assert(renderer:getHudElements("screen")[1].font)
 		renderer:unload()
 		renderer:load()
 		t:assert(graphics:getFrames("mania-key1", nil, "playfield")[1])
@@ -539,22 +550,28 @@ function test.scroll_override_falls_back_to_skin_and_flips_hud_positions(t)
 		files = {},
 		skin_ini = {Mania = {{Keys = "4", UpsideDown = "1", ScorePosition = "325", ComboPosition = "111"}}},
 	}
-	local game = {
-		fs = FakeFilesystem(),
-	}
+	local game = fake_game(FakeFilesystem())
 	local config = SkinConfig()
 	local renderer = OsuManiaRenderer(game, skin, "4key", config)
 
+	---@return number combo_y
+	---@return number judge_y
+	local function hud_y()
+		local conveyor = renderer:getDefaultHudLayout().conveyor
+		return conveyor[1].y --[[@as number]], conveyor[2].y --[[@as number]]
+	end
 	t:eq(renderer:getUpscroll(), true)
 	t:eq(renderer.upside_down, true)
-	t:eq(renderer.judge_view.y, 480 - 325)
-	t:eq(renderer.combo_view.y, 480 - 111)
+	local combo_y, judge_y = hud_y()
+	t:eq(judge_y, 480 - 325)
+	t:eq(combo_y, 480 - 111)
 	t:eq(config:get("mania", "4key", "scroll.upscroll"), nil)
 
 	renderer:setUpscroll(false)
 	t:eq(renderer.upside_down, false)
-	t:eq(renderer.judge_view.y, 325)
-	t:eq(renderer.combo_view.y, 111)
+	combo_y, judge_y = hud_y()
+	t:eq(judge_y, 325)
+	t:eq(combo_y, 111)
 	t:eq(config:get("mania", "4key", "scroll.upscroll"), false)
 
 	renderer:loadSkinSettings(renderer.skin)
@@ -563,30 +580,50 @@ function test.scroll_override_falls_back_to_skin_and_flips_hud_positions(t)
 	---@type {[string]: rizu.skin.osu.OsuManiaRenderer.Property}
 	local properties = {}
 	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
+	t:eq(properties["hit_meter.mode"], nil) -- a HUD element setting now
 
-	local hit_meter = properties["hit_meter.mode"]
-	t:eq(hit_meter.type, "segmented")
-	t:tdeq(hit_meter.options, {0, 1, 2})
-	t:eq(hit_meter.get(), 0)
-	t:eq(hit_meter.format(0), "Judgement history")
-	t:eq(hit_meter.format(1), "Timing error")
-	t:eq(hit_meter.format(2), "Off")
-	hit_meter.set(1)
-	t:eq(hit_meter.get(), 1)
-
+	-- The default layout follows the scroll direction once the skin is loaded.
+	renderer.skin_graphics.loaded = true
 	local upscroll = properties["scroll.upscroll"]
 	t:eq(upscroll.type, "checkbox")
 	t:eq(upscroll.get(), false)
 	upscroll.set(true)
 	t:eq(upscroll.get(), true)
 	t:eq(renderer.upside_down, true)
-	t:eq(renderer.judge_view.y, 480 - 325)
+	t:eq(renderer:getHudElements("conveyor")[2].y, 480 - 325)
+	renderer:unload()
+end
+
+function test.old_hit_meter_and_judgement_keys_seed_the_default_layout(t)
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	local conveyor = renderer:getDefaultHudLayout().conveyor
+	t:eq(conveyor[2].animation, "osu")
+	t:eq(conveyor[3].mode, "judgements")
+	t:eq(conveyor[3].y, -4)
+
+	config:set("mania", "4key", "judge.animation", false)
+	config:set("mania", "4key", "hit_meter.mode", 1)
+	config:set("mania", "4key", "hit_meter.y", -40)
+	conveyor = renderer:getDefaultHudLayout().conveyor
+	t:eq(conveyor[2].animation, "osu_fade")
+	t:eq(conveyor[3].mode, "timing")
+	t:eq(conveyor[3].y, -40)
+
+	config:set("mania", "4key", "hit_meter.mode", 2)
+	t:eq(#renderer:getDefaultHudLayout().conveyor, 2)
+
+	-- A saved layout wins over the defaults.
+	config:setHud("mania", "4key", {screen = {}, conveyor = {{type = "combo"}}})
+	renderer:buildHud()
+	t:eq(#renderer:getHudElements("screen"), 0)
+	t:eq(renderer:getHudElements("conveyor")[1].type, "combo")
 	renderer:unload()
 end
 
 function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
 
 	t:eq(renderer:getBgaBrightness(), 0.15)
 	t:eq(renderer.bga_view.brightness, 0.15)
@@ -611,7 +648,7 @@ function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
 	t:eq(brightness.get(), 0.75)
 	t:eq(renderer.bga_view.brightness, 0.75)
 
-	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
+	local reloaded = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
 	t:eq(reloaded.bga_view.brightness, 0.75)
 	reloaded:unload()
 	renderer:unload()
@@ -623,9 +660,7 @@ function test.hit_position_prefers_config_override_and_clamps(t)
 		files = {},
 		skin_ini = {Mania = {{Keys = "4", HitPosition = "400"}}},
 	}
-	local game = {
-		fs = FakeFilesystem(),
-	}
+	local game = fake_game(FakeFilesystem())
 	local config = SkinConfig()
 	local renderer = OsuManiaRenderer(game, skin, "4key", config)
 
@@ -666,9 +701,7 @@ function test.hit_position_dependent_visuals_can_move_and_lighting_can_be_disabl
 	}
 	local config = SkinConfig()
 	config:set("mania", "4key", "hit_position.move_keys", true)
-	local game = {
-		fs = FakeFilesystem(),
-	}
+	local game = fake_game(FakeFilesystem())
 	local renderer = OsuManiaRenderer(game, skin, "4key", config)
 
 	t:eq(renderer:getHitPositionOffset(), 0)
@@ -692,39 +725,111 @@ function test.hit_position_dependent_visuals_can_move_and_lighting_can_be_disabl
 	renderer:unload()
 end
 
-function test.hit_meter_y_is_configurable(t)
+---@param properties rizu.api.Gameplay.SkinProperty[]
+---@param label string
+---@param after string? Label of the group header the property follows.
+---@return rizu.api.Gameplay.SkinProperty
+local function find_property(properties, label, after)
+	local in_group = after == nil
+	for _, property in ipairs(properties) do
+		if property.label == after then in_group = true end
+		if in_group and property.label == label then return property end
+	end
+	error("no property " .. label)
+end
+
+function test.hud_editor_moves_elements_and_saves_the_layout(t)
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	renderer.skin_graphics.loaded = true
+	renderer:buildHud()
+	local reloads = 0
+	renderer.reloadHud = function() reloads = reloads + 1 end
 
-	t:eq(renderer:getHitMeterY(), -4)
-	t:eq(renderer.hit_meter_view.y, -4)
-	renderer:setHitMeterY(-120)
-	t:eq(renderer:getHitMeterY(), -120)
-	t:eq(renderer.hit_meter_view.y, -120)
-	t:eq(config:get("mania", "4key", "hit_meter.y"), -120)
+	local properties = renderer:getHudProperties()
+	local meter_y = find_property(properties, "Y", "Hit error meter · Conveyor")
+	t:eq(meter_y.get(), -4)
+	meter_y.set(-120)
+	t:eq(renderer:getHudElements("conveyor")[3].y, -120)
+	t:eq(config:getHud("mania", "4key").conveyor[3].y, -120)
+	t:eq(reloads, 0)
 
-	renderer:setHitMeterY(600)
-	t:eq(renderer:getHitMeterY(), 480)
-	local properties = {}
-	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
-	local hit_meter_y = properties["hit_meter.y"]
-	t:eq(hit_meter_y.get(), 480)
-	hit_meter_y.set(120)
-	t:eq(renderer.hit_meter_view.y, 120)
+	find_property(properties, "Arrow texture", "Hit error meter · Conveyor").set("")
+	t:eq(reloads, 1) -- other textures
+
+	local remove = find_property(properties, "Hit error meter · Conveyor")
+	t:eq(remove.type, "buttons")
+	remove.buttons[1].on_click()
+	t:eq(#renderer:getHudElements("conveyor"), 2)
+	t:eq(#config:getHud("mania", "4key").conveyor, 2)
+
+	local reloaded = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	reloaded:buildHud()
+	t:eq(#reloaded:getHudElements("conveyor"), 2)
+	reloaded:unload()
 	renderer:unload()
 end
 
-function test.hit_meter_can_be_disabled(t)
+function test.hud_editor_adds_elements_and_resets_to_the_default_layout(t)
 	local config = SkinConfig()
-	local renderer = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
-	renderer:setHitMeterMode(2)
-	t:eq(renderer:getHitMeterMode(), 2)
-	t:eq(renderer.hit_meter_view.mode, "off")
-	t:eq(renderer.hit_meter_view.visible, false)
-	local reloaded = OsuManiaRenderer({fs = FakeFilesystem()}, nil, "4key", config)
-	t:eq(reloaded:getHitMeterMode(), 2)
-	t:eq(reloaded.hit_meter_view.visible, false)
-	reloaded:unload()
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	renderer.skin_graphics.loaded = true
+	renderer:buildHud()
+	renderer.reloadHud = function() renderer:buildHud() end
+	local properties = renderer:getHudProperties()
+	find_property(properties, "New HUD element").set("box")
+	local add = find_property(properties, "HUD")
+	t:eq(add.buttons[1].text, "Add to screen")
+	t:eq(add.buttons[2].text, "Add to conveyor")
+	add.buttons[1].on_click()
+	t:eq(renderer:getHudElements("screen")[4].type, "box")
+	t:eq(config:getHud("mania", "4key").screen[4].type, "box")
+	add.buttons[3].on_click()
+	t:eq(config:getHud("mania", "4key"), nil)
+	t:eq(#renderer:getHudElements("screen"), 3)
+	renderer:unload()
+end
+
+function test.hud_editor_keeps_editing_elements_after_a_texture_change_rebuilds_them(t)
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	renderer.skin_graphics.loaded = true
+	renderer:buildHud()
+	renderer.reloadHud = function() renderer:buildHud() end
+	local properties = renderer:getHudProperties()
+	find_property(properties, "New HUD element").set("score")
+	find_property(properties, "HUD").buttons[1].on_click()
+
+	properties = renderer:getHudProperties()
+	local font = find_property(properties, "Font", "Score · Screen")
+	t:eq(font.refresh, true) -- the controls are rebuilt with the elements
+	font.set("digits")
+	find_property(properties, "X", "Score · Screen").set(-50)
+	local score = renderer:getHudElements("screen")[1]
+	t:eq(score.values.font, "digits")
+	t:eq(score.x, -50)
+	t:eq(config:getHud("mania", "4key").screen[1].x, -50)
+	renderer:unload()
+end
+
+function test.positions_hud_against_the_viewport_edge_and_the_columns(t)
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
+	renderer:buildHud()
+	local score, combo = renderer:getHudElements("screen")[1], renderer:getHudElements("conveyor")[1]
+	score.width, combo.width, combo.height = 100, 40, 20
+	local screen_draw, conveyor_draw = renderer.foreground_hud.draw, renderer.conveyor_hud.draw
+	local screen, conveyor = {}, {}
+	renderer.foreground_hud.draw = function(_, width, height, transform) screen = {width, height, transform} end
+	renderer.conveyor_hud.draw = function(_, width, height, transform) conveyor = {width, height, transform} end
+	renderer:drawHud(1280, 720, love.math.newTransform())
+	renderer.foreground_hud.draw, renderer.conveyor_hud.draw = screen_draw, conveyor_draw
+	t:aeq(screen[1], 1280 / 1.5, 1e-6)
+	t:aeq(screen[2], 720 / 1.5, 1e-6)
+	local right_edge = score:getWorldTransform(screen[1], screen[2], screen[3]):transformPoint(score.width, 0)
+	t:aeq(right_edge, 1280 - 6 * 1.5, 1e-3)
+	local combo_center = combo:getWorldTransform(conveyor[1], conveyor[2], conveyor[3])
+		:transformPoint(combo.width / 2, combo.height / 2)
+	t:aeq(combo_center, (136 + 120 / 2) * 1.5, 1e-3)
 	renderer:unload()
 end
 

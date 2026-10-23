@@ -2,7 +2,7 @@ local AimRenderer = require("rizu.skin.base.AimRenderer")
 local OsuCircleRenderer = require("rizu.skin.osu.aim.OsuCircleRenderer")
 local OsuFollowPointRenderer = require("rizu.skin.osu.aim.OsuFollowPointRenderer")
 local OsuAimSprites = require("rizu.skin.osu.aim.OsuAimSprites")
-local OsuSkinGraphics = require("rizu.skin.osu.OsuSkinGraphics")
+local SkinTextures = require("rizu.skin.SkinTextures")
 local OsuSliderOverlayRenderer = require("rizu.skin.osu.aim.OsuSliderOverlayRenderer")
 local OsuSpriteRenderer = require("rizu.skin.osu.aim.OsuSpriteRenderer")
 local SliderRenderer = require("rizu.skin.base.osu.aim.SliderRenderer")
@@ -12,7 +12,7 @@ local Settings = require("rizu.config.Settings")
 ---@class rizu.skin.osu.OsuAimRenderer : rizu.skin.base.AimRenderer
 ---@operator call: rizu.skin.osu.OsuAimRenderer
 ---@field skin rizu.skin.Skin?
----@field skin_graphics rizu.skin.osu.OsuSkinGraphics
+---@field skin_graphics rizu.skin.SkinTextures
 ---@field slider_graphics {prepare: fun(rules: rizu.aim.CircleRules), unload: fun(), [string]: any}
 ---@field sprites rizu.skin.osu.aim.OsuAimSprites?
 ---@field prepared_rules rizu.aim.CircleRules?
@@ -26,7 +26,7 @@ local DEFAULT_ASSETS = "resources/osu_default_assets.zip"
 function OsuAimRenderer:new(game, skin)
 	AimRenderer.new(self, game)
 	self.skin = skin
-	self.skin_graphics = OsuSkinGraphics(game.fs)
+	self.skin_graphics = SkinTextures(game.fs)
 end
 
 ---@return rizu.api.Gameplay.SkinProperty[]

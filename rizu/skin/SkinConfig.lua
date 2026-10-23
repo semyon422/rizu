@@ -9,12 +9,14 @@ local SkinConfigSerializer = require("rizu.skin.SkinConfigSerializer")
 ---@class rizu.skin.SkinConfig
 ---@operator call: rizu.skin.SkinConfig
 ---@field private values rizu.skin.SkinConfigOverrides
+---@field private huds rizu.skin.SkinConfigHuds
 ---@field has_unsaved_changes boolean
 local SkinConfig = class()
 
 ---@param values? rizu.skin.SkinConfigOverrides
 function SkinConfig:new(values)
 	self.values = {}
+	self.huds = {}
 	self.has_unsaved_changes = false
 	if values then
 		self:replaceOverrides(values)
@@ -69,6 +71,30 @@ function SkinConfig:set(gamemode, input_mode, key, value)
 	end
 end
 
+---The HUD layout the player saved, nil when the skin's default layout is used.
+---@param gamemode string
+---@param input_mode string
+---@return rizu.skin.SkinConfigHudLayout?
+function SkinConfig:getHud(gamemode, input_mode)
+	local modes = self.huds[gamemode]
+	-- A copy, so callers cannot mutate config state without setHud().
+	return SkinConfigSerializer.sanitizeHud(modes and modes[input_mode])
+end
+
+---@param gamemode string
+---@param input_mode string
+---@param layout rizu.skin.SkinConfigHudLayout? nil goes back to the skin's default layout.
+function SkinConfig:setHud(gamemode, input_mode, layout)
+	assert(type(gamemode) == "string" and gamemode ~= "", "gamemode must be a non-empty string")
+	assert(type(input_mode) == "string" and input_mode ~= "", "input_mode must be a non-empty string")
+	assert(layout == nil or type(layout) == "table", "hud layout must be a table or nil")
+	local modes = self.huds[gamemode] or {}
+	self.huds[gamemode] = modes
+	modes[input_mode] = SkinConfigSerializer.sanitizeHud(layout)
+	if next(modes) == nil then self.huds[gamemode] = nil end
+	self.has_unsaved_changes = true
+end
+
 ---@param overrides rizu.skin.SkinConfigOverrides
 function SkinConfig:replaceOverrides(overrides)
 	assert(type(overrides) == "table", "overrides must be a table")
@@ -106,18 +132,19 @@ end
 
 ---@return string
 function SkinConfig:serialize()
-	return SkinConfigSerializer.serialize(self.values)
+	return SkinConfigSerializer.serialize(self.values, self.huds)
 end
 
 ---@param content string
 ---@return boolean success
 ---@return string? error_message
 function SkinConfig:deserialize(content)
-	local overrides, deserialize_error = SkinConfigSerializer.deserialize(content)
+	local overrides, deserialize_error, huds = SkinConfigSerializer.deserialize(content)
 	if not overrides then
 		return false, deserialize_error
 	end
 	self:replaceOverrides(overrides)
+	self.huds = huds or {}
 	return true
 end
 
