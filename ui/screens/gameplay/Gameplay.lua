@@ -8,7 +8,8 @@ local ClearStatus = require("ui.screens.gameplay.ClearStatus")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
-local Window = require("ui.views.Window")
+local Rectangle = require("ui.views.Rectangle")
+local ScrollView = require("gui.ScrollView")
 local Background = require("ui.views.Background")
 local UiConfig = require("ui.UiConfig")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -26,7 +27,8 @@ local thread = require("thread")
 ---@field gameplay rizu.api.Gameplay
 ---@field gameplay_playfield_view gui.View
 ---@field gameplay_hud_view gui.View
----@field skin_editor_window ui.views.Window
+---@field skin_editor_panel ui.views.Rectangle
+---@field skin_editor_scroll gui.ScrollView
 ---@field skin_editor_controls gui.layout.FlowContainer
 ---@field skin_editor_properties rizu.api.Gameplay.SkinProperty[]
 ---@field skin_editor_status ui.views.Label
@@ -34,6 +36,8 @@ local thread = require("thread")
 ---@field skin_editor_refresh_pending boolean?
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
+
+local SKIN_EDITOR_WIDTH = 580 -- UI units: 540 wide controls and the panel padding
 
 ---@param ui ui.UserInterface
 function Gameplay:new(ui)
@@ -81,13 +85,13 @@ function Gameplay:new(ui)
 	))
 	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
 	self.restart_overlay = self.root:add(RestartOverlay())
-	self.skin_editor_window = self.root:add(Window(
-		ui.localization:get("gameplay.skin_editor.title"), 640, 420
-	))
-	self.skin_editor_window:setAlignment(0.5, 0.5)
-	self.skin_editor_window:setInactiveOpacity(0.35)
-	self.skin_editor_window:setVisible(false)
-	self.skin_editor_controls = self.skin_editor_window:addContent(FlowContainer({direction = "column", gap = 14}))
+	self.skin_editor_panel = self.root:add(Rectangle(Colors.panel))
+	self.skin_editor_panel:anchorFixed(0, 0, SKIN_EDITOR_WIDTH, 0):fillHeight(0, 0)
+	self.skin_editor_panel:setVisible(false)
+	self.skin_editor_scroll = self.skin_editor_panel:add(ScrollView())
+	self.skin_editor_scroll:anchorFill(20, 16, 20, 16)
+	self.skin_editor_scroll.content:anchorFixed(0, 0, SKIN_EDITOR_WIDTH - 40, 0)
+	self.skin_editor_controls = self.skin_editor_scroll.content:add(FlowContainer({direction = "column", gap = 14}))
 	self.skin_editor_status = self.skin_editor_controls:add(Label({
 		font_name = "regular", font_size = 14, text = "",
 	}))
@@ -114,7 +118,7 @@ function Gameplay:enter()
 	love.keyboard.setTextInput(false)
 	love.mouse.setVisible(self.ui.skin_editor)
 	self.is_playing = true
-	self.skin_editor_window:setVisible(self.ui.skin_editor)
+	self.skin_editor_panel:setVisible(self.ui.skin_editor)
 	if self.ui.skin_editor then
 		self:refreshSkinEditor()
 	end
@@ -140,16 +144,23 @@ function Gameplay:getGameplayViewport()
 	local cfg = self.ui.config
 	local width = self.width * cfg:getNumber(cfg.keys.gameplay_viewport_sx)
 	local height = self.height * cfg:getNumber(cfg.keys.gameplay_viewport_sy)
+	local x = (self.width - width) * cfg:getNumber(cfg.keys.gameplay_viewport_x)
+	local y = (self.height - height) * cfg:getNumber(cfg.keys.gameplay_viewport_y)
+	if self.ui.skin_editor and self.width > 0 then
+		-- The editor panel takes the left side. The window as the player sees it shrinks into the
+		-- rest at the top right, keeping its aspect ratio.
+		local panel = SKIN_EDITOR_WIDTH * self.ui_scale
+		local scale = math.max(0, self.width - panel) / self.width
+		x, y = panel + x * scale, y * scale
+		width, height = width * scale, height * scale
+	end
 	local transform = self._gameplay_viewport_transform
 	if not transform then
 		transform = love.math.newTransform()
 		self._gameplay_viewport_transform = transform
 	end
 	transform:reset()
-	transform:translate(
-		(self.width - width) * cfg:getNumber(cfg.keys.gameplay_viewport_x),
-		(self.height - height) * cfg:getNumber(cfg.keys.gameplay_viewport_y)
-	)
+	transform:translate(x, y)
 	return width, height, transform
 end
 
@@ -193,24 +204,12 @@ function Gameplay:closeSkinEditorPopup()
 	if owner then owner:close() end
 end
 
----Persists the skin config and reports the result in the status label.
-function Gameplay:saveSkinEditorConfig()
-	local saved, save_error = self.gameplay:saveSkinConfig()
-	if saved then
-		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.saved"))
-	else
-		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.save_failed", {
-			error = tostring(save_error),
-		}))
-	end
-end
-
 ---@param property rizu.api.Gameplay.SkinProperty
 ---@return gui.View
 function Gameplay:createSkinEditorControl(property)
 	local label = property.label or self.ui.localization:get(property.label_key)
+	-- Changes reach the file when gameplay closes: writing it on every slider step lags.
 	local function changed()
-		if not property.setting then self:saveSkinEditorConfig() end
 		-- Not now: the control that changed may be among the ones a refresh replaces.
 		if property.refresh then self.skin_editor_refresh_pending = true end
 	end
@@ -274,7 +273,7 @@ function Gameplay:updateSkinEditorContentHeight()
 	-- Measure the flow directly so the ScrollView gets the complete content
 	-- extent immediately.
 	local _, content_height = self.skin_editor_controls:getContentSize()
-	self.skin_editor_window:setContentHeight(math.max(120, content_height))
+	self.skin_editor_scroll.content:setHeight(content_height)
 end
 
 function Gameplay:refreshSkinEditor()
@@ -304,7 +303,7 @@ end
 
 function Gameplay:exit()
 	self.is_playing = false
-	self.skin_editor_window:setVisible(false)
+	self.skin_editor_panel:setVisible(false)
 	self:closeSkinEditorPopup()
 	self.ui.skin_editor = false
 	self.pause_overlay:hide()

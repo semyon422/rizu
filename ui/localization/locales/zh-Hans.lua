@@ -430,10 +430,7 @@ return {
 	["song_select.score_source_local"] = "本地",
 	["song_select.score_source_online"] = "在线",
 
-	["gameplay.skin_editor.title"] = "皮肤编辑器",
 	["gameplay.skin_editor.no_properties"] = "此皮肤没有可编辑属性。",
-	["gameplay.skin_editor.saved"] = "皮肤设置已保存。",
-	["gameplay.skin_editor.save_failed"] = "无法保存皮肤设置：{error}",
 	["gameplay.skin_editor.receptor_y"] = "接收器 Y",
 	["gameplay.skin_editor.playfield_x_offset"] = "游戏区域 X 偏移",
 	["gameplay.skin_editor.bga_brightness"] = "BGA 亮度",

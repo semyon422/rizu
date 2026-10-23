@@ -426,10 +426,7 @@ return {
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "Online",
 
-	["gameplay.skin_editor.title"] = "Skin Editor",
 	["gameplay.skin_editor.no_properties"] = "This skin has no editable properties.",
-	["gameplay.skin_editor.saved"] = "Skin settings saved.",
-	["gameplay.skin_editor.save_failed"] = "Could not save skin settings: {error}",
 	["gameplay.skin_editor.receptor_y"] = "Receptor Y",
 	["gameplay.skin_editor.playfield_x_offset"] = "Playfield X offset",
 	["gameplay.skin_editor.bga_brightness"] = "BGA brightness",

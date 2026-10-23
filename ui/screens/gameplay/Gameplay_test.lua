@@ -123,6 +123,35 @@ function test.gameplay_hud_dispatch_does_not_require_a_renderer_hud_field(t)
 end
 
 ---@param t testing.T
+function test.skin_editor_shrinks_the_viewport_into_the_top_right(t)
+	local screen = setmetatable({
+		width = 1280,
+		height = 720,
+		ui_scale = 0.5,
+		ui = {skin_editor = true, config = {
+			keys = {
+				gameplay_viewport_sx = "width",
+				gameplay_viewport_sy = "height",
+				gameplay_viewport_x = "align_x",
+				gameplay_viewport_y = "align_y",
+			},
+			getNumber = function(_, key)
+				return ({width = 0.5, height = 1, align_x = 1, align_y = 0})[key]
+			end,
+		}},
+	}, {__index = Gameplay})
+	local width, height, transform = screen:getGameplayViewport()
+	local scale = (1280 - 580 * 0.5) / 1280
+	t:aeq(width, 640 * scale, 1e-9)
+	t:aeq(height, 720 * scale, 1e-9)
+	local x, y = transform:transformPoint(0, 0)
+	t:aeq(x, 290 + 640 * scale, 1e-9) -- the configured viewport, right aligned, scaled
+	t:eq(y, 0)
+	local right = transform:transformPoint(width, 0)
+	t:aeq(right, 1280, 1e-9)
+end
+
+---@param t testing.T
 function test.retry_requires_hold_from_play_and_pause(t)
 	for _, state in ipairs({"play", "pause"}) do
 		local screen, model = create(state)
