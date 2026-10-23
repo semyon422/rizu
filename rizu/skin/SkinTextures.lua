@@ -20,6 +20,17 @@ local prepare_in_thread = thread.async(function(request)
 	return xpcall(SkinAtlas.prepare, debug.traceback, request, loader)
 end)
 
+---Decodes and shrinks a texture in a worker thread. Errors are returned as nil, not thrown.
+local thumbnail_in_thread = thread.future(function(path, fallback_archive, size)
+	require("love.filesystem")
+	require("love.image")
+	local SkinAtlas = require("rizu.skin.SkinAtlas")
+	local LoveFilesystem = require("fs.LoveFilesystem")
+	local loader = SkinAtlas.newImageDataLoader(LoveFilesystem(), fallback_archive)
+	local ok, data = pcall(SkinAtlas.loadThumbnail, loader, path, size)
+	return ok and data or nil
+end)
+
 ---@return number?
 local function get_texture_size()
 	local ok_limits, limits = pcall(love.graphics.getSystemLimits)
@@ -302,6 +313,18 @@ end
 function SkinTextures:loadImage(path)
 	local cached = self.images[path]
 	if cached ~= nil then return cached or nil end
+	local image, density = self:readImage(path)
+	self.images[path] = image or false
+	if image then self.image_density[image] = density end
+	return image
+end
+
+---Decodes a file of the skin or of the fallback archive into a new image the caller owns.
+---@param path string Full path, as the file maps hold it.
+---@return love.Image?
+---@return number density
+function SkinTextures:readImage(path)
+	local density = get_image_density(path)
 	local fs = self.fs
 	local read_path = path
 	if self.fallback_fs and self.fallback_archive
@@ -309,28 +332,37 @@ function SkinTextures:loadImage(path)
 		fs = self.fallback_fs
 		read_path = path:sub(#self.fallback_archive + 2)
 	end
-	if not fs then return nil end
+	if not fs then return nil, density end
 
 	local ok_read, content = pcall(fs.read, fs, read_path)
-	if not ok_read or not content then
-		self.images[path] = false
-		return nil
-	end
+	if not ok_read or not content then return nil, density end
 	local ok_data, file_data = pcall(love.filesystem.newFileData, content, path)
-	if not ok_data then
-		self.images[path] = false
-		return nil
-	end
-	local density = get_image_density(path)
+	if not ok_data then return nil, density end
 	local image = create_image(file_data, density)
 	release_resource(file_data)
-	if not image then
-		self.images[path] = false
-		return nil
+	return image, density
+end
+
+---A thumbnail being decoded: once `done`, `result[1]` is a small ImageData the caller releases, or nil.
+---@alias rizu.skin.SkinTextures.Thumbnail thread.Future
+
+---A small copy of a texture for a picker, outside the caches and atlases. It is decoded in a worker
+---thread when the files are reachable from one, so huge textures do not freeze the game.
+---@param name string Texture name, as getTextureNames() lists them.
+---@param size integer The thumbnail fits a square of this size.
+---@return rizu.skin.SkinTextures.Thumbnail
+function SkinTextures:loadThumbnail(name, size)
+	local path = self:findAsset(name)
+	if not path then
+		-- getTextureNames() lists an animation by its name without the frame number.
+		local frame = self:findAnimationAssets(name)[1]
+		path = frame and frame.path
 	end
-	self.images[path] = image
-	self.image_density[image] = density
-	return image
+	if not path then return {done = true, result = {n = 0}} end
+	if self.fs and LoveFilesystem * self.fs then return thumbnail_in_thread(path, self.fallback_archive, size) end
+	local loader = SkinAtlas.newImageDataLoader(self.fs, self.fallback_archive)
+	local ok, data = pcall(SkinAtlas.loadThumbnail, loader, path, size)
+	return {done = true, result = {n = 1, ok and data or nil}}
 end
 
 ---@param image rizu.skin.SkinTextures.Image

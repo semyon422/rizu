@@ -190,12 +190,15 @@ end
 
 ---@param name string Element type.
 ---@param layer rizu.skin.hud.HudLayout.Layer
+---@return string id Editor section id of the new element.
 function PlayfieldRenderer:addHudElement(name, layer)
 	local Element = assert(HudElements.get(name), "unknown hud element " .. tostring(name))
 	local hud = layer == "conveyor" and self.conveyor_hud or self.foreground_hud
 	hud:add(Element(nil, assert(self.textures, "renderer has no hud textures")))
+	local id = HudEditor.getId(layer, #hud.children)
 	self:saveHudLayout()
 	self:reloadHud()
+	return id
 end
 
 ---@param layer rizu.skin.hud.HudLayout.Layer
@@ -214,10 +217,10 @@ function PlayfieldRenderer:resetHudLayout()
 	self:reloadHud()
 end
 
----@return rizu.api.Gameplay.SkinProperty[]
-function PlayfieldRenderer:getHudProperties()
+---@return rizu.api.Gameplay.SkinSection[]
+function PlayfieldRenderer:getHudSections()
 	if not self.textures then return {} end
-	return HudEditor.getProperties(self)
+	return HudEditor.getSections(self)
 end
 
 function PlayfieldRenderer:load() end

@@ -1,11 +1,13 @@
 local HudElements = require("rizu.skin.hud.HudElements")
 
----Skin editor properties of a renderer's HUD: one group per element built from its fields, and
----controls to add, remove and reset elements. Every change is stored in the renderer's layout.
+---Skin editor sections of a renderer's HUD: one per element, with properties built from its fields.
+---Every change is stored in the renderer's layout.
 local HudEditor = {}
 
-local layer_labels = {screen = "Screen", conveyor = "Conveyor"}
+HudEditor.layer_labels = {screen = "Screen", conveyor = "Conveyor"}
 local channel_labels = {"red", "green", "blue", "opacity"}
+local THUMBNAIL_SIZE = 128
+local no_thumbnail = {done = true, result = {n = 0}}
 
 ---@param value number
 ---@return string
@@ -52,11 +54,17 @@ local function add_field(renderer, element, field, properties)
 		end
 	elseif field_type == "texture" or field_type == "bitmap_font" then
 		local textures = renderer.textures --[[@as rizu.skin.SkinTextures]]
-		local options = field_type == "texture" and textures:getTextureNames() or textures:getBitmapFontPrefixes()
-		if field_type == "texture" then table.insert(options, 1, "") end
+		local font = field_type == "bitmap_font"
+		local options = font and textures:getBitmapFontPrefixes() or textures:getTextureNames()
+		if not font then table.insert(options, 1, "") end
 		properties[#properties + 1] = {
-			label = field.label, type = "dropdown", options = with_value(options, get() --[[@as string]]),
+			label = field.label, type = "texture", options = with_value(options, get() --[[@as string]]),
 			format = function(value) return value == "" and "None" or value end,
+			-- A font shows its zero.
+			preview = function(value)
+				if value == "" then return no_thumbnail end
+				return textures:loadThumbnail(font and value .. "-0" or value, THUMBNAIL_SIZE)
+			end,
 			get = get, set = set,
 			refresh = true, -- a texture change loads the HUD again, with new elements
 		}
@@ -69,40 +77,40 @@ local function add_field(renderer, element, field, properties)
 end
 
 ---@param renderer rizu.gameplay.views.PlayfieldRenderer
----@return rizu.api.Gameplay.SkinProperty[]
-function HudEditor.getProperties(renderer)
-	local properties = {} ---@type rizu.api.Gameplay.SkinProperty[]
-	local layers = renderer.hud_layers
-	for _, layer in ipairs(layers) do
+---@return rizu.api.Gameplay.SkinSection[]
+function HudEditor.getSections(renderer)
+	local sections = {} ---@type rizu.api.Gameplay.SkinSection[]
+	for _, layer in ipairs(renderer.hud_layers) do
 		for index, element in ipairs(renderer:getHudElements(layer)) do
 			-- Reloads replace the elements, so controls find theirs by place instead of keeping it.
 			local function current() return renderer:getHudElements(layer)[index] end
-			properties[#properties + 1] = {
-				type = "buttons", label = ("%s · %s"):format(element.label, layer_labels[layer]), refresh = true,
-				buttons = {{text = "Remove", on_click = function() renderer:removeHudElement(layer, index) end}},
-			}
+			local properties = {} ---@type rizu.api.Gameplay.SkinProperty[]
 			for _, field in ipairs(element:getFields()) do add_field(renderer, current, field, properties) end
+			sections[#sections + 1] = {
+				id = HudEditor.getId(layer, index),
+				label = ("%s · %s"):format(element.label, HudEditor.layer_labels[layer]),
+				properties = properties,
+				remove = function() renderer:removeHudElement(layer, index) end,
+			}
 		end
 	end
+	return sections
+end
 
-	local names = HudElements.getNames()
-	local new_type = names[1]
-	properties[#properties + 1] = {
-		label = "New HUD element", type = "dropdown", options = names,
-		format = function(name) return HudElements.get(name).label end,
-		get = function() return new_type end,
-		set = function(name) new_type = name end,
-		setting = true, -- nothing to save until it is added
-	}
-	local buttons = {} ---@type {text: string, on_click: fun()}[]
-	for _, layer in ipairs(layers) do
-		buttons[#buttons + 1] = {text = "Add to " .. layer_labels[layer]:lower(), on_click = function()
-			renderer:addHudElement(new_type, layer)
-		end}
+---@param layer rizu.skin.hud.HudLayout.Layer
+---@param index integer
+---@return string
+function HudEditor.getId(layer, index)
+	return layer .. ":" .. index
+end
+
+---@return rizu.api.Gameplay.HudElementType[]
+function HudEditor.getElementTypes()
+	local types = {} ---@type rizu.api.Gameplay.HudElementType[]
+	for i, name in ipairs(HudElements.getNames()) do
+		types[i] = {name = name, label = HudElements.get(name).label}
 	end
-	buttons[#buttons + 1] = {text = "Reset HUD", on_click = function() renderer:resetHudLayout() end}
-	properties[#properties + 1] = {type = "buttons", label = "HUD", buttons = buttons, refresh = true}
-	return properties
+	return types
 end
 
 return HudEditor

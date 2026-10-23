@@ -4,9 +4,16 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local VirtualizedList = require("gui.VirtualizedList")
 
----@class ui.modals.note_skins.NoteSkinList : gui.VirtualizedList
----@operator call: ui.modals.note_skins.NoteSkinList
-local NoteSkinList = VirtualizedList + {}
+---@class ui.views.RadioList.Item
+---@field name string Shown in the row.
+---@field path string Identifies the item; the selected item has `selected_path`.
+
+---A list of rows with a radio mark on the selected one.
+---@class ui.views.RadioList : gui.VirtualizedList
+---@operator call: ui.views.RadioList
+---@field items ui.views.RadioList.Item[]
+---@field selected_path string?
+local RadioList = VirtualizedList + {}
 
 local ITEM_HEIGHT = 62
 local GAP = 7
@@ -15,7 +22,7 @@ local TEXT_X = 58
 
 ---@param on_select fun(index: integer)
 ---@param empty_text string?
-function NoteSkinList:new(on_select, empty_text)
+function RadioList:new(on_select, empty_text)
 	VirtualizedList.new(self)
 	self.item_height = ITEM_HEIGHT
 	self.gap = GAP
@@ -23,7 +30,7 @@ function NoteSkinList:new(on_select, empty_text)
 	self.selected_path = nil
 	self.hover_index = nil
 	self.on_select = on_select
-	self.empty_text = empty_text or "No compatible note skins"
+	self.empty_text = empty_text or ""
 	self.font = Resources.getFont("medium", 21)
 	self.background = NineSliceUsage(Resources.nine_slices.note_skin_item)
 	self.hover_background = NineSliceUsage(Resources.nine_slices.note_skin_item_hover)
@@ -31,41 +38,42 @@ function NoteSkinList:new(on_select, empty_text)
 end
 
 ---@return integer
-function NoteSkinList:getItemCount()
+function RadioList:getItemCount()
 	return #self.items
 end
 
----@param items rizu.skin.Skin[]
+---@param items ui.views.RadioList.Item[]
 ---@param selected_path string?
-function NoteSkinList:setItems(items, selected_path)
+function RadioList:setItems(items, selected_path)
 	local same = #items == #self.items
 	for i = 1, same and #items or 0 do
-		if items[i] ~= self.items[i] then same = false break end
+		local item, old = items[i], self.items[i]
+		if item.path ~= old.path or item.name ~= old.name then same = false break end
 	end
 	self.items = items
 	self.selected_path = selected_path
-	-- Picking a skin refreshes the list with the same items: keep the scroll position.
+	-- Picking an item refreshes the list with the same items: keep the scroll position.
 	if not same then self:scrollTo(0, true) end
 end
 
 ---@param screen_x number
 ---@param screen_y number
 ---@return integer?
-function NoteSkinList:getIndexAt(screen_x, screen_y)
+function RadioList:getIndexAt(screen_x, screen_y)
 	local local_y = self:getLocalY(screen_x, screen_y)
 	if local_y < 0 or local_y >= self.height then return end
 	local index = math.floor((local_y + self:getVisualScrollPosition()) / self:getRowStep()) + 1
 	if self.items[index] then return index end
 end
 
-function NoteSkinList:update(dt)
+function RadioList:update(dt)
 	VirtualizedList.update(self, dt)
 	self.hover_index = self.mouse_over and self:getIndexAt(love.mouse.getPosition()) or nil
 end
 
 ---@param e gui.MouseClickEvent
 ---@return boolean?
-function NoteSkinList:onMouseClick(e)
+function RadioList:onMouseClick(e)
 	if e.button ~= 1 or self.drag_active then return end
 	local index = self:getIndexAt(e.x, e.y)
 	if not index then return end
@@ -73,7 +81,7 @@ function NoteSkinList:onMouseClick(e)
 	return true
 end
 
-function NoteSkinList:draw()
+function RadioList:draw()
 	if #self.items == 0 then
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.font)
@@ -113,4 +121,4 @@ function NoteSkinList:draw()
 	end
 end
 
-return NoteSkinList
+return RadioList

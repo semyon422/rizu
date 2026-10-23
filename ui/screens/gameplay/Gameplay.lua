@@ -18,6 +18,8 @@ local Checkbox = require("ui.views.form.Checkbox")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Dropdown = require("ui.views.form.Dropdown")
 local ButtonRow = require("ui.views.form.ButtonRow")
+local Button = require("ui.views.Button")
+local RadioList = require("ui.views.RadioList")
 local PopupContainer = require("ui.views.PopupContainer")
 local UiActions = require("ui.UiActions")
 local delay = require("delay")
@@ -28,9 +30,15 @@ local thread = require("thread")
 ---@field gameplay_playfield_view gui.View
 ---@field gameplay_hud_view gui.View
 ---@field skin_editor_panel ui.views.Rectangle
----@field skin_editor_scroll gui.ScrollView
+---@field skin_editor_fill ui.views.Rectangle Covers the window under the shrunk gameplay.
+---@field skin_editor_sections ui.views.RadioList What there is to edit.
+---@field skin_editor_add_button ui.views.Button
+---@field skin_editor_reset_button ui.views.Button
+---@field skin_editor_scroll gui.ScrollView Properties of the selected section.
+---@field skin_editor_section_list rizu.api.Gameplay.SkinSection[]
+---@field skin_editor_section_id string? The section to show.
+---@field skin_editor_shown_id string? The section shown now.
 ---@field skin_editor_controls gui.layout.FlowContainer
----@field skin_editor_properties rizu.api.Gameplay.SkinProperty[]
 ---@field skin_editor_status ui.views.Label
 ---@field skin_editor_popup ui.views.PopupContainer
 ---@field skin_editor_refresh_pending boolean?
@@ -38,6 +46,7 @@ local thread = require("thread")
 local Gameplay = Screen + {}
 
 local SKIN_EDITOR_WIDTH = 580 -- UI units: 540 wide controls and the panel padding
+local SKIN_EDITOR_SPLIT = 0.4 -- of the panel height for the section list
 
 ---@param ui ui.UserInterface
 function Gameplay:new(ui)
@@ -85,10 +94,38 @@ function Gameplay:new(ui)
 	))
 	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
 	self.restart_overlay = self.root:add(RestartOverlay())
+	self.skin_editor_fill = self.root:add(Rectangle(Colors.panel))
+	self.skin_editor_fill:setVisible(false)
 	self.skin_editor_panel = self.root:add(Rectangle(Colors.panel))
 	self.skin_editor_panel:anchorFixed(0, 0, SKIN_EDITOR_WIDTH, 0):fillHeight(0, 0)
 	self.skin_editor_panel:setVisible(false)
-	self.skin_editor_scroll = self.skin_editor_panel:add(ScrollView())
+	local sections = self.skin_editor_panel:add(View()):anchorPercent(0, 0, 1, SKIN_EDITOR_SPLIT)
+	local localization = ui.localization
+	self.skin_editor_add_button = sections:add(Button(localization:get("gameplay.skin_editor.add"), function()
+		self.ui.modal_manager:attachHudElementPicker(function(id)
+			self.skin_editor_section_id = id
+			self.skin_editor_refresh_pending = true
+		end)
+	end, {variant = "primary", shape = "capsule", font_size = 18}))
+	self.skin_editor_add_button:setSize(120, 44):setPosition(20, 16)
+	self.skin_editor_reset_button = sections:add(Button(localization:get("gameplay.skin_editor.reset"), function()
+		self.gameplay:resetHudLayout()
+		self.skin_editor_section_id = nil
+		self.skin_editor_refresh_pending = true
+	end, {shape = "capsule", font_size = 18}))
+	self.skin_editor_reset_button:setSize(150, 44):setPosition(150, 16)
+	self.skin_editor_sections = sections:add(RadioList(function(index)
+		local section = self.skin_editor_section_list[index]
+		if not section then return end
+		self.skin_editor_section_id = section.id
+		self.skin_editor_refresh_pending = true
+	end))
+	self.skin_editor_sections:anchorFill(20, 76, 20, 8)
+	self.skin_editor_section_list = {}
+	self.skin_editor_section_id = nil
+	local properties = self.skin_editor_panel:add(View()):anchorPercent(0, SKIN_EDITOR_SPLIT, 1, 1)
+	properties:add(Rectangle(Colors.background)):anchorFixed(0, 0, SKIN_EDITOR_WIDTH, 2)
+	self.skin_editor_scroll = properties:add(ScrollView())
 	self.skin_editor_scroll:anchorFill(20, 16, 20, 16)
 	self.skin_editor_scroll.content:anchorFixed(0, 0, SKIN_EDITOR_WIDTH - 40, 0)
 	self.skin_editor_controls = self.skin_editor_scroll.content:add(FlowContainer({direction = "column", gap = 14}))
@@ -119,6 +156,7 @@ function Gameplay:enter()
 	love.mouse.setVisible(self.ui.skin_editor)
 	self.is_playing = true
 	self.skin_editor_panel:setVisible(self.ui.skin_editor)
+	self.skin_editor_fill:setVisible(self.ui.skin_editor)
 	if self.ui.skin_editor then
 		self:refreshSkinEditor()
 	end
@@ -147,10 +185,7 @@ function Gameplay:getGameplayViewport()
 	local x = (self.width - width) * cfg:getNumber(cfg.keys.gameplay_viewport_x)
 	local y = (self.height - height) * cfg:getNumber(cfg.keys.gameplay_viewport_y)
 	if self.ui.skin_editor and self.width > 0 then
-		-- The editor panel takes the left side. The window as the player sees it shrinks into the
-		-- rest at the top right, keeping its aspect ratio.
-		local panel = SKIN_EDITOR_WIDTH * self.ui_scale
-		local scale = math.max(0, self.width - panel) / self.width
+		local panel, scale = self:getSkinEditorScale()
 		x, y = panel + x * scale, y * scale
 		width, height = width * scale, height * scale
 	end
@@ -198,6 +233,27 @@ function Gameplay:moveGameplayPointer(x, y, time)
 	self.gameplay:movePointer(x, y, width, height, transform, time)
 end
 
+---The editor panel takes the left side. The window as the player sees it shrinks into the rest at
+---the top right, keeping its aspect ratio.
+---@return number panel Panel width in drawable pixels.
+---@return number scale Of the gameplay window.
+function Gameplay:getSkinEditorScale()
+	local panel = SKIN_EDITOR_WIDTH * self.ui_scale
+	return panel, math.max(0, self.width - panel) / self.width
+end
+
+---Places the fill under the shrunk gameplay window, in UI units.
+function Gameplay:layoutSkinEditorFill()
+	if self.width <= 0 then return end
+	local _, scale = self:getSkinEditorScale()
+	local top = self.height * scale / self.ui_scale
+	local right, bottom = self.width / self.ui_scale, self.height / self.ui_scale
+	local fill = self.skin_editor_fill
+	-- Every frame, so only when the window changed: anchoring invalidates the layout.
+	if fill.offset_min[2] == top and fill.offset_max[1] == right and fill.offset_max[2] == bottom then return end
+	fill:anchorFixed(SKIN_EDITOR_WIDTH, top, math.max(0, right - SKIN_EDITOR_WIDTH), math.max(0, bottom - top))
+end
+
 ---Closes an open skin editor dropdown popup, if any.
 function Gameplay:closeSkinEditorPopup()
 	local owner = self.skin_editor_popup and self.skin_editor_popup.owner
@@ -209,28 +265,20 @@ end
 function Gameplay:createSkinEditorControl(property)
 	local label = property.label or self.ui.localization:get(property.label_key)
 	-- Changes reach the file when gameplay closes: writing it on every slider step lags.
-	local function changed()
+	local function commit(value)
+		property.set(value)
 		-- Not now: the control that changed may be among the ones a refresh replaces.
 		if property.refresh then self.skin_editor_refresh_pending = true end
 	end
-	local function commit(value)
-		assert(property.set, "skin property without set")(value)
-		changed()
-	end
 
 	local control_type = property.type or "slider"
-	if control_type == "buttons" then
-		local buttons = {} ---@type ui.views.form.ButtonRow.Button[]
-		for i, button in ipairs(property.buttons) do
-			buttons[i] = {text = button.text, on_click = function()
-				button.on_click()
-				changed()
-			end}
-		end
-		return ButtonRow({label = label, buttons = buttons})
-	end
-	local value = assert(property.get, "skin property without get")()
-	if control_type == "checkbox" then
+	local value = property.get()
+	if control_type == "texture" then
+		local format = property.format or tostring
+		return ButtonRow({label = label, buttons = {{text = format(value), on_click = function()
+			self.ui.modal_manager:attachTexturePicker(property, commit)
+		end}}})
+	elseif control_type == "checkbox" then
 		return Checkbox({
 			text = label,
 			checked = value,
@@ -278,25 +326,47 @@ end
 
 function Gameplay:refreshSkinEditor()
 	self:closeSkinEditorPopup()
+	local sections = self.gameplay:getSkinSections() or {}
+	self.skin_editor_section_list = sections
+	local items = {} ---@type ui.views.RadioList.Item[]
+	local selected ---@type rizu.api.Gameplay.SkinSection?
+	for i, section in ipairs(sections) do
+		items[i] = {name = section.label, path = section.id}
+		if section.id == self.skin_editor_section_id then selected = section end
+	end
+	selected = selected or sections[1]
+	local selected_id = selected and selected.id
+	-- Another section starts at the top; the same one keeps its place after an edit.
+	if selected_id ~= self.skin_editor_shown_id then self.skin_editor_scroll:scrollTo(0, true) end
+	self.skin_editor_section_id, self.skin_editor_shown_id = selected_id, selected_id
+	self.skin_editor_sections:setItems(items, self.skin_editor_section_id)
+	local has_hud = #self.gameplay:getHudLayers() > 0
+	self.skin_editor_add_button:setEnabled(has_hud)
+	self.skin_editor_reset_button:setEnabled(has_hud)
+
 	self.skin_editor_controls:clear()
 	self.skin_editor_controls:setDirection("column")
 	self.skin_editor_controls:setGap(14)
-	self.skin_editor_status:setText("")
-	self.skin_editor_status:setSize(540, 24)
-	local properties = self.gameplay:getSkinProperties()
-	self.skin_editor_properties = properties or {}
-	if not properties then
+	if not selected then
 		self.skin_editor_status:setText(self.ui.localization:get("gameplay.skin_editor.no_properties"))
+		self.skin_editor_status:setSize(540, 24)
 		self.skin_editor_controls:add(self.skin_editor_status)
-		self.skin_editor_controls:fitContent()
-		self:updateSkinEditorContentHeight()
-		return
+	else
+		local remove = selected.remove
+		if remove then
+			self.skin_editor_controls:add(ButtonRow({buttons = {{
+				text = self.ui.localization:get("gameplay.skin_editor.remove"),
+				on_click = function()
+					remove()
+					self.skin_editor_section_id = nil
+					self.skin_editor_refresh_pending = true
+				end,
+			}}}))
+		end
+		for _, property in ipairs(selected.properties) do
+			self.skin_editor_controls:add(self:createSkinEditorControl(property))
+		end
 	end
-
-	for _, property in ipairs(self.skin_editor_properties) do
-		self.skin_editor_controls:add(self:createSkinEditorControl(property))
-	end
-	self.skin_editor_controls:add(self.skin_editor_status)
 	self.skin_editor_controls:fitContent()
 	self:updateSkinEditorContentHeight()
 end
@@ -304,6 +374,7 @@ end
 function Gameplay:exit()
 	self.is_playing = false
 	self.skin_editor_panel:setVisible(false)
+	self.skin_editor_fill:setVisible(false)
 	self:closeSkinEditorPopup()
 	self.ui.skin_editor = false
 	self.pause_overlay:hide()
@@ -401,6 +472,7 @@ end
 ---@param dt number
 function Gameplay:update(dt)
 	Screen.update(self, dt)
+	if self.ui.skin_editor then self:layoutSkinEditorFill() end
 	if self.skin_editor_refresh_pending then
 		self.skin_editor_refresh_pending = false
 		self:refreshSkinEditor()

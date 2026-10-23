@@ -150,6 +150,26 @@ function SkinAtlas.newImageDataLoader(fs, fallback_archive)
 	end
 end
 
+---Decodes a texture and shrinks it to fit `size`, for previews of skins with huge textures.
+---@param load_image_data fun(path: string): love.ImageData?
+---@param path string
+---@param size integer
+---@return love.ImageData?
+function SkinAtlas.loadThumbnail(load_image_data, path, size)
+	local data = load_image_data(path)
+	if not data then return end
+	local width, height = data:getDimensions()
+	local scale = math.min(1, size / width, size / height)
+	if scale == 1 then return data end
+	local small = love.image.newImageData(math.max(1, math.floor(width * scale)), math.max(1, math.floor(height * scale)))
+	-- Nearest pixel: a thumbnail only has to be recognizable.
+	small:mapPixel(function(x, y)
+		return data:getPixel(math.min(width - 1, math.floor(x / scale)), math.min(height - 1, math.floor(y / scale)))
+	end)
+	release_resource(data)
+	return small
+end
+
 ---@param image_data love.ImageData
 ---@param limit integer?
 ---@return love.ImageData

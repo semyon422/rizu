@@ -13,6 +13,8 @@ local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
 local ColumnOrder = require("ui.modals.column_order.ColumnOrder")
 local NoteSkins = require("ui.modals.note_skins.NoteSkins")
+local HudElementPicker = require("ui.modals.hud_element_picker.HudElementPicker")
+local TexturePicker = require("ui.modals.texture_picker.TexturePicker")
 local Rescore = require("ui.modals.rescore.Rescore")
 local Filters = require("ui.modals.filters.Filters")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
@@ -33,6 +35,8 @@ local UiActions = require("ui.UiActions")
 ---@field modifiers ui.modals.modifiers.Modifiers
 ---@field column_order ui.modals.column_order.ColumnOrder
 ---@field note_skins ui.modals.note_skins.NoteSkins
+---@field hud_element_picker ui.modals.hud_element_picker.HudElementPicker
+---@field texture_picker ui.modals.texture_picker.TexturePicker
 ---@field rescore ui.modals.rescore.Rescore
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field collection_selector ui.modals.collections.CollectionSelector
@@ -112,6 +116,10 @@ function ModalManager:new(ui, popup_container)
 			self:hideModal(self.note_skins)
 			ui:loadSelectedChart(true, true, true)
 		end))
+	self.hud_element_picker = self:addModal(HudElementPicker(ui.api.gameplay,
+		function() self:hideModal(self.hud_element_picker) end, localization))
+	self.texture_picker = self:addModal(TexturePicker(function() self:hideModal(self.texture_picker) end,
+		localization))
 	self.chart_mutators = self:addModal(ChartMutators(ui.api.play, modifiers_changed, localization))
 	self.collection_selector = self:addModal(CollectionSelector(function()
 		self:hideModal(self.collection_selector)
@@ -214,6 +222,21 @@ function ModalManager:onHandleInputs(inputs)
 	if self.active_view and inputs:consumeActionJustPressed(UiActions.cancel) then
 		self:hideModal()
 	end
+end
+
+---@param on_added fun(id: string) Gets the skin editor section id of the new element.
+---@return boolean attached
+function ModalManager:attachHudElementPicker(on_added)
+	self.hud_element_picker:open(on_added)
+	return self:showModal(self.hud_element_picker)
+end
+
+---@param property rizu.api.Gameplay.SkinProperty A skin editor "texture" property.
+---@param on_picked fun(value: any)
+---@return boolean attached
+function ModalManager:attachTexturePicker(property, on_picked)
+	self.texture_picker:open(property, on_picked)
+	return self:showModal(self.texture_picker)
 end
 
 ---@return boolean attached

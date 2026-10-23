@@ -44,7 +44,12 @@ function FakeGameplay:usesPointer() return false end
 function FakeGameplay:movePointer(x, y, width, height, transform, time) end
 function FakeGameplay:finish() end
 function FakeGameplay:watchLocalReplay() return false, "There is no game in the preview." end
+function FakeGameplay:getSkinSections() end
 function FakeGameplay:getSkinProperties() end
+function FakeGameplay:getHudLayers() return {} end
+function FakeGameplay:getHudElementTypes() return {} end
+function FakeGameplay:addHudElement(name, layer) error("There is no game in the preview.") end
+function FakeGameplay:resetHudLayout() end
 function FakeGameplay:saveSkinConfig() return false, "There is no game in the preview." end
 
 return FakeGameplay

@@ -1,5 +1,6 @@
 local class = require("class")
 local BgaView = require("rizu.skin.views.BgaView")
+local HudEditor = require("rizu.skin.hud.HudEditor")
 local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 local Settings = require("rizu.config.Settings")
 
@@ -33,26 +34,37 @@ Nothing here builds a table per call unless it says so.
 ---@field getState fun(self: rizu.api.Note): string "clear" until judged. Taps: "passed", "missed". Long notes: "startPassedPressed", "startMissed", "startMissedPressed", "endPassed", "endMissed", "endMissedPassed".
 
 ---A setting the skin offers in the gameplay skin editor.
----@class rizu.api.Gameplay.SkinProperty.Button
----@field text string
----@field on_click fun()
-
 ---@class rizu.api.Gameplay.SkinProperty
 ---@field key string?
 ---@field label string?
 ---@field label_key string? Localization key, when there is no label.
----@field type "slider"|"checkbox"|"segmented"|"dropdown"|"buttons"? Defaults to "slider". "buttons" has no value, only `buttons`.
----@field buttons rizu.api.Gameplay.SkinProperty.Button[]?
----@field refresh boolean? The list of properties changes after set() or a button: ask for it again.
+---@field type "slider"|"checkbox"|"segmented"|"dropdown"|"texture"? Defaults to "slider". "texture" picks one of `options` by its look.
+---@field refresh boolean? The sections change after set(): ask for them again.
 ---@field min number?
 ---@field max number?
 ---@field step number?
 ---@field value_format (fun(value: number): string)?
 ---@field options any[]? Values for segmented and dropdown controls.
----@field format (fun(value: any): string)? Value label for segmented and dropdown controls.
+---@field format (fun(value: any): string)? Value label for segmented, dropdown and texture controls.
+---@field preview (fun(value: any): rizu.skin.SkinTextures.Thumbnail)? Texture controls: starts decoding a small image of an option.
 ---@field setting boolean? Stored in the game settings: do not call saveSkinConfig() after set().
----@field get (fun(): any)? Every type but "buttons".
----@field set (fun(value: any))? Every type but "buttons".
+---@field get fun(): any
+---@field set fun(value: any)
+
+---One thing the skin editor edits: the playfield, or a HUD element.
+---@class rizu.api.Gameplay.SkinSection
+---@field id string The same while the layout does not change.
+---@field label string
+---@field properties rizu.api.Gameplay.SkinProperty[]
+---@field remove fun()? HUD elements can be removed. The sections change then.
+
+---@class rizu.api.Gameplay.HudElementType
+---@field name string
+---@field label string
+
+---@class rizu.api.Gameplay.HudLayer
+---@field name rizu.skin.hud.HudLayout.Layer
+---@field label string
 
 ---@class rizu.api.Gameplay
 ---@operator call: rizu.api.Gameplay
@@ -363,18 +375,61 @@ end
 
 -- Skin editor
 
----@return rizu.api.Gameplay.SkinProperty[]? properties nil when the skin offers none.
-function Gameplay:getSkinProperties()
+---What the skin editor can edit: the playfield's settings first, then every HUD element.
+---@return rizu.api.Gameplay.SkinSection[]? sections nil when the skin offers none.
+function Gameplay:getSkinSections()
 	local renderer = self.game.gameplayInteractor.playfield:getPlayfield()
 	if not renderer then return end
+	local sections = {} ---@type rizu.api.Gameplay.SkinSection[]
+	local properties = renderer.getProperties and renderer:getProperties()
+	if properties and #properties > 0 then
+		sections[1] = {id = "playfield", label = "Playfield", properties = properties}
+	end
+	for _, section in ipairs(renderer.getHudSections and renderer:getHudSections() or empty) do
+		sections[#sections + 1] = section
+	end
+	if #sections > 0 then return sections end
+end
+
+---Every property of every section, for a flat list.
+---@return rizu.api.Gameplay.SkinProperty[]? properties nil when the skin offers none.
+function Gameplay:getSkinProperties()
+	local sections = self:getSkinSections()
+	if not sections then return end
 	local properties = {} ---@type rizu.api.Gameplay.SkinProperty[]
-	for _, property in ipairs(renderer.getProperties and renderer:getProperties() or empty) do
-		properties[#properties + 1] = property
+	for _, section in ipairs(sections) do
+		for _, property in ipairs(section.properties) do properties[#properties + 1] = property end
 	end
-	for _, property in ipairs(renderer.getHudProperties and renderer:getHudProperties() or empty) do
-		properties[#properties + 1] = property
-	end
-	if #properties > 0 then return properties end
+	return properties
+end
+
+---HUD layers new elements can go to. Empty when the skin has no HUD layout.
+---@return rizu.api.Gameplay.HudLayer[]
+function Gameplay:getHudLayers()
+	local renderer = self.game.gameplayInteractor.playfield:getPlayfield()
+	local layers = {} ---@type rizu.api.Gameplay.HudLayer[]
+	if not (renderer and renderer.textures) then return layers end
+	for i, name in ipairs(renderer.hud_layers) do layers[i] = {name = name, label = HudEditor.layer_labels[name]} end
+	return layers
+end
+
+---@return rizu.api.Gameplay.HudElementType[]
+function Gameplay:getHudElementTypes()
+	return HudEditor.getElementTypes()
+end
+
+---@param name string A type from getHudElementTypes().
+---@param layer rizu.skin.hud.HudLayout.Layer One of getHudLayers().
+---@return string id Section id of the new element.
+function Gameplay:addHudElement(name, layer)
+	local renderer = assert(self.game.gameplayInteractor.playfield:getPlayfield(), "no playfield")
+	return renderer:addHudElement(name, layer)
+end
+
+---Goes back to the skin's default HUD layout.
+function Gameplay:resetHudLayout()
+	local renderer = self.game.gameplayInteractor.playfield:getPlayfield()
+	if renderer then renderer:resetHudLayout() end
 end
 
 ---Writes the skin's settings changed with set() to its config file.

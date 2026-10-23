@@ -4,7 +4,7 @@ local ModalFooter = require("ui.views.ModalFooter")
 local ModalHeader = require("ui.views.ModalHeader")
 local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
-local NoteSkinList = require("ui.modals.note_skins.NoteSkinList")
+local RadioList = require("ui.views.RadioList")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local UiActions = require("ui.UiActions")
@@ -54,7 +54,7 @@ function NoteSkins:new(skins, on_close, localization, on_edit)
 	self.list_page:anchorFill(0, 0, 0, 0)
 	self.list_header = self.list_page:add(ModalHeader(localization:get("song_select.note_skins_title"),
 		localization:get("song_select.note_skins_subtitle")))
-	self.list = self.list_page:add(NoteSkinList(function(index) self:select(index) end,
+	self.list = self.list_page:add(RadioList(function(index) self:select(index) end,
 		localization:get("song_select.no_compatible_skins")))
 	self.list:anchorFixed(CONTENT_X, HEADER_HEIGHT + CONTENT_PADDING_Y,
 		WIDTH - CONTENT_X * 2, HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - CONTENT_PADDING_Y * 2)

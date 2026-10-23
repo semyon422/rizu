@@ -1,5 +1,5 @@
 local NoteSkins = require("ui.modals.note_skins.NoteSkins")
-local NoteSkinList = require("ui.modals.note_skins.NoteSkinList")
+local RadioList = require("ui.views.RadioList")
 
 local test = {}
 
@@ -105,12 +105,12 @@ function test.list_keeps_its_scroll_when_only_the_selection_changes(t)
 	local list = {items = {}, scrollTo = function() scrolls = scrolls + 1 end}
 	local a, b = {path = "a"}, {path = "b"}
 
-	NoteSkinList.setItems(list, {a, b}, "a")
+	RadioList.setItems(list, {a, b}, "a")
 	t:eq(scrolls, 1) -- new items start at the top
-	NoteSkinList.setItems(list, {a, b}, "b")
+	RadioList.setItems(list, {a, b}, "b")
 	t:eq(scrolls, 1)
 	t:eq(list.selected_path, "b")
-	NoteSkinList.setItems(list, {a}, "a")
+	RadioList.setItems(list, {a}, "a")
 	t:eq(scrolls, 2)
 end
 

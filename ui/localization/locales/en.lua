@@ -427,6 +427,13 @@ return {
 	["song_select.score_source_online"] = "Online",
 
 	["gameplay.skin_editor.no_properties"] = "This skin has no editable properties.",
+	["gameplay.skin_editor.add"] = "Add",
+	["gameplay.skin_editor.add_title"] = "Add HUD element",
+	["gameplay.skin_editor.add_subtitle"] = "It starts with the default settings of its type.",
+	["gameplay.skin_editor.layer"] = "Layer",
+	["gameplay.skin_editor.reset"] = "Reset HUD",
+	["gameplay.skin_editor.remove"] = "Remove element",
+	["gameplay.skin_editor.texture_subtitle"] = "Textures of the skin and of the fallback skin.",
 	["gameplay.skin_editor.receptor_y"] = "Receptor Y",
 	["gameplay.skin_editor.playfield_x_offset"] = "Playfield X offset",
 	["gameplay.skin_editor.bga_brightness"] = "BGA brightness",

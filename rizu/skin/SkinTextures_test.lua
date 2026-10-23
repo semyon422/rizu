@@ -256,4 +256,37 @@ function test.loads_oversized_skin_hold_body_instead_of_falling_back(t)
 	if not ok then error(err) end
 end
 
+---@param t testing.T
+function test.thumbnails_shrink_huge_textures_to_fit(t)
+	local SkinAtlas = require("rizu.skin.SkinAtlas")
+	local source = love.image.newImageData(400, 200)
+	source:mapPixel(function(x) return x < 200 and 1 or 0, 0, x >= 200 and 1 or 0, 1 end)
+	local thumbnail = assert(SkinAtlas.loadThumbnail(function() return source end, "big.png", 128))
+	t:tdeq({thumbnail:getDimensions()}, {128, 64})
+	t:tdeq({thumbnail:getPixel(10, 10)}, {1, 0, 0, 1})
+	t:tdeq({thumbnail:getPixel(120, 10)}, {0, 0, 1, 1})
+	local small = love.image.newImageData(16, 16)
+	t:eq(SkinAtlas.loadThumbnail(function() return small end, "small.png", 128), small) -- kept as it is
+	t:eq(SkinAtlas.loadThumbnail(function() end, "missing.png", 128), nil)
+	thumbnail:release()
+	small:release()
+end
+
+---@param t testing.T
+function test.thumbnails_are_made_on_the_spot_when_no_thread_can_read_the_skin(t)
+	local fs = FakeFilesystem()
+	fs:createDirectory("skins/example")
+	local source = love.image.newImageData(4, 4)
+	fs:write("skins/example/glow-0.png", source:encode("png"):getString())
+	local graphics = SkinTextures(fs, {path = "skins/example", files = {"glow-0.png"}})
+	local thumbnail = graphics:loadThumbnail("glow", 128) -- an animation shows its first frame
+	t:eq(thumbnail.done, true)
+	local data = assert(thumbnail.result[1])
+	t:tdeq({data:getDimensions()}, {4, 4})
+	t:eq(next(graphics.images), nil) -- outside the caches
+	t:eq(graphics:loadThumbnail("missing", 128).result[1], nil)
+	data:release()
+	source:release()
+end
+
 return test

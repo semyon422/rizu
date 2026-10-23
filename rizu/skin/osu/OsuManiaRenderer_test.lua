@@ -725,15 +725,22 @@ function test.hit_position_dependent_visuals_can_move_and_lighting_can_be_disabl
 	renderer:unload()
 end
 
----@param properties rizu.api.Gameplay.SkinProperty[]
+---@param sections rizu.api.Gameplay.SkinSection[]
+---@param id string
+---@return rizu.api.Gameplay.SkinSection
+local function find_section(sections, id)
+	for _, section in ipairs(sections) do
+		if section.id == id then return section end
+	end
+	error("no section " .. id)
+end
+
+---@param section rizu.api.Gameplay.SkinSection
 ---@param label string
----@param after string? Label of the group header the property follows.
 ---@return rizu.api.Gameplay.SkinProperty
-local function find_property(properties, label, after)
-	local in_group = after == nil
-	for _, property in ipairs(properties) do
-		if property.label == after then in_group = true end
-		if in_group and property.label == label then return property end
+local function find_property(section, label)
+	for _, property in ipairs(section.properties) do
+		if property.label == label then return property end
 	end
 	error("no property " .. label)
 end
@@ -746,20 +753,34 @@ function test.hud_editor_moves_elements_and_saves_the_layout(t)
 	local reloads = 0
 	renderer.reloadHud = function() reloads = reloads + 1 end
 
-	local properties = renderer:getHudProperties()
-	local meter_y = find_property(properties, "Y", "Hit error meter · Conveyor")
+	local sections = renderer:getHudSections()
+	t:eq(#sections, 6)
+	local meter = find_section(sections, "conveyor:3")
+	t:eq(meter.label, "Hit error meter · Conveyor")
+	local meter_y = find_property(meter, "Y")
 	t:eq(meter_y.get(), -4)
 	meter_y.set(-120)
 	t:eq(renderer:getHudElements("conveyor")[3].y, -120)
 	t:eq(config:getHud("mania", "4key").conveyor[3].y, -120)
 	t:eq(reloads, 0)
 
-	find_property(properties, "Arrow texture", "Hit error meter · Conveyor").set("")
+	local arrow = find_property(meter, "Arrow texture")
+	t:eq(arrow.type, "texture")
+	t:eq(arrow.refresh, true) -- the controls are rebuilt with the elements
+	local previews = {}
+	renderer.skin_graphics.loadThumbnail = function(_, name, size)
+		previews[#previews + 1] = name
+		t:eq(size, 128)
+		return {done = false}
+	end
+	arrow.preview("editor-rate-arrow")
+	t:eq(arrow.preview("").result[1], nil)
+	find_property(find_section(sections, "screen:1"), "Font").preview("digits")
+	t:tdeq(previews, {"editor-rate-arrow", "digits-0"}) -- a font shows its zero
+	arrow.set("")
 	t:eq(reloads, 1) -- other textures
 
-	local remove = find_property(properties, "Hit error meter · Conveyor")
-	t:eq(remove.type, "buttons")
-	remove.buttons[1].on_click()
+	meter.remove()
 	t:eq(#renderer:getHudElements("conveyor"), 2)
 	t:eq(#config:getHud("mania", "4key").conveyor, 2)
 
@@ -776,15 +797,11 @@ function test.hud_editor_adds_elements_and_resets_to_the_default_layout(t)
 	renderer.skin_graphics.loaded = true
 	renderer:buildHud()
 	renderer.reloadHud = function() renderer:buildHud() end
-	local properties = renderer:getHudProperties()
-	find_property(properties, "New HUD element").set("box")
-	local add = find_property(properties, "HUD")
-	t:eq(add.buttons[1].text, "Add to screen")
-	t:eq(add.buttons[2].text, "Add to conveyor")
-	add.buttons[1].on_click()
+	t:eq(renderer:addHudElement("box", "screen"), "screen:4")
 	t:eq(renderer:getHudElements("screen")[4].type, "box")
 	t:eq(config:getHud("mania", "4key").screen[4].type, "box")
-	add.buttons[3].on_click()
+	t:eq(find_section(renderer:getHudSections(), "screen:4").label, "Box · Screen")
+	renderer:resetHudLayout()
 	t:eq(config:getHud("mania", "4key"), nil)
 	t:eq(#renderer:getHudElements("screen"), 3)
 	renderer:unload()
@@ -796,19 +813,15 @@ function test.hud_editor_keeps_editing_elements_after_a_texture_change_rebuilds_
 	renderer.skin_graphics.loaded = true
 	renderer:buildHud()
 	renderer.reloadHud = function() renderer:buildHud() end
-	local properties = renderer:getHudProperties()
-	find_property(properties, "New HUD element").set("score")
-	find_property(properties, "HUD").buttons[1].on_click()
+	local id = renderer:addHudElement("score", "screen")
 
-	properties = renderer:getHudProperties()
-	local font = find_property(properties, "Font", "Score · Screen")
-	t:eq(font.refresh, true) -- the controls are rebuilt with the elements
-	font.set("digits")
-	find_property(properties, "X", "Score · Screen").set(-50)
-	local score = renderer:getHudElements("screen")[1]
+	local score_section = find_section(renderer:getHudSections(), id)
+	find_property(score_section, "Font").set("digits")
+	find_property(score_section, "X").set(-50)
+	local score = renderer:getHudElements("screen")[4]
 	t:eq(score.values.font, "digits")
 	t:eq(score.x, -50)
-	t:eq(config:getHud("mania", "4key").screen[1].x, -50)
+	t:eq(config:getHud("mania", "4key").screen[4].x, -50)
 	renderer:unload()
 end
 

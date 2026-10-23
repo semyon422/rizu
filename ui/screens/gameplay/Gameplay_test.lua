@@ -152,6 +152,23 @@ function test.skin_editor_shrinks_the_viewport_into_the_top_right(t)
 end
 
 ---@param t testing.T
+function test.skin_editor_fill_covers_the_window_under_the_gameplay(t)
+	local fill = {offset_min = {0, 0}, offset_max = {0, 0}, anchors = 0}
+	function fill:anchorFixed(x, y, width, height)
+		self.anchors = self.anchors + 1
+		self.offset_min, self.offset_max = {x, y}, {x + width, y + height}
+	end
+	local screen = setmetatable({width = 1280, height = 720, ui_scale = 0.5, skin_editor_fill = fill},
+		{__index = Gameplay})
+	screen:layoutSkinEditorFill()
+	local scale = (1280 - 580 * 0.5) / 1280
+	t:tdeq(fill.offset_min, {580, 720 * scale / 0.5})
+	t:tdeq(fill.offset_max, {2560, 1440})
+	screen:layoutSkinEditorFill()
+	t:eq(fill.anchors, 1) -- the same window does not lay out again
+end
+
+---@param t testing.T
 function test.retry_requires_hold_from_play_and_pause(t)
 	for _, state in ipairs({"play", "pause"}) do
 		local screen, model = create(state)
