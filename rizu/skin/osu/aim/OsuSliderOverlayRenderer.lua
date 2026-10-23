@@ -58,7 +58,6 @@ function OsuSliderOverlayRenderer.drawReverseArrow(slider, radius, time, alpha, 
 	local x, y = slider.path:position(progress)
 	local arrow = sprites and sprites.reversearrow
 	if not SpriteRenderer.isRenderable(arrow) then
-		SpriteRenderer.flush(sprites)
 		love.graphics.setLineWidth(2)
 		love.graphics.setColor(0.85, 0.95, 1, alpha)
 		love.graphics.circle("line", x, y, radius * 0.6)
@@ -94,7 +93,6 @@ function OsuSliderOverlayRenderer.drawBodyOverlays(slider, radius, time, alpha, 
 				local size = math.min(radius * 0.5, scorepoint_width)
 				SpriteRenderer.draw(scorepoint, x, y, size, alpha)
 			else
-				SpriteRenderer.flush(sprites)
 				love.graphics.setColor(0.85, 0.95, 1, alpha)
 				love.graphics.circle("fill", x, y, 4)
 			end

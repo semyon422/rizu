@@ -68,25 +68,8 @@ local function with_gpu(callback)
 		q:setViewport(x, y, w, h, tw, th)
 		return q
 	end)
-	replace("newSpriteBatch", function(texture)
-		local batch = resource({sprites = {}, texture = texture})
-		batch.getCount = function(self) return #self.sprites end
-		batch.setColor = function(self, ...) self.color = {...} end
-		batch.add = function(self, quad, ...)
-			local args = {texture, quad, ...}
-			args.viewport = {quad:getViewport()}
-			self.sprites[#self.sprites + 1] = args
-		end
-		batch.clear = function(self) self.sprites = {} end
-		batch.getDimensions = function() return texture:getDimensions() end
-		return batch
-	end)
 	replace("draw", function(...)
 		local args = {...} ---@type table
-		if args[1].sprites then
-			for _, sprite in ipairs(args[1].sprites) do draws[#draws + 1] = sprite end
-			return
-		end
 		if type(args[2]) == "table" then args.viewport = {args[2]:getViewport()} end
 		draws[#draws + 1] = args
 	end)
@@ -226,9 +209,8 @@ function test.renderer_membership_and_all_draw_paths(t)
 			t:assert(frame, name)
 			t:eq(frame.texture, nil, name)
 		end
-		local old_quad, old_batch = love.graphics.newQuad, love.graphics.newSpriteBatch
+		local old_quad = love.graphics.newQuad
 		love.graphics.newQuad = function() error("Quad allocation during draw") end
-		love.graphics.newSpriteBatch = function() error("SpriteBatch allocation during draw") end
 		local widths, xs = {30, 30, 30, 30}, {15, 45, 75, 105}
 		renderer.field_renderer:draw(renderer, 0, 120, widths, xs, 402, 1)
 		renderer.key_renderer:draw(renderer, {}, widths, xs, 402)
@@ -238,10 +220,8 @@ function test.renderer_membership_and_all_draw_paths(t)
 			head_visible = true, head_y = 200, tail_y = 100}}, widths, xs)
 		t:assert(graphics.repeated_quad)
 		local quad = graphics.repeated_quad
-		graphics.batch:begin()
 		renderer.note_renderer:draw(renderer, {{column = 1, long_note = true, body_visible = true,
 			head_visible = true, head_y = 200, tail_y = 100}}, widths, xs)
-		graphics.batch:finish()
 		t:eq(graphics.repeated_quad, quad)
 		local score, combo = renderer:getHudElements("screen")[1], renderer:getHudElements("conveyor")[1]
 		score:setText("123")
@@ -258,7 +238,7 @@ function test.renderer_membership_and_all_draw_paths(t)
 		for _, draw in ipairs(draws) do
 			t:assert(draw[1].getDimensions, "draw must receive a GPU Image, not frame metadata")
 		end
-		love.graphics.newQuad, love.graphics.newSpriteBatch = old_quad, old_batch
+		love.graphics.newQuad = old_quad
 		renderer:unload()
 		for _, r in ipairs(resources) do t:eq(r.releases, 1) end
 	end)
@@ -324,7 +304,6 @@ function test.real_gpu_regions_density_and_repeated_hold_pixels(t)
 	love.graphics.setCanvas(canvas)
 	love.graphics.clear(0, 0, 0, 0)
 	love.graphics.setColor(1, 1, 1, 1)
-	graphics.batch:begin()
 	Image.draw(frame, 0, 0, 0, 2, 2)
 	local note_renderer = require("rizu.skin.osu.mania.OsuManiaNoteRenderer")()
 	local renderer = {
@@ -337,7 +316,6 @@ function test.real_gpu_regions_density_and_repeated_hold_pixels(t)
 	}
 	note_renderer:draw(renderer, {{column = 1, long_note = true, body_visible = true,
 		head_visible = false, head_y = 8, tail_y = 2}}, {4}, {8})
-	graphics.batch:finish()
 	love.graphics.setCanvas()
 	love.graphics.pop()
 	local pixels = love.graphics.readbackTexture(canvas)
@@ -351,37 +329,21 @@ function test.real_gpu_regions_density_and_repeated_hold_pixels(t)
 	pixels:release(); canvas:release(); graphics:unload()
 end
 
-function test.spritebatch_order_colors_capacity_and_no_hot_allocations(t)
+function test.atlas_draws_keep_order_without_hot_allocations(t)
 	local graphics = fixture({["a.png"] = png(2, 2), ["b.png"] = png(2, 2)})
 	with_gpu(function(resources, draws)
 		graphics:load({{name = "a", group = "playfield"}, {name = "b", group = "font"}})
 		local a = graphics:getFrames("a", nil, "playfield")[1]
 		local b = graphics:getFrames("b", nil, "font")[1]
-		local batch = graphics.batch
-		local pages = batch.pages
-		local r, g, blue, alpha = love.graphics.getColor()
-		batch:begin()
-		love.graphics.setColor(1, 0, 0, 0.5)
-		Image.draw(a, 1, 0)
-		Image.draw(a, 2, 0)
-		t:eq(#draws, 0)
-		Image.draw(b, 3, 0)
-		t:eq(#draws, 2)
-		Image.draw(a, 4, 0)
-		batch:finish()
-		for i = 1, 4 do t:eq(draws[i][3], i) end
-		t:tdeq({love.graphics.getColor()}, {1, 0, 0, 0.5})
-		t:tdeq(pages[a.texture].color, {1, 0, 0, 0.5})
 		local before = #resources
-		local first = #draws
-		batch:begin()
-		for i = 1, 5000 do Image.draw(a, i, 0) end
-		batch:finish()
+		for i = 1, 5000 do Image.draw(i % 2 == 0 and a or b, i, 0) end
 		t:eq(#resources, before)
-		t:eq(#draws - first, 5000)
-		t:eq(pages[a.texture]:getCount(), 0)
+		t:eq(#draws, 5000)
+		for i = 1, 4 do
+			t:eq(draws[i][1], (i % 2 == 0 and a or b).texture)
+			t:eq(draws[i][3], i)
+		end
 		graphics:unload()
-		love.graphics.setColor(r, g, blue, alpha)
 	end)
 end
 
@@ -392,8 +354,8 @@ function test.standalone_assets_remain_visible_alongside_oversized_atlas_pages(t
 	with_gpu(function()
 		graphics:load({{name = "small", group = "playfield"}, {name = "huge", group = "playfield"},
 			{name = "stage", group = "standalone"}})
-		t:assert(graphics:getFrames("small", nil, "playfield")[1].batch)
-		t:assert(graphics:getFrames("huge", nil, "playfield")[1].batch)
+		t:assert(graphics:getFrames("small", nil, "playfield")[1].texture)
+		t:assert(graphics:getFrames("huge", nil, "playfield")[1].texture)
 		t:eq(#graphics:getAnimationFrames("huge", nil, "playfield"), 1)
 		t:eq(#graphics:getFrames("stage", nil, "standalone"), 1)
 		t:eq(#graphics:getFrames("stage"), 1)
@@ -413,17 +375,15 @@ function test.one_pixel_hold_body_is_stretched_once(t)
 			note_body_styles = {"repeat_bottom"}, getColumnSuffix = function() return "1" end,
 			getColumnFrames = function() return {body} end, getColumnImage = function() return nil end,
 			getBoolean = function() return false end}
-		graphics.batch:begin()
 		require("rizu.skin.osu.mania.OsuManiaNoteRenderer")():draw(renderer,
 			{{column = 1, long_note = true, head_visible = false, body_visible = true,
 				head_y = 300, tail_y = 0}}, {40}, {20})
-		graphics.batch:finish()
 		t:eq(#draws, 1)
 		graphics:unload()
 	end)
 end
 
-function test.tall_body_crops_top_left_to_device_limit_and_batches_without_hot_quads(t)
+function test.tall_body_crops_top_left_to_device_limit_without_hot_quads(t)
 	local data = love.image.newImageData(40, 70000)
 	data:setPixel(0, 0, 1, 0, 0, 1)
 	data:setPixel(39, 63, 0, 1, 0, 1)
@@ -443,7 +403,7 @@ function test.tall_body_crops_top_left_to_device_limit_and_batches_without_hot_q
 	with_gpu(function(_, draws)
 		graphics:upload()
 		local body = graphics:getFrames("body", nil, "playfield")[1]
-		t:assert(body.batch)
+		t:assert(body.texture)
 		t:tdeq({Image.dimensions(body)}, {40, 64})
 		local renderer = {skin_graphics = graphics, upside_down = false, note_flip = false,
 			note_body_styles = {"repeat_bottom"}, getColumnSuffix = function() return "1" end,
@@ -451,11 +411,9 @@ function test.tall_body_crops_top_left_to_device_limit_and_batches_without_hot_q
 			getBoolean = function() return false end}
 		local new_quad = love.graphics.newQuad
 		love.graphics.newQuad = function() error("hot Quad creation") end
-		graphics.batch:begin()
 		require("rizu.skin.osu.mania.OsuManiaNoteRenderer")():draw(renderer,
 			{{column = 1, long_note = true, head_visible = false, body_visible = true,
 				head_y = 150, tail_y = 0}}, {40}, {20})
-		graphics.batch:finish()
 		love.graphics.newQuad = new_quad
 		t:assert(#draws > 1)
 		for _, draw in ipairs(draws) do
@@ -481,18 +439,9 @@ function test.large_cropped_bodies_share_page_with_heads_and_tails(t)
 		t:eq(frames[1].texture, head.texture)
 		t:eq(frames[2].texture, head.texture)
 		t:eq(tail.texture, head.texture)
-		local batch = graphics.batch.pages[head.texture]
-		local draw, calls = love.graphics.draw, 0
-		love.graphics.draw = function(image, ...)
-			if image == batch then calls = calls + 1 end
-			draw(image, ...)
-		end
-		graphics.batch:begin()
 		for i = 1, 100 do Image.draw(frames[i % 2 + 1], 0, 0); Image.draw(tail, 0, 0) end
-		graphics.batch:finish()
-		love.graphics.draw = draw
-		t:eq(calls, 1)
 		t:eq(#draws, 200)
+		for _, draw in ipairs(draws) do t:eq(draw[1], head.texture) end
 		graphics:unload()
 	end)
 end

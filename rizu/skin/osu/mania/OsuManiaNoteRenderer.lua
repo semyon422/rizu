@@ -28,7 +28,6 @@ end
 ---@param height number
 ---@param flip boolean
 local function draw_image_rect(graphics, image, x, y, width, height, flip)
-	if not image.texture and graphics.batch then graphics.batch:flush() end
 	local image_width, image_height = TextureImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 	local scale_x, scale_y = width / image_width, height / image_height
@@ -88,14 +87,8 @@ local function draw_repeated_image_rect(graphics, image, x, y, width, height, fl
 		quad:setViewport(qx, qy + wrapped_y * density, image_width * density,
 			segment_height * density, texture_width, texture_height)
 		if flip then destination_y = destination_y - destination_height end
-		if image.texture then
-			image.batch:add(texture, quad, x, y + destination_y + (flip and destination_height or 0),
-				0, draw_scale, flip and -draw_scale or draw_scale, 0, 0)
-		else
-			if graphics.batch then graphics.batch:flush() end
-			lg.draw(texture, quad, x, y + destination_y + (flip and destination_height or 0),
-				0, draw_scale, flip and -draw_scale or draw_scale)
-		end
+		lg.draw(texture, quad, x, y + destination_y + (flip and destination_height or 0),
+			0, draw_scale, flip and -draw_scale or draw_scale)
 		if not flip then destination_y = destination_y + destination_height end
 		source_position = source_position + segment_height
 		remaining = remaining - segment_height
@@ -112,7 +105,6 @@ end
 ---@param upside_down boolean
 ---@param color number[]
 local function draw_note_head(graphics, image, x, y, target_width, target_height, flip, upside_down, color)
-	if not image.texture and graphics.batch then graphics.batch:flush() end
 	local image_width, image_height = TextureImage.dimensions(image)
 	if image_width <= 0 or image_height <= 0 then return end
 	local scale_x, scale_y = target_width / image_width, target_height / image_height

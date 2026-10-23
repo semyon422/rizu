@@ -26,7 +26,7 @@ local function drawNumber(sprites, number, x, y, scale, alpha)
 		local glyph = sprites.digits[text:byte(i) - 48]
 		if glyph then
 			local glyph_width, glyph_height = TextureImage.dimensions(glyph)
-			TextureImage.draw(glyph, x, y - glyph_height * scale / 2, 0, scale, scale, 0, 0, sprites.batch)
+			TextureImage.draw(glyph, x, y - glyph_height * scale / 2, 0, scale, scale)
 			x = x + (glyph_width - overlap) * scale
 		end
 	end
@@ -70,7 +70,6 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 			approach_size = approach_size * SpriteRenderer.getWidth(approachcircle) / 128
 			SpriteRenderer.draw(approachcircle, object.x, object.y, approach_size, approach_alpha, 0, color)
 		else
-			SpriteRenderer.flush(sprites)
 			love.graphics.setColor(0.8, 0.92, 1, approach_alpha)
 			love.graphics.circle("line", object.x, object.y, radius * approach)
 		end
@@ -79,7 +78,6 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 	if hitcircle then
 		SpriteRenderer.draw(hitcircle, object.x, object.y, size, alpha, 0, color)
 	else
-		SpriteRenderer.flush(sprites)
 		love.graphics.setColor(0.16, 0.4, 0.58, alpha)
 		love.graphics.circle("fill", object.x, object.y, size / 2)
 	end
@@ -90,7 +88,6 @@ function OsuCircleRenderer.draw(object, radius, time, preempt, sprites, is_slide
 	if overlay then
 		SpriteRenderer.draw(overlay, object.x, object.y, SpriteRenderer.getOverlayWidth(overlay, size), alpha)
 	elseif not hitcircle then
-		SpriteRenderer.flush(sprites)
 		local border_width = 2
 		love.graphics.setLineWidth(border_width)
 		love.graphics.setColor(0.8, 0.92, 1, alpha)

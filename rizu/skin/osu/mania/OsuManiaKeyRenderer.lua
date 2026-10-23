@@ -40,7 +40,6 @@ end
 ---@param upside_down boolean
 ---@param alpha number
 local function draw_key(renderer, image, x, y, width, flip, upside_down, alpha)
-	if not image.texture and renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
 	local image_width, image_height = TextureImage.dimensions(image)
 	local scale_x, scale_y = width / image_width, FIELD_HEIGHT / 768
 	lg.setColor(1, 1, 1, alpha)

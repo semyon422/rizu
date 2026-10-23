@@ -77,7 +77,6 @@ function OsuAimRenderer:draw(width, height, transform)
 	local scale, ox, oy = self:getField(width, height)
 	local time = re.visual_info.time
 	local sprites = assert(self.sprites)
-	local batch = self.skin_graphics.batch
 
 	love.graphics.push("all")
 	love.graphics.applyTransform(transform)
@@ -94,8 +93,6 @@ function OsuAimRenderer:draw(width, height, transform)
 		last_visible = i
 	end
 
-	-- Sprites queue into the atlas batch; slider bodies and primitives flush it.
-	batch:begin()
 	OsuFollowPointRenderer.draw(rules, time, sprites)
 	-- A chart's own combo colours replace the skin's.
 	local chart_colors = rules.chart.data.combo_colors ---@type number[][]?
@@ -108,7 +105,6 @@ function OsuAimRenderer:draw(width, height, transform)
 		local color = object.combo_index and combo_colors[object.combo_index % #combo_colors + 1]
 		local spinner = rules.spinners[i]
 		if spinner and not rules.states[i] then
-			batch:flush()
 			SpinnerRenderer.draw(spinner, time)
 		end
 
@@ -117,7 +113,6 @@ function OsuAimRenderer:draw(width, height, transform)
 			-- A finished slider stays until its body has faded out.
 			local alpha = SliderRenderer.getBodyAlpha(object, slider, time, rules.preempt)
 			if alpha > 0 then
-				batch:flush()
 				SliderRenderer.drawBody(object, slider, time, rules.preempt, self.slider_graphics, i,
 					sprites.slider_track or color, border_color)
 			end
@@ -140,12 +135,10 @@ function OsuAimRenderer:draw(width, height, transform)
 		OsuSpriteRenderer.draw(sprites.cursor, rules.x, rules.y,
 			OsuSpriteRenderer.getWidth(sprites.cursor) * cursor_scale, 1)
 	else
-		batch:flush()
 		love.graphics.setColor(1, 0.85, 0.2)
 		love.graphics.circle("line", rules.x, rules.y, 9 * cursor_scale)
 		love.graphics.circle("fill", rules.x, rules.y, 3)
 	end
-	batch:finish()
 	love.graphics.pop()
 end
 

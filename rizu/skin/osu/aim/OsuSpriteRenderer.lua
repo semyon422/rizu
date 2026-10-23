@@ -26,12 +26,6 @@ function OsuSpriteRenderer.getOverlayWidth(overlay, size)
 	return size * OsuSpriteRenderer.getWidth(overlay) / 128
 end
 
----Queued sprites must reach the screen before a primitive is drawn over them.
----@param sprites rizu.skin.osu.aim.OsuAimSprites?
-function OsuSpriteRenderer.flush(sprites)
-	if sprites and sprites.batch then sprites.batch:flush() end
-end
-
 ---@param sprite rizu.skin.SkinTextures.Image?
 ---@param x number
 ---@param y number

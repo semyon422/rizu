@@ -212,7 +212,7 @@ function HitError:drawTiming()
 		local arrow_width, arrow_height = TextureImage.dimensions(arrow)
 		local scale = 0.6 * 480 / 768
 		lg.setColor(1, 1, 1, alpha)
-		TextureImage.drawDirect(arrow, self.position, bar_center - 3, 0, scale, scale, arrow_width / 2, arrow_height)
+		TextureImage.draw(arrow, self.position, bar_center - 3, 0, scale, scale, arrow_width / 2, arrow_height)
 	end
 end
 

@@ -68,7 +68,7 @@ function Progress:draw()
 	if image then
 		local width, height = TextureImage.dimensions(image)
 		lg.setColor(1, 1, 1, 1)
-		TextureImage.drawDirect(image, cx, cy, 0, SPRITE_SCALE, SPRITE_SCALE, width / 2, height / 2)
+		TextureImage.draw(image, cx, cy, 0, SPRITE_SCALE, SPRITE_SCALE, width / 2, height / 2)
 	end
 	lg.setBlendMode(mode, alpha_mode)
 end

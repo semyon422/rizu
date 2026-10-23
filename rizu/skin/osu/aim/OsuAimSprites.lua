@@ -15,7 +15,6 @@ local names = {
 }
 
 ---@class rizu.skin.osu.aim.OsuAimSprites
----@field batch rizu.skin.SpriteBatch
 ---@field digits {[integer]: rizu.skin.SkinTextures.Image} Hit circle glyphs, indexed 0 to 9.
 ---@field digit_overlap number
 ---@field animation_framerate number?
@@ -97,7 +96,7 @@ end
 function OsuAimSprites.load(graphics)
 	---@type rizu.skin.osu.aim.OsuAimSprites
 	local sprites = {
-		batch = graphics.batch, digits = {}, digit_overlap = tonumber(getFonts(graphics).HitCircleOverlap) or -2,
+		digits = {}, digit_overlap = tonumber(getFonts(graphics).HitCircleOverlap) or -2,
 		followpoint = graphics:getAnimationFrames("followpoint", nil, GROUP),
 		combo_colors = {},
 	}

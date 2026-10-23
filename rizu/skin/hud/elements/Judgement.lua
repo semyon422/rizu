@@ -149,7 +149,7 @@ function Judgement:draw()
 	HudElement.setColor(color, math.max(0, alpha))
 	local frame = frames[math.min(#frames, math.floor(state.elapsed * FRAME_RATE) + 1)]
 	local width, height = TextureImage.dimensions(frame)
-	TextureImage.drawDirect(frame, self.width / 2, self.height / 2, rotation, scale, scale, width / 2, height / 2)
+	TextureImage.draw(frame, self.width / 2, self.height / 2, rotation, scale, scale, width / 2, height / 2)
 end
 
 return Judgement

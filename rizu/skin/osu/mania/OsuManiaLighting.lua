@@ -174,7 +174,7 @@ function OsuManiaLighting:draw(x, y, upside_down)
 	-- Keeping the origin at the lower edge reproduces osu!'s BottomLeft
 	-- origin in normal scroll and its flipped TopLeft origin in upside-down
 	-- mode when the Y scale is negative.
-	TextureImage.drawDirect(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
+	TextureImage.draw(image, x, y, 0, scale_x, scale_y, image_width * self.origin_x,
 		image_height * origin_y)
 end
 

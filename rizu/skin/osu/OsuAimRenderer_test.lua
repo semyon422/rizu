@@ -24,7 +24,6 @@ function test.loads_the_given_osu_skin_and_uses_sprite_renderers(t)
 	t:eq(loaded.path, "skins/two")
 	t:eq(loaded.assets[1].group, "playfield")
 	t:eq(renderer.sprites.hitcircle, nil)
-	t:eq(renderer.sprites.batch, renderer.skin_graphics.batch)
 	t:eq(renderer.skin_graphics.skin, skin)
 end
 

@@ -2,7 +2,6 @@ local class = require("class")
 local path_util = require("path_util")
 local thread = require("thread")
 local LoveFilesystem = require("fs.LoveFilesystem")
-local SpriteBatch = require("rizu.skin.SpriteBatch")
 local SkinAtlas = require("rizu.skin.SkinAtlas")
 local ImageAtlasPacker = require("rizu.skin.ImageAtlasPacker")
 
@@ -120,7 +119,6 @@ end
 ---@field width number Logical width
 ---@field height number Logical height
 ---@field density number
----@field batch rizu.skin.SpriteBatch
 
 ---@alias rizu.skin.SkinTextures.Image love.Image|rizu.skin.SkinTextures.Frame
 
@@ -133,7 +131,7 @@ end
 ---@field files string[]? Paths relative to `path`. The directory is listed when omitted.
 
 ---Textures of one skin of any format: name lookup that ignores case and prefers @2x, animation
----frames, atlases packed in a worker thread and a sprite batch. An optional fallback archive
+---frames and atlases packed in a worker thread. An optional fallback archive
 ---supplies what the skin lacks.
 ---@class rizu.skin.SkinTextures
 ---@operator call: rizu.skin.SkinTextures
@@ -157,7 +155,6 @@ end
 ---@field grouped_paths {[string]: {[string]: boolean}}
 ---@field load_token integer Changes on unload(), so a load that was waiting for the worker knows it was cancelled.
 ---@field loading boolean
----@field batch rizu.skin.SpriteBatch
 ---@field repeated_quad love.Quad?
 local SkinTextures = class()
 
@@ -186,7 +183,6 @@ function SkinTextures:new(fs, skin)
 	self.grouped_paths = {}
 	self.load_token = 0
 	self.loading = false
-	self.batch = SpriteBatch()
 	self:setSkin(skin)
 end
 
@@ -518,7 +514,6 @@ function SkinTextures:upload()
 				local image = love.graphics.newImage(data, {dpiscale = 1})
 				images[layer] = image
 				image:setWrap("clamp", "clamp")
-				self.batch:loadPage(image)
 			end
 			for path, location in pairs(group.locations) do
 				local image = images[location.layer]
@@ -526,7 +521,7 @@ function SkinTextures:upload()
 				local quad = love.graphics.newQuad(location.x, location.y, location.width, location.height,
 					image:getWidth(), image:getHeight())
 				frames[path] = {texture = image, quad = quad, width = location.width / density,
-					height = location.height / density, density = density, batch = self.batch}
+					height = location.height / density, density = density}
 			end
 		end
 		for path, source in pairs(prepared.standalone) do
@@ -623,7 +618,6 @@ function SkinTextures:loadAsync(assets)
 end
 
 function SkinTextures:unload()
-	self.batch:unload()
 	if self.repeated_quad then release_resource(self.repeated_quad) end
 	self.repeated_quad = nil
 	if self.prepared then SkinAtlas.releasePrepared(self.prepared) end

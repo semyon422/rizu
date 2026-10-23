@@ -687,12 +687,10 @@ end
 
 ---The pass, not each sprite, owns blend state. Avoid setting an unchanged
 ---mode: even a redundant state call can interrupt automatic batching.
----@param batch rizu.skin.SpriteBatch
 ---@param mode love.BlendMode
 ---@return love.BlendMode? previous_mode
 ---@return love.BlendAlphaMode? previous_alpha
-local function begin_lighting_pass(batch, mode)
-	batch:flush()
+local function begin_lighting_pass(mode)
 	local previous_mode, previous_alpha = lg.getBlendMode()
 	if previous_mode == mode and previous_alpha == "alphamultiply" then return end
 	lg.setBlendMode(mode, "alphamultiply")
@@ -713,7 +711,7 @@ function OsuManiaRenderer:drawStageLightings(lane_widths, lane_xs, hit_y)
 		local lighting = self.stage_lightings[column]
 		if lighting and lighting.active and lighting.alpha > 0 then
 			if not started then
-				previous_mode, previous_alpha = begin_lighting_pass(self.skin_graphics.batch, "alpha")
+				previous_mode, previous_alpha = begin_lighting_pass("alpha")
 				started = true
 			end
 			lighting:draw(lane_xs[column] - lane_widths[column] / 2, light_y, self.upside_down)
@@ -735,7 +733,7 @@ function OsuManiaRenderer:drawHitLightings(lane_xs, hit_y)
 			local short, long = hit.short, hit.long
 			if short and short.active and short.alpha > 0 or long and long.active and long.alpha > 0 then
 				if not started then
-					previous_mode, previous_alpha = begin_lighting_pass(self.skin_graphics.batch, "add")
+					previous_mode, previous_alpha = begin_lighting_pass("add")
 					started = true
 				end
 				if short then short:draw(lane_xs[column], hit_y) end
@@ -1286,8 +1284,6 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	lg.push("all")
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
-	local batch = self.skin_graphics.batch
-	batch:begin()
 	for column = 1, math.min(self.columns, #preview.columns) do
 		local source_column = column
 		if player.column_map and player.column_map[column] then source_column = player.column_map[column] end
@@ -1326,7 +1322,6 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 		end
 	end
 	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
-	batch:finish()
 	lg.pop()
 end
 
@@ -1389,8 +1384,6 @@ function OsuManiaRenderer:draw(width, height, transform)
 	lg.translate(offset_x, offset_y)
 	lg.scale(scale)
 
-	local batch = self.skin_graphics.batch
-	batch:begin()
 	self.field_renderer:drawBackground(self, field_left, field_width)
 	self.field_renderer:drawLanes(self, lane_widths, lane_xs)
 	self.field_renderer:drawGuides(self, field_left, field_width, lane_widths, lane_xs, hit_y, width_scale)
@@ -1443,7 +1436,6 @@ function OsuManiaRenderer:draw(width, height, transform)
 	if not self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 	if not self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
 	self:drawHitLightings(lane_xs, hit_y)
-	batch:finish()
 	lg.pop()
 end
 

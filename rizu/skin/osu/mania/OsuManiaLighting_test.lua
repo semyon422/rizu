@@ -126,18 +126,15 @@ local function with_lighting_graphics(callback)
 end
 
 local function make_draw_renderer()
-	local flushes = 0
-	local renderer = setmetatable({
+	return setmetatable({
 		columns = 4, upside_down = false, light_position = 413,
 		stage_lightings = {}, hit_lightings = {},
-		skin_graphics = {batch = {flush = function() flushes = flushes + 1 end}},
 	}, {__index = OsuManiaRenderer})
-	return renderer, function() return flushes end
 end
 
 function test.stage_lights_share_automatic_batch_without_redundant_blend_changes(t)
 	with_lighting_graphics(function(state)
-		local renderer, flushes = make_draw_renderer()
+		local renderer = make_draw_renderer()
 		local image = {getDimensions = function() return 16, 16 end}
 		for column = 1, 4 do
 			local lighting = make_lighting("stage")
@@ -150,14 +147,13 @@ function test.stage_lights_share_automatic_batch_without_redundant_blend_changes
 		t:eq(state.draws, 4)
 		t:eq(state.runs, 1)
 		t:eq(state.changes, 0)
-		t:eq(flushes(), 1)
 		t:eq(state.mode, "alpha")
 	end)
 end
 
 function test.hit_lights_set_additive_blend_once_and_restore_after_all_columns(t)
 	with_lighting_graphics(function(state)
-		local renderer, flushes = make_draw_renderer()
+		local renderer = make_draw_renderer()
 		local image = {getDimensions = function() return 16, 16 end}
 		for column = 1, 4 do
 			local lighting = make_lighting("oneshot")
@@ -170,15 +166,14 @@ function test.hit_lights_set_additive_blend_once_and_restore_after_all_columns(t
 		t:eq(state.draws, 4)
 		t:eq(state.runs, 1)
 		t:eq(state.changes, 2)
-		t:eq(flushes(), 1)
 		t:eq(state.mode, "alpha")
 		t:eq(state.alpha, "alphamultiply")
 	end)
 end
 
-function test.invisible_lighting_passes_do_not_change_state_or_flush(t)
+function test.invisible_lighting_passes_do_not_change_state(t)
 	with_lighting_graphics(function(state)
-		local renderer, flushes = make_draw_renderer()
+		local renderer = make_draw_renderer()
 		for column = 1, 4 do
 			renderer.stage_lightings[column] = make_lighting("stage")
 			local short = make_lighting("oneshot")
@@ -189,7 +184,6 @@ function test.invisible_lighting_passes_do_not_change_state_or_flush(t)
 		renderer:drawHitLightings({15, 45, 75, 105}, 402)
 		t:eq(state.draws, 0)
 		t:eq(state.changes, 0)
-		t:eq(flushes(), 0)
 	end)
 end
 

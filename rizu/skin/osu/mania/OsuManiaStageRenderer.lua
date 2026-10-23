@@ -30,7 +30,6 @@ function OsuManiaStageRenderer:drawStagePair(renderer, first, last, lane_widths,
 	local height = 480
 	local stage_left = get_image(renderer, renderer:getSkinValue("StageLeft"), "mania-stage-left")
 	if stage_left then
-		if renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
 		local image_width, image_height = TextureImage.dimensions(stage_left)
 		local width = image_width * height / image_height
 		lg.setColor(1, 1, 1, 1)
@@ -39,7 +38,6 @@ function OsuManiaStageRenderer:drawStagePair(renderer, first, last, lane_widths,
 	end
 	local stage_right = get_image(renderer, renderer:getSkinValue("StageRight"), "mania-stage-right")
 	if stage_right then
-		if renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
 		local image_width, image_height = TextureImage.dimensions(stage_right)
 		local width = image_width * height / image_height
 		lg.setColor(1, 1, 1, 1)
@@ -59,8 +57,7 @@ function OsuManiaStageRenderer:draw(renderer, field_left, field_width, lane_widt
 	if stage_hint then
 		local image_width, image_height = TextureImage.dimensions(stage_hint)
 		lg.setColor(1, 1, 1, 1)
-		TextureImage.draw(stage_hint, field_left, hit_y - image_height / 2, 0, field_width / image_width, 1,
-			0, 0, renderer.skin_graphics.batch)
+		TextureImage.draw(stage_hint, field_left, hit_y - image_height / 2, 0, field_width / image_width, 1)
 	end
 
 	local middle = math.floor(renderer.columns / 2)
@@ -73,7 +70,6 @@ function OsuManiaStageRenderer:draw(renderer, field_left, field_width, lane_widt
 
 	local stage_bottom = get_image(renderer, renderer:getSkinValue("StageBottom"), "mania-stage-bottom")
 	if stage_bottom then
-		if renderer.skin_graphics.batch then renderer.skin_graphics.batch:flush() end
 		local left = lane_xs[1] - lane_widths[1] / 2
 		local right = lane_xs[renderer.columns] + lane_widths[renderer.columns] / 2
 		lg.setColor(1, 1, 1, 1)

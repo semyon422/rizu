@@ -1,5 +1,4 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
-local SpriteBatch = require("rizu.skin.SpriteBatch")
 local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
 local SkinConfig = require("rizu.skin.SkinConfig")
 
@@ -186,7 +185,6 @@ function test.preview_note_images_ignore_lane_and_hold_tints(t)
 		getDimensions = function() return 20, 20 end,
 	}
 	renderer.skin_graphics = {
-		batch = SpriteBatch(),
 		skin = skin,
 		loaded = true,
 		setFallbackArchive = function() end,
@@ -238,7 +236,6 @@ function test.preview_long_note_draws_hold_head_body_and_tail(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
-		batch = SpriteBatch(),
 		skin = nil,
 		loaded = true,
 		unload = function() end,
@@ -310,7 +307,6 @@ function test.long_note_tail_is_reversed_and_body_starts_at_half_head(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
-		batch = SpriteBatch(),
 		skin = nil,
 		loaded = true,
 		unload = function() end,
@@ -393,7 +389,6 @@ function test.long_note_body_uses_the_selected_animation_frame(t)
 		tail = {getDimensions = function() return 20, 20 end},
 	}
 	renderer.skin_graphics = {
-		batch = SpriteBatch(),
 		unload = function() end,
 		getFrames = function(_, name)
 			local image = name == "mania-note1H" and images.head
@@ -494,10 +489,6 @@ function test.loads_bundled_fallback_assets(t)
 	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
 	local previous_new_image = love.graphics.newImage
 	local previous_new_quad = love.graphics.newQuad
-	local previous_new_batch = love.graphics.newSpriteBatch
-	love.graphics.newSpriteBatch = function()
-		return {release = function() end}
-	end
 	love.graphics.newQuad = function(x, y, width, height)
 		return {getViewport = function() return x, y, width, height end, release = function() end}
 	end
@@ -539,7 +530,6 @@ function test.loads_bundled_fallback_assets(t)
 	end, debug.traceback)
 	love.graphics.newImage = previous_new_image
 	love.graphics.newQuad = previous_new_quad
-	love.graphics.newSpriteBatch = previous_new_batch
 	renderer:unload()
 	if not ok then error(err) end
 end

@@ -170,8 +170,6 @@ function BitmapFont:draw(value, scale, y, right_edge, color)
 		glyph.image, glyph.width, glyph.height, glyph.advance, glyph.digit = nil, nil, nil, nil, nil
 	end
 	local draw_x = right_edge - math.max(0, total_width - math.max(0, glyph_count - 1) * self.overlap) * scale
-	local batch = self.graphics.batch
-	batch:begin()
 	for index = 1, glyph_count do
 		local glyph = glyphs[index]
 		local offset_x = glyph.digit and math.max(0, (slot_width - glyph.width) / 2) or 0
@@ -181,12 +179,9 @@ function BitmapFont:draw(value, scale, y, right_edge, color)
 		else
 			lg.setColor(1, 1, 1, 1)
 		end
-		TextureImage.draw(glyph.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale,
-			0, 0, batch)
+		TextureImage.draw(glyph.image, draw_x + offset_x * scale, y + offset_y * scale, 0, scale, scale)
 		draw_x = draw_x + (glyph.advance - self.overlap) * scale
 	end
-	batch:flush()
-	batch:finish()
 	return max_height * scale
 end
 

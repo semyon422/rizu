@@ -34,7 +34,7 @@ end
 function Sprite:draw()
 	if not self.image then return end
 	HudElement.setColor(self.values.color --[[@as number[] ]])
-	TextureImage.drawDirect(self.image, 0, 0)
+	TextureImage.draw(self.image, 0, 0)
 end
 
 return Sprite
