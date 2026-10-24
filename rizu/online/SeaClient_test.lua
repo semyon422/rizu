@@ -27,6 +27,8 @@ function FakeOnlineClient:setConnected(connected)
 	table.insert(self.connections, connected)
 end
 
+function FakeOnlineClient:setOnlineCount() end
+
 ---@class rizu.FakeWebsocketConnection
 ---@field state web.WebsocketState
 ---@field events string[]
@@ -170,7 +172,8 @@ function test.main_thread_connect_replaces_disconnected_peer(t)
 		"close:reconnecting",
 		"connect:ws://example.test/ws:203.0.113.10",
 		"startReader",
-		"send",
+		"send", -- reconnect thread ping
+		"send", -- ping thread ping
 	})
 	t:eq(sea_client.connected, true)
 	t:eq(sea_client.server_peer.ws, connection)
@@ -338,6 +341,32 @@ function test.stopped_after_connect_skips_user_sync(t)
 	t:eq(sea_client.connected, true)
 	t:eq(sea_client.server_peer.ws, connection)
 	t:tdeq(client.users, table_util.pack(nil))
+end
+
+---@param t testing.T
+function test.on_connect_failure_disconnects(t)
+	local connection = new_connection(true)
+	local client = new_client()
+	local sea_client = SeaClient(client, {}, new_network() --[[@as any]])
+	sea_client.log = function() end
+	sea_client.remote = {
+		getUser = function()
+			error("getUser should not be called")
+		end,
+		heartbeat = function() end,
+	}
+	function sea_client:createWebsocketConnection()
+		return connection --[[@as any]]
+	end
+
+	sea_client:load("ws://example.test/ws", function()
+		error("timeout")
+	end)
+
+	t:eq(connection.events[#connection.events]:find("^close:.*timeout") ~= nil, true)
+	t:eq(sea_client.connected, false)
+	t:eq(sea_client.server_peer.ws, sea_client.disconnected_ws)
+	t:eq(client.users[client.users.n], nil)
 end
 
 ---@param t testing.T

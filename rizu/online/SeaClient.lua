@@ -174,16 +174,23 @@ function SeaClient:load(url, on_connect)
 					reconnect_delay = self.reconnect_initial_interval
 					attempt = 0
 					self:log(("connected url=%s"):format(safeUrl(url)))
-					on_connect()
+					-- the server can go away mid-sync, a failed call must reconnect instead of crashing
+					local ok, user = pcall(function()
+						on_connect()
+						if not self.stopped then
+							return self.remote:getUser()
+						end
+					end)
 					if self.stopped then
 						break
 					end
-					local user = self.remote:getUser()
-					if self.stopped then
-						break
+					if not ok then
+						self:log(("on_connect failed url=%s error=%s"):format(safeUrl(url), tostring(user)))
+						self:closeWebsocket(tostring(user))
+					else
+						self.client:setUser(user)
+						self:ping()
 					end
-					self.client:setUser(user)
-					self:ping()
 				end
 			end
 			delay.sleep(1)
