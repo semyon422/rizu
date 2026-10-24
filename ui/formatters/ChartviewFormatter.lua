@@ -146,13 +146,14 @@ function ChartviewFormatter:getNoteCount()
 	return tostring(self.chartview.notes_count or 0)
 end
 
+---@param inputmode string? overrides the chart's own, e.g. the one modifiers produced
 ---@return string
-function ChartviewFormatter:getMode()
+function ChartviewFormatter:getMode(inputmode)
 	local chartview = self.chartview
 	local labels = {osu = "AIM", catch = "CATCH", taiko = "TAIKO", sdvx = "SDVX"}
 	local label = labels[chartview.chartmeta_mode]
 	if label then return label .. " (EXPERIMENTAL)" end
-	local inputmode = chartview.chartdiff_inputmode or chartview.inputmode
+	inputmode = inputmode or chartview.chartdiff_inputmode or chartview.inputmode
 	if inputmode and inputmode ~= "" then
 		return inputmode:gsub("key", "K"):gsub("scratch", "S"):upper()
 	end

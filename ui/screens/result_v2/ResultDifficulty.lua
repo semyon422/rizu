@@ -77,9 +77,8 @@ function ResultDifficulty:bind(cvf, cdf)
 	self.rate_x.color = rate.color
 
 	-- Only the two strongest patterns are shown.
-	local patterns = cvf:getPatterns()
 	local names = {} ---@type string[]
-	for _, name in ipairs({patterns.top_full, patterns.second_full}) do
+	for _, name in ipairs({cdf:getPatterns()}) do
 		names[#names + 1] = name:sub(1, 1):upper() .. name:sub(2)
 	end
 	self.patterns:setText(table.concat(names, " · "))

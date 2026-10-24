@@ -6,6 +6,7 @@ local test = {}
 function test.formats_chart_mode(t)
 	local formatter = ChartviewFormatter({chartdiff_inputmode = "7key1scratch"}, {})
 	t:eq(formatter:getMode(), "7K1S")
+	t:eq(formatter:getMode("7key"), "7K")
 
 	formatter:setChartview({mode = "taiko"})
 	t:eq(formatter:getMode(), "TAIKO")

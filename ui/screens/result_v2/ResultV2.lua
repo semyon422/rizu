@@ -287,11 +287,11 @@ function ResultV2:updateInfo()
 	self.difficulty:bind(self.chartview_formatter, self.chartdiff_formatter)
 	self.status:bind(self.chartview_formatter)
 	self.mutators:bind(result:getMutators(), self.ui.api.play)
-	local ln = self.chartview_formatter:getLongNoteRatio()
+	local ln = self.chartdiff_formatter:getLongNoteRatio()
 	self.facts:setValues({
-		{value = (self.chartview_formatter:getMode())},
-		{value = self.chartview_formatter:getDuration()},
-		{value = self.chartview_formatter:getNoteCount()},
+		{value = (self.chartview_formatter:getMode(chartdiff and chartdiff.inputmode))},
+		{value = self.chartdiff_formatter:getDuration()},
+		{value = self.chartdiff_formatter:getNoteCount()},
 		{value = self.chartview_formatter:getTempo().avg},
 		{value = ln.value, color = ln.color},
 	})
