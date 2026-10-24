@@ -11,6 +11,7 @@ function FakeMedia:new()
 	self.time = 0
 	self.duration = 0
 	self.paused = false
+	self.active = false
 end
 
 ---The fake game calls this when another chart is selected.
@@ -46,6 +47,9 @@ function FakeMedia:setPreviewTime(time) self.time = math.max(0, time) end
 function FakeMedia:getBeat() return self.time * 2 end
 function FakeMedia:setSpectrumSize(size) end
 function FakeMedia:getSpectrum() return nil end
+function FakeMedia:startPreview() self.active = true end
+function FakeMedia:stopPreview() self.active = false end
+function FakeMedia:isPreviewActive() return self.active end
 function FakeMedia:togglePreview() self.paused = not self.paused end
 function FakeMedia:isPaused() return self.paused end
 function FakeMedia:drawNotesPreview(width, height) end

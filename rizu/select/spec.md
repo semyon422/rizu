@@ -124,7 +124,7 @@ Select coordinators depend on selection-domain service interfaces instead of con
 ### Partial Cache Selection
 Selection may point at provisional library rows while caching is still running. A provisional chartview remains a valid list item and can be kept in `SelectionState`, but it is not a playable chart until it has a non-zero `chartmeta_id`, `hash`, `index`, `inputmode`, and `location_path`.
 
-Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(chartview)`. This includes preview activation, audio/background lookup, chart loading, modifier metadata application, and selection-driven `ReplayBase` updates. When selection lands on a provisional row, the preview audio should be cleared and modifier metadata should not be recalculated from incomplete chart data.
+Playable-only effects must be guarded by `ChartSelector:isPlayableChartview(chartview)`. This includes audio/background lookup, chart loading, modifier metadata application, and selection-driven `ReplayBase` updates. When selection lands on a provisional row, the preview audio should be cleared and modifier metadata should not be recalculated from incomplete chart data.
 
 ### Multiplayer Chart Lookup
 `ChartSelector:findChartmeta(hash, index)` is used when a multiplayer room tells the client which chartmeta is required. The lookup intentionally targets `chartmetas` only: it answers whether the client has the song identity (`hash` + `index`). Gameplay variation details such as modifiers, rate, play-specific timing, and other `ReplayBase` fields come from multiplayer room state rather than from this local lookup.

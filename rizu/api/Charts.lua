@@ -230,14 +230,6 @@ function Charts:moveChart(offset) self.selector:scrollLevel(2, offset) end
 ---@return rizu.api.Chart? chart The chart that Play would start.
 function Charts:getSelectedChart() return self.selector.chartview --[[@as rizu.api.Chart?]] end
 
--- TODO: weak spot. The UI fakes a selection change so that SelectionCoordinator restarts the previews
--- GameplayInteractor stopped. The game should restart them itself when gameplay unloads; then this
--- function and the calls to it (SongSelectV2:enter, and the same trick in ResultV2 and MusicPlayer) can go.
----Emits "selection_changed" for the chart that is already selected.
----Call when a screen that shows the selection is entered: a play stops the previews, and the game
----starts them again only on this event.
-function Charts:announceSelection() self.selector:notifyChartviewChanged() end
-
 ---False while the selected chart's file is missing or still being checked.
 ---@return boolean
 function Charts:canPlaySelectedChart() return self.selector:chartExists() end

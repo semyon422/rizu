@@ -429,6 +429,7 @@ end
 
 function GameplayInteractor:saveScore()
 	self.score_saver:saveScore(self.gameplay_session)
+	self.game.chartSelector:updateLamps()
 end
 
 function GameplayInteractor:play()

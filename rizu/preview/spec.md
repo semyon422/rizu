@@ -5,6 +5,7 @@ The preview system provides players with an immediate sensory snapshot of a song
 
 ## User Experience
 - **Instant Feedback**: Selecting a song in the menu immediately triggers its preview. The playback starts at the song's most representative section (defined by metadata) and loops according to the audio content's duration.
+- **User interface decides when**: nothing starts the previews but `api.media:startPreview()`; once started they follow the selection. Loading a chart to play stops them, so a screen that wants them after a play starts them again on enter. The default UI starts them on load and on song select, result and music player.
 - **Visual Context**: A simplified "mini-playfield" renders the chart's notes, while any background images or videos are displayed in the preview area.
 - **Dynamic Response**: If the player changes the playback rate (e.g., to 1.5x) in the selection screen, the preview audio and visuals speed up accordingly to match the intended gameplay experience.
 - **Seamless Loading**: Previews are generated and cached in the background. If a preview isn't ready, the system stays silent and waits without blocking menu navigation or causing micro-stutters.

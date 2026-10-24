@@ -77,7 +77,7 @@ function MusicPlayer:enter()
 	local charts = self.ui.api.charts
 	self.unsubscribe = charts:on("selection_changed", function(chart) self:bind(chart) end)
 	self:bind(charts:getSelectedChart())
-	charts:announceSelection()
+	self.ui.api.media:startPreview()
 	self.root:fadeIn(0.35, "OutCubic")
 end
 

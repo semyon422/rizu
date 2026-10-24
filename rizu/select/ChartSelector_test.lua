@@ -446,6 +446,40 @@ function test.find_chartmeta_ignores_current_selection_modes(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.update_lamps_keeps_the_rows(t)
+	local library = tlf:create()
+	tlf:populate(library, {
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, set_name = "Set 1", hash = "h1", index = 1},
+		{chartfile_set_id = 2, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, set_name = "Set 2", hash = "h2", index = 1},
+	})
+	local settings = createSettings()
+	settings:setString(Settings.keys.select.lamp_string, "acc<20")
+	local chartSelector = ChartSelector(createMockConfigModel(), settings, library, {}, {getSelectedItem = function() end}, timer)
+	chartSelector:load()
+
+	local sets, charts = chartSelector.stores[1], chartSelector.stores[2]
+	local set1 = assert(sets:get(sets:indexof({chartfile_set_id = 1})))
+	local set2 = assert(sets:get(sets:indexof({chartfile_set_id = 2})))
+	local chartview = assert(chartSelector.chartview)
+	t:eq(chartview.chartfile_set_id, 1)
+	t:eq(set1.lamp, false)
+	t:eq(assert(charts:get(1)).lamp, false)
+
+	tlf:createScore(library, {id = 101, hash = "h1", index = 1, accuracy = 0.01, created_at = 1})
+	local generation = sets.generation
+	chartSelector:updateLamps()
+
+	t:eq(sets.generation, generation)
+	t:eq(chartSelector.chartview, chartview)
+	t:eq(set1.lamp, true)
+	t:eq(set2.lamp, false)
+	t:eq(assert(charts:get(1)).lamp, true)
+	t:eq(chartview.lamp, true)
+
+	library:unload()
+end
+
 function test.score_navigation(t)
 	local charts = {
 		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h1", index = 1}

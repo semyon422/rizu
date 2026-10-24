@@ -344,7 +344,7 @@ end
 ---@param t testing.T
 function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 	for _, state in ipairs({"loading", "failed", "ready"}) do
-		local calls = {playfield = 0, audio = 0, bga = 0, skip = 0, score = 0, playing = 0}
+		local calls = {playfield = 0, audio = 0, bga = 0, skip = 0, score = 0, playing = 0, lamps = 0}
 		local session = {hasResult = function() return true end}
 		local interactor = setmetatable({load_state = state, loaded = state == "ready", replay_stores = {},
 			load_generation = 0, gameplay_session = session,
@@ -359,6 +359,7 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 				},
 				windowModel = {setVsyncOnSelect = function() end},
 				discordModel = {setPresence = function() end},
+				chartSelector = {updateLamps = function() calls.lamps = calls.lamps + 1 end},
 				multiplayerModel = {client = {setPlaying = function(_, playing)
 					t:eq(playing, false)
 					calls.playing = calls.playing + 1
@@ -383,6 +384,7 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 		t:eq(calls.playing, 1)
 		t:eq(calls.skip, state == "ready" and 1 or 0)
 		t:eq(calls.score, state == "ready" and 1 or 0)
+		t:eq(calls.lamps, calls.score)
 		t:eq(interactor.load_generation, 1)
 		t:eq(interactor:getState(), "empty")
 		t:eq(interactor.gameplay_session, nil)
@@ -406,6 +408,7 @@ function test.partial_play_is_not_saved_until_chart_end(t)
 				},
 				windowModel = {setVsyncOnSelect = function() end},
 				discordModel = {setPresence = function() end},
+				chartSelector = {updateLamps = function() end},
 				multiplayerModel = {client = {setPlaying = function() end}},
 			},
 			score_saver = {saveScore = function() saves = saves + 1 end},

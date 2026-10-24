@@ -191,6 +191,8 @@ function UserInterface:load()
 		registry:pushContext("ui_result", self.ui_result_commands)
 		registry:pushContext("ui_select", self.ui_select_commands)
 	end
+	-- The default user interface plays the previews on every screen but gameplay.
+	self.api.media:startPreview()
 
 	local ww, wh = love.graphics.getDimensions()
 	self.prev_w = ww

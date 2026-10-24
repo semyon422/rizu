@@ -22,14 +22,17 @@ The game picks all of it from the selected chart; a user interface only shows it
 ---@field on fun(self: rizu.api.Media, event: rizu.api.Media.Event, f: function): fun()
 ---@field private background sphere.BackgroundModel
 ---@field private preview rizu.preview.PreviewModel
+---@field private selection rizu.select.SelectionCoordinator
 local Media = Events + {}
 
 ---@param background sphere.BackgroundModel
 ---@param preview rizu.preview.PreviewModel
-function Media:new(background, preview)
+---@param selection rizu.select.SelectionCoordinator
+function Media:new(background, preview, selection)
 	Events.new(self)
 	self.background = background
 	self.preview = preview
+	self.selection = selection
 	background:onChanged(function(event)
 		self:emit("background_changed", event.image)
 	end)
@@ -60,6 +63,17 @@ function Media:seekPreview(progress) self.preview:setRelativePosition(progress) 
 
 ---@param time number Seconds from the start of the audio file.
 function Media:setPreviewTime(time) self.preview:setPosition(time) end
+
+---Starts the audio, video and notes previews of the selected chart, which then follow the selection.
+---Nothing starts them but this: call it on the screens that want them, again after a play, which stops them.
+---Does nothing while they play.
+function Media:startPreview() self.selection:startPreview() end
+
+---Stops the previews until startPreview().
+function Media:stopPreview() self.preview:stop() end
+
+---@return boolean
+function Media:isPreviewActive() return self.preview.active end
 
 ---Pauses the audio preview, or resumes it.
 function Media:togglePreview() self.preview:togglePause() end

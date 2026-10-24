@@ -197,6 +197,8 @@ end
 
 function SongSelectV2:enter()
 	local api = self.ui.api
+	-- A play stops the previews.
+	api.media:startPreview()
 	local function updateFooter() self.footer:updateState() end
 	self.unsubscribes = {
 		api.charts:on("selection_changed", function(chart)
@@ -228,8 +230,7 @@ function SongSelectV2:enter()
 	self.score_list:reload()
 	self.library_toolbar:updateCollections()
 	self.footer:updateState()
-	-- Binds the selected chart, and restarts the previews that gameplay stopped.
-	api.charts:announceSelection()
+	self:bindChartview(api.charts:getSelectedChart())
 	self.backdrop:fadeIn(0.3, "OutCubic")
 	-- Undoes zoomOut(), which ends while the screen is already hidden.
 	self.content:clearTransforms():setScale(1, 1)

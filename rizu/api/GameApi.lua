@@ -40,7 +40,7 @@ GameApi.version = 1
 function GameApi:new(game)
 	self.charts = Charts(game.chartSelector, game.selectionCoordinator)
 	self.scores = Scores(game.scoreSelector, game.resultController)
-	self.media = Media(game.backgroundModel, game.previewModel)
+	self.media = Media(game.backgroundModel, game.previewModel, game.selectionCoordinator)
 	self.online = Online(game)
 	self.play = Play(game)
 	self.result = Result(game)

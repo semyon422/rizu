@@ -49,7 +49,8 @@ local function newCoordinator(calls)
 		},
 		{},
 		{
-			load = function()
+			load = function(self)
+				self.active = true
 				table.insert(calls, "preview-load")
 			end,
 		}
@@ -57,20 +58,21 @@ local function newCoordinator(calls)
 end
 
 ---@param t testing.T
-function test.activate_preview_loads_preview_and_marks_selection_changed(t)
+function test.start_preview_loads_preview_and_marks_selection_changed(t)
 	local calls = {}
 	local coordinator = newCoordinator(calls)
 
-	coordinator:activatePreview()
+	coordinator:startPreview()
+	coordinator:startPreview()
 
 	t:tdeq(calls, {
 		"preview-load",
 		"changed",
-	})
+	}, "a second start does not restart the playing preview")
 end
 
 ---@param t testing.T
-function test.load_waits_for_chartview_changed_to_start_preview(t)
+function test.load_does_not_start_preview(t)
 	local calls = {}
 	local coordinator = newCoordinator(calls)
 
@@ -83,34 +85,11 @@ function test.load_waits_for_chartview_changed_to_start_preview(t)
 end
 
 ---@param t testing.T
-function test.chartview_changed_activates_preview_after_async_selection_load(t)
+function test.chartview_changed_does_not_start_preview(t)
 	local calls = {}
 	local coordinator = newCoordinator(calls)
 
 	coordinator.chartSelector:emit({type = "chartview_changed", chartview = {title = "song"}})
-
-	t:tdeq(calls, {
-		"preview-load",
-		"changed",
-	})
-end
-
----@param t testing.T
-function test.empty_chartview_changed_does_not_activate_preview(t)
-	local calls = {}
-	local coordinator = newCoordinator(calls)
-
-	coordinator.chartSelector:emit({type = "chartview_changed"})
-
-	t:tdeq(calls, {})
-end
-
----@param t testing.T
-function test.provisional_chartview_changed_does_not_activate_preview(t)
-	local calls = {}
-	local coordinator = newCoordinator(calls)
-
-	coordinator.chartSelector:emit({type = "chartview_changed", chartview = {chartfile_id = 1}})
 
 	t:tdeq(calls, {})
 end

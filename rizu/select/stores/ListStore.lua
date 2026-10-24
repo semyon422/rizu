@@ -74,6 +74,28 @@ function ListStore:setResult(result, mode)
 	self:emitChanged({type = "list_count_changed", count = self.itemsCount})
 end
 
+---Copies the lamps of a query of some of these rows, made with the same params, into them.
+---@param result rizu.library.ChartviewsRepo.PackedQueryResult
+function ListStore:updateLamps(result)
+	local repo = self.library.chartviewsRepo
+	local rows, count = repo:unpackResult(result)
+	for j = 0, count - 1 do
+		local row = rows[j]
+		local i = self:indexof(repo:structToTable(row))
+		local item = i <= self.itemsCount and self.items[i - 1]
+		-- indexof falls back to coarser ids, and a new score changes MAX(chartplay_id) outside the chartplays mode.
+		if item and item.chartfile_id == row.chartfile_id and item.chartmeta_id == row.chartmeta_id
+			and item.chartdiff_id == row.chartdiff_id
+			and (self.mode ~= "chartplays" or item.chartplay_id == row.chartplay_id)
+		then
+			item.lamp = row.lamp
+			local page = self.pages[math.floor((i - 1) / self.page_size)]
+			local loaded = page and page.items[i]
+			if loaded then loaded.lamp = row.lamp end
+		end
+	end
+end
+
 ---@private
 ---@param page rizu.select.stores.ListStore.Page
 ---@param first integer

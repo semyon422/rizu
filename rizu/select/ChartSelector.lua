@@ -11,6 +11,7 @@ local ChartMediaService = require("rizu.select.services.ChartMediaService")
 local ChartLoader = require("rizu.select.services.ChartLoader")
 local TaskRunner = require("rizu.select.tasks.TaskRunner")
 local thread = require("thread")
+local table_util = require("table_util")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local Settings = require("rizu.config.Settings")
 
@@ -140,10 +141,6 @@ function ChartSelector:setChartview(chartview)
 	self:emitChanged({type = "chartview_changed", chartview = chartview})
 end
 
-function ChartSelector:notifyChartviewChanged()
-	self:emitChanged({type = "chartview_changed", chartview = self.chartview})
-end
-
 ---@param chartview rizu.library.LocatedChartview?
 ---@return boolean
 function ChartSelector:isPlayableChartview(chartview)
@@ -198,6 +195,28 @@ function ChartSelector:updatePrimaryItems()
 	self.library.chartviewsRepo.params = params -- ensure repo has current params for getChartview in ListStore
 	self.stores[1]:setResult(result, self:getPrimaryMode())
 	self:emitChanged({type = "primary_items_updated"})
+end
+
+---Queries the lamps of the selected chart's set again, after a score of it was saved.
+---Much faster than refresh(), and keeps the rows, so the selection and the result screen stay as they are.
+---shortcut: a chart that a score filter now lets in or out of the list stays as it was until the next refresh.
+function ChartSelector:updateLamps()
+	local chartview = self.chartview
+	if not chartview then return end
+	local stores = self.stores
+	local generations = {stores[1].generation, stores[2].generation}
+	thread.coro(function()
+		local collectionItem = self.collectionSelector:getSelectedItem()
+		local params = self.queryBuilder:build(self.config, collectionItem, self.library.locations:getRemoteLocationIds())
+		local set_params = table_util.copy(params)
+		set_params.where = table_util.copy(params.where)
+		set_params.where.chartfile_set_id = chartview.chartfile_set_id
+		local primary = self.library:queryAsync(set_params)
+		local secondary = self.library:getViewsAsync(params, chartview)
+		self.library.chartviewsRepo.params = params -- the sync queries above replaced it
+		if stores[1].generation == generations[1] then stores[1]:updateLamps(primary) end
+		if stores[2].generation == generations[2] then stores[2]:updateLamps(secondary) end
+	end)()
 end
 
 ---@param hash string

@@ -40,6 +40,18 @@ function test.background_and_preview(t)
 end
 
 ---@param t testing.T
+function test.start_and_stop_preview(t)
+	local preview = {active = false, stop = function(self) self.active = false end}
+	local selection = {startPreview = function() preview.active = true end}
+	local media = Media({onChanged = function() end} --[[@as any]], preview --[[@as any]], selection --[[@as any]])
+	t:eq(media:isPreviewActive(), false)
+	media:startPreview()
+	t:eq(media:isPreviewActive(), true)
+	media:stopPreview()
+	t:eq(media:isPreviewActive(), false)
+end
+
+---@param t testing.T
 function test.draw_notes_preview_at_another_time(t)
 	local drawn = {}
 	local preview = {

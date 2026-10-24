@@ -346,8 +346,8 @@ end
 
 function ResultV2:enter()
 	local api = self.ui.api
-	-- Gameplay stops previews; resume the selected Chart's synchronized audio and BGA.
-	api.charts:announceSelection()
+	-- A play stops the previews.
+	api.media:startPreview()
 
 	self.unsubscribe = api.scores:on("scores_changed", function(loading)
 		-- Rows are replaced once loading finishes; the transient clear while loading is ignored.

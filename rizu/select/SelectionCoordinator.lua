@@ -27,11 +27,6 @@ function SelectionCoordinator:new(
 	self.previewModel = previewModel
 
 	self.chartSelector:onChanged(self.scoreSelector)
-	self.chartSelector:onChanged(function(event)
-		if event.type == "chartview_changed" and self.chartSelector:isPlayableChartview(event.chartview) then
-			self:activatePreview()
-		end
-	end)
 
 	self.collectionSelector:onChanged(function(event)
 		if event.type == "collection_selection_changed" then
@@ -59,7 +54,10 @@ function SelectionCoordinator:syncOnline()
 	return location_id ~= nil, err
 end
 
-function SelectionCoordinator:activatePreview()
+---Starts the previews of the selected chart, which then follow the selection. Does nothing while they play.
+---The user interface decides when: the game only stops them, when a chart is loaded to be played.
+function SelectionCoordinator:startPreview()
+	if self.previewModel.active then return end
 	self.previewModel:load()
 	self.chartSelector:setChanged()
 end
