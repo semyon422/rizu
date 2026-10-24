@@ -239,7 +239,7 @@ end
 function test.hit_error_rolls_judgement_blocks_and_fades_after_idle(t)
 	local state = {judgements = {{judge = 3}}}
 	local api = make_api(state)
-	local meter = create("osu_hit_error")
+	local meter = create("osu_hit_error", {mode = "judgements"})
 	meter:load(api)
 	meter:update(0, api)
 	local lit = 0

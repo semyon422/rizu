@@ -53,7 +53,7 @@ local OsuHitError = HudElement + {}
 OsuHitError.label = "osu!stable hit error meter"
 OsuHitError.defaults = {anchor = "bottom", origin = "bottom"}
 OsuHitError.fields = {
-	{key = "mode", label = "Mode", type = "segmented", options = {"judgements", "timing"}, default = "judgements",
+	{key = "mode", label = "Mode", type = "segmented", options = {"judgements", "timing"}, default = "timing",
 		format = function(value) return value == "timing" and "Timing error" or "Judgement history" end},
 	{key = "arrow", label = "Arrow texture", type = "texture", default = ""},
 }

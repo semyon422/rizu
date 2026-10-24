@@ -587,8 +587,11 @@ function test.old_hit_meter_and_judgement_keys_seed_the_default_layout(t)
 	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
 	local conveyor = renderer:getDefaultHudLayout().conveyor
 	t:eq(conveyor[2].animation, "osu")
-	t:eq(conveyor[3].mode, "judgements")
+	t:eq(conveyor[3].mode, "timing")
 	t:eq(conveyor[3].y, -4)
+
+	config:set("mania", "4key", "hit_meter.mode", 0)
+	t:eq(renderer:getDefaultHudLayout().conveyor[3].mode, "judgements")
 
 	config:set("mania", "4key", "judge.animation", false)
 	config:set("mania", "4key", "hit_meter.mode", 1)
