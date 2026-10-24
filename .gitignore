@@ -88,6 +88,8 @@ bancho/config.lua
 my.cnf
 backups
 
+calc/*
+
 *.db
 *.db-journal
 *.db-shm

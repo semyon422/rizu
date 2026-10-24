@@ -44,8 +44,6 @@ function NotesDiffcalc:compute(ctx)
 	-- stubs for future fields
 	chartdiff.density_data = {}
 	chartdiff.sv_data = {}
-	chartdiff.user_diff = chartdiff.user_diff or 0
-	chartdiff.user_diff_data = chartdiff.user_diff_data or ""
 end
 
 return NotesDiffcalc

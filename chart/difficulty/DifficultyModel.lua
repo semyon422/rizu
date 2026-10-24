@@ -9,6 +9,7 @@ local NotesDiffcalc = require("chart.difficulty.NotesDiffcalc")
 local OsuDiffcalc = require("chart.difficulty.OsuDiffcalc")
 local MsdDiffcalc = require("chart.difficulty.MsdDiffcalc")
 local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
+local UserDiffcalc = require("chart.difficulty.UserDiffcalc")
 
 ---@class chart.DifficultyModel
 ---@operator call: chart.DifficultyModel
@@ -22,6 +23,7 @@ function DifficultyModel:new()
 	self.registry:add(OsuDiffcalc())
 	self.registry:add(MsdDiffcalc())
 	self.registry:add(PreviewDiffcalc())
+	self.registry:add(UserDiffcalc())
 end
 
 ---@param chartdiff sea.Chartdiff
