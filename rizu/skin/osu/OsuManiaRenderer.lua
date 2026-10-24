@@ -210,25 +210,44 @@ end
 ---@return number scale
 ---@return number full_width
 function OsuManiaRenderer:getPlayfieldLayout()
-	local widths = self.column_widths
 	local full_width = 0
 	for index, width in ipairs(self.column_widths) do
-		widths[index] = width
-		full_width = full_width + width
-		if index > 1 then full_width = full_width + (self.column_spacings[index - 1] or 0) end
-	end
-	if self.split_stages and #widths > 1 then
-		local split = math.floor(#widths / 2)
-		local previous_spacing = self.column_spacings[split] or 0
-		local stage_spacing = math.max(previous_spacing, self.stage_separation)
-		self.column_spacings[split] = stage_spacing
-		full_width = full_width + stage_spacing - previous_spacing
+		full_width = full_width + width + (index > 1 and self.column_spacings[index - 1] or 0)
 	end
 	local left = math.max(0, math.min(self.column_start, FIELD_WIDTH - self.column_right))
 	local right = math.max(0, math.min(self.column_right, FIELD_WIDTH - left))
 	local available_width = math.max(0, FIELD_WIDTH - left - right)
 	local scale = full_width > available_width and available_width / full_width or 1
-	return left, widths, scale, full_width
+	return left, self.column_widths, scale, full_width
+end
+
+---Fills lane_widths and lane_xs with the scaled width and center of each lane.
+---@return number field_left
+---@return number field_width
+---@return number width_scale
+function OsuManiaRenderer:layoutLanes()
+	local field_left, column_widths, width_scale, full_width = self:getPlayfieldLayout()
+	local lane_widths, lane_xs = self.lane_widths, self.lane_xs
+	local x = field_left
+	for column = 1, self.columns do
+		if column > 1 then x = x + self.column_spacings[column - 1] * width_scale end
+		lane_widths[column] = column_widths[column] * width_scale
+		lane_xs[column] = x + lane_widths[column] / 2
+		x = x + lane_widths[column]
+	end
+	return field_left, full_width * width_scale, width_scale
+end
+
+---@return table item A pooled draw item appended to notes_to_draw
+function OsuManiaRenderer:addNoteToDraw()
+	local index = #self.notes_to_draw + 1
+	local item = self.note_draw_pool[index]
+	if not item then
+		item = {}
+		self.note_draw_pool[index] = item
+	end
+	self.notes_to_draw[index] = item
+	return item
 end
 
 ---@return rizu.skin.SkinTextures.Asset[]
@@ -264,49 +283,51 @@ function OsuManiaRenderer:getColumnSuffix(column)
 	return self.column_suffixes[column]
 end
 
+---@param renderer rizu.skin.osu.OsuManiaRenderer
+---@param key string
 ---@return boolean
-function OsuManiaRenderer:getMoveWithHitPosition()
-	local value = self.config:get("mania", self.input_mode, "hit_position.move_keys")
-	return type(value) == "boolean" and value or false
+local function get_flag(renderer, key)
+	return renderer.config:get("mania", renderer.input_mode, key) == true
 end
+
+---@param renderer rizu.skin.osu.OsuManiaRenderer
+---@param key string
+---@param field string Renderer field that caches the flag
+---@param value boolean
+local function set_flag(renderer, key, field, value)
+	assert(type(value) == "boolean", key .. " must be a boolean")
+	renderer[field] = value
+	renderer.config:set("mania", renderer.input_mode, key, value)
+end
+
+---@return boolean
+function OsuManiaRenderer:getMoveWithHitPosition() return get_flag(self, "hit_position.move_keys") end
 
 ---@param value boolean
 function OsuManiaRenderer:setMoveWithHitPosition(value)
-	assert(type(value) == "boolean", "move with hit position must be a boolean")
-	self.move_with_hit_position = value
-	self.config:set("mania", self.input_mode, "hit_position.move_keys", value)
+	set_flag(self, "hit_position.move_keys", "move_with_hit_position", value)
+end
+
+---@return boolean
+function OsuManiaRenderer:getDisableHitLightings() return get_flag(self, "lighting.disable_hit") end
+
+---@param value boolean
+function OsuManiaRenderer:setDisableHitLightings(value)
+	set_flag(self, "lighting.disable_hit", "disable_hit_lightings", value)
+end
+
+---@return boolean
+function OsuManiaRenderer:getDisableStageLightings() return get_flag(self, "lighting.disable_stage") end
+
+---@param value boolean
+function OsuManiaRenderer:setDisableStageLightings(value)
+	set_flag(self, "lighting.disable_stage", "disable_stage_lightings", value)
 end
 
 ---@return number
 function OsuManiaRenderer:getHitPositionOffset()
 	if not self.move_with_hit_position then return 0 end
 	return self.skin_hit_position - self.hit_position
-end
-
----@return boolean
-function OsuManiaRenderer:getDisableHitLightings()
-	local value = self.config:get("mania", self.input_mode, "lighting.disable_hit")
-	return type(value) == "boolean" and value or false
-end
-
----@param value boolean
-function OsuManiaRenderer:setDisableHitLightings(value)
-	assert(type(value) == "boolean", "disable hit lightings must be a boolean")
-	self.disable_hit_lightings = value
-	self.config:set("mania", self.input_mode, "lighting.disable_hit", value)
-end
-
----@return boolean
-function OsuManiaRenderer:getDisableStageLightings()
-	local value = self.config:get("mania", self.input_mode, "lighting.disable_stage")
-	return type(value) == "boolean" and value or false
-end
-
----@param value boolean
-function OsuManiaRenderer:setDisableStageLightings(value)
-	assert(type(value) == "boolean", "disable stage lightings must be a boolean")
-	self.disable_stage_lightings = value
-	self.config:set("mania", self.input_mode, "lighting.disable_stage", value)
 end
 
 ---Effective scroll direction: the config override when set, otherwise the
@@ -671,25 +692,14 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 	if not preview or self.columns == 0 then return end
 	self:load()
 	local scale, offset_x, offset_y = self:getFieldTransform(width, height)
-	local field_left, column_widths, width_scale = self:getPlayfieldLayout()
+	self:layoutLanes()
 	local lane_widths, lane_xs = self.lane_widths, self.lane_xs
-	table_util.clear(lane_widths)
-	table_util.clear(lane_xs)
-	local x = field_left
-	for column = 1, self.columns do
-		if column > 1 then x = x + (self.column_spacings[column - 1] or 0) * width_scale end
-		lane_widths[column] = column_widths[column] * width_scale
-		lane_xs[column] = x + lane_widths[column] / 2
-		x = x + lane_widths[column]
-	end
-	local field_width = x - field_left
 	local hit_y = self.upside_down and FIELD_HEIGHT - self.hit_position or self.hit_position
 	local rate = math.max(player.rate or 1, 0.01)
 	local time = player.time or 0
 	local lower = time - 1.5 / rate
 	local upper = time + (self.upside_down and 1 or 1.5) / rate
-	local notes_to_draw = self.notes_to_draw
-	table_util.clear(notes_to_draw)
+	table_util.clear(self.notes_to_draw)
 	local direction = self.upside_down and -1 or 1
 
 	lg.push("all")
@@ -713,13 +723,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 				if note and note.end_time >= lower then
 					local head_y = hit_y + (time - note.time) * NOTE_SCROLL_SPEED * rate * direction
 					local tail_y = hit_y + (time - note.end_time) * NOTE_SCROLL_SPEED * rate * direction
-					local item_index = #notes_to_draw + 1
-					local item = self.note_draw_pool[item_index]
-					if not item then
-						item = {}
-						self.note_draw_pool[item_index] = item
-					end
-					notes_to_draw[item_index] = item
+					local item = self:addNoteToDraw()
 					item.column = display_column
 					item.long_note = note.end_time > note.time
 					item.head_y = head_y
@@ -732,7 +736,7 @@ function OsuManiaRenderer:drawPreview(player, width, height)
 			end
 		end
 	end
-	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
+	self:drawNoteList(self.notes_to_draw, lane_widths, lane_xs)
 	lg.pop()
 end
 
@@ -769,24 +773,8 @@ function OsuManiaRenderer:draw(width, height, transform)
 	self.lighting_renderer:updateHits(self, visual_engine.visible_notes)
 
 	local scale, offset_x, offset_y = self:getFieldTransform(width, height)
-	local field_left, column_widths, width_scale = self:getPlayfieldLayout()
-	local field_width = 0
-	for _, value in ipairs(column_widths) do field_width = field_width + value * width_scale end
-	for index = 1, self.columns - 1 do
-		field_width = field_width + (self.column_spacings[index] or 0) * width_scale
-	end
+	local field_left, field_width, width_scale = self:layoutLanes()
 	local lane_widths, lane_xs = self.lane_widths, self.lane_xs
-
-	table_util.clear(lane_widths)
-	table_util.clear(lane_xs)
-	local x = field_left
-	for column = 1, self.columns do
-		if column > 1 then x = x + (self.column_spacings[column - 1] or 0) * width_scale end
-		local lane_width = self.column_widths[column] * width_scale
-		lane_xs[column] = x + lane_width / 2
-		lane_widths[column] = lane_width
-		x = x + lane_width
-	end
 	local hit_y = self.upside_down and FIELD_HEIGHT - self.hit_position or self.hit_position
 	local hit_speed = NOTE_SCROLL_SPEED
 
@@ -802,11 +790,9 @@ function OsuManiaRenderer:draw(width, height, transform)
 	if self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end
 	if self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 
-	local notes_to_draw = self.notes_to_draw
-	table_util.clear(notes_to_draw)
+	table_util.clear(self.notes_to_draw)
 	local direction = self.upside_down and -1 or 1
 	for _, note in ipairs(visual_engine.visible_notes) do
-
 		local state = note:getState()
 		local long_note = note.type == "long"
 		local column = self.input_map[note:getColumn()]
@@ -824,13 +810,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 			end
 			local head_visible = long_note and not state:find("^end")
 				or not long_note and state == "clear"
-			local item_index = #notes_to_draw + 1
-			local item = self.note_draw_pool[item_index]
-			if not item then
-				item = {}
-				self.note_draw_pool[item_index] = item
-			end
-			notes_to_draw[item_index] = item
+			local item = self:addNoteToDraw()
 			item.column = column
 			item.long_note = long_note
 			item.head_y = head_y
@@ -842,7 +822,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 			item.mine = note.linked_note ~= nil and note.linked_note:getType() == "mine"
 		end
 	end
-	self:drawNoteList(notes_to_draw, lane_widths, lane_xs)
+	self:drawNoteList(self.notes_to_draw, lane_widths, lane_xs)
 
 	if not self.keys_under_notes then self:drawKeys(engine, lane_widths, lane_xs, hit_y) end
 	if not self.stage_under_keys then self:drawStageDecorations(field_left, field_width, lane_widths, lane_xs, hit_y) end

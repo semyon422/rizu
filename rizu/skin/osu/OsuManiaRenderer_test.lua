@@ -137,11 +137,9 @@ function test.default_layout_puts_combo_judgement_and_meter_on_the_conveyor(t)
 end
 
 function test.column_anchor_width_includes_stage_separation(t)
-	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key")
-	renderer.column_widths = {40, 50, 60, 70}
-	renderer.column_spacings = {3, 4, 5}
-	renderer.split_stages = true
-	renderer.stage_separation = 40
+	local skin = {path = "skins/split", files = {}, skin_ini = {Mania = {{Keys = "4", ColumnWidth = "40,50,60,70",
+		ColumnSpacing = "3,4,5", SplitStages = "1", StageSeparation = "40"}}}}
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), skin, "4key")
 	local left, _, scale, column_width = renderer:getPlayfieldLayout()
 	t:eq(left, 136)
 	t:eq(scale, 1)
