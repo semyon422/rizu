@@ -705,11 +705,15 @@ function test.hit_position_dependent_visuals_can_move_and_lighting_can_be_disabl
 	t:eq(renderer:getDisableStageLightings(), true)
 	t:eq(config:get("mania", "4key", "hit_position.move_keys"), true)
 	t:eq(config:get("mania", "4key", "lighting.disable_stage"), true)
+	renderer:setDisableMines(true)
+	t:eq(renderer.disable_mines, true)
+	t:eq(config:get("mania", "4key", "notes.disable_mines"), true)
 	local properties = {}
 	for _, property in ipairs(renderer:getProperties()) do properties[property.key] = property end
 	t:eq(properties["hit_position.move_keys"].type, "checkbox")
 	t:eq(properties["lighting.disable_hit"].type, "checkbox")
 	t:eq(properties["lighting.disable_stage"].type, "checkbox")
+	t:eq(properties["notes.disable_mines"].type, "checkbox")
 	renderer:unload()
 end
 

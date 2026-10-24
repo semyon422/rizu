@@ -63,6 +63,7 @@ local EMPTY_FRAMES = {}
 ---@field move_with_hit_position boolean Move keys and stage lightings with the effective hit position.
 ---@field disable_hit_lightings boolean
 ---@field disable_stage_lightings boolean
+---@field disable_mines boolean
 ---@field upside_down boolean
 ---@field engine_input_map {[chart.Column]: integer}
 ---@field field_renderer rizu.skin.osu.mania.OsuManiaFieldRenderer
@@ -133,6 +134,7 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.move_with_hit_position = self:getMoveWithHitPosition()
 	self.disable_hit_lightings = self:getDisableHitLightings()
 	self.disable_stage_lightings = self:getDisableStageLightings()
+	self.disable_mines = self:getDisableMines()
 	self.lighting_renderer:reset()
 	self.skin_colors = {}
 	self.column_frames = {}
@@ -324,6 +326,14 @@ function OsuManiaRenderer:setDisableStageLightings(value)
 	set_flag(self, "lighting.disable_stage", "disable_stage_lightings", value)
 end
 
+---@return boolean
+function OsuManiaRenderer:getDisableMines() return get_flag(self, "notes.disable_mines") end
+
+---@param value boolean
+function OsuManiaRenderer:setDisableMines(value)
+	set_flag(self, "notes.disable_mines", "disable_mines", value)
+end
+
 ---@return number
 function OsuManiaRenderer:getHitPositionOffset()
 	if not self.move_with_hit_position then return 0 end
@@ -469,6 +479,9 @@ function OsuManiaRenderer:getProperties()
 		{key = "lighting.disable_stage", label = "Disable stage lightings", type = "checkbox",
 			get = function() return self:getDisableStageLightings() end,
 			set = function(value) self:setDisableStageLightings(value) end},
+		{key = "notes.disable_mines", label = "Disable mines", type = "checkbox",
+			get = function() return self:getDisableMines() end,
+			set = function(value) self:setDisableMines(value) end},
 		{key = "scroll.upscroll", label = "Upscroll", type = "checkbox",
 			get = function() return self:getUpscroll() end,
 			set = function(value) self:setUpscroll(value) end},
@@ -796,7 +809,8 @@ function OsuManiaRenderer:draw(width, height, transform)
 		local state = note:getState()
 		local long_note = note.type == "long"
 		local column = self.input_map[note:getColumn()]
-		if column and column >= 1 and column <= self.columns then
+		local mine = note.linked_note ~= nil and note.linked_note:getType() == "mine"
+		if column and column >= 1 and column <= self.columns and not (mine and self.disable_mines) then
 			local head_y = hit_y + note.start_dt * hit_speed * direction
 			local tail_y = hit_y + (long_note and note.end_dt or note.start_dt) * hit_speed * direction
 			if state == "startPassedPressed" then
@@ -819,7 +833,7 @@ function OsuManiaRenderer:draw(width, height, transform)
 			item.body_frame = long_note and self:getNoteBodyFrame(note, #self:getColumnFrames(column - 1,
 				self:getColumnSuffix(column - 1), "L")) or 1
 			item.head_visible = head_visible
-			item.mine = note.linked_note ~= nil and note.linked_note:getType() == "mine"
+			item.mine = mine
 		end
 	end
 	self:drawNoteList(self.notes_to_draw, lane_widths, lane_xs)
