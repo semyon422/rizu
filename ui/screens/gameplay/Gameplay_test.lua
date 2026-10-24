@@ -123,7 +123,7 @@ function test.gameplay_hud_dispatch_does_not_require_a_renderer_hud_field(t)
 end
 
 ---@param t testing.T
-function test.skin_editor_shrinks_the_viewport_into_the_top_right(t)
+function test.skin_editor_centers_the_shrunk_window_right_of_the_panel(t)
 	local screen = setmetatable({
 		width = 1280,
 		height = 720,
@@ -141,31 +141,15 @@ function test.skin_editor_shrinks_the_viewport_into_the_top_right(t)
 		}},
 	}, {__index = Gameplay})
 	local width, height, transform = screen:getGameplayViewport()
-	local scale = (1280 - 580 * 0.5) / 1280
+	local panel, margin = 420 * 0.5, 16 * 0.5
+	local scale = (1280 - panel - margin * 2) / 1280 -- the width is the tighter fit
 	t:aeq(width, 640 * scale, 1e-9)
 	t:aeq(height, 720 * scale, 1e-9)
 	local x, y = transform:transformPoint(0, 0)
-	t:aeq(x, 290 + 640 * scale, 1e-9) -- the configured viewport, right aligned, scaled
-	t:eq(y, 0)
+	t:aeq(x, panel + margin + 640 * scale, 1e-9) -- the configured viewport, right aligned, scaled
+	t:aeq(y, (720 - 720 * scale) / 2, 1e-9)
 	local right = transform:transformPoint(width, 0)
-	t:aeq(right, 1280, 1e-9)
-end
-
----@param t testing.T
-function test.skin_editor_fill_covers_the_window_under_the_gameplay(t)
-	local fill = {offset_min = {0, 0}, offset_max = {0, 0}, anchors = 0}
-	function fill:anchorFixed(x, y, width, height)
-		self.anchors = self.anchors + 1
-		self.offset_min, self.offset_max = {x, y}, {x + width, y + height}
-	end
-	local screen = setmetatable({width = 1280, height = 720, ui_scale = 0.5, skin_editor_fill = fill},
-		{__index = Gameplay})
-	screen:layoutSkinEditorFill()
-	local scale = (1280 - 580 * 0.5) / 1280
-	t:tdeq(fill.offset_min, {580, 720 * scale / 0.5})
-	t:tdeq(fill.offset_max, {2560, 1440})
-	screen:layoutSkinEditorFill()
-	t:eq(fill.anchors, 1) -- the same window does not lay out again
+	t:aeq(right, 1280 - margin, 1e-9)
 end
 
 ---@param t testing.T

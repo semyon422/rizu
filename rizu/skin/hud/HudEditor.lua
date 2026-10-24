@@ -1,3 +1,4 @@
+local HudElement = require("rizu.skin.hud.HudElement")
 local HudElements = require("rizu.skin.hud.HudElements")
 
 ---Skin editor sections of a renderer's HUD: one per element, with properties built from its fields.
@@ -6,14 +7,13 @@ local HudEditor = {}
 
 HudEditor.layer_labels = {screen = "Screen", conveyor = "Conveyor"}
 local channel_labels = {"red", "green", "blue", "opacity"}
+local channel_colors = {{0.96, 0.29, 0.29}, {0.49, 0.71, 0.21}, {0.26, 0.37, 0.65}}
+local common_keys = {} ---@type {[string]: true}
+for _, field in ipairs(HudElement.common_fields) do common_keys[field.key] = true end
 local THUMBNAIL_SIZE = 128
 local no_thumbnail = {done = true, result = {n = 0}}
 
----@param value number
----@return string
-local function percent(value)
-	return ("%d%%"):format(math.floor(value * 100 + 0.5))
-end
+local percent = HudElement.percent
 
 ---@param options string[]
 ---@param value string
@@ -33,6 +33,7 @@ end
 ---@param properties rizu.api.Gameplay.SkinProperty[]
 local function add_field(renderer, element, field, properties)
 	local key = field.key
+	local group = common_keys[key] and "Transform" or element().label
 	local function set(value)
 		local reload = element():set(key, value)
 		renderer:saveHudLayout()
@@ -43,7 +44,8 @@ local function add_field(renderer, element, field, properties)
 	if field_type == "color" then
 		for channel, name in ipairs(channel_labels) do
 			properties[#properties + 1] = {
-				label = field.label .. " " .. name, min = 0, max = 1, step = 0.01, value_format = percent,
+				label = field.label .. " " .. name, group = group, fill_color = channel_colors[channel],
+				min = 0, max = 1, step = 0.01, value_format = percent,
 				get = function() return element().values[key][channel] end,
 				set = function(value)
 					local color = {unpack(element().values[key] --[[@as number[] ]])}
@@ -58,7 +60,7 @@ local function add_field(renderer, element, field, properties)
 		local options = font and textures:getBitmapFontPrefixes() or textures:getTextureNames()
 		if not font then table.insert(options, 1, "") end
 		properties[#properties + 1] = {
-			label = field.label, type = "texture", options = with_value(options, get() --[[@as string]]),
+			label = field.label, group = group, type = "texture", options = with_value(options, get() --[[@as string]]),
 			format = function(value) return value == "" and "None" or value end,
 			-- A font shows its zero.
 			preview = function(value)
@@ -70,8 +72,8 @@ local function add_field(renderer, element, field, properties)
 		}
 	elseif field_type ~= "text" then
 		properties[#properties + 1] = {
-			label = field.label, type = field_type --[[@as "slider"|"checkbox"|"dropdown"|"segmented"]], min = field.min, max = field.max, step = field.step,
-			options = field.options, format = field.format, get = get, set = set,
+			label = field.label, group = group, type = field_type --[[@as "slider"|"checkbox"|"dropdown"|"segmented"]], min = field.min, max = field.max, step = field.step,
+			options = field.options, format = field.format, value_format = field.value_format, get = get, set = set,
 		}
 	end
 end

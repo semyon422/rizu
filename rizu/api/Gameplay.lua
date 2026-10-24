@@ -38,12 +38,14 @@ Nothing here builds a table per call unless it says so.
 ---@field key string?
 ---@field label string?
 ---@field label_key string? Localization key, when there is no label.
+---@field group string? Title of the group this property starts or continues; a new title starts a new group.
 ---@field type "slider"|"checkbox"|"segmented"|"dropdown"|"texture"? Defaults to "slider". "texture" picks one of `options` by its look.
 ---@field refresh boolean? The sections change after set(): ask for them again.
 ---@field min number?
 ---@field max number?
 ---@field step number?
 ---@field value_format (fun(value: number): string)?
+---@field fill_color number[]? Slider fill, for color channels.
 ---@field options any[]? Values for segmented and dropdown controls.
 ---@field format (fun(value: any): string)? Value label for segmented, dropdown and texture controls.
 ---@field preview (fun(value: any): rizu.skin.SkinTextures.Thumbnail)? Texture controls: starts decoding a small image of an option.

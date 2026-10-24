@@ -17,6 +17,7 @@ local View = require("rizu.skin.View")
 ---@field step number?
 ---@field options any[]? Values of dropdown and segmented fields.
 ---@field format (fun(value: any): string)? Option labels of dropdown and segmented fields.
+---@field value_format (fun(value: number): string)? Slider value text. Whole numbers by default.
 
 ---A HUD element a skin layout can place: it declares its editable fields and the textures it needs,
 ---reads the play through the game api and draws in local coordinates. Every element has
@@ -40,13 +41,19 @@ HudElement.group = "hud" -- atlas group of HUD textures
 local anchors = {"top_left", "top", "top_right", "left", "center", "right", "bottom_left", "bottom", "bottom_right"}
 local MAX_TEXT_LENGTH = 256
 
+---@param value number
+---@return string
+function HudElement.percent(value)
+	return ("%d%%"):format(math.floor(value * 100 + 0.5))
+end
+
 ---@type rizu.skin.hud.HudElement.Field[]
 HudElement.common_fields = {
 	{key = "x", label = "X", min = -640, max = 640, step = 1, default = 0},
 	{key = "y", label = "Y", min = -480, max = 480, step = 1, default = 0},
 	{key = "anchor", label = "Anchor", type = "dropdown", options = anchors, default = "center"},
 	{key = "origin", label = "Origin", type = "dropdown", options = anchors, default = "center"},
-	{key = "scale", label = "Scale", min = 0.05, max = 4, step = 0.05, default = 1},
+	{key = "scale", label = "Scale", min = 0.05, max = 4, step = 0.05, default = 1, value_format = HudElement.percent},
 }
 
 ---Common fields with this type's defaults, then the type's own fields.

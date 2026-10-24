@@ -428,6 +428,8 @@ return {
 
 	["gameplay.skin_editor.no_properties"] = "This skin has no editable properties.",
 	["gameplay.skin_editor.add"] = "Add",
+	["gameplay.skin_editor.elements"] = "Elements",
+	["gameplay.skin_editor.inspector"] = "Inspector",
 	["gameplay.skin_editor.add_title"] = "Add HUD element",
 	["gameplay.skin_editor.add_subtitle"] = "It starts with the default settings of its type.",
 	["gameplay.skin_editor.layer"] = "Layer",
