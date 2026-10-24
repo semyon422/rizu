@@ -8,18 +8,21 @@ local OsuManiaStageRenderer = require("rizu.skin.osu.mania.OsuManiaStageRenderer
 local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local OsuManiaSkinAssetFinder = require("rizu.skin.osu.mania.OsuManiaSkinAssetFinder")
 local OsuManiaBatchPlan = require("rizu.skin.osu.mania.OsuManiaBatchPlan")
+local OsuManiaSkinSettings = require("rizu.skin.osu.mania.OsuManiaSkinSettings")
 local InputMode = require("chart.core.InputMode")
 local SkinConfig = require("rizu.skin.SkinConfig")
 local TextureImage = require("rizu.skin.TextureImage")
 local table_util = require("table_util")
 
+local get_section_value = OsuManiaSkinSettings.get_value
+local get_number = OsuManiaSkinSettings.get_number
+local get_boolean = OsuManiaSkinSettings.get_boolean
+local get_color = OsuManiaSkinSettings.get_color
+
 local lg = love.graphics
 local MANIA_HEIGHT_SCALE = 480 / 768
 local FIELD_WIDTH, FIELD_HEIGHT = 640, 480
 local DEFAULT_COLUMN_WIDTH = 30
-local DEFAULT_COLUMN_START = 136
-local DEFAULT_COLUMN_RIGHT = 19
-local DEFAULT_HIT_POSITION = 402
 local DEFAULT_HIT_METER_MODE = 0
 local DEFAULT_HIT_METER_Y = -4
 local DEFAULT_BGA_BRIGHTNESS = 0.15
@@ -49,62 +52,36 @@ local EMPTY_FRAMES = {}
 ---@field up_flip boolean
 ---@field down_flip boolean
 
----@class rizu.skin.osu.OsuManiaRenderer : rizu.gameplay.views.PlayfieldRenderer
+---Fields from skin.ini come from rizu.skin.osu.mania.OsuManiaSkinSettings, copied in loadSkinSettings.
+---@class rizu.skin.osu.OsuManiaRenderer : rizu.gameplay.views.PlayfieldRenderer, rizu.skin.osu.mania.OsuManiaSkinSettings
 ---@operator call: rizu.skin.osu.OsuManiaRenderer
 ---@field skin_graphics rizu.skin.SkinTextures
 ---@field batch_plan rizu.skin.osu.mania.OsuManiaBatchPlan
 ---@field skin rizu.skin.Skin?
----@field section rizu.skin.OsuSkinIni.ManiaSection
 ---@field config rizu.skin.SkinConfig
 ---@field config_path string?
----@field columns integer
----@field column_widths number[]
----@field column_spacings number[]
----@field column_lines number[]
----@field column_start number
----@field column_right number
 ---@field hit_position number
 ---@field move_with_hit_position boolean Move keys and stage lightings with the effective hit position.
 ---@field disable_hit_lightings boolean
 ---@field disable_stage_lightings boolean
----@field special_style integer
----@field note_height_scale number
----@field note_body_styles string[]
----@field default_note_body_style string
 ---@field upside_down boolean
----@field skin_upside_down boolean Direction declared by the skin ini (UpsideDown)
----@field skin_hit_position number Hit position declared by the skin ini (HitPosition)
----@field keys_under_notes boolean
----@field stage_under_keys boolean Draw stage decorations below keys when true.
----@field judgement_line boolean
----@field note_flip boolean
----@field key_flip boolean
 ---@field engine_input_map {[chart.Column]: integer}
 ---@field field_renderer rizu.skin.osu.mania.OsuManiaFieldRenderer
 ---@field key_renderer rizu.skin.osu.mania.OsuManiaKeyRenderer
 ---@field note_renderer rizu.skin.osu.mania.OsuManiaNoteRenderer
 ---@field stage_renderer rizu.skin.osu.mania.OsuManiaStageRenderer
 ---@field bga_view rizu.skin.views.BgaView
----@field split_stages boolean
----@field stage_separation number
----@field light_position number
----@field light_frame_rate number
----@field lighting_n_widths number[]
----@field lighting_l_widths number[]
 ---@field stage_lightings rizu.skin.osu.mania.OsuManiaLighting[]
 ---@field hit_lightings {[integer]: {short: rizu.skin.osu.mania.OsuManiaLighting?, long: rizu.skin.osu.mania.OsuManiaLighting?}}
 ---@field lighting_notes {[table]: boolean}
 ---@field lighting_skin rizu.skin.Skin?
 ---@field lighting_loaded boolean
----@field scratch_count integer
----@field scratch_columns {[integer]: boolean}
 ---@field private lane_widths number[]
 ---@field private lane_xs number[]
 ---@field private notes_to_draw table[]
 ---@field private note_draw_pool table[]
 ---@field private active_long {[integer]: boolean}
 ---@field private skin_colors {[string]: number[]}
----@field private column_suffixes {[integer]: "1"|"2"|"S"}
 ---@field private column_frames {[integer]: {[string]: rizu.skin.SkinTextures.Image[]}}
 ---@field private column_keys {[integer]: rizu.skin.osu.OsuManiaRenderer.ColumnKeys}
 ---@field private note_body_flips boolean[]
@@ -112,7 +89,6 @@ local EMPTY_FRAMES = {}
 ---@field private note_short_flips boolean[]
 ---@field private lane_colors {[integer]: number[]}
 ---@field private playfield_width_scale number
----@field private note_base_width number
 local OsuManiaRenderer = PlayfieldRenderer + {}
 OsuManiaRenderer.field_width = FIELD_WIDTH
 OsuManiaRenderer.field_height = FIELD_HEIGHT
@@ -144,283 +120,39 @@ function OsuManiaRenderer:new(game, skin, input_mode, config, config_path)
 	self.key_renderer = OsuManiaKeyRenderer()
 	self.note_renderer = OsuManiaNoteRenderer()
 	self.stage_renderer = OsuManiaStageRenderer()
-	self.skin = nil
-	self.section = {}
-	self.columns = 0
-	self.column_widths = {}
-	self.column_spacings = {}
-	self.column_lines = {}
-	self.column_start = DEFAULT_COLUMN_START
-	self.column_right = DEFAULT_COLUMN_RIGHT
-	self.hit_position = DEFAULT_HIT_POSITION
-	self.move_with_hit_position = false
-	self.disable_hit_lightings = false
-	self.disable_stage_lightings = false
-	self.special_style = 0
-	self.note_height_scale = 0
-	self.note_body_styles = {}
-	self.default_note_body_style = "stretch"
-	self.upside_down = false
-	self.skin_upside_down = false
-	self.skin_hit_position = DEFAULT_HIT_POSITION
-	self.keys_under_notes = false
-	self.stage_under_keys = true
-	self.judgement_line = true
-	self.note_flip = true
-	self.key_flip = true
-	self.split_stages = false
-	self.stage_separation = 40
-	self.light_position = 413
-	self.light_frame_rate = 60
-	self.lighting_n_widths = {}
-	self.lighting_l_widths = {}
-	self.stage_lightings = {}
-	self.hit_lightings = {}
-	self.lighting_notes = setmetatable({}, {__mode = "k"})
-	self.lighting_skin = nil
-	self.lighting_loaded = false
-	self.lighting_input_state = {}
-	self.scratch_count = 0
-	self.scratch_columns = {}
 	self.lane_widths = {}
 	self.lane_xs = {}
 	self.notes_to_draw = {}
 	self.note_draw_pool = {}
 	self.active_long = {}
-	self.skin_colors = {}
-	self.column_suffixes = {}
-	self.column_frames = {}
-	self.column_keys = {}
-	self.note_body_flips = {}
-	self.note_head_flips = {}
-	self.note_short_flips = {}
-	self.lane_colors = {}
-	self.playfield_width_scale = 1
-	self.note_base_width = DEFAULT_COLUMN_WIDTH
 	self:loadSkinSettings(skin)
-end
-
----@param section rizu.skin.OsuSkinIni.ManiaSection
----@param key string
----@return string?
-local function get_section_value(section, key)
-	local value = section[key]
-	if value ~= nil then return value end
-	local lowered_key = key:lower()
-	for name, candidate in pairs(section) do
-		if name:lower() == lowered_key then return candidate end
-	end
-end
-
----@param section rizu.skin.OsuSkinIni.ManiaSection
----@param key string
----@param default number
----@return number
-local function get_number(section, key, default)
-	local value = get_section_value(section, key)
-	local number = tonumber(value)
-	if number == nil or number ~= number or number == math.huge or number == -math.huge then
-		return default
-	end
-	return number
-end
-
----@param section rizu.skin.OsuSkinIni.ManiaSection
----@param key string
----@param default boolean
----@return boolean
-local function get_boolean(section, key, default)
-	local value = get_section_value(section, key)
-	if not value then return default end
-	value = value:lower()
-	if value == "true" or tonumber(value) == 1 then return true end
-	if value == "false" or tonumber(value) == 0 then return false end
-	return default
-end
-
----@param section rizu.skin.OsuSkinIni.ManiaSection
----@param key string
----@param count integer
----@param default number
----@param minimum number
----@param maximum number
----@return number[]
-local function get_number_list(section, key, count, default, minimum, maximum)
-	local result = {}
-	local value = get_section_value(section, key)
-	local values = {}
-	if value then
-		for component in (value .. ","):gmatch("(.-),") do
-			values[#values + 1] = tonumber(component:match("^%s*(.-)%s*$"))
-		end
-	end
-	for index = 1, count do
-		local item = values[index]
-		if type(item) ~= "number" or item ~= item or item == math.huge or item == -math.huge then
-			item = default
-		end
-		result[index] = math.max(minimum, math.min(maximum, item))
-	end
-	return result
-end
-
----@param columns integer
----@param scratch_count integer
----@param special_style integer
----@return {[integer]: boolean}
-local function get_scratch_columns(columns, scratch_count, special_style)
-	local scratch_columns = {}
-	if special_style == 1 then
-		if scratch_count == 1 then
-			scratch_columns[1] = true
-		elseif scratch_count == 2 then
-			scratch_columns[1] = true
-			scratch_columns[columns] = true
-		end
-	elseif special_style == 2 then
-		if scratch_count == 1 then
-			scratch_columns[columns] = true
-		elseif scratch_count == 2 then
-			local center = math.floor(columns / 2)
-			scratch_columns[center] = true
-			scratch_columns[center + 1] = true
-		end
-	end
-	return scratch_columns
-end
-
----@param inputs chart.Column[]
----@param special_style integer
----@return chart.Column[]
-local function reorder_scratch_inputs(inputs, special_style)
-	local scratches, keys = {}, {}
-	for _, input in ipairs(inputs) do
-		if input:lower():match("^scratch%d+$") then
-			scratches[#scratches + 1] = input
-		else
-			keys[#keys + 1] = input
-		end
-	end
-
-	local scratch_columns = get_scratch_columns(#inputs, #scratches, special_style)
-	if not next(scratch_columns) then return inputs end
-
-	local reordered = {}
-	local scratch_index, key_index = 1, 1
-	for column = 1, #inputs do
-		if scratch_columns[column] then
-			reordered[column] = scratches[scratch_index]
-			scratch_index = scratch_index + 1
-		else
-			reordered[column] = keys[key_index]
-			key_index = key_index + 1
-		end
-	end
-	return reordered
 end
 
 ---@param skin rizu.skin.Skin?
 function OsuManiaRenderer:loadSkinSettings(skin)
 	self.skin = skin
-	self.inputs = {}
-	for index, input in ipairs(self.base_inputs) do self.inputs[index] = input end
-	local columns = #self.inputs
-	columns = math.max(1, math.min(18, math.floor(columns)))
-	self.columns = columns
-	local section = {}
-	for _, candidate in ipairs(skin and skin.skin_ini.Mania or {}) do
-		if tonumber(get_section_value(candidate, "Keys")) == columns then
-			section = candidate
-			break
-		end
+	for key, value in pairs(OsuManiaSkinSettings.read(skin and skin.skin_ini, self.base_inputs, self.input_mode)) do
+		self[key] = value
 	end
-	self.section = section
-	self.skin_upside_down = get_boolean(section, "UpsideDown", false)
 	self.upside_down = self:getUpscroll()
-	self.skin_colors = {}
-	self.column_widths = get_number_list(section, "ColumnWidth", columns, DEFAULT_COLUMN_WIDTH, 5, 100)
-	self.column_spacings = get_number_list(section, "ColumnSpacing", math.max(columns - 1, 0), 0, -100, 100)
-	for index = 1, #self.column_spacings do
-		self.column_spacings[index] = math.max(self.column_spacings[index], -self.column_widths[index + 1])
-	end
-	self.column_lines = get_number_list(section, "ColumnLineWidth", columns + 1, 2, 0, 100)
-	for index, line_width in ipairs(self.column_lines) do
-		if line_width > 0 and line_width < 2 then self.column_lines[index] = 2 end
-	end
-	self.column_start = get_number(section, "ColumnStart", DEFAULT_COLUMN_START)
-	self.column_right = get_number(section, "ColumnRight", DEFAULT_COLUMN_RIGHT)
-	self.skin_hit_position = math.max(240, math.min(480, get_number(section, "HitPosition", DEFAULT_HIT_POSITION)))
 	self.hit_position = self:getHitPosition()
 	self.move_with_hit_position = self:getMoveWithHitPosition()
 	self.disable_hit_lightings = self:getDisableHitLightings()
 	self.disable_stage_lightings = self:getDisableStageLightings()
-	self.special_style = math.max(0, math.min(2, math.floor(get_number(section, "SpecialStyle", 0))))
-	self.note_height_scale = math.max(0, get_number(section, "WidthForNoteHeightScale", 0))
-	local general = skin and skin.skin_ini and skin.skin_ini.General
-	local version_value = general and get_section_value(general, "Version")
-	local version = tonumber(version_value)
-	if version_value and version_value:lower() == "latest" then version = 2.6 end
-	self.default_note_body_style = version and version >= 2.5 and "repeat_bottom" or "stretch"
-	self.note_body_styles = {}
-	for column = 1, columns do
-		local style = get_section_value(section, "NoteBodyStyle" .. (column - 1))
-			or get_section_value(section, "NoteBodyStyle")
-		local style_number = tonumber(style)
-		self.note_body_styles[column] = style_number == 2 and "repeat_top"
-			or style_number == 3 and "repeat_bottom"
-			or style_number == 4 and "repeat_top_and_bottom"
-			or style_number == 0 and "stretch"
-			or self.default_note_body_style
-	end
-	self.keys_under_notes = get_boolean(section, "KeysUnderNotes", false)
-	self.stage_under_keys = get_boolean(section, "StageUnderKeys", true)
-	self.judgement_line = get_boolean(section, "JudgementLine", false)
-	self.note_flip = get_boolean(section, "NoteFlipWhenUpsideDown", true)
-	self.key_flip = get_boolean(section, "KeyFlipWhenUpsideDown", true)
-	self.split_stages = get_boolean(section, "SplitStages", self.columns >= 10)
-	self.stage_separation = math.max(5, get_number(section, "StageSeparation", 40))
-	self.light_position = math.max(0, math.min(FIELD_HEIGHT, get_number(section, "LightPosition", 413)))
-	self.light_frame_rate = math.max(1, get_number(section, "LightFramePerSecond", 60))
-	self.lighting_n_widths = get_number_list(section, "LightingNWidth", columns, 0, 0, math.huge)
-	self.lighting_l_widths = get_number_list(section, "LightingLWidth", columns, 0, 0, math.huge)
 	self.stage_lightings = {}
 	self.hit_lightings = {}
 	self.lighting_notes = setmetatable({}, {__mode = "k"})
 	self.lighting_skin = nil
 	self.lighting_loaded = false
 	self.lighting_input_state = {}
-	if self.split_stages and columns > 1 then
-		local split = math.floor(columns / 2)
-		self.column_spacings[split] = math.max(self.column_spacings[split] or 0, self.stage_separation)
-	end
-
-	local skin_inputs = get_section_value(section, "Inputs" .. self.input_mode)
-	if skin_inputs then
-		local reordered = {}
-		for input in (skin_inputs .. ","):gmatch("(.-),") do
-			input = input:match("^%s*(.-)%s*$")
-			if input ~= "" then reordered[#reordered + 1] = input end
-		end
-		if #reordered == columns then self.inputs = reordered end
-	end
-	self.inputs = reorder_scratch_inputs(self.inputs, self.special_style)
-	self.scratch_count = 0
-	for _, input in ipairs(self.inputs) do
-		if input:lower():match("^scratch%d+$") then self.scratch_count = self.scratch_count + 1 end
-	end
-	self.scratch_columns = get_scratch_columns(self.columns, self.scratch_count, self.special_style)
-	local inputs = {}
-	for column, input in ipairs(self.inputs) do inputs[input] = column end
-	self.input_map = inputs
-	self.column_suffixes = {}
+	self.skin_colors = {}
 	self.column_frames = {}
 	self.column_keys = {}
 	self.note_body_flips = {}
 	self.note_head_flips = {}
 	self.note_short_flips = {}
 	self.lane_colors = {}
-	for column = 1, columns do
-		self:getColumnSuffix(column - 1)
+	for column = 1, self.columns do
 		self:getNoteBodyFlip(column)
 		self:getNoteHeadFlip(column, true)
 		self:getNoteHeadFlip(column, false)
@@ -428,15 +160,6 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	end
 	local _, _, width_scale = self:getPlayfieldLayout()
 	self.playfield_width_scale = width_scale
-	local base_width = self.note_height_scale
-	if base_width <= 0 then
-		base_width = math.huge
-		for lane = 1, columns do
-			base_width = math.min(base_width, self.column_widths[lane] or DEFAULT_COLUMN_WIDTH)
-		end
-		if base_width == math.huge then base_width = DEFAULT_COLUMN_WIDTH end
-	end
-	self.note_base_width = base_width
 end
 
 function OsuManiaRenderer:update(dt)
@@ -774,83 +497,7 @@ end
 ---@param column integer zero based physical Mania lane index
 ---@return "1"|"2"|"S"
 function OsuManiaRenderer:getColumnSuffix(column)
-	local suffix = self.column_suffixes[column]
-	if suffix then return suffix end
-	suffix = self:computeColumnSuffix(column)
-	self.column_suffixes[column] = suffix
-	return suffix
-end
-
----@param column integer zero based physical Mania lane index
----@return "1"|"2"|"S"
-function OsuManiaRenderer:computeColumnSuffix(column)
-	local physical_column = column + 1
-	local scratch_count = self.scratch_count
-
-	if scratch_count > 0 and (self.special_style == 1 or self.special_style == 2) then
-		local scratch_columns = self.scratch_columns
-		if scratch_columns[physical_column] then return "S" end
-
-		local scratch_before = 0
-		for current = 1, physical_column do
-			if scratch_columns[current] then scratch_before = scratch_before + 1 end
-		end
-		local key = physical_column - scratch_before
-		local key_count = self.columns - scratch_count
-		if key_count % 2 == 1 then
-			local half = (key_count - 1) / 2
-			if (key_count + 1) / 2 == key then return "2" end
-			return (half - key + 1) % 2 == 1 and "1" or "2"
-		end
-		local odd = (key_count / 2 - key + 1) % 2 == 1
-		local same = key <= key_count / 2
-		return odd == same and "2" or "1"
-	end
-
-	-- Preserve the original fallback layout for key-only modes and for skins
-	-- that declare SpecialStyle without a matching scratch input mode.
-	local key = physical_column
-	local key_count = self.columns
-	local special_style = self.special_style
-	if special_style == 1 then
-		if key == 1 then return "S" end
-		key = key - 1
-		key_count = key_count - 1
-	elseif special_style == 2 then
-		if key == key_count then return "S" end
-		key_count = key_count - 1
-	end
-
-	if key_count % 2 == 1 then
-		local half = (key_count - 1) / 2
-		if (key_count + 1) / 2 == key then
-			if special_style == 0 then return "S" end
-			return "2"
-		end
-		return (half - key + 1) % 2 == 1 and "1" or "2"
-	end
-
-	local odd = (key_count / 2 - key + 1) % 2 == 1
-	local same = key <= key_count / 2
-	return odd == same and "2" or "1"
-end
-
----@param section rizu.skin.OsuSkinIni.ManiaSection
----@param key string
----@param fallback number[]
----@return number[]
-local function get_color(section, key, fallback)
-	local value = get_section_value(section, key)
-	if not value then return fallback end
-	local values = {}
-	for component in (value .. ","):gmatch("(.-),") do
-		local number = tonumber(component:match("^%s*(.-)%s*$"))
-		if not number then return fallback end
-		values[#values + 1] = math.max(0, math.min(255, number)) / 255
-	end
-	if #values < 3 then return fallback end
-	values[4] = values[4] or 1
-	return values
+	return self.column_suffixes[column]
 end
 
 ---@return boolean

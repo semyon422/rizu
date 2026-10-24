@@ -1,4 +1,5 @@
 local class = require("class")
+local get_section_value = require("rizu.skin.osu.mania.OsuManiaSkinSettings").get_value
 
 ---@class rizu.skin.osu.mania.OsuManiaSkinAssetFinder
 ---@operator call: rizu.skin.osu.mania.OsuManiaSkinAssetFinder
@@ -12,18 +13,6 @@ local OsuManiaSkinAssetFinder = class()
 ---@field fallback string?
 ---@field animation boolean
 ---@field role string
-
----@param section table<string, any>
----@param key string
----@return string?
-local function get_section_value(section, key)
-	local value = section[key]
-	if value ~= nil then return value end
-	local lowered_key = key:lower()
-	for name, candidate in pairs(section) do
-		if type(name) == "string" and name:lower() == lowered_key then return candidate end
-	end
-end
 
 ---@param options table<string, any>
 function OsuManiaSkinAssetFinder:new(options)
