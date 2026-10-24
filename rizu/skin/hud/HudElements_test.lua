@@ -239,7 +239,7 @@ end
 function test.hit_error_rolls_judgement_blocks_and_fades_after_idle(t)
 	local state = {judgements = {{judge = 3}}}
 	local api = make_api(state)
-	local meter = create("hit_error")
+	local meter = create("osu_hit_error")
 	meter:load(api)
 	meter:update(0, api)
 	local lit = 0
@@ -259,7 +259,7 @@ function test.hit_error_timing_mode_tracks_the_delta(t)
 		windows = {0.016, 0.064, 0.097, 0.127, 0.151, 0.188},
 	}
 	local api = make_api(state)
-	local meter = create("hit_error", {mode = "timing"})
+	local meter = create("osu_hit_error", {mode = "timing"})
 	meter:load(api)
 	meter:update(0, api)
 	t:eq(meter.point_index, 1)
@@ -271,7 +271,7 @@ end
 ---@param t testing.T
 function test.progress_pie_restores_the_blend_mode(t)
 	local api = make_api({progress = 0.5})
-	local progress = create("progress")
+	local progress = create("osu_radial_progress")
 	progress:load(api)
 	progress:update(0, api)
 	t:eq(progress.progress, 0.5)

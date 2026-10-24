@@ -451,7 +451,7 @@ function OsuManiaRenderer:getDefaultHudLayout()
 			texture_5 = self:getJudgementTexture("50"), texture_6 = self:getJudgementTexture("0")},
 	}
 	if hit_meter_mode ~= 2 then
-		conveyor[#conveyor + 1] = {type = "hit_error", anchor = "bottom", origin = "bottom", y = hit_meter_y,
+		conveyor[#conveyor + 1] = {type = "osu_hit_error", anchor = "bottom", origin = "bottom", y = hit_meter_y,
 			mode = hit_meter_mode == 1 and "timing" or "judgements", arrow = "editor-rate-arrow"}
 	end
 	-- Positions under the score assume the default score glyphs, 46 units tall.
@@ -461,7 +461,7 @@ function OsuManiaRenderer:getDefaultHudLayout()
 				font = score_prefix, overlap = score_overlap, digits = 8, animation = "osu"},
 			{type = "accuracy", anchor = "top_right", origin = "top_right", x = -6, y = 31, scale = 0.36,
 				font = score_prefix, overlap = score_overlap, animation = "osu"},
-			{type = "progress", anchor = "top_right", origin = "center", x = -100, y = 39, texture = "circularmetre"},
+			{type = "osu_radial_progress", anchor = "top_right", origin = "center", x = -100, y = 39, texture = "circularmetre"},
 		},
 		conveyor = conveyor,
 	}

@@ -27,15 +27,15 @@ local ERROR_COLORS = {
 	{1, 0.035, 0.035}, -- miss
 }
 
----@class rizu.skin.hud.elements.HitError.Point
+---@class rizu.skin.hud.elements.OsuHitError.Point
 ---@field position number
 ---@field color number[]
 ---@field age number
 
 ---"judgements" shows the colors of the latest judgements in a row, "timing" shows how early or
 ---late the hits were on a bar of the judge windows.
----@class rizu.skin.hud.elements.HitError : rizu.skin.hud.HudElement
----@operator call: rizu.skin.hud.elements.HitError
+---@class rizu.skin.hud.elements.OsuHitError : rizu.skin.hud.HudElement
+---@operator call: rizu.skin.hud.elements.OsuHitError
 ---@field judgement_count integer
 ---@field since_hit number
 ---@field icon_index integer
@@ -45,14 +45,14 @@ local ERROR_COLORS = {
 ---@field target_position number
 ---@field position number
 ---@field point_index integer
----@field points rizu.skin.hud.elements.HitError.Point[]
+---@field points rizu.skin.hud.elements.OsuHitError.Point[]
 ---@field alpha number
 ---@field arrow rizu.skin.SkinTextures.Image?
-local HitError = HudElement + {}
+local OsuHitError = HudElement + {}
 
-HitError.label = "Hit error meter"
-HitError.defaults = {anchor = "bottom", origin = "bottom"}
-HitError.fields = {
+OsuHitError.label = "osu!stable hit error meter"
+OsuHitError.defaults = {anchor = "bottom", origin = "bottom"}
+OsuHitError.fields = {
 	{key = "mode", label = "Mode", type = "segmented", options = {"judgements", "timing"}, default = "judgements",
 		format = function(value) return value == "timing" and "Timing error" or "Judgement history" end},
 	{key = "arrow", label = "Arrow texture", type = "texture", default = ""},
@@ -60,7 +60,7 @@ HitError.fields = {
 
 ---@param values {[string]: any}?
 ---@param textures rizu.skin.SkinTextures
-function HitError:new(values, textures)
+function OsuHitError:new(values, textures)
 	self.icons = {}
 	for i = 1, ICON_COUNT do self.icons[i] = {color = GRADE_COLORS[1], alpha = 0} end
 	self.points = {}
@@ -71,7 +71,7 @@ function HitError:new(values, textures)
 	self:reset()
 end
 
-function HitError:reset()
+function OsuHitError:reset()
 	self.judgement_count = 0
 	self.since_hit = math.huge
 	self.icon_index = 0
@@ -83,7 +83,7 @@ function HitError:reset()
 	self.position = self.target_position
 end
 
-function HitError:applyValues()
+function OsuHitError:applyValues()
 	HudElement.applyValues(self)
 	if self.values.mode == "timing" then
 		self.width, self.height = self.range * 1000 * ERROR_SCALE, TIMING_HEIGHT
@@ -93,12 +93,12 @@ function HitError:applyValues()
 end
 
 ---@return rizu.skin.SkinTextures.Asset[]
-function HitError:getAssets()
+function OsuHitError:getAssets()
 	return {{name = self.values.arrow --[[@as string]], group = HudElement.group}}
 end
 
 ---@param context rizu.api.GameApi
-function HitError:load(context)
+function OsuHitError:load(context)
 	HudElement.load(self, context)
 	self.arrow = self:getTexture(self.values.arrow --[[@as string]])
 	self:setWindows(context.gameplay:getJudgeWindows())
@@ -106,13 +106,13 @@ function HitError:load(context)
 end
 
 ---@param context rizu.api.GameApi?
-function HitError:unload(context)
+function OsuHitError:unload(context)
 	self.arrow = nil
 	HudElement.unload(self, context)
 end
 
 ---@param windows number[]? Seconds from the note, one per judge from the best.
-function HitError:setWindows(windows)
+function OsuHitError:setWindows(windows)
 	local filled = {} ---@type number[]
 	for i, default in ipairs(DEFAULT_WINDOWS) do
 		local value = windows and #windows > 0 and tonumber(windows[math.min(i, #windows)])
@@ -124,7 +124,7 @@ function HitError:setWindows(windows)
 end
 
 ---@param delta number Seconds off the note, negative is early.
-function HitError:addError(delta)
+function OsuHitError:addError(delta)
 	local range, windows = self.range, self.windows
 	local position = self.width / 2 + math.max(-range, math.min(range, delta)) / range * self.width / 2
 	self.target_position = position
@@ -138,7 +138,7 @@ function HitError:addError(delta)
 end
 
 ---@param grade integer
-function HitError:addJudgement(grade)
+function OsuHitError:addJudgement(grade)
 	for _, icon in ipairs(self.icons) do icon.alpha = math.max(0, icon.alpha - 0.08) end
 	self.icon_index = self.icon_index % #self.icons + 1
 	local icon = self.icons[self.icon_index]
@@ -148,7 +148,7 @@ end
 
 ---@param dt number
 ---@param context rizu.api.GameApi
-function HitError:update(dt, context)
+function OsuHitError:update(dt, context)
 	local gameplay = context.gameplay
 	local count = gameplay:getJudgementCount()
 	if count < self.judgement_count then self:reset() end -- retry
@@ -178,7 +178,7 @@ function HitError:update(dt, context)
 	end
 end
 
-function HitError:drawTiming()
+function OsuHitError:drawTiming()
 	local alpha = self.alpha
 	if alpha <= 0 then return end
 	local width, center, windows = self.width, self.width / 2, self.windows
@@ -216,7 +216,7 @@ function HitError:drawTiming()
 	end
 end
 
-function HitError:draw()
+function OsuHitError:draw()
 	if self.values.mode == "timing" then return self:drawTiming() end
 	local mode, alpha_mode = lg.getBlendMode()
 	lg.setBlendMode("add", "alphamultiply")
@@ -231,4 +231,4 @@ function HitError:draw()
 	lg.setBlendMode(mode, alpha_mode)
 end
 
-return HitError
+return OsuHitError

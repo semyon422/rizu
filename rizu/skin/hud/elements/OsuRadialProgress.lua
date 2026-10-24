@@ -10,50 +10,50 @@ local BEFORE_START_COLOR = {0.78, 1, 0.18, 0.6}
 local PLAYING_COLOR = {1, 1, 1, 0.6}
 
 ---A pie filling up over the play, with an optional texture over it.
----@class rizu.skin.hud.elements.Progress : rizu.skin.hud.HudElement
----@operator call: rizu.skin.hud.elements.Progress
+---@class rizu.skin.hud.elements.OsuRadialProgress : rizu.skin.hud.HudElement
+---@operator call: rizu.skin.hud.elements.OsuRadialProgress
 ---@field progress number -1..1, negative before the first note.
 ---@field image rizu.skin.SkinTextures.Image?
-local Progress = HudElement + {}
+local OsuRadialProgress = HudElement + {}
 
-Progress.label = "Progress"
-Progress.fields = {
+OsuRadialProgress.label = "osu!stable radial progress"
+OsuRadialProgress.fields = {
 	{key = "texture", label = "Texture", type = "texture", default = ""},
 }
 
 ---@param values {[string]: any}?
 ---@param textures rizu.skin.SkinTextures
-function Progress:new(values, textures)
+function OsuRadialProgress:new(values, textures)
 	self.progress = 0
 	HudElement.new(self, values, textures)
 	self.width, self.height = SIZE, SIZE
 end
 
 ---@return rizu.skin.SkinTextures.Asset[]
-function Progress:getAssets()
+function OsuRadialProgress:getAssets()
 	return {{name = self.values.texture --[[@as string]], group = HudElement.group}}
 end
 
 ---@param context rizu.api.GameApi
-function Progress:load(context)
+function OsuRadialProgress:load(context)
 	HudElement.load(self, context)
 	self.image = self:getTexture(self.values.texture --[[@as string]])
 end
 
 ---@param context rizu.api.GameApi?
-function Progress:unload(context)
+function OsuRadialProgress:unload(context)
 	self.image = nil
 	HudElement.unload(self, context)
 end
 
 ---@param _ number
 ---@param context rizu.api.GameApi
-function Progress:update(_, context)
+function OsuRadialProgress:update(_, context)
 	local progress = tonumber(context.gameplay:getProgress()) or 0
 	self.progress = progress == progress and math.max(-1, math.min(1, progress)) or 0
 end
 
-function Progress:draw()
+function OsuRadialProgress:draw()
 	local cx, cy = SIZE / 2, SIZE / 2
 	local mode, alpha_mode = lg.getBlendMode()
 	lg.setBlendMode("add", "alphamultiply")
@@ -73,4 +73,4 @@ function Progress:draw()
 	lg.setBlendMode(mode, alpha_mode)
 end
 
-return Progress
+return OsuRadialProgress
