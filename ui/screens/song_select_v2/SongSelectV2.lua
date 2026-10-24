@@ -14,7 +14,7 @@ local ChartBrowser = require("ui.screens.song_select_v2.ChartBrowser")
 local SelectedSongPanel = require("ui.screens.song_select_v2.SelectedSongPanel")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local Label = require("ui.views.Label")
-local SegmentedControl = require("ui.views.form.SegmentedControl")
+local ScoreSourceToggle = require("ui.screens.song_select_v2.ScoreSourceToggle")
 local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
 local ScoreList = require("ui.screens.result_v2.ScoreList")
@@ -163,18 +163,7 @@ function SongSelectV2:createScores()
 		color = Colors.muted,
 		text = "LEADERBOARD",
 	})):setAlignment(0, 0.5)
-	head:add(SegmentedControl({
-		label = "",
-		options = {"local", "online"},
-		value = scores_api:getSource(),
-		compact = true,
-		format = function(source)
-			return ui.localization:get("song_select.score_source_" .. source)
-		end,
-		on_change = function(source)
-			scores_api:setSource(source)
-		end,
-	})):setAlignment(1, 0.5)
+	head:add(ScoreSourceToggle(scores_api, ui.localization)):setHeight(SCORES_HEADER_HEIGHT):setAlignment(1, 0.5)
 
 	self.score_list = scores:add(ScoreList(scores_api, ui.localization, ui.api.online), "*")
 	self.score_list:setEmptySpriteEnabled(true)
