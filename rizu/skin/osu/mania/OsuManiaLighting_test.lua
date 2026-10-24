@@ -1,5 +1,6 @@
 local OsuManiaLighting = require("rizu.skin.osu.mania.OsuManiaLighting")
 local OsuManiaRenderer = require("rizu.skin.osu.OsuManiaRenderer")
+local OsuManiaLightingRenderer = require("rizu.skin.osu.mania.OsuManiaLightingRenderer")
 
 local test = {}
 
@@ -65,11 +66,9 @@ end
 function test.renderer_long_note_tail_release_finishes_hit_lighting(t)
 	local hold = make_lighting("hold")
 	local short = make_lighting("oneshot")
-	local renderer = setmetatable({
-		columns = 1, input_map = {key1 = 1}, active_long = {},
-		lighting_notes = setmetatable({}, {__mode = "k"}),
-		hit_lightings = {{long = hold, short = short}},
-	}, {__index = OsuManiaRenderer})
+	local renderer = setmetatable({columns = 1, input_map = {key1 = 1}}, {__index = OsuManiaRenderer})
+	local lightings = OsuManiaLightingRenderer()
+	lightings.hit_lightings = {{long = hold, short = short}}
 	local state = "startPassedPressed"
 	local note = {
 		type = "long",
@@ -77,12 +76,12 @@ function test.renderer_long_note_tail_release_finishes_hit_lighting(t)
 		getState = function() return state end,
 	}
 	local notes = {note}
-	renderer:updateHitLightings(notes)
+	lightings:updateHits(renderer, notes)
 	hold:update(0.08)
 	t:eq(hold.held, true)
 	state = "endPassed"
 	for _ = 1, 12 do
-		renderer:updateHitLightings(notes)
+		lightings:updateHits(renderer, notes)
 		hold:update(0.02)
 		short:update(0.02)
 	end
@@ -90,7 +89,7 @@ function test.renderer_long_note_tail_release_finishes_hit_lighting(t)
 	t:eq(hold.active, false)
 	t:eq(hold.alpha, 0)
 	t:eq(short.active, false)
-	renderer:updateHitLightings({})
+	lightings:updateHits(renderer, {})
 	t:eq(hold.active, false)
 end
 
@@ -125,25 +124,25 @@ local function with_lighting_graphics(callback)
 	if not ok then error(err) end
 end
 
+---@return rizu.skin.osu.OsuManiaRenderer
+---@return rizu.skin.osu.mania.OsuManiaLightingRenderer
 local function make_draw_renderer()
-	return setmetatable({
-		columns = 4, upside_down = false, light_position = 413,
-		stage_lightings = {}, hit_lightings = {},
-	}, {__index = OsuManiaRenderer})
+	return setmetatable({columns = 4, upside_down = false, light_position = 413}, {__index = OsuManiaRenderer}),
+		OsuManiaLightingRenderer()
 end
 
 function test.stage_lights_share_automatic_batch_without_redundant_blend_changes(t)
 	with_lighting_graphics(function(state)
-		local renderer = make_draw_renderer()
+		local renderer, lightings = make_draw_renderer()
 		local image = {getDimensions = function() return 16, 16 end}
 		for column = 1, 4 do
 			local lighting = make_lighting("stage")
 			lighting.frames = {image}
 			lighting.color = {column / 4, 1, 1, 1}
 			lighting:setHeld(true)
-			renderer.stage_lightings[column] = lighting
+			lightings.stage_lightings[column] = lighting
 		end
-		renderer:drawStageLightings({30, 30, 30, 30}, {15, 45, 75, 105}, 402)
+		lightings:drawStage(renderer, {30, 30, 30, 30}, {15, 45, 75, 105})
 		t:eq(state.draws, 4)
 		t:eq(state.runs, 1)
 		t:eq(state.changes, 0)
@@ -153,16 +152,16 @@ end
 
 function test.hit_lights_set_additive_blend_once_and_restore_after_all_columns(t)
 	with_lighting_graphics(function(state)
-		local renderer = make_draw_renderer()
+		local renderer, lightings = make_draw_renderer()
 		local image = {getDimensions = function() return 16, 16 end}
 		for column = 1, 4 do
 			local lighting = make_lighting("oneshot")
 			lighting.frames = {image}
 			lighting:trigger()
 			lighting:update(0.08)
-			renderer.hit_lightings[column] = {short = lighting}
+			lightings.hit_lightings[column] = {short = lighting}
 		end
-		renderer:drawHitLightings({15, 45, 75, 105}, 402)
+		lightings:drawHits(renderer, {15, 45, 75, 105}, 402)
 		t:eq(state.draws, 4)
 		t:eq(state.runs, 1)
 		t:eq(state.changes, 2)
@@ -173,15 +172,15 @@ end
 
 function test.invisible_lighting_passes_do_not_change_state(t)
 	with_lighting_graphics(function(state)
-		local renderer = make_draw_renderer()
+		local renderer, lightings = make_draw_renderer()
 		for column = 1, 4 do
-			renderer.stage_lightings[column] = make_lighting("stage")
+			lightings.stage_lightings[column] = make_lighting("stage")
 			local short = make_lighting("oneshot")
 			short:trigger() -- active, but still fully transparent
-			renderer.hit_lightings[column] = {short = short, long = make_lighting("hold")}
+			lightings.hit_lightings[column] = {short = short, long = make_lighting("hold")}
 		end
-		renderer:drawStageLightings({30, 30, 30, 30}, {15, 45, 75, 105}, 402)
-		renderer:drawHitLightings({15, 45, 75, 105}, 402)
+		lightings:drawStage(renderer, {30, 30, 30, 30}, {15, 45, 75, 105})
+		lightings:drawHits(renderer, {15, 45, 75, 105}, 402)
 		t:eq(state.draws, 0)
 		t:eq(state.changes, 0)
 	end)

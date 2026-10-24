@@ -233,7 +233,7 @@ function test.renderer_membership_and_all_draw_paths(t)
 		judge:show("perfect", 1)
 		judge.judgement_state.elapsed = 0.05
 		judge:draw()
-		for _, lighting in ipairs(renderer.stage_lightings) do lighting:setHeld(true); lighting:draw(0, 0) end
+		for _, lighting in ipairs(renderer.lighting_renderer.stage_lightings) do lighting:setHeld(true); lighting:draw(0, 0) end
 		t:assert(#draws > 15)
 		for _, draw in ipairs(draws) do
 			t:assert(draw[1].getDimensions, "draw must receive a GPU Image, not frame metadata")
