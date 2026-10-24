@@ -98,19 +98,16 @@ end
 function PauseModel:play()
 	self.rhythm_engine:play()
 	self.state = "play"
-	love.mouse.setVisible(false)
 end
 
 function PauseModel:pause()
 	self.rhythm_engine:pause()
 	self.state = "pause"
-	love.mouse.setVisible(true)
 end
 
 function PauseModel:retry()
 	self.needRetry = true
 	self.state = "play"
-	love.mouse.setVisible(false)
 end
 
 return PauseModel

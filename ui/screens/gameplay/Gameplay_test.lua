@@ -218,6 +218,28 @@ function test.press_and_release_in_same_frame_cancels_retry(t)
 end
 
 ---@param t testing.T
+function test.cursor_follows_pause_unless_skin_editor_is_open(t)
+	local screen = create("play")
+	local ui = {skin_editor = false}
+	---@cast ui ui.UserInterface
+	screen.ui = ui
+	screen.mouse_visible = false
+	screen:updateMouseVisibility("pause")
+	t:eq(love.mouse.isVisible(), true)
+	screen:updateMouseVisibility("play")
+	t:eq(love.mouse.isVisible(), false)
+
+	screen.ui.skin_editor = true
+	screen:updateMouseVisibility("play")
+	t:eq(love.mouse.isVisible(), true)
+
+	screen.mouse_visible = nil
+	screen.ui.skin_editor = false
+	screen:updateMouseVisibility("play")
+	t:eq(love.mouse.isVisible(), true)
+end
+
+---@param t testing.T
 function test.completed_pause_and_resume(t)
 	local screen, model = create("play")
 	local pauses, resumes = 0, 0

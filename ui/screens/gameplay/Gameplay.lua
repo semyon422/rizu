@@ -20,6 +20,7 @@ local thread = require("thread")
 ---@field gameplay_playfield_view gui.View
 ---@field gameplay_hud_view gui.View
 ---@field skin_editor ui.screens.gameplay.SkinEditor
+---@field mouse_visible boolean? Cursor visibility this screen last applied, nil while not entered
 ---@operator call: ui.screens.gameplay.Gameplay
 local Gameplay = Screen + {}
 
@@ -88,7 +89,8 @@ function Gameplay:enter()
 	self.summary:setVisible(false)
 	love.keyboard.setKeyRepeat(false)
 	love.keyboard.setTextInput(false)
-	love.mouse.setVisible(self.ui.skin_editor)
+	self.mouse_visible = self.ui.skin_editor
+	love.mouse.setVisible(self.mouse_visible)
 	self.is_playing = true
 	if self.ui.skin_editor then
 		self.skin_editor:open()
@@ -177,6 +179,7 @@ function Gameplay:exit()
 	self.gameplay:close()
 	love.keyboard.setKeyRepeat(true)
 	love.keyboard.setTextInput(true)
+	self.mouse_visible = nil
 	love.mouse.setVisible(true)
 
 	self.root:fadeOut(1, "OutQuint")
@@ -262,6 +265,17 @@ function Gameplay:observeCompletion()
 	end)()
 end
 
+---@param state string
+function Gameplay:updateMouseVisibility(state)
+	-- nil after exit: the outgoing screen keeps updating during its fade-out
+	if self.mouse_visible == nil then return end
+	local mouse_visible = self.ui.skin_editor or state:sub(1, 5) == "pause"
+	if mouse_visible ~= self.mouse_visible then
+		self.mouse_visible = mouse_visible
+		love.mouse.setVisible(mouse_visible)
+	end
+end
+
 ---@param dt number
 function Gameplay:update(dt)
 	Screen.update(self, dt)
@@ -285,6 +299,8 @@ function Gameplay:update(dt)
 		self.pause_hold_overlay:setProgress(0)
 		self.pause_overlay:setReveal(0)
 	end
+
+	self:updateMouseVisibility(state)
 
 	local retrying = state == "play-retry" or state == "pause-retry"
 	if retrying then
