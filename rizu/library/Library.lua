@@ -9,6 +9,7 @@ local Status = require("rizu.library.Status")
 local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
+local ChartplayAccuraciesRepo = require("rizu.library.repos.ChartplayAccuraciesRepo")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 require("rizu.library.views")
@@ -76,6 +77,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.chartviewsRepo = ChartviewsRepo(self.database.models)
 	self.locationsRepo = LocationsRepo(self.database.models)
 	self.chartfilesRepo = ChartfilesRepo(self.database.models)
+	self.chartplayAccuraciesRepo = ChartplayAccuraciesRepo(self.database.models)
 
 	self.statusUpdate = Status(self.chartfilesRepo, self.chartsRepo)
 	self.collections = Collections(self.chartfilesRepo, self.locationsRepo)
@@ -245,6 +247,14 @@ end
 function Library:computeChartplays()
 	self:addTask(function()
 		self.worker:computeChartplays()
+	end)
+end
+
+---Stores the accuracies of these systems for every local chartplay again, from the replays.
+---@param stored_accuracies string The scores.stored_accuracies setting.
+function Library:computeAccuracies(stored_accuracies)
+	self:addTask(function()
+		self.worker:computeAccuracies(stored_accuracies)
 	end)
 end
 

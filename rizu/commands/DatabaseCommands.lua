@@ -1,4 +1,5 @@
 local ModifierModel = require("sphere.models.ModifierModel")
+local Settings = require("rizu.config.Settings")
 
 local formats = {"bms", "ksh", "mid", "ojn", "osu", "qua", "sph", "sm", "iidx"}
 
@@ -98,6 +99,14 @@ return function(game)
 			description = "Computes chartplays",
 			callback = function()
 				library:computeChartplays()
+			end,
+		},
+		{
+			id = "database.compute_accuracies",
+			title = "Database: Recalculate Stored Accuracies",
+			description = "Replays every local score and stores the accuracies chosen in the settings",
+			callback = function()
+				library:computeAccuracies(game.settings:getString(Settings.keys.scores.stored_accuracies))
 			end,
 		},
 		{

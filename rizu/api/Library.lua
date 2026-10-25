@@ -1,6 +1,7 @@
 local path_util = require("path_util")
 local Events = require("rizu.api.Events")
 local OtherGames = require("rizu.other_games.OtherGames")
+local Settings = require("rizu.config.Settings")
 
 --[[
 Where the chart files are: the folders ("locations") the game scans, and the scan itself.
@@ -205,5 +206,12 @@ function Library:toggleCacheUpdate(location) self.game.selectionActions:updateCa
 
 ---@return rizu.api.CacheStatus
 function Library:getCacheStatus() return toCacheStatus(self.game.library.status) end
+
+---Plays every local score again from its replay and stores the accuracies the
+---`scores.stored_accuracies` setting lists, removing the others. Slow: follow it with getCacheStatus(),
+---its stage is "accuracies". Scores whose chart or replay is missing keep what they had.
+function Library:recalculateAccuracies()
+	self.game.library:computeAccuracies(self.game.settings:getString(Settings.keys.scores.stored_accuracies))
+end
 
 return Library

@@ -38,7 +38,7 @@ end
 ---@param t testing.T
 function test.enum_storage_and_derived_model_filters(t)
 	local db = create_db()
-	t:eq(db.db:user_version(), 10)
+	t:eq(db.db:user_version(), 11)
 	for id, state in ipairs(ComputeState:list()) do
 		create_play(db, id, state)
 		check_play(t, db, id, state)
@@ -65,7 +65,7 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	end
 	db.db:user_version(9)
 	db:migrate()
-	t:eq(db.db:user_version(), 10)
+	t:eq(db.db:user_version(), 11)
 	for id, state in ipairs(states) do
 		check_play(t, db, id, state)
 		local play = assert(db.models.chartplays:find({id = id}))

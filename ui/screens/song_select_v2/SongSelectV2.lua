@@ -2,7 +2,6 @@ local Screen = require("gui.Screen")
 local View = require("gui.View")
 local CompositeView = require("gui.CompositeView")
 local TrackContainer = require("gui.layout.TrackContainer")
-local FlowContainer = require("gui.layout.FlowContainer")
 local Colors = require("ui.Colors")
 local Panel = require("ui.views.Panel")
 local BlurredBackground = require("ui.views.BlurredBackground")
@@ -20,7 +19,6 @@ local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
 local ScoreList = require("ui.screens.result_v2.ScoreList")
 local UiActions = require("ui.UiActions")
-local erfunc = require("chart.scoring.erfunc")
 
 ---@class ui.screens.song_select_v2.CornerHit : gui.View
 ---@field on_click fun()
@@ -48,8 +46,6 @@ end
 ---@field selected_song_panel ui.screens.song_select_v2.SelectedSongPanel
 ---@field chart_browser ui.screens.song_select_v2.ChartBrowser
 ---@field score_list ui.screens.result_v2.ScoreList
----@field personal_best ui.views.Label
----@field personal_best_value ui.views.Label
 ---@field footer ui.screens.song_select_v2.Footer
 ---@field library_toolbar ui.screens.song_select_v2.LibraryToolbar
 ---@field backdrop gui.View Background, blur and scrim; also drawn by chart loading
@@ -161,11 +157,10 @@ function SongSelectV2:createScores()
 	local scores = TrackContainer({direction = "column", gap = SCORES_GAP})
 
 	local head = scores:add(View(), SCORES_HEADER_HEIGHT)
-	-- From the chart row, so it shows the local best whichever source the list shows.
-	local personal_best = head:add(FlowContainer({direction = "row", gap = 8, align = 0.5}))
-	personal_best:anchorFill(0, 0, 0, 0)
-	self.personal_best = personal_best:add(Label({font_name = "bold", font_size = 20, color = Colors.muted}))
-	self.personal_best_value = personal_best:add(Label({font_name = "bold", font_size = 20}))
+	head:add(Label({
+		font_name = "bold", font_size = 20, color = Colors.muted,
+		text = ui.localization:get("song_select.leaderboard"),
+	})):setAlignment(0, 0.5)
 	head:add(ScoreSourceToggle(scores_api, ui.localization)):setHeight(SCORES_HEADER_HEIGHT):setAlignment(1, 0.5)
 
 	self.score_list = scores:add(ScoreList(scores_api, ui.localization, ui.api.online), "*")
@@ -259,12 +254,6 @@ function SongSelectV2:bindChartview(chartview)
 		self.selected_song_panel:bind(self.chartview_formatter)
 		self.chart_browser.chart_info:bind(self.chartview_formatter)
 	end
-	local accuracy = chartview and chartview.accuracy
-	local localization = self.ui.localization
-	local score = accuracy and erfunc.erf(0.032 / (accuracy * math.sqrt(2))) * 10000
-	self.personal_best:setText(localization:get(score and "song_select.personal_best" or "song_select.no_personal_best"))
-	self.personal_best_value:setText(score and ("%0.02f%%"):format(score / 100) or "")
-	self.personal_best_value.color = score and ScoreList.getColorFromScore(score) or Colors.text
 end
 
 function SongSelectV2:updateModifiers()

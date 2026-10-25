@@ -22,6 +22,7 @@ local ReplayPlayer = require("rizu.engine.replay.ReplayPlayer")
 ---@field chartmeta sea.Chartmeta?
 ---@field chartdiff sea.Chartdiff?
 ---@field chartplay sea.Chartplay?
+---@field score_engine rizu.ScoreEngine? Of the last computeReplay(), to score its events with other systems.
 local ComputeContext = class()
 
 function ComputeContext:new()
@@ -170,6 +171,7 @@ function ComputeContext:computeReplay(replay)
 	rhythm_engine:setConst(replay.const)
 
 	self:computePlay(rhythm_engine, replay.frames)
+	self.score_engine = rhythm_engine.score_engine
 
 	local cc_factory = ChartplayComputedFactory(chartdiff, diffcalc_context, rhythm_engine.score_engine)
 	local chartplay_computed = cc_factory:getChartplayComputed()

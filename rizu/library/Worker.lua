@@ -81,6 +81,11 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
+---@param stored_accuracies string
+function Worker:computeAccuracies(stored_accuracies)
+	self.processor:computeAccuracies(stored_accuracies)
+end
+
 ---@param path string
 ---@param base_url string
 ---@return integer? location_id

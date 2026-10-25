@@ -58,4 +58,6 @@ function FakeLibrary:toggleCacheUpdate(location) end
 
 function FakeLibrary:getCacheStatus() return {stage = "idle", current = 0, total = 0} end
 
+function FakeLibrary:recalculateAccuracies() end
+
 return FakeLibrary

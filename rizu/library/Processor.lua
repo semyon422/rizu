@@ -7,6 +7,7 @@ local IidxFileCacheGenerator = require("rizu.library.iidx.FileCacheGenerator")
 local ChartmetaGenerator = require("rizu.library.generators.ChartmetaGenerator")
 local ChartdiffGenerator = require("rizu.library.generators.ChartdiffGenerator")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
+local ChartplayAccuraciesRepo = require("rizu.library.repos.ChartplayAccuraciesRepo")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local DifficultyModel = require("chart.difficulty.DifficultyModel")
@@ -20,6 +21,7 @@ local ComputeVersion = require("sea.compute.ComputeVersion")
 local HashingTask = require("rizu.library.tasks.HashingTask")
 local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
+local AccuracyTask = require("rizu.library.tasks.AccuracyTask")
 local TaskContext = require("rizu.library.tasks.TaskContext")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 local class = require("class")
@@ -92,6 +94,13 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 		ComputeVersion.current()
 	)
 	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, self.taskContext, timer)
+	self.accuracyTask = AccuracyTask(
+		self.chartsRepo,
+		ChartplayAccuraciesRepo(self.db.models),
+		self.computeDataLoader,
+		self.taskContext,
+		timer
+	)
 	self.timer = timer
 end
 
@@ -259,6 +268,11 @@ end
 
 function Processor:computeChartplays()
 	self.scoreTask:computeAll()
+end
+
+---@param stored_accuracies string
+function Processor:computeAccuracies(stored_accuracies)
+	self.accuracyTask:computeAll(stored_accuracies)
 end
 
 return Processor

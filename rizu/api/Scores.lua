@@ -1,5 +1,7 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
+local Timings = require("sea.chart.Timings")
+local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 
 --[[
 The scores of the selected chart: the leaderboard on song select and on the result screen.
@@ -85,6 +87,17 @@ function Scores:select(index) self.selector:scrollScore(nil, index) end
 
 ---@return rizu.api.Score? score
 function Scores:getSelected() return self.selector.chartplay --[[@as rizu.api.Score?]] end
+
+---The accuracy of the score in the chart's own score system (auto timings), as text such as "98.50%".
+---@param score rizu.api.Score
+---@return string? accuracy nil when it is not stored: online scores, and charts whose own system has no accuracy.
+function Scores:getAutoAccuracy(score)
+	local row = score --[[@as {auto_timings: integer?, auto_accuracy: number?}]]
+	if not row.auto_timings or not row.auto_accuracy then
+		return
+	end
+	return StoredAccuracies.format(Timings.decode(row.auto_timings), nil, row.auto_accuracy)
+end
 
 ---Replays the selected score in the background so the result screen can show it.
 ---f gets false when there is no selected score or its replay could not be loaded.

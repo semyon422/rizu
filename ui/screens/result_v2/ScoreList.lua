@@ -133,7 +133,7 @@ function ScoreList:reload()
 			or (is_local and local_username or fallback_username)
 		table.insert(self.items, {
 			label = self.localization:get("song_select.score_username", {index = i, username = username}),
-			accuracy = ("%0.02f%%"):format((v.score or 0) / 100),
+			accuracy = self.scores:getAutoAccuracy(v) or "-",
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),
 			color = ScoreList.getColorFromScore(v.score or 0),

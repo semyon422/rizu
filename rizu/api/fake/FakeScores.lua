@@ -48,6 +48,11 @@ end
 function FakeScores:select(index) self.selected = self.items[index] or self.selected end
 function FakeScores:getSelected() return self.selected end
 
+---@param score rizu.api.Score
+function FakeScores:getAutoAccuracy(score)
+	if self.source == "local" then return ("%0.02f%%"):format(score.score / 100) end
+end
+
 ---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.
 function FakeScores:loadSelectedResult(f) f(self.selected ~= nil) end
 

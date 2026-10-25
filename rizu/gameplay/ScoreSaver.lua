@@ -6,6 +6,8 @@ local string_buffer = require("string.buffer")
 local Chartplay = require("sea.chart.Chartplay")
 local ReplayFactory = require("rizu.engine.replay.ReplayFactory")
 local ChartplayComputedFactory = require("rizu.engine.ChartplayComputedFactory")
+local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Settings = require("rizu.config.Settings")
 local ScoreSubmissionLog = require("rizu.gameplay.ScoreSubmissionLog")
 
 ---@class rizu.ScoreSaver
@@ -15,6 +17,7 @@ local ScoreSaver = class()
 ---@param fs fs.IFilesystem
 ---@param library rizu.library.Library
 ---@param configModel sphere.ConfigModel
+---@param settings rizu.config.Config
 ---@param seaClient rizu.SeaClient
 ---@param replayBase sea.ReplayBase
 ---@param computeContext sea.ComputeContext
@@ -22,6 +25,7 @@ function ScoreSaver:new(
 	fs,
 	library,
 	configModel,
+	settings,
 	seaClient,
 	replayBase,
 	computeContext
@@ -29,6 +33,7 @@ function ScoreSaver:new(
 	self.fs = fs
 	self.library = library
 	self.configModel = configModel
+	self.settings = settings
 	self.seaClient = seaClient
 	self.replayBase = replayBase
 	self.computeContext = computeContext
@@ -89,6 +94,10 @@ function ScoreSaver:saveScore(gameplay_session)
 
 	local _chartplay = self.library.chartsRepo:createChartplay(chartplay)
 	computeContext.chartplay = _chartplay
+
+	local tokens = StoredAccuracies.parse(self.settings:getString(Settings.keys.scores.stored_accuracies))
+	self.library.chartplayAccuraciesRepo:setAccuracies(_chartplay.id,
+		StoredAccuracies.compute(scoreEngine, tokens, chartmeta.timings))
 
 	---@param event string
 	---@param fields {[string]: any}?
