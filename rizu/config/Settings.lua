@@ -103,6 +103,8 @@ local keys = {
 	scores = {
 		-- See rizu.engine.ScoreEngine.StoredAccuracies for the format.
 		stored_accuracies = "scores.stored_accuracies",
+		-- Internal: StoredAccuracies.getMarker() of the last finished update, see Library:updateAccuracies().
+		accuracies_marker = "scores.accuracies_marker",
 	},
 	graphics = {
 		fps = "graphics.fps",
@@ -290,6 +292,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
 	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
 	config:setDefaultString(keys.scores.stored_accuracies, "auto")
+	config:setDefaultString(keys.scores.accuracies_marker, "")
 
 	config:setDefaultNumber(gr.fps, 240, 30, 1024, 2)
 	config:setDefaultBoolean(gr.unlimited_fps, false)

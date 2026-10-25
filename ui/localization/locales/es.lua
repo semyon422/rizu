@@ -366,7 +366,7 @@ return {
 	["song_select.score_systems_add"] = "Añadir",
 	["song_select.score_systems_remove"] = "Quitar",
 	["song_select.score_systems_edit"] = "Editar…",
-	["song_select.score_systems_recalculate_tip"] = "Los sistemas añadidos se aplican a puntuaciones anteriores tras recalcular.",
+	["song_select.score_systems_recalculate_tip"] = "Las puntuaciones anteriores reciben los sistemas añadidos en segundo plano.",
 	["song_select.accuracy_system_auto"] = "Timings propios del chart",
 	["song_select.recalculate_accuracies"] = "Recalcular precisiones",
 

@@ -271,8 +271,10 @@ function Processor:computeChartplays()
 end
 
 ---@param stored_accuracies string
-function Processor:computeAccuracies(stored_accuracies)
-	self.accuracyTask:computeAll(stored_accuracies)
+---@param missing_only boolean
+---@return boolean completed
+function Processor:computeAccuracies(stored_accuracies, missing_only)
+	return self.accuracyTask:computeAll(stored_accuracies, missing_only)
 end
 
 return Processor

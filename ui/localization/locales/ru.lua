@@ -413,7 +413,7 @@ return {
 	["song_select.score_systems_add"] = "Добавить",
 	["song_select.score_systems_remove"] = "Убрать",
 	["song_select.score_systems_edit"] = "Изменить…",
-	["song_select.score_systems_recalculate_tip"] = "Добавленные системы применятся к старым скорам после пересчета.",
+	["song_select.score_systems_recalculate_tip"] = "Старые скоры получат добавленные системы в фоне.",
 	["song_select.accuracy_system_auto"] = "Тайминги самого чарта",
 	["song_select.recalculate_accuracies"] = "Пересчитать точности",
 

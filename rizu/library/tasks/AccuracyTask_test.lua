@@ -43,7 +43,8 @@ function test.replays_plays_and_skips_custom_ones(t)
 	})
 	local timer = FunctionTimer(function() return 0 end)
 	local context = FakeTaskContext()
-	AccuracyTask(chartsRepo, accuraciesRepo, loader, context, timer):computeAll("auto,osuod:9:1,etternaj:4")
+	local task = AccuracyTask(chartsRepo, accuraciesRepo, loader, context, timer)
+	t:eq(task:computeAll("auto,osuod:9:1,etternaj:4", false), true)
 
 	local tokens = StoredAccuracies.parse("auto,osuod:9:1,etternaj:4")
 	local chartmeta = assert(play.chartmeta)
@@ -61,6 +62,41 @@ function test.replays_plays_and_skips_custom_ones(t)
 	for _, action in ipairs(context.actions) do
 		t:ne(action[1], "addError", action[2])
 	end
+	db:unload()
+end
+
+---@param t testing.T
+function test.missing_only_replays_what_lacks_an_accuracy(t)
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+	local chartsRepo = ChartsRepo(db.models)
+	local accuraciesRepo = ChartplayAccuraciesRepo(db.models)
+
+	local sample = chart_samples[1]
+	local client = FakeClient(0.02, 100)
+	local play = client:play(sample.name, sample.data, 1, 100, 0)
+	chartsRepo:createUpdateChartmeta(assert(play.chartmeta), 0)
+	local values = table_util.copy(play.chartplay)
+	table_util.copy({user_id = 1, compute_state = "valid", computed_at = 0, submitted_at = 0}, values)
+	local chartplay = chartsRepo:createChartplay(values)
+
+	local loader = ComputeDataLoader({
+		getChartData = function() return {name = sample.name, data = sample.data} end,
+		getReplayData = function() return play.replay_data end,
+	})
+	local timer = FunctionTimer(function() return 0 end)
+	local task = AccuracyTask(chartsRepo, accuraciesRepo, loader, FakeTaskContext(), timer)
+	local stored = "auto,osuod:9:1"
+
+	local tokens = StoredAccuracies.parse(stored)
+	t:eq(task:isMissing(chartplay, tokens, nil), true)
+	t:eq(task:computeAll(stored, true), true)
+	t:eq(#accuraciesRepo:getAccuracies(chartplay.id), 1)
+	t:eq(task:isMissing(chartplay, tokens, accuraciesRepo:getAccuracyKeys()[chartplay.id]), false)
+
+	-- Another system makes it lack one again.
+	t:eq(task:isMissing(chartplay, StoredAccuracies.parse(stored .. ",etternaj:5"),
+		accuraciesRepo:getAccuracyKeys()[chartplay.id]), true)
 	db:unload()
 end
 

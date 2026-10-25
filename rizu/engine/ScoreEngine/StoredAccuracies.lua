@@ -7,6 +7,9 @@ local Scoring = require("rizu.engine.scoring.Scoring")
 ---"auto" is the auto timings of the chart (TimingSystems.getAuto), the others are "name[:value[:osu score version]]".
 local StoredAccuracies = {}
 
+-- Raise it when stored accuracies change for the same setting, so every library computes them again.
+StoredAccuracies.version = 1
+
 ---@class rizu.engine.ScoreEngine.StoredAccuracies.Row
 ---@field timings integer Encoded sea.Timings of the system.
 ---@field subtimings integer Encoded sea.Subtimings, 0 for none.
@@ -56,6 +59,13 @@ function StoredAccuracies.getScoring(token, auto)
 	if scoring:createScoreSystems() then
 		return scoring
 	end
+end
+
+---What the stored accuracies were computed for: the version and the systems.
+---@param s string The scores.stored_accuracies setting.
+---@return string
+function StoredAccuracies.getMarker(s)
+	return StoredAccuracies.version .. ";" .. table.concat(StoredAccuracies.parse(s), ",")
 end
 
 ---Valid tokens of a setting value, without repeats.

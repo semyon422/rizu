@@ -22,7 +22,7 @@ local function createScores()
 		pullScore = function() end,
 		chartplay = nil,
 		settings = Settings.createConfig(FakeFilesystem()),
-		library = {chartplayAccuraciesRepo = {
+		library = {updates = 0, updateAccuracies = function(self) self.updates = self.updates + 1 end, chartplayAccuraciesRepo = {
 			getAccuracies = function(_, chartplay_id)
 				return chartplay_id == 1 and {
 					{timings = 2304, subtimings = 0, accuracy = 0.5},
@@ -140,6 +140,8 @@ function test.add_and_remove_systems(t)
 	t:eq(scores:addAccuracySystem("osuod", 9, 2), true)
 	t:eq(scores:addAccuracySystem("quaver"), true)
 	t:eq(selector.settings:getString(key), "auto,osuod:9:1,osuod:9:2,quaver:0")
+	-- Older scores get each added system in the background.
+	t:eq(selector.library.updates, 3)
 	t:eq(assert(scores:getAccuracySystem(nil, "quaver:0")):getName(), "Quaver standard")
 
 	scores:setSelectedAccuracySystem("osuod:9:2")

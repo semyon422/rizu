@@ -18,6 +18,20 @@ function ChartplayAccuraciesRepo:getAccuracies(chartplay_id)
 	return self.models.chartplay_accuracies:select({chartplay_id = assert(chartplay_id)})
 end
 
+---Which accuracies every chartplay has, as "timings:subtimings" keys.
+---@return {[integer]: {[string]: true}}
+function ChartplayAccuraciesRepo:getAccuracyKeys()
+	---@type {[integer]: {[string]: true}}
+	local keys = {}
+	for _, row in ipairs(self.models.chartplay_accuracies:select()) do
+		---@cast row rizu.library.ChartplayAccuracy
+		local chartplay_keys = keys[row.chartplay_id] or {}
+		keys[row.chartplay_id] = chartplay_keys
+		chartplay_keys[row.timings .. ":" .. row.subtimings] = true
+	end
+	return keys
+end
+
 ---Replaces every stored accuracy of the chartplay with these.
 ---@param chartplay_id integer
 ---@param rows rizu.engine.ScoreEngine.StoredAccuracies.Row[]

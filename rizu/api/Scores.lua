@@ -124,8 +124,8 @@ function Scores:getAddableAccuracySystems()
 	return systems
 end
 
----Stores the accuracy of another score system with every new score. Old scores get it when the
----accuracies are recalculated, see `rizu.api.Library:recalculateAccuracies()`.
+---Stores the accuracy of another score system with every new score. Old scores get it in the
+---background, the way the library does after an update.
 ---@param system rizu.api.Play.TimingSystem One of getAddableAccuracySystems().
 ---@param value number? OD, judge or rank, see `rizu.api.Play.TimingSystem`. The system's default when nil.
 ---@param osu_score_version 1|2? Only for "osuod", 1 by default.
@@ -149,6 +149,7 @@ function Scores:addAccuracySystem(system, value, osu_score_version)
 	end
 	table.insert(tokens, StoredAccuracies.encode(scoring))
 	self.selector.settings:setString(Settings.keys.scores.stored_accuracies, table.concat(tokens, ","))
+	self.selector.library:updateAccuracies(self.selector.settings)
 	return true
 end
 

@@ -10,6 +10,8 @@ local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ChartplayAccuraciesRepo = require("rizu.library.repos.ChartplayAccuraciesRepo")
+local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Settings = require("rizu.config.Settings")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 require("rizu.library.views")
@@ -250,11 +252,23 @@ function Library:computeChartplays()
 	end)
 end
 
----Stores the accuracies of these systems for every local chartplay again, from the replays.
----@param stored_accuracies string The scores.stored_accuracies setting.
-function Library:computeAccuracies(stored_accuracies)
+---Stores the accuracies of the scores.stored_accuracies systems, replaying the local chartplays.
+---Without `all`, only once per setting value and StoredAccuracies.version, and only the chartplays
+---missing an accuracy: run it at startup and after a system was added.
+---@param settings rizu.config.Config
+---@param all boolean? Every chartplay again, whatever was done before.
+function Library:updateAccuracies(settings, all)
+	local stored_accuracies = settings:getString(Settings.keys.scores.stored_accuracies)
+	local marker = StoredAccuracies.getMarker(stored_accuracies)
+	local marker_key = Settings.keys.scores.accuracies_marker
+	if not all and settings:getString(marker_key) == marker then
+		return
+	end
 	self:addTask(function()
-		self.worker:computeAccuracies(stored_accuracies)
+		-- A stopped task leaves the rest to the next one.
+		if self.worker:computeAccuracies(stored_accuracies, not all) then
+			settings:setString(marker_key, marker)
+		end
 	end)
 end
 

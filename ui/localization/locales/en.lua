@@ -429,7 +429,7 @@ return {
 	["song_select.score_systems_add"] = "Add",
 	["song_select.score_systems_remove"] = "Remove",
 	["song_select.score_systems_edit"] = "Edit…",
-	["song_select.score_systems_recalculate_tip"] = "Added systems apply to older scores after recalculating.",
+	["song_select.score_systems_recalculate_tip"] = "Older scores get added systems in the background.",
 	["song_select.accuracy_system_auto"] = "Chart's own timings",
 	["song_select.recalculate_accuracies"] = "Recalculate Accuracies",
 

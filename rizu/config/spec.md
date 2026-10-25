@@ -42,6 +42,8 @@ Universal and per-format audio offsets use the existing `gameplay.offset.audio_m
 
 `select.accuracy_system` is the token of `scores.stored_accuracies` that mania plays are judged with (hit windows, judges, nearest input) and whose accuracy the leaderboard shows, `"auto"` by default: the chart's auto timings. A token that is no longer stored counts as `"auto"`.
 
+Accuracies of older scores are filled in by the library in the background: at startup and after a system is added, it replays the local scores that lack an accuracy of a stored system. `scores.accuracies_marker` is internal: the stored systems and `StoredAccuracies.version` of the last update that went through every score. Such an update runs only when the marker differs, so a score whose chart or replay is gone is not retried at every start. Raising the version makes every library compute the accuracies again. Recalculating replays every score whatever the marker says.
+
 ## Persistence
 
 `Config` receives a filesystem and path at construction. `load()` and `save()` use flat JSON. Only values differing from defaults are stored. Unknown persisted keys are ignored for compatibility; invalid values make loading fail without changing the current config.

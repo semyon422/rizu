@@ -433,7 +433,7 @@ return {
 	["song_select.score_systems_add"] = "添加",
 	["song_select.score_systems_remove"] = "移除",
 	["song_select.score_systems_edit"] = "编辑…",
-	["song_select.score_systems_recalculate_tip"] = "添加的系统会在重新计算后应用到以前的成绩。",
+	["song_select.score_systems_recalculate_tip"] = "以前的成绩会在后台获得添加的系统。",
 	["song_select.accuracy_system_auto"] = "谱面自身的判定",
 	["song_select.recalculate_accuracies"] = "重新计算准确率",
 

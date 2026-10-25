@@ -47,15 +47,50 @@ function AccuracyTask:computeChartplay(chartplay, tokens)
 	return chartplay.replay_hash
 end
 
+---Whether the chartplay lacks the accuracy of a system it should have. Plays that cannot be
+---played again (custom ones, and those of charts that are not in the library) lack nothing.
+---@param chartplay sea.Chartplay
+---@param tokens string[]
+---@param keys {[string]: true}? What it has, see ChartplayAccuraciesRepo:getAccuracyKeys().
+---@return boolean
+function AccuracyTask:isMissing(chartplay, tokens, keys)
+	local chartmeta = not chartplay.custom and self.chartsRepo:getChartmetaByHashIndex(chartplay.hash, chartplay.index)
+	if not chartmeta then
+		return false
+	end
+	local auto = Scoring(TimingSystems.getAuto(chartmeta.timings, chartmeta.format))
+	for _, token in ipairs(tokens) do
+		local scoring = StoredAccuracies.getScoring(token, auto)
+		if scoring and not scoring:isNormalscore() and not (keys and keys[table.concat({scoring:encode()}, ":")]) then
+			return true
+		end
+	end
+	return false
+end
+
 ---@param stored_accuracies string The scores.stored_accuracies setting.
-function AccuracyTask:computeAll(stored_accuracies)
+---@param missing_only boolean Only the chartplays that lack an accuracy, see isMissing().
+---@return boolean completed false when the task was stopped before the last chartplay.
+function AccuracyTask:computeAll(stored_accuracies, missing_only)
 	local tokens = StoredAccuracies.parse(stored_accuracies)
 	local chartplays = self.chartsRepo:getChartplays()
+	if missing_only then
+		local keys = self.accuraciesRepo:getAccuracyKeys()
+		---@type sea.Chartplay[]
+		local missing = {}
+		for _, chartplay in ipairs(chartplays) do
+			if self:isMissing(chartplay, tokens, keys[chartplay.id]) then
+				table.insert(missing, chartplay)
+			end
+		end
+		chartplays = missing
+	end
 	print("AccuracyTask: processing chartplays", #chartplays)
 
-	self.batchProcessor:process(chartplays, "accuracies", #chartplays, function(chartplay)
+	local result = self.batchProcessor:process(chartplays, "accuracies", #chartplays, function(chartplay)
 		return self:computeChartplay(chartplay, tokens)
 	end)
+	return result.processed + result.errors == #chartplays
 end
 
 return AccuracyTask
