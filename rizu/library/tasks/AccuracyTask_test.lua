@@ -100,4 +100,55 @@ function test.missing_only_replays_what_lacks_an_accuracy(t)
 	db:unload()
 end
 
+---@param t testing.T
+function test.scores_the_stored_hits_without_the_replay(t)
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+	local chartsRepo = ChartsRepo(db.models)
+	local accuraciesRepo = ChartplayAccuraciesRepo(db.models)
+
+	local sample = chart_samples[1]
+	local client = FakeClient(0.02, 100)
+	local play = client:play(sample.name, sample.data, 1, 100, 0)
+	local chartmeta = assert(play.chartmeta)
+	chartsRepo:createUpdateChartmeta(chartmeta, 0)
+	local values = table_util.copy(play.chartplay)
+	table_util.copy({user_id = 1, compute_state = "valid", computed_at = 0, submitted_at = 0}, values)
+	local chartplay = chartsRepo:createChartplay(values)
+
+	local replays = 0
+	local loader = ComputeDataLoader({
+		getChartData = function() return {name = sample.name, data = sample.data} end,
+		getReplayData = function()
+			replays = replays + 1
+			return play.replay_data
+		end,
+	})
+	local timer = FunctionTimer(function() return 0 end)
+	local task = AccuracyTask(chartsRepo, accuraciesRepo, loader, FakeTaskContext(), timer)
+
+	-- The first time plays the replay and stores the hits.
+	t:eq(task:computeAll("auto", false), true)
+	t:eq(replays, 1)
+	t:assert(accuraciesRepo:getHits(chartplay.id))
+
+	-- Another system is scored from the hits, as if the replay was played again.
+	local stored = "auto,etternaj:5,osuod:7:2"
+	t:eq(task:computeAll(stored, false), true)
+	t:eq(replays, 1)
+	local auto = Scoring(TimingSystems.getAuto(chartmeta.timings, chartmeta.format))
+	local expected = StoredAccuracies.compute(assert(client.computeContext.score_engine),
+		StoredAccuracies.parse(stored), auto)
+	t:eq(#expected, 2)
+	---@type {[string]: number}
+	local accuracies = {}
+	for _, row in ipairs(accuraciesRepo:getAccuracies(chartplay.id)) do
+		accuracies[row.timings .. ":" .. row.subtimings] = row.accuracy
+	end
+	for _, row in ipairs(expected) do
+		t:eq(accuracies[row.timings .. ":" .. row.subtimings], row.accuracy)
+	end
+	db:unload()
+end
+
 return test

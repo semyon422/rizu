@@ -103,7 +103,7 @@ return function(game)
 		{
 			id = "database.compute_accuracies",
 			title = "Database: Recalculate Stored Accuracies",
-			description = "Replays every local score and stores the accuracies chosen in the settings",
+			description = "Scores every local score again and stores the accuracies chosen in the settings",
 			callback = function()
 				library:updateAccuracies(game.settings, true)
 			end,

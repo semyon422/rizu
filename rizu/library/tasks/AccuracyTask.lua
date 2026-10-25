@@ -1,11 +1,13 @@
 local class = require("class")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 local ComputeContext = require("sea.compute.ComputeContext")
+local ScoreEngine = require("rizu.engine.ScoreEngine")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 local Scoring = require("rizu.engine.scoring.Scoring")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
----Plays every local chartplay again from its replay and stores the accuracies of the chosen systems.
+---Stores the accuracies of the chosen systems for every local chartplay, scoring its stored hits.
+---A chartplay without them is played again from its replay, which stores them for the next time.
 ---@class rizu.library.tasks.AccuracyTask
 ---@operator call: rizu.library.tasks.AccuracyTask
 local AccuracyTask = class()
@@ -31,18 +33,29 @@ function AccuracyTask:computeChartplay(chartplay, tokens)
 		return "custom"
 	end
 
-	local chart = assert(self.computeDataLoader:requireChart(chartplay.hash))
-	local replay = assert(self.computeDataLoader:requireReplay(chartplay.replay_hash)).replay
+	local hits = self.accuraciesRepo:getHits(chartplay.id)
+	local chartmeta = hits and self.chartsRepo:getChartmetaByHashIndex(chartplay.hash, chartplay.index)
+	local score_engine ---@type rizu.ScoreEngine
+	if hits and chartmeta then
+		score_engine = ScoreEngine()
+		score_engine:loadEvents(hits, hits.events)
+	else
+		local chart = assert(self.computeDataLoader:requireChart(chartplay.hash))
+		local replay = assert(self.computeDataLoader:requireReplay(chartplay.replay_hash)).replay
 
-	local ctx = ComputeContext()
-	assert(ctx:fromFileData(chart.name, chart.data, chartplay.index))
-	ctx:applyModifierReorder(replay)
-	ctx:computeBase(replay)
-	assert(ctx:computeReplay(replay))
+		local ctx = ComputeContext()
+		assert(ctx:fromFileData(chart.name, chart.data, chartplay.index))
+		ctx:applyModifierReorder(replay)
+		ctx:computeBase(replay)
+		assert(ctx:computeReplay(replay))
 
-	local chartmeta = assert(ctx.chartmeta)
+		chartmeta = assert(ctx.chartmeta)
+		score_engine = assert(ctx.score_engine)
+		self.accuraciesRepo:setHits(chartplay.id, score_engine.chartdiff, score_engine.events)
+	end
+
 	local auto = Scoring(TimingSystems.getAuto(chartmeta.timings, chartmeta.format))
-	self.accuraciesRepo:setAccuracies(chartplay.id, StoredAccuracies.compute(assert(ctx.score_engine), tokens, auto))
+	self.accuraciesRepo:setAccuracies(chartplay.id, StoredAccuracies.compute(score_engine, tokens, auto))
 
 	return chartplay.replay_hash
 end

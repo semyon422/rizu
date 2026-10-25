@@ -101,6 +101,7 @@ function ScoreSaver:saveScore(gameplay_session)
 	self.library.chartplayAccuraciesRepo:setAccuracies(_chartplay.id,
 		StoredAccuracies.compute(scoreEngine, tokens,
 			Scoring(TimingSystems.getAuto(chartmeta.timings, chartmeta.format))))
+	self.library.chartplayAccuraciesRepo:setHits(_chartplay.id, scoreEngine.chartdiff, scoreEngine.events)
 
 	---@param event string
 	---@param fields {[string]: any}?

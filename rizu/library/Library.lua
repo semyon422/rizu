@@ -252,7 +252,7 @@ function Library:computeChartplays()
 	end)
 end
 
----Stores the accuracies of the scores.stored_accuracies systems, replaying the local chartplays.
+---Stores the accuracies of the scores.stored_accuracies systems for the local chartplays, see AccuracyTask.
 ---Without `all`, only once per setting value and StoredAccuracies.version, and only the chartplays
 ---missing an accuracy: run it at startup and after a system was added.
 ---@param settings rizu.config.Config

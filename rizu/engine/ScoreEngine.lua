@@ -60,6 +60,15 @@ function ScoreEngine:load(chartdiff)
 	end
 end
 
+---Takes the events of a play scored before, see rizu.library.ChartplayHits. Only the systems added
+---afterwards count them: the default ones stay empty, which saves the time of scoring them.
+---@param chartdiff {notes_count: integer, inputmode: string}
+---@param events rizu.LogicNoteChange[]
+function ScoreEngine:loadEvents(chartdiff, events)
+	self:load(chartdiff --[[@as sea.Chartdiff]])
+	self.events = events
+end
+
 function ScoreEngine:selectDefault()
 	local scores = self.scores
 	self.accuracySource = scores.normalscore
