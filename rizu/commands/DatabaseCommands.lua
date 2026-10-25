@@ -101,14 +101,6 @@ return function(game)
 			end,
 		},
 		{
-			id = "database.compute_accuracies",
-			title = "Database: Recalculate Stored Accuracies",
-			description = "Scores every local score again and stores the accuracies chosen in the settings",
-			callback = function()
-				library:updateAccuracies(game.settings, true)
-			end,
-		},
-		{
 			id = "database.reset_diffcalc_field",
 			title = "Database: Reset Diffcalc Field",
 			description = "Resets one difficulty calculation field",

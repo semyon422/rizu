@@ -60,8 +60,9 @@ end
 function test.picked_system_replaces_auto(t)
 	local settings = Settings.createConfig(FakeFilesystem())
 	t:eq(GameplayTimings.getPicked(settings), nil)
-	settings:setString(Settings.keys.scores.stored_accuracies, "auto,osuod:9:2")
-	settings:setString(Settings.keys.select.accuracy_system, "osuod:9:2")
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, false)
+	settings:setNumber(Settings.keys.timings.osuod, 8.999999)
+	settings:setNumber(Settings.keys.timings.osu_score_version, 2)
 	local picked = assert(GameplayTimings.getPicked(settings))
 
 	local replayBase = ReplayBase()
@@ -73,9 +74,8 @@ function test.picked_system_replaces_auto(t)
 	t:eq(replayBase.subtimings, Subtimings("scorev", 2))
 	t:eq(replayBase.nearest, true)
 
-	-- A system that is not stored anymore is auto again.
-	settings:setString(Settings.keys.scores.stored_accuracies, "auto")
-	t:eq(GameplayTimings.getPicked(settings), nil)
+	settings:setChoice(Settings.keys.timings.system, "quaver")
+	t:eq(assert(GameplayTimings.getPicked(settings)).timings, Timings("quaver"))
 end
 
 return test

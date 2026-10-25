@@ -9,6 +9,8 @@ local TimeRateModel = require("sphere.models.TimeRateModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
 local GameApi = require("rizu.api.GameApi")
 local ReplayBase = require("sea.replays.ReplayBase")
+local Settings = require("rizu.config.Settings")
+local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
@@ -65,6 +67,7 @@ end
 ---@return fun(): integer changes How many times the game was told the mods changed.
 local function createPlay()
 	local replay_base = ReplayBase()
+	local settings = Settings.createConfig(FakeFilesystem())
 	local select_model = ModifierSelectModel(replay_base)
 	local changed = 0
 	local change = select_model.change
@@ -78,6 +81,7 @@ local function createPlay()
 		modifierSelectModel = select_model,
 		gameplayInteractor = {replay_stores = {}},
 		chartSelector = {},
+		settings = settings,
 	}
 	return Play(game --[[@as any]]), game, function() return changed end
 end
@@ -104,7 +108,7 @@ function test.play_rate(t)
 end
 
 ---@param t testing.T
-function test.play_mods(t)
+function test.play_mods_and_judging(t)
 	local play, game, changes = createPlay()
 	local events = 0
 	play:on("mods_changed", function() events = events + 1 end)
@@ -116,6 +120,25 @@ function test.play_mods(t)
 	t:eq(play:getModCount(), 2)
 	t:eq(events, 2)
 	t:eq(changes(), 2)
+
+	t:eq(play:getToggle("auto_timings"), true)
+	play:setToggle("auto_timings", false)
+	t:eq(play:getToggle("auto_timings"), false)
+	t:eq(play:getTimingSystem(), "osuod")
+	t:eq(play:getTimingValue(), 8)
+
+	play:setTimingValue(9.7)
+	t:eq(play:getOsuScoreVersion(), 1)
+	play:setOsuScoreVersion(2)
+	t:eq(play:getOsuScoreVersion(), 2)
+
+	play:setTimingSystem("etternaj")
+	play:setTimingValue(7)
+	play:setTimingSystem("osuod")
+	t:eq(play:getTimingValue(), 9.7, "a system comes back with its last value")
+	play:setTimingSystem("quaver")
+	t:eq(play:getTimingValue(), 0)
+	t:eq(events, 9)
 end
 
 ---@param t testing.T

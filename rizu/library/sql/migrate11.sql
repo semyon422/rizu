@@ -1,9 +1,10 @@
--- Accuracies of a chartplay in other score systems. Normalscore stays in chartplays.accuracy.
-CREATE TABLE IF NOT EXISTS `chartplay_accuracies` (
-	`chartplay_id` INTEGER NOT NULL,
-	`timings` INTEGER NOT NULL,
-	`subtimings` INTEGER NOT NULL,
-	`accuracy` REAL NOT NULL,
-	PRIMARY KEY (`chartplay_id`, `timings`, `subtimings`),
+-- What every note of a chartplay did, as the score engine received it, to score it in other systems
+-- without playing the replay again.
+CREATE TABLE IF NOT EXISTS `chartplay_hits` (
+	`chartplay_id` INTEGER PRIMARY KEY,
+	`version` INTEGER NOT NULL,
+	`notes_count` INTEGER NOT NULL,
+	`inputmode` TEXT NOT NULL,
+	`events` BLOB NOT NULL,
 	FOREIGN KEY (chartplay_id) REFERENCES chartplays(id) ON DELETE CASCADE
 );

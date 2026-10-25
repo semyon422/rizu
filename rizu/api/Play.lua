@@ -1,12 +1,13 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
+local Settings = require("rizu.config.Settings")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 
 --[[
-How the next play will go: the music speed, the mods, the mutators, and starting it.
-How hits are judged is the selected score system, see `rizu.api.Scores:setSelectedAccuracySystem()`.
+How the next play will go: the music speed, the mods, the mutators, how hits are judged, and starting it.
 
 	local play = ui.api.play
 	play:changeRate(1)
@@ -21,14 +22,15 @@ How hits are judged is the selected score system, see `rizu.api.Scores:setSelect
 
 ---@alias rizu.api.Play.Event
 ---| "rate_changed" # The music speed or the way it is counted changed. No arguments.
----| "mods_changed" # A toggle or a mutator changed. No arguments.
+---| "mods_changed" # A toggle, a mutator or the judging changed. No arguments.
 
 ---@alias rizu.api.Play.Toggle
 ---| "constant_scroll" # Notes fall at one speed, ignoring the chart's speed changes. Counts as a mod.
 ---| "taps_only" # Long notes become taps. Counts as a mod.
+---| "auto_timings" # Each mania chart is judged the way its own format does, and the leaderboard shows normalscore.
 
----Score systems by name, see `rizu.api.Scores:addAccuracySystem()` and `rizu.api.Result:rescore()`.
----Three of them take a value.
+---How mania hits are judged when "auto_timings" is off, also the system the leaderboard rescores to.
+---Three of them take a value, see setTimingValue().
 ---@alias rizu.api.Play.TimingSystem
 ---| "sphere" # Rizu's own.
 ---| "osuod" # osu!mania. Value: overall difficulty, 0..10 in steps of 0.1.
@@ -126,12 +128,19 @@ local toggle_fields = {constant_scroll = "const", taps_only = "tap_only"}
 ---@param toggle rizu.api.Play.Toggle
 ---@return boolean
 function Play:getToggle(toggle)
+	if toggle == "auto_timings" then
+		return self.game.settings:getBoolean(Settings.keys.replay_base.auto_timings)
+	end
 	return self.game.replayBase[toggle_fields[toggle]] and true or false
 end
 
 ---@param toggle rizu.api.Play.Toggle
 ---@param on boolean
 function Play:setToggle(toggle, on)
+	if toggle == "auto_timings" then
+		self.game.settings:setBoolean(Settings.keys.replay_base.auto_timings, on)
+		return modsChanged(self)
+	end
 	self.game.replayBase[toggle_fields[toggle]] = on
 	modsChanged(self)
 end
@@ -285,6 +294,47 @@ end
 function Play:setMutatorPosition(position)
 	local model = self.game.modifierSelectModel
 	model.modifierIndex = math.max(1, math.min(position, #model.replayBase.modifiers + 1))
+end
+
+-- Judging. Used when "auto_timings" is off.
+
+---@return rizu.api.Play.TimingSystem[]
+function Play:getTimingSystems() return TimingSystems.selectable --[[@as rizu.api.Play.TimingSystem[] ]] end
+
+---@return rizu.api.Play.TimingSystem
+function Play:getTimingSystem()
+	return self.game.settings:getChoice(Settings.keys.timings.system) --[[@as rizu.api.Play.TimingSystem]]
+end
+
+---Switches the system. It comes back with the value it was last used with.
+---@param system rizu.api.Play.TimingSystem
+function Play:setTimingSystem(system)
+	self.game.settings:setChoice(Settings.keys.timings.system, system)
+	modsChanged(self)
+end
+
+---@return number value 0 for systems that take none.
+function Play:getTimingValue()
+	local key = Settings.keys.timings[self:getTimingSystem()]
+	return key and self.game.settings:getNumber(key) or 0
+end
+
+---@param value number See rizu.api.Play.TimingSystem for what each system takes.
+function Play:setTimingValue(value)
+	self.game.settings:setNumber(assert(Settings.keys.timings[self:getTimingSystem()], "the system takes no value"), value)
+	modsChanged(self)
+end
+
+---osu!mania's ScoreV1 or ScoreV2 hit windows. Only used by "osuod".
+---@return 1|2
+function Play:getOsuScoreVersion()
+	return self.game.settings:getNumber(Settings.keys.timings.osu_score_version) --[[@as 1|2]]
+end
+
+---@param version 1|2
+function Play:setOsuScoreVersion(version)
+	self.game.settings:setNumber(Settings.keys.timings.osu_score_version, version)
+	modsChanged(self)
 end
 
 -- Starting

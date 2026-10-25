@@ -1,7 +1,6 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Colors = require("ui.Colors")
 local ButtonRow = require("ui.views.form.ButtonRow")
-local Dropdown = require("ui.views.form.Dropdown")
 local ColumnOrder = require("ui.modals.column_order.ColumnOrder")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Form = require("ui.views.form.Form")
@@ -14,6 +13,8 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
 local Slider = require("ui.views.form.Slider")
+local TimingValueControl = require("ui.views.form.TimingValueControl")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
@@ -23,9 +24,8 @@ local Slider = require("ui.views.form.Slider")
 ---@field form_selection ui.views.form.FormSelection
 ---@field background gui.NineSliceUsage
 ---@field on_edit_columns fun()
----@field on_edit_score_systems fun()
 ---@field scores rizu.api.Scores
----@field popup_container ui.views.PopupContainer
+---@field private judging_changed boolean
 ---@field private form_invalidated boolean
 local Modifiers = ModalView + {}
 
@@ -40,17 +40,14 @@ local FORM_HEIGHT = MODAL_HEIGHT - FORM_Y - 92
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
 ---@param on_edit_columns fun() Opens the column order modal.
----@param on_edit_score_systems fun() Opens the score systems modal.
----@param scores rizu.api.Scores
----@param popup_container ui.views.PopupContainer
-function Modifiers:new(play, on_close, localization, on_edit_columns, on_edit_score_systems, scores, popup_container)
+---@param scores rizu.api.Scores Reloaded when the judging changed, to show the accuracies of the new system.
+function Modifiers:new(play, on_close, localization, on_edit_columns, scores)
 	ModalView.new(self)
 	self.localization = localization
 	self.play = play
 	self.on_edit_columns = on_edit_columns
-	self.on_edit_score_systems = on_edit_score_systems
 	self.scores = scores
-	self.popup_container = popup_container
+	self.judging_changed = false
 	self.form_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -174,27 +171,60 @@ function Modifiers:rebuildForm()
 			},
 		}))
 	end
-	local scores = self.scores
-	self.form:add(Dropdown({
-		label = self.localization:get("song_select.score_system"),
-		options = scores:getAccuracySystems(),
-		value = scores:getSelectedAccuracySystem(),
-		width = FORM_WIDTH,
-		format = function(token)
-			---@cast token string
-			local scoring = token ~= "auto" and scores:getAccuracySystem(nil, token)
-			return scoring and scoring:getName() or self.localization:get("song_select.accuracy_system_auto")
-		end,
-		on_change = function(token)
-			scores:setSelectedAccuracySystem(token)
-		end,
-		form = self.form,
-		popup_container = self.popup_container,
+	---@param f fun(value: any)
+	local function judging(f)
+		return function(value)
+			f(value)
+			self.judging_changed = true
+			self:invalidateForm()
+		end
+	end
+	local auto_timings = play:getToggle("auto_timings")
+	self.form:add(Checkbox({
+		text = self.localization:get("song_select.auto_timings"),
+		checked = auto_timings,
+		on_change = judging(function(value)
+			play:setToggle("auto_timings", value)
+		end),
 	}))
-	self.form:add(ButtonRow({
-		label = self.localization:get("song_select.score_systems_title"),
-		buttons = {{text = self.localization:get("song_select.score_systems_edit"), on_click = self.on_edit_score_systems}},
-	}))
+
+	if not auto_timings then
+		local system = TimingSystems.get(play:getTimingSystem())
+		self.form:add(SegmentedControl({
+			label = self.localization:get("song_select.score_system"),
+			options = play:getTimingSystems(),
+			value = system.name,
+			format = function(name)
+				return TimingSystems.get(name).label
+			end,
+			on_change = judging(function(name)
+				play:setTimingSystem(name)
+			end),
+		}))
+		if system.score_versions then
+			self.form:add(SegmentedControl({
+				label = self.localization:get("song_select.osu_score_version"),
+				options = system.score_versions,
+				value = play:getOsuScoreVersion(),
+				format = function(version)
+					return "V" .. version
+				end,
+				on_change = judging(function(version)
+					play:setOsuScoreVersion(version)
+				end),
+			}))
+		end
+		local value_control = TimingValueControl(system, play:getTimingValue(), FORM_WIDTH, self.localization,
+			function(value)
+				-- Not judging(): rebuilding the form would drop the slider while it is dragged.
+				play:setTimingValue(value)
+				self.judging_changed = true
+			end)
+		if value_control then
+			self.form:add(value_control)
+		end
+	end
+
 	self.form:fitContent()
 
 	if selected_index then
@@ -217,6 +247,10 @@ function Modifiers:show()
 end
 
 function Modifiers:hide()
+	if self.judging_changed then
+		self.judging_changed = false
+		self.scores:refresh()
+	end
 	self.form:closeActiveDropdown()
 	self:transformTo("opacity", 0, 0.2, "InCubic", function()
 		self:setVisible(false)

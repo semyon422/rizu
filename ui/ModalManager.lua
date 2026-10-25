@@ -17,7 +17,6 @@ local HudElementPicker = require("ui.modals.hud_element_picker.HudElementPicker"
 local TexturePicker = require("ui.modals.texture_picker.TexturePicker")
 local Rescore = require("ui.modals.rescore.Rescore")
 local Filters = require("ui.modals.filters.Filters")
-local ScoreSystems = require("ui.modals.score_systems.ScoreSystems")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
 local Login = require("ui.modals.login.Login")
@@ -42,7 +41,6 @@ local UiActions = require("ui.UiActions")
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
----@field score_systems ui.modals.score_systems.ScoreSystems
 ---@field location_editor ui.modals.locations.LocationEditor
 ---@field create_room ui.modals.lobby.CreateRoom
 ---@field login ui.modals.login.Login
@@ -108,10 +106,7 @@ function ModalManager:new(ui, popup_container)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization,
 		function() self:showModal(self.column_order) end,
-		function() self:showModal(self.score_systems) end,
-		ui.api.scores, popup_container))
-	self.score_systems = self:addModal(ScoreSystems(ui.api.scores, ui.api.library,
-		function() self:showModal(self.modifiers) end, localization))
+		ui.api.scores))
 	self.column_order = self:addModal(ColumnOrder(ui.api.play,
 		function() self:showModal(self.modifiers) end, localization))
 	self.rescore = self:addModal(Rescore(ui.api.result,

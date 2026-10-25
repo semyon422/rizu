@@ -2,6 +2,10 @@ local FakeFilesystem = require("fs.FakeFilesystem")
 local Scores = require("rizu.api.Scores")
 local Settings = require("rizu.config.Settings")
 local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local FakeClient = require("sea.compute.FakeClient")
+local chart_samples = require("sea.chart.samples.Samples")
 
 local test = {}
 
@@ -22,15 +26,9 @@ local function createScores()
 		pullScore = function() end,
 		chartplay = nil,
 		settings = Settings.createConfig(FakeFilesystem()),
-		library = {updates = 0, updateAccuracies = function(self) self.updates = self.updates + 1 end, chartplayAccuraciesRepo = {
-			getAccuracies = function(_, chartplay_id)
-				return chartplay_id == 1 and {
-					{timings = 2304, subtimings = 0, accuracy = 0.5},
-					{timings = 2190, subtimings = 1101, accuracy = 0.987654},
-					{timings = 2180, subtimings = 1102, accuracy = 0.8},
-					{timings = 2180, subtimings = 1101, accuracy = 0.95},
-				} or {}
-			end,
+		library = {chartplayHitsRepo = {
+			hits = {}, ---@type {[integer]: rizu.library.ChartplayHits}
+			getHits = function(self, chartplay_id) return self.hits[chartplay_id] end,
 		}},
 	}
 	return Scores(selector --[[@as any]], {} --[[@as any]]), selector, listener
@@ -71,81 +69,45 @@ function test.load_selected_result_reports_why_it_failed(t)
 	t:assert(tostring(result[2]):find("replay is gone", 1, true))
 end
 
----@param format sea.ChartFormat?
----@param timings sea.Timings?
----@return rizu.api.Chart
-local function chart(format, timings)
-	local row = {}
-	row.format = format
-	row.chartmeta_timings = timings
-	return row
-end
-
 ---@param t testing.T
-function test.auto_depends_on_the_chart_only(t)
+function test.normalscore_until_a_system_is_picked(t)
 	local scores, selector = createScores()
+	local score = {id = 1, accuracy = 0.021} --[[@as any]]
+	t:eq(scores:getAccuracySystem(), nil)
+	t:eq(scores:getAccuracy(score), "21.00ms")
 
-	-- The chart's OD with score V1.
-	local osu = assert(scores:getAccuracySystem(chart("osu", Timings("osuod", 8))))
-	t:eq(osu:getName(), "osu!mania V1 OD8")
-	-- StepMania files have no timings: J4.
-	t:eq(assert(scores:getAccuracySystem(chart("stepmania"))):getName(), "Etterna J4")
-	t:assert(assert(scores:getAccuracySystem(chart("sphere"))):isNormalscore())
-	t:eq(scores:getAccuracySystem(chart()), nil)
-
-	selector.chartview = chart("osu", Timings("osuod", 8))
-	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "95.00%")
-	selector.chartview = chart("stepmania")
-	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "50.00%")
-	-- Rizu: normalscore, which every score has, online ones too.
-	selector.chartview = chart("sphere")
-	selector.source = "online"
-	t:eq(scores:getAccuracy({id = 1, accuracy = 0.021} --[[@as any]]), "21.00ms")
+	local settings = selector.settings
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, false)
+	settings:setChoice(Settings.keys.timings.system, "sphere")
+	t:eq(scores:getAccuracy(score), "21.00ms", "Rizu timings are scored with normalscore")
 end
 
 ---@param t testing.T
-function test.selected_accuracy_system(t)
+function test.picked_system_rescores_the_stored_hits(t)
 	local scores, selector = createScores()
 	local settings = selector.settings
-	t:eq(scores:getSelectedAccuracySystem(), "auto")
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, false)
+	settings:setNumber(Settings.keys.timings.osuod, 7)
+	settings:setNumber(Settings.keys.timings.osu_score_version, 2)
+	t:eq(assert(scores:getAccuracySystem()):getName(), "osu!mania V2 OD7")
 
-	-- Not stored yet: still "auto".
-	scores:setSelectedAccuracySystem("osuod:9:1")
-	t:eq(scores:getSelectedAccuracySystem(), "auto")
+	local sample = chart_samples[1]
+	local client = FakeClient(0.02, 100)
+	client:play(sample.name, sample.data, 1, 100, 0)
+	local score_engine = assert(client.computeContext.score_engine)
+	selector.library.chartplayHitsRepo.hits[1] = {
+		notes_count = score_engine.chartdiff.notes_count,
+		inputmode = score_engine.chartdiff.inputmode,
+		events = score_engine.events,
+	}
 
-	settings:setString(Settings.keys.scores.stored_accuracies, "auto,osuod:9:1")
-	t:tdeq(scores:getAccuracySystems(), {"auto", "osuod:9:1"})
-	t:eq(scores:getSelectedAccuracySystem(), "osuod:9:1")
-	t:eq(assert(scores:getAccuracySystem(chart("stepmania"))).timings.data, 9)
-	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "98.77%")
-	t:eq(scores:getAccuracy({id = 2} --[[@as any]]), nil)
+	local scoring = Scoring(Timings("osuod", 7), Subtimings("scorev", 2))
+	local expected = assert(scoring:getAccuracySource(score_engine)):getAccuracy()
+	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), scoring:formatAccuracy(expected))
+	t:eq(scores:getAccuracy({id = 2} --[[@as any]]), nil, "no hits")
 
 	selector.source = "online"
 	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), nil)
-end
-
----@param t testing.T
-function test.add_and_remove_systems(t)
-	local scores, selector = createScores()
-	local key = Settings.keys.scores.stored_accuracies
-	t:tdeq(scores:getAddableAccuracySystems(), {"osuod", "etternaj", "quaver", "bmsrank", "iidx"})
-
-	-- The slider leaves OD 9 slightly off; V1 is the default score version.
-	t:eq(scores:addAccuracySystem("osuod", 9.000000001), true)
-	t:eq(selector.settings:getString(key), "auto,osuod:9:1")
-	t:eq(scores:addAccuracySystem("osuod", 9, 1), false)
-	t:eq(scores:addAccuracySystem("osuod", 9, 2), true)
-	t:eq(scores:addAccuracySystem("quaver"), true)
-	t:eq(selector.settings:getString(key), "auto,osuod:9:1,osuod:9:2,quaver:0")
-	-- Older scores get each added system in the background.
-	t:eq(selector.library.updates, 3)
-	t:eq(assert(scores:getAccuracySystem(nil, "quaver:0")):getName(), "Quaver standard")
-
-	scores:setSelectedAccuracySystem("osuod:9:2")
-	scores:removeAccuracySystem("osuod:9:2")
-	scores:removeAccuracySystem("auto")
-	t:eq(selector.settings:getString(key), "auto,osuod:9:1,quaver:0")
-	t:eq(scores:getSelectedAccuracySystem(), "auto")
 end
 
 return test

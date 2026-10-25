@@ -1,6 +1,7 @@
 local LibraryTestContext = require("rizu.library.LibraryTestContext")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
+local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
 
 local test = {}
 
@@ -140,41 +141,32 @@ function test.main_and_worker_databases_are_isolated_from_userdata(t)
 end
 
 ---@param t testing.T
-function test.accuracies_update_once_per_marker(t)
+function test.hits_update_once_per_version(t)
 	local ctx = LibraryTestContext()
 	local settings = Settings.createConfig(FakeFilesystem())
-	---@type {[1]: string, [2]: boolean}[]
-	local calls = {}
-	local completed = true
-	ctx.lib.worker.computeAccuracies = function(_, stored_accuracies, missing_only)
-		table.insert(calls, {stored_accuracies, missing_only})
+	local calls = 0
+	local completed = false
+	ctx.lib.worker.computeMissingHits = function()
+		calls = calls + 1
 		return completed
 	end
 
-	ctx.lib:updateAccuracies(settings)
+	-- A stopped update leaves the version, so the next start goes on.
+	ctx.lib:updateHits(settings)
 	ctx:process()
-	t:tdeq(calls, {{"auto", true}})
-	t:eq(settings:getString(Settings.keys.scores.accuracies_marker), "1;auto")
+	t:eq(calls, 1)
+	t:eq(settings:getNumber(Settings.keys.scores.hits_version), 0)
 
-	-- Done for this setting: nothing to do at the next start.
-	ctx.lib:updateAccuracies(settings)
-	ctx:process()
-	t:eq(#calls, 1)
-
-	-- A stopped update leaves the marker, so the next start goes on.
-	settings:setString(Settings.keys.scores.stored_accuracies, "auto,etternaj:5")
-	completed = false
-	ctx.lib:updateAccuracies(settings)
-	ctx:process()
-	t:eq(#calls, 2)
-	t:eq(settings:getString(Settings.keys.scores.accuracies_marker), "1;auto")
-
-	-- Recalculating does every chartplay whatever the marker says.
 	completed = true
-	ctx.lib:updateAccuracies(settings, true)
+	ctx.lib:updateHits(settings)
 	ctx:process()
-	t:tdeq(calls[3], {"auto,etternaj:5", false})
-	t:eq(settings:getString(Settings.keys.scores.accuracies_marker), "1;auto,etternaj:5")
+	t:eq(calls, 2)
+	t:eq(settings:getNumber(Settings.keys.scores.hits_version), ChartplayHitsRepo.hits_version)
+
+	-- Done for this version: nothing to do at the next start.
+	ctx.lib:updateHits(settings)
+	ctx:process()
+	t:eq(calls, 2)
 	ctx:cleanup()
 end
 

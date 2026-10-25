@@ -194,7 +194,7 @@ function SongSelectV2:enter()
 		api.charts:on("can_play_changed", updateFooter),
 		-- Another score system was picked for the list.
 		api.scores:on("scores_changed", function()
-			self:updateLeaderboardTitle(api.charts:getSelectedChart())
+			self:updateLeaderboardTitle()
 		end),
 		api.scores:on("scores_changed", function(loading)
 			self.score_list:setLoading(loading)
@@ -257,13 +257,12 @@ function SongSelectV2:bindChartview(chartview)
 		self.selected_song_panel:bind(self.chartview_formatter)
 		self.chart_browser.chart_info:bind(self.chartview_formatter)
 	end
-	self:updateLeaderboardTitle(chartview)
+	self:updateLeaderboardTitle()
 end
 
 ---@private
----@param chartview rizu.api.Chart?
-function SongSelectV2:updateLeaderboardTitle(chartview)
-	local scoring = self.ui.api.scores:getAccuracySystem(chartview)
+function SongSelectV2:updateLeaderboardTitle()
+	local scoring = self.ui.api.scores:getAccuracySystem()
 	self.leaderboard_title:setText(scoring and scoring:getName() or self.ui.localization:get("song_select.leaderboard"))
 end
 

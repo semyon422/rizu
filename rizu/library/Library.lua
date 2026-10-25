@@ -9,8 +9,7 @@ local Status = require("rizu.library.Status")
 local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
-local ChartplayAccuraciesRepo = require("rizu.library.repos.ChartplayAccuraciesRepo")
-local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
 local Settings = require("rizu.config.Settings")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
@@ -79,7 +78,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.chartviewsRepo = ChartviewsRepo(self.database.models)
 	self.locationsRepo = LocationsRepo(self.database.models)
 	self.chartfilesRepo = ChartfilesRepo(self.database.models)
-	self.chartplayAccuraciesRepo = ChartplayAccuraciesRepo(self.database.models)
+	self.chartplayHitsRepo = ChartplayHitsRepo(self.database.models)
 
 	self.statusUpdate = Status(self.chartfilesRepo, self.chartsRepo)
 	self.collections = Collections(self.chartfilesRepo, self.locationsRepo)
@@ -252,22 +251,19 @@ function Library:computeChartplays()
 	end)
 end
 
----Stores the accuracies of the scores.stored_accuracies systems for the local chartplays, see AccuracyTask.
----Without `all`, only once per setting value and StoredAccuracies.version, and only the chartplays
----missing an accuracy: run it at startup and after a system was added.
+---Stores the hits of the local chartplays saved without them, see HitsTask. Once per
+---ChartplayHitsRepo.hits_version, so plays whose chart or replay is gone are not retried at every start.
 ---@param settings rizu.config.Config
----@param all boolean? Every chartplay again, whatever was done before.
-function Library:updateAccuracies(settings, all)
-	local stored_accuracies = settings:getString(Settings.keys.scores.stored_accuracies)
-	local marker = StoredAccuracies.getMarker(stored_accuracies)
-	local marker_key = Settings.keys.scores.accuracies_marker
-	if not all and settings:getString(marker_key) == marker then
+function Library:updateHits(settings)
+	local key = Settings.keys.scores.hits_version
+	local version = ChartplayHitsRepo.hits_version
+	if settings:getNumber(key) == version then
 		return
 	end
 	self:addTask(function()
 		-- A stopped task leaves the rest to the next one.
-		if self.worker:computeAccuracies(stored_accuracies, not all) then
-			settings:setString(marker_key, marker)
+		if self.worker:computeMissingHits() then
+			settings:setNumber(key, version)
 		end
 	end)
 end

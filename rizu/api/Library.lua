@@ -206,12 +206,4 @@ function Library:toggleCacheUpdate(location) self.game.selectionActions:updateCa
 ---@return rizu.api.CacheStatus
 function Library:getCacheStatus() return toCacheStatus(self.game.library.status) end
 
----Scores every local score again and stores the accuracies the `scores.stored_accuracies` setting
----lists, removing the others. Scores saved with their hits are quick; older ones are played again
----from their replays, which is slow: follow it with getCacheStatus(), its stage is "accuracies".
----Scores whose chart or replay is missing keep what they had.
-function Library:recalculateAccuracies()
-	self.game.library:updateAccuracies(self.game.settings, true)
-end
-
 return Library

@@ -1,6 +1,7 @@
 local class = require("class")
 local Settings = require("rizu.config.Settings")
-local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
 local Scoring = require("rizu.engine.scoring.Scoring")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
@@ -8,16 +9,24 @@ local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 ---@operator call: rizu.GameplayTimings
 local GameplayTimings = class()
 
----The score system picked in the play config, nil for the chart's auto timings.
+---The score system picked in the play config, nil while auto timings are on.
 ---@param settings rizu.config.Config
 ---@return rizu.engine.scoring.Scoring?
 function GameplayTimings.getPicked(settings)
-	local token = settings:getString(Settings.keys.select.accuracy_system)
-	for _, stored in ipairs(StoredAccuracies.parse(settings:getString(Settings.keys.scores.stored_accuracies))) do
-		if stored == token then
-			return StoredAccuracies.getScoring(token)
-		end
+	local keys = Settings.keys
+	if settings:getBoolean(keys.replay_base.auto_timings) then
+		return
 	end
+	local name = settings:getChoice(keys.timings.system) --[[@as sea.TimingsName]]
+	local value_key = keys.timings[name]
+	local value = value_key and settings:getNumber(value_key) or nil
+	local subtimings ---@type sea.Subtimings?
+	if name == "osuod" then
+		-- Slider arithmetic leaves values such as 7.7 just off the exact tenth Timings requires.
+		value = math.floor(value * 10 + 0.5) / 10
+		subtimings = Subtimings("scorev", settings:getNumber(keys.timings.osu_score_version))
+	end
+	return Scoring(Timings(name, value), subtimings)
 end
 
 ---@param chartmeta sea.Chartmeta

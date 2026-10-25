@@ -272,8 +272,8 @@ function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
-	-- Scores from before an update or a new score system get their accuracies in the background.
-	self.library:updateAccuracies(self.settings)
+	-- Scores saved before their hits were stored get them in the background.
+	self.library:updateHits(self.settings)
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai

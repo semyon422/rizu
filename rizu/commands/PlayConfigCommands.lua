@@ -1,3 +1,4 @@
+local Settings = require("rizu.config.Settings")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 
 ---@return rizu.command.Fuzzy.Candidate[] choices
@@ -71,6 +72,23 @@ return function(game)
 			},
 			callback = function(args)
 				game.timeRateModel:set(args.rate)
+			end,
+		},
+		{
+			id = "play_config.set_auto_timings",
+			title = "Play Config: Set Auto Timings",
+			description = "Enables or disables automatic timing selection",
+			arguments = {
+				{
+					name = "enabled",
+					type = "boolean",
+					prompt = "Auto timings:",
+					choices = getBooleanChoices(),
+				},
+			},
+			callback = function(args)
+				game.settings:setBoolean(Settings.keys.replay_base.auto_timings, args.enabled)
+				updateReplayBase(game)
 			end,
 		},
 		{

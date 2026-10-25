@@ -44,7 +44,6 @@ function GameplayInteractor:new(game)
 		game.fs,
 		game.persistence.library,
 		game.persistence.configModel,
-		game.settings,
 		game.seaClient,
 		game.replayBase,
 		game.computeContext

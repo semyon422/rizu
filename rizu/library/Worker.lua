@@ -81,11 +81,9 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
----@param stored_accuracies string
----@param missing_only boolean
 ---@return boolean completed
-function Worker:computeAccuracies(stored_accuracies, missing_only)
-	return self.processor:computeAccuracies(stored_accuracies, missing_only)
+function Worker:computeMissingHits()
+	return self.processor:computeMissingHits()
 end
 
 ---@param path string

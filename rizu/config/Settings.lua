@@ -1,5 +1,6 @@
 local Config = require("rizu.config.Config")
 local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---@class rizu.config.Settings.Keys
 local keys = {
@@ -83,14 +84,21 @@ local keys = {
 		sort_function = "select.sort_function",
 		score_source = "select.score_source",
 		score_filter = "select.score_filter",
-		-- A token of scores.stored_accuracies: the score system of the accuracies in the leaderboard.
-		accuracy_system = "select.accuracy_system",
+	},
+	-- How mania plays are judged when replay_base.auto_timings is off, see rizu.gameplay.GameplayTimings.
+	timings = {
+		system = "timings.system",
+		osuod = "timings.osuod",
+		etternaj = "timings.etternaj",
+		bmsrank = "timings.bmsrank",
+		osu_score_version = "timings.osu_score_version",
+	},
+	replay_base = {
+		auto_timings = "replay_base.auto_timings",
 	},
 	scores = {
-		-- See rizu.engine.ScoreEngine.StoredAccuracies for the format.
-		stored_accuracies = "scores.stored_accuracies",
-		-- Internal: StoredAccuracies.getMarker() of the last finished update, see Library:updateAccuracies().
-		accuracies_marker = "scores.accuracies_marker",
+		-- Internal: ChartplayHitsRepo.hits_version of the last finished update, see Library:updateHits().
+		hits_version = "scores.hits_version",
 	},
 	graphics = {
 		fps = "graphics.fps",
@@ -260,10 +268,16 @@ function Settings.createConfig(filesystem)
 	config:setDefaultString(s.sort_function, "title")
 	config:setDefaultChoice(s.score_source, "local", {"local", "online"})
 	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
-	config:setDefaultString(s.accuracy_system, "auto")
 
-	config:setDefaultString(keys.scores.stored_accuracies, "auto")
-	config:setDefaultString(keys.scores.accuracies_marker, "")
+	config:setDefaultChoice(keys.timings.system, "osuod", TimingSystems.selectable)
+	for _, name in ipairs({"osuod", "etternaj", "bmsrank"}) do
+		local system = TimingSystems.get(name)
+		local range = system.range or {min = 0, max = 10, step = 1}
+		config:setDefaultNumber(keys.timings[name], system.default_value, range.min, range.max, range.step)
+	end
+	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
+	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
+	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
 
 	config:setDefaultNumber(gr.fps, 240, 30, 1024, 2)
 	config:setDefaultBoolean(gr.unlimited_fps, false)

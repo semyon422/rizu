@@ -1,7 +1,4 @@
 local Events = require("rizu.api.Events")
-local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
-local Scoring = require("rizu.engine.scoring.Scoring")
-local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---`rizu.api.Scores` with made-up scores, see that file for what each function does.
 ---@class rizu.api.fake.FakeScores : rizu.api.Events
@@ -13,7 +10,6 @@ function FakeScores:new()
 	self.source = "local"
 	self.items = {}
 	self.chart_id = 0
-	self.accuracy_systems = {"auto", "osuod:9:1", "etternaj:4"}
 end
 
 ---The fake game calls this when another chart is selected.
@@ -52,52 +48,11 @@ end
 function FakeScores:select(index) self.selected = self.items[index] or self.selected end
 function FakeScores:getSelected() return self.selected end
 
-function FakeScores:getAccuracySystems() return self.accuracy_systems end
-function FakeScores:getAddableAccuracySystems() return {"osuod", "etternaj", "quaver", "bmsrank", "iidx"} end
-
----@param system string
----@param value number?
----@param osu_score_version integer?
-function FakeScores:addAccuracySystem(system, value, osu_score_version)
-	local token = system == "osuod" and ("osuod:%g:%d"):format(value or 8, osu_score_version or 1)
-		or value and ("%s:%g"):format(system, value) or system
-	for _, stored in ipairs(self.accuracy_systems) do
-		if stored == token then return false end
-	end
-	table.insert(self.accuracy_systems, token)
-	return true
-end
-
----@param token string
-function FakeScores:removeAccuracySystem(token)
-	for i, stored in ipairs(self.accuracy_systems) do
-		if stored == token and token ~= "auto" then
-			table.remove(self.accuracy_systems, i)
-			return
-		end
-	end
-end
-function FakeScores:getSelectedAccuracySystem() return self.accuracy_system or "auto" end
-
-function FakeScores:setSelectedAccuracySystem(token)
-	self.accuracy_system = token
-	self:refresh()
-end
-
----@param chart rizu.api.Chart?
----@param token string?
-function FakeScores:getAccuracySystem(chart, token)
-	local auto = chart and chart.format
-		and Scoring(TimingSystems.getAuto(chart.chartmeta_timings, chart.format))
-	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), auto)
-end
+---The fake play config has no judging: the leaderboard shows normalscore.
+function FakeScores:getAccuracySystem() end
 
 ---@param score rizu.api.Score
-function FakeScores:getAccuracy(score)
-	if self.source ~= "local" then return end
-	local offset = ({["osuod:9:1"] = -150, ["etternaj:4"] = -400})[self:getSelectedAccuracySystem()] or 0
-	return ("%0.02f%%"):format((score.score + offset) / 100)
-end
+function FakeScores:getAccuracy(score) return ("%0.02fms"):format(score.accuracy * 1000) end
 
 ---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.
 function FakeScores:loadSelectedResult(f) f(self.selected ~= nil) end

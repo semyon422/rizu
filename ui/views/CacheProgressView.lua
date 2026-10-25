@@ -69,7 +69,7 @@ function CacheProgressView:draw()
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.font)
 	local stage = self.status.stage
-	love.graphics.print(stage == "accuracies" and "Updating score accuracies" or "Updating cache: " .. stage, PADDING, PADDING)
+	love.graphics.print(stage == "hits" and "Preparing scores for rescoring" or "Updating cache: " .. stage, PADDING, PADDING)
 	Painter.setColorTable(Colors.muted)
 	love.graphics.print(self:getProgressText(), PADDING, PADDING + self.font:getHeight())
 end
