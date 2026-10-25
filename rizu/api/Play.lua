@@ -28,9 +28,10 @@ How the next play will go: the music speed, the mods, the mutators, how hits are
 ---| "constant_scroll" # Notes fall at one speed, ignoring the chart's speed changes. Counts as a mod.
 ---| "taps_only" # Long notes become taps. Counts as a mod.
 ---| "nearest_input" # A press hits the nearest note instead of the earliest one.
----| "auto_timings" # Each chart is judged the way its own format does. Off: one timing system for every chart.
+---| "auto_timings" # Each chart is judged the way its own format does. Ignored for now: every play is.
 
----How hits are judged when "auto_timings" is off. Three of them take a value, see setTimingValue().
+---How hits are judged when "auto_timings" is off. Ignored for now: every play uses auto timings.
+---Three of them take a value, see setTimingValue().
 ---@alias rizu.api.Play.TimingSystem
 ---| "sphere" # Rizu's own.
 ---| "osuod" # osu!mania. Value: overall difficulty, 0..10 in steps of 0.1.

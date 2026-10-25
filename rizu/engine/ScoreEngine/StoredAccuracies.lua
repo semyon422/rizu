@@ -4,7 +4,7 @@ local Scoring = require("rizu.engine.scoring.Scoring")
 
 ---Accuracies stored with every score besides normalscore, which chartplays.accuracy holds.
 ---The setting lists them as tokens, such as "auto,osuod:9:1,etternaj:4":
----"auto" is the chart's own timings, the others are "name[:value[:osu score version]]".
+---"auto" is the auto timings of the chart (TimingSystems.getAuto), the others are "name[:value[:osu score version]]".
 local StoredAccuracies = {}
 
 ---@class rizu.engine.ScoreEngine.StoredAccuracies.Row
@@ -32,15 +32,13 @@ function StoredAccuracies.decode(token)
 end
 
 ---@param token string
----@param chart_timings sea.Timings? What "auto" stands for.
----@return rizu.engine.scoring.Scoring? scoring nil for invalid tokens, and for "auto" without chart timings.
-function StoredAccuracies.getScoring(token, chart_timings)
-	local timings, subtimings ---@type sea.Timings?, sea.Subtimings?
+---@param auto rizu.engine.scoring.Scoring? What "auto" stands for, see TimingSystems.getAuto().
+---@return rizu.engine.scoring.Scoring? scoring nil for invalid tokens, and for "auto" without one.
+function StoredAccuracies.getScoring(token, auto)
 	if token == "auto" then
-		timings = chart_timings
-	else
-		timings, subtimings = StoredAccuracies.decode(token)
+		return auto
 	end
+	local timings, subtimings = StoredAccuracies.decode(token)
 	if not timings then
 		return
 	end
@@ -72,14 +70,14 @@ end
 ---Scores the events the engine received with every system of the tokens.
 ---@param score_engine rizu.ScoreEngine
 ---@param tokens string[]
----@param chart_timings sea.Timings? What "auto" stands for.
+---@param auto rizu.engine.scoring.Scoring What "auto" stands for, see TimingSystems.getAuto().
 ---@return rizu.engine.ScoreEngine.StoredAccuracies.Row[]
-function StoredAccuracies.compute(score_engine, tokens, chart_timings)
+function StoredAccuracies.compute(score_engine, tokens, auto)
 	local rows = {}
 	---@type {[string]: true}
 	local seen = {}
 	for _, token in ipairs(tokens) do
-		local scoring = StoredAccuracies.getScoring(token, chart_timings)
+		local scoring = StoredAccuracies.getScoring(token, auto)
 		local source = scoring and not scoring:isNormalscore() and scoring:getAccuracySource(score_engine)
 		if source then
 			---@cast scoring -?

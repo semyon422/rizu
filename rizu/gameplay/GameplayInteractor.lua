@@ -176,7 +176,7 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 		"Local replay does not match the selected chart.")
 
 	if not self.replaying and chartmeta.mode == "mania" then
-		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
+		GameplayTimings(chartmeta):apply(game.replayBase)
 	end
 
 	assert(gamemode.saves_scores or not game.multiplayerModel.client:isInRoom(),

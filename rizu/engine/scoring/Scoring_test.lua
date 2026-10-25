@@ -17,6 +17,14 @@ function test.osu_defaults_to_score_v1(t)
 end
 
 ---@param t testing.T
+function test.nearest_for_etterna_and_osu_v2(t)
+	t:assert(Scoring(Timings("etternaj", 4)):isNearest())
+	t:assert(Scoring(Timings("osuod", 8), Subtimings("scorev", 2)):isNearest())
+	t:assert(not Scoring(Timings("osuod", 8)):isNearest())
+	t:assert(not Scoring(Timings("quaver")):isNearest())
+end
+
+---@param t testing.T
 function test.names_formats_and_grades(t)
 	t:eq(Scoring(Timings("etternaj", 4)):getName(), "Etterna J4")
 	t:eq(Scoring(Timings("bmsrank", 3)):getName(), "LR2 Easy")

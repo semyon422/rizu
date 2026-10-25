@@ -7,6 +7,8 @@ local Chartplay = require("sea.chart.Chartplay")
 local ReplayFactory = require("rizu.engine.replay.ReplayFactory")
 local ChartplayComputedFactory = require("rizu.engine.ChartplayComputedFactory")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 local Settings = require("rizu.config.Settings")
 local ScoreSubmissionLog = require("rizu.gameplay.ScoreSubmissionLog")
 
@@ -97,7 +99,8 @@ function ScoreSaver:saveScore(gameplay_session)
 
 	local tokens = StoredAccuracies.parse(self.settings:getString(Settings.keys.scores.stored_accuracies))
 	self.library.chartplayAccuraciesRepo:setAccuracies(_chartplay.id,
-		StoredAccuracies.compute(scoreEngine, tokens, chartmeta.timings))
+		StoredAccuracies.compute(scoreEngine, tokens,
+			Scoring(TimingSystems.getAuto(chartmeta.timings, chartmeta.format))))
 
 	---@param event string
 	---@param fields {[string]: any}?

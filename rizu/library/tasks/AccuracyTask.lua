@@ -2,6 +2,8 @@ local class = require("class")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 local ComputeContext = require("sea.compute.ComputeContext")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---Plays every local chartplay again from its replay and stores the accuracies of the chosen systems.
 ---@class rizu.library.tasks.AccuracyTask
@@ -39,8 +41,8 @@ function AccuracyTask:computeChartplay(chartplay, tokens)
 	assert(ctx:computeReplay(replay))
 
 	local chartmeta = assert(ctx.chartmeta)
-	self.accuraciesRepo:setAccuracies(chartplay.id,
-		StoredAccuracies.compute(assert(ctx.score_engine), tokens, chartmeta.timings))
+	local auto = Scoring(TimingSystems.getAuto(chartmeta.timings, chartmeta.format))
+	self.accuraciesRepo:setAccuracies(chartplay.id, StoredAccuracies.compute(assert(ctx.score_engine), tokens, auto))
 
 	return chartplay.replay_hash
 end

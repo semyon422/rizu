@@ -1,9 +1,9 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
 local Settings = require("rizu.config.Settings")
-local Timings = require("sea.chart.Timings")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 local Scoring = require("rizu.engine.scoring.Scoring")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 --[[
 The scores of the selected chart: the leaderboard on song select and on the result screen.
@@ -118,36 +118,28 @@ function Scores:setSelectedAccuracySystem(token)
 end
 
 ---What a token stands for: its name, how its accuracy is written, its grades.
----@param chart rizu.api.Chart? What "auto" stands for.
+---@param chart rizu.api.Chart? What "auto" stands for: its auto timings.
 ---@param token string? The selected one by default.
----@return rizu.engine.scoring.Scoring? scoring nil for "auto" without a loaded chart or timings in it.
+---@return rizu.engine.scoring.Scoring? scoring nil for "auto" without a loaded chart.
 function Scores:getAccuracySystem(chart, token)
-	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), chart and chart.chartmeta_timings)
+	local auto = chart and chart.format and Scoring(TimingSystems.getAuto(chart.chartmeta_timings, chart.format))
+	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), auto)
 end
 
----The accuracy of the score in the selected score system, as text such as "98.50%".
+---The accuracy of a score of the selected chart in the selected score system, as text such as "98.50%".
 ---@param score rizu.api.Score
----@return string? accuracy nil when it is not stored: online scores, scores played before the system was added
----and not recalculated, and charts without timings of their own.
+---@return string? accuracy nil when it is not stored: online scores, and scores played before the system
+---was added and not recalculated.
 function Scores:getAccuracy(score)
-	local token = self:getSelectedAccuracySystem()
-	if token == "auto" then
-		local row = score --[[@as {auto_timings: integer?, auto_accuracy: number?}]]
-		if not row.auto_timings then
-			return
-		end
-		local scoring = Scoring(Timings.decode(row.auto_timings))
-		if scoring:isNormalscore() then
-			return scoring:formatAccuracy(score.accuracy)
-		end
-		return row.auto_accuracy and scoring:formatAccuracy(row.auto_accuracy)
+	local scoring = self:getAccuracySystem(self.selector.chartview --[[@as rizu.api.Chart?]])
+	if not scoring then
+		return
+	end
+	if scoring:isNormalscore() then
+		return scoring:formatAccuracy(score.accuracy)
 	end
 	-- Online scores have the server's ids.
 	if self:getSource() ~= "local" then
-		return
-	end
-	local scoring = self:getAccuracySystem(nil, token)
-	if not scoring then
 		return
 	end
 	local timings, subtimings = scoring:encode()

@@ -350,8 +350,6 @@ return {
 	["song_select.time_rate_type_linear"] = "Линейная",
 	["song_select.time_rate_type_exp"] = "Экспоненциальная",
 	["song_select.time_rate"] = "Скорость музыки",
-	["song_select.auto_timings"] = "Автоматическая система скора",
-	["song_select.nearest_input"] = "Считать попадания по ближайшей ноте",
 	["song_select.column_order"] = "Порядок колонок",
 	["song_select.column_order_subtitle"] = "На каждой клавише — колонка чарта, которую она играет. Нажмите на две клавиши, чтобы поменять их местами.",
 	["song_select.column_order_summary"] = "Порядок колонок: {state}",

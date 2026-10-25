@@ -13,8 +13,6 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
 local Slider = require("ui.views.form.Slider")
-local TimingSystems = require("rizu.engine.scoring.TimingSystems")
-local TimingValueControl = require("ui.views.form.TimingValueControl")
 
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
@@ -33,12 +31,6 @@ local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 112
 local FORM_HEIGHT = MODAL_HEIGHT - FORM_Y - 92
-
----@param value number
----@return string
-local function formatOsuScoreVersion(value)
-	return "V" .. value
-end
 
 ---@param play rizu.api.Play
 ---@param on_close fun()
@@ -172,60 +164,6 @@ function Modifiers:rebuildForm()
 			},
 		}))
 	end
-	local auto_timings = play:getToggle("auto_timings")
-	self.form:add(Checkbox({
-		text = self.localization:get("song_select.auto_timings"),
-		checked = auto_timings,
-		on_change = function(value)
-			play:setToggle("auto_timings", value)
-			self:invalidateForm()
-		end,
-	}))
-
-	if not auto_timings then
-		self.form:add(Checkbox({
-			text = self.localization:get("song_select.nearest_input"),
-			checked = play:getToggle("nearest_input"),
-			on_change = function(value)
-				play:setToggle("nearest_input", value)
-			end,
-		}))
-
-		local timing_system = play:getTimingSystem()
-		self.form:add(SegmentedControl({
-			label = self.localization:get("song_select.score_system"),
-			options = play:getTimingSystems(),
-			value = timing_system,
-			format = function(value)
-				return TimingSystems.get(value).label
-			end,
-			on_change = function(value)
-				play:setTimingSystem(value)
-				self:invalidateForm()
-			end,
-		}))
-
-		local system = TimingSystems.get(timing_system)
-		if system.score_versions then
-			self.form:add(SegmentedControl({
-				label = self.localization:get("song_select.osu_score_version"),
-				options = system.score_versions,
-				value = play:getOsuScoreVersion(),
-				format = formatOsuScoreVersion,
-				on_change = function(value)
-					play:setOsuScoreVersion(value)
-				end,
-			}))
-		end
-		local value_control = TimingValueControl(system, play:getTimingValue(), FORM_WIDTH, self.localization,
-			function(value)
-				play:setTimingValue(value)
-			end)
-		if value_control then
-			self.form:add(value_control)
-		end
-	end
-
 	self.form:fitContent()
 
 	if selected_index then

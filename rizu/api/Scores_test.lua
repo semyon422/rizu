@@ -27,6 +27,8 @@ local function createScores()
 				return chartplay_id == 1 and {
 					{timings = 2304, subtimings = 0, accuracy = 0.5},
 					{timings = 2190, subtimings = 1101, accuracy = 0.987654},
+					{timings = 2180, subtimings = 1102, accuracy = 0.8},
+					{timings = 2180, subtimings = 1101, accuracy = 0.95},
 				} or {}
 			end,
 		}},
@@ -69,22 +71,39 @@ function test.load_selected_result_reports_why_it_failed(t)
 	t:assert(tostring(result[2]):find("replay is gone", 1, true))
 end
 
+---@param format sea.ChartFormat?
 ---@param timings sea.Timings?
 ---@return rizu.api.Chart
-local function chart(timings)
+local function chart(format, timings)
 	local row = {}
+	row.format = format
 	row.chartmeta_timings = timings
 	return row
 end
 
 ---@param t testing.T
-function test.accuracy_system_of_the_chart(t)
-	local scores = createScores()
-	local system = assert(scores:getAccuracySystem(chart(Timings("osuod", 9))))
-	t:eq(system.timings.data, 9)
-	t:eq(assert(system.subtimings).data, 1)
-	t:assert(assert(scores:getAccuracySystem(chart(Timings("sphere")))):isNormalscore())
+function test.auto_depends_on_the_chart_only(t)
+	local scores, selector = createScores()
+	local settings = selector.settings
+	settings:setNumber(Settings.keys.timings.osu_score_version, 2)
+	settings:setNumber(Settings.keys.timings.etternaj, 5)
+
+	-- The chart's OD with score V1, whatever the player picked.
+	local osu = assert(scores:getAccuracySystem(chart("osu", Timings("osuod", 8))))
+	t:eq(osu:getName(), "osu!mania V1 OD8")
+	-- StepMania files have no timings: J4.
+	t:eq(assert(scores:getAccuracySystem(chart("stepmania"))):getName(), "Etterna J4")
+	t:assert(assert(scores:getAccuracySystem(chart("sphere"))):isNormalscore())
 	t:eq(scores:getAccuracySystem(chart()), nil)
+
+	selector.chartview = chart("osu", Timings("osuod", 8))
+	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "95.00%")
+	selector.chartview = chart("stepmania")
+	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "50.00%")
+	-- Rizu: normalscore, which every score has, online ones too.
+	selector.chartview = chart("sphere")
+	selector.source = "online"
+	t:eq(scores:getAccuracy({id = 1, accuracy = 0.021} --[[@as any]]), "21.00ms")
 end
 
 ---@param t testing.T
@@ -92,9 +111,6 @@ function test.selected_accuracy_system(t)
 	local scores, selector = createScores()
 	local settings = selector.settings
 	t:eq(scores:getSelectedAccuracySystem(), "auto")
-	t:eq(scores:getAccuracy({auto_timings = 2180, auto_accuracy = 0.95} --[[@as any]]), "95.00%")
-	-- Rizu timings: normalscore, which every score has.
-	t:eq(scores:getAccuracy({auto_timings = 100, accuracy = 0.021} --[[@as any]]), "21.00ms")
 
 	-- Not stored yet: still "auto".
 	scores:setSelectedAccuracySystem("osuod:9:1")
@@ -103,7 +119,7 @@ function test.selected_accuracy_system(t)
 	settings:setString(Settings.keys.scores.stored_accuracies, "auto,osuod:9:1")
 	t:tdeq(scores:getAccuracySystems(), {"auto", "osuod:9:1"})
 	t:eq(scores:getSelectedAccuracySystem(), "osuod:9:1")
-	t:eq(assert(scores:getAccuracySystem(chart(Timings("etternaj", 4)))).timings.data, 9)
+	t:eq(assert(scores:getAccuracySystem(chart("stepmania"))).timings.data, 9)
 	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "98.77%")
 	t:eq(scores:getAccuracy({id = 2} --[[@as any]]), nil)
 

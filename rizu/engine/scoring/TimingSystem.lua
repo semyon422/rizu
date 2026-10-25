@@ -35,6 +35,13 @@ function TimingSystem:getName(timings, subtimings)
 	return self.label
 end
 
+---A press hits the nearest note instead of the earliest one.
+---@param subtimings sea.Subtimings?
+---@return boolean
+function TimingSystem:isNearest(subtimings)
+	return false
+end
+
 ---@param subtimings sea.Subtimings?
 ---@return boolean
 function TimingSystem:acceptsSubtimings(subtimings)

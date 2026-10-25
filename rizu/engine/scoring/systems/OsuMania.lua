@@ -30,6 +30,12 @@ function OsuMania:getName(timings, subtimings)
 	return ("osu!mania V%i OD%g"):format((subtimings or self.default_subtimings).data, timings.data)
 end
 
+---ScoreV2 takes the nearest note, ScoreV1 the earliest.
+---@param subtimings sea.Subtimings?
+function OsuMania:isNearest(subtimings)
+	return (subtimings or self.default_subtimings).data == 2
+end
+
 ---@param subtimings sea.Subtimings?
 function OsuMania:acceptsSubtimings(subtimings)
 	return not subtimings or subtimings.name == "scorev" and (subtimings.data == 1 or subtimings.data == 2)

@@ -1,3 +1,5 @@
+local Timings = require("sea.chart.Timings")
+
 ---Every rizu.engine.scoring.TimingSystem by its sea.TimingsName.
 local TimingSystems = {}
 
@@ -24,6 +26,35 @@ end
 ---@return boolean
 function TimingSystems.isSelectable(name)
 	return is_selectable[name] == true
+end
+
+---The system a chart of a format is judged with when the file does not say.
+---@type {[sea.ChartFormat]: sea.TimingsName}
+local format_systems = {
+	sphere = "sphere",
+	osu = "osuod",
+	o2jam = "sphere",
+	bms = "bmsrank",
+	stepmania = "etternaj",
+	quaver = "quaver",
+	midi = "sphere",
+	ksm = "sphere",
+	iidx = "iidx",
+}
+
+---Auto timings: how a chart is judged, decided by the chart alone. Its own timings, or its format's
+---system with that system's default value, with the system's default subtimings (osu!mania: score V1).
+---@param chart_timings sea.Timings?
+---@param format sea.ChartFormat
+---@return sea.Timings
+---@return sea.Subtimings?
+function TimingSystems.getAuto(chart_timings, format)
+	local timings = chart_timings
+	if not timings then
+		local system = TimingSystems.get(assert(format_systems[format], "unknown chart format"))
+		timings = Timings(system.name, system.default_value)
+	end
+	return timings, TimingSystems.get(timings.name).default_subtimings
 end
 
 ---@param name sea.TimingsName

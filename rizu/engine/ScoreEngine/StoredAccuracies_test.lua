@@ -1,6 +1,7 @@
 local ScoreEngine = require("rizu.engine.ScoreEngine")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 local Timings = require("sea.chart.Timings")
+local Scoring = require("rizu.engine.scoring.Scoring")
 
 local test = {}
 
@@ -26,8 +27,8 @@ function test.compute_scores_each_system_once(t)
 		new_state = "passed",
 	})
 
-	-- "auto" on an osu! chart is V1 at the chart's OD, so it is the same row as "osuod:8".
-	local rows = StoredAccuracies.compute(se, {"auto", "osuod:8", "osuod:9:2", "etternaj:4"}, Timings("osuod", 8))
+	-- "auto" here is V1 at OD 8, so it is the same row as "osuod:8".
+	local rows = StoredAccuracies.compute(se, {"auto", "osuod:8", "osuod:9:2", "etternaj:4"}, Scoring(Timings("osuod", 8)))
 	t:eq(#rows, 3)
 	t:tdeq(rows[1], {timings = 2180, subtimings = 1101, accuracy = 1})
 	t:eq(rows[2].timings, 2190)
@@ -35,7 +36,8 @@ function test.compute_scores_each_system_once(t)
 	t:eq(rows[3].timings, 2304)
 	t:eq(rows[3].subtimings, 0)
 
-	t:tdeq(StoredAccuracies.compute(se, {"auto"}, Timings("sphere")), {})
+	-- Normalscore is in chartplays.accuracy already.
+	t:tdeq(StoredAccuracies.compute(se, {"auto"}, Scoring(Timings("sphere"))), {})
 end
 
 return test

@@ -1,5 +1,7 @@
 local Events = require("rizu.api.Events")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---`rizu.api.Scores` with made-up scores, see that file for what each function does.
 ---@class rizu.api.fake.FakeScores : rizu.api.Events
@@ -60,7 +62,9 @@ end
 ---@param chart rizu.api.Chart?
 ---@param token string?
 function FakeScores:getAccuracySystem(chart, token)
-	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), chart and chart.chartmeta_timings)
+	local auto = chart and chart.format
+		and Scoring(TimingSystems.getAuto(chart.chartmeta_timings, chart.format))
+	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), auto)
 end
 
 ---@param score rizu.api.Score

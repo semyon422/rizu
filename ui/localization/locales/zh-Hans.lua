@@ -370,8 +370,6 @@ return {
 	["song_select.time_rate_type_linear"] = "线性",
 	["song_select.time_rate_type_exp"] = "指数",
 	["song_select.time_rate"] = "倍速",
-	["song_select.auto_timings"] = "按谱面格式判定",
-	["song_select.nearest_input"] = "最近输入",
 	["song_select.column_order"] = "列顺序",
 	["song_select.column_order_subtitle"] = "每个键显示其对应的谱面列。点击两个键可交换它们。",
 	["song_select.column_order_summary"] = "列顺序：{state}",

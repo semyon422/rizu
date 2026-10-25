@@ -36,6 +36,12 @@ function Scoring:createScoreSystems()
 	return self.system:createScoreSystems(self.timings, self.subtimings)
 end
 
+---A press hits the nearest note instead of the earliest one.
+---@return boolean
+function Scoring:isNearest()
+	return self.system:isNearest(self.subtimings)
+end
+
 ---Its accuracy is normalscore's: the mean error in seconds, lower is better. Otherwise 0..1, higher is better.
 ---@return boolean
 function Scoring:isNormalscore()

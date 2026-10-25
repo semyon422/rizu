@@ -303,8 +303,6 @@ return {
 	["song_select.time_rate_type_linear"] = "Lineal",
 	["song_select.time_rate_type_exp"] = "Exp",
 	["song_select.time_rate"] = "Velocidad de reproducción",
-	["song_select.auto_timings"] = "Sistema de puntuación automático",
-	["song_select.nearest_input"] = "Contar los aciertos según la nota más cercana",
 	["song_select.column_order"] = "Orden de columnas",
 	["song_select.column_order_subtitle"] = "Cada tecla muestra la columna del chart que toca. Haz clic en dos teclas para intercambiarlas.",
 	["song_select.column_order_summary"] = "Orden de columnas: {state}",

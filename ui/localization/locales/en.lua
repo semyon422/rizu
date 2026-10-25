@@ -366,8 +366,6 @@ return {
 	["song_select.time_rate_type_linear"] = "Linear",
 	["song_select.time_rate_type_exp"] = "Exp",
 	["song_select.time_rate"] = "Time Rate",
-	["song_select.auto_timings"] = "Automatic score system",
-	["song_select.nearest_input"] = "Nearest input",
 	["song_select.column_order"] = "Column Order",
 	["song_select.column_order_subtitle"] = "Each key shows the chart column it plays. Click two keys to swap them.",
 	["song_select.column_order_summary"] = "Column Order: {state}",

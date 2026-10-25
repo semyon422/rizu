@@ -20,6 +20,10 @@ function Etterna:formatValue(value)
 	return ("J%i"):format(value)
 end
 
+function Etterna:isNearest()
+	return true
+end
+
 ---@param timings sea.Timings
 function Etterna:getName(timings)
 	return ("Etterna J%i"):format(timings.data)
