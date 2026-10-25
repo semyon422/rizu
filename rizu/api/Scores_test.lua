@@ -127,4 +127,26 @@ function test.selected_accuracy_system(t)
 	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), nil)
 end
 
+---@param t testing.T
+function test.add_and_remove_systems(t)
+	local scores, selector = createScores()
+	local key = Settings.keys.scores.stored_accuracies
+	t:tdeq(scores:getAddableAccuracySystems(), {"osuod", "etternaj", "quaver", "bmsrank", "iidx"})
+
+	-- The slider leaves OD 9 slightly off; V1 is the default score version.
+	t:eq(scores:addAccuracySystem("osuod", 9.000000001), true)
+	t:eq(selector.settings:getString(key), "auto,osuod:9:1")
+	t:eq(scores:addAccuracySystem("osuod", 9, 1), false)
+	t:eq(scores:addAccuracySystem("osuod", 9, 2), true)
+	t:eq(scores:addAccuracySystem("quaver"), true)
+	t:eq(selector.settings:getString(key), "auto,osuod:9:1,osuod:9:2,quaver:0")
+	t:eq(assert(scores:getAccuracySystem(nil, "quaver:0")):getName(), "Quaver standard")
+
+	scores:setSelectedAccuracySystem("osuod:9:2")
+	scores:removeAccuracySystem("osuod:9:2")
+	scores:removeAccuracySystem("auto")
+	t:eq(selector.settings:getString(key), "auto,osuod:9:1,quaver:0")
+	t:eq(scores:getSelectedAccuracySystem(), "auto")
+end
+
 return test

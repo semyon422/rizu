@@ -4,6 +4,8 @@ local Settings = require("rizu.config.Settings")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 local Scoring = require("rizu.engine.scoring.Scoring")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
+local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
 
 --[[
 The scores of the selected chart: the leaderboard on song select and on the result screen.
@@ -108,6 +110,61 @@ function Scores:getSelectedAccuracySystem()
 		end
 	end
 	return "auto"
+end
+
+---Systems addAccuracySystem() takes: the ones with an accuracy of their own.
+---@return rizu.api.Play.TimingSystem[]
+function Scores:getAddableAccuracySystems()
+	local systems = {}
+	for _, name in ipairs(TimingSystems.selectable) do
+		if not TimingSystems.get(name).normalscore then
+			table.insert(systems, name)
+		end
+	end
+	return systems
+end
+
+---Stores the accuracy of another score system with every new score. Old scores get it when the
+---accuracies are recalculated, see `rizu.api.Library:recalculateAccuracies()`.
+---@param system rizu.api.Play.TimingSystem One of getAddableAccuracySystems().
+---@param value number? OD, judge or rank, see `rizu.api.Play.TimingSystem`. The system's default when nil.
+---@param osu_score_version 1|2? Only for "osuod", 1 by default.
+---@return boolean added false when it is stored already.
+function Scores:addAccuracySystem(system, value, osu_score_version)
+	value = value or TimingSystems.get(system).default_value
+	local subtimings ---@type sea.Subtimings?
+	if system == "osuod" then
+		subtimings = Subtimings("scorev", osu_score_version or 1)
+		-- Slider arithmetic leaves values such as 7.7 just off the exact tenth Timings requires.
+		value = math.floor(value * 10 + 0.5) / 10
+	end
+	local scoring = Scoring(Timings(system, value), subtimings)
+	local key = table.concat({scoring:encode()}, ":")
+	local tokens = self:getAccuracySystems()
+	for _, token in ipairs(tokens) do
+		local stored = StoredAccuracies.getScoring(token)
+		if stored and table.concat({stored:encode()}, ":") == key then
+			return false
+		end
+	end
+	table.insert(tokens, StoredAccuracies.encode(scoring))
+	self.selector.settings:setString(Settings.keys.scores.stored_accuracies, table.concat(tokens, ","))
+	return true
+end
+
+---Stops storing a score system's accuracy and showing it. "auto" stays.
+---@param token string One of getAccuracySystems().
+function Scores:removeAccuracySystem(token)
+	local tokens = {}
+	for _, stored in ipairs(self:getAccuracySystems()) do
+		if stored ~= token or token == "auto" then
+			table.insert(tokens, stored)
+		end
+	end
+	self.selector.settings:setString(Settings.keys.scores.stored_accuracies, table.concat(tokens, ","))
+	if self.selector.settings:getString(Settings.keys.select.accuracy_system) == token then
+		self:setSelectedAccuracySystem("auto")
+	end
 end
 
 ---Shows the accuracies of another stored score system. Reloads the list.

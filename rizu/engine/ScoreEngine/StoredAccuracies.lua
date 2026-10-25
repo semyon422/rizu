@@ -31,6 +31,16 @@ function StoredAccuracies.decode(token)
 	end
 end
 
+---@param scoring rizu.engine.scoring.Scoring
+---@return string token
+function StoredAccuracies.encode(scoring)
+	local token = ("%s:%g"):format(scoring.timings.name, scoring.timings.data)
+	if scoring.subtimings then
+		token = token .. ":" .. scoring.subtimings.data
+	end
+	return token
+end
+
 ---@param token string
 ---@param auto rizu.engine.scoring.Scoring? What "auto" stands for, see TimingSystems.getAuto().
 ---@return rizu.engine.scoring.Scoring? scoring nil for invalid tokens, and for "auto" without one.

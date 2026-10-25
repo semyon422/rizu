@@ -7,6 +7,7 @@ local Resources = require("ui.Resources")
 ---@class ui.views.form.ButtonRow.Button
 ---@field text string
 ---@field on_click fun()
+---@field color gui.Color? Instead of the surface color, for the button a row is about.
 
 ---@class ui.views.form.ButtonRow.Params
 ---@field label string? Omit to leave out the label line.
@@ -130,7 +131,13 @@ function ButtonRow:draw()
 	local right_width = self.background_right:getWidth()
 	local x = 0
 	for index, width in ipairs(self.button_widths) do
-		Painter.setColorTable((index == hovered or index == cursor) and Colors.surface_raised or Colors.surface)
+		local highlighted = index == hovered or index == cursor
+		local color = self.buttons[index].color
+		if color then
+			Painter.setColorRgb(color[1], color[2], color[3], highlighted and 1 or 0.8)
+		else
+			Painter.setColorTable(highlighted and Colors.surface_raised or Colors.surface)
+		end
 		self.background_left:draw(x, self.body_y)
 		self.background_middle:draw(x + left_width, self.body_y, 0,
 			(width - left_width - right_width) / self.background_middle:getWidth(), 1)

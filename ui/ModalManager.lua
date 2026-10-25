@@ -18,6 +18,7 @@ local TexturePicker = require("ui.modals.texture_picker.TexturePicker")
 local Rescore = require("ui.modals.rescore.Rescore")
 local Filters = require("ui.modals.filters.Filters")
 local ScoreFilters = require("ui.modals.score_filters.ScoreFilters")
+local ScoreSystems = require("ui.modals.score_systems.ScoreSystems")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
 local Login = require("ui.modals.login.Login")
@@ -43,6 +44,7 @@ local UiActions = require("ui.UiActions")
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
 ---@field score_filters ui.modals.score_filters.ScoreFilters
+---@field score_systems ui.modals.score_systems.ScoreSystems
 ---@field location_editor ui.modals.locations.LocationEditor
 ---@field create_room ui.modals.lobby.CreateRoom
 ---@field login ui.modals.login.Login
@@ -107,7 +109,10 @@ function ModalManager:new(ui, popup_container)
 	ui.api.charts:on("selection_changed", function() self.input:receive() end)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization,
-		function() self:showModal(self.column_order) end))
+		function() self:showModal(self.column_order) end,
+		function() self:showModal(self.score_systems) end))
+	self.score_systems = self:addModal(ScoreSystems(ui.api.scores, ui.api.library,
+		function() self:showModal(self.modifiers) end, localization))
 	self.column_order = self:addModal(ColumnOrder(ui.api.play,
 		function() self:showModal(self.modifiers) end, localization))
 	self.rescore = self:addModal(Rescore(ui.api.result,

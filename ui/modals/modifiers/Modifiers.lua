@@ -22,6 +22,7 @@ local Slider = require("ui.views.form.Slider")
 ---@field form_selection ui.views.form.FormSelection
 ---@field background gui.NineSliceUsage
 ---@field on_edit_columns fun()
+---@field on_edit_score_systems fun()
 ---@field private form_invalidated boolean
 local Modifiers = ModalView + {}
 
@@ -36,11 +37,13 @@ local FORM_HEIGHT = MODAL_HEIGHT - FORM_Y - 92
 ---@param on_close fun()
 ---@param localization ui.localization.Localization
 ---@param on_edit_columns fun() Opens the column order modal.
-function Modifiers:new(play, on_close, localization, on_edit_columns)
+---@param on_edit_score_systems fun() Opens the score systems modal.
+function Modifiers:new(play, on_close, localization, on_edit_columns, on_edit_score_systems)
 	ModalView.new(self)
 	self.localization = localization
 	self.play = play
 	self.on_edit_columns = on_edit_columns
+	self.on_edit_score_systems = on_edit_score_systems
 	self.form_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -164,6 +167,10 @@ function Modifiers:rebuildForm()
 			},
 		}))
 	end
+	self.form:add(ButtonRow({
+		label = self.localization:get("song_select.score_systems_title"),
+		buttons = {{text = self.localization:get("song_select.score_systems_edit"), on_click = self.on_edit_score_systems}},
+	}))
 	self.form:fitContent()
 
 	if selected_index then
