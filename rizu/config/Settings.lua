@@ -33,8 +33,7 @@ local keys = {
 		osu_cursor_scale = "gameplay.osu.cursor_scale",
 		hp_shift = "gameplay.hp.shift",
 		hp_notes = "gameplay.hp.notes",
-		bga_video = "gameplay.bga.video",
-		bga_image = "gameplay.bga.image",
+		bga = "gameplay.bga.enabled",
 		analog_scratch_act_w = "gameplay.analog_scratch.act_w",
 		analog_scratch_deact_w = "gameplay.analog_scratch.deact_w",
 		analog_scratch_act_period = "gameplay.analog_scratch.act_period",
@@ -227,8 +226,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultStringMap(g.skins, {})
 	config:setDefaultBoolean(g.hp_shift, false) -- Not sure if it works
 	config:setDefaultNumber(g.hp_notes, 20, 0, 100, 1) -- Not sure if it works
-	config:setDefaultBoolean(g.bga_video, false)
-	config:setDefaultBoolean(g.bga_image, false)
+	config:setDefaultBoolean(g.bga, true)
 	config:setDefaultNumber(g.analog_scratch_act_w, 1 / 3, 0, 2, 1 / 180)
 	config:setDefaultNumber(g.analog_scratch_deact_w, 1 / 9, 0, 2, 1 / 180)
 	config:setDefaultNumber(g.analog_scratch_act_period, 0.1, 0, 1, 0.001)

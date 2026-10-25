@@ -44,7 +44,9 @@ function RhythmEngineLoader:load(rhythm_engine)
 		secondary = settings:getChoice(keys.audio.mode_secondary),
 	})
 	rhythm_engine:loadAudio(self.resources)
-	rhythm_engine:loadVisuals(self.resources, self.resource_paths)
+	if settings:getBoolean(keys.gameplay.bga) then
+		rhythm_engine:loadVisuals(self.resources, self.resource_paths)
+	end
 
 	rhythm_engine:setRate(replayBase.rate)
 	Gamemodes[chartmeta.mode]:configureEngine(rhythm_engine, replayBase, settings)

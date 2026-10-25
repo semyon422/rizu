@@ -69,15 +69,10 @@ function Gameplay:new(settings, ui_config, localization, form, popup_container)
 					keywords = {"gameplay", "audio", "skin", "hit", "sound", "hitsound", "keysound"},
 					tip = localization:get("settings.skin_sounds_tip"),
 				}),
-				ControlFactory.boolean(settings, keys.bga_image, {
-					name = localization:get("settings.background_images"),
-					keywords = {"gameplay", "background", "animation", "bga", "image"},
-					tip = localization:get("settings.background_images_tip"),
-				}),
-				ControlFactory.boolean(settings, keys.bga_video, {
-					name = localization:get("settings.background_videos"),
-					keywords = {"gameplay", "background", "animation", "bga", "video"},
-					tip = localization:get("settings.background_videos_tip"),
+				ControlFactory.boolean(settings, keys.bga, {
+					name = localization:get("settings.background_animations"),
+					keywords = {"gameplay", "background", "animation", "bga", "image", "video"},
+					tip = localization:get("settings.background_animations_tip"),
 				}),
 				ControlFactory.number(settings, keys.osu_cursor_scale, {
 					name = localization:get("settings.osu_cursor_scale"),
