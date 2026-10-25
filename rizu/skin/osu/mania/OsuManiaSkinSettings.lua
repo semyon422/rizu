@@ -16,7 +16,7 @@ local DEFAULT_HIT_POSITION = 402
 ---@field column_widths number[]
 ---@field column_spacings number[]
 ---@field column_lines number[]
----@field column_start number
+---@field skin_column_start number Column start declared by the skin ini (ColumnStart)
 ---@field column_right number
 ---@field skin_hit_position number Hit position declared by the skin ini (HitPosition)
 ---@field skin_upside_down boolean Direction declared by the skin ini (UpsideDown)
@@ -267,7 +267,7 @@ function OsuManiaSkinSettings.read(skin_ini, base_inputs, input_mode)
 	for index, line_width in ipairs(settings.column_lines) do
 		if line_width > 0 and line_width < 2 then settings.column_lines[index] = 2 end
 	end
-	settings.column_start = get_number(section, "ColumnStart", DEFAULT_COLUMN_START)
+	settings.skin_column_start = get_number(section, "ColumnStart", DEFAULT_COLUMN_START)
 	settings.column_right = get_number(section, "ColumnRight", DEFAULT_COLUMN_RIGHT)
 	settings.skin_hit_position = math.max(240, math.min(480, get_number(section, "HitPosition", DEFAULT_HIT_POSITION)))
 	settings.special_style = math.max(0, math.min(2, math.floor(get_number(section, "SpecialStyle", 0))))

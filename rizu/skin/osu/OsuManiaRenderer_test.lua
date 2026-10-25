@@ -645,6 +645,50 @@ function test.bga_brightness_is_config_backed_and_applies_to_the_view(t)
 	renderer:unload()
 end
 
+function test.column_start_override_shifts_the_conveyor(t)
+	local skin = {path = "skins/column-start", files = {}, skin_ini = {Mania = {{Keys = "4", ColumnStart = "100"}}}}
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), skin, "4key", config)
+	t:eq(renderer:getColumnStart(), 100)
+	t:eq((renderer:getConveyorRect(640, 480)), 100)
+
+	renderer:setColumnStart(250)
+	t:eq(config:get("mania", "4key", "column_start"), 250)
+	t:eq((renderer:getConveyorRect(640, 480)), 250)
+	renderer:layoutLanes()
+	t:eq(renderer.lane_xs[1], 250 + 15)
+
+	renderer:setColumnStart(-5)
+	t:eq(renderer:getColumnStart(), 0)
+	renderer:setColumnStart(300)
+	renderer:loadSkinSettings(skin)
+	t:eq(renderer.column_start, 300)
+	renderer:unload()
+end
+
+function test.column_scale_scales_columns_and_notes(t)
+	local config = SkinConfig()
+	local renderer = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	local _, _, base_scale, full_width = renderer:getPlayfieldLayout()
+	local note_width, note_height = renderer:getNoteDimensions(1, {getDimensions = function() return 30, 10 end})
+
+	renderer:setColumnScale(1.5)
+	t:eq(config:get("mania", "4key", "column.scale"), 1.5)
+	t:eq(select(3, renderer:getPlayfieldLayout()), base_scale * 1.5)
+	local _, _, conveyor_width = renderer:getConveyorRect(640, 480)
+	t:eq(conveyor_width, full_width * base_scale * 1.5)
+	local width, height = renderer:getNoteDimensions(1, {getDimensions = function() return 30, 10 end})
+	t:eq(width, note_width * 1.5)
+	t:eq(height, note_height * 1.5)
+
+	renderer:setColumnScale(10)
+	t:eq(renderer:getColumnScale(), 2)
+	local reloaded = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
+	t:eq(reloaded.column_scale, 2)
+	reloaded:unload()
+	renderer:unload()
+end
+
 function test.hit_position_prefers_config_override_and_clamps(t)
 	local skin = {
 		path = "skins/hit-position",

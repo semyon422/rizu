@@ -25,6 +25,7 @@ local DEFAULT_COLUMN_WIDTH = 30
 local DEFAULT_HIT_METER_MODE = 1
 local DEFAULT_HIT_METER_Y = -4
 local DEFAULT_BGA_BRIGHTNESS = 0.15
+local MIN_COLUMN_SCALE, MAX_COLUMN_SCALE = 0.5, 2
 local NOTE_SCROLL_SPEED = FIELD_HEIGHT
 local EMPTY_FRAMES = {}
 
@@ -65,6 +66,8 @@ local EMPTY_FRAMES = {}
 ---@field disable_stage_lightings boolean
 ---@field disable_mines boolean
 ---@field upside_down boolean
+---@field column_start number
+---@field column_scale number Player multiplier of the column widths, spacings and note sizes
 ---@field engine_input_map {[chart.Column]: integer}
 ---@field field_renderer rizu.skin.osu.mania.OsuManiaFieldRenderer
 ---@field key_renderer rizu.skin.osu.mania.OsuManiaKeyRenderer
@@ -135,6 +138,8 @@ function OsuManiaRenderer:loadSkinSettings(skin)
 	self.disable_hit_lightings = self:getDisableHitLightings()
 	self.disable_stage_lightings = self:getDisableStageLightings()
 	self.disable_mines = self:getDisableMines()
+	self.column_start = self:getColumnStart()
+	self.column_scale = self:getColumnScale()
 	self.lighting_renderer:reset()
 	self.skin_colors = {}
 	self.column_frames = {}
@@ -219,7 +224,7 @@ function OsuManiaRenderer:getPlayfieldLayout()
 	local left = math.max(0, math.min(self.column_start, FIELD_WIDTH - self.column_right))
 	local right = math.max(0, math.min(self.column_right, FIELD_WIDTH - left))
 	local available_width = math.max(0, FIELD_WIDTH - left - right)
-	local scale = full_width > available_width and available_width / full_width or 1
+	local scale = (full_width > available_width and available_width / full_width or 1) * self.column_scale
 	return left, self.column_widths, scale, full_width
 end
 
@@ -400,6 +405,43 @@ function OsuManiaRenderer:setBgaBrightness(value)
 	self.bga_view.brightness = value
 end
 
+---Effective column start: the config override when set, otherwise the skin's ColumnStart value.
+---@return number
+function OsuManiaRenderer:getColumnStart()
+	local override = self.config:get("mania", self.input_mode, "column_start")
+	if type(override) == "number" and override == override then
+		return math.max(0, math.min(FIELD_WIDTH, override))
+	end
+	return self.skin_column_start
+end
+
+---@param value number
+function OsuManiaRenderer:setColumnStart(value)
+	assert(type(value) == "number" and value == value, "column start must be a number")
+	self.column_start = math.max(0, math.min(FIELD_WIDTH, value))
+	self.config:set("mania", self.input_mode, "column_start", self.column_start)
+end
+
+---@return number
+function OsuManiaRenderer:getColumnScale()
+	local value = tonumber(self.config:get("mania", self.input_mode, "column.scale"))
+	if not value or value ~= value then return 1 end
+	return math.max(MIN_COLUMN_SCALE, math.min(MAX_COLUMN_SCALE, value))
+end
+
+---@param value number
+function OsuManiaRenderer:setColumnScale(value)
+	assert(type(value) == "number" and value == value, "column scale must be a number")
+	value = math.max(MIN_COLUMN_SCALE, math.min(MAX_COLUMN_SCALE, value))
+	self.config:set("mania", self.input_mode, "column.scale", value)
+	self.column_scale = value
+	local _, _, width_scale = self:getPlayfieldLayout()
+	self.playfield_width_scale = width_scale
+	-- Lightings bake their widths at load.
+	self.lighting_renderer:reset()
+	self.lighting_renderer:load(self)
+end
+
 ---@param name "Score"|"Combo"
 ---@return string prefix
 ---@return number overlap
@@ -488,6 +530,13 @@ function OsuManiaRenderer:getProperties()
 		{key = "hit_position", label = "Hit position", min = 240, max = 480, step = 1,
 			get = function() return self:getHitPosition() end,
 			set = function(value) self:setHitPosition(value) end},
+		{key = "column_start", label = "Column start", min = 0, max = FIELD_WIDTH, step = 1,
+			get = function() return self:getColumnStart() end,
+			set = function(value) self:setColumnStart(value) end},
+		{key = "column.scale", label = "Column scale", min = MIN_COLUMN_SCALE, max = MAX_COLUMN_SCALE, step = 0.01,
+			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
+			get = function() return self:getColumnScale() end,
+			set = function(value) self:setColumnScale(value) end},
 		{key = "bga.brightness", label = "BGA brightness", min = 0, max = 1, step = 0.01,
 			value_format = function(value) return ("%d%%"):format(math.floor(value * 100 + 0.5)) end,
 			get = function() return self:getBgaBrightness() end,
