@@ -76,7 +76,9 @@ function ScoreList:unload()
 	end
 end
 
-local function getColorFromScore(score) -- TODO: Should use Chartplay:getGrade() but idk where to get it
+---@param score number 0..10000
+---@return gui.Color
+function ScoreList.getColorFromScore(score) -- TODO: Should use Chartplay:getGrade() but idk where to get it
 	if score > 9800 then
 		return Colors.grade_x
 	elseif score > 8000 then
@@ -134,7 +136,7 @@ function ScoreList:reload()
 			accuracy = ("%0.02f%%"):format((v.score or 0) / 100),
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),
-			color = getColorFromScore(v.score or 0),
+			color = ScoreList.getColorFromScore(v.score or 0),
 			avatar_url = is_local and local_avatar or v.user_avatar,
 			score = v,
 		})

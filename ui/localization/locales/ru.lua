@@ -407,6 +407,8 @@ return {
 	["song_select.score_username"] = "#{index} {username}",
 	["song_select.score_source_local"] = "Локальные",
 	["song_select.score_source_online"] = "Онлайн",
+	["song_select.personal_best"] = "Личный рекорд:",
+	["song_select.no_personal_best"] = "Нет личного рекорда",
 
 	["gameplay.pause.title"] = "Пауза",
 	["gameplay.pause.continue"] = "Продолжить",

@@ -360,6 +360,8 @@ return {
 	["song_select.score_username"] = "#{index} {username}",
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "En línea",
+	["song_select.personal_best"] = "Mejor marca:",
+	["song_select.no_personal_best"] = "Sin mejor marca",
 
 	["gameplay.pause.title"] = "Pausa",
 	["gameplay.pause.continue"] = "Continuar",

@@ -59,7 +59,7 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@field msd_diff number
 ---@field user_diff number
 ---@field difficulty number? The column chosen in the settings.
----@field accuracy number? Best score of the chart, 0..1.
+---@field accuracy number? Best local accuracy of the chart. Seconds, normalscore: lower is better.
 ---@field miss_count integer? Misses of that score.
 ---@field lamp boolean? True for charts with a score.
 

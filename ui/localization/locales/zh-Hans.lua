@@ -427,6 +427,8 @@ return {
 	["song_select.score_username"] = "#{index} {username}",
 	["song_select.score_source_local"] = "本地",
 	["song_select.score_source_online"] = "在线",
+	["song_select.personal_best"] = "个人最佳：",
+	["song_select.no_personal_best"] = "暂无个人最佳",
 
 	["gameplay.skin_editor.no_properties"] = "此皮肤没有可编辑属性。",
 	["gameplay.skin_editor.receptor_y"] = "接收器 Y",

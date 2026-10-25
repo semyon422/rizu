@@ -423,6 +423,8 @@ return {
 	["song_select.score_username"] = "#{index} {username}",
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "Online",
+	["song_select.personal_best"] = "Personal best:",
+	["song_select.no_personal_best"] = "No personal best",
 
 	["gameplay.skin_editor.no_properties"] = "This skin has no editable properties.",
 	["gameplay.skin_editor.add"] = "Add",
