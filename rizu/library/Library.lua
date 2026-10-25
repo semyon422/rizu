@@ -392,6 +392,18 @@ function Library:getChartplaysForChartmetaAsync(chartmeta_key)
 	return self.worker:getChartplaysForChartmeta(chartmeta_key)
 end
 
+---Accuracies of chartplays in another system, see ChartplayHitsRepo:getAccuracies().
+---@param ids integer[]
+---@param timings integer
+---@param subtimings integer
+---@return {[integer]: number}
+function Library:getAccuraciesAsync(ids, timings, subtimings)
+	if self.is_sync or not self.worker then
+		return self.chartplayHitsRepo:getAccuracies(ids, timings, subtimings)
+	end
+	return self.worker:getAccuracies(ids, timings, subtimings)
+end
+
 function Library:update()
 	if self.tr then
 		self.tr:update()

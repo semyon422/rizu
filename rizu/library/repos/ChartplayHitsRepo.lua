@@ -1,6 +1,10 @@
 local class = require("class")
 local string_buffer = require("string.buffer")
 local zlib = require("zlib")
+local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local ScoreEngine = require("rizu.engine.ScoreEngine")
 
 ---What the score engine received in a play: enough to score it in any system without the replay.
 ---@class rizu.library.ChartplayHits
@@ -52,6 +56,28 @@ function ChartplayHitsRepo:getHits(chartplay_id)
 		inputmode = row.inputmode,
 		events = buffer:set(zlib.uncompress(row.events)):decode(),
 	}
+end
+
+---Scores chartplays again from their hits, about 2 ms each for 4000 notes: call it in the worker.
+---Takes scoring:encode() values, which pass between threads.
+---@param ids integer[]
+---@param timings integer
+---@param subtimings integer 0 for none.
+---@return {[integer]: number} accuracies By chartplay id, without the ones that have no hits.
+function ChartplayHitsRepo:getAccuracies(ids, timings, subtimings)
+	local scoring = Scoring(Timings.decode(timings), subtimings ~= 0 and Subtimings.decode(subtimings) or nil)
+	---@type {[integer]: number}
+	local accuracies = {}
+	for _, id in ipairs(ids) do
+		local hits = self:getHits(id)
+		if hits then
+			local score_engine = ScoreEngine()
+			score_engine:loadEvents(hits, hits.events)
+			local source = scoring:getAccuracySource(score_engine)
+			accuracies[id] = source and source:getAccuracy()
+		end
+	end
+	return accuracies
 end
 
 ---Chartplays whose hits of this version are stored, without reading the hits.

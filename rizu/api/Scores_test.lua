@@ -1,11 +1,6 @@
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Scores = require("rizu.api.Scores")
 local Settings = require("rizu.config.Settings")
-local Timings = require("sea.chart.Timings")
-local Subtimings = require("sea.chart.Subtimings")
-local Scoring = require("rizu.engine.scoring.Scoring")
-local FakeClient = require("sea.compute.FakeClient")
-local chart_samples = require("sea.chart.samples.Samples")
 
 local test = {}
 
@@ -26,10 +21,6 @@ local function createScores()
 		pullScore = function() end,
 		chartplay = nil,
 		settings = Settings.createConfig(FakeFilesystem()),
-		library = {chartplayHitsRepo = {
-			hits = {}, ---@type {[integer]: rizu.library.ChartplayHits}
-			getHits = function(self, chartplay_id) return self.hits[chartplay_id] end,
-		}},
 	}
 	return Scores(selector --[[@as any]], {} --[[@as any]]), selector, listener
 end
@@ -83,7 +74,7 @@ function test.normalscore_until_a_system_is_picked(t)
 end
 
 ---@param t testing.T
-function test.picked_system_rescores_the_stored_hits(t)
+function test.picked_system_shows_the_rescored_accuracy(t)
 	local scores, selector = createScores()
 	local settings = selector.settings
 	settings:setBoolean(Settings.keys.replay_base.auto_timings, false)
@@ -91,23 +82,8 @@ function test.picked_system_rescores_the_stored_hits(t)
 	settings:setNumber(Settings.keys.timings.osu_score_version, 2)
 	t:eq(assert(scores:getAccuracySystem()):getName(), "osu!mania V2 OD7")
 
-	local sample = chart_samples[1]
-	local client = FakeClient(0.02, 100)
-	client:play(sample.name, sample.data, 1, 100, 0)
-	local score_engine = assert(client.computeContext.score_engine)
-	selector.library.chartplayHitsRepo.hits[1] = {
-		notes_count = score_engine.chartdiff.notes_count,
-		inputmode = score_engine.chartdiff.inputmode,
-		events = score_engine.events,
-	}
-
-	local scoring = Scoring(Timings("osuod", 7), Subtimings("scorev", 2))
-	local expected = assert(scoring:getAccuracySource(score_engine)):getAccuracy()
-	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), scoring:formatAccuracy(expected))
-	t:eq(scores:getAccuracy({id = 2} --[[@as any]]), nil, "no hits")
-
-	selector.source = "online"
-	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), nil)
+	t:eq(scores:getAccuracy({id = 1, accuracy = 0.02, rescored_accuracy = 0.9512} --[[@as any]]), "95.12%")
+	t:eq(scores:getAccuracy({id = 2, accuracy = 0.02} --[[@as any]]), nil, "no hits, or online")
 end
 
 return test

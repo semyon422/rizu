@@ -1,6 +1,5 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
-local ScoreEngine = require("rizu.engine.ScoreEngine")
 local Scoring = require("rizu.engine.scoring.Scoring")
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
 local Timings = require("sea.chart.Timings")
@@ -33,6 +32,7 @@ The list follows the selected chart by itself.
 ---@field created_at integer Unix time.
 ---@field user_name string? Online scores only.
 ---@field user_avatar string? Online scores only. A url for `ui.api.online:getAvatar()`.
+---@field rescored_accuracy number? Internal, use `rizu.api.Scores:getAccuracy()`.
 
 ---@alias rizu.api.Scores.Source
 ---| "local" # Scores set on this computer.
@@ -101,7 +101,7 @@ function Scores:getAccuracySystem()
 end
 
 ---The accuracy of a score in getAccuracySystem(), as text such as "98.50%". Local scores of
----another system are scored again from their stored hits.
+---another system were scored again from their stored hits when the list was loaded.
 ---@param score rizu.api.Score
 ---@return string? accuracy nil when it cannot be scored: online scores, and local ones without hits.
 function Scores:getAccuracy(score)
@@ -109,18 +109,8 @@ function Scores:getAccuracy(score)
 	if scoring:isNormalscore() then
 		return scoring:formatAccuracy(score.accuracy)
 	end
-	-- Online scores have the server's ids.
-	if self:getSource() ~= "local" then
-		return
-	end
-	local hits = self.selector.library.chartplayHitsRepo:getHits(score.id)
-	if not hits then
-		return
-	end
-	local score_engine = ScoreEngine()
-	score_engine:loadEvents(hits, hits.events)
-	local source = scoring:getAccuracySource(score_engine)
-	return source and scoring:formatAccuracy(source:getAccuracy())
+	local accuracy = score.rescored_accuracy
+	return accuracy and scoring:formatAccuracy(accuracy)
 end
 
 ---Replays the selected score in the background so the result screen can show it.

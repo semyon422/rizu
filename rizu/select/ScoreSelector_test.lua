@@ -239,6 +239,39 @@ function test.score_store_clears_incomplete_chartdiff_key(t)
 end
 
 ---@param t testing.T
+function test.score_store_rescores_local_scores_in_the_picked_system(t)
+	local settings = Settings.createConfig(FakeFilesystem())
+	---@type {[1]: integer[], [2]: integer, [3]: integer}[]
+	local calls = {}
+	local provider = {
+		getChartplaysForChartmeta = function()
+			return {{id = 1, accuracy = 0.02}, {id = 2, accuracy = 0.03}}
+		end,
+		getAccuracies = function(_, ids, timings, subtimings)
+			table.insert(calls, {ids, timings, subtimings})
+			return {[2] = 0.95}
+		end,
+	}
+	local store = ScoreStore(createConfigModel("chartmetas"), settings, provider, provider)
+	local chartview = {hash = "h", index = 1}
+
+	-- Auto timings: normalscore, nothing to rescore.
+	store:updateItemsAsync(chartview, "chartmeta", 1)
+	t:eq(#calls, 0)
+
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, false)
+	store:updateItemsAsync(chartview, "chartmeta", 2)
+	t:tdeq(calls, {{{1, 2}, 2180, 1101}})
+	t:eq(store:get(1).rescored_accuracy, nil)
+	t:eq(store:get(2).rescored_accuracy, 0.95)
+
+	-- The server has no hits.
+	settings:setChoice(Settings.keys.select.score_source, "online")
+	store:updateItemsAsync(chartview, "chartmeta", 3)
+	t:eq(#calls, 1)
+end
+
+---@param t testing.T
 function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart(t)
 	local time = {0}
 	delay.set_timer(time)

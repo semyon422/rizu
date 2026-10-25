@@ -3,6 +3,7 @@ local erfunc = require("chart.scoring.erfunc")
 local class = require("class")
 local Observable = require("Observable")
 local Settings = require("rizu.config.Settings")
+local GameplayTimings = require("rizu.gameplay.GameplayTimings")
 
 ---@class rizu.select.stores.ScoreStore
 ---@operator call: rizu.select.stores.ScoreStore
@@ -136,6 +137,21 @@ function ScoreStore:updateItemsAsync(chartview, score_scope, request_id)
 		chartplays = provider:getChartplaysForChartmeta(chartview)
 	else
 		error("unknown score scope: " .. tostring(score_scope))
+	end
+
+	-- Local scores in the system picked in the play config, see rizu.api.Scores:getAccuracy().
+	local scoring = score_source == "local" and GameplayTimings.getPicked(self.settings)
+	if scoring and not scoring:isNormalscore() and chartplays[1] then
+		---@type integer[]
+		local ids = {}
+		for i, chartplay in ipairs(chartplays) do
+			ids[i] = chartplay.id
+		end
+		local provider = self.localProvider --[[@as rizu.select.providers.LocalScoreProvider]]
+		local accuracies = provider:getAccuracies(ids, scoring:encode())
+		for _, chartplay in ipairs(chartplays) do
+			chartplay.rescored_accuracy = accuracies[chartplay.id]
+		end
 	end
 
 	if request_id ~= self.requestId then

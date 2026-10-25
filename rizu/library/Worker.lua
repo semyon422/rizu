@@ -3,6 +3,7 @@ local Processor = require("rizu.library.Processor")
 local Database = require("rizu.library.Database")
 local ChartviewsRepo = require("rizu.library.repos.ChartviewsRepo")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
+local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 
 ---@class rizu.library.Worker
@@ -143,6 +144,14 @@ end
 function Worker:getChartplaysForChartmeta(chartmeta_key)
 	local repo = ChartsRepo(self.db.models)
 	return repo:getChartplaysForChartmeta(chartmeta_key)
+end
+
+---@param ids integer[]
+---@param timings integer
+---@param subtimings integer
+---@return {[integer]: number}
+function Worker:getAccuracies(ids, timings, subtimings)
+	return ChartplayHitsRepo(self.db.models):getAccuracies(ids, timings, subtimings)
 end
 
 return Worker
