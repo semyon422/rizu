@@ -50,7 +50,7 @@ local full_tools = {
 		name = "set_play_option",
 		description = "Enable or disable a gameplay option.",
 		parameters = {
-			option = {type = "string", description = "Play option to change.", required = true, enum = {"auto_timings", "nearest", "tap_only", "const", "custom"}},
+			option = {type = "string", description = "Play option to change.", required = true, enum = {"tap_only", "const", "custom"}},
 			enabled = {type = "boolean", description = "Whether the option should be enabled.", required = true},
 		},
 	},

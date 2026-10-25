@@ -84,11 +84,8 @@ end
 ---@param t testing.T
 function test.auto_depends_on_the_chart_only(t)
 	local scores, selector = createScores()
-	local settings = selector.settings
-	settings:setNumber(Settings.keys.timings.osu_score_version, 2)
-	settings:setNumber(Settings.keys.timings.etternaj, 5)
 
-	-- The chart's OD with score V1, whatever the player picked.
+	-- The chart's OD with score V1.
 	local osu = assert(scores:getAccuracySystem(chart("osu", Timings("osuod", 8))))
 	t:eq(osu:getName(), "osu!mania V1 OD8")
 	-- StepMania files have no timings: J4.

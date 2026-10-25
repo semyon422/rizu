@@ -6,12 +6,9 @@ local Input = require("rizu.api.Input")
 local Skins = require("rizu.api.Skins")
 local OnlineClient = require("rizu.online.OnlineClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
-local TimingsModel = require("sphere.models.TimingsModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
 local GameApi = require("rizu.api.GameApi")
 local ReplayBase = require("sea.replays.ReplayBase")
-local Settings = require("rizu.config.Settings")
-local FakeFilesystem = require("fs.FakeFilesystem")
 
 local test = {}
 
@@ -68,7 +65,6 @@ end
 ---@return fun(): integer changes How many times the game was told the mods changed.
 local function createPlay()
 	local replay_base = ReplayBase()
-	local settings = Settings.createConfig(FakeFilesystem())
 	local select_model = ModifierSelectModel(replay_base)
 	local changed = 0
 	local change = select_model.change
@@ -80,10 +76,8 @@ local function createPlay()
 		replayBase = replay_base,
 		timeRateModel = time_rate_model,
 		modifierSelectModel = select_model,
-		timingsModel = TimingsModel(replay_base, settings, select_model),
 		gameplayInteractor = {replay_stores = {}},
 		chartSelector = {},
-		settings = settings,
 	}
 	return Play(game --[[@as any]]), game, function() return changed end
 end
@@ -110,7 +104,7 @@ function test.play_rate(t)
 end
 
 ---@param t testing.T
-function test.play_mods_and_judging(t)
+function test.play_mods(t)
 	local play, game, changes = createPlay()
 	local events = 0
 	play:on("mods_changed", function() events = events + 1 end)
@@ -122,30 +116,6 @@ function test.play_mods_and_judging(t)
 	t:eq(play:getModCount(), 2)
 	t:eq(events, 2)
 	t:eq(changes(), 2)
-
-	t:eq(play:getToggle("auto_timings"), true)
-	play:setToggle("auto_timings", false)
-	t:eq(play:getToggle("auto_timings"), false)
-	t:eq(play:getTimingSystem(), "sphere")
-	t:assert(game.replayBase.timing_values)
-
-	play:setTimingSystem("osuod")
-	play:setTimingValue(9.699999)
-	t:eq(play:getTimingSystem(), "osuod")
-	t:eq(play:getTimingValue(), 9.7)
-	t:eq(play:getOsuScoreVersion(), 1)
-	play:setOsuScoreVersion(2)
-	t:eq(play:getOsuScoreVersion(), 2)
-	t:eq(play:getTimingValue(), 9.7)
-	t:eq(game.replayBase.subtimings.data, 2)
-
-	play:setTimingSystem("etternaj")
-	play:setTimingValue(7)
-	t:eq(game.replayBase.subtimings, nil)
-	play:setTimingSystem("osuod")
-	t:eq(play:getTimingValue(), 9.7, "a system comes back with its last value")
-	play:setTimingSystem("etternaj")
-	t:eq(play:getTimingValue(), 7)
 end
 
 ---@param t testing.T

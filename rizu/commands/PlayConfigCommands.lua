@@ -1,9 +1,4 @@
-local Settings = require("rizu.config.Settings")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
-local Subtimings = require("sea.chart.Subtimings")
-local Timings = require("sea.chart.Timings")
-local Subtimings = require("sea.chart.Subtimings")
-local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 ---@return rizu.command.Fuzzy.Candidate[] choices
 local function getBooleanChoices()
@@ -16,33 +11,6 @@ end
 ---@param game sphere.GameController
 local function updateReplayBase(game)
 	game.multiplayerModel.client:updateReplayBase()
-end
-
----@param game sphere.GameController
----@param timings sea.Timings
----@param subtimings sea.Subtimings?
-local function applyTimingValues(game, timings, subtimings)
-	game.replayBase.timings = timings
-	game.replayBase.subtimings = subtimings
-
-	if timings.name ~= "arbitrary" then
-		game.replayBase.timing_values = assert(TimingValuesFactory:get(timings, subtimings))
-	end
-
-	updateReplayBase(game)
-end
-
----@return rizu.command.Fuzzy.Candidate[] choices
-local function getTimingChoices()
-	---@type rizu.command.Fuzzy.Candidate[]
-	local choices = {}
-	for _, name in ipairs(Timings.names) do
-		table.insert(choices, {
-			title = name,
-			value = name,
-		})
-	end
-	return choices
 end
 
 ---@param timeRateModel sphere.TimeRateModel
@@ -106,23 +74,6 @@ return function(game)
 			end,
 		},
 		{
-			id = "play_config.set_auto_timings",
-			title = "Play Config: Set Auto Timings",
-			description = "Enables or disables automatic timing selection",
-			arguments = {
-				{
-					name = "enabled",
-					type = "boolean",
-					prompt = "Auto timings:",
-					choices = getBooleanChoices(),
-				},
-			},
-			callback = function(args)
-				game.settings:setBoolean(Settings.keys.replay_base.auto_timings, args.enabled)
-				updateReplayBase(game)
-			end,
-		},
-		{
 			id = "play_config.set_rate_type",
 			title = "Play Config: Set Rate Type",
 			description = "Changes the replay base rate type",
@@ -138,23 +89,6 @@ return function(game)
 			},
 			callback = function(args)
 				game.timeRateModel:setType(args.rate_type)
-				updateReplayBase(game)
-			end,
-		},
-		{
-			id = "play_config.set_nearest",
-			title = "Play Config: Set Nearest",
-			description = "Enables or disables nearest-note input behavior",
-			arguments = {
-				{
-					name = "enabled",
-					type = "boolean",
-					prompt = "Nearest:",
-					choices = getBooleanChoices(),
-				},
-			},
-			callback = function(args)
-				game.replayBase.nearest = args.enabled
 				updateReplayBase(game)
 			end,
 		},
@@ -207,68 +141,6 @@ return function(game)
 			callback = function(args)
 				game.replayBase.custom = args.enabled
 				updateReplayBase(game)
-			end,
-		},
-		{
-			id = "play_config.set_timings",
-			title = "Timings: Set",
-			description = "Selects scoring timings",
-			arguments = {
-				{
-					name = "timings",
-					type = "string",
-					prompt = "Select timings:",
-					choices = getTimingChoices(),
-				},
-				{
-					name = "data",
-					type = "number",
-					prompt = "Enter timing data:",
-					default = 0,
-				},
-			},
-			---@param args {timings: string, data: number}
-			callback = function(args)
-				local timings = Timings(args.timings, args.data)
-				local subtimings ---@type sea.Subtimings?
-				local timing_key = Settings.keys.timings[args.timings]
-				if timing_key then
-					game.settings:setNumber(timing_key, args.data)
-				end
-
-				-- TODO: I don't like that we do it here.
-				if args.timings == "osuod" then
-					subtimings = Subtimings("scorev", 1)
-				end
-
-				if subtimings then
-					game.settings:setNumber(Settings.keys.timings.osu_score_version, subtimings.data)
-				end
-
-				applyTimingValues(game, timings, subtimings)
-			end,
-		},
-		{
-			id = "play_config.set_osu_scorev",
-			title = "Timings: Set osu! Score Version",
-			description = "Sets osu!mania subtiming score version",
-			arguments = {
-				{
-					name = "version",
-					type = "number",
-					prompt = "Score version:",
-					choices = {
-						{title = "Score v1", value = 1},
-						{title = "Score v2", value = 2},
-					},
-				},
-			},
-			callback = function(args)
-				local replayBase = game.replayBase
-				local timings = replayBase.timings or Timings("osuod", game.settings:getNumber(Settings.keys.timings.osuod))
-				local subtimings = Subtimings("scorev", args.version)
-				game.settings:setNumber(Settings.keys.timings.osu_score_version, args.version)
-				applyTimingValues(game, timings, subtimings)
 			end,
 		},
 		{

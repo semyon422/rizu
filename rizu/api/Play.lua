@@ -1,13 +1,12 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
-local Settings = require("rizu.config.Settings")
-local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
 
 --[[
-How the next play will go: the music speed, the mods, the mutators, how hits are judged, and starting it.
+How the next play will go: the music speed, the mods, the mutators, and starting it.
+How hits are judged is the selected score system, see `rizu.api.Scores:setSelectedAccuracySystem()`.
 
 	local play = ui.api.play
 	play:changeRate(1)
@@ -22,16 +21,14 @@ How the next play will go: the music speed, the mods, the mutators, how hits are
 
 ---@alias rizu.api.Play.Event
 ---| "rate_changed" # The music speed or the way it is counted changed. No arguments.
----| "mods_changed" # A toggle, a mutator or the judging changed. No arguments.
+---| "mods_changed" # A toggle or a mutator changed. No arguments.
 
 ---@alias rizu.api.Play.Toggle
 ---| "constant_scroll" # Notes fall at one speed, ignoring the chart's speed changes. Counts as a mod.
 ---| "taps_only" # Long notes become taps. Counts as a mod.
----| "nearest_input" # A press hits the nearest note instead of the earliest one.
----| "auto_timings" # Each chart is judged the way its own format does. Ignored for now: every play is.
 
----How hits are judged when "auto_timings" is off. Ignored for now: every play uses auto timings.
----Three of them take a value, see setTimingValue().
+---Score systems by name, see `rizu.api.Scores:addAccuracySystem()` and `rizu.api.Result:rescore()`.
+---Three of them take a value.
 ---@alias rizu.api.Play.TimingSystem
 ---| "sphere" # Rizu's own.
 ---| "osuod" # osu!mania. Value: overall difficulty, 0..10 in steps of 0.1.
@@ -124,28 +121,18 @@ local function modsChanged(self)
 	self:emit("mods_changed")
 end
 
-local toggle_fields = {constant_scroll = "const", taps_only = "tap_only", nearest_input = "nearest"}
+local toggle_fields = {constant_scroll = "const", taps_only = "tap_only"}
 
 ---@param toggle rizu.api.Play.Toggle
 ---@return boolean
 function Play:getToggle(toggle)
-	if toggle == "auto_timings" then
-		return self.game.settings:getBoolean(Settings.keys.replay_base.auto_timings)
-	end
 	return self.game.replayBase[toggle_fields[toggle]] and true or false
 end
 
 ---@param toggle rizu.api.Play.Toggle
 ---@param on boolean
 function Play:setToggle(toggle, on)
-	if toggle ~= "auto_timings" then
-		self.game.replayBase[toggle_fields[toggle]] = on
-		return modsChanged(self)
-	end
-	self.game.settings:setBoolean(Settings.keys.replay_base.auto_timings, on)
-	if not on then
-		self.game.timingsModel:set(self:getTimingSystem())
-	end
+	self.game.replayBase[toggle_fields[toggle]] = on
 	modsChanged(self)
 end
 
@@ -298,55 +285,6 @@ end
 function Play:setMutatorPosition(position)
 	local model = self.game.modifierSelectModel
 	model.modifierIndex = math.max(1, math.min(position, #model.replayBase.modifiers + 1))
-end
-
--- Judging. Used when "auto_timings" is off.
-
----@return rizu.api.Play.TimingSystem[]
-function Play:getTimingSystems() return TimingSystems.selectable --[[@as rizu.api.Play.TimingSystem[] ]] end
-
----@return rizu.api.Play.TimingSystem
-function Play:getTimingSystem()
-	local timings = self.game.replayBase.timings
-	return timings and TimingSystems.isSelectable(timings.name) and timings.name --[[@as rizu.api.Play.TimingSystem]] or "sphere"
-end
-
----Switches the system and brings back the value it was last used with.
----@param system rizu.api.Play.TimingSystem
-function Play:setTimingSystem(system)
-	self.game.timingsModel:set(system)
-	self:emit("mods_changed")
-end
-
----@return number value 0 for systems that take none.
-function Play:getTimingValue()
-	local system = self:getTimingSystem()
-	local timings = self.game.replayBase.timings
-	if timings and timings.name == system then
-		return timings.data
-	end
-	local key = Settings.keys.timings[system]
-	return key and self.game.settings:getNumber(key) or 0
-end
-
----@param value number See rizu.api.Play.TimingSystem for what each system takes.
-function Play:setTimingValue(value)
-	local subtimings = self.game.replayBase.subtimings
-	self.game.timingsModel:set(self:getTimingSystem(), value, subtimings and subtimings.data)
-	self:emit("mods_changed")
-end
-
----osu!mania's ScoreV1 or ScoreV2 hit windows. Only used by "osuod".
----@return 1|2
-function Play:getOsuScoreVersion()
-	local subtimings = self.game.replayBase.subtimings
-	return subtimings and subtimings.data or self.game.settings:getNumber(Settings.keys.timings.osu_score_version)
-end
-
----@param version 1|2
-function Play:setOsuScoreVersion(version)
-	self.game.timingsModel:set("osuod", self:getTimingValue(), version)
-	self:emit("mods_changed")
 end
 
 -- Starting

@@ -12,10 +12,7 @@ function FakePlay:new()
 	Events.new(self)
 	self.rate = 1
 	self.rate_type = "linear"
-	self.toggles = {constant_scroll = false, taps_only = false, nearest_input = false, auto_timings = true}
-	self.timing_system = "sphere"
-	self.timing_values = {osuod = 8, etternaj = 4, bmsrank = 3}
-	self.osu_score_version = 1
+	self.toggles = {constant_scroll = false, taps_only = false}
 	self.mutators = {} ---@type {name: string, value: integer?}[]
 	self.mutator_position = 1
 	self.input_mode = "7key"
@@ -137,28 +134,6 @@ function FakePlay:getMutatorPosition() return self.mutator_position end
 
 function FakePlay:setMutatorPosition(position)
 	self.mutator_position = math.max(1, math.min(position, #self.mutators + 1))
-end
-
-function FakePlay:getTimingSystems() return {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"} end
-function FakePlay:getTimingSystem() return self.timing_system end
-
-function FakePlay:setTimingSystem(system)
-	self.timing_system = system
-	self:emit("mods_changed")
-end
-
-function FakePlay:getTimingValue() return self.timing_values[self.timing_system] or 0 end
-
-function FakePlay:setTimingValue(value)
-	self.timing_values[self.timing_system] = value
-	self:emit("mods_changed")
-end
-
-function FakePlay:getOsuScoreVersion() return self.osu_score_version end
-
-function FakePlay:setOsuScoreVersion(version)
-	self.osu_score_version = version
-	self:emit("mods_changed")
 end
 
 function FakePlay:hasLocalReplays() return false end

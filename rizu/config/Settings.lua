@@ -86,20 +86,6 @@ local keys = {
 		-- A token of scores.stored_accuracies: the score system of the accuracies in the leaderboard.
 		accuracy_system = "select.accuracy_system",
 	},
-	timings = {
-		arbitrary = "timings.arbitrary",
-		sphere = "timings.sphere",
-		simple = "timings.simple",
-		osuod = "timings.osuod",
-		etternaj = "timings.etternaj",
-		quaver = "timings.quaver",
-		bmsrank = "timings.bmsrank",
-		iidx = "timings.iidx",
-		osu_score_version = "timings.osu_score_version",
-	},
-	replay_base = {
-		auto_timings = "replay_base.auto_timings",
-	},
 	scores = {
 		-- See rizu.engine.ScoreEngine.StoredAccuracies for the format.
 		stored_accuracies = "scores.stored_accuracies",
@@ -276,21 +262,6 @@ function Settings.createConfig(filesystem)
 	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
 	config:setDefaultString(s.accuracy_system, "auto")
 
-	local timing_defaults = {
-		arbitrary = 0,
-		sphere = 0,
-		simple = 0.160,
-		osuod = 10,
-		etternaj = 4,
-		quaver = 0,
-		bmsrank = 3,
-		iidx = 0,
-	}
-	for name, default in pairs(timing_defaults) do
-		config:setDefaultNumber(keys.timings[name], default, 0, 10, 0.01)
-	end
-	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
-	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
 	config:setDefaultString(keys.scores.stored_accuracies, "auto")
 	config:setDefaultString(keys.scores.accuracies_marker, "")
 
