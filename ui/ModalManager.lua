@@ -17,7 +17,6 @@ local HudElementPicker = require("ui.modals.hud_element_picker.HudElementPicker"
 local TexturePicker = require("ui.modals.texture_picker.TexturePicker")
 local Rescore = require("ui.modals.rescore.Rescore")
 local Filters = require("ui.modals.filters.Filters")
-local ScoreFilters = require("ui.modals.score_filters.ScoreFilters")
 local ScoreSystems = require("ui.modals.score_systems.ScoreSystems")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
@@ -43,7 +42,6 @@ local UiActions = require("ui.UiActions")
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
----@field score_filters ui.modals.score_filters.ScoreFilters
 ---@field score_systems ui.modals.score_systems.ScoreSystems
 ---@field location_editor ui.modals.locations.LocationEditor
 ---@field create_room ui.modals.lobby.CreateRoom
@@ -110,7 +108,8 @@ function ModalManager:new(ui, popup_container)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization,
 		function() self:showModal(self.column_order) end,
-		function() self:showModal(self.score_systems) end))
+		function() self:showModal(self.score_systems) end,
+		ui.api.scores, popup_container))
 	self.score_systems = self:addModal(ScoreSystems(ui.api.scores, ui.api.library,
 		function() self:showModal(self.modifiers) end, localization))
 	self.column_order = self:addModal(ColumnOrder(ui.api.play,
@@ -132,9 +131,6 @@ function ModalManager:new(ui, popup_container)
 		self:hideModal(self.collection_selector)
 	end, localization))
 	self.filters = self:addModal(Filters(ui.api.charts, popup_container, localization))
-	self.score_filters = self:addModal(ScoreFilters(ui.api.library, ui.api.scores, popup_container, function()
-		self:hideModal(self.score_filters)
-	end, localization))
 	self.location_editor = self:addModal(LocationEditor(ui, function()
 		if ui.locations then ui.locations:refresh() end
 	end))
@@ -410,11 +406,6 @@ end
 ---@return boolean detached
 function ModalManager:detachFilters()
 	return self:hideModal(self.filters)
-end
-
----@return boolean attached
-function ModalManager:attachScoreFilters()
-	return self:showModal(self.score_filters)
 end
 
 return ModalManager

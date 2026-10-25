@@ -406,7 +406,6 @@ return {
 	["song_select.score_source_local"] = "Локальные",
 	["song_select.score_source_online"] = "Онлайн",
 	["song_select.leaderboard"] = "Таблица лидеров",
-	["song_select.score_filters_title"] = "Фильтры таблицы лидеров",
 	["song_select.score_systems_title"] = "Системы скора",
 	["song_select.score_systems_question"] = "Вам точно нужна своя система скора?",
 	["song_select.score_systems_warning"] = "Скоры с измененной системой скора нельзя отправить в некоторые таблицы лидеров.",
@@ -415,10 +414,8 @@ return {
 	["song_select.score_systems_remove"] = "Убрать",
 	["song_select.score_systems_edit"] = "Изменить…",
 	["song_select.score_systems_recalculate_tip"] = "Добавленные системы применятся к старым скорам после пересчета.",
-	["song_select.accuracy_system"] = "Точность",
 	["song_select.accuracy_system_auto"] = "Тайминги самого чарта",
 	["song_select.recalculate_accuracies"] = "Пересчитать точности",
-	["song_select.recalculate_accuracies_tip"] = "Переигрывает все локальные скоры, чтобы сохранить точности для списка.",
 
 	["gameplay.pause.title"] = "Пауза",
 	["gameplay.pause.continue"] = "Продолжить",

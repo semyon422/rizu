@@ -359,7 +359,6 @@ return {
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "En línea",
 	["song_select.leaderboard"] = "Clasificación",
-	["song_select.score_filters_title"] = "Filtros de clasificación",
 	["song_select.score_systems_title"] = "Sistemas de puntuación",
 	["song_select.score_systems_question"] = "¿De verdad necesitas un sistema de puntuación personalizado?",
 	["song_select.score_systems_warning"] = "Las puntuaciones con sistemas personalizados no se pueden enviar a algunas clasificaciones.",
@@ -368,10 +367,8 @@ return {
 	["song_select.score_systems_remove"] = "Quitar",
 	["song_select.score_systems_edit"] = "Editar…",
 	["song_select.score_systems_recalculate_tip"] = "Los sistemas añadidos se aplican a puntuaciones anteriores tras recalcular.",
-	["song_select.accuracy_system"] = "Precisión",
 	["song_select.accuracy_system_auto"] = "Timings propios del chart",
 	["song_select.recalculate_accuracies"] = "Recalcular precisiones",
-	["song_select.recalculate_accuracies_tip"] = "Vuelve a jugar cada puntuación local para guardar las precisiones de la lista.",
 
 	["gameplay.pause.title"] = "Pausa",
 	["gameplay.pause.continue"] = "Continuar",

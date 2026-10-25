@@ -60,4 +60,22 @@ function test.adds_removes_and_recalculates(t)
 	t:eq(recalculated, 1)
 end
 
+---@param t testing.T
+function test.refreshes_scores_when_recalculating_ends(t)
+	if not love.window.isOpen() then love.window.setMode(800, 600) end
+	Resources.load()
+	local library = FakeLibrary()
+	local scores = FakeScores()
+	local refreshed = 0
+	scores.refresh = function() refreshed = refreshed + 1 end
+	ScoreSystems(scores, library, function() end, Localization())
+
+	library:emit("cache_status_changed", {stage = "accuracies", current = 1, total = 2})
+	t:eq(refreshed, 0)
+	library:emit("cache_status_changed", {stage = "idle", current = 0, total = 0})
+	t:eq(refreshed, 1)
+	library:emit("cache_status_changed", {stage = "idle", current = 0, total = 0})
+	t:eq(refreshed, 1)
+end
+
 return test

@@ -426,7 +426,6 @@ return {
 	["song_select.score_source_local"] = "本地",
 	["song_select.score_source_online"] = "在线",
 	["song_select.leaderboard"] = "排行榜",
-	["song_select.score_filters_title"] = "排行榜筛选",
 	["song_select.score_systems_title"] = "计分系统",
 	["song_select.score_systems_question"] = "你真的需要自定义计分系统吗？",
 	["song_select.score_systems_warning"] = "使用自定义计分系统的成绩无法提交到部分排行榜。",
@@ -435,10 +434,8 @@ return {
 	["song_select.score_systems_remove"] = "移除",
 	["song_select.score_systems_edit"] = "编辑…",
 	["song_select.score_systems_recalculate_tip"] = "添加的系统会在重新计算后应用到以前的成绩。",
-	["song_select.accuracy_system"] = "准确率",
 	["song_select.accuracy_system_auto"] = "谱面自身的判定",
 	["song_select.recalculate_accuracies"] = "重新计算准确率",
-	["song_select.recalculate_accuracies_tip"] = "重新游玩每个本地成绩，保存成绩列表显示的准确率。",
 
 	["gameplay.skin_editor.no_properties"] = "此皮肤没有可编辑属性。",
 	["gameplay.skin_editor.receptor_y"] = "接收器 Y",

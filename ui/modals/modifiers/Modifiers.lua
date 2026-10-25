@@ -1,6 +1,7 @@
 local Checkbox = require("ui.views.form.Checkbox")
 local Colors = require("ui.Colors")
 local ButtonRow = require("ui.views.form.ButtonRow")
+local Dropdown = require("ui.views.form.Dropdown")
 local ColumnOrder = require("ui.modals.column_order.ColumnOrder")
 local SegmentedControl = require("ui.views.form.SegmentedControl")
 local Form = require("ui.views.form.Form")
@@ -23,6 +24,8 @@ local Slider = require("ui.views.form.Slider")
 ---@field background gui.NineSliceUsage
 ---@field on_edit_columns fun()
 ---@field on_edit_score_systems fun()
+---@field scores rizu.api.Scores
+---@field popup_container ui.views.PopupContainer
 ---@field private form_invalidated boolean
 local Modifiers = ModalView + {}
 
@@ -38,12 +41,16 @@ local FORM_HEIGHT = MODAL_HEIGHT - FORM_Y - 92
 ---@param localization ui.localization.Localization
 ---@param on_edit_columns fun() Opens the column order modal.
 ---@param on_edit_score_systems fun() Opens the score systems modal.
-function Modifiers:new(play, on_close, localization, on_edit_columns, on_edit_score_systems)
+---@param scores rizu.api.Scores
+---@param popup_container ui.views.PopupContainer
+function Modifiers:new(play, on_close, localization, on_edit_columns, on_edit_score_systems, scores, popup_container)
 	ModalView.new(self)
 	self.localization = localization
 	self.play = play
 	self.on_edit_columns = on_edit_columns
 	self.on_edit_score_systems = on_edit_score_systems
+	self.scores = scores
+	self.popup_container = popup_container
 	self.form_invalidated = false
 
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
@@ -167,6 +174,23 @@ function Modifiers:rebuildForm()
 			},
 		}))
 	end
+	local scores = self.scores
+	self.form:add(Dropdown({
+		label = self.localization:get("song_select.score_system"),
+		options = scores:getAccuracySystems(),
+		value = scores:getSelectedAccuracySystem(),
+		width = FORM_WIDTH,
+		format = function(token)
+			---@cast token string
+			local scoring = token ~= "auto" and scores:getAccuracySystem(nil, token)
+			return scoring and scoring:getName() or self.localization:get("song_select.accuracy_system_auto")
+		end,
+		on_change = function(token)
+			scores:setSelectedAccuracySystem(token)
+		end,
+		form = self.form,
+		popup_container = self.popup_container,
+	}))
 	self.form:add(ButtonRow({
 		label = self.localization:get("song_select.score_systems_title"),
 		buttons = {{text = self.localization:get("song_select.score_systems_edit"), on_click = self.on_edit_score_systems}},

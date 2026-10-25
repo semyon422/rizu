@@ -15,7 +15,6 @@ local SelectedSongPanel = require("ui.screens.song_select_v2.SelectedSongPanel")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local Label = require("ui.views.Label")
 local ScoreSourceToggle = require("ui.screens.song_select_v2.ScoreSourceToggle")
-local ScoreFiltersButton = require("ui.screens.song_select_v2.ScoreFiltersButton")
 local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
 local ScoreList = require("ui.screens.result_v2.ScoreList")
@@ -63,7 +62,6 @@ local TOOLBAR_HEIGHT = 54
 local SCORES_ROWS = 5
 local SCORES_HEADER_HEIGHT = 36
 local SCORES_GAP = 10
-local SCORES_HEADER_GAP = 8
 -- Extra room below the rows, taken from the selected song panel.
 local SCORES_EXTRA_HEIGHT = 5
 
@@ -162,12 +160,7 @@ function SongSelectV2:createScores()
 	local head = scores:add(View(), SCORES_HEADER_HEIGHT)
 	self.leaderboard_title = head:add(Label({font_name = "bold", font_size = 20, color = Colors.muted}))
 	self.leaderboard_title:setAlignment(0, 0.5)
-	local source_toggle = head:add(ScoreSourceToggle(scores_api, ui.localization))
-	source_toggle:setHeight(SCORES_HEADER_HEIGHT):setAlignment(1, 0.5)
-	head:add(ScoreFiltersButton(function() ui.modal_manager:attachScoreFilters() end))
-		:setSize(SCORES_HEADER_HEIGHT, SCORES_HEADER_HEIGHT)
-		:setAlignment(1, 0.5)
-		:addPosition(-source_toggle:getAuthoredWidth() - SCORES_HEADER_GAP, 0)
+	head:add(ScoreSourceToggle(scores_api, ui.localization)):setHeight(SCORES_HEADER_HEIGHT):setAlignment(1, 0.5)
 
 	self.score_list = scores:add(ScoreList(scores_api, ui.localization, ui.api.online), "*")
 	self.score_list:setEmptySpriteEnabled(true)

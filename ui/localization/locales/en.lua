@@ -422,7 +422,6 @@ return {
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "Online",
 	["song_select.leaderboard"] = "Leaderboard",
-	["song_select.score_filters_title"] = "Leaderboard Filters",
 	["song_select.score_systems_title"] = "Score Systems",
 	["song_select.score_systems_question"] = "Do you really need a custom score system?",
 	["song_select.score_systems_warning"] = "Scores with customized score systems can't be submitted to some leaderboards.",
@@ -431,10 +430,8 @@ return {
 	["song_select.score_systems_remove"] = "Remove",
 	["song_select.score_systems_edit"] = "Edit…",
 	["song_select.score_systems_recalculate_tip"] = "Added systems apply to older scores after recalculating.",
-	["song_select.accuracy_system"] = "Accuracy",
 	["song_select.accuracy_system_auto"] = "Chart's own timings",
 	["song_select.recalculate_accuracies"] = "Recalculate Accuracies",
-	["song_select.recalculate_accuracies_tip"] = "Replays every local score to store the accuracies the score list shows.",
 
 	["gameplay.skin_editor.no_properties"] = "This skin has no editable properties.",
 	["gameplay.skin_editor.add"] = "Add",

@@ -40,7 +40,7 @@ Universal and per-format audio offsets use the existing `gameplay.offset.audio_m
 
 `scores.stored_accuracies` lists the score systems whose accuracy is stored with every local score, besides normalscore, which `chartplays.accuracy` always holds. It is a comma-separated string of tokens, `"auto"` by default. `auto` is the chart's auto timings, which every play is judged with for now (`TimingSystems.getAuto`): the chart's own timings, or its format's system with that system's default value (StepMania: Etterna J4), and osu!mania with score V1; the others are `name[:value[:osu score version]]` with a timings name, for example `osuod:9:1` (osu!mania V1, OD 9), `etternaj:4` or `quaver`. Invalid tokens and systems without accuracy are ignored. A change applies to scores saved afterwards; recalculating the accuracies applies it to the old ones.
 
-`select.accuracy_system` is the token of `scores.stored_accuracies` whose accuracy the leaderboard shows, `"auto"` by default. A token that is no longer stored counts as `"auto"`.
+`select.accuracy_system` is the token of `scores.stored_accuracies` that mania plays are judged with (hit windows, judges, nearest input) and whose accuracy the leaderboard shows, `"auto"` by default: the chart's auto timings. A token that is no longer stored counts as `"auto"`.
 
 ## Persistence
 

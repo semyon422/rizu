@@ -1,4 +1,6 @@
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
+local Settings = require("rizu.config.Settings")
+local FakeFilesystem = require("fs.FakeFilesystem")
 local ReplayBase = require("sea.replays.ReplayBase")
 local Chartmeta = require("sea.chart.Chartmeta")
 local Timings = require("sea.chart.Timings")
@@ -52,6 +54,28 @@ function test.stepmania_is_etterna_j4_with_nearest(t)
 	t:eq(replayBase.timings, Timings("etternaj", 4)) -- always not nil if chartmeta.timings is nil
 	t:eq(replayBase.subtimings, nil)
 	t:eq(replayBase.nearest, true)
+end
+
+---@param t testing.T
+function test.picked_system_replaces_auto(t)
+	local settings = Settings.createConfig(FakeFilesystem())
+	t:eq(GameplayTimings.getPicked(settings), nil)
+	settings:setString(Settings.keys.scores.stored_accuracies, "auto,osuod:9:2")
+	settings:setString(Settings.keys.select.accuracy_system, "osuod:9:2")
+	local picked = assert(GameplayTimings.getPicked(settings))
+
+	local replayBase = ReplayBase()
+	local chartmeta = Chartmeta()
+	chartmeta.format = "stepmania"
+	GameplayTimings(chartmeta):apply(replayBase, picked)
+
+	t:eq(replayBase.timings, Timings("osuod", 9))
+	t:eq(replayBase.subtimings, Subtimings("scorev", 2))
+	t:eq(replayBase.nearest, true)
+
+	-- A system that is not stored anymore is auto again.
+	settings:setString(Settings.keys.scores.stored_accuracies, "auto")
+	t:eq(GameplayTimings.getPicked(settings), nil)
 end
 
 return test

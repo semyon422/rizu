@@ -233,6 +233,16 @@ function ScoreSystems:new(scores, library, on_close, localization)
 	self.scroll_view:anchorFixed(0, FORM_Y, MODAL_WIDTH, FORM_HEIGHT)
 	self.form_selection = self.scroll_view:add(FormSelection(self.form))
 	self:rebuildForm()
+
+	-- The leaderboard shows the old accuracies until it is read again.
+	local stage = library:getCacheStatus().stage
+	---@param status rizu.api.CacheStatus
+	library:on("cache_status_changed", function(status)
+		if stage == "accuracies" and status.stage ~= "accuracies" then
+			scores:refresh()
+		end
+		stage = status.stage
+	end)
 end
 
 function ScoreSystems:invalidateForm()
