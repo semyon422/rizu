@@ -39,6 +39,17 @@ function test.compute_scores_each_system_once(t)
 end
 
 ---@param t testing.T
+function test.resolve_fills_default_subtimings(t)
+	local timings, subtimings = StoredAccuracies.resolve(Timings("osuod", 8))
+	t:eq(assert(timings).data, 8)
+	t:eq(assert(subtimings).data, 1)
+	timings, subtimings = StoredAccuracies.resolve(Timings("etternaj", 4))
+	t:eq(assert(timings).name, "etternaj")
+	t:eq(subtimings, nil)
+	t:eq(StoredAccuracies.resolve(Timings("sphere")), nil)
+end
+
+---@param t testing.T
 function test.format_uses_the_system_format(t)
 	t:eq(StoredAccuracies.format(Timings("osuod", 8), nil, 0.98765), "98.77%")
 	t:eq(StoredAccuracies.format(Timings("etternaj", 4), nil, 0.5), "50.00%")

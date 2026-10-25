@@ -50,6 +50,19 @@ local function getAccuracySystems(timings, subtimings)
 	return accuracy_systems[1] and accuracy_systems or nil
 end
 
+---The pair the accuracy of these timings is stored under: missing subtimings become the default ones.
+---@param timings sea.Timings
+---@param subtimings sea.Subtimings?
+---@return sea.Timings? timings nil for timings without accuracy.
+---@return sea.Subtimings?
+function StoredAccuracies.resolve(timings, subtimings)
+	local systems = getAccuracySystems(timings, subtimings)
+	local system = systems and systems[1]
+	if system then
+		return system.timings, system.subtimings
+	end
+end
+
 ---@param timings sea.Timings
 ---@param subtimings sea.Subtimings?
 ---@param accuracy number As stored.

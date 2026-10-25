@@ -1,5 +1,6 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
+local Settings = require("rizu.config.Settings")
 local Timings = require("sea.chart.Timings")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 
@@ -88,15 +89,83 @@ function Scores:select(index) self.selector:scrollScore(nil, index) end
 ---@return rizu.api.Score? score
 function Scores:getSelected() return self.selector.chartplay --[[@as rizu.api.Score?]] end
 
----The accuracy of the score in the chart's own score system (auto timings), as text such as "98.50%".
----@param score rizu.api.Score
----@return string? accuracy nil when it is not stored: online scores, and charts whose own system has no accuracy.
-function Scores:getAutoAccuracy(score)
-	local row = score --[[@as {auto_timings: integer?, auto_accuracy: number?}]]
-	if not row.auto_timings or not row.auto_accuracy then
+-- Accuracy systems
+
+---Score systems whose accuracy is stored with every score, the ones getAccuracy() can show.
+---"auto" is the chart's own system; the others are tokens such as "osuod:9:1", see getAccuracySystem().
+---@return string[]
+function Scores:getAccuracySystems()
+	return StoredAccuracies.parse(self.selector.settings:getString(Settings.keys.scores.stored_accuracies))
+end
+
+---@return string token One of getAccuracySystems(), or "auto".
+function Scores:getSelectedAccuracySystem()
+	local token = self.selector.settings:getString(Settings.keys.select.accuracy_system)
+	for _, stored in ipairs(self:getAccuracySystems()) do
+		if stored == token then
+			return token
+		end
+	end
+	return "auto"
+end
+
+---Shows the accuracies of another stored score system. Reloads the list.
+---@param token string One of getAccuracySystems().
+function Scores:setSelectedAccuracySystem(token)
+	self.selector.settings:setString(Settings.keys.select.accuracy_system, token)
+	self:refresh()
+end
+
+---What a token stands for. Give it to `ui.formatters.ScoreSystemFormatter` for its name.
+---@param chart rizu.api.Chart? What "auto" stands for.
+---@param token string? The selected one by default.
+---@return {timings: sea.Timings, subtimings: sea.Subtimings?}? system nil for "auto" without a loaded chart, and for a system without accuracy.
+function Scores:getAccuracySystem(chart, token)
+	token = token or self:getSelectedAccuracySystem()
+	---@type sea.Timings?, sea.Subtimings?
+	local timings, subtimings
+	if token == "auto" then
+		timings = chart and chart.chartmeta_timings
+	else
+		timings, subtimings = StoredAccuracies.decode(token)
+	end
+	if not timings then
 		return
 	end
-	return StoredAccuracies.format(Timings.decode(row.auto_timings), nil, row.auto_accuracy)
+	local resolved, resolved_subtimings = StoredAccuracies.resolve(timings, subtimings)
+	if resolved then
+		return {timings = resolved, subtimings = resolved_subtimings}
+	end
+end
+
+---The accuracy of the score in the selected score system, as text such as "98.50%".
+---@param score rizu.api.Score
+---@return string? accuracy nil when it is not stored: online scores, scores played before the system was added
+---and not recalculated, and charts whose own system has no accuracy.
+function Scores:getAccuracy(score)
+	local token = self:getSelectedAccuracySystem()
+	if token == "auto" then
+		local row = score --[[@as {auto_timings: integer?, auto_accuracy: number?}]]
+		if not row.auto_timings or not row.auto_accuracy then
+			return
+		end
+		return StoredAccuracies.format(Timings.decode(row.auto_timings), nil, row.auto_accuracy)
+	end
+	-- Online scores have the server's ids.
+	if self:getSource() ~= "local" then
+		return
+	end
+	local system = self:getAccuracySystem(nil, token)
+	if not system then
+		return
+	end
+	local timings = system.timings:encode()
+	local subtimings = system.subtimings and system.subtimings:encode() or 0
+	for _, row in ipairs(self.selector.library.chartplayAccuraciesRepo:getAccuracies(score.id)) do
+		if row.timings == timings and row.subtimings == subtimings then
+			return StoredAccuracies.format(system.timings, system.subtimings, row.accuracy)
+		end
+	end
 end
 
 ---Replays the selected score in the background so the result screen can show it.

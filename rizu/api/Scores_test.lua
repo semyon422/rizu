@@ -1,4 +1,7 @@
+local FakeFilesystem = require("fs.FakeFilesystem")
 local Scores = require("rizu.api.Scores")
+local Settings = require("rizu.config.Settings")
+local Timings = require("sea.chart.Timings")
 
 local test = {}
 
@@ -16,7 +19,17 @@ local function createScores()
 		isScoreLoading = function() return false end,
 		getScoreSource = function(self) return self.source end,
 		setScoreSource = function(self, source) self.source = source end,
+		pullScore = function() end,
 		chartplay = nil,
+		settings = Settings.createConfig(FakeFilesystem()),
+		library = {chartplayAccuraciesRepo = {
+			getAccuracies = function(_, chartplay_id)
+				return chartplay_id == 1 and {
+					{timings = 2304, subtimings = 0, accuracy = 0.5},
+					{timings = 2190, subtimings = 1101, accuracy = 0.987654},
+				} or {}
+			end,
+		}},
 	}
 	return Scores(selector --[[@as any]], {} --[[@as any]]), selector, listener
 end
@@ -54,6 +67,46 @@ function test.load_selected_result_reports_why_it_failed(t)
 	scores_with_controller:loadSelectedResult(function(ok, err) result = {ok, err} end)
 	t:eq(result[1], false)
 	t:assert(tostring(result[2]):find("replay is gone", 1, true))
+end
+
+---@param timings sea.Timings?
+---@return rizu.api.Chart
+local function chart(timings)
+	local row = {}
+	row.chartmeta_timings = timings
+	return row
+end
+
+---@param t testing.T
+function test.accuracy_system_of_the_chart(t)
+	local scores = createScores()
+	local system = assert(scores:getAccuracySystem(chart(Timings("osuod", 9))))
+	t:eq(system.timings.data, 9)
+	t:eq(assert(system.subtimings).data, 1)
+	t:eq(scores:getAccuracySystem(chart(Timings("sphere"))), nil)
+	t:eq(scores:getAccuracySystem(chart()), nil)
+end
+
+---@param t testing.T
+function test.selected_accuracy_system(t)
+	local scores, selector = createScores()
+	local settings = selector.settings
+	t:eq(scores:getSelectedAccuracySystem(), "auto")
+	t:eq(scores:getAccuracy({auto_timings = 2180, auto_accuracy = 0.95} --[[@as any]]), "95.00%")
+
+	-- Not stored yet: still "auto".
+	scores:setSelectedAccuracySystem("osuod:9:1")
+	t:eq(scores:getSelectedAccuracySystem(), "auto")
+
+	settings:setString(Settings.keys.scores.stored_accuracies, "auto,osuod:9:1")
+	t:tdeq(scores:getAccuracySystems(), {"auto", "osuod:9:1"})
+	t:eq(scores:getSelectedAccuracySystem(), "osuod:9:1")
+	t:eq(assert(scores:getAccuracySystem(chart(Timings("etternaj", 4)))).timings.data, 9)
+	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), "98.77%")
+	t:eq(scores:getAccuracy({id = 2} --[[@as any]]), nil)
+
+	selector.source = "online"
+	t:eq(scores:getAccuracy({id = 1} --[[@as any]]), nil)
 end
 
 return test

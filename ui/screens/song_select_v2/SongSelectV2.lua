@@ -15,6 +15,8 @@ local SelectedSongPanel = require("ui.screens.song_select_v2.SelectedSongPanel")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local Label = require("ui.views.Label")
 local ScoreSourceToggle = require("ui.screens.song_select_v2.ScoreSourceToggle")
+local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
+local ScoreFiltersButton = require("ui.screens.song_select_v2.ScoreFiltersButton")
 local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
 local ScoreList = require("ui.screens.result_v2.ScoreList")
@@ -46,6 +48,7 @@ end
 ---@field selected_song_panel ui.screens.song_select_v2.SelectedSongPanel
 ---@field chart_browser ui.screens.song_select_v2.ChartBrowser
 ---@field score_list ui.screens.result_v2.ScoreList
+---@field leaderboard_title ui.views.Label The score system of the accuracies in the list.
 ---@field footer ui.screens.song_select_v2.Footer
 ---@field library_toolbar ui.screens.song_select_v2.LibraryToolbar
 ---@field backdrop gui.View Background, blur and scrim; also drawn by chart loading
@@ -61,6 +64,7 @@ local TOOLBAR_HEIGHT = 54
 local SCORES_ROWS = 5
 local SCORES_HEADER_HEIGHT = 36
 local SCORES_GAP = 10
+local SCORES_HEADER_GAP = 8
 -- Extra room below the rows, taken from the selected song panel.
 local SCORES_EXTRA_HEIGHT = 5
 
@@ -157,11 +161,14 @@ function SongSelectV2:createScores()
 	local scores = TrackContainer({direction = "column", gap = SCORES_GAP})
 
 	local head = scores:add(View(), SCORES_HEADER_HEIGHT)
-	head:add(Label({
-		font_name = "bold", font_size = 20, color = Colors.muted,
-		text = ui.localization:get("song_select.leaderboard"),
-	})):setAlignment(0, 0.5)
-	head:add(ScoreSourceToggle(scores_api, ui.localization)):setHeight(SCORES_HEADER_HEIGHT):setAlignment(1, 0.5)
+	self.leaderboard_title = head:add(Label({font_name = "bold", font_size = 20, color = Colors.muted}))
+	self.leaderboard_title:setAlignment(0, 0.5)
+	local source_toggle = head:add(ScoreSourceToggle(scores_api, ui.localization))
+	source_toggle:setHeight(SCORES_HEADER_HEIGHT):setAlignment(1, 0.5)
+	head:add(ScoreFiltersButton(function() ui.modal_manager:attachScoreFilters() end))
+		:setSize(SCORES_HEADER_HEIGHT, SCORES_HEADER_HEIGHT)
+		:setAlignment(1, 0.5)
+		:addPosition(-source_toggle:getAuthoredWidth() - SCORES_HEADER_GAP, 0)
 
 	self.score_list = scores:add(ScoreList(scores_api, ui.localization, ui.api.online), "*")
 	self.score_list:setEmptySpriteEnabled(true)
@@ -193,6 +200,10 @@ function SongSelectV2:enter()
 			updateFooter()
 		end),
 		api.charts:on("can_play_changed", updateFooter),
+		-- Another score system was picked for the list.
+		api.scores:on("scores_changed", function()
+			self:updateLeaderboardTitle(api.charts:getSelectedChart())
+		end),
 		api.scores:on("scores_changed", function(loading)
 			self.score_list:setLoading(loading)
 			-- Rows are replaced once loading finishes; the old ones fade out meanwhile.
@@ -254,6 +265,15 @@ function SongSelectV2:bindChartview(chartview)
 		self.selected_song_panel:bind(self.chartview_formatter)
 		self.chart_browser.chart_info:bind(self.chartview_formatter)
 	end
+	self:updateLeaderboardTitle(chartview)
+end
+
+---@private
+---@param chartview rizu.api.Chart?
+function SongSelectV2:updateLeaderboardTitle(chartview)
+	local system = self.ui.api.scores:getAccuracySystem(chartview)
+	self.leaderboard_title:setText(system and ScoreSystemFormatter(system --[[@as rizu.ScoreSystem]]):getName()
+		or self.ui.localization:get("song_select.leaderboard"))
 end
 
 function SongSelectV2:updateModifiers()

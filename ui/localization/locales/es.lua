@@ -361,6 +361,11 @@ return {
 	["song_select.score_source_local"] = "Local",
 	["song_select.score_source_online"] = "En línea",
 	["song_select.leaderboard"] = "Clasificación",
+	["song_select.score_filters_title"] = "Filtros de clasificación",
+	["song_select.accuracy_system"] = "Precisión",
+	["song_select.accuracy_system_auto"] = "Timings propios del chart",
+	["song_select.recalculate_accuracies"] = "Recalcular precisiones",
+	["song_select.recalculate_accuracies_tip"] = "Vuelve a jugar cada puntuación local para guardar las precisiones de la lista.",
 
 	["gameplay.pause.title"] = "Pausa",
 	["gameplay.pause.continue"] = "Continuar",

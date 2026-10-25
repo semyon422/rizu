@@ -83,6 +83,8 @@ local keys = {
 		sort_function = "select.sort_function",
 		score_source = "select.score_source",
 		score_filter = "select.score_filter",
+		-- A token of scores.stored_accuracies: the score system of the accuracies in the leaderboard.
+		accuracy_system = "select.accuracy_system",
 	},
 	timings = {
 		arbitrary = "timings.arbitrary",
@@ -270,6 +272,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultString(s.sort_function, "title")
 	config:setDefaultChoice(s.score_source, "local", {"local", "online"})
 	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
+	config:setDefaultString(s.accuracy_system, "auto")
 
 	local timing_defaults = {
 		arbitrary = 0,

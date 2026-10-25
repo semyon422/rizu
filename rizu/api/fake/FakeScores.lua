@@ -1,4 +1,5 @@
 local Events = require("rizu.api.Events")
+local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
 
 ---`rizu.api.Scores` with made-up scores, see that file for what each function does.
 ---@class rizu.api.fake.FakeScores : rizu.api.Events
@@ -48,9 +49,35 @@ end
 function FakeScores:select(index) self.selected = self.items[index] or self.selected end
 function FakeScores:getSelected() return self.selected end
 
+function FakeScores:getAccuracySystems() return {"auto", "osuod:9:1", "etternaj:4"} end
+function FakeScores:getSelectedAccuracySystem() return self.accuracy_system or "auto" end
+
+function FakeScores:setSelectedAccuracySystem(token)
+	self.accuracy_system = token
+	self:refresh()
+end
+
+---@param chart rizu.api.Chart?
+---@param token string?
+function FakeScores:getAccuracySystem(chart, token)
+	token = token or self:getSelectedAccuracySystem()
+	---@type sea.Timings?, sea.Subtimings?
+	local timings, subtimings
+	if token == "auto" then
+		timings = chart and chart.chartmeta_timings
+	else
+		timings, subtimings = StoredAccuracies.decode(token)
+	end
+	if not timings then return end
+	local resolved, resolved_subtimings = StoredAccuracies.resolve(timings, subtimings)
+	if resolved then return {timings = resolved, subtimings = resolved_subtimings} end
+end
+
 ---@param score rizu.api.Score
-function FakeScores:getAutoAccuracy(score)
-	if self.source == "local" then return ("%0.02f%%"):format(score.score / 100) end
+function FakeScores:getAccuracy(score)
+	if self.source ~= "local" then return end
+	local offset = ({["osuod:9:1"] = -150, ["etternaj:4"] = -400})[self:getSelectedAccuracySystem()] or 0
+	return ("%0.02f%%"):format((score.score + offset) / 100)
 end
 
 ---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.

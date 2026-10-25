@@ -408,6 +408,11 @@ return {
 	["song_select.score_source_local"] = "Локальные",
 	["song_select.score_source_online"] = "Онлайн",
 	["song_select.leaderboard"] = "Таблица лидеров",
+	["song_select.score_filters_title"] = "Фильтры таблицы лидеров",
+	["song_select.accuracy_system"] = "Точность",
+	["song_select.accuracy_system_auto"] = "Тайминги самого чарта",
+	["song_select.recalculate_accuracies"] = "Пересчитать точности",
+	["song_select.recalculate_accuracies_tip"] = "Переигрывает все локальные скоры, чтобы сохранить точности для списка.",
 
 	["gameplay.pause.title"] = "Пауза",
 	["gameplay.pause.continue"] = "Продолжить",
