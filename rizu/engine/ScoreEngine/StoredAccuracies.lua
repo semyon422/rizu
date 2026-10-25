@@ -1,7 +1,6 @@
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
-local IAccuracySource = require("rizu.engine.ScoreEngine.IAccuracySource")
-local ScoreEngineFactory = require("rizu.engine.ScoreEngine.ScoreEngineFactory")
+local Scoring = require("rizu.engine.scoring.Scoring")
 
 ---Accuracies stored with every score besides normalscore, which chartplays.accuracy holds.
 ---The setting lists them as tokens, such as "auto,osuod:9:1,etternaj:4":
@@ -32,45 +31,23 @@ function StoredAccuracies.decode(token)
 	end
 end
 
----@param timings sea.Timings
----@param subtimings sea.Subtimings?
----@return rizu.ScoreSystem[]? systems Those with accuracy, nil when the pair is invalid or none has it.
-local function getAccuracySystems(timings, subtimings)
-	local systems = ScoreEngineFactory:get(timings, subtimings)
-	if not systems then
+---@param token string
+---@param chart_timings sea.Timings? What "auto" stands for.
+---@return rizu.engine.scoring.Scoring? scoring nil for invalid tokens, and for "auto" without chart timings.
+function StoredAccuracies.getScoring(token, chart_timings)
+	local timings, subtimings ---@type sea.Timings?, sea.Subtimings?
+	if token == "auto" then
+		timings = chart_timings
+	else
+		timings, subtimings = StoredAccuracies.decode(token)
+	end
+	if not timings then
 		return
 	end
-	---@type rizu.ScoreSystem[]
-	local accuracy_systems = {}
-	for _, system in ipairs(systems) do
-		if IAccuracySource * system then
-			table.insert(accuracy_systems, system)
-		end
+	local scoring = Scoring(timings, subtimings)
+	if scoring:createScoreSystems() then
+		return scoring
 	end
-	return accuracy_systems[1] and accuracy_systems or nil
-end
-
----The pair the accuracy of these timings is stored under: missing subtimings become the default ones.
----@param timings sea.Timings
----@param subtimings sea.Subtimings?
----@return sea.Timings? timings nil for timings without accuracy.
----@return sea.Subtimings?
-function StoredAccuracies.resolve(timings, subtimings)
-	local systems = getAccuracySystems(timings, subtimings)
-	local system = systems and systems[1]
-	if system then
-		return system.timings, system.subtimings
-	end
-end
-
----@param timings sea.Timings
----@param subtimings sea.Subtimings?
----@param accuracy number As stored.
----@return string? text Such as "98.50%", nil for timings without accuracy.
-function StoredAccuracies.format(timings, subtimings, accuracy)
-	local systems = getAccuracySystems(timings, subtimings)
-	local system = systems and systems[1] --[[@as rizu.IAccuracySource?]]
-	return system and system.accuracy_format:format(accuracy * system.accuracy_multiplier)
 end
 
 ---Valid tokens of a setting value, without repeats.
@@ -81,8 +58,9 @@ function StoredAccuracies.parse(s)
 	---@type {[string]: true}
 	local seen = {}
 	for token in s:gmatch("[^,%s]+") do
-		local timings, subtimings = StoredAccuracies.decode(token)
-		local valid = token == "auto" or timings and getAccuracySystems(timings, subtimings)
+		local scoring = token ~= "auto" and StoredAccuracies.getScoring(token)
+		-- Normalscore needs no row: chartplays.accuracy holds it.
+		local valid = token == "auto" or scoring and not scoring:isNormalscore()
 		if valid and not seen[token] then
 			seen[token] = true
 			table.insert(tokens, token)
@@ -101,22 +79,15 @@ function StoredAccuracies.compute(score_engine, tokens, chart_timings)
 	---@type {[string]: true}
 	local seen = {}
 	for _, token in ipairs(tokens) do
-		local timings, subtimings = StoredAccuracies.decode(token)
-		if token == "auto" then
-			timings, subtimings = chart_timings, nil
-		end
-		for _, system in ipairs(timings and getAccuracySystems(timings, subtimings) or {}) do
-			system = score_engine:addScoreSystem(system)
-			---@type rizu.engine.ScoreEngine.StoredAccuracies.Row
-			local row = {
-				timings = assert(system.timings):encode(),
-				subtimings = system.subtimings and system.subtimings:encode() or 0,
-				accuracy = (system --[[@as rizu.IAccuracySource]]):getAccuracy(),
-			}
-			local key = row.timings .. ":" .. row.subtimings
+		local scoring = StoredAccuracies.getScoring(token, chart_timings)
+		local source = scoring and not scoring:isNormalscore() and scoring:getAccuracySource(score_engine)
+		if source then
+			---@cast scoring -?
+			local timings, subtimings = scoring:encode()
+			local key = timings .. ":" .. subtimings
 			if not seen[key] then
 				seen[key] = true
-				table.insert(rows, row)
+				table.insert(rows, {timings = timings, subtimings = subtimings, accuracy = source:getAccuracy()})
 			end
 		end
 	end

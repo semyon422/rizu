@@ -83,7 +83,7 @@ function test.accuracy_system_of_the_chart(t)
 	local system = assert(scores:getAccuracySystem(chart(Timings("osuod", 9))))
 	t:eq(system.timings.data, 9)
 	t:eq(assert(system.subtimings).data, 1)
-	t:eq(scores:getAccuracySystem(chart(Timings("sphere"))), nil)
+	t:assert(assert(scores:getAccuracySystem(chart(Timings("sphere")))):isNormalscore())
 	t:eq(scores:getAccuracySystem(chart()), nil)
 end
 
@@ -93,6 +93,8 @@ function test.selected_accuracy_system(t)
 	local settings = selector.settings
 	t:eq(scores:getSelectedAccuracySystem(), "auto")
 	t:eq(scores:getAccuracy({auto_timings = 2180, auto_accuracy = 0.95} --[[@as any]]), "95.00%")
+	-- Rizu timings: normalscore, which every score has.
+	t:eq(scores:getAccuracy({auto_timings = 100, accuracy = 0.021} --[[@as any]]), "21.00ms")
 
 	-- Not stored yet: still "auto".
 	scores:setSelectedAccuracySystem("osuod:9:1")

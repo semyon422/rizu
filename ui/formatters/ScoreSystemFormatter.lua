@@ -1,16 +1,11 @@
 local class = require("class")
+local Scoring = require("rizu.engine.scoring.Scoring")
 
+---Colors and judge names of a score system. Its name and grades come from rizu.engine.scoring.Scoring.
 ---@class ui.formatters.ScoreSystemFormatter
 ---@operator call: ui.formatters.ScoreSystemFormatter
 local ScoreSystemFormatter = class()
 
-local bms_alias = {
-	[0] = "Insane",
-	[1] = "Hard",
-	[2] = "Normal",
-	[3] = "Easy",
-	[4] = "Invalid",
-}
 local fallback_grade_color = {0.51, 0.37, 0, 1}
 local fallback_judge_color = {0.65, 0.7, 0.8, 1}
 local miss_color = {1, 0.1, 0.18, 1}
@@ -93,133 +88,30 @@ function ScoreSystemFormatter:setScoreSystem(score_system)
 	self.score_system = score_system
 end
 
+---@return rizu.engine.scoring.Scoring?
+function ScoreSystemFormatter:getScoring()
+	local timings = self.score_system.timings
+	return timings and Scoring(timings, self.score_system.subtimings)
+end
+
 ---@return string
 function ScoreSystemFormatter:getName()
-	local timings = self.score_system.timings
-	local subtimings = self.score_system.subtimings
-
-	if not timings then
-		return "No timings"
-	end
-
-	if timings.name == "sphere" then
-		return "Rizu"
-	elseif timings.name == "osuod" then
-		---@cast subtimings -?
-		return ("osu!mania V%i OD%g"):format(subtimings.data, timings.data)
-	elseif timings.name == "etternaj" then
-		return ("Etterna J%i"):format(timings.data)
-	elseif timings.name == "quaver" then
-		return "Quaver standard"
-	elseif timings.name == "bmsrank" then
-		return ("LR2 %s"):format(bms_alias[timings.data])
-	elseif timings.name == "iidx" then
-		return "IIDX"
-	end
-
-	return timings.name or "Unknown"
+	local scoring = self:getScoring()
+	return scoring and scoring:getName() or "No timings"
 end
 
 ---@param accuracy number
 ---@return string
 function ScoreSystemFormatter:getGrade(accuracy)
-	local timings = self.score_system.timings
-	local name = timings and timings.name
-
-	if name == "sphere" then
-		-- accuracy is the normalscore mean error in seconds, lower is better
-		if accuracy < 0.002 then
-			return "SSSSS"
-		elseif accuracy < 0.003 then
-			return "SSSS"
-		elseif accuracy < 0.005 then
-			return "SSS"
-		elseif accuracy < 0.008 then
-			return "SS"
-		elseif accuracy < 0.016 then
-			return "S"
-		elseif accuracy < 0.022 then
-			return "A"
-		elseif accuracy < 0.026 then
-			return "B"
-		elseif accuracy < 0.030 then
-			return "C"
-		end
-		return "D"
-	elseif name == "osuod" then
-		if accuracy == 1 then
-			return "SS"
-		elseif accuracy > 0.95 then
-			return "S"
-		elseif accuracy > 0.9 then
-			return "A"
-		elseif accuracy > 0.8 then
-			return "B"
-		elseif accuracy > 0.7 then
-			return "C"
-		end
-		return "D"
-	elseif name == "etternaj" then
-		if accuracy > 0.999935 then
-			return "AAAAA"
-		elseif accuracy > 0.99955 then
-			return "AAAA"
-		elseif accuracy > 0.997 then
-			return "AAA"
-		elseif accuracy > 0.93 then
-			return "AA"
-		elseif accuracy > 0.85 then
-			return "A"
-		elseif accuracy > 0.8 then
-			return "B"
-		elseif accuracy > 0.7 then
-			return "C"
-		end
-		return "F"
-	elseif name == "quaver" then
-		if accuracy == 1 then
-			return "X"
-		elseif accuracy > 0.99 then
-			return "SS"
-		elseif accuracy > 0.95 then
-			return "S"
-		elseif accuracy > 0.9 then
-			return "A"
-		elseif accuracy > 0.8 then
-			return "B"
-		elseif accuracy > 0.7 then
-			return "C"
-		elseif accuracy > 0.6 then
-			return "D"
-		end
-		return "F"
-	elseif name == "bmsrank" or name == "iidx" then
-		local rank = math.floor(accuracy * 9)
-		if rank >= 8 then
-			return "AAA"
-		elseif rank == 7 then
-			return "AA"
-		elseif rank == 6 then
-			return "A"
-		elseif rank == 5 then
-			return "B"
-		elseif rank == 4 then
-			return "C"
-		elseif rank == 3 then
-			return "D"
-		elseif rank == 2 then
-			return "E"
-		end
-	end
-
-	return "F"
+	local scoring = self:getScoring()
+	return scoring and scoring:getGrade(accuracy) or "F"
 end
 
 ---@param grade string
 ---@return gui.Color
 function ScoreSystemFormatter:getGradeColor(grade)
-	local timings = self.score_system.timings
-	local colors = timings and grade_colors[timings.name]
+	local scoring = self:getScoring()
+	local colors = scoring and grade_colors[scoring.system.grade_scale]
 	return colors and colors[grade] or fallback_grade_color
 end
 

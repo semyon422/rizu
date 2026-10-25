@@ -60,17 +60,7 @@ end
 ---@param chart rizu.api.Chart?
 ---@param token string?
 function FakeScores:getAccuracySystem(chart, token)
-	token = token or self:getSelectedAccuracySystem()
-	---@type sea.Timings?, sea.Subtimings?
-	local timings, subtimings
-	if token == "auto" then
-		timings = chart and chart.chartmeta_timings
-	else
-		timings, subtimings = StoredAccuracies.decode(token)
-	end
-	if not timings then return end
-	local resolved, resolved_subtimings = StoredAccuracies.resolve(timings, subtimings)
-	if resolved then return {timings = resolved, subtimings = resolved_subtimings} end
+	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), chart and chart.chartmeta_timings)
 end
 
 ---@param score rizu.api.Score

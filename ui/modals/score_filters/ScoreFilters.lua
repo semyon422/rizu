@@ -9,7 +9,6 @@ local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
-local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 
 ---Options of the song select leaderboard.
 ---@class ui.modals.score_filters.ScoreFilters : ui.ModalView
@@ -98,9 +97,8 @@ function ScoreFilters:rebuildForm()
 		width = FORM_WIDTH,
 		format = function(token)
 			---@cast token string
-			local system = token ~= "auto" and scores:getAccuracySystem(nil, token)
-			return system and ScoreSystemFormatter(system --[[@as rizu.ScoreSystem]]):getName()
-				or localization:get("song_select.accuracy_system_auto")
+			local scoring = token ~= "auto" and scores:getAccuracySystem(nil, token)
+			return scoring and scoring:getName() or localization:get("song_select.accuracy_system_auto")
 		end,
 		on_change = function(token) scores:setSelectedAccuracySystem(token) end,
 		form = self.form,

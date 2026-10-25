@@ -8,7 +8,8 @@ local ModalView = require("ui.ModalView")
 local NineSliceUsage = require("gui.NineSliceUsage")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
-local Slider = require("ui.views.form.Slider")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
+local TimingValueControl = require("ui.views.form.TimingValueControl")
 local delay = require("delay")
 
 ---@class ui.modals.rescore.Rescore : ui.ModalView
@@ -30,28 +31,8 @@ local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 112
 
--- Every slider step scores the whole play again, so it waits until the slider rests.
+-- Every value change scores the whole play again, so it waits until the slider rests.
 local SLIDER_DEBOUNCE = 0.2
-
-local SYSTEM_LABELS = {
-	sphere = "Rizu",
-	osuod = "osu!mania",
-	etternaj = "Etterna",
-	quaver = "Quaver",
-	bmsrank = "LR2",
-	iidx = "IIDX",
-}
-local DEFAULT_VALUES = {osuod = 8, etternaj = 4, bmsrank = 3}
-local ETTERNA_JUDGES = {4, 5, 6, 7, 8, 9}
-local BMS_RANKS = {3, 2, 1, 0, 4}
-local BMS_RANK_LABELS = {
-	[3] = "Easy",
-	[2] = "Normal",
-	[1] = "Hard",
-	[0] = "Insane",
-	[4] = "Invalid",
-}
-local OSU_SCORE_VERSIONS = {1, 2}
 
 ---@param result rizu.api.Result
 ---@param on_rescored fun() Called after the score was counted again, to show the new numbers.
@@ -106,7 +87,7 @@ function Rescore:readCurrent()
 	end
 	local judging = self.result:getJudging()
 	local timings, subtimings = judging.timings, judging.subtimings
-	if not timings or not SYSTEM_LABELS[timings.name] then
+	if not timings or not TimingSystems.isSelectable(timings.name) then
 		return
 	end
 	self.system = timings.name
@@ -115,20 +96,13 @@ function Rescore:readCurrent()
 end
 
 function Rescore:apply()
-	local value = self.values[self.system] or DEFAULT_VALUES[self.system]
+	local value = self.values[self.system] or TimingSystems.get(self.system).default_value
 	local ok, err = self.result:rescore(self.system, value, self.osu_score_version)
 	if not ok then
 		print("rescore failed:", err)
 		return
 	end
 	self.on_rescored()
-end
-
----@param system string
----@param value number
-function Rescore:setValue(system, value)
-	self.values[system] = value
-	self:apply()
 end
 
 function Rescore:invalidateForm()
@@ -143,15 +117,14 @@ function Rescore:rebuildForm()
 	self.form:clearRows()
 
 	local localization = self.localization
-	local system = self.system
-	local value = self.values[system] or DEFAULT_VALUES[system]
+	local system = TimingSystems.get(self.system)
 
 	self.form:add(SegmentedControl({
 		label = localization:get("song_select.score_system"),
 		options = self.result:getRescoreSystems(),
-		value = system,
+		value = self.system,
 		format = function(v)
-			return SYSTEM_LABELS[v]
+			return TimingSystems.get(v).label
 		end,
 		on_change = function(v)
 			self.system = v
@@ -160,10 +133,10 @@ function Rescore:rebuildForm()
 		end,
 	}))
 
-	if system == "osuod" then
+	if system.score_versions then
 		self.form:add(SegmentedControl({
 			label = localization:get("song_select.osu_score_version"),
-			options = OSU_SCORE_VERSIONS,
+			options = system.score_versions,
 			value = self.osu_score_version,
 			format = function(v)
 				return "V" .. v
@@ -173,45 +146,15 @@ function Rescore:rebuildForm()
 				self:apply()
 			end,
 		}))
-		self.form:add(Slider({
-			label = localization:get("song_select.overall_difficulty"),
-			value = value,
-			min = 0,
-			max = 10,
-			step = 0.1,
-			width = FORM_WIDTH,
-			value_format = function(v)
-				return ("OD %g"):format(v)
-			end,
-			on_change = function(v)
-				self.values[system] = v
-				delay.debounce(self, "apply_debounce", SLIDER_DEBOUNCE, self.apply, self)
-			end,
-		}))
-	elseif system == "etternaj" then
-		self.form:add(SegmentedControl({
-			label = localization:get("song_select.etterna_judge"),
-			options = ETTERNA_JUDGES,
-			value = value,
-			format = function(v)
-				return "J" .. v
-			end,
-			on_change = function(v)
-				self:setValue(system, v)
-			end,
-		}))
-	elseif system == "bmsrank" then
-		self.form:add(SegmentedControl({
-			label = localization:get("song_select.bms_rank"),
-			options = BMS_RANKS,
-			value = value,
-			format = function(v)
-				return assert(BMS_RANK_LABELS[v], "unknown LR2 timing rank")
-			end,
-			on_change = function(v)
-				self:setValue(system, v)
-			end,
-		}))
+	end
+
+	local value_control = TimingValueControl(system, self.values[self.system] or system.default_value, FORM_WIDTH,
+		localization, function(v)
+			self.values[self.system] = v
+			delay.debounce(self, "apply_debounce", SLIDER_DEBOUNCE, self.apply, self)
+		end)
+	if value_control then
+		self.form:add(value_control)
 	end
 
 	self.form:fitContent()

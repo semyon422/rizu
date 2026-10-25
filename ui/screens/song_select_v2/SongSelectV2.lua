@@ -15,7 +15,6 @@ local SelectedSongPanel = require("ui.screens.song_select_v2.SelectedSongPanel")
 local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 local Label = require("ui.views.Label")
 local ScoreSourceToggle = require("ui.screens.song_select_v2.ScoreSourceToggle")
-local ScoreSystemFormatter = require("ui.formatters.ScoreSystemFormatter")
 local ScoreFiltersButton = require("ui.screens.song_select_v2.ScoreFiltersButton")
 local Settings = require("rizu.config.Settings")
 local UiConfig = require("ui.UiConfig")
@@ -271,9 +270,8 @@ end
 ---@private
 ---@param chartview rizu.api.Chart?
 function SongSelectV2:updateLeaderboardTitle(chartview)
-	local system = self.ui.api.scores:getAccuracySystem(chartview)
-	self.leaderboard_title:setText(system and ScoreSystemFormatter(system --[[@as rizu.ScoreSystem]]):getName()
-		or self.ui.localization:get("song_select.leaderboard"))
+	local scoring = self.ui.api.scores:getAccuracySystem(chartview)
+	self.leaderboard_title:setText(scoring and scoring:getName() or self.ui.localization:get("song_select.leaderboard"))
 end
 
 function SongSelectV2:updateModifiers()

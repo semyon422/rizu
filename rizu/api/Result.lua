@@ -3,6 +3,7 @@ local thread = require("thread")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 --[[
 How the last play of the selected chart went, or the score that `ui.api.scores:loadSelectedResult()`
@@ -215,11 +216,8 @@ end
 -- Rescoring
 
 ---Systems rescore() takes. Their names are those of `rizu.api.Play.TimingSystem`.
----@type string[]
-local rescore_systems = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"}
-
 ---@return string[]
-function Result:getRescoreSystems() return rescore_systems end
+function Result:getRescoreSystems() return TimingSystems.selectable end
 
 ---Counts the same play again with another scoring system. What was hit and when stays as played,
 ---only the judges, accuracy and score are worked out anew. Read the result again after it.

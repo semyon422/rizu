@@ -13,6 +13,8 @@ local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local ScrollView = require("gui.ScrollView")
 local Slider = require("ui.views.form.Slider")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
+local TimingValueControl = require("ui.views.form.TimingValueControl")
 
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
@@ -31,43 +33,6 @@ local FORM_WIDTH = 600
 local FORM_X = (MODAL_WIDTH - FORM_WIDTH) / 2
 local FORM_Y = 112
 local FORM_HEIGHT = MODAL_HEIGHT - FORM_Y - 92
-
-local TIMING_SYSTEM_LABELS = {
-	sphere = "Rizu",
-	osuod = "osu!mania",
-	etternaj = "Etterna",
-	quaver = "Quaver",
-	bmsrank = "LR2",
-	iidx = "IIDX",
-}
-local ETTERNA_JUDGES = {4, 5, 6, 7, 8, 9}
-local BMS_RANKS = {3, 2, 1, 0, 4}
-local BMS_RANK_LABELS = {
-	[3] = "Easy",
-	[2] = "Normal",
-	[1] = "Hard",
-	[0] = "Insane",
-	[4] = "Invalid",
-}
-local OSU_SCORE_VERSIONS = {1, 2}
-
----@param value number
----@return string
-local function formatOsuOd(value)
-	return ("OD %g"):format(value)
-end
-
----@param value number
----@return string
-local function formatEtternaJudge(value)
-	return "J" .. value
-end
-
----@param value number
----@return string
-local function formatBmsRank(value)
-	return assert(BMS_RANK_LABELS[value], "unknown LR2 timing rank")
-end
 
 ---@param value number
 ---@return string
@@ -232,7 +197,7 @@ function Modifiers:rebuildForm()
 			options = play:getTimingSystems(),
 			value = timing_system,
 			format = function(value)
-				return TIMING_SYSTEM_LABELS[value]
+				return TimingSystems.get(value).label
 			end,
 			on_change = function(value)
 				play:setTimingSystem(value)
@@ -240,48 +205,24 @@ function Modifiers:rebuildForm()
 			end,
 		}))
 
-		if timing_system == "osuod" then
+		local system = TimingSystems.get(timing_system)
+		if system.score_versions then
 			self.form:add(SegmentedControl({
 				label = self.localization:get("song_select.osu_score_version"),
-				options = OSU_SCORE_VERSIONS,
+				options = system.score_versions,
 				value = play:getOsuScoreVersion(),
 				format = formatOsuScoreVersion,
 				on_change = function(value)
 					play:setOsuScoreVersion(value)
 				end,
 			}))
-			self.form:add(Slider({
-				label = self.localization:get("song_select.overall_difficulty"),
-				value = play:getTimingValue(),
-				min = 0,
-				max = 10,
-				step = 0.1,
-				width = FORM_WIDTH,
-				value_format = formatOsuOd,
-				on_change = function(value)
-					play:setTimingValue(value)
-				end,
-			}))
-		elseif timing_system == "etternaj" then
-			self.form:add(SegmentedControl({
-				label = self.localization:get("song_select.etterna_judge"),
-				options = ETTERNA_JUDGES,
-				value = play:getTimingValue(),
-				format = formatEtternaJudge,
-				on_change = function(value)
-					play:setTimingValue(value)
-				end,
-			}))
-		elseif timing_system == "bmsrank" then
-			self.form:add(SegmentedControl({
-				label = self.localization:get("song_select.bms_rank"),
-				options = BMS_RANKS,
-				value = play:getTimingValue(),
-				format = formatBmsRank,
-				on_change = function(value)
-					play:setTimingValue(value)
-				end,
-			}))
+		end
+		local value_control = TimingValueControl(system, play:getTimingValue(), FORM_WIDTH, self.localization,
+			function(value)
+				play:setTimingValue(value)
+			end)
+		if value_control then
+			self.form:add(value_control)
 		end
 	end
 

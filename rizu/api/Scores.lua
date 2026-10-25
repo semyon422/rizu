@@ -3,6 +3,7 @@ local Events = require("rizu.api.Events")
 local Settings = require("rizu.config.Settings")
 local Timings = require("sea.chart.Timings")
 local StoredAccuracies = require("rizu.engine.ScoreEngine.StoredAccuracies")
+local Scoring = require("rizu.engine.scoring.Scoring")
 
 --[[
 The scores of the selected chart: the leaderboard on song select and on the result screen.
@@ -116,54 +117,43 @@ function Scores:setSelectedAccuracySystem(token)
 	self:refresh()
 end
 
----What a token stands for. Give it to `ui.formatters.ScoreSystemFormatter` for its name.
+---What a token stands for: its name, how its accuracy is written, its grades.
 ---@param chart rizu.api.Chart? What "auto" stands for.
 ---@param token string? The selected one by default.
----@return {timings: sea.Timings, subtimings: sea.Subtimings?}? system nil for "auto" without a loaded chart, and for a system without accuracy.
+---@return rizu.engine.scoring.Scoring? scoring nil for "auto" without a loaded chart or timings in it.
 function Scores:getAccuracySystem(chart, token)
-	token = token or self:getSelectedAccuracySystem()
-	---@type sea.Timings?, sea.Subtimings?
-	local timings, subtimings
-	if token == "auto" then
-		timings = chart and chart.chartmeta_timings
-	else
-		timings, subtimings = StoredAccuracies.decode(token)
-	end
-	if not timings then
-		return
-	end
-	local resolved, resolved_subtimings = StoredAccuracies.resolve(timings, subtimings)
-	if resolved then
-		return {timings = resolved, subtimings = resolved_subtimings}
-	end
+	return StoredAccuracies.getScoring(token or self:getSelectedAccuracySystem(), chart and chart.chartmeta_timings)
 end
 
 ---The accuracy of the score in the selected score system, as text such as "98.50%".
 ---@param score rizu.api.Score
 ---@return string? accuracy nil when it is not stored: online scores, scores played before the system was added
----and not recalculated, and charts whose own system has no accuracy.
+---and not recalculated, and charts without timings of their own.
 function Scores:getAccuracy(score)
 	local token = self:getSelectedAccuracySystem()
 	if token == "auto" then
 		local row = score --[[@as {auto_timings: integer?, auto_accuracy: number?}]]
-		if not row.auto_timings or not row.auto_accuracy then
+		if not row.auto_timings then
 			return
 		end
-		return StoredAccuracies.format(Timings.decode(row.auto_timings), nil, row.auto_accuracy)
+		local scoring = Scoring(Timings.decode(row.auto_timings))
+		if scoring:isNormalscore() then
+			return scoring:formatAccuracy(score.accuracy)
+		end
+		return row.auto_accuracy and scoring:formatAccuracy(row.auto_accuracy)
 	end
 	-- Online scores have the server's ids.
 	if self:getSource() ~= "local" then
 		return
 	end
-	local system = self:getAccuracySystem(nil, token)
-	if not system then
+	local scoring = self:getAccuracySystem(nil, token)
+	if not scoring then
 		return
 	end
-	local timings = system.timings:encode()
-	local subtimings = system.subtimings and system.subtimings:encode() or 0
+	local timings, subtimings = scoring:encode()
 	for _, row in ipairs(self.selector.library.chartplayAccuraciesRepo:getAccuracies(score.id)) do
 		if row.timings == timings and row.subtimings == subtimings then
-			return StoredAccuracies.format(system.timings, system.subtimings, row.accuracy)
+			return scoring:formatAccuracy(row.accuracy)
 		end
 	end
 end

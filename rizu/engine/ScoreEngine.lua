@@ -5,12 +5,6 @@ local HpScore = require("rizu.engine.ScoreEngine.scores.HpScore")
 local NormalscoreScore = require("rizu.engine.ScoreEngine.scores.NormalscoreScore")
 local MiscScore = require("rizu.engine.ScoreEngine.scores.MiscScore")
 local SoundsphereScore = require("rizu.engine.ScoreEngine.scores.SoundsphereScore")
-local OsuManiaV1Score = require("rizu.engine.ScoreEngine.scores.OsuManiaV1Score")
-local OsuManiaV2Score = require("rizu.engine.ScoreEngine.scores.OsuManiaV2Score")
-local QuaverScore = require("rizu.engine.ScoreEngine.scores.QuaverScore")
-local EtternaAccuracy = require("rizu.engine.ScoreEngine.scores.EtternaAccuracy")
-local EtternaJudges = require("rizu.engine.ScoreEngine.scores.EtternaJudges")
-local LunaticRaveScore = require("rizu.engine.ScoreEngine.scores.LunaticRaveScore")
 
 local IAccuracySource = require("rizu.engine.ScoreEngine.IAccuracySource")
 local IComboSource = require("rizu.engine.ScoreEngine.IComboSource")
@@ -18,7 +12,7 @@ local IHealthsSource = require("rizu.engine.ScoreEngine.IHealthsSource")
 local IJudgesSource = require("rizu.engine.ScoreEngine.IJudgesSource")
 local IScoreSource = require("rizu.engine.ScoreEngine.IScoreSource")
 
-local ScoreEngineFactory = require("rizu.engine.ScoreEngine.ScoreEngineFactory")
+local Scoring = require("rizu.engine.scoring.Scoring")
 
 ---@class rizu.ScoreEngine
 ---@operator call: rizu.ScoreEngine
@@ -81,7 +75,7 @@ end
 ---@return boolean?
 ---@return string?
 function ScoreEngine:createByTimings(t, st, _select)
-	local systems, err = ScoreEngineFactory:get(t, st)
+	local systems, err = Scoring(t, st):createScoreSystems()
 	if not systems then
 		if _select then
 			self:selectDefault()
@@ -156,7 +150,7 @@ end
 ---@return boolean?
 ---@return string?
 function ScoreEngine:rescore(t, st)
-	local systems, err = ScoreEngineFactory:get(t, st)
+	local systems, err = Scoring(t, st):createScoreSystems()
 	if not systems then
 		return nil, err
 	end

@@ -1,5 +1,5 @@
 local ScoreEngine = require("rizu.engine.ScoreEngine")
-local ScoreEngineFactory = require("rizu.engine.ScoreEngine.ScoreEngineFactory")
+local Scoring = require("rizu.engine.scoring.Scoring")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 
@@ -12,8 +12,7 @@ function test.qwe(t)
 
 	se:load({notes_count = 0})
 
-	local factory = ScoreEngineFactory()
-	local systems = assert(factory:get(Timings("osuod", 8.5), Subtimings("scorev", 2)))
+	local systems = assert(Scoring(Timings("osuod", 8.5), Subtimings("scorev", 2)):createScoreSystems())
 	local osu_od85_v2 = systems[1]
 
 	se:addScoreSystem(osu_od85_v2)

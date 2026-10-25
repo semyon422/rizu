@@ -1,6 +1,7 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
 local Settings = require("rizu.config.Settings")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 local ModifierModel = require("sphere.models.ModifierModel")
 local ModifierRegistry = require("sphere.models.ModifierModel.ModifierRegistry")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
@@ -300,19 +301,13 @@ end
 
 -- Judging. Used when "auto_timings" is off.
 
-local timing_systems = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"}
-local is_timing_system = {} ---@type {[string]: true}
-for _, name in ipairs(timing_systems) do
-	is_timing_system[name] = true
-end
-
 ---@return rizu.api.Play.TimingSystem[]
-function Play:getTimingSystems() return timing_systems end
+function Play:getTimingSystems() return TimingSystems.selectable --[[@as rizu.api.Play.TimingSystem[] ]] end
 
 ---@return rizu.api.Play.TimingSystem
 function Play:getTimingSystem()
 	local timings = self.game.replayBase.timings
-	return timings and is_timing_system[timings.name] and timings.name --[[@as rizu.api.Play.TimingSystem]] or "sphere"
+	return timings and TimingSystems.isSelectable(timings.name) and timings.name --[[@as rizu.api.Play.TimingSystem]] or "sphere"
 end
 
 ---Switches the system and brings back the value it was last used with.
