@@ -29,7 +29,8 @@ local ScoreEngine = class()
 ---@param chartdiff sea.Chartdiff
 ---@return number?
 local function getDensity(chartdiff)
-	if chartdiff.duration > 0 then
+	-- rescoring from stored hits passes a chartdiff without duration
+	if chartdiff.duration and chartdiff.judges_count and chartdiff.duration > 0 then
 		return chartdiff.judges_count / chartdiff.duration
 	end
 end

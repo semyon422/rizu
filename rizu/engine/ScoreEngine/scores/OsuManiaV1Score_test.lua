@@ -1,4 +1,5 @@
 local OsuManiaV1Score = require("rizu.engine.ScoreEngine.scores.OsuManiaV1Score")
+local Healths = require("sea.chart.Healths")
 
 local test = {}
 
@@ -127,6 +128,65 @@ function test.score_truncates_each_event(t)
 
 	score:addCounter(2)
 	t:eq(score:getScore(), math.floor(score:getScore()))
+end
+
+---@param n integer
+---@return chart.Chart
+local function fake_chart(n)
+	local notes = {}
+	for i = 1, n do
+		notes[i] = {
+			getType = function() return "tap" end,
+			getStartTime = function() return i * 0.25 end,
+			getEndTime = function() return i * 0.25 end,
+		}
+	end
+	return {notes = {getLinkedNotes = function() return notes end}} --[[@as chart.Chart]]
+end
+
+---@param t testing.T
+function test.hp_follows_stable_judgement_values(t)
+	local score = OsuManiaV1Score(8)
+	score:setChartHealths(Healths("simple", 50))
+	score:setNotesCount(10)
+	t:eq(score:getHealths(), 100)
+
+	score:addCounter(6)
+	-- (HP + 1) * 1.5 of 200
+	t:eq(score:getHealths(), 100 - 6 * 1.5 / 2)
+
+	local before = score:getHealths()
+	score:addCounter(4)
+	t:eq(score:getHealths(), before)
+	score:addCounter(5)
+	t:eq(score:getHealths(), before - 6 * 0.32 / 2)
+end
+
+---@param t testing.T
+function test.hp_multiplier_makes_a_perfect_play_recover(t)
+	local score = OsuManiaV1Score(8)
+	score:setChart(fake_chart(100))
+	score:setChartHealths(Healths("simple", 80))
+	score:setNotesCount(100)
+	local info = score:getHpInfo()
+	t:assert(info.multiplier >= 1)
+	score:addCounter(6)
+	score:addCounter(1)
+	t:assert(score:getHealths() > 0)
+end
+
+---@param t testing.T
+function test.hp_fails_at_zero_and_stays_failed(t)
+	local score = OsuManiaV1Score(8)
+	score:setChartHealths(Healths("simple", 100))
+	score:setNotesCount(200)
+	for _ = 1, 200 do
+		score:addCounter(6)
+	end
+	t:assert(score:isFailed())
+	t:eq(score:getHealths(), 0)
+	score:addCounter(1)
+	t:eq(score:getHealths(), 0)
 end
 
 return test
