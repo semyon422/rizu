@@ -82,6 +82,10 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
+function Worker:recomputeChartplays()
+	self.processor:recomputeChartplays()
+end
+
 ---@return boolean completed
 function Worker:computeMissingHits()
 	return self.processor:computeMissingHits()

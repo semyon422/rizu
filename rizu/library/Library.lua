@@ -251,6 +251,13 @@ function Library:computeChartplays()
 	end)
 end
 
+---Computes every local chartplay again, also the ones computed long ago, and stores its hits.
+function Library:recomputeChartplays()
+	self:addTask(function()
+		self.worker:recomputeChartplays()
+	end)
+end
+
 ---Stores the hits of the local chartplays saved without them, see HitsTask. Once per
 ---ChartplayHitsRepo.hits_version, so plays whose chart or replay is gone are not retried at every start.
 ---@param settings rizu.config.Config

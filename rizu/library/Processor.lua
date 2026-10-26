@@ -93,10 +93,11 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 		ReplayComputer(),
 		ComputeVersion.current()
 	)
-	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, self.taskContext, timer)
+	local hitsRepo = ChartplayHitsRepo(self.db.models)
+	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, hitsRepo, self.taskContext, timer)
 	self.hitsTask = HitsTask(
 		self.chartsRepo,
-		ChartplayHitsRepo(self.db.models),
+		hitsRepo,
 		self.computeDataLoader,
 		self.taskContext,
 		timer
@@ -268,6 +269,10 @@ end
 
 function Processor:computeChartplays()
 	self.scoreTask:computeAll()
+end
+
+function Processor:recomputeChartplays()
+	self.scoreTask:recomputeAll()
 end
 
 ---@return boolean completed

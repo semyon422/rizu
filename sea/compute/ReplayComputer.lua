@@ -17,6 +17,7 @@ local ReplayComputer = class()
 ---@param clock (fun(): number)?
 ---@return sea.ComputeResult?
 ---@return sea.ComputeFailure?
+---@return rizu.ScoreEngine? score_engine Of the replay, outside the result: the game stores its hits.
 function ReplayComputer:computeNoCatch(request, clock)
 	local ok, err = valid.format(ComputeRequest.validate(request))
 	if not ok then
@@ -117,19 +118,20 @@ function ReplayComputer:computeNoCatch(request, clock)
 	if not ok then
 		return nil, ComputeFailure.transient("invalid_result", err)
 	end
-	return result
+	return result, nil, ctx.score_engine
 end
 
 ---@param request sea.ComputeRequest
 ---@param clock (fun(): number)?
 ---@return sea.ComputeResult?
 ---@return sea.ComputeFailure?
+---@return rizu.ScoreEngine? score_engine See computeNoCatch().
 function ReplayComputer:compute(request, clock)
-	local ok, result, failure = xpcall(self.computeNoCatch, debug.traceback, self, request, clock)
+	local ok, result, failure, score_engine = xpcall(self.computeNoCatch, debug.traceback, self, request, clock)
 	if not ok then
 		return nil, ComputeFailure.transient("internal_error", tostring(result))
 	end
-	return result, failure
+	return result, failure, score_engine
 end
 
 return ReplayComputer
