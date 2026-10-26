@@ -9,6 +9,7 @@ local class = require("class")
 ---@field timings sea.Timings?
 ---@field subtimings sea.Subtimings?
 ---@field inputmode string?
+---@field chart_healths sea.Healths? The chart's own HP value, such as #TOTAL of a BMS chart.
 local ScoreSystem = class()
 
 ---@alias rizu.ScoreSystemHandler string|function|rizu.ScoreSystemHandler[]
@@ -33,6 +34,11 @@ end
 ---@param inputmode string
 function ScoreSystem:setInputMode(inputmode)
 	self.inputmode = inputmode
+end
+
+---@param chart_healths sea.Healths?
+function ScoreSystem:setChartHealths(chart_healths)
+	self.chart_healths = chart_healths
 end
 
 ---@param event table

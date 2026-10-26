@@ -330,6 +330,7 @@ return {
 	["song_select.overall_difficulty"] = "Dificultad general",
 	["song_select.etterna_judge"] = "Juez de Etterna",
 	["song_select.etterna_life"] = "Dificultad de vida de Etterna",
+	["song_select.lr2_gauge"] = "Barra de LR2",
 	["song_select.bms_rank"] = "Rango de timing de LR2",
 	["song_select.constant_scroll_speed"] = "Velocidad de desplazamiento constante",
 	["song_select.no_long_notes"] = "Sin notas largas",

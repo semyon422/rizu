@@ -227,6 +227,20 @@ function Modifiers:rebuildForm()
 				end,
 			}))
 		end
+		if system.name == "bmsrank" then
+			local gauge_names = {[0] = "Groove", "Easy", "Hard", "Hazard"}
+			self.form:add(SegmentedControl({
+				label = self.localization:get("song_select.lr2_gauge"),
+				options = {0, 1, 2, 3},
+				value = play:getLr2Gauge(),
+				format = function(gauge)
+					return gauge_names[gauge]
+				end,
+				on_change = function(gauge)
+					play:setLr2Gauge(gauge)
+				end,
+			}))
+		end
 		local value_control = TimingValueControl(system, play:getTimingValue(), FORM_WIDTH, self.localization,
 			function(value)
 				-- Not judging(): rebuilding the form would drop the slider while it is dragged.

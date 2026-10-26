@@ -19,6 +19,7 @@ local Scoring = require("rizu.engine.scoring.Scoring")
 ---@field accuracySource rizu.IAccuracySource?
 ---@field comboSource rizu.IComboSource?
 ---@field healthsSource rizu.IHealthsSource?
+---@field chart_healths sea.Healths? Set before load(), the chart's own HP value for the systems.
 ---@field judgesSource rizu.IJudgesSource?
 ---@field scoreSource rizu.IScoreSource?
 ---@field sequence {[string]: table}[]
@@ -57,6 +58,7 @@ function ScoreEngine:load(chartdiff)
 		table.insert(self.scoreSystems, v)
 		v:setNotesCount(chartdiff.notes_count)
 		v:setInputMode(chartdiff.inputmode)
+		v:setChartHealths(self.chart_healths)
 	end
 end
 
@@ -140,6 +142,7 @@ function ScoreEngine:addScoreSystem(score_system)
 
 	score_system:setNotesCount(self.chartdiff.notes_count)
 	score_system:setInputMode(self.chartdiff.inputmode)
+	score_system:setChartHealths(self.chart_healths)
 
 	-- Late systems fill the slices of the events that already happened, so the sequence stays whole.
 	for i, event in ipairs(self.events) do

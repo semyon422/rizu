@@ -95,6 +95,7 @@ local keys = {
 		bmsrank = "timings.bmsrank",
 		osu_score_version = "timings.osu_score_version",
 		etterna_life = "timings.etterna_life",
+		lr2_gauge = "timings.lr2_gauge",
 	},
 	replay_base = {
 		auto_timings = "replay_base.auto_timings",
@@ -285,6 +286,7 @@ function Settings.createConfig(filesystem)
 	end
 	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
 	config:setDefaultNumber(keys.timings.etterna_life, 4, 1, 7, 1)
+	config:setDefaultNumber(keys.timings.lr2_gauge, 0, 0, 3, 1)
 	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
 	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)

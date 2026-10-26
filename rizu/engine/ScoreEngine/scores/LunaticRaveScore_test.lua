@@ -1,4 +1,5 @@
 local LunaticRaveScore = require("rizu.engine.ScoreEngine.scores.LunaticRaveScore")
+local Healths = require("sea.chart.Healths")
 
 local test = {}
 
@@ -196,6 +197,115 @@ function test.long_note_combo_changes_at_release(t)
 	score:receive(hold_event("startPassedPressed", "endPassed", 0))
 	t:eq(score:getCombo(), 1)
 	t:eq(score:getMaxCombo(), 1)
+end
+
+---@param gauge integer?
+---@param total integer? Without it the chart has no #TOTAL.
+---@return rizu.LunaticRaveScore
+local function gauge_score(gauge, total)
+	local score = LunaticRaveScore(2, gauge)
+	score:setNotesCount(100)
+	score:setChartHealths(total and Healths("bmstotal", total) or nil)
+	return score
+end
+
+---@param a number
+---@param b number
+---@return boolean
+local function near(a, b)
+	return math.abs(a - b) < 1e-9
+end
+
+---@param t testing.T
+function test.groove_and_easy_gain_total_per_note(t)
+	local groove = gauge_score(0, 300)
+	t:eq(groove:getHealths(), 20)
+	groove:changeHealth(1)
+	groove:changeHealth(3)
+	t:assert(near(groove:getHealths(), 20 + 3 + 1.5))
+	groove:changeHealth(4)
+	groove:changeHealth(6)
+	t:assert(near(groove:getHealths(), 20 + 4.5 - 4 - 2))
+
+	local easy = gauge_score(1, 300)
+	easy:changeHealth(2)
+	easy:changeHealth(5)
+	t:assert(near(easy:getHealths(), 20 + 1.2 * 3 - 0.8 * 6))
+end
+
+---@param t testing.T
+function test.groove_stays_alive_and_clears_at_80(t)
+	local groove = gauge_score(0, 300)
+	for _ = 1, 10 do
+		groove:changeHealth(5)
+	end
+	t:eq(groove:getHealths(), 2)
+	t:assert(groove:isFailed())
+
+	local rich = gauge_score(0, 300)
+	for _ = 1, 20 do
+		rich:changeHealth(1)
+	end
+	t:assert(near(rich:getHealths(), 80))
+	t:assert(not rich:isFailed())
+end
+
+---@param t testing.T
+function test.hard_fails_below_two_and_hurts_less_at_low_gauge(t)
+	local hard = gauge_score(2, 300)
+	hard:setNotesCount(1000) -- no damage scaling from here
+	t:eq(hard:getHealths(), 100)
+	hard:changeHealth(5)
+	t:assert(near(hard:getHealths(), 90))
+	hard:changeHealth(1)
+	t:assert(near(hard:getHealths(), 90.1))
+
+	local low = gauge_score(2, 300)
+	low:setNotesCount(1000)
+	for _ = 1, 7 do
+		low:changeHealth(5) -- 100 -> 30
+	end
+	t:eq(low:getHealths(), 30)
+	low:changeHealth(5) -- 0.6 * -10
+	t:assert(near(low:getHealths(), 24))
+	t:assert(not low:isFailed())
+	for _ = 1, 10 do
+		low:changeHealth(5)
+	end
+	t:assert(low:isFailed())
+
+	local hazard = gauge_score(3)
+	hazard:changeHealth(6)
+	hazard:changeHealth(1)
+	t:assert(not hazard:isFailed())
+	hazard:changeHealth(4)
+	t:assert(hazard:isFailed())
+end
+
+---@param t testing.T
+function test.hard_damage_grows_for_few_notes_or_low_total(t)
+	---@param notes integer
+	---@param total integer
+	---@return number
+	local function poor_damage(notes, total)
+		local score = LunaticRaveScore(2, 2)
+		score:setNotesCount(notes)
+		score:setChartHealths(Healths("bmstotal", total))
+		score:changeHealth(5)
+		return 100 - score:getHealths()
+	end
+	t:assert(near(poor_damage(1000, 300), 10)) -- no scaling
+	t:assert(near(poor_damage(10, 300), 100)) -- 10x
+	t:assert(near(poor_damage(100, 300), 10 * (5 - 40 / 65)))
+	t:assert(near(poor_damage(1000, 100), 10 * 10 / 1)) -- (100 - 80) / 16 = 1 step
+	t:assert(near(poor_damage(1000, 240), 10 * 10 / 10)) -- 10 steps
+end
+
+---@param t testing.T
+function test.chart_without_total_gets_the_default(t)
+	local groove = gauge_score(0)
+	groove:changeHealth(1)
+	t:assert(near(groove:getHealths(), 20 + (160 + 100 * 0.16) / 100)) -- 100 notes
 end
 
 return test

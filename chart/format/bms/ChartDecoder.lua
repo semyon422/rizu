@@ -10,6 +10,7 @@ local VisualColumns = require("chart.model.visual.VisualColumns")
 local Fraction = require("chart.core.Fraction")
 local EncodingConverter = require("chart.format.notechart.EncodingConverter")
 local enums = require("chart.format.bms.enums")
+local Healths = require("sea.chart.Healths")
 local dpairs = require("dpairs")
 local Visual = require("chart.model.visual.Visual")
 local Chartmeta = require("sea.chart.Chartmeta")
@@ -164,6 +165,10 @@ function ChartDecoder:getChartmeta()
 	local header = bms.header
 	local title, name = splitTitle(header["TITLE"])
 
+	-- LR2 keeps #TOTAL as an unsigned integer, so the fraction is dropped.
+	local total = tonumber(header["TOTAL"])
+	local healths = total and total >= 0 and total <= 90000 and Healths("bmstotal", math.floor(total)) or nil
+
 	local chartmeta = {
 		mode = "mania",
 		hash = self.hash,
@@ -177,6 +182,7 @@ function ChartDecoder:getChartmeta()
 		tempo = bms.baseTempo or 0,
 		inputmode = tostring(self.chart.inputMode),
 		timings = Timings("bmsrank", tonumber(header["RANK"]) or 2),
+		healths = healths,
 	}
 	setmetatable(chartmeta, Chartmeta)
 	---@cast chartmeta sea.Chartmeta

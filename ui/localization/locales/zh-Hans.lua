@@ -397,6 +397,7 @@ return {
 	["song_select.overall_difficulty"] = "总体难度",
 	["song_select.etterna_judge"] = "Etterna 判定",
 	["song_select.etterna_life"] = "Etterna 生命难度",
+	["song_select.lr2_gauge"] = "LR2 血条",
 	["song_select.bms_rank"] = "LR2 判定等级",
 	["song_select.constant_scroll_speed"] = "恒定滚动速度",
 	["song_select.no_long_notes"] = "无长条音符",

@@ -349,6 +349,18 @@ function Play:setEtternaLife(level)
 	modsChanged(self)
 end
 
+---Lunatic Rave 2's gauge. Only used by "bmsrank".
+---@return integer gauge 0 groove, 1 easy, 2 hard, 3 hazard.
+function Play:getLr2Gauge()
+	return self.game.settings:getNumber(Settings.keys.timings.lr2_gauge)
+end
+
+---@param gauge integer
+function Play:setLr2Gauge(gauge)
+	self.game.settings:setNumber(Settings.keys.timings.lr2_gauge, gauge)
+	modsChanged(self)
+end
+
 -- Starting
 
 ---True when the selected chart's gamemode has no scores and keeps its last attempt as a local replay instead.

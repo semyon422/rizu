@@ -30,6 +30,8 @@ function GameplayTimings.getPicked(settings)
 	end
 	if name == "etternaj" then
 		healths = Healths("etterna", settings:getNumber(keys.timings.etterna_life))
+	elseif name == "bmsrank" then
+		healths = Healths("lr2", settings:getNumber(keys.timings.lr2_gauge))
 	end
 	return Scoring(Timings(name, value), subtimings, healths)
 end

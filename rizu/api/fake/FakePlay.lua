@@ -17,6 +17,7 @@ function FakePlay:new()
 	self.timing_values = {osuod = 8, etternaj = 4, bmsrank = 3}
 	self.osu_score_version = 1
 	self.etterna_life = 4
+	self.lr2_gauge = 0
 	self.mutators = {} ---@type {name: string, value: integer?}[]
 	self.mutator_position = 1
 	self.input_mode = "7key"
@@ -166,6 +167,13 @@ function FakePlay:getEtternaLife() return self.etterna_life end
 
 function FakePlay:setEtternaLife(level)
 	self.etterna_life = level
+	self:emit("mods_changed")
+end
+
+function FakePlay:getLr2Gauge() return self.lr2_gauge end
+
+function FakePlay:setLr2Gauge(gauge)
+	self.lr2_gauge = gauge
 	self:emit("mods_changed")
 end
 

@@ -55,6 +55,16 @@ function test.decode_chartmeta_and_resources(t)
 end
 
 ---@param t testing.T
+function test.decode_total_into_healths(t)
+	local with = ChartDecoder():decode(Fixtures.basic({"#TOTAL 350.4", "#00101:0102"}), hash)
+	t:eq(with[1].chartmeta.healths.name, "bmstotal")
+	t:eq(with[1].chartmeta.healths.data, 350) -- 350.4 truncated
+
+	local without = ChartDecoder():decode(Fixtures.basic({"#00101:0102"}), hash)
+	t:eq(without[1].chartmeta.healths, nil)
+end
+
+---@param t testing.T
 function test.decode_lnobj_hold(t)
 	local decoded = ChartDecoder():decode(Fixtures.basic({
 		"#LNOBJ 02",

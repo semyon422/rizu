@@ -37,8 +37,11 @@ function LunaticRave:newTimingValues()
 end
 
 ---@param timings sea.Timings
-function LunaticRave:newScoreSystems(timings)
-	return {LunaticRaveScore(timings.data)}
+---@param subtimings sea.Subtimings?
+---@param healths sea.Healths? Other kinds than lr2 mean the groove gauge.
+function LunaticRave:newScoreSystems(timings, subtimings, healths)
+	local gauge = healths and healths.name == "lr2" and healths.data or nil
+	return {LunaticRaveScore(timings.data, gauge)}
 end
 
 function LunaticRave:getAccuracyClass()

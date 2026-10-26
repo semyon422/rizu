@@ -377,6 +377,7 @@ return {
 	["song_select.overall_difficulty"] = "Общая сложность",
 	["song_select.etterna_judge"] = "Judge Etterna",
 	["song_select.etterna_life"] = "Сложность жизни Etterna",
+	["song_select.lr2_gauge"] = "Шкала LR2",
 	["song_select.bms_rank"] = "Ранг таймингов LR2",
 	["song_select.constant_scroll_speed"] = "Постоянная скорость прокрутки",
 	["song_select.no_long_notes"] = "Без длинных нот",
