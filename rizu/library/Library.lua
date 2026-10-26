@@ -113,10 +113,14 @@ function Library:load(db_path)
 
 	if self.is_sync then
 		self.worker = self:createAndLoadWorker(self.workingDirectory)
+		self.reader = self.worker
 	else
 		self.tr = ThreadRemote("rizu.library.Library", self)
 		self.tr.task_handler.timeout = 60 * 60 * 24
 		self.worker = self.tr:start(self.createAndLoadWorker, self.workingDirectory)
+		-- Reads on their own thread and connection: the worker answers only between the items of a task.
+		self.reader_tr = ThreadRemote("rizu.library.Library.reader", self)
+		self.reader = self.reader_tr:start(self.createAndLoadWorker, self.workingDirectory)
 	end
 end
 
@@ -147,8 +151,14 @@ function Library:unload()
 	if self.worker then
 		self.worker:unload()
 	end
+	if self.reader and self.reader ~= self.worker then
+		self.reader:unload()
+	end
 	if self.tr then
 		self.tr:stop()
+	end
+	if self.reader_tr then
+		self.reader_tr:stop()
 	end
 	self.database:unload()
 end
@@ -159,6 +169,10 @@ function Library:stopThread()
 	if self.tr then
 		self.tr:stopDetached()
 		self.tr = nil
+	end
+	if self.reader_tr then
+		self.reader_tr:stopDetached()
+		self.reader_tr = nil
 	end
 end
 
@@ -297,10 +311,10 @@ end
 ---@param hashes string[]
 ---@return string[] hashes Of the given ones that are in the library.
 function Library:getKnownHashesAsync(hashes)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartfilesRepo:getKnownHashes(hashes)
 	end
-	return self.worker:getKnownHashes(hashes)
+	return self.reader:getKnownHashes(hashes)
 end
 
 ---Copies a downloaded remote catalog into the library. See `RemoteCatalogLoader.import`.
@@ -352,51 +366,51 @@ end
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:queryAsync(params)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		self.chartviewsRepo.params = params
 		return self.chartviewsRepo:query()
 	end
-	return self.worker:query(params)
+	return self.reader:query(params)
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@param chartview rizu.library.IChartviewBase
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:getViewsAsync(params, chartview)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		self.chartviewsRepo.params = params
 		return self.chartviewsRepo:getViews(chartview)
 	end
-	return self.worker:getViews(params, chartview)
+	return self.reader:getViews(params, chartview)
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@param chartviews rizu.library.IChartviewBase[]
 ---@return (rizu.library.Chartview|false)[] result
 function Library:getChartviewsAsync(params, chartviews)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		self.chartviewsRepo.params = params
 		return self.chartviewsRepo:getChartviews(chartviews)
 	end
-	return self.worker:getChartviews(params, chartviews)
+	return self.reader:getChartviews(params, chartviews)
 end
 
 ---@param chartdiff_key sea.ChartdiffKey
 ---@return sea.Chartplay[]
 function Library:getChartplaysForChartdiffAsync(chartdiff_key)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartsRepo:getChartplaysForChartdiff(chartdiff_key)
 	end
-	return self.worker:getChartplaysForChartdiff(chartdiff_key)
+	return self.reader:getChartplaysForChartdiff(chartdiff_key)
 end
 
 ---@param chartmeta_key sea.ChartmetaKey
 ---@return sea.Chartplay[]
 function Library:getChartplaysForChartmetaAsync(chartmeta_key)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartsRepo:getChartplaysForChartmeta(chartmeta_key)
 	end
-	return self.worker:getChartplaysForChartmeta(chartmeta_key)
+	return self.reader:getChartplaysForChartmeta(chartmeta_key)
 end
 
 ---Accuracies of chartplays in another system, see ChartplayHitsRepo:getAccuracies().
@@ -405,15 +419,18 @@ end
 ---@param subtimings integer
 ---@return {[integer]: number}
 function Library:getAccuraciesAsync(ids, timings, subtimings)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartplayHitsRepo:getAccuracies(ids, timings, subtimings)
 	end
-	return self.worker:getAccuracies(ids, timings, subtimings)
+	return self.reader:getAccuracies(ids, timings, subtimings)
 end
 
 function Library:update()
 	if self.tr then
 		self.tr:update()
+	end
+	if self.reader_tr then
+		self.reader_tr:update()
 	end
 	if not self.isProcessing and #self.tasks > 0 then
 		self:process()
