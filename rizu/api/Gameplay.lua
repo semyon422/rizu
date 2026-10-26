@@ -177,11 +177,13 @@ end
 ---@return number? max_healths
 ---@return boolean? failed
 ---@return string? key
+---@return boolean? passed Whether the play would pass if it ended now.
 function Gameplay:getHealths()
 	local score_engine = self.game.rhythm_engine.score_engine
 	local source = score_engine and score_engine.healthsSource
 	if source then
-		return source:getHealths(), source:getMaxHealths(), source:isFailed(), (source --[[@as rizu.ScoreSystem]]):getKey()
+		return source:getHealths(), source:getMaxHealths(), source:isFailed(), (source --[[@as rizu.ScoreSystem]]):getKey(),
+			source:isPassed()
 	end
 end
 

@@ -38,7 +38,7 @@ function HealthsDebug:draw()
 	Painter.setColorRgb(0, 0, 0, 0.75)
 	love.graphics.rectangle("fill", 0, 0, WIDTH, HEIGHT)
 
-	local healths, max_healths, failed, key = self.gameplay:getHealths()
+	local healths, max_healths, failed, key, passed = self.gameplay:getHealths()
 	---@cast max_healths number
 	love.graphics.setFont(self.font)
 	if not healths then
@@ -48,8 +48,8 @@ function HealthsDebug:draw()
 	end
 
 	Painter.setColorTable(failed and Colors.accent or Colors.text)
-	love.graphics.print(("%s  %.3f / %g  %s"):format(key, healths, max_healths, failed and "FAILED" or "alive"),
-		PADDING, PADDING - 2)
+	love.graphics.print(("%s  %.3f / %g  %s, %s"):format(key, healths, max_healths,
+		failed and "FAILED" or "alive", passed and "passing" or "not passing"), PADDING, PADDING - 2)
 
 	local left, right = PADDING, WIDTH - PADDING
 	local top, bottom = GRAPH_Y, HEIGHT - PADDING

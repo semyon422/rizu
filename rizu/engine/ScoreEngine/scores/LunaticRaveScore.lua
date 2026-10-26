@@ -165,13 +165,19 @@ function LunaticRaveScore:getMaxHealths()
 	return 100
 end
 
----Groove and easy clear with 80% at the end of the chart, so they count as failed below it.
+---Groove and easy never die.
 ---@return boolean
 function LunaticRaveScore:isFailed()
+	return self.failed
+end
+
+---Groove and easy clear with 80% at the end of the chart.
+---@return boolean
+function LunaticRaveScore:isPassed()
 	if self.rules.survival then
-		return self.failed
+		return not self.failed
 	end
-	return self.health < 80
+	return self.health >= 80
 end
 
 ---@param event rizu.LogicNoteChange

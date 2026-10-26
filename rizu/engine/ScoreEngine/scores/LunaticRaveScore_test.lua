@@ -240,14 +240,15 @@ function test.groove_stays_alive_and_clears_at_80(t)
 		groove:changeHealth(5)
 	end
 	t:eq(groove:getHealths(), 2)
-	t:assert(groove:isFailed())
+	t:assert(not groove:isFailed())
+	t:assert(not groove:isPassed())
 
 	local rich = gauge_score(0, 300)
 	for _ = 1, 20 do
 		rich:changeHealth(1)
 	end
 	t:assert(near(rich:getHealths(), 80))
-	t:assert(not rich:isFailed())
+	t:assert(rich:isPassed())
 end
 
 ---@param t testing.T
