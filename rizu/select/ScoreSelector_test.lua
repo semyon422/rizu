@@ -5,6 +5,7 @@ local SelectionState = require("rizu.select.SelectionState")
 local ScoreStore = require("rizu.select.stores.ScoreStore")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
+local Timings = require("sea.chart.Timings")
 
 local test = {}
 
@@ -271,16 +272,22 @@ function test.score_store_rescores_local_scores_in_the_picked_system(t)
 	store:updateItemsAsync(chartview, "chartmeta", 3)
 	t:eq(#calls, 2)
 
+	-- Its own timings, a plain table as chartviews come from the library thread.
+	chartview.chartmeta_timings = {name = "osuod", data = 8}
+	store:updateItemsAsync(chartview, "chartmeta", 4)
+	t:eq(#calls, 3)
+	t:eq(calls[3][2], Timings("osuod", 8):encode())
+
 	-- Turned off.
 	settings:setBoolean(Settings.keys.select.rescore, false)
-	store:updateItemsAsync(chartview, "chartmeta", 4)
-	t:eq(#calls, 2)
+	store:updateItemsAsync(chartview, "chartmeta", 5)
+	t:eq(#calls, 3)
 	settings:setBoolean(Settings.keys.select.rescore, true)
 
 	-- The server has no hits.
 	settings:setChoice(Settings.keys.select.score_source, "online")
-	store:updateItemsAsync(chartview, "chartmeta", 5)
-	t:eq(#calls, 2)
+	store:updateItemsAsync(chartview, "chartmeta", 6)
+	t:eq(#calls, 3)
 end
 
 ---@param t testing.T

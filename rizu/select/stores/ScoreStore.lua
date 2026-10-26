@@ -6,6 +6,7 @@ local Settings = require("rizu.config.Settings")
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
 local Scoring = require("rizu.engine.scoring.Scoring")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
+local Timings = require("sea.chart.Timings")
 
 ---@class rizu.select.stores.ScoreStore
 ---@operator call: rizu.select.stores.ScoreStore
@@ -65,8 +66,11 @@ function ScoreStore.getScoring(settings, chartview)
 	then
 		return
 	end
+	-- Chartviews come from the library thread as plain tables, without the Timings metatable.
+	local timings = chartview.chartmeta_timings
+	timings = timings and Timings(timings.name, timings.data)
 	return GameplayTimings.getPicked(settings)
-		or Scoring(TimingSystems.getAuto(chartview.chartmeta_timings, chartview.format))
+		or Scoring(TimingSystems.getAuto(timings, chartview.format))
 end
 
 ---@param i integer
