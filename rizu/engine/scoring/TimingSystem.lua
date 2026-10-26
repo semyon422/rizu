@@ -1,5 +1,5 @@
 local class = require("class")
-local NormalscoreScore = require("rizu.engine.ScoreEngine.scores.NormalscoreScore")
+local SoundsphereScore = require("rizu.engine.ScoreEngine.scores.SoundsphereScore")
 
 ---Everything the game knows about one kind of sea.Timings: its hit windows, the score systems that
 ---count it, and how its accuracy, grades and name are written. One instance per timings name, see
@@ -95,7 +95,7 @@ end
 ---@param subtimings sea.Subtimings?
 ---@return rizu.IAccuracySource
 function TimingSystem:getAccuracyClass(subtimings)
-	return NormalscoreScore
+	return SoundsphereScore
 end
 
 ---@param accuracy number

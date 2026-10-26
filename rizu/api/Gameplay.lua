@@ -231,7 +231,7 @@ function Gameplay:getJudgement(i)
 	local source = score_engine.judgesSource
 	local judges = source and slice[source:getKey()]
 	local kind = base.isMiss and "miss" or base.isEarlyHit and "early" or "hit"
-	return kind, kind == "hit" and slice.misc.deltaTime or 0, judges and (judges.visual_judge or judges.judge_index or judges.last_judge)
+	return kind, kind == "hit" and base.deltaTime or 0, judges and (judges.visual_judge or judges.judge_index or judges.last_judge)
 end
 
 -- Notes, for skins. Mania only: other gamemodes have no notes or columns here.

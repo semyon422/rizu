@@ -149,7 +149,7 @@ end
 ---Accuracy the way Rizu counts it, whatever system judged the play.
 ---@return string? text "21.00ms". nil when it was not counted.
 function Result:getNormalscoreText()
-	local normalscore = self.game.rhythm_engine.score_engine.scores.normalscore
+	local normalscore = self.game.rhythm_engine.score_engine.scores.soundsphere
 	return normalscore and normalscore:getAccuracyString()
 end
 
@@ -204,13 +204,13 @@ function Result:getHits()
 	local key = judges_source and judges_source:getKey()
 	local hits = {} ---@type rizu.api.Result.Hit[]
 	for i, slice in ipairs(score_engine.sequence) do
-		local base, normalscore = slice.base, slice.normalscore or {}
+		local base, normalscore = slice.base, slice.soundsphere or {}
 		local judges = slice[key]
 		local is_hit = not base.isMiss and not base.isEarlyHit
 		hits[i] = {
 			time = base.currentTime,
 			kind = base.isMiss and "miss" or base.isEarlyHit and "early" or "hit",
-			delta = is_hit and slice.misc.deltaTime or 0,
+			delta = is_hit and base.deltaTime or 0,
 			judge = judges and (judges.visual_judge or judges.last_judge),
 			accuracy = normalscore.accuracyAdjusted or 0,
 			mean = base.lastMean or 0,

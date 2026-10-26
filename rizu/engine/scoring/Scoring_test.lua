@@ -52,7 +52,7 @@ end
 function test.accuracy_source_of_the_engine(t)
 	local se = ScoreEngine()
 	se:load({notes_count = 1} --[[@as any]])
-	t:eq(Scoring(Timings("sphere")):getAccuracySource(se), se.scores.normalscore)
+	t:eq(Scoring(Timings("sphere")):getAccuracySource(se), se.scores.soundsphere)
 	local source = assert(Scoring(Timings("etternaj", 4)):getAccuracySource(se))
 	t:eq((source --[[@as rizu.ScoreSystem]]):getKey(), "etterna_accuracy_j4")
 end

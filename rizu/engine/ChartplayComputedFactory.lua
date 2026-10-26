@@ -23,7 +23,7 @@ function ChartplayComputedFactory:getChartplayComputed(fast)
 	local scores = score_engine.scores
 	local judgesSource = assert(score_engine.judgesSource)
 
-	local ns_score = scores.normalscore:getScore()
+	local ns_score = scores.soundsphere:getScore()
 
 	local rating_msd = 0
 	if not fast then
@@ -35,7 +35,7 @@ function ChartplayComputedFactory:getChartplayComputed(fast)
 	local c = ChartplayComputed()
 	c.pass = assert(score_engine.healthsSource):isPassed()
 	c.judges = judgesSource:getJudges()
-	c.accuracy = scores.normalscore.accuracyAdjusted
+	c.accuracy = scores.soundsphere.accuracyAdjusted
 	c.max_combo = scores.base.maxCombo
 	c.miss_count = scores.base.missCount
 	c.not_perfect_count = judgesSource:getNotPerfect()

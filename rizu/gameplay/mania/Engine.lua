@@ -49,7 +49,7 @@ end
 function ManiaEngine:hasResult()
 	local time_engine = self.time_engine
 	local base = self.score_engine.scores.base
-	local accuracy = self.score_engine.scores.normalscore.accuracyAdjusted
+	local accuracy = self.score_engine.scores.soundsphere.accuracyAdjusted
 
 	return
 		not time_engine.wind_up and

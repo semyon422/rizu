@@ -75,7 +75,7 @@ end
 ---@return rizu.IAccuracySource?
 function Scoring:getAccuracySource(score_engine)
 	if self:isNormalscore() then
-		return score_engine.scores.normalscore
+		return score_engine.scores.soundsphere
 	end
 	for _, system in ipairs(self:createScoreSystems() or {}) do
 		if IAccuracySource * system then

@@ -2,9 +2,6 @@ local class = require("class")
 local table_util = require("table_util")
 
 local BaseScore = require("rizu.engine.ScoreEngine.scores.BaseScore")
-local HpScore = require("rizu.engine.ScoreEngine.scores.HpScore")
-local NormalscoreScore = require("rizu.engine.ScoreEngine.scores.NormalscoreScore")
-local MiscScore = require("rizu.engine.ScoreEngine.scores.MiscScore")
 local SoundsphereScore = require("rizu.engine.ScoreEngine.scores.SoundsphereScore")
 
 local IAccuracySource = require("rizu.engine.ScoreEngine.IAccuracySource")
@@ -82,9 +79,6 @@ function ScoreEngine:loadCourse(info)
 
 	local by_name = {
 		base = BaseScore(),
-		hp = HpScore(),
-		misc = MiscScore(),
-		normalscore = NormalscoreScore(),
 		soundsphere = SoundsphereScore(),
 	}
 	self.scores = by_name
@@ -129,11 +123,11 @@ end
 
 function ScoreEngine:selectDefault()
 	local scores = self.scores
-	self.accuracySource = scores.normalscore
+	self.accuracySource = scores.soundsphere
 	self.comboSource = scores.base
-	self.healthsSource = scores.hp
+	self.healthsSource = scores.soundsphere
 	self.judgesSource = scores.soundsphere
-	self.scoreSource = scores.normalscore
+	self.scoreSource = scores.soundsphere
 end
 
 ---@param t sea.Timings

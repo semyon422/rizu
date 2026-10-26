@@ -221,8 +221,8 @@ function test.result(t)
 	local score_engine = {
 		scores = {},
 		sequence = {
-			{base = {currentTime = 1, lastMean = 0.01}, misc = {deltaTime = -0.02}, etterna = {last_judge = 1}},
-			{base = {currentTime = 2, isMiss = true}, misc = {}, etterna = {last_judge = 3}},
+			{base = {currentTime = 1, lastMean = 0.01, deltaTime = -0.02}, etterna = {last_judge = 1}},
+			{base = {currentTime = 2, isMiss = true}, etterna = {last_judge = 3}},
 		},
 	}
 	local game = {
@@ -256,8 +256,8 @@ end
 ---@param t testing.T
 function test.gameplay_score(t)
 	local sequence = {
-		{base = {isMiss = false, isEarlyHit = false}, misc = {deltaTime = -0.012}, osu = {visual_judge = 2}},
-		{base = {isMiss = true, isEarlyHit = false}, misc = {deltaTime = 0.2}},
+		{base = {isMiss = false, isEarlyHit = false, deltaTime = -0.012}, osu = {visual_judge = 2}},
+		{base = {isMiss = true, isEarlyHit = false, deltaTime = 0.2}},
 	}
 	local score_engine = {
 		scores = {base = {hitCount = 1, missCount = 1}},

@@ -137,7 +137,7 @@ function test.has_result(t)
 	-- Mock score engine to have some hits
 	re.score_engine.scores.base.hitCount = 1
 	re:setTime(5)
-	re.score_engine.scores.normalscore.accuracyAdjusted = 0.95
+	re.score_engine.scores.soundsphere.accuracyAdjusted = 0.95
 	
 	t:assert(gc:hasResult())
 	
@@ -240,7 +240,7 @@ function test.offset_free_replay_preserves_judgements_at_rates_and_partitions(t)
 			end
 			t:eq(manual_re.score_engine.scores.base.hitCount, replay_re.score_engine.scores.base.hitCount)
 			t:eq(manual_re.score_engine.scores.base.missCount, replay_re.score_engine.scores.base.missCount)
-			t:aeq(manual_re.score_engine.scores.normalscore.accuracyAdjusted, replay_re.score_engine.scores.normalscore.accuracyAdjusted, 1e-9)
+			t:aeq(manual_re.score_engine.scores.soundsphere.accuracyAdjusted, replay_re.score_engine.scores.soundsphere.accuracyAdjusted, 1e-9)
 			for i, change in ipairs(manual_re.score_engine.events) do
 				local computed_change = computed_re.score_engine.events[i]
 				t:aeq(change.time, computed_change.time, 1e-9); t:aeq(change.delta_time, computed_change.delta_time, 1e-9)
@@ -248,7 +248,7 @@ function test.offset_free_replay_preserves_judgements_at_rates_and_partitions(t)
 			end
 			t:eq(manual_re.score_engine.scores.base.hitCount, computed_re.score_engine.scores.base.hitCount)
 			t:eq(manual_re.score_engine.scores.base.missCount, computed_re.score_engine.scores.base.missCount)
-			t:aeq(manual_re.score_engine.scores.normalscore.accuracyAdjusted, computed_re.score_engine.scores.normalscore.accuracyAdjusted, 1e-9)
+			t:aeq(manual_re.score_engine.scores.soundsphere.accuracyAdjusted, computed_re.score_engine.scores.soundsphere.accuracyAdjusted, 1e-9)
 		end
 	end
 end
