@@ -82,8 +82,10 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
-function Worker:recomputeChartplays()
-	self.processor:recomputeChartplays()
+---@param since integer?
+---@return boolean completed
+function Worker:recomputeChartplays(since)
+	return self.processor:recomputeChartplays(since)
 end
 
 ---@return boolean completed

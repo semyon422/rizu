@@ -2,6 +2,7 @@ local LibraryTestContext = require("rizu.library.LibraryTestContext")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
 local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
+local ScoreTask = require("rizu.library.tasks.ScoreTask")
 
 local test = {}
 
@@ -167,6 +168,41 @@ function test.hits_update_once_per_version(t)
 	ctx.lib:updateHits(settings)
 	ctx:process()
 	t:eq(calls, 2)
+	ctx:cleanup()
+end
+
+---@param t testing.T
+function test.scores_recompute_once_per_version_and_resume(t)
+	local ctx = LibraryTestContext()
+	local settings = Settings.createConfig(FakeFilesystem())
+	local keys = Settings.keys.scores
+	---@type (integer?)[]
+	local sinces = {}
+	local completed = false
+	ctx.lib.worker.recomputeChartplays = function(_, since)
+		table.insert(sinces, since)
+		return completed
+	end
+
+	-- A stopped run goes on at the next start from when the first one began.
+	ctx.lib:updateScores(settings)
+	ctx:process()
+	local since = settings:getNumber(keys.recompute_since)
+	t:assert(since > 0)
+	t:tdeq(sinces, {since})
+	t:eq(settings:getNumber(keys.compute_version), 0)
+
+	completed = true
+	ctx.lib:updateScores(settings)
+	ctx:process()
+	t:tdeq(sinces, {since, since})
+	t:eq(settings:getNumber(keys.compute_version), ScoreTask.version)
+	t:eq(settings:getNumber(keys.recompute_since), 0)
+
+	-- Done for this version: nothing to do at the next start.
+	ctx.lib:updateScores(settings)
+	ctx:process()
+	t:eq(#sinces, 2)
 	ctx:cleanup()
 end
 

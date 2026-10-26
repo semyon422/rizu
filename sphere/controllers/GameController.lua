@@ -272,6 +272,8 @@ function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
+	-- After an update every score is computed again in the background, and it stores the hits too.
+	self.library:updateScores(self.settings)
 	-- Scores saved before their hits were stored get them in the background.
 	self.library:updateHits(self.settings)
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)

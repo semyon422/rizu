@@ -271,8 +271,10 @@ function Processor:computeChartplays()
 	self.scoreTask:computeAll()
 end
 
-function Processor:recomputeChartplays()
-	self.scoreTask:recomputeAll()
+---@param since integer?
+---@return boolean completed
+function Processor:recomputeChartplays(since)
+	return self.scoreTask:recomputeAll(since)
 end
 
 ---@return boolean completed

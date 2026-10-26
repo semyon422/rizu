@@ -101,6 +101,10 @@ local keys = {
 	scores = {
 		-- Internal: ChartplayHitsRepo.hits_version of the last finished update, see Library:updateHits().
 		hits_version = "scores.hits_version",
+		-- Internal: ScoreTask.version of the last finished recompute, see Library:updateScores().
+		compute_version = "scores.compute_version",
+		-- Internal: when the unfinished recompute began, 0 for none.
+		recompute_since = "scores.recompute_since",
 	},
 	graphics = {
 		fps = "graphics.fps",
@@ -281,6 +285,8 @@ function Settings.createConfig(filesystem)
 	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
 	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
 	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
+	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)
+	config:setDefaultNumber(keys.scores.recompute_since, 0, 0, math.huge, 1)
 
 	config:setDefaultNumber(gr.fps, 240, 30, 1024, 2)
 	config:setDefaultBoolean(gr.unlimited_fps, false)

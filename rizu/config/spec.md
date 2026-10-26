@@ -46,6 +46,8 @@ The leaderboard of a mania chart shows local scores in the system plays of it ar
 
 Every saved score stores its hits (`chartplay_hits`): what the score engine received, enough to score it in any system without the replay. Older scores get them in the background at startup, played again from their replays. `scores.hits_version` is internal: the `ChartplayHitsRepo.hits_version` of the last update that went through every score. Such an update runs only when it differs, so a score whose chart or replay is gone is not retried at every start.
 
+`scores.compute_version` is internal too: the `ScoreTask.version` of the last recompute that went through every score. When it differs, every local score is computed again in the background at startup (rating, accuracy and hits), before the hits update, which then finds only the scores the recompute could not play again. `scores.recompute_since` holds when the unfinished recompute began, 0 for none: a run takes only the scores computed before it, so a stopped one goes on at the next start.
+
 ## Persistence
 
 `Config` receives a filesystem and path at construction. `load()` and `save()` use flat JSON. Only values differing from defaults are stored. Unknown persisted keys are ignored for compatibility; invalid values make loading fail without changing the current config.

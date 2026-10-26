@@ -10,6 +10,7 @@ local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
+local ScoreTask = require("rizu.library.tasks.ScoreTask")
 local Settings = require("rizu.config.Settings")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
@@ -269,6 +270,28 @@ end
 function Library:recomputeChartplays()
 	self:addTask(function()
 		self.worker:recomputeChartplays()
+	end)
+end
+
+---Computes every local chartplay again once per ScoreTask.version, in the background. A stopped run
+---goes on at the next start with the chartplays computed before the first run began.
+---@param settings rizu.config.Config
+function Library:updateScores(settings)
+	local keys = Settings.keys.scores
+	local version = ScoreTask.version
+	if settings:getNumber(keys.compute_version) == version then
+		return
+	end
+	local since = settings:getNumber(keys.recompute_since)
+	if since == 0 then
+		since = os.time()
+		settings:setNumber(keys.recompute_since, since)
+	end
+	self:addTask(function()
+		if self.worker:recomputeChartplays(since) then
+			settings:setNumber(keys.compute_version, version)
+			settings:setNumber(keys.recompute_since, 0)
+		end
 	end)
 end
 

@@ -83,7 +83,11 @@ function test.recompute_all_updates_old_scores_and_stores_hits(t)
 	local context = FakeTaskContext()
 	local task = ScoreTask(chartsRepo, chartsComputer, hitsRepo, context, timer)
 
-	task:recomputeAll()
+	-- Computed after the run began: done already.
+	t:eq(task:recomputeAll(0), true)
+	t:assert(not hitsRepo:getHits(chartplay.id))
+
+	t:eq(task:recomputeAll(1), true)
 
 	for _, action in ipairs(context.actions) do
 		t:ne(action[1], "addError", action[2])
