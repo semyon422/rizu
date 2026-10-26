@@ -102,7 +102,8 @@ function OsuManiaV1Score:addCounter(index, event)
 	self.visual_judge = index
 
 	self.hitValue = self.hitValue + hitValue[index]
-	self.bonus = math_util.clamp(self.bonus + hitBonus[index], 0, 100)
+	-- stable assigns the miss penalty instead of adding it, so a miss empties the meter.
+	self.bonus = math_util.clamp((index == 6 and 0 or self.bonus) + hitBonus[index], 0, 100)
 
 	-- osu!stable restores the bonus meter before a judgement at each 384 combo.
 	if self.combo ~= 0 and self.combo % 384 == 0 then
@@ -233,6 +234,8 @@ function OsuManiaV1Score:longNoteFail(event)
 	if state then
 		-- Stable measures a broken LN from the latest re-press.
 		state.broken = true
+		-- A hold break is a zero-score miss in stable: it breaks combo right away.
+		self.combo = 0
 		state.head_delta_time = event.press_delta_time or state.head_delta_time
 		return
 	end

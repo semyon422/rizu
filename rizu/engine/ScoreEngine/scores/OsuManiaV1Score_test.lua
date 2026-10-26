@@ -104,8 +104,20 @@ function test.score_uses_stable_miss_penalty(t)
 	score:addCounter(1)
 	score:addCounter(6)
 
-	t:eq(score.bonus, 44)
+	t:eq(score.bonus, 0)
 	t:eq(score:getScore(), 500000)
+end
+
+---@param t testing.T
+function test.hold_break_resets_combo(t)
+	local score = OsuManiaV1Score(8)
+	score:setNotesCount(2)
+
+	score:longNoteStartHit({index = 1, delta_time = 0})
+	score:addCounter(1)
+	t:eq(score.combo, 1)
+	score:longNoteFail({index = 1})
+	t:eq(score.combo, 0)
 end
 
 ---@param t testing.T
