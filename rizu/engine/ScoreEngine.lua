@@ -25,6 +25,14 @@ local Scoring = require("rizu.engine.scoring.Scoring")
 ---@field sequence {[string]: table}[]
 local ScoreEngine = class()
 
+---@param chartdiff sea.Chartdiff
+---@return number?
+local function getDensity(chartdiff)
+	if chartdiff.duration > 0 then
+		return chartdiff.judges_count / chartdiff.duration
+	end
+end
+
 function ScoreEngine:new()
 	---@type rizu.LogicNoteChange[]
 	self.events = {}
@@ -57,6 +65,7 @@ function ScoreEngine:load(chartdiff)
 	for _, v in pairs(by_name) do
 		table.insert(self.scoreSystems, v)
 		v:setNotesCount(chartdiff.notes_count)
+		v:setDensity(getDensity(chartdiff))
 		v:setInputMode(chartdiff.inputmode)
 		v:setChartHealths(self.chart_healths)
 	end
@@ -141,6 +150,7 @@ function ScoreEngine:addScoreSystem(score_system)
 	by_name[key] = score_system
 
 	score_system:setNotesCount(self.chartdiff.notes_count)
+	score_system:setDensity(getDensity(self.chartdiff))
 	score_system:setInputMode(self.chartdiff.inputmode)
 	score_system:setChartHealths(self.chart_healths)
 

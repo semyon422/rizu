@@ -31,6 +31,12 @@ function ScoreSystem:setNotesCount(notes_count)
 	self.notes_count = notes_count
 end
 
+---Judgeable objects per second of the chart at rate 1, nil when unknown.
+---@param density number?
+function ScoreSystem:setDensity(density)
+	self.density = density
+end
+
 ---@param inputmode string
 function ScoreSystem:setInputMode(inputmode)
 	self.inputmode = inputmode
