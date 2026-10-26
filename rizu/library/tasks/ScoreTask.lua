@@ -15,7 +15,7 @@ function ScoreTask:new(chartsRepo, chartsComputer, hitsRepo, taskContext, timer)
 	self.chartsComputer = chartsComputer
 	self.hitsRepo = hitsRepo
 	self.taskContext = taskContext
-	self.batchProcessor = BatchProcessor(taskContext, timer, 100)
+	self.batchProcessor = BatchProcessor(taskContext, timer)
 end
 
 ---@param chartplays sea.Chartplay[]

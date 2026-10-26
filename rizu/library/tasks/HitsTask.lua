@@ -17,7 +17,7 @@ function HitsTask:new(chartsRepo, hitsRepo, computeDataLoader, taskContext, time
 	self.chartsRepo = chartsRepo
 	self.hitsRepo = hitsRepo
 	self.computeDataLoader = computeDataLoader
-	self.batchProcessor = BatchProcessor(taskContext, timer, 100)
+	self.batchProcessor = BatchProcessor(taskContext, timer)
 end
 
 ---@param chartplay sea.Chartplay

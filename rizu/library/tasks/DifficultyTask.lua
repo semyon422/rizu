@@ -23,7 +23,7 @@ function DifficultyTask:new(difficultyModel, chartdiffGenerator, chartsRepo, tas
 	self.chartsRepo = chartsRepo
 	self.taskContext = taskContext
 	self.chartProvider = chartProvider
-	self.batchProcessor = BatchProcessor(taskContext, timer, 100)
+	self.batchProcessor = BatchProcessor(taskContext, timer)
 end
 
 function DifficultyTask:computeMissing()
